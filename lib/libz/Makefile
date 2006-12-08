@@ -1,0 +1,141 @@
+#	$Id: Makefile,v 1.1.1.1 2006/09/14 01:59:06 root Exp $ */
+#
+#
+# Copyright (c) 2001 Opsycon AB  (www.opsycon.se)
+# Copyright (c) 2002 Patrik Lindergren  (www.lindergren.com)
+# 
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+# 3. All advertising materials mentioning features or use of this software
+#    must display the following acknowledgement:
+#	This product includes software developed by Opsycon AB, Sweden.
+#	This product includes software developed by Patrik Lindergren.
+# 4. The name of the author may not be used to endorse or promote products
+#    derived from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS
+# OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
+# DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+# OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+# HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+# OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+# SUCH DAMAGE.
+#
+#
+
+LIB=z
+NOPIC=
+
+MACHINE=	${XMACHINE}
+MACHINE_ARCH=	${XMACHINE_ARCH}
+CURDIR=$(shell pwd)
+
+M=	${CURDIR}/arch/${MACHINE_ARCH}
+
+CPPFLAGS=	-I$M ${ZLIBCPPFLAGS} -U_KERNEL
+
+VPATH+=	${M} ${ZLIBDIR}
+ 
+include ${M}/Makefile.inc
+
+# Files to clean up
+CLEANFILES+= ${OBJDIR}/lib${LIB}.a
+
+include ${PMONDIR}/tools/scripts/pmon.lib.gmk
+
+${OBJDIR}/lib${LIB}.a: ${OBJS}
+	@echo building standard ${LIB} library
+	@rm -f $@
+	@${AR} cq $@ ${OBJS}
+	${RANLIB} $@
+# DO NOT DELETE
+
+adler32.o: zlib.h zconf.h
+crc32.o: zlib.h zconf.h
+infblock.o: zutil.h zlib.h zconf.h
+infblock.o: /home/michael/pmon2k/pmon2000/pmon/src/include/stddef.h
+infblock.o: /home/michael/pmon2k/pmon2000/pmon/src/Targets/EV64240/compile/EV64240EL/machine/ansi.h
+infblock.o: /home/michael/pmon2k/pmon2000/pmon/src/include/string.h
+infblock.o: /home/michael/pmon2k/pmon2000/pmon/src/sys/sys/cdefs.h
+infblock.o: /home/michael/pmon2k/pmon2000/pmon/src/Targets/EV64240/compile/EV64240EL/machine/cdefs.h
+infblock.o: /home/michael/pmon2k/pmon2000/pmon/src/include/stdlib.h
+infblock.o: /home/michael/pmon2k/pmon2000/pmon/src/sys/sys/types.h
+infblock.o: /home/michael/pmon2k/pmon2000/pmon/src/Targets/EV64240/compile/EV64240EL/machine/types.h
+infblock.o: /home/michael/pmon2k/pmon2000/pmon/src/Targets/EV64240/compile/EV64240EL/machine/endian.h
+infblock.o: /home/michael/pmon2k/pmon2000/pmon/src/sys/sys/endian.h
+infblock.o: /home/michael/pmon2k/pmon2000/pmon/src/include/errno.h infblock.h
+infblock.o: inftrees.h infcodes.h infutil.h
+infcodes.o: zutil.h zlib.h zconf.h
+infcodes.o: /home/michael/pmon2k/pmon2000/pmon/src/include/stddef.h
+infcodes.o: /home/michael/pmon2k/pmon2000/pmon/src/Targets/EV64240/compile/EV64240EL/machine/ansi.h
+infcodes.o: /home/michael/pmon2k/pmon2000/pmon/src/include/string.h
+infcodes.o: /home/michael/pmon2k/pmon2000/pmon/src/sys/sys/cdefs.h
+infcodes.o: /home/michael/pmon2k/pmon2000/pmon/src/Targets/EV64240/compile/EV64240EL/machine/cdefs.h
+infcodes.o: /home/michael/pmon2k/pmon2000/pmon/src/include/stdlib.h
+infcodes.o: /home/michael/pmon2k/pmon2000/pmon/src/sys/sys/types.h
+infcodes.o: /home/michael/pmon2k/pmon2000/pmon/src/Targets/EV64240/compile/EV64240EL/machine/types.h
+infcodes.o: /home/michael/pmon2k/pmon2000/pmon/src/Targets/EV64240/compile/EV64240EL/machine/endian.h
+infcodes.o: /home/michael/pmon2k/pmon2000/pmon/src/sys/sys/endian.h
+infcodes.o: /home/michael/pmon2k/pmon2000/pmon/src/include/errno.h inftrees.h
+infcodes.o: infblock.h infcodes.h infutil.h inffast.h
+inffast.o: zutil.h zlib.h zconf.h
+inffast.o: /home/michael/pmon2k/pmon2000/pmon/src/include/stddef.h
+inffast.o: /home/michael/pmon2k/pmon2000/pmon/src/Targets/EV64240/compile/EV64240EL/machine/ansi.h
+inffast.o: /home/michael/pmon2k/pmon2000/pmon/src/include/string.h
+inffast.o: /home/michael/pmon2k/pmon2000/pmon/src/sys/sys/cdefs.h
+inffast.o: /home/michael/pmon2k/pmon2000/pmon/src/Targets/EV64240/compile/EV64240EL/machine/cdefs.h
+inffast.o: /home/michael/pmon2k/pmon2000/pmon/src/include/stdlib.h
+inffast.o: /home/michael/pmon2k/pmon2000/pmon/src/sys/sys/types.h
+inffast.o: /home/michael/pmon2k/pmon2000/pmon/src/Targets/EV64240/compile/EV64240EL/machine/types.h
+inffast.o: /home/michael/pmon2k/pmon2000/pmon/src/Targets/EV64240/compile/EV64240EL/machine/endian.h
+inffast.o: /home/michael/pmon2k/pmon2000/pmon/src/sys/sys/endian.h
+inffast.o: /home/michael/pmon2k/pmon2000/pmon/src/include/errno.h inftrees.h
+inffast.o: infblock.h infcodes.h infutil.h inffast.h
+inflate.o: zutil.h zlib.h zconf.h
+inflate.o: /home/michael/pmon2k/pmon2000/pmon/src/include/stddef.h
+inflate.o: /home/michael/pmon2k/pmon2000/pmon/src/Targets/EV64240/compile/EV64240EL/machine/ansi.h
+inflate.o: /home/michael/pmon2k/pmon2000/pmon/src/include/string.h
+inflate.o: /home/michael/pmon2k/pmon2000/pmon/src/sys/sys/cdefs.h
+inflate.o: /home/michael/pmon2k/pmon2000/pmon/src/Targets/EV64240/compile/EV64240EL/machine/cdefs.h
+inflate.o: /home/michael/pmon2k/pmon2000/pmon/src/include/stdlib.h
+inflate.o: /home/michael/pmon2k/pmon2000/pmon/src/sys/sys/types.h
+inflate.o: /home/michael/pmon2k/pmon2000/pmon/src/Targets/EV64240/compile/EV64240EL/machine/types.h
+inflate.o: /home/michael/pmon2k/pmon2000/pmon/src/Targets/EV64240/compile/EV64240EL/machine/endian.h
+inflate.o: /home/michael/pmon2k/pmon2000/pmon/src/sys/sys/endian.h
+inflate.o: /home/michael/pmon2k/pmon2000/pmon/src/include/errno.h infblock.h
+inftrees.o: zutil.h zlib.h zconf.h
+inftrees.o: /home/michael/pmon2k/pmon2000/pmon/src/include/stddef.h
+inftrees.o: /home/michael/pmon2k/pmon2000/pmon/src/Targets/EV64240/compile/EV64240EL/machine/ansi.h
+inftrees.o: /home/michael/pmon2k/pmon2000/pmon/src/include/string.h
+inftrees.o: /home/michael/pmon2k/pmon2000/pmon/src/sys/sys/cdefs.h
+inftrees.o: /home/michael/pmon2k/pmon2000/pmon/src/Targets/EV64240/compile/EV64240EL/machine/cdefs.h
+inftrees.o: /home/michael/pmon2k/pmon2000/pmon/src/include/stdlib.h
+inftrees.o: /home/michael/pmon2k/pmon2000/pmon/src/sys/sys/types.h
+inftrees.o: /home/michael/pmon2k/pmon2000/pmon/src/Targets/EV64240/compile/EV64240EL/machine/types.h
+inftrees.o: /home/michael/pmon2k/pmon2000/pmon/src/Targets/EV64240/compile/EV64240EL/machine/endian.h
+inftrees.o: /home/michael/pmon2k/pmon2000/pmon/src/sys/sys/endian.h
+inftrees.o: /home/michael/pmon2k/pmon2000/pmon/src/include/errno.h inftrees.h
+inftrees.o: inffixed.h
+infutil.o: zutil.h zlib.h zconf.h
+infutil.o: /home/michael/pmon2k/pmon2000/pmon/src/include/stddef.h
+infutil.o: /home/michael/pmon2k/pmon2000/pmon/src/Targets/EV64240/compile/EV64240EL/machine/ansi.h
+infutil.o: /home/michael/pmon2k/pmon2000/pmon/src/include/string.h
+infutil.o: /home/michael/pmon2k/pmon2000/pmon/src/sys/sys/cdefs.h
+infutil.o: /home/michael/pmon2k/pmon2000/pmon/src/Targets/EV64240/compile/EV64240EL/machine/cdefs.h
+infutil.o: /home/michael/pmon2k/pmon2000/pmon/src/include/stdlib.h
+infutil.o: /home/michael/pmon2k/pmon2000/pmon/src/sys/sys/types.h
+infutil.o: /home/michael/pmon2k/pmon2000/pmon/src/Targets/EV64240/compile/EV64240EL/machine/types.h
+infutil.o: /home/michael/pmon2k/pmon2000/pmon/src/Targets/EV64240/compile/EV64240EL/machine/endian.h
+infutil.o: /home/michael/pmon2k/pmon2000/pmon/src/sys/sys/endian.h
+infutil.o: /home/michael/pmon2k/pmon2000/pmon/src/include/errno.h infblock.h
+infutil.o: inftrees.h infcodes.h infutil.h

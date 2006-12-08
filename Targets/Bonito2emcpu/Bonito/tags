@@ -1,0 +1,176 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.2.2	//
+.ddrtype	start.S	/^.ddrtype:$/;"	l
+.done	bak.start.S	/^.done:	$/;"	l
+.done	start.S	/^.done:	$/;"	l
+.fatal	bak.start.S	/^.fatal:	b .done$/;"	l
+.fatal	start.S	/^.fatal:	b .done$/;"	l
+.next	bak.start.S	/^.next:	addu	a0,Init_Size$/;"	l
+.next	start.S	/^.next:	addu	a0,Init_Size$/;"	l
+.nextdimm	bak.start.S	/^.nextdimm:$/;"	l
+.nextdimm	start.S	/^.nextdimm:$/;"	l
+.nodimm	bak.start.S	/^.nodimm:$/;"	l
+.nodimm	start.S	/^.nodimm:$/;"	l
+.skipdimm	bak.start.S	/^.skipdimm:$/;"	l
+BAILOUT	tgt_machdep.c	1131;"	d	file:
+BAILR	tgt_machdep.c	1132;"	d	file:
+CMOS_READ	tgt_machdep.c	/^static inline unsigned char CMOS_READ(unsigned char addr)$/;"	f	file:
+CMOS_WRITE	tgt_machdep.c	/^static inline void CMOS_WRITE(unsigned char val, unsigned char addr)$/;"	f	file:
+ConfigTable	tgt_machdep.c	/^ConfigEntry	ConfigTable[] =$/;"	v
+DEFTESTS	tgt_machdep.c	1129;"	d	file:
+EFAULT	ri.c	475;"	d	file:
+HAVE_FLASH	tgt_machdep.c	75;"	d	file:
+HAVE_FLASH	tgt_machdep.c	78;"	d	file:
+MOD_SZ	tgt_machdep.c	1130;"	d	file:
+MS_BCOPY	tgt_machdep.c	1135;"	d	file:
+MS_COPY	tgt_machdep.c	1136;"	d	file:
+MS_READ	tgt_machdep.c	1138;"	d	file:
+MS_WRITE	tgt_machdep.c	1137;"	d	file:
+SPINSZ	tgt_machdep.c	1128;"	d	file:
+__compute_return_epc	ri.c	/^int __compute_return_epc(struct pt_regs *regs)$/;"	f
+__main	bak.start.S	/^__main:$/;"	l
+__main	start.S	/^__main:$/;"	l
+_filebase	tgt_machdep.c	/^unsigned long _filebase;$/;"	v
+_probe_frequencies	tgt_machdep.c	/^_probe_frequencies()$/;"	f	file:
+_start	bak.start.S	/^_start:$/;"	l
+_start	start.S	/^_start:$/;"	l
+ad_err1	tgt_machdep.c	/^void ad_err1(unsigned long *adr1, unsigned long *adr2, unsigned long good, unsigned long bad)$/;"	f
+ad_err2	tgt_machdep.c	/^void ad_err2(unsigned long *adr, unsigned long bad)$/;"	f
+addr_tst1	tgt_machdep.c	/^void addr_tst1(void)$/;"	f
+addr_tst2	tgt_machdep.c	/^void addr_tst2(void)$/;"	f
+bad	tgt_machdep.c	/^unsigned long bad;$/;"	v
+bail	tgt_machdep.c	/^int bail;$/;"	v
+cache_detect_2way	bak.start.S	/^cache_detect_2way:$/;"	l
+cache_detect_2way	start.S	/^cache_detect_2way:$/;"	l
+cache_flush_4way	start.S	/^cache_flush_4way:$/;"	l
+cache_flush_d2way	bak.start.S	/^cache_flush_d2way:$/;"	l
+cache_flush_d2way	start.S	/^cache_flush_d2way:$/;"	l
+cache_flush_i2way	bak.start.S	/^cache_flush_i2way:$/;"	l
+cache_flush_i2way	start.S	/^cache_flush_i2way:$/;"	l
+cache_init_d2way	bak.start.S	/^cache_init_d2way:$/;"	l
+cache_init_d2way	start.S	/^cache_init_d2way:$/;"	l
+cache_init_finish	bak.start.S	/^cache_init_finish:$/;"	l
+cache_init_finish	start.S	/^cache_init_finish:$/;"	l
+cache_init_l24way	start.S	/^cache_init_l24way:$/;"	l
+cache_init_panic	bak.start.S	/^cache_init_panic:$/;"	l
+cache_init_panic	start.S	/^cache_init_panic:$/;"	l
+cksum	tgt_machdep.c	/^cksum(void *p, size_t s, int set)$/;"	f	file:
+clk_invalid	tgt_machdep.c	/^static int clk_invalid = 0;$/;"	v	file:
+clrhndlrs	tgt_machdep.c	/^clrhndlrs()$/;"	f
+do_caches	bak.start.S	/^do_caches:$/;"	l
+do_caches	start.S	/^do_caches:$/;"	l
+do_ri	ri.c	/^int do_ri (struct pt_regs *xcp)$/;"	f
+do_tick	tgt_machdep.c	/^void do_tick(void)$/;"	f
+ecount	tgt_machdep.c	/^int ecount = 0, errors = 0;$/;"	v
+emu_div	ri.c	/^static int emu_div(struct pt_regs *regs,mips_instruction ir)$/;"	f	file:
+emu_divu	ri.c	/^static int emu_divu(struct pt_regs *regs,mips_instruction ir)$/;"	f	file:
+emu_lwl	ri.c	/^static int emu_lwl(struct pt_regs * regs,mips_instruction ir,vaddr_t_l emulpc)$/;"	f	file:
+emu_lwr	ri.c	/^static int emu_lwr(struct pt_regs *regs,mips_instruction ir,vaddr_t_l emulpc)$/;"	f	file:
+emu_swl	ri.c	/^static int emu_swl(struct pt_regs *regs,mips_instruction ir, vaddr_t_l emulpc)$/;"	f	file:
+emu_swr	ri.c	/^static int emu_swr(struct pt_regs *regs,mips_instruction ir, vaddr_t_l emulpc)$/;"	f	file:
+end	tgt_machdep.c	/^	unsigned long *end;$/;"	m	struct:map_struct	file:
+error	tgt_machdep.c	/^void error(unsigned long *adr, unsigned long good, unsigned long bad)$/;"	f
+errors	tgt_machdep.c	/^int ecount = 0, errors = 0;$/;"	v
+exc_common	bak.start.S	/^exc_common:$/;"	l
+exc_common	start.S	/^exc_common:$/;"	l
+ext_map_and_reboot	bak.start.S	/^ext_map_and_reboot:$/;"	l
+ext_map_and_reboot	start.S	/^ext_map_and_reboot:$/;"	l
+gsignal	tgt_machdep.c	/^gsignal(label_t *jb, int sig)$/;"	f
+hexchar	bak.start.S	/^hexchar:$/;"	l
+hexchar	start.S	/^hexchar:$/;"	l
+hwethadr	tgt_machdep.c	/^unsigned char hwethadr[6];$/;"	v
+init_piix_rtc	tgt_machdep.c	/^static void init_piix_rtc(void)$/;"	f	file:
+initmips	tgt_machdep.c	/^initmips(unsigned int memsz)$/;"	f
+kbd_available	tgt_machdep.c	/^int kbd_available;$/;"	v
+locate	bak.start.S	/^locate:$/;"	l
+locate	start.S	/^locate:$/;"	l
+loop	bak.start.S	/^loop:$/;"	l
+loop	start.S	/^loop:$/;"	l
+map	tgt_machdep.c	/^struct map_struct map[] = { $/;"	v
+map_struct	tgt_machdep.c	/^struct map_struct {$/;"	s	file:
+md_cpufreq	tgt_machdep.c	/^static int md_cpufreq = 0;$/;"	v	file:
+md_pipefreq	tgt_machdep.c	/^static int md_pipefreq = 0;$/;"	v	file:
+mips_get_word_l	ri.c	/^mips_get_word_l(struct pt_regs *xcp, void *va, int *perr)$/;"	f	file:
+mips_put_word_l	ri.c	/^mips_put_word_l(struct pt_regs *xcp, void *va, unsigned long val)$/;"	f	file:
+modtst	tgt_machdep.c	/^void modtst(int offset, int iter, unsigned long p1, unsigned long p2)$/;"	f
+movinv1	tgt_machdep.c	/^void movinv1(int iter, unsigned long p1, unsigned long p2)$/;"	f
+mv_error	tgt_machdep.c	/^void mv_error(unsigned long *adr, unsigned long good, unsigned long bad)$/;"	f
+my_roundup	tgt_machdep.c	/^static unsigned long my_roundup(unsigned long value, unsigned long mask)$/;"	f	file:
+netclose	tgt_machdep.c	/^int netclose(int i)	{ return -1;}$/;"	f
+netioctl	tgt_machdep.c	/^int netioctl(int j, int i, void *p)	{ return -1;}$/;"	f
+netlseek	tgt_machdep.c	/^long int netlseek(int i, long j, int k)	{ return -1;}$/;"	f
+netopen	tgt_machdep.c	/^int netopen(const char *p, int i)	{ return -1;}$/;"	f
+netread	tgt_machdep.c	/^int netread(int i, void *p, int j)	{ return -1;}$/;"	f
+netwrite	tgt_machdep.c	/^int netwrite(int i, const void *p, int j)	{ return -1;}$/;"	f
+nticks	tgt_machdep.c	/^int test_ticks, nticks;$/;"	v
+nvram_get	tgt_machdep.c	/^nvram_get(char *buffer)$/;"	f
+nvram_invalid	tgt_machdep.c	/^static int nvram_invalid = 0;$/;"	v	file:
+nvram_put	tgt_machdep.c	/^nvram_put(char *buffer)$/;"	f
+p	tgt_machdep.c	/^volatile unsigned long *p;$/;"	v
+p1	tgt_machdep.c	/^unsigned long p1, p2;$/;"	v
+p2	tgt_machdep.c	/^unsigned long p1, p2;$/;"	v
+print_err	tgt_machdep.c	/^void print_err( unsigned long *adr, unsigned long good, unsigned long bad, unsigned long xor) $/;"	f
+print_hdr	tgt_machdep.c	/^void print_hdr(void)$/;"	f
+reginit	bak.start.S	/^reginit:			\/* local name *\/$/;"	l
+reginit	start.S	/^reginit:			\/* local name *\/$/;"	l
+segs	tgt_machdep.c	/^int segs=1;$/;"	v
+skipdimm	start.S	/^skipdimm:$/;"	l
+skipdot	start.S	/^skipdot:$/;"	l
+stack	bak.start.S	/^stack = start - 0x4000		\/* Place PMON stack below PMON start in RAM *\/$/;"	d
+stack	start.S	/^stack = start - 0x4000		\/* Place PMON stack below PMON start in RAM *\/$/;"	d
+start	bak.start.S	/^start:$/;"	l
+start	start.S	/^start:$/;"	l
+start	tgt_machdep.c	/^	unsigned long *start;$/;"	m	struct:map_struct	file:
+stuck	bak.start.S	/^stuck:$/;"	l
+stuck	start.S	/^stuck:$/;"	l
+test_ticks	tgt_machdep.c	/^int test_ticks, nticks;$/;"	v
+tgt_clienttos	tgt_machdep.c	/^tgt_clienttos()$/;"	f
+tgt_cmd_vers	tgt_machdep.c	/^tgt_cmd_vers()$/;"	f
+tgt_cpufreq	tgt_machdep.c	/^tgt_cpufreq()$/;"	f
+tgt_devconfig	tgt_machdep.c	/^tgt_devconfig()$/;"	f
+tgt_devinit	tgt_machdep.c	/^tgt_devinit()$/;"	f
+tgt_display	tgt_machdep.c	/^tgt_display(char *msg, int x)$/;"	f
+tgt_enable	tgt_machdep.c	/^tgt_enable(int machtype)$/;"	f
+tgt_ethaddr	tgt_machdep.c	/^tgt_ethaddr(char *p)$/;"	f
+tgt_fl_map_boot16	tgt_machdep.c	/^struct fl_map tgt_fl_map_boot16[]={$/;"	v
+tgt_flashinfo	tgt_machdep.c	/^tgt_flashinfo(void *p, size_t *t)$/;"	f
+tgt_flashmap	tgt_machdep.c	/^tgt_flashmap()$/;"	f
+tgt_flashprogram	tgt_machdep.c	/^tgt_flashprogram(void *p, int size, void *s, int endian)$/;"	f
+tgt_flashwrite_disable	tgt_machdep.c	/^tgt_flashwrite_disable()$/;"	f
+tgt_flashwrite_enable	tgt_machdep.c	/^tgt_flashwrite_enable()$/;"	f
+tgt_getmachtype	tgt_machdep.c	/^tgt_getmachtype()$/;"	f
+tgt_gettime	tgt_machdep.c	/^tgt_gettime()$/;"	f
+tgt_logo	tgt_machdep.c	/^tgt_logo()$/;"	f
+tgt_machprint	tgt_machdep.c	/^tgt_machprint()$/;"	f
+tgt_mapenv	tgt_machdep.c	/^tgt_mapenv(int (*func) __P((char *, char *)))$/;"	f
+tgt_memprint	tgt_machdep.c	/^tgt_memprint()$/;"	f
+tgt_netinit	tgt_machdep.c	/^tgt_netinit()$/;"	f
+tgt_netpoll	tgt_machdep.c	/^tgt_netpoll()$/;"	f
+tgt_netpoll	tgt_machdep.c	/^void tgt_netpoll()	{};$/;"	f
+tgt_netreset	tgt_machdep.c	/^tgt_netreset()$/;"	f
+tgt_pipefreq	tgt_machdep.c	/^tgt_pipefreq()$/;"	f
+tgt_putchar_uc	tgt_machdep.c	240;"	d	file:
+tgt_reboot	tgt_machdep.c	/^tgt_reboot()$/;"	f
+tgt_setenv	tgt_machdep.c	/^tgt_setenv(char *name, char *value)$/;"	f
+tgt_settime	tgt_machdep.c	/^tgt_settime(time_t t)$/;"	f
+tgt_unsetenv	tgt_machdep.c	/^tgt_unsetenv(char *name)$/;"	f
+tmem	start.S	/^tmem:$/;"	l
+transmit_pat_msg	bak.start.S	/^transmit_pat_msg:$/;"	l
+transmit_pat_msg	start.S	/^transmit_pat_msg:$/;"	l
+uncached	bak.start.S	/^uncached:$/;"	l
+uncached	start.S	/^uncached:$/;"	l
+update_err_counts	tgt_machdep.c	/^static void update_err_counts(void)$/;"	f	file:
+v200_msg	bak.start.S	/^v200_msg:$/;"	l
+v200_msg	start.S	/^v200_msg:$/;"	l
+v280_msg	bak.start.S	/^v280_msg:$/;"	l
+v280_msg	start.S	/^v280_msg:$/;"	l
+v380_msg	bak.start.S	/^v380_msg:$/;"	l
+v380_msg	start.S	/^v380_msg:$/;"	l
+v400_msg	bak.start.S	/^v400_msg:$/;"	l
+v400_msg	start.S	/^v400_msg:$/;"	l
+vga_available	tgt_machdep.c	/^int vga_available;$/;"	v
+zhb	start.S	/^zhb:$/;"	l

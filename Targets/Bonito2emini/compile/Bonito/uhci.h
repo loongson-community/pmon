@@ -1,0 +1,1 @@
+#define	NUHCI	0

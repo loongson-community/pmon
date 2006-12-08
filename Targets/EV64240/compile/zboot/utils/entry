@@ -1,0 +1,4 @@
+#!/bin/sh
+
+# grab the kernel_entry address from the vmlinux elf image
+echo "0x"`$1 $2  | grep kernel_entry | cut -c9- | awk '{print $1}'`
