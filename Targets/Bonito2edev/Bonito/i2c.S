@@ -192,7 +192,7 @@ LEAF(ii2c_cfg)
 	nop
 	beq	v0,0x60,42f
 	nop
-	b	.nodimm1
+	b	42f
 	nop
 	
 	/* config sdCfg bits [ 9:0 ] */
@@ -216,15 +216,16 @@ LEAF(ii2c_cfg)
  /* read DDR SDRAM Minimum Clock Cycle when CL is Derated by One Clock,config sdCfg [ 21:10 ]*/
 47:
     move    a0,t5
-    bal     i2cread
     li      a1,25
+    bal     i2cread
+	nop
     beq     v0,0xa0,40f
     nop
     beq     v0,0x75,41f
     nop
     beq     v0,0x60,42f
     nop
-    b     .nodimm1
+    b     41f
 	nop
 	
 40:     /* ddr200 */
