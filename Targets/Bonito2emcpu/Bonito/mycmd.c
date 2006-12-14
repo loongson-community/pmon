@@ -544,5 +544,5 @@ if(maincpu)
 	highmemset(CMDBASEADDRESS,0,32*12);
 	mycacheflush(CMDBASEADDRESS,32*12,1);
 }
-if(getenv("cmdpoll"))	tgt_poll_register(1, mycmd_poll, 0);
+/*if(getenv("cmdpoll"))*/	tgt_poll_register(1, mycmd_poll, 0);
 }

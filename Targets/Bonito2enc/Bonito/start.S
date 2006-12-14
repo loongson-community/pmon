@@ -620,7 +620,8 @@ reginit:			/* local name */
 	nop
 #else
 #include "i2c.S"
-#li  msize,0x10000000
+beqz msize,.nodimm
+nop
 b cfgnow
 nop
 #endif
