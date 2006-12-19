@@ -189,6 +189,7 @@ return 0;
  */
 
 #include "serial.c"
+#define SHAREBASEADDRESS 0x98000000c0000000ULL
 #define COMBASEADDRESS 0x98000000c0100000ULL
 static void serial_init()
 {
@@ -541,8 +542,20 @@ if(maincpu)
 	serial_init();
 	tgt_poll_register(1, serial_poll, 0);
 #endif
+#if 0
 	highmemset(CMDBASEADDRESS,0,32*12);
 	mycacheflush(CMDBASEADDRESS,32*12,1);
+#else
+	if(maincpu)
+	{
+	highmemset(SHAREBASEADDRESS,0,0x200000);
+	mycacheflush(SHAREBASEADDRESS,0x200000,1);
+	}
+	else
+	{
+	mycacheflush(SHAREBASEADDRESS,0x200000,0);
+	}
+#endif
 }
 /*if(getenv("cmdpoll"))*/	tgt_poll_register(1, mycmd_poll, 0);
 }

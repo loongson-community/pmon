@@ -98,8 +98,8 @@ CONFIG_VIDEO_HW_CURSOR:	     - Uses the hardware cursor capability of the
 #ifdef RADEON7000
 //#define VIDEO_FB_LITTLE_ENDIAN
 #define CONFIG_VIDEO_SW_CURSOR
-//#define CONFIG_VIDEO_LOGO
-//#define	CONFIG_VIDEO_BMP_LOGO
+#define CONFIG_VIDEO_LOGO
+#define	CONFIG_VIDEO_BMP_LOGO
 //#define DEBUG_CFG_CONSOLE
 #define VIDEO_HW_BITBLT
 #endif
@@ -1082,9 +1082,9 @@ static void *video_logo (void)
 	}
 #endif /* CONFIG_SPLASH_SCREEN */
 
-	logo_plot (video_fb_address, VIDEO_COLS, 0, 0);
+	logo_plot (video_fb_address, VIDEO_COLS, ((VIDEO_COLS - VIDEO_LOGO_WIDTH)/2)* VIDEO_PIXEL_SIZE, (VIDEO_ROWS - VIDEO_LOGO_HEIGHT)/2);
 
-	video_drawstring (VIDEO_INFO_X, VIDEO_INFO_Y, (unsigned char *)info);
+	//video_drawstring (VIDEO_INFO_X, VIDEO_INFO_Y, (unsigned char *)info);
 
 #ifdef CONFIG_CONSOLE_EXTRA_INFO
 	{
@@ -1112,9 +1112,12 @@ int fb_init (unsigned long fbbase,unsigned long iobase)
 	unsigned char color8;
 
 	pGD = &GD;
-#ifdef VGA_NOTEBOOK
+#if defined(VGA_NOTEBOOK_V1)
 	pGD->winSizeX  = 1280;
 	pGD->winSizeY  = 800;
+#elif defined(VGA_NOTEBOOK_V2)
+	pGD->winSizeX  = 1024;
+	pGD->winSizeY  = 768;
 #else
 	pGD->winSizeX  = 640;
 	pGD->winSizeY  = 480;

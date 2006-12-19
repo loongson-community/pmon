@@ -49,8 +49,8 @@ select		mod_uart_ns16550	# Standard UART driver
 #option		CONS_BAUD=B9600
 option		CONS_BAUD=B115200
 select		ext2
-select		mod_x86emu_int10
-#select     mod_framebuffer
+#select		mod_x86emu_int10
+select     mod_framebuffer
 #select		mod_x86emu		# X86 emulation for VGA
 #vga monitor
 select		mod_vgacon
@@ -67,6 +67,7 @@ option		NOSNOOP			# Caches are no-snooping
 #
 option		USB_OHCI_NO_ROM
 option 		RADEON7000
+#option          VGA_NOTEBOOK            # use for notebook vga init
 #option         X86_LIKE_SPACE          # make pci addr == cpu addr
 #option 	NEW_PCI_WINDOW          # use 128/32/32 pci windows
 #option         VGA_BASE=0xba000000 

@@ -266,9 +266,7 @@ file x86emu/src/biosemu/linuxpci.c	mod_x86emu	needs-flag
 file x86emu/src/biosemu/biosemu.c	mod_x86emu	needs-flag
 file x86emu/src/biosemu/freebiosvga.c	mod_x86emu	needs-flag
 
-file fb/fb_draw.c                                       mod_framebuffer         needs-flag
-file fb/fb_main.c                                       mod_framebuffer         needs-flag
-file fb/fb_text_16.c                                    mod_framebuffer         needs-flag
+file fb/cfb_console.c                                       mod_framebuffer         needs-flag
 file pmon/dev/kbd.c			mod_vgacon	needs-flag
 file pmon/dev/vgacon.c			mod_vgacon	needs-flag
 

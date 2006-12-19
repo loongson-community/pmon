@@ -68,6 +68,7 @@
 #include "mod_vgacon.h"
 #include "mod_framebuffer.h"
 extern int vga_bios_init(void);
+extern int radeon_init(void);
 extern int kbd_initialize(void);
 extern int write_at_cursor(char val);
 extern const char *kbd_error_msgs[];
@@ -83,9 +84,7 @@ extern const char *kbd_error_msgs[];
 
 #endif
 
-#if NMOD_X86EMU_INT10 == 0
-int vga_available=0;
-#else
+#if NMOD_X86EMU_INT10 != 0
 #include "vgarom.c"
 #endif
 
@@ -95,6 +94,7 @@ extern void *memset(void *, int, size_t);
 
 int kbd_available = 0;
 int usb_kbd_available;
+int vga_available = 0;
 
 static int md_pipefreq = 0;
 static int md_cpufreq = 0;
@@ -247,6 +247,7 @@ asm("
  */
 extern void	vt82c686_init(void);
 
+extern int fb_init(unsigned long,unsigned long);
 void
 tgt_devconfig()
 {
@@ -261,6 +262,12 @@ if(maincpu)	_pci_devinit(1);	/* PCI device initialization */
 #if NMOD_X86EMU_INT10 > 0
 	SBD_DISPLAY("VGAI", 0);
 if(maincpu)	rc = vga_bios_init();
+#endif
+
+#if (NMOD_X86EMU_INT10 == 0 && defined(RADEON7000))
+	SBD_DISPLAY("VGAI", 0);
+	rc = radeon_init();
+#endif
 
 #if NMOD_FRAMEBUFFER > 0
 	if (rc > 0) {
@@ -280,10 +287,10 @@ if(maincpu)	rc = vga_bios_init();
 		printf("vga bios init failed, rc=%d\n",rc);
 	}
 #endif
-	if (rc > 0)
-	 if(!getenv("novga")) vga_available=1;
 
-#endif
+	if (rc > 0)
+	 if(getenv("vga")) vga_available=1;
+
     config_init();
 if(maincpu)    configure();
 #if NMOD_VGACON >0

@@ -12,6 +12,9 @@
 #define crt_data 0x3d5
 extern int vga_available;
 extern unsigned char kbd_code;
+#if NMOD_USB_KBD != 0
+extern unsigned char usb_kbd_code; 
+#endif
 extern unsigned char usb_kbd_code; 
 #ifdef BONITOEL
 	unsigned char * vgabh=(unsigned char *)0xb00b8000;
@@ -165,7 +168,7 @@ vgaterm (int op, struct DevEntry *dev, unsigned long param, int data)
 
 		case OP_RXRDY:
 			if ( 
-#if NMOD_USB_KBD
+#if NMOD_USB_KBD != 0
 			     (usb_kbd_available && usb_kbd_code) || 
 #endif
 			     (kbd_available && kbd_code) ) {
@@ -175,7 +178,7 @@ vgaterm (int op, struct DevEntry *dev, unsigned long param, int data)
 			}
 
 		case OP_RX:
-#if NMOD_USB_KBD
+#if NMOD_USB_KBD != 0
 			if(usb_kbd_available && usb_kbd_code){
 				code = usb_kbd_code;
 				usb_kbd_code = 0;
@@ -216,24 +219,36 @@ fbterm (int op, struct DevEntry *dev, unsigned long param, int data)
                 case OP_TX:
 			//*(unsigned char*)0xbfd003f8 = data&0xff;
                         if(vga_available)
-                                fb_putchar(data&0xff);
+				video_putc(data&0xff);
+                                //fb_putchar(data&0xff);
                         break;
                                                                                                                                                             
                 case OP_RXRDY:
-                        if(kbd_available)
-                                return kbd_code?1:0;
-                        else
-                                return 0;
-                                                                                                                                                            
+			if ( 
+#if NMOD_USB_KBD != 0
+			     (usb_kbd_available && usb_kbd_code) || 
+#endif
+			     (kbd_available && kbd_code) ) {
+				return 1;
+			}else {
+				return 0;
+			}
                 case OP_RX:
-                        if(kbd_available){
-                                code = kbd_code;
-                                kbd_code = 0;
-                                return code;
-                        }else{
-                                return 0;
-                        }
-                                                                                                                                                            
+#if NMOD_USB_KBD != 0
+			if(usb_kbd_available && usb_kbd_code){
+				code = usb_kbd_code;
+				usb_kbd_code = 0;
+				return code;
+			}
+#endif
+			if(kbd_available && kbd_code){
+				code = kbd_code;
+				kbd_code = 0;
+				return code;
+			}else{
+				return 0;			
+			}
+
                 case OP_RXSTOP:
                         break;
         }
