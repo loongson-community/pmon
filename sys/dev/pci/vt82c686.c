@@ -200,6 +200,7 @@ static void nvram_on(void)
 
 static void initUSB(void)
 {
+#if 0
     pcitag_t tag;
     char val;
     int i;
@@ -210,6 +211,7 @@ static void initUSB(void)
     _pci_conf_writen(tag,0xe0,(val&~7)|0x84,1);
     _pci_conf_writen(tag,0xe4,0x20,4);
    }
+#endif
 }
 
 void vt82c686_init(void)

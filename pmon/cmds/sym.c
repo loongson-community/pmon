@@ -643,7 +643,7 @@ syminit ()
     extern int	    memorysize;
 
 #ifdef __mips__
-    defsyms ((u_int32_t)sbrk(0) + 1024, memorysize | (CLIENTPC & 0xc00000), CLIENTPC);
+    defsyms ((u_int32_t)sbrk(0) + 1024, memorysize | (CLIENTPC & 0xc0000000), CLIENTPC);
 #else
     defsyms ((u_int32_t)sbrk(0) + 1024, memorysize, CLIENTPC);
 #endif
