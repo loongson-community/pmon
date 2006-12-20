@@ -55,7 +55,6 @@ PMONDIR=${S}
 
 
 INCLUDES=	-I. -I${S}/include -I./machine -I${S} \
-		-I${S}/x86emu/int10/x86emu/include -I${S}/x86emu/int10/x86emu/src/x86emu/x86emu \
 		-I${S}/sys/arch/${MACHINE}/include -I${S}/sys \
 		-I${TARGET} -I${COMPILEDIR} -nostdinc 
 CPPFLAGS=	${INCLUDES} ${IDENT} -D_KERNEL -D__OpenBSD__ -DPMON -D__PMON__\
@@ -99,6 +98,12 @@ NORMAL_S_C=	${AS}  ${COPTS} ${PARAM} $< -o $@
 %CFILES
 
 %SFILES
+
+ifneq "$(findstring $S/x86emu/src,$(CFILES))" ""
+		INCLUDES += -I${S}/x86emu/src/x86emu/ -I${S}/x86emu/src/x86emu/include
+else
+		INCLUDES += -I${S}/x86emu/int10/x86emu/include -I${S}/x86emu/int10/x86emu/src/x86emu/x86emu 
+endif
 
 # load lines for config "xxx" will be emitted as:
 # xxx: ${SYSTEM_DEP}
