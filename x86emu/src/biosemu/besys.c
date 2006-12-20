@@ -45,6 +45,7 @@
 #include <linux/pci.h>
 #include <linux/io.h>
 #include "biosemui.h"
+#undef MY40IO
 
 #if !defined (_PC) && !defined (_PC_PCI)
 static int pciCfg1in(u16 addr, u32 *val,int type);
@@ -320,6 +321,22 @@ u8 X86API BE_inb(int port)
 	    return 0xff;
     }
 #endif
+
+#ifdef MY40IO
+{
+static unsigned short Int10Current_inb40time=0;
+    if (port == 0x40) {
+	Int10Current_inb40time++;
+	val = (u8)(Int10Current_inb40time >>
+		      ((Int10Current_inb40time & 1) << 3));
+#ifdef PRINT_PORT
+	printf(" inb(%#x) = %2.2x\n", port, val);
+#endif
+	return val;
+    } 
+}
+#endif
+
 #if !defined(_PC) && !defined(_PC_PCI)
     if (!pciCfg1in(port,(u32 *)&val,1))
 #endif
@@ -396,6 +413,23 @@ void X86API BE_outb(int port, u8 val)
 	    return;
     }
 #endif
+
+#ifdef MY40IO
+    if ((port == 0x43) && (val == 0)) {
+	/*
+	 * Emulate a PC's timer 0.  Such timers typically have a resolution of
+	 * some .838 usec per tick, but this can only provide 1 usec per tick.
+	 * (Not that this matters much, given inherent emulation delays.)  Use
+	 * the bottom bit as a byte select.  See inb(0x40) above.
+	 */
+	 //TODO need complete
+#ifdef PRINT_PORT
+	printf(" outb(%#x, %2.2x)\n", port, val);
+#endif
+	return;
+    } 
+#endif
+
 #if !defined(_PC) && !defined(_PC_PCI)
     if (!pciCfg1out(port,val,1))
 #endif
