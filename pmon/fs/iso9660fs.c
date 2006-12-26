@@ -242,22 +242,6 @@ iso9660_open(int fd, const char *path, int flags, int mode)
 			break;
 		if (isonum_722(pp->parent) != parent)
 			break;
-#if 1		
-		 	if(opath[0]=='/')showdir=1;
-		    if(showdir)
-			{
-			char name[101];
-			int len;
-			struct ptable_ent *pp1;
-
-			len=isonum_711(pp->namlen);
-			if(len>100)len=100;
-			strncpy(name,pp->name,len);
-			name[len]=0;
-			pp1=pp;
-			printf("%s ",name);
-			}
-#endif		
 		if (!pnmatch(opath, pp)) {
 			pp = (struct ptable_ent *)((void *)pp + PTSIZE(pp));
 			ent++;
@@ -300,6 +284,23 @@ iso9660_open(int fd, const char *path, int flags, int mode)
 		}
 		if (dsize == 1)
 			dsize = isonum_733(dp->size);
+#if 1		
+		 	if(opath[0]=='/') showdir=1;
+		    if(showdir)
+			{
+			char name[102];
+			int len;
+			char *p;
+
+			len=isonum_711(dp->name_len);
+			if(len>100)len=100;
+			strncpy(name,dp->name,len);
+			name[len]=0;
+			if((p=strchr(name,';')))p[0]=0;
+			else strcat(name,"/");
+			printf("%s ",name);
+			}
+#endif		
 		if (dirmatch(opath, dp))
 			break;
 		psize += isonum_711(dp->length);
