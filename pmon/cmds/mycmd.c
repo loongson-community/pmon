@@ -1269,6 +1269,70 @@ return rRetVal;
 #endif
 
 //-------------------------------------------------------------------------------------------
+static	unsigned long long lrdata;
+static int lwl(int argc,char **argv)
+{
+	unsigned long long addr;
+	if(argc!=2)return -1;
+	addr=nr_str2addr(argv[1],0,0);
+	  asm("ld  $2,(%0);
+		   lwl $2,(%1);
+		   sw $2,(%0)
+		   "
+		  ::"r"(&lrdata),"r"(addr)
+		  :"$2"
+		 );
+	  nr_printf("data=%016llx\n",lrdata);
+}
+static int lwr(int argc,char **argv)
+{
+	unsigned long long addr;
+	if(argc!=2)return -1;
+	addr=nr_str2addr(argv[1],0,0);
+	  asm("ld $2,(%0);
+		   lwr $2,(%1);
+		   sw $2,(%0)
+		   "
+		  ::"r"(&lrdata),"r"(addr)
+		  :"$2"
+		 );
+	  nr_printf("data=%016llx\n",lrdata);
+}
+static int ldl(int argc,char **argv)
+{
+	unsigned long long addr;
+	if(argc!=2)return -1;
+	addr=nr_str2addr(argv[1],0,0);
+	  asm("ld $2,(%0);
+		   ldl $2,(%1);
+		   sd $2,(%0)
+		   "
+		  ::"r"(&lrdata),"r"(addr)
+		  :"$2"
+		 );
+	  nr_printf("data=%016llx\n",lrdata);
+}
+static int ldr(int argc,char **argv)
+{
+	unsigned long long addr;
+	if(argc!=2)return -1;
+	addr=nr_str2addr(argv[1],0,0);
+	  asm("ld $2,(%0);
+		   ldr $2,(%1);
+		   sd $2,(%0)
+		   "
+		  ::"r"(&lrdata),"r"(addr)
+		  :"$2"
+		 );
+	  nr_printf("data=%016llx\n",lrdata);
+}
+
+static int linit(int argc,char **argv)
+{
+	lrdata=0;
+	return 0;
+}
+//----------------------------------
 static const Cmd Cmds[] =
 {
 	{"MyCmds"},
@@ -1313,6 +1377,11 @@ static const Cmd Cmds[] =
 	{"memcpy","src dst count",0,"mymemcpy src dst count",cmd_mymemcpy,0,99,CMD_REPEAT},
 	{"testcpu","",0,"testcpu",cmd_testcpu,2,2,CMD_REPEAT},
 	{"led","n",0,"led n",cmd_led,2,2,CMD_REPEAT},
+	{"lwl","n",0,"lwl n",lwl,2,2,CMD_REPEAT},
+	{"lwr","n",0,"lwr n",lwr,2,2,CMD_REPEAT},
+	{"ldl","n",0,"ldl n",ldl,2,2,CMD_REPEAT},
+	{"ldr","n",0,"ldr n",ldr,2,2,CMD_REPEAT},
+	{"linit","",0,"linit",linit,1,1,CMD_REPEAT},
 	{0, 0}
 };
 
