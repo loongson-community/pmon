@@ -86,6 +86,8 @@ extern const char *kbd_error_msgs[];
 
 #if NMOD_X86EMU_INT10 != 0
 #include "vgarom.c"
+#else
+int vga_available = 0;
 #endif
 
 extern struct trapframe DBGREG;
@@ -94,7 +96,6 @@ extern void *memset(void *, int, size_t);
 
 int kbd_available = 0;
 int usb_kbd_available;
-int vga_available = 0;
 
 static int md_pipefreq = 0;
 static int md_cpufreq = 0;
