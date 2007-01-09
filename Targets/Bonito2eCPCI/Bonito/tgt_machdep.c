@@ -194,7 +194,7 @@ earlyenv();
 	 *	Set up memory address decoders to map entire memory.
 	 *	But first move away bootrom map to high memory.
 	 */
-#if 0
+#if 1
 if(tgt_testchar())
 {
 	if(tgt_getchar()=='p')havepci=0;

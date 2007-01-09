@@ -202,6 +202,7 @@ void netdev_init(struct net_device *netdev,struct pci_attach_args *pa)
     netdev->pcidev.subsystem_device=subsystem_device;
 	netdev->pcidev.pa=*pa;
 	netdev->priv=kmalloc(sizeof(struct e1000_adapter),GFP_KERNEL);//&netdev->em;
+	memset(netdev->priv,0,sizeof(struct e1000_adapter));
 	netdev->addr_len=6;
 	netdev->pcidev.irq=irq++;
 }
@@ -233,7 +234,8 @@ static void
 e1000_shutdown(sc)
         void *sc;
 {
-        e1000_suspend((struct net_device *) sc, 3);
+struct e1000_adapter *adapter=((struct net_device *)sc)->priv;
+        e1000_suspend(adapter->pdev, 3);
 }
 
 
@@ -403,6 +405,7 @@ em_stop(struct net_device *netdev)
 	ifp->if_timer = 0;
 	ifp->if_flags &= ~(IFF_RUNNING | IFF_OACTIVE);
 	if(netdev->opencount){e1000_close(netdev);netdev->opencount--;}
+	return 0;
 }
 
 static int

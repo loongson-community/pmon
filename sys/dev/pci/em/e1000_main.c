@@ -1633,6 +1633,20 @@ e1000_update_stats(struct e1000_adapter *adapter)
 		   !e1000_read_phy_reg(hw, M88E1000_RX_ERR_CNTR, &phy_tmp))
 			adapter->phy_stats.receive_errors += phy_tmp;
 	}
+#ifdef PMON
+{
+	struct net_device *sc = adapter->netdev;
+	struct ifnet *ifp = &sc->sc_if;
+
+	ifp->if_ipackets = adapter->net_stats.rx_packets;
+	ifp->if_opackets = adapter->net_stats.tx_packets;
+	ifp->if_collisions = adapter->net_stats.collisions;
+	ifp->if_ierrors = adapter->net_stats.rx_errors;
+	ifp->if_oerrors = adapter->net_stats.tx_errors;
+	ifp->if_ibytes = adapter->net_stats.rx_bytes;
+	ifp->if_obytes = adapter->net_stats.tx_bytes;
+}
+#endif
 }
 
 /**

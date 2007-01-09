@@ -87,6 +87,7 @@ option		TARGETNAME="\"Bonito\""
 select          cmd_about               # Display info about PMON
 select          cmd_boot                # Boot wrapper
 select          cmd_mycmd
+select			cmd_setup
 select          cmd_newmt
 select          cmd_cache               # Cache enabling
 #select         cmd_call                # Call a function command
