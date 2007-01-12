@@ -207,9 +207,8 @@ if(tgt_testchar())
 	GT_WRITE(BOOTCS_HIGH_DECODE_ADDRESS, (BOOT_BASE - 1 + BOOT_SIZE) >> 20);
 #endif
 	SBD_DISPLAY("inms",0);
-	if(memsz>256)memsz=256;
-	memorysize=(memsz&0x0000ffff) << 20;//recover to original size:256M
-	memorysize_high=((memsz&0xffff0000)>>16) << 20;//0
+	memorysize = memsz > 256 ? 256 << 20 : memsz << 20;
+	memorysize_high = memsz > 256 ? (memsz - 256) << 20 : 0;
 
 asm("
 	 sd %1,0x18(%0);

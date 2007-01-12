@@ -148,8 +148,17 @@ initmips(unsigned int memsz)
 	GT_WRITE(BOOTCS_LOW_DECODE_ADDRESS, BOOT_BASE >> 20);
 	GT_WRITE(BOOTCS_HIGH_DECODE_ADDRESS, (BOOT_BASE - 1 + BOOT_SIZE) >> 20);
 #endif
-	memorysize=(memsz&0x0000ffff) << 20;//recover to original size:256M
-	memorysize_high=((memsz&0xffff0000)>>16) << 20;//0
+	memorysize = memsz > 256 ? 256 << 20 : memsz << 20;
+	memorysize_high = memsz > 256 ? (memsz - 256) << 20 : 0;
+
+asm("
+	 sd %1,0x18(%0);
+	 sd %2,0x28(%0);
+	 sd %3,0x20(%0);
+	 "
+	 ::"r"(0x900000001ff00000ULL),"r"(memorysize),"r"(memorysize_high),"r"(0x20000000)
+	 :"$2"
+   );
 
 	/*
 	 *  Probe clock frequencys so delays will work properly.

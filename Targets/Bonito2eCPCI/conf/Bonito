@@ -63,7 +63,7 @@ option		TARGETNAME="\"Bonito\""
 #
 mainbus0        at root
 localbus0	at mainbus0
-#fd0         at mainbus0
+fd0         at mainbus0
 pcibr0		at mainbus0
 pci*		at pcibr?
 #ppb*		at pci? dev ? function ?	# PCI-PCI bridges
