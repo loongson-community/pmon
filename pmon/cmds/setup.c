@@ -42,6 +42,7 @@ ${!width: num}
 #include <linux/zlib.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include "setup.h"
 void get_line1 (char *p,int usehist);
 
 #define PREV	CNTRL('P')
@@ -123,16 +124,6 @@ static int getch (void)
 }
 
 
-#define POP_W	30
-#define POP_H	15
-#define POP_X	16
-#define POP_Y	8
-#define MSG_W	70
-#define MSG_H	15
-#define MSG_X	5
-#define MSG_Y	8
-#define INFO_Y  24
-#define INFO_W  80
 extern char *vgabh;
 extern char *heaptop;
 
@@ -414,7 +405,6 @@ void cprintf(int y, int x,int width,char color,const char *fmt, ...)
 }
 
 //------------------------------------------------------------------------
-#include "setup.h"
 
 struct setupMenu *Menu;
 #define menu Menu->items
