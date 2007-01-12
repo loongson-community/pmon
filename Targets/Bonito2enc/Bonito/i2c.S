@@ -301,7 +301,7 @@ LEAF(ii2c_cfg)
 	PRINTSTR("read blocks per ddrram\r\n");
 
 2:	/* read DIMM number of sides (banks) */
-        move      a0,t5   /* #zgj-11-17 */
+    move      a0,t5   /* #zgj-11-17 */
 	li	a1,5
 	bal	i2cread
 	nop
@@ -332,8 +332,15 @@ LEAF(ii2c_cfg)
    nop
    sll     tmpsize,v0,22 # multiply by 4M
 	addu	msize,tmpsize
-	b	1f
-	nop	
+    move      a0,t5 
+	li	a1,5
+	bal	i2cread
+	nop
+	beq	v0,1,1f
+	nop
+	addu	msize,tmpsize
+	b 1f
+	nop
 	
 .nodimm1:
 	PRINTSTR ("\r\nNo DIMM in this slot ");

@@ -299,7 +299,8 @@ file pmon/arch/mips/machdep.c		mips
 file pmon/arch/mips/mips_machdep.c	mips
 file pmon/arch/mips/disassemble.c	(mips & mod_debugger)
 file pmon/arch/mips/mips.S		mips
-file pmon/arch/mips/cache.S		mips
+file pmon/arch/mips/cache.S		(mips & !godson2c)
+file pmon/arch/mips/cache.2c.S		(mips & godson2c)
 
 file pmon/arch/i386/machdep.c		i386
 file pmon/arch/i386/mips_machdep.c	i386

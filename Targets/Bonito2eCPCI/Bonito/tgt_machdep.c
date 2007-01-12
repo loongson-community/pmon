@@ -175,6 +175,7 @@ mtc0 $2,$12
 "
 :::"$2","$3"
 	);
+#if 0
 if(get_userenv(ACTIVECOM_OFFS)&0x80)
 {
 #define WATCHDOG_REG BONITO(0x0160)
@@ -188,6 +189,7 @@ int *p=(void *)0xa2000000;
 	}
 *p=0;
 }
+#endif
 
 earlyenv();
 	/*
@@ -205,8 +207,18 @@ if(tgt_testchar())
 	GT_WRITE(BOOTCS_HIGH_DECODE_ADDRESS, (BOOT_BASE - 1 + BOOT_SIZE) >> 20);
 #endif
 	SBD_DISPLAY("inms",0);
+	if(memsz>256)memsz=256;
 	memorysize=(memsz&0x0000ffff) << 20;//recover to original size:256M
 	memorysize_high=((memsz&0xffff0000)>>16) << 20;//0
+
+asm("
+	 sd %1,0x18(%0);
+	 sd %2,0x28(%0);
+	 sd %3,0x20(%0);
+	 "
+	 ::"r"(0x900000001ff00000ULL),"r"(memorysize),"r"(memorysize_high),"r"(0x20000000)
+	 :"$2"
+   );
 
 	/*
 	 *  Probe clock frequencys so delays will work properly.

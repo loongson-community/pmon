@@ -191,6 +191,15 @@ initmips(unsigned int memsz)
 	memorysize=(memsz&0x0000ffff) << 20;//recover to original size:256M
 	memorysize_high=((memsz&0xffff0000)>>16) << 20;//0
 
+asm("
+	 sd %1,0x18(%0);
+	 sd %2,0x28(%0);
+	 sd %3,0x20(%0);
+	 "
+	 ::"r"(0x900000001ff00000ULL),"r"(memorysize),"r"(memorysize_high),"r"(0x20000000)
+	 :"$2"
+   );
+
 #if 0
 	{
 	  int start = 0x80000000;

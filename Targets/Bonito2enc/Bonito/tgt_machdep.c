@@ -172,10 +172,11 @@ initmips(unsigned int memsz)
 
 
 asm("
-	 sd $0,0x28(%0);
 	 sd %1,0x18(%0);
+	 sd %2,0x28(%0);
+	 sd %3,0x20(%0);
 	 "
-	 ::"r"(0x900000001ff00000ULL),"r"(memorysize)
+	 ::"r"(0x900000001ff00000ULL),"r"(memorysize),"r"(memorysize_high),"r"(0x20000000)
 	 :"$2"
    );
 

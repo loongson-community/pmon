@@ -1043,6 +1043,13 @@ bootnow:
 	sw	a0, CpuTertiaryCacheSize /* Set L3 cache size */
 	move	a0,msize
 	srl	a0,20
+#if 0
+	move a1,a0
+	move a0,zero
+	li a2,1
+#else
+	li a0,128
+#endif
  
 	la	v0, initmips
 	jalr	v0
