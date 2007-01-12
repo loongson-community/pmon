@@ -28,6 +28,12 @@ mycmd_loop:
 	li v1,'G'
 	beq v0,v1,memtest6
 	nop
+	li v1,'H'
+	beq v0,v1,memtest7
+	nop
+	li v1,'I'
+	beq v0,v1,memtest8
+	nop
 	li v1,'z'
 	beq v0,v1,testddrread
 	nop
@@ -82,6 +88,10 @@ memtest5:
 #include "writeall-testall-ram8.S"
 memtest6:
 #include "copytest.S"
+memtest7:
+#include "writesome-testsome-rom8R.S"
+memtest8:
+#include "writesome-testsome-ram8R.S"
 
 
 testddrwrite0:
@@ -619,6 +629,12 @@ s_next:
 	  nop
 	  and a0,t6,0xf
 	  daddu t7,a0
+	  srl a1,t6,16
+	  beqz a1,1f
+	  nop
+	  dsubu t7,a0
+	  dsubu t7,a0
+1:
 	  addiu t4,-1
 	  daddu t5,t8
 	  bnez t4,sc_loop
@@ -683,6 +699,12 @@ c_next:
 	  daddu t5,t8
 	  and a0,t6,0xf
 	  daddu t7,a0
+	  srl a1,t6,16
+	  beqz a1,1f
+	  nop
+	  dsubu t7,a0
+	  dsubu t7,a0
+1:
 	  addiu t4,-1
 	  beqz t4,func_q
 	  nop
