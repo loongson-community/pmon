@@ -447,7 +447,7 @@ ConfResult:
 	srl	t5, t2				# calculate set size.
 	sw	t5, CpuPrimaryDataSetSize
 
-#if 1
+#if 0
 	and	v0, 0xfffffff8
         or	v0, 0x00000003			# set coherency mode WB KSEG0
 

@@ -4,7 +4,7 @@ bootkeytest:
 	beqz v0,bootnow
 	nop
 mycmd_loop:
-	PRINTSTR("A:writeone-testone\r\nB:writesome+-testsome--\r\nC:writesome-testsome-rom\r\nD:writeall-testall\r\nE:writesome-testsome-ram\r\nF:writeall-testall-ram\r\nG:copytest\r\nz:read @addr\r\ns:write\r\nv:write then read @addr\r\ng:rwtest\r\nn:write 16M\r\nd:debug\r\nb:boot\r\n");
+	PRINTSTR("A:writeone-testone\r\nB:writesome+-testsome--\r\nC:writesome-testsome-rom\r\nD:writeall-testall\r\nE:writesome-testsome-ram\r\nF:writeall-testall-ram\r\nG:copytest\r\nH:writesomereverse-testsome-rom\r\nI:writesomereverse-testsome-ram\r\nz:read @addr\r\ns:write\r\nv:write then read @addr\r\ng:rwtest\r\nn:write 16M\r\nj:write 0 to a0000000\r\nd:debug\r\nb:boot\r\n");
 	bal tgt_getchar
 	nop
 	li v1,'A'
@@ -58,6 +58,9 @@ mycmd_loop:
 	li v1,'w'
 	beq v0,v1,dummywritetest
 	nop
+	li v1,'j'
+	beq v0,v1,dummywritetest1
+	nop
 	b bootnow
 	nop
 dummyreadtest:
@@ -72,6 +75,27 @@ dummywritetest:
 1:
 	sd v1,(v0)
 	addiu v0,8
+	b 1b
+	nop
+dummywritetest1:
+	li v0,0xa0000000
+1:
+	sd zero,(v0)
+	sd zero,(v0)
+	sd zero,(v0)
+	sd zero,(v0)
+	sd zero,(v0)
+	sd zero,(v0)
+	sd zero,(v0)
+	sd zero,(v0)
+	sd zero,(v0)
+	sd zero,(v0)
+	sd zero,(v0)
+	sd zero,(v0)
+	sd zero,(v0)
+	sd zero,(v0)
+	sd zero,(v0)
+	sd zero,(v0)
 	b 1b
 	nop
 memtest:
