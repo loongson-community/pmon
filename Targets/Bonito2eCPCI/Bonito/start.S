@@ -1002,7 +1002,15 @@ do_caches:
 	TTYDBG("godson2 caches found\r\n")
         bal     godson2_cache_init
         nop
-cache_done:
+
+	/* close L2 cache */
+	li      a0, 0xbfe00164
+        sw      zero, 0(a0);
+
+        mfc0   a0,COP_0_CONFIG
+        and    a0,a0,~((1<<12) | 3)
+	or     a0,a0,2
+        mtc0   a0,COP_0_CONFIG
 
 #ifdef DEBUG_LOCORE
 	TTYDBG("Init caches done, cfg = ")
