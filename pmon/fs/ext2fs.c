@@ -33,6 +33,7 @@ unsigned long SECTORS_PER_BLOCK=2;
 unsigned long GROUPDESCS_PER_BLOCK=32;	
 unsigned long INODES_PER_GROUP=0;
 off_t start_sec;
+#define EXT3_SUPER_MAGIC    0xEF53
 #define START_PARTION start_sec*512
 #define RAW_SECTOR_SIZE 512
 #define EXT2_GROUP_DESC_SIZE 32	
@@ -58,28 +59,9 @@ static int read_super_block(int fd,int index)
 		printf("Can't alloc memory for the super block!\n");
 		goto out;
 	}
+	if(index)
+	{
 	devio_lseek(fd,0,0);
-	if(!index)
-	{
-			start_sec=0;
-			devio_lseek(fd,start_sec*RAW_SECTOR_SIZE,0);
-			if((devio_read(fd,diskbuf,16*RAW_SECTOR_SIZE))!=16*RAW_SECTOR_SIZE)
-			{
-				printf("Read the super block error!\n");
-				goto out;
-			}
-			ext2_sb=(struct ext2_super_block *)(diskbuf+1024);
-
-			INODES_PER_GROUP = ext2_sb->s_inodes_per_group;
-			RAW_BLOCK_SIZE = BLOCK_1KB << ext2_sb->s_log_block_size;
-
-			SECTORS_PER_BLOCK = RAW_BLOCK_SIZE / RAW_SECTOR_SIZE;
-			GROUPDESCS_PER_BLOCK = RAW_BLOCK_SIZE / EXT2_GROUP_DESC_SIZE;
-				err=0;
-				goto out;
-	}
-	else
-	{
 	if((devio_read(fd,leadbuf,RAW_SECTOR_SIZE))!=RAW_SECTOR_SIZE){		
 		printf("Can't read the leading block from disk!\n");
 		goto out;
@@ -104,15 +86,40 @@ static int read_super_block(int fd,int index)
 
 			SECTORS_PER_BLOCK = RAW_BLOCK_SIZE / RAW_SECTOR_SIZE;
 			GROUPDESCS_PER_BLOCK = RAW_BLOCK_SIZE / EXT2_GROUP_DESC_SIZE;
+			if(ext2_sb->s_magic==EXT3_SUPER_MAGIC)
+			{
 			find_linux_partion++;
 			if(index==find_linux_partion){
 				err=0;
 				goto out;
 			}
+			}
 		}
 	}
-	printf("There is no %d linux partion\n",index);
 	}
+
+	{
+			devio_lseek(fd,0,0);
+			start_sec=0;
+			if((devio_read(fd,diskbuf,16*RAW_SECTOR_SIZE))!=16*RAW_SECTOR_SIZE)
+			{
+				printf("Read the super block error!\n");
+				goto out;
+			}
+			ext2_sb=(struct ext2_super_block *)(diskbuf+1024);
+
+			INODES_PER_GROUP = ext2_sb->s_inodes_per_group;
+			RAW_BLOCK_SIZE = BLOCK_1KB << ext2_sb->s_log_block_size;
+
+			SECTORS_PER_BLOCK = RAW_BLOCK_SIZE / RAW_SECTOR_SIZE;
+			GROUPDESCS_PER_BLOCK = RAW_BLOCK_SIZE / EXT2_GROUP_DESC_SIZE;
+			if(ext2_sb->s_magic==EXT3_SUPER_MAGIC)
+			{
+				err=0;
+				goto out;
+			}
+	}
+	printf("There is no %d linux partion\n",index);
 out:
 	if(leadbuf)free(leadbuf);
 	if(diskbuf)free(diskbuf);
@@ -301,7 +308,7 @@ int ext2_open(int fd,const char *path,int flags,int mode)
 	{index=p[0]-'a'+1; 
 	 p[0]=0;
 	}
-	else if(!strcmp(strbuf,"fd0"))index=0;
+	else if(p[0]=='A'||!strcmp(strbuf,"fd0"))index=0;
 	else index=1;
 	}
 

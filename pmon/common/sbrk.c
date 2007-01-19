@@ -81,6 +81,10 @@ static void init_heaptop __P((void)) __attribute__ ((constructor));
 
 void init_heaptop()
 {
+		if (memorysize >= 0x4000000) {
+			allocp1 = 0x82000000;
+			heaptop = 0x83000000;
+		} else 
     heaptop = (unsigned int)(end + 65536)<CLIENTPC?CLIENTPC:(end + 65536);
 }
 
