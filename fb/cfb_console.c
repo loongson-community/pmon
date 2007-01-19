@@ -92,7 +92,7 @@ CONFIG_VIDEO_HW_CURSOR:	     - Uses the hardware cursor capability of the
 
 #include <stdio.h>
 #include <stdlib.h>
-
+#include <stdarg.h>
 #include <pmon.h>
 
 #ifdef RADEON7000
@@ -209,7 +209,7 @@ void	console_cursor (int state);
 
 #ifdef	CONFIG_VIDEO_LOGO
 #ifdef	CONFIG_VIDEO_BMP_LOGO
-#include "bmp_logo.h"
+#include "bmp_logo.lm.h"
 #define VIDEO_LOGO_WIDTH	BMP_LOGO_WIDTH
 #define VIDEO_LOGO_HEIGHT	BMP_LOGO_HEIGHT
 #define VIDEO_LOGO_LUT_OFFSET	BMP_LOGO_OFFSET
@@ -344,14 +344,13 @@ static const int video_font_draw_table32[16][4] = {
 
 
 int gunzip(void *, int, unsigned char *, unsigned long *);
-
+extern int vga_available;
 /******************************************************************************/
-
 static void video_drawchars (int xx, int yy, unsigned char *s, int count)
 {
 	unsigned char *cdat, *dest, *dest0;
 	int rows, offset, c;
-
+	
 	offset = yy * VIDEO_LINE_LEN + xx * VIDEO_PIXEL_SIZE;
 	dest0 = video_fb_address + offset;
 
@@ -380,7 +379,7 @@ static void video_drawchars (int xx, int yy, unsigned char *s, int count)
 			cdat = video_fontdata + c * VIDEO_FONT_HEIGHT;
 			for (rows = VIDEO_FONT_HEIGHT, dest = dest0;
 			     rows--;
-			     dest += VIDEO_LINE_LEN) {
+			     dest += VIDEO_LINE_LEN){
 				unsigned char bits = *cdat++;
 
 				((unsigned int *) dest)[0] = SHORTSWAP32 ((video_font_draw_table15 [bits >> 6] & eorx) ^ bgx);
@@ -393,6 +392,7 @@ static void video_drawchars (int xx, int yy, unsigned char *s, int count)
 		}
 		break;
 
+	//here
 	case GDF_16BIT_565RGB:
 		while (count--) {
 			c = *s;
@@ -460,14 +460,14 @@ static void video_drawchars (int xx, int yy, unsigned char *s, int count)
 
 /*****************************************************************************/
 
-static inline void video_drawstring (int xx, int yy, unsigned char *s)
+void video_drawstring (int xx, int yy, unsigned char *s)
 {
 	video_drawchars (xx, yy, s, strlen ((char *)s));
 }
 
 /*****************************************************************************/
 
-static void video_putchar (int xx, int yy, unsigned char c)
+void video_putchar (int xx, int yy, unsigned char c)
 {
 	video_drawchars (xx, yy + VIDEO_LOGO_HEIGHT, &c, 1);
 }
@@ -1082,7 +1082,7 @@ static void *video_logo (void)
 	}
 #endif /* CONFIG_SPLASH_SCREEN */
 
-	logo_plot (video_fb_address, VIDEO_COLS, ((VIDEO_COLS - VIDEO_LOGO_WIDTH)/2)* VIDEO_PIXEL_SIZE, (VIDEO_ROWS - VIDEO_LOGO_HEIGHT)/2);
+	logo_plot (video_fb_address, VIDEO_COLS, (VIDEO_COLS - VIDEO_LOGO_WIDTH)* VIDEO_PIXEL_SIZE, 0);
 
 	//video_drawstring (VIDEO_INFO_X, VIDEO_INFO_Y, (unsigned char *)info);
 
@@ -1104,6 +1104,121 @@ static void *video_logo (void)
 }
 #endif
 
+void video_cls(void)
+{
+	memsetl (video_fb_address + VIDEO_LOGO_HEIGHT * VIDEO_LINE_LEN, 
+		CONSOLE_SIZE - VIDEO_LOGO_HEIGHT * VIDEO_LINE_LEN, 
+		CONSOLE_BG_COL);
+}
+
+void video_set_background(unsigned char r, unsigned char g, unsigned char b)
+{
+	int cnt = CONSOLE_SIZE - VIDEO_LOGO_HEIGHT * VIDEO_LINE_LEN;
+	unsigned short *p = video_fb_address + VIDEO_LOGO_HEIGHT * VIDEO_LINE_LEN;
+	unsigned short color = SWAP16 ((unsigned short) (((r >> 3) << 11) | ((g >> 2) << 5) | (b >> 3)));
+
+	while (cnt>0){	
+		*(p++) = color;
+		cnt -= 2;		
+	}
+}
+static int record = 1;
+//80*24
+char console_buffer[2][25][81]={32};
+void video_console_print(int console_col, int console_row, unsigned char *s)
+{
+	int count = strlen (s);
+
+	while (count--){
+		video_putchar (console_col * VIDEO_FONT_WIDTH,
+			       console_row * VIDEO_FONT_HEIGHT,
+			       *s);
+		if (record){
+			console_buffer[0][console_row][console_col] = *s;
+			console_buffer[1][console_row][console_col] = (char)bgx;
+		}
+		console_col++;
+		s++;
+	}
+}
+void begin_record(void)
+{
+	record = 1;
+}
+
+void stop_record(void)
+{
+	record = 0;
+}
+
+
+char video_get_console_char(int console_col, int console_row)
+{
+	return console_buffer[0][console_row][console_col];
+}
+
+char video_get_console_bgcolor(int console_col, int console_row)
+{
+	return console_buffer[1][console_row][console_col];
+}
+
+void video_set_bg(unsigned char r, unsigned char g, unsigned char b)
+{
+	bgx = SWAP16 ((unsigned short) (((r >> 3) << 11) | ((g >> 2) << 5) | (b >> 3)));
+	bgx |= (bgx << 16);
+	fgx =  SWAP16 ((unsigned short) (((128 >> 3) << 11) | ((128 >> 2) << 5) | (128 >> 3)));
+	fgx |= (fgx << 16);
+	eorx = fgx ^ bgx;
+}
+
+
+unsigned short pallete[16]=
+{
+SWAP16 ((unsigned short) (((0   >> 3) << 11) | ((0   >> 2) << 5) | (0   >> 3))),
+SWAP16 ((unsigned short) (((0   >> 3) << 11) | ((0   >> 2) << 5) | (128 >> 3))),
+SWAP16 ((unsigned short) (((0   >> 3) << 11) | ((128 >> 2) << 5) | (0   >> 3))),
+SWAP16 ((unsigned short) (((0   >> 3) << 11) | ((128 >> 2) << 5) | (128 >> 3))),
+SWAP16 ((unsigned short) (((128 >> 3) << 11) | ((0   >> 2) << 5) | (0   >> 3))),
+SWAP16 ((unsigned short) (((128 >> 3) << 11) | ((0   >> 2) << 5) | (128 >> 3))),
+SWAP16 ((unsigned short) (((128 >> 3) << 11) | ((128 >> 2) << 5) | (0   >> 3))),
+SWAP16 ((unsigned short) (((0xc0>> 3) << 11) | ((0xc0>> 2) << 5) | (0xc0>> 3))),
+SWAP16 ((unsigned short) (((128 >> 3) << 11) | ((128 >> 2) << 5) | (128 >> 3))),
+SWAP16 ((unsigned short) (((0   >> 3) << 11) | ((0   >> 2) << 5) | (255 >> 3))),
+SWAP16 ((unsigned short) (((0   >> 3) << 11) | ((255 >> 2) << 5) | (0   >> 3))),
+SWAP16 ((unsigned short) (((0   >> 3) << 11) | ((255 >> 2) << 5) | (255 >> 3))),
+SWAP16 ((unsigned short) (((255 >> 3) << 11) | ((0   >> 2) << 5) | (0   >> 3))),
+SWAP16 ((unsigned short) (((255 >> 3) << 11) | ((0   >> 2) << 5) | (255 >> 3))),
+SWAP16 ((unsigned short) (((255 >> 3) << 11) | ((255 >> 2) << 5) | (0   >> 3))),
+SWAP16 ((unsigned short) (((255 >> 3) << 11) | ((255 >> 2) << 5) | (255 >> 3)))
+};
+static void __cprint(int y, int x,int width,char color, const char *buf)
+{
+	bgx = pallete[color>>4];
+	bgx |= (bgx << 16);
+	fgx =  pallete[color&0xf];
+	fgx |= (fgx << 16);
+	eorx = fgx ^ bgx;
+	video_console_print(x, y, buf);
+	bgx = 0;	
+	fgx =  SWAP16 ((unsigned short) (((128 >> 3) << 11) | ((128 >> 2) << 5) | (128 >> 3)));
+	fgx |= (fgx << 16);
+	eorx = fgx ^ bgx;
+}
+
+void cprintfb(int y, int x,int width,char color, const char *text)
+{
+ int i,l;
+ unsigned char buf[200];
+
+  if(text && (l=strlen(text)))memcpy(buf,text,(width && l>width)?width:l);
+  else l=0;
+  if(l<width)for(i=0;i<width-l;i++)buf[l+i]=0x20;
+  if(width)
+  {
+  buf[width]=0;
+	__cprint(y,x,width,color,buf);
+  }
+}
 
 /*****************************************************************************/
 
@@ -1136,51 +1251,51 @@ int fb_init (unsigned long fbbase,unsigned long iobase)
 	/* Init drawing pats */
 	switch (VIDEO_DATA_FORMAT) {
 #if 0
-	case GDF__8BIT_INDEX:
-		video_set_lut (0x01, CONSOLE_FG_COL, CONSOLE_FG_COL, CONSOLE_FG_COL);
-		video_set_lut (0x00, CONSOLE_BG_COL, CONSOLE_BG_COL, CONSOLE_BG_COL);
-		fgx = 0x01010101;
-		bgx = 0x00000000;
-		break;
+		case GDF__8BIT_INDEX:
+			video_set_lut (0x01, CONSOLE_FG_COL, CONSOLE_FG_COL, CONSOLE_FG_COL);
+			video_set_lut (0x00, CONSOLE_BG_COL, CONSOLE_BG_COL, CONSOLE_BG_COL);
+			fgx = 0x01010101;
+			bgx = 0x00000000;
+			break;
 #endif
-	case GDF__8BIT_332RGB:
-		color8 = ((CONSOLE_FG_COL & 0xe0) |
-			  ((CONSOLE_FG_COL >> 3) & 0x1c) | CONSOLE_FG_COL >> 6);
-		fgx = (color8 << 24) | (color8 << 16) | (color8 << 8) | color8;
-		color8 = ((CONSOLE_BG_COL & 0xe0) |
-			  ((CONSOLE_BG_COL >> 3) & 0x1c) | CONSOLE_BG_COL >> 6);
-		bgx = (color8 << 24) | (color8 << 16) | (color8 << 8) | color8;
-		break;
-	case GDF_15BIT_555RGB:
-		fgx = (((CONSOLE_FG_COL >> 3) << 26) |
-		       ((CONSOLE_FG_COL >> 3) << 21) | ((CONSOLE_FG_COL >> 3) << 16) |
-		       ((CONSOLE_FG_COL >> 3) << 10) | ((CONSOLE_FG_COL >> 3) << 5) |
-		       (CONSOLE_FG_COL >> 3));
-		bgx = (((CONSOLE_BG_COL >> 3) << 26) |
-		       ((CONSOLE_BG_COL >> 3) << 21) | ((CONSOLE_BG_COL >> 3) << 16) |
-		       ((CONSOLE_BG_COL >> 3) << 10) | ((CONSOLE_BG_COL >> 3) << 5) |
-		       (CONSOLE_BG_COL >> 3));
-		break;
-	case GDF_16BIT_565RGB:
-		fgx = (((CONSOLE_FG_COL >> 3) << 27) |
-		       ((CONSOLE_FG_COL >> 2) << 21) | ((CONSOLE_FG_COL >> 3) << 16) |
-		       ((CONSOLE_FG_COL >> 3) << 11) | ((CONSOLE_FG_COL >> 2) << 5) |
-		       (CONSOLE_FG_COL >> 3));
-		bgx = (((CONSOLE_BG_COL >> 3) << 27) |
-		       ((CONSOLE_BG_COL >> 2) << 21) | ((CONSOLE_BG_COL >> 3) << 16) |
-		       ((CONSOLE_BG_COL >> 3) << 11) | ((CONSOLE_BG_COL >> 2) << 5) |
-		       (CONSOLE_BG_COL >> 3));
-		break;
-	case GDF_32BIT_X888RGB:
-		fgx = (CONSOLE_FG_COL << 16) | (CONSOLE_FG_COL << 8) | CONSOLE_FG_COL;
-		bgx = (CONSOLE_BG_COL << 16) | (CONSOLE_BG_COL << 8) | CONSOLE_BG_COL;
-		break;
-	case GDF_24BIT_888RGB:
-		fgx = (CONSOLE_FG_COL << 24) | (CONSOLE_FG_COL << 16) |
-			(CONSOLE_FG_COL << 8) | CONSOLE_FG_COL;
-		bgx = (CONSOLE_BG_COL << 24) | (CONSOLE_BG_COL << 16) |
-			(CONSOLE_BG_COL << 8) | CONSOLE_BG_COL;
-		break;
+		case GDF__8BIT_332RGB:
+			color8 = ((CONSOLE_FG_COL & 0xe0) |
+					((CONSOLE_FG_COL >> 3) & 0x1c) | CONSOLE_FG_COL >> 6);
+			fgx = (color8 << 24) | (color8 << 16) | (color8 << 8) | color8;
+			color8 = ((CONSOLE_BG_COL & 0xe0) |
+					((CONSOLE_BG_COL >> 3) & 0x1c) | CONSOLE_BG_COL >> 6);
+			bgx = (color8 << 24) | (color8 << 16) | (color8 << 8) | color8;
+			break;
+		case GDF_15BIT_555RGB:
+			fgx = (((CONSOLE_FG_COL >> 3) << 26) |
+					((CONSOLE_FG_COL >> 3) << 21) | ((CONSOLE_FG_COL >> 3) << 16) |
+					((CONSOLE_FG_COL >> 3) << 10) | ((CONSOLE_FG_COL >> 3) << 5) |
+					(CONSOLE_FG_COL >> 3));
+			bgx = (((CONSOLE_BG_COL >> 3) << 26) |
+					((CONSOLE_BG_COL >> 3) << 21) | ((CONSOLE_BG_COL >> 3) << 16) |
+					((CONSOLE_BG_COL >> 3) << 10) | ((CONSOLE_BG_COL >> 3) << 5) |
+					(CONSOLE_BG_COL >> 3));
+			break;
+		case GDF_16BIT_565RGB:
+			fgx = (((CONSOLE_FG_COL >> 3) << 27) |
+					((CONSOLE_FG_COL >> 2) << 21) | ((CONSOLE_FG_COL >> 3) << 16) |
+					((CONSOLE_FG_COL >> 3) << 11) | ((CONSOLE_FG_COL >> 2) << 5) |
+					(CONSOLE_FG_COL >> 3));
+			bgx = (((CONSOLE_BG_COL >> 3) << 27) |
+					((CONSOLE_BG_COL >> 2) << 21) | ((CONSOLE_BG_COL >> 3) << 16) |
+					((CONSOLE_BG_COL >> 3) << 11) | ((CONSOLE_BG_COL >> 2) << 5) |
+					(CONSOLE_BG_COL >> 3));
+			break;
+		case GDF_32BIT_X888RGB:
+			fgx = (CONSOLE_FG_COL << 16) | (CONSOLE_FG_COL << 8) | CONSOLE_FG_COL;
+			bgx = (CONSOLE_BG_COL << 16) | (CONSOLE_BG_COL << 8) | CONSOLE_BG_COL;
+			break;
+		case GDF_24BIT_888RGB:
+			fgx = (CONSOLE_FG_COL << 24) | (CONSOLE_FG_COL << 16) |
+				(CONSOLE_FG_COL << 8) | CONSOLE_FG_COL;
+			bgx = (CONSOLE_BG_COL << 24) | (CONSOLE_BG_COL << 16) |
+				(CONSOLE_BG_COL << 8) | CONSOLE_BG_COL;
+			break;
 	}
 	eorx = fgx ^ bgx;
 
@@ -1192,10 +1307,13 @@ int fb_init (unsigned long fbbase,unsigned long iobase)
 #else
 	video_console_address = video_fb_address;
 #endif
+	printf("CONSOLE_SIZE %d", CONSOLE_SIZE);
 
 	/* Initialize the console */
 	console_col = 0;
 	console_row = 0;
+
+	memset (console_buffer, ' ', sizeof console_buffer);
 
 	return 0;
 }

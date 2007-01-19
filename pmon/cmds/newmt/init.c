@@ -8,6 +8,7 @@
  * http://www.x86-secret.com - http://www.memtest.org
  */
 
+#include "fb.h"
 
 extern short memsz_mode;
 extern short firmware;
@@ -34,7 +35,7 @@ static void display_init(void)
         serial_echo_print("[37m[44m");
         serial_echo_print("[0m");
         serial_echo_print("[37m[44m");
-
+#if NMOD_X86EMU_INT10 > 0
 	/* Clear screen & set background to blue */
 	for(i=0, pp=(char *)(SCREEN_ADR); i<80*24; i++) {
 		*pp++ = ' ';
@@ -51,7 +52,18 @@ static void display_init(void)
 	for(i=0, pp=(char *)(SCREEN_ADR+1+(24 * 160)); i<80; i++, pp+=2) {
 		*pp = 0x71;
 	}
-
+#endif
+#if NMOD_FRAMEBUFFER >0
+	/* Clear screen & set background to blue */
+	video_set_background(0, 0, 128);
+	/* Make the name background red */
+	//TODO
+	video_set_bg(128, 0, 0);
+	cprint(0, 0, "      Memtest-86 v3.2       ");
+	video_set_bg(0, 0, 128);
+	/* Do reverse video for the bottom display line */
+	//TODO
+#endif
         serial_echo_print("[0m");
 }
 

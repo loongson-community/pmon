@@ -58,8 +58,8 @@ struct ed {
 	struct ed *ed_rm_list;
 
 	struct usb_device *usb_dev;
-	u32 unused[3];
-} __attribute((aligned(16)));
+	u32 unused[7];
+} __attribute((aligned(32)));
 typedef struct ed ed_t;
 
 
@@ -377,6 +377,7 @@ typedef struct ohci {
 	u32 hc_control;		/* copy of the hc control reg */
 	struct usb_device *dev[32];
 	struct virt_root_hub rh;
+	struct usb_device *rdev;
 	
 	const char	*slot_name;
 	unsigned char *setup;
@@ -386,12 +387,13 @@ typedef struct ohci {
 	td_t *gtd;
 } ohci_t;
 
-#define NUM_EDS 8		/* num of preallocated endpoint descriptors */
+#define NUM_EDS 32		/* num of preallocated endpoint descriptors */
 
 struct ohci_device {
 	ed_t 	ed[NUM_EDS];
 	ed_t 	*cpu_ed;
 	int ed_cnt;
+	u32	unused[6];
 }__attribute__((aligned(32)));
 
 /* hcd */

@@ -9,6 +9,8 @@
  */
 #include "test.h"
 #include "screen_buffer.h"
+#include "mod_framebuffer.h"
+#include "mod_x86emu_int10.h"
 #define ITER 20
 
 extern int bail;
@@ -27,7 +29,9 @@ void get_config()
 	int flag = 0, sflag = 0, i, prt = 0;
         int reprint_screen = 0;
 	ulong page;
-
+#if NMOD_FRAMEBUFFER > 0
+	stop_record();
+#endif
 	popup();
 	wait_keyup();
 	while(!flag) {
@@ -375,6 +379,11 @@ void popup()
 	int i, j;
 	char *pp;
 	
+#if NMOD_FRAMEBUFFER > 0 
+	stop_record();
+#endif
+	
+#if NMOD_X86EMU_INT10 > 0
 	for (i=POP_Y; i<POP_Y + POP_H; i++) { 
 		for (j=POP_X; j<POP_X + POP_W; j++) { 
 			pp = (char *)(SCREEN_ADR + (i * 160) + (j * 2));
@@ -386,6 +395,16 @@ void popup()
 			*pp = 0x07;		/* Change Background to black */
 		}
 	}
+#elif NMOD_FRAMEBUFFER >0
+	//video_set_bg(0, 0, 0);
+	for (i=POP_Y; i<POP_Y + POP_H; i++) { 
+		for (j=POP_X; j<POP_X + POP_W; j++) {
+                        set_scrn_buf(i, j, ' ');
+			video_console_print(j, i, " ");
+		}
+	}
+	video_set_bg(0, 0, 128);
+#endif
         tty_print_region(POP_Y, POP_X, POP_Y+POP_H, POP_X+POP_W);
 }
 
@@ -393,7 +412,9 @@ void popdown()
 {
 	int i, j;
 	char *pp;
+	char buf[2]={0};
 	
+#if NMOD_X86EMU_INT10 > 0
 	for (i=POP_Y; i<POP_Y + POP_H; i++) { 
 		for (j=POP_X; j<POP_X + POP_W; j++) { 
 			pp = (char *)(SCREEN_ADR + (i * 160) + (j * 2));
@@ -403,7 +424,21 @@ void popdown()
 			*pp = save[1][i-POP_Y][j-POP_X]; /* Restore color */
 		}
 	}
+#elif NMOD_FRAMEBUFFER > 0
+	video_set_bg(0, 0, 128);
+	for (i=POP_Y; i<POP_Y + POP_H; i++) { 
+		for (j=POP_X; j<POP_X + POP_W; j++) {
+			buf[0] = video_get_console_char(j, i);
+                        set_scrn_buf(i, j, buf[0]);
+			video_console_print(j, i, buf);
+		}
+	}
+#endif
         tty_print_region(POP_Y, POP_X, POP_Y+POP_H, POP_X+POP_W);
+#if NMOD_FRAMEBUFFER >0 
+	begin_record();
+#endif
+
 }
 
 void popclear()
@@ -413,10 +448,14 @@ void popclear()
 	
 	for (i=POP_Y; i<POP_Y + POP_H; i++) { 
 		for (j=POP_X; j<POP_X + POP_W; j++) { 
+#if NMOD_X86EMU_INT10 > 0
 			pp = (char *)(SCREEN_ADR + (i * 160) + (j * 2));
 			*pp = ' ';		/* Clear popup */
-                        set_scrn_buf(i, j, ' ');
 			pp++;
+#elif NMOD_FRAMEBUFFER >0
+			video_console_print(j, i, " ");
+#endif
+                        set_scrn_buf(i, j, ' ');
 		}
 	}
         tty_print_region(POP_Y, POP_X, POP_Y+POP_H, POP_X+POP_W);
@@ -427,10 +466,15 @@ void clear_screen()
 	int i;
 	volatile char *pp;
 
+#if NMOD_X86EMU_INT10 > 0
 	for(i=0, pp=(char *)(SCREEN_ADR); i<80*24; i++) {
 		*pp++ = ' ';
 		*pp++ = 0x07;
 	}
+#endif
+#if NMOD_FRAMEBUFFER >0
+	video_cls();
+#endif
 }
 
 void adj_mem(void)

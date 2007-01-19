@@ -96,8 +96,9 @@ unsigned char us_direction[256/8] = {
 };
 #define US_DIRECTION(x) ((us_direction[x>>3] >> (x & 7)) & 1)
 
-static unsigned char usb_stor_buf[512] __attribute__((section(".bss"),aligned(128)));
-static ccb usb_ccb __attribute__((section(".bss"),aligned(128)));
+static unsigned char usb_stor_buf[512] __attribute__((section("data"),aligned(512)));
+static ccb _usb_ccb __attribute__((section("data"),aligned(1024)));
+static ccb *usb_ccb;
 
 
 extern void dev_print(block_dev_desc_t *);
@@ -132,6 +133,7 @@ typedef struct {
 	__u8		bCDBLength;
 #	define CBWCDBLENGTH	16
 	__u8		CBWCDB[CBWCDBLENGTH];
+	__u8		unused[1];
 } umass_bbb_cbw_t;
 #define UMASS_BBB_CBW_SIZE	31
 static __u32 CBWTag = 0;
@@ -146,10 +148,11 @@ typedef struct {
 #	define CSWSTATUS_GOOD	0x0
 #	define CSWSTATUS_FAILED 0x1
 #	define CSWSTATUS_PHASE	0x2
+	__u8		unused[19];
 } umass_bbb_csw_t;
 #define UMASS_BBB_CSW_SIZE	13
 
-#define USB_MAX_STOR_DEV 5
+#define USB_MAX_STOR_DEV 3
 static int usb_max_devs = 0; /* number of highest available usb device */
 
 static block_dev_desc_t usb_dev_desc[USB_MAX_STOR_DEV];
@@ -483,8 +486,8 @@ static int usb_stor_CB_reset(struct us_data *us)
  * Set up the command for a BBB device. Note that the actual SCSI
  * command is copied into cbw.CBWCDB.
  */
-volatile static umass_bbb_cbw_t cbw __attribute((section(".bss"),aligned(128)));
-volatile static umass_bbb_csw_t csw __attribute((section(".bss"),aligned(128)));
+volatile static umass_bbb_cbw_t cbw __attribute((section("data"),aligned(512)));
+volatile static umass_bbb_csw_t csw __attribute((section("data"),aligned(512)));
 
 int usb_stor_BBB_comdat(ccb *srb, struct us_data *us)
 {
@@ -521,6 +524,7 @@ int usb_stor_BBB_comdat(ccb *srb, struct us_data *us)
 	/* copy the command data into the CBW command data buffer */
 	/* DST SRC LEN!!! */
 	memcpy(cbw.CBWCDB, srb->cmd, srb->cmdlen);
+
 	result = usb_bulk_msg(us->pusb_dev, pipe, &cbw, UMASS_BBB_CBW_SIZE, &actlen, USB_CNTL_TIMEOUT*5);
 	if (result < 0)
 		USB_STOR_PRINTF("usb_stor_BBB_comdat:usb_bulk_msg error\n");
@@ -665,7 +669,6 @@ int usb_stor_BBB_transport(ccb *srb, struct us_data *us)
 		usb_stor_BBB_reset(us);
 		return USB_STOR_TRANSPORT_FAILED;
 	}
-	//wait_ms(1);
 	pipein = usb_rcvbulkpipe(us->pusb_dev, us->ep_in);
 	pipeout = usb_sndbulkpipe(us->pusb_dev, us->ep_out);
 	/* DATA phase + error handling */
@@ -678,6 +681,7 @@ int usb_stor_BBB_transport(ccb *srb, struct us_data *us)
 		pipe = pipein;
 	else
 		pipe = pipeout;
+
 	result = usb_bulk_msg(us->pusb_dev, pipe, srb->pdata, srb->datalen, &data_actlen, USB_CNTL_TIMEOUT*5);
 	/* special handling of STALL in DATA phase */
 	if((result < 0) && (us->pusb_dev->status & USB_ST_STALLED)) {
@@ -704,6 +708,7 @@ int usb_stor_BBB_transport(ccb *srb, struct us_data *us)
 	retry = 0;
    again:
 	USB_STOR_PRINTF("STATUS phase\n");
+
 	result = usb_bulk_msg(us->pusb_dev, pipein, &csw, UMASS_BBB_CSW_SIZE,
 				&actlen, USB_CNTL_TIMEOUT*5);
 
@@ -897,7 +902,8 @@ static int usb_request_sense(ccb *srb,struct us_data *ss)
 	srb->pdata=&srb->sense_buf[0];
 	srb->cmdlen=12;
 	ss->transport(srb,ss);
-	USB_STOR_PRINTF("Request Sense returned %02X %02X %02X\n",srb->sense_buf[2],srb->sense_buf[12],srb->sense_buf[13]);
+	//USB_STOR_PRINTF("Request Sense returned %02X %02X %02X\n",srb->sense_buf[2],srb->sense_buf[12],srb->sense_buf[13]);
+	printf("Request Sense returned %02X %02X %02X\n",srb->sense_buf[2],srb->sense_buf[12],srb->sense_buf[13]);
 	srb->pdata=(uchar *)ptr;
 	return 0;
 }
@@ -957,15 +963,16 @@ static int usb_read_10(ccb *srb,struct us_data *ss, unsigned long start, unsigne
 }
 
 
-#define USB_MAX_READ_BLK 20
+#define USB_MAX_READ_BLK 30
 
+extern int ohci_debug;
 unsigned long usb_stor_read(int device, unsigned long blknr, unsigned long blkcnt, unsigned long *buffer)
 {
 	unsigned long start,blks, buf_addr;
 	unsigned short smallblks;
 	struct usb_device *dev;
 	int retry,i;
-	ccb *srb = &usb_ccb;
+	ccb *srb = usb_ccb;
 
 	if (blkcnt == 0)
 		return 0;
@@ -973,11 +980,13 @@ unsigned long usb_stor_read(int device, unsigned long blknr, unsigned long blkcn
 	device &= 0xff;
 	/* Setup  device
 	 */
-	USB_STOR_PRINTF("\nusb_read: dev %d \n",device);
+	//USB_STOR_PRINTF("\nusb_read: dev %d \n",device);
+	if(ohci_debug)printf("\nusb_read: dev %d buffer %x\n",device, buffer);
 	dev=NULL;
 	for(i=0;i<USB_MAX_DEVICE;i++) {
 		dev=usb_get_dev_index(i);
 		if(dev==NULL) {
+			printf("No USB storage device find\n");
 			return 0;
 		}
 		if(dev->devnum==usb_dev_desc[device].target)
@@ -1009,8 +1018,9 @@ retry_it:
 		srb->datalen=usb_dev_desc[device].blksz * smallblks;
 		srb->pdata=(unsigned char *)buf_addr;
 		if(usb_read_10(srb,(struct us_data *)dev->privptr, start, smallblks)) {
-			USB_STOR_PRINTF("Read ERROR\n");
-			usb_request_sense(srb,(struct us_data *)dev->privptr);
+			//USB_STOR_PRINTF("Read ERROR\n");
+			printf("Read ERROR\n");
+			//usb_request_sense(srb,(struct us_data *)dev->privptr);
 			if(retry--)
 				goto retry_it;
 			blkcnt-=blks;
@@ -1166,9 +1176,9 @@ int usb_storage_probe(struct usb_device *dev, unsigned int ifnum,struct us_data 
 int usb_stor_get_info(struct usb_device *dev,struct us_data *ss,block_dev_desc_t *dev_desc)
 {
 	unsigned char perq,modi;
-	static unsigned long cap[2] __attribute((section(".bss"), aligned(128)));
+	static unsigned long cap[8] __attribute((section("data"), aligned(512)));
 	unsigned long *capacity,*blksz;
-	ccb *pccb = &usb_ccb;
+	ccb *pccb = usb_ccb;
 
 	/* for some reasons a couple of devices would not survive this reset */
 	if (
@@ -1267,6 +1277,9 @@ static int usb_match(struct device *parent, void *match, void *aux)
 {
 	struct usb_device *dev = aux;
 
+	pci_sync_cache(0, _usb_ccb, sizeof(_usb_ccb), 1);
+	usb_ccb = (ccb*)CACHED_TO_UNCACHED(&_usb_ccb);
+
 	if(usb_max_devs==USB_MAX_STOR_DEV) {
 		printf("max USB Storage Device reached: %d stopping\n",usb_max_devs);
 		return -1;	
@@ -1276,7 +1289,7 @@ static int usb_match(struct device *parent, void *match, void *aux)
 		memset(&usb_dev_desc[usb_max_devs],0,sizeof(block_dev_desc_t));
 		usb_dev_desc[usb_max_devs].target=0xff;
 		usb_dev_desc[usb_max_devs].if_type=IF_TYPE_USB;
-		usb_dev_desc[usb_max_devs].dev=index; //index into usb_dev
+		usb_dev_desc[usb_max_devs].dev= usb_max_devs;
 		usb_dev_desc[usb_max_devs].part_type=PART_TYPE_UNKNOWN;
 		usb_dev_desc[usb_max_devs].block_read=&usb_stor_read;
 		/* get info and fill it in */
@@ -1315,7 +1328,8 @@ void	usb_strategy(struct buf *bp);
 int	usb_read(dev_t dev, struct uio *uio, int ioflag);
 int	usb_write(dev_t dev, struct uio *uio, int ioflag);
 
-static unsigned char bulkbuf[8096] __attribute__((section(".bss"),aligned(128)));
+//static unsigned char bulkbuf[8096] __attribute__((section(".bss"),aligned(128)));
+static unsigned char bulkbuf[110*1024] __attribute__((section("data"),aligned(4096)));
 
 int	usb_open(dev_t dev, int flag, int fmt, struct proc *p)
 {
@@ -1332,7 +1346,6 @@ void usb_strategy(struct buf *bp)
 	int p_offset = 0;
 	unsigned int dev, blkno, blkcnt;
 	unsigned int d_secsize; 
-	//struct usb_device *udev;
 	struct  block_dev_desc_t *block_usb;
 	int device;
 	int ret ;
@@ -1349,13 +1362,14 @@ void usb_strategy(struct buf *bp)
 		 ret = 0;
 		 break; 
 	default:
+		 printf("invalid block size %d\n", d_secsize);
 		 ret = -1;
 	}
 
 	if(ret == -1){
 		bp->b_flags |= B_ERROR;	
 		biodone(bp);
-		return -1;	
+		return ;	
 	}
 	blkno = blkno /(d_secsize/DEV_BSIZE);
 	blkcnt = howmany(bp->b_bcount, d_secsize); 
@@ -1366,6 +1380,7 @@ void usb_strategy(struct buf *bp)
 	    (bp->b_bcount % d_secsize) != 0 ||
 	    (bp->b_bcount / d_secsize) >= (1 << NBBY)) {
 		bp->b_error = EINVAL;
+		printf("Invalid request \n");
 		goto bad;
 	}
 	
@@ -1374,9 +1389,11 @@ void usb_strategy(struct buf *bp)
 		goto done;
 	
 	if(bp->b_flags & B_READ){
-		if((unsigned long)bp->b_data & 0xff){
+		if((unsigned long)bp->b_data & (d_secsize - 1)){
 			ret = usb_stor_read(dev, blkno, blkcnt, (unsigned long *)bulkbuf); 
 			memcpy(bp->b_data, bulkbuf, bp->b_bcount);
+			//ret = usb_stor_read(dev, blkno, 1, (unsigned long *)bulkbuf); 
+			//memcpy(bp->b_data, bulkbuf,d_secsize-(unsigned )bp0->b_data & (d_secsize -1));
 		} else {
 			ret = usb_stor_read(dev, blkno, blkcnt, (unsigned long *)bp->b_data);
 		}

@@ -8,12 +8,12 @@
 #define POP_W	30
 #define POP_H	15
 #define POP_X	16
-#define POP_Y	8
+#define POP_Y	5
 #define MSG_W	70
 #define MSG_H	15
 #define MSG_X	5
-#define MSG_Y	8
-#define INFO_Y  24
+#define MSG_Y	5
+#define INFO_Y  0
 #define INFO_W  80
 
 struct setupMenuitem{

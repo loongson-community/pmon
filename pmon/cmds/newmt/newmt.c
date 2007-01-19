@@ -99,11 +99,14 @@ void restart()
     v->msg_line = 0;
     v->ecount = 0;
     v->ecc_ecount = 0;
-
+#if NMOD_X86EMU_INT10 > 0
         /* Clear the screen */
         for(i=0, pp=(char *)(SCREEN_ADR+0); i<80*24; i++, pp+=2) {
                 *pp = ' ';
         }
+#elif NMOD_FRAMEBUFFER >0
+	video_cls();
+#endif
 		returncode=1;
 		longjmp(jmpb_mt,1);
 }
@@ -249,6 +252,10 @@ static int newmt()
 	unsigned long chunks;
 	unsigned long lo, hi;
 	int cnt;
+
+#if NMOD_FRAMEBUFFER > 0 
+	video_cls();
+#endif
  	if(setjmp(jmpb_mt)&&(returncode==2)){
     	volatile char *pp;
 		ioctl (STDIN, TCSETAF, &sav);
@@ -261,9 +268,13 @@ static int newmt()
 			autotest=0;
 			firsttime=0;
         /* Clear the screen */
+#if NMOD_FRAMEBUFFER > 0
+		video_cls();
+#else
         for(i=0, pp=(char *)(SCREEN_ADR+0); i<80*25; i++, pp+=2) {
                 *pp = ' ';pp[1]=7;
         }
+#endif
         serial_echo_print("[H[2J");   /* Clear Screen */
 		return 0;
 	    }

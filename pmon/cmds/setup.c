@@ -43,6 +43,7 @@ ${!width: num}
 #include <stdio.h>
 #include <stdarg.h>
 #include "setup.h"
+#include "mod_x86emu_int10.h"
 void get_line1 (char *p,int usehist);
 
 #define PREV	CNTRL('P')
@@ -258,10 +259,11 @@ cprint(INFO_Y,0,INFO_W,0x70,"press any key to exit");
 popdown(yy,xx,height,width);
 }
 
+void cprintfb(int y, int x,int width,char color, const char *buf);
 extern void set_cursor(unsigned char x,unsigned char y);
 void (*__popup)(int y, int x,int height,int width)=popup;
 void (*__popdown)(int y, int x,int height,int width)=popdown;
-void (*__cprint)(int y, int x,int width,char color, const char *text)=cprint;
+void (*__cprint)(int y, int x,int width,char color, const char *text)=cprintfb;
 void (*__msgbox)(int yy,int xx,int height,int width,char *msg)=msgbox;
 void (*__set_cursor)(unsigned char x,unsigned char y)=set_cursor;
 //---------------------------------------------------------------------------
@@ -316,6 +318,13 @@ void (*__set_cursor)(unsigned char x,unsigned char y)=set_cursor;
 */
 #endif
 //---------------------------------------------------------------------------
+static void popupfb(int y, int x,int height,int width)
+{
+  for(;height;height--,y++)
+	__cprint(y,x,width,0x17,0);
+	__cprint(INFO_Y,0,80,0x70,0);
+}
+
 static void cprintS(int y, int x,int width,char color, const char *text)
 {
  int i,l;
@@ -358,13 +367,13 @@ char *optr=0;
 int lidx=0,i;
 char *lines[25];
 nextline();
-popupS(yy,xx,height,width);
+__popup(yy,xx,height,width);
 for(;*iptr;iptr++)
 {
   if(y==height){
-	cprintS(INFO_Y,0,INFO_W,0x70,"press enter to view next line");
+	__cprint(INFO_Y,0,INFO_W,0x70,"press enter to view next line");
 	while(getch()>=0x100);
-	for(i=0;i<height-1;i++) cprintS(yy+i,xx,width,0x17,lines[(lidx-height+2+25+i)%25]);//scroll window
+	for(i=0;i<height-1;i++) __cprint(yy+i,xx,width,0x17,lines[(lidx-height+2+25+i)%25]);//scroll window
 	y--;
    nextline();
   }
@@ -372,7 +381,7 @@ for(;*iptr;iptr++)
  if(*iptr=='\n'||*iptr=='\r')
  {
   *optr++=0;
-  cprintS(y+yy,xx,width,0x17,lines[lidx]);
+  __cprint(y+yy,xx,width,0x17,lines[lidx]);
   y++;x=0;
    nextline();
   continue;
@@ -381,16 +390,16 @@ for(;*iptr;iptr++)
  if(x==width)
  {
  *optr++=0;
-  cprintS(y+yy,xx,width,0x17,lines[lidx]);
+  __cprint(y+yy,xx,width,0x17,lines[lidx]);
   y++;x=0;
    nextline();
   continue;
  }
 }
 
-cprintS(INFO_Y,0,INFO_W,0x70,"press enter to exit");
+__cprint(INFO_Y,0,INFO_W,0x70,"press enter to exit");
 while(getch()>=0x100);
-popdownS(yy,xx,height,width);
+__popdown(yy,xx,height,width);
 }
 
 void cprintf(int y, int x,int width,char color,const char *fmt, ...)
@@ -1157,7 +1166,7 @@ int default_action(int msg)
 	  case 0x1b:deselectitem();setup_flag=-1;break;
 	  case UPDATE: default_update();break;
 	  case UPDATE1: default_update1();break;
-	  case TIMER:
+//	  case TIMER:
 	  case CLEAN:
 	  	   	printmenu();break;
 	  default:
@@ -1225,10 +1234,17 @@ void __console_alloc()
  }
  else
  {
+#if NMOD_X86EMU_INT10
   __cprint=cprint;
   __popup=popup;
   __popdown=popdown;
   __msgbox=msgbox;
+#else
+  __cprint=cprintfb;
+  __popup=popupfb;
+  __popdown=popupfb;
+  __msgbox=msgboxS;
+#endif
   __set_cursor=set_cursor;
  }
 if(!myline)myline=malloc(1000);

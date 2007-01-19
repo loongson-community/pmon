@@ -5,6 +5,7 @@
  */
 
 #include "test.h"
+#include "fb.h"
 
 static void update_err_counts(void);
 static void print_err_counts(void);
@@ -1062,17 +1063,26 @@ static void print_err_counts(void)
 	int i;
 	char *pp;
 
+#if NMOD_FRAMEBUFFER >0
+	video_set_bg(128, 0, 0);
+#endif
+
 	dprint(LINE_INFO, COL_ERR, v->ecount, 6, 0);
 	dprint(LINE_INFO, COL_ECC_ERR, v->ecc_ecount, 6, 0);
 
 	/* Paint the error messages on the screen red to provide a vivid */
 	/* indicator that an error has occured */ 
+#if NMOD_X86EMU_INT10 > 0
 	if (v->msg_line < 24) {
 		for(i=0, pp=(char *)((SCREEN_ADR+v->msg_line*160+1));
 				 i<76; i++, pp+=2) {
 			*pp = 0x47;
 		}
 	}
+#elif NMOD_FRAMEBUFFER >0
+	video_set_bg(0, 0, 128);
+#endif
+
 }
 
 static void common_err(ulong page, ulong offset)

@@ -4,6 +4,8 @@
  * By Chris Brady
  */
 
+#include "fb.h"
+
 int slock = 0, lsr = 0;
 #define serial_cons (!vga_available)
 char buf[18];
@@ -88,6 +90,7 @@ void scroll(void)
 		while (slock) {
 			check_input();
 		}
+#if NMOD_FRAMEBUFFER==0
 	        for (i=LINE_SCROLL; i<23; i++) {
 			s = (char *)(SCREEN_ADR + ((i+1) * 160));
 			for (j=0; j<160; j+=2, s+=2) {
@@ -103,6 +106,7 @@ void scroll(void)
                         set_scrn_buf(23, j, ' ');
 			s += 2;
 		}
+#endif
                 tty_print_region(LINE_SCROLL, 0, 23, 79);
         }
 }
@@ -114,12 +118,16 @@ void cprint(int y, int x, const char *text)
 {
 	register int i;
 	char *dptr;
-
+#if NMOD_X86EMU_INT10 > 0
 	dptr = (char *)(SCREEN_ADR + (160*y) + (2*x));
 	for (i=0; text[i]; i++) {
 		*dptr = text[i];
 		dptr += 2;
         }
+#endif
+#if NMOD_FRAMEBUFFER >0
+	video_console_print(x, y, text);
+#endif
         tty_print_line(y, x, text);
 }
 
@@ -327,6 +335,10 @@ int check_input(void)
 	if ((c = get_key())) {
 		switch(c & 0x7f) {
 		case 1:	
+#if NMOD_FRAMEBUFFER > 0
+			/* reset the backgroud color */
+			video_set_bg(0, 0, 0);
+#endif
 			/* "ESC" key was pressed, bail out.  */
 			cprint(LINE_RANGE, COL_MID+23, "Halting... ");
 			/* tell the BIOS to do a warm start */
