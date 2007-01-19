@@ -43,7 +43,6 @@ ${!width: num}
 #include <stdio.h>
 #include <stdarg.h>
 #include "setup.h"
-#include "mod_x86emu_int10.h"
 void get_line1 (char *p,int usehist);
 
 #define PREV	CNTRL('P')
@@ -261,6 +260,7 @@ popdown(yy,xx,height,width);
 
 void cprintfb(int y, int x,int width,char color, const char *buf);
 extern void set_cursor(unsigned char x,unsigned char y);
+extern void set_cursor_fb(unsigned char x,unsigned char y);
 void (*__popup)(int y, int x,int height,int width)=popup;
 void (*__popdown)(int y, int x,int height,int width)=popdown;
 void (*__cprint)(int y, int x,int width,char color, const char *text)=cprintfb;
@@ -318,12 +318,18 @@ void (*__set_cursor)(unsigned char x,unsigned char y)=set_cursor;
 */
 #endif
 //---------------------------------------------------------------------------
+#if NMOD_FRAMEBUFFER
+void video_cls(void);
 static void popupfb(int y, int x,int height,int width)
 {
+video_cls();
+#if 0
   for(;height;height--,y++)
 	__cprint(y,x,width,0x17,0);
 	__cprint(INFO_Y,0,80,0x70,0);
+#endif
 }
+#endif
 
 static void cprintS(int y, int x,int width,char color, const char *text)
 {
@@ -1234,18 +1240,19 @@ void __console_alloc()
  }
  else
  {
-#if NMOD_X86EMU_INT10
-  __cprint=cprint;
-  __popup=popup;
-  __popdown=popdown;
-  __msgbox=msgbox;
-#else
+#if NMOD_FRAMEBUFFER
   __cprint=cprintfb;
   __popup=popupfb;
   __popdown=popupfb;
   __msgbox=msgboxS;
-#endif
+  __set_cursor=set_cursor_fb;
+#else
+  __cprint=cprint;
+  __popup=popup;
+  __popdown=popdown;
+  __msgbox=msgbox;
   __set_cursor=set_cursor;
+#endif
  }
 if(!myline)myline=malloc(1000);
 if(!expline)expline=malloc(SIZE_OF_EXPLINE);

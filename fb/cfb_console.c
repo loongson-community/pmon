@@ -1220,6 +1220,12 @@ void cprintfb(int y, int x,int width,char color, const char *text)
   }
 }
 
+void set_cursor_fb(unsigned char x,unsigned char y)
+{
+	console_col=x;
+	console_row=y;
+}
+
 /*****************************************************************************/
 
 int fb_init (unsigned long fbbase,unsigned long iobase)
