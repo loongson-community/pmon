@@ -1172,7 +1172,7 @@ int default_action(int msg)
 	  case 0x1b:deselectitem();setup_flag=-1;break;
 	  case UPDATE: default_update();break;
 	  case UPDATE1: default_update1();break;
-//	  case TIMER:
+	  case TIMER:
 	  case CLEAN:
 	  	   	printmenu();break;
 	  default:
