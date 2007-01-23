@@ -1332,6 +1332,15 @@ static int linit(int argc,char **argv)
 	lrdata=0;
 	return 0;
 }
+extern char *allocp1;
+static int mytest(int argc,char **argv)
+{
+	register ra asm("$31");
+	register sp asm("$29");
+	printf("ra=%lx,sp=%lx,allocp1=%lx\n",ra,sp,allocp1);
+
+	return 0;
+}
 //----------------------------------
 static const Cmd Cmds[] =
 {
@@ -1382,6 +1391,7 @@ static const Cmd Cmds[] =
 	{"ldl","n",0,"ldl n",ldl,2,2,CMD_REPEAT},
 	{"ldr","n",0,"ldr n",ldr,2,2,CMD_REPEAT},
 	{"linit","",0,"linit",linit,1,1,CMD_REPEAT},
+	{"mytest","",0,"mytest",mytest,1,1,CMD_REPEAT},
 	{0, 0}
 };
 

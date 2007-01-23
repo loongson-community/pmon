@@ -981,7 +981,9 @@ unsigned long usb_stor_read(int device, unsigned long blknr, unsigned long blkcn
 	/* Setup  device
 	 */
 	//USB_STOR_PRINTF("\nusb_read: dev %d \n",device);
+#if NMOD_USB_OHCI
 	if(ohci_debug)printf("\nusb_read: dev %d buffer %x\n",device, buffer);
+#endif
 	dev=NULL;
 	for(i=0;i<USB_MAX_DEVICE;i++) {
 		dev=usb_get_dev_index(i);

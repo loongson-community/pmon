@@ -164,9 +164,11 @@ struct usb_ops uhci_op = {
 	.submit_int_msg  = uhci_submit_int_msg
 };
 
+
 static int uhci_match(struct device *parent, void *match, void *aux)
 {
 	struct pci_attach_args *pa = aux;
+	static int addr=0xc000;
 	
 	if(PCI_CLASS(pa->pa_class) == PCI_CLASS_SERIALBUS && 
 		  PCI_SUBCLASS(pa->pa_class) == PCI_SUBCLASS_SERIALBUS_USB) {
@@ -176,7 +178,8 @@ static int uhci_match(struct device *parent, void *match, void *aux)
 			if(!(pa->pa_device ==  5 && pa->pa_function ==3))
 				return 0;
 #endif
-			pci_conf_write(0, pa->pa_tag, 0x20, 0xc000);
+			addr=_pci_allocate_io(_pci_head,0x100);
+			pci_conf_write(0, pa->pa_tag, 0x20, addr);
 			printf("Found usb uhci controller %x\n", 
 				pci_conf_read(0, pa->pa_tag, 0x20));
 			return 1; 

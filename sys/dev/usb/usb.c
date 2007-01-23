@@ -992,8 +992,8 @@ void usb_scan_devices(void * hc_private)
  * Probes device for being a hub and configurate it
  */
 
-#undef	USB_HUB_DEBUG
-//#define	USB_HUB_DEBUG
+//#undef	USB_HUB_DEBUG
+#define	USB_HUB_DEBUG
 
 #ifdef	USB_HUB_DEBUG
 #define	USB_HUB_PRINTF(fmt,args...)	printf (fmt ,##args)

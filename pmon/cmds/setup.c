@@ -263,7 +263,7 @@ extern void set_cursor(unsigned char x,unsigned char y);
 extern void set_cursor_fb(unsigned char x,unsigned char y);
 void (*__popup)(int y, int x,int height,int width)=popup;
 void (*__popdown)(int y, int x,int height,int width)=popdown;
-void (*__cprint)(int y, int x,int width,char color, const char *text)=cprintfb;
+void (*__cprint)(int y, int x,int width,char color, const char *text);
 void (*__msgbox)(int yy,int xx,int height,int width,char *msg)=msgbox;
 void (*__set_cursor)(unsigned char x,unsigned char y)=set_cursor;
 //---------------------------------------------------------------------------

@@ -1,6 +1,6 @@
 TARGET=Bonito2edev
 TARGETEL=Bonito
 START=start.o
-MEMSIZE=256
+MEMSIZE=128
 
 include Makefile.inc

@@ -84,8 +84,8 @@ static int _pci_setupIntRouting(struct pci_device *);
 static void _pci_scan_dev(struct pci_device *dev, int bus, int device, int initialise);
 static void _insertsort_window(struct pci_win **, struct pci_win *);
 static void _pci_device_insert(struct pci_device *parent, struct pci_device *device);
-static pcireg_t _pci_allocate_mem __P((struct pci_device *, vm_size_t));
-static pcireg_t _pci_allocate_io __P((struct pci_device *, vm_size_t));
+pcireg_t _pci_allocate_mem __P((struct pci_device *, vm_size_t));
+pcireg_t _pci_allocate_io __P((struct pci_device *, vm_size_t));
 static void _setup_pcibuses(int );
 static void _pci_bus_insert(struct pci_bus *);
 
@@ -564,7 +564,7 @@ _pci_query_dev (struct pci_device *dev, int bus, int device, int initialise)
 }
 
 
-static pcireg_t
+pcireg_t
 _pci_allocate_mem(dev, size)
 	struct pci_device *dev;
 	vm_size_t size;
@@ -601,7 +601,7 @@ _pci_allocate_mem(dev, size)
 #undef    PCI_ALLOC_UPWARDS
 #endif
 
-static pcireg_t
+pcireg_t
 _pci_allocate_io(dev, size)
     struct pci_device *dev;
     vm_size_t size;
