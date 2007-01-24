@@ -795,6 +795,9 @@ tgt_mapenv(int (*func) __P((char *, char *)))
 	sprintf(env, "%d", memorysize / (1024 * 1024));
 	(*func)("memsize", env);
 
+	sprintf(env, "%d", memorysize_high / (1024 * 1024));
+	(*func)("highmemsize", env);
+
 	sprintf(env, "%d", md_pipefreq);
 	(*func)("cpuclock", env);
 

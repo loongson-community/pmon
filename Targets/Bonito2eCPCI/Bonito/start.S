@@ -1255,7 +1255,7 @@ LEAF(tgt_putchar)
 	la	v0, COM3_BASE_ADDR
 	bal 1f
 	nop
-	b 12f
+#	b 12f
 	nop
 #endif
 	and v0,k1,1
@@ -1313,7 +1313,7 @@ LEAF(initserial)
  	li	a0, NS16550HZ/(16*CONS_BAUD)
 	bal 1f
 	nop
-	b 12f
+#	b 12f
 	nop
 #endif
  	li	a0, NS16550HZ/2/(16*CONS_BAUD)

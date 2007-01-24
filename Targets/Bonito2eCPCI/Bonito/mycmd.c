@@ -143,7 +143,7 @@ else
 {
 l=strtoul(argv[1],0,0);
 if(l==-1){WATCHDOG_REG =0;}
-else {WATCHDOG_REG =0;WATCHDOG_REG=(3<<24)|l;}
+else {WATCHDOG_REG =0;WATCHDOG_REG=(1<<24)|l;}
 }
 return 0;
 }

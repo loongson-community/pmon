@@ -178,7 +178,7 @@ static int uhci_match(struct device *parent, void *match, void *aux)
 			if(!(pa->pa_device ==  5 && pa->pa_function ==3))
 				return 0;
 #endif
-			addr=_pci_allocate_io(_pci_head,0x100);
+			addr=_pci_allocate_io(_pci_head,0x20);
 			pci_conf_write(0, pa->pa_tag, 0x20, addr);
 			printf("Found usb uhci controller %x\n", 
 				pci_conf_read(0, pa->pa_tag, 0x20));

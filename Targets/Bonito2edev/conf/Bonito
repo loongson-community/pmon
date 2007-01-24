@@ -132,7 +132,7 @@ fxp0            at pci? dev ? function ?        # Intel 82559 Device
 rtl*        at pci? dev ? function ?
 uhci*		 at pci? dev ? function ?
 #ohci0		 at pci? dev ? function ?
-usb*		 at usbbus ? 
+usb0		 at usbbus ? 
 #ohci1		 at pci? dev ? function ?
 
 select      mod_usb
