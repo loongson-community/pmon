@@ -116,8 +116,8 @@
 #define USB_MAX_TEMP_INT_TD  32   /* number of temporary TDs for Interrupt transfers */
 
 
-#undef USB_UHCI_DEBUG
-//#define USB_UHCI_DEBUG
+//#undef USB_UHCI_DEBUG
+#define USB_UHCI_DEBUG
 
 #ifdef	USB_UHCI_DEBUG
 #define	USB_UHCI_PRINTF(fmt,args...)	printf (fmt ,##args)
@@ -902,9 +902,10 @@ int handle_usb_interrupt(void *hc_data)
 {
 	unsigned short status;
 	int s;
-	//static int count = 0;
+	static int count = 0,count1=0;
 
-	//if (count++%1024==0) prom_printf("handle_usb_interrupt,count=%d\n",count);
+	s = splimp();
+	if (count++%0x80000==0) printf("handle_usb_interrupt,count=%d\n",count);
 	/*
 	 * Read the interrupt status, and write it back to clear the
 	 * interrupt cause
@@ -916,11 +917,10 @@ int handle_usb_interrupt(void *hc_data)
 	if (!status)		/* shared interrupt, not mine */
 		return 0;
 
-	//if (count++%1024==0) prom_printf("status=%x,count=%d\n",status,count);
-	s = splimp();
+	if (count1++%0x1000==0) printf("status=%x,count=%d\n",status,count);
 	if (status != 1) {
 		/* remove host controller halted state */
-#if 0
+#if 1
 		if ((status&0x20) && ((in16r(usb_base_addr+USBCMD) && USBCMD_RS)==0)) {
 			out16r(usb_base_addr + USBCMD, USBCMD_RS | in16r(usb_base_addr + USBCMD));
 		}
@@ -978,7 +978,7 @@ void usb_uhci_stop(void)
  * Virtual Root Hub
  * Since the uhci does not have a real HUB, we simulate one ;-)
  */
-#undef	USB_RH_DEBUG
+#define	USB_RH_DEBUG
 
 #ifdef	USB_RH_DEBUG
 #define	USB_RH_PRINTF(fmt,args...)	printf (fmt ,##args)

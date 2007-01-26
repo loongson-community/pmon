@@ -76,6 +76,8 @@ static quad_t widedata;
 			widedata = (quad_t)__a << 32 | __a;		\
 		} while(0)
 
+#define ConvAddr2(A) (A*2)
+
 /*
  *  Inlineable function to Unlock Bypass 
  */
@@ -90,6 +92,11 @@ fl_unlock_bypass_amd(map)
 		outb((map->fl_map_base + AMD_CMDOFFS1), 0xaa);
 		outb((map->fl_map_base + AMD_CMDOFFS2), 0x55);
 		outb((map->fl_map_base + AMD_CMDOFFS1), 0x20);
+		break;
+	case FL_BUS_16:
+		outw((map->fl_map_base + ConvAddr2(AMD_CMDOFFS1)), 0xaa);
+		outw((map->fl_map_base + ConvAddr2(AMD_CMDOFFS2)), 0x55);
+		outw((map->fl_map_base + ConvAddr2(AMD_CMDOFFS1)), 0x20);
 		break;
 	case FL_BUS_64:
 		break;	/* Leave this for now */
@@ -113,6 +120,7 @@ fl_unlock_bypass_reset_amd(map)
 
 	switch(map->fl_map_bus) {
 	case FL_BUS_8:
+	case FL_BUS_16:
 		outb((map->fl_map_base), 0x90);
 		outb((map->fl_map_base), 0x00);
 		break;
@@ -142,6 +150,10 @@ fl_unlock_bypass_program_amd(map, pa, pd)
 	case FL_BUS_8:
 		outb((map->fl_map_base + AMD_CMDOFFS1), 0xaa);
 		outb((map->fl_map_base + AMD_CMDOFFS2), 0x55);
+		break;
+	case FL_BUS_16:
+		outw((map->fl_map_base + ConvAddr2(AMD_CMDOFFS1)), 0xaa);
+		outw((map->fl_map_base + ConvAddr2(AMD_CMDOFFS2)), 0x55);
 		break;
 	case FL_BUS_64:
 		break;	/* Leave this for now */
@@ -173,6 +185,14 @@ fl_erase_sector_amd(map, dev, offset)
 		outb((map->fl_map_base + AMD_CMDOFFS2), 0x55);
 		outb((map->fl_map_base + offset), FL_SECT);
 		break;
+	case FL_BUS_16:
+		outw((map->fl_map_base + ConvAddr2(AMD_CMDOFFS1)), 0xAA);
+		outw((map->fl_map_base + ConvAddr2(AMD_CMDOFFS2)), 0x55);
+		outw((map->fl_map_base + ConvAddr2(AMD_CMDOFFS1)), FL_ERASE);
+		outw((map->fl_map_base + ConvAddr2(AMD_CMDOFFS1)), 0xAA);
+		outw((map->fl_map_base + ConvAddr2(AMD_CMDOFFS2)), 0x55);
+		outw((map->fl_map_base + offset), FL_SECT);
+		break;
 	case FL_BUS_64:
 		break;	/* Leave this for now */
 	case FL_BUS_8_ON_64:
@@ -203,6 +223,12 @@ fl_program_amd(map, dev, pa, pd)
 		outb((map->fl_map_base + AMD_CMDOFFS2), 0x55);
 		outb((map->fl_map_base + AMD_CMDOFFS1), 0xA0);
 		outb((map->fl_map_base + pa), *pd);
+		break;
+	case FL_BUS_16:
+		outw((map->fl_map_base + ConvAddr2(AMD_CMDOFFS1)), 0xAA);
+		outw((map->fl_map_base + ConvAddr2(AMD_CMDOFFS2)), 0x55);
+		outw((map->fl_map_base + ConvAddr2(AMD_CMDOFFS1)), 0xA0);
+		outw((map->fl_map_base + pa), ((int)pd[1]<<8)|pd[0]);
 		break;
 	case FL_BUS_8_ON_64:
 		SETWIDE(0xaa);
@@ -239,6 +265,14 @@ fl_erase_chip_amd(map, dev)
 		outb((map->fl_map_base + AMD_CMDOFFS2), 0x55);
 		outb((map->fl_map_base + AMD_CMDOFFS1), FL_ERASE_CHIP);
 		break;
+	case FL_BUS_16:
+		outw((map->fl_map_base + ConvAddr2(AMD_CMDOFFS1)), 0xaa);
+		outw((map->fl_map_base + ConvAddr2(AMD_CMDOFFS2)), 0x55);
+		outw((map->fl_map_base + ConvAddr2(AMD_CMDOFFS1)), FL_ERASE);
+		outw((map->fl_map_base + ConvAddr2(AMD_CMDOFFS1)), 0xaa);
+		outw((map->fl_map_base + ConvAddr2(AMD_CMDOFFS2)), 0x55);
+		outw((map->fl_map_base + ConvAddr2(AMD_CMDOFFS1)), FL_ERASE_CHIP);
+		break;
 	case FL_BUS_64:
 		break;	/* Leave this for now */
 	case FL_BUS_8_ON_64:
@@ -261,6 +295,7 @@ fl_erase_suspend_amd(map, dev)
 {
 
 	switch(map->fl_map_bus) {
+	case FL_BUS_16:
 	case FL_BUS_8:
 		outb(map->fl_map_base, FL_SUSPEND);
 		break;
@@ -286,6 +321,7 @@ fl_erase_resume_amd(map, dev)
 {
 
 	switch(map->fl_map_bus) {
+	case FL_BUS_16:
 	case FL_BUS_8:
 		outb(map->fl_map_base, FL_RESUME);
 		break;
@@ -310,6 +346,7 @@ fl_reset_amd(map, dev)
 	struct fl_device *dev;
 {
 	switch(map->fl_map_bus) {
+	case FL_BUS_16:
 	case FL_BUS_8:
 		outb((map->fl_map_base), FL_RESET);
 		break;
@@ -419,6 +456,20 @@ fl_isbusy_amd(map, dev, what, offset, erase)
 			}
 		}
 #endif
+		break;
+	case FL_BUS_16:
+		while (1) {
+			unsigned short poll1, poll2;
+			poll2 = inw(map->fl_map_base + offset);
+			poll1 = inw(map->fl_map_base + offset);
+
+			if((poll1&0x0040)==(poll2&0x0040))return 0;
+			if((poll2&0x20)!=0x20)return 1;
+			poll1 = inw(map->fl_map_base + offset);
+			poll2 = inw(map->fl_map_base + offset);
+			if((poll1&0x0040)==(poll2&0x0040))return 0;
+			else return -1;
+		}
 		break;
 	default:
 		/* Not supported but sorted out much earlier */
