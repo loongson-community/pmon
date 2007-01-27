@@ -426,9 +426,9 @@ static int rtl8139_init(struct nic *nic);
 static void rtl8139_transmit(struct ifnet *ifp);
 	
 static int rtl8139_poll(struct nic *nic);
-//static void rtl_disable(struct nic*);
 static long long rtl_read_mac(struct nic *nic);
 int write_eeprom(long idaddr,int,unsigned short);
+int write_eeprom8(long idaddr,int,unsigned short);
 
 #define RTL8139_PCI_MEMA  0x14
 #define RTL8139_PCI_IOBA  0x10
@@ -470,12 +470,19 @@ static void dump_buf(unsigned char* data, int len)
 #define eeprom_delay()  inl(ee_addr)
 
 /* The EEPROM commands include the alway-set leading bit. */
+#ifndef EPLC46
 #define EE_WEN_CMD      ( (4 << 6) | ( 3 << 4 ) )
 #define EE_WRITE_CMD    (5 << 6)
 #define EE_WDS_CMD      (4 << 6)
 #define EE_READ_CMD     (6 << 6)
 #define EE_ERASE_CMD    (7 << 6)
-
+#else
+#define EE_WEN_CMD      ( (4 << 7) | ( 3 << 5 ) )
+#define EE_WRITE_CMD    (5 << 7)
+#define EE_WDS_CMD      (4 << 7)
+#define EE_READ_CMD     (6 << 7)
+#define EE_ERASE_CMD    (7 << 7)
+#endif
 
 #define outb(v, a)  (*(volatile unsigned char *)(a) = (v))
 #define outw(v, a)  (*(volatile unsigned short*)(a) = (v))
@@ -491,6 +498,7 @@ static int read_eeprom(struct nic * nic, long ioaddr, int location)
 	RTL_WRITE_1(nic, Cfg9346, EE_ENB & ~EE_CS);
 	RTL_WRITE_1(nic, Cfg9346, EE_ENB );
 
+#ifndef EPLC46
 	/* Shift the read command bits out. */
 	for (i = 10; i >= 0; i--) {
 		int dataval = (read_cmd & (1 << i)) ? EE_DATA_WRITE : 0;
@@ -499,9 +507,19 @@ static int read_eeprom(struct nic * nic, long ioaddr, int location)
 		RTL_WRITE_1(nic, Cfg9346, EE_ENB | dataval | EE_SHIFT_CLK);
 		eeprom_delay();
 	}  
+#else
+	for (i = 11; i >= 0; i--) {
+		int dataval = (read_cmd & (1 << i)) ? EE_DATA_WRITE : 0;
+		RTL_WRITE_1(nic, Cfg9346, EE_ENB | dataval);
+		eeprom_delay();
+		RTL_WRITE_1(nic, Cfg9346, EE_ENB | dataval | EE_SHIFT_CLK);
+		eeprom_delay();
+	}  
+#endif
 	RTL_WRITE_1(nic, Cfg9346, EE_ENB);
 	eeprom_delay();
 
+#ifndef	 EPLC46
 	for (i = 16; i > 0; i--) {
 		RTL_WRITE_1(nic, Cfg9346, EE_ENB | EE_SHIFT_CLK);
 		eeprom_delay();
@@ -510,8 +528,20 @@ static int read_eeprom(struct nic * nic, long ioaddr, int location)
 		eeprom_delay();
 	}
 
-	/* Terminate the EEPROM access. */
 	RTL_WRITE_1(nic,~EE_CS, ee_addr);
+#else
+	for (i = 8; i > 0; i--) {
+		RTL_WRITE_1(nic, Cfg9346, EE_ENB | EE_SHIFT_CLK);
+		eeprom_delay();
+		retval = (retval << 1) | ((inb(ee_addr) & EE_DATA_READ) ? 1 : 0);
+		RTL_WRITE_1(nic, Cfg9346, EE_ENB);
+		eeprom_delay();
+	}
+	
+	RTL_WRITE_1(nic,~EE_CS, ee_addr);   //END
+#endif
+
+	/* Terminate the EEPROM access. */
 	return retval;
 }
 
@@ -524,6 +554,7 @@ static void write_eeprom_enable(long ioaddr){
 	outb(EE_ENB, ee_addr);
 
 	/* Shift the read command bits out. */
+#ifndef EPLC46
 	for (i = 10; i >= 0; i--) {
 		int dataval = (cmd & (1 << i)) ? EE_DATA_WRITE : 0;
 		outb(EE_ENB | dataval, ee_addr);
@@ -531,10 +562,21 @@ static void write_eeprom_enable(long ioaddr){
 		outb(EE_ENB | dataval | EE_SHIFT_CLK, ee_addr);
 		eeprom_delay();
 	}
+#else
+	for (i = 11; i >= 0; i--) {
+		int dataval = (cmd & (1 << i)) ? EE_DATA_WRITE : 0;
+		outb(EE_ENB | dataval, ee_addr);
+		eeprom_delay();
+		outb(EE_ENB | dataval | EE_SHIFT_CLK, ee_addr);
+		eeprom_delay();
+	}
+#endif
 	outb(~EE_CS, ee_addr);
 
 }
-static void write_eeprom_disable(long idaddr){
+
+static void write_eeprom_disable(long idaddr)
+{
 	int i;
 	long ee_addr = ioaddr + Cfg9346;
 	int  cmd = EE_WDS_CMD;
@@ -543,7 +585,13 @@ static void write_eeprom_disable(long idaddr){
 	outb(EE_ENB, ee_addr);
 
 	/* Shift the read command bits out. */
-	for (i = 10; i >= 0; i--) {
+
+#ifndef EPLC46
+	i=10;
+#else
+	i=11;
+#endif
+	for (; i >= 0; i--) {
 		int dataval = (cmd & (1 << i)) ? EE_DATA_WRITE : 0;
 		outb(EE_ENB | dataval, ee_addr);
 		eeprom_delay();
@@ -552,6 +600,7 @@ static void write_eeprom_disable(long idaddr){
 	}
 	outb(~EE_CS, ee_addr);
 }
+
 int write_eeprom(long ioaddr, int location,unsigned short data)
 {
 	int i;
@@ -584,7 +633,41 @@ int write_eeprom(long ioaddr, int location,unsigned short data)
 		outb(EE_ENB, ee_addr);
 		eeprom_delay();
 	}
-	write_eeprom_disable(ioaddr);
+	return 0;
+}
+
+int write_eeprom8(long ioaddr, int location,unsigned short data)
+{
+	int i;
+	long ee_addr = ioaddr + Cfg9346;
+	int  cmd = location | EE_WRITE_CMD;
+
+	write_eeprom_enable(ioaddr);
+
+	cmd <<= 8;
+	cmd |= data;
+	outb(EE_ENB & ~EE_CS, ee_addr);
+	outb(EE_ENB, ee_addr);
+
+	/* Shift the read command bits out. */
+	for (i = 18; i >= 0; i--) {
+		int dataval = (cmd & (1 << i)) ? EE_DATA_WRITE : 0;
+		outb(EE_ENB | dataval, ee_addr);
+		eeprom_delay();
+		outb(EE_ENB | dataval | EE_SHIFT_CLK, ee_addr);
+		eeprom_delay();
+	}
+	/* Terminate the EEPROM access. */
+
+	outb(~EE_CS, ee_addr);
+	eeprom_delay();
+
+	outb(EE_ENB, ee_addr);
+	 
+    while( ! (inb(ee_addr) & EE_DATA_READ) ){
+		outb(EE_ENB, ee_addr);
+		eeprom_delay();
+	}
 	return 0;
 }
 
@@ -640,7 +723,6 @@ static int rtl8139_init(struct nic* nic)
 	 * Bring the interface out of low power mode
 	 * */		
 	RTL_WRITE_1(nic, HltClk, 'R');
-	printf(" Txconfig= \n");
 	
 	tmp8 = new_tmp8 = RTL_READ_1(nic, Config1);
 	if(tmp8 & LWAKE)
@@ -724,11 +806,10 @@ static int rtl8139_init(struct nic* nic)
 	// ifp->if_flags |= IFF_BROADCAST | IFF_SIMPLEX ; //| IFF_MULTICAST;
 	ifp->if_flags = IFF_BROADCAST | IFF_SIMPLEX ; //| IFF_MULTICAST;
 	ifp->if_flags |=IFF_RUNNING;	
-	for(i = 0; i <4; i++){
-		printf("TxStatus[i]=%x\n", RTL_READ_4(nic, TxStatus0+i*4));
-	}
+	//for(i = 0; i <4; i++){
+	//	printf("TxStatus[%d]=%x\n", i, RTL_READ_4(nic, TxStatus0+i*4));
+	//}
 	
-	printf("%s called\n", __FUNCTION__);	
 	return 0;
 }
 
@@ -971,7 +1052,12 @@ static long long rtl_read_mac(struct nic *nic)
 	unsigned short u16tmp;
 	
 	for (i = 0; i < 3; i++) {
+#ifndef EPLC46
 		u16tmp = read_eeprom(nic, ioaddr, 7 + i);
+#else
+		u16tmp = read_eeprom(nic, ioaddr, (7 +i ) * i);
+		u16tmp = u16tmp | (read_eeprom(nic, ioaddr, (7 + i) *2 +1) << 8);
+#endif
 		mac_tmp <<= 16;
 		mac_tmp |= ((u16tmp & 0xff) << 8) | ((u16tmp >> 8) & 0xff);
 	}
@@ -979,7 +1065,6 @@ static long long rtl_read_mac(struct nic *nic)
 }
 
 #if 1 //yanhua
-
 
 #if defined(__BROKEN_INDIRECT_CONFIG) || defined(__OpenBSD__)
 static int rtl8139_match (struct device *, void *, void *);
@@ -1051,7 +1136,12 @@ rtl8139_attach_common(struct nic *nic, u_int8_t *enaddr)
 	} 
 #else
 
+#ifndef EPLC46
 	if (read_eeprom (nic, ioaddr, 0) != 0x8129) 
+#else
+	if (read_eeprom (nic, ioaddr, 0) != 0x29 &&
+			read_eeprom(nic, ioaddr, 1) != 0x81) 
+#endif
 	{
 		unsigned short rom[] = {
 			0x8129 ,0x10ec ,0x8139 ,0x10ec ,0x8139 ,0x4020 ,0xe512 ,0x0a00,
@@ -1065,12 +1155,22 @@ rtl8139_attach_common(struct nic *nic, u_int8_t *enaddr)
 		printf("Invalid eeprom! word 0 = %x, Updated to default\n",read_eeprom(nic, ioaddr, 0));
 		for (i = 0; i < 64; i++)
 		{
+#ifndef EPLC46			
 			write_eeprom(ioaddr, i, rom[i]);
+#else
+			write_eeprom8(ioaddr, 2*i, ((unsigned char *)rom)[2*i]);
+			write_eeprom8(ioaddr, 2*i+1, ((unsigned char *)rom)[2*i+1]);
+#endif
 		}
 
 		for (i = 0; i < 64; i++)
 		{
+#ifndef EPLC46
 			printf("%2.2x ",read_eeprom(nic, ioaddr, i));
+#else
+			printf("%02x",read_eeprom(nic, ioaddr, 2*i+1));
+			printf("%02x ",read_eeprom(nic, ioaddr, 2*i));
+#endif
 		}
 	}
 /*
@@ -1092,9 +1192,7 @@ rtl8139_attach_common(struct nic *nic, u_int8_t *enaddr)
 	return (0);
 }
 
-//#ifdef DEBUG_8139
 struct nic * mynic;
-//#endif
 static void rtl8139_init_ring(struct nic *nic)
 {
 	int i;
@@ -1328,7 +1426,7 @@ rtl_ether_ioctl(ifp, cmd, data)
 			error = rtl8139_init(sc);
 			if(error == -1)
 				return(error);
-			printf("set ipaddr\n");
+			//printf("set ipaddr\n");
 			ifp->if_flags |= IFF_UP;
 
 #ifdef __OpenBSD__
@@ -1539,7 +1637,12 @@ int cmd_setmac(int ac, char *av[])
 		val = val | (v << 8);
 		av[1] += 3;
 
+#ifndef EPLC46
 		write_eeprom(ioaddr, 0x7 + i, val);
+#else 
+		write_eeprom8(ioaddr, (0x7 +i) *2, val & 0xff);
+		write_eeprom8(ioaddr, (0x7 +i) *2+1, (val >> 8) & 0xff);
+#endif
 
 	}
 
@@ -1555,8 +1658,13 @@ int cmd_reprom(int ac, char *av)
 
 	printf("dump eprom:\n");
 
-	for(i=0; i<64; i++){
+	for(i=0; i< 64; i++){
+#ifndef EPLC46
 		data = read_eeprom(mynic, ioaddr, i);
+#else
+		data = read_eeprom(mynic, ioaddr, 2*i);
+		data = data | (read_eeprom(mynic, ioaddr, 2*i+1)) << 8;
+#endif
 		printf("%04x ", data);
 		if((i+1)%8 == 0)
 			printf("\n");
