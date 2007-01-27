@@ -45,7 +45,6 @@
 #include <linux/pci.h>
 #include <linux/io.h>
 #include "biosemui.h"
-#undef MY40IO
 
 #if !defined (_PC) && !defined (_PC_PCI)
 static int pciCfg1in(u16 addr, u32 *val,int type);
