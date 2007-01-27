@@ -63,7 +63,7 @@
 #include <pmon.h>
 
 #include "mod_x86emu_int10.h"
-//#include "mod_x86emu.h"
+#include "mod_x86emu.h"
 #include "mod_vgacon.h"
 #if (NMOD_X86EMU_INT10 > 0)||(NMOD_X86EMU >0)
 extern void vga_bios_init(void);
