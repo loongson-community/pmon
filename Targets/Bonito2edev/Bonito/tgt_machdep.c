@@ -65,7 +65,7 @@
 #include "mod_x86emu_int10.h"
 //#include "mod_x86emu.h"
 #include "mod_vgacon.h"
-#if NMOD_X86EMU_INT10 > 0
+#if (NMOD_X86EMU_INT10 > 0)||(NMOD_X86EMU >0)
 extern void vga_bios_init(void);
 #endif
 extern int kbd_initialize(void);
@@ -80,7 +80,7 @@ extern const char *kbd_error_msgs[];
 #define HAVE_FLASH
 #endif
 
-#if NMOD_X86EMU_INT10 == 0
+#if (NMOD_X86EMU_INT10 == 0)&&(NMOD_X86EMU == 0)
 int vga_available=0;
 #else
 #include "vgarom.c"
@@ -288,7 +288,7 @@ tgt_devconfig()
 	int rc;
 #endif
 	_pci_devinit(1);	/* PCI device initialization */
-#if NMOD_X86EMU_INT10 > 0
+#if (NMOD_X86EMU_INT10 > 0)||(NMOD_X86EMU >0)
 	SBD_DISPLAY("VGAI", 0);
 	vga_bios_init();
 #endif
