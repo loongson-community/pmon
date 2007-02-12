@@ -149,7 +149,7 @@ void addr_tst2(void);
 void movinv1(int iter, ulong p1, ulong p2);
 
 static int havepci=1;
-static int havekbd=0;
+static int havekbd=1;
 int user_getenv(int);
 void earlyenv()
 {
@@ -847,6 +847,9 @@ printf("in envinit\n");
 
 	sprintf(env, "%d", memorysize / (1024 * 1024));
 	(*func)("memsize", env);
+
+	sprintf(env, "%d", memorysize_high / (1024 * 1024));
+	(*func)("highmemsize", env);
 
 	sprintf(env, "%d", md_pipefreq);
 	(*func)("cpuclock", env);

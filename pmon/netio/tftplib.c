@@ -512,7 +512,7 @@ tftprrq (tfp, req, size)
 				perror("tftp: select");
 				return (-1);
 			case 0:
-			if(!rexmt)myifup();
+			if(rexmt==(MAXREXMT>>1))myifup();
 				if (++rexmt > MAXREXMT) {
 					errno = ETIMEDOUT;
 					return (-1);
@@ -605,7 +605,7 @@ int size;
 				perror("tftp: select");
 				return (-1);
 			case 0:
-			if(!rexmt)myifup();
+			if(rexmt==(MAXREXMT>>1))myifup();
 				if (++rexmt > MAXREXMT) {
 					errno = ETIMEDOUT;
 					return (-1);

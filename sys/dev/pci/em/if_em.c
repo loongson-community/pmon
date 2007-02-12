@@ -245,13 +245,16 @@ static int em_intr(void *data)
 struct net_device *netdev = data;
 int irq=netdev->irq;
 struct ifnet *ifp = &netdev->arpcom.ac_if;
-if(irqstate&(1<<irq))
-{
-	e1000_intr(irq,data,0);
-	run_task_queue(&tq_e1000);
-   if (ifp->if_snd.ifq_head != NULL)
-   e1000_start(ifp);
-}
+	if(ifp->if_flags & IFF_RUNNING)
+	{
+		if(irqstate&(1<<irq))
+		{
+			e1000_intr(irq,data,0);
+			run_task_queue(&tq_e1000);
+		   if (ifp->if_snd.ifq_head != NULL)
+		   e1000_start(ifp);
+		}
+	}
 	return 1;
 }
 

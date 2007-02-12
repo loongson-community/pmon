@@ -1056,7 +1056,7 @@ bootnow:
 	move a0,zero
 	li a2,1
 #else
-	li a0,128
+	li a0,256
 #endif
  
 	la	v0, initmips
