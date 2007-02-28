@@ -116,8 +116,8 @@
 #define USB_MAX_TEMP_INT_TD  32   /* number of temporary TDs for Interrupt transfers */
 
 
-//#define USB_UHCI_DEBUG
-#undef USB_UHCI_DEBUG
+//#undef USB_UHCI_DEBUG
+#define USB_UHCI_DEBUG
 
 #ifdef	USB_UHCI_DEBUG
 #define	USB_UHCI_PRINTF(fmt,args...)	printf (fmt ,##args)
@@ -503,12 +503,11 @@ static int uhci_submit_control_msg(struct usb_device *dev, unsigned long pipe, v
 	((uhci_qh_t*)CACHED_TO_UNCACHED(&qh_cntrl))->element=0xffffffffL;
 	/* set qh active */
 	((uhci_qh_t*)CACHED_TO_UNCACHED(&qh_cntrl))->dev_ptr=(unsigned long)dev;
-	dev->qpriv = &qh_cntrl;
 	/* fill in tmp_td1_chain */
 	((uhci_qh_t*)CACHED_TO_UNCACHED(&qh_cntrl))->element=vtophys((unsigned long)&tmp_td1[0]);
 
 	((uhci_qh_t*)CACHED_TO_UNCACHED(&qh_cntrl))->last_td = &tmp_td1[i];
-	pci_sync_cache(uhci->sc_pc, (vm_offset_t)&tmp_td1, sizeof(tmp_td1), SYNC_W);
+	dev->qpriv = &qh_cntrl;
 #if 1	
 	s = spl0();
 	while(1){
@@ -546,7 +545,7 @@ static int uhci_submit_bulk_msg(struct usb_device *dev, unsigned long pipe, void
 		printf("Negative transfer length in submit_bulk\n");
 		return -1;
 	}
-//	printf("uhci_submit_bulk_msg: transfer_len %x,maxsze=%x\n", transfer_len,maxsze);
+	//printf("uhci_submit_bulk_msg: transfer_len %x\n", transfer_len);
 	if (!maxsze)
 		return -1;
 	/* The "pipe" thing contains the destination in bits 8--18. */
@@ -582,10 +581,9 @@ static int uhci_submit_bulk_msg(struct usb_device *dev, unsigned long pipe, void
 	((uhci_qh_t *)CACHED_TO_UNCACHED(&qh_bulk))->element=0xffffffffL;
 	/* set qh active */
 	((uhci_qh_t *)CACHED_TO_UNCACHED(&qh_bulk))->dev_ptr=(unsigned long)dev;
-	dev->qpriv = &qh_bulk;
 	/* fill in tmp_td_chain */
 	((uhci_qh_t *)CACHED_TO_UNCACHED(&qh_bulk))->element=vtophys((unsigned long)&tmp_td[0] | 0x0004);
-	pci_sync_cache(uhci->sc_pc, (vm_offset_t)&tmp_td, sizeof(tmp_td), SYNC_W);
+	dev->qpriv = &qh_bulk;
 
 #if 1
 	s = spl0();

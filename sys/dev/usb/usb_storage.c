@@ -72,11 +72,9 @@
 #include "part.h"
 #include "scsi.h"
 
-//#define USB_STOR_DEBUG
 #undef USB_STOR_DEBUG
-//#define BBB_COMDAT_TRACE
+//#define USB_STOR_DEBUG
 #undef BBB_COMDAT_TRACE
-//#define BBB_XPORT_TRACE
 #undef BBB_XPORT_TRACE
 
 #ifdef	USB_STOR_DEBUG
@@ -649,14 +647,6 @@ int usb_stor_BBB_clear_endpt_stall(struct us_data *us, __u8 endpt)
 	return result;
 }
 
-		static void myinput()
-		{
-		char str[100];
-		int i;
-		//printf("hehe input:\n");
-		//gets(str);
-		for(i=0;i<100;i++)delay(100);
-		}
 int usb_stor_BBB_transport(ccb *srb, struct us_data *us)
 {
 	int result, retry;
@@ -692,7 +682,6 @@ int usb_stor_BBB_transport(ccb *srb, struct us_data *us)
 	else
 		pipe = pipeout;
 
-		myinput();
 	result = usb_bulk_msg(us->pusb_dev, pipe, srb->pdata, srb->datalen, &data_actlen, USB_CNTL_TIMEOUT*5);
 	/* special handling of STALL in DATA phase */
 	if((result < 0) && (us->pusb_dev->status & USB_ST_STALLED)) {
@@ -735,7 +724,6 @@ int usb_stor_BBB_transport(ccb *srb, struct us_data *us)
 	if (result < 0) {
 		USB_STOR_PRINTF("usb_bulk_msg error status %ld\n",
 			us->pusb_dev->status);
-		myinput();
 		usb_stor_BBB_reset(us);
 		return USB_STOR_TRANSPORT_FAILED;
 	}
@@ -975,7 +963,7 @@ static int usb_read_10(ccb *srb,struct us_data *ss, unsigned long start, unsigne
 }
 
 
-#define USB_MAX_READ_BLK 30
+#define USB_MAX_READ_BLK 16
 
 extern int ohci_debug;
 unsigned long usb_stor_read(int device, unsigned long blknr, unsigned long blkcnt, unsigned long *buffer)
