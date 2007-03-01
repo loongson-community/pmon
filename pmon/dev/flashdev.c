@@ -122,7 +122,7 @@ struct fl_device fl_known_dev[] = {
 	{ "Am29F032",	0x01, 0x41, FL_PROTO_SST, FL_CAP_DE,
 	4096*__KB, 64*__KB,  NULL, &fl_func_sst },
 	{ "SST39F040",	0x0bf, 0xd7, FL_PROTO_SST, FL_CAP_DE,
-	512*__KB, 1*__KB,  NULL, &fl_func_sst }, /*sector size must be correct*/
+	512*__KB, 4*__KB,  NULL, &fl_func_sst }, /*sector size must be correct*/
 	{ "Am29LV017",	0x01, 0xc8, FL_PROTO_SST, FL_CAP_DE,
 	2048*__KB, 64*__KB,  NULL, &fl_func_sst },
 	{ "Am29LV065",	0x01, 0xc8, FL_PROTO_SST, FL_CAP_DE,
@@ -135,6 +135,8 @@ struct fl_device fl_known_dev[] = {
 #if NMOD_FLASH_WINBOND > 0
 	{ "W29C040",	0xda, 0x46, FL_PROTO_WINBOND, FL_CAP_DE,
 	512*__KB, 256,  NULL, &fl_func_winbond }, /*sector size must be correct*/
+	{ "WINBOND39LV040A",0xda, 0xd6, FL_PROTO_WINBOND, FL_CAP_DE,
+	512*__KB, 64*__KB,  NULL, &fl_func_winbond },
 	{ "WINBOND39LV040", 0xda, 0xb6, FL_PROTO_WINBOND, FL_CAP_DE,
 	512*__KB, 64*__KB,  NULL, &fl_func_winbond },
 #endif
