@@ -1,4 +1,4 @@
-/* $Id: exec_elf.c,v 1.1.1.1 2006/09/14 01:59:08 root Exp $ */
+/* $Id: exec_elf.c,v 1.1.1.1 2006/06/29 06:43:25 cpu Exp $ */
 /*
  * Copyright (c) 2002 Opsycon AB  (www.opsycon.se)
  * 
@@ -53,16 +53,11 @@
 #include <gzipfs.h>
 #endif /* NGZIP */
 
+#define OFFSET_SIZE 8
+
 static int	bootseg;
 static unsigned long tablebase;
-static unsigned int lastaddr=0;;
-extern  char *dl_Oloadbuffer;
-extern unsigned long long dl_loffset;
 
-int highmemcpy(long long dst,long long src,long long count);
-int highmemset(long long addr,unsigned char c,unsigned long long count);
-
-static int myflags;
 static int 
    bootread (int fd, void *addr, int size)
 {
@@ -76,39 +71,9 @@ static int
 		return (-1);
 
 #if NGZIP > 0
-	if(myflags&OFLAG){
-		if(lastaddr)dl_loffset +=(unsigned long long)(addr-lastaddr);
-		lastaddr=addr; 
-		i=0;
-		while(i<size)
-		{
-		int i1;
-		int len=min(0x1000,size-i);
-		i1=gz_read (fd,dl_Oloadbuffer,len);
-		if(i1<0)break;
-		highmemcpy(dl_loffset+i,dl_Oloadbuffer,i1);
-		i+=i1;
-		if(i1<len)break;
-		}
-	}
-	else i = gz_read (fd, addr + dl_offset, size);
+	i = gz_read (fd, addr + dl_offset, size);
 #else
-	if(myflags&OFLAG){
-		if(lastaddr)dl_loffset +=(unsigned long long)(addr-lastaddr);
-		lastaddr=addr; 
-		i=0;
-		while(i<size)
-		{
-		int i1;
-		int len=min(0x1000,size-i);
-		i1=read (fd,dl_Oloadbuffer,len);
-		if(i1<0)break;
-		highmemcpy(dl_loffset+i,dl_Oloadbuffer,i1);
-		i+=i1;
-		if(i1<len)break;
-		}
-	}
-	else i = read (fd, addr + dl_offset, size);
+	i = read (fd, addr + dl_offset, size);
 #endif /* NGZIP */
 
 	if (i < size) {
@@ -134,20 +99,17 @@ static int
 		return (-1);
 
 	if (size > 0)
-		if(myflags&OFLAG)
-		highmemset((unsigned long long)(dl_loffset-lastaddr+(unsigned long)addr),0,size);
-		else bzero (addr + dl_offset, size);
-	    
+		bzero (addr + dl_offset, size);
 	return size;
 }
 
-static Elf32_Shdr *
-   elfgetshdr (int fd, Elf32_Ehdr *ep)
+static Elf64_Shdr *
+   elfgetshdr (int fd, Elf64_Ehdr *ep)
 {
-	Elf32_Shdr *shtab;
-	unsigned size = ep->e_shnum * sizeof(Elf32_Shdr);
+	Elf64_Shdr *shtab;
+	unsigned size = ep->e_shnum * sizeof(Elf64_Shdr);
 
-	shtab = (Elf32_Shdr *) malloc (size);
+	shtab = (Elf64_Shdr *) malloc (size);
 	if (!shtab) {
 		fprintf (stderr,"\nnot enough memory to read section headers");
 		return (0);
@@ -188,7 +150,7 @@ static void *
 	}
 	else {
 		/* Put table after loaded code to support kernel DDB */
-		tablebase = roundup(tablebase, sizeof(long));
+		tablebase = roundup(tablebase, OFFSET_SIZE);
 		base = tablebase;
 		tablebase += size;
 	}
@@ -217,11 +179,11 @@ static void *
 
 
 static int
-   elfreadsyms (int fd, Elf32_Ehdr *eh, Elf32_Shdr *shtab, int flags)
+   elfreadsyms (int fd, Elf64_Ehdr *eh, Elf64_Shdr *shtab, int flags)
 {
-	Elf32_Shdr *sh, *strh, *shstrh, *ksh;
-	Elf32_Sym *symtab;
-	Elf32_Ehdr *keh;
+	Elf64_Shdr *sh, *strh, *shstrh, *ksh;
+	Elf64_Sym *symtab;
+	Elf64_Ehdr *keh;
 	char *shstrtab, *strtab, *symend;
 	int nsym, offs, size, i;
 	int *symptr;
@@ -237,15 +199,15 @@ static int
 	 *  header. DDB then finds the symbols using the data put here.
 	 */
 	if(flags & KFLAG) {
-		tablebase = roundup(tablebase, sizeof(long));
+		tablebase = roundup(tablebase, OFFSET_SIZE);
 		symptr = (int *)tablebase;
 		tablebase += sizeof(int *) * 2;
-		keh = (Elf32_Ehdr *)tablebase;
-		tablebase += sizeof(Elf32_Ehdr); 
-		tablebase = roundup(tablebase, sizeof(long));
-		ksh = (Elf32_Shdr *)tablebase;
-		tablebase += roundup((sizeof(Elf32_Shdr) * eh->e_shnum), sizeof(long)); 
-		memcpy(ksh, shtab, roundup((sizeof(Elf32_Shdr) * eh->e_shnum), sizeof(long)));
+		keh = (Elf64_Ehdr *)tablebase;
+		tablebase += sizeof(Elf64_Ehdr); 
+		tablebase = roundup(tablebase, OFFSET_SIZE);
+		ksh = (Elf64_Shdr *)tablebase;
+		tablebase += roundup((sizeof(Elf64_Shdr) * eh->e_shnum), OFFSET_SIZE); 
+		memcpy(ksh, shtab, roundup((sizeof(Elf64_Shdr) * eh->e_shnum), OFFSET_SIZE));
 		sh = ksh;
 	}
 	else {
@@ -336,12 +298,12 @@ static int
 		/*
 		 *  Update the kernel headers with the current info.
 		 */
-		shstrh->sh_offset = (Elf32_Off)shstrtab - (Elf32_Off)keh;
-		strh->sh_offset = (Elf32_Off)strtab - (Elf32_Off)keh;
-		sh->sh_offset = (Elf32_Off)symtab - (Elf32_Off)keh;
-		memcpy(keh, eh, sizeof(Elf32_Ehdr));
+		shstrh->sh_offset = (Elf64_Off)shstrtab - (Elf64_Off)keh;
+		strh->sh_offset = (Elf64_Off)strtab - (Elf64_Off)keh;
+		sh->sh_offset = (Elf64_Off)symtab - (Elf64_Off)keh;
+		memcpy(keh, eh, sizeof(Elf64_Ehdr));
 		keh->e_phoff = 0;
-		keh->e_shoff = sizeof(Elf32_Ehdr);
+		keh->e_shoff = sizeof(Elf64_Ehdr);
 		keh->e_phentsize = 0;
 		keh->e_phnum = 0;
 
@@ -387,17 +349,16 @@ static int
 }
 
 long
-   load_elf (int fd, char *buf, int *n, int flags)
+   load_elf64 (int fd, char *buf, int *n, int flags)
 {
-	Elf32_Ehdr *ep;
-	Elf32_Phdr *phtab = 0;
-	Elf32_Shdr *shtab = 0;
+	Elf64_Ehdr *ep;
+	Elf64_Phdr *phtab = 0;
+	Elf64_Shdr *shtab = 0;
 	unsigned int nbytes;
 	int i;
-	Elf32_Off highest_load = 0;
+	Elf64_Off highest_load = 0;
 
 	bootseg = 0;
-	myflags=flags;
 
 #ifdef __mips__
 	tablebase = PHYS_TO_CACHED(memorysize);
@@ -411,7 +372,7 @@ long
 	gz_lseek (fd, 0, SEEK_SET);
 #endif /* NGZIP */
 
-	ep = (Elf32_Ehdr *)buf;
+	ep = (Elf64_Ehdr *)buf;
 	if (sizeof(*ep) > *n) {
 #if NGZIP > 0
 		*n += gz_read (fd, buf+*n, sizeof(*ep)-*n);
@@ -444,10 +405,7 @@ long
 
 	{
 		char *nogood = (char *)0;
-		if (ep->e_ident[EI_CLASS] == ELFCLASS64)
-			return load_elf64(fd, buf, n, flags);
-
-		if (ep->e_ident[EI_CLASS] != ELFCLASS32)
+		if (ep->e_ident[EI_CLASS] != ELFCLASS64)
 			nogood = "not 32-bit";
 		else if (
 #if BYTE_ORDER == BIG_ENDIAN
@@ -484,7 +442,7 @@ long
 
 	/* Is there a program header? */
 	if (ep->e_phoff == 0 || ep->e_phnum == 0 ||
-	    ep->e_phentsize != sizeof(Elf32_Phdr)) {
+	    ep->e_phentsize != sizeof(Elf64_Phdr)) {
 		fprintf (stderr, "missing program header (not executable)\n");
 #if NGZIP > 0
 		gz_close(fd);
@@ -494,12 +452,12 @@ long
 
 	/* Load program header */
 #if _ORIG_CODE_
-	nbytes = ep->e_phnum * sizeof(Elf32_Phdr);
+	nbytes = ep->e_phnum * sizeof(Elf64_Phdr);
 #else
 	/* XXX: We need to figure out why it works by adding 32!!!! */
-	nbytes = ep->e_phnum * sizeof(Elf32_Phdr)+32;
+	nbytes = ep->e_phnum * sizeof(Elf64_Phdr) + 64;
 #endif
-	phtab = (Elf32_Phdr *) malloc (nbytes);
+	phtab = (Elf64_Phdr *) malloc (nbytes);
 	if (!phtab) {
 		fprintf (stderr,"\nnot enough memory to read program headers");
 #if NGZIP > 0
@@ -544,8 +502,8 @@ long
 		 * older versions of the GNU linker, by loading the segments
 		 * in file offset order, not in program header order. */
 		while (1) {
-			Elf32_Off lowest_offset = ~0;
-			Elf32_Phdr *ph = 0;
+			Elf64_Off lowest_offset = ~0;
+			Elf64_Phdr *ph = 0;
 
 			/* find nearest loadable segment */
 			for (i = 0; i < ep->e_phnum; i++)
@@ -595,7 +553,7 @@ long
 	}
 
 	if (flags & KFLAG) {
-		highest_load = roundup(highest_load, sizeof(long));
+		highest_load = roundup(highest_load, OFFSET_SIZE);
 		tablebase = highest_load;
 	}
 	if (!(flags & NFLAG)) {
@@ -613,25 +571,5 @@ long
 	gz_close(fd);
 #endif /* NGZIP */
 	return (ep->e_entry + dl_offset);
-}
-
-
-static ExecType elf_exec =
-{
-	"elf",
-	load_elf,
-	EXECFLAGS_NONE,
-};
-
-
-static void init_exec __P((void)) __attribute__ ((constructor));
-
-static void
-   init_exec()
-{
-	/*
-	 * Install ram based file system.
-	 */
-	exec_init(&elf_exec);
 }
 
