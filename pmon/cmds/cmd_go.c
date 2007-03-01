@@ -51,6 +51,8 @@
 
 #include "mod_debugger.h"
 
+#include "initrd.h"
+
 extern struct trapframe DBGREG;
 extern struct trapframe TRPREG;
 extern int retvalue;
@@ -135,12 +137,19 @@ extern char	*optarg;
 		strcat (clientcmd, " ");
 	}
 
+	if (initrd_execed())
+	{
+		char buf[30];
+		sprintf(buf, "rd_start=0x%x rd_size=0x%x ", 
+			get_initrd_start(), get_initrd_size());
+		strcat(clientcmd, buf);
+	}
+
 	if (!sflag) {
 		md_adjstack(NULL, tgt_clienttos ());
 	}
 
 	clientac = argvize (clientav, clientcmd);
-
 
 	initstack (clientac, clientav, 1);
 	md_registers(1,NULL);

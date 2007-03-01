@@ -182,6 +182,7 @@ autoload(char *s)
 {
 	char buf[LINESZ];
 	char *pa;
+	char *rd;
 	unsigned int dly, lastt;
 	unsigned int cnt;
 	struct termio sav;
@@ -212,6 +213,12 @@ autoload(char *s)
 		putchar ('\n');
 
 		if(cnt == 0) {
+			rd= getenv("rd");
+			if (rd != 0){
+				sprintf(buf, "initrd %s", rd);
+				do_cmd(buf);
+			}
+
 			strcpy(buf,"load ");
 			strcat(buf,s);
 			do_cmd(buf);
