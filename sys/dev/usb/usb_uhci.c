@@ -389,7 +389,8 @@ retry:
 					uhci_qh_t *qh = (uhci_qh_t *)CACHED_TO_UNCACHED(dev->qpriv);
 					uhci_td_t *ltd = qh->last_td;
 					qh->element = vtophys(ltd);
-					delay(100);
+					mytd=CACHED_TO_UNCACHED(qh->last_td);
+					continue;
 				}
 				stat = 0;
 				break;
@@ -500,7 +501,7 @@ static int uhci_submit_control_msg(struct usb_device *dev, unsigned long pipe, v
 	//	usb_show_td(i+1);
 	USB_UHCI_PRINTF("uhci_submit_control end (%d tmp_td1s used)\n",i);
 	/* first mark the control QH element terminated */
-	((uhci_qh_t*)CACHED_TO_UNCACHED(&qh_cntrl))->element=0xffffffffL;
+	((uhci_qh_t*)CACHED_TO_UNCACHED(&qh_cntrl))->element =UHCI_PTR_TERM;//0xffffffffL;
 	/* set qh active */
 	((uhci_qh_t*)CACHED_TO_UNCACHED(&qh_cntrl))->dev_ptr=(unsigned long)dev;
 	/* fill in tmp_td1_chain */
@@ -578,7 +579,7 @@ static int uhci_submit_bulk_msg(struct usb_device *dev, unsigned long pipe, void
 		usb_dotoggle (dev, usb_pipeendpoint (pipe), usb_pipeout (pipe));
 	} while (len > 0);
 	/* first mark the bulk QH element terminated */
-	((uhci_qh_t *)CACHED_TO_UNCACHED(&qh_bulk))->element=0xffffffffL;
+	((uhci_qh_t *)CACHED_TO_UNCACHED(&qh_bulk))->element =UHCI_PTR_TERM;//0xffffffffL;
 	/* set qh active */
 	((uhci_qh_t *)CACHED_TO_UNCACHED(&qh_bulk))->dev_ptr=(unsigned long)dev;
 	/* fill in tmp_td_chain */
