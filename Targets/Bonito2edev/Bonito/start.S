@@ -700,17 +700,6 @@ reginit:			/* local name */
 	 * reading the I2C EEROM on the DIMMS
 	 */
 
-	PRINTSTR("DDR_DQ initializing:\r\n")
-	la a0,DDR_DQ 
-        li a1,0x01
-	sw a1,(a0)
- 	nop
-	PRINTSTR("DDR_DQ:")
-	bal  hexserial
-	nop
-	PRINTSTR("\r\n")
-
-
 #include "i2c.S"
 	beqz msize,.nodimm
 	nop
@@ -752,23 +741,6 @@ reginit:			/* local name */
 	bal	hexserial
 	nop
 	PRINTSTR("\r\n")
-
-
-
-/* DDR_DQ */
-
-	PRINTSTR("DDR_DQ2 initializing:\r\n")
-	la a0,DDR_DQ 
-        li a1,0x01
-	sw a1,(a0)
- 	nop
-	PRINTSTR("DDR_DQ2:")
-	bal  hexserial
-	nop
-	PRINTSTR("\r\n")
-
-
-
 
 	
 skipdimm:
