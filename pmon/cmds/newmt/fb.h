@@ -4,6 +4,7 @@
 
 #include "mod_framebuffer.h"
 #include "mod_x86emu_int10.h"
+#include "mod_x86emu.h"
 
 void video_cls(void);
 void video_drawstring (int xx, int yy, unsigned char *s);

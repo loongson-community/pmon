@@ -35,7 +35,7 @@ static void display_init(void)
         serial_echo_print("[37m[44m");
         serial_echo_print("[0m");
         serial_echo_print("[37m[44m");
-#if NMOD_X86EMU_INT10 > 0
+#if (NMOD_X86EMU_INT10 > 0)||(NMOD_X86EMU > 0)
 	/* Clear screen & set background to blue */
 	for(i=0, pp=(char *)(SCREEN_ADR); i<80*24; i++) {
 		*pp++ = ' ';

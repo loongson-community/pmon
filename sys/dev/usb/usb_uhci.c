@@ -461,7 +461,14 @@ static int uhci_submit_control_msg(struct usb_device *dev, unsigned long pipe, v
 		memcpy(uhci->control_buf, buffer, transfer_len);
 
 	if(transfer_len)
+	{
+		if(usb_pipeout(pipe))
+		pci_sync_cache(uhci->sc_pc, (vm_offset_t)uhci->control_buf, transfer_len, SYNC_W);
+		else 
+		pci_sync_cache(uhci->sc_pc, (vm_offset_t)uhci->control_buf, transfer_len, SYNC_R);
+
 		dataptr = vtophys((unsigned long)uhci->control_buf);
+	}
 	else
 		dataptr = 0;
 	len=transfer_len;
@@ -481,7 +488,7 @@ static int uhci_submit_control_msg(struct usb_device *dev, unsigned long pipe, v
 		((uhci_td_t *)CACHED_TO_UNCACHED(&tmp_td1[i]))->pipe = pipe;
 		((uhci_td_t *)CACHED_TO_UNCACHED(&tmp_td1[i]))->data = buffer;
 
-		dataptr += pktsze;
+		if(dataptr)dataptr += pktsze;
 		buffer  += pktsze;
 		len -= pktsze;
 	}
@@ -560,7 +567,11 @@ static int uhci_submit_bulk_msg(struct usb_device *dev, unsigned long pipe, void
 	/* Build the TDs for the bulk request */
 	len = transfer_len;
 	dataptr = vtophys((unsigned long)buffer);
+	if(usb_pipeout(pipe))
 	pci_sync_cache(uhci->sc_pc, (vm_offset_t)buffer, transfer_len, SYNC_W);
+	else
+	pci_sync_cache(uhci->sc_pc, (vm_offset_t)buffer, transfer_len, SYNC_R);
+
 	do {
 		int pktsze = len;
 		if (pktsze > maxsze)
@@ -640,7 +651,7 @@ static int uhci_submit_int_msg(struct usb_device *dev, unsigned long pipe, void 
 	unsigned long status, destination;
 	unsigned long info,tmp;
 	uhci_td_t *mytd;
-	//uhci_t *uhci = dev->hc_private;
+	uhci_t *uhci = dev->hc_private;
 
 
 	if (interval < 0 || interval >= 256)
@@ -676,7 +687,10 @@ static int uhci_submit_int_msg(struct usb_device *dev, unsigned long pipe, void 
 	info = destination | (usb_gettoggle(dev, usb_pipeendpoint(pipe), usb_pipeout(pipe)) << TD_TOKEN_TOGGLE);
 	tmp = ((uhci_td_t *)CACHED_TO_UNCACHED(&td_int[nint]))->link;
 	/*only for small data < 64 byte, it shoutld be ok*/
-	//pci_sync_cache(uhci->sc_pc, (vm_offset_t)buffer, transfer_len, SYNC_W); //wb
+	if(usb_pipeout(pipe))
+	pci_sync_cache(uhci->sc_pc, (vm_offset_t)buffer, transfer_len, SYNC_W); //wb
+	else
+	pci_sync_cache(uhci->sc_pc, (vm_offset_t)buffer, transfer_len, SYNC_R); //wb
 	usb_fill_td(mytd,tmp,status, info,vtophys(buffer),(unsigned long)dev);
 	//usb_fill_td(mytd, tmp,status, info,(vm_offset_t)(buffer),(unsigned long)dev);
 	/* Link it */

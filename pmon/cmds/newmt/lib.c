@@ -118,7 +118,7 @@ void cprint(int y, int x, const char *text)
 {
 	register int i;
 	char *dptr;
-#if NMOD_X86EMU_INT10 > 0
+#if (NMOD_X86EMU_INT10 > 0)||(NMOD_X86EMU > 0)
 	dptr = (char *)(SCREEN_ADR + (160*y) + (2*x));
 	for (i=0; text[i]; i++) {
 		*dptr = text[i];

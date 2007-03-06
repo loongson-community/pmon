@@ -1072,7 +1072,7 @@ static void print_err_counts(void)
 
 	/* Paint the error messages on the screen red to provide a vivid */
 	/* indicator that an error has occured */ 
-#if NMOD_X86EMU_INT10 > 0
+#if (NMOD_X86EMU_INT10 > 0)||(NMOD_X86EMU > 0)
 	if (v->msg_line < 24) {
 		for(i=0, pp=(char *)((SCREEN_ADR+v->msg_line*160+1));
 				 i<76; i++, pp+=2) {

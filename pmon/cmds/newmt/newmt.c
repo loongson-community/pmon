@@ -99,7 +99,7 @@ void restart()
     v->msg_line = 0;
     v->ecount = 0;
     v->ecc_ecount = 0;
-#if NMOD_X86EMU_INT10 > 0
+#if (NMOD_X86EMU_INT10 > 0)||(NMOD_X86EMU > 0)
         /* Clear the screen */
         for(i=0, pp=(char *)(SCREEN_ADR+0); i<80*24; i++, pp+=2) {
                 *pp = ' ';

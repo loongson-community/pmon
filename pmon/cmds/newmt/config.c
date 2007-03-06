@@ -11,6 +11,7 @@
 #include "screen_buffer.h"
 #include "mod_framebuffer.h"
 #include "mod_x86emu_int10.h"
+#include "mod_x86emu.h"
 #define ITER 20
 
 extern int bail;
@@ -383,7 +384,7 @@ void popup()
 	stop_record();
 #endif
 	
-#if NMOD_X86EMU_INT10 > 0
+#if (NMOD_X86EMU_INT10 > 0)||(NMOD_X86EMU > 0)
 	for (i=POP_Y; i<POP_Y + POP_H; i++) { 
 		for (j=POP_X; j<POP_X + POP_W; j++) { 
 			pp = (char *)(SCREEN_ADR + (i * 160) + (j * 2));
@@ -414,7 +415,7 @@ void popdown()
 	char *pp;
 	char buf[2]={0};
 	
-#if NMOD_X86EMU_INT10 > 0
+#if (NMOD_X86EMU_INT10 > 0)||(NMOD_X86EMU > 0)
 	for (i=POP_Y; i<POP_Y + POP_H; i++) { 
 		for (j=POP_X; j<POP_X + POP_W; j++) { 
 			pp = (char *)(SCREEN_ADR + (i * 160) + (j * 2));
@@ -448,7 +449,7 @@ void popclear()
 	
 	for (i=POP_Y; i<POP_Y + POP_H; i++) { 
 		for (j=POP_X; j<POP_X + POP_W; j++) { 
-#if NMOD_X86EMU_INT10 > 0
+#if (NMOD_X86EMU_INT10 > 0)||(NMOD_X86EMU > 0)
 			pp = (char *)(SCREEN_ADR + (i * 160) + (j * 2));
 			*pp = ' ';		/* Clear popup */
 			pp++;
@@ -466,7 +467,7 @@ void clear_screen()
 	int i;
 	volatile char *pp;
 
-#if NMOD_X86EMU_INT10 > 0
+#if (NMOD_X86EMU_INT10 > 0)||(NMOD_X86EMU > 0)
 	for(i=0, pp=(char *)(SCREEN_ADR); i<80*24; i++) {
 		*pp++ = ' ';
 		*pp++ = 0x07;
