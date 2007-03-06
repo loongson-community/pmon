@@ -461,13 +461,7 @@ static int uhci_submit_control_msg(struct usb_device *dev, unsigned long pipe, v
 		memcpy(uhci->control_buf, buffer, transfer_len);
 
 	if(transfer_len)
-	{
 		dataptr = vtophys((unsigned long)uhci->control_buf);
-	if(pipe & USB_DIR_IN)
-	pci_sync_cache(uhci->sc_pc, (vm_offset_t)dataptr, transfer_len, SYNC_R);
-	else
-	pci_sync_cache(uhci->sc_pc, (vm_offset_t)dataptr, transfer_len, SYNC_W);
-	}
 	else
 		dataptr = 0;
 	len=transfer_len;
@@ -512,7 +506,6 @@ static int uhci_submit_control_msg(struct usb_device *dev, unsigned long pipe, v
 	((uhci_qh_t*)CACHED_TO_UNCACHED(&qh_cntrl))->element =UHCI_PTR_TERM;//0xffffffffL;
 	/* set qh active */
 	((uhci_qh_t*)CACHED_TO_UNCACHED(&qh_cntrl))->dev_ptr=(unsigned long)dev;
-	CPU_FlushCache();
 	/* fill in tmp_td1_chain */
 	((uhci_qh_t*)CACHED_TO_UNCACHED(&qh_cntrl))->element=vtophys((unsigned long)&tmp_td1[0]);
 
@@ -587,7 +580,6 @@ static int uhci_submit_bulk_msg(struct usb_device *dev, unsigned long pipe, void
 		len -= pktsze;
 		usb_dotoggle (dev, usb_pipeendpoint (pipe), usb_pipeout (pipe));
 	} while (len > 0);
-	CPU_FlushCache();
 	/* first mark the bulk QH element terminated */
 	((uhci_qh_t *)CACHED_TO_UNCACHED(&qh_bulk))->element =UHCI_PTR_TERM;//0xffffffffL;
 	/* set qh active */
