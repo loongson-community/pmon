@@ -1389,7 +1389,8 @@ void usb_strategy(struct buf *bp)
 	/* If it's a null transfer, return immediately. */
 	if (bp->b_bcount == 0)
 		goto done;
-	
+
+	do_cmd("cache 0");	
 	if(bp->b_flags & B_READ){
 		if((unsigned long)bp->b_data & (d_secsize - 1)){
 			ret = usb_stor_read(dev, blkno, blkcnt, (unsigned long *)bulkbuf); 
@@ -1403,6 +1404,7 @@ void usb_strategy(struct buf *bp)
 			bp->b_flags |= B_ERROR;	
 		dotik(30000, 0);
 	}
+	do_cmd("cache 0");	
 done:
 	biodone(bp);
 	return;

@@ -1,4 +1,4 @@
-/* $Id: ld.script.ram,v 1.1.1.1 2006/09/14 01:59:08 root Exp $ */
+/* $Id: ld.script.Bonito,v 1.1.1.1 2006/09/14 01:59:08 root Exp $ */
 OUTPUT_FORMAT("elf32-littlemips", "elf32-bigmips",
 	      "elf32-littlemips")
 OUTPUT_ARCH(mips)
@@ -6,7 +6,7 @@ ENTRY(_start)
 SECTIONS
 {
   /* Read-only sections, merged into text segment: */
-  . = 0x80200000;
+  . = 0x80010000;
   .text      : 
   {
     _ftext = . ;
