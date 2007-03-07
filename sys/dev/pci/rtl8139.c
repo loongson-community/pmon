@@ -1616,9 +1616,20 @@ int cmd_setmac(int ac, char *av[])
 	printf("The machine should be restarted to make the mac change to take effect!!\n");
 #else
 	if(ac != 2){
+	long long macaddr;
+	u_int8_t *paddr;
+	u_int8_t enaddr[6];
+	macaddr=rtl_read_mac(nic);
+	paddr=(uint8_t*)&macaddr;
+	enaddr[0] = paddr[5- 0];
+	enaddr[1] = paddr[5- 1];
+	enaddr[2] = paddr[5- 2];
+	enaddr[3] = paddr[5- 3];
+	enaddr[4] = paddr[5- 4];
+	enaddr[5] = paddr[5- 5];
 		printf("MAC ADDRESS ");
 		for(i=0; i<6; i++){
-			printf("%02x",nic->arpcom.ac_enaddr[i]);
+			printf("%02x",enaddr[i]);
 			if(i==5)
 				printf("\n");
 			else
@@ -1645,8 +1656,6 @@ int cmd_setmac(int ac, char *av[])
 #endif
 
 	}
-
-	printf("The machine should be restarted to make the mac change to take effect!!\n");
 #endif
 	return 0;
 }
