@@ -457,11 +457,16 @@ static int ReadFromIndexBlock(int fd,__u32 start_block,__u32 end_block,__u8 **Re
 	return 0;
 }
 	
+#include <machine/cpu.h>
+//static char mybuf[0x10000];
+void mycacheflush(long long addrin,unsigned int size,unsigned int rw);
 int ext2_read(int fd,void *read_start,size_t size)
 {
 	int real_size;
 	
-	memset(read_start, 0, size);
+//	memset(read_start, 0, size);
+//	pci_sync_cache(0,read_start,size,1);
+	//mycacheflush((long long)read_start,size,0);
 	if ((_file[fd].posn + size) > File_inode->i_size) {
 		size = File_inode->i_size - _file[fd].posn;
 	}
@@ -472,8 +477,10 @@ int ext2_read(int fd,void *read_start,size_t size)
 	} else {
 		_file[fd].posn+=real_size;	
 	}
+	pci_sync_cache(0,read_start,size,0);
 	return real_size;
 }
+#define DEVIO_READ(a,b,c) devio_read(a,b,c)
 static int ext2_read_file(int fd,void *read_start,size_t size,size_t pos,struct ext2_inode * inode)
 {	
 	__u8 *buff,*index_buff,*start=(__u8 *)read_start;
@@ -513,7 +520,7 @@ static int ext2_read_file(int fd,void *read_start,size_t size,size_t pos,struct 
 	}
 	addr_start=&(inode->i_block[12]);
 	devio_lseek(fd,(off_t)*addr_start*RAW_BLOCK_SIZE+START_PARTION, 0);
-	re=devio_read(fd,buff,RAW_BLOCK_SIZE);
+	re=DEVIO_READ(fd,buff,RAW_BLOCK_SIZE);
 	if(re!=RAW_BLOCK_SIZE)
 	{
 		printf("Read the iblock[12] error!\n");
@@ -538,7 +545,7 @@ static int ext2_read_file(int fd,void *read_start,size_t size,size_t pos,struct 
 /////////////////////////////////////////Read Double index block////////////////
 	addr_start=&(inode->i_block[13]);
 	devio_lseek(fd,(off_t)*addr_start*RAW_BLOCK_SIZE+START_PARTION,0);
-	re=devio_read(fd,buff,RAW_BLOCK_SIZE);
+	re=DEVIO_READ(fd,buff,RAW_BLOCK_SIZE);
 	if(re!=RAW_BLOCK_SIZE)
 	{
 		printf("Read the iblock[13] error!\n");
@@ -555,7 +562,7 @@ static int ext2_read_file(int fd,void *read_start,size_t size,size_t pos,struct 
 	for(i=0;i<RAW_BLOCK_SIZE/4;i++)
 	{	
 		devio_lseek(fd,(off_t)*(d_addr_start+i)*RAW_BLOCK_SIZE+START_PARTION,0);
-		re=devio_read(fd,index_buff,RAW_BLOCK_SIZE);
+		re=DEVIO_READ(fd,index_buff,RAW_BLOCK_SIZE);
 		if(re!=RAW_BLOCK_SIZE)
 		{
 			printf("Can't read index block!\n");

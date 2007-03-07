@@ -789,6 +789,18 @@ mycacheflush(addr,size,rw);
 return 0;
 }
 
+static int cmd_cflush(int argc,char **argv)
+{
+unsigned long addr;
+unsigned int size,rw;
+if(argc!=4)return -1;
+addr=strtoul(argv[1],0,0);
+size=strtoul(argv[2],0,0);
+rw=strtoul(argv[3],0,0);
+
+pci_sync_cache(0,addr,size,rw);
+return 0;
+}
 
 #if NMOD_FLASH_ST
 #include <include/pflash.h>
@@ -1383,6 +1395,7 @@ static const Cmd Cmds[] =
 	{"sleep","ms",0,"sleep ms",cmd_sleep,2,2,CMD_REPEAT},
 	{"sleep1","ms",0,"sleep1 s",cmd_sleep1,2,2,CMD_REPEAT},
 	{"cacheflush","addr size rw",0,"cacheflush addr size rw",cmd_cacheflush,0,99,CMD_REPEAT},
+	{"cflush","addr size rw",0,"cflush addr size rw",cmd_cflush,0,99,CMD_REPEAT},
 	{"memcpy","src dst count",0,"mymemcpy src dst count",cmd_mymemcpy,0,99,CMD_REPEAT},
 	{"testcpu","",0,"testcpu",cmd_testcpu,2,2,CMD_REPEAT},
 	{"led","n",0,"led n",cmd_led,2,2,CMD_REPEAT},

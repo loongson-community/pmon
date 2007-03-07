@@ -1390,23 +1390,19 @@ void usb_strategy(struct buf *bp)
 	if (bp->b_bcount == 0)
 		goto done;
 
-	do_cmd("cache 1");
 	if(bp->b_flags & B_READ){
 		if((unsigned long)bp->b_data & (d_secsize - 1)){
-			pci_sync_cache(0,bulkbuf,bp->b_bcount,0);
 			ret = usb_stor_read(dev, blkno, blkcnt, (unsigned long *)bulkbuf); 
 			memcpy(bp->b_data, bulkbuf, bp->b_bcount);
 			//ret = usb_stor_read(dev, blkno, 1, (unsigned long *)bulkbuf); 
 			//memcpy(bp->b_data, bulkbuf,d_secsize-(unsigned )bp0->b_data & (d_secsize -1));
 		} else {
-			pci_sync_cache(0,bp->b_data,bp->b_bcount,0);
 			ret = usb_stor_read(dev, blkno, blkcnt, (unsigned long *)bp->b_data);
 		}
 		if(ret != blkcnt)
 			bp->b_flags |= B_ERROR;	
 		dotik(30000, 0);
 	}
-	do_cmd("cache 0");
 done:
 	biodone(bp);
 	return;
@@ -1415,9 +1411,47 @@ bad:
 	biodone(bp);
 }
 
+void cache0()
+{
+		cacheflush();
+		__asm__ volatile(
+		 ".set mips3;\r\n"
+		 "mfc0   $4,$16;\r\n"
+        "and    $4,$4,0xfffffff8;\r\n"
+        "or     $4,$4,0x2;\r\n"
+        "mtc0   $4,$16;\r\n"
+		".set mips0;\r\n"
+		::
+		: "$4"
+		);
+}
+
+void cache1()
+{
+		cacheflush();
+	    __asm__ volatile(
+		".set mips3;\r\n"
+        "mfc0   $4,$16;\r\n"
+        "and    $4,$4,0xfffffff8;\r\n"
+        "or     $4,$4,0x3;\r\n"
+        "mtc0   $4,$16;\r\n"
+		".set mips0;"
+		::
+		:"$4"
+		);
+}
+void printcpcfg()
+{
+	printf("config=%lx\n",CPU_GetCONFIG());
+}
+void mycacheflush(long long addrin,unsigned int size,unsigned int rw);
 int	usb_read(dev_t dev, struct uio *uio, int ioflag)
 {
-	return physio(usb_strategy, NULL, dev, B_READ, NULL, uio);
+	int ret;
+	//cache1();
+    ret=physio(usb_strategy, NULL, dev, B_READ, NULL, uio);
+	//cache0();
+	return ret;
 }
 
 int	usb_write(dev_t dev, struct uio *uio, int ioflag)
