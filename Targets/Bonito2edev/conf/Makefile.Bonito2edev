@@ -123,7 +123,7 @@ SYSTEM_LD_TAIL=	@${SIZE} $@; chmod 755 $@ ; \
 		${OBJCOPY} -O binary $@ $@.bin
 
 DEBUG?=
-ifeq (${DEBUG}, "-g")
+ifneq ("${DEBUG}", "")
 LFLAGS+=	-X
 SYSTEM_LD_TAIL+=; \
 		echo cp $@ $@.gdb; rm -f $@.gdb; cp $@ $@.gdb; \

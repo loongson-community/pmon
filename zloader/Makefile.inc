@@ -1,7 +1,7 @@
 ifdef obj
 pwd=$(shell pwd)
 gcc_E:
-	cd ../Targets/${TARGET}/compile/${TARGETEL};${pwd}/mymake  ${obj} > ~/tmp.c
+	cd ../Targets/${TARGET}/compile/${TARGETEL};${pwd}/mymake  ${obj} > /tmp/tmp.c
 endif
 
 ifndef tgt

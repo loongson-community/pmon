@@ -48,6 +48,7 @@ void initmips(unsigned int msize,struct callvectors *cv)
     {
         *p=0;
     }
+	memset($mystart-0x1000,0,0x1000);//$mystart-0x1000 for frame(registers),memset for pretty
 	cv->cacheflush();
     realinitmips(msize);
 }

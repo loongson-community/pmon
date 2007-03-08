@@ -1353,6 +1353,27 @@ static int mytest(int argc,char **argv)
 
 	return 0;
 }
+
+static int mycmp(int argc,char **argv)
+{
+	unsigned char *s1,*s2;
+	int length,left;
+	if(argc!=4)return -1;
+	s1=strtoul(argv[1],0,0);
+	s2=strtoul(argv[2],0,0);
+	length=strtoul(argv[3],0,0);
+	while(left=bcmp(s1,s2,length))
+	{
+		s1=s1+length-left;
+		s2=s2+length-left;
+		length=left;
+		printf("[%p]!=[%p](0x%02x!=0x%02x)\n",s1,s2,*s1,*s2);
+		s1++;
+		s2++;
+		length--;
+	}
+	return 0;
+}
 //----------------------------------
 static const Cmd Cmds[] =
 {
@@ -1405,6 +1426,7 @@ static const Cmd Cmds[] =
 	{"ldr","n",0,"ldr n",ldr,2,2,CMD_REPEAT},
 	{"linit","",0,"linit",linit,1,1,CMD_REPEAT},
 	{"mytest","",0,"mytest",mytest,1,1,CMD_REPEAT},
+	{"mycmp","s1 s2 len",0,"mecmp s1 s2 len",mycmp,4,4,CMD_REPEAT},
 	{0, 0}
 };
 

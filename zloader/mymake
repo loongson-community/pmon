@@ -2,10 +2,14 @@
 my $obj=$ARGV[0];
 $obj=~s/\.[c|S]$/.o/;
 system(qq(rm -f $obj));
-open F,qq(make $ARGV[0]|);
+open F,qq(make $ARGV[0] CC='mips-elf-gcc -g3'|);
 my $cmd;
 while(<F>){$cmd=$_;last if/gcc/;};
 close F;
 shift @ARGV;
+print STDERR "$cmd\n";
+system qq($cmd);
+system qq(cp $obj /tmp/tmp.o);
 $cmd=~s/\s-c\s/ @ARGV -E -C /;
+print STDERR "$cmd\n";
 system($cmd);
