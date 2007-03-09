@@ -325,11 +325,11 @@ md_exc_type(struct trapframe *frame)
 	case T_SYSCALL:
 	case T_COP_UNUSABLE:
 	case T_OVFLOW:
-#ifndef BONITOEL_CPCI
+#ifndef BONITOEL
 	case T_FPE:
 #endif
 		return(EXC_BAD);
-#ifdef BONITOEL_CPCI
+#ifdef BONITOEL
 	case T_FPE:
 		{
 		struct trapframe *cpuinfo;

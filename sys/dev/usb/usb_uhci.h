@@ -179,7 +179,7 @@ typedef struct {
 typedef struct {
 	volatile unsigned long head;       /* Next QH (LE)*/
 	volatile unsigned long element;		/* Queue element pointer (LE) */
-	unsigned long res[4];     /* reserved */
+	unsigned long res[6];     /* reserved */
 	void *last_td;
 	unsigned long dev_ptr;    /* if 0 no tds have been assigned to this qh */
 } uhci_qh_t, *puhci_qh_t;

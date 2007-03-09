@@ -19,8 +19,13 @@ OBJCOPY		= $(CROSS_COMPILE)objcopy
 OBJDUMP		= $(CROSS_COMPILE)objdump
 SIZE		= $(CROSS_COMPILE)size
 
-hello:	hello.c
-	${CC} -G 0 -O2 -EL -mips2 -mcpu=r4000 -Ttext=0x80200000 -N -o hello hello.c -nostdlib -e main
+hello:	hello.o
+	${CC} -G 0 -O2 -EL -mips2 -mcpu=r4000 -Ttext=0x80200000 -N -o hello hello.o -nostdlib -e main libm.a
 	cp hello /tftpboot
+.S.o:
+	mipsel-linux-gcc  -G 0 -c $< -mno-abicalls -fno-pic 
+.c.o:
+	mipsel-linux-gcc  -EL -c $< -G 0 -mno-abicalls -fno-pic
+
 clean:
-	rm -f hello
+	rm -f hello *.o
