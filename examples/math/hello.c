@@ -56,20 +56,32 @@ struct callvectors *callvec;
 
 void __gccmain(void);
 void __gccmain(void){}
-double x=1.1;
-double y=1.2;
 
+static double x=1.12;
+static double y=1.34;
+static double z;
+double sin(double x);
 int
 main(int argc, char **argv, char **env, struct callvectors *cv)
 {
 	char str[256];
 	char **ev;
 	int i;
-
 	callvec = cv;
-
+#if 0
+z=sin(x);
+printf("sin(1.12)=%d\n",(int)(z*1000));
+z=sin(x)*y;
+printf("sin(1.12)*1.34=%d\n",(int)(z*1000));
+z=x*y;
+printf("1.12*1.34=%d\n",(int)(z*1000));
 	printf("\n\nHello! This is the 'hello' program!\n\n");
 	printf("sin(y)=%d",(int)(sin(y)*1000));
+#else
+z=sin(3.14);
+printf("sin(3.14)=%d\n",(int)(z*1000));
+
+#endif
 
 	return(0);
 }
