@@ -209,7 +209,7 @@ void	console_cursor (int state);
 
 #ifdef	CONFIG_VIDEO_LOGO
 #ifdef	CONFIG_VIDEO_BMP_LOGO
-#include "bmp_logo.lm.h"
+#include "bmp_logo.h"
 #define VIDEO_LOGO_WIDTH	BMP_LOGO_WIDTH
 #define VIDEO_LOGO_HEIGHT	BMP_LOGO_HEIGHT
 #define VIDEO_LOGO_LUT_OFFSET	BMP_LOGO_OFFSET

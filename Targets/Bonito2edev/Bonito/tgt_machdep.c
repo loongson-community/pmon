@@ -185,9 +185,13 @@ mfc0 $2,$12
 li   $3,(1<<29)
 or   $2,$3
 mtc0 $2,$12
+cfc1 $2,$31
+li $2,0
+ctc1 $2,$31
 "
 :::"$2","$3"
 	);
+
 	/*
 	 *	Set up memory address decoders to map entire memory.
 	 *	But first move away bootrom map to high memory.
