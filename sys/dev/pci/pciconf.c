@@ -319,6 +319,11 @@ _pci_query_dev_func (struct pci_device *dev, pcitag_t tag, int initialise)
 		pd->bridge.secbus->bus = pd->bridge.secbus_num;
 
 		_pci_bus_insert(pd->bridge.secbus);
+		{
+		extern  struct pci_device *_pci_bus[];
+		extern int _max_pci_bus;
+		_pci_bus[_max_pci_bus++] = pd;
+		}
 
 		/* Scan secondary bus of the bridge */
 		_pci_scan_dev(pd, pd->bridge.secbus_num, 0, initialise);

@@ -65,6 +65,7 @@ mainbus0        at root
 localbus0	at mainbus0
 fd0         at mainbus0
 pcibr0		at mainbus0
+pcibr1		at mainbus0
 pci*		at pcibr?
 #ppb*		at pci? dev ? function ?	# PCI-PCI bridges
 #pci*		at ppb? bus ?
@@ -85,11 +86,23 @@ pci*		at pcibr?
 # fxp normally only used for debugging (enable/disable both)
 fxp0            at pci? dev ? function ?        # Intel 82559 Device
 inphy*          at mii? phy ?                   # Intel 82555 PHYs
+rtl*        at pci? dev ? function ?
 
 ##########82546 
 #82546 use a lot of memory so setup NKMEMCLUSTERS as bellow
 #         #define NKMEMCLUSTERS   (16 * 1024 * 1024 / CLBYTES)	/* 0.5Mb */
 em*            at pci? dev ? function ?        # Intel 82559 Device
+
+uhci*		 at pci? dev ? function ?
+#ohci0		 at pci? dev ? function ?
+usb0		 at usbbus ? 
+#ohci1		 at pci? dev ? function ?
+
+select      mod_usb
+select  	mod_usb_storage
+select      mod_usb_uhci
+#select 	 	mod_usb_ohci
+#select      mod_usb_kbd
 
 #### IDE controllers
 pciide* 	at pci ? dev ? function ? flags 0x0000

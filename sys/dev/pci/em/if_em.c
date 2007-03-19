@@ -254,8 +254,9 @@ struct ifnet *ifp = &netdev->arpcom.ac_if;
 		   if (ifp->if_snd.ifq_head != NULL)
 		   e1000_start(ifp);
 		}
-	}
 	return 1;
+	}
+	return 0;
 }
 
 

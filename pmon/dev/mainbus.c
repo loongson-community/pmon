@@ -68,6 +68,7 @@ mainbus_match(parent, match, aux)
 	return (1);
 }
 
+extern int _max_pci_bus;
 static void
 mainbus_attach(parent, self, aux)
 	struct device *parent, *self;
@@ -75,6 +76,7 @@ mainbus_attach(parent, self, aux)
 {
 	struct mainbus_softc *sc = (struct mainbus_softc *)self;
 	struct confargs nca;
+	int i;
 
 	printf("\n");
 	sc->sc_bus.bh_dv = (struct device *)sc;
@@ -93,20 +95,13 @@ mainbus_attach(parent, self, aux)
         nca.ca_bus = &sc->sc_bus;
         config_found(self, &nca, mbprint);
 
+	for(i=0;i<_max_pci_bus;i++)
+	{
         nca.ca_node = NULL;
         nca.ca_name = "pcibr";
         nca.ca_bus = &sc->sc_bus;
         config_found(self, &nca, mbprint);
-
-        nca.ca_node = NULL;
-        nca.ca_name = "pcibr";
-        nca.ca_bus = &sc->sc_bus;
-        config_found(self, &nca, mbprint);
-
-        nca.ca_node = NULL;
-        nca.ca_name = "pcibr";
-        nca.ca_bus = &sc->sc_bus;
-        config_found(self, &nca, mbprint);
+	}
 }
 
 static int

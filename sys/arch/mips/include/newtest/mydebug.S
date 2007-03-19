@@ -34,6 +34,9 @@ mycmd_loop:
 	li v1,'I'
 	beq v0,v1,memtest8
 	nop
+	li v1,'J'
+	beq v0,v1,sumrom
+	nop
 	li v1,'z'
 	beq v0,v1,testddrread
 	nop
@@ -116,6 +119,8 @@ memtest7:
 #include "writesome-testsome-rom8R.S"
 memtest8:
 #include "writesome-testsome-ram8R.S"
+sumrom:
+#include "sumrom.S"
 
 
 testddrwrite0:

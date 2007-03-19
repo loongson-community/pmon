@@ -1005,7 +1005,7 @@ printf("ip:%s\n",inet_ntoa(satosin(&ifr->ifr_addr)->sin_addr));
 (void) ioctl(s,SIOCGIFNETMASK, ifr);
 printf("netmask:%s\n",inet_ntoa(satosin(&ifr->ifr_addr)->sin_addr));
 (void) ioctl(s,SIOCGIFFLAGS,ifr);
-printf("status:%s\n",ifr->ifr_flags&IFF_UP?"up":"down");
+printf("status:%s %s\n",ifr->ifr_flags&IFF_UP?"up":"down",ifr->ifr_flags&IFF_RUNNING?"running":"stoped");
 }
 else if(argc>=3)
 {
@@ -1029,6 +1029,24 @@ else if(argc>=3)
 	(void) ioctl(s, SIOCGIFADDR, ifra);
 	(void) ioctl(s, SIOCDIFADDR, ifr);
 	del_if_rt(argv[1]);
+	}
+	else if(argv[2][0]=='s')
+	{
+	register struct ifnet *ifp;
+	ifp = ifunit(argv[1]);
+	if(!ifp){printf("can not find dev %s.\n",argv[1]);return -1;}
+    printf("RX packets:%d,TX packets:%d,collisions:%d\n" \
+		   "RX errors:%d,TX errors:%d\n" \
+		   "RX bytes:%d TX bytes:%d\n" ,
+	ifp->if_ipackets, 
+	ifp->if_opackets, 
+	ifp->if_collisions,
+	ifp->if_ierrors, 
+	ifp->if_oerrors,  
+	ifp->if_ibytes, 
+	ifp->if_obytes 
+	);
+	if(ifp->if_baudrate)printf("link speed up to %d Mbps\n",ifp->if_baudrate);
 	}
 	else
 	{

@@ -832,7 +832,7 @@ reginit:			/* local name */
 								注（由于precharge和ras cas的延时加起来正好满足这个延时，所以在DDR控制器里没有具体考虑这个参数）
 								*/
 #define sdcfg_DATA DDR_DQS_SELECT|DDR_DIMM_DIC|DDR_DIMM_MODULE_NUM|DDR_IS_SEQ|DDR_TYPE|DDR_tREF|DDR_TRCD|DDR_TRPC|DDR_TRAS|DDR_TCAS|DDR_TWR|DDR_TRP|DDR_TRC
-	li  msize,256*(1<<20)
+	li  msize,512*(1<<20)
 	li  sdCfg,sdcfg_DATA
 #	li sdCfg,0x05441091
 	sw	sdCfg,BONITO_SDCFG(bonito)

@@ -132,6 +132,9 @@ if_attachsetup(ifp)
 		}
 		ifnet_addrs = q;
 	}
+#ifdef BONITOEL_CPCI
+	return;
+#endif
 	/*
 	 * create a Link Level name for this device
 	 */
