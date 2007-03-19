@@ -182,12 +182,28 @@ initmips(unsigned int memsz)
 /*enable float*/
 asm("
 mfc0 $2,$12
-li   $3,(1<<29)
+li   $3,0x20000000 #ST0_CU1
 or   $2,$3
 mtc0 $2,$12
-cfc1 $2,$31
-li $2,0
+li $2,0 #FPU_DEFAULT
 ctc1 $2,$31
+li $2,-1
+dmtc1	$2, $1
+dmtc1	$2, $3
+dmtc1	$2, $5
+dmtc1	$2, $7
+dmtc1	$2, $9
+dmtc1	$2, $11
+dmtc1	$2, $13
+dmtc1	$2, $15
+dmtc1	$2, $17
+dmtc1	$2, $19
+dmtc1	$2, $21
+dmtc1	$2, $23
+dmtc1	$2, $25
+dmtc1	$2, $27
+dmtc1	$2, $29
+dmtc1	$2, $31
 "
 :::"$2","$3"
 	);
