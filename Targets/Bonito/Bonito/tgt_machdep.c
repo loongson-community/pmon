@@ -175,6 +175,8 @@ ctc1 $2,$31
 "
 :::"$2","$3"
 	);
+
+
 if(get_userenv(ACTIVECOM_OFFS)&0x80)
 {
 #define WATCHDOG_REG BONITO(0x0160)
@@ -199,8 +201,8 @@ earlyenv();
 	GT_WRITE(BOOTCS_HIGH_DECODE_ADDRESS, (BOOT_BASE - 1 + BOOT_SIZE) >> 20);
 #endif
 	SBD_DISPLAY("inms",0);
-	memorysize=(memsz&0x0000ffff) << 20;//recover to original size:256M
-	memorysize_high=((memsz&0xffff0000)>>16) << 20;//0
+	memorysize = memsz > 256 ? 256 << 20 : memsz << 20;
+	memorysize_high = memsz > 256 ? (memsz - 256) << 20 : 0;
 
 	/*
 	 *  Probe clock frequencys so delays will work properly.
@@ -835,6 +837,9 @@ printf("in envinit\n");
 
 	sprintf(env, "%d", memorysize / (1024 * 1024));
 	(*func)("memsize", env);
+
+	sprintf(env, "%d", memorysize_high / (1024 * 1024));
+	(*func)("highmemsize", env);
 
 	sprintf(env, "%d", md_pipefreq);
 	(*func)("cpuclock", env);

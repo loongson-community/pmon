@@ -848,7 +848,6 @@ reginit:			/* local name */
 	bal	hexserial
 	nop
 	PRINTSTR("\r\n")
-	li	msize,0x10000000	# only 256m allowed in pmon now	
 #endif
 	li	t1,0		# accumulate pcimembasecfg settings
 		
