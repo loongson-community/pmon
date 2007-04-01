@@ -16,7 +16,7 @@ for(c=0;c<7;c++)
 	delay(500);
 	d=p[1]>>3&7;
 	delay(500);
-	if(d!=c){printf("error: pin[15,12,13]!=pin[2,3,4](%03b!=%03b)\n",d,c);errors++;}
+	if(d!=c){printf("error: pin[15,13,12]!=pin[2,3,4](%03b!=%03b)\n",d,c);errors++;}
 }
 if(errors)printf("pp test failed\n");
 else printf("pp test ok\n");

@@ -103,4 +103,4 @@ pseudo-device	loop	1	# network loopback
 ide_cd* 	at pciide? channel ? drive ? flags 0x0001
 select 		iso9660
 option  GODSONCPU2e
-option HAVE_NB_SERIAL
+#option HAVE_NB_SERIAL

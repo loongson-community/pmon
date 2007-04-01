@@ -511,8 +511,8 @@ struct setupMenu netcardmenu={
 (struct setupMenuitem[])
 {
 {POP_Y,POP_X,1,1,TYPE_CMD,"    NIC Setup"},
-{POP_Y+1,POP_X,2,2,TYPE_EDITMENU,"(1)set ip=ic=[rtl0||em0||em1||fxp0] ip=10.0.0.23;;set ip=ifaddr $ic $ip"},
-{POP_Y+2,POP_X,3,3,TYPE_EDITMENU,"(2)ifconfig=ic=[rtl0||em0||em1||fxp0] ip=10.0.0.23;;set ifconfig=set ifconfig $ic:$ip"},
+{POP_Y+1,POP_X,2,2,TYPE_EDITMENU,"(1)set ip=ic=[em0||em1||fxp0] ip=172.16.21.66;;set ip=ifaddr $ic $ip"},
+{POP_Y+2,POP_X,3,3,TYPE_EDITMENU,"(2)ifconfig=ic=[em0||em1||fxp0] ip=172.16.21.66;;set ifconfig=set ifconfig $ic:$ip"},
 {POP_Y+3,POP_X,4,4,TYPE_EDITMENU,"(3)serverip for test=ip=${#serverip};;set serverip=set serverip $ip"},
 {POP_Y+4,POP_X,5,5,TYPE_EDITMENU,"(4)clientip for test=ip=${#clientip};;set clientip=set clientip $ip"},
 {POP_Y+5,POP_X,1,1,TYPE_NONE,"(5)quit",setup_quit},
@@ -544,9 +544,9 @@ struct setupMenu almenu={
 {POP_Y,POP_X,1,1,TYPE_NONE,"    auto load setup"},
 {POP_Y+1,POP_X,2,2,TYPE_EDITMENU,"(1)autoboot from hd/fd>=disk=[wd0||fd0] path=boot/vmlinux;;boot=set al /dev/fs/ext2@$disk/$path"},
 {POP_Y+2,POP_X,3,3,TYPE_EDITMENU,"(2)autoboot from cdrom>=disk=cd0 path=boot/vmlinux;;boot=set al /dev/iso9660@$disk/$path"},
-{POP_Y+3,POP_X,4,4,TYPE_EDITMENU,"(3)autoboot from tftp>=ip=10.0.0.3 path=vmlinux;;boot=set al tftp://$ip/$path"},
+{POP_Y+3,POP_X,4,4,TYPE_EDITMENU,"(3)autoboot from tftp>=ip=172.16.21.66 path=vmlinux;;boot=set al tftp://$ip/$path"},
 {POP_Y+4,POP_X,5,5,TYPE_EDITMENU,"(4)autoboot parameters>=console=tty root=/dev/hda1;;boot=set append 'console=$console root=$root'"},
-{POP_Y+5,POP_X,6,6,TYPE_EDITMENU,"(5)autoboot parameters(nfs)>=console=[tty||ttyS0||ttyS1] ip=10.0.0.23 ic=eth0 nfsroot=10.0.0.3:/mnt/sdb2/newdebian;;set append=set append 'console=$console ip=$ip:::::$ic nfsroot=$nfsroot'"},
+{POP_Y+5,POP_X,6,6,TYPE_EDITMENU,"(5)autoboot parameters(nfs)>=console=[tty||ttyS0||ttyS1] ip=172.16.21.66 ic=eth0 nfsroot=172.16.21.66:/mnt/sdb2/newdebian;;set append=set append 'console=$console ip=$ip:::::$ic nfsroot=$nfsroot'"},
 {POP_Y+6,POP_X,7,7,TYPE_EDITMENU,"(6)autoboot delay >=delay=15;;set delay=set bootdelay $delay"},
 {POP_Y+7,POP_X,8,8,TYPE_CMD,"(7)unset autoboot=unset al"},
 {POP_Y+8,POP_X,1,1,TYPE_NONE,"(8)quit",setup_quit},
@@ -577,18 +577,37 @@ struct setupMenu testmenu={
 {POP_Y,POP_X,1,1,TYPE_NONE,"    board test"},
 {POP_Y+1,POP_X,2,2,TYPE_CMD,"(1)cpu:${?&#mytest 1}=[on=| _or mytest 1||off=| _andn mytest 1]test 1"},
 {POP_Y+2,POP_X,3,3,TYPE_CMD,"(2)memory:${?&#mytest 2}=[on=| _or mytest 2||off=| _andn mytest 2]test 2"},
-{POP_Y+3,POP_X,4,4,TYPE_CMD,"(3)netcard fxp0:${?&#mytest 4}=[on=| _or mytest 4||off=| _andn mytest 4]test 4"},
-{POP_Y+4,POP_X,5,5,TYPE_CMD,"(4)netcard em0:${?&#mytest 8}=[on=| _or mytest 8||off=| _andn mytest 8]test 8"},
-{POP_Y+5,POP_X,6,6,TYPE_CMD,"(5)netcard em1:${?&#mytest 16}=[on=| _or mytest 16||off=| _andn mytest 16]test 16"},
-{POP_Y+6,POP_X,7,7,TYPE_CMD,"(6)pci:${?&#mytest 32}=[on=| _or mytest 32||off=| _andn mytest 32]test 32"},
-{POP_Y+7,POP_X,8,8,TYPE_CMD,"(7)video:${?&#mytest 64}=[on=| _or mytest 64||off=| _andn mytest 64]test 64"},
-{POP_Y+8,POP_X,9,9,TYPE_CMD,"(8)harddisk:${?&#mytest 128}=[on=| _or mytest 128||off=| _andn mytest 128]test 128"},
-{POP_Y+9,POP_X,10,10,TYPE_CMD,"(9)keyboard:${?&#mytest 256}=[on=| _or mytest 256||off=| _andn mytest 256]test 256"},
-{POP_Y+10,POP_X,11,11,TYPE_CMD,"(10)serial:${?&#mytest 512}=[on=| _or mytest 512||off=| _andn mytest 512]test 512"},
-{POP_Y+11,POP_X,12,12,TYPE_CMD,"(11)ppport:${?&#mytest 1024}=[on=| _or mytest 1024||off=| _andn mytest 1024]test 1024"},
-{POP_Y+12,POP_X,13,13,TYPE_CMD,"(12)floppy:${?&#mytest 2048}=[on=| _or mytest 2048||off=| _andn mytest 2048]test 2048"},
-{POP_Y+13,POP_X,14,14,TYPE_CMD,"(13)all selected=test ${#mytest}"},
-{POP_Y+14,POP_X,1,1,TYPE_NONE,"(14)quit",setup_quit},
+{POP_Y+3,POP_X,4,4,TYPE_CMD,"(3)netcard net0:${?&#mytest 4}=[on=| _or mytest 4||off=| _andn mytest 4]test 4"},
+{POP_Y+4,POP_X,5,5,TYPE_CMD,"(4)netcard net1:${?&#mytest 8}=[on=| _or mytest 8||off=| _andn mytest 8]test 8"},
+{POP_Y+5,POP_X,6,6,TYPE_CMD,"(5)netcard net2:${?&#mytest 16}=[on=| _or mytest 16||off=| _andn mytest 16]test 16"},
+{POP_Y+6,POP_X,7,7,TYPE_CMD,"(5)pci:${?&#mytest 32}=[on=| _or mytest 32||off=| _andn mytest 32]test 32"},
+{POP_Y+7,POP_X,8,8,TYPE_CMD,"(6)video:${?&#mytest 64}=[on=| _or mytest 64||off=| _andn mytest 64]test 64"},
+{POP_Y+8,POP_X,9,9,TYPE_CMD,"(7)harddisk:${?&#mytest 128}=[on=| _or mytest 128||off=| _andn mytest 128]test 128"},
+{POP_Y+9,POP_X,10,10,TYPE_CMD,"(8)keyboard:${?&#mytest 256}=[on=| _or mytest 256||off=| _andn mytest 256]test 256"},
+{POP_Y+10,POP_X,11,11,TYPE_CMD,"(9)serial:${?&#mytest 512}=[on=| _or mytest 512||off=| _andn mytest 512]test 512"},
+{POP_Y+11,POP_X,12,12,TYPE_CMD,"(10)parallel:${?&#mytest 1024}=[on=| _or mytest 1024||off=| _andn mytest 1024]test 1024"},
+{POP_Y+12,POP_X,13,13,TYPE_CMD,"(11)all selected=test ${#mytest}"},
+{POP_Y+13,POP_X,1,1,TYPE_NONE,"(12)quit",setup_quit},
+{}
+}
+};
+
+struct setupMenu testmenu1={
+0,POP_W,POP_H,
+(struct setupMenuitem[])
+{
+{POP_Y,POP_X,1,1,TYPE_NONE,"    board test"},
+{POP_Y+1,POP_X,2,2,TYPE_CMD,"(1)cpu:${?&#mytest 1}=[on=| _or mytest 1||off=| _andn mytest 1]test 1"},
+{POP_Y+2,POP_X,3,3,TYPE_CMD,"(2)memory:${?&#mytest 2}=[on=| _or mytest 2||off=| _andn mytest 2]test 2"},
+{POP_Y+3,POP_X,4,4,TYPE_CMD,"(3)netcard net0:${?&#mytest 4}=[on=| _or mytest 4||off=| _andn mytest 4]test 4"},
+{POP_Y+4,POP_X,5,5,TYPE_CMD,"(4)pci:${?&#mytest 32}=[on=| _or mytest 32||off=| _andn mytest 32]test 32"},
+{POP_Y+5,POP_X,6,6,TYPE_CMD,"(5)video:${?&#mytest 64}=[on=| _or mytest 64||off=| _andn mytest 64]test 64"},
+{POP_Y+6,POP_X,7,7,TYPE_CMD,"(6)harddisk:${?&#mytest 128}=[on=| _or mytest 128||off=| _andn mytest 128]test 128"},
+{POP_Y+7,POP_X,8,8,TYPE_CMD,"(7)keyboard:${?&#mytest 256}=[on=| _or mytest 256||off=| _andn mytest 256]test 256"},
+{POP_Y+8,POP_X,9,9,TYPE_CMD,"(8)serial:${?&#mytest 512}=[on=| _or mytest 512||off=| _andn mytest 512]test 512"},
+{POP_Y+9,POP_X,10,10,TYPE_CMD,"(9)parallel:${?&#mytest 1024}=[on=| _or mytest 1024||off=| _andn mytest 1024]test 1024"},
+{POP_Y+10,POP_X,11,11,TYPE_CMD,"(10)all selected=test ${#mytest}"},
+{POP_Y+11,POP_X,1,1,TYPE_NONE,"(11)quit",setup_quit},
 {}
 }
 };
@@ -625,9 +644,9 @@ struct setupMenu othersmenu={
 (struct setupMenuitem[])
 {
 {POP_Y,POP_X,1,1,TYPE_NONE,"    others setup"},
-{POP_Y+1,POP_X,2,2,TYPE_EDITMENU,"(1)reload pmon form tftp=ip=10.0.0.3 file=gzram;;reload pmon=load tftp://$ip/$file;g"},
+{POP_Y+1,POP_X,2,2,TYPE_EDITMENU,"(1)reload pmon form tftp=ip=172.16.21.66 file=gzram;;reload pmon=load tftp://$ip/$file;g"},
 {POP_Y+2,POP_X,3,3,TYPE_EDITMENU,"(2)update pmon from disk=disk=[wd0||wd1||fd0] file=gzrom.bin;;update pmon form hd/fd=load -f 0xbfc00000 -r /dev/fs/ext2@$disk/$file;;update pmon from cd=load -f 0xbfc00000 -r /dev/fs/ext2@cd0/$file"},
-{POP_Y+3,POP_X,4,4,TYPE_EDITMENU,"(3)update pmon from tftp=ip=10.0.0.3 file=gzrom.bin;;update pmon=load -f 0xbfc00000 -r tftp://$ip/$file"},
+{POP_Y+3,POP_X,4,4,TYPE_EDITMENU,"(3)update pmon from tftp=ip=172.16.21.66 file=gzrom.bin;;update pmon=load -f 0xbfc00000 -r tftp://$ip/$file"},
 {POP_Y+4,POP_X,5,5,TYPE_EDITMENU,"(4)heaptop=heaptop=[80100000||80300000];;set heaptop=set heaptop $heaptop"},
 {POP_Y+5,POP_X,6,6,TYPE_MSG,"(5)other info",0,helpmsg},
 {POP_Y+6,POP_X,7,7,TYPE_EDITMENU,"(6)${!tm}=zone=${#TZ} year=${!tm_year} month=${!tm_mon} day=${!tm_mday} hour=${!tm_hour} min=${!tm_min} sec=${!tm_sec};;set date=date ${year}${month}${day}${hour}${min}.${sec};;set zone=set TZ ${zone}"},
@@ -641,8 +660,8 @@ struct setupMenu mainmenu={
 (struct setupMenuitem[])
 {
 {POP_Y,POP_X,1,1,TYPE_NONE,"    Main Menu"},
-{POP_Y+1,POP_X,2,2,TYPE_EDITMENU,"(1) boot from local>=disk=[wd0||wd1||cd0||fd0] kernelpath=vmlinux console=[tty||ttyS0||ttyS1] root=/dev/hda1 serverip=10.0.0.3;;kernel on hd/fd=load /dev/fs/ext2@$disk/$kernelpath;g console=$console root=$root;;kernel on cd=load /dev/fs/iso9660@$disk/$kernelpath;g console=$console root=$root;;kernel on tftp=load tftp://$serverip/$kernelpath;g console=$console root=$root"},
-{POP_Y+2,POP_X,3,3,TYPE_EDITMENU,"(2) boot from nfs  >=disk=[wd0||wd1||cd0||fd0] kernelpath=vmlinux console=[tty||ttyS0||ttyS1]  clientip=10.0.0.23 serverip=10.0.0.3  ic=eth0  root=/mnt/sdb2/newdebian;;kernel on hd/fd=load /dev/fs/ext2@$disk/$kernelpath;g console=$console ip=$clientip:::::$ic nfsroot=$serverip:$root;;kernel on cd=load /dev/fs/iso9660@$disk/$kernelpath;g console=$console ip=$clientip:::::$ic nfsroot=$serverip:$root;;kernel on tftp=load tftp://$serverip/$kernelpath;g console=$console ip=$clientip:::::$ic nfsroot=$serverip:$root"},
+{POP_Y+1,POP_X,2,2,TYPE_EDITMENU,"(1) boot from local>=disk=[wd0||wd1||cd0||fd0] kernelpath=vmlinux console=[tty||ttyS0||ttyS1] root=/dev/hda1 serverip=172.16.21.66;;kernel on hd/fd=load /dev/fs/ext2@$disk/$kernelpath;g console=$console root=$root;;kernel on cd=load /dev/fs/iso9660@$disk/$kernelpath;g console=$console root=$root;;kernel on tftp=load tftp://$serverip/$kernelpath;g console=$console root=$root"},
+{POP_Y+2,POP_X,3,3,TYPE_EDITMENU,"(2) boot from nfs  >=disk=[wd0||wd1||cd0||fd0] kernelpath=vmlinux console=[tty||ttyS0||ttyS1]  clientip=172.16.21.66 serverip=172.16.21.66  ic=eth0  root=/mnt/sdb2/newdebian;;kernel on hd/fd=load /dev/fs/ext2@$disk/$kernelpath;g console=$console ip=$clientip:::::$ic nfsroot=$serverip:$root;;kernel on cd=load /dev/fs/iso9660@$disk/$kernelpath;g console=$console ip=$clientip:::::$ic nfsroot=$serverip:$root;;kernel on tftp=load tftp://$serverip/$kernelpath;g console=$console ip=$clientip:::::$ic nfsroot=$serverip:$root"},
 {POP_Y+3,POP_X,4,4,TYPE_MENU,    "(3) IP setup       >",0,&netcardmenu},
 {POP_Y+4,POP_X,5,5,TYPE_MENU,    "(4) GPIO setup     >",0,&gpiomenu},
 {POP_Y+5,POP_X,6,6,TYPE_MENU,    "(5) List DIRS      >",0,&lsmenu},
@@ -1268,6 +1287,7 @@ free(myline); myline=0;
 static int cmd_setup(int ac,char **av)
 {
 __console_alloc();
+mainmenu.items[9].arg=getenv("testem")?&testmenu:&testmenu1;
 do_menu(&mainmenu);
 __console_free();
 return 0;

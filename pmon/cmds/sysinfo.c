@@ -87,9 +87,26 @@ printf("serial max baud 115200\n");
 return 0;
 }
 
+static int (*oldwrite)(int fd,char *buf,int len)=0;
+static char *buffer;
+static int total;
+void *restdout(int  (*newwrite) (int fd, const void *buf, size_t n));
+static int newwrite(int fd,char *buf,int len)
+{
+memcpy(buffer+total,buf,len);
+total+=len;
+return len;
+}
+
+
 static int netinfo()
 {
 char cmd[100];
+#if 0
+oldwrite=restdout(newwrite);
+total=0;
+buffer=heaptop+0x100000;
+#endif
 printf("net info:\n");
 printf("82546 em0 info:\n");
 strcpy(cmd,"ifconfig em0;ifconfig em0 status;");
@@ -100,6 +117,13 @@ do_cmd(cmd);
 printf("82559 fxp0 info:\n");
 strcpy(cmd,"ifconfig fxp0;ifconfig fxp0 status");
 do_cmd(cmd);
+printf("link speed up to 100 Mbps\n");
+#if 0
+restdout(oldwrite);
+buffer[total]='\n';
+buffer[total+1]=0;
+__msgbox(0,0,24,80,buffer);
+#endif
 //	__msgbox(MSG_Y,MSG_X,MSG_H,MSG_W,menu[item].arg);
 }
 

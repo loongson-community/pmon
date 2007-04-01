@@ -854,7 +854,7 @@ reginit:			/* local name */
 
 
 
-	li  msize,256*(1<<20)
+	li  msize,512*(1<<20)
 	li  sdCfg,sdcfg_DATA
 	li	t0, 0xbff00008
 	sd	sdCfg, 0(t0)
@@ -885,21 +885,6 @@ reginit:			/* local name */
 	sd	t1, 0x28(t0)
 */
 	
-#if 1//def DBGSBD
-	PRINTSTR("sdcfg=");
-	move	a0,sdCfg
-	bal	hexserial
-	nop
-	PRINTSTR("\r\n");
-	PRINTSTR("msize=");
-	move	a0,msize
-	sw  sdCfg,BONITO_MEMSIZE(bonito)
-	sw	a0,BONITO_MEMSIZE(bonito)
-	bal	hexserial
-	nop
-	PRINTSTR("\r\n")
-	li	msize,0x10000000	# only 256m allowed in pmon now	
-#endif
 	li	t1,0		# accumulate pcimembasecfg settings
 		
 	/* set bar0 mask and translation to point to SDRAM */
