@@ -145,13 +145,21 @@ _pci_hwinit(initialise, iot, memt)
 	
 	bus_dmamap_tag._dmamap_offs = 0;
 
-
+#ifndef LOOKLIKE_PC
 	pci_local_mem_pci_base = 0x80000000;
 	BONITO_PCIBASE0 = 0x80000000;
 	BONITO_PCIBASE1 = 0;
-	BONITO_PCIBASE2 = 0xa0000000;
+	BONITO_PCIBASE2 = 0x70000000;
     BONITO_PCI_REG(0x40)=0x80000000; //base0's mask register
     BONITO_PCI_REG(0x44)=0xf0000000; //base1's mask register
+#else
+	pci_local_mem_pci_base = 0;
+	BONITO_PCIBASE0 = 0x0;
+	BONITO_PCIBASE1 = 0;
+	BONITO_PCIBASE2 = 0x70000000;
+    BONITO_PCI_REG(0x40)=0x80000000; //base0's mask register
+    BONITO_PCI_REG(0x44)=0xf0000000; //base1's mask register
+#endif
 
 	return(1);
 }
