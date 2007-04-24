@@ -182,7 +182,7 @@ initmips(unsigned int memsz)
 /*enable float*/
 asm("
 mfc0 $2,$12
-li   $3,0x20000000 #ST0_CU1
+li   $3,0x24000000 #ST0_CU1
 or   $2,$3
 mtc0 $2,$12
 li $2,0 #FPU_DEFAULT

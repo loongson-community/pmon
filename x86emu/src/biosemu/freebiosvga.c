@@ -61,7 +61,7 @@ int vga_bios_init(void)
 			return -1;
 		}
 #ifdef BONITOEL
-		romaddress += 0x10000000;
+		romaddress |= 0x10000000;
 #endif
 		printf("Rom mapped to %lx\n",romaddress);
 
@@ -122,6 +122,14 @@ int vga_bios_init(void)
 		X86EMU_trace_on();
 #endif
         	BE_callRealMode(0xC000,0x0003,&regs,&sregs);
+#if 0
+{
+    RMREGS in;
+    RMREGS out;
+    in.e.eax = 0x0003;
+BE_int86(0x10,&in,&out);
+}
+#endif
 
 		//BE_exit();
 		pci_read_config_dword(pdev,0x30,(int*)&romaddress);

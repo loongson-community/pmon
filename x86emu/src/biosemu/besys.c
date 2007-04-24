@@ -523,7 +523,8 @@ pciCfg1in(u16 addr, u32 *val,int type)
 	}else if(type==2){
 		pcibios_read_config_dword(BUS(PciCfg1Addr),DEVFN(PciCfg1Addr),OFFSET(PciCfg1Addr),(u32*)val);
 	}else{
-  	   printf("wrong type for pci config op\n");
+		pcibios_read_config_dword(BUS(PciCfg1Addr),DEVFN(PciCfg1Addr),OFFSET(PciCfg1Addr),(u32*)val);
+  	   //printf("wrong type for pci config op\n");
 	}
 	return 1;
     }
@@ -545,7 +546,8 @@ pciCfg1out(u16 addr, u32 val,int type)
 	}else if(type==2){
 		pcibios_write_config_dword(BUS(PciCfg1Addr),DEVFN(PciCfg1Addr),OFFSET(PciCfg1Addr),val);
 	}else{
-  	   printf("wrong type for pci config op\n");
+		pcibios_write_config_dword(BUS(PciCfg1Addr),DEVFN(PciCfg1Addr),OFFSET(PciCfg1Addr),val);
+  	   //printf("wrong type for pci config op\n");
 	}
 	return 1;
     }

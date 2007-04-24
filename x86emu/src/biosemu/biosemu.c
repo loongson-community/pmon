@@ -268,7 +268,7 @@ void  BE_callRealMode(
     RMREGS *regs,
     RMSREGS *sregs)
 {
-    LockLegacyVGA();
+//    LockLegacyVGA();
     M.x86.R_EAX = regs->e.eax;
     M.x86.R_EBX = regs->e.ebx;
     M.x86.R_ECX = regs->e.ecx;
@@ -295,7 +295,7 @@ void  BE_callRealMode(
     sregs->es = M.x86.R_ES;
     sregs->fs = M.x86.R_FS;
     sregs->gs = M.x86.R_GS;
-    UnlockLegacyVGA();
+ //   UnlockLegacyVGA();
 }
 
 /****************************************************************************
@@ -314,7 +314,7 @@ int  BE_int86(
     RMREGS *in,
     RMREGS *out)
 {
-    LockLegacyVGA();
+//    LockLegacyVGA();
     M.x86.R_EAX = in->e.eax;
     M.x86.R_EBX = in->e.ebx;
     M.x86.R_ECX = in->e.ecx;
@@ -336,7 +336,7 @@ int  BE_int86(
     out->e.edx = M.x86.R_EDX;
     out->e.esi = M.x86.R_ESI;
     out->e.edi = M.x86.R_EDI;
-    UnlockLegacyVGA();
+//    UnlockLegacyVGA();
     return out->x.ax;
 }
 

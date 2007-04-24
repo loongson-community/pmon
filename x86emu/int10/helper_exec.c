@@ -463,7 +463,8 @@ pciCfg1in(CARD16 addr, CARD32 *val,int type)
 //          printk(" dword read configuration space,addr=%x,val=%x\n",PciCfg1Addr,*(u32*)val);
 #endif
 	}else{
-	  printk("wrong type for pci config op\n");
+          *val=_pci_conf_read(_pci_make_tag(BUS(PciCfg1Addr),((DEVFN(PciCfg1Addr)>>3)&0x1f),(DEVFN(PciCfg1Addr)&0x7)),OFFSET(PciCfg1Addr));
+	  //printk("wrong type for pci config op\n");
 	}
 	return 1;
     }
@@ -488,7 +489,8 @@ pciCfg1out(CARD16 addr, CARD32 val,int type)
       }else if (type==2) {
           _pci_conf_write(_pci_make_tag(BUS(PciCfg1Addr),((DEVFN(PciCfg1Addr)>>3)&0x1f),(DEVFN(PciCfg1Addr)&0x7)),OFFSET(PciCfg1Addr),(u8)val);
       }else {
-	  printk("wrong type for pci config op\n");
+          _pci_conf_write(_pci_make_tag(BUS(PciCfg1Addr),((DEVFN(PciCfg1Addr)>>3)&0x1f),(DEVFN(PciCfg1Addr)&0x7)),OFFSET(PciCfg1Addr),(u8)val);
+	  //printk("wrong type for pci config op\n");
       }
       return 1;
     }
