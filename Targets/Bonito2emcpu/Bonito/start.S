@@ -91,6 +91,82 @@
 #define	DDR266 0x0410435e
 #define DDR300 0x041453df
 
+/***(qiaochong) memeory initialization use macro,not smbbus ***/
+					  		 /*bit 31: DDR配置结束标志，1表示结束，只读*/
+#define DDR_DQS_SELECT	(0<<30) 		 /*bit 30 选择数据来源，0: 双沿采样；1：DQS采样*/
+#define DDR_DIMM_DIC (1<<29)           /*bit 29 标识DIMM_slot0是否插有内存条。
+                                0：无；1：有；*/
+#define DDR_DIMM_MODULE_NUM (3<<27)    /*bit 28:27 DIMM0/DIMM1上MOUDLE的数目：
+								2’b00：DIMM1: 1; DIMM0: 1
+								2’b01：DIMM1: 1; DIMM0: 2
+								2’b10：DIMM1: 2; DIMM0: 1
+								2’b11：DIMM1: 2; DIMM0: 2
+								*/
+#define DDR_IS_SEQ  (1<<26)            /*bit 26 义突发式读写时的块内顺序，
+								1’b0：顺序；1’b1：交替，现在只支持交替方式*/
+#define DDR_TYPE (5<<22) /*bit 25:22 表2：DDR 控制器所支持的DDR SDRAM 计芯片类型
+								BITS Density Org.  Row Addr.  Col Addr.
+								0000 64Mb 16Mb X 4 DA[11:0] DA[9:0]
+									128Mb 16Mb X 8
+								0001 64Mb 8Mb X 8 DA[11:0] DA[8:0]
+									128Mb 8Mb X 16 
+								0010 64Mb 4Mb X 16 DA[11:0] DA[7:0]
+								0011 128Mb 32Mb X 4 DA[11:0] DA[11],DA[9:0]
+								0100 256Mb 64Mb X 4 DA[12:0] DA[11],DA[9:0]
+									 512Mb 64Mb X 8 
+								0101 256Mb 32Mb X 8 DA[12:0] DA[9:0]
+									 512Mb 32Mb X 16
+								0110 256Mb 16Mb X 16 DA[12:0] DA[8:0]
+								0111 512Mb 128Mb X 4 DA[12:0] DA[12:11],DA[9:0]
+								1000 1Gb 256Mb X 4 DA[13:0] DA[12:11],DA[9:0]
+								1001 1Gb 128Mb X 8 DA[13:0] DA[11],DA[9:0]
+								1010 1Gb 64Mb X 16 DA[13:0] DA[9:0]
+								*/
+#define DDR_tREF  (100<<10) /*bit 21:10 SDRAM刷新操作之间计数（主频100MHz）：
+								780      7.8us
+								1560     15.6us
+								SDRAM刷新操作之间计数（主频133MHz）：
+								1040      7.8us
+								2080      15.6us
+								SDRAM刷新操作之间计数（主频166MHz）：
+								1300      7.8us
+								2600      15.6us
+								*/
+#define DDR_TRCD (0<<9) /*bit 9 行地址有效到列地址有效之间需经过的计数
+								1’b0   2 cycles（DDR100）
+								1’b1   3 cycles（DDR266、DDR333）*/
+#define DDR_TRPC (1<<7) /*bit 8:7 AUTO_REFRESH到ACTIVE之间需经过的计数
+								2’b00  Null 
+								2’b01  8 cylces （DDR100）
+								2’b10  10 cycles（DDR266）
+								2’b11  12 cycles（DDR333）
+								*/
+#define DDR_TRAS (0<<6) /*bit 6 ACTIVE到PRECHARGE之间需经过的计数
+								1’b0   5 cycles（DDR100）
+								1’b1   7 cycles（DDR266、DDR333）  
+								*/
+#define DDR_TCAS (1<<4) /*bit 5:4 从读命令到第一个数据到来需经过的计数
+								2’b00  1.5 cycles
+								2’b01  2 cycles
+								2’b10  2.5 cycles
+								2’b11  3 cycles
+								*/
+#define DDR_TWR (0<<3) /*bit 3 写操作最后一个数据到PRECHARGE之间需经过的计数
+								1’b0   2 cycles（DDR100）
+								1’b1   3 cycles（DDR266、DDR333）
+								*/
+#define DDR_TRP (0<<2) /*bit 2 PRECHARGE命令执行时间计数
+								1’b0   2 cycles（DDR100）
+								1’b1   3 cycles（DDR266、DDR333）
+								*/
+#define DDR_TRC (1<<0) /*bit 1:0 ACTIVE与ACTIVE/AUTO_REFRESH命令之间计数
+								2’b00  Null
+								2’b01  7 cycles（DDR100）
+								2’b10  9 cycles（DDR266）
+								2’b11  10cycles（DDR333）
+								注（由于precharge和ras cas的延时加起来正好满足这个延时，所以在DDR控制器里没有具体考虑这个参数）
+								*/
+#define sdcfg_DATA DDR_DQS_SELECT|DDR_DIMM_DIC|DDR_DIMM_MODULE_NUM|DDR_IS_SEQ|DDR_TYPE|DDR_tREF|DDR_TRCD|DDR_TRPC|DDR_TRAS|DDR_TCAS|DDR_TWR|DDR_TRP|DDR_TRC
 /*
  *   Register usage:
  *
@@ -259,85 +335,12 @@ locate:
 	nop 
 	bnez v0,notmaincpu
 	nop
-#if 1
+#if 0
 	bal tgt_cpumap
 	nop
 #endif
-#if 0
-locate:
-	la	s0, start		/* RA set from BAL above! */
-	subu	s0, ra, s0		/* s0 is now load vs. link offset */
-	and	s0, 0xffff0000		/* Mask off lower bits */
-	mfc0    t0,COP_0_PRID
-        mfc0    v0,COP_0_STATUS_REG
-        mtc0    zero,COP_0_WATCH_LO
-        mtc0    zero,COP_0_WATCH_HI
-        and     v0,SR_SOFT_RESET                # preserve Soft Reset
-        or      v0,SR_BOOT_EXC_VEC               # set Boot Exceptions
-        beq     t0,0x0a11,1f            # R4200 rev 1.1: disable cache errors
-        nop
-	beq     t0,0x5413,1f            # R5432 rev 1.3: disable cache errors
-        nop
-	b       2f
-	nop
-1:      or      v0,SR_DIAG_DE
-2:
+	
 
-/*
- *  Clean out and initialize the TLB
- */
-
-	bal	CPU_TLBClear
-	nop
-
-	li	a0, 0xc0000000
-	li	a1, 0x40000000
-	bal	CPU_TLBInit
-	nop
-/*
- *  Turn off all high decoders to avoid address conflicts.
- */
-        mtc0    v0,COP_0_STATUS_REG
-        mtc0    zero,COP_0_CAUSE_REG
-        mfc0    t1,COP_0_CONFIG
-        mfc0    t2,COP_0_PRID              # get PrID
-        mtc0    zero,$18                # C0_IWATCH/C0_WATCHLO
-        mtc0    zero,$19                # C0_DWATCH/C0_WATCHHI
-                                                                                
- 	li	bonito,PHYS_TO_UNCACHED(BONITO_REG_BASE)
-        
-	srl     t2,8
-        and     t2,0xff
-        
-	bne     t2,PRID_R4650,2f
-        nop                                                                        
-        mtc0    zero,$0                 # C0_IBASE
-        mtc0    zero,$1                 # C0_IBOUND
-        mtc0    zero,$2                 # C0_DBASE
-        mtc0    zero,$3                 # C0_DBOUND
-        b       3f
-	nop
-                                                                                
-2:     
-        and     t1,~0x3f                # set bits 5..0 only
-        or      t1,CFG_IB | CFG_DB | CFG_C_WBACK
-
-        and     t1,~CFG_EPMASK
-        or      t1,CFG_EPD
-        bne     t2,PRID_R5400,1f
-        nop
-	and     t1,~CFG_EMMASK
-        or      t1,CFG_EM_R4K
-        b       2f
-	nop
-1:      and     t1,~CFG_AD
-2:      mtc0    t1,COP_0_CONFIG
-3:      mfc0    t1,COP_0_STATUS_REG            # get Status
-        mtc0    zero,COP_0_CAUSE_REG
-        and     t1,SR_SOFT_RESET                # leave the SoftReset bit
-        or      t1,SR_BOOT_EXC_VEC               # force Boot Exception Vec
-        mtc0    t1,COP_0_STATUS_REG
-#endif
 
 #define MOD_MASK	0x00000003
 #define MOD_B		0x00000000 /* byte "modifier" */
@@ -466,8 +469,9 @@ locate:
 	/* Set debug mode */
 	BONITO_BIS(BONITO_BONGENCFG, BONITO_BONGENCFG_DEBUGMODE)
 
+
         /******** added to void init southbridge*/
-#if 1
+#ifdef MIANCPU_HAVE_SB
 	/* zhb init USB */
 	ISABWWR_INIT(2, 0x20, 0x8040|PCI_MAP_IO)
 	ISABWWR_INIT(2, PCI_COMMAND_STATUS_REG, 5)
@@ -791,310 +795,12 @@ reginit:			/* local name */
 	nop
 	PRINTSTR("\r\n")
 
-	PRINTSTR("Raw word read of SMB base address: ");
-	li	a0,CFGADDR(PCI_DEV_I82371,3,I82371_PCI3_SMBBA)
-	li	a1,PHYS_TO_UNCACHED(PCI_CFG_SPACE)
-	and	a2,a0,0xffff
-	or	a1,a2
-	srl	a0,16
-	li	a2,BONITO_BASE+BONITO_PCIMAP_CFG
-	sw	a0,BONITO_PCIMAP_CFG(bonito)
-	lw	zero,BONITO_PCIMAP_CFG(bonito)
-	lw	a0,(a1)
 	
-	li	a1,2
-	bal	hexserial
-	nop
-	PRINTSTR("\r\n")	
-	
-#if 1
-	PRINTSTR("Raw word read of SMB HSTCFG: ");
-	li	a0,CFGADDR(PCI_DEV_I82371,3,I82371_PCI3_SMBHSTCFG) # byte???
-	li	a1,PHYS_TO_UNCACHED(PCI_CFG_SPACE)
-	and	a2,a0,0xffff
-	or	a1,a2
-	srl	a0,16
-	li	a2,BONITO_BASE+BONITO_PCIMAP_CFG
-	sw	a0,BONITO_PCIMAP_CFG(bonito)
-	lw	zero,BONITO_PCIMAP_CFG(bonito)
-	lhu	a0,(a1)
-	
-	li	a1,2
-	bal	hexserial
-	nop
-	PRINTSTR("\r\n")	
-	
-	PRINTSTR("Raw word read of SMB IO ENABLE: ");
-	li	a0,CFGADDR(PCI_DEV_I82371,3,PCI_COMMAND_STATUS_REG)
-	li	a1,PHYS_TO_UNCACHED(PCI_CFG_SPACE)
-	and	a2,a0,0xffff
-	or	a1,a2
-	srl	a0,16
-	li	a2,BONITO_BASE+BONITO_PCIMAP_CFG
-	sw	a0,BONITO_PCIMAP_CFG(bonito)
-	lw	zero,BONITO_PCIMAP_CFG(bonito)
-	lw	a0,(a1)
-	
-	li	a1,2
-	bal	hexserial
-	nop
-	PRINTSTR("\r\n")	
-#endif
 
-/*	b	skipdimm
-	nop
-
-	bal	i2cdump
-	nop*/
-	
-PRINTSTR("DIMM read\r\n")
-#ifdef DEBUG_DIMM_SPD
-  /*test i2c */
-	li	t4,0
-loop:
-	li	a0,0
-	move	a1,t4
-	bal	i2cread
-	nop
-	move	a0,v0
-	bal	hexserial
-	nop
-	PRINTSTR("\r\n")
-
-	addu	t4,1
-
-	li	t0,255
-	bltu	t4,t0,loop
-	nop
-1:	b	1b
-	nop
-#endif
-	/* 
-	 * Now determine DRAM configuration and size by
-	 * reading the I2C EEROM on the DIMMS
-	 */
-	li	msize,0
-
-
-	/* start with SODIMM #0 */
-	li	a0,0
-	li	sdCfg,0
-	
-.nextdimm:
-	li	sdShape,0
-	
-	/* read DIMM memory type (must be DDRAM) */
-	li	a1,2
-	bal	i2cread
-	nop
-	bne	v0,7,.nodimm
-	nop
-	PRINTSTR("read memory type\r\n") 
-
-	/* read DIMM number of rows */
-	li	a1,3
-	bal	i2cread
-	nop	
-	move	a0, v0
-	subu	v0, 12
-	move	s1, v0
-
-	bgtu	v0, 2,.nodimm
-	nop
-	/* sll	v0, 24			# BONITO_SDCFG_AROWBITS_SHIFT
-	 * and	v0, 3			# BONITO_SDCFG_AROWBITS
-	 * or	sdShape,v0*/ 
-	PRINTSTR("read number of rows\r\n")
-
-2:	/* read DIMM number of cols */
-	li	a1,4
-	bal	i2cread
-	nop
-	
-	subu	v0, 8
-	bgtu	v0, 4,.nodimm
-	nop
-	
-	move	t1, s1
-
-	bne	t1, 0, 10f
-	nop
-	bne	v0, 2, 20f
-	nop
-	li	v0, 0
-	b	.ddrtype
-	nop
-20:	bne	v0, 1, 21f
-	nop
-	li	v0, 1
-	b	.ddrtype
-	nop
-21:	bne	v0, 0, 22f
-	nop
-	li	v0, 2
-	b	.ddrtype
-	nop
-22:	bne	v0, 3, 33f
-	nop
-	li	v0, 3
-	b	.ddrtype
-	nop
-10:	bne	t1, 1, 11f
-	nop
-	bne	v0, 3, 20f
-	nop
-	li	v0, 4
-	b	.ddrtype
-	nop
-20:	bne	v0, 2, 21f
-	nop
-	li	v0, 5
-	b	.ddrtype
-	nop
-21:	bne	v0, 1, 22f
-	nop
-	li	v0, 6
-	b	.ddrtype
-	nop
-22:	bne	v0, 4, 33f
-	nop
-	li	v0, 7
-	b	.ddrtype
-	nop
-11:	bne	t1, 2, 33f
-	nop
-	bne	v0, 4, 20f
-	nop
-	li	v0, 8
-	b	.ddrtype
-	nop
-20:	bne	v0, 3, 21f
-	nop
-	li	v0, 9
-	b	.ddrtype
-	nop
-21:	bne	v0, 2, 33f
-	nop
-	li	v0, 10
-	b	.ddrtype
-	nop
-33:	PRINTSTR("DDR type not supported!\r\n");
-34:	b	34b
-	nop
-
-.ddrtype:
-	sll	v0, BONITO_SDCFG_DDRTYPE_SHIFT	# BONITO_SDCFG_ACOLBITS_SHIFT
-	and	v0,0x03c00000			# BONITO_SDCFG_ACOLBITS
-	or	sdShape,v0
-
-	/* read DIMM memory size per side */
-	li	a1,31
-	bal	i2cread
-	nop
-	beqz	v0,.nodimm
-	nop
-	sll	tmpsize,v0,22		# multiply by 4M
-	PRINTSTR("read memory size per side\r\n") 
-
-#if 1 /* zhb */
-2:	/* read DIMM number of blocks-per-ddrram */
-	li	a1,17
-	bal	i2cread
-	nop
-	beq	v0,2,2f
-	nop
-	bne	v0,4,.nodimm
-	nop
-	/* or	sdShape,BONITO_SDCFG_ABANKBIT */
-	PRINTSTR("read blocks per ddrram\r\n")
-
-2:	/* read DIMM number of sides (banks) */
-	li	a1,5
-	bal	i2cread
-	nop
-	beq	v0,1,2f
-	nop
-	bne	v0,2,.nodimm
-	nop
-	/* or	sdShape,BONITO_SDCFG_ASIDES */
-	sll	tmpsize,1	# msize *= 2	
-	PRINTSTR("read number of sides\r\n") 
-
-2:	/* read DIMM width */
-	li	a1,6
-	bal	i2cread
-	nop
-	bleu	v0,36,2f
-	nop
-	bgtu	v0,72,.nodimm
-	nop
-	/* or	sdShape,BONITO_SDCFG_AWIDTH64 */
-	PRINTSTR("read width\r\n") 
-#endif
-
-2:	addu	msize,tmpsize
-	b	2f
-	nop	
-
-.nodimm:
-#if 1 //def DBGSBD
-	move	dbg,a0
-	PRINTSTR ("\r\nNo DIMM in slot ")
-	move	a0,dbg
-	bal	hexserial
-	nop
-	PRINTSTR("\r\n")
-	move	a0,dbg
-#endif	
-	/* or	sdShape,BONITO_SDCFG_AABSENT */
-2:	beqz	a0,1f
-	nop
-	/* sll	sdShape,BONITO_SDCFG_BROWBITS_SHIFT */
-1:	or	sdCfg,sdShape
-	or	sdCfg,DDR100
-
-	move	dbg,a0
-	PRINTSTR("DIMM0 in slot ") 
-	move	a0,dbg
-	bal	hexserial
-	nop
-	PRINTSTR("\r\n")
-	/* move	a0,dbg
-      	 * PRINTSTR("DIMM1...\r\n")*/
-      	move	a0,dbg
-
-	addu	a0,1
-	bltu	a0,2,.nextdimm
-	nop
-	PRINTSTR("DIMM SIZE=")
-	li	msize,MEMBYTES
-	move	a0,msize
-	bal	hexserial
-	nop
-	PRINTSTR("\r\n")
-	/* If we are running in SDRAM, chop 4MB off the memory size,
-	   and don't modify sdCfg register (assume someone in 
-	   PCI-world has already set it up). */
-	lw	t0,BONITO_BONPONCFG(bonito)
-	and	t0,BONITO_BONPONCFG_ROMBOOT
-	bne	t0,BONITO_BONPONCFG_ROMBOOT_SDRAM,1f
-	nop
-	beqz	msize,2f	# already zero!
-	nop
-	subu	msize,-1
-	b	2f
-	nop
-1:	sw	sdCfg,BONITO_SDCFG(bonito)
-	
-2:	b	3f	
-	nop
-3:
+skipdimm:
 #if 1 /* zhb cpu*/
 	li	msize,MEMBYTES
-	#li	sdCfg,0x0544e091
-	#li	sdCfg,0x1d44e091
-	li	sdCfg,0x3d500081	#~133MHz
-#	li	sdCfg,0x3d540081	#~166MHz
+	li	sdCfg,sdcfg_DATA
 	li	t0, 0xbff00008
 	sd	sdCfg, 0(t0)
 
@@ -1118,25 +824,6 @@ loop:
 	sd	t1, 0x28(t0)
 */
 	
-#endif
-#if 1//def DBGSBD
-	PRINTSTR("sdcfg=");
-	move	a0,sdCfg
-	bal	hexserial
-	nop
-	PRINTSTR("\r\n");
-	PRINTSTR("msize=");
-	move	a0,msize
-	bal	hexserial
-	nop
-	PRINTSTR("\r\n")
-	
-#endif
-skipdimm:
-#if 0 /* zhb */
-	li	msize,MEMBYTES
-	li	sdCfg,0x05441091
-	sw	sdCfg,BONITO_SDCFG(bonito)
 #endif
 
 	li	t1,0		# accumulate pcimembasecfg settings
@@ -1250,71 +937,6 @@ do_caches:
 	TTYDBG("\r\n\r\n")
 #endif
 
-/* zhb */
-#if 0 
-/*	li	t0, 0		*/
-/*	li	t1, 0x90000	*/
-/*1:	addiu	t0, 1		*/
-/*	bne	t0, t1, 1b	*/
-	nop
-
-	TTYDBG("Testing memory...\r\n")
-	
-	li	t7, 10
-tmem:
-	li	t0, 0xa0000000+1*1024*1024
-	li	t1, 0xa0000000
-	li	t2, 0xffffffff
-1:
-	sw	t2, 0(t1)
-	lw	t3, 0(t1)
-	bne	t3, t2, 1f
-	nop
-	not	t2
-	sw	t2, 0(t1)
-	lw	t3, 0(t1)
-	bne	t3, t2, 1f
-	nop
-	not	t2
-	subu	t2, 1
-	addu	t1, 4
-	beq	t1, t0, 2f
-	nop
-	and	t4, t1, 0x000fffff
-	bnez	t4, skipdot
-	li	a0, '.'
-	bal	tgt_putchar
-	nop
-skipdot:
-	b	1b
-	nop
-1:
-	TTYDBG("Memory test failed at ");
-	move	a0,	t1
-	bal	hexserial
-	nop
-	TTYDBG("\r\nWrite=");
-	move	a0, t2
-	bal	hexserial
-	nop
-	TTYDBG("\r\nRead=");
-	move	a0, t3
-	bal	hexserial
-	nop
-1:
-	b	1b
-	nop
-2:
-	TTYDBG("Testing ok...\r\n");
-	sub	t7,1
-	beqz	t7, 1f
-	nop
-	b	tmem
-	nop
-1:	
-	b	1b
-	nop
-#endif
 	TTYDBG("Copy PMON to execute location...\r\n")
 #if 0 //def DEBUG_LOCORE
 	TTYDBG("  start = 0x")
@@ -2030,10 +1652,7 @@ notmaincpu:
 
 #if 1 /* zhb cpu*/
 	li	msize,MEMBYTES
-	#li	sdCfg,0x0544e091
-	#li	sdCfg,0x1d44e091
-	li	sdCfg,0x3d500081	#~133MHz
-#	li	sdCfg,0x3d540081	#~166MHz
+	li	sdCfg,sdcfg_DATA
 	li	t0, 0xbff00008
 	sd	sdCfg, 0(t0)
 
@@ -2058,6 +1677,8 @@ notmaincpu:
 */
 	
 #endif
+//#include "machine/newtest/mydebug.S"
+//bootnow:
 
 #if 1//def DBGSBD
 	PRINTSTR("sdcfg=");

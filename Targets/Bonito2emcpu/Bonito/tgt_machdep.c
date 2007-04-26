@@ -140,11 +140,13 @@ void addr_tst1(void);
 void addr_tst2(void);
 void movinv1(int iter, ulong p1, ulong p2);
 int cpuid=0;
+int havepci=0;
 
 void
 initmips(unsigned int memsz)
 {
 cpuid=tgt_cpuid();
+if(maincpu)havepci=1;
 #ifdef MCPU_MSERIAL
 {
 register int x asm("k1");
@@ -176,8 +178,8 @@ asm("li $2,0x0f000000;
 	 :"$2"
    );
 *pmap=((cpuid+0xc)<<28)|0xff0;
-pmap[3]=(0<<28)|0xf00;
-pmap[7]=(0<<28)|0x0f000ff0;
+pmap[2]=(0<<28)|0xf00;
+pmap[6]=(0<<28)|0x0f000ff0;
 	memsz=128;
 }
 else
@@ -271,7 +273,6 @@ char str[20];
  *  is done after console has been initialized so it's safe
  *  to output configuration and debug information with printf.
  */
-
 void
 tgt_devconfig()
 {
@@ -290,13 +291,13 @@ tgt_devconfig()
 	GT_WRITE(MPP_CONTROL2, 0x00888888);
 	GT_WRITE(MPP_CONTROL3, 0x00000066);
 #endif
-if(maincpu)	_pci_devinit(1);	/* PCI device initialization */
+if(havepci)	_pci_devinit(1);	/* PCI device initialization */
 #if NMOD_X86EMU_INT10 > 0
 	SBD_DISPLAY("VGAI", 0);
-if(maincpu)	vga_bios_init();
+if(havepci)	vga_bios_init();
 #endif
         config_init();
-if(maincpu)     configure();
+if(havepci)     configure();
 #if NMOD_VGACON >0
 //if(maincpu)	rc=kbd_initialize();
 //else
@@ -350,7 +351,7 @@ tgt_devinit()
 
        //tgt_putchar('Z');
 
-if(maincpu)_pci_businit(1);	/* PCI bus initialization */
+if(havepci)_pci_businit(1);	/* PCI bus initialization */
 }
 
 

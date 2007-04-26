@@ -76,7 +76,7 @@ _pci_hwinit(initialise, iot, memt)
 	struct pci_device *pd;
 	struct pci_bus *pb;
 	int newcfg=0;
-	if(!getenv("oldcfg"))newcfg=1;
+	if(getenv("newcfg"))newcfg=1;
 
 	if (!initialise) {
 		return(0);

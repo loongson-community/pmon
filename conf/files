@@ -170,7 +170,7 @@ file sys/dev/bus_dma.c			sys
 file pmon/cmds/boot.c			cmd_boot
 file pmon/cmds/call.c			cmd_call
 file pmon/cmds/mycmd.c			cmd_mycmd
-file pmon/cmds/sysinfo.c		cmd_mycmd
+file pmon/cmds/sysinfo.c		cmd_setup
 file pmon/cmds/newmt/newmt.c	cmd_newmt
 file pmon/cmds/setup.c			cmd_setup
 file pmon/cmds/test/test.c			cmd_test

@@ -44,8 +44,8 @@ option		NOSNOOP			# Caches are no-snooping
 #
 # HAVE options. What tgt level provide
 #
-option		HAVE_TOD		# Time-Of-Day clock
-option		HAVE_NVENV		#  Platform has non-volatile env mem
+#option		HAVE_TOD		# Time-Of-Day clock
+#option		HAVE_NVENV		#  Platform has non-volatile env mem
 option		HAVE_LOGO		# Output splash logo
 
 #
@@ -59,7 +59,7 @@ option		TARGETNAME="\"Bonito\""
 #
 mainbus0        at root
 localbus0	at mainbus0
-pcibr0		at mainbus0
+pcibr*		at mainbus0
 pci*		at pcibr?
 #ppb*		at pci? dev ? function ?	# PCI-PCI bridges
 #pci*		at ppb? bus ?
@@ -81,6 +81,7 @@ pci*		at pcibr?
 fxp0            at pci? dev ? function ?        # Intel 82559 Device
 inphy*          at mii? phy ?                   # Intel 82555 PHYs
 rtl*        at pci? dev ? function ?
+em*            at pci? dev ? function ?        # Intel 82559 Device
 
 #### IDE controllers
 pciide* 	at pci ? dev ? function ? flags 0x0000
@@ -95,4 +96,5 @@ option MCPU_MSERIAL
 option MYNBDEBUG
 #option SLAVECPU_MEM_SERIAL
 option  GODSONCPU2e
-
+#option MIANCPU_HAVE_SB
+option HAVE_NB_SERIAL

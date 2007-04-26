@@ -1,4 +1,4 @@
-/*	$Id: pci_machdep.c,v 1.2 2003/12/10 09:23:35 wlin Exp $ */
+/*	$Id: pci_machdep.c,v 1.1.1.1 2006/09/14 01:59:09 root Exp $ */
 
 /*
  * Copyright (c) 2001 Opsycon AB  (www.opsycon.se)
@@ -65,6 +65,7 @@ static pcireg_t pci_local_mem_pci_base;
 /****************************/
 /*initial PCI               */
 /****************************/
+
 int
 _pci_hwinit(initialise, iot, memt)
 	int initialise;
@@ -74,13 +75,13 @@ _pci_hwinit(initialise, iot, memt)
 	/*pcireg_t stat;*/
 	struct pci_device *pd;
 	struct pci_bus *pb;
-
+	int newcfg=0;
+	if(getenv("newcfg"))newcfg=1;
 
 	if (!initialise) {
 		return(0);
 	}
 
-	pci_local_mem_pci_base = PCI_LOCAL_MEM_PCI_BASE;
 	/*
 	 *  Allocate and initialize PCI bus heads.
 	 */
@@ -102,17 +103,37 @@ _pci_hwinit(initialise, iot, memt)
 	//printf("pd->pa.pa_iot=%p,bus_base=0x%x\n",pd->pa.pa_iot,pd->pa.pa_iot->bus_base);
 	pd->pa.pa_memt = pmalloc(sizeof(bus_space_tag_t));
 	pd->pa.pa_memt->bus_reverse = 1;
-	pd->pa.pa_memt->bus_base = PCI_LOCAL_MEM_PCI_BASE;
 	pd->pa.pa_dmat = &bus_dmamap_tag;
 	pd->bridge.secbus = pb;
 	_pci_head = pd;
 
-	pb->minpcimemaddr  = PCI_MEM_SPACE_PCI_BASE+0x01000000;
-	pb->nextpcimemaddr = PCI_MEM_SPACE_PCI_BASE+BONITO_PCILO_SIZE;
-	pb->minpciioaddr  = PCI_IO_SPACE_BASE+0x000a000;
-	pb->nextpciioaddr =PCI_IO_SPACE_BASE+ BONITO_PCIIO_SIZE;
-	pb->pci_mem_base   = BONITO_PCILO_BASE_VA;
-	pb->pci_io_base    = BONITO_PCIIO_BASE_VA;
+	if(newcfg)
+	{
+	pb->minpcimemaddr  = 0x14000000;//很奇怪,不能和linux分配起始地址一致,否则xwindow中显示出问题
+	pb->nextpcimemaddr = 0x1c000000; 
+	pd->pa.pa_memt->bus_base = 0xa0000000;
+	BONITO_PCIMAP =
+	    BONITO_PCIMAP_WIN(0, PCI_MEM_SPACE_PCI_BASE+0x00000000) |	
+	    BONITO_PCIMAP_WIN(1, PCI_MEM_SPACE_PCI_BASE+0x14000000) |
+	    BONITO_PCIMAP_WIN(2, PCI_MEM_SPACE_PCI_BASE+0x18000000) |
+	    BONITO_PCIMAP_PCIMAP_2;
+	}
+	else
+	{
+	/*pci地址和cpu地址不等,访问pci mem时要ioreamap转换,直接or 0xb0000000*/
+	pb->minpcimemaddr  = 0x04000000;
+	pb->nextpcimemaddr = 0x0c000000; 
+	pd->pa.pa_memt->bus_base = 0xb0000000;
+	BONITO_PCIMAP =
+	    BONITO_PCIMAP_WIN(0, PCI_MEM_SPACE_PCI_BASE+0x00000000) |	
+	    BONITO_PCIMAP_WIN(1, PCI_MEM_SPACE_PCI_BASE+0x04000000) |
+	    BONITO_PCIMAP_WIN(2, PCI_MEM_SPACE_PCI_BASE+0x08000000) |
+	    BONITO_PCIMAP_PCIMAP_2;
+	}
+	pb->minpciioaddr  = 0x0004000;
+	pb->nextpciioaddr = BONITO_PCIIO_SIZE;
+	pb->pci_mem_base   = 0xb0000000;
+	pb->pci_io_base    = 0xbfd00000;
 	pb->max_lat = 255;
 	pb->fast_b2b = 1;
 	pb->prefetch = 1;
@@ -124,20 +145,24 @@ _pci_hwinit(initialise, iot, memt)
 	
 	bus_dmamap_tag._dmamap_offs = 0;
 
-	/*set Bonito register*/
-	BONITO_PCIMAP =
-	    BONITO_PCIMAP_WIN(0, PCI_MEM_SPACE_PCI_BASE+0x00000000) |	
-	    BONITO_PCIMAP_WIN(1, PCI_MEM_SPACE_PCI_BASE+0x04000000) |
-	    BONITO_PCIMAP_WIN(2, PCI_MEM_SPACE_PCI_BASE+0x08000000) |
-	    BONITO_PCIMAP_PCIMAP_2;
-	
-	BONITO_PCIBASE0 = PCI_LOCAL_MEM_PCI_BASE;
-	BONITO_PCIBASE1 = PCI_LOCAL_MEM_ISA_BASE;
-	BONITO_PCIBASE2 = PCI_LOCAL_MEM_PCI_BASE + 0x10000000;
+#ifndef LOOKLIKE_PC
+	pci_local_mem_pci_base = 0x80000000;
+	BONITO_PCIBASE0 = 0x80000000;
+	BONITO_PCIBASE1 = 0;
+	BONITO_PCIBASE2 = 0x70000000;
+    BONITO_PCI_REG(0x40)=0x80000000; //base0's mask register
+    BONITO_PCI_REG(0x44)=0xf0000000; //base1's mask register
+#else
+	pci_local_mem_pci_base = 0;
+	BONITO_PCIBASE0 = 0x0;
+	BONITO_PCIBASE1 = 0;
+	BONITO_PCIBASE2 = 0x70000000;
+    BONITO_PCI_REG(0x40)=0x80000000; //base0's mask register
+    BONITO_PCI_REG(0x44)=0xf0000000; //base1's mask register
+#endif
 
 	return(1);
 }
-
 
 /*
  * Called to reinitialise the bridge after we've scanned each PCI device
@@ -170,7 +195,7 @@ _pci_dmamap(va, len)
 }
 
 
-#if 0
+#if 1
 /*
  *  Map the PCI address of an area of local memory to a CPU physical
  *  address.
@@ -240,6 +265,12 @@ _pci_conf_read(pcitag_t tag,int reg)
 	return _pci_conf_readn(tag,reg,4);
 }
 
+void
+_pci_conf_write(pcitag_t tag, int reg, pcireg_t data)
+{
+	return _pci_conf_writen(tag,reg,data,4);
+}
+#if 0
 pcireg_t
 _pci_conf_readn(pcitag_t tag, int reg, int width)
 {
@@ -273,8 +304,11 @@ _pci_conf_readn(pcitag_t tag, int reg, int width)
     BONITO_PCICMD |= PCI_STATUS_MASTER_ABORT | PCI_STATUS_MASTER_TARGET_ABORT;
 
     BONITO_PCIMAP_CFG = (addr >> 16) | type;
+
     data = *(volatile pcireg_t *)PHYS_TO_UNCACHED(BONITO_PCICFG_BASE | (addr & 0xfffc));
 
+    /* move data to correct position */
+    data = data >> ((addr & 3) << 3);
 
     if (BONITO_PCICMD & PCI_STATUS_MASTER_ABORT) {
 	BONITO_PCICMD |= PCI_STATUS_MASTER_ABORT;
@@ -293,11 +327,6 @@ _pci_conf_readn(pcitag_t tag, int reg, int width)
     }
 
     return data;
-}
-void
-_pci_conf_write(pcitag_t tag, int reg, pcireg_t data)
-{
-	return _pci_conf_writen(tag,reg,data,4);
 }
 
 void
@@ -333,7 +362,34 @@ _pci_conf_writen(pcitag_t tag, int reg, pcireg_t data,int width)
     BONITO_PCICMD |= PCI_STATUS_MASTER_ABORT | PCI_STATUS_MASTER_TARGET_ABORT;
 
     BONITO_PCIMAP_CFG = (addr >> 16);
+
+#if 0
     *(volatile pcireg_t *)PHYS_TO_UNCACHED(BONITO_PCICFG_BASE | (addr & 0xfffc)) = data;
+#else
+    {
+      pcireg_t ori = *(volatile pcireg_t *)PHYS_TO_UNCACHED(BONITO_PCICFG_BASE | (addr & 0xfffc));
+      pcireg_t mask = 0x0;
+
+      if (width == 2) {
+	if (addr & 3) mask = 0xffff; 
+	else mask = 0xffff0000;
+      }else if (width == 1) {
+	if ((addr & 3) == 1) {
+	  mask = 0xffff00ff;
+	}else if ((addr & 3) == 2) {
+	  mask = 0xff00ffff;
+	}else if ((addr & 3) == 3) {
+	  mask = 0x00ffffff;
+	}else{
+	  mask = 0xffffff00;
+	}
+      }
+
+      data = data << ((addr & 3) << 3);
+      data = (ori & mask) | data;
+      *(volatile pcireg_t *)PHYS_TO_UNCACHED(BONITO_PCICFG_BASE | (addr & 0xfffc)) = data;
+    }
+#endif
 
     if (BONITO_PCICMD & PCI_STATUS_MASTER_ABORT) {
 	BONITO_PCICMD |= PCI_STATUS_MASTER_ABORT;
@@ -347,6 +403,9 @@ _pci_conf_writen(pcitag_t tag, int reg, pcireg_t data,int width)
 	    _pci_tagprintf (tag, "_pci_conf_write: target abort\n");
     }
 }
+#else
+#include "pci_linux.c"
+#endif
 
 
 
