@@ -319,6 +319,9 @@ mydebug_restart_flags:
 	  li v1,'i'
 	  beq v0,v1,func_i
 	  nop
+	  li v1,'Q'
+	  beq v0,v1,func_Q
+	  nop
 	  b mydebug_restarth
 	  nop
 func_flags:
@@ -1140,6 +1143,10 @@ func_i:
 	b mydebug_restart
 	nop
 
+func_Q:
+ jr t9
+ nop
+
 
 
 
@@ -1438,4 +1445,10 @@ LEAF(tgt_getchar)
 END(tgt_getchar)
 
 #endif
+
+LEAF(mydebug_main)
+move t9,ra
+b mydebug_restarth
+nop
+END(mydebug_main)
 
