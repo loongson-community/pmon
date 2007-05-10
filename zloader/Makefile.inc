@@ -11,14 +11,7 @@ all:
 	@echo use make tgt=ram for generate ramfile gzram
 	@echo use make cfg     for config
 	@echo use make recfg   for change config
-rom0:
-	make cleanall all  tgt=rom DEBUG='-g -DMYDBG= -DPrintf=if\(0\)printf '
-rom1:
-	make cleanall all  tgt=rom DEBUG='-g -DMYDBG="printf(\"debug:%s,%d\\n\",__FILE__,__LINE__);" -DPrintf=printf -DIF_DBG=if\(1\)'
-ram0:
-	make cleanall all  tgt=ram DEBUG='-g -DMYDBG= -DPrintf=if\(0\)printf -DIF_DBG=if\(0\) '
-ram1:
-	make cleanall all  tgt=ram DEBUG='-g -DMYDBG="printf(\"debug:%s,%d\\n\",__FILE__,__LINE__);" -DPrintf=printf'
+	@echo use make tgt=rom CC="'"mipsel-linux-gcc -g3 -DMYDBG='"printf(\"debug:%s,%d\\n\",__FILE__,__LINE__);"'"'" to support MYDBG macro. 
 else
 all: ${tgt}
 sim: clean pmon.bin.c

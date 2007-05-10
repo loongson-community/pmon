@@ -172,3 +172,4 @@ option BMP_LM
 
 option NC2E
 option GODSONCPU2e
+#option FOR_GXEMUL

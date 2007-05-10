@@ -191,11 +191,13 @@ END(wbflush)
 
 LEAF(CPU_ConfigCache)
 	.set	noreorder
+#ifdef CACHE2FLUSH_ON_CONFIG
         la      t0, 1f				# run uncached
         or      t0, UNCACHED_MEMORY_ADDR
         j       t0
 	nop
 1: 
+#endif
 	mfc0	v1, COP_0_PRID			# read processor ID register
 	mfc0	v0, COP_0_CONFIG		# Get configuration register
 	sw	v1, CpuProcessorId		# save PRID register
@@ -326,6 +328,7 @@ Conf7KL2:
 	bnez	t3, ConfResult			# No, use it
 	li	t6, 256*1024			# size = 256k
 
+#ifdef CACHE2FLUSH_ON_CONFIG
 /* Flush on chip L2 */
 
 	li	a0, 0x80000000 
@@ -341,6 +344,7 @@ Conf7KL2:
 	and	v0, t1
 	mtc0	v0, COP_0_CONFIG		# establish any new config
 	NOP10
+#endif
 	b	ConfResult
 	li	t6, 0				# L2 cache disabled
 #endif
@@ -381,6 +385,7 @@ ConfGodsonL2:
 
         or      t2, CTYPE_HAS_L2                # L2 is on chip
         li	t6, 512*1024
+#ifdef CACHE2FLUSH_ON_CONFIG
 	#lw      t3, CpuOnboardCacheOn           # Check if disabled
         #bnez    t3, ConfResult                  # No, use it
         #li      t6, 256*1024                    # size = 256k
@@ -413,6 +418,7 @@ ConfGodsonL2:
         #and     t2, ~CTYPE_HAS_L2
         #li      t6, 0                           # L2 cache disabled
         #li      t7, 0                           # L3 cache disabled
+#endif
 /*
  * Get here with t2 = Cache type, t4 = L1 I size, t5 = L1 D size.
  * t6 = secondary size, t7 = tertiary size.

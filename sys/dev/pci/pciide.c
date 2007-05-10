@@ -1274,6 +1274,9 @@ default_chip_map(sc, pa)
 		    csr & ~PCI_COMMAND_IO_ENABLE);
 		if (wdcprobe(&cp->wdc_channel))
 			failreason = "other hardware responding at addresses";
+#ifdef FOR_GXEMUL
+		failreason=0;
+#endif
 		pci_conf_write(sc->sc_pc, sc->sc_tag,
 		    PCI_COMMAND_STATUS_REG, csr);
 next:

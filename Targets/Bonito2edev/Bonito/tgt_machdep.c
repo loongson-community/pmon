@@ -570,6 +570,7 @@ tgt_gettime()
 	/*gx 2005-01-17 */
 	//return 0;
                                                                                
+#ifdef HAVE_TOD
         if(!clk_invalid) {
                 ctrlbsave = CMOS_READ(DS_REG_CTLB);
                 CMOS_WRITE(ctrlbsave | DS_CTLB_SET, DS_REG_CTLB);
@@ -588,7 +589,9 @@ tgt_gettime()
                 tm.tm_isdst = tm.tm_gmtoff = 0;
                 t = gmmktime(&tm);
         }
-        else {
+        else 
+#endif
+		{
                 t = 957960000;  /* Wed May 10 14:00:00 2000 :-) */
         }
         return(t);
@@ -605,6 +608,7 @@ tgt_settime(time_t t)
 
 	//return ;
                                                                                
+#ifdef HAVE_TOD
         if(!clk_invalid) {
                 tm = gmtime(&t);
                 ctrlbsave = CMOS_READ(DS_REG_CTLB);
@@ -620,6 +624,7 @@ tgt_settime(time_t t)
                                                                                
                 CMOS_WRITE(ctrlbsave & ~DS_CTLB_SET, DS_REG_CTLB);
         }
+#endif
 }
 
 
