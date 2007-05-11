@@ -1,59 +1,68 @@
+CC=mips-elf-gcc
+GZROMSTARTADDR=0xffffffff81000000
+ROMSTARTADDR=0xffffffff80010000
+RAMSTARTADDR=0xffffffff80200000
+export CC += ${MYCC}
+
 ifdef obj
+export CC += -g3
 pwd=$(shell pwd)
 gcc_E:
 	cd ../Targets/${TARGET}/compile/${TARGETEL};${pwd}/mymake  ${obj} > /tmp/tmp.c
 endif
 
 ifndef tgt
-all:
+help:
 	@echo use make tgt=sim for sim in linux
 	@echo use make tgt=rom for generate romfile gzrom.bin
 	@echo use make tgt=ram for generate ramfile gzram
 	@echo use make cfg     for config
 	@echo use make recfg   for change config
-	@echo use make tgt=rom CC="'"mipsel-linux-gcc -g3 -DMYDBG='"printf(\"debug:%s,%d\\n\",__FILE__,__LINE__);"'"'" to support MYDBG macro. 
+	@echo use make tgt=rom MYCC="'"-g3 -DMYDBG='"printf(\"debug:%s,%d\\n\",__FILE__,__LINE__);"'"'" to support MYDBG macro. 
 else
 all: ${tgt}
 sim: clean pmon.bin.c
 	gcc -o zloader  -DSIM zloader.c
-rom: clean ld.script.${TARGET} ${START} zloader.o 
+rom: clean ${START} zloader.o 
+	gcc -DSTARTADDR=${GZROMSTARTADDR} -E -P ld.script.S > ld.script
 	mips-elf-ld -T ld.script -e start -o gzrom ${START} zloader.o 
 	mips-elf-objcopy -O binary gzrom gzrom.bin
 #	sync
 ram: clean startram.o zloader.o 
+	gcc -DSTARTADDR=${GZROMSTARTADDR} -E -P ld.script.S > ld.script
 	mips-elf-ld -T ld.script -e start -o gzram startram.o zloader.o 
 	cp gzram /tftpboot
 #	sync
 
-zlib_rom: clean ld.script.${TARGET} ${START} zlib_loader.o 
+zlib_rom: clean ${START} zlib_loader.o 
+	gcc -DSTARTADDR=${GZROMSTARTADDR} -E -P ld.script.S > ld.script
 	mips-elf-ld -T ld.script -e start -o zlib_gzrom ${START} zlib_loader.o  zlib_inflate/*.o
 	mips-elf-objcopy -O binary zlib_gzrom zlib_gzrom.bin
 	sync
 zlib_ram: clean startram.o zlib_loader.o 
+	gcc -DSTARTADDR=${GZROMSTARTADDR} -E -P ld.script.S > ld.script
 	mips-elf-ld -T ld.script -e start -o zlib_gzram startram.o zlib_loader.o zlib_inflate/*.o
 	cp zlib_gzram /tftpboot
 	sync
 
 
-ld.script.${TARGET}:
-	cp ../Targets/${TARGET}/conf/ld.script ld.script.${TARGET}
 
 ${START}:
 	rm -f ../Targets/${TARGET}/compile/${TARGETEL}/${START}
-	cp ld.script.${TARGET} ../Targets/${TARGET}/conf/ld.script 
+	gcc -DSTARTADDR=${ROMSTARTADDR} -E -P ld.script.S > ../Targets/${TARGET}/conf/ld.script
 	make -C ../Targets/${TARGET}/compile/${TARGETEL}/
 	cp ../Targets/${TARGET}/compile/${TARGETEL}/${START} .
 
 startram.o:
-	cp ld.script.ram ../Targets/${TARGET}/conf/ld.script
+	gcc -DSTARTADDR=${RAMSTARTADDR} -E -P ld.script.S > ../Targets/${TARGET}/conf/ld.script
 	make -C ../Targets/${TARGET}/compile/${TARGETEL}/ DEBUG='-g -DMYDBG="printf(\"debug:%s,%d\\n\",__FILE__,__LINE__);"'
-	mips-elf-gcc -D_LOCORE -G 0  -nostdinc   -DMIPS  -DCONS_BAUD="B115200"  -DCONFIG_CACHE_64K_4WAY  -D_KERNEL -D__OpenBSD__ -DPMON -D__PMON__ -EL -mno-abicalls -mips3 -mcpu=r4000 -c startram.S -D MEMSIZE=${MEMSIZE}
+	$(CC) -D_LOCORE -G 0  -nostdinc   -DMIPS  -DCONS_BAUD="B115200"  -DCONFIG_CACHE_64K_4WAY  -D_KERNEL -D__OpenBSD__ -DPMON -D__PMON__ -EL -mno-abicalls -mips3 -mcpu=r4000 -c startram.S -D MEMSIZE=${MEMSIZE}
 zloader.o: zloader.c inflate.c  malloc.c  memop.c  pmon.bin.c initmips.c
-	mips-elf-gcc -EL -mips3 -mcpu=r4000 -c zloader.c ${ZLOADER_OPTIONS}
+	$(CC) -EL -mips3 -mcpu=r4000 -c zloader.c ${ZLOADER_OPTIONS}
 
 zlib_loader.o: zlib_loader.c  ./zlib_gzip zlib_pmon.bin.c initmips.c
-	cd zlib_inflate;mips-elf-gcc -I ../../include -EL -mips3 -mcpu=r4000 -c *.c
-	mips-elf-gcc -I ../include -EL -mips3 -mcpu=r4000 -c zlib_loader.c 
+	cd zlib_inflate;$(CC) -I ../../include -EL -mips3 -mcpu=r4000 -c *.c
+	$(CC) -I ../include -EL -mips3 -mcpu=r4000 -c zlib_loader.c 
 
 initmips.c:  ../Targets/${TARGET}/compile/${TARGETEL}/pmon
 	${gencode} $< > initmips.c

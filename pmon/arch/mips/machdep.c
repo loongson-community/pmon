@@ -216,6 +216,15 @@ md_setlr(struct trapframe *tf, register_t lr)
 	tf->ra = lr;
 }
 
+extern char *heaptop,*allocp1;
+
+static int address_in_heap(paddr_t addr)
+{
+	if(addr<CACHED_TO_PHYS(heaptop) && addr >=CACHED_TO_PHYS(allocp1))
+		return 1;
+	else return 0;
+}
+
 /*
  *  This function returns true if the address range given is
  *  invalid for load, eg will overwrite PMON or its working
@@ -231,7 +240,10 @@ md_valid_load_addr(first_addr, last_addr)
 	last_addr = CACHED_TO_PHYS(last_addr);
 
 	if((first_addr < (paddr_t)CACHED_TO_PHYS(end)) ||
-	   (last_addr > (paddr_t)memorysize)) {
+	   (last_addr > (paddr_t)memorysize)
+	   || address_in_heap(first_addr)
+	   || address_in_heap(last_addr)
+	   ) {
 		return(1);
 	}
 	return(0);
