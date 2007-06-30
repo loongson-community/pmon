@@ -223,6 +223,7 @@ file pmon/fs/iso9660fs.c		iso9660		needs-flag
 file pmon/fs/devfs.c			(scsi | ide)
 file pmon/fs/diskfs.c			(scsi | ide)
 file pmon/fs/ext2fs.c			ext2
+file pmon/fs/fatfs.c			fatfs
 file pmon/loaders/loadfn.c		(mod_s3load | mod_fastload)
 file pmon/loaders/zmodem/zmdm.c		(pmon_zmodem_rz | pmon_zmodem_tz)
 file pmon/loaders/zmodem/crctab.c	(pmon_zmodem_rz | pmon_zmodem_tz)
@@ -321,6 +322,8 @@ file pmon/cmds/gzip/zlib_inflate/inflate_syms.c    select_gzip
 file pmon/cmds/gzip/zlib_inflate/inftrees.c    select_gzip
 file pmon/cmds/gzip/zlib_inflate/infutil.c  select_gzip
 file pmon/cmds/gzip/gzip.c  select_gzip
+device fd
+attach fd at mainbus
 file    sys/dev/fd/fd.c fd needs-flag
 define usbbus {} 
 device usb: disk 

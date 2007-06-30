@@ -665,6 +665,10 @@ void  init_i8259_irqs (void)
 #if 1
 #include <dev/pci/pcireg.h>
 #include <dev/pci/pcivar.h>
+#ifndef IDE_PORT_FIX1
+#define IDE_PORT_FIX1  0x3f50 //0xff10
+#define IDE_PORT_FIX2  0x3f60 //0xff80
+#endif
 void fixup_ide()
         {
 			pcitag_t pdev;

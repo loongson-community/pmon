@@ -6,8 +6,8 @@
 file	Targets/Bonito/pci/pci_machdep.c
 file	Targets/Bonito/Bonito/tgt_machdep.c
 
-device fd
-attach fd at mainbus
+#device fd
+#attach fd at mainbus
 
 define  localbus { [base = -1 ] }
 device  localbus
