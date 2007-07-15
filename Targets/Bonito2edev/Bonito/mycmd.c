@@ -4,8 +4,8 @@
 //-------------------------------------------PNP------------------------------------------
 // MB PnP configuration register
 
-#define PNP_KEY_ADDR (PCI_IO_SPACE_BASE+0x3f0)
-#define PNP_DATA_ADDR (PCI_IO_SPACE_BASE+0x3f1)
+#define PNP_KEY_ADDR (0xbfd00000+0x3f0)
+#define PNP_DATA_ADDR (0xbfd00000+0x3f1)
 
 
 void PNPSetConfig(char Index, char data);
@@ -121,8 +121,8 @@ int count,i;
 static const Cmd Cmds[] =
 {
 	{"MyCmds"},
-	{"pnpr",	"LDN index", 0, "pnpr LDN(logic device NO) index", PnpRead, 0, 99, CMD_REPEAT},
-	{"pnpw",	"LDN index value", 0, "pnpw index value", PnpWrite, 0, 99, CMD_REPEAT},
+	{"pnpr",	"index", 0, "pnpr index", PnpRead, 0, 99, CMD_REPEAT},
+	{"pnpw",	"index value", 0, "pnpw index value", PnpWrite, 0, 99, CMD_REPEAT},
 	{"dumpsis",	"", 0, "dump sis registers", dumpsis, 0, 99, CMD_REPEAT},
 	{"i2cread",	"slot offset count", 0, "read i2c info", cmd_i2cread, 0, 99, CMD_REPEAT},
 	{0, 0}

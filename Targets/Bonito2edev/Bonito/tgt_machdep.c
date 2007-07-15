@@ -309,6 +309,7 @@ unsigned int addr;
  *  to output configuration and debug information with printf.
  */
 extern void	vt82c686_init(void);
+int psaux_init(void);
 
 void
 tgt_devconfig()
@@ -324,11 +325,15 @@ tgt_devconfig()
     config_init();
     configure();
 #if NMOD_VGACON >0
+	if(getenv("nokbd"))
+	rc=1;
+	else
 	rc=kbd_initialize();
 	printf("%s\n",kbd_error_msgs[rc]);
 	if(!rc){ 
 		kbd_available=1;
 	}
+	psaux_init();
 #endif
    printf("devconfig done.\n");
 }

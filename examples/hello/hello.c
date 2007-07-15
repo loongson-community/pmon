@@ -56,16 +56,56 @@ struct callvectors *callvec;
 
 void __gccmain(void);
 void __gccmain(void){}
+#define linux_outb(val,port) *(volatile unsigned char *)(0xbfd00000+port)=val
+#define linux_outb_p(val,port) (*(volatile unsigned char *)0xbfc00000,linux_outb(val,port),*(volatile unsigned char *)0xbfc00000)
+void  init_8259A(int auto_eoi)
+{
+
+
+	linux_outb(0xff, 0x21);	/* mask all of 8259A-1 */
+	linux_outb(0xff, 0xA1);	/* mask all of 8259A-2 */
+
+	/*
+	 * linux_outb_p - this has to work on a wide range of PC hardware.
+	 */
+	linux_outb_p(0x11, 0x20);	/* ICW1: select 8259A-1 init */
+	linux_outb_p(0x00, 0x21);	/* ICW2: 8259A-1 IR0-7 mapped to 0x00-0x07 */
+	linux_outb_p(0x04, 0x21);	/* 8259A-1 (the master) has a slave on IR2 */
+	if (auto_eoi)
+		linux_outb_p(0x03, 0x21);	/* master does Auto EOI */
+	else
+		linux_outb_p(0x01, 0x21);	/* master expects normal EOI */
+
+	linux_outb_p(0x11, 0xA0);	/* ICW1: select 8259A-2 init */
+	linux_outb_p(0x08, 0xA1);	/* ICW2: 8259A-2 IR0-7 mapped to 0x08-0x0f */
+	linux_outb_p(0x02, 0xA1);	/* 8259A-2 is a slave on master's IR2 */
+	linux_outb_p(0x01, 0xA1);	/* (slave's support for AEOI in flat mode
+				    is to be investigated) */
+
+}
 int
 main(int argc, char **argv, char **env, struct callvectors *cv)
 {
 	char str[256];
 	char **ev;
 	int i;
+	unsigned stat;
 
 	callvec = cv;
 
 	printf("\n\nHello! This is the 'hello' program!\n\n");
+	init_8259A(0);
+//	asm("mfc0 $2,$12;\r\nor $2,0xf01;\r\n mtc0 $2,$12\r\n":::"$2");
+	asm("mfc0 %0,$12;":"=r"(stat));
+	stat|=0x1|(1<<13);
+	asm("mtc0 %0,$12;"::"r"(stat));
+	asm("mfc0 %0,$12;":"=r"(stat));
+	printf("stat=%x\n",stat);
+	*(volatile char *)0xbfd00021=0;
+	*(volatile char *)0xbfd000a1=0;
+
+	gets(str);
+	return 0;
 	printf("It was invoked with:\n");
 	for (i = 0; i < argc; i++) {
 		printf("Arg %2d: %s\n", i, argv[i]);

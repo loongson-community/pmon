@@ -154,7 +154,7 @@ wd*		at pciide? channel ? drive ? flags 0x0000
 #### Pseudo devices
 pseudo-device	loop	1	# network loopback
 
-#ide_cd* 	at pciide? channel ? drive ? flags 0x0001
+ide_cd* 	at pciide? channel ? drive ? flags 0x0001
 select 		iso9660
 option IDECD 
 #option HAVE_NB_SERIAL
