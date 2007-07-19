@@ -58,6 +58,22 @@ void __gccmain(void);
 void __gccmain(void){}
 #define linux_outb(val,port) *(volatile unsigned char *)(0xbfd00000+port)=val
 #define linux_outb_p(val,port) (*(volatile unsigned char *)0xbfc00000,linux_outb(val,port),*(volatile unsigned char *)0xbfc00000)
+#define linux_inb(port) *(volatile unsigned char *)(0xbfd00000+port)
+#define linux_inb_p(port) *(volatile unsigned char *)(0xbfd00000+port)
+
+static inline unsigned char CMOS_READ(unsigned char addr)
+{
+        unsigned char val;
+        linux_outb_p(addr, 0x70);
+        val = linux_inb_p(0x71);
+        return val;
+}
+                                                                               
+static inline void CMOS_WRITE(unsigned char val, unsigned char addr)
+{
+        linux_outb_p(addr, 0x70);
+        linux_outb_p(val, 0x71);
+}
 void  init_8259A(int auto_eoi)
 {
 
@@ -95,14 +111,24 @@ main(int argc, char **argv, char **env, struct callvectors *cv)
 
 	printf("\n\nHello! This is the 'hello' program!\n\n");
 	init_8259A(0);
+	*(volatile char *)0xbfd00021=0;
+	*(volatile char *)0xbfd000a1=0;
+//	linux_outb(0x60,0x64);
+//	linux_outb(0x2,0x60);
+
 //	asm("mfc0 $2,$12;\r\nor $2,0xf01;\r\n mtc0 $2,$12\r\n":::"$2");
 	asm("mfc0 %0,$12;":"=r"(stat));
 	stat|=0x1|(1<<13);
 	asm("mtc0 %0,$12;"::"r"(stat));
 	asm("mfc0 %0,$12;":"=r"(stat));
 	printf("stat=%x\n",stat);
-	*(volatile char *)0xbfd00021=0;
-	*(volatile char *)0xbfd000a1=0;
+	printf("time is %d:%d:%d\n",CMOS_READ(0x4),CMOS_READ(0x2),CMOS_READ(0x0));
+#if 0
+	CMOS_WRITE(CMOS_READ(0x4),5);
+	CMOS_WRITE(CMOS_READ(0x2),3);
+	CMOS_WRITE(CMOS_READ(0x0),1);
+	CMOS_WRITE(CMOS_READ(0xb)|(7<<4),0xb);
+#endif
 
 	gets(str);
 	return 0;

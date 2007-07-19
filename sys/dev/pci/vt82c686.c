@@ -22,9 +22,9 @@
 #define FLOPPY_IRQ 		(IRQ(6))
 #define COM1_IRQ 		(IRQ(4))
 #define COM2_IRQ 		(IRQ(3)<<4)
-#define PCIA_IRQ		(IRQ(10)<<4)
-#define PCIB_IRQ		(IRQ(11))
-#define PCIC_IRQ		(IRQ(12)<<4)
+#define PCIA_IRQ		(IRQ(9)<<4)
+#define PCIB_IRQ		(IRQ(10))
+#define PCIC_IRQ		(IRQ(11)<<4)
 #define PCID_IRQ		(IRQ(13)<<4)
 
 static void initIRQ(void)
@@ -51,7 +51,7 @@ static void initIRQ(void)
 	
 	val=_pci_conf_readn(tag,PCI_IRQ_TYPE_REG,1);
 	val &= 0xf0;
-	_pci_conf_writen(tag,PCI_IRQ_TYPE_REG,PARALLEL_IRQ|FLOPPY_IRQ,1);	
+	_pci_conf_writen(tag,PCI_IRQ_TYPE_REG,val,1);	
 }
 
 #define IDE_CHIPEN_REG 0x40
@@ -200,7 +200,6 @@ static void nvram_on(void)
 
 static void initUSB(void)
 {
-#if 0
     pcitag_t tag;
     char val;
     int i;
@@ -211,9 +210,115 @@ static void initUSB(void)
     _pci_conf_writen(tag,0xe0,(val&~7)|0x84,1);
     _pci_conf_writen(tag,0xe4,0x20,4);
    }
-#endif
 }
 
+static void myfixup()
+{
+	unsigned int val;
+	unsigned char c;
+    pcitag_t pdev;
+    pdev=_pci_make_tag(VTSB_BUS,VTSB_DEV,0);
+
+	/*  Enable I/O Recovery time */
+	_pci_conf_writen(pdev, 0x40, 0x08,1);
+
+	/*  Enable ISA refresh */
+	_pci_conf_writen(pdev, 0x41, 0x01,1);
+
+	/*  disable ISA line buffer */
+	_pci_conf_writen(pdev, 0x45, 0x00,1);
+
+	/*  Gate INTR, and flush line buffer */
+	_pci_conf_writen(pdev, 0x46, 0xe0,1);
+
+
+	/*  512 K PCI Decode */
+	_pci_conf_writen(pdev, 0x48, 0x01,1);
+
+	/*  Wait for PGNT before grant to ISA Master/DMA */
+	_pci_conf_writen(pdev, 0x4a, 0x84,1);
+
+	/*  Plug'n'Play */
+	/*  Parallel DRQ 3, Floppy DRQ 2 (default) */
+	_pci_conf_writen(pdev, 0x50, 0x0e,1);
+
+	/*  IRQ Routing for Floppy and Parallel port */
+	/*  IRQ 6 for floppy, IRQ 7 for parallel port */
+	_pci_conf_writen(pdev, 0x51, 0x76,1);
+
+	/*  IRQ Routing for serial ports (take IRQ 3 and 4) */
+	_pci_conf_writen(pdev, 0x52, 0x34,1);
+
+	/*  All IRQ's level triggered. */
+	_pci_conf_writen(pdev, 0x54, 0x00,1);
+
+	/* route PIRQA-D irq */
+	_pci_conf_writen(pdev,0x55, 0x00,1); /* bit 7-4, PIRQA */
+	_pci_conf_writen(pdev,0x56, 0x00,1); /* bit 7-4, PIRQC; 3-0, PIRQB */
+	_pci_conf_writen(pdev,0x57, 0x00,1); /* bit 7-4, PIRQD */
+
+	/*  enable PCI Delay Transaction, Enable EISA ports 4D0/4D1. 
+	 *  enable time-out timer 
+	 */
+	_pci_conf_writen(pdev, 0x47, 0xe6,1); 
+
+	/* enable level trigger on pci irqs: 9,10,11,13 */
+	/* important! without this PCI interrupts won't work */
+//	linux_outb(0x2e,0x4d1);
+
+	/* enable function 5/6, audio/modem */
+	c=_pci_conf_readn(pdev,0x85,1); 
+	c &= ~(0x3<<2);
+	_pci_conf_writen(pdev,0x85,c,1);
+
+//fixup fuction 1
+
+    pdev=_pci_make_tag(VTSB_BUS,VTSB_DEV,1);
+
+	/* Modify IDE controller setup */
+#define PCI_LATENCY_TIMER	0x0d	/* 8 bits */
+#define PCI_COMMAND		0x04	/* 16 bits */
+#define  PCI_COMMAND_IO		0x1	/* Enable response in I/O space */
+#define  PCI_COMMAND_MEMORY	0x2	/* Enable response in Memory space */
+#define  PCI_COMMAND_MASTER	0x4	/* Enable bus mastering */
+
+	_pci_conf_writen(pdev,PCI_LATENCY_TIMER, 48,1); //0xd0
+	_pci_conf_writen(pdev, PCI_COMMAND, PCI_COMMAND_IO|PCI_COMMAND_MEMORY|PCI_COMMAND_MASTER,1);
+	_pci_conf_writen(pdev, 0x40, 0x0b,1); 
+	/* legacy mode */
+	_pci_conf_writen(pdev, 0x42, 0x09,1);   
+	_pci_conf_writen(pdev, 0x41, 0xc2,1); 
+	_pci_conf_writen(pdev, 0x43, 0x35,1);
+	_pci_conf_writen(pdev, 0x44, 0x1c,1);
+
+	_pci_conf_writen(pdev, 0x45, 0x10,1);
+
+//fixup function 5
+    pdev=_pci_make_tag(VTSB_BUS,VTSB_DEV,5);
+	/* enable IO */
+	_pci_conf_writen(pdev, PCI_COMMAND, PCI_COMMAND_IO|PCI_COMMAND_MEMORY|PCI_COMMAND_MASTER,1);
+	_pci_conf_write(pdev, 0x4, &val);
+	_pci_conf_write(pdev, 0x4, val | 1);
+
+	/* route ac97 IRQ */
+	_pci_conf_writen(pdev, 0x3c, 9,1);
+
+	c=_pci_conf_readn(pdev, 0x8, 1);
+
+	/* link control: enable link & SGD PCM output */
+	_pci_conf_writen(pdev, 0x41, 0xcc,1);
+
+	/* disable game port, FM, midi, sb, enable write to reg2c-2f */
+	_pci_conf_writen(pdev, 0x42, 0x20,1);
+
+
+	/* we are using Avance logic codec */
+	_pci_conf_write(pdev, 0x2c, 0x1005);
+	_pci_conf_write(pdev, 0x2e, 0x4710);
+	val=_pci_conf_read(pdev, 0x2c);
+
+	_pci_conf_writen(pdev, 0x42, 0x0,1);
+}
 void vt82c686_init(void)
 {
 	initSerial();
@@ -223,5 +328,6 @@ void vt82c686_init(void)
 	//disable_usb();
 	enable_io_decode();
 	initUSB();
+	myfixup();
 }
 

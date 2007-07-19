@@ -311,6 +311,7 @@ md_getpc(struct trapframe *tf)
  *  type to the caller for further processing.
  */
 #define MYINB(port) *(volatile unsigned char *)(port)
+#define MYOUTB(val,port) *(volatile unsigned char *)(port)=val
 int
 md_exc_type(struct trapframe *frame)
 {
