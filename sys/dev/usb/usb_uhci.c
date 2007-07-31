@@ -174,9 +174,7 @@ static int uhci_match(struct device *parent, void *match, void *aux)
 		  PCI_SUBCLASS(pa->pa_class) == PCI_SUBCLASS_SERIALBUS_USB) {
 		if(((pa->pa_class >>8) & 0xff) == 0x00){
 			printf("usb %d/%d\n", pa->pa_device, pa->pa_function);
-#if 0
-			if(!(pa->pa_device ==  5 && pa->pa_function ==3))
-				return 0;
+#if 1
 			if(!(pa->pa_function ==3))
 				return 0;
 #endif
