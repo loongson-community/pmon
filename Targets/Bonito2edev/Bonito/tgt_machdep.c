@@ -65,9 +65,12 @@
 #include "mod_x86emu_int10.h"
 #include "mod_x86emu.h"
 #include "mod_vgacon.h"
+#include "mod_framebuffer.h"
+#include "mod_smi.h"
 #if (NMOD_X86EMU_INT10 > 0)||(NMOD_X86EMU >0)
 extern void vga_bios_init(void);
 #endif
+extern int radeon_init(void);
 extern int kbd_initialize(void);
 extern int write_at_cursor(char val);
 extern const char *kbd_error_msgs[];
@@ -83,7 +86,7 @@ extern const char *kbd_error_msgs[];
 #if (NMOD_X86EMU_INT10 == 0)&&(NMOD_X86EMU == 0)
 int vga_available=0;
 #else
-#include "vgarom.c"
+//#include "vgarom.c"
 #endif
 
 extern struct trapframe DBGREG;
@@ -107,6 +110,7 @@ void nvram_put(char *);
 #endif
 
 extern int vgaterm(int op, struct DevEntry * dev, unsigned long param, int data);
+extern int fbterm(int op, struct DevEntry * dev, unsigned long param, int data);
 void error(unsigned long *adr, unsigned long good, unsigned long bad);
 void modtst(int offset, int iter, unsigned long p1, unsigned long p2);
 void do_tick(void);
@@ -128,7 +132,11 @@ ConfigEntry	ConfigTable[] =
 	 { (char *)COM3_BASE_ADDR, 0, ns16550, 256, CONS_BAUD, NS16550HZ }, 
 #endif
 #if NMOD_VGACON >0
+#if NMOD_FRAMEBUFFER >0
+	{ (char *)1, 0, fbterm, 256, CONS_BAUD, NS16550HZ },
+#else
 	{ (char *)1, 0, vgaterm, 256, CONS_BAUD, NS16550HZ },
+#endif
 #endif
 	{ 0 }
 };
@@ -311,16 +319,56 @@ unsigned int addr;
 extern void	vt82c686_init(void);
 int psaux_init(void);
 
+extern int fb_init(unsigned long,unsigned long);
 void
 tgt_devconfig()
 {
 #if NMOD_VGACON > 0
 	int rc;
+#if NMOD_FRAMEBUFFER > 0 
+	unsigned long fbaddress,ioaddress;
+	extern struct pci_device *vga_dev;
+#endif
 #endif
 	_pci_devinit(1);	/* PCI device initialization */
 #if (NMOD_X86EMU_INT10 > 0)||(NMOD_X86EMU >0)
 	SBD_DISPLAY("VGAI", 0);
 	vga_bios_init();
+#endif
+#if (NMOD_X86EMU_INT10 == 0 && defined(RADEON7000))
+	SBD_DISPLAY("VGAI", 0);
+	rc = radeon_init();
+#endif
+#if NMOD_FRAMEBUFFER > 0
+	if(!vga_dev) {
+		printf("ERROR !!! VGA device is not found\n"); 
+		rc = -1;
+	}
+	if (rc > 0) {
+		fbaddress  =_pci_conf_read(vga_dev->pa.pa_tag,0x10);
+		ioaddress  =_pci_conf_read(vga_dev->pa.pa_tag,0x18);
+
+		fbaddress = fbaddress &0xffffff00; //laster 8 bit
+		ioaddress = ioaddress &0xfffffff0; //laster 4 bit
+
+		printf("fbaddress 0x%x\tioaddress 0x%x\n",fbaddress, ioaddress);
+
+#if NMOD_SMI > 0
+		fbaddress |= 0xb0000000;
+		ioaddress |= 0xbfd00000;
+        smi712_init((unsigned char *)fbaddress,(unsigned char *)ioaddress);
+#endif
+		fb_init(fbaddress, ioaddress);
+		printf("after fb_init\n");
+
+	} else {
+		printf("vga bios init failed, rc=%d\n",rc);
+	}
+#endif
+
+#if (NMOD_FRAMEBUFFER > 0) || (NMOD_VGACON > 0 )
+    if (rc > 0)
+	 if(!getenv("novga")) vga_available=1;
 #endif
     config_init();
     configure();

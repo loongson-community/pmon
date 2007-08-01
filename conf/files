@@ -337,3 +337,4 @@ file sys/dev/usb/usb_kbd.c		  mod_usb_kbd & mod_usb	needs-flag
 file sys/dev/usb/cmd_usb.c		  mod_usb & mod_usb_storage
 
 file sys/dev/usb/usb_uhci.c		  mod_usb_uhci	needs-flag
+file sys/dev/pci/smi712.c		  mod_smi needs-flag
