@@ -324,7 +324,7 @@ void
 tgt_devconfig()
 {
 #if NMOD_VGACON > 0
-	int rc;
+	int rc=1;
 #if NMOD_FRAMEBUFFER > 0 
 	unsigned long fbaddress,ioaddress;
 	extern struct pci_device *vga_dev;
@@ -333,7 +333,7 @@ tgt_devconfig()
 	_pci_devinit(1);	/* PCI device initialization */
 #if (NMOD_X86EMU_INT10 > 0)||(NMOD_X86EMU >0)
 	SBD_DISPLAY("VGAI", 0);
-	vga_bios_init();
+	rc = vga_bios_init();
 #endif
 #if (NMOD_X86EMU_INT10 == 0 && defined(RADEON7000))
 	SBD_DISPLAY("VGAI", 0);
@@ -369,14 +369,13 @@ tgt_devconfig()
 #if (NMOD_FRAMEBUFFER > 0) || (NMOD_VGACON > 0 )
     if (rc > 0)
 	 if(!getenv("novga")) vga_available=1;
+	 else vga_available=0;
 #endif
     config_init();
     configure();
 #if NMOD_VGACON >0
-	if(getenv("nokbd"))
-	rc=1;
-	else
-	rc=kbd_initialize();
+	if(getenv("nokbd")) rc=1;
+	else rc=kbd_initialize();
 	printf("%s\n",kbd_error_msgs[rc]);
 	if(!rc){ 
 		kbd_available=1;
