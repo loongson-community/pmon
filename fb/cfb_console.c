@@ -102,6 +102,10 @@ CONFIG_VIDEO_HW_CURSOR:	     - Uses the hardware cursor capability of the
 #define	CONFIG_VIDEO_BMP_LOGO
 //#define DEBUG_CFG_CONSOLE
 #define VIDEO_HW_BITBLT
+#elif defined(SMI712)
+#define CONFIG_VIDEO_SW_CURSOR
+#define CONFIG_VIDEO_LOGO
+#define	CONFIG_VIDEO_BMP_LOGO
 #endif
 
 /*****************************************************************************/
