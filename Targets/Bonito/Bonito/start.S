@@ -927,10 +927,10 @@ cache_done:
 #include "machine/newtest/mydebug.S"
 bootnow:
 
-
 	TTYDBG("Copy PMON to execute location...\r\n")
 #include "copypmon.S"
 	TTYDBG("Copy PMON to execute location done.\r\n")
+#include "test_after_copy1.S"
 
 
 	li	a0, 0

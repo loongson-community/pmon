@@ -117,3 +117,4 @@ ide_cd* 	at pciide? channel ? drive ? flags 0x0001
 select 		iso9660
 select		godson2c
 #option HAVE_NB_SERIAL
+option WDC_NORESRT

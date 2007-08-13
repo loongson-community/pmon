@@ -285,6 +285,10 @@ int kbd_initialize(void)
 	 * If the test is successful a x55 is placed in the input buffer.
 	 */
 	kbd_write_command_w(KBD_CCMD_SELF_TEST);
+	kbd_write_command_w(KBD_CCMD_SELF_TEST);
+	kbd_write_command_w(KBD_CCMD_SELF_TEST);
+	kbd_write_command_w(KBD_CCMD_SELF_TEST);
+	kbd_write_command_w(KBD_CCMD_SELF_TEST);
 	
 	if (kbd_wait_for_input() != 0x55) {
 		printf("Self test cmd failed,ignored!\n");
@@ -316,6 +320,9 @@ int kbd_initialize(void)
 	 * Set up to try again if the keyboard asks for RESEND.
 	 */
 	do {
+		kbd_clear_input();
+		kbd_write_output_w(KBD_CMD_RESET);
+		kbd_clear_input();
 		kbd_write_output_w(KBD_CMD_RESET);
 		status = kbd_wait_for_input();
 		if (status == KBD_REPLY_ACK){
@@ -326,7 +333,7 @@ int kbd_initialize(void)
 	} while (1);
 
 	if (kbd_wait_for_input() != KBD_REPLY_POR) {
-		printf("NO POR, ignored!\n");
+		//printf("NO POR, ignored!\n");
 		//return 3;
 	}
 
