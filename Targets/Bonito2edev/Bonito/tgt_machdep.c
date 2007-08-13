@@ -68,7 +68,7 @@
 #include "mod_framebuffer.h"
 #include "mod_smi.h"
 #if (NMOD_X86EMU_INT10 > 0)||(NMOD_X86EMU >0)
-extern void vga_bios_init(void);
+extern int vga_bios_init(void);
 #endif
 extern int radeon_init(void);
 extern int kbd_initialize(void);
