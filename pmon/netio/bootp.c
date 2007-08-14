@@ -98,7 +98,7 @@ static	void vend_rfc1048 (struct bootparams *, u_char *, u_int);
 static	int xid;
 static	jmp_buf jmpb;
 
-static int
+int
 getethaddr (unsigned char *eaddr, char *ifc)
 {
     struct ifnet *ifp;

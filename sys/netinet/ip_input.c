@@ -65,6 +65,8 @@
 #include <netinet/ip_var.h>
 #include <netinet/ip_icmp.h>
 #include <netinet/ip_ipsp.h>
+#include "cmd_lwhdcp.h"
+extern int dhcp_request;
 
 #ifndef	IPFORWARDING
 #ifdef GATEWAY
@@ -393,6 +395,10 @@ ipv4_input(struct mbuf *m, ...)
 	/*
 	 * Check our list of addresses, to see if the packet is for us.
 	 */
+#if NCMD_LWHDCP
+	if(dhcp_request)
+		goto ours;
+#endif
 	if ((ia = in_iawithaddr(ip->ip_dst, m)) != NULL &&
 	    (ia->ia_ifp->if_flags & IFF_UP))
 		goto ours;

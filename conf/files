@@ -115,6 +115,11 @@ pseudo-device crypto: ifnet
 
 
 # Tweak!
+file pmon/cmds/lwdhcp/options.c cmd_lwdhcp needs-flag
+file pmon/cmds/lwdhcp/packet.c  cmd_lwdhcp needs-flag
+file pmon/cmds/lwdhcp/lwdhcp.c  cmd_lwdhcp needs-flag
+file pmon/cmds/cmd_bootp.c  cmd_bootp 
+
 file net/if_bridge.c			bridge			needs-count
 file net/bpf.c				bpfilter		needs-count
 
