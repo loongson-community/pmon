@@ -701,7 +701,7 @@ _pci_setup_windows (struct pci_device *dev)
     for (pm = dev->bridge.memspace; pm != NULL; pm = next) {
 
 	pd = pm->device;
-	if (PCI_ISCLASS(pd->pa.pa_class, PCI_CLASS_DISPLAY, PCI_SUBCLASS_DISPLAY_VGA)) 
+	if (PCI_ISCLASS(((pd->pa.pa_class)&0xff00ffff), PCI_CLASS_DISPLAY, PCI_SUBCLASS_DISPLAY_VGA)) 
 		vga_dev = pd;
 #if 0
 	/*

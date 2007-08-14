@@ -106,6 +106,10 @@ CONFIG_VIDEO_HW_CURSOR:	     - Uses the hardware cursor capability of the
 #define CONFIG_VIDEO_SW_CURSOR
 #define CONFIG_VIDEO_LOGO
 #define	CONFIG_VIDEO_BMP_LOGO
+#elif defined(SMI502)
+#define CONFIG_VIDEO_SW_CURSOR
+//#define CONFIG_VIDEO_LOGO
+//#define CONFIG_VIDEO_BMP_LOGO
 #endif
 
 /*****************************************************************************/
@@ -1317,7 +1321,7 @@ int fb_init (unsigned long fbbase,unsigned long iobase)
 #else
 	video_console_address = video_fb_address;
 #endif
-	printf("CONSOLE_SIZE %d", CONSOLE_SIZE);
+	printf("CONSOLE_SIZE %d\n", CONSOLE_SIZE);
 
 	/* Initialize the console */
 	console_col = 0;

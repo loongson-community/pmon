@@ -66,7 +66,8 @@
 #include "mod_x86emu.h"
 #include "mod_vgacon.h"
 #include "mod_framebuffer.h"
-#include "mod_smi.h"
+#include "mod_smi712.h"
+#include "mod_smi502.h"
 #if (NMOD_X86EMU_INT10 > 0)||(NMOD_X86EMU >0)
 extern int vga_bios_init(void);
 #endif
@@ -318,6 +319,7 @@ unsigned int addr;
  */
 extern void	vt82c686_init(void);
 int psaux_init(void);
+extern int video_hw_init (void);
 
 extern int fb_init(unsigned long,unsigned long);
 void
@@ -353,11 +355,20 @@ tgt_devconfig()
 
 		printf("fbaddress 0x%x\tioaddress 0x%x\n",fbaddress, ioaddress);
 
-#if NMOD_SMI > 0
+#if NMOD_SMI712 > 0
 		fbaddress |= 0xb0000000;
 		ioaddress |= 0xbfd00000;
         smi712_init((unsigned char *)fbaddress,(unsigned char *)ioaddress);
 #endif
+
+#if NMOD_SMI502 > 0
+        rc = video_hw_init ();
+                fbaddress  =_pci_conf_read(vga_dev->pa.pa_tag,0x10);
+                ioaddress  =_pci_conf_read(vga_dev->pa.pa_tag,0x14);
+                fbaddress |= 0xb0000000;
+                ioaddress |= 0xb0000000;
+#endif
+		printf("begin fb_init\n");
 		fb_init(fbaddress, ioaddress);
 		printf("after fb_init\n");
 
