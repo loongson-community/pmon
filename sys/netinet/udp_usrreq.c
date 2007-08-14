@@ -94,7 +94,7 @@ extern int ipv6_defhoplmt;
 
 #endif /* INET6 */
 
-#include "cmd_lwhdcp.h"
+#include "cmd_lwdhcp.h"
 extern int dhcp_request;
 
 /*

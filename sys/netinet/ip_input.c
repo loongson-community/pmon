@@ -65,7 +65,7 @@
 #include <netinet/ip_var.h>
 #include <netinet/ip_icmp.h>
 #include <netinet/ip_ipsp.h>
-#include "cmd_lwhdcp.h"
+#include "cmd_lwdhcp.h"
 extern int dhcp_request;
 
 #ifndef	IPFORWARDING
