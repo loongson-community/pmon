@@ -77,6 +77,7 @@ int fat_dump_fileentry(struct fat_sc *);
 u_int8_t shortNameChkSum(u_int8_t *);
 int fat_parseDirEntries(int ,struct fat_fileentry *);
 
+
 /*
  * Supported paths:
  *	/dev/fat/disk@wd0/file
@@ -93,6 +94,7 @@ fat_open(int fd, const char *path, int flags, int mode)
 	struct fat_sc *fsc;
 	int fd2;
 	int res;
+	int partition = 0, dpathlen;
 
 	/*  Try to get to the physical device */
 	opath = path;
@@ -127,6 +129,17 @@ fat_open(int fd, const char *path, int flags, int mode)
 	 */
 	_file[fd].valid = 1;
 
+	//we need to change the device name like this /dev/disk/wd0, not /dev/disk@wd0
+	*(strchr(dpath, '@')) = '/';
+
+	//here we see if the name is /dev/disk/wd0a or something like this
+	dpathlen = strlen(dpath);
+	if(dpath[dpathlen - 1] >= 'a' && dpath[dpathlen - 1] <= 'z')
+	{
+		partition = dpath[dpathlen - 1] - 'a';
+		dpath[dpathlen - 1] = 0;
+	}
+
 	/* Try to open the physical device */
 	fd2 = open(dpath, flags, mode);
 	if (fd2 < 0) {
@@ -136,7 +149,7 @@ fat_open(int fd, const char *path, int flags, int mode)
 		return (-1);
 	}
 
-	if (fat_init(fd2, fsc, 0) == 0) {
+	if (fat_init(fd2, fsc, partition) == 0) {
 		close(fd2);
 		free(fsc);
 		errno = EINVAL;
@@ -343,13 +356,13 @@ int fat_getPartition(struct fat_sc *fsc, int partition)
 		return (1);
 	}
 #endif
-	if ((bpb->bpbBytesPerSec == 512) &&
-	    (bpb->bpbResSectors >= 1) &&
-	    ((bpb->bpbMedia & 0xf0) == 0xf0)) {
-		/*
-		 * No MBR where found
-		 */
-		return (1);
+	
+	if (bpb->bpbBytesPerSec == 512)
+	{
+		if(partition == 0)
+			return (1);
+		else
+			return 0;
 	}
 
 	/*
@@ -358,11 +371,15 @@ int fat_getPartition(struct fat_sc *fsc, int partition)
 	mbr = (struct mbr_t *)buffer;
 
 	for (i = 0; i < PART_SIZE; i++) {
-		if ((mbr->partition[i].bootid == PART_BOOTID_ACTIVE) &&
-		    ((mbr->partition[i].systid == PART_TYPE_FAT12) ||
-		     (mbr->partition[i].systid == PART_TYPE_FAT16) ||
-		     (mbr->partition[i].systid == PART_TYPE_FAT16BIG))) {
-			break;
+		if (//(mbr->partition[i].bootid == PART_BOOTID_ACTIVE) &&
+				((mbr->partition[i].systid == PART_TYPE_FAT12) ||
+				 (mbr->partition[i].systid == PART_TYPE_FAT16) ||
+				 (mbr->partition[i].systid == PART_TYPE_FAT16BIG) ||
+				 (mbr->partition[i].systid == 0x0c))) {
+			if(!partition)
+				break;
+			else
+				partition--;
 		}
 	}
 	if (i == PART_SIZE) {
@@ -386,7 +403,11 @@ int fat_init(int fd, struct fat_sc *fsc, int partition)
 	/*
 	 * Check for partition
 	 */
-	fat_getPartition(fsc, partition);
+	if(!fat_getPartition(fsc, partition))
+	{
+		printf("get partition error: %d\n", partition);
+		return 0;
+	}
 
 	/*
 	 * Init BPB
@@ -542,7 +563,7 @@ int fat_findfile(struct fat_sc *fsc, char *name)
 	struct direntry *dire;
 	char *dpath;
 	int long_name = 0;
-	int dir_scan = 0;
+	int dir_scan = 0, dir_list = 0;
 	int i;
 
 	bzero(&filee, sizeof(filee));
@@ -552,9 +573,13 @@ int fat_findfile(struct fat_sc *fsc, char *name)
 		*dpath = '\0';
 		dpath++;
 		dir_scan = 1;
-	}
+	}		
+	else if(*name == 0)
+		dir_list = 1;
 
-	for (fsc->DirCacheNum = fsc->FirstRootDirSecNum; fsc->DirCacheNum < (fsc->RootDirSectors + fsc->FirstRootDirSecNum); fsc->DirCacheNum++) {
+
+	for (fsc->DirCacheNum = fsc->FirstRootDirSecNum; fsc->DirCacheNum < (fsc->RootDirSectors + fsc->FirstRootDirSecNum); fsc->DirCacheNum++) 
+	{
 		if (readsector(fsc, fsc->DirCacheNum, 1, fsc->DirBuffer) == 0) {
 			return (0);
 		}
@@ -564,7 +589,11 @@ int fat_findfile(struct fat_sc *fsc, char *name)
 		for (i = 0; (i < (SECTORSIZE / sizeof(struct direntry))); i++, dire++) {
 			
 			if (dire->dirName[0] == SLOT_EMPTY)
+			{
+				if(dir_list)
+					printf("\n");
 				return (0);
+			}
 
 			if (dire->dirName[0] == SLOT_DELETED)
 				continue;
@@ -577,14 +606,19 @@ int fat_findfile(struct fat_sc *fsc, char *name)
 				continue;
 			}
 
-			if (dir_scan == 0 && dire->dirAttributes == ATTR_DIRECTORY) {
+			if (dir_list == 0 && dir_scan == 0 && dire->dirAttributes == ATTR_DIRECTORY) {
 				long_name = 0;
 				continue;
 			}
 
 			bcopy((void *)dire, (void *)&dirbuf[long_name], sizeof(struct direntry));
 			fat_parseDirEntries(long_name, &filee);
-			if ((strcasecmp(name, filee.shortName) == 0) || (strcasecmp(name, filee.longName) == 0)) {
+
+			if(dir_list)
+			{		
+				printf("%s    ", filee.shortName);
+			}
+			else if ((strcasecmp(name, filee.shortName) == 0) || (strcasecmp(name, filee.longName) == 0)) {
 				if (dir_scan) {
 					struct fatchain chain;
 					int res;
@@ -606,6 +640,10 @@ int fat_findfile(struct fat_sc *fsc, char *name)
 			}
 		}
 	}
+
+	if(dir_list)
+		printf("\n");
+
 	return (0);
 }
 
@@ -615,12 +653,12 @@ int fat_subdirscan(struct fat_sc *fsc, char *name, struct fatchain *chain)
 	struct direntry *dire;
 	char *dpath;
 	int long_name = 0;
-	int dir_scan = 0;
+	int dir_scan = 0, dir_list = 0;
 	int sector;
 	int i;
 	int j;
 	int k;
-	
+
 	bzero(&filee, sizeof(filee));
 
 	dpath = strchr(name, '/');
@@ -629,6 +667,8 @@ int fat_subdirscan(struct fat_sc *fsc, char *name, struct fatchain *chain)
 		dpath++;
 		dir_scan = 1;
 	}
+	else if(*name == 0)
+		dir_list = 1;
 
 	for (i = 0; i < chain->count; i++) {
 		for (j = 0; j < fsc->SecPerClust; j++) {
@@ -642,8 +682,12 @@ int fat_subdirscan(struct fat_sc *fsc, char *name, struct fatchain *chain)
 			for (k = 0; (k < (SECTORSIZE / sizeof(struct direntry))); k++, dire++) {
 				
 				if (dire->dirName[0] == SLOT_EMPTY)
+				{
+					if(dir_list)
+						printf("\n");
 					return (0);
-				
+				}
+
 				if (dire->dirName[0] == SLOT_DELETED)
 					continue;
 				
@@ -655,14 +699,19 @@ int fat_subdirscan(struct fat_sc *fsc, char *name, struct fatchain *chain)
 					continue;
 				}
 				
-				if (dir_scan == 0 && dire->dirAttributes == ATTR_DIRECTORY) {
+				if (dir_list == 0 && dir_scan == 0 && dire->dirAttributes == ATTR_DIRECTORY) {
 					long_name = 0;
 					continue;
 				}
 				
 				bcopy((void *)dire, (void *)&dirbuf[long_name], sizeof(struct direntry));
 				fat_parseDirEntries(long_name, &filee);
-				if ((strcasecmp(name, filee.shortName) == 0) || (strcasecmp(name, filee.longName) == 0)) {
+
+				if(dir_list)
+				{
+					printf("%s    ", filee.shortName);
+				}
+				else if ((strcasecmp(name, filee.shortName) == 0) || (strcasecmp(name, filee.longName) == 0)) {
 					if (dir_scan) {
 						struct fatchain chain;
 						int res;
@@ -685,6 +734,9 @@ int fat_subdirscan(struct fat_sc *fsc, char *name, struct fatchain *chain)
 			}
 		}
 	}
+
+	if(dir_list)
+		printf("\n");
 	return (0);
 }
 
@@ -847,7 +899,7 @@ int fat_dump_fileentry(struct fat_sc *fsc)
 {
 	int i;
 	
-	printf("        File: %s\n", fsc->file.Name);
+	printf("        File: %s\n", fsc->file);
 	printf("   HighClust: %d\n", fsc->file.HighClust);
 	printf("StartCluster: %d\n", fsc->file.StartCluster);
 	printf("    FileSize: %d\n", fsc->file.FileSize);

@@ -272,7 +272,7 @@ quit:
     sigsetmask (0);
 }
 
-
+#define BOOTP_NO_CHECK_SIZE
 /* Returns 0 if this is the packet we're waiting for else -1 */
 static int
 bootprecv(struct bootparams *bootp, struct bootp *bp, int rsize)
@@ -280,12 +280,18 @@ bootprecv(struct bootparams *bootp, struct bootp *bp, int rsize)
     static struct in_addr nmask;
     u_long ul;
 
-    if (rsize < sizeof(*bp) || ntohl(bp->bp_xid) != xid) {
+    if (
+#ifndef BOOTP_NO_CHECK_SIZE
+rsize < sizeof(*bp) || 
+#endif
+			ntohl(bp->bp_xid) != xid) {
 #ifdef DEBUG
+#ifndef BOOTP_NO_CHECK_SIZE
 	if (rsize < sizeof(*bp))
 	    printf("bootprecv: expected %d bytes, got %d\n",
 		   sizeof(*bp), rsize);
 	else 
+#endif
 	    printf("bootprecv: expected xid 0x%x, got 0x%x\n",
 		   xid, ntohl(bp->bp_xid));
 #endif
