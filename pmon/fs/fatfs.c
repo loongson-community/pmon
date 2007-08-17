@@ -95,6 +95,7 @@ fat_open(int fd, const char *path, int flags, int mode)
 	int fd2;
 	int res;
 	int partition = 0, dpathlen;
+	char * p;
 
 	/*  Try to get to the physical device */
 	opath = path;
@@ -130,7 +131,8 @@ fat_open(int fd, const char *path, int flags, int mode)
 	_file[fd].valid = 1;
 
 	//we need to change the device name like this /dev/disk/wd0, not /dev/disk@wd0
-	*(strchr(dpath, '@')) = '/';
+	if(p = strchr(dpath, '@'))
+		*p = '/';
 
 	//here we see if the name is /dev/disk/wd0a or something like this
 	dpathlen = strlen(dpath);
