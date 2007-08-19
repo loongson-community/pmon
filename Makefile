@@ -45,3 +45,4 @@ pmonlibs:
 clean:
 	perl -e 'for(<zloader.*>){system qq(cd $$_;make cleanall;cd -;);}'
 	perl -i -ne 'print;exit if(/^# DO NOT DELETE/);' lib/libc/Makefile
+	perl -i -ne 'print;exit if(/^# DO NOT DELETE/);' lib/libm/Makefile 

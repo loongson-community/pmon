@@ -162,4 +162,5 @@ option USE_ENVMAC
 #option LOOKLIKE_PC
 #select cmd_lwdhcp
 #select cmd_bootp
-
+#option FOR_GXEMUL
+select fatfs

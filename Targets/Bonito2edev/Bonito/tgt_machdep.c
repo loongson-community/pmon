@@ -189,34 +189,8 @@ void
 initmips(unsigned int memsz)
 {
 /*enable float*/
-asm("
-mfc0 $2,$12
-li   $3,0x24000000 #ST0_CU1
-or   $2,$3
-mtc0 $2,$12
-li $2,0 #FPU_DEFAULT
-ctc1 $2,$31
-li $2,-1
-dmtc1	$2, $1
-dmtc1	$2, $3
-dmtc1	$2, $5
-dmtc1	$2, $7
-dmtc1	$2, $9
-dmtc1	$2, $11
-dmtc1	$2, $13
-dmtc1	$2, $15
-dmtc1	$2, $17
-dmtc1	$2, $19
-dmtc1	$2, $21
-dmtc1	$2, $23
-dmtc1	$2, $25
-dmtc1	$2, $27
-dmtc1	$2, $29
-dmtc1	$2, $31
-"
-:::"$2","$3"
-	);
 
+tgt_fpuenable();
 	/*
 	 *	Set up memory address decoders to map entire memory.
 	 *	But first move away bootrom map to high memory.
@@ -228,12 +202,11 @@ dmtc1	$2, $31
 	memorysize = memsz > 256 ? 256 << 20 : memsz << 20;
 	memorysize_high = memsz > 256 ? (memsz - 256) << 20 : 0;
 
-asm("
-	 sd %1,0x18(%0);
-	 sd %2,0x28(%0);
-	 sd %3,0x20(%0);
-	 "
-	 ::"r"(0x900000001ff00000ULL),"r"(memorysize),"r"(memorysize_high),"r"(0x20000000)
+asm(\
+"	 sd %1,0x18(%0);;\n" \
+"	 sd %2,0x28(%0);;\n" \
+"	 sd %3,0x20(%0);;\n" \
+	 ::"r"(0xffffffffbff00000ULL),"r"(memorysize),"r"(memorysize_high),"r"(0x20000000)
 	 :"$2"
    );
 

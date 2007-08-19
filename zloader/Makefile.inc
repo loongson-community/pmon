@@ -96,7 +96,8 @@ clean:
 	rm -rf *.o zlib_gzip zloader pmon.bin.c gzrom gzrom.bin gzram  initmips.c pmon.bin.gz zlib_deflate/*.o zlib_inflate/*.o zlib_gzrom zlib_gzrom.bin
 cfg:
 	# DO NOT DELETE
-	perl -i -ne 'print;exit if(/^# DO NOT DELETE/);' ../lib/libc/Makefile
+	perl -i -ne 'print;exit if(/^# DO NOT DELETE/);' ../lib/libc/Makefile 
+	perl -i -ne 'print;exit if(/^# DO NOT DELETE/);' ../lib/libm/Makefile 
 	cd ../Targets/${TARGET}/conf/;pmoncfg ${TARGETEL}
 	make -C ../Targets/${TARGET}/compile/${TARGETEL}/ depend clean
 recfg:

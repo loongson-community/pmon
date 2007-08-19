@@ -1363,11 +1363,25 @@ static int linit(int argc,char **argv)
 	return 0;
 }
 extern char *allocp1;
+#if 1
+double sin(double);
+static void testfloat()
+{
+volatile static double  x=1.12,y=1.34,z;
+z=sin(x);
+printf("sin(1.12)=%d\n",(int)(z*1000));
+z=sin(x)*y;
+printf("sin(1.12)*1.34=%d\n",(int)(z*1000));
+z=x*y;
+printf("1.12*1.34=%d\n",(int)(z*1000));
+}
+#endif
 static int mytest(int argc,char **argv)
 {
-	register ra asm("$31");
-	register sp asm("$29");
-	printf("ra=%lx,sp=%lx,allocp1=%lx\n",ra,sp,allocp1);
+#if 1
+tgt_fpuenable();
+testfloat();
+#endif
 
 	return 0;
 }

@@ -51,7 +51,7 @@ vsprintf (char *d, const char *s, va_list ap)
 	double dbl;
 
 #ifndef NEWFP
-	EP ex;
+//	EP ex;
 #endif
 #endif
 
