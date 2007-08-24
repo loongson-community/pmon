@@ -1370,6 +1370,7 @@ static void testfloat()
 volatile static double  x=1.12,y=1.34,z;
 z=sin(x);
 printf("sin(1.12)=%d\n",(int)(z*1000));
+printf("sin(1.12)=%f\n",z);
 z=sin(x)*y;
 printf("sin(1.12)*1.34=%d\n",(int)(z*1000));
 z=x*y;

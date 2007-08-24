@@ -164,3 +164,4 @@ option USE_ENVMAC
 #select cmd_bootp
 #option FOR_GXEMUL
 select fatfs
+option FLOATINGPT
