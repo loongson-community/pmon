@@ -79,6 +79,13 @@ select		mod_framebuffer
 #option		SMI712
 select		mod_smi502		# Silicon Motion502
 option		SMI502
+option		X640x480
+#option		X800x600
+#option		X1024x768
+#option		X1280x800
+#option 	CONFIG_VIDEO_SM501_8BPP
+option 		CONFIG_VIDEO_SM501_16BPP
+#option 	CONFIG_VIDEO_SM501_32BPP
 
 select		mod_vgacon
 option		NOPCINAMES		# Save some space for x86emu
@@ -166,4 +173,8 @@ option IDECD
 #option HAVE_NB_SERIAL
 option USE_ENVMAC
 #option LOOKLIKE_PC
-
+#select cmd_lwdhcp
+#select cmd_bootp
+#option FOR_GXEMUL
+select fatfs
+option FLOATINGPT

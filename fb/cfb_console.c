@@ -116,6 +116,8 @@ CONFIG_VIDEO_HW_CURSOR:	     - Uses the hardware cursor capability of the
 #define	CONFIG_VIDEO_BMP_LOGO
 #elif defined(SMI502)
 #define CONFIG_VIDEO_SW_CURSOR
+#define VIDEO_HW_BITBLT
+#define VIDEO_HW_RECTFILL
 //#define CONFIG_VIDEO_LOGO
 //#define CONFIG_VIDEO_BMP_LOGO
 #endif
@@ -269,7 +271,8 @@ void	console_cursor (int state);
 #define CONSOLE_ROW_FIRST	(video_console_address)
 #define CONSOLE_ROW_SECOND	(video_console_address + CONSOLE_ROW_SIZE)
 #define CONSOLE_ROW_LAST	(video_console_address + CONSOLE_SIZE - CONSOLE_ROW_SIZE)
-#define CONSOLE_SIZE		(CONSOLE_ROW_SIZE * CONSOLE_ROWS)
+//#define CONSOLE_SIZE		(CONSOLE_ROW_SIZE * CONSOLE_ROWS)
+#define CONSOLE_SIZE		(VIDEO_COLS * VIDEO_ROWS * VIDEO_PIXEL_SIZE)
 #define CONSOLE_SCROLL_SIZE	(CONSOLE_SIZE - CONSOLE_ROW_SIZE)
 
 /* Macros */
@@ -655,7 +658,8 @@ void console_cursor (int state)
 
 /*****************************************************************************/
 
-#ifndef VIDEO_HW_RECTFILL
+#if 1
+//#ifndef VIDEO_HW_RECTFILL
 static void memsetl (int *p, int c, int v)
 {
 	while (c--)
@@ -680,6 +684,8 @@ static void console_scrollup (void)
 	/* copy up rows ignoring the first one */
 	if(disableoutput)return;
 #ifdef VIDEO_HW_BITBLT
+
+#ifdef RADEON7000
 	video_hw_bitblt (VIDEO_PIXEL_SIZE,	/* bytes per pixel */
 			 0,	/* source pos x */
 			 VIDEO_LOGO_HEIGHT + VIDEO_FONT_HEIGHT, /* source pos y */
@@ -688,6 +694,21 @@ static void console_scrollup (void)
 			 VIDEO_VISIBLE_COLS,	/* frame width */
 			 VIDEO_VISIBLE_ROWS - VIDEO_LOGO_HEIGHT - VIDEO_FONT_HEIGHT	/* frame height */
 		);
+#endif
+
+#if defined(SMI502)
+#if defined(X1024x768)
+	deCopyModify((pGD->gdfBytesPP * 8),0,1024,0,16,0,1024,0,0,1024,768-16,0x0c);
+#endif
+#if defined(X800x600)	
+	deCopyModify((pGD->gdfBytesPP * 8),0,800,0,16,0,800,0,0,800,600-16,0x0c);
+#endif
+#if defined(X640x480)
+	deCopyModify((pGD->gdfBytesPP * 8),0,640,0,16,0,640,0,0,640,480-16,0x0c);
+//	deCopy(0,0,(pGD->gdfBytesPP * 8),0,0,640,480-16,0,1,0,16,NULL,0x0c);
+#endif
+
+#endif
 
 #else
 	memcpyl (CONSOLE_ROW_FIRST, CONSOLE_ROW_SECOND,
@@ -696,6 +717,8 @@ static void console_scrollup (void)
 
 	/* clear the last one */
 #ifdef VIDEO_HW_RECTFILL
+
+#ifdef RADEON7000	
 	video_hw_rectfill (VIDEO_PIXEL_SIZE,	/* bytes per pixel */
 			   0,	/* dest pos x */
 			   VIDEO_VISIBLE_ROWS - VIDEO_FONT_HEIGHT,	/* dest pos y */
@@ -703,6 +726,22 @@ static void console_scrollup (void)
 			   VIDEO_FONT_HEIGHT,	/* frame height */
 			   CONSOLE_BG_COL	/* fill color */
 		);
+#endif
+
+#if defined(SMI502)
+#if defined(X1024x768)
+	deFillRectModify(0,8,768-16,1024,768,CONSOLE_BG_COL);
+#endif
+	
+#if defined(X800x600)	
+	deFillRectModify(0,8,600-16,800,600,CONSOLE_BG_COL);
+#endif
+	
+#if defined(X640x480)
+	deFillRectModify(0,8,480-16,640,480,CONSOLE_BG_COL);
+#endif
+	
+#endif
 #else
 	memsetl (CONSOLE_ROW_LAST, CONSOLE_ROW_SIZE >> 2, CONSOLE_BG_COL);
 #endif
@@ -773,7 +812,7 @@ void video_putc (const char c)
 		console_col++;
 
 		/* check for newline */
-		if (console_col >= CONSOLE_COLS)
+		if (console_col >= CONSOLE_COLS-1)
 			console_newline ();
 	}
 	CURSOR_SET
@@ -1187,7 +1226,7 @@ void logo_plot (void *screen, int width, int x, int y)
 
 static void *video_logo (void)
 {
-	char info[128] = " PMON on Godson-LM2E,build r31,2006.10.21.";
+	char info[128] = " PMON on Loongson-ICT2E,build r31,2007.8.24.";
 
 #ifdef CONFIG_SPLASH_SCREEN
 	char *s;
@@ -1252,7 +1291,16 @@ void video_set_background(unsigned char r, unsigned char g, unsigned char b)
 }
 static int record = 1;
 //80*24
-char console_buffer[2][25][81]={32};
+#if defined(X640x480)
+char console_buffer[2][31][81]={32};//80*30->640x480
+#elif defined(X800x600)
+char console_buffer[2][37][101]={32};
+#elif defined(X1024x768)
+char console_buffer[2][49][127]={32};//128*48->1024x768
+#else
+char console_buffer[2][31][81]={32};//80*30->640x480
+#endif
+
 void video_console_print(int console_col, int console_row, unsigned char *s)
 {
 	int count = strlen (s);
@@ -1371,8 +1419,20 @@ int fb_init (unsigned long fbbase,unsigned long iobase)
 	pGD->winSizeX  = 640;
 	pGD->winSizeY  = 480;
 #endif
-	pGD->gdfBytesPP= 2;
-	pGD->gdfIndex  = GDF_16BIT_565RGB;
+#if defined(CONFIG_VIDEO_SM501_8BPP)
+	pGD->gdfBytesPP= 1;
+//	pGD->gdfIndex  = GDF__8BIT_INDEX;
+	pGD->gdfIndex  = GDF__8BIT_332RGB;
+#elif defined(CONFIG_VIDEO_SM501_16BPP)
+        pGD->gdfBytesPP= 2;
+        pGD->gdfIndex  = GDF_16BIT_565RGB;
+#elif defined(CONFIG_VIDEO_SM501_32BPP)
+        pGD->gdfBytesPP= 4;
+        pGD->gdfIndex  = GDF_32BIT_X888RGB;
+#else
+        pGD->gdfBytesPP= 2;
+        pGD->gdfIndex  = GDF_16BIT_565RGB;
+#endif
 	pGD->frameAdrs = 0xb0000000 | fbbase;
 
 	printf("cfb_console init,fb=%x\n",pGD->frameAdrs);
