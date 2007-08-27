@@ -133,7 +133,7 @@ int cmd_main
 		}
 		
 		/* Call the tgt_gettime() funciton every 50 cycles to ensure that the bios time could update in time */
-		if(a>100)
+		if(a>800)
 		{
 			a=0;
 			 t = tgt_gettime();

@@ -2,6 +2,7 @@
 	PMON Graphic Library
 	Designed by Zhouhe(÷‹∫’) USTC 04011
 */
+
 #include <termio.h>
 #include <pmon.h>
 #include <stdio.h>
@@ -29,11 +30,12 @@ typedef struct
 	int x,y16;
 }drop;
 drop drops[256];
+int rpro=-256;
 int tpro=0,wpro=0,newpage=0,oldpage=0,xo;
 int currentid=0,enterid=0,overid=1,overx1,overy1,overx2,overy2,nextab[4],nextco[4],nextid[4],winit=1;
 int theme=0;
 unsigned char bcolor=0xe0;
-unsigned char btncolortheme[2][3]={0x00,0x30,0xe0,0xe0,0xc0,0xf0},btncolor[3];
+unsigned char btncolortheme[2][3]={{0x00,0x30,0xe0},{0xe0,0xc0,0xf0}},btncolor[3];
 extern void video_drawchars (int xx, int yy, unsigned char *s, int count);
 void w_setpage(int i)
 {
@@ -85,34 +87,43 @@ static void w_initbackground(void)
 			w_resetdrop(drops+i);
 }
 unsigned int pal[16];
+scr finalbuf[25][80];
 #if NMOD_FRAMEBUFFER
 extern unsigned int eorx, fgx, bgx;
-scr finalbuf[25][80];
-static void w_cls()
-{ 
-	video_cls_all();
-	memset(finalbuf,0x01,sizeof(foreground));
-}
 extern void video_disableoutput();
 extern void video_enableoutput();
-
 #else
 extern unsigned char* vgabh;
-#define finalbuf vgabh
+#endif
+
 static void w_cls()
 {
 	int i;
-	
-	for(i=0;i<80*25*2;i+=8)
-		*((long long *)(vgabh+i))=(long long)(0x0f000f000f000f00<<32)+0x0f000f000f000f00;
+	if(!vga_available)
+	{
+		printf("\e[2J");
+		memset(finalbuf,0x20,sizeof(foreground));
+	}
+	else
+	{
+		#if NMOD_FRAMEBUFFER
+		video_cls();
+		memset(finalbuf,0x01,sizeof(foreground));
+		#else
+		for(i=0;i<80*25*2;i+=8)
+			*((long long *)(vgabh+i))=(long long)(0x0f000f000f000f00<<32)+0x0f000f000f000f00;
+		#endif
+	}
 }
-#endif
 void w_enterconsole()
 {
 #if  NMOD_FRAMEBUFFER
-	video_enableoutput();
-	eorx=fgx=0xffffffff;
-	bgx=0;
+	if(vga_available)
+	{
+		video_enableoutput();
+		eorx=fgx=0xffffffff;
+		bgx=0;
+	}
 #endif
 	w_cls();
 }
@@ -120,7 +131,8 @@ void w_leaveconsole()
 {
 	w_cls();
 #if  NMOD_FRAMEBUFFER
-	video_disableoutput();
+	if(vga_available)
+		video_disableoutput();
 #endif
 }
 
@@ -128,43 +140,45 @@ void w_init(void)
 {
 	int i,j;
 	w_cls();
+	if(vga_available)
+	{	
 #if NMOD_FRAMEBUFFER
-	video_disableoutput();
-	for(i=0;i<8;i++)
-	{
-		pal[i]=(i<<2)+(i<<18);
-		pal[i+8]=(i<<13)+(i<<8)+31;
-		pal[i+8]+=pal[i+8]<<16;
-	}
-	
-#else
-	// disable blinking
-	linux_inb(0x3da);//http://atrevida.comprenica.com/atrtut06.html
-	linux_outb(0x30,0x3c0);//CAS=1,INDEX=0x10
-	j=linux_inb(0x3c1);
-
-	linux_inb(0x3da);
-	linux_outb(0x30,0x3c0);
-	linux_outb(j&0xf7,0x3c0);
-
-	linux_outb(0,0x3c8);
-	for(j=0;j<16;j++)
-	{
+		video_disableoutput();
 		for(i=0;i<8;i++)
 		{
-			linux_outb(7,0x3c9);
-			linux_outb(0,0x3c9);
-			linux_outb(i<<3,0x3c9);
-		}
-		
-		for(i=0;i<8;i++)	//È•±Â??
+			pal[i]=(i<<2)+(i<<18);
+			pal[i+8]=(i<<13)+(i<<8)+31;
+			pal[i+8]+=pal[i+8]<<16;
+		}	
+#else
+		// disable blinking
+		linux_inb(0x3da);//http://atrevida.comprenica.com/atrtut06.html
+		linux_outb(0x30,0x3c0);//CAS=1,INDEX=0x10
+		j=linux_inb(0x3c1);
+	
+		linux_inb(0x3da);
+		linux_outb(0x30,0x3c0);
+		linux_outb(j&0xf7,0x3c0);
+	
+		linux_outb(0,0x3c8);
+		for(j=0;j<16;j++)
 		{
-			linux_outb(i<<3,0x3c9);
-			linux_outb(i<<3,0x3c9);
-			linux_outb(7<<3,0x3c9);
+			for(i=0;i<8;i++)
+			{
+				linux_outb(7,0x3c9);
+				linux_outb(0,0x3c9);
+				linux_outb(i<<3,0x3c9);
+			}
+			
+			for(i=0;i<8;i++)	//È•±Â??
+			{
+				linux_outb(i<<3,0x3c9);
+				linux_outb(i<<3,0x3c9);
+				linux_outb(7<<3,0x3c9);
+			}
 		}
-	}
 #endif
+	}
 	w_initbackground();
 	w_defaultcolor();
 
@@ -178,7 +192,7 @@ static void w_copy(void *src,void *dest)//ÂØπÈ?Ôº?!!
 static void w_background(void)
 {
 	int i,j,y,y1;
-	if(theme==1)
+	if(theme&1)
 	{
 		for(i=0;i<256;i++)
 		{
@@ -226,49 +240,81 @@ static void w_background(void)
 		foreground[2][48].text=194;
 		foreground[22][48].text=193;
 		w_text(40,0,WA_CENTRE,"LOONGSON BIOS SETUP");
-		w_bigtext(0,23,80,2,"TAB:Chage Color Schame    Left Arrow & Right Arrow: Switch Page    Up Arrow & Down Arrow: Select Item    Enter: Confirm and Switch   ~:Run Command");
+		w_bigtext(0,23,80,2,"TAB:Change Color Schame(1-4)    Left Arrow & Right Arrow: Switch Page    Up Arrow & Down Arrow: Select Item    Enter: Confirm and Switch   ~:Run Command");
 	}
 	
 }
-
 int charin=0,cn=0;
-
-
-
+char *chgconcolor[]={"\e[0;37;44m","\e[0;7m"};
 void w_present(void)
 {
-	char c;
+	char c,c0,c1;
 	//,d[20];
-	static int rpro=-256;
+	
 	int cnt;
+	int i,j,x,y;	
 	//struct termio tbuf;
+	if(theme&2)
+		rpro=1024;
+	if(vga_available)
+	{
 #if NMOD_FRAMEBUFFER
-	int i,j,x,y;
-	video_enableoutput();
-	for(j=0,y=VIDEO_FONT_HEIGHT*5/2;j<25;j++,y+=VIDEO_FONT_HEIGHT)
-		for(i=0,x=0;i<80;i++,x+=VIDEO_FONT_WIDTH)
-			if(*(short *)(&(finalbuf[j][i]))!=*(short *)(&(foreground[j][i])))
-			{
-				fgx=pal[foreground[j][i].color&0xf];
-				bgx=pal[foreground[j][i].color>>4];
-				eorx=fgx^bgx;
-				video_drawchars (x, y,&(foreground[j][i].text),1);
-			}
-	video_disableoutput();
+		video_enableoutput();
+		for(j=0,y=VIDEO_FONT_HEIGHT*5/2;j<25;j++,y+=VIDEO_FONT_HEIGHT)
+			for(i=0,x=0;i<80;i++,x+=VIDEO_FONT_WIDTH)
+				if(*(short *)(&(finalbuf[j][i]))!=*(short *)(&(foreground[j][i])))
+				{
+					fgx=pal[foreground[j][i].color&0xf];
+					bgx=pal[foreground[j][i].color>>4];
+					eorx=fgx^bgx;
+					video_drawchars (x, y,&(foreground[j][i].text),1);
+				}
+		video_disableoutput();
+		w_copy(foreground,finalbuf);
+#else
+	w_copy(foreground,vgabh);
 #endif
-	w_copy(foreground,finalbuf);
+	}
+	else		//COM output
+	{
+	
+		rpro=1024;
+		x=-2;y=-1;c0=-2;
+		for(j=1;j<25;j++)
+			for(i=0;i<80;i++)
+				if(*(short *)(&(finalbuf[j][i]))!=*(short *)(&(foreground[j][i])))
+				{
+					if(foreground[j][i].color<0x80)c1=0;else c1=1;
+					if(c1!=c0)
+						printf(chgconcolor[c1]);
+					c0=c1;
+					if(foreground[j][i].text<=0)
+						c=' ';
+					else 
+						c=foreground[j][i].text;
+					if((x==i-1 && y==j) || (i==0 && x==79 && y==j-1))
+						printf("%c",c);
+					else
+						printf("\e[%d;%dH%c",j,i+1,c);
+					x=i;
+					y=j;
+				}
+		w_copy(foreground,finalbuf);
+	}
+	
 
 	//if(cn)printf("%x\n",cn);
 	winit=0;
 	w_background();
 	if(newpage!=oldpage)
-		if(rpro>0)
+		if(rpro>0 && vga_available && (theme&2)==0)
 			rpro-=1;
 		else
 		{
 			//overx=overy=0;
 			overid=1;
-			rpro=0;
+			if(vga_available && (theme&2)==0)
+				rpro=0;
 			oldpage=newpage;
 			winit=1;
 		}
@@ -292,7 +338,8 @@ void w_present(void)
 	switch(cn)
 	{
 		case '\t':
-			theme^=1;
+			if(vga_available)
+				theme++;
 			w_defaultcolor();
 			break;
 		case '\n':
@@ -348,11 +395,11 @@ void w_text(int x,int y,int xalign,char *ostr)
 }
 void w_window(int x,int y,int w,int h,char *text)
 {
-	int x1,y1,i,c,lpitch;
+	int x1,y1,i,lpitch;
 	scr *tscr;	
 
-	x=x * wpro + xo >> 9;
-	y=y * wpro >> 9;
+	x=( x * wpro + xo )>> 9;
+	y=( y * wpro ) >> 9;
 	x1=x+(w*wpro>>9);
 	y1=y+(h*wpro>>9);
 
@@ -375,7 +422,7 @@ void w_window(int x,int y,int w,int h,char *text)
 		tscr->text=' ';
 		tscr->color=bcolor;
 	}
-	w_text(x+x1>>1,y,WA_CENTRE,text);
+	w_text((x+x1)>>1,y,WA_CENTRE,text);
 	for(y++;y<y1;y++)
 	{
 		tscr+=lpitch;
@@ -407,25 +454,25 @@ static void w_window2(int x,int y,int w,int h,char *text)
 	}
 	else 
 	{
-		if(y+h-1<overy2 && (nextab[0]>dist(overx1,overx2,x,x+w-1) || nextab[0]==dist(overx1,overx2,x,x+w-1) && y+h-1>nextco[0]))
+		if(y+h-1<overy2 && (nextab[0]>dist(overx1,overx2,x,x+w-1) || (nextab[0]==dist(overx1,overx2,x,x+w-1) && y+h-1>nextco[0])))
 		{
 			nextab[0]=dist(overx1,overx2,x,x+w-1);
 			nextco[0]=y+h-1;
 			nextid[0]=currentid;
 		}
-		if(y>overy1 && (nextab[1]>dist(overx1,overx2,x,x+w-1) || nextab[1]==dist(overx1,overx2,x,x+w-1) && y<nextco[1]))
+		if(y>overy1 && (nextab[1]>dist(overx1,overx2,x,x+w-1) || (nextab[1]==dist(overx1,overx2,x,x+w-1) && y<nextco[1])))
 		{
 			nextab[1]=dist(overx1,overx2,x,x+w-1);
 			nextco[1]=y;
 			nextid[1]=currentid;
 		}
-		if(x>overx1 && (nextab[2]>dist(overy1,overy2,y,y+h-1) || nextab[2]==dist(overy1,overy2,y,y+h-1) && x<nextco[2]))
+		if(x>overx1 && (nextab[2]>dist(overy1,overy2,y,y+h-1) || (nextab[2]==dist(overy1,overy2,y,y+h-1) && x<nextco[2])))
 		{
 			nextab[2]=dist(overy1,overy2,y,y+h-1);
 			nextco[2]=x;
 			nextid[2]=currentid;
 		}
-		if(x+w-1<overx2 && (nextab[3]>dist(overy1,overy2,y,y+h-1) || nextab[3]==dist(overy1,overy2,y,y+h-1) && x+w-1>nextco[3]))
+		if(x+w-1<overx2 && (nextab[3]>dist(overy1,overy2,y,y+h-1) || (nextab[3]==dist(overy1,overy2,y,y+h-1) && x+w-1>nextco[3])))
 		{
 			nextab[3]=dist(overy1,overy2,y,y+h-1);
 			nextco[3]=x+w-1;
@@ -468,7 +515,7 @@ int w_input(int x,int y,int w,char *caption,char * text,int buflen)
 	w_window2(x,y,w,1,((w>l)?text:text+l-w));
 	if(currentid==overid)	
 	{
-		if(charin==127) 
+		if(charin==127 || charin==7) 
 		{
 			if(l)
 				text[l-1]=0;
@@ -513,7 +560,7 @@ void w_setcolor(char windowcolor,char buttonunused,char buttonused)
 }
 void w_defaultcolor()
 {
-	memcpy(btncolor,btncolortheme[theme],3);
+	memcpy(btncolor,btncolortheme[theme&1],3);
 	bcolor=btncolor[0];
 }
 int w_keydown(int kin)
