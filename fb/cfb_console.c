@@ -730,15 +730,15 @@ static void console_scrollup (void)
 
 #if defined(SMI502)
 #if defined(X1024x768)
-	deFillRectModify(0,8,768-16,1024,768,CONSOLE_BG_COL);
+	deFillRectModify(0,0,768-16,1024,768,CONSOLE_BG_COL);
 #endif
 	
 #if defined(X800x600)	
-	deFillRectModify(0,8,600-16,800,600,CONSOLE_BG_COL);
+	deFillRectModify(0,0,600-16,800,600,CONSOLE_BG_COL);
 #endif
 	
 #if defined(X640x480)
-	deFillRectModify(0,8,480-16,640,480,CONSOLE_BG_COL);
+	deFillRectModify(0,0,480-16,640,480,CONSOLE_BG_COL);
 #endif
 	
 #endif
@@ -812,7 +812,7 @@ void video_putc (const char c)
 		console_col++;
 
 		/* check for newline */
-		if (console_col >= CONSOLE_COLS-1)
+		if (console_col >= CONSOLE_COLS)
 			console_newline ();
 	}
 	CURSOR_SET
@@ -1296,7 +1296,7 @@ char console_buffer[2][31][81]={32};//80*30->640x480
 #elif defined(X800x600)
 char console_buffer[2][37][101]={32};
 #elif defined(X1024x768)
-char console_buffer[2][49][127]={32};//128*48->1024x768
+char console_buffer[2][49][129]={32};//128*48->1024x768
 #else
 char console_buffer[2][31][81]={32};//80*30->640x480
 #endif
@@ -1419,6 +1419,17 @@ int fb_init (unsigned long fbbase,unsigned long iobase)
 	pGD->winSizeX  = 640;
 	pGD->winSizeY  = 480;
 #endif
+#if defined(X800x600)
+	pGD->winSizeX  = 800;
+	pGD->winSizeY  = 600;
+#elif defined(X1024x768)
+        pGD->winSizeX  = 1024;
+        pGD->winSizeY  = 768;
+#else
+        pGD->winSizeX  = 640;
+        pGD->winSizeY  = 480;
+#endif			
+	
 #if defined(CONFIG_VIDEO_SM501_8BPP)
 	pGD->gdfBytesPP= 1;
 //	pGD->gdfIndex  = GDF__8BIT_INDEX;

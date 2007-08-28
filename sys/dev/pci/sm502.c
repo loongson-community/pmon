@@ -227,61 +227,11 @@ void video_set_hw_cursor(int x, int y); /* x y in pixel */
 void video_init_hw_cursor(int font_width, int font_height);
 #endif
 
-//#endif /*_VIDEO_FB_H_ */                                                                                                                                   
-//#define X640x480 1
-//#define X800x600 1
-//#define X1024x768 1
+//#endif /*_VIDEO_FB_H_ */                                                                                                                                 
 
 const SMI_REGS init_regs[] =
 {
 
-/*
-#if 0 //800*600
-        {0x00004, 0x0},
-        {0x00048, 0x00021807},
-        {0x0004C, 0x091a0a01},
-        {0x00054, 0x1},
-        {0x00040, 0x00021807},
-        {0x00044, 0x091a0a01},
-        {0x00054, 0x0},
-        {0x80000, 0x0f013105}, //0x0f013106
-        {0x80004, 0xc428bb17},
-        {0x8000C, 0x00000000},
-        {0x80010, 0x06400640},//0x0a000a00//administrate fb width
-        {0x80014, 0x03200000},//0x02800000->640;0x03200000->800
-        {0x80018, 0x02600000}, //0x01e00000->30(480);0x02600000->600
-        {0x8001C, 0x00000000},
-        {0x80020, 0x02600320},//0x01e00280->640x480;0x02600320->800x600
-        {0x80024, 0x033a031f},//HDE-0x02fa027f->640x480;
-        {0x80028, 0x004a032b},//0x004a028b->640x480;
-        {0x8002C, 0x02840257},//VDE-0x020c01df->640x480;
-        {0x80030, 0x00020261},//0x000201e9->640x480;
-        {0x80040, 0x00010002},//rgb565
-        {0x8004c, 0x00800000},//rgb565
-        {0x80080, 0x00010001},//rgb565
-        {0x80200, 0x00010000},
-#endif
-*/
-
-//#if 0 /* CRT only */
-/*
-        {0x00004, 0x0},
-        {0x00048, 0x00021807},
-        {0x0004C, 0x10090a01},
-        {0x00054, 0x1},
-        {0x00040, 0x00021807},
-        {0x00044, 0x10090a01},
-        {0x00054, 0x0},
-        {0x80200, 0x00010000},
-        {0x80204, 0x0},
-        {0x80208, 0x0A000A00},
-        {0x8020C, 0x02fa027f},
-        {0x80210, 0x004a028b},
-        {0x80214, 0x020c01df},
-        {0x80218, 0x000201e9},
-        {0x80200, 0x00013306},*/
-//#else  /* panel + CRT */
-//#endif
 #ifdef X640x480
         {0x00004, 0x0},
         {0x00048, 0x00021807}, //0x00021807
@@ -310,12 +260,9 @@ const SMI_REGS init_regs[] =
         {0x80028, 0x004a028b},//0x004a028b->640x480;
         {0x8002C, 0x020c01df},//VDE-0x020c01df->640x480;
         {0x80030, 0x000201e9},//0x000201e9->640x480;
-//        {0x80040, 0x00010002},//rgb565
-//        {0x8004c, 0x00800000},//rgb565
-//        {0x80080, 0x00010001},//rgb565
 #if defined(CONFIG_VIDEO_SM501_8BPP)
-        {0x80040, 0x00010000},//rgb565
-        {0x80080, 0x00010000},//rgb565
+        {0x80040, 0x00010000},
+        {0x80080, 0x00010000},
 #endif
 #if defined(CONFIG_VIDEO_SM501_16BPP)
         {0x80040, 0x00010001},//rgb565
@@ -333,16 +280,25 @@ const SMI_REGS init_regs[] =
 	{0x80200, 0x00010000},
 #endif
 #ifdef X800x600
-//{0x00000000,0x04100000},
 {0x00000004,0x00000000}, //0x00000001
 {0x00000048,0x0002180f},
 {0x0000004c,0x60120208},
 {0x00000054,0x00000001},//0x00000000
 {0x00000040,0x0002180f},
 {0x00000044,0x60120208},
-{0x00000054,0x00000000},//0x00000000*/
+{0x00000054,0x00000000},//0x00000000
+{0x00000074,0x0002030a},
 
-{0x00080000,0x0f010105},
+#if defined(CONFIG_VIDEO_SM501_8BPP)
+{0x80000, 0x0f010104},
+#endif
+#if defined(CONFIG_VIDEO_SM501_16BPP)
+{0x80000, 0x0f010105},
+#endif
+#if defined(CONFIG_VIDEO_SM501_32BPP)
+        {0x80000, 0x0f010106},
+#endif
+
 {0x00080004,0xf532ea1e},
 {0x0008000c,0x00000000},
 {0x00080010,0x06400640},
@@ -354,10 +310,70 @@ const SMI_REGS init_regs[] =
 {0x00080028,0x00800347},
 {0x0008002c,0x02730257},
 {0x00080030,0x00040258},
-//{0x80040, 0x00010002},//rgb565
-//{0x8004c, 0x00800000},//rgb565
-//{0x80080, 0x00010001},//rgb565
-//{0x00080200,0x00010000},
+
+#if defined(CONFIG_VIDEO_SM501_8BPP)
+        {0x80040, 0x00010000},
+        {0x80080, 0x00010000},
+#endif
+#if defined(CONFIG_VIDEO_SM501_16BPP)
+        {0x80040, 0x00010001},//rgb565
+        {0x80080, 0x00010001},//rgb565
+#endif
+#if defined(CONFIG_VIDEO_SM501_32BPP)
+        {0x80040, 0x00010002},//rgb565
+        {0x80080, 0x00010001},//rgb565
+#endif
+
+{0x8004c, 0x00800000},//rgb565
+{0x00080200,0x00010000},
+{0x00000004,0x00000001},
+#endif
+
+#ifdef X1024x768
+//{0x00000000,0x04100000},
+{0x00000048,0x0002180f},
+{0x0000004c,0x60010208},
+{0x00000054,0x00000001},//0x00000000
+{0x00000040,0x0002180f},
+{0x00000044,0x60010208},
+{0x00000054,0x00000000},
+{0x00000074,0x0002051b},
+
+#if defined(CONFIG_VIDEO_SM501_8BPP)
+{0x80000, 0x0f013104},
+#endif
+#if defined(CONFIG_VIDEO_SM501_16BPP)
+{0x80000, 0x0f013105},
+#endif
+#if defined(CONFIG_VIDEO_SM501_32BPP)
+{0x80000, 0x0f013106},
+#endif
+{0x00080004,0xf532ea1e},
+{0x0008000c,0x00000000},
+{0x00080010,0x08000800},
+{0x00080014,0x04000000},
+{0x00080018,0x03000000},
+{0x0008001c,0x00000000},
+{0x00080020,0x02ff03ff},
+{0x00080024,0x052503ff},
+{0x00080028,0x00C80424},//0x 00880417
+{0x0008002c,0x032502ff},
+{0x00080030,0x00060302},
+
+#if defined(CONFIG_VIDEO_SM501_8BPP)
+        {0x80040, 0x00010000},
+        {0x80080, 0x00010000},
+#endif
+#if defined(CONFIG_VIDEO_SM501_16BPP)
+        {0x80040, 0x00010001},//rgb565
+        {0x80080, 0x00010001},//rgb565
+#endif
+#if defined(CONFIG_VIDEO_SM501_32BPP)
+        {0x80040, 0x00010002},//rgb565
+        {0x80080, 0x00010001},//rgb565
+#endif
+{0x8004c, 0x00800000},//rgb565
+{0x00080200,0x00013005},
 {0x00000004,0x00000001}, //0x00000001
 #endif
         {0, 0}
@@ -396,7 +412,8 @@ const SMI_REGS init_regs[] =
 GraphicDevice sm502;
 
 /////////////////////////////////
- void smi_setmode(void)
+#if 0
+void smi_setmode(void)
 {
 
 	int crt_out=0;
@@ -468,6 +485,8 @@ GraphicDevice sm502;
         smi_mmiowl_1(0x00000001, MISC_CTRL);
 
 }
+#endif
+
 /////////////////////////////////
 
 int pci_read_config_dword(struct pci_device *linuxpd, int reg, u32 *val)
@@ -1192,15 +1211,7 @@ int video_hw_init (void)
 #endif
      
 	/* Load Smi registers */
-#if defined(X640x480)
 	SmiSetRegs (); //640x480
-#endif
-#if defined(X800x600)
-	SmiSetRegs (); //640x480
-#endif
-#if defined(X1024x768)
-        smi_setmode_1024(); //1024x768
-#endif
 
 	/* (see board/RPXClassic/RPXClassic.c) */
 	board_validate_screen (sm502.isaBase);
@@ -1218,10 +1229,8 @@ int video_hw_init (void)
 #if defined(CONFIG_VIDEO_SM501_32BPP)
         deInit(1024,768,32);
 #endif
-		
-#endif
 
-#if defined(X800x600)
+#elif defined(X800x600)
 
 #if defined(CONFIG_VIDEO_SM501_8BPP)
         deInit(800,600,8);
@@ -1233,9 +1242,7 @@ int video_hw_init (void)
         deInit(800,600,32);
 #endif
 
-#endif
-
-#if defined(X640x480)
+#else
 #if defined(CONFIG_VIDEO_SM501_8BPP)
         deInit(640,480,8);
 #endif
