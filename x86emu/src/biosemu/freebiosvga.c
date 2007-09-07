@@ -138,10 +138,11 @@ BE_int86(0x10,&in,&out);
 
 		printf("vgabios_init: Emulation done\n");
 		vga_available = 1;
+	return 1;
 
 	} else{ 
 		printf("No VGA PCI device available\n");
+		return -1;
 	}
 
-	return 1;
 }

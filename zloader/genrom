@@ -40,10 +40,14 @@ void flush_cache2()
 {
 asm volatile("
 	mfc0	\$3, \$15			# read processor ID register
+	li		\$2, 0x6303				#godson2f prid
+	beq		\$2, \$3, godson_2f
+	nop
 	li		\$2, 0x6302				#godson2e prid
 	bne	\$2, \$3,11f 
 	nop
 # godson2e
+godson_2f:
 	li	  \$2, 0x80000000
     addu  \$3,\$2,512*1024
 10:

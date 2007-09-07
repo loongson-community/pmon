@@ -71,9 +71,22 @@ select		mod_uart_ns16550	# Standard UART driver
 option		CONS_BAUD=B115200
 select		ext2
 select		fatfs
-select		mod_x86emu		# X86 emulation for VGA
+#select		mod_x86emu		# X86 emulation for VGA
 option 	MY40IO
 #select		mod_x86emu_int10
+select		mod_framebuffer
+#select		mod_smi712		# Silicon Motion712
+#option		SMI712
+select		mod_smi502		# Silicon Motion502
+option		SMI502
+option		X640x480
+#option		X800x600
+#option		X1024x768
+#option		X1280x800
+#option 	CONFIG_VIDEO_SM501_8BPP
+option 		CONFIG_VIDEO_SM501_16BPP
+#option 	CONFIG_VIDEO_SM501_32BPP
+
 select		mod_vgacon
 option		NOPCINAMES		# Save some space for x86emu
 #option		FASTBOOT
@@ -162,6 +175,6 @@ option USE_ENVMAC
 #option LOOKLIKE_PC
 #select cmd_lwdhcp
 #select cmd_bootp
-option FOR_GXEMUL
+#option FOR_GXEMUL
 select fatfs
 option FLOATINGPT

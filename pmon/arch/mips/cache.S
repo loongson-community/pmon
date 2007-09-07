@@ -486,10 +486,14 @@ END(CPU_ConfigCache)
 LEAF(CPU_FlushCache)
 	.set	noreorder
 	mfc0	t1, COP_0_PRID			# read processor ID register
+	li		t0, 0x6303				#godson2f prid
+	beq	t0, t1, for_godson2f
+	nop
 	li		t0, 0x6302				#godson2e prid
 	bne	t0, t1, not_godson2e
 	nop
 # godson2e
+for_godson2f:
 	li	t3, CACHED_MEMORY_ADDR
 	lw	t4, CpuSecondaryCacheSize
 10:
