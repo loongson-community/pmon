@@ -1279,7 +1279,7 @@ static int usb_match(struct device *parent, void *match, void *aux)
 {
 	struct usb_device *dev = aux;
 
-	pci_sync_cache(0, _usb_ccb, sizeof(_usb_ccb), 1);
+	pci_sync_cache(0, &_usb_ccb, sizeof(_usb_ccb), 1);
 	usb_ccb = (ccb*)CACHED_TO_UNCACHED(&_usb_ccb);
 
 	if(usb_max_devs==USB_MAX_STOR_DEV) {

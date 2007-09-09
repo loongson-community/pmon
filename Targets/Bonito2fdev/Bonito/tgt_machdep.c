@@ -413,9 +413,10 @@ void
 tgt_reboot()
 {
 
-	/* generate reset signal */
-	*(unsigned long *)0xbfe00104 &= ~(1<<2);
-	*(unsigned long *)0xbfe00104 |= (1<<2);
+	void (*longreach) __P((void));
+	
+	longreach = (void *)0xbfc00000;
+	(*longreach)();
 
 	while(1);
 
