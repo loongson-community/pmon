@@ -148,7 +148,7 @@ static const Cmd Cmds[] =
 	{"MyCmds"},
 	{"pnps",	"", 0, "select pnp ops for d1,m1 ", pnps, 0, 99, CMD_REPEAT},
 	{"dumpsis",	"", 0, "dump sis registers", dumpsis, 0, 99, CMD_REPEAT},
-	{"i2cs",	"select i2c ops for d1", 0, "i2cs slotno", i2cs, 0, 99, CMD_REPEAT},
+	{"i2cs","i2cs slotno", 0, "select i2c ops for d1", i2cs, 0, 99, CMD_REPEAT},
 	{0, 0}
 };
 
