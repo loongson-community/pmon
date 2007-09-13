@@ -104,14 +104,34 @@ strtoull(const char *nptr,char **endptr,int base)
     return result;
 }
 
-static int pcstype=0;
-unsigned long long
+static union commondata{
+		unsigned char data1;
+		unsigned short data2;
+		unsigned int data4;
+		unsigned int data8[2];
+		unsigned char c[8];
+}mydata,*pmydata;
+
+unsigned int syscall_addrtype=0;
+static int __syscall1(int type,long long addr,union commondata *mydata);
+static int __syscall2(int type,long long addr,union commondata *mydata);
+int (*syscall1)(int type,long long addr,union commondata *mydata)=(void *)&__syscall1;
+int (*syscall2)(int type,long long addr,union commondata *mydata)=(void *)&__syscall2;
+static char *str2addmsg[]={"32 bit cpu address","64 bit cpu address","64 bit cached phyiscal address","64 bit uncached phyiscal address"};
+static unsigned long long
 str2addr(const char *nptr,char **endptr,int base)
 {
 unsigned long long result;
+if(syscall_addrtype%4==0)
+{
+result=strtoul(nptr,endptr,base);
+}
+else
+{
 result=strtoull(nptr,endptr,base);
-if(pcstype==-1)result|=0x9000000000000000UL;
-else if(pcstype==-2)result|=0x9800000000000000UL;
+if(syscall_addrtype%4==3)result|=0x9000000000000000UL;
+else if(syscall_addrtype%4==2)result|=0x9800000000000000UL;
+}
 return result;
 }
 /*
@@ -128,13 +148,6 @@ return result;
 #define nr_strtol strtoul
 #define nr_strtoll strtoull
 #define nr_str2addr str2addr
-static union commondata{
-		unsigned char data1;
-		unsigned short data2;
-		unsigned int data4;
-		unsigned int data8[2];
-		unsigned char c[8];
-}mydata,*pmydata;
 
 static	pcitag_t mytag=0;
 
@@ -293,8 +306,6 @@ case 8:
 return 0;
 }
 
-static int (*syscall1)(int type,long long addr,union commondata *mydata)=(void *)&__pcisyscall1;
-static int (*syscall2)(int type,long long addr,union commondata *mydata)=(void *)&__pcisyscall2;
 
 static int mydump(char type,unsigned long long addr,unsigned count)
 {
@@ -354,19 +365,25 @@ if(ac==4)
 	syscall1=(void *)__pcisyscall1;
 	syscall2=(void *)__pcisyscall2;
 }
-else if((ac==2) && ((tmp=nr_strtol(av[1],0,0))<0))
+else if(ac==2)
 {
-	pcstype=tmp;
+	syscall_addrtype=nr_strtol(av[1],0,0);
 	syscall1=__syscall1;
 	syscall2=__syscall2;
 	mytag=-1;
-   if(tmp==-1)printf("select normal memory access\n");
+   printf("select normal memory access (%s)\n",str2addmsg[syscall_addrtype%4]);
 }
-
+else if(ac==1)
+{
+int i;
+for(i=0;i>-4;i--)
+printf("pcs %d : select select normal memory access %s\n",i,str2addmsg[(unsigned)i%4]);
+printf("pcs bus dev func : select pci configuration space access with bus dev func\n");
 if(mytag!=-1)
 {
 	_pci_break_tag(mytag,&bus,&dev,&func);
 	printf("pci select bus=%d,dev=%d,func=%d\n",bus,dev,func);
+}
 }
 
 	return (0);

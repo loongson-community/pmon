@@ -51,29 +51,6 @@ char PNPGetConfig(char Index)
 }
 
 
-static int PnpRead(int argc,char **argv)
-{
-	unsigned char Index,data;
-		if(argc!=2){return -1;}
-		
-		Index=nr_strtol(argv[1],0,0);
-data=PNPGetConfig(Index);
-nr_printf("pnpread index=0x%02x,value=0x%02x\n",Index,data);
-return 0;
-}
-
-static int PnpWrite(int argc,char **argv)
-{
-        unsigned char Index,data;
-        if(argc!=3){return -1;}
-		Index=nr_strtol(argv[1],0,0);
-		data=nr_strtol(argv[2],0,0);
-PNPSetConfig(Index,data);
-nr_printf("pnpwrite index=0x%02x,value=0x%02x,",Index,data);
-data=PNPGetConfig(Index);
-nr_printf("result=0x%02x\n",data);
-return 0;
-}
 
 int dumpsis(int argc,char **argv)
 {
@@ -100,31 +77,78 @@ return 0;
 
 unsigned char i2cread(char slot,char offset);
 
-int cmd_i2cread(int argc,char **argv)
+
+union commondata{
+		unsigned char data1;
+		unsigned short data2;
+		unsigned int data4;
+		unsigned int data8[2];
+		unsigned char c[8];
+};
+extern unsigned int syscall_addrtype;
+extern int (*syscall1)(int type,long long addr,union commondata *mydata);
+extern int (*syscall2)(int type,long long addr,union commondata *mydata);
+
+static int PnpRead(int type,long long addr,union commondata *mydata)
 {
-int addr,slot;
-unsigned char c;
-int count,i;
- if(argc!=4)return -1;
- slot=strtoul(argv[1],0,0);
- addr=strtoul(argv[2],0,0);
- count=strtoul(argv[3],0,0);
- for(i=0;i<count;i++,addr++)
- {
-	 if(i%16==0)printf("\n%02x:",addr);
-	 printf(" %02x",i2cread((slot<<1)+0xa1,addr));
- }
- printf("\n");
- return 0;
+switch(type)
+{
+case 1:mydata->data1=PNPGetConfig(addr);break;
+default: return -1;break;
+}
+return 0;
+}
+
+static int PnpWrite(int type,long long addr,union commondata *mydata)
+{
+switch(type)
+{
+case 1:PNPSetConfig(addr,mydata->data1);break;
+default: return -1;break;
+}
+return 0;
+}
+
+static int pnps(int argc,char **argv)
+{
+syscall1=(void*)PnpRead;
+syscall2=(void*)PnpWrite;
+syscall_addrtype=0;
+return 0;
+}
+
+static int i2cslot=0;
+static int I2cRead(int type,long long addr,union commondata *mydata)
+{
+switch(type)
+{
+case 1:mydata->data1= i2cread((i2cslot<<1)+0xa1,addr); break;
+default: return -1;break;
+}
+return 0;
+}
+
+static int I2cWrite(int type,long long addr,union commondata *mydata)
+{
+return -1;
+}
+
+static int i2cs(int argc,char **argv)
+{
+if(argc!=2)return -1;
+i2cslot=strtoul(argv[1],0,0);
+syscall1=(void*)I2cRead;
+syscall2=(void*)I2cWrite;
+syscall_addrtype=0;
+return 0;
 }
 
 static const Cmd Cmds[] =
 {
 	{"MyCmds"},
-	{"pnpr",	"index", 0, "pnpr index", PnpRead, 0, 99, CMD_REPEAT},
-	{"pnpw",	"index value", 0, "pnpw index value", PnpWrite, 0, 99, CMD_REPEAT},
+	{"pnps",	"", 0, "select pnp ops for d1,m1 ", pnps, 0, 99, CMD_REPEAT},
 	{"dumpsis",	"", 0, "dump sis registers", dumpsis, 0, 99, CMD_REPEAT},
-	{"i2cread",	"slot offset count", 0, "read i2c info", cmd_i2cread, 0, 99, CMD_REPEAT},
+	{"i2cs",	"select i2c ops for d1", 0, "i2cs slotno", i2cs, 0, 99, CMD_REPEAT},
 	{0, 0}
 };
 
