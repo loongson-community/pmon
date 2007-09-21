@@ -272,7 +272,11 @@ void	console_cursor (int state);
 #define CONSOLE_ROW_SECOND	(video_console_address + CONSOLE_ROW_SIZE)
 #define CONSOLE_ROW_LAST	(video_console_address + CONSOLE_SIZE - CONSOLE_ROW_SIZE)
 //#define CONSOLE_SIZE		(CONSOLE_ROW_SIZE * CONSOLE_ROWS)
+#ifdef CONFIG_VIDEO_LOGO
+#define CONSOLE_SIZE		(VIDEO_COLS * (VIDEO_ROWS - VIDEO_LOGO_HEIGHT) * VIDEO_PIXEL_SIZE)
+#else
 #define CONSOLE_SIZE		(VIDEO_COLS * VIDEO_ROWS * VIDEO_PIXEL_SIZE)
+#endif
 #define CONSOLE_SCROLL_SIZE	(CONSOLE_SIZE - CONSOLE_ROW_SIZE)
 
 /* Macros */
