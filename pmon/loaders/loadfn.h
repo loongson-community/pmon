@@ -47,6 +47,7 @@
 #define KFLAG 0x1000		/* Load symbols for kernel debugger */ 
 #define RFLAG 0x2000
 #define OFLAG 0x4000
+#define ZFLAG 0x8000
 
 #define DL_CONT		0
 #define DL_DONE		1

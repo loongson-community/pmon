@@ -57,7 +57,7 @@
 
 static int	bootseg;
 static unsigned long tablebase;
-
+static int myflags;
 static int 
    bootread (int fd, void *addr, int size)
 {
@@ -71,10 +71,9 @@ static int
 		return (-1);
 
 #if NGZIP > 0
-	i = gz_read (fd, addr + dl_offset, size);
-#else
-	i = read (fd, addr + dl_offset, size);
+	if(myflags&ZFLAG) i = gz_read (fd, addr + dl_offset, size); else
 #endif /* NGZIP */
+	i = read (fd, addr + dl_offset, size);
 
 	if (i < size) {
 		if (i >= 0)
@@ -116,20 +115,21 @@ static Elf64_Shdr *
 	}
 
 #if NGZIP > 0
+if(myflags&ZFLAG){
 	if (gz_lseek (fd, ep->e_shoff, SEEK_SET) != ep->e_shoff ||
 	    gz_read (fd, shtab, size) != size) {
 		perror ("\nsection headers");
 		free (shtab);
 		return (0);
 	}
-#else
+	} else
+#endif /* NGZIP */
 	if (lseek (fd, ep->e_shoff, SEEK_SET) != ep->e_shoff ||
 	    read (fd, shtab, size) != size) {
 		perror ("\nsection headers");
 		free (shtab);
 		return (0);
 	}
-#endif /* NGZIP */
 
 	return (shtab);
 }
@@ -161,18 +161,19 @@ static void *
    readtable (int fd, int offs, void *base, int size, char *name, int flags)
 {
 #if NGZIP > 0
+if(myflags&ZFLAG){
 	if (gz_lseek (fd, offs, SEEK_SET) != offs ||
 	    gz_read (fd, base, size) != size) {
 		fprintf (stderr, "\ncannot read %s table", name);
 		return 0;
 	}
-#else
+	} else
+#endif /* NGZIP */
 	if (lseek (fd, offs, SEEK_SET) != offs ||
 	    read (fd, base, size) != size) {
 		fprintf (stderr, "\ncannot read %s table", name);
 		return 0;
 	}
-#endif /* NGZIP */
 	return (void *) base;
 }
 
@@ -367,22 +368,28 @@ long
 #endif
 
 #if NGZIP > 0
+	myflags=flags;
+if(myflags&ZFLAG){
 	gz_open(fd);
 	*n = 0;
 	gz_lseek (fd, 0, SEEK_SET);
+	}
 #endif /* NGZIP */
 
 	ep = (Elf64_Ehdr *)buf;
 	if (sizeof(*ep) > *n) {
 #if NGZIP > 0
+if(myflags&ZFLAG)
 		*n += gz_read (fd, buf+*n, sizeof(*ep)-*n);
-#else
+else
+#endif /* NGZIP */
+{
 	lseek(fd,*n,0);	
 	*n += read (fd, buf+*n, sizeof(*ep)-*n);
-#endif /* NGZIP */
+}
 		if (*n < sizeof(*ep)) {
 #if NGZIP > 0
-			gz_close(fd);
+if(myflags&ZFLAG)		gz_close(fd);
 #endif /* NGZIP */
 			return -1;
 		}
@@ -395,7 +402,7 @@ long
 	    ep->e_ident[EI_MAG3] != ELFMAG3) {
 
 #if NGZIP > 0
-		gz_close(fd);
+if(myflags&ZFLAG)		gz_close(fd);
 #endif /* NGZIP */
 
 		return (-1);
@@ -434,7 +441,7 @@ long
 		if (nogood) {
 			fprintf (stderr, "Invalid ELF: %s\n", nogood);
 #if NGZIP > 0
-			gz_close(fd);
+if(myflags&ZFLAG)			gz_close(fd);
 #endif /* NGZIP */
 			return -2;
 		}
@@ -445,7 +452,7 @@ long
 	    ep->e_phentsize != sizeof(Elf64_Phdr)) {
 		fprintf (stderr, "missing program header (not executable)\n");
 #if NGZIP > 0
-		gz_close(fd);
+if(myflags&ZFLAG)		gz_close(fd);
 #endif /* NGZIP */
 		return (-2);
 	}
@@ -461,12 +468,13 @@ long
 	if (!phtab) {
 		fprintf (stderr,"\nnot enough memory to read program headers");
 #if NGZIP > 0
-		gz_close(fd);
+if(myflags&ZFLAG)		gz_close(fd);
 #endif /* NGZIP */
 		return (-2);
 	}
 
 #if NGZIP > 0
+if(myflags&ZFLAG){
 	if (gz_lseek (fd, ep->e_phoff, SEEK_SET) != ep->e_phoff || 
 	    gz_read (fd, (void *)phtab, nbytes) != nbytes) {
 		perror ("program header");
@@ -474,14 +482,14 @@ long
 		gz_close(fd);
 		return (-2);
 	}
-#else
+	} else
+#endif /* NGZIP */
 	if (lseek (fd, ep->e_phoff, SEEK_SET) != ep->e_phoff || 
 	    read (fd, (void *)phtab, nbytes) != nbytes) {
 		perror ("program header");
 		free (phtab);
 		return (-2);
 	}
-#endif /* NGZIP */
 
 	/*
 	 * From now on we've got no guarantee about the file order, 
@@ -517,6 +525,7 @@ long
 			/* load the segment */
 			if (ph->p_filesz) {
 #if NGZIP > 0
+if(myflags&ZFLAG){
 				if (gz_lseek (fd, ph->p_offset, SEEK_SET) != ph->p_offset) {
 					fprintf (stderr, "seek failed (corrupt object file?)\n");
 					if (shtab)
@@ -525,7 +534,8 @@ long
 					gz_close(fd);
 					return (-2);
 				}
-#else
+				}else
+#endif
 				if (lseek (fd, ph->p_offset, SEEK_SET) != ph->p_offset) {
 					fprintf (stderr, "seek failed (corrupt object file?)\n");
 					if (shtab)
@@ -533,12 +543,11 @@ long
 					free (phtab);
 					return (-2);
 				}
-#endif /* NGZIP */
 				if (bootread (fd, (void *)ph->p_vaddr, ph->p_filesz) != ph->p_filesz) {
 					if (shtab) free (shtab);
 					free (phtab);
 #if NGZIP > 0
-					gz_close(fd);
+if(myflags&ZFLAG)					gz_close(fd);
 #endif /* NGZIP */
 					return (-2);
 				}
@@ -568,7 +577,7 @@ long
 
 	free (phtab);
 #if NGZIP > 0
-	gz_close(fd);
+if(myflags&ZFLAG)	gz_close(fd);
 #endif /* NGZIP */
 	return (ep->e_entry + dl_offset);
 }

@@ -61,9 +61,9 @@ compression parts stripped from zlib:gzio.c
 #define zmemcpy	memcpy
 
 #ifdef SAVE_MEMORY
-#define Z_BUFSIZE 1024
+#define Z_BUFSIZE 256
 #else
-#define Z_BUFSIZE 4096
+#define Z_BUFSIZE 256
 #endif
 
 static int gz_magic[2] = {0x1f, 0x8b}; /* gzip magic header */
@@ -123,6 +123,7 @@ struct sd *s;
 
 	if (s->stream.avail_in == 0) {
 		errno = 0;
+		lseek(s->fd,0,0);
 		s->stream.avail_in = read(s->fd, s->inbuf, 16);
 		if (s->stream.avail_in <= 0) {
 			s->z_eof = 1;
@@ -445,7 +446,7 @@ int where;
 					char dummybuf[DUMMYBUFSIZE];
 					off_t len = toskip;
 					if(len > DUMMYBUFSIZE) len = DUMMYBUFSIZE;
-					if(read(fd, dummybuf, len) != len) {
+					if(gz_read(fd, dummybuf, len) != len) {
 						errno = ESPIPE;
 						return((off_t)-1);
 					}
