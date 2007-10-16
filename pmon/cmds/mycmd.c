@@ -124,7 +124,7 @@ str2addr(const char *nptr,char **endptr,int base)
 unsigned long long result;
 if(syscall_addrtype%4==0)
 {
-result=strtoul(nptr,endptr,base);
+result=(long)strtoul(nptr,endptr,base);
 }
 else
 {

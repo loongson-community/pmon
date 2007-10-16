@@ -166,3 +166,5 @@ option FOR_GXEMUL
 select fatfs
 option FLOATINGPT
 select gzip
+option VIA686B_POWERFIXUP
+

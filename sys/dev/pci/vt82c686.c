@@ -319,6 +319,13 @@ static void myfixup()
 
 	_pci_conf_writen(pdev, 0x42, 0x0,1);
 }
+
+void vt82c686_powerfixup()
+{
+linux_outb(0xd,0x70);
+linux_outb(0x80,0x71);
+}
+
 void vt82c686_init(void)
 {
 	initSerial();

@@ -405,7 +405,9 @@ tgt_devinit()
     CPU_ConfigCache();
 
 	_pci_businit(1);	/* PCI bus initialization */
-
+#ifdef VIA686B_POWERFIXUP
+if(!getenv("poweronboot"))	vt82c686_powerfixup();
+#endif
 }
 
 
