@@ -396,7 +396,7 @@ wdcprobe(chp) //yh
 			return 0;
 	}
 
-#ifdef WDC_NORESRT
+#ifndef WDC_NORESET
 	/* assert SRST, wait for reset to complete */
 	CHP_WRITE_REG(chp, wdr_sdh, WDSD_IBM);
 	delay(10);
