@@ -129,6 +129,7 @@ __msgbox(0,0,24,80,buffer);
 
 static int cmd_test(int ac,char **av)
 {
+__console_alloc();
 if(ac==1){
 cpuinfo();
 meminfo();

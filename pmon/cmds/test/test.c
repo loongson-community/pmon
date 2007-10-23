@@ -93,6 +93,47 @@ struct setupMenu nextmenu={
 }
 };
 
+struct setupMenu testmenu={
+0,POP_W,POP_H,
+(struct setupMenuitem[])
+{
+{POP_Y,POP_X,1,1,TYPE_NONE,"    board test"},
+{POP_Y+1,POP_X,2,2,TYPE_CMD,"(1)cpu:${?&#mytest 1}=[on=| _or mytest 1||off=| _andn mytest 1]test 1"},
+{POP_Y+2,POP_X,3,3,TYPE_CMD,"(2)memory:${?&#mytest 2}=[on=| _or mytest 2||off=| _andn mytest 2]test 2"},
+{POP_Y+3,POP_X,4,4,TYPE_CMD,"(3)netcard net0:${?&#mytest 4}=[on=| _or mytest 4||off=| _andn mytest 4]test 4"},
+{POP_Y+4,POP_X,5,5,TYPE_CMD,"(4)netcard net1:${?&#mytest 8}=[on=| _or mytest 8||off=| _andn mytest 8]test 8"},
+{POP_Y+5,POP_X,6,6,TYPE_CMD,"(5)netcard net2:${?&#mytest 16}=[on=| _or mytest 16||off=| _andn mytest 16]test 16"},
+{POP_Y+6,POP_X,7,7,TYPE_CMD,"(5)pci:${?&#mytest 32}=[on=| _or mytest 32||off=| _andn mytest 32]test 32"},
+{POP_Y+7,POP_X,8,8,TYPE_CMD,"(6)video:${?&#mytest 64}=[on=| _or mytest 64||off=| _andn mytest 64]test 64"},
+{POP_Y+8,POP_X,9,9,TYPE_CMD,"(7)harddisk:${?&#mytest 128}=[on=| _or mytest 128||off=| _andn mytest 128]test 128"},
+{POP_Y+9,POP_X,10,10,TYPE_CMD,"(8)keyboard:${?&#mytest 256}=[on=| _or mytest 256||off=| _andn mytest 256]test 256"},
+{POP_Y+10,POP_X,11,11,TYPE_CMD,"(9)serial:${?&#mytest 512}=[on=| _or mytest 512||off=| _andn mytest 512]test 512"},
+{POP_Y+11,POP_X,12,12,TYPE_CMD,"(10)parallel:${?&#mytest 1024}=[on=| _or mytest 1024||off=| _andn mytest 1024]test 1024"},
+{POP_Y+12,POP_X,13,13,TYPE_CMD,"(11)all selected=test ${#mytest}"},
+{POP_Y+13,POP_X,1,1,TYPE_CMD,"(12)quit=| _quit",0},
+{}
+}
+};
+
+struct setupMenu testmenu1={
+0,POP_W,POP_H,
+(struct setupMenuitem[])
+{
+{POP_Y,POP_X,1,1,TYPE_NONE,"    board test"},
+{POP_Y+1,POP_X,2,2,TYPE_CMD,"(1)cpu:${?&#mytest 1}=[on=| _or mytest 1||off=| _andn mytest 1]test 1"},
+{POP_Y+2,POP_X,3,3,TYPE_CMD,"(2)memory:${?&#mytest 2}=[on=| _or mytest 2||off=| _andn mytest 2]test 2"},
+{POP_Y+3,POP_X,4,4,TYPE_CMD,"(3)netcard net0:${?&#mytest 4}=[on=| _or mytest 4||off=| _andn mytest 4]test 4"},
+{POP_Y+4,POP_X,5,5,TYPE_CMD,"(4)pci:${?&#mytest 32}=[on=| _or mytest 32||off=| _andn mytest 32]test 32"},
+{POP_Y+5,POP_X,6,6,TYPE_CMD,"(5)video:${?&#mytest 64}=[on=| _or mytest 64||off=| _andn mytest 64]test 64"},
+{POP_Y+6,POP_X,7,7,TYPE_CMD,"(6)harddisk:${?&#mytest 128}=[on=| _or mytest 128||off=| _andn mytest 128]test 128"},
+{POP_Y+7,POP_X,8,8,TYPE_CMD,"(7)keyboard:${?&#mytest 256}=[on=| _or mytest 256||off=| _andn mytest 256]test 256"},
+{POP_Y+8,POP_X,9,9,TYPE_CMD,"(8)serial:${?&#mytest 512}=[on=| _or mytest 512||off=| _andn mytest 512]test 512"},
+{POP_Y+9,POP_X,10,10,TYPE_CMD,"(9)parallel:${?&#mytest 1024}=[on=| _or mytest 1024||off=| _andn mytest 1024]test 1024"},
+{POP_Y+10,POP_X,11,11,TYPE_CMD,"(10)all selected=test ${#mytest}"},
+{POP_Y+11,POP_X,1,1,TYPE_CMD,"(11)quit=| _quit",0},
+{}
+}
+};
 
 
 static int cmd_test(int ac,char **av)
@@ -102,6 +143,15 @@ int i;
 char *serverip;
 char *clientip;
 char cmd[200];
+
+__console_alloc();
+if(ac==1)
+{
+if(getenv("testem")) do_menu(&testmenu1);
+else do_menu(&testmenu);
+return 0;
+}
+else
 tests=strtoul(av[1],0,0);
 
 if(!(serverip=getenv("serverip")))
@@ -168,6 +218,7 @@ for(i=0;i<31;i++)
 	}
 			pause();
 }
+
 
 return 0;
 }

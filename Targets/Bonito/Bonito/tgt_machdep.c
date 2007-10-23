@@ -164,18 +164,8 @@ void
 initmips(unsigned int memsz)
 {
 /*enable float*/
-asm("
-mfc0 $2,$12
-li   $3,(1<<29)
-or   $2,$3
-mtc0 $2,$12
-cfc1 $2,$31
-li $2,0
-ctc1 $2,$31
-"
-:::"$2","$3"
-	);
 
+tgt_fpuenable();
 
 if(get_userenv(ACTIVECOM_OFFS)&0x80)
 {
