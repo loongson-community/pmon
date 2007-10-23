@@ -147,8 +147,8 @@ char cmd[200];
 __console_alloc();
 if(ac==1)
 {
-if(getenv("testem")) do_menu(&testmenu1);
-else do_menu(&testmenu);
+if(getenv("testem")) do_menu(&testmenu);
+else do_menu(&testmenu1);
 return 0;
 }
 else
