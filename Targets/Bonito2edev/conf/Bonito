@@ -42,6 +42,8 @@ select		cmd_setup
 select		cmd_about		# Display info about PMON
 select		cmd_boot		# Boot wrapper
 select		cmd_mycmd
+select		cmd_xmodem
+select		ramfiles
 select		cmd_newmt
 select		cmd_cache		# Cache enabling
 #select		cmd_call		# Call a function command
@@ -61,6 +63,7 @@ select		cmd_devls		# Device list
 select		cmd_set			# As cmd_env but not req. cmd_hist
 select		cmd_testdisk
 select		cmd_test
+select		pmon_zmodem_rz
 #
 select		cmd_shell		# Shell commands, vers, help, eval
 #

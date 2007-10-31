@@ -157,7 +157,8 @@ static int __disksyscall1(int type,unsigned int addr,union commondata *mydata)
 {
 	char fname[0x40];
 	FILE *fp;
-	sprintf(fname,"/dev/disk/%s",diskname);
+	if(strncmp(diskname,"/dev/",5)) sprintf(fname,"/dev/disk/%s",diskname);
+	else strcpy(fname,diskname);
 	fp=fopen(fname,"r+");
 	if(!fp){printf("open %s error!\n",fname);return -1;}
 	fseek(fp,addr,SEEK_SET);
@@ -1425,39 +1426,6 @@ static int mycmp(int argc,char **argv)
 	return 0;
 }
 
-static int dumpfp(int argc,char **argv)
-{
-int x;
-asm("
-cfc1 $2,$31
-sw $2,(%0)
-"
-::"r"(&x)
-:"$2","$3"
-	);
-printf("fcr=0x%x\n",x);
-return 0;
-}
-#if 0
-double sin(double x);
-static int testfp(int argc, char **argv)
-{
-	int i;
-static float x=1.12;
-static float y=1.34;
-static float z;
-z=sin(x);
-printf("sin(1.12)=%d\n",(int)(z*1000));
-z=sin(x)*y;
-printf("sin(1.12)*1.34=%d\n",(int)(z*1000));
-z=x*y;
-printf("1.12*1.34=%d\n",(int)(z*1000));
-	printf("\n\nHello! This is the 'hello' program!\n\n");
-	printf("sin(y)=%d",(int)(sin(y)*1000));
-
-	return(0);
-}
-#endif
 //----------------------------------
 static const Cmd Cmds[] =
 {
@@ -1511,8 +1479,6 @@ static const Cmd Cmds[] =
 	{"linit","",0,"linit",linit,1,1,CMD_REPEAT},
 	{"mytest","",0,"mytest",mytest,1,1,CMD_REPEAT},
 	{"mycmp","s1 s2 len",0,"mecmp s1 s2 len",mycmp,4,4,CMD_REPEAT},
-	{"dumpfp","",0,"dump fp register",dumpfp,1,1,CMD_REPEAT},
-//	{"testfp","",0,"testfp",testfp,1,1,CMD_REPEAT},
 	{0, 0}
 };
 

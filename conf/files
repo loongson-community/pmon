@@ -175,6 +175,7 @@ file sys/dev/bus_dma.c			sys
 file pmon/cmds/boot.c			cmd_boot
 file pmon/cmds/call.c			cmd_call
 file pmon/cmds/mycmd.c			cmd_mycmd
+file pmon/cmds/xmodem.c			cmd_xmodem
 file pmon/cmds/sysinfo.c		cmd_setup
 file pmon/cmds/newmt/newmt.c	cmd_newmt
 file pmon/cmds/setup.c			cmd_setup
@@ -203,7 +204,7 @@ file pmon/cmds/shellcmds.c		(cmd_shell | cmd_vers | cmd_help | cmd_eval) needs-f
 file pmon/cmds/cmd_rz.c			pmon_zmodem_rz
 file pmon/cmds/cmd_log.c		(logfile & ramfiles)	needs-flag
 file pmon/cmds/sz_cmd.c			pmon_zmodem_sz
-file pmon/cmds/cmd_main/cmd_main.c
+file pmon/cmds/cmd_main/cmd_main.c cmd_main
 file pmon/cmds/cmd_main/window.c
 
 file pmon/common/about.c		cmd_about
@@ -222,7 +223,7 @@ file pmon/common/env.c
 #
 # File systems
 #
-file pmon/fs/ramfile.c			ramfiles
+file pmon/fs/ramfile.c			ramfiles  needs-flag
 file pmon/fs/termio.c
 file pmon/fs/socket.c			inet
 file pmon/fs/gzip.c			gzip		needs-flag

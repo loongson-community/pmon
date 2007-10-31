@@ -60,6 +60,9 @@
 #include <pmon/loaders/zmodem/zmodem.h>
 #include <pmon/loaders/zmodem/zmdm.h>
 #include <pmon.h>
+#include "ramfiles.h"
+extern char filename[];
+extern long current_file_size;
 
 #define VFLAG 0x0040		/* verbose */
 /* control character used for download */
@@ -116,6 +119,7 @@ rz_cmd (ac, av)
 #ifdef INET
 	int ospl;
 #endif
+	logfp=vgaout;
 
 	baudrate = 0;
 	hostport = 0;
@@ -219,6 +223,10 @@ rz_cmd (ac, av)
 	fprintf(logfp, "Before receiveFile()\n");
 	receiveFile(fp, (char *)buffer, maxsize, (flags & VFLAG));
 	fprintf(logfp, "After receiveFile()\n");
+#if NRAMFILES > 0
+	deleteRamFile(filename);
+	addRamFile(filename,buffer,current_file_size,0);
+#endif
  done:
 
 #ifdef INET

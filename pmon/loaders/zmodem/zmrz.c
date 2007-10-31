@@ -34,7 +34,7 @@ unsigned char rx_data_subpacket[8192];	/* zzap = 8192 */
 long current_file_size;
 time_t transfer_start;
 long file_pos;
-extern FILE *logfp;
+FILE *logfp;
 
 /*
  * receive a header and check for garbage

@@ -1365,6 +1365,7 @@ LEAF(Hexserial)
 	.set at
 END(Hexserial)
 
+#ifndef HAVE_TARGET_GETCHAR
 #ifndef BONITOEL_CPCI
 LEAF(tgt_testchar)
 #ifdef HAVE_NB_SERIAL
@@ -1444,6 +1445,7 @@ LEAF(tgt_getchar)
 	nop
 END(tgt_getchar)
 
+#endif
 #endif
 
 LEAF(mydebug_main)

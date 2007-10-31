@@ -144,10 +144,10 @@ fl_program_st(map, dev, pa, pd)
 
 	switch(map->fl_map_bus) {
 	case FL_BUS_8:
-   outw( map->fl_map_base + ConvAddr1(0x00555), 0x00AA ); /* 1st cycle */
-   outw( map->fl_map_base + ConvAddr1(0x002AA), 0x0055 ); /* 2nd cycle */
-   outw(map->fl_map_base + ConvAddr1(0x0555), 0x00A0 ); /* 1st cycle */
-   outw((map->fl_map_base +pa) , *pd ); /* 2nd Cycle */  
+   outb( map->fl_map_base + ConvAddr1(0x00555), 0x00AA ); /* 1st cycle */
+   outb( map->fl_map_base + ConvAddr1(0x002AA), 0x0055 ); /* 2nd cycle */
+   outb(map->fl_map_base + ConvAddr1(0x0555), 0x00A0 ); /* 1st cycle */
+   outb((map->fl_map_base +pa) , *pd ); /* 2nd Cycle */  
 		break;
 	case FL_BUS_16:
    /* Step 4: Issue the Unlock Bypass command */
