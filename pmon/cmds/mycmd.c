@@ -1426,6 +1426,49 @@ static int mycmp(int argc,char **argv)
 	return 0;
 }
 
+static int (*oldwrite)(int fd,char *buf,int len)=0;
+static char *buffer;
+static int total;
+extern void (*__msgbox)(int yy,int xx,int height,int width,char *msg);
+void *restdout(int  (*newwrite) (int fd, const void *buf, size_t n));
+static int newwrite(int fd,char *buf,int len)
+{
+//if(stdout->fd==fd)
+{
+memcpy(buffer+total,buf,len);
+total+=len;
+}
+oldwrite(fd,buf,len);
+return len;
+}
+
+
+static int mymore(int ac,char **av)
+{
+int i;
+char *myline;
+if(ac<2)return -1;
+myline=heaptop;
+total=0;
+buffer=heaptop+0x100000;
+oldwrite=restdout(newwrite);
+myline[0]=0;
+for(i=1;i<ac;i++)
+{
+strcat(myline,av[i]);
+strcat(myline," ");
+}
+do_cmd(myline);
+restdout(oldwrite);
+buffer[total]='\n';
+buffer[total+1]=0;
+__console_alloc();
+__msgbox(0,0,24,80,buffer);
+__console_free();
+return 0;
+}
+
+
 //----------------------------------
 static const Cmd Cmds[] =
 {
@@ -1479,6 +1522,7 @@ static const Cmd Cmds[] =
 	{"linit","",0,"linit",linit,1,1,CMD_REPEAT},
 	{"mytest","",0,"mytest",mytest,1,1,CMD_REPEAT},
 	{"mycmp","s1 s2 len",0,"mecmp s1 s2 len",mycmp,4,4,CMD_REPEAT},
+	{"mymore","",0,"mymore",mymore,1,99,CMD_REPEAT},
 	{0, 0}
 };
 

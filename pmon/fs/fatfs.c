@@ -580,7 +580,7 @@ int fat_findfile(struct fat_sc *fsc, char *name)
 		dir_list = 1;
 
 
-	for (fsc->DirCacheNum = fsc->FirstRootDirSecNum; fsc->DirCacheNum < (fsc->RootDirSectors + fsc->FirstRootDirSecNum); fsc->DirCacheNum++) 
+	for (fsc->DirCacheNum = fsc->FirstRootDirSecNum; fsc->DirCacheNum <=(fsc->RootDirSectors + fsc->FirstRootDirSecNum); fsc->DirCacheNum++) 
 	{
 		if (readsector(fsc, fsc->DirCacheNum, 1, fsc->DirBuffer) == 0) {
 			return (0);
