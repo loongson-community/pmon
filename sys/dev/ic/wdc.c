@@ -213,6 +213,18 @@ wdc_default_read_raw_multi_2(chp, data, nbytes)
 		return;
 	}
 
+if((long)data&1)
+{
+unsigned int i;
+u_int16_t data16;
+
+for(i=0;i<nbytes;i+=2)
+ {
+    data16=bus_space_read_2(chp->cmd_iot, chp->cmd_ioh, 0); 
+	memcpy((char *)data+i,&data16,2);
+ }
+}
+else
 	bus_space_read_raw_multi_2(chp->cmd_iot, chp->cmd_ioh, 0, 
 	    data, nbytes);
 	return;
@@ -235,6 +247,18 @@ wdc_default_write_raw_multi_2(chp, data, nbytes)
 		return;
 	}
 
+if((long)data&1)
+{
+unsigned int i;
+u_int16_t data16;
+
+for(i=0;i<nbytes;i+=2)
+ {
+ 			memcpy(&data16,(char *)data+i,4);
+			bus_space_write_2(chp->cmd_iot, chp->cmd_ioh, 0, data16);
+ }
+}
+ else
 	bus_space_write_raw_multi_2(chp->cmd_iot, chp->cmd_ioh, 0, 
 	    data, nbytes);
 	return;
@@ -256,6 +280,18 @@ wdc_default_write_raw_multi_4(chp, data, nbytes)
 
 		return;
 	}
+if((long)data&3)
+{
+unsigned int i;
+u_int32_t data32;
+
+for(i=0;i<nbytes;i+=4)
+ {
+ 			memcpy(&data32,(char *)data+i,4);
+			bus_space_write_4(chp->cmd_iot, chp->cmd_ioh, 0, data32);
+ }
+}
+else
 
 	bus_space_write_raw_multi_4(chp->cmd_iot, chp->cmd_ioh, 0, 
 	    data, nbytes);
@@ -279,6 +315,18 @@ wdc_default_read_raw_multi_4(chp, data, nbytes)
 		return;
 	}
 
+if((long)data&3)
+{
+unsigned int i;
+u_int32_t data32;
+
+for(i=0;i<nbytes;i+=4)
+ {
+	data32=bus_space_read_4(chp->cmd_iot, chp->cmd_ioh, 0); 
+	memcpy((char *)data+i,&data32,4);
+ }
+}
+else
 	bus_space_read_raw_multi_4(chp->cmd_iot, chp->cmd_ioh, 0, 
 	    data, nbytes);
 	return;

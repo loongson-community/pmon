@@ -190,7 +190,7 @@ static int xmodem_transfer(char *base)
             case XMODEM_CAN:               //收到取消符CAN
                 tgt_putchar(XMODEM_ACK);            //回应PC机
                 STATUS=ST_OK;
-            printf("Warning:use cancelled!\n");
+            printf("Warning:user cancelled!\n");
                 break;
             default:                     //起始字节错误
                 tgt_putchar(XMODEM_NAK);            //要求重发当前数据块

@@ -45,7 +45,8 @@
 #include "mod_debugger.h"
 #include "mod_load.h"
 #include "mod_symbols.h"
-#include "gzip.h"
+//#include "gzip.h"
+#define NGZIP 0
 #if NGZIP > 0
 #include <gzipfs.h>
 #endif /* NGZIP */
@@ -189,38 +190,25 @@ static long
 
 
 	/* wince have 7 bytes head */
-	r_count = 7 - *n ;
+	lseek(fd,*n,0);	
+	read(fd,cehead,7);
 
-	if (*n > 7)
-	  {
-	    fprintf (stderr,"BUG,wince head < 7. the *n = %d > 7\n ",*n);
-	    return -1;
-	  }
-	if (buf[0] != 0x42)
+	if (cehead[0] != 0x42)
 	  {
 	    return -1;
 	  }
 
-	memcpy (cehead,buf,*n);
        
 
 #if NGZIP > 0
 	gz_open(fd);
 	*n = 0;
-	if (gz_lseek (fd, 0, SEEK_SET) != 0 || 
-	    gz_read (fd, (void *)cehead+*n,r_count ) != r_count) {
+	if (gz_lseek (fd, 0, SEEK_SET) != 0 ) {
 	  	
 		gz_close(fd);
 		return -1;
 	}
 #else
-	lseek(fd,*n,0);
-	l = read(fd, (void *)cehead+*n, r_count);
-	if (l != r_count)
-	  {	  	
-		return -1;
-	  }
-	*n += l;
 #endif /* NGZIP */
 
 
@@ -258,7 +246,6 @@ static long
 	
 	//get record content
 	read(fd,(unsigned char*)(rec_hdr.LoadAddress),rec_hdr.Length);
-
 	  
 	if (check_sum((unsigned char*)(rec_hdr.LoadAddress),rec_hdr.Length,rec_hdr.CheckSum)){
 	  fprintf(stderr,"CheckSum Error \n");
