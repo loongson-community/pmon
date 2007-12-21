@@ -137,6 +137,20 @@
 #define	PRINTSTR(x) \
 	.rdata;98: .asciz x; .text; la a0, 98b; bal stringserial; nop
 
+#define GPIOLED_SET(x) \
+li v0,0xbfe0011c; \
+lw v1,4(v0); \
+or v1,0xf; \
+xor v1,0xf; \
+sw v1,4(v0); \
+li v1,(~x)&0xf;\
+sw v1,0(v0);\
+li v1,0x1000;\
+78: \
+subu v1,1;\
+bnez v1,78b;\
+nop;
+
 #define CONFIG_CACHE_64K_4WAY 1
 
 #define tmpsize		s1

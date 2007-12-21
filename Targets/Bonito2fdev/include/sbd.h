@@ -82,7 +82,9 @@ extern void _sbd_nsdelay (unsigned long);
 #define PCI_IDSEL_SLOT3		15
 #define PCI_IDSEL_SLOT4		16
 /* #define PCI_IDSEL_I82371	17 */
-#define PCI_IDSEL_VIA686B	6
+#ifndef PCI_IDSEL_VIA686B
+#define PCI_IDSEL_VIA686B	17
+#endif
 #define PCI_IDSEL_ETH		18
 #define PCI_IDSEL_BONITO	19
 
