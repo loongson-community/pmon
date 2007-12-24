@@ -360,7 +360,7 @@ tgt_devconfig()
 #endif
     config_init();
     configure();
-#if NMOD_VGACON >0
+#if ((NMOD_VGACON >0) &&(PCI_IDSEL_VIA686B !=0))
 	if(getenv("nokbd")) rc=1;
 	else rc=kbd_initialize();
 	printf("%s\n",kbd_error_msgs[rc]);
@@ -528,8 +528,8 @@ _probe_frequencies()
         md_pipefreq = 300000000;        /* Defaults */
         md_cpufreq  = 66000000;
 #else
-        md_pipefreq = 120000000;        /* NB FPGA*/
-        md_cpufreq  =  40000000;
+        md_pipefreq = 660000000;        /* NB FPGA*/
+        md_cpufreq  =  60000000;
 #endif
 
         clk_invalid = 1;

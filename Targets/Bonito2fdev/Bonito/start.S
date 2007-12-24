@@ -460,6 +460,7 @@ locate:
 
     /******** added to init southbridge*/
 	
+#if  (PCI_IDSEL_VIA686B != 0)
 	/* Set the SMB base address */
 	ISABWWR_INIT(4, SMBUS_IO_BASE_ADDR, SMBUS_IO_BASE_VALUE | 0x1)
 	/* enable the host controller */
@@ -475,7 +476,7 @@ locate:
 	ISAWR_INIT(CTC_PORT+PT_CONTROL,PTCW_SC(PT_REFRESH)|PTCW_16B|PTCW_MODE(MODE_RG))
 	ISAWR_INIT(CTC_PORT+PT_REFRESH, ISAREFRESH & 0xff)
 	ISAWR_INIT(CTC_PORT+PT_REFRESH, ISAREFRESH >> 8)
-
+#endif
                                                                         
 	EXIT_INIT(0)
 
@@ -1289,7 +1290,21 @@ LEAF(hexserial)
 END(hexserial)
 
 LEAF(tgt_putchar)
+	.set noat
+	move AT,ra
+#if  (PCI_IDSEL_VIA686B != 0)
 	la	v0, COM1_BASE_ADDR
+	bal 1f
+	nop
+#endif
+
+#ifdef HAVE_NB_SERIAL
+	la	v0, COM3_BASE_ADDR
+	bal 1f
+	nop
+#endif
+	jr AT
+	nop
 1:
 	lbu	v1, NSREG(NS16550_LSR)(v0)
 	and	v1, LSR_TXRDY
@@ -1297,14 +1312,9 @@ LEAF(tgt_putchar)
 	nop
 
 	sb	a0, NSREG(NS16550_DATA)(v0)
-#ifdef HAVE_NB_SERIAL
-	move v1,v0
-	la	v0, COM3_BASE_ADDR
-	bne v0,v1,1b
-	nop
-#endif
 	j	ra
 	nop	
+	.set at
 END(tgt_putchar)
 
 /* baud rate definitions, matching include/termios.h */
@@ -1328,8 +1338,23 @@ END(tgt_putchar)
 #define B115200 115200
 
 LEAF(initserial)
+	.set noat
+	move AT,ra
+#if  (PCI_IDSEL_VIA686B != 0)
 	la	v0, COM1_BASE_ADDR
  	la	a0, NS16550HZ/2/(16*CONS_BAUD)
+	bal 1f
+	nop
+#endif
+
+#ifdef HAVE_NB_SERIAL
+	la	v0, COM3_BASE_ADDR
+ 	li	a0, NS16550HZ/(16*CONS_BAUD)
+	bal 1f
+	nop
+#endif
+	jr AT
+	nop
 1:
 	li	v1, FIFO_ENABLE|FIFO_RCV_RST|FIFO_XMT_RST|FIFO_TRIGGER_4
 	sb	v1, NSREG(NS16550_FIFO)(v0)
@@ -1344,15 +1369,9 @@ LEAF(initserial)
 	sb	v1, NSREG(NS16550_MCR)(v0)
 	li	v1, 0x0
 	sb	v1, NSREG(NS16550_IER)(v0)
-#ifdef HAVE_NB_SERIAL
-	move v1,v0
-	la	v0, COM3_BASE_ADDR
- 	li	a0, NS16550HZ/(16*CONS_BAUD)
-	bne v0,v1,1b
-	nop
-#endif
 	j	ra
 	nop
+	.set at
 END(initserial)
 
 
@@ -1649,7 +1668,7 @@ cache_init_panic:
 #define E2_FLOPPY (1<<4)
     
 LEAF(superio_init)
-
+#if (PCI_IDSEL_VIA686B != 0)
 	PCICONF_WRITEW(PCI_IDSEL_VIA686B,0,4,7);
 	/*positive decode*/
 	PCICONF_ORB(PCI_IDSEL_VIA686B,0,0x81,0x80);
@@ -1666,6 +1685,7 @@ LEAF(superio_init)
 	SUPERIO_WR(0xee,0xc0) /* both ports on high speed*/
 
 	PCICONF_WRITEB(PCI_IDSEL_VIA686B,0,0x85,1)
+#endif
 	jr ra
 	nop
 END(superio_init)

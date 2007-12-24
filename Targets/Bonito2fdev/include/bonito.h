@@ -39,7 +39,9 @@ extern char           *heaptop;
 
 #define COM1_BASE_ADDR	0xbfd003f8
 #define COM2_BASE_ADDR	0xbfd002f8
+#ifndef COM3_BASE_ADDR
 #define COM3_BASE_ADDR	0xbff003f8
+#endif
 //#define	NS16550HZ	1843200
 #define	NS16550HZ	3686400
 /*********************************************************************/
@@ -479,7 +481,11 @@ extern char           *heaptop;
 #define BONITO_SDCFG_DIMM_MOD_NUM_SHIFT	27
 
 #define VTSB_BUS 0
-#define VTSB_DEV 6
+#ifdef PCI_IDSEL_VIA686B
+#define VTSB_DEV PCI_IDSEL_VIA686B
+#else
+#define VTSB_DEV 17
+#endif
 #define VTSB_ISA_FUNC 0
 #define VTSB_IDE_FUNC 1
 #endif /* _BONITO_H_ */
