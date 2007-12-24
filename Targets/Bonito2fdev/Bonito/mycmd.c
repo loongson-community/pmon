@@ -117,38 +117,216 @@ syscall_addrtype=0;
 return 0;
 }
 
+#include "target/via686b.h"
 static int i2cslot=0;
-static int I2cRead(int type,long long addr,union commondata *mydata)
+
+static int DimmRead(int type,long long addr,union commondata *mydata)
 {
+char c;
 switch(type)
 {
-case 1:mydata->data1= i2cread((i2cslot<<1)+0xa1,addr); break;
+case 1:
+linux_outb((i2cslot<<1)+0xa1,SMBUS_HOST_ADDRESS);
+linux_outb(addr,SMBUS_HOST_COMMAND);
+linux_outb(0x8,SMBUS_HOST_CONTROL); 
+if((c=linux_inb(SMBUS_HOST_STATUS))&0x1f)
+{
+linux_outb(c,SMBUS_HOST_STATUS);
+}
+
+linux_outb(linux_inb(SMBUS_HOST_CONTROL)|0x40,SMBUS_HOST_CONTROL);
+
+while(linux_inb(SMBUS_HOST_STATUS)&SMBUS_HOST_STATUS_BUSY);
+
+if((c=linux_inb(SMBUS_HOST_STATUS))&0x1f)
+{
+linux_outb(c,SMBUS_HOST_STATUS);
+}
+
+mydata->data1=linux_inb(SMBUS_HOST_DATA0);
+break;
+
 default: return -1;break;
 }
 return 0;
 }
 
-static int I2cWrite(int type,long long addr,union commondata *mydata)
+static int DimmWrite(int type,long long addr,union commondata *mydata)
 {
 return -1;
 }
 
-static int i2cs(int argc,char **argv)
+
+static int Ics950220Read(int type,long long addr,union commondata *mydata)
 {
-if(argc!=2)return -1;
-i2cslot=strtoul(argv[1],0,0);
-syscall1=(void*)I2cRead;
-syscall2=(void*)I2cWrite;
-syscall_addrtype=0;
+char c;
+switch(type)
+{
+case 1:
+linux_outb(0xd3,SMBUS_HOST_ADDRESS); //0xd3
+linux_outb(addr,SMBUS_HOST_COMMAND);
+linux_outb(1,SMBUS_HOST_DATA0);
+linux_outb(0x14,SMBUS_HOST_CONTROL); //0x14
+if((c=linux_inb(SMBUS_HOST_STATUS))&0x1f)
+{
+linux_outb(c,SMBUS_HOST_STATUS);
+}
+
+linux_outb(linux_inb(SMBUS_HOST_CONTROL)|0x40,SMBUS_HOST_CONTROL);
+
+while(linux_inb(SMBUS_HOST_STATUS)&SMBUS_HOST_STATUS_BUSY);
+
+if((c=linux_inb(SMBUS_HOST_STATUS))&0x1f)
+{
+linux_outb(c,SMBUS_HOST_STATUS);
+}
+
+mydata->data1=linux_inb(SMBUS_HOST_DATA1+1);
+break;
+
+default: return -1;break;
+}
 return 0;
 }
+
+static int Ics950220Write(int type,long long addr,union commondata *mydata)
+{
+char c;
+switch(type)
+{
+case 1:
+linux_outb(0xd2,SMBUS_HOST_ADDRESS); //0xd3
+linux_outb(addr,SMBUS_HOST_COMMAND);
+linux_outb(1,SMBUS_HOST_DATA0);
+linux_outb(0x14,SMBUS_HOST_CONTROL); //0x14
+if((c=linux_inb(SMBUS_HOST_STATUS))&0x1f)
+{
+linux_outb(c,SMBUS_HOST_STATUS);
+}
+
+c=linux_inb(SMBUS_HOST_CONTROL);
+linux_outb(mydata->data1,SMBUS_HOST_DATA1+1);
+linux_outb(c|0x40,SMBUS_HOST_CONTROL);
+
+while(linux_inb(SMBUS_HOST_STATUS)&SMBUS_HOST_STATUS_BUSY);
+
+if((c=linux_inb(SMBUS_HOST_STATUS))&0x1f)
+{
+linux_outb(c,SMBUS_HOST_STATUS);
+}
+
+break;
+
+default: return -1;break;
+}
+return 0;
+return -1;
+}
+
+static int rom_ddr_reg_read(int type,long long addr,union commondata *mydata)
+{
+	    char *nvrambuf;
+		extern char ddr2_reg_data,_start;
+        nvrambuf = 0xbfc00000+((int)&ddr2_reg_data -(int)&_start)+addr;
+//		printf("ddr2_reg_data=%x\nbuf=%x,ddr=%x\n",&ddr2_reg_data,nvrambuf,addr);
+switch(type)
+{
+case 1:memcpy(&mydata->data1,nvrambuf,1);break;
+case 2:memcpy(&mydata->data2,nvrambuf,2);break;
+case 4:memcpy(&mydata->data4,nvrambuf,4);break;
+case 8:memcpy(&mydata->data8,nvrambuf,8);break;
+}
+return 0;
+}
+
+static int rom_ddr_reg_write(int type,long long addr,union commondata *mydata)
+{
+        char *nvrambuf;
+        char *nvramsecbuf;
+	    char *nvram;
+		int offs;
+		extern char ddr2_reg_data,_start;
+		struct fl_device *dev=fl_devident(0xbfc00000,0);
+		int nvram_size=dev->fl_secsize;
+
+        nvram = 0xbfc00000+((int)&ddr2_reg_data -(int)&_start);
+		offs=(int)nvram &(nvram_size - 1);
+        nvram  =(int)nvram & ~(nvram_size - 1);
+
+	/* Deal with an entire sector even if we only use part of it */
+
+        /* If NVRAM is found to be uninitialized, reinit it. */
+
+        /* Find end of evironment strings */
+	nvramsecbuf = (char *)malloc(nvram_size);
+
+	if(nvramsecbuf == 0) {
+		printf("Warning! Unable to malloc nvrambuffer!\n");
+		return(-1);
+	}
+
+        memcpy(nvramsecbuf, nvram, nvram_size);
+        if(fl_erase_device(nvram, nvram_size, FALSE)) {
+		printf("Error! Nvram erase failed!\n");
+		free(nvramsecbuf);
+                return(0);
+        }
+	    
+		nvrambuf = nvramsecbuf + offs;
+switch(type)
+{
+case 1:memcpy(nvrambuf+addr,&mydata->data1,1);break;
+case 2:memcpy(nvrambuf+addr,&mydata->data2,2);break;
+case 4:memcpy(nvrambuf+addr,&mydata->data4,4);break;
+case 8:memcpy(nvrambuf+addr,&mydata->data8,8);break;
+}
+        
+		if(fl_program_device(nvram, nvramsecbuf, nvram_size, FALSE)) {
+		printf("Error! Nvram program failed!\n");
+		free(nvramsecbuf);
+                return(0);
+        }
+	free(nvramsecbuf);
+        return 0;
+}
+
+static int i2cs(int argc,char **argv)
+{
+if(argc!=2) return -1;
+
+i2cslot=strtoul(argv[1],0,0);
+
+switch(i2cslot)
+{
+case 0:
+case 1:
+ syscall1=(void*)DimmRead;
+ syscall2=(void*)DimmWrite;
+break;
+case 2:
+ syscall1=(void*)Ics950220Read;
+ syscall2=(void*)Ics950220Write;
+case 3:
+ syscall1=(void *)rom_ddr_reg_read;
+ syscall2=(void *)rom_ddr_reg_write;
+break;
+default:
+ return -1;
+break;
+}
+
+syscall_addrtype=0;
+
+return 0;
+}
+
 
 static const Cmd Cmds[] =
 {
 	{"MyCmds"},
 	{"pnps",	"", 0, "select pnp ops for d1,m1 ", pnps, 0, 99, CMD_REPEAT},
 	{"dumpsis",	"", 0, "dump sis registers", dumpsis, 0, 99, CMD_REPEAT},
-	{"i2cs","i2cs slotno", 0, "select i2c ops for d1", i2cs, 0, 99, CMD_REPEAT},
+	{"i2cs","slotno #slot 0-1 for dimm,slot 2 for ics95220,3 for ddrcfg", 0, "select i2c ops for d1,m1", i2cs, 0, 99, CMD_REPEAT},
 	{0, 0}
 };
 

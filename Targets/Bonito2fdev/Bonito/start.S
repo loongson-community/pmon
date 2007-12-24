@@ -1746,8 +1746,9 @@ reg_write:
 
 
 
-	.rdata
+	.text
 	.align 5
+	.global ddr2_reg_data;
 ddr2_reg_data:
 //0000000_0 arefresh 0000000_1 ap 0000000_1 addr_cmp_en 0000000_1 active_aging
 DDR2_CTL_00_DATA_LO:	.word 0x00000101
@@ -1899,7 +1900,7 @@ DDR2_CTL_26_DATA_HI:	.word 0x00000000
 DDR2_CTL_27_DATA_LO:	.word 0x00000000
 DDR2_CTL_27_DATA_HI:	.word 0x00000000
 //0000000000000000000000000000000000000000000000000000000000000000
-DDR2_CTL_28_DATA_LO:	.word 0x00000001
+DDR2_CTL_28_DATA_LO:	.word 0x00000000
 DDR2_CTL_28_DATA_HI:	.word 0x00000000
 //0000000_1 rw_same_en 0000000_0 reg_dimm_enable 0000000_0 reduc 0000000_0 pwrup_srefresh_exit
 DDR2_CTL_start_DATA_LO: .word 0x01000000
