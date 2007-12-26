@@ -1822,7 +1822,11 @@ DDR2_CTL_06_DATA_HI:	.word 0x0a040306 #800
 //0000_0000 ecc_c_id 0000_1111 cs_map 0000_0111 caslat_lin_gate 0000_1010 caslat_lin
 //DDR2_CTL_07_DATA_LO:	.word 0x000f0808 #CL=4//cs_map to cs0-cs3
 //DDR2_CTL_07_DATA_LO:	.word 0x000f0606 #CL=3///cs_map to cs0-cs3
+#ifdef DEVBD2F_SM502
+DDR2_CTL_07_DATA_LO:	.word 0x00030a0b #CL=5//cs_map to cs0-cs3
+#else
 DDR2_CTL_07_DATA_LO:	.word 0x000f0a0b #CL=5//cs_map to cs0-cs3
+#endif
 //DDR2_CTL_07_DATA_LO:	.word 0x000c0708 #CL=4//cs_map to cs2-cs3
 //0000_0000 max_row_reg 0000_0000 max_col_reg 0000_0010 initaref 0000_0000 ecc_u_id 
 //DDR2_CTL_07_DATA_HI:	.word 0x00000200
@@ -1990,7 +1994,11 @@ DDR2_CTL_06_DATA_HI_1:	.word 0x0a040306 #800
 //0000_0000 ecc_c_id 0000_1111 cs_map 0000_0111 caslat_lin_gate 0000_1010 caslat_lin
 //DDR2_CTL_07_DATA_LO_1:	.word 0x000f0808 #CL=4//cs_map to cs0-cs3
 //DDR2_CTL_07_DATA_LO_1:	.word 0x000f0606 #CL=3///cs_map to cs0-cs3
+#ifdef DEVBD2F_SM502
+DDR2_CTL_07_DATA_LO_1:	.word 0x00030a0b #CL=5//cs_map to cs0-cs3
+#else
 DDR2_CTL_07_DATA_LO_1:	.word 0x000f0a0b #CL=5//cs_map to cs0-cs3
+#endif
 //DDR2_CTL_07_DATA_LO_1:	.word 0x000c0708 #CL=4//cs_map to cs2-cs3
 //0000_0000 max_row_reg 0000_0000 max_col_reg 0000_0010 initaref 0000_0000 ecc_u_id 
 //DDR2_CTL_07_DATA_HI_1:	.word 0x00000200
