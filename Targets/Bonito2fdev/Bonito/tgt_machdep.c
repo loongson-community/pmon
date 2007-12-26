@@ -188,6 +188,13 @@ _pci_allocate_io(dev, size)
 void
 initmips(unsigned int memsz)
 {
+
+{
+/*set lio bus to 16 bit*/
+volatile char *p=0xbfe00108;
+*p=((*p)&~(0x1f<<8))|(0x8<<8) |(1<<13);
+}
+
 /*enable float*/
 memsz=512;
 
