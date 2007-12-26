@@ -1800,7 +1800,11 @@ DDR2_CTL_04_DATA_LO:	.word 0x00010101
 DDR2_CTL_04_DATA_HI:	.word 0x01000202
 //00000_100 column_size 00000_101 caslat 00000_010 addr_pins 000000_10 rtt_pad_termination
 //DDR2_CTL_05_DATA_LO:	.word 0x04050202 #CL =5
+#ifdef DEVBD2F_SM502
+DDR2_CTL_05_DATA_LO:	.word 0x04050202 #CL =4
+#else
 DDR2_CTL_05_DATA_LO:	.word 0x04050102 #CL =4
+#endif
 //DDR2_CTL_05_DATA_LO:	.word 0x04030102 #CL =3
 //00000_000 q_fullness 00000_000 port_data_error_type 00000_000 out_of_range_type 00000_000 max_cs_reg 
 DDR2_CTL_05_DATA_HI:	.word 0x00000000
@@ -1824,9 +1828,9 @@ DDR2_CTL_07_DATA_LO:	.word 0x000f0a0b #CL=5//cs_map to cs0-cs3
 //DDR2_CTL_07_DATA_HI:	.word 0x00000200
 DDR2_CTL_07_DATA_HI:	.word 0x00000400 #800
 //0000_0001 odt_rd_map_cs3 0000_0010 odt_rd_map_cs2 0000_0100 odt_rd_map_cs1 0000_1000 odt_rd_map_cs0
-DDR2_CTL_08_DATA_LO:	.word 0x01010101
+DDR2_CTL_08_DATA_LO:	.word 0x01020408
 //0000_0001 odt_wr_map_cs3 0000_0010 odt_wr_map_cs2 0000_0100 odt_wr_map_cs1 0000_1000 odt_wr_map_cs0 
-DDR2_CTL_08_DATA_HI:	.word 0x01010101
+DDR2_CTL_08_DATA_HI:	.word 0x01020408
 //0000_0000 port_data_error_id 0000_0000 port_cmd_error_type 0000_0000 port_cmd_error_id 0000_0000 out_of_range_source_id
 DDR2_CTL_09_DATA_LO:	.word 0x00000000
 //000_00000 ocd_adjust_pup_cs_0 000_00000 ocd_adjust_pdn_cs_0 0000_0100 trp 0000_1000 tdal 
@@ -1964,7 +1968,11 @@ DDR2_CTL_04_DATA_LO_1:	.word 0x00010101
 DDR2_CTL_04_DATA_HI_1:	.word 0x01000202
 //00000_100 column_size 00000_101 caslat 00000_010 addr_pins 000000_10 rtt_pad_termination
 //DDR2_CTL_05_DATA_LO_1:	.word 0x04050202 #CL =5
+#ifdef DEVBD2F_SM502
+DDR2_CTL_05_DATA_LO_1:	.word 0x04050202 #CL =4
+#else
 DDR2_CTL_05_DATA_LO_1:	.word 0x04050102 #CL =4
+#endif
 //DDR2_CTL_05_DATA_LO_1:	.word 0x04030102 #CL =3
 //00000_000 q_fullness 00000_000 port_data_error_type 00000_000 out_of_range_type 00000_000 max_cs_reg 
 DDR2_CTL_05_DATA_HI_1:	.word 0x00000000
@@ -1988,9 +1996,9 @@ DDR2_CTL_07_DATA_LO_1:	.word 0x000f0a0b #CL=5//cs_map to cs0-cs3
 //DDR2_CTL_07_DATA_HI_1:	.word 0x00000200
 DDR2_CTL_07_DATA_HI_1:	.word 0x00000400 #800
 //0000_0001 odt_rd_map_cs3 0000_0010 odt_rd_map_cs2 0000_0100 odt_rd_map_cs1 0000_1000 odt_rd_map_cs0
-DDR2_CTL_08_DATA_LO_1:	.word 0x01010101
+DDR2_CTL_08_DATA_LO_1:	.word 0x01020408
 //0000_0001 odt_wr_map_cs3 0000_0010 odt_wr_map_cs2 0000_0100 odt_wr_map_cs1 0000_1000 odt_wr_map_cs0 
-DDR2_CTL_08_DATA_HI_1:	.word 0x01010101
+DDR2_CTL_08_DATA_HI_1:	.word 0x01020408
 //0000_0000 port_data_error_id 0000_0000 port_cmd_error_type 0000_0000 port_cmd_error_id 0000_0000 out_of_range_source_id
 DDR2_CTL_09_DATA_LO_1:	.word 0x00000000
 //000_00000 ocd_adjust_pup_cs_0 000_00000 ocd_adjust_pdn_cs_0 0000_0100 trp 0000_1000 tdal 
