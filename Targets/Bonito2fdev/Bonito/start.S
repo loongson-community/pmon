@@ -785,8 +785,9 @@ gs_2f_v3_ddr2_cfg:
 #endif    
 	li	msize,0x0f000000
 	PRINTSTR("DDR2 config begin_whd\r\n")
-	bal	ddr2_config
+	b	ddr2_config
 	nop
+ddr2_config_done:
 	PRINTSTR("DDR2 config end\r\n")
 
 #if 1 /* read ddr2 registers */
@@ -1710,7 +1711,6 @@ END(superio_init)
         .set    noreorder
         .set    mips3
 ddr2_config:
-	move a3,ra
     la      t0, ddr2_reg_data
 	bal tgt_testchar
 	nop
@@ -1726,7 +1726,6 @@ ddr2_config:
 	PRINTSTR("use backup data for ddr cfg\r\n");
     la      t0, ddr2_reg_data1
 1:
-	move ra,a3
     addu    t0, t0, s0
     li      t1, 0x1d
     li      t2, CONFIG_BASE
@@ -1755,6 +1754,29 @@ reg_write:
     addiu     t0, t0, 0x8
     bne     t1, $0, reg_write
     addiu     t2, t2, 0x10
+
+	bal tgt_testchar
+	nop
+	beqz v0,2f
+	bal tgt_getchar
+	nop
+	bal tgt_getchar
+	nop
+	li v1,'Y'
+	bne v0,v1,2f
+	nop
+1:
+	PRINTSTR("press x to begin debug,then Q to quit\r\n");
+	nop
+	bal tgt_getchar
+	nop
+	li v1,'x'
+	bne v0,v1,1b
+	nop
+
+	bal mydebug_main
+    nop	
+2:
     
     ############start##########
 	//PRINTSTR("start\n\r");
@@ -1764,6 +1786,9 @@ reg_write:
     addu    	t0, t0, s0
     ld      a1, 0x0(t0)
     sd      a1, 0x30(t2)
+
+	b ddr2_config_done
+	nop
 
     jr      ra
     nop
