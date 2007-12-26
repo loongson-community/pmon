@@ -198,18 +198,23 @@ static void nvram_on(void)
 	_pci_conf_writen(tag,0x43,0xc0,1);	
 }
 
+#ifndef NECUPD720101_DEV
+#define NECUPD720101_DEV 9
+#endif
 static void initUSB(void)
 {
     pcitag_t tag;
     char val;
     int i;
+#ifdef NECUPD720101_DEV
     for(i=0;i<3;i++)
     {
-    tag=_pci_make_tag(0,9,i);
+    tag=_pci_make_tag(0,NECUPD720101_DEV,i);
     val=_pci_conf_readn(tag,0xe0,1);
     _pci_conf_writen(tag,0xe0,(val&~7)|0x84,1);
     _pci_conf_writen(tag,0xe4,0x20,4);
    }
+#endif
 }
 
 static void myfixup()
@@ -328,13 +333,15 @@ linux_outb(0x80,0x71);
 
 void vt82c686_init(void)
 {
+#if (PCI_IDSEL_VIA686B!=0)
 	initSerial();
 	init_keyboard();
 	initIDE();	
 	initIRQ();
 	//disable_usb();
 	enable_io_decode();
-	initUSB();
 	myfixup();
+#endif
+	initUSB();
 }
 
