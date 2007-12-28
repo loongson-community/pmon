@@ -158,7 +158,7 @@ ide_cd* 	at pciide? channel ? drive ? flags 0x0001
 select 		iso9660
 option IDECD 
 #option HAVE_NB_SERIAL
-option USE_ENVMAC
+#option USE_ENVMAC
 #option LOOKLIKE_PC
 #select cmd_lwdhcp
 #select cmd_bootp

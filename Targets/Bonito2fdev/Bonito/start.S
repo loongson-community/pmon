@@ -812,9 +812,10 @@ not_locked:
 #if 1
 	TTYDBG	("\r\ndisable register space of MEMORY\r\n")
         li  t2,0xbfe00180
-        ld  a1,0x0(t2)
-        or  a1,a1,0x100
-        sd  a1,0x0(t2)
+        lw  a1,0x0(t2)
+        or  a1,a1,0x700 //disable ddr config space and no 写结束时是否允许数据未到内存 , no 写结束时是否允许数据未到内存
+		xor a1,0x600
+        sw  a1,0x0(t2)
 #endif    
 
 

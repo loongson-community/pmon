@@ -207,12 +207,17 @@ static void initUSB(void)
     char val;
     int i;
 #ifdef NECUPD720101_DEV
-    for(i=0;i<3;i++)
-    {
     tag=_pci_make_tag(0,NECUPD720101_DEV,i);
-    val=_pci_conf_readn(tag,0xe0,1);
-    _pci_conf_writen(tag,0xe0,(val&~7)|0x84,1);
-    _pci_conf_writen(tag,0xe4,0x20,4);
+    val=_pci_conf_readn(tag,0x0,4);
+	if(val==0x00351033)
+	{
+		for(i=0;i<3;i++)
+		{
+		tag=_pci_make_tag(0,NECUPD720101_DEV,i);
+		val=_pci_conf_readn(tag,0xe0,1);
+		_pci_conf_writen(tag,0xe0,(val&~7)|0x84,1);
+		_pci_conf_writen(tag,0xe4,0x20,4);
+	   }
    }
 #endif
 }
