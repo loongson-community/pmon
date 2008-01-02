@@ -189,11 +189,13 @@ void
 initmips(unsigned int memsz)
 {
 
+#ifdef DEVBD2F_SM502
 {
 /*set lio bus to 16 bit*/
 volatile int *p=0xbfe00108;
 *p=((*p)&~(0x1f<<8))|(0x8<<8) |(1<<13);
 }
+#endif
 
 /*enable float*/
 memsz=512;
