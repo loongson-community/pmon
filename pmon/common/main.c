@@ -226,6 +226,10 @@ autoload(char *s)
 			{
 			sprintf(buf,"g %s",pa);
 			}
+			else if((pa=getenv("karg")))
+			{
+			sprintf(buf,"g %s",pa);
+			}
 			else
 			{
 			pa=getenv("dev");
