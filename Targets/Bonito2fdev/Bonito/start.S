@@ -141,7 +141,7 @@
 li v0,0xbfe0011c; \
 lw v1,4(v0); \
 or v1,0xf; \
-xor v1,0xf; \
+xor v1,0xe; \
 sw v1,4(v0); \
 li v1,(~x)&0xf;\
 sw v1,0(v0);\
