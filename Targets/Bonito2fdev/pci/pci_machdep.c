@@ -145,7 +145,6 @@ _pci_hwinit(initialise, iot, memt)
 	
 	bus_dmamap_tag._dmamap_offs = 0;
 
-#ifndef LOOKLIKE_PC
 /*set pci base0 address and window size*/
 	pci_local_mem_pci_base = 0x80000000;
 	BONITO_PCIBASE0 = 0x80000000;
@@ -154,16 +153,16 @@ _pci_hwinit(initialise, iot, memt)
 	BONITO(BONITO_REGBASE + 0x54) = 0xffffffff;
    /*set master1's window0 to map pci 2G->DDR 0 */
 	  asm(".set mips3;dli $2,0x900000003ff00000;li $3,0x80000000;sd $3,0x60($2);sd $0,0xa0($2);dli $3,0xffffffff80000000;sd $3,0x80($2);.set mips0" :::"$2","$3");
-	  asm(".set mips3;dli $2,0x900000003ff00000;sd $0,0x68($2);sd $0,0xa8($2);dli $3,0xfffffffff0000000;sd $3,0x88($2);.set mips0" :::"$2","$3");
-#else
-	pci_local_mem_pci_base = 0;
-	BONITO_PCIBASE0 = 0x0;
-	BONITO_PCIBASE1 = 0;
-	BONITO(BONITO_REGBASE + 0x50) = 0xf000000c;
-	BONITO(BONITO_REGBASE + 0x54) = 0xffffffff;
-   /*set master1's window1 to map pci 0->DDR 0 ,size 256M*/
-	  asm(".set mips3;dli $2,0x900000003ff00000;sd $0,0x68($2);sd $0,0xa8($2);dli $3,0xfffffffff0000000;sd $3,0x88($2);.set mips0" :::"$2","$3");
-#endif
+
+	/* 
+	 * PCI to local mapping: [8M,16M] -> [8M,16M]
+	 */
+	BONITO_PCI_REG(0x18) = 0x00800000; 
+	BONITO_PCI_REG(0x1c) = 0x0;
+	BONITO(BONITO_REGBASE + 0x58) = 0xff80000c;
+	BONITO(BONITO_REGBASE + 0x5c) = 0xffffffff;
+	/*set pci 8-16M -> DDR 8-16M ,window size 8M,can not map 0-8M to pci,because ddr pci address will cover vga mem.*/
+	  asm(".set mips3;dli $2,0x900000003ff00000;li $3,0x800000;sd $3,0x68($2);sd $3,0xa8($2);dli $3,0xffffffffff800000;sd $3,0x88($2);.set mips0" :::"$2","$3");
 
 	return(1);
 }
