@@ -66,26 +66,14 @@ select		cmd_shell		# Shell commands, vers, help, eval
 #
 # Platform options
 #
-
-select 		ramfiles
 select		mod_uart_ns16550	# Standard UART driver
 #option		CONS_BAUD=B9600
 option		CONS_BAUD=B115200
 select		ext2
 select		fatfs
-#select		mod_x86emu		# X86 emulation for VGA
+select		mod_x86emu		# X86 emulation for VGA
 option 	MY40IO
 #select		mod_x86emu_int10
-select 		mod_framebuffer
-select		mod_smi502		# Silicon Motion502
-option		SMI502
-#option		X640x480
-option		X800x600
-#option		X1024x768
-#option		X1280x800
-#option 	CONFIG_VIDEO_SM501_8BPP
-option 		CONFIG_VIDEO_SM501_16BPP
-#option 	CONFIG_VIDEO_SM501_32BPP
 select		mod_vgacon
 option		NOPCINAMES		# Save some space for x86emu
 #option		FASTBOOT
@@ -99,7 +87,7 @@ option		NOSNOOP			# Caches are no-snooping
 #
 # HAVE options. What tgt level provide
 #
-#option		HAVE_TOD		# Time-Of-Day clock
+option		HAVE_TOD		# Time-Of-Day clock
 option		HAVE_NVENV		#  Platform has non-volatile env mem
 option		HAVE_LOGO		# Output splash logo
 option		USE_SUPERIO_UART
@@ -146,7 +134,7 @@ fxp0            at pci? dev ? function ?        # Intel 82559 Device
 #inphy*          at mii? phy ?                   # Intel 82555 PHYs
 rtl*        at pci? dev ? function ?
 #uhci*		 at pci? dev ? function ?
-#ohci*		 at pci? dev ? function ?
+#ohci0		 at pci? dev ? function ?
 #usb*		 at usbbus ? 
 #ohci1		 at pci? dev ? function ?
 
@@ -177,7 +165,7 @@ option HAVE_NB_SERIAL
 option FOR_GXEMUL
 select fatfs
 option FLOATINGPT
-option PCI_IDSEL_VIA686B=0
-option COM3_BASE_ADDR=0xbfc803f8
-option DEVBD2F_SM502
-
+option PCI_IDSEL_VIA686B=6
+option COM3_BASE_ADDR=0xbff003f8
+option WDC_NORESET
+select cs5536

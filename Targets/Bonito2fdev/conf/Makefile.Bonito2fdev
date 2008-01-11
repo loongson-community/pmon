@@ -48,6 +48,7 @@ endif
 # Defines
 
 TARGET= ${S}/Targets/Bonito2fdev
+SUBTARGET?=Bonito
 MACHINE=mips
 MACHINE_ARCH=mips
 COMPILEDIR=${shell pwd}
@@ -189,11 +190,11 @@ links:
 	  sed 's,../.*/\(.*.o\),rm -f \1; ln -s ../GENERIC/\1 \1,' > makelinks
 	sh makelinks && rm -f dontlink
 
-SRCS=	${TARGET}/Bonito/start.S \
+SRCS=	${TARGET}/${SUBTARGET}/start.S \
 	param.c ioconf.c ri.c ${CFILES} ${SFILES}
 depend:: .depend
 .depend: ${SRCS} param.c
-	${MKDEP} ${AFLAGS} ${CPPFLAGS} ${TARGET}/Bonito/start.S
+	${MKDEP} ${AFLAGS} ${CPPFLAGS} ${TARGET}/${SUBTARGET}/start.S
 	${MKDEP} -a ${CFLAGS} ${CPPFLAGS} param.c ioconf.c ${CFILES}
 ifneq (${SFILES}, "")
 	${MKDEP} -a ${AFLAGS} ${CPPFLAGS} ${SFILES}
@@ -205,14 +206,14 @@ autoconf.o conf.o: Makefile
 # depend on network or filesystem configuration
 uipc_proto.o vfs_conf.o: Makefile
 
-start.o: ${TARGET}/Bonito/start.S Makefile
+start.o: ${TARGET}/${SUBTARGET}/start.S Makefile
 	${NORMAL_S}
 
 zpmon: startz.o
 	rm start.o && cp -f startz.o start.o
 	make pmon
 	make -C ../zboot zpmon
-startz.o: ${TARGET}/Bonito/startz.S Makefile
+startz.o: ${TARGET}/${SUBTARGET}/startz.S Makefile
 	${NORMAL_S}
 
 %RULES

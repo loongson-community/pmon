@@ -73,6 +73,7 @@ file    sys/dev/pci/ppb.c              ppb
 
 file	sys/dev/pci/pcidevs.c		pci
 file	sys/dev/pci/vt82c686.c 		pci&vt82c686
+file	sys/dev/pci/cs5536.c 		pci&cs5536
 
 #added by yh
 
