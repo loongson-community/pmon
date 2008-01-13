@@ -387,13 +387,23 @@ extern int test_icache_3(int addr);
 extern void godson1_cache_flush(void);
 #define tgt_putchar_uc(x) (*(void (*)(char)) (((long)tgt_putchar)|0x20000000)) (x)
 
+extern void cs5536_gpio_init(void);
+extern void test_gpio_function(void);
+extern void cs5536_pci_fixup(void);
 
 void
 tgt_devinit()
 {
+#if  (PCI_IDSEL_VIA686B != 0)
 	SBD_DISPLAY("686I",0);
 	
 	vt82c686_init();
+#endif
+
+#if  (PCI_IDSEL_CS5536 != 0)
+	SBD_DISPLAY("5536",0);
+	cs5536_init();
+#endif
 
 	/*
 	 *  Gather info about and configure caches.
@@ -414,12 +424,55 @@ tgt_devinit()
     CPU_ConfigCache();
 
 	_pci_businit(1);	/* PCI bus initialization */
-#ifdef VIA686B_POWERFIXUP
-if(!getenv("poweronboot"))	vt82c686_powerfixup();
+#if defined(VIA686B_POWERFIXUP) && (PCI_IDSEL_VIA686B != 0)
+if(getenv("noautopower"))	vt82c686_powerfixup();
+#endif
+
+#if  (PCI_IDSEL_CS5536 != 0)
+	cs5536_pci_fixup();
 #endif
 }
 
 
+#ifdef DEVBD2F_CS5536
+void
+tgt_reboot()
+{
+	unsigned long hi, lo;
+	
+	/* reset the cs5536 whole chip */
+	_rdmsr(0xe0000014, &hi, &lo);
+	lo |= 0x00000001;
+	_wrmsr(0xe0000014, hi, lo);
+
+	while(1);
+}
+
+void
+tgt_poweroff()
+{
+	unsigned long val;
+	unsigned long tag;
+	unsigned long base;
+
+	tag = _pci_make_tag(0, 14, 0);
+	base = _pci_conf_read(tag, 0x14);
+	base |= 0xbfd00000;
+	base &= ~3;
+
+	/* make cs5536 gpio13 output enable */
+	val = *(volatile unsigned long *)(base + 0x04);
+	val = ( val & ~(1 << (16 + 13)) ) | (1 << 13) ;
+	*(volatile unsigned long *)(base + 0x04) = val;
+	
+	/* make cs5536 gpio13 output low level voltage. */
+	val = *(volatile unsigned long *)(base + 0x00);
+	val = (val | (1 << (16 + 13))) & ~(1 << 13);
+	*(volatile unsigned long *)(base + 0x00) = val;
+
+	while(1);
+}
+#else
 void
 tgt_reboot()
 {
@@ -432,6 +485,7 @@ tgt_reboot()
 	while(1);
 
 }
+#endif
 
 
 /*

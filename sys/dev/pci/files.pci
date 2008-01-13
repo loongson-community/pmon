@@ -90,3 +90,8 @@ attach ohci at pci
 
 #file sys/dev/pci/usb-ohci.c		ohci
 
+#added by jlliu
+device  rtk: ether, ifnet
+attach  rtk at pci
+file    sys/dev/pci/rtl8169.c         rtk
+

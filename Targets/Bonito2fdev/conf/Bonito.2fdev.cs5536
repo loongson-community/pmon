@@ -165,7 +165,7 @@ option HAVE_NB_SERIAL
 option FOR_GXEMUL
 select fatfs
 option FLOATINGPT
-option PCI_IDSEL_VIA686B=6
+option PCI_IDSEL_CS5536=14
 option COM3_BASE_ADDR=0xbff003f8
 option WDC_NORESET
 select cs5536
