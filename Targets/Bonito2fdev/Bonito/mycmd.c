@@ -290,8 +290,296 @@ case 8:memcpy(nvrambuf+addr,&mydata->data8,8);break;
         return 0;
 }
 
+#ifdef DEVBD2F_SM502
+static volatile char *mmio = 0;
+#define SM502_I2C_COUNT 0x010040
+#define SM502_I2C_CTRL 0x010041
+#define SM502_I2C_STAT 0x010042
+#define SM502_I2C_ADDR 0x010043      //0:write,1:read
+#define SM502_I2C_DATA 0x010044      //44-53
+#define GPIO_DIR_HIGH 		(volatile unsigned int *)(mmio + 0x1000c)
+#define GPIO_DATA_HIGH		(volatile unsigned int *)(mmio + 0x10004)
+#define G_OUTPUT		1
+#define G_INPUT			0
+
+
+static void i2c_sleep(int ntime)
+{
+	int i,j=0;
+	for(i=0; i<300*ntime; i++)
+	{
+		j=i;
+		j+=i;
+	}
+}
+
+void sda_dir(int ivalue)
+{
+	int tmp;
+	tmp = *GPIO_DIR_HIGH;
+	if(ivalue == 1)
+		*GPIO_DIR_HIGH = tmp|(0x1<<15);
+	else
+		*GPIO_DIR_HIGH = tmp&(~(0x1<<15));
+}
+void scl_dir(int ivalue)
+{
+	int tmp;
+	tmp = *GPIO_DIR_HIGH;
+	if(ivalue == 1)
+		*GPIO_DIR_HIGH = tmp|(0x1<<14);
+	else
+		*GPIO_DIR_HIGH = tmp&(~(0x1<<14));
+}
+
+void sda_bit(int ivalue)
+{
+	int tmp;
+	tmp = *GPIO_DATA_HIGH;
+	if(ivalue == 1)
+		*GPIO_DATA_HIGH = tmp|(0x1<<15);
+	else
+		*GPIO_DATA_HIGH = tmp&(~(0x1<<15));
+}
+void scl_bit(int ivalue)
+{
+	int tmp;
+	tmp = *GPIO_DATA_HIGH;
+	if(ivalue == 1)
+		*GPIO_DATA_HIGH = tmp|(0x1<<14);
+	else
+		*GPIO_DATA_HIGH = tmp&(~(0x1<<14));
+}
+
+static void i2c_start(void)
+{
+	sda_dir(G_OUTPUT);
+	scl_dir(G_OUTPUT);
+	scl_bit(0);
+	i2c_sleep(1);
+	sda_bit(1);
+	i2c_sleep(1);
+	scl_bit(1);
+	i2c_sleep(5);
+	sda_bit(0);
+	i2c_sleep(5);
+	scl_bit(0);
+	i2c_sleep(2);
+	
+}
+static void i2c_stop(void)
+{
+	sda_dir(G_OUTPUT);
+	scl_dir(G_OUTPUT);
+	scl_bit(0);
+	i2c_sleep(1);
+	sda_bit(0);
+	i2c_sleep(1);
+	scl_bit(1);
+	i2c_sleep(5);
+	sda_bit(1);
+	i2c_sleep(5);
+	scl_bit(0);
+	i2c_sleep(2);
+	
+		
+}
+
+static void i2c_send_ack(int ack)
+{
+	sda_dir(G_OUTPUT);
+	sda_bit(ack);
+	i2c_sleep(3);
+	scl_bit(1);
+	i2c_sleep(5);
+	scl_bit(0);
+	i2c_sleep(2);
+}
+
+static char i2c_rec_ack()
+{
+        char res = 1;
+        int num=10;
+	int tmp;
+        sda_dir(G_INPUT);
+        i2c_sleep(3);
+        scl_bit(1);
+        i2c_sleep(5);
+	tmp = ((*GPIO_DATA_HIGH)&0x8000);
+
+        //wait for a ack signal from slave
+
+        while(tmp)
+        {
+                i2c_sleep(1);
+                num--;
+                if(!num)
+                {
+                        res = 0;
+                        break;
+                }
+		tmp = ((*GPIO_DATA_HIGH)&0x8000);
+        }
+        scl_bit(0);
+        i2c_sleep(3);
+        return res;
+}
+
+
+static unsigned char i2c_rec()
+{
+	int i;
+	int tmp;
+	unsigned char or_char;
+	unsigned char value = 0x00;
+	sda_dir(G_INPUT);
+	for(i=7;i>=0;i--)
+	{
+		i2c_sleep(5);
+		scl_bit(1);
+		i2c_sleep(3);
+		tmp = ((*GPIO_DATA_HIGH)&0x8000);
+
+		if(tmp)
+			or_char=0x1;
+		else
+			or_char=0x0;
+		or_char<<=i;
+		value|=or_char;
+		i2c_sleep(3);
+		scl_bit(0);
+	}
+	return value;
+}
+
+static unsigned char i2c_send(unsigned char value)
+{//we assume that now scl is 0
+	int i;
+	unsigned char and_char;
+	sda_dir(G_OUTPUT);
+	for(i=7;i>=0;i--)
+	{
+		and_char = value;
+		and_char>>=i;
+		and_char&=0x1;
+		if(and_char)
+			sda_bit(1);
+		else
+			sda_bit(0);
+		i2c_sleep(1);
+		scl_bit(1);
+		i2c_sleep(5);
+		scl_bit(0);
+		i2c_sleep(1);
+	}
+	sda_bit(1);	
+	return 1;
+}
+
+unsigned char i2c_rec_s(unsigned char slave_addr,unsigned char sub_addr,unsigned char* buf ,int count)
+{
+	
+	unsigned char value;
+	while(count)
+	{
+		//start signal
+		i2c_start();
+		//write slave_addr
+		i2c_send(slave_addr);
+		if(!i2c_rec_ack())
+			return 0;
+		//write sub_addr
+		i2c_send(sub_addr);
+		if(!i2c_rec_ack())
+			return 0;
+
+		//repeat start
+		i2c_start();
+		//write slave_addr+1
+		i2c_send(slave_addr+0x1);
+		if(!i2c_rec_ack())
+			return 0;
+		//read data
+		value=i2c_rec();	
+		i2c_send_ack(1);//***add in***//
+		i2c_stop();
+		
+		//deal the data
+		*buf=value;
+		buf++;	
+		count--;
+		sub_addr++;
+	}
+
+	return 1;
+}
+
+unsigned char i2c_send_s(unsigned char slave_addr,unsigned char sub_addr,unsigned char * buf ,int count)
+{
+	while(count)
+	{	
+		i2c_start();	
+		i2c_send(slave_addr);
+		if(!i2c_rec_ack())
+			return 0;
+		i2c_send(sub_addr);
+		if(!i2c_rec_ack())
+			return 0;
+		i2c_send(*buf);
+		if(!i2c_rec_ack())
+			return 0;
+		i2c_stop();
+		//deal the data
+		buf++;
+		count--;
+		sub_addr++;
+	}
+	return 1;
+}
+
+static int sm502RtcRead(int type,long long addr,union commondata *mydata)
+{
+	char c;
+
+//	printf("mmio =%x\n",mmio);
+//	printf("%x\n",addr);
+	switch(type)
+	{
+	case 1:
+		if(i2c_rec_s((unsigned char)0x64,addr<<4,&c,1))
+			memcpy(&mydata->data1,&c,1);
+		else
+			printf("rec data error!\n");
+		break;
+	default:
+		return -1;
+	}
+	return 0;
+}
+static int sm502RtcWrite(int type,long long addr,union commondata *mydata)
+{
+	char c;
+
+	switch(type)
+	{
+	case 1:	
+	
+		memcpy(&c,&mydata->data1,1);
+		if(i2c_send_s((unsigned char)0x64,addr<<4,&c,1))
+			;
+		else
+			printf("send data error\n");
+		break;
+	default:
+		return -1;
+	}
+	return 0;
+}
+#endif
 static int i2cs(int argc,char **argv)
 {
+	pcitag_t tag;
+	volatile int tmp;
 if(argc!=2) return -1;
 
 i2cslot=strtoul(argv[1],0,0);
@@ -310,6 +598,21 @@ case 3:
  syscall1=(void *)rom_ddr_reg_read;
  syscall2=(void *)rom_ddr_reg_write;
 break;
+#ifdef DEVBD2F_SM502
+case 4:
+
+	tag=_pci_make_tag(0,14,0);
+
+	mmio=_pci_conf_readn(tag,0x14,4);
+	mmio =(int)mmio|(0xb0000000);
+//	printf("mmio =%x\n",mmio);	
+	
+	syscall1 = (void *)sm502RtcRead;
+ 	syscall2 = (void *)sm502RtcWrite;
+	tmp = *(volatile int *)(mmio + 0x40);
+	*(volatile int *)(mmio + 0x40) =tmp|0x40;
+ break;
+#endif
 default:
  return -1;
 break;

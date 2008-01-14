@@ -1541,7 +1541,21 @@ LEAF(hexserial)
 END(hexserial)
 
 LEAF(tgt_putchar)
+	.set noat
+	move AT,ra
+#if  (((PCI_IDSEL_VIA686B != 0)||(PCI_IDSEL_CS5536 != 0))&& !defined(HAVE_NB_SERIAL))
+	la	v0, COM1_BASE_ADDR
+	bal 1f
+	nop
+#endif
+
+#ifdef HAVE_NB_SERIAL
 	la	v0, COM3_BASE_ADDR
+	bal 1f
+	nop
+#endif
+	jr AT
+	nop
 1:
 	lbu	v1, NSREG(NS16550_LSR)(v0)
 	and	v1, LSR_TXRDY
@@ -1549,12 +1563,9 @@ LEAF(tgt_putchar)
 	nop
 
 	sb	a0, NSREG(NS16550_DATA)(v0)
-	move v1,v0
-	la	v0, COM3_BASE_ADDR
-	bne v0,v1,1b
-	nop
 	j	ra
 	nop	
+	.set at
 END(tgt_putchar)
 
 /* baud rate definitions, matching include/termios.h */
@@ -1578,30 +1589,40 @@ END(tgt_putchar)
 #define B115200 115200
 
 LEAF(initserial)
-        la      v0, COM3_BASE_ADDR
+	.set noat
+	move AT,ra
+#if  ((PCI_IDSEL_VIA686B != 0)||(PCI_IDSEL_CS5536 != 0))&& !defined(HAVE_NB_SERIAL)
+	la	v0, COM1_BASE_ADDR
+ 	la	a0, NS16550HZ/2/(16*CONS_BAUD)
+	bal 1f
+	nop
+#endif
+
+#ifdef HAVE_NB_SERIAL
+	la	v0, COM3_BASE_ADDR
+ 	li	a0, NS16550HZ/(16*CONS_BAUD)
+	bal 1f
+	nop
+#endif
+	jr AT
+	nop
 1:
-        li      v1, FIFO_ENABLE|FIFO_RCV_RST|FIFO_XMT_RST|FIFO_TRIGGER_1
-        sb      v1, NSREG(NS16550_FIFO)(v0)
-        li      v1, CFCR_DLAB                  #DLAB
-        sb      v1, NSREG(NS16550_CFCR)(v0)
-        li      v1, NS16550HZ/(16*CONS_BAUD)   #set BRDL
-        sb      v1, NSREG(NS16550_DATA)(v0)
-        srl     v1, 8
-        sb      v1, NSREG(NS16550_IER)(v0)     #set BRDH
-        li      v1, CFCR_8BITS                 #8bit
-        sb      v1, NSREG(NS16550_CFCR)(v0)
-        li      v1, MCR_DTR|MCR_RTS
-        sb      v1, NSREG(NS16550_MCR)(v0)
-        li      v1, 0x0
-        sb      v1, NSREG(NS16550_IER)(v0)
-
-        move    v1, v0
-        la      v0, COM3_BASE_ADDR
-        bne     v0, v1, 1b
-        nop
-
-        j       ra
-        nop
+	li	v1, FIFO_ENABLE|FIFO_RCV_RST|FIFO_XMT_RST|FIFO_TRIGGER_4
+	sb	v1, NSREG(NS16550_FIFO)(v0)
+	li	v1, CFCR_DLAB
+	sb	v1, NSREG(NS16550_CFCR)(v0)
+	sb	a0, NSREG(NS16550_DATA)(v0)
+	srl	v1, 8
+	sb	v1, NSREG(NS16550_IER)(v0)
+	li	v1, CFCR_8BITS
+	sb	v1, NSREG(NS16550_CFCR)(v0)
+	li	v1, MCR_DTR|MCR_RTS
+	sb	v1, NSREG(NS16550_MCR)(v0)
+	li	v1, 0x0
+	sb	v1, NSREG(NS16550_IER)(v0)
+	j	ra
+	nop
+	.set at
 END(initserial)
 
 
