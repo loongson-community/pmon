@@ -136,7 +136,7 @@ pci*		at pcibr?
 # fxp normally only used for debugging (enable/disable both)
 fxp0            at pci? dev ? function ?        # Intel 82559 Device
 #inphy*          at mii? phy ?                   # Intel 82555 PHYs
-rtl*        at pci? dev ? function ?
+rtk*        at pci? dev ? function ?
 #uhci*		 at pci? dev ? function ?
 #ohci0		 at pci? dev ? function ?
 #usb*		 at usbbus ? 
@@ -161,7 +161,7 @@ pseudo-device	loop	1	# network loopback
 ide_cd* 	at pciide? channel ? drive ? flags 0x0001
 select 		iso9660
 option IDECD 
-option HAVE_NB_SERIAL
+#option HAVE_NB_SERIAL
 #option USE_ENVMAC
 #option LOOKLIKE_PC
 #select cmd_lwdhcp

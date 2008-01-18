@@ -50,82 +50,6 @@
 #define DEBUG_LOCORE
 
 
-/***(qiaochong) memeory initialization use macro,not smbbus ***/
-					  		 /*bit 31: DDR配置结束标志，1表示结束，只读*/
-#define DDR_DQS_SELECT	(0<<30) 		 /*bit 30 选择数据来源，0: 双沿采样；1：DQS采样*/
-#define DDR_DIMM_DIC (1<<29)           /*bit 29 标识DIMM_slot0是否插有内存条。
-                                0：无；1：有；*/
-#define DDR_DIMM_MODULE_NUM (3<<27)    /*bit 28:27 DIMM0/DIMM1上MOUDLE的数目：
-								2’b00：DIMM1: 1; DIMM0: 1
-								2’b01：DIMM1: 1; DIMM0: 2
-								2’b10：DIMM1: 2; DIMM0: 1
-								2’b11：DIMM1: 2; DIMM0: 2
-								*/
-#define DDR_IS_SEQ  (1<<26)            /*bit 26 义突发式读写时的块内顺序，
-								1’b0：顺序；1’b1：交替，现在只支持交替方式*/
-#define DDR_TYPE (5<<22) /*bit 25:22 表2：DDR 控制器所支持的DDR SDRAM 计芯片类型
-								BITS Density Org.  Row Addr.  Col Addr.
-								0000 64Mb 16Mb X 4 DA[11:0] DA[9:0]
-									128Mb 16Mb X 8
-								0001 64Mb 8Mb X 8 DA[11:0] DA[8:0]
-									128Mb 8Mb X 16 
-								0010 64Mb 4Mb X 16 DA[11:0] DA[7:0]
-								0011 128Mb 32Mb X 4 DA[11:0] DA[11],DA[9:0]
-								0100 256Mb 64Mb X 4 DA[12:0] DA[11],DA[9:0]
-									 512Mb 64Mb X 8 
-								0101 256Mb 32Mb X 8 DA[12:0] DA[9:0]
-									 512Mb 32Mb X 16
-								0110 256Mb 16Mb X 16 DA[12:0] DA[8:0]
-								0111 512Mb 128Mb X 4 DA[12:0] DA[12:11],DA[9:0]
-								1000 1Gb 256Mb X 4 DA[13:0] DA[12:11],DA[9:0]
-								1001 1Gb 128Mb X 8 DA[13:0] DA[11],DA[9:0]
-								1010 1Gb 64Mb X 16 DA[13:0] DA[9:0]
-								*/
-#define DDR_tREF  (100<<10) /*bit 21:10 SDRAM刷新操作之间计数（主频100MHz）：
-								780      7.8us
-								1560     15.6us
-								SDRAM刷新操作之间计数（主频133MHz）：
-								1040      7.8us
-								2080      15.6us
-								SDRAM刷新操作之间计数（主频166MHz）：
-								1300      7.8us
-								2600      15.6us
-								*/
-#define DDR_TRCD (1<<9) /*bit 9 行地址有效到列地址有效之间需经过的计数
-								1’b0   2 cycles（DDR100）
-								1’b1   3 cycles（DDR266、DDR333）*/
-#define DDR_TRPC (1<<7) /*bit 8:7 AUTO_REFRESH到ACTIVE之间需经过的计数
-								2’b00  Null 
-								2’b01  8 cylces （DDR100）
-								2’b10  10 cycles（DDR266）
-								2’b11  12 cycles（DDR333）
-								*/
-#define DDR_TRAS (0<<6) /*bit 6 ACTIVE到PRECHARGE之间需经过的计数
-								1’b0   5 cycles（DDR100）
-								1’b1   7 cycles（DDR266、DDR333）  
-								*/
-#define DDR_TCAS (3<<4) /*bit 5:4 从读命令到第一个数据到来需经过的计数
-								2’b00  1.5 cycles
-								2’b01  2 cycles
-								2’b10  2.5 cycles
-								2’b11  3 cycles
-								*/
-#define DDR_TWR (0<<3) /*bit 3 写操作最后一个数据到PRECHARGE之间需经过的计数
-								1’b0   2 cycles（DDR100）
-								1’b1   3 cycles（DDR266、DDR333）
-								*/
-#define DDR_TRP (1<<2) /*bit 2 PRECHARGE命令执行时间计数
-								1’b0   2 cycles（DDR100）
-								1’b1   3 cycles（DDR266、DDR333）
-								*/
-#define DDR_TRC (1<<0) /*bit 1:0 ACTIVE与ACTIVE/AUTO_REFRESH命令之间计数
-								2’b00  Null
-								2’b01  7 cycles（DDR100）
-								2’b10  9 cycles（DDR266）
-								2’b11  10cycles（DDR333）
-								注（由于precharge和ras cas的延时加起来正好满足这个延时，所以在DDR控制器里没有具体考虑这个参数）
-								*/
-#define sdcfg_DATA DDR_DQS_SELECT|DDR_DIMM_DIC|DDR_DIMM_MODULE_NUM|DDR_IS_SEQ|DDR_TYPE|DDR_tREF|DDR_TRCD|DDR_TRPC|DDR_TRAS|DDR_TCAS|DDR_TWR|DDR_TRP|DDR_TRC
 
 #ifdef DEBUG_LOCORE
 #define	TTYDBG(x) \
@@ -137,11 +61,17 @@
 #define	PRINTSTR(x) \
 	.rdata;98: .asciz x; .text; la a0, 98b; bal stringserial; nop
 
+#ifdef DEVBD2F_SM502
+#define GPIOLED_DIR  0xe
+#else
+#define GPIOLED_DIR  0xf
+#endif
+
 #define GPIOLED_SET(x) \
 li v0,0xbfe0011c; \
 lw v1,4(v0); \
 or v1,0xf; \
-xor v1,0xe; \
+xor v1,GPIOLED_DIR; \
 sw v1,4(v0); \
 li v1,(~x)&0xf;\
 sw v1,0(v0);\
