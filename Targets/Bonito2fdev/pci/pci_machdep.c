@@ -48,6 +48,10 @@
 #include <pmon.h>
 
 extern void *pmalloc __P((size_t ));
+#include <include/cs5536_pci.h>
+extern pcireg_t cs5536_pci_conf_readn(int function, int reg, int width);
+extern int cs5536_pci_conf_writen(int function, int reg, int width, pcireg_t value);
+extern void *pmalloc __P((size_t ));
 
 extern int _pciverbose;
 
@@ -297,6 +301,12 @@ _pci_conf_readn(pcitag_t tag, int reg, int width)
 	type = 0x10000;
     }
 
+#if  (PCI_IDSEL_CS5536 != 0)
+    if( (bus == 0) && (device == PCI_IDSEL_CS5536) && (reg < 0xf0) ){
+     	return cs5536_pci_conf_readn(function, reg, width);
+     }
+#endif
+ 
     /* clear aborts */
     BONITO_PCICMD |= PCI_STATUS_MASTER_ABORT | PCI_STATUS_MASTER_TARGET_ABORT;
 
@@ -359,6 +369,15 @@ _pci_conf_writen(pcitag_t tag, int reg, pcireg_t data,int width)
 	addr = (bus << 16) | (device << 11) | (function << 8) | reg;
 	type = 0x10000;
     }
+
+#if  (PCI_IDSEL_CS5536 != 0)
+    if( (bus == 0) && (device == PCI_IDSEL_CS5536) & (reg < 0xf0)){
+    	if(cs5536_pci_conf_writen(function, reg, width, data)){
+		printf("cs5536 write error.\n");
+ 	}
+ 	return;
+     }
+#endif
 
     /* clear aborts */
     BONITO_PCICMD |= PCI_STATUS_MASTER_ABORT | PCI_STATUS_MASTER_TARGET_ABORT;

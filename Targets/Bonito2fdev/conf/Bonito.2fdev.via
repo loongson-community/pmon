@@ -166,3 +166,4 @@ option FOR_GXEMUL
 select fatfs
 option FLOATINGPT
 option PCI_IDSEL_VIA686B=17
+option WDC_NORESET

@@ -57,6 +57,8 @@
 #include "target/cs5536_pci.h"
 #include "target/i8254.h"
 #include "target/isapnpreg.h"
+//#define USE_CS5536_UART1
+#define USE_CS5536_UART2
 #define DEBUG_LOCORE
 
 /***************************************************************/
@@ -423,7 +425,7 @@ locate:
 	BONITO_BIS(BONITO_BONGENCFG, BONITO_BONGENCFG_DEBUGMODE)
 
     /******** added to init southbridge*/
-	
+#if 1	
 	/* Set the SMB base address */
 	ISABWWR_INIT(4, SMBUS_IO_BASE_ADDR, SMBUS_IO_BASE_VALUE | 0x1)
 	/* enable the host controller */
@@ -439,7 +441,7 @@ locate:
 	ISAWR_INIT(CTC_PORT+PT_CONTROL,PTCW_SC(PT_REFRESH)|PTCW_16B|PTCW_MODE(MODE_RG))
 	ISAWR_INIT(CTC_PORT+PT_REFRESH, ISAREFRESH & 0xff)
 	ISAWR_INIT(CTC_PORT+PT_REFRESH, ISAREFRESH >> 8)
-
+#endif
                                                                         
 	EXIT_INIT(0)
 
@@ -663,9 +665,11 @@ reginit:			/* local name */
 	GPIOLED_SET(6)
 	bal	initserial
 	nop
+	GPIOLED_SET(7)
 
 /*****************************SMB*******************************/
 
+#define TEST_CS5536_SMB
 #ifdef TEST_CS5536_SMB
 /* 
  * t4 : the start register number of smb
@@ -676,7 +680,7 @@ reginit:			/* local name */
 	PRINTSTR("\r\n cs5536 SMB test...\r\n");
 	
 	move	t4, zero;
-	move	t1, SLAVE_SMB_REG_COUNT;
+	li	t1, SLAVE_SMB_REG_COUNT;
 1:
 	move	a0, t4;
 	bal	hexserial;
@@ -1463,7 +1467,7 @@ LEAF(initserial)
 	jr AT
 	nop
 1:
-	li	v1, FIFO_ENABLE|FIFO_RCV_RST|FIFO_XMT_RST|FIFO_TRIGGER_4
+	li	v1, FIFO_ENABLE|FIFO_RCV_RST|FIFO_XMT_RST|FIFO_TRIGGER_1
 	sb	v1, NSREG(NS16550_FIFO)(v0)
 	li	v1, CFCR_DLAB
 	sb	v1, NSREG(NS16550_CFCR)(v0)
