@@ -109,10 +109,46 @@ default: return -1;break;
 return 0;
 }
 
+#if PCI_IDSEL_CS5536 != 0
+
+static int logicdev=0;
+static int PnpRead_w83627(int type,long long addr,union commondata *mydata)
+{
+switch(type)
+{
+case 1:
+mydata->data1=w83627_read(logicdev,addr);
+break;
+default: return -1;break;
+}
+return 0;
+}
+
+static int PnpWrite_w83627(int type,long long addr,union commondata *mydata)
+{
+switch(type)
+{
+case 1:
+w83627_write(logicdev,addr,mydata->data1);
+break;
+default: return -1;break;
+}
+return 0;
+}
+
+#endif
+
+
 static int pnps(int argc,char **argv)
 {
+#if PCI_IDSEL_CS5536 != 0
+logicdev=strtoul(argv[1],0,0);
+syscall1=(void*)PnpRead_w83627;
+syscall2=(void*)PnpWrite_w83627;
+#else
 syscall1=(void*)PnpRead;
 syscall2=(void*)PnpWrite;
+#endif
 syscall_addrtype=0;
 return 0;
 }

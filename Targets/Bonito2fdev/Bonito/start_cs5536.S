@@ -669,7 +669,7 @@ reginit:			/* local name */
 
 /*****************************SMB*******************************/
 
-#define TEST_CS5536_SMB
+#undef TEST_CS5536_SMB
 #ifdef TEST_CS5536_SMB
 /* 
  * t4 : the start register number of smb

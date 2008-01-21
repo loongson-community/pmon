@@ -92,7 +92,7 @@ static void smi_set_timing(struct par_info *hw)
         m_nScreenStride = (hw->width * hw->bits_per_pixel) / 64;
         
         /* case 16: */
-        writel(hw->m_pVPR+0x0, 0x00020000);
+        writel(hw->m_pVPR+0x0, 0x00020000); //ÉèÖÃ16É«
                         
         writel(hw->m_pVPR+0x10, (u32)(((m_nScreenStride + 2) << 16) | m_nScreenStride));
 }
@@ -160,7 +160,7 @@ int  smi712_init(char * fbaddress,char * ioaddress)
         *(u32 *)(SMILFB + 4) = 0xAA551133;
         if (*(u32 *)(SMILFB + 4) != 0xAA551133)
         {
-                smem_size = 0x00200000;
+                smem_size = 0x00400000;
                 /* Program the MCLK to 130 MHz */
                 smi_seqw(0x6a,0x12);
                 smi_seqw(0x6b,0x02);
@@ -174,6 +174,89 @@ int  smi712_init(char * fbaddress,char * ioaddress)
         return 0;
 
 }
+//----------------------------------
+#if 0
+#include <pmon.h>
+static inline int smi_attrr(int reg)
+{
+		smi_mmiorb(0x3da);
+		smi_mmiowb(reg, 0x3c0);
+        return smi_mmiorb(0x3c1);
+}
+int dumpsmi(int argc,char **argv)
+{
+unsigned int i,data;
+
+printf("3c2:%02x\n",smi_mmiorb(0x3c2));
+printf("3da:%02x\n",linux_inb(0x3da));
+printf("3ca:%02x\n",linux_inb(0x3ca));
+printf("3c6:%02x\n",smi_mmiorb(0x3c6));
+
+
+                        for (i=0;i<SIZE_GR00_GR08;i++)  /* init Graphic register GR00 - GR08 */
+                        {
+                                printf("gr%02x:%02x\n",i,smi_grphr(i));
+                        }
+
+                        for (i=0;i<SIZE_AR00_AR14;i++)  /* init Attribute register AR00 - AR14 */
+                        {
+                                printf("ar%02x:%02x\n",i, smi_attrr(i));
+                        }
+
+                        for (i=0;i<SIZE_CR00_CR18;i++)  /* init CRTC register CR00 - CR18 */
+                        {
+                                printf("cr%02x:%02x\n",i,smi_crtcr(i));
+                        }
+
+                        for (i=0;i<SIZE_CR30_CR4D;i++)  /* init CRTC register CR30 - CR4D */
+                        {
+                                printf("cr%02x:%02x\n",i+0x30,smi_crtcr(i+0x30));
+                        }
+
+                        for (i=0;i<SIZE_CR90_CRA7;i++)  /* init CRTC register CR90 - CRA7 */
+                        {
+                                printf("cr%02x:%02x\n",i+0x90,smi_crtcr(i+0x30));
+                        }
+
+
+printf("index 0x3c4,data 0x3c5\n");
+for(i=0;i<256;i++)
+{
+data=smi_seqr(i);
+printf("%02x:%02x\n",i,data);
+}
+       
+{
+char str[100];
+printf("vpr as bellow:\n");
+sprintf(str,"pcs -1;d4 0x%x 64;",(long)(hw.m_pVPR)&0x1fffffff);
+do_cmd(str);
+printf("dpr as bellow:\n");
+sprintf(str,"pcs -1;d4 0x%x 64;",(long)(hw.m_pDPR )&0x1fffffff);
+do_cmd(str);
+printf("mmio(fb+7M:\n");
+sprintf(str,"pcs -1;d1 0x%x 0x400;",(long)(hw.m_pMMIO )&0x1fffffff);
+do_cmd(str);
+}
+return 0;
+}
+
+static const Cmd Cmds[] =
+{
+	{"dumpsmi","",0,"sumpsmi",dumpsmi,1,1,CMD_REPEAT},
+	{0, 0}
+};
+
+static void init_cmd __P((void)) __attribute__ ((constructor));
+
+static void
+init_cmd()
+{
+	cmdlist_expand(Cmds, 1);
+}
+#endif
+
+
 
 //#endif
 

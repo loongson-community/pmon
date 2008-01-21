@@ -163,7 +163,7 @@ static void pci_isa_write_reg(int reg, pcireg_t value)
 			_wrmsr(SB_MSR_REG(SB_CTRL), hi, lo);
 			break;
 		case PCI_BAR0_REG :
-			if(value == PCI_BAR_RANGE_MASK){
+			if((value&PCI_BAR_RANGE_MASK) == PCI_BAR_RANGE_MASK){
 				_rdmsr(GLCP_MSR_REG(GLCP_SOFT_COM), &hi, &lo);
 				lo |= SOFT_BAR_SMB_FLAG;
 				_wrmsr(GLCP_MSR_REG(GLCP_SOFT_COM), hi, lo);
@@ -180,7 +180,7 @@ static void pci_isa_write_reg(int reg, pcireg_t value)
 			}
 			break;
 		case PCI_BAR1_REG :
-			if(value == PCI_BAR_RANGE_MASK){
+			if((value&PCI_BAR_RANGE_MASK) == PCI_BAR_RANGE_MASK){
 				_rdmsr(GLCP_MSR_REG(GLCP_SOFT_COM), &hi, &lo);
 				lo |= SOFT_BAR_GPIO_FLAG;
 				_wrmsr(GLCP_MSR_REG(GLCP_SOFT_COM), hi, lo);
@@ -197,7 +197,7 @@ static void pci_isa_write_reg(int reg, pcireg_t value)
 			}
 			break;
 		case PCI_BAR2_REG :
-			if(value == PCI_BAR_RANGE_MASK){
+			if((value&PCI_BAR_RANGE_MASK) == PCI_BAR_RANGE_MASK){
 				_rdmsr(GLCP_MSR_REG(GLCP_SOFT_COM), &hi, &lo);
 				lo |= SOFT_BAR_MFGPT_FLAG;
 				_wrmsr(GLCP_MSR_REG(GLCP_SOFT_COM), hi, lo);
@@ -214,7 +214,7 @@ static void pci_isa_write_reg(int reg, pcireg_t value)
 			}
 			break;
 		case PCI_BAR3_REG :
-			if(value == PCI_BAR_RANGE_MASK){
+			if((value&PCI_BAR_RANGE_MASK) == PCI_BAR_RANGE_MASK){
 				_rdmsr(GLCP_MSR_REG(GLCP_SOFT_COM), &hi, &lo);
 				lo |= SOFT_BAR_IRQ_FLAG;
 				_wrmsr(GLCP_MSR_REG(GLCP_SOFT_COM), hi, lo);
@@ -232,7 +232,7 @@ static void pci_isa_write_reg(int reg, pcireg_t value)
 			}
 			break;
 		case PCI_BAR4_REG :
-			if(value == PCI_BAR_RANGE_MASK){
+			if((value&PCI_BAR_RANGE_MASK) == PCI_BAR_RANGE_MASK){
 				_rdmsr(GLCP_MSR_REG(GLCP_SOFT_COM), &hi, &lo);
 				lo |= SOFT_BAR_PMS_FLAG;
 				_wrmsr(GLCP_MSR_REG(GLCP_SOFT_COM), hi, lo);
@@ -249,7 +249,7 @@ static void pci_isa_write_reg(int reg, pcireg_t value)
 			}
 			break;
 		case PCI_BAR5_REG :
-			if(value == PCI_BAR_RANGE_MASK){
+			if((value&PCI_BAR_RANGE_MASK) == PCI_BAR_RANGE_MASK){
 				_rdmsr(GLCP_MSR_REG(GLCP_SOFT_COM), &hi, &lo);
 				lo |= SOFT_BAR_ACPI_FLAG;
 				_wrmsr(GLCP_MSR_REG(GLCP_SOFT_COM), hi, lo);
@@ -476,7 +476,7 @@ static void pci_ide_write_reg(int reg, pcireg_t value)
 			_wrmsr(SB_MSR_REG(SB_CTRL), hi, lo);
 			break;
 		case PCI_BAR4_REG :
-			if(value == PCI_BAR_RANGE_MASK){
+			if((value&PCI_BAR_RANGE_MASK) == PCI_BAR_RANGE_MASK){
 				_rdmsr(GLCP_MSR_REG(GLCP_SOFT_COM), &hi, &lo);
 				lo |= SOFT_BAR_IDE_FLAG;
 				_wrmsr(GLCP_MSR_REG(GLCP_SOFT_COM), hi, lo);
@@ -675,7 +675,7 @@ static void pci_acc_write_reg(int reg, u32 value)
 			}
 			break;
 		case PCI_BAR0_REG :
-			if(value == PCI_BAR_RANGE_MASK){
+			if((value&PCI_BAR_RANGE_MASK) == PCI_BAR_RANGE_MASK){
 				_rdmsr(GLCP_MSR_REG(GLCP_SOFT_COM), &hi, &lo);
 				lo |= SOFT_BAR_ACC_FLAG;
 				_wrmsr(GLCP_MSR_REG(GLCP_SOFT_COM), hi, lo);
@@ -824,7 +824,7 @@ static void pci_ohci_write_reg(int reg, pcireg_t value)
 			}
 			break;
 		case PCI_BAR0_REG :
-			if(value == PCI_BAR_RANGE_MASK){
+			if((value&PCI_BAR_RANGE_MASK) == PCI_BAR_RANGE_MASK){
 				_rdmsr(GLCP_MSR_REG(GLCP_SOFT_COM), &hi, &lo);
 				lo |= SOFT_BAR_OHCI_FLAG;
 				_wrmsr(GLCP_MSR_REG(GLCP_SOFT_COM), hi, lo);
@@ -991,7 +991,7 @@ static void pci_ehci_write_reg(int reg, u32 value)
 			}
 			break;
 		case PCI_BAR0_REG :
-			if(value == PCI_BAR_RANGE_MASK){
+			if((value&PCI_BAR_RANGE_MASK) == PCI_BAR_RANGE_MASK){
 				_rdmsr(GLCP_MSR_REG(GLCP_SOFT_COM), &hi, &lo);
 				lo |= SOFT_BAR_EHCI_FLAG;
 				_wrmsr(GLCP_MSR_REG(GLCP_SOFT_COM), hi, lo);
@@ -1172,7 +1172,7 @@ static void pci_udc_write_reg(int reg, u32 value)
 			}
 			break;
 		case PCI_BAR0_REG :
-			if(value == PCI_BAR_RANGE_MASK){
+			if((value&PCI_BAR_RANGE_MASK) == PCI_BAR_RANGE_MASK){
 				_rdmsr(GLCP_MSR_REG(GLCP_SOFT_COM), &hi, &lo);
 				lo |= SOFT_BAR_UDC_FLAG;
 				_wrmsr(GLCP_MSR_REG(GLCP_SOFT_COM), hi, lo);
@@ -1322,7 +1322,7 @@ static void pci_otg_write_reg(int reg, u32 value)
 			}
 			break;
 		case PCI_BAR0_REG :
-			if(value == PCI_BAR_RANGE_MASK){
+			if((value&PCI_BAR_RANGE_MASK) == PCI_BAR_RANGE_MASK){
 				_rdmsr(GLCP_MSR_REG(GLCP_SOFT_COM), &hi, &lo);
 				lo |= SOFT_BAR_OTG_FLAG;
 				_wrmsr(GLCP_MSR_REG(GLCP_SOFT_COM), hi, lo);

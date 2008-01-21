@@ -390,14 +390,14 @@ tgt_devconfig()
 #endif
     config_init();
     configure();
-#if ((NMOD_VGACON >0) &&(PCI_IDSEL_VIA686B !=0))
+#if ((NMOD_VGACON >0) &&(PCI_IDSEL_VIA686B !=0))// || PCI_IDSEL_CS5536 !=0))
 	if(getenv("nokbd")) rc=1;
 	else rc=kbd_initialize();
 	printf("%s\n",kbd_error_msgs[rc]);
 	if(!rc){ 
 		kbd_available=1;
 	}
-	psaux_init();
+//	psaux_init();
 #endif
    printf("devconfig done.\n");
 }
@@ -412,6 +412,41 @@ extern void cs5536_gpio_init(void);
 extern void test_gpio_function(void);
 extern void cs5536_pci_fixup(void);
 
+#if PCI_IDSEL_CS5536 != 0
+static int w83627_read(int dev,int addr)
+{
+int data;
+/*enter*/
+outb(0xbfd0002e,0x87);
+outb(0xbfd0002e,0x87);
+/*select logic dev reg */
+outb(0xbfd0002e,0x7);
+outb(0xbfd0002f,dev);
+/*access reg */
+outb(0xbfd0002e,addr);
+data=inb(0xbfd0002f);
+/*exit*/
+outb(0xbfd0002e,0xaa);
+outb(0xbfd0002e,0xaa);
+return data;
+}
+
+static void w83627_write(int dev,int addr,int data)
+{
+/*enter*/
+outb(0xbfd0002e,0x87);
+outb(0xbfd0002e,0x87);
+/*select logic dev reg */
+outb(0xbfd0002e,0x7);
+outb(0xbfd0002f,dev);
+/*access reg */
+outb(0xbfd0002e,addr);
+outb(0xbfd0002f,data);
+/*exit*/
+outb(0xbfd0002e,0xaa);
+outb(0xbfd0002e,0xaa);
+}
+#endif
 void
 tgt_devinit()
 {
@@ -424,6 +459,18 @@ tgt_devinit()
 #if  (PCI_IDSEL_CS5536 != 0)
 	SBD_DISPLAY("5536",0);
 	cs5536_init();
+#endif
+
+#if PCI_IDSEL_CS5536 != 0
+w83627_write(0,0x24,0xc1);
+w83627_write(5,0x30,1);
+w83627_write(5,0x60,0x60);
+w83627_write(5,0x61,0);
+w83627_write(5,0x62,0x64);
+w83627_write(5,0x63,0);
+w83627_write(5,0x70,1);
+w83627_write(5,0x72,0xc);
+w83627_write(5,0xf0,0x80);
 #endif
 
 	/*
