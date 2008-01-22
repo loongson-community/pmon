@@ -671,7 +671,7 @@ static const u16 rtl8169_intr_mask =
 static const u16 rtl8169_napi_event =
 	RxOK | RxOverflow | RxFIFOOver | TxOK | TxErr;
 static const unsigned int rtl8169_rx_config =
-    (RX_FIFO_THRESH << RxCfgFIFOShift) | (RX_DMA_BURST << RxCfgDMAShift)|0xf;
+    (RX_FIFO_THRESH << RxCfgFIFOShift) | (RX_DMA_BURST << RxCfgDMAShift);
 
 #define PHY_Cap_10_Half_Or_Less PHY_Cap_10_Half
 #define PHY_Cap_10_Full_Or_Less PHY_Cap_10_Full | PHY_Cap_10_Half_Or_Less
@@ -856,9 +856,12 @@ int rtl8169_write_eeprom(long ioaddr, int location,unsigned short data)
 
 	myoutb(EE_ENB, ee_addr);
 	 
+	 {int timeout=1000;
     while( ! (inb(ee_addr) & EE_DATA_READ) ){
 		myoutb(EE_ENB, ee_addr);
 		eeprom_delay();
+		delay(100); if(!timeout--)break;
+	}
 	}
 	return 0;
 }
@@ -886,14 +889,17 @@ int rtl8169_write_eeprom8(long ioaddr, int location,unsigned short data)
 	}
 	/* Terminate the EEPROM access. */
 
-	myoutb(~EE_CS, ee_addr);
+//	myoutb(~EE_CS, ee_addr);
 	eeprom_delay();
 
 	myoutb(EE_ENB, ee_addr);
 	 
+	{int timeout=1000;
        while( ! (inb(ee_addr) & EE_DATA_READ) ){
 		myoutb(EE_ENB, ee_addr);
 		eeprom_delay();
+		delay(100); if(!timeout--)break;
+	}
 	}
 	return 0;
 }
@@ -2190,6 +2196,7 @@ rtl8169_hw_start(struct rtl8169_private *tp)
     status = RTL_R16(tp, IntrStatus);
     printf("22 -> %x ", status);
 
+	tp->flags=IFF_PROMISC;
 	rtl8169_set_rx_mode(tp);
 
     //by liuqi
@@ -3058,24 +3065,45 @@ int cmd_setmac(int ac, char *av[])
 		printf("Use \"setmac <mac> \" to set mac address\n");
 		return 0;
 	}
-	for (i = 0; i < 3; i++) {
+
+{
+unsigned short data;
+static unsigned char rom[]={
+/*00000000:*/0x29,0x81,0xec,0x10,0x69,0x81,0xec,0x10,0x69,0x81,0x20,0x40,0x01,0xa1,0x00,0xe0,
+/*00000010:*/0x4c,0x67,0x10,0x51,0x15,0xcd,0xc2,0xf7,0x00,0x80,0x00,0x00,0x00,0x00,0x00,0x13,
+/*00000020:*/0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+/*00000030:*/0x00,0x00,0xd7,0x7e,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x20,
+/*00000040:*/0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+/*00000050:*/0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+/*00000060:*/0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+/*00000070:*/0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
+	for (i = 0; i < 6; i++) {
 		val = 0;
 		gethex(&v, av[1], 2);
 		val = v ;
+		rom[0x7*2+i]=val;
 		av[1]+=3;
-
-		gethex(&v, av[1], 2);
-		val = val | (v << 8);
-		av[1] += 3;
-
-#ifndef EPLC46
-		rtl8169_write_eeprom(myRTL->ioaddr, 0x7 + i, val);
-#else 
-		rtl8169_write_eeprom8(myRTL->ioaddr, (0x7 +i) *2, val & 0xff);
-		rtl8169_write_eeprom8(myRTL->ioaddr, (0x7 +i) *2+1, (val >> 8) & 0xff);
-#endif
-
 	}
+
+	for (i = 0; i < 0x40; i=i++) {
+	while(1){
+#ifndef EPLC46
+		data = read_eeprom(myRTL,  i);
+#else
+		data = read_eeprom(myRTL, 2*i);
+		data = data | (read_eeprom(myRTL,2*i+1)) << 8;
+#endif
+if(data==((rom[2*i+1]<<8)|rom[2*i]))break;
+printf("program %02x:%04x\n",2*i,(rom[2*i+1]<<8)|rom[2*i]);
+#ifndef EPLC46
+		rtl8169_write_eeprom(myRTL->ioaddr, i, (rom[2*i+1]<<8)|rom[2*i]);
+#else 
+		rtl8169_write_eeprom8(myRTL->ioaddr, i*2, rom[2*i] );
+		rtl8169_write_eeprom8(myRTL->ioaddr, i*2+1, rom[2*i+1]);
+#endif
+};
+	}
+}
 
 	printf("The machine should be restarted to make the mac change to take effect!!\n");
 
