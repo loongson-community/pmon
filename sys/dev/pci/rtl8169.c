@@ -1785,10 +1785,13 @@ r8169_attach(struct device * parent, struct device * self, void *aux)
     RTL_W16(tp,IntrMask,int_mask);
 	*/
     /* Get MAC address.  FIXME: read EEPROM */
+#if 0
 	RTL_W8(tp, Cfg9346, Cfg9346_Unlock);
 	RTL_W32(tp, MAC0 + 4, 0x01000002);
 	RTL_W32(tp, MAC0, 0x44444400);
 	RTL_W8(tp, Cfg9346, Cfg9346_Lock);
+#endif
+//去掉接在93c46 sk脚上的上拉电阻,setmac后要关电
 
 	printf("MAC addr is ");
 	for (i = 0; i < MAC_ADDR_LEN; i++){
@@ -2098,7 +2101,7 @@ rtl8169_hw_start(struct rtl8169_private *tp)
     printf("13 -> %x ", status);
 
 	RTL_W8(tp, Cfg9346, Cfg9346_Unlock);
-	//RTL_W8(tp, Cfg9346, Cfg9346_Autoload);
+	RTL_W8(tp, Cfg9346, Cfg9346_Autoload);
     //delay(10000);
 #if 0
 	RTL_W8(tp, ChipCmd, CmdReset);
