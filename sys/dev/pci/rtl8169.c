@@ -671,7 +671,7 @@ static const u16 rtl8169_intr_mask =
 static const u16 rtl8169_napi_event =
 	RxOK | RxOverflow | RxFIFOOver | TxOK | TxErr;
 static const unsigned int rtl8169_rx_config =
-    (RX_FIFO_THRESH << RxCfgFIFOShift) | (RX_DMA_BURST << RxCfgDMAShift);
+    (RX_FIFO_THRESH << RxCfgFIFOShift) | (RX_DMA_BURST << RxCfgDMAShift)|0xf;
 
 #define PHY_Cap_10_Half_Or_Less PHY_Cap_10_Half
 #define PHY_Cap_10_Full_Or_Less PHY_Cap_10_Full | PHY_Cap_10_Half_Or_Less
@@ -2013,6 +2013,7 @@ static int rtl8169_open(struct rtl8169_private *tp)
     //by liuqi
     status = RTL_R16(tp, IntrStatus);
     printf("8 -> %x\n ", status);
+	CPU_FlushCache();//fix me
 	
 
 out:
