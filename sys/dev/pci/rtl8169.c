@@ -2101,7 +2101,7 @@ rtl8169_hw_start(struct rtl8169_private *tp)
     printf("13 -> %x ", status);
 
 	RTL_W8(tp, Cfg9346, Cfg9346_Unlock);
-	RTL_W8(tp, Cfg9346, Cfg9346_Autoload);
+	//RTL_W8(tp, Cfg9346, Cfg9346_Autoload);
     //delay(10000);
 #if 0
 	RTL_W8(tp, ChipCmd, CmdReset);
