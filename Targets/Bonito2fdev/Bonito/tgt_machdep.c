@@ -87,6 +87,7 @@ tgt_printf (const char *fmt, ...)
 #include "mod_framebuffer.h"
 #include "mod_smi712.h"
 #include "mod_smi502.h"
+#include <include/cs5536.h>
 #if (NMOD_X86EMU_INT10 > 0)||(NMOD_X86EMU >0)
 extern int vga_bios_init(void);
 #endif
@@ -471,6 +472,7 @@ w83627_write(5,0x63,0);
 w83627_write(5,0x70,1);
 w83627_write(5,0x72,0xc);
 w83627_write(5,0xf0,0x80);
+_wrmsr(GET_MSR_ADDR(0x5140001F), 0, 0);//no keyboard emulation
 #endif
 
 	/*

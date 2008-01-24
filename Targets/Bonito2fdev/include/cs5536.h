@@ -24,6 +24,7 @@
 /*
  * MSR module base
  */ 
+#define GET_MSR_ADDR(x) (((x<<9)&0xff100000)|(x&0x3fff))
 #define	CS5536_SB_MSR_BASE		(0x00000000)
 #define	CS5536_GLIU_MSR_BASE		(0x10000000)
 #define	CS5536_ILLEGAL_MSR_BASE		(0x20000000)

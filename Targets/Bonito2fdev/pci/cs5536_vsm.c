@@ -1598,6 +1598,8 @@ static int cmd_rdmsr(int ac, char *av[])
 		return -1;
 	}
 
+	if(getenv("get_msr_addr")) msr=GET_MSR_ADDR(msr);
+
 	_rdmsr(msr, &hi, &lo);
 	
 	printf("msr : address  %x    hi  %x   lo  %x\n", msr, hi, lo);
@@ -1620,6 +1622,9 @@ static int cmd_wrmsr(int ac, char *av[])
 		return -1;
 	}
 
+	if(getenv("get_msr_addr")) msr=GET_MSR_ADDR(msr);
+	printf("msr : address  %x    hi  %x   lo  %x\n", msr, hi, lo);
+
 	_wrmsr(msr, hi, lo);
 	
 	return 0;
@@ -1629,7 +1634,7 @@ static const Cmd Cmds[] =
 {
 	{"cs5536 debug"},
 	{"rdmsr", "reg", NULL, "msr read test", cmd_rdmsr, 2, 99, CMD_REPEAT},
-	{"wrmsr", "reg", NULL, "msr write test", cmd_wrmsr, 2, 99, CMD_REPEAT},
+	{"wrmsr", "reg", NULL, "msr write test", cmd_wrmsr, 4, 99, CMD_REPEAT},
 	{0},
 };
 

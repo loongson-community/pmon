@@ -48,9 +48,11 @@
 #include <pmon.h>
 
 extern void *pmalloc __P((size_t ));
+#if  (PCI_IDSEL_CS5536 != 0)
 #include <include/cs5536_pci.h>
 extern pcireg_t cs5536_pci_conf_readn(int function, int reg, int width);
 extern int cs5536_pci_conf_writen(int function, int reg, int width, pcireg_t value);
+#endif
 extern void *pmalloc __P((size_t ));
 
 extern int _pciverbose;

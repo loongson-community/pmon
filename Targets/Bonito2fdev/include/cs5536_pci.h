@@ -23,9 +23,6 @@
  * PCI bus device function
  */
 #define	PCI_BUS_CS5536		0
-#ifndef PCI_IDSEL_CS5536
-#define	PCI_IDSEL_CS5536	14
-#endif
 #define	PCI_CFG_BASE		0x02000000
 
 #define	CS5536_ISA_FUNC		0
