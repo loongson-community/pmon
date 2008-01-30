@@ -87,7 +87,9 @@ tgt_printf (const char *fmt, ...)
 #include "mod_framebuffer.h"
 #include "mod_smi712.h"
 #include "mod_smi502.h"
+#if PCI_IDSEL_CS5536 != 0
 #include <include/cs5536.h>
+#endif
 #if (NMOD_X86EMU_INT10 > 0)||(NMOD_X86EMU >0)
 extern int vga_bios_init(void);
 #endif
