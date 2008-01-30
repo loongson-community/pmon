@@ -81,7 +81,7 @@ select		mod_smi502		# Silicon Motion502
 option		SMI502
 option		X640x480
 #option		X800x600
-#option		X1024x768
+option		X1024x768
 #option		X1280x800
 #option 	CONFIG_VIDEO_SM501_8BPP
 option 		CONFIG_VIDEO_SM501_16BPP

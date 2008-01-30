@@ -403,7 +403,7 @@ tgt_devinit()
 
 	_pci_businit(1);	/* PCI bus initialization */
 #ifdef VIA686B_POWERFIXUP
-if(!getenv("bootonpower"))	vt82c686_powerfixup();
+if(getenv("noautopower"))	vt82c686_powerfixup();
 #endif
 }
 
