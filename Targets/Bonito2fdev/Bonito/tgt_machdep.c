@@ -341,6 +341,7 @@ tgt_devconfig()
 	extern struct pci_device *vga_dev;
 #endif
 #endif
+	do_cmd("cache 0");
 	_pci_devinit(1);	/* PCI device initialization */
 #if (NMOD_X86EMU_INT10 > 0)||(NMOD_X86EMU >0)
 	SBD_DISPLAY("VGAI", 0);
@@ -467,10 +468,10 @@ tgt_devinit()
 #if PCI_IDSEL_CS5536 != 0
 w83627_write(0,0x24,0xc1);
 w83627_write(5,0x30,1);
-w83627_write(5,0x60,0x60);
-w83627_write(5,0x61,0);
-w83627_write(5,0x62,0x64);
-w83627_write(5,0x63,0);
+w83627_write(5,0x60,0);
+w83627_write(5,0x61,0x60);
+w83627_write(5,0x62,0);
+w83627_write(5,0x63,0x64);
 w83627_write(5,0x70,1);
 w83627_write(5,0x72,0xc);
 w83627_write(5,0xf0,0x80);

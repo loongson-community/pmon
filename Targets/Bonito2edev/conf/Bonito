@@ -114,7 +114,7 @@ option 	    NVRAM_IN_FLASH
 mainbus0        at root
 localbus0	at mainbus0
 #fd0         at mainbus0
-pcibr0		at mainbus0
+pcibr*		at mainbus0
 #pcibr1		at mainbus0
 pci*		at pcibr?
 #ppb*		at pci? dev ? function ?	# PCI-PCI bridges
@@ -134,7 +134,7 @@ pci*		at pcibr?
 #gt1		at localbus? base 5
 #gt2		at localbus? base 6
 # fxp normally only used for debugging (enable/disable both)
-fxp0            at pci? dev ? function ?        # Intel 82559 Device
+fxp*            at pci? dev ? function ?        # Intel 82559 Device
 #inphy*          at mii? phy ?                   # Intel 82555 PHYs
 rtl*        at pci? dev ? function ?
 #uhci*		 at pci? dev ? function ?

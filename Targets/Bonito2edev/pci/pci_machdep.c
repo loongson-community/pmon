@@ -265,6 +265,13 @@ _pci_conf_read(pcitag_t tag,int reg)
 	return _pci_conf_readn(tag,reg,4);
 }
 
+void
+_pci_conf_write(pcitag_t tag, int reg, pcireg_t data)
+{
+	return _pci_conf_writen(tag,reg,data,4);
+}
+
+#if 0
 pcireg_t
 _pci_conf_readn(pcitag_t tag, int reg, int width)
 {
@@ -321,11 +328,6 @@ _pci_conf_readn(pcitag_t tag, int reg, int width)
     }
 
     return data;
-}
-void
-_pci_conf_write(pcitag_t tag, int reg, pcireg_t data)
-{
-	return _pci_conf_writen(tag,reg,data,4);
 }
 
 void
@@ -402,6 +404,9 @@ _pci_conf_writen(pcitag_t tag, int reg, pcireg_t data,int width)
 	    _pci_tagprintf (tag, "_pci_conf_write: target abort\n");
     }
 }
+#else
+#include "../../Bonito/pci/pci_linux.c"
+#endif
 
 
 
