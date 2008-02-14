@@ -53,6 +53,19 @@
 
 #define USB_CNTL_TIMEOUT 100 /* 100ms timeout */
 
+enum usb_device_speed {
+	USB_SPEED_UNKNOWN = 0,          /* enumerating */
+	USB_SPEED_LOW, USB_SPEED_FULL,      /* usb 1.1 */
+	USB_SPEED_HIGH,             /* usb 2.0 */
+	USB_SPEED_VARIABLE,         /* wireless (usb 2.5) */
+};
+
+#define BW_HOST_DELAY   1000L       /* nanoseconds */
+#define BW_HUB_LS_SETUP 333L        /* nanoseconds */
+
+#define BitTime(bytecount)  (7 * 8 * bytecount / 6)  /* with integer truncation */
+    
+
 /* String descriptor */
 struct usb_string_descriptor {
 	unsigned char  bLength;

@@ -42,12 +42,14 @@ static int cc_to_error[16] = {
 
 /* usb_ohci_ed */
 struct ed {
-	u32 hwINFO;
-	u32 hwTailP;
-	u32 hwHeadP;
-	u32 hwNextED;
+	volatile u32 hwINFO;
+	volatile u32 hwTailP;
+	volatile u32 hwHeadP;
+	volatile u32 hwNextED;
 
 	struct ed *ed_prev;
+	struct ed *ed_next;
+	u32 oINFO;
 	u8 int_period;
 	u8 int_branch;
 	u8 int_load;
@@ -58,7 +60,7 @@ struct ed {
 	struct ed *ed_rm_list;
 
 	struct usb_device *usb_dev;
-	u32 unused[7];
+	u32 unused[5];
 } __attribute((aligned(32)));
 typedef struct ed ed_t;
 
@@ -338,6 +340,8 @@ typedef struct
 	int   state;
 	unsigned long pipe;
 	int actual_length;
+	int trans_length;
+	unsigned char *trans_buffer, *setup_buffer;
 	td_t *td[N_URB_TD];	/* list pointer to all corresponding TDs associated with this request */
 	//unsigned char *bufs[N_URB_TD];
 } urb_priv_t;
@@ -369,6 +373,7 @@ typedef struct ohci {
 	unsigned long flags;		/* for HC bugs */
 
 	struct ohci_regs *regs;	/* OHCI controller's memory */
+	ed_t       *periodic [NUM_INTS];
 
 	ed_t *ed_rm_list[2];     /* lists of all endpoints to be removed */
 	ed_t *ed_bulktail;       /* last endpoint of bulk list */
@@ -379,6 +384,7 @@ typedef struct ohci {
 	struct virt_root_hub rh;
 	struct usb_device *rdev;
 	
+	int         load [NUM_INTS];
 	const char	*slot_name;
 	unsigned char *setup;
 	unsigned char *control_buf;
@@ -426,7 +432,7 @@ td_alloc (struct usb_device *usb_dev)
 	for (i = 0; i < NUM_TD; i++) {
 		if (ptd[i].usb_dev == NULL) {
 			td = &ptd[i];
-			memset(td, 0, sizeof(td)); //
+			memset(td, 0, sizeof(*td));
 			td->usb_dev = usb_dev;
 			break;
 		}

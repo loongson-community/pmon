@@ -491,7 +491,7 @@ static int do_usb (int argc, char *argv[])
 
 static const Cmd Cmds[] = {
 	{ "USB commands"},
-	{ "usb", "", NULL, "general usb commands", do_usb, 1, 5, 0},
+	{ "usb", " ", NULL, "general usb commands", do_usb, 1, 5, 0},
 	{ 0, 0}
 };		
 
@@ -499,5 +499,6 @@ static void init_cmd(void) __attribute__((constructor));
 
 static void init_cmd(void)
 {
-	cmdlist_expand(Cmds, 0);
+	cmdlist_expand(Cmds, 1);
+	printf("USB init\n");
 }

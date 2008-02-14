@@ -65,7 +65,7 @@
 #define USB_BUFSIZ	512
 
 static struct usb_device usb_dev[USB_MAX_DEVICE];
-int dev_index;
+int dev_index =0;
 static int running;
 static int asynch_allowed;
 static struct devrequest setup_packet;
@@ -992,8 +992,8 @@ void usb_scan_devices(void * hc_private)
  * Probes device for being a hub and configurate it
  */
 
-//#undef	USB_HUB_DEBUG
-#define	USB_HUB_DEBUG
+#undef	USB_HUB_DEBUG
+//#define	USB_HUB_DEBUG
 
 #ifdef	USB_HUB_DEBUG
 #define	USB_HUB_PRINTF(fmt,args...)	printf (fmt ,##args)
