@@ -176,10 +176,6 @@ static void ohci_attach(struct device *parent, struct device *self, void *aux)
 	bus_addr_t memsize;
 	int cachable;
 
-	if(getenv("uncache"))
-	{
-	do_cmd("cache 0");
-	}
 #ifdef USB_OHCI_NO_ROM
 	val = pci_conf_read(ohci->sc_pc, pa->pa_tag, 0xe0);
 	pci_conf_write(ohci->sc_pc, pa->pa_tag, 0xe0, (val & ~0x7) | 0x4);
@@ -208,7 +204,9 @@ static void ohci_attach(struct device *parent, struct device *self, void *aux)
 	   self->dv_xname);
 #endif
 	ohci->rdev = usb_alloc_new_device(ohci);
+	do_cmd("cache 0");
 	usb_new_device(ohci->rdev);
+	do_cmd("cache 1");
 #ifdef DEBUG
 	myohci = ohci;
 #endif
