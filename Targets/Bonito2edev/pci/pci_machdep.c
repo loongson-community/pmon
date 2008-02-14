@@ -265,13 +265,6 @@ _pci_conf_read(pcitag_t tag,int reg)
 	return _pci_conf_readn(tag,reg,4);
 }
 
-void
-_pci_conf_write(pcitag_t tag, int reg, pcireg_t data)
-{
-	return _pci_conf_writen(tag,reg,data,4);
-}
-
-#if 0
 pcireg_t
 _pci_conf_readn(pcitag_t tag, int reg, int width)
 {
@@ -329,6 +322,11 @@ _pci_conf_readn(pcitag_t tag, int reg, int width)
 
     return data;
 }
+void
+_pci_conf_write(pcitag_t tag, int reg, pcireg_t data)
+{
+	return _pci_conf_writen(tag,reg,data,4);
+}
 
 void
 _pci_conf_writen(pcitag_t tag, int reg, pcireg_t data,int width)
@@ -362,7 +360,7 @@ _pci_conf_writen(pcitag_t tag, int reg, pcireg_t data,int width)
     /* clear aborts */
     BONITO_PCICMD |= PCI_STATUS_MASTER_ABORT | PCI_STATUS_MASTER_TARGET_ABORT;
 
-    BONITO_PCIMAP_CFG = (addr >> 16);
+    BONITO_PCIMAP_CFG = (addr >> 16)|type;
 
 #if 0
     *(volatile pcireg_t *)PHYS_TO_UNCACHED(BONITO_PCICFG_BASE | (addr & 0xfffc)) = data;
@@ -404,9 +402,6 @@ _pci_conf_writen(pcitag_t tag, int reg, pcireg_t data,int width)
 	    _pci_tagprintf (tag, "_pci_conf_write: target abort\n");
     }
 }
-#else
-#include "../../Bonito/pci/pci_linux.c"
-#endif
 
 
 

@@ -384,7 +384,7 @@ _pci_conf_writen(pcitag_t tag, int reg, pcireg_t data,int width)
     /* clear aborts */
     BONITO_PCICMD |= PCI_STATUS_MASTER_ABORT | PCI_STATUS_MASTER_TARGET_ABORT;
 
-    BONITO_PCIMAP_CFG = (addr >> 16);
+    BONITO_PCIMAP_CFG = (addr >> 16)|type;
 
 #if 0
     *(volatile pcireg_t *)PHYS_TO_UNCACHED(BONITO_PCICFG_BASE | (addr & 0xfffc)) = data;
