@@ -341,7 +341,6 @@ tgt_devconfig()
 	extern struct pci_device *vga_dev;
 #endif
 #endif
-	do_cmd("cache 0");
 	_pci_devinit(1);	/* PCI device initialization */
 #if (NMOD_X86EMU_INT10 > 0)||(NMOD_X86EMU >0)
 	SBD_DISPLAY("VGAI", 0);

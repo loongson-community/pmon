@@ -176,6 +176,7 @@ static void ohci_attach(struct device *parent, struct device *self, void *aux)
 	bus_addr_t memsize;
 	int cachable;
 
+	if(getenv("uncache"))
 	{
 	do_cmd("cache 0");
 	}
