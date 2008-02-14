@@ -393,7 +393,7 @@ tgt_devconfig()
 #endif
     config_init();
     configure();
-#if ((NMOD_VGACON >0) &&(PCI_IDSEL_VIA686B !=0))// || PCI_IDSEL_CS5536 !=0))
+#if ((NMOD_VGACON >0) &&(PCI_IDSEL_VIA686B !=0)|| (PCI_IDSEL_CS5536 !=0))
 	if(getenv("nokbd")) rc=1;
 	else rc=kbd_initialize();
 	printf("%s\n",kbd_error_msgs[rc]);
