@@ -565,9 +565,10 @@ static int setkbd(int argc,char **argv)
 	if(argc>1)
 	{
 	if(argv[1][0]=='1')kbd_available=1;
-	else kbd_available=0;
+	else if(argv[1][0]=='2')usb_kbd_available=1;
+	else {kbd_available=0;usb_kbd_available=0;}
 	}
-	printf("kbd_available=%d\n",kbd_available);
+	printf("kbd_available=%di,usb_kbd_available=%d\n",kbd_available,usb_kbd_available);
 	return 0;
 }
 

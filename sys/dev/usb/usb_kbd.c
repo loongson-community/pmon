@@ -52,7 +52,7 @@
 #include "usb.h"
 #include "devices.h"
 
-#undef USB_KBD_DEBUG
+#define USB_KBD_DEBUG
 //#define USB_KBD_DEBUG
 /*
  * if overwrite_console returns 1, the stdin, stderr and stdout
@@ -432,6 +432,7 @@ static int usb_kbd_probe(struct usb_device *dev, unsigned int ifnum)
 	dev->irq_handle= usb_kbd_irq;
 	USB_KBD_PRINTF("USB KBD enable interrupt pipe...\n");
 	usb_submit_int_msg(dev,pipe,&new[0], maxp > 8 ? 8 : maxp,ep->bInterval);
+	if(!getenv("nokbd"))
 	usb_kbd_available  = 1;
 	return 1;
 }

@@ -290,7 +290,8 @@ if(maincpu)	rc = vga_bios_init();
 	}
 #endif
 
-	if (rc > 0) vga_available=1;
+	if ((rc > 0) && !getenv("novga")) vga_available=1;
+	else vga_available=0;
 
     config_init();
 if(maincpu)    configure();

@@ -98,12 +98,13 @@
 #define m32_swap(x) swap_32(x)
 
 /* urb_priv */
-urb_priv_t urb_priv;
+urb_priv_t nurb_priv;
 urb_priv_t iurb_priv;
 /* RHSC flag */
 int got_rhsc;
 /* device which was disconnected */
 struct usb_device *devgone;
+#define urb_priv(pipe,td) (pipe?(usb_pipeint(pipe)?iurb_priv:nurb_priv):((((td_t *)td)->ed->type == PIPE_INTERRUPT)?iurb_priv:nurb_priv))
 
 /*
  * Hook to initialize hostcontroller
@@ -282,7 +283,7 @@ static int sohci_get_current_frame_number (struct usb_device * dev);
 static void pkt_print (struct usb_device * dev, unsigned long pipe, void * buffer,
 	int transfer_len, struct devrequest * setup, char * str, int small)
 {
-	urb_priv_t * purb = &urb_priv;
+	urb_priv_t * purb = &urb_priv(pipe,0);
 
 	dbg("%s URB:[%4x] dev:%2d,ep:%2d-%c,type:%s,len:%d/%d stat:%#lx\n",
 			str,
@@ -547,7 +548,7 @@ int sohci_submit_job(struct usb_device *dev, unsigned long pipe, void *buffer,
 		err("need %d TDs, only have %d", size, N_URB_TD);
 		return -1;
 	}
-	purb_priv = &urb_priv;
+	purb_priv = &urb_priv(pipe,0);
 	purb_priv->pipe = pipe;
 	purb_priv->trans_buffer = buffer;
 	purb_priv->setup_buffer = (unsigned char *)setup;
@@ -1035,7 +1036,7 @@ static void td_submit_job (struct usb_device *dev, unsigned long pipe, void *buf
 static void dl_transfer_length(td_t * td)
 {
 	u32 tdINFO, tdBE, tdCBP;
-	urb_priv_t *lurb_priv = &urb_priv;
+	urb_priv_t *lurb_priv = &urb_priv(0,td);
 	int length = 0;
 
 	tdINFO = m32_swap (td->hwINFO);
@@ -1096,7 +1097,7 @@ static td_t * dl_reverse_done_list (ohci_t *ohci)
 
 		if (TD_CC_GET (m32_swap (td_list->hwINFO))) {
 			/*Some errors occured*/
-			lurb_priv = &urb_priv;
+			lurb_priv = &urb_priv(0,td_list);
 			printf(" USB-error/status: %x : %p\n",
 					TD_CC_GET (m32_swap (td_list->hwINFO)), td_list);
 			if (td_list->ed->hwHeadP & m32_swap (0x1)) { //ED halted
@@ -1128,14 +1129,14 @@ static int dl_done_list (ohci_t *ohci, td_t *td_list)
 	int stat = 0;
 	struct usb_device *dev = NULL;
 	/* urb_t *urb; */
-	urb_priv_t *lurb_priv = &urb_priv;
+	urb_priv_t *lurb_priv = &urb_priv(0,td_list);
 	u32 tdINFO, edHeadP, edTailP;
 
 	while (td_list) {
 		td_list_next = td_list->next_dl_td;
 		//printf("td_list:%x\n",td_list);
 
-		lurb_priv = &urb_priv;
+		lurb_priv = &urb_priv(0,td_list);
 		tdINFO = m32_swap (td_list->hwINFO);
 
 		ed = td_list->ed;
@@ -1164,18 +1165,18 @@ static int dl_done_list (ohci_t *ohci, td_t *td_list)
 		td_list = td_list_next;
 	}
 
-	if (ed->type == PIPE_INTERRUPT && urb_priv.ed == ed) {
+	if (ed->type == PIPE_INTERRUPT && iurb_priv.ed == ed) {
 		if (dev && dev->irq_handle) {
 			dev->irq_status = 0;
-			dev->irq_act_len = urb_priv.actual_length;
+			dev->irq_act_len = iurb_priv.actual_length;
 			dev->irq_handle(dev);
 		}
 
-		urb_priv.actual_length = 0;
+		iurb_priv.actual_length = 0;
 		dev->irq_act_len = 0;
 		ed->hwINFO = ed->oINFO;
 		ep_link(ohci, ed);
-		td_submit_job(ed->usb_dev, urb_priv.pipe, urb_priv.trans_buffer, urb_priv.trans_length, urb_priv.setup_buffer, &urb_priv, ed->int_interval);
+		td_submit_job(ed->usb_dev, iurb_priv.pipe, iurb_priv.trans_buffer, iurb_priv.trans_length, iurb_priv.setup_buffer, &iurb_priv, ed->int_interval);
 	}
 
 	return stat;
@@ -1528,7 +1529,7 @@ static int ohci_submit_rh_msg(struct usb_device *dev, unsigned long pipe,
 
 #ifdef DEBUG
 	if (transfer_len)
-		urb_priv.actual_length = transfer_len;
+		urb_priv(pipe,0).actual_length = transfer_len;
 	pkt_print(dev, pipe, buffer, transfer_len, cmd, "RET(rh)", usb_pipein(pipe));
 #else
 	wait_ms(1);
@@ -1640,7 +1641,7 @@ int submit_common_msg(struct usb_device *dev, unsigned long pipe, void *buffer,
 		dev->status = stat;
 		dev->act_len = transfer_len;
 		/* free TDs in urb_priv */
-		urb_free_priv (&urb_priv);
+		urb_free_priv (&urb_priv(pipe,0));
 	}
 
 	return 0;
@@ -1669,7 +1670,7 @@ static int ohci_submit_control_msg(struct usb_device *dev, unsigned long pipe, v
 
 	if(ohci_debug)printf("submit_control_msg %x/%d\n", buffer, transfer_len);
 #if 0
-	urb_priv.actual_length = 0;
+	urb_priv(pipe,0).actual_length = 0;
 	pkt_print(dev, pipe, buffer, transfer_len, setup, "SUB", usb_pipein(pipe));
 #else
 	wait_ms(1);
@@ -1813,7 +1814,7 @@ static int hc_interrupt (void *hc_data)
 	ohci_t *ohci = hc_data;
 	struct ohci_regs *regs = ohci->regs;
 	
-	urb_priv_t *lurb_priv = &urb_priv;
+//	urb_priv_t *lurb_priv = &urb_priv;
 	td_t *td = NULL;
 	int ints;
 
@@ -1881,9 +1882,9 @@ static int hc_interrupt (void *hc_data)
 			td = (td_t *)CACHED_TO_UNCACHED(ohci->hcca->done_head & ~0x1f);
 		if (td == NULL)
 			printf("Bad td in donehead\n");
-		else if (td->index != lurb_priv->length -1){
+		else if (td->index != urb_priv(0,td).length -1){
 			stat = dl_done_list (ohci, dl_reverse_done_list (ohci));
-			printf("td index=%x/%x\n", td->index, lurb_priv->length);
+			printf("td index=%x/%x\n", td->index, urb_priv(0,td).length);
 		} else {
 			stat = dl_done_list (ohci, dl_reverse_done_list (ohci));
 		}
