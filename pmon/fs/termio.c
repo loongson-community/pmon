@@ -112,11 +112,19 @@ term_write (int fd, const void *buf, size_t nchar)
 	struct TermDev *devp;
 	char *buf2 = (char *)buf;
 	int i, n;
+	int dsel;
 	
 	devp = (struct TermDev *)_file[fd].data;
 	p = &DevTable[devp->dev];
 	n = nchar;
 
+#ifdef OUTPUT_FROM_BOTH
+for(dsel=1;(dsel==1)||(dsel==0 && devp->dev==1);dsel--)
+{
+	if(devp->dev==1)p = &DevTable[dsel];
+	buf2 = (char *)buf;
+	n = nchar;
+#endif
 	while (n > 0) {
 		/* << LOCK >> */
 		while(!tgt_smplock());
@@ -138,6 +146,9 @@ term_write (int fd, const void *buf, size_t nchar)
 			scandevs();
 		}
 	}
+#ifdef OUTPUT_FROM_BOTH
+}
+#endif
 
 	return (nchar);
 }
@@ -453,13 +464,18 @@ term_read (fd, buf, n)
 	char ch;
 	struct TermDev *devp;
 	char *buf2 = buf;
+	int dsel=1;
+	DevEntry *p0;
 
 	devp = (struct TermDev *)_file[fd].data;
-	p = &DevTable[devp->dev];
+	p0 = p = &DevTable[devp->dev];
 
 
-	for (i = 0; i < n;) {
+	for (i = 0; i < n;dsel++) {
 		scandevs ();
+#ifdef INPUT_FROM_BOTH
+	if(devp->dev==1)p = &DevTable[dsel&1];
+#endif
 
 		/* << LOCK >> */
 		while(!tgt_smplock());
@@ -478,7 +494,7 @@ term_read (fd, buf, n)
 
 		if (p->t.c_iflag & ICRNL && ch == '\r')
 			ch = '\n';
-		if (p->t.c_lflag & ICANON) {
+		if (p0->t.c_lflag & ICANON) {
 			if (ch == p->t.c_cc[VERASE]) {
 				if (i > 0) {
 					i--;
@@ -489,7 +505,7 @@ term_read (fd, buf, n)
 				}
 				continue;
 			}
-			if (p->t.c_lflag & ECHO)
+			if (p0->t.c_lflag & ECHO)
 				write (fd, &ch, 1);
 			buf2[i++] = ch;
 			if (ch == p->t.c_cc[VEOL] || ch == p->t.c_cc[VEOL2])

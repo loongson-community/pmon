@@ -181,4 +181,6 @@ option PCI_IDSEL_VIA686B=0
 option COM3_BASE_ADDR=0xbfc803f8
 option DEVBD2F_SM502
 select gzip
+option INPUT_FROM_BOTH
+option OUTPUT_FROM_BOTH
 

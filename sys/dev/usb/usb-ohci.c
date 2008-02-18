@@ -1918,8 +1918,8 @@ static int hc_interrupt (void *hc_data)
 		printf("hc_td:%x\n", hc_td);
 		if(hc_td){
 			hc_td = (td_t *)CACHED_TO_UNCACHED(hc_td);	
-			printf("index=%x/%x\n", hc_td->index, lurb_priv->length);
-			//if(hc_td->index == lurb_priv->length -1) //not safe
+			printf("index=%x/%x\n", hc_td->index, urb_priv(0,td).length);
+			//if(hc_td->index == urb_priv(0,td).length -1) //not safe
 			//	writel (ints | OHCI_INTR_WDH, &regs->intrstatus);
 		}
 	}
