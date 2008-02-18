@@ -118,7 +118,7 @@ term_write (int fd, const void *buf, size_t nchar)
 	p = &DevTable[devp->dev];
 	n = nchar;
 
-#ifdef OUTPUT_FROM_BOTH
+#ifdef OUTPUT_TO_BOTH
 for(dsel=1;(dsel==1)||(dsel==0 && devp->dev==1);dsel--)
 {
 	if(devp->dev==1)p = &DevTable[dsel];
@@ -146,7 +146,7 @@ for(dsel=1;(dsel==1)||(dsel==0 && devp->dev==1);dsel--)
 			scandevs();
 		}
 	}
-#ifdef OUTPUT_FROM_BOTH
+#ifdef OUTPUT_TO_BOTH
 }
 #endif
 
@@ -267,7 +267,6 @@ term_ioctl (int fd, unsigned long op, ...)
 	void *argp;
 	va_list ap;
 	struct TermDev	       *devp;
-	static int dsel=0;
 	
 	devp = (struct TermDev *)_file[fd].data;
 
@@ -304,8 +303,9 @@ term_ioctl (int fd, unsigned long op, ...)
 		case FIONREAD:
 			scandevs ();
 #ifdef INPUT_FROM_BOTH
-	dsel++;
-	if(devp->dev==1)p = &DevTable[dsel&1];
+	if(devp->dev==1)
+			*(int *)argp = Qused (p->rxq) + Qused (DevTable[0].rxq);
+	else
 #endif
 			*(int *)argp = Qused (p->rxq);
 			break;
