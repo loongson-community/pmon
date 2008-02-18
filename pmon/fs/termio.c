@@ -267,6 +267,7 @@ term_ioctl (int fd, unsigned long op, ...)
 	void *argp;
 	va_list ap;
 	struct TermDev	       *devp;
+	static int dsel=0;
 	
 	devp = (struct TermDev *)_file[fd].data;
 
@@ -302,6 +303,10 @@ term_ioctl (int fd, unsigned long op, ...)
 			break;
 		case FIONREAD:
 			scandevs ();
+#ifdef INPUT_FROM_BOTH
+	dsel++;
+	if(devp->dev==1)p = &DevTable[dsel&1];
+#endif
 			*(int *)argp = Qused (p->rxq);
 			break;
 		case SETINTR:
