@@ -59,4 +59,4 @@ SRCS+=	argvize.c atob.c atof.c atoi.c atol.c bzero.c bcmp.c calloc.c	\
 	cfgetospeed.c cfmakeraw.c cfsetispeed.c cfsetospeed.c		\
 	cfsetspeed.c ulmin.c lmin.c ioctl.c filefs.c parseurl.c
 
-SRCS+=	longjmp.S ovbcopy.S
+SRCS+=	longjmp.S ovbcopy.S poweroff.c reboot.c

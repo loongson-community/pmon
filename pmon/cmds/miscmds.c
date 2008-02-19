@@ -115,6 +115,16 @@ cmd_reboot (ac, av)
     return(0); /* Shut up gcc */
 }
 
+int
+cmd_poweroff (ac, av)
+    int             ac;
+    char           *av[];
+{
+    printf ("poweroff...\n");
+    tgt_poweroff();
+    return(0); 
+}
+
 static const Cmd Cmds[] =
 {
 	{"Misc"},
@@ -126,6 +136,14 @@ static const Cmd Cmds[] =
 			0,
 			"reboot system",
 			 cmd_reboot, 1, 99, 0},
+	{"poweroff",	"",
+			0,
+			"reboot system",
+			 cmd_poweroff, 1, 99, 0},
+	{"halt",	"",
+			0,
+			"reboot system",
+			 cmd_poweroff, 1, 99, 0},
         
 	{0, 0}
 };

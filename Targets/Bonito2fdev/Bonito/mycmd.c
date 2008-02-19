@@ -669,11 +669,25 @@ static const Cmd Cmds[] =
 	{0, 0}
 };
 
+#ifdef DEVBD2F_SM502
+int power_button_poll(void *unused)
+{
+	int cause;
+	volatile int *p=0xbfe0011c;
+	asm("mfc0 %0,$13":"=r"(cause));
+	if(cause&(1<<10))tgt_poweroff();
+	return 0;
+}
+#endif
+
 static void init_cmd __P((void)) __attribute__ ((constructor));
 
 static void
 init_cmd()
 {
+#ifdef DEVBD2F_SM502
+	tgt_poll_register(1, power_button_poll, 0);
+#endif
 	cmdlist_expand(Cmds, 1);
 }
 

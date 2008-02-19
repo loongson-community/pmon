@@ -1886,6 +1886,9 @@ static int hc_interrupt (void *hc_data)
 			stat = dl_done_list (ohci, dl_reverse_done_list (ohci));
 			printf("td index=%x/%x\n", td->index, urb_priv(0,td).length);
 		} else {
+		#ifndef OUTPUT_TO_BOTH
+		delay(1000);//fixme
+		#endif
 			stat = dl_done_list (ohci, dl_reverse_done_list (ohci));
 		}
 

@@ -544,18 +544,14 @@ tgt_poweroff()
 
 	while(1);
 }
-#else
+#elif defined(DEVBD2F_SM502)
 void
-tgt_reboot()
+tgt_poweroff()
 {
-
-	void (*longreach) __P((void));
-	
-	longreach = (void *)0xbfc00000;
-	(*longreach)();
-
-	while(1);
-
+	volatile int *p=0xbfe0011c;
+	p[1]&=~1;
+	p[0]&=~1;
+	p[0]|=1;
 }
 #endif
 
