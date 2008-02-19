@@ -58,6 +58,7 @@
 
 extern int memorysize;
 extern u_int8_t end[];
+extern u_int8_t start[];
 #ifdef GODSONEV1
 extern int global_div_num;
 #endif
@@ -239,7 +240,7 @@ md_valid_load_addr(first_addr, last_addr)
 	first_addr = CACHED_TO_PHYS(first_addr);
 	last_addr = CACHED_TO_PHYS(last_addr);
 
-	if((first_addr < (paddr_t)CACHED_TO_PHYS(end)) ||
+	if(((first_addr < (paddr_t)CACHED_TO_PHYS(end)) && (last_addr >(paddr_t)CACHED_TO_PHYS(start))) ||
 	   (last_addr > (paddr_t)memorysize)
 	   || address_in_heap(first_addr)
 	   || address_in_heap(last_addr)

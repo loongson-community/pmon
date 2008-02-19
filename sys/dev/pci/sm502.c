@@ -593,6 +593,7 @@ static void SmiSetRegs (void)
 		preg ++;
 	}		
 #ifdef DEVBD2F_SM502
+if(!getenv("rgb24"))
 write32(0x80000,0x0f413105); // bit21-20=1: 9-bit RGB 3:3:3.
 #endif
 		
