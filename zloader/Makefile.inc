@@ -1,7 +1,7 @@
 CC=mips-elf-gcc
 GZROMSTARTADDR=0xffffffff81000000
 ROMSTARTADDR=0xffffffff80010000
-RAMSTARTADDR=0xffffffff80200000
+RAMSTARTADDR=0xffffffff88000000
 export CC += ${MYCC}
 
 ifdef obj
