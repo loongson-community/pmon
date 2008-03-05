@@ -309,8 +309,8 @@ unsigned char data;
 unsigned int addr;
 	mytag=_pci_make_tag(0,17,4);
 	data=_pci_conf_readn(mytag,0x41,1);
-	_pci_conf_writen(mytag,0x41,data&0x80,1);
-	addr=_pci_allocate_io(_pci_head,128);
+	_pci_conf_writen(mytag,0x41,data|0x80,1);
+	addr=_pci_allocate_io(_pci_head,256);
 	printf("power management addr=%x\n",addr);
 	_pci_conf_writen(mytag,0x48,addr|1,4);
 }
