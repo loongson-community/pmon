@@ -57,8 +57,14 @@
 #include "target/cs5536_pci.h"
 #include "target/i8254.h"
 #include "target/isapnpreg.h"
+
+
+#define USE_CS5536_UART1
+
+#ifdef USE_CS5536_UART
 //#define USE_CS5536_UART1
 #define USE_CS5536_UART2
+#endif
 #define DEBUG_LOCORE
 
 /***************************************************************/
@@ -1872,7 +1878,7 @@ LEAF(superio_init)
 	
 ////////////////////////////////////////////////////////////////////////////////
 
-	//
+
 	// IO SPACE ACCESS
 	// 
 	
@@ -1881,8 +1887,8 @@ LEAF(superio_init)
 	// lo : bit+16 = 1 and bit = 0
 
 #ifdef	USE_CS5536_UART1
-	/* config uart1 as 0x3f8 */
-	CS5536_MSR_WRITE((CS5536_DIVIL_MSR_BASE | 0x14), 0x04070003, 0x0);
+	/* config uart1 as 0x2f8 */
+	CS5536_MSR_WRITE((CS5536_DIVIL_MSR_BASE | 0x14), 0x04050003, 0x0);
 	
 	/* config uart1 legacy configuration */
 	CS5536_MSR_WRITE((CS5536_DIVIL_MSR_BASE | 0x3a), 0x2, 0x0);

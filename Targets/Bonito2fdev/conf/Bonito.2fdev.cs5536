@@ -174,3 +174,8 @@ option COM3_BASE_ADDR=0xbff003f8
 option WDC_NORESET
 select cs5536
 option CONFIG_VIDEO_SM501_16BPP
+select gzip
+option INPUT_FROM_BOTH
+option OUTPUT_TO_BOTH
+#option USE_CS5536_UART
+

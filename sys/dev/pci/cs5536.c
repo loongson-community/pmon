@@ -381,7 +381,17 @@ void cs5536_i8259_init(void)
 	outb(CS5536_LEGACY_BASE_ADDR | 0xA1, 0xFF); /* Mask off all interrupts for now. */
 	outb(CS5536_LEGACY_BASE_ADDR | 0x21, 0xFB); /* Mask all IRQs but IRQ2 is cascaded.*/
 //	outb(CS5536_LEGACY_BASE_ADDR | 0xA1, 0x00); /* Mask off all interrupts for now. */
-//	outb(CS5536_LEGACY_BASE_ADDR | 0x21, 0x00); /* Mask all IRQs but IRQ2 is cascaded.*/
+//	outb(CS5536_LEGACY_BASE_ADDR | 0x21, 0x00); /* Mask all IRQs but IRQ2 is cascaded.*/				
+	_rdmsr(DIVIL_MSR_REG(PIC_IRQM_LPC), &hi, &lo);
+	lo |= 0x1002;
+	_wrmsr(DIVIL_MSR_REG(PIC_IRQM_LPC), hi, lo);
+	_rdmsr(DIVIL_MSR_REG(PIC_IRQM_PRIM), &hi, &lo);
+	lo &=~(0x1002) ;
+	_wrmsr(DIVIL_MSR_REG(PIC_IRQM_PRIM), hi, lo);
+	_rdmsr(DIVIL_MSR_REG(LPC_SIRQ), &hi, &lo);
+	lo |=0xc0 ;
+	_wrmsr(DIVIL_MSR_REG(LPC_SIRQ), hi, lo);			
+
 	_rdmsr(DIVIL_MSR_REG(PIC_IRQM_LPC), &hi, &lo);
 	lo |= 0x1002;
 	_wrmsr(DIVIL_MSR_REG(PIC_IRQM_LPC), hi, lo);
