@@ -57,7 +57,7 @@ static int smtc_de_busy;
 void deWaitForNotBusy(void)
 {
 	unsigned long i = 0x1000000;
-	return;
+//	return;
 	while (i--)
 	{
 #ifdef CONFIG_FB_SM501

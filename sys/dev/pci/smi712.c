@@ -140,6 +140,13 @@ void SMTC_write2Ddataport(unsigned long nOffset, unsigned long nData)
     *(volatile unsigned long *)(smtc_2Ddataport+nOffset) = nData;
 }
 
+static inline unsigned int smtc_seqr(int reg)
+{
+       *(volatile unsigned char *)(smtc_RegBaseAddress+0x3c4)=reg;
+        return *(volatile unsigned char *)(smtc_RegBaseAddress+0x3c5);
+}
+
+#define CONFIG_FB_SM7XX 1
 #include "smtc2d.c"
 
 int  smi712_init(char * fbaddress,char * ioaddress)

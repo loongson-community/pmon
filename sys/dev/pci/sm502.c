@@ -440,6 +440,7 @@ int pci_read_config_dword(struct pci_device *linuxpd, int reg, u32 *val)
 
 //////////////////////////////////
 
+#define CONFIG_FB_SM501 1
 #include "smtc2d.c"
 
 /*-----------------------------------------------------------------------------
@@ -543,7 +544,6 @@ write32(0x80000,0x0f413105); // bit21-20=1: 9-bit RGB 3:3:3.
  *-----------------------------------------------------------------------------
  */
 
-#define CONFIG_FB_SM501 1
 // Program new power mode.
 void setPower(unsigned long nGates, unsigned long Clock)
 {
