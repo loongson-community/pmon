@@ -9,6 +9,7 @@
  ***************************************************************************/
 
 #include "smi712.h"
+#include "smtc2d.h"
 
 //#if     ENABLE_VGA_SMI712
 ////////////////////////////////
@@ -114,6 +115,32 @@ smi_init_hw(void)
 }
 
 
+#define smtc_2DBaseAddress  (SMILFB + 0x00408000)
+#define smtc_2Ddataport   (SMILFB + 0x400000)
+#define smtc_RegBaseAddress (SMILFB + 0x00700000)
+
+unsigned long regRead32(unsigned long nOffset)
+{
+    return *(volatile unsigned long *)(smtc_RegBaseAddress+nOffset);
+}
+
+
+void regWrite32(unsigned long nOffset, unsigned long nData)
+{
+    *(volatile unsigned long *)(smtc_RegBaseAddress+nOffset) = nData;
+}
+
+void SMTC_write2Dreg(unsigned long nOffset, unsigned long nData)
+{
+    *(volatile unsigned long *)(smtc_2DBaseAddress+nOffset) = nData;
+}
+
+void SMTC_write2Ddataport(unsigned long nOffset, unsigned long nData)
+{
+    *(volatile unsigned long *)(smtc_2Ddataport+nOffset) = nData;
+}
+
+#include "smtc2d.c"
 
 int  smi712_init(char * fbaddress,char * ioaddress)
 {
@@ -171,12 +198,14 @@ int  smi712_init(char * fbaddress,char * ioaddress)
                 
         printf("Silicon Motion, Inc. LynxEM+ Init complete.\n");
 
+		AutodeInit();
+
         return 0;
 
 }
 //----------------------------------
-#if 0
 #include <pmon.h>
+#if 0
 static inline int smi_attrr(int reg)
 {
 		smi_mmiorb(0x3da);
@@ -241,9 +270,19 @@ do_cmd(str);
 return 0;
 }
 
+#endif
+int info712(int ac,char *av[])
+{
+printf("smtc_RegBaseAddress=0x%x\nsmtc_2DBaseAddress=0x%x\nsmtc_2Ddataport=0x%x\n",smtc_RegBaseAddress,smtc_2DBaseAddress,smtc_2Ddataport);
+return 0;
+
+}
+#if 1
 static const Cmd Cmds[] =
 {
-	{"dumpsmi","",0,"sumpsmi",dumpsmi,1,1,CMD_REPEAT},
+	{"MyCmds"},
+//	{"dumpsmi","",0,"sumpsmi",dumpsmi,1,1,CMD_REPEAT},
+	{"info712","",0,"info712",info712,1,1,CMD_REPEAT},
 	{0, 0}
 };
 

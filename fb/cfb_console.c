@@ -112,8 +112,10 @@ CONFIG_VIDEO_HW_CURSOR:	     - Uses the hardware cursor capability of the
 #define VIDEO_HW_BITBLT
 #elif defined(SMI712)
 #define CONFIG_VIDEO_SW_CURSOR
-#define CONFIG_VIDEO_LOGO
-#define	CONFIG_VIDEO_BMP_LOGO
+//#define CONFIG_VIDEO_LOGO
+//#define	CONFIG_VIDEO_BMP_LOGO
+#define VIDEO_HW_BITBLT
+#define VIDEO_HW_RECTFILL
 #elif defined(SMI502)
 #define CONFIG_VIDEO_SW_CURSOR
 #define VIDEO_HW_BITBLT
@@ -700,18 +702,8 @@ static void console_scrollup (void)
 		);
 #endif
 
-#if defined(SMI502)
-#if defined(X1024x768)
-	deCopyModify((pGD->gdfBytesPP * 8),0,1024,0,16,0,1024,0,0,1024,768-16,0x0c);
-#endif
-#if defined(X800x600)	
-	deCopyModify((pGD->gdfBytesPP * 8),0,800,0,16,0,800,0,0,800,600-16,0x0c);
-#endif
-#if defined(X640x480)
-	deCopyModify((pGD->gdfBytesPP * 8),0,640,0,16,0,640,0,0,640,480-16,0x0c);
-//	deCopy(0,0,(pGD->gdfBytesPP * 8),0,0,640,480-16,0,1,0,16,NULL,0x0c);
-#endif
-
+#if (defined(SMI502)||defined(SMI712))
+    AutodeCopyModify((pGD->gdfBytesPP * 8));
 #endif
 
 #else
@@ -732,20 +724,10 @@ static void console_scrollup (void)
 		);
 #endif
 
-#if defined(SMI502)
-#if defined(X1024x768)
-	deFillRectModify(0,0,768-16,1024,768,CONSOLE_BG_COL);
+#if (defined(SMI502)||defined(SMI712))
+    AutodeFillRectModify(CONSOLE_BG_COL);
 #endif
-	
-#if defined(X800x600)	
-	deFillRectModify(0,0,600-16,800,600,CONSOLE_BG_COL);
-#endif
-	
-#if defined(X640x480)
-	deFillRectModify(0,0,480-16,640,480,CONSOLE_BG_COL);
-#endif
-	
-#endif
+
 #else
 	memsetl (CONSOLE_ROW_LAST, CONSOLE_ROW_SIZE >> 2, CONSOLE_BG_COL);
 #endif
@@ -1434,14 +1416,14 @@ int fb_init (unsigned long fbbase,unsigned long iobase)
         pGD->winSizeY  = 480;
 #endif			
 	
-#if defined(CONFIG_VIDEO_SM501_8BPP)
+#if defined(CONFIG_VIDEO_8BPP)
 	pGD->gdfBytesPP= 1;
 //	pGD->gdfIndex  = GDF__8BIT_INDEX;
 	pGD->gdfIndex  = GDF__8BIT_332RGB;
-#elif defined(CONFIG_VIDEO_SM501_16BPP)
+#elif defined(CONFIG_VIDEO_16BPP)
         pGD->gdfBytesPP= 2;
         pGD->gdfIndex  = GDF_16BIT_565RGB;
-#elif defined(CONFIG_VIDEO_SM501_32BPP)
+#elif defined(CONFIG_VIDEO_32BPP)
         pGD->gdfBytesPP= 4;
         pGD->gdfIndex  = GDF_32BIT_X888RGB;
 #else

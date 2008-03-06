@@ -82,6 +82,8 @@ option		NOPCINAMES		# Save some space for x86emu
 select		mod_framebuffer
 select		mod_smi712		# X86 emulation for VGA
 option		SMI712
+option		X640x480
+option 		CONFIG_VIDEO_16BPP
 
 #
 # Functional options.
@@ -173,7 +175,6 @@ option PCI_IDSEL_CS5536=14
 option COM3_BASE_ADDR=0xbff003f8
 option WDC_NORESET
 select cs5536
-option CONFIG_VIDEO_SM501_16BPP
 select gzip
 option INPUT_FROM_BOTH
 option OUTPUT_TO_BOTH

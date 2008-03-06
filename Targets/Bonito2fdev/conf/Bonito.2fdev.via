@@ -170,3 +170,4 @@ option WDC_NORESET
 select gzip
 option INPUT_FROM_BOTH
 option OUTPUT_TO_BOTH
+option VIA686B_POWERFIXUP

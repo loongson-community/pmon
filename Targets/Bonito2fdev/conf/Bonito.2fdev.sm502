@@ -83,9 +83,9 @@ option		X640x480
 #option		X800x600
 #option		X1024x768
 #option		X1280x800
-#option 	CONFIG_VIDEO_SM501_8BPP
-option 		CONFIG_VIDEO_SM501_16BPP
-#option 	CONFIG_VIDEO_SM501_32BPP
+#option 	CONFIG_VIDEO_8BPP
+option 		CONFIG_VIDEO_16BPP
+#option 	CONFIG_VIDEO_32BPP
 select		mod_vgacon
 option		NOPCINAMES		# Save some space for x86emu
 #option		FASTBOOT
