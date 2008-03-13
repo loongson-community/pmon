@@ -115,6 +115,10 @@ memtest5:
 #include "writeall-testall-ram8.S"
 memtest6:
 #include "copytest.S"
+	TTYDBG("\r\nTesting ok\r\n");
+1:	
+	b	1b
+	nop
 memtest7:
 #include "writesome-testsome-rom8R.S"
 memtest8:

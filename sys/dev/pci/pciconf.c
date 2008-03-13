@@ -402,7 +402,7 @@ if(pm_io == NULL) {
 			_pci_conf_write(tag, reg, old);
 
 			if (mask == 0 || mask == 0xffffffff) {
-				break;
+				continue;
 			}
 
 			if (_pciverbose >= 3) {

@@ -364,7 +364,7 @@ tgt_devconfig()
 	if(!rc){ 
 		kbd_available=1;
 	}
-	psaux_init();
+	//psaux_init();
 #endif
    printf("devconfig done.\n");
 }
