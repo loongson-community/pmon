@@ -391,16 +391,6 @@ void cs5536_i8259_init(void)
 	_rdmsr(DIVIL_MSR_REG(LPC_SIRQ), &hi, &lo);
 	lo |=0xc0 ;
 	_wrmsr(DIVIL_MSR_REG(LPC_SIRQ), hi, lo);			
-
-	_rdmsr(DIVIL_MSR_REG(PIC_IRQM_LPC), &hi, &lo);
-	lo |= 0x1002;
-	_wrmsr(DIVIL_MSR_REG(PIC_IRQM_LPC), hi, lo);
-	_rdmsr(DIVIL_MSR_REG(PIC_IRQM_PRIM), &hi, &lo);
-	lo &=~(0x1002) ;
-	_wrmsr(DIVIL_MSR_REG(PIC_IRQM_PRIM), hi, lo);
-	_rdmsr(DIVIL_MSR_REG(LPC_SIRQ), &hi, &lo);
-	lo |=0xc0 ;
-	_wrmsr(DIVIL_MSR_REG(LPC_SIRQ), hi, lo);			
 	return;
 }
 

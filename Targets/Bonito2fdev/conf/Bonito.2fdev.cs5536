@@ -173,8 +173,9 @@ select fatfs
 option FLOATINGPT
 option PCI_IDSEL_CS5536=14
 option COM3_BASE_ADDR=0xbff003f8
-option WDC_NORESET
+#option WDC_NORESET
 select cs5536
+option CONFIG_VIDEO_SM501_16BPP
 select gzip
 option INPUT_FROM_BOTH
 option OUTPUT_TO_BOTH

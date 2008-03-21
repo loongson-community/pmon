@@ -156,6 +156,8 @@ return 0;
 #include "target/via686b.h"
 static int i2cslot=0;
 
+#ifndef DEVBD2F_SM502
+
 static int DimmRead(int type,long long addr,union commondata *mydata)
 {
 char c;
@@ -187,6 +189,7 @@ default: return -1;break;
 return 0;
 }
 
+#endif
 static int DimmWrite(int type,long long addr,union commondata *mydata)
 {
 return -1;
@@ -610,6 +613,32 @@ static int sm502RtcWrite(int type,long long addr,union commondata *mydata)
 		return -1;
 	}
 	return 0;
+}
+
+static int DimmRead(int type,long long addr,union commondata *mydata)
+{
+char c;
+switch(type)
+{
+case 1:
+		i2c_start();	
+		i2c_send(0xa0|(i2cslot<<1));
+		if(!i2c_rec_ack())
+			return -1;
+		i2c_send(addr);
+		if(!i2c_rec_ack())
+			return -1;
+		i2c_start();
+		i2c_send(0xa1|(i2cslot<<1));
+		if(!i2c_rec_ack())
+			return -1;
+		mydata->data1=i2c_rec();
+		i2c_stop();
+		break;
+default:
+		return -1;
+}
+		return 0;
 }
 #endif
 static int i2cs(int argc,char **argv)
