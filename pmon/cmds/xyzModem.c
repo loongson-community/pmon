@@ -909,7 +909,7 @@ static ulong xyzmodem_transfer (unsigned long offset,int mode)
 	sprintf (buf, "%X", size);
 	setenv ("filesize", buf);
 
-	return offset;
+	return size;
 }
 static int xyzmodem(int argc,char *argv[])
 {
