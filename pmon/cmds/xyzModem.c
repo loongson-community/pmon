@@ -870,7 +870,7 @@ static int getcxmodem(void) {
 	return -1;
 }
 
-static ulong ymodem_transfer (unsigned long offset)
+static ulong xyzmodem_transfer (unsigned long offset,int mode)
 {
 	int size;
 	char buf[32];
@@ -911,19 +911,16 @@ static ulong ymodem_transfer (unsigned long offset)
 
 	return offset;
 }
-static int ymodem(int argc,char *argv[])
+static int xyzmodem(int argc,char *argv[])
 {
     int i = 0;
-    char buf_2[100];
-    char tmp[20];
-    int base_flash = 0xbfc00000;
-    int start_ram = 0x80300000;
-    char boot[20]="elf";
     void *base = NULL;
 	char *file;
 	int file_size;
+	int mode;
 	base = 0x84000000;
-	file="ymodem";
+	file=argv[0];
+	mode=argv[0][5]-'x'+1;
 
 	for(i=1;i<argc;i++)
 	{
@@ -939,7 +936,7 @@ static int ymodem(int argc,char *argv[])
 
 
     printf("Waiting for serial transmitting datas\n");
-    file_size = ymodem_transfer(base);
+    file_size = xyzmodem_transfer(base,mode);
     printf("Load successfully! Start at 0x%x, size 0x%x\n", base, file_size);
 #if NRAMFILES > 0
 	deleteRamFile(file);
@@ -952,7 +949,8 @@ static int ymodem(int argc,char *argv[])
 static const Cmd Cmds[] =
 {
 	{"MyCmds"},
-	{"ymodem","",0,"ymodem serial",ymodem,0,99,CMD_REPEAT},
+	{"xmodem","",0,"xmodem [base=baseaddr] [file=filename]",xyzmodem,0,99,CMD_REPEAT},
+	{"ymodem","",0,"ymodem base=baseaddr] [file=filename]",xyzmodem,0,99,CMD_REPEAT},
 	{0, 0}
 };
 

@@ -175,9 +175,9 @@ file sys/dev/bus_dma.c			sys
 file pmon/cmds/boot.c			cmd_boot
 file pmon/cmds/call.c			cmd_call
 file pmon/cmds/mycmd.c			cmd_mycmd
-file pmon/cmds/xmodem.c			cmd_xmodem
-file pmon/cmds/xyzModem.c		cmd_ymodem
-file pmon/cmds/crc16.c			cmd_ymodem
+file pmon/cmds/xmodem.c			cmd_xmodem & !cmd_xyzmodem
+file pmon/cmds/xyzModem.c		cmd_xyzmodem
+file pmon/cmds/crc16.c			cmd_xyzmodem
 file pmon/cmds/sysinfo.c		cmd_setup
 file pmon/cmds/newmt/newmt.c	cmd_newmt
 file pmon/cmds/setup.c			cmd_setup

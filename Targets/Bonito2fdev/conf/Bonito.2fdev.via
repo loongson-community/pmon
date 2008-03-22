@@ -156,8 +156,8 @@ pseudo-device	loop	1	# network loopback
 
 ide_cd* 	at pciide? channel ? drive ? flags 0x0001
 select 		iso9660
-select 		cmd_xmodem
-select 		cmd_ymodem
+select		ramfiles
+select 		cmd_xyzmodem
 option IDECD 
 #option HAVE_NB_SERIAL
 #option USE_ENVMAC
