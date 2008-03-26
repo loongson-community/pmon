@@ -32,6 +32,8 @@
  * SUCH DAMAGE.
  *
  */
+#ifndef __PFLASH_H
+#define __PFLASH_H
 
 struct fl_functions;
 
@@ -69,6 +71,7 @@ struct fl_map {
 	int	fl_map_chips;	/* Number of chips to operate in one cycle */
 	int	fl_map_bus;	/* Bus width type, se below */
 	int	fl_map_offset;	/* Flash Offset mapped in memory */
+	int fl_type;
 };
 
 #define	FL_BUS_8	0x01	/* Byte wide bus */
@@ -147,3 +150,4 @@ extern struct fl_functions fl_func_int;
 extern struct fl_functions fl_func_sst;
 extern struct fl_functions fl_func_st;
 extern struct fl_functions fl_func_winbond;
+#endif

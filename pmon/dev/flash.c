@@ -71,16 +71,27 @@ static quad_t widedata;
 /*
  *  Inlineable function to Auto Select Device
  */
-static int flash_type=0;
-#define TYPE_AMD 1
-#define TYPE_SST 2
+#define TYPE_AMD 0x5a5a0001
+#define TYPE_SST 0x5a5a0002
+#define TYPE_ST 0x5a5a0003
+#define ConvAddr1(A) (2*A+!(A&0x1))  /* Convert a word mode command to byte mode command :
+                                           Word Mode Command    Byte Mode Command
+                                                0x555      ->     0xAAA
+                                                0x2AA      ->     0x555
+                                                0x55       ->     0xAA            */
+
+#define ConvAddr2(A) (A*2)
 static __inline void fl_mydetect(struct fl_map *map)
 {
         outb((map->fl_map_base + SST_CMDOFFS1), 0xAA);
         outb((map->fl_map_base + SST_CMDOFFS2), 0x55);
         outb((map->fl_map_base + SST_CMDOFFS1), FL_AUTOSEL);
-        if(inb(map->fl_map_base)==0xbf){flash_type=TYPE_SST;}
-	    else {flash_type=TYPE_AMD;	}
+        if(inb(map->fl_map_base)==0xbf){map->fl_type=TYPE_SST;return;}
+        outb((map->fl_map_base + ConvAddr1(0x555)), 0xAA);
+        outb((map->fl_map_base + ConvAddr1(0x2aa)), 0x55);
+        outb((map->fl_map_base + ConvAddr1(0x555)), FL_AUTOSEL);
+        if(inb(map->fl_map_base)==0x20){map->fl_type=TYPE_ST;return;}
+	    else {map->fl_type=TYPE_AMD;	}
 }
 
 static __inline void
@@ -89,9 +100,9 @@ fl_autoselect(struct fl_map *map)
 
 	switch(map->fl_map_bus) {
 	case FL_BUS_8:
-		if(!flash_type)fl_mydetect(map);
+		if((map->fl_type>>16)!=0x5a5a)fl_mydetect(map);
 #if NMOD_FLASH_SST || NMOD_FLASH_WINBOND	
-		if(flash_type==TYPE_SST) //SST or WINBOND
+		if(map->fl_type==TYPE_SST) //SST or WINBOND
 		{
 		outb((map->fl_map_base + SST_CMDOFFS1), 0xAA);
 		outb((map->fl_map_base + SST_CMDOFFS2), 0x55);
@@ -100,7 +111,7 @@ fl_autoselect(struct fl_map *map)
 		}
 #endif
 #if NMOD_FLASH_AMD
-		if(flash_type==TYPE_AMD)
+		if(map->fl_type==TYPE_AMD)
 		{
 		outb((map->fl_map_base + AMD_CMDOFFS1), 0xAA);
 		outb((map->fl_map_base + AMD_CMDOFFS2), 0x55);
@@ -108,6 +119,16 @@ fl_autoselect(struct fl_map *map)
 		break;
 		}
 #endif
+#if NMOD_FLASH_ST
+		if(map->fl_type==TYPE_ST)
+		{
+		outb((map->fl_map_base + ConvAddr1(0x555)), 0xAA);
+		outb((map->fl_map_base + ConvAddr1(0x2aa)), 0x55);
+		outb((map->fl_map_base + ConvAddr1(0x555)), FL_AUTOSEL);
+		break;
+		}
+#endif
+
 		break;
 
 	case FL_BUS_16:
@@ -119,13 +140,12 @@ fl_autoselect(struct fl_map *map)
 		SETWIDE(FL_AUTOSEL);
 		outw(map->fl_map_base + (0x5555 << 2), widedata);
 #else
-#define ConvAddr(A) (A<<1)
 		SETWIDE(0xaa);
-		outw(map->fl_map_base + ConvAddr(0x00555), widedata);
+		outw(map->fl_map_base + ConvAddr2(0x00555), widedata);
 		SETWIDE(0x55);
-		outw(map->fl_map_base + ConvAddr(0x002AA), widedata);
+		outw(map->fl_map_base + ConvAddr2(0x002AA), widedata);
 		SETWIDE(FL_AUTOSEL);
-		outw(map->fl_map_base + ConvAddr(0x00555), widedata);
+		outw(map->fl_map_base + ConvAddr2(0x00555), widedata);
 #endif
 		break;
 
@@ -159,19 +179,26 @@ fl_reset(struct fl_map *map)
 
 	switch(map->fl_map_bus) {
 	case FL_BUS_8:
-		if(!flash_type)fl_mydetect(map);
+		if(!map->fl_type)fl_mydetect(map);
 #if NMOD_FLASH_SST
-		if(flash_type==TYPE_SST)
+		if(map->fl_type==TYPE_SST)
 		{
 		outb((map->fl_map_base), 0xf0);
 		break;
 		}
 #endif
 #if NMOD_FLASH_AMD
-        if(flash_type==TYPE_AMD)
+        if(map->fl_type==TYPE_AMD)
         {
 		outb((map->fl_map_base), 0x90);
 		outb((map->fl_map_base), 0x00);
+		break;
+		}
+#endif
+#if NMOD_FLASH_ST
+		if(map->fl_type==TYPE_ST)
+		{
+		outb(map->fl_map_base, 0xf0);
 		break;
 		}
 #endif
