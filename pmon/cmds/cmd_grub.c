@@ -30,10 +30,11 @@ int cmd_initrd (int ac, char *av[])
 	int n = 0;
 	ExecId id;
 
-	if (ac != 2)
+	if (ac != 2 && ac!=3)
 		return -1;
 
-	rd_start = 0x80800000;
+	if(ac==3)rd_start=strtoul(av[2],0,0);
+	else rd_start = 0x84000000;
 	rd_size = 0;
 	
 	flags |= RFLAG;
@@ -50,7 +51,7 @@ int cmd_initrd (int ac, char *av[])
 	id = getExec("bin");
 	if (id != NULL) {
 		exec (id, bootfd, buf, &n, flags);
-		rd_size = (dl_maxaddr - dl_minaddr + 8) & ~0x7;
+		rd_size = (dl_maxaddr - dl_minaddr + 1) ;
 		execed = 1;
 	}else{
 		printf("[error] this pmon can't load bin file!");
@@ -89,7 +90,7 @@ static const Cmd GrubCmd[] =
 	{"initrd",	"initrd/initramfs path",
 			0,
 			"load initrd/initramfs image",
-			cmd_initrd, 2, 2, CMD_REPEAT},
+			cmd_initrd, 2, 3, CMD_REPEAT},
 	{0, 0}
 };
 

@@ -581,6 +581,34 @@ fl_verify_device(void *fl_base, void *data_base, int data_size, int verbose)
 
 		if(verbose & !ok) {
 			printf(" error offset %p\n", fl_last);
+			{
+			char str[100];
+			int timeout;
+			printf("erase all chip(y/N)?");
+			gets(str);
+			if(str[0]=='y'||str[0]=='Y')
+			{
+				tgt_flashwrite_enable();
+				printf("Erasing all FLASH blocks. ");
+				(*dev->functions->erase_chip)(map, dev);
+				delay(1000);
+				for(timeout = 0 ;
+					((ok = (*dev->functions->isbusy)(map, dev, 0xffffffff,0, TRUE)) == 1)
+						&& (timeout < PFLASH_MAX_TIMEOUT); timeout++) {
+						delay(1000);
+					if(verbose) {
+						dotik(256, 0);
+					}
+				}
+				delay(1000);
+
+				if(!(timeout < PFLASH_MAX_TIMEOUT)) {
+					(*dev->functions->erase_suspend)(map, dev);
+				}
+				(*dev->functions->reset)(map, dev);
+				tgt_flashwrite_disable();
+			}
+		   }
 			break;
 		}
 		else if(verbose) {
