@@ -113,6 +113,18 @@ DB(				printf("halted\n");
 		}
 		op1 = (*sys_rdb)(((u32)M.x86.R_CS << 4) + (M.x86.R_IP++));
 		(*x86emu_optab[op1])(op1);
+#ifdef DEBUG_EMU_VGA
+	{ 
+	 char c;
+	 if(tgt_testchar()){
+	 printf("press d to show debug info,x to exit,others to continue\n");
+	 c=tgt_getchar();
+	 if(c=='d')X86EMU_trace_on(); 
+	 if(c=='x'){M.x86.debug &= ~DEBUG_EXIT;return;}
+
+	 }
+	}
+#endif
 		if (M.x86.debug & DEBUG_EXIT) {
 		    M.x86.debug &= ~DEBUG_EXIT;
 		    return;

@@ -119,7 +119,7 @@ int vga_bios_init(void)
 
         	// Execute the BIOS POST code
 #ifdef DEBUG_EMU_VGA
-		X86EMU_trace_on();
+		//X86EMU_trace_on();
 #endif
         	BE_callRealMode(0xC000,0x0003,&regs,&sregs);
 #if 0

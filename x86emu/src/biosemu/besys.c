@@ -290,9 +290,9 @@ DB( if (DEBUG_MEM())
 
 #ifdef DEBUG_EMU_VGA
 #define DEBUG_IO()          (M.x86.debug & DEBUG_IO_TRACE_F)
-
 void check_io(int port,int read,int val)
 {
+	return;
 	if(port==0x40||port==0x43) return;
 	//if(port>0x3ff) return;
 /*	static int printed[1024];
@@ -328,6 +328,20 @@ static unsigned short Int10Current_inb40time=0;
 	Int10Current_inb40time++;
 	val = (u8)(Int10Current_inb40time >>
 		      ((Int10Current_inb40time & 1) << 3));
+#ifdef PRINT_PORT
+	printf(" inb(%#x) = %2.2x\n", port, val);
+#endif
+	return val;
+    } 
+}
+#endif
+
+#ifdef MY61IO
+{
+static unsigned short Int10Current_inb61time=0;
+    if (port == 0x61) {
+	Int10Current_inb61time++;
+	val = (u8)(Int10Current_inb61time>>3); 
 #ifdef PRINT_PORT
 	printf(" inb(%#x) = %2.2x\n", port, val);
 #endif
