@@ -645,7 +645,7 @@ static int i2cs(int argc,char **argv)
 {
 	pcitag_t tag;
 	volatile int tmp;
-if(argc!=2) return -1;
+if(argc<2) return -1;
 
 i2cslot=strtoul(argv[1],0,0);
 
@@ -662,6 +662,13 @@ case 2:
 case 3:
  syscall1=(void *)rom_ddr_reg_read;
  syscall2=(void *)rom_ddr_reg_write;
+ if(argc==3 && !strcmp(argv[2][2],"revert"))
+ {
+ extern char ddr2_reg_data,_start;
+ extern char ddr2_reg_data1;
+ printf("revert to default ddr setting\n");
+ tgt_flashprogram(0xbfc00000+((int)&ddr2_reg_data -(int)&_start),30*8,&ddr2_reg_data1,TRUE);
+ }
 break;
 #ifdef DEVBD2F_SM502
 case 4:
@@ -694,7 +701,7 @@ static const Cmd Cmds[] =
 	{"MyCmds"},
 	{"pnps",	"", 0, "select pnp ops for d1,m1 ", pnps, 0, 99, CMD_REPEAT},
 	{"dumpsis",	"", 0, "dump sis registers", dumpsis, 0, 99, CMD_REPEAT},
-	{"i2cs","slotno #slot 0-1 for dimm,slot 2 for ics95220,3 for ddrcfg", 0, "select i2c ops for d1,m1", i2cs, 0, 99, CMD_REPEAT},
+	{"i2cs","slotno #slot 0-1 for dimm,slot 2 for ics95220,3 for ddrcfg,3 revert for revert to default ddr setting", 0, "select i2c ops for d1,m1", i2cs, 0, 99, CMD_REPEAT},
 	{0, 0}
 };
 

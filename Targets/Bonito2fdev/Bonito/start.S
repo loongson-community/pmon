@@ -1923,6 +1923,7 @@ DDR2_CTL_start_DATA_HI: .word 0x01010100
 
 	.rdata
 	.align 5
+	.global ddr2_reg_data1;
 ddr2_reg_data1:
 //0000000_0 arefresh 0000000_1 ap 0000000_1 addr_cmp_en 0000000_1 active_aging
 DDR2_CTL_00_DATA_LO_1:	.word 0x00000101

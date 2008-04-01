@@ -51,7 +51,7 @@ int cmd_initrd (int ac, char *av[])
 	id = getExec("bin");
 	if (id != NULL) {
 		exec (id, bootfd, buf, &n, flags);
-		rd_size = (dl_maxaddr - dl_minaddr + 1) ;
+		rd_size = (dl_maxaddr - dl_minaddr) ;
 		execed = 1;
 	}else{
 		printf("[error] this pmon can't load bin file!");
