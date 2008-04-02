@@ -62,13 +62,6 @@
 #include "pcidevs.h"
 #endif
 
-#if defined(LONGMENG)||defined(DEVBD2E)||defined(NC2E)
-#define PCI_ALLOC_UPWARDS
-#elif defined(BONITOEL)
-#undef    PCI_ALLOC_UPWARDS
-#else
-#undef    PCI_ALLOC_UPWARDS
-#endif
 
 #include <sys/systm.h>
 #include <pmon.h>
@@ -575,7 +568,7 @@ _pci_allocate_mem(dev, size)
 	vm_size_t size;
 {
 	pcireg_t address,address1;
-#ifndef PCI_ALLOC_UPWARDS
+#ifdef PCI_ALLOC_MEM_DOWNWARDS
 	/* allocate downwards, then round to size boundary */
 	address = (dev->bridge.secbus->nextpcimemaddr - size) & ~(size - 1);
 	if (address > dev->bridge.secbus->nextpcimemaddr ||
@@ -597,14 +590,6 @@ _pci_allocate_mem(dev, size)
 }
 
 
-#undef    PCI_ALLOC_UPWARDS
-#if defined(LONGMENG)||defined(DEVBD2E)||defined(NC2E)
-#define PCI_ALLOC_UPWARDS
-#elif defined(BONITOEL)
-#undef PCI_ALLOC_UPWARDS
-#else
-#undef    PCI_ALLOC_UPWARDS
-#endif
 
 pcireg_t
 _pci_allocate_io(dev, size)
@@ -612,7 +597,7 @@ _pci_allocate_io(dev, size)
     vm_size_t size;
 {
 	pcireg_t address,address1;
-#ifndef PCI_ALLOC_UPWARDS
+#ifdef PCI_ALLOC_IO_DOWNWARDS
 	/* allocate downwards, then round to size boundary */
 	address = (dev->bridge.secbus->nextpciioaddr - size) & ~(size - 1);
 	if (address > dev->bridge.secbus->nextpciioaddr ||
@@ -621,7 +606,7 @@ _pci_allocate_io(dev, size)
 	}
 	dev->bridge.secbus->nextpciioaddr = address;
 #else
-	/* allocate downwards, then round to size boundary */
+	/* allocate upwards, then round to size boundary */
 	address=(dev->bridge.secbus->minpciioaddr+size-1)& ~(size - 1);
 	address1 = address+size;
 	if (address1 > dev->bridge.secbus->nextpciioaddr ||

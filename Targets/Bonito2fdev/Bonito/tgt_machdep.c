@@ -181,33 +181,7 @@ void addr_tst1(void);
 void addr_tst2(void);
 void movinv1(int iter, ulong p1, ulong p2);
 
-#define PCI_ALLOC_UPWARDS
-static pcireg_t
-_pci_allocate_io(dev, size)
-    struct pci_device *dev;
-    vm_size_t size;
-{
-	pcireg_t address,address1;
-#ifndef PCI_ALLOC_UPWARDS
-	/* allocate downwards, then round to size boundary */
-	address = (dev->bridge.secbus->nextpciioaddr - size) & ~(size - 1);
-	if (address > dev->bridge.secbus->nextpciioaddr ||
-            address < dev->bridge.secbus->minpciioaddr) {
-		return -1;
-	}
-	dev->bridge.secbus->nextpciioaddr = address;
-#else
-	/* allocate downwards, then round to size boundary */
-	address=(dev->bridge.secbus->minpciioaddr+size-1)& ~(size - 1);
-	address1 = address+size;
-	if (address1 > dev->bridge.secbus->nextpciioaddr ||
-            address1 < dev->bridge.secbus->minpciioaddr) {
-		return -1;
-	}
-	dev->bridge.secbus->minpciioaddr = address1;
-#endif
-	return(address);
-}
+pcireg_t _pci_allocate_io(struct pci_device *dev, vm_size_t size);
 
 void
 initmips(unsigned int memsz)
