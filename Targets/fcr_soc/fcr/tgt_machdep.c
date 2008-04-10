@@ -1058,16 +1058,6 @@ nvram_put(char *buffer)
 
 #endif
 
-#define K1BASE 		0xa0000000
-#define KSEG1(addr) ((void *)(K1BASE | (u32)(addr)))
-
-#define KSEG1_STORE8(addr, value) *(volatile u8 *)(KSEG1(addr)) = ((u8)value & 0xff)
-#define KSEG1_STORE16(addr, value) *(volatile u16 *)(KSEG1(addr)) = ((u8)value & 0xffff)
-#define KSEG1_STORE32(addr, value) *(volatile u32 *)(KSEG1(addr)) = (u32)(value)
-
-#define KSEG1_LOAD8(addr) *(volatile u8 *)(KSEG1(addr))
-#define KSEG1_LOAD16(addr) *(volatile u16 *)(KSEG1(addr))
-#define KSEG1_LOAD32(addr) *(volatile u32 *)(KSEG1(addr))
 #define FCR_COM0_BASE 0x1f004080         //z 0x1f004080
 #define UART_SET(idx, value) KSEG1_STORE8(FCR_COM0_BASE + idx, value)  //zgj FCR_COM2_BASE
 #define UART_GET(idx) KSEG1_LOAD8(FCR_COM0_BASE + idx) //zgj FCR_COM2_BASE

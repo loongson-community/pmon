@@ -13,6 +13,9 @@ device  localbus
 attach  localbus at mainbus
 file    Targets/fcr_soc/dev/localbus.c		localbus
 
+device	dmfe: ether, ifnet, ifmedia, mii
+attach	dmfe at localbus
+file	Targets/fcr_soc/dev/if_dc2114x.c dmfe
 
 # Ethernet driver for Discovery ethernet
 device  gt: ether, ifnet, ifmedia

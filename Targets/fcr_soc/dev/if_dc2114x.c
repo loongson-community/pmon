@@ -82,22 +82,6 @@
 #include <dev/pci/pcireg.h>
 #include <dev/pci/pcidevs.h>
 
-#include <dev/pci/if_fxpreg.h>
-#include <dev/pci/if_fxpvar.h>
-typedef struct FILE {
-	int fd;
-	int valid;
-	int ungetcflag;
-	int ungetchar;
-} FILE;
-extern FILE _iob[];
-#define serialout (&_iob[1])
-
-#ifdef __alpha__		/* XXX */
-/* XXX XXX NEED REAL DMA MAPPING SUPPORT XXX XXX */
-#undef vtophys
-#define	vtophys(va)	alpha_XXX_dmamap((vm_offset_t)(va))
-#endif /* __alpha__ */
 
 #else /* __FreeBSD__ */
 
@@ -133,19 +117,8 @@ extern FILE _iob[];
 #define	RFA_ALIGNMENT_FUDGE	2
 #endif
 
-#include <linux/types.h>
-
-
-
-
-
-//
-
-
-#include <etherboot.h>
-#include <nic.h>
-#include <ethernet.h>
-#include <fcr-soc-dmfe.h>
+#include <target/types.h>
+#include <target/fcr-soc-dmfe.h>
 #undef DEBUG_SROM
 #undef DEBUG_SROM2
 
@@ -218,8 +191,6 @@ extern FILE _iob[];
 
 #define SROM_V41_CODE   0x14
 
-//#define outl OUTL
-//#define inl  INL
 
 /* The EEPROM commands include the alway-set leading bit. */
 #define SROM_WRITE_CMD	5
@@ -240,61 +211,34 @@ extern FILE _iob[];
 
 #define POLL_DEMAND	1
 
-#include <stdio.h>
-#include <wait.h>
 
-typedef unsigned long u_long;
-typedef unsigned int u_int;
-typedef unsigned short u_short;
 typedef int  s32;
 
-
-typedef struct bd_info {
-	unsigned long	bi_memstart;	/* start of DRAM memory */
-	unsigned long	bi_memsize;	/* size	 of DRAM memory in bytes */
-	unsigned long	bi_flashstart;	/* start of FLASH memory */
-	unsigned long	bi_flashsize;	/* size	 of FLASH memory */
-	unsigned long	bi_flashoffset; /* reserved area for startup monitor */
-	unsigned long	bi_sramstart;	/* start of SRAM memory */
-	unsigned long	bi_sramsize;	/* size	 of SRAM memory */
-	unsigned long	bi_ip_addr;	/* IP Address */
-	unsigned char	bi_enetaddr[6]; /* Ethernet adress */
-	unsigned long	bi_baudrate;	/* Console Baudrate */
-} bd_t;
-
 struct eth_device {
+//most of the fields come from struct fxp_softc
+#if defined(__NetBSD__) || defined(__OpenBSD__)
+	struct device sc_dev;		/* generic device structures */
+	void *sc_ih;			/* interrupt handler cookie */
+	bus_space_tag_t sc_st;		/* bus space tag */
+	bus_space_handle_t sc_sh;	/* bus space handle */
+	pci_chipset_tag_t sc_pc;	/* chipset handle needed by mips */
+#else
+	struct caddr_t csr;		/* control/status registers */
+#endif /* __NetBSD__ || __OpenBSD__ */
+#if defined(__OpenBSD__) || defined(__FreeBSD__)
+	struct arpcom arpcom;		/* per-interface network data !!we use this*/
+#endif
+#if defined(__NetBSD__)
+	struct ethercom sc_ethercom;	/* ethernet common part */
+#endif
+	struct mii_data sc_mii;		/* MII media information */
+	unsigned char dev_addr[6];
+    unsigned char       addr_len;   /* hardware address length  */
 	unsigned long iobase;
-	int   (*init)(struct eth_device* dev, bd_t* bis);
-	void  (*halt)(struct eth_device* dev);
-	int   (*send)(struct eth_device* dev, volatile void *packet, int length);
-	int   (*recv)(struct eth_device* dev);
-	char enetaddr[6];
 	char *packet;
-	struct nic *nic;
-} dc211x;
+} ;
+#define udelay delay
 
-
-void NetReceive(char *buf, int size)
-{
-	struct nic *nic	= dc211x.nic;
-	
-	memcpy(nic->packet, buf, size);
-#if 0	
-	{
-		int i;
-		printf("Received %d:\n",size);
-		for(i=0; i<size; i++){
-			printf("%02x", (unsigned char)buf[i]);
-			if((i+1)%16==0)
-				printf("\n");
-			else
-				printf(" ");	
-		}
-		printf("\n");
-	}
-#endif	
-	nic->packetlen = size;
-}
 
 
 #define CONFIG_TULIP_FIX_DAVICOM
@@ -372,13 +316,10 @@ static int tx_new;                             /* TX descriptor ring pointer */
 static char rxRingSize;
 static char txRingSize;
 
-static void  send_setup_frame(struct eth_device* dev, bd_t * bis);
+static void  send_setup_frame(struct eth_device* dev);
 
-static int   dc21x4x_init(struct eth_device* dev, bd_t* bis);
-static int   dc21x4x_send(struct eth_device* dev, volatile void *packet, int length);
-static int   dc21x4x_recv(struct eth_device* dev);
-static void  dc21x4x_halt(struct eth_device* dev);
-static void  read_hw_addr(struct eth_device *dev, bd_t *bis);
+static int   dc21x4x_init(struct eth_device* dev);
+static void  read_hw_addr(struct eth_device *dev);
  u16   loop_back(void);  
 
  u16 loop_back_reset(void);
@@ -397,9 +338,6 @@ static void OUTL(struct eth_device* dev, int command, u_long addr)
 
 #define PHY_ADDR_1 1
 #define PHY_ADDR_17 17
-
-
-
 
 
  u16 loop_back_17(void)
@@ -577,6 +515,7 @@ static void OUTL(struct eth_device* dev, int command, u_long addr)
     return data_loopback;
 
 }
+static void phy_write_1bit(unsigned long ioaddr, u32 phy_data);
 
 void phy_write_1( u32 phy_addr, u32 offset, u32 phy_data)
 {
@@ -712,7 +651,7 @@ void phy_write_1( u32 phy_addr, u32 offset, u32 phy_data)
  *  Read a word data from phy register
  */
 
- u16 phy_read(u8 phy_addr, u8 offset)
+u16 phy_read(u8 phy_addr, u8 offset)
 {
     int i;
     u16 phy_data;
@@ -760,11 +699,11 @@ void phy_write_1( u32 phy_addr, u32 offset, u32 phy_data)
 static void phy_write_1bit(unsigned long ioaddr, u32 phy_data)
 {
     phy_data |=1<<18;
-    outl(phy_data, ioaddr);         /* MII Clock Low */
+    dfme_outl(phy_data, ioaddr);         /* MII Clock Low */
     udelay(1);
-    outl(phy_data | MDCLKH, ioaddr);    /* MII Clock High */
+    dfme_outl(phy_data | MDCLKH, ioaddr);    /* MII Clock High */
     udelay(1);
-    outl(phy_data, ioaddr);         /* MII Clock Low */
+    dfme_outl(phy_data, ioaddr);         /* MII Clock Low */
     udelay(1);
 }
 
@@ -777,12 +716,12 @@ static u16 phy_read_1bit(unsigned long ioaddr)
 {
     u16 phy_data;
 
-    //outl(0x50000, ioaddr);
-    outl(0x10000, ioaddr);
+    //dfme_outl(0x50000, ioaddr);
+    dfme_outl(0x10000, ioaddr);
     udelay(1);
-    phy_data = ( inl(ioaddr) >> 19 ) & 0x1;
-    //outl(0x40000, ioaddr);
-    outl(0x00000, ioaddr);
+    phy_data = ( dfme_inl(ioaddr) >> 19 ) & 0x1;
+    //dfme_outl(0x40000, ioaddr);
+    dfme_outl(0x00000, ioaddr);
     udelay(1);
 
     return phy_data;
@@ -791,20 +730,17 @@ static u16 phy_read_1bit(unsigned long ioaddr)
 ///////////////////////////////////////////////////////////
 
 
-int dc21x4x_initialize(bd_t *bis)
+int dc21x4x_initialize(struct eth_device* dev)
 {
-	struct eth_device* 	dev = &dc211x;
-
+	struct ifnet *ifp = &dev->arpcom.ac_if;
 	dev->iobase = MAC_REG_BASE;
-	dev->halt   = dc21x4x_halt;
-	dev->send   = dc21x4x_send;
-	dev->recv   = dc21x4x_recv;
 
 	/* Ensure we're not sleeping. */
 
-	read_hw_addr(dev, bis);
+	read_hw_addr(dev);
 
-	dc21x4x_init(dev, 0);
+	dc21x4x_init(dev);
+	ifp->if_flags |=IFF_RUNNING;	
 
 	return 0;
 }
@@ -812,7 +748,7 @@ int dc21x4x_initialize(bd_t *bis)
 /*
  * init function
  */
-static int dc21x4x_init(struct eth_device* dev, bd_t* bis)
+static int dc21x4x_init(struct eth_device* dev)
 {
 	int		i;
 
@@ -916,7 +852,7 @@ static int dc21x4x_init(struct eth_device* dev, bd_t* bis)
 	}
 #endif	
 	printf("send setup frame\n");
-	send_setup_frame(dev, bis);
+	send_setup_frame(dev);
 	printf("After setup\n");
 	{
 		printf("DE4X5_BMR= %x\n",  INL(dev, DE4X5_BMR));
@@ -992,61 +928,8 @@ static int dc21x4x_send(struct eth_device* dev, volatile void *packet, int lengt
 	return status;
 }
 
-/*
- * receive function
- * 
- */
-static int dc21x4x_recv(struct eth_device* dev)
-{
-	s32		status;
-	int	 length;
-	int 	received=0;
-	
-	for ( ; !received; ) {
-		length    = 0;
-			
-		status = (s32)(rx_ring[rx_new].status);
-		
-		if (status & R_OWN) {
-			break;
-		}
 
-		if (status & RD_LS) {
-			/* Valid frame status.
-			 */
-			if (status & RD_ES) {
-
-				/* There was an error.
-				 */
-				printf("RX error status = 0x%08X\n", status);
-			} else {
-				/* A valid frame received.
-				 */
-				length = (rx_ring[rx_new].status >> 16) & 0x3fff;
-
-				/* Pass the packet up to the protocol
-				 * layers.
-				 */
-				//printf("received a packet status %x\n", status);
-				NetReceive(NetRxPackets[rx_new], length - 4);
-				received =1;
-			}
-
-			/* Change buffer ownership for this frame, back
-			 * to the adapter.
-			 */
-			rx_ring[rx_new].status = (R_OWN);
-		}
-
-		/* Update entry information.
-		 */
-		rx_new = (rx_new + 1) % rxRingSize;
-	}
-
-	return length;
-}
-
-static void dc21x4x_halt(struct eth_device* dev)
+static void dmfe_shutdown(void* dev)
 {
 
 	STOP_DE4X5(dev);
@@ -1055,7 +938,7 @@ static void dc21x4x_halt(struct eth_device* dev)
 }
 
 static char	setup_frame[SETUP_FRAME_LEN];
-static void send_setup_frame(struct eth_device* dev, bd_t *bis)
+static void send_setup_frame(struct eth_device* dev)
 {
 	int		i;
 	char 	*pa = (char *)(0xa0000000 |(unsigned long )&setup_frame[0]);
@@ -1063,7 +946,7 @@ static void send_setup_frame(struct eth_device* dev, bd_t *bis)
 	memset(pa, 0x00, SETUP_FRAME_LEN);
 
 	for (i = 0; i < ETH_ALEN; i++) {
-		*(pa + (i & 1)) = dev->enetaddr[i];
+		*(pa + (i & 1)) = dev->dev_addr[i];
 		if (i & 0x01) {
 			pa += 4;
 		}
@@ -1098,10 +981,10 @@ Done:
 }
 
 
-static void read_hw_addr(struct eth_device *dev, bd_t *bis)
+static void read_hw_addr(struct eth_device *dev)
 {
 	static char maddr[ETH_ALEN]={0xba, 0x98, 0x76, 0x54, 0x32, 0x19};
-	char *p = &dev->enetaddr[0];
+	char *p = &dev->dev_addr[0];
 	int i;
 
 	for (i = 0; i < ETH_ALEN; i++) 
@@ -1111,99 +994,20 @@ static void read_hw_addr(struct eth_device *dev, bd_t *bis)
 
 }
 
-static void dc21x4x_reset(struct nic *nic)
+
+
+
+static void dc21x4x_read_mac(struct eth_device *dev)
 {
-
-}
-
-int dc21x4x_poll(struct nic *nic)
-{	
-	struct eth_device *dev = nic->priv_data;
-	return dc21x4x_recv(dev);
-}
-
-void dc21x4x_transmit(struct nic *nic, char *destaddr,
-		unsigned int type, unsigned int len, char *data)
-{
-	struct eth_device *dev = nic->priv_data;
-	int nstype;
-	
-	memcpy(NetTxPackets, destaddr, ETHER_ADDR_SIZE);
-	memcpy(NetTxPackets+ETHER_ADDR_SIZE, nic->node_addr, ETHER_ADDR_SIZE);
-	nstype = htons(type);
-	memcpy(NetTxPackets+ 2* ETHER_ADDR_SIZE, (char *) &nstype, 2);
-
-	memcpy(NetTxPackets+ETHER_HDR_SIZE, data, len);
-#if 0	
-	{	
-		int i;
-		for(i=0; i<len+ETHER_HDR_SIZE;i++){
-			printf("%02x", (unsigned char)NetTxPackets[i]);
-			if((i+1)%16==0)
-				printf("\n");
-			else
-				printf(" ");	
-		}
-		printf("\n");
-	}
-#endif	
-	dc21x4x_send(dev, NetTxPackets, len+ETHER_HDR_SIZE);
-}
-
-static void dc21x4x_disable(struct nic *nic)
-{
-
-}
-
-static long long dc21x4x_read_mac(struct nic *nic)
-{
-	long long hwaddr ;
-	char *phy = &hwaddr;
-	int i;
-#if 0
-	phy[0] = 0xaa;
-	phy[1] = 0x02;
-	phy[2] = 0x03;
-	phy[3] = 0x04;
-	phy[4] = 0x05;
-	phy[5] = 0x06;
-#else	
+	char *phy = dev->dev_addr;
 	phy[0] = 0xba;
 	phy[1] = 0x98;
 	phy[2] = 0x76;
 	phy[3] = 0x54;
 	phy[4] = 0x32;
 	phy[5] = 0x19;
-#endif
-	return hwaddr;
 }
 
-struct nic *soc_eth_probe(struct nic * nic)
-{
-	unsigned long long hwaddr;
-	int i;
-		
-	nic->reset = dc21x4x_reset;
-	nic->poll = dc21x4x_poll;
-	nic->transmit = dc21x4x_transmit;
-	nic->disable = dc21x4x_disable;
-	nic->read_mac = dc21x4x_read_mac;
-	nic->priv_data = &dc211x;
-	dc211x.nic = nic;
-	
-	hwaddr = dc21x4x_read_mac(nic);
-	printf("MACADDR:");
-	for(i=0; i<6; i++){
-		nic->node_addr[i] = ((unsigned char *)&hwaddr)[i];
-		printf("%02x", (unsigned char)nic->node_addr[i]);
-		if(i<5)
-			printf(":");
-		else
-			printf("\n");			
-	}
-
-	return nic;
-}
 
 void dump_tx()
 {
@@ -1218,22 +1022,15 @@ void dump_tx()
 
 }
 
-struct cfattach dmfe_ca = {
-	sizeof(struct nic), dmfe_match, dmfe_attach
-};
-
-struct cfdriver dmfe_cd = {
-	NULL, "em", DV_IFNET
-};
 
 static int
 dmfe_ether_ioctl(ifp, cmd, data)
 	struct ifnet *ifp;
-	FXP_IOCTLCMD_TYPE cmd;
+	u_long cmd;
 	caddr_t data;
 {
 	struct ifaddr *ifa = (struct ifaddr *) data;
-	struct nic *nic = ifp->if_softc;
+	struct eth_device *sc = ifp->if_softc;
 	int error = 0;
 	
 	int s;
@@ -1249,7 +1046,7 @@ dmfe_ether_ioctl(ifp, cmd, data)
 		switch (ifa->ifa_addr->sa_family) {
 #ifdef INET
 		case AF_INET:
-			dc21x4x_initialize(NULL);
+			dc21x4x_initialize(sc);
 			ifp->if_flags |= IFF_UP;
 
 #ifdef __OpenBSD__
@@ -1279,7 +1076,7 @@ dmfe_ether_ioctl(ifp, cmd, data)
 			dc21x4x_initialize(NULL);
 		} else {
 			if (ifp->if_flags & IFF_RUNNING)
-			;//	dmfe_stop(sc);
+			dmfe_shutdown(sc);
 		}
 		break;
 
@@ -1293,9 +1090,8 @@ dmfe_ether_ioctl(ifp, cmd, data)
 
 static void dmfe_start(struct ifnet *ifp)
 {
-	struct net_device *sc = ifp->if_softc;
+	struct eth_device *sc = ifp->if_softc;
 	struct mbuf *mb_head;		
-	struct sk_buff *skb;
 
 	while(ifp->if_snd.ifq_head != NULL ){
 		
@@ -1309,8 +1105,7 @@ static void dmfe_start(struct ifnet *ifp)
 	} 
 }
 
-dc21x4x_recv
-static struct mbuf * getmbuf(struct nic *nic)
+static struct mbuf * getmbuf(struct eth_device *sc)
 {
 	struct mbuf *m;
 
@@ -1335,7 +1130,7 @@ static struct mbuf * getmbuf(struct nic *nic)
 	 * Sync the buffer so we can access it uncached.
 	 */
 	if (m->m_ext.ext_buf!=NULL) {
-		pci_sync_cache(nic->sc_pc, (vm_offset_t)m->m_ext.ext_buf,
+		pci_sync_cache(sc->sc_pc, (vm_offset_t)m->m_ext.ext_buf,
 				MCLBYTES, SYNC_R);
 	}
 	m->m_data += RFA_ALIGNMENT_FUDGE;
@@ -1344,88 +1139,25 @@ static struct mbuf * getmbuf(struct nic *nic)
 #endif
 	return m;
 }
-static int rtl8139_poll(struct nic *nic)
+
+int dmfe_poll(struct eth_device *sc);
+int dmfe_intr(void *arg)
 {
-	unsigned int ring_offs;
-	unsigned int rx_size, rx_status;
+	struct eth_device *sc = (struct eth_device *)arg;
+	struct ifnet *ifp = &sc->arpcom.ac_if;
+
+		if (ifp->if_flags & IFF_RUNNING) 
+			dmfe_poll(sc);
+		return 1;
+}
+
+
+int dmfe_poll(struct eth_device *sc)
+{
 	
-	struct ifnet *ifp=&nic->arpcom.ac_if;
+	struct ifnet *ifp = &sc->arpcom.ac_if;
 	struct mbuf *m;
 	struct ether_header *eh;
-
-
-	while( (RTL_READ_1(nic, ChipCmd) & RxBufEmpty) ==0){
-		wbflush();
-		ring_offs = cur_rx % RX_BUF_LEN;
-		rx_status = *(unsigned int*)(nic->rx_buffer+ ring_offs);
-		rx_size = rx_status >> 16;
-		rx_status &= 0xffff;
-		
-		DPRINTF("rtl8139_poll: rx_status=0x%x rx_size =%d\n", rx_status, rx_size);
-		/* Packet copy from FIFO still in progress.
-		 * Theoretically, this should never happen
-		 * since EarlyRx is disabled.
-		 */
-		if (rx_size == 0xfff0) {
-			//tp->xstats.early_rx++;
-			break;
-		}
-	  	if( (rx_size < 64 || (rx_size > ETH_MAX_PACKET) || 
-				!(rx_status &RxStatusOK))) {
-
-			DPRINTF("rx error status=%x size=%d\n", rx_status, rx_size);
-			rtl8139_rx_err(nic, rx_status);
-			return 0;   
-		}
-
-	/* Received a good packet */
-	nic->packetlen = rx_size - 4;	/* no one cares about the FCS */
-
-	m =getmbuf(nic);
-	if (m == NULL){
-		printf("getmbuf failed in  rtl8139_poll\n");
-		return 0; // no successful
-	}
-	
-	if (ring_offs+4+rx_size-4 > RX_BUF_LEN) {
-		int semi_count = RX_BUF_LEN - ring_offs - 4;
-		
-		bcopy(nic->rx_buffer+ ring_offs+4, mtod(m, caddr_t), semi_count);
-		bcopy(nic->rx_buffer, mtod(m, caddr_t)+semi_count , rx_size-4-semi_count);
-	} else {
-		bcopy(nic->rx_buffer+ ring_offs +4, mtod(m, caddr_t), nic->packetlen);
-	}
-
-	//hand up  the received package to upper protocol for further dealt
-	m->m_pkthdr.rcvif = ifp;
-	m->m_pkthdr.len = m->m_len = (rx_size -4)  -sizeof(struct ether_header);
-
-	eh=mtod(m, struct ether_header *); 	
-
-	m->m_data += sizeof(struct ether_header);
-	//printf("%s, etype %x:\n", __FUNCTION__, eh->ether_type);
-	ether_input(ifp, eh, m);
-	
-	//cur_rx = (cur_rx + rx_size + 4 + 3) & ~3;
-	cur_rx = (cur_rx + rx_size + 4 + 3)  & (RX_BUF_LEN-1)& ~3 ;
-
-	RTL_WRITE_2(nic, RxBufPtr, cur_rx -16);
-	/* See RTL8139 Programming Guide V0.1 for the official handling of
-	 * Rx overflow situations.  The document itself contains basically no
-	 * usable information, except for a few exception handling rules.  */
-	if(RTL_READ_2(nic, IntrStatus) & RxAckBits )
-		RTL_WRITE_2(nic, IntrStatus, RxAckBits);
-     	} //end while(RxBufEmpty)	
-	return 1;
-}
-int 
-dmfe_intr(void *arg)
-{
-	
-	struct net_device *sc = (struct net_device *)arg;
-	struct ifnet *ifp = &nic->arpcom.ac_if;
-
-{
 	s32		status;
 	int	 length;
 	int 	received=0;
@@ -1456,7 +1188,25 @@ dmfe_intr(void *arg)
 				 * layers.
 				 */
 				//printf("received a packet status %x\n", status);
-				NetReceive(NetRxPackets[rx_new], length - 4);
+				{
+	m =getmbuf(sc);
+	if (m == NULL){
+		printf("getmbuf failed in  rtl8139_poll\n");
+		return 0; // no successful
+	}
+	
+		bcopy(NetRxPackets[rx_new], mtod(m, caddr_t), length - 4);
+
+	//hand up  the received package to upper protocol for further dealt
+	m->m_pkthdr.rcvif = ifp;
+	m->m_pkthdr.len = m->m_len = (length -4)  -sizeof(struct ether_header);
+
+	eh=mtod(m, struct ether_header *); 	
+
+	m->m_data += sizeof(struct ether_header);
+	//printf("%s, etype %x:\n", __FUNCTION__, eh->ether_type);
+	ether_input(ifp, eh, m);
+				}
 				received =1;
 			}
 
@@ -1472,68 +1222,6 @@ dmfe_intr(void *arg)
 	}
 
 	return length;
-}
-
-
-	int boguscnt = max_interrupt_work;
-	int ackstat, status;
-	int link_changed = 0; 
-	int dowork;
-	
-
-	do {
-		status = RTL_READ_2 (nic, IntrStatus);
-		
-		if (status == 0xFFFF)
-			break;
-
-		if ((status &
-		     (PCIErr | PCSTimeout | RxUnderrun | RxOverflow |
-		      RxFIFOOver | TxErr | TxOK | RxErr | RxOK)) == 0)
-			break;
-
-		/* Acknowledge all of the current interrupt sources ASAP, but
-		   an first get an additional status bit from CSCR. */
-		if (status & RxUnderrun)
-			link_changed = RTL_READ_2 (nic, CSCR) & CSCR_LinkChangeBit;
-
-		/* The chip takes special action when we clear RxAckBits,
-		 * so we clear them later in rtl8139_rx_interrupt
-		 */
-		ackstat = status & ~(RxAckBits | TxErr);
-		RTL_WRITE_2 (nic, IntrStatus, ackstat);
-		DPRINTF ("interrupt  status=%#4.4x ackstat=%#4.4x new intstat=%#4.4x.\n",
-			  ackstat, status, RTL_READ_2 (nic, IntrStatus));
-
-		if (ifp->if_flags & IFF_RUNNING) 
-			rtl8139_poll ( nic);
-
-		/* Check uncommon events with one test. */
-		if (status & (PCIErr | PCSTimeout | RxUnderrun | RxOverflow |
-			  	      RxFIFOOver | RxErr))
-			rtl8139_weird(nic,  status, link_changed);
-
-		
-		if ((ifp->if_flags  & IFF_RUNNING) && (status &(TxOK | TxErr))) {
-			dowork = rtl8139_tx_intr(nic);
-			if (status & TxErr)
-				RTL_WRITE_2 (nic, IntrStatus, TxErr);
-			if(dowork ==1)
-				rtl8139_transmit(ifp);
-		}
-
-		boguscnt--;
-	} while (boguscnt > 0);
-
-	if (boguscnt <= 0) {
-		DPRINTF ("Too much work at interrupt, "
-			"IntrStatus=0x%4.4x.\n",  status);
-
-		/* Clear all interrupt sources. */
-		RTL_WRITE_2 (nic, IntrStatus, 0xffff);
-	}
-
-	return 1; 
 }
 
 static int
@@ -1554,13 +1242,12 @@ dmfe_attach(parent, self, aux)
 	struct device *parent, *self;
 	void *aux;
 {
-	struct net_device *sc = (struct net_device *)self;
+	struct eth_device *sc = (struct eth_device *)self;
 	struct ifnet *ifp;
 
-	tgt_poll_register(IPL_NET, dmfe_intr, nic);
+	tgt_poll_register(IPL_NET, dmfe_intr, sc);
 
-	soc_eth_probe(nic);
-
+	dc21x4x_read_mac(sc);
 
 #ifdef __OpenBSD__
 	ifp = &sc->arpcom.ac_if;
@@ -1570,13 +1257,13 @@ dmfe_attach(parent, self, aux)
 #endif
 	bcopy(sc->sc_dev.dv_xname, ifp->if_xname, IFNAMSIZ);
 	
-	ifp->if_softc = nic;
+	ifp->if_softc = sc;
 	ifp->if_flags = IFF_BROADCAST | IFF_SIMPLEX | IFF_MULTICAST;
 	ifp->if_ioctl = dmfe_ether_ioctl;
 	ifp->if_start = dmfe_start;
 	ifp->if_watchdog = 0;
 
-	printf(": %s, address %s\n", intrstr,
+	printf(": address %s\n",
 	    ether_sprintf(sc->arpcom.ac_enaddr));
 
 	/*
@@ -1617,3 +1304,11 @@ dmfe_attach(parent, self, aux)
 	powerhook_establish(dmfe_power, sc);
 #endif
 }
+
+struct cfattach dmfe_ca = {
+	sizeof(struct eth_device), dmfe_match, dmfe_attach
+};
+
+struct cfdriver dmfe_cd = {
+	NULL, "dfme", DV_IFNET
+};
