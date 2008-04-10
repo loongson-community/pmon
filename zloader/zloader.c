@@ -13,7 +13,7 @@ void stringserial(char *msg);
 
 #ifndef SIM
 #include "memop.c"
-char *membase=0x84000000;
+char *membase=0x80000000+(((MEMSIZE<256?MEMSIZE:256)-4)<<20);
 static char  *sbrk(int size)
 {
 char *p=membase;

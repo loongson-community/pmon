@@ -1,0 +1,8 @@
+TARGET=fcr_soc
+TARGETEL=fcr
+START=start.o
+MEMSIZE=16
+ZLOADER_OPTIONS=-DNOCACHE2 -DNOMSG
+PMONCC=mips-elf-gcc -mips2
+
+include Makefile.inc

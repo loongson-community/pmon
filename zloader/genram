@@ -35,6 +35,57 @@ struct callvectors {
 };
 struct callvectors *cvs;
 void realinitmips(unsigned int msize);
+#ifndef NOCACHE2
+void flush_cache2()
+{
+asm volatile("
+	mfc0	\$3, \$15			# read processor ID register
+	li		\$2, 0x6303				#godson2f prid
+	beq		\$2, \$3, godson_2f
+	nop
+	li		\$2, 0x6302				#godson2e prid
+	bne	\$2, \$3,11f 
+	nop
+# godson2e
+godson_2f:
+	li	  \$2, 0x80000000
+    addu  \$3,\$2,512*1024
+10:
+	cache	3, 0(\$2)
+	cache	3, 1(\$2)
+	cache	3, 2(\$2)
+	cache	3, 3(\$2)
+	addu	\$2, 32
+	bne	    \$2,\$3, 10b
+	nop
+11:
+"
+::
+:"\$2","\$3"
+);
+}
+#else
+void flush_cache()
+{
+asm volatile("
+		.set mips3;
+        li    \$5,0x80000000
+        addu  \$6,\$5,16384
+1:
+        cache  1,0(\$5)
+        cache  1,1(\$5)
+        cache  1,2(\$5)
+        cache  1,3(\$5)
+        cache  0,(\$5)
+        add    \$5,\$5,32
+        bne    \$5,\$6,1b
+        nop
+		.set mips0;
+"
+::
+: "\$5","\$6");
+}
+#endif
 void initmips(unsigned int msize,struct callvectors *cv)
 {
     long *edata=(void *)$myedata;
@@ -49,7 +100,14 @@ void initmips(unsigned int msize,struct callvectors *cv)
         *p=0;
     }
 	memset($mystart-0x1000,0,0x1000);//$mystart-0x1000 for frame(registers),memset for pretty
-	cv->cacheflush();
+//	cv->cacheflush();
+	stringserial("flush_cache...");
+#ifdef NOCACHE2
+	flush_cache();
+#else
+	flush_cache2();
+#endif
+	stringserial("done,boot now\r\n");
     realinitmips(msize);
 }
 
@@ -69,11 +127,15 @@ void realinitmips(unsigned int msize)
 static void (*rom_putchar)(char c)=(${tgt_putchar}-${mystart}+0xbfc00000);
 void tgt_putchar(char c)
 {
+#ifndef NOMSG
 cvs->printf("%%c",c);
+#endif
 }
 void stringserial(char *str)
 {
+#ifndef NOMSG
 cvs->printf("%%s",str);
+#endif
 }
 END
 );

@@ -49,6 +49,7 @@
 #endif
 
 #include "gzip.h"
+#include "elf32only.h"
 #if NGZIP > 0
 #include <gzipfs.h>
 #endif /* NGZIP */
@@ -460,8 +461,10 @@ if(myflags&ZFLAG)		gz_close(fd);
 
 	{
 		char *nogood = (char *)0;
+#if (NELF32ONLY==0)
 		if (ep->e_ident[EI_CLASS] == ELFCLASS64)
 			return load_elf64(fd, buf, n, flags);
+#endif
 
 		if (ep->e_ident[EI_CLASS] != ELFCLASS32)
 			nogood = "not 32-bit";

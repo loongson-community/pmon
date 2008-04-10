@@ -39,6 +39,7 @@ extern char  *heaptop;
 unsigned long long
 strtoull(const char *nptr,char **endptr,int base)
 {
+#if __mips >= 3
     int c;
     unsigned long long  result = 0L;
     unsigned long long limit;
@@ -104,6 +105,10 @@ strtoull(const char *nptr,char **endptr,int base)
     if (endptr != NULL)		/* point at tail */
       *endptr = (char *)nptr;
     return result;
+
+#else
+return strtoul(nptr,endptr,base);
+#endif
 }
 
 static union commondata{
@@ -120,6 +125,7 @@ static int __syscall2(int type,long long addr,union commondata *mydata);
 int (*syscall1)(int type,long long addr,union commondata *mydata)=(void *)&__syscall1;
 int (*syscall2)(int type,long long addr,union commondata *mydata)=(void *)&__syscall2;
 static char *str2addmsg[]={"32 bit cpu address","64 bit cpu address","64 bit cached phyiscal address","64 bit uncached phyiscal address"};
+#if __mips >= 3
 static unsigned long long
 str2addr(const char *nptr,char **endptr,int base)
 {
@@ -136,6 +142,7 @@ else if(syscall_addrtype%4==2)result|=0x9800000000000000UL;
 }
 return result;
 }
+#endif
 /*
  *  Execute the 'call' command
  *  ==========================
@@ -149,7 +156,12 @@ return result;
 #define nr_gets gets
 #define nr_strtol strtoul
 #define nr_strtoll strtoull
+#if __mips >= 3
 #define nr_str2addr str2addr
+#else
+#define nr_str2addr strtoul
+#endif
+
 
 static	pcitag_t mytag=0;
 
@@ -242,6 +254,7 @@ case 2:
 		 );
 	   break;
 case 4:
+#if __mips >= 3
 	  //mydata->data4=*(volatile int *)addr;break;
 	  asm("lwu $2,(%1);
 		   sw $2,(%0)
@@ -249,6 +262,14 @@ case 4:
 		  ::"r"(&mydata->data4),"r"(addr)
 		  :"$2"
 		 );
+#else
+	  asm("lw $2,(%1);
+		   sw $2,(%0)
+		   "
+		  ::"r"(&mydata->data4),"r"(addr)
+		  :"$2"
+		 );
+#endif
 	   break;
 case 8:
 	  // mydata->data8[0]=*(volatile int *)addr;mydata->data8[1]=*(volatile int *)(addr+4);
@@ -288,12 +309,22 @@ case 2:
 	  break;
 case 4:
 	  //*(volatile int *)addr=mydata->data4;break;
+#if __mips >= 3
 	  asm("lwu $2,(%0);
 		   sw $2,(%1)
 		   "
 		  ::"r"(&mydata->data4),"r"(addr)
 		  :"$2"
 		 );
+#else
+	  asm("lw $2,(%0);
+		   sw $2,(%1)
+		   "
+		  ::"r"(&mydata->data4),"r"(addr)
+		  :"$2"
+		 );
+#endif
+
 	    break;
 case 8:
 	  asm("ld $2,(%0);
@@ -715,7 +746,7 @@ static int setcache(int argc,char **argv)
 		{
 		cacheflush();
 	    __asm__ volatile(
-		".set mips3;\r\n"
+		".set mips2;\r\n"
         "mfc0   $4,$16;\r\n"
         "and    $4,$4,0xfffffff8;\r\n"
         "or     $4,$4,0x3;\r\n"
@@ -749,6 +780,8 @@ unsigned int status;
 unsigned long long addr;
 addr=addrin&~0x1fULL;
 size=(addrin-addr+size+0x1f)&~0x1fUL;
+
+#if __mips >= 3
 asm("
 		#define COP_0_STATUS_REG	$12
 		#define SR_DIAG_DE		0x00010000
@@ -795,6 +828,9 @@ asm("
 	mtc0	%0, $12		# Restore the status register.
 		"::"r"(status));
 
+#else
+pci_sync_cache(0,addr,size,rw);
+#endif
 }
 
 static int cmd_cacheflush(int argc,char **argv)
@@ -1238,6 +1274,7 @@ int highmemcpy(long long dst,long long src,long long count);
 
 int highmemcpy(long long dst,long long src,long long count)
 {
+#if __mips >= 3
 asm("
 .set noreorder
 1:
@@ -1255,11 +1292,15 @@ daddiu %2,-1
 ::"r"(src),"r"(dst),"r"(count)
 :"$2"
 );
+#else
+ memcpy(dst,src,count);
+#endif
 return 0;
 }
 
 int highmemset(long long addr,char c,long long count)
 {
+#if __mips >= 3
 asm("
 .set noreorder
 1:
@@ -1275,6 +1316,9 @@ daddiu %2,-1
 ::"r"(addr),"r"(c),"r"(count)
 :"$2"
 );
+#else
+memset(addr,c,count);
+#endif
 return 0;
 }
 
@@ -1283,8 +1327,8 @@ static cmd_mymemcpy(int argc,char **argv)
 	long long src,dst,count;
 	int ret;
 	if(argc!=4)return -1;
-	src=str2addr(argv[1],0,0);
-	dst=str2addr(argv[2],0,0);
+	src=nr_str2addr(argv[1],0,0);
+	dst=nr_str2addr(argv[2],0,0);
 	count=nr_strtoll(argv[3],0,0);
 	ret=highmemcpy(dst,src,count);	
 	return ret;	
@@ -1320,6 +1364,7 @@ return rRetVal;
 #endif
 
 //-------------------------------------------------------------------------------------------
+#if __mips >= 3
 static	unsigned long long lrdata;
 static int lwl(int argc,char **argv)
 {
@@ -1383,6 +1428,7 @@ static int linit(int argc,char **argv)
 	lrdata=0;
 	return 0;
 }
+#endif
 extern char *allocp1;
 #if 1
 double sin(double);
@@ -1596,11 +1642,13 @@ static const Cmd Cmds[] =
 	{"memcpy","src dst count",0,"mymemcpy src dst count",cmd_mymemcpy,0,99,CMD_REPEAT},
 	{"testcpu","",0,"testcpu",cmd_testcpu,2,2,CMD_REPEAT},
 	{"led","n",0,"led n",cmd_led,2,2,CMD_REPEAT},
+#if __mips >= 3
 	{"lwl","n",0,"lwl n",lwl,2,2,CMD_REPEAT},
 	{"lwr","n",0,"lwr n",lwr,2,2,CMD_REPEAT},
 	{"ldl","n",0,"ldl n",ldl,2,2,CMD_REPEAT},
 	{"ldr","n",0,"ldr n",ldr,2,2,CMD_REPEAT},
 	{"linit","",0,"linit",linit,1,1,CMD_REPEAT},
+#endif
 	{"mytest","",0,"mytest",mytest,1,1,CMD_REPEAT},
 	{"mycmp","s1 s2 len",0,"mecmp s1 s2 len",mycmp,4,4,CMD_REPEAT},
 	{"mymore","",0,"mymore",mymore,1,99,CMD_REPEAT},

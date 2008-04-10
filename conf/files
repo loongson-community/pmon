@@ -241,7 +241,7 @@ file pmon/loaders/zmodem/zmrz.c		pmon_zmodem_rz
 file pmon/loaders/exec.c
 file pmon/loaders/exec_bin.c
 file pmon/loaders/exec_elf.c		
-file pmon/loaders/exec_elf64.c
+file pmon/loaders/exec_elf64.c	!elf32only needs-flag
 file pmon/loaders/exec_wince.c
 file pmon/loaders/exec_srec.c		mod_s3load needs-flag
 
