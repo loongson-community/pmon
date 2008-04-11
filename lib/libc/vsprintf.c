@@ -134,9 +134,9 @@ vsprintf (char *d, const char *s, va_list ap)
 #else
 					if (longlong)
 					{
-						btoa(d, va_arg (ap, int),
+					long x=va_arg (ap, long long);
+						btoa(d, (long)x,
 						    base);
-							va_arg (ap, int);
 					}
 
 #endif
