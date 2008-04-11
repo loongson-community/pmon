@@ -122,7 +122,7 @@ _pci_hwinit(initialise, iot, memt)
 	pd->pa.pa_flags = PCI_FLAGS_IO_ENABLED | PCI_FLAGS_MEM_ENABLED;
 	pd->pa.pa_iot = pmalloc(sizeof(bus_space_tag_t));
 	pd->pa.pa_iot->bus_reverse = 1;
-	pd->pa.pa_iot->bus_base = BONITO_PCIIO_BASE_VA;
+	pd->pa.pa_iot->bus_base = 0xbfd00000;
 	//printf("pd->pa.pa_iot=%p,bus_base=0x%x\n",pd->pa.pa_iot,pd->pa.pa_iot->bus_base);
 	pd->pa.pa_memt = pmalloc(sizeof(bus_space_tag_t));
 	pd->pa.pa_memt->bus_reverse = 1;

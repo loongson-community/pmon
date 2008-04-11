@@ -64,7 +64,7 @@
 	
 
 #define	MYDBG(x) \
-	.rdata;98: .asciz x; .text; la a0, 98b; addu a0,s8; la v0, puts; addu v0,s8;jalr v0; nop	
+	.rdata;98: .asciz x; .text; la a0, 98b; addu a0,s8; la v0, stringserial; addu v0,s8;jalr v0; nop	
 #define NEWADDR 0x80000000
 
 

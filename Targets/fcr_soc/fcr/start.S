@@ -61,7 +61,6 @@
 #define	PRINTSTR(x) \
 	.rdata;98: .asciz x; .text; la a0, 98b; bal stringserial; nop
 
-#define CONFIG_CACHE_64K_4WAY 1
 
 #define tmpsize		s1
 #define msize		s2
@@ -138,12 +137,6 @@ ext_map_and_reboot:
 	nop
 
 /*
- *  Exception vectors here for rom, before we are up and running. Catch
- *  whatever comes up before we have a fully fledged exception handler.
- */
-	.align	9			/* bfc00200 */
-	la	a0, v200_msg
-	bal	stringserial
 	nop
 	b	exc_common
 
@@ -237,8 +230,6 @@ locate:
         mtc0    zero,COP_0_CAUSE_REG
 	.set noreorder
 
- 	li	bonito,PHYS_TO_UNCACHED(BONITO_REG_BASE)
-
 	bal	initserial
 	nop
 	
@@ -265,23 +256,23 @@ locate:
 	 * reading the I2C EEROM on the DIMMS
 	 */
 
+################################
+#   Initailize SDRAM Interface #
+################################
+        li      a2, 0xbf000000
+        #li      a1, 0x0c4007b8
+        li	a1, 0x0c4002d4
+        sw      a1, 0x0(a2)
+       # li      a1, 0x209800a7
+        li      a1, 0x209800c6
+        #li      a1, 0x209000c6
+        #li      a1, 0x208800c6
+        sw      a1, 0x4(a2)
+
 	li  msize,0x02000000
 	PRINTSTR("Init SDRAM Done!\r\n");
 
 
-
-/*
- *  Reset and initialize caches to a known state.
- */
-#define IndexStoreTagI	0x08
-#define IndexStoreTagD	0x09
-#define IndexStoreTagS	0x0b
-#define IndexStoreTagT	0x0a
-#define FillI		0x14
-
-/*
- *  RM7000 config register bits.
- */
 #define CF_7_SE         (1 << 3)        /* Secondary cache enable */
 #define CF_7_SC         (1 << 31)       /* Secondary cache not present */
 #define CF_7_TE         (1 << 12)       /* Tertiary cache enable */
@@ -290,149 +281,30 @@ locate:
 #define CF_7_TS_AL      20              /* Shift to align */
 #define NOP8 nop;nop;nop;nop;nop;nop;nop;nop
 do_caches:
-	TTYDBG("Sizing caches...\r\n");
-
-	mfc0	t3, COP_0_CONFIG	/* t3 = original config */
-	and	t3, 0xffffeff0		/* Make sure coherency is OK */
-
-	and	t3, ~(CF_7_TE|CF_7_SE|CF_7_TC|CF_7_SC)  /* disable L2/L3 cache */
-	mtc0    t3, COP_0_CONFIG
-
-	li	t2, 4096
-
-	srl	t1, t3, 9
-	and	t1, 3
-	sllv	s3, t2, t1		/* s3 = I cache size */
-
-#ifdef CONFIG_CACHE_64K_4WAY 
-        sll     s3,2
-#endif
-
-	and	t1, t3, 0x20
-	srl	t1, t1, 1
-	addu	s4, t1, 16		/* s4 = I cache line size */
-
-	srl	t1, t3, 6
-	and	t1, 3
-	sllv	s5, t2, t1		/* s5 = D cache size */
-
-#ifdef CONFIG_CACHE_64K_4WAY
-        sll     s5,2
-#endif
-
-	and	t1, t3, 0x10
-	addu	s6, t1, 16		/* s6 = D cache line size */
 	TTYDBG("Init caches...\r\n")
 
 	li	s7, 0                   /* no L2 cache */
 	li	s8, 0                   /* no L3 cache */
 
-#if 0
-        mfc0    a0, COP_0_PRID
-        li      a1, 0x6301
-        bne     a0,a1,1f
-        nop
-#endif
-	TTYDBG("godson2 caches found\r\n")
-        bal     cache_init
-        nop
+	TTYDBG("godson1 caches found\r\n")
+    bal     cache_init
+    nop
 
-	/* close L2 cache */
-	li      a0, 0xbfe00164
-        sw      zero, 0(a0);
-
-        mfc0   a0,COP_0_CONFIG
-        and    a0,a0,~((1<<12) | 3)
-	or     a0,a0,2
-        mtc0   a0,COP_0_CONFIG
-
-#ifdef DEBUG_LOCORE
 	TTYDBG("Init caches done, cfg = ")
 	mfc0	a0, COP_0_CONFIG
 	bal	hexserial
 	nop
 	TTYDBG("\r\n\r\n")
-#endif
 
-/* zhb */
-#if 0
-/*	li	t0, 0		*/
-/*	li	t1, 0x90000	*/
-/*1:	addiu	t0, 1		*/
-/*	bne	t0, t1, 1b	*/
-	nop
+    mfc0   a0,COP_0_CONFIG
+    and    a0,a0,~((1<<12) | 3)
+	or     a0,a0,2
+    mtc0   a0,COP_0_CONFIG
 
-	TTYDBG("Testing memory...\r\n")
-	
-	li	t7, 10
-tmem:
-	li	t0, 0xa0000000+1*1024*1024
-	li	t1, 0xa0000000
-	li	t2, 0xffffffff
-1:
-	sw	t2, 0(t1)
-	lw	t3, 0(t1)
-	bne	t3, t2, 1f
-	nop
-	not	t2
-	sw	t2, 0(t1)
-	lw	t3, 0(t1)
-	bne	t3, t2, 1f
-	nop
-	not	t2
-	subu	t2, 1
-	addu	t1, 4
-	beq	t1, t0, 2f
-	nop
-	and	t4, t1, 0x000fffff
-	bnez	t4, skipdot
-	li	a0, '.'
-	bal	tgt_putchar
-	nop
-skipdot:
-	b	1b
-	nop
-1:
-	TTYDBG("Memory test failed at ");
-	move	a0,	t1
-	bal	hexserial
-	nop
-	TTYDBG("\r\nWrite=");
-	move	a0, t2
-	bal	hexserial
-	nop
-	TTYDBG("\r\nRead=");
-	move	a0, t3
-	bal	hexserial
-	nop
-1:
-	b	1b
-	nop
-2:
-	TTYDBG("Testing ok...\r\n");
-	sub	t7,1
-	beqz	t7, 1f
-	nop
-	b	tmem
-	nop
-1:	
-	b	1b
-	nop
-#endif
-//#include "machine/newtest/mydebug.S"
+
+#include "newtest.32/mydebug.S"
 bootnow:
 	TTYDBG("Copy PMON to execute location...\r\n")
-#ifdef DEBUG_LOCORE
-	TTYDBG("  start = 0x")
-	la	a0, start
-	bal	hexserial
-	nop
-	TTYDBG("\r\n  s0 = 0x")
-	move	a0, s0
-	bal	hexserial
-	nop
-	TTYDBG("\r\n")
-#endif
 	la	a0, start
 	li	a1, 0xbfc00000
 	la	a2, _edata
@@ -681,13 +553,13 @@ END(tgt_getchar)
 
 LEAF(initserial)
 	la	v0, COM1_BASE_ADDR
- 	la	a0, NS16550HZ/(16*CONS_BAUD)
 1:
 	li	v1, FIFO_ENABLE|FIFO_RCV_RST|FIFO_XMT_RST|FIFO_TRIGGER_4
 	sb	v1, NSREG(NS16550_FIFO)(v0)
 	li	v1, CFCR_DLAB
 	sb	v1, NSREG(NS16550_CFCR)(v0)
-	sb	a0, NSREG(NS16550_DATA)(v0)
+ 	li	v1, NS16550HZ/(16*CONS_BAUD)
+	sb	v1, NSREG(NS16550_DATA)(v0)
 	srl	v1, 8
 	sb	v1, NSREG(NS16550_IER)(v0)
 	li	v1, CFCR_8BITS
@@ -735,11 +607,9 @@ hexchar:
 
 
 
-#define Index_Store_Tag_D			0x05
+#define Index_Store_Tag_D			0x09
 #define Index_Invalidate_I			0x00
 #define Index_Writeback_Inv_D			0x01
-#define Index_Store_Tag_S			0x0b
-#define Index_Writeback_Inv_S			0x03
 
 LEAF(nullfunction)
 	jr ra
@@ -853,6 +723,7 @@ cache_flush_d2way:
 	cache	Index_Writeback_Inv_D, 0x3(v0)	# 4 way
 4:	beq	$0, $0, 1b
 	addiu	v0, v0, 0x20
+	.set	mips0
 1:
 cache_init_finish:
 	jr	t1

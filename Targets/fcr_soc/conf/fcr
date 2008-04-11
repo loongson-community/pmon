@@ -171,3 +171,5 @@ option FLOATINGPT
 select gzip
 option INPUT_FROM_BOTH
 option OUTPUT_TO_BOTH
+select nand
+

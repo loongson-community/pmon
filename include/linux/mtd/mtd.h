@@ -52,7 +52,6 @@ extern int ticks;
 #define spin_lock_init(...)
 #define udelay(x) delay(x)
 #define init_waitqueue(...)
-#define del_mtd_device(...)
 #define cpu_to_le16(x) (x)
 #define time_after(a,b)		((long)(b) - (long)(a) < 0)
 #define time_before(a,b)	time_after(b,a)

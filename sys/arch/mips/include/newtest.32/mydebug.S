@@ -1,16 +1,15 @@
 .set noreorder
+#define CP0_PRID $15
 #define BONITO_PCICFG_BASE 0x1fe00000
 #define BONITO_PCIMAP_CFG 0x118
-#define TTYDBG(x) PRINTSTR(x)
 
     PRINTSTR("press gb to boot\r\npresss h for help\r\n");
-    la  v0,cache_init
-    addu v0,s8
+#if 0
+	la  v0,cache_init
+    addu v0,s0
     jal v0
     nop
-
-    b mydebug_restart
-    nop
+#endif
 
 bootkeytest:
 	bal tgt_testchar
@@ -938,10 +937,12 @@ func_kf:
 		bal tgt_putchar
 		nop
 
+		.set mips3
 		mfc0	a0, CP0_PRID			# read processor ID register
 		li		a1, 0x6302				#godson2e prid
 		bne	a1, a0,11f 
 		nop
+		.set mips0
 	# godson2e
 		li	  a1, 0x80000000
 		addu  a0,a1,512*1024
@@ -960,7 +961,7 @@ func_kf:
 		nop
 3:
         la  v0,cache_init
-        addu v0,s8
+        addu v0,s0
         jal v0
         nop
         b func_q
@@ -1108,7 +1109,7 @@ func_b:
 	move	a1,t6
 	move 	a2,t7
 
-	la	v0, start_bios
+	la	v0, initmips
 	jalr	v0
 	nop
 	
@@ -1378,7 +1379,7 @@ LEAF(Hexserial)
 	move	a1, a0
 	and	a0, 0xf
 	la	v0, hexchar
-	addu	v0, s8
+	addu	v0, s0
 	addu	v0, a0
 	lbu	a0, 0(v0)
 	bal	tgt_putchar
@@ -1392,66 +1393,6 @@ LEAF(Hexserial)
 	.set at
 END(Hexserial)
 
-LEAF(hexserial)
-	move	a2, ra
-	move	a1, a0
-	li	a3, 7
-1:
-	rol	a0, a1, 4
-	move	a1, a0
-	and	a0, 0xf
-	la	v0, hexchar
-	addu	v0, s8
-	addu	v0, a0
-	bal	tgt_putchar
-	lbu	a0, 0(v0)
-
-	bnez	a3, 1b
-	addu	a3, -1
-
-	j	a2
-	nop
-END(hexserial)
-#define  COM1_BASE_ADDR (K1BASE + 0x1f004080)
-#define NSREG(x) (x)
-#define NS16550_LSR 5
-#define NS16550_DATA 0
-#define LSR_RXRDY 1
-#define LSR_TXRDY 0x20
-LEAF(tgt_testchar)
-	la	v0, COM1_BASE_ADDR
-1:
-	lbu	v1, NSREG(NS16550_LSR)(v0)
-	and	v0,v1, LSR_RXRDY
-	jr ra
-	nop
-END(tgt_testchar)
-
-LEAF(tgt_getchar)
-	la	v0, COM1_BASE_ADDR
-1:
-	lbu	v1, NSREG(NS16550_LSR)(v0)
-	and	v1, LSR_RXRDY
-	beqz	v1, 1b
-	nop
-	lb	v0, NSREG(NS16550_DATA)(v0)
-	jr ra
-	nop
-END(tgt_getchar)
-
-
-LEAF(tgt_putchar)
-	la	v0, COM1_BASE_ADDR
-1:
-	lbu	v1, NSREG(NS16550_LSR)(v0)
-	and	v1, LSR_TXRDY
-	beqz	v1, 1b
-	nop
-
-	sb	a0, NSREG(NS16550_DATA)(v0)
-	j	ra
-	nop	
-END(tgt_putchar)
 
 LEAF(mydebug_main)
 move t9,ra
@@ -1459,10 +1400,7 @@ b mydebug_restarth
 nop
 END(mydebug_main)
 
-	.rdata
-hexchar:
-	.ascii	"0123456789abcdef"
 
 	.text
     .align 2
-    .set reorder
+.set noreorder

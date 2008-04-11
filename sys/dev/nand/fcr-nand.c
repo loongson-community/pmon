@@ -2,22 +2,15 @@
  *  drivers/mtd/nand/fcr_soc.c
  */
 
-#include <linux/kernel.h>
-#include <linux/init.h>
-#include <linux/slab.h>
-#include <linux/module.h>
+#include <machine/types.h>
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/nand.h>
 #include <linux/mtd/partitions.h>
-#include <asm/io.h>
 
 /*
  * MTD structure for fcr_soc board
  */
 static struct mtd_info *fcr_soc_mtd = NULL;
-
-MODULE_PARM(fcr_soc_pedr, "i");
-MODULE_PARM(fcr_soc_peddr, "i");
 /*
  * Define partitions for flash device
  */
@@ -43,7 +36,7 @@ if ((ctrl & NAND_CTRL_CLE)==NAND_CTRL_CLE)
 /*
  * Main initialization routine
  */
-static int __init fcr_soc_init(void)
+int fcr_soc_nand_init(void)
 {
 	struct nand_chip *this;
 
@@ -81,29 +74,11 @@ static int __init fcr_soc_init(void)
 	}
 
 	/* Register the partitions */
-	add_mtd_partitions(fcr_soc_mtd, partition_info, NUM_PARTITIONS);
+//	add_mtd_partitions(fcr_soc_mtd, partition_info, NUM_PARTITIONS);
 	add_mtd_device(fcr_soc_mtd);
 
 	/* Return happy */
 	return 0;
 }
 
-module_init(fcr_soc_init);
 
-/*
- * Clean up routine
- */
-static void __exit fcr_soc_cleanup(void)
-{
-	/* Release resources, unregister device */
-	nand_release(fcr_soc_mtd);
-
-	/* Free the MTD device structure */
-	kfree(fcr_soc_mtd);
-}
-
-module_exit(fcr_soc_cleanup);
-
-MODULE_LICENSE("GPL");
-MODULE_AUTHOR("qiao chong <qiaochong@ict.ac.cn");
-MODULE_DESCRIPTION("Board-specific glue layer for NAND flash on fcr_soc board");

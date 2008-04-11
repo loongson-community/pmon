@@ -165,9 +165,11 @@ return result;
 
 static	pcitag_t mytag=0;
 
+size_t fread (void *src, size_t size, size_t count, FILE *fp);
+size_t fwrite (const void *dst, size_t size, size_t count, FILE *fp);
 static char diskname[0x40];
 
-static int __disksyscall1(int type,unsigned int addr,union commondata *mydata)
+static int __disksyscall1(int type,long long addr,union commondata *mydata)
 {
 	char fname[0x40];
 	FILE *fp;
@@ -187,11 +189,12 @@ case 8:fread(&mydata->data8,8,1,fp);break;
 return 0;
 }
 
-static int __disksyscall2(int type,unsigned int addr,union commondata *mydata)
+static int __disksyscall2(int type,long long addr,union commondata *mydata)
 {
 	char fname[0x40];
 	FILE *fp;
-	sprintf(fname,"/dev/disk/%s",diskname);
+	if(strncmp(diskname,"/dev/",5)) sprintf(fname,"/dev/disk/%s",diskname);
+	else strcpy(fname,diskname);
 	fp=fopen(fname,"r+");
 	if(!fp){printf("open %s error!\n",fname);return -1;}
 	fseek(fp,addr,SEEK_SET);
@@ -203,6 +206,24 @@ case 4:fwrite(&mydata->data4,4,1,fp);break;
 case 8:fwrite(&mydata->data8,8,1,fp);break;
 }
 	fclose(fp);
+return 0;
+}
+
+static int devcp(int argc,char **argv)
+{
+char buf[1024];
+FILE *fp0,*fp1;
+int n;
+if(argc!=3)return -1;
+	fp0=fopen(argv[1],"rb");
+	fp1=fopen(argv[2],"wb");
+	if(!fp0||!fp1){printf("open file error!\n");return -1;}
+	while((n=fread(fp0,1,1024,buf))>0)
+	{
+	fwrite(buf,1,n,fp1);break;
+	}
+	fclose(fp0);
+	fclose(fp1);
 return 0;
 }
 
@@ -347,7 +368,7 @@ static int mydump(char type,unsigned long long addr,unsigned count)
 		char memdata[16];
 		for(j=0;j<count;j=j+16/type,addr=addr+16)
 		{
-		nr_printf("%08x: ",addr);
+		nr_printf("%08llx: ",addr);
 
 		pmydata=(void *)memdata;
 		for(i=0;type*i<16;i++)
@@ -557,7 +578,7 @@ static int modify(int argc,char **argv)
 		while(1)
 		{
 		if(syscall1(type,addr,&mydata)<0){nr_printf("read address %p error\n",addr);return -1;};
-		nr_printf("%08x:",addr);
+		nr_printf("%08llx:",addr);
 		switch(type)
 		{
 		case 1:	nr_printf("%02x ",mydata.data1);break;
@@ -1653,6 +1674,7 @@ static const Cmd Cmds[] =
 	{"mycmp","s1 s2 len",0,"mecmp s1 s2 len",mycmp,4,4,CMD_REPEAT},
 	{"mymore","",0,"mymore",mymore,1,99,CMD_REPEAT},
 	{"flashs",	"rom", 0, "select flash for read/write", flashs, 0, 99, CMD_REPEAT},
+	{"devcp",	"src dst", 0, "copy form src to dst",devcp, 0, 99, CMD_REPEAT},
 	{0, 0}
 };
 

@@ -197,6 +197,7 @@ initmips(unsigned int memsz)
 	SBD_DISPLAY("BEV0",0);
 	
 	printf("BEV in SR set to zero.\n");
+	fcr_soc_nand_init();
 
 	
 	/*
@@ -1152,4 +1153,3 @@ void tgt_netpoll()	{};
 
 #endif /*INET*/
 
-#include "mycmd.c"

@@ -920,7 +920,7 @@ static int xyzmodem(int argc,char *argv[])
 	int mode;
 	base = 0x84000000;
 	file=argv[0];
-	mode=argv[0][5]-'x'+1;
+	mode=argv[0][0]-'x'+1;
 
 	for(i=1;i<argc;i++)
 	{
