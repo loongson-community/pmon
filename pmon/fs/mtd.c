@@ -84,7 +84,7 @@ static int
 
 		
 		LIST_FOREACH(p, &mtdfiles, i_next) {
-			if(!dname[0])printf("%d: size:%d \n",p->mtd->index,p->mtd->size);
+			if(!dname[0])printf("%d: size:%d writesize:%d \n",p->mtd->index,p->mtd->size,p->mtd->writesize);
 			else if(p->mtd->index==idx) {
 				found = 1;
 				break;
@@ -131,7 +131,7 @@ static int
 	if (_file[fd].posn + n > p->mtd->size)
 		n = p->mtd->size - _file[fd].posn;
 
-	p->mtd->read(p->mtd,_file[fd].posn,n,&n,buf);
+	p->mtd->read(p->mtd,(off_t)_file[fd].posn,n,&n,buf);
 
 	_file[fd].posn += n;
       
@@ -151,7 +151,7 @@ static int
 	if (_file[fd].posn + n > p->mtd->size)
 		n = p->mtd->size - _file[fd].posn;
 
-	p->mtd->write(p->mtd,_file[fd].posn,n,&n,buf);
+	p->mtd->write(p->mtd,(off_t)_file[fd].posn,n,&n,buf);
 	_file[fd].posn += n;
 
 	return (n);

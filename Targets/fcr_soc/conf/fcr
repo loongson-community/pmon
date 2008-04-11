@@ -41,7 +41,6 @@ select		cmd_setup
 select		cmd_about		# Display info about PMON
 select		cmd_boot		# Boot wrapper
 select		cmd_mycmd
-select		cmd_xmodem
 select		ramfiles
 select		cmd_newmt
 select		cmd_cache		# Cache enabling
@@ -172,4 +171,5 @@ select gzip
 option INPUT_FROM_BOTH
 option OUTPUT_TO_BOTH
 select nand
+select cmd_xyzmodem
 

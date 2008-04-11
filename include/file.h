@@ -58,7 +58,7 @@ typedef struct FileSystem {
 
 typedef struct File {
 	short valid;
-	unsigned long posn;
+	off_t posn;
 	FileSystem *fs;
 	void  *data;
 } File;

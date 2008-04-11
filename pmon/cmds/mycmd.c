@@ -211,17 +211,23 @@ return 0;
 
 static int devcp(int argc,char **argv)
 {
-char buf[1024];
+char *buf;
 FILE *fp0,*fp1;
 int n;
-if(argc!=3)return -1;
+int blocksize=0x10000;
+if(argc!=3&&argc!=4)return -1;
 	fp0=fopen(argv[1],"rb");
 	fp1=fopen(argv[2],"wb");
-	if(!fp0||!fp1){printf("open file error!\n");return -1;}
-	while((n=fread(fp0,1,1024,buf))>0)
+	if(argc==4)blocksize=strtoul(argv[3],0,0);
+	buf=malloc(blocksize);
+	if(!buf){printf("malloc failed!\n");return -1;}
+
+	if(!fp0||!fp1){printf("open file error!\n");free(buf);return -1;}
+	while((n=fread(buf,1,blocksize,fp0))>0)
 	{
 	fwrite(buf,1,n,fp1);break;
 	}
+	free(buf);
 	fclose(fp0);
 	fclose(fp1);
 return 0;

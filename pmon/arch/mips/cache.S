@@ -154,10 +154,12 @@ END(md_cacheon)
  *----------------------------------------------------------------------------
  */
 LEAF(wbflush)
+	.set mips3
 	nop
 	sync
 	j	ra
 	nop
+	.set mips0
 END(wbflush)
 
 

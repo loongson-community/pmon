@@ -192,9 +192,9 @@ int  smi712_init(char * fbaddress,char * ioaddress)
 
         /* LynxEM+ memory dection */
         *(u32 *)(SMILFB + 4) = 0xAA551133;
-        if (*(u32 *)(SMILFB + 4) != 0xAA551133)
+        //if (*(u32 *)(SMILFB + 4) != 0xAA551133)
         {
-                smem_size = 0x00400000;
+                smem_size = 0x00200000;
                 /* Program the MCLK to 130 MHz */
                 smi_seqw(0x6a,0x12);
                 smi_seqw(0x6b,0x02);

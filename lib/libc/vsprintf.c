@@ -131,8 +131,16 @@ vsprintf (char *d, const char *s, va_list ap)
 					if (longlong)
 						llbtoa(d, va_arg (ap, quad_t),
 						    base);
-					else
+#else
+					if (longlong)
+					{
+						btoa(d, va_arg (ap, int),
+						    base);
+							va_arg (ap, int);
+					}
+
 #endif
+					else
 						btoa(d, va_arg (ap, int), base);
 
 					if (*s == 'X')
