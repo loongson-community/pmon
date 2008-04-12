@@ -131,12 +131,13 @@ static int
 	if (_file[fd].posn + n > p->mtd->size)
 		n = p->mtd->size - _file[fd].posn;
 
-	p->mtd->read(p->mtd,(off_t)_file[fd].posn,n,&n,buf);
+	p->mtd->read(p->mtd,_file[fd].posn,n,&n,buf);
 
 	_file[fd].posn += n;
       
 	return (n);
 }
+
 
 static int
    mtdfile_write (fd, buf, n)
@@ -145,13 +146,22 @@ static int
    size_t n;
 {
 	mtdfile        *p;
+	struct erase_info erase;
 
 	p = (mtdfile *)_file[fd].data;
 
 	if (_file[fd].posn + n > p->mtd->size)
 		n = p->mtd->size - _file[fd].posn;
 
-	p->mtd->write(p->mtd,(off_t)_file[fd].posn,n,&n,buf);
+	erase.mtd = p->mtd;
+	erase.callback = 0;
+	erase.addr = _file[fd].posn;
+	erase.len = n;
+	erase.priv = 0;
+
+
+	p->mtd->erase(p->mtd,&erase);
+	p->mtd->write(p->mtd,_file[fd].posn,n,&n,buf);
 	_file[fd].posn += n;
 
 	return (n);

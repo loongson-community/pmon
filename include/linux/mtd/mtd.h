@@ -487,6 +487,8 @@ extern int unregister_mtd_user (struct mtd_notifier *old);
 #define MTD_DEBUG_LEVEL1	(1)	/* Audible */
 #define MTD_DEBUG_LEVEL2	(2)	/* Loud    */
 #define MTD_DEBUG_LEVEL3	(3)	/* Noisy   */
+#define CONFIG_MTD_DEBUG_VERBOSE 0
+#define CONFIG_MTD_DEBUG
 
 #ifdef CONFIG_MTD_DEBUG
 #define DEBUG(n, args...)			\

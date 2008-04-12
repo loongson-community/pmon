@@ -213,19 +213,41 @@ static int devcp(int argc,char **argv)
 {
 char *buf;
 FILE *fp0,*fp1;
-int n;
-int blocksize=0x10000;
-if(argc!=3&&argc!=4)return -1;
-	fp0=fopen(argv[1],"rb");
-	fp1=fopen(argv[2],"wb");
-	if(argc==4)blocksize=strtoul(argv[3],0,0);
-	buf=malloc(blocksize);
-	if(!buf){printf("malloc failed!\n");return -1;}
+int n,i;
+int bs=0x20000;
+int seek=0,skip=0;
+char *fsrc=0,*fdst=0;
+int count=-1;
+if(argc<3)return -1;
+	for(i=1;i<argc;i++)
+	{
+	if(!strncmp(argv[i],"if=",3))
+	 fsrc=&argv[i][3];
+	else if(!strncmp(argv[i],"of=",3))
+	 fdst=&argv[i][3];
+	else if(!strncmp(argv[i],"bs=",3))
+	 bs=strtoul(&argv[i][3],0,0);
+	else if(!strncmp(argv[i],"count=",6))
+	 count=strtoul(&argv[i][6],0,0);
+	else  if(!strncmp(argv[i],"skip=",5))
+	 skip=strtoul(&argv[i][5],0,0);
+	else if(!strncmp(argv[i],"seek=",5))
+	 seek=strtoul(&argv[i][5],0,0);
+	}
+	if(!fsrc||!fdst)return -1;
+	fp0=fopen(fsrc,"rb");
+	fp1=fopen(fdst,"wb");
+
+	buf=malloc(bs);
+	if(!buf){printf("malloc failed!,please set heaptop bigger\n");return -1;}
 
 	if(!fp0||!fp1){printf("open file error!\n");free(buf);return -1;}
-	while((n=fread(buf,1,blocksize,fp0))>0)
+	fseek(fp0,skip*bs,SEEK_SET);
+	fseek(fp1,seek*bs,SEEK_SET);
+	while(count--)
 	{
-	fwrite(buf,1,n,fp1);break;
+	n=fread(buf,bs,1,fp0);
+	if(fwrite(buf,bs,1,fp1)<1||n<1)break;
 	}
 	free(buf);
 	fclose(fp0);
@@ -1680,7 +1702,7 @@ static const Cmd Cmds[] =
 	{"mycmp","s1 s2 len",0,"mecmp s1 s2 len",mycmp,4,4,CMD_REPEAT},
 	{"mymore","",0,"mymore",mymore,1,99,CMD_REPEAT},
 	{"flashs",	"rom", 0, "select flash for read/write", flashs, 0, 99, CMD_REPEAT},
-	{"devcp",	"src dst", 0, "copy form src to dst",devcp, 0, 99, CMD_REPEAT},
+	{"devcp",	"if=srcfile of=dstfile [bs=0x20000] [count=-1] [seek=0] [skip=0]", 0, "copy form src to dst",devcp, 0, 99, CMD_REPEAT},
 	{0, 0}
 };
 

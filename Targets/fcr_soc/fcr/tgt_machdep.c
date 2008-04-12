@@ -153,13 +153,10 @@ void addr_tst1(void);
 void addr_tst2(void);
 void movinv1(int iter, ulong p1, ulong p2);
 
-#undef MYDBG
-#define MYDBG tgt_printf("%s:%d\n",__FILE__,__LINE__);
 void
 initmips(unsigned int memsz)
 {
-	memsz=32;
-	MYDBG
+	memsz=64;
 	
 
 	/*
@@ -173,16 +170,13 @@ initmips(unsigned int memsz)
 	/*
 	 *  Probe clock frequencys so delays will work properly.
 	 */
-	MYDBG
 	tgt_cpufreq();
-	MYDBG
 	SBD_DISPLAY("DONE",0);
 	/*
 	 *  Init PMON and debug
 	 */
 	cpuinfotab[0] = &DBGREG;
 	dbginit(NULL);
-	MYDBG
 
 	/*
 	 *  Set up exception vectors.
@@ -408,7 +402,7 @@ _probe_frequencies()
         md_pipefreq = 300000000;        /* Defaults */
         md_cpufreq  = 66000000;
 #else
-        md_pipefreq = 120000000;        /* NB FPGA*/
+        md_pipefreq = 66700000;        /* NB FPGA*/
         md_cpufreq  =  40000000;
 #endif
 
@@ -1059,14 +1053,6 @@ nvram_put(char *buffer)
 
 #endif
 
-#define FCR_COM0_BASE 0x1f004080         //z 0x1f004080
-#define UART_SET(idx, value) KSEG1_STORE8(FCR_COM0_BASE + idx, value)  //zgj FCR_COM2_BASE
-#define UART_GET(idx) KSEG1_LOAD8(FCR_COM0_BASE + idx) //zgj FCR_COM2_BASE
-static void tgt_putchar1(char c)
-{
-    while ( !(UART_GET(0x5) & 0x20));
-	UART_SET(0x0,c);
-}
 /*
  *  Simple display function to display a 4 char string or code.
  *  Called during startup to display progress on any feasible
@@ -1076,12 +1062,12 @@ void
 tgt_display(char *msg, int x)
 {
 	/* Have simple serial port driver */
-	tgt_putchar1(msg[0]);
-	tgt_putchar1(msg[1]);
-	tgt_putchar1(msg[2]);
-	tgt_putchar1(msg[3]);
-	tgt_putchar1('\r');
-	tgt_putchar1('\n');
+	tgt_putchar(msg[0]);
+	tgt_putchar(msg[1]);
+	tgt_putchar(msg[2]);
+	tgt_putchar(msg[3]);
+	tgt_putchar('\r');
+	tgt_putchar('\n');
 }
 
 
@@ -1099,8 +1085,8 @@ tgt_printf (const char *fmt, ...)
     va_end(ap);
 	while((c=*p++))
 	{ 
-	 if(c=='\n')tgt_putchar1('\r');
-	 tgt_putchar1(c);
+	 if(c=='\n')tgt_putchar('\r');
+	 tgt_putchar(c);
 	}
     return (n);
 }
