@@ -24,6 +24,32 @@ extern char           *heaptop;
 
 #endif /* __ASSEMBLER__ */
 
+/* APB bus control registers */
+#define APB_MISC_BASE 0x1f004100
+
+#define GPIO_OE28_0    0x00
+#define GPIO_R28_0     0x10
+#define GPIO_W28_0     0x20
+#define APB_MISC_CTL   0x40
+
+/*
+#define GPIO_OE47_20	0x00
+#define GPIO_OE77_48	0x08
+#define GPIO_R47_20	0x10
+#define GPIO_R77_48	0x18
+#define GPIO_W47_20	0x20
+#define GPIO_W77_48	0x28
+#define APB_MISC_CTL	0x40
+*/
+#define AHB_MISC_BASE 0x1f003200
+
+#define GPIO_OE60_29	0x20
+#define GPIO_R60_29	0x24
+#define GPIO_W60_29	0x28
+
+
+#define APB_CLK		33333333
+
 #define RTC_INDEX_REG 0x70
 #define RTC_DATA_REG 0x71
 #define RTC_NVRAM_BASE		0x0e

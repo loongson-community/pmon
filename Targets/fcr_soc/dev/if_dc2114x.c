@@ -1247,6 +1247,7 @@ dmfe_attach(parent, self, aux)
 
 	tgt_poll_register(IPL_NET, dmfe_intr, sc);
 
+	sc->addr_len=6;
 	dc21x4x_read_mac(sc);
 
 #ifdef __OpenBSD__

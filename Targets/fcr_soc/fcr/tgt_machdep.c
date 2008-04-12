@@ -259,6 +259,9 @@ extern void godson1_cache_flush(void);
 #define tgt_putchar_uc(x) (*(void (*)(char)) (((long)tgt_putchar)|0x20000000)) (x)
 
 
+#define I2C_WRITE
+int i2c_init();
+void init_lcd();
 void
 tgt_devinit()
 {
@@ -282,7 +285,30 @@ tgt_devinit()
 	
     CPU_ConfigCache();
 
+#define CONFIG_DE2114X y 
+#ifdef 	CONFIG_DE2114X
+{
+	// *(volatile unsigned long *)(0xa0000000|AHB_MISC_BASE) =0x020b0000;
+	unsigned long t = *(volatile unsigned long *)(0xa0000000|AHB_MISC_BASE);
+	*(volatile unsigned long *)(0xa0000000|AHB_MISC_BASE) =0x00030000 | t;
+	// *(volatile unsigned long *)(0xa0000000|AHB_MISC_BASE) =0x00030000 | 0x020F0000;
+}
+#endif
+
 	_pci_businit(1);	/* PCI bus initialization */
+	init_lcd();
+   	 i2c_init();
+#ifdef I2C_WRITE    
+       	
+	i2c_write(26,0);
+        i2c_write(30,1);
+        i2c_write(15,2);
+        i2c_write(1,3);
+        i2c_write(16,4);
+        i2c_write(7,5);
+        i2c_write(7,6);
+//        i2c_write(0,7);
+#endif
 }
 
 

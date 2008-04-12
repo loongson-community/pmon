@@ -4,5 +4,6 @@ START=start.o
 MEMSIZE=16
 ZLOADER_OPTIONS=-DNOCACHE2 -DNOMSG
 PMONCC=mips-elf-gcc -mips2
+RAMSTARTADDR=0xffffffff80800000
 
 include Makefile.inc
