@@ -60,9 +60,8 @@ void mycacheflush(long long addrin,unsigned int size,unsigned int rw);
 
 /*
  * Supported paths:
- *	/dev/mtd/0
+ *	/dev/mtd/0@offset,size
  */
-
 
 static int
    mtdfile_open (fd, fname, mode, perms)
@@ -72,20 +71,48 @@ static int
    int	       perms;
 {
 	mtdfile *p;
-	char            *dname;
+	mtdpriv *priv;
+	char    *dname,namebuf[64];
 	int idx;
 	int found = 0;
+	int open_size=0;
+	int open_offset=0;
       
-	dname = (char *)fname;
-	if (strncmp (dname, "/dev/mtd/", 9) == 0)
-		dname += 9;
-	if(dname[0]) idx=strtoul(dname,0,0);
+	strncpy(namebuf,fname,63);
+	dname = namebuf;
+	if (strncmp (dname, "/dev/", 5) == 0)
+		dname += 5;
+	if (strncmp (dname, "mtd", 3) == 0)
+		dname += 3;
+	else return -1;
+	
+	if(dname[0]=='*') idx=-1;
+	else if(dname[0]){
+	char *poffset,*psize;
+	if((poffset=strchr(dname,'@')))
+	{
+	 *poffset++=0;
+	 if((psize=strchr(poffset,',')))
+	 {
+	  *psize++=0;
+	  open_size=strtoul(psize,0,0);
+	 }
+	 open_offset=strtoul(poffset,0,0);
+	}
+	idx=strtoul(dname,0,0);
+	}
 	else idx=-1;
 
 		
 		LIST_FOREACH(p, &mtdfiles, i_next) {
-			if(!dname[0])printf("%d: size:%d writesize:%d \n",p->mtd->index,p->mtd->size,p->mtd->writesize);
-			else if(p->mtd->index==idx) {
+			if(dname[0]=='*')
+			 {
+			 if(p->part_offset||(p->part_size!=p->mtd->size))
+			  printf("mtd%d: flash:%d size:%d writesize:%d partoffset=0x%x,partsize=%d\n",p->index,p->mtd->index,p->mtd->size,p->mtd->writesize,p->part_offset,p->part_size);
+			 else
+			  printf("mtd%d: flash:%d size:%d writesize:%d \n",p->index,p->mtd->index,p->mtd->size,p->mtd->writesize);
+			}
+			else if(p->index==idx) {
 				found = 1;
 				break;
 			}	
@@ -97,9 +124,13 @@ static int
 		}
 	
 	p->refs++;
+	priv=malloc(sizeof(struct mtdpriv));
+	priv->file=p;
+	priv->open_size=open_size?open_size:p->part_size;
+	priv->open_offset=open_offset;
 
 	_file[fd].posn = 0;
-	_file[fd].data = (void *)p;
+	_file[fd].data = (void *)priv;
 	
 	return (fd);
 }
@@ -109,10 +140,11 @@ static int
    mtdfile_close (fd)
    int             fd;
 {
-	mtdfile *p;
+	mtdpriv *priv;
 
-	p = (mtdfile *)_file[fd].data;
-	p->refs--;
+	priv = (mtdpriv *)_file[fd].data;
+	priv->file->refs--;
+	free(priv);
 	   
 	return(0);
 }
@@ -125,13 +157,15 @@ static int
    size_t n;
 {
 	mtdfile        *p;
+	mtdpriv *priv;
 
-	p = (mtdfile *)_file[fd].data;
+	priv = (mtdpriv *)_file[fd].data;
+	p = priv->file;
 
-	if (_file[fd].posn + n > p->mtd->size)
-		n = p->mtd->size - _file[fd].posn;
+	if (_file[fd].posn + n > priv->open_size)
+		n = priv->open_size - _file[fd].posn;
 
-	p->mtd->read(p->mtd,_file[fd].posn,n,&n,buf);
+	p->mtd->read(p->mtd,_file[fd].posn+priv->open_offset+p->part_offset,n,&n,buf);
 
 	_file[fd].posn += n;
       
@@ -146,22 +180,24 @@ static int
    size_t n;
 {
 	mtdfile        *p;
+	mtdpriv *priv;
 	struct erase_info erase;
 
-	p = (mtdfile *)_file[fd].data;
+	priv = (mtdpriv *)_file[fd].data;
+	p = priv->file;
 
-	if (_file[fd].posn + n > p->mtd->size)
-		n = p->mtd->size - _file[fd].posn;
+	if (_file[fd].posn + n > priv->open_size)
+		n = priv->open_size - _file[fd].posn;
 
 	erase.mtd = p->mtd;
 	erase.callback = 0;
-	erase.addr = _file[fd].posn;
+	erase.addr = _file[fd].posn+priv->open_offset+p->part_offset;
 	erase.len = n;
 	erase.priv = 0;
 
 
 	p->mtd->erase(p->mtd,&erase);
-	p->mtd->write(p->mtd,_file[fd].posn,n,&n,buf);
+	p->mtd->write(p->mtd,_file[fd].posn+priv->open_offset+p->part_offset,n,&n,buf);
 	_file[fd].posn += n;
 
 	return (n);
@@ -176,8 +212,11 @@ mtdfile_lseek (fd, offset, whence)
 	off_t            offset;
 {
 	mtdfile        *p;
+	mtdpriv *priv;
 
-	p = (mtdfile *)_file[fd].data;
+	priv = (mtdpriv *)_file[fd].data;
+	p = priv->file;
+
 
 	switch (whence) {
 		case SEEK_SET:
@@ -187,7 +226,7 @@ mtdfile_lseek (fd, offset, whence)
 			_file[fd].posn += offset;
 			break;
 		case SEEK_END:
-			_file[fd].posn = p->mtd->size + offset;
+			_file[fd].posn = priv->open_size + offset;
 			break;
 		default:
 			errno = EINVAL;
@@ -198,7 +237,7 @@ mtdfile_lseek (fd, offset, whence)
 
 
 
-int add_mtd_device(struct mtd_info *mtd)
+int add_mtd_device(struct mtd_info *mtd,int offset,int size)
 {
 	struct mtdfile *rmp;
 
@@ -210,7 +249,10 @@ int add_mtd_device(struct mtd_info *mtd)
 
 	bzero(rmp, sizeof(struct mtdfile));
 	rmp->mtd =mtd;
-	rmp->mtd->index=mtdidx++;
+	rmp->index=mtdidx++;
+	rmp->part_offset=offset;
+	if(size) rmp->part_size=size;
+	else rmp->part_size=mtd->size;
 	LIST_INSERT_HEAD(&mtdfiles, rmp, i_next);
 	return 0;
 }
