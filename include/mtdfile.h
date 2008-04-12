@@ -8,8 +8,8 @@ typedef struct mtdfile {
 	int fd;
 	int flags;
 	int index;
-	int part_size;
-	int part_offset;
+	unsigned int part_size;
+	unsigned int part_offset;
 #define MTDFILE_STATIC  0x0000
 #define MTDFILE_DYNAMIC 0x0001
 	LIST_ENTRY(mtdfile)	i_next;
@@ -17,7 +17,7 @@ typedef struct mtdfile {
 
 typedef struct mtdpriv {
 struct mtdfile *file;
-	int open_offset;
-	int open_size;
+	unsigned int open_offset;
+	unsigned int open_size;
 } mtdpriv;
 

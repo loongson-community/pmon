@@ -116,7 +116,6 @@ static int
 				found = 1;
 				break;
 			}	
-			idx++;
 		}
 		
 		if(!found) {
