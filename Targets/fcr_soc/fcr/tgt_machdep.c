@@ -312,18 +312,6 @@ tgt_devinit()
 }
 
 
-void
-tgt_reboot()
-{
-
-	/* generate reset signal */
-	*(unsigned long *)0xbfe00104 &= ~(1<<2);
-	*(unsigned long *)0xbfe00104 |= (1<<2);
-
-	while(1);
-
-}
-
 
 /*
  *  This function makes inital HW setup for debugger and

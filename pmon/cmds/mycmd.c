@@ -31,6 +31,10 @@ void route_init();
 #define rm9000_tlb_hazard(...)
 #define CONFIG_PAGE_SIZE_64KB
 #include "mipsregs.h"
+#include "gzip.h"
+#if NGZIP > 0
+#include <gzipfs.h>
+#endif /* NGZIP */
 int cmd_mycfg __P((int, char *[]));
 extern char  *heaptop;
 
@@ -212,20 +216,21 @@ return 0;
 static int devcp(int argc,char **argv)
 {
 char *buf;
-FILE *fp0,*fp1;
+int fp0,fp1;
 int n,i;
 int bs=0x20000;
 int seek=0,skip=0;
 char *fsrc=0,*fdst=0;
 int count=-1;
+#if NGZIP > 0
+int unzip=0;
+#endif
 if(argc<3)return -1;
-	for(i=1;i<argc;i++)
+	fsrc=argv[1];
+	fdst=argv[2];
+	for(i=3;i<argc;i++)
 	{
-	if(!strncmp(argv[i],"if=",3))
-	 fsrc=&argv[i][3];
-	else if(!strncmp(argv[i],"of=",3))
-	 fdst=&argv[i][3];
-	else if(!strncmp(argv[i],"bs=",3))
+	if(!strncmp(argv[i],"bs=",3))
 	 bs=strtoul(&argv[i][3],0,0);
 	else if(!strncmp(argv[i],"count=",6))
 	 count=strtoul(&argv[i][6],0,0);
@@ -233,25 +238,39 @@ if(argc<3)return -1;
 	 skip=strtoul(&argv[i][5],0,0);
 	else if(!strncmp(argv[i],"seek=",5))
 	 seek=strtoul(&argv[i][5],0,0);
+#if NGZIP > 0
+	else if(!strcmp(argv[i],"unzip=1"))
+	unzip=1;
+#endif
 	}
 	if(!fsrc||!fdst)return -1;
-	fp0=fopen(fsrc,"rb");
-	fp1=fopen(fdst,"wb");
+	fp0=open(fsrc,O_RDWR);
+	fp1=open(fdst,O_RDWR);
 
 	buf=malloc(bs);
 	if(!buf){printf("malloc failed!,please set heaptop bigger\n");return -1;}
 
 	if(!fp0||!fp1){printf("open file error!\n");free(buf);return -1;}
-	fseek(fp0,skip*bs,SEEK_SET);
-	fseek(fp1,seek*bs,SEEK_SET);
+	lseek(fp0,skip*bs,SEEK_SET);
+	lseek(fp1,seek*bs,SEEK_SET);
+#if NGZIP > 0
+	if(unzip)if(gz_open(fp0)==-1)unzip=0;
+#endif
 	while(count--)
 	{
-	n=fread(buf,bs,1,fp0);
-	if(fwrite(buf,bs,1,fp1)<1||n<1)break;
+#if NGZIP > 0
+	if(unzip) n=gz_read(fp0,buf,bs);
+	else
+#endif
+	n=read(fp0,buf,bs);
+	if(write(fp1,buf,bs)<bs||n<bs)break;
 	}
 	free(buf);
-	fclose(fp0);
-	fclose(fp1);
+#if NGZIP > 0
+	if(unzip)gz_close(fp0);
+#endif
+	close(fp0);
+	close(fp1);
 return 0;
 }
 
@@ -1702,7 +1721,7 @@ static const Cmd Cmds[] =
 	{"mycmp","s1 s2 len",0,"mecmp s1 s2 len",mycmp,4,4,CMD_REPEAT},
 	{"mymore","",0,"mymore",mymore,1,99,CMD_REPEAT},
 	{"flashs",	"rom", 0, "select flash for read/write", flashs, 0, 99, CMD_REPEAT},
-	{"devcp",	"if=srcfile of=dstfile [bs=0x20000] [count=-1] [seek=0] [skip=0]", 0, "copy form src to dst",devcp, 0, 99, CMD_REPEAT},
+	{"devcp",	"srcfile dstfile [bs=0x20000] [count=-1] [seek=0] [skip=0]", 0, "copy form src to dst",devcp, 0, 99, CMD_REPEAT},
 	{0, 0}
 };
 

@@ -95,6 +95,11 @@ mainbus_attach(parent, self, aux)
         nca.ca_bus = &sc->sc_bus;
         config_found(self, &nca, mbprint);
 
+        nca.ca_node = NULL;
+        nca.ca_name = "loopdev";
+        nca.ca_bus = &sc->sc_bus;
+        config_found(self, &nca, mbprint);
+
 	for(i=0;i<_max_pci_bus;i++)
 	{
         nca.ca_node = NULL;

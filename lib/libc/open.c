@@ -62,12 +62,14 @@ open(filename, mode)
 		free(fname);
 		return -1;
 	}
+		_file[lu].valid = 1;
 	
 	dname = (char *)fname;
 	if (strncmp (dname, "/dev/", 5) == 0) {
 		dname += 5;
 		i = __try_open(fname, mode, dname, lu, 0);
 		free(fname);
+		if(i==-1)_file[lu].valid = 0;
 		return i;
 #ifdef never
 		if (i < 0) {
@@ -90,6 +92,7 @@ open(filename, mode)
 		i = __try_open(fname, mode, dname, lu, 0);
 	}
 	free(fname);
+	if(i==-1)_file[lu].valid = 0;
 	return i;
 }
 

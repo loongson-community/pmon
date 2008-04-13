@@ -75,9 +75,13 @@ int fcr_soc_nand_init(void)
 
 	/* Register the partitions */
 //	add_mtd_partitions(fcr_soc_mtd, partition_info, NUM_PARTITIONS);
-	add_mtd_device(fcr_soc_mtd,0,0);
-	add_mtd_device(fcr_soc_mtd,0,12*0x100000);
-	add_mtd_device(fcr_soc_mtd,12*0x1000000,(256-12)*0x1000000);
+	add_mtd_device(fcr_soc_mtd,0,0,"total flash");
+	add_mtd_device(fcr_soc_mtd,0,12*0x100000,"kernel");
+	add_mtd_device(fcr_soc_mtd,12*0x100000,(128-12)*0x1000000,"system");
+	add_mtd_device(fcr_soc_mtd,0x80*0x100000,0x10*0x1000000,"kernel1");
+	add_mtd_device(fcr_soc_mtd,0x90*0x100000,0x10*0x1000000,"kernel2");
+	add_mtd_device(fcr_soc_mtd,0xa0*0x100000,0x10*0x1000000,"initrd");
+	add_mtd_device(fcr_soc_mtd,0xb0*0x100000,0x50*0x1000000,"others");
 
 	/* Return happy */
 	return 0;

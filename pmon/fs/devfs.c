@@ -51,6 +51,7 @@
 #include "fd.h"
 #include "ide_cd.h"
 #include "mod_usb_storage.h"
+#include "loopdev.h"
 
 extern int errno;
 
@@ -92,6 +93,11 @@ extern int usb_write __P((dev_t dev, void *uio, int flag));
 extern int usb_close __P((dev_t dev, int flag, int mode, void *));
 #endif
 
+extern int loopdevopen __P((dev_t dev, int flags, int mode, void *));
+extern int loopdevread __P((dev_t dev, void *uio, int flag));
+extern int loopdevwrite __P((dev_t dev, void *uio, int flag));
+extern int loopdevclose __P((dev_t dev, int flag, int mode, void *));
+
 /*
  * Check for and add any target specific declarations from "pmon_target.h"
  */
@@ -126,6 +132,9 @@ struct devsw devswitch[] = {
 #endif
 #if NMOD_USB_STORAGE > 0
 	{ "usb", usb_open, usb_read, usb_write, usb_close},
+#endif
+#if  NLOOPDEV > 0
+	{ "loopdev", loopdevopen, loopdevread, loopdevwrite, loopdevclose},
 #endif
 	/* Add any target specific devices. See "pmon_target.h" */
 #if defined(TGT_DEV_SWITCH)

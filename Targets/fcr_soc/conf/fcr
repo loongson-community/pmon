@@ -110,6 +110,7 @@ option 	    NVRAM_IN_FLASH
 #
 mainbus0        at root
 localbus0	at mainbus0
+loopdev0	at mainbus0
 #fd0         at mainbus0
 pcibr*		at mainbus0
 #pcibr1		at mainbus0
@@ -172,4 +173,5 @@ option INPUT_FROM_BOTH
 option OUTPUT_TO_BOTH
 select nand
 select cmd_xyzmodem
+select loop
 

@@ -73,7 +73,7 @@ static int
 	mtdfile *p;
 	mtdpriv *priv;
 	char    *dname,namebuf[64];
-	int idx;
+	int idx=-1;
 	int found = 0;
 	int open_size=0;
 	int open_offset=0;
@@ -87,7 +87,19 @@ static int
 	else return -1;
 	
 	if(dname[0]=='*') idx=-1;
-	else if(dname[0]){
+	else if(dname[0]=='/')
+	{
+	dname++;
+	 if(!dname[0])idx=-1;
+	 else {
+		LIST_FOREACH(p, &mtdfiles, i_next) {
+		if(!strcmp(p->name,dname))
+		goto foundit;
+		}
+	   return -1;
+	   }
+	}
+	else if(isdigit(dname[0])){
 	char *poffset,*psize;
 	if((poffset=strchr(dname,'@')))
 	{
@@ -105,12 +117,12 @@ static int
 
 		
 		LIST_FOREACH(p, &mtdfiles, i_next) {
-			if(dname[0]=='*')
+			if(idx==-1)
 			 {
 			 if(p->part_offset||(p->part_size!=p->mtd->size))
-			  printf("mtd%d: flash:%d size:%d writesize:%d partoffset=0x%x,partsize=%d\n",p->index,p->mtd->index,p->mtd->size,p->mtd->writesize,p->part_offset,p->part_size);
+			  printf("mtd%d: flash:%d size:%d writesize:%d partoffset=0x%x,partsize=%d %s\n",p->index,p->mtd->index,p->mtd->size,p->mtd->writesize,p->part_offset,p->part_size,p->name);
 			 else
-			  printf("mtd%d: flash:%d size:%d writesize:%d \n",p->index,p->mtd->index,p->mtd->size,p->mtd->writesize);
+			  printf("mtd%d: flash:%d size:%d writesize:%d %s\n",p->index,p->mtd->index,p->mtd->size,p->mtd->writesize,p->name);
 			}
 			else if(p->index==idx) {
 				found = 1;
@@ -121,6 +133,7 @@ static int
 		if(!found) {
 			return(-1);
 		}
+foundit:
 	
 	p->refs++;
 	priv=malloc(sizeof(struct mtdpriv));
@@ -236,22 +249,25 @@ mtdfile_lseek (fd, offset, whence)
 
 
 
-int add_mtd_device(struct mtd_info *mtd,int offset,int size)
+int add_mtd_device(struct mtd_info *mtd,int offset,int size,char *name)
 {
 	struct mtdfile *rmp;
+	int len=sizeof(struct mtdfile);
+	if(name)len+=strlen(name);
 
-	rmp = (struct mtdfile *)malloc(sizeof(struct mtdfile));
+	rmp = (struct mtdfile *)malloc(len);
 	if (rmp == NULL) {
 		fprintf(stderr, "Out of space adding mtdfile");
 		return(NULL);
 	}
 
-	bzero(rmp, sizeof(struct mtdfile));
+	bzero(rmp, len);
 	rmp->mtd =mtd;
 	rmp->index=mtdidx++;
 	rmp->part_offset=offset;
 	if(size) rmp->part_size=size;
 	else rmp->part_size=mtd->size;
+	if(name)strcpy(rmp->name,name);
 	LIST_INSERT_HEAD(&mtdfiles, rmp, i_next);
 	return 0;
 }

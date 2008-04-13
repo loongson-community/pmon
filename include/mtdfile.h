@@ -3,7 +3,6 @@
 
 typedef struct mtdfile {
 	struct mtd_info *mtd;
-	char name[26];
 	int refs;
 	int fd;
 	int flags;
@@ -13,6 +12,7 @@ typedef struct mtdfile {
 #define MTDFILE_STATIC  0x0000
 #define MTDFILE_DYNAMIC 0x0001
 	LIST_ENTRY(mtdfile)	i_next;
+	char name[1];
 } mtdfile;
 
 typedef struct mtdpriv {
