@@ -77,6 +77,7 @@ static int
 	int found = 0;
 	int open_size=0;
 	int open_offset=0;
+	char *poffset=0,*psize;
       
 	strncpy(namebuf,fname,63);
 	dname = namebuf;
@@ -90,30 +91,21 @@ static int
 	else if(dname[0]=='/')
 	{
 	dname++;
-	 if(!dname[0])idx=-1;
-	 else {
+	 if(dname[0])
+	 {
+	if((poffset=strchr(dname,'@'))) *poffset++=0;
 		LIST_FOREACH(p, &mtdfiles, i_next) {
 		if(!strcmp(p->name,dname))
 		goto foundit;
 		}
-	   return -1;
-	   }
+	 }
 	}
 	else if(isdigit(dname[0])){
-	char *poffset,*psize;
-	if((poffset=strchr(dname,'@')))
-	{
-	 *poffset++=0;
-	 if((psize=strchr(poffset,',')))
-	 {
-	  *psize++=0;
-	  open_size=strtoul(psize,0,0);
-	 }
-	 open_offset=strtoul(poffset,0,0);
-	}
+	if((poffset=strchr(dname,'@'))) *poffset++=0;
 	idx=strtoul(dname,0,0);
 	}
 	else idx=-1;
+
 
 		
 		LIST_FOREACH(p, &mtdfiles, i_next) {
@@ -134,6 +126,16 @@ static int
 			return(-1);
 		}
 foundit:
+	
+	if(poffset)
+	{
+	 if((psize=strchr(poffset,',')))
+	 {
+	  *psize++=0;
+	  open_size=strtoul(psize,0,0);
+	 }
+	 open_offset=strtoul(poffset,0,0);
+	}
 	
 	p->refs++;
 	priv=malloc(sizeof(struct mtdpriv));
