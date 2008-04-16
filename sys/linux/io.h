@@ -1,13 +1,13 @@
 #ifndef __LINUXIO_H_
 #define __LINUXIO_H_
-#ifndef	BONITOEL
+#if defined(FCRSOC)||defined(BONITOEL)
+#define mips_io_port_base 0xbfd00000
+#else
 #ifdef CONFIG_PCI0_GAINT_MEM
 #define mips_io_port_base 0xbea00000
 #else
 #define mips_io_port_base 0xb0100000
 #endif
-#else 
-#define mips_io_port_base 0xbfd00000 
 #endif
 #define __SLOW_DOWN_IO \
 	__asm__ __volatile__( \

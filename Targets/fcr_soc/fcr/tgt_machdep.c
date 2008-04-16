@@ -199,6 +199,37 @@ initmips(unsigned int memsz)
 	 */
 	main();
 }
+#define FCR_PS2_BASE	0xbf004040
+#define PS2_RIBUF		0x00	/* Read */
+#define PS2_WOBUF		0x00	/* Write */
+#define PS2_RSR			0x04	/* Read */
+#define PS2_WSC			0x04	/* Write */
+#define PS2_DLL			0x08
+#define PS2_DLH			0x09
+int init_kbd()
+{
+    int ldd;
+    // ldd = 3*33; /* 50us/(1/33333333) */ //9*33
+    ldd = 3*33;
+    KSEG1_STORE8(FCR_PS2_BASE+PS2_DLL, ldd & 0xff);
+    KSEG1_STORE8(FCR_PS2_BASE+PS2_DLH, (ldd >> 8) & 0xff);
+	//pckbd_init_hw();
+   return 1;
+
+#if 0
+    for (ldd = 67; ldd > 0; ldd--)
+    {
+    	KSEG1_STORE8(FCR_PS2_BASE+PS2_DLL, ldd & 0xff);
+    	KSEG1_STORE8(FCR_PS2_BASE+PS2_DLH, (ldd >> 8) & 0xff);
+    	if (pckbd_init_hw())
+	{
+		printf("\n\n enable key board ok ldd = %d\n\n", ldd);
+		break;
+	}
+    }
+#endif
+    return 1;
+}
 
 /*
  *  Put all machine dependent initialization here. This call
@@ -240,9 +271,12 @@ tgt_devconfig()
     config_init();
     configure();
 #if NMOD_VGACON >0
-	//if(getenv("nokbd")) 
+	if(getenv("nokbd")) 
 	rc=1;
-//	else rc=kbd_initialize();
+	else{
+	init_kbd();
+	rc=kbd_initialize();
+	}
 	printf("%s\n",kbd_error_msgs[rc]);
 	if(!rc){ 
 		kbd_available=1;
