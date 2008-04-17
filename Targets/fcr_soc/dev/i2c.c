@@ -1,11 +1,4 @@
-#define FCR_SOC_I2C_BASE  0xbf0040d0
-#define FCR_SOC_I2C_PRER_LO (volatile unsigned char *)(FCR_SOC_I2C_BASE + 0x0)
-#define FCR_SOC_I2C_PRER_HI (volatile unsigned char *)(FCR_SOC_I2C_BASE + 0x1)
-#define FCR_SOC_I2C_CTR     (volatile unsigned char *)(FCR_SOC_I2C_BASE + 0x2)
-#define FCR_SOC_I2C_TXR     (volatile unsigned char *)(FCR_SOC_I2C_BASE + 0x3)
-#define FCR_SOC_I2C_RXR     (volatile unsigned char *)(FCR_SOC_I2C_BASE + 0x3)
-#define FCR_SOC_I2C_CR      (volatile unsigned char *)(FCR_SOC_I2C_BASE + 0x4)
-#define FCR_SOC_I2C_SR      (volatile unsigned char *)(FCR_SOC_I2C_BASE + 0x4)
+#include <target/i2c.h>
 
 int i2c_init(int v)
 {
@@ -126,3 +119,25 @@ int i2c_write(unsigned char data, unsigned char addr,int v)
   if(v)printf("write data =%d\n",data);
    return 1;
 }
+
+
+void i2c_send(char ctrl,char addr)
+{
+  * FCR_SOC_I2C_TXR = addr;
+  * FCR_SOC_I2C_CR  = ctrl;
+}
+
+char i2c_stat()
+{
+  return * FCR_SOC_I2C_SR;
+}
+
+char i2c_recv()
+{
+char tmp;
+  * FCR_SOC_I2C_CR  = I2C_READ;
+  while( i2c_stat() & I2C_RUN);
+    return * FCR_SOC_I2C_RXR;
+}
+
+

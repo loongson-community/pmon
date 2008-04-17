@@ -332,7 +332,7 @@ tgt_devinit()
 	_pci_businit(1);	/* PCI bus initialization */
 	init_lcd();
    	 i2c_init();
-#ifdef I2C_WRITE    
+#if 0//def I2C_WRITE    
        	
 	i2c_write(26,0);
         i2c_write(30,1);
