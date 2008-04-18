@@ -49,6 +49,7 @@ tgt_printf (const char *fmt, ...)
 	}
     return (n);
 }
+
 #if 1
 #include <sys/param.h>
 #include <sys/syslog.h>
@@ -194,10 +195,9 @@ volatile int *p=0xbfe00108;
 *p=((*p)&~(0x1f<<8))|(0x8<<8) |(1<<13);
 }
 #endif
-
+tgt_printf("memsz %d\n",memsz);
 /*enable float*/
-memsz=512;
-
+//memsz=512;
 tgt_fpuenable();
 	/*
 	 *	Set up memory address decoders to map entire memory.
@@ -449,6 +449,7 @@ w83627_write(5,0x70,1);
 w83627_write(5,0x72,0xc);
 w83627_write(5,0xf0,0x80);
 _wrmsr(GET_MSR_ADDR(0x5140001F), 0, 0);//no keyboard emulation
+
 #ifndef USE_CS5536_UART
 w83627_write(2,0x30,0x01);
 w83627_write(2,0x60,0x03);
@@ -456,6 +457,7 @@ w83627_write(2,0x61,0xf8);
 w83627_write(2,0x70,0x04);
 w83627_write(2,0xf0,0x00);
 #endif
+
 #endif
 
 	/*
@@ -825,6 +827,7 @@ _probe_frequencies()
          * Do the next twice for two reasons. First make sure we run from
          * cache. Second make sure synched on second update. (Pun intended!)
          */
+aa:
         for(i = 2;  i != 0; i--) {
                 cnt = CPU_GetCOUNT();
                 timeout = 10000000;
@@ -834,13 +837,30 @@ _probe_frequencies()
                                                                                
                 do {
                         timeout--;
+			
                         while(CMOS_READ(DS_REG_CTLA) & DS_CTLA_UIP);
-                                                                               
                         cur = CMOS_READ(DS_REG_SEC);
-                } while(timeout != 0 && cur == sec);
+                } while(timeout != 0 && ((cur == sec)||(cur !=(sec+1))));
+#ifdef DEVBD2F_SM502
+                        cur = CMOS_READ(DS_REG_SEC);
                                                                                
+
+		if((sec-cur)>1)
+		{
+			tgt_printf("rtc error 1!\n");
+			goto aa;
+		}
+		if(cur == 0)
+			cur = 60;	
+		if((cur-sec)>1)
+		{
+			tgt_printf("rtc error 2!\n");
+			goto aa;
+		}
+#endif
                 cnt = CPU_GetCOUNT() - cnt;
                 if(timeout == 0) {
+			tgt_printf("time out!\n");
                         break;          /* Get out if clock is not running */
                 }
         }
@@ -856,7 +876,7 @@ _probe_frequencies()
 		 */
 		md_cpufreq = 66000000;
 	}
-                                                                               
+         tgt_printf("cpu fre %u\n",md_pipefreq);                                                                      
 #endif /* HAVE_TOD */
 }
                                                                                

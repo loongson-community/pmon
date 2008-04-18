@@ -8,6 +8,9 @@
 #define PNP_DATA_ADDR (0xbfd00000+0x3f1)
 
 
+
+static unsigned char slave_addr;
+
 void PNPSetConfig(char Index, char data);
 char PNPGetConfig(char Index);
 
@@ -345,7 +348,7 @@ static volatile char *mmio = 0;
 static void i2c_sleep(int ntime)
 {
 	int i,j=0;
-	for(i=0; i<300*ntime; i++)
+	for(i=0; i<200*ntime; i++)
 	{
 		j=i;
 		j+=i;
@@ -540,7 +543,7 @@ unsigned char i2c_rec_s(unsigned char slave_addr,unsigned char sub_addr,unsigned
 			return 0;
 		//read data
 		value=i2c_rec();	
-		i2c_send_ack(1);//***add in***//
+//		i2c_send_ack(1);//***add in***//
 		i2c_stop();
 		
 		//deal the data
@@ -576,6 +579,44 @@ unsigned char i2c_send_s(unsigned char slave_addr,unsigned char sub_addr,unsigne
 	return 1;
 }
 
+static int sm502SPDRead(int type,long long addr,union commondata *mydata)
+{
+	char c;
+
+//	printf("mmio =%x\n",mmio);
+//	printf("%x\n",addr);
+	switch(type)
+	{
+	case 1:
+		if(i2c_rec_s((unsigned char)slave_addr,addr,&c,1))
+			memcpy(&mydata->data1,&c,1);
+		else
+			printf("rec data error!\n");
+		break;
+	default:
+		return -1;
+	}
+	return 0;
+}
+static int sm502SPDWrite(int type,long long addr,union commondata *mydata)
+{
+	char c;
+
+	switch(type)
+	{
+	case 1:	
+	
+		memcpy(&c,&mydata->data1,1);
+		if(i2c_send_s((unsigned char)slave_addr,addr,&c,1))
+			;
+		else
+			printf("send data error\n");
+		break;
+	default:
+		return -1;
+	}
+	return 0;
+}
 static int sm502RtcRead(int type,long long addr,union commondata *mydata)
 {
 	char c;
@@ -615,6 +656,7 @@ static int sm502RtcWrite(int type,long long addr,union commondata *mydata)
 	return 0;
 }
 
+
 static int DimmRead(int type,long long addr,union commondata *mydata)
 {
 char c;
@@ -640,6 +682,58 @@ default:
 }
 		return 0;
 }
+
+
+
+
+
+void i2c_test()
+{
+	unsigned int  rst,suc,my,my0;
+	asm volatile(
+		".extern newi2cread \t\n"	\
+		"li	$4,0xa0 \t\n"		\
+		"li	$5,0x0 \t\n"		\
+		"jal	newi2cread \t\n"	\
+		"nop	\t\n"			\
+		"move	%0,$2 \t\n"		\
+		"move	%1,$3 \t\n"
+		:"=r"(rst),"=r"(suc)
+		:
+		:"$4","$5"
+		);
+	printf("rst  %x  suc  %x \n",rst,suc);
+
+
+	asm volatile(
+		".extern newi2cread \t\n"	\
+		"li	$4,0xa0 \t\n"		\
+		"li	$5,0x7 \t\n"		\
+		"jal	newi2cread \t\n"	\
+		"nop	\t\n"			\
+		"move	%0,$2 \t\n"		\
+		"move	%1,$3 \t\n"
+		:"=r"(rst),"=r"(suc)
+		:
+		:"$4","$5"
+		);
+	printf("rst  %x suc %x \n",rst,suc);
+
+	asm volatile(
+		".extern newi2cread \t\n"	\
+		"li	$4,0xa0 \t\n"		\
+		"li	$5,0x8 \t\n"		\
+		"jal	newi2cread \t\n"	\
+		"nop	\t\n"			\
+		"move	%0,$2 \t\n"		\
+		"move	%1,$3 \t\n"
+		:"=r"(rst),"=r"(suc)
+		:
+		:"$4","$5"
+		);
+	printf("rst  %x suc %x \n",rst,suc);
+}
+
 #endif
 static int i2cs(int argc,char **argv)
 {
@@ -648,6 +742,7 @@ static int i2cs(int argc,char **argv)
 if(argc<2) return -1;
 
 i2cslot=strtoul(argv[1],0,0);
+slave_addr = strtoul(argv[2],0,0);
 
 switch(i2cslot)
 {
@@ -667,7 +762,7 @@ case 3:
  extern char ddr2_reg_data,_start;
  extern char ddr2_reg_data1;
  printf("revert to default ddr setting\n");
- tgt_flashprogram(0xbfc00000+((int)&ddr2_reg_data -(int)&_start),30*8,&ddr2_reg_data1,TRUE);
+// tgt_flashprogram(0xbfc00000+((int)&ddr2_reg_data -(int)&_start),30*8,&ddr2_reg_data1,TRUE);
  }
 break;
 #ifdef DEVBD2F_SM502
@@ -680,10 +775,28 @@ case 4:
 //	printf("mmio =%x\n",mmio);	
 	
 	syscall1 = (void *)sm502RtcRead;
- 	syscall2 = (void *)sm502RtcWrite;
+	syscall2 = (void *)sm502RtcWrite;
 	tmp = *(volatile int *)(mmio + 0x40);
 	*(volatile int *)(mmio + 0x40) =tmp|0x40;
  break;
+case 5:
+
+	tag=_pci_make_tag(0,14,0);
+
+	mmio=_pci_conf_readn(tag,0x14,4);
+	mmio =(int)mmio|(0xb0000000);
+//	printf("mmio =%x\n",mmio);	
+	
+//	syscall1 = (void *)sm502RtcRead;
+ //	syscall2 = (void *)sm502RtcWrite;
+	syscall1 = (void *)sm502SPDRead;
+ 	syscall2 = (void *)sm502SPDWrite;
+	tmp = *(volatile int *)(mmio + 0x40);
+	*(volatile int *)(mmio + 0x40) =tmp|0x40;
+ break;
+case 6:
+ 	i2c_test();
+	break;
 #endif
 default:
  return -1;

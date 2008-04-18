@@ -656,17 +656,15 @@ reginit:			/* local name */
 	 * reading the I2C EEROM on the DIMMS
 	 */
 
-#if 0
+#if 1
+	li	k1,0
 #include "i2c.S"
 	beqz msize,.nodimm
 	nop
 	b 2f
 	nop
 .nodimm:
-	move	dbg,a0
 	PRINTSTR ("\r\nNo DIMM in all slots,use default configure\r\n")
-	li  msize,0x10000000
- 	//li	sdCfg,0x055043df         /* zgj-8-7-14-13 */
 2:
 	PRINTSTR("DIMM SIZE=")
 	move	a0,msize
@@ -674,33 +672,13 @@ reginit:			/* local name */
 	nop
 	PRINTSTR("\r\n")
 
-	li	t0, 0xbff00008
-	sd	sdCfg, 0(t0)
-/*
-	#### gx 2006-03-17: mode ####
-	#li	t1,0x20
-	li	t1,0x28
-	li	t0, 0xbff00000
-	sw	t1,0(t0)
-	nop
-	li	t1,0x0
-	li	t0, 0xbff00000
-	sw	t1,0x30(t0)
-	nop
-
-	PRINTSTR("sdcfg=");
-	move	a0,sdCfg
-	bal	hexserial
-	nop
-	PRINTSTR("\r\n");
-	PRINTSTR("msize=");
-	move	a0,msize
-	bal	hexserial
-	nop
-	PRINTSTR("\r\n")
-*/
-##############################################
 #endif
+##############################################
+
+/* 
+ * now, we just write ddr2 parameters directly. 
+ * we should use i2c for memory auto detecting. 
+ */
 gs_2f_v3_ddr2_cfg:
 	GPIOLED_SET(9)
 
@@ -713,12 +691,74 @@ gs_2f_v3_ddr2_cfg:
         #or  a1,a1,0x100
         sd  a1,0x0(t2)
 #endif    
-	li	msize,0x0f000000
+//	li	msize,0x0f000000
 	PRINTSTR("DDR2 config begin_whd\r\n")
 	b	ddr2_config
 	nop
 ddr2_config_done:
 	PRINTSTR("DDR2 config end\r\n")
+/////////////////
+
+	
+
+	move	a0,k1
+	
+	li	v0,0xaffffe70
+	lw	v1,0(v0)
+	nop
+	sll	a0,a0,16
+	li	t0,0xfff0ffff
+	and	v1,v1,t0
+	or	v1,v1,a0
+	sw	v1,0(v0)
+	nop
+	
+	bal 	hexserial
+	nop
+
+
+PRINTSTR("\r\n")
+PRINTSTR("cols rows:\r\n")
+	
+	//row addr numbers
+	li	v0,0xffffffff
+	and	a0,s6,v0
+	li	v0,15
+	subu	a0,v0,a0
+
+	//col addr numbers
+	dsrl	s6,s6,20
+	dsrl	s6,s6,12
+	li	v0,14
+	
+	move	a1,s6
+	subu	a1,v0,a1
+
+	sll	a1,a1,24
+	sll	a0,a0,8
+
+	li 	v0,0xaffffe50
+	lw	v1,0(v0)
+	nop
+	li	t0,0xf8fff8ff
+	and	v1,v1,t0
+	or	v1,v1,a0
+	or	v1,v1,a1
+	sw	v1,0(v0)
+	nop
+//	PRINTSTR("cols rows:\r\n")
+	move	a0,v1
+	bal	hexserial
+	nop
+	
+	PRINTSTR("\r\n")
+	
+	
+	
+/////////////////
+
+
+
 
 #if 1 /* read ddr2 registers */
         li	t0, 0xaffffe00
@@ -1060,10 +1100,9 @@ zhb:
         or     a0,a0,0x3
         mtc0   a0,COP_0_CONFIG
 #endif
-	li	msize,(512<<20)
+	PRINTSTR("\r\n")
+//	li	msize,(512<<20)
 
-	move	a0,msize
-	srl	a0,20
 
     /* pass pointer to kseg1 tgt_putchar */
     la  a1, tgt_putchar
@@ -1072,6 +1111,9 @@ zhb:
     la  a2, stringserial
 	addu a2,a2,s0
 
+	move	a0,msize
+	srl	a0,20
+	
 	la	v0, initmips
 	jalr	v0
 	nop

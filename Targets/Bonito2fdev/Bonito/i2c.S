@@ -3,7 +3,6 @@
 	PRINTSTR("DIMM read\r\n")
 
 	/* only one memory slot, slave address is 1010000b */
-	li	sdCfg,0x04000000 /*bit 26突发式读写时的块内顺序*/
 	li  	a1, 0x0
     li      a0,0xa1
     bal     i2cread
@@ -19,8 +18,6 @@
 	b 2f
 	nop
 1:
-	or  	sdCfg, 0x1<<29
-	nop
 	li a0,0xa1
 	bal ii2c_cfg
 	nop
@@ -90,12 +87,16 @@ LEAF(ii2c_cfg)
 	li	a1,3
 	bal	i2cread
 	nop	
+	move	s6,v0
 	move	a0, v0
 	subu	v0, 12
 	bgtu	v0, 2,.nodimm1
 	nop
 	move	t1, v0
 	PRINTSTR("read number of rows\r\n")
+	move 	a0,s6
+	bal	hexserial
+	nop
 
 2:	/* read DIMM number of cols */
 
@@ -103,7 +104,11 @@ LEAF(ii2c_cfg)
 	li	a1,4
 	bal	i2cread
 	nop
-	
+//////////////////////	
+	move 	a0,v0
+	dsll	a0,a0,32
+	daddu	s6,a0
+/////////////////////
 	subu	v0, 8
 	bgtu	v0, 4,.nodimm1
 	nop
@@ -179,7 +184,6 @@ LEAF(ii2c_cfg)
 	#bit 25:22 is DDR type field
 	sll	v0, 22 
 	and	v0,0x03c00000
-	or	sdCfg,v0
 	
 	/* read DDR RATE*/
 	move	a0,t5
@@ -197,17 +201,14 @@ LEAF(ii2c_cfg)
 	
 	/* config sdCfg bits [ 9:0 ] */
 40:	/* ddr200 */
-	or	sdCfg,0x0b1
 	b	47f
 	nop
 
 41:     /* ddr266 */
-    or      sdCfg,0x3ae	
 	b     47f
     nop
 
 42:     /* ddr333 */
-    or      sdCfg,0x3df
 	b     47f
     nop
 
@@ -235,13 +236,11 @@ LEAF(ii2c_cfg)
     nop
     bne     v0,0x82,10f
     nop
-    or      sdCfg,780<<10
 	b	45f
 	nop
 10:
     bne     v0,0x80,.nodimm1
     nop
-    or      sdCfg,1560<<10
     b     45f
     nop
 
@@ -252,13 +251,11 @@ LEAF(ii2c_cfg)
     nop
     bne     v0,0x82,11f
     nop
-    or      sdCfg,1040<<10
 	b	45f
 	nop
 11:
      bne     v0,0x80,.nodimm1
      nop
-     or      sdCfg,2080<<10
      b     45f
      nop
 
@@ -269,13 +266,11 @@ LEAF(ii2c_cfg)
     nop
     bne     v0,0x82,12f
     nop
-    or      sdCfg,1300<<10
 	b	45f
 	nop
 12:
      bne     v0,0x80,.nodimm1
      nop
-     or      sdCfg,2600<<10
      b     45f
      nop
 
@@ -305,17 +300,45 @@ LEAF(ii2c_cfg)
 	li	a1,5
 	bal	i2cread
 	nop
-	beq	v0,1,2f
+//***********
+	andi	v0,v0,0x7
+//***********
+	beq	v0,0,2f
 	nop
-	bne	v0,2,.nodimm1
+	bne	v0,1,.nodimm1
 	nop
 
-	or  sdCfg, 0x1<<27
-	PRINTSTR("read number of sides\r\n") ;
+//************
+	bne 	t5,0xa1,123f
+	nop
+	ori	k1,k1,0x3
+	b	124f
 
-2:	/* read DIMM width */
-    move      a0,t5   /* #zgj-11-17 */
+123:	ori	k1,k1,0xc
+
+124:	b	124f
+	nop
+
+
+	PRINTSTR("number of ranks ,package and height\r\n") ;
+
+2:	bne	t5,0xa1,123f
+	nop
+	ori	k1,k1,0x1
+	b	124f
+	nop
+
+123:	ori	k1,k1,0x4
+124:	nop
+
+//************
+
+
+
+/* read DIMM width */
+    move      a0,t5   
 	li	a1,6
+
 	bal	i2cread
 	nop
 	bleu	v0,36,2f
@@ -325,18 +348,44 @@ LEAF(ii2c_cfg)
 	PRINTSTR("read width\r\n") ;
 2:
    move      a0,t5
-   li      a1,31
-   bal     i2cread
-   nop
-   beqz    v0,.nodimm1
-   nop
-   sll     tmpsize,v0,22 # multiply by 4M
-	addu	msize,tmpsize
-    move      a0,t5 
+   	li      a1,31
+   	bal     i2cread
+  	nop
+  	beqz    v0,.nodimm1
+   	nop
+////////////////////
+	beq	v0,0x80,1f
+	nop
+	beq	v0,0x40,2f
+	nop
+	beq	v0,0x20,3f
+	nop
+	beq	v0,0x1,4f
+	nop
+	li	tmpsize,2<<30
+	b	100f
+	nop
+
+4:	li	tmpsize,1<<30
+	b	100f
+	nop
+3:	li	tmpsize,128<<20
+	b	100f
+	nop
+2:	li	tmpsize,256<<20
+	b	100f
+	nop
+1:	li	tmpsize,512<<20
+
+////////////////
+100:   	addu	msize,tmpsize
+  
+   move      a0,t5 
 	li	a1,5
 	bal	i2cread
 	nop
-	beq	v0,1,1f
+	andi	v0,0x7
+	beq	v0,0,1f
 	nop
 	addu	msize,tmpsize
 	b 1f
