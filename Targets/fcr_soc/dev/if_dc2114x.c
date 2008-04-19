@@ -279,7 +279,7 @@ struct eth_device {
     OUTL(dev, omr, DE4X5_OMR);		/* Disable the TX and/or RX */ \
 }
 
-#define NUM_RX_DESC 64			/* Number of Rx descriptors */
+#define NUM_RX_DESC 8			/* Number of Rx descriptors */
 #define NUM_TX_DESC 8			/* Number of TX descriptors */
 #define RX_BUFF_SZ  1520 		//yanhua, should aligned to word
 #define TX_BUFF_SZ  1520
@@ -843,6 +843,17 @@ static int dc21x4x_init(struct eth_device* dev)
 		printf("DE4X5_OMR= %x\n",  INL(dev, DE4X5_OMR));
 	}
 #endif	
+	send_setup_frame(dev);
+	printf("After setup\n");
+	{
+		printf("DE4X5_BMR= %x\n",  INL(dev, DE4X5_BMR));
+		printf("DE4X5_TPD= %x\n",  INL(dev, DE4X5_TPD));
+		printf("DE4X5_RRBA= %x\n", INL(dev, DE4X5_RRBA));
+		printf("DE4X5_TRBA= %x\n", INL(dev, DE4X5_TRBA));
+		printf("DE4X5_STS= %x\n",  INL(dev, DE4X5_STS));
+		printf("DE4X5_OMR= %x\n",  INL(dev, DE4X5_OMR));
+	}
+
 
 	return 1;
 }
@@ -950,6 +961,52 @@ dmfe_ether_ioctl(ifp, cmd, data)
 	return (error);
 }
 
+static char	setup_frame[SETUP_FRAME_LEN];
+static void send_setup_frame(struct eth_device* dev)
+{
+	int		i;
+	char 	*pa = (char *)(0xa0000000 |(unsigned long )&setup_frame[0]);
+
+	memset(pa, 0x00, SETUP_FRAME_LEN);
+
+	for (i = 0; i < ETH_ALEN; i++) {
+		*(pa + (i & 1)) = dev->dev_addr[i];
+		if (i & 0x01) {
+			pa += 4;
+		}
+	}
+
+	for(i = 0; tx_ring[tx_new].status & (T_OWN); i++) {
+		if (i >= TOUT_LOOP) {
+			printf("tx error buffer not ready tx_ring[%d]\n", i, tx_ring[tx_new].status);
+			goto Done;
+		}
+	}
+
+	tx_ring[tx_new].buf = (virt_to_phys((u32) &setup_frame[0]));
+	tx_ring[tx_new].des1 = (TD_TCH | TD_SET| SETUP_FRAME_LEN);
+	tx_ring[tx_new].status = (T_OWN);
+
+	OUTL(dev, POLL_DEMAND, DE4X5_TPD);
+
+	for(i = 0; tx_ring[tx_new].status & (T_OWN); i++) {
+		if (i >= TOUT_LOOP) {
+			printf("tx buffer not ready\n");
+			goto Done;
+		}
+	}
+
+	if ((tx_ring[tx_new].status) != 0x7FFFFFFF) {
+		printf("TX error status2 = 0x%08X\n", (tx_ring[tx_new].status));
+	}
+	tx_ring[tx_new].des1 = 0xe1000000;//TD_TCH;
+	tx_ring[tx_new].buf = virt_to_phys((u32) NetTxPackets[tx_new]);
+	tx_ring[tx_new].next = (virt_to_phys((u32) &tx_ring[next_tx(tx_new)]));
+	tx_new = next_tx(tx_new);
+
+Done:
+	return;
+}
 
 static void dmfe_start(struct ifnet *ifp)
 {
@@ -959,8 +1016,8 @@ static void dmfe_start(struct ifnet *ifp)
 
 	while(ifp->if_snd.ifq_head != NULL ){
 
-	printf("tx_new=%x\n",tx_new);
 		if((tx_ring[tx_new].status & (T_OWN)))break;
+		//printf("tx_new=%x\n",tx_new);
 		
 		IF_DEQUEUE(&ifp->if_snd, mb_head);
 		
@@ -969,6 +1026,7 @@ static void dmfe_start(struct ifnet *ifp)
 		memset(NetTxPackets[tx_new]+mb_head->m_pkthdr.len, 0, 60-mb_head->m_pkthdr.len);
 		length=max(60, mb_head->m_pkthdr.len);
 		tx_ring[tx_new].des1   = (0xe1000000 | length); //frame in a single TD
+		tx_ring[tx_new].buf = virt_to_phys((u32) NetTxPackets[tx_new]);
 		tx_ring[tx_new].next = (virt_to_phys((u32) &tx_ring[next_tx(tx_new)]));
 		tx_ring[tx_new].status = (T_OWN);
 
