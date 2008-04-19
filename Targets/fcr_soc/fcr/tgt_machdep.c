@@ -191,7 +191,7 @@ initmips(unsigned int memsz)
 	SBD_DISPLAY("BEV0",0);
 	
 	printf("BEV in SR set to zero.\n");
-	//fcr_soc_nand_init();
+	fcr_soc_nand_init();
 
 	
 	/*
@@ -250,7 +250,9 @@ tgt_devconfig()
 	extern struct pci_device *vga_dev;
 #endif
 #endif
-	//_pci_devinit(1);	/* PCI device initialization */
+#ifdef HAVE_PCI
+	_pci_devinit(1);	/* PCI device initialization */
+#endif
 #if (NMOD_X86EMU_INT10 > 0)||(NMOD_X86EMU >0)
 	SBD_DISPLAY("VGAI", 0);
 	rc = vga_bios_init();
@@ -329,7 +331,9 @@ tgt_devinit()
 }
 #endif
 
-	//_pci_businit(1);	/* PCI bus initialization */
+#ifdef HAVE_PCI
+	_pci_businit(1);	/* PCI bus initialization */
+#endif
 	//init_lcd();
    	 i2c_init();
 #if 0//def I2C_WRITE    
