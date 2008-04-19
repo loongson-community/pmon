@@ -280,7 +280,7 @@ struct eth_device {
 }
 
 #define NUM_RX_DESC 64			/* Number of Rx descriptors */
-#define NUM_TX_DESC 4			/* Number of TX descriptors */
+#define NUM_TX_DESC 8			/* Number of TX descriptors */
 #define RX_BUFF_SZ  1520 		//yanhua, should aligned to word
 #define TX_BUFF_SZ  1520
 
@@ -303,11 +303,11 @@ static struct de4x5_desc _tx_ring[NUM_TX_DESC] __attribute__ ((aligned(32))); /*
 static volatile struct de4x5_desc *rx_ring;
 static volatile struct de4x5_desc *tx_ring;
 
-char __NetRxPackets[NUM_RX_DESC][RX_BUFF_SZ] __attribute__((aligned(16)));
+char __NetRxPackets[NUM_RX_DESC][RX_BUFF_SZ] __attribute__((aligned(32))); //16
 char (*NetRxPackets)[RX_BUFF_SZ];
 
-char __NetTxPackets[TX_BUFF_SZ] __attribute__((aligned(16)));
-char *NetTxPackets;
+char __NetTxPackets[NUM_TX_DESC][TX_BUFF_SZ] __attribute__((aligned(32))); //16
+char (*NetTxPackets)[TX_BUFF_SZ];
 
 
 static int rx_new;                             /* RX descriptor ring pointer */
@@ -316,7 +316,6 @@ static int tx_new;                             /* TX descriptor ring pointer */
 static char rxRingSize;
 static char txRingSize;
 
-static void  send_setup_frame(struct eth_device* dev);
 
 static int   dc21x4x_init(struct eth_device* dev);
 static void  read_hw_addr(struct eth_device *dev);
@@ -699,11 +698,11 @@ u16 phy_read(u8 phy_addr, u8 offset)
 static void phy_write_1bit(unsigned long ioaddr, u32 phy_data)
 {
     phy_data |=1<<18;
-    dfme_outl(phy_data, ioaddr);         /* MII Clock Low */
+    dmfe_outl(phy_data, ioaddr);         /* MII Clock Low */
     udelay(1);
-    dfme_outl(phy_data | MDCLKH, ioaddr);    /* MII Clock High */
+    dmfe_outl(phy_data | MDCLKH, ioaddr);    /* MII Clock High */
     udelay(1);
-    dfme_outl(phy_data, ioaddr);         /* MII Clock Low */
+    dmfe_outl(phy_data, ioaddr);         /* MII Clock Low */
     udelay(1);
 }
 
@@ -716,12 +715,12 @@ static u16 phy_read_1bit(unsigned long ioaddr)
 {
     u16 phy_data;
 
-    //dfme_outl(0x50000, ioaddr);
-    dfme_outl(0x10000, ioaddr);
+    //dmfe_outl(0x50000, ioaddr);
+    dmfe_outl(0x10000, ioaddr);
     udelay(1);
-    phy_data = ( dfme_inl(ioaddr) >> 19 ) & 0x1;
-    //dfme_outl(0x40000, ioaddr);
-    dfme_outl(0x00000, ioaddr);
+    phy_data = ( dmfe_inl(ioaddr) >> 19 ) & 0x1;
+    //dmfe_outl(0x40000, ioaddr);
+    dmfe_outl(0x00000, ioaddr);
     udelay(1);
 
     return phy_data;
@@ -730,6 +729,7 @@ static u16 phy_read_1bit(unsigned long ioaddr)
 ///////////////////////////////////////////////////////////
 
 
+static int waitsend=0;
 int dc21x4x_initialize(struct eth_device* dev)
 {
 	struct ifnet *ifp = &dev->arpcom.ac_if;
@@ -741,9 +741,12 @@ int dc21x4x_initialize(struct eth_device* dev)
 
 	dc21x4x_init(dev);
 	ifp->if_flags |=IFF_RUNNING;	
+	waitsend=0;
 
 	return 0;
 }
+#define next_tx(x) (((x+1)==NUM_TX_DESC)?0:(x+1))
+#define next_rx(x) (((x+1)==NUM_RX_DESC)?0:(x+1))
 
 /*
  * init function
@@ -753,18 +756,6 @@ static int dc21x4x_init(struct eth_device* dev)
 	int		i;
 
 	/* Ensure we're not sleeping. */
-#if 0
-	{
-		printf("Register initial value\n");
-		printf("DE4X5_BMR= %x\n",  INL(dev, DE4X5_BMR));
-		printf("DE4X5_TPD= %x\n",  INL(dev, DE4X5_TPD));
-		printf("DE4X5_RRBA= %x\n", INL(dev, DE4X5_RRBA));
-		printf("DE4X5_TRBA= %x\n", INL(dev, DE4X5_TRBA));
-		printf("DE4X5_STS= %x\n",  INL(dev, DE4X5_STS));
-		printf("DE4X5_OMR= %x\n",  INL(dev, DE4X5_OMR));
-		printf("begin initializing dc21x4x\n");
-	}
-#endif	
 
 #ifdef CONFIG_TULIP_FIX_DAVICOM
 	RESET_DM9102(dev);
@@ -788,19 +779,21 @@ static int dc21x4x_init(struct eth_device* dev)
 	 * initialise rx descriptors
 	 * use it as chain structure
 	 */
+	rxRingSize = NUM_RX_DESC;
+	txRingSize = NUM_TX_DESC;
 	
 	rx_ring = (struct de4x5_desc *)(0xa0000000 | (unsigned long)_rx_ring);
 	tx_ring = (struct de4x5_desc *)(0xa0000000 | (unsigned long)_tx_ring);
 
 	NetRxPackets = (char (*)[RX_BUFF_SZ])(0xa0000000|(unsigned long)__NetRxPackets);
-	NetTxPackets = (char *)(0xa0000000|(unsigned long)__NetTxPackets);
+	NetTxPackets = (char (*)[TX_BUFF_SZ])(0xa0000000|(unsigned long)__NetTxPackets);
 	
 	for (i = 0; i < NUM_RX_DESC; i++) {
 		rx_ring[i].status = (R_OWN); //Initially MAC owns it.
 		rx_ring[i].des1 = RX_BUFF_SZ;
 		rx_ring[i].buf = virt_to_phys((u32) NetRxPackets[i]);//XXX
 #ifdef CONFIG_TULIP_FIX_DAVICOM
-		rx_ring[i].next = virt_to_phys((u32) &rx_ring[(i+1) % NUM_RX_DESC]);
+		rx_ring[i].next = virt_to_phys((u32) &rx_ring[next_rx(i)]);
 #else
 		rx_ring[i].next = 0;
 #endif
@@ -812,18 +805,17 @@ static int dc21x4x_init(struct eth_device* dev)
 	 */
 	for (i=0; i < NUM_TX_DESC; i++) {
 		tx_ring[i].status = 0;
-		tx_ring[i].des1 = TD_TCH;
-		tx_ring[i].buf = 0;
+		tx_ring[i].des1 = 0xe1000000;//TD_TCH;
+		tx_ring[i].buf = virt_to_phys((u32) NetTxPackets[i]);
 
 #ifdef CONFIG_TULIP_FIX_DAVICOM
-		tx_ring[i].next = (virt_to_phys((u32) &tx_ring[(i+1) % NUM_TX_DESC]));
+		tx_ring[i].next = (virt_to_phys((u32) &tx_ring[next_tx(i)]));
 #else
 		tx_ring[i].next = 0;
 #endif
 	}
 
-	rxRingSize = NUM_RX_DESC;
-	txRingSize = NUM_TX_DESC;
+
 
 	/* Write the end of list marker to the descriptor lists. */
 	rx_ring[rxRingSize - 1].des1 |= RD_RER; //Receive end of ring
@@ -851,82 +843,10 @@ static int dc21x4x_init(struct eth_device* dev)
 		printf("DE4X5_OMR= %x\n",  INL(dev, DE4X5_OMR));
 	}
 #endif	
-	printf("send setup frame\n");
-	send_setup_frame(dev);
-	printf("After setup\n");
-	{
-		printf("DE4X5_BMR= %x\n",  INL(dev, DE4X5_BMR));
-		printf("DE4X5_TPD= %x\n",  INL(dev, DE4X5_TPD));
-		printf("DE4X5_RRBA= %x\n", INL(dev, DE4X5_RRBA));
-		printf("DE4X5_TRBA= %x\n", INL(dev, DE4X5_TRBA));
-		printf("DE4X5_STS= %x\n",  INL(dev, DE4X5_STS));
-		printf("DE4X5_OMR= %x\n",  INL(dev, DE4X5_OMR));
-	}
 
 	return 1;
 }
 
-/*
- * send function
- */
-static int dc21x4x_send(struct eth_device* dev, volatile void *packet, int length)
-{
-	int		status = -1;
-	int		i;
-
-	if (length <= 0) {
-		printf("bad packet size: %d\n", length);
-		goto Done;
-	}
-
-	/*
-	 * wait the previous packet to be sent
-	 */
-	for(i = 0; tx_ring[tx_new].status & (T_OWN); i++) {
-		if (i >= TOUT_LOOP) {
-			printf("tx error buffer not ready %d, %x\n", i, tx_ring[tx_new].status);
-			goto Done;
-		}
-	}
-	
-	tx_ring[tx_new].buf    = (virt_to_phys((u32) packet));
-	//tx_ring[tx_new].des1   = (TD_TER | TD_LS | TD_FS | length); //frame in a single TD
-	tx_ring[tx_new].des1   = (TD_TCH | TD_LS | TD_FS | length); //frame in a single TD
-	tx_ring[tx_new].status = (T_OWN);
-
-	/*
-	 * command the mac to start transmit process
-	 */
-	OUTL(dev, POLL_DEMAND, DE4X5_TPD);
-
-	/*
-	 * wait transmit to complete
-	 */
-	for(i = 0; tx_ring[tx_new].status & (T_OWN); i++) {
-		if (i >= TOUT_LOOP) {
-			printf("tx buffer not ready\n");
-			goto Done;
-		}
-	}
-
-	/*
-	 * error happened
-	 */
-	if ((tx_ring[tx_new].status) & TD_ES) { 
-#if 0 /* test-only */
-		printf("TX error status = 0x%08X\n",
-			le32_to_cpu(tx_ring[tx_new].status));
-#endif
-		tx_ring[tx_new].status = 0x0;
-		goto Done;
-	}
-
-	status = length;
-
- Done:
-    tx_new = (tx_new+1) % NUM_TX_DESC;
-	return status;
-}
 
 
 static void dmfe_shutdown(void* dev)
@@ -937,53 +857,9 @@ static void dmfe_shutdown(void* dev)
 
 }
 
-static char	setup_frame[SETUP_FRAME_LEN];
-static void send_setup_frame(struct eth_device* dev)
-{
-	int		i;
-	char 	*pa = (char *)(0xa0000000 |(unsigned long )&setup_frame[0]);
-
-	memset(pa, 0x00, SETUP_FRAME_LEN);
-
-	for (i = 0; i < ETH_ALEN; i++) {
-		*(pa + (i & 1)) = dev->dev_addr[i];
-		if (i & 0x01) {
-			pa += 4;
-		}
-	}
-	for(i = 0; tx_ring[tx_new].status & (T_OWN); i++) {
-		if (i >= TOUT_LOOP) {
-			printf("tx error buffer not ready tx_ring[%d]\n", i, tx_ring[tx_new].status);
-			goto Done;
-		}
-	}
-
-	tx_ring[tx_new].buf = (virt_to_phys((u32) &setup_frame[0]));
-	tx_ring[tx_new].des1 = (TD_TCH | TD_SET| SETUP_FRAME_LEN);
-	tx_ring[tx_new].status = (T_OWN);
-
-	OUTL(dev, POLL_DEMAND, DE4X5_TPD);
-
-	for(i = 0; tx_ring[tx_new].status & (T_OWN); i++) {
-		if (i >= TOUT_LOOP) {
-			printf("tx buffer not ready\n");
-			goto Done;
-		}
-	}
-
-	if ((tx_ring[tx_new].status) != 0x7FFFFFFF) {
-		printf("TX error status2 = 0x%08X\n", (tx_ring[tx_new].status));
-	}
-	tx_new = (tx_new+1) % NUM_TX_DESC;
-
-Done:
-	return;
-}
-
-
 static void read_hw_addr(struct eth_device *dev)
 {
-	static char maddr[ETH_ALEN]={0xba, 0x98, 0x76, 0x54, 0x32, 0x19};
+	static char maddr[ETH_ALEN]={0xba, 0x98, 0x76, 0x64, 0x32, 0x19};
 	char *p = &dev->dev_addr[0];
 	int i;
 
@@ -992,20 +868,6 @@ static void read_hw_addr(struct eth_device *dev)
 
 	return;
 
-}
-
-
-
-
-static void dc21x4x_read_mac(struct eth_device *dev)
-{
-	char *phy = dev->dev_addr;
-	phy[0] = 0xba;
-	phy[1] = 0x98;
-	phy[2] = 0x76;
-	phy[3] = 0x54;
-	phy[4] = 0x32;
-	phy[5] = 0x19;
 }
 
 
@@ -1059,7 +921,7 @@ dmfe_ether_ioctl(ifp, cmd, data)
 #endif
 
 		default:
-			dc21x4x_initialize(NULL);
+			dc21x4x_initialize(sc);
 			ifp->if_flags |= IFF_UP;
 			break;
 		}
@@ -1073,7 +935,7 @@ dmfe_ether_ioctl(ifp, cmd, data)
 		 * such as IFF_PROMISC are handled.
 		 */
 		if (ifp->if_flags & IFF_UP) {
-			dc21x4x_initialize(NULL);
+			dc21x4x_initialize(sc);
 		} else {
 			if (ifp->if_flags & IFF_RUNNING)
 			dmfe_shutdown(sc);
@@ -1088,22 +950,38 @@ dmfe_ether_ioctl(ifp, cmd, data)
 	return (error);
 }
 
+
 static void dmfe_start(struct ifnet *ifp)
 {
 	struct eth_device *sc = ifp->if_softc;
 	struct mbuf *mb_head;		
+	int length;
 
 	while(ifp->if_snd.ifq_head != NULL ){
+
+	printf("tx_new=%x\n",tx_new);
+		if((tx_ring[tx_new].status & (T_OWN)))break;
 		
 		IF_DEQUEUE(&ifp->if_snd, mb_head);
 		
-		m_copydata(mb_head, 0, mb_head->m_pkthdr.len, NetTxPackets);
-		dc21x4x_send(sc,NetTxPackets,mb_head->m_pkthdr.len);
+		m_copydata(mb_head, 0, mb_head->m_pkthdr.len, NetTxPackets[tx_new]);
+		if(mb_head->m_pkthdr.len<60)
+		memset(NetTxPackets[tx_new]+mb_head->m_pkthdr.len, 0, 60-mb_head->m_pkthdr.len);
+		length=max(60, mb_head->m_pkthdr.len);
+		tx_ring[tx_new].des1   = (0xe1000000 | length); //frame in a single TD
+		tx_ring[tx_new].next = (virt_to_phys((u32) &tx_ring[next_tx(tx_new)]));
+		tx_ring[tx_new].status = (T_OWN);
 
+	/*
+	 * command the mac to start transmit process
+	 */
+		OUTL(sc, POLL_DEMAND, DE4X5_TPD);
+    	tx_new = next_tx(tx_new);
 		m_freem(mb_head);
 		wbflush();
 	} 
 }
+
 
 static struct mbuf * getmbuf(struct eth_device *sc)
 {
@@ -1147,7 +1025,17 @@ int dmfe_intr(void *arg)
 	struct ifnet *ifp = &sc->arpcom.ac_if;
 
 		if (ifp->if_flags & IFF_RUNNING) 
+		{
 			dmfe_poll(sc);
+	/*
+	 * wait transmit to complete
+	 */
+		if ((tx_ring[tx_new].status) & TD_ES) { 
+			tx_ring[tx_new].status = 0x0;
+		}
+
+		if(ifp->if_snd.ifq_head != NULL )dmfe_start(ifp);
+		}
 		return 1;
 }
 
@@ -1170,6 +1058,8 @@ int dmfe_poll(struct eth_device *sc)
 		if (status & R_OWN) {
 			break;
 		}
+
+		rx_ring[rx_new].next = virt_to_phys((u32) &rx_ring[next_rx(rx_new)]);
 
 		if (status & RD_LS) {
 			/* Valid frame status.
@@ -1218,7 +1108,7 @@ int dmfe_poll(struct eth_device *sc)
 
 		/* Update entry information.
 		 */
-		rx_new = (rx_new + 1) % rxRingSize;
+		rx_new = next_rx(rx_new);
 	}
 
 	return length;
@@ -1245,10 +1135,10 @@ dmfe_attach(parent, self, aux)
 	struct eth_device *sc = (struct eth_device *)self;
 	struct ifnet *ifp;
 
-	tgt_poll_register(IPL_NET, dmfe_intr, sc);
 
 	sc->addr_len=6;
-	dc21x4x_read_mac(sc);
+	read_hw_addr(sc);
+	sc->iobase = MAC_REG_BASE;
 
 #ifdef __OpenBSD__
 	ifp = &sc->arpcom.ac_if;
@@ -1304,6 +1194,7 @@ dmfe_attach(parent, self, aux)
 	 */
 	powerhook_establish(dmfe_power, sc);
 #endif
+	tgt_poll_register(IPL_NET, dmfe_intr, sc);
 }
 
 struct cfattach dmfe_ca = {
@@ -1311,5 +1202,5 @@ struct cfattach dmfe_ca = {
 };
 
 struct cfdriver dmfe_cd = {
-	NULL, "dfme", DV_IFNET
+	NULL, "dmfe", DV_IFNET
 };
