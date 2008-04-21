@@ -70,7 +70,7 @@ select		cmd_shell		# Shell commands, vers, help, eval
 # Platform options
 #
 select		mod_uart_ns16550	# Standard UART driver
-option		CONS_BAUD=B57600
+option		CONS_BAUD=B115200
 select		ext2
 #select		fatfs
 #select		mod_x86emu		# X86 emulation for VGA
@@ -162,7 +162,7 @@ ide_cd* 	at pciide? channel ? drive ? flags 0x0001
 select 		iso9660
 option IDECD 
 #option HAVE_NB_SERIAL
-option USE_ENVMAC
+#option USE_ENVMAC
 #option LOOKLIKE_PC
 #select cmd_lwdhcp
 #select cmd_bootp

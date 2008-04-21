@@ -125,6 +125,7 @@ void i2c_send(char ctrl,char addr)
 {
   * FCR_SOC_I2C_TXR = addr;
   * FCR_SOC_I2C_CR  = ctrl;
+while(i2c_stat()&(I2C_RUN))idle();
 }
 
 char i2c_stat()
@@ -136,7 +137,7 @@ char i2c_recv()
 {
 char tmp;
   * FCR_SOC_I2C_CR  = I2C_READ;
-  while( i2c_stat() & I2C_RUN);
+  while( i2c_stat() & I2C_RUN)idle();
     return * FCR_SOC_I2C_RXR;
 }
 

@@ -37,24 +37,20 @@ default:break;
 static int Ics950220Read(int type,long long addr,union commondata *mydata)
 {
 unsigned char c;
+unsigned char count;
 switch(type)
 {
 case 1:
 i2c_send(I2C_START|I2C_WRITE,0xd2);
-while(i2c_stat()&I2C_RACK)idle();
 i2c_send(I2C_WRITE,addr);
-while(i2c_stat()&I2C_RACK)idle();
-
 i2c_send(I2C_START|I2C_WRITE,0xd3);
-while(i2c_stat()&I2C_RACK)idle();
-c=i2c_recv();
+count=i2c_recv();
 i2c_send(I2C_WACK,0);
 c=i2c_recv();
 mydata->data1=c;
-i2c_send(I2C_STOP,0);
-while(i2c_stat()&I2C_RUN)idle();
-break;
 
+i2c_send(I2C_STOP|I2C_WRITE,0);
+break;
 default: return -1;break;
 }
 return 0;
@@ -67,15 +63,10 @@ switch(type)
 {
 case 1:
 i2c_send(I2C_START|I2C_WRITE,0xd2);
-while((i2c_stat()&I2C_RACK))idle();
 i2c_send(I2C_WRITE,addr);
-while((i2c_stat()&I2C_RACK))idle();
 i2c_send(I2C_WRITE,1);
-while((i2c_stat()&I2C_RACK))idle();
 i2c_send(I2C_WRITE,mydata->data1);
-while((i2c_stat()&I2C_RACK))idle();
-i2c_send(I2C_STOP,0);
-while((i2c_stat()&I2C_RUN))idle();
+i2c_send(I2C_STOP|I2C_WRITE,0);
 break;
 
 default: return -1;break;
