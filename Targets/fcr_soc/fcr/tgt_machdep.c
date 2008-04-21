@@ -239,20 +239,19 @@ int init_kbd()
 int psaux_init(void);
 extern int video_hw_init (void);
 
+int have_pci=1;
 extern int fb_init(unsigned long,unsigned long);
 void
 tgt_devconfig()
 {
 #if NMOD_VGACON > 0
-	int rc=1;
+	int rc=-1;
 #if NMOD_FRAMEBUFFER > 0 
 	unsigned long fbaddress,ioaddress;
 	extern struct pci_device *vga_dev;
 #endif
 #endif
-#ifdef HAVE_PCI
-	_pci_devinit(1);	/* PCI device initialization */
-#endif
+	if(have_pci)_pci_devinit(1);	/* PCI device initialization */
 #if (NMOD_X86EMU_INT10 > 0)||(NMOD_X86EMU >0)
 	SBD_DISPLAY("VGAI", 0);
 	rc = vga_bios_init();
@@ -267,8 +266,8 @@ tgt_devconfig()
 
 #if (NMOD_FRAMEBUFFER > 0) || (NMOD_VGACON > 0 )
     if (rc > 0)
-	 if(!getenv("novga")) vga_available=1;
-	 else vga_available=0;
+	if(!getenv("novga")) vga_available=1;
+	else vga_available=0;
 #endif
     config_init();
     configure();
@@ -331,9 +330,7 @@ tgt_devinit()
 }
 #endif
 
-#ifdef HAVE_PCI
-	_pci_businit(1);	/* PCI bus initialization */
-#endif
+	if(have_pci)_pci_businit(1);	/* PCI bus initialization */
 	//init_lcd();
    	 i2c_init();
 #if 0//def I2C_WRITE    
