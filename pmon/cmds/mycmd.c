@@ -221,7 +221,7 @@ int n,i;
 int bs=0x20000;
 int seek=0,skip=0;
 char *fsrc=0,*fdst=0;
-int count=-1;
+unsigned int count=-1,nowcount=0;
 #if NGZIP > 0
 int unzip=0;
 #endif
@@ -244,8 +244,8 @@ if(argc<3)return -1;
 #endif
 	}
 	if(!fsrc||!fdst)return -1;
-	fp0=open(fsrc,O_RDWR);
-	fp1=open(fdst,O_RDWR);
+	fp0=open(fsrc,O_RDONLY);
+	fp1=open(fdst,O_WRONLY);
 
 	buf=malloc(bs);
 	if(!buf){printf("malloc failed!,please set heaptop bigger\n");return -1;}
@@ -258,12 +258,24 @@ if(argc<3)return -1;
 #endif
 	while(count--)
 	{
+	int rcount=0;
 #if NGZIP > 0
-	if(unzip) n=gz_read(fp0,buf,bs);
+	if(unzip) 
+		while(rcount<bs)
+		{
+		n=gz_read(fp0,buf,bs);
+		if(n<=0)break; else rcount+=n;
+		}
 	else
 #endif
-	n=read(fp0,buf,bs);
-	if(write(fp1,buf,bs)<bs||n<bs)break;
+		while(rcount<bs)
+		{
+		n=read(fp0,buf,bs-rcount);
+		if(n<=0)break; else rcount+=n;
+		}
+	nowcount+=rcount;
+	printf("\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\r%d",nowcount);
+	if(write(fp1,buf,bs)<bs||rcount<bs)break;
 	}
 	free(buf);
 #if NGZIP > 0
