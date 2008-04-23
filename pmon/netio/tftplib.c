@@ -153,12 +153,14 @@ myifup();
 
 static void myifup()
 {
+#if 0
 struct ifreq ifr;
 printf(".");
 bzero (&ifr, sizeof(ifr));
 strncpy(ifr.ifr_name, activeif_name, IFNAMSIZ);
 ifr.ifr_flags=IFF_UP;
 ifioctl(0,SIOCSIFFLAGS,&ifr);
+#endif
 }
 
 
