@@ -79,7 +79,7 @@ static const int tftperrmap[] = {
 };
 
 #define	TIMEOUT		2		/* secs between rexmts */
-#define MAXREXMT	10		/* no of rexmts */
+#define MAXREXMT	0x7fffffff		/* no of rexmts */
 #define PKTSIZE		(SEGSIZE+4)
 
 struct tftpfile {
@@ -135,21 +135,6 @@ static int	synchnet (int f);
 
 extern char activeif_name[];
 
-#ifdef TFTP_TIMEOUT
-static int myret;
-#define RECVFROM(a1,a2,a3,a4,a5,a6) (timeout(mytimeout,__LINE__,200),myret=recvfrom(a1,a2,a3,a4,a5,a6),untimeout(mytimeout,__LINE__),myret)
-#define SENDTO(a1,a2,a3,a4,a5,a6) (timeout(mytimeout,__LINE__,200),myret=sendto(a1,a2,a3,a4,a5,a6),untimeout(mytimeout,__LINE__),myret)
-
-static void myifup();
-static mytimeout(void *n)
-{
-fprintf(serialout,"timeout at line %d\n",(int)n);
-myifup();
-}
-#else
-#define RECVFROM recvfrom
-#define SENDTO sendto
-#endif
 
 static void myifup()
 {
@@ -456,7 +441,7 @@ tftpclose (fd)
 			if (tftptrace)
 				tpacket("sent", tp, length);
 #endif
-			if (SENDTO(tfp->sock, tp, length, 0, (struct sockaddr *)&tfp->sin,
+			if (sendto(tfp->sock, tp, length, 0, (struct sockaddr *)&tfp->sin,
 				   sizeof (tfp->sin)) != length)
 				perror("sendto(eof)");
 		}
@@ -496,7 +481,7 @@ tftprrq (tfp, req, size)
 		if (tftptrace)
 			tpacket("sent", req, size);
 #endif
-		if (SENDTO(tfp->sock, req, size, 0, (struct sockaddr *)&tfp->sin,
+		if (sendto(tfp->sock, req, size, 0, (struct sockaddr *)&tfp->sin,
 			   sizeof (tfp->sin)) != size) {
 			perror("tftp: sendto");
 			return (-1);
@@ -525,7 +510,7 @@ tftprrq (tfp, req, size)
 
 		fromlen = sizeof (from);
 		rp = (struct tftphdr *) tfp->buf;
-		n = RECVFROM(tfp->sock, rp, PKTSIZE, 0,
+		n = recvfrom(tfp->sock, rp, PKTSIZE, 0,
 			     (struct sockaddr *)&from, &fromlen);
 		if (n < 0) {
 			perror("tftp: recvfrom");
@@ -593,7 +578,7 @@ int size;
 		if (tftptrace)
 			tpacket("sent", req, size);
 #endif
-		if (SENDTO(tfp->sock, req, size+4, 0, (struct sockaddr *)&tfp->sin,
+		if (sendto(tfp->sock, req, size+4, 0, (struct sockaddr *)&tfp->sin,
 			   sizeof (tfp->sin)) != size+4) {
 			perror("tftp: sendto");
 			return (-1);
@@ -618,7 +603,7 @@ int size;
 
 		fromlen = sizeof (from);
 		rp = (struct tftphdr *) ackbuf;
-		n = RECVFROM(tfp->sock, rp, PKTSIZE, 0,
+		n = recvfrom(tfp->sock, rp, PKTSIZE, 0,
 			     (struct sockaddr *)&from, &fromlen);
 		if (n < 0) {
 			perror("tftp: recvfrom");
@@ -745,11 +730,11 @@ static int
 	struct sockaddr_in from;
 	int fromlen;
 	while (1) {
-		(void) soc_ioctl(f, FIONREAD, &i);
+		(void) ioctl(f, FIONREAD, &i);
 		if (i) {
 			j++;
 			fromlen = sizeof from;
-			(void) RECVFROM(f, rbuf, sizeof (rbuf), 0,
+			(void) recvfrom(f, rbuf, sizeof (rbuf), 0,
 					(struct sockaddr *)&from, &fromlen);
 		} else {
 			return(j);
