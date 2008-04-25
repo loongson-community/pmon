@@ -394,8 +394,8 @@ LEAF(ii2c_cfg)
 END(ii2c_cfg)
 
 #ifdef DEVBD2F_SM502
-#define GPIO_DIR_HIGH	0xb601000c
-#define GPIO_DATA_HIGH	0xb6010004
+#define GPIO_DIR_HIGH	(MMIO_BASE+0x0001000c)
+#define GPIO_DATA_HIGH	(MMIO_BASE+0x00010004)
 #define	G_OUTPUT	1
 #define	G_INPUT		0
 /*
@@ -420,7 +420,7 @@ LEAF(_i2c_sleep)
 END(_i2c_sleep)
 
 LEAF(_sda_dir)
-	li	t0,0xb601000c
+	li	t0,GPIO_DIR_HIGH
 	lwu	t2,0(t0)
 	nop
 	
@@ -441,8 +441,7 @@ LEAF(_sda_dir)
 END(_sda_dir)
 
 LEAF(_scl_dir)
-	lui	t0,0xb601;
-	ori	t0,t0,0x000c
+	li	t0,GPIO_DIR_HIGH;
 	lwu	t2,0(t0)
 	nop
 
@@ -463,7 +462,7 @@ LEAF(_scl_dir)
 END(_scl_dir)
 
 LEAF(_sda_bit)
-	li	t0,0xb6010004;
+	li	t0,GPIO_DATA_HIGH;
 	lwu	t2,0(t0)
 	nop
 	
@@ -483,7 +482,7 @@ LEAF(_sda_bit)
 END(_sda_bit)
 
 LEAF(_scl_bit)
-	li	t0,0xb6010004;
+	li	t0,GPIO_DATA_HIGH;
 	lwu	t2,0(t0)
 	nop
 	

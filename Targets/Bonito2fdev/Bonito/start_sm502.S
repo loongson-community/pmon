@@ -49,8 +49,8 @@
 #include "target/isapnpreg.h"
 #define DEBUG_LOCORE
 #define PCI_IDSEL_SM502 14
-#define MMIO		0x06000000
-#define MMIO_BASE  	0xb6000000
+#define MMIO		0x07000000
+#define MMIO_BASE  	0xb7000000
 
 
 #ifdef DEBUG_LOCORE
@@ -664,7 +664,7 @@ reginit:			/* local name */
 //	bal mydebug_main
   //  	nop	
 	
-	li	a1,0xb6000040
+	li	a1,(MMIO_BASE+0x40)
 	lw	a0,0(a1)
 	nop
 	bal	hexserial
@@ -732,6 +732,12 @@ ddr2_config_done:
 
 //	div	msize,tmpsize
 //	mflo	a0
+	bnez msize,1f
+	nop
+	li msize,0x20000000
+	b 2f
+	nop
+1:
 
 	move	a0,k1
 
@@ -782,8 +788,7 @@ PRINTSTR("cols rows:\r\n")
 	nop
 	
 	PRINTSTR("\r\n")
-		
-	
+2:	
 /////////////////
 
 
@@ -1685,11 +1690,12 @@ LEAF(superio_init)
 	li	a1,0xbfe00110
 	sw	a0,0(a1)
 	nop
-	PCICONF_WRITEW(PCI_IDSEL_SM502,0,4,7);
+	PCICONF_WRITEW(PCI_IDSEL_SM502,0,4,0);
 	PCICONF_WRITEW(PCI_IDSEL_SM502,0,0x14,MMIO);
+	PCICONF_WRITEW(PCI_IDSEL_SM502,0,4,7);
 //	PCICONF_WRITEW(PCI_IDSEL_SM502,0,0x40,0x2184f);
 	li 	a0,0x2184f
-	li	a1,0xb6000040
+	li	a1,(MMIO_BASE+0x40)
 	sw	a0,0(a1)
 	nop
 	

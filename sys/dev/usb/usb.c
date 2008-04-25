@@ -47,36 +47,6 @@
  *
  * For each transfer (except "Interrupt") we wait for completion.
  */
- /************************************************************************
-
- Copyright (C)
- File name:     usb.c
- Author:  ***      Version:  ***      Date: ***
- Description:   This C file is the main implementation of USB according to 
-                the USB spec 1.1.
-                If you want to understand this file well, please see the 
-                USB spec 1.1  carefully, you can acquire them from www.usb.org.
- Others:        The version of PMON which this C file belongs to is used on 
-                Loongson based Platform to do the necessary initialization 
-                and load the Linux kernel.
-                
-                * How it works:
-                *
-                * Since this is a bootloader(we call it PMON), the devices 
-                * will not be automatic (re)configured on hotplug, but after 
-                * a restart of the USB the device should work.
-                *
-                * For each transfer (except "Interrupt") we wait for completion.
- Function List:
- 
- Revision History:
- 
- --------------------------------------------------------------------------
-  Date          Author          Activity ID     Activity Headline
-  2008-03-11    QianYuli        PMON00000001    Add comment to each function
- --------------------------------------------------------------------------
-
-*************************************************************************/
 #include <linux/types.h>
 #include <stdio.h>
 #include <machine/cpu.h>
@@ -94,12 +64,8 @@
 
 #define USB_BUFSIZ	512
 
-
-//QYL-2008-01-29
-//static struct usb_device usb_dev[USB_MAX_DEVICE];
-struct usb_device usb_dev[USB_MAX_DEVICE];
-
-int dev_index;
+static struct usb_device usb_dev[USB_MAX_DEVICE];
+int dev_index =0;
 static int running;
 static int asynch_allowed;
 static struct devrequest setup_packet;
@@ -124,18 +90,10 @@ static int isprint (unsigned char ch)
 	return (0);
 }
 
-/*===========================================================================
-*
-*FUNTION: wait_ms
-*
-*DESCRIPTION: This function is used to wait for some milliseconds.
-*
-*PARAMETERS:
-*          [IN] ms: The number of milliseconds to wait.
-*
-*RETURN VALUE: none.
-*
-*===========================================================================*/
+/***********************************************************************
+ * wait_ms
+ */
+
 void __inline__ wait_ms(unsigned long ms)
 {
 	while(ms-->0)
@@ -174,19 +132,9 @@ int usb_init(void)
 }
 #endif
 
-/*===========================================================================
-*
-*FUNTION: usb_stop
-*
-*DESCRIPTION: This function is used to stop usb,this stops the LowLevel Part and
-*             deregisters USB devices.
-*
-*PARAMETERS:
-*          none.
-*
-*RETURN VALUE: always return 0.
-*
-*===========================================================================*/
+/******************************************************************************
+ * Stop USB this stops the LowLevel Part and deregisters USB devices.
+ */
 int usb_stop(void)
 {
 	asynch_allowed=1;
@@ -198,20 +146,10 @@ int usb_stop(void)
 #endif
 }
 
-/*===========================================================================
-*
-*FUNTION: usb_disable_asynch
-*
-*DESCRIPTION: This function is used to disable the asynch behaviour of the control
-*             message.This is used for data transfers that uses the exclusiv access
-*             to the control and bulk message.
-*
-*PARAMETERS:
-*          disable: indicates whether to disable asynch.
-*
-*RETURN VALUE: none.
-*
-*===========================================================================*/
+/*
+ * disables the asynch behaviour of the control message. This is used for data
+ * transfers that uses the exclusiv access to the control and bulk messages.
+ */
 void usb_disable_asynch(int disable)
 {
 	asynch_allowed=!disable;
@@ -225,83 +163,31 @@ void usb_disable_asynch(int disable)
 /*
  * call into specific host controller
  */
-/*===========================================================================
-*
-*FUNTION: submit_int_msg
-*
-*DESCRIPTION: This function is used to submit an Interrupt Message by calling
-*             into specific host controller.
-*
-*PARAMETERS:
-*          [IN] dev:  a pointer to the USB device the message belongs to.
-*          [IN] pipe:  describe the property of a pipe,more details about it,
-*                      please see the usb.h. 
-*          [IN] buffer:an all-purpose pointer to the data that would be returned 
-*                      through usb channel.
-*          [IN] transfer_len: the length of data to be transfered.
-*          [IN] interval: the period between consecutive requests for data input
-*                       to a Universal Serial Bus Endpoint.
-*RETURN VALUE: same as the host controller's routine's return value.
-*
-*===========================================================================*/
 int submit_int_msg(struct usb_device *dev, unsigned long pipe, void *buffer, int transfer_len, int interval)
 {
 	struct usb_hc *hc = dev->hc_private;
 
 	return hc->uop->submit_int_msg(dev, pipe, buffer, transfer_len, interval);
 }
-
-/*===========================================================================
-*
-*FUNTION: usb_submit_int_msg
-*
-*DESCRIPTION: This function is used to submit an Interrupt Message by wrapping
-*             submit_int_msg.
-*
-*PARAMETERS:
-*          [IN] dev:  a pointer to the USB device the message belongs to.
-*          [IN] pipe:  describe the property of a pipe,more details about it,
-*                      please see the usb.h. 
-*          [IN] buffer:an all-purpose pointer to the data that would be returned 
-*                      through usb channel.
-*          [IN] transfer_len: the length of data to be transfered.
-*          [IN] interval: the period between consecutive requests for data input
-*                       to a Universal Serial Bus Endpoint.
-*RETURN VALUE: same as the return of submit_int_msg.
-*
-*===========================================================================*/
+/*
+ * submits an Interrupt Message
+ */
 int usb_submit_int_msg(struct usb_device *dev, unsigned long pipe,
 			void *buffer,int transfer_len, int interval)
 {
 	return submit_int_msg(dev,pipe,buffer,transfer_len,interval);
 }
 
-/*===========================================================================
-*
-*FUNTION: submit_control_msg
-*
-*DESCRIPTION: This function is used to submit a control message and wait for 
-*             completion(at least timeout * 1ms).If timeout is 0,we don't wait
-*             for completion(used as example to set and clear keyboards LEDs).
-*             For data transfers,(storage transfers)we don't allow control 
-*             messages with 0 timeout,by previously resetting the flag asynch_
-*             allowed(usb_disable_asynch(1)).
-*
-*PARAMETERS:
-*          [IN] dev:  a pointer to the USB device the message belongs to.
-*          [IN] pipe:  describe the property of a pipe,more details about it,
-*                      please see the usb.h. 
-*          [IN] buffer:an all-purpose pointer to the data that would be returned 
-*                      through usb channel.
-*          [IN] transfer_len: the length of data to be transfered.
-*          [IN] setup: an pointer to the struct devrequest *,which is used when
-*                       the transfer type is setup of control transfer.
-*
-*RETURN VALUE: returns the transfered length if OK or -1 if error.The transfered
-*              length and the current status are stored in the dev->act_len and
-*              dev->status.
-*
-*===========================================================================*/
+/*
+ * submits a control message and waits for comletion (at least timeout * 1ms)
+ * If timeout is 0, we don't wait for completion (used as example to set and
+ * clear keyboards LEDs). For data transfers, (storage transfers) we don't
+ * allow control messages with 0 timeout, by previousely resetting the flag
+ * asynch_allowed (usb_disable_asynch(1)).
+ * returns the transfered length if OK or -1 if error. The transfered length
+ * and the current status are stored in the dev->act_len and dev->status.
+ */
+
 int submit_control_msg(struct usb_device *dev, unsigned long pipe,
 				void * buffer, int transfer_len, struct devrequest *setup)
 {
@@ -311,28 +197,6 @@ int submit_control_msg(struct usb_device *dev, unsigned long pipe,
 	return hc->uop->submit_control_msg(dev, pipe, buffer, transfer_len, setup);
 }
 
-/*===========================================================================
-*
-*FUNTION: usb_control_msg
-*
-*DESCRIPTION: This function is used to submit an Control Message by wrapping
-*             submit_control_msg.
-*
-*PARAMETERS:
-*          [IN] dev:  a pointer to the USB device the message belongs to.
-*          [IN] pipe:  describe the property of a pipe,more details about it,
-*                      please see the usb.h. 
-*          [IN] request,requesttype,value,index,size : these parameters are 
-*                       used to fill the setup packet,more details please the
-*                       USB spec 1.1 Page 183 9.3 USB Device Requests.
-*          [IN] data:an all-purpose pointer to the data that would be returned 
-*                      through usb channel.
-*          [IN] transfer_len: the length of data to be transfered.
-*          [IN] timeout: the number of ms during which to check whether the 
-*                       submited control message has been finished.
-*RETURN VALUE: same as the return of submit_control_msg.
-*
-*===========================================================================*/
 int usb_control_msg(struct usb_device *dev, unsigned int pipe,
 			unsigned char request, unsigned char requesttype,
 			unsigned short value, unsigned short index,
@@ -355,13 +219,11 @@ int usb_control_msg(struct usb_device *dev, unsigned int pipe,
 	if(timeout==0) {
 		return (int)size;
 	}
-
 	while(timeout--) {
 		if(!((volatile unsigned long)dev->status & USB_ST_NOT_PROC))
 			break;
 		wait_ms(1);
-	} 
-    
+	}
 	if(dev->status==0)
 		return dev->act_len;
 	else {
@@ -369,25 +231,11 @@ int usb_control_msg(struct usb_device *dev, unsigned int pipe,
 	}
 }
 
-/*===========================================================================
-*
-*FUNTION: submit_bulk_msg
-*
-*DESCRIPTION: This function is used to submit a Bulk Message and wait for 
-*             completion by calling into specific host controller.This is a
-*             function with synchronous behevior. 
-*
-*PARAMETERS:
-*          [IN] dev:  a pointer to the USB device the message belongs to.
-*          [IN] pipe:  describe the property of a pipe,more details about it,
-*                      please see the usb.h. 
-*          [IN] buffer:an all-purpose pointer to the data that would be returned 
-*                      through usb channel.
-*          [IN] transfer_len: the length of data to be transfered.
-*
-*RETURN VALUE: returns 0 if Ok or -1 if Error.
-*
-*===========================================================================*/
+/*-------------------------------------------------------------------
+ * submits bulk message, and waits for completion. returns 0 if Ok or
+ * -1 if Error.
+ * synchronous behavior
+ */
 int submit_bulk_msg(struct usb_device *dev, unsigned long pipe, void *buffer,int transfer_len)
 {
 	struct usb_hc *hc= dev->hc_private;
@@ -395,26 +243,6 @@ int submit_bulk_msg(struct usb_device *dev, unsigned long pipe, void *buffer,int
 	return hc->uop->submit_bulk_msg(dev, pipe, buffer, transfer_len);
 }
 
-/*===========================================================================
-*
-*FUNTION: usb_bulk_msg
-*
-*DESCRIPTION: This function is used to submit a Bulk Message by wrapping
-*             submit_bulk_msg.
-*
-*PARAMETERS:
-*          [IN] dev:  a pointer to the USB device the message belongs to.
-*          [IN] pipe: describe the property of a pipe,more details about it,
-*                      please see the usb.h. 
-*          [IN] data: an all-purpose pointer to the data that would be returned 
-*                      through usb channel.
-*          [IN] len: the length of data to be transfered.
-*          [OUT] actual_length: the actual length of data transfered. 
-*          [IN] timeout: the number of ms during which to check whether the 
-*                       submited control message has been finished.
-*RETURN VALUE: same as the return of submit_int_msg.
-*
-*===========================================================================*/
 int usb_bulk_msg(struct usb_device *dev, unsigned int pipe,
 			void *data, int len, int *actual_length, int timeout)
 {
@@ -423,14 +251,11 @@ int usb_bulk_msg(struct usb_device *dev, unsigned int pipe,
 	//assert(actual_length != NULL);
 	dev->status=USB_ST_NOT_PROC; /*not yet processed */
 	submit_bulk_msg(dev,pipe,data,len);
-
-
 	while(timeout--) {
 		if(!((volatile unsigned long)dev->status & USB_ST_NOT_PROC))
 			break;
 		wait_ms(1);
 	}
-  
 	//assert(actual_length != NULL);
 	*actual_length=dev->act_len;
 	if(dev->status==0)
@@ -439,21 +264,15 @@ int usb_bulk_msg(struct usb_device *dev, unsigned int pipe,
 		return -1;
 }
 
-/*===========================================================================
-*
-*FUNTION: usb_maxpacket
-*
-*DESCRIPTION: This function is used to return the max packet size,depending on
-*             the pipe direction and the configurations values.
-*
-*PARAMETERS:
-*          [IN] dev:  a pointer to the USB device information struct.
-*          [IN] pipe: describe the property of a pipe,more details about it,
-*                      please see the usb.h. 
-*
-*RETURN VALUE: the max packet size.
-*
-*===========================================================================*/
+
+/*-------------------------------------------------------------------
+ * Max Packet stuff
+ */
+
+/*
+ * returns the max packet size, depending on the pipe direction and
+ * the configurations values
+ */
 int usb_maxpacket(struct usb_device *dev,unsigned long pipe)
 {
 	if((pipe & USB_DIR_IN)==0) /* direction is out -> use emaxpacket out */
@@ -462,19 +281,9 @@ int usb_maxpacket(struct usb_device *dev,unsigned long pipe)
 		return(dev->epmaxpacketin[((pipe>>15) & 0xf)]);
 }
 
-/*===========================================================================
-*
-*FUNTION: usb_set_maxpacket
-*
-*DESCRIPTION: This function is used to set the max packed value of all endpoints
-*             in the given configuration.
-*
-*PARAMETERS:
-*          [IN] dev:  a pointer to the USB device information struct.
-*
-*RETURN VALUE: always return 0.
-*
-*===========================================================================*/
+/*
+ * set the max packed value of all endpoints in the given configuration
+ */
 int usb_set_maxpacket(struct usb_device *dev)
 {
 	int i,ii,b;
@@ -509,24 +318,10 @@ int usb_set_maxpacket(struct usb_device *dev)
 	return 0;
 }
 
-/*===========================================================================
-*
-*FUNTION: usb_parse_config
-*
-*DESCRIPTION: This function is used to parse the config,located in buffer,and 
-*             fills the dev->config structure.
-*
-*PARAMETERS:
-*          [IN] dev:  a pointer to the USB device information struct.
-*          [OUT] buffer: a pointer to the data where stores the information of
-*                       the configuration.
-*          [IN] cfgno: indicates the index of configuration.
-*
-*RETURN VALUE: always return 0.
-*
-*Note:All little/big endian swapping are done automatically
-*
-*===========================================================================*/
+/*******************************************************************************
+ * Parse the config, located in buffer, and fills the dev->config structure.
+ * Note that all little/big endian swapping are done automatically.
+ */
 int usb_parse_config(struct usb_device *dev, unsigned char *buffer, int cfgno)
 {
 	struct usb_descriptor_header *head;
@@ -592,20 +387,11 @@ int usb_parse_config(struct usb_device *dev, unsigned char *buffer, int cfgno)
 	return 1;
 }
 
-/*===========================================================================
-*
-*FUNTION: usb_clear_halt
-*
-*DESCRIPTION: This function is used to clear an endpoint.
-*
-*PARAMETERS:
-*          [IN] dev:  a pointer to the USB device information struct.
-*          [IN] pipe:  describe the property of a pipe,more details about it,
-*                      please see the usb.h. 
-*
-*RETURN VALUE: 0 means ok -1 if failed.
-*
-*===========================================================================*/
+/***********************************************************************
+ * Clears an endpoint
+ * endp: endpoint number in bits 0-3;
+ * direction flag in bit 7 (1 = IN, 0 = OUT)
+ */
 int usb_clear_halt(struct usb_device *dev, int pipe)
 {
 	int result;
@@ -630,27 +416,10 @@ int usb_clear_halt(struct usb_device *dev, int pipe)
 	return 0;
 }
 
-/*===========================================================================
-*
-*FUNTION: usb_get_descriptor
-*
-*DESCRIPTION: This function is used to get descriptor type by calling usb_control_
-*              msg() with proper parameters.
-*
-*PARAMETERS:
-*          [IN] dev: a pointer to the USB device information struct.
-*          [IN] type: indicates which type of descriptor to get,see usb_defs.h
-*                      about all kinds of Descriptor types. 
-*          [IN] index,size : these parameters are used to fill the setup packet,
-*                       more details please see the USB spec 1.1 Page 183 
-*                       9.3 USB Device Requests.
-*          [IN] buf: an all-purpose pointer to the data that would be returned 
-*                      through usb channel.
-*
-*
-*RETURN VALUE: same as the return of usb_control_msg().
-*
-*===========================================================================*/
+
+/**********************************************************************
+ * get_descriptor type
+ */
 int usb_get_descriptor(struct usb_device *dev, unsigned char type, unsigned char index, void *buf, int size)
 {
 	int res;
@@ -662,22 +431,9 @@ int usb_get_descriptor(struct usb_device *dev, unsigned char type, unsigned char
 	return res;
 }
 
-/*===========================================================================
-*
-*FUNTION: usb_get_configuration_no
-*
-*DESCRIPTION: This function is used to get configuration number and store it 
-*             in the buffer.
-*
-*PARAMETERS:
-*          [IN] dev: a pointer to the USB device information struct.
-*          [OUT] buffer: an all-purpose pointer to the data that would be returned 
-*                        through usb channel.
-*          [IN] cfgno: the number of configuration
-*
-*RETURN VALUE: same as the usb_get_descriptor().
-*
-*===========================================================================*/
+/**********************************************************************
+ * gets configuration cfgno and store it in the buffer
+ */
 int usb_get_configuration_no(struct usb_device *dev,unsigned char *buffer,int cfgno)
 {
  	int result;
@@ -707,20 +463,10 @@ int usb_get_configuration_no(struct usb_device *dev,unsigned char *buffer,int cf
 	return result;
 }
 
-/*===========================================================================
-*
-*FUNTION: usb_set_address
-*
-*DESCRIPTION: This function is used to set address of a device to the value in
-*             dev->devnum.This can only be done by addressing the device via 
-              the default address (0).
-*
-*PARAMETERS:
-*          [IN] dev: a pointer to the USB device information struct.
-*
-*RETURN VALUE: same as the usb_control_msg().
-*
-*===========================================================================*/
+/********************************************************************
+ * set address of a device to the value in dev->devnum.
+ * This can only be done by addressing the device via the default address (0)
+ */
 int usb_set_address(struct usb_device *dev)
 {
 	int res;
@@ -733,20 +479,9 @@ int usb_set_address(struct usb_device *dev)
 	return res;
 }
 
-/*===========================================================================
-*
-*FUNTION: usb_set_interface
-*
-*DESCRIPTION: This function is used to set interface number to interface.
-*
-*PARAMETERS:
-*          [IN] dev: a pointer to the USB device information struct.
-*          [IN] interface: the number of interface.
-*          [IN] alternate: used to set the value field of setup packet
-*
-*RETURN VALUE: 0 if ok,< 0 if error.
-*
-*===========================================================================*/
+/********************************************************************
+ * set interface number to interface
+ */
 int usb_set_interface(struct usb_device *dev, int interface, int alternate)
 {
 	struct usb_interface_descriptor *if_face = NULL;
@@ -771,19 +506,9 @@ int usb_set_interface(struct usb_device *dev, int interface, int alternate)
 	return 0;
 }
 
-/*===========================================================================
-*
-*FUNTION: usb_set_configuration
-*
-*DESCRIPTION: This function is used to set configuration number to configuration.
-*
-*PARAMETERS:
-*          [IN] dev: a pointer to the USB device information struct.
-*          [IN] configuration: the number of configuration.
-*
-*RETURN VALUE: 0 if ok,-1 if error.
-*
-*===========================================================================*/
+/********************************************************************
+ * set configuration number to configuration
+ */
 int usb_set_configuration(struct usb_device *dev, int configuration)
 {
 	int res;
@@ -802,20 +527,9 @@ int usb_set_configuration(struct usb_device *dev, int configuration)
 		return -1;
 }
 
-/*===========================================================================
-*
-*FUNTION: usb_set_protocol
-*
-*DESCRIPTION: This function is used to set protocol to protocol.
-*
-*PARAMETERS:
-*          [IN] dev: a pointer to the USB device information struct.
-*          [IN] ifnum: the number of interface.
-*          [IN] protocol: the code of protocol
-*
-*RETURN VALUE: same as the return of usb_control_msg().
-*
-*===========================================================================*/
+/********************************************************************
+ * set protocol to protocol
+ */
 int usb_set_protocol(struct usb_device *dev, int ifnum, int protocol)
 {
 	return usb_control_msg(dev, usb_sndctrlpipe(dev, 0),
@@ -823,23 +537,9 @@ int usb_set_protocol(struct usb_device *dev, int ifnum, int protocol)
 		protocol, ifnum, NULL, 0, USB_CNTL_TIMEOUT);
 }
 
-/*===========================================================================
-*
-*FUNTION: usb_set_idle
-*
-*DESCRIPTION: This function is used to set idle state of specified device class
-*             here for HID.This is a class device relevant function,more details,
-*             please see the Device Class Definition for Human Interface Device 
-*             spec page 53.
-*PARAMETERS:
-*          [IN] dev: a pointer to the USB device information struct.
-*          [IN] ifnum: the number of interface.
-*          [IN] duration: the time duration between two events.
-*          [IN] report_id: the assigned ID of the report .
-*
-*RETURN VALUE: same as the return of usb_control_msg().
-*
-*===========================================================================*/
+/********************************************************************
+ * set idle
+ */
 int usb_set_idle(struct usb_device *dev, int ifnum, int duration, int report_id)
 {
 	return usb_control_msg(dev, usb_sndctrlpipe(dev, 0),
@@ -847,27 +547,9 @@ int usb_set_idle(struct usb_device *dev, int ifnum, int duration, int report_id)
 		(duration << 8) | report_id, ifnum, NULL, 0, USB_CNTL_TIMEOUT);
 }
 
-/*===========================================================================
-*
-*FUNTION: usb_get_report
-*
-*DESCRIPTION: This function is the implementation of the Get_Report Request,this
-*             is a class device specified(HID) request,used to allow the host
-*             to receive a report via the Control pipe.More details,please see
-*             the Device Class Definition for Human Interface Device spec
-*             page 51.
-*
-*PARAMETERS:
-*          [IN] dev: a pointer to the USB device information struct.
-*          [IN] ifnum: the number of interface.
-*          [IN] type: indicates the type of report.
-*          [IN] id: indicates the id of report.
-*          [OUT] buf: a pointer to the data where stores report informaiton 
-*          [IN] size: indicates the length of report
-*
-*RETURN VALUE: same as the return of usb_control_msg().
-*
-*===========================================================================*/
+/********************************************************************
+ * get report
+ */
 int usb_get_report(struct usb_device *dev, int ifnum, unsigned char type, unsigned char id, void *buf, int size)
 {
 	return usb_control_msg(dev, usb_rcvctrlpipe(dev, 0),
@@ -875,23 +557,9 @@ int usb_get_report(struct usb_device *dev, int ifnum, unsigned char type, unsign
 		(type << 8) + id, ifnum, buf, size, USB_CNTL_TIMEOUT);
 }
 
-/*===========================================================================
-*
-*FUNTION: usb_get_class_descriptor
-*
-*DESCRIPTION: This function is used to get class decriptor.
-*
-*PARAMETERS:
-*          [IN] dev: a pointer to the USB device information struct.
-*          [IN] ifnum: the number of interface.
-*          [IN] type: indicates the type of descriptor.
-*          [IN] id: indicates the index of descriptor.
-*          [OUT] buf: a pointer to the data where stores descriptor informaiton 
-*          [IN] size: indicates the length of descriptor.
-*
-*RETURN VALUE: same as the return of usb_control_msg().
-*
-*===========================================================================*/
+/********************************************************************
+ * get class descriptor
+ */
 int usb_get_class_descriptor(struct usb_device *dev, int ifnum,
 		unsigned char type, unsigned char id, void *buf, int size)
 {
@@ -900,24 +568,9 @@ int usb_get_class_descriptor(struct usb_device *dev, int ifnum,
 		(type << 8) + id, ifnum, buf, size, USB_CNTL_TIMEOUT);
 }
 
-/*===========================================================================
-*
-*FUNTION: usb_get_string
-*
-*DESCRIPTION: This function is used to get string decriptor in buffer.
-*
-*PARAMETERS:
-*          [IN] dev: a pointer to the USB device information struct.
-*          [IN] ifnum: the number of interface.
-*          [IN] langid: indicates the id of string language.
-*          [IN] index: indicates the index of descriptor.
-*          [OUT] buf: a pointer to the data where stores string descriptor 
-*                     informaiton 
-*          [IN] size: indicates the length of string descriptor.
-*
-*RETURN VALUE: same as the return of usb_control_msg().
-*
-*===========================================================================*/
+/********************************************************************
+ * get string index in buffer
+ */
 int usb_get_string(struct usb_device *dev, unsigned short langid, unsigned char index, void *buf, int size)
 {
 	int i;
@@ -987,21 +640,12 @@ static int usb_string_sub(struct usb_device *dev, unsigned int langid,
 	return rc;
 }
 
-/*===========================================================================
-*
-*FUNTION: usb_string
-*
-*DESCRIPTION: This function is used to get string index and translate it to ascii.
-*
-*PARAMETERS:
-*          [IN] dev: a pointer to the USB device information struct.
-*          [IN] index : indicates the index of string descriptor to be get.
-*          [OUT] buf: a pointer to the data where stores descriptor informaiton 
-*          [IN] size: indicates the length of string descriptor.
-*
-*RETURN VALUE: returns string length(> 0) or error (< 0).
-*
-*===========================================================================*/
+
+/********************************************************************
+ * usb_string:
+ * Get string index and translate it to ascii.
+ * returns string length (> 0) or error (< 0)
+ */
 int usb_string(struct usb_device *dev, int index, char *buf, size_t size)
 {
 	unsigned char mybuf[USB_BUFSIZ];
@@ -1062,20 +706,6 @@ int usb_string(struct usb_device *dev, int index, char *buf, size_t size)
 /* returns a pointer to the device with the index [index].
  * if the device is not assigned (dev->devnum==-1) returns NULL
  */
-/*===========================================================================
-*
-*FUNTION: usb_get_dev_index
-*
-*DESCRIPTION: This function is used to get the pointer to the device with the
-*             index.
-*
-*PARAMETERS:
-*          [IN] index: indicates the index of device.
-*
-*RETURN VALUE: returns a pointer to the device with the index [index].
-*              if the device is not assigned (dev->devnum==-1) returns NULL
-*
-*===========================================================================*/
 struct usb_device * usb_get_dev_index(int index)
 {
 	if(usb_dev[index].devnum==-1 || usb_dev[index].devnum == 0)
@@ -1083,19 +713,7 @@ struct usb_device * usb_get_dev_index(int index)
 	else
 		return &usb_dev[index];
 }
-/*===========================================================================
-*
-*FUNTION: usb_get_index_dev
-*
-*DESCRIPTION: This function is used to get index of the device with the
-*             struct usb_device* pointer.
-*
-*PARAMETERS:
-*          [IN] dev : a pointer to the struct usb_device.
-*
-*RETURN VALUE: returns the index of the device or -1 if error.
-*
-*===========================================================================*/
+
 int usb_get_index_dev(struct usb_device *dev)
 {
 	int index;	
@@ -1107,21 +725,9 @@ int usb_get_index_dev(struct usb_device *dev)
 		return -1;	
 }
 
-/*===========================================================================
-*
-*FUNTION: usb_alloc_new_device
-*
-*DESCRIPTION: This function is used to allocate a struct usb_device which is
-*            used to store neccesary informaiton for a new device.
-*
-*PARAMETERS:
-*          [IN] hc_private: an all-purpose pointer used to pass the host
-*                           controller information to the new device .
-*
-*RETURN VALUE: returns a pointer of a new device structure or NULL, if
-*              no device struct is available
-*
-*===========================================================================*/
+/* returns a pointer of a new device structure or NULL, if
+ * no device struct is available
+ */
 struct usb_device * usb_alloc_new_device(void *hc_private)
 {
 	int i;
@@ -1165,29 +771,13 @@ void usb_find_drivers(struct usb_device *dev)
 			break;	
 	}
 }
-
-/*===========================================================================
-*
-*FUNTION: usb_new_device
-*
-*DESCRIPTION: This function is used to enumerate the device attached to the usb
-*             hub.
-*
-*PARAMETERS:
-*          [IN] dev: a pointer to the struct usb_device.
-*
-*RETURN VALUE:  Returns 0 for success, != 0 for error.
-*
-*NOTE:USB hub is also treated as a USB device which is somewhat special, but it
-*     also need  call this function to enumerate it, doing the things like probing this 
-*     hub to see whether there are devices attached to it, if there are, then system
-*     calls this function again to do the necessary initialization of relevant USB 
-*     devices,so this function usually would be called more than one time,and probably 
-*     will be called nestedly. 
-*     Usually,by the time we get here, the device has gotten a new device ID
-*     and is in the default state.We need to identify the thing and get the ball
-*     rolling..
-*===========================================================================*/
+/*
+ * By the time we get here, the device has gotten a new device ID
+ * and is in the default state. We need to identify the thing and
+ * get the ball rolling..
+ *
+ * Returns 0 for success, != 0 for error.
+ */
 int usb_new_device(struct usb_device *dev)
 {
 	int addr, err;
@@ -1372,19 +962,7 @@ int usb_new_device(struct usb_device *dev)
 	return 0;
 }
 
-/*===========================================================================
-*
-*FUNTION: usb_scan_devices
-*
-*DESCRIPTION: This function is used to build USB device tree.
-*
-*PARAMETERS:
-*          [IN] hc_private: an all-purpose pointer used to pass the host
-*                           controller information to the new device .
-*
-*RETURN VALUE: none.
-*
-*===========================================================================*/
+/* build device Tree  */
 void usb_scan_devices(void * hc_private)
 {
 	int i;
@@ -1427,20 +1005,7 @@ void usb_scan_devices(void * hc_private)
 static struct usb_hub_device hub_dev[USB_MAX_HUB];
 static int usb_hub_index;
 
-/*===========================================================================
-*
-*FUNTION: usb_get_hub_descriptor
-*
-*DESCRIPTION: This function is used to get usb hub descriptor.
-*
-*PARAMETERS:
-*          [IN] dev: a pointer to the USB device information struct.
-*          [OUT] data: a pointer to the data where stores descriptor informaiton 
-*          [IN] size: indicates the length of descriptor.
-*
-*RETURN VALUE: same as the return of usb_control_msg().
-*
-*===========================================================================*/
+
 int usb_get_hub_descriptor(struct usb_device *dev, void *data, int size)
 {
 	return usb_control_msg(dev, usb_rcvctrlpipe(dev, 0),
@@ -1448,41 +1013,12 @@ int usb_get_hub_descriptor(struct usb_device *dev, void *data, int size)
 		USB_DT_HUB << 8, 0, data, size, USB_CNTL_TIMEOUT);
 }
 
-/*===========================================================================
-*
-*FUNTION: usb_clear_hub_feature
-*
-*DESCRIPTION: This function is used to clear hub feature,that is to reset a
-*             value reported in the hub status.
-*
-*PARAMETERS:
-*          [IN] dev: a pointer to the USB device information struct.
-*          [IN] feature: the selector of the feature. 
-*
-*RETURN VALUE: same as the return of usb_control_msg().
-*
-*===========================================================================*/
 int usb_clear_hub_feature(struct usb_device *dev, int feature)
 {
 	return usb_control_msg(dev, usb_sndctrlpipe(dev, 0),
 		USB_REQ_CLEAR_FEATURE, USB_RT_HUB, feature, 0, NULL, 0, USB_CNTL_TIMEOUT);
 }
 
-/*===========================================================================
-*
-*FUNTION: usb_clear_port_feature
-*
-*DESCRIPTION: This function is used to clear port feature,that is to reset a
-*             value reported in the port status.
-*
-*PARAMETERS:
-*          [IN] dev: a pointer to the USB device information struct.
-*          [IN] port: the index number of the hub port.
-*          [IN] feature: the selector of the feature. 
-*
-*RETURN VALUE: same as the return of usb_control_msg().
-*
-*===========================================================================*/
 int usb_clear_port_feature(struct usb_device *dev, int port, int feature)
 {
 #if 1		
@@ -1496,43 +1032,12 @@ int usb_clear_port_feature(struct usb_device *dev, int port, int feature)
 #endif
 }
 
-/*===========================================================================
-*
-*FUNTION: usb_set_port_feature
-*
-*DESCRIPTION: This function is used to set port feature,that is to set a
-*             value reported in the port status.
-*
-*PARAMETERS:
-*          [IN] dev: a pointer to the USB device information struct.
-*          [IN] port: the index number of the hub port.
-*          [IN] feature: the selector of the feature. 
-*
-*RETURN VALUE: same as the return of usb_control_msg().
-*
-*===========================================================================*/
 int usb_set_port_feature(struct usb_device *dev, int port, int feature)
 {
 	return usb_control_msg(dev, usb_sndctrlpipe(dev, 0),
 		USB_REQ_SET_FEATURE, USB_RT_PORT, feature, port, NULL, 0, USB_CNTL_TIMEOUT);
 }
 
-/*===========================================================================
-*
-*FUNTION: usb_get_hub_status
-*
-*DESCRIPTION: This function is used to get hub status,that is to return the 
-*             current hub status and the states that have changed since the 
-*             previous acknowledgment.
-*
-*PARAMETERS:
-*          [IN] dev: a pointer to the USB device information struct.
-*          [OUT] data: a pointer to the data where stores hub status informaiton 
-
-*
-*RETURN VALUE: same as the return of usb_control_msg().
-*
-*===========================================================================*/
 int usb_get_hub_status(struct usb_device *dev, void *data)
 {
 	return usb_control_msg(dev, usb_rcvctrlpipe(dev, 0),
@@ -1540,23 +1045,6 @@ int usb_get_hub_status(struct usb_device *dev, void *data)
 			data, sizeof(struct usb_hub_status), USB_CNTL_TIMEOUT);
 }
 
-/*===========================================================================
-*
-*FUNTION: usb_get_port_status
-*
-*DESCRIPTION: This function is used to get port status,that is to return the 
-*             current port status and the current value of the port status change
-*             bits.
-*
-*PARAMETERS:
-*          [IN] dev: a pointer to the USB device information struct.
-*          [IN] port: the index number of port
-*          [OUT] data: a pointer to the data where stores port status informaiton 
-
-*
-*RETURN VALUE: same as the return of usb_control_msg().
-*
-*===========================================================================*/
 int usb_get_port_status(struct usb_device *dev, int port, void *data)
 {
 	return usb_control_msg(dev, usb_rcvctrlpipe(dev, 0),
@@ -1564,18 +1052,7 @@ int usb_get_port_status(struct usb_device *dev, int port, void *data)
 			data, sizeof(struct usb_hub_status), USB_CNTL_TIMEOUT);
 }
 
-/*===========================================================================
-*
-*FUNTION: usb_hub_power_on
-*
-*DESCRIPTION: This function is used to enable power to the ports.
-*
-*PARAMETERS:
-*          [IN] hub: a pointer to the USB hub device information struct.
-*
-*RETURN VALUE: none.
-*
-*===========================================================================*/
+
 static void usb_hub_power_on(struct usb_hub_device *hub)
 {
 	int i;
@@ -1591,36 +1068,11 @@ static void usb_hub_power_on(struct usb_hub_device *hub)
 	}
 }
 
-/*===========================================================================
-*
-*FUNTION: usb_hub_reset
-*
-*DESCRIPTION: This function is used to reset the hub.
-*
-*PARAMETERS:
-*              none
-*
-*RETURN VALUE: none.
-*
-*===========================================================================*/
 void usb_hub_reset(void)
 {
 	usb_hub_index=0;
 }
 
-/*===========================================================================
-*
-*FUNTION: usb_hub_allocate
-*
-*DESCRIPTION: This function is used to allocate buffer for store USB hub 
-*             infomation.
-*
-*PARAMETERS:
-*              none
-*
-*RETURN VALUE: none.
-*
-*===========================================================================*/
 struct usb_hub_device *usb_hub_allocate(void)
 {
 	if(usb_hub_index<USB_MAX_HUB) {
@@ -1632,20 +1084,6 @@ struct usb_hub_device *usb_hub_allocate(void)
 
 #define MAX_TRIES 5
 
-/*===========================================================================
-*
-*FUNTION: usb_port_reset
-*
-*DESCRIPTION: This function is used to USB hub ports.
-*
-*PARAMETERS:
-*          [IN] dev: a pointer to the USB device information struct.
-*          [IN] port: the index number of USB hub port 
-*          [OUT] portstat: a pointer to the USB hub port status information.
-*
-*RETURN VALUE: none.
-*
-*===========================================================================*/
 static int hub_port_reset(struct usb_device *dev, int port,
 			unsigned short *portstat)
 {
@@ -1697,20 +1135,7 @@ static int hub_port_reset(struct usb_device *dev, int port,
 
 }
 
-/*===========================================================================
-*
-*FUNTION: usb_hub_port_connect_change
-*
-*DESCRIPTION: This function is used to check the change of USB hub port connect
-*             to find out whether a USB device attached to this port.
-*
-*PARAMETERS:
-*          [IN] dev: a pointer to the USB device information struct.
-*          [IN] port: the index number of USB hub port 
-*
-*RETURN VALUE: none.
-*
-*===========================================================================*/
+
 void usb_hub_port_connect_change(struct usb_device *dev, int port)
 {
 	struct usb_device *usb;
@@ -1765,18 +1190,7 @@ void usb_hub_port_connect_change(struct usb_device *dev, int port)
 	}
 }
 
-/*===========================================================================
-*
-*FUNTION: usb_port_reset
-*
-*DESCRIPTION: This function is used to configure USB hub .
-*
-*PARAMETERS:
-*          [IN] dev: a pointer to the USB device information struct.
-*
-*RETURN VALUE: 0 ok,-1 if error.
-*
-*===========================================================================*/
+
 int usb_hub_configure(struct usb_device *dev)
 {
 	unsigned char buffer[USB_BUFSIZ], *bitmap;
@@ -1928,21 +1342,6 @@ int usb_hub_configure(struct usb_device *dev)
 	return 0;
 }
 
-/*===========================================================================
-*
-*FUNTION: usb_hub_probe
-*
-*DESCRIPTION: This function is used to check whether we have found a USB device
-*             that is a hub.
-*
-*PARAMETERS:
-*          [IN] dev: a pointer to the USB device information struct.
-*          [IN] ifnum: the index number of interafce 
-*
-*RETURN VALUE: 0 means the device is not a hub,otherwise return the value
-*               that usb_hub_configure() returned.
-*
-*===========================================================================*/
 int usb_hub_probe(struct usb_device *dev, int ifnum)
 {
 	struct usb_interface_descriptor *iface;
@@ -1974,19 +1373,7 @@ int usb_hub_probe(struct usb_device *dev, int ifnum)
 	return ret;
 }
 
-/*===========================================================================
-*
-*FUNTION: init_controller_list
-*
-*DESCRIPTION: This function is used to add the host_controller to the tail of
-*             the queue.
-*
-*PARAMETERS:
-*              none
-*
-*RETURN VALUE: none.
-*
-*===========================================================================*/
+
 void init_controller_list(void) __attribute__((constructor));
 
 void init_controller_list(void)
@@ -1994,18 +1381,6 @@ void init_controller_list(void)
 	TAILQ_INIT(&host_controller);
 }
 
-/*===========================================================================
-*
-*FUNTION: usb_driver_register
-*
-*DESCRIPTION: This function is used to insert the usbdriver to the head of SLIST.
-*
-*PARAMETERS:
-*          [IN] driver: a pointer to the struct usb_driver.
-*
-*RETURN VALUE: none.
-*
-*===========================================================================*/
 void usb_driver_register(struct usb_driver *driver)
 {
 	SLIST_INSERT_HEAD(&usbdrivers, driver, d_list);	

@@ -613,7 +613,6 @@ static void init_legacy_rtc(void)
 	//printf("RTC: %02d-%02d-%02d %02d:%02d:%02d\n",
 	//    year, month, date, hour, min, sec);
 }
-static char my_flag =1;
 
 static inline unsigned char CMOS_READ(unsigned char addr)
 {
@@ -657,21 +656,7 @@ static inline unsigned char CMOS_READ(unsigned char addr)
 	}
 		tag=_pci_make_tag(0,14,0);
 	
-	if(my_flag == 1)
-	{	
-		_pci_conf_writen(tag,0x14,0x06000000,4);
-		_pci_conf_writen(tag,0x4,0x03,1);
-		
-//		tgt_printf("pci_map = %x\n",*(volatile int *)0xbfe00110);
 		mmio = _pci_conf_readn(tag,0x14,4);
-//		tgt_printf("base addr =%x\n",mmio);
-		mmio = 0x16000000; 
-//		my_flag = 0;
-	}
-	else
-	{
-		mmio = _pci_conf_readn(tag,0x14,4);
-	}
 		mmio =(int)mmio|(0xb0000000);
 		tmp = *(volatile int *)(mmio + 0x40);
 		*(volatile int *)(mmio + 0x40) =tmp|0x40;
@@ -685,13 +670,6 @@ static inline unsigned char CMOS_READ(unsigned char addr)
 	tmp1 = ((val>>4)&0x0f)*10;
 	tmp2  = val&0x0f;
 	val = tmp1 + tmp2;
-	if(my_flag)
-	{
-		my_flag =0 ;
-		
-//		BONITO_PCIMAP = 0x0;
-//		_pci_conf_writen(tag,0x4,0x0,4);
-	}
 	
 #endif
         return val;
@@ -740,20 +718,7 @@ static inline void CMOS_WRITE(unsigned char val, unsigned char addr)
 		unsigned char value;
 		tag=_pci_make_tag(0,14,0);
 	
-	if(my_flag == 1)
-	{	
-		_pci_conf_writen(tag,0x14,0x06000000,4);
-		_pci_conf_writen(tag,0x4,0x03,4);
-//		tgt_printf("pci_map = %x\n",*(volatile int *)0xbfe00110);
 		mmio = _pci_conf_readn(tag,0x14,4);
-//		tgt_printf("base addr =%x\n",mmio);
-		mmio = 0x16000000; 
-//		my_flag = 0;
-	}
-	else
-	{
-		mmio = _pci_conf_readn(tag,0x14,4);
-	}
 		mmio =(int)mmio|(0xb0000000);
 		tmp = *(volatile int *)(mmio + 0x40);
 		*(volatile int *)(mmio + 0x40) =tmp|0x40;
@@ -763,13 +728,6 @@ static inline void CMOS_WRITE(unsigned char val, unsigned char addr)
 		value = value|0x20;
 		i2c_send_s((unsigned char)0x64,0xe<<4,&value,1);
 	i2c_send_s((unsigned char)0x64,addr<<4,&val,1);
-	if(my_flag == 1)
-	{
-		
-//		BONITO_PCIMAP = 0x0;
-//		_pci_conf_writen(tag,0x4,0x00,4);
-		my_flag =0 ;
-	}
 	}
 #endif
 }
@@ -782,32 +740,6 @@ _probe_frequencies()
 #endif
                                                                     
         SBD_DISPLAY ("FREQ", CHKPNT_FREQ);
- 
-	BONITO_PCIMAP =
-	    BONITO_PCIMAP_WIN(0, PCI_MEM_SPACE_PCI_BASE+0x00000000) |	
-	    BONITO_PCIMAP_WIN(1, PCI_MEM_SPACE_PCI_BASE+0x04000000) |
-	    BONITO_PCIMAP_WIN(2, PCI_MEM_SPACE_PCI_BASE+0x08000000) |
-	    BONITO_PCIMAP_PCIMAP_2;                                                                              
-  
-	/*set pci base0 address and window size*/
-	BONITO_PCIBASE0 = 0x80000000;
-	BONITO_PCIBASE1 = 0;
-	BONITO(BONITO_REGBASE + 0x50) = 0x8000000c;
-	BONITO(BONITO_REGBASE + 0x54) = 0xffffffff;
-   /*set master1's window0 to map pci 2G->DDR 0 */
-	  asm(".set mips3;dli $2,0x900000003ff00000;li $3,0x80000000;sd $3,0x60($2);sd $0,0xa0($2);dli $3,0xffffffff80000000;sd $3,0x80($2);.set mips0" :::"$2","$3");
-
-	/* 
-	 * PCI to local mapping: [8M,16M] -> [8M,16M]
-	 */
-	BONITO_PCI_REG(0x18) = 0x00800000; 
-	BONITO_PCI_REG(0x1c) = 0x0;
-	BONITO(BONITO_REGBASE + 0x58) = 0xff80000c;
-	BONITO(BONITO_REGBASE + 0x5c) = 0xffffffff;
-	/*set pci 8-16M -> DDR 8-16M ,window size 8M,can not map 0-8M to pci,because ddr pci address will cover vga mem.*/
-	  asm(".set mips3;dli $2,0x900000003ff00000;li $3,0x800000;sd $3,0x68($2);sd $3,0xa8($2);dli $3,0xffffffffff800000;sd $3,0x88($2);.set mips0" :::"$2","$3");
-
-
 
 #if 0
         md_pipefreq = 300000000;        /* Defaults */
