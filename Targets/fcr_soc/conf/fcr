@@ -73,8 +73,8 @@ select		mod_uart_ns16550	# Standard UART driver
 option		CONS_BAUD=B115200
 select		ext2
 #select		fatfs
-#select		mod_x86emu		# X86 emulation for VGA
-#option 	MY40IO
+select		mod_x86emu		# X86 emulation for VGA
+option 	MY40IO
 #select		mod_x86emu_int10
 select		mod_vgacon
 option		NOPCINAMES		# Save some space for x86emu
@@ -135,7 +135,7 @@ pci*		at pcibr?
 # fxp normally only used for debugging (enable/disable both)
 fxp*            at pci? dev ? function ?        # Intel 82559 Device
 dmfe0		at localbus0
-#inphy*          at mii? phy ?                   # Intel 82555 PHYs
+inphy*          at mii? phy ?                   # Intel 82555 PHYs
 rtl*        at pci? dev ? function ?
 #uhci*		 at pci? dev ? function ?
 #ohci0		 at pci? dev ? function ?
@@ -175,4 +175,5 @@ option OUTPUT_TO_BOTH
 select nand
 select cmd_xyzmodem
 select loop
+option VGA_MEM_BASE=0xb7f00000
 

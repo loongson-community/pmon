@@ -102,6 +102,7 @@ int  BE_init(
     }
 
     /* video ram */
+#ifndef VGA_MEM_BASE
 #ifdef BONITOEL
     _BE_env.busmem_base = 0xb00a0000;
 #else
@@ -110,6 +111,9 @@ int  BE_init(
 #else
     _BE_env.busmem_base = 0xb00a0000;
 #endif
+#endif
+#else
+    _BE_env.busmem_base = VGA_MEM_BASE+0x000a0000;
 #endif
     M.x86.debug = debugFlags;
     _BE_bios_init((u32*)info->LowMem);

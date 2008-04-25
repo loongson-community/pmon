@@ -286,7 +286,7 @@ if(argc<3)return -1;
 return 0;
 }
 
-static int __pcisyscall1(int type,unsigned int addr,union commondata *mydata)
+static int __pcisyscall1(int type,unsigned long long addr,union commondata *mydata)
 {
 switch(type)
 {
@@ -299,7 +299,7 @@ case 8:mydata->data8[0]=_pci_conf_readn(mytag,addr,4);
 return 0;
 }
 
-static int __pcisyscall2(int type,unsigned int addr,union commondata *mydata)
+static int __pcisyscall2(int type,unsigned long long addr,union commondata *mydata)
 {
 switch(type)
 {

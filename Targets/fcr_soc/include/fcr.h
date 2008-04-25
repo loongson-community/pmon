@@ -48,7 +48,6 @@ extern char           *heaptop;
 #define GPIO_W60_29	0x28
 
 
-#define APB_CLK		33333333
 
 #define RTC_INDEX_REG 0x70
 #define RTC_DATA_REG 0x71
@@ -60,7 +59,9 @@ extern char           *heaptop;
 #define COM1_BASE_ADDR  0xbf004080
 //#define	NS16550HZ	1843200
 //#define	NS16550HZ	(33350000/4)
-#define	NS16550HZ	(66700000/4)
+//#define	APB_CLK	33350000
+#define APB_CLK		66700000
+#define	NS16550HZ	(APB_CLK/4)
 /*********************************************************************/
 /*nvram define                                                       */
 /*********************************************************************/

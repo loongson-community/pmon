@@ -16,6 +16,7 @@ extern unsigned char kbd_code;
 extern unsigned char usb_kbd_code; 
 #endif
 extern unsigned char usb_kbd_code; 
+#ifndef VGA_MEM_BASE
 #ifdef BONITOEL
 	unsigned char * vgabh=(unsigned char *)0xb00b8000;
 #endif
@@ -35,6 +36,10 @@ extern unsigned char usb_kbd_code;
 #if !(defined(BONITOEL)|defined(CONFIG_PCI0_GAINT_MEM)|defined(CONFIG_PCI0_HUGE_MEM)|defined(CONFIG_PCI0_LARGE_MEM)) 
 	unsigned char * vgabh=(unsigned char *)0xb00b8000;
 #endif
+#else
+	unsigned char * vgabh=(unsigned char *)(VGA_MEM_BASE+0x000b8000);
+#endif
+
 
 int rowcount=25;
 int colcount=80;

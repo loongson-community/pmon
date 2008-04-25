@@ -77,7 +77,7 @@ void AHB2PCI(/*int init*/)
     *(long *)0xbf00211C = 0x0;
     *(long *)0xbf002184 = 0x4;
     *(long *)0xbf002188 = 0x10000000;
-    *(long *)0xbf00218c = 0xFC000000;
+    *(long *)0xbf00218c = 0xF8000000;
     *(long *)0xbf002190 = 0x10000000;
     *(long *)0xbf002194 = 0x4;
     *(long *)0xbf002198 = 0x1FD00001;
@@ -130,7 +130,7 @@ _pci_hwinit(initialise, iot, memt)
 	pd->bridge.secbus = pb;
 	_pci_head = pd;
 
-	pb->minpcimemaddr  = FCR_PCI_MEM_BASE;
+	pb->minpcimemaddr  = FCR_PCI_MEM_BASE+0x04000000;
 	pb->nextpcimemaddr = 0x17000000; 
 	pd->pa.pa_memt->bus_base = 0xa0000000;
 	pb->nextpciioaddr = 0x100000;
@@ -286,7 +286,7 @@ _pci_conf_readn(pcitag_t tag, int reg, int width)
 
 
     /* move data to correct position */
-    data = data >> ((addr & 3) << 3);
+    data = data >> ((reg & 3) << 3);
 
 
     return data;
@@ -336,21 +336,21 @@ _pci_conf_writen(pcitag_t tag, int reg, pcireg_t data,int width)
       pcireg_t mask = 0x0;
 
       if (width == 2) {
-	if (addr & 3) mask = 0xffff; 
+	if (reg & 3) mask = 0xffff; 
 	else mask = 0xffff0000;
       }else if (width == 1) {
-	if ((addr & 3) == 1) {
+	if ((reg & 3) == 1) {
 	  mask = 0xffff00ff;
-	}else if ((addr & 3) == 2) {
+	}else if ((reg & 3) == 2) {
 	  mask = 0xff00ffff;
-	}else if ((addr & 3) == 3) {
+	}else if ((reg & 3) == 3) {
 	  mask = 0x00ffffff;
 	}else{
 	  mask = 0xffffff00;
 	}
       }
 
-      data = data << ((addr & 3) << 3);
+      data = data << ((reg & 3) << 3);
       data = (ori & mask) | data;
         *(volatile unsigned int *)PHYS_TO_UNCACHED(FCR_SOC_PCI_REGS_BASE + 0x1e4)=data;
     }
