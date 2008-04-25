@@ -59,8 +59,8 @@ extern char           *heaptop;
 #define COM1_BASE_ADDR  0xbf004080
 //#define	NS16550HZ	1843200
 //#define	NS16550HZ	(33350000/4)
-//#define	APB_CLK	33350000
-#define APB_CLK		66700000
+#define	APB_CLK	33350000
+//#define APB_CLK		66700000
 #define	NS16550HZ	(APB_CLK/4)
 /*********************************************************************/
 /*nvram define                                                       */

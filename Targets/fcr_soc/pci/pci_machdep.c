@@ -276,7 +276,7 @@ _pci_conf_readn(pcitag_t tag, int reg, int width)
 	/* Type 1 configuration on offboard PCI bus */
 	if (bus > 255 || device > 31 || function > 7)
 	    return ~0;	/* device out of range */
-	type = 0x10000;
+	type = 0x00001;
     }
 
         addr=(bus<<16)|(device<<11)|(function<<8)|(reg&~0x3)|type;
@@ -323,7 +323,7 @@ _pci_conf_writen(pcitag_t tag, int reg, pcireg_t data,int width)
 	/* Type 1 configuration on offboard PCI bus */
 	if (bus > 255 || device > 31 || function > 7)
 	    return;	/* device out of range */
-	type = 0x10000;
+	type = 0x00001;
     }
 
 
