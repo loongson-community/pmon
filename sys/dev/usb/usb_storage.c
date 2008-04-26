@@ -98,7 +98,12 @@ unsigned char us_direction[256/8] = {
 #define US_DIRECTION(x) ((us_direction[x>>3] >> (x & 7)) & 1)
 
 static unsigned char usb_stor_buf[512] __attribute__((section("data"),aligned(512)));
-static ccb _usb_ccb __attribute__((section("data"),aligned(1024)));
+static struct myccb{
+char unused[16];
+ccb c;
+}
+_usb_ccb __attribute__((section("data"),aligned(32)));
+//static ccb _usb_ccb __attribute__((section("data"),aligned(32)));
 static ccb *usb_ccb;
 
 
@@ -1281,7 +1286,7 @@ static int usb_match(struct device *parent, void *match, void *aux)
 	struct usb_device *dev = aux;
 
 	pci_sync_cache(0, _usb_ccb, sizeof(_usb_ccb), 1);
-	usb_ccb = (ccb*)CACHED_TO_UNCACHED(&_usb_ccb);
+	usb_ccb = (ccb*)CACHED_TO_UNCACHED(&_usb_ccb.c);
 
 	if(usb_max_devs==USB_MAX_STOR_DEV) {
 		printf("max USB Storage Device reached: %d stopping\n",usb_max_devs);
