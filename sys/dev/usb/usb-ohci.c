@@ -1574,7 +1574,7 @@ int submit_common_msg(struct usb_device *dev, unsigned long pipe, void *buffer,
 	}
 
 	/* allow more time for a BULK device to react - some are slow */
-#define BULK_TO	 500	/* timeout in milliseconds */
+#define BULK_TO	 2000	/* timeout in milliseconds */
 	if (usb_pipetype (pipe) == PIPE_BULK)
 		timeout = BULK_TO;
 	else
@@ -1604,17 +1604,19 @@ int submit_common_msg(struct usb_device *dev, unsigned long pipe, void *buffer,
 	}
 #else
 	if (usb_pipetype(pipe) != PIPE_INTERRUPT) {
+	int timeout1=timeout;
 		s = spl0();
-		while(--timeout > 0){
+		while(1){
+			timeout1--;
 			if(!(dev->status & USB_ST_NOT_PROC)){
 				break;
 			}
 			delay(1);
 			spl0();
+		if (timeout1 == 0) {printf("USB timeout\n");timeout1=timeout;}
 		}
 	}
-	if (timeout == 0) 
-		printf("USB timeout\n");
+
 
 #endif
 
