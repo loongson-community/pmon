@@ -1659,32 +1659,16 @@ reg_write:
 	 * Now determine DRAM configuration and size by
 	 * reading the I2C EEROM on the DIMMS
 	 */
-
+i2c_test:
 	li	k1,0
 #include "i2c_sm502.S"
-	beqz msize,.nodimm
+	beqz msize,i2c_test
 	nop
-	b 2f
-	nop
-.nodimm:
-	PRINTSTR ("\r\nNo DIMM in all slots,use default configure\r\n")
-2:
 	PRINTSTR("DIMM SIZE=")
 	move	a0,msize
 	bal	hexserial
 	nop
 	PRINTSTR("\r\n")
-
-/////////////////
-
-//	div	msize,tmpsize
-//	mflo	a0
-	bnez msize,1f
-	nop
-	li msize,0x20000000
-	b 2f
-	nop
-1:
 
 	move	a0,k1
 

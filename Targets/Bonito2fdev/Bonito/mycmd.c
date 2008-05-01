@@ -742,7 +742,6 @@ static int i2cs(int argc,char **argv)
 if(argc<2) return -1;
 
 i2cslot=strtoul(argv[1],0,0);
-slave_addr = strtoul(argv[2],0,0);
 
 switch(i2cslot)
 {
@@ -781,6 +780,7 @@ case 4:
  break;
 case 5:
 
+	slave_addr = strtoul(argv[2],0,0);
 	tag=_pci_make_tag(0,14,0);
 
 	mmio=_pci_conf_readn(tag,0x14,4);
