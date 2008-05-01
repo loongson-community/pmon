@@ -687,29 +687,6 @@ reginit:			/* local name */
 	nop
 	PRINTSTR("\r\n")
 
-	/* 
-	 * Now determine DRAM configuration and size by
-	 * reading the I2C EEROM on the DIMMS
-	 */
-
-#if 1
-	li	k1,0
-#include "i2c_sm502.S"
-	beqz msize,.nodimm
-	nop
-	b 2f
-	nop
-.nodimm:
-	PRINTSTR ("\r\nNo DIMM in all slots,use default configure\r\n")
-2:
-	PRINTSTR("DIMM SIZE=")
-	move	a0,msize
-	bal	hexserial
-	nop
-	PRINTSTR("\r\n")
-
-##############################################
-#endif
 gs_2f_v3_ddr2_cfg:
 	GPIOLED_SET(9)
 
@@ -728,68 +705,6 @@ gs_2f_v3_ddr2_cfg:
 	nop
 ddr2_config_done:
 	PRINTSTR("DDR2 config end\r\n")
-/////////////////
-
-//	div	msize,tmpsize
-//	mflo	a0
-	bnez msize,1f
-	nop
-	li msize,0x20000000
-	b 2f
-	nop
-1:
-
-	move	a0,k1
-
-	li	v0,0xaffffe70
-	lw	v1,0(v0)
-	nop
-	sll	a0,a0,16
-	li	t0,0xfff0ffff
-	and	v1,v1,t0
-	or	v1,v1,a0
-	sw	v1,0(v0)
-	nop
-	
-	bal 	hexserial
-	nop
-
-
-PRINTSTR("cols rows:\r\n")
-	
-	//row addr numbers
-	li	v0,0xffffffff
-	and	a0,s6,v0
-	li	v0,15
-	subu	a0,v0,a0
-
-	//col addr numbers
-	dsrl	s6,s6,20
-	dsrl	s6,s6,12
-	li	v0,14
-	
-	move	a1,s6
-	subu	a1,v0,a1
-
-	sll	a1,a1,24
-	sll	a0,a0,8
-
-	li 	v0,0xaffffe50
-	lw	v1,0(v0)
-	nop
-	li	t0,0xf8fff8ff
-	and	v1,v1,t0
-	or	v1,v1,a0
-	or	v1,v1,a1
-	sw	v1,0(v0)
-	nop
-	move	a0,v1
-	bal	hexserial
-	nop
-	
-	PRINTSTR("\r\n")
-2:	
-/////////////////
 
 
 
@@ -1710,7 +1625,6 @@ END(superio_init)
     
 
         .global ddr2_config
-        .ent    ddr2_config
         .set    noreorder
         .set    mips3
 ddr2_config:
@@ -1734,29 +1648,95 @@ ddr2_config:
     li      t2, CONFIG_BASE
 
 reg_write:
-#if 0
-	move	a0,t0
-	bal	hexserial
-        nop
-	move	a0,t2
-	bal	hexserial
-        nop
-
-	move	a0,t1
-	bal	hexserial
-        nop
-#endif
     ld      a1, 0x0(t0)
-#if 0
-	move	a0,a1
-	bal	hexserial
-        nop
-#endif
     sd      a1, REG_ADDRESS(t2)
     subu    t1, t1, 0x1
     addiu     t0, t0, 0x8
     bne     t1, $0, reg_write
     addiu     t2, t2, 0x10
+
+	/* 
+	 * Now determine DRAM configuration and size by
+	 * reading the I2C EEROM on the DIMMS
+	 */
+
+	li	k1,0
+#include "i2c_sm502.S"
+	beqz msize,.nodimm
+	nop
+	b 2f
+	nop
+.nodimm:
+	PRINTSTR ("\r\nNo DIMM in all slots,use default configure\r\n")
+2:
+	PRINTSTR("DIMM SIZE=")
+	move	a0,msize
+	bal	hexserial
+	nop
+	PRINTSTR("\r\n")
+
+/////////////////
+
+//	div	msize,tmpsize
+//	mflo	a0
+	bnez msize,1f
+	nop
+	li msize,0x20000000
+	b 2f
+	nop
+1:
+
+	move	a0,k1
+
+	li	v0,0xaffffe70
+	lw	v1,0(v0)
+	nop
+	sll	a0,a0,16
+	li	t0,0xfff0ffff
+	and	v1,v1,t0
+	or	v1,v1,a0
+	sw	v1,0(v0)
+	nop
+	
+	bal 	hexserial
+	nop
+
+
+PRINTSTR("cols rows:\r\n")
+	
+	//row addr numbers
+	li	v0,0xffffffff
+	and	a0,s6,v0
+	li	v0,15
+	subu	a0,v0,a0
+
+	//col addr numbers
+	dsrl	s6,s6,20
+	dsrl	s6,s6,12
+	li	v0,14
+	
+	move	a1,s6
+	subu	a1,v0,a1
+
+	sll	a1,a1,24
+	sll	a0,a0,8
+
+	li 	v0,0xaffffe50
+	lw	v1,0(v0)
+	nop
+	li	t0,0xf8fff8ff
+	and	v1,v1,t0
+	or	v1,v1,a0
+	or	v1,v1,a1
+	sw	v1,0(v0)
+	nop
+	move	a0,v1
+	bal	hexserial
+	nop
+	
+	PRINTSTR("\r\n")
+2:	
+/////////////////
 
 	bal tgt_testchar
 	nop
@@ -1795,7 +1775,6 @@ reg_write:
 
     jr      ra
     nop
-    .end    ddr2_config
 
 
 
