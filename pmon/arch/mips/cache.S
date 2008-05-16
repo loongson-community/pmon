@@ -533,9 +533,24 @@ not_godson2e:
 	cache	IndexInvalidate_I, 112(t0)
 
 2:
+	cache	IndexInvalidate_I, 1(t0)
+	cache	IndexInvalidate_I, 2(t0)
+	cache	IndexInvalidate_I, 3(t0)
+
 	cache	IndexInvalidate_I, 32(t0)
+	cache	IndexInvalidate_I, 33(t0)
+	cache	IndexInvalidate_I, 34(t0)
+	cache	IndexInvalidate_I, 35(t0)
+
 	cache	IndexInvalidate_I, 64(t0)
+	cache	IndexInvalidate_I, 65(t0)
+	cache	IndexInvalidate_I, 66(t0)
+	cache	IndexInvalidate_I, 67(t0)
+
 	cache	IndexInvalidate_I, 96(t0)
+	cache	IndexInvalidate_I, 97(t0)
+	cache	IndexInvalidate_I, 98(t0)
+	cache	IndexInvalidate_I, 99(t0)
 
 	bne	t0, t1, 1b
 	addu	t0, t0, 128
@@ -665,7 +680,11 @@ END(CPU_FlushCache)
  *----------------------------------------------------------------------------
  */
 LEAF(CPU_FlushICache)
+#ifdef WAYBITS_HIGH
 	lw	t0, CpuPrimaryInstSetSize	# Set size
+#else
+	li	t0,1
+#endif
 	addu	a1, 127				# Align for unrolling
 	and	a0, 0xffff80			# Align start address
 	addu	a0, CACHED_MEMORY_ADDR		# a0 now new KSEG0 address
@@ -776,6 +795,9 @@ LEAF(CPU_FlushDCache)
 	srl	a1, a1, 7			# Compute number of cache lines
 
 	srl	a1, a2, 7			# no need for more than size!
+#ifndef WAYBITS_HIGH
+	li a2,1
+#endif
 1:
 	lw	v0, CpuNWayCache
 	addiu	v0, -2				# <0 1way, 0 = two, >0 four
