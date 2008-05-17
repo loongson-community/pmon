@@ -47,10 +47,17 @@ chg_heaptop (name, value)
 	u_int32_t top;
 
 	if (atob (&top, value, 16)) {
+#ifdef HEAP_ALLOC_UPWORD
 		if(top < (u_int32_t)allocp1) {
 			printf ("%x: heap is already above this point\n", top);
 			return 0;
 		}
+#else
+		if(top <heaptop) {
+			printf ("%x:  memory between %x-%x  is already been allocated,heap is already above this point\n", top,allocp1,heaptop);
+			return 0;
+		}
+#endif
 		heaptop = (char *) top;
 		return 1;
 	}
@@ -69,11 +76,15 @@ sbrk (n)
 	if (!top) {
 		top = (char *) CLIENTPC;
 	}
-
+#ifdef HEAP_ALLOC_UPWORD
 	if ((allocp1 + n) <= top) {
 		allocp1 += n;
 		return (allocp1 - n);
 	}
+#else
+		allocp1 -= n;
+		return allocp1;
+#endif
 
 	return (0);
 }
@@ -88,5 +99,8 @@ void init_heaptop()
 		} else 
 #endif
     heaptop = (unsigned int)(end + 65536)<CLIENTPC?CLIENTPC:(end + 65536);
+#ifndef HEAP_ALLOC_UPWORD
+			allocp1=heaptop;
+#endif
 }
 
