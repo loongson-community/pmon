@@ -254,7 +254,7 @@ tgt_devconfig()
 	if(have_pci)_pci_devinit(1);	/* PCI device initialization */
 #if (NMOD_X86EMU_INT10 > 0)||(NMOD_X86EMU >0)
 	SBD_DISPLAY("VGAI", 0);
-	rc = vga_bios_init();
+	if(!getenv("novga")) rc = vga_bios_init();
 #endif
 
 #if NMOD_FRAMEBUFFER > 0
@@ -657,7 +657,11 @@ tgt_flashwrite_disable()
 int
 tgt_flashwrite_enable()
 {
+#ifdef FLASH_READ_ONLY
+	return 0;
+#else
 	return(1);
+#endif
 }
 
 void

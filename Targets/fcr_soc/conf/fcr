@@ -105,6 +105,7 @@ option		AUTOLOAD
 #option		CONFIG_PCI0_GAINT_MEM	
 option		CONFIG_CACHE_64K_4WAY
 option 	    NVRAM_IN_FLASH	
+#option		FLASH_READ_ONLY
 
 #
 #  Now the Machine specification

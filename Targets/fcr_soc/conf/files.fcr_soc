@@ -8,7 +8,10 @@ file	Targets/fcr_soc/fcr/tgt_machdep.c
 file	Targets/fcr_soc/dev/lcd.c
 file	Targets/fcr_soc/dev/i2c.c
 file	Targets/fcr_soc/dev/spi.c
+file	Targets/fcr_soc/dev/ac97.c
 file	Targets/fcr_soc/fcr/tgt_cmd.c
+#file	Targets/fcr_soc/dev/sdcard_gpio.c
+file	Targets/fcr_soc/dev/sdcard_spi.c
 
 
 define  localbus { [base = -1 ] }

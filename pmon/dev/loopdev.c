@@ -209,7 +209,7 @@ priv->unzip=0;
 static const Cmd Cmds[] =
 {
 	{"MyCmds"},
-	{"losetup",	"loop0 devfile  [bs=0x20000] [count=-1] [seek=0]", 0, "losetup",losetup, 0, 99, CMD_REPEAT},
+	{"losetup",	"loopdev0 devfile  [bs=0x20000] [count=-1] [seek=0]", 0, "losetup",losetup, 0, 99, CMD_REPEAT},
 	{0, 0}
 };
 
