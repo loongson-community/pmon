@@ -221,6 +221,7 @@ exc_common:
 	mfc0	a0, COP_0_EXC_PC
 	bal	hexserial
 	nop
+#ifndef ROM_EXCEPTION
 	PRINTSTR("\r\nDERR0=")
 	cfc0	a0, COP_0_DERR_0
 	bal	hexserial
@@ -229,6 +230,11 @@ exc_common:
 	cfc0	a0, COP_0_DERR_1
 	bal	hexserial
 	nop
+#else
+1:
+	b 1b
+	nop
+#endif
 
 //	b	ext_map_and_reboot
 	nop
@@ -1220,7 +1226,12 @@ END(CPU_TLBInit)
 
 LEAF(stringserial)
 	move	a2, ra
+#ifdef ROM_EXCEPTION
+	li a1,0x3ec00000
+	addu	a1, a0, a1
+#else
 	addu	a1, a0, s0
+#endif
 	lbu	a0, 0(a1)
 1:
 	beqz	a0, 2f
@@ -1260,8 +1271,12 @@ LEAF(hexserial)
 	rol	a0, a1, 4
 	move	a1, a0
 	and	a0, 0xf
+#ifdef ROM_EXCEPTION
+	la	v0, (hexchar+0x3ec00000)
+#else
 	la	v0, hexchar
 	addu	v0, s0
+#endif
 	addu	v0, a0
 	bal	tgt_putchar
 	lbu	a0, 0(v0)

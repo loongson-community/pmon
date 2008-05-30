@@ -261,7 +261,9 @@ asm(\
 
 	CPU_FlushCache();
 
+#ifndef ROM_EXCEPTION
 	CPU_SetSR(0, SR_BOOT_EXC_VEC);
+#endif
 	SBD_DISPLAY("BEV0",0);
 	
 	printf("BEV in SR set to zero.\n");
