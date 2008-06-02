@@ -104,11 +104,8 @@ pcitag_t have_vga = 0;			/* Have tag if VGA board found */
 int monarch_mode = 1;			/* Default as master on the bus! */
 int pci_roots;				/* How many pci roots to init */
 int _pciverbose = _PCIVERBOSE;
-#ifdef BONITOEL
 static int _pci_nbus = 0;		/* Allow for eight roots */
-#else
-static int _pci_nbus = 8;		/* Allow for eight roots */
-#endif
+
 struct tgt_bus_space def_bus_iot;		/* Default bus tags */
 struct tgt_bus_space def_bus_memt;		/* Default bus tags */
 struct pci_device *_pci_head;

@@ -331,7 +331,8 @@ _pci_conf_writen(pcitag_t tag, int reg, pcireg_t data,int width)
 
 	*(volatile unsigned int *)PHYS_TO_UNCACHED(FCR_SOC_PCI_REGS_BASE + 0x1e0)=addr;
 
-    {
+	if(width!=4)
+	{
       pcireg_t ori =  *(volatile unsigned int *)PHYS_TO_UNCACHED(FCR_SOC_PCI_REGS_BASE + 0x1e4);
       pcireg_t mask = 0x0;
 
@@ -352,8 +353,8 @@ _pci_conf_writen(pcitag_t tag, int reg, pcireg_t data,int width)
 
       data = data << ((reg & 3) << 3);
       data = (ori & mask) | data;
+	  }
         *(volatile unsigned int *)PHYS_TO_UNCACHED(FCR_SOC_PCI_REGS_BASE + 0x1e4)=data;
-    }
 
 }
 
