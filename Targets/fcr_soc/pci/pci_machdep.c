@@ -133,6 +133,7 @@ _pci_hwinit(initialise, iot, memt)
 	pb->minpcimemaddr  = FCR_PCI_MEM_BASE+0x04000000;
 	pb->nextpcimemaddr = 0x17000000; 
 	pd->pa.pa_memt->bus_base = 0xa0000000;
+	pb->minpciioaddr  = 0x0004000;
 	pb->nextpciioaddr = 0x100000;
 	pb->pci_mem_base   = 0xb0000000;
 	pb->pci_io_base    = 0xbfd00000;
