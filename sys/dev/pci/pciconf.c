@@ -215,7 +215,14 @@ _pci_query_dev_func (struct pci_device *dev, pcitag_t tag, int initialise)
 	stat &= ~(PCI_COMMAND_MASTER_ENABLE |
 		  PCI_COMMAND_IO_ENABLE |
 		  PCI_COMMAND_MEM_ENABLE);
-	_pci_conf_write(tag, PCI_COMMAND_STATUS_REG, stat);
+#ifdef USE_SM502_UART0
+	if(device!=14)
+	{
+#endif
+		_pci_conf_write(tag, PCI_COMMAND_STATUS_REG, stat);
+#ifdef USE_SM502_UART0
+	}
+#endif
 	pd->stat = stat;
     
 	/* do all devices support fast back-to-back */

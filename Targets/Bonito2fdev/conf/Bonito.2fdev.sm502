@@ -170,7 +170,7 @@ pseudo-device	loop	1	# network loopback
 ide_cd* 	at pciide? channel ? drive ? flags 0x0001
 select 		iso9660
 option IDECD 
-option HAVE_NB_SERIAL
+#option HAVE_NB_SERIAL
 #option USE_ENVMAC
 #option LOOKLIKE_PC
 #select cmd_lwdhcp
@@ -184,4 +184,5 @@ option DEVBD2F_SM502
 select gzip
 option INPUT_FROM_BOTH
 option OUTPUT_TO_BOTH
-
+#option TEST_SM502_UART0
+option	USE_SM502_UART0

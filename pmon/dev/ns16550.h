@@ -41,7 +41,11 @@
 #if (!defined(__LANGUAGE_ASSEMBLY) && !defined(_LOCORE))
 
 #ifndef nsreg
+#ifndef USE_SM502_UART0
 #define nsreg(x)	unsigned char x
+#else
+#define	nsreg(x)	unsigned int  x
+#endif
 #endif
 
 typedef struct {

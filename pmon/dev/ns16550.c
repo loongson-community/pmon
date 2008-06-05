@@ -91,9 +91,11 @@ static int rates[] = {
 			break;
 	if (*p == 0)
 		return 1;
-
+#ifndef	USE_SM502_UART0
 	brtc = (freq) / (16*(baudrate));
-
+#else
+	brtc = (96000000)/(16*(19450));	
+#endif
 	outb(&dp->cfcr, CFCR_DLAB);
 	outb(&dp->data, brtc & 0xff);
 	outb(&dp->ier, brtc >> 8);

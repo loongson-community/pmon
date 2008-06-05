@@ -152,10 +152,12 @@ static void init_legacy_rtc(void);
 
 ConfigEntry	ConfigTable[] =
 {
-#ifndef HAVE_NB_SERIAL
-	 { (char *)COM1_BASE_ADDR, 0, ns16550, 256, CONS_BAUD, NS16550HZ/2 },
+#ifdef HAVE_NB_SERIAL
+	 { (char *)COM3_BASE_ADDR, 0, ns16550, 256, CONS_BAUD, NS16550HZ/2 },
+#elif	USE_SM502_UART0
+	{ (char *)0xb6030000, 0, ns16550, 256, CONS_BAUD, NS16550HZ/2 },
 #else
-	 { (char *)COM3_BASE_ADDR, 0, ns16550, 256, CONS_BAUD, NS16550HZ }, 
+	 { (char *)COM1_BASE_ADDR, 0, ns16550, 256, CONS_BAUD, NS16550HZ }, 
 #endif
 #if NMOD_VGACON >0
 #if NMOD_FRAMEBUFFER >0

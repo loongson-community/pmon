@@ -49,8 +49,8 @@
 #include "target/isapnpreg.h"
 #define DEBUG_LOCORE
 #define PCI_IDSEL_SM502 14
-#define MMIO		0x07000000
-#define MMIO_BASE  	0xb7000000
+#define MMIO		0x06000000
+#define MMIO_BASE  	0xb6000000
 
 
 #ifdef DEBUG_LOCORE
@@ -649,10 +649,16 @@ reginit:			/* local name */
 	nop
 	GPIOLED_SET(7)
 	
-
-	
-	
-	
+#ifdef TEST_SM502_UART0
+1:
+//	li	a0,0x55
+	li	a0,0x11
+	bal	tgt_putchar
+	nop
+	b	1b
+	nop
+		
+#endif
 	PRINTSTR("\r\nPMON2000 MIPS Initializing. Standby...\r\n")
 	PRINTSTR("ERRORPC=")
 	mfc0	a0, COP_0_ERROR_PC
@@ -705,7 +711,7 @@ gs_2f_v3_ddr2_cfg:
 	nop
 ddr2_config_done:
 	PRINTSTR("DDR2 config end\r\n")
-
+	
 
 
 #if 1 /* read ddr2 registers */
@@ -1223,14 +1229,16 @@ END(hexserial)
 LEAF(tgt_putchar)
 	.set noat
 	move AT,ra
-#if  ((PCI_IDSEL_VIA686B != 0)&& !defined(HAVE_NB_SERIAL))
-	la	v0, COM1_BASE_ADDR
-	bal 1f
-	nop
-#endif
+
 
 #ifdef HAVE_NB_SERIAL
 	la	v0, COM3_BASE_ADDR
+	bal 1f
+	nop
+#else
+#define	NSREG(x)    (x*4)
+#define	SM502_ADDR  0xb6030000
+	la	v0,SM502_ADDR
 	bal 1f
 	nop
 #endif
@@ -1271,16 +1279,21 @@ END(tgt_putchar)
 LEAF(initserial)
 	.set noat
 	move AT,ra
-#if  (PCI_IDSEL_VIA686B != 0)
-	la	v0, COM1_BASE_ADDR
- 	la	a0, NS16550HZ/2/(16*CONS_BAUD)
-	bal 1f
-	nop
-#endif
+
 
 #ifdef HAVE_NB_SERIAL
 	la	v0, COM3_BASE_ADDR
  	li	a0, NS16550HZ/(16*CONS_BAUD)
+	bal 1f
+	nop
+#else
+#define	SM502_ADDR  0xb6030000
+#define	NSREG(x)    (x*4)
+#define	SM502_UART_FRE	96000000
+	la	v0,SM502_ADDR
+//	li	a0,SM502_UART_FRE/(12*CONS_BAUD)
+//	li	a0,SM502_UART_FRE/(16*19450)
+	li	a0,0x134
 	bal 1f
 	nop
 #endif
@@ -1296,7 +1309,8 @@ LEAF(initserial)
 	sb	v1, NSREG(NS16550_IER)(v0)
 	li	v1, CFCR_8BITS
 	sb	v1, NSREG(NS16550_CFCR)(v0)
-	li	v1, MCR_DTR|MCR_RTS
+//	li	v1, MCR_DTR|MCR_RTS
+	li	v1, 0x0
 	sb	v1, NSREG(NS16550_MCR)(v0)
 	li	v1, 0x0
 	sb	v1, NSREG(NS16550_IER)(v0)
@@ -1609,11 +1623,14 @@ LEAF(superio_init)
 	PCICONF_WRITEW(PCI_IDSEL_SM502,0,0x14,MMIO);
 	PCICONF_WRITEW(PCI_IDSEL_SM502,0,4,7);
 //	PCICONF_WRITEW(PCI_IDSEL_SM502,0,0x40,0x2184f);
-	li 	a0,0x2184f
+	li 	a0,0x218cf
 	li	a1,(MMIO_BASE+0x40)
 	sw	a0,0(a1)
 	nop
-	
+	li 	a0,0x1e0
+	li	a1,0xb600000c
+	sw	a0,0(a1)
+	nop
 	
 	jr ra
 	nop

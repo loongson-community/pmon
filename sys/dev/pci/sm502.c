@@ -315,6 +315,7 @@ const SMI_REGS init_regs[] =
 {0x00080200,0x00013005},
 {0x00000004,0x00000001}, //0x00000001
 #endif
+
         {0, 0}
 };
 
@@ -533,6 +534,18 @@ static void SmiSetRegs (void)
 		preg ++;
 	}		
 #ifdef DEVBD2F_SM502
+#ifdef USE_SM502_UART0
+	{
+		unsigned int a,b;
+		a = *(unsigned int *)(0xb6000040);
+		a = a|(0xc0);
+		*(unsigned int *)(0xb6000040) = a;
+		b = *(unsigned int *)(0xb600000c);
+		b = b|(0x1e0);
+		*(unsigned int *)(0xb600000c) = b;
+		
+	}
+#endif
 if(getenv("sm502_rgb12"))
 write32(0x80000,0x0f413105); // bit22-21=10b: 12-bit RGB 4:4:4.
 #endif

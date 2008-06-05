@@ -1511,7 +1511,8 @@ LEAF(initserial)
 	sb	v1, NSREG(NS16550_IER)(v0)
 	li	v1, CFCR_8BITS
 	sb	v1, NSREG(NS16550_CFCR)(v0)
-	li	v1, MCR_DTR|MCR_RTS
+//	li	v1, MCR_DTR|MCR_RTS
+	li	v1, 0x0
 	sb	v1, NSREG(NS16550_MCR)(v0)
 	li	v1, 0x0
 	sb	v1, NSREG(NS16550_IER)(v0)
