@@ -80,7 +80,8 @@ option 	MY40IO
 select 		mod_framebuffer
 select		mod_smi502		# Silicon Motion502
 option		SMI502
-option		X640x480
+#option		X640x480
+option X800x480
 #option		X800x600
 #option		X1024x768
 #option		X1280x800

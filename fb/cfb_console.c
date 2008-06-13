@@ -726,6 +726,9 @@ static void console_scrollup (void)
 
 #if (defined(SMI502)||defined(SMI712))
     AutodeFillRectModify(CONSOLE_BG_COL);
+#ifdef X800x480
+	memsetl (CONSOLE_ROW_LAST, CONSOLE_ROW_SIZE >> 2, CONSOLE_BG_COL);
+#endif
 #endif
 
 #else
@@ -1279,6 +1282,8 @@ static int record = 1;
 //80*24
 #if defined(X640x480)
 char console_buffer[2][31][81]={32};//80*30->640x480
+#elif defined(X800x480)
+char console_buffer[2][37][101]={32};
 #elif defined(X800x600)
 char console_buffer[2][37][101]={32};
 #elif defined(X1024x768)
@@ -1411,6 +1416,9 @@ int fb_init (unsigned long fbbase,unsigned long iobase)
 #elif defined(X1024x768)
         pGD->winSizeX  = 1024;
         pGD->winSizeY  = 768;
+#elif defined(X800x480)
+        pGD->winSizeX  = 800;
+        pGD->winSizeY  = 480;
 #else
         pGD->winSizeX  = 640;
         pGD->winSizeY  = 480;

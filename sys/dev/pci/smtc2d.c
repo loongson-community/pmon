@@ -480,6 +480,16 @@ void AutodeInit()
 #if defined(CONFIG_VIDEO_32BPP)
         deInit(800,600,32);
 #endif
+#elif defined(X800x480)
+#if defined(CONFIG_VIDEO_8BPP)
+        deInit(800,480,8);
+#endif
+#if defined(CONFIG_VIDEO_16BPP)
+        deInit(800,480,16);
+#endif
+#if defined(CONFIG_VIDEO_32BPP)
+        deInit(800,480,32);
+#endif
 
 #else
 #if defined(CONFIG_VIDEO_8BPP)
@@ -505,6 +515,10 @@ void AutodeFillRectModify(int color)
 	deFillRectModify(0,0,600-16,800,600,color);
 #endif
 	
+#if defined(X800x480)	
+	deFillRectModify(0,0,480-16,800,480,color);
+#endif
+
 #if defined(X640x480)
 	deFillRectModify(0,0,480-16,640,480,color);
 #endif
@@ -517,6 +531,9 @@ void AutodeCopyModify(int bpp)
 #endif
 #if defined(X800x600)	
 	deCopyModify(bpp,0,800,0,16,0,800,0,0,800,600-16,0x0c);
+#endif
+#if defined(X800x480)	
+	deCopyModify(bpp,0,800,0,16,0,800,0,0,800,480-16,0x0c);
 #endif
 #if defined(X640x480)
 	deCopyModify(bpp,0,640,0,16,0,640,0,0,640,480-16,0x0c);
