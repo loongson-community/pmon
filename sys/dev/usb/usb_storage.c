@@ -1157,7 +1157,7 @@ int usb_storage_probe(struct usb_device *dev, unsigned int ifnum,struct us_data 
 	    !ss->ep_in || !ss->ep_out ||
 	    (ss->protocol == US_PR_CBI && ss->ep_int == 0)) {
 		USB_STOR_PRINTF("Problems with device\n");
-		return 0;
+		//return 0;
 	}
 	/* set class specific stuff */
 	/* We only handle certain protocols.  Currently, these are

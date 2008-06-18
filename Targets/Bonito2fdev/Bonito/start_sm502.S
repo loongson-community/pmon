@@ -1280,13 +1280,11 @@ LEAF(initserial)
 	.set noat
 	move AT,ra
 
-
-#ifdef HAVE_NB_SERIAL
 	la	v0, COM3_BASE_ADDR
  	li	a0, NS16550HZ/(16*CONS_BAUD)
 	bal 1f
 	nop
-#else
+#ifndef HAVE_NB_SERIAL
 #define	SM502_ADDR  0xb6030000
 #define	NSREG(x)    (x*4)
 #define	SM502_UART_FRE	96000000
