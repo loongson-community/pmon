@@ -258,10 +258,11 @@ tgt_devconfig()
 #endif
 
 #if NMOD_FRAMEBUFFER > 0
-	fbaddress=SD_LCD_BAR_BASE;
+		fbaddress=SD_LCD_BAR_BASE;
 		printf("begin fb_init\n");
 		fb_init(fbaddress, 0);
 		printf("after fb_init\n");
+		rc=1;
 #endif
 
 #if (NMOD_FRAMEBUFFER > 0) || (NMOD_VGACON > 0 )
@@ -331,7 +332,7 @@ tgt_devinit()
 #endif
 
 	if(have_pci)_pci_businit(1);	/* PCI bus initialization */
-	//init_lcd();
+	init_lcd();
    	 i2c_init();
 #if 0//def I2C_WRITE    
        	

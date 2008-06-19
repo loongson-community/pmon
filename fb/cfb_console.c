@@ -1438,7 +1438,8 @@ int fb_init (unsigned long fbbase,unsigned long iobase)
         pGD->gdfBytesPP= 2;
         pGD->gdfIndex  = GDF_16BIT_565RGB;
 #endif
-	pGD->frameAdrs = 0xb0000000 | fbbase;
+	if(fbbase<0x20000000) pGD->frameAdrs = 0xb0000000 | fbbase;
+	else pGD->frameAdrs = fbbase;
 
 	printf("cfb_console init,fb=%x\n",pGD->frameAdrs);
 

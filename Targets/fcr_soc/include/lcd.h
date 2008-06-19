@@ -38,3 +38,5 @@
 
 #define SD_LCD_BAR_BASE KSEG1(__SD_LCD_BAR_BASE)
 #define SD_LCD_BAR_BASE_2 KSEG1(SD_LCD_BAR_dum_BASE)
+extern unsigned char __SD_LCD_BAR_BASE[];
+extern unsigned char SD_LCD_BAR_dum_BASE[];
