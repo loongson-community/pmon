@@ -781,6 +781,8 @@ static int dc21x4x_init(struct eth_device* dev)
 	 */
 	rxRingSize = NUM_RX_DESC;
 	txRingSize = NUM_TX_DESC;
+	pci_sync_cache(dev, (vm_offset_t)_rx_ring, sizeof(_rx_ring), SYNC_R);
+	pci_sync_cache(dev, (vm_offset_t)_tx_ring, sizeof(_tx_ring), SYNC_R);
 	
 	rx_ring = (struct de4x5_desc *)(0xa0000000 | (unsigned long)_rx_ring);
 	tx_ring = (struct de4x5_desc *)(0xa0000000 | (unsigned long)_tx_ring);
