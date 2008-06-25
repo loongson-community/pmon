@@ -58,9 +58,6 @@ void PutPortraitChar(unsigned int ScreenX,unsigned int Line,unsigned char *Strin
  printf("%s\n",StringPointer);
 }
 
-unsigned char ReadBuffer[512];
-unsigned char WriteBuffer[512];
-
 unsigned int BlockSize;
 
 //*P_Watchdog_Clear=0x0001
@@ -205,7 +202,7 @@ unsigned int SD_Initiate_Card()//Polling the card after reset
 	return Response;
 }
 //********************************************
-unsigned int SD_Get_CardInfo()//Read CSD register
+unsigned int SD_Get_CardInfo(unsigned char *ReadBuffer)//Read CSD register
 {
 	unsigned int temp,Response,MaximumTimes;
 	MaximumTimes=10;
@@ -273,7 +270,7 @@ unsigned int SD_Overall_Initiation()
 //                  |___CMD0 Fail
 }
 //********************************************
-unsigned int SD_Get_CardID()//Read CID register
+unsigned int SD_Get_CardID(unsigned char *ReadBuffer)//Read CID register
 {
 	unsigned int temp,Response,MaximumTimes;
 	MaximumTimes=10;
@@ -308,7 +305,7 @@ unsigned int SD_Get_CardID()//Read CID register
 	return Response;
 }
 //********************************************
-unsigned int Read_Single_Block(unsigned long int ByteAddress)
+unsigned int Read_Single_Block(unsigned long int ByteAddress,unsigned char *ReadBuffer)
 {
 	unsigned int temp,Response,MaximumTimes;
 	MaximumTimes=10;
@@ -343,7 +340,7 @@ unsigned int Read_Single_Block(unsigned long int ByteAddress)
 	return Response;
 }
 //********************************************
-unsigned int Write_Single_Block(unsigned long int ByteAddress)
+unsigned int Write_Single_Block(unsigned long int ByteAddress,unsigned char *WriteBuffer)
 {
 	unsigned int temp,Response,MaximumTimes;
 	MaximumTimes=10;
@@ -403,11 +400,12 @@ GPIO23 cs
 int test_sdcard(int argc,char **argv)
 {
 char str[100];
+unsigned char ReadBuffer[16];
 	sdcard_init();
-	SD_Get_CardID();
+	SD_Get_CardID(ReadBuffer);
 	sprintf(str,"pcs 0;d1 0x%x 16 ",ReadBuffer);
 	do_cmd(str);
-	SD_Get_CardInfo();
+	SD_Get_CardInfo(ReadBuffer);
 	sprintf(str,"pcs 0;d1 0x%x 16 ",ReadBuffer);
 	do_cmd(str);
 	return 0;
@@ -435,6 +433,8 @@ init_cmd()
  *	/dev/sdcard
  */
 
+unsigned char cachedbuffer[512*16];
+unsigned int cachedaddr[16];
 static int
    sdcard_open (fd, fname, mode, perms)
    int	       fd;
@@ -446,6 +446,8 @@ static int
 	_file[fd].posn = 0;
 	_file[fd].data = 0;
 	sdcard_init();
+
+	memset(cachedaddr,-1,sizeof(cachedaddr));
 	
 	return (fd);
 }
@@ -465,14 +467,28 @@ static int
    void *buf;
    size_t n;
 {
-	int left=n;
-    while(left>=512)
-	{
-	Read_Single_Block(_file[fd].posn&~(512-1));
-	memcpy(buf+(n-left),ReadBuffer,min(512,left));
-	_file[fd].posn += min(512,left);
-	left -= min(512,left);
-	}
+	unsigned int pos=_file[fd].posn;
+	unsigned int left=n,once;
+
+        while(left)
+        {
+		unsigned int index=(pos>>9)&0xf;
+		unsigned int indexaddr=(pos>>9);
+		unsigned char *indexbuf;
+
+		indexbuf=&cachedbuffer[index*512];	
+		if(cachedaddr[index]!=indexaddr)
+          Read_Single_Block(pos&~511,indexbuf);
+		  cachedaddr[index]=indexaddr;
+
+        once=min(512 - (pos&511),left);
+        memcpy(buf,indexbuf+(pos&511),once);
+        buf+=once;
+        pos+=once;
+        left-=once;
+        }
+        _file[fd].posn=pos;
+
 	return (n);
 }
 
@@ -483,7 +499,28 @@ static int
    const void *buf;
    size_t n;
 {
+		unsigned int pos=_file[fd].posn;
+        unsigned long left = n;
+        unsigned long once;
 
+        while(left)
+        {
+		unsigned int index=(pos>>9)&0xf;
+		unsigned int indexaddr=(pos>>9);
+		unsigned char *indexbuf;
+		indexbuf=&cachedbuffer[index*512];	
+		if((cachedaddr[index]!=indexaddr)&&(pos&511))
+          Read_Single_Block(pos&~511,indexbuf);
+		  cachedaddr[index]=indexaddr;
+
+        once=min(512 - (pos&511),left);
+        memcpy(indexbuf+(pos&511),buf,once);
+        Write_Single_Block(pos&~511,indexbuf);
+        buf+=once;
+        pos+=once;
+        left-=once;
+        }
+        _file[fd].posn=pos;
 	return (n);
 }
 
@@ -536,6 +573,5 @@ static void
 	 * Install ram based file system.
 	 */
 	filefs_init(&sdcardfs);
-
 }
 #endif
