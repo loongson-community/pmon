@@ -432,9 +432,9 @@ init_cmd()
  * Supported paths:
  *	/dev/sdcard
  */
-
-unsigned char cachedbuffer[512*16];
-unsigned int cachedaddr[16];
+#define CACHEDSECTORS 16
+unsigned char cachedbuffer[512*CACHEDSECTORS];
+unsigned int cachedaddr[CACHEDSECTORS];
 static int
    sdcard_open (fd, fname, mode, perms)
    int	       fd;
@@ -472,7 +472,7 @@ static int
 
         while(left)
         {
-		unsigned int index=(pos>>9)&0xf;
+		unsigned int index=(pos>>9)&(CACHEDSECTORS-1);
 		unsigned int indexaddr=(pos>>9);
 		unsigned char *indexbuf;
 
@@ -505,7 +505,7 @@ static int
 
         while(left)
         {
-		unsigned int index=(pos>>9)&0xf;
+		unsigned int index=(pos>>9)&(CACHEDSECTORS-1);
 		unsigned int indexaddr=(pos>>9);
 		unsigned char *indexbuf;
 		indexbuf=&cachedbuffer[index*512];	

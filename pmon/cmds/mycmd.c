@@ -259,19 +259,24 @@ if(argc<3)return -1;
 	while(count--)
 	{
 	int rcount=0;
+	char *pnow=buf;
 #if NGZIP > 0
 	if(unzip) 
 		while(rcount<bs)
 		{
-		n=gz_read(fp0,buf,bs);
-		if(n<=0)break; else rcount+=n;
+		n=gz_read(fp0,pnow,bs);
+		if(n<=0)break; 
+		rcount+=n;
+		pnow+=n;
 		}
 	else
 #endif
 		while(rcount<bs)
 		{
-		n=read(fp0,buf,bs-rcount);
-		if(n<=0)break; else rcount+=n;
+		n=read(fp0,pnow,bs-rcount);
+		if(n<=0)break; 
+		rcount+=n;
+		pnow+=n;
 		}
 	nowcount+=rcount;
 	printf("\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\r%d",nowcount);
