@@ -655,6 +655,7 @@ _pci_setup_windows (struct pci_device *dev)
         next = pm->next;
         pm->address = _pci_allocate_mem (dev, pm->size);
         if (pm->address == -1) {
+			pd->disable=1;//will not enable this device in future;
             _pci_tagprintf (pd->pa.pa_tag, 
                             "not enough PCI mem space (%d requested)\n", 
                             pm->size);
@@ -691,7 +692,10 @@ _pci_setup_windows (struct pci_device *dev)
 
 	pd = pm->device;
 	if (PCI_ISCLASS(((pd->pa.pa_class)&0xff00ffff), PCI_CLASS_DISPLAY, PCI_SUBCLASS_DISPLAY_VGA)) 
+	{
 		vga_dev = pd;
+		pd->disable=0;
+	}
 #if 0
 	/*
 	 * If this is the first VGA card we find, set the BIOS rom
@@ -864,6 +868,8 @@ _pci_setup_devices (struct pci_device *parent, int initialise)
 
 	    if (pb->fast_b2b)
 		cmd |= PCI_COMMAND_BACKTOBACK_ENABLE;
+
+		if(pd->disable)cmd=0;
             _pci_conf_write(tag, PCI_COMMAND_STATUS_REG, cmd);
 
 	    ltim = pd->min_gnt * 33 / 4;
