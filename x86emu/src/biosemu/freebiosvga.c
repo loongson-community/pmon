@@ -63,6 +63,13 @@ int vga_bios_init(void)
 #ifdef BONITOEL
 		romaddress |= 0x10000000;
 #endif
+        
+#ifdef VGAROM_IN_BIOS
+                 {
+                  extern unsigned char vgarom[];
+		  romaddress=vgarom;
+       		}
+#endif
 		printf("Rom mapped to %lx\n",romaddress);
 
 		magic[0] = readb(romaddress);
@@ -110,7 +117,11 @@ int vga_bios_init(void)
 			return -1;
 		}
 		VGAInfo[0].BIOSImageLen = romsize;
-		memcpy(VGAInfo[0].BIOSImage,(char*)(0xa0000000|romaddress),romsize);
+#ifdef VGAROM_IN_BIOS
+		  memcpy(VGAInfo[0].BIOSImage,(char*)romaddress,romsize);
+#else		  
+		  memcpy(VGAInfo[0].BIOSImage,(char*)(0xa0000000|romaddress),romsize);
+#endif
 
     		BE_init(debugFlags,65536,&VGAInfo[0]);
 

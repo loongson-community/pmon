@@ -109,8 +109,8 @@ extern const char *kbd_error_msgs[];
 
 #if (NMOD_X86EMU_INT10 == 0)&&(NMOD_X86EMU == 0)
 int vga_available=0;
-#else
-//#include "vgarom.c"
+#elif defined(VGAROM_IN_BIOS)
+#include "vgarom.c"
 #endif
 
 extern unsigned char i2c_send_s(unsigned char slave_addr,unsigned char sub_addr,unsigned char * buf ,int count);

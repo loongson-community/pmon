@@ -2,7 +2,7 @@
 #
 machine         Bonito2fdev        mips    # CPU Architecture, Platform
 config          pmon 
-
+option          VGAROM_IN_BIOS
 #
 #  Define target endian
 #
