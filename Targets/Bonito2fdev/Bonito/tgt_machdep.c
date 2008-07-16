@@ -776,7 +776,7 @@ aa:
 			
                         while(CMOS_READ(DS_REG_CTLA) & DS_CTLA_UIP);
                         cur = CMOS_READ(DS_REG_SEC);
-                } while(timeout != 0 && ((cur == sec)||(cur !=(sec+1))));
+                } while(timeout != 0 && ((cur == sec)||(cur !=((sec+1)%60))));
 #ifdef DEVBD2F_SM502
                         cur = CMOS_READ(DS_REG_SEC);
                                                                                
