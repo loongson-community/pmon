@@ -1,4 +1,5 @@
 #define i2cread newi2cread
+	li	k1,0
 	li	msize,0
 	PRINTSTR("DIMM read\r\n")
 
@@ -462,5 +463,65 @@ LEAF(i2cread)
         nop
 END(i2cread)
 211:
+	beqz msize,212f
+	nop
+	move	a0,k1
+	
+	li	v0,0xaffffe70
+	lw	v1,0(v0)
+	nop
+	sll	a0,a0,16
+	li	t0,0xfff0ffff
+	and	v1,v1,t0
+	or	v1,v1,a0
+	sw	v1,0(v0)
+	nop
+	
+	bal 	hexserial
+	nop
+
+
+PRINTSTR("\r\n")
+PRINTSTR("cols rows:\r\n")
+	
+	//row addr numbers
+	li	v0,0xffffffff
+	and	a0,s6,v0
+	li	v0,15
+	subu	a0,v0,a0
+
+	//col addr numbers
+	dsrl	s6,s6,20
+	dsrl	s6,s6,12
+	li	v0,14
+	
+	move	a1,s6
+	subu	a1,v0,a1
+
+	sll	a1,a1,24
+	sll	a0,a0,8
+
+	li 	v0,0xaffffe50
+	lw	v1,0(v0)
+	nop
+	li	t0,0xf8fff8ff
+	and	v1,v1,t0
+	or	v1,v1,a0
+	or	v1,v1,a1
+	sw	v1,0(v0)
+	nop
+//	PRINTSTR("cols rows:\r\n")
+	move	a0,v1
+	bal	hexserial
+	nop
+	
+	PRINTSTR("\r\n")
+	b 213f
+	nop
+212:	
+.nodimm:
+	li	msize,0x10000000
+	PRINTSTR ("\r\nNo DIMM in all slots,use default configure\r\n")
+213:
 #undef i2cread
 ######################################################################################################
