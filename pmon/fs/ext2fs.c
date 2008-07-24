@@ -32,6 +32,7 @@ __u32 RAW_BLOCK_SIZE=1024;
 unsigned long SECTORS_PER_BLOCK=2;	
 unsigned long GROUPDESCS_PER_BLOCK=32;	
 unsigned long INODES_PER_GROUP=0;
+unsigned long EXT2_INODE_SIZE=128;
 off_t start_sec;
 #define EXT3_SUPER_MAGIC    0xEF53
 #define START_PARTION start_sec*512
@@ -81,6 +82,7 @@ static int read_super_block(int fd,int index)
 			}
 			ext2_sb=(struct ext2_super_block *)(diskbuf+1024);
 
+			EXT2_INODE_SIZE=ext2_sb->s_inode_size;
 			INODES_PER_GROUP = ext2_sb->s_inodes_per_group;
 			RAW_BLOCK_SIZE = BLOCK_1KB << ext2_sb->s_log_block_size;
 

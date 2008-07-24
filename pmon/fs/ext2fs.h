@@ -18,7 +18,6 @@ typedef signed short __s16;
 #define	EXT2_N_BLOCKS			(EXT2_TIND_BLOCK + 1)
 #define EXT2_NAME_LEN 255
 
-#define EXT2_INODE_SIZE 128
 enum {
 	EXT2_FT_UNKNOWN,
 	EXT2_FT_REG_FILE,
