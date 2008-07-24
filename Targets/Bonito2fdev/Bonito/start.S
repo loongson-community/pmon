@@ -763,6 +763,7 @@ skipdimm:
 	sw	t0,BONITO_BONPONCFG(bonito)
 
 	PRINTSTR("Init SDRAM Done!\r\n");
+	GPIOLED_SET(11)
 
 
 
