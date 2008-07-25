@@ -531,7 +531,7 @@ tgt_poweroff()
 
 	while(1);
 }
-#elif defined(DEVBD2F_SM502)
+#else
 void
 tgt_poweroff()
 {

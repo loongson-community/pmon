@@ -1,3 +1,4 @@
+export MKDEP=makedepend
 ifndef PMONCC
 CC=mips-elf-gcc -mips3
 else
