@@ -88,6 +88,17 @@ int ac97_config()
     ac97_reg_write(0x18,0x0808|(0x2<<16)|(0<<31));      //Master Vol.
     
     codec_wait(10);
+    ac97_reg_write(0x18,0x0808|(0x4<<16)|(0<<31));      //headphone Vol.
+    
+    codec_wait(10);
+
+    ac97_reg_write(0x18,0x0008|(0x6<<16)|(0<<31));      //headphone Vol.
+    
+    codec_wait(10);
+
+    ac97_reg_write(0x18,0x0008|(0xc<<16)|(0<<31));      //phone Vol.
+    
+    codec_wait(10);
      
     ac97_reg_write(0x18,0x0808|(0x18<<16)|(0<<31));     //PCM Out Vol.
     

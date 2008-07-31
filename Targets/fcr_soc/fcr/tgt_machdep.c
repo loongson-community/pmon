@@ -191,7 +191,7 @@ initmips(unsigned int memsz)
 	SBD_DISPLAY("BEV0",0);
 	
 	printf("BEV in SR set to zero.\n");
-	fcr_soc_nand_init();
+	//fcr_soc_nand_init();
 
 	
 	/*
@@ -452,7 +452,7 @@ _probe_frequencies()
         md_pipefreq = 300000000;        /* Defaults */
         md_cpufreq  = 66000000;
 #else
-        md_pipefreq = APB_CLK;        /* NB FPGA*/
+        md_pipefreq = CPU_CLK;        /* NB FPGA*/
         md_cpufreq  =  40000000;
 #endif
 
