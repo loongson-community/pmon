@@ -452,7 +452,7 @@ _probe_frequencies()
         md_pipefreq = 300000000;        /* Defaults */
         md_cpufreq  = 66000000;
 #else
-        md_pipefreq = 66700000;        /* NB FPGA*/
+        md_pipefreq = APB_CLK;        /* NB FPGA*/
         md_cpufreq  =  40000000;
 #endif
 

@@ -108,11 +108,11 @@ int ac97_config()
     
             codec_wait(10);
 
-            ac97_reg_write(0x18,0x8108|(0x0E<<16)|(0<<31));     //Mic vol .
+            ac97_reg_write(0x18,0x035f|(0x0E<<16)|(0<<31));     //Mic vol .
     
             codec_wait(10);
 
-            ac97_reg_write(0x18,0x0808|(0x1E<<16)|(0<<31));     //MIC Gain ADC.
+            ac97_reg_write(0x18,0x0f0f|(0x1E<<16)|(0<<31));     //MIC Gain ADC.
     
             codec_wait(10);
 
@@ -155,34 +155,22 @@ void dma_config(void)
     
 	char cmdbuf[100];
     int i;
-	if(argc!=2)return -1;
+	if(argc!=2 && argc!=1)return -1;
+	if(argc==2){
 	sprintf(cmdbuf,"load -o 0x%x -r %s",DMA_BUF|0xa0000000,argv[1]);
 	do_cmd(cmdbuf);
+	}
    
     ac97_rw=AC97_PLAY;
    
     init_audio_data();
     ac97_config();
-#if 0
-//write data from fifo
-    for (i=0;i<((BUF_SIZE)>>2);i++)
-    {
-        while (ac97_reg_read(0x5c)&)
-    }
-#endif     
     dma_config();
     
     printf("%d\n",dma_reg_read(0x8));
     printf("%d\n",dma_reg_read(0xc));
    
-    dma_setup_trans(DMA_BUF+0x20000,BUF_SIZE);
-//    udelay(1000); //1 ms
-//    dma_setup_trans(DMA_BUF+0x40000,BUF_SIZE);
-//    udelay(1000); //1 ms
-//    dma_setup_trans(DMA_BUF+0x60000,BUF_SIZE);
-//    udelay(1000); //1 ms
-//    dma_setup_trans(DMA_BUF+0x80000,BUF_SIZE);
-//    udelay(1000); //1 ms
+    dma_setup_trans(DMA_BUF,BUF_SIZE);
  
         
     printf("%d\n",dma_reg_read(0x8));
@@ -190,27 +178,12 @@ void dma_config(void)
 
     printf("play data on 0x%x,sz=0x%x\n",(DMA_BUF|0xa0000000),BUF_SIZE);
 
-    i=0;
-    for(i=0;i<10;i++)
-    {
-    //    if(i++>10) 
-    //    {
-    //         printf("\nBye.\n");
-    //        break;
-    //    }
         //1.wait a trans complete
         while(((dma_reg_read(0x2c))&0x1)==0)
 		idle();
-        printf(".");
         
         //2.clear int status  bit.
         dma_reg_write(0x2c,0x1);
-        
-        //3.load a dma desc
-        dma_setup_trans(DMA_BUF,BUF_SIZE);
-    printf("%d\n",dma_reg_read(0x8));
-    printf("%d\n",dma_reg_read(0xc));
-    }
 
 return 0;
  }
