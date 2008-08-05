@@ -1,9 +1,9 @@
 #define i2cread newi2cread
+	li	k0,0
 	li	k1,0
 	li	msize,0
 	PRINTSTR("DIMM read\r\n")
 
-	/* only one memory slot, slave address is 1010000b */
 	li  	a1, 0x0
     li      a0,0xa1
     bal     i2cread
@@ -50,7 +50,7 @@
 	b 211f
 	nop
 /*ic2 cfg
-* a0=0xa1 for slot 0,a0=0xa1 for slot 1
+* a0=0xa1 for slot 0,a0=0xa3 for slot 1
 * t5 used for save i2c addr a0,t6 save ra.
 */
 LEAF(ii2c_cfg)
@@ -278,26 +278,22 @@ LEAF(ii2c_cfg)
 
 #####################################################
 
-
-	/* Minimum Ras to Cas Delay (tRCD) 
-	move	a0,t5
-	bal 	i2cread
-	li	a1,29
-	or	*/
 45:
-2:	/* read DIMM number of blocks-per-ddrram */
-    move      a0,t5   /* #zgj-11-17 */
+2:
+    move      a0,t5 
 	li	a1,17
 	bal	i2cread
 	nop
-	beq	v0,2,2f
+	beq	v0,4,2f
 	nop
-	bne	v0,4,.nodimm1
+	bne	v0,8,.nodimm1
+	li	k0,1
 	nop
-	PRINTSTR("read blocks per ddrram\r\n");
+2:	
 
-2:	/* read DIMM number of sides (banks) */
-    move      a0,t5   /* #zgj-11-17 */
+	PRINTSTR("number of ranks ,package and height\r\n") ;
+	PRINTSTR("k1 to save cs_map filed valule\r\n") ;
+    move    a0,t5
 	li	a1,5
 	bal	i2cread
 	nop
@@ -314,6 +310,7 @@ LEAF(ii2c_cfg)
 	nop
 	ori	k1,k1,0x3
 	b	124f
+	nop
 
 123:	ori	k1,k1,0xc
 
@@ -321,7 +318,6 @@ LEAF(ii2c_cfg)
 	nop
 
 
-	PRINTSTR("number of ranks ,package and height\r\n") ;
 
 2:	bne	t5,0xa1,123f
 	nop
@@ -348,7 +344,8 @@ LEAF(ii2c_cfg)
 	nop
 	PRINTSTR("read width\r\n") ;
 2:
-   move      a0,t5
+	PRINTSTR("module rank density\r\n") ;
+   	move    a0,t5
    	li      a1,31
    	bal     i2cread
   	nop
@@ -361,35 +358,54 @@ LEAF(ii2c_cfg)
 	nop
 	beq	v0,0x20,3f
 	nop
-	beq	v0,0x1,4f
+	beq	v0,0x10,4f
+	nop	
+	beq	v0,0x08,5f
 	nop
-	li	tmpsize,2<<30
+	beq	v0,0x04,6f
+	nop
+	beq	v0,0x02,7f
+	nop	
+	li	tmpsize,1<<10
 	b	100f
 	nop
 
-4:	li	tmpsize,1<<30
+7:	li	tmpsize,2<<10
 	b	100f
 	nop
-3:	li	tmpsize,128<<20
+6:	li 	tmpsize,4<<10
+	b 	100f
+	nop
+5:	li      tmpsize,8<<10
 	b	100f
 	nop
-2:	li	tmpsize,256<<20
+4:	li	tmpsize,16<<10
 	b	100f
 	nop
-1:	li	tmpsize,512<<20
+3:	li	tmpsize,128
+	b	100f
+	nop
+2:	li	tmpsize,256
+	b	100f
+	nop
+1:	li	tmpsize,512
 
 ////////////////
 100:   	addu	msize,tmpsize
   
-   move      a0,t5 
+  
+	PRINTSTR("sizing slot memory size\r\n") ;
+   	move      a0,t5 
 	li	a1,5
 	bal	i2cread
 	nop
 	andi	v0,0x7
-	beq	v0,0,1f
+2:	beq	v0,0,1f
 	nop
 	addu	msize,tmpsize
-	b 1f
+	subu	v0,v0,1
+
+	b 2b
 	nop
 	
 .nodimm1:
@@ -482,6 +498,22 @@ END(i2cread)
 
 
 PRINTSTR("\r\n")
+PRINTSTR("config bank if bank 8\r\n")
+	li	v0,0xaffffe10
+	ld	v1,0(v0)
+	nop
+	move 	a0,v1
+	dsrl	a0,a0,32
+	or	a0,a0,k0
+	dsll	a0,a0,32
+	or	v1,a0,v1
+	sd	v1,0(v0)
+	nop
+	move	a0,v1
+	dsrl	a0,a0,32
+	bal	hexserial
+	nop
+
 PRINTSTR("cols rows:\r\n")
 	
 	//row addr numbers
@@ -516,6 +548,7 @@ PRINTSTR("cols rows:\r\n")
 	nop
 	
 	PRINTSTR("\r\n")
+	sll msize,20
 	b 213f
 	nop
 212:	
@@ -524,4 +557,3 @@ PRINTSTR("cols rows:\r\n")
 	PRINTSTR ("\r\nNo DIMM in all slots,use default configure\r\n")
 213:
 #undef i2cread
-######################################################################################################
