@@ -740,51 +740,6 @@ reginit:			/* local name */
 	 */
 	 
 ##################################################
-#if 0
-#include "i2c.S"
-	beqz msize,.nodimm
-	nop
-	b 2f
-	nop
-.nodimm:
-	move	dbg,a0
-	PRINTSTR ("\r\nNo DIMM in all slots,use default configure\r\n")
-//	li  msize,0x10000000
- 	//li	sdCfg,0x055043df         /* zgj-8-7-14-13 */
-2:
-	PRINTSTR("DIMM SIZE=")
-	move	a0,msize
-	bal	hexserial
-	nop
-	PRINTSTR("\r\n")
-
-	li	t0, 0xbff00008
-	sd	sdCfg, 0(t0)
-/*
-	#### gx 2006-03-17: mode ####
-	#li	t1,0x20
-	li	t1,0x28
-	li	t0, 0xbff00000
-	sw	t1,0(t0)
-	nop
-	li	t1,0x0
-	li	t0, 0xbff00000
-	sw	t1,0x30(t0)
-	nop
-
-	PRINTSTR("sdcfg=");
-	move	a0,sdCfg
-	bal	hexserial
-	nop
-	PRINTSTR("\r\n");
-	PRINTSTR("msize=");
-	move	a0,msize
-	bal	hexserial
-	nop
-	PRINTSTR("\r\n")
-*/
-#endif
-##############################################
 
 /* 
  * now, we just write ddr2 parameters directly. 
@@ -804,7 +759,6 @@ gs_2f_v3_ddr2_cfg:
         #or	a1, a1, 0x100
         sd	a1, 0x0(t2)
 	
-//	li	msize, 0x0f000000
 	PRINTSTR("DDR2 config begin...\r\n")
 	b	ddr2_config
 	nop
@@ -837,79 +791,6 @@ not_locked:
 		xor a1,0x600
         sw  a1,0x0(t2)
 #endif    
-
-    PRINTSTR("MEMORY TYPE AND SIZE PROBE.\r\n");
-	
-	/* set the default memory size : 256MB */
-	li	msize, 0x10000000;
-
-	/* read DIMM memory size per side */
-	li	a0, 0xa1;
-	li	a1, 31;
-	bal	i2cread;
-	nop;
-	beqz	v0, .nodimm;
-	nop;
-
-	move	k1,v0
-	move	a0,v0
-	bal	hexserial
-	nop
-	move	v0,k1
-	
-////////////////////
-	beq	v0,0x80,1f
-	nop
-	beq	v0,0x40,2f
-	nop
-	beq	v0,0x20,3f
-	nop
-	beq	v0,0x1,4f
-	nop
-	li	tmpsize,2<<30
-	b	100f
-	nop
-
-4:	li	tmpsize,1<<30
-	b	100f
-	nop
-3:	li	tmpsize,128<<20
-	b	100f
-	nop
-2:	li	tmpsize,256<<20
-	b	100f
-	nop
-1:	li	tmpsize,512<<20
-
-////////////////
-100:
-2:	/* read DIMM number of sides (banks) */
-	li	a0, 0xa1;
-	li	a1, 5
-	bal	i2cread
-	nop
-	andi	v0,0x7
-	sll	tmpsize, v0;
-	nop;
-
-	move	msize, tmpsize;
-        PRINTSTR("type : ddr2, size = 0x");
-	move	a0, msize;
-	srl	a0, 20;
-	bal	hexserial;
-	nop;
-	PRINTSTR("MB\r\n");
-	b	1f;
-	nop;
-	
-.nodimm :
-        PRINTSTR("No ddr2 type memory found.\r\n");
-	b	.;
-	nop;
-	
-1 :
-	nop;
-	
 
 // FOR rom access speed update.
 #if	1
@@ -2362,7 +2243,6 @@ END(i2cread)
     
 
         .global ddr2_config
-        .ent    ddr2_config
         .set    noreorder
         .set    mips3
 ddr2_config:
@@ -2410,6 +2290,8 @@ reg_write:
     bne     t1, $0, reg_write
     addiu     t2, t2, 0x10
 
+#include "i2ccfgddr.S"
+
 	bal tgt_testchar
 	nop
 	beqz v0,2f
@@ -2447,7 +2329,6 @@ reg_write:
 
     jr      ra
     nop
-    .end    ddr2_config
 
 
 

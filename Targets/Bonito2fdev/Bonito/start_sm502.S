@@ -1318,73 +1318,7 @@ LEAF(initserial)
 END(initserial)
 
 
-/* a0: slave address 
-   a1: reg off
-*/
-LEAF(i2cread)
-        /* set device address */
-        li  v0, 0xbfd00000 + SMBUS_HOST_ADDRESS
-
-        sb  a0, 0(v0);
-
-        /* store register offset */
-        li  v0, 0xbfd00000 + SMBUS_HOST_COMMAND
-        sb  a1, 0(v0);
-
-        /* read byte data protocol */
-        li  v0, 0x08
-        li  v1, 0xbfd00000 + SMBUS_HOST_CONTROL
-        sb  v0, 0(v1);
-
-        /* make sure SMB host ready to start, important!--zfx */
-        li  v1, 0xbfd00000 + SMBUS_HOST_STATUS
-        lbu v0, 0(v1)
-        andi v0,v0, 0x1f
-        beqz  v0,1f
-        nop
-        sb  v0, 0(v1)
-        lbu v0, 0(v1)   #flush the write
-1:
-
-        /* start */
-        li  v1, 0xbfd00000 + SMBUS_HOST_CONTROL
-        lbu v0, 0(v1)
-        ori v0, v0, 0x40
-        sb  v0, 0(v1);
-
-        /* wait */
-        li  v1, 0xbfd00000 + SMBUS_HOST_STATUS
-1:
-
-#if 0
-        /* delay */
-        li a0, 0x1000
-2:
-        bnez    a0,2b
-        addiu   a0, -1
-#endif
-
-        lbu  v0, 0(v1)
-        andi v0, SMBUS_HOST_STATUS_BUSY
-        bnez  v0, 1b  #IDEL ?
-        nop
-
-        li  v1, 0xbfd00000 + SMBUS_HOST_STATUS
-        lbu v0, 0(v1)
-        andi v0,v0, 0x1f
-        beqz  v0,1f
-        nop
-        sb  v0, 0(v1)   #reset
-        lbu v0, 0(v1)   #flush the write
-1:
-
-        li  v1, 0xbfd00000 + SMBUS_HOST_DATA0
-        lbu  v0, 0(v1)
-
-        jr      ra
-        nop
-END(i2cread)
-
+#include "i2c_sm502.S"
 __main:
 	j	ra
 	nop
@@ -1676,63 +1610,13 @@ reg_write:
 	 */
 i2c_test:
 	li	k1,0
-#include "i2c_sm502.S"
+#include "i2ccfgddr.S"
 	beqz msize,i2c_test
 	nop
 	PRINTSTR("DIMM SIZE=")
 	move	a0,msize
 	bal	hexserial
 	nop
-	PRINTSTR("\r\n")
-
-	move	a0,k1
-
-	li	v0,0xaffffe70
-	lw	v1,0(v0)
-	nop
-	sll	a0,a0,16
-	li	t0,0xfff0ffff
-	and	v1,v1,t0
-	or	v1,v1,a0
-	sw	v1,0(v0)
-	nop
-	
-	bal 	hexserial
-	nop
-
-
-PRINTSTR("cols rows:\r\n")
-	
-	//row addr numbers
-	li	v0,0xffffffff
-	and	a0,s6,v0
-	li	v0,15
-	subu	a0,v0,a0
-
-	//col addr numbers
-	dsrl	s6,s6,20
-	dsrl	s6,s6,12
-	li	v0,14
-	
-	move	a1,s6
-	subu	a1,v0,a1
-
-	sll	a1,a1,24
-	sll	a0,a0,8
-
-	li 	v0,0xaffffe50
-	lw	v1,0(v0)
-	nop
-	li	t0,0xf8fff8ff
-	and	v1,v1,t0
-	or	v1,v1,a0
-	or	v1,v1,a1
-	sw	v1,0(v0)
-	nop
-	move	a0,v1
-	bal	hexserial
-	nop
-	
 	PRINTSTR("\r\n")
 2:	
 /////////////////

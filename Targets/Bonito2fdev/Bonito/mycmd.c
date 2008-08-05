@@ -691,10 +691,10 @@ void i2c_test()
 {
 	unsigned int  rst,suc,my,my0;
 	asm volatile(
-		".extern newi2cread \t\n"	\
+		".extern i2cread \t\n"	\
 		"li	$4,0xa0 \t\n"		\
 		"li	$5,0x0 \t\n"		\
-		"jal	newi2cread \t\n"	\
+		"jal	i2cread \t\n"	\
 		"nop	\t\n"			\
 		"move	%0,$2 \t\n"		\
 		"move	%1,$3 \t\n"
@@ -706,10 +706,10 @@ void i2c_test()
 
 
 	asm volatile(
-		".extern newi2cread \t\n"	\
+		".extern i2cread \t\n"	\
 		"li	$4,0xa0 \t\n"		\
 		"li	$5,0x7 \t\n"		\
-		"jal	newi2cread \t\n"	\
+		"jal	i2cread \t\n"	\
 		"nop	\t\n"			\
 		"move	%0,$2 \t\n"		\
 		"move	%1,$3 \t\n"
@@ -720,10 +720,10 @@ void i2c_test()
 	printf("rst  %x suc %x \n",rst,suc);
 
 	asm volatile(
-		".extern newi2cread \t\n"	\
+		".extern i2cread \t\n"	\
 		"li	$4,0xa0 \t\n"		\
 		"li	$5,0x8 \t\n"		\
-		"jal	newi2cread \t\n"	\
+		"jal	i2cread \t\n"	\
 		"nop	\t\n"			\
 		"move	%0,$2 \t\n"		\
 		"move	%1,$3 \t\n"
