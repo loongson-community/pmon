@@ -137,6 +137,12 @@ ext_map_and_reboot:
 	nop
 
 /*
+ *  Exception vectors here for rom, before we are up and running. Catch
+ *  whatever comes up before we have a fully fledged exception handler.
+ */
+	.align	9			/* bfc00200 */
+	la	a0, v200_msg
+	bal	stringserial
 	nop
 	b	exc_common
 
