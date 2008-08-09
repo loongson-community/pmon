@@ -312,7 +312,11 @@ do_caches:
 bootnow:
 	TTYDBG("Copy PMON to execute location...\r\n")
 	la	a0, start
+#ifdef BOOT_FORM_JTAG
+	li	a1, 0xff2f0200
+#else
 	li	a1, 0xbfc00000
+#endif
 	la	a2, _edata
         or      a0, 0xa0000000
         or      a2, 0xa0000000

@@ -7,7 +7,12 @@ endif
 GZROMSTARTADDR?=0xffffffff81000000
 ROMSTARTADDR?=0xffffffff80010000
 RAMSTARTADDR?=0xffffffff88000000
+GZROMSTARTADDR_EJTAG?=0xffffffff81000200
 export CC += ${MYCC}
+
+ifeq ($(tgt),ejtag_ram)
+ROMSTARTADDR?=0xffffffffff200200
+endif
 
 ifdef obj
 export CC += -g3
@@ -38,6 +43,15 @@ ram: clean startram.o zloader.o
 	mips-elf-ld -T ld.script -e start -o gzram startram.o zloader.o 
 	cp gzram /tftpboot
 #	sync
+ejtag_rom: clean ${START} zloader.o 
+	gcc -DSTARTADDR=${GZROMSTARTADDR_EJTAG} -E -P ld.script.S > ld.script
+	mips-elf-ld -T ld.script -e start -o gzrom ${START} zloader.o 
+	mips-elf-objcopy -O binary gzrom gzrom.bin
+
+ejtag_ram: clean ${START} zloader.o 
+	gcc -DSTARTADDR=${GZROMSTARTADDR_EJTAG} -E -P ld.script.S > ld.script
+	mips-elf-ld -T ld.script -e start -o gzrom ${START} zloader.o 
+	mips-elf-objcopy -O binary gzrom gzrom.bin
 
 zlib_rom: clean ${START} zlib_loader.o 
 	gcc -DSTARTADDR=${GZROMSTARTADDR} -E -P ld.script.S > ld.script
