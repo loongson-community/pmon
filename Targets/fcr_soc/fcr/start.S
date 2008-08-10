@@ -310,7 +310,37 @@ do_caches:
 
 #include "newtest.32/mydebug.S"
 bootnow:
-	TTYDBG("Copy PMON to execute location...\r\n")
+#define	FCALL_PRINTSTR(x) \
+	.rdata;98: .asciz x; .text; la a0, 98b; la v0, stringserial; addu v0,s0;jalr v0; nop	
+#define BAL(x) \
+	la v0,x; \
+	add v0,s8; \
+	jalr v0; \
+	nop;
+
+/*copy copy program to sdram to make copy fast*/
+
+	la t0,121f
+	addu t0,s0
+	la t1,122f
+	addu t1,s0
+	
+	li t2,0xa0000000
+1:
+	lw  v0,(t0)
+	sw v0,(t2)
+	addu t0,4
+	addu t2,4
+	ble t0,t1,1b
+	nop
+
+	li t0,0xa0000000
+   	jr t0	
+	nop		
+
+.align 3
+121: 
+	FCALL_PRINTSTR("Copy PMON to execute location...\r\n")
 	la	a0, start
 #ifdef BOOT_FORM_JTAG
 	li	a1, 0xff2f0200
@@ -333,10 +363,10 @@ bootnow:
 	bnez	t3,2f
 	nop
 	move	a0,t0
-	bal	hexserial
+	BAL	hexserial
 	nop
 	li	a0,'\r'
-	bal 	tgt_putchar
+	BAL 	tgt_putchar
 	nop
 2:	lw	t3, 0(t1)
 	nop
@@ -346,7 +376,7 @@ bootnow:
 	bne	t2, t0, 1b
 	nop
 
-	PRINTSTR("\ncopy text section done.\r\n")
+	FCALL_PRINTSTR("\ncopy text section done.\r\n")
 	
 	/* Clear BSS */
 	la	a0, _edata
@@ -356,10 +386,10 @@ bootnow:
 	addu	a0, 4
 
 
-	TTYDBG("Copy PMON to execute location done.\r\n")
-	TTYDBG("sp=");
+	FCALL_PRINTSTR("Copy PMON to execute location done.\r\n")
+	FCALL_PRINTSTR("sp=");
 	move a0, sp
-	bal	hexserial
+	BAL	hexserial
 	nop
 
 	li	a0, 0
@@ -369,16 +399,13 @@ bootnow:
 	move	a0,msize
 	srl	a0,20
 
-    /* pass pointer to kseg1 tgt_putchar */
-    la  a1, tgt_putchar
-	addu a1,a1,s0
-
-    la  a2, stringserial
-	addu a2,a2,s0
 
 	la	v0, initmips
 	jalr	v0
 	nop
+
+.align 3
+122:
 stuck:
 	b	stuck
 	nop
