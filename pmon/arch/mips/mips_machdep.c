@@ -241,12 +241,18 @@ void
 delay(microseconds)
 	int microseconds;
 {
-	int total, start;
+	int total, start ,start1;
 #if 1
 	start = CPU_GetCOUNT();
+	start1 = CPU_GetCOUNT();
+	if(start!=start1)
+	{
 	total = microseconds * clkperusec;
-
 	while(total > (CPU_GetCOUNT() - start));
+	}
+	else
+	 for(start1=0;start1<microseconds;start1++)
+	 *(volatile char *)0xbfc00000;
 #else
 	total = microseconds * 200;
 	loopNinstr(total);

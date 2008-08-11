@@ -11,7 +11,7 @@ GZROMSTARTADDR_EJTAG?=0xffffffff81000200
 export CC += ${MYCC}
 
 ifeq ($(tgt),ejtag_ram)
-ROMSTARTADDR?=0xffffffffff200200
+ROMSTARTADDR=0xffffffffff200200
 endif
 
 ifdef obj
@@ -97,6 +97,14 @@ pmon.bin.c:  ../Targets/${TARGET}/compile/${TARGETEL}/pmon.bin
 endif
 
 ifeq ("${tgt}","rom")
+gencode=./genrom
+endif
+
+ifeq ("${tgt}","ejtag_rom")
+gencode=./genrom
+endif
+
+ifeq ("${tgt}","ejtag_ram")
 gencode=./genrom
 endif
 

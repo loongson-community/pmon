@@ -70,9 +70,9 @@ select		cmd_shell		# Shell commands, vers, help, eval
 # Platform options
 #
 select		mod_uart_ns16550	# Standard UART driver
-option		APB_CLK=100000000
-option		CPU_CLK=200000000
-option		CONS_BAUD=B115200
+option		APB_CLK=80000000
+option		CPU_CLK=250000000
+option		CONS_BAUD=B57600
 select		ext2
 #select		fatfs
 #select		mod_x86emu		# X86 emulation for VGA
@@ -182,3 +182,4 @@ select loop
 option VGA_MEM_BASE=0xb7f00000
 option		X640x480
 option 		CONFIG_VIDEO_16BPP
+option BOOT_FORM_JTAG

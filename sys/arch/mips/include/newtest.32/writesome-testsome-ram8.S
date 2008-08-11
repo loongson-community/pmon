@@ -64,15 +64,15 @@
 	
 
 #define	MYDBG(x) \
-	.rdata;98: .asciz x; .text; la a0, 98b; addu a0,s8; la v0, stringserial; addu v0,s8;jalr v0; nop	
+	.rdata;98: .asciz x; .text; la a0, 98b; addu a0,s0; la v0, stringserial; addu v0,s0;jalr v0; nop	
 #define NEWADDR 0x80000000
 
 
     PRINTSTR("copy to ram now.\r\n");
 	la t0,testmem0_start
-	addu t0,s8
+	addu t0,s0
 	la t1,testmem0_end
-	addu t1,s8
+	addu t1,s0
 	
 	li t2,NEWADDR
 	or t2,0xa0000000
@@ -87,9 +87,9 @@
     PRINTSTR("copy down now\r\n");
 	move errorall,zero
 	la tmpaddr,testmem0_start
-	addu tmpaddr,s8
+	addu tmpaddr,s0
 	la tmp1addr,testmem0_end
-	addu tmp1addr,s8
+	addu tmp1addr,s0
 	
 	li curaddr,NEWADDR
 	or curaddr,0xa0000000
@@ -140,7 +140,7 @@ testmem0_start:
 
 	move a0,curaddr
 	la  v0,hexserial
-	add v0,s8
+	add v0,s0
 	jalr v0; 
 	nop; 
 	MYDBG("\r");
@@ -159,21 +159,21 @@ testmem0_start:
 	MYDBG("\r\nMemory test failed at ");
 	move	a0,	curaddr
 	la v0,hexserial
-	add v0,s8
+	add v0,s0
 	jalr v0
 	nop
 	MYDBG("\r\nWrite=");
 	move	a0, writedata
 	li a1,I_WIDTH*2
 	la v0,Hexserial
-	add v0,s8
+	add v0,s0
 	jalr v0
 	nop
 	MYDBG("\r\nRead =");
 	move	a0, readdata
 	li a1,I_WIDTH*2
 	la v0,Hexserial
-	add v0,s8
+	add v0,s0
 	jalr v0
 	nop
 	MYDBG("\r\nxor =");
@@ -181,14 +181,14 @@ testmem0_start:
 	or errorall,a0
 	li a1,I_WIDTH*2
 	la v0,Hexserial
-	add v0,s8
+	add v0,s0
 	jalr v0
 	nop
 	MYDBG("\r\nallerror =");
 	move a0,errorall
 	li a1,I_WIDTH*2
 	la v0,Hexserial
-	add v0,s8
+	add v0,s0
 	jalr v0
 	nop
 	jr t6

@@ -56,7 +56,7 @@
 #define	MYDBG(x) PRINTSTR(x)
 #define NEWADDR 0x80000000
 
-	move a0,s8
+	move a0,s0
 	bal hexserial
 	nop
 	PRINTSTR("\r\n");
@@ -68,9 +68,9 @@
 	PRINTSTR("\r\n");
 
 	la t0,testmem0_start
-	addu t0,s8
+	addu t0,s0
 	la t1,testmem0_end
-	addu t1,s8
+	addu t1,s0
 	li t2,NEWADDR
 	or t2,0xa0000000
 1:
@@ -107,7 +107,7 @@ testmem0_start:
 	nop;
 	li	a0, '.'; 
 	la  v0,tgt_putchar
-	add v0,s8
+	addu v0,s0
 	jalr v0; 
 	nop; 
 22:
@@ -125,32 +125,32 @@ testmem0_start:
 	MYDBG("\r\nMemory test failed at ");
 	move	a0,	curaddr
 	la v0,hexserial
-	add v0,s8
+	addu v0,s0
 	jalr v0
 	nop
 	MYDBG("\r\nWrite=");
 	move	a0, writedata
 	la v0,hexserial
-	add v0,s8
+	addu v0,s0
 	jalr v0
 	nop
 	MYDBG("\r\nRead =");
 	move	a0, readdata
 	la v0,hexserial
-	add v0,s8
+	addu v0,s0
 	jalr v0
 	nop
 	MYDBG("\r\nxor =");
 	xor a0,writedata,readdata
 	or errorall,a0
 	la v0,hexserial
-	add v0,s8
+	addu v0,s0
 	jalr v0
 	nop
 	MYDBG("\r\nallerror =");
 	move a0,errorall
 	la v0,hexserial
-	add v0,s8
+	addu v0,s0
 	jalr v0
 	nop
 	jr t6

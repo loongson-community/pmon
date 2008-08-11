@@ -28,15 +28,15 @@
 
 #undef MYDBG
 #define	MYDBG(x) \
-	.rdata;98: .asciz x; .text; la a0, 98b; addu a0,s8; la v0, stringserial; addu v0,s8;jalr v0; nop	
+	.rdata;98: .asciz x; .text; la a0, 98b; addu a0,s0; la v0, stringserial; addu v0,s0;jalr v0; nop	
 #define NEWADDR 0x80000000
 
 
 	MYDBG("begin copy\r\n")
 	la t0,121f
-	addu t0,s8
+	addu t0,s0
 	la t1,122f
-	addu t1,s8
+	addu t1,s0
 	
 	li t2,NEWADDR
 	or t2,0xa0000000
@@ -51,9 +51,9 @@
 	move errorall,zero
 
 	la tmpaddr,121f
-	addu tmpaddr,s8
+	addu tmpaddr,s0
 	la tmp1addr,122f
-	addu tmp1addr,s8
+	addu tmp1addr,s0
 
 	li curaddr,NEWADDR
 	or curaddr,0xa0000000
@@ -88,7 +88,7 @@
 
 #define BAL(x) \
 	la v0,x; \
-	add v0,s8; \
+	addu v0,s0; \
 	jalr v0; \
 	nop;
 

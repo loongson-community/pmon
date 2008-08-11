@@ -312,11 +312,17 @@ do_caches:
 bootnow:
 #define	FCALL_PRINTSTR(x) \
 	.rdata;98: .asciz x; .text; la a0, 98b; la v0, stringserial; addu v0,s0;jalr v0; nop	
+
+#undef BAL
 #define BAL(x) \
 	la v0,x; \
-	add v0,s8; \
+	addu v0,s0; \
 	jalr v0; \
 	nop;
+
+
+
+
 
 /*copy copy program to sdram to make copy fast*/
 
@@ -343,7 +349,7 @@ bootnow:
 	FCALL_PRINTSTR("Copy PMON to execute location...\r\n")
 	la	a0, start
 #ifdef BOOT_FORM_JTAG
-	li	a1, 0xff2f0200
+	li	a1, 0xff200200
 #else
 	li	a1, 0xbfc00000
 #endif
@@ -363,10 +369,10 @@ bootnow:
 	bnez	t3,2f
 	nop
 	move	a0,t0
-	BAL	hexserial
+	BAL(hexserial)
 	nop
 	li	a0,'\r'
-	BAL 	tgt_putchar
+	BAL(tgt_putchar)
 	nop
 2:	lw	t3, 0(t1)
 	nop
@@ -389,7 +395,7 @@ bootnow:
 	FCALL_PRINTSTR("Copy PMON to execute location done.\r\n")
 	FCALL_PRINTSTR("sp=");
 	move a0, sp
-	BAL	hexserial
+	BAL(hexserial)
 	nop
 
 	li	a0, 0

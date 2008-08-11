@@ -68,9 +68,9 @@
 
 
 	la t0,testmem1_start
-	addu t0,s8
+	addu t0,s0
 	la t1,testmem1_end
-	addu t1,s8
+	addu t1,s0
 	
 	li t2,NEWADDR
 	or t2,0xa0000000
@@ -84,9 +84,9 @@
 
 	move errorall,zero
 	la tmpaddr,testmem1_start
-	addu tmpaddr,s8
+	addu tmpaddr,s0
 	la tmp1addr,testmem1_end
-	addu tmp1addr,s8
+	addu tmp1addr,s0
 	
 	li curaddr,NEWADDR
 	or curaddr,0xa0000000
@@ -134,7 +134,7 @@ testmem1_start:
 
 	move a0,curaddr
 	la  v0,hexserial
-	add v0,s8
+	add v0,s0
 	jalr v0; 
 	nop; 
 	MYDBG("\r");
@@ -153,21 +153,21 @@ testmem1_start:
 	MYDBG("\r\nMemory test failed at ");
 	move	a0,	curaddr
 	la v0,hexserial
-	add v0,s8
+	add v0,s0
 	jalr v0
 	nop
 	MYDBG("\r\nWrite=");
 	move	a0, writedata
 	li a1,I_WIDTH*2
 	la v0,Hexserial
-	add v0,s8
+	add v0,s0
 	jalr v0
 	nop
 	MYDBG("\r\nRead =");
 	move	a0, readdata
 	li a1,I_WIDTH*2
 	la v0,Hexserial
-	add v0,s8
+	add v0,s0
 	jalr v0
 	nop
 	MYDBG("\r\nxor =");
@@ -175,14 +175,14 @@ testmem1_start:
 	or errorall,a0
 	li a1,I_WIDTH*2
 	la v0,Hexserial
-	add v0,s8
+	add v0,s0
 	jalr v0
 	nop
 	MYDBG("\r\nallerror =");
 	move a0,errorall
 	li a1,I_WIDTH*2
 	la v0,Hexserial
-	add v0,s8
+	add v0,s0
 	jalr v0
 	nop
 	jr t6
