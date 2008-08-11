@@ -10,9 +10,31 @@ RAMSTARTADDR?=0xffffffff88000000
 GZROMSTARTADDR_EJTAG?=0xffffffff81000200
 export CC += ${MYCC}
 
-ifeq ($(tgt),ejtag_ram)
-ROMSTARTADDR=0xffffffffff200200
+ifeq ("${tgt}","rom")
+gencode=./genrom
 endif
+
+ifeq ("${tgt}","zlib_rom")
+gencode=./genrom
+endif
+
+
+ifeq ("${tgt}","ejtag_rom")
+gencode=./genrom_ejtag
+CC += -DBOOT_FORM_JTAG
+endif
+
+ifeq ("${tgt}","ejtag_rom1")
+gencode=./genrom
+CC += -DBOOT_FORM_JTAG
+endif
+
+ifeq ("${tgt}","ejtag_ram")
+gencode=./genrom
+ROMSTARTADDR=0xffffffffff200200
+CC += -DBOOT_FORM_JTAG
+endif
+
 
 ifdef obj
 export CC += -g3
@@ -44,6 +66,11 @@ ram: clean startram.o zloader.o
 	cp gzram /tftpboot
 #	sync
 ejtag_rom: clean ${START} zloader.o 
+	gcc -DSTARTADDR=${GZROMSTARTADDR_EJTAG} -E -P ld.script.S > ld.script
+	mips-elf-ld -T ld.script -e start -o gzrom ${START} zloader.o 
+	mips-elf-objcopy -O binary gzrom gzrom.bin
+
+ejtag_rom1: clean ${START} zloader.o 
 	gcc -DSTARTADDR=${GZROMSTARTADDR_EJTAG} -E -P ld.script.S > ld.script
 	mips-elf-ld -T ld.script -e start -o gzrom ${START} zloader.o 
 	mips-elf-objcopy -O binary gzrom gzrom.bin
@@ -94,22 +121,6 @@ pmon.bin.c:  ../Targets/${TARGET}/compile/${TARGETEL}/pmon.bin
 	gzip $< -c > pmon.bin.gz
 	./bin2c pmon.bin.gz pmon.bin.c biosdata
 
-endif
-
-ifeq ("${tgt}","rom")
-gencode=./genrom
-endif
-
-ifeq ("${tgt}","ejtag_rom")
-gencode=./genrom
-endif
-
-ifeq ("${tgt}","ejtag_ram")
-gencode=./genrom
-endif
-
-ifeq ("${tgt}","zlib_rom")
-gencode=./genrom
 endif
 
 
