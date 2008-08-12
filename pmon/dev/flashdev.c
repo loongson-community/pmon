@@ -95,6 +95,8 @@ struct fl_device fl_known_dev[] = {
 	512*__KB, 64*__KB,  NULL, &fl_func_amd},
 	{ "ST29F040",	0x20, 0xe2, FL_PROTO_AMD, FL_CAP_DE,
 	512*__KB, 64*__KB,  NULL, &fl_func_amd },
+	{ "EN29F040",	0x7f, 0x00, FL_PROTO_AMD, FL_CAP_DE,
+	512*__KB, 64*__KB,  NULL, &fl_func_amd },
 #endif /* NMOD_FLASH_AMD */
 #if NMOD_FLASH_INTEL > 0
 	{ "i28F016SA",	0x89, 0xa0, FL_PROTO_INT, FL_CAP_A7,

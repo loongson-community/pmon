@@ -95,3 +95,6 @@ device  rtk: ether, ifnet
 attach  rtk at pci
 file    sys/dev/pci/rtl8169.c         rtk
 
+device  ste: ether, ifnet
+attach  ste at pci
+file    sys/dev/pci/sundance.c         ste
