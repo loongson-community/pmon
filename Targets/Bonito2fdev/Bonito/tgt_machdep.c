@@ -311,13 +311,13 @@ ppns16550 (int op, struct DevEntry *dev, unsigned long param, int data)
 ConfigEntry	ConfigTable[] =
 {
 #ifdef HAVE_NB_SERIAL
-	 { (char *)COM3_BASE_ADDR, 0, ns16550, 256, CONS_BAUD, NS16550HZ/2 },
+	 { (char *)COM3_BASE_ADDR, 0, ns16550, 256, CONS_BAUD, NS16550HZ },
 #elif defined(USE_SM502_UART0)
 	{ (char *)0xb6030000, 0, ns16550, 256, CONS_BAUD, NS16550HZ/2 },
 #elif defined(USE_GPIO_SERIAL)
 	 { (char *)COM1_BASE_ADDR, 0,ppns16550, 256, CONS_BAUD, NS16550HZ }, 
 #else
-	 { (char *)COM1_BASE_ADDR, 0, ns16550, 256, CONS_BAUD, NS16550HZ }, 
+	 { (char *)COM1_BASE_ADDR, 0, ns16550, 256, CONS_BAUD, NS16550HZ/2 }, 
 #endif
 #if NMOD_VGACON >0
 #if NMOD_FRAMEBUFFER >0
