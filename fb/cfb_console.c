@@ -102,6 +102,9 @@ CONFIG_VIDEO_HW_CURSOR:	     - Uses the hardware cursor capability of the
 #include <stdlib.h>
 #include <stdarg.h>
 #include <pmon.h>
+#include <cpu.h>
+#include <target/types.h>
+#include <dev/pci/pcivar.h>
 
 #ifdef RADEON7000
 //#define VIDEO_FB_LITTLE_ENDIAN
@@ -257,9 +260,20 @@ void	console_cursor (int state);
 
 #define VIDEO_COLS		VIDEO_VISIBLE_COLS
 #define VIDEO_ROWS		VIDEO_VISIBLE_ROWS
+#ifdef  CONFIG_VIDEO_1BPP       
+#define VIDEO_SIZE              (VIDEO_ROWS*VIDEO_COLS*VIDEO_PIXEL_SIZE/8)
+#define VIDEO_LINE_LEN		(VIDEO_COLS*VIDEO_PIXEL_SIZE/8)
+#elif   CONFIG_VIDEO_2BPP
+#define VIDEO_SIZE              (VIDEO_ROWS*VIDEO_COLS*VIDEO_PIXEL_SIZE/4)
+#define VIDEO_LINE_LEN		(VIDEO_COLS*VIDEO_PIXEL_SIZE/4)
+#elif   CONFIG_VIDEO_4BPP
+#define VIDEO_SIZE              (VIDEO_ROWS*VIDEO_COLS*VIDEO_PIXEL_SIZE/2)
+#define VIDEO_LINE_LEN		(VIDEO_COLS*VIDEO_PIXEL_SIZE/2)
+#else
 #define VIDEO_SIZE		(VIDEO_ROWS*VIDEO_COLS*VIDEO_PIXEL_SIZE)
-#define VIDEO_PIX_BLOCKS	(VIDEO_SIZE >> 2)
 #define VIDEO_LINE_LEN		(VIDEO_COLS*VIDEO_PIXEL_SIZE)
+#endif
+#define VIDEO_PIX_BLOCKS	(VIDEO_SIZE >> 2)
 #define VIDEO_BURST_LEN		(VIDEO_COLS/8)
 
 #ifdef	CONFIG_VIDEO_LOGO
@@ -277,7 +291,15 @@ void	console_cursor (int state);
 #ifdef CONFIG_VIDEO_LOGO
 #define CONSOLE_SIZE		(VIDEO_COLS * (VIDEO_ROWS - VIDEO_LOGO_HEIGHT) * VIDEO_PIXEL_SIZE)
 #else
+#ifdef  CONFIG_VIDEO_1BPP
+#define CONSOLE_SIZE            (VIDEO_COLS * VIDEO_ROWS * VIDEO_PIXEL_SIZE/8)
+#elif   CONFIG_VIDEO_2BPP
+#define CONSOLE_SIZE            (VIDEO_COLS * VIDEO_ROWS * VIDEO_PIXEL_SIZE/4)
+#elif   CONFIG_VIDEO_4BPP
+#define CONSOLE_SIZE            (VIDEO_COLS * VIDEO_ROWS * VIDEO_PIXEL_SIZE/2)
+#else
 #define CONSOLE_SIZE		(VIDEO_COLS * VIDEO_ROWS * VIDEO_PIXEL_SIZE)
+#endif
 #endif
 #define CONSOLE_SCROLL_SIZE	(CONSOLE_SIZE - CONSOLE_ROW_SIZE)
 
@@ -320,6 +342,13 @@ static int console_row = 0; /* cursor row */
 //static ¸Ä³Éextern
 unsigned int eorx, fgx, bgx;  /* color pats */
 
+static const char video_font_draw_table2[] = {
+            0x00, 0x03, 0x0c, 0x0f, 
+	    0x30, 0x33, 0x3c, 0x3f,
+	    0xc0, 0xc3, 0xcc, 0xcf,
+	    0xf0, 0xf3, 0xfc, 0xff};
+static const char video_font_draw_table4[] = {
+            0x00, 0x0f, 0xf0, 0xff};
 static const int video_font_draw_table8[] = {
 	    0x00000000, 0x000000ff, 0x0000ff00, 0x0000ffff,
 	    0x00ff0000, 0x00ff00ff, 0x00ffff00, 0x00ffffff,
@@ -385,6 +414,7 @@ void video_drawchars_xor (int xx, int yy, unsigned char *s, int count)
 {
 	unsigned char *cdat, *dest, *dest0;
 	int rows, offset, c;
+	int i;
 	
 	if(disableoutput)return;
 	
@@ -392,6 +422,19 @@ void video_drawchars_xor (int xx, int yy, unsigned char *s, int count)
 	dest0 = video_fb_address + offset;
 
 	switch (VIDEO_DATA_FORMAT) {
+	case GDF__1BIT:
+		while (count--) {
+			c = *s;
+			cdat = video_fontdata + c * VIDEO_FONT_HEIGHT;
+
+			for (i=0;i<VIDEO_FONT_HEIGHT;i++)
+			{
+				offset = ((yy+i)*(VIDEO_VISIBLE_COLS) + xx)/8;
+				*(unsigned char *)(video_fb_address + offset)=((unsigned char *)cdat)[i];
+			}
+			s++;
+		}
+		break;
 	case GDF__8BIT_INDEX:
 	case GDF__8BIT_332RGB:
 		while (count--) {
@@ -499,13 +542,63 @@ void video_drawchars (int xx, int yy, unsigned char *s, int count)
 {
 	unsigned char *cdat, *dest, *dest0;
 	int rows, offset, c;
-	
+	int i;
+
 	if(disableoutput)return;
 	
 	offset = yy * VIDEO_LINE_LEN + xx * VIDEO_PIXEL_SIZE;
 	dest0 = video_fb_address + offset;
 
 	switch (VIDEO_DATA_FORMAT) {
+	case GDF__1BIT:
+		while (count--) {
+			c = *s;
+			cdat = video_fontdata + c * VIDEO_FONT_HEIGHT;
+
+			for (i=0;i<VIDEO_FONT_HEIGHT;i++)
+			{
+				offset = ((yy+i)*(VIDEO_VISIBLE_COLS) + xx)/8;
+				*(unsigned char *)(video_fb_address + offset)=((unsigned char *)cdat)[i];
+			}
+			s++;
+		}
+		break;
+
+	case GDF__2BIT:
+		while (count--) {
+			c = *s;
+			cdat = video_fontdata + c * VIDEO_FONT_HEIGHT;
+
+			for (i=0;i<VIDEO_FONT_HEIGHT;i++)
+			{
+				unsigned char bits = *cdat++;
+				offset = ((yy+i)*(VIDEO_VISIBLE_COLS) + xx)/4;
+				dest = (unsigned char *)(video_fb_address + offset);
+				dest[0] = video_font_draw_table2[bits >> 4] ;
+				dest[1] = video_font_draw_table2[bits & 15] ;
+			}
+			s++;
+		}
+		break;
+
+	case GDF__4BIT:
+		while (count--) {
+			c = *s;
+			cdat = video_fontdata + c * VIDEO_FONT_HEIGHT;
+			for (i=0;i<VIDEO_FONT_HEIGHT;i++)
+			{
+				unsigned char bits = *cdat++;
+				offset = ((yy+i)*(VIDEO_VISIBLE_COLS) + xx)/2;
+				dest = (unsigned char *)(video_fb_address + offset);
+				dest[0] = video_font_draw_table4[bits >> 6] ;
+				dest[1] = video_font_draw_table4[bits >> 4 & 3] ;
+				dest[2] = video_font_draw_table4[bits >> 2 & 3] ;
+				dest[3] = video_font_draw_table4[bits & 3] ;
+			}
+			s++;
+		}
+		break;
+
 	case GDF__8BIT_INDEX:
 	case GDF__8BIT_332RGB:
 		while (count--) {
@@ -707,6 +800,16 @@ static void console_scrollup (void)
 #endif
 
 #else
+#ifdef __mips__
+#define UNCACHED_TO_CACHED(x) PHYS_TO_CACHED(UNCACHED_TO_PHYS(x))
+	if(UNCACHED_TO_PHYS(CONSOLE_ROW_FIRST)<0x10000000)
+	{
+	memcpyl (UNCACHED_TO_CACHED(CONSOLE_ROW_FIRST),UNCACHED_TO_CACHED(CONSOLE_ROW_SECOND),
+		 CONSOLE_SCROLL_SIZE >> 2);
+    pci_sync_cache(0, (vm_offset_t)UNCACHED_TO_CACHED(CONSOLE_ROW_FIRST), CONSOLE_SCROLL_SIZE >> 2, SYNC_W);
+	}
+	else
+#endif
 	memcpyl (CONSOLE_ROW_FIRST, CONSOLE_ROW_SECOND,
 		 CONSOLE_SCROLL_SIZE >> 2);
 #endif
@@ -1288,6 +1391,8 @@ char console_buffer[2][37][101]={32};
 char console_buffer[2][37][101]={32};
 #elif defined(X1024x768)
 char console_buffer[2][49][129]={32};//128*48->1024x768
+#elif defined(X320x240)
+char console_buffer[2][16][41]={32};//40*15->320x240
 #else
 char console_buffer[2][31][81]={32};//80*30->640x480
 #endif
@@ -1399,6 +1504,7 @@ int fb_init (unsigned long fbbase,unsigned long iobase)
 {
 	unsigned char color8;
 
+    int i,j;
 	pGD = &GD;
 #if defined(VGA_NOTEBOOK_V1)
 	pGD->winSizeX  = 1280;
@@ -1419,12 +1525,24 @@ int fb_init (unsigned long fbbase,unsigned long iobase)
 #elif defined(X800x480)
         pGD->winSizeX  = 800;
         pGD->winSizeY  = 480;
+#elif defined(X320x240)
+        pGD->winSizeX  = 320;
+        pGD->winSizeY  = 240;
 #else
         pGD->winSizeX  = 640;
         pGD->winSizeY  = 480;
 #endif			
 	
-#if defined(CONFIG_VIDEO_8BPP)
+#if   defined(CONFIG_VIDEO_1BPP)
+        pGD->gdfIndex  = GDF__1BIT;
+	pGD->gdfBytesPP= 1;
+#elif defined(CONFIG_VIDEO_2BPP)
+        pGD->gdfIndex  = GDF__2BIT;
+	pGD->gdfBytesPP= 1;
+#elif defined(CONFIG_VIDEO_4BPP)
+        pGD->gdfIndex  = GDF__4BIT;
+	pGD->gdfBytesPP= 1;
+#elif defined(CONFIG_VIDEO_8BPP)
 	pGD->gdfBytesPP= 1;
 //	pGD->gdfIndex  = GDF__8BIT_INDEX;
 	pGD->gdfIndex  = GDF__8BIT_332RGB;
@@ -1458,6 +1576,18 @@ int fb_init (unsigned long fbbase,unsigned long iobase)
 			bgx = 0x00000000;
 			break;
 #endif
+		case GDF__1BIT:
+			fgx=1;
+			bgx=0;
+			break;
+		case GDF__2BIT:
+			fgx=3;
+			bgx=0;
+			break;
+		case GDF__4BIT:
+			fgx=0xf;
+			bgx=0;
+			break;
 		case GDF__8BIT_332RGB:
 			color8 = ((CONSOLE_FG_COL & 0xe0) |
 					((CONSOLE_FG_COL >> 3) & 0x1c) | CONSOLE_FG_COL >> 6);
