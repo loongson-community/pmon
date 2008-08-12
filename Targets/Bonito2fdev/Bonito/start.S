@@ -67,6 +67,7 @@
 #define GPIOLED_DIR  0xf
 #endif
 
+#ifndef USE_GPIO_SERIAL
 #define GPIOLED_SET(x) \
 li v0,0xbfe0011c; \
 lw v1,4(v0); \
@@ -80,6 +81,10 @@ li v1,0x1000;\
 subu v1,1;\
 bnez v1,78b;\
 nop;
+#else
+#define GPIOLED_SET(x) 
+#endif
+
 
 #define CONFIG_CACHE_64K_4WAY 1
 
@@ -1230,6 +1235,139 @@ LEAF(tgt_putchar)
 	bal 1f
 	nop
 #endif
+
+#ifdef USE_GPIO_SERIAL
+//function tgt_putchar modified by zhanghualiang  4nd version
+//in case the serial is down,we use PCIO_LED 
+//to send message. we use only two of the four led lights.
+
+#define MEMPUTCHARDELAY  14      //added by zhanghualiang
+#define ROMPUTCDELAY      5 //added end	
+#define HANDDELAY        5    
+//added code for light led start	
+//first rol 17 send then send, v1 data(bit1),t1 clock(bit0),t8 send dat
+//set led all lighted
+	
+	li	v0, 2			//put 2
+	li  	v1, 0xbfe0011c	      		   
+	sw 	v0, 0(v1)                        
+	move 	v1, ra				//4rd code begin
+	srl     v1, v1, 28
+	and 	v1, v1, 1
+	xor 	v1, v1, 1
+	sll	v1, v1, MEMPUTCHARDELAY
+	addu	v1, v1, ROMPUTCDELAY
+1427:
+	addu  	v1, v1, -1
+	bgez	v1, 1427b
+	nop				//put 2 end
+	
+	li	v0, 3			//put 3
+	li  	v1, 0xbfe0011c	      		   
+	sw 	v0, 0(v1)                        
+	move 	v1, ra				//4rd code begin
+	srl     v1, v1, 28
+	and 	v1, v1, 1
+	xor 	v1, v1, 1
+	sll	v1, v1, MEMPUTCHARDELAY
+	addu	v1, v1, HANDDELAY
+1441:
+	addu  	v1, v1, -1
+	bgez	v1, 1441b
+	nop				//put 3 end
+	
+
+	li	v0, 1			//put 1
+	li  	v1, 0xbfe0011c	      		   
+	sw 	v0, 0(v1)                        
+	move 	v1, ra				//4rd code begin
+	srl     v1, v1, 28
+	and 	v1, v1, 1
+	xor 	v1, v1, 1
+	sll	v1, v1, MEMPUTCHARDELAY
+	addu	v1, v1, HANDDELAY
+1456:
+	addu  	v1, v1, -1
+	bgez	v1, 1456b
+	nop				//put 1 end
+	
+	
+	li	v0, 0			//put 0 to just wave
+	li  	v1, 0xbfe0011c	      		   
+	sw 	v0, 0(v1)                        
+	li      v1, ROMPUTCDELAY
+1466:	
+	addu	v1, v1, -1
+	bgez	v1, 1466b
+	nop
+
+
+       
+	and	a0, a0, 0xff
+	li	v0, 0x8			//time loop flag  
+1421:
+	and	v1, a0, 1               //v1 fetch a0 low bit 1
+	srl	a0, a0, 1		//
+	sll	v1, v1, 1		
+1431:
+	sll     a0, a0, 4                //4th edit
+	or 	a0, a0, v1
+	li  	v1, 0xbfe0011c	      		  //light on 
+	sw 	a0, 0(v1)                        //put data at clk = 0 
+	move 	v1, ra				//3rd code begin
+	srl     v1, v1, 28
+	and 	v1, v1, 1
+	xor 	v1, v1, 1
+	sll	v1, v1, MEMPUTCHARDELAY
+	addu	v1, v1, ROMPUTCDELAY
+1435:
+	addu  	v1, v1, -1
+	bgez	v1, 1435b
+	nop				//3rd code end
+
+#if 0
+	li 	v1, PUTCDELAY
+1439:
+	addu    v1, v1, -1
+	bgez	v1, 1439b
+	nop	
+#endif
+
+	addu    a0, a0, 1
+	li      v1, 0xbfe0011c                    //light on
+        sw      a0, 0(v1)               //maintain data at clk = 1  
+	
+	move 	v1, ra				//3rd code begin
+	srl     v1, v1, 28
+	and 	v1, v1, 1
+	xor 	v1, v1, 1
+	sll	v1, v1, MEMPUTCHARDELAY
+	addu	v1, v1, ROMPUTCDELAY
+1462:
+	addu  	v1, v1, -1
+	bgez	v1, 1462b
+	nop				//3rd code end
+
+	
+
+	
+	addu    a0, a0, -1
+	li      v1, 0xbfe0011c                    //light on
+        sw      a0, 0(v1)               //maintain data at clk =0  
+	nop
+
+#if  0
+        li      v1, PUTCDELAY
+1448:
+	addu 	v1, v1, -1
+	bgez	v1, 1448b
+	nop   
+#endif
+	srl	a0, a0, 4
+	addu 	v0, v0, -1
+	bnez 	v0, 1421b        	//loop 8
+	nop
+#endif
 	jr AT
 	nop
 1:
@@ -1279,6 +1417,14 @@ LEAF(initserial)
  	li	a0, NS16550HZ/(16*CONS_BAUD)
 	bal 1f
 	nop
+#endif
+
+#ifdef USE_GPIO_SERIAL
+	li 	v0, 0xbfe0011c         //init led light
+	lw 	v1, 4(v0) 
+	or 	v1, 0xf
+	xor 	v1,0x3
+	sw 	v1, 4(v0)
 #endif
 	jr AT
 	nop

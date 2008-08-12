@@ -150,12 +150,172 @@ static inline unsigned char CMOS_READ(unsigned char addr);
 static inline void CMOS_WRITE(unsigned char val, unsigned char addr);
 static void init_legacy_rtc(void);
 
+#ifdef USE_GPIO_SERIAL
+//modified by zhanghualiang 
+//this function is for parallel port to send and received  data
+//via GPIO
+//GPIO bit 2 for Receive clk   clk hight for request
+//GPIO bit 3 for receive data 
+#define DBG     
+#define WAITSTART 10
+#define START 20
+#define HIBEGCLK 30
+#define HINEXTCLK 40
+#define LOWCLK 50
+#define RXERROR 60
+//static int zhlflg = 0;
+static int
+ppns16550 (int op, struct DevEntry *dev, unsigned long param, int data)
+{
+	volatile ns16550dev *dp;  
+	static int zhlflg = 0;
+	int     crev,crevp,dat,datap,clk,clkp; //zhl begin
+	int 	cnt = 0;
+	int 	tick = 0;
+	int	STAT = START;
+	int	tmp;
+	char    cget = 0;
+	crev = 0;
+	crevp = 0;
+	dat = 0;
+	datap = 0;	
+	clk = 0;
+	clkp = 0;	
+	cget = 0;                                         //zhl end
+	
+	dp = (ns16550dev *) dev->sio;
+	if(dp==-1)return 1;
+	switch (op) {
+		case OP_INIT:
+			return 1;
+
+		case OP_XBAUD:
+		case OP_BAUD:
+			return 0;
+
+		case OP_TXRDY:
+			return 1;
+
+		case OP_TX:
+		tgt_putchar(data);
+			break;
+
+		case OP_RXRDY:
+		tmp = *(volatile int *)(0xbfe0011c);
+	//	tgt_printf("tmp=(%x)H, %d  ",tmp,tmp);
+		tmp = tmp >> 18;
+		tmp = tmp & 1;
+		if (tmp)
+		{
+	//	tgt_printf("pmon pmon pom pmon pomn pmon get signal ");
+	//	tgt_putchar('O');
+	//	tgt_putchar('K');
+		tgt_putchar(0x80);
+	//	tgt_printf("\n");
+		}
+		return (tmp);
+                
+		case OP_RX:
+		cget = 0;
+		cnt = 0;
+		tick = 0;
+		while (cnt < 8)
+		{
+			crevp = crev;
+			tmp = *(volatile int *)(0xbfe0011c);
+                 //     tgt_printf("pmon tmp=%x,\n",tmp);
+			tmp = tmp >> 18;
+	 		tmp = tmp & 3;
+			crev = tmp;
+		     
+			clkp = clk;
+			clk = crev & 1;
+			datap = dat;
+			dat = crev & 2;
+			dat = dat >> 1;
+			dat = dat & 1;
+		//	if (clkp != clk)
+		//	{
+			tick++;
+			if(tick>5000000)
+			{	
+		//	tgt_putchar(0x80);
+			return 10;	
+			}
+	//		tgt_printf("%d,%d\n",clk,dat);
+	//		}       
+	//		continue;
+			switch(STAT)
+			{
+			case START:
+			if (clk == 0)
+			{
+				STAT = LOWCLK;		
+			}
+			break;
+
+			case LOWCLK:
+			if(clk == 1)
+			{	
+				STAT = HIBEGCLK;
+			}
+			break;
+			
+			case HIBEGCLK:
+			dat = dat << cnt;
+			cget = cget | dat;
+			cnt++;
+			STAT = HINEXTCLK;
+	//		tgt_printf("p c=%d, d=%d,\n",cnt,dat);
+			if (cnt == 8 )
+			{
+			do {
+			tmp = *(volatile int *)(0xbfe0011c);
+			tmp = tmp >> 18;
+	 		tmp = tmp & 1;
+		     	}
+			while(tmp);
+	/*	{	sl_tgt_putchar('p');
+			sl_tgt_putchar(' ');
+			sl_tgt_putchar('c');
+			sl_tgt_putchar('=');
+			sl_tgt_putchar(cget);
+			sl_tgt_putchar('\n');
+		}	*/
+	//		tgt_printf(" ch = (%x)h,%d\n",cget,cget);
+			return cget;
+			}
+			break;
+			
+			case HINEXTCLK:
+			if (clk == 0)
+			STAT = LOWCLK;
+			break;
+			
+			case RXERROR:
+			break;
+			}
+		   }
+					
+	
+
+		case OP_RXSTOP:
+		return (0);
+			break;
+	}
+	return 0;
+}
+//end modification by zhanghualiang
+#endif
+
 ConfigEntry	ConfigTable[] =
 {
 #ifdef HAVE_NB_SERIAL
 	 { (char *)COM3_BASE_ADDR, 0, ns16550, 256, CONS_BAUD, NS16550HZ/2 },
-#elif	USE_SM502_UART0
+#elif defined(USE_SM502_UART0)
 	{ (char *)0xb6030000, 0, ns16550, 256, CONS_BAUD, NS16550HZ/2 },
+#elif defined(USE_GPIO_SERIAL)
+	 { (char *)COM1_BASE_ADDR, 0,ppns16550, 256, CONS_BAUD, NS16550HZ }, 
 #else
 	 { (char *)COM1_BASE_ADDR, 0, ns16550, 256, CONS_BAUD, NS16550HZ }, 
 #endif
