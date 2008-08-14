@@ -106,4 +106,5 @@
 #define	SIOCPOLL	_IO('i', 99)
 #endif
 
+#define SIOCETHTOOL	0x8946		/* Ethtool interface		*/
 #endif /* !_SYS_SOCKIO_H_ */

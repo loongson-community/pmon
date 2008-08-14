@@ -1151,56 +1151,71 @@ printf("status:%s %s\n",ifr->ifr_flags&IFF_UP?"up":"down",ifr->ifr_flags&IFF_RUN
 }
 else if(argc>=3)
 {
-	if(argv[2][0]=='d')
+char *cmds[]={"down","up","remove","stat","setmac"};
+int i;
+	for(i=0;i<sizeof(cmds)/sizeof(char *);i++)
+	if(!strcmp(argv[2],cmds[i]))break;
+	switch(i)
 	{
-	(void) ioctl(s,SIOCGIFFLAGS,ifr);
-	ifr->ifr_flags &=~IFF_UP;
-	(void) ioctl(s,SIOCSIFFLAGS,ifr);
-	}
-	else if(argv[2][0]=='u')
-	{
-	(void) ioctl(s,SIOCGIFFLAGS,ifr);
-	ifr->ifr_flags |=IFF_UP;
-	(void) ioctl(s,SIOCSIFFLAGS,ifr);
-	}
-	else if(argv[2][0]=='r')
-	{
-	(void) ioctl(s,SIOCGIFFLAGS,ifr);
-	ifr->ifr_flags &=~IFF_UP;
-	(void) ioctl(s,SIOCSIFFLAGS,ifr);
-	(void) ioctl(s, SIOCGIFADDR, ifra);
-	(void) ioctl(s, SIOCDIFADDR, ifr);
-	del_if_rt(argv[1]);
-	}
-	else if(argv[2][0]=='s')
-	{
-	register struct ifnet *ifp;
-	ifp = ifunit(argv[1]);
-	if(!ifp){printf("can not find dev %s.\n",argv[1]);return -1;}
-    printf("RX packets:%d,TX packets:%d,collisions:%d\n" \
-		   "RX errors:%d,TX errors:%d\n" \
-		   "RX bytes:%d TX bytes:%d\n" ,
-	ifp->if_ipackets, 
-	ifp->if_opackets, 
-	ifp->if_collisions,
-	ifp->if_ierrors, 
-	ifp->if_oerrors,  
-	ifp->if_ibytes, 
-	ifp->if_obytes 
-	);
-	if(ifp->if_baudrate)printf("link speed up to %d Mbps\n",ifp->if_baudrate);
-	}
-	else
-	{
-	(void) ioctl(s, SIOCGIFADDR, ifra);
-	(void) ioctl(s, SIOCDIFADDR, ifra);
-	setsin (SIN(ifra->ifra_addr), AF_INET, inet_addr(argv[2]));
-	(void) ioctl(s, SIOCAIFADDR, ifra);
-	if(argc>=4)
-	 {
-	 setsin (SIN(ifra->ifra_addr), AF_INET, inet_addr(argv[3]));
-	 (void) ioctl(s,SIOCSIFNETMASK, ifra);
-	 }
+	case 0://down
+		(void) ioctl(s,SIOCGIFFLAGS,ifr);
+		ifr->ifr_flags &=~IFF_UP;
+		(void) ioctl(s,SIOCSIFFLAGS,ifr);
+		break;
+	case 1://up
+		(void) ioctl(s,SIOCGIFFLAGS,ifr);
+		ifr->ifr_flags |=IFF_UP;
+		(void) ioctl(s,SIOCSIFFLAGS,ifr);
+		break;
+	case 2://remove
+		(void) ioctl(s,SIOCGIFFLAGS,ifr);
+		ifr->ifr_flags &=~IFF_UP;
+		(void) ioctl(s,SIOCSIFFLAGS,ifr);
+		(void) ioctl(s, SIOCGIFADDR, ifra);
+		(void) ioctl(s, SIOCDIFADDR, ifr);
+		del_if_rt(argv[1]);
+		break;
+	case 3: //stat
+		{
+		register struct ifnet *ifp;
+		ifp = ifunit(argv[1]);
+		if(!ifp){printf("can not find dev %s.\n",argv[1]);return -1;}
+		printf("RX packets:%d,TX packets:%d,collisions:%d\n" \
+			   "RX errors:%d,TX errors:%d\n" \
+			   "RX bytes:%d TX bytes:%d\n" ,
+		ifp->if_ipackets, 
+		ifp->if_opackets, 
+		ifp->if_collisions,
+		ifp->if_ierrors, 
+		ifp->if_oerrors,  
+		ifp->if_ibytes, 
+		ifp->if_obytes 
+		);
+		if(ifp->if_baudrate)printf("link speed up to %d Mbps\n",ifp->if_baudrate);
+		}
+		break;
+	case 4: //setmac
+	    {
+		struct ifnet *ifp;
+		ifp = ifunit(argv[1]);
+		if(ifp)
+		{
+		long arg[2]={argc-2,(long)&argv[2]};
+		ifp->if_ioctl(ifp,SIOCETHTOOL,arg);
+		}
+	    }
+		break;
+	default:
+		(void) ioctl(s, SIOCGIFADDR, ifra);
+		(void) ioctl(s, SIOCDIFADDR, ifra);
+		setsin (SIN(ifra->ifra_addr), AF_INET, inet_addr(argv[2]));
+		(void) ioctl(s, SIOCAIFADDR, ifra);
+		if(argc>=4)
+		 {
+		 setsin (SIN(ifra->ifra_addr), AF_INET, inet_addr(argv[3]));
+		 (void) ioctl(s,SIOCSIFNETMASK, ifra);
+		 }
+		 break;
 	}
 }
 close(s);
@@ -1715,7 +1730,7 @@ static const Cmd Cmds[] =
 	{"testst","n",0,"",cmd_testst,0,99,CMD_REPEAT},
 #endif
 #endif
-	{"ifconfig","ifname",0,"ifconig fxp0",cmd_ifconfig,2,99,CMD_REPEAT},
+	{"ifconfig","ifname",0,"ifconig fx0 [up|down|remove|stat|addr [netmask]",cmd_ifconfig,2,99,CMD_REPEAT},
 	{"ifup","ifname",0,"ifup fxp0",cmd_ifup,2,99,CMD_REPEAT},
 	{"ifdown","ifname",0,"ifdown fxp0",cmd_ifdown,2,99,CMD_REPEAT},
 	{"rtlist","",0,"rtlist",cmd_rtlist,0,99,CMD_REPEAT},

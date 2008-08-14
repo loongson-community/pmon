@@ -1459,7 +1459,12 @@ rtl_ether_ioctl(ifp, cmd, data)
 				;//fxp_stop(sc, 1);
 		}
 		break;
-
+	case SIOCETHTOOL:
+	{
+	long *p=data;
+	cmd_setmac(p[0],p[1]);
+	}
+	break;
 	default:
 		error = EINVAL;
 	}
