@@ -68,7 +68,6 @@
 #include <sys/queue.h>
 #include <pmon.h>
 
-#include "mod_usb_ohci.h"
 #include "usb.h"
 #include "part.h"
 #include "scsi.h"
@@ -98,12 +97,7 @@ unsigned char us_direction[256/8] = {
 #define US_DIRECTION(x) ((us_direction[x>>3] >> (x & 7)) & 1)
 
 static unsigned char usb_stor_buf[512] __attribute__((section("data"),aligned(512)));
-static struct myccb{
-char unused[16];
-ccb c;
-}
-_usb_ccb __attribute__((section("data"),aligned(32)));
-//static ccb _usb_ccb __attribute__((section("data"),aligned(32)));
+static ccb _usb_ccb __attribute__((section("data"),aligned(1024)));
 static ccb *usb_ccb;
 
 
@@ -908,8 +902,7 @@ static int usb_request_sense(ccb *srb,struct us_data *ss)
 	srb->pdata=&srb->sense_buf[0];
 	srb->cmdlen=12;
 	ss->transport(srb,ss);
-	//USB_STOR_PRINTF("Request Sense returned %02X %02X %02X\n",srb->sense_buf[2],srb->sense_buf[12],srb->sense_buf[13]);
-	printf("Request Sense returned %02X %02X %02X\n",srb->sense_buf[2],srb->sense_buf[12],srb->sense_buf[13]);
+	USB_STOR_PRINTF("Request Sense returned %02X %02X %02X\n",srb->sense_buf[2],srb->sense_buf[12],srb->sense_buf[13]);
 	srb->pdata=(uchar *)ptr;
 	return 0;
 }
@@ -1157,7 +1150,7 @@ int usb_storage_probe(struct usb_device *dev, unsigned int ifnum,struct us_data 
 	    !ss->ep_in || !ss->ep_out ||
 	    (ss->protocol == US_PR_CBI && ss->ep_int == 0)) {
 		USB_STOR_PRINTF("Problems with device\n");
-		//return 0;
+//		return 0;
 	}
 	/* set class specific stuff */
 	/* We only handle certain protocols.  Currently, these are
@@ -1286,7 +1279,7 @@ static int usb_match(struct device *parent, void *match, void *aux)
 	struct usb_device *dev = aux;
 
 	pci_sync_cache(0, _usb_ccb, sizeof(_usb_ccb), 1);
-	usb_ccb = (ccb*)CACHED_TO_UNCACHED(&_usb_ccb.c);
+	usb_ccb = (ccb*)CACHED_TO_UNCACHED(&_usb_ccb);
 
 	if(usb_max_devs==USB_MAX_STOR_DEV) {
 		printf("max USB Storage Device reached: %d stopping\n",usb_max_devs);
@@ -1315,6 +1308,7 @@ static void usb_attach(struct device *parent, struct device *self, void *aux)
 	struct usb_device * dev = aux;
 	dev->match = self;
 	dev->destruct = storage_free;
+	usb_storage_notify(dev);
 }
 
 struct cfattach usb_ca = {
@@ -1351,7 +1345,6 @@ int	usb_close(dev_t dev, int flag, int fmt, struct proc *p)
 
 void usb_strategy(struct buf *bp)
 {
-	int p_offset = 0;
 	unsigned int dev, blkno, blkcnt;
 	unsigned int d_secsize; 
 	struct  block_dev_desc_t *block_usb;

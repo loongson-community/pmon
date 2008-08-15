@@ -342,6 +342,7 @@ typedef struct
 	int actual_length;
 	int trans_length;
 	unsigned char *trans_buffer, *setup_buffer;
+	unsigned char *dev_trans_buffer;
 	td_t *td[N_URB_TD];	/* list pointer to all corresponding TDs associated with this request */
 	//unsigned char *bufs[N_URB_TD];
 } urb_priv_t;
@@ -390,7 +391,19 @@ typedef struct ohci {
 	unsigned char *control_buf;
 
 	struct ohci_device *ohci_dev;
+	void *lmem;
+	bus_addr_t lmem_paddr;
+	unsigned long free;
 	td_t *gtd;
+
+	struct usb_device *g_pInt_dev;
+	urb_priv_t *g_pInt_urb_priv;
+	ed_t *g_pInt_ed;
+
+	/*only for sm502 usb only*/
+#define MAX_SM502_BUFS 5 //This is sufficient
+	void *sm502_bufs[MAX_SM502_BUFS];
+	int  sm502_buf_use[MAX_SM502_BUFS];
 } ohci_t;
 
 #define NUM_EDS 32		/* num of preallocated endpoint descriptors */

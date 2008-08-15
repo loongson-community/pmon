@@ -191,6 +191,9 @@ struct usb_device {
 	void *hc_private;
 	void *match;
 	void (*destruct)(struct usb_device *);
+
+	/* Rename support*/
+	int port;
 };
 
 struct usb_driver{
@@ -428,6 +431,7 @@ struct usb_ops {
 struct usb_hc {
 	struct device self;
 	struct usb_ops *uop;
+	void (*notify)(struct usb_device *dev, int port);
 	TAILQ_ENTRY(usb_hc) hc_list;
 };
 

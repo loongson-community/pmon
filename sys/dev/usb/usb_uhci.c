@@ -175,7 +175,7 @@ static int uhci_match(struct device *parent, void *match, void *aux)
 		if(((pa->pa_class >>8) & 0xff) == 0x00){
 			printf("usb %d/%d\n", pa->pa_device, pa->pa_function);
 #if 1
-			if(!(pa->pa_function ==3))
+			if(!(pa->pa_function ==2))
 				return 0;
 #endif
 			addr=_pci_allocate_io(_pci_head,0x20);

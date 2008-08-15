@@ -1090,6 +1090,8 @@ struct partition *p0;
 FILE *fp;
 char device[0x40];
 int buf[0x10];
+	if(strncmp(argv[1],"/dev/",5)) sprintf(device,"/dev/disk/%s",argv[1]);
+	else strcpy(device,diskname);
 sprintf(device,"/dev/disk/%s",(argc==1)?"wd0":argv[1]);
 type_counts=sizeof(known_parttype)/sizeof(struct parttype);
 fp=fopen(device,"rb");
