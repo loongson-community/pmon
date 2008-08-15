@@ -222,6 +222,8 @@ int bs=0x20000;
 int seek=0,skip=0;
 char *fsrc=0,*fdst=0;
 unsigned int count=-1,nowcount=0;
+char pstr[80]="";
+int quiet=0;
 #if NGZIP > 0
 int unzip=0;
 #endif
@@ -238,6 +240,8 @@ if(argc<3)return -1;
 	 skip=strtoul(&argv[i][5],0,0);
 	else if(!strncmp(argv[i],"seek=",5))
 	 seek=strtoul(&argv[i][5],0,0);
+	else if(!strncmp(argv[i],"quiet=",6))
+	 quiet=strtoul(&argv[i][6],0,0);
 #if NGZIP > 0
 	else if(!strcmp(argv[i],"unzip=1"))
 	unzip=1;
@@ -279,7 +283,13 @@ if(argc<3)return -1;
 		pnow+=n;
 		}
 	nowcount+=rcount;
-	printf("\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\r%d",nowcount);
+	if(!(strstr(argv[1],"/dev/tty")||strstr(argv[2],"/dev/tty")||quiet))
+	{
+	int i;
+	for(i=0;i<strlen(pstr);i++)printf("\b \b");
+	sprintf(pstr,"%d",nowcount);
+	printf("%s",pstr);
+	}
 	if(write(fp1,buf,bs)<bs||rcount<bs)break;
 	}
 	free(buf);
@@ -1755,7 +1765,7 @@ static const Cmd Cmds[] =
 	{"mycmp","s1 s2 len",0,"mecmp s1 s2 len",mycmp,4,4,CMD_REPEAT},
 	{"mymore","",0,"mymore",mymore,1,99,CMD_REPEAT},
 	{"flashs",	"rom", 0, "select flash for read/write", flashs, 0, 99, CMD_REPEAT},
-	{"devcp",	"srcfile dstfile [bs=0x20000] [count=-1] [seek=0] [skip=0]", 0, "copy form src to dst",devcp, 0, 99, CMD_REPEAT},
+	{"devcp",	"srcfile dstfile [bs=0x20000] [count=-1] [seek=0] [skip=0] [quiet=0]", 0, "copy form src to dst",devcp, 0, 99, CMD_REPEAT},
 	{0, 0}
 };
 
