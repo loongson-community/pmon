@@ -232,6 +232,7 @@ e1000_set_mac_type(struct e1000_hw *hw)
         break;
     case E1000_DEV_ID_82541EI:
     case E1000_DEV_ID_82541EP:
+    case E1000_DEV_ID_82541PI:
         hw->mac_type = e1000_82541;
         break;
     case E1000_DEV_ID_82547EI:

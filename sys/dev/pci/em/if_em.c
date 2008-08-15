@@ -259,6 +259,7 @@ struct ifnet *ifp = &netdev->arpcom.ac_if;
 	return 0;
 }
 
+struct net_device *mynic_em;
 
 static void
 em_attach(parent, self, aux)
@@ -277,6 +278,7 @@ em_attach(parent, self, aux)
 	//bus_size_t iosize;
 #endif
 
+	mynic_em = sc;
 	/*
 	 * Allocate our interrupt.
 	 */
@@ -474,6 +476,27 @@ e1000_ether_ioctl(ifp, cmd, data)
 				em_stop(sc);
 		}
 		break;
+       case SIOCETHTOOL:
+       		{
+       		long *p=data;
+		mynic_em = sc;
+       		cmd_setmac_em0(p[0],p[1]);
+       		}
+       		break;
+       case SIOCRDEEPROM:
+                {
+                long *p=data;
+		mynic_em = sc;
+                cmd_reprom_em0(p[0],p[1]);
+                }
+                break;
+       case SIOCWREEPROM:
+                {
+                long *p=data;
+		mynic_em = sc;
+                cmd_wrprom_em0(p[0],p[1]);
+                }
+                break;
 
 	default:
 		error = EINVAL;
@@ -490,4 +513,365 @@ struct cfattach em_ca = {
 struct cfdriver em_cd = {
 	NULL, "em", DV_IFNET
 };
+
+//////////////////////////////////////////////////////////////////////////////////////////
+//#define EEPROM_SA_OFFSET 0x10
+long uIOBase=0xbfd04380;
+
+static long long ip100a_read_mac(struct net_device *nic)
+{
+
+        int i;
+        long long mac_tmp = 0;
+
+        struct e1000_adapter *adapter = (struct e1000_adapter *) (mynic_em->priv);
+        struct e1000_hw *hw = &adapter->hw;
+
+        e1000_read_mac_addr(&adapter->hw);
+        memcpy(mynic_em->dev_addr, adapter->hw.mac_addr, mynic_em->addr_len);
+
+        for (i = 0; i < 6; i++) {
+                mac_tmp <<= 8;
+                mac_tmp |=  adapter->hw.mac_addr[i];
+}
+        return mac_tmp;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////
+#if 1
+#include <pmon.h>
+int cmd_ifm_em0(int ac, char *av[])
+{
+#if 0
+        struct ip100a_private *np = mynic_em->priv;
+#ifdef MY_NET
+        struct net_device *nic_ifm;
+#else
+        struct nic *nic_ifm;
+#endif
+        int speed100=0, fullduplex=0, mii_ctrl = 0x0;
+        long ioaddr = uIOBase ;
+        int phys[4];
+        np = mynic_em->priv;
+        phys[0] = np->phys[0];
+        nic_ifm = mynic_em;
+//        printf("np->phys[0] : %d \n",phys[0]);
+        if(nic_ifm  == NULL){
+                printf("IP100A interface not initialized\n");
+                return 0;
+        }
+
+        if(ac !=1 && ac!=2 && ac!=3){
+                printf("usage: ifm_netdev [100|10|auto]  [full|half]\n");
+                return 0;
+        }
+        if(ac == 1){
+                //zgj speed10 = RTL_READ_1(nic,  MediaStatus) & MSRSpeed10;
+                printf("MIICtrl : 0x%x \n",readb(ioaddr+MIICtrl));
+                printf("ASIC_Ctrl : 0x%x \n",readl(ioaddr+ASICCtrl));
+                speed100 = readb(ioaddr+MIICtrl) & PhySpeedStatus ;
+                fullduplex = readb(ioaddr+MIICtrl) & PhyDuplexStatus ;
+                printf(" %sMbps %s-DUPLEX.\n", speed100 ? "100" : "10",
+                                                fullduplex ? "FULL" : "HALF");
+                return 0;
+        }
+
+        if(strcmp("100", av[1]) == 0){
+                mii_ctrl = 0;
+                 mii_ctrl |= BMCR_SPEED100;
+//              mii_ctrl =  mdio_read(nic_ifm , phys[0] , MII_BMCR);
+//              printf("mii_ctrl_100 read: 0x%x\n",mii_ctrl);
+                if(strcmp("full", av[2]) == 0)
+                        mii_ctrl |= BMCR_FULLDPLX ;
+                else
+                        mii_ctrl &= ~BMCR_FULLDPLX;
+                printf("mii_ctrl_100 or : 0x%x\n",mii_ctrl);
+                mdio_write (nic_ifm , phys[0] , MII_BMCR, mii_ctrl);
+                printf("mii_ctrl_100 write : 0x%x\n",mii_ctrl);
+mdelay(10);
+                mii_ctrl= mdio_read(nic_ifm, phys[0], MII_BMCR);
+                printf("mii_ctrl_100 read status : 0x%x\n",mii_ctrl);
+
+        } else if(strcmp("10", av[1]) ==0){
+//                mii_ctrl =  mdio_read (nic_ifm , phys[0] , MII_BMCR);
+//              printf("mii_ctrl_10 read : 0x%x\n",mii_ctrl);
+                mii_ctrl = 0x0;
+                mii_ctrl &= ~BMCR_SPEED100 ;
+                if(strcmp("full", av[2]) == 0)
+                        mii_ctrl |= BMCR_FULLDPLX ;
+                else
+                        mii_ctrl &= ~BMCR_FULLDPLX;
+                printf("mii_ctrl_10 and : 0x%x\n",mii_ctrl);
+                mdio_write (nic_ifm , phys[0] , MII_BMCR, mii_ctrl);
+//              mdio_write (nic_ifm , phys[0] , MII_BMCR, mii_ctrl);
+                printf("mii_ctrl_10 write : 0x%x\n",mii_ctrl);
+mdelay(10);
+                mii_ctrl= mdio_read(nic_ifm, phys[0], MII_BMCR);
+                printf("mii_ctrl_10 read status : 0x%x\n",mii_ctrl);
+        } else if(strcmp("auto", av[1])==0){
+//                mii_ctrl =  mdio_read (nic_ifm , phys[0] , MII_BMCR);
+//              printf("mii_ctrl_auto read : 0x%x\n",mii_ctrl);
+                mii_ctrl = 0x0;
+                mii_ctrl |= BMCR_ANENABLE|BMCR_ANRESTART ;
+                mdio_write (nic_ifm, phys[0] , MII_BMCR, mii_ctrl);
+//              mdio_write (nic_ifm , phys[0] , MII_BMCR, mii_ctrl);
+                printf("mii_ctrl_auto write : 0x%x\n",mii_ctrl);
+mdelay(10);
+                mii_ctrl= mdio_read(nic_ifm, phys[0], MII_BMCR);
+                printf("mii_ctrl_auto read status : 0x%x\n",mii_ctrl);
+        }
+#if 0
+ else if(strcmp("full", av[1])==0){
+                mii_ctrl =  mdio_read (nic_ifm , phys[0] , MII_BMCR);
+                printf("mii_ctrl_full read : 0x%x\n",mii_ctrl);
+                mii_ctrl |= BMCR_FULLDPLX ;
+                mdio_write (nic_ifm, phys[0] , MII_BMCR, mii_ctrl);
+                printf("mii_ctrl_full write : 0x%x\n",mii_ctrl);
+mdelay(10);
+                mii_ctrl= mdio_read(nic_ifm, phys[0], MII_BMCR);
+                printf("mii_ctrl_full read status : 0x%x\n",mii_ctrl);
+        } else if(strcmp("half", av[1])==0){
+                mii_ctrl =  mdio_read (nic_ifm , phys[0] , MII_BMCR);
+                printf("mii_ctrl_half read : 0x%x\n",mii_ctrl);
+                mii_ctrl &= ~BMCR_FULLDPLX ;
+                mdio_write (nic_ifm, phys[0] , MII_BMCR, mii_ctrl);
+                printf("mii_ctrl_half write : 0x%x\n",mii_ctrl);
+mdelay(10);
+                mii_ctrl= mdio_read(nic_ifm, phys[0], MII_BMCR);
+                printf("mii_ctrl_half read status : 0x%x\n",mii_ctrl);
+        }
+#endif
+         else{
+                printf("usage: ifm_netdev [100|10|auto|full|half]\n");
+        }
+#endif
+        return 0;
+
+}
+
+        unsigned short val = 0;
+int cmd_setmac_em0(int ac, char *av[])
+{
+        int i;
+        unsigned short v;
+        struct net_device *nic = mynic_em ;
+        long ioaddr= uIOBase;
+        struct e1000_adapter *adapter = (struct e1000_adapter *) (mynic_em->priv);
+        struct e1000_hw *hw = &adapter->hw;
+
+
+        if(nic == NULL){
+               printf("E1000 interface not initialized\n");
+                return 0;
+        }
+#if 0
+        if (ac != 4) {
+                printf("MAC ADDRESS ");
+                for(i=0; i<6; i++){
+                        printf("%02x",nic->arpcom.ac_enaddr[i]);
+                        if(i==5)
+                                printf("\n");
+                        else
+                                printf(":");
+                }
+                printf("Use \"setmac word1(16bit) word2 word3\"\n");
+                return 0;
+        }
+        printf("set mac to ");
+        for (i = 0; i < 3; i++) {
+                val = strtoul(av[i+1],0,0);
+                printf("%04x ", val);
+                write_eeprom(ioaddr, 0x7 + i, val);
+        }
+        printf("\n");
+        printf("The machine should be restarted to make the mac change to take effect!!\n");
+#else
+        if(ac != 2){
+        long long macaddr;
+        u_int8_t *paddr;
+        u_int8_t enaddr[6];
+        macaddr=ip100a_read_mac(nic);
+        paddr=(uint8_t*)&macaddr;
+        enaddr[0] = paddr[5- 0];
+        enaddr[1] = paddr[5- 1];
+        enaddr[2] = paddr[5- 2];
+        enaddr[3] = paddr[5- 3];
+        enaddr[4] = paddr[5- 4];
+        enaddr[5] = paddr[5- 5];
+                printf("MAC ADDRESS ");
+                for(i=0; i<6; i++){
+                        printf("%02x",enaddr[i]);
+                        if(i==5)
+                                printf("\n");
+                        else
+                                printf(":");
+                }
+                printf("Use \"setmac <mac> \" to set mac address\n");
+                return 0;
+        }
+        for (i = 0; i < 3; i++) {
+                val = 0;
+printf(" av[1] = %s\n",av[1]);
+
+                gethex(&v, av[1], 2);
+printf("v= 0x%x\n",v);
+                val = v ;
+printf("val= 0x%x \n",val);
+                av[1]+=3;
+
+printf(" av[1] = %s \n",av[1]);
+
+                gethex(&v, av[1], 2);
+printf("val= 0x%x \n",val);
+                val = val | (v << 8);
+                av[1] += 3;
+
+printf("v= %d\n",v);
+printf("val = 0x%4x , i= %d \n", val, i);
+        e1000_write_eeprom(&adapter->hw,i,1,&val);
+printf("=========================>>>>>>>>\n");
+        }
+
+        if(e1000_update_eeprom_checksum(&adapter->hw) == 0)
+                printf("the checksum is right!\n");
+#endif
+        return 0;
+}
+
+int cmd_wrprom_em0(int ac,char *av)
+{
+        int i=0;
+        unsigned short eeprom_data;
+        unsigned short rom[EEPROM_CHECKSUM_REG+1]={
+                                0x1b00, 0x0821, 0x23a7, 0x0210, 0xffff, 0x1000 ,0xffff, 0xffff,
+                                0xc802, 0x3502, 0x640b, 0x1376, 0x8086, 0x107c, 0x8086, 0xb284,
+                                0x20dd, 0x5555, 0x0000, 0x2f90, 0x3200, 0x0012, 0x1e20, 0x0012,
+                                0x1e20, 0x0012, 0x1e20, 0x0012, 0x1e20, 0x0009, 0x0200, 0x0000,
+                                0x000c, 0x93a6, 0x280b, 0x0000, 0x0400, 0xffff, 0xffff, 0xffff,
+                                0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0x0602,
+                                0x0100, 0x4000, 0x1216, 0x4007, 0xffff, 0xffff, 0xffff, 0xffff,
+                                0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0x7dfa
+                        };
+        struct e1000_adapter *adapter = (struct e1000_adapter *)(mynic_em->priv);
+//      struct e1000_hw *hw = &adapter->hw;
+        printf("write eprom\n");
+
+        for(i=0; i< EEPROM_CHECKSUM_REG; i++)
+        {
+                eeprom_data = rom[i];
+                printf("rom[%d]=0x%4x , eeprom_data : 0x%4x\n",i,rom[i], eeprom_data);
+                e1000_write_eeprom(&adapter->hw, i, 1 , &eeprom_data) ;
+        }
+
+        if(e1000_update_eeprom_checksum(&adapter->hw) == 0)
+                printf("the checksum is right!\n");
+        return 0;
+}
+
+int cmd_reprom_em0(int ac, char *av)
+{
+        int i;
+        unsigned short eeprom_data;
+        struct e1000_adapter *adapter = (struct e1000_adapter *) (mynic_em->priv);
+        struct e1000_hw *hw = &adapter->hw;
+        printf("dump eprom:\n");
+
+        for(i=0; i <= EEPROM_CHECKSUM_REG;)
+        {
+                if(e1000_read_eeprom(hw, i, 1 , &eeprom_data) < 0)
+                {
+                        printf("EEPROM Read Error\n");
+                        return -E1000_ERR_EEPROM;
+                }
+                printf("%04x ", eeprom_data);
+                ++i;
+                if( i%8 == 0 )
+                        printf("\n");
+        }
+//      printf("\n");
+        return 0;
+}
+
+int dbE1000=0;
+int max_interrupt_work=5;
+
+int netdmp_cmd_em0 (int ac, char *av[])
+{
+        struct ifnet *ifp;
+        int i;
+#if 0
+        ifp = &mynic_em->arpcom.ac_if;
+        printf("if_snd.mb_head: %x\n", ifp->if_snd.ifq_head);
+        printf("if_snd.ifq_snd.ifqlen =%d\n", ifp->if_snd.ifq_len);
+        printf("MIICtrl= %x\n", RTL_READ_1(mynic_em, MIICtrl));
+        printf("ASICCtrl= %x\n", RTL_READ_1(mynic_em, ASICCtrl));
+        printf("ifnet address=%8x\n", ifp);
+        printf("if_flags = %x\n", ifp->if_flags);
+        printf("Intr =%x\n", RTL_READ_2(mynic_em, IntrStatus));
+        printf("TxConfig =%x\n", RTL_READ_4(mynic_em, TxConfig));
+        printf("RxConfig =%x\n", RTL_READ_4(mynic_em, RxConfig));
+        printf("RxBufPtr= %x\n", RTL_READ_2(mynic_em, RxBufPtr));
+        printf("RxBufAddr =%x\n", RTL_READ_2(mynic_em, RxBufAddr));
+        printf("cur_rx =%x\n", cur_rx);
+        printf("rx_ring: %x\n",mynic_em->rx_dma);
+        printf("tx_dma: %x\n",mynic_em->tx_dma);
+        printf("cur_tx =%d, dirty_tx=%d\n", cur_tx, dirty_tx);
+        for (i =0; i<4; i++){
+                printf("Txstatus[%d]=%x\n", i, RTL_READ_4(mynic_em, TxStatus0+i*4));
+        }
+#endif
+        if(ac==2){
+
+                if(strcmp(av[1], "on")==0){
+                        dbE1000=1;
+                }
+                else if(strcmp(av[1], "off")==0){
+                        dbE1000=0;
+                }else {
+                        int x=atoi(av[1]);
+                        max_interrupt_work=x;
+                }
+
+        }
+        printf("dbE1000=%d\n",dbE1000);
+        return 0;
+}
+
+static const Optdesc netdmp_opts[] =
+{
+    {"<interface>", "Interface name"},
+    {"<netdmp>", "IP Address"},
+    {0}
+};
+
+static const Cmd Cmds[] =
+{
+        {"em0"},
+        {"netdump_em0",      "",
+                        0,
+                        "em1000 helper", netdmp_cmd_em0, 1, 3, 0},
+        {"ifm_em0", "", NULL,
+                    "Set E1000 interface mode: Usage: ifm_netdev [1000|100|10|auto] [full|half] ", cmd_ifm_em0, 1, 3, 0},
+        {"setmac_em0", "", NULL,
+                    "Set mac address into E1000 eeprom", cmd_setmac_em0, 1, 5, 0},
+        {"reprom_em0", "", NULL,
+                        "dump E1000 eprom content", cmd_reprom_em0, 1, 2, 0},
+        {"wrprom_em0", "", NULL,
+                        "write E1000 eprom content", cmd_wrprom_em0, 1, 2, 0},
+        {0, 0}
+};
+
+
+static void init_cmd __P((void)) __attribute__ ((constructor));
+
+static void
+init_cmd()
+{
+        cmdlist_expand(Cmds, 1);
+}
+
+#endif
+
+/////////////////////////////////////////////////////////////////////////////////////////////
 

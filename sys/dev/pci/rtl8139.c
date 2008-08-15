@@ -1462,6 +1462,7 @@ rtl_ether_ioctl(ifp, cmd, data)
 	case SIOCETHTOOL:
 	{
 	long *p=data;
+	mynic = sc;
 	cmd_setmac(p[0],p[1]);
 	}
 	break;

@@ -709,7 +709,8 @@ reginit:			/* local name */
 	move	dbg,a0
 	PRINTSTR ("\r\nNo DIMM in all slots,use default configure\r\n")
 	li  msize,0x10000000
- 	li	sdCfg,0x055043df         /* zgj-8-7-14-13 */
+ 	li	sdCfg,0x25419265         /* firewall zgj-8-14-17-52 */
+## 	li	sdCfg,0x055043df         /* zgj-8-7-14-13 */
 2:
 	PRINTSTR("DIMM SIZE=")
 	move	a0,msize
