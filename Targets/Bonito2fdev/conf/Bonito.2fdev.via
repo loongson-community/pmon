@@ -132,7 +132,7 @@ pci*		at pcibr?
 #gt2		at localbus? base 6
 # fxp normally only used for debugging (enable/disable both)
 em*		at pci? dev ? function ?	#intel 82541 E1000 Device
-fxp0            at pci? dev ? function ?        # Intel 82559 Device
+fxp*            at pci? dev ? function ?        # Intel 82559 Device
 #inphy*          at mii? phy ?                   # Intel 82555 PHYs
 rtl*        at pci? dev ? function ?
 #uhci*		 at pci? dev ? function ?

@@ -1466,6 +1466,20 @@ rtl_ether_ioctl(ifp, cmd, data)
 	cmd_setmac(p[0],p[1]);
 	}
 	break;
+       case SIOCRDEEPROM:
+                {
+                long *p=data;
+                mynic = sc;
+                cmd_reprom(p[0],p[1]);
+                }
+                break;
+       case SIOCWREEPROM:
+                {
+                long *p=data;
+                mynic = sc;
+                cmd_wrprom(p[0],p[1]);
+                }
+                break;
 	default:
 		error = EINVAL;
 	}
@@ -1687,6 +1701,32 @@ int cmd_reprom(int ac, char *av)
 	return 0;
 }
 
+int cmd_wrprom(int ac,char *av)
+{
+        int i=0;
+        unsigned short eeprom_data;
+        unsigned short rom[64]={
+				0x8129, 0x10ec, 0x8139, 0x10ec, 0x8139, 0x4020, 0xe512, 0x0a00,
+        			0x56eb, 0x135b, 0x4d15, 0xf7c2, 0x8801, 0x03b9, 0x60f4, 0x071a,
+				0xdfa3, 0x9836, 0xdfa3, 0x9836, 0x03b9, 0x60f4, 0x1a1a, 0x1a1a,
+				0x0000, 0xb6e3, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x2000,
+				0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+				0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+				0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+				0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000                        
+                        };
+
+        printf("Now beginningwrite whole eprom\n");
+
+        for(i=0; i< 64; i++)
+        {
+                eeprom_data = rom[i];
+                write_eeprom(ioaddr, i, eeprom_data);
+        }
+        printf("Write the whole eeprom OK!\n");
+        return 0;
+}
+
 int netdmp_cmd (int ac, char *av[])
 {
 	struct ifnet *ifp;
@@ -1746,6 +1786,8 @@ static const Cmd Cmds[] =
 		    "Set mac address into 8139 eeprom", cmd_setmac, 1, 5, 0},
 	{"reprom", "", NULL,
 			"dump rtl8139 eprom content", cmd_reprom, 1, 1,0},
+	{"wrprom", "", NULL,
+			"write the whole rtl8139 eprom content", cmd_wrprom, 1, 1,0},
 	{0, 0}
 };
 

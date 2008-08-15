@@ -59,3 +59,441 @@ ${OBJDIR}/lib${LIB}.a: ${OBJS}
 	@${AR} cq $@ ${OBJS}
 	${RANLIB} $@
 # DO NOT DELETE
+
+adler32.o: zlib.h zconf.h
+crc32.o: zlib.h zconf.h
+infblock.o: zutil.h zlib.h zconf.h /disk2_1/git-source/pmon/include/stddef.h
+infblock.o: /disk2_1/git-source/pmon/Targets/Bonito2edev/compile/Bonito/machine/ansi.h
+infblock.o: /disk2_1/git-source/pmon/include/string.h
+infblock.o: /disk2_1/git-source/pmon/sys/sys/cdefs.h
+infblock.o: /disk2_1/git-source/pmon/Targets/Bonito2edev/compile/Bonito/machine/cdefs.h
+infblock.o: /disk2_1/git-source/pmon/include/stdlib.h
+infblock.o: /disk2_1/git-source/pmon/sys/sys/types.h
+infblock.o: /disk2_1/git-source/pmon/Targets/Bonito2edev/compile/Bonito/machine/types.h
+infblock.o: /disk2_1/git-source/pmon/Targets/Bonito2edev/compile/Bonito/machine/endian.h
+infblock.o: /disk2_1/git-source/pmon/sys/sys/endian.h
+infblock.o: /disk2_1/git-source/pmon/include/errno.h infblock.h inftrees.h
+infblock.o: infcodes.h infutil.h
+infcodes.o: zutil.h zlib.h zconf.h /disk2_1/git-source/pmon/include/stddef.h
+infcodes.o: /disk2_1/git-source/pmon/Targets/Bonito2edev/compile/Bonito/machine/ansi.h
+infcodes.o: /disk2_1/git-source/pmon/include/string.h
+infcodes.o: /disk2_1/git-source/pmon/sys/sys/cdefs.h
+infcodes.o: /disk2_1/git-source/pmon/Targets/Bonito2edev/compile/Bonito/machine/cdefs.h
+infcodes.o: /disk2_1/git-source/pmon/include/stdlib.h
+infcodes.o: /disk2_1/git-source/pmon/sys/sys/types.h
+infcodes.o: /disk2_1/git-source/pmon/Targets/Bonito2edev/compile/Bonito/machine/types.h
+infcodes.o: /disk2_1/git-source/pmon/Targets/Bonito2edev/compile/Bonito/machine/endian.h
+infcodes.o: /disk2_1/git-source/pmon/sys/sys/endian.h
+infcodes.o: /disk2_1/git-source/pmon/include/errno.h inftrees.h infblock.h
+infcodes.o: infcodes.h infutil.h inffast.h
+inffast.o: zutil.h zlib.h zconf.h /disk2_1/git-source/pmon/include/stddef.h
+inffast.o: /disk2_1/git-source/pmon/Targets/Bonito2edev/compile/Bonito/machine/ansi.h
+inffast.o: /disk2_1/git-source/pmon/include/string.h
+inffast.o: /disk2_1/git-source/pmon/sys/sys/cdefs.h
+inffast.o: /disk2_1/git-source/pmon/Targets/Bonito2edev/compile/Bonito/machine/cdefs.h
+inffast.o: /disk2_1/git-source/pmon/include/stdlib.h
+inffast.o: /disk2_1/git-source/pmon/sys/sys/types.h
+inffast.o: /disk2_1/git-source/pmon/Targets/Bonito2edev/compile/Bonito/machine/types.h
+inffast.o: /disk2_1/git-source/pmon/Targets/Bonito2edev/compile/Bonito/machine/endian.h
+inffast.o: /disk2_1/git-source/pmon/sys/sys/endian.h
+inffast.o: /disk2_1/git-source/pmon/include/errno.h inftrees.h infblock.h
+inffast.o: infcodes.h infutil.h inffast.h
+inflate.o: zutil.h zlib.h zconf.h /disk2_1/git-source/pmon/include/stddef.h
+inflate.o: /disk2_1/git-source/pmon/Targets/Bonito2edev/compile/Bonito/machine/ansi.h
+inflate.o: /disk2_1/git-source/pmon/include/string.h
+inflate.o: /disk2_1/git-source/pmon/sys/sys/cdefs.h
+inflate.o: /disk2_1/git-source/pmon/Targets/Bonito2edev/compile/Bonito/machine/cdefs.h
+inflate.o: /disk2_1/git-source/pmon/include/stdlib.h
+inflate.o: /disk2_1/git-source/pmon/sys/sys/types.h
+inflate.o: /disk2_1/git-source/pmon/Targets/Bonito2edev/compile/Bonito/machine/types.h
+inflate.o: /disk2_1/git-source/pmon/Targets/Bonito2edev/compile/Bonito/machine/endian.h
+inflate.o: /disk2_1/git-source/pmon/sys/sys/endian.h
+inflate.o: /disk2_1/git-source/pmon/include/errno.h infblock.h
+inftrees.o: zutil.h zlib.h zconf.h /disk2_1/git-source/pmon/include/stddef.h
+inftrees.o: /disk2_1/git-source/pmon/Targets/Bonito2edev/compile/Bonito/machine/ansi.h
+inftrees.o: /disk2_1/git-source/pmon/include/string.h
+inftrees.o: /disk2_1/git-source/pmon/sys/sys/cdefs.h
+inftrees.o: /disk2_1/git-source/pmon/Targets/Bonito2edev/compile/Bonito/machine/cdefs.h
+inftrees.o: /disk2_1/git-source/pmon/include/stdlib.h
+inftrees.o: /disk2_1/git-source/pmon/sys/sys/types.h
+inftrees.o: /disk2_1/git-source/pmon/Targets/Bonito2edev/compile/Bonito/machine/types.h
+inftrees.o: /disk2_1/git-source/pmon/Targets/Bonito2edev/compile/Bonito/machine/endian.h
+inftrees.o: /disk2_1/git-source/pmon/sys/sys/endian.h
+inftrees.o: /disk2_1/git-source/pmon/include/errno.h inftrees.h inffixed.h
+infutil.o: zutil.h zlib.h zconf.h /disk2_1/git-source/pmon/include/stddef.h
+infutil.o: /disk2_1/git-source/pmon/Targets/Bonito2edev/compile/Bonito/machine/ansi.h
+infutil.o: /disk2_1/git-source/pmon/include/string.h
+infutil.o: /disk2_1/git-source/pmon/sys/sys/cdefs.h
+infutil.o: /disk2_1/git-source/pmon/Targets/Bonito2edev/compile/Bonito/machine/cdefs.h
+infutil.o: /disk2_1/git-source/pmon/include/stdlib.h
+infutil.o: /disk2_1/git-source/pmon/sys/sys/types.h
+infutil.o: /disk2_1/git-source/pmon/Targets/Bonito2edev/compile/Bonito/machine/types.h
+infutil.o: /disk2_1/git-source/pmon/Targets/Bonito2edev/compile/Bonito/machine/endian.h
+infutil.o: /disk2_1/git-source/pmon/sys/sys/endian.h
+infutil.o: /disk2_1/git-source/pmon/include/errno.h infblock.h inftrees.h
+infutil.o: infcodes.h infutil.h
+
+adler32.o: zlib.h zconf.h
+crc32.o: zlib.h zconf.h
+infblock.o: zutil.h zlib.h zconf.h /disk2_1/git-source/pmon/include/stddef.h
+infblock.o: /disk2_1/git-source/pmon/Targets/Bonito2edev/compile/Bonito/machine/ansi.h
+infblock.o: /disk2_1/git-source/pmon/include/string.h
+infblock.o: /disk2_1/git-source/pmon/sys/sys/cdefs.h
+infblock.o: /disk2_1/git-source/pmon/Targets/Bonito2edev/compile/Bonito/machine/cdefs.h
+infblock.o: /disk2_1/git-source/pmon/include/stdlib.h
+infblock.o: /disk2_1/git-source/pmon/sys/sys/types.h
+infblock.o: /disk2_1/git-source/pmon/Targets/Bonito2edev/compile/Bonito/machine/types.h
+infblock.o: /disk2_1/git-source/pmon/Targets/Bonito2edev/compile/Bonito/machine/endian.h
+infblock.o: /disk2_1/git-source/pmon/sys/sys/endian.h
+infblock.o: /disk2_1/git-source/pmon/include/errno.h infblock.h inftrees.h
+infblock.o: infcodes.h infutil.h
+infcodes.o: zutil.h zlib.h zconf.h /disk2_1/git-source/pmon/include/stddef.h
+infcodes.o: /disk2_1/git-source/pmon/Targets/Bonito2edev/compile/Bonito/machine/ansi.h
+infcodes.o: /disk2_1/git-source/pmon/include/string.h
+infcodes.o: /disk2_1/git-source/pmon/sys/sys/cdefs.h
+infcodes.o: /disk2_1/git-source/pmon/Targets/Bonito2edev/compile/Bonito/machine/cdefs.h
+infcodes.o: /disk2_1/git-source/pmon/include/stdlib.h
+infcodes.o: /disk2_1/git-source/pmon/sys/sys/types.h
+infcodes.o: /disk2_1/git-source/pmon/Targets/Bonito2edev/compile/Bonito/machine/types.h
+infcodes.o: /disk2_1/git-source/pmon/Targets/Bonito2edev/compile/Bonito/machine/endian.h
+infcodes.o: /disk2_1/git-source/pmon/sys/sys/endian.h
+infcodes.o: /disk2_1/git-source/pmon/include/errno.h inftrees.h infblock.h
+infcodes.o: infcodes.h infutil.h inffast.h
+inffast.o: zutil.h zlib.h zconf.h /disk2_1/git-source/pmon/include/stddef.h
+inffast.o: /disk2_1/git-source/pmon/Targets/Bonito2edev/compile/Bonito/machine/ansi.h
+inffast.o: /disk2_1/git-source/pmon/include/string.h
+inffast.o: /disk2_1/git-source/pmon/sys/sys/cdefs.h
+inffast.o: /disk2_1/git-source/pmon/Targets/Bonito2edev/compile/Bonito/machine/cdefs.h
+inffast.o: /disk2_1/git-source/pmon/include/stdlib.h
+inffast.o: /disk2_1/git-source/pmon/sys/sys/types.h
+inffast.o: /disk2_1/git-source/pmon/Targets/Bonito2edev/compile/Bonito/machine/types.h
+inffast.o: /disk2_1/git-source/pmon/Targets/Bonito2edev/compile/Bonito/machine/endian.h
+inffast.o: /disk2_1/git-source/pmon/sys/sys/endian.h
+inffast.o: /disk2_1/git-source/pmon/include/errno.h inftrees.h infblock.h
+inffast.o: infcodes.h infutil.h inffast.h
+inflate.o: zutil.h zlib.h zconf.h /disk2_1/git-source/pmon/include/stddef.h
+inflate.o: /disk2_1/git-source/pmon/Targets/Bonito2edev/compile/Bonito/machine/ansi.h
+inflate.o: /disk2_1/git-source/pmon/include/string.h
+inflate.o: /disk2_1/git-source/pmon/sys/sys/cdefs.h
+inflate.o: /disk2_1/git-source/pmon/Targets/Bonito2edev/compile/Bonito/machine/cdefs.h
+inflate.o: /disk2_1/git-source/pmon/include/stdlib.h
+inflate.o: /disk2_1/git-source/pmon/sys/sys/types.h
+inflate.o: /disk2_1/git-source/pmon/Targets/Bonito2edev/compile/Bonito/machine/types.h
+inflate.o: /disk2_1/git-source/pmon/Targets/Bonito2edev/compile/Bonito/machine/endian.h
+inflate.o: /disk2_1/git-source/pmon/sys/sys/endian.h
+inflate.o: /disk2_1/git-source/pmon/include/errno.h infblock.h
+inftrees.o: zutil.h zlib.h zconf.h /disk2_1/git-source/pmon/include/stddef.h
+inftrees.o: /disk2_1/git-source/pmon/Targets/Bonito2edev/compile/Bonito/machine/ansi.h
+inftrees.o: /disk2_1/git-source/pmon/include/string.h
+inftrees.o: /disk2_1/git-source/pmon/sys/sys/cdefs.h
+inftrees.o: /disk2_1/git-source/pmon/Targets/Bonito2edev/compile/Bonito/machine/cdefs.h
+inftrees.o: /disk2_1/git-source/pmon/include/stdlib.h
+inftrees.o: /disk2_1/git-source/pmon/sys/sys/types.h
+inftrees.o: /disk2_1/git-source/pmon/Targets/Bonito2edev/compile/Bonito/machine/types.h
+inftrees.o: /disk2_1/git-source/pmon/Targets/Bonito2edev/compile/Bonito/machine/endian.h
+inftrees.o: /disk2_1/git-source/pmon/sys/sys/endian.h
+inftrees.o: /disk2_1/git-source/pmon/include/errno.h inftrees.h inffixed.h
+infutil.o: zutil.h zlib.h zconf.h /disk2_1/git-source/pmon/include/stddef.h
+infutil.o: /disk2_1/git-source/pmon/Targets/Bonito2edev/compile/Bonito/machine/ansi.h
+infutil.o: /disk2_1/git-source/pmon/include/string.h
+infutil.o: /disk2_1/git-source/pmon/sys/sys/cdefs.h
+infutil.o: /disk2_1/git-source/pmon/Targets/Bonito2edev/compile/Bonito/machine/cdefs.h
+infutil.o: /disk2_1/git-source/pmon/include/stdlib.h
+infutil.o: /disk2_1/git-source/pmon/sys/sys/types.h
+infutil.o: /disk2_1/git-source/pmon/Targets/Bonito2edev/compile/Bonito/machine/types.h
+infutil.o: /disk2_1/git-source/pmon/Targets/Bonito2edev/compile/Bonito/machine/endian.h
+infutil.o: /disk2_1/git-source/pmon/sys/sys/endian.h
+infutil.o: /disk2_1/git-source/pmon/include/errno.h infblock.h inftrees.h
+infutil.o: infcodes.h infutil.h
+
+adler32.o: zlib.h zconf.h
+crc32.o: zlib.h zconf.h
+infblock.o: zutil.h zlib.h zconf.h /disk2_1/git-source/pmon/include/stddef.h
+infblock.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/ansi.h
+infblock.o: /disk2_1/git-source/pmon/include/string.h
+infblock.o: /disk2_1/git-source/pmon/sys/sys/cdefs.h
+infblock.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/cdefs.h
+infblock.o: /disk2_1/git-source/pmon/include/stdlib.h
+infblock.o: /disk2_1/git-source/pmon/sys/sys/types.h
+infblock.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/types.h
+infblock.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/endian.h
+infblock.o: /disk2_1/git-source/pmon/sys/sys/endian.h
+infblock.o: /disk2_1/git-source/pmon/include/errno.h infblock.h inftrees.h
+infblock.o: infcodes.h infutil.h
+infcodes.o: zutil.h zlib.h zconf.h /disk2_1/git-source/pmon/include/stddef.h
+infcodes.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/ansi.h
+infcodes.o: /disk2_1/git-source/pmon/include/string.h
+infcodes.o: /disk2_1/git-source/pmon/sys/sys/cdefs.h
+infcodes.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/cdefs.h
+infcodes.o: /disk2_1/git-source/pmon/include/stdlib.h
+infcodes.o: /disk2_1/git-source/pmon/sys/sys/types.h
+infcodes.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/types.h
+infcodes.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/endian.h
+infcodes.o: /disk2_1/git-source/pmon/sys/sys/endian.h
+infcodes.o: /disk2_1/git-source/pmon/include/errno.h inftrees.h infblock.h
+infcodes.o: infcodes.h infutil.h inffast.h
+inffast.o: zutil.h zlib.h zconf.h /disk2_1/git-source/pmon/include/stddef.h
+inffast.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/ansi.h
+inffast.o: /disk2_1/git-source/pmon/include/string.h
+inffast.o: /disk2_1/git-source/pmon/sys/sys/cdefs.h
+inffast.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/cdefs.h
+inffast.o: /disk2_1/git-source/pmon/include/stdlib.h
+inffast.o: /disk2_1/git-source/pmon/sys/sys/types.h
+inffast.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/types.h
+inffast.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/endian.h
+inffast.o: /disk2_1/git-source/pmon/sys/sys/endian.h
+inffast.o: /disk2_1/git-source/pmon/include/errno.h inftrees.h infblock.h
+inffast.o: infcodes.h infutil.h inffast.h
+inflate.o: zutil.h zlib.h zconf.h /disk2_1/git-source/pmon/include/stddef.h
+inflate.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/ansi.h
+inflate.o: /disk2_1/git-source/pmon/include/string.h
+inflate.o: /disk2_1/git-source/pmon/sys/sys/cdefs.h
+inflate.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/cdefs.h
+inflate.o: /disk2_1/git-source/pmon/include/stdlib.h
+inflate.o: /disk2_1/git-source/pmon/sys/sys/types.h
+inflate.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/types.h
+inflate.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/endian.h
+inflate.o: /disk2_1/git-source/pmon/sys/sys/endian.h
+inflate.o: /disk2_1/git-source/pmon/include/errno.h infblock.h
+inftrees.o: zutil.h zlib.h zconf.h /disk2_1/git-source/pmon/include/stddef.h
+inftrees.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/ansi.h
+inftrees.o: /disk2_1/git-source/pmon/include/string.h
+inftrees.o: /disk2_1/git-source/pmon/sys/sys/cdefs.h
+inftrees.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/cdefs.h
+inftrees.o: /disk2_1/git-source/pmon/include/stdlib.h
+inftrees.o: /disk2_1/git-source/pmon/sys/sys/types.h
+inftrees.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/types.h
+inftrees.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/endian.h
+inftrees.o: /disk2_1/git-source/pmon/sys/sys/endian.h
+inftrees.o: /disk2_1/git-source/pmon/include/errno.h inftrees.h inffixed.h
+infutil.o: zutil.h zlib.h zconf.h /disk2_1/git-source/pmon/include/stddef.h
+infutil.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/ansi.h
+infutil.o: /disk2_1/git-source/pmon/include/string.h
+infutil.o: /disk2_1/git-source/pmon/sys/sys/cdefs.h
+infutil.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/cdefs.h
+infutil.o: /disk2_1/git-source/pmon/include/stdlib.h
+infutil.o: /disk2_1/git-source/pmon/sys/sys/types.h
+infutil.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/types.h
+infutil.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/endian.h
+infutil.o: /disk2_1/git-source/pmon/sys/sys/endian.h
+infutil.o: /disk2_1/git-source/pmon/include/errno.h infblock.h inftrees.h
+infutil.o: infcodes.h infutil.h
+
+adler32.o: zlib.h zconf.h
+crc32.o: zlib.h zconf.h
+infblock.o: zutil.h zlib.h zconf.h /disk2_1/git-source/pmon/include/stddef.h
+infblock.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/ansi.h
+infblock.o: /disk2_1/git-source/pmon/include/string.h
+infblock.o: /disk2_1/git-source/pmon/sys/sys/cdefs.h
+infblock.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/cdefs.h
+infblock.o: /disk2_1/git-source/pmon/include/stdlib.h
+infblock.o: /disk2_1/git-source/pmon/sys/sys/types.h
+infblock.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/types.h
+infblock.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/endian.h
+infblock.o: /disk2_1/git-source/pmon/sys/sys/endian.h
+infblock.o: /disk2_1/git-source/pmon/include/errno.h infblock.h inftrees.h
+infblock.o: infcodes.h infutil.h
+infcodes.o: zutil.h zlib.h zconf.h /disk2_1/git-source/pmon/include/stddef.h
+infcodes.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/ansi.h
+infcodes.o: /disk2_1/git-source/pmon/include/string.h
+infcodes.o: /disk2_1/git-source/pmon/sys/sys/cdefs.h
+infcodes.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/cdefs.h
+infcodes.o: /disk2_1/git-source/pmon/include/stdlib.h
+infcodes.o: /disk2_1/git-source/pmon/sys/sys/types.h
+infcodes.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/types.h
+infcodes.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/endian.h
+infcodes.o: /disk2_1/git-source/pmon/sys/sys/endian.h
+infcodes.o: /disk2_1/git-source/pmon/include/errno.h inftrees.h infblock.h
+infcodes.o: infcodes.h infutil.h inffast.h
+inffast.o: zutil.h zlib.h zconf.h /disk2_1/git-source/pmon/include/stddef.h
+inffast.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/ansi.h
+inffast.o: /disk2_1/git-source/pmon/include/string.h
+inffast.o: /disk2_1/git-source/pmon/sys/sys/cdefs.h
+inffast.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/cdefs.h
+inffast.o: /disk2_1/git-source/pmon/include/stdlib.h
+inffast.o: /disk2_1/git-source/pmon/sys/sys/types.h
+inffast.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/types.h
+inffast.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/endian.h
+inffast.o: /disk2_1/git-source/pmon/sys/sys/endian.h
+inffast.o: /disk2_1/git-source/pmon/include/errno.h inftrees.h infblock.h
+inffast.o: infcodes.h infutil.h inffast.h
+inflate.o: zutil.h zlib.h zconf.h /disk2_1/git-source/pmon/include/stddef.h
+inflate.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/ansi.h
+inflate.o: /disk2_1/git-source/pmon/include/string.h
+inflate.o: /disk2_1/git-source/pmon/sys/sys/cdefs.h
+inflate.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/cdefs.h
+inflate.o: /disk2_1/git-source/pmon/include/stdlib.h
+inflate.o: /disk2_1/git-source/pmon/sys/sys/types.h
+inflate.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/types.h
+inflate.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/endian.h
+inflate.o: /disk2_1/git-source/pmon/sys/sys/endian.h
+inflate.o: /disk2_1/git-source/pmon/include/errno.h infblock.h
+inftrees.o: zutil.h zlib.h zconf.h /disk2_1/git-source/pmon/include/stddef.h
+inftrees.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/ansi.h
+inftrees.o: /disk2_1/git-source/pmon/include/string.h
+inftrees.o: /disk2_1/git-source/pmon/sys/sys/cdefs.h
+inftrees.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/cdefs.h
+inftrees.o: /disk2_1/git-source/pmon/include/stdlib.h
+inftrees.o: /disk2_1/git-source/pmon/sys/sys/types.h
+inftrees.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/types.h
+inftrees.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/endian.h
+inftrees.o: /disk2_1/git-source/pmon/sys/sys/endian.h
+inftrees.o: /disk2_1/git-source/pmon/include/errno.h inftrees.h inffixed.h
+infutil.o: zutil.h zlib.h zconf.h /disk2_1/git-source/pmon/include/stddef.h
+infutil.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/ansi.h
+infutil.o: /disk2_1/git-source/pmon/include/string.h
+infutil.o: /disk2_1/git-source/pmon/sys/sys/cdefs.h
+infutil.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/cdefs.h
+infutil.o: /disk2_1/git-source/pmon/include/stdlib.h
+infutil.o: /disk2_1/git-source/pmon/sys/sys/types.h
+infutil.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/types.h
+infutil.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/endian.h
+infutil.o: /disk2_1/git-source/pmon/sys/sys/endian.h
+infutil.o: /disk2_1/git-source/pmon/include/errno.h infblock.h inftrees.h
+infutil.o: infcodes.h infutil.h
+
+adler32.o: zlib.h zconf.h
+crc32.o: zlib.h zconf.h
+infblock.o: zutil.h zlib.h zconf.h /disk2_1/git-source/pmon/include/stddef.h
+infblock.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/ansi.h
+infblock.o: /disk2_1/git-source/pmon/include/string.h
+infblock.o: /disk2_1/git-source/pmon/sys/sys/cdefs.h
+infblock.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/cdefs.h
+infblock.o: /disk2_1/git-source/pmon/include/stdlib.h
+infblock.o: /disk2_1/git-source/pmon/sys/sys/types.h
+infblock.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/types.h
+infblock.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/endian.h
+infblock.o: /disk2_1/git-source/pmon/sys/sys/endian.h
+infblock.o: /disk2_1/git-source/pmon/include/errno.h infblock.h inftrees.h
+infblock.o: infcodes.h infutil.h
+infcodes.o: zutil.h zlib.h zconf.h /disk2_1/git-source/pmon/include/stddef.h
+infcodes.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/ansi.h
+infcodes.o: /disk2_1/git-source/pmon/include/string.h
+infcodes.o: /disk2_1/git-source/pmon/sys/sys/cdefs.h
+infcodes.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/cdefs.h
+infcodes.o: /disk2_1/git-source/pmon/include/stdlib.h
+infcodes.o: /disk2_1/git-source/pmon/sys/sys/types.h
+infcodes.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/types.h
+infcodes.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/endian.h
+infcodes.o: /disk2_1/git-source/pmon/sys/sys/endian.h
+infcodes.o: /disk2_1/git-source/pmon/include/errno.h inftrees.h infblock.h
+infcodes.o: infcodes.h infutil.h inffast.h
+inffast.o: zutil.h zlib.h zconf.h /disk2_1/git-source/pmon/include/stddef.h
+inffast.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/ansi.h
+inffast.o: /disk2_1/git-source/pmon/include/string.h
+inffast.o: /disk2_1/git-source/pmon/sys/sys/cdefs.h
+inffast.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/cdefs.h
+inffast.o: /disk2_1/git-source/pmon/include/stdlib.h
+inffast.o: /disk2_1/git-source/pmon/sys/sys/types.h
+inffast.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/types.h
+inffast.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/endian.h
+inffast.o: /disk2_1/git-source/pmon/sys/sys/endian.h
+inffast.o: /disk2_1/git-source/pmon/include/errno.h inftrees.h infblock.h
+inffast.o: infcodes.h infutil.h inffast.h
+inflate.o: zutil.h zlib.h zconf.h /disk2_1/git-source/pmon/include/stddef.h
+inflate.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/ansi.h
+inflate.o: /disk2_1/git-source/pmon/include/string.h
+inflate.o: /disk2_1/git-source/pmon/sys/sys/cdefs.h
+inflate.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/cdefs.h
+inflate.o: /disk2_1/git-source/pmon/include/stdlib.h
+inflate.o: /disk2_1/git-source/pmon/sys/sys/types.h
+inflate.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/types.h
+inflate.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/endian.h
+inflate.o: /disk2_1/git-source/pmon/sys/sys/endian.h
+inflate.o: /disk2_1/git-source/pmon/include/errno.h infblock.h
+inftrees.o: zutil.h zlib.h zconf.h /disk2_1/git-source/pmon/include/stddef.h
+inftrees.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/ansi.h
+inftrees.o: /disk2_1/git-source/pmon/include/string.h
+inftrees.o: /disk2_1/git-source/pmon/sys/sys/cdefs.h
+inftrees.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/cdefs.h
+inftrees.o: /disk2_1/git-source/pmon/include/stdlib.h
+inftrees.o: /disk2_1/git-source/pmon/sys/sys/types.h
+inftrees.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/types.h
+inftrees.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/endian.h
+inftrees.o: /disk2_1/git-source/pmon/sys/sys/endian.h
+inftrees.o: /disk2_1/git-source/pmon/include/errno.h inftrees.h inffixed.h
+infutil.o: zutil.h zlib.h zconf.h /disk2_1/git-source/pmon/include/stddef.h
+infutil.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/ansi.h
+infutil.o: /disk2_1/git-source/pmon/include/string.h
+infutil.o: /disk2_1/git-source/pmon/sys/sys/cdefs.h
+infutil.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/cdefs.h
+infutil.o: /disk2_1/git-source/pmon/include/stdlib.h
+infutil.o: /disk2_1/git-source/pmon/sys/sys/types.h
+infutil.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/types.h
+infutil.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/endian.h
+infutil.o: /disk2_1/git-source/pmon/sys/sys/endian.h
+infutil.o: /disk2_1/git-source/pmon/include/errno.h infblock.h inftrees.h
+infutil.o: infcodes.h infutil.h
+
+adler32.o: zlib.h zconf.h
+crc32.o: zlib.h zconf.h
+infblock.o: zutil.h zlib.h zconf.h /disk2_1/git-source/pmon/include/stddef.h
+infblock.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/ansi.h
+infblock.o: /disk2_1/git-source/pmon/include/string.h
+infblock.o: /disk2_1/git-source/pmon/sys/sys/cdefs.h
+infblock.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/cdefs.h
+infblock.o: /disk2_1/git-source/pmon/include/stdlib.h
+infblock.o: /disk2_1/git-source/pmon/sys/sys/types.h
+infblock.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/types.h
+infblock.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/endian.h
+infblock.o: /disk2_1/git-source/pmon/sys/sys/endian.h
+infblock.o: /disk2_1/git-source/pmon/include/errno.h infblock.h inftrees.h
+infblock.o: infcodes.h infutil.h
+infcodes.o: zutil.h zlib.h zconf.h /disk2_1/git-source/pmon/include/stddef.h
+infcodes.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/ansi.h
+infcodes.o: /disk2_1/git-source/pmon/include/string.h
+infcodes.o: /disk2_1/git-source/pmon/sys/sys/cdefs.h
+infcodes.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/cdefs.h
+infcodes.o: /disk2_1/git-source/pmon/include/stdlib.h
+infcodes.o: /disk2_1/git-source/pmon/sys/sys/types.h
+infcodes.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/types.h
+infcodes.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/endian.h
+infcodes.o: /disk2_1/git-source/pmon/sys/sys/endian.h
+infcodes.o: /disk2_1/git-source/pmon/include/errno.h inftrees.h infblock.h
+infcodes.o: infcodes.h infutil.h inffast.h
+inffast.o: zutil.h zlib.h zconf.h /disk2_1/git-source/pmon/include/stddef.h
+inffast.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/ansi.h
+inffast.o: /disk2_1/git-source/pmon/include/string.h
+inffast.o: /disk2_1/git-source/pmon/sys/sys/cdefs.h
+inffast.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/cdefs.h
+inffast.o: /disk2_1/git-source/pmon/include/stdlib.h
+inffast.o: /disk2_1/git-source/pmon/sys/sys/types.h
+inffast.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/types.h
+inffast.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/endian.h
+inffast.o: /disk2_1/git-source/pmon/sys/sys/endian.h
+inffast.o: /disk2_1/git-source/pmon/include/errno.h inftrees.h infblock.h
+inffast.o: infcodes.h infutil.h inffast.h
+inflate.o: zutil.h zlib.h zconf.h /disk2_1/git-source/pmon/include/stddef.h
+inflate.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/ansi.h
+inflate.o: /disk2_1/git-source/pmon/include/string.h
+inflate.o: /disk2_1/git-source/pmon/sys/sys/cdefs.h
+inflate.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/cdefs.h
+inflate.o: /disk2_1/git-source/pmon/include/stdlib.h
+inflate.o: /disk2_1/git-source/pmon/sys/sys/types.h
+inflate.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/types.h
+inflate.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/endian.h
+inflate.o: /disk2_1/git-source/pmon/sys/sys/endian.h
+inflate.o: /disk2_1/git-source/pmon/include/errno.h infblock.h
+inftrees.o: zutil.h zlib.h zconf.h /disk2_1/git-source/pmon/include/stddef.h
+inftrees.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/ansi.h
+inftrees.o: /disk2_1/git-source/pmon/include/string.h
+inftrees.o: /disk2_1/git-source/pmon/sys/sys/cdefs.h
+inftrees.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/cdefs.h
+inftrees.o: /disk2_1/git-source/pmon/include/stdlib.h
+inftrees.o: /disk2_1/git-source/pmon/sys/sys/types.h
+inftrees.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/types.h
+inftrees.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/endian.h
+inftrees.o: /disk2_1/git-source/pmon/sys/sys/endian.h
+inftrees.o: /disk2_1/git-source/pmon/include/errno.h inftrees.h inffixed.h
+infutil.o: zutil.h zlib.h zconf.h /disk2_1/git-source/pmon/include/stddef.h
+infutil.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/ansi.h
+infutil.o: /disk2_1/git-source/pmon/include/string.h
+infutil.o: /disk2_1/git-source/pmon/sys/sys/cdefs.h
+infutil.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/cdefs.h
+infutil.o: /disk2_1/git-source/pmon/include/stdlib.h
+infutil.o: /disk2_1/git-source/pmon/sys/sys/types.h
+infutil.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/types.h
+infutil.o: /disk2_1/git-source/pmon/Targets/Bonito2fdev/compile/Bonito/machine/endian.h
+infutil.o: /disk2_1/git-source/pmon/sys/sys/endian.h
+infutil.o: /disk2_1/git-source/pmon/include/errno.h infblock.h inftrees.h
+infutil.o: infcodes.h infutil.h

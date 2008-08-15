@@ -2135,9 +2135,7 @@ fxp_mc_setup(sc)
 }
 #endif
 
-//////////////////////////////////////////////////////////////////////////////////////////
-
-static long long ip100a_read_mac(struct fxp_softc *nic)
+static long long e100_read_mac(struct fxp_softc *nic)
 {
 
         int i;
@@ -2151,123 +2149,12 @@ static long long ip100a_read_mac(struct fxp_softc *nic)
 		tmp=0;
 		tmp = ((enaddr[i] & 0xff) <<8)|((enaddr[i] & 0xff00)>>8); 
                 mac_tmp <<= 16;
-                mac_tmp |= tmp; // enaddr[i];  // adapter->hw.mac_addr[i];
+                mac_tmp |= tmp;
 	}
         return mac_tmp;
 }
 
-
-/////////////////////////////////////////////////////////////////////////////////////////////
-#if 1
 #include <pmon.h>
-int cmd_ifm_fxp0(int ac, char *av[])
-{
-#if 0
-        struct ip100a_private *np = mynic_fxp->priv;
-#ifdef MY_NET
-        struct fxp_softc *nic_ifm;
-#else
-        struct nic *nic_ifm;
-#endif
-        int speed100=0, fullduplex=0, mii_ctrl = 0x0;
-        long ioaddr = uIOBase ;
-        int phys[4];
-        np = mynic_em->priv;
-        phys[0] = np->phys[0];
-        nic_ifm = mynic_em;
-//        printf("np->phys[0] : %d \n",phys[0]);
-        if(nic_ifm  == NULL){
-                printf("IP100A interface not initialized\n");
-                return 0;
-        }
-
-        if(ac !=1 && ac!=2 && ac!=3){
-                printf("usage: ifm_netdev [100|10|auto]  [full|half]\n");
-                return 0;
-        }
-        if(ac == 1){
-                //zgj speed10 = RTL_READ_1(nic,  MediaStatus) & MSRSpeed10;
-                printf("MIICtrl : 0x%x \n",readb(ioaddr+MIICtrl));
-                printf("ASIC_Ctrl : 0x%x \n",readl(ioaddr+ASICCtrl));
-                speed100 = readb(ioaddr+MIICtrl) & PhySpeedStatus ;
-                fullduplex = readb(ioaddr+MIICtrl) & PhyDuplexStatus ;
-                printf(" %sMbps %s-DUPLEX.\n", speed100 ? "100" : "10",
-                                                fullduplex ? "FULL" : "HALF");
-                return 0;
-        }
-
-        if(strcmp("100", av[1]) == 0){
-                mii_ctrl = 0;
-                 mii_ctrl |= BMCR_SPEED100;
-//              mii_ctrl =  mdio_read(nic_ifm , phys[0] , MII_BMCR);
-//              printf("mii_ctrl_100 read: 0x%x\n",mii_ctrl);
-                if(strcmp("full", av[2]) == 0)
-                        mii_ctrl |= BMCR_FULLDPLX ;
-                else
-                        mii_ctrl &= ~BMCR_FULLDPLX;
-                printf("mii_ctrl_100 or : 0x%x\n",mii_ctrl);
-                mdio_write (nic_ifm , phys[0] , MII_BMCR, mii_ctrl);
-                printf("mii_ctrl_100 write : 0x%x\n",mii_ctrl);
-mdelay(10);
-                mii_ctrl= mdio_read(nic_ifm, phys[0], MII_BMCR);
-                printf("mii_ctrl_100 read status : 0x%x\n",mii_ctrl);
-
-        } else if(strcmp("10", av[1]) ==0){
-//                mii_ctrl =  mdio_read (nic_ifm , phys[0] , MII_BMCR);
-//              printf("mii_ctrl_10 read : 0x%x\n",mii_ctrl);
-                mii_ctrl = 0x0;
-                mii_ctrl &= ~BMCR_SPEED100 ;
-                if(strcmp("full", av[2]) == 0)
-                        mii_ctrl |= BMCR_FULLDPLX ;
-                else
-                        mii_ctrl &= ~BMCR_FULLDPLX;
-                printf("mii_ctrl_10 and : 0x%x\n",mii_ctrl);
-                mdio_write (nic_ifm , phys[0] , MII_BMCR, mii_ctrl);
-//              mdio_write (nic_ifm , phys[0] , MII_BMCR, mii_ctrl);
-                printf("mii_ctrl_10 write : 0x%x\n",mii_ctrl);
-mdelay(10);
-                mii_ctrl= mdio_read(nic_ifm, phys[0], MII_BMCR);
-                printf("mii_ctrl_10 read status : 0x%x\n",mii_ctrl);
-        } else if(strcmp("auto", av[1])==0){
-//                mii_ctrl =  mdio_read (nic_ifm , phys[0] , MII_BMCR);
-//              printf("mii_ctrl_auto read : 0x%x\n",mii_ctrl);
-                mii_ctrl = 0x0;
-                mii_ctrl |= BMCR_ANENABLE|BMCR_ANRESTART ;
-                mdio_write (nic_ifm, phys[0] , MII_BMCR, mii_ctrl);
-//              mdio_write (nic_ifm , phys[0] , MII_BMCR, mii_ctrl);
-                printf("mii_ctrl_auto write : 0x%x\n",mii_ctrl);
-mdelay(10);
-                mii_ctrl= mdio_read(nic_ifm, phys[0], MII_BMCR);
-                printf("mii_ctrl_auto read status : 0x%x\n",mii_ctrl);
-        }
-#if 0
- else if(strcmp("full", av[1])==0){
-                mii_ctrl =  mdio_read (nic_ifm , phys[0] , MII_BMCR);
-                printf("mii_ctrl_full read : 0x%x\n",mii_ctrl);
-                mii_ctrl |= BMCR_FULLDPLX ;
-                mdio_write (nic_ifm, phys[0] , MII_BMCR, mii_ctrl);
-                printf("mii_ctrl_full write : 0x%x\n",mii_ctrl);
-mdelay(10);
-                mii_ctrl= mdio_read(nic_ifm, phys[0], MII_BMCR);
-                printf("mii_ctrl_full read status : 0x%x\n",mii_ctrl);
-        } else if(strcmp("half", av[1])==0){
-                mii_ctrl =  mdio_read (nic_ifm , phys[0] , MII_BMCR);
-                printf("mii_ctrl_half read : 0x%x\n",mii_ctrl);
-                mii_ctrl &= ~BMCR_FULLDPLX ;
-                mdio_write (nic_ifm, phys[0] , MII_BMCR, mii_ctrl);
-                printf("mii_ctrl_half write : 0x%x\n",mii_ctrl);
-mdelay(10);
-                mii_ctrl= mdio_read(nic_ifm, phys[0], MII_BMCR);
-                printf("mii_ctrl_half read status : 0x%x\n",mii_ctrl);
-        }
-#endif
-         else{
-                printf("usage: ifm_netdev [100|10|auto|full|half]\n");
-        }
-#endif
-        return 0;
-
-}
 
         unsigned short val_fxp = 0;
 int cmd_setmac_fxp0(int ac, char *av[])
@@ -2277,36 +2164,15 @@ int cmd_setmac_fxp0(int ac, char *av[])
         struct fxp_softc *nic = mynic_fxp ;
 
         if(nic == NULL){
-               printf("E1000 interface not initialized\n");
+               printf("epro100 interface not initialized\n");
                 return 0;
         }
-#if 0
-        if (ac != 4) {
-                printf("MAC ADDRESS ");
-                for(i=0; i<6; i++){
-                        printf("%02x",nic->arpcom.ac_enaddr[i]);
-                        if(i==5)
-                                printf("\n");
-                        else
-                                printf(":");
-                }
-                printf("Use \"setmac word1(16bit) word2 word3\"\n");
-                return 0;
-        }
-        printf("set mac to ");
-        for (i = 0; i < 3; i++) {
-                val_fxp = strtoul(av[i+1],0,0);
-                printf("%04x ", val_fxp);
-                write_eeprom(ioaddr, 0x7 + i, val_fxp);
-        }
-        printf("\n");
-        printf("The machine should be restarted to make the mac change to take effect!!\n");
-#else
-        if(ac != 2){
+        
+	if(ac != 2){
         long long macaddr;
         u_int8_t *paddr;
         u_int8_t enaddr[6];
-        macaddr=ip100a_read_mac(nic);
+        macaddr=e100_read_mac(nic);
         paddr=(uint8_t*)&macaddr;
         enaddr[0] = paddr[5- 0];
         enaddr[1] = paddr[5- 1];
@@ -2327,30 +2193,15 @@ int cmd_setmac_fxp0(int ac, char *av[])
         }
         for (i = 0; i < 3; i++) {
                 val_fxp = 0;
-printf(" av[1] = %s\n",av[1]);
-
                 gethex(&v, av[1], 2);
-printf("v= 0x%x\n",v);
                 val_fxp = v ;
-printf("val_fxp= 0x%x \n",val_fxp);
                 av[1]+=3;
-
-printf(" av[1] = %s \n",av[1]);
-
                 gethex(&v, av[1], 2);
-printf("val_fxp= 0x%x \n",val_fxp);
                 val_fxp = val_fxp | (v << 8);
                 av[1] += 3;
-
-printf("v= %d\n",v);
-printf("val_fxp = 0x%4x , i= %d \n", val_fxp, i);
              fxp_write_eeprom(nic, &val_fxp, i, 1);
-printf("=========================>>>>>>>>\n");
         }
-
-     //   if(e1000_update_eeprom_checksum(&adapter->hw) == 0)
-     //           printf("the checksum is right!\n");
-#endif
+	printf("Write MAC address successfully!\n");
         return 0;
 }
 
@@ -2359,16 +2210,6 @@ int cmd_wrprom_fxp0(int ac,char *av)
         int i=0;
         unsigned short eeprom_data;
         unsigned short rom[EEPROM_CHECKSUM_REG+1]={
-#if 0
-                                0x1b00, 0x0821, 0x23a7, 0x0210, 0xffff, 0x1000 ,0xffff, 0xffff,
-                                0xc802, 0x3502, 0x640b, 0x1376, 0x8086, 0x107c, 0x8086, 0xb284,
-                                0x20dd, 0x5555, 0x0000, 0x2f90, 0x3200, 0x0012, 0x1e20, 0x0012,
-                                0x1e20, 0x0012, 0x1e20, 0x0012, 0x1e20, 0x0009, 0x0200, 0x0000,
-                                0x000c, 0x93a6, 0x280b, 0x0000, 0x0400, 0xffff, 0xffff, 0xffff,
-                                0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0x0602,
-                                0x0100, 0x4000, 0x1216, 0x4007, 0xffff, 0xffff, 0xffff, 0xffff,
-                                0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0x7dfa
-#else
 				0x0a00, 0x5dc4, 0x9b78, 0x0203, 0x0000, 0x0201, 0x4701, 0x0000,
 				0xa276, 0x9501, 0x5022, 0x5022, 0x5022, 0x007f, 0x0000, 0x0000,
 				0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
@@ -2377,18 +2218,17 @@ int cmd_wrprom_fxp0(int ac,char *av)
 				0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
 				0x0128, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
 				0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x30cc
-#endif
                         };
 
 	struct fxp_softc *sc = mynic_fxp;
-        printf("write eprom\n");
+        printf("Now beginningwrite whole eprom\n");
 
         for(i=0; i< EEPROM_CHECKSUM_REG; i++)
         {
                 eeprom_data = rom[i];
-                printf("rom[%d]=0x%4x , eeprom_data : 0x%4x\n",i,rom[i], eeprom_data);
                 fxp_write_eeprom(sc, &eeprom_data, i, 1);
         }
+	printf("Write the whole eeprom OK!\n");
         return 0;
 }
 
@@ -2410,51 +2250,6 @@ int cmd_reprom_fxp0(int ac, char *av)
         return 0;
 }
 
-int dbE100=0;
-int max_interrupt_work_fxp=5;
-
-int netdmp_cmd_fxp0 (int ac, char *av[])
-{
-        struct ifnet *ifp;
-        int i;
-#if 0
-        ifp = &mynic_em->arpcom.ac_if;
-        printf("if_snd.mb_head: %x\n", ifp->if_snd.ifq_head);
-        printf("if_snd.ifq_snd.ifqlen =%d\n", ifp->if_snd.ifq_len);
-        printf("MIICtrl= %x\n", RTL_READ_1(mynic_em, MIICtrl));
-        printf("ASICCtrl= %x\n", RTL_READ_1(mynic_em, ASICCtrl));
-        printf("ifnet address=%8x\n", ifp);
-        printf("if_flags = %x\n", ifp->if_flags);
-        printf("Intr =%x\n", RTL_READ_2(mynic_em, IntrStatus));
-        printf("TxConfig =%x\n", RTL_READ_4(mynic_em, TxConfig));
-        printf("RxConfig =%x\n", RTL_READ_4(mynic_em, RxConfig));
-        printf("RxBufPtr= %x\n", RTL_READ_2(mynic_em, RxBufPtr));
-        printf("RxBufAddr =%x\n", RTL_READ_2(mynic_em, RxBufAddr));
-        printf("cur_rx =%x\n", cur_rx);
-        printf("rx_ring: %x\n",mynic_em->rx_dma);
-        printf("tx_dma: %x\n",mynic_em->tx_dma);
-        printf("cur_tx =%d, dirty_tx=%d\n", cur_tx, dirty_tx);
-        for (i =0; i<4; i++){
-                printf("Txstatus[%d]=%x\n", i, RTL_READ_4(mynic_em, TxStatus0+i*4));
-        }
-#endif
-        if(ac==2){
-
-                if(strcmp(av[1], "on")==0){
-                        dbE100=1;
-                }
-                else if(strcmp(av[1], "off")==0){
-                        dbE100=0;
-                }else {
-                        int x=atoi(av[1]);
-                        max_interrupt_work_fxp=x;
-                }
-
-        }
-        printf("dbE100=%d\n",dbE100);
-        return 0;
-}
-
 static const Optdesc netdmp_opts[] =
 {
     {"<interface>", "Interface name"},
@@ -2465,11 +2260,6 @@ static const Optdesc netdmp_opts[] =
 static const Cmd Cmds[] =
 {
         {"fxp0"},
-        {"netdump_fxp0",      "",
-                        0,
-                        "em100 helper", netdmp_cmd_fxp0, 1, 3, 0},
-        {"ifm_fxp0", "", NULL,
-                    "Set E100 interface mode: Usage: ifm_netdev [100|10|auto] [full|half] ", cmd_ifm_fxp0, 1, 3, 0},
         {"setmac_fxp0", "", NULL,
                     "Set mac address into E100 eeprom", cmd_setmac_fxp0, 1, 5, 0},
         {"reprom_fxp0", "", NULL,
@@ -2487,8 +2277,4 @@ init_cmd()
 {
         cmdlist_expand(Cmds, 1);
 }
-
-#endif
-
-/////////////////////////////////////////////////////////////////////////////////////////////
 
