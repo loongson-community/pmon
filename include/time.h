@@ -95,7 +95,8 @@ time_t mktime __P((struct tm *));
 time_t gmmktime __P((const struct tm *));
 size_t strftime __P((char *, size_t, const char *, const struct tm *));
 char *strptime __P((const char *, const char *, struct tm *));
-time_t time __P((time_t *));
+//time_t time(time_t *);
+//zgj time_t time __P((time_t *));
 
 #if !defined(_ANSI_SOURCE)
 #define CLK_TCK		100

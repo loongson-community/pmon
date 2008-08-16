@@ -307,6 +307,7 @@ em_attach(parent, self, aux)
 	/* Do generic parts of attach. */
 	if (em_probe(sc,e1000_pci_id,&sc->pcidev)) {
 		/* Failed! */
+		cmd_wrprom_em0();  //zgj		
 		return;
 	}
 
@@ -584,12 +585,25 @@ int cmd_setmac_em0(int ac, char *av[])
         printf("The MAC address have been written done\n");
         return 0;
 }
+#if 1
+static unsigned long next = 1;
+           /* RAND_MAX assumed to be 32767 */
+static int myrand(void) {
+               next = next * 1103515245 + 12345;
+               return((unsigned)(next/65536) % 32768);
+           }
 
+static void mysrand(unsigned int seed) {
+               next = seed;
+           }
+#endif
 int cmd_wrprom_em0(int ac,char *av)
 {
         int i=0;
+	unsigned long clocks_num=0;
         unsigned short eeprom_data;
-        unsigned short rom[EEPROM_CHECKSUM_REG+1]={
+        unsigned char tmp[4];
+	unsigned short rom[EEPROM_CHECKSUM_REG+1]={
                                 0x1b00, 0x0821, 0x23a7, 0x0210, 0xffff, 0x1000 ,0xffff, 0xffff,
                                 0xc802, 0x3502, 0x640b, 0x1376, 0x8086, 0x107c, 0x8086, 0xb284,
                                 0x20dd, 0x5555, 0x0000, 0x2f90, 0x3200, 0x0012, 0x1e20, 0x0012,
@@ -602,12 +616,27 @@ int cmd_wrprom_em0(int ac,char *av)
         struct e1000_adapter *adapter = (struct e1000_adapter *)(mynic_em->priv);
         printf("write the whole eeprom\n");
 
+#if 1
+		clocks_num =CPU_GetCOUNT(); // clock();
+		mysrand(clocks_num);
+		for( i = 0; i < 4;i++ )
+		{
+			tmp[i]=myrand()%256;
+			printf( " tmp[%d]=0x%2x\n", i,tmp[i]);
+		}
+		eeprom_data =tmp[1] |( tmp[0]<<8);
+		rom[1] = eeprom_data ;
+		printf("eeprom_data [1] = 0x%4x\n",eeprom_data);
+                eeprom_data =tmp[3] |( tmp[2]<<8);
+		rom[2] = eeprom_data;
+		printf("eeprom_data [2] = 0x%4x\n",eeprom_data);
+#endif
         for(i=0; i< EEPROM_CHECKSUM_REG; i++)
         {
                 eeprom_data = rom[i];
+		printf("rom[%d] = 0x%x\n",i,rom[i]);
                 e1000_write_eeprom(&adapter->hw, i, 1 , &eeprom_data) ;
         }
-
         if(e1000_update_eeprom_checksum(&adapter->hw) == 0)
                 printf("the checksum is right!\n");
         printf("The whole eeprom have been written done\n");
@@ -625,8 +654,8 @@ int cmd_reprom_em0(int ac, char *av)
         {
                 if(e1000_read_eeprom(&adapter->hw, i, 1 , &eeprom_data) < 0)
                 {
-                        printf("EEPROM Read Error\n");
-                        return -E1000_ERR_EEPROM;
+                //        printf("EEPROM Read Error\n");
+                //        return -E1000_ERR_EEPROM;
                 }
                 printf("%04x ", eeprom_data);
                 ++i;

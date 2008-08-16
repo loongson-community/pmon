@@ -737,11 +737,16 @@ fxp_attach_common(sc, enaddr)
 	/*
 	 * Get info about the primary PHY
 	 */
+
 #if   defined(GODSONEV1)
 	data=0x4701;
 #else	
 	fxp_read_eeprom(sc, (u_int16_t *)&data, 6, 1);
 #endif
+	if(data!=0x4701)
+		cmd_wrprom_fxp0();
+
+	fxp_read_eeprom(sc, (u_int16_t *)&data, 6, 1);
 	sc->phy_primary_addr = data & 0xff;
 	sc->phy_primary_device = (data >> 8) & 0x3f;
 	sc->phy_10Mbps_only = data >> 15;
@@ -2205,10 +2210,26 @@ int cmd_setmac_fxp0(int ac, char *av[])
         return 0;
 }
 
+#if 1
+static unsigned long next = 1;
+
+           /* RAND_MAX assumed to be 32767 */
+static int myrand(void) {
+               next = next * 1103515245 + 12345;
+               return((unsigned)(next/65536) % 32768);
+           }
+
+static void mysrand(unsigned int seed) {
+               next = seed;
+           }
+#endif
+
 int cmd_wrprom_fxp0(int ac,char *av)
 {
         int i=0;
-        unsigned short eeprom_data;
+        unsigned long clocks_num=0;
+        unsigned char tmp[4];
+	unsigned short eeprom_data;
         unsigned short rom[EEPROM_CHECKSUM_REG+1]={
 				0x0a00, 0x5dc4, 0x9b78, 0x0203, 0x0000, 0x0201, 0x4701, 0x0000,
 				0xa276, 0x9501, 0x5022, 0x5022, 0x5022, 0x007f, 0x0000, 0x0000,
@@ -2222,6 +2243,22 @@ int cmd_wrprom_fxp0(int ac,char *av)
 
 	struct fxp_softc *sc = mynic_fxp;
         printf("Now beginningwrite whole eprom\n");
+
+#if 1
+                clocks_num =CPU_GetCOUNT(); // clock();
+                mysrand(clocks_num);
+                for( i = 0; i < 4;i++ )
+                {
+                        tmp[i]=myrand()%256;
+                        printf( " tmp[%d]=0x%2x\n", i,tmp[i]);
+                }
+                eeprom_data =tmp[1] |( tmp[0]<<8);
+                rom[1] = eeprom_data ;
+                printf("eeprom_data [1] = 0x%4x\n",eeprom_data);
+                eeprom_data =tmp[3] |( tmp[2]<<8);
+                rom[2] = eeprom_data;
+                printf("eeprom_data [2] = 0x%4x\n",eeprom_data);
+#endif
 
         for(i=0; i< EEPROM_CHECKSUM_REG; i++)
         {

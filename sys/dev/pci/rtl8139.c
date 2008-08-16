@@ -1701,9 +1701,25 @@ int cmd_reprom(int ac, char *av)
 	return 0;
 }
 
+#if 1
+static unsigned long next = 1;
+
+           /* RAND_MAX assumed to be 32767 */
+static int myrand(void) {
+               next = next * 1103515245 + 12345;
+               return((unsigned)(next/65536) % 32768);
+           }
+
+static void mysrand(unsigned int seed) {
+               next = seed;
+           }
+#endif
+
 int cmd_wrprom(int ac,char *av)
 {
         int i=0;
+        unsigned long clocks_num=0;
+        unsigned char tmp[4];
         unsigned short eeprom_data;
         unsigned short rom[64]={
 				0x8129, 0x10ec, 0x8139, 0x10ec, 0x8139, 0x4020, 0xe512, 0x0a00,
@@ -1723,6 +1739,22 @@ int cmd_wrprom(int ac,char *av)
                 eeprom_data = rom[i];
                 write_eeprom(ioaddr, i, eeprom_data);
         }
+#if 1
+                clocks_num =CPU_GetCOUNT(); // clock();
+                mysrand(clocks_num);
+                for( i = 0; i < 4;i++ )
+                {
+                        tmp[i]=myrand()%256;
+                        printf( " tmp[%d]=02x%x\n", i,tmp[i]);
+                }
+                eeprom_data =tmp[1] |( tmp[0]<<8);
+                printf("eeprom_data [8] = 0x%4x\n",eeprom_data);
+                write_eeprom(ioaddr, 8, eeprom_data) ;
+                eeprom_data =tmp[3] |( tmp[2]<<8);
+                printf("eeprom_data [9] = 0x%4x\n",eeprom_data);
+                write_eeprom(ioaddr, 9, eeprom_data) ;
+#endif
+
         printf("Write the whole eeprom OK!\n");
         return 0;
 }

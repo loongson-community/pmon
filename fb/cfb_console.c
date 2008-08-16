@@ -103,7 +103,9 @@ CONFIG_VIDEO_HW_CURSOR:	     - Uses the hardware cursor capability of the
 #include <stdarg.h>
 #include <pmon.h>
 #include <cpu.h>
+#ifndef SMI502
 #include <target/types.h>
+#endif
 #include <dev/pci/pcivar.h>
 
 #ifdef RADEON7000
