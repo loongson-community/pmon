@@ -3204,12 +3204,14 @@ e1000_update_eeprom_checksum(struct e1000_hw *hw)
 
     for(i = 0; i < EEPROM_CHECKSUM_REG; i++) {
         if(e1000_read_eeprom(hw, i, 1, &eeprom_data) < 0) {
+            printf("%d EEPROM Read Error\n",i);
             DEBUGOUT("EEPROM Read Error\n");
             return -E1000_ERR_EEPROM;
         }
         checksum += eeprom_data;
     }
     checksum = (uint16_t) EEPROM_SUM - checksum;
+    printf("The em1000 checksum is the 0x%4x \n",checksum);
     if(e1000_write_eeprom(hw, EEPROM_CHECKSUM_REG, 1, &checksum) < 0) {
         DEBUGOUT("EEPROM Write Error\n");
         return -E1000_ERR_EEPROM;
@@ -3238,7 +3240,6 @@ e1000_write_eeprom(struct e1000_hw *hw,
     int32_t status = 0;
 
     DEBUGFUNC("e1000_write_eeprom");
-
     /* A check for invalid values:  offset too large, too many words, and not
      * enough words.
      */
@@ -3348,8 +3349,7 @@ e1000_write_eeprom_microwire(struct e1000_hw *hw,
     uint32_t eecd;
     uint16_t words_written = 0;
     uint16_t i = 0;
-
-    DEBUGFUNC("e1000_write_eeprom_microwire");
+    DEBUGFUNC("e1000_write_eeprom_microwire \n");
 
     /* Send the write enable command to the EEPROM (3-bit opcode plus
      * 6/8-bit dummy address beginning with 11).  It's less work to include

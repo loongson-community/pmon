@@ -617,7 +617,7 @@ int cmd_wrprom_em0(int ac,char *av)
         printf("write the whole eeprom\n");
 
 #if 1
-		clocks_num =CPU_GetCOUNT(); // clock();
+		clocks_num =CPU_GetCOUNT();
 		mysrand(clocks_num);
 		for( i = 0; i < 4;i++ )
 		{
@@ -674,12 +674,12 @@ static const Optdesc netdmp_opts[] =
 
 static const Cmd Cmds[] =
 {
-        {"em0"},
-        {"setmac_em0", "", NULL,
+        {"em"},
+        {"setmac_em", "", NULL,
                     "Set mac address into E1000 eeprom", cmd_setmac_em0, 1, 5, 0},
-        {"reprom_em0", "", NULL,
+        {"readrom_em", "", NULL,
                         "dump E1000 eprom content", cmd_reprom_em0, 1, 2, 0},
-        {"wrprom_em0", "", NULL,
+        {"writerom_em", "", NULL,
                         "write E1000 eprom content", cmd_wrprom_em0, 1, 2, 0},
         {0, 0}
 };

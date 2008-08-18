@@ -1151,7 +1151,7 @@ printf("status:%s %s\n",ifr->ifr_flags&IFF_UP?"up":"down",ifr->ifr_flags&IFF_RUN
 }
 else if(argc>=3)
 {
-char *cmds[]={"down","up","remove","stat","setmac","reprom","wrprom"};
+char *cmds[]={"down","up","remove","stat","setmac","readrom","writerom"};
 int i;
 	for(i=0;i<sizeof(cmds)/sizeof(char *);i++)
 	if(!strcmp(argv[2],cmds[i]))break;

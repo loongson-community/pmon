@@ -2296,12 +2296,12 @@ static const Optdesc netdmp_opts[] =
 
 static const Cmd Cmds[] =
 {
-        {"fxp0"},
-        {"setmac_fxp0", "", NULL,
+        {"fxp"},
+        {"setmac_fxp", "", NULL,
                     "Set mac address into E100 eeprom", cmd_setmac_fxp0, 1, 5, 0},
-        {"reprom_fxp0", "", NULL,
+        {"readrom_fxp", "", NULL,
                         "dump E100 eprom content", cmd_reprom_fxp0, 1, 2, 0},
-        {"wrprom_fxp0", "", NULL,
+        {"writerom_fxp", "", NULL,
                         "write E100 eprom content", cmd_wrprom_fxp0, 1, 2, 0},
         {0, 0}
 };

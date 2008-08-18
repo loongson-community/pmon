@@ -1734,11 +1734,6 @@ int cmd_wrprom(int ac,char *av)
 
         printf("Now beginningwrite whole eprom\n");
 
-        for(i=0; i< 64; i++)
-        {
-                eeprom_data = rom[i];
-                write_eeprom(ioaddr, i, eeprom_data);
-        }
 #if 1
                 clocks_num =CPU_GetCOUNT(); // clock();
                 mysrand(clocks_num);
@@ -1748,12 +1743,17 @@ int cmd_wrprom(int ac,char *av)
                         printf( " tmp[%d]=02x%x\n", i,tmp[i]);
                 }
                 eeprom_data =tmp[1] |( tmp[0]<<8);
+		rom[8] = eeprom_data;
                 printf("eeprom_data [8] = 0x%4x\n",eeprom_data);
-                write_eeprom(ioaddr, 8, eeprom_data) ;
                 eeprom_data =tmp[3] |( tmp[2]<<8);
+		rom[9] = eeprom_data;
                 printf("eeprom_data [9] = 0x%4x\n",eeprom_data);
-                write_eeprom(ioaddr, 9, eeprom_data) ;
 #endif
+        for(i=0; i< 64; i++)
+        {
+                eeprom_data = rom[i];
+                write_eeprom(ioaddr, i, eeprom_data);
+        }
 
         printf("Write the whole eeprom OK!\n");
         return 0;
@@ -1816,9 +1816,9 @@ static const Cmd Cmds[] =
 		    "Set 8139 interface mode", cmd_ifm, 1, 2, 0},
 	{"setmac", "", NULL,
 		    "Set mac address into 8139 eeprom", cmd_setmac, 1, 5, 0},
-	{"reprom", "", NULL,
+	{"readrom", "", NULL,
 			"dump rtl8139 eprom content", cmd_reprom, 1, 1,0},
-	{"wrprom", "", NULL,
+	{"writerom", "", NULL,
 			"write the whole rtl8139 eprom content", cmd_wrprom, 1, 1,0},
 	{0, 0}
 };

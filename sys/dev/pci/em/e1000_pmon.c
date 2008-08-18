@@ -995,7 +995,8 @@ static inline void pci_disable_device(struct pci_dev *dev) { }
 
 void wmb(void){}
 void mdelay(int ms){}
-void udelay(int us){}
+//void udelay(int us){}
+#define udelay delay
 
 #define MODULE_PARM(...)
 #define MODULE_PARM_DESC(...)

@@ -166,6 +166,19 @@ static int mysleep(int ms)
 	return 0;
 }
 
+#define RTL_W8(tp, reg, val8)   iowrite8 ((val8), tp->base_addr + (reg))
+#define RTL_W16(tp, reg, val16) iowrite16 ((val16), tp->base_addr + (reg))
+#define RTL_W32(tp, reg, val32) iowrite32 ((val32), tp->base_addr + (reg))
+#define RTL_R8(tp, reg)         ioread8 (tp->base_addr + (reg))
+#define RTL_R16(tp, reg)                ioread16 (tp->base_addr + (reg))
+#define RTL_R32(tp, reg)                ((unsigned long) ioread32 (tp->base_addr + (reg)))
+
+#define EEPROMDATA 0x34
+#define EEPROMCTRL 0x36
+#define EEP_BUSY   0x8000
+#define EEP_WRITE  0x0100
+#define EEP_READ   0x0200
+
 
 #define MII_BMCR            0x00        /* Basic mode control register */
 #define MII_BMSR            0x01        /* Basic mode status register  */
@@ -342,7 +355,7 @@ char            name[IFNAMSIZ];
 	unsigned char		perm_addr[6]; /* permanent hw address */
 };
 const static struct pci_device_id *
-pci_match_device(const struct pci_device_id *ids, 	struct pci_attach_args *pa )
+ pci_match_device(const struct pci_device_id *ids, 	struct pci_attach_args *pa )
 {
 	unsigned short	vendor;
 	unsigned short	device,class;
@@ -370,8 +383,7 @@ pci_match_device(const struct pci_device_id *ids, 	struct pci_attach_args *pa )
 }
 
 
-void
-pci_free_consistent(struct pci_dev *pdev, size_t size, void *cpu_addr,
+static void pci_free_consistent(struct pci_dev *pdev, size_t size, void *cpu_addr,
             dma_addr_t dma_addr)
 {
 	kfree(cpu_addr);
@@ -391,6 +403,8 @@ void *buf;
 	return (void *)buf;
 }
 
+static unsigned short  read_eeprom(unsigned long ioaddr,unsigned int eep_addr);
+static  void  write_eeprom(unsigned long ioaddr, unsigned int eep_addr, unsigned short writedata);
 
 struct sk_buff {
     unsigned int    len;            /* Length of actual data            */
@@ -489,7 +503,7 @@ static struct mbuf * getmbuf()
 	return m;
 }
 
-inline int netif_rx(struct sk_buff *skb)
+static inline int netif_rx(struct sk_buff *skb)
 {
 	struct mbuf *m;
 	struct ether_header *eh;
@@ -734,6 +748,10 @@ enum mac_ctrl0_bits {
 	EnbFullDuplex=0x20, EnbRcvLargeFrame=0x40,
 	EnbFlowCtrl=0x100, EnbPassRxCRC=0x200,
 };
+/*Bits in the PHY-CTRL registers*/
+enum phy_ctrl_bits{
+        PhyDuplexStatus=0x20,PhySpeedStatus=0x40,PhyLinkStatus=0x80,
+};
 enum mac_ctrl1_bits {
 	StatsEnable=0x0020,	StatsDisable=0x0040, StatsEnabled=0x0080,
 	TxEnable=0x0100, TxDisable=0x0200, TxEnabled=0x0400,
@@ -844,6 +862,86 @@ static struct net_device_stats *get_stats(struct net_device *dev);
 static int netdev_ioctl(struct net_device *dev, struct ifreq *rq, int cmd);
 static int  netdev_close(struct net_device *dev);
 
+void delay10us(void)
+{
+        volatile int i = 0;
+        for(i = 0; i<1000 ;)
+                i++;
+
+//    usleep(10);
+}
+#if 0
+void mdelay(int ii)
+{
+ volatile int j;
+        for(;ii>0;ii--)
+          for(j=0;j<100000;)
+                j++;
+}
+#endif
+
+unsigned short outpw(unsigned long WR_ADDR,unsigned short WR_VAL)
+{
+
+        *( (volatile unsigned short *) WR_ADDR ) = WR_VAL ;
+        return WR_VAL;
+}
+
+unsigned short inpw(unsigned long RD_ADDR)
+{
+        unsigned short RD_VAL;
+        RD_VAL = *( (volatile unsigned short *) RD_ADDR ) ;
+        return RD_VAL;
+}
+
+static void write_eeprom(unsigned long ioaddr_1, unsigned int eep_addr, unsigned short writedata)
+{
+   unsigned short v = 0;
+   unsigned long uIOBase=ioaddr_1;
+   int i = 0;
+
+        v=outpw (uIOBase + EEPROMDATA, writedata );
+        while ( (inpw(uIOBase + EEPROMCTRL) & EEP_BUSY ) &&(i<20000) )
+        {
+                i++;
+        }
+
+        v=outpw (uIOBase + EEPROMCTRL, 0xC0 );
+        while ( (inpw(uIOBase + EEPROMCTRL) & EEP_BUSY ) &&(i<20000) )
+        {
+                i++;
+        }
+
+        v=outpw (uIOBase + EEPROMCTRL, EEP_WRITE | (eep_addr & 0xff) );
+        while ( (inpw(uIOBase + EEPROMCTRL) & EEP_BUSY ) &&(i<20000) )
+        {
+                i++;
+        }
+
+        for( i = 0; i < 400; i++ )
+        {
+            delay10us();
+        }
+
+}
+
+static unsigned short read_eeprom(unsigned long ioaddr_1, unsigned int eep_addr)
+{
+
+        unsigned int v = 0;
+        int i = 10000;
+        unsigned long uIOBase=ioaddr_1;
+
+        v=outpw (uIOBase + EEPROMCTRL, EEP_READ | (eep_addr & 0xff));
+        while (i-- > 0) {
+                delay10us();
+                if (!(inpw(uIOBase + EEPROMCTRL) & EEP_BUSY)) {
+                        return inpw(uIOBase + EEPROMDATA);
+                }
+        }
+        return 0;
+}
+
 static void sundance_reset(struct net_device *dev, unsigned long reset_cmd)
 {
 	struct netdev_private *np = netdev_priv(dev);
@@ -862,6 +960,7 @@ static void sundance_reset(struct net_device *dev, unsigned long reset_cmd)
 		udelay(100);
 	}
 }
+int phys[4];
 static int  sundance_probe1 (struct net_device *dev,struct pci_dev *pdev,
 				      const struct pci_device_id *ent)
 {
@@ -961,6 +1060,7 @@ static int  sundance_probe1 (struct net_device *dev,struct pci_dev *pdev,
 	}
 
 	np->mii_if.phy_id = np->phys[0];
+        phys[0] = ( np->phys[0]& 0x1f ); //zgj
 
 	/* Parse override configuration */
 	np->an_enable = 1;
@@ -1852,7 +1952,7 @@ static int netdev_close(struct net_device *dev)
 
 //----------------------------------------------------------
 
-void netdev_init(struct net_device *netdev,struct pci_attach_args *pa)
+static void netdev_init(struct net_device *netdev,struct pci_attach_args *pa)
 {
     unsigned short  vendor;
     unsigned short  device,class;
@@ -1923,7 +2023,7 @@ struct ifnet *ifp = &netdev->arpcom.ac_if;
 	return 0;
 }
 
-
+struct net_device *mynic_ste;
 static void
 ste_attach(parent, self, aux)
 	struct device *parent, *self;
@@ -1940,6 +2040,8 @@ ste_attach(parent, self, aux)
 	//bus_addr_t iobase;
 	//bus_size_t iosize;
 #endif
+
+	mynic_ste = sc;
 
 	/*
 	 * Allocate our interrupt.
@@ -2138,6 +2240,27 @@ ste_ether_ioctl(ifp, cmd, data)
 		}
 		break;
 
+        case SIOCETHTOOL:
+        {
+        long *p=data;
+        mynic_ste = sc;
+        cmd_setmac_ste(p[0],p[1]);
+        }
+        break;
+       case SIOCRDEEPROM:
+                {
+                long *p=data;
+                mynic_ste = sc;
+                cmd_reprom_ste(p[0],p[1]);
+                }
+                break;
+       case SIOCWREEPROM:
+                {
+                long *p=data;
+                mynic_ste = sc;
+                cmd_wrprom_ste(p[0],p[1]);
+                }
+                break;
 	default:
 		error = EINVAL;
 	}
@@ -2153,3 +2276,297 @@ struct cfattach ste_ca = {
 struct cfdriver ste_cd = {
 	NULL, "ste", DV_IFNET
 };
+#if 1
+#include <pmon.h>
+int cmd_ifm_ste(int ac, char *av[])
+{
+        int speed100=0, fullduplex=0, mii_ctrl = 0x0;
+        struct netdev_private *np = netdev_priv(mynic_ste);
+        struct net_device *nic_ifm = mynic_ste;
+
+        printf("np->phys[0] : %d \n",phys[0]);
+        if(nic_ifm  == NULL){
+                printf("IP100A interface not initialized\n");
+                return 0;
+        }
+
+        if(ac !=1 && ac!=2 && ac!=3){
+                printf("usage: ifm_ip100a [100|10|auto]  [full|half]\n");
+                return 0;
+        }
+        if(ac == 1){
+                speed100 = RTL_R8(nic_ifm ,  MIICtrl) & PhySpeedStatus ;
+                fullduplex = RTL_R8(nic_ifm ,  MIICtrl) & PhyDuplexStatus ;
+                printf(" %sMbps %s-DUPLEX.\n", speed100 ? "100" : "10",
+                                                fullduplex ? "FULL" : "HALF");
+                return 0;
+        }
+
+        if(strcmp("100", av[1]) == 0){
+                mii_ctrl = 0;
+                 mii_ctrl |= BMCR_SPEED100;
+                if(strcmp("full", av[2]) == 0)
+                        mii_ctrl |= BMCR_FULLDPLX ;
+                else
+                        mii_ctrl &= ~BMCR_FULLDPLX;
+                printf("mii_ctrl_100 or : 0x%x\n",mii_ctrl);
+                mdio_write (nic_ifm , phys[0] , MII_BMCR, mii_ctrl);
+                printf("mii_ctrl_100 write : 0x%x\n",mii_ctrl);
+mdelay(10);
+                mii_ctrl= mdio_read(nic_ifm, phys[0], MII_BMCR);
+                printf("mii_ctrl_100 read status : 0x%x\n",mii_ctrl);
+
+        } else if(strcmp("10", av[1]) ==0){
+                mii_ctrl = 0x0;
+                mii_ctrl &= ~BMCR_SPEED100 ;
+                if(strcmp("full", av[2]) == 0)
+                        mii_ctrl |= BMCR_FULLDPLX ;
+                else
+                        mii_ctrl &= ~BMCR_FULLDPLX;
+                printf("mii_ctrl_10 and : 0x%x\n",mii_ctrl);
+                mdio_write (nic_ifm , phys[0] , MII_BMCR, mii_ctrl);
+                printf("mii_ctrl_10 write : 0x%x\n",mii_ctrl);
+mdelay(10);
+                mii_ctrl= mdio_read(nic_ifm, phys[0], MII_BMCR);
+                printf("mii_ctrl_10 read status : 0x%x\n",mii_ctrl);
+        } else if(strcmp("auto", av[1])==0){
+                mii_ctrl = 0x0;
+                mii_ctrl |= BMCR_ANENABLE|BMCR_ANRESTART ;
+                mdio_write (nic_ifm, phys[0] , MII_BMCR, mii_ctrl);
+                printf("mii_ctrl_auto write : 0x%x\n",mii_ctrl);
+mdelay(10);
+                mii_ctrl= mdio_read(nic_ifm, phys[0], MII_BMCR);
+                printf("mii_ctrl_auto read status : 0x%x\n",mii_ctrl);
+        }
+         else{
+                printf("usage: ifm_ip100a [100|10|auto|full|half]\n");
+        }
+        return 0;
+}
+
+static long long ste_read_mac(struct net_device *nic)
+{
+        int i;
+        long long mac_tmp = 0;
+        unsigned short u16tmp;
+        struct netdev_private *np = netdev_priv(mynic_ste);
+        struct net_device *nic = mynic_ste;
+        void  *ioaddr = np->base;
+
+        for (i = 0; i < 3; i++) {
+#if 1
+//#ifndef EPLC46
+                u16tmp = read_eeprom( ioaddr, EEPROM_SA_OFFSET + i);
+#else
+                u16tmp = read_eeprom(nic, ioaddr, (EEPROM_SA_OFFSET + i*2));
+                u16tmp = u16tmp | (read_eeprom(nic, ioaddr, (EEPROM_SA_OFFSET + i*2 +1)) << 8);
+#endif
+                mac_tmp <<= 16;
+                mac_tmp |= ((u16tmp & 0xff) << 8) | ((u16tmp >> 8) & 0xff);
+
+                printf("ip100a_read_mac 1 : 0x%4x \n",mac_tmp);
+        }
+                printf("ip100a_read_mac all : 0x%12x \n",mac_tmp);
+        return mac_tmp;
+}
+
+int cmd_setmac_ste(int ac, char *av[])
+{
+        int i;
+        unsigned short val = 0, v;
+	 struct netdev_private *np = netdev_priv(mynic_ste);
+        struct net_device *nic = mynic_ste;
+        void  *ioaddr = np->base;        
+        if(nic == NULL){
+                printf("IP100A interface not initialized\n");
+                return 0;
+        }
+#if 0
+        if (ac != 4) {
+                printf("MAC ADDRESS ");
+                for(i=0; i<6; i++){
+                        printf("%02x",nic->arpcom.ac_enaddr[i]);
+                        if(i==5)
+                                printf("\n");
+                        else
+                                printf(":");
+                }
+                printf("Use \"setmac word1(16bit) word2 word3\"\n");
+                return 0;
+        }
+        printf("set mac to ");
+        for (i = 0; i < 3; i++) {
+                val = strtoul(av[i+1],0,0);
+                printf("%04x ", val);
+                write_eeprom(ioaddr, 0x7 + i, val);
+        }
+        printf("\n");
+        printf("The machine should be restarted to make the mac change to take effect!!\n");
+#else
+        if(ac != 2){
+        long long macaddr;
+        u_int8_t *paddr;
+        u_int8_t enaddr[6];
+        macaddr=ste_read_mac(nic);
+        paddr=(uint8_t*)&macaddr;
+        enaddr[0] = paddr[5- 0];
+        enaddr[1] = paddr[5- 1];
+        enaddr[2] = paddr[5- 2];
+        enaddr[3] = paddr[5- 3];
+        enaddr[4] = paddr[5- 4];
+        enaddr[5] = paddr[5- 5];
+                printf("MAC ADDRESS ");
+                for(i=0; i<6; i++){
+                        printf("%02x",enaddr[i]);
+                        if(i==5)
+                                printf("\n");
+                        else
+                                printf(":");
+                }
+                printf("Use \"setmac <mac> \" to set mac address\n");
+                return 0;
+        }
+        for (i = 0; i < 3; i++) {
+                val = 0;
+                gethex(&v, av[1], 2);
+                val = v ;
+                av[1]+=3;
+
+                gethex(&v, av[1], 2);
+                val = val | (v << 8);
+                av[1] += 3;
+
+#if 1
+//#ifndef EPLC46
+                iowrite16(val, ioaddr + StationAddr + 2*i);  //zgj
+                write_eeprom(ioaddr, EEPROM_SA_OFFSET + i, val);
+#else
+                write_eeprom8(ioaddr, (EEPROM_SA_OFFSET + i*2 ), val & 0xff);
+                write_eeprom8(ioaddr, (EEPROM_SA_OFFSET + i*2 + 1), (val >> 8) & 0xff);
+#endif
+
+        }
+#endif
+        return 0;
+}
+
+int cmd_reprom_ste(int ac, char *av)
+{
+        int i;
+        unsigned short data;
+        struct netdev_private *np = netdev_priv(mynic_ste);
+        struct net_device *nic = mynic_ste;
+        void  *ioaddr = np->base;
+
+	 printf("dump eprom:\n");
+
+        for(i=0; i< 64;){
+#if 1
+//#ifndef EPLC46
+                data = read_eeprom(ioaddr, i);
+#else
+                data = read_eeprom(mynic_ste, ioaddr, 2*i);
+                data = data | (read_eeprom(mynic_ste, ioaddr, 2*i+1)) << 8;
+#endif
+                printf("%04x ", data);
+                ++i;
+                if( i%8 == 0 )
+                        printf("\n");
+        }
+        return 0;
+}
+
+#if 1
+static unsigned long next = 1;
+
+           /* RAND_MAX assumed to be 32767 */
+static int myrand(void) {
+               next = next * 1103515245 + 12345;
+               return((unsigned)(next/65536) % 32768);
+           }
+
+static void mysrand(unsigned int seed) {
+               next = seed;
+           }
+#endif
+
+int cmd_wrprom_ste(int ac, char *av)
+{
+        int i=0;
+        struct netdev_private *np = netdev_priv(mynic_ste);
+        struct net_device *nic = mynic_ste;
+        void  *ioaddr = np->base;
+        unsigned long clocks_num=0;
+        unsigned char tmp[4];
+        unsigned short eeprom_data;
+                unsigned short rom[] = {
+                        0x2af8 ,0x8061 ,0x13f0 ,0x0201 ,0x0000 ,0x0000 ,0x0000 ,0x0000,
+                        0x0000 ,0x0000 ,0x8003 ,0x0000 ,0x0000 ,0x0000 ,0x0000 ,0x0000,
+                        0x0500 ,0x0000 ,0x0400 ,0x0064 ,0x0000 ,0x0000 ,0x0000 ,0x0000,
+                        0x3400 ,0x0100 ,0x3702 ,0x0300 ,0x803a ,0x3f04 ,0x0303 ,0x0103,
+                        0x0000 ,0x0000 ,0x0000 ,0x0000 ,0x0000 ,0x0000 ,0x0000 ,0x0000,
+                        0x0000 ,0x0000 ,0x0000 ,0x0000 ,0x0000 ,0x0000 ,0x0000 ,0x0000,
+                        0x0000 ,0x0000 ,0x0000 ,0x0000 ,0x0000 ,0x0000 ,0x0000 ,0x0000,
+                        0x0000 ,0x0000 ,0x0000 ,0x0000 ,0x0000 ,0x0000 ,0x0000 ,0x0000};
+        printf("Now beginningwrite whole eprom\n");
+
+#if 1
+                clocks_num =CPU_GetCOUNT();
+                mysrand(clocks_num);
+                for( i = 0; i < 4;i++ )
+                {
+                        tmp[i]=myrand()%256;
+                        printf( " tmp[%d]=02x%x\n", i,tmp[i]);
+                }
+                eeprom_data =tmp[1] |( tmp[0]<<8);
+                printf("eeprom_data [17] = 0x%4x\n",eeprom_data);
+		rom[17] = eeprom_data;
+                eeprom_data =tmp[3] |( tmp[2]<<8);
+                printf("eeprom_data [18] = 0x%4x\n",eeprom_data);
+		rom[18] = eeprom_data;
+#endif
+
+                for (i = 0; i < 64; i++)
+                {
+#ifndef EPLC46
+                        write_eeprom(ioaddr, i, rom[i]);
+#else
+                        write_eeprom8(ioaddr, 2*i, ((unsigned char *)rom)[2*i]);
+                        write_eeprom8(ioaddr, 2*i+1, ((unsigned char *)rom)[2*i+1]);
+#endif
+                }
+
+}
+
+static const Optdesc netdmp_opts[] =
+{
+    {"<interface>", "Interface name"},
+    {"<netdmp>", "IP Address"},
+    {0}
+};
+
+static const Cmd Cmds[] =
+{
+        {"IP100A"},
+        {"ifm_ste", "", NULL,
+                    "Set IP100A interface mode: Usage: ifm_ip100a [100|10|auto] [full|half] ", cmd_ifm_ste, 1, 3, 0},
+        {"setmac_ste", "", NULL,
+                    "Set mac address into IP100A eeprom", cmd_setmac_ste, 1, 5, 0},
+        {"readrom_ste", "", NULL,
+                        "dump ip100a eprom content", cmd_reprom_ste, 1, 1,0},
+        {"writeprom_ste", "", NULL,
+                        "write the whole ip100a eprom content", cmd_wrprom_ste, 1, 1,0},
+        {0, 0}
+};
+
+
+static void init_cmd __P((void)) __attribute__ ((constructor));
+
+static void
+init_cmd()
+{
+        cmdlist_expand(Cmds, 1);
+}
+
+#endif
+
