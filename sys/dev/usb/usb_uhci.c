@@ -496,6 +496,7 @@ static int uhci_submit_control_msg(struct usb_device *dev, unsigned long pipe, v
 	((uhci_qh_t*)CACHED_TO_UNCACHED(&qh_cntrl))->element =UHCI_PTR_TERM;//0xffffffffL;
 	/* set qh active */
 	((uhci_qh_t*)CACHED_TO_UNCACHED(&qh_cntrl))->dev_ptr=(unsigned long)dev;
+	dev->status = USB_ST_NOT_PROC;
 	/* fill in tmp_td1_chain */
 	((uhci_qh_t*)CACHED_TO_UNCACHED(&qh_cntrl))->element=vtophys((unsigned long)&tmp_td1[0]);
 
@@ -578,6 +579,7 @@ static int uhci_submit_bulk_msg(struct usb_device *dev, unsigned long pipe, void
 	((uhci_qh_t *)CACHED_TO_UNCACHED(&qh_bulk))->element =UHCI_PTR_TERM;//0xffffffffL;
 	/* set qh active */
 	((uhci_qh_t *)CACHED_TO_UNCACHED(&qh_bulk))->dev_ptr=(unsigned long)dev;
+	dev->status = USB_ST_NOT_PROC;
 	/* fill in tmp_td_chain */
 	((uhci_qh_t *)CACHED_TO_UNCACHED(&qh_bulk))->element=vtophys((unsigned long)&tmp_td[0] | 0x0004);
 	dev->qpriv = &qh_bulk;
