@@ -392,11 +392,11 @@ void fbcon_sis_copyarea(struct fb_info *info, const struct fb_copyarea *area)
 	int height = area->height;
 	CRITFLAGS
 
-	if(info->state != FBINFO_STATE_RUNNING) return;
+//	if(info->state != FBINFO_STATE_RUNNING) return;
 
 	if((!ivideo->accel) || (!ivideo->engineok)) {
 		//cfb_copyarea(info, area);
-		return;
+//		return;
 	}
 
 	if(!width || !height ||
