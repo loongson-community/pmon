@@ -79,6 +79,7 @@ tgt_printf (const char *fmt, ...)
 #include "include/bonito.h"
 #include <pmon/dev/gt64240reg.h>
 #include <pmon/dev/ns16550.h>
+#include "target/firewall.h"
 
 #include <pmon.h>
 
@@ -308,23 +309,29 @@ ppns16550 (int op, struct DevEntry *dev, unsigned long param, int data)
 //end modification by zhanghualiang
 #endif
 
+
+
 ConfigEntry	ConfigTable[] =
 {
 #ifdef HAVE_NB_SERIAL
-	 { (char *)COM3_BASE_ADDR, 0, ns16550, 256, CONS_BAUD, NS16550HZ/2 },
+	#ifdef DEVBD2F_FIREWALL
+	 { (char *)LS2F_COMA_ADDR, 0, ns16550, 256, CONS_BAUD, NS16550HZ/2 },
+	#else
+	 { (char *)COM3_BASE_ADDR, 0, ns16550, 256, CONS_BAUD, NS16550HZ },
+	#endif
 #elif defined(USE_SM502_UART0)
 	{ (char *)0xb6030000, 0, ns16550, 256, CONS_BAUD, NS16550HZ/2 },
 #elif defined(USE_GPIO_SERIAL)
 	 { (char *)COM1_BASE_ADDR, 0,ppns16550, 256, CONS_BAUD, NS16550HZ }, 
 #else
-	 { (char *)COM1_BASE_ADDR, 0, ns16550, 256, CONS_BAUD, NS16550HZ }, 
+	 { (char *)COM1_BASE_ADDR, 0, ns16550, 256, CONS_BAUD, NS16550HZ/2 }, 
 #endif
 #if NMOD_VGACON >0
-#if NMOD_FRAMEBUFFER >0
+	#if NMOD_FRAMEBUFFER >0
 	{ (char *)1, 0, fbterm, 256, CONS_BAUD, NS16550HZ },
-#else
+	#else
 	{ (char *)1, 0, vgaterm, 256, CONS_BAUD, NS16550HZ },
-#endif
+	#endif
 #endif
 	{ 0 }
 };
@@ -785,10 +792,10 @@ static inline unsigned char CMOS_READ(unsigned char addr)
 	volatile int tmp;
 //	unsigned char and_char;
 	
-#ifndef DEVBD2F_SM502
+#if defined(DEVBD2F_VIA)||defined(DEVBD2F_CS5536)||defined(DEVBD2F_EVA)
 	linux_outb_p(addr, 0x70);
         val = linux_inb_p(0x71);
-#else
+#elif defined(DEVBD2f_SM502)
 
 	pcitag_t tag;
 	unsigned char value;
@@ -835,18 +842,53 @@ static inline unsigned char CMOS_READ(unsigned char addr)
 	tmp2  = val&0x0f;
 	val = tmp1 + tmp2;
 	
+#elif defined(DEVBD2F_FIREWALL)
+	if(addr >= 0x0a)
+		return 0;
+	switch(addr)
+	{
+		case 0:
+			addr= 0x30;
+			break;
+		case 2:
+			addr = 0x31;
+			break;
+		case 4:
+			addr = 0x32;
+			break;
+		case 6:
+			addr = 0x36;
+			break;
+		case 7:
+			addr = 0x33;
+			break;
+		case 8:
+			addr = 0x34;
+			break;
+		case 9:
+			addr = 0x35;
+			break;
+		
+	}
+	atp8620_i2c_read(0xde,addr,&tmp,1);
+	val = ((tmp>>4)&0x0f)*10;
+	val = val + (tmp&0x0f);
+
+
 #endif
         return val;
 }
                                                                                
 static inline void CMOS_WRITE(unsigned char val, unsigned char addr)
 {
-#ifndef DEVBD2F_SM502
+
+#if defined(DEVBD2F_VIA)||defined(DEVBD2F_CS5536)||defined(DEVBD2F_EVA)
 	linux_outb_p(addr, 0x70);
         linux_outb_p(val, 0x71);
-#else
 
-        unsigned char tmp1,tmp2;
+#elif defined(DEVBD2f_SM502)
+  
+  	unsigned char tmp1,tmp2;
 	volatile int tmp;
 	tmp1 = (val/10)<<4;
 	tmp2  = (val%10);
@@ -893,6 +935,40 @@ static inline void CMOS_WRITE(unsigned char val, unsigned char addr)
 		i2c_send_s((unsigned char)0x64,0xe<<4,&value,1);
 	i2c_send_s((unsigned char)0x64,addr<<4,&val,1);
 	}
+
+#elif defined(DEVBD2F_FIREWALL)
+	unsigned char tmp;
+	if(addr >= 0x0a)
+		return 0;
+	switch(addr)
+	{
+		case 0:
+			addr= 0x30;
+			break;
+		case 2:
+			addr = 0x31;
+			break;
+		case 4:
+			addr = 0x32;
+			break;
+		case 6:
+			addr = 0x36;
+			break;
+		case 7:
+			addr = 0x33;
+			break;
+		case 8:
+			addr = 0x34;
+			break;
+		case 9:
+			addr = 0x35;
+			break;
+		
+	}
+	
+	tmp = (val/10)<<4;
+	val = tmp|(val%10);
+	atp8620_i2c_write(0xde,addr,&val,1);
 #endif
 }
 

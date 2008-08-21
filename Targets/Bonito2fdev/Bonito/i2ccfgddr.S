@@ -4,7 +4,7 @@
 	PRINTSTR("DIMM read\r\n")
 
 	li  	a1, 0x0
-    li      a0,0xa1
+    li      a0,0xa0
     bal     i2cread
 	nop
 	beq	v0,0xff,1f
@@ -12,18 +12,18 @@
 	beq v0,0x80,1f
 	nop
 	move a0,v0
-	bal hexserial
+//	bal hexserial
 	nop
     PRINTSTR ("\r\nNo DIMM in slot 0 \r\n");
 	b 2f
 	nop
 1:
-	li a0,0xa1
+	li a0,0xa0
 	bal ii2c_cfg
 	nop
 2:
 	li  	a1, 0x0
-    li      a0,0xa3
+    li      a0,0xa2
     bal     i2cread
 	nop
 	li 	a1,0x0
@@ -32,13 +32,13 @@
 	beq v0,0x80,1f
 	nop
 	move a0,v0
-	bal hexserial
+//	bal hexserial
 	nop
     PRINTSTR ("\r\nNo DIMM in slot 1 \r\n");
 	b 2f
 	nop
 1:
-	li a0,0xa3
+	li a0,0xa2
 	bal ii2c_cfg
 	nop
 
@@ -49,8 +49,9 @@
 	b 211f
 	nop
 /*ic2 cfg
-* a0=0xa1 for slot 0,a0=0xa3 for slot 1
+* a0=0xa0 for slot 0,a0=0xa2 for slot 1
 * t5 used for save i2c addr a0,t6 save ra.
+* use t1
 */
 LEAF(ii2c_cfg)
 	move t6,ra
@@ -93,7 +94,7 @@ LEAF(ii2c_cfg)
 	bgtu	v0, 2,.nodimm1
 	nop
 	move	t1, v0
-	PRINTSTR("read number of rows\r\n")
+	PRINTSTR("read number of rows :");
 	move 	a0,s6
 	bal	hexserial
 	nop
@@ -290,7 +291,7 @@ LEAF(ii2c_cfg)
 	nop
 2:	
 
-	PRINTSTR("number of ranks ,package and height\r\n") ;
+	PRINTSTR("\r\nnumber of ranks ,package and height\r\n") ;
 	PRINTSTR("k1 to save cs_map filed valule\r\n") ;
     move    a0,t5
 	li	a1,5
@@ -305,7 +306,7 @@ LEAF(ii2c_cfg)
 	nop
 
 //************
-	bne 	t5,0xa1,123f
+	bne 	t5,0xa0,123f
 	nop
 	ori	k1,k1,0x3
 	b	124f
@@ -318,7 +319,7 @@ LEAF(ii2c_cfg)
 
 
 
-2:	bne	t5,0xa1,123f
+2:	bne	t5,0xa0,123f
 	nop
 	ori	k1,k1,0x1
 	b	124f
@@ -428,13 +429,15 @@ END(ii2c_cfg)
 	or	v1,v1,a0
 	sw	v1,0(v0)
 	nop
+
 	
+PRINTSTR ("cs map : ");
+	move 	a0,k1
 	bal 	hexserial
 	nop
 
 
-PRINTSTR("\r\n")
-PRINTSTR("config bank if bank 8\r\n")
+PRINTSTR("\r\nconfig bank if bank 8: ")
 	li	v0,0xaffffe10
 	ld	v1,0(v0)
 	nop
@@ -450,7 +453,7 @@ PRINTSTR("config bank if bank 8\r\n")
 	bal	hexserial
 	nop
 
-PRINTSTR("cols rows:\r\n")
+PRINTSTR("\r\ncols rows: ")
 	
 	//row addr numbers
 	li	v0,0xffffffff
@@ -478,17 +481,23 @@ PRINTSTR("cols rows:\r\n")
 	or	v1,v1,a1
 	sw	v1,0(v0)
 	nop
-//	PRINTSTR("cols rows:\r\n")
 	move	a0,v1
 	bal	hexserial
 	nop
 	
 	PRINTSTR("\r\n")
-	sll msize,20
+//	sll msize,20
 	b 213f
 	nop
 212:	
 .nodimm:
-	li	msize,0x10000000
+	li	msize,0x100
 	PRINTSTR ("\r\nNo DIMM in all slots,use default configure\r\n")
 213:
+	
+	PRINTSTR ("\r\nDIMM size :")
+	move	a0,msize
+	bal	hexserial
+	nop
+
+	PRINTSTR ("\r\n")

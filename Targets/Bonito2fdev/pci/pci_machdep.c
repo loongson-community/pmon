@@ -204,7 +204,7 @@ _pci_dmamap(va, len)
 }
 
 
-#if 0
+#if 1
 /*
  *  Map the PCI address of an area of local memory to a CPU physical
  *  address.

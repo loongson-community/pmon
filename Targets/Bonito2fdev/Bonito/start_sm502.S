@@ -1065,7 +1065,6 @@ zhb:
 	addu a2,a2,s0
 
 	move	a0,msize
-	srl	a0,20
 	
 	la	v0, initmips
 	jalr	v0

@@ -1,4 +1,5 @@
 LEAF(i2cread)
+	addu a0,a0,1
         /* set device address */
         li  v0, 0xbfd00000 + SMBUS_HOST_ADDRESS
 

@@ -45,6 +45,7 @@
 #include "target/sbd.h"
 #include "target/bonito.h"
 #include "target/via686b.h"
+#include "target/firewall.h"
 #include "target/i8254.h"
 #include "target/isapnpreg.h"
 #define DEBUG_LOCORE
@@ -61,11 +62,7 @@
 #define	PRINTSTR(x) \
 	.rdata;98: .asciz x; .text; la a0, 98b; bal stringserial; nop
 
-#ifdef DEVBD2F_SM502
-#define GPIOLED_DIR  0xe
-#else
-#define GPIOLED_DIR  0xf
-#endif
+#define GPIOLED_DIR 0xf
 
 #ifndef USE_GPIO_SERIAL
 #define GPIOLED_SET(x) \
@@ -1051,6 +1048,7 @@ zhb:
 	addu a2,a2,s0
 
 	move	a0,msize
+	srl	a0,20
 	
 	la	v0, initmips
 	jalr	v0
@@ -1223,14 +1221,10 @@ END(hexserial)
 LEAF(tgt_putchar)
 	.set noat
 	move AT,ra
-#if  ((PCI_IDSEL_VIA686B != 0)&& !defined(HAVE_NB_SERIAL))
-	la	v0, COM1_BASE_ADDR
-	bal 1f
-	nop
-#endif
+
 
 #ifdef HAVE_NB_SERIAL
-	la	v0, COM3_BASE_ADDR
+	la	v0, LS2F_COMA_ADDR
 	bal 1f
 	nop
 #endif
@@ -1404,16 +1398,10 @@ END(tgt_putchar)
 LEAF(initserial)
 	.set noat
 	move AT,ra
-#if  (PCI_IDSEL_VIA686B != 0)
-	la	v0, COM1_BASE_ADDR
- 	la	a0, NS16550HZ/2/(16*CONS_BAUD)
-	bal 1f
-	nop
-#endif
 
 #ifdef HAVE_NB_SERIAL
-	la	v0, COM3_BASE_ADDR
- 	li	a0, NS16550HZ/(16*CONS_BAUD)
+	la	v0, LS2F_COMA_ADDR
+ 	li	a0, LS2F_COM_CLK/(16*CONS_BAUD)
 	bal 1f
 	nop
 #endif
@@ -1448,7 +1436,6 @@ LEAF(initserial)
 END(initserial)
 
 
-#include "i2c.S"
 __main:
 	j	ra
 	nop
@@ -1675,27 +1662,94 @@ cache_init_panic:
 #define E2_FLOPPY (1<<4)
     
 LEAF(superio_init)
-#if (PCI_IDSEL_VIA686B != 0)
-	PCICONF_WRITEW(PCI_IDSEL_VIA686B,0,4,7);
-	/*positive decode*/
-	PCICONF_ORB(PCI_IDSEL_VIA686B,0,0x81,0x80);
-	PCICONF_WRITEB(PCI_IDSEL_VIA686B,0,0x83,0x80|0x1| 0x8);
-	PCICONF_WRITEB(PCI_IDSEL_VIA686B,0,0x85,3);
-	/* enable RTC/PS2/KBC */
-	PCICONF_WRITEB(PCI_IDSEL_VIA686B,0,0x5A,7);
 
-	SUPERIO_WR(0xe2,E2_S2|E2_S1|E2_EPP|E2_FLOPPY) /*enable serial and floppy */
-	SUPERIO_WR(0xe3,0x3f0>>2) /*floppy base address*/
-	SUPERIO_WR(0xe6,0x378>>2) /*parallel port*/
-	SUPERIO_WR(0xe7,0x3f8>>2) /*set serial port1 base addr 0x3f8*/
-	SUPERIO_WR(0xe8,0x2f8>>2) /*set serial port2 base addr 0x2f8*/
-	SUPERIO_WR(0xee,0xc0) /* both ports on high speed*/
+	PCICONF_WRITEW(PCI_IDSEL_ATP8260,0,4,0);
+	PCICONF_WRITEW(PCI_IDSEL_ATP8260,0,0x10,0x4000);
+	PCICONF_WRITEW(PCI_IDSEL_ATP8260,0,4,7);
 
-	PCICONF_WRITEB(PCI_IDSEL_VIA686B,0,0x85,1)
-#endif
+
 	jr ra
 	nop
 END(superio_init)
+
+
+
+LEAF(i2cread)
+	move	a2,a0
+//make sure transfer complete
+1:	li	v0,I2CREG_ADDR
+	lw	v1,0(v0)
+	nop
+	andi	v1,v1,0x1
+	bnez	v1,1b
+	nop
+
+//i2c start and send slave addr
+	andi	a0,a0,0xff
+	sll	a0,a0,8
+	ori	a0,a0,(I2C_WR|I2C_START|I2C_NACK)
+	sw	a0,0(v0)
+	nop
+
+
+//make sure transfer complete
+
+1:	li	v0,I2CREG_ADDR
+	lw	v1,0(v0)
+	nop
+	andi	v1,v1,0x1
+	bnez	v1,1b
+	nop
+
+
+//send  sub address(offset)
+	andi	a1,a1,0xff
+	sll	a1,a1,8
+	ori	a1,a1,(I2C_WR|I2C_NACK)
+	sw	a1,0(v0)
+	nop
+
+//make sure transfer complete
+
+1:	li	v0,I2CREG_ADDR
+	lw	v1,0(v0)
+	nop
+	andi	v1,v1,0x1
+	bnez	v1,1b
+	nop
+
+//restart i2c
+	move 	a0,a2
+	andi	a0,a0,0xff
+	addiu	a0,a0,0x1   //read bit
+	sll	a0,a0,8
+	ori	a0,a0,(I2C_WR|I2C_START|I2C_NACK)
+	sw	a0,0(v0)
+	nop
+
+//make sure transfer complete
+
+1:	li	v0,I2CREG_ADDR
+	lw	v1,0(v0)
+	nop
+	andi	v1,v1,0x1
+	bnez	v1,1b
+	nop
+
+//recieve data
+	lw	v1,0(v0)
+	nop
+	srl	v1,v1,16
+	andi	v1,v1,0xff
+	move 	v0,v1
+//i2c stop
+	li	a3,I2C_STOP
+	li	v1,I2CREG_ADDR
+	sw	a3,0(v1)
+	nop
+END(i2cread)
+
+
 
 #######################################
 #define REG_ADDRESS 0x0

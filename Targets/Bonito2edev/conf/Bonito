@@ -166,6 +166,7 @@ option USE_ENVMAC
 #option LOOKLIKE_PC
 #select cmd_lwdhcp
 #select cmd_bootp
+option WDC_NORESET
 option FOR_GXEMUL
 select fatfs
 option FLOATINGPT

@@ -164,6 +164,7 @@ option HAVE_NB_SERIAL
 #select cmd_bootp
 option FOR_GXEMUL
 select fatfs
+option DEVBD2F_EVA
 option FLOATINGPT
 option PCI_IDSEL_VIA686B=6
 option COM3_BASE_ADDR=0xbff003f8

@@ -1141,10 +1141,8 @@ zhb:
         or     a0,a0,0x3
         mtc0   a0,COP_0_CONFIG
 #endif
-//	li	msize,(512<<20)
 
 	move	a0,msize
-	srl	a0,20
 
     /* pass pointer to kseg1 tgt_putchar */
     la  a1, tgt_putchar

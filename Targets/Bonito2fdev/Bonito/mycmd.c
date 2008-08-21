@@ -735,6 +735,192 @@ void i2c_test()
 }
 
 #endif
+
+#ifdef DEVBD2F_FIREWALL
+
+#define I2C_NACK	0x80
+#define	I2C_RD		0x20
+#define	I2C_WR		0x10
+#define	I2C_START	0x80
+#define	I2C_STOP	0x40
+
+unsigned char atp8620_i2c_read(unsigned char slave_addr,unsigned char sub_addr,unsigned char* buf ,int count)
+{
+	pcitag_t tag;	
+	int i;
+	volatile unsigned int * iog;
+	volatile unsigned int tmp;
+	tag = _pci_make_tag(0,9,0);
+	iog = _pci_conf_readn(tag,0x10,4);
+	iog =(unsigned int )iog|0xbfd00000|0xb0;
+
+	for(i=0;i<count;i++)
+	{
+		tmp = *iog;
+		while(tmp&0x1)
+			tmp = *iog;
+
+		tmp = (slave_addr&0xff)<<8;
+		tmp = tmp|I2C_WR|I2C_START|I2C_NACK;
+		*iog = tmp;
+		
+		if(!getenv("spd_op"))
+		{	
+			tmp = *iog;
+			while(tmp&0x1)
+				tmp = *iog;
+		
+			tmp = 0;
+			tmp = tmp|I2C_WR|I2C_NACK;
+			*iog = tmp;
+
+		}
+
+		tmp = *iog;
+		while(tmp&0x1)
+			tmp = *iog;
+
+		tmp = (sub_addr&0xff)<<8;
+		tmp = tmp|I2C_WR|I2C_NACK;
+		*iog = tmp;
+
+		tmp = *iog;
+		while(tmp&0x1)
+			tmp = *iog;	
+
+		tmp = ((slave_addr&0xff)+1)<<8;
+		tmp = tmp|I2C_WR|I2C_START|I2C_NACK;
+		*iog = tmp;
+
+		tmp = *iog;
+		while(tmp&0x1)
+			tmp = *iog;	
+
+		tmp = *iog;
+		tmp = tmp&0xffff;
+		tmp = tmp>>16;
+		buf[i] = tmp&0xff;
+
+		tmp = I2C_STOP;
+		*iog = tmp;
+
+	}
+	return 0;
+
+
+}
+
+
+unsigned char atp8620_i2c_write(unsigned char slave_addr,unsigned char sub_addr,unsigned char * buf ,int count)
+{
+	pcitag_t tag;	
+	int i;
+	volatile unsigned int * iog;
+	volatile unsigned int tmp;
+	tag = _pci_make_tag(0,9,0);
+	iog = _pci_conf_readn(tag,0x10,4);
+	iog = (unsigned int )iog|0xbfd00000|0xb0;
+
+	for(i=0;i<count;i++)
+	{
+		tmp = *iog;
+		while(tmp&0x1)
+			tmp = *iog;
+
+		tmp = (slave_addr&0xff)<<8;
+		tmp = tmp|I2C_WR|I2C_START|I2C_NACK;
+		*iog = tmp;
+		
+		if(!getenv("spd_op"))
+		{	
+			tmp = *iog;
+			while(tmp&0x1)
+				tmp = *iog;
+		
+			tmp = 0;
+			tmp = tmp|I2C_WR|I2C_NACK;
+			*iog = tmp;
+
+		}
+
+		tmp = *iog;
+		while(tmp&0x1)
+			tmp = *iog;
+
+		tmp = (sub_addr&0xff)<<8;
+		tmp = tmp|I2C_WR|I2C_NACK;
+		*iog = tmp;
+
+		tmp = *iog;
+		while(tmp&0x1)
+			tmp = *iog;
+
+		tmp = buf[i]<<8;
+		tmp = tmp|I2C_WR|I2C_NACK;
+		*iog = tmp;
+	
+		tmp = *iog;
+		while(tmp&0x1)
+			tmp = *iog;
+
+		
+		tmp = I2C_STOP;
+		*iog = tmp;	
+	}
+
+	return 0;
+}
+
+
+static int firewall_i2c_read(int type,long long addr,union commondata *mydata)
+{
+	char c;
+	switch(type)
+	{
+		case 1:
+			atp8620_i2c_read((unsigned char)slave_addr,(unsigned char)addr,&c,1);
+			memcpy(&mydata->data1,&c,1);
+			return 0;
+		default:
+			return -1;
+
+	}
+
+}
+static int firewall_i2c_write(int type,long long addr,union commondata *mydata)
+{
+	char c;
+	switch(type)
+	{
+	case 1:
+		memcpy(&c,&mydata->data1,1);
+		atp8620_i2c_write((unsigned char)slave_addr,(unsigned char)addr,&c,1);
+		return 0;
+	default :
+		return -1;
+	
+	}
+
+}
+static int i2cs(int argc,char *argv[])
+{
+	if(argc<2) 
+		return -1;
+	
+	i2cslot=strtoul(argv[1],0,0);
+	switch(i2cslot)
+	{
+	case 0:
+		syscall1 = (void *)firewall_i2c_read;
+		syscall2 = (void *)firewall_i2c_write;
+		break;
+	default:
+		return -1;
+	}
+
+	return 0;
+}
+#else
 static int i2cs(int argc,char **argv)
 {
 	pcitag_t tag;
@@ -808,6 +994,8 @@ syscall_addrtype=0;
 return 0;
 }
 
+
+#endif
 
 static const Cmd Cmds[] =
 {
