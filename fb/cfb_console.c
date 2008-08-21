@@ -103,7 +103,8 @@ CONFIG_VIDEO_HW_CURSOR:	     - Uses the hardware cursor capability of the
 #include <stdarg.h>
 #include <pmon.h>
 #include <cpu.h>
-#include <target/types.h>
+//#include <target/types.h>
+#include "mod_sisfb.h"
 #include <dev/pci/pcivar.h>
 
 #ifdef RADEON7000
@@ -798,11 +799,16 @@ static void console_scrollup (void)
 #if (defined(SMI502)||defined(SMI712))
     AutodeCopyModify((pGD->gdfBytesPP * 8));
 #endif
-
+#if NMOD_SISFB
+{
+void sisfb_copyarea(int sx,int sy,int dx,int dy,int width,int height);
+	sisfb_copyarea(0,VIDEO_LOGO_HEIGHT + VIDEO_FONT_HEIGHT,0,VIDEO_LOGO_HEIGHT,VIDEO_VISIBLE_COLS,VIDEO_VISIBLE_ROWS - VIDEO_LOGO_HEIGHT - VIDEO_FONT_HEIGHT);
+}
+#endif
 #else
 #ifdef __mips__
 #define UNCACHED_TO_CACHED(x) PHYS_TO_CACHED(UNCACHED_TO_PHYS(x))
-	if(UNCACHED_TO_PHYS(CONSOLE_ROW_FIRST)<0x10000000)
+	if(CONSOLE_ROW_FIRST<0xb0000000 && CONSOLE_ROW_FIRST>=0xa0000000)
 	{
 	memcpyl (UNCACHED_TO_CACHED(CONSOLE_ROW_FIRST),UNCACHED_TO_CACHED(CONSOLE_ROW_SECOND),
 		 CONSOLE_SCROLL_SIZE >> 2);
