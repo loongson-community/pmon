@@ -151,7 +151,7 @@ ste*		at pci? dev ? function ?
 
 #### IDE controllers
 pciide* 	at pci ? dev ? function ? flags 0x0000
-
+sata*		at pci? dev ? function ?    #ATP-8620 SATA driver 
 #### IDE hard drives
 wd*		at pciide? channel ? drive ? flags 0x0000
 

@@ -98,6 +98,13 @@ extern int loopdevread __P((dev_t dev, void *uio, int flag));
 extern int loopdevwrite __P((dev_t dev, void *uio, int flag));
 extern int loopdevclose __P((dev_t dev, int flag, int mode, void *));
 
+#if 1
+extern int sata_open __P((dev_t dev, int flags, int mode, void *));
+extern int sata_read __P((dev_t dev, void *uio, int flag));
+extern int sata_write __P((dev_t dev, void *uio, int flag));
+extern int sata_close __P((dev_t dev, int flag, int mode, void *));
+#endif
+
 /*
  * Check for and add any target specific declarations from "pmon_target.h"
  */
@@ -135,6 +142,9 @@ struct devsw devswitch[] = {
 #endif
 #if  NLOOPDEV > 0
 	{ "loopdev", loopdevopen, loopdevread, loopdevwrite, loopdevclose},
+#endif
+#if 1
+        { "sata", sata_open, sata_read, sata_write, sata_close},
 #endif
 	/* Add any target specific devices. See "pmon_target.h" */
 #if defined(TGT_DEV_SWITCH)
