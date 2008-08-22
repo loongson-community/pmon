@@ -1175,7 +1175,7 @@ static int atp_match(
 
 static void atp_attach(struct device * parent, struct device * self, void *aux)
 {
-	atp_sata_t *satax = (atp_sata_t * )self;
+	atp_sata_t *sc = (atp_sata_t * )self;
         struct pci_attach_args *pa = aux;
         pci_chipset_tag_t pc = pa->pa_pc;
         bus_space_tag_t iot = pa->pa_iot;
@@ -1183,7 +1183,7 @@ static void atp_attach(struct device * parent, struct device * self, void *aux)
         bus_size_t iosize;
 
 SATADEBUG
-	mysata = satax;
+	mysata = sc;
 
 #ifndef __OpenBSD__
         /*
@@ -1202,29 +1202,47 @@ SATADEBUG
                return;
         }
 
-        if (bus_space_map(iot, iobase, iosize, 0,  &satax->reg_base))
+        if (bus_space_map(iot, iobase, iosize, 0,  &sc->reg_base))
         {
                printf(": can't map i/o space\n");
                return;
         }
 
-//        satax->sc_st = iot;
-//        satax->sc_pc = pc;
+//        sc->sc_st = iot;
+//        sc->sc_pc = pc;
 
 #endif
-	ioaddr = satax->reg_base; 
+	ioaddr = sc->reg_base; 
  
 SATADEBUG
         printf("\natp8620 sata iobase =%8x\n", ioaddr);
         atp_sata_initialize(ioaddr);
 {
-static	struct channel_softc chp;
-	 memset(&chp,0,sizeof(chp));
-	 chp.cmd_iot=iot;;
-	 chp.ctl_iot=iot;;
-	 chp.cmd_ioh= ioaddr+0x80;
-	 chp.ctl_ioh= ioaddr+0x8e;
-	 wdcattach(&chp);
+	//sc->sc_wdcdev.cap |= WDC_CAPABILITY_DMA;
+	sc->sc_wdcdev.PIO_cap = 0;
+	sc->sc_wdcdev.DMA_cap = 0;
+	sc->sc_wdcdev.channels = sc->wdc_chanarray;
+	sc->sc_wdcdev.nchannels = 1;
+	sc->sc_wdcdev.cap |= WDC_CAPABILITY_DATA16;
+	sc->wdc_chanarray[0] = &sc->wdc_channel;
+	sc->wdc_channel.channel = 0;
+	sc->wdc_channel.wdc = &sc->sc_wdcdev;
+	sc->wdc_channel.ch_queue =
+	    malloc(sizeof(struct channel_queue), M_DEVBUF, M_NOWAIT);
+	if (sc->wdc_channel.ch_queue == NULL) {
+		printf("%s: "
+			"cannot allocate memory for command queue",
+		sc->sc_wdcdev.sc_dev.dv_xname);
+		 return ;
+	}
+	 sc->wdc_channel.cmd_iot=iot;;
+	 sc->wdc_channel.ctl_iot=iot;;
+	 sc->wdc_channel.cmd_ioh= ioaddr+0x80;
+	 sc->wdc_channel.ctl_ioh= ioaddr+0x8e;
+			sc->wdc_channel.data32iot = sc->wdc_channel.cmd_iot;
+			sc->wdc_channel.data32ioh = sc->wdc_channel.cmd_ioh;
+
+	 wdcattach(sc->wdc_chanarray[0]);
 }
 SATADEBUG
 }
