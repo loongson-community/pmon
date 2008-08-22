@@ -60,3 +60,364 @@ ${OBJDIR}/lib${LIB}.a: ${OBJS}
 #	${RANLIB} $@
 
 # DO NOT DELETE
+
+w_acos.o: /mnt/sda8/git-source/pmon/include/math.h math_private.h
+w_acos.o: /mnt/sda8/git-source/pmon/sys/sys/types.h
+w_acos.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/types.h
+w_acos.o: /mnt/sda8/git-source/pmon/sys/sys/cdefs.h
+w_acos.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/cdefs.h
+w_acos.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/ansi.h
+w_acos.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/endian.h
+w_acos.o: /mnt/sda8/git-source/pmon/sys/sys/endian.h
+w_acos.o: /mnt/sda8/git-source/pmon/sys/arch/mips/include/endian.h
+w_asin.o: /mnt/sda8/git-source/pmon/include/math.h math_private.h
+w_asin.o: /mnt/sda8/git-source/pmon/sys/sys/types.h
+w_asin.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/types.h
+w_asin.o: /mnt/sda8/git-source/pmon/sys/sys/cdefs.h
+w_asin.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/cdefs.h
+w_asin.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/ansi.h
+w_asin.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/endian.h
+w_asin.o: /mnt/sda8/git-source/pmon/sys/sys/endian.h
+w_asin.o: /mnt/sda8/git-source/pmon/sys/arch/mips/include/endian.h
+s_atan.o: /mnt/sda8/git-source/pmon/include/math.h math_private.h
+s_atan.o: /mnt/sda8/git-source/pmon/sys/sys/types.h
+s_atan.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/types.h
+s_atan.o: /mnt/sda8/git-source/pmon/sys/sys/cdefs.h
+s_atan.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/cdefs.h
+s_atan.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/ansi.h
+s_atan.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/endian.h
+s_atan.o: /mnt/sda8/git-source/pmon/sys/sys/endian.h
+s_atan.o: /mnt/sda8/git-source/pmon/sys/arch/mips/include/endian.h
+w_atan2.o: /mnt/sda8/git-source/pmon/include/math.h math_private.h
+w_atan2.o: /mnt/sda8/git-source/pmon/sys/sys/types.h
+w_atan2.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/types.h
+w_atan2.o: /mnt/sda8/git-source/pmon/sys/sys/cdefs.h
+w_atan2.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/cdefs.h
+w_atan2.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/ansi.h
+w_atan2.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/endian.h
+w_atan2.o: /mnt/sda8/git-source/pmon/sys/sys/endian.h
+w_atan2.o: /mnt/sda8/git-source/pmon/sys/arch/mips/include/endian.h
+s_ceil.o: /mnt/sda8/git-source/pmon/include/math.h math_private.h
+s_ceil.o: /mnt/sda8/git-source/pmon/sys/sys/types.h
+s_ceil.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/types.h
+s_ceil.o: /mnt/sda8/git-source/pmon/sys/sys/cdefs.h
+s_ceil.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/cdefs.h
+s_ceil.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/ansi.h
+s_ceil.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/endian.h
+s_ceil.o: /mnt/sda8/git-source/pmon/sys/sys/endian.h
+s_ceil.o: /mnt/sda8/git-source/pmon/sys/arch/mips/include/endian.h
+s_cos.o: /mnt/sda8/git-source/pmon/include/math.h math_private.h
+s_cos.o: /mnt/sda8/git-source/pmon/sys/sys/types.h
+s_cos.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/types.h
+s_cos.o: /mnt/sda8/git-source/pmon/sys/sys/cdefs.h
+s_cos.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/cdefs.h
+s_cos.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/ansi.h
+s_cos.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/endian.h
+s_cos.o: /mnt/sda8/git-source/pmon/sys/sys/endian.h
+s_cos.o: /mnt/sda8/git-source/pmon/sys/arch/mips/include/endian.h
+w_cosh.o: /mnt/sda8/git-source/pmon/include/math.h math_private.h
+w_cosh.o: /mnt/sda8/git-source/pmon/sys/sys/types.h
+w_cosh.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/types.h
+w_cosh.o: /mnt/sda8/git-source/pmon/sys/sys/cdefs.h
+w_cosh.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/cdefs.h
+w_cosh.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/ansi.h
+w_cosh.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/endian.h
+w_cosh.o: /mnt/sda8/git-source/pmon/sys/sys/endian.h
+w_cosh.o: /mnt/sda8/git-source/pmon/sys/arch/mips/include/endian.h
+w_exp.o: /mnt/sda8/git-source/pmon/include/math.h math_private.h
+w_exp.o: /mnt/sda8/git-source/pmon/sys/sys/types.h
+w_exp.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/types.h
+w_exp.o: /mnt/sda8/git-source/pmon/sys/sys/cdefs.h
+w_exp.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/cdefs.h
+w_exp.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/ansi.h
+w_exp.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/endian.h
+w_exp.o: /mnt/sda8/git-source/pmon/sys/sys/endian.h
+w_exp.o: /mnt/sda8/git-source/pmon/sys/arch/mips/include/endian.h
+s_expm1.o: /mnt/sda8/git-source/pmon/include/math.h math_private.h
+s_expm1.o: /mnt/sda8/git-source/pmon/sys/sys/types.h
+s_expm1.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/types.h
+s_expm1.o: /mnt/sda8/git-source/pmon/sys/sys/cdefs.h
+s_expm1.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/cdefs.h
+s_expm1.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/ansi.h
+s_expm1.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/endian.h
+s_expm1.o: /mnt/sda8/git-source/pmon/sys/sys/endian.h
+s_expm1.o: /mnt/sda8/git-source/pmon/sys/arch/mips/include/endian.h
+s_fabs.o: /mnt/sda8/git-source/pmon/include/math.h math_private.h
+s_fabs.o: /mnt/sda8/git-source/pmon/sys/sys/types.h
+s_fabs.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/types.h
+s_fabs.o: /mnt/sda8/git-source/pmon/sys/sys/cdefs.h
+s_fabs.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/cdefs.h
+s_fabs.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/ansi.h
+s_fabs.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/endian.h
+s_fabs.o: /mnt/sda8/git-source/pmon/sys/sys/endian.h
+s_fabs.o: /mnt/sda8/git-source/pmon/sys/arch/mips/include/endian.h
+s_floor.o: /mnt/sda8/git-source/pmon/include/math.h math_private.h
+s_floor.o: /mnt/sda8/git-source/pmon/sys/sys/types.h
+s_floor.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/types.h
+s_floor.o: /mnt/sda8/git-source/pmon/sys/sys/cdefs.h
+s_floor.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/cdefs.h
+s_floor.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/ansi.h
+s_floor.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/endian.h
+s_floor.o: /mnt/sda8/git-source/pmon/sys/sys/endian.h
+s_floor.o: /mnt/sda8/git-source/pmon/sys/arch/mips/include/endian.h
+w_fmod.o: /mnt/sda8/git-source/pmon/include/math.h math_private.h
+w_fmod.o: /mnt/sda8/git-source/pmon/sys/sys/types.h
+w_fmod.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/types.h
+w_fmod.o: /mnt/sda8/git-source/pmon/sys/sys/cdefs.h
+w_fmod.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/cdefs.h
+w_fmod.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/ansi.h
+w_fmod.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/endian.h
+w_fmod.o: /mnt/sda8/git-source/pmon/sys/sys/endian.h
+w_fmod.o: /mnt/sda8/git-source/pmon/sys/arch/mips/include/endian.h
+s_frexp.o: /mnt/sda8/git-source/pmon/include/math.h math_private.h
+s_frexp.o: /mnt/sda8/git-source/pmon/sys/sys/types.h
+s_frexp.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/types.h
+s_frexp.o: /mnt/sda8/git-source/pmon/sys/sys/cdefs.h
+s_frexp.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/cdefs.h
+s_frexp.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/ansi.h
+s_frexp.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/endian.h
+s_frexp.o: /mnt/sda8/git-source/pmon/sys/sys/endian.h
+s_frexp.o: /mnt/sda8/git-source/pmon/sys/arch/mips/include/endian.h
+w_log.o: /mnt/sda8/git-source/pmon/include/math.h math_private.h
+w_log.o: /mnt/sda8/git-source/pmon/sys/sys/types.h
+w_log.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/types.h
+w_log.o: /mnt/sda8/git-source/pmon/sys/sys/cdefs.h
+w_log.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/cdefs.h
+w_log.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/ansi.h
+w_log.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/endian.h
+w_log.o: /mnt/sda8/git-source/pmon/sys/sys/endian.h
+w_log.o: /mnt/sda8/git-source/pmon/sys/arch/mips/include/endian.h
+w_log10.o: /mnt/sda8/git-source/pmon/include/math.h math_private.h
+w_log10.o: /mnt/sda8/git-source/pmon/sys/sys/types.h
+w_log10.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/types.h
+w_log10.o: /mnt/sda8/git-source/pmon/sys/sys/cdefs.h
+w_log10.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/cdefs.h
+w_log10.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/ansi.h
+w_log10.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/endian.h
+w_log10.o: /mnt/sda8/git-source/pmon/sys/sys/endian.h
+w_log10.o: /mnt/sda8/git-source/pmon/sys/arch/mips/include/endian.h
+s_modf.o: /mnt/sda8/git-source/pmon/include/math.h math_private.h
+s_modf.o: /mnt/sda8/git-source/pmon/sys/sys/types.h
+s_modf.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/types.h
+s_modf.o: /mnt/sda8/git-source/pmon/sys/sys/cdefs.h
+s_modf.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/cdefs.h
+s_modf.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/ansi.h
+s_modf.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/endian.h
+s_modf.o: /mnt/sda8/git-source/pmon/sys/sys/endian.h
+s_modf.o: /mnt/sda8/git-source/pmon/sys/arch/mips/include/endian.h
+w_pow.o: /mnt/sda8/git-source/pmon/include/math.h math_private.h
+w_pow.o: /mnt/sda8/git-source/pmon/sys/sys/types.h
+w_pow.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/types.h
+w_pow.o: /mnt/sda8/git-source/pmon/sys/sys/cdefs.h
+w_pow.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/cdefs.h
+w_pow.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/ansi.h
+w_pow.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/endian.h
+w_pow.o: /mnt/sda8/git-source/pmon/sys/sys/endian.h
+w_pow.o: /mnt/sda8/git-source/pmon/sys/arch/mips/include/endian.h
+s_sin.o: /mnt/sda8/git-source/pmon/include/math.h math_private.h
+s_sin.o: /mnt/sda8/git-source/pmon/sys/sys/types.h
+s_sin.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/types.h
+s_sin.o: /mnt/sda8/git-source/pmon/sys/sys/cdefs.h
+s_sin.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/cdefs.h
+s_sin.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/ansi.h
+s_sin.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/endian.h
+s_sin.o: /mnt/sda8/git-source/pmon/sys/sys/endian.h
+s_sin.o: /mnt/sda8/git-source/pmon/sys/arch/mips/include/endian.h
+w_sinh.o: /mnt/sda8/git-source/pmon/include/math.h math_private.h
+w_sinh.o: /mnt/sda8/git-source/pmon/sys/sys/types.h
+w_sinh.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/types.h
+w_sinh.o: /mnt/sda8/git-source/pmon/sys/sys/cdefs.h
+w_sinh.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/cdefs.h
+w_sinh.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/ansi.h
+w_sinh.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/endian.h
+w_sinh.o: /mnt/sda8/git-source/pmon/sys/sys/endian.h
+w_sinh.o: /mnt/sda8/git-source/pmon/sys/arch/mips/include/endian.h
+w_sqrt.o: /mnt/sda8/git-source/pmon/include/math.h math_private.h
+w_sqrt.o: /mnt/sda8/git-source/pmon/sys/sys/types.h
+w_sqrt.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/types.h
+w_sqrt.o: /mnt/sda8/git-source/pmon/sys/sys/cdefs.h
+w_sqrt.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/cdefs.h
+w_sqrt.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/ansi.h
+w_sqrt.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/endian.h
+w_sqrt.o: /mnt/sda8/git-source/pmon/sys/sys/endian.h
+w_sqrt.o: /mnt/sda8/git-source/pmon/sys/arch/mips/include/endian.h
+s_tan.o: /mnt/sda8/git-source/pmon/include/math.h math_private.h
+s_tan.o: /mnt/sda8/git-source/pmon/sys/sys/types.h
+s_tan.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/types.h
+s_tan.o: /mnt/sda8/git-source/pmon/sys/sys/cdefs.h
+s_tan.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/cdefs.h
+s_tan.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/ansi.h
+s_tan.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/endian.h
+s_tan.o: /mnt/sda8/git-source/pmon/sys/sys/endian.h
+s_tan.o: /mnt/sda8/git-source/pmon/sys/arch/mips/include/endian.h
+s_tanh.o: /mnt/sda8/git-source/pmon/include/math.h math_private.h
+s_tanh.o: /mnt/sda8/git-source/pmon/sys/sys/types.h
+s_tanh.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/types.h
+s_tanh.o: /mnt/sda8/git-source/pmon/sys/sys/cdefs.h
+s_tanh.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/cdefs.h
+s_tanh.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/ansi.h
+s_tanh.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/endian.h
+s_tanh.o: /mnt/sda8/git-source/pmon/sys/sys/endian.h
+s_tanh.o: /mnt/sda8/git-source/pmon/sys/arch/mips/include/endian.h
+s_scalbn.o: /mnt/sda8/git-source/pmon/include/math.h math_private.h
+s_scalbn.o: /mnt/sda8/git-source/pmon/sys/sys/types.h
+s_scalbn.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/types.h
+s_scalbn.o: /mnt/sda8/git-source/pmon/sys/sys/cdefs.h
+s_scalbn.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/cdefs.h
+s_scalbn.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/ansi.h
+s_scalbn.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/endian.h
+s_scalbn.o: /mnt/sda8/git-source/pmon/sys/sys/endian.h
+s_scalbn.o: /mnt/sda8/git-source/pmon/sys/arch/mips/include/endian.h
+s_copysign.o: /mnt/sda8/git-source/pmon/include/math.h math_private.h
+s_copysign.o: /mnt/sda8/git-source/pmon/sys/sys/types.h
+s_copysign.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/types.h
+s_copysign.o: /mnt/sda8/git-source/pmon/sys/sys/cdefs.h
+s_copysign.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/cdefs.h
+s_copysign.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/ansi.h
+s_copysign.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/endian.h
+s_copysign.o: /mnt/sda8/git-source/pmon/sys/sys/endian.h
+s_copysign.o: /mnt/sda8/git-source/pmon/sys/arch/mips/include/endian.h
+e_acos.o: /mnt/sda8/git-source/pmon/include/math.h math_private.h
+e_acos.o: /mnt/sda8/git-source/pmon/sys/sys/types.h
+e_acos.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/types.h
+e_acos.o: /mnt/sda8/git-source/pmon/sys/sys/cdefs.h
+e_acos.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/cdefs.h
+e_acos.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/ansi.h
+e_acos.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/endian.h
+e_acos.o: /mnt/sda8/git-source/pmon/sys/sys/endian.h
+e_acos.o: /mnt/sda8/git-source/pmon/sys/arch/mips/include/endian.h
+e_asin.o: /mnt/sda8/git-source/pmon/include/math.h math_private.h
+e_asin.o: /mnt/sda8/git-source/pmon/sys/sys/types.h
+e_asin.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/types.h
+e_asin.o: /mnt/sda8/git-source/pmon/sys/sys/cdefs.h
+e_asin.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/cdefs.h
+e_asin.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/ansi.h
+e_asin.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/endian.h
+e_asin.o: /mnt/sda8/git-source/pmon/sys/sys/endian.h
+e_asin.o: /mnt/sda8/git-source/pmon/sys/arch/mips/include/endian.h
+e_atan2.o: /mnt/sda8/git-source/pmon/include/math.h math_private.h
+e_atan2.o: /mnt/sda8/git-source/pmon/sys/sys/types.h
+e_atan2.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/types.h
+e_atan2.o: /mnt/sda8/git-source/pmon/sys/sys/cdefs.h
+e_atan2.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/cdefs.h
+e_atan2.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/ansi.h
+e_atan2.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/endian.h
+e_atan2.o: /mnt/sda8/git-source/pmon/sys/sys/endian.h
+e_atan2.o: /mnt/sda8/git-source/pmon/sys/arch/mips/include/endian.h
+k_cos.o: /mnt/sda8/git-source/pmon/include/math.h math_private.h
+k_cos.o: /mnt/sda8/git-source/pmon/sys/sys/types.h
+k_cos.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/types.h
+k_cos.o: /mnt/sda8/git-source/pmon/sys/sys/cdefs.h
+k_cos.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/cdefs.h
+k_cos.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/ansi.h
+k_cos.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/endian.h
+k_cos.o: /mnt/sda8/git-source/pmon/sys/sys/endian.h
+k_cos.o: /mnt/sda8/git-source/pmon/sys/arch/mips/include/endian.h
+e_cosh.o: /mnt/sda8/git-source/pmon/include/math.h math_private.h
+e_cosh.o: /mnt/sda8/git-source/pmon/sys/sys/types.h
+e_cosh.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/types.h
+e_cosh.o: /mnt/sda8/git-source/pmon/sys/sys/cdefs.h
+e_cosh.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/cdefs.h
+e_cosh.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/ansi.h
+e_cosh.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/endian.h
+e_cosh.o: /mnt/sda8/git-source/pmon/sys/sys/endian.h
+e_cosh.o: /mnt/sda8/git-source/pmon/sys/arch/mips/include/endian.h
+e_exp.o: /mnt/sda8/git-source/pmon/include/math.h math_private.h
+e_exp.o: /mnt/sda8/git-source/pmon/sys/sys/types.h
+e_exp.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/types.h
+e_exp.o: /mnt/sda8/git-source/pmon/sys/sys/cdefs.h
+e_exp.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/cdefs.h
+e_exp.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/ansi.h
+e_exp.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/endian.h
+e_exp.o: /mnt/sda8/git-source/pmon/sys/sys/endian.h
+e_exp.o: /mnt/sda8/git-source/pmon/sys/arch/mips/include/endian.h
+e_fmod.o: /mnt/sda8/git-source/pmon/include/math.h math_private.h
+e_fmod.o: /mnt/sda8/git-source/pmon/sys/sys/types.h
+e_fmod.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/types.h
+e_fmod.o: /mnt/sda8/git-source/pmon/sys/sys/cdefs.h
+e_fmod.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/cdefs.h
+e_fmod.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/ansi.h
+e_fmod.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/endian.h
+e_fmod.o: /mnt/sda8/git-source/pmon/sys/sys/endian.h
+e_fmod.o: /mnt/sda8/git-source/pmon/sys/arch/mips/include/endian.h
+e_log.o: /mnt/sda8/git-source/pmon/include/math.h math_private.h
+e_log.o: /mnt/sda8/git-source/pmon/sys/sys/types.h
+e_log.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/types.h
+e_log.o: /mnt/sda8/git-source/pmon/sys/sys/cdefs.h
+e_log.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/cdefs.h
+e_log.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/ansi.h
+e_log.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/endian.h
+e_log.o: /mnt/sda8/git-source/pmon/sys/sys/endian.h
+e_log.o: /mnt/sda8/git-source/pmon/sys/arch/mips/include/endian.h
+e_log10.o: /mnt/sda8/git-source/pmon/include/math.h math_private.h
+e_log10.o: /mnt/sda8/git-source/pmon/sys/sys/types.h
+e_log10.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/types.h
+e_log10.o: /mnt/sda8/git-source/pmon/sys/sys/cdefs.h
+e_log10.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/cdefs.h
+e_log10.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/ansi.h
+e_log10.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/endian.h
+e_log10.o: /mnt/sda8/git-source/pmon/sys/sys/endian.h
+e_log10.o: /mnt/sda8/git-source/pmon/sys/arch/mips/include/endian.h
+e_pow.o: /mnt/sda8/git-source/pmon/include/math.h math_private.h
+e_pow.o: /mnt/sda8/git-source/pmon/sys/sys/types.h
+e_pow.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/types.h
+e_pow.o: /mnt/sda8/git-source/pmon/sys/sys/cdefs.h
+e_pow.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/cdefs.h
+e_pow.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/ansi.h
+e_pow.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/endian.h
+e_pow.o: /mnt/sda8/git-source/pmon/sys/sys/endian.h
+e_pow.o: /mnt/sda8/git-source/pmon/sys/arch/mips/include/endian.h
+k_sin.o: /mnt/sda8/git-source/pmon/include/math.h math_private.h
+k_sin.o: /mnt/sda8/git-source/pmon/sys/sys/types.h
+k_sin.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/types.h
+k_sin.o: /mnt/sda8/git-source/pmon/sys/sys/cdefs.h
+k_sin.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/cdefs.h
+k_sin.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/ansi.h
+k_sin.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/endian.h
+k_sin.o: /mnt/sda8/git-source/pmon/sys/sys/endian.h
+k_sin.o: /mnt/sda8/git-source/pmon/sys/arch/mips/include/endian.h
+e_sinh.o: /mnt/sda8/git-source/pmon/include/math.h math_private.h
+e_sinh.o: /mnt/sda8/git-source/pmon/sys/sys/types.h
+e_sinh.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/types.h
+e_sinh.o: /mnt/sda8/git-source/pmon/sys/sys/cdefs.h
+e_sinh.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/cdefs.h
+e_sinh.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/ansi.h
+e_sinh.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/endian.h
+e_sinh.o: /mnt/sda8/git-source/pmon/sys/sys/endian.h
+e_sinh.o: /mnt/sda8/git-source/pmon/sys/arch/mips/include/endian.h
+e_sqrt.o: /mnt/sda8/git-source/pmon/include/math.h math_private.h
+e_sqrt.o: /mnt/sda8/git-source/pmon/sys/sys/types.h
+e_sqrt.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/types.h
+e_sqrt.o: /mnt/sda8/git-source/pmon/sys/sys/cdefs.h
+e_sqrt.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/cdefs.h
+e_sqrt.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/ansi.h
+e_sqrt.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/endian.h
+e_sqrt.o: /mnt/sda8/git-source/pmon/sys/sys/endian.h
+e_sqrt.o: /mnt/sda8/git-source/pmon/sys/arch/mips/include/endian.h
+k_tan.o: /mnt/sda8/git-source/pmon/include/math.h math_private.h
+k_tan.o: /mnt/sda8/git-source/pmon/sys/sys/types.h
+k_tan.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/types.h
+k_tan.o: /mnt/sda8/git-source/pmon/sys/sys/cdefs.h
+k_tan.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/cdefs.h
+k_tan.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/ansi.h
+k_tan.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/endian.h
+k_tan.o: /mnt/sda8/git-source/pmon/sys/sys/endian.h
+k_tan.o: /mnt/sda8/git-source/pmon/sys/arch/mips/include/endian.h
+e_rem_pio2.o: /mnt/sda8/git-source/pmon/include/math.h math_private.h
+e_rem_pio2.o: /mnt/sda8/git-source/pmon/sys/sys/types.h
+e_rem_pio2.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/types.h
+e_rem_pio2.o: /mnt/sda8/git-source/pmon/sys/sys/cdefs.h
+e_rem_pio2.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/cdefs.h
+e_rem_pio2.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/ansi.h
+e_rem_pio2.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/endian.h
+e_rem_pio2.o: /mnt/sda8/git-source/pmon/sys/sys/endian.h
+e_rem_pio2.o: /mnt/sda8/git-source/pmon/sys/arch/mips/include/endian.h
+k_rem_pio2.o: /mnt/sda8/git-source/pmon/include/math.h math_private.h
+k_rem_pio2.o: /mnt/sda8/git-source/pmon/sys/sys/types.h
+k_rem_pio2.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/types.h
+k_rem_pio2.o: /mnt/sda8/git-source/pmon/sys/sys/cdefs.h
+k_rem_pio2.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/cdefs.h
+k_rem_pio2.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/ansi.h
+k_rem_pio2.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/endian.h
+k_rem_pio2.o: /mnt/sda8/git-source/pmon/sys/sys/endian.h
+k_rem_pio2.o: /mnt/sda8/git-source/pmon/sys/arch/mips/include/endian.h

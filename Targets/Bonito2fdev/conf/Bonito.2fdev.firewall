@@ -87,7 +87,7 @@ option		NOSNOOP			# Caches are no-snooping
 #
 # HAVE options. What tgt level provide
 #
-option		HAVE_TOD		# Time-Of-Day clock
+#option		HAVE_TOD		# Time-Of-Day clock
 option		HAVE_NVENV		#  Platform has non-volatile env mem
 option		HAVE_LOGO		# Output splash logo
 option		USE_SUPERIO_UART
@@ -131,7 +131,7 @@ pci*		at pcibr?
 #gt1		at localbus? base 5
 #gt2		at localbus? base 6
 # fxp normally only used for debugging (enable/disable both)
-fxp0            at pci? dev ? function ?        # Intel 82559 Device
+fxp*            at pci? dev ? function ?        # Intel 82559 Device
 inphy*          at mii? phy ?                   # Intel 82555 PHYs
 rtl*        at pci? dev ? function ?
 em*        at pci? dev ? function ?

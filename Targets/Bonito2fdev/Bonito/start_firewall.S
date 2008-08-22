@@ -128,17 +128,23 @@ start:
 stack = start - 0x4000		/* Place PMON stack below PMON start in RAM */
 
 /* NOTE!! Not more that 16 instructions here!!! Right now it's FULL! */
+	GPIOLED_SET(3)
+	GPIOLED_SET(3)
+	GPIOLED_SET(3)
+	GPIOLED_SET(0)
+	GPIOLED_SET(0)
+	GPIOLED_SET(0)
 	mtc0	zero, COP_0_STATUS_REG
 	mtc0	zero, COP_0_CAUSE_REG
 	li	t0, SR_BOOT_EXC_VEC	/* Exception to Boostrap Location */
 	mtc0	t0, COP_0_STATUS_REG
 	la	sp, stack
 	la	gp, _gp
-	GPIOLED_SET(1)
+//	GPIOLED_SET(1)
 
 	bal	uncached		/* Switch to uncached address space */
 	nop
-	GPIOLED_SET(2)
+//	GPIOLED_SET(2)
 
 	bal	locate			/* Get current execute address */
 	nop
@@ -268,7 +274,7 @@ locate:
 	la	s0,start
 	subu	s0,ra,s0
 	and	s0,0xffff0000
-	GPIOLED_SET(3)
+//	GPIOLED_SET(3)
 
 	li	t0,SR_BOOT_EXC_VEC
 	mtc0	t0,COP_0_STATUS_REG
@@ -351,7 +357,7 @@ locate:
 	_ISAWR_INIT(isareg,val)
 #define ISARD_INIT(isareg) \
 	_ISARD_INIT(isareg)
-	GPIOLED_SET(4)
+//	GPIOLED_SET(4)
 
 	bal	1f	
 	nop
@@ -631,21 +637,21 @@ reginit:			/* local name */
 	nop
 .done:	
 
-	GPIOLED_SET(5)
+//	GPIOLED_SET(5)
 	bal 	superio_init
 	nop
 	
-	GPIOLED_SET(6)
+//	GPIOLED_SET(6)
 	bal	initserial
 	nop
-	GPIOLED_SET(7)
+//	GPIOLED_SET(7)
 	
 	PRINTSTR("\r\nPMON2000 MIPS Initializing. Standby...\r\n")
 	PRINTSTR("ERRORPC=")
 	mfc0	a0, COP_0_ERROR_PC
 	bal	hexserial
 	nop
-	GPIOLED_SET(8)
+//	GPIOLED_SET(8)
 
 	PRINTSTR(" CONFIG=")
 	mfc0	a0, COP_0_CONFIG
@@ -671,7 +677,7 @@ reginit:			/* local name */
  * we should use i2c for memory auto detecting. 
  */
 gs_2f_v3_ddr2_cfg:
-	GPIOLED_SET(9)
+//	GPIOLED_SET(9)
 
 	TTYDBG	("\r\nenable register space of MEMORY\r\n")
         li  t2,0xbfe00180
@@ -728,7 +734,7 @@ not_locked:
 
 	
 skipdimm:
-	GPIOLED_SET(10)
+//	GPIOLED_SET(10)
 
 	li	t1,0		# accumulate pcimembasecfg settings
 		
@@ -765,7 +771,7 @@ skipdimm:
 	sw	t0,BONITO_BONPONCFG(bonito)
 
 	PRINTSTR("Init SDRAM Done!\r\n");
-	GPIOLED_SET(11)
+//	GPIOLED_SET(11)
 
 
 
@@ -1804,7 +1810,7 @@ reg_write:
     bne     t1, $0, reg_write
     addiu     t2, t2, 0x10
 //----------------
-#if 1
+#if 0
 #include "i2ccfgddr.S"
 #else
 	li	msize,0x10000000
