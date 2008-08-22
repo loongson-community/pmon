@@ -190,6 +190,8 @@ struct virt_root_hub {
 	int c_p_r[8];             /* C_PORT_RESET */
 };
 
+#define USB_MAX_TEMP_TD      128  /* number of temporary TDs for bulk and control transfers */
+#define USB_MAX_TEMP_INT_TD  32   /* number of temporary TDs for Interrupt transfers */
 struct uhci {
 	struct usb_hc hc;	//for all host controller's common object
 	struct pci_attach_args *pa;
@@ -214,7 +216,30 @@ struct uhci {
 	//struct uhci_qh *skelqh[UHCI_NUM_SKELQH];	/* Skeleton QH's */
 
 	int is_suspended;
+uhci_td_t td_int[8] __attribute__((aligned(128)));/* Interrupt Transfer descriptors */
+uhci_qh_t qh_cntrl __attribute__((aligned(128)));/* control Queue Head */
+uhci_qh_t qh_bulk __attribute__((aligned(128)));/*  bulk Queue Head */
+uhci_qh_t qh_end __attribute__((aligned(128)));/* end Queue Head */
+uhci_td_t td_last __attribute__((aligned(128))); /* last TD (linked with end chain) */
+unsigned char hc_setup[32] __attribute__((aligned(128)));
+unsigned char control_buf0[256] __attribute__((aligned(128)));
+uhci_td_t tmp_td[USB_MAX_TEMP_TD] __attribute__((aligned(128)));/* temporary bulk/control td's  */
+uhci_td_t tmp_td1[USB_MAX_TEMP_TD] __attribute__((aligned(128)));/* temporary bulk/control td's  */
+uhci_td_t tmp_int_td[USB_MAX_TEMP_INT_TD] __attribute__((aligned(128))); /* temporary interrupt td's  */
+unsigned long framelist[1024] __attribute__ ((aligned (0x1000))); /* frame list */
 };
 typedef struct uhci uhci_t;
+#define td_int uhci->td_int
+#define qh_cntrl uhci->qh_cntrl
+#define qh_bulk uhci->qh_bulk
+#define qh_end uhci->qh_end
+#define td_last uhci->td_last
+#define hc_setup uhci->hc_setup
+#define  tmp_td uhci->tmp_td
+#define  tmp_td1 uhci->tmp_td1
+#define tmp_int_td uhci->tmp_int_td
+#define framelist uhci->framelist
+#define usb_base_addr uhci->io_addr
+#define control_buf0 uhci->control_buf0
 
 #endif /* _USB_UHCI_H_ */

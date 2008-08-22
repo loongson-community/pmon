@@ -132,7 +132,6 @@
 #define in16r(addr)  *((volatile u16*)(addr))
 #define in32r(addr)  *((volatile u32*)(addr))
 
-static unsigned int usb_base_addr;       /* base address */
 static int uhci_stop = 1;
 
 static int uhci_match(struct device *parent, void *match, void *aux);
@@ -174,8 +173,8 @@ static int uhci_match(struct device *parent, void *match, void *aux)
 		  PCI_SUBCLASS(pa->pa_class) == PCI_SUBCLASS_SERIALBUS_USB) {
 		if(((pa->pa_class >>8) & 0xff) == 0x00){
 			printf("usb %d/%d\n", pa->pa_device, pa->pa_function);
-#if 1
-			if(!(pa->pa_function ==3))
+#if 0
+			if(!(pa->pa_function ==2))
 				return 0;
 #endif
 			addr=_pci_allocate_io(_pci_head,0x20);
@@ -224,8 +223,6 @@ static void uhci_attach(struct device *parent, struct device *self, void *aux)
 	uhci->sc_st = iot;
 	uhci->sc_pc = pc; 
 
-	usb_base_addr = uhci->io_addr;
-  	
 	intrstr = pci_intr_string(pc, ih);
 	
 	if(pci_intr_map(pc, pa->pa_intrtag, pa->pa_intrpin,
@@ -256,21 +253,9 @@ static void uhci_attach(struct device *parent, struct device *self, void *aux)
 }
 
 
-static uhci_td_t td_int[8] __attribute__((section(".bss"),aligned(128)));/* Interrupt Transfer descriptors */
-static uhci_qh_t qh_cntrl __attribute__((section(".bss"),aligned(128)));/* control Queue Head */
-static uhci_qh_t qh_bulk __attribute__((section(".bss"),aligned(128)));/*  bulk Queue Head */
-static uhci_qh_t qh_end __attribute__((section(".bss"),aligned(128)));/* end Queue Head */
-static uhci_td_t td_last __attribute__((section(".bss"),aligned(128))); /* last TD (linked with end chain) */
-static unsigned char hc_setup[32] __attribute__((section(".bss"),aligned(128)));
-static unsigned char control_buf[256] __attribute__((section(".bss"),aligned(128)));
 
 /* temporary tds */
 //FIXME 
-static uhci_td_t tmp_td[USB_MAX_TEMP_TD] __attribute__((section(".bss"),aligned(128)));/* temporary bulk/control td's  */
-static uhci_td_t tmp_td1[USB_MAX_TEMP_TD] __attribute__((section(".bss"),aligned(128)));/* temporary bulk/control td's  */
-static uhci_td_t tmp_int_td[USB_MAX_TEMP_INT_TD] __attribute__((section(".bss"),aligned(128))); /* temporary interrupt td's  */
-
-static unsigned long framelist[1024] __attribute__ ((section(".bss"),aligned (0x1000))); /* frame list */
 
 static struct virt_root_hub rh;   /* struct for root hub */
 
@@ -511,6 +496,7 @@ static int uhci_submit_control_msg(struct usb_device *dev, unsigned long pipe, v
 	((uhci_qh_t*)CACHED_TO_UNCACHED(&qh_cntrl))->element =UHCI_PTR_TERM;//0xffffffffL;
 	/* set qh active */
 	((uhci_qh_t*)CACHED_TO_UNCACHED(&qh_cntrl))->dev_ptr=(unsigned long)dev;
+	dev->status = USB_ST_NOT_PROC;
 	/* fill in tmp_td1_chain */
 	((uhci_qh_t*)CACHED_TO_UNCACHED(&qh_cntrl))->element=vtophys((unsigned long)&tmp_td1[0]);
 
@@ -593,6 +579,7 @@ static int uhci_submit_bulk_msg(struct usb_device *dev, unsigned long pipe, void
 	((uhci_qh_t *)CACHED_TO_UNCACHED(&qh_bulk))->element =UHCI_PTR_TERM;//0xffffffffL;
 	/* set qh active */
 	((uhci_qh_t *)CACHED_TO_UNCACHED(&qh_bulk))->dev_ptr=(unsigned long)dev;
+	dev->status = USB_ST_NOT_PROC;
 	/* fill in tmp_td_chain */
 	((uhci_qh_t *)CACHED_TO_UNCACHED(&qh_bulk))->element=vtophys((unsigned long)&tmp_td[0] | 0x0004);
 	dev->qpriv = &qh_bulk;
@@ -619,7 +606,7 @@ static int uhci_submit_bulk_msg(struct usb_device *dev, unsigned long pipe, void
 
 /* search a free interrupt td
  */
-uhci_td_t *uhci_alloc_int_td(void)
+uhci_td_t *uhci_alloc_int_td(uhci_t *uhci)
 {
 	int i;
 	for(i=0;i<USB_MAX_TEMP_INT_TD;i++) {
@@ -669,7 +656,7 @@ static int uhci_submit_int_msg(struct usb_device *dev, unsigned long pipe, void 
 	}
 
 	USB_UHCI_PRINTF("Rounded interval to %d, chain  %d\n", interval, nint);
-	mytd=uhci_alloc_int_td();
+	mytd=uhci_alloc_int_td(uhci);
 	if(mytd==NULL) {
 		printf("No free INT TDs found\n");
 		return -1;
@@ -705,7 +692,7 @@ static int uhci_submit_int_msg(struct usb_device *dev, unsigned long pipe, void 
  */
 
 
-void reset_hc(void)
+void reset_hc(uhci_t *uhci)
 {
 
 	/* Global reset for 100ms */
@@ -719,7 +706,7 @@ void reset_hc(void)
 	wait_ms(10);
 }
 
-void start_hc(void)
+void start_hc(uhci_t *uhci)
 {
 	int timeout = 1000;
 
@@ -812,7 +799,7 @@ void usb_init_skel(void *data)
 /* check the common skeleton for completed transfers, and update the status
  * of the "connected" device. Called from the IRQ routine.
  */
-void usb_check_skel(void)
+void usb_check_skel(uhci_t *uhci)
 {
 	struct usb_device *dev;
 	/* start with the control qh */
@@ -844,7 +831,7 @@ void usb_check_skel(void)
  * call the appropriate irqhandler and reactivate the TD if the irqhandler
  * returns with 1
  */
-void usb_check_int_chain(void)
+void usb_check_int_chain(uhci_t *uhci)
 {
 	int i,res;
 	unsigned long link,status;
@@ -921,6 +908,7 @@ int handle_usb_interrupt(void *hc_data)
 	unsigned short status;
 	int s;
 	static int count = 0,count1=0;
+	uhci_t *uhci=hc_data;
 
 	s = splimp();
 //	if (count++%0x80000==0) printf("handle_usb_interrupt,count=%d\n",count);
@@ -947,8 +935,8 @@ int handle_usb_interrupt(void *hc_data)
 #endif
 	}
 
-	usb_check_int_chain(); /* call interrupt handlers for int tds */
-	usb_check_skel(); /* call completion handler for common transfer routines */
+	usb_check_int_chain(uhci); /* call interrupt handlers for int tds */
+	usb_check_skel(uhci); /* call completion handler for common transfer routines */
 	out16r(usb_base_addr+USBSTS,status);
 	
 	splx(s);
@@ -969,15 +957,15 @@ static int usb_lowlevel_init(void * hc_data)
 	usb_init_skel(uhci);
 	
 	memset(hc_setup, 0, sizeof(hc_setup));
-	memset(control_buf, 0, sizeof(control_buf));
+	memset(control_buf0, 0, sizeof(control_buf0));
 	pci_sync_cache(uhci->sc_pc, (vm_offset_t)hc_setup, sizeof(hc_setup), SYNC_W);
-	pci_sync_cache(uhci->sc_pc, (vm_offset_t)control_buf, sizeof(control_buf), SYNC_W);
+	pci_sync_cache(uhci->sc_pc, (vm_offset_t)control_buf0, sizeof(control_buf0), SYNC_W);
 
 	uhci->setup = (unsigned char*)CACHED_TO_UNCACHED(hc_setup);
-	uhci->control_buf = (unsigned char*)CACHED_TO_UNCACHED(control_buf);
+	uhci->control_buf = (unsigned char*)CACHED_TO_UNCACHED(control_buf0);
 	
-	reset_hc();
-	start_hc();
+	reset_hc(uhci);
+	start_hc(uhci);
 
 	uhci_stop = 0;
 
@@ -986,10 +974,10 @@ static int usb_lowlevel_init(void * hc_data)
 
 /* stop uhci
  */
-void usb_uhci_stop(void)
+void usb_uhci_stop(uhci_t *uhci)
 {
 	uhci_stop = 1;
-	reset_hc();
+	reset_hc(uhci);
 }
 
 /*******************************************************************************************
@@ -1141,6 +1129,7 @@ int uhci_submit_rh_msg(struct usb_device *dev, unsigned long pipe, void *buffer,
 	unsigned short wValue;
 	unsigned short wIndex;
 	unsigned short wLength;
+	uhci_t * uhci = dev->hc_private;
 
 	if ((pipe & PIPE_INTERRUPT) == PIPE_INTERRUPT) {
 		printf("Root-Hub submit IRQ: NOT implemented\n");
@@ -1496,7 +1485,7 @@ static int usb_display_td(uhci_td_t *td)
 }
 
 
-void usb_show_td(int max)
+void usb_show_td(uhci_t *uhci,int max)
 {
 	int i;
 	if(max>0) {

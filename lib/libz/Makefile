@@ -643,3 +643,327 @@ infutil.o: /mnt/sda8/git-source/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.fi
 infutil.o: /mnt/sda8/git-source/pmon/sys/sys/endian.h
 infutil.o: /mnt/sda8/git-source/pmon/include/errno.h infblock.h inftrees.h
 infutil.o: infcodes.h infutil.h
+
+adler32.o: zlib.h zconf.h
+crc32.o: zlib.h zconf.h
+infblock.o: zutil.h zlib.h zconf.h
+infblock.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/stddef.h
+infblock.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/ansi.h
+infblock.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/string.h
+infblock.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/cdefs.h
+infblock.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/cdefs.h
+infblock.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/stdlib.h
+infblock.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/types.h
+infblock.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/types.h
+infblock.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/endian.h
+infblock.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/endian.h
+infblock.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/errno.h
+infblock.o: infblock.h inftrees.h infcodes.h infutil.h
+infcodes.o: zutil.h zlib.h zconf.h
+infcodes.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/stddef.h
+infcodes.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/ansi.h
+infcodes.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/string.h
+infcodes.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/cdefs.h
+infcodes.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/cdefs.h
+infcodes.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/stdlib.h
+infcodes.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/types.h
+infcodes.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/types.h
+infcodes.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/endian.h
+infcodes.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/endian.h
+infcodes.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/errno.h
+infcodes.o: inftrees.h infblock.h infcodes.h infutil.h inffast.h
+inffast.o: zutil.h zlib.h zconf.h
+inffast.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/stddef.h
+inffast.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/ansi.h
+inffast.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/string.h
+inffast.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/cdefs.h
+inffast.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/cdefs.h
+inffast.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/stdlib.h
+inffast.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/types.h
+inffast.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/types.h
+inffast.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/endian.h
+inffast.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/endian.h
+inffast.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/errno.h
+inffast.o: inftrees.h infblock.h infcodes.h infutil.h inffast.h
+inflate.o: zutil.h zlib.h zconf.h
+inflate.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/stddef.h
+inflate.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/ansi.h
+inflate.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/string.h
+inflate.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/cdefs.h
+inflate.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/cdefs.h
+inflate.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/stdlib.h
+inflate.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/types.h
+inflate.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/types.h
+inflate.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/endian.h
+inflate.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/endian.h
+inflate.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/errno.h
+inflate.o: infblock.h
+inftrees.o: zutil.h zlib.h zconf.h
+inftrees.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/stddef.h
+inftrees.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/ansi.h
+inftrees.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/string.h
+inftrees.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/cdefs.h
+inftrees.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/cdefs.h
+inftrees.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/stdlib.h
+inftrees.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/types.h
+inftrees.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/types.h
+inftrees.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/endian.h
+inftrees.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/endian.h
+inftrees.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/errno.h
+inftrees.o: inftrees.h inffixed.h
+infutil.o: zutil.h zlib.h zconf.h
+infutil.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/stddef.h
+infutil.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/ansi.h
+infutil.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/string.h
+infutil.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/cdefs.h
+infutil.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/cdefs.h
+infutil.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/stdlib.h
+infutil.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/types.h
+infutil.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/types.h
+infutil.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/endian.h
+infutil.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/endian.h
+infutil.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/errno.h
+infutil.o: infblock.h inftrees.h infcodes.h infutil.h
+
+adler32.o: zlib.h zconf.h
+crc32.o: zlib.h zconf.h
+infblock.o: zutil.h zlib.h zconf.h
+infblock.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/stddef.h
+infblock.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/ansi.h
+infblock.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/string.h
+infblock.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/cdefs.h
+infblock.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/cdefs.h
+infblock.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/stdlib.h
+infblock.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/types.h
+infblock.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/types.h
+infblock.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/endian.h
+infblock.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/endian.h
+infblock.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/errno.h
+infblock.o: infblock.h inftrees.h infcodes.h infutil.h
+infcodes.o: zutil.h zlib.h zconf.h
+infcodes.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/stddef.h
+infcodes.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/ansi.h
+infcodes.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/string.h
+infcodes.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/cdefs.h
+infcodes.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/cdefs.h
+infcodes.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/stdlib.h
+infcodes.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/types.h
+infcodes.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/types.h
+infcodes.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/endian.h
+infcodes.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/endian.h
+infcodes.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/errno.h
+infcodes.o: inftrees.h infblock.h infcodes.h infutil.h inffast.h
+inffast.o: zutil.h zlib.h zconf.h
+inffast.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/stddef.h
+inffast.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/ansi.h
+inffast.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/string.h
+inffast.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/cdefs.h
+inffast.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/cdefs.h
+inffast.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/stdlib.h
+inffast.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/types.h
+inffast.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/types.h
+inffast.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/endian.h
+inffast.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/endian.h
+inffast.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/errno.h
+inffast.o: inftrees.h infblock.h infcodes.h infutil.h inffast.h
+inflate.o: zutil.h zlib.h zconf.h
+inflate.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/stddef.h
+inflate.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/ansi.h
+inflate.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/string.h
+inflate.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/cdefs.h
+inflate.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/cdefs.h
+inflate.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/stdlib.h
+inflate.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/types.h
+inflate.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/types.h
+inflate.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/endian.h
+inflate.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/endian.h
+inflate.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/errno.h
+inflate.o: infblock.h
+inftrees.o: zutil.h zlib.h zconf.h
+inftrees.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/stddef.h
+inftrees.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/ansi.h
+inftrees.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/string.h
+inftrees.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/cdefs.h
+inftrees.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/cdefs.h
+inftrees.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/stdlib.h
+inftrees.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/types.h
+inftrees.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/types.h
+inftrees.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/endian.h
+inftrees.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/endian.h
+inftrees.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/errno.h
+inftrees.o: inftrees.h inffixed.h
+infutil.o: zutil.h zlib.h zconf.h
+infutil.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/stddef.h
+infutil.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/ansi.h
+infutil.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/string.h
+infutil.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/cdefs.h
+infutil.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/cdefs.h
+infutil.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/stdlib.h
+infutil.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/types.h
+infutil.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/types.h
+infutil.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/endian.h
+infutil.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/endian.h
+infutil.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/errno.h
+infutil.o: infblock.h inftrees.h infcodes.h infutil.h
+
+adler32.o: zlib.h zconf.h
+crc32.o: zlib.h zconf.h
+infblock.o: zutil.h zlib.h zconf.h
+infblock.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/stddef.h
+infblock.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/ansi.h
+infblock.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/string.h
+infblock.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/cdefs.h
+infblock.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/cdefs.h
+infblock.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/stdlib.h
+infblock.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/types.h
+infblock.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/types.h
+infblock.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/endian.h
+infblock.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/endian.h
+infblock.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/errno.h
+infblock.o: infblock.h inftrees.h infcodes.h infutil.h
+infcodes.o: zutil.h zlib.h zconf.h
+infcodes.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/stddef.h
+infcodes.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/ansi.h
+infcodes.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/string.h
+infcodes.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/cdefs.h
+infcodes.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/cdefs.h
+infcodes.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/stdlib.h
+infcodes.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/types.h
+infcodes.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/types.h
+infcodes.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/endian.h
+infcodes.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/endian.h
+infcodes.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/errno.h
+infcodes.o: inftrees.h infblock.h infcodes.h infutil.h inffast.h
+inffast.o: zutil.h zlib.h zconf.h
+inffast.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/stddef.h
+inffast.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/ansi.h
+inffast.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/string.h
+inffast.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/cdefs.h
+inffast.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/cdefs.h
+inffast.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/stdlib.h
+inffast.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/types.h
+inffast.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/types.h
+inffast.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/endian.h
+inffast.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/endian.h
+inffast.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/errno.h
+inffast.o: inftrees.h infblock.h infcodes.h infutil.h inffast.h
+inflate.o: zutil.h zlib.h zconf.h
+inflate.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/stddef.h
+inflate.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/ansi.h
+inflate.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/string.h
+inflate.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/cdefs.h
+inflate.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/cdefs.h
+inflate.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/stdlib.h
+inflate.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/types.h
+inflate.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/types.h
+inflate.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/endian.h
+inflate.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/endian.h
+inflate.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/errno.h
+inflate.o: infblock.h
+inftrees.o: zutil.h zlib.h zconf.h
+inftrees.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/stddef.h
+inftrees.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/ansi.h
+inftrees.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/string.h
+inftrees.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/cdefs.h
+inftrees.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/cdefs.h
+inftrees.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/stdlib.h
+inftrees.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/types.h
+inftrees.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/types.h
+inftrees.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/endian.h
+inftrees.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/endian.h
+inftrees.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/errno.h
+inftrees.o: inftrees.h inffixed.h
+infutil.o: zutil.h zlib.h zconf.h
+infutil.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/stddef.h
+infutil.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/ansi.h
+infutil.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/string.h
+infutil.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/cdefs.h
+infutil.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/cdefs.h
+infutil.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/stdlib.h
+infutil.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/types.h
+infutil.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/types.h
+infutil.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/endian.h
+infutil.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/endian.h
+infutil.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/errno.h
+infutil.o: infblock.h inftrees.h infcodes.h infutil.h
+
+adler32.o: zlib.h zconf.h
+crc32.o: zlib.h zconf.h
+infblock.o: zutil.h zlib.h zconf.h
+infblock.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/stddef.h
+infblock.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/ansi.h
+infblock.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/string.h
+infblock.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/cdefs.h
+infblock.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/cdefs.h
+infblock.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/stdlib.h
+infblock.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/types.h
+infblock.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/types.h
+infblock.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/endian.h
+infblock.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/endian.h
+infblock.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/errno.h
+infblock.o: infblock.h inftrees.h infcodes.h infutil.h
+infcodes.o: zutil.h zlib.h zconf.h
+infcodes.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/stddef.h
+infcodes.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/ansi.h
+infcodes.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/string.h
+infcodes.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/cdefs.h
+infcodes.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/cdefs.h
+infcodes.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/stdlib.h
+infcodes.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/types.h
+infcodes.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/types.h
+infcodes.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/endian.h
+infcodes.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/endian.h
+infcodes.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/errno.h
+infcodes.o: inftrees.h infblock.h infcodes.h infutil.h inffast.h
+inffast.o: zutil.h zlib.h zconf.h
+inffast.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/stddef.h
+inffast.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/ansi.h
+inffast.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/string.h
+inffast.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/cdefs.h
+inffast.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/cdefs.h
+inffast.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/stdlib.h
+inffast.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/types.h
+inffast.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/types.h
+inffast.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/endian.h
+inffast.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/endian.h
+inffast.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/errno.h
+inffast.o: inftrees.h infblock.h infcodes.h infutil.h inffast.h
+inflate.o: zutil.h zlib.h zconf.h
+inflate.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/stddef.h
+inflate.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/ansi.h
+inflate.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/string.h
+inflate.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/cdefs.h
+inflate.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/cdefs.h
+inflate.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/stdlib.h
+inflate.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/types.h
+inflate.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/types.h
+inflate.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/endian.h
+inflate.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/endian.h
+inflate.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/errno.h
+inflate.o: infblock.h
+inftrees.o: zutil.h zlib.h zconf.h
+inftrees.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/stddef.h
+inftrees.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/ansi.h
+inftrees.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/string.h
+inftrees.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/cdefs.h
+inftrees.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/cdefs.h
+inftrees.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/stdlib.h
+inftrees.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/types.h
+inftrees.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/types.h
+inftrees.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/endian.h
+inftrees.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/endian.h
+inftrees.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/errno.h
+inftrees.o: inftrees.h inffixed.h
+infutil.o: zutil.h zlib.h zconf.h
+infutil.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/stddef.h
+infutil.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/ansi.h
+infutil.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/string.h
+infutil.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/cdefs.h
+infutil.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/cdefs.h
+infutil.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/stdlib.h
+infutil.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/types.h
+infutil.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/types.h
+infutil.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/Targets/Bonito2fdev/compile/Bonito.2fdev.firewall/machine/endian.h
+infutil.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/sys/sys/endian.h
+infutil.o: /mnt/sdb2/home/knoppix/work/fireware2f/pmon/include/errno.h
+infutil.o: infblock.h inftrees.h infcodes.h infutil.h

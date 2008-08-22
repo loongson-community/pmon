@@ -36,7 +36,32 @@
  */
 
 
-/* #include <pci.h> no PCI on the AU1x00 */
+/************************************************************************
+
+ Copyright (C)
+ File name:     usb-ohci.c
+ Author:  ***      Version:  ***      Date: ***
+ Description:   This C file is the main implementation of usb ohci controller 
+                according to the USB-OHCI Interface spec 1.0a.
+                If you want to understand this file well, please see the 
+                USB spec 1.1 and USB-OHCI interface spec 1.0a carefully, you 
+                can acquire them from www.usb.org.
+ Others:        The version of PMON which this C file belongs to is used on 
+                Loongson based Platform to do the necessary initialization 
+                and load the Linux kernel.
+ Function List:
+ 
+ Revision History:
+ 
+ --------------------------------------------------------------------------
+  Date          Author          Activity ID     Activity Headline
+  2008-03-10    QianYuli        PMON00000001    Add comment to each function
+  2008-02-28    QianYuli        PMON00000001    Add multi-usb-devices supports
+  2008-05-06    Felix.Qian      PMON00000002    Fix some bugs for the stability of 
+                (QianYuli^_^)                   multi-usb-devices working
+ --------------------------------------------------------------------------
+
+*************************************************************************/
 
 #include <sys/param.h>
 #include <sys/systm.h>
@@ -66,6 +91,11 @@
 #define USBH_ENABLE_E  (1<<2)
 #define USBH_ENABLE_CE (1<<3)
 #define USBH_ENABLE_RD (1<<4)
+
+//QYL-2008-03-07
+#define STATE_OTHER 0x02
+#define STATE_UNKNOW 0x03
+#define STATE_DEALED_WITH 0x04
 
 #ifdef LITTLEENDIAN
 #define USBH_ENABLE_INIT (USBH_ENABLE_CE | USBH_ENABLE_E | USBH_ENABLE_C)
@@ -97,14 +127,37 @@
 #define m16_swap(x) swap_16(x)
 #define m32_swap(x) swap_32(x)
 
+#undef readl
+#undef writel
+
+#define readl(addr) *(volatile u32*)(((u32)(addr)) | 0xa0000000)
+#define writel(val, addr) *(volatile u32*)(((u32)(addr)) | 0xa0000000) = (val)
+
 /* urb_priv */
-urb_priv_t nurb_priv;
+urb_priv_t urb_priv;
 urb_priv_t iurb_priv;
 /* RHSC flag */
 int got_rhsc;
 /* device which was disconnected */
 struct usb_device *devgone;
-#define urb_priv(pipe,td) (pipe?(usb_pipeint(pipe)?iurb_priv:nurb_priv):((((td_t *)td)->ed->type == PIPE_INTERRUPT)?iurb_priv:nurb_priv))
+
+//QYL-2008-03-07
+#define OHCI_MAX_USBDEVICES 8
+#define OHCI_MAX_ENDPOINTS_PER_DEVICE 32
+urb_priv_t ohci_urb[OHCI_MAX_USBDEVICES][OHCI_MAX_ENDPOINTS_PER_DEVICE];
+extern struct usb_device usb_dev[];
+extern int dev_index;
+
+//QYL-2008-03-07
+u_int32_t bOhciInited = FALSE;
+u_int32_t bCommonMsgSubmit = STATE_UNKNOW;
+u_int32_t hcCount = 100;
+
+u_int32_t USBKBDEXIST = STATE_UNKNOW;
+
+//QYL-2008-03-07
+u_int32_t gHIDBeforeMass = STATE_UNKNOW;
+u_int32_t gPipeIntCorrupt = TRUE;  
 
 /*
  * Hook to initialize hostcontroller
@@ -115,12 +168,14 @@ static int ohci_submit_bulk_msg(struct usb_device *dev, unsigned long pipe, void
 static int ohci_submit_control_msg(struct usb_device *dev, unsigned long pipe, void *buffer, int transfer_len, struct devrequest *setup);
 static int ohci_submit_int_msg(struct usb_device *dev, unsigned long pipe, void *buffer,
 		int transfer_len, int interval);
+static void ohci_device_notify(struct usb_device *dev, int port);
 
 int usb_lowlevel_init(ohci_t *ohci);
 
-//#ifdef DEBUG
+u_int32_t usb_kbd_exist(ohci_t *pohci);
+#if 1
 ohci_t *myohci;
-//#endif
+#endif
 
 int ohci_debug = 0;
 
@@ -145,18 +200,278 @@ struct cfdriver ohci_cd = {
 /* forward declaration */
 static int hc_interrupt (void *);
 
+//QYL-2008-03-07
+static int hc_check_ohci_controller(void *);
+void arouse_usb_int_pipe(ohci_t *);
+u_int32_t check_device_sequence(ohci_t *pohci);
+
+#ifdef CONFIG_SM502_USB_HCD
+/* panel clock */
+#define SM501_CLOCK_P2XCLK      (24)
+/* crt clock */   
+#define SM501_CLOCK_V2XCLK      (16)
+/* main clock */
+#define SM501_CLOCK_MCLK        (8)
+/* SDRAM controller clock */
+#define SM501_CLOCK_M1XCLK      (0)
+
+#define  SM502_BUF_SIZE 0x2000000
+#define  SM502_USB_MEM_SIZE 0x90000
+#define  SM502_USB_BUF_SIZE 0x4000
+#define  SM502_HCCA_SIZE 0x100
+
+unsigned long sm502_reg_base;
+
+/* clock value structure. */
+struct sm501_clock {
+	unsigned long mclk;
+	int divider;
+	int shift;
+
+	long multipleM;
+	int dividerN;
+	short divby2;
+};
+
+/* Perform a rounded division. */
+static long sm501fb_round_div(long num, long denom)
+{
+        /* n / d + 1 / 2 = (2n + d) / 2d */
+        return (2 * num + denom) / (2 * denom);
+}
+
+/* sm501_select_clock
+ *
+ * selects nearest discrete clock frequency the SM501 can achive
+ *   the maximum divisor is 3 or 5
+ */
+static unsigned long sm501_select_clock(unsigned long freq,
+					struct sm501_clock *clock,
+					int max_div)
+{
+	unsigned long mclk;
+	int divider;
+	int shift;
+	long diff;
+	long best_diff = 999999999;
+
+	/* Try 288MHz and 336MHz clocks. */
+	for (mclk = 288000000; mclk <= 336000000; mclk += 48000000) {
+		/* try dividers 1 and 3 for CRT and for panel,
+		   try divider 5 for panel only.*/
+
+		for (divider = 1; divider <= max_div; divider += 2) {
+			/* try all 8 shift values.*/
+			for (shift = 0; shift < 8; shift++) {
+				/* Calculate difference to requested clock */
+				diff = sm501fb_round_div(mclk, divider << shift) - freq;
+				if (diff < 0)
+					diff = -diff;
+
+				/* If it is less than the current, use it */
+				if (diff < best_diff) {
+					best_diff = diff;
+
+					clock->mclk = mclk;
+					clock->divider = divider;
+					clock->shift = shift;
+				}
+			}
+		}
+	}
+
+	/* Return best clock. */
+	return clock->mclk / (clock->divider << clock->shift);
+}
+
+
+unsigned long sm501_set_clock(int clksrc, unsigned long req_freq)
+{
+	unsigned long mode = readl(sm502_reg_base + 0x0054);
+	unsigned long clock = readl(sm502_reg_base + 0x003c);
+	unsigned char reg = 0;
+	unsigned long sm501_freq,pllclock;
+
+	struct sm501_clock to;
+
+	switch (clksrc) {
+	case SM501_CLOCK_P2XCLK:
+		break;
+	case SM501_CLOCK_V2XCLK: 
+		break;
+	case SM501_CLOCK_MCLK:
+	case SM501_CLOCK_M1XCLK:
+
+		sm501_freq = sm501_select_clock( req_freq, &to, 3);
+		reg = to.shift & 0x07;
+		if(to.divider == 3)
+			reg |= 0x08;
+		if(to.mclk != 288000000)
+			reg |= 0x10;
+		break;
+	default :
+		return 0;
+	}
+
+	mode = readl(sm502_reg_base + 0x0054);
+	clock = readl(sm502_reg_base + 0x003c);
+
+	clock = clock & ~(0xFF << clksrc);
+	clock |= reg<<clksrc;
+
+	mode = mode & 0x03;
+
+	switch(mode){
+	case 0:
+		writel(clock, sm502_reg_base + 0x0044);
+		mode = 0;
+		break;
+	case 1:
+		writel(clock, sm502_reg_base + 0x004c);
+		mode = 1;
+		break;
+	default :
+		return -1;
+
+	}
+
+	readl(sm502_reg_base + 0x00);
+	delay(16000);
+
+	return sm501_freq;
+
+}
+
+void sm502_mem_init(struct ohci *ohci, bus_addr_t base, bus_addr_t size)
+{
+	struct pci_attach_args *pa = ohci->pa;
+	bus_space_tag_t memt= pa->pa_memt;
+	u32 value;
+
+	value = readl(sm502_reg_base + 0x0010);
+	writel(((value&~0x07000000)|(5 <<24))|(3<<13)|(2<<22)|(2<<11), sm502_reg_base+0x0010);
+
+	value = readl(sm502_reg_base + 0x0010);
+	printf("sm502 mem %x\n", (value >> 24) & 0x7);
+
+	bus_space_map(memt, base, size, 0, (unsigned long *)&ohci->lmem);
+	ohci->free = SM502_BUF_SIZE - SM502_USB_MEM_SIZE;
+	printf("sm502-usb mem %08x->%08x\n", base, ohci->lmem);
+	ohci->lmem_paddr = base + SM502_BUF_SIZE - SM502_USB_MEM_SIZE;
+}
+
+void *sm502_mem_alloc(struct ohci *ohci, size_t size)
+{
+	void *p;
+	
+	if(ohci->lmem == NULL) {
+		printf("sm502 mem not initialized");
+		return NULL;
+	}
+
+	
+	if(size + ohci->free - (SM502_BUF_SIZE - SM502_USB_MEM_SIZE)>= SM502_USB_MEM_SIZE){
+		printf("sm502-usb: out of memory %x/%x\n", size, ohci->free);
+		return NULL;
+	}
+	p = (void *)(((unsigned long)ohci->lmem) + ohci->free);
+	ohci->free += size;
+
+	return p;
+}
+
+void sm502_bufs_init(struct ohci *ohci)
+{
+	int i;
+
+	ohci->free += 0x1000 - 1;
+	ohci->free &= ~0x0fff;
+
+	for(i=0; i<MAX_SM502_BUFS; i++)
+		ohci->sm502_bufs[i] = sm502_mem_alloc(ohci, SM502_USB_BUF_SIZE);
+
+	memset(ohci->sm502_buf_use, 0, sizeof(ohci->sm502_buf_use));
+}
+
+void *sm502_alloc_buf(struct ohci *ohci)
+{
+	int i;
+
+	for(i=0; i<MAX_SM502_BUFS; i++){
+		if(ohci->sm502_buf_use[i] == 0)
+			break;
+	}
+
+	if(i== MAX_SM502_BUFS)
+		return NULL;
+	else {
+		ohci->sm502_buf_use[i]=1;
+		return ohci->sm502_bufs[i];
+	}
+}
+
+void sm502_free_buf(struct ohci *ohci, void *addr)
+{
+	int i;
+
+	for(i=0; i<MAX_SM502_BUFS; i++)
+		if(ohci->sm502_bufs[i] == addr)
+			ohci->sm502_buf_use[i] = 0;
+}
+
+bus_addr_t sm502_vtophys(struct ohci *ohci, void *addr)
+{
+	return (unsigned long)addr - (unsigned long)ohci->lmem;
+}
+
+void * sm502_phystov(struct ohci *ohci, bus_addr_t phys)
+{
+	return (void*)((unsigned long)ohci->lmem + phys);
+}
+
+#endif
+/*===========================================================================
+*
+*FUNTION: ohci_match
+*
+*DESCRIPTION: This function is used to check whether the interface attched to 
+*             the PCI bus is a USB OHCI controller.
+*
+*PARAMETERS:
+*          [IN] parent: not used here.
+*          [IN] self: not used here.
+*          [IN] aux:  pointer used to be cast to struct pci_attach_args*, so as
+*                     to be used to do the PCI bus access. 
+*
+*RETURN VALUE: 1 : Successfully found USB OHCI controller.
+*              0 : haven't found USB OHCI controller.
+*                   
+*Note:     This function is not called by system so clearly or directly, but it
+*          is sure that this function is called at the right time by system,and 
+*          the proper parameters will be passed in, so don't worry~~
+*===========================================================================*/
 static int ohci_match(struct device *parent, void *match, void *aux)
 {
 		
 	struct pci_attach_args *pa = aux;
+#ifdef CONFIG_SM502_USB_HCD
+	char *no502;
+#endif
 	
 	if(PCI_CLASS(pa->pa_class) == PCI_CLASS_SERIALBUS && 
 		  PCI_SUBCLASS(pa->pa_class) == PCI_SUBCLASS_SERIALBUS_USB){ 
 		if(((pa->pa_class >>8) & 0xff) == 0x10){
-			printf("Found usb ohci controller\n");
+			//printf("Found usb ohci controller\n");
 			return 1; 
 		}
 	}
+#ifdef CONFIG_SM502_USB_HCD
+	if((no502 = getenv("no502"))&&strtoul(no502, NULL, 0))
+		return 0;
+	if(PCI_VENDOR(pa->pa_id) == 0x126f && 
+		PCI_PRODUCT(pa->pa_id) == 0x501)
+			return 1;
+#endif
 
 	return 0;
 }
@@ -164,6 +479,31 @@ static int ohci_match(struct device *parent, void *match, void *aux)
 extern struct hostcontroller host_controller;
 extern struct usb_device * usb_alloc_new_device(void *hc_private);
 
+
+/*===========================================================================
+*
+*FUNTION: ohci_attach
+*
+*DESCRIPTION: This function is used to do the attachment of the USB OHCI controller,
+*             for USB OHCI controller is  accessed through PCI bus, so here it 
+*             needs do some initializations such as mapping between CPU address 
+*             and PCI address¡¢ configuring the OHCI registers¡¢enumerating the 
+*             USB devices attached to the USB HUB ports.In fact,this function 
+*             does the most of initial works by calling other related functions.
+*
+*PARAMETERS:
+*          [IN] parent: not used here.
+*          [IN] self: pointer used to be cast to struct ohci*,so as to do the
+*                     the things such as accessing OHCI registers.
+*          [IN] aux:  pointer used to be cast to struct pci_attach_args*, so as
+*                     to be used to do the PCI configuration for USB OHCI controller 
+*
+*RETURN VALUE: None
+*                   
+*Note:     This function is not called by system so clearly or directly, but it
+*          is sure that this function is called at the right time by system,and 
+*          the proper parameters will be passed in, so don't worry~~
+*===========================================================================*/
 static void ohci_attach(struct device *parent, struct device *self, void *aux)
 {
 	struct ohci *ohci = (struct ohci*)self;
@@ -176,28 +516,63 @@ static void ohci_attach(struct device *parent, struct device *self, void *aux)
 	bus_addr_t membase; 
 	bus_addr_t memsize;
 	int cachable;
+#ifdef CONFIG_SM502_USB_HCD
+	bus_addr_t membase2;
+	bus_addr_t memsize2;
+#endif
 
-#ifdef USB_OHCI_NO_ROM
-	val = pci_conf_read(ohci->sc_pc, pa->pa_tag, 0xe0);
-	pci_conf_write(ohci->sc_pc, pa->pa_tag, 0xe0, (val & ~0x7) | 0x4);
-	pci_conf_write(ohci->sc_pc, pa->pa_tag, 0xe4, (1<<5));
+#ifdef USB_OHCI_NO_ROM 
+	if(PCI_VENDOR(pa->pa_id) == 0x1033){
+		val = pci_conf_read(ohci->sc_pc, pa->pa_tag, 0xe0);
+		pci_conf_write(ohci->sc_pc, pa->pa_tag, 0xe0, (val & ~0x7) | 0x4);
+		pci_conf_write(ohci->sc_pc, pa->pa_tag, 0xe4, (1<<5));
+	}
 #endif
 	ohci->pa = pa;
+	
+#ifdef CONFIG_SM502_USB_HCD
+	if(PCI_VENDOR(pa->pa_id) == 0x126f) {
+		pci_mem_find(pc, pa->pa_tag, 0x14, &membase, &memsize, &cachable);
+		sm502_reg_base = membase | 0xb0000000;
+		printf("sm502-usb membase %x\n", membase);
+		membase = membase + 0x40000;
+		ohci->flags = 0x80;
+		goto SM502_HC;
+	}
+#endif
+
+	if(pa->pa_device == 15 && pa->pa_function == 0)
+		ohci->hc.notify = ohci_device_notify;
+
 	if(pci_mem_find(pc, pa->pa_tag, OHCI_PCI_MMBA, &membase, &memsize, &cachable)){
 		printf("Can not find mem space for ohci\n");
 		return;
 	}
-		
+#ifdef CONFIG_SM502_USB_HCD
+SM502_HC:
+	if((ohci->flags & 0x80) && pci_mem_find(pa->pa_pc, pa->pa_tag, 0x10, &membase2, &memsize2, &cachable))
+	{
+		printf("can not locate sm501 usb mem \n");
+		return;
+	}
+#endif
 	if(bus_space_map(memt, membase, memsize, 0, &ohci->sc_sh)){
 		printf("Cant map mem space\n");
 		return;
 	}
+#ifdef CONFIG_SM502_USB_HCD
+	/*Can not be failed*/
+	if(ohci->flags & 0x80)
+		sm502_mem_init(ohci, membase2, memsize2);
+#endif
+
 	usb_lowlevel_init(ohci);
 	ohci->hc.uop = &ohci_usb_op;
 	/*
 	 * Now build the device tree
 	 */
 	TAILQ_INSERT_TAIL(&host_controller, &ohci->hc, hc_list);
+
 #if 0
 	usb_scan_devices(ohci);
 #else
@@ -205,12 +580,18 @@ static void ohci_attach(struct device *parent, struct device *self, void *aux)
 	   self->dv_xname);
 #endif
 	ohci->rdev = usb_alloc_new_device(ohci);
-	do_cmd("cache 0");
-	usb_new_device(ohci->rdev);
-	do_cmd("cache 1");
-#ifdef DEBUG
-	myohci = ohci;
-#endif
+
+    /*do the enumeration of  the USB devices attached to the USB HUB(here root hub) 
+    ports.*/
+    usb_new_device(ohci->rdev);
+    
+    bOhciInited = TRUE;
+	if ((USBKBDEXIST == STATE_UNKNOW) && usb_kbd_exist(ohci))
+	{
+		gHIDBeforeMass = check_device_sequence(ohci);
+		USBKBDEXIST = TRUE;
+		//printf("**ohci_attach** usb kbd exist! gHIDBeforeMass:0x%x USBKBDEXIST:0x%x\n",gHIDBeforeMass,USBKBDEXIST);
+	}
 }
 
 #define NOTUSBIRQ -0x100
@@ -219,11 +600,6 @@ static void ohci_attach(struct device *parent, struct device *self, void *aux)
  * till some bits (mostly reserved) are clear; ok for all revs.
  */
 
-#undef readl
-#undef writel
-
-#define readl(addr) *(volatile u32*)(((u32)(addr)) | 0xa0000000)
-#define writel(val, addr) *(volatile u32*)(((u32)(addr)) | 0xa0000000) = (val)
 
 #define OHCI_QUIRK_AMD756 0xabcd
 #define read_roothub(hc, register, mask) ({ \
@@ -247,12 +623,19 @@ static void
 td_submit_job (struct usb_device * dev, unsigned long pipe, void * buffer,
 	int transfer_len, struct devrequest * setup, urb_priv_t * urb, int interval);
 
-/*-------------------------------------------------------------------------*
- * URB support functions
- *-------------------------------------------------------------------------*/
-
-/* free HCD-private data associated with this URB */
-
+/*===========================================================================
+*
+*FUNTION: urb_free_priv
+*
+*DESCRIPTION: This function is used to free HCD-private data associated with 
+*             this URB.
+*
+*PARAMETERS:
+*          [IN] urb: pointer to the struct urb_priv
+*
+*RETURN VALUE: None
+*                   
+*===========================================================================*/
 static void urb_free_priv (urb_priv_t * urb)
 {
 	int		i;
@@ -283,7 +666,7 @@ static int sohci_get_current_frame_number (struct usb_device * dev);
 static void pkt_print (struct usb_device * dev, unsigned long pipe, void * buffer,
 	int transfer_len, struct devrequest * setup, char * str, int small)
 {
-	urb_priv_t * purb = &urb_priv(pipe,0);
+	urb_priv_t * purb = &urb_priv;
 
 	dbg("%s URB:[%4x] dev:%2d,ep:%2d-%c,type:%s,len:%d/%d stat:%#lx\n",
 			str,
@@ -500,8 +883,25 @@ static void ohci_dump (ohci_t *controller, int verbose)
  * Interface functions (URB)
  *-------------------------------------------------------------------------*/
 
-/* get a transfer request */
-
+/*===========================================================================
+*
+*FUNTION: sochi_submit_job
+*
+*DESCRIPTION: This function is used to get a transfer request.
+*
+*PARAMETERS:
+*          [IN] dev:  a pointer to the USB device the TDs belongs to.
+*          [IN] pipe:  describe the property of a pipe,more details about it,
+*                      please see the usb.h. 
+*          [IN] buffer:an all-purpose pointer to the data that would be transfered
+*                      through USB channel.
+*          [IN] transfer_len: the length of data to be transfered.
+*          [IN] setup: an pointer to the struct devrequest *,which is used when
+*                       the transfer type is setup of control transfer.
+*          [IN] interval: not used here.
+*RETURN VALUE: -1 : indicates that something wrong happened during submiting job.
+*               0 : function works ok.     
+*===========================================================================*/
 int sohci_submit_job(struct usb_device *dev, unsigned long pipe, void *buffer,
 		int transfer_len, struct devrequest *setup, int interval)
 {
@@ -509,6 +909,9 @@ int sohci_submit_job(struct usb_device *dev, unsigned long pipe, void *buffer,
 	ed_t * ed;
 	urb_priv_t *purb_priv;
 	int i, size = 0;
+
+    //QYL-2008-03-07
+    u_int32_t dev_num,ed_num;
 
 	ohci = dev->hc_private;
 
@@ -548,7 +951,19 @@ int sohci_submit_job(struct usb_device *dev, unsigned long pipe, void *buffer,
 		err("need %d TDs, only have %d", size, N_URB_TD);
 		return -1;
 	}
-	purb_priv = &urb_priv(pipe,0);
+
+    //QYL-2008-03-07
+    //purb_priv = &urb_priv;
+    for(dev_num = 0; dev_num < USB_MAX_DEVICE; dev_num++)
+    {
+        if (dev == &usb_dev[dev_num])
+        {
+            break;
+        }
+    }
+    ed_num = usb_pipeendpoint(pipe);
+    purb_priv = &ohci_urb[dev_num][ed_num];
+    
 	purb_priv->pipe = pipe;
 	purb_priv->trans_buffer = buffer;
 	purb_priv->setup_buffer = (unsigned char *)setup;
@@ -558,6 +973,19 @@ int sohci_submit_job(struct usb_device *dev, unsigned long pipe, void *buffer,
 	purb_priv->ed = ed;
 	purb_priv->actual_length = 0;
 	purb_priv->trans_length = transfer_len;
+
+#ifdef CONFIG_SM502_USB_HCD
+	if(ohci->flags & 0x80){
+		if(transfer_len && !usb_pipecontrol(pipe)) {
+			purb_priv->dev_trans_buffer = sm502_alloc_buf(ohci);
+			if(purb_priv->dev_trans_buffer == NULL){
+				printf("sm502-usb: out of memory at %d\n", __LINE__);
+				return -1;
+			}
+		} else
+			purb_priv->dev_trans_buffer = NULL;
+	}
+#endif
 
 	/* allocate the TDs */
 	/* note that td[0] was allocated in ep_add_ed */
@@ -600,6 +1028,22 @@ static int sohci_get_current_frame_number (struct usb_device *usb_dev)
 }
 #endif
 
+/*===========================================================================
+*
+*FUNTION: usb_calc_bus_time
+*
+*DESCRIPTION: This function is used to caculate the usb bus time in bits.
+*
+*PARAMETERS:
+*          [IN] speed: indicates the usb transfer speed(USB_SPEED_LOW&USB_SPEED_FULL).
+*          [IN] is_input:  indicates that whether the transfer direction is input. 
+*          [IN] isoc : indicates that whether it is a isochronous transfer.
+*          [IN] bytecount: indicates number of bytes to be transfered.
+*
+*RETURN VALUE: -1 : indicates the bogus device speed
+*              other case,return the bits time calculated.
+*                   
+*===========================================================================*/
 long usb_calc_bus_time (int speed, int is_input, int isoc, int bytecount)
 {
 	unsigned long   tmp;
@@ -626,7 +1070,23 @@ long usb_calc_bus_time (int speed, int is_input, int isoc, int bytecount)
 			return -1;
 	}
 }
-
+/*===========================================================================
+*
+*FUNTION: balance
+*
+*DESCRIPTION: This function is used to search for the least loaded schedule of
+*             that period that has enough bandwidth left unreserved to balance
+*             usb frame bandwidth.
+*
+*PARAMETERS:[IN] ohci: A pointer to the struct ohci which stores useful 
+*                     information of the USB OHCI controller.
+*           [IN] interval: The period between consecutive requests for data input
+*                       to a Universal Serial Bus Endpoint.
+*           [IN] load: The bit time the TD needs.
+*
+*RETURN VALUE: value indicates the branch index.
+*                   
+*===========================================================================*/
 static int balance (ohci_t *ohci, int interval, int load)
 {
 	int i, branch = -1;
@@ -655,7 +1115,21 @@ static int balance (ohci_t *ohci, int interval, int load)
 	return branch;
 }
 
-
+/*===========================================================================
+*
+*FUNTION: periodic_link
+*
+*DESCRIPTION: This function is used to add EDs to  the periodic table .
+*
+*PARAMETERS:
+*          [IN] ohci: a pointer to the struct ohci which stores useful information
+*                     of the USB OHCI controller.
+*          [IN] ed :  a pointer to the stuctr ed which contains informaiton 
+*                     about ed. 
+*
+*RETURN VALUE: none.
+*                   
+*===========================================================================*/
 static void periodic_link (ohci_t *ohci, ed_t *ed)
 {
 	unsigned    i;
@@ -683,13 +1157,35 @@ static void periodic_link (ohci_t *ohci, ed_t *ed)
 			if (here)
 				ed->hwNextED = *prev_p;
 			*prev = ed;
-			*prev_p = vtophys(ed);
+#ifdef CONFIG_SM502_USB_HCD
+			if(ohci->flags & 0x80)
+				*prev_p = sm502_vtophys(ohci, ed);
+			else
+#endif
+			{
+				*prev_p = vtophys(ed);
+			}
 		}
 		ohci->load [i] += ed->int_load;
 	}
 }
 
-/* scan the periodic table to find and unlink this ED */
+/*===========================================================================
+*
+*FUNTION: periodic_unlink
+*
+*DESCRIPTION: This function is used to scan the periodic table to find and 
+*             unlink this ED.
+*
+*PARAMETERS:
+*          [IN] ohci: a pointer to the struct ohci which stores useful information
+*                     of the USB OHCI controller.
+*          [IN] edi:  a pointer to the stuctr ed which contains informaiton 
+*                     about ED. 
+*
+*RETURN VALUE: none.
+*                   
+*===========================================================================*/
 static void periodic_unlink (ohci_t *ohci, ed_t *ed)
 {
 	int i;
@@ -717,9 +1213,22 @@ static void periodic_unlink (ohci_t *ohci, ed_t *ed)
 /*-------------------------------------------------------------------------*
  * ED handling functions
  *-------------------------------------------------------------------------*/
-
-/* link an ed into one of the HC chains */
-
+/*===========================================================================
+*
+*FUNTION: ep_link
+*
+*DESCRIPTION: This function is used to link an ed(endpoint descriptor) to one 
+*             of the HC chains.
+*
+*PARAMETERS:
+*          [IN] ohci: a pointer to the struct ohci which stores useful information
+*                     of the USB OHCI controller.
+*          [IN] edi:  a pointer to the stuctr ed which contains informaiton 
+*                     about ED. 
+*
+*RETURN VALUE: always returns zero.
+*                   
+*===========================================================================*/
 static int ep_link (ohci_t *ohci, ed_t *edi)
 {
 	int branch = -1;
@@ -731,9 +1240,27 @@ static int ep_link (ohci_t *ohci, ed_t *edi)
 	case PIPE_CONTROL:
 		ed->hwNextED = 0;
 		if (ohci->ed_controltail == NULL) {
-			writel (vtophys(ed), &ohci->regs->ed_controlhead);
+#ifdef CONFIG_SM502_USB_HCD
+			if(ohci->flags & 0x80)
+			{
+				writel(sm502_vtophys(ohci, (void *)ed), &ohci->regs->ed_controlhead);
+			}
+			else
+#endif
+			{
+				writel (vtophys(ed), &ohci->regs->ed_controlhead);
+			}
 		} else {
-			ohci->ed_controltail->hwNextED = m32_swap (vtophys(ed));
+#ifdef CONFIG_SM502_USB_HCD
+			if(ohci->flags & 0x80)
+			{
+				ohci->ed_controltail->hwNextED = m32_swap(sm502_vtophys(ohci, (void *)ed));
+			}
+			else
+#endif
+			{
+				ohci->ed_controltail->hwNextED = m32_swap (vtophys(ed));
+			}
 		}
 		ed->ed_prev = ohci->ed_controltail;
 		if (!ohci->ed_controltail && !ohci->ed_rm_list[0] &&
@@ -747,9 +1274,27 @@ static int ep_link (ohci_t *ohci, ed_t *edi)
 	case PIPE_BULK:
 		ed->hwNextED = 0;
 		if (ohci->ed_bulktail == NULL) {
-			writel ((long)vtophys(ed), &ohci->regs->ed_bulkhead);
+#ifdef CONFIG_SM502_USB_HCD
+			if(ohci->flags & 0x80)
+			{
+				writel (sm502_vtophys(ohci, (void *)ed), &ohci->regs->ed_bulkhead);
+			}
+			else
+#endif
+			{
+				writel ((long)vtophys(ed), &ohci->regs->ed_bulkhead);
+			}
 		} else {
-			ohci->ed_bulktail->hwNextED = vtophys(ed);
+#ifdef CONFIG_SM502_USB_HCD
+			if(ohci->flags & 0x80)
+			{
+				ohci->ed_bulktail->hwNextED = sm502_vtophys(ohci, (void *)ed);
+			}
+			else
+#endif
+			{
+				ohci->ed_bulktail->hwNextED = vtophys(ed);
+			}
 		}
 		ed->ed_prev = ohci->ed_bulktail;
 		if (!ohci->ed_bulktail && !ohci->ed_rm_list[0] &&
@@ -763,19 +1308,30 @@ static int ep_link (ohci_t *ohci, ed_t *edi)
 		ed->hwNextED = 0;
 		branch = balance(ohci, ed->int_interval, ed->int_load);
 		ed->int_branch = branch;
-		periodic_link (ohci, ed);
+		periodic_link (ohci, (ed_t *)ed);
 		break;
 	}
 	return 0;
 }
 
-/*-------------------------------------------------------------------------*/
-
-/* unlink an ed from one of the HC chains.
- * just the link to the ed is unlinked.
- * the link from the ed still points to another operational ed or 0
- * so the HC can eventually finish the processing of the unlinked ed */
-
+/*===========================================================================
+*
+*FUNTION: ep_unlink
+*
+*DESCRIPTION: This function is used to unlink an ed from one of the HC chains.
+*             Just the link to the ed is unlinked.The link from the ed still 
+*             points to the another opeartional ed or NULL,so the HC can eventually
+*             finish the processing of the unlinked ed.
+*
+*PARAMETERS:
+*          [IN] ohci: a pointer to the struct ohci which stores useful information
+*                     of the USB OHCI controller.
+*          [IN] edi:  a pointer to the stuctr ed which contains informaiton 
+*                     about ED. 
+*
+*RETURN VALUE: always returns zero.
+*                   
+*===========================================================================*/
 static int ep_unlink (ohci_t *ohci, ed_t *ed)
 {
 	ed->hwINFO |= m32_swap (OHCI_ED_SKIP);
@@ -794,7 +1350,16 @@ static int ep_unlink (ohci_t *ohci, ed_t *ed)
 		if (ohci->ed_controltail == ed) {
 			ohci->ed_controltail = ed->ed_prev;
 		} else {
-			((ed_t *)CACHED_TO_UNCACHED(*((u32 *)&ed->hwNextED)))->ed_prev = ed->ed_prev;
+#ifdef CONFIG_SM502_USB_HCD
+			if(ohci->flags & 0x80) 
+			{
+				((ed_t *)sm502_phystov(ohci, *((u32 *)&ed->hwNextED)))->ed_prev = ed->ed_prev;
+			}
+			else
+#endif
+			{
+				((ed_t *)CACHED_TO_UNCACHED(*((u32 *)&ed->hwNextED)))->ed_prev = ed->ed_prev;
+			}
 		}
 		break;
 
@@ -811,7 +1376,16 @@ static int ep_unlink (ohci_t *ohci, ed_t *ed)
 		if (ohci->ed_bulktail == ed) {
 			ohci->ed_bulktail = ed->ed_prev;
 		} else {
-			((ed_t *)CACHED_TO_UNCACHED(ed->hwNextED))->ed_prev = ed->ed_prev;
+#ifdef CONFIG_SM502_USB_HCD
+			if(ohci->flags & 0x80)
+			{
+				((ed_t *)sm502_phystov(ohci, ed->hwNextED))->ed_prev = ed->ed_prev;
+			}
+			else
+#endif
+			{
+				((ed_t *)CACHED_TO_UNCACHED(ed->hwNextED))->ed_prev = ed->ed_prev;
+			}
 		}
 		break;
 	case PIPE_INTERRUPT:
@@ -822,15 +1396,27 @@ static int ep_unlink (ohci_t *ohci, ed_t *ed)
 	return 0;
 }
 
-
-/*-------------------------------------------------------------------------*/
-
-/* add/reinit an endpoint; this should be done once at the usb_set_configuration command,
- * but the USB stack is a little bit stateless	so we do it at every transaction
- * if the state of the ed is ED_NEW then a dummy td is added and the state is changed to ED_UNLINK
- * in all other cases the state is left unchanged
- * the ed info fields are setted anyway even though most of them should not change */
-
+/*===========================================================================
+*
+*FUNTION: ep_add_ed
+*
+*DESCRIPTION: This function is used to add/reinit an endpoint.This should be 
+*             done once at the usb_set_configuration command,but the USB stack 
+*             is a little bit stateless, so we do it at every transaction.If 
+*             the state of the ed is ED_NEW,then a dummy td is added and the 
+*             state is changed to ED_UNLINK,in all other cases the state is 
+*             left unchanged.The ed info fields are setted anyway even though
+*             most of them should not be changed.
+*
+*PARAMETERS:
+*          [IN] usb_dev: a pointer to the struct usb_device which contains useful 
+*                        information of the relevant usb device.
+*          [IN] pipe:  describe the property of a pipe,more details about it,
+*                      please see the usb.h. 
+*
+*RETURN VALUE: a pointer to struct ed.
+*                   
+*===========================================================================*/
 static ed_t * ep_add_ed (struct usb_device *usb_dev, unsigned long pipe)
 {
 	td_t *td;
@@ -840,9 +1426,14 @@ static ed_t * ep_add_ed (struct usb_device *usb_dev, unsigned long pipe)
 	ohci_t *ohci = usb_dev->hc_private;
 	struct ohci_device *ohci_dev = ohci->ohci_dev;
 
-	ed = ed_ret = &ohci_dev->cpu_ed[(usb_pipeendpoint (pipe) << 1) |
-			(usb_pipecontrol (pipe)? 0: usb_pipeout (pipe))];
+    //QYL-2008-03-07
+    u_int32_t cpued_num = 0;
 
+	/*ed = ed_ret = &ohci_dev->cpu_ed[(usb_pipeendpoint (pipe) << 1) |
+			(usb_pipecontrol (pipe)? 0: usb_pipeout (pipe))];*/
+    cpued_num = ((usb_pipedevice(pipe)&0x3)<<3)|((usb_pipeendpoint(pipe)&0x3)<<1)|(usb_pipein(pipe));
+    ed = ed_ret = &ohci_dev->cpu_ed[cpued_num];
+    
 	if ((ed->state & ED_DEL) || (ed->state & ED_URB_DEL)) {
 		err("ep_add_ed: pending delete %x/%d\n", ed->state, 
 				(usb_pipeendpoint(pipe) << 1) | (usb_pipecontrol (pipe)? 0: usb_pipeout (pipe)));
@@ -854,7 +1445,16 @@ static ed_t * ep_add_ed (struct usb_device *usb_dev, unsigned long pipe)
 		ed->hwINFO = m32_swap (OHCI_ED_SKIP); /* skip ed */
 		/* dummy td; end of td list for ed */
 		td = td_alloc (usb_dev);
-		ed->hwTailP = vtophys(td);
+#ifdef CONFIG_SM502_USB_HCD
+		if(ohci->flags & 0x80){
+			ed->hwTailP = sm502_vtophys(ohci, td);
+		} 
+		else 
+#endif
+		{
+			ed->hwTailP = vtophys(td);
+		}
+
 		ed->hwHeadP = ed->hwTailP;
 		ed->state = ED_UNLINK;
 		ed->type = usb_pipetype (pipe);
@@ -878,15 +1478,32 @@ static ed_t * ep_add_ed (struct usb_device *usb_dev, unsigned long pipe)
 /*-------------------------------------------------------------------------*
  * TD handling functions
  *-------------------------------------------------------------------------*/
-
-/* enqueue next TD for this URB (OHCI spec 5.2.8.2) */
-
+/*===========================================================================
+*
+*FUNTION: td_fill
+*
+*DESCRIPTION: This function is used to enqueue next TD for this URB(see OHCI
+*             sepc 5.2.8.2).
+*
+*PARAMETERS:
+*          [IN] ohci: a pointer to the struct ohci which stores useful information
+*                     of the USB OHCI controller.
+*          [IN] info: discribe the hardware information of td(see OHCI spec 4.3.1).
+*          [IN] data: an all-purpose pointer to the data that would be transfered
+*                     through USB channel.
+*          [IN] dev:  a pointer to the USB device this TD belongs to.
+*          [IN] index: the order of this TD.
+*          [IN] urb_priv: a pointer to the struct urb_priv.
+*          [OUT] retbuf: an all-purpose pointer to the returned data if exist.
+*
+*RETURN VALUE: none.
+*                   
+*===========================================================================*/
 static void td_fill (ohci_t *ohci, unsigned int info,
 	void *data, int len,
 	struct usb_device *dev, int index, urb_priv_t *urb_priv, void*retbuf)
 {
 	volatile td_t  *td, *td_pt;
-	urb_priv_t *urb = urb_priv;
 #ifdef OHCI_FILL_TRACE
 	int i;
 #endif
@@ -900,11 +1517,34 @@ static void td_fill (ohci_t *ohci, unsigned int info,
 		info |= (7 << 21);
 
 	/* use this td as the next dummy */
-	td_pt = (td_t *)CACHED_TO_UNCACHED(urb_priv->td[index]);
+#ifdef CONFIG_SM502_USB_HCD
+	if(ohci->flags & 0x80)
+	{
+		/* Nothing to do for sm502 */
+		//td_pt = (td_t *)CACHED_TO_UNCACHED(urb_priv->td[index]);
+		td_pt = (td_t *)(urb_priv->td[index]);
+	}
+	else
+#endif
+	{
+		td_pt = (td_t *)CACHED_TO_UNCACHED(urb_priv->td[index]);
+	}
 	td_pt->hwNextTD = 0;
 
 	/* fill the old dummy TD */
-	td = urb_priv->td[index]= (td_t *)(CACHED_TO_UNCACHED(urb_priv->ed->hwTailP) & ~0xf);
+#ifdef CONFIG_SM502_USB_HCD
+	if(ohci->flags & 0x80)
+	{
+		unsigned long tdP;
+
+		tdP = urb_priv->ed->hwTailP & ~0xf;
+		td = urb_priv->td[index] = (td_t *)sm502_phystov(ohci, tdP);
+	}
+	else
+#endif
+	{
+		td = urb_priv->td[index]= (td_t *)(CACHED_TO_UNCACHED(urb_priv->ed->hwTailP) & ~0xf);
+	}
 
 
 	td->ed = urb_priv->ed;
@@ -921,11 +1561,23 @@ static void td_fill (ohci_t *ohci, unsigned int info,
 	
 	if(len==0)
 		td->hwCBP = 0; //take special care
-	else
-		td->hwCBP = vtophys(data);
+	else{
+#ifdef CONFIG_SM502_USB_HCD
+		if(ohci->flags & 0x80)
+			td->hwCBP = sm502_vtophys(ohci, data);
+		else
+#endif
+			td->hwCBP = vtophys(data);
+	}
 
-	if (data)
-		td->hwBE = vtophys(data+ len - 1);
+	if (data){
+#ifdef CONFIG_SM502_USB_HCD
+		if(ohci->flags & 0x80)
+			td->hwBE = sm502_vtophys(ohci, data + len -1);
+		else
+#endif
+			td->hwBE = vtophys(data+ len - 1);
+	}
 	else
 		td->hwBE = 0;
 
@@ -935,19 +1587,44 @@ static void td_fill (ohci_t *ohci, unsigned int info,
 					td->hwINFO, td->hwCBP, td->hwNextTD, td->hwBE);
 #endif
 
-	td->hwNextTD = vtophys(m32_swap (td_pt));
+#ifdef CONFIG_SM502_USB_HCD
+	if(ohci->flags & 0x80)
+		td->hwNextTD = sm502_vtophys(ohci, (void *)td_pt);
+	else 
+#endif
+	{
+		td->hwNextTD = vtophys(m32_swap (td_pt));
+	}
 	td->hwPSW [0] = ((u32)data & 0x0FFF) | 0xE000;
 	/* append to queue */
 	wbflush();
 	td->ed->hwTailP = td->hwNextTD;
 }
 
-/*-------------------------------------------------------------------------*/
-
-/* prepare all TDs of a transfer */
-
-static void td_submit_job (struct usb_device *dev, unsigned long pipe, void *buffer,
-	int transfer_len, struct devrequest *setup, urb_priv_t *urb, int interval)
+/*===========================================================================
+*
+*FUNTION: td_submit_job
+*
+*DESCRIPTION: This function is used to prepare all TDs of a transfer.
+*
+*PARAMETERS:
+*          [IN] dev:  a pointer to the USB device the TDs belongs to.
+*          [IN] pipe:  describe the property of a pipe,more details about it,
+*                      please see the usb.h. 
+*          [IN] buffer:an all-purpose pointer to the data that would be transfered
+*                      through USB channel.
+*          [IN] transfer_len: the length of data to be transfered.
+*          [IN] setup: an pointer to the struct devrequest *,which is used when
+*                       the transfer type is setup of control transfer.
+*          [IN] urb: a pointer to the struct urb_priv.
+*          [IN] interval: not used here.
+*
+*RETURN VALUE: none.
+*                   
+*===========================================================================*/
+static void td_submit_job (struct usb_device *dev, unsigned long pipe, void
+				*buffer, int transfer_len, struct devrequest *setup, urb_priv_t
+				*urb, int interval)
 {
 	ohci_t *ohci = dev->hc_private;
 	int data_len = transfer_len;
@@ -957,7 +1634,16 @@ static void td_submit_job (struct usb_device *dev, unsigned long pipe, void *buf
 	unsigned int toggle = 0;
 
 	/* OHCI handles the DATA-toggles itself, we just use the USB-toggle bits for reseting */
-	pci_sync_cache(ohci->sc_pc, (vm_offset_t)CACHED_TO_UNCACHED(buffer), transfer_len, SYNC_W);
+#ifdef CONFIG_SM502_USB_HCD
+	if(ohci->flags & 0x80)
+	{
+		/*Currently nothing to do*/			
+	}
+	else
+#endif
+	{
+		pci_sync_cache(ohci->sc_pc, (vm_offset_t)CACHED_TO_UNCACHED(buffer), transfer_len, SYNC_W);
+	}
 
 	if(usb_gettoggle(dev, usb_pipeendpoint(pipe), usb_pipeout(pipe))) {
 		toggle = TD_T_TOGGLE;
@@ -966,16 +1652,40 @@ static void td_submit_job (struct usb_device *dev, unsigned long pipe, void *buf
 		usb_settoggle(dev, usb_pipeendpoint(pipe), usb_pipeout(pipe), 1);
 	}
 	urb->td_cnt = 0;
-	if (data_len)
-		data = buffer; //XXX
-	else
+	if (data_len) 
+	{
+#ifdef CONFIG_SM502_USB_HCD
+		if(ohci->flags & 0x80)
+		{
+			if(usb_pipeout(pipe))
+				memcpy(urb->dev_trans_buffer, buffer, transfer_len);
+			data =  urb->dev_trans_buffer;
+		}
+		else
+#endif
+		{
+			data = buffer; //XXX
+		}
+	}
+   	else
+	{
 		data = 0;
+	}
 
 	switch (usb_pipetype (pipe)) {
 	case PIPE_INTERRUPT:
 		info = usb_pipeout (urb->pipe)?
 			TD_CC | TD_DP_OUT | toggle: TD_CC | TD_R | TD_DP_IN | toggle;
-		td_fill (ohci, info, data, data_len, dev, cnt++, urb, NULL);
+#ifdef CONFIG_SM502_USB_HCD
+		if(ohci->flags & 0x80)
+		{
+			td_fill (ohci, info, data, data_len, dev, cnt++, urb, buffer);
+		}
+		else
+#endif
+		{
+			td_fill (ohci, info, data, data_len, dev, cnt++, urb, NULL);
+		}
 		periodic = 1;
 		break;
 	case PIPE_BULK:
@@ -1006,7 +1716,7 @@ static void td_submit_job (struct usb_device *dev, unsigned long pipe, void *buf
 				memcpy(ohci->control_buf, data, data_len);
 				td_fill (ohci, info, ohci->control_buf, data_len, dev, cnt++, urb, NULL);
 			} else {
-				td_fill (ohci, info, ohci->control_buf, data_len, dev, cnt++, urb, data);
+				td_fill (ohci, info, ohci->control_buf, data_len, dev, cnt++, urb, buffer);
 			}
 		}
 		info = (usb_pipeout (pipe) || data_len ==0)?
@@ -1029,41 +1739,133 @@ static void td_submit_job (struct usb_device *dev, unsigned long pipe, void *buf
 /*-------------------------------------------------------------------------*
  * Done List handling functions
  *-------------------------------------------------------------------------*/
-
-
-/* calculate the transfer length and update the urb */
-
+/*===========================================================================
+*
+*FUNTION: dl_transfer_length
+*
+*DESCRIPTION: This function is used to calculate the transfer length and update
+*             the urb.
+*
+*PARAMETERS:
+*          [IN] td:  a pointer to the stuct td which contains informaiton 
+*                     about TD. 
+*
+*RETURN VALUE: none.
+*                   
+*===========================================================================*/
 static void dl_transfer_length(td_t * td)
 {
 	u32 tdINFO, tdBE, tdCBP;
-	urb_priv_t *lurb_priv = &urb_priv(0,td);
+	//urb_priv_t *lurb_priv = &urb_priv;
+	urb_priv_t *lurb_priv = NULL;//QYL-2008-03-07
+	ohci_t *ohci = td->usb_dev->hc_private;
 	int length = 0;
+
+    //QYL-2008-03-07
+    u_int32_t dev_num,ed_num;
+    struct usb_device *p_dev = NULL;
+    ed_t *p_ed = NULL;
 
 	tdINFO = m32_swap (td->hwINFO);
 	tdBE   = m32_swap (td->hwBE);
-	tdCBP  = PHYS_TO_UNCACHED(m32_swap (td->hwCBP));
+#ifdef CONFIG_SM502_USB_HCD
+	if(ohci->flags & 0x80)
+	{
+		tdCBP  = (u32)sm502_phystov(ohci, m32_swap (td->hwCBP));
+	}
+	else
+#endif
+	{
+		tdCBP  = PHYS_TO_UNCACHED(m32_swap (td->hwCBP));
+	}
+
+    //QYL-2008-03-07
+    if (td != NULL)
+    {
+        p_dev = td->usb_dev;
+        for(dev_num = 0; dev_num < USB_MAX_DEVICE; dev_num++)
+        {
+            if (p_dev == &usb_dev[dev_num])
+            {
+                break;
+            }
+        }
+        p_ed = td->ed;
+        ed_num = (p_ed->hwINFO & 0x780) >> 7;
+        lurb_priv = &ohci_urb[dev_num][ed_num];
+    }
 
 	if (!(usb_pipetype (lurb_priv->pipe) == PIPE_CONTROL &&
 	    ((td->index == 0) || (td->index == lurb_priv->length - 1)))) {
 		if (tdBE != 0) {
 			if (td->hwCBP == 0){
-				length = PHYS_TO_UNCACHED(tdBE) - CACHED_TO_UNCACHED(td->data) + 1;
+#ifdef CONFIG_SM502_USB_HCD
+				if(ohci->flags & 0x80)
+				{
+					/*FIXME */
+					length = (unsigned long)sm502_phystov(ohci, tdBE) - td->data + 1;
+				}
+				else
+#endif
+				{
+					length = PHYS_TO_UNCACHED(tdBE) - CACHED_TO_UNCACHED(td->data) + 1;
+				}
 				lurb_priv->actual_length += length;
 				if(usb_pipecontrol(lurb_priv->pipe)&& usb_pipein(lurb_priv->pipe)){
-					memcpy((void *)td->retbuf, (void*)td->data, length);
+#ifdef CONFIG_SM502_USB_HCD
+					if(ohci->flags & 0x80)
+					{
+						memcpy((void *)td->retbuf, (void*)td->data, length);
+					}
+					else
+#endif
+					{
+						memcpy((void *)td->retbuf, (void*)td->data, length);
+					}
 				}
+#ifdef CONFIG_SM502_USB_HCD
+			   	else 
+				{
+					if((ohci->flags & 0x80)
+						&& !usb_pipecontrol(lurb_priv->pipe) 
+						&& usb_pipein(lurb_priv->pipe)) 
+					{
+						memcpy((void *)td->retbuf, (void *)td->data, length);
+					}
+				}
+#endif
 
-			}
-			else{
-				length = tdCBP - CACHED_TO_UNCACHED(td->data);
+			} else {
+#ifdef CONFIG_SM502_USB_HCD
+				if(ohci->flags & 0x80)
+				{
+					length= tdCBP - td->data; 
+				}
+				else
+#endif
+				{
+					length = tdCBP - CACHED_TO_UNCACHED(td->data);
+				}
 				lurb_priv->actual_length += length;
 				if(usb_pipein(lurb_priv->pipe) &&usb_pipecontrol(lurb_priv->pipe)){
 					memcpy(td->retbuf, (void*)td->data, length);
 				}
+#ifdef CONFIG_SM502_USB_HCD
+				else 
+				{
+					if((ohci->flags & 0x80)
+						&& !usb_pipecontrol(lurb_priv->pipe) 
+						&& usb_pipein(lurb_priv->pipe)) 
+					{
+						memcpy((void *)td->retbuf, (void *)td->data, length);
+					}
+				}
+#endif
 			}
 		}
 	}
-/*	
+
+#if 0
 	if(usb_pipein(lurb_priv->pipe)){
 		int i;
 		printf("transfer_length=%d/%d\n", length, td->transfer_len);
@@ -1072,14 +1874,25 @@ static void dl_transfer_length(td_t * td)
 		printf("\n");
 			
 	}
-*/
+#endif
+
 }
 
-/*-------------------------------------------------------------------------*/
-
-/* replies to the request have to be on a FIFO basis so
- * we reverse the reversed done-list */
-
+/*===========================================================================
+*
+*FUNTION: dl_reverse_done_list
+*
+*DESCRIPTION: This function is used to reverse the reversed done-list,for replies
+*             to the request have to be on a FIFO basis.
+*
+*PARAMETERS:
+*          [IN] ohci: a pointer to the struct ohci which stores useful information
+*                     of the USB OHCI controller.
+*
+*RETURN VALUE: a pointer to the struct td,which is the head of the td done-list 
+*              chain.
+*                   
+*===========================================================================*/
 static td_t * dl_reverse_done_list (ohci_t *ohci)
 {
 	u32 td_list_hc;
@@ -1087,17 +1900,45 @@ static td_t * dl_reverse_done_list (ohci_t *ohci)
 	td_t *td_list = NULL;
 	urb_priv_t *lurb_priv = NULL;
 
+    //QYL-2008-03-07
+    u_int32_t dev_num,ed_num;
+    struct usb_device *p_dev = NULL;
+    ed_t *p_ed = NULL;
+
 	td_list_hc = ohci->hcca->done_head & 0xfffffff0;
 	ohci->hcca->done_head = 0;
 
 	while (td_list_hc) {
 
-		td_list = (td_t *)PHYS_TO_UNCACHED(td_list_hc & 0x1fffffff);
+#ifdef CONFIG_SM502_USB_HCD
+		if(ohci->flags & 0x80)
+		{
+			td_list = (td_t *)sm502_phystov(ohci, td_list_hc & 0x1fffffff);
+		}
+		else
+#endif
+		{
+
+			td_list = (td_t *)PHYS_TO_UNCACHED(td_list_hc & 0x1fffffff);
+		}
 		td_list->hwINFO |= TD_DEL;
 
 		if (TD_CC_GET (m32_swap (td_list->hwINFO))) {
 			/*Some errors occured*/
-			lurb_priv = &urb_priv(0,td_list);
+            //QYL-2008-03-07
+            //lurb_priv = &urb_priv;
+            p_dev = td_list->usb_dev;
+            for(dev_num = 0; dev_num < USB_MAX_DEVICE; dev_num++)
+            {
+                if (p_dev == &usb_dev[dev_num])
+                {
+                    break;
+                }
+            }
+            p_ed = td_list->ed;
+            ed_num = (p_ed->hwINFO & 0x780) >> 7;
+            lurb_priv = &ohci_urb[dev_num][ed_num];
+            
 			printf(" USB-error/status: %x : %p\n",
 					TD_CC_GET (m32_swap (td_list->hwINFO)), td_list);
 			if (td_list->ed->hwHeadP & m32_swap (0x1)) { //ED halted
@@ -1118,9 +1959,24 @@ static td_t * dl_reverse_done_list (ohci_t *ohci)
 	return td_list;
 }
 
-/*-------------------------------------------------------------------------*/
-
-/* td done list */
+/*===========================================================================
+*
+*FUNTION: dl_done_list
+*
+*DESCRIPTION: This function is used to deal with the td done list,and if the
+*             pipe type is PIPE_INTERRUPT,here it needs to submit a new job
+*             for PIPE_INTERRUPT,in fact,this feature is used for USB keypad.
+*
+*PARAMETERS:
+*          [IN] ohci: a pointer to the struct ohci which stores useful information
+*                     of the USB OHCI controller.
+*          [IN] td_list: a pointer to the struct td,which is the head of the td done-list 
+*                        chain.
+*
+*RETURN VALUE: zero :it is ok.
+*              not zero:something wrong.
+*                   
+*===========================================================================*/
 static int dl_done_list (ohci_t *ohci, td_t *td_list)
 {
 	td_t *td_list_next = NULL;
@@ -1129,14 +1985,51 @@ static int dl_done_list (ohci_t *ohci, td_t *td_list)
 	int stat = 0;
 	struct usb_device *dev = NULL;
 	/* urb_t *urb; */
-	urb_priv_t *lurb_priv = &urb_priv(0,td_list);
+	urb_priv_t *lurb_priv = NULL;//&urb_priv;
 	u32 tdINFO, edHeadP, edTailP;
 
+    //QYL-2008-03-07
+    u_int32_t dev_num,ed_num;
+    struct usb_device *p_dev = NULL;
+    ed_t *p_ed = NULL;
+
+    //QYL-2008-03-07
+    u_int32_t bPipeBulk = FALSE;
+    urb_priv_t *pInt_urb_priv = NULL;
+    struct usb_device *pInt_dev = NULL;
+    ed_t *pInt_ed = NULL;
+    
 	while (td_list) {
+        
 		td_list_next = td_list->next_dl_td;
 		//printf("td_list:%x\n",td_list);
 
-		lurb_priv = &urb_priv(0,td_list);
+        //QYL-2008-03-07
+        //lurb_priv = &urb_priv;
+        p_dev = td_list->usb_dev;
+        for(dev_num = 0; dev_num < USB_MAX_DEVICE; dev_num++)
+        {
+            if (p_dev == &usb_dev[dev_num])
+            {
+                break;
+            }
+        }
+        p_ed = td_list->ed;
+        ed_num = (p_ed->hwINFO & 0x780) >> 7;
+        lurb_priv = &ohci_urb[dev_num][ed_num];
+
+        //QYL-2008-03-07
+        if (p_ed->type == PIPE_INTERRUPT)
+        {
+            pInt_ed = p_ed;
+            pInt_urb_priv = lurb_priv;
+            pInt_dev = p_ed->usb_dev;
+        }
+        if (p_ed->type == PIPE_BULK)
+        {
+            bPipeBulk = TRUE;
+        }
+        
 		tdINFO = m32_swap (td_list->hwINFO);
 
 		ed = td_list->ed;
@@ -1164,28 +2057,120 @@ static int dl_done_list (ohci_t *ohci, td_t *td_list)
 
 		td_list = td_list_next;
 	}
-
-	if (ed->type == PIPE_INTERRUPT && iurb_priv.ed == ed) {
-		if (dev && dev->irq_handle) {
-			dev->irq_status = 0;
-			dev->irq_act_len = iurb_priv.actual_length;
-			dev->irq_handle(dev);
+   
+    if (NULL != pInt_urb_priv)  {
+        ohci->g_pInt_dev = pInt_dev;
+        ohci->g_pInt_ed  = pInt_ed;
+        ohci->g_pInt_urb_priv = pInt_urb_priv;
+        if (pInt_dev && pInt_dev->irq_handle) {
+			pInt_dev->irq_status = 0;
+			pInt_dev->irq_act_len = pInt_urb_priv->actual_length;
+			pInt_dev->irq_handle(pInt_dev);
 		}
 
-		iurb_priv.actual_length = 0;
-		dev->irq_act_len = 0;
-		ed->hwINFO = ed->oINFO;
-		ep_link(ohci, ed);
-		td_submit_job(ed->usb_dev, iurb_priv.pipe, iurb_priv.trans_buffer, iurb_priv.trans_length, iurb_priv.setup_buffer, &iurb_priv, ed->int_interval);
+		pInt_urb_priv->actual_length = 0;
+		pInt_dev->irq_act_len = 0;
+		pInt_ed->hwINFO = pInt_ed->oINFO;
+		ep_link(ohci, pInt_ed);
+		td_submit_job(pInt_ed->usb_dev, pInt_urb_priv->pipe, pInt_urb_priv->trans_buffer, pInt_urb_priv->trans_length, pInt_urb_priv->setup_buffer, pInt_urb_priv, pInt_ed->int_interval);               
 	}
-
 	return stat;
 }
+
+//Felix-2008-05-05
+static int dl_td_done_list (ohci_t *ohci, td_t *td_list)
+{
+	td_t *td_list_next = NULL;
+	ed_t *ed;
+	int cc = 0;
+	int stat = 0;
+	struct usb_device *dev = NULL;
+	/* urb_t *urb; */
+	urb_priv_t *lurb_priv = NULL;//&urb_priv;
+	u32 tdINFO, edHeadP, edTailP;
+
+    //QYL-2008-03-07
+    u_int32_t dev_num,ed_num;
+    struct usb_device *p_dev = NULL;
+    ed_t *p_ed = NULL;
+
+    //QYL-2008-03-07
+    u_int32_t bPipeBulk = FALSE;
+    urb_priv_t *pInt_urb_priv = NULL;
+    struct usb_device *pInt_dev = NULL;
+    ed_t *pInt_ed = NULL;
+    
+	while (td_list) {
+        
+		td_list_next = td_list->next_dl_td;
+		//printf("td_list:%x\n",td_list);
+
+        //QYL-2008-03-07
+        //lurb_priv = &urb_priv;
+        p_dev = td_list->usb_dev;
+        for(dev_num = 0; dev_num < USB_MAX_DEVICE; dev_num++)
+        {
+            if (p_dev == &usb_dev[dev_num])
+            {
+                break;
+            }
+        }
+        p_ed = td_list->ed;
+        ed_num = (p_ed->hwINFO & 0x780) >> 7;
+        lurb_priv = &ohci_urb[dev_num][ed_num];
+
+        //QYL-2008-03-07
+        if (p_ed->type == PIPE_INTERRUPT)
+        {
+            pInt_ed = p_ed;
+            pInt_urb_priv = lurb_priv;
+            pInt_dev = p_ed->usb_dev;
+        }
+        if (p_ed->type == PIPE_BULK)
+        {
+            bPipeBulk = TRUE;
+        }
+        
+		tdINFO = m32_swap (td_list->hwINFO);
+
+		ed = td_list->ed;
+		dev = ed->usb_dev;
+
+		dl_transfer_length(td_list);
+
+		/* error code of transfer */
+		cc = TD_CC_GET (tdINFO);
+		if (cc != 0) {
+			err("ConditionCode %x/%x", cc, td_list);
+			stat = cc_to_error[cc];
+		}
+
+		if (ed->state != ED_NEW) {
+			edHeadP = m32_swap (ed->hwHeadP) & 0xfffffff0;
+			edTailP = m32_swap (ed->hwTailP);
+
+			/* unlink eds if they are not busy */
+			if ((edHeadP == edTailP) && (ed->state == ED_OPER)){
+				ep_unlink (ohci, ed);
+			}
+		}
+		dev->status = stat; // FIXME;
+
+		td_list = td_list_next;
+	}
+    
+    if ((NULL != pInt_urb_priv) && (bOhciInited == FALSE))  {
+        ohci->g_pInt_dev = pInt_dev;
+        ohci->g_pInt_ed  = pInt_ed;
+        ohci->g_pInt_urb_priv = pInt_urb_priv;       
+    }    
+	return stat;
+}
+
 
 /*-------------------------------------------------------------------------*
  * Virtual Root Hub
  *-------------------------------------------------------------------------*/
-
 /* Device descriptor */
 static u8 root_hub_dev_des[] =
 {
@@ -1208,7 +2193,6 @@ static u8 root_hub_dev_des[] =
 	0x00,	    /*	__u8  iSerialNumber; */
 	0x01	    /*	__u8  bNumConfigurations; */
 };
-
 
 /* Configuration descriptor */
 static u8 root_hub_config_des[] =
@@ -1286,8 +2270,6 @@ static unsigned char root_hub_str_index1[] =
 };
 
 /* Hub class-specific descriptor is constructed dynamically */
-
-
 /*-------------------------------------------------------------------------*/
 
 #define OK(x)			len = (x); break
@@ -1301,8 +2283,21 @@ static unsigned char root_hub_str_index1[] =
 #define RD_RH_STAT		roothub_status(gohci)
 #define RD_RH_PORTSTAT		roothub_portstatus(gohci,wIndex-1)
 
-/* request to virtual root hub */
-
+/*===========================================================================
+*
+*FUNTION: rh_check_port_status
+*
+*DESCRIPTION: This function is used to answer the request to the virtual root
+*             hub,checking whether a device disconnected just now.
+*
+*PARAMETERS:
+*          [IN] controller: a pointer to the struct ohci which stores useful 
+*                           information of the USB OHCI controller.
+*
+*RETURN VALUE: zero :nothing happened.
+*              > zero:some device disconnected.
+*                   
+*===========================================================================*/
 int rh_check_port_status(ohci_t *controller)
 {
 	u32 temp, ndp, i;
@@ -1324,6 +2319,29 @@ int rh_check_port_status(ohci_t *controller)
 	return res;
 }
 
+/*===========================================================================
+*
+*FUNTION: ohci_submit_rh_msg
+*
+*DESCRIPTION: This function is used to submit a message to virtual root hub
+*             in fact,for this root hub is virtual,so it will return data(
+*             if exists) immediatelly.
+*
+*PARAMETERS:
+*          [IN] dev:  a pointer to the USB device( here root hub,a special USB
+*                     device) the message belongs to.
+*          [IN] pipe:  describe the property of a pipe,more details about it,
+*                      please see the usb.h. 
+*          [IN] buffer:an all-purpose pointer to the data that would be returned 
+*                      from virtual root hub.
+*          [IN] transfer_len: the length of data to be transfered.
+*          [IN] cmd: an pointer to the struct devrequest *,which is used when
+*                       the transfer type is setup of control transfer.
+*
+*RETURN VALUE: zero :indicates that root hub has not implemented PIPE_INTERRUPT.
+*              not zero:indicates the status of this transfer.
+*                   
+*===========================================================================*/
 static int ohci_submit_rh_msg(struct usb_device *dev, unsigned long pipe,
 		void *buffer, int transfer_len, struct devrequest *cmd)
 {
@@ -1529,7 +2547,7 @@ static int ohci_submit_rh_msg(struct usb_device *dev, unsigned long pipe,
 
 #ifdef DEBUG
 	if (transfer_len)
-		urb_priv(pipe,0).actual_length = transfer_len;
+		urb_priv.actual_length = transfer_len;
 	pkt_print(dev, pipe, buffer, transfer_len, cmd, "RET(rh)", usb_pipein(pipe));
 #else
 	wait_ms(1);
@@ -1538,23 +2556,64 @@ static int ohci_submit_rh_msg(struct usb_device *dev, unsigned long pipe,
 	return stat;
 }
 
-
+/*===========================================================================
+*
+*FUNTION: reset_controller
+*
+*DESCRIPTION: This function is used to reset the USB OHCI controller.
+*
+*PARAMETERS:
+*          [IN] hc_data: an all-purpose pointer to be cast to struct ohci*,
+*                        points to the buffer which stores information of ohci.
+*
+*RETURN VALUE: none
+*                   
+*===========================================================================*/
 void reset_controller(void *hc_data)
 {
 	ohci_t * ohci = hc_data;	
 	memset(&ohci->rh, 0, sizeof(ohci->rh));
 }
-/*-------------------------------------------------------------------------*/
 
-/* common code for handling submit messages - used for all but root hub */
-/* accesses. */
+/*===========================================================================
+*
+*FUNTION: submit_common_msg
+*
+*DESCRIPTION: This function is the common code for handling submit messages,which
+*             are used for all but root hub accesses.
+*
+*PARAMETERS:
+*          [IN] dev:  a pointer to the USB device the messages belongs to.
+*          [IN] pipe:  describe the property of a pipe,more details about it,
+*                      please see the usb.h. 
+*          [IN] buffer:an all-purpose pointer to the data that would be transfered
+*                      through USB channel.
+*          [IN] transfer_len: the length of data to be transfered.
+*          [IN] setup: an pointer to the struct devrequest *,which is used when
+*                       the transfer type is setup of control transfer.
+*          [IN] interval: not used here.
+*
+*RETURN VALUE: 0 : indicates that device has been pulled or function return ok.
+*              -1: indicates that pipesize is zero or sohci_submit_job failed.
+*
+*note:      unlike ohci_submit_rh_msg(),this function would access the real
+*           OHCI controller hardware,so it needs to wait to check whether hardware 
+*           has fininshed transfering TDs in limited timeouts by calling hc_check_
+*           ohci_controller().
+*                   
+*===========================================================================*/
 int submit_common_msg(struct usb_device *dev, unsigned long pipe, void *buffer,
 		int transfer_len, struct devrequest *setup, int interval)
 {
 	int stat = 0;
 	int maxsize = usb_maxpacket(dev, pipe);
-	int timeout, s;
+	int timeout;
 	struct ohci *gohci = dev->hc_private;
+
+    //QYL-2008-03-07
+    u_int32_t dev_num,ed_num;
+    urb_priv_t *lurb_priv = NULL;
+    static u_int32_t dev_count = 0;
 
 	/* device pulled? Shortcut the action. */
 	if (devgone == dev) {
@@ -1574,7 +2633,7 @@ int submit_common_msg(struct usb_device *dev, unsigned long pipe, void *buffer,
 	}
 
 	/* allow more time for a BULK device to react - some are slow */
-#define BULK_TO	 2000	/* timeout in milliseconds */
+#define BULK_TO	 500	/* timeout in milliseconds */
 	if (usb_pipetype (pipe) == PIPE_BULK)
 		timeout = BULK_TO;
 	else
@@ -1603,20 +2662,30 @@ int submit_common_msg(struct usb_device *dev, unsigned long pipe, void *buffer,
 		}
 	}
 #else
-	if (usb_pipetype(pipe) != PIPE_INTERRUPT) {
-	int timeout1=timeout;
-		s = spl0();
-		while(1){
-			timeout1--;
+    
+    //QYL-2008-03-07
+    if ((bOhciInited == TRUE) && (usb_pipetype(pipe) == PIPE_BULK))
+    {
+        hcCount++;
+        bCommonMsgSubmit = TRUE;
+    }
+    
+	if ((bOhciInited == FALSE)
+        ||((bOhciInited == TRUE) &&(usb_pipetype(pipe) != PIPE_INTERRUPT)))
+    {
+		hc_check_ohci_controller(gohci);
+        dev_count++;
+		while(--timeout > 0){
 			if(!(dev->status & USB_ST_NOT_PROC)){
 				break;
 			}
-			delay(1);
-			spl0();
-		if (timeout1 == 0) {printf("USB timeout\n");timeout1=timeout;}
+			delay(200);
+		    hc_check_ohci_controller(gohci);
 		}
 	}
 
+    if (timeout == 0) 
+		printf("USB timeout dev:0x%x\n",(u_int32_t)dev);
 
 #endif
 
@@ -1639,24 +2708,53 @@ int submit_common_msg(struct usb_device *dev, unsigned long pipe, void *buffer,
 		}
 	}
 
+    //QYL-2008-03-07
+    for(dev_num = 0; dev_num < USB_MAX_DEVICE; dev_num++)
+    {
+        if (dev == &usb_dev[dev_num])
+        {
+            break;
+        }
+    }
+    ed_num = usb_pipeendpoint(pipe);
+    lurb_priv = &ohci_urb[dev_num][ed_num];
+
 	if (usb_pipetype(pipe) != PIPE_INTERRUPT) {
 		dev->status = stat;
 		dev->act_len = transfer_len;
 		/* free TDs in urb_priv */
-		urb_free_priv (&urb_priv(pipe,0));
+		//urb_free_priv (&urb_priv);QYL-2008-03-07
+		urb_free_priv(lurb_priv);
 	}
 
 	return 0;
 }
 
-/* submit routines called from usb.c */
+/*===========================================================================
+*
+*FUNTION: ohci_submit_bulk_msg
+*
+*DESCRIPTION: This function is used to submit a bulk message to OHCI controller.
+*             This is a submit routine called from usb.c.
+*
+*PARAMETERS:
+*          [IN] dev:  a pointer to the USB device the message belongs to.
+*          [IN] pipe:  describe the property of a pipe,more details about it,
+*                      please see the usb.h. 
+*          [IN] buffer:an all-purpose pointer to the data that would be returned 
+*                      through usb channel.
+*          [IN] transfer_len: the length of data to be transfered.
+*
+*RETURN VALUE: same as the value returned from submit_common_msg().
+*                   
+*===========================================================================*/
 static int ohci_submit_bulk_msg(struct usb_device *dev, unsigned long pipe, void *buffer,
 		int transfer_len)
 {
 	int s;
 
 	if(ohci_debug)printf("submit_bulk_msg %x/%d\n", buffer, transfer_len);
-	if((u32)buffer & 0x1f)
+	if((u32)buffer & 0x0f)
 		printf("bulk buffer %x/%d not aligned\n", buffer, transfer_len);	
 	s = submit_common_msg(dev, pipe, buffer, transfer_len, NULL, 0);
 	if(ohci_debug)printf("submit_bulk_msg END\n"); 
@@ -1664,15 +2762,36 @@ static int ohci_submit_bulk_msg(struct usb_device *dev, unsigned long pipe, void
 	return s;
 }
 
-static int ohci_submit_control_msg(struct usb_device *dev, unsigned long pipe, void *buffer,
-		int transfer_len, struct devrequest *setup)
+/*===========================================================================
+*
+*FUNTION: ohci_submit_control_msg
+*
+*DESCRIPTION: This function is used to submit a control message to OHCI controller
+*             or root hub. This is a submit routine called from usb.c.
+*
+*PARAMETERS:
+*          [IN] dev:  a pointer to the USB device the message belongs to.
+*          [IN] pipe:  describe the property of a pipe,more details about it,
+*                      please see the usb.h. 
+*          [IN] buffer:an all-purpose pointer to the data that would be returned 
+*                      through usb channel.
+*          [IN] transfer_len: the length of data to be transfered.
+*          [IN] setup: an pointer to the struct devrequest *,which is used when
+*                       the transfer type is setup of control transfer.
+*
+*RETURN VALUE: same as the value returned from submit_common_msg()or ohci_
+*              _submit_rh_msg().
+*                   
+*===========================================================================*/
+static int ohci_submit_control_msg(struct usb_device *dev, unsigned long pipe,
+				void *buffer, int transfer_len, struct devrequest *setup)
 {
 	int maxsize = usb_maxpacket(dev, pipe);
 	struct ohci *gohci = dev->hc_private;
 
-	if(ohci_debug)printf("submit_control_msg %x/%d\n", buffer, transfer_len);
+	if(ohci_debug)printf("submit_control_msg(%d) %x/%d\n", (pipe>>8)&0x7f, buffer, transfer_len);
 #if 0
-	urb_priv(pipe,0).actual_length = 0;
+	urb_priv.actual_length = 0;
 	pkt_print(dev, pipe, buffer, transfer_len, setup, "SUB", usb_pipein(pipe));
 #else
 	wait_ms(1);
@@ -1692,6 +2811,26 @@ static int ohci_submit_control_msg(struct usb_device *dev, unsigned long pipe, v
 	return submit_common_msg(dev, pipe, buffer, transfer_len, setup, 0);
 }
 
+
+/*===========================================================================
+*
+*FUNTION: ohci_submit_int_msg
+*
+*DESCRIPTION: This function is used to submit a interrupt message to OHCI 
+*             controller. This is a submit routine called from usb.c.
+*
+*PARAMETERS:
+*          [IN] dev:  a pointer to the USB device the message belongs to.
+*          [IN] pipe:  describe the property of a pipe,more details about it,
+*                      please see the usb.h. 
+*          [IN] buffer:an all-purpose pointer to the data that would be returned 
+*                      through usb channel.
+*          [IN] transfer_len: the length of data to be transfered.
+*          [IN] interval: not used here.
+*
+*RETURN VALUE: same as the value returned from submit_common_msg().
+*                   
+*===========================================================================*/
 static int ohci_submit_int_msg(struct usb_device *dev, unsigned long pipe, void *buffer,
 		int transfer_len, int interval)
 {
@@ -1705,8 +2844,20 @@ static int ohci_submit_int_msg(struct usb_device *dev, unsigned long pipe, void 
  * HC functions
  *-------------------------------------------------------------------------*/
 
-/* reset the HC and BUS */
-
+/*===========================================================================
+*
+*FUNTION: hc_reset
+*
+*DESCRIPTION: This function is used to reset the HC and BUS.
+*
+*PARAMETERS:
+*          [IN] ohci: a pointer to the struct ohci which stores useful 
+*                     information of the USB OHCI controller.
+*
+*RETURN VALUE: -1: indicates that USB HC TakeOver failed or USB HC reset time out.
+*              0 : normal return. 
+*
+*===========================================================================*/
 static int hc_reset (ohci_t *ohci)
 {
 	int timeout = 30;
@@ -1746,12 +2897,19 @@ static int hc_reset (ohci_t *ohci)
 	return 0;
 }
 
-/*-------------------------------------------------------------------------*/
-
-/* Start an OHCI controller, set the BUS operational
- * enable interrupts
- * connect the virtual root hub */
-
+/*===========================================================================
+*
+*FUNTION: hc_start
+*
+*DESCRIPTION: This function is used to start an OHCI controller,set the BUS
+*             operational ,enable interrupts and connect the virtual root hub.
+*
+*PARAMETERS:
+*          [IN] ohci: a pointer to the struct ohci which stores useful 
+*                     information of the USB OHCI controller.
+*
+*RETURN VALUE: always returns 0.     
+*===========================================================================*/
 static int hc_start (ohci_t * ohci)
 {
 	u32 mask;
@@ -1765,11 +2923,18 @@ static int hc_start (ohci_t * ohci)
 	writel (0, &ohci->regs->ed_controlhead);
 	writel (0, &ohci->regs->ed_bulkhead);
 
-	writel ((u32)(vtophys(ohci->hcca)), &ohci->regs->hcca); /* a reset clears this */
+#ifdef CONFIG_SM502_USB_HCD
+	if(ohci->flags & 0x80)
+		writel(sm502_vtophys(ohci, ohci->hcca), &ohci->regs->hcca);
+	else
+#endif
+	{
+		writel ((u32)(vtophys(ohci->hcca)), &ohci->regs->hcca); /* a reset clears this */
+	}
 
 	fminterval = 0x2edf;
-	writel ((fminterval * 9.5) / 10, &ohci->regs->periodicstart);
-	fminterval |= ((((fminterval - 210) * 6) / 7) << 16);
+	writel ((fminterval * 8) / 10, &ohci->regs->periodicstart);    
+    fminterval |= ((((fminterval - 210) * 6) / 7) << 16);
 	writel (fminterval, &ohci->regs->fminterval);
 	writel (0x628, &ohci->regs->lsthresh);
 
@@ -1807,25 +2972,59 @@ static int hc_start (ohci_t * ohci)
 	return 0;
 }
 
-/*-------------------------------------------------------------------------*/
-
-/* an interrupt happens */
-
+/*===========================================================================
+*
+*FUNTION: hc_interrupt
+*
+*DESCRIPTION: This function is used to check whether OHCI controller has finished
+*             transfering the PIPE_INTERRUPT TDs.It is a INTR-hanlder-like routine,
+*             and will be called by system frequently.
+*PARAMETERS:
+*          [IN] hc_data: an all-purpose pointer to be cast to struct ohci*,
+*                        points to the buffer which stores information of ohci.
+*
+*RETURN VALUE: 0 :   indicates that no TDs has been transfered.
+*              stat: indicates that PIPE_INTERRUPT TDs has been transfered and be
+*                    dealed with.*
+*                   
+*===========================================================================*/
 static int hc_interrupt (void *hc_data)
 {
 	ohci_t *ohci = hc_data;
 	struct ohci_regs *regs = ohci->regs;
 	
-//	urb_priv_t *lurb_priv = &urb_priv;
+	urb_priv_t *lurb_priv = NULL;//&urb_priv;
 	td_t *td = NULL;
 	int ints;
 
 	int stat = NOTUSBIRQ;
 
+    //QYL-2008-03-07
+    u_int32_t dev_num,ed_num;
+    struct usb_device *p_dev = NULL;
+    ed_t *p_ed = NULL;
+
+    //Felix-2008-05-05
+    static u_int32_t ArouseCount = 0;
+
+    if ((bOhciInited == TRUE) && (bCommonMsgSubmit == TRUE))
+    {
+        hcCount--;
+    }
+
 	if ((ohci->hcca->done_head != 0) && 
 			!(m32_swap (ohci->hcca->done_head) & 0x01)) {
 		ints =	OHCI_INTR_WDH;
-		td = (td_t *)CACHED_TO_UNCACHED(ohci->hcca->done_head);
+#ifdef CONFIG_SM502_USB_HCD
+		if(ohci->flags & 0x80)
+		{
+			td = (td_t *)sm502_phystov(ohci, ohci->hcca->done_head);
+		}
+		else
+#endif
+		{
+			td = (td_t *)CACHED_TO_UNCACHED(ohci->hcca->done_head);
+		}
 	} else {
 		ints = readl (&regs->intrstatus);
 		if (ints == ~0ul) 
@@ -1854,7 +3053,7 @@ static int hc_interrupt (void *hc_data)
 			 * This is potentially dangerous because it assumes
 			 * that only one device is ever plugged in!
 			 */
-			printf("device disconnected\n");
+			printf("**hc_interrupt 2008-03-07** device disconnected\n");//QYL-2008-03-07
 		}
 	}
 
@@ -1880,19 +3079,50 @@ static int hc_interrupt (void *hc_data)
 
 		writel (OHCI_INTR_WDH, &regs->intrdisable);
 
-		if (td == NULL) 
-			td = (td_t *)CACHED_TO_UNCACHED(ohci->hcca->done_head & ~0x1f);
+		if (td == NULL){ 
+#ifdef CONFIG_SM502_USB_HCD
+			if(ohci->flags & 0x80)
+			{
+				td = (td_t *)sm502_phystov(ohci, ohci->hcca->done_head & ~0x1f);
+			}
+			else
+#endif
+			{
+				td = (td_t *)CACHED_TO_UNCACHED(ohci->hcca->done_head & ~0x1f);
+			}
+		}
 		if (td == NULL)
 			printf("Bad td in donehead\n");
-		else if (td->index != urb_priv(0,td).length -1){
+		else if ((td != NULL) && (td->ed != NULL) )
+        {      
+            //QYL-2008-03-07
+            if ((bOhciInited == TRUE) && (gHIDBeforeMass == TRUE) && (gPipeIntCorrupt == TRUE))
+            {
+                gPipeIntCorrupt = FALSE;
+            }
+            p_dev = td->usb_dev;
+            for(dev_num = 0; dev_num < USB_MAX_DEVICE; dev_num++)
+            {
+                if (p_dev == &usb_dev[dev_num])
+                {
+                    break;
+                }
+            }
+            p_ed = td->ed;
+            ed_num = (p_ed->hwINFO & 0x780) >> 7;
+            lurb_priv = &ohci_urb[dev_num][ed_num];
+
+            //Felix-2008-05-05
+            ArouseCount = 0;
+        
+            if (td->index != lurb_priv->length -1){
 			stat = dl_done_list (ohci, dl_reverse_done_list (ohci));
-			printf("td index=%x/%x\n", td->index, urb_priv(0,td).length);
-		} else {
-		#ifndef OUTPUT_TO_BOTH
-		delay(1000);//fixme
-		#endif
+			printf("td index=%x/%x\n", td->index, lurb_priv->length);
+		    } 
+            else {
 			stat = dl_done_list (ohci, dl_reverse_done_list (ohci));
-		}
+		    }
+        }
 
 		writel (OHCI_INTR_WDH, &regs->intrenable);
 
@@ -1923,8 +3153,8 @@ static int hc_interrupt (void *hc_data)
 		printf("hc_td:%x\n", hc_td);
 		if(hc_td){
 			hc_td = (td_t *)CACHED_TO_UNCACHED(hc_td);	
-			printf("index=%x/%x\n", hc_td->index, urb_priv(0,td).length);
-			//if(hc_td->index == urb_priv(0,td).length -1) //not safe
+			printf("index=%x/%x\n", hc_td->index, lurb_priv->length);
+			//if(hc_td->index == lurb_priv->length -1) //not safe
 			//	writel (ints | OHCI_INTR_WDH, &regs->intrstatus);
 		}
 	}
@@ -1934,16 +3164,31 @@ static int hc_interrupt (void *hc_data)
 #endif			
 	(void)readl(&regs->control);
 
-
+    if (++ArouseCount == 400)
+    {
+        arouse_usb_int_pipe(ohci);
+        ArouseCount = 0;
+    }
+    if (bOhciInited && (gHIDBeforeMass == TRUE) && (gPipeIntCorrupt == TRUE))
+    {
+        arouse_usb_int_pipe(ohci);
+        gHIDBeforeMass = STATE_DEALED_WITH;
+    }  
 	return stat;
 }
 
-/*-------------------------------------------------------------------------*/
-
-/*-------------------------------------------------------------------------*/
-
-/* De-allocate all resources.. */
-
+/*===========================================================================
+*
+*FUNTION: hc_release_ohci
+*
+*DESCRIPTION: This function is used to De-allocate all resources.
+*
+*PARAMETERS:
+*          [IN] ohci: a pointer to the struct ohci which stores useful 
+*                     information of the USB OHCI controller.
+*
+*RETURN VALUE: none.     
+*===========================================================================*/
 static void hc_release_ohci (ohci_t *ohci)
 {
 	dbg ("USB HC release ohci usb-%s", ohci->slot_name);
@@ -1952,11 +3197,21 @@ static void hc_release_ohci (ohci_t *ohci)
 		hc_reset (ohci);
 }
 
-/*
- * low level initalisation routine, called from usb.c
- */
+/*===========================================================================
+*
+*FUNTION: usb_lowlevel_init
+*
+*DESCRIPTION: This is the low level initialization routine,called from usb.c.
+*
+*PARAMETERS:
+*          [IN] ghci: a pointer to the struct ohci which stores useful 
+*                     information of the USB OHCI controller.
+*
+*RETURN VALUE: -1: indicates that HCCA not aligned or EDs not aligned or TDs
+*                  not aligned or OHCI initialization error.  
+*              0 : indicates that initialization finished successfully.
+*===========================================================================*/
 static char ohci_inited = 0;
-
 int usb_lowlevel_init(ohci_t *gohci)
 {
 
@@ -1967,9 +3222,18 @@ int usb_lowlevel_init(ohci_t *gohci)
 
 	dbg("in usb_lowlevel_init\n");
 
-	hcca = malloc(sizeof(*gohci->hcca), M_DEVBUF, M_NOWAIT);
-	memset(hcca, 0, sizeof(*hcca));
-	pci_sync_cache(gohci->sc_pc, (vm_offset_t)hcca, sizeof(*hcca), SYNC_W);
+#ifdef CONFIG_SM502_USB_HCD
+	if(gohci->flags & 0x80){
+		hcca = sm502_mem_alloc(gohci, sizeof(struct ohci_hcca));
+		memset(hcca, 0, sizeof(*hcca));
+	} 
+	else 
+#endif
+	{
+		hcca = malloc(sizeof(*gohci->hcca), M_DEVBUF, M_NOWAIT);
+		memset(hcca, 0, sizeof(*hcca));
+		pci_sync_cache(gohci->sc_pc, (vm_offset_t)hcca, sizeof(*hcca), SYNC_W);
+	}
 
 	/* align the storage */
 	if ((u32)&hcca[0] & 0xff) {
@@ -1977,61 +3241,132 @@ int usb_lowlevel_init(ohci_t *gohci)
 		return -1;
 	}
 
-	ohci_dev = malloc(sizeof *ohci_dev, M_DEVBUF, M_NOWAIT);
-	memset(ohci_dev, 0, sizeof(struct ohci_device));
-
+#ifdef CONFIG_SM502_USB_HCD
+	if(gohci->flags & 0x80) 
+	{
+		ohci_dev = sm502_mem_alloc(gohci, sizeof *ohci_dev);
+		memset(ohci_dev, 0, sizeof(struct ohci_device));
+	} 
+	else
+#endif
+	{
+		ohci_dev = malloc(sizeof *ohci_dev, M_DEVBUF, M_NOWAIT);
+		memset(ohci_dev, 0, sizeof(struct ohci_device));
+	}
 	if ((u32)&ohci_dev->ed[0] & 31) {
 		err("EDs not aligned!!");
 		return -1;
 	}
 
-	pci_sync_cache(gohci->sc_pc, (vm_offset_t)ohci_dev->ed, sizeof(ohci_dev->ed),SYNC_W);
+	if((gohci->flags & 0x80)) 
+	{
+		ohci_dev->cpu_ed = ohci_dev->ed;
+	} 
+	else 
+	{
+		pci_sync_cache(gohci->sc_pc, (vm_offset_t)ohci_dev->ed, sizeof(ohci_dev->ed),SYNC_W);
+		ohci_dev->cpu_ed = (ed_t *)CACHED_TO_UNCACHED(&ohci_dev->ed);
+	}
 
-	ohci_dev->cpu_ed = (ed_t *)CACHED_TO_UNCACHED(&ohci_dev->ed);
+#ifdef CONFIG_SM502_USB_HCD
+	if(gohci->flags & 0x80)
+	{
+		gtd = sm502_mem_alloc(gohci, sizeof(td_t) * (NUM_TD+1));
+		memset(gtd, 0, sizeof(td_t) * (NUM_TD + 1));
+	} else 
+#endif
+	{
+		gtd = malloc(sizeof(td_t) * (NUM_TD+1), M_DEVBUF, M_NOWAIT);
+		memset(gtd, 0, sizeof(td_t) * (NUM_TD + 1));
+		pci_sync_cache(gohci->sc_pc, (vm_offset_t)gtd, sizeof(td_t)*(NUM_TD+1), SYNC_W);
+	}
 
-	gtd = malloc(sizeof(td_t) * (NUM_TD+1), M_DEVBUF, M_NOWAIT);
-	memset(gtd, 0, sizeof(td_t) * (NUM_TD + 1));
-	if ((u32)gtd & 0x7) {
+	if ((u32)gtd & 0x0f) {
 		err("TDs not aligned!!");
 		return -1;
 	}
 
-	pci_sync_cache(gohci->sc_pc, (vm_offset_t)gtd, sizeof(td_t)*(NUM_TD+1), SYNC_W);
 
-	gohci->hcca = (struct ohci_hcca*)CACHED_TO_UNCACHED(hcca);
-	gohci->gtd = (td_t *)CACHED_TO_UNCACHED(gtd);
-	gohci->ohci_dev = ohci_dev;
+#ifdef CONFIG_SM502_USB_HCD
+	if(gohci->flags & 0x80)
+	{
+		gohci->hcca = hcca;
+		gohci->gtd = gtd;
+		gohci->ohci_dev = ohci_dev;
+	} 
+	else
+#endif
+	{
+		gohci->hcca = (struct ohci_hcca*)CACHED_TO_UNCACHED(hcca);
+		gohci->gtd = (td_t *)CACHED_TO_UNCACHED(gtd);
+		gohci->ohci_dev = ohci_dev;
+	}
 
-	tmpbuf = malloc(512, M_DEVBUF, M_NOWAIT);
-	if(tmpbuf == NULL){
-		printf("No mem for control buffer\n");
-		goto errout;
-	}	
-	if((u32)tmpbuf & 0x1f)
-		printf("Malloc return not cache line aligned\n");
-	memset(tmpbuf, 0, 512);
-	pci_sync_cache(gohci->sc_pc, (vm_offset_t)tmpbuf,  512, SYNC_W);
-	gohci->control_buf = (unsigned char*)CACHED_TO_UNCACHED(tmpbuf);
+#ifdef CONFIG_SM502_USB_HCD
+	if(gohci->flags & 0x80)
+	{
+		tmpbuf = sm502_mem_alloc(gohci, 512);
+		if(tmpbuf == NULL){
+			printf("sm502-usb: out of memory at %d\n", __LINE__);
+			goto errout;
+		}
+		if((u32)tmpbuf & 0x1f)
+			printf("Malloc return not cache line aligned\n");
+		memset(tmpbuf, 0, 512);
+		gohci->control_buf = (unsigned char*)tmpbuf;
+	} 
+	else
+#endif
+	{
+		tmpbuf = malloc(512, M_DEVBUF, M_NOWAIT);
+		if(tmpbuf == NULL){
+			printf("No mem for control buffer\n");
+			goto errout;
+		}	
+		if((u32)tmpbuf & 0x1f)
+			printf("Malloc return not cache line aligned\n");
+		memset(tmpbuf, 0, 512);
+		pci_sync_cache(gohci->sc_pc, (vm_offset_t)tmpbuf,  512, SYNC_W);
+		gohci->control_buf = (unsigned char*)CACHED_TO_UNCACHED(tmpbuf);
+	}
 
-	tmpbuf = malloc(64, M_DEVBUF, M_NOWAIT);
-	if(tmpbuf == NULL){
-		printf("No mem for setup buffer\n");
-		goto errout;
-	}	
-	if((u32)tmpbuf & 0x1f)
-		printf("Malloc return not cache line aligned\n");
-	memset(tmpbuf, 0, 64);
-	pci_sync_cache(tmpbuf, (vm_offset_t)tmpbuf, 64, SYNC_W);
-	gohci->setup = (unsigned char *)CACHED_TO_UNCACHED(tmpbuf);
+#ifdef CONFIG_SM502_USB_HCD
+	if(gohci->flags & 0x80) {
+		tmpbuf = sm502_mem_alloc(gohci, 64);
+		if(tmpbuf == NULL){
+			printf("sm502-usb: out of memory at %d\n", __LINE__);
+			goto errout;
+		}	
+		gohci->setup = (unsigned char *)tmpbuf;
+	} else
+#endif
+	{
+		tmpbuf = malloc(64, M_DEVBUF, M_NOWAIT);
+		if(tmpbuf == NULL){
+			printf("No mem for setup buffer\n");
+			goto errout;
+		}	
+		if((u32)tmpbuf & 0x1f)
+			printf("Malloc return not cache line aligned\n");
+		memset(tmpbuf, 0, 64);
+		pci_sync_cache(tmpbuf, (vm_offset_t)tmpbuf, 64, SYNC_W);
+		gohci->setup = (unsigned char *)CACHED_TO_UNCACHED(tmpbuf);
+	}
 
 	gohci->disabled = 1;
 	gohci->sleeping = 0;
 	gohci->irq = -1;
 	gohci->regs = (struct ohci_regs *)(gohci->sc_sh | 0xA0000000);
 
+#ifdef CONFIG_SM502_USB_HCD
+	if(gohci->flags & 0x80){
+		sm502_bufs_init(gohci);
+	}
+#endif
+
 	dbg("OHCI: regs base %x\n", gohci->regs);
 
-	gohci->flags = 0;
+	//gohci->flags = 0;
 	gohci->slot_name = "Godson";
 
 	dbg("OHCI revision: 0x%08x\n"
@@ -2054,7 +3389,7 @@ int usb_lowlevel_init(ohci_t *gohci)
 #else
 	wait_ms(1);
 #endif
-	printf("OHCI initialized ok\n");
+	printf("OHCI %x initialized ok\n", gohci);
 	ohci_inited = 1;
 	return 0;
 
@@ -2065,6 +3400,19 @@ errout:
 	return -1;
 }
 
+/*===========================================================================
+*
+*FUNTION: usb_lowlevel_stop
+*
+*DESCRIPTION: This function is used to reset OHCI controller.
+*
+*PARAMETERS:
+*          [IN] ohci: a pointer to the struct ohci which stores useful 
+*                     information of the USB OHCI controller.
+*
+*RETURN VALUE: always return 0
+*
+*===========================================================================*/
 int usb_lowlevel_stop(void *hc_data)
 {
 	/* this gets called really early - before the controller has */
@@ -2083,53 +3431,6 @@ int usb_lowlevel_stop(void *hc_data)
 #ifdef DEBUG
 #include  <pmon.h>
 extern unsigned long strtoul(const char *nptr,char **endptr,int base);
-void ohci_dumpreg(struct ohci *ohci)
-{
-	printf(" revision %x\n", readl(&ohci->regs->revision));
-	printf(" control %x\n", readl(&ohci->regs->control));
-  	printf(" cmdstatus %x\n", readl(&ohci->regs->cmdstatus));
-	printf(" intrstatus %x\n",  readl(&ohci->regs->intrstatus));
-	printf(" intrenable %x\n", readl(&ohci->regs->intrenable));
-	printf(" intrdisable %x\n", readl(&ohci->regs->intrdisable));
-
-	printf(" hcca %x\n", readl(&ohci->regs->hcca));
-	printf(" ed_periodcurrent %x\n", readl(&ohci->regs->ed_periodcurrent));
-	printf(" ed_controlhead %x\n",  readl(&ohci->regs->ed_controlhead));
-	printf(" ed_controlcurrent %x\n",  readl(&ohci->regs->ed_controlcurrent));
-	printf(" ed_bulkhead %x\n",  readl(&ohci->regs->ed_bulkhead));
-	printf(" ed_bulkcurrent %x\n",  readl(&ohci->regs->ed_bulkcurrent));
-	printf(" donehead %x\n",  readl(&ohci->regs->donehead));
-
-	printf(" fminterval %x\n", readl(&ohci->regs->fminterval));
-	printf(" fmremaining %x\n",  readl(&ohci->regs->fmremaining));
-	printf(" fmnumber %x\n",  readl(&ohci->regs->fmnumber));
-	printf(" periodicstart %x\n",  readl(&ohci->regs->periodicstart));
-	printf(" lsthresh %x\n", readl(&ohci->regs->lsthresh));
-
-}
-
-void dump_hcca(struct ohci_hcca *hcca)
-{
-	printf("---HCCA---\n");
-	printf(" donehead =%x\n", hcca->done_head);
-}
-
-int ohci_cmd(int ac, char *av[])
-{
-	int sp=0;
-
-	__asm__ __volatile__(
-			"move %0, $29\t\n"
-			:"=r"(sp)
-			);
-	printf("Regbase %x\n", myohci->sc_sh);
-	printf("hcca = %x\n", myohci->hcca);
-	printf("sp = %x\n", sp);
-	ohci_dumpreg(myohci);
-	dump_hcca(myohci->hcca);
-	
-	return 0;
-}
 
 int cmd_setdebug(int ac, char *av[])
 {
@@ -2152,33 +3453,6 @@ int cmd_setdebug(int ac, char *av[])
 	return 0;
 }
 
-int cmd_setwatch(int ac, char *av[])
-{
-	static unsigned long watchaddr;
-	unsigned long addr;
-		
-	if(ac == 1){
-		if(watchaddr){
-			printf("watch address %x\n", watchaddr);
-		}else
-			printf("no watch address defined\n");
-		return 0;
-	}	
-
-	addr = strtoul(av[1], NULL, 16);
-	printf("set watch address %x\n", addr);
-	
-	__asm__ __volatile__(
-			"or %0, %1, 6\n\t"
-			"xor %0, 7\n\t"
-			"mtc0 %0, $18\n\t"
-			"mtc0 $0, $19\n\t"
-			:"=r"(addr)
-			:"r"(addr)
-			);
-	watchaddr = addr;
-	return 0;
-}
 
 static const struct Optdesc ohci_opts [] = {
 	{"ohci controller", "debug" },
@@ -2188,15 +3462,9 @@ static const struct Optdesc ohci_opts [] = {
 
 static const struct Cmd Cmds[] = {
 	{"ohci"},
-	{"ohci", "", 
-		0,
-		"ohci debugger info", ohci_cmd, 1, 99, 0},
 	{"dohci", "",
 		0,
 		"swith debug for ohci driver", cmd_setdebug, 1, 2, 0},
-	{"watch", "",
-		0,
-		"set watch address or disable watch\n", cmd_setwatch, 1, 2, 0},
 	{0, 0},
 };
 
@@ -2208,3 +3476,279 @@ init_cmd()
 	cmdlist_expand(Cmds, 1);	
 }
 #endif
+
+
+//QYL-2008-03-07
+/*===========================================================================
+*
+*FUNTION: hc_check_ohci_controller
+*
+*DESCRIPTION: This function is used to check whether OHCI controller has finished
+*             transfering the TDs except PIPE_INTERRUPT TDs.
+*PARAMETERS:
+*          [IN] hc_data: an all-purpose pointer to be cast to struct ohci*,
+*                        points to the buffer which stores information of ohci.
+*
+*RETURN VALUE: 0 :   indicates that no TDs has been transfered.
+*              stat: indicates that PIPE_INTERRUPT TDs has been transfered and be
+*                    dealed with.
+*                   
+*===========================================================================*/
+static int hc_check_ohci_controller (void *hc_data)
+{
+	ohci_t *ohci = hc_data;
+	struct ohci_regs *regs = ohci->regs;	
+	urb_priv_t *lurb_priv = NULL;    
+	td_t *td = NULL;
+	int ints;
+	int stat = NOTUSBIRQ;
+
+    //QYL-2008-01-29
+    u_int32_t dev_num, ed_num;
+    struct usb_device *p_dev = NULL;
+    ed_t *p_ed = NULL;
+
+	if ((ohci->hcca->done_head != 0) && 
+			!(m32_swap (ohci->hcca->done_head) & 0x01)) {
+		ints =	OHCI_INTR_WDH;
+#ifdef CONFIG_SM502_USB_HCD
+		if(ohci->flags & 0x80)
+		{
+			td = (td_t *)sm502_phystov(ohci, ohci->hcca->done_head);
+		}
+		else
+#endif
+		{
+			td = (td_t *)CACHED_TO_UNCACHED(ohci->hcca->done_head);
+		}
+	} else {
+		ints = readl (&regs->intrstatus);
+		if (ints == ~0ul) 
+			return 0;
+		if (ints == 0)
+			return 0;
+	}
+
+	if (ints & OHCI_INTR_RHSC) {
+		writel(OHCI_INTR_RD | OHCI_INTR_RHSC, &regs->intrstatus);
+		got_rhsc = 1;
+	}
+
+	if (got_rhsc) {
+		int timeout;
+#if 0
+		ohci_dump_roothub (gohci, 1);
+#endif
+		got_rhsc = 0;
+		/* abuse timeout */
+		delay(250);
+		timeout = rh_check_port_status(ohci);
+		if (timeout >= 0) {
+			/*
+			 * XXX
+			 * This is potentially dangerous because it assumes
+			 * that only one device is ever plugged in!
+			 */
+			printf("**hc_check_ohci_controller** device disconnected\n");
+		}
+	}
+
+
+	if (ints & OHCI_INTR_UE) {
+		ohci->disabled++;
+		printf("**hc_check_ohci_controller** Unrecoverable Error, controller usb-%s disabled\n",
+			ohci->slot_name);
+		/* e.g. due to PCI Master/Target Abort */
+#ifdef	DEBUG
+		ohci_dump (ohci, 1);
+#endif
+		/* FIXME: be optimistic, hope that bug won't repeat often. */
+		/* Make some non-interrupt context restart the controller. */
+		/* Count and limit the retries though; either hardware or */
+		/* software errors can go forever... */
+		hc_reset (ohci);
+		ohci->disabled--;
+		return -1;
+	}
+
+	if (ints & OHCI_INTR_WDH) { 
+        
+		if (td == NULL){ 
+#ifdef CONFIG_SM502_USB_HCD
+			if(ohci->flags & 0x80)
+			{
+				td = (td_t *)sm502_phystov(ohci, ohci->hcca->done_head & ~0x1f);
+			}
+			else
+#endif
+			{
+				td = (td_t *)CACHED_TO_UNCACHED(ohci->hcca->done_head & ~0x1f);
+			}
+		}
+
+        if (((td != NULL)&&(bOhciInited == FALSE))||
+           ((td != NULL)&&(bOhciInited == TRUE)&&(td->ed != NULL)))//&&(td->ed->type != PIPE_INTERRUPT)))
+
+        {
+            writel (OHCI_INTR_WDH, &regs->intrdisable);
+            p_dev = td->usb_dev;
+            for(dev_num = 0; dev_num < USB_MAX_DEVICE; dev_num++)
+            {
+                if (p_dev == &usb_dev[dev_num])
+                {
+                    break;
+                }
+            }
+            p_ed = td->ed;
+            ed_num = (p_ed->hwINFO & 0x780) >> 7;//See OHCI1.1 spec Page 17 Endpoint Descriptor Field Definitions
+            lurb_priv= &ohci_urb[dev_num][ed_num];
+
+		    if (td->index != lurb_priv->length -1){           
+			    stat = dl_td_done_list (ohci, dl_reverse_done_list (ohci));
+			    printf("**hc_check_ohci_controller** td index=%x/%x\n", td->index, lurb_priv->length);
+		    } else { 
+			    stat = dl_td_done_list (ohci, dl_reverse_done_list (ohci));
+		    }
+            writel (OHCI_INTR_WDH, &regs->intrenable);
+        }
+	}
+
+	if (ints & OHCI_INTR_SO) {
+		printf("USB Schedule overrun\n");
+		writel (OHCI_INTR_SO, &regs->intrenable);
+		stat = -1;
+	}
+
+	/* FIXME:  this assumes SOF (1/ms) interrupts don't get lost... */
+	if (ints & OHCI_INTR_SF) {
+		unsigned int frame = m16_swap (ohci->hcca->frame_no) & 1;
+		writel (OHCI_INTR_SF, &regs->intrdisable);
+		if (ohci->ed_rm_list[frame] != NULL)
+			writel (OHCI_INTR_SF, &regs->intrenable);
+		stat = 0xff;
+	}
+	writel (ints, &regs->intrstatus);
+	(void)readl(&regs->control);
+
+	return stat;
+}
+
+static void ohci_device_notify(struct usb_device *dev, int port)
+{
+	if(port == 1 && dev->match ){
+		strcpy(((struct device *)dev->match)->dv_xname, "usbg0");
+	}
+}
+
+//QYL-2008-03-07
+/*===========================================================================
+*
+*FUNTION: arouse_usb_int_pipe
+*
+*DESCRIPTION: In some cases,PIPE_INTERRUPT TDs would be corrupted by other TDs,
+*             so this function is used to sumbit the PIPE_INTERRUPT TDs again
+*             to arouse the Interrupt Pipe(for example,to make the USB keypad
+*             work again!).
+*PARAMETERS:
+*          none
+*
+*RETURN VALUE: none
+*                   
+*===========================================================================*/
+void arouse_usb_int_pipe(ohci_t *ohci)
+{
+    if (!ohci->g_pInt_dev || !ohci->g_pInt_urb_priv || !ohci->g_pInt_ed )
+    {
+       return;
+    }
+    if (ohci->g_pInt_dev && ohci->g_pInt_dev->irq_handle) {
+		ohci->g_pInt_dev->irq_status = 0;
+		ohci->g_pInt_dev->irq_act_len = 8;
+		ohci->g_pInt_dev->irq_handle(ohci->g_pInt_dev);
+	}
+
+	ohci->g_pInt_urb_priv->actual_length = 0;
+	ohci->g_pInt_dev->irq_act_len = 0;
+	ohci->g_pInt_ed->hwINFO = ohci->g_pInt_ed->oINFO;
+	ep_link(ohci, ohci->g_pInt_ed);
+    //Ready the next job,espicial for PIPE_INTERRUPT!QYL-2008-02-22
+	td_submit_job(ohci->g_pInt_ed->usb_dev, ohci->g_pInt_urb_priv->pipe, ohci->g_pInt_urb_priv->trans_buffer, ohci->g_pInt_urb_priv->trans_length,(struct devrequest *)ohci->g_pInt_urb_priv->setup_buffer, ohci->g_pInt_urb_priv, ohci->g_pInt_ed->int_interval);
+
+}
+
+/*===========================================================================
+*
+*FUNTION: check_device_sequence
+*
+*DESCRIPTION: This function is used to check the sequence of HID Device(usb keypad)
+*             and Mass Storage Device.
+*PARAMETERS:
+*          none.
+*
+*RETURN VALUE: HIDBeforeMass
+*              0 : indicates that Mass Storage Device is enumerated before 
+*                  HID Device(usb keypad).
+*              1 : indicates that HID device(usb keypad) is enumerated before 
+*                  Mass Storage Device
+*                   
+*===========================================================================*/
+u_int32_t check_device_sequence(ohci_t *pohci)
+{
+
+		u_int32_t HIDBeforeMass = STATE_OTHER;
+		u_int32_t i = 0;
+		struct usb_interface_descriptor *piface;
+		struct usb_device *pdev;    
+
+		for(i = 0; i < USB_MAX_DEVICE; i++)
+		{
+				pdev = pohci->rdev->children[i];
+				if (NULL == pdev)
+				{
+						break;
+				}
+				piface = &pdev->config.if_desc[0];
+				if((piface->bInterfaceClass == USB_CLASS_HID) 
+								&& (piface->bInterfaceSubClass == USB_SUB_HID_BOOT) 
+								&& (piface->bInterfaceProtocol == USB_PROT_HID_KEYBOARD))//Device HID(keypad)
+								{
+										HIDBeforeMass = FALSE;
+								}
+				if (piface->bInterfaceClass == USB_CLASS_MASS_STORAGE)//Device Mass storage
+				{
+						HIDBeforeMass = TRUE;
+				}
+		}
+		return HIDBeforeMass;
+}
+
+
+
+/*
+ * This is a hack to usb, best to avoid do this ---yanhua 
+ */
+u_int32_t usb_kbd_exist(ohci_t *pohci)
+{
+	struct usb_interface_descriptor *piface;
+	struct usb_device *pdev = NULL; 
+	int i = 0;
+
+	for(i = 0; i < USB_MAX_DEVICE; i++)
+	{
+		pdev = pohci->rdev->children[i];
+		if (NULL == pdev)
+		{
+				break;
+		}
+		piface = &pdev->config.if_desc[0];
+		if((piface->bInterfaceClass == USB_CLASS_HID)
+				&& (piface->bInterfaceSubClass == USB_SUB_HID_BOOT) 
+				&& (piface->bInterfaceProtocol == USB_PROT_HID_KEYBOARD))//Device HID(keypad)
+				{
+					myohci = pohci;
+					return TRUE;
+				}        
+	}
+
+	return FALSE;
+}

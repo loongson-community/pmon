@@ -95,3 +95,12 @@ device  rtk: ether, ifnet
 attach  rtk at pci
 file    sys/dev/pci/rtl8169.c         rtk
 
+device  ste: ether, ifnet
+attach  ste at pci
+file    sys/dev/pci/sundance.c         ste
+
+# PCI-SATA driver added by zgj
+device  atp {[channel = -1]}: wdc_base, ata, atapi, ide
+attach  atp at pci 
+file    sys/dev/pci/atpsata.c           atp needs-flag
+

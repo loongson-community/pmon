@@ -1632,6 +1632,7 @@ rtl8169_init_board(struct rtl8169_private *tp, struct pci_attach_args *pa)
 
 }
 
+static struct rtl8169_private* myRTL = NULL; 
 static int rtl8169_open(struct rtl8169_private *tp);
 
 static int
@@ -1688,6 +1689,27 @@ rtl8169_ether_ioctl(struct ifnet *ifp, unsigned long cmd, caddr_t data)
 		}
 		break;
 
+        case SIOCETHTOOL:
+        {
+        long *p=data;
+        myRTL = sc;
+        cmd_setmac(p[0],p[1]);
+        }
+        break;
+       case SIOCRDEEPROM:
+                {
+                long *p=data;
+                myRTL = sc;
+                cmd_reprom(p[0],p[1]);
+                }
+                break;
+       case SIOCWREEPROM:
+                {
+                long *p=data;
+                myRTL = sc;
+                cmd_wrprom(p[0],p[1]);
+                }
+                break;
 	default:
 		RTLDBG; 
 		error = EINVAL;
@@ -1739,7 +1761,6 @@ static int rtl8169_set_hard_speed(struct rtl8169_private *tp,
 }
 
 
-static struct rtl8169_private* myRTL = NULL; 
 
 static void 
 r8169_attach(struct device * parent, struct device * self, void *aux)
@@ -2982,7 +3003,7 @@ rtl8169_set_rx_mode(struct rtl8169_private *tp)
 
 #if	1 
 #include <pmon.h>
-int cmd_ifm(int ac, char *av[])
+static int cmd_ifm(int ac, char *av[])
 {
 	unsigned short fullduplex = 0;
     unsigned short speed1000 = 0;
@@ -3046,7 +3067,73 @@ REMIND:
        return 0;		
 }
 
-int cmd_setmac(int ac, char *av[])
+#if 1
+static unsigned long next = 1;
+
+           /* RAND_MAX assumed to be 32767 */
+static int myrand(void) {
+               next = next * 1103515245 + 12345;
+               return((unsigned)(next/65536) % 32768);
+           }
+
+static void mysrand(unsigned int seed) {
+               next = seed;
+           }
+#endif
+
+static int cmd_wrprom(int ac, char *av[])
+{
+        int i;
+        unsigned long clocks_num=0;
+unsigned short data;
+static unsigned char rom[]={
+/*00000000:*/0x29,0x81,0xec,0x10,0x69,0x81,0xec,0x10,0x69,0x81,0x20,0x40,0x01,0xa1,0x00,0xe0,
+/*00000010:*/0x4c,0x67,0x10,0x51,0x15,0xcd,0xc2,0xf7,0x00,0x80,0x00,0x00,0x00,0x00,0x00,0x13,
+/*00000020:*/0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+/*00000030:*/0x00,0x00,0xd7,0x7e,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x20,
+/*00000040:*/0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+/*00000050:*/0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+/*00000060:*/0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+/*00000070:*/0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
+	
+        if(!myRTL){
+                printf("8169 interface not initialized\n");
+                return 0;
+        }
+
+#if 1
+                clocks_num =CPU_GetCOUNT();
+                mysrand(clocks_num);
+                for( i = 0; i < 4;i++ )
+                {
+                        rom[0x8*2 + i]=myrand()%256;
+                        printf( " rom[%d]=02x%x\n", (0x8*2+i),rom[0x8*2+i]);
+                }
+#endif
+
+	for(i=0;i<0x40;i++)
+	{
+	while(1){
+#ifndef EPLC46
+		data = read_eeprom(myRTL,  i);
+#else
+		data = read_eeprom(myRTL, 2*i);
+		data = data | (read_eeprom(myRTL,2*i+1)) << 8;
+#endif
+if(data==((rom[2*i+1]<<8)|rom[2*i]))break;
+printf("program %02x:%04x\n",2*i,(rom[2*i+1]<<8)|rom[2*i]);
+#ifndef EPLC46
+		rtl8169_write_eeprom(myRTL->ioaddr, i, (rom[2*i+1]<<8)|rom[2*i]);
+#else 
+		rtl8169_write_eeprom8(myRTL->ioaddr, i*2, rom[2*i] );
+		rtl8169_write_eeprom8(myRTL->ioaddr, i*2+1, rom[2*i+1]);
+#endif
+};
+	}
+	printf("The whole eeprom have been programmed!\n");
+}
+
+static int cmd_setmac(int ac, char *av[])
 {
 	int i;
 	unsigned short val = 0, v;
@@ -3113,7 +3200,7 @@ printf("program %02x:%04x\n",2*i,(rom[2*i+1]<<8)|rom[2*i]);
 	return 0;
 }
 
-int cmd_reprom(int ac, char *av)
+static int cmd_reprom(int ac, char *av)
 {
 	int i;
 	unsigned short data;	
@@ -3133,7 +3220,7 @@ int cmd_reprom(int ac, char *av)
 	}
 	return 0;
 }
-void cmd_set_frequency(int ac, char *av[])
+static void cmd_set_frequency(int ac, char *av[])
 {
     char* par[] = {"1000", "100","1","0",};
     
@@ -3161,7 +3248,7 @@ void cmd_set_frequency(int ac, char *av[])
     return;
 }
 
-int cmd_set_8110()
+static int cmd_set_8110()
 				  
 {
 	int auto_nego, giga_ctrl;
@@ -3206,7 +3293,7 @@ int cmd_set_8110()
 }
 
 int db8169 = 0;
-int netdmp_cmd (int ac, char *av[])
+static int netdmp_cmd (int ac, char *av[])
 {
 	struct ifnet *ifp;
 	int i;
@@ -3266,8 +3353,10 @@ static const Cmd Cmds[] =
 		    "Set 8169 interface mode", cmd_ifm, 1, 2, 0},
 	{"setmac", "", NULL,
 		    "Set mac address into 8169 eeprom", cmd_setmac, 1, 5, 0},
-	{"reprom", "", NULL,
+	{"readrom", "", NULL,
 			"dump rtl8169 eprom content", cmd_reprom, 1, 1,0},
+	{"writerom", "", NULL,
+			"dump rtl8169 eprom content", cmd_wrprom, 1, 1,0},
     {"r8169dump", "", NULL, "dump rtl8169 parameters", netdmp_cmd, 1, 2, 0},
     {"r8110_reneo","",NULL, "set re-auto xx of rtl 8110 phy", cmd_set_8110,1,2,0},
     {"r8110_speed","",NULL, "disable/enable 8110 ifaddr config retry for 1000M/100M", cmd_set_frequency,1,3,0},

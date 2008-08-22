@@ -89,6 +89,7 @@ tgt_printf (const char *fmt, ...)
 #include "mod_framebuffer.h"
 #include "mod_smi712.h"
 #include "mod_smi502.h"
+#include "mod_sisfb.h"
 #if PCI_IDSEL_CS5536 != 0
 #include <include/cs5536.h>
 #endif
@@ -496,6 +497,7 @@ tgt_devconfig()
 	rc = radeon_init();
 #endif
 #if NMOD_FRAMEBUFFER > 0
+	vga_available=0;
 	if(!vga_dev) {
 		printf("ERROR !!! VGA device is not found\n"); 
 		rc = -1;
@@ -507,6 +509,9 @@ tgt_devconfig()
 		fbaddress = fbaddress &0xffffff00; //laster 8 bit
 		ioaddress = ioaddress &0xfffffff0; //laster 4 bit
 
+#if NMOD_SISFB
+		fbaddress=sisfb_init_module();
+#endif
 		printf("fbaddress 0x%x\tioaddress 0x%x\n",fbaddress, ioaddress);
 
 #if NMOD_SMI712 > 0

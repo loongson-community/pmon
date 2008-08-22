@@ -52,13 +52,29 @@
 #include "usb.h"
 #include "devices.h"
 
-#define USB_KBD_DEBUG
+#undef USB_KBD_DEBUG
 //#define USB_KBD_DEBUG
 /*
  * if overwrite_console returns 1, the stdin, stderr and stdout
  * are switched to the serial port, else the settings in the
  * environment are used
  */
+
+#define MAX_USB_KBD 4
+struct usb_device *kbd_dev[MAX_USB_KBD+1];
+static int kbd_index=0;
+
+static inline int usbdev_to_index(struct usb_device *dev)
+{
+	int i;
+
+	for(i=0; i<MAX_USB_KBD; i++)
+	{
+		if(dev == kbd_dev[i])
+			return i;
+	}
+	return i;
+}
 
 static void * memscan(void * addr, int c, size_t size)
 {
@@ -116,9 +132,9 @@ static volatile int usb_out_pointer = 0;
 
 extern int usb_kbd_available;
 
-static volatile unsigned char _new[32] __attribute__((section(".bss"),aligned(128)));
-volatile unsigned char *new;
-unsigned char old[8];
+static volatile unsigned char _new[MAX_USB_KBD][32] __attribute__((section(".bss"),aligned(128)));
+volatile unsigned char *new[MAX_USB_KBD];
+unsigned char old[MAX_USB_KBD][8];
 int repeat_delay;
 #define DEVNAME "usbkbd"
 static unsigned char num_lock = 0;
@@ -328,24 +344,66 @@ static int usb_kbd_translate(unsigned char scancode,unsigned char modifier,int p
 		else /* non shifted */
 			keycode=usb_kbd_numkey[scancode-0x1e];
 	}
-	if(scancode >= 0x4f && scancode <=0x52){
-		switch(scancode){
-			case 0x52:
-				SEND_ESC_SEQ('A');
+
+	if((scancode>=0x59) && (scancode<=0x62)) {
+		if(num_lock)
+			keycode=usb_kbd_numkey[scancode-0x59];
+		else {
+			switch(scancode) {
+			case 0x60:
+				scancode = 0x52;
 				break;
-			case 0x51:
-				SEND_ESC_SEQ('B');
-			   	break;
-			case 0x50:
-				SEND_ESC_SEQ('D');
+			case 0x5a:
+				scancode = 0x51;
 				break;
-			case 0x4f:
-				SEND_ESC_SEQ('C');
+			case 0x5c:
+				scancode = 0x50;
+				break;
+			case 0x5e:
+				scancode = 0x4f;
 				break;
 			default:
 				break;
-		}		
+			}
+		}
 	}
+
+	switch(scancode){
+		case 0x52:
+			SEND_ESC_SEQ('A'); /*Direction key, UP*/
+			break;
+		case 0x51:             /*Down*/
+			SEND_ESC_SEQ('B');
+			break;
+		case 0x50:		       /*Left*/
+			SEND_ESC_SEQ('D');
+			break;
+		case 0x4f:             /*Right*/
+			SEND_ESC_SEQ('C');
+			break;
+		case 0x4c: /*Fall through*/
+		case 0x63: /*small key*/
+			SEND_ESC_SEQ('G'); /*Delete key*/
+			break;
+		case 0x54: /*small '/' */
+			keycode = '/';
+			break;
+		case 0x55:
+			keycode = '*';
+			break;
+		case 0x56:
+			keycode = '-';
+			break;
+		case 0x57:
+			keycode = '+';
+			break;
+		case 0x58:
+			keycode = '\r';
+			break;
+		default:
+			break;
+	}		
+
 	if(pressed==1) {
 		if(scancode==NUM_LOCK) {
 			num_lock=~num_lock;
@@ -371,26 +429,31 @@ static int usb_kbd_translate(unsigned char scancode,unsigned char modifier,int p
 static int usb_kbd_irq(struct usb_device *dev)
 {
 	int i,res;
+	int k_index=0;
 
 	if((dev->irq_status!=0)||(dev->irq_act_len!=8))
 	{
 		USB_KBD_PRINTF("usb_keyboard Error %lX, len %d\n",dev->irq_status,dev->irq_act_len);
 		return 1;
 	}
+
+	k_index = usbdev_to_index(dev);
+	if(k_index >= MAX_USB_KBD)
+		return 1;
 	res=0;
 	for (i = 2; i < 8; i++) {
-		if (old[i] > 3 && memscan(&new[2], old[i], 6) == &new[8]) {
-			res|=usb_kbd_translate(old[i],new[0],0);
+		if (old[i] > 3 && memscan(&new[k_index][2], old[k_index][i], 6) == &new[k_index][8]) {
+			res|=usb_kbd_translate(old[k_index][i],new[k_index][0],0);
 		}
-		if (new[i] > 3 && memscan(&old[2], new[i], 6) == &old[8]) {
-			res|=usb_kbd_translate(new[i],new[0],1);
+		if (new[k_index][i] > 3 && memscan(&old[k_index][2], new[k_index][i], 6) == &old[k_index][8]) {
+			res|=usb_kbd_translate(new[k_index][i],new[k_index][0],1);
 		}
 	}
-	if((new[2]>3) && (old[2]==new[2])) /* still pressed */
-		res|=usb_kbd_translate(new[2],new[0],2);
+	if((new[k_index][2]>3) && (old[k_index][2]==new[k_index][2])) /* still pressed */
+		res|=usb_kbd_translate(new[k_index][2],new[k_index][0],2);
 	if(res==1)
 		usb_kbd_setled(dev);
-	memcpy(&old[0],&new[0], 8);
+	memcpy(&old[k_index][0],&new[k_index][0], 8);
 
 	return 1; /* install IRQ Handler again */
 }
@@ -401,6 +464,7 @@ static int usb_kbd_probe(struct usb_device *dev, unsigned int ifnum)
 	struct usb_interface_descriptor *iface;
 	struct usb_endpoint_descriptor *ep;
 	int pipe,maxp;
+	int k_index;
 
 	if (dev->descriptor.bNumConfigurations != 1) return 0;
 	iface = &dev->config.if_desc[ifnum];
@@ -410,9 +474,18 @@ static int usb_kbd_probe(struct usb_device *dev, unsigned int ifnum)
 	if (iface->bInterfaceProtocol != 1) return 0;
 	if (iface->bNumEndpoints != 1) return 0;
 
-	memset(_new, 0, sizeof(_new));
-	pci_sync_cache(0, (vm_offset_t)_new, sizeof(_new), SYNC_W);
-	new = (volatile unsigned char *)CACHED_TO_UNCACHED(&_new);
+	/* Now probed a usb kbd */
+	if(kbd_index >= MAX_USB_KBD -1) {
+		printf("Waring!! too much kbd attached\n");
+		return 0;
+	}
+	kbd_dev[kbd_index] = dev;
+	memset(_new[kbd_index], 0, sizeof(_new[kbd_index]));
+	pci_sync_cache(0, (vm_offset_t)_new[kbd_index], sizeof(_new[kbd_index]), SYNC_W);
+	new[kbd_index] = (volatile unsigned char *)CACHED_TO_UNCACHED(&_new[kbd_index]);
+
+	k_index = kbd_index;
+	kbd_index ++;
 	
 	ep = &iface->ep_desc[0];
 
@@ -424,15 +497,14 @@ static int usb_kbd_probe(struct usb_device *dev, unsigned int ifnum)
 	usb_set_protocol(dev, iface->bInterfaceNumber, 0);
 	USB_KBD_PRINTF("USB KBD found set idle...\n");
 	usb_set_idle(dev, iface->bInterfaceNumber, REPEAT_RATE, 0);
-	memset(&new[0], 0, 8);
-	memset(&old[0], 0, 8);
+	memset(&new[k_index][0], 0, 8);
+	memset(&old[k_index][0], 0, 8);
 	repeat_delay=0;
 	pipe = usb_rcvintpipe(dev, ep->bEndpointAddress);
 	maxp = usb_maxpacket(dev, pipe);
 	dev->irq_handle= usb_kbd_irq;
 	USB_KBD_PRINTF("USB KBD enable interrupt pipe...\n");
-	usb_submit_int_msg(dev,pipe,&new[0], maxp > 8 ? 8 : maxp,ep->bInterval);
-	if(!getenv("nokbd"))
+	usb_submit_int_msg(dev,pipe,&new[k_index][0], maxp > 8 ? 8 : maxp,ep->bInterval);
 	usb_kbd_available  = 1;
 	return 1;
 }

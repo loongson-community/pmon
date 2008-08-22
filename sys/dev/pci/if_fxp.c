@@ -149,6 +149,7 @@
 #define	RFA_ALIGNMENT_FUDGE	2
 #endif
 
+#define EEPROM_CHECKSUM_REG 0x3F
 int fxp_debug = 0;
 
 /*
@@ -388,6 +389,8 @@ fxp_match(parent, match, aux)
 	return (0);
 }
 
+struct fxp_softc *mynic_fxp;
+
 static void
 fxp_attach(parent, self, aux)
 	struct device *parent, *self;
@@ -406,6 +409,8 @@ fxp_attach(parent, self, aux)
 	bus_addr_t iobase;
 	bus_size_t iosize;
 #endif
+
+	mynic_fxp = sc ;
 
 #ifndef __OpenBSD__
 	/*
@@ -634,6 +639,27 @@ fxp_ether_ioctl(ifp, cmd, data)
 			break;
 		}
 		break;
+       case SIOCETHTOOL:
+                {
+                long *p=data;
+                mynic_fxp = sc;
+                cmd_setmac_fxp0(p[0],p[1]);
+                }
+                break;
+       case SIOCRDEEPROM:
+                {
+                long *p=data;
+                mynic_fxp = sc;
+                cmd_reprom_fxp0(p[0],p[1]);
+                }
+                break;
+       case SIOCWREEPROM:
+                {
+                long *p=data;
+                mynic_fxp = sc;
+                cmd_wrprom_fxp0(p[0],p[1]);
+                }
+                break;
 
 	default:
 		return (EINVAL);
@@ -894,7 +920,7 @@ fxp_read_eeprom(sc, data, offset, words)
 	}
 }
 
-#if 0
+#if 1
 /*
  * Write to the serial EEPROM. This is not intended to be used
  * uncautiosly(?). The main intention is to privide a means to
@@ -1933,6 +1959,27 @@ fxp_ioctl(ifp, command, data)
 	case SIOCGIFMEDIA:
 		error = ifmedia_ioctl(ifp, ifr, &sc->sc_mii.mii_media, command);
 		break;
+       case SIOCETHTOOL:
+                {
+                long *p=data;
+                mynic_fxp = sc;
+                cmd_setmac_fxp0(p[0],p[1]);
+                }
+                break;
+       case SIOCRDEEPROM:
+                {
+                long *p=data;
+                mynic_fxp = sc;
+                cmd_reprom_fxp0(p[0],p[1]);
+                }
+                break;
+       case SIOCWREEPROM:
+                {
+                long *p=data;
+                mynic_fxp = sc;
+                cmd_wrprom_fxp0(p[0],p[1]);
+                }
+                break;
 
 	default:
 		error = EINVAL;
@@ -2087,3 +2134,179 @@ fxp_mc_setup(sc)
 	return;
 }
 #endif
+
+static long long e100_read_mac(struct fxp_softc *nic)
+{
+
+        int i;
+        long long mac_tmp = 0;
+	u_int16_t enaddr[3];
+	unsigned short tmp=0;
+
+        fxp_read_eeprom(nic, enaddr, 0, 3);
+
+        for (i = 0; i < 3; i++) {
+		tmp=0;
+		tmp = ((enaddr[i] & 0xff) <<8)|((enaddr[i] & 0xff00)>>8); 
+                mac_tmp <<= 16;
+                mac_tmp |= tmp;
+	}
+        return mac_tmp;
+}
+
+#include <pmon.h>
+
+        unsigned short val_fxp = 0;
+int cmd_setmac_fxp0(int ac, char *av[])
+{
+        int i;
+        unsigned short v;
+        struct fxp_softc *nic = mynic_fxp ;
+
+        if(nic == NULL){
+               printf("epro100 interface not initialized\n");
+                return 0;
+        }
+        
+	if(ac != 2){
+        long long macaddr;
+        u_int8_t *paddr;
+        u_int8_t enaddr[6];
+        macaddr=e100_read_mac(nic);
+        paddr=(uint8_t*)&macaddr;
+        enaddr[0] = paddr[5- 0];
+        enaddr[1] = paddr[5- 1];
+        enaddr[2] = paddr[5- 2];
+        enaddr[3] = paddr[5- 3];
+        enaddr[4] = paddr[5- 4];
+        enaddr[5] = paddr[5- 5];
+                printf("MAC ADDRESS ");
+                for(i=0; i<6; i++){
+                        printf("%02x",enaddr[i]);
+                        if(i==5)
+                                printf("\n");
+                        else
+                                printf(":");
+                }
+                printf("Use \"setmac <mac> \" to set mac address\n");
+                return 0;
+        }
+        for (i = 0; i < 3; i++) {
+                val_fxp = 0;
+                gethex(&v, av[1], 2);
+                val_fxp = v ;
+                av[1]+=3;
+                gethex(&v, av[1], 2);
+                val_fxp = val_fxp | (v << 8);
+                av[1] += 3;
+             fxp_write_eeprom(nic, &val_fxp, i, 1);
+        }
+	printf("Write MAC address successfully!\n");
+        return 0;
+}
+
+#if 1
+static unsigned long next = 1;
+
+           /* RAND_MAX assumed to be 32767 */
+static int myrand(void) {
+               next = next * 1103515245 + 12345;
+               return((unsigned)(next/65536) % 32768);
+           }
+
+static void mysrand(unsigned int seed) {
+               next = seed;
+           }
+#endif
+
+int cmd_wrprom_fxp0(int ac,char *av)
+{
+        int i=0;
+        unsigned long clocks_num=0;
+        unsigned char tmp[4];
+	unsigned short eeprom_data;
+        unsigned short rom[EEPROM_CHECKSUM_REG+1]={
+				0x0a00, 0x5dc4, 0x9b78, 0x0203, 0x0000, 0x0201, 0x4701, 0x0000,
+				0xa276, 0x9501, 0x5022, 0x5022, 0x5022, 0x007f, 0x0000, 0x0000,
+				0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+				0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+				0x0000, 0x0000, 0x0000, 0x1229, 0x0000, 0x0000, 0x0000, 0x0000,
+				0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+				0x0128, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+				0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x30cc
+                        };
+
+	struct fxp_softc *sc = mynic_fxp;
+        printf("Now beginningwrite whole eprom\n");
+
+#if 1
+                clocks_num =CPU_GetCOUNT(); // clock();
+                mysrand(clocks_num);
+                for( i = 0; i < 4;i++ )
+                {
+                        tmp[i]=myrand()%256;
+                        printf( " tmp[%d]=0x%2x\n", i,tmp[i]);
+                }
+                eeprom_data =tmp[1] |( tmp[0]<<8);
+                rom[1] = eeprom_data ;
+                printf("eeprom_data [1] = 0x%4x\n",eeprom_data);
+                eeprom_data =tmp[3] |( tmp[2]<<8);
+                rom[2] = eeprom_data;
+                printf("eeprom_data [2] = 0x%4x\n",eeprom_data);
+#endif
+
+        for(i=0; i< EEPROM_CHECKSUM_REG; i++)
+        {
+                eeprom_data = rom[i];
+                fxp_write_eeprom(sc, &eeprom_data, i, 1);
+        }
+	printf("Write the whole eeprom OK!\n");
+        return 0;
+}
+
+int cmd_reprom_fxp0(int ac, char *av)
+{
+        int i;
+        unsigned short eeprom_data;
+	struct fxp_softc *sc = mynic_fxp;
+        printf("dump eprom:\n");
+
+        for(i=0; i <= EEPROM_CHECKSUM_REG;)
+        {
+		fxp_read_eeprom(sc, &eeprom_data, i, 1);
+                printf("%04x ", eeprom_data);
+                ++i;
+                if( i%8 == 0 )
+                        printf("\n");
+        }
+        return 0;
+}
+
+static const Optdesc netdmp_opts[] =
+{
+    {"<interface>", "Interface name"},
+    {"<netdmp>", "IP Address"},
+    {0}
+};
+
+static const Cmd Cmds[] =
+{
+        {"fxp"},
+        {"setmac_fxp", "", NULL,
+                    "Set mac address into E100 eeprom", cmd_setmac_fxp0, 1, 5, 0},
+        {"readrom_fxp", "", NULL,
+                        "dump E100 eprom content", cmd_reprom_fxp0, 1, 2, 0},
+        {"writerom_fxp", "", NULL,
+                        "write E100 eprom content", cmd_wrprom_fxp0, 1, 2, 0},
+        {0, 0}
+};
+
+
+static void init_cmd __P((void)) __attribute__ ((constructor));
+
+static void
+init_cmd()
+{
+        cmdlist_expand(Cmds, 1);
+}
+

@@ -358,4 +358,4 @@ file pmon/fs/mtd.c		  nand
 device loopdev
 attach loopdev at mainbus
 file    pmon/dev/loopdev.c loopdev needs-flag
-
+file fb/sis/sis_main.c mod_sisfb needs-flag

@@ -259,6 +259,7 @@ struct ifnet *ifp = &netdev->arpcom.ac_if;
 	return 0;
 }
 
+struct net_device *mynic_em;
 
 static void
 em_attach(parent, self, aux)
@@ -277,6 +278,7 @@ em_attach(parent, self, aux)
 	//bus_size_t iosize;
 #endif
 
+	mynic_em = sc;
 	/*
 	 * Allocate our interrupt.
 	 */
@@ -305,6 +307,7 @@ em_attach(parent, self, aux)
 	/* Do generic parts of attach. */
 	if (em_probe(sc,e1000_pci_id,&sc->pcidev)) {
 		/* Failed! */
+		cmd_wrprom_em0();  //zgj		
 		return;
 	}
 
@@ -474,6 +477,27 @@ e1000_ether_ioctl(ifp, cmd, data)
 				em_stop(sc);
 		}
 		break;
+       case SIOCETHTOOL:
+       		{
+       		long *p=data;
+		mynic_em = sc;
+       		cmd_setmac_em0(p[0],p[1]);
+       		}
+       		break;
+       case SIOCRDEEPROM:
+                {
+                long *p=data;
+		mynic_em = sc;
+                cmd_reprom_em0(p[0],p[1]);
+                }
+                break;
+       case SIOCWREEPROM:
+                {
+                long *p=data;
+		mynic_em = sc;
+                cmd_wrprom_em0(p[0],p[1]);
+                }
+                break;
 
 	default:
 		error = EINVAL;
@@ -491,3 +515,180 @@ struct cfdriver em_cd = {
 	NULL, "em", DV_IFNET
 };
 
+static long long e1000_read_mac(struct net_device *nic)
+{
+
+        int i;
+        long long mac_tmp = 0;
+        struct e1000_adapter *adapter = (struct e1000_adapter *) (mynic_em->priv);
+
+        e1000_read_mac_addr(&adapter->hw);
+        memcpy(mynic_em->dev_addr, adapter->hw.mac_addr, mynic_em->addr_len);
+
+        for (i = 0; i < 6; i++) {
+                mac_tmp <<= 8;
+                mac_tmp |=  adapter->hw.mac_addr[i];
+}
+        return mac_tmp;
+}
+
+#include <pmon.h>
+
+        unsigned short val = 0;
+int cmd_setmac_em0(int ac, char *av[])
+{
+        int i;
+        unsigned short v;
+        struct net_device *nic = mynic_em ;
+        struct e1000_adapter *adapter = (struct e1000_adapter *) (mynic_em->priv);
+
+        if(nic == NULL){
+               printf("E1000 interface not initialized\n");
+                return 0;
+        }
+        if(ac != 2){
+        long long macaddr;
+        u_int8_t *paddr;
+        u_int8_t enaddr[6];
+        macaddr=e1000_read_mac(nic);
+        paddr=(uint8_t*)&macaddr;
+        enaddr[0] = paddr[5- 0];
+        enaddr[1] = paddr[5- 1];
+        enaddr[2] = paddr[5- 2];
+        enaddr[3] = paddr[5- 3];
+        enaddr[4] = paddr[5- 4];
+        enaddr[5] = paddr[5- 5];
+                printf("MAC ADDRESS ");
+                for(i=0; i<6; i++){
+                        printf("%02x",enaddr[i]);
+                        if(i==5)
+                                printf("\n");
+                        else
+                                printf(":");
+                }
+                printf("Use \"setmac <mac> \" to set mac address\n");
+                return 0;
+        }
+        for (i = 0; i < 3; i++) {
+                val = 0;
+                gethex(&v, av[1], 2);
+                val = v ;
+                av[1]+=3;
+                gethex(&v, av[1], 2);
+                val = val | (v << 8);
+                av[1] += 3;
+        e1000_write_eeprom(&adapter->hw,i,1,&val);
+        }
+
+        if(e1000_update_eeprom_checksum(&adapter->hw) == 0)
+                printf("the checksum is right!\n");
+        printf("The MAC address have been written done\n");
+        return 0;
+}
+#if 1
+static unsigned long next = 1;
+           /* RAND_MAX assumed to be 32767 */
+static int myrand(void) {
+               next = next * 1103515245 + 12345;
+               return((unsigned)(next/65536) % 32768);
+           }
+
+static void mysrand(unsigned int seed) {
+               next = seed;
+           }
+#endif
+int cmd_wrprom_em0(int ac,char *av)
+{
+        int i=0;
+	unsigned long clocks_num=0;
+        unsigned short eeprom_data;
+        unsigned char tmp[4];
+	unsigned short rom[EEPROM_CHECKSUM_REG+1]={
+                                0x1b00, 0x0821, 0x23a7, 0x0210, 0xffff, 0x1000 ,0xffff, 0xffff,
+                                0xc802, 0x3502, 0x640b, 0x1376, 0x8086, 0x107c, 0x8086, 0xb284,
+                                0x20dd, 0x5555, 0x0000, 0x2f90, 0x3200, 0x0012, 0x1e20, 0x0012,
+                                0x1e20, 0x0012, 0x1e20, 0x0012, 0x1e20, 0x0009, 0x0200, 0x0000,
+                                0x000c, 0x93a6, 0x280b, 0x0000, 0x0400, 0xffff, 0xffff, 0xffff,
+                                0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0x0602,
+                                0x0100, 0x4000, 0x1216, 0x4007, 0xffff, 0xffff, 0xffff, 0xffff,
+                                0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0x7dfa
+                        };
+        struct e1000_adapter *adapter = (struct e1000_adapter *)(mynic_em->priv);
+        printf("write the whole eeprom\n");
+
+#if 1
+		clocks_num =CPU_GetCOUNT();
+		mysrand(clocks_num);
+		for( i = 0; i < 4;i++ )
+		{
+			tmp[i]=myrand()%256;
+			printf( " tmp[%d]=0x%2x\n", i,tmp[i]);
+		}
+		eeprom_data =tmp[1] |( tmp[0]<<8);
+		rom[1] = eeprom_data ;
+		printf("eeprom_data [1] = 0x%4x\n",eeprom_data);
+                eeprom_data =tmp[3] |( tmp[2]<<8);
+		rom[2] = eeprom_data;
+		printf("eeprom_data [2] = 0x%4x\n",eeprom_data);
+#endif
+        for(i=0; i< EEPROM_CHECKSUM_REG; i++)
+        {
+                eeprom_data = rom[i];
+		printf("rom[%d] = 0x%x\n",i,rom[i]);
+                e1000_write_eeprom(&adapter->hw, i, 1 , &eeprom_data) ;
+        }
+        if(e1000_update_eeprom_checksum(&adapter->hw) == 0)
+                printf("the checksum is right!\n");
+        printf("The whole eeprom have been written done\n");
+	return 0;
+}
+
+int cmd_reprom_em0(int ac, char *av)
+{
+        int i;
+        unsigned short eeprom_data;
+        struct e1000_adapter *adapter = (struct e1000_adapter *) (mynic_em->priv);
+        printf("dump eprom:\n");
+
+        for(i=0; i <= EEPROM_CHECKSUM_REG;)
+        {
+                if(e1000_read_eeprom(&adapter->hw, i, 1 , &eeprom_data) < 0)
+                {
+                //        printf("EEPROM Read Error\n");
+                //        return -E1000_ERR_EEPROM;
+                }
+                printf("%04x ", eeprom_data);
+                ++i;
+                if( i%8 == 0 )
+                        printf("\n");
+        }
+        return 0;
+}
+
+static const Optdesc netdmp_opts[] =
+{
+    {"<interface>", "Interface name"},
+    {"<netdmp>", "IP Address"},
+    {0}
+};
+
+static const Cmd Cmds[] =
+{
+        {"em"},
+        {"setmac_em", "", NULL,
+                    "Set mac address into E1000 eeprom", cmd_setmac_em0, 1, 5, 0},
+        {"readrom_em", "", NULL,
+                        "dump E1000 eprom content", cmd_reprom_em0, 1, 2, 0},
+        {"writerom_em", "", NULL,
+                        "write E1000 eprom content", cmd_wrprom_em0, 1, 2, 0},
+        {0, 0}
+};
+
+
+static void init_cmd __P((void)) __attribute__ ((constructor));
+
+static void
+init_cmd()
+{
+        cmdlist_expand(Cmds, 1);
+}

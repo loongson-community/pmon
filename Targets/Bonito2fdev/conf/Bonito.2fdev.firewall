@@ -146,12 +146,14 @@ em*        at pci? dev ? function ?
 #select 	 	mod_usb_ohci
 #select      mod_usb_kbd
 
+atp*           at pci? dev ? function ?  #sata atp8620
 
 #### IDE controllers
 pciide* 	at pci ? dev ? function ? flags 0x0000
 
 #### IDE hard drives
 wd*		at pciide? channel ? drive ? flags 0x0000
+wd*		at atp? channel ? drive ? flags 0x0000
 
 #### Pseudo devices
 pseudo-device	loop	1	# network loopback
