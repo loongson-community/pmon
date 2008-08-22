@@ -152,7 +152,7 @@ em*		at pci? dev ? function ? 	#intel 82541 device
 
 #### IDE controllers
 pciide* 	at pci ? dev ? function ? flags 0x0000
-sata*           at pci? dev ? function ?  #atp8620
+atp*           at pci? dev ? function ?  #sata atp8620
 #### IDE hard drives
 wd*		at pciide? channel ? drive ? flags 0x0000
 

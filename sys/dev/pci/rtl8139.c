@@ -1105,7 +1105,7 @@ rtl8139_attach_common(struct nic *nic, u_int8_t *enaddr)
 	unsigned long long macaddr;
 	u_int8_t *paddr;
 	int i;
-
+printf("\n rtl8139_attach_common\n");
 	/* 
 	 * Reset the chip
 	 */
@@ -1121,6 +1121,7 @@ rtl8139_attach_common(struct nic *nic, u_int8_t *enaddr)
 	 */
 	macaddr=rtl_read_mac(nic);
 	paddr=(uint8_t*)&macaddr;
+
 #ifdef USE_ENVMAC 
 	{
 		int i;
@@ -1186,9 +1187,8 @@ rtl8139_attach_common(struct nic *nic, u_int8_t *enaddr)
 	enaddr[3] = paddr[5- 3];
 	enaddr[4] = paddr[5- 4];
 	enaddr[5] = paddr[5- 5];
-#endif
 
-	
+#endif	
 	return (0);
 }
 

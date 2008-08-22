@@ -100,7 +100,7 @@ attach  ste at pci
 file    sys/dev/pci/sundance.c         ste
 
 # PCI-SATA driver added by zgj
-device  sata
-attach  sata at pci
-file    sys/dev/pci/pcisata.c           sata
+device  atp
+attach  atp at pci with atp
+file    sys/dev/pci/atpsata.c           atp needs-flag
 

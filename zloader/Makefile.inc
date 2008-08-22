@@ -63,7 +63,7 @@ rom: clean ${START} zloader.o
 ram: clean startram.o zloader.o 
 	gcc -DSTARTADDR=${GZROMSTARTADDR} -E -P ld.script.S > ld.script
 	mips-elf-ld -T ld.script -e start -o gzram startram.o zloader.o 
-	cp gzram /tftpboot
+	cp -f gzram /tftpboot
 #	sync
 ejtag_rom: clean ${START} zloader.o 
 	gcc -DSTARTADDR=${GZROMSTARTADDR_EJTAG} -E -P ld.script.S > ld.script
