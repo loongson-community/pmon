@@ -7247,7 +7247,7 @@ return 0;
 /*****************************************************/
 
 
-static char		*mode = "800x600-75@16";
+static char		*mode = "800x600-16@75";
 static int		vesa = -1;
 static unsigned int	rate = 0;
 static unsigned int	crt1off = 1;
