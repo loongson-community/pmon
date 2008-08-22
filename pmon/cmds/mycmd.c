@@ -1163,7 +1163,7 @@ printf("status:%s %s\n",ifr->ifr_flags&IFF_UP?"up":"down",ifr->ifr_flags&IFF_RUN
 }
 else if(argc>=3)
 {
-char *cmds[]={"down","up","remove","stat","setmac"};
+char *cmds[]={"down","up","remove","stat","setmac","readrom","writerom"};
 int i;
 	for(i=0;i<sizeof(cmds)/sizeof(char *);i++)
 	if(!strcmp(argv[2],cmds[i]))break;
@@ -1217,6 +1217,29 @@ int i;
 		}
 	    }
 		break;
+        case 5: //read eeprom
+            {
+                struct ifnet *ifp;
+                ifp = ifunit(argv[1]);
+                if(ifp)
+                {
+                long arg[2]={argc-2,(long)&argv[2]};
+                ifp->if_ioctl(ifp,SIOCRDEEPROM,arg);
+                }
+            }
+                break;
+        case 6: //write eeprom
+            {
+                struct ifnet *ifp;
+                ifp = ifunit(argv[1]);
+                if(ifp)
+                {
+                long arg[2]={argc-2,(long)&argv[2]};
+                ifp->if_ioctl(ifp,SIOCWREEPROM,arg);
+                }
+            }
+                break;
+
 	default:
 		(void) ioctl(s, SIOCGIFADDR, ifra);
 		(void) ioctl(s, SIOCDIFADDR, ifra);

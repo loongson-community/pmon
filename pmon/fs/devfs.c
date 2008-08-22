@@ -52,6 +52,7 @@
 #include "ide_cd.h"
 #include "mod_usb_storage.h"
 #include "loopdev.h"
+#include "atp.h"
 
 extern int errno;
 
@@ -85,7 +86,6 @@ extern int ide_cdwrite __P((dev_t dev, void *uio, int flag));
 extern int ide_cdclose __P((dev_t dev, int flag, int mode, void *));
 #endif
 
-
 #if NMOD_USB_STORAGE > 0
 extern int usb_open __P((dev_t dev, int flags, int mode, void *));
 extern int usb_read __P((dev_t dev, void *uio, int flag));
@@ -97,6 +97,13 @@ extern int loopdevopen __P((dev_t dev, int flags, int mode, void *));
 extern int loopdevread __P((dev_t dev, void *uio, int flag));
 extern int loopdevwrite __P((dev_t dev, void *uio, int flag));
 extern int loopdevclose __P((dev_t dev, int flag, int mode, void *));
+
+#if NATP > 0
+extern int atp_open __P((dev_t dev, int flags, int mode, void *));
+extern int atp_read __P((dev_t dev, void *uio, int flag));
+extern int atp_write __P((dev_t dev, void *uio, int flag));
+extern int atp_close __P((dev_t dev, int flag, int mode, void *));
+#endif
 
 /*
  * Check for and add any target specific declarations from "pmon_target.h"
@@ -135,6 +142,9 @@ struct devsw devswitch[] = {
 #endif
 #if  NLOOPDEV > 0
 	{ "loopdev", loopdevopen, loopdevread, loopdevwrite, loopdevclose},
+#endif
+#if NATP > 0
+        { "sata", atp_open, atp_read, atp_write, atp_close},
 #endif
 	/* Add any target specific devices. See "pmon_target.h" */
 #if defined(TGT_DEV_SWITCH)

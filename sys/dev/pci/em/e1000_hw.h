@@ -329,6 +329,8 @@ void e1000_write_reg_io(struct e1000_hw *hw, uint32_t offset, uint32_t value);
 #define E1000_DEV_ID_82546GB_QUAD_COPPER 0x1099
 #define E1000_DEV_ID_82541EI             0x1013
 #define E1000_DEV_ID_82541EP             0x1018
+#define E1000_DEV_ID_82541PI             0x107C
+#define E1000_DEV_ID_82541PII            0x1076
 #define E1000_DEV_ID_82547EI             0x1019
 #define NUM_DEV_IDS 20
 
