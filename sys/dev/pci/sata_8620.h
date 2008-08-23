@@ -357,6 +357,9 @@ typedef struct atp_sata_info {
  * SATA device driver struct
  */
 typedef struct atp_sata {
+	struct wdc_softc	sc_wdcdev;	/* common wdc definitions */
+	struct channel_softc *wdc_chanarray[1];
+	struct channel_softc wdc_channel; /* generic part */
 	char		name[12];
 	u32		reg_base;		/* the base address of controller register */
 	void		*cmd_hdr_tbl_offset;	/* alloc address of command header table */

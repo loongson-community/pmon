@@ -1181,20 +1181,11 @@ static void atp_attach(struct device * parent, struct device * self, void *aux)
         bus_space_tag_t iot = pa->pa_iot;
         bus_addr_t iobase;
         bus_size_t iosize;
+        bus_addr_t ideaddr;
 
 SATADEBUG
 	mysata = sc;
 
-#ifndef __OpenBSD__
-        /*
-         * Map control/status registers.
-         */
-/*        if (pci_mapreg_map(pa, 0x14, PCI_MAPREG_TYPE_MEM, 0,
-            &nic->sc_st, &nic->sc_sh, NULL, NULL)) {
-                printf(": can't map registers\n");
-                return;
-        }*/
-#else
 
         if (pci_io_find(pc, pa->pa_tag, 0x14, &iobase, &iosize))
         {
@@ -1208,16 +1199,22 @@ SATADEBUG
                return;
         }
 
-//        sc->sc_st = iot;
-//        sc->sc_pc = pc;
-
-#endif
 	ioaddr = sc->reg_base; 
+        if (pci_io_find(pc, pa->pa_tag, 0x10, &iobase, &iosize))
+        {
+               printf(": can't find i/o space\n");
+               return;
+        }
+
+        if (bus_space_map(iot, iobase, iosize, 0,  &ideaddr))
+        {
+               printf(": can't map i/o space\n");
+               return;
+        }
  
 SATADEBUG
         printf("\natp8620 sata iobase =%8x\n", ioaddr);
         atp_sata_initialize(ioaddr);
-{
 	//sc->sc_wdcdev.cap |= WDC_CAPABILITY_DMA;
 	sc->sc_wdcdev.PIO_cap = 0;
 	sc->sc_wdcdev.DMA_cap = 0;
@@ -1237,13 +1234,12 @@ SATADEBUG
 	}
 	 sc->wdc_channel.cmd_iot=iot;;
 	 sc->wdc_channel.ctl_iot=iot;;
-	 sc->wdc_channel.cmd_ioh= ioaddr+0x80;
-	 sc->wdc_channel.ctl_ioh= ioaddr+0x8e;
+	 sc->wdc_channel.cmd_ioh= ideaddr+0x80;
+	 sc->wdc_channel.ctl_ioh= ideaddr+0x8e;
 			sc->wdc_channel.data32iot = sc->wdc_channel.cmd_iot;
 			sc->wdc_channel.data32ioh = sc->wdc_channel.cmd_ioh;
 
 	 wdcattach(sc->wdc_chanarray[0]);
-}
 SATADEBUG
 }
 
