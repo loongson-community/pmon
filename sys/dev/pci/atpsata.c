@@ -1223,7 +1223,7 @@ SATADEBUG
 	sc->sc_wdcdev.DMA_cap = 0;
 	sc->sc_wdcdev.channels = sc->wdc_chanarray;
 	sc->sc_wdcdev.nchannels = 1;
-	sc->sc_wdcdev.cap |= WDC_CAPABILITY_DATA16;
+	sc->sc_wdcdev.cap |= WDC_CAPABILITY_DATA32;//WDC_CAPABILITY_DATA16;
 	sc->wdc_chanarray[0] = &sc->wdc_channel;
 	sc->wdc_channel.channel = 0;
 	sc->wdc_channel.wdc = &sc->sc_wdcdev;
