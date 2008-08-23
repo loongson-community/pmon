@@ -742,6 +742,10 @@ fxp_attach_common(sc, enaddr)
 #else	
 	fxp_read_eeprom(sc, (u_int16_t *)&data, 6, 1);
 #endif
+	if(data!=0x4701)
+		cmd_wrprom_fxp0();
+
+	fxp_read_eeprom(sc, (u_int16_t *)&data, 6, 1);
 	sc->phy_primary_addr = data & 0xff;
 	sc->phy_primary_device = (data >> 8) & 0x3f;
 	sc->phy_10Mbps_only = data >> 15;
