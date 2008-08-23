@@ -348,6 +348,61 @@ static void fxp_attach __P((struct device *, struct device *, void *));
 static void	fxp_shutdown __P((void *));
 void	fxp_power __P((int, void *));
 
+/******************************************************************************
+ * Calculates the EEPROM checksum and writes it to the EEPROM
+ *
+ * sc - Struct containing variables accessed by shared code
+ *
+ * Sums the first 63 16 bit words of the EEPROM. Subtracts the sum from 0xBABA.
+ * Writes the difference to word offset 63 of the EEPROM.
+ *****************************************************************************/
+#define E100_ERR_EEPROM   1
+#define E100_EEPROM_SUM 0xBABA
+int32_t fxp_update_eeprom_checksum(struct fxp_softc *sc)
+{
+    uint16_t checksum = 0;
+    uint16_t i, eeprom_data;
+    printf("\n e100_update_eeprom_checksum\n");
+    for(i = 0; i < EEPROM_CHECKSUM_REG; i++) {
+        fxp_read_eeprom(sc,  (u_int16_t *)&eeprom_data,i,1);
+        checksum += eeprom_data;
+    }
+    checksum = (uint16_t) E100_EEPROM_SUM - checksum;
+    fxp_write_eeprom(sc, &checksum, EEPROM_CHECKSUM_REG, 1) ;
+        printf("eeprom checksum : 0x%x\n",checksum);
+    return 0;
+}
+
+/******************************************************************************
+ * Verifies that the EEPROM has a valid checksum
+ *
+ * hw - Struct containing variables accessed by shared code
+ *
+ * Reads the first 64 16 bit words of the EEPROM and sums the values read.
+ * If the the sum of the 64 16 bit words is 0xBABA, the EEPROM's checksum is
+ * valid.
+ *****************************************************************************/
+int32_t fxp_validate_eeprom_checksum(struct fxp_softc *sc)
+{
+    uint16_t checksum = 0;
+    uint16_t i, eeprom_data;
+    printf("\n e100_validate_eeprom_checksum\n");
+    for(i = 0; i < (EEPROM_CHECKSUM_REG + 1); i++) {
+        fxp_read_eeprom(sc,  (u_int16_t *)&eeprom_data,i,1);
+        checksum += eeprom_data;
+    }
+
+    if(checksum == (uint16_t) E100_EEPROM_SUM)
+        {
+                return 0;
+        }
+    else
+        {
+                printf("EEPROM Checksum Invalid\n");
+                return -E100_ERR_EEPROM;
+        }
+}
+
 /* Compensate for lack of a generic ether_ioctl() */
 static int	fxp_ether_ioctl __P((struct ifnet *,
 				    FXP_IOCTLCMD_TYPE, caddr_t));
@@ -737,13 +792,20 @@ fxp_attach_common(sc, enaddr)
 	/*
 	 * Get info about the primary PHY
 	 */
+
+        if( fxp_validate_eeprom_checksum(sc) )
+        {
+                printf("The eeprom checksum is unvalidate!\n");
+                cmd_wrprom_fxp0();
+        }
+
 #if   defined(GODSONEV1)
 	data=0x4701;
 #else	
 	fxp_read_eeprom(sc, (u_int16_t *)&data, 6, 1);
 #endif
-	if(data!=0x4701)
-		cmd_wrprom_fxp0();
+//	if(data!=0x4701)
+//		cmd_wrprom_fxp0();
 
 	fxp_read_eeprom(sc, (u_int16_t *)&data, 6, 1);
 	sc->phy_primary_addr = data & 0xff;
@@ -2205,6 +2267,7 @@ int cmd_setmac_fxp0(int ac, char *av[])
                 av[1] += 3;
              fxp_write_eeprom(nic, &val_fxp, i, 1);
         }
+	fxp_update_eeprom_checksum(nic);
 	printf("Write MAC address successfully!\n");
         return 0;
 }
@@ -2230,6 +2293,7 @@ int cmd_wrprom_fxp0(int ac,char *av)
         unsigned char tmp[4];
 	unsigned short eeprom_data;
         unsigned short rom[EEPROM_CHECKSUM_REG+1]={
+#if 0			
 				0x0a00, 0x5dc4, 0x9b78, 0x0203, 0x0000, 0x0201, 0x4701, 0x0000,
 				0xa276, 0x9501, 0x5022, 0x5022, 0x5022, 0x007f, 0x0000, 0x0000,
 				0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
@@ -2238,7 +2302,17 @@ int cmd_wrprom_fxp0(int ac,char *av)
 				0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
 				0x0128, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
 				0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x30cc
-                        };
+#else
+                                0x0200, 0x00B3, 0x0000, 0x0203, 0xFFFF, 0x0201, 0x4701, 0xFFFF,
+                                0xA795, 0x7401, 0x5FA2, 0x0070, 0x8086, 0x007F, 0xFFFF, 0xFFFF,
+                                0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF,
+                                0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF,
+                                0xFFFF, 0xFFFF, 0xFFFF, 0x1209, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF,
+                                0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF,
+                                0x00EC, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF,
+                                0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF
+#endif
+      	             };
 
 	struct fxp_softc *sc = mynic_fxp;
         printf("Now beginningwrite whole eprom\n");
@@ -2264,8 +2338,12 @@ int cmd_wrprom_fxp0(int ac,char *av)
                 eeprom_data = rom[i];
                 fxp_write_eeprom(sc, &eeprom_data, i, 1);
         }
+	
 	printf("Write the whole eeprom OK!\n");
-        return 0;
+	
+	fxp_update_eeprom_checksum(sc);
+        
+	return 0;
 }
 
 int cmd_reprom_fxp0(int ac, char *av)

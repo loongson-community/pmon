@@ -1232,8 +1232,8 @@ SATADEBUG
 		sc->sc_wdcdev.sc_dev.dv_xname);
 		 return ;
 	}
-	 sc->wdc_channel.cmd_iot=iot;;
-	 sc->wdc_channel.ctl_iot=iot;;
+	 sc->wdc_channel.cmd_iot=iot;
+	 sc->wdc_channel.ctl_iot=iot;
 	 sc->wdc_channel.cmd_ioh= ideaddr+0x80;
 	 sc->wdc_channel.ctl_ioh= ideaddr+0x8e;
 			sc->wdc_channel.data32iot = sc->wdc_channel.cmd_iot;
