@@ -1,4 +1,5 @@
 /*
+ *
  * (C) Copyright 2001
  * Denis Peter, MPL AG Switzerland
  *
@@ -190,7 +191,7 @@ struct virt_root_hub {
 	int c_p_r[8];             /* C_PORT_RESET */
 };
 
-#define USB_MAX_TEMP_TD      128  /* number of temporary TDs for bulk and control transfers */
+#define USB_MAX_TEMP_TD      512  /* number of temporary TDs for bulk and control transfers */
 #define USB_MAX_TEMP_INT_TD  32   /* number of temporary TDs for Interrupt transfers */
 struct uhci {
 	struct usb_hc hc;	//for all host controller's common object
@@ -224,7 +225,6 @@ uhci_td_t td_last __attribute__((aligned(128))); /* last TD (linked with end cha
 unsigned char hc_setup[32] __attribute__((aligned(128)));
 unsigned char control_buf0[256] __attribute__((aligned(128)));
 uhci_td_t tmp_td[USB_MAX_TEMP_TD] __attribute__((aligned(128)));/* temporary bulk/control td's  */
-uhci_td_t tmp_td1[USB_MAX_TEMP_TD] __attribute__((aligned(128)));/* temporary bulk/control td's  */
 uhci_td_t tmp_int_td[USB_MAX_TEMP_INT_TD] __attribute__((aligned(128))); /* temporary interrupt td's  */
 unsigned long framelist[1024] __attribute__ ((aligned (0x1000))); /* frame list */
 };
@@ -236,7 +236,6 @@ typedef struct uhci uhci_t;
 #define td_last uhci->td_last
 #define hc_setup uhci->hc_setup
 #define  tmp_td uhci->tmp_td
-#define  tmp_td1 uhci->tmp_td1
 #define tmp_int_td uhci->tmp_int_td
 #define framelist uhci->framelist
 #define usb_base_addr uhci->io_addr

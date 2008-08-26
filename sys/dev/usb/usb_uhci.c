@@ -112,8 +112,6 @@
 #include "usb.h"
 #include "usb_uhci.h"
 
-#define USB_MAX_TEMP_TD      128  /* number of temporary TDs for bulk and control transfers */
-#define USB_MAX_TEMP_INT_TD  32   /* number of temporary TDs for Interrupt transfers */
 
 
 //#undef USB_UHCI_DEBUG
@@ -425,8 +423,8 @@ static int uhci_submit_control_msg(struct usb_device *dev, unsigned long pipe, v
 	}
 	USB_UHCI_PRINTF("uhci_submit_control start len %x, maxsize %x\n",transfer_len,maxsze);
 	s = splimp();
-	memset(tmp_td1, 0, sizeof(tmp_td1));
-	pci_sync_cache(uhci->sc_pc, (vm_offset_t)&tmp_td1, sizeof(tmp_td1), SYNC_W);
+	memset(tmp_td, 0, sizeof(tmp_td));
+	pci_sync_cache(uhci->sc_pc, (vm_offset_t)&tmp_td, sizeof(tmp_td), SYNC_W);
 
 	/* The "pipe" thing contains the destination in bits 8--18 */
 	destination = (pipe & PIPE_DEVEP_MASK) | USB_PID_SETUP; /* Setup stage */
@@ -434,7 +432,7 @@ static int uhci_submit_control_msg(struct usb_device *dev, unsigned long pipe, v
 	status = (pipe & TD_CTRL_LS) | TD_CTRL_ACTIVE | (3 << 27) |TD_CTRL_SPD; 
 	/*  Build the TD for the control request, try forever, 8 bytes of data */
 	memcpy(uhci->setup, setup, sizeof(*setup));
-	usb_fill_td(&tmp_td1[i],UHCI_PTR_TERM ,status, destination | (7 << 21),vtophys((unsigned long)uhci->setup),(unsigned long)dev);
+	usb_fill_td(&tmp_td[i],UHCI_PTR_TERM ,status, destination | (7 << 21),vtophys((unsigned long)uhci->setup),(unsigned long)dev);
 #if 0
 	{
 		char *sp=(char *)setup;
@@ -467,11 +465,12 @@ static int uhci_submit_control_msg(struct usb_device *dev, unsigned long pipe, v
 		i++;
 		if (pktsze > maxsze)
 			pktsze = maxsze;
+		if(i>=USB_MAX_TEMP_TD){while(1)printf("there is no tds,please set USB_MAX_TEMP_TD larger than %d\n",USB_MAX_TEMP_TD);}
 		destination ^= 1 << TD_TOKEN_TOGGLE;	/* toggle DATA0/1 */
-		usb_fill_td(&tmp_td1[i],UHCI_PTR_TERM, status, destination | ((pktsze - 1) << 21),dataptr,(unsigned long)dev);	/* Status, pktsze bytes of data */
-		((uhci_td_t *)CACHED_TO_UNCACHED(&tmp_td1[i-1]))->link=vtophys((unsigned long)&tmp_td1[i]);
-		((uhci_td_t *)CACHED_TO_UNCACHED(&tmp_td1[i]))->pipe = pipe;
-		((uhci_td_t *)CACHED_TO_UNCACHED(&tmp_td1[i]))->data = buffer;
+		usb_fill_td(&tmp_td[i],UHCI_PTR_TERM, status, destination | ((pktsze - 1) << 21),dataptr,(unsigned long)dev);	/* Status, pktsze bytes of data */
+		((uhci_td_t *)CACHED_TO_UNCACHED(&tmp_td[i-1]))->link=vtophys((unsigned long)&tmp_td[i]);
+		((uhci_td_t *)CACHED_TO_UNCACHED(&tmp_td[i]))->pipe = pipe;
+		((uhci_td_t *)CACHED_TO_UNCACHED(&tmp_td[i]))->data = buffer;
 
 		dataptr += pktsze;
 		buffer  += pktsze;
@@ -490,19 +489,19 @@ static int uhci_submit_control_msg(struct usb_device *dev, unsigned long pipe, v
 	i++;
 	status &= ~TD_CTRL_SPD;
 	/* no limit on errors on final packet , 0 bytes of data */
-	usb_fill_td(&tmp_td1[i],UHCI_PTR_TERM, status | TD_CTRL_IOC, destination | (UHCI_NULL_DATA_SIZE << 21),0,(unsigned long)dev);
-	((uhci_td_t*)CACHED_TO_UNCACHED(&tmp_td1[i-1]))->link=vtophys((unsigned long)&tmp_td1[i]);	/* queue status td */
+	usb_fill_td(&tmp_td[i],UHCI_PTR_TERM, status | TD_CTRL_IOC, destination | (UHCI_NULL_DATA_SIZE << 21),0,(unsigned long)dev);
+	((uhci_td_t*)CACHED_TO_UNCACHED(&tmp_td[i-1]))->link=vtophys((unsigned long)&tmp_td[i]);	/* queue status td */
 	//	usb_show_td(i+1);
-	USB_UHCI_PRINTF("uhci_submit_control end (%d tmp_td1s used)\n",i);
+	USB_UHCI_PRINTF("uhci_submit_control end (%d tmp_tds used)\n",i);
 	/* first mark the control QH element terminated */
 	((uhci_qh_t*)CACHED_TO_UNCACHED(&qh_cntrl))->element =UHCI_PTR_TERM;//0xffffffffL;
 	/* set qh active */
 	((uhci_qh_t*)CACHED_TO_UNCACHED(&qh_cntrl))->dev_ptr=(unsigned long)dev;
 	dev->status = USB_ST_NOT_PROC;
-	/* fill in tmp_td1_chain */
-	((uhci_qh_t*)CACHED_TO_UNCACHED(&qh_cntrl))->element=vtophys((unsigned long)&tmp_td1[0]);
+	/* fill in tmp_td_chain */
+	((uhci_qh_t*)CACHED_TO_UNCACHED(&qh_cntrl))->element=vtophys((unsigned long)&tmp_td[0]);
 
-	((uhci_qh_t*)CACHED_TO_UNCACHED(&qh_cntrl))->last_td = &tmp_td1[i];
+	((uhci_qh_t*)CACHED_TO_UNCACHED(&qh_cntrl))->last_td = &tmp_td[i];
 	dev->qpriv = &qh_cntrl;
 #if 1	
 	s = spl0();
@@ -565,6 +564,7 @@ static int uhci_submit_bulk_msg(struct usb_device *dev, unsigned long pipe, void
 		if (pktsze > maxsze)
 			pktsze = maxsze;
 		/* pktsze bytes of data  */
+		if(i>=USB_MAX_TEMP_TD){while(1)printf("there is no tds,please set USB_MAX_TEMP_TD larger than %d\n",USB_MAX_TEMP_TD);}
 		info = destination | (((pktsze - 1)&UHCI_NULL_DATA_SIZE) << 21) |
 			(usb_gettoggle (dev, usb_pipeendpoint (pipe), usb_pipeout (pipe)) << TD_TOKEN_TOGGLE);
 
@@ -780,8 +780,6 @@ void usb_init_skel(void *data)
 
 	memset(tmp_td, 0, sizeof(tmp_td));
 	pci_sync_cache(uhci->sc_pc, (vm_offset_t)&tmp_td, sizeof(tmp_td), SYNC_W);
-	memset(tmp_td1, 0, sizeof(tmp_td1));
-	pci_sync_cache(uhci->sc_pc, (vm_offset_t)&tmp_td1, sizeof(tmp_td1), SYNC_W);
 
 	temp=(unsigned long)&td_int[0];
 	for(n=1; n<8; n++)
@@ -814,7 +812,7 @@ void usb_check_skel(uhci_t *uhci)
 	{
 		//printf("check qcntrl\n");
 		dev=(struct usb_device *)qcntrl->dev_ptr;
-		usb_get_td_status(&tmp_td1[0],dev); /* update status */
+		usb_get_td_status(&tmp_td[0],dev); /* update status */
 		if(!(dev->status & USB_ST_NOT_PROC)) { /* is not active anymore, disconnect devices */
 			qcntrl->dev_ptr=0;
 		}
