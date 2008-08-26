@@ -217,6 +217,7 @@ struct uhci {
 	//struct uhci_qh *skelqh[UHCI_NUM_SKELQH];	/* Skeleton QH's */
 
 	int is_suspended;
+uhci_td_t td_int0 __attribute__((aligned(128)));
 uhci_td_t td_int[8] __attribute__((aligned(128)));/* Interrupt Transfer descriptors */
 uhci_qh_t qh_cntrl __attribute__((aligned(128)));/* control Queue Head */
 uhci_qh_t qh_bulk __attribute__((aligned(128)));/*  bulk Queue Head */
@@ -230,6 +231,7 @@ unsigned long framelist[1024] __attribute__ ((aligned (0x1000))); /* frame list 
 };
 typedef struct uhci uhci_t;
 #define td_int uhci->td_int
+#define td_int0 uhci->td_int0
 #define qh_cntrl uhci->qh_cntrl
 #define qh_bulk uhci->qh_bulk
 #define qh_end uhci->qh_end

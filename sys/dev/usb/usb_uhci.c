@@ -412,7 +412,7 @@ static int uhci_submit_control_msg(struct usb_device *dev, unsigned long pipe, v
 	int s;
 	uhci_t * uhci = dev->hc_private;
 	((uhci_qh_t*)CACHED_TO_UNCACHED(&qh_cntrl))->element =UHCI_PTR_TERM;//0xffffffffL;
-	usb_fill_td(&td_int[0],vtophys(&qh_cntrl) | UHCI_PTR_QH,0,0,0,0L);
+	usb_fill_td(&td_int0,vtophys(&qh_cntrl) | UHCI_PTR_QH,0,0,0,0L);
 	memset(tmp_td, 0, sizeof(tmp_td));
 	pci_sync_cache(uhci->sc_pc, (vm_offset_t)&tmp_td, sizeof(tmp_td), SYNC_W);
 
@@ -540,7 +540,7 @@ static int uhci_submit_bulk_msg(struct usb_device *dev, unsigned long pipe, void
 	uhci_t *uhci = dev->hc_private;
 
 	((uhci_qh_t *)CACHED_TO_UNCACHED(&qh_bulk))->element =UHCI_PTR_TERM;//0xffffffffL;
-	usb_fill_td(&td_int[0],vtophys(&qh_bulk) | UHCI_PTR_QH,0,0,0,0L);
+	usb_fill_td(&td_int0,vtophys(&qh_bulk) | UHCI_PTR_QH,0,0,0,0L);
 	memset(tmp_td, 0, sizeof(tmp_td));
 	pci_sync_cache(uhci->sc_pc, (vm_offset_t)&tmp_td, sizeof(tmp_td), SYNC_W);
 	
@@ -784,8 +784,14 @@ void usb_init_skel(void *data)
 	memset(td_int, 0, sizeof(td_int));
 	pci_sync_cache(uhci->sc_pc, (vm_offset_t)&td_int, sizeof(td_int), SYNC_W);
 		
+	memset(&td_int0, 0, sizeof(td_int0));
+	pci_sync_cache(uhci->sc_pc, (vm_offset_t)&td_int0, sizeof(td_int0), SYNC_W);
+
 	temp=(unsigned long)&qh_cntrl;
-	usb_fill_td(&td_int[0],vtophys(temp) | UHCI_PTR_QH,0,0,0,0L);
+	usb_fill_td(&td_int0,vtophys(temp) | UHCI_PTR_QH,0,0,0,0L);
+
+	temp=(unsigned long)&td_int0;
+	usb_fill_td(&td_int[0],vtophys(temp) ,0,0,0,0L);
 
 	memset(tmp_td, 0, sizeof(tmp_td));
 	pci_sync_cache(uhci->sc_pc, (vm_offset_t)&tmp_td, sizeof(tmp_td), SYNC_W);
