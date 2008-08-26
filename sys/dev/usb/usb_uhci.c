@@ -824,6 +824,7 @@ void usb_check_skel(uhci_t *uhci)
 		usb_get_td_status(&tmp_td[0],dev); /* update status */
 		if(!(dev->status & USB_ST_NOT_PROC)) { /* is not active anymore, disconnect devices */
 			qcntrl->dev_ptr=0;
+		if(!(qcntrl->element&1))qcntrl->element=UHCI_PTR_TERM;
 		}
 	}
 	/* now process the bulk */
@@ -834,6 +835,7 @@ void usb_check_skel(uhci_t *uhci)
 		usb_get_td_status(&tmp_td[0],dev); /* update status */
 		if(!(dev->status & USB_ST_NOT_PROC)) { /* is not active anymore, disconnect devices */
 			qbulk->dev_ptr=0;
+		if(!(qbulk->element&1))qbulk->element=UHCI_PTR_TERM;
 		}
 	}
 }
