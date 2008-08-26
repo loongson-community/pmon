@@ -411,6 +411,10 @@ static int uhci_submit_control_msg(struct usb_device *dev, unsigned long pipe, v
 	int i=0;
 	int s;
 	uhci_t * uhci = dev->hc_private;
+	((uhci_qh_t*)CACHED_TO_UNCACHED(&qh_cntrl))->element =UHCI_PTR_TERM;//0xffffffffL;
+	usb_fill_td(&td_int[0],vtophys(&qh_cntrl) | UHCI_PTR_QH,0,0,0,0L);
+	memset(tmp_td, 0, sizeof(tmp_td));
+	pci_sync_cache(uhci->sc_pc, (vm_offset_t)&tmp_td, sizeof(tmp_td), SYNC_W);
 
 	if (!maxsze) {
 		USB_UHCI_PRINTF("uhci_submit_control_urb: pipesize for pipe %lx is zero\n", pipe);
@@ -535,6 +539,10 @@ static int uhci_submit_bulk_msg(struct usb_device *dev, unsigned long pipe, void
 	int s;
 	uhci_t *uhci = dev->hc_private;
 
+	((uhci_qh_t *)CACHED_TO_UNCACHED(&qh_bulk))->element =UHCI_PTR_TERM;//0xffffffffL;
+	usb_fill_td(&td_int[0],vtophys(&qh_bulk) | UHCI_PTR_QH,0,0,0,0L);
+	memset(tmp_td, 0, sizeof(tmp_td));
+	pci_sync_cache(uhci->sc_pc, (vm_offset_t)&tmp_td, sizeof(tmp_td), SYNC_W);
 	
 	if(transfer_len < 0) {
 		printf("Negative transfer length in submit_bulk\n");
@@ -768,7 +776,8 @@ void usb_init_skel(void *data)
 	memset(&qh_cntrl, 0, sizeof(qh_cntrl));
 	pci_sync_cache(uhci->sc_pc, (vm_offset_t)&qh_cntrl, sizeof(qh_cntrl), SYNC_W);
 		
-	temp=(unsigned long)&qh_bulk;
+//	temp=(unsigned long)&qh_bulk;
+	temp=(unsigned long)&qh_end;
 	usb_fill_qh(&qh_cntrl, vtophys(temp) | UHCI_PTR_QH,UHCI_PTR_TERM);
 	/* 1ms Interrupt td */
 
