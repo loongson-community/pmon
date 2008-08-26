@@ -425,6 +425,8 @@ static int uhci_submit_control_msg(struct usb_device *dev, unsigned long pipe, v
 	}
 	USB_UHCI_PRINTF("uhci_submit_control start len %x, maxsize %x\n",transfer_len,maxsze);
 	s = splimp();
+	memset(tmp_td1, 0, sizeof(tmp_td1));
+	pci_sync_cache(uhci->sc_pc, (vm_offset_t)&tmp_td1, sizeof(tmp_td1), SYNC_W);
 
 	/* The "pipe" thing contains the destination in bits 8--18 */
 	destination = (pipe & PIPE_DEVEP_MASK) | USB_PID_SETUP; /* Setup stage */
@@ -544,6 +546,8 @@ static int uhci_submit_bulk_msg(struct usb_device *dev, unsigned long pipe, void
 		return -1;
 	/* The "pipe" thing contains the destination in bits 8--18. */
 	s = splimp();
+	memset(tmp_td, 0, sizeof(tmp_td));
+	pci_sync_cache(uhci->sc_pc, (vm_offset_t)&tmp_td, sizeof(tmp_td), SYNC_W);
 	destination = (pipe & PIPE_DEVEP_MASK) | usb_packetid (pipe);
 	/* 3 errors */
 	status = (pipe & TD_CTRL_LS) | TD_CTRL_ACTIVE | (3 << 27);
