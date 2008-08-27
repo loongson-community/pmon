@@ -46,7 +46,7 @@ int main (int argc, char *argv[])
 	FILE	*fp;
 	bitmap_t bmp;
 	bitmap_t *b = &bmp;
-	uint16_t data_offset, n_colors;
+	uint32_t data_offset, n_colors;
 
 	if (argc < 2) {
 		fprintf (stderr, "Usage: %s file\n", argv[0]);
@@ -68,8 +68,8 @@ int main (int argc, char *argv[])
 	 * ignore the rest
 	 */
 	skip_bytes (fp, 8);
-	fread (&data_offset, sizeof (uint16_t), 1, fp);
-	skip_bytes (fp, 6);
+	fread (&data_offset, sizeof (uint32_t), 1, fp);
+	skip_bytes (fp, 4);
 	fread (&b->width,   sizeof (uint16_t), 1, fp);
 	skip_bytes (fp, 2);
 	fread (&b->height,  sizeof (uint16_t), 1, fp);
@@ -142,7 +142,7 @@ int main (int argc, char *argv[])
 	printf ("unsigned char bmp_logo_bitmap[] = {\n");
 	for (i=(b->height-1)*b->width; i>=0; i-=b->width) {
 		for (x = 0; x < b->width; x++) {
-			b->data[(uint16_t) i + x] = (uint8_t) fgetc (fp) \
+			b->data[ i + x] = (uint8_t) fgetc (fp) \
 						+ DEFAULT_CMAP_SIZE;
 		}
 	}

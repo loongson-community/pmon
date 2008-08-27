@@ -75,7 +75,7 @@ select		mod_x86emu		# X86 emulation for VGA
 option 	MY40IO
 #select		mod_x86emu_int10
 select      mod_sisfb
-option		X800x600
+option		X1280x1024
 select 		mod_framebuffer
 option 		CONFIG_VIDEO_16BPP
 option		CONFIG_VIDEO_LOGO
