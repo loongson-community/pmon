@@ -514,7 +514,7 @@ static int pci_resource_len(struct pci_dev *pdev,int bar)
 static void * kzalloc(int size,...)
 {
 char *p=malloc(size);
-memset(p,size,0);
+memset(p,0,size);
 return p;
 }
 
