@@ -367,8 +367,11 @@ volatile int *p=0xbfe00108;
 #endif
 tgt_printf("memsz %d\n",memsz);
 /*enable float*/
-//memsz=512;
 tgt_fpuenable();
+
+#if PCI_IDSEL_CS5536 != 0
+superio_reinit();
+#endif
 	/*
 	 *	Set up memory address decoders to map entire memory.
 	 *	But first move away bootrom map to high memory.
@@ -439,14 +442,6 @@ asm(\
 	printf("BEV in SR set to zero.\n");
 
 	
-#if 0
-	/* memtest */
-	addr_tst1();
-	addr_tst2();
-	movinv1(2,0,~0);
-	movinv1(2,0xaa5555aa,~0xaa5555aa);
-	printf("memtest done\n");
-#endif
 
 if(getenv("powermg"))
 {
@@ -600,6 +595,62 @@ outb(0xbfd0002e,0xaa);
 outb(0xbfd0002e,0xaa);
 }
 #endif
+
+#if PCI_IDSEL_CS5536 != 0
+static void superio_reinit()
+{
+w83627_write(0,0x24,0xc1);
+w83627_write(5,0x30,1);
+w83627_write(5,0x60,0);
+w83627_write(5,0x61,0x60);
+w83627_write(5,0x62,0);
+w83627_write(5,0x63,0x64);
+w83627_write(5,0x70,1);
+w83627_write(5,0x72,0xc);
+w83627_write(5,0xf0,0x80);
+_wrmsr(GET_MSR_ADDR(0x5140001F), 0, 0);//no keyboard emulation
+
+#ifdef USE_CS5536_UART
+//w83627_UART1
+w83627_write(2,0x30,0x01);
+w83627_write(2,0x60,0x03);
+w83627_write(2,0x61,0xe8);
+w83627_write(2,0x70,0x04);
+w83627_write(2,0xf0,0x00);
+
+//w83627_UART2
+w83627_write(3,0x30,0x01);
+w83627_write(3,0x60,0x02);
+w83627_write(3,0x61,0xe8);
+w83627_write(3,0x70,0x03);
+w83627_write(3,0xf0,0x00);
+#else
+//w83627_UART1
+w83627_write(2,0x30,0x01);
+w83627_write(2,0x60,0x03);
+w83627_write(2,0x61,0xf8);
+w83627_write(2,0x70,0x04);
+w83627_write(2,0xf0,0x00);
+
+//w83627_UART2
+w83627_write(3,0x30,0x01);
+w83627_write(3,0x60,0x02);
+w83627_write(3,0x61,0xf8);
+w83627_write(3,0x70,0x03);
+w83627_write(3,0xf0,0x00);
+#endif
+
+////w83627_PALLPort
+w83627_write(1,0x30,0x01);
+w83627_write(1,0x60,0x03);
+w83627_write(1,0x61,0x78);
+w83627_write(1,0x70,0x07);
+w83627_write(1,0x74,0x04);
+w83627_write(1,0xf0,0xF0); 
+ConfigTable[0].flag=1;//reinit serial
+}
+#endif
+
 void
 tgt_devinit()
 {
@@ -614,27 +665,6 @@ tgt_devinit()
 	cs5536_init();
 #endif
 
-#if PCI_IDSEL_CS5536 != 0
-w83627_write(0,0x24,0xc1);
-w83627_write(5,0x30,1);
-w83627_write(5,0x60,0);
-w83627_write(5,0x61,0x60);
-w83627_write(5,0x62,0);
-w83627_write(5,0x63,0x64);
-w83627_write(5,0x70,1);
-w83627_write(5,0x72,0xc);
-w83627_write(5,0xf0,0x80);
-_wrmsr(GET_MSR_ADDR(0x5140001F), 0, 0);//no keyboard emulation
-
-#ifndef USE_CS5536_UART
-w83627_write(2,0x30,0x01);
-w83627_write(2,0x60,0x03);
-w83627_write(2,0x61,0xf8);
-w83627_write(2,0x70,0x04);
-w83627_write(2,0xf0,0x00);
-#endif
-
-#endif
 
 	/*
 	 *  Gather info about and configure caches.

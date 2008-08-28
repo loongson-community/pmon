@@ -59,12 +59,9 @@
 #include "target/isapnpreg.h"
 
 
-#define USE_CS5536_UART1
 
-#ifdef USE_CS5536_UART
-//#define USE_CS5536_UART1
+#define USE_CS5536_UART1
 #define USE_CS5536_UART2
-#endif
 #define DEBUG_LOCORE
 
 /***************************************************************/
@@ -159,7 +156,7 @@ stack = start - 0x4000		/* Place PMON stack below PMON start in RAM */
 	la	gp, _gp
 	GPIOLED_SET(1)
 
-	bal	uncached		/* Switch to uncached address space */
+//	bal	uncached		/* Switch to uncached address space */
 	nop
 	GPIOLED_SET(2)
 
@@ -734,6 +731,13 @@ reginit:			/* local name */
 	nop
 	PRINTSTR("\r\n")
 
+	bnez s0,1f
+	nop
+	li a0,128
+	la v0,initmips
+	jr v0
+	nop
+1:
 	/* 
 	 * Now determine DRAM configuration and size by
 	 * reading the I2C EEROM on the DIMMS
@@ -1833,9 +1837,13 @@ LEAF(superio_init)
 	// lo : bit+16 = 1 and bit = 0
 
 #ifdef	USE_CS5536_UART1
+#ifdef USE_CS5536_UART
 	/* config uart1 as 0x2f8 */
 	CS5536_MSR_WRITE((CS5536_DIVIL_MSR_BASE | 0x14), 0x04050003, 0x0);
-	
+#else
+	/* config uart1 as 0x2e8 */
+	CS5536_MSR_WRITE((CS5536_DIVIL_MSR_BASE | 0x14), 0x04040003, 0x0);
+#endif
 	/* config uart1 legacy configuration */
 	CS5536_MSR_WRITE((CS5536_DIVIL_MSR_BASE | 0x3a), 0x2, 0x0);
 	
@@ -1860,8 +1868,13 @@ LEAF(superio_init)
 #endif
 
 #ifdef	USE_CS5536_UART2
+#ifdef USE_CS5536_UART
 	/* config uart2 as 0x3f8 */
 	CS5536_MSR_WRITE((CS5536_DIVIL_MSR_BASE | 0x14), 0x04700003, 0x0);
+#else
+	/* config uart2 as 0x3e8 */
+	CS5536_MSR_WRITE((CS5536_DIVIL_MSR_BASE | 0x14), 0x04600003, 0x0);
+#endif
 
 	/* config uart2 legacy configuration */
 	CS5536_MSR_WRITE((CS5536_DIVIL_MSR_BASE | 0x3e), 0x2, 0x0);

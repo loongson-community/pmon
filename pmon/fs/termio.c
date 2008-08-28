@@ -389,7 +389,7 @@ devinit (void)
 		if ((s = getenv(dname)) == 0 || (brate = getbaudrate(s)) == 0)
 			brate = q->brate;
 
-		if (brate != q->brate) {
+		if ((brate != q->brate)||(q->flag&1)) {
 			if ((*p->handler)(OP_BAUD, p, NULL, brate)) {
 				brate = q->brate;
 				(void)(*p->handler)(OP_BAUD, p, NULL, brate);

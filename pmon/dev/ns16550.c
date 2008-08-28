@@ -100,7 +100,7 @@ static int rates[] = {
 	outb(&dp->data, brtc & 0xff);
 	outb(&dp->ier, brtc >> 8);
 	outb(&dp->cfcr, CFCR_8BITS);
-	outb(&dp->mcr, MCR_IENABLE | MCR_DTR | MCR_RTS);
+	outb(&dp->mcr, MCR_IENABLE/* | MCR_DTR | MCR_RTS*/);
 	outb(&dp->ier, 0);
 	return 0;
 }
