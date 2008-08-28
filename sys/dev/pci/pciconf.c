@@ -656,10 +656,11 @@ _pci_setup_windows (struct pci_device *dev)
         pm->address = _pci_allocate_mem (dev, pm->size);
         if (pm->address == -1) {
 			pd->disable=1;//will not enable this device in future;
+			pm->address = 0;
             _pci_tagprintf (pd->pa.pa_tag, 
                             "not enough PCI mem space (%d requested)\n", 
                             pm->size);
-            continue;
+            //continue;
         }
         if (_pciverbose >= 2)
             _pci_tagprintf (pd->pa.pa_tag, "mem @%p, %d bytes\n", pm->address, pm->size);

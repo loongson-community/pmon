@@ -136,7 +136,7 @@ stack = start - 0x4000		/* Place PMON stack below PMON start in RAM */
 	la	gp, _gp
 	GPIOLED_SET(1)
 
-	bal	uncached		/* Switch to uncached address space */
+//	bal	uncached		/* Switch to uncached address space */
 	nop
 	GPIOLED_SET(2)
 
@@ -692,6 +692,14 @@ reginit:			/* local name */
 	bal	hexserial
 	nop
 	PRINTSTR("\r\n")
+
+	bnez s0,1f
+	nop
+	li a0,128
+	la v0,initmips
+	jr v0
+	nop
+1:
 
 gs_2f_v3_ddr2_cfg:
 	GPIOLED_SET(9)
