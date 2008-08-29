@@ -60,6 +60,7 @@ select		cmd_tr			# Host port-through command
 select		cmd_devls		# Device list
 select		cmd_set			# As cmd_env but not req. cmd_hist
 select		cmd_testdisk
+select		have_tod
 #
 select		cmd_shell		# Shell commands, vers, help, eval
 #
@@ -67,8 +68,8 @@ select		cmd_shell		# Shell commands, vers, help, eval
 # Platform options
 #
 select		mod_uart_ns16550	# Standard UART driver
-#option		CONS_BAUD=B9600
-option		CONS_BAUD=B115200
+option		CONS_BAUD=B9600
+#option		CONS_BAUD=B115200
 select		ext2
 select		fatfs
 select		mod_x86emu		# X86 emulation for VGA
@@ -87,7 +88,7 @@ option		NOSNOOP			# Caches are no-snooping
 #
 # HAVE options. What tgt level provide
 #
-#option		HAVE_TOD		# Time-Of-Day clock
+option		HAVE_TOD		# Time-Of-Day clock
 option		HAVE_NVENV		#  Platform has non-volatile env mem
 option		HAVE_LOGO		# Output splash logo
 option		USE_SUPERIO_UART
@@ -177,4 +178,5 @@ select gzip
 option INPUT_FROM_BOTH
 option OUTPUT_TO_BOTH
 option LS2F_FIREWALL
+option GPIO_I2C
 #option USE_GPIO_SERIAL

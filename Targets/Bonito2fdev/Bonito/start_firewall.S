@@ -640,7 +640,7 @@ reginit:			/* local name */
 //	GPIOLED_SET(5)
 	bal 	superio_init
 	nop
-	
+
 //	GPIOLED_SET(6)
 	bal	initserial
 	nop
@@ -665,14 +665,19 @@ reginit:			/* local name */
 	nop
 	PRINTSTR("\r\n")
 
-	bnez s0,1f
+
+// for write isl12027 watchdog
+	bal	isl12027_watchdog
 	nop
+
+	bnez s0,1f
+ 	nop
 	li a0,128
 	la v0,initmips
 	jr v0
 	nop
-1:
 
+1:
 	/* 
 	 * Now determine DRAM configuration and size by
 	 * reading the I2C EEROM on the DIMMS
@@ -1062,7 +1067,6 @@ zhb:
 	addu a2,a2,s0
 
 	move	a0,msize
-	srl	a0,20
 	
 	la	v0, initmips
 	jalr	v0
@@ -1449,6 +1453,8 @@ LEAF(initserial)
 	.set at
 END(initserial)
 
+#include "i2c_firewall.S"
+
 
 __main:
 	j	ra
@@ -1686,7 +1692,7 @@ LEAF(superio_init)
 	nop
 END(superio_init)
 
-
+#if 0
 
 LEAF(i2cread)
 	move	a2,a0
@@ -1763,7 +1769,7 @@ LEAF(i2cread)
 	nop
 END(i2cread)
 
-
+#endif
 
 #######################################
 #define REG_ADDRESS 0x0
@@ -1778,6 +1784,18 @@ ddr2_config:
 	bal tgt_testchar
 	nop
 	beqz v0,1f
+	bal tgt_getchar
+	nop
+	bal tgt_getchar
+	nop
+	bal tgt_getchar
+	nop
+	bal tgt_getchar
+	nop
+	bal tgt_getchar
+	nop
+	bal tgt_getchar
+	nop
 	bal tgt_getchar
 	nop
 	bal tgt_getchar
@@ -1818,7 +1836,7 @@ reg_write:
     bne     t1, $0, reg_write
     addiu     t2, t2, 0x10
 //----------------
-#if 0
+#if 1
 #include "i2ccfgddr.S"
 #else
 	li	msize,0x10000000

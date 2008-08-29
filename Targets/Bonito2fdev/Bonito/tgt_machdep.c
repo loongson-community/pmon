@@ -820,6 +820,8 @@ static void init_legacy_rtc(void)
 	//    year, month, date, hour, min, sec);
 }
 
+int word_addr;
+
 static inline unsigned char CMOS_READ(unsigned char addr)
 {
         unsigned char val;
@@ -905,18 +907,23 @@ static inline unsigned char CMOS_READ(unsigned char addr)
 			break;
 		
 	}
-	atp8620_i2c_read(0xde,addr,&tmp,1);
+	word_addr =1;
+#ifndef GPIO_I2C
+	//atp8620_i2c_read(0xde,addr,&tmp,1);
+#else	
+	i2c_rec_s(0xde,addr,&tmp,1);
+#endif
 	val = ((tmp>>4)&0x0f)*10;
 	val = val + (tmp&0x0f);
-
-
 #endif
+
         return val;
 }
                                                                                
 static inline void CMOS_WRITE(unsigned char val, unsigned char addr)
 {
 
+	char a;
 #if defined(DEVBD2F_VIA)||defined(DEVBD2F_CS5536)||defined(DEVBD2F_EVA)
 	linux_outb_p(addr, 0x70);
         linux_outb_p(val, 0x71);
@@ -1003,7 +1010,15 @@ static inline void CMOS_WRITE(unsigned char val, unsigned char addr)
 	
 	tmp = (val/10)<<4;
 	val = tmp|(val%10);
+#ifndef GPIO_I2C
 	atp8620_i2c_write(0xde,addr,&val,1);
+#else	
+	a = 2;
+	i2c_send_s(0xde,0x3f,&a,1);
+	a = 6;
+	i2c_send_s(0xde,0x3f,&a,1);
+	i2c_send_s(0xde,addr,&tmp,1);
+#endif
 #endif
 }
 
@@ -1048,23 +1063,6 @@ aa:
                         while(CMOS_READ(DS_REG_CTLA) & DS_CTLA_UIP);
                         cur = CMOS_READ(DS_REG_SEC);
                 } while(timeout != 0 && ((cur == sec)||(cur !=((sec+1)%60))));
-#ifdef DEVBD2F_SM502
-                        cur = CMOS_READ(DS_REG_SEC);
-                                                                               
-
-		if((sec-cur)>1)
-		{
-			tgt_printf("rtc error 1!\n");
-			goto aa;
-		}
-		if(cur == 0)
-			cur = 60;	
-		if((cur-sec)>1)
-		{
-			tgt_printf("rtc error 2!\n");
-			goto aa;
-		}
-#endif
                 cnt = CPU_GetCOUNT() - cnt;
                 if(timeout == 0) {
 			tgt_printf("time out!\n");
@@ -1163,6 +1161,7 @@ tgt_settime(time_t t)
 #ifdef HAVE_TOD
         if(!clk_invalid) {
                 tm = gmtime(&t);
+	#ifndef DEVBD2F_FIREWALL
                 ctrlbsave = CMOS_READ(DS_REG_CTLB);
                 CMOS_WRITE(ctrlbsave | DS_CTLB_SET, DS_REG_CTLB);
                                                                                
@@ -1175,6 +1174,9 @@ tgt_settime(time_t t)
                 CMOS_WRITE(tm->tm_sec, DS_REG_SEC);
                                                                                
                 CMOS_WRITE(ctrlbsave & ~DS_CTLB_SET, DS_REG_CTLB);
+	#else
+		gpio_i2c_settime(tm);	
+	#endif
         }
 #endif
 }

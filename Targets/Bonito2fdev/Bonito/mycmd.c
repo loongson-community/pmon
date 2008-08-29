@@ -1,3 +1,4 @@
+#include "time.h"
 #define nr_printf printf
 #define nr_gets gets
 #define nr_strtol strtoul
@@ -334,21 +335,34 @@ case 8:memcpy(nvrambuf+addr,&mydata->data8,8);break;
 
 #ifdef DEVBD2F_SM502
 static volatile char *mmio = 0;
-#define SM502_I2C_COUNT 0x010040
-#define SM502_I2C_CTRL 0x010041
-#define SM502_I2C_STAT 0x010042
-#define SM502_I2C_ADDR 0x010043      //0:write,1:read
-#define SM502_I2C_DATA 0x010044      //44-53
-#define GPIO_DIR_HIGH 		(volatile unsigned int *)(mmio + 0x1000c)
-#define GPIO_DATA_HIGH		(volatile unsigned int *)(mmio + 0x10004)
+
+#define GPIO_DIR_REG 		(volatile unsigned int *)(mmio + 0x1000c)
+#define GPIO_DATA_REG		(volatile unsigned int *)(mmio + 0x10004)
 #define G_OUTPUT		1
 #define G_INPUT			0
+#define GPIO_SDA_DIR_SHIFT	15
+#define	GPIO_SCL_DIR_SHIFT	14
+#define GPIO_SDA_DATA_SHIFT	15
+#define GPIO_SCL_DATA_SHIFT	14
 
+#elif defined(DEVBD2F_FIREWALL)
 
+#define GPIO_DIR_REG 		(volatile unsigned int *)(0xbfe00120)
+#define GPIO_DATA_REG		(volatile unsigned int *)(0xbfe0011c)
+
+#define G_OUTPUT		0
+#define G_INPUT			1
+#define GPIO_SDA_DIR_SHIFT	2
+#define	GPIO_SCL_DIR_SHIFT	3
+#define GPIO_SDA_DATA_SHIFT	2
+#define GPIO_SCL_DATA_SHIFT	3
+extern int word_addr = 0;
+
+#endif
 static void i2c_sleep(int ntime)
 {
 	int i,j=0;
-	for(i=0; i<200*ntime; i++)
+	for(i=0; i<300*ntime; i++)
 	{
 		j=i;
 		j+=i;
@@ -358,40 +372,41 @@ static void i2c_sleep(int ntime)
 void sda_dir(int ivalue)
 {
 	int tmp;
-	tmp = *GPIO_DIR_HIGH;
+	tmp = *GPIO_DIR_REG;
 	if(ivalue == 1)
-		*GPIO_DIR_HIGH = tmp|(0x1<<15);
+		*GPIO_DIR_REG = tmp|(0x1<<GPIO_SDA_DIR_SHIFT);
 	else
-		*GPIO_DIR_HIGH = tmp&(~(0x1<<15));
+		*GPIO_DIR_REG = tmp&(~(0x1<<GPIO_SDA_DIR_SHIFT));
 }
 void scl_dir(int ivalue)
 {
 	int tmp;
-	tmp = *GPIO_DIR_HIGH;
+	tmp = *GPIO_DIR_REG;
 	if(ivalue == 1)
-		*GPIO_DIR_HIGH = tmp|(0x1<<14);
+		*GPIO_DIR_REG = tmp|(0x1<<GPIO_SCL_DIR_SHIFT);
 	else
-		*GPIO_DIR_HIGH = tmp&(~(0x1<<14));
+		*GPIO_DIR_REG = tmp&(~(0x1<<GPIO_SCL_DIR_SHIFT));
 }
 
 void sda_bit(int ivalue)
 {
 	int tmp;
-	tmp = *GPIO_DATA_HIGH;
+	tmp = *GPIO_DATA_REG;
 	if(ivalue == 1)
-		*GPIO_DATA_HIGH = tmp|(0x1<<15);
+		*GPIO_DATA_REG = tmp|(0x1<<GPIO_SDA_DATA_SHIFT);
 	else
-		*GPIO_DATA_HIGH = tmp&(~(0x1<<15));
+		*GPIO_DATA_REG = tmp&(~(0x1<<GPIO_SDA_DATA_SHIFT));
 }
 void scl_bit(int ivalue)
 {
 	int tmp;
-	tmp = *GPIO_DATA_HIGH;
+	tmp = *GPIO_DATA_REG;
 	if(ivalue == 1)
-		*GPIO_DATA_HIGH = tmp|(0x1<<14);
+		*GPIO_DATA_REG = tmp|(0x1<<GPIO_SCL_DATA_SHIFT);
 	else
-		*GPIO_DATA_HIGH = tmp&(~(0x1<<14));
+		*GPIO_DATA_REG = tmp&(~(0x1<<GPIO_SCL_DATA_SHIFT));
 }
+
 
 static void i2c_start(void)
 {
@@ -447,8 +462,11 @@ static char i2c_rec_ack()
         i2c_sleep(3);
         scl_bit(1);
         i2c_sleep(5);
-	tmp = ((*GPIO_DATA_HIGH)&0x8000);
-
+#ifdef DEVBD2F_SM502 
+	tmp = ((*GPIO_DATA_REG)&(0x1<<GPIO_SDA_DATA_SHIFT));
+#elif DEVBD2F_FIREWALL
+	tmp = ((*GPIO_DATA_REG)&(0x1<<(GPIO_SDA_DATA_SHIFT+16)));
+#endif
         //wait for a ack signal from slave
 
         while(tmp)
@@ -460,7 +478,11 @@ static char i2c_rec_ack()
                         res = 0;
                         break;
                 }
-		tmp = ((*GPIO_DATA_HIGH)&0x8000);
+#ifdef DEVBD2F_SM502	
+		tmp = ((*GPIO_DATA_REG)&(0x1<<GPIO_SDA_DATA_SHIFT));
+#elif DEVBD2F_FIREWALL
+		tmp = ((*GPIO_DATA_REG)&(0x1<<(GPIO_SDA_DATA_SHIFT+16)));
+#endif
         }
         scl_bit(0);
         i2c_sleep(3);
@@ -480,8 +502,11 @@ static unsigned char i2c_rec()
 		i2c_sleep(5);
 		scl_bit(1);
 		i2c_sleep(3);
-		tmp = ((*GPIO_DATA_HIGH)&0x8000);
-
+#ifdef DEVBD2F_SM502
+		tmp = ((*GPIO_DATA_REG)&(0x1<<GPIO_SDA_DATA_SHIFT));
+#elif DEVBD2F_FIREWALL
+		tmp = ((*GPIO_DATA_REG)&(0x1<<(GPIO_SDA_DATA_SHIFT+16)));
+#endif
 		if(tmp)
 			or_char=0x1;
 		else
@@ -530,6 +555,12 @@ unsigned char i2c_rec_s(unsigned char slave_addr,unsigned char sub_addr,unsigned
 		i2c_send(slave_addr);
 		if(!i2c_rec_ack())
 			return 0;
+if(word_addr)
+{	
+		i2c_send(0x0);
+		if(!i2c_rec_ack())
+			return 0;
+}
 		//write sub_addr
 		i2c_send(sub_addr);
 		if(!i2c_rec_ack())
@@ -564,6 +595,12 @@ unsigned char i2c_send_s(unsigned char slave_addr,unsigned char sub_addr,unsigne
 		i2c_send(slave_addr);
 		if(!i2c_rec_ack())
 			return 0;
+if(word_addr)
+{
+		i2c_send(0);
+		if(!i2c_rec_ack())
+			return 0;
+}
 		i2c_send(sub_addr);
 		if(!i2c_rec_ack())
 			return 0;
@@ -577,6 +614,105 @@ unsigned char i2c_send_s(unsigned char slave_addr,unsigned char sub_addr,unsigne
 		sub_addr++;
 	}
 	return 1;
+}
+
+#ifndef BCD_TO_BIN
+#define BCD_TO_BIN(val) ((val)=((val)&15) + ((val)>>4)*10)
+#endif
+
+#ifndef BIN_TO_BCD
+#define BIN_TO_BCD(val) ((val)=(((val)/10)<<4) + (val)%10)
+#endif
+
+void tm_binary_to_bcd(struct tm *tm)
+{
+	BIN_TO_BCD(tm->tm_sec);	
+	BIN_TO_BCD(tm->tm_min);	
+	BIN_TO_BCD(tm->tm_hour);	
+	BIN_TO_BCD(tm->tm_mday);	
+	BIN_TO_BCD(tm->tm_mon);	
+	BIN_TO_BCD(tm->tm_year);	
+	BIN_TO_BCD(tm->tm_wday);	
+
+}
+
+char gpio_i2c_settime(struct tm *tm)
+{
+	char a ;
+	tm_binary_to_bcd(tm);
+
+//when rtc stop,can't set it ,follow 5 lines to resolve it
+	a = 2;
+	i2c_send_s(0xde,0x3f,&a,1);
+	a = 6;
+	i2c_send_s(0xde,0x3f,&a,1);
+	i2c_send_s(0xde,0x30,&a,1);
+	
+	a = 2;
+	i2c_send_s(0xde,0x3f,&a,1);
+	a = 6;
+	i2c_send_s(0xde,0x3f,&a,1);
+	i2c_start();	
+	i2c_send(0xde);
+	if(!i2c_rec_ack())
+		return 0;
+	i2c_send(0);
+	if(!i2c_rec_ack())
+		return 0;
+
+	i2c_send(0x30);
+	if(!i2c_rec_ack())
+		return 0;
+	i2c_send(tm->tm_sec);
+	if(!i2c_rec_ack())
+		return 0;
+	i2c_send(tm->tm_min);
+	if(!i2c_rec_ack())
+		return 0;
+	i2c_send(tm->tm_hour);
+	if(!i2c_rec_ack())
+		return 0;
+	i2c_send(tm->tm_mday);
+	if(!i2c_rec_ack())
+		return 0;
+	i2c_send(tm->tm_mon+1);
+	if(!i2c_rec_ack())
+		return 0;
+//for 1900 or 2000
+if(tm->tm_year>=0xa0)
+{
+	tm->tm_year = tm->tm_year - 0xa0;
+	i2c_send(tm->tm_year);
+	if(!i2c_rec_ack())
+		return 0;
+
+	i2c_send(tm->tm_wday);
+	if(!i2c_rec_ack())
+		return 0;
+
+	i2c_send(0x20);
+	if(!i2c_rec_ack())
+		return 0;
+}
+else
+{
+	i2c_send(tm->tm_year);
+	if(!i2c_rec_ack())
+		return 0;
+
+	i2c_send(tm->tm_wday);
+	if(!i2c_rec_ack())
+		return 0;
+
+	i2c_send(0x19);
+	if(!i2c_rec_ack())
+		return 0;
+
+}
+	i2c_stop();
+	
+	return 1;
+
 }
 
 static int sm502SPDRead(int type,long long addr,union commondata *mydata)
@@ -617,6 +753,9 @@ static int sm502SPDWrite(int type,long long addr,union commondata *mydata)
 	}
 	return 0;
 }
+
+
+#ifdef DEVBD2F_SM502
 static int sm502RtcRead(int type,long long addr,union commondata *mydata)
 {
 	char c;
@@ -685,6 +824,7 @@ default:
 
 
 
+#endif
 
 
 void i2c_test()
@@ -734,11 +874,10 @@ void i2c_test()
 	printf("rst  %x suc %x \n",rst,suc);
 }
 
-#endif
 
 #ifdef DEVBD2F_FIREWALL
 
-#define I2C_NACK	0x80
+#define I2C_NACK	0x08
 #define	I2C_RD		0x20
 #define	I2C_WR		0x10
 #define	I2C_START	0x80
@@ -752,23 +891,28 @@ unsigned char atp8620_i2c_read(unsigned char slave_addr,unsigned char sub_addr,u
 	volatile unsigned int tmp;
 	tag = _pci_make_tag(0,9,0);
 	iog = _pci_conf_readn(tag,0x10,4);
-	iog =(unsigned int )iog|0xbfd00000|0xb0;
-
+//	printf("iog %x \n",iog);
+	iog =((unsigned int )iog|0xbfd00000|0xb0)&0xfffffffe;
+//	printf("iog %x \n",iog);
 	for(i=0;i<count;i++)
 	{
 		tmp = *iog;
+//	printf("tmp %x \n",tmp);
 		while(tmp&0x1)
-			tmp = *iog;
+			{tmp = *iog;
+			}
+		delay(10);
 
 		tmp = (slave_addr&0xff)<<8;
 		tmp = tmp|I2C_WR|I2C_START|I2C_NACK;
 		*iog = tmp;
 		
-		if(!getenv("spd_op"))
+		if(word_addr)
 		{	
 			tmp = *iog;
 			while(tmp&0x1)
 				tmp = *iog;
+		delay(10);
 		
 			tmp = 0;
 			tmp = tmp|I2C_WR|I2C_NACK;
@@ -779,6 +923,7 @@ unsigned char atp8620_i2c_read(unsigned char slave_addr,unsigned char sub_addr,u
 		tmp = *iog;
 		while(tmp&0x1)
 			tmp = *iog;
+		delay(10);
 
 		tmp = (sub_addr&0xff)<<8;
 		tmp = tmp|I2C_WR|I2C_NACK;
@@ -787,6 +932,7 @@ unsigned char atp8620_i2c_read(unsigned char slave_addr,unsigned char sub_addr,u
 		tmp = *iog;
 		while(tmp&0x1)
 			tmp = *iog;	
+		delay(10);
 
 		tmp = ((slave_addr&0xff)+1)<<8;
 		tmp = tmp|I2C_WR|I2C_START|I2C_NACK;
@@ -795,15 +941,30 @@ unsigned char atp8620_i2c_read(unsigned char slave_addr,unsigned char sub_addr,u
 		tmp = *iog;
 		while(tmp&0x1)
 			tmp = *iog;	
+		delay(10);
+
+		tmp = I2C_RD|I2C_STOP;
+		*iog = tmp;
 
 		tmp = *iog;
-		tmp = tmp&0xffff;
+		while(tmp&0x1)
+			tmp = *iog;	
+		delay(10);
+
+		tmp = *iog;
+		tmp = tmp&0xffff0000;
 		tmp = tmp>>16;
 		buf[i] = tmp&0xff;
 
+/*
 		tmp = I2C_STOP;
 		*iog = tmp;
-
+		
+		tmp = *iog;
+		while(tmp&0x1)
+			tmp = *iog;	
+		delay(10);
+*/
 	}
 	return 0;
 
@@ -819,7 +980,7 @@ unsigned char atp8620_i2c_write(unsigned char slave_addr,unsigned char sub_addr,
 	volatile unsigned int tmp;
 	tag = _pci_make_tag(0,9,0);
 	iog = _pci_conf_readn(tag,0x10,4);
-	iog = (unsigned int )iog|0xbfd00000|0xb0;
+	iog = ((unsigned int )iog|0xbfd00000|0xb0)&0xfffffffe;
 
 	for(i=0;i<count;i++)
 	{
@@ -831,7 +992,7 @@ unsigned char atp8620_i2c_write(unsigned char slave_addr,unsigned char sub_addr,
 		tmp = tmp|I2C_WR|I2C_START|I2C_NACK;
 		*iog = tmp;
 		
-		if(!getenv("spd_op"))
+		if(word_addr)
 		{	
 			tmp = *iog;
 			while(tmp&0x1)
@@ -906,14 +1067,51 @@ static int i2cs(int argc,char *argv[])
 {
 	if(argc<2) 
 		return -1;
+	printf("i2c\n");
 	
 	i2cslot=strtoul(argv[1],0,0);
+
 	switch(i2cslot)
 	{
 	case 0:
+		slave_addr = strtoul(argv[2],0,0);
+		if(slave_addr==0xde||slave_addr == 0xae)
+		{
+			word_addr = 1;
+			printf("rtc opreation!\n");	
+		}
+		else
+			word_addr = 0;
 		syscall1 = (void *)firewall_i2c_read;
 		syscall2 = (void *)firewall_i2c_write;
 		break;
+	case 1:
+		slave_addr = strtoul(argv[2],0,0);
+		if(slave_addr==0xde||slave_addr == 0xae)
+		{
+			word_addr = 1;
+			printf("rtc opreation!\n");	
+		}
+		else
+			word_addr = 0;
+		syscall1 = (void *)sm502SPDRead;
+		syscall2 = (void *)sm502SPDWrite;
+		break;
+	case 2:	
+		i2c_test();
+		break;
+	case 3:
+		syscall1=(void *)rom_ddr_reg_read;
+		syscall2=(void *)rom_ddr_reg_write;
+		if(argc==3 && !strcmp(argv[2][2],"revert"))
+		{
+			extern char ddr2_reg_data,_start;
+			extern char ddr2_reg_data1;
+			printf("revert to default ddr setting\n");
+			// tgt_flashprogram(0xbfc00000+((int)&ddr2_reg_data -(int)&_start),30*8,&ddr2_reg_data1,TRUE);
+		}
+		break;
+
 	default:
 		return -1;
 	}
@@ -925,73 +1123,71 @@ static int i2cs(int argc,char **argv)
 {
 	pcitag_t tag;
 	volatile int tmp;
-if(argc<2) return -1;
+	if(argc<2) 
+		return -1;
 
-i2cslot=strtoul(argv[1],0,0);
+	i2cslot=strtoul(argv[1],0,0);
 
-switch(i2cslot)
-{
-case 0:
-case 1:
- syscall1=(void*)DimmRead;
- syscall2=(void*)DimmWrite;
-break;
-case 2:
- syscall1=(void*)Ics950220Read;
- syscall2=(void*)Ics950220Write;
-case 3:
- syscall1=(void *)rom_ddr_reg_read;
- syscall2=(void *)rom_ddr_reg_write;
- if(argc==3 && !strcmp(argv[2][2],"revert"))
- {
- extern char ddr2_reg_data,_start;
- extern char ddr2_reg_data1;
- printf("revert to default ddr setting\n");
-// tgt_flashprogram(0xbfc00000+((int)&ddr2_reg_data -(int)&_start),30*8,&ddr2_reg_data1,TRUE);
- }
-break;
+	switch(i2cslot)
+	{
+		case 0:
+		case 1:
+			syscall1=(void*)DimmRead;
+			syscall2=(void*)DimmWrite;
+			break;
+		case 2:
+			 syscall1=(void*)Ics950220Read;
+			 syscall2=(void*)Ics950220Write;
+			 break;
+		case 3:
+			 syscall1=(void *)rom_ddr_reg_read;
+			 syscall2=(void *)rom_ddr_reg_write;
+			 if(argc==3 && !strcmp(argv[2][2],"revert"))
+			 {
+				 extern char ddr2_reg_data,_start;
+				 extern char ddr2_reg_data1;
+				 printf("revert to default ddr setting\n");
+				// tgt_flashprogram(0xbfc00000+((int)&ddr2_reg_data -(int)&_start),30*8,&ddr2_reg_data1,TRUE);
+			 }
+			break;
 #ifdef DEVBD2F_SM502
-case 4:
+		case 4:
 
-	tag=_pci_make_tag(0,14,0);
+			tag=_pci_make_tag(0,14,0);
 
-	mmio=_pci_conf_readn(tag,0x14,4);
-	mmio =(int)mmio|(0xb0000000);
-//	printf("mmio =%x\n",mmio);	
+			mmio=_pci_conf_readn(tag,0x14,4);
+			mmio =(int)mmio|(0xb0000000);
+		//	printf("mmio =%x\n",mmio);	
 	
-	syscall1 = (void *)sm502RtcRead;
-	syscall2 = (void *)sm502RtcWrite;
-	tmp = *(volatile int *)(mmio + 0x40);
-	*(volatile int *)(mmio + 0x40) =tmp|0x40;
- break;
-case 5:
+			syscall1 = (void *)sm502RtcRead;
+			syscall2 = (void *)sm502RtcWrite;
+			tmp = *(volatile int *)(mmio + 0x40);
+			*(volatile int *)(mmio + 0x40) =tmp|0x40;
+			 break;
+		case 5:
 
-	slave_addr = strtoul(argv[2],0,0);
-	tag=_pci_make_tag(0,14,0);
+			slave_addr = strtoul(argv[2],0,0);
+			tag=_pci_make_tag(0,14,0);
 
-	mmio=_pci_conf_readn(tag,0x14,4);
-	mmio =(int)mmio|(0xb0000000);
-//	printf("mmio =%x\n",mmio);	
+			mmio=_pci_conf_readn(tag,0x14,4);
+			mmio =(int)mmio|(0xb0000000);
 	
-//	syscall1 = (void *)sm502RtcRead;
- //	syscall2 = (void *)sm502RtcWrite;
-	syscall1 = (void *)sm502SPDRead;
- 	syscall2 = (void *)sm502SPDWrite;
-	tmp = *(volatile int *)(mmio + 0x40);
-	*(volatile int *)(mmio + 0x40) =tmp|0x40;
- break;
-case 6:
- 	i2c_test();
-	break;
+			syscall1 = (void *)sm502SPDRead;
+		 	syscall2 = (void *)sm502SPDWrite;
+			tmp = *(volatile int *)(mmio + 0x40);
+			*(volatile int *)(mmio + 0x40) =tmp|0x40;
+			 break;
+		case 6:
+		 	i2c_test();
+			break;
 #endif
-default:
- return -1;
-break;
-}
+		default:
+			 return -1;
+	}
 
-syscall_addrtype=0;
+	syscall_addrtype=0;
 
-return 0;
+	return 0;
 }
 
 
