@@ -833,7 +833,7 @@ static struct sk_buff *dev_alloc_skb(unsigned int length){
     skb->len=0;
     skb->data=skb->head=(void *) kmalloc(length,GFP_KERNEL);
 	}
-	if(!skb||skb->data){printf("not enough memory!enlarge NKMEMCLUSTERS in sys/arch/mips/include/param.h");}
+	if(!skb||!skb->data){printf("not enough memory!enlarge NKMEMCLUSTERS in sys/arch/mips/include/param.h");}
 	return skb&&skb->data?skb:0;
 }
 
