@@ -782,10 +782,11 @@ struct ifnet *ifp = &netdev->arpcom.ac_if;
 	return (ifp->if_flags & IFF_RUNNING)?1:0;
 }
 
+#define UNCACHED_TO_CACHED(x) PHYS_TO_CACHED(UNCACHED_TO_PHYS(x))
 static void pci_free_consistent(struct pci_dev *pdev, size_t size, void *cpu_addr,
             dma_addr_t dma_addr)
 {
-	kfree(cpu_addr);
+	kfree(UNCACHED_TO_CACHED(cpu_addr));
 }
 
 //pci_alloc_consistent 最后一个参数是DMA地址，返回的是非cache的cpu地址。
@@ -2727,7 +2728,7 @@ static int e100_tx_clean(struct nic *nic)
 			tx_cleaned = 1;
 		}
 		cb->status = 0;
-		nic->cbs_avail++;
+	if(nic->cbs_avail<nic->params.cbs.count)nic->cbs_avail++;
 	}
 
 	spin_unlock(&nic->cb_lock);
@@ -3026,7 +3027,7 @@ static irqreturn_t e100_intr(void *dev_id)
 	}
 #else
 {
-int budget=1;
+int budget=16;
 	e100_poll(netdev,&budget);
 
 }
