@@ -706,12 +706,6 @@ gs_2f_v3_ddr2_cfg:
 ddr2_config_done:
 	PRINTSTR("DDR2 config end\r\n")
 
-
-	PRINTSTR("DIMM SIZE=")
-	move	a0,msize
-	bal	hexserial
-	nop
-	PRINTSTR("\r\n")
 	
 
 #if 1 /* read ddr2 registers */
@@ -1056,7 +1050,6 @@ zhb:
         mtc0   a0,COP_0_CONFIG
 #endif
 	PRINTSTR("\r\n")
-//	li	msize,(512<<20)
 
 
     /* pass pointer to kseg1 tgt_putchar */
@@ -1066,6 +1059,7 @@ zhb:
     la  a2, stringserial
 	addu a2,a2,s0
 
+	srl	msize,msize,20
 	move	a0,msize
 	
 	la	v0, initmips

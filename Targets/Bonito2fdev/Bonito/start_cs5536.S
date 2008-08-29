@@ -1146,6 +1146,7 @@ zhb:
         mtc0   a0,COP_0_CONFIG
 #endif
 
+	srl	msize,20
 	move	a0,msize
 
     /* pass pointer to kseg1 tgt_putchar */

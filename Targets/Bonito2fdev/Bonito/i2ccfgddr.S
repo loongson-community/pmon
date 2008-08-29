@@ -486,7 +486,6 @@ PRINTSTR("\r\ncols rows: ")
 	nop
 	
 	PRINTSTR("\r\n")
-//	sll msize,20
 	b 213f
 	nop
 212:	
@@ -501,3 +500,5 @@ PRINTSTR("\r\ncols rows: ")
 	nop
 
 	PRINTSTR ("\r\n")
+	
+	sll msize,20

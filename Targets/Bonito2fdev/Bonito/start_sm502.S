@@ -713,7 +713,6 @@ gs_2f_v3_ddr2_cfg:
         #or  a1,a1,0x100
         sd  a1,0x0(t2)
 #endif    
-//	li	msize,0x0f000000
 	PRINTSTR("DDR2 config begin_whd\r\n")
 	b	ddr2_config
 	nop
@@ -1062,7 +1061,6 @@ zhb:
         or     a0,a0,0x3
         mtc0   a0,COP_0_CONFIG
 #endif
-//	li	msize,(512<<20)
 
 
     /* pass pointer to kseg1 tgt_putchar */
@@ -1072,6 +1070,7 @@ zhb:
     la  a2, stringserial
 	addu a2,a2,s0
 
+	srl	msize,20
 	move	a0,msize
 	
 	la	v0, initmips
@@ -1620,11 +1619,6 @@ i2c_test:
 #include "i2ccfgddr.S"
 	beqz msize,i2c_test
 	nop
-	PRINTSTR("DIMM SIZE=")
-	move	a0,msize
-	bal	hexserial
-	nop
-	PRINTSTR("\r\n")
 2:	
 /////////////////
 

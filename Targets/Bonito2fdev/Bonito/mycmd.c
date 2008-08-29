@@ -359,6 +359,8 @@ static volatile char *mmio = 0;
 extern int word_addr = 0;
 
 #endif
+
+#if defined(DEVBD2F_SM502)||defined(DEVBD2F_FIREWALL)
 static void i2c_sleep(int ntime)
 {
 	int i,j=0;
@@ -615,6 +617,7 @@ if(word_addr)
 	}
 	return 1;
 }
+
 
 #ifndef BCD_TO_BIN
 #define BCD_TO_BIN(val) ((val)=((val)&15) + ((val)>>4)*10)
@@ -874,7 +877,7 @@ void i2c_test()
 	printf("rst  %x suc %x \n",rst,suc);
 }
 
-
+#endif
 #ifdef DEVBD2F_FIREWALL
 
 #define I2C_NACK	0x08
