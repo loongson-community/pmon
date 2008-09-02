@@ -167,6 +167,10 @@ static int
 	p->refs--;
 
 	if ((p->refs == 0) && (p->flags & RAMFILE_DYNAMIC)) {
+		char tmpname[20];
+		sprintf(tmpname,"%08x",p->base);
+		deleteRamFile(tmpname);
+		addRamFile(tmpname, p->base, _file[fd].posn, RAMFILE_STATIC);
 	   LIST_REMOVE(p, i_next);
 	   free(p);
 	}

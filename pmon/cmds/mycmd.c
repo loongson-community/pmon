@@ -290,7 +290,7 @@ if(argc<3)return -1;
 	sprintf(pstr,"%d",nowcount);
 	printf("%s",pstr);
 	}
-	if(write(fp1,buf,bs)<bs||rcount<bs)break;
+	if(write(fp1,buf,rcount)<rcount||rcount<bs)break;
 	}
 	free(buf);
 #if NGZIP > 0
@@ -1007,31 +1007,75 @@ int n=1;
 	return 0;
 }
 
-static int checksum(int ac,char **argv)
+static int checksum(int argc,char **argv)
 {
-	unsigned long addr,size;
-	unsigned long sum = 0;
-	unsigned long *p;
-	int i = 0;
+	int i;
+	unsigned long size,left,total,bs,sum,want,count,idx;
+	int quiet,checkwant,fp0,ret;
+	int fsrc;
+	char *buf;
 
-	if (ac!=3)
+	if (argc<2)
 		return -1;
-    addr = strtoul(argv[1],0,0);
-    size = strtoul(argv[2],0,0);
 
-	if (addr < heaptop || (addr + size) >= 0x90000000) {
-		printf("Invalid addr,size <%lx,%lx>\n",addr,size);
+	bs=0x20000;
+	total=0;
+	size=0x7fffffff;
+	checkwant=0;
+	count=1;
+	quiet=0;
+
+	fsrc=argv[1];
+	for(i=2;i<argc;i++)
+	{
+	if(!strncmp(argv[i],"bs=",3))
+	 bs=strtoul(&argv[i][3],0,0);
+	else if(!strncmp(argv[i],"count=",6))
+	 count=strtoul(&argv[i][6],0,0);
+	else if(!strncmp(argv[i],"size=",5))
+	 size=strtoul(&argv[i][5],0,0);
+	else if(!strncmp(argv[i],"want=",5))
+	{
+	 want=strtoul(&argv[i][5],0,0);
+	 checkwant=1;
+	}
+	else if(!strncmp(argv[i],"quiet=",6))
+	 quiet=strtoul(&argv[i][6],0,0);
+	}
+	
+
+	if(!fsrc)return -1;
+	buf=malloc(bs);
+	if(!buf){printf("malloc failed!,please set heaptop bigger\n");return -1;}
+	for(idx=0;idx<count;idx++)
+	{
+	 total=0;
+	 left=size;
+	 sum=0;
+	fp0=open(fsrc,O_RDONLY);
+
+	
+	while(left)
+	{
+	 ret=read(fp0,buf,min(left,bs));
+	 if(ret>0){
+	 for(i=0;i<ret;i++) sum += buf[i];
+	 total+=ret;
+	 left -=ret;
+	 }
+	 else break;
 	}
 
-	printf("checksuming addr %lx,size=%lx\n",addr,size);
-	p = (unsigned long *)addr;
+	close(fp0);
 
-	while (i<size) {
-		sum += *p++;
-		i = i + sizeof(long);
+
+	if(!quiet)printf("%d:checksuming  0x%lx,size=0x%lx\n",idx,sum,total);
+	if(checkwant && (want!=sum)){
+	printf("%d:checksum error want 0x%x, got 0x%x\n",idx,want,sum);
+	break;
 	}
-
-	printf("total %d words, checksum=0x%x\n",i/4,sum);
+   }
+	free(buf);
 
 	return 0;
 }

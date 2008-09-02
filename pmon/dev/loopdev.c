@@ -18,7 +18,7 @@ struct loopdev_softc {
     /* General disk infos */
     struct device sc_dev;
     char dev[64];
-    int fd,bs,seek,count;
+    int fd,bs,seek,count,access;
 #if NGZIP > 0
     int unzip;
 #endif
@@ -110,6 +110,8 @@ else if(!strncmp(argv[i],"count=",6))
  priv->count=strtoul(&argv[i][6],0,0);
 else if(!strncmp(argv[i],"seek=",5))
  priv->seek=strtoul(&argv[i][5],0,0);
+else if(!strncmp(argv[i],"access=",7))
+ priv->access=strtoul(&argv[i][7],0,0);
 #if NGZIP > 0
 else if(!strcmp(argv[i],"unzip=1"))
  priv->unzip=1;
@@ -134,7 +136,7 @@ if((loopdevenv=getenv("loopdev")))
 sprintf(loopdevcmd,"losetup loopdev%d %s",minor(dev),loopdevenv);
 do_cmd(loopdevcmd);
 }
-priv->fd=open(priv->dev,O_RDWR);
+priv->fd=open(priv->dev,priv->access);
 if(priv->fd==-1)return -1;
 #if NGZIP > 0
 if(priv->unzip&&(gz_open(priv->fd)==-1))priv->unzip=0;
@@ -201,6 +203,7 @@ strncpy(priv->dev,"/dev/mtd0",63);
 priv->bs=DEV_BSIZE;
 priv->seek=0;
 priv->count=-1;
+priv->access=O_RDWR;
 #if NGZIP > 0
 priv->unzip=0;
 #endif

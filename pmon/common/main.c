@@ -145,6 +145,21 @@ main()
 #endif
         
 	md_setsr(NULL, initial_sr);	/* XXX does this belong here? */
+{
+static int run=0;
+char *s;
+if(!run)
+{
+	run=1;
+#ifdef AUTOLOAD
+	s = getenv ("al");
+	autoload (s);
+#else
+	s = getenv ("autoboot");
+	autorun (s);
+#endif
+}
+}
 
 	while(1) {
 #if 0
@@ -213,6 +228,11 @@ autoload(char *s)
 		putchar ('\n');
 
 		if(cnt == 0) {
+	        if(getenv("autocmd"))
+			{
+			strcpy(buf,getenv("autocmd"));
+			do_cmd(buf);
+			}
 			rd= getenv("rd");
 			if (rd != 0){
 				sprintf(buf, "initrd %s", rd);
@@ -415,13 +435,6 @@ dbginit (char *adr)
 	md_clreg(NULL);
 	md_setpc(NULL, (int32_t) CLIENTPC);
 	md_setsp(NULL, tgt_clienttos ());
-#ifdef AUTOLOAD
-	s = getenv ("al");
-	autoload (s);
-#else
-	s = getenv ("autoboot");
-	autorun (s);
-#endif
 }
 
 /*

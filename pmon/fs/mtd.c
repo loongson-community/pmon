@@ -196,6 +196,7 @@ static int
 	mtdfile        *p;
 	mtdpriv *priv;
 	struct erase_info erase;
+	unsigned int start_addr;
 
 	priv = (mtdpriv *)_file[fd].data;
 	p = priv->file;
@@ -203,15 +204,19 @@ static int
 	if (_file[fd].posn + n > priv->open_size)
 		n = priv->open_size - _file[fd].posn;
 
+	start_addr= _file[fd].posn+priv->open_offset+p->part_offset;
+
 	erase.mtd = p->mtd;
 	erase.callback = 0;
-	erase.addr = _file[fd].posn+priv->open_offset+p->part_offset;
+	erase.addr = (start_addr+mtd->erasesize-1)&~(mtd->erasesize-1);
 	erase.len = n;
 	erase.priv = 0;
 
-
+	if(erase.addr>=start_addr && erase.addr<start_addr+erase.len)
+	{
 	p->mtd->erase(p->mtd,&erase);
-	p->mtd->write(p->mtd,_file[fd].posn+priv->open_offset+p->part_offset,n,&n,buf);
+	}
+	p->mtd->write(p->mtd,start_addr,n,&n,buf);
 	_file[fd].posn += n;
 
 	return (n);
