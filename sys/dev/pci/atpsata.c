@@ -428,7 +428,7 @@ int init_sata(int dev,u32 reg)
 	outb(reg + 0x002c,0x00);
 	outb(reg + 0x0074,0x04);
 	outb(reg + 0x0018,0x17);
-	outb(reg + 0x0014,0);
+	outl(reg + 0x0014,0);
 	outl(reg + 0x0030,0xffffffff);
 	return 0;
 }
@@ -912,7 +912,7 @@ SATADEBUG
 	outl(sata->reg_base + 0x0038,ci_map);
 	while (inl(sata->reg_base + 0x0038) & ci_map)
 	{
-		sdelay(1);
+		myudelay(100);
 	}
 	myudelay(10);
 
@@ -1074,7 +1074,7 @@ printf("statusX = %d, k = %d \n",statusX,k);
 		{
 			for(k = 0;k < 1000;k++)
 			{
-				signature = inl(reg + 0x0024);	
+				signature = inl(reg + 0x0024);
 				if(signature == 0x0101)
 				{
 					break;
