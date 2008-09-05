@@ -1837,14 +1837,17 @@ LEAF(superio_init)
 	// hi : bit+16 = 0 and bit = 1
 	// lo : bit+16 = 1 and bit = 0
 
-#ifdef	USE_CS5536_UART1
 #ifdef USE_CS5536_UART
 	/* config uart1 as 0x2f8 */
-	CS5536_MSR_WRITE((CS5536_DIVIL_MSR_BASE | 0x14), 0x04050003, 0x0);
+	CS5536_MSR_WRITE((CS5536_DIVIL_MSR_BASE | 0x14), 0x04750003, 0x0);
 #else
 	/* config uart1 as 0x2e8 */
-	CS5536_MSR_WRITE((CS5536_DIVIL_MSR_BASE | 0x14), 0x04040003, 0x0);
+	CS5536_MSR_WRITE((CS5536_DIVIL_MSR_BASE | 0x14), 0x04640003, 0x0);
 #endif
+
+
+#ifdef	USE_CS5536_UART1
+
 	/* config uart1 legacy configuration */
 	CS5536_MSR_WRITE((CS5536_DIVIL_MSR_BASE | 0x3a), 0x2, 0x0);
 	
@@ -1869,13 +1872,6 @@ LEAF(superio_init)
 #endif
 
 #ifdef	USE_CS5536_UART2
-#ifdef USE_CS5536_UART
-	/* config uart2 as 0x3f8 */
-	CS5536_MSR_WRITE((CS5536_DIVIL_MSR_BASE | 0x14), 0x04700003, 0x0);
-#else
-	/* config uart2 as 0x3e8 */
-	CS5536_MSR_WRITE((CS5536_DIVIL_MSR_BASE | 0x14), 0x04600003, 0x0);
-#endif
 
 	/* config uart2 legacy configuration */
 	CS5536_MSR_WRITE((CS5536_DIVIL_MSR_BASE | 0x3e), 0x2, 0x0);
