@@ -6,7 +6,7 @@
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/nand.h>
 #include <linux/mtd/partitions.h>
-
+#include "fcr-nand.h"
 /*
  * MTD structure for fcr_soc board
  */
@@ -31,6 +31,49 @@ if((ctrl & NAND_CTRL_ALE)==NAND_CTRL_ALE)
 		*(volatile unsigned int *)(0xbf000014) = dat;
 if ((ctrl & NAND_CTRL_CLE)==NAND_CTRL_CLE)
 		*(volatile unsigned int *)(0xbf000010) = dat;
+}
+
+
+//Main initialization for yaffs ----- by zhly
+int fcr_soc_foryaffs_init(struct mtd_info *mtd)
+{
+	struct nand_chip *this;
+	
+	if(!mtd)
+	{
+		if(!(mtd = kmalloc(sizeof(struct mtd_info),GFP_KERNEL)))
+		{
+			printk("unable to allocate mtd_info structure!\n");
+			return -ENOMEM;
+		}
+		memset(mtd, 0, sizeof(struct mtd_info));
+	}
+
+	this = kmalloc(sizeof(struct nand_chip),GFP_KERNEL);
+	if(!this)
+	{
+		printk("Unable to allocate nand_chip structure!\n");
+		return -ENOMEM;
+	}
+	memset(this,0,sizeof(struct nand_chip));
+		
+	fcr_soc_mtd=mtd;
+	fcr_soc_mtd->priv = this;
+
+	this->IO_ADDR_R = (void *)0xbf000040;
+	this->IO_ADDR_W = (void *)0xbf000040;
+	this->cmd_ctrl = fcr_soc_hwcontrol;
+	this->ecc.mode = NAND_ECC_SOFT;
+	
+	if(nand_scan(fcr_soc_mtd,1))
+	{
+		kfree(fcr_soc_mtd);
+		printk("nand_scan failed!\n");
+		return -1;		
+	}
+	fcr_soc_mtd->size=0x04000000;
+
+	return 0;
 }
 
 /*

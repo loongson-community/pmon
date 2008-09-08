@@ -208,7 +208,7 @@ static int
 
 	erase.mtd = p->mtd;
 	erase.callback = 0;
-	erase.addr = (start_addr+mtd->erasesize-1)&~(mtd->erasesize-1);
+	erase.addr = (start_addr+p->mtd->erasesize-1)&~(p->mtd->erasesize-1);
 	erase.len = n;
 	erase.priv = 0;
 

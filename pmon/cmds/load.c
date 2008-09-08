@@ -102,7 +102,7 @@ nload (argc, argv)
 	char **argv;
 {
 	char path[256];
-	static char buf[1024];
+	static char buf[2048];
 	long ep;
 	int n;
 	extern int optind;

@@ -234,6 +234,7 @@ file pmon/fs/devfs.c			(scsi | ide)
 file pmon/fs/diskfs.c			(scsi | ide)
 file pmon/fs/ext2fs.c			ext2
 file pmon/fs/fatfs.c			fatfs
+file pmon/fs/yaffsfs.c			yaffsfs
 file pmon/loaders/loadfn.c		(mod_s3load | mod_fastload)
 file pmon/loaders/zmodem/zmdm.c		(pmon_zmodem_rz | pmon_zmodem_tz)
 file pmon/loaders/zmodem/crctab.c	(pmon_zmodem_rz | pmon_zmodem_tz)
