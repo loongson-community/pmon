@@ -885,7 +885,71 @@ void i2c_test()
 #define	I2C_WR		0x10
 #define	I2C_START	0x80
 #define	I2C_STOP	0x40
+#if 1
+unsigned char atp8620_i2c_read(unsigned char slave_addr,unsigned char sub_addr,unsigned char* buf ,int count)
+{
+	pcitag_t tag;	
+	int i;
+	volatile unsigned char * iog;
+	volatile unsigned char tmp;
+	tag = _pci_make_tag(0,9,0);
+	iog = _pci_conf_readn(tag,0x10,4);
+#define CTR  (volatile unsigned char *)(iog + 0x0)
+#define TXR  (volatile unsigned char *)(iog + 0x1)
+#define RXR  (volatile unsigned char *)(iog + 0x2)
+//	printf("iog %x \n",iog);
+	iog =((unsigned int )iog|0xbfd00000|0xb0)&0xfffffffe;
+	for(i=0;i<count;i++)
+	{
+		tmp = *CTR;
+		while(tmp&0x1)
+			tmp=*CTR;
+		delay(10);
+		
+		*TXR = slave_addr;
+		*CTR = I2C_WR|I2C_START;
 
+		if(word_addr){
+		
+			tmp = *CTR;
+			while(tmp&0x1)
+				tmp=*CTR;
+			delay(10);
+			
+			*TXR = 0;
+			*CTR = I2C_WR;
+		}
+		tmp = *CTR;
+		while(tmp&0x1)
+			tmp=*CTR;
+		delay(10);
+		*TXR = sub_addr;
+		*CTR = I2C_WR;
+
+		tmp = *CTR;
+		while(tmp&0x1)
+			tmp=*CTR;
+		delay(10);
+		*TXR = slave_addr+1;
+		*CTR = I2C_WR|I2C_START;
+		
+		delay(1);
+///	
+		*CTR = I2C_RD;
+		tmp = *CTR;
+		while(tmp&0x1)
+			tmp=*CTR;
+		delay(10);
+
+		tmp = *RXR;
+		buf[i] = tmp;
+
+		*CTR = I2C_STOP;
+
+	}
+}
+
+#else
 unsigned char atp8620_i2c_read(unsigned char slave_addr,unsigned char sub_addr,unsigned char* buf ,int count)
 {
 	pcitag_t tag;	
@@ -974,6 +1038,7 @@ unsigned char atp8620_i2c_read(unsigned char slave_addr,unsigned char sub_addr,u
 
 }
 
+#endif
 
 unsigned char atp8620_i2c_write(unsigned char slave_addr,unsigned char sub_addr,unsigned char * buf ,int count)
 {

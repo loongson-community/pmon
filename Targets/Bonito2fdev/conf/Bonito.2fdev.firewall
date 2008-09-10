@@ -68,8 +68,8 @@ select		cmd_shell		# Shell commands, vers, help, eval
 # Platform options
 #
 select		mod_uart_ns16550	# Standard UART driver
-option		CONS_BAUD=B9600
-#option		CONS_BAUD=B115200
+#option		CONS_BAUD=B9600
+option		CONS_BAUD=B115200
 select		ext2
 select		fatfs
 select		mod_x86emu		# X86 emulation for VGA
@@ -88,7 +88,7 @@ option		NOSNOOP			# Caches are no-snooping
 #
 # HAVE options. What tgt level provide
 #
-option		HAVE_TOD		# Time-Of-Day clock
+#option		HAVE_TOD		# Time-Of-Day clock
 option		HAVE_NVENV		#  Platform has non-volatile env mem
 option		HAVE_LOGO		# Output splash logo
 option		USE_SUPERIO_UART
