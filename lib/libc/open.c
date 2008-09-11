@@ -88,6 +88,10 @@ open(filename, mode)
 		dname += 6;
 		i = __try_open(dname, mode, NULL, lu, FS_FILE);
 	}
+	else if(strpat(dname, "http://*"))
+	{
+		i = __try_open(dname, mode, "net", lu, FS_FILE);
+	}
 	else {
 		i = __try_open(fname, mode, dname, lu, 0);
 	}

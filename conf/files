@@ -251,6 +251,7 @@ file pmon/netio/bootp.c			inet
 file pmon/netio/ifconfig.c		inet
 file pmon/netio/ping.c			inet
 file pmon/netio/tftplib.c		inet
+file pmon/netio/httplib.c		inet & http & tcp
 #file pmon/netio/udptty.c		inet
 
 file x86emu/int10/radeon_init.c

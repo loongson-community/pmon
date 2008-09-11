@@ -118,7 +118,7 @@ void	iplinit __P((void));
 #endif
 
 #ifdef PMON
-#include "tcp.h"
+#include <tcp.h>
 #endif /* PMON */
 
 extern	struct domain inetdomain;
