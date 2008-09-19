@@ -278,6 +278,7 @@ httpread (int fd,void* buf,int nread)
 		} 
 		if (http->foffs >= http->end) {
 			http->start = http->end;
+			if(http->foffs>=buf_size)break;
 			n = read(http->sock, http->buf, HPSIZE);
 			if(n<=0)break;
 			http->end = http->start + n;

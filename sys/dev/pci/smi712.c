@@ -170,8 +170,8 @@ int  smi712_init(char * fbaddress,char * ioaddress)
         hw.height = 600;
 #endif
 #if 1
-		hw.width = 640;
-        hw.height = 480;
+		hw.width = FB_XSIZE;
+        hw.height = FB_YSIZE;
 #endif
 		hw.bits_per_pixel = 16;
         hw.hz = 60;
