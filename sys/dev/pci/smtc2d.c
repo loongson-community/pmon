@@ -457,85 +457,15 @@ deFillRect(nDestBase,0,
 
 void AutodeInit()
 {
-#if defined(X1024x768)
-
-#if defined(CONFIG_VIDEO_8BPP)	
-	deInit(1024,768,8);
-#endif
-#if defined(CONFIG_VIDEO_16BPP)
-	deInit(1024,768,16);
-#endif
-#if defined(CONFIG_VIDEO_32BPP)
-        deInit(1024,768,32);
-#endif
-
-#elif defined(X800x600)
-
-#if defined(CONFIG_VIDEO_8BPP)
-        deInit(800,600,8);
-#endif
-#if defined(CONFIG_VIDEO_16BPP)
-        deInit(800,600,16);
-#endif
-#if defined(CONFIG_VIDEO_32BPP)
-        deInit(800,600,32);
-#endif
-#elif defined(X800x480)
-#if defined(CONFIG_VIDEO_8BPP)
-        deInit(800,480,8);
-#endif
-#if defined(CONFIG_VIDEO_16BPP)
-        deInit(800,480,16);
-#endif
-#if defined(CONFIG_VIDEO_32BPP)
-        deInit(800,480,32);
-#endif
-
-#else
-#if defined(CONFIG_VIDEO_8BPP)
-        deInit(640,480,8);
-#endif
-#if defined(CONFIG_VIDEO_16BPP)
-        deInit(640,480,16);
-#endif
-#if defined(CONFIG_VIDEO_32BPP)
-        deInit(640,480,32);
-#endif
-
-#endif
+	deInit(FB_XSIZE,FB_YSIZE,FB_COLOR_BITS);
 }
 
 void AutodeFillRectModify(int color)
 {
-#if defined(X1024x768)
-	deFillRectModify(0,0,768-16,1024,768,color);
-#endif
-	
-#if defined(X800x600)	
-	deFillRectModify(0,0,600-16,800,600,color);
-#endif
-	
-#if defined(X800x480)	
-	deFillRectModify(0,0,480-16,800,480,color);
-#endif
-
-#if defined(X640x480)
-	deFillRectModify(0,0,480-16,640,480,color);
-#endif
+	deFillRectModify(0,0,FB_YSIZE-16,FB_XSIZE,FB_YSIZE,color);
 }
 
 void AutodeCopyModify(int bpp)
 {
-#if defined(X1024x768)
-	deCopyModify(bpp,0,1024,0,16,0,1024,0,0,1024,768-16,0x0c);
-#endif
-#if defined(X800x600)	
-	deCopyModify(bpp,0,800,0,16,0,800,0,0,800,600-16,0x0c);
-#endif
-#if defined(X800x480)	
-	deCopyModify(bpp,0,800,0,16,0,800,0,0,800,480-16,0x0c);
-#endif
-#if defined(X640x480)
-	deCopyModify(bpp,0,640,0,16,0,640,0,0,640,480-16,0x0c);
-#endif
+	deCopyModify(bpp,0,FB_XSIZE,0,16,0,FB_XSIZE,0,0,FB_XSIZE,FB_YSIZE-16,0x0c);
 }

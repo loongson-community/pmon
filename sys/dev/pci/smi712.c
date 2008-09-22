@@ -91,9 +91,16 @@ static void smi_set_timing(struct par_info *hw)
         writel(hw->m_pVPR+0x40, 0x0);
         /* set data width */
         m_nScreenStride = (hw->width * hw->bits_per_pixel) / 64;
-        
-        /* case 16: */
-        writel(hw->m_pVPR+0x0, 0x00020000); //ÉèÖÃ16É«
+
+#ifdef CONFIG_VIDEO_8BPP
+			writel(hw->m_pVPR+0x0,0);
+#elif defined(CONFIG_VIDEO_16BPP)
+			writel(hw->m_pVPR+0x0,0x00020000);
+#elif defined(CONFIG_VIDEO_24BPP)
+			writel(hw->m_pVPR+0x0,0x00040000);
+#else
+      writel(hw->m_pVPR+0x0,0x00030000);
+#endif
                         
         writel(hw->m_pVPR+0x10, (u32)(((m_nScreenStride + 2) << 16) | m_nScreenStride));
 }
@@ -192,7 +199,7 @@ int  smi712_init(char * fbaddress,char * ioaddress)
 
         /* LynxEM+ memory dection */
         *(u32 *)(SMILFB + 4) = 0xAA551133;
-        //if (*(u32 *)(SMILFB + 4) != 0xAA551133)
+        if (*(u32 *)(SMILFB + 4) != 0xAA551133)
         {
                 smem_size = 0x00200000;
                 /* Program the MCLK to 130 MHz */

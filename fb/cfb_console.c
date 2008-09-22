@@ -1560,6 +1560,9 @@ int fb_init (unsigned long fbbase,unsigned long iobase)
 #elif defined(CONFIG_VIDEO_16BPP)
         pGD->gdfBytesPP= 2;
         pGD->gdfIndex  = GDF_16BIT_565RGB;
+#elif defined(CONFIG_VIDE0_24BPP)
+        pGD->gdfBytesPP= 3;
+		pGD->gdfIndex=GDF_24BIT_888RGB;
 #elif defined(CONFIG_VIDEO_32BPP)
         pGD->gdfBytesPP= 4;
         pGD->gdfIndex  = GDF_32BIT_X888RGB;
@@ -1640,7 +1643,7 @@ int fb_init (unsigned long fbbase,unsigned long iobase)
 	}
 	eorx = fgx ^ bgx;
 
-	memsetl (video_fb_address, CONSOLE_SIZE, CONSOLE_BG_COL);
+	memsetl (video_fb_address, CONSOLE_SIZE/4, CONSOLE_BG_COL);
 #ifdef CONFIG_VIDEO_LOGO
 	/* Plot the logo and get start point of console */
 	printf("Video: Drawing the logo ...\n");

@@ -37,6 +37,8 @@ RANLIB		= $(CROSS_COMPILE)ranlib
 SIZE		= $(CROSS_COMPILE)size
 
 OPT?=	-O2
+IDENT:=${IDENT} $(shell echo  ${IDENT}|sed -n 's/.*-DX\([0-9]\+\)x\([0-9]\+\).*/ -DFB_XSIZE=\1 -DFB_YSIZE=\2 /p')
+IDENT:=${IDENT} $(shell echo  ${IDENT}|sed -n 's/.*-DCONFIG_VIDEO_\([0-9]\+\)BPP.*/ -DFB_COLOR_BITS=\1 /p')
 
 all: pmon
 
