@@ -153,6 +153,11 @@ static inline unsigned int smtc_seqr(int reg)
         return *(volatile unsigned char *)(smtc_RegBaseAddress+0x3c5);
 }
 
+static inline void smtc_seqw(int reg,int val)
+{
+       *(volatile unsigned char *)(smtc_RegBaseAddress+0x3c4)=reg;
+       *(volatile unsigned char *)(smtc_RegBaseAddress+0x3c5)=val;
+}
 #define CONFIG_FB_SM7XX 1
 #include "smtc2d.c"
 

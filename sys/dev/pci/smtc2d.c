@@ -100,7 +100,15 @@ void deInit(unsigned int nModeWidth, unsigned int nModeHeight, unsigned int bpp)
 	gate = FIELD_SET(gate, CURRENT_POWER_GATE, 2D, ENABLE);
 	setPower(gate, clock);
 #endif
-
+#ifdef CONFIG_FB_SM7XX
+{
+	// Get current power configuration.
+	unsigned char gate, clock;
+	clock = smtc_seqr(0x21);
+	// Enable 2D Drawing Engine
+	smtc_seqw(0x21,clock& 0xF8);
+}
+#endif
 	SMTC_write2Dreg(DE_CLIP_TL,
 		FIELD_VALUE(0, DE_CLIP_TL, TOP,     0)       |
 		FIELD_SET  (0, DE_CLIP_TL, STATUS,  DISABLE) |
