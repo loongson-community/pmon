@@ -92,8 +92,10 @@ static void smi_set_timing(struct par_info *hw)
         /* set data width */
         m_nScreenStride = (hw->width * hw->bits_per_pixel) / 64;
 
-#ifdef CONFIG_VIDEO_8BPP
-			writel(hw->m_pVPR+0x0,0);
+#ifdef CONFIG_VIDEO_8BPP_INDEX
+			writel(hw->m_pVPR+0x0,0x00000000);
+#elif defined(CONFIG_VIDEO_8BPP)
+			writel(hw->m_pVPR+0x0,0x00050000);
 #elif defined(CONFIG_VIDEO_16BPP)
 			writel(hw->m_pVPR+0x0,0x00020000);
 #elif defined(CONFIG_VIDEO_24BPP)
@@ -185,7 +187,26 @@ int  smi712_init(char * fbaddress,char * ioaddress)
 		hw.width = FB_XSIZE;
         hw.height = FB_YSIZE;
 #endif
+
+#if defined(CONFIG_VIDEO_1BPP)
+		hw.bits_per_pixel = 1;
+#elif defined(CONFIG_VIDEO_2BPP)
+		hw.bits_per_pixel = 2;
+#elif defined(CONFIG_VIDEO_4BPP)
+		hw.bits_per_pixel = 4;
+#elif defined(CONFIG_VIDEO_8BPP_INDEX)
+		hw.bits_per_pixel = 8;
+#elif defined(CONFIG_VIDEO_8BPP)
+		hw.bits_per_pixel = 8;
+#elif defined(CONFIG_VIDEO_16BPP)
 		hw.bits_per_pixel = 16;
+#elif defined(CONFIG_VIDEO_24BPP)
+		hw.bits_per_pixel = 24;
+#elif defined(CONFIG_VIDEO_32BPP)
+		hw.bits_per_pixel = 32;
+#else
+                hw.bits_per_pixel = 16;
+#endif
         hw.hz = 60;
         
         if (!SMIRegs)

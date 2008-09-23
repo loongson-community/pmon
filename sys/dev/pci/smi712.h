@@ -64,7 +64,7 @@ static  struct par_info hw;     /* used to record hardware information          
 #define SIZE_VPR                (0x6C + 1)
 #define SIZE_DPR                (0x44 + 1)
 
-#define numVGAModes             6
+#define numVGAModes             9
 #define numChipIDs              3
 
 #define NR_PALETTE              256
@@ -159,7 +159,7 @@ struct ModeInit
 
 struct ModeInit VGAMode[numVGAModes] =
 {
-/*	{
+	{
 		//  mode#0: 640 x 480  8Bpp  60Hz 
 		640, 480, 8, 60,
 		//  Init_MISC 
@@ -219,7 +219,7 @@ struct ModeInit VGAMode[numVGAModes] =
 			0x11, 0x10, 0x0B, 0x0A, 0x0A, 0x0A, 0x0A, 0x00,
 		},
 	},
-	*/
+	
 	{
 		/*  mode#1: 640 x 480  16Bpp  60Hz */
 		640, 480, 16, 60,
@@ -340,7 +340,6 @@ struct ModeInit VGAMode[numVGAModes] =
 			0x11, 0x10, 0x0B, 0x0A, 0x0A, 0x0A, 0x0A, 0x00,
 		},
 	},
-/*
 	{//  mode#3: 800 x 600  8Bpp  60Hz 
 		800,600,8,60,
 		0x2B,	// Init_MISC 
@@ -400,7 +399,7 @@ struct ModeInit VGAMode[numVGAModes] =
 		},
 	},
 
-*/
+
 	{/*  mode#4: 800 x 600  16Bpp  60Hz */
 		800, 600, 16, 60,
 		/*  Init_MISC */
@@ -518,7 +517,6 @@ struct ModeInit VGAMode[numVGAModes] =
 			0x20, 0x1F, 0x1A, 0x19, 0x0F, 0x0F, 0x0F, 0x00,
 		},
 	},
-/*
     {//  mode#6: 1024 x 768  8Bpp  60Hz
 	 	1024,768,8,60,
 		// Init_MISC                                    
@@ -578,7 +576,6 @@ struct ModeInit VGAMode[numVGAModes] =
 			0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x15, 0x03, 
 		},                                                  
 	},                                                      
-*/
     { /*  mode#7: 1024 x 768  16Bpp  60Hz */ 
         1024,768,16,60,
 		/*  Init_MISC */                                    

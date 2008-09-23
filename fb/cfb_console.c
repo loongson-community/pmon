@@ -306,16 +306,20 @@ void	console_cursor (int state);
 
 /* Macros */
 #ifdef	VIDEO_FB_LITTLE_ENDIAN
+#define BYTESWAP32(x) 	(x)
 #define SWAP16(x)	 ((((x) & 0x00ff) << 8) | ( (x) >> 8))
 #define SWAP32(x)	 ((((x) & 0x000000ff) << 24) | (((x) & 0x0000ff00) << 8)|\
 			  (((x) & 0x00ff0000) >>  8) | (((x) & 0xff000000) >> 24) )
 #define SHORTSWAP32(x)	 ((((x) & 0x000000ff) <<  8) | (((x) & 0x0000ff00) >> 8)|\
 			  (((x) & 0x00ff0000) <<  8) | (((x) & 0xff000000) >> 8) )
 #else
+#define BYTESWAP32(x)    ((((x) & 0x000000ff) <<  24) | (((x) & 0x0000ff00) << 8)|\
+                          (((x) & 0x00ff0000) >>  8) | (((x) & 0xff000000) >> 24) )
 #define SWAP16(x)	 (x)
 #define SWAP32(x)	 (x)
 #define SHORTSWAP32(x)	 (x)
 #endif
+
 
 #if defined(DEBUG) || defined(DEBUG_CFB_CONSOLE)
 #define PRINTD(x)	  printf(x)
@@ -446,8 +450,8 @@ void video_drawchars_xor (int xx, int yy, unsigned char *s, int count)
 			     dest += VIDEO_LINE_LEN) {
 				unsigned char bits = *cdat++;
 
-				((unsigned int *) dest)[0] ^= (video_font_draw_table8[bits >> 4] & eorx) ^ bgx;
-				((unsigned int *) dest)[1] ^= (video_font_draw_table8[bits & 15] & eorx) ^ bgx;
+				((unsigned int *) dest)[0] ^= BYTESWAP32((video_font_draw_table8[bits >> 4] & eorx) ^ bgx);
+				((unsigned int *) dest)[1] ^= BYTESWAP32((video_font_draw_table8[bits & 15] & eorx) ^ bgx);
 			}
 			dest0 += VIDEO_FONT_WIDTH * VIDEO_PIXEL_SIZE;
 			s++;
@@ -610,8 +614,8 @@ void video_drawchars (int xx, int yy, unsigned char *s, int count)
 			     dest += VIDEO_LINE_LEN) {
 				unsigned char bits = *cdat++;
 
-				((unsigned int *) dest)[0] = (video_font_draw_table8[bits >> 4] & eorx) ^ bgx;
-				((unsigned int *) dest)[1] = (video_font_draw_table8[bits & 15] & eorx) ^ bgx;
+				((unsigned int *) dest)[0] = BYTESWAP32((video_font_draw_table8[bits >> 4] & eorx) ^ bgx);
+				((unsigned int *) dest)[1] = BYTESWAP32((video_font_draw_table8[bits & 15] & eorx) ^ bgx);
 			}
 			dest0 += VIDEO_FONT_WIDTH * VIDEO_PIXEL_SIZE;
 			s++;
@@ -1060,7 +1064,7 @@ int video_display_bitmap (ulong bmp_image, int x, int y)
 	case 8:
 		padded_line -= width;
 		if (VIDEO_DATA_FORMAT == GDF__8BIT_INDEX) {
-#if 0
+#if 1
 			/* Copy colormap					     */
 			for (xcount = 0; xcount < colors; ++xcount) {
 				cte = bmp->color_table[xcount];
@@ -1262,7 +1266,7 @@ void logo_plot (void *screen, int width, int x, int y)
 #endif
 
 	if (VIDEO_DATA_FORMAT == GDF__8BIT_INDEX) {
-#if 0
+#if 1
 		for (i = 0; i < VIDEO_LOGO_COLORS; i++) {
 			video_set_lut (i + VIDEO_LOGO_LUT_OFFSET,
 				       logo_red[i], logo_green[i], logo_blue[i]);
@@ -1506,6 +1510,40 @@ void set_cursor_fb(unsigned char x,unsigned char y)
 	console_row=y;
 }
 
+#ifdef SMI712
+#define udelay delay
+
+#define SMI_LUT_MASK            (pGD->isaBase + 0x03c6)    /* lut mask reg */
+#define SMI_LUT_START           (pGD->isaBase + 0x03c8)    /* lut start index */
+#define SMI_LUT_RGB             (pGD->isaBase + 0x03c9)    /* lut colors auto incr.*/
+#define SMI_INDX_ATTR           (pGD->isaBase + 0x03c0)    /* attributes index reg */
+
+/*******************************************************************************
+ *
+ * Set a RGB color in the LUT (8 bit index)
+ */
+void video_set_lut (
+        unsigned int index,        /* color number */
+        unsigned char r,              /* red */
+        unsigned char g,              /* green */
+        unsigned char b               /* blue */
+        )
+{
+        pGD = &GD;
+        out8 (SMI_LUT_MASK,  0xff);
+
+        out8 (SMI_LUT_START, (char)index);
+
+        out8 (SMI_LUT_RGB, r>>2);    /* red */
+        udelay (10);
+        out8 (SMI_LUT_RGB, g>>2);    /* green */
+        udelay (10);
+        out8 (SMI_LUT_RGB, b>>2);    /* blue */
+        udelay (10);
+}
+
+#endif
+
 /*****************************************************************************/
 
 int fb_init (unsigned long fbbase,unsigned long iobase)
@@ -1553,9 +1591,11 @@ int fb_init (unsigned long fbbase,unsigned long iobase)
 #elif defined(CONFIG_VIDEO_4BPP)
         pGD->gdfIndex  = GDF__4BIT;
 	pGD->gdfBytesPP= 1;
+#elif defined(CONFIG_VIDEO_8BPP_INDEX)
+        pGD->gdfBytesPP= 1;
+        pGD->gdfIndex  = GDF__8BIT_INDEX;
 #elif defined(CONFIG_VIDEO_8BPP)
 	pGD->gdfBytesPP= 1;
-//	pGD->gdfIndex  = GDF__8BIT_INDEX;
 	pGD->gdfIndex  = GDF__8BIT_332RGB;
 #elif defined(CONFIG_VIDEO_16BPP)
         pGD->gdfBytesPP= 2;
@@ -1575,6 +1615,10 @@ int fb_init (unsigned long fbbase,unsigned long iobase)
 
 	printf("cfb_console init,fb=%x\n",pGD->frameAdrs);
 
+#ifdef SMI712
+        pGD->isaBase=pGD->frameAdrs + 0x00700000 ;
+#endif
+
 	video_fb_address = (void *) VIDEO_FB_ADRS;
 #ifdef CONFIG_VIDEO_HW_CURSOR
 	video_init_hw_cursor (VIDEO_FONT_WIDTH, VIDEO_FONT_HEIGHT);
@@ -1582,7 +1626,7 @@ int fb_init (unsigned long fbbase,unsigned long iobase)
 
 	/* Init drawing pats */
 	switch (VIDEO_DATA_FORMAT) {
-#if 0
+#if 1
 		case GDF__8BIT_INDEX:
 			video_set_lut (0x01, CONSOLE_FG_COL, CONSOLE_FG_COL, CONSOLE_FG_COL);
 			video_set_lut (0x00, CONSOLE_BG_COL, CONSOLE_BG_COL, CONSOLE_BG_COL);
