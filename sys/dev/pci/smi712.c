@@ -187,26 +187,7 @@ int  smi712_init(char * fbaddress,char * ioaddress)
 		hw.width = FB_XSIZE;
         hw.height = FB_YSIZE;
 #endif
-
-#if defined(CONFIG_VIDEO_1BPP)
-		hw.bits_per_pixel = 1;
-#elif defined(CONFIG_VIDEO_2BPP)
-		hw.bits_per_pixel = 2;
-#elif defined(CONFIG_VIDEO_4BPP)
-		hw.bits_per_pixel = 4;
-#elif defined(CONFIG_VIDEO_8BPP_INDEX)
-		hw.bits_per_pixel = 8;
-#elif defined(CONFIG_VIDEO_8BPP)
-		hw.bits_per_pixel = 8;
-#elif defined(CONFIG_VIDEO_16BPP)
-		hw.bits_per_pixel = 16;
-#elif defined(CONFIG_VIDEO_24BPP)
-		hw.bits_per_pixel = 24;
-#elif defined(CONFIG_VIDEO_32BPP)
-		hw.bits_per_pixel = 32;
-#else
-                hw.bits_per_pixel = 16;
-#endif
+		hw.bits_per_pixel = FB_COLOR_BITS;
         hw.hz = 60;
         
         if (!SMIRegs)
@@ -243,6 +224,40 @@ int  smi712_init(char * fbaddress,char * ioaddress)
         return 0;
 
 }
+#include <pmon.h>
+#include <machine/pio.h>
+
+#define udelay delay
+
+#define SMI_LUT_MASK            (smtc_RegBaseAddress + 0x03c6)    /* lut mask reg */
+#define SMI_LUT_START           (smtc_RegBaseAddress + 0x03c8)    /* lut start index */
+#define SMI_LUT_RGB             (smtc_RegBaseAddress + 0x03c9)    /* lut colors auto incr.*/
+#define SMI_INDX_ATTR           (smtc_RegBaseAddress + 0x03c0)    /* attributes index reg */
+
+/*******************************************************************************
+ *
+ * Set a RGB color in the LUT (8 bit index)
+ */
+void video_set_lut (
+        unsigned int index,        /* color number */
+        unsigned char r,              /* red */
+        unsigned char g,              /* green */
+        unsigned char b               /* blue */
+        )
+{
+        outb (SMI_LUT_MASK,  0xff);
+
+        outb (SMI_LUT_START, (char)index);
+
+        outb (SMI_LUT_RGB, r>>2);    /* red */
+        udelay (10);
+        outb (SMI_LUT_RGB, g>>2);    /* green */
+        udelay (10);
+        outb (SMI_LUT_RGB, b>>2);    /* blue */
+        udelay (10);
+}
+
+
 //----------------------------------
 #include <pmon.h>
 #if 0

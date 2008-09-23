@@ -1510,40 +1510,6 @@ void set_cursor_fb(unsigned char x,unsigned char y)
 	console_row=y;
 }
 
-#ifdef SMI712
-#define udelay delay
-
-#define SMI_LUT_MASK            (pGD->isaBase + 0x03c6)    /* lut mask reg */
-#define SMI_LUT_START           (pGD->isaBase + 0x03c8)    /* lut start index */
-#define SMI_LUT_RGB             (pGD->isaBase + 0x03c9)    /* lut colors auto incr.*/
-#define SMI_INDX_ATTR           (pGD->isaBase + 0x03c0)    /* attributes index reg */
-
-/*******************************************************************************
- *
- * Set a RGB color in the LUT (8 bit index)
- */
-void video_set_lut (
-        unsigned int index,        /* color number */
-        unsigned char r,              /* red */
-        unsigned char g,              /* green */
-        unsigned char b               /* blue */
-        )
-{
-        pGD = &GD;
-        out8 (SMI_LUT_MASK,  0xff);
-
-        out8 (SMI_LUT_START, (char)index);
-
-        out8 (SMI_LUT_RGB, r>>2);    /* red */
-        udelay (10);
-        out8 (SMI_LUT_RGB, g>>2);    /* green */
-        udelay (10);
-        out8 (SMI_LUT_RGB, b>>2);    /* blue */
-        udelay (10);
-}
-
-#endif
-
 /*****************************************************************************/
 
 int fb_init (unsigned long fbbase,unsigned long iobase)
@@ -1614,10 +1580,6 @@ int fb_init (unsigned long fbbase,unsigned long iobase)
 	else pGD->frameAdrs = fbbase;
 
 	printf("cfb_console init,fb=%x\n",pGD->frameAdrs);
-
-#ifdef SMI712
-        pGD->isaBase=pGD->frameAdrs + 0x00700000 ;
-#endif
 
 	video_fb_address = (void *) VIDEO_FB_ADRS;
 #ifdef CONFIG_VIDEO_HW_CURSOR

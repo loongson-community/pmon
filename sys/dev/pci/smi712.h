@@ -64,7 +64,6 @@ static  struct par_info hw;     /* used to record hardware information          
 #define SIZE_VPR                (0x6C + 1)
 #define SIZE_DPR                (0x44 + 1)
 
-#define numVGAModes             9
 #define numChipIDs              3
 
 #define NR_PALETTE              256
@@ -157,7 +156,7 @@ struct ModeInit
 };
 
 
-struct ModeInit VGAMode[numVGAModes] =
+struct ModeInit VGAMode[] =
 {
 	{
 		//  mode#0: 640 x 480  8Bpp  60Hz 
@@ -363,7 +362,7 @@ struct ModeInit VGAMode[numVGAModes] =
 			0x02, 0x45, 0x30, 0x35, 0x40, 0x20,
 		},
 		{   // Init_SR80_SR93 
-			0xFF, 0x87, 0x00, 0x6F, 0x7F, 0x7F, 0xFF, 0x24,
+			0xFF, 0x00, 0x00, 0x6F, 0x7F, 0x7F, 0xFF, 0x24,
 			0x90, 0x01, 0x2C, 0x01, 0xFF, 0x00, 0x24, 0x24,
 			0x00, 0x00, 0x00, 0x00,
 		},
@@ -697,6 +696,7 @@ struct ModeInit VGAMode[numVGAModes] =
 
 };
 
+#define numVGAModes             sizeof(VGAMode)/sizeof(VGAMode[0])
 
 
 
