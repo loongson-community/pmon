@@ -40,7 +40,12 @@ int cmd_mycfg __P((int, char *[]));
 extern char  *heaptop;
 
 #include <errno.h>
+unsigned long strtoul(const char *nptr,char **endptr,int base);
 #define ULONGLONG_MAX 0xffffffffffffffffUL
+int abs(int x)
+{
+return x>=0?x:-x;
+}
 unsigned long long
 strtoull(const char *nptr,char **endptr,int base)
 {
@@ -329,33 +334,37 @@ return -1;
 
 static int __syscall1(int type,long long addr,union commondata *mydata)
 {
+union {
+long long ll;
+int l[2];
+} a;
+a.ll=addr;
+
+
 switch(type)
 {
 case 1:
 	  //mydata->data1=*(volatile char *)addr;break;
-	  asm("lbu $2,(%1);
-		   sb $2,(%0)
-		   "
-		  ::"r"(&mydata->data1),"r"(addr)
+	  asm("dsll32 %2,%2,0;or %1,%2;lbu $2,(%1);" \
+		  "sb $2,(%0);" \
+		  ::"r"(&mydata->data1),"r"(a.l[0]),"r"(a.l[1])
 		  :"$2"
 		 );
 	   break;
 case 2:
 	  //mydata->data2=*(volatile short *)addr;break;
-	  asm("lhu $2,(%1);
-		   sh $2,(%0)
-		   "
-		  ::"r"(&mydata->data2),"r"(addr)
+	  asm("dsll32 %2,%2,0;or %1,%2;lhu $2,(%1);" \
+		  "sh $2,(%0);" \
+		  ::"r"(&mydata->data2),"r"(a.l[0]),"r"(a.l[1])
 		  :"$2"
 		 );
 	   break;
 case 4:
 #if __mips >= 3
 	  //mydata->data4=*(volatile int *)addr;break;
-	  asm("lwu $2,(%1);
-		   sw $2,(%0)
-		   "
-		  ::"r"(&mydata->data4),"r"(addr)
+	  asm("dsll32 %2,%2,0;or %1,%2;lwu $2,(%1);" \
+		   "sw $2,(%0);" \
+		  ::"r"(&mydata->data4),"r"(a.l[0]),"r"(a.l[1])
 		  :"$2"
 		 );
 #else
@@ -370,10 +379,9 @@ case 4:
 case 8:
 	  // mydata->data8[0]=*(volatile int *)addr;mydata->data8[1]=*(volatile int *)(addr+4);
 	  //*(long long *)mydata->data8=*(volatile long long *)addr;
-	  asm("ld $2,(%1);
-		   sd $2,(%0)
-		   "
-		  ::"r"(mydata->data8),"r"(addr)
+	  asm("dsll32 %2,%2,0;or %1,%2;ld $2,(%1);" \
+		  "sd $2,(%0);" \
+		  ::"r"(mydata->data8),"r"(a.l[0]),"r"(a.l[1])
 		  :"$2"
 		 );
 	   break;
@@ -383,39 +391,40 @@ return 0;
 
 static int __syscall2(int type,long long addr,union commondata *mydata)
 {
+union {
+long long ll;
+int l[2];
+} a;
+a.ll=addr;
 switch(type)
 {
 case 1:
 	 //*(volatile char *)addr=mydata->data1;break;
-	  asm("lbu $2,(%0);
-		   sb $2,(%1)
-		   "
-		  ::"r"(&mydata->data1),"r"(addr)
+	  asm("dsll32 %2,%2,0;or %1,%2;lbu $2,(%0);" \
+		  "sb $2,(%1);" \
+		  ::"r"(&mydata->data1),"r"(a.l[0]),"r"(a.l[1])
 		  :"$2"
 		 );
 	   break;
 case 2:
 	   //*(volatile short *)addr=mydata->data2;break;
-	  asm("lhu $2,(%0);
-		   sh $2,(%1)
-		   "
-		  ::"r"(&mydata->data2),"r"(addr)
+	  asm("dsll32 %2,%2,0;or %1,%2;lhu $2,(%0);" \
+		   "sh $2,(%1);" \
+		  ::"r"(&mydata->data2),"r"(a.l[0]),"r"(a.l[1])
 		  :"$2"
 		 );
 	  break;
 case 4:
 	  //*(volatile int *)addr=mydata->data4;break;
 #if __mips >= 3
-	  asm("lwu $2,(%0);
-		   sw $2,(%1)
-		   "
+	  asm("lwu $2,(%0);" \
+		    "sw $2,(%1);" \
 		  ::"r"(&mydata->data4),"r"(addr)
 		  :"$2"
 		 );
 #else
-	  asm("lw $2,(%0);
-		   sw $2,(%1)
-		   "
+	  asm("lw $2,(%0);" \
+		   "sw $2,(%1);" \
 		  ::"r"(&mydata->data4),"r"(addr)
 		  :"$2"
 		 );
@@ -423,10 +432,9 @@ case 4:
 
 	    break;
 case 8:
-	  asm("ld $2,(%0);
-		   sd $2,(%1)
-		   "
-		  ::"r"(mydata->data8),"r"(addr)
+	  asm("dsll32 %2,%2,0;or %1,%2;ld $2,(%0);" \
+		   "sd $2,(%1);" \
+		  ::"r"(mydata->data8),"r"(a.l[0]),"r"(a.l[1])
 		  :"$2"
 		 );
 	   //*(volatile int *)addr=mydata->data8[0];*(volatile int *)(addr+4)=mydata->data8[1];
@@ -985,51 +993,48 @@ addr=addrin&~0x1fULL;
 size=(addrin-addr+size+0x1f)&~0x1fUL;
 
 #if __mips >= 3
-asm("
-		#define COP_0_STATUS_REG	$12
-		#define SR_DIAG_DE		0x00010000
-		mfc0	%0, $12		# Save the status register.
-		li	$2, 0x00010000
-		mtc0	$2, $12		# Disable interrupts
-		":"=r"(status)
+asm(" #define COP_0_STATUS_REG	$12 \n"
+	"	#define SR_DIAG_DE		0x00010000\n"
+	"	mfc0	%0, $12		# Save the status register.\n"
+	"	li	$2, 0x00010000\n"
+	"	mtc0	$2, $12		# Disable interrupts\n"
+		:"=r"(status)
 		::"$2");
 if(rw)
 {
-	asm("
-		#define HitWBInvalidate_S   0x17
-		#define HitWBInvalidate_D   0x15
-		.set noreorder
-		1:	
-		sync
-		cache   0x17, 0(%0)
-		daddiu %0,32
-		addiu %1,-32
-		bnez %1,1b
-		nop
-		.set reorder
-			"::"r"(addr),"r"(size));
+	asm("#define HitWBInvalidate_S   0x17 \n"
+		"#define HitWBInvalidate_D   0x15 \n"
+		".set noreorder\n"
+		"1:	\n"
+		"sync \n"
+		"cache   0x17, 0(%0) \n"
+		"daddiu %0,32 \n"
+		"addiu %1,-32 \n"
+		"bnez %1,1b \n"
+		"nop \n"
+		".set reorder \n"
+			::"r"(addr),"r"(size));
 }
 else
 {
-	asm("
-	#define HitInvalidate_S     0x13
-	#define HitInvalidate_D     0x11
-	.set noreorder
-	1:	
-	sync
-	cache	0x13, 0(%0)
-	daddiu %0,32
-	addiu %1,-32
-	bnez %1,1b
-	nop
-	.set reorder
-		"::"r"(addr),"r"(size));
+	asm("#define HitInvalidate_S     0x13 \n"
+	"#define HitInvalidate_D     0x11\n"
+"	.set noreorder\n"
+"	1:	\n"
+"	sync\n"
+"	cache	0x13, 0(%0)\n"
+"	daddiu %0,32\n"
+"	addiu %1,-32\n"
+"	bnez %1,1b\n"
+"	nop\n"
+"	.set reorder\n"
+		::"r"(addr),"r"(size));
 }
 
-asm("
-	#define COP_0_STATUS_REG	$12
-	mtc0	%0, $12		# Restore the status register.
-		"::"r"(status));
+asm("\n"
+"	#define COP_0_STATUS_REG	$12\n"
+"	mtc0	%0, $12		# Restore the status register.\n"
+		::"r"(status));
 
 #else
 pci_sync_cache(0,addr,size,rw);
@@ -1639,21 +1644,19 @@ static void cmd_led(int argc,char **argv)
 static int cmd_testcpu(int argc,char **argv)
 {
 int count=strtoul(argv[1],0,0);
-asm("
-.set noreorder
-move $4,%0
-li $2,0x80000000
-1:
-.rept 300
-ld $3,($2)
-add.s $f4,$f2,$f0
-mul.s $f10,$f8,$f6
-srl $5,$4,10
-.endr
-bnez $4,1b
-addiu $4,-1
-.set reorder
-"
+asm(" .set noreorder\n"
+"move $4,%0\n"
+"li $2,0x80000000\n"
+"1:\n"
+".rept 300\n"
+"ld $3,($2)\n"
+"add.s $f4,$f2,$f0\n"
+"mul.s $f10,$f8,$f6\n"
+"srl $5,$4,10\n"
+".endr\n"
+"bnez $4,1b\n"
+"addiu $4,-1\n"
+".set reorder\n"
 :
 :"r"(count)
 );
@@ -1666,20 +1669,19 @@ int highmemcpy(long long dst,long long src,long long count);
 int highmemcpy(long long dst,long long src,long long count)
 {
 #if __mips >= 3
-asm("
-.set noreorder
-1:
-beqz %2,2f
-nop
-lb $2,(%0)
-sb $2,(%1)
-daddiu %0,1
-daddiu %1,1
-b 1b
-daddiu %2,-1
-2:
-.set reorder
-"
+asm(
+".set noreorder\n"
+"1:\n"
+"beqz %2,2f\n"
+"nop\n"
+"lb $2,(%0)\n"
+"sb $2,(%1)\n"
+"daddiu %0,1\n"
+"daddiu %1,1\n"
+"b 1b\n"
+"daddiu %2,-1\n"
+"2:\n"
+".set reorder\n"
 ::"r"(src),"r"(dst),"r"(count)
 :"$2"
 );
@@ -1692,18 +1694,17 @@ return 0;
 int highmemset(long long addr,char c,long long count)
 {
 #if __mips >= 3
-asm("
-.set noreorder
-1:
-beqz %2,2f
-nop
-sb %1,(%0)
-daddiu %0,1
-b 1b
-daddiu %2,-1
-2:
-.set reorder
-"
+asm(
+".set noreorder\n"
+"1:\n"
+"beqz %2,2f\n"
+"nop\n"
+"sb %1,(%0)\n"
+"daddiu %0,1\n"
+"b 1b\n"
+"daddiu %2,-1\n"
+"2:\n"
+".set reorder\n"
 ::"r"(addr),"r"(c),"r"(count)
 :"$2"
 );
@@ -1762,10 +1763,9 @@ static int lwl(int argc,char **argv)
 	unsigned long long addr;
 	if(argc!=2)return -1;
 	addr=nr_str2addr(argv[1],0,0);
-	  asm("ld  $2,(%0);
-		   lwl $2,(%1);
-		   sw $2,(%0)
-		   "
+	  asm("ld  $2,(%0);\n"
+"		   lwl $2,(%1);\n"
+"		   sw $2,(%0)\n"
 		  ::"r"(&lrdata),"r"(addr)
 		  :"$2"
 		 );
@@ -1776,10 +1776,9 @@ static int lwr(int argc,char **argv)
 	unsigned long long addr;
 	if(argc!=2)return -1;
 	addr=nr_str2addr(argv[1],0,0);
-	  asm("ld $2,(%0);
-		   lwr $2,(%1);
-		   sw $2,(%0)
-		   "
+	  asm("ld $2,(%0);\n"
+"		   lwr $2,(%1);\n"
+"		   sw $2,(%0)\n"
 		  ::"r"(&lrdata),"r"(addr)
 		  :"$2"
 		 );
@@ -1790,10 +1789,9 @@ static int ldl(int argc,char **argv)
 	unsigned long long addr;
 	if(argc!=2)return -1;
 	addr=nr_str2addr(argv[1],0,0);
-	  asm("ld $2,(%0);
-		   ldl $2,(%1);
-		   sd $2,(%0)
-		   "
+	  asm("ld $2,(%0);\n"
+"		   ldl $2,(%1);\n"
+"		   sd $2,(%0)\n"
 		  ::"r"(&lrdata),"r"(addr)
 		  :"$2"
 		 );
@@ -1804,10 +1802,9 @@ static int ldr(int argc,char **argv)
 	unsigned long long addr;
 	if(argc!=2)return -1;
 	addr=nr_str2addr(argv[1],0,0);
-	  asm("ld $2,(%0);
-		   ldr $2,(%1);
-		   sd $2,(%0)
-		   "
+	  asm("ld $2,(%0);\n"
+"		   ldr $2,(%1);\n"
+"		   sd $2,(%0)\n"
 		  ::"r"(&lrdata),"r"(addr)
 		  :"$2"
 		 );

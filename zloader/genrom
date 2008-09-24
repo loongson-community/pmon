@@ -1,20 +1,20 @@
 #!/usr/bin/perl 
 my ($myedata,$myend,$initmips,$mystart);
-open(F,qq(mips-elf-objdump -x $ARGV[0]|));
+open(F,qq(objdump -x $ARGV[0]|));
 while(<F>)
 {
 chomp;
-if(/f{8}(\w+).+_edata/){
+if(/([0-9a-f]+).+_edata/){
    $myedata=qq(0x$1);
  }
 
-if(/f{8}(\w+).+_end$/){
+if(/([0-9a-f]+).+_end$/){
    $myend=qq(0x$1);
  }
-if(/f{8}(\w+).+initmips$/){
+if(/([0-9a-f]+).+initmips$/){
    $myinitmips=qq(0x$1);
  }
-if(/f{8}(\w+).+\s_start$/){
+if(/([0-9a-f]+).+\s_start$/){
    $mystart=qq(0x$1);
  }
 }
@@ -24,12 +24,12 @@ void realinitmips(unsigned int msize);
 void enable_cache()
 {
 	    __asm__ volatile(
-		".set mips3;
-        mfc0   \$4,\$16;
-        and    \$4,\$4,0xfffffff8;
-        or     \$4,\$4,0x3;
-        mtc0   \$4,\$16;
-		.set mips0;"
+		".set mips3;\\n" \\
+"        mfc0   \$4,\$16;\\n" \\
+"        and    \$4,\$4,0xfffffff8;\\n" \\
+"        or     \$4,\$4,0x3;\\n" \\
+"        mtc0   \$4,\$16;\\n" \\
+"		.set mips0;\\n"
 		::
 		:"\$4"
 		);
@@ -38,55 +38,48 @@ void enable_cache()
 #ifndef NOCACHE2
 void flush_cache2()
 {
-asm volatile("
-	mfc0	\$3, \$15			# read processor ID register
-	li		\$2, 0x6303				#godson2f prid
-	beq		\$2, \$3, godson_2f
-	nop
-	li		\$2, 0x6302				#godson2e prid
-	bne	\$2, \$3,11f 
-	nop
-# godson2e
-godson_2f:
-	li	  \$2, 0x80000000
-    addu  \$3,\$2,512*1024
-10:
-	cache	3, 0(\$2)
-	cache	3, 1(\$2)
-	cache	3, 2(\$2)
-	cache	3, 3(\$2)
-	addu	\$2, 32
-	bne	    \$2,\$3, 10b
-	nop
-11:
-"
-::
-:"\$2","\$3"
+asm volatile(\
+"	mfc0	\$3, \$15;			# read processor ID register;\\n" \\
+" 	li		\$2, 0x6303;				#godson2f prid;\\n" \\
+" 	beq		\$2, \$3, godson_2f;\\n" \\
+" 	nop;\\n" \\
+"	li		\$2, 0x6302;				#godson2e prid;\\n" \\
+"	bne	\$2, \$3,11f ;\\n" \\
+"	nop;\\n" \\
+"# godson2e;\\n" \\
+" godson_2f: " \\
+"	li	  \$2, 0x80000000;\\n" \\
+"   addu  \$3,\$2,512*1024;\\n" \\
+"10:\\n" \\
+"	cache	3, 0(\$2);\\n" \\
+"	cache	3, 1(\$2);\\n" \\
+"	cache	3, 2(\$2);\\n" \\
+"	cache	3, 3(\$2);\\n" \\
+"	addu	\$2, 32;\\n" \\
+"	bne	    \$2,\$3, 10b;\\n" \\
+"	nop;\\n" \\
+"11:\\n" \\
+:::"\$2","\$3"
 );
 }
 #else
 void flush_cache()
 {
-asm volatile("
-		.set mips3;
-        li    \$5,0x80000000
-        addu  \$6,\$5,16384
-1:
-        cache  1,0(\$5)
-        cache  1,1(\$5)
-        cache  1,2(\$5)
-        cache  1,3(\$5)
-        cache  0,(\$5)
-        cache  0,1(\$5)
-        cache  0,2(\$5)
-        cache  0,3(\$5)
-        add    \$5,\$5,32
-        bne    \$5,\$6,1b
-        nop
-		.set mips0;
-"
-::
-: "\$5","\$6");
+asm volatile(\
+"		.set mips3;\\n" \\
+"        li    \$5,0x80000000;\\n" \\
+"        addu  \$6,\$5,16384;\\n" \\
+"1:\\n" \\
+"        cache  1,0(\$5);\\n" \\
+"        cache  1,1(\$5);\\n" \\
+"        cache  1,2(\$5);\\n" \\
+"        cache  1,3(\$5);\\n" \\
+"        cache  0,(\$5);\\n" \\
+"        add    \$5,\$5,32;\\n" \\
+"        bne    \$5,\$6,1b;\\n" \\
+"        nop;\\n" \\ 
+"		.set mips0;\\n" \\
+::: "\$5","\$6");
 }
 #endif
 void initmips(unsigned int msize,int dmsize,int dctrl)
@@ -119,12 +112,12 @@ void initmips(unsigned int msize,int dmsize,int dctrl)
 
 void realinitmips(unsigned int msize)
 {
-	     asm ("li  \$29,$mystart-0x4000;
-		       li \$2,$myinitmips;
-			   move \$4,\%0;
-			   jalr \$2;
-			   nop;
-			  1: b 1b;nop;"
+	     asm ("li  \$29,$mystart-0x4000;\\n" \\
+"		       li \$2,$myinitmips;\\n" \\
+"			   move \$4,\%0;\\n" \\
+"			   jalr \$2;\\n" \\
+"			   nop;\\n" \\
+"			  1: b 1b;nop;" \\
           :
           : "r" (msize)
           : "\$29", "\$2","\$4");

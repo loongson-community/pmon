@@ -59,6 +59,7 @@ short memsz_mode = SZ_MODE_BIOS;
 struct cpu_ident cpu_id;
 static void compute_segments(int win);
 
+#include "fb.h"
 #include "config.c"
 #include "patn.c"
 #include "screen_buffer.c"

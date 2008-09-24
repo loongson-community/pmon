@@ -551,7 +551,7 @@ void handle_scancode(unsigned char scancode, int down)
 			} 
 		} 
 	}
-out:
+out:;
 }
 
 

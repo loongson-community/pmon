@@ -521,7 +521,7 @@ cfcrosscheck(cf, what, nv)
 		    conffile, cf->cf_lineno,
 		    cf->cf_name, what, nv->nv_str, nv->nv_str);
 		errs++;
-loop:
+loop:;
 	}
 	return (errs);
 }
