@@ -1321,6 +1321,10 @@ END(hexserial)
 
 LEAF(tgt_putchar)
 	.set noat
+#ifdef NOMSG_ON_SERIAL
+	jr ra
+	nop
+#endif
 	move AT,ra
 #if  (((PCI_IDSEL_VIA686B != 0)||(PCI_IDSEL_CS5536 != 0))&& !defined(HAVE_NB_SERIAL))
 	la	v0, COM1_BASE_ADDR

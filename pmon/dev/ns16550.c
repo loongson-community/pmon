@@ -123,13 +123,22 @@ ns16550 (int op, struct DevEntry *dev, unsigned long param, int data)
 			return nsprogram (dp, dev->freq, data);
 
 		case OP_TXRDY:
+		#ifdef NOMSG_ON_SERIAL
+		return 1;
+		#endif
 			return (inb(&dp->lsr) & LSR_TXRDY);
 
 		case OP_TX:
+		#ifdef NOMSG_ON_SERIAL
+		return 0;
+		#endif
 			outb(&dp->data, data);
 			break;
 
 		case OP_RXRDY:
+		#ifdef NOMSG_ON_SERIAL
+		return 0;
+		#endif
 			return (inb(&dp->lsr) & LSR_RXRDY);
 
 		case OP_RX:
