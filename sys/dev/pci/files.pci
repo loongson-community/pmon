@@ -19,8 +19,8 @@ file	sys/dev/pci/if_de.c		de
 # Ethernet driver for fxp-based boards
 device	fxp: ether, ifnet, ifmedia, mii
 attach	fxp at pci
-file	sys/dev/pci/if_fxp.c		fxp
-#file	sys/dev/pci/e100.c		fxp
+file	sys/dev/pci/if_fxp.c		fxp & !e100
+file	sys/dev/pci/e100.c		fxp & e100
 
 device  rtl: ether, ifnet
 attach  rtl  at pci

@@ -398,6 +398,7 @@ for(i=0;i<microseconds*10;i++)delay(microseconds);
 #define netif_queue_stopped(...) 0
 #define pci_enable_wake(...) (0)
 static int irqstate=0;
+static void wmb(void){}
 
 #define  request_irq(irq,b,c,d,e) (irqstate|=(1<<irq),0)
 
