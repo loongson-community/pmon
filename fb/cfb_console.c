@@ -342,6 +342,13 @@ static GraphicDevice *pGD,GD;	/* Pointer to Graphic array */
 static void *video_fb_address;		/* frame buffer address */
 static void *video_console_address;	/* console buffer start address */
 
+#ifndef VIDEO_HW_BITBLT
+#ifndef MEM_PRINTTO_VIDEO
+#define MEM_PRINTTO_VIDEO
+static char *memfb;
+#endif
+#endif
+
 static int console_col = 0; /* cursor col */
 static int console_row = 0; /* cursor row */
 //static ¸Ä³Éextern
@@ -716,6 +723,28 @@ void video_drawstring (int xx, int yy, unsigned char *s)
 
 /*****************************************************************************/
 
+#ifndef VIDEO_HW_BITBLT
+void video_drawsline(char *str, int rows, int cols)
+{
+	int xx, yy;
+	int pos;
+
+	for(yy = 1; yy < rows; yy++)
+	{
+		pos = yy * cols;
+		for(xx = 0; xx < cols; xx++)
+		{
+			if(str[pos + xx] != str[pos - cols + xx])
+				video_putchar(xx * VIDEO_FONT_WIDTH, (yy-1) * VIDEO_FONT_HEIGHT, str[pos + xx]);
+		}
+	}
+	
+	memcpyl (str, &str[cols], (rows - 1) *cols >> 2);
+	memsetl (&str[(rows - 1) * cols], cols >> 2, CONSOLE_BG_COL);
+}
+
+#endif
+
 void video_putchar (int xx, int yy, unsigned char c)
 {
 	video_drawchars (xx, yy + VIDEO_LOGO_HEIGHT, &c, 1);
@@ -810,6 +839,11 @@ void sisfb_copyarea(int sx,int sy,int dx,int dy,int width,int height);
 }
 #endif
 #else
+
+#if defined(MEM_PRINTTO_VIDEO)
+	video_drawsline(memfb, CONSOLE_ROWS, CONSOLE_COLS);
+#else
+
 #ifdef __mips__
 #define UNCACHED_TO_CACHED(x) PHYS_TO_CACHED(UNCACHED_TO_PHYS(x))
 	if(CONSOLE_ROW_FIRST<0xb0000000 && CONSOLE_ROW_FIRST>=0xa0000000)
@@ -822,6 +856,7 @@ void sisfb_copyarea(int sx,int sy,int dx,int dy,int width,int height);
 #endif
 	memcpyl (CONSOLE_ROW_FIRST, CONSOLE_ROW_SECOND,
 		 CONSOLE_SCROLL_SIZE >> 2);
+#endif
 #endif
 
 	/* clear the last one */
@@ -844,6 +879,8 @@ void sisfb_copyarea(int sx,int sy,int dx,int dy,int width,int height);
 #endif
 #endif
 
+#elif X800x600
+	memsetl (CONSOLE_ROW_LAST - CONSOLE_ROW_SIZE/2, CONSOLE_ROW_SIZE >> 2, CONSOLE_BG_COL);
 #else
 	memsetl (CONSOLE_ROW_LAST, CONSOLE_ROW_SIZE >> 2, CONSOLE_BG_COL);
 #endif
@@ -911,6 +948,9 @@ void video_putc (const char c)
 		video_putchar (console_col * VIDEO_FONT_WIDTH,
 			       console_row * VIDEO_FONT_HEIGHT,
 			       c);
+#ifdef MEM_PRINTTO_VIDEO
+		memfb[console_row * CONSOLE_COLS + console_col] = c;
+#endif
 		console_col++;
 
 		/* check for newline */
@@ -1266,7 +1306,7 @@ void logo_plot (void *screen, int width, int x, int y)
 #endif
 
 	if (VIDEO_DATA_FORMAT == GDF__8BIT_INDEX) {
-#if 1
+#if 0
 		for (i = 0; i < VIDEO_LOGO_COLORS; i++) {
 			video_set_lut (i + VIDEO_LOGO_LUT_OFFSET,
 				       logo_red[i], logo_green[i], logo_blue[i]);
@@ -1370,6 +1410,9 @@ void video_cls(void)
 	memsetl (video_fb_address + VIDEO_LOGO_HEIGHT * VIDEO_LINE_LEN, 
 		CONSOLE_SIZE - VIDEO_LOGO_HEIGHT * VIDEO_LINE_LEN, 
 		CONSOLE_BG_COL);
+#ifdef MEM_PRINTTO_VIDEO
+	memsetl (memfb, CONSOLE_ROWS * CONSOLE_COLS >> 2, CONSOLE_BG_COL);
+#endif
 }
 
 void video_cls_all(void)
@@ -1649,7 +1692,7 @@ int fb_init (unsigned long fbbase,unsigned long iobase)
 	}
 	eorx = fgx ^ bgx;
 
-	memsetl (video_fb_address, CONSOLE_SIZE/4, CONSOLE_BG_COL);
+	memsetl (video_fb_address, VIDEO_COLS * VIDEO_ROWS * VIDEO_PIXEL_SIZE / 4, CONSOLE_BG_COL);
 #ifdef CONFIG_VIDEO_LOGO
 	/* Plot the logo and get start point of console */
 	printf("Video: Drawing the logo ...\n");
@@ -1664,7 +1707,10 @@ int fb_init (unsigned long fbbase,unsigned long iobase)
 	console_row = 0;
 
 	memset (console_buffer, ' ', sizeof console_buffer);
-
+#if defined(MEM_PRINTTO_VIDEO)
+	memfb = malloc(CONSOLE_ROWS * CONSOLE_COLS);
+	memset (memfb, 0, CONSOLE_ROWS * CONSOLE_COLS);
+#endif
 	return 0;
 }
 
