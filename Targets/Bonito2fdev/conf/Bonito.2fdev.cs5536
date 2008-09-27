@@ -71,6 +71,7 @@ select		mod_uart_ns16550	# Standard UART driver
 option		CONS_BAUD=B115200
 select		ext2
 select		fatfs
+select		ramfiles
 #select		mod_x86emu		# X86 emulation for VGA
 option 	MY40IO
 #select		mod_x86emu_int10

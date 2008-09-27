@@ -117,9 +117,12 @@ static int
 		}
 		
 		if (strsize != NULL) {
+#if 0
 			if (!get_rsa ((u_int32_t *)&size, strsize)) {
 				return (-1);
 			}
+#endif
+			size=strtoul(strsize,0,0);
 		} else {
 			size = -1;
 		}
@@ -317,5 +320,6 @@ static void
 #endif
 	addRamFile("vmlinux", 0xbc000000, 0x800000, RAMFILE_STATIC);
 	addRamFile("vmlinux1", 0xc0200000, 0xa00000, RAMFILE_CPHY);
+	addRamFile("usermem", (long)CLIENTPC,0x10000000, RAMFILE_STATIC);
 }
 

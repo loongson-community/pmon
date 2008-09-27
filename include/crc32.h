@@ -1,6 +1,6 @@
-/* $Id: sprintf.c,v 1.1.1.1 2006/09/14 01:59:06 root Exp $ */
+/*	$Id: crc32.h,v 1.2 2006/09/09 10:15:05 pefo Exp $	*/
 /*
- * Copyright (c) 2000-2002 Opsycon AB  (www.opsycon.se)
+ * Copyright (c) 2005-2006 Opsycon AB  (www.opsycon.se)
  * 
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -10,11 +10,6 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 3. All advertising materials mentioning features or use of this software
- *    must display the following acknowledgement:
- *	This product includes software developed by Opsycon AB.
- * 4. The name of the author may not be used to endorse or promote products
- *    derived from this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS
  * OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -29,31 +24,24 @@
  * SUCH DAMAGE.
  *
  */
-#include <stdio.h>
-#include <stdarg.h>
 
-/*
- *  sprintf(buf,fmt,va_alist) send formatted string to buf
- */
-int 
-sprintf (char *buf, const char *fmt, ...)
-{
-    int             n;
-    va_list ap;
+#ifndef __CRC32_H__
+#define __CRC32_H__
 
-    va_start(ap, fmt);
-    n = vsprintf (buf, fmt, ap);
-    va_end(ap);
-    return (n);
-}
-int
-snprintf (char *buf, size_t maxlen, const char *fmt, ...)
-{
-    int             n;
-    va_list ap;
+u_int	crc32_generate(void *, size_t);
+u_int	crc32_generate_seg(void *, size_t, u_int);
+u_int	crc32_check(void *, size_t);
 
-    va_start(ap, fmt);
-    n = vsprintf (buf, fmt, ap);
-    va_end(ap);
-    return (n);
-}
+/* Helper functions, see build options */
+#define	CRC32_CHECK_CRC		1
+#define	CRC32_CHECK_SIG		2
+
+#define	CRC32_OK		0
+#define	CRC32_ERR_FILE		-1
+#define	CRC32_ERR_CRC		-2
+#define	CRC32_ERR_SIG		-3
+
+int	crc32sig_check(const char *, u_int64_t, int);
+
+
+#endif /* __CRC32_H__ */

@@ -180,3 +180,4 @@ option DEVBD2F_VIA
 select http
 select tcp
 select inet
+select tftpd
