@@ -943,6 +943,9 @@ skipdot:
 	b	1b
 	nop
 #endif
+#ifdef USE_SM502_UART0
+#define HAVE_TARGET_GETCHAR
+#endif
 #include "machine/newtest/mydebug.S"
 bootnow:
 	TTYDBG("Copy PMON to execute location...\r\n")
@@ -1241,12 +1244,18 @@ LEAF(tgt_putchar)
 	la	v0, COM3_BASE_ADDR
 	bal 1f
 	nop
-#else
-#define	NSREG(x)    (x*4)
+#endif
+#ifdef USE_SM502_UART0
+#define	NSREG1(x)    (x*4)
 #define	SM502_ADDR  0xb6030000
 	la	v0,SM502_ADDR
-	bal 1f
+11:
+	lbu	v1, NSREG1(NS16550_LSR)(v0)
+	and	v1, LSR_TXRDY
+	beqz	v1, 11b
 	nop
+
+	sb	a0, NSREG1(NS16550_DATA)(v0)
 #endif
 	jr AT
 	nop
@@ -1290,16 +1299,28 @@ LEAF(initserial)
  	li	a0, NS16550HZ/(16*CONS_BAUD)
 	bal 1f
 	nop
-#ifndef HAVE_NB_SERIAL
+#ifdef USE_SM502_UART0
 #define	SM502_ADDR  0xb6030000
-#define	NSREG(x)    (x*4)
+#define	NSREG1(x)    (x*4)
 #define	SM502_UART_FRE	96000000
 	la	v0,SM502_ADDR
 //	li	a0,SM502_UART_FRE/(12*CONS_BAUD)
 //	li	a0,SM502_UART_FRE/(16*19450)
 	li	a0,0x134
-	bal 1f
-	nop
+	li	v1, FIFO_ENABLE|FIFO_RCV_RST|FIFO_XMT_RST|FIFO_TRIGGER_4
+	sb	v1, NSREG1(NS16550_FIFO)(v0)
+	li	v1, CFCR_DLAB
+	sb	v1, NSREG1(NS16550_CFCR)(v0)
+	sb	a0, NSREG1(NS16550_DATA)(v0)
+	srl	v1, 8
+	sb	v1, NSREG1(NS16550_IER)(v0)
+	li	v1, CFCR_8BITS
+	sb	v1, NSREG1(NS16550_CFCR)(v0)
+//	li	v1, MCR_DTR|MCR_RTS
+	li	v1, 0x0
+	sb	v1, NSREG1(NS16550_MCR)(v0)
+	li	v1, 0x0
+	sb	v1, NSREG1(NS16550_IER)(v0)
 #endif
 	jr AT
 	nop
@@ -2034,3 +2055,29 @@ DDR2_CTL_28_DATA_HI_1:	.word 0x00000000
 DDR2_CTL_start_DATA_LO_1: .word 0x01000000
 //0000000_1 swap_port_rw_same_en 0000000_1 swap_en 0000000_0 start 0000000_0 srefresh
 DDR2_CTL_start_DATA_HI_1: .word 0x01010100
+
+.text
+#ifdef USE_SM502_UART0
+LEAF(tgt_testchar)
+#define	NSREG1(x)	(x*4)
+	la	v0,0xb6030000
+	lbu	v1, NSREG1(NS16550_LSR)(v0)
+	and	v0,v1, LSR_RXRDY
+	jr ra
+	nop
+END(tgt_testchar)
+
+LEAF(tgt_getchar)
+#define	NSREG1(x)	(x*4)
+	la	v0,0xb6030000
+11:
+	lbu	v1, NSREG1(NS16550_LSR)(v0)
+	and	v1, LSR_RXRDY
+	beqz	v1, 11b
+	nop
+	lb	v0, NSREG1(NS16550_DATA)(v0)
+	jr ra
+	nop
+END(tgt_getchar)
+#endif
+

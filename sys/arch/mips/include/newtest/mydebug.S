@@ -1374,10 +1374,6 @@ END(Hexserial)
 LEAF(tgt_testchar)
 #ifdef HAVE_NB_SERIAL
 	la	v0, COM3_BASE_ADDR
-#elif	defined(USE_SM502_UART0)
-#define	NSREG(x)	(x*4)
-	la	v0,0xb6030000
-
 #else
 	la	v0, COM1_BASE_ADDR
 #endif
@@ -1391,9 +1387,6 @@ END(tgt_testchar)
 LEAF(tgt_getchar)
 #ifdef HAVE_NB_SERIAL
 	la	v0, COM3_BASE_ADDR
-#elif	defined(USE_SM502_UART0)
-#define	NSREG(x)	(x*4)
-	la	v0,0xb6030000
 #else
 	la	v0, COM1_BASE_ADDR
 #endif
