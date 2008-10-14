@@ -333,6 +333,7 @@ static int INL(struct eth_device* dev, u_long addr)
 static void OUTL(struct eth_device* dev, int command, u_long addr)
 {
 	*(volatile u_long *)(addr + dev->iobase) = (command);
+	*(volatile u_long *)(addr + dev->iobase);
 }
 
 #define PHY_ADDR_1 1
