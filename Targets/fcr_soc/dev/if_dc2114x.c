@@ -876,6 +876,18 @@ static void read_hw_addr(struct eth_device *dev)
 	static char maddr[ETH_ALEN]={0xba, 0x98, 0x76, 0x64, 0x32, 0x19};
 	char *p = &dev->dev_addr[0];
 	int i;
+	{
+		int i;
+		int32_t v;
+	char *s=getenv("ethaddr");
+	if(s){
+		for(i = 0; i < 6; i++) {
+			gethex(&v, s, 2);
+			maddr[i] = v;
+			s += 3;         /* Don't get to fancy here :-) */
+		} 
+	 }
+	} 
 
 	for (i = 0; i < ETH_ALEN; i++) 
 		*p++ = maddr[i];
