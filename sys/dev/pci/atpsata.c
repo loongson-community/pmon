@@ -1141,6 +1141,7 @@ printf("id = 0x%8x \n",id);
 			}
 		}
 	}
+	else return -1;
 	return 0;
 }
 //#undef malloc
@@ -1214,7 +1215,8 @@ SATADEBUG
  
 SATADEBUG
         printf("\natp8620 sata iobase =%8x\n", ioaddr);
-        atp_sata_initialize(ioaddr);
+        if(atp_sata_initialize(ioaddr)<0)
+			sc->sc_wdcdev.sc_dev.dv_class=DV_DULL;
 	//sc->sc_wdcdev.cap |= WDC_CAPABILITY_DMA;
 	sc->sc_wdcdev.PIO_cap = 0;
 	sc->sc_wdcdev.DMA_cap = 0;
