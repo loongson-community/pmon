@@ -210,7 +210,7 @@ int init_kbd()
 {
     int ldd;
     // ldd = 3*33; /* 50us/(1/33333333) */ //9*33
-    ldd = 3*33;
+    ldd = 3*33*APB_CLK/33333333;
     KSEG1_STORE8(FCR_PS2_BASE+PS2_DLL, ldd & 0xff);
     KSEG1_STORE8(FCR_PS2_BASE+PS2_DLH, (ldd >> 8) & 0xff);
 	//pckbd_init_hw();
