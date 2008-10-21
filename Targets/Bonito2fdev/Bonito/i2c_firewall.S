@@ -16,7 +16,7 @@ can't use t1,t5,t6
 LEAF(_i2c_sleep)
 //
 //	li 	t0,0x300
-	li 	t0,0x10
+	li 	t0,0x3
 	sll	a0,t0,a0
 	
 1:	nop
@@ -567,27 +567,51 @@ END(i2cwrite)
 
 LEAF(isl12027_watchdog)
 	move	t1,ra	
+
 	li	a0,0xde
 	li	a1,0x3f
 	li	a2,0x2
 	bal	i2cwrite
 	nop
 
-PRINTSTR("setp1\r\n")
+//PRINTSTR("setp1\r\n")
 	li	a0,0xde
 	li	a1,0x3f
 	li	a2,0x6
 	bal	i2cwrite
 	nop
 
-PRINTSTR("setp2\r\n")
+//PRINTSTR("setp2\r\n")
+	li	a0,0xde
+	li	a1,0x14
+	li	a2,0x84
+	bal	i2cwrite
+	nop
+
+//PRINTSTR("setp3\r\n")
+
+
+	li	a0,0xde
+	li	a1,0x3f
+	li	a2,0x2
+	bal	i2cwrite
+	nop
+
+//PRINTSTR("setp1\r\n")
+	li	a0,0xde
+	li	a1,0x3f
+	li	a2,0x6
+	bal	i2cwrite
+	nop
+
+//PRINTSTR("setp2\r\n")
 	li	a0,0xde
 	li	a1,0x10
 	li	a2,0x18
 	bal	i2cwrite
 	nop
 
-PRINTSTR("setp3\r\n")
+//PRINTSTR("setp3\r\n")
 	jr	t1
 	nop
 	

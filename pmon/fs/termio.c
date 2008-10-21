@@ -113,15 +113,17 @@ term_write (int fd, const void *buf, size_t nchar)
 	char *buf2 = (char *)buf;
 	int i, n;
 	int dsel;
+	int count;
 	
 	devp = (struct TermDev *)_file[fd].data;
 	p = &DevTable[devp->dev];
 	n = nchar;
+	dsel=devp->dev;
 
 #ifdef OUTPUT_TO_BOTH
-for(dsel=1;(dsel==1)||(dsel==0 && devp->dev==1);dsel--)
+do
 {
-	if(devp->dev==1)p = &DevTable[dsel];
+	p = &DevTable[dsel];
 	buf2 = (char *)buf;
 	n = nchar;
 #endif
@@ -147,7 +149,8 @@ for(dsel=1;(dsel==1)||(dsel==0 && devp->dev==1);dsel--)
 		}
 	}
 #ifdef OUTPUT_TO_BOTH
-}
+dsel=DevTable[dsel+1].handler?dsel+1:0;
+}while(dsel!=devp->dev);
 #endif
 
 	return (nchar);
@@ -434,9 +437,11 @@ term_open(int fd, const char *fname, int mode, int perms)
 		devp->dev = dev;
 		_file[fd].data = (void *)devp;
 		p = &DevTable[dev];
+		if(p->handler){
 		(*p->handler) (OP_OPEN, p, NULL, 0);
 		if (p->nopen++ == 0)
 			term_ioctl (fd, SETSANE);
+			}
 	}
 	else {
 		return -1;
@@ -469,17 +474,20 @@ term_read (fd, buf, n)
 	char ch;
 	struct TermDev *devp;
 	char *buf2 = buf;
-	int dsel=1;
+	int dsel;
 	DevEntry *p0;
 
 	devp = (struct TermDev *)_file[fd].data;
 	p0 = p = &DevTable[devp->dev];
+	dsel=devp->dev;
 
 
-	for (i = 0; i < n;dsel++) {
+	for (i = 0; i < n;) {
 		scandevs ();
 #ifdef INPUT_FROM_BOTH
-	if(devp->dev==1)p = &DevTable[dsel&1];
+	p = &DevTable[dsel];
+	if(!p->handler){dsel=0;continue;}
+	else dsel++;
 #endif
 
 		/* << LOCK >> */
@@ -562,11 +570,14 @@ static void
 	_file[3].fs = &termfs;
 	_file[4].valid = 1;
 	_file[4].fs = &termfs;
+	_file[5].valid = 1;
+	_file[5].fs = &termfs;
 	term_open(0, "/dev/tty0", 0, 0); /* stdin */
 	term_open(1, "/dev/tty0", 0, 0); /* stdout */
 	term_open(2, "/dev/tty0", 0, 0); /* stderr */
 	term_open(3, "/dev/tty1", 0, 0); /* kbdin */
 	term_open(4, "/dev/tty1", 0, 0); /* vgaout */
+	term_open(5, "/dev/tty2", 0, 0); /* vgaout */
 }
 
 void *restdout(int  (*newwrite) (int fd, const void *buf, size_t n))

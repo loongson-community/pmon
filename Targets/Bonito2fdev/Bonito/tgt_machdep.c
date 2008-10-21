@@ -334,6 +334,9 @@ ConfigEntry	ConfigTable[] =
 	{ (char *)1, 0, vgaterm, 256, CONS_BAUD, NS16550HZ },
 	#endif
 #endif
+#ifdef DEVBD2F_FIREWALL
+	 { (char *)LS2F_COMB_ADDR, 0, ns16550, 256, CONS_BAUD, NS16550HZ/2 ,1},
+#endif
 	{ 0 }
 };
 
@@ -814,6 +817,11 @@ static void init_legacy_rtc(void)
                 CMOS_WRITE(0, DS_REG_MIN);
                 CMOS_WRITE(0, DS_REG_SEC);
         }
+#ifdef DEVBD2F_FIREWALL
+	if(sec==0 && min==0 && hour == 0 && date ==0x01 && month ==0x0)
+                CMOS_WRITE(0, DS_REG_SEC);
+
+#endif
         CMOS_WRITE(DS_CTLB_24 | DS_CTLB_DM, DS_REG_CTLB);
                                                                                
 	//printf("RTC: %02d-%02d-%02d %02d:%02d:%02d\n",
@@ -1062,7 +1070,7 @@ aa:
 			
                         while(CMOS_READ(DS_REG_CTLA) & DS_CTLA_UIP);
                         cur = CMOS_READ(DS_REG_SEC);
-                } while(timeout != 0 && ((cur == sec)||(cur !=((sec+1)%60))));
+                } while(timeout != 0 && ((cur == sec)||(cur !=((sec+1)%60))) && (CPU_GetCOUNT() - cnt<0x30000000));
                 cnt = CPU_GetCOUNT() - cnt;
                 if(timeout == 0) {
 			tgt_printf("time out!\n");

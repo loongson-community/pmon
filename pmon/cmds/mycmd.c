@@ -24,6 +24,7 @@
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <sys/net/if.h>
+#include "mod_vgacon.h"
 void route_init();
 
 #include <pflash.h>
@@ -827,11 +828,13 @@ CPU_TLBInit(addr,size);
 return 0;
 }
 
+#if NMOD_VGACON
 extern int kbd_initialize(void);
 static int initkbd(int argc,char **argv)
 {
  return kbd_initialize();
 }
+#endif
 
 static int setcache(int argc,char **argv)
 {
@@ -1416,12 +1419,14 @@ static int cmd_sleep1(int argc,char **argv)
 	return 0;
 }
 
+#if NMOD_VGACON
 static void cmd_led(int argc,char **argv)
 {
 	int led;
 	led=strtoul(argv[1],0,0);
 	pckbd_leds(led);
 }
+#endif
 
 
 static int cmd_testcpu(int argc,char **argv)
@@ -1791,7 +1796,9 @@ static const Cmd Cmds[] =
 	{"m8",	"addr [data]", 0, "modify address double word",modify, 0, 99, CMD_REPEAT},
 	{"setvga","[0|1]",0,"set vga_available",setvga,0,99,CMD_REPEAT},
 	{"setkbd","[0|1]",0,"set kbd_available",setkbd,0,99,CMD_REPEAT},
+#if NMOD_VGACON
 	{"initkbd","",0,"kbd_initialize",initkbd,0,99,CMD_REPEAT},
+#endif
 	{"tlbset","viraddr phyaddr [-x]",0,"tlbset viraddr phyaddr [-x]",tlbset,0,99,CMD_REPEAT},
 	{"tlbtest","viraddr phyaddr ",0,"tlbset viraddr phyaddr ",tlbtest,0,99,CMD_REPEAT},
 	{"tlbclear","",0,"tlbclear",tlbclear,0,99,CMD_REPEAT},
@@ -1820,7 +1827,9 @@ static const Cmd Cmds[] =
 	{"cflush","addr size rw",0,"cflush addr size rw",cmd_cflush,0,99,CMD_REPEAT},
 	{"memcpy","src dst count",0,"mymemcpy src dst count",cmd_mymemcpy,0,99,CMD_REPEAT},
 	{"testcpu","",0,"testcpu",cmd_testcpu,2,2,CMD_REPEAT},
+#if NMOD_VGACON
 	{"led","n",0,"led n",cmd_led,2,2,CMD_REPEAT},
+#endif
 #if __mips >= 3
 	{"lwl","n",0,"lwl n",lwl,2,2,CMD_REPEAT},
 	{"lwr","n",0,"lwr n",lwr,2,2,CMD_REPEAT},

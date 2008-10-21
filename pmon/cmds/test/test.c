@@ -22,6 +22,7 @@
 #include <dev/pci/pcidevs.h>
 #include <flash.h>
 #include <time.h>
+#include "mod_vgacon.h"
 
 /* header files */
 #include <linux/zlib.h>
@@ -73,9 +74,11 @@ return 0;
 #include "cpu.c"
 #include "mem.c"
 #include "serial.c"
-#include "video.c"
 #include "hd.c"
+#if NMOD_VGACON
 #include "kbd.c"
+#include "video.c"
+#endif
 #include "pci.c"
 #include "pp.c"
 #include "fd.c"
@@ -200,15 +203,19 @@ for(i=0;i<31;i++)
 			sprintf(cmd,"ping -c 3 %s",serverip);
 			do_cmd(cmd);
 			break;
+#if NMOD_VGACON
 		case TEST_VIDEO:
 			videotest();
 			break;
+#endif
 		case TEST_HD:
 			hdtest();
 			break;
+#if NMOD_VGACON
 		case TEST_KBD:
 			kbdtest();
 			break;
+#endif
 		case TEST_PCI:
 			pcitest();
 			break;

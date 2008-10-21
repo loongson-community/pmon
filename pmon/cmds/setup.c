@@ -37,6 +37,7 @@ ${!width: num}
 #include <dev/pci/pcidevs.h>
 #include <flash.h>
 #include <time.h>
+#include "mod_vgacon.h"
 
 /* header files */
 #include <linux/zlib.h>
@@ -124,6 +125,8 @@ static int getch (void)
 }
 
 
+static char popbuffer[80*25*2];
+#if NMOD_VGACON
 extern char *vgabh;
 extern char *heaptop;
 
@@ -152,7 +155,6 @@ static void cprint(int y, int x,int width,char color, const char *text)
 }
 
 
-static char popbuffer[80*25*2];
 static void popup(int y, int x,int height,int width)
 {
 	register int i;
@@ -257,16 +259,21 @@ cprint(INFO_Y,0,INFO_W,0x70,"press any key to exit");
 	while(getch()!='\n');
 popdown(yy,xx,height,width);
 }
+#endif
 
 void cprintfb(int y, int x,int width,char color, const char *buf);
+static void popupS(int y, int x,int height,int width);
+static void popdownS(int y, int x,int height,int width);
+static void msgboxS(int yy,int xx,int height,int width,char *msg);
 static void cprintS(int y, int x,int width,char color, const char *text);
+static void set_cursorS(unsigned char x,unsigned char y);
 extern void set_cursor(unsigned char x,unsigned char y);
 extern void set_cursor_fb(unsigned char x,unsigned char y);
-void (*__popup)(int y, int x,int height,int width)=popup;
-void (*__popdown)(int y, int x,int height,int width)=popdown;
+void (*__popup)(int y, int x,int height,int width)=popupS;
+void (*__popdown)(int y, int x,int height,int width)=popdownS;
 void (*__cprint)(int y, int x,int width,char color, const char *text)=cprintS;
-void (*__msgbox)(int yy,int xx,int height,int width,char *msg)=msgbox;
-void (*__set_cursor)(unsigned char x,unsigned char y)=set_cursor;
+void (*__msgbox)(int yy,int xx,int height,int width,char *msg)=msgboxS;
+void (*__set_cursor)(unsigned char x,unsigned char y)=set_cursorS;
 //---------------------------------------------------------------------------
 #if 0
 /* Ç°¾°É« */
@@ -1218,6 +1225,7 @@ void __console_alloc()
   __msgbox=msgboxS;
   __set_cursor=set_cursorS;
  }
+#if NMOD_VGACON
  else
  {
 #if NMOD_FRAMEBUFFER
@@ -1234,6 +1242,7 @@ void __console_alloc()
   __set_cursor=set_cursor;
 #endif
  }
+#endif
 if(!myline)myline=malloc(1000);
 if(!expline)expline=malloc(SIZE_OF_EXPLINE);
 if(!ItemName)ItemName=malloc(100);

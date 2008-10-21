@@ -496,7 +496,7 @@ static int tzparse(const char *name)
     
     name = getoffset(name, &tz_stdoffset);
     if (name == NULL)
-      return 0;
+      return -1;
     if (*name != '\0') {
 	dstname = name;
 	name = getzname(name);
@@ -607,9 +607,6 @@ struct tm *localtime(const time_t *tp)
     } else
       dst = 0;
     
-//    printf("dst %x\n",dst);
-  //  printf("dstoffset %x\n",tz_dstoffset);
-   // printf("stdoffset %x\n",tz_stdoffset);
     tm = offtime(tp,dst==1?tz_dstoffset:tz_stdoffset);
 //  tm = offtime(tp,dst==1?-tz_dstoffset:-tz_stdoffset);
     tm->tm_isdst = dst;

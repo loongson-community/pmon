@@ -54,7 +54,11 @@
 
 typedef unsigned char uint8;
 typedef unsigned int uint32;
+#ifdef DEVBD2F_FIREWALL
+static int serialbase[]={0xbe000000,0xbe000020};
+#else
 static int serialbase[]={0xbfd003f8,0xbfd002f8,0xbff003f8};
+#endif
 extern void delay1(int);
 /* memory-mapped read/write of the port */
 inline uint8 UART16550_READ(int line,int y){
@@ -121,6 +125,40 @@ static int initserial(int line)
 }
 
 #define TIMEOUT 50
+#ifdef DEVBD2F_FIREWALL
+static int serialtest()
+{
+	int i,j;
+	printf("serial test\n");
+	initserial(1);
+	
+	for(i=0;i<16;j++)
+	{
+		if(testDebugChar(1))
+			getDebugChar(1);
+		else break;
+	}
+	
+	printf("serial 1 send data to serial 1...");
+
+	for(i=0;i<10;i++)
+	{
+		putDebugChar(1,'a'+i);
+		for(j=0;j<TIMEOUT;j++)
+		{
+			if(testDebugChar(1))
+				break;
+		}
+		if(j==TIMEOUT){
+			printf("timeout");
+			return 0;
+		}
+		printf("%c",getDebugChar(1));
+	}
+	printf("serial 1 ok!\n");
+	return 0;
+}
+#else
 static int serialtest()
 {
 	int i,j;
@@ -181,6 +219,7 @@ static int serialtest()
 	return 0;
 }
 
+#endif
 static int cmd_serial(int argc,char **argv)
 {
 int line;
