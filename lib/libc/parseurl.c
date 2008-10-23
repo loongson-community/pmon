@@ -73,13 +73,14 @@ int parseUrl(const char *path, struct Url *url)
 		return (-1);
 	}
 
-#ifdef __not_yet
+#if 1 //def __not_yet
 	/*
 	 * Parse username field
 	 */
 	if ((buf = strchr (dname, '@')) != NULL) {
 		int passwdlen;
 		int unamelen;
+		char *buf2;
 		/*
 		 * Check if we also provide a password
 		 */
@@ -112,6 +113,23 @@ int parseUrl(const char *path, struct Url *url)
 	/*
 	 * Parse hostname field
 	 */
+	url->port=0;
+	if ((buf = strchr (dname, ':')) != NULL)
+	{
+		int len = buf - dname;
+		if (len + 1 > HOSTNAMESIZE) {
+			return (-1);
+		}
+		strncpy (url->hostname, dname, len);
+		url->hostname[len] = 0;
+		dname = buf + 1;
+	if ((buf = strchr (dname, '/')) != NULL) {
+		url->port=strtoul(dname,0,0);
+		dname= buf + 1;
+	 }
+	else return -1;		
+	}
+	else
 	if ((buf = strchr (dname, '/')) != NULL) {
 		int len = buf - dname;
 		if (len + 1 > HOSTNAMESIZE) {

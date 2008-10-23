@@ -138,13 +138,9 @@ httpopen (int fd, struct Url *url, int flags, int perms)
 
 	//sin_family = AF_INET,and bind
 	http->sin.sin_family = AF_INET;
-	http->sin.sin_port = htons(80);
+	http->sin.sin_port = htons(url->port?url->port:80);
 	http->flags = flags;
 
-	if(bind(http->sock,(struct sockaddr *)&http->sin, sizeof(http->sin)) < 0)
-	{
-		goto error;
-	}
 
 	//get the message of host
 	hp = gethostbyname(host);

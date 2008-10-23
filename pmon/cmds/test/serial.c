@@ -22,7 +22,9 @@
 
 
 /* === CONFIG === */
-#ifdef CONFIG_HAVE_NB_SERIAL
+#ifdef DEVBD2F_FIREWALL
+#define         MAX_BAUD    ( 1843200 / 16 )
+#elif defined(CONFIG_HAVE_NB_SERIAL)
 #define         MAX_BAUD    ( 3686400 / 16 )
 #else
 #define         MAX_BAUD    ( 1843200 / 16 )

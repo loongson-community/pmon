@@ -1016,7 +1016,8 @@ static int checksum(int argc,char **argv)
 	unsigned long size,left,total,bs,sum,want,count,idx;
 	int quiet,checkwant,fp0,ret;
 	int fsrc;
-	char *buf;
+	char *buf,*cmd_buf=0;
+	char *cmd=0;
 
 	if (argc<2)
 		return -1;
@@ -1050,11 +1051,18 @@ static int checksum(int argc,char **argv)
 	if(!fsrc)return -1;
 	buf=malloc(bs);
 	if(!buf){printf("malloc failed!,please set heaptop bigger\n");return -1;}
+	if((cmd=getenv("checksum"))) cmd_buf=malloc(strlen(cmd)+1);
 	for(idx=0;idx<count;idx++)
 	{
 	 total=0;
 	 left=size;
 	 sum=0;
+
+	if(cmd){
+	strcpy(cmd_buf,cmd);
+	do_cmd(cmd_buf);
+	}
+
 	fp0=open(fsrc,O_RDONLY);
 
 	
@@ -1071,14 +1079,23 @@ static int checksum(int argc,char **argv)
 
 	close(fp0);
 
-
-	if(!quiet)printf("%d:checksuming  0x%lx,size=0x%lx\n",idx,sum,total);
+/*quiet:
+ * 0:print everything
+ * 1:only print when error
+ * 2:goto cmdline when error
+ * 3:reload and print error when error
+ * 4:reload no msg
+ */
+	if(quiet<1)printf("%d:checksuming  0x%lx,size=0x%lx\n",idx,sum,total);
 	if(checkwant && (want!=sum)){
-	printf("%d:checksum error want 0x%x, got 0x%x\n",idx,want,sum);
-	break;
+	if(quiet<4)printf("%d:checksum error want 0x%x, got 0x%x\n",idx,want,sum);
+	if(quiet>2) count++;
+	else if(quiet==2)main();
+	else break;
 	}
    }
 	free(buf);
+	if(cmd_buf)free(cmd_buf);
 
 	return 0;
 }

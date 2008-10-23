@@ -181,3 +181,8 @@ option OUTPUT_TO_BOTH
 option LS2F_FIREWALL
 option GPIO_I2C
 #option USE_GPIO_SERIAL
+select http
+select tcp
+select inet
+select tftpd
+

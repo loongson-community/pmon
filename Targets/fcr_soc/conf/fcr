@@ -183,3 +183,6 @@ select loop
 option VGA_MEM_BASE=0xb7f00000
 option		X640x480
 option 		CONFIG_VIDEO_16BPP
+select http
+select tcp
+select inet

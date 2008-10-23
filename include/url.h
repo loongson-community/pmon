@@ -48,6 +48,7 @@ struct Url {
 	char		password[PASSWORDSIZE];
 	char		hostname[HOSTNAMESIZE];
 	char		filename[FILENAMESIZE];
+	short		port;
 };
 
 extern int	parseUrl(const char *, struct Url *);
