@@ -810,48 +810,9 @@ do_caches:
 	and	t3, ~(CF_7_TE|CF_7_SE|CF_7_TC|CF_7_SC)  /* disable L2/L3 cache */
 	mtc0    t3, COP_0_CONFIG
 
-	li	t2, 4096
-
-	srl	t1, t3, 9
-	and	t1, 3
-	sllv	s3, t2, t1		/* s3 = I cache size */
-
-#ifdef CONFIG_CACHE_64K_4WAY 
-        sll     s3,2
-#endif
-
-	and	t1, t3, 0x20
-	srl	t1, t1, 1
-	addu	s4, t1, 16		/* s4 = I cache line size */
-
-	srl	t1, t3, 6
-	and	t1, 3
-	sllv	s5, t2, t1		/* s5 = D cache size */
-
-#ifdef CONFIG_CACHE_64K_4WAY
-        sll     s5,2
-#endif
-
-	and	t1, t3, 0x10
-	addu	s6, t1, 16		/* s6 = D cache line size */
-	TTYDBG("Init caches...\r\n")
-
-	li	s7, 0                   /* no L2 cache */
-	li	s8, 0                   /* no L3 cache */
-
-#if 0
-        mfc0    a0, COP_0_PRID
-        li      a1, 0x6301
-        bne     a0,a1,1f
-        nop
-#endif
 	TTYDBG("godson2 caches found\r\n")
         bal     godson2_cache_init
         nop
-
-	/* close L2 cache */
-	li      a0, 0xbfe00164
-        sw      zero, 0(a0);
 
         mfc0   a0,COP_0_CONFIG
         and    a0,a0,~((1<<12) | 3)
@@ -1109,7 +1070,7 @@ stuck:
 LEAF(CPU_TLBClear)
 	li	a3, 0			# First TLB index.
 
-	li	a2, PG_SIZE_4K
+	li	a2, PG_SIZE_16K
 	MTC0   a2, COP_0_TLB_PG_MASK   # Whatever...
 
 1:
@@ -1126,6 +1087,9 @@ LEAF(CPU_TLBClear)
 
 	bne	a3, a2, 1b
 	nop
+
+	li a3,4
+	mtc0 a3,$22 #flush itlb
 
 	jr	ra
 	nop

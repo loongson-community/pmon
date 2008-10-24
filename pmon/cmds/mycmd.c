@@ -720,7 +720,90 @@ static int setkbd(int argc,char **argv)
 #endif
 #define PAGE_SIZE	(1UL << PAGE_SHIFT)
 #define PAGE_MASK	(~(PAGE_SIZE-1))
+#define printk printf
+#define CKSEG0 0xffffffff80000000ULL
 
+static char *msk2str(unsigned int mask)
+{
+static char str[20];
+	switch (mask) {
+	case PM_4K:	return "4kb";
+	case PM_16K:	return "16kb";
+	case PM_64K:	return "64kb";
+	case PM_256K:	return "256kb";
+	case PM_1M:	return "1Mb";
+	case PM_4M:	return "4Mb";
+	case PM_16M:	return "16Mb";
+	case PM_64M:	return "64Mb";
+	case PM_256M:	return "256Mb";
+	}
+	sprintf(str,"%08x",mask);
+	return str;
+}
+
+#define BARRIER()					\
+	__asm__ __volatile__(				\
+		".set\tnoreorder\n\t"			\
+		"nop;nop;nop;nop;nop;nop;nop\n\t"	\
+		".set\treorder");
+
+void dump_tlb(int first, int last)
+{
+	unsigned long s_entryhi, entryhi, entrylo0, entrylo1, asid;
+	unsigned int s_index, pagemask, c0, c1, i;
+
+	s_entryhi = read_c0_entryhi();
+	s_index = read_c0_index();
+	asid = s_entryhi & 0xff;
+
+	for (i = first; i <= last; i++) {
+		write_c0_index(i);
+		BARRIER();
+		tlb_read();
+		BARRIER();
+		pagemask = read_c0_pagemask();
+		entryhi  = read_c0_entryhi();
+		entrylo0 = read_c0_entrylo0();
+		entrylo1 = read_c0_entrylo1();
+
+		/* Unused entries have a virtual address of CKSEG0.  */
+		if ((entryhi & ~0x1ffffUL) != CKSEG0
+		    && (entryhi & 0xff) == asid) {
+			/*
+			 * Only print entries in use
+			 */
+			printk("Index: %2d pgmask=%s ", i, msk2str(pagemask));
+
+			c0 = (entrylo0 >> 3) & 7;
+			c1 = (entrylo1 >> 3) & 7;
+
+			printk("va=%011lx asid=%02lx\n",
+			       (entryhi & ~0x1fffUL),
+			       entryhi & 0xff);
+			printk("\t[pa=%011lx c=%d d=%d v=%d g=%ld] ",
+			       (entrylo0 << 6) & PAGE_MASK, c0,
+			       (entrylo0 & 4) ? 1 : 0,
+			       (entrylo0 & 2) ? 1 : 0,
+			       (entrylo0 & 1));
+			printk("[pa=%011lx c=%d d=%d v=%d g=%ld]\n",
+			       (entrylo1 << 6) & PAGE_MASK, c1,
+			       (entrylo1 & 4) ? 1 : 0,
+			       (entrylo1 & 2) ? 1 : 0,
+			       (entrylo1 & 1));
+		}
+	}
+	printk("\n");
+
+	write_c0_entryhi(s_entryhi);
+	write_c0_index(s_index);
+}
+
+
+int tlbdump(int argc,char **argv)
+{
+	dump_tlb(0,63);
+return 0;
+}
 
 static int tlbset(int argc,char **argv)
 {
@@ -1798,9 +1881,222 @@ return 0;
 }
 
 //----------------------------------
+//
+
+#ifdef __mips
+static int __cp0syscall1(int type,unsigned long long addr,union commondata *mydata)
+{
+long long data8;
+if(type!=8)return -1;
+addr=addr>>3;
+
+switch((long)addr&0x1f)
+{
+case 0:
+asm("dmfc0 %0,$0 ":"=r"(data8));break;
+case 1:
+asm("dmfc0 %0,$1 ":"=r"(data8));break;
+case 2:
+asm("dmfc0 %0,$2 ":"=r"(data8));break;
+case 3:
+asm("dmfc0 %0,$3 ":"=r"(data8));break;
+case 4:
+asm("dmfc0 %0,$4 ":"=r"(data8));break;
+case 5:
+asm("dmfc0 %0,$5 ":"=r"(data8));break;
+case 6:
+asm("dmfc0 %0,$6 ":"=r"(data8));break;
+case 7:
+asm("dmfc0 %0,$7 ":"=r"(data8));break;
+case 8:
+asm("dmfc0 %0,$8 ":"=r"(data8));break;
+case 9:
+asm("dmfc0 %0,$9 ":"=r"(data8));break;
+case 10:
+asm("dmfc0 %0,$10":"=r"(data8));break;
+case 11:
+asm("dmfc0 %0,$11 ":"=r"(data8));break;
+case 12:
+asm("dmfc0 %0,$12 ":"=r"(data8));break;
+case 13:
+asm("dmfc0 %0,$13 ":"=r"(data8));break;
+case 14:
+asm("dmfc0 %0,$14 ":"=r"(data8));break;
+case 15:
+asm("dmfc0 %0,$15 ":"=r"(data8));break;
+case 16:
+asm("dmfc0 %0,$16 ":"=r"(data8));break;
+case 17:
+asm("dmfc0 %0,$17 ":"=r"(data8));break;
+case 18:
+asm("dmfc0 %0,$18 ":"=r"(data8));break;
+case 19:
+asm("dmfc0 %0,$19 ":"=r"(data8));break;
+case 20:
+asm("dmfc0 %0,$20 ":"=r"(data8));break;
+case 21:
+asm("dmfc0 %0,$21 ":"=r"(data8));break;
+case 22:
+asm("dmfc0 %0,$22 ":"=r"(data8));break;
+case 23:
+asm("dmfc0 %0,$23 ":"=r"(data8));break;
+case 24:
+asm("dmfc0 %0,$24 ":"=r"(data8));break;
+case 25:
+asm("dmfc0 %0,$25 ":"=r"(data8));break;
+case 26:
+asm("dmfc0 %0,$26 ":"=r"(data8));break;
+case 27:
+asm("dmfc0 %0,$27 ":"=r"(data8));break;
+case 28:
+asm("dmfc0 %0,$28 ":"=r"(data8));break;
+case 29:
+asm("dmfc0 %0,$29 ":"=r"(data8));break;
+case 30:
+asm("dmfc0 %0,$30 ":"=r"(data8));break;
+case 31:
+asm("dmfc0 %0,$31 ":"=r"(data8));break;
+}
+
+*(long long *)mydata->data8=data8;
+
+return 0;
+}
+
+static int __cp0syscall2(int type,unsigned long long addr,union commondata *mydata)
+{
+long long data8;
+if(type!=8)return -1;
+addr=addr>>3;
+
+data8=*(long long *)mydata->data8;
+
+switch((long)addr&0x1f)
+{
+case 0:
+asm("dmtc0 %0,$0 "::"r"(data8));break;
+case 1:
+asm("dmtc0 %0,$1 "::"r"(data8));break;
+case 2:
+asm("dmtc0 %0,$2 "::"r"(data8));break;
+case 3:
+asm("dmtc0 %0,$3 "::"r"(data8));break;
+case 4:
+asm("dmtc0 %0,$4 "::"r"(data8));break;
+case 5:
+asm("dmtc0 %0,$5 "::"r"(data8));break;
+case 6:
+asm("dmtc0 %0,$6 "::"r"(data8));break;
+case 7:
+asm("dmtc0 %0,$7 "::"r"(data8));break;
+case 8:
+asm("dmtc0 %0,$8 "::"r"(data8));break;
+case 9:
+asm("dmtc0 %0,$9 "::"r"(data8));break;
+case 10:
+asm("dmtc0 %0,$10"::"r"(data8));break;
+case 11:
+asm("dmtc0 %0,$11 "::"r"(data8));break;
+case 12:
+asm("dmtc0 %0,$12 "::"r"(data8));break;
+case 13:
+asm("dmtc0 %0,$13 "::"r"(data8));break;
+case 14:
+asm("dmtc0 %0,$14 "::"r"(data8));break;
+case 15:
+asm("dmtc0 %0,$15 "::"r"(data8));break;
+case 16:
+asm("dmtc0 %0,$16 "::"r"(data8));break;
+case 17:
+asm("dmtc0 %0,$17 "::"r"(data8));break;
+case 18:
+asm("dmtc0 %0,$18 "::"r"(data8));break;
+case 19:
+asm("dmtc0 %0,$19 "::"r"(data8));break;
+case 20:
+asm("dmtc0 %0,$20 "::"r"(data8));break;
+case 21:
+asm("dmtc0 %0,$21 "::"r"(data8));break;
+case 22:
+asm("dmtc0 %0,$22 "::"r"(data8));break;
+case 23:
+asm("dmtc0 %0,$23 "::"r"(data8));break;
+case 24:
+asm("dmtc0 %0,$24 "::"r"(data8));break;
+case 25:
+asm("dmtc0 %0,$25 "::"r"(data8));break;
+case 26:
+asm("dmtc0 %0,$26 "::"r"(data8));break;
+case 27:
+asm("dmtc0 %0,$27 "::"r"(data8));break;
+case 28:
+asm("dmtc0 %0,$28 "::"r"(data8));break;
+case 29:
+asm("dmtc0 %0,$29 "::"r"(data8));break;
+case 30:
+asm("dmtc0 %0,$30 "::"r"(data8));break;
+case 31:
+asm("dmtc0 %0,$31 "::"r"(data8));break;
+}
+
+return 0;
+}
+
+static int mycp0s(int argc,char **argv)
+{
+syscall1=__cp0syscall1;
+syscall2=__cp0syscall2;
+	syscall_addrtype=0;
+return 0;	
+}
+
+static int cache_type=1;/*0:D,1:S*/
+
+static int dumpcache(int argc,char **argv)
+{
+unsigned long taglo,taghi;
+int way;
+unsigned long long phytag;
+unsigned long addr;
+long len;
+
+if(argc!=3)return -1;
+addr=strtoul(argv[1],0,0);
+len=strtoul(argv[2],0,0);
+
+for(;len>0;len-=32,addr+=32)
+{
+
+ for(way=0;way<=3;way++)
+ {
+  
+if(argv[0][0]=='s')
+{
+asm("cache %3,(%2);mfc0 %0,$28;mfc0 %1,$29":"=r"(taglo),"=r"(taghi):"r"(addr|way),"i"(7));
+ phytag= ((((unsigned long long)taglo>>13)&0xfffff)<<17)|((((unsigned long long)taghi&0xf))<<36);
+ printf("\n%08x:state=%d,phyaddr=%010llx,taglo=%08x,taghi=%08x\n",addr|way,(taglo>>10)&3,phytag,taglo,taghi);
+}
+else
+{
+asm("cache %3,(%2);mfc0 %0,$28;mfc0 %1,$29":"=r"(taglo),"=r"(taghi):"r"(addr|way),"i"(5));
+ phytag= ((((unsigned long long)taglo>>8)&0xffffff)<<12)|((((unsigned long long)taghi&0xf))<<36);
+ printf("\n%08x:state=%d,phyaddr=%010llx,way=%d,mode=%d,taglo=%08x,taghi=%08x\n",addr|way,(taglo>>6)&3,phytag,(taglo>>4)&3,(taghi>>29)&7,taglo,taghi);
+ }
+}
+
+}
+
+return 0;
+}
+
+#endif
+//----------------------------------
 static const Cmd Cmds[] =
 {
 	{"MyCmds"},
+	{"cp0s",	"", 0, "access cp0", mycp0s, 0, 99, CMD_REPEAT},
+	{"scachedump",	"", 0, "access Scache tag",dumpcache, 0, 99, CMD_REPEAT},
+	{"dcachedump",	"", 0, "access Dcache tag",dumpcache, 0, 99, CMD_REPEAT},
 	{"pcs",	"bus dev func", 0, "select pci dev function", mypcs, 0, 99, CMD_REPEAT},
 	{"disks",	"disk", 0, "select disk", mydisks, 0, 99, CMD_REPEAT},
 	{"d1",	"[addr] [count]", 0, "dump address byte", dump, 0, 99, CMD_REPEAT},
@@ -1819,6 +2115,7 @@ static const Cmd Cmds[] =
 	{"tlbset","viraddr phyaddr [-x]",0,"tlbset viraddr phyaddr [-x]",tlbset,0,99,CMD_REPEAT},
 	{"tlbtest","viraddr phyaddr ",0,"tlbset viraddr phyaddr ",tlbtest,0,99,CMD_REPEAT},
 	{"tlbclear","",0,"tlbclear",tlbclear,0,99,CMD_REPEAT},
+	{"tlbdump","",0,"tlbdump",tlbdump,0,99,CMD_REPEAT},
 	{"tlbinit","addr size",0,"tlbinit phaddr=vaddr",tlbinit,0,99,CMD_REPEAT},
 	{"cache","[0 1]",0,"cache [0 1]",setcache,0,99,CMD_REPEAT},
 	{"loop","count cmd...",0,"loopcmd count cmd...",loopcmd,0,99,CMD_REPEAT},

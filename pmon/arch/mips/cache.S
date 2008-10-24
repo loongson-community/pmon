@@ -209,7 +209,7 @@ LEAF(CPU_ConfigCache)
 	srl	t1, v0, 9			# Get I cache size.
 	and	t1, 7
 	li	t2, 4096
-	sll	t4, t2, 4	#t1			# t4 = Initial I set size.
+	sll	t4, t2, t1			# t4 = Initial I set size.
 
 	and	t2, v0, 0x20
 	srl	t2, t2, 1			# Get I cache line size.
@@ -219,7 +219,7 @@ LEAF(CPU_ConfigCache)
 	srl	t1, v0, 6			# Get D cache size.
 	and	t1, 7
 	li	t2, 4096			# Fixed page size.
-	sll	t5, t2, 4	#t1
+	sll	t5, t2, t1
 
 	and	t2, v0, 0x10
 	addu	t2, t2, 16			# Get D cache line size.

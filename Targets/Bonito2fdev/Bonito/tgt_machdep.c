@@ -371,6 +371,7 @@ volatile int *p=0xbfe00108;
 tgt_printf("memsz %d\n",memsz);
 /*enable float*/
 tgt_fpuenable();
+CPU_TLBClear();
 
 #if PCI_IDSEL_CS5536 != 0
 superio_reinit();

@@ -364,7 +364,7 @@ int init_sata(int dev,u32 reg)
 
 
 	/* Allocate receive fis */
-	length = 256;
+	length = sizeof(*receive_fis);
 	align = 256;
 	#if MY_MALLOC
 	sata->receive_fis_offset = (void *)malloc(length + align);
@@ -381,7 +381,7 @@ int init_sata(int dev,u32 reg)
 	sata->receive_fis = receive_fis;
 	/* Zero all of receive fis */
 	memset((void *)sata->receive_fis_offset, 0, length + align);
-	pci_sync_cache(0,sata->receive_fis_offset,length + align,1);
+	pci_sync_cache(0,sata->receive_fis_offset,length + align,0);
 
 	/* Allocate command descriptor for all command */
 	length = sizeof(struct cmd_desc) * SATA_HC_MAX_CMD;
@@ -511,6 +511,7 @@ static int atp_ata_exec_ata_cmd(struct atp_sata *sata, struct cfis *cfis,
 			prde->dbc = (u32)(dbc);
 			prde_count++;
 			prde++;
+			len=0;
 			break;
 		} else
 	       	{
@@ -523,6 +524,8 @@ static int atp_ata_exec_ata_cmd(struct atp_sata *sata, struct cfis *cfis,
 			prde++;
 		}
 	}
+
+	if(len)printf("left %d\n",len);
 
 	if(cfis->command == 0x61 || cfis->command == 0x35)
 		is_write = 1;
@@ -563,10 +566,11 @@ static int atp_ata_exec_ata_cmd(struct atp_sata *sata, struct cfis *cfis,
 	{
 		outb(reg + 0x0074,status);
 	}
-	pci_sync_cache(0,cmd_hdr,256,1);
-	pci_sync_cache(0,sata->cmd_desc,8192,1);
-	pci_sync_cache(0,sata->receive_fis,512,1);
-	pci_sync_cache(0,buffer,buffer_length,is_write);
+	pci_sync_cache(0,cmd_hdr,sizeof(*cmd_hdr),1);
+	pci_sync_cache(0,cmd_desc,sizeof(*cmd_desc),1);
+	pci_sync_cache(0,sata->receive_fis,sizeof(*sata->receive_fis),0);
+	if(buffer && buffer_length)pci_sync_cache(0,buffer,buffer_length,is_write);
+	outb(reg +0x0074,inb(reg +0x0074)&0xfe);
 	outl(reg + 0x0038,ci_map);
 	/* Wait command completed for 1s */
 /*	if (ata_wait_register(reg + 0x0038, ci_map, ci_map, 1000))
@@ -577,6 +581,7 @@ static int atp_ata_exec_ata_cmd(struct atp_sata *sata, struct cfis *cfis,
 			printf("\n\rNCQ command time out\n\r");
 	}
 	*/
+
 	for(i = 0;i < 1000;i ++)
 	{
 		if((inl(reg + 0x0038) & ci_map) == 0)
@@ -590,6 +595,10 @@ static int atp_ata_exec_ata_cmd(struct atp_sata *sata, struct cfis *cfis,
 	{
 		printf("\n0x0038 not cleared,time out\n");
 		return -2;
+	}
+	while(inl(reg + 0x0010)==0xffffffff)
+	{
+	 myudelay(100);
 	}
 	for(i = 0;i < 1000;i ++)
 	{
@@ -663,11 +672,11 @@ static void atp_sata_identify(int dev, u16 *id,int tag)
 	cmd_hdr = (cmd_hdr_entry_t *)&sata->cmd_hdr->cmd_slot[tag];
 	dma_buffer = vtophys((u32)id);
 	cmd_desc = sata->cmd_desc + tag;
-	((cfis_t*)(sata->cmd_desc->cfis))->fis_type = SATA_FIS_TYPE_REGISTER_H2D;
-	((cfis_t*)(sata->cmd_desc->cfis))->FIS_Flag = 1;
-	((cfis_t*)(sata->cmd_desc->cfis))->pm_port_c = 0x0;
-	((cfis_t*)(sata->cmd_desc->cfis))->device = 0xe0;	
-	((cfis_t*)(sata->cmd_desc->cfis))->command = ATA_CMD_ID_ATA;	
+	((cfis_t*)(cmd_desc->cfis))->fis_type = SATA_FIS_TYPE_REGISTER_H2D;
+	((cfis_t*)(cmd_desc->cfis))->FIS_Flag = 1;
+	((cfis_t*)(cmd_desc->cfis))->pm_port_c = 0x0;
+	((cfis_t*)(cmd_desc->cfis))->device = 0xe0;	
+	((cfis_t*)(cmd_desc->cfis))->command = ATA_CMD_ID_ATA;	
 
 	prde = (prd_entry_t*)cmd_desc->prdt;
 	memset((void*)prde,0,sizeof(prd_entry_t));
@@ -682,9 +691,9 @@ static void atp_sata_identify(int dev, u16 *id,int tag)
 
 	ci_map = 0x00000001 << tag;
 	
-	pci_sync_cache(0,cmd_hdr,256,1);
-	pci_sync_cache(0,sata->cmd_desc,8192,1);
-	pci_sync_cache(0,sata->receive_fis,512,1);
+	pci_sync_cache(0,cmd_hdr,sizeof(*cmd_hdr),1);
+	pci_sync_cache(0,cmd_desc,sizeof(*cmd_desc),1);
+	pci_sync_cache(0,sata->receive_fis,sizeof(*sata->receive_fis),0);
 	pci_sync_cache(0,id,ATA_ID_WORDS * 2,0);	
 	outl(sata->reg_base + 0x0038,ci_map);
  	for (i = 0 ; i < 1000 ; i++)
@@ -699,6 +708,7 @@ static void atp_sata_identify(int dev, u16 *id,int tag)
         }
         if (i >= 1000)
        	{
+		printf("\n0x0038 not cleared,time out\n");
                 // time out
                 outb(sata->reg_base + 0x0018,0x16);
                 outb(sata->reg_base + 0x0018,0x17);
@@ -717,6 +727,7 @@ static void atp_sata_identify(int dev, u16 *id,int tag)
         }
         if (i >= 1000)
        	{
+		printf("\nreceive no rfis,time out\n");
                 // time out
                 outb(sata->reg_base + 0x0018,0x16);
                 outb(sata->reg_base + 0x0018,0x17);
@@ -892,21 +903,22 @@ int atp_sata_software_reset(int dev,int tag)
 	u32 ci_map;
 	memset((void *)sata->cmd_desc, 0, 64);
 	cmd_hdr = (cmd_hdr_entry_t *)&sata->cmd_hdr->cmd_slot[tag];
+	cmd_desc = sata->cmd_desc + tag;
 	memset((void*)cmd_hdr,0,0x400);
 //	sata->cmd_hdr->cmd_slot[tag].PortMultiplier = 0x0f;
 	cmd_hdr->CommandFISLen = 0x05;
 	cmd_hdr->ClearBusy = 1;
 //	cmd_hdr->PortMultiplier = 0x0f;
-	cmd_hdr->ctba = vtophys((u32)(sata->cmd_desc));		
-//	((cfis_t*)(sata->cmd_desc->cfis))->pm_port_c = 0x0f;;
-	((cfis_t*)(sata->cmd_desc->cfis))->fis_type = SATA_FIS_TYPE_REGISTER_H2D;
-	((cfis_t*)(sata->cmd_desc->cfis))->FIS_Flag = 0;
-	((cfis_t*)(sata->cmd_desc->cfis))->control = 0x04;	//RST bit =1
+	cmd_hdr->ctba = vtophys((u32)(cmd_desc));		
+//	((cfis_t*)(cmd_desc->cfis))->pm_port_c = 0x0f;;
+	((cfis_t*)(cmd_desc->cfis))->fis_type = SATA_FIS_TYPE_REGISTER_H2D;
+	((cfis_t*)(cmd_desc->cfis))->FIS_Flag = 0;
+	((cfis_t*)(cmd_desc->cfis))->control = 0x04;	//RST bit =1
 	ci_map = 0x00000001 << tag;
 SATADEBUG
-	pci_sync_cache(0,cmd_hdr,256,1);
-	pci_sync_cache(0,sata->cmd_desc,8192,1);
-	pci_sync_cache(0,sata->receive_fis,512,1);
+	pci_sync_cache(0,cmd_hdr,sizeof(*cmd_hdr),1);
+	pci_sync_cache(0,cmd_desc,sizeof(*cmd_desc),1);
+	pci_sync_cache(0,sata->receive_fis,sizeof(*sata->receive_fis),0);
 	
 //	ci_map = 0x00000001 << 7;
 	outl(sata->reg_base + 0x0038,ci_map);
@@ -917,10 +929,10 @@ SATADEBUG
 	myudelay(10);
 
 	cmd_hdr->ClearBusy = 0;
-	((cfis_t*)sata->cmd_desc->cfis)->control = 0;		//RST bit = 0
-	pci_sync_cache(0,cmd_hdr,256,1);
-	pci_sync_cache(0,sata->cmd_desc,8192,1);
-	pci_sync_cache(0,sata->receive_fis,512,1);
+	((cfis_t*)cmd_desc->cfis)->control = 0;		//RST bit = 0
+	pci_sync_cache(0,cmd_hdr,sizeof(*cmd_hdr),1);
+	pci_sync_cache(0,cmd_desc,sizeof(*cmd_desc),1);
+	pci_sync_cache(0,sata->receive_fis,sizeof(*sata->receive_fis),0);
 	outl(sata->reg_base + 0x0038,ci_map);
 	while (inl(sata->reg_base + 0x0038) & ci_map)
 	{
