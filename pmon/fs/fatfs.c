@@ -68,7 +68,8 @@ u_int32_t getFatEntry(struct fat_sc *, int );
 int readsector(struct fat_sc *, int , int , u_int8_t *);
 int parseShortFilename(struct direntry *, char *);
 int fat_getChain(struct fat_sc *, int , struct fatchain *);
-int getSectorIndex(struct fat_sc *, struct fatchain *, int );
+int getSectorIndex(struct fat_sc *, struct fatchain *, int ,int);
+int getSectorIndex_read(struct fat_sc *fsc, struct fatchain * , int );
 int fat_getPartition(struct fat_sc *, int );
 int fat_findfile(struct fat_sc *, char *);
 int fat_subdirscan(struct fat_sc *, char *, struct fatchain *);
@@ -141,30 +142,24 @@ fat_open(int fd, const char *path, int flags, int mode)
 		partition = dpath[dpathlen - 1] - 'a';
 		dpath[dpathlen - 1] = 0;
 	}
-
-	/* Try to open the physical device */
-	fd2 = open(dpath, flags, mode);
-	if (fd2 < 0) {
+	devio_open(fd,dpath,flags,mode);
+	if (fat_init(fd, fsc, partition) == 0) {
 		free(fsc);
 		errno = EINVAL;
 		_file[fd].valid = 0;
-		return (-1);
-	}
-
-	if (fat_init(fd2, fsc, partition) == 0) {
-		close(fd2);
-		free(fsc);
-		errno = EINVAL;
-		_file[fd].valid = 0;
+		close(fd);
 		return (-1);
 	}
 
 	res = fat_findfile(fsc, filename);
-	if (res <= 0) {
-		close(fd2);
+
+	if (res <= 0 || res == 2) {
 		free(fsc);
 		errno = EINVAL;
+		if(res == 2)
+			errno = EISDIR;
 		_file[fd].valid = 0;
+		close(fd);
 		return (-1);
 	}
 
@@ -224,7 +219,7 @@ fat_read(int fd, void *buf, size_t len)
 		offset = _file[fd].posn % SECTORSIZE;
 		sectorIndex = _file[fd].posn / SECTORSIZE;
 		
-		sector = getSectorIndex(fsc, &fsc->file.Chain, sectorIndex);
+		sector = getSectorIndex_read(fsc, &fsc->file.Chain, sectorIndex);
 
 		copylen = len;
 		if (copylen > (SECTORSIZE - offset)) {
@@ -312,7 +307,7 @@ init_fs()
  * Internal function
  ***************************************************************************************************/
 
-int getSectorIndex(struct fat_sc *fsc, struct fatchain * chain, int index)
+int getSectorIndex_read(struct fat_sc *fsc, struct fatchain * chain, int index)
 {
 	int clusterIndex;
 	int sectorIndex;
@@ -328,7 +323,26 @@ int getSectorIndex(struct fat_sc *fsc, struct fatchain * chain, int index)
 		entry = -1;
 
 	sector = fsc->DataSectorBase + (entry - 2) * fsc->SecPerClust + sectorIndex;
+	return (sector);
+}
 
+
+int getSectorIndex(struct fat_sc *fsc, struct fatchain * chain, int index, int clust_num)
+{
+	int clusterIndex;
+	int sectorIndex;
+	int sector;
+	int entry;
+
+	clusterIndex = index / fsc->SecPerClust;
+	sectorIndex = index % fsc->SecPerClust;
+
+	if (clusterIndex < chain->count)
+		entry = chain->entries[clust_num];
+	else
+		entry = -1;
+
+	sector = fsc->DataSectorBase + (entry - 2) * fsc->SecPerClust + sectorIndex;
 	return (sector);
 }
 
@@ -336,60 +350,17 @@ int fat_getPartition(struct fat_sc *fsc, int partition)
 {
 	u_int8_t buffer[SECTORSIZE];
 	struct mbr_t *mbr;
-	struct bpb_t *bpb;
-	int i;
-	
-	fsc->PartitionStart = 0;
-	if (readsector(fsc, 0, 1, buffer) == 0)
-		return (0);
 
+	fsc->PartitionStart = 0;
+	devio_read(fsc->fd,buffer,SECTORSIZE);
 	/*
 	 * Check if there exists a MBR
 	 */
-	bpb = (struct bpb_t *)buffer;
-	
-#if 0
-	if ((bpb->bpbBytesPerSec == 512) &&
-	    ((bpb->efat16.bsBootSig == BPB_SIG_VALUE1) ||
-	     (bpb->efat16.bsBootSig == BPB_SIG_VALUE2))) {
-		/*
-		 * No MBR where found
-		 */
-		return (1);
-	}
-#endif
-	
-	if (bpb->bpbBytesPerSec == 512)
-	{
-		if(partition == 0)
-			return (1);
-		else
-			return 0;
-	}
-
+	mbr = (struct mbr_t *)buffer;
 	/*
 	 * Find the active partition
 	 */
-	mbr = (struct mbr_t *)buffer;
-
-	for (i = 0; i < PART_SIZE; i++) {
-		if (//(mbr->partition[i].bootid == PART_BOOTID_ACTIVE) &&
-				((mbr->partition[i].systid == PART_TYPE_FAT12) ||
-				 (mbr->partition[i].systid == PART_TYPE_FAT16) ||
-				 (mbr->partition[i].systid == PART_TYPE_FAT16BIG) ||
-				 (mbr->partition[i].systid == 0x0c))) {
-			if(!partition)
-				break;
-			else
-				partition--;
-		}
-	}
-	if (i == PART_SIZE) {
-		return (0);
-	}
-
-	fsc->PartitionStart = letoh32(mbr->partition[i].relsect);
-
+	fsc->PartitionStart = letoh32(mbr->partition[partition].relsect);
 	return (1);
 }
 
@@ -417,6 +388,11 @@ int fat_init(int fd, struct fat_sc *fsc, int partition)
 	if (readsector(fsc, 0, 1, bootsector) == 0) {
 		fprintf(stderr, "Can't read from %d bytes\n", SECTORSIZE);
 		return (-1);
+	}
+	if((bootsector[0] == 0)&&(bootsector[1] == 0))
+	{
+		fprintf(stderr, "It's not fat!\n");
+		return -1;
 	}
 	bpb = (struct bpb_t *)bootsector;
 	
@@ -567,86 +543,113 @@ int fat_findfile(struct fat_sc *fsc, char *name)
 	int long_name = 0;
 	int dir_scan = 0, dir_list = 0;
 	int i;
-
-	bzero(&filee, sizeof(filee));
-
-	dpath = strchr(name, '/');
-	if (dpath != NULL) {
-		*dpath = '\0';
-		dpath++;
-		dir_scan = 1;
-	}		
-	else if(*name == 0)
-		dir_list = 1;
+	int flag = 0;
+	int dir_flag = 0;
 
 
-	for (fsc->DirCacheNum = fsc->FirstRootDirSecNum; fsc->DirCacheNum <=(fsc->RootDirSectors + fsc->FirstRootDirSecNum); fsc->DirCacheNum++) 
+	if(fsc->FatType == TYPE_FAT32)
 	{
-		if (readsector(fsc, fsc->DirCacheNum, 1, fsc->DirBuffer) == 0) {
-			return (0);
+		struct fatchain chain;
+		int res;
+		fat_getChain(fsc, 2 , &chain);
+		res = fat_subdirscan(fsc, name, &chain);
+		if (chain.entries) {
+			free(chain.entries);
 		}
+		return (res);
+	}
+	else
+	{
+		bzero(&filee, sizeof(filee));
 
-		dire = (struct direntry *)fsc->DirBuffer;
+		dpath = strchr(name, '/');
+		if (dpath != NULL) {
+			*dpath = '\0';
+			dpath++;
+			dir_scan = 1;
+		}		
+		else if(*name == 0)
+			dir_list = 1;
 
-		for (i = 0; (i < (SECTORSIZE / sizeof(struct direntry))); i++, dire++) {
-			
-			if (dire->dirName[0] == SLOT_EMPTY)
-			{
-				if(dir_list)
-					printf("\n");
+		for (fsc->DirCacheNum = fsc->FirstRootDirSecNum; fsc->DirCacheNum <=(fsc->RootDirSectors + fsc->FirstRootDirSecNum); fsc->DirCacheNum++) 
+		{
+			if (readsector(fsc, fsc->DirCacheNum, 1, fsc->DirBuffer) == 0) {
 				return (0);
 			}
 
-			if (dire->dirName[0] == SLOT_DELETED)
-				continue;
+			dire = (struct direntry *)fsc->DirBuffer;
 
-			if (dire->dirAttributes == ATTR_WIN95) {
+			for (i = 0; (i < (SECTORSIZE / sizeof(struct direntry))); i++, dire++) {
+
+				if (dire->dirName[0] == SLOT_EMPTY)
+				{
+					if(dir_list)
+						return 2;
+					return (0);
+				}
+
+				if (dire->dirName[0] == SLOT_DELETED)
+				{
+					continue;
+				}
+
+				if(dire->dirAttributes == ATTR_DIRECTORY)
+				{
+					dir_flag = 1;
+				}
+				if (dire->dirAttributes == ATTR_WIN95) {
+					bcopy((void *)dire, (void *)&dirbuf[long_name], sizeof(struct direntry));
+					flag = 1;
+					long_name++;
+					if (long_name > MAX_DIRBUF - 1)
+						long_name = 0;
+					continue;
+				}
 				bcopy((void *)dire, (void *)&dirbuf[long_name], sizeof(struct direntry));
-				long_name++;
-				if (long_name > MAX_DIRBUF - 1)
-					long_name = 0;
-				continue;
-			}
-
-			if (dir_list == 0 && dir_scan == 0 && dire->dirAttributes == ATTR_DIRECTORY) {
+				fat_parseDirEntries(long_name, &filee);
 				long_name = 0;
-				continue;
-			}
 
-			bcopy((void *)dire, (void *)&dirbuf[long_name], sizeof(struct direntry));
-			fat_parseDirEntries(long_name, &filee);
-
-			if(dir_list)
-			{		
-				printf("%s    ", filee.shortName);
-			}
-			else if ((strcasecmp(name, filee.shortName) == 0) || (strcasecmp(name, filee.longName) == 0)) {
-				if (dir_scan) {
-					struct fatchain chain;
-					int res;
-
-					fat_getChain(fsc, letoh16(dire->dirStartCluster), &chain);
-					res = fat_subdirscan(fsc, dpath, &chain);
-					if (chain.entries) {
-						free(chain.entries);
+				if(dir_list)
+				{		
+					if((flag == 0)||(strcmp(filee.shortName,".") == 0)||(strcmp(filee.shortName, "..") == 0))
+					{
+						printf("%s",filee.shortName);
 					}
-					return (res);
-				} else {
-					strcpy(fsc->file.shortName, filee.shortName);
-					fsc->file.HighClust = filee.HighClust;
-					fsc->file.StartCluster = filee.StartCluster;
-					fsc->file.FileSize = filee.FileSize;
-					fat_getChain(fsc, fsc->file.StartCluster, &fsc->file.Chain);
-					return (1);
+					else
+						printf("%s",filee.longName);
+					if(dir_flag == 1)
+					{
+						dir_flag = 0;
+						printf("/");
+					}
+					printf("  ");
+					flag = 0;
+				}
+				else if ((strcasecmp(name, filee.shortName) == 0) || (strcasecmp(name, filee.longName) == 0)) {
+					if (dir_scan) {
+						struct fatchain chain;
+						int res;
+
+						fat_getChain(fsc, letoh32(filee.StartCluster|(filee.HighClust << 16)) , &chain);
+						res = fat_subdirscan(fsc, dpath, &chain);
+						if (chain.entries) {
+							free(chain.entries);
+						}
+						return (res);
+					} else {
+						strcpy(fsc->file.shortName, filee.shortName);
+						fsc->file.HighClust = filee.HighClust;
+						fsc->file.StartCluster = filee.StartCluster;
+						fsc->file.FileSize = filee.FileSize;
+						fat_getChain(fsc, (fsc->file.StartCluster|(fsc->file.HighClust << 16)), &fsc->file.Chain);
+						return (1);
+					}
 				}
 			}
 		}
 	}
-
-	if(dir_list)
-		printf("\n");
-
-	return (0);
+	printf("\n");
+	return (2);
 }
 
 int fat_subdirscan(struct fat_sc *fsc, char *name, struct fatchain *chain)
@@ -657,10 +660,9 @@ int fat_subdirscan(struct fat_sc *fsc, char *name, struct fatchain *chain)
 	int long_name = 0;
 	int dir_scan = 0, dir_list = 0;
 	int sector;
-	int i;
-	int j;
-	int k;
-
+	int i,j,k;
+	int flag = 0;
+	int dir_flag = 0;
 	bzero(&filee, sizeof(filee));
 
 	dpath = strchr(name, '/');
@@ -674,51 +676,63 @@ int fat_subdirscan(struct fat_sc *fsc, char *name, struct fatchain *chain)
 
 	for (i = 0; i < chain->count; i++) {
 		for (j = 0; j < fsc->SecPerClust; j++) {
-			sector = getSectorIndex(fsc, chain, j);
+			sector = getSectorIndex(fsc, chain, j, i);
 			if (readsector(fsc, sector, 1, fsc->DirBuffer) == 0) {
 				return (0);
 			}
 
 			dire = (struct direntry *)fsc->DirBuffer;
-			
+
 			for (k = 0; (k < (SECTORSIZE / sizeof(struct direntry))); k++, dire++) {
 				
 				if (dire->dirName[0] == SLOT_EMPTY)
 				{
 					if(dir_list)
+					{
 						printf("\n");
+						return 2;
+					}
 					return (0);
 				}
 
 				if (dire->dirName[0] == SLOT_DELETED)
 					continue;
-				
+				if(dire->dirAttributes == ATTR_DIRECTORY)
+				{
+					dir_flag = 1;
+				}
 				if (dire->dirAttributes == ATTR_WIN95) {
 					bcopy((void *)dire, (void *)&dirbuf[long_name], sizeof(struct direntry));
 					long_name++;
+					flag = 1;
 					if (long_name > MAX_DIRBUF - 1)
 						long_name = 0;
 					continue;
 				}
-				
-				if (dir_list == 0 && dir_scan == 0 && dire->dirAttributes == ATTR_DIRECTORY) {
-					long_name = 0;
-					continue;
-				}
-				
 				bcopy((void *)dire, (void *)&dirbuf[long_name], sizeof(struct direntry));
 				fat_parseDirEntries(long_name, &filee);
-
+				long_name = 0;
 				if(dir_list)
 				{
-					printf("%s    ", filee.shortName);
+					if((flag == 0)||(strcmp(filee.shortName,".") == 0)||(strcmp(filee.shortName, "..") == 0))
+					{
+						printf("%s", filee.shortName);
+					}
+					else
+						printf("%s", filee.longName);
+					if(dir_flag == 1)
+					{
+						dir_flag = 0;
+						printf("/");
+					}
+					printf("  ");
+					flag = 0;
 				}
 				else if ((strcasecmp(name, filee.shortName) == 0) || (strcasecmp(name, filee.longName) == 0)) {
 					if (dir_scan) {
 						struct fatchain chain;
 						int res;
-						
-						fat_getChain(fsc, letoh16(dire->dirStartCluster), &chain);
+						fat_getChain(fsc, letoh32(filee.StartCluster|(filee.HighClust << 16)) , &chain);
 						res = fat_subdirscan(fsc, dpath, &chain);
 						if (chain.entries) {
 							free(chain.entries);
@@ -729,16 +743,14 @@ int fat_subdirscan(struct fat_sc *fsc, char *name, struct fatchain *chain)
 						fsc->file.HighClust = filee.HighClust;
 						fsc->file.StartCluster = filee.StartCluster;
 						fsc->file.FileSize = filee.FileSize;
-						fat_getChain(fsc, fsc->file.StartCluster, &fsc->file.Chain);
+						fat_getChain(fsc, (fsc->file.StartCluster|(fsc->file.HighClust << 16)), &fsc->file.Chain);
 						return (1);
 					}
 				}
 			}
 		}
 	}
-
-	if(dir_list)
-		printf("\n");
+	printf("\n");
 	return (0);
 }
 
@@ -770,13 +782,16 @@ int fat_parseDirEntries(int dirc, struct fat_fileentry *filee)
 			bcopy(wine->wePart2, &buffer[sizeof(wine->wePart1)], sizeof(wine->wePart2));
 			bcopy(wine->wePart3, &buffer[sizeof(wine->wePart1) + sizeof(wine->wePart2)], sizeof(wine->wePart3));
 			bp = (u_int16_t *)buffer;
-			for (j = 0; j < 14; j++, c++) {
+			for (j = 0; j < 13; j++, c++) {
 				longName[c] = (u_int8_t)letoh16(bp[j]);
+				if(longName[c] == '\n')
+					longName[c] = '_';
 				if (longName[c] == '\0')
 					goto done;
 			}
 		}
- done:
+		longName[c] = '\0';
+done:
 		strcpy(filee->longName, longName);
 	}
 	return (1);
@@ -802,7 +817,8 @@ int fat_getChain(struct fat_sc *fsc, int start, struct fatchain *chain)
 	u_int32_t entry;
 	int count;
 	int i;
-	
+	int flag;
+
 	switch (fsc->FatType) {
 	case TYPE_FAT12:
 		mask = FAT12_MASK;
@@ -816,11 +832,16 @@ int fat_getChain(struct fat_sc *fsc, int start, struct fatchain *chain)
 	default:
 		mask = 0;
 	}
-	     
-	for (count = 0; 1; count++) {
-		entry = getFatEntry(fsc, start + count);
-		if (entry >= (CLUST_EOFE & mask))
+
+	count = 0;
+	flag = start;
+	while(1)
+	{
+		entry = getFatEntry(fsc, flag);
+		if(entry >= (CLUST_EOFE & mask))
 			break;
+		flag = entry;
+		count++;
 	}
 
 	chain->count = count + 1;
@@ -832,9 +853,16 @@ int fat_getChain(struct fat_sc *fsc, int start, struct fatchain *chain)
 	}
 
 	chain->entries[0] = start;
-
-	for (i = 0; i < count; i++) {
-		chain->entries[i+1] = getFatEntry(fsc, start + i);
+	flag = start;
+	i = 0;
+	while(1)
+	{
+		entry = getFatEntry(fsc, flag);
+		chain->entries[i+1] = entry;
+		if(entry >= (CLUST_EOFE & mask))
+			break;
+		flag = entry;
+		i++;
 	}
 	return (1);
 }
@@ -862,13 +890,11 @@ int parseShortFilename(struct direntry *dire, char *name)
 
 int readsector(struct fat_sc *fsc, int sector, int count, u_int8_t *buffer)
 {
-	int res;
+	long long res;
 
-	res = lseek(fsc->fd, (sector * SECTORSIZE +
-	    (fsc->PartitionStart * SECTORSIZE)), SEEK_SET);
-	
-	res = read(fsc->fd, buffer, (SECTORSIZE * count));
-
+	res = (long long)(fsc->PartitionStart) * SECTORSIZE + SECTORSIZE * sector;
+	res = devio_lseek(fsc->fd,	res, 0);
+	res =devio_read(fsc->fd, buffer, (SECTORSIZE * count));
 	if (res == (SECTORSIZE * count)) {
 		return (1);
 	} else {
