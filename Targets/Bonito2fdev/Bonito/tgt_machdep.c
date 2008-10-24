@@ -809,14 +809,32 @@ static void init_legacy_rtc(void)
         if( (year > 99) || (month < 1 || month > 12) ||
                 (date < 1 || date > 31) || (hour > 23) || (min > 59) ||
                 (sec > 59) ){
-                /*
-                printf("RTC time invalid, reset to epoch.\n");*/
+                
+                tgt_printf("RTC time invalid, reset to epoch.\n");
+#ifdef DEVBD2F_FIREWALL
+	{
+
+		struct tm tm;
+		time_t t;
+		clk_invalid = 0;
+		tm.tm_sec = 0;
+		tm.tm_min = 0;
+		tm.tm_hour = 0;
+		tm.tm_mday = 1;
+		tm.tm_mon = 0;
+		tm.tm_year = 108;
+		t = mktime(&tm);
+		tgt_settime(t);
+		clk_invalid = 1;
+	}
+#else
                 CMOS_WRITE(3, DS_REG_YEAR);
                 CMOS_WRITE(1, DS_REG_MONTH);
                 CMOS_WRITE(1, DS_REG_DATE);
                 CMOS_WRITE(0, DS_REG_HOUR);
                 CMOS_WRITE(0, DS_REG_MIN);
                 CMOS_WRITE(0, DS_REG_SEC);
+#endif
         }
 #ifdef DEVBD2F_FIREWALL
 	if(sec==0 && min==0 && hour == 0 && date ==0x01 && month ==0x0)
@@ -1050,6 +1068,26 @@ _probe_frequencies()
 
         clk_invalid = 1;
 #ifdef HAVE_TOD
+{
+#ifdef DEVBD2F_FIREWALL 
+	extern void __main();
+	char tmp;
+	word_addr = 1;
+	i2c_rec_s(0xde,0x3f,&tmp,1);
+	tgt_printf("0x3f value  %x\n",tmp);
+	init_legacy_rtc();
+	if(tmp&0x1){	
+		tgt_printf("Battery is run out ,please replace the rtc battery!!\n");
+		while(1);
+	}
+	else if(tmp&0x10){
+		tgt_printf("Rtc oscillator is no operating,please reset the machine!\n");
+		while(1);
+	}
+	i2c_rec_s(0xde,0x14,&tmp,1);
+	tgt_printf("0x14 value  %x\n",tmp);
+#endif
+}
         init_legacy_rtc();
 
         SBD_DISPLAY ("FREI", CHKPNT_FREQ);

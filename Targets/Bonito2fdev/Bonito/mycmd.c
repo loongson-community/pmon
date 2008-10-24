@@ -356,7 +356,7 @@ static volatile char *mmio = 0;
 #define	GPIO_SCL_DIR_SHIFT	3
 #define GPIO_SDA_DATA_SHIFT	2
 #define GPIO_SCL_DATA_SHIFT	3
-extern int word_addr = 0;
+//extern int word_addr = 0;
 
 #endif
 
@@ -642,6 +642,8 @@ void tm_binary_to_bcd(struct tm *tm)
 char gpio_i2c_settime(struct tm *tm)
 {
 	char a ;
+	word_addr = 1;
+	tm->tm_mon = tm->tm_mon + 1;
 	tm_binary_to_bcd(tm);
 
 //when rtc stop,can't set it ,follow 5 lines to resolve it
@@ -678,7 +680,7 @@ char gpio_i2c_settime(struct tm *tm)
 	i2c_send(tm->tm_mday);
 	if(!i2c_rec_ack())
 		return 0;
-	i2c_send(tm->tm_mon+1);
+	i2c_send(tm->tm_mon);
 	if(!i2c_rec_ack())
 		return 0;
 //for 1900 or 2000
