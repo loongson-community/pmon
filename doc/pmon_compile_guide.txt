@@ -1,0 +1,27 @@
+Pmon编译指南
+
+* 安装交叉编译器
+解压缩mips-elf.tar.gz到/usr/local/comp/
+设置编译器路径，下面是示例脚本
+#!/bin/sh
+export PMONBASE=$(pwd)
+export PATH=/usr/local/comp/mips-elf/gcc-2.95.3/bin/:$PMONBASE/bin:$PATH
+
+* 下载代码：
+1。安装svn客户端工具。
+在debian下
+sudo apt-get install subversion
+
+2。在dev.lemote.com注册帐号
+3。使用svn按照tag下载代码
+如svn co http://dev.lemote.com/svn/pmon-lm2e/tags/v1.1
+
+* 生成pmoncfg工具
+在代码的tools/pmoncfg下面，运行make生成pmoncfg工具。将生成的pmoncfg可执行文件拷贝到可直接运行的地方（如/usr/local/bin/）
+
+* 运行pmoncfg配置Bonito文件
+进入Targets/Bonito/conf目录，选择需要编译的选项，执行ln -s Bonito.box Bonito
+运行pmoncfg Bonito，在Targets/Bonito/compile/目录下，按照配置文件生成编译所需的辅助文件。
+
+* 编译PMON
+直接在顶层目录执行make，最后烧写的文件在zloader下的gzrom.bin。

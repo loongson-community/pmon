@@ -1,0 +1,16 @@
+note on bmp_logo tool
+
+the tool can't deal with rle compressed bmp. 
+ImageMagick can help the conversion.
+
+
+1. Install the ImageMagick
+2. Using convert command
+
+convert -compress none compressed.bmp non_compressed.bmp
+
+you will got a non_compressed.bmp
+
+
+2006.12.29 by kingkongmao
+

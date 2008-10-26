@@ -1,0 +1,33 @@
+Loongson 2e PMON v1.1 Release Note
+
+by Songmao Tian <tiansm@lemote.com>
+
+Change since v1.0 tag by yanhua:
+
+1. load from extended partition
+note:
+1) counting from e, e.g. /dev/fs/ext2@wd0e
+2) increase every ext2/ext3 partition as before.
+
+2.fix auto start when power on
+note:
+1) set autopower 1 will make fulong auto start again:)
+
+3."vmode" environment variable to set vga resolution
+note:
+0: 1280x768
+1: 1024x768
+2: 640x768
+3: 800x600 (NTSC TV OUT)
+4: 800x600 (PAL TV OUT)
+all with 16-bit color depth configuration.
+
+4. supporting background picture with sample in “pic" direction
+note: the background pic is gziped bmp programming in 0xbfc50000
+
+5. various fix
+1) supporting 128MB/256MB/512MB/1G mem
+2) disable battery charging on boot when configured to NOTEBOOK option
+3) supporting elf64
+4) press ESC to stop boot on NOTEBOOK option
+5) config file clean up, now use ln -s to specify config file. only two option left, Bonito.box and Bonito.notebook
