@@ -52,8 +52,8 @@
 #include "usb.h"
 #include "devices.h"
 
+/*#define USB_KBD_DEBUG to turn on debug*/
 #undef USB_KBD_DEBUG
-//#define USB_KBD_DEBUG
 /*
  * if overwrite_console returns 1, the stdin, stderr and stdout
  * are switched to the serial port, else the settings in the
@@ -162,7 +162,6 @@ static unsigned char usb_kbd_numkey_shifted[] = {
 /* puts character in the queue and sets up the in and out pointer */
 static void usb_kbd_put_queue(char data)
 {
-	//prom_printf("put queue,usb_in_pointer=%d\n",usb_in_pointer);
 	if((usb_in_pointer+1)==USB_KBD_BUFFER_LEN) {
 		if(usb_out_pointer==0) {
 			return; /* buffer full */
@@ -186,6 +185,7 @@ static int usb_kbd_testc(void)
 	else
 		return(1);
 }
+
 /* gets the character from the queue */
 static int usb_kbd_getc(void)
 {
@@ -278,10 +278,6 @@ int usb_kbd_deregister(void)
 	//return device_deregister(DEVNAME);
 	return 0;
 }
-
-/**************************************************************************
- * Low Level drivers
- */
 
 /* set the LEDs. Since this is used in the irq routine, the control job
    is issued with a timeout of 0. This means, that the job is queued without
@@ -535,7 +531,6 @@ static int usb_mice_probe(struct usb_device *dev, unsigned int ifnum)
 }
 
 static void init_kbd_driver(void) __attribute__((constructor));
-static void init_dummy_mice_driver(void) __attribute__((constructor));
 
 extern void usb_driver_register(struct usb_driver *driver);
 
@@ -544,13 +539,7 @@ static void init_kbd_driver(void)
 	usb_driver_register(&usb_kbd_driver);
 }
 
-static void init_dummy_mice_driver(void) 
-{
-	//usb_driver_register(&usb_mice_driver);
-}
-
-
-#if 0
+#ifdef __not_used__
 struct usb_hid_descriptor {
 	unsigned char  bLength;
 	unsigned char  bDescriptorType; /* 0x21 for HID */

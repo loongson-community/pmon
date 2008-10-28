@@ -1291,6 +1291,8 @@ bootnow:
 	la	a0, start
 	li	a1, 0xbfc00000
 	la	a2, _edata
+    add a2,  31
+    and a2,  ~31
         or      a0, 0xa0000000
         or      a2, 0xa0000000
 	subu	t1, a2, a0
@@ -1302,7 +1304,7 @@ bootnow:
 	
 	/* copy text section */
 	
-1:	and	t3,t0,0x0000ffff
+1:	and	t3,t0,0x0001ffff
 	bnez	t3,2f
 	nop
 	move	a0,t0
@@ -1311,11 +1313,16 @@ bootnow:
 	li	a0,'\r'
 	bal 	tgt_putchar
 	nop
-2:	lw	t3, 0(t1)
-	nop
-	sw	t3, 0(t0)
-	addu	t0, 4
-	addu	t1, 4
+2:	ld	t3, 0(t1)
+	sd	t3, 0(t0)
+	ld  t3, 8(t1) /*For speed up*/
+	sd	t3, 8(t0)
+	ld  t3, 16(t1) 
+	sd	t3, 16(t0)
+	ld  t3, 24(t1) 
+	sd	t3, 24(t0)
+	addu	t0, 32
+	addu	t1, 32
 	bne	t2, t0, 1b
 	nop
 
@@ -1324,9 +1331,14 @@ bootnow:
 	/* Clear BSS */
 	la	a0, _edata
 	la	a2, _end
-2:	sw	zero, 0(a0)
+    sw  zero, 0(a0)
+    add a0, 7       /*For speed up*/
+    and a0, ~7
+    add a2, 7
+    and a2, ~7
+2:	sd	zero, 0(a0)
 	bne	a2, a0, 2b
-	addu	a0, 4
+	addu	a0, 8
 
 
 	TTYDBG("Copy PMON to execute location done.\r\n")

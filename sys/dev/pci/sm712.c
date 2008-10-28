@@ -270,8 +270,8 @@ static inline void smi_init_hw(void)
 
 int  sm712_init(char * fbaddress,char * ioaddress)
 {
-
-	u32 smem_size;
+	
+	u32 smem_size, i;
 
 	smi_init_hw();
 	
@@ -299,6 +299,12 @@ int  sm712_init(char * fbaddress,char * ioaddress)
 	smi_seqw(0x6b,0x02);
 	
 	smem_size = 0x00400000;
+#if 1	/* fill sm712 framebuffer as black 2008-10-06 */
+	for(i = 0; i  < smem_size / 2; i += 4){
+		*((volatile unsigned long *)(fbaddress + i)) = 0x00;
+	}
+#endif
+
 	/* LynxEM+ memory dection */
 	*(u32 *)(SMILFB + 4) = 0xAA551133;
 	if (*(u32 *)(SMILFB + 4) != 0xAA551133)

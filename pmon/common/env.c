@@ -87,7 +87,8 @@ static struct stdenv {
     {"showsym", "yes", "no yes"},
     {"fpfmt", "both", "both double single none"},
     {"fpdis", "yes", "no yes"},
-	{"Version", "1.2.0", 0},
+	{"Version", "LM8089-1.3.0", 0},
+	{"BuildTime",  __DATE__ " " __TIME__ , 0},
 #if defined(TGT_DEFENV)
     TGT_DEFENV,
 #endif

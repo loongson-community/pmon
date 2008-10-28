@@ -43,7 +43,6 @@
 #include <pmon/loaders/loadfn.h>
 
 #include "mod_debugger.h"
-#include "mod_load.h"
 #include "mod_symbols.h"
 #include "gzip.h"
 #if NGZIP > 0

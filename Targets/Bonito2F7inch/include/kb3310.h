@@ -6,9 +6,15 @@
  */
 
 /* We should make ec rom content and pmon port number equal. */
+#if	0
 #define	HIGH_PORT	0xff2d
 #define	LOW_PORT	0xff2e
 #define	DATA_PORT	0xff2f
+#else
+#define	HIGH_PORT	0x0381
+#define	LOW_PORT	0x0382
+#define	DATA_PORT	0x0383
+#endif
 
 /* xbi register in kb3310 */
 #define	XBI_BANK	0xFE00
@@ -47,6 +53,10 @@
 #define	REG_SMBAADR		0xffbd
 #define	REG_SMBADAT0	0xffbe
 #define	REG_SMBADAT1	0xffbf
+
+/* Fan register in KB3310 */
+#define	REG_ECFAN_SPEED_LEVEL	0xf4e4
+#define	REG_ECFAN_SWITCH		0xf4d2
 
 /* access ec register content */
 static inline void wrec(unsigned short reg, unsigned char val)

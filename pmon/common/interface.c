@@ -93,7 +93,7 @@ void ui_select(char *load, char *cmdline)
 				}
 				video_display_bitmap(SMALLBMP8_START_ADDR, SMALLBMP8_X, SMALLBMP8_Y);
 				x = getX(); y = getY();
-				setX(41); setY(24);
+				setX(53); setY(24);
 				gets(st);
 				setX(x); setY(y);
 
@@ -103,7 +103,7 @@ void ui_select(char *load, char *cmdline)
 				}
 				video_display_bitmap(SMALLBMP9_START_ADDR, SMALLBMP9_X, SMALLBMP9_Y);
 				x = getX(); y = getY();
-				setX(43); setY(24);
+				setX(55); setY(24);
 				gets(pi); 
 				setX(x);  setY(y);
 
@@ -197,7 +197,15 @@ static int do_usb_rescue(char *load, char *cmdline)
 {
 	
 	#include <sys/device.h>
+	#include <fcntl.h>
 	int i;
+	static bootfd; /*xuhua 080902*/
+	//static char path[256];/*080902*/
+	static char *fat0="/dev/fat/disk@usb0/vmlinux";
+	static char *fat1="/dev/fat/disk@usb1/vmlinux";
+	static char *path0="/dev/fs/ext2@usb0/vmlinux";
+	static char *path1="/dev/fs/ext2@usb1/vmlinux";
+
 	char *dev_name = USB_DISK; /* FIXME: only match usb0 */
 	
 	struct device *dev, *next_dev;
@@ -207,7 +215,7 @@ static int do_usb_rescue(char *load, char *cmdline)
 		if(dev->dv_class < DV_DISK) {
 			continue;
 		}
-
+#if 0 /*080902*/
 		if (strcmp(dev->dv_xname, dev_name) == 0) {
 			for (i = 0; i < 100; i++){
 				cprintf(23, i, 1, 0, " ");
@@ -218,6 +226,42 @@ static int do_usb_rescue(char *load, char *cmdline)
 			strcpy(load, "load -n /dev/fs/ext2@usb1/vmlinux");
 			break;
 		}
+#endif
+		/*080902*/
+		//printf("dev_name is :%s\n", dev->dv_xname);
+		delay(3000000);
+		if (strcmp(dev->dv_xname, "usb0") == 0) {
+			if ((bootfd = open (path0, O_RDONLY | O_NONBLOCK)) >= 0){
+				video_display_bitmap(SMALLBMP4_START_ADDR, SMALLBMP4_X, SMALLBMP4_Y);
+				//vga_available = 1;
+				strcpy(load, "load -n /dev/fs/ext2@usb0/vmlinux");
+				break;
+			}
+			if ((bootfd = open (fat0, O_RDONLY | O_NONBLOCK)) >= 0){
+				video_display_bitmap(SMALLBMP4_START_ADDR, SMALLBMP4_X, SMALLBMP4_Y);
+				//vga_available = 1;
+				strcpy(load, "load -n /dev/fat/disk@usb0/vmlinux");
+				break;
+			}
+		}
+
+		if (strcmp(dev->dv_xname, "usb1") == 0) {
+			if ((bootfd = open (path1, O_RDONLY | O_NONBLOCK)) >= 0){
+				video_display_bitmap(SMALLBMP4_START_ADDR, SMALLBMP4_X, SMALLBMP4_Y);
+				//vga_available = 1;
+				//printf("This is ext2 in usb1 fdisk\n");
+				strcpy(load, "load -n /dev/fs/ext2@usb1/vmlinux");
+				break;
+			}
+			if ((bootfd = open (fat1, O_RDONLY | O_NONBLOCK)) >= 0){
+				video_display_bitmap(SMALLBMP4_START_ADDR, SMALLBMP4_X, SMALLBMP4_Y);
+				//vga_available = 1;
+				//printf("This is fat in usb1 fdisk\n");
+				strcpy(load, "load -n /dev/fat/disk@usb1/vmlinux");
+				break;
+			}
+		}
+/*************************/
 	}
 	if (dev == NULL) {
 		for (i = 0; i < 100; i++){

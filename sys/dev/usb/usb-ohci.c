@@ -92,10 +92,6 @@
 #define USBH_ENABLE_CE (1<<3)
 #define USBH_ENABLE_RD (1<<4)
 
-//QYL-2008-03-07
-#define STATE_OTHER 0x02
-#define STATE_UNKNOW 0x03
-#define STATE_DEALED_WITH 0x04
 
 #ifdef LITTLEENDIAN
 #define USBH_ENABLE_INIT (USBH_ENABLE_CE | USBH_ENABLE_E | USBH_ENABLE_C)
@@ -546,6 +542,29 @@ static void ohci_attach(struct device *parent, struct device *self, void *aux)
 	}
 #endif
 
+#ifdef LOONGSON2F_7INCH
+
+#define PCI_DEVICE_CS5536_ID 14
+#define PCI_DEVICE_UPD710102_ID 9
+#define USB_MASK_PORT0 0x1
+    if(pa->pa_device == PCI_DEVICE_UPD710102_ID){
+        /*not probe webcam */
+		char * envstr;
+        ohci->hc.port_mask = USB_MASK_PORT0;
+        if((envstr = getenv("webcam"))&&!strcmp("yes", envstr)){
+            ohci->hc.port_mask &= ~USB_MASK_PORT0;
+        }
+    }
+    if(pa->pa_device == PCI_DEVICE_CS5536_ID){
+        /*no probe of sd-reader as default */
+		char *envstr;
+        ohci->hc.port_mask = USB_MASK_PORT0;
+        if((envstr = getenv("sdc"))&&!strcmp("yes", envstr)){
+            ohci->hc.port_mask &= ~USB_MASK_PORT0;
+        }
+    }
+#endif
+
 	if(pci_mem_find(pc, pa->pa_tag, OHCI_PCI_MMBA, &membase, &memsize, &cachable)){
 		printf("Can not find mem space for ohci\n");
 		return;
@@ -947,8 +966,6 @@ int sohci_submit_job(struct usb_device *dev, unsigned long pipe, void *buffer,
 		return -1;
 	}
 
-    //QYL-2008-03-07
-    //purb_priv = &urb_priv;
     for(dev_num = 0; dev_num < USB_MAX_DEVICE; dev_num++)
     {
         if (dev == &usb_dev[dev_num])
@@ -1424,8 +1441,6 @@ static ed_t * ep_add_ed (struct usb_device *usb_dev, unsigned long pipe)
     //QYL-2008-03-07
     u_int32_t cpued_num = 0;
 
-	/*ed = ed_ret = &ohci_dev->cpu_ed[(usb_pipeendpoint (pipe) << 1) |
-			(usb_pipecontrol (pipe)? 0: usb_pipeout (pipe))];*/
     cpued_num = ((usb_pipedevice(pipe)&0x3)<<3)|((usb_pipeendpoint(pipe)&0x3)<<1)|(usb_pipein(pipe));
     ed = ed_ret = &ohci_dev->cpu_ed[cpued_num];
     
@@ -1751,8 +1766,7 @@ static void td_submit_job (struct usb_device *dev, unsigned long pipe, void
 static void dl_transfer_length(td_t * td)
 {
 	u32 tdINFO, tdBE, tdCBP;
-	//urb_priv_t *lurb_priv = &urb_priv;
-	urb_priv_t *lurb_priv = NULL;//QYL-2008-03-07
+	urb_priv_t *lurb_priv = NULL;
 	ohci_t *ohci = td->usb_dev->hc_private;
 	int length = 0;
 
@@ -1919,9 +1933,6 @@ static td_t * dl_reverse_done_list (ohci_t *ohci)
 		td_list->hwINFO |= TD_DEL;
 
 		if (TD_CC_GET (m32_swap (td_list->hwINFO))) {
-			/*Some errors occured*/
-            //QYL-2008-03-07
-            //lurb_priv = &urb_priv;
             p_dev = td_list->usb_dev;
             for(dev_num = 0; dev_num < USB_MAX_DEVICE; dev_num++)
             {
@@ -1934,8 +1945,11 @@ static td_t * dl_reverse_done_list (ohci_t *ohci)
             ed_num = (p_ed->hwINFO & 0x780) >> 7;
             lurb_priv = &ohci_urb[dev_num][ed_num];
             
+#if 0
+			//FIXME Error Handling
 			printf(" USB-error/status: %x : %p\n",
 					TD_CC_GET (m32_swap (td_list->hwINFO)), td_list);
+#endif
 			if (td_list->ed->hwHeadP & m32_swap (0x1)) { //ED halted
 				if (lurb_priv && ((td_list->index + 1) < lurb_priv->length)) {
 					td_list->ed->hwHeadP =
@@ -1980,10 +1994,8 @@ static int dl_done_list (ohci_t *ohci, td_t *td_list)
 	int stat = 0;
 	struct usb_device *dev = NULL;
 	/* urb_t *urb; */
-	urb_priv_t *lurb_priv = NULL;//&urb_priv;
+	urb_priv_t *lurb_priv = NULL;
 	u32 tdINFO, edHeadP, edTailP;
-
-    //QYL-2008-03-07
     u_int32_t dev_num,ed_num;
     struct usb_device *p_dev = NULL;
     ed_t *p_ed = NULL;
@@ -2035,7 +2047,10 @@ static int dl_done_list (ohci_t *ohci, td_t *td_list)
 		/* error code of transfer */
 		cc = TD_CC_GET (tdINFO);
 		if (cc != 0) {
+#if 0
+			//FIXME Error Handling	
 			err("ConditionCode %x/%x", cc, td_list);
+#endif
 			stat = cc_to_error[cc];
 		}
 
@@ -2054,9 +2069,6 @@ static int dl_done_list (ohci_t *ohci, td_t *td_list)
 	}
 
     if (NULL != pInt_urb_priv) {
-        //ohci->g_pInt_dev = pInt_dev;
-        //ohci->g_pInt_ed  = pInt_ed;
-        //ohci->g_pInt_urb_priv = pInt_urb_priv;
         if (pInt_dev && pInt_dev->irq_handle) {
 			pInt_dev->irq_status = 0;
 			pInt_dev->irq_act_len = pInt_urb_priv->actual_length;
@@ -2099,10 +2111,7 @@ static int dl_td_done_list (ohci_t *ohci, td_t *td_list)
 	while (td_list) {
         
 		td_list_next = td_list->next_dl_td;
-		//printf("td_list:%x\n",td_list);
 
-        //QYL-2008-03-07
-        //lurb_priv = &urb_priv;
         p_dev = td_list->usb_dev;
         for(dev_num = 0; dev_num < USB_MAX_DEVICE; dev_num++)
         {

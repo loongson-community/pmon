@@ -91,7 +91,7 @@ struct fl_device fl_known_dev[] = {
 	{"ST29F040", 0x20, 0xe2, FL_PROTO_AMD, FL_CAP_DE,
 	 512 * __KB, 64 * __KB, NULL, &fl_func_amd},
 	{"S29GL256N", 0x01, 0x7e, FL_PROTO_AMD, FL_CAP_DE,
-	 1024* __KB, 64 * __KB, NULL, &fl_func_amd},
+	 1024* __KB, 128 * __KB, NULL, &fl_func_amd},
 	/* zfx, should be compatible */
 	{"MX29LV040", 0xC2, 0x4F, FL_PROTO_AMD, FL_CAP_DE,
 	 512 * __KB, 64 * __KB, NULL, &fl_func_amd},

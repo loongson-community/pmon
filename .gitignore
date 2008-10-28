@@ -1,0 +1,4 @@
+*.o
+gzrom*
+initmips.c
+pmon.bin*

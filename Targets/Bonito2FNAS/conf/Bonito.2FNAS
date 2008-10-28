@@ -144,8 +144,8 @@ pci*		at pcibr?
 
 #fxp0            at pci? dev ? function ?        # Intel 82559 Device
 #inphy*          at mii? phy ?                   # Intel 82555 PHYs
-rtl0		 at pci? dev ? function ?
-rtk0		 at pci? dev ? function ?
+#rtl0		 at pci? dev ? function ?
+rtk*		 at pci? dev ? function ?
 #option		 EPLC46
 #uhci0		 at pci? dev ? function ?
 ohci0		 at pci? dev ? function ?

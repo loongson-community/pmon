@@ -41,7 +41,6 @@
 #include "loadfn.h"
 
 #include "mod_debugger.h"
-#include "mod_load.h"
 #include "mod_symbols.h"
 
 static const char *dlerrs[] = {

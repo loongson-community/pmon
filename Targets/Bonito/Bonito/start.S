@@ -984,8 +984,16 @@ not_locked:
 	nop;
 	beqz	v0, .nodimm;
 	nop;
+	sll a0, v0, 2
+	la  a1, bigmem
+	addu a1, a1, s0
+	addu a1, a1, a0
+	lw  tmpsize, (a1)
+	li  a0, 0x10
+	blt v0, a0, 2f
+	nop
 	sll	tmpsize, v0, 22;		// multiply by 4M
-
+	b  2f  
 2:	/* read DIMM number of sides (banks) */
 	li	a0, 0xa1;
 	li	a1, 5
@@ -1053,7 +1061,7 @@ skipdimm:
 	li	t1,0		# accumulate pcimembasecfg settings
 		
 	/* set bar0 mask and translation to point to SDRAM */
-	sub	t0,msize,1
+	subu	t0,msize,1
 	not	t0
 	srl	t0,BONITO_PCIMEMBASECFG_ASHIFT-BONITO_PCIMEMBASECFG_MEMBASE0_MASK_SHIFT
 	and	t0,BONITO_PCIMEMBASECFG_MEMBASE0_MASK
@@ -1627,6 +1635,12 @@ v400_msg:
 	.asciz	"\r\nPANIC! Unexpected Interrupt exception!\r\n"
 hexchar:
 	.ascii	"0123456789abcdef"
+bigmem:
+    .word  0
+	.word  0x40000000
+	.word  0x80000000
+	.word  0x0
+	.word  0x0 /*4G fixme*/
 
 	.text
 	.align	2
@@ -2563,9 +2577,9 @@ DDR2_CTL_07_DATA_LO: .word 0x00030a0b #CL=5//cs_map to cs0-cs3
 //DDR2_CTL_07_DATA_HI: .word 0x00000200
 DDR2_CTL_07_DATA_HI: .word 0x00000400 #800
 //0000_0001 odt_rd_map_cs3 0000_0010 odt_rd_map_cs2 0000_0100 odt_rd_map_cs1 0000_1000 odt_rd_map_cs0
-DDR2_CTL_08_DATA_LO: .word 0x01020408
+DDR2_CTL_08_DATA_LO: .word 0x00000000
 //0000_0001 odt_wr_map_cs3 0000_0010 odt_wr_map_cs2 0000_0100 odt_wr_map_cs1 0000_1000 odt_wr_map_cs0
-DDR2_CTL_08_DATA_HI: .word 0x01020408
+DDR2_CTL_08_DATA_HI: .word 0x00000201
 //0000_0000 port_data_error_id 0000_0000 port_cmd_error_type 0000_0000 port_cmd_error_id 0000_0000 out_of_range_source_id
 DDR2_CTL_09_DATA_LO: .word 0x00000000
 //000_00000 ocd_adjust_pup_cs_0 000_00000 ocd_adjust_pdn_cs_0 0000_0100 trp 0000_1000 tdal
@@ -2581,18 +2595,18 @@ DDR2_CTL_10_DATA_LO: .word 0x3f1f0200 #800
 //0_0011101 dll_dqs_delay_2 0_0011101 dll_dqs_delay_1 0_0011101 dll_dqs_delay_0 00_111111 command_age_count
 //DDR2_CTL_10_DATA_HI: .word 0x0f0f0f3f //zbin
 //DDR2_CTL_10_DATA_HI: .word 0x1515153f //yanhua 533M, 512OK
-DDR2_CTL_10_DATA_HI: .word 0x2323233f //yanhua
+DDR2_CTL_10_DATA_HI: .word 0x1010103f //yanhua
 //DDR2_CTL_10_DATA_HI: .word 0x0f0f0f3f // old
 //0_0011101 dll_dqs_delay_6 0_0011101 dll_dqs_delay_5 0_0011101 dll_dqs_delay_4 0_0011101 dll_dqs_delay_3
 //DDR2_CTL_11_DATA_LO: .word 0x0f0f0f0f //zbin
 //DDR2_CTL_11_DATA_LO: .word 0x0f0f0f0f //zbin
 //DDR2_CTL_11_DATA_LO: .word 0x15151515 //yanhua
-DDR2_CTL_11_DATA_LO: .word 0x23232323 //yanhua
+DDR2_CTL_11_DATA_LO: .word 0x10101010 //yanhua
 //DDR2_CTL_11_DATA_LO: .word 0x0f0f0f0f // old
 //0_1011111 wr_dqs_shift 0_1111111 dqs_out_shift 0_0011101 dll_dqs_delay_8 0_0011101 dll_dqs_delay_7
 //DDR2_CTL_11_DATA_HI: .word 0x5f7f0f0f //zbin 
 //DDR2_CTL_11_DATA_HI: .word 0x5f7f1515 //yanhua
-DDR2_CTL_11_DATA_HI: .word 0x607f2323 //yanhua
+DDR2_CTL_11_DATA_HI: .word 0x607f1010 //yanhua
 //DDR2_CTL_11_DATA_HI: .word 0x5f7f0f0f // old
 //00001011 tras_min 00000000 out_of_range_length 00000000 ecc_u_synd 00000000 ecc_c_synd
 //DDR2_CTL_12_DATA_LO: .word 0x05000000 #125 M
@@ -2675,7 +2689,7 @@ DDR2_CTL_26_DATA_HI: .word 0x00000000
 DDR2_CTL_27_DATA_LO: .word 0x00000000
 DDR2_CTL_27_DATA_HI: .word 0x00000000
 //0000000000000000000000000000000000000000000000000000000000000000
-DDR2_CTL_28_DATA_LO: .word 0x00000000
+DDR2_CTL_28_DATA_LO: .word 0x00000001
 DDR2_CTL_28_DATA_HI: .word 0x00000000
 //0000000_1 rw_same_en 0000000_0 reg_dimm_enable 0000000_0 reduc 0000000_0 pwrup_srefresh_exit
 DDR2_CTL_start_DATA_LO: .word 0x01000000

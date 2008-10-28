@@ -196,6 +196,12 @@ initmips(unsigned int memsz)
 	 *	Set up memory address decoders to map entire memory.
 	 *	But first move away bootrom map to high memory.
 	 */
+#if 1 // for 8089
+	/* initialize ec fan regs */
+	wrec(REG_ECFAN_SPEED_LEVEL, 0x4);
+	wrec(REG_ECFAN_SWITCH, 0x00);
+#endif
+
 #if 0
 	GT_WRITE(BOOTCS_LOW_DECODE_ADDRESS, BOOT_BASE >> 20);
 	GT_WRITE(BOOTCS_HIGH_DECODE_ADDRESS, (BOOT_BASE - 1 + BOOT_SIZE) >> 20);
@@ -204,6 +210,7 @@ initmips(unsigned int memsz)
 	memorysize = memsz > 256 ? 256 << 20 : memsz << 20;
 	memorysize_high = memsz > 256 ? (memsz - 256) << 20 : 0;
 
+	
 	/*
 	 *  Probe clock frequencys so delays will work properly.
 	 */
@@ -228,6 +235,7 @@ initmips(unsigned int memsz)
 	SBD_DISPLAY("BEV0",0);
 	
 	printf("BEV in SR set to zero.\n");
+
 
 	/*
 	 * Launch!
@@ -265,7 +273,7 @@ tgt_devconfig()
 #endif
 
 #ifdef SM712_GRAPHIC_CARD
-	rc = 1;
+	rc = 1; 
 #endif
 
 #if NMOD_FRAMEBUFFER > 0
@@ -312,9 +320,9 @@ tgt_devconfig()
     
 #if NMOD_VGACON >0
 #if !(defined(VGA_NOTEBOOK_V1) || defined(VGA_NOTEBOOK_V2)) && NCS5536 > 0
-	rc=kbd_initialize();
+	rc = kbd_initialize();
 #else
-	rc = 0;
+	rc = -1;
 #endif
 	printf("%s\n",kbd_error_msgs[rc]);
 	if(!rc){ 
@@ -322,7 +330,7 @@ tgt_devconfig()
 	}
 #endif
 	if (vga_ok > 1)
-		vga_available = 0;
+		vga_available = 1;
 }
 
 extern int test_icache_1(short *addr);
@@ -335,9 +343,98 @@ extern void cs5536_gpio_init(void);
 extern void test_gpio_function(void);
 extern void cs5536_pci_fixup(void);
 
+/* disable AC_BEEP for cs5536 gpio1,         *
+ * only used EC_BEEP to control U13 gate     *
+ * set cs5536 gpio1 output low level voltage *
+ * huangw 2008-10-16                         */
+void cs5536_gpio1_fixup(void)
+{
+	unsigned long val;
+	unsigned long tag;
+	unsigned long base;
+
+	tag = _pci_make_tag(0, 14, 0);
+	base = _pci_conf_read(tag, 0x14);
+	base |= 0xbfd00000;
+	base &= ~3;
+
+	/* make cs5536 gpio1 output enable */
+	val = *(volatile unsigned long *)(base + 0x04);
+	val = ( val & ~(1 << (16 + 1)) ) | (1 << 1) ;
+	*(volatile unsigned long *)(base + 0x04) = val;
+	
+	/* make cs5536 gpio1 output low level voltage. */
+	val = *(volatile unsigned long *)(base + 0x00);
+	val = (val | (1 << (16 + 1))) & ~(1 << 1);
+	*(volatile unsigned long *)(base + 0x00) = val;
+}
+
+void ec_fixup(void)
+{
+	int i;
+	unsigned char val;
+	unsigned char reg_config;
+	
+#if 1 // for 8007 
+	/* read the fan device config */
+	for(i = 0; i < SMBDAT_SIZE; i++){
+		wrec(REG_SMBDAT_START + i, 0x00);
+	}
+	wrec(REG_SMBSTS, 0x00);
+	wrec(REG_SMBCNT, 0x01);
+	val = rdec(REG_SMBPIN);
+	val = (val & 0xfc) | (1 << 1);
+	wrec(REG_SMBPIN, val);
+	wrec(REG_SMBADR, 0x90|0x01);
+	wrec(REG_SMBCMD, 0x01);
+	wrec(REG_SMBPRTCL, 0x09);
+	while(!(rdec(REG_SMBSTS) & (1 << 7)));
+	reg_config = rdec(REG_SMBDAT_START);
+					 
+	/* enable the fan device */
+	for(i = 0; i < SMBDAT_SIZE; i++){
+		wrec(REG_SMBDAT_START + i, 0x00);
+    }
+	wrec(REG_SMBSTS, 0x00);
+	wrec(REG_SMBCNT, 0x01);
+	val = rdec(REG_SMBPIN);
+	val = (val & 0xfc) | (1 << 1);
+	wrec(REG_SMBPIN, val);
+	wrec(REG_SMBADR, 0x90);
+	wrec(REG_SMBCMD, 1);
+	wrec(REG_SMBDAT_START, reg_config | (1 << 2));
+	wrec(REG_SMBPRTCL, 0x06);
+
+	/* enable fan function, corresponding gpio and read status  */
+	val = rdec(0xfc02);
+	wrec(0xfc02, val & ~(1 << 4));
+		 
+	val = rdec(0xfc62);
+	wrec(0xfc62, val | (1 << 4));
+						 
+	val = rdec(0xfe20);
+	wrec(0xfe20, val | (1 << 7) | (1 << 0));
+#endif
+												
+#if 1 // for 8089
+	/* set fan speed manual control level register F4E4h as 0x04
+	 * F4E4h : 0x01->0 rpm(fan stop);0x02->2191 rpm;0x03->3840 rpm;
+	 * 0x04->4897 rpm;0x05->6233 rpm */
+#define mdelay(n) ({unsigned long msec=(n); while (msec--) delay(1000);})
+	/* we need a delay between write 0 and 1 to 0xf4d2, put the first one to the beginning of this function to avoid additional delay */
+	//wrec(0xf4e4, 0x4);
+	//wrec(0xf4d2, 0x00);
+	//mdelay(1000);
+	wrec(REG_ECFAN_SWITCH, 0x01);
+#endif
+
+	return;
+}
+
 void
 tgt_devinit()
 {
+
 	SBD_DISPLAY("5536",0);
 	
 #if NVT82C686 > 0
@@ -371,6 +468,9 @@ tgt_devinit()
 #if	NCS5536 > 0
 	cs5536_pci_fixup();
 #endif
+	cs5536_gpio1_fixup();
+	ec_fixup();
+
 	return;
 }
 
@@ -395,10 +495,10 @@ tgt_reboot()
 	*((volatile unsigned char *)(0xbfd00000 | LOW_PORT)) = 0x01;
 	*((volatile unsigned char *)(0xbfd00000 | DATA_PORT)) = 0x00;
 
+#if 0
 	*((volatile unsigned char *)(0xbfd00000 | HIGH_PORT)) = 0xfc;
 	*((volatile unsigned char *)(0xbfd00000 | LOW_PORT)) = 0x20;
 	val = *((volatile unsigned char *)(0xbfd00000 | DATA_PORT));
-
 	/* output the low level for reset sequence */
 	*((volatile unsigned char *)(0xbfd00000 | DATA_PORT)) = val & (~(1 << 5));
 	/* delay for 100~200ms */
@@ -406,10 +506,15 @@ tgt_reboot()
 		delay(1000);
 	/* output the high level for reset sequence */
 	*((volatile unsigned char *)(0xbfd00000 | DATA_PORT)) = val | (1 << 5);
+#else
+	*((volatile unsigned char *)(0xbfd00000 | HIGH_PORT)) = 0xf4;
+	*((volatile unsigned char *)(0xbfd00000 | LOW_PORT)) = 0xec;
+	*((volatile unsigned char *)(0xbfd00000 | DATA_PORT)) = 0x01;
+#endif
 
 #endif
 	/* we should not exec until here. */
-	__asm__ ("jr %0\n"::"r"(0xbfc00000));
+	//__asm__ ("jr %0\n"::"r"(0xbfc00000));
 
 	while(1);
 }
@@ -423,6 +528,7 @@ tgt_poweroff()
 	int i, j;
 
 #ifdef	LOONGSON2F_7INCH
+#if 0
 	*((volatile unsigned char *)(0xbfd00000 | HIGH_PORT)) = 0xfc;
 	*((volatile unsigned char *)(0xbfd00000 | LOW_PORT)) = 0x29;
 	val = *((volatile unsigned char *)(0xbfd00000 | DATA_PORT));
@@ -430,6 +536,12 @@ tgt_poweroff()
 	for(i = 0; i < 0x10000; i++)
 		for(j = 0; j < 0x10000; i++);
 	*((volatile unsigned char *)(0xbfd00000 | DATA_PORT)) = val | (1 << 1);
+#else
+	/* cpu-gpio0 output low */
+	*((volatile unsigned long *)(0xbfe0011c)) &= ~0x00000001;
+	/* cpu-gpio0 as output */
+	*((volatile unsigned long *)(0xbfe00120)) &= ~0x00000001;
+#endif
 #else
 	tag = _pci_make_tag(0, 14, 0);
 	base = _pci_conf_read(tag, 0x14);
@@ -844,11 +956,15 @@ static int ec_program_byte(unsigned long addr, unsigned char byte)
 		printf("xbi : write timeout 1.\n");
 		return -1;
 	}
+	if(ec_flash_busy()){
+			printf("xbi : flash busy 1.\n");
+			return 0x00;
+	}
 
 	/* write the address */
-	wrec(XBI_BANK | XBISPIA2, (addr & 0xff0000) >> 16);
-	wrec(XBI_BANK | XBISPIA1, (addr & 0x00ff00) >> 8);
-	wrec(XBI_BANK | XBISPIA0, (addr & 0x0000ff) >> 0);
+	wrec(XBI_BANK | XBISPIA2, (unsigned char)((addr & 0xff0000) >> 16));
+	wrec(XBI_BANK | XBISPIA1, (unsigned char)((addr & 0x00ff00) >> 8));
+	wrec(XBI_BANK | XBISPIA0, (unsigned char)((addr & 0x0000ff) >> 0));
 	wrec(XBI_BANK | XBISPIDAT, byte);
 	/* start action */
 	wrec(XBI_BANK | XBISPICMD, 2);
@@ -861,10 +977,19 @@ static int ec_program_byte(unsigned long addr, unsigned char byte)
 		printf("xbi : write timeout 2.\n");
 		return -1;
 	}
+	if(ec_flash_busy()){
+			printf("xbi : flash busy 1.\n");
+			return 0x00;
+	}
 
 	/* disable spicmd writing. */
 	val = rdec(XBI_BANK | XBISPICFG) & (~((1 << 3) | (1 << 0)));
 	wrec(XBI_BANK | XBISPICFG, val);
+
+	if(ec_flash_busy()){
+			printf("xbi : flash busy 1.\n");
+			return 0x00;
+	}
 
 //	delay(2000);
 
@@ -899,6 +1024,7 @@ static int ec_flash_erase(void)
 		printf("xbi : write timeout 3.\n");
 		return -1;
 	}
+
 	/* enable write spi flash */
 	wrec(XBI_BANK | XBISPICMD, 0x06);
 	timeout = 0x1000;
@@ -911,10 +1037,9 @@ static int ec_flash_erase(void)
 		return -1;
 	}
 
-
 	/* erase the whole chip first */
 	wrec(XBI_BANK | XBISPICMD, 0xC7);
-	timeout = 0x100000;
+	timeout = 0x10000000;
 	while(timeout-- >= 0){
 		if( !(rdec(XBI_BANK | XBISPICFG) & (1 << 1)) )
 				break;
@@ -938,6 +1063,7 @@ tgt_ecprogram(void *s, int size){
 	unsigned char val;
 	int timeout;
 	int i = 0;
+	int ret = 0;
 
 	if(size > 0x10000){
 		printf("ecprogram : out of range.\n");
@@ -947,27 +1073,39 @@ tgt_ecprogram(void *s, int size){
 	/* erase the whole chip. */
 	val = ec_flash_erase();
 	if(val){
-		printf("erase chip failed.\n");
-		return;
+		printf("erase chip failed for first time.\n");
+		val = ec_flash_erase();
+		if(val){
+			printf("erase chip failed for second time.\n");
+			return;
+		}
 	}
 
 	/* program data */
+	printf("starting program kb3310 firmware.\n");
 	while(i < size){
-			data = *(ptr + i);
+		data = *(ptr + i);
+		ec_program_byte(addr, data);
+		val = rdec(addr);
+		if(val != data){
+			// we make the flash data equal to the memory data.
 			ec_program_byte(addr, data);
 			val = rdec(addr);
 			if(val != data){
-					// we make the flash data equal to the memory data.
-					ec_program_byte(addr, data);
-					val = rdec(addr);
-					if(val != data){
-						printf("Second flash program failed at:\t");
-						printf("addr : 0x%x, memory : 0x%x, flash : 0x%x\n", addr, data, val);
-						break;
-					}
+				printf("Second flash program failed at:\t");
+				printf("addr : 0x%x, memory : 0x%x, flash : 0x%x\n", addr, data, val);
+				ret = 1;
+				break;
 			}
-			i++;
-			addr++;
+		}
+		if(i % 0x400 == 0x00){
+			printf(".");
+		}
+		i++;
+		addr++;
+	}
+	if(!ret){
+		printf("\nprogram firmware ok.\n");
 	}
 
 	return;

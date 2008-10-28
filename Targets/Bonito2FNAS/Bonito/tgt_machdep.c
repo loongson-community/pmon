@@ -171,8 +171,8 @@ ConfigEntry	ConfigTable[] =
 
 unsigned long _filebase;
 
-extern int memorysize;
-extern int memorysize_high;
+extern unsigned int memorysize;
+extern unsigned int memorysize_high;
 
 extern char MipsException[], MipsExceptionEnd[];
 

@@ -181,7 +181,7 @@ file pmon/cmds/devls.c 			(sys & cmd_devls)
 file pmon/cmds/cmd_go.c			(mod_debugger | cmd_g)
 file pmon/cmds/hist.c			cmd_hist	needs-flag
 file pmon/cmds/ifaddr.c			(inet & cmd_ifaddr)
-file pmon/cmds/oload.c			(mod_load | mod_fastload | mod_elfload | mod_s3load) needs-flag
+#file pmon/cmds/oload.c			(mod_load | mod_fastload | mod_elfload | mod_s3load) needs-flag
 file pmon/cmds/load.c
 file pmon/cmds/cmd_grub.c
 file pmon/cmds/memcmds.c		cmd_mem

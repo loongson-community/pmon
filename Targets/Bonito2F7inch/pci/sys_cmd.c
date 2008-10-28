@@ -194,7 +194,6 @@ static int cmd_powerdebug(int ac, char *av[])
 static int cmd_rdecreg(int ac, char *av[])
 {
 	u32 start, size, reg;
-	u8 value;
 
 	size = 0;
 
@@ -217,16 +216,50 @@ static int cmd_rdecreg(int ac, char *av[])
 		printf("ecreg : start not available.\n");
 	}
 
-	printf("ecreg : \n");
+	printf("ecreg : reg=0x%x size=0x%x\n",start, size);
 	reg = start;
 	while(size > 0){
-		*( (volatile unsigned char *)(0xbfd00000 | HIGH_PORT) ) = (reg & 0xff00) >> 8;
-		*( (volatile unsigned char *)(0xbfd00000 | LOW_PORT) ) = (reg & 0x00ff);
-		value = *((volatile unsigned char *)(0xbfd00000 | DATA_PORT));
-		printf("reg address : 0x%x,  value : 0x%x\n", reg, value);
+		printf("reg address : 0x%x,  value : 0x%x\n", reg, rdec(reg));
 		reg++;
 		size--;
 	}
+
+	return 0;
+}
+
+/*
+ * wrecreg : write a ec register area.
+ */
+static int cmd_wrecreg(int ac, char *av[])
+{
+	u32 addr;
+	u32 value;
+	u8 val8;
+
+	if(ac < 3){
+		printf("usage : wrecreg addr val\n");
+		return -1;
+	}
+
+	if(!get_rsa(&addr, av[1])) {
+		printf("ecreg : access error!\n");
+		return -1;
+	}
+
+	if(!get_rsa(&value, av[2])){
+		printf("ecreg : size error\n");
+		return -1;
+	}
+
+	val8 = (u8)value;
+
+	if((addr > 0x10000)){
+		printf("ecreg : addr not available.\n");
+	}
+
+
+	printf("ecreg : addr=0x%x value=0x%x\n",addr , val8);
+	wrec(addr,val8);
 
 	return 0;
 }
@@ -279,6 +312,7 @@ static int cmd_rdfan(int ac, char *av[])
 	u8 val;
 	u8 i;
 
+	wrec(REG_SMBCFG, rdec(REG_SMBCFG) & (~0x1f) | 0x04);
 	if(ac < 2){
 		printf("usage : rdfan %index\n");
 		return -1;
@@ -466,6 +500,7 @@ static const Cmd Cmds[] =
 	{"wrmsr", "reg", NULL, "msr write test", cmd_wrmsr, 2, 99, CMD_REPEAT},
 	
 	{"rdecreg", "reg", NULL, "KB3310 EC reg read test", cmd_rdecreg, 2, 99, CMD_REPEAT},
+	{"wrecreg", "reg", NULL, "KB3310 EC reg write test", cmd_wrecreg, 2, 99, CMD_REPEAT},
 	{"rdbat", "reg", NULL, "KB3310 smbus battery reg read test", cmd_rdbat, 2, 99, CMD_REPEAT},
 	{"rdfan", "reg", NULL, "KB3310 smbus fan reg read test", cmd_rdfan, 2, 99, CMD_REPEAT},
 	{"xbiwr", "reg", NULL, "for debug write data to xbi interface of ec", cmd_xbiwr, 2, 99, CMD_REPEAT},

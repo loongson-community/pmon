@@ -117,7 +117,9 @@ extern char	*optarg;
 #if NMOD_USB_UHCI != 0
 			usb_uhci_stop();
 #endif
+#if NRTL > 0
 			rtl8139_stop();
+#endif
 			break;
 		case 's':
 			sflag = 1; 
