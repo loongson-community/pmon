@@ -1331,8 +1331,7 @@ void	usb_strategy(struct buf *bp);
 int	usb_read(dev_t dev, struct uio *uio, int ioflag);
 int	usb_write(dev_t dev, struct uio *uio, int ioflag);
 
-//static unsigned char bulkbuf[8096] __attribute__((section(".bss"),aligned(128)));
-static unsigned char bulkbuf[110*1024] __attribute__((section("data"),aligned(4096)));
+static unsigned char bulkbuf[24*1024] __attribute__((section("data"),aligned(4096)));
 
 int	usb_open(dev_t dev, int flag, int fmt, struct proc *p)
 {
