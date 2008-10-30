@@ -463,6 +463,9 @@ ConfResult:
 	NOP10
 #endif
 
+	j CPU_TLBClear   #tlb will affect flush cache.
+	nop
+
 	j	ra
 	nop
 END(CPU_ConfigCache)
