@@ -516,6 +516,13 @@ ether_input(ifp, eh, m)
 		m_freem(m);
 		return;
 	}
+#include "raw_ether.h"
+#if NRAW_ETHER
+{
+extern void rether_input(struct mbuf *m, ...);
+	rether_input(m,ifp);
+}
+#endif
 	ifp->if_lastchange = time;
 	ifp->if_ibytes += m->m_pkthdr.len + sizeof (*eh);
 	if (eh->ether_dhost[0] & 1) {

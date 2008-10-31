@@ -1284,6 +1284,51 @@ setsin (struct sockaddr_in *sa, int family, u_long addr)
     sa->sin_addr.s_addr = addr;
 }
 
+static int cmd_testnet(int argc,char **argv)
+{
+	char buf[100];
+	int i,j;
+	int s;
+	struct sockaddr addr;
+
+	if(argc<2)return -1;
+	addr.sa_len=sizeof(addr);
+	strcpy(addr.sa_data,argv[1]);
+
+	s= socket (AF_UNSPEC, SOCK_RAW, 0);
+	if(s==-1){
+	printf("please select raw_ether\n");
+	return -1;
+	}
+	if(!strcmp(argv[2],"send"))
+	{
+		for(j=0;;j++)
+		{
+			for(i=0;i<100;i++) buf[i]=i+j;
+			sendto(s,buf,100,0,&addr,sizeof(addr));
+			delay1(500);
+			printf("%d\r",j);
+		}
+	}
+	else
+	{
+		bind(s,&addr,sizeof(addr));
+		while(1)
+		{
+			unsigned char buf[1500];
+			int len;
+			len=recv(s,buf,1500,0);
+			for(i=0;i<len;i++)
+			{
+				if((i&15)==0)printf("\n%02x: ",i);
+				printf("%02x ",buf[i]);
+			}
+		}
+	}
+	close(s);
+	return 0;
+}
+
 static int del_if_rt(char *ifname);
 static int cmd_ifconfig(int argc,char **argv)
 {
@@ -1883,7 +1928,7 @@ return 0;
 //----------------------------------
 //
 
-#ifdef __mips
+#if __mips >= 3
 static int __cp0syscall1(int type,unsigned long long addr,union commondata *mydata)
 {
 long long data8;
@@ -2094,9 +2139,12 @@ return 0;
 static const Cmd Cmds[] =
 {
 	{"MyCmds"},
+	{"testnet",	"", 0, "testnet", cmd_testnet, 0, 99, CMD_REPEAT},
+#if __mips >= 3
 	{"cp0s",	"", 0, "access cp0", mycp0s, 0, 99, CMD_REPEAT},
 	{"scachedump",	"", 0, "access Scache tag",dumpcache, 0, 99, CMD_REPEAT},
 	{"dcachedump",	"", 0, "access Dcache tag",dumpcache, 0, 99, CMD_REPEAT},
+#endif
 	{"pcs",	"bus dev func", 0, "select pci dev function", mypcs, 0, 99, CMD_REPEAT},
 	{"disks",	"disk", 0, "select disk", mydisks, 0, 99, CMD_REPEAT},
 	{"d1",	"[addr] [count]", 0, "dump address byte", dump, 0, 99, CMD_REPEAT},

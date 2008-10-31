@@ -143,6 +143,7 @@ file sys/netinet/ip_id.c		inet
 file sys/netinet/ip_input.c		inet
 file sys/netinet/ip_output.c		inet
 file sys/netinet/raw_ip.c		inet
+file sys/netinet/raw_ether.c	raw_ether needs-flag
 file sys/netinet/udp_usrreq.c		inet
 
 file sys/netinet/tcp_debug.c		tcp	needs-flag
