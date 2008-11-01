@@ -1171,11 +1171,11 @@ NON_LEAF(CPU_IOFlushDCache, STAND_FRAME_SIZE, ra)
 	beqzl	t0, CPU_HitFlushDCache		# No flush L1
 	addu	sp, STAND_FRAME_SIZE
 
-	jal	CPU_HitFlushSCache		# Do internal L2 cache
+	jal	CPU_HitFlushDCache		# Do any orphans in L1
 	nop					# L1 done in parallel
 
 	lw	a0, STAND_FRAME_SIZE(sp)
-	jal	CPU_HitFlushDCache		# Do any orphans in L1
+	jal	CPU_HitFlushSCache		# Do internal L2 cache
 	lw	a1, STAND_FRAME_SIZE+4(sp)
 
 	b	FlushDone			# Any L3 is write through
@@ -1204,11 +1204,11 @@ FlushRD:
 	lw	ra, STAND_RA_OFFSET(sp)		# External L2 if present
 
 FlushRDL2:
-	jal	CPU_HitInvalidateSCache		# Internal L2 cache
+	jal	CPU_HitInvalidateDCache		# Do any orphans in L1
 	nop					# L1 done in parallel
 
 	lw	a0, STAND_FRAME_SIZE(sp)
-	jal	CPU_HitInvalidateDCache		# Do any orphans in L1
+	jal	CPU_HitInvalidateSCache		# Internal L2 cache
 	lw	a1, STAND_FRAME_SIZE+4(sp)
 
 	b	FlushRDL3
@@ -1227,11 +1227,11 @@ FlushRDWB:
 	lw	ra, STAND_RA_OFFSET(sp)		# External L2 if present
 
 FlushRDWBL2:
-	jal	CPU_HitFlushSCache		# Internal L2 cache
+	jal	CPU_HitFlushDCache		# Do any orphans in L1
 	nop					# L1 done in parallel
 
 	lw	a0, STAND_FRAME_SIZE(sp)
-	jal	CPU_HitFlushDCache		# Do any orphans in L1
+	jal	CPU_HitFlushSCache		# Internal L2 cache
 	lw	a1, STAND_FRAME_SIZE+4(sp)
 
 	b	FlushRDL3
