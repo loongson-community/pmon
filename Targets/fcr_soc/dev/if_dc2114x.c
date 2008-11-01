@@ -157,6 +157,8 @@
 #define OMR_PS		0x00040000	/* Port Select */
 #define OMR_SDP		0x02000000	/* SD Polarity - MUST BE ASSERTED */
 #define OMR_PM		0x00000080	/* Pass All Multicast */
+#define OMR_FD		0x00000200	/* full duplex */
+#define OMR_PR		0x00000040	/* promise mode */
 
 /* Descriptor bits.
  */
@@ -268,7 +270,7 @@ struct eth_device {
 #define START_DE4X5(dev) {\
     s32 omr; \
     omr = INL(dev, DE4X5_OMR);\
-    omr |= OMR_ST | OMR_SR;\
+    omr |= OMR_ST | OMR_SR | OMR_PR | OMR_FD;\
     OUTL(dev, omr, DE4X5_OMR);		/* Enable the TX and/or RX */\
 }
 
@@ -784,6 +786,8 @@ static int dc21x4x_init(struct eth_device* dev)
 	txRingSize = NUM_TX_DESC;
 	pci_sync_cache(dev, (vm_offset_t)_rx_ring, sizeof(_rx_ring), SYNC_R);
 	pci_sync_cache(dev, (vm_offset_t)_tx_ring, sizeof(_tx_ring), SYNC_R);
+	pci_sync_cache(dev, (vm_offset_t)__NetRxPackets, sizeof(__NetRxPackets), SYNC_R);
+	pci_sync_cache(dev, (vm_offset_t)__NetTxPackets, sizeof(__NetTxPackets), SYNC_R);
 	
 	rx_ring = (struct de4x5_desc *)(0xa0000000 | (unsigned long)_rx_ring);
 	tx_ring = (struct de4x5_desc *)(0xa0000000 | (unsigned long)_tx_ring);
