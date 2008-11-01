@@ -105,7 +105,7 @@ stack = start - 0x4000		/* Place PMON stack below PMON start in RAM */
 	la	sp, stack
 	la	gp, _gp
 
-	bal	uncached		/* Switch to uncached address space */
+//	bal	uncached		/* Switch to uncached address space */
 	nop
 
 	bal	locate			/* Get current execute address */
@@ -256,6 +256,13 @@ locate:
 	bal	hexserial
 	nop
 	PRINTSTR("\r\n")
+
+	bnez s0,1f
+	nop
+	li a0,64
+	jal initmips
+	nop
+1:
 
 	/* 
 	 * Now determine DRAM configuration and size by
