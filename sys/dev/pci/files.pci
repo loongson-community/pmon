@@ -100,6 +100,9 @@ device  ste: ether, ifnet
 attach  ste at pci
 file    sys/dev/pci/sundance.c         ste
 
+device  ipg: ether, ifnet
+attach  ipg at pci
+file    sys/dev/pci/ipg.c         ipg
 # PCI-SATA driver added by zgj
 device  atp {[channel = -1]}: wdc_base, ata, atapi, ide
 attach  atp at pci 
