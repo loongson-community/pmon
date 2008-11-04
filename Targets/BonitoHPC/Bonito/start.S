@@ -987,16 +987,16 @@ not_locked:
 	nop;
 	beqz	v0, .nodimm;
 	nop;
-	sll	tmpsize, v0, 22;		// multiply by 4M
-    
-	move k0, v0
-	PRINTSTR("i2c31:");
-	move a0, k0
-	bal hexserial;
+	sll a0, v0, 2
+	la  a1, bigmem
+	addu a1, a1, s0
+	addu a1, a1, a0
+	lw  tmpsize, (a1)
+	li  a0, 0x10
+	blt v0, a0, 2f
 	nop
-	PRINTSTR("\r\n");
-   
-
+	sll	tmpsize, v0, 22;		// multiply by 4M
+	b  2f  
 2:	/* read DIMM number of sides (banks) */
 	li	a0, 0xa0;
 	li	a1, 5
@@ -1007,14 +1007,6 @@ not_locked:
 	subu	v0, 0x60;
 	sll	tmpsize, v0;
 	nop;
-
-	move k0, v0
-	PRINTSTR("i2c05:");
-	move a0, k0
-	bal hexserial;
-	nop
-	PRINTSTR("\r\n");
-
 
 	move	msize, tmpsize;
         PRINTSTR("type : ddr2, size = 0x");
@@ -1071,7 +1063,7 @@ skipdimm:
 	li	t1,0		# accumulate pcimembasecfg settings
 		
 	/* set bar0 mask and translation to point to SDRAM */
-	sub	t0,msize,1
+	subu	t0,msize,1
 	not	t0
 	srl	t0,BONITO_PCIMEMBASECFG_ASHIFT-BONITO_PCIMEMBASECFG_MEMBASE0_MASK_SHIFT
 	and	t0,BONITO_PCIMEMBASECFG_MEMBASE0_MASK
@@ -1652,6 +1644,12 @@ v400_msg:
 	.asciz	"\r\nPANIC! Unexpected Interrupt exception!\r\n"
 hexchar:
 	.ascii	"0123456789abcdef"
+bigmem:
+    .word  0
+	.word  0x40000000
+	.word  0x80000000
+	.word  0x0
+	.word  0x0 /*4G fixme*/
 
 	.text
 	.align	2
@@ -2615,11 +2613,11 @@ DDR2_CTL_09_DATA_HI:	.word 0x0000060c #800
 //DDR2_CTL_10_DATA_LO:	.word 0x3f0b0200 #250M
 DDR2_CTL_10_DATA_LO:	.word 0x3f1f0200 #800
 //0_0011101 dll_dqs_delay_2 0_0011101 dll_dqs_delay_1 0_0011101 dll_dqs_delay_0 00_111111 command_age_count 
-DDR2_CTL_10_DATA_HI:	.word 0x1111113f
+DDR2_CTL_10_DATA_HI:	.word 0x2323233f
 //0_0011101 dll_dqs_delay_6 0_0011101 dll_dqs_delay_5 0_0011101 dll_dqs_delay_4 0_0011101 dll_dqs_delay_3
-DDR2_CTL_11_DATA_LO:	.word 0x11111111
+DDR2_CTL_11_DATA_LO:	.word 0x23232323
 //0_1011111 wr_dqs_shift 0_1111111 dqs_out_shift 0_0011101 dll_dqs_delay_8 0_0011101 dll_dqs_delay_7 
-DDR2_CTL_11_DATA_HI:	.word 0x5f7f1111
+DDR2_CTL_11_DATA_HI:	.word 0x5f7f2323
 //00001011 tras_min 00000000 out_of_range_length 00000000 ecc_u_synd 00000000 ecc_c_synd
 //DDR2_CTL_12_DATA_LO:	.word 0x05000000 #125 M
 //DDR2_CTL_12_DATA_LO:	.word 0x0b000000 #400
