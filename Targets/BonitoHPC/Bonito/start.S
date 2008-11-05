@@ -2513,6 +2513,28 @@ reg_write:
 	or  a1, v1
 	sw  a1, (v0)
 
+	/* number of CS */
+	li a0, 0xa0
+	li a1, 5
+	bal i2cread
+	nop
+	li v1, 0x7
+	and v1, v0
+	add v1, 1
+	li  a0, 1
+	sll a0, v1
+	sub a0, 1
+	li v0, 0xaffffe70
+	lw v1, 0(v0)
+	nop 
+	sll a0, a0, 16
+	li  t0, 0xfff0ffff
+	and v1, v1, t0
+	or  v1, v1, a0
+	sw  v1, 0(v0)
+	nop
+
+	/* Number of banks */
 	li  a0, 0xa0 
 	li  a1, 0x11 //Bank 
 	bal i2cread

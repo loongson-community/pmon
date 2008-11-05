@@ -348,6 +348,7 @@ static int
 	return (1);
 }
 
+extern int load_debug;
 long
    load_elf64 (int fd, char *buf, int *n, int flags)
 {
@@ -541,6 +542,12 @@ long
 					gz_close(fd);
 #endif /* NGZIP */
 					return (-2);
+				}
+				if (load_debug) {
+					unsigned int s =0, i;
+					for(i=0;i<ph->p_filesz;i++)
+						s+= ((unsigned char *)ph->p_vaddr)[i];
+					printf("cksum %08x\n", s);
 				}
 			}
 			if((ph->p_vaddr + ph->p_memsz) > highest_load) {
