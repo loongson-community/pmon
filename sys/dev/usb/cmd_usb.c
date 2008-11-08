@@ -152,7 +152,7 @@ void usb_display_string(struct usb_device *dev,int index)
 void usb_display_desc(struct usb_device *dev)
 {
 	if (dev->descriptor.bDescriptorType==USB_DT_DEVICE) {
-		printf("%d: %s,  USB Revision %x.%x\n",dev->devnum,usb_get_class_desc(dev->config.if_desc[0].bInterfaceClass),
+		printf("%d(%d): %s,  USB Revision %x.%x\n",dev->devnum,dev->port,usb_get_class_desc(dev->config.if_desc[0].bInterfaceClass),
 			(dev->descriptor.bcdUSB>>8) & 0xff,dev->descriptor.bcdUSB & 0xff);
 		if (strlen(dev->mf) || strlen(dev->prod) || strlen(dev->serial))
 			printf(" - %s %s %s\n",dev->mf,dev->prod,dev->serial);

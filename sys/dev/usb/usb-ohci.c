@@ -546,7 +546,8 @@ static void ohci_attach(struct device *parent, struct device *self, void *aux)
 
 #define PCI_DEVICE_CS5536_ID 14
 #define PCI_DEVICE_UPD710102_ID 9
-#define USB_MASK_PORT0 0x1
+#define USB_MASK_PORT0 (1 << 0)
+#define USB_MASK_PORT3 (1 << 3)
     if(pa->pa_device == PCI_DEVICE_UPD710102_ID){
         /*not probe webcam */
 		char * envstr;
@@ -562,6 +563,7 @@ static void ohci_attach(struct device *parent, struct device *self, void *aux)
         if((envstr = getenv("sdc"))&&!strcmp("yes", envstr)){
             ohci->hc.port_mask &= ~USB_MASK_PORT0;
         }
+		ohci->hc.port_mask |= USB_MASK_PORT3; /*wifi*/
     }
 #endif
 
