@@ -57,10 +57,6 @@
   Date          Author          Activity ID     Activity Headline
   2008-03-10    QianYuli        PMON00000001    Add comment to each function
   2008-02-28    QianYuli        PMON00000001    Add multi-usb-devices supports
-  2008-05-06    Felix.Qian      PMON00000002    Fix some bugs for the stability of 
-                (QianYuli^_^)                   multi-usb-devices working
- --------------------------------------------------------------------------
-
 *************************************************************************/
 
 #include <sys/param.h>
@@ -129,9 +125,8 @@
 #define readl(addr) *(volatile u32*)(((u32)(addr)) | 0xa0000000)
 #define writel(val, addr) *(volatile u32*)(((u32)(addr)) | 0xa0000000) = (val)
 
-/* urb_priv */
-urb_priv_t urb_priv;
-urb_priv_t iurb_priv;
+#define MAX_OHCI_C 4   /*In most case it is enough */
+ohci_t *usb_ohci_dev[MAX_OHCI_C];
 /* RHSC flag */
 int got_rhsc;
 /* device which was disconnected */
@@ -488,6 +483,7 @@ static void ohci_attach(struct device *parent, struct device *self, void *aux)
 {
 	struct ohci *ohci = (struct ohci*)self;
 	struct pci_attach_args *pa = (struct pci_attach_args *)aux;
+	static int ohci_dev_index = 0;
 	int val;
 	
 #define  OHCI_PCI_MMBA 0x10
@@ -501,6 +497,11 @@ static void ohci_attach(struct device *parent, struct device *self, void *aux)
 	bus_addr_t memsize2;
 #endif
 
+	/* Or we just return false in the match function */
+	if(ohci_dev_index >= MAX_OHCI_C) {
+		printf("Exceed max controller limits\n");
+		return;
+	}
 #ifdef USB_OHCI_NO_ROM 
 	if(PCI_VENDOR(pa->pa_id) == 0x1033){
 		val = pci_conf_read(ohci->sc_pc, pa->pa_tag, 0xe0);
@@ -510,7 +511,7 @@ static void ohci_attach(struct device *parent, struct device *self, void *aux)
 	}
 #endif
 	ohci->pa = pa;
-	
+	usb_ohci_dev[ohci_dev_index++] = ohci;
 #ifdef CONFIG_SM502_USB_HCD
 	if(PCI_VENDOR(pa->pa_id) == 0x126f) {
 		pci_mem_find(pc, pa->pa_tag, 0x14, &membase, &memsize, &cachable);
@@ -670,230 +671,6 @@ static void urb_free_priv (urb_priv_t * urb)
 		}
 	}
 }
-
-/*-------------------------------------------------------------------------*/
-
-#ifdef DEBUG
-static int sohci_get_current_frame_number (struct usb_device * dev);
-
-/* debug| print the main components of an URB
- * small: 0) header + data packets 1) just header */
-
-static void pkt_print (struct usb_device * dev, unsigned long pipe, void * buffer,
-	int transfer_len, struct devrequest * setup, char * str, int small)
-{
-	urb_priv_t * purb = &urb_priv;
-
-	dbg("%s URB:[%4x] dev:%2d,ep:%2d-%c,type:%s,len:%d/%d stat:%#lx\n",
-			str,
-			sohci_get_current_frame_number (dev),
-			usb_pipedevice (pipe),
-			usb_pipeendpoint (pipe),
-			usb_pipeout (pipe)? 'O': 'I',
-			usb_pipetype (pipe) < 2? (usb_pipeint (pipe)? "INTR": "ISOC"):
-				(usb_pipecontrol (pipe)? "CTRL": "BULK"),
-			purb->actual_length,
-			transfer_len, dev->status);
-#if	OHCI_VERBOSE_DEBUG == 1
-	if (!small) {
-		int i, len;
-
-		if (usb_pipecontrol (pipe)) {
-			printf (__FILE__ ": cmd(8):");
-			for (i = 0; i < 8 ; i++)
-				printf (" %02x", ((u8 *) setup) [i]);
-			printf ("\n");
-		}
-		if (transfer_len > 0 && buffer) {
-			printf (__FILE__ ": data(%d/%d):",
-				purb->actual_length,
-				transfer_len);
-			len = usb_pipeout (pipe)?
-					transfer_len: purb->actual_length;
-			for (i = 0; i < 16 && i < len; i++)
-				printf (" %02x", ((u8 *) buffer) [i]);
-			printf ("%s\n", i < len? "...": "");
-		}
-	}
-#endif
-}
-
-/* just for debugging; prints non-empty branches of the int ed tree inclusive iso eds*/
-void ep_print_int_eds (ohci_t *ohci, char * str) {
-	int i, j;
-	 u32 * ed_p;
-	for (i= 0; i < 32; i++) {
-		j = 5;
-		ed_p = &(ohci->hcca->int_table [i]);
-		if (*ed_p == 0)
-		    continue;
-		printf (__FILE__ ": %s branch int %2d(%2x):", str, i, i);
-		while (*ed_p != 0 && j--) {
-			ed_t *ed = (ed_t *)m32_swap(ed_p);
-			printf (" ed: %4x;", ed->hwINFO);
-			ed_p = &ed->hwNextED;
-		}
-		printf ("\n");
-	}
-}
-
-static void ohci_dump_intr_mask (char *label, u32 mask)
-{
-	dbg ("%s: 0x%08x%s%s%s%s%s%s%s%s%s",
-		label,
-		mask,
-		(mask & OHCI_INTR_MIE) ? " MIE" : "",
-		(mask & OHCI_INTR_OC) ? " OC" : "",
-		(mask & OHCI_INTR_RHSC) ? " RHSC" : "",
-		(mask & OHCI_INTR_FNO) ? " FNO" : "",
-		(mask & OHCI_INTR_UE) ? " UE" : "",
-		(mask & OHCI_INTR_RD) ? " RD" : "",
-		(mask & OHCI_INTR_SF) ? " SF" : "",
-		(mask & OHCI_INTR_WDH) ? " WDH" : "",
-		(mask & OHCI_INTR_SO) ? " SO" : ""
-		);
-}
-
-static void maybe_print_eds (char *label, u32 value)
-{
-	ed_t *edp = (ed_t *)value;
-
-	if (value) {
-		dbg ("%s %08x", label, value);
-		dbg ("%08x", edp->hwINFO);
-		dbg ("%08x", edp->hwTailP);
-		dbg ("%08x", edp->hwHeadP);
-		dbg ("%08x", edp->hwNextED);
-	}
-}
-
-static char * hcfs2string (int state)
-{
-	switch (state) {
-		case OHCI_USB_RESET:	return "reset";
-		case OHCI_USB_RESUME:	return "resume";
-		case OHCI_USB_OPER:	return "operational";
-		case OHCI_USB_SUSPEND:	return "suspend";
-	}
-	return "?";
-}
-
-/* dump control and status registers */
-static void ohci_dump_status (ohci_t *controller)
-{
-	struct ohci_regs	*regs = controller->regs;
-	u32			temp;
-
-	temp = readl (&regs->revision) & 0xff;
-	if (temp != 0x10)
-		dbg ("spec %d.%d", (temp >> 4), (temp & 0x0f));
-
-	temp = readl (&regs->control);
-	dbg ("control: 0x%08x%s%s%s HCFS=%s%s%s%s%s CBSR=%d", temp,
-		(temp & OHCI_CTRL_RWE) ? " RWE" : "",
-		(temp & OHCI_CTRL_RWC) ? " RWC" : "",
-		(temp & OHCI_CTRL_IR) ? " IR" : "",
-		hcfs2string (temp & OHCI_CTRL_HCFS),
-		(temp & OHCI_CTRL_BLE) ? " BLE" : "",
-		(temp & OHCI_CTRL_CLE) ? " CLE" : "",
-		(temp & OHCI_CTRL_IE) ? " IE" : "",
-		(temp & OHCI_CTRL_PLE) ? " PLE" : "",
-		temp & OHCI_CTRL_CBSR
-		);
-
-	temp = readl (&regs->cmdstatus);
-	dbg ("cmdstatus: 0x%08x SOC=%d%s%s%s%s", temp,
-		(temp & OHCI_SOC) >> 16,
-		(temp & OHCI_OCR) ? " OCR" : "",
-		(temp & OHCI_BLF) ? " BLF" : "",
-		(temp & OHCI_CLF) ? " CLF" : "",
-		(temp & OHCI_HCR) ? " HCR" : ""
-		);
-
-	ohci_dump_intr_mask ("intrstatus", readl (&regs->intrstatus));
-	ohci_dump_intr_mask ("intrenable", readl (&regs->intrenable));
-
-	maybe_print_eds ("ed_periodcurrent", readl (&regs->ed_periodcurrent));
-	
-	maybe_print_eds ("ed_controlhead", readl (&regs->ed_controlhead));
-	maybe_print_eds ("ed_controlcurrent", readl (&regs->ed_controlcurrent));
-	maybe_print_eds ("ed_bulkhead", readl (&regs->ed_bulkhead));
-	maybe_print_eds ("ed_bulkcurrent", readl (&regs->ed_bulkcurrent));
-	maybe_print_eds ("donehead", readl (&regs->donehead));
-}
-
-static void ohci_dump_roothub (ohci_t *controller, int verbose)
-{
-	u32			temp, ndp, i;
-
-	temp = roothub_a (controller);
-	ndp = (temp & RH_A_NDP);
-
-	if (verbose) {
-		dbg ("roothub.a: %08x POTPGT=%d%s%s%s%s%s NDP=%d", temp,
-			((temp & RH_A_POTPGT) >> 24) & 0xff,
-			(temp & RH_A_NOCP) ? " NOCP" : "",
-			(temp & RH_A_OCPM) ? " OCPM" : "",
-			(temp & RH_A_DT) ? " DT" : "",
-			(temp & RH_A_NPS) ? " NPS" : "",
-			(temp & RH_A_PSM) ? " PSM" : "",
-			ndp
-			);
-		temp = roothub_b (controller);
-		dbg ("roothub.b: %08x PPCM=%04x DR=%04x",
-			temp,
-			(temp & RH_B_PPCM) >> 16,
-			(temp & RH_B_DR)
-			);
-		temp = roothub_status (controller);
-		dbg ("roothub.status: %08x%s%s%s%s%s%s",
-			temp,
-			(temp & RH_HS_CRWE) ? " CRWE" : "",
-			(temp & RH_HS_OCIC) ? " OCIC" : "",
-			(temp & RH_HS_LPSC) ? " LPSC" : "",
-			(temp & RH_HS_DRWE) ? " DRWE" : "",
-			(temp & RH_HS_OCI) ? " OCI" : "",
-			(temp & RH_HS_LPS) ? " LPS" : ""
-			);
-	}
-
-	for (i = 0; i < ndp; i++) {
-		temp = roothub_portstatus (controller, i);
-		dbg ("roothub.portstatus [%d] = 0x%08x%s%s%s%s%s%s%s%s%s%s%s%s",
-			i,
-			temp,
-			(temp & RH_PS_PRSC) ? " PRSC" : "",
-			(temp & RH_PS_OCIC) ? " OCIC" : "",
-			(temp & RH_PS_PSSC) ? " PSSC" : "",
-			(temp & RH_PS_PESC) ? " PESC" : "",
-			(temp & RH_PS_CSC) ? " CSC" : "",
-
-			(temp & RH_PS_LSDA) ? " LSDA" : "",
-			(temp & RH_PS_PPS) ? " PPS" : "",
-			(temp & RH_PS_PRS) ? " PRS" : "",
-			(temp & RH_PS_POCI) ? " POCI" : "",
-			(temp & RH_PS_PSS) ? " PSS" : "",
-
-			(temp & RH_PS_PES) ? " PES" : "",
-			(temp & RH_PS_CCS) ? " CCS" : ""
-			);
-	}
-}
-
-static void ohci_dump (ohci_t *controller, int verbose)
-{
-	dbg ("OHCI controller usb-%s state", controller->slot_name);
-
-	/* dumps some of the state we know about */
-	ohci_dump_status (controller);
-	if (verbose)
-		ep_print_int_eds (controller, "hcca");
-	dbg ("hcca frame #%04x", controller->hcca->frame_no);
-	ohci_dump_roothub (controller, 1);
-}
-
-
-#endif /* DEBUG */
 
 /*-------------------------------------------------------------------------*
  * Interface functions (URB)
@@ -2565,7 +2342,6 @@ static int ohci_submit_rh_msg(struct usb_device *dev, unsigned long pipe,
 #ifdef DEBUG
 	if (transfer_len)
 		urb_priv.actual_length = transfer_len;
-	pkt_print(dev, pipe, buffer, transfer_len, cmd, "RET(rh)", usb_pipein(pipe));
 #else
 	wait_ms(1);
 #endif
@@ -2837,10 +2613,7 @@ static int ohci_submit_control_msg(struct usb_device *dev, unsigned long pipe,
 	struct ohci *gohci = dev->hc_private;
 
 	if(ohci_debug)printf("submit_control_msg(%d) %x/%d\n", (pipe>>8)&0x7f, buffer, transfer_len);
-#if 0
-	urb_priv.actual_length = 0;
-	pkt_print(dev, pipe, buffer, transfer_len, setup, "SUB", usb_pipein(pipe));
-#else
+#if 1
 	wait_ms(1);
 #endif
 	if (!maxsize) {
@@ -3428,6 +3201,21 @@ int usb_lowlevel_stop(void *hc_data)
 	/* may not want to do this */
 	/* Disable clock */
 	return 0;
+}
+
+void usb_ohci_stop_one(ohci_t *ohci)
+{
+	writel (0, &ohci->regs->control);
+	writel (OHCI_HCR,  &ohci->regs->cmdstatus);
+	(void) readl (&ohci->regs->cmdstatus);
+}
+
+void usb_ohci_stop()
+{
+	int i;
+
+	for(i=0; i< MAX_OHCI_C && usb_ohci_dev[i]; i++) 
+		usb_ohci_stop_one(usb_ohci_dev[i]);
 }
 
 #ifdef DEBUG

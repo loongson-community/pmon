@@ -51,6 +51,7 @@
 
 #include "mod_debugger.h"
 #include "mod_usb_uhci.h"
+#include "mod_usb_ohci.h"
 
 #include "initrd.h"
 
@@ -85,6 +86,9 @@ const Optdesc         cmd_g_opts[] = {
 #if NMOD_USB_UHCI != 0
 extern void usb_uhci_stop(void);
 #endif
+#if NMOD_USB_OHCI != 0
+extern void usb_ohci_stop(void);
+#endif
 extern void rtl8139_stop(void);
 /*************************************************************
  *  go(ac,av), the 'g' command
@@ -116,9 +120,6 @@ extern char	*optarg;
 		case 'S':
 #if NMOD_USB_UHCI != 0
 			usb_uhci_stop();
-#endif
-#if NRTL > 0
-			rtl8139_stop();
 #endif
 			break;
 		case 's':
@@ -177,6 +178,14 @@ extern char	*optarg;
 		strcpy ((void *)0x4200, getenv ("vxWorks"));
 	}
 #endif
+
+#if NMOD_USB_OHCI != 0
+	usb_ohci_stop();
+#endif
+#if NRTL > 0
+	rtl8139_stop();
+#endif
+
 #if NMOD_DEBUGGER > 0
 	if (setjmp (go_return_jump) == 0) {	
 		goclient ();
