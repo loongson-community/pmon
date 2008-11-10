@@ -1742,10 +1742,12 @@ END(i2cread)
         .set    noreorder
         .set    mips3
 ddr2_config:
+#ifdef __MYDEBUG__
     la      t0, ddr2_reg_data
 	bal tgt_testchar
 	nop
 	beqz v0,1f
+	nop
 	bal tgt_getchar
 	nop
 	bal tgt_getchar
@@ -1769,29 +1771,13 @@ ddr2_config:
 	PRINTSTR("use backup data for ddr cfg\r\n");
     la      t0, ddr2_reg_data1
 1:
+#endif
     addu    t0, t0, s0
     li      t1, 0x1d
     li      t2, CONFIG_BASE
 
 reg_write:
-#if 0
-	move	a0,t0
-	bal	hexserial
-        nop
-	move	a0,t2
-	bal	hexserial
-        nop
-
-	move	a0,t1
-	bal	hexserial
-        nop
-#endif
     ld      a1, 0x0(t0)
-#if 0
-	move	a0,a1
-	bal	hexserial
-        nop
-#endif
     sd      a1, REG_ADDRESS(t2)
     subu    t1, t1, 0x1
     addiu     t0, t0, 0x8
@@ -1805,9 +1791,11 @@ reg_write:
 #endif
 //----------------
 
+#ifdef __MYDEBUG__
 	bal tgt_testchar
 	nop
 	beqz v0,2f
+	nop
 	bal tgt_getchar
 	nop
 	bal tgt_getchar
@@ -1827,6 +1815,7 @@ reg_write:
 	bal mydebug_main
     nop	
 2:
+#endif
     
     ############start##########
 	//PRINTSTR("start\n\r");

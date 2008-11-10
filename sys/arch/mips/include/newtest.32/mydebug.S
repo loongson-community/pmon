@@ -1,3 +1,5 @@
+#ifndef __MYDEBUG__
+#define __MYDEBUG__
 .set noreorder
 #define CP0_PRID $15
 #define BONITO_PCICFG_BASE 0x1fe00000
@@ -1404,3 +1406,4 @@ END(mydebug_main)
 	.text
     .align 2
 .set noreorder
+#endif

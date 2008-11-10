@@ -1,3 +1,5 @@
+#ifndef __MYDEBUG__
+#define __MYDEBUG__
 bootkeytest:
 	bal tgt_testchar
 	nop
@@ -1457,4 +1459,5 @@ move t9,ra
 b mydebug_restarth
 nop
 END(mydebug_main)
+#endif
 

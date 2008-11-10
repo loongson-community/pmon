@@ -1291,7 +1291,7 @@ static int cmd_testnet(int argc,char **argv)
 	int s;
 	struct sockaddr addr;
 
-	if(argc<2)return -1;
+	if(argc<3)return -1;
 	addr.sa_len=sizeof(addr);
 	strcpy(addr.sa_data,argv[1]);
 
@@ -1310,7 +1310,7 @@ static int cmd_testnet(int argc,char **argv)
 			printf("%d\r",j);
 		}
 	}
-	else
+	else if(!strcmp(argv[2],"recv"))
 	{
 		bind(s,&addr,sizeof(addr));
 		while(1)
@@ -1324,6 +1324,43 @@ static int cmd_testnet(int argc,char **argv)
 				printf("%02x ",buf[i]);
 			}
 		}
+	}
+	else
+	{
+	int errors=0;
+		bind(s,&addr,sizeof(addr));
+		while(1)
+		{
+			unsigned char buf[1500];
+			int len;
+		for(j=0;;j++)
+		{
+			memset(buf,0xff,12);
+			for(i=12;i<100;i++) buf[i]=i-12+j;
+			sendto(s,buf,100,0,&addr,sizeof(addr));
+			len=recv(s,buf,100,0);
+			for(i=12;i<100;i++) 
+			{
+			if(buf[i]!=i-12+j)break;
+			}
+
+			if(i==100)
+			{
+			printf("\r%d,%d",j,errors);
+			}
+			else
+			{
+			errors++;
+				for(i=0;i<len;i++)
+				{
+					if((i&15)==0)printf("\n%02x: ",i);
+					printf("%02x ",buf[i]);
+				}
+			}
+			delay1(500);
+		}
+		}
+
 	}
 	close(s);
 	return 0;
@@ -2139,7 +2176,7 @@ return 0;
 static const Cmd Cmds[] =
 {
 	{"MyCmds"},
-	{"testnet",	"", 0, "testnet", cmd_testnet, 0, 99, CMD_REPEAT},
+	{"testnet",	"", 0, "testnet rtl0 [recv|send|loop]", cmd_testnet, 0, 99, CMD_REPEAT},
 #if __mips >= 3
 	{"cp0s",	"", 0, "access cp0", mycp0s, 0, 99, CMD_REPEAT},
 	{"scachedump",	"", 0, "access Scache tag",dumpcache, 0, 99, CMD_REPEAT},

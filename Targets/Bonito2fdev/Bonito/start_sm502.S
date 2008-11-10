@@ -1605,9 +1605,11 @@ END(superio_init)
         .set    mips3
 ddr2_config:
     la      t0, ddr2_reg_data
+#ifdef __MYDEBUG__
 	bal tgt_testchar
 	nop
 	beqz v0,1f
+	nop
 	bal tgt_getchar
 	nop
 	bal tgt_getchar
@@ -1619,6 +1621,7 @@ ddr2_config:
 	PRINTSTR("use backup data for ddr cfg\r\n");
     la      t0, ddr2_reg_data1
 1:
+#endif
     addu    t0, t0, s0
     li      t1, 0x1d
     li      t2, CONFIG_BASE
@@ -1643,9 +1646,11 @@ i2c_test:
 2:	
 /////////////////
 
+#ifdef __MYDEBUG__
 	bal tgt_testchar
 	nop
 	beqz v0,2f
+	nop
 	bal tgt_getchar
 	nop
 	bal tgt_getchar
@@ -1665,6 +1670,7 @@ i2c_test:
 	bal mydebug_main
     nop	
 2:
+#endif
     
     ############start##########
 	//PRINTSTR("start\n\r");
