@@ -1074,16 +1074,12 @@ _probe_frequencies()
 	char tmp;
 	word_addr = 1;
 	i2c_rec_s(0xde,0x3f,&tmp,1);
+	/*
+	 * bit0:Battery is run out ,please replace the rtc battery
+	 * bit4:Rtc oscillator is no operating,please reset the machine
+	 */
 	tgt_printf("0x3f value  %x\n",tmp);
 	init_legacy_rtc();
-	if(tmp&0x1){	
-		tgt_printf("Battery is run out ,please replace the rtc battery!!\n");
-		while(1);
-	}
-	else if(tmp&0x10){
-		tgt_printf("Rtc oscillator is no operating,please reset the machine!\n");
-		while(1);
-	}
 	i2c_rec_s(0xde,0x14,&tmp,1);
 	tgt_printf("0x14 value  %x\n",tmp);
 #endif

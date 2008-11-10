@@ -126,3 +126,64 @@ if(!found) printf("can not found harddisk\n");
 	gets(str);
 return 0;
 }
+
+extern char *devclass[];
+int disktest()
+{
+struct device *dev, *next_dev;
+FILE *fp;
+char fname[0x40];
+unsigned char buf[512];
+unsigned char buf1[512];
+int j,found=0;
+int errors;
+	for (dev  = TAILQ_FIRST(&alldevs); dev != NULL; dev = next_dev) {
+		next_dev = TAILQ_NEXT(dev, dv_list);
+		if(dev->dv_class != DV_DISK || !strcmp(&dev->dv_xname,"loopdev0")) {
+		continue;
+		}
+		printf("%-12s %s\n", &dev->dv_xname, devclass[dev->dv_class]);
+		found=1;
+	}
+	if(!found){printf("can not found disk\n");return 0;}
+	for (dev  = TAILQ_FIRST(&alldevs); dev != NULL; dev = next_dev) {
+		next_dev = TAILQ_NEXT(dev, dv_list);
+		if(dev->dv_class != DV_DISK || !strcmp(&dev->dv_xname,"loopdev0")) {
+		continue;
+		}
+		printf("test %s ...", &dev->dv_xname);
+	sprintf(fname,"/dev/disk/%s",&dev->dv_xname);
+	fp=fopen(fname,"r+");
+	fseek(fp,1024,SEEK_SET);
+	fread(buf,512,1,fp);
+	fclose(fp);
+
+	memset(buf1,0x5a,512);
+	fp=fopen(fname,"r+");
+	fseek(fp,1024,SEEK_SET);
+	fwrite(buf1,512,1,fp);
+	fclose(fp);
+
+	memset(buf1,0,512);
+
+	fp=fopen(fname,"r+");
+	fseek(fp,1024,SEEK_SET);
+	fread(buf1,512,1,fp);
+	fclose(fp);
+
+	fp=fopen(fname,"r+");
+	fseek(fp,1024,SEEK_SET);
+	fwrite(buf,512,1,fp);
+	fclose(fp);
+	
+	errors=0;
+	for(j=0;j<512;j++)
+	if(buf1[j]!=0x5a)
+	{
+		printf("read write test error,write 0x5a read %x\n",buf1[j]);
+		errors++;
+	}
+	if(!errors)printf("ok\n");
+}
+return 0;
+}

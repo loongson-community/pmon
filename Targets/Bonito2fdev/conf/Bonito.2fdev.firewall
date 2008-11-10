@@ -61,7 +61,6 @@ select		cmd_devls		# Device list
 select		cmd_set			# As cmd_env but not req. cmd_hist
 select		cmd_testdisk
 select		have_tod
-select		cmd_test
 #
 select		cmd_shell		# Shell commands, vers, help, eval
 #
@@ -69,8 +68,8 @@ select		cmd_shell		# Shell commands, vers, help, eval
 # Platform options
 #
 select		mod_uart_ns16550	# Standard UART driver
-option		CONS_BAUD=B9600
-#option		CONS_BAUD=B115200
+#option		CONS_BAUD=B9600
+option		CONS_BAUD=B115200
 select		ext2
 select		fatfs
 #select		mod_x86emu		# X86 emulation for VGA
@@ -176,8 +175,8 @@ option FLOATINGPT
 option WDC_NORESET
 option DEVBD2F_FIREWALL
 select gzip
-option INPUT_FROM_BOTH
-option OUTPUT_TO_BOTH
+#option INPUT_FROM_BOTH
+#option OUTPUT_TO_BOTH
 option LS2F_FIREWALL
 option GPIO_I2C
 #option USE_GPIO_SERIAL
@@ -186,3 +185,6 @@ select tcp
 select inet
 select tftpd
 select raw_ether
+select cmd_testfire
+option COM3_BASE_ADDR=0xbe000000
+select e100

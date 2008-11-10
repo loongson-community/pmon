@@ -1304,7 +1304,8 @@ static int cmd_testnet(int argc,char **argv)
 	{
 		for(j=0;;j++)
 		{
-			for(i=0;i<100;i++) buf[i]=i+j;
+			memset(buf,0xff,14);
+			for(i=14;i<100;i++) buf[i]=i+j;
 			sendto(s,buf,100,0,&addr,sizeof(addr));
 			delay1(500);
 			printf("%d\r",j);
@@ -1335,16 +1336,16 @@ static int cmd_testnet(int argc,char **argv)
 			int len;
 		for(j=0;;j++)
 		{
-			memset(buf,0xff,12);
-			for(i=12;i<100;i++) buf[i]=i-12+j;
+			memset(buf,0xff,14);
+			for(i=14;i<100;i++) buf[i]=i-12+j;
 			sendto(s,buf,100,0,&addr,sizeof(addr));
 			len=recv(s,buf,100,0);
-			for(i=12;i<100;i++) 
+			for(i=12;i<100-4;i++) 
 			{
 			if(buf[i]!=i-12+j)break;
 			}
 
-			if(i==100)
+			if(i==100-4)
 			{
 			printf("\r%d,%d",j,errors);
 			}
