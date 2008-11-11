@@ -306,11 +306,19 @@ term_ioctl (int fd, unsigned long op, ...)
 		case FIONREAD:
 			scandevs ();
 #ifdef INPUT_FROM_BOTH
-	if(devp->dev==1)
-			*(int *)argp = Qused (p->rxq) + Qused (DevTable[0].rxq);
-	else
-#endif
+	{
+	int dsel,total=0;
+	for(dsel=0;;dsel++)
+	{
+	p = &DevTable[dsel];
+	if(!p->handler)break;
+	total+= Qused (p->rxq);
+	}
+			*(int *)argp = total;
+	}
+#else
 			*(int *)argp = Qused (p->rxq);
+#endif
 			break;
 		case SETINTR:
 			p->intr = (struct jmp_buf *) argp;

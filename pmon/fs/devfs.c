@@ -247,6 +247,8 @@ physio(strategy, bp, dev, flags, minphys, uio)
  *  and not a raw device.
  */
 
+static char _lbuff[DEV_BSIZE*2];
+static char *lbuff;
 int
 devio_open(fd, name, flags, mode)
 	int fd;
@@ -258,6 +260,8 @@ devio_open(fd, name, flags, mode)
 	dev_t dev;
 	struct biodev *devstat;
 	char strbuf[64], *strp, *p;
+
+lbuff=(long)(_lbuff+DEV_BSIZE-1)&~(DEV_BSIZE-1);
 
 	dev = find_device(&name);
 	if(dev == NULL || *name == '/') {
@@ -341,81 +345,12 @@ devio_close(fd)
 	return(0);
 }
 
-/*
- *  Read data from a device.
- */
 
-int
-devio_read(fd, buf, blen)
-	int fd;
-	void *buf;
-	size_t blen;
+static int read_device(int fd,void *buf,size_t blen)
 {
 	int mj;
 	struct uio uio;
 	struct iovec iovec;
-static char lbuff[DEV_BSIZE];
-
-	if(opendevs[fd].offs < opendevs[fd].base ||
-	   opendevs[fd].offs > opendevs[fd].end) {
-		errno = EINVAL;
-		return(-1);
-	}
-	if(blen > (opendevs[fd].end - opendevs[fd].offs))
-		blen = opendevs[fd].end - opendevs[fd].offs;
-
-	if (blen == 0)
-		return(0);
-
-	/* Check for unaligned read, eg we need to buffer */
-	if (opendevs[fd].offs & (DEV_BSIZE - 1) || blen < DEV_BSIZE) {
-		int suboffs = opendevs[fd].offs & (DEV_BSIZE - 1);
-		char *p = &lbuff[suboffs];
-		int c, n = 0;
-		opendevs[fd].offs &= ~(DEV_BSIZE - 1);
-		if (devio_read(fd, lbuff, DEV_BSIZE) < 0) {
-			opendevs[fd].offs += suboffs;
-			return(-1);
-		}
-		while(blen && suboffs < DEV_BSIZE) {
-			*((char *)buf)++ = *p++;
-			blen--;
-			suboffs++;
-			n++;
-		}
-		opendevs[fd].offs -= (DEV_BSIZE - suboffs);
-		c = devio_read(fd, buf, blen);
-		if (c >= 0)
-			return(c + n);
-		else
-			return(-1);
-	}
-	else if(blen & (DEV_BSIZE - 1)) {
-		int c, n;
-		c = devio_read(fd, buf, blen & ~(DEV_BSIZE - 1));
-		if (c < 0)
-			return(-1);
-		buf += c;
-		blen -= c;
-		n = devio_read(fd, buf, blen);
-		if (n >= 0)
-			return(n + c);
-		else
-			return(-1);
-	}
-	if (blen > MAXPHYS) {
-		int c, n = 0;
-		do {
-			c = devio_read(fd, buf, min(MAXPHYS, blen));
-			if (c < 0)
-				return(-1);
-			n += c;
-			blen -= c;
-			buf += c;
-		} while (blen > 0);
-		return(n);
-	}
-	else {
 		mj = opendevs[fd].devno >> 8;
 		uio.uio_iovcnt = 1;
 		uio.uio_iov = &iovec;
@@ -428,31 +363,17 @@ static char lbuff[DEV_BSIZE];
 		curproc->p_stat = SNOTKERN;
 		errno = (*devswitch[mj].read)(opendevs[fd].devno, &uio, 0);
 		curproc->p_stat = SNOTKERN;
-	}
-
 	if(errno) {
 		return(-1);
 	}
-	opendevs[fd].offs += blen;
-	return(blen);
+		return blen;
 }
 
-/*
- *  Write data to a device.
- */
-
-int
-devio_write(fd, buf, blen)
-	int fd;
-	const void *buf;
-	size_t blen;
+static int write_device(int fd,void *buf,size_t blen)
 {
 	int mj;
 	struct uio uio;
 	struct iovec iovec;
-
-	if (blen == 0)
-		return(0);
 
 	mj = opendevs[fd].devno >> 8;
 	uio.uio_iovcnt = 1;
@@ -471,6 +392,136 @@ devio_write(fd, buf, blen)
 		return(-1);
 	}
 	return(blen);
+}
+
+/*
+ *  Read data from a device.
+ */
+
+int
+devio_read(fd, buf, blen)
+	int fd;
+	void *buf;
+	size_t blen;
+{
+	size_t leftlen;
+	int ret=0;
+
+	if(opendevs[fd].offs < opendevs[fd].base ||
+	   opendevs[fd].offs > opendevs[fd].end) {
+		errno = EINVAL;
+		return(-1);
+	}
+	if(blen > (opendevs[fd].end - opendevs[fd].offs))
+		blen = opendevs[fd].end - opendevs[fd].offs;
+
+	if (blen == 0)
+		return(0);
+
+	leftlen=blen;
+
+	while(leftlen)
+	{
+
+	if (/*(long)buf&(DEV_BSIZE-1) ||*/ opendevs[fd].offs & (DEV_BSIZE - 1) || leftlen < DEV_BSIZE) {
+	/* Check for unaligned read, eg we need to buffer */
+		int suboffs = opendevs[fd].offs & (DEV_BSIZE - 1);
+		int n=min(DEV_BSIZE-suboffs,leftlen);
+		opendevs[fd].offs &= ~(DEV_BSIZE - 1);
+		ret=read_device(fd, lbuff, DEV_BSIZE);
+		 if(ret<0)break;
+		memcpy(buf,lbuff+suboffs,n);
+		 buf+=n;
+		 opendevs[fd].offs += suboffs+n;
+		 leftlen-=n;
+	 }
+	 else if(leftlen & (DEV_BSIZE - 1)) {
+		int n=min(leftlen & ~(DEV_BSIZE - 1),MAXPHYS);
+		ret = read_device(fd, buf, n);
+		if (ret < 0)
+			break;
+		buf += n;
+		opendevs[fd].offs += n;
+		leftlen -= n;
+	}
+	else
+	{
+		int n=min(leftlen,MAXPHYS);
+		ret = read_device(fd, buf, n);
+		if(ret<0)break;
+		buf += n;
+		opendevs[fd].offs += n;
+		leftlen -= n;
+	}
+   }
+
+	return ret<0?ret:blen-leftlen;
+}
+
+
+/*
+ *  Write data to a device.
+ */
+
+int
+devio_write(fd, buf, blen)
+	int fd;
+	const void *buf;
+	size_t blen;
+{
+	int mj;
+	struct uio uio;
+	struct iovec iovec;
+	size_t leftlen;
+	int ret;
+
+	if (blen == 0)
+		return(0);
+
+
+	leftlen=blen;
+
+	while(leftlen)
+	{
+
+	if (/*(long)buf&(DEV_BSIZE-1) ||*/ opendevs[fd].offs & (DEV_BSIZE - 1) || leftlen < DEV_BSIZE) {
+	/* Check for unaligned read, eg we need to buffer */
+		int suboffs = opendevs[fd].offs & (DEV_BSIZE - 1);
+		int n=min(DEV_BSIZE-suboffs,leftlen);
+		opendevs[fd].offs &= ~(DEV_BSIZE - 1);
+		if(suboffs||n<DEV_BSIZE)
+		{
+		ret=read_device(fd, lbuff, DEV_BSIZE);
+		 if(ret<0)break;
+		}
+		memcpy(lbuff+suboffs,buf,n);
+		ret=write_device(fd, lbuff, DEV_BSIZE);
+		if(ret<0)break;
+		 buf+=n;
+		 opendevs[fd].offs += suboffs+n;
+		 leftlen-=n;
+	 }
+	 else if(leftlen & (DEV_BSIZE - 1)) {
+		int n=min(leftlen & ~(DEV_BSIZE - 1),MAXPHYS);
+		ret = write_device(fd, buf, n);
+		if (ret < 0)
+			break;
+		buf += n;
+		opendevs[fd].offs += n;
+		leftlen -= n;
+	}
+	else
+	{
+		int n=min(leftlen,MAXPHYS);
+		ret = write_device(fd, buf, n);
+		if(ret<0)break;
+		buf += n;
+		opendevs[fd].offs += n;
+		leftlen -= n;
+	}
+   }
+
+	return ret<0?ret:blen-leftlen;
 }
 
 /*
