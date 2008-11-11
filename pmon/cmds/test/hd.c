@@ -133,10 +133,12 @@ int disktest()
 struct device *dev, *next_dev;
 FILE *fp;
 char fname[0x40];
-unsigned char buf[512];
-unsigned char buf1[512];
 int j,found=0;
 int errors;
+static unsigned char _buf[512*16+511],*buf;
+static unsigned char _buf1[512*16+512],*buf1;
+buf=(long)(_buf+511)&~511;
+buf1=(long)(_buf1+511)&~511;
 	for (dev  = TAILQ_FIRST(&alldevs); dev != NULL; dev = next_dev) {
 		next_dev = TAILQ_NEXT(dev, dv_list);
 		if(dev->dv_class != DV_DISK || !strcmp(&dev->dv_xname,"loopdev0")) {
@@ -155,25 +157,25 @@ int errors;
 	sprintf(fname,"/dev/disk/%s",&dev->dv_xname);
 	fp=fopen(fname,"r+");
 	fseek(fp,1024,SEEK_SET);
-	fread(buf,512,1,fp);
+	fread(buf,512*16,1,fp);
 	fclose(fp);
 
-	memset(buf1,0x5a,512);
+	memset(buf1,0x5a,512*16);
 	fp=fopen(fname,"r+");
 	fseek(fp,1024,SEEK_SET);
-	fwrite(buf1,512,1,fp);
+	fwrite(buf1,512*16,1,fp);
 	fclose(fp);
 
-	memset(buf1,0,512);
-
-	fp=fopen(fname,"r+");
-	fseek(fp,1024,SEEK_SET);
-	fread(buf1,512,1,fp);
-	fclose(fp);
+	memset(buf1,0,512*16);
 
 	fp=fopen(fname,"r+");
 	fseek(fp,1024,SEEK_SET);
-	fwrite(buf,512,1,fp);
+	fread(buf1,512*16,1,fp);
+	fclose(fp);
+
+	fp=fopen(fname,"r+");
+	fseek(fp,1024,SEEK_SET);
+	fwrite(buf,512*16,1,fp);
 	fclose(fp);
 	
 	errors=0;

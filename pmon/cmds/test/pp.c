@@ -6,9 +6,12 @@
 static int pptest()
 {
 unsigned char c,d;
+#ifdef DEVBD2F_FIREWALL
+volatile unsigned char *p=0xbe000040;
+#else
 volatile unsigned char *p=0xbfd00378;
+#endif
 int errors=0;
-printf("connection as bellow:\n pin15-pin2 \n pin13-pin3 \n pin12-pin4 \n");
 printf("pptest now\n");
 for(c=0;c<7;c++)
 {
@@ -18,7 +21,10 @@ for(c=0;c<7;c++)
 	delay(500);
 	if(d!=c){printf("error: pin[15,13,12]!=pin[2,3,4](%03b!=%03b)\n",d,c);errors++;}
 }
-if(errors)printf("pp test failed\n");
+if(errors){
+printf("pp test failed\n");
+printf("please connection as bellow:\n pin15-pin2 \n pin13-pin3 \n pin12-pin4 \n");
+}
 else printf("pp test ok\n");
 return 0;
 }

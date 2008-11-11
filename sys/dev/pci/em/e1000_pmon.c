@@ -68,7 +68,7 @@ struct myfreelist {
 	caddr_t	next;
 };
 
-#define MYVM_KMEM_SIZE (4 * 1024 * 1024)
+#define MYVM_KMEM_SIZE (8 * 1024 * 1024)
 static vm_offset_t mykmem_offs;
 char *mykmem_malloc(unsigned long size)
 {

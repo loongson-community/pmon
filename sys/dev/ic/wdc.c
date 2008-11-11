@@ -966,6 +966,9 @@ wdcwait(chp, mask, bits, timeout)
 	timeout = timeout * 1000 / WDCDELAY; /* delay uses microseconds */
 
 	for (;;) {
+#ifdef DEVBD2F_FIREWALL
+		delay(10); //atp8620 can not read too fast.
+#endif
 #ifdef TEST_ALTSTS
 		chp->ch_status = status = CHP_READ_REG(chp, wdr_altsts);
 #else

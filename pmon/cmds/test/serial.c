@@ -1,3 +1,5 @@
+#include <termio.h>
+#include <pmon/dev/ns16550.h>
 #define         UART16550_BAUD_2400             2400
 #define         UART16550_BAUD_4800             4800
 #define         UART16550_BAUD_9600             9600
@@ -41,6 +43,7 @@
 #define         OFS_SEND_BUFFER         0
 #define         OFS_INTR_ENABLE         (1*REG_OFFSET)
 #define         OFS_INTR_ID             (2*REG_OFFSET)
+#define         OFS_FIFO             (2*REG_OFFSET)
 #define         OFS_DATA_FORMAT         (3*REG_OFFSET)
 #define         OFS_LINE_CONTROL        (3*REG_OFFSET)
 #define         OFS_MODEM_CONTROL       (4*REG_OFFSET)
@@ -61,21 +64,21 @@ static int serialbase[]={0xbe000000,0xbe000020};
 #else
 static int serialbase[]={0xbfd003f8,0xbfd002f8,0xbff003f8};
 #endif
-extern void delay1(int);
+extern void delay(int);
 /* memory-mapped read/write of the port */
 inline uint8 UART16550_READ(int line,int y){
-delay1(100);
+//delay(10000);
 return (*((volatile uint8*)(serialbase[line] + y)));
 }
 inline void  UART16550_WRITE(int line,int y, uint8 z){
-delay1(100);
+//delay(10000);
 ((*((volatile uint8*)(serialbase[line] + y))) = z);
 }
 
 static void debugInit(int line,uint32 baud, uint8 data, uint8 parity, uint8 stop)
 {
 	/* disable interrupts */
-	UART16550_WRITE(line,OFS_INTR_ENABLE, 0);
+	UART16550_WRITE(line,OFS_FIFO,FIFO_ENABLE|FIFO_RCV_RST|FIFO_XMT_RST|FIFO_TRIGGER_4);
 
 	/* set up buad rate */
 	{
@@ -90,11 +93,12 @@ static void debugInit(int line,uint32 baud, uint8 data, uint8 parity, uint8 stop
 		UART16550_WRITE(line,OFS_DIVISOR_MSB, (divisor & 0xff00) >> 8);
 
 		/* clear DIAB bit */
-		UART16550_WRITE(line,OFS_LINE_CONTROL, 0x0);
+	//	UART16550_WRITE(line,OFS_LINE_CONTROL, 0x0);
 	}
 
 	/* set data format */
 	UART16550_WRITE(line,OFS_DATA_FORMAT, data | parity | stop);
+	UART16550_WRITE(line,OFS_MODEM_CONTROL,0);
 }
 
 
@@ -120,24 +124,24 @@ static int putDebugChar(int line,uint8 byte)
 
 static int initserial(int line)
 {
-		debugInit(line,UART16550_BAUD_115200,
+		debugInit(line,CONS_BAUD,
 			  UART16550_DATA_8BIT,
 			  UART16550_PARITY_NONE, UART16550_STOP_1BIT);
 	return 0;
 }
 
 #define TIMEOUT 50
-#ifdef DEVBD2F_FIREWALL
-static int serialtest()
+static int serial_selftest(int channel)
 {
-	int i,j;
+	int i,j,error=0;
+	char c;
 	printf("serial test\n");
-	initserial(1);
+	initserial(channel);
 	
 	for(i=0;i<16;j++)
 	{
-		if(testDebugChar(1))
-			getDebugChar(1);
+		if(testDebugChar(channel))
+			getDebugChar(channel);
 		else break;
 	}
 	
@@ -145,22 +149,25 @@ static int serialtest()
 
 	for(i=0;i<10;i++)
 	{
-		putDebugChar(1,'a'+i);
+		putDebugChar(channel,'a'+i);
 		for(j=0;j<TIMEOUT;j++)
 		{
-			if(testDebugChar(1))
+		delay(1000);
+			if(testDebugChar(channel))
 				break;
 		}
 		if(j==TIMEOUT){
-			printf("timeout");
-			return 0;
+			//printf("timeout");
+			error=1;
+			continue;
 		}
-		printf("%c",getDebugChar(1));
+		printf("%c",(c=getDebugChar(channel)));
+		if(c!='a'+i)error=1;
 	}
-	printf("serial 1 ok!\n");
+	printf("...%s\n",error?"error":"ok");
 	return 0;
 }
-#else
+
 static int serialtest()
 {
 	int i,j;
@@ -221,7 +228,6 @@ static int serialtest()
 	return 0;
 }
 
-#endif
 static int cmd_serial(int argc,char **argv)
 {
 int line;

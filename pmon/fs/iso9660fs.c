@@ -50,6 +50,7 @@
 
 #include <pmon.h>
 #include <file.h>
+#include <diskfs.h>
 
 /* THIS IS AN UGLY HACK!!!			XXX */
 struct fid;
@@ -175,6 +176,8 @@ iso9660_open(int fd, const char *path, int flags, int mode)
 	if (strncmp(opath, "/dev/", 5) == 0)
 		opath += 5;
 	if (strncmp(opath, "iso9660/", 8) == 0)
+		opath += 8;
+	else if (strncmp(opath, "iso9660@", 8) == 0)
 		opath += 8;
 
 	/* There has to be at least one more component after the devicename */
@@ -410,6 +413,17 @@ iso9660_lseek(int fd, off_t offset, int where)
 /*
  *  File system registration info.
  */
+
+static DiskFileSystem diskfile={
+        "iso9660",
+        iso9660_open,
+        iso9660_read,
+        iso9660_write,
+        iso9660_lseek,
+        iso9660_close,
+	NULL
+};
+
 static FileSystem iso9660fs = {
         "iso9660", FS_FILE,
         iso9660_open,
@@ -426,4 +440,5 @@ static void
 init_fs()
 {
 	filefs_init(&iso9660fs);
+	diskfs_init(&diskfile);
 }

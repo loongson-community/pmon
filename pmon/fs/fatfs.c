@@ -49,6 +49,7 @@
 #include <pmon.h>
 #include <file.h>
 #include "fat.h"
+#include <diskfs.h>
 
 extern int errno;
 
@@ -57,6 +58,7 @@ int   fat_close (int);
 int   fat_read (int, void *, size_t);
 int   fat_write (int, const void *, size_t);
 off_t fat_lseek (int, off_t, int);
+static void *_myfile[OPEN_MAX];
 
 
 /*
@@ -81,8 +83,8 @@ int fat_parseDirEntries(int ,struct fat_fileentry *);
 
 /*
  * Supported paths:
- *	/dev/fat/disk@wd0/file
- *	/dev/fat/ram@address/file
+ *	/dev/fat@wd0/file
+ *	/dev/fs/fat@wd0/file
  *
  */
 int
@@ -104,6 +106,8 @@ fat_open(int fd, const char *path, int flags, int mode)
 		opath += 5;
 	if (strncmp(opath, "fat/", 4) == 0)
 		opath += 4;
+	else if (strncmp(opath, "fat@", 4) == 0)
+		opath += 4;
 
 	/* There has to be at least one more component after the devicename */
 	if (strchr(opath, '/') == NULL) {
@@ -118,6 +122,7 @@ fat_open(int fd, const char *path, int flags, int mode)
 
 	/* Set opath to point at the isolated filname path */
 	filename = strchr(opath, '/') + 1;
+	printf("dpath=%s,filename=%s\n",dpath,filename);
 
 	fsc = (struct fat_sc *)malloc(sizeof(struct fat_sc));
 	if (fsc == NULL) {
@@ -131,9 +136,6 @@ fat_open(int fd, const char *path, int flags, int mode)
 	 */
 	_file[fd].valid = 1;
 
-	//we need to change the device name like this /dev/disk/wd0, not /dev/disk@wd0
-	if(p = strchr(dpath, '@'))
-		*p = '/';
 
 	//here we see if the name is /dev/disk/wd0a or something like this
 	dpathlen = strlen(dpath);
@@ -166,7 +168,7 @@ fat_open(int fd, const char *path, int flags, int mode)
 	fsc->LastSector = -1;	/* No valid sector in sector buffer */
 
 	_file[fd].posn = 0;
-	_file[fd].data = (void *)fsc;
+	_myfile[fd] = (void *)fsc;
 	return (fd);
 }
 
@@ -175,7 +177,7 @@ fat_close(int fd)
 {
 	struct fat_sc *fsc;
 
-	fsc = (struct fat_sc *)_file[fd].data;
+	fsc = (struct fat_sc *)_myfile[fd];
 
 	if (fsc->file.Chain.entries) {
 		free(fsc->file.Chain.entries);
@@ -200,7 +202,7 @@ fat_read(int fd, void *buf, size_t len)
 	int sector;
 	int res = 0;
 
-	fsc = (struct fat_sc *)_file[fd].data;
+	fsc = (struct fat_sc *)_myfile[fd];
 
 	origpos = _file[fd].posn;
 
@@ -262,7 +264,7 @@ fat_lseek(int fd, off_t offset, int whence)
 {
 	struct fat_sc *fsc;
 
-	fsc = (struct fat_sc *)_file[fd].data;
+	fsc = (struct fat_sc *)_myfile[fd];
 
 	switch (whence) {
 		case SEEK_SET:
@@ -285,6 +287,15 @@ fat_lseek(int fd, off_t offset, int whence)
 /*
  *  File system registration info.
  */
+static DiskFileSystem diskfile={
+        "fat", 
+        fat_open,
+        fat_read,
+        fat_write,
+        fat_lseek,
+        fat_close,
+	NULL
+};
 static FileSystem fatfs = {
         "fat", FS_FILE,
         fat_open,
@@ -301,6 +312,7 @@ static void
 init_fs()
 {
 	filefs_init(&fatfs);
+	diskfs_init(&diskfile);
 }
 
 /***************************************************************************************************
