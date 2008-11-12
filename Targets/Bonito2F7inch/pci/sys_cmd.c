@@ -398,7 +398,7 @@ static int cmd_xbird(int ac, char *av[])
 	wrec(XBI_BANK | XBISPIA1, (addr & 0x00ff00) >> 8);
 	wrec(XBI_BANK | XBISPIA0, (addr & 0x0000ff) >> 0);
 	/* start action */
-	wrec(XBI_BANK | XBISPICMD, 3);
+	wrec(XBI_BANK | XBISPICMD, SPICMD_READ_BYTE);
 	timeout = 0x1000;
 	while(timeout-- >= 0){
 		if( !(rdec(XBI_BANK | XBISPICFG) & (1 << 1)) )

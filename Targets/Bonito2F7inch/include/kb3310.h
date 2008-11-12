@@ -6,6 +6,9 @@
  */
 
 /* We should make ec rom content and pmon port number equal. */
+/* if you use MX serial EC ROM, please select the option, otherwise mask it */
+#define	USING_MX_ROM
+
 #if	0
 #define	HIGH_PORT	0xff2d
 #define	LOW_PORT	0xff2e
@@ -34,6 +37,13 @@
 #define	XBISPICFG	0xAD
 #define	XBISPIDATR	0xAE
 #define	XBISPICFG2	0xAF
+
+/* commands definition for REG_XBISPICMD */
+#ifdef	USING_MX_ROM
+#define	SPICMD_READ_BYTE		0x0B
+#else
+#define	SPICMD_READ_BYTE		0x03
+#endif
 /* SMBUS relative register block according to the EC datasheet. */
 #define	REG_SMBTCRC		0xff92
 #define	REG_SMBPIN		0xff93
