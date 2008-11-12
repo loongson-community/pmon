@@ -110,7 +110,7 @@ pnmatch(const char *path, struct ptable_ent *pp)
 	
 	cp = pp->name;
 	for (i = isonum_711(pp->namlen); --i >= 0; path++, cp++) {
-		if (toupper(*path) == *cp)
+		if (toupper(*path) == toupper(*cp))
 			continue;
 		return 0;
 	}
@@ -133,7 +133,7 @@ dirmatch(const char *path, struct iso_directory_record *dp)
 	for (i = isonum_711(dp->name_len); --i >= 0; path++, cp++) {
 		if (!*path)
 			break;
-		if (toupper(*path) == *cp)
+		if (toupper(*path) == toupper(*cp))
 			continue;
 		return 0;
 	}
