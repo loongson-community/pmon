@@ -701,6 +701,28 @@ static int setkbd(int argc,char **argv)
 	return 0;
 }
 
+
+static int setinput(int argc,char **argv)
+{
+extern int input_from_both,output_to_both;
+	if(argc==1)
+	{
+	printf("input_from_both=%d,output_to_both=%d\n",input_from_both,output_to_both);
+	return 0;
+	}
+	if(!strcmp(argv[0],"setinput"))
+	{
+	 if(argv[1][0]=='1')input_from_both=1;
+	 else input_from_both=0;
+	}
+	else if(!strcmp(argv[0],"setoutput"))
+	{
+	 if(argv[1][0]=='1')output_to_both=1;
+	 else output_to_both=0;
+	}
+	return 0;
+}
+
 //-------------------------------------------------------------------------------------------
 
 #define ASID_INC	0x1
@@ -2197,6 +2219,8 @@ static const Cmd Cmds[] =
 	{"m8",	"addr [data]", 0, "modify address double word",modify, 0, 99, CMD_REPEAT},
 	{"setvga","[0|1]",0,"set vga_available",setvga,0,99,CMD_REPEAT},
 	{"setkbd","[0|1]",0,"set kbd_available",setkbd,0,99,CMD_REPEAT},
+	{"setinput","[0|1]",0,"set input_from_both",setinput,0,99,CMD_REPEAT},
+	{"setoutput","[0|1]",0,"set output_to_both",setinput,0,99,CMD_REPEAT},
 #if NMOD_VGACON
 	{"initkbd","",0,"kbd_initialize",initkbd,0,99,CMD_REPEAT},
 #endif

@@ -1435,8 +1435,8 @@ LEAF(initserial)
 	li	v1, CFCR_DLAB
 	sb	v1, NSREG(NS16550_CFCR)(v0)
 	sb	a0, NSREG(NS16550_DATA)(v0)
-	srl	v1, 8
-	sb	v1, NSREG(NS16550_IER)(v0)
+	srl	a0, 8
+	sb	a0, NSREG(NS16550_IER)(v0)
 	li	v1, CFCR_8BITS
 	sb	v1, NSREG(NS16550_CFCR)(v0)
 //	li	v1, MCR_DTR|MCR_RTS

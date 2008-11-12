@@ -79,6 +79,17 @@ struct TermDev {
       int dev;
 };
 
+#ifdef INPUT_FROM_BOTH
+int input_from_both=1;
+#else
+int input_from_both=0;
+#endif
+#ifdef OUTPUT_TO_BOTH
+int output_to_both=1;
+#else
+int output_to_both=0;
+#endif
+
 
 static void
 setsane(DevEntry *p)
@@ -120,13 +131,12 @@ term_write (int fd, const void *buf, size_t nchar)
 	n = nchar;
 	dsel=devp->dev;
 
-#ifdef OUTPUT_TO_BOTH
 do
 {
 	p = &DevTable[dsel];
 	buf2 = (char *)buf;
 	n = nchar;
-#endif
+
 	while (n > 0) {
 		/* << LOCK >> */
 		while(!tgt_smplock());
@@ -148,10 +158,8 @@ do
 			scandevs();
 		}
 	}
-#ifdef OUTPUT_TO_BOTH
 dsel=DevTable[dsel+1].handler?dsel+1:0;
-}while(dsel!=devp->dev);
-#endif
+}while(dsel!=devp->dev && output_to_both);
 
 	return (nchar);
 }
@@ -305,7 +313,7 @@ term_ioctl (int fd, unsigned long op, ...)
 			break;
 		case FIONREAD:
 			scandevs ();
-#ifdef INPUT_FROM_BOTH
+	if(input_from_both)
 	{
 	int dsel,total=0;
 	for(dsel=0;;dsel++)
@@ -316,9 +324,8 @@ term_ioctl (int fd, unsigned long op, ...)
 	}
 			*(int *)argp = total;
 	}
-#else
+	else
 			*(int *)argp = Qused (p->rxq);
-#endif
 			break;
 		case SETINTR:
 			p->intr = (struct jmp_buf *) argp;
@@ -492,11 +499,12 @@ term_read (fd, buf, n)
 
 	for (i = 0; i < n;) {
 		scandevs ();
-#ifdef INPUT_FROM_BOTH
+	if(input_from_both)
+	{
 	p = &DevTable[dsel];
 	if(!p->handler){dsel=0;continue;}
 	else dsel++;
-#endif
+	}
 
 		/* << LOCK >> */
 		while(!tgt_smplock());
