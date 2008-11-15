@@ -193,7 +193,8 @@ static struct us_data usb_stor[USB_MAX_STOR_DEV];
 
 int usb_stor_get_info(struct usb_device *dev, struct us_data *us, block_dev_desc_t *dev_desc);
 int usb_storage_probe(struct usb_device *dev, unsigned int ifnum,struct us_data *ss);
-unsigned long usb_stor_read(int device, unsigned long blknr, unsigned long blkcnt, unsigned long *buffer);
+static unsigned long 
+usb_stor_read(int device, unsigned long blknr, unsigned long blkcnt, unsigned long *buffer,unsigned char *cp);
 struct usb_device * usb_get_dev_index(int index);
 void uhci_show_temp_int_td(void);
 
@@ -962,10 +963,12 @@ static int usb_read_10(ccb *srb,struct us_data *ss, unsigned long start, unsigne
 }
 
 
-#define USB_MAX_READ_BLK 10
+#define USB_MAX_READ_BLK 16
 
 extern int ohci_debug;
-unsigned long usb_stor_read(int device, unsigned long blknr, unsigned long blkcnt, unsigned long *buffer)
+
+static unsigned long 
+usb_stor_read(int device, unsigned long blknr, unsigned long blkcnt, unsigned long *buffer, unsigned char *cp)
 {
 	unsigned long start,blks, buf_addr;
 	unsigned short smallblks;
@@ -1030,7 +1033,12 @@ retry_it:
 		splx(s);
 		start+=smallblks;
 		blks-=smallblks;
-		buf_addr+=srb->datalen;
+		if(cp) {
+			/*use the temp buf, a copy is needed*/
+			memcpy(cp, buf_addr, srb->datalen);
+			cp += srb->datalen;
+		}else 
+			buf_addr+=srb->datalen;
 	} while(blks!=0);
 	USB_STOR_PRINTF("usb_read: end startblk %lx, blccnt %x buffer %lx\n",start,smallblks,buf_addr);
 	usb_disable_asynch(0); /* asynch transfer allowed */
@@ -1331,7 +1339,7 @@ void	usb_strategy(struct buf *bp);
 int	usb_read(dev_t dev, struct uio *uio, int ioflag);
 int	usb_write(dev_t dev, struct uio *uio, int ioflag);
 
-static unsigned char bulkbuf[24*1024] __attribute__((section("data"),aligned(4096)));
+static unsigned char bulkbuf[24*1024] __attribute__((section("data"),aligned(256)));
 
 int	usb_open(dev_t dev, int flag, int fmt, struct proc *p)
 {
@@ -1390,13 +1398,10 @@ void usb_strategy(struct buf *bp)
 		goto done;
 	
 	if(bp->b_flags & B_READ){
-		if((unsigned long)bp->b_data & (d_secsize - 1)){
-			ret = usb_stor_read(dev, blkno, blkcnt, (unsigned long *)bulkbuf); 
-			memcpy(bp->b_data, bulkbuf, bp->b_bcount);
-			//ret = usb_stor_read(dev, blkno, 1, (unsigned long *)bulkbuf); 
-			//memcpy(bp->b_data, bulkbuf,d_secsize-(unsigned )bp0->b_data & (d_secsize -1));
+		if((unsigned long)bp->b_data & 0x7f){
+			ret = usb_stor_read(dev, blkno, blkcnt, (unsigned long *)bulkbuf, bp->b_data);
 		} else {
-			ret = usb_stor_read(dev, blkno, blkcnt, (unsigned long *)bp->b_data);
+			ret = usb_stor_read(dev, blkno, blkcnt, (unsigned long *)bp->b_data, NULL);
 		}
 		if(ret != blkcnt)
 			bp->b_flags |= B_ERROR;	
