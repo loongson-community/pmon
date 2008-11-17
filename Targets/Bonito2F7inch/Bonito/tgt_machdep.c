@@ -487,8 +487,6 @@ tgt_reboot()
 #endif
 
 #ifdef LOONGSON2F_7INCH
-	unsigned int i;
-	unsigned char val;
 
 	/* dark the lcd */
 	*((volatile unsigned char *)(0xbfd00000 | HIGH_PORT)) = 0xfe;
@@ -525,7 +523,6 @@ tgt_poweroff()
 	unsigned long val;
 	unsigned long tag;
 	unsigned long base;
-	int i, j;
 
 #ifdef	LOONGSON2F_7INCH
 #if 0
@@ -1055,6 +1052,8 @@ static int ec_flash_erase(void)
 	return 0;
 }
 
+#define    VER_ADDR    0xf300
+char ec_ver[32];
 void
 tgt_ecprogram(void *s, int size){
 	unsigned char *ptr = s;
@@ -1063,13 +1062,17 @@ tgt_ecprogram(void *s, int size){
 	unsigned char val;
 	int timeout;
 	int i = 0;
+	int j = 0;
+	unsigned long vaddr = 0;
 	int ret = 0;
 
 	if(size > 0x10000){
 		printf("ecprogram : out of range.\n");
 		return;
 	}
+	ec_ver[31] = '\0';
 
+	printf("eraseing ver %s\n", ec_ver);
 	/* erase the whole chip. */
 	val = ec_flash_erase();
 	if(val){
@@ -1081,6 +1084,30 @@ tgt_ecprogram(void *s, int size){
 		}
 	}
 
+	ret = 0;
+	vaddr = VER_ADDR;
+	for(j = 0; j < 32; j++){
+		ec_program_byte(vaddr, ec_ver[j]);
+		val = rdec(vaddr);
+		if(val != ec_ver[j]){
+			/* we make the flash data equal to the memory data. */
+			ec_program_byte(vaddr, ec_ver[j]);
+			val = rdec(vaddr);
+			if(val != ec_ver[j]){
+				printf("Second flash program failed at:\t");
+				printf("addr : 0x%x, memory : 0x%x, flash : 0x%x\n", vaddr, ec_ver[j], val);
+				ret = 1;
+				break;
+			}
+		}
+		vaddr++;
+	}
+	if(ret){
+		printf("\nprogram version error.\n");
+		return;
+	}
+	ret = 0;
+
 	/* program data */
 	printf("starting program kb3310 firmware.\n");
 	while(i < size){
@@ -1088,7 +1115,7 @@ tgt_ecprogram(void *s, int size){
 		ec_program_byte(addr, data);
 		val = rdec(addr);
 		if(val != data){
-			// we make the flash data equal to the memory data.
+			/* we make the flash data equal to the memory data. */
 			ec_program_byte(addr, data);
 			val = rdec(addr);
 			if(val != data){

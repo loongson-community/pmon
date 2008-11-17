@@ -101,11 +101,12 @@ nload (argc, argv)
 	void	    *flashaddr;
 	size_t	    flashsize;
 #endif
+	extern char ec_ver[32];
 
 	flags = 0;
 	optind = err = 0;
 	offset = 0;
-	while ((c = getopt (argc, argv, "sbeatif:nrvwyko:d")) != EOF) {
+	while ((c = getopt (argc, argv, "sbeatif:nrvwyko:d:")) != EOF) {
 		switch (c) {
 			case 's':
 				flags |= SFLAG; break;
@@ -146,6 +147,8 @@ nload (argc, argv)
 				flags |= RFLAG; break;
 #ifdef HAS_EC
 			case 'd':
+				if(optarg != NULL)
+					strcpy(ec_ver, optarg);
 				flags |= DFLAG; break;
 #endif
 			case 'o':
