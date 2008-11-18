@@ -13,12 +13,18 @@
 #define SMALLBMP7_START_ADDR	0xbfc6e500
 #define SMALLBMP8_START_ADDR	0xbfc6e800
 #define SMALLBMP9_START_ADDR	0xbfc6eb00
+/*
+ * 
+ * define X_INDEX 0  in 7   inch 
+ * define X_INDEX 98 in 8.9 inch 
+ * 
+ */
 #define X_INDEX	98
 #define	BIGBMP_X		(190 + X_INDEX)
 #define	BIGBMP_Y		100
 #define	SMALLBMP0_X		(280 + X_INDEX)
 #define	SMALLBMP0_Y		448
-#define	SMALLBMP1_X		(280 + X_INDEX)
+#define	SMALLBMP1_X		(280 + X_INDEX) 
 #define	SMALLBMP1_Y		370
 #define	SMALLBMP2_X		(280 + X_INDEX)
 #define	SMALLBMP2_Y		370

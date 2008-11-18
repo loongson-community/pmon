@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <fcntl.h>
 #include <termio.h>
 #include <endian.h>
 #include <string.h>
@@ -65,7 +66,7 @@ void ui_select(char *load, char *cmdline)
 		cprintf(28, i, 0, 0," ");
 		cprintf(29, i, 0, 0," ");
 	}
-	video_display_bitmap(SMALLBMP1_START_ADDR, SMALLBMP1_X, SMALLBMP1_Y);
+	video_display_bitmap(SMALLBMP1_START_ADDR, (SMALLBMP1_X - 45), SMALLBMP1_Y);
 	
 	while ((flag & F_F) == 0) {
 		char buf[200];
@@ -168,10 +169,18 @@ void ui_select(char *load, char *cmdline)
 				do_usb_rescue(load, cmdline);
 			}
 			break;
+		case 'w':
+			if(do_wd_rescue(load, cmdline) != EXIT_SUCCESS) {
+				cprintf(23, 20, 1, 0, "kernel not found");
+			} else {
+				flag |= F_F;
+			}
+			break;
 		default:
 			break;
 		}
 	}
+	printf("out \n");
 }
 
 static int do_net_rescue(char *load, char *cmdline)
@@ -191,6 +200,32 @@ static int do_net_rescue(char *load, char *cmdline)
 
 	return 0;
 }
+
+static int do_wd_rescue(char *load, char *cmdline)
+{
+	int i;
+	char *pb;
+	char *filename = "/dev/fs/ext2@wd0b/vmlinux";
+	int fd;
+
+	for(i=0;i<100;i++){
+		cprintf(23, i, 1, 0, " ");
+		cprintf(24, i, 1, 0, " ");
+	}
+
+	if ((fd = open(filename, O_RDONLY | O_NONBLOCK)) < 0) {
+		perror(filename);
+		return EXIT_FAILURE;
+	}
+
+	video_display_bitmap(SMALLBMP7_START_ADDR,	SMALLBMP7_X, SMALLBMP7_Y);
+
+	strcpy(load, "load ");
+	strcat(load, filename);
+
+	return 0;
+}
+
 
 /* xuhua add 20080407 */
 static int do_usb_rescue(char *load, char *cmdline)

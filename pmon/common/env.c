@@ -88,7 +88,7 @@ static struct stdenv {
     {"fpfmt", "both", "both double single none"},
     {"fpdis", "yes", "no yes"},
 #ifdef LOONGSON2F_7INCH
-	{"Version", "LM8089-1.3.3", 0},
+	{"Version", "LM8089-1.3.4", 0},
 #endif
 	{"BuildTime",  __DATE__ " " __TIME__ , 0},
 #if defined(TGT_DEFENV)
