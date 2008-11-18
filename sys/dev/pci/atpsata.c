@@ -109,6 +109,7 @@ extern vm_offset_t _pci_dmamap __P((vm_offset_t, u32));
 #include "etherboot.h"
 /* to get the interface to the body of the program */
 static int ioaddr;
+static int fault_timeout;
 static int atp_match (struct device *, void *, void *);
 static void atp_attach (struct device *, struct device *, void *);
 
@@ -593,6 +594,7 @@ static int atp_ata_exec_ata_cmd(struct atp_sata *sata, struct cfis *cfis,
 	}
 	if(i >= 1000)
 	{
+		fault_timeout ++;
 		printf("\n0x0038 not cleared,time out\n");
 		return -2;
 	}
@@ -708,6 +710,7 @@ static void atp_sata_identify(int dev, u16 *id,int tag)
         }
         if (i >= 1000)
        	{
+		fault_timeout ++;
 		printf("\n0x0038 not cleared,time out\n");
                 // time out
                 outb(sata->reg_base + 0x0018,0x16);
@@ -1349,15 +1352,17 @@ void atp_sata_strategy(struct buf *bp)
                 goto done;
 
         if(bp->b_flags & B_READ){
+	fault_timeout = 0;
         ret=atp_sata_read(minor(bp->b_dev),blkno,blkcnt,bp->b_data); 
-        if(ret != blkcnt)
+        if(ret != blkcnt||fault_timeout)
                 bp->b_flags |= B_ERROR;
         dotik(30000, 0);
         }
         else
         {
+	fault_timeout = 0;
         ret=atp_sata_write(minor(bp->b_dev),blkno,blkcnt,bp->b_data);
-        if(ret != blkcnt)
+        if(ret != blkcnt||fault_timeout)
                 bp->b_flags |= B_ERROR;
         dotik(30000, 0);
         }

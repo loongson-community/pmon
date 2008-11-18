@@ -384,7 +384,7 @@ extern int ticks;
 #define HZ 100
 static inline void msleep(int microseconds){
 int i;
-for(i=0;i<microseconds*10;i++)delay(microseconds);
+for(i=0;i<microseconds;i++)delay(1000);
 }
 #define le32_to_cpu(x) (x)
 #define cpu_to_le32(x) (x)
@@ -1837,7 +1837,7 @@ static int e100_eeprom_save(struct nic *nic, u16 start, u16 count)
 	for(addr = 0; addr < nic->eeprom_wc - 1; addr++)
 		checksum += cpu_to_le16(nic->eeprom[addr]);
 	nic->eeprom[nic->eeprom_wc - 1] = le16_to_cpu(0xBABA - checksum);
-	printf("checksum %x\n",le16_to_cpu(0xBABA - checksum));
+	printf("checksum %x\n",(unsigned)le16_to_cpu(0xBABA - checksum));
 	e100_eeprom_write(nic, addr_len, nic->eeprom_wc - 1,
 		nic->eeprom[nic->eeprom_wc - 1]);
 
@@ -4097,7 +4097,7 @@ int cmd_wrprom_fxp0(int ac,char *av)
                 rom[2] = eeprom_data;
                 printf("eeprom_data [2] = 0x%4x\n",eeprom_data);
 #endif
-	   memcpy(nic->eeprom,rom,EEPROM_CHECKSUM_REG);
+	   memcpy(nic->eeprom,rom,EEPROM_CHECKSUM_REG*2);
 	   e100_eeprom_save(nic,0,EEPROM_CHECKSUM_REG);
 	
 	printf("Write the whole eeprom OK!\n");

@@ -136,7 +136,7 @@ cmd_memtst(int ac, char **av)
 		printf ("There were %d errors.\n", err);
 		return (1);
 	}
-	printf ("Test passed with no errors.\n");
+	printf ("Test passed ok.\n");
 	return (0);
 }
 

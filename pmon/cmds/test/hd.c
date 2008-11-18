@@ -128,15 +128,16 @@ return 0;
 }
 
 extern char *devclass[];
+#define TEST_SIZE 512*16
 int disktest()
 {
 struct device *dev, *next_dev;
-FILE *fp;
+int fd;
 char fname[0x40];
-int j,found=0;
-int errors;
-static unsigned char _buf[512*16+511],*buf;
-static unsigned char _buf1[512*16+512],*buf1;
+int i,j,found=0;
+int errors,ret;
+static unsigned char _buf[TEST_SIZE+511],*buf;
+static unsigned char _buf1[TEST_SIZE+512],*buf1;
 buf=(long)(_buf+511)&~511;
 buf1=(long)(_buf1+511)&~511;
 	for (dev  = TAILQ_FIRST(&alldevs); dev != NULL; dev = next_dev) {
@@ -154,38 +155,56 @@ buf1=(long)(_buf1+511)&~511;
 		continue;
 		}
 		printf("test %s ...", &dev->dv_xname);
-	sprintf(fname,"/dev/disk/%s",&dev->dv_xname);
-	fp=fopen(fname,"r+");
-	fseek(fp,1024,SEEK_SET);
-	fread(buf,512*16,1,fp);
-	fclose(fp);
-
-	memset(buf1,0x5a,512*16);
-	fp=fopen(fname,"r+");
-	fseek(fp,1024,SEEK_SET);
-	fwrite(buf1,512*16,1,fp);
-	fclose(fp);
-
-	memset(buf1,0,512*16);
-
-	fp=fopen(fname,"r+");
-	fseek(fp,1024,SEEK_SET);
-	fread(buf1,512*16,1,fp);
-	fclose(fp);
-
-	fp=fopen(fname,"r+");
-	fseek(fp,1024,SEEK_SET);
-	fwrite(buf,512*16,1,fp);
-	fclose(fp);
-	
 	errors=0;
-	for(j=0;j<512;j++)
+	sprintf(fname,"/dev/disk/%s",&dev->dv_xname);
+	fd=open(fname,O_RDWR);
+	lseek(fd,1024,SEEK_SET);
+	ret=read(fd,buf,TEST_SIZE);
+	close(fd);
+	if((errors=(ret!=TEST_SIZE)))goto error;
+
+	memset(buf1,0x5a,TEST_SIZE);
+	fd=open(fname,O_RDWR);
+	lseek(fd,1024,SEEK_SET);
+	ret=write(fd,buf1,TEST_SIZE);
+	close(fd);
+	if((errors=(ret!=TEST_SIZE)))goto error;
+
+	memset(buf1,0,TEST_SIZE);
+
+	fd=open(fname,O_RDWR);
+	lseek(fd,1024,SEEK_SET);
+	ret=read(fd,buf1,TEST_SIZE);
+	close(fd);
+	if((errors=(ret!=TEST_SIZE)))goto error;
+
+	fd=open(fname,O_RDWR);
+	lseek(fd,1024,SEEK_SET);
+	ret=write(fd,buf,TEST_SIZE);
+	close(fd);
+	if((errors=(ret!=TEST_SIZE)))goto error;
+	
+	for(j=0;j<TEST_SIZE;j++)
 	if(buf1[j]!=0x5a)
 	{
-		printf("read write test error,write 0x5a read %x\n",buf1[j]);
 		errors++;
+		break;
 	}
-	if(!errors)printf("ok\n");
+	if(!errors)goto error;
+
+	printf("error\n");
+
+	for(i=j&511;i<(j&511)+512;i++)
+	{
+		if((i&15)==0)printf("\n%02x: ",i);
+		printf("%02x ",buf[i]);
+	}
+	printf("\n");
+
+	continue;
+
+	error:
+	printf(errors?"error\n":"ok\n");
 }
 return 0;
 }
