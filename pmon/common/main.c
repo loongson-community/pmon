@@ -323,13 +323,7 @@ autoload(char *s)
 			strcpy(buf,"g ");
 			if(pa != NULL  && strlen(pa) != 0) strcat(buf,pa);
 			else strcat(buf," -S root=/dev/hda1 console=tty");
-			//else strcat(buf," root=/dev/hda1 console=tty");
 			
-			if((Version = getenv("Version")) == NULL) 
-				Version="undefined";
-			
-			strcat(buf, " PMON_VER=");
-			strcat(buf, Version);
 
 			delay(10000);
 			do_cmd (buf);

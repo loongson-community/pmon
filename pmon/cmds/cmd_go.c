@@ -101,8 +101,10 @@ cmd_go (ac, av)
 	int32_t	adr;
 	int	sflag;
 	int	c;
+	unsigned char *Version;
 extern int	optind;
 extern char	*optarg;
+	
 
 	sflag = 0;
 #if NMOD_DEBUGGER > 0
@@ -151,6 +153,15 @@ extern char	*optarg;
 		strcat (clientcmd, av[optind++]);
 		strcat (clientcmd, " ");
 	}
+
+#if 1
+	if((Version = getenv("Version")) == NULL) 
+		Version="undefined";
+			
+	strcat(clientcmd, " PMON_VER=");
+	strcat(clientcmd, Version);
+	strcat(clientcmd, " ");
+#endif
 
 	if (initrd_execed())
 	{
