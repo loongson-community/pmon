@@ -2240,10 +2240,16 @@ LEAF(i2cread)
 	
 	/* read data */
 	IO_READ_BYTE(SMB_BASE_ADDR | SMB_SDA);
+	b 1f;
+	nop;
 
 i2cerr :
 	nop;
-	
+	li	v0, 0x02;
+	IO_WRITE_BYTE(SMB_BASE_ADDR | SMB_CTRL1);
+	li  v0, 0x10;	
+	IO_WRITE_BYTE(SMB_BASE_ADDR | SMB_STS);
+1:
 	jr	ra;
 	nop;
 END(i2cread)

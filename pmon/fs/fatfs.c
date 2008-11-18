@@ -122,7 +122,6 @@ fat_open(int fd, const char *path, int flags, int mode)
 
 	/* Set opath to point at the isolated filname path */
 	filename = strchr(opath, '/') + 1;
-	printf("dpath=%s,filename=%s\n",dpath,filename);
 
 	fsc = (struct fat_sc *)malloc(sizeof(struct fat_sc));
 	if (fsc == NULL) {
@@ -604,6 +603,8 @@ int fat_findfile(struct fat_sc *fsc, char *name)
 				{
 					continue;
 				}
+				if(dire->dirAttributes == ATTR_VOLUME)
+					continue;
 
 				if(dire->dirAttributes == ATTR_DIRECTORY)
 				{
@@ -708,6 +709,8 @@ int fat_subdirscan(struct fat_sc *fsc, char *name, struct fatchain *chain)
 				}
 
 				if (dire->dirName[0] == SLOT_DELETED)
+					continue;
+				if(dire->dirAttributes == ATTR_VOLUME)
 					continue;
 				if(dire->dirAttributes == ATTR_DIRECTORY)
 				{
