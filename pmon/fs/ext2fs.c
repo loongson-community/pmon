@@ -125,7 +125,7 @@ static int read_part_table(int fd, off_t mbr_sec_off, struct part_table *table,
 static int read_super_block(int fd, int index)
 {
 	int found_partitions;
-	off_t base_sec_off;
+	off_t base_sec_off, ext_start;
 	int extindex = 0;
 
 	if (read_part_table(fd, 0, part_table, &found_partitions) != 0) {
@@ -138,30 +138,34 @@ static int read_super_block(int fd, int index)
 		start_sec = part_table[index - 1].sec_off;
 		return read_super_block_i(fd);
 	} else if (index >= 5) {
+		int i;
 		if (part_table[3].tag != 0x5)
 			goto error;
-		base_sec_off = 0;
+		base_sec_off = ext_start = part_table[3].sec_off;
 		extindex = index - 4;
-		do {
-			base_sec_off += part_table[3].sec_off;
+		for(i=0; i<extindex; i++)
+		{
 			if (read_part_table(fd, base_sec_off, part_table,
 			     &found_partitions) != 0) {
 				return -1;
 			}
-			if (found_partitions >= extindex) {
-				start_sec =
-				    part_table[extindex - 1].sec_off +
-				    base_sec_off;
-				return read_super_block_i(fd);
-			} else {
-				if (part_table[3].tag != 0x5)
-					goto error;
-				extindex -= found_partitions;
-			}
-		} while (1);
 
+			if (i==extindex-1 && found_partitions)
+				break;
+
+			/* not yet found, search next logic part */
+			if (part_table[3].tag != 0x05)
+				break;
+			base_sec_off = ext_start + part_table[3].sec_off;
+		}
+		
+		/* wanted part not found */
+		if (i!=extindex-1 || found_partitions == 0)
+			goto error;
+		start_sec = part_table[0].sec_off + base_sec_off;
+		return read_super_block_i(fd);
 	} else {
-	      error:
+error:
 		printf("There is no %d linux partion\n", index);
 		return -1;
 	}
