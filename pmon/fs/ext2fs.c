@@ -1,3 +1,6 @@
+#include <termio.h>
+#include <endian.h>
+
 #include <string.h>
 #include <pmon.h>
 #include <file.h>
@@ -6,22 +9,45 @@
 #include <sys/unistd.h>
 #include "ext2fs.h"
 #include <diskfs.h>
-//#define DEBUG_IDE
+
+#include <signal.h>
+#include <setjmp.h>
+#include <ctype.h>
+
+#ifdef _KERNEL
+#undef _KERNEL
+#include <sys/ioctl.h>
+#define _KERNEL
+#else
+#include <sys/ioctl.h>
+#endif
+
+#ifdef DEBUG
+#define DEBUG_IDE
+#else
+#undef DEBUG_IDE
+#endif
+
 extern int devio_open(int, const char *, int, int);
 extern int devio_close(int);
 extern int devio_read(int, void *, size_t);
 extern int devio_write(int, const void *, size_t);
 extern off_t devio_lseek(int, off_t, int);
+extern off_t lseek(int fd, off_t offset, int whence);
+extern int read (int fd, void *buf, size_t n);
+
 
 static int ext2_read_file(int, void *, size_t, size_t, struct ext2_inode *);
 static int ReadFromIndexBlock(int, __u32, __u32, __u8 **, size_t *, size_t *,
 			      __u32 *);
 static inline ext2_dirent *ext2_next_entry(ext2_dirent *);
 static int ext2_entrycmp(char *, void *, int);
-static int ext2_get_inode(int, unsigned long, struct ext2_inode **);
-static int ext2_load_linux(int, int, const unsigned char *);
+static int ext2_get_inode(int, unsigned long, struct ext2_inode *);
+static int ext2_load_linux(int, const unsigned char *);
 static int ext2_load_file_content(int, struct ext2_inode *, unsigned char *);
-static int read_super_block(int, int);
+static int read_super_block(int);
+static unsigned int find_inode(int fd, unsigned int parent_inode, const char* pathname, ext2_dirent* dirent);
+static unsigned char* get_ext2_dirent_from_inode(int fd, unsigned int inode, size_t* size);
 int ext2_open(int, const char *, int, int);
 int ext2_close(int);
 int ext2_read(int, void *, size_t);
@@ -40,19 +66,28 @@ off_t start_sec;
 #define EXT2_GROUP_DESC_SIZE 32
 static struct ext2_inode INODE_STRUCT;
 static struct ext2_inode *File_inode = &INODE_STRUCT;
-static int read_super_block_i(int fd)
+static ext2_dirent File_dirent;
+static int read_super_block(int fd)
 {
 	struct ext2_super_block *ext2_sb;
 	__u8 *diskbuf;
+	DiskFile* dfs;
+	
+	dfs = (DiskFile *)_file[fd].data;
+	start_sec = dfs->part->sec_begin;
 
 	if ((diskbuf = (__u8 *) malloc(16 * RAW_SECTOR_SIZE)) == NULL) {
+#ifdef DEBUG
 		printf("Can't alloc memory for the super block!\n");
+#endif
 		return -1;
 	}
 	devio_lseek(fd, start_sec * RAW_SECTOR_SIZE, 0);
 	if ((devio_read(fd, diskbuf, 16 * RAW_SECTOR_SIZE)) !=
 	    16 * RAW_SECTOR_SIZE) {
+#ifdef DEBUG
 		printf("Read the super block error!\n");
+#endif
 		free(diskbuf);
 		return -1;
 	}
@@ -67,106 +102,6 @@ static int read_super_block_i(int fd)
 
 	free(diskbuf);
 	return 0;
-}
-
-inline static __u32 get_part_offset(__u8 * rb_entry)
-{
-	__u32 offset;
-	offset = *(unsigned short *)(rb_entry + 8 + 2);
-	offset <<= 16;
-	offset += *(unsigned short *)(rb_entry + 8);
-	return offset;
-}
-
-struct part_table {
-	__u8 tag;
-	__u32 sec_off;
-} part_table[4];
-
-static int read_part_table(int fd, off_t mbr_sec_off, struct part_table *table,
-			   int *found_partitions)
-{
-	__u8 *leadbuf;
-	int i;
-	__u8 tag;
-
-	if ((leadbuf = (__u8 *) malloc(RAW_SECTOR_SIZE)) == NULL) {
-		printf("Can't alloc memory for the super block!\n");
-		return -1;
-	}
-	devio_lseek(fd, mbr_sec_off * RAW_SECTOR_SIZE, 0);
-	if ((devio_read(fd, leadbuf, RAW_SECTOR_SIZE)) != RAW_SECTOR_SIZE) {
-		free(leadbuf);
-		printf("Can't read the leading block from disk!\n");
-		return -1;
-	}
-
-	*found_partitions = 0;
-	memset(table, 0, sizeof(struct part_table) * 4);
-
-	//search the partion table to find the partition with id=0x83 and 0x05
-	for (i = 446; i < 510; i += 0x10) {
-		tag = leadbuf[i + 4];
-		if (tag == 0x83) {
-			table[*found_partitions].tag = tag;
-			table[*found_partitions].sec_off =
-			    get_part_offset(leadbuf + i);
-			(*found_partitions)++;
-		} else if (tag == 0x5) {
-			table[3].tag = tag;
-			table[3].sec_off = get_part_offset(leadbuf + i);
-		}
-	}
-	free(leadbuf);
-	return 0;
-
-}
-
-static int read_super_block(int fd, int index)
-{
-	int found_partitions;
-	off_t base_sec_off;
-	int extindex = 0;
-
-	if (read_part_table(fd, 0, part_table, &found_partitions) != 0) {
-		return -1;
-	}
-
-	if (index < 5) {
-		if (index > found_partitions)
-			goto error;
-		start_sec = part_table[index - 1].sec_off;
-		return read_super_block_i(fd);
-	} else if (index >= 5) {
-		if (part_table[3].tag != 0x5)
-			goto error;
-		base_sec_off = 0;
-		extindex = index - 4;
-		do {
-			base_sec_off += part_table[3].sec_off;
-			if (read_part_table(fd, base_sec_off, part_table,
-			     &found_partitions) != 0) {
-				return -1;
-			}
-			if (found_partitions >= extindex) {
-				start_sec =
-				    part_table[extindex - 1].sec_off +
-				    base_sec_off;
-				return read_super_block_i(fd);
-			} else {
-				if (part_table[3].tag != 0x5)
-					goto error;
-				extindex -= found_partitions;
-			}
-		} while (1);
-
-	} else {
-	      error:
-		printf("There is no %d linux partion\n", index);
-		return -1;
-	}
-	return 0;
-
 }
 
 /*
@@ -193,7 +128,7 @@ static int ext2_entrycmp(char *s, void *entry, int len)
 
 /* read inode 'ino' */
 static int ext2_get_inode(int fd, unsigned long ino,
-			  struct ext2_inode **ext2_raw_inode_ptr)
+			  struct ext2_inode *ext2_raw_inode_ptr)
 {
 	unsigned long offset, block, block_group, group_desc, desc;
 
@@ -240,7 +175,9 @@ static int ext2_get_inode(int fd, unsigned long ino,
 #ifdef DEBUG_IDE
 	printf("ext2_get_inode: offset is %d,block is %d\n", offset, block);
 #endif
-	bh = (unsigned char *)malloc(RAW_BLOCK_SIZE);
+
+//	bh = (unsigned char *)malloc(RAW_BLOCK_SIZE);
+	memset(bh, 0, RAW_BLOCK_SIZE);
 	temp = (off_t) block *RAW_BLOCK_SIZE + start_sec * 512;
 
 #ifdef DEBUG_IDE
@@ -253,12 +190,15 @@ static int ext2_get_inode(int fd, unsigned long ino,
 		free(bh);
 		return -1;
 	}
-	*ext2_raw_inode_ptr = (struct ext2_inode *)(bh + offset);
+
+	memcpy(ext2_raw_inode_ptr, bh + offset, sizeof(struct ext2_inode));
+//	*ext2_raw_inode_ptr = (struct ext2_inode *)(bh + offset);
 #ifdef DEBUG_IDE
 	printf("inode->i_block[0]=%d,the inode->i_size=%d \n",
-	       (*ext2_raw_inode_ptr)->i_block[0],
-	       (*ext2_raw_inode_ptr)->i_size);
+	       ext2_raw_inode_ptr->i_block[0],
+	       ext2_raw_inode_ptr->i_size);
 #endif
+	free(bh);
 	return 0;
 }
 
@@ -271,129 +211,68 @@ static int ext2_load_file_content(int fd, struct ext2_inode *inode,
 /* load linux kernel from ext2 partition
  * return 0 if success,else -1
  */
-static int ext2_load_linux(int fd, int index, const unsigned char *path)
+static int ext2_load_linux(int fd, const unsigned char *path)
 {
-	struct ext2_inode *ext2_raw_inode;
-	ext2_dirent *de;
-	unsigned char *bh;
-	int i;
 	unsigned int inode;
-	int find = 1;
-	unsigned char s[EXT2_NAME_LEN];
-	unsigned char pathname[EXT2_NAME_LEN], *pathnameptr;
-	unsigned char *directoryname;
-	int showdir, lookupdir;
-	showdir = 0;
-	lookupdir = 0;
-	bh = 0;
-	if (read_super_block(fd, index))
+//	ext2_dirent dirent;
+	//__u32 len = 0;
+	char* p;
+	
+	if (read_super_block(fd))
 		return -1;
 
-	if ((path[0] == 0) || (path[strlen(path) - 1] == '/'))
-		lookupdir = 1;
-
-	strncpy(pathname, path, sizeof(pathname));
-	pathnameptr = pathname;
-	for (inode = EXT2_ROOT_INO; find;) {
-		for (i = 0; pathnameptr[i] && (pathnameptr[i] != '/'); i++) ;
-		pathnameptr[i] = 0;
-		directoryname = (unsigned char *)pathnameptr;
-		pathnameptr = (unsigned char *)(pathnameptr + i + 1);
-		if (!strlen(directoryname) && lookupdir)
-			showdir = 1;
-		if (ext2_get_inode(fd, inode, &ext2_raw_inode)) {
-			printf("load EXT2_ROOT_INO error");
-			return -1;
-		}
-		if (!bh)
-			bh = (unsigned char *)malloc(RAW_BLOCK_SIZE +
-						     ext2_raw_inode->i_size);
-		if (bh == NULL) {
-			printf("Error in allocting memory for file content!\n");
-			return -1;
-		}
-		ext2_load_file_content(fd, ext2_raw_inode, bh);
-		de = (ext2_dirent *) bh;
-		find = 0;
-
-		for (; ((unsigned char *)de < bh + ext2_raw_inode->i_size)
-		     && (de->rec_len > 0) && (de->name_len > 0);
-		     de = ext2_next_entry(de)) {
-			strncpy(s, de->name, de->name_len);
-			s[de->name_len] = '\0';	//*(de->name+de->name_len)='\0';
-#ifdef DEBUG_IDE
-			printf
-			    ("entry:name=%s,inode=%d,rec_len=%d,name_len=%d,file_type=%d\n",
-			     s, de->inode, de->rec_len, de->name_len,
-			     de->file_type);
-#endif
-			if (showdir) {
-				printf("%s%s", s,
-				       ((de->file_type) & 2) ? "/ " : " ");
-			}
-			if (!ext2_entrycmp
-			    (directoryname, de->name, de->name_len)) {
-				if (de->file_type == EXT2_FT_REG_FILE) {
-					if (ext2_get_inode
-					    (fd, de->inode, &File_inode)) {
-						printf
-						    ("load EXT2_ROOT_INO error");
-						free(bh);
-						return -1;
-					}
-					free(bh);
-					return 0;
-				}
-				find = 1;
-				inode = de->inode;
-				break;
-			}
-		}
-		if (!find) {
-			free(bh);
-			if (!lookupdir)
-				printf("Not find the file or directory!\n");
-			else
-				printf("\n");
-			return -1;
-		}
+	p = path;
+	if (path == NULL || *path == '\0')
+	{
+		p = "/";
 	}
-	return -1;
+
+	memset(&File_dirent, 0, sizeof(ext2_dirent));
+	if ((inode = find_inode(fd, EXT2_ROOT_INO, p, &File_dirent)) == 0)
+	{
+		return -1;
+	}
+
+	if (File_dirent.file_type == EXT2_FT_DIR)
+	{
+		printf("%s is directory!\n", p);
+		return 0;
+	}
+	
+	if (ext2_get_inode(fd, inode, File_inode))
+	{
+#ifdef DEBUG
+		printf("load EXT2_ROOT_INO error");
+#endif
+		return -1;
+	}
+
+	return 0;
 }
 
 //load /dev/fs/ext2@wd0/boot/vmlinux
 //path here is wd0/boot/vmlinux
 int ext2_open(int fd, const char *path, int flags, int mode)
 {
-	int i, index;
-	char strbuf[EXT2_NAME_LEN], *str;
-	strncpy(strbuf, path, sizeof(strbuf));
-	for (i = 0; strbuf[i] && (strbuf[i] != '/'); i++) ;
-	if (!strbuf[i]) {
-		printf("the DEV Name  is expected!\n");
-		return -1;
-	}
-	strbuf[i] = 0;
+	//int i, index;
+	//char strbuf[EXT2_NAME_LEN], *str;
+	char *str;
+	DiskFile* df;
+
+	df = (DiskFile *)_file[fd].data;
+	str = path;
+	if (*str == '/')
 	{
-		char *p;
-		p = &strbuf[strlen(strbuf) - 1];
-		if ((p[0] >= 'a') && (p[0] <= 'z')) {
-			index = p[0] - 'a' + 1;
-			p[0] = 0;
-		} else
-			index = 1;
+		str++;
 	}
-	devio_open(fd, strbuf, flags, mode);	//extract the device name
-#ifdef DEBUG_IDE
-	printf("Open the device %s ok\n", strbuf);
-#endif
-	str = strbuf + i + 1;
-//      for(i=1;i<5;i++){
-	if (!(ext2_load_linux(fd, index, str)))
+	
+	devio_open(fd, df->devname, flags, mode);
+
+	if (!(ext2_load_linux(fd, str)))
+	{
 		return fd;
-	if ((str[0] != 0) && (str[strlen(str) - 1] != '/'))
-		printf("we can't locate root directory in super block!\n");
-//      }
+	}
+
 	return -1;
 }
 int ext2_close(int fd)
@@ -668,14 +547,319 @@ off_t ext2_lseek(int fd, off_t offset, int where)
 	_file[fd].posn = offset;
 	return offset;
 }
+
+int is_ext2fs(int fd, off_t start)
+{
+	struct ext2_super_block *ext2_sb;
+    __u8 *diskbuf;
+
+    if ((diskbuf = (__u8 *) malloc(16 * RAW_SECTOR_SIZE)) == NULL) {
+#ifdef DEBUG
+        printf("Can't alloc memory for the super block!\n");
+#endif
+        return 0;
+    }
+
+    lseek(fd, start * RAW_SECTOR_SIZE, 0);
+    if ((read(fd, diskbuf, 16 * RAW_SECTOR_SIZE)) !=
+        16 * RAW_SECTOR_SIZE) {
+#ifdef DEBUG
+        printf("Read the super block error!\n");
+#endif
+        free(diskbuf);
+        return 0;
+    }
+    ext2_sb = (struct ext2_super_block *)(diskbuf + 1024);
+	if (ext2_sb->s_magic != 0xef53)
+	{
+    	free(diskbuf);
+		return 0;
+	}
+
+    free(diskbuf);
+	return 1;
+}
+
+static unsigned char* get_ext2_dirent_from_inode(int fd, unsigned int inode, size_t* size)
+{
+	char *bh = NULL;
+	struct ext2_inode ext2_raw_inode;
+
+	if (ext2_get_inode(fd, inode, &ext2_raw_inode))
+	{
+		printf("get inode error\n");
+		return NULL;
+	}
+
+	bh = (unsigned char *)malloc(RAW_BLOCK_SIZE +
+		ext2_raw_inode.i_size);
+	if (bh == NULL)
+	{
+#ifdef DEBUG
+		printf("Error in allocting memory for file content!\n");
+#endif
+		return NULL;
+	}
+	
+	ext2_load_file_content(fd, &ext2_raw_inode, bh);
+
+	*size = ext2_raw_inode.i_size;
+	return bh;
+}
+
+static unsigned int get_inode_from_name(int fd, __u32 inode, const char* path, ext2_dirent* dirent)
+{
+	ext2_dirent *de = NULL;
+	unsigned char *bh = NULL;
+	unsigned char s[EXT2_NAME_LEN];
+	__u32 size = 0;
+		
+	bh = get_ext2_dirent_from_inode(fd, inode, &size);
+	if (bh == NULL)
+	{
+#ifdef DEBUG
+		printf("Error in allocting memory for file content!\n");
+#endif
+		return 0;
+	}
+	
+	de = (ext2_dirent *) bh;
+
+	for (; ((unsigned char *)de < bh + size) &&
+			 (de->rec_len > 0) && (de->name_len > 0);
+		 de = ext2_next_entry(de))
+	{
+		strncpy(s, de->name, de->name_len);
+		s[de->name_len] = '\0';	//*(de->name+de->name_len)='\0';
+
+		if (!ext2_entrycmp(path, de->name, de->name_len))
+		{
+			free(bh);
+			memcpy(dirent, de, sizeof(ext2_dirent));
+			return de->inode;
+		}
+	}
+	free(bh);
+	return 0;
+}
+
+static unsigned int find_inode(int fd, unsigned int parent_inode, const char* pathname, ext2_dirent* dirent)
+{
+	//struct ext2_inode ext2_raw_inode;
+	//unsigned int inode, pinode;
+	unsigned int inode;
+
+	
+	//int find = 0;
+	char path[1024];
+	char* p = NULL;
+	char* p1;
+
+	if (pathname == NULL  || *pathname == '\0')
+	{
+		return parent_inode;
+	}
+
+	strcpy(path, pathname);
+	p1 = path;
+	inode = parent_inode;
+	while (1)
+	{
+		p = strchr(p1, '/');
+		if (p != NULL)
+		{
+			*p = '\0';
+		}
+
+		inode = get_inode_from_name(fd, inode, p1, dirent);
+		if (inode == 0)
+		{
+			return 0;
+		}
+
+		if (p == NULL)
+		{
+			return inode;
+		}
+
+		p1 = p + 1;
+	}
+	return 0;
+}
+
+static void list_filename(int fd, unsigned int inode, const ext2_dirent* dirent)
+{
+	ext2_dirent *de = NULL;
+	unsigned char* bh = NULL;
+	struct ext2_inode file_info;
+	char* s = NULL;
+	__u32 len = 0;
+	char size[20];
+	char* buf = NULL;
+	int siz = 0;
+	int ln = 0;
+	int i, j;
+
+	s = malloc(EXT2_NAME_LEN);
+	if (s == NULL)
+	{
+		return ;
+	}
+	
+	if (inode != EXT2_ROOT_INO)
+	{
+		if (dirent->file_type != EXT2_FT_DIR)
+		{
+			strncpy(s, dirent->name, dirent->name_len);
+			s[dirent->name_len] = '\0';	//*(de->name+de->name_len)='\0';
+			if (ext2_get_inode(fd, inode, &file_info))
+			{
+				free(s);
+				return ;
+			}
+			sprintf(size, "%d", file_info.i_size);
+			printf("%-40s%-15s%s\n", s, "<FILE>", size);
+			free(s);
+			return ;
+		}
+	}
+	
+	buf = malloc(LINESZ + 8);
+	if (buf == NULL)
+	{
+		free(s);
+		return ;
+	}
+
+	bh = get_ext2_dirent_from_inode(fd, inode, &len);
+	if (bh == NULL)
+	{
+		free(s);
+		free(buf);
+		return ;
+	}
+
+	de = (ext2_dirent *)bh;
+	
+	siz = moresz;
+	ioctl(STDIN, CBREAK, NULL);
+	ln = siz;
+	i = 0;
+	j = 0;
+	for (; ((unsigned char *)de < bh + len) &&
+			 (de->rec_len > 0) && (de->name_len > 0);
+		 de = ext2_next_entry(de))
+	{
+		strncpy(s, de->name, de->name_len);
+		s[de->name_len] = '\0';	//*(de->name+de->name_len)='\0';
+
+		switch (de->file_type)
+		{
+		case EXT2_FT_DIR:
+			strcpy(size, "<DIR>");
+			j += sprintf(buf + j, "%-40s%-15s", s, size);
+			break;
+		case EXT2_FT_UNKNOWN:
+			strcpy(size, "<unknown>");
+			j += sprintf(buf + j, "%-40s%-15s", s, size);
+			break;
+		default:
+			if (ext2_get_inode(fd, de->inode, &file_info))
+			{
+				continue;
+			}
+			sprintf(size, "%d", file_info.i_size);
+			j += sprintf(buf + j, "%-40s%-15s%s", s, "<FILE>", size);
+			break;
+		}
+
+		if ((i % 2) != 0)
+		{
+			if (more(buf, &ln, siz))
+			{
+				free(bh);
+				free(s);
+				free(buf);
+				return ;
+			}
+			j = 0;
+		}
+		else
+		{
+			j += sprintf(buf + j, "\n");
+		}
+		i++;
+	}
+
+	if (i % 2 != 0)
+	{
+		printf("%s\n", buf);
+	}
+	free(bh);
+	free(s);
+	free(buf);
+}
+
+static int ext2_load_linux_dir(int fd, const char* path)
+{
+	ext2_dirent dirent;
+	//int i;
+	unsigned int inode;
+	char* p;
+
+	if (read_super_block(fd))
+		return -1;
+
+	if (path == NULL || *path == '\0')
+	{
+		p = "";
+	}
+	else
+	{
+		p = path;
+	}
+
+	memset(&dirent, 0, sizeof(ext2_dirent));
+	inode = find_inode(fd, EXT2_ROOT_INO, p, &dirent);
+	if (inode == 0)
+	{
+		printf("don't find\n");
+		return -1;
+	}
+
+	list_filename(fd, inode, &dirent);
+	
+	return 0;
+}
+
+static int ext2_open_dir(int fd, const char* path)
+{
+	char* str;
+	
+	str = path;
+	if (*str == '/')
+	{
+		str++;
+	}
+	
+	if (!ext2_load_linux_dir(fd, str))
+	{
+		return fd;
+	}
+	
+	return -1;
+}
+
 static DiskFileSystem diskfile = {
 	"ext2",
 	ext2_open,
 	ext2_read,
 	ext2_write,
 	ext2_lseek,
+	is_ext2fs,
 	ext2_close,
-	NULL
+	NULL,
+	ext2_open_dir,
 };
 static void init_diskfs(void) __attribute__ ((constructor));
 static void init_diskfs()

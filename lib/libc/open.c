@@ -38,9 +38,10 @@
 #include <errno.h>
 
 extern SLIST_HEAD(FileSystems, FileSystem) FileSystems;
-
 static int __try_open(const char *, int, char *, int, int);
-
+extern void *malloc(size_t);
+extern void free(void *);
+										   
 int
 open(filename, mode)
 	const char *filename;
@@ -52,7 +53,7 @@ open(filename, mode)
 	int 	fnamelen;
 	
 	fnamelen = strlen(filename);
-	fname = malloc(fnamelen+1);
+	fname = (char *)malloc(fnamelen+1);
 	memcpy(fname, filename, fnamelen+1);
 
 	for (lu = 0; lu < OPEN_MAX && _file[lu].valid; lu++);
@@ -86,7 +87,12 @@ open(filename, mode)
 		dname += 6;
 		i = __try_open(dname, mode, NULL, lu, FS_FILE);
 	}
-	else {
+	else if (*dname == '(')
+	{
+		i = __try_open(fname, mode, "fs", lu, 0);
+	}
+	else 
+	{
 		i = __try_open(fname, mode, dname, lu, 0);
 	}
 	free(fname);
@@ -122,3 +128,4 @@ __try_open(const char *fname, int mode, char *dname, int lu, int fstype)
 		return -1;
 	}
 }
+

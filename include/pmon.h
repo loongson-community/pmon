@@ -202,7 +202,8 @@ extern int      histno;		/* current history number */
 /* main.c */
 int		main __P((void));
 void		dbginit __P((char *));
-void		do_cmd __P((char *));
+//void		do_cmd __P((char *));
+int 		do_cmd __P((char *));
 int		no_cmd __P((int, char *[]));
 void		closelst __P((int));
 void		console_state(int);

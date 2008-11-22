@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2000 Opsycon AB  (www.opsycon.se)
- * Copyright (c) 2002 Patrik Lindergren (www.lindergren.com)
+ * Copyright (c) 2007 SunWah Hi-tech (www.sw-linux.com.cn)
+ * Wing Sun <chunyang.sun@sw-linux.com>
  * 
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,8 +12,6 @@
  *    documentation and/or other materials provided with the distribution.
  * 3. All advertising materials mentioning features or use of this software
  *    must display the following acknowledgement:
- *	This product includes software developed by Opsycon AB.
- *	This product includes software developed by Patrik Lindergren.
  * 4. The name of the author may not be used to endorse or promote products
  *    derived from this software without specific prior written permission.
  *
@@ -30,50 +28,56 @@
  * SUCH DAMAGE.
  *
  */
-/* $Id: diskfs.h,v 1.1.1.1 2006/06/29 06:43:25 cpu Exp $ */
 
-#ifndef __DISKFS_H__
-#define __DISKFS_H__
+#include <stdio.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <exec.h>
 
-#include <sys/queue.h>
+#include <pmon.h>
+#include <pmon/loaders/loadfn.h>
 
-typedef struct DiskFileSystem {
-	char *fsname;
-	int (*open) __P((int, const char *, int, int));
-	int (*read) __P((int , void *, size_t));
-	int (*write) __P((int , const void *, size_t));
-	off_t (*lseek) __P((int , off_t, int));
-	int (*is_fstype) __P((int, off_t));
-	int (*close) __P((int));
-	int (*ioctl) __P((int , unsigned long , ...));
-	int (*open_dir) __P((int, const char*));
-	SLIST_ENTRY(DiskFileSystem)	i_next;
-} DiskFileSystem;
+static long   load_txt (int fd, char *buf, int *n, int flags);
 
-typedef struct DiskPartitionTable {
-	struct DiskPartitionTable* Next;
-	struct DiskPartitionTable* logical;
-	unsigned char bootflag;
-	unsigned char tag;
-	unsigned char id;
-	unsigned int sec_begin;
-	unsigned int size;
-	unsigned int sec_end;
-	DiskFileSystem* fs;
-}DiskPartitionTable;
+static long
+   load_txt (int fd, char *buf, int *n, int flags)
+{
+	void *addr = (void *)buf;
+	int size = 1;
+	int n2;
+	char ch='\0';
+	int count=0;
+	if(!n)
+		return -1;
+	if(!buf)
+		return -1;
 
-typedef struct DeviceDisk {
-	struct DeviceDisk* Next;
-	char device_name[20];
-	DiskPartitionTable* part;
-}DeviceDisk;
-typedef struct DiskFile {
-	char *devname;
-	DiskFileSystem *dfs;
-	DiskPartitionTable* part;
-} DiskFile;
+	do {
+		n2 = read (fd, addr, size);
+		ch=*((char*)addr);
+		addr = ((char *)addr + n2);
+		count+=n2;
+	} while (n2 >= size && ch != '\n' && count<*n);
+
+	*n=count;
+
+	return(*n);
+}
 
 
-int diskfs_init(DiskFileSystem *fs);
+static ExecType txt_exec =
+{
+	"txt",
+	load_txt,
+	EXECFLAGS_NOAUTO,
+};
 
-#endif /* __DISKFS_H__ */
+
+static void init_exec __P((void)) __attribute__ ((constructor));
+
+static void
+   init_exec()
+{
+	exec_init(&txt_exec);
+}
+

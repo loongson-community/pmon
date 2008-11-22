@@ -201,6 +201,11 @@ file pmon/cmds/cmd_log.c		(logfile & ramfiles)	needs-flag
 file pmon/cmds/sz_cmd.c			pmon_zmodem_sz
 file pmon/cmds/command.c
 file pmon/cmds/spacetest.c
+file pmon/cmds/menulist2f.c
+file pmon/cmds/boot_cfg.c
+file pmon/common/bootkernel.c
+file pmon/cmds/cmd_ls.c
+file pmon/cmds/cat.c
 
 file pmon/common/about.c		cmd_about
 file pmon/common/autoconf.c		sys
@@ -228,6 +233,7 @@ file pmon/fs/devfs.c			(scsi | ide | usbbus)
 file pmon/fs/diskfs.c			(scsi | ide | usbbus)
 file pmon/fs/ext2fs.c			ext2
 file pmon/fs/fatfs.c            fat
+file pmon/fs/dev_part.c
 file pmon/loaders/loadfn.c		(mod_s3load | mod_fastload)
 file pmon/loaders/zmodem/zmdm.c		(pmon_zmodem_rz | pmon_zmodem_tz)
 file pmon/loaders/zmodem/crctab.c	(pmon_zmodem_rz | pmon_zmodem_tz)
@@ -237,6 +243,7 @@ file pmon/loaders/exec_bin.c
 file pmon/loaders/exec_elf.c		
 file pmon/loaders/exec_elf64.c
 file pmon/loaders/exec_srec.c		mod_s3load needs-flag
+file pmon/loaders/exec_txt.c
 
 file pmon/netio/netio.c			inet
 file pmon/netio/bootp.c			inet

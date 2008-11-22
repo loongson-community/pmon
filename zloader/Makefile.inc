@@ -31,7 +31,7 @@ rom: clean ${START} zloader.o
 ram: clean startram.o zloader.o 
 	gcc -DSTARTADDR=${GZROMSTARTADDR} -E -P ld.script.S > ld.script
 	mips-elf-ld -T ld.script -e start -o gzram startram.o zloader.o 
-	cp gzram /tftpboot
+#	cp gzram /tftpboot
 #	sync
 
 zlib_rom: clean ${START} zlib_loader.o 

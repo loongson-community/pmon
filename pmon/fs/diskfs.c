@@ -47,6 +47,11 @@
 
 SLIST_HEAD(DiskFileSystems,DiskFileSystem)DiskFileSystems=SLIST_HEAD_INITIALIZER(DiskFileSystems);
 
+
+extern DeviceDisk* FindDevice(const char* device_name);
+extern DiskPartitionTable* FindPartitionFromDev(DiskPartitionTable* table, const char* device);
+extern DiskPartitionTable* FindPartitionFromID(DiskPartitionTable* table, int index);
+
 static int diskfs_open (int , const char *, int, int);
 static int diskfs_close (int);
 static int diskfs_read (int, void *, size_t);
@@ -59,6 +64,139 @@ static off_t diskfs_lseek (int, off_t, int);
  *	/dev/fs/iso9660@cd0/bsd
  */
 
+static DiskFile* GetDiskFile(const char* fname, char* filename)
+{
+	DeviceDisk* pdev;
+	DiskPartitionTable* part;
+	DiskFile *dfp;
+	char *dname;
+	char *fsname = NULL;
+	char *devname = NULL;
+	int i;
+	char* p;
+	
+	dname = (char *)fname;
+
+	if (strncmp (dname, "/dev/fs/", 8) == 0)
+	{
+		dname += 8;
+		for (i=0; i < strlen(dname); i++)
+		{
+			if (dname[i] == '@')
+			{
+				fsname = dname;
+				dname[i] = 0;
+				devname = &dname[i+1];
+				break;
+			}
+		}
+
+		if (devname == NULL || *devname == '\0')
+		{
+			printf("device format error11111111111[%s]\n", devname);
+			return NULL;
+		}
+
+		p = strchr(devname, '/');
+		if (p == NULL)
+		{
+			strcpy(filename, "");
+		}
+		else
+		{
+			strcpy(filename, p + 1);
+			*p = '\0';
+		}
+
+		pdev = FindDevice(devname);
+		if (pdev == NULL)
+		{
+			printf("Couldn't find device [%s]\n", devname);
+			return NULL;
+		}
+
+		part = FindPartitionFromDev(pdev->part, devname);
+		if (part == NULL || part->fs == NULL)
+		{
+			printf("Couldn't find partition [%s]\n", devname);
+			return NULL;
+		}
+
+		if (fsname != NULL && part->fs != NULL)
+		{
+			if (strcmp(fsname, part->fs->fsname) != 0)
+			{
+				printf("file system isn't same[%s][%s]\n", fsname, part->fs->fsname);
+				return NULL;
+			}
+		}
+	}
+	else if (*dname == '(')
+	{
+		//char c;
+		
+		devname = dname + 1;
+		p = strchr(devname, '/');
+		if (p == NULL)
+		{
+			strcpy(filename, "");
+		}
+		else
+		{
+			strcpy(filename, p + 1);
+		}
+
+		p = strchr(dname, ',');
+		if (p == NULL)
+		{
+			printf("device format is error[%s]\n", dname);
+			return NULL;
+		}
+		*p = '\0';
+		pdev = FindDevice(devname);
+		if (pdev == NULL)
+		{
+			printf("Couldn't find device [%s]\n", devname);			
+			return NULL;
+		}
+
+		fsname = p + 1;
+		p = strchr(fsname, ')');
+		if (p == NULL)
+		{
+			return NULL;
+		}
+		*p = '\0';
+		if (isspace(*fsname))
+		{
+			return NULL;
+		}
+
+		part = FindPartitionFromID(pdev->part, atoi(fsname) + 1);
+		if (part == NULL || part->fs == NULL)
+		{
+			printf("Don't find partition [%s]\n", devname);
+			return NULL;
+		}
+	}
+	else
+	{
+		printf("device format is error[%s]\n", dname);
+		return NULL;
+	}
+
+	dfp = (DiskFile *)malloc(sizeof(DiskFile));
+	if (dfp == NULL) {
+		fprintf(stderr, "Out of space for allocating a DiskFile");
+		return NULL;
+	}
+
+	dfp->devname = pdev->device_name;
+	dfp->dfs = part->fs;
+	dfp->part = part;
+
+	return dfp;
+}
 
 static int
    diskfs_open (fd, fname, mode, perms)
@@ -67,13 +205,11 @@ static int
    int         mode;
    int	       perms;
 {
-	DiskFileSystem *p;
 	DiskFile *dfp;
-	char *dname;
-	char *fsname = NULL;
-	char *devname = NULL;
-	int i;
-	
+	char filename[256];
+
+	strcpy(filename, fname);
+#if 0
 	dname = (char *)fname;
 
 	if (strncmp (dname, "/dev/fs/", 8) == 0)
@@ -111,11 +247,18 @@ static int
 	}
 
 	dfp->dfs = p;
-	
+#else
+
+	dfp = GetDiskFile(fname, filename);
+	if (dfp == NULL)
+	{
+		return -1;
+	}
+#endif
 	_file[fd].posn = 0;
 	_file[fd].data = (void *)dfp;
-	if(p->open)
-		return ((p->open)(fd,devname,mode,perms));	
+	if(dfp->dfs->open)
+		return ((dfp->dfs->open)(fd, filename, mode, perms));	
 	return -1;	
 }
 
@@ -145,8 +288,9 @@ static int
 
 	p = (DiskFile *)_file[fd].data;
 
-	if (p->dfs->read)
+	if (p->dfs->read){
 		return ((p->dfs->read) (fd, buf, n));
+	}
 	else {
 		return (-1);
 	}
@@ -190,8 +334,10 @@ static FileSystem diskfs =
 	diskfs_read,
 	diskfs_write,
 	diskfs_lseek,
+	//NULL,
 	diskfs_close,
-	NULL
+	NULL,
+	{NULL}
 };
 
 static void init_fs __P((void)) __attribute__ ((constructor));

@@ -53,6 +53,7 @@
 #include <exec.h>
 #include <file.h>
 
+#include <sys/device.h>
 #include "mod_debugger.h"
 #include "mod_symbols.h"
 
@@ -67,6 +68,10 @@ extern void    *callvec;
 #include "cs5536.h"
 #include "vt82c686.h"
 
+extern void DevicesInit(void);
+extern void DeviceRelease(void);
+extern int check_config (const char * file);
+
 jmp_buf         jmpb;		/* non-local goto jump buffer */
 char            line[LINESZ + 1];	/* input line */
 struct termio	clntterm;	/* client terminal mode */
@@ -76,6 +81,7 @@ unsigned int             memorysize;
 unsigned int             memorysize_high;
 char            prnbuf[LINESZ + 8];	/* commonly used print buffer */
 
+unsigned int  	show_menu;
 int             repeating_cmd;
 unsigned int  	moresz = 10;
 #ifdef AUTOLOAD
@@ -89,11 +95,12 @@ extern void delay __P((int));
 extern void suppress_auto_start(void);
 /*one key recovery support*/
 extern void ui_select(char *, char *);
-extern video_cls(void);
+extern void video_cls(void);
 
 extern void cprintf(int y, int x, int width, char color, const char *fmt,...); 
 int video_display_bitmap_pic(ulong, int, int);
-
+static int load_menu_list __P(());
+//static int load_menu_list __P();
 
 
 #ifdef INET
@@ -185,8 +192,121 @@ main()
 		do_cmd(line);
 		console_state(1);
 	}
+	DeviceRelease();
 	return(0);
 }
+static int load_menu_list()
+{
+	unsigned int dly, lastt;
+	unsigned int cnt;
+	struct termio sav;
+	int i = 0;
+	char* prg = "-\\|/";
+	char* rootdev = NULL;
+	char* path = NULL;
+
+	dly = 200;
+	printf("boot: ");
+	ioctl (STDIN, CBREAK, &sav);
+	lastt = 0;
+	do {
+		ioctl (STDIN, FIONREAD, &cnt);
+		printf("\b%c", prg[i++ % 4]);
+		delay(10000);
+	} while (dly-- != 0 && cnt == 0);
+
+	if(cnt > 0 && strchr("\n\r", getchar())) {
+		cnt = 0;
+	}
+
+
+	ioctl (STDIN, TCSETAF, &sav);
+	//        video_cls();
+	printf("\n");
+
+	if(cnt == 0) {
+		show_menu=1;
+		if (path == NULL)
+		{
+			path = malloc(512);
+			if (path == NULL)
+			{
+				return 0;
+			}
+		}
+
+		memset(path, 0, 512);
+		rootdev = getenv("bootdev");
+		if (rootdev == NULL)
+		{
+			rootdev = "(wd0,0)";
+		}
+
+		sprintf(path, "%s/boot.cfg", rootdev);
+		if (check_config(path) == 1)
+		{
+			sprintf(path, "bl -d ide %s/boot.cfg", rootdev);
+			if (do_cmd(path) == 0)
+			{
+				show_menu = 0;
+				//					video_cls();
+				free(path);
+				path = NULL;
+				return 1;
+			}
+		}
+		else
+		{
+			sprintf(path, "%s/boot/boot.cfg", rootdev);
+			if (check_config(path) == 1)
+			{
+				sprintf(path, "bl -d ide %s/boot/boot.cfg", rootdev);
+				if (do_cmd(path) == 0)
+				{
+					show_menu = 0;
+					//						video_cls();
+					free(path);
+					path = NULL;
+					return 1;
+				}
+			}
+		}
+#if 0			
+		if( check_ide() == 1 )// GOT IDE
+		{
+			if( do_cmd ("bl -d ide /dev/fs/ext2@wd0/boot.cfg") ==0 )
+			{
+				show_menu=0;
+				video_cls();
+				return 1;
+			}
+		}
+		else if( check_cdrom () == 1 ) // GOT CDROM
+		{
+			if( do_cmd ("bl -d cdrom /dev/fs/ext2@wd0/boot.cfg") ==0 )
+			{
+				show_menu=0;
+				video_cls();
+				return 1;
+			}
+		}
+#endif
+		free(path);
+		path = NULL;
+		//			video_cls();
+		show_menu=0;
+		return 0;
+	}
+	show_menu=0;
+	return 1;
+
+}
+
+#define NO_KEY		0
+#define ENTER_KEY	1
+#define DEL_KEY		2
+#define TAB_KEY		3
+#define ESC_KEY		4
 extern int vga_available;
 int get_boot_selection(void)
 {
@@ -207,14 +327,14 @@ int get_boot_selection(void)
 
 #ifdef LOONGSON2F_7INCH 
 		if(cnt == 0) {
-			flag = 1;
+			flag = NO_KEY;
 			continue;
 		}
 		c = getchar();
 
 		if (cnt > 0 && c == 0x0a){
-			flag = 1;
-			continue;
+			flag = ENTER_KEY;
+			break;
 		}
 		if (cnt > 0 && c == 0x1b){ 
 			ioctl (STDIN, FIONREAD, &cnt);
@@ -222,13 +342,15 @@ int get_boot_selection(void)
 				ioctl (STDIN, FIONREAD, &cnt);
 				if (cnt > 0 && getchar() == 0x47){ /*Del pressed*/
 					vga_available = 1;
-					flag = 0;
+					flag = DEL_KEY;
 					break;
 				}
+			} else {
+				flag = ESC_KEY;
 			}
 		}
 		if (cnt > 0 && c == 0x09){ /*Tab key pressed*/
-			flag = 2;
+			flag = TAB_KEY;
 			break;
 		}
 #else
@@ -279,10 +401,11 @@ autoload(char *s)
 	char *rd;
 	char *Version;
 
-	char cmdline[256] = "console=tty"; /*Modified by usb rescue or tftp .*/
+	//char cmdline[256] = "console=tty"; /*Modified by usb rescue or tftp .*/
 
 	if(s != NULL  && strlen(s) != 0) {
 		SBD_DISPLAY ("AUTO", CHKPNT_AUTO);
+		#if 0 //11-18
 		printf("Press <Enter> to execute loading image:%s\n",s);
 		printf("Press <del> other key to abort.\n");
 
@@ -305,6 +428,7 @@ autoload(char *s)
 			//video_cls();
 			//vga_available = 1;
 #endif
+		#endif
 			rd= getenv("rd");
 			if (rd != 0){
 				sprintf(buf, "initrd %s", rd);
@@ -333,12 +457,13 @@ autoload(char *s)
 
 			delay(10000);
 			do_cmd (buf);
-			break;
+	}
+			/*break;
 		}
 	} else {
 		//video_cls();
 		//	vga_available = 1;
-	}
+	}*/
 }
 
 #else
@@ -400,6 +525,32 @@ autorun(char *s)
 	}
 }
 #endif
+#define RESCUE_MEDIA "usb"
+
+static void rescue(void)
+{
+	//int i;
+	struct device *dev, *next_dev;
+	char load[256];
+	memset(load, 0, 256);
+
+	for (dev  = TAILQ_FIRST(&alldevs); dev != NULL; dev = next_dev) {
+		next_dev = TAILQ_NEXT(dev, dv_list);
+		if(dev->dv_class < DV_DISK) {
+			continue;
+		}
+
+		if (strncmp(dev->dv_xname, RESCUE_MEDIA, 3) == 0) {
+			sprintf(load, "bl -d ide (%s,0)/boot.cfg", dev->dv_xname);
+			do_cmd(load);
+			break;
+		}
+	}
+	if (dev == NULL) {
+		printf("Can't Find rescue disk!!!!!!\n");
+	}
+	return;
+}
 /*
  *  PMON2000 entrypoint. Called after initial setup.
  */
@@ -519,20 +670,49 @@ dbginit (char *adr)
 	md_setpc(NULL, (int32_t) CLIENTPC);
 	md_setsp(NULL, tgt_clienttos ());
 
-#ifdef AUTOLOAD
-	s = getenv ("al");
-	if (s != 0){
-		autoload (s);
-	}else{
-		//video_cls();	// modified for nas....
-		//vga_available = 1;
-		printf("[auto load error]you haven't set the kernel path!\n");
+	vga_available = 1;
+	DevicesInit();
 
-	}
+	printf("Press <DEL> key to enter pmon console.\n");
+	printf("Press <TAB> key to recover system .\n");
+	printf("Press <ENTER> key to boot selection .\n");
+	switch (get_boot_selection()){
+		case TAB_KEY: 
+			rescue();
+			break;
+
+		case NO_KEY:
+#ifdef AUTOLOAD
+			s = getenv ("al");
+			if (s != 0){
+				autoload (s);
+			}else{
+				//video_cls();	// modified for nas....
+				//vga_available = 1;
+				printf("[auto load error]you haven't set the kernel path!\n");
+
+			}
 #else
-	s = getenv ("autoboot");
-	autorun (s);
+			s = getenv ("autoboot");
+			autorun (s);
 #endif
+			break;
+
+		case ENTER_KEY:
+            //Felix-2008-09-03
+			/* first try (wd0,0)/boot.cfg */	
+			//vga_available = 1;
+			if (!load_menu_list())
+            {
+                break;
+            }
+			break;
+
+		case DEL_KEY:
+		case ESC_KEY:
+			//_set_font_color();
+			break;
+	}
 }
 
 /*
