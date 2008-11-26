@@ -266,18 +266,20 @@ asm(\
 	printf("memtest done\n");
 #endif
 
+#if PCI_IDSEL_VIA686B
 if(getenv("powermg"))
 {
 pcitag_t mytag;
 unsigned char data;
 unsigned int addr;
-	mytag=_pci_make_tag(0,17,4);
+	mytag=_pci_make_tag(0,PCI_IDSEL_VIA686B,4);
 	data=_pci_conf_readn(mytag,0x41,1);
 	_pci_conf_writen(mytag,0x41,data|0x80,1);
 	addr=_pci_allocate_io(_pci_head,256);
 	printf("power management addr=%x\n",addr);
 	_pci_conf_writen(mytag,0x48,addr|1,4);
 }
+#endif
 
 	/*
 	 * Launch!

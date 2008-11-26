@@ -101,10 +101,10 @@ struct in_aliasreq data;
 		timo.tv_sec = 1; timo.tv_usec = 0;
 		switch (select (s + 1, &ifds, 0, 0, &timo)) {
 			case -1:
-    			fprintf (stderr, "cannot select\n");
+    			fprintf (stderr, "error,cannot select\n");
 				goto error;
 			case 0:
-    			fprintf (stderr, "timeout\n");
+    			fprintf (stderr, "error,receive timeout,maybe no connection\n");
 				goto error;
 		}
 			len=recv(s,buf,1500,0);
@@ -116,13 +116,16 @@ struct in_aliasreq data;
 			if(i<TEST_LEN)
 			{
 			errors++;
-			printf("recv error\n");
+			printf("error,received data miscompare,maybe wrong connection\n");
+			if(getenv("verbose"))
+			{
 				for(i=0;i<len;i++)
 				{
 					if((i&15)==0)printf("\n%02x: ",i);
 					printf("%02x ",buf[i]);
 				}
 			printf("\n");
+			}
 			}
 			delay1(500);
 		}

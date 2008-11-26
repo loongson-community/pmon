@@ -95,7 +95,7 @@ struct fl_device fl_known_dev[] = {
 	512*__KB, 64*__KB,  NULL, &fl_func_amd},
 	{ "ST29F040",	0x20, 0xe2, FL_PROTO_AMD, FL_CAP_DE,
 	512*__KB, 64*__KB,  NULL, &fl_func_amd },
-	{ "EN29F040",	0x7f, 0x00, FL_PROTO_AMD, FL_CAP_DE,
+	{ "EN29F040",	0x7f, 0x4f, FL_PROTO_AMD, FL_CAP_DE,
 	512*__KB, 64*__KB,  NULL, &fl_func_amd },
 	{ "EN29LV040",	0x1c, 0x4f, FL_PROTO_AMD, FL_CAP_DE,
 	512*__KB, 64*__KB,  NULL, &fl_func_amd },

@@ -447,18 +447,20 @@ asm(\
 
 	
 
+#if PCI_IDSEL_VIA686B
 if(getenv("powermg"))
 {
 pcitag_t mytag;
 unsigned char data;
 unsigned int addr;
-	mytag=_pci_make_tag(0,17,4);
+	mytag=_pci_make_tag(0,PCI_IDSEL_VIA686B,4);
 	data=_pci_conf_readn(mytag,0x41,1);
 	_pci_conf_writen(mytag,0x41,data|0x80,1);
 	addr=_pci_allocate_io(_pci_head,256);
 	printf("power management addr=%x\n",addr);
 	_pci_conf_writen(mytag,0x48,addr|1,4);
 }
+#endif
 
 	/*
 	 * Launch!
@@ -940,6 +942,8 @@ static inline unsigned char CMOS_READ(unsigned char addr)
 #else	
 	i2c_rec_s(0xde,addr,&tmp,1);
 #endif
+	if(addr == 0x32)
+		tmp = tmp&0x7f;
 	val = ((tmp>>4)&0x0f)*10;
 	val = val + (tmp&0x0f);
 #endif

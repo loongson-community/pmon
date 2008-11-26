@@ -181,3 +181,4 @@ select http
 select tcp
 select inet
 select tftpd
+select e100

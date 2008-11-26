@@ -632,6 +632,7 @@ void tm_binary_to_bcd(struct tm *tm)
 	BIN_TO_BCD(tm->tm_sec);	
 	BIN_TO_BCD(tm->tm_min);	
 	BIN_TO_BCD(tm->tm_hour);	
+	tm->tm_hour = tm->tm_hour|0x80;
 	BIN_TO_BCD(tm->tm_mday);	
 	BIN_TO_BCD(tm->tm_mon);	
 	BIN_TO_BCD(tm->tm_year);	

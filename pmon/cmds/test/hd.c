@@ -134,7 +134,7 @@ int disktest()
 struct device *dev, *next_dev;
 int fd;
 char fname[0x40];
-int i,j,found=0;
+int i,j,found=0,found_sata0=0,found_wd0=0;
 int errors,ret;
 static unsigned char _buf[TEST_SIZE+511],*buf;
 static unsigned char _buf1[TEST_SIZE+512],*buf1;
@@ -146,8 +146,12 @@ buf1=(long)(_buf1+511)&~511;
 		continue;
 		}
 		printf("%-12s %s\n", &dev->dv_xname, devclass[dev->dv_class]);
+		if(!strcmp(&dev->dv_xname,"sata0"))found_sata0=1;
+		else if(!strcmp(&dev->dv_xname,"wd0"))found_wd0=1;
 		found=1;
 	}
+	if(!found_sata0)printf("error,can not find sata0\n");
+	if(!found_wd0)printf("error,can not find wd0\n");
 	if(!found){printf("can not found disk\n");return 0;}
 	for (dev  = TAILQ_FIRST(&alldevs); dev != NULL; dev = next_dev) {
 		next_dev = TAILQ_NEXT(dev, dv_list);

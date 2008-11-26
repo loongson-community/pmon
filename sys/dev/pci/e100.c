@@ -3837,8 +3837,8 @@ fxp_init(struct net_device *netdev)
 {
     struct ifnet *ifp = &netdev->arpcom.ac_if;
 	int stat=0;
-    ifp->if_flags |= IFF_RUNNING;
 	if(!netdev->opencount){ stat=e100_open(netdev);netdev->opencount++;}
+    ifp->if_flags |= IFF_RUNNING;
 	return stat;
 }
 
