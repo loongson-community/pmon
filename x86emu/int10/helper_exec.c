@@ -277,7 +277,7 @@ CARD8 x_inb(CARD16 port)
 		val = (CARD8) (Int10Current->inb40time >>
 			       ((Int10Current->inb40time & 1) << 3));
 #ifdef PRINT_PORT
-//      printf(" inb(%#x) = %2.2x\n", port, val);
+		printf(" inb(%#x) = %2.2x\n", port, val);
 #endif
 #ifdef __NOT_YET__
 	} else if (port < 0x0100) {	/* Don't interfere with mainboard */
@@ -288,8 +288,15 @@ CARD8 x_inb(CARD16 port)
 #endif				/* __NOT_YET__ */
 	} else {
 		val = linux_inb(port);
+		if (port == 0x61) {
+			static sw = 0;
+			udelay(5);
+			val = sw ? 0x00: 0x10;
+			sw = !sw;
+		}
 #ifdef PRINT_PORT
-//      if(port!=0x3da&& port!=0x3ba&&port!=0x61) printf(" inb(%#x) = %2.2x\n", port, val);
+		if(port!=0x3da&& port!=0x3ba&&port!=0x61) printf(" inb(%#x) = %2.2x\n", port, val);
+//		printf(" inb(%#x) = %2.2x\n", port, val);
 #endif
 	}
 	return val;
@@ -309,7 +316,7 @@ CARD16 x_inw(CARD16 port)
 		val = linux_inw(port);
 	}
 #ifdef PRINT_PORT
-	//  printf(" inw(%#x) = %4.4x\n", port, val);
+	  printf(" inw(%#x) = %4.4x\n", port, val);
 #endif
 	/*if(port==0x100a&&val==0x18f){
 	   M.x86.debug=3;
@@ -347,14 +354,16 @@ void x_outb(CARD16 port, CARD8 val)
 void x_outw(CARD16 port, CARD16 val)
 {
 #ifdef PRINT_PORT
-	printf(" outw(%#x, %4.4x)\n", port, val);
+	if ((port == 0x3c4 && ((val & 0xff) == 0x13 || (val & 0xff) == 0x14)) || (port != 0x3c4))
+		printf("outw (%#x, %4.4x)\n", port, val);
 #endif
 #ifndef VGA_LYNX_0712
 	linux_outw(val, port);
 #else
 	if (port == 0xd9c7) {
-	} else
+	} else {
 		linux_outw(val, port);
+	}
 #endif
 }
 

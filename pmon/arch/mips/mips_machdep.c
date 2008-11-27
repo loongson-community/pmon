@@ -50,7 +50,10 @@
 
 extern char end[];
 extern char edata[];
+//Felix-2008-10-28
+//extern int memorysize;
 extern unsigned int memorysize;
+
 
 extern char MipsException[], MipsExceptionEnd[];
 
@@ -75,7 +78,8 @@ void clearbss(void)
 	rdata = (u_int64_t *)CACHED_TO_UNCACHED(edata);
 	rdata = (u_int64_t *)edata;
 	while((int)rdata & (sizeof(*rdata) - 1)) {
-		*((char *)rdata)++ = 0;
+		*((char *)rdata) = 0;
+		rdata = (char *)rdata + 1;
 	}
 	count = (end - edata) / sizeof(*rdata);
 	while(count--) {
@@ -254,6 +258,18 @@ delay(microseconds)
 #endif
 }
 
+void
+udelay(int usec)
+{
+		int total, start;
+		start = CPU_GetCOUNT();
+		total = usec * clkperusec;
+
+		while(total > (CPU_GetCOUNT() - start))
+		{
+				idle();
+		};
+}
 extern void idle();
 void delay1(int microseconds){
 		int total, start;

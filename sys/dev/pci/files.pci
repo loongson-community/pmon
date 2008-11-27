@@ -69,6 +69,7 @@ file	sys/dev/pci/pcidevs.c		pci
 file    sys/dev/pci/vt82c686.c      (vt82c686 & pci) needs-flag
 file	sys/dev/pci/cs5536.c		(cs5536 & pci)  needs-flag
 file    sys/dev/pci/sm712.c         pci&sm712
+file	sys/dev/pci/sis315e.c		pci&sis315e
 
 #added by yh
 

@@ -280,6 +280,7 @@ file x86emu/src/biosemu/bios.c		mod_x86emu	needs-flag
 file x86emu/src/biosemu/linuxpci.c	mod_x86emu	needs-flag
 file x86emu/src/biosemu/biosemu.c	mod_x86emu	needs-flag
 file x86emu/src/biosemu/freebiosvga.c	mod_x86emu	needs-flag
+file x86emu/int10/vesafb.c				mod_vesa & mod_framebuffer		needs-flag
 
 #file fb/fb_draw.c                       mod_framebuffer         needs-flag
 #file fb/fb_main.c                       mod_framebuffer         needs-flag

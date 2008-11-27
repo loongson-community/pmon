@@ -859,4 +859,3 @@ UnlockLegacyVGA(void)
     linux_outb(_BE_env.vgaInfo.save_msr,0x3c2);
 #endif
 }
-

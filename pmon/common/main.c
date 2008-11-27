@@ -100,7 +100,11 @@ extern void video_cls(void);
 extern void cprintf(int y, int x, int width, char color, const char *fmt,...); 
 int video_display_bitmap_pic(ulong, int, int);
 static int load_menu_list __P(());
-//static int load_menu_list __P();
+
+#include "fb/bmp_layout.h"
+int xcount;
+bmp_image_t *bmp;
+bmp_color_table_entry_t cte;
 
 
 #ifdef INET
@@ -325,7 +329,7 @@ int get_boot_selection(void)
 
 		ioctl (STDIN, FIONREAD, &cnt);
 
-#ifdef LOONGSON2F_7INCH 
+//#ifdef LOONGSON2F_7INCH 
 		if(cnt == 0) {
 			flag = NO_KEY;
 			continue;
@@ -353,6 +357,7 @@ int get_boot_selection(void)
 			flag = TAB_KEY;
 			break;
 		}
+/*		
 #else
 		if (cnt == 0) continue;
 		c = getchar();
@@ -383,7 +388,8 @@ int get_boot_selection(void)
 			}
 		}
 #endif
-#endif //LOONGSON2F_7INCH Recovery key Pressed
+*/
+//#endif //LOONGSON2F_7INCH Recovery key Pressed
 	} while (dly-- != 0);
 
 	ioctl (STDIN, TCSETAF, &sav);
@@ -669,8 +675,6 @@ dbginit (char *adr)
 	md_clreg(NULL);
 	md_setpc(NULL, (int32_t) CLIENTPC);
 	md_setsp(NULL, tgt_clienttos ());
-
-	vga_available = 1;
 	DevicesInit();
 
 	printf("Press <DEL> key to enter pmon console.\n");
@@ -682,15 +686,31 @@ dbginit (char *adr)
 			break;
 
 		case NO_KEY:
+		case ENTER_KEY:
 #ifdef AUTOLOAD
-			s = getenv ("al");
-			if (s != 0){
-				autoload (s);
-			}else{
-				//video_cls();	// modified for nas....
-				//vga_available = 1;
-				printf("[auto load error]you haven't set the kernel path!\n");
-
+            //Felix-2008-09-03
+			/* first try (wd0,0)/boot.cfg */
+			{
+				unsigned char *envstr;
+				if((envstr = getenv("ShowBootMenu"))&&!strcmp("yes", envstr))
+				{
+					vga_available = 1;
+				}
+				else
+				{
+					vga_available = 0;
+				}
+			}
+			if (!load_menu_list())
+            {
+				/* second try autoload env */
+				s = getenv ("al");
+				if (s != 0){
+					autoload (s);
+				} else {
+					vga_available = 1;
+					printf("[auto load error]you haven't set the kernel path!\n");
+				}           
 			}
 #else
 			s = getenv ("autoboot");
@@ -698,19 +718,10 @@ dbginit (char *adr)
 #endif
 			break;
 
-		case ENTER_KEY:
-            //Felix-2008-09-03
-			/* first try (wd0,0)/boot.cfg */	
-			//vga_available = 1;
-			if (!load_menu_list())
-            {
-                break;
-            }
-			break;
-
 		case DEL_KEY:
+			vga_available = 1;
 		case ESC_KEY:
-			//_set_font_color();
+			_set_font_color();
 			break;
 	}
 }

@@ -66,9 +66,13 @@
 #define IDE 1
 
 extern int vga_available;
-extern void video_console_print(int , int , unsigned char *);
 extern void setY(int );
 extern void setX(int );
+extern void video_console_print(int console_col, int console_row, unsigned char *s);
+extern int load_list_menu(const char* path);
+extern int do_cmd_boot_load(int boot_id, int device_flag);
+
+
 #if 0
 static char* asc_pic[] =
 {" .--,       .--, ",
@@ -108,7 +112,7 @@ static int asc_pic_line = 12;
 /*
  * Prototypes
  */
-static int testgui_cmd __P((int, char **av));
+//static int testgui_cmd __P((int, char **av));
 
 #define MAX_SCREEN_WIDTH 150
 #define MAX_SCREEN_HEIGHT 80
@@ -126,17 +130,17 @@ void src_clr(void)
 }
 
 int top_height = 0;
-static int draw_top_copyright()
+static int draw_top_copyright(void)
 {	
  	video_console_print(0,top_height++,"2006-2008 (c) SUNWAH HI-TECH (www.sw-linux.com.cn)");
-	video_console_print(0,top_height++,"2004-2006 (c) Lemote, Inc  (www.lemote.com)");
+	video_console_print(0,top_height++,"2004-2008 (c) Lemote, Inc  (www.lemote.com)");
 	video_console_print(0,top_height++,"2000-2002 (c) Opsycon AB  (www.opsycon.se)");
 	return 0;
 }
 
 #define FRAME_WIDTH 50
 int vesa_height = 25;
-int frame_height = 14;
+int frame_height = 12;
 int mid_height = 0;
 static int draw_mid_main(int sel, const char *path)
 {
@@ -242,9 +246,9 @@ static int draw_mid_main(int sel, const char *path)
 
 
 int bottom_height = 0;
-static int draw_bottom_main()
+static int draw_bottom_main(void)
 {	
-	bottom_height = top_height + mid_height;
+	bottom_height = top_height + mid_height - 2;
 	video_console_print(0,bottom_height++,"  Use number keys to navigate menu, press ENTER to");
 	video_console_print(0,bottom_height++," boot selected OS and press 'b' to go back to PMON");
 	video_console_print(0,bottom_height++," shell.");
@@ -285,7 +289,21 @@ static int show_main(int flag, const char* path)
 	{
 		dly = 5;
 	}
-
+	#if 1
+	{
+		unsigned char *envstr;
+		envstr = getenv("ShowBootMenu");
+		if(envstr==NULL)
+			{
+				goto JUST_BOOT;
+			}
+		else if (strcmp("yes", envstr))
+			{
+				goto JUST_BOOT;
+			}
+	}
+	#endif
+	//vga_available = 1;
 	src_clr();
 	draw_main(selected, path);
 	
@@ -353,11 +371,7 @@ static int show_main(int flag, const char* path)
 				ch = getchar();
             	if (98 == ch)//'b' pressed ,back to console
             	{
-					//setX(cursor);
-					setY(bottom_height + 2);
-					//printf("\n");
-					//printf("\n");
-					SBD_DISPLAY("ESC0", 0);
+					setY(bottom_height + 1);
                 	return 0;
             	}
 			}
@@ -367,7 +381,8 @@ static int show_main(int flag, const char* path)
 			}
 		}
 	}
-	setY(bottom_height + 2);
+	setY(bottom_height + 1);
+JUST_BOOT:
 	do_cmd_boot_load(selected - 1, 0);
 	return 0;
 }
@@ -423,8 +438,8 @@ cmd_menu_list (ac, av)
 
 	ioctl (STDIN, CBREAK, &sav);
 
-	printf("Here before calling show_main().path:%s\n",path);
-	show_main(dflag,path);
+	//printf("Here before calling show_main().path:%s\n",path);
+	ret = show_main(dflag,path);
 //	ret = do_cmd_menu_list(dflag, path);
 	ioctl (STDIN, TCSETAF, &sav);
 	return ret != 0 ? EXIT_FAILURE : 0;

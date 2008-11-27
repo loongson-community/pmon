@@ -255,13 +255,16 @@ tgt_devconfig()
 	SBD_DISPLAY("XINT", 0);
 	rc = vga_bios_init();
 
-#elif (NMOD_X86EMU_INT10 == 0 && defined(RADEON7000))
+#elif (NMOD_X86EMU_INT10 == 0)
 	SBD_DISPLAY("VGAI", 0);
+#if defined(RADEON7000) 
 	rc = radeon_init();
+#endif
 #endif
 
 #if NMOD_FRAMEBUFFER > 0
 	if (rc > 0) {
+	//if (1) {
 		SBD_DISPLAY("FRBI", 0);
 		fbaddress  =_pci_conf_read(vga_dev->pa.pa_tag,0x10);
 		ioaddress  =_pci_conf_read(vga_dev->pa.pa_tag,0x18);
@@ -271,6 +274,12 @@ tgt_devconfig()
 
 		printf("fbaddress 0x%x\tioaddress 0x%x\n",fbaddress, ioaddress);
 
+#if defined(VESAFB)
+		vesafb_init();
+#endif
+#ifdef SIS315E
+		sis315e_init();
+#endif
 		fb_init(fbaddress, ioaddress);
 		printf("after fb_init\n");
 
@@ -1217,8 +1226,12 @@ void prom_printf(char *fmt, ...)
 
 	for (p = buf; p < buf_end; p++) {
 		/* Crude cr/nl handling is better than none */
+#if 0
 		if(*p == '\n')putDebugChar('\r');
 		putDebugChar(*p);
+#endif
+		if(*p == '\n')tgt_putchar('\r');
+		tgt_putchar(*p);
 	}
 }
 

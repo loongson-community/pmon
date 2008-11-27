@@ -14,6 +14,7 @@
 #include "linux/io.h"
 
 #include "mod_framebuffer.h"
+#include "vesa.h"
 
 #define vgaram_base (VGA_BASE + 0xa0000)
 
@@ -146,6 +147,8 @@ extern struct pci_device *vga_dev;
 
 extern int vga_available;
 extern int novga;
+extern int vesa_mode;
+extern struct vesamode *vesa_mode_head;
 int vga_bios_init(void)
 {
 	xf86Int10InfoPtr pInt;
@@ -209,10 +212,13 @@ int vga_bios_init(void)
 		romaddress &= (~1);
 		/* enable rom address decode */
 		_pci_conf_write(pdev->pa.pa_tag, 0x30, romaddress | 1);
-#ifdef RADEON7000
+#if defined(RADEON7000) || defined(VESAFB)
 		{
 			extern unsigned char vgarom[];
+			unsigned char *tmp;
 			romaddress = (unsigned long)vgarom;
+			tmp = (unsigned char *)vgarom;
+			printk("Here after vgarom romaddress:%x\n",tmp[4]);
 		}
 #endif
 
@@ -220,7 +226,7 @@ int vga_bios_init(void)
 			printk("No rom address assigned,skipped\n");
 			return -1;
 		}
-#if defined(BONITOEL) && !defined(RADEON7000)
+#if defined(BONITOEL) && !(defined(RADEON7000) || defined(VESAFB))
 		romaddress += 0x10000000;
 #endif
 
@@ -275,20 +281,20 @@ int vga_bios_init(void)
 	pInt->BIOSseg = V_BIOS >> 4;
 	pInt->num = 0xe6;
 	printf("lock vga\n");
-	LockLegacyVGA(screen, &vga);
+	//LockLegacyVGA(screen, &vga);
 	printf("starting bios emu...\n");
 	//X86EMU_trace_on();
 	printf("ax=%lx,bx=%lx,cx=%lx,dx=%lx\n", pInt->ax, pInt->bx, pInt->cx,
 	       pInt->dx);
 	xf86ExecX86int10(pInt);
 	printf("bios emu done\n");
-#if 0
+#if 1
 	pInt->num = 0x10;
 	pInt->ax = 0x03;
 	xf86ExecX86int10(pInt);
 #endif
 
-	UnlockLegacyVGA(screen, &vga);
+	//UnlockLegacyVGA(screen, &vga);
 	setregs(regs);
 	linux_outb(0x67, 0x3c2);
 
@@ -303,8 +309,16 @@ int vga_bios_init(void)
 	printf("setting fb mode...\n");
 	pInt->BIOSseg = V_BIOS >> 4;
 	pInt->num = 0x10;
+	{
+		char *mode;
+		mode = getenv("vesa_mode");
+		if (mode != 0)
+			vesa_mode = strtol(mode, 0, 0);
+	}
 	pInt->ax = 0x4f02;
-	pInt->bx = 0x4114;
+//	pInt->bx = 0x4114;
+	pInt->bx = (USE_LINEAR_FRAMEBUFFER | vesa_mode_head[vesa_mode].mode);
+	printk("ax %x bx %x\n", pInt->ax, pInt->bx);
 	xf86ExecX86int10(pInt);
 	if (pInt->ax != 0x004f)
 		printk("set vesa mode failed,ax=%x\n", pInt->ax);
@@ -355,15 +369,15 @@ Bool MapCurrentInt10(xf86Int10InfoPtr pInt)
 #define MMIO_IN8(base, offset) \
         *(volatile CARD8 *)(((CARD8*)(base)) + (offset))
 #define MMIO_IN16(base, offset) \
-        *(volatile CARD16 *)(void *)(((CARD8*)(base)) + (offset))
+        *(volatile CARD16 *)(((CARD8*)(base)) + (offset))
 #define MMIO_IN32(base, offset) \
-        *(volatile CARD32 *)(void *)(((CARD8*)(base)) + (offset))
+        *(volatile CARD32 *)(((CARD8*)(base)) + (offset))
 #define MMIO_OUT8(base, offset, val) \
         *(volatile CARD8 *)(((CARD8*)(base)) + (offset)) = (val)
 #define MMIO_OUT16(base, offset, val) \
-        *(volatile CARD16 *)(void *)(((CARD8*)(base)) + (offset)) = (val)
+        *(volatile CARD16 *)(((CARD8*)(base)) + (offset)) = (val)
 #define MMIO_OUT32(base, offset, val) \
-        *(volatile CARD32 *)(void *)(((CARD8*)(base)) + (offset)) = (val)
+        *(volatile CARD32 *)(((CARD8*)(base)) + (offset)) = (val)
 
 #define OFF(addr) ((addr) & 0xffff)
 #define SYS(addr) ((addr) >= SYS_BIOS)
@@ -375,31 +389,31 @@ Bool MapCurrentInt10(xf86Int10InfoPtr pInt)
 
 #define VRAM(addr) ((addr >= V_RAM) && (addr < (V_RAM + VRAM_SIZE)))
 #define V_ADDR_RB(addr) \
-	(VRAM(addr)) ? MMIO_IN8((CARD8*)VRAM_BASE,VRAM_ADDR(addr)) \
-	   : *(CARD8*) V_ADDR(addr)
+	(VRAM((addr))) ? MMIO_IN8((CARD8*)VRAM_BASE,VRAM_ADDR((addr))) \
+	   : *(CARD8*) V_ADDR((addr))
 #define V_ADDR_RW(addr) \
-	(VRAM(addr)) ? MMIO_IN16((CARD16*)VRAM_BASE,VRAM_ADDR(addr)) \
-	   : ldw_u((pointer)V_ADDR(addr))
+	(VRAM((addr))) ? MMIO_IN16((CARD16*)VRAM_BASE,VRAM_ADDR((addr))) \
+	   : (*(CARD16*)V_ADDR((addr)))
 #define V_ADDR_RL(addr) \
-	(VRAM(addr)) ? MMIO_IN32((CARD32*)VRAM_BASE,VRAM_ADDR(addr)) \
-	   : ldl_u((pointer)V_ADDR(addr))
+	(VRAM((addr))) ? MMIO_IN32((CARD32*)VRAM_BASE,VRAM_ADDR((addr))) \
+	   : (*(CARD32*)V_ADDR((addr)))
 
 #define V_ADDR_WB(addr,val) \
-	if(VRAM(addr)) \
-	    MMIO_OUT8((CARD8*)VRAM_BASE,VRAM_ADDR(addr),val); \
-	else \
-	    *(CARD8*) V_ADDR(addr) = val;
+	if(VRAM((addr))) {	\
+	    MMIO_OUT8((CARD8*)VRAM_BASE,VRAM_ADDR((addr)),val); \
+	} else \
+	    *(CARD8*) V_ADDR((addr)) = val;
 #define V_ADDR_WW(addr,val) \
-	if(VRAM(addr)) \
-	    MMIO_OUT16((CARD16*)VRAM_BASE,VRAM_ADDR(addr),val); \
+	if(VRAM((addr))) \
+	    MMIO_OUT16((CARD16*)VRAM_BASE,VRAM_ADDR((addr)),val); \
 	else \
-	    stw_u(val,(pointer)(V_ADDR(addr)));
+	    *(CARD16*)(V_ADDR((addr))) = val;
 
 #define V_ADDR_WL(addr,val) \
-	if (VRAM(addr)) \
-	    MMIO_OUT32((CARD32*)VRAM_BASE,VRAM_ADDR(addr),val); \
+	if (VRAM((addr))) \
+	    MMIO_OUT32((CARD32*)VRAM_BASE,VRAM_ADDR((addr)),val); \
 	else \
-	    stl_u(val,(pointer)(V_ADDR(addr)));
+	    *(CARD32*)(V_ADDR((addr))) = val;
 
 static CARD8 read_b(xf86Int10InfoPtr pInt, int addr)
 {
@@ -408,51 +422,51 @@ static CARD8 read_b(xf86Int10InfoPtr pInt, int addr)
 
 static CARD16 read_w(xf86Int10InfoPtr pInt, int addr)
 {
-#if 0				/*X_BYTE_ORDER == X_LITTLE_ENDIAN */
-	if (OFF(addr + 1) > 0)
-		return V_ADDR_RW(addr);
+//	return V_ADDR_RW(addr);
+#ifdef DEBUG_READ
+	printf("read_w %x %x %x\n", V_ADDR_RB(addr), ((CARD16)(V_ADDR_RB((addr + 1))) << 8),
+			(CARD16)(V_ADDR_RB(addr)) | ((CARD16)(V_ADDR_RB(addr + 1)) << 8));
 #endif
-	return V_ADDR_RB(addr) | (V_ADDR_RB(addr + 1) << 8);
+	return (CARD16)(V_ADDR_RB(addr)) | ((CARD16)(V_ADDR_RB(addr + 1)) << 8);
 }
 
 static CARD32 read_l(xf86Int10InfoPtr pInt, int addr)
 {
-#if 0				/*X_BYTE_ORDER == X_LITTLE_ENDIAN */
-	if (OFF(addr + 3) > 2)
-		return V_ADDR_RL(addr);
-#endif
-	return V_ADDR_RB(addr) |
-	    (V_ADDR_RB(addr + 1) << 8) |
-	    (V_ADDR_RB(addr + 2) << 16) | (V_ADDR_RB(addr + 3) << 24);
+//	return V_ADDR_RL(addr);
+	return (CARD32)(V_ADDR_RB(addr)) |
+	    ((CARD32)(V_ADDR_RB(addr + 1)) << 8) |
+	    ((CARD32)(V_ADDR_RB(addr + 2)) << 16) | ((CARD32)(V_ADDR_RB(addr + 3)) << 24);
 }
 
 static void write_b(xf86Int10InfoPtr pInt, int addr, CARD8 val)
 {
-	V_ADDR_WB(addr, val);
+	V_ADDR_WB(addr, (val & 0xff));
+#ifdef DEBUG_WRITE
+	if (VRAM(addr) && val)
+		printf("%08x wb %x, rd %x\n", addr, val, read_b(pInt, addr));
+#endif
 }
 
 static void write_w(xf86Int10InfoPtr pInt, int addr, CARD16 val)
 {
-#if 0				/*X_BYTE_ORDER == X_LITTLE_ENDIAN */
-	if (OFF(addr + 1) > 0) {
-		V_ADDR_WW(addr, val);
-	}
+	V_ADDR_WB(addr, (val & 0xff));
+	V_ADDR_WB(addr+1, ((val >> 8) & 0xff));
+#ifdef DEBUG_WRITE
+	if (VRAM(addr) && val)
+		printf("%08x ww %x, rd %x\n", addr, val, read_w(pInt, addr));
 #endif
-	V_ADDR_WB(addr, val);
-	V_ADDR_WB(addr + 1, val >> 8);
 }
 
 static void write_l(xf86Int10InfoPtr pInt, int addr, CARD32 val)
 {
-#if 0				/*X_BYTE_ORDER == X_LITTLE_ENDIAN */
-	if (OFF(addr + 3) > 2) {
-		V_ADDR_WL(addr, val);
-	}
+	V_ADDR_WB(addr, (val & 0xff));
+	V_ADDR_WB(addr+1, ((val >> 8) & 0xff));
+	V_ADDR_WB(addr+2, ((val >> 16) & 0xff));
+	V_ADDR_WB(addr+3, ((val >> 24) & 0xff));
+#ifdef DEBUG_WRITE
+	if (VRAM(addr) && val)
+		printf("%08x wl %x, rd %x\n", addr, val, read_l(pInt, addr));
 #endif
-	V_ADDR_WB(addr, val);
-	V_ADDR_WB(addr + 1, val >> 8);
-	V_ADDR_WB(addr + 2, val >> 16);
-	V_ADDR_WB(addr + 3, val >> 24);
 }
 
 pointer xf86int10Addr(xf86Int10InfoPtr pInt, CARD32 addr)
