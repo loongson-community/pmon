@@ -2971,7 +2971,7 @@ static void e100_rx_clean_list(struct nic *nic)
 				dev_kfree_skb(rx->skb);
 			}
 		}
-		kfree(nic->rxs);
+		if(nic->rxs)kfree(nic->rxs);
 		nic->rxs = NULL;
 	}
 
@@ -3122,7 +3122,7 @@ static int e100_up(struct nic *nic)
 	if((err = e100_alloc_cbs(nic)))
 		goto err_rx_clean_list;
 	if((err = e100_hw_init(nic)))
-		goto err_clean_cbs;
+	;//	goto err_clean_cbs;
 	e100_set_multicast_list(nic->netdev);
 	e100_start_receiver(nic, NULL);
 //	mod_timer(&nic->watchdog, jiffies);
