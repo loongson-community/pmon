@@ -53,6 +53,57 @@
 extern DeviceDisk* FindDevice(const char* device_name);
 extern DiskPartitionTable* FindPartitionFromDev(DiskPartitionTable* table, const char* device);
 
+int cmd_list_fat32(int ac,char *av[]);
+
+int cmd_list_fat32(int ac, char *av[])
+{
+	char fat_path[100];
+	char fat_device_path[10];
+	char *pDeviceStart = NULL;
+	char *pDeviceEnd = NULL;
+	unsigned int DevNameLength;
+	
+	/*do the path tranform,for example
+	(usb0,0)/ -> /dev/fat/disk@usb0/
+	(usb0,1)/ -> /dev/fat/disk@usb0b/
+	(usb0,2)/ -> /dev/fat/disk@usb0c/
+	(wd0,0)/ -> /dev/fat/disk@wd0/
+	(wd0,1)/ -> /dev/fat/disk@wd0b/
+	(wd0,2)/ -> /dev/fat/disk@wd0c/
+	(usb0,0)/boot -> /dev/fat/disk@usb0/boot/
+	(usb0,1)/boot/ -> /dev/fat/disk@usb0b/boot/
+	(usb0,2)/boot -> /dev/fat/disk@usb0c/boot/
+	(wd0,0)/boot -> /dev/fat/disk@wd0/boot/
+	(wd0,1)/boot/ -> /dev/fat/disk@wd0b/boot/
+	(wd0,2)/boot -> /dev/fat/disk@wd0c/boot/	*/
+	
+	memset(fat_path, 0, 100);
+	pDeviceStart = strchr(av[1],'(');
+	if (pDeviceStart==NULL)
+		return -1;
+	pDeviceEnd = strchr(av[1],',');
+	if (pDeviceEnd==NULL)
+		return -1;
+	DevNameLength = (unsigned int)pDeviceEnd -(unsigned int)pDeviceStart -1;
+	memset(fat_device_path, 0, 10);
+	memcpy(fat_device_path, av[1]+1, DevNameLength);
+	fat_device_path[DevNameLength] =*(++pDeviceEnd)+0x31;
+	fat_device_path[DevNameLength+1] = '\0';
+	pDeviceStart = strchr(av[1],')');
+	if (pDeviceStart==NULL)
+		return -1;		
+	if ('/' == (*++pDeviceStart))
+		sprintf(fat_path, "load /dev/fat/disk@%s%s",fat_device_path,pDeviceStart);
+	else 
+		sprintf(fat_path, "load /dev/fat/disk@%s/%s",fat_device_path,pDeviceStart);
+	if (fat_path[strlen(fat_path)-1] != '/')
+		fat_path[strlen(fat_path)] = '/';
+	else 		
+		fat_path[strlen(fat_path)] = '\0';
+
+	return do_cmd(fat_path);
+}
+
 int cmd_list (int ac, char *av[])
 {
 	DiskPartitionTable* pPart;
@@ -135,7 +186,9 @@ int cmd_list (int ac, char *av[])
 
     if (pPart->fs == NULL || pPart->fs->open_dir == NULL)
     {
-        return 0;
+		//printf("cmd_list pPart->fs == NULL or pPart->fs->open_dir == NULL.\n");
+		//Is this a fat32 part,try it?
+		return cmd_list_fat32(ac,av);
     }
 
 	dfs = (DiskFile *)malloc(sizeof(DiskFile));

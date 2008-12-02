@@ -259,6 +259,8 @@ int ext2_open(int fd, const char *path, int flags, int mode)
 	char *str;
 	DiskFile* df;
 
+	printf("ext2_open path:%s\n",path);
+
 	df = (DiskFile *)_file[fd].data;
 	str = path;
 	if (*str == '/')

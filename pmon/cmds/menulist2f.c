@@ -59,9 +59,6 @@
 
 #include "boot_cfg.h"
 
-//#include <../../x86emu/int10/vesa.h>
-
-
 #define CDROM 0
 #define IDE 1
 
@@ -116,6 +113,12 @@ static int asc_pic_line = 12;
 
 #define MAX_SCREEN_WIDTH 150
 #define MAX_SCREEN_HEIGHT 80
+#define FRAME_WIDTH 50
+int top_height = 0;
+int vesa_height = 25;
+int frame_height = 12;
+int mid_height = 0;
+int bottom_height = 0;
 
 void src_clr(void)
 {
@@ -129,19 +132,16 @@ void src_clr(void)
 		 	video_console_print(0,i,tmp_str);	
 }
 
-int top_height = 0;
-static int draw_top_copyright(void)
+static int draw_top_copyright(void)	
 {	
- 	video_console_print(0,top_height++,"2006-2008 (c) SUNWAH HI-TECH (www.sw-linux.com.cn)");
-	video_console_print(0,top_height++,"2004-2008 (c) Lemote, Inc  (www.lemote.com)");
-	video_console_print(0,top_height++,"2000-2002 (c) Opsycon AB  (www.opsycon.se)");
+	int top_level = 0;
+	video_console_print(0,top_level++,"2006-2008 (c) SUNWAH HI-TECH (www.sw-linux.com.cn)");
+	video_console_print(0,top_level++,"2004-2008 (c) Lemote, Inc  (www.lemote.com)");
+	video_console_print(0,top_level++,"2000-2002 (c) Opsycon AB  (www.opsycon.se)");
+	top_height = top_level;
 	return 0;
 }
 
-#define FRAME_WIDTH 50
-int vesa_height = 25;
-int frame_height = 12;
-int mid_height = 0;
 static int draw_mid_main(int sel, const char *path)
 {
 	int i;
@@ -244,14 +244,12 @@ static int draw_mid_main(int sel, const char *path)
 	return 0;
 }
 
-
-int bottom_height = 0;
 static int draw_bottom_main(void)
 {	
 	bottom_height = top_height + mid_height - 2;
-	video_console_print(0,bottom_height++,"  Use number keys to navigate menu, press ENTER to");
-	video_console_print(0,bottom_height++," boot selected OS and press 'b' to go back to PMON");
-	video_console_print(0,bottom_height++," shell.");
+	video_console_print(0,bottom_height++,"  Use the UP and DOWN keys to select the entry, ");
+	video_console_print(0,bottom_height++," press ENTER to boot selected OS,or press 'c' for");
+	video_console_print(0,bottom_height++," a command-line.");
 
 	return 0;
 }
@@ -271,64 +269,107 @@ static int show_main(int flag, const char* path)
 	int i, j;
 	unsigned int cnt;
 	int dly ; 	
-	int selected;
-	
+
 	char str_line[81];
 	char tmp[100];
-    char ch,ch_tab;
-	
+    char ch;
+	int not_delay = FALSE;
+	int not_erased = TRUE;
+	int selected_menu_num = 1; 
+
 	if (load_list_menu(path))
 	{
 		printf("File:boot.cfg not found \n");
 		return -1;
 	}
 	
-	selected = atoi(get_option_value("default")) + 1;
+	selected_menu_num = atoi(get_option_value("default")) + 1;
 	dly = atoi(get_option_value("timeout"));
 	if (dly < 0)
 	{
 		dly = 5;
 	}
-	#if 1
 	{
 		unsigned char *envstr;
 		envstr = getenv("ShowBootMenu");
 		if(envstr==NULL)
-			{
-				goto JUST_BOOT;
-			}
+		{
+			goto JUST_BOOT;
+		}
 		else if (strcmp("yes", envstr))
-			{
-				goto JUST_BOOT;
-			}
+		{
+			goto JUST_BOOT;
+		}
 	}
-	#endif
-	//vga_available = 1;
-	src_clr();
-	draw_main(selected, path);
-	
-	if (dly > 0)
+	ioctl (STDIN, FIONREAD, &cnt);
+	while (cnt !=0 ) //Avoid the pre Pressed TAB to escape the Delay showing
 	{
-		j = 1;
-		ioctl(STDIN, FIONBIO, &j);
-		ioctl(STDIN, FIOASYNC, &j);
+		getchar();
+		ioctl (STDIN, FIONREAD, &cnt);
+	}
+	src_clr();
+	draw_main(selected_menu_num, path);
+	
+	i = 1;
+	ioctl(STDIN, FIONBIO, &j);
+	ioctl(STDIN, FIOASYNC, &j);
 
-		memset(tmp, 0, sizeof(tmp));
-		memset(str_line, ' ', sizeof(str_line));
-		sprintf(tmp, "Booting system in [%d] second(s)", dly);
+	memset(tmp, 0, sizeof(tmp));
+	memset(str_line, ' ', sizeof(str_line));
+	sprintf(tmp, "Booting system in [%d] second(s)", dly);
 
-		str_line[(sizeof(str_line))] =  '\0';
-		memcpy(str_line + sizeof(str_line) - strlen(tmp) - 1, tmp, strlen(tmp));
-		video_console_print(0,bottom_height + 1,str_line);
-		j = 0;
-		do {
-			ioctl (STDIN, FIONREAD, &cnt);
-
-            if (cnt != 0)
+	str_line[(sizeof(str_line))] =  '\0';
+	memcpy(str_line + sizeof(str_line) - strlen(tmp) - 1, tmp, strlen(tmp));
+	video_console_print(0,bottom_height + 1,str_line);
+	while (1)			
+	{
+		
+		ioctl (STDIN, FIONREAD, &cnt);	
+        if (cnt != 0)
+        {
+			not_delay = TRUE;
+            ch = getchar();
+			if (strchr("\r\n", ch) != NULL)
+			{
+				src_clr();
+				setY(0);
+				break;
+			}
+            if (99 == ch)//'c' pressed ,back to console
             {
-                ch_tab = getchar();
-            }
-            
+				src_clr();
+				setY(0);
+                return 0;
+            }			
+			if ( ch == 0x1b)
+			{ 
+				ioctl (STDIN, FIONREAD, &cnt);
+				if (cnt > 0 && getchar() == 0x5b)
+				{
+
+					ioctl (STDIN, FIONREAD, &cnt);
+					ch = getchar();
+					if (cnt > 0 && ch  == 0x41) //UP key pressed
+					{ 
+						--selected_menu_num;
+						if (selected_menu_num > 0)
+							draw_mid_main(selected_menu_num, path);
+						else
+							++selected_menu_num;
+					}
+					else if (cnt > 0 && ch == 0x42)//DOWN key pressed
+					{ 
+						++selected_menu_num;
+						if (selected_menu_num <= menus_num)
+							draw_mid_main(selected_menu_num, path);
+						else 
+							--selected_menu_num;
+					}	
+				}
+			}				
+        }
+		if (not_delay != TRUE)
+		{
 			if (j == 9)
 			{
 				memset(tmp, 0, sizeof(tmp));
@@ -339,54 +380,26 @@ static int show_main(int flag, const char* path)
 				video_console_print(0,bottom_height + 1,str_line);
 				j = 0;
 			}
+			if (dly == 0)
+				break;
 			delay(100000);
 			j++;
-		} while (dly != 0 && (cnt == 0 || ch_tab == 0x09));
-	}
-	
-	if (cnt > 0)
-	{
-		while (1)
+		}
+		else if (not_erased)
 		{
-			if (strchr("\r\n", ch) == NULL)
+			for (i = 0; i < 80; i++)
 			{
-
-				if ((ch >= '1' && ch <= '9' ) && (ch - '0' != selected ))
-				{
-					selected = ch - '0';  
-					if (selected > menus_num)                        
-					{
-						continue;
-					}
-				
-					draw_mid_main(selected, path);
-				}
-				for (i = 0; i < 80; i++)
-				{
-					str_line[i] = ' ';
-				}
-				str_line[80] = '\0';
-				video_console_print(0,bottom_height + 1,str_line);
-				
-				ch = getchar();
-            	if (98 == ch)//'b' pressed ,back to console
-            	{
-					setY(bottom_height + 1);
-                	return 0;
-            	}
+				str_line[i] = ' ';
 			}
-			else
-			{
-				break;
-			}
+			str_line[80] = '\0';
+			video_console_print(0,bottom_height + 1,str_line);
+			not_erased = FALSE;
 		}
 	}
-	setY(bottom_height + 1);
 JUST_BOOT:
-	do_cmd_boot_load(selected - 1, 0);
+	do_cmd_boot_load(selected_menu_num - 1, 0);
 	return 0;
 }
-
 
 static int
 cmd_menu_list (ac, av)
@@ -437,8 +450,6 @@ cmd_menu_list (ac, av)
 	strcpy(path, av[optind]);
 
 	ioctl (STDIN, CBREAK, &sav);
-
-	//printf("Here before calling show_main().path:%s\n",path);
 	ret = show_main(dflag,path);
 //	ret = do_cmd_menu_list(dflag, path);
 	ioctl (STDIN, TCSETAF, &sav);
@@ -474,7 +485,6 @@ static const Cmd Cmds[] =
 	{"fload", "firmware file", 0, "Update BIOS from file.", cmd_load_flush, 0, 2, CMD_ALIAS},
 	{0, 0}
 };
-
 
 static void init_cmd __P((void)) __attribute__ ((constructor));
 

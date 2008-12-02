@@ -77,8 +77,11 @@ static DiskFile* GetDiskFile(const char* fname, char* filename)
 	
 	dname = (char *)fname;
 
+	printf("GetDiskFile fname:%s filename:%s \n",fname,filename);
+
 	if (strncmp (dname, "/dev/fs/", 8) == 0)
 	{
+		printf("GetDiskFile strncmp()/dev/fs/\n");
 		dname += 8;
 		for (i=0; i < strlen(dname); i++)
 		{
@@ -134,7 +137,7 @@ static DiskFile* GetDiskFile(const char* fname, char* filename)
 	else if (*dname == '(')
 	{
 		//char c;
-		
+		printf("GetDiskFile strncmp() (\n");
 		devname = dname + 1;
 		p = strchr(devname, '/');
 		if (p == NULL)
@@ -207,6 +210,8 @@ static int
 {
 	DiskFile *dfp;
 	char filename[256];
+
+	printf("diskfs_open,fd:%d, fname:%s, \n",fd,fname);
 
 	strcpy(filename, fname);
 #if 0

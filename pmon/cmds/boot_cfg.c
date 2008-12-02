@@ -777,11 +777,46 @@ int load_list_menu(const char* path)
 	ExecId id;
 	int ret;
 	//int boot_id;
-
+	
+	char fat_path[100];
+	char fat_device_path[10];
+	char *pDeviceStart = NULL;
+	char *pDeviceEnd = NULL;
+	unsigned int DevNameLength;
+	
+	//ext2 file system default
 	bootfd = OpenLoadConfig(path);
 	if (bootfd == -1)
 	{
-		return -1;
+		//Second chance to try FAT32 file system
+		//do the path tranform,for example
+		//(usb0,0)/boot.cfg -> /dev/fat/disk@usb0/boot.cfg
+		//(usb0,1)/boot.cfg -> /dev/fat/disk@usb0b/boot.cfg
+		//(usb0,2)/boot.cfg -> /dev/fat/disk@usb0c/boot.cfg
+		//(wd0,0)/boot.cfg -> /dev/fat/disk@wd0/boot.cfg
+		//(wd0,1)/boot.cfg -> /dev/fat/disk@wd0b/boot.cfg
+		//(wd0,2)/boot.cfg -> /dev/fat/disk@wd0c/boot.cfg
+				
+		pDeviceStart = strchr(path,'(');
+		if (pDeviceStart==NULL)
+			return -1;
+		pDeviceEnd = strchr(path,',');
+		if (pDeviceEnd==NULL)
+			return -1;
+		DevNameLength = (unsigned int)pDeviceEnd -(unsigned int)pDeviceStart -1;
+		memset(fat_device_path, 0, 10);
+		memcpy(fat_device_path, path+1, DevNameLength);
+		fat_device_path[DevNameLength] =*(++pDeviceEnd)+0x31;
+		fat_device_path[DevNameLength+1] = '\0';
+		pDeviceStart = strchr(path,'/');
+		if (pDeviceStart==NULL)
+			return -1;		
+		pDeviceStart++;
+		memset(fat_path, 0, 100);
+		sprintf(fat_path, "/dev/fat/disk@%s/%s",fat_device_path,pDeviceStart);
+		bootfd = OpenLoadConfig(fat_path);
+		if (bootfd == -1)
+			return -1;
 	}
 
 	id = getExec("txt");

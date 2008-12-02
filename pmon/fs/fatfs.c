@@ -98,6 +98,7 @@ fat_open(int fd, const char *path, int flags, int mode)
 	int partition = 0, dpathlen;
 	char * p;
 
+	//printf("fat_open path:%s\n",path);
 	/*  Try to get to the physical device */
 	opath = path;
 	if (strncmp(opath, "/dev/", 5) == 0)
