@@ -331,7 +331,6 @@ static int show_main(int flag, const char* path)
             ch = getchar();
 			if (strchr("\r\n", ch) != NULL)
 			{
-				src_clr();
 				setY(0);
 				break;
 			}
@@ -396,6 +395,7 @@ static int show_main(int flag, const char* path)
 			not_erased = FALSE;
 		}
 	}
+	src_clr();
 JUST_BOOT:
 	do_cmd_boot_load(selected_menu_num - 1, 0);
 	return 0;
