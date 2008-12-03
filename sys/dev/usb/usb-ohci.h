@@ -358,7 +358,7 @@ typedef struct
 
 typedef struct ohci {
 	struct usb_hc hc;
-	struct pci_attach_args *pa;
+	struct pci_attach_args pa;
     void *sc_ih;            /* interrupt handler cookie */
 	bus_space_tag_t sc_st;		/* bus space tag */
 	bus_space_handle_t sc_sh;	/* bus space handle */

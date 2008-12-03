@@ -319,7 +319,7 @@ unsigned long sm501_set_clock(int clksrc, unsigned long req_freq)
 
 void sm502_mem_init(struct ohci *ohci, bus_addr_t base, bus_addr_t size)
 {
-	struct pci_attach_args *pa = ohci->pa;
+	struct pci_attach_args *pa = &ohci->pa;
 	bus_space_tag_t memt= pa->pa_memt;
 	u32 value;
 
@@ -510,7 +510,7 @@ static void ohci_attach(struct device *parent, struct device *self, void *aux)
 		//pci_conf_write(ohci->sc_pc, pa->pa_tag, 0xe4, (1<<5));
 	}
 #endif
-	ohci->pa = pa;
+	ohci->pa = *pa;
 	usb_ohci_dev[ohci_dev_index++] = ohci;
 #ifdef CONFIG_SM502_USB_HCD
 	if(PCI_VENDOR(pa->pa_id) == 0x126f) {
@@ -1546,7 +1546,6 @@ static void dl_transfer_length(td_t * td)
 {
 	u32 tdINFO, tdBE, tdCBP;
 	urb_priv_t *lurb_priv = NULL;
-	ohci_t *ohci = td->usb_dev->hc_private;
 	int length = 0;
 
     //QYL-2008-03-07
@@ -3205,9 +3204,14 @@ int usb_lowlevel_stop(void *hc_data)
 
 void usb_ohci_stop_one(ohci_t *ohci)
 {
+	int cmd;
+
 	writel (0, &ohci->regs->control);
 	writel (OHCI_HCR,  &ohci->regs->cmdstatus);
 	(void) readl (&ohci->regs->cmdstatus);
+
+	cmd = pci_conf_read(ohci->sc_pc, ohci->pa.pa_tag, 0x04);
+	pci_conf_write(ohci->sc_pc, ohci->pa.pa_tag, 0x04, (cmd & ~0x4));
 }
 
 void usb_ohci_stop()
