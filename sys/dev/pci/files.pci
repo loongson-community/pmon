@@ -68,6 +68,7 @@ file    sys/dev/pci/ppb.c              ppb
 file	sys/dev/pci/pcidevs.c		pci
 file    sys/dev/pci/vt82c686.c      (vt82c686 & pci) needs-flag
 file	sys/dev/pci/cs5536.c		(cs5536 & pci)  needs-flag
+file	sys/dev/pci/kb3310.c		(cs5536 & pci)  needs-flag
 file    sys/dev/pci/sm712.c         pci&sm712
 
 #added by yh

@@ -171,7 +171,13 @@ void ui_select(char *load, char *cmdline)
 			break;
 		case 'w':
 			if(do_wd_rescue(load, cmdline) != EXIT_SUCCESS) {
-				cprintf(23, 20, 1, 0, "kernel not found");
+				vga_available = 1;
+				for (i=0;i<100;i++){
+					cprintf(23, i, 1, 0, " ");
+					cprintf(24, i, 1, 0, " ");
+				}
+				video_display_bitmap(SMALLBMP10_START_ADDR, SMALLBMP2_X, SMALLBMP2_Y);
+				//cprintf(23, 20, 1, 0, "kernel not found");
 			} else {
 				flag |= F_F;
 			}

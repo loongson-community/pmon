@@ -13,6 +13,8 @@
 #define SMALLBMP7_START_ADDR	0xbfc6e500
 #define SMALLBMP8_START_ADDR	0xbfc6e800
 #define SMALLBMP9_START_ADDR	0xbfc6eb00
+#define SMALLBMP10_START_ADDR	0xbfc6ee00
+
 /*
  * 
  * define X_INDEX 0  in 7   inch 

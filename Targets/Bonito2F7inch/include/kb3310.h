@@ -7,7 +7,7 @@
 
 /* We should make ec rom content and pmon port number equal. */
 /* if you use MX serial EC ROM, please select the option, otherwise mask it */
-#define	USING_MX_ROM
+//#define	USING_MX_ROM
 
 #if	0
 #define	HIGH_PORT	0xff2d
@@ -38,12 +38,15 @@
 #define	XBISPIDATR	0xAE
 #define	XBISPICFG2	0xAF
 
+#if 0
 /* commands definition for REG_XBISPICMD */
 #ifdef	USING_MX_ROM
 #define	SPICMD_READ_BYTE		0x0B
 #else
 #define	SPICMD_READ_BYTE		0x03
 #endif
+#endif
+
 /* SMBUS relative register block according to the EC datasheet. */
 #define	REG_SMBTCRC		0xff92
 #define	REG_SMBPIN		0xff93
@@ -64,9 +67,28 @@
 #define	REG_SMBADAT0	0xffbe
 #define	REG_SMBADAT1	0xffbf
 
+/* watchdog timer registers */
+#define	REG_WDTCFG		0xfe80
+#define	REG_WDTPF		0xfe81
+
+/* lpc configure register */
+#define	REG_LPCCFG		0xfe95
+
+/* 8051 reg */
+#define	REG_PXCFG		0xff14
+
 /* Fan register in KB3310 */
 #define	REG_ECFAN_SPEED_LEVEL	0xf4e4
 #define	REG_ECFAN_SWITCH		0xf4d2
+
+#define EC_ROM_PRODUCT_ID_SPANSION	0x01
+#define EC_ROM_PRODUCT_ID_MXIC		0xC2
+#define EC_ROM_PRODUCT_ID_AMIC		0x37
+
+/* version burned address */
+#define	VER_ADDR	0xf300
+#define	VER_MAX_SIZE	0x40
+#define	EC_ROM_MAX_SIZE	0xf400
 
 /* access ec register content */
 static inline void wrec(unsigned short reg, unsigned char val)

@@ -219,7 +219,7 @@ static int cmd_rdecreg(int ac, char *av[])
 	printf("ecreg : reg=0x%x size=0x%x\n",start, size);
 	reg = start;
 	while(size > 0){
-		printf("reg address : 0x%x,  value : 0x%x\n", reg, rdec(reg));
+		printf("reg address : 0x%x,  value : 0x%x, value : %c\n", reg, rdec(reg), rdec(reg));
 		reg++;
 		size--;
 	}
@@ -352,7 +352,7 @@ static inline int ec_flash_busy(void)
 	while(count < 10){
 		wrec(XBI_BANK | XBISPICMD, 5);
 		while( (rdec(XBI_BANK | XBISPICFG)) & (1 << 1) );
-		if((rdec(XBI_BANK | XBISPIDAT) & 0x01) == 0x00){
+		if( (rdec(XBI_BANK | XBISPIDAT) & (1 << 0)) == 0x00 ){
 			return 0x00;
 		}
 		count++;
@@ -361,9 +361,39 @@ static inline int ec_flash_busy(void)
 	return 0x01;
 }
 
+extern void delay(int us);
+extern void ec_init_idle_mode(void);
+extern void ec_exit_idle_mode(void);
+extern void ec_get_product_id(void);
+extern unsigned char ec_rom_id[3];
+static int cmd_readspiid(int ac, char *av[])
+{
+	u8 cmd;
+
+	if(!get_rsa(&cmd, av[1])) {
+		printf("xbi : access error!\n");
+		return -1;
+	}
+	printf("read spi id command : 0x%x\n", cmd);
+
+
+	/* goto idle mode */
+	ec_init_idle_mode();
+
+	/* get product id */
+	ec_get_product_id();
+
+	/* out of idle mode */
+	ec_exit_idle_mode();
+	
+	printf("Manufacture ID 0x%x, Device ID : 0x%x 0x%x\n", ec_rom_id[0], ec_rom_id[1], ec_rom_id[2]);
+	return 0;
+}
+
 /*
  * xbird : read an EC rom address data througth XBI interface.
  */
+extern unsigned char ec_rom_id[3];
 static int cmd_xbird(int ac, char *av[])
 {
 	u8 val;
@@ -388,6 +418,7 @@ static int cmd_xbird(int ac, char *av[])
 	/* check is it busy. */
 	if(ec_flash_busy()){
 		printf("xbi : flash busy 1.\n");
+		return -1;
 	}
 
 	/* enable write spi flash */
@@ -397,9 +428,24 @@ static int cmd_xbird(int ac, char *av[])
 	wrec(XBI_BANK | XBISPIA2, (addr & 0xff0000) >> 16);
 	wrec(XBI_BANK | XBISPIA1, (addr & 0x00ff00) >> 8);
 	wrec(XBI_BANK | XBISPIA0, (addr & 0x0000ff) >> 0);
+
 	/* start action */
-	wrec(XBI_BANK | XBISPICMD, SPICMD_READ_BYTE);
-	timeout = 0x1000;
+	switch(ec_rom_id[0]){
+		case EC_ROM_PRODUCT_ID_SPANSION :
+			wrec(XBI_BANK | XBISPICMD, 0x03);
+			break;
+		case EC_ROM_PRODUCT_ID_MXIC :
+			wrec(XBI_BANK | XBISPICMD, 0x0b);
+			break;
+		case EC_ROM_PRODUCT_ID_AMIC :
+			wrec(XBI_BANK | XBISPICMD, 0x0b);
+			break;
+		default :
+			printf("ec rom type not supported.\n");
+			return -1;
+	}
+
+	timeout = 0x10000;
 	while(timeout-- >= 0){
 		if( !(rdec(XBI_BANK | XBISPICFG) & (1 << 1)) )
 				break;
@@ -411,7 +457,7 @@ static int cmd_xbird(int ac, char *av[])
 
 	/* get data */
 	data = rdec(XBI_BANK | XBISPIDAT);
-	printf("ec : addr 0x%x\t, data 0x%x\n", addr, data);
+	printf("ec : addr 0x%x\t, data 0x%x, %c\n", addr, data, data);
 
 	val = rdec(XBI_BANK | XBISPICFG) & (~((1 << 3) | (1 << 0)));
 	wrec(XBI_BANK | XBISPICFG, val);
@@ -501,6 +547,7 @@ static const Cmd Cmds[] =
 	
 	{"rdecreg", "reg", NULL, "KB3310 EC reg read test", cmd_rdecreg, 2, 99, CMD_REPEAT},
 	{"wrecreg", "reg", NULL, "KB3310 EC reg write test", cmd_wrecreg, 2, 99, CMD_REPEAT},
+	{"readspiid", "reg", NULL, "KB3310 read spi device id test", cmd_readspiid, 2, 99, CMD_REPEAT},
 	{"rdbat", "reg", NULL, "KB3310 smbus battery reg read test", cmd_rdbat, 2, 99, CMD_REPEAT},
 	{"rdfan", "reg", NULL, "KB3310 smbus fan reg read test", cmd_rdfan, 2, 99, CMD_REPEAT},
 	{"xbiwr", "reg", NULL, "for debug write data to xbi interface of ec", cmd_xbiwr, 2, 99, CMD_REPEAT},

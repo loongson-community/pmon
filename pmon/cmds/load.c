@@ -106,7 +106,7 @@ nload (argc, argv)
 	flags = 0;
 	optind = err = 0;
 	offset = 0;
-	while ((c = getopt (argc, argv, "sbeatif:nrvwyko:d:")) != EOF) {
+	while ((c = getopt (argc, argv, "sbeatif:nrvwyko:dc:")) != EOF) {
 		switch (c) {
 			case 's':
 				flags |= SFLAG; break;
@@ -147,9 +147,13 @@ nload (argc, argv)
 				flags |= RFLAG; break;
 #ifdef HAS_EC
 			case 'd':
+				flags |= DFLAG;
+				ec_ver[0] = 'D';
+				break;
+			case 'c':
 				if(optarg != NULL)
 					strcpy(ec_ver, optarg);
-				flags |= DFLAG; break;
+				flags |= CFLAG; break;
 #endif
 			case 'o':
 				if (!get_rsa ((u_int32_t *)&offset, optarg)) {
@@ -204,7 +208,7 @@ nload (argc, argv)
 #endif
 
 #ifdef HAS_EC
-	if(flags & DFLAG){
+	if( (flags & DFLAG) || (flags & CFLAG) ){
 		flags &= ~(SFLAG | BFLAG | EFLAG);
 		flags |= NFLAG;
 		offset = (unsigned long)heaptop - offset;
@@ -253,7 +257,7 @@ nload (argc, argv)
 	}
 
 #ifdef HAS_EC
-	if(flags & DFLAG){
+	if( (flags & DFLAG) || (flags & CFLAG) ){
 		extern long dl_minaddr;
 		extern long dl_maxaddr;
 		printf("Entry address for EC is 0x%8x, size is 0x%x\n", ep, (dl_maxaddr - dl_minaddr));
