@@ -479,7 +479,7 @@ if(!getenv("wdcnoreset"))
 		if ((ret_value & (0x01 << drive)) == 0)
 			continue;
 		CHP_WRITE_REG(chp, wdr_sdh, WDSD_IBM | (drive << 4));
-		delay(10);
+		delay(100);
 		/* Save registers contents */
 		sc = CHP_READ_REG(chp, wdr_seccnt);
 		sn = CHP_READ_REG(chp, wdr_sector);
