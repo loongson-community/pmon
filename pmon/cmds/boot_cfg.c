@@ -786,6 +786,7 @@ int load_list_menu(const char* path)
 	
 	//ext2 file system default
 	bootfd = OpenLoadConfig(path);
+	//printf("load_list_menu bootfd %d\n",bootfd);
 	if (bootfd == -1)
 	{
 		//Second chance to try FAT32 file system
@@ -815,6 +816,7 @@ int load_list_menu(const char* path)
 		memset(fat_path, 0, 100);
 		sprintf(fat_path, "/dev/fat/disk@%s/%s",fat_device_path,pDeviceStart);
 		bootfd = OpenLoadConfig(fat_path);
+		//printf("load_list_menu second bootfd %d\n",bootfd);
 		if (bootfd == -1)
 			return -1;
 	}

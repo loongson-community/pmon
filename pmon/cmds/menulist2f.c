@@ -269,6 +269,7 @@ static int show_main(int flag, const char* path)
 	int i, j;
 	unsigned int cnt;
 	int dly ; 	
+	int retid;
 
 	char str_line[81];
 	char tmp[100];
@@ -277,10 +278,14 @@ static int show_main(int flag, const char* path)
 	int not_erased = TRUE;
 	int selected_menu_num = 1; 
 
-	if (load_list_menu(path))
+	//if (load_list_menu(path))
+	retid = load_list_menu(path);
+	if (retid != 0)
 	{
-		printf("File:boot.cfg not found \n");
-		return -1;
+		//printf("File:boot.cfg not found \n");
+		//printf("show_main retid %d \n",retid);
+		//return -1;
+		return retid;
 	}
 	
 	selected_menu_num = atoi(get_option_value("default")) + 1;

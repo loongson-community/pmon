@@ -210,8 +210,8 @@ static int load_menu_list()
 	char* path = NULL;
 
 	dly = 200;
-	printf("boot: ");
-	ioctl (STDIN, CBREAK, &sav);
+	printf("booting: ");
+	/*ioctl (STDIN, CBREAK, &sav);
 	lastt = 0;
 	do {
 		ioctl (STDIN, FIONREAD, &cnt);
@@ -225,8 +225,9 @@ static int load_menu_list()
 
 
 	ioctl (STDIN, TCSETAF, &sav);
-	//        video_cls();
+	//        video_cls();*/
 	printf("\n");
+	cnt = 0;
 
 	if(cnt == 0) {
 		show_menu=1;
@@ -245,7 +246,27 @@ static int load_menu_list()
 		{
 			rootdev = "(wd0,0)";
 		}
-
+		//sprintf(path, "%s/boot.cfg", rootdev);
+		sprintf(path, "bl -d ide %s/boot.cfg", rootdev);
+		if (do_cmd(path) == 0)
+		{
+			show_menu = 0;
+			//					video_cls();
+			free(path);
+			path = NULL;
+			return 1;
+		}
+		//sprintf(path, "%s/boot/boot.cfg", rootdev);
+		sprintf(path, "bl -d ide %s/boot/boot.cfg", rootdev);
+		if (do_cmd(path) == 0)
+		{
+			show_menu = 0;
+			//					video_cls();
+			free(path);
+			path = NULL;
+			return 1;
+		}	
+		#if 0
 		sprintf(path, "%s/boot.cfg", rootdev);
 		if (check_config(path) == 1)
 		{
@@ -275,6 +296,7 @@ static int load_menu_list()
 				}
 			}
 		}
+		#endif
 #if 0			
 		if( check_ide() == 1 )// GOT IDE
 		{
@@ -295,6 +317,7 @@ static int load_menu_list()
 			}
 		}
 #endif
+		printf("File:boot.cfg not found! \n");
 		free(path);
 		path = NULL;
 		//			video_cls();
@@ -549,6 +572,8 @@ static void rescue(void)
 		if (strncmp(dev->dv_xname, RESCUE_MEDIA, 3) == 0) {
 			sprintf(load, "bl -d ide (%s,0)/boot.cfg", dev->dv_xname);
 			do_cmd(load);
+			//if(do_cmd(load) != 0)
+				//printf("File:boot.cfg not found \n");
 			break;
 		}
 	}
@@ -680,8 +705,20 @@ dbginit (char *adr)
 	printf("Press <DEL> key to enter pmon console.\n");
 	printf("Press <TAB> key to recover system .\n");
 	printf("Press <ENTER> key to boot selection .\n");
+	{
+		unsigned char *envstr;
+		if((envstr = getenv("ShowBootMenu"))&&!strcmp("yes", envstr))
+		{
+			vga_available = 1;
+		}
+		else
+		{
+			vga_available = 0;
+		}
+	}
 	switch (get_boot_selection()){
 		case TAB_KEY: 
+			vga_available = 1;
 			rescue();
 			break;
 
@@ -690,7 +727,7 @@ dbginit (char *adr)
 #ifdef AUTOLOAD
             //Felix-2008-09-03
 			/* first try (wd0,0)/boot.cfg */
-			{
+			/*{
 				unsigned char *envstr;
 				if((envstr = getenv("ShowBootMenu"))&&!strcmp("yes", envstr))
 				{
@@ -700,7 +737,7 @@ dbginit (char *adr)
 				{
 					vga_available = 0;
 				}
-			}
+			}*/
 			if (!load_menu_list())
             {
 				/* second try autoload env */

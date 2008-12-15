@@ -392,7 +392,7 @@ int fat_init(int fd, struct fat_sc *fsc, int partition)
 	}
 	if((bootsector[0] == 0)&&(bootsector[1] == 0))
 	{
-		fprintf(stderr, "It's not fat!\n");
+		//fprintf(stderr, "It's not fat!\n");
 		return -1;
 	}
 	bpb = (struct bpb_t *)bootsector;
