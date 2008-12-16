@@ -47,6 +47,7 @@
 #define KFLAG 0x1000		/* Load symbols for kernel debugger */ 
 #define RFLAG 0x2000
 #define DFLAG 0x4000        /* Load into EC rom */
+#define CFLAG 0x8000        /* Load ec rom with version */
 
 #define DL_CONT		0
 #define DL_DONE		1

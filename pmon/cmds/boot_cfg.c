@@ -866,11 +866,13 @@ int do_cmd_boot_load(int boot_id, int device_flag)
 
 		if (boot_id < menus_num)
 		{
+			vga_available = 0;
 			ret = boot_load(boot_id);
 			if (ret <0 )
 			{
-				printf("Configuration failed.\nPress any key to continue ...%d\n", ret);
-				getchar();
+				vga_available = 1;
+				//printf("The kernel entry is wrong!\nPlease check the kernel entry in boot.cfg file!\n");
+				//getchar();
 			}
 			return ret;
 		}

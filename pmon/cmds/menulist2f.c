@@ -135,9 +135,9 @@ void src_clr(void)
 static int draw_top_copyright(void)	
 {	
 	int top_level = 0;
-	video_console_print(0,top_level++,"2006-2008 (c) SUNWAH HI-TECH (www.sw-linux.com.cn)");
-	video_console_print(0,top_level++,"2004-2008 (c) Lemote, Inc  (www.lemote.com)");
-	video_console_print(0,top_level++,"2000-2002 (c) Opsycon AB  (www.opsycon.se)");
+	video_console_print(0,top_level++,"                                            ");
+	video_console_print(0,top_level++,"                                            ");
+	video_console_print(0,top_level++,"                                            ");
 	top_height = top_level;
 	return 0;
 }
@@ -247,9 +247,9 @@ static int draw_mid_main(int sel, const char *path)
 static int draw_bottom_main(void)
 {	
 	bottom_height = top_height + mid_height - 2;
-	video_console_print(0,bottom_height++,"  Use the UP and DOWN keys to select the entry, ");
-	video_console_print(0,bottom_height++," press ENTER to boot selected OS,or press 'c' for");
-	video_console_print(0,bottom_height++," a command-line.");
+	video_console_print(0,bottom_height++,"Use the UP and DOWN keys to select the entry.");
+	video_console_print(0,bottom_height++,"Press ENTER to boot selected OS.");
+	video_console_print(0,bottom_height++,"Press 'c' to command-line.");
 
 	return 0;
 }
@@ -321,11 +321,11 @@ static int show_main(int flag, const char* path)
 
 	memset(tmp, 0, sizeof(tmp));
 	memset(str_line, ' ', sizeof(str_line));
-	sprintf(tmp, "Booting system in [%d] second(s)", dly);
+	sprintf(tmp, "                Booting system in [%d] second(s)", dly);
 
 	str_line[(sizeof(str_line))] =  '\0';
 	memcpy(str_line + sizeof(str_line) - strlen(tmp) - 1, tmp, strlen(tmp));
-	video_console_print(0,bottom_height + 1,str_line);
+	video_console_print(0,bottom_height + 2,str_line);
 	while (1)			
 	{
 		
@@ -333,7 +333,7 @@ static int show_main(int flag, const char* path)
         if (cnt != 0)
         {
 			not_delay = TRUE;
-            ch = getchar();
+            ch = getchar();			
 			if (strchr("\r\n", ch) != NULL)
 			{
 				setY(0);
@@ -381,7 +381,7 @@ static int show_main(int flag, const char* path)
 				sprintf(tmp, "Booting system in [%d] second(s)", --dly);
 				str_line[(sizeof(str_line))] =  '\0';
 				memcpy(str_line + sizeof(str_line) - strlen(tmp) - 1 , tmp, strlen(tmp));
-				video_console_print(0,bottom_height + 1,str_line);
+				video_console_print(0,bottom_height + 2,str_line);
 				j = 0;
 			}
 			if (dly == 0)
@@ -396,14 +396,16 @@ static int show_main(int flag, const char* path)
 				str_line[i] = ' ';
 			}
 			str_line[80] = '\0';
-			video_console_print(0,bottom_height + 1,str_line);
+			video_console_print(0,bottom_height + 2,str_line);
 			not_erased = FALSE;
 		}
 	}
-	src_clr();
 JUST_BOOT:
+	src_clr();
+	setY(0);
 	do_cmd_boot_load(selected_menu_num - 1, 0);
-	return 0;
+	//printf ("The selected kernel entry is wrong, try default entry from al.\n ");
+	return 1;
 }
 
 static int
@@ -458,7 +460,8 @@ cmd_menu_list (ac, av)
 	ret = show_main(dflag,path);
 //	ret = do_cmd_menu_list(dflag, path);
 	ioctl (STDIN, TCSETAF, &sav);
-	return ret != 0 ? EXIT_FAILURE : 0;
+	//return ret != 0 ? EXIT_FAILURE : 0;
+	return ret;
 	
 
 }

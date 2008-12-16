@@ -196,7 +196,7 @@ do_cmd(p)
 		}
 
 		if(stat < 0) {
-			printf ("usage: %s %s\n", CmdTable[i].name, CmdTable[i].opts);
+			//printf ("usage: %s %s\n", CmdTable[i].name, CmdTable[i].opts);
 		}
 
 		if(stat != 0) {

@@ -208,6 +208,7 @@ static int load_menu_list()
 	char* prg = "-\\|/";
 	char* rootdev = NULL;
 	char* path = NULL;
+	int retid;
 
 	dly = 200;
 	printf("booting: ");
@@ -248,7 +249,8 @@ static int load_menu_list()
 		}
 		//sprintf(path, "%s/boot.cfg", rootdev);
 		sprintf(path, "bl -d ide %s/boot.cfg", rootdev);
-		if (do_cmd(path) == 0)
+		retid = do_cmd(path);
+		if (retid == 0)
 		{
 			show_menu = 0;
 			//					video_cls();
@@ -258,7 +260,8 @@ static int load_menu_list()
 		}
 		//sprintf(path, "%s/boot/boot.cfg", rootdev);
 		sprintf(path, "bl -d ide %s/boot/boot.cfg", rootdev);
-		if (do_cmd(path) == 0)
+		retid = do_cmd(path);
+		if (retid == 0)
 		{
 			show_menu = 0;
 			//					video_cls();
@@ -317,15 +320,19 @@ static int load_menu_list()
 			}
 		}
 #endif
-		printf("File:boot.cfg not found! \n");
+		if (retid == 1)
+			printf ("The selected kernel entry is wrong! System will try default entry from al.\n ");
+		else
+			printf ("The boot.cfg not existed!System will try default entry from al.\n");
+		delay(1000000);
 		free(path);
 		path = NULL;
 		//			video_cls();
 		show_menu=0;
 		return 0;
 	}
-	show_menu=0;
-	return 1;
+	//show_menu=0;
+	//return 1;
 
 }
 
@@ -334,6 +341,7 @@ static int load_menu_list()
 #define DEL_KEY		2
 #define TAB_KEY		3
 #define ESC_KEY		4
+#define U_KEY   5
 extern int vga_available;
 int get_boot_selection(void)
 {
@@ -348,7 +356,7 @@ int get_boot_selection(void)
 	ioctl(STDIN, CBREAK, &sav);
 	do {
 		delay(10000);
-		if (dly % 128 == 0) printf (".");
+		//if (dly % 128 == 0) printf (".");
 
 		ioctl (STDIN, FIONREAD, &cnt);
 
@@ -363,6 +371,11 @@ int get_boot_selection(void)
 			flag = ENTER_KEY;
 			break;
 		}
+
+		if (cnt >0 && c == 0x75){
+			flag = U_KEY;
+			break;
+			}
 		if (cnt > 0 && c == 0x1b){ 
 			ioctl (STDIN, FIONREAD, &cnt);
 			if (cnt > 0 && getchar() == 0x5b){
@@ -458,6 +471,7 @@ autoload(char *s)
 			//vga_available = 1;
 #endif
 		#endif
+			vga_available = 0;
 			rd= getenv("rd");
 			if (rd != 0){
 				sprintf(buf, "initrd %s", rd);
@@ -486,6 +500,7 @@ autoload(char *s)
 
 			delay(10000);
 			do_cmd (buf);
+			vga_available = 1;
 	}
 			/*break;
 		}
@@ -556,11 +571,12 @@ autorun(char *s)
 #endif
 #define RESCUE_MEDIA "usb"
 
-static void rescue(void)
+static int rescue(void)
 {
 	//int i;
 	struct device *dev, *next_dev;
 	char load[256];
+	int retid;
 	memset(load, 0, 256);
 
 	for (dev  = TAILQ_FIRST(&alldevs); dev != NULL; dev = next_dev) {
@@ -571,17 +587,67 @@ static void rescue(void)
 
 		if (strncmp(dev->dv_xname, RESCUE_MEDIA, 3) == 0) {
 			sprintf(load, "bl -d ide (%s,0)/boot.cfg", dev->dv_xname);
-			do_cmd(load);
-			//if(do_cmd(load) != 0)
-				//printf("File:boot.cfg not found \n");
-			break;
+			retid = do_cmd(load);
+			if (retid == 0)
+				return 1;
+			if (retid == 1)
+				printf ("The selected kernel entry is wrong! System will try default entry from al.\n ");
+			else
+				printf ("The boot.cfg not existed!System will try default entry from al.\n");
+			return 0;
 		}
 	}
 	if (dev == NULL) {
-		printf("Can't Find rescue disk!!!!!!\n");
+		printf("Can't Find rescue disk!!!!!!System will try default entry from al.\n");
+		return 0;
 	}
-	return;
+	return 0;
 }
+
+
+static void recover(char *s)
+{
+	char buf[LINESZ] = {0};
+	char *pa = NULL;
+	char *rd;
+	char *Version;
+
+	char cmdline[256] = "console=tty"; /*Modified by usb rescue or tftp .*/
+
+	if(s != NULL  && strlen(s) != 0) {
+#ifdef LOONGSON2F_7INCH 
+		pa = cmdline;
+		ui_select(buf, pa);
+
+		rd= getenv("rd");
+		if (rd != 0){
+			sprintf(buf, "initrd %s", rd);
+			do_cmd(buf);
+		}
+
+		if (buf[0] == 0) {
+			strcpy(buf,"load ");
+			strcat(buf,s);
+		}
+		do_cmd(buf);
+
+		if (pa == NULL || pa[0] == '\0') 
+			pa=getenv("karg");
+		
+		strcpy(buf,"g ");
+		
+		if(pa != NULL  && strlen(pa) != 0) 
+			strcat(buf,pa);
+		else 
+			strcat(buf," -S root=/dev/hda1 console=tty");
+
+		delay(10000);
+		do_cmd (buf);
+	}
+	#endif
+}
+
+
 /*
  *  PMON2000 entrypoint. Called after initial setup.
  */
@@ -702,9 +768,9 @@ dbginit (char *adr)
 	md_setsp(NULL, tgt_clienttos ());
 	DevicesInit();
 
-	printf("Press <DEL> key to enter pmon console.\n");
+	/*printf("Press <DEL> key to enter pmon console.\n");
 	printf("Press <TAB> key to recover system .\n");
-	printf("Press <ENTER> key to boot selection .\n");
+	printf("Press <ENTER> key to boot selection .\n");*/
 	{
 		unsigned char *envstr;
 		if((envstr = getenv("ShowBootMenu"))&&!strcmp("yes", envstr))
@@ -718,26 +784,30 @@ dbginit (char *adr)
 	}
 	switch (get_boot_selection()){
 		case TAB_KEY: 
+			s = getenv ("al");
+			if (s != 0){
+			recover(s);
+			}
+			break;
+			
+		case U_KEY:
 			vga_available = 1;
-			rescue();
+			if(!rescue())
+			{
+				/* second try autoload env */
+				s = getenv ("al");
+				if (s != 0){
+					autoload (s);
+				} else {
+					vga_available = 1;
+					printf("[auto load error]you haven't set the kernel path!\n");
+				}           
+			}				
 			break;
 
 		case NO_KEY:
 		case ENTER_KEY:
 #ifdef AUTOLOAD
-            //Felix-2008-09-03
-			/* first try (wd0,0)/boot.cfg */
-			/*{
-				unsigned char *envstr;
-				if((envstr = getenv("ShowBootMenu"))&&!strcmp("yes", envstr))
-				{
-					vga_available = 1;
-				}
-				else
-				{
-					vga_available = 0;
-				}
-			}*/
 			if (!load_menu_list())
             {
 				/* second try autoload env */

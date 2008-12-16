@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <fcntl.h>
 #include <termio.h>
 #include <endian.h>
 #include <string.h>
@@ -58,15 +59,17 @@ void ui_select(char *load, char *cmdline)
 	int x, y;
 	int i;
 
-	printf("Press <Enter> to execute loading image:%s\n", getenv("al"));
+	/*printf("Press <Enter> to execute loading image:%s\n", getenv("al"));
 	printf("Press <del>  key to abort.\n");
-	printf("Press <Tab>  key to recover system .\n");
+	printf("Press <Tab>  key to recover system .\n");*/
 	for (i = 0; i < 100; i++){
 		cprintf(28, i, 0, 0," ");
 		cprintf(29, i, 0, 0," ");
+		cprintf(30, i, 0, 0," ");
+		cprintf(31, i, 0, 0," ");
 	}
-	video_display_bitmap(SMALLBMP1_START_ADDR, SMALLBMP1_X, SMALLBMP1_Y);
-	
+	video_display_bitmap(SMALLBMP1_START_ADDR, (SMALLBMP1_X - 45), SMALLBMP1_Y);
+	video_display_bitmap(SMALLBMP_START_ADDR_EN_02, SMALLBMP02_EN_X, SMALLBMP02_EN_Y);
 	while ((flag & F_F) == 0) {
 		char buf[200];
 		switch (getchar()) {
@@ -76,8 +79,11 @@ void ui_select(char *load, char *cmdline)
 				for (i = 0; i < 100; i++){
 					cprintf(23, i, 1, 0," ");
 					cprintf(24, i, 1, 0," ");
+					cprintf(25, i, 1, 0," ");
+					cprintf(26, i, 1, 0," ");
 				}
 				video_display_bitmap(SMALLBMP3_START_ADDR,  SMALLBMP3_X, SMALLBMP3_Y);
+				video_display_bitmap(SMALLBMP_START_ADDR_EN_04, SMALLBMP04_EN_X, SMALLBMP04_EN_Y);
 				flag |= 0x1;
 			}
 			break;
@@ -90,8 +96,11 @@ void ui_select(char *load, char *cmdline)
 				for (i=0;i<100;i++){
 					cprintf(23, i, 1, 0, " ");
 					cprintf(24, i, 1, 0, " ");
+					cprintf(25, i, 1, 0, " ");
+					cprintf(26, i, 1, 0, " ");
 				}
 				video_display_bitmap(SMALLBMP8_START_ADDR, SMALLBMP8_X, SMALLBMP8_Y);
+				video_display_bitmap(SMALLBMP_START_ADDR_EN_09, SMALLBMP09_EN_X, SMALLBMP09_EN_Y);
 				x = getX(); y = getY();
 				setX(53); setY(24);
 				gets(st);
@@ -100,8 +109,11 @@ void ui_select(char *load, char *cmdline)
 				for (i=0;i<100;i++){
 					cprintf(23, i, 1, 0, " ");
 					cprintf(24, i, 1, 0, " ");
+					cprintf(25, i, 1, 0, " ");
+					cprintf(26, i, 1, 0, " ");
 				}
 				video_display_bitmap(SMALLBMP9_START_ADDR, SMALLBMP9_X, SMALLBMP9_Y);
+				video_display_bitmap(SMALLBMP_START_ADDR_EN_10, SMALLBMP10_EN_X, SMALLBMP10_EN_Y);
 				x = getX(); y = getY();
 				setX(55); setY(24);
 				gets(pi); 
@@ -147,8 +159,11 @@ void ui_select(char *load, char *cmdline)
 				for(i = 0; i < 100; i++){
 					cprintf(23, i, 1, 0," ");
 					cprintf(24, i, 1, 0," ");
+					cprintf(25, i, 1, 0," ");
+					cprintf(26, i, 1, 0," ");
 				}
 				video_display_bitmap(SMALLBMP2_START_ADDR, SMALLBMP2_X, SMALLBMP2_Y);
+				video_display_bitmap(SMALLBMP_START_ADDR_EN_03, SMALLBMP03_EN_X, SMALLBMP03_EN_Y);
 			}
 			break;
 		case 'v': /* From tftp flag=0x2*/
@@ -158,8 +173,11 @@ void ui_select(char *load, char *cmdline)
 				for (i=0;i<100;i++){
 					cprintf(23, i, 1, 0, " ");
 					cprintf(24, i, 1, 0, " ");
+					cprintf(25, i, 1, 0, " ");
+					cprintf(26, i, 1, 0, " ");
 				}
 				video_display_bitmap(SMALLBMP6_START_ADDR, SMALLBMP2_X, SMALLBMP2_Y);
+				video_display_bitmap(SMALLBMP_START_ADDR_EN_07, SMALLBMP07_EN_X, SMALLBMP07_EN_Y);
 			}
 			break;
 		case 'y':
@@ -168,10 +186,27 @@ void ui_select(char *load, char *cmdline)
 				do_usb_rescue(load, cmdline);
 			}
 			break;
+		case 'w':
+			if(do_wd_rescue(load, cmdline) != EXIT_SUCCESS) {
+				vga_available = 1;
+				for (i=0;i<100;i++){
+					cprintf(23, i, 1, 0, " ");
+					cprintf(24, i, 1, 0, " ");
+					cprintf(25, i, 1, 0, " ");
+					cprintf(26, i, 1, 0, " ");
+				}
+				video_display_bitmap(SMALLBMP10_START_ADDR, SMALLBMP2_X, SMALLBMP2_Y);
+				//cprintf(23, 20, 1, 0, "kernel not found");
+				video_display_bitmap(SMALLBMP_START_ADDR_EN_11, SMALLBMP11_EN_X, SMALLBMP11_EN_Y);
+			} else {
+				flag |= F_F;
+			}
+			break;
 		default:
 			break;
 		}
 	}
+	printf("out \n");
 }
 
 static int do_net_rescue(char *load, char *cmdline)
@@ -181,8 +216,11 @@ static int do_net_rescue(char *load, char *cmdline)
 	for(i=0;i<100;i++){
 		cprintf(23, i, 1, 0, " ");
 		cprintf(24, i, 1, 0, " ");
+		cprintf(25, i, 1, 0, " ");
+		cprintf(26, i, 1, 0, " ");
 	}
 	video_display_bitmap(SMALLBMP7_START_ADDR,	SMALLBMP7_X, SMALLBMP7_Y);
+	video_display_bitmap(SMALLBMP_START_ADDR_EN_08,	SMALLBMP08_EN_X, SMALLBMP08_EN_Y);
 	vga_available = 0;
 
 	pb = getenv("tftp");
@@ -191,6 +229,35 @@ static int do_net_rescue(char *load, char *cmdline)
 
 	return 0;
 }
+
+static int do_wd_rescue(char *load, char *cmdline)
+{
+	int i;
+	char *pb;
+	char *filename = "/dev/fs/ext2@wd0b/vmlinux";
+	int fd;
+
+	for(i=0;i<100;i++){
+		cprintf(23, i, 1, 0, " ");
+		cprintf(24, i, 1, 0, " ");
+		cprintf(25, i, 1, 0, " ");
+		cprintf(26, i, 1, 0, " ");
+	}
+
+	if ((fd = open(filename, O_RDONLY | O_NONBLOCK)) < 0) {
+		perror(filename);
+		return EXIT_FAILURE;
+	}
+
+	video_display_bitmap(SMALLBMP7_START_ADDR,	SMALLBMP7_X, SMALLBMP7_Y);
+	video_display_bitmap(SMALLBMP_START_ADDR_EN_08,	373, 390);
+
+	strcpy(load, "load ");
+	strcat(load, filename);
+
+	return 0;
+}
+
 
 /* xuhua add 20080407 */
 static int do_usb_rescue(char *load, char *cmdline)
@@ -233,12 +300,14 @@ static int do_usb_rescue(char *load, char *cmdline)
 		if (strcmp(dev->dv_xname, "usb0") == 0) {
 			if ((bootfd = open (path0, O_RDONLY | O_NONBLOCK)) >= 0){
 				video_display_bitmap(SMALLBMP4_START_ADDR, SMALLBMP4_X, SMALLBMP4_Y);
+				video_display_bitmap(SMALLBMP_START_ADDR_EN_05, SMALLBMP05_EN_X, SMALLBMP05_EN_Y);
 				//vga_available = 1;
 				strcpy(load, "load -n /dev/fs/ext2@usb0/vmlinux");
 				break;
 			}
 			if ((bootfd = open (fat0, O_RDONLY | O_NONBLOCK)) >= 0){
 				video_display_bitmap(SMALLBMP4_START_ADDR, SMALLBMP4_X, SMALLBMP4_Y);
+				video_display_bitmap(SMALLBMP_START_ADDR_EN_05, SMALLBMP05_EN_X, SMALLBMP05_EN_Y);
 				//vga_available = 1;
 				strcpy(load, "load -n /dev/fat/disk@usb0/vmlinux");
 				break;
@@ -248,6 +317,7 @@ static int do_usb_rescue(char *load, char *cmdline)
 		if (strcmp(dev->dv_xname, "usb1") == 0) {
 			if ((bootfd = open (path1, O_RDONLY | O_NONBLOCK)) >= 0){
 				video_display_bitmap(SMALLBMP4_START_ADDR, SMALLBMP4_X, SMALLBMP4_Y);
+				video_display_bitmap(SMALLBMP_START_ADDR_EN_05, SMALLBMP05_EN_X, SMALLBMP05_EN_Y);
 				//vga_available = 1;
 				//printf("This is ext2 in usb1 fdisk\n");
 				strcpy(load, "load -n /dev/fs/ext2@usb1/vmlinux");
@@ -255,6 +325,7 @@ static int do_usb_rescue(char *load, char *cmdline)
 			}
 			if ((bootfd = open (fat1, O_RDONLY | O_NONBLOCK)) >= 0){
 				video_display_bitmap(SMALLBMP4_START_ADDR, SMALLBMP4_X, SMALLBMP4_Y);
+				video_display_bitmap(SMALLBMP_START_ADDR_EN_05, SMALLBMP05_EN_X, SMALLBMP05_EN_Y);
 				//vga_available = 1;
 				//printf("This is fat in usb1 fdisk\n");
 				strcpy(load, "load -n /dev/fat/disk@usb1/vmlinux");
@@ -267,8 +338,11 @@ static int do_usb_rescue(char *load, char *cmdline)
 		for (i = 0; i < 100; i++){
 			cprintf(23, i, 1, 0, " ");
 			cprintf(24, i, 1, 0, " ");
+			cprintf(25, i, 1, 0, " ");
+			cprintf(26, i, 1, 0, " ");
 		}
 		video_display_bitmap(SMALLBMP5_START_ADDR, SMALLBMP5_X, SMALLBMP5_Y);
+		video_display_bitmap(SMALLBMP_START_ADDR_EN_06, SMALLBMP06_EN_X, SMALLBMP06_EN_Y);
 	}
 	return 0;
 }

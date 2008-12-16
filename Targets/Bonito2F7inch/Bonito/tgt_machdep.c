@@ -131,6 +131,7 @@ static int md_pipefreq = 0;
 static int md_cpufreq = 0;
 static int clk_invalid = 0;
 static int nvram_invalid = 0;
+static int *ec_version;
 static int cksum(void *p, size_t s, int set);
 static void _probe_frequencies(void);
 
@@ -196,12 +197,6 @@ initmips(unsigned int memsz)
 	 *	Set up memory address decoders to map entire memory.
 	 *	But first move away bootrom map to high memory.
 	 */
-#if 1 // for 8089
-	/* initialize ec fan regs */
-	wrec(REG_ECFAN_SPEED_LEVEL, 0x4);
-	wrec(REG_ECFAN_SWITCH, 0x00);
-#endif
-
 #if 0
 	GT_WRITE(BOOTCS_LOW_DECODE_ADDRESS, BOOT_BASE >> 20);
 	GT_WRITE(BOOTCS_HIGH_DECODE_ADDRESS, (BOOT_BASE - 1 + BOOT_SIZE) >> 20);
@@ -339,9 +334,9 @@ extern int test_icache_3(int addr);
 extern void godson1_cache_flush(void);
 #define tgt_putchar_uc(x) (*(void (*)(char)) (((long)tgt_putchar)|0x20000000)) (x)
 
-extern void cs5536_gpio_init(void);
-extern void test_gpio_function(void);
 extern void cs5536_pci_fixup(void);
+extern void ec_fixup(void);
+extern void ec_update_rom(void *src, int size);
 
 /* disable AC_BEEP for cs5536 gpio1,         *
  * only used EC_BEEP to control U13 gate     *
@@ -367,68 +362,6 @@ void cs5536_gpio1_fixup(void)
 	val = *(volatile unsigned long *)(base + 0x00);
 	val = (val | (1 << (16 + 1))) & ~(1 << 1);
 	*(volatile unsigned long *)(base + 0x00) = val;
-}
-
-void ec_fixup(void)
-{
-	int i;
-	unsigned char val;
-	unsigned char reg_config;
-	
-#if 1 // for 8007 
-	/* read the fan device config */
-	for(i = 0; i < SMBDAT_SIZE; i++){
-		wrec(REG_SMBDAT_START + i, 0x00);
-	}
-	wrec(REG_SMBSTS, 0x00);
-	wrec(REG_SMBCNT, 0x01);
-	val = rdec(REG_SMBPIN);
-	val = (val & 0xfc) | (1 << 1);
-	wrec(REG_SMBPIN, val);
-	wrec(REG_SMBADR, 0x90|0x01);
-	wrec(REG_SMBCMD, 0x01);
-	wrec(REG_SMBPRTCL, 0x09);
-	while(!(rdec(REG_SMBSTS) & (1 << 7)));
-	reg_config = rdec(REG_SMBDAT_START);
-					 
-	/* enable the fan device */
-	for(i = 0; i < SMBDAT_SIZE; i++){
-		wrec(REG_SMBDAT_START + i, 0x00);
-    }
-	wrec(REG_SMBSTS, 0x00);
-	wrec(REG_SMBCNT, 0x01);
-	val = rdec(REG_SMBPIN);
-	val = (val & 0xfc) | (1 << 1);
-	wrec(REG_SMBPIN, val);
-	wrec(REG_SMBADR, 0x90);
-	wrec(REG_SMBCMD, 1);
-	wrec(REG_SMBDAT_START, reg_config | (1 << 2));
-	wrec(REG_SMBPRTCL, 0x06);
-
-	/* enable fan function, corresponding gpio and read status  */
-	val = rdec(0xfc02);
-	wrec(0xfc02, val & ~(1 << 4));
-		 
-	val = rdec(0xfc62);
-	wrec(0xfc62, val | (1 << 4));
-						 
-	val = rdec(0xfe20);
-	wrec(0xfe20, val | (1 << 7) | (1 << 0));
-#endif
-												
-#if 1 // for 8089
-	/* set fan speed manual control level register F4E4h as 0x04
-	 * F4E4h : 0x01->0 rpm(fan stop);0x02->2191 rpm;0x03->3840 rpm;
-	 * 0x04->4897 rpm;0x05->6233 rpm */
-#define mdelay(n) ({unsigned long msec=(n); while (msec--) delay(1000);})
-	/* we need a delay between write 0 and 1 to 0xf4d2, put the first one to the beginning of this function to avoid additional delay */
-	//wrec(0xf4e4, 0x4);
-	//wrec(0xf4d2, 0x00);
-	//mdelay(1000);
-	wrec(REG_ECFAN_SWITCH, 0x01);
-#endif
-
-	return;
 }
 
 void
@@ -469,7 +402,9 @@ tgt_devinit()
 	cs5536_pci_fixup();
 #endif
 	cs5536_gpio1_fixup();
+#ifdef HAS_EC
 	ec_fixup();
+#endif
 
 	return;
 }
@@ -487,8 +422,6 @@ tgt_reboot()
 #endif
 
 #ifdef LOONGSON2F_7INCH
-	unsigned int i;
-	unsigned char val;
 
 	/* dark the lcd */
 	*((volatile unsigned char *)(0xbfd00000 | HIGH_PORT)) = 0xfe;
@@ -525,7 +458,6 @@ tgt_poweroff()
 	unsigned long val;
 	unsigned long tag;
 	unsigned long base;
-	int i, j;
 
 #ifdef	LOONGSON2F_7INCH
 #if 0
@@ -912,205 +844,12 @@ tgt_flashprogram(void *p, int size, void *s, int endian)
 }
 #endif /* PFLASH */
 
-#if				1
-
-static inline int ec_flash_busy(void)
+/* update the ec_firmware */
+void tgt_ecprogram(void *s, int size)
 {
-	unsigned char count = 0;
-
-	while(count < 10){
-		wrec(XBI_BANK | XBISPICMD, 5);
-		while( (rdec(XBI_BANK | XBISPICFG)) & (1 << 1) );
-		if((rdec(XBI_BANK | XBISPIDAT) & 0x01) == 0x00){
-			return 0x00;
-		}
-		count++;
-	}
-
-	return 0x01;
+	ec_update_rom(s, size);
+ 	return;
 }
-
-static int ec_program_byte(unsigned long addr, unsigned char byte)
-{
-	int timeout = 0x10000;
-	unsigned char val;
-
-	/* enable spicmd writing. */
-	val = rdec(XBI_BANK | XBISPICFG);
-	wrec(XBI_BANK | XBISPICFG, val | (1 << 3) | (1 << 0));
-
-	/* check is it busy. */
-	if(ec_flash_busy()){
-			printf("xbi : flash busy 1.\n");
-			return 0x00;
-	}
-
-	/* enable write spi flash */
-	wrec(XBI_BANK | XBISPICMD, 0x06);
-	timeout = 0x1000;
-	while(timeout-- >= 0){
-		if( !(rdec(XBI_BANK | XBISPICFG) & (1 << 1)) )
-				break;
-	}
-	if(timeout <= 0){
-		printf("xbi : write timeout 1.\n");
-		return -1;
-	}
-	if(ec_flash_busy()){
-			printf("xbi : flash busy 1.\n");
-			return 0x00;
-	}
-
-	/* write the address */
-	wrec(XBI_BANK | XBISPIA2, (unsigned char)((addr & 0xff0000) >> 16));
-	wrec(XBI_BANK | XBISPIA1, (unsigned char)((addr & 0x00ff00) >> 8));
-	wrec(XBI_BANK | XBISPIA0, (unsigned char)((addr & 0x0000ff) >> 0));
-	wrec(XBI_BANK | XBISPIDAT, byte);
-	/* start action */
-	wrec(XBI_BANK | XBISPICMD, 2);
-	timeout = 0x1000;
-	while(timeout-- >= 0){
-		if( !(rdec(XBI_BANK | XBISPICFG) & (1 << 1)) )
-				break;
-	}
-	if(timeout <= 0){
-		printf("xbi : write timeout 2.\n");
-		return -1;
-	}
-	if(ec_flash_busy()){
-			printf("xbi : flash busy 1.\n");
-			return 0x00;
-	}
-
-	/* disable spicmd writing. */
-	val = rdec(XBI_BANK | XBISPICFG) & (~((1 << 3) | (1 << 0)));
-	wrec(XBI_BANK | XBISPICFG, val);
-
-	if(ec_flash_busy()){
-			printf("xbi : flash busy 1.\n");
-			return 0x00;
-	}
-
-//	delay(2000);
-
-	return 0;
-}
-
-static int ec_flash_erase(void)
-{
-	int timeout = 0x10000;
-	unsigned char val;
-
-	/* enable spicmd writing. */
-	val = rdec(XBI_BANK | XBISPICFG);
-	wrec(XBI_BANK | XBISPICFG, val | (1 << 3) | (1 << 0));
-
-	/* check is it busy. */
-	if(ec_flash_busy()){
-			printf("xbi : flash busy 2.\n");
-			return 0x00;
-	}
-
-	/* unprotect the status register */
-	wrec(XBI_BANK | XBISPIDAT, 2);
-	/* write the status register*/
-	wrec(XBI_BANK | XBISPICMD, 1);
-	timeout = 0x1000;
-	while(timeout-- >= 0){
-		if( !(rdec(XBI_BANK | XBISPICFG) & (1 << 1)) )
-				break;
-	}
-	if(timeout <= 0){
-		printf("xbi : write timeout 3.\n");
-		return -1;
-	}
-
-	/* enable write spi flash */
-	wrec(XBI_BANK | XBISPICMD, 0x06);
-	timeout = 0x1000;
-	while(timeout-- >= 0){
-		if( !(rdec(XBI_BANK | XBISPICFG) & (1 << 1)) )
-				break;
-	}
-	if(timeout <= 0){
-		printf("xbi : write timeout 4.\n");
-		return -1;
-	}
-
-	/* erase the whole chip first */
-	wrec(XBI_BANK | XBISPICMD, 0xC7);
-	timeout = 0x10000000;
-	while(timeout-- >= 0){
-		if( !(rdec(XBI_BANK | XBISPICFG) & (1 << 1)) )
-				break;
-	}
-	if(timeout <= 0){
-		printf("xbi : write timeout 5.\n");
-		return -1;
-	}
-	/* disable spicmd writing. */
-	val = rdec(XBI_BANK | XBISPICFG) & (~((1 << 3) | (1 << 0)));
-	wrec(XBI_BANK | XBISPICFG, val);
-
-	return 0;
-}
-
-void
-tgt_ecprogram(void *s, int size){
-	unsigned char *ptr = s;
-	unsigned char data = 0;
-	unsigned long addr = 0;
-	unsigned char val;
-	int timeout;
-	int i = 0;
-	int ret = 0;
-
-	if(size > 0x10000){
-		printf("ecprogram : out of range.\n");
-		return;
-	}
-
-	/* erase the whole chip. */
-	val = ec_flash_erase();
-	if(val){
-		printf("erase chip failed for first time.\n");
-		val = ec_flash_erase();
-		if(val){
-			printf("erase chip failed for second time.\n");
-			return;
-		}
-	}
-
-	/* program data */
-	printf("starting program kb3310 firmware.\n");
-	while(i < size){
-		data = *(ptr + i);
-		ec_program_byte(addr, data);
-		val = rdec(addr);
-		if(val != data){
-			// we make the flash data equal to the memory data.
-			ec_program_byte(addr, data);
-			val = rdec(addr);
-			if(val != data){
-				printf("Second flash program failed at:\t");
-				printf("addr : 0x%x, memory : 0x%x, flash : 0x%x\n", addr, data, val);
-				ret = 1;
-				break;
-			}
-		}
-		if(i % 0x400 == 0x00){
-			printf(".");
-		}
-		i++;
-		addr++;
-	}
-	if(!ret){
-		printf("\nprogram firmware ok.\n");
-	}
-
-	return;
-}
-#endif
 
 /*
  *  Network stuff.
@@ -1131,6 +870,8 @@ void
 tgt_netreset()
 {
 }
+
+extern unsigned char *get_ecver(void);
 
 /*************************************************************************/
 /*
@@ -1226,7 +967,11 @@ tgt_mapenv(int (*func) __P((char *, char *)))
 	(*func)("busclock", env);
 
 	(*func)("systype", SYSTYPE);
-	
+
+	/* get ec version */
+	ec_version = get_ecver();
+	sprintf(env, "%s", ec_version);
+	(*func)("ECVersion", env);
 }
 
 int
