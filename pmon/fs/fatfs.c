@@ -416,6 +416,7 @@ int fat_init(int fd, struct fat_sc *fsc, int partition)
 	fsc->SecPerClust = bpb->bpbSecPerClust;
 	fsc->NumFATs = bpb->bpbFATs;
 	fsc->FatCacheNum = -1;
+	fsc->RootClus = bpb->efat32.bpbRootClus;
 
 	if (bpb->bpbFATsecs != 0)
 		fsc->FATsecs = (u_int32_t)letoh16(bpb->bpbFATsecs);
@@ -562,7 +563,7 @@ int fat_findfile(struct fat_sc *fsc, char *name)
 	{
 		struct fatchain chain;
 		int res;
-		fat_getChain(fsc, 2 , &chain);
+		fat_getChain(fsc, fsc->RootClus , &chain);
 		res = fat_subdirscan(fsc, name, &chain);
 		if (chain.entries) {
 			free(chain.entries);
@@ -853,7 +854,13 @@ int fat_getChain(struct fat_sc *fsc, int start, struct fatchain *chain)
 	while(1)
 	{
 		entry = getFatEntry(fsc, flag);
-		if(entry >= (CLUST_EOFE & mask))
+		if(entry == (CLUST_EOFE & mask & 0xfffffff7))
+		{
+			printf("clust is error!");
+			return -1;
+		}
+		
+		if(entry >= (CLUST_EOFE & mask & 0xfffffff8))
 			break;
 		flag = entry;
 		count++;
@@ -874,7 +881,13 @@ int fat_getChain(struct fat_sc *fsc, int start, struct fatchain *chain)
 	{
 		entry = getFatEntry(fsc, flag);
 		chain->entries[i+1] = entry;
-		if(entry >= (CLUST_EOFE & mask))
+		if(entry == (CLUST_EOFE & mask & 0xfffffff7))
+		{
+			printf("clust is error!");
+			return -1;
+		}
+		
+		if(entry >= (CLUST_EOFE & mask & 0xfffffff8))
 			break;
 		flag = entry;
 		i++;
@@ -957,4 +970,3 @@ int fat_dump_fileentry(struct fat_sc *fsc)
 	return (1);
 }
 #endif /* FAT_DEBUG */
-

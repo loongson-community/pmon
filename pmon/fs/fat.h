@@ -163,6 +163,7 @@ struct fat_sc {
 	u_int32_t	DataSectors;
 	u_int32_t	DataSectorBase;
 	u_int32_t	PartitionStart;
+	u_int32_t	RootClus;
 	u_int8_t	FatBuffer[SECTORSIZE];
 	int		FatCacheNum;
 	u_int8_t	DirBuffer[SECTORSIZE];
@@ -262,4 +263,3 @@ struct winentry {
 #define DD_YEAR_SHIFT		9
 
 #endif /* __FATFS_H__ */
-
