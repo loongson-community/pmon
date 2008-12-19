@@ -119,7 +119,7 @@ select          cmd_testdisk
 select          cmd_shell               # Shell commands, vers, help, eval
 #
 #
-
+select           boot_menu              #show boot menu
 #
 #  Now the Machine specification
 #

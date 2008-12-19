@@ -614,7 +614,8 @@ static int recover(void)
 	char *s;
 	char cmdline[256] = "console=tty"; /*Modified by usb rescue or tftp .*/
 
-	//if(s != NULL  && strlen(s) != 0) 
+	//if(s != NULL  && strlen(s) != 0)
+	#ifdef LOONGSON2F_7INCH
 	{
 		pa = cmdline;
 		ui_select(buf, pa);
@@ -648,7 +649,11 @@ static int recover(void)
 		do_cmd (buf);
 		return -1;
 	}
-	return 0;	
+	return 0;
+	#else
+	return 0;
+	#endif
+	
 }
 
 
@@ -788,14 +793,14 @@ dbginit (char *adr)
 	}
 	switch (get_boot_selection()){
 		case TAB_KEY: 
-			#ifdef LOONGSON2F_7INCH 
+			//#ifdef LOONGSON2F_7INCH 
 
 			//s = getenv ("al");
 			//if (s != 0){
 			vga_available = 0;
 			if (recover() != 0)
 				vga_available = 1;
-			#endif
+			//#endif
 			//}
 			break;
 			
@@ -837,7 +842,9 @@ dbginit (char *adr)
 		case DEL_KEY:
 			vga_available = 1;
 		case ESC_KEY:
+			#if defined(LOONGSON2F_7INCH)||defined(LOONGSON2F_FULOONG)
 			_set_font_color();
+			#endif
 			break;
 	}
 }

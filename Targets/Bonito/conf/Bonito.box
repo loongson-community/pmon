@@ -28,7 +28,7 @@ select     cs5536
 select		sis315e
 option		SIS315E
 option     VGA_NO_ROM       # display card has no rom
-
+option     LOONGSON2F_FULOONG 
 #option		HAVE_FLASH		# Platform has FLASH memory.
 #option		HAVE_NVENV		# Platform has non-volatile env mem 
 
@@ -122,7 +122,7 @@ select          cmd_testdisk
 select          cmd_shell               # Shell commands, vers, help, eval
 #
 #
-
+select           boot_menu             #show boot menu
 #
 #  Now the Machine specification
 #
