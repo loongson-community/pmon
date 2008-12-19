@@ -108,6 +108,14 @@ CONFIG_VIDEO_HW_CURSOR:	     - Uses the hardware cursor capability of the
 #define VIDEO_HW_BITBLT
 #endif
 
+#ifdef VESAFB
+//#define CONFIG_VIDEO_SW_CURSOR
+#define CONFIG_SPLASH_SCREEN
+#define CONFIG_VIDEO_BMP_GZIP
+#endif
+#ifdef SIS315E
+#define VIDEO_HW_BITBLT				// video hw bitblt 2d acceleration config
+#endif
 /* sm712 micro define */
 #ifdef	SM712_GRAPHIC_CARD
 //#define VIDEO_FB_LITTLE_ENDIAN	// video framebuffer endian config
@@ -285,7 +293,9 @@ char console_buffer[2][38][128] = { 32 };	// 128x37.5 for 1024X600@16BPP LCD
 char console_buffer[2][31][101] = { 32 };	// 100X30
 #endif
 #else
-char console_buffer[2][25][81] = { 32 };	// 80X24
+//char console_buffer[2][25][81] = { 32 };	// 80X24
+char console_buffer[2][40][101] = { 32 };	// 80X24
+
 #endif
 #define FB_SIZE ((pGD->winSizeX)*(pGD->winSizeY)*(pGD->gdfBytesPP))
 
@@ -776,6 +786,7 @@ static void console_scrollup(void)
 	/* copy up rows ignoring the first one */
 
 #ifdef VIDEO_HW_BITBLT
+	#ifdef LOONGSON2F_7INCH
 	video_hw_bitblt(VIDEO_PIXEL_SIZE,	/* bytes per pixel */
 			0,	/* source pos x */
 			VIDEO_LOGO_HEIGHT + VIDEO_FONT_HEIGHT,	/* source pos y */
@@ -783,7 +794,17 @@ static void console_scrollup(void)
 			VIDEO_LOGO_HEIGHT,	/* dest pos y */
 			VIDEO_VISIBLE_COLS,	/* frame width */
 			VIDEO_VISIBLE_ROWS - VIDEO_LOGO_HEIGHT - VIDEO_FONT_HEIGHT	/* frame height */
+		);
+	#else
+	video_hw_bitblt(VIDEO_PIXEL_SIZE,	/* bytes per pixel */
+			0,	/* source pos x */
+			VIDEO_LOGO_HEIGHT + VIDEO_FONT_HEIGHT,	/* source pos y */
+			0,	/* dest pos x */
+			VIDEO_LOGO_HEIGHT,	/* dest pos y */
+			VIDEO_VISIBLE_COLS,	/* frame width */
+			VIDEO_VISIBLE_ROWS - VIDEO_LOGO_HEIGHT /* frame height */
 	    );
+	#endif
 #else
 	memcpyl(CONSOLE_ROW_FIRST, CONSOLE_ROW_SECOND,
 		CONSOLE_SCROLL_SIZE >> 2);
@@ -1688,8 +1709,20 @@ int fb_init(unsigned long fbbase, unsigned long iobase)
 
 	pGD->gdfBytesPP = GetBytesPP();
 	pGD->gdfIndex = GetGDFIndex(GetBytesPP());
-	pGD->frameAdrs = 0xb0000000 | fbbase;
+	//pGD->frameAdrs = 0xb0000000 | fbbase;
+	printf("fb_init fbbase:%x\n",fbbase);
 
+	#ifdef LOONGSON2F_7INCH
+	pGD->frameAdrs = 0xb0000000 | fbbase;
+	#else
+		#ifdef USETLB
+		pGD->frameAdrs = 0xe0000000;
+		#else
+		pGD->frameAdrs = 0xb0000000 | ((fbbase & 0xf0000000) ? 0 : fbbase);
+		#endif
+	#endif	
+
+	
 #if 0
 	printf("x %d, y %d, bpp %d, index %d\n", pGD->winSizeX, pGD->winSizeY, pGD->gdfBytesPP, pGD->gdfIndex);
 	printf("cfb_console init,fb=%x\n", pGD->frameAdrs);
@@ -1734,7 +1767,6 @@ int fb_init(unsigned long fbbase, unsigned long iobase)
 
 #ifdef	LOONGSON2F_7INCH
 	video_display_bitmap(SMALLBMP0_START_ADDR, SMALLBMP0_X, SMALLBMP0_Y);
-	video_display_bitmap(SMALLBMP_START_ADDR_EN_01, SMALLBMP01_EN_X, SMALLBMP01_EN_Y);
 #endif
 	return 0;
 }

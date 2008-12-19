@@ -605,17 +605,17 @@ static int rescue(void)
 }
 
 
-static void recover(char *s)
+static int recover(void)
 {
 	char buf[LINESZ] = {0};
 	char *pa = NULL;
 	char *rd;
 	char *Version;
-
+	char *s;
 	char cmdline[256] = "console=tty"; /*Modified by usb rescue or tftp .*/
 
-	if(s != NULL  && strlen(s) != 0) {
-#ifdef LOONGSON2F_7INCH 
+	//if(s != NULL  && strlen(s) != 0) 
+	{
 		pa = cmdline;
 		ui_select(buf, pa);
 
@@ -626,11 +626,14 @@ static void recover(char *s)
 		}
 
 		if (buf[0] == 0) {
+			s = getenv ("al");
+			if (s == NULL)
+				return -1;
 			strcpy(buf,"load ");
 			strcat(buf,s);
 		}
 		do_cmd(buf);
-
+		
 		if (pa == NULL || pa[0] == '\0') 
 			pa=getenv("karg");
 		
@@ -643,8 +646,9 @@ static void recover(char *s)
 
 		delay(10000);
 		do_cmd (buf);
+		return -1;
 	}
-	#endif
+	return 0;	
 }
 
 
@@ -784,10 +788,15 @@ dbginit (char *adr)
 	}
 	switch (get_boot_selection()){
 		case TAB_KEY: 
-			s = getenv ("al");
-			if (s != 0){
-			recover(s);
-			}
+			#ifdef LOONGSON2F_7INCH 
+
+			//s = getenv ("al");
+			//if (s != 0){
+			vga_available = 0;
+			if (recover() != 0)
+				vga_available = 1;
+			#endif
+			//}
 			break;
 			
 		case U_KEY:
