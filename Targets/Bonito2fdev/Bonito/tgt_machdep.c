@@ -115,10 +115,9 @@ int vga_available=0;
 #include "vgarom.c"
 #endif
 
-extern unsigned char i2c_send_s(unsigned char slave_addr,unsigned char sub_addr,unsigned char * buf ,int count);
-extern unsigned char i2c_rec_s(unsigned char slave_addr,unsigned char sub_addr,unsigned char* buf ,int count);
+int tgt_i2cread(int type,unsigned char *addr,int addrlen,unsigned char reg,unsigned char* buf ,int count);
+int tgt_i2cwrite(int type,unsigned char *addr,int addrlen,unsigned char reg,unsigned char* buf ,int count);
 extern struct trapframe DBGREG;
-static volatile char * mmio;
 extern void *memset(void *, int, size_t);
 
 int kbd_available;
@@ -838,11 +837,7 @@ static void init_legacy_rtc(void)
                 CMOS_WRITE(0, DS_REG_SEC);
 #endif
         }
-#ifdef DEVBD2F_FIREWALL
-	if(sec==0 && min==0 && hour == 0 && date ==0x01 && month ==0x0)
-                CMOS_WRITE(0, DS_REG_SEC);
 
-#endif
         CMOS_WRITE(DS_CTLB_24 | DS_CTLB_DM, DS_REG_CTLB);
                                                                                
 	//printf("RTC: %02d-%02d-%02d %02d:%02d:%02d\n",
@@ -856,15 +851,15 @@ static inline unsigned char CMOS_READ(unsigned char addr)
         unsigned char val;
         unsigned char tmp1,tmp2;
 	volatile int tmp;
-//	unsigned char and_char;
 	
 #if defined(DEVBD2F_VIA)||defined(DEVBD2F_CS5536)||defined(DEVBD2F_EVA)
 	linux_outb_p(addr, 0x70);
         val = linux_inb_p(0x71);
-#elif defined(DEVBD2f_SM502)
+#elif defined(DEVBD2F_SM502)
 
 	pcitag_t tag;
 	unsigned char value;
+	char i2caddr[]={(unsigned char)0x64};
 	if(addr >= 0x0a)
 		return 0;
 	switch(addr)
@@ -891,24 +886,17 @@ static inline unsigned char CMOS_READ(unsigned char addr)
 			break;
 		
 	}
-		tag=_pci_make_tag(0,14,0);
-	
-		mmio = _pci_conf_readn(tag,0x14,4);
-		mmio =(int)mmio|(0xb0000000);
-		tmp = *(volatile int *)(mmio + 0x40);
-		*(volatile int *)(mmio + 0x40) =tmp|0x40;
 		
-//		tgt_printf("clock enable bit 40 = %x\n", *(volatile int *)(mmio + 0x40));
-		
-		i2c_rec_s((unsigned char)0x64,0xe<<4,&value,1);
+	tgt_i2cread(I2C_SINGLE,i2caddr,1,0xe<<4,&value,1);
 		value = value|0x20;
-		i2c_send_s((unsigned char)0x64,0xe<<4,&value,1);
-	i2c_rec_s((unsigned char)0x64,addr<<4,&val,1);
+	tgt_i2cwrite(I2C_SINGLE,i2caddr,1,0xe<<4,&value,1);
+	tgt_i2cread(I2C_SINGLE,i2caddr,1,addr<<4,&val,1);
 	tmp1 = ((val>>4)&0x0f)*10;
 	tmp2  = val&0x0f;
 	val = tmp1 + tmp2;
 	
 #elif defined(DEVBD2F_FIREWALL)
+	char i2caddr[]={0xde,0};
 	if(addr >= 0x0a)
 		return 0;
 	switch(addr)
@@ -936,11 +924,10 @@ static inline unsigned char CMOS_READ(unsigned char addr)
 			break;
 		
 	}
-	word_addr =1;
 #ifndef GPIO_I2C
 	//atp8620_i2c_read(0xde,addr,&tmp,1);
 #else	
-	i2c_rec_s(0xde,addr,&tmp,1);
+	tgt_i2cread(I2C_SINGLE,i2caddr,2,addr,&tmp,1);
 #endif
 	if(addr == 0x32)
 		tmp = tmp&0x7f;
@@ -959,10 +946,11 @@ static inline void CMOS_WRITE(unsigned char val, unsigned char addr)
 	linux_outb_p(addr, 0x70);
         linux_outb_p(val, 0x71);
 
-#elif defined(DEVBD2f_SM502)
+#elif defined(DEVBD2F_SM502)
   
   	unsigned char tmp1,tmp2;
 	volatile int tmp;
+	char i2caddr[]={(unsigned char)0x64};
 	tmp1 = (val/10)<<4;
 	tmp2  = (val%10);
 	val = tmp1|tmp2;
@@ -993,24 +981,17 @@ static inline void CMOS_WRITE(unsigned char val, unsigned char addr)
 		
 	}
 	{
-		pcitag_t tag;
 		unsigned char value;
-		tag=_pci_make_tag(0,14,0);
 	
-		mmio = _pci_conf_readn(tag,0x14,4);
-		mmio =(int)mmio|(0xb0000000);
-		tmp = *(volatile int *)(mmio + 0x40);
-		*(volatile int *)(mmio + 0x40) =tmp|0x40;
-
-//		tgt_printf("clock enable bit 40 = %x\n", *(volatile int *)(mmio + 0x40));
-		i2c_rec_s((unsigned char)0x64,0xe<<4,&value,1);
+		tgt_i2cread(I2C_SINGLE,i2caddr,1,0xe<<4,&value,1);
 		value = value|0x20;
-		i2c_send_s((unsigned char)0x64,0xe<<4,&value,1);
-	i2c_send_s((unsigned char)0x64,addr<<4,&val,1);
+		tgt_i2cwrite(I2C_SINGLE,i2caddr,1,0xe<<4,&value,1);
+		tgt_i2cwrite(I2C_SINGLE,i2caddr,1,addr<<4,&val,1);
 	}
 
 #elif defined(DEVBD2F_FIREWALL)
 	unsigned char tmp;
+	char i2caddr[]={0xde,0,0};
 	if(addr >= 0x0a)
 		return 0;
 	switch(addr)
@@ -1045,10 +1026,10 @@ static inline void CMOS_WRITE(unsigned char val, unsigned char addr)
 	atp8620_i2c_write(0xde,addr,&val,1);
 #else	
 	a = 2;
-	i2c_send_s(0xde,0x3f,&a,1);
+	tgt_i2cwrite(I2C_SINGLE,i2caddr,2,0x3f,&a,1);
 	a = 6;
-	i2c_send_s(0xde,0x3f,&a,1);
-	i2c_send_s(0xde,addr,&tmp,1);
+	tgt_i2cwrite(I2C_SINGLE,i2caddr,2,0x3f,&a,1);
+	tgt_i2cwrite(I2C_SINGLE,i2caddr,2,addr,&tmp,1);
 #endif
 #endif
 }
@@ -1072,23 +1053,24 @@ _probe_frequencies()
 
         clk_invalid = 1;
 #ifdef HAVE_TOD
-{
 #ifdef DEVBD2F_FIREWALL 
+{
 	extern void __main();
 	char tmp;
-	word_addr = 1;
-	i2c_rec_s(0xde,0x3f,&tmp,1);
+	char i2caddr[]={0xde};
+	tgt_i2cread(I2C_SINGLE,i2caddr,2,0x3f,&tmp,1);
 	/*
 	 * bit0:Battery is run out ,please replace the rtc battery
 	 * bit4:Rtc oscillator is no operating,please reset the machine
 	 */
 	tgt_printf("0x3f value  %x\n",tmp);
 	init_legacy_rtc();
-	i2c_rec_s(0xde,0x14,&tmp,1);
+	tgt_i2cread(I2C_SINGLE,i2caddr,2,0x14,&tmp,1);
 	tgt_printf("0x14 value  %x\n",tmp);
-#endif
 }
+#else
         init_legacy_rtc();
+#endif
 
         SBD_DISPLAY ("FREI", CHKPNT_FREQ);
 
@@ -1816,3 +1798,16 @@ void tgt_netpoll()	{};
 #define MS_WRITE	3
 #define MS_READ		4
 #include "mycmd.c"
+
+#ifdef DEVBD2F_FIREWALL
+#include "i2c-sm502.c"
+#elif defined(DEVBD2F_SM502)
+#include "i2c-sm502.c"
+
+#elif (PCI_IDSEL_CS5536 != 0)
+#include "i2c-cs5536.c"
+#else
+#include "i2c-via.c"
+#endif
+
+

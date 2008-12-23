@@ -160,32 +160,14 @@ return 0;
 #include "target/via686b.h"
 static int i2cslot=0;
 
-#ifndef DEVBD2F_SM502
 
 static int DimmRead(int type,long long addr,union commondata *mydata)
 {
-char c;
+char i2caddr[]={(i2cslot<<1)+0xa0};
 switch(type)
 {
 case 1:
-linux_outb((i2cslot<<1)+0xa1,SMBUS_HOST_ADDRESS);
-linux_outb(addr,SMBUS_HOST_COMMAND);
-linux_outb(0x8,SMBUS_HOST_CONTROL); 
-if((c=linux_inb(SMBUS_HOST_STATUS))&0x1f)
-{
-linux_outb(c,SMBUS_HOST_STATUS);
-}
-
-linux_outb(linux_inb(SMBUS_HOST_CONTROL)|0x40,SMBUS_HOST_CONTROL);
-
-while(linux_inb(SMBUS_HOST_STATUS)&SMBUS_HOST_STATUS_BUSY);
-
-if((c=linux_inb(SMBUS_HOST_STATUS))&0x1f)
-{
-linux_outb(c,SMBUS_HOST_STATUS);
-}
-
-mydata->data1=linux_inb(SMBUS_HOST_DATA0);
+tgt_i2cread(I2C_SINGLE,i2caddr,1,addr,&mydata->data1,1);
 break;
 
 default: return -1;break;
@@ -193,7 +175,6 @@ default: return -1;break;
 return 0;
 }
 
-#endif
 static int DimmWrite(int type,long long addr,union commondata *mydata)
 {
 return -1;
@@ -203,28 +184,12 @@ return -1;
 static int Ics950220Read(int type,long long addr,union commondata *mydata)
 {
 char c;
+char i2caddr[]={0xd2};
 switch(type)
 {
 case 1:
-linux_outb(0xd3,SMBUS_HOST_ADDRESS); //0xd3
-linux_outb(addr,SMBUS_HOST_COMMAND);
-linux_outb(1,SMBUS_HOST_DATA0);
-linux_outb(0x14,SMBUS_HOST_CONTROL); //0x14
-if((c=linux_inb(SMBUS_HOST_STATUS))&0x1f)
-{
-linux_outb(c,SMBUS_HOST_STATUS);
-}
+tgt_i2cread(I2C_SMB_BLOCK,i2caddr,1,addr,&mydata->data1,1);
 
-linux_outb(linux_inb(SMBUS_HOST_CONTROL)|0x40,SMBUS_HOST_CONTROL);
-
-while(linux_inb(SMBUS_HOST_STATUS)&SMBUS_HOST_STATUS_BUSY);
-
-if((c=linux_inb(SMBUS_HOST_STATUS))&0x1f)
-{
-linux_outb(c,SMBUS_HOST_STATUS);
-}
-
-mydata->data1=linux_inb(SMBUS_HOST_DATA1+1);
 break;
 
 default: return -1;break;
@@ -235,28 +200,11 @@ return 0;
 static int Ics950220Write(int type,long long addr,union commondata *mydata)
 {
 char c;
+char i2caddr[]={0xd2};
 switch(type)
 {
 case 1:
-linux_outb(0xd2,SMBUS_HOST_ADDRESS); //0xd3
-linux_outb(addr,SMBUS_HOST_COMMAND);
-linux_outb(1,SMBUS_HOST_DATA0);
-linux_outb(0x14,SMBUS_HOST_CONTROL); //0x14
-if((c=linux_inb(SMBUS_HOST_STATUS))&0x1f)
-{
-linux_outb(c,SMBUS_HOST_STATUS);
-}
-
-c=linux_inb(SMBUS_HOST_CONTROL);
-linux_outb(mydata->data1,SMBUS_HOST_DATA1+1);
-linux_outb(c|0x40,SMBUS_HOST_CONTROL);
-
-while(linux_inb(SMBUS_HOST_STATUS)&SMBUS_HOST_STATUS_BUSY);
-
-if((c=linux_inb(SMBUS_HOST_STATUS))&0x1f)
-{
-linux_outb(c,SMBUS_HOST_STATUS);
-}
+tgt_i2cwrite(I2C_SMB_BLOCK,i2caddr,1,addr,&mydata->data1,1);
 
 break;
 
@@ -333,290 +281,8 @@ case 8:memcpy(nvrambuf+addr,&mydata->data8,8);break;
         return 0;
 }
 
-#ifdef DEVBD2F_SM502
-static volatile char *mmio = 0;
-
-#define GPIO_DIR_REG 		(volatile unsigned int *)(mmio + 0x1000c)
-#define GPIO_DATA_REG		(volatile unsigned int *)(mmio + 0x10004)
-#define G_OUTPUT		1
-#define G_INPUT			0
-#define GPIO_SDA_DIR_SHIFT	15
-#define	GPIO_SCL_DIR_SHIFT	14
-#define GPIO_SDA_DATA_SHIFT	15
-#define GPIO_SCL_DATA_SHIFT	14
-
-#elif defined(DEVBD2F_FIREWALL)
-
-#define GPIO_DIR_REG 		(volatile unsigned int *)(0xbfe00120)
-#define GPIO_DATA_REG		(volatile unsigned int *)(0xbfe0011c)
-
-#define G_OUTPUT		0
-#define G_INPUT			1
-#define GPIO_SDA_DIR_SHIFT	2
-#define	GPIO_SCL_DIR_SHIFT	3
-#define GPIO_SDA_DATA_SHIFT	2
-#define GPIO_SCL_DATA_SHIFT	3
-//extern int word_addr = 0;
-
-#endif
 
 #if defined(DEVBD2F_SM502)||defined(DEVBD2F_FIREWALL)
-static void i2c_sleep(int ntime)
-{
-	int i,j=0;
-	for(i=0; i<300*ntime; i++)
-	{
-		j=i;
-		j+=i;
-	}
-}
-
-void sda_dir(int ivalue)
-{
-	int tmp;
-	tmp = *GPIO_DIR_REG;
-	if(ivalue == 1)
-		*GPIO_DIR_REG = tmp|(0x1<<GPIO_SDA_DIR_SHIFT);
-	else
-		*GPIO_DIR_REG = tmp&(~(0x1<<GPIO_SDA_DIR_SHIFT));
-}
-void scl_dir(int ivalue)
-{
-	int tmp;
-	tmp = *GPIO_DIR_REG;
-	if(ivalue == 1)
-		*GPIO_DIR_REG = tmp|(0x1<<GPIO_SCL_DIR_SHIFT);
-	else
-		*GPIO_DIR_REG = tmp&(~(0x1<<GPIO_SCL_DIR_SHIFT));
-}
-
-void sda_bit(int ivalue)
-{
-	int tmp;
-	tmp = *GPIO_DATA_REG;
-	if(ivalue == 1)
-		*GPIO_DATA_REG = tmp|(0x1<<GPIO_SDA_DATA_SHIFT);
-	else
-		*GPIO_DATA_REG = tmp&(~(0x1<<GPIO_SDA_DATA_SHIFT));
-}
-void scl_bit(int ivalue)
-{
-	int tmp;
-	tmp = *GPIO_DATA_REG;
-	if(ivalue == 1)
-		*GPIO_DATA_REG = tmp|(0x1<<GPIO_SCL_DATA_SHIFT);
-	else
-		*GPIO_DATA_REG = tmp&(~(0x1<<GPIO_SCL_DATA_SHIFT));
-}
-
-
-static void i2c_start(void)
-{
-	sda_dir(G_OUTPUT);
-	scl_dir(G_OUTPUT);
-	scl_bit(0);
-	i2c_sleep(1);
-	sda_bit(1);
-	i2c_sleep(1);
-	scl_bit(1);
-	i2c_sleep(5);
-	sda_bit(0);
-	i2c_sleep(5);
-	scl_bit(0);
-	i2c_sleep(2);
-	
-}
-static void i2c_stop(void)
-{
-	sda_dir(G_OUTPUT);
-	scl_dir(G_OUTPUT);
-	scl_bit(0);
-	i2c_sleep(1);
-	sda_bit(0);
-	i2c_sleep(1);
-	scl_bit(1);
-	i2c_sleep(5);
-	sda_bit(1);
-	i2c_sleep(5);
-	scl_bit(0);
-	i2c_sleep(2);
-	
-		
-}
-
-static void i2c_send_ack(int ack)
-{
-	sda_dir(G_OUTPUT);
-	sda_bit(ack);
-	i2c_sleep(3);
-	scl_bit(1);
-	i2c_sleep(5);
-	scl_bit(0);
-	i2c_sleep(2);
-}
-
-static char i2c_rec_ack()
-{
-        char res = 1;
-        int num=10;
-	int tmp;
-        sda_dir(G_INPUT);
-        i2c_sleep(3);
-        scl_bit(1);
-        i2c_sleep(5);
-#ifdef DEVBD2F_SM502 
-	tmp = ((*GPIO_DATA_REG)&(0x1<<GPIO_SDA_DATA_SHIFT));
-#elif DEVBD2F_FIREWALL
-	tmp = ((*GPIO_DATA_REG)&(0x1<<(GPIO_SDA_DATA_SHIFT+16)));
-#endif
-        //wait for a ack signal from slave
-
-        while(tmp)
-        {
-                i2c_sleep(1);
-                num--;
-                if(!num)
-                {
-                        res = 0;
-                        break;
-                }
-#ifdef DEVBD2F_SM502	
-		tmp = ((*GPIO_DATA_REG)&(0x1<<GPIO_SDA_DATA_SHIFT));
-#elif DEVBD2F_FIREWALL
-		tmp = ((*GPIO_DATA_REG)&(0x1<<(GPIO_SDA_DATA_SHIFT+16)));
-#endif
-        }
-        scl_bit(0);
-        i2c_sleep(3);
-        return res;
-}
-
-
-static unsigned char i2c_rec()
-{
-	int i;
-	int tmp;
-	unsigned char or_char;
-	unsigned char value = 0x00;
-	sda_dir(G_INPUT);
-	for(i=7;i>=0;i--)
-	{
-		i2c_sleep(5);
-		scl_bit(1);
-		i2c_sleep(3);
-#ifdef DEVBD2F_SM502
-		tmp = ((*GPIO_DATA_REG)&(0x1<<GPIO_SDA_DATA_SHIFT));
-#elif DEVBD2F_FIREWALL
-		tmp = ((*GPIO_DATA_REG)&(0x1<<(GPIO_SDA_DATA_SHIFT+16)));
-#endif
-		if(tmp)
-			or_char=0x1;
-		else
-			or_char=0x0;
-		or_char<<=i;
-		value|=or_char;
-		i2c_sleep(3);
-		scl_bit(0);
-	}
-	return value;
-}
-
-static unsigned char i2c_send(unsigned char value)
-{//we assume that now scl is 0
-	int i;
-	unsigned char and_char;
-	sda_dir(G_OUTPUT);
-	for(i=7;i>=0;i--)
-	{
-		and_char = value;
-		and_char>>=i;
-		and_char&=0x1;
-		if(and_char)
-			sda_bit(1);
-		else
-			sda_bit(0);
-		i2c_sleep(1);
-		scl_bit(1);
-		i2c_sleep(5);
-		scl_bit(0);
-		i2c_sleep(1);
-	}
-	sda_bit(1);	
-	return 1;
-}
-
-unsigned char i2c_rec_s(unsigned char slave_addr,unsigned char sub_addr,unsigned char* buf ,int count)
-{
-	
-	unsigned char value;
-	while(count)
-	{
-		//start signal
-		i2c_start();
-		//write slave_addr
-		i2c_send(slave_addr);
-		if(!i2c_rec_ack())
-			return 0;
-if(word_addr)
-{	
-		i2c_send(0x0);
-		if(!i2c_rec_ack())
-			return 0;
-}
-		//write sub_addr
-		i2c_send(sub_addr);
-		if(!i2c_rec_ack())
-			return 0;
-
-		//repeat start
-		i2c_start();
-		//write slave_addr+1
-		i2c_send(slave_addr+0x1);
-		if(!i2c_rec_ack())
-			return 0;
-		//read data
-		value=i2c_rec();	
-//		i2c_send_ack(1);//***add in***//
-		i2c_stop();
-		
-		//deal the data
-		*buf=value;
-		buf++;	
-		count--;
-		sub_addr++;
-	}
-
-	return 1;
-}
-
-unsigned char i2c_send_s(unsigned char slave_addr,unsigned char sub_addr,unsigned char * buf ,int count)
-{
-	while(count)
-	{	
-		i2c_start();	
-		i2c_send(slave_addr);
-		if(!i2c_rec_ack())
-			return 0;
-if(word_addr)
-{
-		i2c_send(0);
-		if(!i2c_rec_ack())
-			return 0;
-}
-		i2c_send(sub_addr);
-		if(!i2c_rec_ack())
-			return 0;
-		i2c_send(*buf);
-		if(!i2c_rec_ack())
-			return 0;
-		i2c_stop();
-		//deal the data
-		buf++;
-		count--;
-		sub_addr++;
-	}
-	return 1;
-}
 
 
 #ifndef BCD_TO_BIN
@@ -640,8 +306,24 @@ void tm_binary_to_bcd(struct tm *tm)
 
 }
 
+/*
+ *isl 12027
+ * */
 char gpio_i2c_settime(struct tm *tm)
 {
+struct 
+{
+char tm_sec;
+char tm_min;
+char tm_hour;
+char tm_mday;
+char tm_mon;
+char tm_year;
+char tm_wday;
+char tm_year_hi;
+}  rtcvar;
+char i2caddr[]={0xde,0};
+
 	char a ;
 	word_addr = 1;
 	tm->tm_mon = tm->tm_mon + 1;
@@ -649,551 +331,92 @@ char gpio_i2c_settime(struct tm *tm)
 
 //when rtc stop,can't set it ,follow 5 lines to resolve it
 	a = 2;
-	i2c_send_s(0xde,0x3f,&a,1);
+	tgt_i2cwrite(I2C_SINGLE,i2caddr,2,0x3f,&a,1);
 	a = 6;
-	i2c_send_s(0xde,0x3f,&a,1);
-	i2c_send_s(0xde,0x30,&a,1);
+	tgt_i2cwrite(I2C_SINGLE,i2caddr,2,0x3f,&a,1);
+	tgt_i2cwrite(I2C_SINGLE,i2caddr,2,0x30,&a,1);
 	
 	a = 2;
-	i2c_send_s(0xde,0x3f,&a,1);
+	tgt_i2cwrite(I2C_SINGLE,i2caddr,2,0x3f,&a,1);
 	a = 6;
-	i2c_send_s(0xde,0x3f,&a,1);
-	i2c_start();	
-	i2c_send(0xde);
-	if(!i2c_rec_ack())
-		return 0;
-	i2c_send(0);
-	if(!i2c_rec_ack())
-		return 0;
+	tgt_i2cwrite(I2C_SINGLE,i2caddr,2,0x3f,&a,1);
 
-	i2c_send(0x30);
-	if(!i2c_rec_ack())
-		return 0;
-	i2c_send(tm->tm_sec);
-	if(!i2c_rec_ack())
-		return 0;
-	i2c_send(tm->tm_min);
-	if(!i2c_rec_ack())
-		return 0;
-	i2c_send(tm->tm_hour);
-	if(!i2c_rec_ack())
-		return 0;
-	i2c_send(tm->tm_mday);
-	if(!i2c_rec_ack())
-		return 0;
-	i2c_send(tm->tm_mon);
-	if(!i2c_rec_ack())
-		return 0;
-//for 1900 or 2000
+//begin set
+
+rtcvar.tm_sec=tm->tm_sec;
+rtcvar.tm_min=tm->tm_min;
+rtcvar.tm_hour=tm->tm_hour;
+rtcvar.tm_mday=tm->tm_mday;
+rtcvar.tm_mon=tm->tm_mon;
+rtcvar.tm_wday=tm->tm_wday;
 if(tm->tm_year>=0xa0)
 {
-	tm->tm_year = tm->tm_year - 0xa0;
-	i2c_send(tm->tm_year);
-	if(!i2c_rec_ack())
-		return 0;
+	rtcvar.tm_year = tm->tm_year - 0xa0;
+	rtcvar.tm_year_hi=20;
 
-	i2c_send(tm->tm_wday);
-	if(!i2c_rec_ack())
-		return 0;
-
-	i2c_send(0x20);
-	if(!i2c_rec_ack())
-		return 0;
 }
 else
 {
-	i2c_send(tm->tm_year);
-	if(!i2c_rec_ack())
-		return 0;
-
-	i2c_send(tm->tm_wday);
-	if(!i2c_rec_ack())
-		return 0;
-
-	i2c_send(0x19);
-	if(!i2c_rec_ack())
-		return 0;
-
+	rtcvar.tm_year = tm->tm_year;
+	rtcvar.tm_year_hi=19;
 }
-	i2c_stop();
+	tgt_i2cwrite(I2C_BLOCK,i2caddr,2,0x30,&rtcvar,sizeof(rtcvar));
 	
 	return 1;
 
 }
 
-static int sm502SPDRead(int type,long long addr,union commondata *mydata)
-{
-	char c;
-
-//	printf("mmio =%x\n",mmio);
-//	printf("%x\n",addr);
-	switch(type)
-	{
-	case 1:
-		if(i2c_rec_s((unsigned char)slave_addr,addr,&c,1))
-			memcpy(&mydata->data1,&c,1);
-		else
-			printf("rec data error!\n");
-		break;
-	default:
-		return -1;
-	}
-	return 0;
-}
-static int sm502SPDWrite(int type,long long addr,union commondata *mydata)
-{
-	char c;
-
-	switch(type)
-	{
-	case 1:	
-	
-		memcpy(&c,&mydata->data1,1);
-		if(i2c_send_s((unsigned char)slave_addr,addr,&c,1))
-			;
-		else
-			printf("send data error\n");
-		break;
-	default:
-		return -1;
-	}
-	return 0;
-}
+/*
+ * sm502: rx8025
+ * fire:isl12027
+ */
 
 
-#ifdef DEVBD2F_SM502
-static int sm502RtcRead(int type,long long addr,union commondata *mydata)
-{
-	char c;
-
-//	printf("mmio =%x\n",mmio);
-//	printf("%x\n",addr);
-	switch(type)
-	{
-	case 1:
-		if(i2c_rec_s((unsigned char)0x64,addr<<4,&c,1))
-			memcpy(&mydata->data1,&c,1);
-		else
-			printf("rec data error!\n");
-		break;
-	default:
-		return -1;
-	}
-	return 0;
-}
-static int sm502RtcWrite(int type,long long addr,union commondata *mydata)
-{
-	char c;
-
-	switch(type)
-	{
-	case 1:	
-	
-		memcpy(&c,&mydata->data1,1);
-		if(i2c_send_s((unsigned char)0x64,addr<<4,&c,1))
-			;
-		else
-			printf("send data error\n");
-		break;
-	default:
-		return -1;
-	}
-	return 0;
-}
 
 
-static int DimmRead(int type,long long addr,union commondata *mydata)
+#endif
+
+//----------------------------------------
+
+static int syscall_i2c_type,syscall_i2c_addrlen;
+static char syscall_i2c_addr[2];
+
+static int i2c_read_syscall(int type,long long addr,union commondata *mydata)
 {
 char c;
 switch(type)
 {
 case 1:
-		i2c_start();	
-		i2c_send(0xa0|(i2cslot<<1));
-		if(!i2c_rec_ack())
-			return -1;
-		i2c_send(addr);
-		if(!i2c_rec_ack())
-			return -1;
-		i2c_start();
-		i2c_send(0xa1|(i2cslot<<1));
-		if(!i2c_rec_ack())
-			return -1;
-		mydata->data1=i2c_rec();
-		i2c_stop();
-		break;
-default:
-		return -1;
+tgt_i2cread(syscall_i2c_type,syscall_i2c_addr,syscall_i2c_addrlen,addr,&mydata->data1,1);
+
+break;
+
+default: return -1;break;
 }
-		return 0;
+return 0;
 }
 
-
-
-#endif
-
-
-void i2c_test()
+static int i2c_write_syscall(int type,long long addr,union commondata *mydata)
 {
-	unsigned int  rst,suc,my,my0;
-	asm volatile(
-		".extern i2cread \t\n"	\
-		"li	$4,0xa0 \t\n"		\
-		"li	$5,0x0 \t\n"		\
-		"jal	i2cread \t\n"	\
-		"nop	\t\n"			\
-		"move	%0,$2 \t\n"		\
-		"move	%1,$3 \t\n"
-		:"=r"(rst),"=r"(suc)
-		:
-		:"$4","$5"
-		);
-	printf("rst  %x  suc  %x \n",rst,suc);
-
-
-	asm volatile(
-		".extern i2cread \t\n"	\
-		"li	$4,0xa0 \t\n"		\
-		"li	$5,0x7 \t\n"		\
-		"jal	i2cread \t\n"	\
-		"nop	\t\n"			\
-		"move	%0,$2 \t\n"		\
-		"move	%1,$3 \t\n"
-		:"=r"(rst),"=r"(suc)
-		:
-		:"$4","$5"
-		);
-	printf("rst  %x suc %x \n",rst,suc);
-
-	asm volatile(
-		".extern i2cread \t\n"	\
-		"li	$4,0xa0 \t\n"		\
-		"li	$5,0x8 \t\n"		\
-		"jal	i2cread \t\n"	\
-		"nop	\t\n"			\
-		"move	%0,$2 \t\n"		\
-		"move	%1,$3 \t\n"
-		:"=r"(rst),"=r"(suc)
-		:
-		:"$4","$5"
-		);
-	printf("rst  %x suc %x \n",rst,suc);
-}
-
-#endif
-#ifdef DEVBD2F_FIREWALL
-
-#define I2C_NACK	0x08
-#define	I2C_RD		0x20
-#define	I2C_WR		0x10
-#define	I2C_START	0x80
-#define	I2C_STOP	0x40
-#if 1
-unsigned char atp8620_i2c_read(unsigned char slave_addr,unsigned char sub_addr,unsigned char* buf ,int count)
+char c;
+switch(type)
 {
-	pcitag_t tag;	
-	int i;
-	volatile unsigned char * iog;
-	volatile unsigned char tmp;
-	tag = _pci_make_tag(0,9,0);
-	iog = _pci_conf_readn(tag,0x10,4);
-#define CTR  (volatile unsigned char *)(iog + 0x0)
-#define TXR  (volatile unsigned char *)(iog + 0x1)
-#define RXR  (volatile unsigned char *)(iog + 0x2)
-//	printf("iog %x \n",iog);
-	iog =((unsigned int )iog|0xbfd00000|0xb0)&0xfffffffe;
-	for(i=0;i<count;i++)
-	{
-		tmp = *CTR;
-		while(tmp&0x1)
-			tmp=*CTR;
-		delay(10);
-		
-		*TXR = slave_addr;
-		*CTR = I2C_WR|I2C_START;
+case 1:
+tgt_i2cwrite(syscall_i2c_type,syscall_i2c_addr,syscall_i2c_addrlen,addr,&mydata->data1,1);
 
-		if(word_addr){
-		
-			tmp = *CTR;
-			while(tmp&0x1)
-				tmp=*CTR;
-			delay(10);
-			
-			*TXR = 0;
-			*CTR = I2C_WR;
-		}
-		tmp = *CTR;
-		while(tmp&0x1)
-			tmp=*CTR;
-		delay(10);
-		*TXR = sub_addr;
-		*CTR = I2C_WR;
+break;
 
-		tmp = *CTR;
-		while(tmp&0x1)
-			tmp=*CTR;
-		delay(10);
-		*TXR = slave_addr+1;
-		*CTR = I2C_WR|I2C_START;
-		
-		delay(1);
-///	
-		*CTR = I2C_RD;
-		tmp = *CTR;
-		while(tmp&0x1)
-			tmp=*CTR;
-		delay(10);
-
-		tmp = *RXR;
-		buf[i] = tmp;
-
-		*CTR = I2C_STOP;
-
-	}
+default: return -1;break;
 }
-
-#else
-unsigned char atp8620_i2c_read(unsigned char slave_addr,unsigned char sub_addr,unsigned char* buf ,int count)
-{
-	pcitag_t tag;	
-	int i;
-	volatile unsigned int * iog;
-	volatile unsigned int tmp;
-	tag = _pci_make_tag(0,9,0);
-	iog = _pci_conf_readn(tag,0x10,4);
-//	printf("iog %x \n",iog);
-	iog =((unsigned int )iog|0xbfd00000|0xb0)&0xfffffffe;
-//	printf("iog %x \n",iog);
-	for(i=0;i<count;i++)
-	{
-		tmp = *iog;
-//	printf("tmp %x \n",tmp);
-		while(tmp&0x1)
-			{tmp = *iog;
-			}
-		delay(10);
-
-		tmp = (slave_addr&0xff)<<8;
-		tmp = tmp|I2C_WR|I2C_START|I2C_NACK;
-		*iog = tmp;
-		
-		if(word_addr)
-		{	
-			tmp = *iog;
-			while(tmp&0x1)
-				tmp = *iog;
-		delay(10);
-		
-			tmp = 0;
-			tmp = tmp|I2C_WR|I2C_NACK;
-			*iog = tmp;
-
-		}
-
-		tmp = *iog;
-		while(tmp&0x1)
-			tmp = *iog;
-		delay(10);
-
-		tmp = (sub_addr&0xff)<<8;
-		tmp = tmp|I2C_WR|I2C_NACK;
-		*iog = tmp;
-
-		tmp = *iog;
-		while(tmp&0x1)
-			tmp = *iog;	
-		delay(10);
-
-		tmp = ((slave_addr&0xff)+1)<<8;
-		tmp = tmp|I2C_WR|I2C_START|I2C_NACK;
-		*iog = tmp;
-
-		tmp = *iog;
-		while(tmp&0x1)
-			tmp = *iog;	
-		delay(10);
-
-		tmp = I2C_RD|I2C_STOP;
-		*iog = tmp;
-
-		tmp = *iog;
-		while(tmp&0x1)
-			tmp = *iog;	
-		delay(10);
-
-		tmp = *iog;
-		tmp = tmp&0xffff0000;
-		tmp = tmp>>16;
-		buf[i] = tmp&0xff;
-
-/*
-		tmp = I2C_STOP;
-		*iog = tmp;
-		
-		tmp = *iog;
-		while(tmp&0x1)
-			tmp = *iog;	
-		delay(10);
-*/
-	}
-	return 0;
-
-
+return 0;
+return -1;
 }
+//----------------------------------------
 
-#endif
-
-unsigned char atp8620_i2c_write(unsigned char slave_addr,unsigned char sub_addr,unsigned char * buf ,int count)
-{
-	pcitag_t tag;	
-	int i;
-	volatile unsigned int * iog;
-	volatile unsigned int tmp;
-	tag = _pci_make_tag(0,9,0);
-	iog = _pci_conf_readn(tag,0x10,4);
-	iog = ((unsigned int )iog|0xbfd00000|0xb0)&0xfffffffe;
-
-	for(i=0;i<count;i++)
-	{
-		tmp = *iog;
-		while(tmp&0x1)
-			tmp = *iog;
-
-		tmp = (slave_addr&0xff)<<8;
-		tmp = tmp|I2C_WR|I2C_START|I2C_NACK;
-		*iog = tmp;
-		
-		if(word_addr)
-		{	
-			tmp = *iog;
-			while(tmp&0x1)
-				tmp = *iog;
-		
-			tmp = 0;
-			tmp = tmp|I2C_WR|I2C_NACK;
-			*iog = tmp;
-
-		}
-
-		tmp = *iog;
-		while(tmp&0x1)
-			tmp = *iog;
-
-		tmp = (sub_addr&0xff)<<8;
-		tmp = tmp|I2C_WR|I2C_NACK;
-		*iog = tmp;
-
-		tmp = *iog;
-		while(tmp&0x1)
-			tmp = *iog;
-
-		tmp = buf[i]<<8;
-		tmp = tmp|I2C_WR|I2C_NACK;
-		*iog = tmp;
-	
-		tmp = *iog;
-		while(tmp&0x1)
-			tmp = *iog;
-
-		
-		tmp = I2C_STOP;
-		*iog = tmp;	
-	}
-
-	return 0;
-}
-
-
-static int firewall_i2c_read(int type,long long addr,union commondata *mydata)
-{
-	char c;
-	switch(type)
-	{
-		case 1:
-			atp8620_i2c_read((unsigned char)slave_addr,(unsigned char)addr,&c,1);
-			memcpy(&mydata->data1,&c,1);
-			return 0;
-		default:
-			return -1;
-
-	}
-
-}
-static int firewall_i2c_write(int type,long long addr,union commondata *mydata)
-{
-	char c;
-	switch(type)
-	{
-	case 1:
-		memcpy(&c,&mydata->data1,1);
-		atp8620_i2c_write((unsigned char)slave_addr,(unsigned char)addr,&c,1);
-		return 0;
-	default :
-		return -1;
-	
-	}
-
-}
-static int i2cs(int argc,char *argv[])
-{
-	if(argc<2) 
-		return -1;
-	printf("i2c\n");
-	
-	i2cslot=strtoul(argv[1],0,0);
-
-	switch(i2cslot)
-	{
-	case 0:
-		slave_addr = strtoul(argv[2],0,0);
-		if(slave_addr==0xde||slave_addr == 0xae)
-		{
-			word_addr = 1;
-			printf("rtc opreation!\n");	
-		}
-		else
-			word_addr = 0;
-		syscall1 = (void *)firewall_i2c_read;
-		syscall2 = (void *)firewall_i2c_write;
-		break;
-	case 1:
-		slave_addr = strtoul(argv[2],0,0);
-		if(slave_addr==0xde||slave_addr == 0xae)
-		{
-			word_addr = 1;
-			printf("rtc opreation!\n");	
-		}
-		else
-			word_addr = 0;
-		syscall1 = (void *)sm502SPDRead;
-		syscall2 = (void *)sm502SPDWrite;
-		break;
-	case 2:	
-		i2c_test();
-		break;
-	case 3:
-		syscall1=(void *)rom_ddr_reg_read;
-		syscall2=(void *)rom_ddr_reg_write;
-		if(argc==3 && !strcmp(argv[2][2],"revert"))
-		{
-			extern char ddr2_reg_data,_start;
-			extern char ddr2_reg_data1;
-			printf("revert to default ddr setting\n");
-			// tgt_flashprogram(0xbfc00000+((int)&ddr2_reg_data -(int)&_start),30*8,&ddr2_reg_data1,TRUE);
-		}
-		break;
-
-	default:
-		return -1;
-	}
-
-	return 0;
-}
-#else
 static int i2cs(int argc,char **argv)
 {
 	pcitag_t tag;
-	volatile int tmp;
+	volatile int i;
 	if(argc<2) 
 		return -1;
 
@@ -1221,37 +444,14 @@ static int i2cs(int argc,char **argv)
 				// tgt_flashprogram(0xbfc00000+((int)&ddr2_reg_data -(int)&_start),30*8,&ddr2_reg_data1,TRUE);
 			 }
 			break;
-#ifdef DEVBD2F_SM502
-		case 4:
-
-			tag=_pci_make_tag(0,14,0);
-
-			mmio=_pci_conf_readn(tag,0x14,4);
-			mmio =(int)mmio|(0xb0000000);
-		//	printf("mmio =%x\n",mmio);	
-	
-			syscall1 = (void *)sm502RtcRead;
-			syscall2 = (void *)sm502RtcWrite;
-			tmp = *(volatile int *)(mmio + 0x40);
-			*(volatile int *)(mmio + 0x40) =tmp|0x40;
-			 break;
-		case 5:
-
-			slave_addr = strtoul(argv[2],0,0);
-			tag=_pci_make_tag(0,14,0);
-
-			mmio=_pci_conf_readn(tag,0x14,4);
-			mmio =(int)mmio|(0xb0000000);
-	
-			syscall1 = (void *)sm502SPDRead;
-		 	syscall2 = (void *)sm502SPDWrite;
-			tmp = *(volatile int *)(mmio + 0x40);
-			*(volatile int *)(mmio + 0x40) =tmp|0x40;
-			 break;
-		case 6:
-		 	i2c_test();
+		case -1:
+			if(argc<4)return -1;
+			syscall_i2c_type=strtoul(argv[2],0,0);
+			syscall_i2c_addrlen=argc-3;
+			for(i=3;i<argc;i++)syscall_i2c_addr[i-3]=strtoul(argv[i],0,0);
+			 syscall1=(void*)i2c_read_syscall;
+			 syscall2=(void*)i2c_write_syscall;
 			break;
-#endif
 		default:
 			 return -1;
 	}
@@ -1262,7 +462,6 @@ static int i2cs(int argc,char **argv)
 }
 
 
-#endif
 
 static const Cmd Cmds[] =
 {
