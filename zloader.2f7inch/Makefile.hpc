@@ -1,0 +1,6 @@
+TARGET=BonitoHPC
+TARGETEL=Bonito
+START=start.o
+MEMSIZE=256
+
+include Makefile.inc

@@ -441,7 +441,7 @@ autoload(char *s)
 	char buf[LINESZ] = {0};
 	char *pa = NULL;
 	char *rd;
-	char *Version;
+	//char *Version;
 
 	//char cmdline[256] = "console=tty"; /*Modified by usb rescue or tftp .*/
 
@@ -492,11 +492,12 @@ autoload(char *s)
 			else strcat(buf," -S root=/dev/hda1 console=tty");
 			//else strcat(buf," root=/dev/hda1 console=tty");
 			
-			if((Version = getenv("Version")) == NULL) 
+			//PMON_VER will get in 'g' command.
+			/*if((Version = getenv("Version")) == NULL) 
 				Version="undefined";
 			
 			strcat(buf, " PMON_VER=");
-			strcat(buf, Version);
+			strcat(buf, Version);*/
 
 			delay(10000);
 			do_cmd (buf);

@@ -634,12 +634,17 @@ void ec_fixup(void)
 
 /* get EC version from EC rom */
 unsigned char *get_ecver(void){
-	static unsigned char val[0x40];
+	static unsigned char val[0x40] = {0};
 	int i;
+	unsigned char *p;
 	unsigned int addr = VER_ADDR;
-	for(i = 0; rdec(addr) != '\0'; i++){
+	for(i = 0; i < VER_MAX_SIZE && rdec(addr) != '\0'; i++){
 		val[i] = rdec(addr);
 		addr++;
 	}
-	return val;
+	p = val;
+	if((strncmp(p, "LM8089", 6)) != 0){
+		p = "undefined";
+	}
+	return p;
 }

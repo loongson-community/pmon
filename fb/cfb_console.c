@@ -1767,6 +1767,7 @@ int fb_init(unsigned long fbbase, unsigned long iobase)
 
 #ifdef	LOONGSON2F_7INCH
 	video_display_bitmap(SMALLBMP0_START_ADDR, SMALLBMP0_X, SMALLBMP0_Y);
+	video_display_bitmap(SMALLBMP_START_ADDR_EN_01, SMALLBMP01_EN_X, SMALLBMP01_EN_Y);
 #endif
 	return 0;
 }

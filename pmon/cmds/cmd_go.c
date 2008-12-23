@@ -102,6 +102,7 @@ cmd_go (ac, av)
 	int	sflag;
 	int	c;
 	unsigned char *Version;
+	unsigned char *EC_Version;
 extern int	optind;
 extern char	*optarg;
 	
@@ -160,6 +161,13 @@ extern char	*optarg;
 			
 	strcat(clientcmd, " PMON_VER=");
 	strcat(clientcmd, Version);
+	strcat(clientcmd, " ");
+
+	if((EC_Version = getenv("ECVersion")) == NULL) 
+		EC_Version="undefined";
+			
+	strcat(clientcmd, " EC_VER=");
+	strcat(clientcmd, EC_Version);
 	strcat(clientcmd, " ");
 #endif
 

@@ -1,0 +1,128 @@
+#!/usr/bin/perl 
+my ($myedata,$myend,$initmips,$mystart);
+open(F,qq(mips-elf-objdump -x $ARGV[0]|));
+while(<F>)
+{
+chomp;
+if(/f{8}(\w+).+_edata/){
+   $myedata=qq(0x$1);
+ }
+
+if(/f{8}(\w+).+_end$/){
+   $myend=qq(0x$1);
+ }
+if(/f{8}(\w+).+initmips$/){
+   $myinitmips=qq(0x$1);
+ }
+if(/f{8}(\w+).+\s_start$/){
+   $mystart=qq(0x$1);
+ }
+}
+printf(<< "END"
+void stringserial(char *msg);
+void realinitmips(unsigned int msize);
+void enable_cache()
+{
+	    __asm__ volatile(
+		".set mips3;
+        mfc0   \$4,\$16;
+        and    \$4,\$4,0xfffffff8;
+        or     \$4,\$4,0x3;
+        mtc0   \$4,\$16;
+		.set mips0;"
+		::
+		:"\$4"
+		);
+}
+
+#ifndef NOCACHE2
+void flush_cache2()
+{
+asm volatile("
+	mfc0	\$3, \$15			# read processor ID register
+	li		\$2, 0x6303				#godson2f prid
+	beq		\$2, \$3, godson_2f
+	nop
+	li		\$2, 0x6302				#godson2e prid
+	bne	\$2, \$3,11f 
+	nop
+# godson2e
+godson_2f:
+	li	  \$2, 0x80000000
+    addu  \$3,\$2,512*1024
+10:
+	cache	3, 0(\$2)
+	cache	3, 1(\$2)
+	cache	3, 2(\$2)
+	cache	3, 3(\$2)
+	addu	\$2, 32
+	bne	    \$2,\$3, 10b
+	nop
+11:
+"
+::
+:"\$2","\$3"
+);
+}
+#else
+void flush_cache()
+{
+asm volatile("
+        li    \$5,0x80000000
+        addu  \$6,\$5,16384
+1:
+        cache  1,0(\$5)
+        cache  1,1(\$5)
+        cache  1,2(\$5)
+        cache  1,3(\$5)
+        cache  0,(\$5)
+        add    \$5,\$5,32
+        bne    \$5,\$6,1b
+        nop
+"
+::
+: "\$5","\$6");
+}
+#endif
+void initmips(unsigned int msize,int dmsize,int dctrl)
+{
+    long *edata=(void *)$myedata;
+    long *end=(void *)$myend;
+    long *p;
+	int debug=(msize==0);
+    stringserial("Uncompressing Bios");
+    if(!debug||dctrl&1)enable_cache();
+	while(1)
+	{
+    if(run_unzip(biosdata,$mystart)>=0)break;
+	}
+    stringserial("OK,Booting Bios\\r\\n");
+    for(p=edata;p<=end;p++)
+    {
+        *p=0;
+    }
+	memset($mystart-0x1000,0,0x1000);//$mystart-0x1000 for frame(registers),memset for pretty
+#ifdef NOCACHE2
+	flush_cache();
+#else
+	flush_cache2();
+#endif
+    realinitmips(debug?dmsize:msize);
+}
+
+
+void realinitmips(unsigned int msize)
+{
+	     asm ("li  \$29,$mystart-0x4000;
+		       li \$2,$myinitmips;
+			   move \$4,\%0;
+			   jalr \$2;
+			   nop;
+			  1: b 1b;nop;"
+          :
+          : "r" (msize)
+          : "\$29", "\$2","\$4");
+
+}
+END
+);

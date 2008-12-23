@@ -1,0 +1,6 @@
+TARGET=Bonito2F7inch
+TARGETEL=Bonito
+START=start.o
+MEMSIZE=256
+
+include Makefile.inc
