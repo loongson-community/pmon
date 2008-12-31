@@ -672,7 +672,7 @@ wdcattach(chp)
 	 * led on)
 	 */
 	if ((chp->wdc->cap & WDC_CAPABILITY_NO_EXTRA_RESETS) == 0) {
-		wdcreset(chp, VERBOSE);
+		//wdcreset(chp, VERBOSE);
 		/*
 		 * Read status registers to avoid spurious interrupts.
 		 */
@@ -874,7 +874,8 @@ __wdcwait_reset(chp, drv_mask)
 	delay(50000);
 
 	/* wait for BSY to deassert */
-	for (timeout = 0; timeout < WDCNDELAY_RST/2;timeout++) {
+	for (timeout = 0; timeout < 20 /*WDCNDELAY_RST/2*/;timeout++) {
+			delay(3000000);
 		CHP_WRITE_REG(chp, wdr_sdh, WDSD_IBM); /* master */
 		delay(10);
 		st0 = CHP_READ_REG(chp, wdr_status);

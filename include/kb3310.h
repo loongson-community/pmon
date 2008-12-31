@@ -38,15 +38,6 @@
 #define	XBISPIDATR	0xAE
 #define	XBISPICFG2	0xAF
 
-#if 0
-/* commands definition for REG_XBISPICMD */
-#ifdef	USING_MX_ROM
-#define	SPICMD_READ_BYTE		0x0B
-#else
-#define	SPICMD_READ_BYTE		0x03
-#endif
-#endif
-
 /* SMBUS relative register block according to the EC datasheet. */
 #define	REG_SMBTCRC		0xff92
 #define	REG_SMBPIN		0xff93
@@ -84,11 +75,12 @@
 #define EC_ROM_PRODUCT_ID_SPANSION	0x01
 #define EC_ROM_PRODUCT_ID_MXIC		0xC2
 #define EC_ROM_PRODUCT_ID_AMIC		0x37
+#define EC_ROM_PRODUCT_ID_EONIC		0x1C
 
 /* version burned address */
-#define	VER_ADDR	0xf300
-#define	VER_MAX_SIZE	0x40
-#define	EC_ROM_MAX_SIZE	0xf400
+#define	VER_ADDR	0xf7a2 //0xf300
+#define	VER_MAX_SIZE	7 //0x40
+#define	EC_ROM_MAX_SIZE	0xf7a8 //0xf400
 
 /* access ec register content */
 static inline void wrec(unsigned short reg, unsigned char val)

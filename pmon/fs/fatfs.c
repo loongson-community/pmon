@@ -79,6 +79,19 @@ u_int8_t shortNameChkSum(u_int8_t *);
 int fat_parseDirEntries(int ,struct fat_fileentry *);
 
 
+//Yuli-2008-12-25
+static void fat_listfilename(struct fat_fileentry *filee,int dir_flag,int ilongName)
+{
+	if(dir_flag == 1)
+	{
+		printf("%-40s%-15s%d\n",ilongName ? filee->longName : filee->shortName,"<DIR>",filee->FileSize);
+	}
+	else
+	{
+		printf("%-40s%-15s%d\n",ilongName ? filee->longName : filee->shortName,"<FILE>",filee->FileSize);
+	}
+}
+
 /*
  * Supported paths:
  *	/dev/fat/disk@wd0/file
@@ -547,7 +560,6 @@ int fat_findfile(struct fat_sc *fsc, char *name)
 	int flag = 0;
 	int dir_flag = 0;
 
-
 	if(fsc->FatType == TYPE_FAT32)
 	{
 		struct fatchain chain;
@@ -594,10 +606,6 @@ int fat_findfile(struct fat_sc *fsc, char *name)
 					continue;
 				}
 
-				if(dire->dirAttributes == ATTR_DIRECTORY)
-				{
-					dir_flag = 1;
-				}
 				if (dire->dirAttributes == ATTR_WIN95) {
 					bcopy((void *)dire, (void *)&dirbuf[long_name], sizeof(struct direntry));
 					flag = 1;
@@ -606,12 +614,21 @@ int fat_findfile(struct fat_sc *fsc, char *name)
 						long_name = 0;
 					continue;
 				}
+
+				//Yuli-2008-12-26
+				if((dire->dirAttributes & ATTR_DIRECTORY) == ATTR_DIRECTORY)
+				{
+					dir_flag = 1;
+				}
+				
 				bcopy((void *)dire, (void *)&dirbuf[long_name], sizeof(struct direntry));
 				fat_parseDirEntries(long_name, &filee);
 				long_name = 0;
 
 				if(dir_list)
 				{		
+					//Yuli-2008-12-26
+					#if 0
 					if((flag == 0)||(strcmp(filee.shortName,".") == 0)||(strcmp(filee.shortName, "..") == 0))
 					{
 						printf("%s",filee.shortName);
@@ -624,6 +641,17 @@ int fat_findfile(struct fat_sc *fsc, char *name)
 						printf("/");
 					}
 					printf("  ");
+					#endif
+					int ilongName = 1;
+					if((flag == 0)||(strcmp(filee.shortName,".") == 0)||(strcmp(filee.shortName, "..") == 0))
+					{
+						ilongName = 0;					
+					}
+					fat_listfilename(&filee,dir_flag,ilongName);
+					if (dir_flag == 1)
+					{
+						dir_flag = 0;
+					}
 					flag = 0;
 				}
 				else if ((strcasecmp(name, filee.shortName) == 0) || (strcasecmp(name, filee.longName) == 0)) {
@@ -684,8 +712,8 @@ int fat_subdirscan(struct fat_sc *fsc, char *name, struct fatchain *chain)
 
 			dire = (struct direntry *)fsc->DirBuffer;
 
-			for (k = 0; (k < (SECTORSIZE / sizeof(struct direntry))); k++, dire++) {
-				
+			for (k = 0; (k < (SECTORSIZE / sizeof(struct direntry))); k++, dire++) {				
+
 				if (dire->dirName[0] == SLOT_EMPTY)
 				{
 					if(dir_list)
@@ -697,11 +725,10 @@ int fat_subdirscan(struct fat_sc *fsc, char *name, struct fatchain *chain)
 				}
 
 				if (dire->dirName[0] == SLOT_DELETED)
-					continue;
-				if(dire->dirAttributes == ATTR_DIRECTORY)
 				{
-					dir_flag = 1;
+					continue;
 				}
+				
 				if (dire->dirAttributes == ATTR_WIN95) {
 					bcopy((void *)dire, (void *)&dirbuf[long_name], sizeof(struct direntry));
 					long_name++;
@@ -710,23 +737,44 @@ int fat_subdirscan(struct fat_sc *fsc, char *name, struct fatchain *chain)
 						long_name = 0;
 					continue;
 				}
+				
+				//Yuli-2008-12-26
+				if((dire->dirAttributes & ATTR_DIRECTORY) == ATTR_DIRECTORY)
+				{
+					dir_flag = 1;
+				}
+				
 				bcopy((void *)dire, (void *)&dirbuf[long_name], sizeof(struct direntry));
 				fat_parseDirEntries(long_name, &filee);
 				long_name = 0;
 				if(dir_list)
 				{
+					//Yuli-2008-12-25
+					#if 0
 					if((flag == 0)||(strcmp(filee.shortName,".") == 0)||(strcmp(filee.shortName, "..") == 0))
 					{
 						printf("%s", filee.shortName);
 					}
 					else
 						printf("%s", filee.longName);
+					
 					if(dir_flag == 1)
 					{
 						dir_flag = 0;
 						printf("/");
 					}
 					printf("  ");
+					#endif
+					int ilongName = 1;
+					if((flag == 0)||(strcmp(filee.shortName,".") == 0)||(strcmp(filee.shortName, "..") == 0))
+					{
+						ilongName = 0;					
+					}
+					fat_listfilename(&filee,dir_flag,ilongName);
+					if (dir_flag == 1)
+					{
+						dir_flag = 0;
+					}
 					flag = 0;
 				}
 				else if ((strcasecmp(name, filee.shortName) == 0) || (strcasecmp(name, filee.longName) == 0)) {
@@ -751,6 +799,7 @@ int fat_subdirscan(struct fat_sc *fsc, char *name, struct fatchain *chain)
 			}
 		}
 	}
+	vga_available = 1;
 	printf("\n");
 	return (0);
 }

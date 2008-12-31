@@ -453,7 +453,7 @@ int ec_program_data(unsigned char *buf, unsigned long len, int flag)
 		if(ptr[0] == 'D'){
 			return 0;
 		}
-		addr = VER_ADDR;
+		addr = 0xf300;
 		ptr[size - 1] = '\0';
 		printf("starting programming ec version : %s\n", ptr);
 	}else if(flag == PROGRAM_FLAG_ROM){
@@ -634,7 +634,7 @@ void ec_fixup(void)
 
 /* get EC version from EC rom */
 unsigned char *get_ecver(void){
-	static unsigned char val[0x40] = {0};
+	static unsigned char val[VER_MAX_SIZE] = {0};
 	int i;
 	unsigned char *p;
 	unsigned int addr = VER_ADDR;
@@ -643,7 +643,8 @@ unsigned char *get_ecver(void){
 		addr++;
 	}
 	p = val;
-	if((strncmp(p, "LM8089", 6)) != 0){
+	//if((strncmp(p, "LM8089", 6)) != 0){
+	if (*p == 0){
 		p = "undefined";
 	}
 	return p;

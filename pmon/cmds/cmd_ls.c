@@ -91,17 +91,19 @@ int cmd_list_fat32(int ac, char *av[])
 	fat_device_path[DevNameLength+1] = '\0';
 	pDeviceStart = strchr(av[1],')');
 	if (pDeviceStart==NULL)
-		return -1;		
+		return -1;
 	if ('/' == (*++pDeviceStart))
-		sprintf(fat_path, "load /dev/fat/disk@%s%s",fat_device_path,pDeviceStart);
+		sprintf(fat_path, "/dev/fat/disk@%s%s",fat_device_path,pDeviceStart);
 	else 
-		sprintf(fat_path, "load /dev/fat/disk@%s/%s",fat_device_path,pDeviceStart);
+		sprintf(fat_path, "/dev/fat/disk@%s/%s",fat_device_path,pDeviceStart);
 	if (fat_path[strlen(fat_path)-1] != '/')
 		fat_path[strlen(fat_path)] = '/';
 	else 		
 		fat_path[strlen(fat_path)] = '\0';
 
-	return do_cmd(fat_path);
+	open(fat_path, O_RDONLY | O_NONBLOCK);
+	return 0;
+
 }
 
 int cmd_list (int ac, char *av[])

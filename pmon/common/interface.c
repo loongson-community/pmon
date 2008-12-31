@@ -183,6 +183,9 @@ void ui_select(char *load, char *cmdline)
 		case 'y':
 			if ((flag & U_F) && (flag & C_F) && !(flag & Y_F)) {
 				flag |= (Y_F | F_F);
+				//Yuli-2008-12-24
+				video_display_bitmap(SMALLBMP4_START_ADDR, SMALLBMP4_X, SMALLBMP4_Y);
+				video_display_bitmap(SMALLBMP_START_ADDR_EN_05, SMALLBMP05_EN_X, SMALLBMP05_EN_Y);				
 				do_usb_rescue(load, cmdline);
 			}
 			break;
@@ -299,15 +302,15 @@ static int do_usb_rescue(char *load, char *cmdline)
 		delay(3000000);
 		if (strcmp(dev->dv_xname, "usb0") == 0) {
 			if ((bootfd = open (path0, O_RDONLY | O_NONBLOCK)) >= 0){
-				video_display_bitmap(SMALLBMP4_START_ADDR, SMALLBMP4_X, SMALLBMP4_Y);
-				video_display_bitmap(SMALLBMP_START_ADDR_EN_05, SMALLBMP05_EN_X, SMALLBMP05_EN_Y);
+				//video_display_bitmap(SMALLBMP4_START_ADDR, SMALLBMP4_X, SMALLBMP4_Y);
+				//video_display_bitmap(SMALLBMP_START_ADDR_EN_05, SMALLBMP05_EN_X, SMALLBMP05_EN_Y);
 				//vga_available = 1;
 				strcpy(load, "load -n /dev/fs/ext2@usb0/vmlinux");
 				break;
 			}
 			if ((bootfd = open (fat0, O_RDONLY | O_NONBLOCK)) >= 0){
-				video_display_bitmap(SMALLBMP4_START_ADDR, SMALLBMP4_X, SMALLBMP4_Y);
-				video_display_bitmap(SMALLBMP_START_ADDR_EN_05, SMALLBMP05_EN_X, SMALLBMP05_EN_Y);
+				//video_display_bitmap(SMALLBMP4_START_ADDR, SMALLBMP4_X, SMALLBMP4_Y);
+				//video_display_bitmap(SMALLBMP_START_ADDR_EN_05, SMALLBMP05_EN_X, SMALLBMP05_EN_Y);
 				//vga_available = 1;
 				strcpy(load, "load -n /dev/fat/disk@usb0/vmlinux");
 				break;
@@ -316,16 +319,16 @@ static int do_usb_rescue(char *load, char *cmdline)
 
 		if (strcmp(dev->dv_xname, "usb1") == 0) {
 			if ((bootfd = open (path1, O_RDONLY | O_NONBLOCK)) >= 0){
-				video_display_bitmap(SMALLBMP4_START_ADDR, SMALLBMP4_X, SMALLBMP4_Y);
-				video_display_bitmap(SMALLBMP_START_ADDR_EN_05, SMALLBMP05_EN_X, SMALLBMP05_EN_Y);
+				//video_display_bitmap(SMALLBMP4_START_ADDR, SMALLBMP4_X, SMALLBMP4_Y);
+				//video_display_bitmap(SMALLBMP_START_ADDR_EN_05, SMALLBMP05_EN_X, SMALLBMP05_EN_Y);
 				//vga_available = 1;
 				//printf("This is ext2 in usb1 fdisk\n");
 				strcpy(load, "load -n /dev/fs/ext2@usb1/vmlinux");
 				break;
 			}
 			if ((bootfd = open (fat1, O_RDONLY | O_NONBLOCK)) >= 0){
-				video_display_bitmap(SMALLBMP4_START_ADDR, SMALLBMP4_X, SMALLBMP4_Y);
-				video_display_bitmap(SMALLBMP_START_ADDR_EN_05, SMALLBMP05_EN_X, SMALLBMP05_EN_Y);
+				//video_display_bitmap(SMALLBMP4_START_ADDR, SMALLBMP4_X, SMALLBMP4_Y);
+				//video_display_bitmap(SMALLBMP_START_ADDR_EN_05, SMALLBMP05_EN_X, SMALLBMP05_EN_Y);
 				//vga_available = 1;
 				//printf("This is fat in usb1 fdisk\n");
 				strcpy(load, "load -n /dev/fat/disk@usb1/vmlinux");

@@ -2868,7 +2868,7 @@ static int hc_interrupt (void *hc_data)
 			 * This is potentially dangerous because it assumes
 			 * that only one device is ever plugged in!
 			 */
-			printf("**hc_interrupt 2008-03-07** device disconnected\n");//QYL-2008-03-07
+			//printf("**hc_interrupt 2008-03-07** device disconnected\n");//QYL-2008-03-07
 		}
 	}
 
@@ -3211,7 +3211,7 @@ void usb_ohci_stop_one(ohci_t *ohci)
 	(void) readl (&ohci->regs->cmdstatus);
 
 	cmd = pci_conf_read(ohci->sc_pc, ohci->pa.pa_tag, 0x04);
-	pci_conf_write(ohci->sc_pc, ohci->pa.pa_tag, 0x04, (cmd & ~0x4));
+	pci_conf_write(ohci->sc_pc, ohci->pa.pa_tag, 0x04, (cmd & ~0x7));
 }
 
 void usb_ohci_stop()
