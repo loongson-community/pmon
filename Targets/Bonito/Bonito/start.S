@@ -281,6 +281,13 @@ ext_map_and_reboot:
 	la	a0, v380_msg
 	bal	stringserial
 	nop
+	
+	//Felix-2008-10-28
+    li  v0, 0xafffff00
+    lw  a0,4(v0)
+    bal hexserial
+    nop
+    
 	b	exc_common
 	
 	.align	8			/* bfc00400 */
@@ -962,7 +969,7 @@ not_locked:
 
 #endif
         
-#if 1
+#if 0
 	TTYDBG	("\r\ndisable register space of MEMORY\r\n")
         li	t2, 0xbfe00180
         ld	a1, 0x0(t2)
@@ -993,7 +1000,7 @@ not_locked:
 	blt v0, a0, 2f
 	nop
 	sll	tmpsize, v0, 22;		// multiply by 4M
-	b  2f  
+
 2:	/* read DIMM number of sides (banks) */
 	li	a0, 0xa1;
 	li	a1, 5
@@ -1061,7 +1068,9 @@ skipdimm:
 	li	t1,0		# accumulate pcimembasecfg settings
 		
 	/* set bar0 mask and translation to point to SDRAM */
-	subu	t0,msize,1
+	//sub	t0,msize,1
+	//Felix 2008-10-06
+	subu t0,msize,1
 	not	t0
 	srl	t0,BONITO_PCIMEMBASECFG_ASHIFT-BONITO_PCIMEMBASECFG_MEMBASE0_MASK_SHIFT
 	and	t0,BONITO_PCIMEMBASECFG_MEMBASE0_MASK
@@ -2465,8 +2474,37 @@ reg_write:
 	addiu	t0, t0, 0x8
 	bne	t1, $0, reg_write
 	addiu	t2, t2, 0x10
+
+    
+    //Felix-2008-10-13
+    //Read the DDR2 spd regs
+    #define QYL_SPD_DEBUG
+QYL_NEXT2:
+    #ifndef QYL_SPD_DEBUG
+    PRINTSTR("Read the DDR2 spd regs:\r\n")
+    li  a1, 0x0
+    li  s3, 0x80
+spd_reg_read:
+    li  a0, 0xa0
+    move t8, a1
+    bal i2cread
+    nop 
+    move a0, v0
+    bal hexserial
+    nop 
+    li  a0, ' '
+    bal tgt_putchar
+    nop 
+    addu t8,t8,0x1
+    move a1, t8
+    subu s3,s3,0x1
+    bne s3,$0,spd_reg_read
+    nop    
+    #endif
+
     
 #if 1
+	move k0, ra
 	/* read spd to initialize memory controller */
 	li a0, 0xa0
 	li a1, 3    //Row Address
@@ -2495,17 +2533,210 @@ reg_write:
 	or  a1, v1
 	sw  a1, (v0)
 
+	/* number of CS */
+	li a0, 0xa0
+	li a1, 5
+	bal i2cread
+	nop
+	li v1, 0x7
+	and v1, v0
+	add v1, 1
+	li  a0, 1
+	sll a0, v1
+	sub a0, 1
+	li v0, 0xaffffe70
+	lw v1, 0(v0)
+	nop 
+	sll a0, a0, 16
+	li  t0, 0xfff0ffff
+	and v1, v1, t0
+	or  v1, v1, a0
+	sw  v1, 0(v0)
+	nop
+
+	//Config CS* ODT 
+	li a0,0xa0
+	li a1, 5
+	bal i2cread 
+	nop 
+	li v1, 0x7
+	and v1, v0
+	bgtz v1, 1f   // have 1 CS(default cs0)
+	nop
+	li v0, 0xaffffe80
+	li t0, 0x00000001
+	sw t0, 0(v0)
+	nop 
+	sw t0, 4(v0)
+	nop 
+	b 5f
+	nop
+1:  sub v1, 1   // have 2 CS(default cs0 cs1)
+	bgtz v1, 2f
+	nop
+	li v0, 0xaffffe80
+	li t0, 0x00000102
+	sw t0, 0(v0)
+	nop 
+	sw t0, 4(v0)
+	nop	
+	b 5f
+	nop
+2:  sub v1, 1 // have 3 CS (default cs0 cs 1 cs 2)
+	bgtz v1, 3f
+	nop
+	li v0, 0xaffffe80
+	li t0, 0x00010402
+	sw t0, 0(v0)
+	nop 
+	sw t0, 4(v0)
+	nop	
+	b 5f
+	nop
+3:  sub v1, 1 // have 4 CS (default cs0 cs 1 cs 2 cs 3)
+	bgtz v1, 4f
+	nop
+	li v0, 0xaffffe80
+	li t0, 0x01080402
+	sw t0, 0(v0)
+	nop 
+	sw t0, 4(v0)
+	nop	
+	b 5f
+	nop
+4:	li v0, 0xaffffe80 //More than 4 CS, not supported till now, give a default value
+	li t0, 0x00000000
+	sw t0, 0(v0)
+	nop 
+	sw t0, 4(v0)
+	nop	          
+5:
+    PRINTSTR("Read the DDR2 No8 reg:\r\n")
+	li v0, 0xaffffe80
+	lw a0, 0(v0)
+	bal hexserial
+	nop
+    li v0, 0xaffffe80
+    lw a0, 4(v0)
+    bal hexserial
+    nop
+	//Config Unbuffered bit *fix me*
+	//Note:during debuging,we found that if there are more than 8 (exam. 16) chips on a module,
+	//Set Unbuffered bit will make it work,if not set, the module even can't work.
+	li a0, 0xa0
+	li a1, 5
+	bal i2cread 
+	nop 
+	li s3, 0x7
+	and s3, v0
+	li a0, 0xa0
+	li a1, 13
+	bal i2cread
+	nop
+	move t0, v0
+	bgtz s3, 1f // 1 cs, only (64/4*1=16 need to set)
+	nop 
+	sub t0, 4
+	bgtz t0, NOT_SET_UNBUFFERED
+	nop
+	b SET_UNBUFFERED
+	nop
+1:  sub s3, 1 // 2cs, (64/4*2=32, 64/8*2=16 need to set)
+	bgtz s3, 2f 
+	nop 	
+	sub t0, 8
+    bgtz t0, NOT_SET_UNBUFFERED
+    nop
+    b SET_UNBUFFERED
+    nop
+2:  sub s3, 1 // 3cs, (64/4*3=48, 64/8*3=24 64/16*3=12 need to set)
+	bgtz s3, 3f 
+	nop 	
+	sub t0, 16
+    bgtz t0, NOT_SET_UNBUFFERED
+    nop
+    b SET_UNBUFFERED
+    nop
+3:  sub s3, 1 // 4cs, (64/4*4=64, 64/8*4=32 64/16*4=16 need to set,in fact,it  can be integrated to the pre condition)
+	bgtz s3, NOT_SET_UNBUFFERED //More than 4cs ,not suported, give a default value,not set
+	nop 	
+	sub t0, 16
+    bgtz t0, NOT_SET_UNBUFFERED
+    nop
+    //b SET_UNBUFFERED
+SET_UNBUFFERED:
+	li v0, 0xafffffc0
+	li t0, 0x00000001
+	sw t0, 4(v0)
+	nop
+	b 5f
+	nop
+NOT_SET_UNBUFFERED:
+	li v0, 0xafffffc0
+	li t0, 0x00000000
+	sw t0, 4(v0)
+	nop
+5:   
+    PRINTSTR("Read the DDR2 No28 reg:\r\n")
+	li v0, 0xafffffc0
+	lw a0, 4(v0)
+	bal hexserial
+	nop
+	
+    //Felix-2008-10-27
+    li  v0, 0xaffffe70
+    lw  a0, 0(v0)
+    nop
+    bal hexserial
+    nop
+    
+	/* Number of banks */
 	li  a0, 0xa0 
 	li  a1, 0x11 //Bank 
 	bal i2cread
 	nop 
-	li  v1, 0x4
-	beq v1, v0, 1f
+	//li  v1, 0x4
+	//beq v1, v0, 1f
+	li  v1, 0x8
+	bne v1, v0, 1f	
 	nop
 	li 	v1, 0x1
 	li  v0, 0xaffffe10
 	sw  v1, 4(v0) 
-1:
+	nop
+
+
+1:	
+	//move t7,k0
+    #ifndef QYL_DDR2_DEBUG
+    PRINTSTR("Read the DDR2 regs:\r\n")
+    li  t7, 0xaffffe00
+    li  s3, 29
+ddr2_reg_read:
+    lw  a0, 0(t7)
+    nop
+    bal hexserial
+    nop 
+    li  a0, ' '
+    bal tgt_putchar
+    nop 
+    lw  a0, 4(t7)
+    nop
+    bal hexserial
+    nop 
+    li  a0, ' '
+    bal tgt_putchar
+    nop     
+    addu t7,t7,0x10
+    subu s3,s3,0x1
+    bne s3,$0,ddr2_reg_read
+    nop    
+    #endif
+
+	/*nop
+    PRINTSTR("Read the DDR2 No28 reg:\r\n")*/
+	//move k0, t7
+	move ra, k0
 #endif
 
     ############start##########
@@ -2529,170 +2760,92 @@ reg_write:
 	.rdata
 	.align 5
 ddr2_reg_data:
-//0000000_0 arefresh 0000000_1 ap 0000000_1 addr_cmp_en 0000000_1 active_aging
 DDR2_CTL_00_DATA_LO: .word 0x00000101
-// 0000000_1 ddrii_sdram_mode 0000000_1 concurrentap 0000000_1 bank_split_en 0000000_0 auto_refresh_mode
 DDR2_CTL_00_DATA_HI: .word 0x01000100 #no_concurrentap
-//DDR2_CTL_00_DATA_HI: .word 0x01010100
-//0000000_0 ecc_disable_w_uc_err 0000000_1 dqs_n_en 0000000_0 dll_bypass_mode 0000000_0 dlllockreg
-//DDR2_CTL_01_DATA_LO: .word 0x00010100 #dll_by_pass
 DDR2_CTL_01_DATA_LO: .word 0x00010000
-//0000000_0 fwc 0000000_0 fast_write 0000000_0 enable_quick_srefresh 0000000_0 eight_bank_mode
 DDR2_CTL_01_DATA_HI: .word 0x00000000
-//0000000_0 no_cmd_init 0000000_0 intrptwritea 0000000_0 intrptreada 0000000_0 intrptapburst
 DDR2_CTL_02_DATA_LO: .word 0x00000000
-//0000000_1 priority_en 0000000_0 power_down 0000000_1 placement_en 0000000_1 odt_add_turn_clk_en
 DDR2_CTL_02_DATA_HI: .word 0x01000101
-//0000000_1 rw_same_en 0000000_0 reg_dimm_enable 0000000_0 reduc 0000000_0 pwrup_srefresh_exit
 DDR2_CTL_03_DATA_LO: .word 0x01000000
-//0000000_1 swap_port_rw_same_en 0000000_1 swap_en 0000000_0 start 0000000_0 srefresh
 DDR2_CTL_03_DATA_HI: .word 0x01010000
-//0000000_0 write_modereg 0000000_1 writeinterp 0000000_1 tref_enable 0000000_1 tras_lockout
+//Felix-2008-1020
 DDR2_CTL_04_DATA_LO: .word 0x01010101
-//000000_01 rtt_0 000000_00 ctrl_raw 000000_10 axi0_w_priority 000000_10 axi0_r_priority
+//DDR2_CTL_04_DATA_LO: .word 0x00010101
 DDR2_CTL_04_DATA_HI: .word 0x01000202
-//00000_100 column_size 00000_101 caslat 00000_010 addr_pins 000000_10 rtt_pad_termination
-//DDR2_CTL_05_DATA_LO: .word 0x04050202 #CL =5 // jlliu old
 DDR2_CTL_05_DATA_LO: .word 0x04050202 
-//DDR2_CTL_05_DATA_LO: .word 0x04030102 #CL =3
-//00000_000 q_fullness 00000_000 port_data_error_type 00000_000 out_of_range_type 00000_000 max_cs_reg
 DDR2_CTL_05_DATA_HI: .word 0x00000000
-//00000_010 trtp 00000_010 trrd 00000_010 temrs 00000_011 tcke
-//DDR2_CTL_06_DATA_LO: .word 0x01020203 #125 M
-//DDR2_CTL_06_DATA_LO: .word 0x02020203 #400
-//DDR2_CTL_06_DATA_LO: .word 0x02020203 #250M
 DDR2_CTL_06_DATA_LO: .word 0x03050203 #800
-//0000_1010 aprebit 00000_100 wrlat 00000_010 twtr 00000_100 twr_int
-//DDR2_CTL_06_DATA_HI: .word 0x0a040203 #125 M
-//DDR2_CTL_06_DATA_HI: .word 0x0a040204 #400
-//DDR2_CTL_06_DATA_HI: .word 0x0a030203 #250M CL=4
-//DDR2_CTL_06_DATA_HI: .word 0x0a020203 #CL=3
 DDR2_CTL_06_DATA_HI: .word 0x0a040306 #800
-//0000_0000 ecc_c_id 0000_1111 cs_map 0000_0111 caslat_lin_gate 0000_1010 caslat_lin
-//DDR2_CTL_07_DATA_LO: .word 0x000f0808 #CL=4//cs_map to cs0-cs3
-//DDR2_CTL_07_DATA_LO: .word 0x000f0606 #CL=3///cs_map to cs0-cs3
 DDR2_CTL_07_DATA_LO: .word 0x00030a0b #CL=5//cs_map to cs0-cs3 
-//DDR2_CTL_07_DATA_LO: .word 0x000c0708 #CL=4//cs_map to cs2-cs3
-//0000_0000 max_row_reg 0000_0000 max_col_reg 0000_0010 initaref 0000_0000 ecc_u_id
-//DDR2_CTL_07_DATA_HI: .word 0x00000200
 DDR2_CTL_07_DATA_HI: .word 0x00000400 #800
-//0000_0001 odt_rd_map_cs3 0000_0010 odt_rd_map_cs2 0000_0100 odt_rd_map_cs1 0000_1000 odt_rd_map_cs0
-DDR2_CTL_08_DATA_LO: .word 0x00000000
-//0000_0001 odt_wr_map_cs3 0000_0010 odt_wr_map_cs2 0000_0100 odt_wr_map_cs1 0000_1000 odt_wr_map_cs0
-DDR2_CTL_08_DATA_HI: .word 0x00000201
-//0000_0000 port_data_error_id 0000_0000 port_cmd_error_type 0000_0000 port_cmd_error_id 0000_0000 out_of_range_source_id
+//Felix-2008-10-27
+//DDR2_CTL_08_DATA_LO: .word 0x01020408
+//DDR2_CTL_08_DATA_HI: .word 0x01020408
+//DDR2_CTL_08_DATA_LO: .word 0x08040201
+//DDR2_CTL_08_DATA_HI: .word 0x08040201
+//Felix-2008-12-11
+//DDR2_CTL_08_DATA_LO: .word 0x00000102
+//DDR2_CTL_08_DATA_HI: .word 0x00000102
+DDR2_CTL_08_DATA_LO: .word 0x00000001
+DDR2_CTL_08_DATA_HI: .word 0x00000001
 DDR2_CTL_09_DATA_LO: .word 0x00000000
-//000_00000 ocd_adjust_pup_cs_0 000_00000 ocd_adjust_pdn_cs_0 0000_0100 trp 0000_1000 tdal
-//DDR2_CTL_09_DATA_HI: .word 0x00000204 #125 M
-//DDR2_CTL_09_DATA_HI: .word 0x00000408 #400
-//DDR2_CTL_09_DATA_HI: .word 0x0000030c #250M
 DDR2_CTL_09_DATA_HI: .word 0x0000060c #800
-//00_111111 age_count 000_01111 trc 000_00010 tmrd 000_00000 tfaw
-//DDR2_CTL_10_DATA_LO: .word 0x3f070200 #125 M
-//DDR2_CTL_10_DATA_LO: .word 0x3f0f0200 #400
-//DDR2_CTL_10_DATA_LO: .word 0x3f0b0200 #250M
+//Felix-2008-10-20
 DDR2_CTL_10_DATA_LO: .word 0x3f1f0200 #800
-//0_0011101 dll_dqs_delay_2 0_0011101 dll_dqs_delay_1 0_0011101 dll_dqs_delay_0 00_111111 command_age_count
-//DDR2_CTL_10_DATA_HI: .word 0x0f0f0f3f //zbin
-//DDR2_CTL_10_DATA_HI: .word 0x1515153f //yanhua 533M, 512OK
-DDR2_CTL_10_DATA_HI: .word 0x1010103f //yanhua
-//DDR2_CTL_10_DATA_HI: .word 0x0f0f0f3f // old
-//0_0011101 dll_dqs_delay_6 0_0011101 dll_dqs_delay_5 0_0011101 dll_dqs_delay_4 0_0011101 dll_dqs_delay_3
-//DDR2_CTL_11_DATA_LO: .word 0x0f0f0f0f //zbin
-//DDR2_CTL_11_DATA_LO: .word 0x0f0f0f0f //zbin
+//DDR2_CTL_10_DATA_LO: .word 0x3f1a021b #800
+//Felix-2008-10-28
+//Felix-2008-12-11
+DDR2_CTL_10_DATA_HI: .word 0x2323233f //yanhua
+DDR2_CTL_11_DATA_LO: .word 0x23232323 //yanhua
+DDR2_CTL_11_DATA_HI: .word 0x5f7f2323 //yanhua
+//DDR2_CTL_10_DATA_HI: .word 0x1818183f //yanhua
+//DDR2_CTL_11_DATA_LO: .word 0x18181818 //yanhua
+//DDR2_CTL_11_DATA_HI: .word 0x5f7f1818 //yanhua
+//DDR2_CTL_10_DATA_HI: .word 0x1515153f //yanhua
 //DDR2_CTL_11_DATA_LO: .word 0x15151515 //yanhua
-DDR2_CTL_11_DATA_LO: .word 0x10101010 //yanhua
-//DDR2_CTL_11_DATA_LO: .word 0x0f0f0f0f // old
-//0_1011111 wr_dqs_shift 0_1111111 dqs_out_shift 0_0011101 dll_dqs_delay_8 0_0011101 dll_dqs_delay_7
-//DDR2_CTL_11_DATA_HI: .word 0x5f7f0f0f //zbin 
 //DDR2_CTL_11_DATA_HI: .word 0x5f7f1515 //yanhua
-DDR2_CTL_11_DATA_HI: .word 0x607f1010 //yanhua
-//DDR2_CTL_11_DATA_HI: .word 0x5f7f0f0f // old
-//00001011 tras_min 00000000 out_of_range_length 00000000 ecc_u_synd 00000000 ecc_c_synd
-//DDR2_CTL_12_DATA_LO: .word 0x05000000 #125 M
-//DDR2_CTL_12_DATA_LO: .word 0x0b000000 #400
-//DDR2_CTL_12_DATA_LO: .word 0x05000000 #250M
+//Felix-2008-10-20
 DDR2_CTL_12_DATA_LO: .word 0x15000000 #800
-//0000000_000101010 dll_dqs_delay_bypass_0 00011100 trfc 00000100 trcd_int
-//DDR2_CTL_12_DATA_HI: .word 0x01ff0302 #125/2 M,read_dqs_delay_max
-//DDR2_CTL_12_DATA_HI: .word 0x002a0302 #125/2 M
-//DDR2_CTL_12_DATA_HI: .word 0x002a0602 #125 M
-//DDR2_CTL_12_DATA_HI: .word 0x002a3c04 #400
-//DDR2_CTL_12_DATA_HI: .word 0x002a3c03 #250M
+//DDR2_CTL_12_DATA_LO: .word 0x25000000 #800
 DDR2_CTL_12_DATA_HI: .word 0x002a3c06 #800
-//0000000_000101010 dll_dqs_delay_bypass_2 0000000_000101010 dll_dqs_delay_bypass_1
-//DDR2_CTL_13_DATA_LO: .word 0x01ff01ff #read_dqs_delay_max
 DDR2_CTL_13_DATA_LO: .word 0x002a002a
-//0000000_000101010 dll_dqs_delay_bypass_4 0000000_000101010 dll_dqs_delay_bypass_3
-//DDR2_CTL_13_DATA_HI: .word 0x01ff01ff #read_dqs_delay_max
 DDR2_CTL_13_DATA_HI: .word 0x002a002a
-//0000000_000101010 dll_dqs_delay_bypass_6 0000000_000101010 dll_dqs_delay_bypass_5
-//DDR2_CTL_14_DATA_LO: .word 0x01ff01ff #read_dqs_delay_max
 DDR2_CTL_14_DATA_LO: .word 0x002a002a
-//0000000_000101010 dll_dqs_delay_bypass_8 0000000_000101010 dll_dqs_delay_bypass_7
-//DDR2_CTL_14_DATA_HI: .word 0x01ff01ff #read_dqs_delay_max
 DDR2_CTL_14_DATA_HI: .word 0x002a002a
-//0000000_000000000 dll_lock 0000000_000100100 dll_increment
 DDR2_CTL_15_DATA_LO: .word 0x00000004
-//0000000_010110100 dqs_out_shift_bypass 0000000_010000111 dll_start_point
 DDR2_CTL_15_DATA_HI: .word 0x00b40020
-//000000_0000000000 int_ack 0000000_010000111 wr_dqs_shift_bypass
 DDR2_CTL_16_DATA_LO: .word 0x00000087
-//00000_00000000000 int_status 00000_00000000000 int_mask
 DDR2_CTL_16_DATA_HI: .word 0x000007ff #no_interrupt
-//DDR2_CTL_16_DATA_HI: .word 0x00000000 #no_masked
-//0_000000000000000 emrs1_data 00_00100000011011 tref
-//DDR2_CTL_17_DATA_LO: .word 0x0000004b #125/16 M
-//DDR2_CTL_17_DATA_LO: .word 0x0000009c #20 M
-//DDR2_CTL_17_DATA_LO: .word 0x000004b0 #125 M
-//DDR2_CTL_17_DATA_LO: .word 0x0000081b #400
-DDR2_CTL_17_DATA_LO: .word 0x0016101b #800
-//0_000000000000000 emrs2_data_1 0_000000000000000 emrs2_data_0
+//Felix-2008-10-20
+//Felix-2008-12-11
+//DDR2_CTL_17_DATA_LO: .word 0x0016101b #800
+DDR2_CTL_17_DATA_LO: .word 0x0016101f #800
+//DDR2_CTL_17_DATA_LO: .word 0x0004101b #800
 DDR2_CTL_17_DATA_HI: .word 0x00000000
-//0_000000000000000 emrs2_data_3 0_000000000000000 emrs2_data_2
 DDR2_CTL_18_DATA_LO: .word 0x00000000
-//0000000000011100 axi0_en_size_lt_width_instr 0_000000000000000 emrs3_data
 DDR2_CTL_18_DATA_HI: .word 0x001c0000
-//0000000011001000 tdll 0000000001101011 tcpd
 DDR2_CTL_19_DATA_LO: .word 0x00c8006b
-//0100100011100001 tras_max 0000000000000010 tpdex
-//DDR2_CTL_19_DATA_HI: .word 0x04b00002 #125 M
-//DDR2_CTL_19_DATA_HI: .word 0x48e10002 #400
+//Felix-2008-10-20
 DDR2_CTL_19_DATA_HI: .word 0x28e10002 #800
-//0000000011001000 txsr 0000000000011111 txsnr
-//DDR2_CTL_20_DATA_LO: .word 0x00c8000f #125 M
-//DDR2_CTL_20_DATA_LO: .word 0x00c8001f #400
+//DDR2_CTL_19_DATA_HI: .word 0x68e10002 #800
 DDR2_CTL_20_DATA_LO: .word 0x00c8002f #800
-//0000000000000000 xor_check_bits 0000000000000000 version
 DDR2_CTL_20_DATA_HI: .word 0x00000000
- //000000000000000000110110 tinit
 DDR2_CTL_21_DATA_LO: .word 0x00030d40 #real
-//DDR2_CTL_21_DATA_LO: .word 0x00000036 #simulation
- //000_0000000000000000000000000000000000000 ecc_c_addr
 DDR2_CTL_21_DATA_HI: .word 0x00000000
-//000000000000000000000000000_0000000000000000000000000000000000000 ecc_u_addr
 DDR2_CTL_22_DATA_LO: .word 0x00000000
 DDR2_CTL_22_DATA_HI: .word 0x00000000
-//000000000000000000000000000_0000000000000000000000000000000000000 out_of_range_addr
 DDR2_CTL_23_DATA_LO: .word 0x00000000
 DDR2_CTL_23_DATA_HI: .word 0x00000000
-//000000000000000000000000000_0000000000000000000000000000000000000 port_cmd_error_addr
 DDR2_CTL_24_DATA_LO: .word 0x00000000
 DDR2_CTL_24_DATA_HI: .word 0x00000000
-//0000000000000000000000000000000000000000000000000000000000000000 ecc_c_data
 DDR2_CTL_25_DATA_LO: .word 0x00000000
 DDR2_CTL_25_DATA_HI: .word 0x00000000
-//0000000000000000000000000000000000000000000000000000000000000000 ecc_u_data
 DDR2_CTL_26_DATA_LO: .word 0x00000000
 DDR2_CTL_26_DATA_HI: .word 0x00000000
-//0000000000000000000000000000000000000000000000000000000000000000
 DDR2_CTL_27_DATA_LO: .word 0x00000000
 DDR2_CTL_27_DATA_HI: .word 0x00000000
-//0000000000000000000000000000000000000000000000000000000000000000
-DDR2_CTL_28_DATA_LO: .word 0x00000001
+DDR2_CTL_28_DATA_LO: .word 0x00000000
 DDR2_CTL_28_DATA_HI: .word 0x00000000
-//0000000_1 rw_same_en 0000000_0 reg_dimm_enable 0000000_0 reduc 0000000_0 pwrup_srefresh_exit
 DDR2_CTL_start_DATA_LO: .word 0x01000000
-//0000000_1 swap_port_rw_same_en 0000000_1 swap_en 0000000_0 start 0000000_0 srefresh
 DDR2_CTL_start_DATA_HI: .word 0x01010100
- 
+

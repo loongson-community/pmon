@@ -123,6 +123,7 @@ select          cmd_shell               # Shell commands, vers, help, eval
 #
 #
 select           boot_menu             #show boot menu
+select          cmd_tem                #config cpu tempreture by commands
 #
 #  Now the Machine specification
 #

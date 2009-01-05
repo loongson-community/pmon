@@ -184,6 +184,11 @@ void addr_tst1(void);
 void addr_tst2(void);
 void movinv1(int iter, ulong p1, ulong p2);
 
+extern unsigned char tem_write_byte(unsigned char slave_addr,unsigned char sub_addr,unsigned char send_value);
+extern unsigned char tem_write_word(unsigned char slave_addr,unsigned char sub_addr,unsigned int send_value);
+
+
+
 void
 initmips(unsigned int memsz)
 {
@@ -209,6 +214,9 @@ initmips(unsigned int memsz)
 	 */
 	cpuinfotab[0] = &DBGREG;
 	dbginit(NULL);
+	tem_write_byte(0x90,0x01,0x00);
+	tem_write_word(0x90,0x02,0x2A00);
+	tem_write_word(0x90,0x03,0x2d00);
 
 	/*
 	 *  Set up exception vectors.
