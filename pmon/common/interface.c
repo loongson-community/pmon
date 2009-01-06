@@ -38,6 +38,7 @@
 #define R_F	0x40
 #define S_F	0x80
 #define F_F	0x100
+#define W_F	0x100
 
 extern int video_display_bitmap(unsigned long bmp_image, int x, int y);
 extern void cprintf(int y, int x, int width, char color, const char *fmt, ...);
@@ -52,6 +53,29 @@ static int do_usb_rescue(char *load, char *cmdline);
 
 static const char msg_server_ip[] = "Please Enter server IP address:";
 static const char msg_client_ip[] = "Please Enter local IP address :";
+
+static int ip_valid(char *p)
+{
+	char *pp, *q;
+	unsigned long result = 0;
+
+	result = strtoul(p, &pp, 10);
+	if (p == pp || *pp != '.' || result > 255)
+		return 0;
+	q = pp+1;
+	result = strtoul(q, &pp, 10);
+	if (q == pp || *pp != '.' || result > 255)
+		return 0;
+	q = pp+1;
+	result = strtoul(q, &pp, 10);
+	if (q == pp || *pp != '.' || result > 255)
+		return 0;
+	q = pp+1;
+	result = strtoul(q, &pp, 10);
+	if (q == pp || *pp != '\0' || result > 255)
+		return 0;
+	return 1;
+}
 
 void ui_select(char *load, char *cmdline)
 {
@@ -84,7 +108,6 @@ void ui_select(char *load, char *cmdline)
 				}
 				video_display_bitmap(SMALLBMP3_START_ADDR,  SMALLBMP3_X, SMALLBMP3_Y);
 				video_display_bitmap(SMALLBMP_START_ADDR_EN_04, SMALLBMP04_EN_X, SMALLBMP04_EN_Y);
-				flag |= 0x1;
 			}
 			break;
 		case 'i': /* Input IP address */
@@ -101,9 +124,16 @@ void ui_select(char *load, char *cmdline)
 				}
 				video_display_bitmap(SMALLBMP8_START_ADDR, SMALLBMP8_X, SMALLBMP8_Y);
 				video_display_bitmap(SMALLBMP_START_ADDR_EN_09, SMALLBMP09_EN_X, SMALLBMP09_EN_Y);
+				vga_available = 1;
 				x = getX(); y = getY();
-				setX(53); setY(24);
-				gets(st);
+				do {
+						setX(53); setY(24);
+						printf("                ");
+						setX(53); setY(24);
+						//gets(st);
+						memset(st,0,sizeof(st));
+						get_nchar(st, 15);
+				} while (!ip_valid(st));
 				setX(x); setY(y);
 
 				for (i=0;i<100;i++){
@@ -115,11 +145,20 @@ void ui_select(char *load, char *cmdline)
 				video_display_bitmap(SMALLBMP9_START_ADDR, SMALLBMP9_X, SMALLBMP9_Y);
 				video_display_bitmap(SMALLBMP_START_ADDR_EN_10, SMALLBMP10_EN_X, SMALLBMP10_EN_Y);
 				x = getX(); y = getY();
-				setX(55); setY(24);
-				gets(pi); 
+				do {
+						setX(55); setY(24);
+						printf("                ");
+						setX(55); setY(24);
+						//gets(pi);
+						memset(pi,0,sizeof(pi));
+						get_nchar(pi, 15);
+				} while (!ip_valid(pi));
 				setX(x);  setY(y);
 
 				vga_available = 0;
+
+				do_net_rescue(load, cmdline);
+
 				sprintf(buf, "ifaddr rtl0 %s", st);
 				do_cmd(buf);
 
@@ -128,13 +167,10 @@ void ui_select(char *load, char *cmdline)
 
 				sprintf(buf, "set tftp tftp://%s/vmlinux", pi);
 				do_cmd(buf);
-				vga_available = 1;
-				
-				do_net_rescue(load, cmdline);
 			}
 		break;
 		case 'n':
-			if ((flag & U_F) && (flag & C_F) && !(flag & N_F)) {
+			if ((flag & C_F) && !(flag & N_F)) {
 				flag |= (N_F | F_F);
 				vga_available = 1;
 				video_cls();
@@ -142,7 +178,7 @@ void ui_select(char *load, char *cmdline)
 			}
 			break;
 		case 'r':
-			if ((flag & (U_F | V_F))  && !(flag & R_F)) {
+			if ((flag & (U_F | V_F))  && !(flag & (R_F | C_F))) {
 			/* If not want rescue then do default action. Action? */
 				do_cmd("reboot");
 			}
@@ -154,7 +190,7 @@ void ui_select(char *load, char *cmdline)
 			}
 			break;
 		case 'u': /* From USB flag=0x1 */
-			if (!(flag & U_F)) {
+			if (!(flag & (V_F | U_F | W_F))) {
 				flag |= U_F;
 				for(i = 0; i < 100; i++){
 					cprintf(23, i, 1, 0," ");
@@ -167,21 +203,20 @@ void ui_select(char *load, char *cmdline)
 			}
 			break;
 		case 'v': /* From tftp flag=0x2*/
-			if (!(flag & V_F)) {
+			if (!(flag & (V_F | U_F | W_F))) {
 				flag |= V_F;
-				vga_available = 1;
 				for (i=0;i<100;i++){
 					cprintf(23, i, 1, 0, " ");
 					cprintf(24, i, 1, 0, " ");
 					cprintf(25, i, 1, 0, " ");
 					cprintf(26, i, 1, 0, " ");
 				}
-				video_display_bitmap(SMALLBMP6_START_ADDR, SMALLBMP2_X, SMALLBMP2_Y);
+				video_display_bitmap(SMALLBMP6_START_ADDR, SMALLBMP10_X, SMALLBMP10_Y);
 				video_display_bitmap(SMALLBMP_START_ADDR_EN_07, SMALLBMP07_EN_X, SMALLBMP07_EN_Y);
 			}
 			break;
 		case 'y':
-			if ((flag & U_F) && (flag & C_F) && !(flag & Y_F)) {
+			if ((flag & C_F) && !(flag & Y_F)) {
 				flag |= (Y_F | F_F);
 				//Yuli-2008-12-24
 				video_display_bitmap(SMALLBMP4_START_ADDR, SMALLBMP4_X, SMALLBMP4_Y);
@@ -190,26 +225,26 @@ void ui_select(char *load, char *cmdline)
 			}
 			break;
 		case 'w':
-			if(do_wd_rescue(load, cmdline) != EXIT_SUCCESS) {
-				vga_available = 1;
-				for (i=0;i<100;i++){
-					cprintf(23, i, 1, 0, " ");
-					cprintf(24, i, 1, 0, " ");
-					cprintf(25, i, 1, 0, " ");
-					cprintf(26, i, 1, 0, " ");
-				}
-				video_display_bitmap(SMALLBMP10_START_ADDR, SMALLBMP2_X, SMALLBMP2_Y);
-				//cprintf(23, 20, 1, 0, "kernel not found");
-				video_display_bitmap(SMALLBMP_START_ADDR_EN_11, SMALLBMP11_EN_X, SMALLBMP11_EN_Y);
-			} else {
-				flag |= F_F;
+			if (!(flag & (V_F | U_F | W_F))) {
+					flag |= F_F;
+					if(do_wd_rescue(load, cmdline) != EXIT_SUCCESS) {
+							vga_available = 1;
+							for (i=0;i<100;i++){
+									cprintf(23, i, 1, 0, " ");
+									cprintf(24, i, 1, 0, " ");
+									cprintf(25, i, 1, 0, " ");
+									cprintf(26, i, 1, 0, " ");
+							}
+							video_display_bitmap(SMALLBMP10_START_ADDR, SMALLBMP2_X, SMALLBMP2_Y);
+							//cprintf(23, 20, 1, 0, "kernel not found");
+							video_display_bitmap(SMALLBMP_START_ADDR_EN_11, SMALLBMP11_EN_X, SMALLBMP11_EN_Y);
+					}
 			}
 			break;
 		default:
 			break;
 		}
 	}
-	printf("out \n");
 }
 
 static int do_net_rescue(char *load, char *cmdline)
@@ -224,7 +259,6 @@ static int do_net_rescue(char *load, char *cmdline)
 	}
 	video_display_bitmap(SMALLBMP7_START_ADDR,	SMALLBMP7_X, SMALLBMP7_Y);
 	video_display_bitmap(SMALLBMP_START_ADDR_EN_08,	SMALLBMP08_EN_X, SMALLBMP08_EN_Y);
-	vga_available = 0;
 
 	pb = getenv("tftp");
 	strcpy(load, "load ");

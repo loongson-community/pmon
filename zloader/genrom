@@ -90,13 +90,13 @@ void initmips(unsigned int msize,int dmsize,int dctrl)
     long *end=(void *)$myend;
     long *p;
 	int debug=(msize==0);
-    stringserial("Uncompressing Bios");
+    //stringserial("Uncompressing Bios");
     if(!debug||dctrl&1)enable_cache();
 	while(1)
 	{
     if(run_unzip(biosdata,$mystart)>=0)break;
 	}
-    stringserial("OK,Booting Bios\\r\\n");
+    //stringserial("OK,Booting Bios\\r\\n");
     for(p=edata;p<=end;p++)
     {
         *p=0;

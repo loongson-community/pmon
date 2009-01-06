@@ -85,6 +85,6 @@ LEAF(longjmp)
 	LOAD	sp, RSIZE * 9(a0)
 	LOAD	gp, RSIZE * 10(a0)
 	jr	ra
-	li	v0, 1			# longjmp return
+	move	v0, a1			# longjmp return
 END(longjmp)
 

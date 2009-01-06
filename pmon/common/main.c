@@ -614,9 +614,10 @@ static int recover(void)
 	char *Version;
 	char *s;
 	char cmdline[256] = "console=tty"; /*Modified by usb rescue or tftp .*/
+	int ret;
 
 	//if(s != NULL  && strlen(s) != 0)
-	#ifdef LOONGSON2F_7INCH
+#ifdef LOONGSON2F_7INCH
 	{
 		pa = cmdline;
 		ui_select(buf, pa);
@@ -625,6 +626,7 @@ static int recover(void)
 		if (rd != 0){
 			sprintf(buf, "initrd %s", rd);
 			do_cmd(buf);
+			buf[0] = 0;
 		}
 
 		if (buf[0] == 0) {
@@ -634,7 +636,10 @@ static int recover(void)
 			strcpy(buf,"load ");
 			strcat(buf,s);
 		}
-		do_cmd(buf);
+
+		if ((ret = do_cmd(buf)) != 0) {
+				return -1;
+		}
 		
 		if (pa == NULL || pa[0] == '\0') 
 			pa=getenv("karg");
@@ -651,9 +656,9 @@ static int recover(void)
 		return -1;
 	}
 	return 0;
-	#else
+#else
 	return 0;
-	#endif
+#endif
 	
 }
 
@@ -799,8 +804,8 @@ dbginit (char *adr)
 			//s = getenv ("al");
 			//if (s != 0){
 			vga_available = 0;
-			if (recover() != 0)
-				vga_available = 1;
+			recover();
+			vga_available = 1;
 			//#endif
 			//}
 			break;
@@ -843,9 +848,9 @@ dbginit (char *adr)
 		case DEL_KEY:
 			vga_available = 1;
 		case ESC_KEY:
-			#if defined(LOONGSON2F_7INCH)||defined(LOONGSON2F_FULOONG)
+#if defined(LOONGSON2F_7INCH)||defined(LOONGSON2F_FULOONG)
 			_set_font_color();
-			#endif
+#endif
 			break;
 	}
 }

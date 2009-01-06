@@ -222,6 +222,52 @@ get_line (p, usehist)
     ioctl (STDIN, TCSETAW, &tbuf);
 }
 
+void
+get_nchar (p, len)
+     char    *p;
+	 int	len;
+{
+	enum esc_state esc_state = NONE;
+	int c, oc, i, n, mark, count = 0;
+	struct termio tbuf;
+
+	ioctl (STDIN, SETNCNE, &tbuf);
+
+	mark = column = 0;
+
+	if (*p) {
+		putstr (p);
+		left (column);
+	}
+
+	for(;;) {
+			c = getchar ();
+			count++;
+
+			if (c == '\b' || c == 0x7f) {
+					count = (count>1)?(count-2):0;
+					left (1);
+					oc = column;
+					strdchr (&p[column]);
+					putstr (&p[column]);
+					putstr (" ");
+					left (strlen (&p[oc]) + 1);
+					if (mark >= oc)
+							mark--;
+			} else if (c == '\n' || c == '\r') {
+					putstr ("\n");
+					break;
+			} else if (isprint (c)) {
+					if (count <= len)
+							addchar(p, c);
+					else
+							count--;
+			} else
+				   count--;
+	}
+
+    ioctl (STDIN, TCSETAW, &tbuf);
+}
 
 void
 get_cmd (p)
