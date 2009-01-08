@@ -34,6 +34,9 @@
  */ 
 
 #include <stdio.h>
+#include <string.h> 
+#include <machine/pio.h>
+#include <pmon.h>
 #include <termio.h>
 #include <endian.h>
 #include <string.h>
@@ -59,6 +62,10 @@
 #include "sd.h"
 #include "wd.h"
 
+
+#include <pflash.h>
+#include <flash.h>
+#include <dev/pflash_tgt.h>
 extern void    *callvec;
 unsigned int show_menu;
 
@@ -200,7 +207,7 @@ int check_user_password()
 	struct termio tty;
 	int i;
 	char c;
-	if(!pwd_exist()||!user_pwd_is_set())
+	if(!pwd_exist()||!pwd_is_set("user"))
 		return 0;
 
 	for(i=0;i<2;i++)
@@ -227,7 +234,7 @@ loop0:
 		}
 	}
 	
-	if(!user_pwd_cmp(buf))
+	if(!pwd_cmp("user",buf))
 	{
 		printf("\nPassword error!\n");
 		printf("Please input user password:");
@@ -249,7 +256,7 @@ int check_admin_password()
 	struct termio tty;
 	int i;
 	char c;
-	if(!pwd_exist()||!admin_pwd_is_set())
+	if(!pwd_exist()||!pwd_is_set("admin"))
 		return 0;
 
 	for(i=0;i<2;i++)
@@ -276,7 +283,7 @@ loop1:
 		}
 	}
 	
-	if(!admin_pwd_cmp(buf))
+	if(!pwd_cmp("admin",buf))
 	{
 		printf("\nPassword error!\n");
 		printf("Please input admin password:");
@@ -285,6 +292,61 @@ loop1:
 
 
 	for(i=0;i<2;i++)
+	{
+	tty.c_lflag |=  ECHO;
+	ioctl(i,TCSETAW,&tty);
+	}
+	
+	return 0;
+}
+
+
+int check_sys_password()
+{
+	char buf[50];
+	struct termio tty;
+	int i;
+	char c;
+	int count=0;
+	if(!pwd_exist()||!pwd_is_set("sys"))
+		return 0;
+
+	for(i=0;i<6;i++)
+	{
+	ioctl(i,TCGETA,&tty);
+	tty.c_lflag &= ~ ECHO;
+	ioctl(i,TCSETAW,&tty);
+	}
+
+
+	printf("\nPlease input sys password:");
+loop1:
+	for(i= 0;i<50;i++)
+	{
+		c=getchar();
+		if(c!='\n'&&c!='\r'){	
+			printf("*");
+			buf[i] = c;
+		}
+		else
+		{
+			buf[i]='\0';
+			break;
+		}
+	}
+	
+	if(!pwd_cmp("sys",buf))
+	{
+		printf("\nPassword error!\n");
+		printf("Please input sys password:");
+		count++;
+		if(count==3)
+			return -1;
+		goto loop1;
+	}
+
+
+	for(i=0;i<6;i++)
 	{
 	tty.c_lflag |=  ECHO;
 	ioctl(i,TCSETAW,&tty);

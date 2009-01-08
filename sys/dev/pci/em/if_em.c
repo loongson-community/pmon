@@ -120,6 +120,7 @@ extern FILE _iob[];
 #include "e1000_hw.c"
 #include "e1000_param.c"
 
+static long long e1000_read_mac(struct net_device *nic);
 
 static int pci_read_config_dword(struct pci_dev *linuxpd, int reg, u32 *val)
 {
@@ -484,6 +485,22 @@ e1000_ether_ioctl(ifp, cmd, data)
        		cmd_setmac_em0(p[0],p[1]);
        		}
        		break;
+	case SIOCGETHERADDR:
+	{
+		long long val;
+		char *p=data;
+		mynic_em = sc;
+		val =e1000_read_mac(mynic_em);
+		p[5] = val>>40&0xff; 
+		p[4] = val>>32&0xff; 
+		p[3] = val>>24&0xff; 
+		p[2] = val>>16&0xff; 
+		p[1] = val>>8&0xff; 
+		p[0] = val&0xff; 
+
+	}
+	break;
+
        case SIOCRDEEPROM:
                 {
                 long *p=data;

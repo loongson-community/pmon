@@ -3922,6 +3922,22 @@ fxp_ether_ioctl(ifp, cmd, data)
                 cmd_setmac_fxp0(p[0],p[1]);
                 }
                 break;
+	case SIOCGETHERADDR:
+	{
+		long long val;
+		char *p=data;
+		mynic_fxp = sc;
+		val =e100_read_mac(netdev_priv(mynic_fxp));
+		p[5] = val>>40&0xff; 
+		p[4] = val>>32&0xff; 
+		p[3] = val>>24&0xff; 
+		p[2] = val>>16&0xff; 
+		p[1] = val>>8&0xff; 
+		p[0] = val&0xff; 
+
+	}
+	break;
+
        case SIOCRDEEPROM:
                 {
                 long *p=data;

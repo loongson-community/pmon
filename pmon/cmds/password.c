@@ -1,34 +1,3 @@
-/*
- * Copyright (c) 2007 SUNWAH HI-TECH  (www.sw-linux.com.cn)
- * weiping zhu	<weiping.zhu@sw-linux.com>
- * 
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
- * 3. All advertising materials mentioning features or use of this software
- *    must display the following acknowledgement:
- *	This product includes software developed by Opsycon AB, Sweden.
- * 4. The name of the author may not be used to endorse or promote products
- *    derived from this software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS
- * OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
- * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE.
- *
- */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -70,13 +39,17 @@
 #include "dev/pflash_tgt.h"
 
 #define FLASH_OFFS (tgt_flashmap()->fl_map_size - 0x2000)
-#define PASSRAM_SIZE 71
+#define PASSRAM_SIZE 105
 #define PASSRAM_OFFS 0
 
 #define USE_USER_PWD 1 << 0
 #define SET_USER_PWD 1 << 1
 #define USE_ADMI_PWD 1 << 2
 #define SET_ADMI_PWD 1 << 3
+#define USE_SYS_PWD 1 << 4
+#define SET_SYS_PWD 1 <<5
+
+#define LENGTH 34
 	
 extern struct fl_map *tgt_flashmap();
 
@@ -150,6 +123,16 @@ int pwd_clear(char *user)
         flag &= ~SET_ADMI_PWD;
         buf[2] = flag;
     }
+    else if (!strcmp(user,"sys"))
+    {
+        memset(buf+71, 0, 34);
+	cksum(buf, PASSRAM_SIZE - 3, 1);
+        flag = buf[2];
+        flag &= ~USE_SYS_PWD;
+        flag &= ~SET_SYS_PWD;
+        buf[2] = flag;
+    	
+    }
     fl_program((void *)passram, (void *)buf, PASSRAM_SIZE, 0);
     return TRUE;
 }
@@ -212,13 +195,23 @@ static void print_password()
 	printf("]\n");
 }
 
+int user_index(char* user)
+{
+    if(!strcmp(user,"user"))
+    	return 0;
+    if(!strcmp(user,"admin"))
+    	return 1;
+    if(!strcmp(user,"sys"))
+    	return 2;
+}
 
-int user_pwd_set(char* npwd)
+int pwd_set(char *user,char* npwd)
 {
     char* passram;
     char buf[PASSRAM_SIZE + 1];
     u_int8_t flag;
     char crypted[50];
+    int index = user_index(user);
 
     passram = tgt_flashmap()->fl_map_base + FLASH_OFFS;
 
@@ -231,25 +224,27 @@ int user_pwd_set(char* npwd)
 
     memset(buf, 0, sizeof(buf));
     memcpy(buf, passram, PASSRAM_SIZE);
-    memcpy(buf + 3, crypted, strlen(crypted));
+    memcpy(buf + 3+LENGTH*index, crypted, strlen(crypted));
     cksum(buf, PASSRAM_SIZE - 3, 1);
     printf("%s\n", buf +3);
 
     flag = buf[2];
-    flag |= SET_USER_PWD;
+    flag |= 1<<(index*2+1);
     buf[2] = flag;
     fl_program((void *)passram, (void *)buf, PASSRAM_SIZE, 0);
 }
 
-int user_pwd_cmp(char* npwd)
+int pwd_cmp(char *user,char* npwd)
 {
     char* passram;
     char buf[PASSRAM_SIZE + 1];
     u_int8_t flag;
     char crypted[50];
+    int index = user_index(user);
+
     memset(buf, 0, sizeof(buf));
 
-    passram = tgt_flashmap()->fl_map_base + FLASH_OFFS + 3;
+    passram = tgt_flashmap()->fl_map_base + FLASH_OFFS + 3+LENGTH*index;
 
     memcpy(buf, passram, 34);
 
@@ -261,154 +256,60 @@ int user_pwd_cmp(char* npwd)
         return FALSE;
 }
 
-void user_pwd_set_used(int used)
+
+void pwd_set_used(char *user,int used)
 {
     char* passram;
     char buf[PASSRAM_SIZE + 1];
     u_int8_t flag;
+    int index = user_index(user);
 
     passram = tgt_flashmap()->fl_map_base + FLASH_OFFS;
     memcpy(buf, passram, PASSRAM_SIZE);
 
     flag = buf[2];
     if (used)
-        flag |= USE_USER_PWD;
+        flag |= 1<<(index*2);
     else
-        flag &= ~USE_USER_PWD;
+        flag &= ~(1<<(index*2));
     buf[2] = flag;
     fl_program((void *)passram, (void *)buf, PASSRAM_SIZE, 0);
 }
 
-int user_pwd_is_used(void)
+
+int pwd_is_used(char *user)
 {
     char* passram;
     char buf[PASSRAM_SIZE + 1];
     u_int8_t flag;
+    int index = user_index(user);
+
+    passram = tgt_flashmap()->fl_map_base + FLASH_OFFS;
+    flag = *(passram + 2);
+
+    if (flag & (1<<(index*2)))
+        return TRUE;
+    return FALSE;
+}
+
+int pwd_is_set(char *user)
+{
+    char* passram;
+    char buf[PASSRAM_SIZE + 1];
+    u_int8_t flag;
+    int index = user_index(user);
 
     passram = tgt_flashmap()->fl_map_base + FLASH_OFFS;
     //flag = passram + 2;
     memcpy(buf, passram, PASSRAM_SIZE);
 
     flag = buf[2];
-    if (flag & USE_USER_PWD)
+    if (flag & (1<<(index*2+1)))
         return TRUE;
     return FALSE;
 }
 
 
-int user_pwd_is_set(void)
-{
-    char* passram;
-    char buf[PASSRAM_SIZE + 1];
-    u_int8_t flag;
-
-    passram = tgt_flashmap()->fl_map_base + FLASH_OFFS;
-    //flag = passram + 2;
-    memcpy(buf, passram, PASSRAM_SIZE);
-
-    flag = buf[2];
-    if (flag & SET_USER_PWD)
-        return TRUE;
-    return FALSE;
-}
-
-int admin_pwd_set(char* npwd)
-{
-    char* passram;
-    char buf[PASSRAM_SIZE + 1];
-    u_int8_t flag;
-    char crypted[50];
-
-    passram = tgt_flashmap()->fl_map_base + FLASH_OFFS;
-
-    strcpy(crypted, "$1$abcdefgh$");
-    if (make_md5_password(npwd, crypted) != 0)
-    {
-        printf("make password error\n");
-        return -1;
-    }
-
-    memset(buf, 0, sizeof(buf));
-    memcpy(buf, passram, PASSRAM_SIZE);
-    memcpy(buf + 37, crypted, strlen(crypted));
-    cksum(buf, PASSRAM_SIZE - 3, 1);
-
-    flag = buf[2];
-    flag |= SET_ADMI_PWD;
-    buf[2] = flag;
-    fl_program((void *)passram, (void *)buf, PASSRAM_SIZE, 0);
-}
-
-int admin_pwd_cmp(char* npwd)
-{
-    char* passram;
-    char buf[PASSRAM_SIZE + 1];
-    u_int8_t flag;
-    char crypted[50];
-
-    memset(buf, 0, sizeof(buf));
-    passram = tgt_flashmap()->fl_map_base + FLASH_OFFS + 37;
-
-    memcpy(buf, passram, 34);
-
-    if (check_md5_password(npwd, buf))
-    {
-        return FALSE;
-    }
-    else
-    {
-        return TRUE;
-    }
-}
-
-void admin_pwd_set_used(int used)
-{
-    char* passram;
-    char buf[PASSRAM_SIZE + 1];
-    u_int8_t flag;
-
-    passram = tgt_flashmap()->fl_map_base + FLASH_OFFS;
-    memcpy(buf, passram, PASSRAM_SIZE);
-
-    flag = buf[2];
-    if (used)
-        flag |= USE_ADMI_PWD;
-    else
-        flag &= ~USE_ADMI_PWD;
-    buf[2] = flag;
-    fl_program((void *)passram, (void *)buf, PASSRAM_SIZE, 0);
-}
-
-int admin_pwd_is_used(void)
-{
-    char* passram;
-    char buf[PASSRAM_SIZE + 1];
-    u_int8_t flag;
-
-    passram = tgt_flashmap()->fl_map_base + FLASH_OFFS;
-    flag = passram + 2;
-
-    if (flag & USE_ADMI_PWD)
-        return TRUE;
-    return FALSE;
-}
-
-
-int admin_pwd_is_set(void)
-{
-    char* passram;
-    char buf[PASSRAM_SIZE + 1];
-    u_int8_t flag;
-
-    passram = tgt_flashmap()->fl_map_base + FLASH_OFFS;
-    memcpy(buf, passram, PASSRAM_SIZE);
-    flag = buf[2];
-    if (flag & SET_ADMI_PWD)
-    {
-        return TRUE;
-    }
-    return FALSE;
-}
 
 int cmd_password (int ac, char *av[])
 {
@@ -480,40 +381,39 @@ int cmd_password (int ac, char *av[])
     }
     */
 
-    if (strcmp(user, "admin")==0)
     {
-        if (pwd_exist() && admin_pwd_is_set())
+        if (pwd_exist() && pwd_is_set(user))
         {
             if (!(flags & SET_PWD))
             {
-                printf("(current) BIOS Admin Password: ");
+                printf("(current) BIOS %s Password: ",user);
                 scanf("%s", pwd);
             }
             putchar('\n');
-            if (admin_pwd_cmp(pwd))
+            if (pwd_cmp(user,pwd))
             {
                 printf("Current BIOS Admin Password is correct!\n");
                 if (flags & CLEAR_PWD)
                 {
-                    pwd_clear("admin");
-                    printf("Empty the current BIOS Admin Password!\n");
+                    pwd_clear(user);
+                    printf("Empty the current BIOS %s Password!\n",user);
                 }
                 else if (flags & USE_PWD)
                 {
-                    admin_pwd_set_used(atoi(pval));
+                    pwd_set_used(user,atoi(pval));
                 }
                 else
                 {
-                        printf("New BIOS Admin Password: ");
+                        printf("New BIOS %s Password: ",user);
                         scanf("%s", npwd);
                         putchar('\n');
-                        printf("Retype new BIOS Admin Password: ");
+                        printf("Retype new BIOS %s Password: ",user);
                         scanf("%s", rnpwd);
                         putchar('\n');
                         if((strcmp(npwd, rnpwd) == 0) && (strlen(npwd) != 0))
                         {
-                            admin_pwd_set(npwd);
-                            printf("New BIOS Admin Password is set!\n");
+                            pwd_set(user,npwd);
+                            printf("New BIOS %s Password is set!\n",user);
                         }
                         else
                         {
@@ -530,75 +430,20 @@ int cmd_password (int ac, char *av[])
         {
             if (flags & NEW_PWD)
             {
-                admin_pwd_set(pwd);
-                printf("New BIOS Admin Password is set!\n");
+                pwd_set(user,pwd);
+                printf("New BIOS %s Password is set!\n",user);
             }
             else
-                printf("BIOS Admin Password is not set!\n");
+                printf("BIOS %s Password is not set!\n",user);
         }
     }
-    else if (strcmp(user, "user")==0)
-    {
-        if (pwd_exist() && user_pwd_is_set())
-        {
-            if (!(flags & SET_PWD))
-            {
-                printf("(current) BIOS User Password: ");
-                scanf("%s", pwd);
-            }
-            putchar('\n');
-            if (user_pwd_cmp(pwd))
-            {
-                printf("Current BIOS User Password is correct!\n");
-                if (flags & CLEAR_PWD)
-                {
-                    //user_pwd_clear();
-                    pwd_clear("user");
-                    printf("Empty the current BIOS User Password!\n");
-                }
-                else if (flags & USE_PWD)
-                {
-                    user_pwd_set_used(atoi(pval));
-                }
-                else
-                {
-                        printf("New BIOS User Password: ");
-                        scanf("%s", npwd);
-                        putchar('\n');
-                        printf("Retype new BIOS User Password: ");
-                        scanf("%s", rnpwd);
-                        putchar('\n');
-                        if((strcmp(npwd, rnpwd) == 0) && (strlen(npwd) != 0))
-                        {
-                            user_pwd_set(npwd);
-                            printf("New BIOS User Password is set!\n");
-                        }
-                        else
-                        {
-                            printf("Sorry, passwords do not match or invalid.\n");
-                        }
-                }
 
-            }
-            else
-                printf("You enter the password is incorrect!\n");
-
-        }
-        else
-        {
-            if (flags & NEW_PWD)
-            {
-                user_pwd_set(pwd);
-                printf("New BIOS User Password is set!\n");
-            }
-            else
-                printf("BIOS User Password is not set!\n");
-        }
-    }
     print_password();	
     return EXIT_SUCCESS;
 
 }
+
+
 
 /*
  *  Command table registration

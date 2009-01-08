@@ -105,6 +105,8 @@ cfg:
 	# DO NOT DELETE
 	perl -i -ne 'print;exit if(/^# DO NOT DELETE/);' ../lib/libc/Makefile 
 	perl -i -ne 'print;exit if(/^# DO NOT DELETE/);' ../lib/libm/Makefile 
+	perl -i -ne 'print;exit if(/^# DO NOT DELETE/);' ../lib/libz/Makefile 
+	perl -i -ne 'print;exit if(/^# DO NOT DELETE/);' ../lib/libcrypt/Makefile 
 	cd ../Targets/${TARGET}/conf/;pmoncfg ${TARGETEL}
 	make -C ../Targets/${TARGET}/compile/${TARGETEL}/ depend clean
 recfg:

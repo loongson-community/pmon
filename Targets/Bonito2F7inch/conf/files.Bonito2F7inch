@@ -13,7 +13,7 @@ file	Targets/Bonito2F7inch/Bonito/tgt_machdep.c
 define  localbus { [base = -1 ] }
 device  localbus
 attach  localbus at mainbus
-file    Targets/Bonito/dev/localbus.c		localbus
+file    Targets/Bonito2F7inch/dev/localbus.c		localbus
 
 
 # Ethernet driver for Discovery ethernet

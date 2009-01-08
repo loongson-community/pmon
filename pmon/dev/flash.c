@@ -83,14 +83,15 @@ static quad_t widedata;
 #define ConvAddr2(A) (A*2)
 static __inline void fl_mydetect(struct fl_map *map)
 {
+		char oldc=inb(map->fl_map_base);	
         outb((map->fl_map_base + SST_CMDOFFS1), 0xAA);
         outb((map->fl_map_base + SST_CMDOFFS2), 0x55);
         outb((map->fl_map_base + SST_CMDOFFS1), FL_AUTOSEL);
-        if(inb(map->fl_map_base)==0xbf){map->fl_type=TYPE_SST;return;}
+        if(inb(map->fl_map_base)!=oldc){map->fl_type=TYPE_SST;return;}
         outb((map->fl_map_base + ConvAddr1(0x555)), 0xAA);
         outb((map->fl_map_base + ConvAddr1(0x2aa)), 0x55);
         outb((map->fl_map_base + ConvAddr1(0x555)), FL_AUTOSEL);
-        if(inb(map->fl_map_base)==0x20){map->fl_type=TYPE_ST;return;}
+        if(inb(map->fl_map_base)!=oldc){map->fl_type=TYPE_ST;return;}
 	    else {map->fl_type=TYPE_AMD;	}
 }
 
@@ -306,6 +307,9 @@ fl_devident(void *base, struct fl_map **m)
 	}
 	
 	tgt_flashwrite_disable();
+	outb((map->fl_map_base), 0xf0);
+	outb((map->fl_map_base), 0x90);
+	outb((map->fl_map_base), 0x00);
 	return((struct fl_device *)NULL);
 }
 
