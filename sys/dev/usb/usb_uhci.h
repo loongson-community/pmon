@@ -195,7 +195,7 @@ struct virt_root_hub {
 #define USB_MAX_TEMP_INT_TD  32   /* number of temporary TDs for Interrupt transfers */
 struct uhci {
 	struct usb_hc hc;	//for all host controller's common object
-	struct pci_attach_args *pa;
+	struct pci_attach_args pa;
     void *sc_ih;            /* interrupt handler cookie */
 	bus_space_tag_t sc_st;		/* bus space tag */
 	bus_space_handle_t sc_sh;	/* bus space handle */

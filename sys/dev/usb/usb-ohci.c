@@ -133,6 +133,8 @@
 #define readl(addr) *(volatile u32*)(((u32)(addr)) | 0xa0000000)
 #define writel(val, addr) *(volatile u32*)(((u32)(addr)) | 0xa0000000) = (val)
 
+#define MAX_OHCI_C 4   /*In most case it is enough */
+ohci_t *usb_ohci_dev[MAX_OHCI_C];
 /* urb_priv */
 urb_priv_t urb_priv;
 urb_priv_t iurb_priv;
@@ -508,6 +510,7 @@ static void ohci_attach(struct device *parent, struct device *self, void *aux)
 {
 	struct ohci *ohci = (struct ohci*)self;
 	struct pci_attach_args *pa = (struct pci_attach_args *)aux;
+	static int ohci_dev_index = 0;
 	int val;
 	
 #define  OHCI_PCI_MMBA 0x10
@@ -521,6 +524,11 @@ static void ohci_attach(struct device *parent, struct device *self, void *aux)
 	bus_addr_t memsize2;
 #endif
 
+	/* or we just return false in the match function */
+	if(ohci_dev_index >= MAX_OHCI_C) {
+		printf("Exceed max controller limits\n");
+		return;
+	}
 #ifdef USB_OHCI_NO_ROM 
 	if(PCI_VENDOR(pa->pa_id) == 0x1033){
 		val = pci_conf_read(ohci->sc_pc, pa->pa_tag, 0xe0);
@@ -528,8 +536,8 @@ static void ohci_attach(struct device *parent, struct device *self, void *aux)
 		pci_conf_write(ohci->sc_pc, pa->pa_tag, 0xe4, (1<<5));
 	}
 #endif
-	ohci->pa = pa;
-	
+	ohci->pa = *pa;
+	usb_ohci_dev[ohci_dev_index++] = ohci;
 #ifdef CONFIG_SM502_USB_HCD
 	if(PCI_VENDOR(pa->pa_id) == 0x126f) {
 		pci_mem_find(pc, pa->pa_tag, 0x14, &membase, &memsize, &cachable);
@@ -3428,6 +3436,25 @@ int usb_lowlevel_stop(void *hc_data)
 	return 0;
 }
 
+void usb_ohci_stop_one(ohci_t *ohci)
+{
+	int cmd;
+
+	writel (0, &ohci->regs->control);
+	writel (OHCI_HCR,  &ohci->regs->cmdstatus);
+	(void) readl (&ohci->regs->cmdstatus);
+
+	cmd = pci_conf_read(ohci->sc_pc, ohci->pa.pa_tag, 0x04);
+	pci_conf_write(ohci->sc_pc, ohci->pa.pa_tag, 0x04, (cmd & ~0x4));
+}
+
+void usb_ohci_stop()
+{
+	int i;
+
+	for(i=0; i< MAX_OHCI_C && usb_ohci_dev[i]; i++) 
+		usb_ohci_stop_one(usb_ohci_dev[i]);
+}
 #ifdef DEBUG
 #include  <pmon.h>
 extern unsigned long strtoul(const char *nptr,char **endptr,int base);

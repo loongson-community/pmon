@@ -174,9 +174,9 @@ static int uhci_match(struct device *parent, void *match, void *aux)
 #if 0
 			if(!(pa->pa_function ==2))
 				return 0;
-#endif
 			addr=_pci_allocate_io(_pci_head,0x20);
 			pci_conf_write(0, pa->pa_tag, 0x20, addr);
+#endif
 			printf("Found usb uhci controller %x\n", 
 				pci_conf_read(0, pa->pa_tag, 0x20));
 			return 1; 
@@ -993,12 +993,33 @@ static int usb_lowlevel_init(void * hc_data)
 
 /* stop uhci
  */
-void usb_uhci_stop(uhci_t *uhci)
+void usb_uhci_stop_one(uhci_t *uhci)
 {
 	uhci_stop = 1;
 	reset_hc(uhci);
 }
 
+void usb_uhci_stop()
+{
+        int cmd;
+	uhci_t *tmp_uhci;
+	struct device *dev, *next_dev;
+
+	for (dev  = TAILQ_FIRST(&alldevs); dev != NULL; dev = next_dev) {
+		next_dev = TAILQ_NEXT(dev, dv_list);
+		if((dev->dv_xname[4] == 'u') && (dev->dv_xname[5] == 'h') && (dev->dv_xname[6] == 'c') && (dev->dv_xname[7] == 'i'))
+		{
+		  tmp_uhci = (struct uhci*)dev;
+                  usb_uhci_stop_one(tmp_uhci);
+	          out16r( tmp_uhci->io_addr + USBPORTSC1,0);
+	          wait_ms(50);
+	          out16r( tmp_uhci->io_addr + USBPORTSC2,0);
+	          wait_ms(50);
+                  cmd=pci_conf_read(0, tmp_uhci->pa.pa_tag, 0x04);
+	          pci_conf_write(0, tmp_uhci->pa.pa_tag, 0x04, (cmd & ~0x7));
+		}
+	}
+}
 /*******************************************************************************************
  * Virtual Root Hub
  * Since the uhci does not have a real HUB, we simulate one ;-)
@@ -1536,7 +1557,10 @@ static int uhci_debug (int argc, char *argv[])
 		uhci_stop = 0;
 	}
 	else if(!strcmp(argv[1], "stop"))
+	{
+	        usb_uhci_stop();
 		uhci_stop = 1;
+	}
 	else {
 		printf("usage: uhci [stop|start]\n");
 	}

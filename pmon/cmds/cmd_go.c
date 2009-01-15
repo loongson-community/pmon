@@ -80,6 +80,9 @@ const Optdesc         cmd_g_opts[] = {
 	{0}
 };
 
+#if NMOD_USB_UHCI != 0
+extern void usb_uhci_stop(void);
+#endif
 /*************************************************************
  *  go(ac,av), the 'g' command
  */
@@ -162,6 +165,9 @@ extern char	*optarg;
 	if(getenv("vxWorks")) {
 		strcpy ((void *)0x4200, getenv ("vxWorks"));
 	}
+#endif
+#if NMOD_USB_UHCI > 0
+	usb_uhci_stop();
 #endif
 #if NMOD_DEBUGGER > 0
 	if (setjmp (go_return_jump) == 0) {	
