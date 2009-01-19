@@ -309,6 +309,38 @@ fl_devident(void *base, struct fl_map **m)
 	return((struct fl_device *)NULL);
 }
 
+
+
+
+
+
+static void get_roundup(void **ori_base, int *ori_size)
+{
+	int mask;
+	struct fl_device *dev;
+	struct fl_map *map;
+
+	dev = fl_devident(*ori_base, &map);
+	if (dev == NULL) {
+		printf("No flash found at %x\n", (u_int32_t) ori_base);
+		return ;	/* No flash device found at address */
+	}
+
+	mask = ((dev->fl_secsize * map->fl_map_width / map->fl_map_chips) - 1);
+	if((int)*ori_base & mask) {
+		*ori_size += (int)*ori_base & mask;
+		*ori_base = (void *)((int)*ori_base & ~mask);
+	} else if((*ori_size + ((int)*ori_base - map->fl_map_base)) > map->fl_map_size) {
+		return ;     /* End beyound end of flash */
+	}
+
+	*ori_size = (*ori_size + mask) & ~mask; /* Round up to catch entire flash */
+}
+
+
+
+
+
 /*
  *  Erase the flash device(s) addressed.
  */
@@ -443,6 +475,49 @@ fl_erase_device(void *base, int size, int verbose)
 	tgt_flashwrite_disable();
 	return(ok);
 }
+
+
+
+
+
+int fl_program(void *fl_base, void *data_base, int data_size, int verbose)
+{
+	void *base = fl_base;
+	int size = data_size;
+	char *tmpbuf;
+
+	get_roundup(&base, &size);
+
+	/* 去掉提示信息 */
+//	verbose = FALSE;
+
+	if (verbose)
+	{
+		printf("base %x, size %x\n", base, size);
+	}
+	
+	tmpbuf = (char *)malloc(size);
+	if (tmpbuf == 0) {
+		printf("[fl_program] can't malloc");
+		return -1;
+	}
+
+	memcpy(tmpbuf, base, size);
+	memcpy(tmpbuf + (unsigned int)fl_base - (unsigned int)base, 
+		data_base, data_size);
+	if (fl_erase_device(base, size, verbose) == 0 && 
+		fl_program_device(base, tmpbuf, size, verbose) == 0){
+		return 0;
+	}	
+	return -1;
+	
+}
+
+
+
+
+
+
 
 /*
  *  Program a flash device. Assumed that the area is erased already.

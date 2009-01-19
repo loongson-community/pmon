@@ -73,7 +73,7 @@ static char cvtab[] = { PREV, NEXT, FORW, BACK, 'E', END, 'G', BEGIN };
 enum esc_state { NONE, HAVE_ESC, HAVE_LB };
 
 extern int ticks;
-static int getch (void)
+int getch (void)
 {
 	int cnt,oldticks=ticks;
 	enum esc_state esc_state = NONE;

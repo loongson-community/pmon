@@ -1,4 +1,4 @@
-/* $Id: cmdparser.c,v 1.1.1.1 2006/09/14 01:59:08 root Exp $ */
+/* $Id: cmdparser.c,v 1.1.1.1 2006/06/29 06:43:25 cpu Exp $ */
 /*
  * Copyright (c) 2001-2002 Opsycon AB  (www.opsycon.se / www.opsycon.com)
  *
@@ -67,7 +67,7 @@ static char *expand __P((char *));
  *  the value is 'on' all commands repeatable can be repeated. If
  *  value is 'trace' only the 't' and 'to' commands will be repeated.
  */
-void
+int 
 do_cmd(p)
 	char *p;
 {
@@ -99,33 +99,33 @@ do_cmd(p)
 			}
 			else if(rptcmd == 2) {	/* trace only */
 				if(wordsz(t) > 10) {
-					return;
+					return -1;
 				}
 				getword(tmp, t);
 				if (!strcmp(tmp, "t") || !strcmp(tmp, "to")) {
 					strcpy (p, tmp);
 				}
 				else {
-					return;
+					return -1;
 				}
 			}
 			else {
 				printf ("check rptcmd value\n");
-				return;
+				return -1;
 			}
 		}
 		else {
-			return;
+			return -1;
 		}
 #else
-		return;
+		return -1;
 #endif /* NCMD_HIST */
 	}
 
 	/* Expand command substituting $vars. Breakup into separate cmds */
 
 	if(!(p = expand (p))) {
-		return;
+		return -1;
 	}
 
 	nc = 0;
@@ -142,7 +142,7 @@ do_cmd(p)
 			}
 			else {
 				printf("unbalanced %c\n", c);
-				return;
+				return -1;
 			}
 		}
 		else if(c == ';') {
@@ -161,7 +161,7 @@ do_cmd(p)
 		int stat = -1;
 		ac = argvize (av, cmdlist[j]);
 		if(ac == 0) {
-			break;
+			return -1;
 		}
 
 		clistno = 0;
@@ -177,12 +177,12 @@ do_cmd(p)
 		}
 		if(CmdTable == 0 || (CmdTable[i].flag & CMD_HIDE && !expert)) {
 			printf ("%s: Command not found. Try 'h' for help!\n", av[0]);
-			break;
+			return -1;
 		}
 
 		if(repeating_cmd && !(CmdTable[i].flag & CMD_REPEAT) ) {
 			repeating_cmd = 0;
-			return;
+			return -1;
 		}
 	
 		if(ac < CmdTable[i].minac) {
@@ -200,9 +200,11 @@ do_cmd(p)
 		}
 
 		if(stat != 0) {
-			break;	/* skip commands after ';' */
+			//break;	/* skip commands after ';' */
+			return stat;
 		}
 	}
+	return 0;
 }
 
 /*

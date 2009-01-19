@@ -60,6 +60,7 @@
 #include "wd.h"
 
 extern void    *callvec;
+unsigned int show_menu;
 
 #include "cmd_hist.h"		/* Test if command history selected */
 #include "cmd_more.h"		/* Test if more command is selected */
@@ -110,6 +111,188 @@ get_line(char *line, int how)
 }
 #endif
 
+
+static int load_menu_list()
+{
+        char* rootdev = NULL;
+        char* path = NULL;
+
+
+                show_menu=1;
+                if (path == NULL)
+                {
+                        path = malloc(512);
+                        if (path == NULL)
+                        {
+                                return 0;
+                        }
+                }
+
+                memset(path, 0, 512);
+                rootdev = getenv("bootdev");
+                if (rootdev == NULL)
+                {
+                        rootdev = "/dev/fs/ext2@wd0";
+                }
+
+                sprintf(path, "%s/boot/boot.cfg", rootdev);
+                if (check_config(path) == 1)
+                {
+                        sprintf(path, "bl -d ide %s/boot/boot.cfg", rootdev);
+                        if (do_cmd(path) == 0)
+                        {
+                                show_menu = 0;
+                                //                                      video_cls();
+                                free(path);
+                                path = NULL;
+                                return 1;
+                        }
+                }
+                else
+                {
+                        sprintf(path, "/dev/fs/ext2@wd0/boot/boot.cfg", rootdev);
+                        if (check_config(path) == 1)
+                        {
+                                sprintf(path, "bl -d ide /dev/fs/ext2@wd0/boot/boot.cfg", rootdev);
+                                if (do_cmd(path) == 0)
+                                {
+                                        show_menu = 0;
+                                        //                                              video_cls();
+                                        free(path);
+                                        path = NULL;
+                                        return 1;
+                                }
+                        }
+                }
+#if 0
+                if( check_ide() == 1 )// GOT IDE
+                {
+                        if( do_cmd ("bl -d ide /dev/fs/ext2@wd0/boot.cfg") ==0 )
+                        {
+                                show_menu=0;
+                                video_cls();
+                                return 1;
+                        }
+                }
+                else if( check_cdrom () == 1 ) // GOT CDROM
+                {
+                        if( do_cmd ("bl -d cdrom /dev/fs/ext2@wd0/boot.cfg") ==0 )
+                        {
+                                show_menu=0;
+                                video_cls();
+                                return 1;
+                        }
+                }
+#endif
+                free(path);
+                path = NULL;
+                //                      video_cls();
+                show_menu=0;
+                return 0;
+        show_menu=0;
+        return 1;
+
+}
+
+int check_user_password()
+{
+	char buf[50];
+	struct termio tty;
+	int i;
+	char c;
+	if(!pwd_exist()||!user_pwd_is_set())
+		return 0;
+
+	for(i=0;i<2;i++)
+	{
+	ioctl(i,TCGETA,&tty);
+	tty.c_lflag &= ~ ECHO;
+	ioctl(i,TCSETAW,&tty);
+	}
+
+
+	printf("\nPlease input user password:");
+loop0:
+	for(i= 0;i<50;i++)
+	{
+		c=getchar();
+		if(c!='\n'&&c!='\r'){	
+			printf("*");
+			buf[i] = c;
+		}
+		else
+		{
+			buf[i]='\0';
+			break;
+		}
+	}
+	
+	if(!user_pwd_cmp(buf))
+	{
+		printf("\nPassword error!\n");
+		printf("Please input user password:");
+		goto loop0;
+	}
+
+	for(i=0;i<2;i++)
+	{
+	tty.c_lflag |=  ECHO;
+	ioctl(i,TCSETAW,&tty);
+	}
+			
+	return 0;
+}
+
+int check_admin_password()
+{
+	char buf[50];
+	struct termio tty;
+	int i;
+	char c;
+	if(!pwd_exist()||!admin_pwd_is_set())
+		return 0;
+
+	for(i=0;i<2;i++)
+	{
+	ioctl(i,TCGETA,&tty);
+	tty.c_lflag &= ~ ECHO;
+	ioctl(i,TCSETAW,&tty);
+	}
+
+
+	printf("\nPlease input admin password:");
+loop1:
+	for(i= 0;i<50;i++)
+	{
+		c=getchar();
+		if(c!='\n'&&c!='\r'){	
+			printf("*");
+			buf[i] = c;
+		}
+		else
+		{
+			buf[i]='\0';
+			break;
+		}
+	}
+	
+	if(!admin_pwd_cmp(buf))
+	{
+		printf("\nPassword error!\n");
+		printf("Please input admin password:");
+		goto loop1;
+	}
+
+
+	for(i=0;i<2;i++)
+	{
+	tty.c_lflag |=  ECHO;
+	ioctl(i,TCSETAW,&tty);
+	}
+	
+	return 0;
+}
+
 /*
  *  Main interactive command loop
  *  -----------------------------
@@ -145,6 +328,14 @@ main()
 #endif
         
 	md_setsr(NULL, initial_sr);	/* XXX does this belong here? */
+
+	{
+
+		check_user_password();
+		if(!getenv("al"))
+		load_menu_list();
+	}
+
 {
 static int run=0;
 char *s;
