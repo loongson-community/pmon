@@ -940,10 +940,10 @@ tgt_mapenv(int (*func) __P((char *, char *)))
 	 *  Ethernet address for Galileo ethernet is stored in the last
 	 *  six bytes of nvram storage. Set environment to it.
 	 */
-	bcopy(&nvram[ETHER_OFFS], hwethadr, 6);
+	/*bcopy(&nvram[ETHER_OFFS], hwethadr, 6);
 	sprintf(env, "%02x:%02x:%02x:%02x:%02x:%02x", hwethadr[0], hwethadr[1],
 	    hwethadr[2], hwethadr[3], hwethadr[4], hwethadr[5]);
-	(*func)("ethaddr", env);
+	(*func)("ethaddr", env);*/
 
 #ifndef NVRAM_IN_FLASH
 	free(nvram);

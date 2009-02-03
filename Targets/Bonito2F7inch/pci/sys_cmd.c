@@ -440,6 +440,9 @@ static int cmd_xbird(int ac, char *av[])
 		case EC_ROM_PRODUCT_ID_AMIC :
 			wrec(XBI_BANK | XBISPICMD, 0x0b);
 			break;
+		case EC_ROM_PRODUCT_ID_EONIC :
+			wrec(XBI_BANK | XBISPICMD, 0x0b);
+			break;
 		default :
 			printf("ec rom type not supported.\n");
 			return -1;
