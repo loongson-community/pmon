@@ -863,6 +863,9 @@ skipdimm:
 
 	PRINTSTR("Init SDRAM Done!\r\n");
 
+		bal CPU_TLBClear
+		nop
+
 
 /**************************************CACHE*****************************/
 

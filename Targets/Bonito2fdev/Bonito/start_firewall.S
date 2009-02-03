@@ -780,6 +780,8 @@ skipdimm:
 	PRINTSTR("Init SDRAM Done!\r\n");
 //	GPIOLED_SET(11)
 
+		bal CPU_TLBClear
+		nop
 
 
 /*
