@@ -145,7 +145,8 @@ int boot_initrd(const char* path, int flags)
 	int n = 0;
 	ExecId id;
 	
-	rd_start = 0x80800000;
+	//rd_start = 0x80800000;
+	rd_start = 0x84000000;
 	rd_size = 0;
 	
 	printf("Loading initrd image %s", path);
