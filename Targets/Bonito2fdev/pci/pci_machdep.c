@@ -261,7 +261,7 @@ _pci_canscan (pcitag_t tag)
 	int bus, device, function;
 
 	_pci_break_tag (tag, &bus, &device, &function); 
-	if((bus == 0 || bus == 1) && device == 0) {
+	if((bus == 0 ) && device == 0) {
 		return(0);		/* Ignore the Discovery itself */
 	}
 	return (1);
