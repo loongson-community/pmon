@@ -1,6 +1,0 @@
-TARGET=Bonito2ecpci
-TARGETEL=Bonito
-START=start.o
-MEMSIZE=256
-
-include Makefile.inc

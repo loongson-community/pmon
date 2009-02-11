@@ -88,7 +88,7 @@ static struct stdenv {
     {"fpfmt", "both", "both double single none"},
     {"fpdis", "yes", "no yes"},
 #ifdef LOONGSON2F_7INCH
-	{"Version", "LM8089-1.3.7", 0},
+	{"Version", "LM8089-1.3.8", 0},
 #else
 	{"Version", "LM6004-1.3.2", 0},
 #endif	

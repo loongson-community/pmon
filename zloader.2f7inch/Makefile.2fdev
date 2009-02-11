@@ -1,6 +1,0 @@
-TARGET=Bonito2fdev
-TARGETEL=Bonito
-START=start.o
-MEMSIZE=128
-
-include Makefile.inc

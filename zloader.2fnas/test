@@ -1,3 +1,0 @@
-pwd=$(pwd)
-a=$(dirname $pwd)/zloader.
-echo ${pwd#$a}
