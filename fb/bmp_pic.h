@@ -31,7 +31,11 @@
 #define SMALLBMP_START_ADDR_EN_10 0xbfc70c00
 #define SMALLBMP_START_ADDR_EN_11 0xbfc70f00
 
+#ifdef 	SPANISH 
+#define SMALLBMP01_EN_X 346
+#else
 #define SMALLBMP01_EN_X 376
+#endif
 #define SMALLBMP01_EN_Y 390
 #define SMALLBMP02_EN_X 266
 #define SMALLBMP02_EN_Y 392
@@ -62,7 +66,11 @@
 #define X_INDEX	98
 #define	BIGBMP_X		(190 + X_INDEX)
 #define	BIGBMP_Y		100
+#ifdef 	SPANISH
+#define	SMALLBMP0_X		(241 + X_INDEX)
+#else
 #define	SMALLBMP0_X		(280 + X_INDEX)
+#endif
 #define	SMALLBMP0_Y		370
 #define	SMALLBMP1_X		(280 + X_INDEX) 
 #define	SMALLBMP1_Y		370
