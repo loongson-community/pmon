@@ -1,4 +1,4 @@
-# $Id: Bonito,v 1.1.1.1 2006/03/10 03:27:14 cpu Exp $
+#$Id: Bonito,v 1.1.1.1 2006/03/10 03:27:14 cpu Exp $
 #
 #	GENERIC configuration for Galileo EV64240
 #
@@ -32,7 +32,7 @@ option     HAS_EC
 
 #option		HAVE_FLASH		# Platform has FLASH memory.
 #option		HAVE_NVENV		# Platform has non-volatile env mem 
-
+option 		SPANISH	
 #
 # Module selection. Selects pmon features
 #

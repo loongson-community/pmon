@@ -545,12 +545,13 @@ void handle_scancode(unsigned char scancode, int down)
 	if (1) {
 		u_short keysym;
 		u_char type;
-
+		
 		ushort *key_map = key_maps[shift_state];
 		if (key_map != NULL) {
 			keysym = key_map[keycode];
 			type = KTYP(keysym);
-			//printf("[kbd] keysym %x\n", keysym);
+	//		printf("keycode = %d\n",keycode);
+	//		printf("[kbd] keysym %x\n", keysym);
 
 			if (type >= 0xf0) {
 				type -= 0xf0;
@@ -641,6 +642,10 @@ static void do_shift(unsigned char value, char up_flag)
 		shift_state = 1;
 	} else if (value == 2) {	//key ctrl
 		shift_state = 2;
+#ifdef SPANISH
+	} else {	//key AltGr spanish
+		shift_state = 3;
+#endif
 	}
 //      printf("do_shift value=0x%x,shift_state=0x%x\n",value,shift_state);
 }
