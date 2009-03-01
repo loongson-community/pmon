@@ -414,8 +414,16 @@ static int ReadFromIndexBlock(int fd,__u32 start_block,__u32 end_block,__u8 **Re
 					remain_count=1;
 				}
 			}
+			if(*addr_start==0 && remain_count == 1)
+			{
+			memset((__u8 *)*ReadBuf,0,remain_size);
+			re=remain_size;
+			}
+			else
+			{
 			devio_lseek(fd,addr_abosolute_start+START_PARTION,0);
 			re=devio_read(fd,(__u8 *)*ReadBuf,remain_size);
+			}
 			if(re!=remain_size)
 			{
 				printf("We can't read data from disk!\n");
