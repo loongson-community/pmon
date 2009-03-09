@@ -46,7 +46,7 @@ ZLIBMAKE= \
 	    AR='${AR}' RANLIB='${RANLIB}' NM='${NM}' LORDER='${LORDER}'	\
 	    XMACHINE='${MACHINE}' XMACHINE_ARCH='${MACHINE_ARCH}'	\
 	    MKDEP='${MKDEP}' ZLIBDIR=${ZLIBDIR} PMONDIR=${PMONDIR}	\
-	    ZLIBCPPFLAGS='${CPPFLAGS:S@^-I.@-I../../.@g}' S='${S}'	\
+	    ZLIBCPPFLAGS='${CPPFLAGS}' S='${S}'	\
 	    OBJDIR='${ZLIBDST}'
 
 ${ZLIB}:		__always_make_zliblib

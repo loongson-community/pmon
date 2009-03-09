@@ -46,7 +46,7 @@ CLIBMAKE= \
 	    AR='${AR}' RANLIB='${RANLIB}' NM='${NM}' LORDER='${LORDER}' \
 	    XMACHINE='${MACHINE}' XMACHINE_ARCH='${MACHINE_ARCH}'	\
 	    MKDEP='${MKDEP}' CLIBDIR=${CLIBDIR} PMONDIR=${PMONDIR}	\
-	    CLIBCPPFLAGS='${CPPFLAGS:S@^-I.@-I../../.@g}' S='${S}'	\
+	    CLIBCPPFLAGS='${CPPFLAGS}' S='${S}'	\
 	    OBJDIR='${CLIBDST}'
 
 ${CLIB}:		__always_make_cliblib

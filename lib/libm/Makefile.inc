@@ -46,7 +46,7 @@ MLIBMAKE= \
 	    AR='${AR}' RANLIB='${RANLIB}' NM='${NM}' LORDER='${LORDER}' \
 	    XMACHINE='${MACHINE}' XMACHINE_ARCH='${MACHINE_ARCH}'	\
 	    MKDEP='${MKDEP}' MLIBDIR=${MLIBDIR} PMONDIR=${PMONDIR}	\
-	    MLIBCPPFLAGS='${CPPFLAGS:S@^-I.@-I../../.@g}' S='${S}'	\
+	    MLIBCPPFLAGS='${CPPFLAGS}' S='${S}'	\
 	    OBJDIR='${MLIBDST}'
 
 ${MLIB}:		__always_make_mliblib
