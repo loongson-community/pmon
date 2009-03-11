@@ -125,8 +125,6 @@ static int asc_pic_line = 12;
  */
 //static int testgui_cmd __P((int, char **av));
 
-#define MAX_SCREEN_WIDTH 150
-#define MAX_SCREEN_HEIGHT 80
 #define FRAME_WIDTH 50
 int top_height = 0;
 int vesa_height = 25;
@@ -135,18 +133,8 @@ int mid_height = 0;
 int bottom_height = 0;
 extern void (*__cprint)(int y, int x,int width,char color, const char *text);
 extern void (*__set_cursor)(unsigned char x,unsigned char y);
-
-void src_clr(void)
-{
- 	char tmp_str[MAX_SCREEN_WIDTH];
-	int i;
-	
-	for (i = 0; i < MAX_SCREEN_WIDTH - 1; i++)
-		tmp_str[i] = ' ';
-	tmp_str[MAX_SCREEN_WIDTH - 1] = '\0';
-	for (i = 0; i < MAX_SCREEN_HEIGHT; i++)
-		 	__cprint(i,0,0,COLOR,tmp_str);	
-}
+extern (*__popup)(int y, int x,int height,int width);
+extern void (*__scr_clear)();
 
 static int draw_top_copyright(void)	
 {	
@@ -317,7 +305,7 @@ static int show_main(int flag, const char* path)
 		getchar();
 		ioctl (STDIN, FIONREAD, &cnt);
 	}
-	src_clr();
+	__scr_clear();
 	draw_main(selected_menu_num, path);
 	
 	i = 1;
@@ -344,7 +332,7 @@ static int show_main(int flag, const char* path)
 			}
             else if (99 == ch)//'c' pressed ,back to console
             {
-				src_clr();
+				__scr_clear();
 				__set_cursor(0,0);
                 return 0;
             }			
@@ -389,7 +377,7 @@ static int show_main(int flag, const char* path)
 		}
 	}
 JUST_BOOT:
-	src_clr();
+	__scr_clear();
 	__set_cursor(0,0);
 	do_cmd_boot_load(selected_menu_num - 1, 0);
 	//printf ("The selected kernel entry is wrong, try default entry from al.\n ");
