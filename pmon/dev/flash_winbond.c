@@ -256,7 +256,7 @@ fl_isbusy_winbond(map, dev, what, offset, erase)
 			}
 		}
 		break;
-	default:
+	default:;
 		/* Not supported but sorted out much earlier */
 	}
 	return(busy);
