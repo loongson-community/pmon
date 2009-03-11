@@ -52,8 +52,8 @@
 #include "usb.h"
 #include "devices.h"
 
+/*#define USB_KBD_DEBUG to turn on debug*/
 #undef USB_KBD_DEBUG
-//#define USB_KBD_DEBUG
 /*
  * if overwrite_console returns 1, the stdin, stderr and stdout
  * are switched to the serial port, else the settings in the
@@ -162,7 +162,6 @@ static unsigned char usb_kbd_numkey_shifted[] = {
 /* puts character in the queue and sets up the in and out pointer */
 static void usb_kbd_put_queue(char data)
 {
-	//prom_printf("put queue,usb_in_pointer=%d\n",usb_in_pointer);
 	if((usb_in_pointer+1)==USB_KBD_BUFFER_LEN) {
 		if(usb_out_pointer==0) {
 			return; /* buffer full */
@@ -186,6 +185,7 @@ static int usb_kbd_testc(void)
 	else
 		return(1);
 }
+
 /* gets the character from the queue */
 static int usb_kbd_getc(void)
 {
@@ -231,9 +231,14 @@ void usb_kbd_poll(void)
 
 /* forward decleration */
 static int usb_kbd_probe(struct usb_device *dev, unsigned int ifnum);
+static int usb_mice_probe(struct usb_device *dev, unsigned int ifnum);
 
 struct usb_driver usb_kbd_driver = {
 	.probe = usb_kbd_probe,
+};
+
+struct usb_driver usb_mice_driver = {
+	.probe = usb_mice_probe,
 };
 
 /* search for keyboard and register it if found */
@@ -273,10 +278,6 @@ int usb_kbd_deregister(void)
 	//return device_deregister(DEVNAME);
 	return 0;
 }
-
-/**************************************************************************
- * Low Level drivers
- */
 
 /* set the LEDs. Since this is used in the irq routine, the control job
    is issued with a timeout of 0. This means, that the job is queued without
@@ -451,8 +452,10 @@ static int usb_kbd_irq(struct usb_device *dev)
 	}
 	if((new[k_index][2]>3) && (old[k_index][2]==new[k_index][2])) /* still pressed */
 		res|=usb_kbd_translate(new[k_index][2],new[k_index][0],2);
+#if 0
 	if(res==1)
 		usb_kbd_setled(dev);
+#endif
 	memcpy(&old[k_index][0],&new[k_index][0], 8);
 
 	return 1; /* install IRQ Handler again */
@@ -509,15 +512,34 @@ static int usb_kbd_probe(struct usb_device *dev, unsigned int ifnum)
 	return 1;
 }
 
-static void init_kbd_driver(void) __attribute__((constructor));
-
-static void init_kbd_driver(void) 
+/* probes the USB mice device*/
+static int usb_mice_probe(struct usb_device *dev, unsigned int ifnum)
 {
-	usb_driver_register(&usb_kbd_driver);	
+	struct usb_interface_descriptor *iface;
+	struct usb_endpoint_descriptor *ep;
+	//int pipe,maxp;
+
+	if (dev->descriptor.bNumConfigurations != 1) return 0;
+	iface = &dev->config.if_desc[ifnum];
+
+	if (iface->bInterfaceClass != 3) return 0;
+	if (iface->bInterfaceSubClass != 1) return 0;
+	if (iface->bInterfaceProtocol != 2) return 0;
+	if (iface->bNumEndpoints != 1) return 0;
+
+	return 0;
 }
 
+static void init_kbd_driver(void) __attribute__((constructor));
 
-#if 0
+extern void usb_driver_register(struct usb_driver *driver);
+
+static void init_kbd_driver(void)
+{
+	usb_driver_register(&usb_kbd_driver);
+}
+
+#ifdef __not_used__
 struct usb_hid_descriptor {
 	unsigned char  bLength;
 	unsigned char  bDescriptorType; /* 0x21 for HID */

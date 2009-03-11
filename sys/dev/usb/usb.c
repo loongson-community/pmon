@@ -1787,12 +1787,8 @@ int usb_hub_configure(struct usb_device *dev)
 	struct usb_hub_status *hubsts;
 	int i;
 	struct usb_hub_device *hub;
-	int port_mask = 0xff;
-	char *usb_port_mask;
+	struct usb_hc *hc = dev->hc_private;
 
-	if((usb_port_mask = getenv("usbmask"))) {
-		port_mask = strtoul(usb_port_mask, NULL, 16);	
-	}
 	/* "allocate" Hub device */
 	hub=usb_hub_allocate();
 	if(hub==NULL)
@@ -1891,7 +1887,7 @@ int usb_hub_configure(struct usb_device *dev)
 		struct usb_port_status portsts;
 		unsigned short portstatus, portchange;
 
-		if(!(port_mask & (1 << i)))
+		if((hc->port_mask & (1 << i)))
 			continue;
 		if (usb_get_port_status(dev, i + 1, &portsts) < 0) {
 			USB_HUB_PRINTF("get_port_status failed\n");

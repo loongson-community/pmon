@@ -152,7 +152,7 @@ void usb_display_string(struct usb_device *dev,int index)
 void usb_display_desc(struct usb_device *dev)
 {
 	if (dev->descriptor.bDescriptorType==USB_DT_DEVICE) {
-		printf("%d: %s,  USB Revision %x.%x\n",dev->devnum,usb_get_class_desc(dev->config.if_desc[0].bInterfaceClass),
+		printf("%d(%d): %s,  USB Revision %x.%x\n",dev->devnum,dev->port,usb_get_class_desc(dev->config.if_desc[0].bInterfaceClass),
 			(dev->descriptor.bcdUSB>>8) & 0xff,dev->descriptor.bcdUSB & 0xff);
 		if (strlen(dev->mf) || strlen(dev->prod) || strlen(dev->serial))
 			printf(" - %s %s %s\n",dev->mf,dev->prod,dev->serial);
@@ -311,10 +311,14 @@ void usb_show_tree(struct usb_device *dev)
  */
 static char *USB_usage[] = {
 	"usb     - USB sub-system\n",
+#ifdef __not_used__
 	"usb stor  - scanning usb storage device\n",
+#endif
 	"usb tree  - show USB device tree\n",
 	"usb info [dev] - show available USB devices\n",
+#ifdef __not_used__
 	"usb storage  - show details of USB storage devices\n",
+#endif
 	"usb dev [dev] - show or set current USB storage device\n",
 	"usb read addr blk# cnt - read `cnt' blocks starting at block `blk#'\n"
 	"    to memory address `addr'\n"
@@ -355,12 +359,14 @@ static int do_usb (int argc, char *argv[])
 		return 0;
 	}
 
+#ifdef __not_used__
 	if (strncmp(argv[1], "stor", 5) == 0 ){
 		printf("scanning USB storage device...\n");
 		/* try to recognize storage devices immediately */
 	 	usb_stor_curr_dev = usb_stor_scan(1);
 		return 0;
 	}
+#endif
 #if 0
 	if (strncmp(argv[1],"stop",4) == 0) {
 		if (argc==2) {
@@ -418,17 +424,19 @@ static int do_usb (int argc, char *argv[])
 		}
 		return 0;
 	}
-#if NMOD_USB_OHCI > 0	
+#if NMOD_USB_OHCI > 0 && defined(__not_used__)
 	if (strncmp(argv[1], "scan", 4) == 0) {
 		do_scan_usb_bus(&host_controller);
 		return 0;
 	}
 #endif
 
+#ifdef __not_used__
 	if (strncmp(argv[1], "stor", 4) == 0) {
 		usb_stor_info();
 		return 0;
 	}
+#endif
 
 	if (strcmp(argv[1],"read") == 0) {
 		if (usb_stor_curr_dev<0) {
@@ -500,5 +508,4 @@ static void init_cmd(void) __attribute__((constructor));
 static void init_cmd(void)
 {
 	cmdlist_expand(Cmds, 1);
-	printf("USB init\n");
 }
