@@ -1537,6 +1537,7 @@ void cprintfb(int y, int x,int width,char color, const char *text)
  int i,l;
  unsigned char buf[200];
 
+  if(width==0 && text)width=strlen(text);
   if(text && (l=strlen(text)))memcpy(buf,text,(width && l>width)?width:l);
   else l=0;
   if(l<width)for(i=0;i<width-l;i++)buf[l+i]=0x20;

@@ -74,6 +74,7 @@
 #define CLEAN	CNTRL('L')
 #define TIMER   0x102
 int getch (void);
+#define COLOR 0x7
 
 extern int vga_available;
 extern void setY(int );
@@ -124,8 +125,6 @@ static int asc_pic_line = 12;
  */
 //static int testgui_cmd __P((int, char **av));
 
-#define MAX_SCREEN_WIDTH 150
-#define MAX_SCREEN_HEIGHT 80
 #define FRAME_WIDTH 50
 int top_height = 0;
 int vesa_height = 25;
@@ -134,25 +133,15 @@ int mid_height = 0;
 int bottom_height = 0;
 extern void (*__cprint)(int y, int x,int width,char color, const char *text);
 extern void (*__set_cursor)(unsigned char x,unsigned char y);
-
-void src_clr(void)
-{
- 	char tmp_str[MAX_SCREEN_WIDTH];
-	int i;
-	
-	for (i = 0; i < MAX_SCREEN_WIDTH - 1; i++)
-		tmp_str[i] = ' ';
-	tmp_str[MAX_SCREEN_WIDTH - 1] = '\0';
-	for (i = 0; i < MAX_SCREEN_HEIGHT; i++)
-		 	__cprint(i,0,0,7,tmp_str);	
-}
+extern (*__popup)(int y, int x,int height,int width);
+extern void (*__scr_clear)();
 
 static int draw_top_copyright(void)	
 {	
 	int top_level = 0;
-	__cprint(top_level++,0,0,7,"                                            ");
-	__cprint(top_level++,0,0,7,"                                            ");;
-	__cprint(top_level++,0,0,7,"                                            ");;
+	__cprint(top_level++,0,0,COLOR,"                                            ");
+	__cprint(top_level++,0,0,COLOR,"                                            ");;
+	__cprint(top_level++,0,0,COLOR,"                                            ");;
 	top_height = top_level;
 	return 0;
 }
@@ -185,7 +174,7 @@ static int draw_mid_main(int sel, const char *path)
 	str_line[FRAME_WIDTH] = '\0';
 	str_line[0] = (char)218;
 	str_line[FRAME_WIDTH - 1] = (char)191;
-	__cprint(mid_height++,0,0,7,str_line);;	
+	__cprint(mid_height++,0,0,COLOR,str_line);;	
 
     //Second line of middle graph
 	memset(str_line, ' ', sizeof(str_line));
@@ -194,14 +183,14 @@ static int draw_mid_main(int sel, const char *path)
 	sprintf(str_line + (FRAME_WIDTH - strlen(label) - strlen(tmp)) / 2, "%s %s ", label,tmp);
 	str_line[strlen(str_line)] = ' ';
 	str_line[FRAME_WIDTH - 1] = (char)179;
-	__cprint(mid_height++,0,0,7,str_line);;
+	__cprint(mid_height++,0,0,COLOR,str_line);;
 
     //Third line of middle graph
     memset(str_line, (char)196, sizeof(str_line));
 	str_line[FRAME_WIDTH] = '\0';
 	str_line[0] = (char)195;
 	str_line[FRAME_WIDTH - 1] = (char)180;
-	__cprint(mid_height++,0,0,7,str_line);;
+	__cprint(mid_height++,0,0,COLOR,str_line);;
 	
 	/* print menu title */
     for (i = 0; i < frame_height - 3; i++)
@@ -237,7 +226,7 @@ static int draw_mid_main(int sel, const char *path)
 		}
 		str_line[FRAME_WIDTH - 1] = (char)179;
 		//printf("%s\n", str_line);
-	    __cprint(mid_height++,0,0,7,str_line);;
+	    __cprint(mid_height++,0,0,COLOR,str_line);;
 		//printf("%s\n", menu_items[i].kernel);
 	}
 	
@@ -249,22 +238,22 @@ static int draw_mid_main(int sel, const char *path)
 	memcpy(str_line + 2, tmp, strlen(tmp));
 	memset(str_line + strlen(str_line), ' ', FRAME_WIDTH - strlen(str_line));
 	str_line[FRAME_WIDTH - 1] = (char)179;
-	__cprint(mid_height++,0,0,7,str_line);;
+	__cprint(mid_height++,0,0,COLOR,str_line);;
 
 	memset(str_line, (char)196, sizeof(str_line));
 	str_line[FRAME_WIDTH] = '\0';
 	str_line[0] = (char)192;
 	str_line[FRAME_WIDTH - 1] = (char)217;
-	__cprint(mid_height++,0,0,7,str_line);;
+	__cprint(mid_height++,0,0,COLOR,str_line);;
 	return 0;
 }
 
 static int draw_bottom_main(void)
 {	
 	bottom_height = top_height + mid_height - 2;
-	__cprint(bottom_height++,0,0,7,"Use the UP and DOWN keys to select the entry.");;
-	__cprint(bottom_height++,0,0,7,"Press ENTER to boot selected OS.");;
-	__cprint(bottom_height++,0,0,7,"Press 'c' to command-line.");;
+	__cprint(bottom_height++,0,0,COLOR,"Use the UP and DOWN keys to select the entry.");;
+	__cprint(bottom_height++,0,0,COLOR,"Press ENTER to boot selected OS.");;
+	__cprint(bottom_height++,0,0,COLOR,"Press 'c' to command-line.");;
 
 	return 0;
 }
@@ -316,7 +305,7 @@ static int show_main(int flag, const char* path)
 		getchar();
 		ioctl (STDIN, FIONREAD, &cnt);
 	}
-	src_clr();
+	__scr_clear();
 	draw_main(selected_menu_num, path);
 	
 	i = 1;
@@ -329,7 +318,7 @@ static int show_main(int flag, const char* path)
 
 	str_line[(sizeof(str_line))] =  '\0';
 	memcpy(str_line + sizeof(str_line) - strlen(tmp) - 1, tmp, strlen(tmp));
-	__cprint(bottom_height + 2,0,0,7,str_line);;
+	__cprint(bottom_height + 2,0,0,COLOR,str_line);;
 	while (1)			
 	{
 		
@@ -343,7 +332,7 @@ static int show_main(int flag, const char* path)
 			}
             else if (99 == ch)//'c' pressed ,back to console
             {
-				src_clr();
+				__scr_clear();
 				__set_cursor(0,0);
                 return 0;
             }			
@@ -370,25 +359,25 @@ static int show_main(int flag, const char* path)
 				sprintf(tmp, "Booting system in [%d] second(s)", --dly);
 				str_line[(sizeof(str_line))] =  '\0';
 				memcpy(str_line + sizeof(str_line) - strlen(tmp) - 1 , tmp, strlen(tmp));
-				__cprint(bottom_height + 2,0,0,7,str_line);;
+				__cprint(bottom_height + 2,0,0,COLOR,str_line);;
 			if (dly == 0)
 				break;
 		}
 		else if (not_erased)
 		{
-			__cprint(bottom_height + 1,0,80,7,"kernel: ");
-			__cprint(bottom_height + 1,10,70,7,menu_items[selected_menu_num-1].kernel);;
-			__cprint(bottom_height + 2 ,0,80,7,"args: ");
-			__cprint(bottom_height + 2,10,70,7,menu_items[selected_menu_num-1].args);;
+			__cprint(bottom_height + 1,0,80,COLOR,"kernel: ");
+			__cprint(bottom_height + 1,10,70,COLOR,menu_items[selected_menu_num-1].kernel);;
+			__cprint(bottom_height + 2 ,0,80,COLOR,"args: ");
+			__cprint(bottom_height + 2,10,70,COLOR,menu_items[selected_menu_num-1].args);;
 			if(strlen(menu_items[selected_menu_num-1].initrd))
 			{
-			__cprint(bottom_height + 3 ,0,80,7,"initrd: ");
-			__cprint(bottom_height + 3,10,70,7,menu_items[selected_menu_num-1].initrd);;
+			__cprint(bottom_height + 3 ,0,80,COLOR,"initrd: ");
+			__cprint(bottom_height + 3,10,70,COLOR,menu_items[selected_menu_num-1].initrd);;
 			}
 		}
 	}
 JUST_BOOT:
-	src_clr();
+	__scr_clear();
 	__set_cursor(0,0);
 	do_cmd_boot_load(selected_menu_num - 1, 0);
 	//printf ("The selected kernel entry is wrong, try default entry from al.\n ");

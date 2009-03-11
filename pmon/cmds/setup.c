@@ -179,6 +179,19 @@ static void popup(int y, int x,int height,int width)
 	}
 }
 
+static void scr_clear()
+{
+	int x,y;
+   for(y=0;y<25;y++)
+   {
+	for (x=0;x<80; x++) {
+		char *p=(char *)(vgabh + (160*y) + (2*x));
+		p[0]=0x20;
+		p[1]=0x7;
+        }
+   }
+}
+
 static void popdown(int y, int x,int height,int width)
 {
 	register int i;
@@ -269,11 +282,13 @@ static void cprintS(int y, int x,int width,char color, const char *text);
 static void set_cursorS(unsigned char x,unsigned char y);
 extern void set_cursor(unsigned char x,unsigned char y);
 extern void set_cursor_fb(unsigned char x,unsigned char y);
+static void scr_clearS();
 void (*__popup)(int y, int x,int height,int width)=popupS;
 void (*__popdown)(int y, int x,int height,int width)=popdownS;
 void (*__cprint)(int y, int x,int width,char color, const char *text)=cprintS;
 void (*__msgbox)(int yy,int xx,int height,int width,char *msg)=msgboxS;
 void (*__set_cursor)(unsigned char x,unsigned char y)=set_cursorS;
+void (*__scr_clear)()=scr_clearS;
 //---------------------------------------------------------------------------
 #if 0
 /* Ç°¾°É« */
@@ -337,6 +352,11 @@ video_cls();
 	__cprint(INFO_Y,0,80,0x70,0);
 #endif
 }
+
+static void scr_clearfb()
+{
+video_cls();
+}
 #endif
 
 static void cprintS(int y, int x,int width,char color, const char *text)
@@ -356,6 +376,11 @@ static void popupS(int y, int x,int height,int width)
   for(;height;height--,y++)
 	cprintS(y,x,width,0x17,0);
 	cprintS(INFO_Y,0,80,0x70,0);
+}
+
+static void scr_clearS()
+{
+	 fprintf(stdout,"\e[0m\e[2J");
 }
 
 static void popdownS(int y, int x,int height,int width)
@@ -1224,6 +1249,7 @@ void __console_alloc()
   __popdown=popdownS;
   __msgbox=msgboxS;
   __set_cursor=set_cursorS;
+  __scr_clear=scr_clearS;
  }
 #if NMOD_VGACON
  else
@@ -1234,12 +1260,14 @@ void __console_alloc()
   __popdown=popupfb;
   __msgbox=msgboxS;
   __set_cursor=set_cursor_fb;
+  __scr_clear=scr_clearfb;
 #else
   __cprint=cprint;
   __popup=popup;
   __popdown=popdown;
   __msgbox=msgbox;
   __set_cursor=set_cursor;
+  __scr_clear=scr_clear;
 #endif
  }
 #endif
