@@ -365,6 +365,8 @@ extern void delay(int us);
 extern void ec_init_idle_mode(void);
 extern void ec_exit_idle_mode(void);
 extern void ec_get_product_id(void);
+
+#ifndef NO_ROM_ID_NEEDED
 extern unsigned char ec_rom_id[3];
 static int cmd_readspiid(int ac, char *av[])
 {
@@ -389,11 +391,14 @@ static int cmd_readspiid(int ac, char *av[])
 	printf("Manufacture ID 0x%x, Device ID : 0x%x 0x%x\n", ec_rom_id[0], ec_rom_id[1], ec_rom_id[2]);
 	return 0;
 }
+#endif
 
 /*
  * xbird : read an EC rom address data througth XBI interface.
  */
+#ifndef NO_ROM_ID_NEEDED
 extern unsigned char ec_rom_id[3];
+#endif
 static int cmd_xbird(int ac, char *av[])
 {
 	u8 val;
@@ -430,6 +435,7 @@ static int cmd_xbird(int ac, char *av[])
 	wrec(XBI_BANK | XBISPIA0, (addr & 0x0000ff) >> 0);
 
 	/* start action */
+#ifndef  NO_ROM_ID_NEEDED
 	switch(ec_rom_id[0]){
 		case EC_ROM_PRODUCT_ID_SPANSION :
 			wrec(XBI_BANK | XBISPICMD, 0x03);
@@ -447,6 +453,9 @@ static int cmd_xbird(int ac, char *av[])
 			printf("ec rom type not supported.\n");
 			return -1;
 	}
+#else
+    wrec(XBI_BANK | XBISPICMD, 0x0b);
+#endif
 
 	timeout = 0x10000;
 	while(timeout-- >= 0){
@@ -550,7 +559,7 @@ static const Cmd Cmds[] =
 	
 	{"rdecreg", "reg", NULL, "KB3310 EC reg read test", cmd_rdecreg, 2, 99, CMD_REPEAT},
 	{"wrecreg", "reg", NULL, "KB3310 EC reg write test", cmd_wrecreg, 2, 99, CMD_REPEAT},
-	{"readspiid", "reg", NULL, "KB3310 read spi device id test", cmd_readspiid, 2, 99, CMD_REPEAT},
+//	{"readspiid", "reg", NULL, "KB3310 read spi device id test", cmd_readspiid, 2, 99, CMD_REPEAT},
 	{"rdbat", "reg", NULL, "KB3310 smbus battery reg read test", cmd_rdbat, 2, 99, CMD_REPEAT},
 	{"rdfan", "reg", NULL, "KB3310 smbus fan reg read test", cmd_rdfan, 2, 99, CMD_REPEAT},
 	{"xbiwr", "reg", NULL, "for debug write data to xbi interface of ec", cmd_xbiwr, 2, 99, CMD_REPEAT},

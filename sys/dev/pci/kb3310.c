@@ -21,8 +21,10 @@
 /* ec delay time 500us for register and status access */
 #define	EC_REG_DELAY	500	//unit : us
 /* ec rom flash id size and array : Manufacture ID[1], Device ID[2] */
+#ifndef NO_ROM_ID_NEEDED
 #define	EC_ROM_ID_SIZE	3
 unsigned char ec_rom_id[EC_ROM_ID_SIZE];
+#endif
 /* delay function */
 extern void delay(int microseconds);
 /* version array */
@@ -260,7 +262,7 @@ void ec_shutdown_system(void)
 	
 	return;
 }
-
+#ifndef NO_ROM_ID_NEEDED
 /* get flash rom product id number */
 void ec_get_product_id(void)
 {
@@ -291,7 +293,7 @@ void ec_get_product_id(void)
 
 	return;
 }
-
+#endif
 /* check if flash busy or not */
 int ec_flash_busy(void)
 {
@@ -549,6 +551,7 @@ void ec_fan_fixup(void)
 	return;
 }
 
+#ifndef NO_ROM_ID_NEEDED
 /* get ec rom type */
 void ec_get_rom_type(void)
 {
@@ -565,7 +568,7 @@ void ec_get_rom_type(void)
 	
 	return;
 }
-
+#endif
 /***************************************************************/
 
 /* update ec rom */
@@ -628,8 +631,10 @@ void ec_fixup(void)
 {
 	ec_fan_fixup();
 	printf("ec fan fixup ok.\n");
+#ifndef NO_ROM_ID_NEEDED
 	ec_get_rom_type();
 	printf("ec rom fixup ok.\n");
+#endif
 }
 
 /* get EC version from EC rom */

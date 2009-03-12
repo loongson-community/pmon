@@ -32,7 +32,7 @@ option     HAS_EC
 
 #option		HAVE_FLASH		# Platform has FLASH memory.
 #option		HAVE_NVENV		# Platform has non-volatile env mem 
-option 		SPANISH	
+#option 		SPANISH	
 #
 # Module selection. Selects pmon features
 #
@@ -82,7 +82,8 @@ option      VGA_BASE=0xb0000000
 option CLEAR_WHEN_BOOT
 option ALL_OTHER_KEY_TO_STOP_BOOT
 
-
+#03-11
+option NO_ROM_ID_NEEDED
 #
 # System Name and Target Name
 #
