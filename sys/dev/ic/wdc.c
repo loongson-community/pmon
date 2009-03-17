@@ -148,6 +148,7 @@ void wdc_default_read_raw_multi_4 __P((struct channel_softc *,
 void wdc_default_write_raw_multi_4 __P((struct channel_softc *, 
     void *, unsigned int));
 
+
 struct channel_softc_vtbl wdc_default_vtbl = {
 	wdc_default_read_reg,
 	wdc_default_write_reg,
@@ -386,6 +387,22 @@ wdc_select_drive(chp, drive, howlong)
  * - test ATA/ATAPI signatures. If at last one drive found -> return.
  * - try an ATA command on the master.
  */
+ /************************************************************************
+
+ Copyright (C)
+ File name:     wdc.c
+ Author:  ***      Version:  ***      Date: ***
+ Description:   
+ Others:        
+ Function List:
+ 
+ Revision History:
+ 
+ --------------------------------------------------------------------------
+  Date          Author          Activity ID     Activity Headline
+  2008-03-13    QianYuli        PMON00000001    Add wdccommand_lba48() function to support LBA48
+*************************************************************************/
+
 
 int
 wdcprobe(chp)
@@ -964,9 +981,10 @@ wdcwait(chp, mask, bits, timeout)
 			    CHP_READ_REG(chp, wdr_status);
 #endif
 		}
-		if ((status & WDCS_BSY) == 0 && (status & mask) == bits) 
+		if ((status & WDCS_BSY) == 0 && (status & mask) == bits) {
 			break;
-		if (++time > timeout) {
+        }
+        if (++time > timeout) {
 			WDCDEBUG_PRINT(("wdcwait: timeout, status %x "
 			    "error %x\n", status,
 			    CHP_READ_REG(chp, wdr_error)),
@@ -1576,7 +1594,6 @@ wdccommand(chp, drive, command, cylin, head, sector, count, precomp)
 	    "sector=%d count=%d precomp=%d\n", chp->wdc->sc_dev.dv_xname,
 	    chp->channel, drive, command, cylin, head, sector, count, precomp),
 	    DEBUG_FUNCS);
-
 	/* Select drive, head, and addressing mode. */
 	CHP_WRITE_REG(chp, wdr_sdh, WDSD_IBM | (drive << 4) | head);
 
@@ -1591,6 +1608,29 @@ wdccommand(chp, drive, command, cylin, head, sector, count, precomp)
 	CHP_WRITE_REG(chp, wdr_command, command);
 	return;
 }
+
+//03-12
+void
+wdccommand_lba48(	struct channel_softc *chp, u_int8_t drive, u_int8_t command, 	u_int32_t lba,u_int8_t head,u_int8_t count,u_int8_t  precomp)
+{
+	/* Select drive, head, and addressing mode. */
+	CHP_WRITE_REG(chp, wdr_sdh,  (drive << 4) | WDSD_LBA);
+
+	/* Load parameters for LBA48 read_sector_ext command */
+    CHP_WRITE_REG(chp, wdr_seccnt, 0);//Sector count register first time
+    CHP_WRITE_REG(chp, wdr_seccnt, count);//Sector count register second time
+    CHP_WRITE_REG(chp, wdr_sector, (lba >> 24) & 0xff);//LBA Low register first time
+    CHP_WRITE_REG(chp, wdr_sector, lba & 0xff);//LBA Low register  second time
+	CHP_WRITE_REG(chp, wdr_cyl_lo, 0);//LBA Mid register first time
+    CHP_WRITE_REG(chp, wdr_cyl_lo, (lba >> 8) & 0xff);//LBA Mid register second time
+    CHP_WRITE_REG(chp, wdr_cyl_hi, 0);//LBA Hight register first time
+    CHP_WRITE_REG(chp, wdr_cyl_hi, (lba >> 16) & 0xff);//LBA Hight register second time
+    
+    /* Send command. */
+	CHP_WRITE_REG(chp, wdr_command, command);
+	return;
+}
+
 
 /*
  * Simplified version of wdccommand().  Unbusy/ready/drq must be

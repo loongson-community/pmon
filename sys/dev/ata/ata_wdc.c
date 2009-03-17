@@ -68,6 +68,27 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
+ /************************************************************************
+
+ Copyright (C)
+ File name:     ata_wdc.c
+ Author:  ***      Version:  ***      Date: ***
+ Description:   
+ Others:        
+ Function List:
+ 
+ Revision History:
+
+
+    Note:LBA48 feature added, but for the less modification of the existed
+         struct, in fact, it only suport LBA31(I make this words^_^),that means
+         the biggest capicity of Hard disk which is supported here is 
+         1T(2^(32-1+9))Bytes.
+ --------------------------------------------------------------------------
+  Date          Author          Activity ID     Activity Headline
+  2008-03-13    QianYuli        PMON00000001    Add  LBA48 feature supporting
+*************************************************************************/
+
 
 #include <sys/param.h>
 #include <sys/systm.h>
@@ -123,6 +144,9 @@ int   wdc_ata_err __P((struct ata_drive_datas *, struct ata_bio *));
 #define WDC_ATA_NOERR 0x00 /* Drive doesn't report an error */
 #define WDC_ATA_RECOV 0x01 /* There was a recovered error */
 #define WDC_ATA_ERR   0x02 /* Drive reports an error */
+
+extern void wdccommand_lba48(struct channel_softc *, u_int8_t, u_int8_t, u_int32_t,u_int8_t, u_int8_t, u_int8_t);
+
 
 /*
  * Handle block I/O operation. Return WDC_COMPLETE, WDC_QUEUED, or
@@ -316,21 +340,41 @@ _wdc_ata_bio_start(chp, xfer)
 #endif
 		ata_bio->nblks = min(nblks, ata_bio->multi);
 		ata_bio->nbytes = ata_bio->nblks * ata_bio->lp->d_secsize;
-		if (ata_bio->nblks > 1 && (ata_bio->flags & ATA_SINGLE) == 0) {
-			cmd = (ata_bio->flags & ATA_READ) ?
-			    WDCC_READMULTI : WDCC_WRITEMULTI;
-		} else {
-			cmd = (ata_bio->flags & ATA_READ) ?
-			    WDCC_READ : WDCC_WRITE;
-		}
+
+        //03-12
+        if (LBA28_MAX_SECTORS > ata_bio->blkno) {
+		    if (ata_bio->nblks > 1 && (ata_bio->flags & ATA_SINGLE) == 0) {
+			    cmd = (ata_bio->flags & ATA_READ) ?
+			        WDCC_READMULTI : WDCC_WRITEMULTI;
+		    } else {
+			    cmd = (ata_bio->flags & ATA_READ) ?
+			        WDCC_READ : WDCC_WRITE;
+		    }
+        } else {
+            if (ata_bio->nblks > 1 && (ata_bio->flags & ATA_SINGLE) == 0) {
+			    cmd = (ata_bio->flags & ATA_READ) ?
+			        WDCC_READMULTI_EXT : WDCC_WRITEMULTI_EXT;
+		    } else {
+			    cmd = (ata_bio->flags & ATA_READ) ?
+			        WDCC_READ_SECTORS_EXT : WDCC_WRITE_SECTORS_EXT;
+		    }            
+        }
 		/* Initiate command! */
 		CHP_WRITE_REG(chp, wdr_sdh, WDSD_IBM | (xfer->drive << 4));
 		if (wait_for_ready(chp, ata_delay) < 0)
 			goto timeout;
-		wdccommand(chp, xfer->drive, cmd, cyl,
+		//03-12    
+        if (LBA28_MAX_SECTORS > ata_bio->blkno) {
+            wdccommand(chp, xfer->drive, cmd, cyl,
 		    head, sect, nblks, 
 		    (ata_bio->lp->d_type == DTYPE_ST506) ?
 		    ata_bio->lp->d_precompcyl / 4 : 0);
+        } else {
+            wdccommand_lba48(chp, xfer->drive, cmd, ata_bio->blkno, head,nblks, (ata_bio->lp->d_type == DTYPE_ST506) ?
+		    ata_bio->lp->d_precompcyl / 4 : 0);
+        }
+
+        
 	} else if (ata_bio->nblks > 1) {
 		/* The number of blocks in the last stretch may be smaller. */
 		nblks = xfer->c_bcount / ata_bio->lp->d_secsize;
@@ -505,8 +549,7 @@ wdc_ata_bio_intr(chp, xfer, irq)
 			wdc_ata_bio_done(chp, xfer);
 			return 1;
 		}
-		wdc_input_bytes(drvp, (char *)xfer->databuf + xfer->c_skip,
-		    ata_bio->nbytes);
+		wdc_input_bytes(drvp, (char *)xfer->databuf + xfer->c_skip,ata_bio->nbytes);
 	}
 #ifndef PMON
 end:

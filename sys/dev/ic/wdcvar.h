@@ -248,6 +248,9 @@ void  wdcbit_bucket __P((struct channel_softc *, int));
 
 void  wdccommand __P((struct channel_softc *, u_int8_t, u_int8_t, u_int16_t,
 	                  u_int8_t, u_int8_t, u_int8_t, u_int8_t));
+//03-12
+void wdccommand_lba48 __P(	(struct channel_softc *, u_int8_t, u_int8_t, u_int32_t,u_int8_t, u_int8_t, u_int8_t));
+
 void   wdccommandshort __P((struct channel_softc *, int, int));
 void  wdctimeout	__P((void *arg));
 
@@ -265,6 +268,9 @@ void	wdc_delref __P((struct channel_softc *));
 /* ATA/ATAPI specs says a device can take 31s to reset */
 //#define WDC_RESET_WAIT 31000
 #define WDC_RESET_WAIT 2000
+
+/*max sector counts of LBA28*/
+#define LBA28_MAX_SECTORS 268435456
 
 void wdc_atapibus_attach __P((struct channel_softc *));
 int   atapi_print       __P((void *, const char *));
