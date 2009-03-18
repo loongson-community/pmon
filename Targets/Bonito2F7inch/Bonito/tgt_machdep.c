@@ -249,6 +249,7 @@ extern int fb_init(unsigned long,unsigned long);
 void
 tgt_devconfig()
 {
+	unsigned char temp;
 #if NMOD_VGACON > 0
 	int rc;
 #if NMOD_FRAMEBUFFER > 0 
@@ -269,6 +270,16 @@ tgt_devconfig()
 
 #ifdef SM712_GRAPHIC_CARD
 	rc = 1; 
+#endif
+#if	1
+	/* light the lcd */	
+	*((volatile unsigned char *)(0xbfd00000 | HIGH_PORT)) = 0xfe;
+	*((volatile unsigned char *)(0xbfd00000 | LOW_PORT)) = 0x01;
+	temp = *((volatile unsigned char *)(0xbfd00000 | DATA_PORT));
+	/* light the lcd */	
+	*((volatile unsigned char *)(0xbfd00000 | HIGH_PORT)) = 0xfe;
+	*((volatile unsigned char *)(0xbfd00000 | LOW_PORT)) = 0x01;
+	*((volatile unsigned char *)(0xbfd00000 | DATA_PORT)) = 0x00;
 #endif
 
 #if NMOD_FRAMEBUFFER > 0
@@ -295,10 +306,19 @@ tgt_devconfig()
 	}
 #endif
 
+#if	1
+	/* light the lcd */	
+	*((volatile unsigned char *)(0xbfd00000 | HIGH_PORT)) = 0xfe;
+	*((volatile unsigned char *)(0xbfd00000 | LOW_PORT)) = 0x01;
+	*((volatile unsigned char *)(0xbfd00000 | DATA_PORT)) = temp;
+#endif
+
+#if	0
 	/* light the lcd */	
 	*((volatile unsigned char *)(0xbfd00000 | HIGH_PORT)) = 0xfe;
 	*((volatile unsigned char *)(0xbfd00000 | LOW_PORT)) = 0x01;
 	*((volatile unsigned char *)(0xbfd00000 | DATA_PORT)) = 0x80;
+#endif
 
 	if (rc > 0) {
 		if(!getenv("novga")) { 
@@ -423,10 +443,12 @@ tgt_reboot()
 
 #ifdef LOONGSON2F_7INCH
 
+#if	0
 	/* dark the lcd */
 	*((volatile unsigned char *)(0xbfd00000 | HIGH_PORT)) = 0xfe;
 	*((volatile unsigned char *)(0xbfd00000 | LOW_PORT)) = 0x01;
 	*((volatile unsigned char *)(0xbfd00000 | DATA_PORT)) = 0x00;
+#endif
 
 #if 0
 	*((volatile unsigned char *)(0xbfd00000 | HIGH_PORT)) = 0xfc;

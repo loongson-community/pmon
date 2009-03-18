@@ -629,8 +629,8 @@ void ec_update_rom(void *src, int size)
 /* ec fixup routine */
 void ec_fixup(void)
 {
-	ec_fan_fixup();
-	printf("ec fan fixup ok.\n");
+    //ec_fan_fixup();
+	//printf("ec fan fixup ok.\n");
 #ifndef NO_ROM_ID_NEEDED
 	ec_get_rom_type();
 	printf("ec rom fixup ok.\n");
