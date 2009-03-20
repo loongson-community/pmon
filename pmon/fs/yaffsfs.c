@@ -23,6 +23,7 @@
 #include <sys/sys/stat.h>
 #include <sys/queue.h>
 #include <sys/dev/nand/fcr-nand.h>
+#include <mtdfile.h>
 
 const char *yaffsfs_c_version="$Id: yaffsfs.c,v 1.21 2008/07/03 20:06:05 charles Exp $";
 //################################### definition #########################
@@ -933,7 +934,6 @@ typedef struct yaffs_DeviceStruct yaffs_Device;
 
 static yaffsfs_Handle yaffsfs_handle[YAFFSFS_N_HANDLES];
 yaffs_Device gdev;
-struct mtd_info gmtd;
 
 int yaffs_open(int fd, const char *path, int oflag, int mode);
 int yaffs_read(int fd, void *buf, unsigned int nbyte);
@@ -4061,6 +4061,8 @@ int yaffs_GutsInitialise(yaffs_Device * dev)
 	     dev->internalEndBlock <= (dev->internalStartBlock + dev->nReservedBlocks + 2)	// otherwise it is too small
 	    )
 	{
+
+	printf("inbandTags %x,yffs2 %x,bpc %x,cpb %x,rb %x,isb %x,ieb %x,and %x\n ",dev->inbandTags, dev->isYaffs2,dev->totalBytesPerChunk, dev->nChunksPerBlock,dev->nReservedBlocks,dev->internalStartBlock,dev->internalEndBlock,dev->internalStartBlock + dev->nReservedBlocks + 2);
 	    	printf("some device data may error!\n");
 		return YAFFS_FAIL;
 	}
@@ -4446,83 +4448,6 @@ static yaffs_Object *yaffsfs_FindObject(yaffs_Object *relativeDirectory, const c
 }
 
 
-int yaffs_open(int fd, const char *path, int oflag, int mode)
-{
-	yaffs_Object *obj = NULL;
-	int handle = -1;
-	yaffsfs_Handle *h = NULL;
-	int i;
-	
-	path += 5;
-
-	//get rid of /dev/yaffs@mtdblock0/vmlinx to /vmlinux 
-	while(*path && *path!='/') path++;
-	if(!*path) 
-	{
-		printf("error path!\n");
-		return -1;
-	}
-
-	if(gdev.endBlock <= 0)
-	{
-		if(yaffs_initialise()==-1)
-		{
-			printf("Yaffs2 initialise failed!\n");
-			return -1;
-		}
-	}
-	
-	handle = yaffsfs_GetHandle();
-	if(handle >= 0)
-	{
-		h = yaffsfs_GetHandlePointer(handle);
-
-		// try to find the exisiting object
-		obj = yaffsfs_FindObject(NULL,path,0);
-		if(obj && obj->variantType != YAFFS_OBJECT_TYPE_FILE)
-			obj = NULL;
-		if(obj)
-		{
-			h->obj = obj;
-			h->inUse = 1;
-	    		h->readOnly = (oflag & (O_WRONLY | O_RDWR)) ? 0 : 1;
-			h->append =  (oflag & O_APPEND) ? 1 : 0;
-			h->exclusive = (oflag & O_EXCL) ? 1 : 0;
-			h->position = 0;
-
-                        obj->inUse++;
-		}
-		else
-		{
-			yaffsfs_PutHandle(handle);
-			handle = -1;
-			return 0;
-		}
-	}
-	
-	if(handle >= 0)
-	{
-		_file[fd].valid = 1;
-		_file[fd].data = (void *)h;
-	}
-	return fd;
-}
-
-
-
-int yaffs_close(int fd)
-{
-	//yaffsfs_PutHandle(fd);
-	yaffsfs_Handle *h;
-
-	h = (struct yaffs_Handle *)_file[fd].data;
-	if(h)
-	{
-		h->inUse=0;
-		h->obj=NULL;
-	}
-	return 0;
-}
 
 int yaffs_read(int fd, void *buf, unsigned int nbyte)
 {
@@ -4669,37 +4594,7 @@ int nandmtd2_InitialiseNAND(yaffs_Device *dev)
 int yaffs_initialise()
 {
 	int ok;
-	int nBlocks;
 
-	memset(&gdev,0,sizeof(yaffs_Device));
-	memset(&gmtd,0,sizeof(struct mtd_info));
-
-	//Now initialise soc' Nand Flash: mtd,nand_chip
-	fcr_soc_foryaffs_init(&gmtd);
-	
-	nBlocks = gmtd.size/gmtd.erasesize;
-	gdev.genericDevice = &gmtd;
-	gdev.startBlock = 0;
-	gdev.endBlock = nBlocks - 1;
-	gdev.nChunksPerBlock = gmtd.erasesize/gmtd.writesize;
-	gdev.totalBytesPerChunk = gmtd.writesize;
-	gdev.nReservedBlocks = 5;
-	gdev.nShortOpCaches = 0;
-	gdev.name = gmtd.name;
-	
-	gdev.writeChunkWithTagsToNAND = nandmtd2_WriteChunkWithTagsToNAND;
-	gdev.readChunkWithTagsFromNAND = nandmtd2_ReadChunkWithTagsFromNAND;
-	gdev.markNANDBlockBad = nandmtd2_MarkNANDBlockBad;
-	gdev.queryNANDBlock = nandmtd2_QueryNANDBlock;
-	gdev.spareBuffer = malloc(gmtd.oobsize);
-	gdev.isYaffs2 = 1;
-
-	gdev.eraseBlockInNAND = nandmtd2_EraseBlockInNAND;
-	gdev.initialiseNAND = nandmtd2_InitialiseNAND;
-	
-	//use checkpoint to mount yaffs
-	gdev.skipCheckpointRead = 0;
-	gdev.skipCheckpointWrite = 0;
 	
 	yaffsfs_InitHandles();
 		
@@ -4754,5 +4649,123 @@ int yaffs_lseek(int fd, off_t offset, int where)
 	}
 
 	return pos;
+}
+
+int yaffs_open(int fd, const char *path, int oflag, int mode)
+{
+	yaffs_Object *obj = NULL;
+	int handle = -1;
+	yaffsfs_Handle *h = NULL;
+	int i;
+	int fdmtd;
+	int nBlocks;
+	char mtdpath[200];
+	struct mtdpriv *priv;
+	sprintf(mtdpath,"/dev/%s\n",path+11);
+	fdmtd=open(mtdpath,O_RDWR);
+	priv=(void *)_file[fdmtd].data;
+
+	{
+	memset(&gdev,0,sizeof(yaffs_Device));
+
+	//Now initialise soc' Nand Flash: mtd,nand_chip
+	
+	nBlocks = priv->open_size/priv->file->mtd->erasesize;
+	gdev.genericDevice = priv->file->mtd;
+	gdev.startBlock = (priv->open_offset+priv->file->part_offset)/priv->file->mtd->erasesize;
+	gdev.endBlock = gdev.startBlock+nBlocks - 1;
+	gdev.nChunksPerBlock = priv->file->mtd->erasesize/priv->file->mtd->writesize;
+	gdev.totalBytesPerChunk = priv->file->mtd->writesize;
+	gdev.nReservedBlocks = 5;
+	gdev.nShortOpCaches = 0;
+	gdev.name = priv->file->mtd->name;
+	
+	gdev.writeChunkWithTagsToNAND = nandmtd2_WriteChunkWithTagsToNAND;
+	gdev.readChunkWithTagsFromNAND = nandmtd2_ReadChunkWithTagsFromNAND;
+	gdev.markNANDBlockBad = nandmtd2_MarkNANDBlockBad;
+	gdev.queryNANDBlock = nandmtd2_QueryNANDBlock;
+	gdev.spareBuffer = malloc(priv->file->mtd->oobsize);
+	gdev.isYaffs2 = 1;
+
+	gdev.eraseBlockInNAND = nandmtd2_EraseBlockInNAND;
+	gdev.initialiseNAND = nandmtd2_InitialiseNAND;
+	
+	//use checkpoint to mount yaffs
+	gdev.skipCheckpointRead = 0;
+	gdev.skipCheckpointWrite = 0;
+	}
+	close(fdmtd);
+
+
+
+	path += 11;
+
+	//get rid of /dev/yaffs@mtdblock0/vmlinx to /vmlinux 
+	while(*path && *path!='/') path++;
+	if(!*path) 
+	{
+		printf("error path!\n");
+		return -1;
+	}
+
+	//if(gdev.endBlock <= 0)
+	{
+		if(yaffs_initialise()==-1)
+		{
+			printf("Yaffs2 initialise failed!\n");
+			return -1;
+		}
+	}
+	
+	handle = yaffsfs_GetHandle();
+	if(handle >= 0)
+	{
+		h = yaffsfs_GetHandlePointer(handle);
+
+		// try to find the exisiting object
+		obj = yaffsfs_FindObject(NULL,path,0);
+		if(obj && obj->variantType != YAFFS_OBJECT_TYPE_FILE)
+			obj = NULL;
+		if(obj)
+		{
+			h->obj = obj;
+			h->inUse = 1;
+	    		h->readOnly = (oflag & (O_WRONLY | O_RDWR)) ? 0 : 1;
+			h->append =  (oflag & O_APPEND) ? 1 : 0;
+			h->exclusive = (oflag & O_EXCL) ? 1 : 0;
+			h->position = 0;
+
+                        obj->inUse++;
+		}
+		else
+		{
+			yaffsfs_PutHandle(handle);
+			handle = -1;
+			return 0;
+		}
+	}
+	
+	if(handle >= 0)
+	{
+		_file[fd].valid = 1;
+		_file[fd].data = (void *)h;
+	}
+	return fd;
+}
+
+
+
+int yaffs_close(int fd)
+{
+	//yaffsfs_PutHandle(fd);
+	yaffsfs_Handle *h;
+
+	h = (struct yaffs_Handle *)_file[fd].data;
+	if(h)
+	{
+		h->inUse=0;
+		h->obj=NULL;
+	}
+	return 0;
 }
 
