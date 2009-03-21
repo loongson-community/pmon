@@ -332,54 +332,53 @@ case 8:break;
 return -1;
 }
 
+#if __mips >= 3
+#define MYASM asm
+#define MYC(...)
+#else
+#define MYASM(...)
+#define MYC(x) x
+#endif
 static int __syscall1(int type,long long addr,union commondata *mydata)
 {
 union {
-long long ll;
-int l[2];
+unsigned long long ll;
+unsigned int l[2];
 } a;
 a.ll=addr;
 
-
+/*
+ * use lw to load l[2],will make high bit extension.
+ */
 switch(type)
 {
 case 1:
-	  //mydata->data1=*(volatile char *)addr;break;
-	  asm("dsll32 %2,%2,0;or %1,%2;lbu $2,(%1);" \
+	  MYC(mydata->data1=*(volatile char *)addr;);
+	  MYASM("dsll32 %1,%1,0;dsrl32 %1,%1,0;dsll32 %2,%2,0;or %1,%2;lbu $2,(%1);" \
 		  "sb $2,(%0);" \
 		  ::"r"(&mydata->data1),"r"(a.l[0]),"r"(a.l[1])
 		  :"$2"
 		 );
 	   break;
 case 2:
-	  //mydata->data2=*(volatile short *)addr;break;
-	  asm("dsll32 %2,%2,0;or %1,%2;lhu $2,(%1);" \
+	  MYC(mydata->data2=*(volatile short *)addr;);
+	  asm("dsll32 %1,%1,0;dsrl32 %1,%1,0;dsll32 %2,%2,0;or %1,%2;lhu $2,(%1);" \
 		  "sh $2,(%0);" \
 		  ::"r"(&mydata->data2),"r"(a.l[0]),"r"(a.l[1])
 		  :"$2"
 		 );
 	   break;
 case 4:
-#if __mips >= 3
-	  //mydata->data4=*(volatile int *)addr;break;
-	  asm("dsll32 %2,%2,0;or %1,%2;lwu $2,(%1);" \
+	  MYC(mydata->data4=*(volatile int *)addr;);
+	  MYASM("dsll32 %1,%1,0;dsrl32 %1,%1,0;dsll32 %2,%2,0;or %1,%2;lwu $2,(%1);" \
 		   "sw $2,(%0);" \
 		  ::"r"(&mydata->data4),"r"(a.l[0]),"r"(a.l[1])
 		  :"$2"
 		 );
-#else
-	  asm("lw $2,(%1);
-		   sw $2,(%0)
-		   "
-		  ::"r"(&mydata->data4),"r"(addr)
-		  :"$2"
-		 );
-#endif
 	   break;
 case 8:
-	  // mydata->data8[0]=*(volatile int *)addr;mydata->data8[1]=*(volatile int *)(addr+4);
-	  //*(long long *)mydata->data8=*(volatile long long *)addr;
-	  asm("dsll32 %2,%2,0;or %1,%2;ld $2,(%1);" \
+	  MYC( mydata->data8[0]=*(volatile int *)addr;mydata->data8[1]=*(volatile int *)(addr+4);)
+	  MYASM("dsll32 %1,%1,0;dsrl32 %1,%1,0;dsll32 %2,%2,0;or %1,%2;ld $2,(%1);" \
 		  "sd $2,(%0);" \
 		  ::"r"(mydata->data8),"r"(a.l[0]),"r"(a.l[1])
 		  :"$2"
@@ -392,53 +391,43 @@ return 0;
 static int __syscall2(int type,long long addr,union commondata *mydata)
 {
 union {
-long long ll;
-int l[2];
+unsigned long long ll;
+unsigned int l[2];
 } a;
 a.ll=addr;
 switch(type)
 {
 case 1:
-	 //*(volatile char *)addr=mydata->data1;break;
-	  asm("dsll32 %2,%2,0;or %1,%2;lbu $2,(%0);" \
+	 MYC(*(volatile char *)addr=mydata->data1;);
+	  MYASM("dsll32 %1,%1,0;dsrl32 %1,%1,0;dsll32 %2,%2,0;or %1,%2;lbu $2,(%0);" \
 		  "sb $2,(%1);" \
 		  ::"r"(&mydata->data1),"r"(a.l[0]),"r"(a.l[1])
 		  :"$2"
 		 );
 	   break;
 case 2:
-	   //*(volatile short *)addr=mydata->data2;break;
-	  asm("dsll32 %2,%2,0;or %1,%2;lhu $2,(%0);" \
+	  MYC(*(volatile short *)addr=mydata->data2;);
+	  MYASM("dsll32 %1,%1,0;dsrl32 %1,%1,0;dsll32 %2,%2,0;or %1,%2;lhu $2,(%0);" \
 		   "sh $2,(%1);" \
 		  ::"r"(&mydata->data2),"r"(a.l[0]),"r"(a.l[1])
 		  :"$2"
 		 );
 	  break;
 case 4:
-	  //*(volatile int *)addr=mydata->data4;break;
-#if __mips >= 3
-	  asm("lwu $2,(%0);" \
-		    "sw $2,(%1);" \
-		  ::"r"(&mydata->data4),"r"(addr)
-		  :"$2"
-		 );
-#else
-	  asm("lw $2,(%0);" \
+	  MYC(*(volatile int *)addr=mydata->data4;);
+	  MYASM("dsll32 %1,%1,0;dsrl32 %1,%1,0;dsll32 %2,%2,0;or %1,%2;lwu $2,(%0);" \
 		   "sw $2,(%1);" \
-		  ::"r"(&mydata->data4),"r"(addr)
+		  ::"r"(&mydata->data2),"r"(a.l[0]),"r"(a.l[1])
 		  :"$2"
 		 );
-#endif
-
 	    break;
 case 8:
-	  asm("dsll32 %2,%2,0;or %1,%2;ld $2,(%0);" \
+	   MYC(*(volatile int *)addr=mydata->data8[0];*(volatile int *)(addr+4)=mydata->data8[1];);
+	  MYASM("dsll32 %1,%1,0;dsrl32 %1,%1,0;dsll32 %2,%2,0;or %1,%2;ld $2,(%0);" \
 		   "sd $2,(%1);" \
 		  ::"r"(mydata->data8),"r"(a.l[0]),"r"(a.l[1])
 		  :"$2"
 		 );
-	   //*(volatile int *)addr=mydata->data8[0];*(volatile int *)(addr+4)=mydata->data8[1];
-	   //*(volatile long long *)addr=*(volatile long long *)mydata->data8;
 	   break;
 }
 return 0;
