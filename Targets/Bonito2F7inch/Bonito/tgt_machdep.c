@@ -324,11 +324,13 @@ tgt_devconfig()
 		if(!getenv("novga")) { 
 			vga_available=1;
 			vga_ok = 2;
-		} else
+		} else {
 			vga_ok = 1;
+			vga_available = 0;
+		}
 	}
 	
-	vga_available = 0; /*Suppress the output*/
+//	vga_available = 0; /*Suppress the output*/
 
 	config_init();
 	configure();
