@@ -109,3 +109,7 @@ device  atp {[channel = -1]}: wdc_base, ata, atapi, ide
 attach  atp at pci 
 file    sys/dev/pci/atpsata.c           atp needs-flag
 
+device  sata 
+attach  sata at atp 
+file    sys/dev/pci/sata.c           sata 
+
