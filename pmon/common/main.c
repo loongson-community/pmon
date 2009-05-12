@@ -848,7 +848,7 @@ dbginit (char *adr)
 		case DEL_KEY:
 			vga_available = 1;
 		case ESC_KEY:
-#if defined(LOONGSON2F_7INCH)||defined(LOONGSON2F_FULOONG)
+#if defined(LOONGSON2F_7INCH)||defined(LOONGSON2F_FULOONG)||defined(LOONGSON2F_ALLINONE)
 			_set_font_color();
 #endif
 			break;

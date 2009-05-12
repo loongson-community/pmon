@@ -343,6 +343,7 @@ file sys/dev/usb/usb_kbd.c		  mod_usb_kbd & mod_usb	needs-flag
 file sys/dev/usb/cmd_usb.c		  mod_usb & mod_usb_storage
 
 file sys/dev/usb/usb_uhci.c		  mod_usb_uhci needs-flag
+file fb/sis/sis_main.c mod_sisfb needs-flag
 
 
 file    sys/dev/fd/fd.c fd needs-flag

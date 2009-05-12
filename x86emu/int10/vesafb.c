@@ -41,11 +41,12 @@
 
 #include "mod_framebuffer.h"
 #include "vesa.h"
+#include <mod_sisfb.h>
 
 extern struct pci_device *vga_dev;
-//Felix-2008-08-27
-//int vesa_mode = 0;
+
 int vesa_mode = 1;
+
 /*
  * The following macros are especially useful for __asm__
  * inline assembler.

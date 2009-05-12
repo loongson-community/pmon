@@ -120,16 +120,25 @@ int frame_height = 12;
 int mid_height = 0;
 int bottom_height = 0;
 
+
+//5-8
+extern void video_cls(void);
 void src_clr(void)
 {
  	char tmp_str[MAX_SCREEN_WIDTH];
 	int i;
-	
+
+    #ifdef NMOD_SISFB
+    {
+       video_cls();
+    }
+    #else
 	for (i = 0; i < MAX_SCREEN_WIDTH - 1; i++)
 		tmp_str[i] = ' ';
 	tmp_str[MAX_SCREEN_WIDTH - 1] = '\0';
 	for (i = 0; i < MAX_SCREEN_HEIGHT; i++)
 		 	video_console_print(0,i,tmp_str);	
+    #endif
 }
 
 static int draw_top_copyright(void)	

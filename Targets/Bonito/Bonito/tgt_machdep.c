@@ -288,6 +288,11 @@ tgt_devconfig()
 #ifdef SIS315E
 		sis315e_init();
 #endif
+
+#if NMOD_SISFB
+		fbaddress=sisfb_init_module();
+#endif
+
 		fb_init(fbaddress, ioaddress);
 		printf("after fb_init\n");
 

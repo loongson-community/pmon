@@ -95,6 +95,8 @@ CONFIG_VIDEO_HW_CURSOR:	     - Uses the hardware cursor capability of the
 #include <stdlib.h>
 #include <stdarg.h>
 #include <pmon.h>
+#include <cpu.h>
+#include <dev/pci/pcivar.h>
 
 /* radeon7000 micro define */
 #ifdef RADEON7000
@@ -112,9 +114,10 @@ CONFIG_VIDEO_HW_CURSOR:	     - Uses the hardware cursor capability of the
 //#define CONFIG_VIDEO_SW_CURSOR
 #define CONFIG_SPLASH_SCREEN
 #define CONFIG_VIDEO_BMP_GZIP
+#define VIDEO_HW_BITBLT				// video hw bitblt 2d acceleration config
 #endif
 #ifdef SIS315E
-#define VIDEO_HW_BITBLT				// video hw bitblt 2d acceleration config
+//#define VIDEO_HW_BITBLT				// video hw bitblt 2d acceleration config
 #endif
 /* sm712 micro define */
 #ifdef	SM712_GRAPHIC_CARD
@@ -282,8 +285,9 @@ void console_cursor(int state);
 #define CONSOLE_ROW_SIZE	(VIDEO_FONT_HEIGHT * VIDEO_LINE_LEN)
 #define CONSOLE_ROW_FIRST	(video_console_address)
 #define CONSOLE_ROW_SECOND	(video_console_address + CONSOLE_ROW_SIZE)
-#define CONSOLE_ROW_LAST	(video_console_address + CONSOLE_SIZE - CONSOLE_ROW_SIZE)
+//#define CONSOLE_ROW_LAST	(video_console_address + CONSOLE_SIZE - CONSOLE_ROW_SIZE)
 #define CONSOLE_SIZE		(CONSOLE_ROW_SIZE * CONSOLE_ROWS)
+#define CONSOLE_ROW_LAST	(video_console_address + CONSOLE_SIZE - CONSOLE_ROW_SIZE)
 #define CONSOLE_SCROLL_SIZE	(CONSOLE_SIZE - CONSOLE_ROW_SIZE)
 
 #ifdef LOONGSON2F_7INCH
@@ -795,7 +799,14 @@ static void console_scrollup(void)
 			VIDEO_VISIBLE_COLS,	/* frame width */
 			VIDEO_VISIBLE_ROWS - VIDEO_LOGO_HEIGHT - VIDEO_FONT_HEIGHT	/* frame height */
 		);
-	#else
+	#endif
+    #ifdef LOONGSON2F_ALLINONE
+    {
+    void sisfb_copyarea(int sx,int sy,int dx,int dy,int width,int height);
+	    sisfb_copyarea(0,VIDEO_LOGO_HEIGHT + VIDEO_FONT_HEIGHT,0,VIDEO_LOGO_HEIGHT,1360,768 - VIDEO_LOGO_HEIGHT - 16);
+    }
+    #endif
+    #ifdef LOONGSON2F_FULOONG
 	video_hw_bitblt(VIDEO_PIXEL_SIZE,	/* bytes per pixel */
 			0,	/* source pos x */
 			VIDEO_LOGO_HEIGHT + VIDEO_FONT_HEIGHT,	/* source pos y */
@@ -805,9 +816,18 @@ static void console_scrollup(void)
 			VIDEO_VISIBLE_ROWS - VIDEO_LOGO_HEIGHT /* frame height */
 	    );
 	#endif
+	/*
+#define UNCACHED_TO_CACHED(x) PHYS_TO_CACHED(UNCACHED_TO_PHYS(x))
+	if(CONSOLE_ROW_FIRST<0xb0000000 && CONSOLE_ROW_FIRST>=0xa0000000)
+	{
+	memcpyl (UNCACHED_TO_CACHED(CONSOLE_ROW_FIRST),UNCACHED_TO_CACHED(CONSOLE_ROW_SECOND),
+		 CONSOLE_SCROLL_SIZE >> 2);
+    pci_sync_cache(0, (vm_offset_t)UNCACHED_TO_CACHED(CONSOLE_ROW_FIRST), CONSOLE_SCROLL_SIZE >> 2, SYNC_W);
+	}
+	*/
 #else
-	memcpyl(CONSOLE_ROW_FIRST, CONSOLE_ROW_SECOND,
-		CONSOLE_SCROLL_SIZE >> 2);
+	memcpyl (CONSOLE_ROW_FIRST, CONSOLE_ROW_SECOND,
+		 CONSOLE_SCROLL_SIZE >> 2);
 #endif
 
 	/* clear the last one */
@@ -820,7 +840,8 @@ static void console_scrollup(void)
 			  CONSOLE_BG_COL	/* fill color */
 	    );
 #else
-	memsetl(CONSOLE_ROW_LAST, CONSOLE_ROW_SIZE >> 2, CONSOLE_BG_COL);
+	//memsetl(video_console_address+1360*2*16*47, 1360*2*16, CONSOLE_BG_COL);
+    memsetl(CONSOLE_ROW_LAST, CONSOLE_ROW_SIZE, CONSOLE_BG_COL);
 #endif
 }
 
@@ -1514,10 +1535,30 @@ void video_cls(void)
 			CONSOLE_BG_COL	/* fill color */
 	    );
 #else
+//5-8
+#ifdef NMOD_SISFB
+    //memsetl(video_fb_address,1360*768*2,CONSOLE_BG_COL);
+{
+    void sisfb_rectfill(unsigned int bpp, unsigned int dst_x, unsigned int dst_y, 
+				unsigned int dim_x, unsigned int dim_y, unsigned int color);
+    sisfb_rectfill(			
+            VIDEO_PIXEL_SIZE,   /* bytes per pixel */
+			0,	/* dest pos x */
+			VIDEO_LOGO_HEIGHT,
+			VIDEO_VISIBLE_COLS,	/* frame width */
+			VIDEO_VISIBLE_ROWS,	/* frame height */
+            CONSOLE_BG_COL);			
+}
+#else
+
 	memsetl(video_fb_address + VIDEO_LOGO_HEIGHT * VIDEO_LINE_LEN,
 		CONSOLE_SIZE - VIDEO_LOGO_HEIGHT * VIDEO_LINE_LEN,
 		CONSOLE_BG_COL);
 #endif
+#endif
+
+
+
 	_set_font_color();
 /*
 	memcpy(video_fb_address, saved_frame_buffer, FB_SIZE);
@@ -1704,11 +1745,20 @@ int GetGDFIndex(int BytesPP)
 int fb_init(unsigned long fbbase, unsigned long iobase)
 {
 	pGD = &GD;
-	pGD->winSizeX = GetXRes();
-	pGD->winSizeY = GetYRes();
 
-	pGD->gdfBytesPP = GetBytesPP();
-	pGD->gdfIndex = GetGDFIndex(GetBytesPP());
+    #ifdef NMOD_SISFB
+	    pGD->winSizeX = Sis_GetXRes();
+	    pGD->winSizeY = Sis_GetYRes();
+
+	    pGD->gdfBytesPP = Sis_GetBytesPP();
+	    pGD->gdfIndex = GetGDFIndex(pGD->gdfBytesPP);
+    #else
+	    pGD->winSizeX = GetXRes();
+	    pGD->winSizeY = GetYRes();
+
+	    pGD->gdfBytesPP = GetBytesPP();
+	    pGD->gdfIndex = GetGDFIndex(GetBytesPP());
+    #endif
 	//pGD->frameAdrs = 0xb0000000 | fbbase;
 	printf("fb_init fbbase:%x\n",fbbase);
 
@@ -1738,7 +1788,7 @@ int fb_init(unsigned long fbbase, unsigned long iobase)
 #if	0
 	video_cls ();
 #else
-	memsetl(video_fb_address, CONSOLE_SIZE +(CONSOLE_ROW_SIZE *5), CONSOLE_BG_COL);
+	memsetl(video_fb_address, CONSOLE_SIZE,  CONSOLE_BG_COL);
 #endif
 
 #ifdef CONFIG_VIDEO_LOGO
