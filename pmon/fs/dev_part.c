@@ -205,6 +205,10 @@ static int read_primary_part_table(int fd, __u32 mbr_sec_off, DiskPartitionTable
 #endif
 		return 0;
 	}
+	if (leadbuf[510] != 0x55 || leadbuf[511] != 0xaa)
+    {   
+        return 0; /*check mbr magic failed */
+    }
 #ifdef DEBUG                                           
 	{
 		int j;

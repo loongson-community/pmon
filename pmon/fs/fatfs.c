@@ -374,6 +374,12 @@ int fat_getPartition(struct fat_sc *fsc, int partition)
 	/*
 	 * Find the active partition
 	 */
+
+	if (buffer[510] != 0x55 || buffer[511] != 0xaa)
+    {   
+		return 0;/*check mbr magic failed */
+    }
+    
 	fsc->PartitionStart = letoh32(mbr->partition[partition].relsect);
 	return (1);
 }
