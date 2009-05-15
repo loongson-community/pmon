@@ -796,7 +796,7 @@ fxp_attach_common(sc, enaddr)
         if( fxp_validate_eeprom_checksum(sc) )
         {
                 printf("The eeprom checksum is unvalidate!\n");
-                cmd_wrprom_fxp0();
+                cmd_wrprom_fxp0(0,0);
         }
 
 #if   defined(GODSONEV1)
@@ -2286,7 +2286,7 @@ static void mysrand(unsigned int seed) {
            }
 #endif
 
-int cmd_wrprom_fxp0(int ac,char *av)
+int cmd_wrprom_fxp0(int ac,char **av)
 {
         int i=0;
         unsigned long clocks_num=0;
@@ -2332,6 +2332,27 @@ int cmd_wrprom_fxp0(int ac,char *av)
                 rom[2] = eeprom_data;
                 printf("eeprom_data [2] = 0x%4x\n",eeprom_data);
 #endif
+
+	if(ac>1)
+	{
+	 //offset:data,data
+	 int i;
+	 int offset;
+	 int data;
+	 for(i=1;i<ac;i++)
+	 {
+	 	char *p=av[i];
+		char *nextp;
+	 	int offset=strtoul(p,&nextp,0);
+		while(nextp!=p)
+		{
+		p=++nextp;
+		data=strtoul(p,&nextp,0);
+		if(nextp==p)break;
+		rom[offset++]=data;
+		}
+	 }
+	}
 
         for(i=0; i< EEPROM_CHECKSUM_REG; i++)
         {

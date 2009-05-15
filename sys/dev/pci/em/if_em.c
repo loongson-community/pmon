@@ -307,7 +307,7 @@ em_attach(parent, self, aux)
 	/* Do generic parts of attach. */
 	if (em_probe(sc,e1000_pci_id,&sc->pcidev)) {
 		/* Failed! */
-		cmd_wrprom_em0();  //zgj		
+		cmd_wrprom_em0(0,0);  //zgj		
 		return;
 	}
 
@@ -597,7 +597,7 @@ static void mysrand(unsigned int seed) {
                next = seed;
            }
 #endif
-int cmd_wrprom_em0(int ac,char *av)
+int cmd_wrprom_em0(int ac,char **av)
 {
         int i=0;
 	unsigned long clocks_num=0;
@@ -631,6 +631,27 @@ int cmd_wrprom_em0(int ac,char *av)
 		rom[2] = eeprom_data;
 		printf("eeprom_data [2] = 0x%4x\n",eeprom_data);
 #endif
+
+	if(ac>1)
+	{
+	 //offset:data,data
+	 int i;
+	 int offset;
+	 int data;
+	 for(i=1;i<ac;i++)
+	 {
+	 	char *p=av[i];
+		char *nextp;
+	 	int offset=strtoul(p,&nextp,0);
+		while(nextp!=p)
+		{
+		p=++nextp;
+		data=strtoul(p,&nextp,0);
+		if(nextp==p)break;
+		rom[offset++]=data;
+		}
+	 }
+	}
         for(i=0; i< EEPROM_CHECKSUM_REG; i++)
         {
                 eeprom_data = rom[i];
