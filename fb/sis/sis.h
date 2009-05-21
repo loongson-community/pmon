@@ -347,9 +347,15 @@
 
 /* I/O port access macros */
 #define inSISREG(base)		linux_inb(base)
-
+#if 0
 #define outSISREG(base,val)	linux_outb(val,base)
-
+#else
+void outSISREG(int base, int val)
+{
+    linux_outb(val, base);
+	delay(200);
+}
+#endif
 #define orSISREG(base,val)      			\
 		do {					\
 			u8 __Temp = inSISREG(base); 	\
