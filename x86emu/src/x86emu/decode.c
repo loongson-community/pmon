@@ -926,7 +926,7 @@ unsigned decode_rm01_address(
         }
 }
 #endif
-	displacement = (u8)fetch_byte_imm();
+	displacement = (s8)fetch_byte_imm();
 	switch (rm) {
       case 0:
 		DECODE_PRINTF2("%d[BX+SI]", displacement);
