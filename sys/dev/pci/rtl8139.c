@@ -1730,7 +1730,7 @@ static void mysrand(unsigned int seed) {
            }
 #endif
 
-int cmd_wrprom(int ac,char *av)
+int cmd_wrprom(int ac,char **av)
 {
         int i=0;
         unsigned long clocks_num=0;
@@ -1764,6 +1764,26 @@ int cmd_wrprom(int ac,char *av)
 		rom[9] = eeprom_data;
                 printf("eeprom_data [9] = 0x%4x\n",eeprom_data);
 #endif
+	if(ac>1)
+	{
+	 //offset:data,data
+	 int i;
+	 int offset;
+	 int data;
+	 for(i=1;i<ac;i++)
+	 {
+	 	char *p=av[i];
+		char *nextp;
+	 	int offset=strtoul(p,&nextp,0);
+		while(nextp!=p)
+		{
+		p=++nextp;
+		data=strtoul(p,&nextp,0);
+		if(nextp==p)break;
+		rom[offset++]=data;
+		}
+	 }
+	}
         for(i=0; i< 64; i++)
         {
                 eeprom_data = rom[i];

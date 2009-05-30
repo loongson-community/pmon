@@ -152,6 +152,7 @@ rtl*        at pci? dev ? function ?
 #### IDE controllers
 pciide* 	at pci ? dev ? function ? flags 0x0000
 atp*           at pci? dev ? function ?  #sata atp8620
+sata*       at atp?
 #### IDE hard drives
 wd*		at pciide? channel ? drive ? flags 0x0000
 

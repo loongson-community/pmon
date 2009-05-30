@@ -874,13 +874,16 @@ void sisfb_copyarea(int sx,int sy,int dx,int dy,int width,int height);
 			   VIDEO_FONT_HEIGHT,	/* frame height */
 			   CONSOLE_BG_COL	/* fill color */
 		);
-#endif
 
-#if (defined(SMI502)||defined(SMI712))
+#elif (defined(SMI502)||defined(SMI712))
     AutodeFillRectModify(CONSOLE_BG_COL);
 #ifdef X800x480
 	memsetl (CONSOLE_ROW_LAST, CONSOLE_ROW_SIZE >> 2, CONSOLE_BG_COL);
 #endif
+
+#else
+	memsetl (CONSOLE_ROW_LAST, CONSOLE_ROW_SIZE >> 2, CONSOLE_BG_COL);
+
 #endif
 
 #elif X800x600
