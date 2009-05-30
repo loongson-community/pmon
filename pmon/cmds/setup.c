@@ -605,31 +605,31 @@ struct setupMenu dbgmenu={
 
 
 char helpmsg[]=
-"        other cmds
-d1:dump somthing in 1 byte read
-d2:dump somthing in 2 byte read
-d4:dump somthing in 4 byte read
-d8:dump somthing in 8 byte read
-m1:modify somthing in 1 byte write
-m2:modify somthing in 2 byte write
-m4:modify somthing in 4 byte write
-m8:modify somthing in 8 byte write
-   here something can be memory,pci configure space,disk device
-pcs: pcs bus dev func 
-   set d1-d4,m1-m4 access pci configure space
-disks:disks fd0,disks wd0,disks cd0
-   set d1-d4,m1-m4 access disks device
-pcs -1
-disks -1
-   set d1-d4,m1-m4 access normal memory
-pnpr: popr LDN index
-popw :pnpw LDN index data
-   read/write superio configure register
-watchdog:
-   watchdog test
-tpp:
-   parallel port test
-";
+"        other cmds;\n" \
+"d1:dump somthing in 1 byte read;\n" \
+"d2:dump somthing in 2 byte read;\n" \
+"d4:dump somthing in 4 byte read;\n" \
+"d8:dump somthing in 8 byte read;\n" \
+"m1:modify somthing in 1 byte write;\n" \
+"m2:modify somthing in 2 byte write;\n" \
+"m4:modify somthing in 4 byte write;\n" \
+"m8:modify somthing in 8 byte write;\n" \
+"   here something can be memory,pci configure space,disk device;\n" \
+"pcs: pcs bus dev func ;\n" \
+"   set d1-d4,m1-m4 access pci configure space;\n" \
+"disks:disks fd0,disks wd0,disks cd0;\n" \
+"   set d1-d4,m1-m4 access disks device;\n" \
+"pcs -1;\n" \
+"disks -1;\n" \
+"   set d1-d4,m1-m4 access normal memory;\n" \
+"pnpr: popr LDN index;\n" \
+"popw :pnpw LDN index data;\n" \
+"   read/write superio configure register;\n" \
+"watchdog:;\n" \
+"   watchdog test;\n" \
+"tpp:;\n" \
+"   parallel port test;\n" \
+;
 
 struct setupMenu othersmenu={
 0,POP_W,POP_H,

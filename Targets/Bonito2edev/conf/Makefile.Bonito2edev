@@ -17,7 +17,7 @@
 #
 .SUFFIXES:	.S .c .o
 
-CROSS_COMPILE 	=mips-elf-
+#CROSS_COMPILE 	=mips-elf-
 #CROSS_COMPILE 	=mipsel-linux-
 
 #
@@ -25,8 +25,8 @@ CROSS_COMPILE 	=mips-elf-
 #
 
 AS		= $(CROSS_COMPILE)as
-LD		= $(CROSS_COMPILE)ld
-CC		?= $(CROSS_COMPILE)gcc
+LD		= $(CROSS_COMPILE)ld  -m elf64ltsmip  -G 0 -static -n -nostdlib 
+#CC		= $(CROSS_COMPILE)gcc
 CPP		= $(CC) -E
 AR		= $(CROSS_COMPILE)ar
 NM		= $(CROSS_COMPILE)nm
@@ -37,6 +37,7 @@ RANLIB		= $(CROSS_COMPILE)ranlib
 SIZE		= $(CROSS_COMPILE)size
 
 OPT?=	-O2
+
 IDENT:=${IDENT} $(shell echo  ${IDENT}|sed -n 's/.*-DX\([0-9]\+\)x\([0-9]\+\).*/ -DFB_XSIZE=\1 -DFB_YSIZE=\2 /p')
 IDENT:=${IDENT} $(shell echo  ${IDENT}|sed -n 's/.*-DCONFIG_VIDEO_\([0-9]\+\)BPP.*/ -DFB_COLOR_BITS=\1 /p')
 
@@ -61,18 +62,16 @@ PMONDIR=${S}
 
 INCLUDES=	-I. -I${S}/include -I./machine -I${S} \
 		-I${S}/sys/arch/${MACHINE}/include -I${S}/sys \
-		-I${TARGET} -I${COMPILEDIR} -nostdinc 
-#CPPFLAGS=	${INCLUDES} ${IDENT} -D_KERNEL -D__OpenBSD__ -DPMON -D__PMON__\
-#		-${ENDIAN} -mno-abicalls -mips3 -mmemcpy -mcpu=r4000
+		-I${TARGET} -I${COMPILEDIR}  -nostdinc -fno-strict-aliasing -fno-pic
 CPPFLAGS=	${INCLUDES} ${IDENT} -D_KERNEL -D__OpenBSD__ -DPMON -D__PMON__\
-		-${ENDIAN} -mno-abicalls -mips3 -mmemcpy -mcpu=r4000
+		  -mmemcpy -mno-abicalls -mips3 -fno-builtin#-march=r4600 
 #CWARNFLAGS=	-Werror -Wall -Wmissing-prototypes -Wstrict-prototypes \
 		-Wno-uninitialized -Wno-format -Wno-main
 CWARNFLAGS=	-Wall -Wstrict-prototypes \
 		-Wno-uninitialized -Wno-format -Wno-main
 CFLAGS=		${DEBUG} ${CWARNFLAGS} ${OPT} -G 0
 AFLAGS=		-D_LOCORE -G 0
-LFLAGS=		-${ENDIAN} -N -G 0 -T../../conf/ld.script -e start
+LFLAGS=		 -N -G 0 -T../../conf/ld.script -e start
 STRIPFLAGS=	-g -S --strip-debug
 
 HOSTCC?=	${CC}
@@ -85,7 +84,6 @@ include ${S}/lib/libm/Makefile.inc
 LIBM=${MLIB}
 include ${S}/lib/libz/Makefile.inc
 LIBZ=${ZLIB}
-
 
 # compile rules: rules are named ${TYPE}_${SUFFIX}${CONFIG_DEP}
 # where TYPE is NORMAL, DRIVER, or PROFILE}; SUFFIX is the file suffix,
@@ -126,8 +124,8 @@ SYSTEM_OBJ=	${START} crtbegin.o param.o ioconf.o ri.o ${OBJS} ${LIBC} ${LIBM} ${
 		crtend.o
 SYSTEM_DEP=	Makefile ${SYSTEM_OBJ}
 SYSTEM_LD_HEAD=	rm -f $@
-SYSTEM_LD=	@echo ${LD} ${LFLAGS} -o $@ ${LIBDIR} '$${SYSTEM_OBJ}' vers.o; \
-		${LD} ${LFLAGS} -o $@ ${LIBDIR} ${SYSTEM_OBJ} vers.o
+SYSTEM_LD=	@echo ${LD} ${LFLAGS} -o $@ ${LIBDIR} '${SYSTEM_OBJ}' vers.o; \
+		${LD} ${LFLAGS} -o $@ ${LIBDIR} ${SYSTEM_OBJ} vers.o -L../../../../examples/math/ -lgcc
 SYSTEM_LD_TAIL=	@${SIZE} $@; chmod 755 $@ ; \
 		${OBJCOPY} -O binary $@ $@.bin
 
@@ -200,10 +198,10 @@ SRCS=	${TARGET}/${SUBTARGET}/start.S \
 	param.c ioconf.c ri.c ${CFILES} ${SFILES}
 depend:: .depend
 .depend: ${SRCS} param.c
-	${MKDEP} ${AFLAGS} ${CPPFLAGS} ${TARGET}/${SUBTARGET}/start.S
-	${MKDEP} -a ${CFLAGS} ${CPPFLAGS} param.c ioconf.c ${CFILES}
+	${MKDEP} ${AFLAGS} ${shell echo ${CPPFLAGS}|sed -e 's/ -f[^ ]*//g' } ${TARGET}/${SUBTARGET}/start.S
+	${MKDEP} -a ${CFLAGS} ${shell echo ${CPPFLAGS}|sed -e 's/ -f[^ ]*//g' } param.c ioconf.c ${CFILES}
 ifneq (${SFILES}, "")
-	${MKDEP} -a ${AFLAGS} ${CPPFLAGS} ${SFILES}
+	${MKDEP} -a ${AFLAGS} ${shell echo ${CPPFLAGS}|sed -e 's/ -f[^ ]*//g' } ${SFILES}
 endif
 
 # depend on root or device configuration

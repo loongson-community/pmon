@@ -396,14 +396,19 @@ typedef struct ohci {
 	unsigned long free;
 	td_t *gtd;
 
-	struct usb_device *g_pInt_dev;
-	urb_priv_t *g_pInt_urb_priv;
-	ed_t *g_pInt_ed;
+#define MAX_INTS 5
+	struct usb_device *g_pInt_dev[MAX_INTS];
+	urb_priv_t *g_pInt_urb_priv[MAX_INTS];
+	ed_t *g_pInt_ed[MAX_INTS];
 
+	unsigned int transfer_lock;
+
+#ifdef CONFIG_SM502_USB_HCD
 	/*only for sm502 usb only*/
 #define MAX_SM502_BUFS 5 //This is sufficient
 	void *sm502_bufs[MAX_SM502_BUFS];
 	int  sm502_buf_use[MAX_SM502_BUFS];
+#endif
 } ohci_t;
 
 #define NUM_EDS 32		/* num of preallocated endpoint descriptors */

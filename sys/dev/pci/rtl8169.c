@@ -185,7 +185,7 @@ VERSION 2.2LK	<2005/01/25>
 #endif
 
 /* Maximum events (Rx packets, etc.) to handle at each interrupt. */
-static const int max_interrupt_work = 20;
+static int max_interrupt_work = 20;
 //static const int max_interrupt_work = 200; //lihui.
 
 /* Maximum number of multicast addresses to filter (vs. Rx-all-multicast).
@@ -1949,6 +1949,7 @@ r8169_attach(struct device * parent, struct device * self, void *aux)
 }
 
 
+static void rtl8169_hw_reset(struct rtl8169_private *tp);
 static int rtl8169_open_times = 0; 
 static int rtl8169_open(struct rtl8169_private *tp)
 {
@@ -2451,6 +2452,7 @@ static void rtl8169_init_ring_indexes(struct rtl8169_private *tp)
 	tp->dirty_tx = tp->dirty_rx = tp->cur_tx = tp->cur_rx = 0;
 }
 
+static void rtl8169_tx_clear(struct rtl8169_private *tp);
 static int rtl8169_init_ring(struct rtl8169_private *tp)
 {
        int tmpres;

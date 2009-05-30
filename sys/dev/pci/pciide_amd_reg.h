@@ -50,6 +50,25 @@
 #define AMD756_DATATIM_PULSE(channel, drive, x) (((x) & 0xf) << \
 	(((1 - (channel)) << 4) + ((1 - (drive)) << 3) + 4))
 
+#define AMDCS5536_DRIVE_TIMING   0x48
+#define AMDCS5536_ADDRESS_SETUP  0x4c
+#define AMDCS5536_8BIT_TIMING    0x4e
+#define AMDCS5536_UDMA_TIMING    0x50
+
+struct ide_timing {
+	int cyc;   /*cycle time*/
+	int setup; /*Address setup time*/
+	int data;  /*pulse width, and recovery time*/
+};
+
+static struct ide_timing amdcs5536_pio_set[5] = {
+	{0x09, 0x02, 0x98}, /* PIO 0 */
+	{0x09, 0x01, 0x55}, /* PIO 1 */
+	{0x09, 0x00, 0x32}, /* PIO 2 */
+	{0x02, 0x00, 0x21}, /* PIO 3 */
+	{0x02, 0x99, 0x20}, /* PIO 4 */
+};
+
 static const int8_t amd756_pio_set[] = {0x0a, 0x0a, 0x0a, 0x02, 0x02};
 static const int8_t amd756_pio_rec[] = {0x08, 0x08, 0x08, 0x02, 0x00};
 

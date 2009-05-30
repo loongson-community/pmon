@@ -242,7 +242,7 @@ fl_isbusy_sst(map, dev, what, offset, erase)
 			}
 		}
 		break;
-	default:
+	default:;
 		/* Not supported but sorted out much earlier */
 	}
 	return(busy);

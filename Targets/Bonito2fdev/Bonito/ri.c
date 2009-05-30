@@ -751,11 +751,11 @@ int do_ri (struct pt_regs *xcp)
 					return sig;
 					}
 					break;
-				default:
+				default:;
 				
 			}
 	
-		default:
+		default:;
 	}
 	
  

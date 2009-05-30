@@ -85,10 +85,10 @@ static __inline int sigismember(const sigset_t *set, int signo) {
 #define MAXARGS	6
 
 
-static int gensyscall __P((int (*) __P((struct proc *, void *, register_t *)), int, int, va_list));
+static int gensyscall __P((int (*) __P((struct proc *, void *, register_t *)), int, long, va_list));
 
 static int
-gensyscall (int (*func) __P((struct proc *, void *, register_t *)), int nargs, int a1, va_list ap)
+gensyscall (int (*func) __P((struct proc *, void *, register_t *)), int nargs, long a1, va_list ap)
 {
 	extern int errno;
 	struct args {register_t a[MAXARGS];} ua;
@@ -103,7 +103,7 @@ gensyscall (int (*func) __P((struct proc *, void *, register_t *)), int nargs, i
 		ua.a[0] = a1;
 	}
 	for (i = 1; i < nargs; i++) {
-		ua.a[i] = va_arg (ap, register_t);
+		ua.a[i] = va_arg (ap, long);
 	}
 
 	while (1) {
@@ -124,8 +124,8 @@ gensyscall (int (*func) __P((struct proc *, void *, register_t *)), int nargs, i
 }
 
 #define syscall(pub, pri, nargs) \
-int pub __P((int, ...)); \
-int pub (int a1, ...) \
+int pub __P((long, ...)); \
+int pub (long a1, ...) \
 { \
     int res; \
     va_list ap; \
@@ -334,7 +334,7 @@ int
 sigpause(mask)
 	int mask;
 {
-	return (sigsuspend((int)&mask));
+	return (sigsuspend((long)&mask));
 }
 
 sigset_t _sigintr;		/* shared with siginterrupt */

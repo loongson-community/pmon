@@ -433,6 +433,7 @@ struct usb_hc {
 	struct usb_ops *uop;
 	void (*notify)(struct usb_device *dev, int port);
 	TAILQ_ENTRY(usb_hc) hc_list;
+	unsigned int port_mask; /*To mask some port when scanning*/
 };
 
 extern void delay(int ms);

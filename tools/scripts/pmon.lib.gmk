@@ -71,4 +71,4 @@ clean:
 cleandir: clean
 
 depend:
-	${MKDEP} -a ${CFLAGS} ${CPPFLAGS} ${SRCS}
+	${MKDEP} -a ${CFLAGS} ${shell echo ${CPPFLAGS}|sed -e 's/ -f[^ ]*//g' } ${SRCS}

@@ -3,7 +3,6 @@
 #include<linux/io.h>
 #include"kbd.h"
 
-
 /*
  * Translation of escaped scancodes to keycodes.
  * This is now user-settable.
@@ -19,7 +18,7 @@
 #define E0_KPSLASH 98
 #define E0_PRSCR   99
 #define E0_RALT    100
-#define E0_BREAK   101  /* (control-pause) */
+#define E0_BREAK   101		/* (control-pause) */
 #define E0_HOME    102
 #define E0_UP      103
 #define E0_PGUP    104
@@ -57,22 +56,22 @@
 
 char inputbuf[300];
 static unsigned char e0_keys[128] = {
-  0, 0, 0, 0, 0, 0, 0, 0,			      /* 0x00-0x07 */
-  0, 0, 0, 0, 0, 0, 0, 0,			      /* 0x08-0x0f */
-  0, 0, 0, 0, 0, 0, 0, 0,			      /* 0x10-0x17 */
-  0, 0, 0, 0, E0_KPENTER, E0_RCTRL, 0, 0,	      /* 0x18-0x1f */
-  0, 0, 0, 0, 0, 0, 0, 0,			      /* 0x20-0x27 */
-  0, 0, 0, 0, 0, 0, 0, 0,			      /* 0x28-0x2f */
-  0, 0, 0, 0, 0, E0_KPSLASH, 0, E0_PRSCR,	      /* 0x30-0x37 */
-  E0_RALT, 0, 0, 0, 0, E0_F13, E0_F14, E0_HELP,	      /* 0x38-0x3f */
-  E0_DO, E0_F17, 0, 0, 0, 0, E0_BREAK, E0_HOME,	      /* 0x40-0x47 */
-  E0_UP, E0_PGUP, 0, E0_LEFT, E0_OK, E0_RIGHT, E0_KPMINPLUS, E0_END,/* 0x48-0x4f */
-  E0_DOWN, E0_PGDN, E0_INS, E0_DEL, 0, 0, 0, 0,	      /* 0x50-0x57 */
-  0, 0, 0, E0_MSLW, E0_MSRW, E0_MSTM, 0, 0,	      /* 0x58-0x5f */
-  0, 0, 0, 0, 0, 0, 0, 0,			      /* 0x60-0x67 */
-  0, 0, 0, 0, 0, 0, 0, E0_MACRO,		      /* 0x68-0x6f */
-  0, 0, 0, 0, 0, 0, 0, 0,			      /* 0x70-0x77 */
-  0, 0, 0, 0, 0, 0, 0, 0			      /* 0x78-0x7f */
+	0, 0, 0, 0, 0, 0, 0, 0,	/* 0x00-0x07 */
+	0, 0, 0, 0, 0, 0, 0, 0,	/* 0x08-0x0f */
+	0, 0, 0, 0, 0, 0, 0, 0,	/* 0x10-0x17 */
+	0, 0, 0, 0, E0_KPENTER, E0_RCTRL, 0, 0,	/* 0x18-0x1f */
+	0, 0, 0, 0, 0, 0, 0, 0,	/* 0x20-0x27 */
+	0, 0, 0, 0, 0, 0, 0, 0,	/* 0x28-0x2f */
+	0, 0, 0, 0, 0, E0_KPSLASH, 0, E0_PRSCR,	/* 0x30-0x37 */
+	E0_RALT, 0, 0, 0, 0, E0_F13, E0_F14, E0_HELP,	/* 0x38-0x3f */
+	E0_DO, E0_F17, 0, 0, 0, 0, E0_BREAK, E0_HOME,	/* 0x40-0x47 */
+	E0_UP, E0_PGUP, 0, E0_LEFT, E0_OK, E0_RIGHT, E0_KPMINPLUS, E0_END,	/* 0x48-0x4f */
+	E0_DOWN, E0_PGDN, E0_INS, E0_DEL, 0, 0, 0, 0,	/* 0x50-0x57 */
+	0, 0, 0, E0_MSLW, E0_MSRW, E0_MSTM, 0, 0,	/* 0x58-0x5f */
+	0, 0, 0, 0, 0, 0, 0, 0,	/* 0x60-0x67 */
+	0, 0, 0, 0, 0, 0, 0, E0_MACRO,	/* 0x68-0x6f */
+	0, 0, 0, 0, 0, 0, 0, 0,	/* 0x70-0x77 */
+	0, 0, 0, 0, 0, 0, 0, 0	/* 0x78-0x7f */
 };
 static void kbd_wait(void);
 void kbd_poll(void);
@@ -105,38 +104,38 @@ unsigned int esc_seq;
 unsigned int esc_code;
 extern void delay __P((int));
 
-typedef void (*k_hand)(unsigned char value, char up_flag);
-typedef void (k_handfn)(unsigned char value, char up_flag);
+typedef void (*k_hand) (unsigned char value, char up_flag);
+typedef void (k_handfn) (unsigned char value, char up_flag);
 
 static k_handfn
-	do_self, do_fn, do_spec, do_pad, do_dead, do_cons, do_cur, do_shift;
+    do_self, do_fn, do_spec, do_pad, do_dead, do_cons, do_cur, do_shift;
 /*
 	do_meta, do_ascii, do_lock, do_lowercase, do_slock, do_dead2,
 	do_ignore;
 */
 static k_hand key_handler[16] = {
-	do_self , do_fn, do_spec, do_pad, do_dead, do_cons, do_cur, do_shift,
-//	do_meta, do_ascii, do_lock, do_lowercase, do_slock, do_dead2,
-//	do_ignore, do_ignore
+	do_self, do_fn, do_spec, do_pad, do_dead, do_cons, do_cur, do_shift,
+//      do_meta, do_ascii, do_lock, do_lowercase, do_slock, do_dead2,
+//      do_ignore, do_ignore
 };
 
-typedef void (*void_fnp)(void);
-typedef void (void_fn)(void);
+typedef void (*void_fnp) (void);
+typedef void (void_fn) (void);
 
 static void_fn do_null, enter;
 	/*show_ptregs, send_intr, lastcons, caps_toggle,
-	num, hold, scroll_forw, scroll_back, boot_it, caps_on, compose,
-	SAK, decr_console, incr_console, spawn_console, bare_num;*/
+	   num, hold, scroll_forw, scroll_back, boot_it, caps_on, compose,
+	   SAK, decr_console, incr_console, spawn_console, bare_num; */
 
 static void_fnp spec_fn_table[16] = {
-	do_null,	enter,		/*show_ptregs,	show_mem,
-	show_state,	send_intr,	lastcons,	caps_toggle,
-	num,		hold,		scroll_forw,	scroll_back,
-	boot_it,	caps_on,	compose,	SAK,
-	decr_console,	incr_console,	spawn_console,	bare_num */
+	do_null, enter,		/*show_ptregs,  show_mem,
+				   show_state,  send_intr,      lastcons,       caps_toggle,
+				   num,         hold,           scroll_forw,    scroll_back,
+				   boot_it,     caps_on,        compose,        SAK,
+				   decr_console,        incr_console,   spawn_console,  bare_num */
 };
 
-int shift_state=0;
+int shift_state = 0;
 
 /*
  * Wait for keyboard controller input buffer to drain.
@@ -162,35 +161,36 @@ static void kbd_wait(void)
 		 */
 		unsigned char status = handle_kbd_event();
 
-		if (! (status & KBD_STAT_IBF))
+		if (!(status & KBD_STAT_IBF))
 			return;
 		delay(1000);
 		timeout--;
 	} while (timeout);
 }
+
 #define SEND_ESC_SEQ(c)	\
 	esc_code = c;	\
 	esc_seq = 1;
 
 void kbd_poll()
 {
-	if(esc_seq){
-		switch(esc_seq){
-			case 1:
-				kbd_code = 0x1b;
-				esc_seq++;
-				break;
-			case 2:
-				kbd_code = '[';
-				esc_seq++;
-				break;
-			case 3:
-				kbd_code = esc_code;
-				esc_seq = 0;
+	if (esc_seq) {
+		switch (esc_seq) {
+		case 1:
+			kbd_code = 0x1b;
+			esc_seq++;
+			break;
+		case 2:
+			kbd_code = '[';
+			esc_seq++;
+			break;
+		case 3:
+			kbd_code = esc_code;
+			esc_seq = 0;
 		}
-	}else{
-		while (kbd_read_status()& KBD_STAT_OBF) 
-				handle_kbd_event();
+	} else {
+		while (kbd_read_status() & KBD_STAT_OBF)
+			handle_kbd_event();
 	}
 }
 
@@ -216,7 +216,6 @@ static void kbd_write_command_w(int data)
 	kbd_write_command(data);
 }
 
-
 static int kbd_wait_for_input(void)
 {
 	long timeout = KBD_INIT_TIMEOUT;
@@ -230,13 +229,11 @@ static int kbd_wait_for_input(void)
 	return -1;
 }
 
-
 static void kbd_write_output_w(int data)
 {
 	kbd_wait();
 	kbd_write_output(data);
 }
-
 
 static int kbd_write_command_w_and_wait(int data)
 {
@@ -250,7 +247,6 @@ static int kbd_write_output_w_and_wait(int data)
 	return kbd_wait_for_input();
 }
 
-
 static void kbd_clear_input(void)
 {
 	int maxread = 100;	/* Random number */
@@ -261,7 +257,7 @@ static void kbd_clear_input(void)
 	} while (--maxread);
 }
 
-const char *kbd_error_msgs[]={
+const char *kbd_error_msgs[] = {
 	"Keyboard succesfully initialized.",
 	"Keyboard failed self test",
 	"Keyboard reset failed, no ACK",
@@ -272,10 +268,33 @@ const char *kbd_error_msgs[]={
 	"Set rate: no 2nd ACK"
 };
 
+#ifdef LOONGSON2F_7INCH
+/********************************************************/
+#include "include/kb3310.h"
+/* we just ensure there is code in EC, and the keyboard will work. */
+static int kb3310_test(void)
+{
+	unsigned char val;
+	val = rdec(0x00);
+	if(val == 0xff)
+		return 1;
+	
+	return 0;
+}
+#endif
+
 int kbd_initialize(void)
 {
 	int status;
-	
+	int count;
+
+#ifdef LOONGSON2F_7INCH
+	status = kb3310_test();
+	if(status != 0){
+		printf("Waring!! You should burn the flash rom first for kbd initial.\n");
+	}
+#endif
+
 	/* Flush the buffer */
 	kbd_clear_input();
 
@@ -285,11 +304,6 @@ int kbd_initialize(void)
 	 * If the test is successful a x55 is placed in the input buffer.
 	 */
 	kbd_write_command_w(KBD_CCMD_SELF_TEST);
-	kbd_write_command_w(KBD_CCMD_SELF_TEST);
-	kbd_write_command_w(KBD_CCMD_SELF_TEST);
-	kbd_write_command_w(KBD_CCMD_SELF_TEST);
-	kbd_write_command_w(KBD_CCMD_SELF_TEST);
-	
 	if (kbd_wait_for_input() != 0x55) {
 		printf("Self test cmd failed,ignored!\n");
 		//return 1;
@@ -301,7 +315,7 @@ int kbd_initialize(void)
 	 * test are placed in the input buffer.
 	 */
 	kbd_write_command_w(KBD_CCMD_KBD_TEST);
-	if (kbd_wait_for_input() != 0x00)  {
+	if (kbd_wait_for_input() != 0x00) {
 		printf("KBD_TEST cmd failed,ignored!\n");
 		//return 1;
 	}
@@ -319,21 +333,22 @@ int kbd_initialize(void)
 	 *
 	 * Set up to try again if the keyboard asks for RESEND.
 	 */
+	count = 0;
 	do {
-		kbd_clear_input();
-		kbd_write_output_w(KBD_CMD_RESET);
-		kbd_clear_input();
 		kbd_write_output_w(KBD_CMD_RESET);
 		status = kbd_wait_for_input();
-		if (status == KBD_REPLY_ACK){
+		if (status == KBD_REPLY_ACK)
 			break;
+		if (status != KBD_REPLY_RESEND) {
+			printf("reset failed\n");
+			if (++count > 1)
+				break;
+			//return 2;
 		}
-		if (status != KBD_REPLY_RESEND)
-			return 2;
 	} while (1);
 
 	if (kbd_wait_for_input() != KBD_REPLY_POR) {
-		//printf("NO POR, ignored!\n");
+		printf("NO POR, ignored!\n");
 		//return 3;
 	}
 
@@ -343,28 +358,29 @@ int kbd_initialize(void)
 	 *
 	 * Set up to try again if the keyboard asks for RESEND.
 	 */
+	count = 0;
 #ifndef FCRSOC
 	do {
 		kbd_write_output_w(KBD_CMD_DISABLE);
 		status = kbd_wait_for_input();
 		if (status == KBD_REPLY_ACK)
 			break;
-		/*
-		if (status != KBD_REPLY_RESEND)
-			return 4;
-		*/
+		if (status != KBD_REPLY_RESEND) {
+			printf("disable failed\n");
+			if (++count > 1)
+				break;
+			//return 4;
+		}
 	} while (1);
 #endif
 
 	kbd_write_command_w(KBD_CCMD_WRITE_MODE);
 	kbd_write_output_w(KBD_MODE_KBD_INT
-			      | KBD_MODE_SYS
-			      | KBD_MODE_DISABLE_MOUSE
-			      | KBD_MODE_KCC);
+			   | KBD_MODE_SYS
+			   | KBD_MODE_DISABLE_MOUSE | KBD_MODE_KCC);
 #if 1
 	/* ibm powerpc portables need this to use scan-code set 1 -- Cort */
-	if (!(kbd_write_command_w_and_wait(KBD_CCMD_READ_MODE) & KBD_MODE_KCC))
-	{
+	if (!(kbd_write_command_w_and_wait(KBD_CCMD_READ_MODE) & KBD_MODE_KCC)) {
 		/*
 		 * If the controller does not support conversion,
 		 * Set the keyboard to scan-code set 1.
@@ -376,22 +392,21 @@ int kbd_initialize(void)
 	}
 #endif
 	if (kbd_write_output_w_and_wait(KBD_CMD_ENABLE) != KBD_REPLY_ACK) {
-		//return 5;
+		return 5;
 	}
 
 	/*
 	 * Finally, set the typematic rate to maximum.
 	 */
 	if (kbd_write_output_w_and_wait(KBD_CMD_SET_RATE) != KBD_REPLY_ACK) {
-		//return 6;
+		return 6;
 	}
 	if (kbd_write_output_w_and_wait(0x00) != KBD_REPLY_ACK) {
-		//return 7;
+		return 7;
 	}
 
 	return 0;
 }
-
 
 int kbd_translate(unsigned char scancode, unsigned char *keycode)
 {
@@ -412,36 +427,36 @@ int kbd_translate(unsigned char scancode, unsigned char *keycode)
 	scancode &= 0x7f;
 
 	if (prev_scancode) {
-	  if (prev_scancode != 0xe0) {
-		  return 0;
-	  } else {
-	      prev_scancode = 0;
-	      /*
-	       *  The keyboard maintains its own internal caps lock and
-	       *  num lock statuses. In caps lock mode E0 AA precedes make
-	       *  code and E0 2A follows break code. In num lock mode,
-	       *  E0 2A precedes make code and E0 AA follows break code.
-	       *  We do our own book-keeping, so we will just ignore these.
-	       */
-	      /*
-	       *  For my keyboard there is no caps lock mode, but there are
-	       *  both Shift-L and Shift-R modes. The former mode generates
-	       *  E0 2A / E0 AA pairs, the latter E0 B6 / E0 36 pairs.
-	       *  So, we should also ignore the latter. - aeb@cwi.nl
-	       */
-	      if (scancode == 0x2a || scancode == 0x36)
-		return 0;
+		if (prev_scancode != 0xe0) {
+			return 0;
+		} else {
+			prev_scancode = 0;
+			/*
+			 *  The keyboard maintains its own internal caps lock and
+			 *  num lock statuses. In caps lock mode E0 AA precedes make
+			 *  code and E0 2A follows break code. In num lock mode,
+			 *  E0 2A precedes make code and E0 AA follows break code.
+			 *  We do our own book-keeping, so we will just ignore these.
+			 */
+			/*
+			 *  For my keyboard there is no caps lock mode, but there are
+			 *  both Shift-L and Shift-R modes. The former mode generates
+			 *  E0 2A / E0 AA pairs, the latter E0 B6 / E0 36 pairs.
+			 *  So, we should also ignore the latter. - aeb@cwi.nl
+			 */
+			if (scancode == 0x2a || scancode == 0x36)
+				return 0;
 
-	      if (e0_keys[scancode])
-		*keycode = e0_keys[scancode];
-	      else {
-		  return 0;
-	      }
-	  }
+			if (e0_keys[scancode])
+				*keycode = e0_keys[scancode];
+			else {
+				return 0;
+			}
+		}
 	} else {
-	  *keycode = scancode;
+		*keycode = scancode;
 	}
- 	return 1;
+	return 1;
 }
 
 static inline void handle_mouse_event(unsigned char scancode);
@@ -469,7 +484,7 @@ static unsigned char handle_kbd_event(void)
 		if (!(status & (KBD_STAT_GTO | KBD_STAT_PERR)))
 #endif
 		{
-			if (status & KBD_STAT_MOUSE_OBF)
+			if (status & KBD_STAT_MOUSE_OBF) 
 				handle_mouse_event(scancode);
 			else
 				handle_keyboard_event(scancode);
@@ -477,7 +492,7 @@ static unsigned char handle_kbd_event(void)
 
 		status = kbd_read_status();
 	}
-		
+
 	if (!work)
 		printf("controller jammed (0x%02X).\n", status);
 
@@ -491,11 +506,11 @@ static volatile unsigned char resend;
 static int do_acknowledge(unsigned char scancode)
 {
 	if (reply_expected) {
-	  /* Unfortunately, we must recognise these codes only if we know they
-	   * are known to be valid (i.e., after sending a command), because there
-	   * are some brain-damaged keyboards (yes, FOCUS 9000 again) which have
-	   * keys with such codes :(
-	   */
+		/* Unfortunately, we must recognise these codes only if we know they
+		 * are known to be valid (i.e., after sending a command), because there
+		 * are some brain-damaged keyboards (yes, FOCUS 9000 again) which have
+		 * keys with such codes :(
+		 */
 		if (scancode == KBD_REPLY_ACK) {
 			acknowledge = 1;
 			reply_expected = 0;
@@ -509,11 +524,11 @@ static int do_acknowledge(unsigned char scancode)
 	return 1;
 }
 
-
 static inline void handle_keyboard_event(unsigned char scancode)
 {
-	if (do_acknowledge(scancode))	handle_scancode(scancode, !(scancode & 0x80));
-}	
+	if (do_acknowledge(scancode))
+		handle_scancode(scancode, !(scancode & 0x80));
+}
 
 int kbd_test=0;
 int kbd_test_hit=0;
@@ -534,65 +549,94 @@ void handle_scancode(unsigned char scancode, int down)
 	 *  characters get echoed locally. This makes key repeat usable
 	 *  with slow applications and under heavy loads.
 	 */
-		if (1){
+	if (1) {
 		u_short keysym;
 		u_char type;
-
-		ushort *key_map = key_maps[shift_state];;
+		
+		ushort *key_map = key_maps[shift_state];
 		if (key_map != NULL) {
 			keysym = key_map[keycode];
 			type = KTYP(keysym);
+	//		printf("keycode = %d\n",keycode);
+	//		printf("[kbd] keysym %x\n", keysym);
 
 			if (type >= 0xf0) {
-			    type -= 0xf0;
-			    if (type == KT_LETTER)
+				type -= 0xf0;
+				if (type == KT_LETTER) {
 					type = KT_LATIN;
-				if (*key_handler[type])  (*key_handler[type])(keysym & 0xff, up_flag);
-			} 
-		} 
+				}
+				if (*key_handler[type]) {
+					(*key_handler[type]) (keysym & 0xff,
+							      up_flag);
+				}
+			}
+		}
 	}
-out:
+      out:;
 }
-
-
 
 static void do_self(unsigned char value, char up_flag)
 {
 	if (up_flag)
 		return;		/* no action, if this is a key release */
-	kbd_code=value;
+	kbd_code = value;
 }
-
 
 static void do_cons(unsigned char value, char up_flag)
 {
-	printf("do_cons value=%x\n",value);
+	printf("do_cons value=%x\n", value);
 
 }
 
 static void do_fn(unsigned char value, char up_flag)
 {
-	if(!up_flag){
-		switch(value){
-			case 0x14:SEND_ESC_SEQ('H');break;
-			case 0x17:SEND_ESC_SEQ('F');break;
+	if (!up_flag) {
+		switch (value) {
+		case 0x14:
+			SEND_ESC_SEQ('H');
+			break;
+		case 0x16:
+			SEND_ESC_SEQ('G'); /*Delete Key*/
+			break;
+		case 0x17:
+			SEND_ESC_SEQ('F');
+			break;
 		}
 	}
 }
 
 static void do_pad(unsigned char value, char up_flag)
 {
-	printf("do_pad value=%x\n",value);
+	if (!up_flag) {
+		switch (value) {
+		case 0x10:
+			SEND_ESC_SEQ('G');
+			break;
+		case 0xe:
+			kbd_code = 10;
+		default:
+			break;
+		}
+	}
+	printf("do_pad value=%x\n", value);
 }
 
 static void do_cur(unsigned char value, char up_flag)
 {
-	if(!up_flag){
-		switch(value){
-			case 0:SEND_ESC_SEQ('B');break;
-			case 1:SEND_ESC_SEQ('D');break;
-			case 2:SEND_ESC_SEQ('C');break;
-			case 3:SEND_ESC_SEQ('A');break;
+	if (!up_flag) {
+		switch (value) {
+		case 0:
+			SEND_ESC_SEQ('B');
+			break;
+		case 1:
+			SEND_ESC_SEQ('D');
+			break;
+		case 2:
+			SEND_ESC_SEQ('C');
+			break;
+		case 3:
+			SEND_ESC_SEQ('A');
+			break;
 		}
 	}
 }
@@ -600,79 +644,85 @@ static void do_cur(unsigned char value, char up_flag)
 static void do_shift(unsigned char value, char up_flag)
 {
 	if (up_flag) {
-		shift_state=0;
-	}else if(value==0){//key shift
-		shift_state=1;
-	}else if(value==2){//key ctrl
-		shift_state=2;
+		shift_state = 0;
+	} else if (value == 0) {	//key shift
+		shift_state = 1;
+	} else if (value == 2) {	//key ctrl
+		shift_state = 2;
+#ifdef SPANISH
+	} else {	//key AltGr spanish
+		shift_state = 3;
+#endif
 	}
-//	printf("do_shift value=0x%x,shift_state=0x%x\n",value,shift_state);
+//      printf("do_shift value=0x%x,shift_state=0x%x\n",value,shift_state);
 }
-
 
 static void do_null()
 {
-//	compute_shiftstate();
+//      compute_shiftstate();
 }
 
 static void enter(void)
 {
-//	extern void vga_set_enter();
-//	vga_set_enter();
-	kbd_code='\n';
+//      extern void vga_set_enter();
+//      vga_set_enter();
+	kbd_code = '\n';
 }
 
 static void do_spec(unsigned char value, char up_flag)
 {
 	if (up_flag)
 		return;
-//	printf("do_spec value=%x\n",value);
+//      printf("do_spec value=%x\n",value);
 //#define SIZE(x) (sizeof(x)/sizeof((x)[0]))
-//	if (value >= SIZE(spec_fn_table))	return;
-	if (spec_fn_table[value]) spec_fn_table[value]();
+//      if (value >= SIZE(spec_fn_table))       return;
+	if (spec_fn_table[value])
+		spec_fn_table[value] ();
 }
 
 static void do_dead(unsigned char value, char up_flag)
 {
-//	printf("do_dead value=%x\n",value);
+//      printf("do_dead value=%x\n",value);
 }
 
-#define KBD_CMD_SET_LEDS    0xED    /* Set keyboard leds */
+#define KBD_CMD_SET_LEDS    0xED	/* Set keyboard leds */
 #define mdelay delay1
 
 static int send_data(unsigned char data)
 {
-    int retries = 3;
+	int retries = 3;
 
-    do {
-        unsigned long timeout = KBD_TIMEOUT;
+	do {
+		unsigned long timeout = KBD_TIMEOUT;
 
-        acknowledge = 0; /* Set by interrupt routine on receipt of ACK. */
-        resend = 0;
-        reply_expected = 1;
-        kbd_write_output_w(data);
-        for (;;) {
-            if (acknowledge)
-                return 1;
-            if (resend)
-                break;
-            mdelay(1);
-            if (!--timeout) {
-                printf("keyboard: Timeout - AT keyboard not present?(%02x)\n", data);
-                return 0;
-            }
-        }
-    } while (retries-- > 0);
-    printf( "keyboard: Too many NACKs -- noisy kbd cable?\n");
-    return 0;
+		acknowledge = 0;	/* Set by interrupt routine on receipt of ACK. */
+		resend = 0;
+		reply_expected = 1;
+		kbd_write_output_w(data);
+		for (;;) {
+			if (acknowledge)
+				return 1;
+			if (resend)
+				break;
+			mdelay(1);
+			if (!--timeout) {
+				printf
+				    ("keyboard: Timeout - AT keyboard not present?(%02x)\n",
+				     data);
+				return 0;
+			}
+		}
+	} while (retries-- > 0);
+	printf("keyboard: Too many NACKs -- noisy kbd cable?\n");
+	return 0;
 }
 
 void pckbd_leds(unsigned char leds)
 {
-    if (kbd_available && (!send_data(KBD_CMD_SET_LEDS) || !send_data(leds))) {
-        send_data(KBD_CMD_ENABLE);  /* re-enable kbd if any errors */
-        kbd_available = 0;
-    }
+	if (kbd_available && (!send_data(KBD_CMD_SET_LEDS) || !send_data(leds))) {
+		send_data(KBD_CMD_ENABLE);	/* re-enable kbd if any errors */
+		kbd_available = 0;
+	}
 }
 
 //--------------------------------------mouse-------------------------------

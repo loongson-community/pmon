@@ -281,7 +281,7 @@ fl_isbusy_st(map, dev, what, offset, erase)
 			else return -1;
 		}
 		break;
-	default:
+	default:;
 		/* Not supported but sorted out much earlier */
 	}
 	return(busy);

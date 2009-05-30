@@ -103,9 +103,9 @@ int wdcdebug_pciide_mask = DEBUG_DMA|DEBUG_XFERS|DEBUG_FUNCS|DEBUG_PROBE;
 #include <dev/pci/pciidereg.h>
 #include <dev/pci/pciidevar.h>
 #include <dev/pci/pciide_piix_reg.h>
-#ifndef PMON
 #include <dev/pci/pciide_amd_reg.h>
 #include <dev/pci/pciide_apollo_reg.h>
+#ifndef PMON
 #endif
 #include <dev/pci/pciide_cmd_reg.h>
 #ifndef PMON
@@ -200,10 +200,12 @@ static u_int32_t piix_setup_idetim_timings __P((u_int8_t, u_int8_t, u_int8_t));
 static u_int32_t piix_setup_idetim_drvs __P((struct ata_drive_datas*));
 static u_int32_t piix_setup_sidetim_timings __P((u_int8_t, u_int8_t, u_int8_t));
 
-#ifndef PMON
 void amd756_chip_map __P((struct pciide_softc*, struct pci_attach_args*));
 void amd756_setup_channel __P((struct channel_softc*));
 
+void amdcs5536_chip_map __P((struct pciide_softc*, struct pci_attach_args*));
+void amdcs5536_setup_channel __P((struct channel_softc*));
+#ifndef PMON
 void apollo_chip_map __P((struct pciide_softc*, struct pci_attach_args*));
 void apollo_setup_channel __P((struct channel_softc*));
 #endif
@@ -289,14 +291,16 @@ const struct pciide_product_desc pciide_intel_products[] =  {
 	},
 };
 
-#ifndef PMON
 const struct pciide_product_desc pciide_amd_products[] =  {
 	{ PCI_PRODUCT_AMD_PBC756_IDE,	/* AMD 756 */
 	  0,
 	  amd756_chip_map
 	},
+	{ PCI_PRODUCT_AMD_CS5536_IDE,   /* AMD CS5536 */
+	  0,
+	  amdcs5536_chip_map
+	},
 };
-#endif
 
 const struct pciide_product_desc pciide_cmd_products[] =  {
 	{ PCI_PRODUCT_CMDTECH_640,	/* CMD Technology PCI0640 */
@@ -391,10 +395,8 @@ struct pciide_vendor_desc {
 const struct pciide_vendor_desc pciide_vendors[] = {
 	{ PCI_VENDOR_INTEL, pciide_intel_products,
 	  sizeof(pciide_intel_products)/sizeof(pciide_intel_products[0]) },
-#ifndef PMON
 	{ PCI_VENDOR_AMD, pciide_amd_products,
 	  sizeof(pciide_amd_products)/sizeof(pciide_amd_products[0]) },
-#endif
 	{ PCI_VENDOR_CMDTECH, pciide_cmd_products,
 	  sizeof(pciide_cmd_products)/sizeof(pciide_cmd_products[0]) },
 #ifndef PMON
@@ -1761,7 +1763,6 @@ piix_setup_sidetim_timings(mode, dma, channel)
 		    PIIX_SIDETIM_RTC_SET(piix_rtc_pio[mode], channel);
 }
 
-#ifndef PMON
 void
 amd756_chip_map(sc, pa)
 	struct pciide_softc *sc;
@@ -1820,6 +1821,94 @@ amd756_chip_map(sc, pa)
 	return;
 }
 
+static unsigned int amd_ide_clock;
+
+void
+amdcs5536_chip_map (sc, pa)
+	struct pciide_softc *sc;
+	struct pci_attach_args *pa;
+{
+	struct pciide_channel *cp;
+	//pcireg_t interface = PCI_INTERFACE(pci_conf_read(sc->sc_pc,
+	//			    sc->sc_tag, PCI_CLASS_REG));
+	pcireg_t interface = 0x00;
+	int channel;
+	bus_size_t cmdsize, ctlsize;
+
+	if (pciide_chipen(sc, pa) == 0)
+		return;
+
+	amd_ide_clock = 33333; /*Assume 33M bus clock*/
+
+	printf(": DMA");
+	pciide_mapreg_dma(sc, pa);
+
+	if (sc->sc_dma_ok)
+		sc->sc_wdcdev.cap |= WDC_CAPABILITY_DMA | WDC_CAPABILITY_UDMA;
+	sc->sc_wdcdev.cap |= WDC_CAPABILITY_DATA16 | WDC_CAPABILITY_DATA32 |
+			     WDC_CAPABILITY_MODE;
+	sc->sc_wdcdev.PIO_cap = 4;
+	sc->sc_wdcdev.DMA_cap = 0; /*FIXME Yanhua */
+	sc->sc_wdcdev.UDMA_cap = 0;
+	sc->sc_wdcdev.set_modes = amdcs5536_setup_channel;
+	sc->sc_wdcdev.channels = sc->wdc_chanarray;
+	sc->sc_wdcdev.nchannels = PCIIDE_NUM_CHANNELS;
+	sc->sc_wdcdev.cap |= WDC_CAPABILITY_DATA16;
+
+	pciide_print_channels(sc->sc_wdcdev.nchannels, interface);
+
+	for (channel = 0; channel < sc->sc_wdcdev.nchannels; channel++) {
+		cp = &sc->pciide_channels[channel];
+		if (pciide_chansetup(sc, channel, interface) == 0)
+			continue;
+		/* Maybe we need to detect the chanel is enabled. Yanhua */
+
+		/* Really initialization work begin here */
+		pciide_mapchan(pa, cp, interface, &cmdsize, &ctlsize,
+		    pciide_pci_intr);
+
+		pciide_map_compat_intr(pa, cp, channel, interface);
+		if (cp->hw_ok == 0)
+			continue;
+
+		amdcs5536_setup_channel(&cp->wdc_channel);
+	}
+	return;
+}
+
+void amdcs5536_setup_channel(chp) 
+		struct channel_softc* chp;
+{
+	u_int32_t drive_reg, cast_reg;
+	int mode, drive;
+	struct ata_drive_datas *drvp;
+	struct pciide_channel *cp = (struct pciide_channel*)chp;
+	struct pciide_softc *sc = (struct pciide_softc *)cp->wdc_channel.wdc;
+	
+	cast_reg = pci_conf_read(sc->sc_pc, sc->sc_tag, AMDCS5536_ADDRESS_SETUP);
+	drive_reg = pci_conf_read(sc->sc_pc, sc->sc_tag, AMDCS5536_DRIVE_TIMING);
+	cast_reg &= 0x00ffff0f;
+	drive_reg &= 0x0000ffff;
+
+	for (drive = 0; drive < 1; drive++) { 
+		drvp = &chp->ch_drive[drive];
+		drvp->PIO_mode &= 0x7;
+		if(drvp->PIO_mode >4)
+			drvp->PIO_mode = 4;
+
+		mode = drvp->PIO_mode;
+		cast_reg |= (amdcs5536_pio_set[mode].cyc << 28) | 
+				(amdcs5536_pio_set[mode].cyc <<24 ) |
+				(amdcs5536_pio_set[mode].setup <<6) |
+				(amdcs5536_pio_set[mode].setup <<4) ;
+
+		drive_reg |= (amdcs5536_pio_set[mode].data <<24) |
+				(amdcs5536_pio_set[mode].data <<16); 
+	}
+	pci_conf_write(sc->sc_pc, sc->sc_tag, AMDCS5536_ADDRESS_SETUP, cast_reg);
+	pci_conf_write(sc->sc_pc, sc->sc_tag, AMDCS5536_DRIVE_TIMING, drive_reg);
+}
+	  
 void
 amd756_setup_channel(chp)
 	struct channel_softc *chp;
@@ -1897,7 +1986,6 @@ pio:		/* setup PIO mode */
 	pci_conf_write(sc->sc_pc, sc->sc_tag, AMD756_DATATIM, datatim_reg);
 	pci_conf_write(sc->sc_pc, sc->sc_tag, AMD756_UDMA, udmatim_reg);
 }
-#endif
 
 #ifndef PMON
 void

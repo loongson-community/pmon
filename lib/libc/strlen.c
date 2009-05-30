@@ -32,7 +32,7 @@
  */
 #include <string.h>
 
-int 
+unsigned int 
 strlen(const char *p)
 {
 	int n;

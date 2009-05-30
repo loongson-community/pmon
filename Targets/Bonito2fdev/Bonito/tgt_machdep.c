@@ -31,6 +31,7 @@
  *
  */
 #include <include/stdarg.h>
+void		tgt_putchar (int);
 int
 tgt_printf (const char *fmt, ...)
 {
@@ -355,11 +356,12 @@ void addr_tst2(void);
 void movinv1(int iter, ulong p1, ulong p2);
 
 pcireg_t _pci_allocate_io(struct pci_device *dev, vm_size_t size);
+static void superio_reinit();
 
 void
 initmips(unsigned int memsz)
 {
-
+tgt_fpuenable();
 #ifdef DEVBD2F_SM502
 {
 /*set lio bus to 16 bit*/

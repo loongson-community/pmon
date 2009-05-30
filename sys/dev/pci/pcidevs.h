@@ -682,6 +682,7 @@
 /* http://www.amd.com/products/cpg/athlon/techdocs/pdf/22548.pdf */
 #define	PCI_PRODUCT_AMD_PBC756_ISA	0x7408		/* 756 PCI-ISA */
 #define	PCI_PRODUCT_AMD_PBC756_IDE	0x7409		/* 756 IDE */
+#define PCI_PRODUCT_AMD_CS5536_IDE  0x209A      /* CS5536 IDE */
 #define	PCI_PRODUCT_AMD_PBC756_PMC	0x740b		/* 756 Power Mgmt */
 #define	PCI_PRODUCT_AMD_PBC756_USB	0x740c		/* 756 USB Host */
 #define	PCI_PRODUCT_AMD_766_ISA	0x7410		/* 766 PCI-ISA */

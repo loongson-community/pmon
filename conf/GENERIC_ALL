@@ -73,4 +73,3 @@ select		cmd_shell		# Shell commands, vers, help, eval
 #select 	 	mod_usb_ohci
 #select      mod_usb_kbd
 #select      mod_usb_uhci
-option USE_ENVMAC

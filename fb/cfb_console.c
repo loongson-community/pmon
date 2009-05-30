@@ -411,6 +411,10 @@ static const int video_font_draw_table32[16][4] = {
 
 
 int gunzip(void *, int, unsigned char *, unsigned long *);
+static void memsetl (int *p, int c, int v);
+void video_putchar (int xx, int yy, unsigned char c);
+static void memcpyl (int *d, int *s, int c);
+
 extern int vga_available;
 
 static int disableoutput=0;
@@ -1520,16 +1524,20 @@ SWAP16 ((unsigned short) (((255 >> 3) << 11) | ((255 >> 2) << 5) | (255 >> 3)))
 };
 static void __cprint(int y, int x,int width,char color, const char *buf)
 {
+#ifndef FB_MENU_NOCLOLOR
 	bgx = pallete[color>>4];
 	bgx |= (bgx << 16);
 	fgx =  pallete[color&0xf];
 	fgx |= (fgx << 16);
 	eorx = fgx ^ bgx;
+#endif
 	video_console_print(x, y, buf);
+#ifndef FB_MENU_NOCLOLOR
 	bgx = 0;	
 	fgx =  SWAP16 ((unsigned short) (((128 >> 3) << 11) | ((128 >> 2) << 5) | (128 >> 3)));
 	fgx |= (fgx << 16);
 	eorx = fgx ^ bgx;
+#endif
 }
 
 void cprintfb(int y, int x,int width,char color, const char *text)
