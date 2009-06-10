@@ -300,7 +300,10 @@ tgt_devconfig()
 		printf("vga bios init failed, rc=%d\n",rc);
 	}
 #endif
-
+#ifdef LOONGSON2F_ALLINONE
+	do_cmd("gpio11_high");
+	do_cmd("i2c_write");
+#endif
 	if (rc > 0) {
 		if(!getenv("novga")) vga_available=1;
 	}

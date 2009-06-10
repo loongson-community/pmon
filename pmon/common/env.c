@@ -94,7 +94,7 @@ static struct stdenv {
 	{"Version", "LM6004-1.3.3", 0},
 #endif
 #ifdef LOONGSON2F_ALLINONE
-	{"Version", "LM9001-1.3.4", 0},
+	{"Version", "LM9001-1.3.5", 0},
 #endif	
 {"BuildTime",  __DATE__ " " __TIME__ , 0},
 #if defined(TGT_DEFENV)
