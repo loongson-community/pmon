@@ -1415,7 +1415,7 @@ static void *video_logo (void)
 void video_cls(void)
 {
 	memsetl (video_fb_address + VIDEO_LOGO_HEIGHT * VIDEO_LINE_LEN, 
-		CONSOLE_SIZE - VIDEO_LOGO_HEIGHT * VIDEO_LINE_LEN, 
+		(CONSOLE_SIZE - VIDEO_LOGO_HEIGHT * VIDEO_LINE_LEN)>>2, 
 		CONSOLE_BG_COL);
 #ifdef MEM_PRINTTO_VIDEO
 	memsetl (memfb, CONSOLE_ROWS * CONSOLE_COLS >> 2, CONSOLE_BG_COL);
