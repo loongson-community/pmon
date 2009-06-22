@@ -95,6 +95,9 @@ struct fl_device fl_known_dev[] = {
 	/* zfx, should be compatible */
 	{"MX29LV040", 0xC2, 0x4F, FL_PROTO_AMD, FL_CAP_DE,
 	 512 * __KB, 64 * __KB, NULL, &fl_func_amd},
+    /* hw, should be compatible */
+    {"EN29LV040A", 0x1C, 0x4F, FL_PROTO_AMD, FL_CAP_DE,
+     512 * __KB, 64 * __KB, NULL, &fl_func_amd},
 #endif				/* NMOD_FLASH_AMD */
 #if NMOD_FLASH_INTEL > 0
 	{"i28F016SA", 0x89, 0xa0, FL_PROTO_INT, FL_CAP_A7,

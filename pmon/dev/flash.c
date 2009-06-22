@@ -200,7 +200,11 @@ struct fl_device *fl_devident(void *base, struct fl_map **m)
 
 		switch (map->fl_map_bus) {
 		case FL_BUS_8:
-			mfgid = inb(map->fl_map_base);
+//			mfgid = inb(map->fl_map_base);
+            /* add support for  EON ROM  -- huangw */
+            mfgid = inb(map->fl_map_base | 0x100);
+            if(mfgid != 0x1C)
+               mfgid = inb(map->fl_map_base);
 			chipid = inb(map->fl_map_base + 1);
 
 			if (chipid == mfgid) {	/* intel 16 bit flash mem */
