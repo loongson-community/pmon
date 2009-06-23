@@ -828,6 +828,8 @@ dbginit (char *adr)
 		case NO_KEY:
 		case ENTER_KEY:
 #ifdef AUTOLOAD
+#if defined(LOONGSON2F_FULOONG) || defined(LOONGSON2F_7INCH)
+
 			if (!load_menu_list())
             {
 				/* second try autoload env */
@@ -839,6 +841,14 @@ dbginit (char *adr)
 					printf("[auto load error]you haven't set the kernel path!\n");
 				}           
 			}
+#else
+				s = getenv ("al");
+				if (s != 0){
+					autoload (s);
+				} else {
+					printf("[auto load error]you haven't set the kernel path!\n");
+				}           
+#endif
 #else
 			s = getenv ("autoboot");
 			autorun (s);

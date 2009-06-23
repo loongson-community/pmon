@@ -184,9 +184,92 @@ void addr_tst1(void);
 void addr_tst2(void);
 void movinv1(int iter, ulong p1, ulong p2);
 
+
+void enable_cache()
+{
+         __asm__ volatile(
+         ".set mips3;
+         mfc0   $4,$16;
+         and    $4,$4,0xfffffff8;
+         or     $4,$4,0x3;
+         mtc0   $4,$16;
+        .set mips0;"
+        ::
+         :"$4"
+       );
+ }
+
+void write_lowmem()
+{
+   __asm__ volatile(
+	  ".set mips3;
+	  li   $2, 0xa1000000;
+	  li   $13,0xb0000000;
+write_again_low:
+      sd   $13,0($2);
+	  sd   $13,8($2);
+	  sd   $13,16($2);
+	  sd   $13,24($2);
+	  sd   $13,32($2);
+	  sd   $13,40($2);
+	  sd   $13,48($2);
+	  sd   $13,56($2)
+	  addu  $2,$2,64;
+	  subu  $14,$13,$2;
+	  bnez  $14, write_again_low;
+	  nop;
+	  .set mips0;"
+	  :::"$2","$3","$13","$14","memory"
+	  );
+}
+
+void config_64bit()
+{
+	    __asm__(
+         ".set mips3\n"
+         "dli $2, 0x900000003ff00000\n"
+         "dli $3, 0x0000000080000000\n"
+         "sd  $3, 0x10($2)\n"
+         "sd  $0, 0x50($2)\n"
+         "dli $3, 0xffffffffc0000000\n"
+          "sd  $3, 0x30($2)\n"
+         ".set mips0\n"
+         :::"$2","$3","memory");
+}
+
+void write_highmem(unsigned int highmemsize)
+{
+   __asm__(
+        ".set mips3\n"
+        "dli  $2,0x9000000090000000\n"
+        "dli  $3,0x55aa55aa55aa55aa\n"
+		//"dli  $13,0x90000000c0000000\n"
+		//"lw $14,0(%0)\n"
+		"daddu $13,$2,%0\n"
+		"write_again_high:\n"
+        "sd   $3,0($2)\n"
+		"sd   $3,8($2)\n"
+		"sd   $3,16($2)\n"
+		"sd   $3,24($2)\n"
+        "sd   $3,32($2)\n"
+		"sd   $3,40($2)\n"
+		"sd   $3,48($2)\n"
+		"sd   $3,56($2)\n"
+
+        "daddu $2,$2,64\n"		
+		"dsubu $14,$13,$2\n"
+		"bnez  $14,write_again_high\n"
+		"nop"
+		::"r"(highmemsize):"$2","$3","$13","$14","memory"
+		  );		   
+}
+
+
+
 void
 initmips(unsigned int memsz)
 {
+	unsigned int i;
 	/*
 	 *	Set up memory address decoders to map entire memory.
 	 *	But first move away bootrom map to high memory.
@@ -196,9 +279,17 @@ initmips(unsigned int memsz)
 	GT_WRITE(BOOTCS_HIGH_DECODE_ADDRESS, (BOOT_BASE - 1 + BOOT_SIZE) >> 20);
 #endif
 	//memsz = 512;
+	enable_cache();
+    SBD_DISPLAY("STP0",0);
+#if defined(HAVE_ECC_MEMORY)
+	write_lowmem();
+#endif
 	memorysize = memsz > 256 ? 256 << 20 : memsz << 20;
 	memorysize_high = memsz > 256 ? (memsz - 256) << 20 : 0;
-
+#if defined(HAVE_ECC_MEMORY)
+	config_64bit();
+	write_highmem(memorysize_high);
+#endif	
 	/*
 	 *  Probe clock frequencys so delays will work properly.
 	 */

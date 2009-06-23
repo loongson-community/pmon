@@ -30,7 +30,7 @@ option     VGA_NO_ROM       # display card has no rom
 option     LOONGSON2F_HPC
 #option		HAVE_FLASH		# Platform has FLASH memory.
 #option		HAVE_NVENV		# Platform has non-volatile env mem 
-
+option      HAVE_ECC_MEMORY 
 #
 # Module selection. Selects pmon features
 #

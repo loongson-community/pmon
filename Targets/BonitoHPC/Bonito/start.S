@@ -1183,6 +1183,39 @@ do_caches:
 	TTYDBG("\r\n\r\n")
 #endif
 
+
+#ifdef HAVE_ECC_MEMORY
+ #define DEBUG_ECC
+ #ifdef DEBUG_ECC
+      li     t7,0x0
+      li     v1, 0xa0000000
+      li     t2, 0xa1000000
+WRITE_AGAIN:
+      sd   t7,0(v1)
+	  sd   t7,8(v1)
+      sd   t7,16(v1)
+      sd   t7,24(v1)
+      sd   t7,32(v1)
+      sd   t7,40(v1)
+      sd   t7,48(v1)
+      sd   t7,56(v1)
+      sd   t7,64(v1)
+      sd   t7,72(v1)
+      sd   t7,80(v1)
+      sd   t7,88(v1)
+      sd   t7,96(v1)
+      sd   t7,104(v1)
+      sd   t7,112(v1)
+      sd   t7,120(v1)
+
+      addu v1,128
+      subu v0,t2,v1
+      bnez v0,WRITE_AGAIN
+      nop
+#endif
+#endif
+
+
 /***********************MEMORY DEBUGGING AND COPY SELF TO RAM***********************/
 
 /* zhb */
@@ -1378,16 +1411,16 @@ zhb:
 
 	li	a0, 4096*1024
 	sw	a0, CpuTertiaryCacheSize /* Set L3 cache size */
-
+//Enable cache
 #if 0
         mfc0   a0,COP_0_CONFIG
         and    a0,a0,0xfffffff8
         or     a0,a0,0x3
         mtc0   a0,COP_0_CONFIG
 #endif
-//	li	msize,(512<<20)
+	//li	msize,(128<<20)
 
-	move	a0,msize
+    move	a0,msize
 	srl	a0,20
 
     /* pass pointer to kseg1 tgt_putchar */
@@ -1397,8 +1430,6 @@ zhb:
     la  a2, stringserial
 	addu a2,a2,s0
 
-	/*TTYDBG("\r\nenter initmips...\r\n");*/
-	
 	la	v0, initmips
 	jalr	v0
 	nop
@@ -1504,6 +1535,33 @@ LEAF(CPU_TLBInit)
 END(CPU_TLBInit)
 
 /***********************************FUNCTIONS**********************************/
+LEAF(flushcache2)
+
+      mfc0    v1, COP_0_PRID           # read processor ID register
+      li      v0, 0x6303             #godson2f prid
+      beq     v0, v1, godson_2f
+      nop
+      li      v0, 0x6302             #godson2e prid
+      bne v0, v1,11f 
+      nop
+  # godson2e
+  godson_2f:
+      li    v0, 0x80000000
+      addu  v1,v0,512*1024
+  10:
+      cache   3, 0(v0)
+      cache   3, 1(v0)
+      cache   3, 2(v0)
+      cache   3, 3(v0)
+      addu    v0, 32
+      bne     v0,v1, 10b
+      nop
+11:
+         j ra
+         nop
+END(flushcache2)
+
+
 
 LEAF(stringserial)
 	move	a2, ra
@@ -2591,7 +2649,13 @@ DDR2_CTL_03_DATA_HI:	.word 0x01010000
 //0000000_0 write_modereg 0000000_1 writeinterp 0000000_1 tref_enable 0000000_1 tras_lockout
 DDR2_CTL_04_DATA_LO:	.word 0x01010101
 //000000_01 rtt_0 000000_00 ctrl_raw 000000_10 axi0_w_priority 000000_10 axi0_r_priority 
-DDR2_CTL_04_DATA_HI:	.word 0x01000202
+//DDR2_CTL_04_DATA_HI:    .word 0x01000202
+#ifdef HAVE_ECC_MEMORY
+//Enable ECC
+DDR2_CTL_04_DATA_HI:	.word 0x01030202
+#else
+DDR2_CTL_04_DATA_HI:    .word 0x01000202
+#endif
 //00000_100 column_size 00000_101 caslat 00000_010 addr_pins 000000_10 rtt_pad_termination
 //DDR2_CTL_05_DATA_LO:	.word 0x04050202 #CL =5	// jlliu old
 DDR2_CTL_05_DATA_LO:	.word 0x04050202 #CL =5 //ODT 50
