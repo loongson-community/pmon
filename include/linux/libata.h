@@ -21,13 +21,33 @@
  * MA 02111-1307 USA
  *
  */
+/************************************************************************
 
+ Copyright (C)
+ File name:     libata.h
+ Author:  qianyl      Version:  ***      Date: ***
+ Description:   
+ Others:        
+ Function List:
+ 
+ Revision History:
+ 
+ -----------------------------------------------------------------------------------------------------------
+  Date               Author          Activity ID             Activity Headline
+  2008-05-12    QianYuli        PMON00000001    porting it from u-boot and linux
+  2008-06-26    QianYuli        PMON00000002    Add some ata*** like struct
+************************************************************************************/
 #ifndef __LIBATA_H__
 #define __LIBATA_H__
 #include "sys/linux/types.h"
-//#include <sys/device.h>
+#include <sys/param.h>
+#include <ctype.h>
+#include <sys/device.h>
 
 typedef unsigned long long u64;
+typedef unsigned long dma_addr_t;
+
+#define CONFIG_ATA_SFF
 
 enum {
     /* various global constants */
@@ -170,9 +190,9 @@ enum {
     ATA_CMD_PIO_READ_EXT    = 0x24,
     ATA_CMD_PIO_WRITE   = 0x30,
     ATA_CMD_PIO_WRITE_EXT   = 0x34,
-    ATA_CMD_DMA_READ    = 0xC8,
+    ATA_CMD_DMA_READ    = 0xc8,
     ATA_CMD_DMA_READ_EXT    = 0x25,
-    ATA_CMD_DMA_WRITE   = 0xCA,
+    ATA_CMD_DMA_WRITE   = 0xca,
     ATA_CMD_DMA_WRITE_EXT   = 0x35,
     ATA_CMD_READ_MULTI  = 0xC4,
     ATA_CMD_READ_MULTI_EXT  = 0x29,
@@ -331,12 +351,92 @@ enum {
     ATA_TFLAG_FUA       = (1 << 5), /* enable FUA */
     ATA_TFLAG_POLLING   = (1 << 6), /* set nIEN to 1 and use polling */
 
+    ATA_PFLAG_PIO32     = (1 << 20),  /* 32bit PIO */
+    ATA_PFLAG_PIO32CHANGE   = (1 << 21),  /* 32bit PIO can be turned on/off */
+
     /* protocol flags */
     ATA_PROT_FLAG_PIO   = (1 << 0), /* is PIO */
     ATA_PROT_FLAG_DMA   = (1 << 1), /* is DMA */
     ATA_PROT_FLAG_DATA  = ATA_PROT_FLAG_PIO | ATA_PROT_FLAG_DMA,
     ATA_PROT_FLAG_NCQ   = (1 << 2), /* is NCQ */
     ATA_PROT_FLAG_ATAPI = (1 << 3), /* is ATAPI */
+
+        /* host set flags */
+    ATA_HOST_SIMPLEX    = (1 << 0), /* Host is simplex, one DMA channel per host only */
+    ATA_HOST_STARTED    = (1 << 1), /* Host started */
+    ATA_HOST_PARALLEL_SCAN  = (1 << 2), /* Ports on this host can be scanned in parallel */
+
+
+   /* struct ata_port flags */
+    ATA_FLAG_SLAVE_POSS = (1 << 0), /* host supports slave dev */
+                        /* (doesn't imply presence) */
+    ATA_FLAG_SATA       = (1 << 1),
+    ATA_FLAG_NO_LEGACY  = (1 << 2), /* no legacy mode check */
+    ATA_FLAG_MMIO       = (1 << 3), /* use MMIO, not PIO */
+    ATA_FLAG_SRST       = (1 << 4), /* (obsolete) use ATA SRST, not E.D.D. */
+    ATA_FLAG_SATA_RESET = (1 << 5), /* (obsolete) use COMRESET */
+    ATA_FLAG_NO_ATAPI   = (1 << 6), /* No ATAPI support */
+    ATA_FLAG_PIO_DMA    = (1 << 7), /* PIO cmds via DMA */
+    ATA_FLAG_PIO_LBA48  = (1 << 8), /* Host DMA engine is LBA28 only */
+    ATA_FLAG_PIO_POLLING    = (1 << 9), /* use polling PIO if LLD
+                         * doesn't handle PIO interrupts */
+    ATA_FLAG_NCQ        = (1 << 10), /* host supports NCQ */
+    ATA_FLAG_NO_POWEROFF_SPINDOWN = (1 << 11), /* don't spindown before poweroff */
+    ATA_FLAG_NO_HIBERNATE_SPINDOWN = (1 << 12), /* don't spindown before hibernation */
+    ATA_FLAG_DEBUGMSG   = (1 << 13),
+    ATA_FLAG_IGN_SIMPLEX    = (1 << 15), /* ignore SIMPLEX */
+    ATA_FLAG_NO_IORDY   = (1 << 16), /* controller lacks iordy */
+    ATA_FLAG_ACPI_SATA  = (1 << 17), /* need native SATA ACPI layout */
+    ATA_FLAG_AN     = (1 << 18), /* controller supports AN */
+    ATA_FLAG_PMP        = (1 << 19), /* controller supports PMP */
+    ATA_FLAG_IPM        = (1 << 20), /* driver can handle IPM */
+    ATA_FLAG_EM     = (1 << 21), /* driver supports enclosure
+                          * management */
+    ATA_FLAG_SW_ACTIVITY    = (1 << 22), /* driver supports sw activity
+                          * led */
+
+/* struct ata_device stuff */
+    ATA_DFLAG_LBA       = (1 << 0), /* device supports LBA */
+    ATA_DFLAG_LBA48     = (1 << 1), /* device supports LBA48 */
+    ATA_DFLAG_CDB_INTR  = (1 << 2), /* device asserts INTRQ when ready for CDB */
+    ATA_DFLAG_NCQ       = (1 << 3), /* device supports NCQ */
+    ATA_DFLAG_FLUSH_EXT = (1 << 4), /* do FLUSH_EXT instead of FLUSH */
+    ATA_DFLAG_ACPI_PENDING  = (1 << 5), /* ACPI resume action pending */
+    ATA_DFLAG_ACPI_FAILED   = (1 << 6), /* ACPI on devcfg has failed */
+    ATA_DFLAG_AN        = (1 << 7), /* AN configured */
+    ATA_DFLAG_HIPM      = (1 << 8), /* device supports HIPM */
+    ATA_DFLAG_DIPM      = (1 << 9), /* device supports DIPM */
+    ATA_DFLAG_DMADIR    = (1 << 10), /* device requires DMADIR */
+    ATA_DFLAG_CFG_MASK  = (1 << 12) - 1,
+
+    ATA_DFLAG_PIO       = (1 << 12), /* device limited to PIO mode */
+    ATA_DFLAG_NCQ_OFF   = (1 << 13), /* device limited to non-NCQ mode */
+    ATA_DFLAG_SPUNDOWN  = (1 << 14), /* XXX: for spindown_compat */
+    ATA_DFLAG_SLEEPING  = (1 << 15), /* device is sleeping */
+    ATA_DFLAG_DUBIOUS_XFER  = (1 << 16), /* data transfer not verified */
+    ATA_DFLAG_NO_UNLOAD = (1 << 17), /* device doesn't support unload */
+    ATA_DFLAG_INIT_MASK = (1 << 24) - 1,
+
+    ATA_DFLAG_DETACH    = (1 << 24),
+    ATA_DFLAG_DETACHED  = (1 << 25),
+
+    ATA_DEV_UNKNOWN     = 0,    /* unknown device */
+    ATA_DEV_ATA     = 1,    /* ATA device */
+    ATA_DEV_ATA_UNSUP   = 2,    /* ATA device (unsupported) */
+    ATA_DEV_ATAPI       = 3,    /* ATAPI device */
+    ATA_DEV_ATAPI_UNSUP = 4,    /* ATAPI device (unsupported) */
+    ATA_DEV_PMP     = 5,    /* SATA port multiplier */
+    ATA_DEV_PMP_UNSUP   = 6,    /* SATA port multiplier (unsupported) */
+    ATA_DEV_SEMB        = 7,    /* SEMB */
+    ATA_DEV_SEMB_UNSUP  = 8,    /* SEMB (unsupported) */
+    ATA_DEV_NONE        = 9,    /* no device */
+
+       /*port state*/
+    ATA_PORT_DEVICE_ATTACHED  = (1 << 0),/*The device has attached to port*/
+
+    ATA_TRANS_PIO = 0x1,
+    ATA_TRANS_MWDMA =0x2, 
+    ATA_TRANS_UDMA  = 0x3,
 };
 
 enum ata_tf_protocols {
@@ -356,14 +456,41 @@ enum ata_ioctls {
     ATA_IOC_SET_IO32    = 0x324,
 };
 
+#define PRD_SIZE_SAMLLER 0x0
+#define DMA_IN_PROGRESS 0x1
+#define DMA_ERROR 0x2
+#define NORMAL_COMPLETE 0x4
+#define PRD_SIZE_LARGER 0x5
+
+#if 0
 enum ata_dev_typed {
     ATA_DEV_ATA,        /* ATA device */
     ATA_DEV_ATAPI,      /* ATAPI device */
     ATA_DEV_PMP,        /* Port Multiplier Port */
     ATA_DEV_UNKNOWN,    /* unknown */
 };
+#endif
 
-struct ata_taskfile {
+enum ata_completion_errors {
+    AC_ERR_DEV      = (1 << 0), /* device reported error */
+    AC_ERR_HSM      = (1 << 1), /* host state machine violation */
+    AC_ERR_TIMEOUT      = (1 << 2), /* timeout */
+    AC_ERR_MEDIA        = (1 << 3), /* media error */
+    AC_ERR_ATA_BUS      = (1 << 4), /* ATA bus error */
+    AC_ERR_HOST_BUS     = (1 << 5), /* host bus error */
+    AC_ERR_SYSTEM       = (1 << 6), /* system error */
+    AC_ERR_INVALID      = (1 << 7), /* invalid argument */
+    AC_ERR_OTHER        = (1 << 8), /* unknown */
+    AC_ERR_NODEV_HINT   = (1 << 9), /* polling device detection hint */
+    AC_ERR_NCQ      = (1 << 10), /* marker for offending NCQ qc */
+};
+
+typedef struct ata_prd {
+    unsigned int addr;
+    unsigned int flag_len;
+}ata_prd_t, *p_ata_prd_t;
+
+typedef struct ata_taskfile {
     unsigned long       flags;      /* ATA_TFLAG_xxx */
     u8          protocol;   /* ATA_PROT_xxx */
 
@@ -384,7 +511,129 @@ struct ata_taskfile {
     u8          device;
 
     u8          command;    /* IO operation */
-};
+}ata_taskfile_t, *p_ata_taskfile_t;
+
+#define USE_LIBATA
+#ifdef USE_LIBATA
+typedef struct ata_port_operations {
+    /*
+     * Configuration and exception handling
+     */
+    int  (*port_identify)(struct ata_port *p_ap);
+    void (*set_piomode)(struct ata_port *p_ap, struct ata_device *p_dev);
+    void (*set_dmamode)(struct ata_port *p_ap, struct ata_device *p_dev);
+    int  (*set_mode)(struct ata_port *p_ap);
+
+    void (*dev_config)(struct ata_device *p_dev);
+    unsigned int (*devchk)(struct ata_port *p_ap);
+
+    int  (*softreset)(struct ata_port *p_ap);
+    int  (*hardreset)(struct ata_port *p_ap);
+
+    /*
+     * Optional features
+     */
+    int  (*scr_read)(struct ata_port *p_ap, unsigned int sc_reg, u32 *val);
+    int  (*scr_write)(struct ata_port  *p_ap, unsigned int sc_reg, u32 val);
+
+    /*
+     * Start, stop, suspend and resume
+     */
+    int  (*port_start)(struct ata_port *p_ap);
+    void (*port_stop)(struct ata_port *p_ap);
+    void (*host_stop)(struct ata_host *p_host);
+
+#ifdef CONFIG_ATA_SFF
+    /*
+     * SFF / taskfile oriented ops
+     */
+    //void (*sff_dev_select)(struct ata_port *p_ap, unsigned int device);
+    u8   (*sff_check_status)(struct ata_port *p_ap,u8 usealtstatus);
+    u8   (*sff_check_altstatus)(struct ata_port *p_ap);
+    void (*sff_tf_load)(struct ata_port *p_ap);
+    void (*sff_tf_read)(struct ata_port *p_ap, struct ata_taskfile *p_tf);
+    void (*sff_exec_command)(struct ata_port *p_ap);
+    unsigned int (*sff_data_xfer)(struct ata_device *p_dev,
+            unsigned char *buf, unsigned int buflen, int rw);
+    u8   (*sff_irq_on)(struct ata_port *);
+    void (*sff_irq_clear)(struct ata_port *);
+
+    void (*bmdma_setup)(struct ata_port *p_ap);
+    void (*bmdma_start)(struct ata_port *p_ap);
+    void (*bmdma_stop)(struct ata_port *p_ap);
+    u8   (*bmdma_status)(struct ata_port *p_ap);
+
+#endif /* CONFIG_ATA_SFF */
+ 
+    const struct ata_port_operations    *inherits;
+}ata_port_operations_t, *p_ata_port_operations_t;
+
+struct ata_host;
+#define CONFIG_ATA_SFF
+#ifdef CONFIG_ATA_SFF
+typedef struct ata_ioports {
+    void  *cmd_addr;
+    void  *data_addr;
+    void  *error_addr;
+    void  *feature_addr;
+    void  *nsect_addr;
+    void  *lbal_addr;
+    void  *lbam_addr;
+    void  *lbah_addr;
+    void  *device_addr;
+    void  *status_addr;
+    void  *command_addr;
+    void  *altstatus_addr;
+    void  *ctl_addr;
+    void  *bmdma_addr;
+    void  *scr_addr;
+} ata_ioports_t, *p_ata_ioports_t;
+#endif /* CONFIG_ATA_SFF */
+
+ typedef struct ata_port {
+    p_ata_port_operations_t    p_ops;
+    int                      port_no;  
+    int                      dev_no;  /*attched to this port's dev no;*/
+    unsigned int                      pio;       /*the fatest pio this port supported*/
+    unsigned int                      mwdma;/*the fatest mwdma this port supported*/
+    unsigned int                      udma;   /*the fatest udma this port supported*/
+    unsigned int                      trans_mode;/*indicate which transfer mode used(1:pio 2:mwdma 3:udma)*/
+    p_ata_prd_t                       p_prd;
+    dma_addr_t                       prd_dma;
+#ifdef CONFIG_ATA_SFF
+    ata_ioports_t                     ioaddr;   /* ATA cmd/ctl/dma reg blks     */
+#endif
+    struct ata_taskfile             *p_tf;
+    unsigned int                      multi_count;
+    unsigned int                      flags;   /* ATA_FLAG_xxx      */
+    unsigned long                   dflags; /*ATA_DFLAG_xxx    */
+    unsigned long                   pflags; /*ATA_PROT_FLAG_xxx*/
+    unsigned long                   dclass; /*ATA_DEV_xxx*/
+    unsigned int                      port_state;
+    unsigned char                   ctl;  
+    struct ata_host                  *p_host;
+} ata_port_t, *p_ata_port_t;
+
+typedef struct ata_device  ata_device_t,*p_ata_device_t;
+
+typedef struct ata_host {
+    void                                      **iomap;
+    unsigned int                          n_ports;
+    void                                      *p_private_data;
+    p_ata_port_operations_t        p_ops;
+    unsigned long                       flags;
+    p_ata_port_t                         *pp_ports;
+    p_ata_device_t                      *pp_dev;
+}ata_host_t, *p_ata_host_t;
+
+struct ata_device {
+    struct device r_dev;
+    int port_no; /*which port the device connect to*/
+    int dev_no;/*the number assigned to device*/
+    p_ata_host_t  p_host;     
+} ;
+
+#endif
 #define readb(addr) (*(volatile unsigned char *)(addr))
 #define readw(addr) (*(volatile unsigned short *)(addr))
 #define readl(addr) (*(volatile unsigned int *)(addr))
@@ -399,18 +648,37 @@ struct ata_taskfile {
 #define __raw_writew writew
 #define __raw_writel writel
 
+#define iowrite8(b,addr) writeb(b,addr)
+#define ioread8(addr) readb(addr)
+#define iowrite32(b,addr) writel(b,addr)
 
 /* Convert sectorsize to wordsize */
 #define ATA_SECTOR_WORDS (ATA_SECT_SIZE/2)
 /* Convert sectorsize to dwordsize */
 #define ATA_SECTOR_DWORDS (ATA_SECT_SIZE/4)
 
+/*
+ *function protype
+*/
+unsigned int ata_devchk(struct ata_port *p_ap);
+unsigned int ata_identify (struct ata_port  *p_ap);
 
-#define PRD_SIZE_SAMLLER 0x0
-#define DMA_IN_PROGRESS 0x1
-#define DMA_ERROR 0x2
-#define NORMAL_COMPLETE 0x4
-#define PRD_SIZE_LARGER 0x5
+extern void udelay(int usec);
+extern void ndelay(int nsec);
+static inline void mdelay(u32 msec)
+{
+    u32 i;
+    for (i = 0; i < msec; i++)
+        udelay(1000);
+}
+
+static inline void sdelay(u64 sec)
+{
+    u64 i;
+    for (i = 0; i < sec; i++)
+        mdelay(1000);
+}
+
 /*
  * protocol tests
  */
@@ -476,6 +744,7 @@ static inline int ata_is_data(u8 prot)
 #define ata_id_removeable(id)       ((id)[0] & (1 << 7))
 #define ata_id_iordy_disable(id)    ((id)[49] & (1 << 10))
 #define ata_id_has_iordy(id)        ((id)[49] & (1 << 11))
+#define ata_id_has_lba48(id)         ((id)[83] & (1 << 10))  
 
 #define ata_id_u32(id,n)    \
     (((u32) (id)[(n) + 1] << 16) | ((u32) (id)[(n)]))
@@ -486,6 +755,8 @@ static inline int ata_is_data(u8 prot)
       ((u64) (id)[(n) + 0]) )
 
 #define ata_id_cdb_intr(id)     (((id)[0] & 0x60) == 0x20)
+
+
 
 static inline int ata_id_has_fua(const u16 *id)
 {
@@ -508,14 +779,14 @@ static inline int ata_id_has_flush_ext(const u16 *id)
     return id[83] & (1 << 13);
 }
 
-static inline int ata_id_has_lba48(const u16 *id)
+/*static inline int ata_id_has_lba48(const u16 *id)
 {
     if ((id[83] & 0xC000) != 0x4000)
         return 0;
     if (!ata_id_u64(id, 100))
         return 0;
     return id[83] & (1 << 10);
-}
+}*/
 
 static inline int ata_id_hpa_enabled(const u16 *id)
 {
@@ -691,7 +962,7 @@ static inline int lba_48_ok(u64 block, u32 n_block)
 #define sata_pmp_gscr_ports(gscr)   ((gscr)[SATA_PMP_GSCR_PORT_INFO] & 0xf)
 
 u64 ata_id_n_sectors(u16 *id);
-u32 ata_dev_classify(u32 sig);
+u32 ata_dev_classify(const struct ata_taskfile *p_tf);
 void ata_id_c_string(const u16 *id, unsigned char *s, unsigned int ofs, unsigned int len);
 void ata_dump_id(u16 *id);
 void ata_swap_buf_le16(u16 *buf, unsigned int buf_words);

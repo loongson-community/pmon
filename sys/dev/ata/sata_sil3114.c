@@ -15,7 +15,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
  * MA 02111-1307 USA
  */
- /************************************************************************
+ /*********************************************************************************
 
  Copyright (C)
  File name:     sata_sil3114.c
@@ -26,10 +26,11 @@
  
  Revision History:
  
- --------------------------------------------------------------------------------------------
-  Date              Author           Activity ID            Activity Headline
-  2008-05-12    QianYuli        PMON00000001    porting it from u-boot
-*************************************************************************/
+ -----------------------------------------------------------------------------------------------------------
+  Date               Author          Activity ID             Activity Headline
+  2008-05-12    QianYuli        PMON00000001    porting it from u-boot and linux
+  2008-06-26    QianYuli        PMON00000002    move some function to libata_***.c
+************************************************************************************/
 /*
 Note to myself:
 Port (or in sil3114 datasheet called channel) index number does not  equal to device
@@ -53,18 +54,10 @@ The rest may be deduced by analogy.
 #undef _KERNEL
 #include <errno.h>
 
-struct sil_sata_softc {
-    /* General disk infos */
-    struct device sc_dev;
-    int bs,count;
-};
-
+/* Convert sectorsize to wordsize */
+#define ATA_SECTOR_WORDS (ATA_SECT_SIZE/2)
 #define vtophys(p)      _pci_dmamap((vm_offset_t)p, 1)
-
 #define CFG_SATA_MAX_DEVICE 2
-#define debug(fmt,args...)  printf(fmt ,##args)
-static int fault_timeout;
-
 
 static int sil_match (struct device *, void *, void *);
 static void sil_attach (struct device *, struct device *, void *);
@@ -84,23 +77,59 @@ int sil_close(dev_t dev,int flag, int fmt,struct proc *p);
 int sil_read(dev_t dev,struct uio *uio,int flags);
 int sil_write(dev_t dev,struct uio *uio,int flags);
 
-extern void udelay(int usec);
-extern sata_operation_t sata_op;
-extern sata_device_t sata_dev[];
+static int sil_set_mode(struct ata_port *p_ap);
+static void sil_bmdma_setup(struct ata_port *p_ap);
+static void sil_bmdma_start(struct ata_port *p_ap);
+static void sil_bmdma_stop(struct ata_port *p_ap);
+unsigned int sil_devchk (struct ata_port *p_ap);
+int sil_sata_phy_reset (struct ata_port *p_ap);
+static void sil_irq_clear(struct ata_port *p_ap);
+static u8 sil_bmdma_status(struct ata_port *p_ap);
 
+extern void udelay(int usec);
+
+extern sata_operation_t sata_op;
 static u32 g_iobase[6] = { 0, 0, 0, 0, 0, 0};   /* PCI BAR registers for device */
-sata_port_t sata_ports[CONFIG_SYS_SATA_MAX_DEVICE];
-int curr_dev = -1;
-block_dev_desc_t *p_stor_desc;
+ata_port_t sil_ata_ports[CONFIG_SYS_SATA_MAX_DEVICE];
+ata_device_t sil_ata_dev[CONFIG_SYS_SATA_MAX_DEVICE];
+ata_host_t sil_host;
+
+p_ata_port_t p_sil_ata_ports[CONFIG_SYS_SATA_MAX_DEVICE] = {
+        &sil_ata_ports[0],
+        &sil_ata_ports[1],
+        &sil_ata_ports[2],
+        &sil_ata_ports[3],  
+};
+
+p_ata_device_t p_sil_ata_dev[CONFIG_SYS_SATA_MAX_DEVICE] = {
+        &sil_ata_dev[0],
+        &sil_ata_dev[1],
+        &sil_ata_dev[2],
+        &sil_ata_dev[3],
+};
+
+static int fault_timeout;
 struct sil_sata_softc *p_sil_device;
 
-sata_prd_t sil_prd_entry[CONFIG_SYS_SATA_MAX_DEVICE] =  {
+ata_prd_t sil_prd_entry[CONFIG_SYS_SATA_MAX_DEVICE] =  {
     {0x0,0x81000000}, //size up to 16M
     {0x0,0x81000000}, //size up to 16M
     {0x0,0x81000000}, //size up to 16M
     {0x0,0x81000000}, //size up to 16M
 };
-sata_prd_t sata_prd_entry  __attribute__ ((aligned (32)));
+
+extern const struct ata_port_operations_t ata_bmdma_port_ops;
+static struct ata_port_operations sil_ops = {
+    .inherits       = &ata_bmdma_port_ops,   
+    .set_mode       = sil_set_mode,
+    .bmdma_setup            = sil_bmdma_setup,
+    .bmdma_start            = sil_bmdma_start,
+    .bmdma_stop     = sil_bmdma_stop,
+    .bmdma_status = sil_bmdma_status,
+    .devchk           = sil_devchk,
+    .hardreset       = sil_sata_phy_reset,
+    .sff_irq_clear    = sil_irq_clear,
+ };
 
 /* per-port register offsets */
 /* TODO: we can probably calculate rather than use a table */
@@ -124,6 +153,70 @@ static const struct {
     /* ... port 3 */
 };
 
+static void sil_irq_clear(struct ata_port *p_ap)
+{
+    void  *mmio_base = p_ap->p_host->iomap[5];
+    void  *bmdma2 = mmio_base + sil_port[p_ap->port_no].bmdma2;
+
+    if (!bmdma2)
+        return;
+
+    iowrite8(ioread8(bmdma2 + ATA_DMA_STATUS), bmdma2 + ATA_DMA_STATUS);
+}
+
+static void sil_bmdma_setup(struct ata_port *p_ap)
+{
+    void  *bmdma = p_ap->ioaddr.bmdma_addr;
+    u32  tmp,addr = bmdma + 0x10;//bmdma2
+
+    /* load PRD table addr. */
+    iowrite32(p_ap->prd_dma, bmdma + ATA_DMA_TABLE_OFS);
+
+    //Clear bit 17 and bit 18 in the PCI Bus Master2
+    if (p_ap&&p_ap->p_ops&&p_ap->p_ops->sff_irq_clear) {
+        p_ap->p_ops->sff_irq_clear(p_ap);
+    }
+
+    /* issue r/w command */
+    ata_tf_to_host(p_ap);
+}
+
+static void sil_bmdma_start(struct ata_port *p_ap)
+{
+    unsigned int rw = (p_ap->p_tf->flags & ATA_TFLAG_WRITE);
+    void  *mmio_base = p_ap->p_host->iomap[5];
+    void  *bmdma2 = mmio_base + sil_port[p_ap->port_no].bmdma2;
+    u8 dmactl = ATA_DMA_START;
+
+    /* set transfer direction, start host DMA transaction
+       Note: For Large Block Transfer to work, the DMA must be started
+       using the bmdma2 register. */
+    if (!rw)
+        dmactl |= ATA_DMA_WR;
+    iowrite8(dmactl, bmdma2);
+}
+
+static void sil_bmdma_stop(struct ata_port *p_ap)
+{
+    void  *mmio_base = p_ap->p_host->iomap[5];
+    void  *bmdma2 = mmio_base + sil_port[p_ap->port_no].bmdma2;
+
+    //clear 18bit of PCI Bus Master2
+    if (p_ap&&p_ap->p_ops&&p_ap->p_ops->sff_irq_clear) {
+        p_ap->p_ops->sff_irq_clear(p_ap);
+    }
+
+    /* clear start/stop bit - can safely always write 0 */
+    iowrite8(0, bmdma2); 
+}
+
+static u8 sil_bmdma_status(struct ata_port *p_ap)
+{
+    void  *mmio_base = p_ap->p_host->iomap[5];
+    void  *bmdma2 = mmio_base + sil_port[p_ap->port_no].bmdma2;
+
+    return ioread8(bmdma2 + ATA_DMA_STATUS);
+}
 
 /* Driver implementation */
 static u8 sil_get_device_cache_line (struct pci_attach_args *pa)
@@ -159,8 +252,8 @@ static void sil_attach(struct device * parent,struct device * self,void *aux)
     u16 cmd = 0;
     u32 sconf = 0;
     int cachable;
-    
-    sil_sata_info_t *pinfo = aux;
+    int i = 0;    
+
     p_sil_device =(struct sil_sata_softc *)self;
     
     //we only use MMIO from BAR5
@@ -168,11 +261,11 @@ static void sil_attach(struct device * parent,struct device * self,void *aux)
         printf ("Error no base addr for SATA controller(Sil3114).\n");
         return;
     }
-    
+
     if (bus_space_map(memt, membase, memsize, 0, &g_iobase[5])) {
         printf(": Can't map mem space\n");
         return;
-    }   
+    }
 
     /* from sata_sil in Linux kernel */
     cls = sil_get_device_cache_line (pa);
@@ -190,168 +283,93 @@ static void sil_attach(struct device * parent,struct device * self,void *aux)
     /* Enable operation */
     cmd = _pci_conf_readn(pa->pa_tag,PCI_COMMAND,2);
     cmd |= PCI_COMMAND_MASTER | PCI_COMMAND_IO | PCI_COMMAND_MEMORY;
-     _pci_conf_writen(pa->pa_tag, PCI_COMMAND, cmd,2); 
+     _pci_conf_writen(pa->pa_tag, PCI_COMMAND, cmd,2);
 
-    valid = sil_sata_initialize(pinfo->sata_reg_base,pinfo->flags);
-    if(valid)
-        self->dv_class = DV_DULL;
+    //do the necessary init 
+     sil_host.p_ops = &sil_ops;
+     sil_host.pp_dev = p_sil_ata_dev;
+     sil_host.pp_ports = p_sil_ata_ports;
+     sil_host.iomap    = (void *)&g_iobase;
+     sil_host.n_ports = CONFIG_SYS_SATA_MAX_DEVICE;
+     
+     for (i = 0; i <CONFIG_SYS_SATA_MAX_DEVICE; i++ ) {
+         p_ata_port_t  p_ap = sil_host.pp_ports[i];
+         p_ata_ioports_t  p_ioaddr = &p_ap->ioaddr;
+         unsigned long prdtable_base = (unsigned long)&sil_prd_entry[i];
+
+         p_ap->prd_dma =(unsigned long)vtophys(prdtable_base);
+         sil_ata_dev[i].p_host = &sil_host;
+         sil_ata_ports[i].p_host = &sil_host;
+         sil_ata_dev[i].port_no = -1; //no port attached from init
+         sil_ata_dev[i].dev_no = i;
+         sil_ata_ports[i].port_no = i;
+         sil_ata_ports[i].dev_no = -1;//no device attached from init
+         sil_ata_ports[i].p_ops = &sil_ops;
+         p_ioaddr->cmd_addr = g_iobase[5]  + sil_port[i].tf;
+         p_ioaddr->altstatus_addr = 
+         p_ioaddr->ctl_addr = g_iobase[5] + sil_port[i].ctl;
+         p_ioaddr->bmdma_addr = g_iobase[5] + sil_port[i].bmdma;
+         p_ioaddr->scr_addr = g_iobase[5] + sil_port[i].scr;
+
+         ata_sff_std_ports(p_ioaddr);
+     }
+
+    if(ata_host_activate(&sil_host))
+    {
+        printf("sil_attach: ata_host_activate() failed.\n");
+    }
+
+    for (i = 0; i <CONFIG_SYS_SATA_MAX_DEVICE; i++ ) {
+        if(sil_ata_dev[i].port_no == -1) {
+            continue;
+        }
+        //printf("before config_found:port_no:%d device_no:%d\n",sil_ata_dev[i].port_no,sil_ata_dev[i].dev_no);
+        config_found(p_sil_device, &sil_ata_dev[i], NULL);
+    }
 
     sata_op.open = sil_open;
     sata_op.close = sil_close;
     sata_op.read = sil_read;
     sata_op.write = sil_write;    
 }
-static inline void mdelay(u32 msec)
-{
-    u32 i;
-    for (i = 0; i < msec; i++)
-        udelay(1000);
-}
 
-static inline void sdelay(u64 sec)
+/* Check if sata device is connected to port */
+unsigned int sil_devchk (struct ata_port *p_ap)
 {
-    u64 i;
-    for (i = 0; i < sec; i++)
-        mdelay(1000);
-}
+    unsigned int port_no,port_addr,val;
+    p_ata_host_t  p_host = p_ap->p_host;
 
-static void output_data (struct sata_ioports *ioaddr, u16 * sect_buf, int words)
-{
-    while (words--) {
-        __raw_writew (*sect_buf++, (void *)ioaddr->data_addr);
-    }
-}
+    port_addr =(unsigned int) p_host->iomap[5];
+    port_no = p_ap->port_no;
 
-static int input_data (struct sata_ioports *ioaddr, u16 * sect_buf, int words)
-{
-    while (words--) {
-        *sect_buf++ = __raw_readw ((void *)ioaddr->data_addr);
-    }
-    return 0;
-}
-static inline void sync(void)
-{
-    return;
-}
-
-static void sil_sata_port (struct sata_ioports *ioport)
-{
-    ioport->data_addr = ioport->cmd_addr + ATA_REG_DATA;
-    ioport->error_addr = ioport->cmd_addr + ATA_REG_ERR;
-    ioport->feature_addr = ioport->cmd_addr + ATA_REG_FEATURE;
-    ioport->nsect_addr = ioport->cmd_addr + ATA_REG_NSECT;
-    ioport->lbal_addr = ioport->cmd_addr + ATA_REG_LBAL;
-    ioport->lbam_addr = ioport->cmd_addr + ATA_REG_LBAM;
-    ioport->lbah_addr = ioport->cmd_addr + ATA_REG_LBAH;
-    ioport->device_addr = ioport->cmd_addr + ATA_REG_DEVICE;
-    ioport->status_addr = ioport->cmd_addr + ATA_REG_STATUS;
-    ioport->command_addr = ioport->cmd_addr + ATA_REG_CMD;
-}
-
-/* Check if device is connected to port */
-int sil_sata_bus_probe (int portno)
-{
-    u32 port = g_iobase[5];
-    u32 val;
-    switch (portno) {
+    switch (port_no) {
     case 0:
-        port += VND_SSTATUS_CH0;
+        port_addr += VND_SSTATUS_CH0;
         break;
     case 1:
-        port += VND_SSTATUS_CH1;
+        port_addr += VND_SSTATUS_CH1;
         break;
     case 2:
-        port += VND_SSTATUS_CH2;
+        port_addr += VND_SSTATUS_CH2;
         break;
     case 3:
-        port += VND_SSTATUS_CH3;
+        port_addr += VND_SSTATUS_CH3;
         break;
     default:
-        return 0;
+        return 1;
     }
-    val = readl (port);
+    val = readl (port_addr);
     if ((val & SATA_DET_PRES) == SATA_DET_PRES) {
-        return 1;
-    } else {
         return 0;
-    }
-}
-
-static u8 sil_sata_chk_status (struct sata_ioports *ioaddr, u8 usealtstatus)
-{
-    if (!usealtstatus) {
-        return readb (ioaddr->status_addr);
     } else {
-        return readb (ioaddr->altstatus_addr);
-    }
-}
-
-static u8 sil_sata_busy_wait (struct sata_ioports *ioaddr, int bits,
-              unsigned int max, u8 usealtstatus)
-{
-    u8 status;
-
-    do {
-        if (!((status = sil_sata_chk_status (ioaddr, usealtstatus)) & bits)) {
-            //printf("sil_sata_busy_wait(): status:%x\n",status);
-            break;
-        }
-        udelay (1000);
-        max--;
-    } while ((status & bits) && (max > 0));
-
-    return status;
-}
-
-static int sil_sata_bus_softreset (int port_no)
-{
-    u8 status = 0;
-
-    sata_ports[port_no].dev_mask = 1;
-
-    sata_ports[port_no].ctl_reg = 0x08; /*Default value of control reg */
-    writeb (sata_ports[port_no].ctl_reg, sata_ports[port_no].ioaddr.ctl_addr);
-    udelay (10);
-    writeb (sata_ports[port_no].ctl_reg | ATA_SRST, sata_ports[port_no].ioaddr.ctl_addr);
-    udelay (10);
-    writeb (sata_ports[port_no].ctl_reg, sata_ports[port_no].ioaddr.ctl_addr);
-
-    /* spec mandates ">= 2ms" before checking status.
-     * We wait 150ms, because that was the magic delay used for
-     * ATAPI devices in Hale Landis's ATADRVR, for the period of time
-     * between when the ATA command register is written, and then
-     * status is checked.  Because waiting for "a while" before
-     * checking status is fine, post SRST, we perform this magic
-     * delay here as well.
-     */
-    mdelay(150);
-    status = sil_sata_busy_wait (&sata_ports[port_no].ioaddr, ATA_BUSY, 300, 0);
-    while ((status & ATA_BUSY)) {
-        mdelay(150);
-        status = sil_sata_busy_wait (&sata_ports[port_no].ioaddr, ATA_BUSY, 3, 0);
-    }
-
-    if (status & ATA_BUSY) {
-        printf ("ata%u is slow to respond,plz be patient\n", sata_ports);
-    }
-
-    while ((status & ATA_BUSY)) {
-        mdelay(100);
-        status = sil_sata_chk_status (&sata_ports[port_no].ioaddr, 0);
-    }
-
-    if (status & ATA_BUSY) {
-        printf ("ata%u failed to respond : ", sata_ports);
-        printf ("bus reset failed\n");
-        sata_ports[port_no].dev_mask = 0;
         return 1;
     }
-    return 0;
 }
 
-int sil_sata_phy_reset (int port_no)
+int sil_sata_phy_reset (struct ata_port *p_ap)
 {
-    u32 port = g_iobase[5];
+    u32 port =(u32) p_ap->p_host->iomap[5];
+    int port_no = p_ap->port_no;
     u32 val;
     switch (port_no) {
     case 0:
@@ -361,13 +379,13 @@ int sil_sata_phy_reset (int port_no)
         port += VND_SCONTROL_CH1;
         break;
     case 2:
-        port += VND_SCONTROL_CH2;
+        port += VND_SCONTROL_CH2; 
         break;
     case 3:
         port += VND_SCONTROL_CH3;
         break;
     default:
-        return 0;
+        return 1;
     }
     val = readl (port);
     writel (val | SATA_SC_DET_RST, port);
@@ -376,255 +394,79 @@ int sil_sata_phy_reset (int port_no)
     return 0;
 }
 
-#if 1
-u32 strnlen(const char* s, u32 count)
+static int sil_set_mode(struct ata_port *p_ap)
 {
-        const char *sc;
-        for(sc = s;count -- && *sc != '\0';++sc)
-        {
-        }
-        return (sc -s);
-}
-u64 ata_id_n_sectors(u16 *id)
-{
-        if (ata_id_has_lba(id)) {
-                if (ata_id_has_lba48(id))
-                        return ata_id_u64(id, ATA_ID_LBA48_SECTORS);
-                else
-                        return ata_id_u32(id, ATA_ID_LBA_SECTORS);
-        } else {
-                return 0;
-        }
-}
+    u32 tmp,mmio_base  =(u32) p_ap->p_host->iomap[5];
+    u32 addr = mmio_base + sil_port[p_ap->port_no].xfer_mode;
 
-u32 ata_dev_classify(u32 sig)
-{
-        u8 lbam, lbah;
+    ata_do_set_mode(p_ap);  
 
-        lbam = (sig >> 16) & 0xff;
-        lbah = (sig >> 24) & 0xff;
-
-        if (((lbam == 0) && (lbah == 0)) ||
-                ((lbam == 0x3c) && (lbah == 0xc3)))
-                return ATA_DEV_ATA;
-
-        if ((lbam == 0x14) && (lbah == 0xeb))
-                return ATA_DEV_ATAPI;
-
-        if ((lbam == 0x69) && (lbah == 0x96))
-                return ATA_DEV_PMP;
-
-        return ATA_DEV_UNKNOWN;
-}
-
- void ata_id_string(const u16 *id, unsigned char *s, unsigned int ofs, unsigned int len)
-{
-        unsigned int c;
-
-        while (len > 0) {
-                c = id[ofs] >> 8;
-                *s = c;
-                s++;
-
-                c = id[ofs] & 0xff;
-                *s = c;
-                s++;
-
-                ofs++;
-                len -= 2;
-        }
-}
-
-void ata_id_c_string(const u16 *id, unsigned char *s,unsigned int ofs, unsigned int len)
-{
-        unsigned char *p;
-
-        ata_id_string(id, s, ofs, len - 1);
-
-        p = s + strnlen((char *)s, len - 1);
-        while (p > s && p[-1] == ' ')
-                p--;
-        *p = '\0';
-}
-
-void ata_dump_id(u16 *id)
-{
-        unsigned char serial[ATA_ID_SERNO_LEN + 1];
-        unsigned char firmware[ATA_ID_FW_REV_LEN + 1];
-        unsigned char product[ATA_ID_PROD_LEN + 1];
-        u64 n_sectors;
-
-        /* Serial number */
-        ata_id_c_string(id, serial, ATA_ID_SERNO, sizeof(serial));
-        printf("S/N: %s\n\r", serial);
-
-        /* Firmware version */
-        ata_id_c_string(id, firmware, ATA_ID_FW_REV, sizeof(firmware));
-        printf("Firmware version: %s\n\r", firmware);
-
-        /* Product model */
-        ata_id_c_string(id, product, ATA_ID_PROD, sizeof(product));
-        printf("Product model number: %s\n\r", product);
-
-        /* Total sectors of device  */
-        n_sectors = ata_id_n_sectors(id);
-        printf("Capablity: %d sectors\n\r", n_sectors);
-
-        printf ("id[49]: capabilities = 0x%04x\n"
-                "id[53]: field valid = 0x%04x\n"
-                "id[63]: mwdma = 0x%04x\n"
-                "id[64]: pio = 0x%04x\n"
-                "id[75]: queue depth = 0x%04x\n",
-                id[49],
-                id[53],
-                id[63],
-                id[64],
-                id[75]);
-
-        printf ("id[76]: sata capablity = 0x%04x\n"
-                "id[78]: sata features supported = 0x%04x\n"
-                "id[79]: sata features enable = 0x%04x\n",
-                id[76],
-                id[78],
-                id[79]);
-
-        printf ("id[80]: major version = 0x%04x\n"
-                "id[81]: minor version = 0x%04x\n"
-                "id[82]: command set supported 1 = 0x%04x\n"
-                "id[83]: command set supported 2 = 0x%04x\n"
-                "id[84]: command set extension = 0x%04x\n",
-                id[80],
-                id[81],
-                id[82],
-                id[83],
-                id[84]);
-        printf ("id[85]: command set enable 1 = 0x%04x\n"
-                "id[86]: command set enable 2 = 0x%04x\n"
-                "id[87]: command set default = 0x%04x\n"
-                "id[88]: udma = 0x%04x\n"
-                "id[93]: hardware reset result = 0x%04x\n",
-                id[85],
-                id[86],
-                id[87],
-                id[88],
-                id[93]);
-}
-
-void ata_swap_buf_le16(u16 *buf, unsigned int buf_words)
-{
-        unsigned int i;
-
-        for (i = 0; i < buf_words; i++)
-                buf[i] = (u16)buf[i];
-}
-
-#endif
-
-void dump_print(u32 reg,u32 num)
-{
-    u32 i;
-    u32 j = 0;
-    printf("\n\n%08lx to %08lx shown below\n",reg,reg + num);
-    for(i = reg;i < reg + num;i+=4)
-    {
-        if(j % 4 == 0)
-            printf("\n%08lx\t",i);
-        printf("%08lx\t",inl(i));
-        j ++;
-    }
-}
+    p_ap->trans_mode = ATA_TRANS_UDMA;
+    tmp = readl(addr);
+    tmp &= ~((1<<5) | (1<<4) | (1<<1) | (1<<0));  
+    tmp |= 0x3;      //UDMA
+    writel(tmp, addr);
+    readl(addr);    /* flush */
+    return 0;
+}    int i = 0;
+    unsigned int tmp = 0 ; 
 
 /*
  *
  * Returns sectors read(DMA)
 */
-static u32 sil_do_one_read(int device, ulong block, u16 blkcnt, u16 * buff,
-               uchar lba48)
+static u32 sil_do_one_read(p_ata_port_t p_ap, ulong block, u16 blkcnt, u16 * buff)
 {
 
     u16 sr = blkcnt;
-    u32 blknr =  block;
-    u32 tmp, addr;
+    u32 tmp;
+    u32 tf_flags,tag;
+    p_ata_port_operations_t p_ops = p_ap->p_ops;
+    int rv = 0;
+    ata_taskfile_t tf;
 
-    unsigned char port_no = sata_dev[device].port_no;
+    memset(&tf,0,sizeof(ata_taskfile_t));
 
+    tf.flags &= ~ATA_TFLAG_WRITE;//Read
+    p_ap->p_tf =&tf;
+    tf_flags = 0;
+    tag = 0;    
 
-    /*printf("sil_do_one_read:device:%x block:%x blkcnt:%x buff:%x uchar:%x port_no:%x blknr:%x\n",device,
-           block, blkcnt, (unsigned int)buff, lba48,port_no,blknr);*/
+    /*printf("sil_do_one_read: block:%x blkcnt:%x buff:%x  blknr:%x\n",
+           block, blkcnt, (unsigned int)buff, blknr);*/
     
-    if (!(sil_sata_chk_status (&sata_ports[port_no].ioaddr, 0) & ATA_DRDY)) {
-        printf ("Device%d not ready\n", device);
+
+    if (!(p_ops->sff_check_status(p_ap,0)&ATA_DRDY)) {
+        printf ("Port%d's Device%d not ready\n", p_ap->port_no,p_ap->dev_no);
         return 0;
     }
-
-    //Issue DMA read command
-#ifdef CONFIG_LBA48
-    if (lba48) {
-        //printf("sil_do_one_read(): write high bits.\n");
-        /* write high bits */
-        writeb ((blkcnt >> 8) & 0xFF, sata_ports[port_no].ioaddr.nsect_addr);
-        writeb ((blknr >> 24) & 0xFF, sata_ports[port_no].ioaddr.lbal_addr);
-        //writeb ((blknr >> 32) & 0xFF, sata_ports[port_no].ioaddr.lbam_addr);
-        //writeb ((blknr >> 40) & 0xFF, sata_ports[port_no].ioaddr.lbah_addr);
-        writeb (0x0, sata_ports[port_no].ioaddr.lbam_addr);
-        writeb (0x0, sata_ports[port_no].ioaddr.lbah_addr);
+    
+    //build cmd for DMA transfer
+    if(rv = ata_build_rw_tf(p_ap,block,blkcnt,tf_flags,tag)) {
+        printf("--sil_do_one_read--   ata_build_rw_tf failed.  rv = %d\n ",rv);
+        return 0;
     }
-#endif
-
-    //printf("sil_do_one_read(): write low bits.\n");
-    writeb ((blkcnt >> 0) & 0xFF, sata_ports[port_no].ioaddr.nsect_addr);
-    writeb ((blknr >> 0) & 0xFF, sata_ports[port_no].ioaddr.lbal_addr);
-    writeb ((blknr >> 8) & 0xFF, sata_ports[port_no].ioaddr.lbam_addr);
-    writeb ((blknr >> 16) & 0xFF, sata_ports[port_no].ioaddr.lbah_addr);
-
-#ifdef CONFIG_LBA48
-    if (lba48) {
-        //printf("sil_do_one_read(): issue DMA_READ_EXT.\n");
-        writeb (0x40, sata_ports[port_no].ioaddr.device_addr);
-        writeb (ATA_CMD_DMA_READ_EXT, sata_ports[port_no].ioaddr.command_addr);
-    } else
-#endif
-    {
-        //printf("sil_do_one_read(): issue DMA_READ.\n");
-        writeb (0x40 | ((blknr >> 24) & 0xF),
-            sata_ports[port_no].ioaddr.device_addr);
-        writeb (ATA_CMD_DMA_READ, sata_ports[port_no].ioaddr.command_addr);
-    }   
-
-     //Clear bit 17 and bit 18 in the PCI Bus Master2
-    addr = g_iobase[5] + sil_port[port_no].bmdma2;
-    tmp = readl(addr);
-    tmp |= 0x30000;
-    writel(tmp, addr);
-    tmp = readl(addr); 
+    
+   {
+       unsigned long buff_base = (unsigned long)buff;
+       sil_prd_entry[p_ap->port_no].addr =(unsigned long)vtophys(buff_base);
+   }
    
-    //Create PRD Table
-     {
-         unsigned long prdtable_base = (unsigned long)&sil_prd_entry[port_no];
-         *(unsigned long *)(prdtable_base) = (unsigned long)vtophys((unsigned int)buff);
+   p_ops->bmdma_setup(p_ap);
 
-         addr = sata_ports[port_no].ioaddr.bmdma_addr + ATA_DMA_TABLE_OFS;
-         writel((unsigned long)vtophys(prdtable_base), addr);
-     }
+   //printf("--sil_do_one_read-- p_ap->prd_dma:%x addr_base:%x\n",p_ap->prd_dma, *(u32 *)0xa5000000);
 
-    //need flush all cache,important here!! 
-    flushcache();
+   //need flush all cache,important here!!
+   flushcache();
 
-    //Enable DMA transfer(read)
-    addr = g_iobase[5] + sil_port[port_no].bmdma2;
-    tmp = readl(addr);
-    tmp |= 0x8;
-    tmp |= 0x1;
-    writel(tmp, addr);
-
-    //Wait for PCI interrupt
-    addr = g_iobase[5] + sil_port[port_no].bmdma2;
+    p_ops->bmdma_start(p_ap);
+  
+     /*wait for dma interrupt here*/
+   
     while(1) {
-        tmp = readl(addr);
-        //printf("sil_do_one_read bmdma2(tmp):%x\n",tmp);
-        tmp &= 0x70000;
-        tmp >>=16;
-        switch (tmp) {
+         tmp = p_ops->bmdma_status(p_ap);
+         tmp &=0x7;
+         switch (tmp) {
             case DMA_ERROR:
                 goto  read_err;
             case PRD_SIZE_SAMLLER:
@@ -632,32 +474,23 @@ static u32 sil_do_one_read(int device, ulong block, u16 blkcnt, u16 * buff,
             case PRD_SIZE_LARGER:
                 goto stop_dma;
             case DMA_IN_PROGRESS:
-            default:
+            default:   
                 udelay(100);
-                break;
+            break;
         }
     }
 
     //stop DMA
 stop_dma:
-    addr = g_iobase[5] + sil_port[port_no].bmdma2;
-    tmp = readl(addr);
-    tmp &= ~0x1;
-    writel(tmp, addr); 
-    //clear device interrupt
-    
-    //clear 18bit of PCI Bus Master2
-    addr = g_iobase[5] + sil_port[port_no].bmdma2;
-    tmp = readl(addr);
-    tmp |= 0x40000;
-    writel(tmp, addr);
+    p_ops->bmdma_stop(p_ap);
+    p_ap->p_tf = NULL;
     return sr;
 
 read_err:
-    printf("sil_do_one_read DMA read error!\n");
-   
+    printf("sil_do_one_read DMA read error!\n");   
+    p_ap->p_tf = NULL;
     return sr;
-}
+ }
 
 ulong sil_sata_read (int device, ulong block, lbaint_t blkcnt, void *buff)
 {
@@ -666,20 +499,12 @@ ulong sil_sata_read (int device, ulong block, lbaint_t blkcnt, void *buff)
     u16 *buffer = (u16 *) buff;
     u32 status = 0;
     u32 blknr = block;
-    unsigned char lba48 = 0;
-    int i = 0;
-
-    p_stor_desc = &sata_dev[device].stor_desc;
-#ifdef CONFIG_LBA48
-        if (p_stor_desc->lba48) {
-            lba48 = 1;
-        } 
-#endif
+    int port_no =  sil_ata_dev[device].port_no;
 
     while (blkcnt > 0) {
-        if (lba48) {
+        if (sil_ata_ports[port_no].dflags&ATA_DFLAG_LBA48) {
             if (blkcnt > 65535) {
-            sread = 65535;
+                sread = 65535;
             } else {
                 sread = blkcnt;
             }
@@ -693,7 +518,7 @@ ulong sil_sata_read (int device, ulong block, lbaint_t blkcnt, void *buff)
              }
         }
 
-        status = sil_do_one_read(device, blknr, sread, buffer, lba48);
+        status = sil_do_one_read(&sil_ata_ports[port_no], blknr, sread, buffer);       
 
         if (status != sread) {
             printf ("Read failed\n");
@@ -708,233 +533,12 @@ ulong sil_sata_read (int device, ulong block, lbaint_t blkcnt, void *buff)
     return n;
 }
 
-//not finished,for not need till now
+//not finished yet,not need till now
 ulong sil_sata_write (int device, ulong block, lbaint_t blkcnt, const void *buff)
-{    
+{
     return 0;
 }
 
-static void sil_set_mode(int port_no)
-{
-    u32 tmp,addr = g_iobase[5] + sil_port[port_no].xfer_mode;
-
-    tmp = readl(addr);
-    tmp &= ~((1<<5) | (1<<4) | (1<<1) | (1<<0));
-    tmp |=0x3;//device 0 udma 
-
-    writel(tmp, addr);
-    readl(addr); //flush
-}
-
-static void sil_sata_identify (int port_no,int dev_no)
-{
-    u8 cmd = 0, status = 0;
-    u16 iobuf[ATA_SECTOR_WORDS];
-    u64 n_sectors = 0;
-
-    memset (iobuf, 0, sizeof (iobuf));
-
-    if (!(sata_ports[port_no].dev_mask & 0x01)) {
-        printf ("dev is not present on port#%d\n",  port_no);
-        return;
-    }
-
-    p_stor_desc = &sata_dev[dev_no].stor_desc;
-
-    status = 0;
-    cmd = ATA_CMD_ID_ATA;   /*Device Identify Command */
-    writeb (cmd, sata_ports[port_no].ioaddr.command_addr);
-    readb (sata_ports[port_no].ioaddr.altstatus_addr);
-    udelay (10);
-
-    status = sil_sata_busy_wait (&sata_ports[port_no].ioaddr, ATA_BUSY, 1000, 0);
-    if (status & ATA_ERR) {
-        printf ("\ndevice not responding\n");
-        sata_ports[port_no].dev_mask &= ~0x01;
-        return;
-    }
-
-    input_data (&sata_ports[port_no].ioaddr, iobuf, ATA_SECTOR_WORDS);
-
-    ata_swap_buf_le16 (iobuf, ATA_SECTOR_WORDS);
-
-    //debug ("Specific config: %x\n", iobuf[2]);
-
-    /* we require LBA and DMA support (bits 8 & 9 of word 49) */
-    if (!ata_id_has_dma (iobuf) || !ata_id_has_lba (iobuf)) {
-        debug ("ata%u: no dma/lba\n", sata_ports);
-    }
-#ifdef DEBUG
-    ata_dump_id (iobuf);
-#endif
-
-    n_sectors = ata_id_n_sectors (iobuf);
-
-    if (n_sectors == 0) {
-        sata_ports[port_no].dev_mask &= ~0x01;
-        return;
-    }
-    //to do
-    ata_id_c_string (iobuf, (unsigned char *)p_stor_desc->revision,
-             ATA_ID_FW_REV, sizeof (p_stor_desc->revision));
-    ata_id_c_string (iobuf, (unsigned char *)p_stor_desc->vendor,
-             ATA_ID_PROD, sizeof (p_stor_desc->vendor));
-    ata_id_c_string (iobuf, (unsigned char *)p_stor_desc->product,
-             ATA_ID_SERNO, sizeof (p_stor_desc->product));
-
-    /* TODO - atm we asume harddisk ie not removable */
-    p_stor_desc->removable = 0;
-
-    p_stor_desc->lba = (u32) n_sectors;
-    //debug ("lba=0x%x\n", p_stor_desc->lba);
-
-#ifdef CONFIG_LBA48
-    if (iobuf[83] & (1 << 10)) {
-        p_stor_desc->lba48 = 1;
-    } else {
-        p_stor_desc->lba48 = 0;
-    }
-#endif
-
-    /* assuming HD */
-    p_stor_desc->type = DEV_TYPE_HARDDISK;
-    p_stor_desc->blksz = ATA_SECT_SIZE;
-    p_stor_desc->lun = 0;   /* just to fill something in... */
-}
-
-static void sil_set_feature_cmd (int port_no)//(int num, int dev)
-{
-    u8 status = 0;
-
-    if (!(sata_ports[port_no].dev_mask & 0x01)) {
-        debug ("dev is not present on port#%d\n", port_no);
-        return;
-    }
-
-    writeb (SETFEATURES_XFER, sata_ports[port_no].ioaddr.feature_addr);
-    //writeb (XFER_PIO_4, sata_ports[port_no].ioaddr.nsect_addr);
-    //writeb (XFER_UDMA_4, sata_ports[port_no].ioaddr.nsect_addr);
-
-    writeb (XFER_MW_DMA_2, sata_ports[port_no].ioaddr.nsect_addr);
-    writeb (0, sata_ports[port_no].ioaddr.lbal_addr);
-    writeb (0, sata_ports[port_no].ioaddr.lbam_addr);
-    writeb (0, sata_ports[port_no].ioaddr.lbah_addr);
-
-    writeb (ATA_DEVICE_OBS, sata_ports[port_no].ioaddr.device_addr);
-    writeb (ATA_CMD_SET_FEATURES, sata_ports[port_no].ioaddr.command_addr);
-
-    udelay (50);
-    mdelay(150);
-
-    status = sil_sata_busy_wait (&sata_ports[port_no].ioaddr, ATA_BUSY, 5000, 0);
-    if ((status & (ATA_BUSY | ATA_ERR))) {
-        printf ("Error  : status 0x%02x\n", status);
-        sata_ports[port_no].dev_mask &= ~0x01;
-    }
-}
-
-int sil_sata_scan (int port_no)
-{
-    u32 prd_base;
-    /* A bit brain dead, but the code has a legacy */
-    switch (port_no) {
-    case 0:
-        sata_ports[0].port_no = 0;
-        sata_ports[0].ioaddr.cmd_addr = g_iobase[5] + VND_TF0_CH0;
-        sata_ports[0].ioaddr.altstatus_addr = sata_ports[0].ioaddr.ctl_addr =
-            (g_iobase[5] + VND_TF2_CH0) | ATA_PCI_CTL_OFS;
-        sata_ports[0].ioaddr.bmdma_addr = g_iobase[5] + VND_BMDMA_CH0;
-        break;
-    case 1:
-        sata_ports[1].port_no = 1;
-        sata_ports[1].ioaddr.cmd_addr = g_iobase[5] + VND_TF0_CH1;
-        sata_ports[1].ioaddr.altstatus_addr = sata_ports[1].ioaddr.ctl_addr =
-            (g_iobase[5] + VND_TF2_CH1) | ATA_PCI_CTL_OFS;
-        sata_ports[1].ioaddr.bmdma_addr = g_iobase[5] + VND_BMDMA_CH1;
-        break;
-    case 2:
-        sata_ports[2].port_no = 2;
-        sata_ports[2].ioaddr.cmd_addr = g_iobase[5] + VND_TF0_CH2;
-        sata_ports[2].ioaddr.altstatus_addr = sata_ports[2].ioaddr.ctl_addr =
-            (g_iobase[5] + VND_TF2_CH2) | ATA_PCI_CTL_OFS;
-        sata_ports[2].ioaddr.bmdma_addr = g_iobase[5] + VND_BMDMA_CH2;
-        break;
-    case 3:
-        sata_ports[3].port_no = 3;
-        sata_ports[3].ioaddr.cmd_addr = g_iobase[5] + VND_TF0_CH3;
-        sata_ports[3].ioaddr.altstatus_addr = sata_ports[3].ioaddr.ctl_addr =
-            (g_iobase[5] + VND_TF2_CH3) | ATA_PCI_CTL_OFS;
-        sata_ports[3].ioaddr.bmdma_addr =g_iobase[5] + VND_BMDMA_CH3;
-        break;
-    default:
-        printf ("Tried to scan unknown port: ata%d\n", port_no);
-        return 1;
-    }
-
-    /* Initialize other registers */
-    sil_sata_port(&sata_ports[port_no].ioaddr);
-
-    /* Check for attached device */
-    if (!sil_sata_bus_probe (port_no)) {
-        sata_ports[port_no].port_state = 0;
-        //debug ("SATA#%d port is not present\n", port_no);
-    } else {
-        //debug ("SATA#%d port is present\n", port_no);
-        if (sil_sata_bus_softreset (port_no)) {
-            /* soft reset failed, try a hard one */
-            sil_sata_phy_reset (port_no);
-            if (sil_sata_bus_softreset (port_no)) {
-                sata_ports[port_no].port_state = 0;
-            } else {
-                sata_ports[port_no].port_state = 1;
-            }
-        } else {
-            sata_ports[port_no].port_state = 1;
-        }
-    }
-    if (sata_ports[port_no].port_state == 1) {
-        curr_dev++;
-        prd_base =  (unsigned int)&sil_prd_entry[port_no];
-        prd_base = (unsigned int) vtophys(prd_base);
-        sata_ports[port_no].p_prd_table = prd_base;
-        sata_dev[curr_dev].device_no = curr_dev;
-        sata_dev[curr_dev].port_no = port_no;  
-        p_stor_desc = &sata_dev[curr_dev].stor_desc;
-        memset(p_stor_desc, 0, sizeof(struct block_dev_desc));
-        p_stor_desc->if_type =  IF_TYPE_SATA;
-        p_stor_desc->dev = curr_dev;
-        p_stor_desc->part_type = PART_TYPE_UNKNOWN;
-        p_stor_desc->type = DEV_TYPE_HARDDISK;
-        p_stor_desc->lba = 0;
-        p_stor_desc->blksz = 512;
-        p_stor_desc->block_read = sil_sata_read;
-        p_stor_desc->block_write = sil_sata_write;
-        /* Probe device and set xfer mode */
-        sil_sata_identify (port_no,curr_dev);
-        sil_set_feature_cmd (port_no);
-        sil_set_mode(port_no);
-        config_found(p_sil_device, &sata_dev[curr_dev], NULL);
-    }
-    return 0;
-}
-
- void sil_init_part (block_dev_desc_t* dev_desc)
-{
-    return;
-}
-
-int sil_sata_initialize(u32 reg,u32 flags)
-{
-    int rc;
-    int i;
-
-    for (i = 0; i < CONFIG_SYS_SATA_MAX_DEVICE; i++) {
-        rc = sil_sata_scan(i);
-        if ((p_stor_desc->lba > 0) && (p_stor_desc->blksz > 0))
-            sil_init_part(p_stor_desc);        
-    }
-    return rc;
-}
 
 #define sil_sata_lookup(dev) (struct sil_sata_softc *)device_lookup(&sil_cd, minor(dev))
 
@@ -1044,13 +648,10 @@ static int do_sata (int argc, char *argv[])
             ulong n;
             lbaint_t blk = strtoul(argv[3], NULL, 16);
 
-            printf("\nSATA read: device %d block # %ld, count %ld ... \n",
-                curr_dev, blk, cnt);
+            printf("\nSATA read:  block # %ld, count %ld ... \n",
+                blk, cnt);
 
-            n = sil_sata_read(curr_dev, blk, cnt, (u32 *)addr);
-
-            /* flush cache after read */
-            //flush_cache(addr, cnt * sata_dev_desc[curr_device].blksz);
+            n = sil_sata_read(0, blk, cnt, (u32 *)addr);
 
             printf("%ld blocks read: %s\n",
                 n, (n==cnt) ? "OK" : "ERROR");
@@ -1062,10 +663,10 @@ static int do_sata (int argc, char *argv[])
 
             lbaint_t blk = strtoul(argv[3], NULL, 16);
 
-            printf("\nSATA write: device %d block # %ld, count %ld ... ",
-                curr_dev, blk, cnt);
+            printf("\nSATA write:  block # %ld, count %ld ... ",
+                 blk, cnt);
 
-            n = sil_sata_write(curr_dev, blk, cnt, (u32 *)addr);
+            n = sil_sata_write(0, blk, cnt, (u32 *)addr);
 
             printf("%ld blocks written: %s\n",
                 n, (n == cnt) ? "OK" : "ERROR");

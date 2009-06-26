@@ -29,7 +29,7 @@
  Revision History:
  
  ---------------------------------------------------------------------------------------------
-  Date               Author          Activity ID            Activity Headline
+  Date              Author           Activity ID            Activity Headline
   2008-05-12    QianYuli        PMON00000001    porting it from u-boot
 *************************************************************************/
 #ifndef SATA_SIL3114_H
@@ -136,26 +136,6 @@
 #define SATA_HC_MAX_PORT    16 /* Max port number per host controller */
 #define PCI_IO_BASE         0xbfd00000
 
-/*
- * SATA device driver info
- */
-typedef struct sil_sata_info {
-    u32 sata_reg_base;
-    u32 flags;
-} sil_sata_info_t;
-
-/*
- * SATA device driver struct
- * Here SATA device attached to BUS by Sil3114-Sata-Adapter
- */
- 
-typedef struct sil_sata {
-    struct wdc_softc    sc_wdcdev;  /* common wdc definitions */
-    struct channel_softc *wdc_chanarray[1];
-    struct channel_softc wdc_channel; /* generic part */
-    char        name[12];  
-} sil_sata_t;
-
 #define READ_CMD    0
 #define WRITE_CMD   1
 #define PCI_VENDOR_ID       0x00    /* 16 bits */
@@ -184,4 +164,22 @@ typedef struct sil_sata {
 #define  PCI_COMMAND_SERR   0x100   /* Enable SERR */
 #define  PCI_COMMAND_FAST_BACK  0x200   /* Enable back-to-back writes */
 
+/*
+ * SATA device driver struct
+ * Here SATA device attached to BUS by Sil3114-Sata-Adapter
+ */
+ 
+typedef struct sil_sata {
+    struct wdc_softc    sc_wdcdev;  /* common wdc definitions */
+    struct channel_softc *wdc_chanarray[1];
+    struct channel_softc wdc_channel; /* generic part */
+    char        name[12];
+    u32     reg_base;       /* the base address of controller register */
+} sil_sata_t;
+
+struct sil_sata_softc {
+    /* General disk infos */
+    struct device sc_dev;
+    int bs,count;
+};
 #endif

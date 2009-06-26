@@ -10,10 +10,11 @@
  Revision History:
  
  --------------------------------------------------------------------------
-  Date               Author          Activity ID             Activity Headline
+  Date              Author           Activity ID              Activity Headline
   2008-05-12    QianYuli        PMON00000001    Creat it
 *************************************************************************/
 #include "sata.h"
+
 
 static int sata_match(struct device *, void *, void *);
 static void sata_attach (struct device *, struct device *, void *);
@@ -25,8 +26,6 @@ struct cfattach sata_ca = {
 struct cfdriver sata_cd = {
         NULL, "sata", DV_DISK, 
 };
-sata_device_t sata_dev[CONFIG_SYS_SATA_MAX_DEVICE];
-
 
 static int sata_match(struct device *parent,void *match,void *aux)
 {
