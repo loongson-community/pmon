@@ -26,7 +26,7 @@ option		INET
 #select     vt82c686        #via686a/b code
 select     cs5536 
 option     VGA_NO_ROM       # display card has no rom
-
+option     LOONGSON2F_NAS
 #option		HAVE_FLASH		# Platform has FLASH memory.
 #option		HAVE_NVENV		# Platform has non-volatile env mem 
 
@@ -86,6 +86,7 @@ option ALL_OTHER_KEY_TO_STOP_BOOT
 option		SYSTYPE="\"Bonito\""
 option		TARGETNAME="\"Bonito\""
 
+option NSATA
 #
 # Command selection. Selects pmon commands
 #
@@ -164,8 +165,22 @@ pciide* 	at pci ? dev ? function ? flags 0x0000
 #### IDE hard drives
 wd*		at pciide? channel ? drive ? flags 0x0000
 
-#ide_cd*		at pciide? channel ? drive ? flags 0x0001
-select 		iso9660
 
 #### Pseudo devices
 pseudo-device	loop	1	# network loopback
+
+#added by qianyl
+sil0    at pci ? dev ? function  ?    #sil3114(sata controller)
+sata*   at satabus ?
+select mod_sata
+select mod_sil
+
+#ide_cd*		at pciide? channel ? drive ? flags 0x0001
+select 		iso9660
+
+#added by qianyl
+#sil*    at pci ? dev ? function  ?    #sil3114(sata controller)
+#sata*   at satabus ?
+
+#### Pseudo devices
+#pseudo-device	loop	1	# network loopback

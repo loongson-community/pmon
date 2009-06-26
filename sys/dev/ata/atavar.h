@@ -35,6 +35,8 @@
  */
 
 /* Hight-level functions and structures used by both ATA and ATAPI devices */
+#ifndef ATAVAR_H
+#define ATAVAR_H
 
 struct ataparams;
 
@@ -179,3 +181,6 @@ int ata_set_mode __P((struct ata_drive_datas*, u_int8_t, u_int8_t));
 #define CMD_AGAIN 2
 
 void ata_perror __P((struct ata_drive_datas *, int, char *));
+
+
+#endif

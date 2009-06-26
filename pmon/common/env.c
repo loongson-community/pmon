@@ -99,6 +99,9 @@ static struct stdenv {
 #ifdef LOONGSON2F_HPC
 	{"Version", "LM-HPC-1.0.1", 0},
 #endif
+#ifdef LOONGSON2F_NAS
+        {"Version", "LM-NAS-1.0.1", 0},
+#endif
 {"BuildTime",  __DATE__ " " __TIME__ , 0},
 #if defined(TGT_DEFENV)
     TGT_DEFENV,

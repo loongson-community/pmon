@@ -36,6 +36,8 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
+#ifndef WDCVAR_H
+#define WDCVAR_H
 
 #define	WAITTIME    (10 * hz)    /* time to wait for a completion */
 	/* this is a lot for hard drives, but not for cdroms */
@@ -282,3 +284,5 @@ int wdc_select_drive __P((struct channel_softc *, int, int));
 void wdc_output_bytes __P((struct ata_drive_datas *drvp, void *, unsigned int));
 void wdc_input_bytes __P((struct ata_drive_datas *drvp, void *, unsigned int));
 
+
+#endif

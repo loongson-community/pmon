@@ -1,6 +1,9 @@
 /*	$OpenBSD: atareg.h,v 1.2 1999/09/05 21:45:22 niklas Exp $	*/
 /*	$NetBSD: atareg.h,v 1.5 1999/01/18 20:06:24 bouyer Exp $	*/
 
+#ifndef ATAREG_H
+#define ATAREG_H
+
 /*
  * Drive parameter structure for ATA/ATAPI.
  * Bit fields: WDC_* : common to ATA/ATAPI
@@ -161,3 +164,4 @@ struct ataparams {
 #define WDC_SEC_EN	0x0002
 #define WDC_SEC_SUPP	0x0001
 };
+#endif

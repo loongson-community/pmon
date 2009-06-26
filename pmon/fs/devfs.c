@@ -13,7 +13,7 @@
  *    documentation and/or other materials provided with the distribution.
  * 3. All advertising materials mentioning features or use of this software
  *    must display the following acknowledgement:
- *	This product includes software developed by Opsycon AB, Sweden.
+ *  This product includes software developed by Opsycon AB, Sweden.
  * 4. The name of the author may not be used to endorse or promote products
  *    derived from this software without specific prior written permission.
  *
@@ -32,7 +32,7 @@
  */
 
 /*
- *	_Very_ simplified support functions to i/o subsystem.
+ *  _Very_ simplified support functions to i/o subsystem.
  */
 
 #include <sys/param.h>
@@ -45,6 +45,9 @@
 #include <pmon.h>
 #include <file.h>
 
+//#include <dev/pci/sata.h>
+#include <dev/ata/sata.h>
+
 #include "cd.h"
 #include "sd.h"
 #include "wd.h"
@@ -54,11 +57,11 @@
 extern int errno;
 
 struct devsw {
-	char	*name;
-	int	(*open) __P((dev_t, int flags, int mode, void *));
-	int	(*read) __P((dev_t dev, void *uio, int flag));
-	int	(*write) __P((dev_t dev, void *uio, int flag));
-	int	(*close) __P((dev_t dev, int flag, int mode, void *));
+    char    *name;
+    int (*open) __P((dev_t, int flags, int mode, void *));
+    int (*read) __P((dev_t dev, void *uio, int flag));
+    int (*write) __P((dev_t dev, void *uio, int flag));
+    int (*close) __P((dev_t dev, int flag, int mode, void *));
 };
 
 extern int sdopen __P((dev_t dev, int flags, int mode, void *));
@@ -91,6 +94,13 @@ extern int usb_write __P((dev_t dev, void *uio, int flag));
 extern int usb_close __P((dev_t dev, int flag, int mode, void *));
 #endif
 
+#if NSATA > 0
+extern int sata_open __P((dev_t dev, int flags, int mode, void *));
+extern int sata_read __P((dev_t dev, void *uio, int flag));
+extern int sata_write __P((dev_t dev, void *uio, int flag));
+extern int sata_close __P((dev_t dev, int flag, int mode, void *));
+#endif
+
 /*
  * Check for and add any target specific declarations from "pmon_target.h"
  */
@@ -101,35 +111,40 @@ TGT_DEV_DECL
 void disksort __P((struct buf *, struct buf *));
 
 struct devsw devswitch[] = {
-	{ "console" },
+    { "console" },
 #if NSD > 0
-	{ "sd", sdopen, sdread, sdwrite, sdclose },
+    { "sd", sdopen, sdread, sdwrite, sdclose },
 #endif
 #if NWD > 0
-	{ "wd", wdopen, wdread, wdwrite, wdclose },
+    { "wd", wdopen, wdread, wdwrite, wdclose },
 #endif
 #if NCD > 0
-	{ "cd", cdopen, cdread, cdwrite, cdclose },
+    { "cd", cdopen, cdread, cdwrite, cdclose },
 #endif
 #if NIDE_CD > 0
-	{ "cd", ide_cdopen, ide_cdread, ide_cdwrite, ide_cdclose},
+    { "cd", ide_cdopen, ide_cdread, ide_cdwrite, ide_cdclose},
 #endif
 #if NMOD_USB_STORAGE > 0
-	{ "usb", usb_open, usb_read, usb_write, usb_close},
+    { "usb", usb_open, usb_read, usb_write, usb_close},
 #endif
+
+#if NSATA > 0
+    { "sata", sata_open, sata_read, sata_write, sata_close},
+#endif
+
 /* Add any target specific devices. See "pmon_target.h" */
 #if defined(TGT_DEV_SWITCH)
-	TGT_DEV_SWITCH
+    TGT_DEV_SWITCH
 #endif
-	{ NULL},
+    { NULL},
 };
 
 static struct biodev {
-	dev_t	devno;
-	off_t	offs;
-	off_t	base;
-	off_t	end;
-	int	*maptab;
+    dev_t   devno;
+    off_t   offs;
+    off_t   base;
+    off_t   end;
+    int *maptab;
 } opendevs[OPEN_MAX];
 
 int   devio_open (int, const char *, int, int);
@@ -147,11 +162,11 @@ dev_t find_device (const char **name);
  */
 void
 disksort(ap, bp)
-	struct buf *ap, *bp;
+    struct buf *ap, *bp;
 {
-	bp->b_actf = NULL;
-	ap->b_actf = bp;
-	return;
+    bp->b_actf = NULL;
+    ap->b_actf = bp;
+    return;
 }
 
 /*
@@ -159,10 +174,10 @@ disksort(ap, bp)
  */
 void
 biodone(buf)
-	struct buf *buf;
+    struct buf *buf;
 {
-	buf->b_flags &= ~B_BUSY;
-	wakeup(buf);
+    buf->b_flags &= ~B_BUSY;
+    wakeup(buf);
 }
 
 /*
@@ -170,43 +185,43 @@ biodone(buf)
  */
 int
 physio(strategy, bp, dev, flags, minphys, uio)
-	void (*strategy) __P((struct buf *));
-	struct buf *bp;
-	dev_t dev;
-	int flags;
-	void (*minphys) __P((struct buf *));
-	struct uio *uio;
+    void (*strategy) __P((struct buf *));
+    struct buf *bp;
+    dev_t dev;
+    int flags;
+    void (*minphys) __P((struct buf *));
+    struct uio *uio;
 {
-	int error = 0;
-	struct buf lbp;
-	int s;
+    int error = 0;
+    struct buf lbp;
+    int s;
 
-	if(bp == NULL) {
-		memset((void *)&lbp, 0, sizeof(struct buf));
-		bp = &lbp;
-	}
-	bp->b_dev    = dev;
-	bp->b_error  = 0;
-	bp->b_bcount = uio->uio_iov[0].iov_len;
-	bp->b_data   = uio->uio_iov[0].iov_base;
-	bp->b_blkno  = btodb(uio->uio_offset);
-	bp->b_flags = B_BUSY | B_PHYS | B_RAW | flags;
+    if(bp == NULL) {
+        memset((void *)&lbp, 0, sizeof(struct buf));
+        bp = &lbp;
+    }
+    bp->b_dev    = dev;
+    bp->b_error  = 0;
+    bp->b_bcount = uio->uio_iov[0].iov_len;
+    bp->b_data   = uio->uio_iov[0].iov_base;
+    bp->b_blkno  = btodb(uio->uio_offset);
+    bp->b_flags = B_BUSY | B_PHYS | B_RAW | flags;
 
-	(*strategy)(bp);
-	if (!(bp->b_flags & B_ERROR)) {
-		s = splbio();
-		while (!(bp->b_flags & B_ERROR) && bp->b_flags & B_BUSY) {
-			tsleep(bp, PRIBIO + 1, "biowait", 0);
-		}
-	}
+    (*strategy)(bp);
+    if (!(bp->b_flags & B_ERROR)) {
+        s = splbio();
+        while (!(bp->b_flags & B_ERROR) && bp->b_flags & B_BUSY) {
+            tsleep(bp, PRIBIO + 1, "biowait", 0);
+        }
+    }
 
-	splx(s);
+    splx(s);
 
-	if (bp->b_flags & B_ERROR) {
-		error = (bp->b_error ? bp->b_error : EIO);
-	}
+    if (bp->b_flags & B_ERROR) {
+        error = (bp->b_error ? bp->b_error : EIO);
+    }
 
-	return(error);
+    return(error);
 }
 
 
@@ -220,75 +235,75 @@ physio(strategy, bp, dev, flags, minphys, uio)
 
 int
 devio_open(fd, name, flags, mode)
-	int fd;
-	const char *name;
-	int flags, mode;
+    int fd;
+    const char *name;
+    int flags, mode;
 {
-	int mj;
-	u_int32_t v;
-	dev_t dev;
-	struct biodev *devstat;
-	char strbuf[64], *strp, *p;
+    int mj;
+    u_int32_t v;
+    dev_t dev;
+    struct biodev *devstat;
+    char strbuf[64], *strp, *p;
 
-	dev = find_device(&name);
-	if(dev == NULL || *name == '/') {
-		errno = ENOENT;
-		return -1;
-	}
+    dev = find_device(&name);
+    if(dev == NULL || *name == '/') {
+        errno = ENOENT;
+        return -1;
+    }
 
-	mj = dev >> 8;
-	devstat = &opendevs[fd];
-	devstat->devno = dev;
-	devstat->offs = 0;
-	devstat->base = 0;
-	devstat->maptab = 0;
-	devstat->end = 0x10000000000;
+    mj = dev >> 8;
+    devstat = &opendevs[fd];
+    devstat->devno = dev;
+    devstat->offs = 0;
+    devstat->base = 0;
+    devstat->maptab = 0;
+    devstat->end = 0x10000000000;
 
-	/* Check for any subsize specification */
-	if (*name == '@') {
-		name++;
-		strncpy(strbuf, name, sizeof(strbuf));
-		strp = strpbrk(strbuf, "/,:");
-		if(!strp) {
-			strp = strbuf + sizeof(strbuf);
-		}
-		else if(*strp != '/') {
-			*strp++ = '\0';
-			if((p = index(strp, '/')))
-				*p = 0;
-			if(!get_rsa(&v, strp)) {
-				errno = EBADF;
-				return -1;
-			}
-			else
-				devstat->end = (off_t)v << DEV_BSHIFT;
-		}
-		*strp++ = '\0';
-		if(!get_rsa(&v, strbuf)) {
-			errno = EBADF;
-			return -1;
-		}
-		else {
-			devstat->base = (off_t)v << DEV_BSHIFT;
-			devstat->offs = (off_t)v << DEV_BSHIFT;
-			devstat->end += (off_t)v << DEV_BSHIFT;
-		}
-	}
-	else if (*name != '\0') {
-		errno = EBADF;
-		return -1;
-	}
+    /* Check for any subsize specification */
+    if (*name == '@') {
+        name++;
+        strncpy(strbuf, name, sizeof(strbuf));
+        strp = strpbrk(strbuf, "/,:");
+        if(!strp) {
+            strp = strbuf + sizeof(strbuf);
+        }
+        else if(*strp != '/') {
+            *strp++ = '\0';
+            if((p = index(strp, '/')))
+                *p = 0;
+            if(!get_rsa(&v, strp)) {
+                errno = EBADF;
+                return -1;
+            }
+            else
+                devstat->end = (off_t)v << DEV_BSHIFT;
+        }
+        *strp++ = '\0';
+        if(!get_rsa(&v, strbuf)) {
+            errno = EBADF;
+            return -1;
+        }
+        else {
+            devstat->base = (off_t)v << DEV_BSHIFT;
+            devstat->offs = (off_t)v << DEV_BSHIFT;
+            devstat->end += (off_t)v << DEV_BSHIFT;
+        }
+    }
+    else if (*name != '\0') {
+        errno = EBADF;
+        return -1;
+    }
 
-	/* Now call the physical device open function */
-	curproc->p_stat = SRUN;
-	errno = (*devswitch[mj].open)(dev, 0, S_IFCHR, NULL);
-	curproc->p_stat = SNOTKERN;
+    /* Now call the physical device open function */
+    curproc->p_stat = SRUN;
+    errno = (*devswitch[mj].open)(dev, 0, S_IFCHR, NULL);
+    curproc->p_stat = SNOTKERN;
 
-	if(errno) {
-		return -1;
-	}
+    if(errno) {
+        return -1;
+    }
 
-	return(fd);
+    return(fd);
 }
 
 /*
@@ -297,19 +312,19 @@ devio_open(fd, name, flags, mode)
 
 int
 devio_close(fd)
-	int fd;
+    int fd;
 {
-	int mj;
+    int mj;
 
-	mj = opendevs[fd].devno >> 8;
-	curproc->p_stat = SRUN;
-	errno = (*devswitch[mj].close)(opendevs[fd].devno, 0, S_IFCHR, NULL);
-	curproc->p_stat = SNOTKERN;
-	opendevs[fd].devno = 0;
-	if(errno) {
-		return(-1);
-	}
-	return(0);
+    mj = opendevs[fd].devno >> 8;
+    curproc->p_stat = SRUN;
+    errno = (*devswitch[mj].close)(opendevs[fd].devno, 0, S_IFCHR, NULL);
+    curproc->p_stat = SNOTKERN;
+    opendevs[fd].devno = 0;
+    if(errno) {
+        return(-1);
+    }
+    return(0);
 }
 
 /*
@@ -318,94 +333,94 @@ devio_close(fd)
 
 int
 devio_read(fd, buf, blen)
-	int fd;
-	void *buf;
-	size_t blen;
+    int fd;
+    void *buf;
+    size_t blen;
 {
-	int mj;
-	struct uio uio;
-	struct iovec iovec;
+    int mj;
+    struct uio uio;
+    struct iovec iovec;
 static char lbuff[DEV_BSIZE];
 
-	if(opendevs[fd].offs < opendevs[fd].base ||
-	   opendevs[fd].offs > opendevs[fd].end) {
-		errno = EINVAL;
-		return(-1);
-	}
-	if(blen > (opendevs[fd].end - opendevs[fd].offs))
-		blen = opendevs[fd].end - opendevs[fd].offs;
+    if(opendevs[fd].offs < opendevs[fd].base ||
+       opendevs[fd].offs > opendevs[fd].end) {
+        errno = EINVAL;
+        return(-1);
+    }
+    if(blen > (opendevs[fd].end - opendevs[fd].offs))
+        blen = opendevs[fd].end - opendevs[fd].offs;
 
-	if (blen == 0)
-		return(0);
+    if (blen == 0)
+        return(0);
 
-	/* Check for unaligned read, eg we need to buffer */
-	if (opendevs[fd].offs & (DEV_BSIZE - 1) || blen < DEV_BSIZE) {
-		int suboffs = opendevs[fd].offs & (DEV_BSIZE - 1);
-		char *p = &lbuff[suboffs];
-		int c, n = 0;
-		opendevs[fd].offs &= ~(DEV_BSIZE - 1);
-		if (devio_read(fd, lbuff, DEV_BSIZE) < 0) {
-			opendevs[fd].offs += suboffs;
-			return(-1);
-		}
-		while(blen && suboffs < DEV_BSIZE) {
-			*((char *)buf)++ = *p++;
-			blen--;
-			suboffs++;
-			n++;
-		}
-		opendevs[fd].offs -= (DEV_BSIZE - suboffs);
-		c = devio_read(fd, buf, blen);
-		if (c >= 0)
-			return(c + n);
-		else
-			return(-1);
-	}
-	else if(blen & (DEV_BSIZE - 1)) {
-		int c, n;
-		c = devio_read(fd, buf, blen & ~(DEV_BSIZE - 1));
-		if (c < 0)
-			return(-1);
-		buf += c;
-		blen -= c;
-		n = devio_read(fd, buf, blen);
-		if (n >= 0)
-			return(n + c);
-		else
-			return(-1);
-	}
-	if (blen > MAXPHYS) {
-		int c, n = 0;
-		do {
-			c = devio_read(fd, buf, min(MAXPHYS, blen));
-			if (c < 0)
-				return(-1);
-			n += c;
-			blen -= c;
-			buf += c;
-		} while (blen > 0);
-		return(n);
-	}
-	else {
-		mj = opendevs[fd].devno >> 8;
-		uio.uio_iovcnt = 1;
-		uio.uio_iov = &iovec;
-		uio.uio_rw = UIO_READ;
-		uio.uio_offset = opendevs[fd].offs;
-	
-		iovec.iov_base = buf;
-		iovec.iov_len = blen;
+    /* Check for unaligned read, eg we need to buffer */
+    if (opendevs[fd].offs & (DEV_BSIZE - 1) || blen < DEV_BSIZE) {
+        int suboffs = opendevs[fd].offs & (DEV_BSIZE - 1);
+        char *p = &lbuff[suboffs];
+        int c, n = 0;
+        opendevs[fd].offs &= ~(DEV_BSIZE - 1);
+        if (devio_read(fd, lbuff, DEV_BSIZE) < 0) {
+            opendevs[fd].offs += suboffs;
+            return(-1);
+        }
+        while(blen && suboffs < DEV_BSIZE) {
+            *((char *)buf)++ = *p++;
+            blen--;
+            suboffs++;
+            n++;
+        }
+        opendevs[fd].offs -= (DEV_BSIZE - suboffs);
+        c = devio_read(fd, buf, blen);
+        if (c >= 0)
+            return(c + n);
+        else
+            return(-1);
+    }
+    else if(blen & (DEV_BSIZE - 1)) {
+        int c, n;
+        c = devio_read(fd, buf, blen & ~(DEV_BSIZE - 1));
+        if (c < 0)
+            return(-1);
+        buf += c;
+        blen -= c;
+        n = devio_read(fd, buf, blen);
+        if (n >= 0)
+            return(n + c);
+        else
+            return(-1);
+    }
+    if (blen > MAXPHYS) {
+        int c, n = 0;
+        do {
+            c = devio_read(fd, buf, min(MAXPHYS, blen));
+            if (c < 0)
+                return(-1);
+            n += c;
+            blen -= c;
+            buf += c;
+        } while (blen > 0);
+        return(n);
+    }
+    else {
+        mj = opendevs[fd].devno >> 8;
+        uio.uio_iovcnt = 1;
+        uio.uio_iov = &iovec;
+        uio.uio_rw = UIO_READ;
+        uio.uio_offset = opendevs[fd].offs;
+    
+        iovec.iov_base = buf;
+        iovec.iov_len = blen;
 
-		curproc->p_stat = SNOTKERN;
-		errno = (*devswitch[mj].read)(opendevs[fd].devno, &uio, 0);
-		curproc->p_stat = SNOTKERN;
-	}
+        curproc->p_stat = SNOTKERN;
+        errno = (*devswitch[mj].read)(opendevs[fd].devno, &uio, 0);
+        curproc->p_stat = SNOTKERN;
+    }
 
-	if(errno) {
-		return(-1);
-	}
-	opendevs[fd].offs += blen;
-	return(blen);
+    if(errno) {
+        return(-1);
+    }
+    opendevs[fd].offs += blen;
+    return(blen);
 }
 
 /*
@@ -414,34 +429,34 @@ static char lbuff[DEV_BSIZE];
 
 int
 devio_write(fd, buf, blen)
-	int fd;
-	const void *buf;
-	size_t blen;
+    int fd;
+    const void *buf;
+    size_t blen;
 {
-	int mj;
-	struct uio uio;
-	struct iovec iovec;
+    int mj;
+    struct uio uio;
+    struct iovec iovec;
 
-	if (blen == 0)
-		return(0);
+    if (blen == 0)
+        return(0);
 
-	mj = opendevs[fd].devno >> 8;
-	uio.uio_iovcnt = 1;
-	uio.uio_iov = &iovec;
-	uio.uio_rw = UIO_WRITE;
-	uio.uio_offset = opendevs[fd].offs;
-	
-	iovec.iov_base = (void *)buf;
-	iovec.iov_len = blen;
+    mj = opendevs[fd].devno >> 8;
+    uio.uio_iovcnt = 1;
+    uio.uio_iov = &iovec;
+    uio.uio_rw = UIO_WRITE;
+    uio.uio_offset = opendevs[fd].offs;
+    
+    iovec.iov_base = (void *)buf;
+    iovec.iov_len = blen;
 
-	curproc->p_stat = SRUN;
-	errno = (*devswitch[mj].write)(opendevs[fd].devno, &uio, 0);
-	curproc->p_stat = SNOTKERN;
+    curproc->p_stat = SRUN;
+    errno = (*devswitch[mj].write)(opendevs[fd].devno, &uio, 0);
+    curproc->p_stat = SNOTKERN;
 
-	if(errno) {
-		return(-1);
-	}
-	return(blen);
+    if(errno) {
+        return(-1);
+    }
+    return(blen);
 }
 
 /*
@@ -450,22 +465,22 @@ devio_write(fd, buf, blen)
 
 off_t
 devio_lseek(fd, offs, whence)
-	int fd;
-	off_t offs;
-	int whence;
+    int fd;
+    off_t offs;
+    int whence;
 {
-	if(whence == 0)
-		opendevs[fd].offs = opendevs[fd].base + offs;
-	else
-		opendevs[fd].offs += offs;
+    if(whence == 0)
+        opendevs[fd].offs = opendevs[fd].base + offs;
+    else
+        opendevs[fd].offs += offs;
 
-//	printf("In DEVFS.c   offset is %llx,end is %llx\n",opendevs[fd].offs,opendevs[fd].end);
-	if(opendevs[fd].offs > opendevs[fd].end)
-		{
-		opendevs[fd].offs = opendevs[fd].end;
-		}
+//  printf("In DEVFS.c   offset is %llx,end is %llx\n",opendevs[fd].offs,opendevs[fd].end);
+    if(opendevs[fd].offs > opendevs[fd].end)
+        {
+        opendevs[fd].offs = opendevs[fd].end;
+        }
 
-	return(opendevs[fd].offs - opendevs[fd].base);
+    return(opendevs[fd].offs - opendevs[fd].base);
 }
 
 /*
@@ -475,54 +490,54 @@ extern struct cfdata cfdata[];
 
 dev_t
 find_device(name)
-	const char **name;
+    const char **name;
 {
-	struct cfdata *cf;
-	struct cfdriver *cd;
-	struct device *dv;
-	dev_t dev;
-	int i;
-	struct devsw *devsw;
-	const char *pname;
+    struct cfdata *cf;
+    struct cfdriver *cd;
+    struct device *dv;
+    dev_t dev;
+    int i;
+    struct devsw *devsw;
+    const char *pname;
 
-	/* Discard /dev/ and disk/ from name */
-	pname = *name;
-	if (strncmp(pname, "/dev/", 5) == 0)
-		pname += 5;
-	if (strncmp(pname, "disk/", 5) == 0) {
-		pname += 5;
-	}
+    /* Discard /dev/ and disk/ from name */
+    pname = *name;
+    if (strncmp(pname, "/dev/", 5) == 0)
+        pname += 5;
+    if (strncmp(pname, "disk/", 5) == 0) {
+        pname += 5;
+    }
 
-	if (*pname == '/')
-		pname++;	/* Skip over leading slash if dev is first */
+    if (*pname == '/')
+        pname++;    /* Skip over leading slash if dev is first */
 
-	for(devsw = devswitch; devsw->name != NULL; devsw++) {
-		if(!strbequ(pname, devsw->name)) {
-			continue;
-		}
-		break;
-	}
-	if(devsw->name == NULL) {
-		return NULL;		/* Not found */
-	}
-	dev = devsw - devswitch;	/* Major number in dispatch table */
+    for(devsw = devswitch; devsw->name != NULL; devsw++) {
+        if(!strbequ(pname, devsw->name)) {
+            continue;
+        }
+        break;
+    }
+    if(devsw->name == NULL) {
+        return NULL;        /* Not found */
+    }
+    dev = devsw - devswitch;    /* Major number in dispatch table */
 
-	for(cf = cfdata; (cd = cf->cf_driver); cf++) {
-		if(cd->cd_devs == NULL)
-			continue;
+    for(cf = cfdata; (cd = cf->cf_driver); cf++) {
+        if(cd->cd_devs == NULL)
+            continue;
 
-		for(i = 0; i < cd->cd_ndevs; i++) {
-			if((dv = cd->cd_devs[i]) == NULL)
-				continue;
-			if(!strbequ(pname, dv->dv_xname))
-				continue;
+        for(i = 0; i < cd->cd_ndevs; i++) {
+            if((dv = cd->cd_devs[i]) == NULL)
+                continue;
+            if(!strbequ(pname, dv->dv_xname))
+                continue;
 
-			dev = (dev << 8) | i;
-			*name = pname + strlen(dv->dv_xname);
-			return(dev);
-		}
-	}
-	return NULL;
+            dev = (dev << 8) | i;
+            *name = pname + strlen(dv->dv_xname);
+            return(dev);
+        }
+    }
+    return NULL;
 }
 
 
@@ -530,13 +545,13 @@ find_device(name)
  *  File system registration info.
  */
 static FileSystem diskfs = {
-	"disk", FS_DEV,
-	devio_open,
-	devio_read,
-	devio_write,
-	devio_lseek,
-	devio_close,
-	NULL
+    "disk", FS_DEV,
+    devio_open,
+    devio_read,
+    devio_write,
+    devio_lseek,
+    devio_close,
+    NULL
 };
 
 static void init_fs(void) __attribute__ ((constructor));
@@ -544,6 +559,6 @@ static void init_fs(void) __attribute__ ((constructor));
 static void
 init_fs()
 {
-	filefs_init(&diskfs);
+    filefs_init(&diskfs);
 }
 

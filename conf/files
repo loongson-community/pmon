@@ -76,6 +76,7 @@ attach  pcibr at mainbus
 file    pmon/dev/pcibr.c		pcibr		needs-flag
 
 
+
 # UHCI USB controller
 # commented by yanhua
 #device  uhci: usbus
@@ -345,5 +346,31 @@ file sys/dev/usb/cmd_usb.c		  mod_usb & mod_usb_storage
 file sys/dev/usb/usb_uhci.c		  mod_usb_uhci needs-flag
 file fb/sis/sis_main.c mod_sisfb needs-flag
 
+#add by yuli
+#Sata 
+define satabus {}
+device sata: disk
+attach sata at satabus
+
+#file sys/dev/pci/sata.c         mod_sata
+#file sys/dev/pci/sata_sil3114.c mod_sil
+#file sys/dev/pci/libata_core.c  mod_sata
+#file sys/dev/pci/libata_sff.c   mod_sata
+
+
+file sys/dev/ata/sata.c         mod_sata
+file sys/dev/ata/sata_sil3114.c mod_sil
+#file sys/dev/ata/libata_core.c  mod_sata
+#file sys/dev/ata/libata_sff.c   mod_sata
+
 
 file    sys/dev/fd/fd.c fd needs-flag
+
+#add by yuli
+#Sata 
+#define satabus {}
+#device sata: disk
+#attach sata at satabus
+
+#file sys/dev/pci/sata.c
+#file sys/dev/pci/sata_sil3114.c
