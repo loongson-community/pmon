@@ -50,6 +50,7 @@ struct ed {
 	struct ed *ed_prev;
 	struct ed *ed_next;
 	u32 oINFO;
+	u32 pipe;
 	u8 int_period;
 	u8 int_branch;
 	u8 int_load;

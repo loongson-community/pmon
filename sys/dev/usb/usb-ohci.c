@@ -1187,6 +1187,30 @@ static int ep_unlink (ohci_t *ohci, ed_t *ed)
 	return 0;
 }
 
+static int find_index(struct ohci_device * ohci_dev, unsigned long pipe)
+{
+	int i;
+
+	if(ohci_dev == NULL || pipe == 0){
+    	printf("argv is valid\n");
+		return -1;
+    }
+
+   	for(i = 0; i < NUM_EDS; i++) {
+        if(ohci_dev->cpu_ed[i].pipe == 0){ // pipe will not be 0,since bit30~bit31 never be 0.
+            break;
+        } else {
+            if(ohci_dev->cpu_ed[i].pipe == pipe)
+            	return i;
+        }
+    }
+    if(i >= NUM_EDS)
+        return -2;
+    else
+        return i;
+}
+
+
 /*===========================================================================
 *
 *FUNTION: ep_add_ed
@@ -1220,7 +1244,12 @@ static ed_t * ep_add_ed (struct usb_device *usb_dev, unsigned long pipe)
     //QYL-2008-03-07
     u_int32_t cpued_num = 0;
 
-    cpued_num = ((usb_pipedevice(pipe)&0x3)<<3)|((usb_pipeendpoint(pipe)&0x3)<<1)|(usb_pipein(pipe));
+//    cpued_num = ((usb_pipedevice(pipe)&0x3)<<3)|((usb_pipeendpoint(pipe)&0x3)<<1)|(usb_pipein(pipe));
+	cpued_num = find_index(ohci_dev, pipe);
+	if(cpued_num < 0){
+		err("Why you need so much? No more ed left\n");
+		return NULL;
+	}
     ed = ed_ret = &ohci_dev->cpu_ed[cpued_num];
     
 	if ((ed->state & ED_DEL) || (ed->state & ED_URB_DEL)) {
@@ -1247,6 +1276,7 @@ static ed_t * ep_add_ed (struct usb_device *usb_dev, unsigned long pipe)
 		ed->hwHeadP = ed->hwTailP;
 		ed->state = ED_UNLINK;
 		ed->type = usb_pipetype (pipe);
+		ed->pipe = pipe;
 		ohci_dev->ed_cnt++;
 	}
 
@@ -2437,7 +2467,7 @@ int submit_common_msg(struct usb_device *dev, unsigned long pipe, void *buffer,
 	else
 		timeout = 2000;
 
-	timeout *= 40;
+	timeout *= 10;
 
 	/* wait for it to complete */
 #if 0
@@ -3034,11 +3064,12 @@ int usb_lowlevel_init(ohci_t *gohci)
 		err("EDs not aligned!!");
 		return -1;
 	}
-
+#ifdef CONFIG_SM502_USB_HCD
 	if((gohci->flags & 0x80)) 
 	{
 		ohci_dev->cpu_ed = ohci_dev->ed;
 	} 
+#endif
 	else 
 	{
 		pci_sync_cache(gohci->sc_pc, (vm_offset_t)ohci_dev->ed, sizeof(ohci_dev->ed),SYNC_W);

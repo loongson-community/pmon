@@ -869,7 +869,7 @@ do_retry:
 static int usb_inquiry(ccb *srb,struct us_data *ss)
 {
 	int retry,i;
-	retry=5;
+	retry=2;
 	do {
 		memset(&srb->cmd[0],0,12);
 		srb->cmd[0]=SCSI_INQUIRY;
@@ -881,7 +881,8 @@ static int usb_inquiry(ccb *srb,struct us_data *ss)
 		USB_STOR_PRINTF("inquiry returns %d\n",i);
 		if(i==0)
 			break;
-	} while(retry--);
+		retry--;
+	} while(retry);
 
 	if(!retry) {
 		printf("error in inquiry\n");
