@@ -55,13 +55,11 @@ static char i2c_read_single(int addr, int regNo, char *value)
 	/* Start condition */
 	c = linux_inb(smb_base | SMB_CTRL1);
 	linux_outb(c | SMB_CTRL1_START, smb_base | SMB_CTRL1);
-    if(i2c_wait())
-		return -1;	
+    i2c_wait();
 	
 	/* Send slave address */
 	linux_outb(addr & 0xfe, smb_base | SMB_SDA);
-    if(i2c_wait())
-		return -1;
+    i2c_wait();
 	
    	/* Acknowledge smbus */
 	c = linux_inb(smb_base | SMB_CTRL1);
@@ -69,8 +67,7 @@ static char i2c_read_single(int addr, int regNo, char *value)
 	
 	/* Send register index */
 	linux_outb(regNo, smb_base | SMB_SDA);
-    if(i2c_wait())
-		return -1;
+    i2c_wait();
 
    	/* Acknowledge smbus */
 	c = linux_inb(smb_base | SMB_CTRL1);
@@ -79,13 +76,11 @@ static char i2c_read_single(int addr, int regNo, char *value)
 	/* Start condition again */
 	c = linux_inb(smb_base | SMB_CTRL1);
 	linux_outb(c | SMB_CTRL1_START, smb_base | SMB_CTRL1);
-	if(i2c_wait())
-		return -1;
+	i2c_wait();
 
 	/* Send salve address again */
 	linux_outb(1 | addr, smb_base | SMB_SDA);
-	if(i2c_wait())
-		return -1;
+	i2c_wait();
 
    	/* Acknowledge smbus */
 	c = linux_inb(smb_base | SMB_CTRL1);
@@ -96,8 +91,7 @@ static char i2c_read_single(int addr, int regNo, char *value)
 
 	/* Stop condition */
 	linux_outb(SMB_CTRL1_STOP, smb_base | SMB_CTRL1);
-	if(i2c_wait())
-		return -1;
+	i2c_wait();
 }
 
 static void i2c_write_single(int addr, int regNo, char value)
@@ -107,26 +101,21 @@ static void i2c_write_single(int addr, int regNo, char value)
 	/* Start condition */
 	c = linux_inb(smb_base | SMB_CTRL1);
 	linux_outb(c | SMB_CTRL1_START, smb_base | SMB_CTRL1);
-    if(i2c_wait())
-   		return -1; 
+    i2c_wait();
 	/* Send slave address */
     linux_outb(addr & 0xfe, smb_base | SMB_SDA);
-    if(i2c_wait());
-		return -1;
+    i2c_wait();;
 
 	/* Send register index */
     linux_outb(regNo, smb_base | SMB_SDA);
-    if(i2c_wait())
-		return -1;	
+    i2c_wait();
 
 	/* Write data */
     linux_outb(value, smb_base | SMB_SDA);
-    if(i2c_wait())
-		return -1;
+    i2c_wait();
 	/* Stop condition */
     linux_outb(SMB_CTRL1_STOP, smb_base | SMB_CTRL1);
-    if(i2c_wait())
-		return -1;
+    i2c_wait();
 
 }
 
