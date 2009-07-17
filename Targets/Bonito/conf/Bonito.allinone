@@ -101,6 +101,7 @@ option		TARGETNAME="\"Bonito\""
 # Command selection. Selects pmon commands
 #
 select          cmd_about               # Display info about PMON
+select          cmd_i2c                 # i2c opration
 select		cmd_gui
 select          cmd_boot                # Boot wrapper
 select          cmd_mycmd
