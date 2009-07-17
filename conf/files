@@ -207,7 +207,7 @@ file pmon/cmds/boot_cfg.c     boot_menu
 file pmon/common/bootkernel.c
 file pmon/cmds/cmd_ls.c
 file pmon/cmds/cat.c
-file pmon/cmds/cmd_tem.c      cmd_tem
+#file pmon/cmds/cmd_tem.c      cmd_tem
 
 file pmon/common/about.c		cmd_about
 file pmon/common/autoconf.c		sys
