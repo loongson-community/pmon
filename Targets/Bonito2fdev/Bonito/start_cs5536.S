@@ -900,7 +900,7 @@ do_caches:
 	li	t2, 4096
 
 	srl	t1, t3, 9
-	and	t1, 3
+	and	t1, 7
 	sllv	s3, t2, t1		/* s3 = I cache size */
 
 #ifdef CONFIG_CACHE_64K_4WAY 
@@ -912,7 +912,7 @@ do_caches:
 	addu	s4, t1, 16		/* s4 = I cache line size */
 
 	srl	t1, t3, 6
-	and	t1, 3
+	and	t1, 7
 	sllv	s5, t2, t1		/* s5 = D cache size */
 
 #ifdef CONFIG_CACHE_64K_4WAY
@@ -1465,7 +1465,7 @@ hexchar:
 #define	SLAVE_REC_WRITE_DATA_ACK_TRA		0x28
 #define	MAS_REC_READ_DATA_ACK_NOT_TRA		0x58
 
-#define Index_Store_Tag_D			0x05
+#define Index_Store_Tag_D			0x09
 #define Index_Invalidate_I			0x00
 #define Index_Writeback_Inv_D			0x01
 #define Index_Store_Tag_S			0x0b
@@ -1484,13 +1484,13 @@ cache_detect_2way:
 	srl	t5, t5, 9
 	andi	t6, t4, 0x01c0
 	srl	t6, t6, 6
-	addiu	t6, t6, 11
-	addiu	t5, t5, 11
+	addiu	t6, t6, 12
+	addiu	t5, t5, 12
 	addiu	t4, $0, 1
 	sllv	t6, t4, t6
-	srl	t6,1
+	srl	t6,2
 	sllv	t5, t4, t5
-	srl	t5,1
+	srl	t5,2
 	addiu	t7, $0, 2
 ####part 3####
 	lui	a0, 0x8000
