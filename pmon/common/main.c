@@ -489,12 +489,12 @@ autoload(char *s)
 			rd= getenv("rd");
 			if (rd != 0){
 				sprintf(buf, "initrd %s", rd);
-				do_cmd(buf);
+				if(do_cmd(buf))return;
 			}
 
 			strcpy(buf,"load ");
 			strcat(buf,s);
-			do_cmd(buf);
+			if(do_cmd(buf))return;
 			if((pa=getenv("append")))
 			{
 			sprintf(buf,"g %s",pa);

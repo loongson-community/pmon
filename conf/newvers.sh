@@ -40,7 +40,7 @@ fi
 touch version
 v=`cat version` u=${USER-root} d=`pwd` h=`hostname` t=`date`
 id=`basename ${d}`
-
+git=`git log -1|head -n 3|perl -e 'local $/;$a=<>;$a=~s/\n/ /g;print $a;'`
 ost="PMON2000"
 osr="2.1"
 
@@ -50,11 +50,11 @@ char osrelease[] = "${osr}";
 char osversion[] = "${id}#${v}";
 char sccs[8] = { ' ', ' ', ' ', ' ', '@', '(', '#', ')' };
 char vers[] =
-    "${ost} ${osr} (${id}) #${v}: ${t}";
+    "${ost} ${osr} (${id}) #${v}: ${t} ${git}";
 eof
 
 cat >vers.h <<eof
-#define VERS "${ost} ${osr} (${id}) #${v}: ${t}\r\nCopyright (c) 2000-2003 Opsycon AB, www.opsycon.se"
+#define VERS "${ost} ${osr} (${id}) #${v}: ${t}\r\n"
 eof
 
 expr ${v} + 1 > version

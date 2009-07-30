@@ -7246,8 +7246,9 @@ return 0;
 /*                      MODULE                       */
 /*****************************************************/
 
-
-static char		*mode = "1280x1024-16@75";
+#define _MTOS(x) #x
+#define MTOS(x) _MTOS(x)
+static char		*mode = MTOS(FB_XSIZE) "x"  MTOS(FB_YSIZE) "-" MTOS(FB_COLOR_BITS) "@75";
 static int		vesa = -1;
 static unsigned int	rate = 0;
 static unsigned int	crt1off = 1;

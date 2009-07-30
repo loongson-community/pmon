@@ -68,7 +68,7 @@
 	move errorall,zero
 
 	li writedata,STARTDATA
-	li curaddr,0xa0000000
+	li curaddr,0x80000000
 21:
     TESTONCE;
 	addu writedata,STEPS*DECDATA; 
@@ -85,7 +85,7 @@
 	nop; 
 	PRINTSTR("\r\n");
 22:
-    li tmp,MAXSIZE+0xa0000000
+    li tmp,MAXSIZE+0x80000000
 	subu tmp,curaddr
 	bgtz tmp,21b
 	nop

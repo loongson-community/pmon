@@ -23,10 +23,10 @@
 #define I_WIDTH 8
 
 #define WMEM(STARTDATA,DECDATA) \
-	li	maxaddr, 0xa0000000+MAXSIZE; \
-	li	curaddr, 0xa0000000; \
+	li	maxaddr, 0x80000000+MAXSIZE; \
+	li	curaddr, 0x80000000; \
 	li	writedata, STARTDATA; \
-	li  paddr, 0xa0000000+STEPSIZE; \
+	li  paddr, 0x80000000+STEPSIZE; \
 1: \
 	I_STORE	writedata, 0(curaddr); \
 	subu	writedata,  DECDATA; \
@@ -47,9 +47,9 @@
 	TTYDBG("\r\n");
 
 #define TMEM(STARTDATA,DECDATA) \
-	li	maxaddr, 0xa0000000+MAXSIZE; \
-	li	curaddr, 0xa0000000; \
-	li  paddr, 0xa0000000+STEPSIZE; \
+	li	maxaddr, 0x80000000+MAXSIZE; \
+	li	curaddr, 0x80000000; \
+	li  paddr, 0x80000000+STEPSIZE; \
 	li writedata, STARTDATA; \
 1: \
 	I_LOAD	readdata, 0(curaddr); \

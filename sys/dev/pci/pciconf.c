@@ -555,7 +555,8 @@ _pci_query_dev (struct pci_device *dev, int bus, int device, int initialise)
 			tag = _pci_make_tag(bus, device, function);
 			id = _pci_conf_read(tag, PCI_ID_REG);
 			if (id == 0 || id == 0xffffffff) {
-				return;
+				//return;
+				continue;
 			}
 			_pci_query_dev_func (dev, tag, initialise);
 		}
@@ -641,7 +642,10 @@ _insertsort_window(pm_list, pm)
 	pm->next = pm2;
 }
 
-
+#ifndef PCI_BIGMEM_ADDRESS
+#define PCI_BIGMEM_ADDRESS 0x40000000
+#endif
+static pci_bigmem_address=PCI_BIGMEM_ADDRESS;
 static void
 _pci_setup_windows (struct pci_device *dev)
 {
@@ -655,11 +659,15 @@ _pci_setup_windows (struct pci_device *dev)
         next = pm->next;
         pm->address = _pci_allocate_mem (dev, pm->size);
         if (pm->address == -1) {
-			pd->disable=1;//will not enable this device in future;
-			pm->address = 0;
+	pci_bigmem_address = (pci_bigmem_address + pm->size-1) & ~(pm->size - 1);
+		    pm->address = pci_bigmem_address;
+	pci_bigmem_address += pm->size;
+
+#if 0
             _pci_tagprintf (pd->pa.pa_tag, 
                             "not enough PCI mem space (%d requested)\n", 
                             pm->size);
+#endif
             //continue;
         }
         if (_pciverbose >= 2)

@@ -170,6 +170,17 @@ _pci_hwinit(initialise, iot, memt)
 	/*set pci 8-16M -> DDR 8-16M ,window size 8M,can not map 0-8M to pci,because ddr pci address will cover vga mem.*/
 	  asm(".set mips3;dli $2,0x900000003ff00000;li $3,0x800000;sd $3,0x68($2);sd $3,0xa8($2);dli $3,0xffffffffff800000;sd $3,0x88($2);.set mips0" :::"$2","$3");
 
+	{
+//can not change gnt to break pci transfer when device's gnt not deassert for some sb like 82371,via686b.
+	volatile int *p=0xffffffffbfe00168;
+#ifdef CONFIG_SLOW_PCI_FOR_BROKENDEV
+	*p=0x00fe0115; //make default pci device not cpu itselt,this will make two cpu accesses to pci has about 5 pci clocks inteval for broken device like sundance net adaptor,otherwise maybe only one pci clock inteval.
+#else
+	*p=0x00fe0105;
+#endif
+//make pci retry max 32.
+    //p=0xffffffffbfe00058; *p=*p|0x2000;
+	}
 	return(1);
 }
 

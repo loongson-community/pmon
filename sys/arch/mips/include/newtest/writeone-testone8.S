@@ -16,8 +16,8 @@
 	
 	li	t7, 10
 10:
-	li	t0, 0xa0000000+MAXSIZE
-	li	t1, 0xa0000000
+	li	t0, 0x80000000+MAXSIZE
+	li	t1, 0x80000000
 	li	t2, STARTDATA
 1:
 	I_STORE	t2, 0(t1)

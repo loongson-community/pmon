@@ -146,9 +146,9 @@ em*        at pci? dev ? function ?
 #select      mod_usb_uhci
 #select 	 	mod_usb_ohci
 #select      mod_usb_kbd
-
 atp*           at pci? dev ? function ?  #sata atp8620
 
+sata*		at atp?
 #### IDE controllers
 pciide* 	at pci ? dev ? function ? flags 0x0000
 
