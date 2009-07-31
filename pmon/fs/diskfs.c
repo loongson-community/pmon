@@ -81,6 +81,8 @@ static int
 	else
 		return (-1);
 
+	 devname=dname;
+
 	for (i=0; i < strlen(dname); i++) {
 		if (dname[i] == '@') {
 			fsname = dname;
@@ -89,7 +91,7 @@ static int
 			break;
 		}
 	}
-	if (fsname != NULL) {
+	if (fsname != NULL && fsname[0]) {
 		int found = 0;
 		SLIST_FOREACH(p, &DiskFileSystems, i_next) {
 			if (strcmp (fsname, p->fsname) == 0) {
@@ -99,11 +101,6 @@ static int
 		}
 		if (found == 0)
 			return (-1);
-	} else {
-		/*
-		 * Boot block booting
-		 */
-	}
 	dfp = (DiskFile *)malloc(sizeof(DiskFile));
 	if (dfp == NULL) {
 		fprintf(stderr, "Out of space for allocating a DiskFile");
@@ -117,6 +114,27 @@ static int
 	if(p->open)
 		return ((p->open)(fd,devname,mode,perms));	
 	return -1;	
+	} else {
+	char path[100];
+	strncpy(path,devname,100);
+	dfp = (DiskFile *)malloc(sizeof(DiskFile));
+	if (dfp == NULL) {
+		fprintf(stderr, "Out of space for allocating a DiskFile");
+		return(-1);
+	}
+
+		SLIST_FOREACH(p, &DiskFileSystems, i_next) {
+	dfp->dfs = p;
+	
+	_file[fd].posn = 0;
+	_file[fd].data = (void *)dfp;
+	strncpy(devname,path,100);
+	if(p->open && ((p->open)(fd,devname,mode,perms)==fd))
+	return fd;
+		}
+		free(dfp);
+		return -1;
+	}
 }
 
 /** close(fd) close fd */
