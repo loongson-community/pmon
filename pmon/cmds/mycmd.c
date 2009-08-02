@@ -362,7 +362,7 @@ case 1:
 	   break;
 case 2:
 	  MYC(mydata->data2=*(volatile short *)addr;);
-	  asm("dsll32 %1,%1,0;dsrl32 %1,%1,0;dsll32 %2,%2,0;or %1,%2;lhu $2,(%1);" \
+	  MYASM("dsll32 %1,%1,0;dsrl32 %1,%1,0;dsll32 %2,%2,0;or %1,%2;lhu $2,(%1);" \
 		  "sh $2,(%0);" \
 		  ::"r"(&mydata->data2),"r"(a.l[0]),"r"(a.l[1])
 		  :"$2"

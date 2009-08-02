@@ -342,6 +342,8 @@ static void OUTL(struct eth_device* dev, int command, u_long addr)
 #define PHY_ADDR_17 17
 
 
+void phy_write( u8 phy_addr, u8 offset, u16 phy_data);
+u16 phy_read(u8 phy_addr, u8 offset);
  u16 loop_back_17(void)
 {
     u16 data_phy=0;
@@ -561,6 +563,7 @@ void phy_write_1( u32 phy_addr, u32 offset, u32 phy_data)
     //    }
 }
 
+static u16 phy_read_1bit(unsigned long ioaddr);
  u32 phy_read_1(u32 phy_addr, u32 offset)
 {
     int i;
@@ -751,6 +754,7 @@ int dc21x4x_initialize(struct eth_device* dev)
 #define next_tx(x) (((x+1)==NUM_TX_DESC)?0:(x+1))
 #define next_rx(x) (((x+1)==NUM_RX_DESC)?0:(x+1))
 
+static void send_setup_frame(struct eth_device* dev);
 /*
  * init function
  */

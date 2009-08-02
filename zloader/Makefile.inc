@@ -7,7 +7,7 @@ endif
 GZROMSTARTADDR?=0xffffffff81000000
 ROMSTARTADDR?=0xffffffff80010000
 RAMSTARTADDR?=0xffffffff88000000
-export CC += ${MYCC} -mips3 -mno-abicalls -fno-pic
+export CC += ${MYCC}  -mno-abicalls -fno-pic
 export MKDEP=makedepend
 
 ifdef obj
@@ -36,7 +36,7 @@ rom: clean ${START} zloader.o
 
 ram: clean startram.o zloader.o 
 	gcc -DSTARTADDR=${GZROMSTARTADDR} -E -P ld.script.S |sed 's/OUTPUT_ARCH(1)/OUTPUT_ARCH(mips)/'> ld.script
-	${CROSS_COMPILE}ld -mips3 -T ld.script -e start -o gzram startram.o zloader.o 
+	${CROSS_COMPILE}ld  -T ld.script -e start -o gzram startram.o zloader.o 
 
 zlib_rom: clean ${START} zlib_loader.o 
 	gcc -DSTARTADDR=${GZROMSTARTADDR} -E -P ld.script.S > ld.script

@@ -9,6 +9,7 @@
 unsigned char __SD_LCD_BAR_BASE[VMAX*HMAX*2] __attribute__ ((aligned(64)));
 static int count = 0;
 
+void init_lcd_regs();
 void init_lcd()
 {
 	pci_sync_cache(0, (vm_offset_t)__SD_LCD_BAR_BASE, sizeof(__SD_LCD_BAR_BASE), SYNC_R);

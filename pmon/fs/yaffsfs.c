@@ -2177,6 +2177,7 @@ static int yaffs_CreateFreeObjects(yaffs_Device * dev, int nObjects)
 }
 
 
+static void yaffs_AddObjectToDirectory(yaffs_Object * directory, yaffs_Object * obj);
 /* AllocateEmptyObject gets us a clean Object. Tries to make allocate more if we run out */
 static yaffs_Object *yaffs_AllocateEmptyObject(yaffs_Device * dev)
 {
@@ -2215,6 +2216,8 @@ static yaffs_Object *yaffs_AllocateEmptyObject(yaffs_Device * dev)
 	return tn;
 }
 
+yaffs_Object *yaffs_CreateNewObject(yaffs_Device * dev, int number,
+				    yaffs_ObjectType type);
 static yaffs_Object *yaffs_CreateFakeDirectory(yaffs_Device * dev, int number, __u32 mode)
 {
 
@@ -2893,6 +2896,7 @@ static void yaffs_DeviceToCheckpointDevice(yaffs_CheckpointDevice *cp, yaffs_Dev
 }
 
 
+static void yaffs_CheckpointDeviceToDevice(yaffs_Device *dev, yaffs_CheckpointDevice *cp);
 static int yaffs_ReadCheckpointDevice(yaffs_Device *dev)
 {
 	yaffs_CheckpointDevice cp;
@@ -2976,6 +2980,7 @@ static int yaffs_ReadCheckpointTnodes(yaffs_Object *obj)
 }
  
 
+static void yaffs_HardlinkFixup(yaffs_Device *dev, yaffs_Object *hardList);
 static int yaffs_ReadCheckpointObjects(yaffs_Device *dev)
 {
 	yaffs_Object *obj;
@@ -4023,6 +4028,7 @@ static int yaffs_CreateInitialDirectories(yaffs_Device *dev)
 	return YAFFS_FAIL;
 }
 
+void yaffs_Deinitialise(yaffs_Device * dev);
 int yaffs_GutsInitialise(yaffs_Device * dev)
 {
 	int init_failed = 0;
