@@ -300,15 +300,15 @@ struct de4x5_desc {
 	u32 next;
 };
 
-static struct de4x5_desc _rx_ring[NUM_RX_DESC] __attribute__ ((aligned(32))); /* RX descriptor ring         */
-static struct de4x5_desc _tx_ring[NUM_TX_DESC] __attribute__ ((aligned(32))); /* TX descriptor ring         */
+static struct de4x5_desc _rx_ring[NUM_RX_DESC] __attribute__ ((aligned(32),section(".bss.align32"))); /* RX descriptor ring         */
+static struct de4x5_desc _tx_ring[NUM_TX_DESC] __attribute__ ((aligned(32),section(".bss.align32"))); /* TX descriptor ring         */
 static volatile struct de4x5_desc *rx_ring;
 static volatile struct de4x5_desc *tx_ring;
 
-char __NetRxPackets[NUM_RX_DESC][RX_BUFF_SZ] __attribute__((aligned(32))); //16
+char __NetRxPackets[NUM_RX_DESC][RX_BUFF_SZ] __attribute__((aligned(32),section(".bss.align32"))); //16
 char (*NetRxPackets)[RX_BUFF_SZ];
 
-char __NetTxPackets[NUM_TX_DESC][TX_BUFF_SZ] __attribute__((aligned(32))); //16
+char __NetTxPackets[NUM_TX_DESC][TX_BUFF_SZ] __attribute__((aligned(32),section(".bss.align32"))); //16
 char (*NetTxPackets)[TX_BUFF_SZ];
 
 

@@ -217,17 +217,17 @@ struct uhci {
 	//struct uhci_qh *skelqh[UHCI_NUM_SKELQH];	/* Skeleton QH's */
 
 	int is_suspended;
-uhci_td_t td_int0 __attribute__((aligned(128)));
-uhci_td_t td_int[8] __attribute__((aligned(128)));/* Interrupt Transfer descriptors */
-uhci_qh_t qh_cntrl __attribute__((aligned(128)));/* control Queue Head */
-uhci_qh_t qh_bulk __attribute__((aligned(128)));/*  bulk Queue Head */
-uhci_qh_t qh_end __attribute__((aligned(128)));/* end Queue Head */
-uhci_td_t td_last __attribute__((aligned(128))); /* last TD (linked with end chain) */
-unsigned char hc_setup[32] __attribute__((aligned(128)));
-unsigned char control_buf0[256] __attribute__((aligned(128)));
-uhci_td_t tmp_td[USB_MAX_TEMP_TD] __attribute__((aligned(128)));/* temporary bulk/control td's  */
-uhci_td_t tmp_int_td[USB_MAX_TEMP_INT_TD] __attribute__((aligned(128))); /* temporary interrupt td's  */
-unsigned long framelist[1024] __attribute__ ((aligned (0x1000))); /* frame list */
+uhci_td_t td_int0 __attribute__((aligned(128),section(".bss.align128")));
+uhci_td_t td_int[8] __attribute__((aligned(128),section(".bss.align128")));/* Interrupt Transfer descriptors */
+uhci_qh_t qh_cntrl __attribute__((aligned(128),section(".bss.align128")));/* control Queue Head */
+uhci_qh_t qh_bulk __attribute__((aligned(128),section(".bss.align128")));/*  bulk Queue Head */
+uhci_qh_t qh_end __attribute__((aligned(128),section(".bss.align128")));/* end Queue Head */
+uhci_td_t td_last __attribute__((aligned(128),section(".bss.align128"))); /* last TD (linked with end chain) */
+unsigned char hc_setup[32] __attribute__((aligned(128),section(".bss.align128")));
+unsigned char control_buf0[256] __attribute__((aligned(128),section(".bss.align128")));
+uhci_td_t tmp_td[USB_MAX_TEMP_TD] __attribute__((aligned(128),section(".bss.align128")));/* temporary bulk/control td's  */
+uhci_td_t tmp_int_td[USB_MAX_TEMP_INT_TD] __attribute__((aligned(128),section(".bss.align128"))); /* temporary interrupt td's  */
+unsigned long framelist[1024] __attribute__ ((aligned (0x1000),section(".bss.align4096"))); /* frame list */
 };
 typedef struct uhci uhci_t;
 #define td_int uhci->td_int

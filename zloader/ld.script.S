@@ -26,6 +26,12 @@ SECTIONS
   {
     _fdata = . ;
     *(.data)
+   . = ALIGN(32);
+   *(.data.align32)
+   . = ALIGN(128);
+   *(.data.align128)
+   . = ALIGN(4096);
+   *(.data.align4096)
     CONSTRUCTORS
   }
   .data1   : { *(.data1) }
@@ -65,6 +71,12 @@ SECTIONS
   {
    *(.dynbss)
    *(.bss)
+   . = ALIGN(32);
+   *(.bss.align32)
+   . = ALIGN(128);
+   *(.bss.align128)
+   . = ALIGN(4096);
+   *(.bss.align4096)
    *(COMMON)
   }
   _end = . ;
