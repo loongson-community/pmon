@@ -71,7 +71,7 @@ select		cmd_shell		# Shell commands, vers, help, eval
 #
 select		mod_uart_ns16550	# Standard UART driver
 option		APB_CLK=100000000
-option		CPU_CLK=200000000
+option		CPU_CLK=250000000
 option		CONS_BAUD=B115200
 select		ext2
 select 		yaffsfs
@@ -182,7 +182,7 @@ select nand
 select cmd_xyzmodem
 select loop
 option VGA_MEM_BASE=0xb7f00000
-option		X640x480
+option		X1024x768
 option 		CONFIG_VIDEO_16BPP
 select http
 select tcp

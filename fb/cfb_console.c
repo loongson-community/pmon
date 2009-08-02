@@ -1599,8 +1599,8 @@ int fb_init (unsigned long fbbase,unsigned long iobase)
         pGD->winSizeX  = 320;
         pGD->winSizeY  = 240;
 #else
-        pGD->winSizeX  = 640;
-        pGD->winSizeY  = 480;
+        pGD->winSizeX  = FB_XSIZE;
+        pGD->winSizeY  = FB_YSIZE;
 #endif			
 	
 #if   defined(CONFIG_VIDEO_1BPP)
