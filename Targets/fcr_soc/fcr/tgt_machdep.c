@@ -212,8 +212,8 @@ int init_kbd()
     ldd = 5*25*APB_CLK/100000000; //5us/(4/APB_CLK)=5*25
     KSEG1_STORE8(FCR_PS2_BASE+PS2_DLL, ldd & 0xff);
     KSEG1_STORE8(FCR_PS2_BASE+PS2_DLH, (ldd >> 8) & 0xff);
-	KSEG1_STORE8(FCR_PS2_BASE+0xa,20); //kbd 100us
-	KSEG1_STORE8(FCR_PS2_BASE+0xb,20); //aux 100us
+	///KSEG1_STORE8(FCR_PS2_BASE+0xa,20); //kbd 100us
+	//KSEG1_STORE8(FCR_PS2_BASE+0xb,20); //aux 100us
 	//pckbd_init_hw();
    return 1;
 

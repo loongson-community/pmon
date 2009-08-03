@@ -304,6 +304,11 @@ int kbd_initialize(void)
 	 * If the test is successful a x55 is placed in the input buffer.
 	 */
 	kbd_write_command_w(KBD_CCMD_SELF_TEST);
+	kbd_write_command_w(KBD_CCMD_SELF_TEST);
+	kbd_write_command_w(KBD_CCMD_SELF_TEST);
+	kbd_write_command_w(KBD_CCMD_SELF_TEST);
+	kbd_write_command_w(KBD_CCMD_SELF_TEST);
+
 	if (kbd_wait_for_input() != 0x55) {
 		printf("Self test cmd failed,ignored!\n");
 		//return 1;
@@ -335,6 +340,9 @@ int kbd_initialize(void)
 	 */
 	count = 0;
 	do {
+		kbd_clear_input();
+		kbd_write_output_w(KBD_CMD_RESET);
+		kbd_clear_input();
 		kbd_write_output_w(KBD_CMD_RESET);
 		status = kbd_wait_for_input();
 		if (status == KBD_REPLY_ACK)
@@ -348,7 +356,7 @@ int kbd_initialize(void)
 	} while (1);
 
 	if (kbd_wait_for_input() != KBD_REPLY_POR) {
-		printf("NO POR, ignored!\n");
+		//printf("NO POR, ignored!\n");
 		//return 3;
 	}
 
@@ -392,17 +400,17 @@ int kbd_initialize(void)
 	}
 #endif
 	if (kbd_write_output_w_and_wait(KBD_CMD_ENABLE) != KBD_REPLY_ACK) {
-		return 5;
+		//return 5;
 	}
 
 	/*
 	 * Finally, set the typematic rate to maximum.
 	 */
 	if (kbd_write_output_w_and_wait(KBD_CMD_SET_RATE) != KBD_REPLY_ACK) {
-		return 6;
+		//return 6;
 	}
 	if (kbd_write_output_w_and_wait(0x00) != KBD_REPLY_ACK) {
-		return 7;
+		//return 7;
 	}
 
 	return 0;

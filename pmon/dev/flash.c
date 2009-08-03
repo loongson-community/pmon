@@ -92,7 +92,11 @@ static __inline void fl_mydetect(struct fl_map *map)
         outb((map->fl_map_base + ConvAddr1(0x2aa)), 0x55);
         outb((map->fl_map_base + ConvAddr1(0x555)), FL_AUTOSEL);
         if(inb(map->fl_map_base)!=oldc){map->fl_type=TYPE_ST;return;}
-	    else {map->fl_type=TYPE_AMD;	}
+		outb((map->fl_map_base + AMD_CMDOFFS1), 0xAA);
+		outb((map->fl_map_base + AMD_CMDOFFS2), 0x55);
+		outb((map->fl_map_base + AMD_CMDOFFS1), FL_AUTOSEL);
+        if(inb(map->fl_map_base)!=oldc){map->fl_type=TYPE_AMD;return;}
+	    else {map->fl_type=0;printf("unknow flash type\n");	}
 }
 
 static __inline void
@@ -315,36 +319,6 @@ fl_devident(void *base, struct fl_map **m)
 
 
 
-
-
-
-static void get_roundup(void **ori_base, int *ori_size)
-{
-	int mask;
-	struct fl_device *dev;
-	struct fl_map *map;
-
-	dev = fl_devident(*ori_base, &map);
-	if (dev == NULL) {
-		printf("No flash found at %x\n", (u_int32_t) ori_base);
-		return ;	/* No flash device found at address */
-	}
-
-	mask = ((dev->fl_secsize * map->fl_map_width / map->fl_map_chips) - 1);
-	if((int)*ori_base & mask) {
-		*ori_size += (int)*ori_base & mask;
-		*ori_base = (void *)((int)*ori_base & ~mask);
-	} else if((*ori_size + ((int)*ori_base - map->fl_map_base)) > map->fl_map_size) {
-		return ;     /* End beyound end of flash */
-	}
-
-	*ori_size = (*ori_size + mask) & ~mask; /* Round up to catch entire flash */
-}
-
-
-
-
-
 /*
  *  Erase the flash device(s) addressed.
  */
@@ -482,42 +456,54 @@ fl_erase_device(void *base, int size, int verbose)
 
 
 
-
-
 int fl_program(void *fl_base, void *data_base, int data_size, int verbose)
 {
-	void *base = fl_base;
-	int size = data_size;
-	char *tmpbuf;
+        char *nvrambuf;
+        char *nvramsecbuf;
+	    char *nvram;
+		int offs,count,left;
+		struct fl_device *dev=fl_devident(fl_base,0);
+		int nvram_size=dev->fl_secsize;
 
-	get_roundup(&base, &size);
-
-	/* 去掉提示信息 */
-//	verbose = FALSE;
-
-	if (verbose)
-	{
-		printf("base %x, size %x\n", base, size);
+	nvramsecbuf = (char *)malloc(nvram_size);
+	if(nvramsecbuf == 0) {
+		printf("Warning! Unable to malloc nvrambuffer!\n");
+		return(-1);
 	}
-	
-	tmpbuf = (char *)malloc(size);
-	if (tmpbuf == 0) {
-		printf("[fl_program] can't malloc");
-		return -1;
-	}
+      nvram = fl_base;
+	  left = data_size;
+	  while(left)
+	  {
 
-	memcpy(tmpbuf, base, size);
-	memcpy(tmpbuf + (unsigned int)fl_base - (unsigned int)base, 
-		data_base, data_size);
-	if (fl_erase_device(base, size, verbose) == 0 && 
-		fl_program_device(base, tmpbuf, size, verbose) == 0){
-		return 0;
-	}	
-	return -1;
-	
+		offs = (int)nvram &(nvram_size - 1);
+        nvram  = (int)nvram & ~(nvram_size - 1);
+		count = min(nvram_size-offs,left);
+		 
+
+        memcpy(nvramsecbuf, nvram, nvram_size);
+        if(fl_erase_device(nvram, nvram_size, verbose)) {
+		printf("Error! Nvram erase failed!\n");
+		free(nvramsecbuf);
+                return(0);
+        }
+	    
+		nvrambuf = nvramsecbuf + offs;
+
+		memcpy(nvrambuf,data_base,count);
+        
+		if(fl_program_device(nvram, nvramsecbuf, nvram_size, verbose)) {
+		printf("Error! Nvram program failed!\n");
+		free(nvramsecbuf);
+                return(0);
+        }
+
+		data_base += count;
+		nvram += nvram_size;
+		left -= count;
+		}
+	free(nvramsecbuf);
+        return 0;
 }
-
-
 
 
 

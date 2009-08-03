@@ -82,6 +82,7 @@ select 		mod_framebuffer
 #select		mod_x86emu_int10
 select		mod_vgacon
 option		NOPCINAMES		# Save some space for x86emu
+option		CONFIG_VIDEO_SW_CURSOR
 #option		FASTBOOT
 #select	    vt82c686        #via686a/b code
 
@@ -173,7 +174,7 @@ option IDECD
 #select cmd_bootp
 #option FOR_GXEMUL
 select fatfs
-option FLOATINGPT
+#option FLOATINGPT
 select gzip
 option INPUT_FROM_BOTH
 option OUTPUT_TO_BOTH

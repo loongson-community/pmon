@@ -28,6 +28,8 @@ SECTIONS
     *(.data)
    . = ALIGN(32);
    *(.data.align32)
+   . = ALIGN(64);
+   *(.data.align64)
    . = ALIGN(128);
    *(.data.align128)
    . = ALIGN(4096);
@@ -73,6 +75,8 @@ SECTIONS
    *(.bss)
    . = ALIGN(32);
    *(.bss.align32)
+   . = ALIGN(64);
+   *(.bss.align64)
    . = ALIGN(128);
    *(.bss.align128)
    . = ALIGN(4096);

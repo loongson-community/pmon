@@ -102,6 +102,8 @@ struct fl_device fl_known_dev[] = {
 	/* zfx, should be compatible */
 	{"MX29LV040", 0xC2, 0x4F, FL_PROTO_SST, FL_CAP_DE,
 	 512 * __KB, 64 * __KB, NULL, &fl_func_sst},
+    { "Am29LV160",  0x01, 0x49, FL_PROTO_AMD, FL_CAP_DE,  
+      2048*__KB, 8*__KB,  NULL, &fl_func_amd },  //hwm     
 #endif /* NMOD_FLASH_AMD */
 #if NMOD_FLASH_INTEL > 0
 	{ "i28F016SA",	0x89, 0xa0, FL_PROTO_INT, FL_CAP_A7,
@@ -132,6 +134,8 @@ struct fl_device fl_known_dev[] = {
 	4096*__KB, 64*__KB,  NULL, &fl_func_sst },
 	{ "SST39F040",	0x0bf, 0xd7, FL_PROTO_SST, FL_CAP_DE,
 	512*__KB, 4*__KB,  NULL, &fl_func_sst }, /*sector size must be correct*/
+    { "SST39VF6401B",	0xbf, 0x236d, FL_PROTO_SST, FL_CAP_DE,
+      8192*__KB, 64*__KB,  NULL, &fl_func_sst },   //hwm
 	{ "SST39SF040",	0x0bf, 0xb7, FL_PROTO_SST, FL_CAP_DE,
 	512*__KB, 4*__KB,  NULL, &fl_func_sst }, /*sector size must be correct*/
 	{ "Am29LV017",	0x01, 0xc8, FL_PROTO_SST, FL_CAP_DE,

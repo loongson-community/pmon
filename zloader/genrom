@@ -24,7 +24,7 @@ void realinitmips(unsigned int msize);
 void enable_cache()
 {
 	    __asm__ volatile(
-		".set mips3;\\n" \\
+		".set mips2;\\n" \\
 "        mfc0   \$4,\$16;\\n" \\
 "        and    \$4,\$4,0xfffffff8;\\n" \\
 "        or     \$4,\$4,0x3;\\n" \\
