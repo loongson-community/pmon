@@ -205,11 +205,12 @@ static int
 		n = priv->open_size - _file[fd].posn;
 
 	start_addr= _file[fd].posn+priv->open_offset+p->part_offset;
+	n=(n+p->mtd->writesize-1)&~(p->mtd->writesize-1);
 
 	erase.mtd = p->mtd;
 	erase.callback = 0;
 	erase.addr = (start_addr+p->mtd->erasesize-1)&~(p->mtd->erasesize-1);
-	erase.len = n;
+	erase.len = (n+p->mtd->erasesize-1)&~(p->mtd->erasesize-1);
 	erase.priv = 0;
 
 	if(erase.addr>=start_addr && erase.addr<start_addr+erase.len)
