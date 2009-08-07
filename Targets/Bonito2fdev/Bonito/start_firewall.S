@@ -117,7 +117,7 @@ nop;
  *	s8	L3 Cache size.
  */
 
-
+	.set	nofix_gs2f_kernel
 	.set	noreorder
 	.globl	_start
 	.globl	start
@@ -1397,6 +1397,7 @@ LEAF(initserial)
 	sb	v1, NSREG(NS16550_MCR)(v0)
 	li	v1, 0x0
 	sb	v1, NSREG(NS16550_IER)(v0)
+	.set noat
 	j	ra
 	nop
 	.set at

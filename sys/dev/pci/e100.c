@@ -435,6 +435,8 @@ struct mii_if_info {
 	void (*mdio_write) (struct net_device *dev, int phy_id, int location, int val);
 };
 
+static inline void netif_carrier_on(struct net_device *dev);
+static inline void netif_carrier_off(struct net_device *dev);
 void mii_check_link (struct mii_if_info *mii)
 {
 	int cur_link = mii_link_ok(mii);
@@ -1877,6 +1879,7 @@ err_unlock:
 	return err;
 }
 
+static void e100_tx_timeout_task(struct net_device *netdev);
 static int e100_exec_cb(struct nic *nic, struct sk_buff *skb,
 	void (*cb_prepare)(struct nic *, struct cb *, struct sk_buff *))
 {
@@ -3853,6 +3856,7 @@ fxp_stop(struct net_device *netdev)
 }
 
 
+static long long e100_read_mac(struct fxp_softc *nic);
 static int
 fxp_ether_ioctl(ifp, cmd, data)
 	struct ifnet *ifp;

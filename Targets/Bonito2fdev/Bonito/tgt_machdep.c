@@ -1177,6 +1177,8 @@ tgt_gettime()
         }
         return(t);
 }
+
+char gpio_i2c_settime(struct tm *tm);
                                                                                
 /*
  *  Set the current time if a TOD clock is present
