@@ -79,6 +79,8 @@ void deWaitForNotBusy(void)
     	smtc_de_busy = 0;
 }
 
+void setPower(unsigned long nGates, unsigned long Clock);
+
 /**********************************************************************
  *
  * deInit

@@ -188,7 +188,7 @@ static inline void cache_off(void)
 {
 		cacheflush();
 		__asm__ volatile(
-		 ".set mips3;\r\n"
+		 ".set mips2;\r\n"
 		 "mfc0   $4,$16;\r\n"
         "and    $4,$4,0xfffffff8;\r\n"
         "or     $4,$4,0x2;\r\n"
@@ -202,7 +202,7 @@ static inline void cache_on(void)
 {
 		 cacheflush();
 	    __asm__ volatile(
-		".set mips3;\r\n"
+		".set mips2;\r\n"
         "mfc0   $4,$16;\r\n"
         "and    $4,$4,0xfffffff8;\r\n"
         "or     $4,$4,0x3;\r\n"

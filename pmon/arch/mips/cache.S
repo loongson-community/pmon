@@ -758,7 +758,7 @@ LEAF(CPU_FlushICache)
 	addu	a0, 128
 
 	j	ra
-	move	v0, zero		# suiword depends on this!!
+	addu	v0, zero,zero		# suiword depends on this!!
 END(CPU_FlushICache)
 
 /*----------------------------------------------------------------------------

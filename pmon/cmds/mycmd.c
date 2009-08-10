@@ -1977,159 +1977,165 @@ return 0;
 //
 
 #if __mips >= 3
+#define MFC0 "dmfc0"
+#define MTC0 "dmtc0"
+#else
+#define MFC0 "mfc0"
+#define MTC0 "mtc0"
+#endif
 static int __cp0syscall1(int type,unsigned long long addr,union commondata *mydata)
 {
-long long data8;
+long data8;
 if(type!=8)return -1;
 addr=addr>>3;
 
 switch((long)addr&0x1f)
 {
 case 0:
-asm("dmfc0 %0,$0 ":"=r"(data8));break;
+asm(MFC0 " %0,$0 ":"=r"(data8));break;
 case 1:
-asm("dmfc0 %0,$1 ":"=r"(data8));break;
+asm(MFC0 " %0,$1 ":"=r"(data8));break;
 case 2:
-asm("dmfc0 %0,$2 ":"=r"(data8));break;
+asm(MFC0 " %0,$2 ":"=r"(data8));break;
 case 3:
-asm("dmfc0 %0,$3 ":"=r"(data8));break;
+asm(MFC0 " %0,$3 ":"=r"(data8));break;
 case 4:
-asm("dmfc0 %0,$4 ":"=r"(data8));break;
+asm(MFC0 " %0,$4 ":"=r"(data8));break;
 case 5:
-asm("dmfc0 %0,$5 ":"=r"(data8));break;
+asm(MFC0 " %0,$5 ":"=r"(data8));break;
 case 6:
-asm("dmfc0 %0,$6 ":"=r"(data8));break;
+asm(MFC0 " %0,$6 ":"=r"(data8));break;
 case 7:
-asm("dmfc0 %0,$7 ":"=r"(data8));break;
+asm(MFC0 " %0,$7 ":"=r"(data8));break;
 case 8:
-asm("dmfc0 %0,$8 ":"=r"(data8));break;
+asm(MFC0 " %0,$8 ":"=r"(data8));break;
 case 9:
-asm("dmfc0 %0,$9 ":"=r"(data8));break;
+asm(MFC0 " %0,$9 ":"=r"(data8));break;
 case 10:
-asm("dmfc0 %0,$10":"=r"(data8));break;
+asm(MFC0 " %0,$10":"=r"(data8));break;
 case 11:
-asm("dmfc0 %0,$11 ":"=r"(data8));break;
+asm(MFC0 " %0,$11 ":"=r"(data8));break;
 case 12:
-asm("dmfc0 %0,$12 ":"=r"(data8));break;
+asm(MFC0 " %0,$12 ":"=r"(data8));break;
 case 13:
-asm("dmfc0 %0,$13 ":"=r"(data8));break;
+asm(MFC0 " %0,$13 ":"=r"(data8));break;
 case 14:
-asm("dmfc0 %0,$14 ":"=r"(data8));break;
+asm(MFC0 " %0,$14 ":"=r"(data8));break;
 case 15:
-asm("dmfc0 %0,$15 ":"=r"(data8));break;
+asm(MFC0 " %0,$15 ":"=r"(data8));break;
 case 16:
-asm("dmfc0 %0,$16 ":"=r"(data8));break;
+asm(MFC0 " %0,$16 ":"=r"(data8));break;
 case 17:
-asm("dmfc0 %0,$17 ":"=r"(data8));break;
+asm(MFC0 " %0,$17 ":"=r"(data8));break;
 case 18:
-asm("dmfc0 %0,$18 ":"=r"(data8));break;
+asm(MFC0 " %0,$18 ":"=r"(data8));break;
 case 19:
-asm("dmfc0 %0,$19 ":"=r"(data8));break;
+asm(MFC0 " %0,$19 ":"=r"(data8));break;
 case 20:
-asm("dmfc0 %0,$20 ":"=r"(data8));break;
+asm(MFC0 " %0,$20 ":"=r"(data8));break;
 case 21:
-asm("dmfc0 %0,$21 ":"=r"(data8));break;
+asm(MFC0 " %0,$21 ":"=r"(data8));break;
 case 22:
-asm("dmfc0 %0,$22 ":"=r"(data8));break;
+asm(MFC0 " %0,$22 ":"=r"(data8));break;
 case 23:
-asm("dmfc0 %0,$23 ":"=r"(data8));break;
+asm(MFC0 " %0,$23 ":"=r"(data8));break;
 case 24:
-asm("dmfc0 %0,$24 ":"=r"(data8));break;
+asm(MFC0 " %0,$24 ":"=r"(data8));break;
 case 25:
-asm("dmfc0 %0,$25 ":"=r"(data8));break;
+asm(MFC0 " %0,$25 ":"=r"(data8));break;
 case 26:
-asm("dmfc0 %0,$26 ":"=r"(data8));break;
+asm(MFC0 " %0,$26 ":"=r"(data8));break;
 case 27:
-asm("dmfc0 %0,$27 ":"=r"(data8));break;
+asm(MFC0 " %0,$27 ":"=r"(data8));break;
 case 28:
-asm("dmfc0 %0,$28 ":"=r"(data8));break;
+asm(MFC0 " %0,$28 ":"=r"(data8));break;
 case 29:
-asm("dmfc0 %0,$29 ":"=r"(data8));break;
+asm(MFC0 " %0,$29 ":"=r"(data8));break;
 case 30:
-asm("dmfc0 %0,$30 ":"=r"(data8));break;
+asm(MFC0 " %0,$30 ":"=r"(data8));break;
 case 31:
-asm("dmfc0 %0,$31 ":"=r"(data8));break;
+asm(MFC0 " %0,$31 ":"=r"(data8));break;
 }
 
-*(long long *)mydata->data8=data8;
+*(long *)mydata->data8=data8;
 
 return 0;
 }
 
 static int __cp0syscall2(int type,unsigned long long addr,union commondata *mydata)
 {
-long long data8;
+long data8;
 if(type!=8)return -1;
 addr=addr>>3;
 
-data8=*(long long *)mydata->data8;
+data8=*(long *)mydata->data8;
 
 switch((long)addr&0x1f)
 {
 case 0:
-asm("dmtc0 %0,$0 "::"r"(data8));break;
+asm(MTC0 " %0,$0 "::"r"(data8));break;
 case 1:
-asm("dmtc0 %0,$1 "::"r"(data8));break;
+asm(MTC0 " %0,$1 "::"r"(data8));break;
 case 2:
-asm("dmtc0 %0,$2 "::"r"(data8));break;
+asm(MTC0 " %0,$2 "::"r"(data8));break;
 case 3:
-asm("dmtc0 %0,$3 "::"r"(data8));break;
+asm(MTC0 " %0,$3 "::"r"(data8));break;
 case 4:
-asm("dmtc0 %0,$4 "::"r"(data8));break;
+asm(MTC0 " %0,$4 "::"r"(data8));break;
 case 5:
-asm("dmtc0 %0,$5 "::"r"(data8));break;
+asm(MTC0 " %0,$5 "::"r"(data8));break;
 case 6:
-asm("dmtc0 %0,$6 "::"r"(data8));break;
+asm(MTC0 " %0,$6 "::"r"(data8));break;
 case 7:
-asm("dmtc0 %0,$7 "::"r"(data8));break;
+asm(MTC0 " %0,$7 "::"r"(data8));break;
 case 8:
-asm("dmtc0 %0,$8 "::"r"(data8));break;
+asm(MTC0 " %0,$8 "::"r"(data8));break;
 case 9:
-asm("dmtc0 %0,$9 "::"r"(data8));break;
+asm(MTC0 " %0,$9 "::"r"(data8));break;
 case 10:
-asm("dmtc0 %0,$10"::"r"(data8));break;
+asm(MTC0 " %0,$10"::"r"(data8));break;
 case 11:
-asm("dmtc0 %0,$11 "::"r"(data8));break;
+asm(MTC0 " %0,$11 "::"r"(data8));break;
 case 12:
-asm("dmtc0 %0,$12 "::"r"(data8));break;
+asm(MTC0 " %0,$12 "::"r"(data8));break;
 case 13:
-asm("dmtc0 %0,$13 "::"r"(data8));break;
+asm(MTC0 " %0,$13 "::"r"(data8));break;
 case 14:
-asm("dmtc0 %0,$14 "::"r"(data8));break;
+asm(MTC0 " %0,$14 "::"r"(data8));break;
 case 15:
-asm("dmtc0 %0,$15 "::"r"(data8));break;
+asm(MTC0 " %0,$15 "::"r"(data8));break;
 case 16:
-asm("dmtc0 %0,$16 "::"r"(data8));break;
+asm(MTC0 " %0,$16 "::"r"(data8));break;
 case 17:
-asm("dmtc0 %0,$17 "::"r"(data8));break;
+asm(MTC0 " %0,$17 "::"r"(data8));break;
 case 18:
-asm("dmtc0 %0,$18 "::"r"(data8));break;
+asm(MTC0 " %0,$18 "::"r"(data8));break;
 case 19:
-asm("dmtc0 %0,$19 "::"r"(data8));break;
+asm(MTC0 " %0,$19 "::"r"(data8));break;
 case 20:
-asm("dmtc0 %0,$20 "::"r"(data8));break;
+asm(MTC0 " %0,$20 "::"r"(data8));break;
 case 21:
-asm("dmtc0 %0,$21 "::"r"(data8));break;
+asm(MTC0 " %0,$21 "::"r"(data8));break;
 case 22:
-asm("dmtc0 %0,$22 "::"r"(data8));break;
+asm(MTC0 " %0,$22 "::"r"(data8));break;
 case 23:
-asm("dmtc0 %0,$23 "::"r"(data8));break;
+asm(MTC0 " %0,$23 "::"r"(data8));break;
 case 24:
-asm("dmtc0 %0,$24 "::"r"(data8));break;
+asm(MTC0 " %0,$24 "::"r"(data8));break;
 case 25:
-asm("dmtc0 %0,$25 "::"r"(data8));break;
+asm(MTC0 " %0,$25 "::"r"(data8));break;
 case 26:
-asm("dmtc0 %0,$26 "::"r"(data8));break;
+asm(MTC0 " %0,$26 "::"r"(data8));break;
 case 27:
-asm("dmtc0 %0,$27 "::"r"(data8));break;
+asm(MTC0 " %0,$27 "::"r"(data8));break;
 case 28:
-asm("dmtc0 %0,$28 "::"r"(data8));break;
+asm(MTC0 " %0,$28 "::"r"(data8));break;
 case 29:
-asm("dmtc0 %0,$29 "::"r"(data8));break;
+asm(MTC0 " %0,$29 "::"r"(data8));break;
 case 30:
-asm("dmtc0 %0,$30 "::"r"(data8));break;
+asm(MTC0 " %0,$30 "::"r"(data8));break;
 case 31:
-asm("dmtc0 %0,$31 "::"r"(data8));break;
+asm(MTC0 " %0,$31 "::"r"(data8));break;
 }
 
 return 0;
@@ -2182,14 +2188,13 @@ asm("cache %3,(%2);mfc0 %0,$28;mfc0 %1,$29":"=r"(taglo),"=r"(taghi):"r"(addr|way
 return 0;
 }
 
-#endif
 //----------------------------------
 static const Cmd Cmds[] =
 {
 	{"MyCmds"},
 	{"testnet",	"", 0, "testnet rtl0 [recv|send|loop]", cmd_testnet, 0, 99, CMD_REPEAT},
-#if __mips >= 3
 	{"cp0s",	"", 0, "access cp0", mycp0s, 0, 99, CMD_REPEAT},
+#if __mips >= 3
 	{"scachedump",	"", 0, "access Scache tag",dumpcache, 0, 99, CMD_REPEAT},
 	{"dcachedump",	"", 0, "access Dcache tag",dumpcache, 0, 99, CMD_REPEAT},
 #endif
