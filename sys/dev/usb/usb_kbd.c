@@ -478,7 +478,8 @@ static int usb_kbd_probe(struct usb_device *dev, unsigned int ifnum)
 	if (iface->bNumEndpoints != 1) return 0;
 
 	/* Now probed a usb kbd */
-	if(kbd_index >= MAX_USB_KBD -1) {
+	//if(kbd_index >= MAX_USB_KBD -1) {
+	if(kbd_index >= MAX_USB_KBD) {
 		printf("Waring!! too much kbd attached\n");
 		return 0;
 	}

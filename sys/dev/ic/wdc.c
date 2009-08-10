@@ -892,7 +892,7 @@ __wdcwait_reset(chp, drv_mask)
 
 	/* wait for BSY to deassert */
 	for (timeout = 0; timeout < 20 /*WDCNDELAY_RST/2*/;timeout++) {
-			delay(3000000);
+			delay(4000000);
 		CHP_WRITE_REG(chp, wdr_sdh, WDSD_IBM); /* master */
 		delay(10);
 		st0 = CHP_READ_REG(chp, wdr_status);

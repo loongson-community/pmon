@@ -833,7 +833,7 @@ dbginit (char *adr)
         case NO_KEY:
         case ENTER_KEY:
 #ifdef AUTOLOAD
-#if defined(LOONGSON2F_FULOONG) || defined(LOONGSON2F_7INCH)
+#if defined(LOONGSON2F_FULOONG) || defined(LOONGSON2F_7INCH)||defined(LOONGSON2F_ALLINONE)
 
             if (!load_menu_list())
             {
