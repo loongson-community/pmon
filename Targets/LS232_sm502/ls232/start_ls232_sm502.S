@@ -49,10 +49,6 @@
 #include "target/isapnpreg.h"
 #define DEBUG_LOCORE
 
-#ifndef BOOT_FROM_EJTAG      
-#define  BOOT_FROM_EJTAG
-#endif
-#undef BOOT_FROM_EJTAG
 
 #ifdef DEBUG_LOCORE
 #define	TTYDBG(x) \
@@ -90,6 +86,8 @@ li v1,0x10000;\
 subu v1,1;\
 bnez v1,78b;\
 nop;
+
+#define GPIOLED_SET(x)
 
 
 #define tmpsize		s1
@@ -263,13 +261,13 @@ locate:
 	sb	t0,0xbf004140
 	GPIOLED_SET(0)	
 
-	la	s0,start
+	la	s0,uncached
 	subu	s0,ra,s0
-	and	s0,0xffff0000
+	and	s0,0xffffff00
 
 	GPIOLED_SET(1)	
-	bal	CPU_TLBClear
-	nop
+//	bal	CPU_TLBClear
+//	nop
 	li	t0,SR_BOOT_EXC_VEC
 	mtc0	t0,COP_0_STATUS_REG
         mtc0    zero,COP_0_CAUSE_REG
@@ -372,26 +370,56 @@ do_caches:
 	nop
 	TTYDBG("\r\n\r\n")
 
-#if 0
     mfc0   a0,COP_0_CONFIG
     and    a0,a0,~((1<<12) | 3)
-	or     a0,a0,7
+	or     a0,a0,2
     mtc0   a0,COP_0_CONFIG
-#endif
 
 	GPIOLED_SET(14)	
 
 
 #include "newtest.32/mydebug.S"
 bootnow:
-/* #include "ejtag_1.S" */
-	TTYDBG("Copy PMON to execute location...\r\n")
+#define	FCALL_PRINTSTR(x) \
+	.rdata;98: .asciz x; .text; la a0, 98b; la v0, stringserial; addu v0,s0;jalr v0; nop	
+
+#undef BAL
+#define BAL(x) \
+	la v0,x; \
+	addu v0,s0; \
+	jalr v0; \
+	nop;
+
+
+
+
+/*copy copy program to sdram to make copy fast*/
+
+	la t0,121f
+	addu t0,s0
+	la t1,122f
+	addu t1,s0
+	
+	li t2,0xa0000000
+1:
+	lw  v0,(t0)
+	sw v0,(t2)
+	addu t0,4
+	addu t2,4
+	ble t0,t1,1b
+	nop
+
+	li t0,0xa0000000
+   	jr t0	
+	nop		
+.align 3
+121: 
+	FCALL_PRINTSTR("Copy PMON to execute location...\r\n")
 	la	a0, start
-#ifndef BOOT_FROM_EJTAG
-	li	a1, 0xbfc00000
-#zgj-20090205	li	a1, 0xbfc00000
-#else
+#ifdef BOOT_FROM_EJTAG
 	li	a1, 0xa0200000
+#else
+	addu a1,a0,s0
 #endif
 	la	a2, _edata
         or      a0, 0xa0000000
@@ -409,10 +437,10 @@ bootnow:
 	bnez	t3,2f
 	nop
 	move	a0,t0
-	bal	hexserial
+	BAL(hexserial)
 	nop
 	li	a0,'\r'
-	bal 	tgt_putchar
+	BAL(tgt_putchar)
 	nop
 2:	lw	t3, 0(t1)
 	nop
@@ -422,8 +450,7 @@ bootnow:
 	bne	t2, t0, 1b
 	nop
 
-	GPIOLED_SET(9)	
-	PRINTSTR("\ncopy text section done.\r\n")
+	FCALL_PRINTSTR("\ncopy text section done.\r\n")
 	
 	/* Clear BSS */
 	la	a0, _edata
@@ -432,37 +459,27 @@ bootnow:
 	bne	a2, a0, 2b
 	addu	a0, 4
 
-/* ejtag_done: */
-	TTYDBG("Copy PMON to execute location done.\r\n")
-	TTYDBG("sp=");
+
+	FCALL_PRINTSTR("Copy PMON to execute location done.\r\n")
+	FCALL_PRINTSTR("sp=");
 	move a0, sp
-	bal	hexserial
+	BAL(hexserial)
 	nop
 
 	li	a0, 0
 	sw	a0, CpuTertiaryCacheSize /* Set L3 cache size */
 
-        TTYDBG("\r\n initmips=")
-        la      a0,initmips
-        bal     hexserial
-        nop
-        TTYDBG("\r\n")
 
-	GPIOLED_SET(10)
-	
 	move	a0,msize
 	srl	a0,20
 
-    /* pass pointer to kseg1 tgt_putchar */
-    la  a1, tgt_putchar
-	addu a1,a1,s0
-
-    la  a2, stringserial
-	addu a2,a2,s0
 
 	la	v0, initmips
 	jalr	v0
 	nop
+
+.align 3
+122:
 stuck:
 	b	stuck
 	nop

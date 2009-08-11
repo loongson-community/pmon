@@ -227,9 +227,9 @@ exc_common:
  *  location into ra. Check to see if we run from ROM or if this is ramloaded.
  */
 locate:
-	la	s0,start
+	la	s0,uncached
 	subu	s0,ra,s0
-	and	s0,0xffff0000
+	and	s0,0xffffff00
 
 	li	t0,SR_BOOT_EXC_VEC
 	mtc0	t0,COP_0_STATUS_REG
@@ -355,11 +355,7 @@ bootnow:
 121: 
 	FCALL_PRINTSTR("Copy PMON to execute location...\r\n")
 	la	a0, start
-#ifdef BOOT_FORM_JTAG
-	li	a1, 0xff200200
-#else
-	li	a1, 0xbfc00000
-#endif
+	addu a1,a0,s0
 	la	a2, _edata
         or      a0, 0xa0000000
         or      a2, 0xa0000000

@@ -9,6 +9,24 @@ ROMSTARTADDR?=0xffffffff80010000
 RAMSTARTADDR?=0xffffffff88000000
 export CC += ${MYCC}  -mno-abicalls -fno-pic
 export MKDEP=makedepend
+ifeq ("${tgt}","rom")
+gencode=./genrom
+endif
+
+ifeq ("${tgt}","ejtag_rom")
+gencode=./genrom_ejtag
+endif
+
+ifeq ("${tgt}","ejtag_rom1")
+gencode=./genrom
+CC += -DBOOT_FROM_EJTAG
+endif
+
+ifeq ("${tgt}","ejtag_ram")
+gencode=./genrom
+ROMSTARTADDR=0xffffffffff200200
+endif
+
 
 ifdef obj
 export CC += -g3
@@ -29,7 +47,7 @@ else
 all: ${tgt}
 sim: clean pmon.bin.c
 	gcc -o zloader  -DSIM zloader.c
-rom: clean ${START} zloader.o 
+ejtag_rom ejtag_rom1 ejtag_ram rom: clean ${START} zloader.o 
 	gcc  -DSTARTADDR=${GZROMSTARTADDR} -E -P ld.script.S |sed 's/OUTPUT_ARCH(1)/OUTPUT_ARCH(mips)/'>  ld.script
 	${CROSS_COMPILE}ld -T ld.script -e start -o gzrom ${START} zloader.o 
 	${CROSS_COMPILE}objcopy -O binary gzrom gzrom.bin
@@ -37,19 +55,6 @@ rom: clean ${START} zloader.o
 ram: clean startram.o zloader.o 
 	gcc -DSTARTADDR=${GZROMSTARTADDR} -E -P ld.script.S |sed 's/OUTPUT_ARCH(1)/OUTPUT_ARCH(mips)/'> ld.script
 	${CROSS_COMPILE}ld  -T ld.script -e start -o gzram startram.o zloader.o 
-
-zlib_rom: clean ${START} zlib_loader.o 
-	gcc -DSTARTADDR=${GZROMSTARTADDR} -E -P ld.script.S > ld.script
-	${CROSS_COMPILE}ld -T ld.script -e start -o zlib_gzrom ${START} zlib_loader.o  zlib_inflate/*.o
-	${CROSS_COMPILE}objcopy -O binary zlib_gzrom zlib_gzrom.bin
-	sync
-zlib_ram: clean startram.o zlib_loader.o 
-	gcc -DSTARTADDR=${GZROMSTARTADDR} -E -P ld.script.S > ld.script
-	${CROSS_COMPILE}ld -T ld.script -e start -o zlib_gzram startram.o zlib_loader.o zlib_inflate/*.o
-	cp zlib_gzram /tftpboot
-	sync
-
-
 
 ${START}:
 	rm -f ../Targets/${TARGET}/compile/${TARGETEL}/${START}
