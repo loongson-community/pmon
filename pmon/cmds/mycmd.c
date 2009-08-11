@@ -1976,167 +1976,49 @@ return 0;
 //----------------------------------
 //
 
-#if __mips >= 3
-#define MFC0 "dmfc0"
-#define MTC0 "dmtc0"
-#else
-#define MFC0 "mfc0"
-#define MTC0 "mtc0"
-#endif
+#define MTC0(RT,RD,SEL) ((0x408<<20)|((RT)<<16)|((RD)<<11)|SEL)
+#define MFC0(RT,RD,SEL) ((0x400<<20)|((RT)<<16)|((RD)<<11)|SEL)
+#define DMTC0(RT,RD,SEL) ((0x40a<<20)|((RT)<<16)|((RD)<<11)|SEL)
+#define DMFC0(RT,RD,SEL) ((0x402<<20)|((RT)<<16)|((RD)<<11)|SEL)
+static int cp0s_sel=0;
 static int __cp0syscall1(int type,unsigned long long addr,union commondata *mydata)
 {
 long data8;
+extern int mycp0ins();
+unsigned long *p=mycp0ins;
 if(type!=8)return -1;
-addr=addr>>3;
+memset(mydata->data8,0,8);
+addr=(addr>>3)&0x1f;
+#if __mips>=3
+*p=DMFC0(2,addr,cp0s_sel);
+#else
+*p=MFC0(2,addr,cp0s_sel);
+#endif
+pci_sync_cache(0,(long)mycp0ins&~31UL,32,1);
+CPU_FlushICache((long)mycp0ins&~31UL,32);
 
-switch((long)addr&0x1f)
-{
-case 0:
-asm(MFC0 " %0,$0 ":"=r"(data8));break;
-case 1:
-asm(MFC0 " %0,$1 ":"=r"(data8));break;
-case 2:
-asm(MFC0 " %0,$2 ":"=r"(data8));break;
-case 3:
-asm(MFC0 " %0,$3 ":"=r"(data8));break;
-case 4:
-asm(MFC0 " %0,$4 ":"=r"(data8));break;
-case 5:
-asm(MFC0 " %0,$5 ":"=r"(data8));break;
-case 6:
-asm(MFC0 " %0,$6 ":"=r"(data8));break;
-case 7:
-asm(MFC0 " %0,$7 ":"=r"(data8));break;
-case 8:
-asm(MFC0 " %0,$8 ":"=r"(data8));break;
-case 9:
-asm(MFC0 " %0,$9 ":"=r"(data8));break;
-case 10:
-asm(MFC0 " %0,$10":"=r"(data8));break;
-case 11:
-asm(MFC0 " %0,$11 ":"=r"(data8));break;
-case 12:
-asm(MFC0 " %0,$12 ":"=r"(data8));break;
-case 13:
-asm(MFC0 " %0,$13 ":"=r"(data8));break;
-case 14:
-asm(MFC0 " %0,$14 ":"=r"(data8));break;
-case 15:
-asm(MFC0 " %0,$15 ":"=r"(data8));break;
-case 16:
-asm(MFC0 " %0,$16 ":"=r"(data8));break;
-case 17:
-asm(MFC0 " %0,$17 ":"=r"(data8));break;
-case 18:
-asm(MFC0 " %0,$18 ":"=r"(data8));break;
-case 19:
-asm(MFC0 " %0,$19 ":"=r"(data8));break;
-case 20:
-asm(MFC0 " %0,$20 ":"=r"(data8));break;
-case 21:
-asm(MFC0 " %0,$21 ":"=r"(data8));break;
-case 22:
-asm(MFC0 " %0,$22 ":"=r"(data8));break;
-case 23:
-asm(MFC0 " %0,$23 ":"=r"(data8));break;
-case 24:
-asm(MFC0 " %0,$24 ":"=r"(data8));break;
-case 25:
-asm(MFC0 " %0,$25 ":"=r"(data8));break;
-case 26:
-asm(MFC0 " %0,$26 ":"=r"(data8));break;
-case 27:
-asm(MFC0 " %0,$27 ":"=r"(data8));break;
-case 28:
-asm(MFC0 " %0,$28 ":"=r"(data8));break;
-case 29:
-asm(MFC0 " %0,$29 ":"=r"(data8));break;
-case 30:
-asm(MFC0 " %0,$30 ":"=r"(data8));break;
-case 31:
-asm(MFC0 " %0,$31 ":"=r"(data8));break;
-}
+ asm(".global mycp0ins;mycp0ins:mfc0 $2,$0;move %0,$2" :"=r"(data8)::"$2");
 
-*(long *)mydata->data8=data8;
+ *(long *)mydata->data8=data8;
 
 return 0;
 }
 
 static int __cp0syscall2(int type,unsigned long long addr,union commondata *mydata)
 {
-long data8;
+extern int mycp0ins1();
+unsigned long *p=mycp0ins1;
 if(type!=8)return -1;
-addr=addr>>3;
+addr=(addr>>3)&0x1f;
+#if __mips>=3
+*p=DMTC0(2,addr,cp0s_sel);
+#else
+*p=MTC0(2,addr,cp0s_sel);
+#endif
+pci_sync_cache(0,(long)mycp0ins1&~31UL,32,1);
+CPU_FlushICache((long)mycp0ins1&~31UL,32);
 
-data8=*(long *)mydata->data8;
-
-switch((long)addr&0x1f)
-{
-case 0:
-asm(MTC0 " %0,$0 "::"r"(data8));break;
-case 1:
-asm(MTC0 " %0,$1 "::"r"(data8));break;
-case 2:
-asm(MTC0 " %0,$2 "::"r"(data8));break;
-case 3:
-asm(MTC0 " %0,$3 "::"r"(data8));break;
-case 4:
-asm(MTC0 " %0,$4 "::"r"(data8));break;
-case 5:
-asm(MTC0 " %0,$5 "::"r"(data8));break;
-case 6:
-asm(MTC0 " %0,$6 "::"r"(data8));break;
-case 7:
-asm(MTC0 " %0,$7 "::"r"(data8));break;
-case 8:
-asm(MTC0 " %0,$8 "::"r"(data8));break;
-case 9:
-asm(MTC0 " %0,$9 "::"r"(data8));break;
-case 10:
-asm(MTC0 " %0,$10"::"r"(data8));break;
-case 11:
-asm(MTC0 " %0,$11 "::"r"(data8));break;
-case 12:
-asm(MTC0 " %0,$12 "::"r"(data8));break;
-case 13:
-asm(MTC0 " %0,$13 "::"r"(data8));break;
-case 14:
-asm(MTC0 " %0,$14 "::"r"(data8));break;
-case 15:
-asm(MTC0 " %0,$15 "::"r"(data8));break;
-case 16:
-asm(MTC0 " %0,$16 "::"r"(data8));break;
-case 17:
-asm(MTC0 " %0,$17 "::"r"(data8));break;
-case 18:
-asm(MTC0 " %0,$18 "::"r"(data8));break;
-case 19:
-asm(MTC0 " %0,$19 "::"r"(data8));break;
-case 20:
-asm(MTC0 " %0,$20 "::"r"(data8));break;
-case 21:
-asm(MTC0 " %0,$21 "::"r"(data8));break;
-case 22:
-asm(MTC0 " %0,$22 "::"r"(data8));break;
-case 23:
-asm(MTC0 " %0,$23 "::"r"(data8));break;
-case 24:
-asm(MTC0 " %0,$24 "::"r"(data8));break;
-case 25:
-asm(MTC0 " %0,$25 "::"r"(data8));break;
-case 26:
-asm(MTC0 " %0,$26 "::"r"(data8));break;
-case 27:
-asm(MTC0 " %0,$27 "::"r"(data8));break;
-case 28:
-asm(MTC0 " %0,$28 "::"r"(data8));break;
-case 29:
-asm(MTC0 " %0,$29 "::"r"(data8));break;
-case 30:
-asm(MTC0 " %0,$30 "::"r"(data8));break;
-case 31:
-asm(MTC0 " %0,$31 "::"r"(data8));break;
-}
+ asm(".global mycp0ins1;move $2,%0;mycp0ins1:mtc0 $2,$0;"::"r"(*(long *)mydata->data8):"$2");
 
 return 0;
 }
@@ -2146,6 +2028,8 @@ static int mycp0s(int argc,char **argv)
 syscall1=__cp0syscall1;
 syscall2=__cp0syscall2;
 	syscall_addrtype=0;
+if(argc>1)cp0s_sel=strtoul(argv[1],0,0);
+else cp0s_sel=0;
 return 0;	
 }
 
