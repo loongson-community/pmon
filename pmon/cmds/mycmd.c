@@ -824,6 +824,44 @@ int tlbdump(int argc,char **argv)
 return 0;
 }
 
+/*
+ * 0x40000000 maps to pci 0x40000000 by tlb,1G
+ */
+
+int tlb_init(int tlbs,int cachetype)
+{
+	int idx, pid;
+	unsigned int phyaddr,viraddr;
+	int eflag=0;
+	int i;
+	
+
+
+	pid = read_c0_entryhi() & ASID_MASK;
+	
+	viraddr=0x00000000;
+	phyaddr=0x00000000;
+
+for(i=0;i<tlbs;i++)
+{
+
+	write_c0_pagemask(PM_16M);
+	pid = read_c0_entryhi() & ASID_MASK;
+	write_c0_entryhi(viraddr | (pid));
+	idx = i;
+	write_c0_index(i);
+	write_c0_entrylo0((phyaddr >> 6)|7|(cachetype<<3)); //uncached,global
+	write_c0_entrylo1(((phyaddr+(16<<20)) >> 6)|7|(cachetype<<3));
+	write_c0_entryhi(viraddr | (pid));
+	tlb_write_indexed();
+	write_c0_entryhi(pid);
+	viraddr += 32<<20;
+	phyaddr += 32<<20;
+	if(viraddr>=0x80000000)break;
+}
+
+return 0;
+}
 static int tlbset(int argc,char **argv)
 {
 	int idx, pid;
@@ -923,10 +961,16 @@ static int tlbinit(int argc,char **argv)
 {
 	unsigned int addr,size;
 	if(argc!=3)return -1;
-
+if(!strcmp(argv[0],"tlbinit"))
+{
 	addr=strtoul(argv[1],0,0);
 	size=strtoul(argv[2],0,0);
 CPU_TLBInit(addr,size);
+}
+else
+{
+ tlb_init(strtoul(argv[1],0,0),strtoul(argv[2],0,0));
+}
 return 0;
 }
 
@@ -2104,6 +2148,7 @@ static const Cmd Cmds[] =
 	{"tlbclear","",0,"tlbclear",tlbclear,0,99,CMD_REPEAT},
 	{"tlbdump","",0,"tlbdump",tlbdump,0,99,CMD_REPEAT},
 	{"tlbinit","addr size",0,"tlbinit phaddr=vaddr",tlbinit,0,99,CMD_REPEAT},
+	{"tlbinit1","tlbs type",0,"tlbinit fill all tlb from 0 with cachecoherence type.",tlbinit,0,99,CMD_REPEAT},
 	{"cache","[0 1]",0,"cache [0 1]",setcache,0,99,CMD_REPEAT},
 	{"loop","count cmd...",0,"loopcmd count cmd...",loopcmd,0,99,CMD_REPEAT},
 	{"Loop","count cmd...",0,"loopcmd count cmd...",loopcmd,0,99,CMD_REPEAT},
