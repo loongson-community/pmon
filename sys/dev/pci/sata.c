@@ -1133,8 +1133,15 @@ printf("id = 0x%8x \n",id);
 
 int atp_sata_initialize(u32 reg,u32 flags);
 
+typedef struct atp_sata_softc {
+    /* General disk infos */
+    struct device sc_dev;
+	int dev;
+    int bs,count;
+} atp_sata_softc;
+
 struct cfattach sata_ca = {
-        sizeof(atp_sata_t),sata_match, sata_attach,
+        sizeof(atp_sata_softc),sata_match, sata_attach,
 };
 
 
@@ -1150,20 +1157,24 @@ static int sata_match(
                 void * aux
                 )
 {
+	int err;
 	atp_sata_info_t *pinfo = aux;
-	if (pinfo->flags == 0 ||pinfo->flags == 1)
-       		return 1;
+	if (pinfo->aa_link.aa_type==0xff && (pinfo->flags == 0 ||pinfo->flags == 1))
+	{
+	err = atp_sata_initialize(pinfo->sata_reg_base,pinfo->flags);
+	if(err)
+       		return 0;
+	else return 1;
+	}
 	else
 		return 0;
 }
 
 static void sata_attach(struct device * parent,struct device * self,void *aux)
 {
-	int valid;
+	atp_sata_softc *sc = (atp_sata_softc * )self;
 	atp_sata_info_t *pinfo = aux;
-	valid = atp_sata_initialize(pinfo->sata_reg_base,pinfo->flags);
-	if(valid)
-		self->dv_class = DV_DULL;
+	sc->dev = pinfo->flags;
 }
 
 
@@ -1221,11 +1232,6 @@ block_dev_desc_t *sata_get_dev(int dev)
 
 block_dev_desc_t sata_dev_desc[CFG_SATA_MAX_DEVICE];
 
-struct atp_sata_softc {
-    /* General disk infos */
-    struct device sc_dev;
-    int bs,count;
-};
 #define atp_sata_lookup(dev) (struct atp_sata_softc *)device_lookup(&sata_cd, minor(dev))
 
 void atp_sata_strategy(struct buf *bp)
@@ -1256,7 +1262,7 @@ void atp_sata_strategy(struct buf *bp)
 
         if(bp->b_flags & B_READ){
 	fault_timeout = 0;
-        ret=atp_sata_read(minor(bp->b_dev),blkno,blkcnt,bp->b_data); 
+        ret=atp_sata_read(priv->dev,blkno,blkcnt,bp->b_data); 
         if(ret != blkcnt||fault_timeout)
                 bp->b_flags |= B_ERROR;
         dotik(30000, 0);
@@ -1264,7 +1270,7 @@ void atp_sata_strategy(struct buf *bp)
         else
         {
 	fault_timeout = 0;
-        ret=atp_sata_write(minor(bp->b_dev),blkno,blkcnt,bp->b_data);
+        ret=atp_sata_write(priv->dev,blkno,blkcnt,bp->b_data);
         if(ret != blkcnt||fault_timeout)
                 bp->b_flags |= B_ERROR;
         dotik(30000, 0);

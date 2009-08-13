@@ -93,7 +93,7 @@ struct cfattach atp_ca = {
         sizeof(atp_sata_t),atp_match, atp_attach,
 };
 struct cfdriver atp_cd = {
-        NULL, "atp", DV_DULL, 
+        NULL, "atp", DV_DULL
 };
 #define PCI_VENDOR_SATA  0x1191
 #define PCI_PRODUCT_SATA 0x000d
@@ -161,6 +161,7 @@ static void atp_attach(struct device * parent, struct device * self, void *aux)
 	{
 		info.sata_reg_base = ioaddr + i * 0x80;
 		info.flags = i;
+		info.aa_link.aa_type=0xff; //just for not match ide
 		config_found(self,(void *)&info,NULL);
 	}
  

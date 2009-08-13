@@ -346,6 +346,7 @@ typedef struct _ReceiveFIS
  * SATA device driver info
  */
 typedef struct atp_sata_info {
+	struct ata_atapi_attach aa_link; //just for not match id
 	u32	sata_reg_base;
 	u32	flags;
 } atp_sata_info_t;
