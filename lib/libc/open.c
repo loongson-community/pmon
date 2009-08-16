@@ -92,6 +92,10 @@ open(filename, mode)
 	{
 		i = __try_open(dname, mode, "net", lu, 0);
 	}
+    else if(strpat(dname, "nfs://*"))
+    {
+        i = __try_open(dname, mode, "net", lu, 0);
+    }
 	else {
 		i = __try_open(fname, mode, dname, lu, 0);
 	}
