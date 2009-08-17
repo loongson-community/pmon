@@ -178,6 +178,7 @@ option VIA686B_POWERFIXUP
 option DEVBD2F_VIA
 #option USE_GPIO_SERIAL
 select http
+#select nfs
 select tcp
 select inet
 select tftpd
