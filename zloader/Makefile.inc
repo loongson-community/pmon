@@ -1,13 +1,27 @@
 ifndef PMONCC
-export CROSS_COMPILE
 CC=$(CROSS_COMPILE)gcc 
+CROSS_COMPILE ?= mips-elf-
 else
 CC=${PMONCC}
 endif
+
+
+ifeq "$(shell echo ${CC}|grep  'mips-elf-')" ""
+LD		= $(CROSS_COMPILE)ld  -m elf32ltsmip -G 0 -static -n -nostdlib
+OUT_FORMAT="elf32-tradlittlemips"
+else
+ENDIAN_FLAG= -EL
+LD		= $(CROSS_COMPILE)ld  -m elf32ebmip -G 0 -static -n -nostdlib -EL
+CC :=${CC} -EL
+OUT_FORMAT="elf32-littlemips"
+endif
+
 GZROMSTARTADDR?=0xffffffff81000000
 ROMSTARTADDR?=0xffffffff80010000
 RAMSTARTADDR?=0xffffffff88000000
+export CROSS_COMPILE
 export CC += ${MYCC}  -mno-abicalls -fno-pic
+export LD
 export MKDEP=makedepend
 ifeq ("${tgt}","rom")
 gencode=./genrom
@@ -48,22 +62,22 @@ all: ${tgt}
 sim: clean pmon.bin.c
 	gcc -o zloader  -DSIM zloader.c
 ejtag_rom ejtag_rom1 ejtag_ram rom: clean ${START} zloader.o 
-	gcc  -DSTARTADDR=${GZROMSTARTADDR} -E -P ld.script.S |sed 's/OUTPUT_ARCH(1)/OUTPUT_ARCH(mips)/'>  ld.script
-	${CROSS_COMPILE}ld -T ld.script -e start -o gzrom ${START} zloader.o 
+	gcc  -DSTARTADDR=${GZROMSTARTADDR} -DOUT_FORMAT=\"${OUT_FORMAT}\" -DOUT_ARCH=mips -Umips -E -P ld.script.S  > ld.script
+	${LD} -T ld.script -e start -o gzrom ${START} zloader.o 
 	${CROSS_COMPILE}objcopy -O binary gzrom gzrom.bin
 
 ram: clean startram.o zloader.o 
-	gcc -DSTARTADDR=${GZROMSTARTADDR} -E -P ld.script.S |sed 's/OUTPUT_ARCH(1)/OUTPUT_ARCH(mips)/'> ld.script
-	${CROSS_COMPILE}ld  -T ld.script -e start -o gzram startram.o zloader.o 
+	${CC}  -DSTARTADDR=${RAMSTARTADDR} -DOUT_FORMAT=\"${OUT_FORMAT}\" -DOUT_ARCH=mips -Umips -E -P ld.script.S  > ld.script
+	${LD}  -T ld.script -e start -o gzram startram.o zloader.o 
 
 ${START}:
 	rm -f ../Targets/${TARGET}/compile/${TARGETEL}/${START}
-	gcc -Dmyarch="mips" -DSTARTADDR=${ROMSTARTADDR} -E -P ld.script.S |sed 's/OUTPUT_ARCH(1)/OUTPUT_ARCH(mips)/' > ../Targets/${TARGET}/conf/ld.script
+	gcc  -DSTARTADDR=${ROMSTARTADDR} -DOUT_FORMAT=\"${OUT_FORMAT}\" -DOUT_ARCH=mips -Umips -E -P ld.script.S  > ../Targets/${TARGET}/conf/ld.script
 	make -C ../Targets/${TARGET}/compile/${TARGETEL}/
 	cp ../Targets/${TARGET}/compile/${TARGETEL}/${START} .
 
 startram.o:
-	gcc -DSTARTADDR=${RAMSTARTADDR} -E -P ld.script.S > ../Targets/${TARGET}/conf/ld.script
+	gcc  -DSTARTADDR=${RAMSTARTADDR} -DOUT_FORMAT=\"${OUT_FORMAT}\" -DOUT_ARCH=mips -Umips -E -P ld.script.S  > ld.script
 	make -C ../Targets/${TARGET}/compile/${TARGETEL}/ DEBUG='-g -DMYDBG="printf(\"debug:%s,%d\\n\",__FILE__,__LINE__);"'
 	$(CC) -D_LOCORE -G 0  -nostdinc   -DMIPS  -DCONS_BAUD="B115200"  -DCONFIG_CACHE_64K_4WAY  -D_KERNEL -D__OpenBSD__ -DPMON -D__PMON__ -mno-abicalls -c startram.S -D MEMSIZE=${MEMSIZE}
 # $(CC) -D_LOCORE -G 0  -nostdinc   -DMIPS  -DCONS_BAUD="B115200"  -DCONFIG_CACHE_64K_4WAY  -D_KERNEL -D__OpenBSD__ -DPMON -D__PMON__ -EL -mno-abicalls -mcpu=r4000 -c startram.S -D MEMSIZE=${MEMSIZE}

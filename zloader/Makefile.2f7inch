@@ -1,4 +1,4 @@
-TARGET=Bonito2edev
+TARGET=Bonito2F7inch
 TARGETEL=Bonito
 START=start.o
 MEMSIZE=256

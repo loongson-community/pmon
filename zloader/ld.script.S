@@ -1,7 +1,7 @@
 /* $Id: ld.script,v 1.1.1.1 2006/09/14 01:59:08 root Exp $ */
-OUTPUT_FORMAT("elf32-tradlittlemips", "elf32-tradbigmips",
-              "elf32-tradlittlemips")
-OUTPUT_ARCH(mips)
+OUTPUT_FORMAT(OUT_FORMAT, "elf32-tradbigmips",
+              OUT_FORMAT)
+OUTPUT_ARCH(OUT_ARCH)
 ENTRY(_start)
 SECTIONS
 {
