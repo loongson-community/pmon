@@ -2,5 +2,6 @@ TARGET=Bonito2enc
 TARGETEL=Bonito
 START=start.o
 MEMSIZE=256
+ZLOADER_OPTIONS=-mips3
 
 include Makefile.inc

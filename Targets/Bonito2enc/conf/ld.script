@@ -1,14 +1,11 @@
-
-
-
-OUTPUT_FORMAT("elf32-littlemips", "elf32-bigmips",
-       "elf32-littlemips")
+OUTPUT_FORMAT("elf32-littlemips", "elf32-tradbigmips",
+              "elf32-littlemips")
 OUTPUT_ARCH(mips)
 ENTRY(_start)
 SECTIONS
 {
 
-  . = 0xffffffff80200000;
+  . = 0xffffffff80010000;
   .text :
   {
     _ftext = . ;
@@ -28,6 +25,14 @@ SECTIONS
   {
     _fdata = . ;
     *(.data)
+   . = ALIGN(32);
+   *(.data.align32)
+   . = ALIGN(64);
+   *(.data.align64)
+   . = ALIGN(128);
+   *(.data.align128)
+   . = ALIGN(4096);
+   *(.data.align4096)
     CONSTRUCTORS
   }
   .data1 : { *(.data1) }
@@ -67,6 +72,14 @@ SECTIONS
   {
    *(.dynbss)
    *(.bss)
+   . = ALIGN(32);
+   *(.bss.align32)
+   . = ALIGN(64);
+   *(.bss.align64)
+   . = ALIGN(128);
+   *(.bss.align128)
+   . = ALIGN(4096);
+   *(.bss.align4096)
    *(COMMON)
   }
   _end = . ;

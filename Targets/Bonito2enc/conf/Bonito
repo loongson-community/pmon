@@ -51,6 +51,8 @@ option		CONS_BAUD=B115200
 select		ext2
 #select		mod_x86emu_int10
 select     mod_framebuffer
+option		X800x600
+option 		CONFIG_VIDEO_16BPP
 #select		mod_x86emu		# X86 emulation for VGA
 #vga monitor
 select		mod_vgacon

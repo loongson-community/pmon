@@ -39,6 +39,7 @@ select		mod_elfload		# ELF loading
 #
 select		cmd_newmt
 select		cmd_setup
+select		mod_display
 select		cmd_about		# Display info about PMON
 select		cmd_boot		# Boot wrapper
 select		cmd_mycmd

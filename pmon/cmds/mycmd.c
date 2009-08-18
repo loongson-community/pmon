@@ -25,6 +25,7 @@
 #include <sys/socket.h>
 #include <sys/net/if.h>
 #include "mod_vgacon.h"
+#include "mod_display.h"
 void route_init();
 
 #include <pflash.h>
@@ -720,259 +721,6 @@ extern int input_from_both,output_to_both;
 	return 0;
 }
 
-//-------------------------------------------------------------------------------------------
-
-#define ASID_INC	0x1
-#define ASID_MASK	0xff
-
-/*
- * PAGE_SHIFT determines the page size
- */
-#ifdef CONFIG_PAGE_SIZE_4KB
-#define PAGE_SHIFT	12
-#endif
-#ifdef CONFIG_PAGE_SIZE_16KB
-#define PAGE_SHIFT	14
-#endif
-#ifdef CONFIG_PAGE_SIZE_64KB
-#define PAGE_SHIFT	16
-#endif
-#define PAGE_SIZE	(1UL << PAGE_SHIFT)
-#define PAGE_MASK	(~(PAGE_SIZE-1))
-#define printk printf
-#define CKSEG0 0xffffffff80000000ULL
-
-static char *msk2str(unsigned int mask)
-{
-static char str[20];
-	switch (mask) {
-	case PM_4K:	return "4kb";
-	case PM_16K:	return "16kb";
-	case PM_64K:	return "64kb";
-	case PM_256K:	return "256kb";
-	case PM_1M:	return "1Mb";
-	case PM_4M:	return "4Mb";
-	case PM_16M:	return "16Mb";
-	case PM_64M:	return "64Mb";
-	case PM_256M:	return "256Mb";
-	}
-	sprintf(str,"%08x",mask);
-	return str;
-}
-
-#define BARRIER()					\
-	__asm__ __volatile__(				\
-		".set\tnoreorder\n\t"			\
-		"nop;nop;nop;nop;nop;nop;nop\n\t"	\
-		".set\treorder");
-
-void dump_tlb(int first, int last)
-{
-	unsigned long s_entryhi, entryhi, entrylo0, entrylo1, asid;
-	unsigned int s_index, pagemask, c0, c1, i;
-
-	s_entryhi = read_c0_entryhi();
-	s_index = read_c0_index();
-	asid = s_entryhi & 0xff;
-
-	for (i = first; i <= last; i++) {
-		write_c0_index(i);
-		BARRIER();
-		tlb_read();
-		BARRIER();
-		pagemask = read_c0_pagemask();
-		entryhi  = read_c0_entryhi();
-		entrylo0 = read_c0_entrylo0();
-		entrylo1 = read_c0_entrylo1();
-
-		/* Unused entries have a virtual address of CKSEG0.  */
-		if ((entryhi & ~0x1ffffUL) != CKSEG0
-		    && (entryhi & 0xff) == asid) {
-			/*
-			 * Only print entries in use
-			 */
-			printk("Index: %2d pgmask=%s ", i, msk2str(pagemask));
-
-			c0 = (entrylo0 >> 3) & 7;
-			c1 = (entrylo1 >> 3) & 7;
-
-			printk("va=%011lx asid=%02lx\n",
-			       (entryhi & ~0x1fffUL),
-			       entryhi & 0xff);
-			printk("\t[pa=%011lx c=%d d=%d v=%d g=%ld] ",
-			       (entrylo0 << 6) & PAGE_MASK, c0,
-			       (entrylo0 & 4) ? 1 : 0,
-			       (entrylo0 & 2) ? 1 : 0,
-			       (entrylo0 & 1));
-			printk("[pa=%011lx c=%d d=%d v=%d g=%ld]\n",
-			       (entrylo1 << 6) & PAGE_MASK, c1,
-			       (entrylo1 & 4) ? 1 : 0,
-			       (entrylo1 & 2) ? 1 : 0,
-			       (entrylo1 & 1));
-		}
-	}
-	printk("\n");
-
-	write_c0_entryhi(s_entryhi);
-	write_c0_index(s_index);
-}
-
-
-int tlbdump(int argc,char **argv)
-{
-	dump_tlb(0,63);
-return 0;
-}
-
-/*
- * 0x40000000 maps to pci 0x40000000 by tlb,1G
- */
-
-int tlb_init(int tlbs,int cachetype)
-{
-	int idx, pid;
-	unsigned int phyaddr,viraddr;
-	int eflag=0;
-	int i;
-	
-
-
-	pid = read_c0_entryhi() & ASID_MASK;
-	
-	viraddr=0x00000000;
-	phyaddr=0x00000000;
-
-for(i=0;i<tlbs;i++)
-{
-
-	write_c0_pagemask(PM_16M);
-	pid = read_c0_entryhi() & ASID_MASK;
-	write_c0_entryhi(viraddr | (pid));
-	idx = i;
-	write_c0_index(i);
-	write_c0_entrylo0((phyaddr >> 6)|7|(cachetype<<3)); //uncached,global
-	write_c0_entrylo1(((phyaddr+(16<<20)) >> 6)|7|(cachetype<<3));
-	write_c0_entryhi(viraddr | (pid));
-	tlb_write_indexed();
-	write_c0_entryhi(pid);
-	viraddr += 32<<20;
-	phyaddr += 32<<20;
-	if(viraddr>=0x80000000)break;
-}
-
-return 0;
-}
-static int tlbset(int argc,char **argv)
-{
-	int idx, pid;
-	unsigned int phyaddr,viraddr;
-	int eflag=0;
-	
-	if(argc==4)
-	{
-		if(!strcmp("-x",argv[3]))eflag=1;
-		else return -1;
-	}
-	else if(argc!=3)return -1;
-	
-	viraddr=strtoul(argv[1],0,0);
-	phyaddr=strtoul(argv[2],0,0);
-	write_c0_pagemask(PM_DEFAULT_MASK);
-
-
-	pid = read_c0_entryhi() & ASID_MASK;
-	
-
-	viraddr &= (PAGE_MASK << 1);
-	write_c0_entryhi(viraddr | (pid));
-	tlb_probe();
-	idx = read_c0_index();
-	printf("viraddr=%08x,phyaddr=%08x,pid=%x,idx=%x\n",viraddr,phyaddr,pid,idx);
-	write_c0_entrylo0((phyaddr >> 6)|0x1f);
-	write_c0_entrylo1(((phyaddr+PAGE_SIZE) >> 6)|0x1f);
-	write_c0_entryhi(viraddr | (pid));
-
-	if(idx < 0) {
-		tlb_write_random();
-	} else {
-		tlb_write_indexed();
-	}
-	write_c0_entryhi(pid);
-    if(eflag)    __asm__ __volatile__ ("mtc0 %0,$22;"::"r"(0x4));
-return 0;
-}
-
-static int tlbtest(int argc,char **argv)
-{
-	int idx, pid;
-	unsigned int phyaddr,viraddr;
-	int i;
-	int eflag=0;
-	unsigned int lo0,lo1,hi;
-	
-	
-	if(argc!=3)return -1;
-
-	viraddr=strtoul(argv[1],0,0);
-	phyaddr=strtoul(argv[2],0,0);
-
-for(i=0;i<64;i++)
-{
-
-	write_c0_pagemask(PM_DEFAULT_MASK);
-	pid = read_c0_entryhi() & ASID_MASK;
-	viraddr &= (PAGE_MASK << 1);
-	write_c0_entryhi(viraddr | (pid));
-	idx = i;
-	write_c0_index(i);
-	write_c0_entrylo0((phyaddr >> 6)|0x1f);
-	write_c0_entrylo1(((phyaddr+PAGE_SIZE) >> 6)|0x1f);
-	write_c0_entryhi(viraddr | (pid));
-	if(idx < 0) {
-		tlb_write_random();
-	} else {
-		tlb_write_indexed();
-	}
-	write_c0_entryhi(pid);
-	tlb_read();
-
-	lo0=read_c0_entrylo0();
-	lo1=read_c0_entrylo1();
-	hi=read_c0_entryhi();
-	if(lo0!=((phyaddr >> 6)|0x1f))printf("idx %d:lo0 %x!=%x\n",i,lo0,(phyaddr >> 6)|0x1f);
-	if(lo1!=(((phyaddr+PAGE_SIZE) >> 6)|0x1f))printf("idx %d:lo0 %x!=%x\n",i,lo1,((phyaddr+PAGE_SIZE) >> 6)|0x1f);
-	if(hi!=(viraddr | (pid)))printf("idx %d:vadd %lx!=%lx\n",i,hi,viraddr | (pid));
-	phyaddr=phyaddr+PAGE_SIZE*2;
-	viraddr=viraddr+PAGE_SIZE*2;
-}
-
-return 0;
-}
-
-extern void CPU_TLBClear();
-extern void CPU_TLBInit(unsigned int address,unsigned int steps);
-static int tlbclear(int argc,char **argv)
-{
-CPU_TLBClear();
-return 0;
-}
-
-static int tlbinit(int argc,char **argv)
-{
-	unsigned int addr,size;
-	if(argc!=3)return -1;
-if(!strcmp(argv[0],"tlbinit"))
-{
-	addr=strtoul(argv[1],0,0);
-	size=strtoul(argv[2],0,0);
-CPU_TLBInit(addr,size);
-}
-else
-{
- tlb_init(strtoul(argv[1],0,0),strtoul(argv[2],0,0));
-}
-return 0;
-}
 
 #if NMOD_VGACON
 extern int kbd_initialize(void);
@@ -1015,88 +763,6 @@ static int setcache(int argc,char **argv)
 		);
 		}
 	}
-return 0;
-}
-
-void mycacheflush(long long addrin,unsigned int size,unsigned int rw)
-{
-unsigned int status;
-unsigned long long addr;
-addr=addrin&~0x1fULL;
-size=(addrin-addr+size+0x1f)&~0x1fUL;
-
-#if __mips >= 3
-asm(" #define COP_0_STATUS_REG	$12 \n"
-	"	#define SR_DIAG_DE		0x00010000\n"
-	"	mfc0	%0, $12		# Save the status register.\n"
-	"	li	$2, 0x00010000\n"
-	"	mtc0	$2, $12		# Disable interrupts\n"
-		:"=r"(status)
-		::"$2");
-if(rw)
-{
-	asm("#define HitWBInvalidate_S   0x17 \n"
-		"#define HitWBInvalidate_D   0x15 \n"
-		".set noreorder\n"
-		"1:	\n"
-		"sync \n"
-		"cache   0x17, 0(%0) \n"
-		"daddiu %0,32 \n"
-		"addiu %1,-32 \n"
-		"bnez %1,1b \n"
-		"nop \n"
-		".set reorder \n"
-			::"r"(addr),"r"(size));
-}
-else
-{
-	asm("#define HitInvalidate_S     0x13 \n"
-	"#define HitInvalidate_D     0x11\n"
-"	.set noreorder\n"
-"	1:	\n"
-"	sync\n"
-"	cache	0x13, 0(%0)\n"
-"	daddiu %0,32\n"
-"	addiu %1,-32\n"
-"	bnez %1,1b\n"
-"	nop\n"
-"	.set reorder\n"
-		::"r"(addr),"r"(size));
-}
-
-asm("\n"
-"	#define COP_0_STATUS_REG	$12\n"
-"	mtc0	%0, $12		# Restore the status register.\n"
-		::"r"(status));
-
-#else
-pci_sync_cache(0,addr,size,rw);
-#endif
-}
-
-static int cmd_cacheflush(int argc,char **argv)
-{
-unsigned long long addr;
-unsigned int size,rw;
-if(argc!=4)return -1;
-addr=strtoull(argv[1],0,0);
-size=strtoul(argv[2],0,0);
-rw=strtoul(argv[3],0,0);
-
-mycacheflush(addr,size,rw);
-return 0;
-}
-
-static int cmd_cflush(int argc,char **argv)
-{
-unsigned long addr;
-unsigned int size,rw;
-if(argc!=4)return -1;
-addr=strtoul(argv[1],0,0);
-size=strtoul(argv[2],0,0);
-rw=strtoul(argv[3],0,0);
-
-pci_sync_cache(0,addr,size,rw);
 return 0;
 }
 
@@ -1450,6 +1116,8 @@ if(argc==2)
 printf("ip:%s\n",inet_ntoa(satosin(&ifr->ifr_addr)->sin_addr));
 (void) ioctl(s,SIOCGIFNETMASK, ifr);
 printf("netmask:%s\n",inet_ntoa(satosin(&ifr->ifr_addr)->sin_addr));
+(void) ioctl(s,SIOCGIFBRDADDR, ifr);
+printf("boradcast:%s\n",inet_ntoa(satosin(&ifr->ifr_addr)->sin_addr));
 (void) ioctl(s,SIOCGIFFLAGS,ifr);
 printf("status:%s %s\n",ifr->ifr_flags&IFF_UP?"up":"down",ifr->ifr_flags&IFF_RUNNING?"running":"stoped");
 }
@@ -1475,8 +1143,10 @@ int i;
 		(void) ioctl(s,SIOCGIFFLAGS,ifr);
 		ifr->ifr_flags &=~IFF_UP;
 		(void) ioctl(s,SIOCSIFFLAGS,ifr);
-		(void) ioctl(s, SIOCGIFADDR, ifra);
+		while(ioctl(s, SIOCGIFADDR, ifra)==0)
+		{
 		(void) ioctl(s, SIOCDIFADDR, ifr);
+		}
 		del_if_rt(argv[1]);
 		break;
 	case 3: //stat
@@ -1533,10 +1203,12 @@ int i;
                 break;
 
 	default:
-		(void) ioctl(s, SIOCGIFADDR, ifra);
-		(void) ioctl(s, SIOCDIFADDR, ifra);
+		while(ioctl(s, SIOCGIFADDR, ifra)==0)
+		{
+		(void) ioctl(s, SIOCDIFADDR, ifr);
+		}
 		setsin (SIN(ifra->ifra_addr), AF_INET, inet_addr(argv[2]));
-		(void) ioctl(s, SIOCAIFADDR, ifra);
+		(void) ioctl(s, SIOCSIFADDR, ifra);
 		if(argc>=4)
 		 {
 		 setsin (SIN(ifra->ifra_addr), AF_INET, inet_addr(argv[3]));
@@ -1605,11 +1277,11 @@ static int mydelrt(rn, w)
 	struct rtentry *rt = (struct rtentry *)rn;
 	register struct ifaddr *ifa;
 
-	if (rt->rt_ifp)
+	if (*(char *)w=='*'||rt->rt_ifp)
 	{
-		if(!strcmp(rt->rt_ifp->if_xname,(char *)w))
+		if(*(char *)w=='*'||!strcmp(rt->rt_ifp->if_xname,(char *)w))
 		{
-	rtrequest(RTM_DELETE, rt_key(rt), 0, 0, 0,0);
+		rtrequest(RTM_DELETE, rt_key(rt), rt->rt_gateway, rt_mask(rt), 0,0);
 		}
 	}
 
@@ -1674,29 +1346,6 @@ static void cmd_led(int argc,char **argv)
 #endif
 
 
-static int cmd_testcpu(int argc,char **argv)
-{
-int count=strtoul(argv[1],0,0);
-asm(" .set noreorder\n"
-"move $4,%0\n"
-"li $2,0x80000000\n"
-"1:\n"
-".rept 300\n"
-"ld $3,($2)\n"
-"add.s $f4,$f2,$f0\n"
-"mul.s $f10,$f8,$f6\n"
-"srl $5,$4,10\n"
-".endr\n"
-"bnez $4,1b\n"
-"addiu $4,-1\n"
-".set reorder\n"
-:
-:"r"(count)
-);
-return 0;
-}
-
-
 int highmemcpy(long long dst,long long src,long long count);
 
 int highmemcpy(long long dst,long long src,long long count)
@@ -1759,17 +1408,6 @@ static cmd_mymemcpy(int argc,char **argv)
 	return ret;	
 }
 //------------------------------------------------------------------------------------------
-static int memcmp(const void * cs,const void * ct,size_t count)
-{
-	const unsigned char *su1, *su2;
-	signed char res = 0;
-
-	for( su1 = cs, su2 = ct; 0 < count; ++su1, ++su2, count--)
-		if ((res = *su1 - *su2) != 0)
-			break;
-	return res;
-}
-
 #if defined(NMOD_FLASH_ST)&&defined(FLASH_ST_DEBUG)
 #include "c2311.c"
 int cmd_testst(void) {
@@ -1788,92 +1426,6 @@ return rRetVal;
 } /* EndFunction Main*/
 #endif
 
-//-------------------------------------------------------------------------------------------
-#if __mips >= 3
-static	unsigned long long lrdata;
-static int lwl(int argc,char **argv)
-{
-	unsigned long long addr;
-	if(argc!=2)return -1;
-	addr=nr_str2addr(argv[1],0,0);
-	  asm("ld  $2,(%0);\n"
-"		   lwl $2,(%1);\n"
-"		   sw $2,(%0)\n"
-		  ::"r"(&lrdata),"r"(addr)
-		  :"$2"
-		 );
-	  nr_printf("data=%016llx\n",lrdata);
-}
-static int lwr(int argc,char **argv)
-{
-	unsigned long long addr;
-	if(argc!=2)return -1;
-	addr=nr_str2addr(argv[1],0,0);
-	  asm("ld $2,(%0);\n"
-"		   lwr $2,(%1);\n"
-"		   sw $2,(%0)\n"
-		  ::"r"(&lrdata),"r"(addr)
-		  :"$2"
-		 );
-	  nr_printf("data=%016llx\n",lrdata);
-}
-static int ldl(int argc,char **argv)
-{
-	unsigned long long addr;
-	if(argc!=2)return -1;
-	addr=nr_str2addr(argv[1],0,0);
-	  asm("ld $2,(%0);\n"
-"		   ldl $2,(%1);\n"
-"		   sd $2,(%0)\n"
-		  ::"r"(&lrdata),"r"(addr)
-		  :"$2"
-		 );
-	  nr_printf("data=%016llx\n",lrdata);
-}
-static int ldr(int argc,char **argv)
-{
-	unsigned long long addr;
-	if(argc!=2)return -1;
-	addr=nr_str2addr(argv[1],0,0);
-	  asm("ld $2,(%0);\n"
-"		   ldr $2,(%1);\n"
-"		   sd $2,(%0)\n"
-		  ::"r"(&lrdata),"r"(addr)
-		  :"$2"
-		 );
-	  nr_printf("data=%016llx\n",lrdata);
-}
-
-static int linit(int argc,char **argv)
-{
-	lrdata=0;
-	return 0;
-}
-#endif
-extern char *allocp1;
-#if 1
-double sin(double);
-static void testfloat()
-{
-volatile static double  x=1.12,y=1.34,z;
-z=sin(x);
-printf("sin(1.12)=%d\n",(int)(z*1000));
-printf("sin(1.12)=%f\n",z);
-z=sin(x)*y;
-printf("sin(1.12)*1.34=%d\n",(int)(z*1000));
-z=x*y;
-printf("1.12*1.34=%d\n",(int)(z*1000));
-}
-#endif
-static int mytest(int argc,char **argv)
-{
-#if 1
-tgt_fpuenable();
-testfloat();
-#endif
-
-	return 0;
-}
 
 static int mycmp(int argc,char **argv)
 {
@@ -1912,7 +1464,7 @@ oldwrite(fd,buf,len);
 return len;
 }
 
-
+#if NMOD_DISPLAY
 static int mymore(int ac,char **av)
 {
 int i;
@@ -1932,11 +1484,11 @@ do_cmd(myline);
 restdout(oldwrite);
 buffer[total]='\n';
 buffer[total+1]=0;
-__console_alloc();
+__console_init();
 __msgbox(0,0,24,80,buffer);
-__console_free();
 return 0;
 }
+#endif
 
 static unsigned long flashs_rombase;
 static int rom_read(int type,long long addr,union commondata *mydata)
@@ -1959,7 +1511,7 @@ static int rom_write(int type,long long addr,union commondata *mydata)
 		return -1;
 		}
 
-		if(memcmp(nvram,&mydata->data1,type))
+		if(bcmp(nvram,&mydata->data1,type))
 		{
 		offs=(int)nvram &(nvram_size - 1);
         nvram  =(int)nvram & ~(nvram_size - 1);
@@ -2077,43 +1629,60 @@ else cp0s_sel=0;
 return 0;	
 }
 
-static int cache_type=1;/*0:D,1:S*/
-
-static int dumpcache(int argc,char **argv)
+void mycacheflush(long long addrin,unsigned int size,unsigned int rw)
 {
-unsigned long taglo,taghi;
-int way;
-unsigned long long phytag;
-unsigned long addr;
-long len;
+unsigned int status;
+unsigned long long addr;
+addr=addrin&~0x1fULL;
+size=(addrin-addr+size+0x1f)&~0x1fUL;
 
-if(argc!=3)return -1;
-addr=strtoul(argv[1],0,0);
-len=strtoul(argv[2],0,0);
-
-for(;len>0;len-=32,addr+=32)
+#if __mips >= 3
+asm(" #define COP_0_STATUS_REG	$12 \n"
+	"	#define SR_DIAG_DE		0x00010000\n"
+	"	mfc0	%0, $12		# Save the status register.\n"
+	"	li	$2, 0x00010000\n"
+	"	mtc0	$2, $12		# Disable interrupts\n"
+		:"=r"(status)
+		::"$2");
+if(rw)
 {
-
- for(way=0;way<=3;way++)
- {
-  
-if(argv[0][0]=='s')
-{
-asm("cache %3,(%2);mfc0 %0,$28;mfc0 %1,$29":"=r"(taglo),"=r"(taghi):"r"(addr|way),"i"(7));
- phytag= ((((unsigned long long)taglo>>13)&0xfffff)<<17)|((((unsigned long long)taghi&0xf))<<36);
- printf("\n%08x:state=%d,phyaddr=%010llx,taglo=%08x,taghi=%08x\n",addr|way,(taglo>>10)&3,phytag,taglo,taghi);
+	asm("#define HitWBInvalidate_S   0x17 \n"
+		"#define HitWBInvalidate_D   0x15 \n"
+		".set noreorder\n"
+		"1:	\n"
+		"sync \n"
+		"cache   0x17, 0(%0) \n"
+		"daddiu %0,32 \n"
+		"addiu %1,-32 \n"
+		"bnez %1,1b \n"
+		"nop \n"
+		".set reorder \n"
+			::"r"(addr),"r"(size));
 }
 else
 {
-asm("cache %3,(%2);mfc0 %0,$28;mfc0 %1,$29":"=r"(taglo),"=r"(taghi):"r"(addr|way),"i"(5));
- phytag= ((((unsigned long long)taglo>>8)&0xffffff)<<12)|((((unsigned long long)taghi&0xf))<<36);
- printf("\n%08x:state=%d,phyaddr=%010llx,way=%d,mode=%d,taglo=%08x,taghi=%08x\n",addr|way,(taglo>>6)&3,phytag,(taglo>>4)&3,(taghi>>29)&7,taglo,taghi);
- }
+	asm("#define HitInvalidate_S     0x13 \n"
+	"#define HitInvalidate_D     0x11\n"
+"	.set noreorder\n"
+"	1:	\n"
+"	sync\n"
+"	cache	0x13, 0(%0)\n"
+"	daddiu %0,32\n"
+"	addiu %1,-32\n"
+"	bnez %1,1b\n"
+"	nop\n"
+"	.set reorder\n"
+		::"r"(addr),"r"(size));
 }
 
-}
+asm("\n"
+"	#define COP_0_STATUS_REG	$12\n"
+"	mtc0	%0, $12		# Restore the status register.\n"
+		::"r"(status));
 
-return 0;
+#else
+pci_sync_cache(0,addr,size,rw);
+#endif
 }
 
 //----------------------------------
@@ -2122,10 +1691,6 @@ static const Cmd Cmds[] =
 	{"MyCmds"},
 	{"testnet",	"", 0, "testnet rtl0 [recv|send|loop]", cmd_testnet, 0, 99, CMD_REPEAT},
 	{"cp0s",	"", 0, "access cp0", mycp0s, 0, 99, CMD_REPEAT},
-#if __mips >= 3
-	{"scachedump",	"", 0, "access Scache tag",dumpcache, 0, 99, CMD_REPEAT},
-	{"dcachedump",	"", 0, "access Dcache tag",dumpcache, 0, 99, CMD_REPEAT},
-#endif
 	{"pcs",	"bus dev func", 0, "select pci dev function", mypcs, 0, 99, CMD_REPEAT},
 	{"disks",	"disk", 0, "select disk", mydisks, 0, 99, CMD_REPEAT},
 	{"d1",	"[addr] [count]", 0, "dump address byte", dump, 0, 99, CMD_REPEAT},
@@ -2143,12 +1708,6 @@ static const Cmd Cmds[] =
 #if NMOD_VGACON
 	{"initkbd","",0,"kbd_initialize",initkbd,0,99,CMD_REPEAT},
 #endif
-	{"tlbset","viraddr phyaddr [-x]",0,"tlbset viraddr phyaddr [-x]",tlbset,0,99,CMD_REPEAT},
-	{"tlbtest","viraddr phyaddr ",0,"tlbset viraddr phyaddr ",tlbtest,0,99,CMD_REPEAT},
-	{"tlbclear","",0,"tlbclear",tlbclear,0,99,CMD_REPEAT},
-	{"tlbdump","",0,"tlbdump",tlbdump,0,99,CMD_REPEAT},
-	{"tlbinit","addr size",0,"tlbinit phaddr=vaddr",tlbinit,0,99,CMD_REPEAT},
-	{"tlbinit1","tlbs type",0,"tlbinit fill all tlb from 0 with cachecoherence type.",tlbinit,0,99,CMD_REPEAT},
 	{"cache","[0 1]",0,"cache [0 1]",setcache,0,99,CMD_REPEAT},
 	{"loop","count cmd...",0,"loopcmd count cmd...",loopcmd,0,99,CMD_REPEAT},
 	{"Loop","count cmd...",0,"loopcmd count cmd...",loopcmd,0,99,CMD_REPEAT},
@@ -2169,23 +1728,14 @@ static const Cmd Cmds[] =
 	{"rtdel","",0,"rtdel",cmd_rtdel,0,99,CMD_REPEAT},
 	{"sleep","ms",0,"sleep ms",cmd_sleep,2,2,CMD_REPEAT},
 	{"sleep1","ms",0,"sleep1 s",cmd_sleep1,2,2,CMD_REPEAT},
-	{"cacheflush","addr size rw",0,"cacheflush addr size rw",cmd_cacheflush,0,99,CMD_REPEAT},
-	{"cflush","addr size rw",0,"cflush addr size rw",cmd_cflush,0,99,CMD_REPEAT},
 	{"memcpy","src dst count",0,"mymemcpy src dst count",cmd_mymemcpy,0,99,CMD_REPEAT},
-	{"testcpu","",0,"testcpu",cmd_testcpu,2,2,CMD_REPEAT},
 #if NMOD_VGACON
 	{"led","n",0,"led n",cmd_led,2,2,CMD_REPEAT},
 #endif
-#if __mips >= 3
-	{"lwl","n",0,"lwl n",lwl,2,2,CMD_REPEAT},
-	{"lwr","n",0,"lwr n",lwr,2,2,CMD_REPEAT},
-	{"ldl","n",0,"ldl n",ldl,2,2,CMD_REPEAT},
-	{"ldr","n",0,"ldr n",ldr,2,2,CMD_REPEAT},
-	{"linit","",0,"linit",linit,1,1,CMD_REPEAT},
-#endif
-	{"mytest","",0,"mytest",mytest,1,1,CMD_REPEAT},
 	{"mycmp","s1 s2 len",0,"mecmp s1 s2 len",mycmp,4,4,CMD_REPEAT},
+#if NMOD_DISPLAY
 	{"mymore","",0,"mymore",mymore,1,99,CMD_REPEAT},
+#endif
 	{"flashs",	"rom", 0, "select flash for read/write", flashs, 0, 99, CMD_REPEAT},
 	{"devcp",	"srcfile dstfile [bs=0x20000] [count=-1] [seek=0] [skip=0] [quiet=0]", 0, "copy form src to dst",devcp, 0, 99, CMD_REPEAT},
 	{0, 0}

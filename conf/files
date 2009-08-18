@@ -176,14 +176,16 @@ file sys/dev/bus_dma.c			sys
 file pmon/cmds/boot.c			cmd_boot
 file pmon/cmds/call.c			cmd_call
 file pmon/cmds/mycmd.c			cmd_mycmd
+file pmon/cmds/mycmd_cpu.c		cmd_mycmd_cpu
 file pmon/cmds/xmodem.c			cmd_xmodem & !cmd_xyzmodem
 file pmon/cmds/xyzModem.c		cmd_xyzmodem
 file pmon/cmds/crc16.c			cmd_xyzmodem
-file pmon/cmds/sysinfo.c		cmd_setup
+file pmon/cmds/sysinfo.c		cmd_setup & mod_display
 file pmon/cmds/newmt/newmt.c	cmd_newmt
-file pmon/cmds/setup.c			cmd_setup
-file pmon/cmds/test/test.c			cmd_test
-file pmon/cmds/test/test_fire.c			cmd_testfire
+file pmon/cmds/setup.c			cmd_setup & mod_display
+file pmon/cmds/display.c		mod_display needs-flag
+file pmon/cmds/test/test.c			cmd_test & mod_display
+file pmon/cmds/test/test_fire.c			cmd_testfire & mod_display
 file pmon/cmds/cmdtable.c 
 file pmon/cmds/debuggercmds.c		mod_debugger
 file pmon/cmds/devls.c 			(sys & cmd_devls)
@@ -235,8 +237,8 @@ file pmon/fs/gzip.c			gzip		needs-flag
 file pmon/fs/iso9660fs.c		iso9660		needs-flag
 file pmon/fs/devfs.c			(scsi | ide)
 file pmon/fs/diskfs.c			(scsi | ide)
-file pmon/fs/ext2fs.c			ext2
 file pmon/fs/fatfs.c			fatfs
+file pmon/fs/ext2fs.c			ext2
 file pmon/fs/yaffsfs.c			yaffsfs
 file pmon/loaders/loadfn.c		(mod_s3load | mod_fastload)
 file pmon/loaders/zmodem/zmdm.c		(pmon_zmodem_rz | pmon_zmodem_tz)
@@ -246,7 +248,7 @@ file pmon/loaders/exec.c
 file pmon/loaders/exec_bin.c
 file pmon/loaders/exec_elf.c		
 file pmon/loaders/exec_elf64.c	!elf32only needs-flag
-file pmon/loaders/exec_wince.c
+file pmon/loaders/exec_wince.c   mod_wince
 file pmon/loaders/exec_srec.c		mod_s3load needs-flag
 
 file pmon/netio/netio.c			inet
@@ -254,11 +256,11 @@ file pmon/netio/bootp.c			inet
 file pmon/netio/ifconfig.c		inet
 file pmon/netio/ping.c			inet
 file pmon/netio/tftplib.c		inet
-file pmon/netio/nfs.c           inet
+file pmon/netio/nfs.c           inet & nfs
 file pmon/netio/httplib.c		inet & http & tcp
 #file pmon/netio/udptty.c		inet
 
-file x86emu/int10/radeon_init.c
+file x86emu/int10/radeon_init.c radeon7000
 ##int10
 file x86emu/int10/x86emu/src/x86emu/debug.c		mod_x86emu_int10	needs-flag
 file x86emu/int10/x86emu/src/x86emu/decode.c		mod_x86emu_int10	needs-flag
@@ -367,14 +369,14 @@ file    pmon/dev/loopdev.c loopdev needs-flag
 file fb/sis/sis_main.c mod_sisfb needs-flag
 
 #boot menu 
-file pmon/loaders/exec_txt.c
-file pmon/cmds/menulist2f.c
+file pmon/loaders/exec_txt.c 	mod_txt
+file pmon/cmds/menulist2f.c     mod_display
 file pmon/cmds/boot_cfg.c
 file pmon/common/bootkernel.c
 
 
 #pmon password
-file pmon/cmds/password.c
-file pmon/dev/md5.c
+file pmon/cmds/password.c      
+file pmon/dev/md5.c            
 #command: cat
-file pmon/cmds/cat.c
+file pmon/cmds/cat.c	mod_cat

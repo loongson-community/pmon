@@ -427,7 +427,7 @@ cmd_menu_list (ac, av)
 
 
 	strcpy(path, av[optind]);
-	__console_alloc();
+	__console_init();
 
 	ioctl (STDIN, CBREAK, &sav);
 	ret = show_main(dflag,path);
