@@ -314,7 +314,8 @@ int ext2_open(int fd,const char *path,int flags,int mode)
 	else index=1;
 	}
 
-	devio_open(fd,strbuf,flags,mode);//extract the device name
+	if(devio_open(fd,strbuf,flags,mode)<0)//extract the device name
+	return -1;
 #ifdef DEBUG_IDE
 	printf("Open the device %s ok\n",strbuf);
 #endif
