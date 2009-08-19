@@ -119,6 +119,9 @@ md_cpuname()
 		return("GODSON2");
 	case MIPS_GODSON1:
 		cputype=CPU_GOD1;
+#ifdef CPU_NAME
+ 		return CPU_NAME;
+#endif
 		return("GODSON1");
 	default:
 		return("unidentified");
