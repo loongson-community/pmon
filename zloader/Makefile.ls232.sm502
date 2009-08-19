@@ -1,6 +1,6 @@
 TARGET=LS232_sm502
 TARGETEL=ls232
-START=start_ls232_sm502.o
+export START=start_ls232_sm502.o
 MEMSIZE=64
 ZLOADER_OPTIONS=-DNOCACHE2 -mips2 -DWAYBIT=12
 #PMONCC=mips-elf-gcc -mips1
