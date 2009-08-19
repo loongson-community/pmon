@@ -1116,7 +1116,7 @@ func_i:
 	move t7,v0  #count
 	
 	sll t5,1
-	or t5,0xa1
+	or t5,0xa0
 
 	li t4,0
 1:
