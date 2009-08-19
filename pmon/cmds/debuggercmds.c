@@ -259,7 +259,7 @@ cmd_setbp (ac, av)
 					str = av[i];
 					break;
 				}
-#ifdef R4000
+#if 0//def R4000
 		else if (av[i][j] == 'd')
 		    w |= WATCH_R | WATCH_W;
 		else if (av[i][j] == 'r')
@@ -357,7 +357,7 @@ cmd_clrbp (ac, av)
 					}
 				}
 			}
-#ifdef R4000
+#if 0//def R4000
 			else if (i == MAX_BPT) {
 				if (WatchLo & (WATCH_R | WATCH_W)) {
 					WatchLo = 0;

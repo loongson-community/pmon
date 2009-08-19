@@ -7,8 +7,13 @@ endif
 
 
 ifeq "$(shell echo ${CC}|grep  'mips-elf-')" ""
+ ifeq "$(shell echo ${CC}|grep  '\-mabi=64')" ""
 LD		= $(CROSS_COMPILE)ld  -m elf32ltsmip -G 0 -static -n -nostdlib
 OUT_FORMAT="elf32-tradlittlemips"
+ else
+LD		= $(CROSS_COMPILE)ld  -m elf64ltsmip -G 0 -static -n -nostdlib
+OUT_FORMAT="elf64-tradlittlemips"
+ endif
 else
 ENDIAN_FLAG= -EL
 LD		= $(CROSS_COMPILE)ld  -m elf32ebmip -G 0 -static -n -nostdlib -EL

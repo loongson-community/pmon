@@ -13,7 +13,7 @@ void stringserial(char *msg);
 
 #ifndef SIM
 #include "memop.c"
-char *membase=0x80000000+(((MEMSIZE<256?MEMSIZE:256)-4)<<20);
+char *membase=0xffffffff80000000+(((MEMSIZE<256?MEMSIZE:256)-4)<<20);
 static char  *sbrk(int size)
 {
 char *p=membase;
@@ -116,7 +116,7 @@ static void __init error(char *x)
 	exit_code = 1;
 }
 
-static int __init run_unzip(char *start,int to)
+static int __init run_unzip(char *start,long to)
 {
 	int result;
 	insize = 0;		/* valid bytes in inbuf */

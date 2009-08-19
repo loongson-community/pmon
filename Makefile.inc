@@ -37,10 +37,14 @@ RANLIB		= $(CROSS_COMPILE)ranlib
 SIZE		= $(CROSS_COMPILE)size
 
 ifeq "$(shell echo ${CC}|grep  'mips-elf-')" ""
+ ifeq "$(shell echo ${CC}|grep  '\-mabi=64')" ""
 LD		= $(CROSS_COMPILE)ld  -m elf32ltsmip -G 0 -static -n -nostdlib
+ else
+LD		= $(CROSS_COMPILE)ld  -m elf64ltsmip -G 0 -static -n -nostdlib
+ endif
 else
 ENDIAN_FLAG= -EL
-LD		= $(CROSS_COMPILE)ld  -m elf32ebmip -G 0 -static -n -nostdlib
+LD		= $(CROSS_COMPILE)ld  -m elf32ebmip -G 0 -static -n -nostdlib -EL
 endif
 
 OPT?=	-O2
