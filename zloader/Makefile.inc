@@ -1,4 +1,10 @@
-CC=mips-elf-gcc
+ifndef PMONCC
+#CC=mips-elf-gcc
+CC=mipsel-linux-gcc -mips3 -D__mips64 -Wundef -Wstrict-prototypes -Wno-trigraphs -fno-strict-aliasing -mabi=64 -G 0 -mno-abicalls -fno-pic -pipe -ffreestanding  -march=r4600 -Wa,--trap -fomit-frame-pointer  -mlong-calls -mno-explicit-relocs
+else
+CC=${PMONCC}
+endif
+
 GZROMSTARTADDR=0xffffffff81000000
 ROMSTARTADDR=0xffffffff80010000
 RAMSTARTADDR=0xffffffff80200000
@@ -56,13 +62,13 @@ ${START}:
 startram.o:
 	gcc -DSTARTADDR=${RAMSTARTADDR} -E -P ld.script.S > ../Targets/${TARGET}/conf/ld.script
 	make -C ../Targets/${TARGET}/compile/${TARGETEL}/ DEBUG='-g -DMYDBG="printf(\"debug:%s,%d\\n\",__FILE__,__LINE__);"'
-	$(CC) -D_LOCORE -G 0  -nostdinc   -DMIPS  -DCONS_BAUD="B115200"  -DCONFIG_CACHE_64K_4WAY  -D_KERNEL -D__OpenBSD__ -DPMON -D__PMON__ -EL -mno-abicalls -mips3 -mcpu=r4000 -c startram.S -D MEMSIZE=${MEMSIZE}
+	$(CC) -D_LOCORE -G 0  -nostdinc   -DMIPS  -DCONS_BAUD="B115200"  -DCONFIG_CACHE_64K_4WAY  -D_KERNEL -D__OpenBSD__ -DPMON -D__PMON__ -mno-abicalls -mips3 -mcpu=r4600 -c startram.S -D MEMSIZE=${MEMSIZE}
 zloader.o: zloader.c inflate.c  malloc.c  memop.c  pmon.bin.c initmips.c
-	$(CC) -EL -mips3 -mcpu=r4000 -c zloader.c ${ZLOADER_OPTIONS}
+	$(CC)  -mips3 -march=r4600 -c zloader.c ${ZLOADER_OPTIONS}
 
 zlib_loader.o: zlib_loader.c  ./zlib_gzip zlib_pmon.bin.c initmips.c
-	cd zlib_inflate;$(CC) -I ../../include -EL -mips3 -mcpu=r4000 -c *.c
-	$(CC) -I ../include -EL -mips3 -mcpu=r4000 -c zlib_loader.c 
+	cd zlib_inflate;$(CC) -I ../../include -mips3 -mcpu=r4600 -c *.c
+	$(CC) -I ../include -mips3 -mcpu=r4600 -c zlib_loader.c 
 
 initmips.c:  ../Targets/${TARGET}/compile/${TARGETEL}/pmon
 	${gencode} $< > initmips.c

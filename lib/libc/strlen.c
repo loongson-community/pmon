@@ -32,7 +32,7 @@
  */
 #include <string.h>
 
-int 
+size_t
 strlen(const char *p)
 {
 	int n;

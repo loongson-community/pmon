@@ -1,0 +1,19 @@
+if !(echo $1|grep "\.o");then
+echo usage:$0 xxx.o
+exit 0;
+fi
+rm -f $1
+if ! make $1;then
+exit 0;
+fi;
+
+rm -f $1
+cmd=$(make $1 V=1 2>/dev/null|tail -1)
+rm -f $1
+eval "$cmd"
+rm -f /tmp/1.tar
+dfile=$(echo $1|perl -pne 'chomp;s#/([^/]*)$#/.\1.d#');
+perl -ane 'while(/([^:\s\\]+)\s/g){next if $1=~m#^/#;system qq(tar -rf /tmp/1.tar $1\n);}' $dfile
+cat $dfile > /tmp/1.Make
+echo -e "$1:\n\t$cmd" >> /tmp/1.Make
+

@@ -565,7 +565,7 @@ void handle_scancode(unsigned char scancode, int down)
 			}
 		}
 	}
-      out:
+      out:;
 }
 
 static void do_self(unsigned char value, char up_flag)

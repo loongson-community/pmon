@@ -257,6 +257,7 @@ int erase;
 
 		break;
 	default:
+		;
 		/* Not supported but sorted out much earlier */
 	}
 	return (busy);

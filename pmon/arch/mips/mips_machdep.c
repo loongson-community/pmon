@@ -48,6 +48,7 @@
 
 #include <pmon.h>
 
+extern void idle();
 extern char end[];
 extern char edata[];
 //Felix-2008-10-28
@@ -270,7 +271,6 @@ udelay(int usec)
 				idle();
 		};
 }
-extern void idle();
 void delay1(int microseconds){
 		int total, start;
 		start = CPU_GetCOUNT();

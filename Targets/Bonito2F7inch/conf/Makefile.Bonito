@@ -62,14 +62,14 @@ INCLUDES=	-I. -I${S}/include -I./machine -I${S} \
 #CPPFLAGS=	${INCLUDES} ${IDENT} -D_KERNEL -D__OpenBSD__ -DPMON -D__PMON__\
 #		-${ENDIAN} -mno-abicalls -mips3 -mmemcpy -mcpu=r4000
 CPPFLAGS=	${INCLUDES} ${IDENT} -D_KERNEL -D__OpenBSD__ -DPMON -D__PMON__\
-		-${ENDIAN} -mno-abicalls -mips3 -mmemcpy -mcpu=r4000
+		 -mno-abicalls -mips3 -mmemcpy -mcpu=r4000
 #CWARNFLAGS=	-Werror -Wall -Wmissing-prototypes -Wstrict-prototypes \
 		-Wno-uninitialized -Wno-format -Wno-main
 CWARNFLAGS=	-Wall -Wstrict-prototypes \
 		-Wno-uninitialized -Wno-format -Wno-main
 CFLAGS=		${DEBUG} ${CWARNFLAGS} ${OPT} -G 0
 AFLAGS=		-D_LOCORE -G 0
-LFLAGS=		-${ENDIAN} -N -G 0 -T../../conf/ld.script -e start
+LFLAGS=		 -N -G 0 -T../../conf/ld.script -e start
 STRIPFLAGS=	-g -S --strip-debug
 
 HOSTCC?=	${CC}

@@ -39,6 +39,7 @@ void enable_cache()
 void flush_cache2()
 {
 asm volatile("
+	.set mips3
 	mfc0	\$3, \$15			# read processor ID register
 	li		\$2, 0x6303				#godson2f prid
 	beq		\$2, \$3, godson_2f
@@ -59,6 +60,7 @@ godson_2f:
 	bne	    \$2,\$3, 10b
 	nop
 11:
+	.set mips0
 "
 ::
 :"\$2","\$3"
