@@ -239,6 +239,12 @@ initmips(unsigned int memsz)
 extern void vt82c686_init(void);
 extern void cs5536_init(void);
 extern int fb_init(unsigned long,unsigned long);
+
+#ifdef LOONGSON2F_ALLINONE
+extern void i2c_write_single(int, int, char);
+extern char i2c_read_single(int, int, char*);
+#endif
+
 void
 tgt_devconfig()
 {
@@ -295,8 +301,10 @@ tgt_devconfig()
 #endif
 #ifdef LOONGSON2F_ALLINONE
 	do_cmd("gpio_high 0xb");//backlight
-	do_cmd("gpio_low 8");//5v
-	do_cmd("i2c_write");
+#if 1
+    do_cmd("i2cwrite 0xd2 1 0x84"); /* enable spread spectrum*/
+    do_cmd("i2cwrite 0xd2 3 0xBE"); /* stop clock in pin9 and pin17*/
+#endif
 #endif
 	if (rc > 0) {
 		if(!getenv("novga")) vga_available=1;
