@@ -590,26 +590,38 @@ static void GPIO_LO_BIT(int bit, int reg)
 	*(unsigned int *)(0xbfd00000 + reg) = orig;
 }
 
-void cmd_gpio11_low()
+void cmd_gpio_low(int argc, char *argv[])
 {
-    GPIO_LO_BIT(GPIO_11, GPIO_BASE_ADDR | GPIOL_OUT_VAL);
-    GPIO_HI_BIT(GPIO_11, GPIO_BASE_ADDR | GPIOL_OUT_EN);
-    GPIO_LO_BIT(GPIO_11, GPIO_BASE_ADDR | GPIOL_IN_EN);
-    GPIO_LO_BIT(GPIO_11, GPIO_BASE_ADDR | GPIOL_OUT_AUX1_SEL);
-    GPIO_LO_BIT(GPIO_11, GPIO_BASE_ADDR | GPIOL_OUT_AUX2_SEL);
-    GPIO_LO_BIT(GPIO_11, GPIO_BASE_ADDR | GPIOL_IN_AUX1_SEL);
-    GPIO_HI_BIT(GPIO_11, GPIO_BASE_ADDR | GPIOL_PU_EN);
+	unsigned long gpio;
+	
+	if(argc > 2)
+		printf("too much  parameter!");
+	
+	get_rsa(&gpio, argv[1]);
+    GPIO_LO_BIT(gpio, GPIO_BASE_ADDR | GPIOL_OUT_VAL);
+    GPIO_HI_BIT(gpio, GPIO_BASE_ADDR | GPIOL_OUT_EN);
+    GPIO_LO_BIT(gpio, GPIO_BASE_ADDR | GPIOL_IN_EN);
+    GPIO_LO_BIT(gpio, GPIO_BASE_ADDR | GPIOL_OUT_AUX1_SEL);
+    GPIO_LO_BIT(gpio, GPIO_BASE_ADDR | GPIOL_OUT_AUX2_SEL);
+    GPIO_LO_BIT(gpio, GPIO_BASE_ADDR | GPIOL_IN_AUX1_SEL);
+    GPIO_HI_BIT(gpio, GPIO_BASE_ADDR | GPIOL_PU_EN);
 }
 
-void cmd_gpio11_high()
+void cmd_gpio_high(int argc, char *argv[])
 {
-    GPIO_HI_BIT(GPIO_11, GPIO_BASE_ADDR | GPIOL_OUT_VAL);
-    GPIO_HI_BIT(GPIO_11, GPIO_BASE_ADDR | GPIOL_OUT_EN);
-    GPIO_LO_BIT(GPIO_11, GPIO_BASE_ADDR | GPIOL_IN_EN);
-    GPIO_LO_BIT(GPIO_11, GPIO_BASE_ADDR | GPIOL_OUT_AUX1_SEL);
-    GPIO_LO_BIT(GPIO_11, GPIO_BASE_ADDR | GPIOL_OUT_AUX2_SEL);
-    GPIO_LO_BIT(GPIO_11, GPIO_BASE_ADDR | GPIOL_IN_AUX1_SEL);
-    GPIO_HI_BIT(GPIO_11, GPIO_BASE_ADDR | GPIOL_PU_EN);
+	unsigned long gpio;
+	
+	if(argc > 2)
+		printf("too much  parameter!");
+	
+	get_rsa(&gpio, argv[1]);
+    GPIO_HI_BIT(gpio, GPIO_BASE_ADDR | GPIOL_OUT_VAL);
+    GPIO_HI_BIT(gpio, GPIO_BASE_ADDR | GPIOL_OUT_EN);
+    GPIO_LO_BIT(gpio, GPIO_BASE_ADDR | GPIOL_IN_EN);
+    GPIO_LO_BIT(gpio, GPIO_BASE_ADDR | GPIOL_OUT_AUX1_SEL);
+    GPIO_LO_BIT(gpio, GPIO_BASE_ADDR | GPIOL_OUT_AUX2_SEL);
+    GPIO_LO_BIT(gpio, GPIO_BASE_ADDR | GPIOL_IN_AUX1_SEL);
+    GPIO_HI_BIT(gpio, GPIO_BASE_ADDR | GPIOL_PU_EN);
 }
 
 #include <linux/io.h>
@@ -719,8 +731,8 @@ static const Cmd Cmds[] =
 	{"tlbset","viraddr phyaddr [-x]",0,"tlbset viraddr phyaddr [-x]",tlbset,0,99,CMD_REPEAT},
 	{"cache","[0 1]",0,"cache [0 1]",setcache,0,99,CMD_REPEAT},
 #ifdef LOONGSON2F_ALLINONE
-	{"gpio11_high","",0,"pull high gpio 11",cmd_gpio11_high,1,99,0},
-	{"gpio11_low","",0,"pull low gpio 11",cmd_gpio11_low,1,99,0},
+	{"gpio_high","<index>",0,"pull high gpio <index>",cmd_gpio_high,1,2,0},
+	{"gpio_low","<index>",0,"pull low gpio <index>",cmd_gpio_low,1,2,0},
 	{"i2c_read","",0,"i2cread",cmd_i2c_read,1,99,0},
 	{"i2c_write","",0,"i2cwrite",cmd_i2c_write,1,99,0},
 #endif

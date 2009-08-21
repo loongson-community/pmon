@@ -294,7 +294,8 @@ tgt_devconfig()
 	}
 #endif
 #ifdef LOONGSON2F_ALLINONE
-	do_cmd("gpio11_high");
+	do_cmd("gpio_high 0xb");//backlight
+	do_cmd("gpio_low 8");//5v
 	do_cmd("i2c_write");
 #endif
 	if (rc > 0) {
