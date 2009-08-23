@@ -57,6 +57,6 @@ ${OBJDIR}/lib${LIB}.a: ${OBJS}
 	@echo building standard ${LIB} library
 	@rm -f $@
 	@${AR} cq $@ ${OBJS}
-	${RANLIB} $@
+	#${RANLIB} $@
 
 # DO NOT DELETE

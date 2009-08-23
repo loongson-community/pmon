@@ -1,6 +1,6 @@
 /* $Id: ld.script,v 1.1.1.1 2006/09/14 01:59:08 root Exp $ */
-OUTPUT_FORMAT("elf32-tradlittlemips", "elf32-tradbigmips",
-	      "elf32-tradlittlemips")
+/*OUTPUT_FORMAT("elf32-tradlittlemips", "elf32-tradbigmips",
+	      "elf32-tradlittlemips")*/
 OUTPUT_ARCH(mips)
 ENTRY(_start)
 SECTIONS
@@ -69,6 +69,10 @@ SECTIONS
   }
   _end = . ;
   PROVIDE (end = .);
+  
+  /DISCARD/ : {
+  	*(.MIPS.options)
+  } 
   /* These are needed for ELF backends which have not yet been
      converted to the new style linker.  */
   .stab 0 : { *(.stab) }

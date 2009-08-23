@@ -74,6 +74,13 @@
 #define	CACHED_TO_UNCACHED(x)	(PHYS_TO_UNCACHED(CACHED_TO_PHYS(x)))
 #endif
 
+/* Watchpoint Register */
+#ifndef WATCH_PA
+#define WATCH_PA	0xfffffff8
+#define WATCH_R		0x00000002
+#define WATCH_W		0x00000001
+#endif
+
 #ifdef _KERNEL
 /*
  * The bits in the cause register.

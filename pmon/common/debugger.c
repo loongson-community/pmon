@@ -137,7 +137,7 @@ dspbpts ()
 				break;
 			}
 		}
-#ifdef R4000
+#if 0 //R4000
 	if (WatchLo & (WATCH_R | WATCH_W)) {
 		register_t pa = WatchLo & WATCH_PA;
 		printf ("Bpt %2d = %08x", MAX_BPT, pa);
@@ -188,7 +188,7 @@ clrbpts ()
 		if (Bpt[i].cmdstr)
 		free (Bpt[i].cmdstr);
 	}
-#if defined(R4000)
+#if 0  //(R4000)
 	WatchLo = 0;
 #endif
 }

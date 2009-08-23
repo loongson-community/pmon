@@ -31,12 +31,12 @@ sim: clean pmon.bin.c
 	gcc -o zloader  -DSIM zloader.c
 rom: clean ${START} zloader.o 
 	gcc -DSTARTADDR=${GZROMSTARTADDR} -E -P ld.script.S > ld.script
-	mips-elf-ld -T ld.script -e start -o gzrom ${START} zloader.o 
-	mips-elf-objcopy -O binary gzrom gzrom.bin
+	mipsel-linux-ld -T ld.script -e start -o gzrom ${START} zloader.o -m elf64ltsmip 
+	mipsel-linux-objcopy -O binary gzrom gzrom.bin
 #	sync
 ram: clean startram.o zloader.o 
 	gcc -DSTARTADDR=${GZROMSTARTADDR} -E -P ld.script.S > ld.script
-	mips-elf-ld -T ld.script -e start -o gzram startram.o zloader.o 
+	mipsel-linux-ld -mips3 -T ld.script -e start -o gzram startram.o zloader.o -m elf64ltsmip 
 #	cp gzram /tftpboot
 #	sync
 
@@ -62,7 +62,7 @@ ${START}:
 startram.o:
 	gcc -DSTARTADDR=${RAMSTARTADDR} -E -P ld.script.S > ../Targets/${TARGET}/conf/ld.script
 	make -C ../Targets/${TARGET}/compile/${TARGETEL}/ DEBUG='-g -DMYDBG="printf(\"debug:%s,%d\\n\",__FILE__,__LINE__);"'
-	$(CC) -D_LOCORE -G 0  -nostdinc   -DMIPS  -DCONS_BAUD="B115200"  -DCONFIG_CACHE_64K_4WAY  -D_KERNEL -D__OpenBSD__ -DPMON -D__PMON__ -mno-abicalls -mips3 -mcpu=r4600 -c startram.S -D MEMSIZE=${MEMSIZE}
+	$(CC) -D_LOCORE -G 0  -nostdinc   -DMIPS  -DCONS_BAUD="B115200"  -DCONFIG_CACHE_64K_4WAY  -D_KERNEL -D__OpenBSD__ -DPMON -D__PMON__ -mno-abicalls -mips3 -march=r4600 -c startram.S -D MEMSIZE=${MEMSIZE}
 zloader.o: zloader.c inflate.c  malloc.c  memop.c  pmon.bin.c initmips.c
 	$(CC)  -mips3 -march=r4600 -c zloader.c ${ZLOADER_OPTIONS}
 

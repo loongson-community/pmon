@@ -1,8 +1,8 @@
 
 
 
-OUTPUT_FORMAT("elf32-tradlittlemips", "elf32-tradbigmips",
-       "elf32-tradlittlemips")
+
+
 OUTPUT_ARCH(mips)
 ENTRY(_start)
 SECTIONS
@@ -71,6 +71,10 @@ SECTIONS
   }
   _end = . ;
   PROVIDE (end = .);
+
+  /DISCARD/ : {
+   *(.MIPS.options)
+  }
 
 
   .stab 0 : { *(.stab) }

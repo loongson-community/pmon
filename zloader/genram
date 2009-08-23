@@ -55,12 +55,12 @@ void initmips(unsigned int msize,struct callvectors *cv)
 
 void realinitmips(unsigned int msize)
 {
-	     asm ("li  \$29,$mystart-0x4000;
-		       li \$2,$myinitmips;
-			   move \$4,\%0;
-			   jalr \$2;
-			   nop;
-			  1: b 1b;nop;"
+	     asm ("li  \$29,$mystart-0x4000;"
+		       "li \$2,$myinitmips;"
+			   "move \$4,\%0;"
+			   "jalr \$2;"
+			   "nop;"
+			  "1: b 1b;nop;"
           :
           : "r" (msize)
           : "\$29", "\$2","\$4");
