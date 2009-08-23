@@ -183,6 +183,14 @@ x: ;				\
 #define END(x) \
 	.end x
 
+#if (_MIPS_SZPTR == 32)
+#define LA la	
+#endif
+
+#if (_MIPS_SZPTR == 64)
+#define LA dla	
+#endif
+
 /*
  * Macros to panic and printf from assembly language.
  */

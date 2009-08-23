@@ -2,6 +2,13 @@
 #define _KERNEL
 #endif
 
+#if (_MIPS_SZPTR == 32)
+#define LA la
+#endif
+
+#if (_MIPS_SZPTR == 64)
+#define LA dla
+#endif
 
 #define zero	$0	/* always zero */
 #define AT	$at	/* assembler temp */
@@ -132,8 +139,8 @@ stack = start - 0x4000		/* Place PMON stack below PMON start in RAM */
 	mtc0	zero, COP_0_CAUSE_REG
 	li	t0, SR_BOOT_EXC_VEC	/* Exception to Boostrap Location */
 	mtc0	t0, COP_0_STATUS_REG
-	la	sp, stack
-	la	gp, _gp
+	LA	sp, stack
+	LA	gp, _gp
 	move s1,a3 //struct callvectors *cv
 
 	bal	locate			/* Get current execute address */
@@ -144,7 +151,7 @@ stack = start - 0x4000		/* Place PMON stack below PMON start in RAM */
  *  location into ra. Check to see if we run from ROM or if this is ramloaded.
  */
 locate:
-	la	s0,start
+	LA	s0,start
 	subu	s0,ra,s0
 	and	s0,0xffff0000
 
@@ -156,8 +163,8 @@ locate:
 #endif
 
 	/* Clear BSS */
-	la	a0, _edata
-	la	a2, _end
+	LA	a0, _edata
+	LA	a2, _end
 2:	sw	zero, 0(a0)
 	bne	a2, a0, 2b
 	addu	a0, 4
@@ -167,7 +174,7 @@ locate:
 	li  a0,MEMSIZE
 	move a1,s1
  
-	la	v0, initmips
+	LA	v0, initmips
 	jalr	v0
 	nop
 stuck:

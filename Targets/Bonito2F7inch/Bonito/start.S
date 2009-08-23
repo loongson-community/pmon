@@ -158,13 +158,13 @@
 
 #ifdef DEBUG_LOCORE
 #define	TTYDBG(x) \
-	.rdata;98: .asciz x; .text; la a0, 98b; bal stringserial; nop
+	.rdata;98: .asciz x; .text; LA a0, 98b; bal stringserial; nop
 #else
 #define TTYDBG(x)
 #endif
 
 #define	PRINTSTR(x) \
-	.rdata;98: .asciz x; .text; la a0, 98b; bal stringserial; nop
+	.rdata;98: .asciz x; .text; LA a0, 98b; bal stringserial; nop
 
 #define CONFIG_CACHE_64K_4WAY 1
 
@@ -214,8 +214,8 @@ stack = start - 0x4000		/* Place PMON stack below PMON start in RAM */
 	mtc0	zero, COP_0_CAUSE_REG
 	li	t0, SR_BOOT_EXC_VEC	/* Exception to Boostrap Location */
 	mtc0	t0, COP_0_STATUS_REG
-	la	sp, stack
-	la	gp, _gp
+	LA	sp, stack
+	LA	gp, _gp
 
 	bal	uncached		/* Switch to uncached address space */
 	nop
@@ -242,8 +242,8 @@ ext_map_and_reboot:
 	li	a1, 0x40000000
 	bal	CPU_TLBInit
 	nop
-	la	v0, tgt_reboot
-	la	v1, start
+	LA	v0, tgt_reboot
+	LA	v1, start
 	subu	v0, v1
 	lui	v1, 0xffc0
 	addu	v0, v1
@@ -256,14 +256,14 @@ ext_map_and_reboot:
  */
 	.align	9			/* bfc00200 */
 	move	k0, ra		#save ra
-	la	a0, v200_msg
+	LA	a0, v200_msg
 	bal	stringserial
 	nop
 	b	exc_common
 
 	.align	7			/* bfc00280 */
 	move	k0, ra	#save ra
-	la	a0, v280_msg
+	LA	a0, v280_msg
 	bal	stringserial
 	nop
 	b	exc_common
@@ -279,14 +279,14 @@ ext_map_and_reboot:
 /* General exception */
 	.align	7			/* bfc00380 */
 	move	k0, ra		#save ra
-	la	a0, v380_msg
+	LA	a0, v380_msg
 	bal	stringserial
 	nop
 	b	exc_common
 	
 	.align	8			/* bfc00400 */
 	move	k0, ra		#save ra
-	la	a0, v400_msg
+	LA	a0, v400_msg
 	bal	stringserial
 	nop
 
@@ -346,7 +346,7 @@ exc_common:
  *  location into ra. Check to see if we run from ROM or if this is ramloaded.
  */
 locate:
-	la	s0,start
+	LA	s0,start
 	subu	s0,ra,s0
 	and	s0,0xffff0000
 
@@ -986,7 +986,7 @@ not_locked:
 	beqz	v0, .nodimm;
 	nop;
 	sll a0, v0, 2
-	la  a1, bigmem
+	LA  a1, bigmem
 	addu a1, a1, s0
 	addu a1, a1, a0
 	lw  tmpsize, (a1)
@@ -1274,7 +1274,7 @@ bootnow:
 	TTYDBG("Copy PMON to execute location...\r\n")
 #ifdef DEBUG_LOCORE
 	TTYDBG("  start = 0x")
-	la	a0, start
+	LA	a0, start
 	bal	hexserial
 	nop
 	TTYDBG("\r\n  s0 = 0x")
@@ -1284,16 +1284,16 @@ bootnow:
 	TTYDBG("\r\n")
 #if	1
 	TTYDBG("TEST _EDATA...\r\n");
-	la	a0, _edata;
+	LA	a0, _edata;
 	bal hexserial;
 	nop;
 #endif
 
 
 #endif
-	la	a0, start
+	LA	a0, start
 	li	a1, 0xbfc00000
-	la	a2, _edata
+	LA	a2, _edata
     add a2,  31
     and a2,  ~31
         or      a0, 0xa0000000
@@ -1332,8 +1332,8 @@ bootnow:
 	PRINTSTR("\ncopy text section done.\r\n")
 	
 	/* Clear BSS */
-	la	a0, _edata
-	la	a2, _end
+	LA	a0, _edata
+	LA	a2, _end
     sw  zero, 0(a0)
     add a0, 7       /*For speed up*/
     and a0, ~7
@@ -1349,9 +1349,9 @@ bootnow:
 #ifdef	TEST_DDR_AFTER_COPY
 zhb:
 	TTYDBG("Testing...\r\n")
-	la	a0, start
+	LA	a0, start
 	li	a1, 0xbfc00000
-	la	a2, _edata
+	LA	a2, _edata
         or      a0, 0xa0000000
         or      a2, 0xa0000000
 /*	subu	s6, a2, a0*/
@@ -1413,15 +1413,15 @@ zhb:
 	srl	a0,20
 
     /* pass pointer to kseg1 tgt_putchar */
-    la  a1, tgt_putchar
+    LA  a1, tgt_putchar
 	addu a1,a1,s0
 
-    la  a2, stringserial
+    LA  a2, stringserial
 	addu a2,a2,s0
 
 	/*TTYDBG("\r\nenter initmips...\r\n");*/
 	
-	la	v0, initmips
+	LA	v0, initmips
 	jalr	v0
 	nop
 stuck:
@@ -1573,7 +1573,7 @@ LEAF(hexserial)
 	rol	a0, a1, 4
 	move	a1, a0
 	and	a0, 0xf
-	la	v0, hexchar
+	LA	v0, hexchar
 	addu	v0, s0
 	addu	v0, a0
 	bal	tgt_putchar
@@ -1587,7 +1587,7 @@ LEAF(hexserial)
 END(hexserial)
 
 LEAF(tgt_putchar)
-	la	v0, COMMON_COM_BASE_ADDR
+	LA	v0, COMMON_COM_BASE_ADDR
 1:
 	lbu	v1, NSREG(NS16550_LSR)(v0)
 	and	v1, LSR_TXRDY
@@ -1596,7 +1596,7 @@ LEAF(tgt_putchar)
 
 	sb	a0, NSREG(NS16550_DATA)(v0)
 	move v1,v0
-	la	v0, COMMON_COM_BASE_ADDR
+	LA	v0, COMMON_COM_BASE_ADDR
 	bne v0,v1,1b
 	nop
 	j	ra
@@ -1624,7 +1624,7 @@ END(tgt_putchar)
 #define B115200 115200
 
 LEAF(initserial)
-        la      v0, COMMON_COM_BASE_ADDR
+        LA      v0, COMMON_COM_BASE_ADDR
 1:
         li      v1, FIFO_ENABLE|FIFO_RCV_RST|FIFO_XMT_RST|FIFO_TRIGGER_1
         sb      v1, NSREG(NS16550_FIFO)(v0)
@@ -1642,7 +1642,7 @@ LEAF(initserial)
         sb      v1, NSREG(NS16550_IER)(v0)
 
         move    v1, v0
-        la      v0, COMMON_COM_BASE_ADDR
+        LA      v0, COMMON_COM_BASE_ADDR
         bne     v0, v1, 1b
         nop
 
@@ -2443,15 +2443,15 @@ END(i2cread)
 ddr2_config:
     move s1, ra
 #if 0
-	la      t0, ddr2_reg_data
+	LA      t0, ddr2_reg_data
 	dli     t1, 0x900000003ff00058
     ld      t1, (t1)
     andi    t1, 0x1
     beqz    t1, 1f
     nop
 #endif
-    //la      t0, ddr2_reg_data_t
-    la      t0, ddr2_reg_data
+    //LA      t0, ddr2_reg_data_t
+    LA      t0, ddr2_reg_data
 1:	
 	addu    t0, t0, s0
 	li      t1, 0x1d
@@ -2577,8 +2577,8 @@ reg_write:
     
     ############start##########
 	li      t2, CONFIG_BASE
-	la	t0,DDR2_CTL_start_DATA_LO
-	#la	t0,ddr2_start_reg
+	LA	t0,DDR2_CTL_start_DATA_LO
+	#LA	t0,ddr2_start_reg
 	addu   	t0, t0, s0
 	ld      a1, 0x0(t0)
 	sd      a1, 0x30(t2)
