@@ -61,37 +61,6 @@
 
 #include "cs5536.h"
 
-/***************************************************************/
-/* all the define are put into Target/bonito/include/bonito.h  */
-/***************************************************************/
-
-
-/*********(qiaochong) memeory initialization use macro,not smbbus *********/
-
-#define DDR_DQS_SELECT	(0<<30)  
-#define DDR_DIMM_DIC (1<<29)     
-#define DDR_DIMM_MODULE_NUM (3<<27)    
-#define DDR_IS_SEQ  (1<<26)      
-#define DDR_TYPE (5<<22) 
-
-#define DDR_tREF  (100<<10) 
-
-#define DDR_TRCD (1<<9) 
-
-#define DDR_TRPC (1<<7) 
-
-#define DDR_TRAS (0<<6)
-
-#define DDR_TCAS (3<<4) 
-
-#define DDR_TWR (0<<3) 
-
-#define DDR_TRP (1<<2) 
-
-#define DDR_TRC (1<<0) 
-
-#define sdcfg_DATA DDR_DQS_SELECT|DDR_DIMM_DIC|DDR_DIMM_MODULE_NUM|DDR_IS_SEQ|DDR_TYPE|DDR_tREF|DDR_TRCD|DDR_TRPC|DDR_TRAS|DDR_TCAS|DDR_TWR|DDR_TRP|DDR_TRC
-
 
 /***********************************MAIN FLOW****************************************/
 
