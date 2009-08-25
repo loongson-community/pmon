@@ -1,26 +1,28 @@
 #!/usr/bin/perl 
 my ($myedata,$myend,$initmips,$mystart);
-open(F,qq(mips-elf-objdump -x $ARGV[0]|));
+#open(F,qq(mips-elf-objdump -x $ARGV[0]|));
+open(F,qq(mipsel-linux-objdump -x $ARGV[0]|));
 while(<F>)
 {
 chomp;
-if(/f{8}(\w+).+_edata/){
-   $myedata=qq(0x$1);
+if(/([0-9a-f]+).+_edata/){
+   $myedata=qq(0x$1UL);
  }
 
-if(/f{8}(\w+).+_end$/){
-   $myend=qq(0x$1);
+if(/([0-9a-f]+).+_end$/){
+   $myend=qq(0x$1UL);
  }
-if(/f{8}(\w+).+initmips$/){
+if(/([0-9a-f]+).+initmips$/){
    $myinitmips=qq(0x$1);
  }
-if(/f{8}(\w+).+\s_start$/){
+if(/([0-9a-f]+).+\s_start$/){
    $mystart=qq(0x$1);
  }
 }
 printf(<< "END"
 void stringserial(char *msg);
 void realinitmips(unsigned int msize);
+extern void tgt_putchar(char c);
 void enable_cache()
 {
 	    __asm__ volatile(
@@ -102,7 +104,7 @@ void initmips(unsigned int msize,int dmsize,int dctrl)
     {
         *p=0;
     }
-	memset($mystart-0x1000,0,0x1000);//$mystart-0x1000 for frame(registers),memset for pretty
+	memset($mystart-0x1000UL,0,0x1000);//$mystart-0x1000 for frame(registers),memset for pretty
 #ifdef NOCACHE2
 	flush_cache();
 #else
