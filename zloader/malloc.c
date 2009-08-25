@@ -100,7 +100,7 @@ morecore(unsigned nu)
 
 	rnu = NALLOC * ((nu + NALLOC - 1) / NALLOC);
 	cp = sbrk(rnu * sizeof (HEADER));
-	if ((int)cp == NULL)
+	if (cp == NULL)
 		return (NULL);
 	up = (HEADER *) cp;
 	up->s.size = rnu;

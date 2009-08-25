@@ -8,9 +8,11 @@
  *	collect the code to the cs5536 based macro file.
  *		
  */
+#include <linux/io.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <sys/linux/types.h>
+#include <linux/io.h>
 #include <pci/cs5536_io.h>
 #include <include/bonito.h>
 #include <include/cs5536.h>
@@ -408,13 +410,13 @@ void test_gpio_clr(u32 base, int reg, int port)
 void test_gpio_function(void)
 {
 	u32 tag;
-	u32 base;
+	unsigned long base;
 	u32 value;
 	int i;
 
 	tag = _pci_make_tag(0, 14, 0);
 	base = _pci_conf_read(tag, 0x14);
-	base |= 0xbfd00000;
+	base |= mips_io_port_base;
 	base &= ~0x3;
 	printf("test gpio base = 0x%x\n", base);
 
@@ -458,11 +460,11 @@ void test_gpio_function(void)
 void cs5536_gpio_init(void)
 {
 	u32 tag;
-	u32 base;
+	unsigned long base;
 
 	tag = _pci_make_tag(0, 14, 0);
 	base = _pci_conf_read(tag, 0x14);
-	base |= 0xbfd00000;
+	base |= mips_io_port_base;
 	base &= ~0x3;
 	printf("gpio base = 0x%x\n", base);
 
@@ -511,13 +513,14 @@ void cs5536_init(void)
  */
 void cs5536_pci_otg_fixup(void)
 {
-	u32 tag, base, val, cmdsts;
+	u32 tag, val, cmdsts;
+	unsigned long base;
 	
 	tag = _pci_make_tag(0, 14, 7);
 
 	/* get the pci memory base address. */
 	base = _pci_conf_read(tag, 0x10);
-	base |= 0xb0000000;
+	base |= PTR_PAD(0xb0000000);
 	printf("otg base = 0x%x\n", base);
 
 	/* enable the pci memory space. */

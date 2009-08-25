@@ -57,7 +57,7 @@ typedef struct {
 	unsigned int dprBase;
 	unsigned int vprBase;
 	unsigned int cprBase;
-	unsigned int frameAdrs;
+	unsigned long frameAdrs;
 	unsigned int memSize;
 	unsigned int mode;
 	unsigned int gdfIndex;

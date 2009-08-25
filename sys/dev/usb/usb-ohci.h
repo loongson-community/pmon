@@ -104,6 +104,7 @@ typedef struct ed ed_t;
 
 #define MAXPSW 1
 
+/*This data structure should */
 struct td {
 	u32 hwINFO;
   	u32 hwCBP;		/* Current Buffer Pointer */
@@ -113,13 +114,17 @@ struct td {
   	u16 hwPSW[MAXPSW];
   	u8 unused;
   	u8 index;
+
+	u32 transfer_len;
+
   	struct ed *ed;
   	struct td *next_dl_td;
 	struct usb_device *usb_dev;
-	int transfer_len;
-	u32 data;
 
 	unsigned char *retbuf;
+
+	unsigned long data;
+
 	u32 unused2[1];
 } __attribute((aligned(32)));
 typedef struct td td_t;
@@ -140,7 +145,6 @@ struct ohci_hcca {
 	volatile u32	done_head;		/* info returned for an interrupt */
 	u8		reserved_for_hc[116];
 } __attribute((aligned(256)));
-
 
 /*
  * Maximum number of root hub ports.

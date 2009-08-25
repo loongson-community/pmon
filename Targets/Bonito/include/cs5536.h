@@ -17,7 +17,6 @@
  * basic define
  */
 #define	PCI_IO_BASE		0x1fd00000	//( < 0x1fe00000)
-#define	PCI_IO_BASE_VA		0xbfd00000
 #define	PCI_MEM_BASE		0x10000000	//( < 0x1c000000 )
 #define	PCI_MEM_BASE_VA		0xb0000000
 
@@ -528,7 +527,7 @@
 /*
  * LEGACY I/O SPACE BASE
  */
-#define	CS5536_LEGACY_BASE_ADDR		(PCI_IO_BASE_VA | 0x0000)
+#define	CS5536_LEGACY_BASE_ADDR		(mips_io_port_base | 0x0000)
 
 /*
  * IDE LEGACY REG : legacy IO address is 0x170~0x177 and 0x376 (0x1f0~0x1f7 and 0x3f6)

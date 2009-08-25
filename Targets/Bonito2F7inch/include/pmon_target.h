@@ -53,13 +53,20 @@ void hexserial __P((int));
 /*
  *  Boot loader parameters.
  */
-
-#define	TGT_BOOT_ADR	0x80400000	/* Load 4 meg up. */
+//#define	TGT_BOOT_ADR	0x80400000	/* Load 4 meg up. */
 #define	TGT_BOOT_SIZ	0x00002000	/* Suck in 8k */
 #define	TGT_BOOT_OFF	0x00000400	/* Start reading from byte 1024 */
 
 /*
  *  Target dependent CLIENTPC settings
  */
-#define CLIENTPC 0x80100000
+#if (_MIPS_SZPTR == 32)
+#define	TGT_BOOT_ADR	0x80400000	/* Load 4 meg up. */
+#define CLIENTPC 	0x80100000
 #define SETCLIENTPC "80100000"
+#endif
+#if (_MIPS_SZPTR == 64)
+#define	TGT_BOOT_ADR	0xffffffff80400000UL	/* Load 4 meg up. */
+#define CLIENTPC 0xffffffff80100000UL
+#define SETCLIENTPC "80100000"
+#endif

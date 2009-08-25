@@ -273,13 +273,13 @@ tgt_devconfig()
 #endif
 #if	1
 	/* light the lcd */	
-	*((volatile unsigned char *)(0xbfd00000 | HIGH_PORT)) = 0xfe;
-	*((volatile unsigned char *)(0xbfd00000 | LOW_PORT)) = 0x01;
-	temp = *((volatile unsigned char *)(0xbfd00000 | DATA_PORT));
+	*((volatile unsigned char *)(mips_io_port_base| HIGH_PORT)) = 0xfe;
+	*((volatile unsigned char *)(mips_io_port_base| LOW_PORT)) = 0x01;
+	temp = *((volatile unsigned char *)(mips_io_port_base| DATA_PORT));
 	/* light the lcd */	
-	*((volatile unsigned char *)(0xbfd00000 | HIGH_PORT)) = 0xfe;
-	*((volatile unsigned char *)(0xbfd00000 | LOW_PORT)) = 0x01;
-	*((volatile unsigned char *)(0xbfd00000 | DATA_PORT)) = 0x00;
+	*((volatile unsigned char *)(mips_io_port_base| HIGH_PORT)) = 0xfe;
+	*((volatile unsigned char *)(mips_io_port_base| LOW_PORT)) = 0x01;
+	*((volatile unsigned char *)(mips_io_port_base| DATA_PORT)) = 0x00;
 #endif
 
 #if NMOD_FRAMEBUFFER > 0
@@ -294,8 +294,8 @@ tgt_devconfig()
 		printf("fbaddress 0x%x\tioaddress 0x%x\n",fbaddress, ioaddress);
 
 #ifdef SM712_GRAPHIC_CARD
-		fbaddress |= 0xb0000000;
-		ioaddress |= 0xbfd00000;
+		fbaddress |= PTR_PAD(0xb0000000);
+		ioaddress |= mips_io_port_base;
 		sm712_init((unsigned char *)fbaddress,
 			(unsigned char *)ioaddress);
 #endif
@@ -308,16 +308,16 @@ tgt_devconfig()
 
 #if	1
 	/* light the lcd */	
-	*((volatile unsigned char *)(0xbfd00000 | HIGH_PORT)) = 0xfe;
-	*((volatile unsigned char *)(0xbfd00000 | LOW_PORT)) = 0x01;
-	*((volatile unsigned char *)(0xbfd00000 | DATA_PORT)) = temp;
+	*((volatile unsigned char *)(mips_io_port_base| HIGH_PORT)) = 0xfe;
+	*((volatile unsigned char *)(mips_io_port_base| LOW_PORT)) = 0x01;
+	*((volatile unsigned char *)(mips_io_port_base| DATA_PORT)) = temp;
 #endif
 
 #if	0
 	/* light the lcd */	
-	*((volatile unsigned char *)(0xbfd00000 | HIGH_PORT)) = 0xfe;
-	*((volatile unsigned char *)(0xbfd00000 | LOW_PORT)) = 0x01;
-	*((volatile unsigned char *)(0xbfd00000 | DATA_PORT)) = 0x80;
+	*((volatile unsigned char *)(mips_io_port_base| HIGH_PORT)) = 0xfe;
+	*((volatile unsigned char *)(mips_io_port_base| LOW_PORT)) = 0x01;
+	*((volatile unsigned char *)(mips_io_port_base| DATA_PORT)) = 0x80;
 #endif
 
 	if (rc > 0) {
@@ -330,10 +330,13 @@ tgt_devconfig()
 		}
 	}
 	
-//	vga_available = 0; /*Suppress the output*/
+	vga_available = 0; /*Suppress the output*/
 
+	printf("begin config\n");
 	config_init();
+	printf("after init \n");
 	configure();
+	printf("after config\n");
     
 #if NMOD_VGACON >0
 #if !(defined(VGA_NOTEBOOK_V1) || defined(VGA_NOTEBOOK_V2)) && NCS5536 > 0
@@ -346,6 +349,7 @@ tgt_devconfig()
 		if(!getenv("nokbd")) kbd_available = 1;
 	}
 #endif
+	kbd_available = 0;
 	if (vga_ok > 1)
 		vga_available = 1;
 }
@@ -372,18 +376,18 @@ void cs5536_gpio1_fixup(void)
 
 	tag = _pci_make_tag(0, 14, 0);
 	base = _pci_conf_read(tag, 0x14);
-	base |= 0xbfd00000;
+	base |= mips_io_port_base;
 	base &= ~3;
 
 	/* make cs5536 gpio1 output enable */
-	val = *(volatile unsigned long *)(base + 0x04);
+	val = *(volatile unsigned int*)(base + 0x04);
 	val = ( val & ~(1 << (16 + 1)) ) | (1 << 1) ;
-	*(volatile unsigned long *)(base + 0x04) = val;
+	*(volatile unsigned int*)(base + 0x04) = val;
 	
 	/* make cs5536 gpio1 output low level voltage. */
-	val = *(volatile unsigned long *)(base + 0x00);
+	val = *(volatile unsigned int*)(base + 0x00);
 	val = (val | (1 << (16 + 1))) & ~(1 << 1);
-	*(volatile unsigned long *)(base + 0x00) = val;
+	*(volatile unsigned int*)(base + 0x00) = val;
 }
 
 void
@@ -464,9 +468,9 @@ tgt_reboot()
 	/* output the high level for reset sequence */
 	*((volatile unsigned char *)(0xbfd00000 | DATA_PORT)) = val | (1 << 5);
 #else
-	*((volatile unsigned char *)(0xbfd00000 | HIGH_PORT)) = 0xf4;
-	*((volatile unsigned char *)(0xbfd00000 | LOW_PORT)) = 0xec;
-	*((volatile unsigned char *)(0xbfd00000 | DATA_PORT)) = 0x01;
+	*((volatile unsigned char *)(mips_io_port_base | HIGH_PORT)) = 0xf4;
+	*((volatile unsigned char *)(mips_io_port_base | LOW_PORT)) = 0xec;
+	*((volatile unsigned char *)(mips_io_port_base | DATA_PORT)) = 0x01;
 #endif
 
 #endif
@@ -494,14 +498,14 @@ tgt_poweroff()
 	*((volatile unsigned char *)(0xbfd00000 | DATA_PORT)) = val | (1 << 1);
 #else
 	/* cpu-gpio0 output low */
-	*((volatile unsigned long *)(0xbfe0011c)) &= ~0x00000001;
+	*((volatile unsigned long *)(PTR_PAD(0xbfe0011c))) &= ~0x00000001;
 	/* cpu-gpio0 as output */
-	*((volatile unsigned long *)(0xbfe00120)) &= ~0x00000001;
+	*((volatile unsigned long *)(PTR_PAD(0xbfe00120))) &= ~0x00000001;
 #endif
 #else
 	tag = _pci_make_tag(0, 14, 0);
 	base = _pci_conf_read(tag, 0x14);
-	base |= 0xbfd00000;
+	base |= mips_io_port_base;
 	base &= ~3;
 
 	/* make cs5536 gpio13 output enable */

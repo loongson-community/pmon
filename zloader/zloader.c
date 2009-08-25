@@ -13,7 +13,12 @@ void stringserial(char *msg);
 
 #ifndef SIM
 #include "memop.c"
-char *membase=0x84000000;
+#if (_MIPS_SZPTR == 32)
+char *membase=0x84000000UL;
+#endif
+#if (_MIPS_SZPTR == 64)
+char *membase=0xFFFFFFFF84000000UL;
+#endif
 static char  *sbrk(int size)
 {
 char *p=membase;
@@ -51,7 +56,7 @@ static long bytes_out;
 static int crd_outfd;
 
 
-int dest;
+unsigned long dest;
 
 #define get_byte()  (inbuf[inptr++])
 
@@ -116,7 +121,7 @@ static void __init error(char *x)
 	exit_code = 1;
 }
 
-static int __init run_unzip(char *start,int to)
+static int __init run_unzip(char *start,unsigned long to)
 {
 	int result;
 	insize = 0;		/* valid bytes in inbuf */

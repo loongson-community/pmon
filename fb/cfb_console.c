@@ -115,6 +115,7 @@ CONFIG_VIDEO_HW_CURSOR:      - Uses the hardware cursor capability of the
 #include <pmon.h>
 #include <cpu.h>
 #include <dev/pci/pcivar.h>
+#include <linux/io.h>
 
 /* radeon7000 micro define */
 #ifdef RADEON7000
@@ -1278,7 +1279,7 @@ int video_display_bitmap(ulong bmp_image, int x, int y)
             return (1);
         }
 
-        memcpy(bg_img_src, 0xbfc60000, len);
+        memcpy(bg_img_src, PTR_PAD(0xbfc60000), len);
         if (gunzip(dst, CFG_VIDEO_LOGO_MAX_SIZE, 
                 (unsigned char *)bg_img_src, &len) != 0) {
             printf("Error: no valid bmp or bmp.gz image at %lx\n",
@@ -1996,12 +1997,12 @@ int fb_init(unsigned long fbbase, unsigned long iobase)
     printf("fb_init fbbase:%x\n",fbbase);
 
     #ifdef LOONGSON2F_7INCH
-    pGD->frameAdrs = 0xb0000000 | fbbase;
+    pGD->frameAdrs = PTR_PAD(0xb0000000) | fbbase;
     #else
         #ifdef USETLB
-        pGD->frameAdrs = 0xe0000000;
+        pGD->frameAdrs = PTR_PAD(0xe0000000);
         #else
-        pGD->frameAdrs = 0xb0000000 | ((fbbase & 0xf0000000) ? 0 : fbbase);
+        pGD->frameAdrs = PTR_PAD(0xb0000000) | ((fbbase & 0xf0000000) ? 0 : fbbase);
         #endif
     #endif  
 
@@ -2033,7 +2034,7 @@ int fb_init(unsigned long fbbase, unsigned long iobase)
 #ifdef  LOONGSON2F_7INCH
     video_display_bitmap(BIGBMP_START_ADDR, BIGBMP_X, BIGBMP_Y);
 #else
-    video_display_bitmap(0xbfc60000, 0, 0);
+    video_display_bitmap(PTR_PAD(0xbfc60000), 0, 0);
 #endif
 #endif
     video_console_address = video_fb_address;

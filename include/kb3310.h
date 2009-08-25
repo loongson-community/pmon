@@ -7,6 +7,9 @@
 
 /* We should make ec rom content and pmon port number equal. */
 /* if you use MX serial EC ROM, please select the option, otherwise mask it */
+
+#include <linux/io.h>
+
 //#define	USING_MX_ROM
 
 #if	0
@@ -85,15 +88,15 @@
 /* access ec register content */
 static inline void wrec(unsigned short reg, unsigned char val)
 {
-	*( (volatile unsigned char *)(0xbfd00000 | HIGH_PORT) ) = (reg & 0xff00) >> 8;
-	*( (volatile unsigned char *)(0xbfd00000 | LOW_PORT) ) = (reg & 0x00ff);
-	*( (volatile unsigned char *)(0xbfd00000 | DATA_PORT) ) = val;
+	*( (volatile unsigned char *)(mips_io_port_base| HIGH_PORT) ) = (reg & 0xff00) >> 8;
+	*( (volatile unsigned char *)(mips_io_port_base| LOW_PORT) ) = (reg & 0x00ff);
+	*( (volatile unsigned char *)(mips_io_port_base| DATA_PORT) ) = val;
 }
 
 static inline unsigned char rdec(unsigned short reg)
 {
-	*( (volatile unsigned char *)(0xbfd00000 | HIGH_PORT) ) = (reg & 0xff00) >> 8;
-	*( (volatile unsigned char *)(0xbfd00000 | LOW_PORT) ) = (reg & 0x00ff);
-	return (*( (volatile unsigned char *)(0xbfd00000 | DATA_PORT) ));
+	*( (volatile unsigned char *)(mips_io_port_base| HIGH_PORT) ) = (reg & 0xff00) >> 8;
+	*( (volatile unsigned char *)(mips_io_port_base| LOW_PORT) ) = (reg & 0x00ff);
+	return (*( (volatile unsigned char *)(mips_io_port_base| DATA_PORT) ));
 }
 

@@ -791,6 +791,8 @@ dbginit (char *adr)
     /*printf("Press <DEL> key to enter pmon console.\n");
     printf("Press <TAB> key to recover system .\n");
     printf("Press <ENTER> key to boot selection .\n");*/
+	vga_available = 0;
+	return ;
     {
         unsigned char *envstr;
         if((envstr = getenv("ShowBootMenu"))&&!strcmp("yes", envstr))

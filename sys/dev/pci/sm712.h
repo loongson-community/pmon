@@ -17,7 +17,7 @@
 
 #define	SM712_2D_DEBUG		1
 
-#define  IO_BASE  0xbfd00000
+#define  IO_BASE  mips_io_port_base
 // jlliu : define it for 8inch
 //#define	USE_LCD_800_480
 //#define	APV_LCD
@@ -50,7 +50,7 @@ static  struct par_info hw;     /* used to record hardware information          
 #define writew(addr, data)      (*(volatile unsigned short *)(addr) = (data))
 #endif
 #ifndef writel
-#define writel(addr, data)      (*(volatile unsigned long *)(addr) = (data))
+#define writel(addr, data)      (*(volatile unsigned int*)(addr) = (data))
 #endif
 
 #define smi_mmiowb(dat,reg)     writeb(SMIRegs + (reg), (dat))
@@ -156,12 +156,12 @@ char *SMI2DBaseAddress;
 
 void smi_2dregw(unsigned long offset, unsigned long data)
 {
-	*((volatile unsigned long *)(SMI2DBaseAddress + offset)) = data;
+	*((volatile unsigned int*)(SMI2DBaseAddress + offset)) = data;
 }
 
 unsigned long smi_2dregr(unsigned long offset)
 {
-	return *((volatile unsigned long *)(SMI2DBaseAddress + offset));
+	return *((volatile unsigned int*)(SMI2DBaseAddress + offset));
 }
 
 #endif

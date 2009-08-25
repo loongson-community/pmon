@@ -51,19 +51,30 @@
 
 #include <machine/psl.h>
 
+#if (_MIPS_SZPTR == 32)
+#define PTR_PAD(x) x
+#endif
+#if (_MIPS_SZPTR == 64)
+#ifndef _LOCORE
+#define PTR_PAD(x) ((0xffffffffUL <<32)|(x))
+#else
+#define PTR_PAD(x) ((0xffffffff <<32)|(x))
+#endif
+#endif
+
 #define KUSEG_ADDR		0x0
-#define CACHED_MEMORY_ADDR	0x80000000
-#define UNCACHED_MEMORY_ADDR	0xa0000000
-#define KSEG2_ADDR		0xc0000000
-#define MAX_MEM_ADDR		0xbe000000
-#define	RESERVED_ADDR		0xbfc80000
+#define CACHED_MEMORY_ADDR	PTR_PAD(0x80000000)
+#define UNCACHED_MEMORY_ADDR	PTR_PAD(0xa0000000)
+#define KSEG2_ADDR		PTR_PAD(0xc0000000)
+#define MAX_MEM_ADDR		PTR_PAD(0xbe000000)
+#define	RESERVED_ADDR		PTR_PAD(0xbfc80000)
 
 #ifndef _LOCORE
-#define	CACHED_TO_PHYS(x)	((unsigned)(x) & 0x1fffffff)
-#define	PHYS_TO_CACHED(x)	((unsigned)(x) | CACHED_MEMORY_ADDR)
-#define	UNCACHED_TO_PHYS(x) 	((unsigned)(x) & 0x1fffffff)
-#define	PHYS_TO_UNCACHED(x) 	((unsigned)(x) | UNCACHED_MEMORY_ADDR)
-#define VA_TO_CINDEX(x) 	((unsigned)(x) & 0xffffff | CACHED_MEMORY_ADDR)
+#define	CACHED_TO_PHYS(x)	((unsigned long )(x) & 0x1fffffff)
+#define	PHYS_TO_CACHED(x)	((unsigned long)(x) | CACHED_MEMORY_ADDR)
+#define	UNCACHED_TO_PHYS(x) 	((unsigned long)(x) & 0x1fffffff)
+#define	PHYS_TO_UNCACHED(x) 	((unsigned long)(x) | UNCACHED_MEMORY_ADDR)
+#define VA_TO_CINDEX(x) 	((unsigned long)(x) & 0xffffff | CACHED_MEMORY_ADDR)
 #define	CACHED_TO_UNCACHED(x)	(PHYS_TO_UNCACHED(CACHED_TO_PHYS(x)))
 #else
 #define	CACHED_TO_PHYS(x)	((x) & 0x1fffffff)
@@ -153,11 +164,11 @@
 /*
  * Location of exception vectors.
  */
-#define RESET_EXC_VEC		0xbfc00000
-#define TLB_MISS_EXC_VEC	0x80000000
-#define XTLB_MISS_EXC_VEC	0x80000080
-#define CACHE_ERR_EXC_VEC	0x80000100
-#define GEN_EXC_VEC		0x80000180
+#define RESET_EXC_VEC		PTR_PAD(0xbfc00000)
+#define TLB_MISS_EXC_VEC	PTR_PAD(0x80000000)
+#define XTLB_MISS_EXC_VEC	PTR_PAD(0x80000080)
+#define CACHE_ERR_EXC_VEC	PTR_PAD(0x80000100)
+#define GEN_EXC_VEC		PTR_PAD(0x80000180)
 
 /*
  * Coprocessor 0 registers:

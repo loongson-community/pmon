@@ -48,6 +48,7 @@
  */
 
 //#define FLASH_WIDTH_IS_16
+#if (_MIPS_SZPTR == 32)
 #ifndef FLASH_WIDTH_IS_16
 #define	TARGET_FLASH_DEVICES_8 \
     { 0xbfc00000, 0x00080000, 1, 1, FL_BUS_8  },	\
@@ -58,5 +59,19 @@
     { 0xbfc00000, 0x00080000, 2, 1, FL_BUS_16 },	\
     { 0xbc000000, 0x02000000, 2, 1, FL_BUS_16 },	\
     { 0x00000000, 0x00000000 }
+#endif
+#endif
+#if (_MIPS_SZPTR == 64)
+#ifndef FLASH_WIDTH_IS_16
+#define	TARGET_FLASH_DEVICES_8 \
+    { 0xffffffffbfc00000UL, 0x00080000, 1, 1, FL_BUS_8  },	\
+    { 0xffffffffbc000000UL, 0x02000000, 1, 1, FL_BUS_8  },	\
+    { 0x00000000, 0x00000000 }
+#else
+#define	TARGET_FLASH_DEVICES_8 \
+    { 0xffffffffbfc00000UL, 0x00080000, 2, 1, FL_BUS_16 },	\
+    { 0xffffffffbc000000UL, 0x02000000, 2, 1, FL_BUS_16 },	\
+    { 0x00000000, 0x00000000 }
+#endif
 #endif
 

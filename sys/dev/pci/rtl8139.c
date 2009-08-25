@@ -1268,7 +1268,7 @@ static void rtl8139_attach(struct device * parent, struct device * self, void *a
 	nic->sc_ih = pci_intr_establish(pc, ih, IPL_NET, rtl8139_intr, nic,
 	    self->dv_xname);
 #else
-	nic->sc_ih = pci_intr_establish(pc, ih, IPL_NET, fxp_intr, nic);
+#error "__OpenBSD__ should be defined"	
 #endif
 	
 	if (nic->sc_ih == NULL) {
@@ -1278,7 +1278,6 @@ static void rtl8139_attach(struct device * parent, struct device * self, void *a
 		printf("\n");
 		return;
 	}
-	
 	
 	rtl8139_init_ring(nic);
 	/* Do generic parts of attach. */

@@ -2,13 +2,6 @@
 #define _KERNEL
 #endif
 
-#if (_MIPS_SZPTR == 32)
-#define LA la
-#endif
-
-#if (_MIPS_SZPTR == 64)
-#define LA dla
-#endif
 
 #define zero	$0	/* always zero */
 #define AT	$at	/* assembler temp */
@@ -42,6 +35,54 @@
 #define sp	$29	/* stack pointer */
 #define s8	$30	/* one more callee saved */
 #define ra	$31	/* return address */
+
+#if (_MIPS_SZPTR == 32)
+#define PTR_ADD         add
+#define PTR_ADDU        addu
+#define PTR_ADDI        addi
+#define PTR_ADDIU       addiu
+#define PTR_SUB         sub
+#define PTR_SUBU        subu
+#define PTR_L           lw
+#define PTR_S           sw
+#define PTR_LA          la
+#define PTR_SLL         sll
+#define PTR_SLLV        sllv
+#define PTR_SRL         srl
+#define PTR_SRLV        srlv
+#define PTR_SRA         sra
+#define PTR_SRAV        srav
+
+#define PTR_SCALESHIFT  2
+
+#define PTR             .word
+#define PTRSIZE         4
+#define PTRLOG          2
+#endif
+
+#if (_MIPS_SZPTR == 64)
+#define PTR_ADD         dadd
+#define PTR_ADDU        daddu
+#define PTR_ADDI        daddi
+#define PTR_ADDIU       daddiu
+#define PTR_SUB         dsub
+#define PTR_SUBU        dsubu
+#define PTR_L           ld
+#define PTR_S           sd
+#define PTR_LA          dla
+#define PTR_SLL         dsll
+#define PTR_SLLV        dsllv
+#define PTR_SRL         dsrl
+#define PTR_SRLV        dsrlv
+#define PTR_SRA         dsra
+#define PTR_SRAV        dsrav
+
+#define PTR_SCALESHIFT  3
+
+#define PTR             .dword
+#define PTRSIZE         8
+#define PTRLOG          3
+#endif
 
 
 /*
@@ -139,8 +180,8 @@ stack = start - 0x4000		/* Place PMON stack below PMON start in RAM */
 	mtc0	zero, COP_0_CAUSE_REG
 	li	t0, SR_BOOT_EXC_VEC	/* Exception to Boostrap Location */
 	mtc0	t0, COP_0_STATUS_REG
-	LA	sp, stack
-	LA	gp, _gp
+	PTR_LA	sp, stack
+	PTR_LA	gp, _gp
 	move s1,a3 //struct callvectors *cv
 
 	bal	locate			/* Get current execute address */
@@ -151,8 +192,8 @@ stack = start - 0x4000		/* Place PMON stack below PMON start in RAM */
  *  location into ra. Check to see if we run from ROM or if this is ramloaded.
  */
 locate:
-	LA	s0,start
-	subu	s0,ra,s0
+	PTR_LA	s0,start
+	PTR_SUBU	s0,ra,s0
 	and	s0,0xffff0000
 
 #if 1 //Ê¹ÄÜcache
@@ -163,18 +204,18 @@ locate:
 #endif
 
 	/* Clear BSS */
-	LA	a0, _edata
-	LA	a2, _end
+	PTR_LA	a0, _edata
+	PTR_LA	a2, _end
 2:	sw	zero, 0(a0)
 	bne	a2, a0, 2b
-	addu	a0, 4
+	PTR_ADDU	a0, 4
 
 	li	a0, 0
 	sw	a0, CpuTertiaryCacheSize /* Set L3 cache size */
 	li  a0,MEMSIZE
 	move a1,s1
  
-	LA	v0, initmips
+	PTR_LA	v0, initmips
 	jalr	v0
 	nop
 stuck:

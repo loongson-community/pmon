@@ -23,12 +23,19 @@
 /* offsets from base register */
 #define BONITO(x)	(x)
 
+#if (_MIPS_SZPTR == 32)
+#define PTR_PAD(x) x
+#endif
+#if (_MIPS_SZPTR == 64)
+#define PTR_PAD(x) ((0xffffffff << 32)|x)
+#endif
+
 #else /* !__ASSEMBLER */
 
 /* offsets from base pointer, this construct allows optimisation */
 /* static char * const _bonito = PA_TO_KVA1(BONITO_BASE); */
 /*#define BONITO(x)	*(volatile unsigned long *)(PHYS_TO_UNCACHED(BONITO_REG_BASE)+(x))*/
-#define BONITO(x)	*(volatile unsigned long *)(0xbfe00000+(x))
+#define BONITO(x)	*(volatile unsigned int*)(PTR_PAD(0xbfe00000)+(x))
 #endif /* __ASSEMBLER__ */
 
 #define RTC_INDEX_REG 0x70
@@ -36,9 +43,9 @@
 #define RTC_NVRAM_BASE		0x0e
 
 
-#define COM1_BASE_ADDR	0xbfd003f8
-#define COM2_BASE_ADDR	0xbfd002f8
-#define COM3_BASE_ADDR	0xbff003f8
+#define COM1_BASE_ADDR	PTR_PAD(0xbfd003f8)
+#define COM2_BASE_ADDR	PTR_PAD(0xbfd002f8)
+#define COM3_BASE_ADDR	PTR_PAD(0xbff003f8)
 
 #define	USE_GODSON2F_UART
 //#define	USE_CS5536_UART1
@@ -136,7 +143,7 @@
 #define BONITO_DEV_SIZE 		0x00100000
 #define BONITO_DEV_TOP			(BONITO_DEV_BASE+BONITO_DEV_SIZE-1)
 #define BONITO_PCILO_BASE		0x10000000
-#define BONITO_PCILO_BASE_VA    0xb0000000
+#define BONITO_PCILO_BASE_VA    PTR_PAD(0xb0000000)
 #define BONITO_PCILO_SIZE		0x0c000000
 #define BONITO_PCILO_TOP		(BONITO_PCILO_BASE+BONITO_PCILO_SIZE-1)
 #define BONITO_PCILO0_BASE		0x10000000
@@ -146,7 +153,7 @@
 #define BONITO_PCIHI_SIZE		0x20000000
 #define BONITO_PCIHI_TOP		(BONITO_PCIHI_BASE+BONITO_PCIHI_SIZE-1)
 #define BONITO_PCIIO_BASE		0x1fd00000
-#define BONITO_PCIIO_BASE_VA		0xbfd00000
+#define BONITO_PCIIO_BASE_VA		PTR_PAD(0xbfd00000)
 #define BONITO_PCIIO_SIZE		0x00010000
 #define BONITO_PCIIO_TOP		(BONITO_PCIIO_BASE+BONITO_PCIIO_SIZE-1)
 #define BONITO_PCICFG_BASE		0x1fe80000

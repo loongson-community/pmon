@@ -47,13 +47,13 @@
 /*
  * Bus access types.
  */
-typedef u_int32_t bus_addr_t;
+typedef unsigned long bus_addr_t;
 typedef u_int32_t bus_size_t;
-typedef u_int32_t bus_space_handle_t;
+typedef unsigned long bus_space_handle_t;
 typedef struct tgt_bus_space *bus_space_tag_t;
 
 struct tgt_bus_space {
-	u_int32_t	bus_base;
+	unsigned long bus_base;
 	u_int32_t	bus_reverse;	/* Reverse bus ops (dummy) */
 };
 

@@ -76,6 +76,8 @@
 #include <dev/pci/pcidevs.h>
 #include <sys/device.h>
 
+extern char * getenv (const char *name);
+
 #include "usb.h"
 #include "usb-ohci.h"
 
@@ -122,8 +124,8 @@
 #undef readl
 #undef writel
 
-#define readl(addr) *(volatile u32*)(((u32)(addr)) | 0xa0000000)
-#define writel(val, addr) *(volatile u32*)(((u32)(addr)) | 0xa0000000) = (val)
+#define readl(addr) *(volatile u32*)(((unsigned long)(addr)) | PTR_PAD(0xa0000000))
+#define writel(val, addr) *(volatile u32*)(((unsigned long)(addr)) | PTR_PAD(0xa0000000)) = (val)
 
 #define MAX_OHCI_C 4   /*In most case it is enough */
 ohci_t *usb_ohci_dev[MAX_OHCI_C];
@@ -490,7 +492,7 @@ static void ohci_attach(struct device *parent, struct device *self, void *aux)
 	pci_chipset_tag_t pc = pa->pa_pc;
 	bus_space_tag_t memt = pa->pa_memt;
 	bus_addr_t membase; 
-	bus_addr_t memsize;
+	bus_size_t memsize;
 	int cachable;
 #ifdef CONFIG_SM502_USB_HCD
 	bus_addr_t membase2;
@@ -515,7 +517,7 @@ static void ohci_attach(struct device *parent, struct device *self, void *aux)
 #ifdef CONFIG_SM502_USB_HCD
 	if(PCI_VENDOR(pa->pa_id) == 0x126f) {
 		pci_mem_find(pc, pa->pa_tag, 0x14, &membase, &memsize, &cachable);
-		sm502_reg_base = membase | 0xb0000000;
+		sm502_reg_base = membase | PTR_PAD(0xb0000000);
 		printf("sm502-usb membase %x\n", membase);
 		membase = membase + 0x40000;
 		ohci->flags = 0x80;
@@ -590,7 +592,8 @@ SM502_HC:
 		sm502_mem_init(ohci, membase2, memsize2);
 #endif
 
-	usb_lowlevel_init(ohci);
+	//usb_lowlevel_init(ohci);
+	printf("xxxx low done\n");
 	ohci->hc.uop = &ohci_usb_op;
 	/*
 	 * Now build the device tree
@@ -601,13 +604,15 @@ SM502_HC:
 	usb_scan_devices(ohci);
 #else
 	ohci->sc_ih = pci_intr_establish(pc, ih, IPL_BIO, hc_interrupt, ohci,
-	   self->dv_xname);
+					self->dv_xname);
 #endif
 	ohci->rdev = usb_alloc_new_device(ohci);
 
     /*do the enumeration of  the USB devices attached to the USB HUB(here root hub) 
     ports.*/
+	printf("aaaa");
     usb_new_device(ohci->rdev);
+	printf("bbbb");
     
 }
 
@@ -2606,7 +2611,7 @@ static int ohci_submit_bulk_msg(struct usb_device *dev, unsigned long pipe, void
 	int s;
 
 	if(ohci_debug)printf("submit_bulk_msg %x/%d\n", buffer, transfer_len);
-	if((u32)buffer & 0x0f)
+	if((unsigned long)buffer & 0x0f)
 		printf("bulk buffer %x/%d not aligned\n", buffer, transfer_len);	
 	s = submit_common_msg(dev, pipe, buffer, transfer_len, NULL, 0);
 	if(ohci_debug)printf("submit_bulk_msg END\n"); 
@@ -3043,7 +3048,7 @@ int usb_lowlevel_init(ohci_t *gohci)
 	}
 
 	/* align the storage */
-	if ((u32)&hcca[0] & 0xff) {
+	if ((unsigned long)&hcca[0] & 0xff) {
 		err("HCCA not aligned!! %x\n", hcca);
 		return -1;
 	}
@@ -3060,17 +3065,18 @@ int usb_lowlevel_init(ohci_t *gohci)
 		ohci_dev = malloc(sizeof *ohci_dev, M_DEVBUF, M_NOWAIT);
 		memset(ohci_dev, 0, sizeof(struct ohci_device));
 	}
-	if ((u32)&ohci_dev->ed[0] & 31) {
+	if ((unsigned long)&ohci_dev->ed[0] & 31) {
 		err("EDs not aligned!!");
 		return -1;
 	}
+
 #ifdef CONFIG_SM502_USB_HCD
 	if((gohci->flags & 0x80)) 
 	{
 		ohci_dev->cpu_ed = ohci_dev->ed;
 	} 
+	else  /* yanhua 090825 */
 #endif
-	else 
 	{
 		pci_sync_cache(gohci->sc_pc, (vm_offset_t)ohci_dev->ed, sizeof(ohci_dev->ed),SYNC_W);
 		ohci_dev->cpu_ed = (ed_t *)CACHED_TO_UNCACHED(&ohci_dev->ed);
@@ -3089,7 +3095,7 @@ int usb_lowlevel_init(ohci_t *gohci)
 		pci_sync_cache(gohci->sc_pc, (vm_offset_t)gtd, sizeof(td_t)*(NUM_TD+1), SYNC_W);
 	}
 
-	if ((u32)gtd & 0x0f) {
+	if ((unsigned long)gtd & 0x0f) {
 		err("TDs not aligned!!");
 		return -1;
 	}
@@ -3131,7 +3137,7 @@ int usb_lowlevel_init(ohci_t *gohci)
 			printf("No mem for control buffer\n");
 			goto errout;
 		}	
-		if((u32)tmpbuf & 0x1f)
+		if((unsigned long)tmpbuf & 0x1f)
 			printf("Malloc return not cache line aligned\n");
 		memset(tmpbuf, 0, 512);
 		pci_sync_cache(gohci->sc_pc, (vm_offset_t)tmpbuf,  512, SYNC_W);
@@ -3154,7 +3160,7 @@ int usb_lowlevel_init(ohci_t *gohci)
 			printf("No mem for setup buffer\n");
 			goto errout;
 		}	
-		if((u32)tmpbuf & 0x1f)
+		if((unsigned long)tmpbuf & 0x1f)
 			printf("Malloc return not cache line aligned\n");
 		memset(tmpbuf, 0, 64);
 		pci_sync_cache(tmpbuf, (vm_offset_t)tmpbuf, 64, SYNC_W);
@@ -3164,7 +3170,7 @@ int usb_lowlevel_init(ohci_t *gohci)
 	gohci->disabled = 1;
 	gohci->sleeping = 0;
 	gohci->irq = -1;
-	gohci->regs = (struct ohci_regs *)(gohci->sc_sh | 0xA0000000);
+	gohci->regs = (struct ohci_regs *)(gohci->sc_sh | PTR_PAD(0xA0000000));
 
 #ifdef CONFIG_SM502_USB_HCD
 	if(gohci->flags & 0x80){

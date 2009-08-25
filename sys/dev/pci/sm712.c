@@ -272,7 +272,7 @@ int  sm712_init(char * fbaddress,char * ioaddress)
 {
 	
 	u32 smem_size, i;
-
+	
 	smi_init_hw();
 	
 	hw.m_pLFB = SMILFB = fbaddress;
@@ -301,7 +301,7 @@ int  sm712_init(char * fbaddress,char * ioaddress)
 	smem_size = 0x00400000;
 #if 1	/* fill sm712 framebuffer as black 2008-10-06 */
 	for(i = 0; i  < smem_size / 2; i += 4){
-		*((volatile unsigned long *)(fbaddress + i)) = 0x00;
+		*((volatile unsigned int*)(fbaddress + i)) = 0x00;
 	}
 #endif
 
