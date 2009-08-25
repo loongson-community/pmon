@@ -225,7 +225,7 @@ stack = start - 0x4000		/* Place PMON stack below PMON start in RAM */
 
 uncached:
 	or	ra, UNCACHED_MEMORY_ADDR
-	j	ra
+	.word 0x03e00008 	//j	ra
 	nop
 	
 /***********************************EXC VECTOR***************************************/
@@ -247,7 +247,7 @@ ext_map_and_reboot:
 	subu	v0, v1
 	lui	v1, 0xffc0
 	addu	v0, v1
-	jr	v0
+	.word 0x00400008 	#jr	v0
 	nop
 
 /*
@@ -1490,7 +1490,7 @@ LEAF(CPU_TLBClear)
 	bne	a3, a2, 1b
 	nop
 
-	jr	ra
+	.word  0x03e0008 //jr	ra
 	nop
 END(CPU_TLBClear)
 
@@ -1525,7 +1525,7 @@ LEAF(CPU_TLBInit)
 	bgtz	a1, 1b
 	addu	a0, a2			# Step address 32Mb.
 
-	jr	ra
+	.word  0x03e0008 	#jr	ra
 	nop
 END(CPU_TLBInit)
 
@@ -1544,7 +1544,7 @@ LEAF(stringserial)
 	lbu	a0, 0(a1)
 
 2:
-	j	a2
+	.word 0x00c00008 	#j	a2
 	nop
 END(stringserial)
 
@@ -1561,7 +1561,7 @@ LEAF(outstring)
 	lbu	a0, 0(a1)
 
 2:
-	j	a2
+	.word 0x00c00008 #j	a2
 	nop
 END(outstring)
 
@@ -1582,7 +1582,7 @@ LEAF(hexserial)
 	bnez	a3, 1b
 	addu	a3, -1
 
-	j	a2
+	.word 0x00c00008 	#j	a2
 	nop
 END(hexserial)
 
@@ -1599,7 +1599,7 @@ LEAF(tgt_putchar)
 	LA	v0, COMMON_COM_BASE_ADDR
 	bne v0,v1,1b
 	nop
-	j	ra
+	.word 0x03e00008 #j	ra
 	nop	
 END(tgt_putchar)
 
@@ -1646,14 +1646,14 @@ LEAF(initserial)
         bne     v0, v1, 1b
         nop
 
-        j       ra
+        .word  0x03e00008 	//j       ra
         nop
 END(initserial)
 
 
 
 __main:
-	j	ra
+	.word 0x03e00008 #j	ra
 	nop
 
 
@@ -1825,7 +1825,7 @@ cache_flush_d2way:
 1:
 cache_init_finish:
 	nop
-	jr	ra
+	.word 0x03e00008 #jr	ra
 	nop
 
 cache_init_panic:
@@ -2298,7 +2298,7 @@ LEAF(superio_init)
 	nop;
 #endif
 
-	jr	ra;
+	.word 0x03e00008 #jr	ra;
 	nop;
 	
 END(superio_init)
@@ -2422,7 +2422,7 @@ LEAF(i2cread)
 i2cerr :
 	nop;
 	
-	jr	ra;
+	.word 0x03e00008 #jr	ra;
 	nop;
 END(i2cread)
 
@@ -2585,7 +2585,7 @@ reg_write:
 
 
 	move    ra, s1
-	jr      ra
+	.word  0x03e00008 	#jr      ra
 	nop
     .set    mips0
     .end    ddr2_config
