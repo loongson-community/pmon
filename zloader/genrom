@@ -40,27 +40,26 @@ void enable_cache()
 #ifndef NOCACHE2
 void flush_cache2()
 {
-asm volatile(
+__asm__ volatile(
 	".set mips3;"
-	"mfc0	\$3, \$15			# read processor ID register"
-	"li		\$2, 0x6303				#godson2f prid"
-	"beq		\$2, \$3, godson_2f"
-	"nop"
-	"li		\$2, 0x6302				#godson2e prid"
-	"bne	\$2, \$3,11f "
-	"nop"
-"# godson2e"
+	"mfc0	\$3, \$15;			" // read processor ID register
+	"li		\$2, 0x6303;	"	//	godson2f prid
+	"beq		\$2, \$3, godson_2f;"
+	"nop;"
+	"li		\$2, 0x6302;				" //godson2e prid
+	"bne	\$2, \$3,11f; "
+	"nop;"
 "godson_2f:"
-"	li	  \$2, 0x80000000"
-    "addu  \$3,\$2,512*1024"
+"	li	  \$2, 0x80000000;"
+    "addu  \$3,\$2,512*1024;"
 "10:"
-	"cache	3, 0(\$2)"
-	"cache	3, 1(\$2)"
-	"cache	3, 2(\$2)"
-	"cache	3, 3(\$2)"
-	"addu	\$2, 32"
-	"bne	    \$2,\$3, 10b"
-	"nop"
+	"cache	3, 0(\$2);"
+	"cache	3, 1(\$2);"
+	"cache	3, 2(\$2);"
+	"cache	3, 3(\$2);"
+	"addu	\$2, 32;"
+	"bne	    \$2,\$3, 10b;"
+	"nop;"
 "11:"
 	".set mips0"
 ::
@@ -89,17 +88,17 @@ asm volatile(
 #endif
 void initmips(unsigned int msize,int dmsize,int dctrl)
 {
-    long *edata=(void *)$myedata;
-    long *end=(void *)$myend;
-    long *p;
+    int *edata=(void *)$myedata;
+    int *end=(void *)$myend;
+    int *p;
 	int debug=(msize==0);
-    //stringserial("Uncompressing Bios");
+    stringserial("Uncompressing Bios");
     if(!debug||dctrl&1)enable_cache();
 	while(1)
 	{
     if(run_unzip(biosdata,$mystart)>=0)break;
 	}
-    //stringserial("OK,Booting Bios\\r\\n");
+    stringserial("OK,Booting Bios\\r\\n");
     for(p=edata;p<=end;p++)
     {
         *p=0;
