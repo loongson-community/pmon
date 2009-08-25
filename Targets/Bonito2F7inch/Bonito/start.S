@@ -1490,7 +1490,7 @@ LEAF(CPU_TLBClear)
 	bne	a3, a2, 1b
 	nop
 
-	.word  0x03e0008 //jr	ra
+	.word  0x03e00008 //jr	ra
 	nop
 END(CPU_TLBClear)
 
@@ -1525,7 +1525,7 @@ LEAF(CPU_TLBInit)
 	bgtz	a1, 1b
 	addu	a0, a2			# Step address 32Mb.
 
-	.word  0x03e0008 	#jr	ra
+	.word  0x03e00008 	#jr	ra
 	nop
 END(CPU_TLBInit)
 
