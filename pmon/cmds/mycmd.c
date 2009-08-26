@@ -590,113 +590,41 @@ static void GPIO_LO_BIT(int bit, int reg)
 	*(unsigned int *)(0xbfd00000 + reg) = orig;
 }
 
-void cmd_gpio11_low()
+void cmd_gpio_low(int argc, char *argv[])
 {
-    GPIO_LO_BIT(GPIO_11, GPIO_BASE_ADDR | GPIOL_OUT_VAL);
-    GPIO_HI_BIT(GPIO_11, GPIO_BASE_ADDR | GPIOL_OUT_EN);
-    GPIO_LO_BIT(GPIO_11, GPIO_BASE_ADDR | GPIOL_IN_EN);
-    GPIO_LO_BIT(GPIO_11, GPIO_BASE_ADDR | GPIOL_OUT_AUX1_SEL);
-    GPIO_LO_BIT(GPIO_11, GPIO_BASE_ADDR | GPIOL_OUT_AUX2_SEL);
-    GPIO_LO_BIT(GPIO_11, GPIO_BASE_ADDR | GPIOL_IN_AUX1_SEL);
-    GPIO_HI_BIT(GPIO_11, GPIO_BASE_ADDR | GPIOL_PU_EN);
+	unsigned long gpio;
+	
+	if(argc > 2)
+		printf("too much  parameter!");
+	
+	get_rsa(&gpio, argv[1]);
+    GPIO_LO_BIT(gpio, GPIO_BASE_ADDR | GPIOL_OUT_VAL);
+    GPIO_HI_BIT(gpio, GPIO_BASE_ADDR | GPIOL_OUT_EN);
+    GPIO_LO_BIT(gpio, GPIO_BASE_ADDR | GPIOL_IN_EN);
+    GPIO_LO_BIT(gpio, GPIO_BASE_ADDR | GPIOL_OUT_AUX1_SEL);
+    GPIO_LO_BIT(gpio, GPIO_BASE_ADDR | GPIOL_OUT_AUX2_SEL);
+    GPIO_LO_BIT(gpio, GPIO_BASE_ADDR | GPIOL_IN_AUX1_SEL);
+    GPIO_HI_BIT(gpio, GPIO_BASE_ADDR | GPIOL_PU_EN);
 }
 
-void cmd_gpio11_high()
+void cmd_gpio_high(int argc, char *argv[])
 {
-    GPIO_HI_BIT(GPIO_11, GPIO_BASE_ADDR | GPIOL_OUT_VAL);
-    GPIO_HI_BIT(GPIO_11, GPIO_BASE_ADDR | GPIOL_OUT_EN);
-    GPIO_LO_BIT(GPIO_11, GPIO_BASE_ADDR | GPIOL_IN_EN);
-    GPIO_LO_BIT(GPIO_11, GPIO_BASE_ADDR | GPIOL_OUT_AUX1_SEL);
-    GPIO_LO_BIT(GPIO_11, GPIO_BASE_ADDR | GPIOL_OUT_AUX2_SEL);
-    GPIO_LO_BIT(GPIO_11, GPIO_BASE_ADDR | GPIOL_IN_AUX1_SEL);
-    GPIO_HI_BIT(GPIO_11, GPIO_BASE_ADDR | GPIOL_PU_EN);
+	unsigned long gpio;
+	
+	if(argc > 2)
+		printf("too much  parameter!");
+	
+	get_rsa(&gpio, argv[1]);
+    GPIO_HI_BIT(gpio, GPIO_BASE_ADDR | GPIOL_OUT_VAL);
+    GPIO_HI_BIT(gpio, GPIO_BASE_ADDR | GPIOL_OUT_EN);
+    GPIO_LO_BIT(gpio, GPIO_BASE_ADDR | GPIOL_IN_EN);
+    GPIO_LO_BIT(gpio, GPIO_BASE_ADDR | GPIOL_OUT_AUX1_SEL);
+    GPIO_LO_BIT(gpio, GPIO_BASE_ADDR | GPIOL_OUT_AUX2_SEL);
+    GPIO_LO_BIT(gpio, GPIO_BASE_ADDR | GPIOL_IN_AUX1_SEL);
+    GPIO_HI_BIT(gpio, GPIO_BASE_ADDR | GPIOL_PU_EN);
 }
 
-#include <linux/io.h>
-#define SMB_BASE_ADDR  0xb410
-
-static int i2c_wait()
-{
-    char c;
-    int i;
-    delay(1000);
-    for(i=0;i<20;i++)
-    {
-    c = linux_inb(SMB_BASE_ADDR|SMB_STS);
-    if(c&SMB_STS_BER)return -1;
-    if(c&SMB_STS_SDAST)return 0;
-    delay(100);
-    }
-    return -2;
-}
-
-static int i2c_read_single(int addr, int regNo,char *value)
-{
-    int i;
-    unsigned char c;
-    int j;
-    linux_outb(SMB_CTRL1_START,SMB_BASE_ADDR|SMB_CTRL1);
-    i2c_wait();
-    linux_outb(addr&0xfe,SMB_BASE_ADDR);
-    i2c_wait();
-    linux_outb(regNo,SMB_BASE_ADDR);
-    i2c_wait();
-    linux_outb(SMB_CTRL1_ACK|SMB_CTRL1_START,SMB_BASE_ADDR|SMB_CTRL1);
-    i2c_wait();
-    linux_outb(addr|1,SMB_BASE_ADDR);
-    i2c_wait();
-    *value=linux_inb(SMB_BASE_ADDR);
-    linux_outb(2,SMB_BASE_ADDR|SMB_CTRL1);
-    i2c_wait();
-    //clear error
-    //linux_outb(0x10,SMB_BASE_ADDR|SMB_STS);
-    c=linux_inb(SMB_BASE_ADDR|SMB_STS);
-    linux_outb(0x30,SMB_BASE_ADDR|SMB_STS);
-    return 0;
-}
-
-static int i2c_write_single(int addr, int regNo,char *value)
-{
-    int i;
-    unsigned char c;
-    int j;
-    linux_outb(SMB_CTRL1_START,SMB_BASE_ADDR|SMB_CTRL1);
-    i2c_wait();
-    linux_outb(addr&0xfe,SMB_BASE_ADDR);
-    i2c_wait();
-    linux_outb(regNo,SMB_BASE_ADDR);
-    i2c_wait();
-    linux_outb(*value,SMB_BASE_ADDR);
-    i2c_wait();
-    linux_outb(2,SMB_BASE_ADDR|SMB_CTRL1);
-    i2c_wait();
-    //clear error
-    //linux_outb(0x10,SMB_BASE_ADDR|SMB_STS);
-    c=linux_inb(SMB_BASE_ADDR|SMB_STS);
-    linux_outb(0x30,SMB_BASE_ADDR|SMB_STS);
-    return 0;
-}
-
-
-void cmd_i2c_read()
-{
-	int i,j;
-	unsigned char temp;
-	for(i=1;i<20;i++){
-		i2c_read_single(0xd3,i,&temp);
-		printf("%d is %2x\n",i,temp);
-	}
-}
-
-void cmd_i2c_write()
-{
-	unsigned char temp;
-
-	i2c_read_single(0xd3,1,&temp);
-	temp = temp |0x80;
-	i2c_write_single(0xd2,1,&temp);
-}
-#endif           //LOONGSON2F_ALLINONE
+#endif       
 //-------------------------------------------------------------------------------------------
 static const Cmd Cmds[] =
 {
@@ -719,10 +647,8 @@ static const Cmd Cmds[] =
 	{"tlbset","viraddr phyaddr [-x]",0,"tlbset viraddr phyaddr [-x]",tlbset,0,99,CMD_REPEAT},
 	{"cache","[0 1]",0,"cache [0 1]",setcache,0,99,CMD_REPEAT},
 #ifdef LOONGSON2F_ALLINONE
-	{"gpio11_high","",0,"pull high gpio 11",cmd_gpio11_high,1,99,0},
-	{"gpio11_low","",0,"pull low gpio 11",cmd_gpio11_low,1,99,0},
-	{"i2c_read","",0,"i2cread",cmd_i2c_read,1,99,0},
-	{"i2c_write","",0,"i2cwrite",cmd_i2c_write,1,99,0},
+	{"gpio_high","<index>",0,"pull high gpio <index>",cmd_gpio_high,1,2,0},
+	{"gpio_low","<index>",0,"pull low gpio <index>",cmd_gpio_low,1,2,0},
 #endif
 #if NMOD_FLASH_SST
 	{"erase","[0 1]",0,"cache [0 1]",erase,0,99,CMD_REPEAT},

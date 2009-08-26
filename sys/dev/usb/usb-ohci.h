@@ -58,6 +58,7 @@ struct ed {
 	u8 state;
 	u8 type;
 	u16 last_iso;
+    u32 cpued_num;
 	struct ed *ed_rm_list;
 
 	struct usb_device *usb_dev;
@@ -407,6 +408,9 @@ typedef struct ohci {
 	ed_t *g_pInt_ed[MAX_INTS];
 
 	unsigned int transfer_lock;
+
+    //09-08-03
+    int ohci_no;
 
 #ifdef CONFIG_SM502_USB_HCD
 	/*only for sm502 usb only*/
