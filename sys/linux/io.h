@@ -38,7 +38,7 @@ static inline unsigned short linux_inw(unsigned long port)
 
 static inline unsigned int linux_inl(unsigned long port)
 {
-        return (*(volatile unsigned long *)(mips_io_port_base + port));
+        return (*(volatile unsigned int *)(mips_io_port_base + port));
 }
 
 #define linux_outb(val,port)\
@@ -53,7 +53,7 @@ do {									\
 
 #define linux_outl(val,port)							\
 do {									\
-	*(volatile unsigned long *)(mips_io_port_base + (port)) = (val);\
+	*(volatile unsigned int *)(mips_io_port_base + (port)) = (val);\
 } while(0)
 
 #define linux_outb_p(val,port)                                                \
@@ -75,8 +75,8 @@ static inline unsigned char linux_inb_p(unsigned long port)
 
 
 
-#define readb(addr)             (*(volatile unsigned char *)(0xa0000000|(long)(addr)))
-#define readw(addr)             ((*(volatile unsigned short *)(0xa0000000|(long)(addr))))
-#define readl(addr)             ((*(volatile unsigned int *)(0xa0000000|(long)(addr))))
+#define readb(addr)             (*(volatile unsigned char *)(PTR_PAD(0xa0000000)|(long)(addr)))
+#define readw(addr)             ((*(volatile unsigned short *)(PTR_PAD(0xa0000000)|(long)(addr))))
+#define readl(addr)             ((*(volatile unsigned int *)(PTR_PAD(0xa0000000)|(long)(addr))))
 
 #endif /* __LINUXIO_H_ */

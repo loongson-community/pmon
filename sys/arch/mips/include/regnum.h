@@ -44,10 +44,16 @@
 #ifndef _MIPS_REGNUM_H_
 #define _MIPS_REGNUM_H_
 
+#if (_MIPS_SZPTR == 32)
 #define STAND_ARG_SIZE		16
 #define STAND_FRAME_SIZE	24
 #define STAND_RA_OFFSET		20  
-
+#endif
+#if (_MIPS_SZPTR == 64)
+#define STAND_ARG_SIZE		32
+#define STAND_FRAME_SIZE	48
+#define STAND_RA_OFFSET		40 
+#endif
 /*
  * Location of the saved registers relative to ZERO.
  * Usage is p->p_regs[XX].

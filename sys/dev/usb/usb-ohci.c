@@ -435,6 +435,7 @@ static int ohci_match(struct device *parent, void *match, void *aux)
 	char *no502;
 #endif
 
+	return 0;
 	if(PCI_CLASS(pa->pa_class) == PCI_CLASS_SERIALBUS && 
 		  PCI_SUBCLASS(pa->pa_class) == PCI_SUBCLASS_SERIALBUS_USB){ 
 		if(((pa->pa_class >>8) & 0xff) == 0x10){

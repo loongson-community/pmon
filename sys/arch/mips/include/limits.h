@@ -70,9 +70,16 @@
 #define	INT_MAX		2147483647	/* max value for an int */
 #define	INT_MIN		(-2147483647-1)	/* min value for an int */
 
+#if (_MIPS_SZPTR == 32)
 #define	ULONG_MAX	0xffffffff	/* max value for an unsigned long */
 #define	LONG_MAX	2147483647	/* max value for a long */
 #define	LONG_MIN	(-2147483647-1)	/* min value for a long */
+#endif
+#if (_MIPS_SZPTR == 64)
+#define	ULONG_MAX	0xffffffffffffffffUL	/* max value for an unsigned long */
+#define	LONG_MAX	0x7fffffffffffffffL	/* max value for a long */
+#define	LONG_MIN	(-0x7fffffffffffffffL-1)	/* min value for a long */
+#endif
 
 #if !defined(_ANSI_SOURCE)
 #define	SSIZE_MAX	INT_MAX		/* max value for a ssize_t */

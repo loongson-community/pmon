@@ -124,8 +124,8 @@ gensyscall (int (*func) __P((struct proc *, void *, register_t *)), int nargs, i
 }
 
 #define syscall(pub, pri, nargs) \
-int pub __P((int, ...)); \
-int pub (int a1, ...) \
+int pub __P((long, ...)); \
+int pub (long a1, ...) \
 { \
     int res; \
     va_list ap; \
@@ -334,7 +334,7 @@ int
 sigpause(mask)
 	int mask;
 {
-	return (sigsuspend((int)&mask));
+	return (sigsuspend((long)&mask));
 }
 
 sigset_t _sigintr;		/* shared with siginterrupt */

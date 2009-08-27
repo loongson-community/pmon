@@ -183,6 +183,73 @@ x: ;				\
 #define END(x) \
 	.end x
 
+/*
+ * How to add/sub/load/store/shift pointers.
+ */
+#if (_MIPS_SZPTR == 32)
+#define PTR_ADD		add
+#define PTR_ADDU	addu
+#define PTR_ADDI	addi
+#define PTR_ADDIU	addiu
+#define PTR_SUB		sub
+#define PTR_SUBU	subu
+#define PTR_L		lw
+#define PTR_S		sw
+#define PTR_LA		la
+#define PTR_LI		li
+#define PTR_SLL		sll
+#define PTR_SLLV	sllv
+#define PTR_SRL		srl
+#define PTR_SRLV	srlv
+#define PTR_SRA		sra
+#define PTR_SRAV	srav
+
+#define PTR_SCALESHIFT	2
+
+#define PTR		.word
+#define PTRSIZE		4
+#define PTRLOG		2
+#endif
+
+#if (_MIPS_SZPTR == 64)
+#define PTR_ADD		dadd
+#define PTR_ADDU	daddu
+#define PTR_ADDI	daddi
+#define PTR_ADDIU	daddiu
+#define PTR_SUB		dsub
+#define PTR_SUBU	dsubu
+#define PTR_L		ld
+#define PTR_S		sd
+#define PTR_LA		dla
+#define PTR_LI		dli
+#define PTR_SLL		dsll
+#define PTR_SLLV	dsllv
+#define PTR_SRL		dsrl
+#define PTR_SRLV	dsrlv
+#define PTR_SRA		dsra
+#define PTR_SRAV	dsrav
+
+#define PTR_SCALESHIFT	3
+
+#define PTR		.dword
+#define PTRSIZE		8
+#define PTRLOG		3
+#endif
+
+/*
+ * Some cp0 registers were extended to 64bit for MIPS III.
+ */
+#if (_MIPS_SIM == _MIPS_SIM_ABI32)
+#define MFC0		mfc0
+#define MTC0		mtc0
+#endif
+#if (_MIPS_SIM == _MIPS_SIM_NABI32) || (_MIPS_SIM == _MIPS_SIM_ABI64)
+#define MFC0		dmfc0
+#define MTC0		dmtc0
+#endif
+
+#define SSNOP		sll zero, zero, 1
+
 #if (_MIPS_SZPTR == 32)
 #define LA la	
 #endif

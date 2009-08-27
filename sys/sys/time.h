@@ -46,8 +46,8 @@
  * and used in other calls.
  */
 struct timeval {
-	long	tv_sec;		/* seconds */
-	long	tv_usec;	/* and microseconds */
+	int	tv_sec;		/* seconds */
+	int	tv_usec;	/* and microseconds */
 };
 
 /*
@@ -55,7 +55,7 @@ struct timeval {
  */
 struct timespec {
 	time_t	tv_sec;		/* seconds */
-	long	tv_nsec;	/* and nanoseconds */
+	int	tv_nsec;	/* and nanoseconds */
 };
 
 #define	TIMEVAL_TO_TIMESPEC(tv, ts) {					\
