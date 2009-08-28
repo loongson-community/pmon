@@ -219,7 +219,7 @@ wdc_default_read_raw_multi_2(chp, data, nbytes)
 		return;
 	}
 
-	if (!((unsigned int)data & 1))
+	if (!((unsigned long)data & 1))
 		bus_space_read_raw_multi_2(chp->cmd_iot, chp->cmd_ioh, 0, 
 				data, nbytes);
 	else {

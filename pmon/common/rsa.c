@@ -50,7 +50,7 @@
  *	  register type values.
  */
 int
-get_rsa(u_int32_t *vp, char *p)
+get_rsa(unsigned long *vp, char *p)
 {
 	register_t val;
     
@@ -131,7 +131,12 @@ get_rsa_reg(register_t *vp, char *p)
 			printf ("%s: bad indirect address\n", &p[1]);
 		}
 		else {
+#if (_MIPS_SZPTR==32)
 			*vp = load_word ((int32_t)v2);
+#endif
+#if (_MIPS_SZPTR==64)
+			*vp = load_word ((int64_t)v2);
+#endif
 		}
 #if NMOD_DEBUGGER > 0
 	} else if (*p == '@') {

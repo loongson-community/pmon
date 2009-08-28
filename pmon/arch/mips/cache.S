@@ -1158,9 +1158,18 @@ NON_LEAF(CPU_IOFlushDCache, STAND_FRAME_SIZE, ra)
 
 	subu	sp, STAND_FRAME_SIZE
 	sw	ra, STAND_RA_OFFSET(sp)
+#if (_MIPS_SZPTR == 32)
 	sw	a0, STAND_FRAME_SIZE(sp)	# save args
+#else
+	sw	a0, 0(sp)	# save args
+#endif
 	beqz	a2, FlushRD			# read operation
+#if (_MIPS_SZPTR == 32)
 	sw	a1, STAND_FRAME_SIZE+4(sp)
+#endif
+#if (_MIPS_SZPTR == 64)
+	sw	a1, 8(sp)
+#endif
 
 # --- Flush for I/O Write --------
 	lw	t0, CpuCacheType
@@ -1171,9 +1180,18 @@ NON_LEAF(CPU_IOFlushDCache, STAND_FRAME_SIZE, ra)
 	jal	CPU_HitFlushDCache		# Do any orphans in L1
 	nop					# L1 done in parallel
 
+#if (_MIPS_SZPTR == 32)
 	lw	a0, STAND_FRAME_SIZE(sp)
+#else
+	lw	a0, 0(sp)
+#endif
 	jal	CPU_HitFlushSCache		# Do internal L2 cache
+#if (_MIPS_SZPTR == 32)
 	lw	a1, STAND_FRAME_SIZE+4(sp)
+#endif
+#if (_MIPS_SZPTR == 32)
+	lw	a1, 8(sp)
+#endif
 
 	b	FlushDone			# Any L3 is write through
 	lw	ra, STAND_RA_OFFSET(sp)		# no need to flush
@@ -1204,9 +1222,17 @@ FlushRDL2:
 	jal	CPU_HitInvalidateDCache		# Do any orphans in L1
 	nop					# L1 done in parallel
 
+#if (_MIPS_SZPTR == 32)
 	lw	a0, STAND_FRAME_SIZE(sp)
+#else
+	lw	a0, 0(sp)
+#endif
 	jal	CPU_HitInvalidateSCache		# Internal L2 cache
+#if (_MIPS_SZPTR == 32)
 	lw	a1, STAND_FRAME_SIZE+4(sp)
+#else
+	lw	a1, 8(sp)
+#endif
 
 	b	FlushRDL3
 	lw	ra, STAND_RA_OFFSET(sp)		# L3 invalidate if present
@@ -1227,9 +1253,17 @@ FlushRDWBL2:
 	jal	CPU_HitFlushDCache		# Do any orphans in L1
 	nop					# L1 done in parallel
 
+#if (_MIPS_SZPTR == 32)
 	lw	a0, STAND_FRAME_SIZE(sp)
+#else
+	lw	a0, 0(sp)
+#endif
 	jal	CPU_HitFlushSCache		# Internal L2 cache
+#if (_MIPS_SZPTR == 32)
 	lw	a1, STAND_FRAME_SIZE+4(sp)
+#else
+	lw	a1, 8(sp)
+#endif
 
 	b	FlushRDL3
 	lw	ra, STAND_RA_OFFSET(sp)		# L3 invalidate if present
@@ -1238,8 +1272,13 @@ FlushRDXL2:
 	lw	t0, CpuCacheType
 	and	t0, CTYPE_HAS_XL2		# Have external L2?
 	beqz	t0, FlushRDL3			# Nope.
+#if (_MIPS_SZPTR ==32)
 	lw	a0, STAND_FRAME_SIZE(sp)
 	lw	a1, STAND_FRAME_SIZE+4(sp)
+#else
+	lw	a0, 0(sp)
+	lw	a1, 8(sp)
+#endif
 	and	a2, a0, 4095			# align on page size
 	subu	a0, a2
 	addu 	a1, a2
@@ -1255,8 +1294,13 @@ FlushRDL3:
 	lw	t0, CpuCacheType
 	and	t0, CTYPE_HAS_XL3		# Have L3?
 	beqz	t0, FlushDone			# Nope.
+#if (_MIPS_SZPTR == 32)
 	lw	a0, STAND_FRAME_SIZE(sp)
 	lw	a1, STAND_FRAME_SIZE+4(sp)
+#else
+	lw	a0, 0(sp)
+	lw	a1, 8(sp)
+#endif
 	and	a2, a0, 4095			# align on page size
 	subu	a0, a2
 	addu 	a1, a2

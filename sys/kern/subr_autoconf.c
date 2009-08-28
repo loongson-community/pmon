@@ -324,10 +324,8 @@ config_found_sm(parent, aux, print, submatch)
 
 	if ((match = config_search(submatch, parent, aux)) != NULL)
 		return (config_attach(parent, match, aux, print));
-//	printf("+++++config_found_sm\n");//plj
 	if (print)
 		printf(msgs[(*print)(aux, parent->dv_xname)]);
-//	printf("-----config_found_sm\n");//plj
 	return (NULL);
 }
 

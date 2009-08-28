@@ -60,9 +60,9 @@ cmd_flash(ac, av)
 	int	c;
 	int	opt_erase = 0;
 	int	opt_verify = 0;
-	u_int32_t base_addr;
-	u_int32_t offset = -1;
-	u_int32_t flashsize = -1;
+	unsigned long base_addr;
+	unsigned long offset = -1;
+	unsigned long flashsize = -1;
 
 	if(tgt_flashwrite_enable() == 0) {
 		printf("FLASH can't be write enabled by PMON2000. Please\n");

@@ -435,7 +435,6 @@ static int ohci_match(struct device *parent, void *match, void *aux)
 	char *no502;
 #endif
 
-	return 0;
 	if(PCI_CLASS(pa->pa_class) == PCI_CLASS_SERIALBUS && 
 		  PCI_SUBCLASS(pa->pa_class) == PCI_SUBCLASS_SERIALBUS_USB){ 
 		if(((pa->pa_class >>8) & 0xff) == 0x10){
@@ -597,8 +596,7 @@ SM502_HC:
 		sm502_mem_init(ohci, membase2, memsize2);
 #endif
 
-	//usb_lowlevel_init(ohci);
-	printf("xxxx low done\n");
+	usb_lowlevel_init(ohci);
 	ohci->hc.uop = &ohci_usb_op;
 	/*
 	 * Now build the device tree
@@ -615,9 +613,7 @@ SM502_HC:
 
     /*do the enumeration of  the USB devices attached to the USB HUB(here root hub) 
     ports.*/
-	printf("aaaa");
     usb_new_device(ohci->rdev);
-	printf("bbbb");
     
 }
 
@@ -1371,7 +1367,7 @@ static void td_fill (ohci_t *ohci, unsigned int info,
 	td->ed = urb_priv->ed;
 	td->next_dl_td = NULL;
 	td->index = index;
-	td->data = (u32)(data);
+	td->data = (unsigned long)(data);
 	td->transfer_len = len; //for debug purpose
 	td->retbuf = retbuf;
 

@@ -221,7 +221,7 @@ int		more __P((char *, int *, int));
 extern unsigned int moresz;
 
 /* rsa.c */
-int		get_rsa __P((u_int32_t *, char *));
+int		get_rsa __P((unsigned long*, char *));
 int		get_rsa_reg __P((register_t *, char *));
 
 /* set.c */

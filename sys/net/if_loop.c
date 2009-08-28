@@ -259,7 +259,7 @@ looutput(ifp, m, dst, rt)
 		ifq = &atintrq2;
 		isr = NETISR_ATALK;
 		break;
-#endif NETATALK
+#endif 
 	default:
 		printf("%s: can't handle af%d\n", ifp->if_xname,
 			dst->sa_family);
