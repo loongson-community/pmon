@@ -807,14 +807,14 @@ initstack (ac, av, addenv)
 	 *  Calculate the amount of stack space needed to build args.
 	 */
 	stringlen = 0;
-	for (i = 0; i < ac; i++) {
-		stringlen += strlen(av[i]) + 1;
-	}
 	if (addenv) {
 		envsize (&ec, &stringlen);
 	}
 	else {
 		ec = 0;
+	}
+	for (i = 0; i < ac; i++) {
+		stringlen += strlen(av[i]) + 1;
 	}
 	stringlen = (stringlen + 3) & ~3;	/* Round to words */
 	vectorlen = (ac + ec + 2) * sizeof (char *);
