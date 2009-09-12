@@ -480,6 +480,75 @@ return 0;
 }
 
 #endif
+
+#include <target/cs5536.h>
+static int cs5536_gpio(int argc,char **argv)
+{
+	unsigned long val;
+	unsigned long tag;
+	unsigned long base;
+	unsigned long reg;
+	typedef struct gpio_struc {char *s;unsigned int a;} gpio_struc;
+	
+	int i,j;
+	gpio_struc gpio_params[]={
+	{"out_val",GPIOL_OUT_VAL},
+	{"out",GPIOL_OUT_EN},
+	{"out_inv",GPIOL_OUT_INVRT_EN},
+	{"out_od",GPIOL_OUT_OD_EN},
+	{"out_aux1",GPIOL_OUT_AUX1_SEL},
+	{"out_aux2",GPIOL_OUT_AUX2_SEL},
+	{"pu",GPIOL_PU_EN},
+	{"pd",GPIOL_PD_EN},
+	{"in",GPIOL_IN_EN},
+	{"in_readback",GPIOL_IN_READBACK},
+	{"in_inv",GPIOL_IN_INVRT_EN},
+	{"in_aux1",GPIOL_IN_AUX1_SEL},
+	};
+
+	tag = _pci_make_tag(0, 14, 0);
+	base = _pci_conf_read(tag, 0x14);
+	base |= 0xbfd00000;
+	base &= ~3;
+
+
+	reg=strtoul(argv[1],0,0);
+	printf("base=%x,reg=%x\n",base,reg);
+	if(reg>15){reg -= 16;base += 0x80; }
+	if(argc>2)
+	for(i=2;i<argc;i++)
+	{
+
+	for(j=0;j<sizeof(gpio_params)/sizeof(gpio_params[0]);j++)
+	 
+	 if(!strncmp(argv[i],gpio_params[j].s,strlen(gpio_params[j].s)))
+	 {
+	  if(*(argv[i]+strlen(gpio_params[j].s))==':')
+	  {
+	  int val=(strtoul(argv[i]+strlen(gpio_params[j].s)+1,0,0)!=0);
+	  //printf("%s%d,%x\n",gpio_params[j].s,val,base+gpio_params[j].a);
+		
+	  if(val) *(volatile unsigned int *)(base+gpio_params[j].a) = (1<<reg);
+	  else *(volatile unsigned int *)(base+gpio_params[j].a) = (1<<(16+reg));
+	  break;
+	  }
+	  else if(*(argv[i]+strlen(gpio_params[j].s))=='?')
+	  {
+	   printf("%s=%d\n",gpio_params[j].s,(*(volatile unsigned int *)(base+gpio_params[j].a)>>reg)&1);
+	  break;
+	  }
+
+	 }
+	}
+	else
+	{
+	for(j=0;j<sizeof(gpio_params)/sizeof(gpio_params[0]);j++)
+	   printf("%s=%d\n",gpio_params[j].s,(*(volatile unsigned int *)(base+gpio_params[j].a)>>reg)&1);
+	}
+
+	return 0;
+}
+
 //----------------------------------
 static const Cmd Cmds[] =
 {
@@ -505,6 +574,7 @@ static const Cmd Cmds[] =
 	{"linit","",0,"linit",linit,1,1,CMD_REPEAT},
 #endif
 	{"mytest","",0,"mytest",mytest,1,1,CMD_REPEAT},
+	{"cs5536_gpio","reg out:? in:? out_aux1:? out_aux2:? in_aux1:? pu:? val:?",0,"set cs5536 gpio",cs5536_gpio,2,99,CMD_REPEAT},
 	{0, 0}
 };
 
