@@ -82,6 +82,21 @@ char string[]="L1 Cache: Unknown ";
 	cprint(LINE_INFO, COL_MMAP, string);
 }
 
+
+void config_64bit()
+{
+	    __asm__(
+         ".set mips3\n"
+         "dli $2, 0x900000003ff00000\n"
+         "dli $3, 0x0000000080000000\n"
+         "sd  $3, 0x10($2)\n"
+         "sd  $0, 0x50($2)\n"
+         "dli $3, 0xffffffffc0000000\n"
+          "sd  $3, 0x30($2)\n"
+         ".set mips0\n"
+         :::"$2","$3","memory");
+}
+
 /*
  * Initialize test, setup screen and find out how much memory there is.
  */
@@ -92,6 +107,9 @@ void init(void)
 
 	/* Turn on cache */
 	set_cache(1);
+
+    //config 64 bit for large memory access
+    config_64bit();
 
 	/* Setup the display */
 	display_init();
@@ -133,7 +151,7 @@ void init(void)
 	v->printmode=PRINTMODE_ADDRESSES;
 	v->numpatn=0;
 	find_ticks();
-	cprint(LINE_SCROLL+1, 0, "press key 0-9 to run test 0-9,key a to run all test.");
+	//cprint(LINE_SCROLL+1, 0, "press key 0-9 to run test 0-9,key a to run all test.");
 }
 
 #define FLAT 0
@@ -168,9 +186,10 @@ void *mapping(unsigned long page_addr)
 	}
 	else {
 		unsigned long alias;
-		alias = page_addr & 0x7FFFF;
+		//alias = page_addr & 0x7FFFF;
+		alias = page_addr & 0xFFFFFFFF7FFFF;
 		alias += 0x80000;
-		result = (void *)(alias << 12);
+        result = (void *)(alias << 12);        
 	}
 	return result;
 }

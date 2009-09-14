@@ -35,9 +35,14 @@
 int returncode=0;
 struct termio sav;
 extern unsigned int memorysize;
+extern unsigned int memorysize_high;
 //#define LOW_TEST_ADR    CLIENTPC      /* Final adrs for test code */
-#define LOW_TEST_ADR    ((unsigned long)sbrk(0))     /* Final adrs for test code */
-#define HIGH_TEST_ADR   (0x80000000+memorysize)      /* Relocation base address */
+//#define LOW_TEST_ADR    ((unsigned long)sbrk(0))     /* Final adrs for test code */
+//#define HIGH_TEST_ADR   (0x80000000+memorysize)      /* Relocation base address */
+//#define HIGH_TEST_ADR   (PTR_PAD(0x80000000)+memorysize)      /* Relocation base address */
+#define LOW_TEST_ADR    (0x9000000083000000)//+(unsigned long)sbrk(0))     /* Final adrs for test code */
+#define HIGH_TEST_ADR   (0x9000000090000000+memorysize_high)      /* Relocation base address */
+
 #include "test.h"
 #define DEFTESTS 9
 jmp_buf         jmpb_mt;	
@@ -149,8 +154,9 @@ void find_ticks(void)
 static int find_ticks_for_test(unsigned long chunks, int test)
 {
 	int ticks;
+    
 	ticks = chunks * tseq[test].ticks;
-	if (tseq[test].pat == 5) {
+    if (tseq[test].pat == 5) {
 		/* Address test, walking ones */
 		ticks = 4;
 	}
@@ -164,7 +170,7 @@ static void compute_segments(int win)
 
 	/* Compute the window I am testing memory in */
 	wstart = windows[win].start;
-	wend = windows[win].end;
+	wend = windows[win].end;    
 	segs = 0;
 
 	/* Now reduce my window to the area of memory I want to test */
@@ -174,6 +180,7 @@ static void compute_segments(int win)
 	if (wend > v->plim_upper) {
 		wend = v->plim_upper;
 	}
+    
 	if (wstart >= wend) {
 		return;
 	}
@@ -228,7 +235,8 @@ static void compute_segments(int win)
 		cprint(LINE_SCROLL+(2*i+3), 0, 
 			"                                        "
 			"                                        ");
-#endif
+#endif   
+    
 		if ((start < end) && (start < wend) && (end > wstart)) {
 			v->map[segs].pbase_addr = start;
 			v->map[segs].start = mapping(start);
@@ -236,7 +244,7 @@ static void compute_segments(int win)
 #if 0
 			cprint(LINE_SCROLL+(2*i+1), 54, " segs: ");
 			hprint(LINE_SCROLL+(2*i+1), 61, segs);
-#endif
+#endif            
 			segs++;
 		}
 	}
@@ -252,6 +260,7 @@ static int newmt()
 	unsigned long chunks;
 	unsigned long lo, hi;
 	int cnt;
+
 
 #if NMOD_FRAMEBUFFER > 0 
 	video_cls();
@@ -281,7 +290,11 @@ static int newmt()
 		/* If first time, initialize test */
 		windows[0].start =LOW_TEST_ADR>>12;
 		windows[0].end= HIGH_TEST_ADR>>12;
+        
 		if(!firsttime){init();firsttime++;}
+        
+	    bail = 0;
+
 		/* Find the memory areas I am going to test */
 		compute_segments(window);
 
@@ -303,13 +316,6 @@ static int newmt()
 		cprint(LINE_RANGE, COL_MID+28, 
 				((ulong)&_start == LOW_TEST_ADR)?"          ":" Relocated");
 
-		while(!autotest) {
-			cnt=check_input();
-			if(cnt>='0' && cnt<='9'){v->testsel=(cnt-'0')%9;break;}
-			if(cnt=='a'){autotest=1;v->test=0;v->pass=0;}
-		}
-
-
 		/* Now setup the test parameters based on the current test number */
 		/* Figure out the next test to run */
 		if (v->testsel >= 0) {
@@ -326,13 +332,12 @@ static int newmt()
 			len = v->map[i].end - v->map[i].start;
 			chunks += (len + SPINSZ -1)/SPINSZ;
 		}
-
+        
 		test_ticks = find_ticks_for_test(chunks, v->test);
-		nticks = 0;
+        nticks = 0;
 		v->tptr = 0;
 		cprint(1, COL_MID+8, "                                         ");
 		switch(tseq[v->test].pat) {
-
 			/* Now do the testing according to the selected pattern */
 			case 0:	/* Moving inversions, all ones and zeros */
 				p1 = 0;
@@ -348,7 +353,7 @@ static int newmt()
 				break;
 
 			case 1: /* Moving inversions, 8 bit wide walking ones and zeros. */
-				p0 = 0x80;
+                p0 = 0x80;
 				for (i=0; i<8; i++, p0=p0>>1) {
 					p1 = p0 | (p0<<8) | (p0<<16) | (p0<<24);
 					p2 = ~p1;
@@ -364,24 +369,27 @@ static int newmt()
 				break;
 
 			case 2: /* Moving inversions, 32 bit shifting pattern, very long */
-				for (i=0, p1=1; p1; p1=p1<<1, i++) {
-					movinv32(tseq[v->test].iter,p1, 1, 0x80000000, 0, i);
-					BAILOUT
-						movinv32(tseq[v->test].iter,~p1, 0xfffffffe,
+                {
+                    u_int32_t pa = 0;
+                    for (i=0, pa=1; pa; pa=pa<<1, i++) {
+					    movinv32(tseq[v->test].iter,pa, 1, 0x80000000, 0, i);
+					    BAILOUT
+                        movinv32(tseq[v->test].iter,~pa, 0xfffffffe,
 								0x7fffffff, 1, i);
-					BAILOUT
-				}
+					    BAILOUT
+				    }
+                }
 				break;
 
 			case 3: /* Modulo X check, all ones and zeros */
-				p1=0;
+                p1=0;
 				for (i=0; i<MOD_SZ; i++) {
 					p2 = ~p1;
 					modtst(i, tseq[v->test].iter, p1, p2);
 					BAILOUT
 
-						/* Switch patterns */
-						p2 = p1;
+					/* Switch patterns */
+					p2 = p1;
 					p1 = ~p2;
 					modtst(i, tseq[v->test].iter, p1,p2);
 					BAILOUT
@@ -389,7 +397,7 @@ static int newmt()
 				break;
 
 			case 4: /* Modulo X check, 8 bit pattern */
-				p0 = 0x80;
+                p0 = 0x80;
 				for (j=0; j<8; j++, p0=p0>>1) {
 					p1 = p0 | (p0<<8) | (p0<<16) | (p0<<24);
 					for (i=0; i<MOD_SZ; i++) {
@@ -397,8 +405,8 @@ static int newmt()
 						modtst(i, tseq[v->test].iter, p1, p2);
 						BAILOUT
 
-							/* Switch patterns */
-							p2 = p1;
+						/* Switch patterns */
+						p2 = p1;
 						p1 = ~p2;
 						modtst(i, tseq[v->test].iter, p1, p2);
 						BAILOUT
@@ -406,33 +414,33 @@ static int newmt()
 				}
 				break;
 			case 5: /* Address test, walking ones */
-				addr_tst1();
+                addr_tst1();
 				BAILOUT;
 				break;
 
 			case 6: /* Address test, own address */
-				addr_tst2();
+                addr_tst2();
 				BAILOUT;
 				break;
 
 			case 7: /* Block move test */
-				block_move(tseq[v->test].iter);
+                block_move(tseq[v->test].iter);
 				BAILOUT;
 				break;
 			case 8: /* Bit fade test */
-				if (window == 0 ) {
+                if (window == 0 ) {
 					bit_fade();
 				}
 				BAILOUT;
 				break;
 			case 9: /* Random Data Sequence */
-				for (i=0; i < tseq[v->test].iter; i++) {
+                for (i=0; i < tseq[v->test].iter; i++) {
 					movinvr();
 					BAILOUT;
 				}
 				break;
 			case 10: /* Random Data */
-				for (i=0; i < tseq[v->test].iter; i++) {
+                for (i=0; i < tseq[v->test].iter; i++) {
 					p1 = rand();
 					p2 = ~p1;
 					movinv1(2,p1,p2);
@@ -472,7 +480,6 @@ bail_test:
 			cprint(0, COL_MID+8,
 				"                                         ");
 		}
-
 	}
 	return 0;
 }

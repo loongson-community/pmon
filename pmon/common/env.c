@@ -88,7 +88,7 @@ static struct stdenv {
     {"fpfmt", "both", "both double single none"},
     {"fpdis", "yes", "no yes"},
 #ifdef LOONGSON2F_7INCH
-	{"Version", "LM8089-1.4.5", 0},
+	{"Version", "LM8089-1.4.6", 0},
 #endif
 #ifdef LOONGSON2F_FULOONG
 	{"Version", "LM6004-1.3.4", 0},
@@ -374,6 +374,8 @@ envsize (int *ec, int *slen)
 	}
 }
 
+
+//modifed for loading and go linux kernel
 void
 envbuild (char **vsp, char *ssp)
 {
@@ -381,13 +383,14 @@ envbuild (char **vsp, char *ssp)
 
 	for(ep = envvar; ep < &envvar[NVAR]; ep++) {
 		if (ep->name) {
-			*vsp++ = ssp;
+			*(int *)vsp = (int)ssp;
+			(long)vsp +=sizeof(int);
 			ssp += sprintf (ssp, "%s=", ep->name) + 1;
 			if (ep->value) {
 				ssp += sprintf(ssp - 1, "%s", ep->value);
 			}
 		}
 	}
-	*vsp++ = (char *)0;
+	*((int*)vsp)++ = 0;
 }
 

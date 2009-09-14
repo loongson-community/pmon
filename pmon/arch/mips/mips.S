@@ -1,4 +1,4 @@
-/*	$Id: mips.S,v 1.1.1.1 2006/06/29 06:43:25 cpu Exp $ */
+/*	$Id: mips.S,v 1.1.1.1 2006/09/14 01:59:08 root Exp $ */
 
 /*
  * Copyright (c) 2000 Opsycon AB  (www.opsycon.se)
@@ -84,7 +84,7 @@ retvalue:
 	.globl	MipsExceptionEnd
 MipsException:
 	.set	noat
-	la	k0, exception_handler
+	PTR_LA	k0, exception_handler
 	jr	k0
 	nop
 	.set	at
@@ -97,14 +97,14 @@ LEAF(_go)
 	li	v0, SR_EXL		/* Precaution */
 	mtc0	v0, COP_0_STATUS_REG
 
-	la	k0, DBGREG
+	PTR_LA	k0, DBGREG
 
 	LOAD	t0, WATCHLO * RSIZE(k0)
 	LOAD	t1, WATCHHI * RSIZE(k0)
 	MTC0	t0, COP_0_WATCH_LO
 	mfc0	t0, COP_0_PRID
 	MTC0	t1, COP_0_WATCH_HI
-	srl	t1, t0, 8
+	PTR_SRL	t1, t0, 8
 	bne	t1, MIPS_RM7000, 1f
 	LOAD	t0, WATCH1 * RSIZE(k0)
 	
@@ -182,7 +182,7 @@ END(_go)
  */
 LEAF(_exit)
 	sw	v0, retvalue
-	la	a0, go_return_jump
+	PTR_LA	a0, go_return_jump
 	jal	longjmp
 	nop
 END(_exit)
@@ -194,7 +194,7 @@ END(_exit)
  */
 LEAF(exception_handler)
 	.set	noat
-	la	k0, start - 1024
+	PTR_LA	k0, start - 1024
 
 	STORE	AT, AST * RSIZE(k0)
 	STORE	v0, V0 * RSIZE(k0)
@@ -261,7 +261,7 @@ LEAF(exception_handler)
 	STORE	t1, WATCHHI * RSIZE(k0)
 	MTC0	zero, COP_0_WATCH_LO
 	MTC0	zero, COP_0_WATCH_HI
-	srl	t1, t0, 8
+	PTR_SRL	t1, t0, 8
 	bne	t1, MIPS_RM7000, 1f
 	STORE	t0, PRID * RSIZE(k0)
 
@@ -279,12 +279,12 @@ LEAF(exception_handler)
 	STORE	t1, ICR * RSIZE(k0)
 
 1:
-	addu	sp, k0, -64		/* Get a new stack */
+	PTR_ADDU	sp, k0, -64		/* Get a new stack */
 
 	and     t0, a0, ~(SR_COP_1_BIT | SR_EXL | SR_KSU_MASK | SR_INT_ENAB)
 	mtc0	t0, COP_0_STATUS_REG
 	NOP8
-	la	gp, _gp
+	PTR_LA	gp, _gp
 
 	jal	exception
 	move	a0, k0
@@ -441,15 +441,12 @@ LEAF(CPU_GetCOUNT)
 	nop
 END(CPU_GetCOUNT)
 
-/*
- * Set CP0 count register value
- */
 LEAF(CPU_SetCOUNT)
-    mtc0    a0, COP_0_COUNT
-    nop
-    j       ra
-END(CPU_SetCOUNT)
-
+	mtc0	a0, COP_0_COUNT
+	nop
+	j	ra
+	nop
+END(CPU_GetCOUNT)
 /*
  *  Modify SR value, arg 1 = set bits, arg 2 = clear bits.
  */
@@ -489,7 +486,7 @@ LEAF(loopforameg)
 	li	v0, 1000000
 1:
 	bnez	v0, 1b
-	addiu	v0, -1
+	PTR_ADDIU	v0, -1
 
 	j	ra
 	nop
@@ -524,10 +521,10 @@ END(_pmon_break)
  */
 LEAF(insb)
         beq     a2, zero, 2f
-        addu	a2, a1
+        PTR_ADDU	a2, a1
 1:
         lbu     v0, 0(a0)
-        addu	a1, 1
+        PTR_ADDU	a1, 1
         bne     a1, a2, 1b
         sb      v0, -1(a1)
 2:
@@ -537,11 +534,11 @@ END(insb)
 
 LEAF(insw)
         beq     a2, zero, 2f
-        addu	a2, a2
-        addu	a2, a1
+        PTR_ADDU	a2, a2
+        PTR_ADDU	a2, a1
 1:
         lhu     v0, 0(a0)
-        addu	a1, 2
+        PTR_ADDU	a1, 2
         bne     a1, a2, 1b
         sh      v0, -2(a1)
 2:
@@ -551,11 +548,11 @@ END(insw)
 
 LEAF(insl)
         beq     a2, zero, 2f
-        sll	a2, 2
-        addu	a2, a1
+        PTR_SLL	a2, 2
+        PTR_ADDU	a2, a1
 1:
         lw      v0, 0(a0)
-        addu	a1, 4
+        PTR_ADDU	a1, 4
         bne     a1, a2, 1b
         sw      v0, -4(a1)
 2:
@@ -565,10 +562,10 @@ END(insl)
 
 LEAF(outsb)
         beq     a2, zero, 2f
-        addu	a2, a1
+        PTR_ADDU	a2, a1
 1:
         lbu     v0, 0(a1)
-        addu	a1, 1
+        PTR_ADDU	a1, 1
         bne     a1, a2, 1b
         sb      v0, 0(a0)
 2:
@@ -578,14 +575,14 @@ END(outsb)
 
 LEAF(outsw)
         beq     a2, zero, 2f
-        addu	a2, a2
+        PTR_ADDU	a2, a2
         li      v0, 1
         and     v0, a1
         bne     v0, zero, 3f            # arghh, unaligned.
-        addu	a2, a1
+        PTR_ADDU	a2, a1
 1:
         lhu     v0, 0(a1)
-        addu	a1, 2
+        PTR_ADDU	a1, 2
         bne     a1, a2, 1b
         sh      v0, 0(a0)
 2:
@@ -594,7 +591,7 @@ LEAF(outsw)
 3:
         LWHI    v0, 0(a1)
         LWLO    v0, 3(a1)
-        addu	a1, 2
+        PTR_ADDU	a1, 2
         bne     a1, a2, 3b
         sh      v0, 0(a0)
 
@@ -604,14 +601,14 @@ END(outsw)
 
 LEAF(outsl)
         beq     a2, zero, 2f
-        sll	a2, 2
+        PTR_SLL	a2, 2
         li      v0, 3
         and     v0, a1
         bne     v0, zero, 3f            # arghh, unaligned.
-        addu	a2, a1
+        PTR_ADDU	a2, a1
 1:
         lw      v0, 0(a1)
-        addu	a1, 4
+        PTR_ADDU	a1, 4
         bne     a1, a2, 1b
         sw      v0, 0(a0)
 2:
@@ -620,7 +617,7 @@ LEAF(outsl)
 3:
         LWHI    v0, 0(a1)
         LWLO    v0, 3(a1)
-        addu	a1, 4
+        PTR_ADDU	a1, 4
         bne     a1, a2, 3b
         sw      v0, 0(a0)
 

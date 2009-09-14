@@ -161,7 +161,7 @@ int cmd_list (int ac, char *av[])
 		p++;
 	}
 
-	if (p[strlen(p) - 1] == '/')
+	if ((*p != '\0') && (p[strlen(p) - 1] == '/'))
 	{
 		p[strlen(p) - 1] = '\0';
 	}

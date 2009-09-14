@@ -359,6 +359,9 @@ long
 
 	bootseg = 0;
 
+	//09-09-09
+	void *v_addr = NULL;
+
 	if(getenv("debug"))
 		load_debug = 1;
 #ifdef __mips__
@@ -538,7 +541,9 @@ long
 					return (-2);
 				}
 #endif /* NGZIP */
-				if (bootread (fd, (void *)ph->p_vaddr, ph->p_filesz) != ph->p_filesz) {
+				v_addr =(void *) PTR_PAD(ph->p_vaddr);
+				//if (bootread (fd, (void *)ph->p_vaddr, ph->p_filesz) != ph->p_filesz) {
+                if (bootread (fd, v_addr, ph->p_filesz) != ph->p_filesz) {						
 					if (shtab) free (shtab);
 					free (phtab);
 #if NGZIP > 0
@@ -557,8 +562,9 @@ long
 				highest_load = ph->p_vaddr + ph->p_memsz;
 			}
 			if (ph->p_filesz < ph->p_memsz)
-				bootclear (fd, (void *)ph->p_vaddr + ph->p_filesz, ph->p_memsz - ph->p_filesz);
-			ph->p_type = PT_NULL; /* remove from consideration */
+				//bootclear (fd, (void *)ph->p_vaddr + ph->p_filesz, ph->p_memsz - ph->p_filesz);
+				bootclear (fd, v_addr+ ph->p_filesz, ph->p_memsz - ph->p_filesz);
+            ph->p_type = PT_NULL; /* remove from consideration */
 		}
 	}
 

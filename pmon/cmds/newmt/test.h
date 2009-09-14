@@ -125,7 +125,7 @@ void aprint(int y,int x,ulong page);
 void dprint(int y,int x,ulong val,int len, int right);
 void movinv1(int iter, ulong p1, ulong p2);
 void movinvr();
-void movinv32(int iter, ulong p1, ulong lb, ulong mb, int sval, int off);
+void movinv32(int iter, u_int32_t p1, u_int32_t lb, u_int32_t mb, int sval, int off);
 void modtst(int off, int iter, ulong p1, ulong p2);
 void error(ulong* adr, ulong good, ulong bad);
 void ad_err1(ulong *adr1, ulong *adr2, ulong good, ulong bad);

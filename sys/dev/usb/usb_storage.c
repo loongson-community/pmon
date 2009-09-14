@@ -1187,8 +1187,10 @@ int usb_storage_probe(struct usb_device *dev, unsigned int ifnum,struct us_data 
 int usb_stor_get_info(struct usb_device *dev,struct us_data *ss,block_dev_desc_t *dev_desc)
 {
 	unsigned char perq,modi;
-	static unsigned long cap[8] __attribute((section("data"), aligned(512)));
-	unsigned long *capacity,*blksz;
+	//static unsigned long cap[8] __attribute((section("data"), aligned(512)));
+	//unsigned long *capacity,*blksz;
+	static unsigned int cap[8] __attribute((section("data"), aligned(512)));
+	unsigned int *capacity,*blksz;	
 	ccb *pccb = usb_ccb;
 
 	/* for some reasons a couple of devices would not survive this reset */
@@ -1253,6 +1255,7 @@ int usb_stor_get_info(struct usb_device *dev,struct us_data *ss,block_dev_desc_t
 		cap[0]>>=16;
 #endif
 #ifdef LITTLEENDIAN
+	/*
 	cap[0] = ((unsigned long)(
 		(((unsigned long)(cap[0]) & (unsigned long)0x000000ffUL) << 24) |
 		(((unsigned long)(cap[0]) & (unsigned long)0x0000ff00UL) <<  8) |
@@ -1263,6 +1266,17 @@ int usb_stor_get_info(struct usb_device *dev,struct us_data *ss,block_dev_desc_t
 		(((unsigned long)(cap[1]) & (unsigned long)0x0000ff00UL) <<  8) |
 		(((unsigned long)(cap[1]) & (unsigned long)0x00ff0000UL) >>  8) |
 		(((unsigned long)(cap[1]) & (unsigned long)0xff000000UL) >> 24) ));
+    */
+	cap[0] = ((unsigned int)(
+		(((unsigned int)(cap[0]) & (unsigned int)0x000000ffUL) << 24) |
+		(((unsigned int)(cap[0]) & (unsigned int)0x0000ff00UL) <<  8) |
+		(((unsigned int)(cap[0]) & (unsigned int)0x00ff0000UL) >>  8) |
+		(((unsigned int)(cap[0]) & (unsigned int)0xff000000UL) >> 24) ));
+	cap[1] = ((unsigned int)(
+		(((unsigned int)(cap[1]) & (unsigned int)0x000000ffUL) << 24) |
+		(((unsigned int)(cap[1]) & (unsigned int)0x0000ff00UL) <<  8) |
+		(((unsigned int)(cap[1]) & (unsigned int)0x00ff0000UL) >>  8) |
+		(((unsigned int)(cap[1]) & (unsigned int)0xff000000UL) >> 24) ));
 #endif
 	/* this assumes bigendian! */
 	cap[0] += 1;

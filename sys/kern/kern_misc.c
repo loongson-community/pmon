@@ -309,28 +309,32 @@ int val;
    return (error);
 }
 
+
+#define TOP_OF_MEMORY_TO_GRAB 0x3000000
 void vminit __P((void));
 void
 vminit ()
 {
 extern unsigned int memorysize;
 
+   unsigned  int v_memorysize = TOP_OF_MEMORY_TO_GRAB;
+
 	if (!kmem) {
 		/* grab a chunk at the top of memory */
 		if (memorysize < VM_KMEM_SIZE * 2) {
 			panic ("not enough memory for network");
 		}
-		memorysize = (memorysize - VM_KMEM_SIZE) & ~PGOFSET;
+		v_memorysize = (v_memorysize - VM_KMEM_SIZE) & ~PGOFSET;
 #ifdef __mips__
 		if ((u_int32_t)&kmem < (u_int32_t)UNCACHED_MEMORY_ADDR) {
 			/* if linked for data in kseg0, keep kmem there too */
-			kmem = (u_char *) PHYS_TO_CACHED (memorysize);
+			kmem = (u_char *) PHYS_TO_CACHED (v_memorysize);
 		}
 		else {
-			kmem = (u_char *) PHYS_TO_UNCACHED (memorysize);
+			kmem = (u_char *) PHYS_TO_UNCACHED (v_memorysize);
 		}
 #else
-		kmem = (u_char *)memorysize;
+		kmem = (u_char *)v_memorysize;
 #endif
 	}
 }

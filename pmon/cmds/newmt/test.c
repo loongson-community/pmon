@@ -58,11 +58,12 @@ void addr_tst1()
 		p1 = ~p1;
 		end = v->map[segs-1].end;
 		for (i=0; i<1000; i++) {
-			mask = 4;
+			//mask = 4;
+			mask = sizeof(ulong);
 			do {
 				pt = (ulong *)((ulong)p | mask);
 				if (pt == p) {
-					mask = mask << 1;
+					mask = mask << 1;                    
 					continue;
 				}
 				if (pt >= end) {
@@ -102,7 +103,8 @@ void addr_tst1()
 
 				p1 = ~p1;
 				for (i=0; i<200; i++) {
-					mask = 4;
+					//mask = 4;
+					mask = sizeof(ulong);
 					do {
 						pt = (ulong *)
 						    ((ulong)p | mask);
@@ -434,13 +436,14 @@ ulong bad;
 	}
 }
 
-void movinv32(int iter, ulong p1, ulong lb, ulong hb, int sval, int off)
+void movinv32(int iter, u_int32_t  p1, u_int32_t lb, u_int32_t hb, int sval, int off)
 {
 	int i, j, k=0, n = 0, done;
-	volatile ulong *pe;
-	volatile ulong *start, *end;
-	ulong pat, p3;
-
+	volatile u_int32_t *pe;
+	volatile u_int32_t *start, *end;
+    volatile u_int32_t *pa;
+	u_int32_t pat, p3;
+    
 	p3 = sval << 31;
 
 	/* Display the current pattern */
@@ -448,17 +451,17 @@ void movinv32(int iter, ulong p1, ulong lb, ulong hb, int sval, int off)
 
 	/* Initialize memory with the initial pattern.  */
 	for (j=0; j<segs; j++) {
-		start = v->map[j].start;
-		end = v->map[j].end;
+		start =(volatile u_int32_t *)(v->map[j].start);
+		end =(volatile u_int32_t *)(v->map[j].end);
 		pe = start;
-		p = start;
+		pa = start;
 		done = 0;
 		k = off;
 		pat = p1;
 		do {
 			/* Check for overflow */
-			if (pe + SPINSZ > pe) {
-				pe += SPINSZ;
+			if (pe + SPINSZ*2 > pe) {
+				pe += SPINSZ*2;
 			} else {
 				pe = end;
 			}
@@ -466,12 +469,12 @@ void movinv32(int iter, ulong p1, ulong lb, ulong hb, int sval, int off)
 				pe = end;
 				done++;
 			}
-			if (p == pe ) {
+			if (pa == pe ) {
 				break;
 			}
 			/* Do a SPINSZ section of memory */
- 			while (p < pe) {
- 				*p = pat;
+ 			while (pa < pe) {
+ 				*pa = pat;
  				if (++k >= 32) {
  					pat = lb;
  					k = 0;
@@ -479,7 +482,7 @@ void movinv32(int iter, ulong p1, ulong lb, ulong hb, int sval, int off)
  					pat = pat << 1;
  					pat |= sval;
  				}
- 				p++;
+ 				pa++;
  			}
  
 			do_tick();
@@ -492,17 +495,17 @@ void movinv32(int iter, ulong p1, ulong lb, ulong hb, int sval, int off)
 	 * up and then from the top down.  */
 	for (i=0; i<iter; i++) {
 		for (j=0; j<segs; j++) {
-			start = v->map[j].start;
-			end = v->map[j].end;
+			start =(volatile u_int32_t *)(v->map[j].start);
+			end = (volatile u_int32_t *)(v->map[j].end);
 			pe = start;
-			p = start;
+			pa = start;
 			done = 0;
 			k = off;
 			pat = p1;
 			do {
 				/* Check for overflow */
-				if (pe + SPINSZ > pe) {
-					pe += SPINSZ;
+				if (pe + SPINSZ*2 > pe) {
+					pe += SPINSZ*2;
 				} else {
 					pe = end;
 				}
@@ -510,15 +513,16 @@ void movinv32(int iter, ulong p1, ulong lb, ulong hb, int sval, int off)
 					pe = end;
 					done++;
 				}
-				if (p == pe ) {
+				if (pa == pe ) {
 					break;
 				}
-{int bad;
-				while (p < pe) {
- 					if ((bad=*p) != pat) {
- 						error((ulong*)p, pat, bad);
+            {
+                u_int32_t bad;
+				while (pa < pe) {
+ 					if ((bad=*pa) != pat) {
+ 						error((ulong*)pa, pat, bad);
  					}
- 					*p = ~pat;
+ 					*pa = ~pat;
  					if (++k >= 32) {
  						pat = lb;
  						k = 0;
@@ -526,9 +530,9 @@ void movinv32(int iter, ulong p1, ulong lb, ulong hb, int sval, int off)
  						pat = pat << 1;
  						pat |= sval;
  					}
- 					p++;
+ 					pa++;
  				}
-}
+            }
 				do_tick();
 				BAILR
 			} while (!done);
@@ -546,15 +550,15 @@ void movinv32(int iter, ulong p1, ulong lb, ulong hb, int sval, int off)
 		}
 		k++;
 		for (j=segs-1; j>=0; j--) {
-			start = v->map[j].start;
-			end = v->map[j].end;
-			p = end -1;
+			start =(volatile u_int32_t *)(v->map[j].start);
+			end = (volatile u_int32_t *)(v->map[j].end);
+			pa = end -1;
 			pe = end -1;
 			done = 0;
 			do {
 				/* Check for underflow */
-				if (pe - SPINSZ < pe) {
-					pe -= SPINSZ;
+				if (pe - SPINSZ*2 < pe) {
+					pe -= SPINSZ*2;
 				} else {
 					pe = start;
 				}
@@ -562,15 +566,16 @@ void movinv32(int iter, ulong p1, ulong lb, ulong hb, int sval, int off)
 					pe = start;
 					done++;
 				}
-				if (p == pe ) {
+				if (pa == pe ) {
 					break;
 				}
-{int bad;
+            {
+                u_int32_t bad;
  				do {
- 					if ((bad=*p) != ~pat) {
- 						error((ulong*)p, ~pat, bad);
+ 					if ((bad=*pa) != ~pat) {
+                        error((ulong*)pa, ~pat, bad);
  					}
- 					*p = pat;
+ 					*pa = pat;
  					if (--k <= 0) {
  						pat = hb;
  						k = 32;
@@ -578,14 +583,15 @@ void movinv32(int iter, ulong p1, ulong lb, ulong hb, int sval, int off)
  						pat = pat >> 1;
  						pat |= p3;
  					}
- 				} while (p-- > pe);
-}
+ 				} while (pa-- > pe);
+            }
 				do_tick();
 				BAILR
 			} while (!done);
 		}
 	}
 }
+
 
 /*
  * Test all of memory using modulo X access pattern.
@@ -734,8 +740,8 @@ void block_move(int iter)
 		done = 0;
 		do {
 			/* Check for overflow */
-			if (pe + SPINSZ*4 > pe) {
-				pe += SPINSZ*4;
+			if (pe + SPINSZ*8 > pe) {
+				pe += SPINSZ*8;
 			} else {
 				pe = end;
 			}
@@ -748,7 +754,8 @@ void block_move(int iter)
 			}
 			len  = ((ulong)pe - (ulong)p) / 64;
 	
-			__asm__ volatile (
+#if (_MIPS_SZPTR == 32)
+            __asm__ volatile (
 				"move $2,%0\n\t"
 				"move $3,%2\n\t"
 				"move $4,%3\n\t"
@@ -781,7 +788,33 @@ void block_move(int iter)
 				: "0" (p), "r" (len), "r" (1)
 				: "$2","$3","$4","$5"
 			);
-
+#else
+            __asm__ volatile (
+				"move $2,%0\n\t"
+				"move $3,%2\n\t"
+				"move $4,%3\n\t"
+				"1:\n\t"
+				"move $5,$4\n\t"
+				"not $5\n\t"
+				"sd $4,0($2)\n\t"
+				"sd $4,8($2)\n\t"
+				"sd $5,16($2)\n\t"
+				"sd $5,24($2)\n\t"
+				"sd $4,32($2)\n\t"
+				"sd $4,40($2)\n\t"
+				"sd $5,48($2)\n\t"
+				"sd $5,56($2)\n\t"
+				"drol $4,1\n\t"
+				"daddiu $2,64\n\t"
+				"daddiu $3,-1\n\t"
+				"bnez $3,1b\n\t"
+				"nop;\n\t"
+				"move %0,$2\n\t"
+				: "=r" (p)
+				: "0" (p), "r" (len), "r" (1)
+				: "$2","$3","$4","$5"
+			);
+#endif
 			do_tick();
 			BAILR
 		} while (!done);
@@ -807,8 +840,8 @@ void block_move(int iter)
 		done = 0;
 		do {
 			/* Check for overflow */
-			if (pe + SPINSZ*4 > pe) {
-				pe += SPINSZ*4;
+			if (pe + SPINSZ*8 > pe) {
+				pe += SPINSZ*8;
 			} else {
 				pe = end;
 			}
@@ -820,9 +853,14 @@ void block_move(int iter)
 				break;
 			}
 			pp = p + ((pe - p) / 2);
-			len  = ((ulong)pe - (ulong)p) / 8;
-			for(i=0; i<iter; i++) {
+            #if (_MIPS_SZPTR == 32)
 
+			    len  = ((ulong)pe - (ulong)p) / 8;
+            #else
+			    len  = ((ulong)pe - (ulong)p) / 16;
+            #endif
+			for(i=0; i<iter; i++) {
+            #if (_MIPS_SZPTR == 32)
 			{int *src,*dst,j;
 				src=p;
 				dst=pp;
@@ -837,6 +875,22 @@ void block_move(int iter)
 					*dst++=*src++;
 				}
 			}
+            #else
+            {long *src,*dst,j;
+				src=p;
+				dst=pp;
+				for(j=0;j<len;j++)
+				{
+					*dst++=*src++;
+				}
+				dst=p;
+				src=pp;
+				for(j=0;j<i;j++)
+				{
+					*dst++=*src++;
+				}
+			}
+            #endif
 				do_tick();
 				BAILR
 			}
@@ -864,8 +918,8 @@ void block_move(int iter)
 		done = 0;
 		do {
 			/* Check for overflow */
-			if (pe + SPINSZ*4 > pe) {
-				pe += SPINSZ*4;
+			if (pe + SPINSZ*8 > pe) {
+				pe += SPINSZ*8;
 			} else {
 				pe = end;
 			}
@@ -877,7 +931,7 @@ void block_move(int iter)
 				break;
 			}
 
-
+            #if (_MIPS_SZPTR == 32)
 			{
 			int *x=p;
 			while(x<pe)
@@ -889,8 +943,20 @@ void block_move(int iter)
 			x=x+2;
 			}
 			}
-			
-			do_tick();
+            #else
+			{
+			long *x=p;
+			while(x<pe)
+			{
+			if(x[0]!=x[1])
+			{
+			 mv_error(x+1,x[0],x[1]);
+			}
+			x=x+2;
+			}
+			}
+            #endif
+            do_tick();
 			BAILR
 		} while (!done);
 	}

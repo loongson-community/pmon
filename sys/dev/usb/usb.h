@@ -238,7 +238,8 @@ typedef struct block_dev_desc {
 	unsigned char	lba48;		/* device can use 48bit addr (ATA/ATAPI v7) */
 #endif
 	unsigned int	lba;	  	/* number of blocks */
-	unsigned long	blksz;		/* block size */
+	//unsigned long	blksz;		/* block size */
+	unsigned int	blksz;		/* block size */
 	unsigned char	vendor [40+1]; 	/* IDE model, SCSI Vendor */
 	unsigned char	product[20+1];	/* IDE Serial no, SCSI product */
 	unsigned char	revision[8+1];	/* firmware revision */

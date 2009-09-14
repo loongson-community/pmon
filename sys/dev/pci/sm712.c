@@ -149,12 +149,21 @@ void sm712_2d_fill_rect(unsigned long dst_base, unsigned long dst_x, unsigned lo
 	smi_2dregw( REG_2D_DE_CTRL, (1 << 31) | (0 << 27) | (0 << 21) 
 					| (0x1 << 16) | (1 << 15) | (0x0c << 0) );
 #if	1
+/*
 	if( (*((volatile unsigned char *)(0xbfd00000 | 0x3cc))) & 0x01 ){
 		while( (*((volatile unsigned char *)(0xbfd00000 | 0x3da))) & 0x08 );
 		while( !((*((volatile unsigned char *)(0xbfd00000 | 0x3da))) & 0x08) );
 	}else{
 		while( (*((volatile unsigned char *)(0xbfd00000 | 0x3ba))) & 0x08 );
 		while( !((*((volatile unsigned char *)(0xbfd00000 | 0x3ba))) & 0x08) );
+	}
+*/
+	if( (*((volatile unsigned char *)(PTR_PAD(0xbfd00000) | 0x3cc))) & 0x01 ){
+		while( (*((volatile unsigned char *)(PTR_PAD(0xbfd00000) | 0x3da))) & 0x08 );
+		while( !((*((volatile unsigned char *)(PTR_PAD(0xbfd00000) | 0x3da))) & 0x08) );
+	}else{
+		while( (*((volatile unsigned char *)(PTR_PAD(0xbfd00000) | 0x3ba))) & 0x08 );
+		while( !((*((volatile unsigned char *)(PTR_PAD(0xbfd00000) | 0x3ba))) & 0x08) );
 	}
 #else
 	delay(100);

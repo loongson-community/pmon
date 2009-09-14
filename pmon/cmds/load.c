@@ -122,14 +122,22 @@ nload (argc, argv)
 				flags |= IFLAG; break;
 #ifdef HAVE_FLASH
 			case 'f':
-				if (!get_rsa ((u_int32_t *)&flashaddr, optarg)) {
+				if (!get_rsa ((unsigned long *)&flashaddr, optarg)) {
 					err++;
 				}
+                //08-29 for 64 bits compile
+                flashaddr =(UNCACHED_TO_PHYS(flashaddr));
+                flashaddr =(PHYS_TO_UNCACHED(flashaddr));
+                
 				flags |= FFLAG; break;
 #endif
 #if notyet
 			case 'u':
 				flashaddr = (void *)BOOTROMBASE;
+				//for 64bit compile
+                flashaddr =(UNCACHED_TO_PHYS(flashaddr));
+                flashaddr =(PHYS_TO_UNCACHED(flashaddr));
+                
 				flags |= UFLAG;
 				flags |= FFLAG; break;
 #endif
@@ -184,7 +192,7 @@ nload (argc, argv)
 	}
 
 #ifdef HAVE_FLASH
-	if (flags & FFLAG) {
+	if (flags & FFLAG) {        
 		tgt_flashinfo (flashaddr, &flashsize);
 		if (flashsize == 0) {
 			printf ("No FLASH at given address\n");

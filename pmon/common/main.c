@@ -211,7 +211,7 @@ static int load_menu_list()
     int retid;
 
     dly = 200;
-    printf("booting: ");
+    //printf("booting: ");
     /*ioctl (STDIN, CBREAK, &sav);
     lastt = 0;
     do {
@@ -343,6 +343,7 @@ static int load_menu_list()
 #define ESC_KEY     4
 #define U_KEY   5
 #define B_KEY    6
+#define M_KEY   7
 extern int vga_available;
 int get_boot_selection(void)
 {
@@ -381,6 +382,11 @@ int get_boot_selection(void)
             flag = B_KEY;
             break;
         }
+        if(cnt >0 && c == 0x6d){
+            flag = M_KEY;
+            break;
+        }
+        
         if (cnt > 0 && c == 0x1b){ 
             ioctl (STDIN, FIONREAD, &cnt);
             if (cnt > 0 && getchar() == 0x5b){
@@ -792,7 +798,6 @@ dbginit (char *adr)
     printf("Press <TAB> key to recover system .\n");
     printf("Press <ENTER> key to boot selection .\n");*/
 	vga_available = 0;
-	return ;
     {
         unsigned char *envstr;
         if((envstr = getenv("ShowBootMenu"))&&!strcmp("yes", envstr))
@@ -869,6 +874,15 @@ dbginit (char *adr)
             do_cmd("main");
             break;
 #endif
+
+#if defined(LOONGSON2F_7INCH)
+    case M_KEY:
+            printf("before do_cmd(newmt).\n");
+            vga_available = 1;
+            do_cmd("newmt");
+            break;
+#endif
+
         case DEL_KEY:
             vga_available = 1;
         case ESC_KEY:
@@ -981,7 +995,7 @@ no_cmd(ac, av)
  *  argument registers in preparation for 'launch'.
  *  arg1 = argc, arg2 = argv, arg3 = envp, arg4 = callvector
  */
-
+//modifed for loading and go linux kernel
 void
 initstack (ac, av, addenv)
     int ac;
@@ -1004,33 +1018,35 @@ initstack (ac, av, addenv)
     for (i = 0; i < ac; i++) {
         stringlen += strlen(av[i]) + 1;
     }
+
     stringlen = (stringlen + 3) & ~3;   /* Round to words */
-    vectorlen = (ac + ec + 2) * sizeof (char *);
+    vectorlen = (ac + ec + 2) * sizeof(int);
     stacklen = ((vectorlen + stringlen) + 7) & ~7;
 
     /*
      *  Allocate stack and us md code to set args.
      */
     nsp = md_adjstack(NULL, 0) - stacklen;
-    md_setargs(NULL, ac, nsp, nsp + (ac + 1) * sizeof(char *), (int)callvec);
+    md_setargs(NULL, ac, nsp, nsp + (ac + 1) * sizeof(int),callvec);
 
     /* put $sp below vectors, leaving 32 byte argsave */
     md_adjstack(NULL, nsp - 32);
-    memset((void *)((int)nsp - 32), 0, 32);
+    memset((void *)((long)nsp - 32), 0, 32);
 
     /*
      * Build argument vector and strings on stack.
      * Vectors start at nsp; strings after vectors.
      */
-    vsp = (char **)(int)nsp;
-    ssp = (char *)((int)nsp + vectorlen);
+    vsp = (char **)(long)nsp;
+    ssp = (char *)((long)nsp + vectorlen);
 
     for (i = 0; i < ac; i++) {
-        *vsp++ = ssp;
+        *(int *)vsp = ssp;  //*vsp++ = ssp;
+		(long)vsp +=4;
         strcpy (ssp, av[i]);
         ssp += strlen(av[i]) + 1;
     }
-    *vsp++ = (char *)0;
+    *((int*)vsp)++ = 0;
 
     /* build environment vector on stack */
     if (ec) {

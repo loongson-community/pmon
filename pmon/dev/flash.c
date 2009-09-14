@@ -169,9 +169,9 @@ struct fl_map *fl_find_map(void *base)
 {
 	struct fl_map *map;
 	for (map = tgt_flashmap(); map->fl_map_size != 0; map++) {
-		if (map->fl_map_base > (u_int32_t) base ||
+		if (map->fl_map_base > (unsigned long) base ||
 		    (map->fl_map_base + map->fl_map_size - 1) <
-		    (u_int32_t) base) {
+		    (unsigned long) base) {
 			continue;	/* Not this one */
 		} else {
 			return (map);

@@ -150,9 +150,10 @@ md_dumpexc(struct trapframe *tf)
 void
 md_setpc(struct trapframe *tf, register_t pc)
 {
+	pc = PTR_PAD(pc);
 	if (tf == NULL)
 		tf = cpuinfotab[whatcpu];
-	tf->pc = (int)pc;
+	tf->pc = pc;
 }
 
 /*

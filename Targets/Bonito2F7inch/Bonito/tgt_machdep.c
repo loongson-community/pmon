@@ -330,13 +330,10 @@ tgt_devconfig()
 		}
 	}
 	
-	vga_available = 0; /*Suppress the output*/
+	//vga_available = 0; /*Suppress the output*/
 
-	printf("begin config\n");
 	config_init();
-	printf("after init \n");
 	configure();
-	printf("after config\n");
     
 #if NMOD_VGACON >0
 #if !(defined(VGA_NOTEBOOK_V1) || defined(VGA_NOTEBOOK_V2)) && NCS5536 > 0
@@ -349,7 +346,7 @@ tgt_devconfig()
 		if(!getenv("nokbd")) kbd_available = 1;
 	}
 #endif
-	kbd_available = 0;
+	//kbd_available = 0;
 	if (vga_ok > 1)
 		vga_available = 1;
 }
@@ -483,6 +480,7 @@ tgt_reboot()
 void
 tgt_poweroff()
 {
+#if 0
 	unsigned long val;
 	unsigned long tag;
 	unsigned long base;
@@ -519,6 +517,44 @@ tgt_poweroff()
 	*(volatile unsigned long *)(base + 0x00) = val;
 #endif
 	while(1);
+#endif
+	unsigned int val;
+	unsigned int tag;
+	unsigned int base;
+
+#ifdef	LOONGSON2F_7INCH
+#if 0
+	*((volatile unsigned char *)(0xbfd00000 | HIGH_PORT)) = 0xfc;
+	*((volatile unsigned char *)(0xbfd00000 | LOW_PORT)) = 0x29;
+	val = *((volatile unsigned char *)(0xbfd00000 | DATA_PORT));
+	*((volatile unsigned char *)(0xbfd00000 | DATA_PORT)) = val & ~(1 << 1);
+	for(i = 0; i < 0x10000; i++)
+		for(j = 0; j < 0x10000; i++);
+	*((volatile unsigned char *)(0xbfd00000 | DATA_PORT)) = val | (1 << 1);
+#else
+	/* cpu-gpio0 output low */
+	*((volatile unsigned int *)(PTR_PAD(0xbfe0011c))) &= ~0x00000001;
+	/* cpu-gpio0 as output */
+	*((volatile unsigned int *)(PTR_PAD(0xbfe00120))) &= ~0x00000001;
+#endif
+#else
+	tag = _pci_make_tag(0, 14, 0);
+	base = _pci_conf_read(tag, 0x14);
+	base |= mips_io_port_base;
+	base &= ~3;
+
+	/* make cs5536 gpio13 output enable */
+	val = *(volatile unsigned int *)(base + 0x04);
+	val = ( val & ~(1 << (16 + 13)) ) | (1 << 13) ;
+	*(volatile unsigned int *)(base + 0x04) = val;
+	
+	/* make cs5536 gpio13 output low level voltage. */
+	val = *(volatile unsigned int *)(base + 0x00);
+	val = (val | (1 << (16 + 13))) & ~(1 << 13);
+	*(volatile unsigned int *)(base + 0x00) = val;
+#endif
+	while(1);
+
 }
 
 /*
