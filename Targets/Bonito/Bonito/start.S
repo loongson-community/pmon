@@ -1021,6 +1021,9 @@ do_caches:
         bne     a0,a1,1f
         nop
 #endif
+	TTYDBG("godson2 TLB clear");
+	bal CPU_TLBClear
+	nop
 	TTYDBG("godson2 caches found\r\n")
         bal     godson2_cache_init
         nop
@@ -1297,8 +1300,11 @@ stuck:
 LEAF(CPU_TLBClear)
 	li	a3, 0			# First TLB index.
 
-	li	a2, PG_SIZE_4K
+//	li	a2, PG_SIZE_4K
+	MTC0  $0,$6     #clear wired register
+	li     a2,PG_SIZE_16K
 	MTC0   a2, COP_0_TLB_PG_MASK   # Whatever...
+	lui    a0,0x8000
 
 1:
 	MTC0   zero, COP_0_TLB_HI	# Clear entry high.

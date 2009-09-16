@@ -27,6 +27,7 @@ help:
 	@echo use make tgt=rom MYCC="'"-g3 -DMYDBG='"printf(\"debug:%s,%d\\n\",__FILE__,__LINE__);"'"'" to support MYDBG macro. 
 else
 all: ${tgt}
+	cp ../lib/libgcc.a ../Targets/${TARGET}/compile/${TARGETEL}
 sim: clean pmon.bin.c
 	gcc -o zloader  -DSIM zloader.c
 rom: clean ${START} zloader.o 
