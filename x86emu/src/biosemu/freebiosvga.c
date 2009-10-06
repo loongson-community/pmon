@@ -52,7 +52,7 @@ int vga_bios_init(void)
 		}
 
 		pci_read_config_dword(pdev,0x30,(int*)&romaddress);
-		romaddress &= (~1);
+		romaddress &= (~0xf);
 		/* enable rom address decode */
 		pci_write_config_dword(pdev,0x30,romaddress|1);
 
