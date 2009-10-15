@@ -121,6 +121,13 @@ static u32 x86emu_parity_tab[8] =
 #define PARITY(x)   (((x86emu_parity_tab[(x) / 32] >> ((x) % 32)) & 1) == 0)
 #define XOR2(x) 	(((x) ^ ((x)>>1)) & 0x1)
 
+
+int abs(int x)
+{
+	return	((x < 0) ? -x :x);		
+}
+
+
 /*----------------------------- Implementation ----------------------------*/
 
 #ifndef	__HAVE_INLINE_ASSEMBLER__

@@ -96,8 +96,9 @@ static DiskFile* GetDiskFile(const char* fname, char* filename)
 
 		if (devname == NULL || *devname == '\0')
 		{
-			printf("device format error11111111111[%s]\n", devname);
-			return NULL;
+			printf("path is not complete, haven't selected the device or file!\n");
+			errno = EINVAL;			
+            return NULL;
 		}
 
 		p = strchr(devname, '/');

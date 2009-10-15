@@ -220,7 +220,7 @@ file pmon/common/debugger.c		(mod_debugger | cmd_l)	needs-flag
 file pmon/common/demo.c			mod_demo
 file pmon/common/exception.c
 file pmon/common/main.c
-file pmon/common/interface.c    mod_framebuffer #Recovery interface
+file pmon/common/interface.c    (mod_framebuffer & mod_recovery) #Recovery interface
 file pmon/common/more.c			cmd_more	needs-flag
 file pmon/common/rsa.c
 file pmon/common/sbrk.c
@@ -348,6 +348,9 @@ file sys/dev/usb/cmd_usb.c		  mod_usb & mod_usb_storage
 
 file sys/dev/usb/usb_uhci.c		  mod_usb_uhci needs-flag
 file fb/sis/sis_main.c mod_sisfb needs-flag
+
+
+file sys/dev/pci/sm502.c          mod_smi502 needs-flag
 
 #add by yuli
 #Sata 

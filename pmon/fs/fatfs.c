@@ -121,8 +121,9 @@ fat_open(int fd, const char *path, int flags, int mode)
 
 	/* There has to be at least one more component after the devicename */
 	if (strchr(opath, '/') == NULL) {
-		errno = ENOENT;
-		return (-1);
+		printf("path is not complete, haven't selected the device or file!\n");
+		errno = EINVAL;
+        return (-1);
 	}
 
 	/* Dig out the device name */
@@ -172,7 +173,9 @@ fat_open(int fd, const char *path, int flags, int mode)
 		errno = EINVAL;
 		if(res == 2)
 			errno = EISDIR;
-		_file[fd].valid = 0;
+		if(res == 0)
+			errno = ENOENT;
+        _file[fd].valid = 0;
 		close(fd);
 		return (-1);
 	}

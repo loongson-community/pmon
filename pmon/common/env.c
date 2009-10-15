@@ -88,19 +88,22 @@ static struct stdenv {
     {"fpfmt", "both", "both double single none"},
     {"fpdis", "yes", "no yes"},
 #ifdef LOONGSON2F_7INCH
-	{"Version", "LM8089-1.4.6", 0},
+	{"Version", "LM8089-1.4.7", 0},
 #endif
 #ifdef LOONGSON2F_FULOONG
-	{"Version", "LM6004-1.3.4", 0},
+	{"Version", "LM6004-1.3.5", 0},
 #endif
 #ifdef LOONGSON2F_ALLINONE
-	{"Version", "LM9001-1.3.7", 0},
+	{"Version", "LM9001-1.3.8", 0},
 #endif
 #ifdef LOONGSON2F_HPC
-	{"Version", "LM-HPC-1.0.1", 0},
+	{"Version", "LM-HPC-1.0.2", 0},
 #endif
 #ifdef LOONGSON2F_NAS
-        {"Version", "LM-NAS-1.0.2", 0},
+        {"Version", "LM-NAS-1.0.3", 0},
+#endif
+#ifdef LOONGSON2F_3GNB
+	{"Version", "LM****-1.0.0", 0},
 #endif
 {"BuildTime",  __DATE__ " " __TIME__ , 0},
 #if defined(TGT_DEFENV)

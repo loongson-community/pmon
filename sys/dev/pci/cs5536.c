@@ -494,12 +494,20 @@ void cs5536_init(void)
 
 	cs5536_vsm_init();
 
+    tgt_display("VSM",0);
+
 	cs5536_i8259_init();
+
+    tgt_display("8259",0);
 	
 	cs5536_ide_init();
 
+    tgt_display("IDE",0);
+
 	cs5536_ohci_init();
-	
+    
+    tgt_display("OHCI",0);
+
 	//cs5536_gpio_init();
 	//printf("cs5536 : gpio init ok\n");
 	

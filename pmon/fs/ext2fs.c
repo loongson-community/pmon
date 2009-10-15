@@ -13,6 +13,7 @@
 #include <signal.h>
 #include <setjmp.h>
 #include <ctype.h>
+#include <errno.h>
 
 #ifdef _KERNEL
 #undef _KERNEL
@@ -53,6 +54,8 @@ int ext2_close(int);
 int ext2_read(int, void *, size_t);
 int ext2_write(int, const void *, size_t);
 off_t ext2_lseek(int, off_t, int);
+
+extern int errno;
 
 __u32 RAW_BLOCK_SIZE = 1024;
 __u32 EXT2_INODE_SIZE= 128;
@@ -230,7 +233,9 @@ static int ext2_load_linux(int fd, const unsigned char *path)
 	memset(&File_dirent, 0, sizeof(ext2_dirent));
 	if ((inode = find_inode(fd, EXT2_ROOT_INO, p, &File_dirent)) == 0)
 	{
-		return -1;
+		printf("file is not set or not exist!\n");
+		errno = ENOENT;
+        return -1;
 	}
 
 	if (File_dirent.file_type == EXT2_FT_DIR)

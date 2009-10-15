@@ -55,6 +55,7 @@ select		ext2
 select      fat
 #select		mod_x86emu_int10
 select      mod_framebuffer
+select     mod_recovery
 #select		mod_x86emu		# X86 emulation for VGA
 #vga monitor
 select		mod_vgacon

@@ -1548,7 +1548,9 @@ rtl8169_init_board(struct rtl8169_private *tp, struct pci_attach_args *pa)
 	int rc = 0, i, acpi_idle_state = 0, pm_cap;
 	pci_chipset_tag_t pc = pa->pa_pc;
 	int tmp;
-       int iobase, iosize;
+       //int iobase, iosize;
+	bus_addr_t iobase;
+	bus_size_t iosize;
     u32 status;
 
 	/* save power state before pci_enable_device overwrites it */
@@ -1585,7 +1587,7 @@ rtl8169_init_board(struct rtl8169_private *tp, struct pci_attach_args *pa)
 		printf(": can't map i/o space\n");
 		return -1;
 	}
-	printf("8169 iobase =%8x\n", tp->sc_sh);	
+	printf("rtl8169_init_borad 8169 tp->sc_sh =%llx iobase =%llx iosize=%llx pa->pa_iot=%llx pa->pa_iot->bus_base=%llx\n", tp->sc_sh,iobase,iosize,pa->pa_iot,pa->pa_iot->bus_base);	
 	tp->sc_st = pa->pa_iot;
 	tp->sc_pc = pc;
 	tp->cp_cmd = PCIMulRW | RxChkSum;

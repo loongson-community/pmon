@@ -260,7 +260,7 @@ tgt_devconfig()
 #if NMOD_X86EMU_INT10 > 0 || NMOD_X86EMU > 0
 	SBD_DISPLAY("VGAI", 0);
 	SBD_DISPLAY("XINT", 0);
-	rc = vga_bios_init();
+	//rc = vga_bios_init();
 
 #elif (NMOD_X86EMU_INT10 == 0)
 	SBD_DISPLAY("VGAI", 0);
@@ -399,7 +399,8 @@ tgt_reboot()
 void
 tgt_poweroff(void)
 {
-	unsigned long val;
+#if 0
+    unsigned long val;
 	unsigned long tag;
 	unsigned long base;
 
@@ -419,6 +420,30 @@ tgt_poweroff(void)
 	*(volatile unsigned long *)(base + 0x00) = val;
 
 	while(1);
+#endif
+#if 1
+    unsigned int val;
+	unsigned int tag;
+	unsigned long base;
+
+	tag = _pci_make_tag(0, 14, 0);
+	base = _pci_conf_read(tag, 0x14);
+	base |= PTR_PAD(0xbfd00000);
+	base &= ~3;
+
+	/* make cs5536 gpio13 output enable */
+	val = *(volatile unsigned int *)(base + 0x04);
+	val = ( val & ~(1 << (16 + 13)) ) | (1 << 13) ;
+	*(volatile unsigned int *)(base + 0x04) = val;
+	
+	/* make cs5536 gpio13 output low level voltage. */
+	val = *(volatile unsigned int *)(base + 0x00);
+	val = (val | (1 << (16 + 13))) & ~(1 << 13);
+	*(volatile unsigned int *)(base + 0x00) = val;
+
+	while(1);
+#endif
+
 }
 
 /*
@@ -832,7 +857,7 @@ tgt_mapenv(int (*func) __P((char *, char *)))
 
 #ifdef NVRAM_IN_FLASH
 	nvram = (char *)(tgt_flashmap()->fl_map_base + FLASH_OFFS);
-	printf("nvram %x\n", nvram);
+	printf("tgt_mapenv nvram %llx\n", nvram);
 	if(fl_devident((void *)(tgt_flashmap()->fl_map_base), NULL) == 0 ||
            cksum(nvram + NVRAM_OFFS, NVRAM_SIZE, 0) != 0) {
 #else
