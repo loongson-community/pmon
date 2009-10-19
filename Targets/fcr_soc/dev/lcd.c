@@ -159,7 +159,9 @@ static void setdisplaymode(unsigned long arg)
 	prom_printf("LCD_CLK=0x%x\n",  LCD_CLK_GET32(0));
 #endif
 
-
+	if(CPU_CLK==200000000)
+	LCD_CLK_SET32(0, ((((250000000/1000000/xwinmode[arg].pixclock)-1)<<9)+1)|(LCD_CLK_GET32(0)&(~(0x7f<<9))));
+	else 
 	LCD_CLK_SET32(0, ((((CPU_CLK/1000000/xwinmode[arg].pixclock)-1)<<9)+1)|(LCD_CLK_GET32(0)&(~(0x7f<<9))));
 	//LCD_CLK_SET32(0, ((3<<9)+1)|(LCD_CLK_GET32(0)&(~(0x7f<<9))));
 	LCD_SET32(REG_LCD_CTRL, (LCD_GET32(REG_LCD_CTRL) & 0xFFFE));//hwm  ven=0

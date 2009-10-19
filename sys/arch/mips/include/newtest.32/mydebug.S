@@ -703,7 +703,7 @@ c_loop:
 
 1:
 	  lbu t3,(t7)
-	  bne t3,v0,c_disp
+	  bne t3,t5,c_disp
 	  nop
 	  b c_next
 	  nop

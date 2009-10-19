@@ -221,7 +221,7 @@ int vga_bios_init(void)
 	    if (PCI_VENDOR(pdev->pa.pa_id) == 0x1002 && pdev->pa.pa_device == 0x4750)
 			MEM_WW(pInt,0xc015e,0x4750);
 	    romaddress  =_pci_conf_read(pdev->pa.pa_tag,0x30);
-	    romaddress &= (~1);
+	    romaddress &= (~0xf);
 	    /* enable rom address decode */
 	    _pci_conf_write(pdev->pa.pa_tag,0x30,romaddress|1);
 #if defined(LONGMENG)||defined(BONITOEL_CPCI)//||defined(NC2E)
