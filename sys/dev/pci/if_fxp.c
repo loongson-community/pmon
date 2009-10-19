@@ -753,27 +753,39 @@ fxp_attach_common(sc, enaddr)
 	 *  Due to MIPS processor cache behaviour we change to uncached
 	 *  addresses to access control structure areas.
 	 */
+#ifdef LS3_HT
+	sc->cbl_base = (void *)PHYS_TO_CACHED(vtophys(sc->cbl_base));
+#else
 	pci_sync_cache(sc->sc_pc, (vm_offset_t)sc->cbl_base,
 				sizeof(struct fxp_cb_tx) * FXP_NTXCB, SYNC_W);
 	sc->cbl_base = (void *)PHYS_TO_UNCACHED(vtophys(sc->cbl_base));
+#endif
 #endif /*__mips__*/
 	sc->fxp_stats = malloc(sizeof(struct fxp_stats), M_DEVBUF, M_NOWAIT);
 	if (sc->fxp_stats == NULL)
 		goto fail;
 	bzero(sc->fxp_stats, sizeof(struct fxp_stats));
 #if defined(__mips__)
+#ifdef LS3_HT
+	sc->fxp_stats = (void *)PHYS_TO_CACHED(vtophys(sc->fxp_stats));
+#else
 	pci_sync_cache(sc->sc_pc, (vm_offset_t)sc->fxp_stats,
 				sizeof(struct fxp_stats), SYNC_W);
 	sc->fxp_stats = (void *)PHYS_TO_UNCACHED(vtophys(sc->fxp_stats));
+#endif
 #endif /*__mips__*/
 	
 	sc->mcsp = malloc(sizeof(struct fxp_cb_mcs), M_DEVBUF, M_NOWAIT);
 	if (sc->mcsp == NULL)
 		goto fail;
 #if defined(__mips__)
+#ifdef LS3_HT
+	sc->mcsp = (void *)PHYS_TO_CACHED(vtophys(sc->mcsp));
+#else
 	pci_sync_cache(sc->sc_pc, (vm_offset_t)sc->mcsp,
 				sizeof(struct fxp_cb_mcs), SYNC_W);
 	sc->mcsp = (void *)PHYS_TO_UNCACHED(vtophys(sc->mcsp));
+#endif
 #endif /*__mips__*/
 
 	/*
@@ -1152,8 +1164,11 @@ tbdinit:
 				    htole32(vtophys(mtod(m, vm_offset_t)));
 				txp->tbd[segment].tb_size = htole32(m->m_len);
 #if defined(__mips__)
+#ifdef LS3_HT
+#else
 				pci_sync_cache(sc->sc_pc, mtod(m, vm_offset_t),
 						m->m_len, SYNC_W);
+#endif
 #endif
 				segment++;
 			}
@@ -1323,7 +1338,11 @@ rcvloop:
 			 * cache coherency side effects.
 			 */
 			//printf("rfap=%x\n",rfap);
+#ifdef LS3_HT
+			if (*(u_int16_t *)(PHYS_TO_CACHED(vtophys(rfap)) +
+#else
 			if (*(u_int16_t *)(PHYS_TO_UNCACHED(vtophys(rfap)) +
+#endif
 			    offsetof(struct fxp_rfa, rfa_status)) &
 			    htole16(FXP_RFA_STATUS_C)) {
 #else 
@@ -1368,16 +1387,28 @@ rcvloop:
 #ifdef GODSONEV1
 					{
 						int i;
+#ifdef LS3_HT
+					        if ((*(unsigned char* volatile)PHYS_TO_CACHED(vtophys(m->m_data+0)))!=0xff) {
+#else
 					        if ((*(unsigned char* volatile)PHYS_TO_UNCACHED(vtophys(m->m_data+0)))!=0xff) {
+#endif
 							for(i=0;i<total_len;i+=32){
+#ifdef LS3_HT
+							    m->m_data[i]=*(unsigned char*)PHYS_TO_CACHED(vtophys(m->m_data+i));
+#else
 								m->m_data[i]=*(unsigned char*)PHYS_TO_UNCACHED(vtophys(m->m_data+i));
+#endif
 #ifdef BEBUG_DMA_FLUSH_CACHE
 								printf("%x: %2x\n", (unsigned char*)PHYS_TO_UNCACHED(vtophys(m->m_data+i)),*(unsigned char*)PHYS_TO_UNCACHED(vtophys(m->m_data+i)));
 								printf("%x: %2x\t%x,(%2x)\n", (unsigned int)&m->m_data[i],(unsigned int)(unsigned char)m->m_data[80], (unsigned char*)PHYS_TO_UNCACHED(vtophys(m->m_data+i)),*(unsigned char*)PHYS_TO_UNCACHED(vtophys(m->m_data+i)));
 #endif
 							}
 						}
+#ifdef LS3_HT
+					    m->m_data[total_len-1]=*(unsigned char*)PHYS_TO_CACHED(vtophys(m->m_data+total_len-1));
+#else
 						m->m_data[total_len-1]=*(unsigned char*)PHYS_TO_UNCACHED(vtophys(m->m_data+total_len-1));
+#endif
 							
 					}
 
@@ -1621,6 +1652,8 @@ fxp_init(xsc)
 	struct fxp_cb_tx *txp;
 	int i, s, prm;
 
+	int *j;
+	int k;
 	s = splimp();
 	/*
 	 * Cancel any pending I/O
@@ -1671,12 +1704,57 @@ fxp_init(xsc)
 	fxp_scb_wait(sc);
 	CSR_WRITE_4(sc, FXP_CSR_SCB_GENERAL, vtophys(&cbp->cb_status));
 	CSR_WRITE_1(sc, FXP_CSR_SCB_COMMAND, FXP_SCB_COMMAND_CU_START);
+
+	//printf("0xba00ffc0 = 0x%x\n", *j);
+	//i = CSR_READ_1(sc, FXP_CSR_SCB_COMMAND);
+	//k = CSR_READ_4(sc, FXP_CSR_SCB_RUSCUS);
+	//printf("0xba00ffc0 = 0x%x\n", k);
+	//k = CSR_READ_4(sc, FXP_CSR_SCB_GENERAL);
+	//printf("0xba00ffc4 = 0x%x\n", k);
+	//k = CSR_READ_4(sc, FXP_CSR_PORT);
+	//printf("0xba00ffc8 = 0x%x\n", k);
+	//k = CSR_READ_4(sc, FXP_CSR_FLASHCONTROL);
+	//printf("0xba00ffcc = 0x%x\n", k);
+	//k = CSR_READ_4(sc, 0x10);
+	//printf("0xba00ff10 = 0x%x\n", k);
+	//k = CSR_READ_4(sc, 0x14);
+	//printf("0xba00ff14 = 0x%x\n", k);
+	//k = CSR_READ_4(sc, 0x18);
+	//printf("0xba00ff18 = 0x%x\n", k);
+	//k = CSR_READ_4(sc, 0x1c);
+	//printf("0xba00ff1c = 0x%x\n", k);
+	//k = CSR_READ_4(sc, 0x20);
+	//printf("0xba00ff20 = 0x%x\n", k);
+
 	/* ...and wait for it to complete. */
 	for (i = 0; !(cbp->cb_status & htole16(FXP_CB_STATUS_C)) && i < FXP_MAX_STATUS_READS; ++i)
 		DELAY(2);
 	
+#if 0//cache/uncache debug whd
+	j = &cbp->cb_status;
+	j = (int *)(((int)j & (0x1FFFFFFF)) | 0xa0000000);
+	printf("j = 0x%X, *j = 0x%X\n", j, *j);
+	j = j+ 1;
+	printf("j = 0x%X, *j = 0x%X\n", j, *j);
+	j = j+ 1;
+	printf("j = 0x%X, *j = 0x%X\n", j, *j);
+	j = j+ 1;
+	printf("j = 0x%X, *j = 0x%X\n", j, *j);
+
+	printf("i = %d\n", i);
+
+	j = &cbp->cb_status;
+	j = (int *)(((int)j & (0x1FFFFFFF)) | 0x80000000);
+	printf("j = 0x%X, *j = 0x%X\n", j, *j);
+	j = j+ 1;
+	printf("j = 0x%X, *j = 0x%X\n", j, *j);
+	j = j+ 1;
+	printf("j = 0x%X, *j = 0x%X\n", j, *j);
+	j = j+ 1;
+	printf("j = 0x%X, *j = 0x%X\n", j, *j);
+#endif
 	if (i == FXP_MAX_STATUS_READS) {
-		printf("bus congestion, restarting");
+		printf("bus congestion, restarting 0");
 		return -1;
 	}
 
@@ -1832,11 +1910,18 @@ fxp_add_rfabuf(sc, oldm)
 	 * Sync the buffer so we can access it uncached.
 	 */
 	if (m->m_ext.ext_buf!=NULL) {
+#ifdef LS3_HT
+#else
 		pci_sync_cache(sc->sc_pc, (vm_offset_t)m->m_ext.ext_buf,
 				MCLBYTES, SYNC_R);
+#endif
 	}
 	m->m_data += RFA_ALIGNMENT_FUDGE;
+#ifdef LS3_HT
+	rfap = (u_int8_t *)PHYS_TO_CACHED(vtophys(m->m_data));
+#else
 	rfap = (u_int8_t *)PHYS_TO_UNCACHED(vtophys(m->m_data));
+#endif
 	//printf("rfap=%x\n",rfap);
 #else
 	m->m_data += RFA_ALIGNMENT_FUDGE;
@@ -1872,7 +1957,11 @@ fxp_add_rfabuf(sc, oldm)
 		rfap = sc->rfa_tailm->m_ext.ext_buf + RFA_ALIGNMENT_FUDGE;
 #if defined(__mips__)
 		/* Noone should have touched this, so no flush req. */
+#ifdef LS3_HT
+		rfap = (u_int8_t *)PHYS_TO_CACHED(vtophys(rfap));
+#else
 		rfap = (u_int8_t *)PHYS_TO_UNCACHED(vtophys(rfap));
+#endif
 #endif /* __mips__ */
 		fxp_lwcopy(&v,
 		    (u_int32_t *)(rfap + offsetof(struct fxp_rfa, link_addr)));

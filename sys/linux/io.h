@@ -1,7 +1,14 @@
+#ifdef LS3_HT
+#include "../../Targets/Bonito3amcp68/include/bonito.h"
+#endif
 #ifndef __LINUXIO_H_
 #define __LINUXIO_H_
 #if defined(FCRSOC)||defined(BONITOEL)
+#ifdef LS3_HT
+#define mips_io_port_base BONITO_PCIIO_BASE_VA
+#else
 #define mips_io_port_base 0xbfd00000
+#endif
 #else
 #ifdef CONFIG_PCI0_GAINT_MEM
 #define mips_io_port_base 0xbea00000

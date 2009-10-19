@@ -9,7 +9,8 @@ unsigned char c,d;
 #ifdef DEVBD2F_FIREWALL
 volatile unsigned char *p=0xbe000040;
 #else
-volatile unsigned char *p=0xbfd00378;
+//volatile unsigned char *p=0xbfd00378;
+volatile unsigned char *p=BONITO_PCIIO_BASE_VA + 0x0378;
 #endif
 int errors=0;
 printf("pptest now\n");

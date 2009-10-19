@@ -2271,7 +2271,8 @@ static int  sundance_probe1 (struct net_device *dev,struct pci_dev *pdev,
 	int bar = 0;
 
 	_pci_conf_write(pdev->pa.pa_tag,4,7);
-	baseaddr=0xbfd00000|(_pci_conf_read(pdev->pa.pa_tag,bar*4+0x10)&~3);
+	//baseaddr=0xbfd00000|(_pci_conf_read(pdev->pa.pa_tag,bar*4+0x10)&~3);
+	baseaddr=BONITO_PCIIO_BASE_VA|(_pci_conf_read(pdev->pa.pa_tag,bar*4+0x10)&~3);
 	printf("probe,baseaddr=%x\n",baseaddr);
 
 	if (!baseaddr)

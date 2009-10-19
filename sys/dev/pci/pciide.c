@@ -527,6 +527,7 @@ pciide_attach(parent, self, aux)
 	pcitag_t tag = pa->pa_tag;
 	struct pciide_softc *sc = (struct pciide_softc *)self;
 	pcireg_t csr;
+    pcireg_t tmpreg;
 	char devinfo[256];
 
 	sc->sc_pp = pciide_lookup_product(pa->pa_id);
@@ -542,6 +543,14 @@ pciide_attach(parent, self, aux)
 #ifdef WDCDEBUG
        if (wdcdebug_pciide_mask & DEBUG_PROBE)
                printf("sc_pc %x, sc_tag %x\n", sc->sc_pc, sc->sc_tag);
+#endif
+
+#ifdef MCP68_IDE
+    /* Enable IDE controller of MCP68 */
+    tmpreg = pci_conf_read(pc, tag, 0x50);
+    pci_conf_write(pc, tag, 0x50, tmpreg | 0x02);
+    tmpreg = pci_conf_read(pc, tag, 0x50);
+    printf("\nMCP68 IDE enable : 0x50 : %8x\n",tmpreg);
 #endif
 
 	sc->sc_pp->chip_map(sc, pa);

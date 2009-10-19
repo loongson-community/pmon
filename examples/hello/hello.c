@@ -56,10 +56,15 @@ struct callvectors *callvec;
 
 void __gccmain(void);
 void __gccmain(void){}
-#define linux_outb(val,port) *(volatile unsigned char *)(0xbfd00000+port)=val
+//#define linux_outb(val,port) *(volatile unsigned char *)(0xbfd00000+port)=val
+//#define linux_outb_p(val,port) (*(volatile unsigned char *)0xbfc00000,linux_outb(val,port),*(volatile unsigned char *)0xbfc00000)
+//#define linux_inb(port) *(volatile unsigned char *)(0xbfd00000+port)
+//#define linux_inb_p(port) *(volatile unsigned char *)(0xbfd00000+port)
+#define linux_outb(val,port) *(volatile unsigned char *)(BONITO_PCIIO_BASE_VA+port)=val
 #define linux_outb_p(val,port) (*(volatile unsigned char *)0xbfc00000,linux_outb(val,port),*(volatile unsigned char *)0xbfc00000)
-#define linux_inb(port) *(volatile unsigned char *)(0xbfd00000+port)
-#define linux_inb_p(port) *(volatile unsigned char *)(0xbfd00000+port)
+#define linux_inb(port) *(volatile unsigned char *)(BONITO_PCIIO_BASE_VA+port)
+#define linux_inb_p(port) *(volatile unsigned char *)(BONITO_PCIIO_BASE_VA+port)
+
 
 static inline unsigned char CMOS_READ(unsigned char addr)
 {
@@ -111,8 +116,10 @@ main(int argc, char **argv, char **env, struct callvectors *cv)
 
 	printf("\n\nHello! This is the 'hello' program!\n\n");
 	init_8259A(0);
-	*(volatile char *)0xbfd00021=0;
-	*(volatile char *)0xbfd000a1=0;
+	//*(volatile char *)0xbfd00021=0;
+	//*(volatile char *)0xbfd000a1=0;
+	*(volatile char *)(BONITO_PCIIO_BASE_VA+0x21)=0;
+	*(volatile char *)(BONITO_PCIIO_BASE_VA+0xa1)=0;
 //	linux_outb(0x60,0x64);
 //	linux_outb(0x2,0x60);
 

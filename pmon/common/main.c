@@ -391,12 +391,15 @@ main()
         
 	md_setsr(NULL, initial_sr);	/* XXX does this belong here? */
 
+#if 0
 	{
 
 		check_user_password();
 		if(!getenv("al"))
 		load_menu_list();
 	}
+#endif
+		load_menu_list();
 
 {
 static int run=0;

@@ -30,7 +30,8 @@ unsigned char ec_ver[VER_MAX_SIZE];
 
 /* base address for io access */
 #undef	MIPS_IO_BASE
-#define	MIPS_IO_BASE	(0xbfd00000)
+//#define	MIPS_IO_BASE	(0xbfd00000)
+#define	MIPS_IO_BASE	BONITO_PCIIO_BASE_VA
 
 /* EC access port for sci communication */
 #define	EC_CMD_PORT	0x66

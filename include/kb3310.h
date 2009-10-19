@@ -85,15 +85,15 @@
 /* access ec register content */
 static inline void wrec(unsigned short reg, unsigned char val)
 {
-	*( (volatile unsigned char *)(0xbfd00000 | HIGH_PORT) ) = (reg & 0xff00) >> 8;
-	*( (volatile unsigned char *)(0xbfd00000 | LOW_PORT) ) = (reg & 0x00ff);
-	*( (volatile unsigned char *)(0xbfd00000 | DATA_PORT) ) = val;
+	*( (volatile unsigned char *)(BONITO_PCIIO_BASE_VA | HIGH_PORT) ) = (reg & 0xff00) >> 8;
+	*( (volatile unsigned char *)(BONITO_PCIIO_BASE_VA | LOW_PORT) ) = (reg & 0x00ff);
+	*( (volatile unsigned char *)(BONITO_PCIIO_BASE_VA | DATA_PORT) ) = val;
 }
 
 static inline unsigned char rdec(unsigned short reg)
 {
-	*( (volatile unsigned char *)(0xbfd00000 | HIGH_PORT) ) = (reg & 0xff00) >> 8;
-	*( (volatile unsigned char *)(0xbfd00000 | LOW_PORT) ) = (reg & 0x00ff);
-	return (*( (volatile unsigned char *)(0xbfd00000 | DATA_PORT) ));
+	*( (volatile unsigned char *)(BONITO_PCIIO_BASE_VA | HIGH_PORT) ) = (reg & 0xff00) >> 8;
+	*( (volatile unsigned char *)(BONITO_PCIIO_BASE_VA | LOW_PORT) ) = (reg & 0x00ff);
+	return (*( (volatile unsigned char *)(BONITO_PCIIO_BASE_VA | DATA_PORT) ));
 }
 

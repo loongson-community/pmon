@@ -24,7 +24,8 @@
 #define SATA_HC_MAX_NUM		4 /* Max host controller numbers */
 #define SATA_HC_MAX_CMD		16 /* Max command queue depth per host controller */
 #define SATA_HC_MAX_PORT	16 /* Max port number per host controller */
-#define PCI_IO_BASE  		0xbfd00000
+//#define PCI_IO_BASE  		0xbfd00000
+#define PCI_IO_BASE  		BONITO_PCIIO_BASE_VA
 /* HStatus register
 */
 #define HSTATUS_ONOFF			0x80000000 /* Online/offline status */

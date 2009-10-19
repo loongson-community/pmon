@@ -57,7 +57,7 @@
 #include "pcivar.h"
 #include "pcireg.h"
 
-#define PCIVERBOSE 5
+#define PCIVERBOSE 0
 #ifdef PCIVERBOSE
 #include "pcidevs.h"
 #endif
@@ -765,6 +765,31 @@ _pci_setup_windows (struct pci_device *dev)
 	    tmp = (pm->address >> 16) & 0xffff;
 	    tmp |= ((pm->address + pm->size-1) & 0xffff0000);
 	    _pci_conf_write(pd->pa.pa_tag,PCI_IOBASEH_1, tmp);
+        /*
+	    //first to identify whether 32-bit IO space is supported
+	    //added by whd
+	    if(tmp & 0x1){
+	      tmp &= 0xffff0000;
+	      tmp |= (pm->address >> 8) & 0xf0;
+	      tmp |= ((pm->address + pm->size) & 0xf000);
+	      //printf("whd:IO space of bridge : pd->pa.pa_tag = %X,PCI_IOBASEL_1 = %X, tmp= %X, pm->address + pm->size = %X\n",pd->pa.pa_tag,PCI_IOBASEL_1, tmp,pm->address + pm->size);
+	      _pci_conf_write(pd->pa.pa_tag,PCI_IOBASEL_1, tmp);
+
+	      tmp = (pm->address >> 16) & 0xffff;
+	      tmp |= ((pm->address + pm->size) & 0xffff0000);
+	      //printf("whd:IO space of bridge : pd->pa.pa_tag = %X,PCI_IOBASEH_1 = %X, tmp= %X\n",pd->pa.pa_tag,PCI_IOBASEH_1, tmp);
+	      _pci_conf_write(pd->pa.pa_tag,PCI_IOBASEH_1, tmp);
+	    } else {//do NOT support
+	      tmp &= 0xffff0000;
+	      tmp |= (pm->address >> 8) & 0xf0;
+		    if((pm->address + pm->size) > 0xffff)
+			tmp |= 0xf000;
+		    else
+	                tmp |= ((pm->address + pm->size) & 0xf000);
+	      //printf("whd:IO space of bridge : pd->pa.pa_tag = %X,PCI_IOBASEL_1 = %X, tmp= %X, pm->address + pm->size = %X\n",pd->pa.pa_tag,PCI_IOBASEL_1, tmp,pm->address + pm->size);
+	      _pci_conf_write(pd->pa.pa_tag,PCI_IOBASEL_1, tmp);
+	     }
+        */
 
         }
         else {
@@ -917,6 +942,7 @@ tgt_putchar('2');
 		SBD_DISPLAY ("PCIH", CHKPNT_PCIH);
 		init = _pci_hwinit (init, &def_bus_iot, &def_bus_memt);
 		pci_roots = init;
+		SBD_DISPLAY ("PCIH", CHKPNT_PCIH);
 		if (init < 1)
 			return;
 	}

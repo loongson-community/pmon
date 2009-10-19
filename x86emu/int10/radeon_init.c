@@ -1263,7 +1263,8 @@ void radeon_init_mode(void)
 
 void radeon_init_regbase(void)
 {
-  iobase  = (_pci_conf_read(vga_dev->pa.pa_tag,0x14) & ~0x3) + 0xbfd00000;
+  //iobase  = (_pci_conf_read(vga_dev->pa.pa_tag,0x14) & ~0x3) + 0xbfd00000;
+  iobase  = (_pci_conf_read(vga_dev->pa.pa_tag,0x14) & ~0x3) + BONITO_PCIIO_BASE_VA;
   mmbase  =_pci_conf_read(vga_dev->pa.pa_tag,0x18) | 0xb0000000;
   printf("iobase=%lx,mmbase=%lx\n",iobase,mmbase);
 }

@@ -23,7 +23,8 @@
 #include <string.h>
 
 
-#define  IO_BASE  0xbfd00000
+//#define  IO_BASE  0xbfd00000
+#define  IO_BASE  BONITO_PCIIO_BASE_VA
 ////#ifdef   CONFIG_CPU_GS32I
 ////#define  IO_BASE  0x50000000
 ////#else
