@@ -1,4 +1,8 @@
 /* $Id: ld.script,v 1.1.1.1 2006/09/14 01:59:08 root Exp $ */
+#ifdef PMON32
+OUTPUT_FORMAT("elf32-littlemips", "elf32-bigmips",
+		  "elf32-littlemips")
+#endif
 /*OUTPUT_FORMAT("elf32-tradlittlemips", "elf32-tradbigmips",
 	      "elf32-tradlittlemips")*/
 OUTPUT_ARCH(mips)

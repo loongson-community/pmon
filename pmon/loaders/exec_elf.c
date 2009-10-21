@@ -357,10 +357,9 @@ long
 	int i;
 	Elf32_Off highest_load = 0;
 
-	bootseg = 0;
-
 	//09-09-09
 	void *v_addr = NULL;
+	bootseg = 0;
 
 	if(getenv("debug"))
 		load_debug = 1;

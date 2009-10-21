@@ -1,14 +1,8 @@
-
-
-
-OUTPUT_FORMAT("elf32-littlemips", "elf32-bigmips",
-       "elf32-littlemips")
 OUTPUT_ARCH(mips)
 ENTRY(_start)
 SECTIONS
 {
-
-  . = 0xffffffff80010000;
+  . = 0xffffffff80200000;
   .text :
   {
     _ftext = . ;
@@ -18,7 +12,6 @@ SECTIONS
     *(.reginfo)
     *(.init)
     *(.stub)
-
     *(.gnu.warning)
   } =0
   _etext = .;
@@ -52,9 +45,6 @@ SECTIONS
   {
     *(.got.plt) *(.got)
    }
-
-
-
   .sdata : { *(.sdata) }
   .lit8 : { *(.lit8) }
   .lit4 : { *(.lit4) }
@@ -71,21 +61,17 @@ SECTIONS
   }
   _end = . ;
   PROVIDE (end = .);
-
-
+  /DISCARD/ : {
+   *(.MIPS.options)
+  }
   .stab 0 : { *(.stab) }
   .stabstr 0 : { *(.stabstr) }
-
-
-
-
   .debug 0 : { *(.debug) }
   .debug_srcinfo 0 : { *(.debug_srcinfo) }
   .debug_aranges 0 : { *(.debug_aranges) }
   .debug_pubnames 0 : { *(.debug_pubnames) }
   .debug_sfnames 0 : { *(.debug_sfnames) }
   .line 0 : { *(.line) }
-
   .gptab.sdata : { *(.gptab.data) *(.gptab.sdata) }
   .gptab.sbss : { *(.gptab.bss) *(.gptab.sbss) }
 }

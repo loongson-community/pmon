@@ -1,6 +1,9 @@
 ifndef PMONCC
-#CC=mips-elf-gcc
+ifeq ($(PMON64),1)
 CC=mipsel-linux-gcc -mips3 -D__mips64 -Wundef -Wstrict-prototypes -Wno-trigraphs -fno-strict-aliasing -mabi=64 -G 0 -mno-abicalls -fno-pic -pipe -ffreestanding  -march=r4600 -Wa,--trap -fomit-frame-pointer  -mlong-calls -mno-explicit-relocs
+else
+CC=mips-elf-gcc -D_MIPS_SZPTR="32"
+endif
 else
 CC=${PMONCC}
 endif
@@ -30,6 +33,7 @@ all: ${tgt}
 	cp ../lib/libgcc.a ../Targets/${TARGET}/compile/${TARGETEL}
 sim: clean pmon.bin.c
 	gcc -o zloader  -DSIM zloader.c
+ifeq ($(PMON64),1)
 rom: clean ${START} zloader.o 
 	gcc -DSTARTADDR=${GZROMSTARTADDR} -E -P ld.script.S > ld.script
 	mipsel-linux-ld -T ld.script -e start -o gzrom ${START} zloader.o -m elf64ltsmip 
@@ -40,7 +44,19 @@ ram: clean startram.o zloader.o
 	mipsel-linux-ld -mips3 -T ld.script -e start -o gzram startram.o zloader.o -m elf64ltsmip 
 #	cp gzram /tftpboot
 #	sync
+else
+rom: clean ${START} zloader.o 
+	gcc -DPMON32 -DSTARTADDR=${GZROMSTARTADDR} -E -P ld.script.S > ld.script
+	mips-elf-ld -T ld.script -e start -o gzrom ${START} zloader.o 
+	mips-elf-objcopy -O binary gzrom gzrom.bin
+#	sync
+ram: clean startram.o zloader.o 
+	gcc -DPMON32 -DSTARTADDR=${GZROMSTARTADDR} -E -P ld.script.S > ld.script
+	mips-elf-ld -mips3 -T ld.script -e start -o gzram startram.o zloader.o 
+#	cp gzram /tftpboot
+#	sync
 
+endif
 zlib_rom: clean ${START} zlib_loader.o 
 	gcc -DSTARTADDR=${GZROMSTARTADDR} -E -P ld.script.S > ld.script
 	mips-elf-ld -T ld.script -e start -o zlib_gzrom ${START} zlib_loader.o  zlib_inflate/*.o
@@ -59,7 +75,8 @@ ${START}:
 	gcc -DSTARTADDR=${ROMSTARTADDR} -E -P ld.script.S > ../Targets/${TARGET}/conf/ld.script
 	make -C ../Targets/${TARGET}/compile/${TARGETEL}/
 	cp ../Targets/${TARGET}/compile/${TARGETEL}/${START} .
-
+	
+ifeq ($(PMON64),1)
 startram.o:
 	gcc -DSTARTADDR=${RAMSTARTADDR} -E -P ld.script.S > ../Targets/${TARGET}/conf/ld.script
 	make -C ../Targets/${TARGET}/compile/${TARGETEL}/ DEBUG='-g -DMYDBG="printf(\"debug:%s,%d\\n\",__FILE__,__LINE__);"'
@@ -70,6 +87,19 @@ zloader.o: zloader.c inflate.c  malloc.c  memop.c  pmon.bin.c initmips.c
 zlib_loader.o: zlib_loader.c  ./zlib_gzip zlib_pmon.bin.c initmips.c
 	cd zlib_inflate;$(CC) -I ../../include -mips3 -mcpu=r4600 -c *.c
 	$(CC) -I ../include -mips3 -mcpu=r4600 -c zlib_loader.c 
+else
+startram.o:
+	gcc -DSTARTADDR=${RAMSTARTADDR} -E -P ld.script.S > ../Targets/${TARGET}/conf/ld.script
+	make -C ../Targets/${TARGET}/compile/${TARGETEL}/ DEBUG='-g -DMYDBG="printf(\"debug:%s,%d\\n\",__FILE__,__LINE__);"'
+	$(CC) -D_LOCORE -G 0  -nostdinc   -DMIPS  -DCONS_BAUD="B115200"  -DCONFIG_CACHE_64K_4WAY  -D_KERNEL -D__OpenBSD__ -DPMON -D__PMON__ -EL -mno-abicalls -mips3 -mcpu=r4000 -c startram.S -D MEMSIZE=${MEMSIZE}
+
+zloader.o: zloader.c inflate.c  malloc.c  memop.c  pmon.bin.c initmips.c
+	$(CC)  -EL -mips3 -mcpu=r4000 -c zloader.c ${ZLOADER_OPTIONS}
+
+zlib_loader.o: zlib_loader.c  ./zlib_gzip zlib_pmon.bin.c initmips.c
+	cd zlib_inflate;$(CC) -I ../../include -EL -mips3 -mcpu=r4000 -c *.c
+	$(CC) -I ../include -mips3 -EL -mcpu=r4000 -c zlib_loader.c 
+endif
 
 initmips.c:  ../Targets/${TARGET}/compile/${TARGETEL}/pmon
 	${gencode} $< > initmips.c
