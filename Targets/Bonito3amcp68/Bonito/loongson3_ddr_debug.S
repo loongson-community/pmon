@@ -1,4 +1,141 @@
 #if 0
+	TTYDBG("Write 0x90000f00000000 s\r\n")
+    dli     t0 , 0x900000003ff02000
+  dli a0, 0x0000100000000000
+  sd a0, 0x0(t0)
+    dli     t0 , 0x900000003ff02040
+  dli a0, 0xfffff00000000000
+  sd a0, 0x0(t0)
+    dli     t0 , 0x900000003ff02080
+  dli a0, 0x00001000000000f0
+  sd a0, 0x0(t0)
+    dli     t0 , 0x900000003ff02008
+  dli a0, 0x0000200000000000
+  sd a0, 0x0(t0)
+    dli     t0 , 0x900000003ff02048
+  dli a0, 0xffffe00000000000
+  sd a0, 0x0(t0)
+    dli     t0 , 0x900000003ff02088
+  dli a0, 0x00002000000000f0
+  sd a0, 0x0(t0)
+    dli     t0 , 0x900000003ff02010
+  dli a0, 0x0000000010000000
+  sd a0, 0x0(t0)
+    dli     t0 , 0x900000003ff02050
+  dli a0, 0xfffffffffc000000
+  sd a0, 0x0(t0)
+    dli     t0 , 0x900000003ff02090
+  dli a0, 0x00000e0000000087
+  sd a0, 0x0(t0)
+    dli     t0 , 0x900000003ff02018
+  dli a0, 0x0000000010000000
+  sd a0, 0x0(t0)
+    dli     t0 , 0x900000003ff02058
+  dli a0, 0xfffffffff8000000
+  sd a0, 0x0(t0)
+    dli     t0 , 0x900000003ff02098
+  dli a0, 0x00000e0010000087
+  sd a0, 0x0(t0)
+    dli     t0 , 0x900000003ff02020
+  dli a0, 0x000000001a000000
+  sd a0, 0x0(t0)
+    dli     t0 , 0x900000003ff02060
+  dli a0, 0xffffffffff000000
+  sd a0, 0x0(t0)
+    dli     t0 , 0x900000003ff020a0
+  dli a0, 0x00000efdfc000087
+  sd a0, 0x0(t0)
+    dli     t0 , 0x900000003ff02028
+  dli a0, 0x00000e0000000000
+  sd a0, 0x0(t0)
+    dli     t0 , 0x900000003ff02068
+  dli a0, 0xffffff0000000000
+  sd a0, 0x0(t0)
+    dli     t0 , 0x900000003ff020a8
+  dli a0, 0x00000e0000000087
+  sd a0, 0x0(t0)
+    dli     t0 , 0x900000003ff02030
+  dli a0, 0x00000c0000000000
+  sd a0, 0x0(t0)
+    dli     t0 , 0x900000003ff02070
+  dli a0, 0xfffffc0000000000
+  sd a0, 0x0(t0)
+    dli     t0 , 0x900000003ff020b0
+  dli a0, 0x00000c00000000f0
+  sd a0, 0x0(t0)
+    dli     t0 , 0x900000003ff02038
+  dli a0, 0x000000001b000000
+  sd a0, 0x0(t0)
+    dli     t0 , 0x900000003ff02078
+  dli a0, 0xffffffffff000000
+  sd a0, 0x0(t0)
+    dli     t0 , 0x900000003ff020b8
+  dli a0, 0x00000efdfb000087
+  sd a0, 0x0(t0)
+
+//     dli t0,  0x9000000000000000
+// ld    a0, 0x0(t0)
+//     dli t0,  0x9000020000000000
+// ld    a0, 0x0(t0)
+//     dli t0,  0x9000040000000000
+// ld    a0, 0x0(t0)
+//     dli t0,  0x9000060000000000
+// ld    a0, 0x0(t0)
+//     dli t0,  0x9000080000000000
+// ld    a0, 0x0(t0)
+//     dli t0,  0x90000a0000000000
+// ld    a0, 0x0(t0)
+//     dli t0,  0x90000c0000000000
+// ld    a0, 0x0(t0)
+//     dli t0,  0x90000d0000000000
+// ld    a0, 0x0(t0)
+//     dli t0,  0x90000e0000000000
+// ld    a0, 0x0(t0)
+//     dli t0,  0x90000f0000000000
+// ld    a0, 0x0(t0)
+
+//     dli t0,  0x9800000000000000
+// ld    a0, 0x0(t0)
+//     dli t0,  0x9800020000000000
+// ld    a0, 0x0(t0)
+//     dli t0,  0x9800040000000000
+// ld    a0, 0x0(t0)
+//     dli t0,  0x9800060000000000
+// ld    a0, 0x0(t0)
+//     dli t0,  0x9800080000000000
+// ld    a0, 0x0(t0)
+//     dli t0,  0x98000a0000000000
+// ld    a0, 0x0(t0)
+//     dli t0,  0x98000c0000000000
+// ld    a0, 0x0(t0)
+//     dli t0,  0x98000d0000000000
+// ld    a0, 0x0(t0)
+//     dli t0,  0x98000e0000000000
+// ld    a0, 0x0(t0)
+//     dli t0,  0x98000f0000000000
+// ld    a0, 0x0(t0)
+
+
+
+    dli     t0,  0x98000f0000000000
+1:
+    ld      a0,  0x0(t0)
+    bal     hexserial
+    nop
+    li      a0,  0x100000
+    dadd    t0, t0, a0
+	TTYDBG("\r\n")
+    b       1b
+    nop
+    
+    
+
+#endif
+
+
+
+
+#if 0
 	TTYDBG("Write all 0s\r\n")
 //Write all 00000000
         li      t0, 0xa0000000

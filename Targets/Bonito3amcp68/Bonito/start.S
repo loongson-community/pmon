@@ -320,6 +320,13 @@ locate:
 lpc_write_test: 
 
 loop_here:
+
+        mfc0    t0, CP0_STATUS
+        li      t1, 0x00e0      # {cu3,cu2,cu1,cu0}<={0110, status_fr<=1
+        or      t0, t0, t1
+        mtc0    t0, CP0_STATUS
+
+
 		.set 	mips64
 		mfc0	t0, $15, 1
 		.set 	mips3
@@ -327,6 +334,21 @@ loop_here:
 		//bnez 	t0, loop_here
         //li      a0, 0x3
 		//bne 	t0, a0, slave_main
+
+#if 1 /* clear Mail BOX */
+#define CORE0_BUF0 0x900000003ff01020   
+#define CORE1_BUF0 0x900000003ff01120   
+#define CORE2_BUF0 0x900000003ff01220   
+#define CORE3_BUF0 0x900000003ff01320   
+
+        dli     t1, CORE0_BUF0
+        dsll    t0, t0, 0x8
+        or      t1, t1, t0
+
+        dli     a0, 0x0
+        sd      a0, 0x0(t1)
+#endif
+
 		bnez 	t0, slave_main
 		nop
 
@@ -348,6 +370,7 @@ loop_here:
 #endif
 
 
+#if 0
         mfc0    t0, CP0_STATUS
 
         PRINTSTR("CP0_STATUS:")
@@ -376,6 +399,7 @@ loop_here:
         bal	    hexserial
         nop
         PRINTSTR("\r\n\r\n")
+#endif
 
 
 #if 0
@@ -830,7 +854,7 @@ gs_2f_v3_ddr2_cfg:
         b   2f
         nop
 1:
-        andi t0, t1, 1f
+        andi    t0, t1, 0x1f
         andi    a0, t0, 0xf
         addi    a0, a0, 0x1e
         bal     hexserial
@@ -1037,7 +1061,7 @@ PRINTSTR("Jump to 9fc\r\n")
 #endif
 
 
-#if 1//config L1 xbar cpu port
+#if 0//config L1 xbar cpu port
 //Core 0
 	TTYDBG("Fix L1xbar illegal access \r\n")
 	dli	t2, 0x900000003ff02028
@@ -1141,6 +1165,47 @@ PRINTSTR("Jump to 9fc\r\n")
 	dli	t2, 0x900000003ff023b0
 	dli	t0, 0xf0
 	sd	t0, 0x0(t2)
+#endif
+
+
+#if 1
+############
+	TTYDBG("Fix L2xbar illegal access \r\n")
+	dli	t2, 0x900000003ff00020
+	dli	t0, 0x0000000010000000
+	sd	t0, 0x0(t2)
+
+	dli	t2, 0x900000003ff00060
+	dli	t0, 0xfffffffff0000000
+	sd	t0, 0x0(t2)
+
+	dli	t2, 0x900000003ff000a0
+	dli	t0, 0x00000000100000f2
+	sd	t0, 0x0(t2)
+
+############
+	dli	t2, 0x900000003ff00088
+	dli	t0, 0x0
+	sd	t0, 0x0(t2)
+
+	TTYDBG("Fix L2xbar illegal access \r\n")
+	dli	t2, 0x900000003ff00008
+	dli	t0, 0x000000001fc00000
+	sd	t0, 0x0(t2)
+
+	dli	t2, 0x900000003ff00048
+	dli	t0, 0xfffffffffff00000
+	sd	t0, 0x0(t2)
+
+	dli	t2, 0x900000003ff00088
+	dli	t0, 0x000000001fc000f2
+	sd	t0, 0x0(t2)
+
+############ 0x10000000 Set to not allow Cache access #######
+	dli	t2, 0x900000003ff000a0
+	dli	t0, 0x0000000010000082
+	sd	t0, 0x0(t2)
+
 
 ############
 #if 0
@@ -1155,34 +1220,6 @@ PRINTSTR("Jump to 9fc\r\n")
 
 	dli	t2, 0x900000003ff020b0
 	dli	t0, 0xf0
-	sd	t0, 0x0(t2)
-
-############
-	TTYDBG("Fix L2xbar illegal access \r\n")
-	dli	t2, 0x900000003ff00010
-	dli	t0, 0x000000001fc00000
-	sd	t0, 0x0(t2)
-
-	dli	t2, 0x900000003ff00050
-	dli	t0, 0xfffffffffff00000
-	sd	t0, 0x0(t2)
-
-	dli	t2, 0x900000003ff00090
-	dli	t0, 0xf2
-	sd	t0, 0x0(t2)
-
-############
-	TTYDBG("Fix L2xbar illegal access \r\n")
-	dli	t2, 0x900000003ff00018
-	dli	t0, 0x000000001fe00000
-	sd	t0, 0x0(t2)
-
-	dli	t2, 0x900000003ff00058
-	dli	t0, 0xfffffffffff00000
-	sd	t0, 0x0(t2)
-
-	dli	t2, 0x900000003ff00098
-	dli	t0, 0xf2
 	sd	t0, 0x0(t2)
 
 #### disable default
@@ -1200,7 +1237,7 @@ PRINTSTR("Jump to 9fc\r\n")
 
 ####################################
 
-//#include "loongson3_ddr_debug.s"
+//#include "loongson3_ddr_debug.S"
 
 ####################################
 
@@ -1339,10 +1376,6 @@ zhb:
 	move	a0,msize
 	
 #if 1 
-#define CORE0_BUF0 0x900000003ff01020   
-#define CORE1_BUF0 0x900000003ff01120   
-#define CORE2_BUF0 0x900000003ff01220   
-#define CORE3_BUF0 0x900000003ff01320   
 
     dli     t0, CORE0_BUF0 #buf of cpu0
     li      t1, 0x5a5a
@@ -2243,7 +2276,9 @@ reg_write:
     nop
 
     daddiu  t2, a0, 0x30 //Set to srefresh
-    dli     a1, 0x0101010100000000
+    dli     a1, 0x0000000100000000
+    ld      t0, 0x0(t2)
+    or      a1, a1, t0
     sd      a1, 0x0(t2)
 
     li      t2, 0xfff
@@ -2254,7 +2289,9 @@ reg_write:
     sync
 
     daddiu  t2, a0, 0x30 //Out of srefresh
-    dli     a1, 0x0101010000000000
+    dli     a1, 0xffffff00ffffffff
+    ld      t0, 0x0(t2)
+    and     a1, a1, t0
     sd      a1, 0x0(t2)
 
     li      t2, 0xfff
@@ -2265,7 +2302,9 @@ reg_write:
     sync
 
     daddiu  t2, a0, 0x40 //Write mode regs
-    dli     a1, 0x0100010101010101
+    dli     a1, 0x0000000001000000
+    ld      t0, 0x0(t2)
+    or      a1, a1, t0
     sd      a1, 0x0(t2)
 
 
@@ -2320,7 +2359,9 @@ reg_write_mc1:
     nop
 
     daddiu  t2, a0, 0x30 //Set to srefresh
-    dli     a1, 0x0101010100000000
+    dli     a1, 0x0000000100000000
+    ld      t0, 0x0(t2)
+    or      a1, a1, t0
     sd      a1, 0x0(t2)
 
     li      t2, 0xfff
@@ -2331,7 +2372,9 @@ reg_write_mc1:
     sync
 
     daddiu  t2, a0, 0x30 //Out of srefresh
-    dli     a1, 0x0101010000000000
+    dli     a1, 0xffffff00ffffffff
+    ld      t0, 0x0(t2)
+    and     a1, a1, t0
     sd      a1, 0x0(t2)
 
     li      t2, 0xfff
@@ -2342,7 +2385,9 @@ reg_write_mc1:
     sync
 
     daddiu  t2, a0, 0x40 //Write mode regs
-    dli     a1, 0x0100010101010101
+    dli     a1, 0x0000000001000000
+    ld      t0, 0x0(t2)
+    or      a1, a1, t0
     sd      a1, 0x0(t2)
 
     jr      ra
@@ -2646,13 +2691,13 @@ MC0_CTL_start_DATA_HI: .word  0x01010100
 ddr2_reg_data_mc1:
 MC1_CTL_000 : .dword 0x0000000000000101
 //000000000000000_0 concurrentap(RW) 0000000_1 bank_split_en(RW) 0000000_0 auto_refresh_mode(RW) 0000000_0 arefresh(WR) 0000000_0 ap(RW) 0000000_1 addr_cmp_en(RW) 0000000_1 active_aging(RW) 
-MC1_CTL_010 : .dword 0x0000010100010000
+MC1_CTL_010 : .dword 0x0001000100010000
 //0000000_0 fwc(WR) 0000000_0 fast_write(RW) 0000000_1 enable_quick_srefresh(RW) 0000000_1 eight_bank_mode(RW) 0000000_0 ecc_disable_w_uc_err(RW) 0000000_1 dqs_n_en(RW) 0000000_0 dll_bypass_mode(RW) 0000000_0 dlllockreg(RD) 
-MC1_CTL_020 : .dword 0x0100010100000000
+MC1_CTL_020 : .dword 0x0100010101000000
 //0000000_1 priority_en(RW) 0000000_0 power_down(RW) 0000000_1 placement_en(RW) 0000000_1 odt_add_turn_clk_en(RW) 0000000_0 no_cmd_init(RW) 0000000_0 intrptwritea(RW) 0000000_0 intrptreada(RW) 0000000_0 intrptapburst(RW) 
 MC1_CTL_030 : .dword 0x0101000001000000
 //0000000_1 swap_port_rw_same_en(RW) 0000000_1 swap_en(RW) 0000000_0 start(RW) 0000000_0 srefresh(RW+) 0000000_1 rw_same_en(RW) 0000000_0 reg_dimm_enable(RW) 0000000_0 reduc(RW) 0000000_0 pwrup_srefresh_exit(RW) 
-MC1_CTL_040 : .dword 0x0101010100010100
+MC1_CTL_040 : .dword 0x0100010200010101
 //000000_01 rtt_0(RW) 000000_11 ctrl_raw(RW) 000000_01 axi0_w_priority(RW) 000000_01 axi0_r_priority(RW) 0000000_0 write_modereg(WR) 0000000_1 writeinterp(RW) 0000000_1 tref_enable(RW) 0000000_1 tras_lockout(RW) 
 MC1_CTL_050 : .dword 0x0000000404050100
 //00000_000 q_fullness(RW) 00000_000 port_data_error_type(RD) 000_00000 out_of_range_type(RD) 00000_000 max_cs_reg(RD) 00000_100 column_size(RW) 0000_0101 caslat(RW) 00000_010 addr_pins(RW) 00000000
@@ -2673,7 +2718,7 @@ MC1_CTL_0d0 : .dword 0x0000000000000000
 MC1_CTL_0e0 : .dword 0x0000000000000000
 MC1_CTL_0f0 : .dword 0x0000000000000000
 MC1_CTL_100 : .dword 0x0000000000000000
-MC1_CTL_110 : .dword 0x0000000000000c2d
+MC1_CTL_110 : .dword 0x0000000000001c2d
 //0_000000000000000 emrs2_data_1(RW) 0_000000000000000 emrs2_data_0(RW) 000000000000000000_00110000101101 tref(RW) 
 MC1_CTL_120 : .dword 0xffff000000000000
 //0000000000011100 axi0_en_size_lt_width_instr(RW) 00000000000000000_000000000000000 emrs2_data_3(RW) 0_000000000000000 emrs2_data_2(RW) 
@@ -2808,11 +2853,11 @@ MC1_CTL_310 : .dword 0xf3004946f3004946
 //MC1_CTL_2f0 : .dword 0xf3005a47f3005a47
 //MC1_CTL_300 : .dword 0xf3005a47f3005a47
 //MC1_CTL_310 : .dword 0xf3005a47f3005a47
-MC1_CTL_320 : .dword 0x07c0000007c00000
-MC1_CTL_330 : .dword 0x07c0000007c00000
-MC1_CTL_340 : .dword 0x07c0000007c00000
-MC1_CTL_350 : .dword 0x07c0000007c00000
-MC1_CTL_360 : .dword 0x0800c00507c00000
+MC1_CTL_320 : .dword 0x06c0000006c00000
+MC1_CTL_330 : .dword 0x06c0000006c00000
+MC1_CTL_340 : .dword 0x06c0000006c00000
+MC1_CTL_350 : .dword 0x06c0000006c00000
+MC1_CTL_360 : .dword 0x0800c00506c00000
 //00000000000000001100000000000101 phy_ctrl_reg_2(RW) 00000111110000000000001100000001 phy_ctrl_reg_1_8(RD) 
 MC1_CTL_370 : .dword 0x0000000000000000
 MC1_CTL_380 : .dword 0x0000000000000000
@@ -2908,7 +2953,7 @@ MC1_CTL_840 : .dword 0x0000640064001313
 //00000000000000_0001100100 axi1_priority_relax(RW) 000000_0001100100 axi0_priority_relax(RW) 00000000 wrlvl_delay_8(RD) 00000000 wrlvl_delay_7(RD) 00000000 wrlvl_delay_6(RD) 
 MC1_CTL_850 : .dword 0x0000000000000064
 MC1_CTL_860 : .dword 0x0200004000000000
-MC1_CTL_870 : .dword 0x0000000000000044
+MC1_CTL_870 : .dword 0x0000000000000046
 //0_000000000000010 emrs1_data_3(RW) 0_000000000000010 emrs1_data_2(RW) 0_000000000000010 emrs1_data_1(RW) 0_000000000000010 emrs1_data_0(RW) 
 MC1_CTL_880 : .dword 0x0000000000000000
 //MC1_CTL_890 : .dword 0x0a520a520a520a52

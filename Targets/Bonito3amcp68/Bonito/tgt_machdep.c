@@ -387,8 +387,10 @@ superio_reinit();
 	GT_WRITE(BOOTCS_LOW_DECODE_ADDRESS, BOOT_BASE >> 20);
 	GT_WRITE(BOOTCS_HIGH_DECODE_ADDRESS, (BOOT_BASE - 1 + BOOT_SIZE) >> 20);
 #endif
-	memorysize = memsz > 256 ? 256 << 20 : memsz << 20;
-	memorysize_high = memsz > 256 ? (memsz - 256) << 20 : 0;
+	//memorysize = memsz > 256 ? 256 << 20 : memsz << 20;
+	//memorysize_high = memsz > 256 ? (memsz - 256) << 20 : 0;
+	memorysize = memsz > 240 ? 240 << 20 : memsz << 20;
+	memorysize_high = memsz > 240 ? (memsz - 240) << 20 : 0;
 
 #if 1 /* whd : Disable gpu controller of MCP68 */
 	//*(unsigned int *)0xbfe809e8 = 0x122380;
@@ -396,7 +398,7 @@ superio_reinit();
 	*(unsigned int *)0xbfe809e8 = 0x2280;
 #endif
 
-#ifdef MCP68_IDE /* whd : Enable IDE controller of MCP68 */
+#if 0 /* whd : Enable IDE controller of MCP68 */
 	*(unsigned int *)0xbfe83050 = (*(unsigned int *)0xbfe83050) | 0x2;
 
 #endif
@@ -616,7 +618,8 @@ tgt_devconfig()
 #endif
     config_init();
     configure();
-#if ((NMOD_VGACON >0) &&(PCI_IDSEL_VIA686B !=0)|| (PCI_IDSEL_CS5536 !=0))
+//#if ((NMOD_VGACON >0) &&(PCI_IDSEL_VIA686B !=0)|| (PCI_IDSEL_CS5536 !=0))
+#if NMOD_VGACON >0
 	if(getenv("nokbd")) rc=1;
 	else rc=kbd_initialize();
 	printf("%s\n",kbd_error_msgs[rc]);
@@ -802,7 +805,7 @@ tgt_devinit()
 	//CpuCacheAliasMask ;
 	CpuSecondaryCacheSize = ((1024*4)<<10);
 	CpuTertiaryCacheSize = 0;
-	//CpuNWayCache;
+	CpuNWayCache = 4;
 	CpuCacheType = CTYPE_HAS_L2 ;		/* R4K, R5K, RM7K */
 	//CpuConfigRegister;
 	//CpuStatusRegister;
@@ -923,7 +926,6 @@ tgt_cmd_vers()
 void
 tgt_logo()
 {
-#if 0
     printf("\n");
     printf("[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[\n");
     printf("[[[            [[[[   [[[[[[[[[[   [[[[            [[[[   [[[[[[[  [[\n");
@@ -936,8 +938,7 @@ tgt_logo()
     printf("[[  [[[[[[[[[[[[[[[  [[[[[[[[[[[[  [[[  [[[[[[[[[[  [[[  [[[[[[    [[\n");
     printf("[[  [[[[[[[[[[[[[[[  [[[[[[[[[[[[  [[[   [[[[[[[[   [[[  [[[[[[[   [[\n");
     printf("[[  [[[[[[[[[[[[[[[  [[[[[[[[[[[[  [[[[            [[[[  [[[[[[[[  [[\n");
-    printf("[[[[[[[2009 Godson3][[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[\n"); 
-#endif
+    printf("[[[[[[[2009 Loongson][[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[\n"); 
 }
 
 static void init_legacy_rtc(void)

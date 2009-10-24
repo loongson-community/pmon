@@ -10,7 +10,7 @@
 #endif    
 
 
-	li	msize,0x0f000000
+	    li	msize,0x0f000000
 //#define MEMORY_512x2
 #define MEMORY_1G_MC1
 
@@ -32,6 +32,7 @@
 
         #dli a0, 0xaff00000
 #ifdef MEMORY_1G_MC1 //set memory space of MC0 to MC1
+	    li	msize,0x3f000000
 	    PRINTSTR("MC1 USING MC0 space\r\n")
 	    PRINTSTR("MC1 DDR2 config begin\r\n")
 
@@ -50,6 +51,7 @@
 	    nop
 	    PRINTSTR("MC1 DDR2 config end\r\n")
 #else
+	    li	msize,0x3f000000
 	    PRINTSTR("MC0 DDR2 config begin\r\n")
         dli     a0, 0x900000000ff00000
 	    bal	    ddr2_config
@@ -144,6 +146,7 @@ not_locked:
 #endif    
 
 #if 1 // AdonWang disable ddr3 readbuff
+/* !!!!!!!!!! IMPORTANT !!!!!!!!!! */
        TTYDBG("Disable read buffer\r\n")
        li      t0,0xbfe00180
        //dli     t1,0x1ffffff617   
@@ -165,4 +168,3 @@ not_locked:
        and     t1, t1, a0
        sw      t1, 0x0(t0)
 #endif
-

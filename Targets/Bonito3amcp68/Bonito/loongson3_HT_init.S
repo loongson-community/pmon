@@ -1,5 +1,6 @@
 #define HT_32bit_TRANS
 #define WITH_HT
+//#define HT_800M
 //#define HT_16bit
 //#define HT_RECONNECT
 
@@ -674,12 +675,11 @@
 	TTYDBG("\r\n")
 #endif
 
-//#define HT_800M
 #ifdef HT_800M//Set HT bridge to be 800Mhz
 	TTYDBG("Setting HyperTransport Controller to be 800Mhz\r\n")
 	dli	t2, 0x90000efdfb000000
-	#li	t0, 0x10  //RECEIVER 16bit
-	li	t0, 0x2
+	#li	t0, 0x2 //Frequency: 400 Mhz
+	li	t0, 0x5 //Frequency: 800 Mhz
 	sb	t0, 0x49(t2)
         lw      a0, 0x48(t2)
 	bal	hexserial
@@ -952,8 +952,8 @@
 #ifdef HT_800M //Write Southbridge to 800Mhz
 	TTYDBG("Setting HyperTransport Southbridge to be 800M\r\n")
 	li	t0, 0xbfe80000
-	#li	t1, 0x01 //DRIVER 16bit
-	li	t1, 0x2
+	#li	t1, 0x2 //Frequency : 400Mhz
+	li	t1, 0x5 //Frequency : 800Mhz
 	sb	t1, 0x51(t0)
         lw      a0, 0x4c(t0)
 	bal	hexserial

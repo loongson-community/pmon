@@ -24,8 +24,8 @@ option		BONITOEL
 option      DEVBD2F
 option		MIPS
 option		INET
-option      LS3_HT
-option      MCP68_IDE
+option      LS3_HT              # Enable the IO cache coherent of HT
+option      MCP68_IDE           # Enable the MCP68 IDE 0 channel
 
 select		mod_flash_amd		# AMD flash device programming
 select		mod_flash_intel		# intel flash device programming
@@ -102,7 +102,7 @@ option		USE_SUPERIO_UART
 #option		LONGMENG
 #option		RADEON7000
 #option 	DEBUG_EMU_VGA
-#option		AUTOLOAD
+option		AUTOLOAD
 #option		CONFIG_PCI0_LARGE_MEM	
 #option		CONFIG_PCI0_HUGE_MEM	
 #option		CONFIG_PCI0_GAINT_MEM	

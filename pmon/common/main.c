@@ -398,18 +398,26 @@ main()
 		if(!getenv("al"))
 		load_menu_list();
 	}
-#endif
 		load_menu_list();
+#endif
 
 {
 static int run=0;
 char *s;
+char buf[LINESZ];
 if(!run)
 {
 	run=1;
 #ifdef AUTOLOAD
 	s = getenv ("al");
-	autoload (s);
+	//autoload (s);
+    autoload ("/dev/fs/ext2@wd0/boot/vmlinux.whd");
+    //s = "ifaddr rtl0 10.2.0.129";
+    //do_cmd (s);
+    ////s = "load tftp://10.2.5.9/vmlinux.whd.debug.1";
+    //while(1) {
+    //strcpy(buf,"load tftp://10.2.5.9/vmlinux.whd.debug.1");
+    //do_cmd(buf);}
 #else
 	s = getenv ("autoboot");
 	autorun (s);
@@ -512,7 +520,8 @@ autoload(char *s)
 			strcpy(buf,"g root=/dev/");
 			if(pa != NULL  && strlen(pa) != 0) strcat(buf,pa);
 			else strcat(buf,"hda1");
-			strcat(buf," console=tty");
+			//strcat(buf," console=tty");
+			strcat(buf," console=ttyS0,115200 init=/bin/sh rw");
 			}
 			printf("%s\n",buf);
 			delay(100000);
