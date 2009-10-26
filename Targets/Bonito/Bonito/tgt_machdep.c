@@ -260,7 +260,7 @@ tgt_devconfig()
 #if NMOD_X86EMU_INT10 > 0 || NMOD_X86EMU > 0
 	SBD_DISPLAY("VGAI", 0);
 	SBD_DISPLAY("XINT", 0);
-	//rc = vga_bios_init();
+	rc = vga_bios_init();
 
 #elif (NMOD_X86EMU_INT10 == 0)
 	SBD_DISPLAY("VGAI", 0);
