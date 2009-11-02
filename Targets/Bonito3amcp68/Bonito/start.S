@@ -321,6 +321,7 @@ lpc_write_test:
 
 loop_here:
 
+//Open 64-bit address space
         mfc0    t0, CP0_STATUS
         li      t1, 0x00e0      # {cu3,cu2,cu1,cu0}<={0110, status_fr<=1
         or      t0, t0, t1
@@ -349,15 +350,155 @@ loop_here:
         sd      a0, 0x0(t1)
 #endif
 
+//#define DEBUG_LS3
+#ifdef DEBUG_LS3
+        dli     a0, 0xfff
+        and     t1, t1, a0
+        dsll    t1, t1, 10
+1:
+        bnez    t1, 1b
+        daddi   t1, t1, -1
+
+	    bal	initserial
+	    nop
+
+        PRINTSTR("CP0_STATUS:")
+        mfc0    a0, CP0_STATUS
+        bal	    hexserial
+        nop
+        PRINTSTR("\r\n\r\n")
+
+
+        sync
+        sync
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+        PRINTSTR("sync ok\r\n")
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+1:
+        bnez    t0, 1b
+		nop
+#endif
+
 		bnez 	t0, slave_main
 		nop
 
+#if 0 /* Niuxie Tube */
         li      a0,0xbff00080
         li      t0,0xcc
         sb      t0,0x0(a0)
+#endif
 
-	bal	initserial //cuckoo for 2f v3
-	nop
+#ifdef DEBUG_LS3
+#else
+	    bal	initserial
+	    nop
+#endif
+
+#if 0
+#set XBAR to route all the DMA request to Scache0
+        dli     t0,0x900000003ff00400
+        lw      a0,0x0(t0)
+        bal     hexserial
+        nop
+
+        PRINTSTR("\r\nScache index\r\n")
+#endif
+
+#ifdef DEBUG_LS3
+        dli     t2, 0x9800000000000000
+        cache   21, 0x0(t2)
+        PRINTSTR("Hit WB Invalidate_D 0 \r\n")
+        dli     t2, 0x9800000000000020
+        cache   21, 0x0(t2)
+        PRINTSTR("Hit WB Invalidate_D 2 \r\n")
+        dli     t2, 0x9800000000000040
+        cache   21, 0x0(t2)
+        PRINTSTR("Hit WB Invalidate_D 4 \r\n")
+        dli     t2, 0x9800000000000060
+        cache   21, 0x0(t2)
+        PRINTSTR("Hit WB Invalidate_D 6 \r\n")
+
+        dli     t2, 0x9800000000000000
+        ld      a0, 0x0(t2)
+        PRINTSTR("Read 0 \r\n")
+        dli     t2, 0x9800000000000020
+        ld      a0, 0x0(t2)
+        PRINTSTR("Read 2 \r\n")
+        dli     t2, 0x9800000000000040
+        ld      a0, 0x0(t2)
+        PRINTSTR("Read 4 \r\n")
+        dli     t2, 0x9800000000000060
+        ld      a0, 0x0(t2)
+        PRINTSTR("Read 6 \r\n")
+
+        dli     t1, 0x9800000000000000
+        dli     t2, 0x9800000000400000
+1:
+        ld      a0, 0x0(t1)
+        daddiu  t1, t1, 0x20
+        bne     t1, t2, 1b
+        nop
+        PRINTSTR("Scache scan done \r\n")
+
+1:
+        b       1b
+        nop
+
+#endif
+
 
 #if 0
         PRINTSTR("Shut down other cores\r\n")
@@ -367,48 +508,6 @@ loop_here:
         and     a1, a1, t1
         sw      a1, 0x0(a0)
 
-#endif
-
-
-#if 0
-        mfc0    t0, CP0_STATUS
-
-        PRINTSTR("CP0_STATUS:")
-        move    a0,t0
-        bal	    hexserial
-        nop
-        PRINTSTR("\r\n\r\n")
-
-        li      a0,0xbff00080
-        li      t0,0xbb
-        sb      t0,0x0(a0)
-
-        li      t1, 0x00e0      # {cu3,cu2,cu1,cu0}<={0110, status_fr<=1
-        or      t0, t0, t1
-
-        PRINTSTR("CP0_STATUS:")
-        move    a0,t0
-        bal	    hexserial
-        nop
-        PRINTSTR("\r\n\r\n")
-
-        mtc0    t0, CP0_STATUS
-
-        PRINTSTR("CP0_STATUS:")
-        mfc0    a0, CP0_STATUS
-        bal	    hexserial
-        nop
-        PRINTSTR("\r\n\r\n")
-#endif
-
-
-#if 0
-#set XBAR to route all the DMA request to Scache0
-        dli       a0,0xffffffffffffffff
-        dli       t0,0x900000003ff00400
-        sd        a0,0x0(t0)
-
-PRINTSTR("Scache index setup done\r\n")
 #endif
 
 
@@ -903,131 +1002,49 @@ gs_2f_v3_ddr2_cfg:
 2:      
 #endif    
 
+
 ##########################################
 
 #include "loongson3_ddr2_config.S"
 
-
 ##########################################
 
-	
-skipdimm:
-	PRINTSTR("Init SDRAM Done!\r\n");
 
 		bal CPU_TLBClear
 		nop
 
 
-
 /*
  *  Reset and initialize caches to a known state.
  */
-#define IndexStoreTagI	0x08
-#define IndexStoreTagD	0x09
-#define IndexStoreTagS	0x0b
-#define IndexStoreTagT	0x0a
-#define FillI		0x14
 
-/*
- *  RM7000 config register bits.
- */
-#define CF_7_SE         (1 << 3)        /* Secondary cache enable */
-#define CF_7_SC         (1 << 31)       /* Secondary cache not present */
-#define CF_7_TE         (1 << 12)       /* Tertiary cache enable */
-#define CF_7_TC         (1 << 17)       /* Tertiary cache not present */
-#define CF_7_TS         (3 << 20)       /* Tertiary cache size */
-#define CF_7_TS_AL      20              /* Shift to align */
-#define NOP8 nop;nop;nop;nop;nop;nop;nop;nop
-do_caches:
-#if 0
-	TTYDBG("Sizing caches...\r\n");
-
-	mfc0	t3, COP_0_CONFIG	/* t3 = original config */
-	and	t3, 0xffffeff0		/* Make sure coherency is OK */
-
-	and	t3, ~(CF_7_TE|CF_7_SE|CF_7_TC|CF_7_SC)  /* disable L2/L3 cache */
-	mtc0    t3, COP_0_CONFIG
-
-	li	t2, 4096
-
-	srl	t1, t3, 9
-	and	t1, 7
-	sllv	s3, t2, t1		/* s3 = I cache size */
-
-#ifdef CONFIG_CACHE_64K_4WAY 
-        sll     s3,2
-#endif
-
-	and	t1, t3, 0x20
-	srl	t1, t1, 1
-	addu	s4, t1, 16		/* s4 = I cache line size */
-
-	srl	t1, t3, 6
-	and	t1, 7
-	sllv	s5, t2, t1		/* s5 = D cache size */
-
-#ifdef CONFIG_CACHE_64K_4WAY
-        sll     s5,2
-#endif
-
-	and	t1, t3, 0x10
-	addu	s6, t1, 16		/* s6 = D cache line size */
-	TTYDBG("Init caches...\r\n")
-
-	li	s7, 0                   /* no L2 cache */
-	li	s8, 0                   /* no L3 cache */
-
-#if 0
-        mfc0    a0, COP_0_PRID
-        li      a1, 0x6301
-        bne     a0,a1,1f
-        nop
-#endif
-	TTYDBG("godson2 caches found\r\n")
-        bal     godson2_cache_init
-        nop
-
-	/* close L2 cache */
-	li      a0, 0xbfe00164
-        sw      zero, 0(a0);
-
-        mfc0   a0,COP_0_CONFIG
-        and    a0,a0,~((1<<12) | 3)
-	or     a0,a0,2
-        mtc0   a0,COP_0_CONFIG
-
-#ifdef DEBUG_LOCORE
-	TTYDBG("Init caches done, cfg = ")
-	mfc0	a0, COP_0_CONFIG
-	bal	hexserial
-	nop
-	TTYDBG("\r\n\r\n")
-#endif
-#endif
-
-	and	t1, t3, 0x10
-	addu	s6, t1, 16		/* s6 = D cache line size */
-	TTYDBG("Init tlb...\r\n")
+	    and	t1, t3, 0x10
+	    addu	s6, t1, 16		/* s6 = D cache line size */
+	    TTYDBG("Init tlb...\r\n")
         bal     tlb_init
         nop
-	TTYDBG("\r\nInit caches...\r\n")
-
-//	li	s7, 0                   /* no L2 cache */
-//	li	s8, 0                   /* no L3 cache */
-//
+	    TTYDBG("\r\nInit caches...\r\n")
 
 #if 1
         //mfc0    a0, COP_0_PRID
         //li      a1, 0x6301
         //bne     a0,a1,1f
         //nop
-	TTYDBG("godson2 caches found\r\n")
+	    TTYDBG("godson2 caches found\r\n")
         bal     godson2_cache_init
         nop
-	TTYDBG("scache init\r\n")
+	    TTYDBG("scache init\r\n")
         bal	scache_init // smh
         nop
 #endif
+
+
+##########################################
+
+#include "loongson3_fixup.S"
+
+##########################################
+
 
 #if 1
 PRINTSTR("Jump to 9fc\r\n")
@@ -1049,7 +1066,7 @@ PRINTSTR("Jump to 9fc\r\n")
         or     $4,0x3
         mtc0   $4,$16
 
-	TTYDBG("scache init done\r\n")
+	TTYDBG("cache enable done\r\n")
 	nop
 #endif
 
@@ -1061,189 +1078,19 @@ PRINTSTR("Jump to 9fc\r\n")
 #endif
 
 
-#if 0//config L1 xbar cpu port
-//Core 0
-	TTYDBG("Fix L1xbar illegal access \r\n")
-	dli	t2, 0x900000003ff02028
-	dli	t0, 0x00000e0000000000
-	sd	t0, 0x0(t2)
-
-	dli	t2, 0x900000003ff02068
-	dli	t0, 0xffffff0000000000
-	sd	t0, 0x0(t2)
-
-	dli	t2, 0x900000003ff020a8
-	dli	t0, 0x87
-	sd	t0, 0x0(t2)
-
-	dli	t2, 0x900000003ff02030
-	dli	t0, 0x00000e0000000000
-	sd	t0, 0x0(t2)
-
-	dli	t2, 0x900000003ff02070
-	dli	t0, 0xffffff0000000000
-	sd	t0, 0x0(t2)
-
-	dli	t2, 0x900000003ff020b0
-	dli	t0, 0xf0
-	sd	t0, 0x0(t2)
-
-//Core 1
-	TTYDBG("Fix L1xbar illegal access \r\n")
-	dli	t2, 0x900000003ff02128
-	dli	t0, 0x00000e0000000000
-	sd	t0, 0x0(t2)
-
-	dli	t2, 0x900000003ff02168
-	dli	t0, 0xffffff0000000000
-	sd	t0, 0x0(t2)
-
-	dli	t2, 0x900000003ff021a8
-	dli	t0, 0x87
-	sd	t0, 0x0(t2)
-
-	dli	t2, 0x900000003ff02130
-	dli	t0, 0x00000e0000000000
-	sd	t0, 0x0(t2)
-
-	dli	t2, 0x900000003ff02170
-	dli	t0, 0xffffff0000000000
-	sd	t0, 0x0(t2)
-
-	dli	t2, 0x900000003ff021b0
-	dli	t0, 0xf0
-	sd	t0, 0x0(t2)
-
-//Core 2
-	TTYDBG("Fix L1xbar illegal access \r\n")
-	dli	t2, 0x900000003ff02228
-	dli	t0, 0x00000e0000000000
-	sd	t0, 0x0(t2)
-
-	dli	t2, 0x900000003ff02268
-	dli	t0, 0xffffff0000000000
-	sd	t0, 0x0(t2)
-
-	dli	t2, 0x900000003ff022a8
-	dli	t0, 0x87
-	sd	t0, 0x0(t2)
-
-	dli	t2, 0x900000003ff02230
-	dli	t0, 0x00000e0000000000
-	sd	t0, 0x0(t2)
-
-	dli	t2, 0x900000003ff02270
-	dli	t0, 0xffffff0000000000
-	sd	t0, 0x0(t2)
-
-	dli	t2, 0x900000003ff022b0
-	dli	t0, 0xf0
-	sd	t0, 0x0(t2)
-
-//Core 3
-	TTYDBG("Fix L1xbar illegal access \r\n")
-	dli	t2, 0x900000003ff02328
-	dli	t0, 0x00000e0000000000
-	sd	t0, 0x0(t2)
-
-	dli	t2, 0x900000003ff02368
-	dli	t0, 0xffffff0000000000
-	sd	t0, 0x0(t2)
-
-	dli	t2, 0x900000003ff023a8
-	dli	t0, 0x87
-	sd	t0, 0x0(t2)
-
-	dli	t2, 0x900000003ff02330
-	dli	t0, 0x00000e0000000000
-	sd	t0, 0x0(t2)
-
-	dli	t2, 0x900000003ff02370
-	dli	t0, 0xffffff0000000000
-	sd	t0, 0x0(t2)
-
-	dli	t2, 0x900000003ff023b0
-	dli	t0, 0xf0
-	sd	t0, 0x0(t2)
-#endif
-
-
-#if 1
-############
-	TTYDBG("Fix L2xbar illegal access \r\n")
-	dli	t2, 0x900000003ff00020
-	dli	t0, 0x0000000010000000
-	sd	t0, 0x0(t2)
-
-	dli	t2, 0x900000003ff00060
-	dli	t0, 0xfffffffff0000000
-	sd	t0, 0x0(t2)
-
-	dli	t2, 0x900000003ff000a0
-	dli	t0, 0x00000000100000f2
-	sd	t0, 0x0(t2)
-
-############
-	dli	t2, 0x900000003ff00088
-	dli	t0, 0x0
-	sd	t0, 0x0(t2)
-
-	TTYDBG("Fix L2xbar illegal access \r\n")
-	dli	t2, 0x900000003ff00008
-	dli	t0, 0x000000001fc00000
-	sd	t0, 0x0(t2)
-
-	dli	t2, 0x900000003ff00048
-	dli	t0, 0xfffffffffff00000
-	sd	t0, 0x0(t2)
-
-	dli	t2, 0x900000003ff00088
-	dli	t0, 0x000000001fc000f2
-	sd	t0, 0x0(t2)
-
-############ 0x10000000 Set to not allow Cache access #######
-	dli	t2, 0x900000003ff000a0
-	dli	t0, 0x0000000010000082
-	sd	t0, 0x0(t2)
-
-
-############
-#if 0
-	TTYDBG("Fix L1xbar illegal access \r\n")
-	dli	t2, 0x900000003ff02030
-	dli	t0, 0x0
-	sd	t0, 0x0(t2)
-
-	dli	t2, 0x900000003ff02070
-	dli	t0, 0xffffff0000000000
-	sd	t0, 0x0(t2)
-
-	dli	t2, 0x900000003ff020b0
-	dli	t0, 0xf0
-	sd	t0, 0x0(t2)
-
-#### disable default
-	dli	t2, 0x900000003ff00088
-	dli	t0, 0x0
-	sd	t0, 0x0(t2)
-#endif
-
-#endif
-
-
-####################################
+##########################################
 
 #include "loongson3_HT_init.S"
 
-####################################
+##########################################
 
 //#include "loongson3_ddr_debug.S"
 
-####################################
+##########################################
 
 #include "machine/newtest/mydebug.S"
 
-####################################
+##########################################
 
 
 bootnow:
@@ -2461,34 +2308,6 @@ MC0_CTL_1d0 : .dword 0x0203070400000101
 //0000_0010 tdfi_phy_wrlat_base(RW) 0000_0000 tdfi_phy_wrlat(RD) 000_00111 tdfi_phy_rdlat(RW) 0000_0000 tdfi_ctrlupd_min(RD) 000000000000_0000 dram_clk_disable(RW) 0000000_1 odt_alt_en(RW) 0000000_1 drive_dq_dqs(RW) 
 MC0_CTL_1e0 : .dword 0x0c2d0c2d0c2d0205
 //00_00000000000000 tdfi_phyupd_type0(RD) 00_00000000000000 tdfi_phyupd_resp(RD) 00_00000000000000 tdfi_ctrlupd_max(RD) 000_00000 tdfi_rddata_en_base(RW) 000_00000 tdfi_rddata_en(RD) 
-#ifdef DDR_DEBUG
-//MC0_CTL_1f0 : .dword 0x00120e8000000000
-//MC0_CTL_200 : .dword 0x00160e8000160e80
-//MC0_CTL_210 : .dword 0x00100e8000130e80
-////00000000001000000000111010000000 dll_ctrl_reg_0_4(RW) 00000000001000000000111010000000 dll_ctrl_reg_0_3(RW) 
-//MC0_CTL_220 : .dword 0x00130e8000010e80
-////00000000001000000000111010000000 dll_ctrl_reg_0_6(RW) 00000000001000000000111010000000 dll_ctrl_reg_0_5(RW) 
-//MC0_CTL_230 : .dword 0x00200e8000100e80
-
-#debug write
-MC0_CTL_1f0 : .dword 0x00000e8000000000
-MC0_CTL_200 : .dword 0x00000e8000000e80
-MC0_CTL_210 : .dword 0x00000e8000000e80
-//00000000001000000000111010000000 dll_ctrl_reg_0_4(RW) 00000000001000000000111010000000 dll_ctrl_reg_0_3(RW) 
-MC0_CTL_220 : .dword 0x00000e8000000e80
-//00000000001000000000111010000000 dll_ctrl_reg_0_6(RW) 00000000001000000000111010000000 dll_ctrl_reg_0_5(RW) 
-MC0_CTL_230 : .dword 0x00200e8000000e80
-
-#debug read
-//MC0_CTL_1f0 : .dword 0x00120e8000000000
-//MC0_CTL_200 : .dword 0x00160e8000160e80
-//MC0_CTL_210 : .dword 0x00100e8000140e80
-////00000000001000000000111010000000 dll_ctrl_reg_0_4(RW) 00000000001000000000111010000000 dll_ctrl_reg_0_3(RW) 
-//MC0_CTL_220 : .dword 0x00100e8000120e80
-////00000000001000000000111010000000 dll_ctrl_reg_0_6(RW) 00000000001000000000111010000000 dll_ctrl_reg_0_5(RW) 
-//MC0_CTL_230 : .dword 0x00200e8000140e80
-
-#else
 MC0_CTL_1f0 : .dword 0x00200e8000000000
 MC0_CTL_200 : .dword 0x00200e8000200e80
 MC0_CTL_210 : .dword 0x00200e8000200e80
@@ -2496,49 +2315,6 @@ MC0_CTL_210 : .dword 0x00200e8000200e80
 MC0_CTL_220 : .dword 0x00200e8000200e80
 //00000000001000000000111510000000 dll_ctrl_reg_0_6(RW) 00000000001000000000111010000000 dll_ctrl_reg_0_5(RW) 
 MC0_CTL_230 : .dword 0x00200e8000200e80
-
-//MC0_CTL_1f0 : .dword 0x00130e8000000000
-//MC0_CTL_200 : .dword 0x00130e8000130e80
-//MC0_CTL_210 : .dword 0x00130e8000130e80
-////00000000001000000000111510000000 dll_ctrl_reg_0_4(RW) 00000000001000000000111010000000 dll_ctrl_reg_0_3(RW) 
-//MC0_CTL_220 : .dword 0x00100e8000130e80
-////00000000001000000000111510000000 dll_ctrl_reg_0_6(RW) 00000000001000000000111010000000 dll_ctrl_reg_0_5(RW) 
-//MC0_CTL_230 : .dword 0x00150e8000120e80
-
-//MC0_CTL_1f0 : .dword 0x00230eff00000000
-//MC0_CTL_200 : .dword 0x00230eff00230eff
-//MC0_CTL_210 : .dword 0x00230eff00230eff
-////00000000001000000000111510000000 dll_ctrl_reg_0_4(RW) 00000000001000000000111010000000 dll_ctrl_reg_0_3(RW) 
-//MC0_CTL_220 : .dword 0x00200eff00230eff
-////00000000001000000000111510000000 dll_ctrl_reg_0_6(RW) 00000000001000000000111010000000 dll_ctrl_reg_0_5(RW) 
-//MC0_CTL_230 : .dword 0x00150eff00200eff
-
-//MC0_CTL_1f0 : .dword 0x00120e8000000000
-//MC0_CTL_200 : .dword 0x00160e8000160e80
-//MC0_CTL_210 : .dword 0x00100e8000180e80
-////00000000001000000000111010000000 dll_ctrl_reg_0_4(RW) 00000000001000000000111010000000 dll_ctrl_reg_0_3(RW) 
-//MC0_CTL_220 : .dword 0x000c0e8000120e80
-////00000000001000000000111010000000 dll_ctrl_reg_0_6(RW) 00000000001000000000111010000000 dll_ctrl_reg_0_5(RW) 
-//MC0_CTL_230 : .dword 0x00200e8000100e80
-
-#150M MC0
-//MC0_CTL_1f0 : .dword 0x001a0e8000000000
-//MC0_CTL_200 : .dword 0x00120e8000120e80
-//MC0_CTL_210 : .dword 0x00100e8000120e80
-////00000000001000000000111010000000 dll_ctrl_reg_0_4(RW) 00000000001000000000111010000000 dll_ctrl_reg_0_3(RW) 
-//MC0_CTL_220 : .dword 0x00100e8000120e80
-////00000000001000000000111010000000 dll_ctrl_reg_0_6(RW) 00000000001000000000111010000000 dll_ctrl_reg_0_5(RW) 
-//MC0_CTL_230 : .dword 0x00200e8000120e80
-
-#150M MC0
-//MC0_CTL_1f0 : .dword 0x00160e8000000000
-//MC0_CTL_200 : .dword 0x00100e8000100e80
-//MC0_CTL_210 : .dword 0x00100e8000160e80
-////00000000001000000000111010000000 dll_ctrl_reg_0_4(RW) 00000000001000000000111010000000 dll_ctrl_reg_0_3(RW) 
-//MC0_CTL_220 : .dword 0x00160e8000120e80
-////00000000001000000000111010000000 dll_ctrl_reg_0_6(RW) 00000000001000000000111010000000 dll_ctrl_reg_0_5(RW) 
-//MC0_CTL_230 : .dword 0x00200e8000100e80
-#endif
 MC0_CTL_240 : .dword 0x00000e0000000e00
 //00000000000000000000111000000000 dll_ctrl_reg_1_1(RW) 00000000000000000000111000000000 dll_ctrl_reg_1_0(RW) 
 MC0_CTL_250 : .dword 0x00000e0000000e00
@@ -2549,7 +2325,7 @@ MC0_CTL_290 : .dword 0x0000000000000000
 MC0_CTL_2a0 : .dword 0x0000000000000000
 MC0_CTL_2b0 : .dword 0x0000000000000000
 MC0_CTL_2c0 : .dword 0x0000000000000000
-MC0_CTL_2d0 : .dword 0xf3004a480000019d
+MC0_CTL_2d0 : .dword 0xf3004a480000099c
 //11110100000000000011101100100111 phy_ctrl_reg_0_0(RD) 000000_00000000000000000110011101 pad_ctrl_reg_0(RW) 
 MC0_CTL_2e0 : .dword 0xf3004a48f3004a48
 MC0_CTL_2f0 : .dword 0xf3004a48f3004a48
@@ -2745,42 +2521,6 @@ MC1_CTL_1d0 : .dword 0x0203070400000101
 //0000_0010 tdfi_phy_wrlat_base(RW) 0000_0000 tdfi_phy_wrlat(RD) 000_00111 tdfi_phy_rdlat(RW) 0000_0000 tdfi_ctrlupd_min(RD) 000000000000_0000 dram_clk_disable(RW) 0000000_1 odt_alt_en(RW) 0000000_1 drive_dq_dqs(RW) 
 MC1_CTL_1e0 : .dword 0x0c2d0c2d0c2d0205
 //00_00000000000000 tdfi_phyupd_type0(RD) 00_00000000000000 tdfi_phyupd_resp(RD) 00_00000000000000 tdfi_ctrlupd_max(RD) 000_00000 tdfi_rddata_en_base(RW) 000_00000 tdfi_rddata_en(RD) 
-#ifdef DDR_DEBUG
-//MC1_CTL_1f0 : .dword 0x00120e8000000000
-//MC1_CTL_200 : .dword 0x00160e8000160e80
-//MC1_CTL_210 : .dword 0x00100e8000130e80
-////00000000001000000000111010000000 dll_ctrl_reg_0_4(RW) 00000000001000000000111010000000 dll_ctrl_reg_0_3(RW) 
-//MC1_CTL_220 : .dword 0x00130e8000010e80
-////00000000001000000000111010000000 dll_ctrl_reg_0_6(RW) 00000000001000000000111010000000 dll_ctrl_reg_0_5(RW) 
-//MC1_CTL_230 : .dword 0x00200e8000100e80
-
-//MC1_CTL_1f0 : .dword 0x00000e8000000000
-//MC1_CTL_200 : .dword 0x00200e8000200e80
-//MC1_CTL_210 : .dword 0x00200e8000200e80
-////00000000001000000000111510000000 dll_ctrl_reg_0_4(RW) 00000000001000000000111010000000 dll_ctrl_reg_0_3(RW) 
-//MC1_CTL_220 : .dword 0x00200e8000200e80
-////00000000001000000000111510000000 dll_ctrl_reg_0_6(RW) 00000000001000000000111010000000 dll_ctrl_reg_0_5(RW) 
-//MC1_CTL_230 : .dword 0x00200e8000200e80
-
-#debug write
-MC1_CTL_1f0 : .dword 0x00000e8000000000
-MC1_CTL_200 : .dword 0x00000e8000000e80
-MC1_CTL_210 : .dword 0x00000e8000000e80
-//00000000001000000000111010000000 dll_ctrl_reg_0_4(RW) 00000000001000000000111010000000 dll_ctrl_reg_0_3(RW) 
-MC1_CTL_220 : .dword 0x00000e8000000e80
-//00000000001000000000111010000000 dll_ctrl_reg_0_6(RW) 00000000001000000000111010000000 dll_ctrl_reg_0_5(RW) 
-MC1_CTL_230 : .dword 0x00200e8000000e80
-
-#debug read
-//MC1_CTL_1f0 : .dword 0x00120e8000000000
-//MC1_CTL_200 : .dword 0x00160e8000160e80
-//MC1_CTL_210 : .dword 0x00100e8000140e80
-////00000000001000000000111010000000 dll_ctrl_reg_0_4(RW) 00000000001000000000111010000000 dll_ctrl_reg_0_3(RW) 
-//MC1_CTL_220 : .dword 0x00100e8000120e80
-////00000000001000000000111010000000 dll_ctrl_reg_0_6(RW) 00000000001000000000111010000000 dll_ctrl_reg_0_5(RW) 
-//MC1_CTL_230 : .dword 0x00200e8000140e80
-
-#else
 MC1_CTL_1f0 : .dword 0x00200e8000000000
 MC1_CTL_200 : .dword 0x00200e8000200e80
 MC1_CTL_210 : .dword 0x00200e8000200e80
@@ -2788,49 +2528,6 @@ MC1_CTL_210 : .dword 0x00200e8000200e80
 MC1_CTL_220 : .dword 0x00200e8000200e80
 //00000000001000000000111510000000 dll_ctrl_reg_0_6(RW) 00000000001000000000111010000000 dll_ctrl_reg_0_5(RW) 
 MC1_CTL_230 : .dword 0x00200e8000200e80
-
-//MC1_CTL_1f0 : .dword 0x00000e8000000000
-//MC1_CTL_200 : .dword 0x00000e8000000e80
-//MC1_CTL_210 : .dword 0x00000e8000000e80
-////00000000001000000000111510000000 dll_ctrl_reg_0_4(RW) 00000000001000000000111010000000 dll_ctrl_reg_0_3(RW) 
-//MC1_CTL_220 : .dword 0x00000e8000000e80
-////00000000001000000000111510000000 dll_ctrl_reg_0_6(RW) 00000000001000000000111010000000 dll_ctrl_reg_0_5(RW) 
-//MC1_CTL_230 : .dword 0x00000e8000000e80
-
-//MC1_CTL_1f0 : .dword 0x00230eff00000000
-//MC1_CTL_200 : .dword 0x00230eff00230eff
-//MC1_CTL_210 : .dword 0x00230eff00230eff
-////00000000001000000000111510000000 dll_ctrl_reg_0_4(RW) 00000000001000000000111010000000 dll_ctrl_reg_0_3(RW) 
-//MC1_CTL_220 : .dword 0x00200eff00230eff
-////00000000001000000000111510000000 dll_ctrl_reg_0_6(RW) 00000000001000000000111010000000 dll_ctrl_reg_0_5(RW) 
-//MC1_CTL_230 : .dword 0x00150eff00200eff
-
-//MC1_CTL_1f0 : .dword 0x00120e8000000000
-//MC1_CTL_200 : .dword 0x00160e8000160e80
-//MC1_CTL_210 : .dword 0x00100e8000180e80
-////00000000001000000000111010000000 dll_ctrl_reg_0_4(RW) 00000000001000000000111010000000 dll_ctrl_reg_0_3(RW) 
-//MC1_CTL_220 : .dword 0x000c0e8000120e80
-////00000000001000000000111010000000 dll_ctrl_reg_0_6(RW) 00000000001000000000111010000000 dll_ctrl_reg_0_5(RW) 
-//MC1_CTL_230 : .dword 0x00200e8000100e80
-
-#150M MC1
-//MC1_CTL_1f0 : .dword 0x001a0e8000000000
-//MC1_CTL_200 : .dword 0x00120e8000120e80
-//MC1_CTL_210 : .dword 0x00100e8000120e80
-////00000000001000000000111010000000 dll_ctrl_reg_0_4(RW) 00000000001000000000111010000000 dll_ctrl_reg_0_3(RW) 
-//MC1_CTL_220 : .dword 0x00100e8000120e80
-////00000000001000000000111010000000 dll_ctrl_reg_0_6(RW) 00000000001000000000111010000000 dll_ctrl_reg_0_5(RW) 
-//MC1_CTL_230 : .dword 0x00200e8000120e80
-
-#150M MC1
-//MC1_CTL_1f0 : .dword 0x00160e8000000000
-//MC1_CTL_200 : .dword 0x00100e8000100e80
-//MC1_CTL_210 : .dword 0x00100e8000160e80
-////00000000001000000000111010000000 dll_ctrl_reg_0_4(RW) 00000000001000000000111010000000 dll_ctrl_reg_0_3(RW) 
-//MC1_CTL_220 : .dword 0x00160e8000120e80
-////00000000001000000000111010000000 dll_ctrl_reg_0_6(RW) 00000000001000000000111010000000 dll_ctrl_reg_0_5(RW) 
-//MC1_CTL_230 : .dword 0x00200e8000100e80
-#endif
 MC1_CTL_240 : .dword 0x00000e0000000e00
 //00000000000000000000111000000000 dll_ctrl_reg_1_1(RW) 00000000000000000000111000000000 dll_ctrl_reg_1_0(RW) 
 MC1_CTL_250 : .dword 0x00000e0000000e00
@@ -2841,7 +2538,7 @@ MC1_CTL_290 : .dword 0x0000000000000000
 MC1_CTL_2a0 : .dword 0x0000000000000000
 MC1_CTL_2b0 : .dword 0x0000000000000000
 MC1_CTL_2c0 : .dword 0x0000000000000000
-MC1_CTL_2d0 : .dword 0xf300494603c0019d
+MC1_CTL_2d0 : .dword 0xf300494603fc099c
 //11110100000000000011101100100111 phy_ctrl_reg_0_0(RD) 000000_00000000000000000110011101 pad_ctrl_reg_0(RW) 
 MC1_CTL_2e0 : .dword 0xf3004946f3004946
 MC1_CTL_2f0 : .dword 0xf3004946f3004946
@@ -2853,11 +2550,11 @@ MC1_CTL_310 : .dword 0xf3004946f3004946
 //MC1_CTL_2f0 : .dword 0xf3005a47f3005a47
 //MC1_CTL_300 : .dword 0xf3005a47f3005a47
 //MC1_CTL_310 : .dword 0xf3005a47f3005a47
-MC1_CTL_320 : .dword 0x06c0000006c00000
-MC1_CTL_330 : .dword 0x06c0000006c00000
-MC1_CTL_340 : .dword 0x06c0000006c00000
-MC1_CTL_350 : .dword 0x06c0000006c00000
-MC1_CTL_360 : .dword 0x0800c00506c00000
+MC1_CTL_320 : .dword 0x07a0000007a00000
+MC1_CTL_330 : .dword 0x07a0000007a00000
+MC1_CTL_340 : .dword 0x07a0000007a00000
+MC1_CTL_350 : .dword 0x07a0000007a00000
+MC1_CTL_360 : .dword 0x0800c00507a00000
 //00000000000000001100000000000101 phy_ctrl_reg_2(RW) 00000111110000000000001100000001 phy_ctrl_reg_1_8(RD) 
 MC1_CTL_370 : .dword 0x0000000000000000
 MC1_CTL_380 : .dword 0x0000000000000000

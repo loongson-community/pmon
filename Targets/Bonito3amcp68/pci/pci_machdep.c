@@ -333,9 +333,10 @@ _pci_conf_readn(pcitag_t tag, int reg, int width)
     }
 #ifdef LS3_HT
     if(bus == 0)    
-       ht_conf_rd_addr = 0xbfe80000;
+       ht_conf_rd_addr = 0xba000000;
     else
-       ht_conf_rd_addr = 0xbe000000;
+       ht_conf_rd_addr = 0xbb000000;
+
 
     ht_conf_rd_addr = ht_conf_rd_addr | addr;
     data = *(volatile pcireg_t *)(ht_conf_rd_addr);
@@ -419,9 +420,9 @@ _pci_conf_writen(pcitag_t tag, int reg, pcireg_t data,int width)
 
 #ifdef LS3_HT
     if(bus == 0)    
-       ht_conf_rd_addr = 0xbfe80000;
+       ht_conf_rd_addr = 0xba000000;
     else
-       ht_conf_rd_addr = 0xbe000000;
+       ht_conf_rd_addr = 0xbb000000;
 
     ht_conf_rd_addr = ht_conf_rd_addr | addr;
     //printf("ht_conf_rd_addr[%X]!\n",ht_conf_rd_addr);

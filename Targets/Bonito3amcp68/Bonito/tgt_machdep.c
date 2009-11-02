@@ -395,7 +395,7 @@ superio_reinit();
 #if 1 /* whd : Disable gpu controller of MCP68 */
 	//*(unsigned int *)0xbfe809e8 = 0x122380;
 	//*(unsigned int *)0xbfe809e8 = 0x2280;
-	*(unsigned int *)0xbfe809e8 = 0x2280;
+	*(unsigned int *)0xba0009e8 = 0x2280;
 #endif
 
 #if 0 /* whd : Enable IDE controller of MCP68 */
@@ -791,7 +791,7 @@ tgt_devinit()
 		CpuExternalCacheOn = 1;
 	}
 	
-#if 0
+#if 1
     CPU_ConfigCache();
 #else
 {       

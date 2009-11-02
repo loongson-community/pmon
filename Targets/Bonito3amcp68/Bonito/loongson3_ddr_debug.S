@@ -362,7 +362,7 @@ uncache_test:
         nop
 #endif
 
-#if 0 //LOOP whd
+#if 1 //LOOP whd
 33:
         li      t0, 0x80000400
         li      a0, 0x0
@@ -1824,3 +1824,95 @@ skipdot:
 	b	1b
 	nop
 #endif
+
+
+#if 1 /* Read adustment */
+//CACHE WRITE whd
+	    TTYDBG("Write \r\n")
+        li      t0, 0x80000400
+        li      a0, 0x0
+        li      t2, 0x80000420
+
+        li      a0, 0x99999999
+        sw      a0, 0x0(t0)
+        li      a0, 0x99999999
+        sw      a0, 0x4(t0)
+        li      a0, 0x66666666
+        sw      a0, 0x8(t0)
+        li      a0, 0x66666666
+        sw      a0, 0xc(t0)
+
+        li      a0, 0x55555555
+        sw      a0, 0x10(t0)
+        li      a0, 0x55555555
+        sw      a0, 0x14(t0)
+        li      a0, 0xaaaaaaaa
+        sw      a0, 0x18(t0)
+        li      a0, 0xaaaaaaaa
+        sw      a0, 0x1c(t0)
+
+        
+        li      t0, 0x80000400
+        cache   23, 0x0(t0) //HitWBInvalidate_S
+
+        dli     t0, 0
+        dli     t1, 0xff
+        li      v0, 0
+        li      v1, 0
+
+//SLICE 0: Set Delay of DQS
+set_0:
+        li      t2, 0xaff001f0
+        ld      a0, 0x0(t2)
+        li      a1, 0xffff00ffffffffff
+        and     a0, a0, a1
+        dsll    a1, t0, 40
+        or      a0, a0, a1
+        sd      a0, 0x0(t2)
+
+	    TTYDBG("\r\nLOOP until value change done.\r\n")
+        li      t1, 0xfffffff #360Mhz
+1:
+        bnez    t1, 1b
+        addi    t1, t1, -1
+    
+	    TTYDBG("LOOP done.\r\n")
+
+  //Test DQS
+
+read_right_0:
+        li      t2, 0xa0000400
+        lw      a0, 0x0(t2)
+        li      a1, 0x000000ff
+        and     a0, a0, a1
+        li      a1, 0x99
+
+        daddi   t0, t0, 1
+
+        bne     a0, a1, set_0
+        nop
+
+        lw      a0, 0x10(t2)
+        li      a1, 0x000000ff
+        and     a0, a0, a1
+        li      a1, 0x55
+        bne     a0, a1, set_0
+        nop
+
+        addi    v0, t0, -1
+        move    a0, v0
+        bal     hexserial
+        nop
+        bne     t0, t1, set_0
+        nop
+
+#endif
+
+/*
+////////////////////
+        li      t2, 0xaff00240
+        ld      a0, 0x0(t2)
+        li      a1, 0xffffffffffff00ff
+        and     a0, a0, a1
+        sd      a0, 0x0(t2)
+*/
