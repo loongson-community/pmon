@@ -100,7 +100,7 @@ static struct stdenv {
 	{"Version", "LM-HPC-1.0.2", 0},
 #endif
 #ifdef LOONGSON2F_NAS
-        {"Version", "LM-NAS-1.0.3", 0},
+        {"Version", "LM-NAS-1.0.4", 0},
 #endif
 #ifdef LOONGSON2F_3GNB
 	{"Version", "LM****-1.0.0", 0},

@@ -59,6 +59,22 @@ The rest may be deduced by analogy.
 #define vtophys(p)      _pci_dmamap((vm_offset_t)p, 1)
 #define CFG_SATA_MAX_DEVICE 2
 
+
+
+//#define DEBUG_SIL
+#ifdef DEBUG_SIL
+#define sil_dbg(format, arg...) printf("DEBUG: " format "\n", ## arg)
+#else
+#define sil_dbg(format, arg...) do {} while(0)
+#endif /* DEBUG */
+#define sil_err(format, arg...) printf("ERROR: " format "\n", ## arg)
+#define SHOW_INFO
+#ifdef SHOW_INFO_SIL
+#define sil_info(format, arg...) printf("INFO: " format "\n", ## arg)
+#else
+#define sil_info(format, arg...) do {} while(0)
+#endif
+
 static int sil_match (struct device *, void *, void *);
 static void sil_attach (struct device *, struct device *, void *);
 
@@ -89,7 +105,8 @@ static u8 sil_bmdma_status(struct ata_port *p_ap);
 extern void udelay(int usec);
 
 extern sata_operation_t sata_op;
-static u32 g_iobase[6] = { 0, 0, 0, 0, 0, 0};   /* PCI BAR registers for device */
+//static u32 g_iobase[6] = { 0, 0, 0, 0, 0, 0};   /* PCI BAR registers for device */
+static unsigned long g_iobase[6] = { 0, 0, 0, 0, 0, 0};   /* PCI BAR registers for device */
 ata_port_t sil_ata_ports[CONFIG_SYS_SATA_MAX_DEVICE];
 ata_device_t sil_ata_dev[CONFIG_SYS_SATA_MAX_DEVICE];
 ata_host_t sil_host;
@@ -233,6 +250,9 @@ static int sil_match(
                 )
 {
     struct pci_attach_args *pa = aux;
+
+    sil_dbg("sil_match here.");
+    
     if(PCI_VENDOR(pa->pa_id) == PCI_VENDOR_SATA_SIL3114&&
        PCI_PRODUCT(pa->pa_id) == PCI_DEVICE_SATA_SIL3114){
         return 1;
@@ -254,6 +274,8 @@ static void sil_attach(struct device * parent,struct device * self,void *aux)
     int cachable;
     int i = 0;    
 
+    sil_dbg("sil_attach here.");
+
     p_sil_device =(struct sil_sata_softc *)self;
     
     //we only use MMIO from BAR5
@@ -266,6 +288,11 @@ static void sil_attach(struct device * parent,struct device * self,void *aux)
         printf(": Can't map mem space\n");
         return;
     }
+
+    g_iobase[5] = PTR_PAD(g_iobase[5]);
+
+    sil_dbg("sil_attach g_iobase[5]:%llx",g_iobase[5]);
+    
 
     /* from sata_sil in Linux kernel */
     cls = sil_get_device_cache_line (pa);
@@ -314,6 +341,8 @@ static void sil_attach(struct device * parent,struct device * self,void *aux)
          ata_sff_std_ports(p_ioaddr);
      }
 
+    sil_dbg("sil_attach before ata_host_activate.");
+
     if(ata_host_activate(&sil_host))
     {
         printf("sil_attach: ata_host_activate() failed.\n");
@@ -336,10 +365,11 @@ static void sil_attach(struct device * parent,struct device * self,void *aux)
 /* Check if sata device is connected to port */
 unsigned int sil_devchk (struct ata_port *p_ap)
 {
-    unsigned int port_no,port_addr,val;
+    unsigned int port_no,val;
     p_ata_host_t  p_host = p_ap->p_host;
+    unsigned long port_addr;
 
-    port_addr =(unsigned int) p_host->iomap[5];
+    port_addr =(unsigned long) p_host->iomap[5];
     port_no = p_ap->port_no;
 
     switch (port_no) {

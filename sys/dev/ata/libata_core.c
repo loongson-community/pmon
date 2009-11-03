@@ -401,7 +401,7 @@ int ata_port_start(struct ata_port *ap)
 
 static void ata_finalize_port_ops(p_ata_port_operations_t  p_ops)
 {
-    const p_ata_port_operations_t  p_cur;
+    p_ata_port_operations_t  p_cur;
     void **begin = (void **)p_ops;
     void **end = (void **)&p_ops->inherits;
     void **pp;

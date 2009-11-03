@@ -11,13 +11,14 @@
 #ifndef	_CS5536_H
 #define	_CS5536_H
 
+#include "bonito.h"
 /*************************************************************************/
 
 /*
  * basic define
  */
 #define	PCI_IO_BASE		0x1fd00000	//( < 0x1fe00000)
-#define	PCI_IO_BASE_VA		0xbfd00000
+#define	PCI_IO_BASE_VA		PTR_PAD(0xbfd00000)
 #define	PCI_MEM_BASE		0x10000000	//( < 0x1c000000 )
 #define	PCI_MEM_BASE_VA		0xb0000000
 
