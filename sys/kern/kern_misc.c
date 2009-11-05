@@ -316,15 +316,23 @@ void
 vminit ()
 {
 extern unsigned int memorysize;
-
-   unsigned  int v_memorysize = TOP_OF_MEMORY_TO_GRAB;
-
+    #if (_MIPS_SZPTR == 32)
+        unsigned  int v_memorysize = memorysize;
+    #else
+        unsigned  int v_memorysize = TOP_OF_MEMORY_TO_GRAB;
+    #endif
+    
 	if (!kmem) {
 		/* grab a chunk at the top of memory */
 		if (memorysize < VM_KMEM_SIZE * 2) {
 			panic ("not enough memory for network");
 		}
 		v_memorysize = (v_memorysize - VM_KMEM_SIZE) & ~PGOFSET;
+
+    #if (_MIPS_SZPTR == 32)
+        memorysize = v_memorysize;
+    #endif
+        
 #ifdef __mips__
 		if ((u_int32_t)&kmem < (u_int32_t)UNCACHED_MEMORY_ADDR) {
 			/* if linked for data in kseg0, keep kmem there too */

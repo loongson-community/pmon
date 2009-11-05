@@ -117,6 +117,13 @@ CONFIG_VIDEO_HW_CURSOR:      - Uses the hardware cursor capability of the
 #include <dev/pci/pcivar.h>
 #include <linux/io.h>
 
+
+#ifdef LOONGSON2F_ALLINONE
+#define PICBMP_START_ADDR 0xbfc70000
+#else
+#define PICBMP_START_ADDR 0xbfc60000
+#endif
+
 /* radeon7000 micro define */
 #ifdef RADEON7000
 #define CONFIG_VIDEO_SW_CURSOR
@@ -1182,7 +1189,8 @@ void video_puts(const char *s)
 #define le32_to_cpu(x) (x)
 #define le16_to_cpu(x) (x)
 
-#define CFG_VIDEO_LOGO_MAX_SIZE 0x120000
+#define CFG_VIDEO_LOGO_MAX_SIZE 0x200000
+#define GZIP_BMP_FILE_MAX_SIZE 0x20000
 /*
  * Display the BMP file located at address bmp_image.
  * Only uncompressed
@@ -1253,7 +1261,7 @@ int video_display_bitmap(ulong bmp_image, int x, int y)
             printf("Image could be truncated (increase CFG_VIDEO_LOGO_MAX_SIZE)!\n");
         }
 #else
-        len = 0x20000;
+        len = GZIP_BMP_FILE_MAX_SIZE;
         bg_img_src = malloc(len);
         if (bg_img_src == NULL) {
             printf("Error: malloc in gunzip failed!\n");
@@ -1266,11 +1274,11 @@ int video_display_bitmap(ulong bmp_image, int x, int y)
             return (1);
         }
 
-        memcpy(bg_img_src, PTR_PAD(0xbfc60000), len);
+        memcpy(bg_img_src, bmp_image, len);
         if (gunzip(dst, CFG_VIDEO_LOGO_MAX_SIZE, 
                 (unsigned char *)bg_img_src, &len) != 0) {
             printf("Error: no valid bmp or bmp.gz image at %lx\n",
-                   0xbfc60000);
+                   bmp_image);
             free(dst);
             free(bg_img_src);
             return 1;
@@ -2023,7 +2031,7 @@ int fb_init(unsigned long fbbase, unsigned long iobase)
 #ifdef  LOONGSON2F_7INCH
     video_display_bitmap(BIGBMP_START_ADDR, BIGBMP_X, BIGBMP_Y);
 #else
-    video_display_bitmap(PTR_PAD(0xbfc60000), 0, 0);
+    video_display_bitmap(PTR_PAD(PICBMP_START_ADDR), 0, 0);
 #endif
 #endif
     video_console_address = video_fb_address;
