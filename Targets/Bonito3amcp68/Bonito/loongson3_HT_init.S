@@ -3,7 +3,7 @@
 //#define HT_800M
 //#define HT_16bit
 //#define HT_RECONNECT
-//#define HT_REG_TRANS
+//#define HT_REG_TRANS //Can not using now
 
 #ifdef HT_32bit_TRANS //PCI CFG : TYPE 0: 
 	TTYDBG("32 bit PCI space translate to 64 bit HT space\r\n")
@@ -12,10 +12,10 @@
     dli t2, 0x900000003ff02400
 
 1:
-      //map PCI IO : 0x90000efd_fc000000 --> 0x18000000
-      //map          0x90000efd_fd000000 --> 0x19000000
-      //map PCI CFG: 0x90000efd_fe000000 --> 0x1a000000
-      //map PCI CFG: 0x90000efd_ff000000 --> 0x1b000000
+      //map HT: PCI IO : 0x90000efd_fc000000 --> 0x18000000
+      //map              0x90000efd_fd000000 --> 0x19000000
+      //map HT: PCI CFG: 0x90000efd_fe000000 --> 0x1a000000
+      //map HT: PCI CFG: 0x90000efd_ff000000 --> 0x1b000000
     dli t1, 0x0000000018000000
     sd  t1, 0x0(t0)
     dli t1, 0xfffffffffc000000
@@ -23,8 +23,8 @@
     dli t1, 0x00000efdfc0000f7
     sd  t1, 0x80(t0)
 
- //PCI CFG : TYPE 1:
-      //map 0x90000efd_fc000000 --> 0x1e000000
+ //HT Space enable
+      //map 0x90000e00_00000000 --> 0x90000e00_00000000
     dli t1, 0x00000e0000000000
     sd  t1, 0x8(t0)
     dli t1, 0xffffff0000000000
@@ -32,7 +32,7 @@
     dli t1, 0x00000e00000000f7
     sd  t1, 0x88(t0)
 
-//PCI LO BASE
+ //HT: PCI LO BASE
       //map 0x90000e00_00000000 --> 0x10000000
     dli t1, 0x0000000010000000
     sd  t1, 0x10(t0)
@@ -41,7 +41,7 @@
     dli t1, 0x00000e00000000f7
     sd  t1, 0x90(t0)
 
- //PCI HI BASE
+ //HT: PCI HI BASE
       //map 0x90000e00_10000000 --> 0x18000000
     dli t1, 0x0000000010000000
     sd  t1, 0x18(t0)
@@ -50,16 +50,6 @@
     dli t1, 0x00000e00100000f7
     sd  t1, 0x98(t0)
 
-/*
- //PCI IO BASE
-      //map 0x90000efd_fc000000 --> 0x1a000000
-    dli t1, 0x000000001a000000
-    sd  t1, 0x20(t0)
-    dli t1, 0xffffffffff000000
-    sd  t1, 0x60(t0)
-    dli t1, 0x00000efdfc0000f7
-    sd  t1, 0xa0(t0)
-    */
 
 #ifdef HT_REG_TRANS
  //HT REG BASE
@@ -749,7 +739,7 @@
      	li	t1, 31
 	TTYDBG("start HT bus scan\r\n")
 
-        //li	t0, 0xbfe80000
+        //li	t0, 0xba000000
     dli	t0, 0x90000efdfe000000
 1:
 	move	a0, t0
@@ -778,7 +768,7 @@
 	TTYDBG("Find capability in DEVICE 1\r\n")
 	TTYDBG("function 0\r\n")
 
-	//li	t0, 0xbfe80000
+	//li	t0, 0xba000000
     dli	t0, 0x90000efdfe000000
 
 	li	t1, 0x34
@@ -819,7 +809,7 @@
 /*
 	TTYDBG("function 1\r\n")
 
-	//li	t0, 0xbfe80900
+	//li	t0, 0xba000900
     dli	t0, 0x90000efdfe000900
 
 	li	t1, 0x34
@@ -849,7 +839,7 @@
 
 	TTYDBG("function 2\r\n")
 
-	//li	t0, 0xbfe80a00
+	//li	t0, 0xba000a00
     dli	t0, 0x90000efdfe000a00
 
 	li	t1, 0x34
@@ -879,7 +869,7 @@
 
 	TTYDBG("function 3\r\n")
 
-	//li	t0, 0xbfe80b00
+	//li	t0, 0xba000b00
     dli	t0, 0x90000efdfe000b00
 
 	li	t1, 0x34
@@ -916,7 +906,7 @@
      	li	t1, 6
 	TTYDBG("start Capability of HT scan\r\n")
 
-        //li	t0, 0xbfe80044
+        //li	t0, 0xba000044
     dli	t0, 0x90000efdfe000044
 1:
 	move	a0, t0
@@ -943,7 +933,7 @@
 
 #if 0//RESET Southbridge
 	//dli	t0, 0x90000efdfc000cf9
-	li	t0, 0xba000cf9
+	li	t0, 0xb8000cf9
 	lb	a0, 0x0(t0)
 	li	a0, 0x4
 	sb	a0, 0x0(t0)
@@ -954,7 +944,7 @@
 
 #ifdef HT_16bit //Write Southbridge to 16 bit width
 	TTYDBG("Setting HyperTransport Southbridge to be 16-bit width\r\n")
-	//li	t0, 0xbfe80000
+	//li	t0, 0xba000000
     dli	t0, 0x90000efdfe000000
 	#li	t1, 0x01 //DRIVER 16bit
 	li	t1, 0x11
@@ -965,7 +955,7 @@
 	TTYDBG("\r\n")
 #else
 	TTYDBG("Setting HyperTransport Southbridge to be 8-bit width\r\n")
-	//li	t0, 0xbfe80000
+	//li	t0, 0xba000000
     dli	t0, 0x90000efdfe000000
 	li	t1, 0x00
 	sb	t1, 0x4b(t0)
@@ -978,7 +968,7 @@
 
 #ifdef HT_800M //Write Southbridge to 800Mhz
 	TTYDBG("Setting HyperTransport Southbridge to be 800M\r\n")
-	//li	t0, 0xbfe80000
+	//li	t0, 0xba000000
     dli	t0, 0x90000efdfe000000
 	#li	t1, 0x2 //Frequency : 400Mhz
 	li	t1, 0x5 //Frequency : 800Mhz
@@ -995,14 +985,14 @@
 #ifdef WD_DEBUG
 	TTYDBG("Setting Watch dog BAR\r\n")
 	nop
-	//li	t0, 0xbfe8096c
+	//li	t0, 0xba00096c
     dli	t0, 0x90000efdfe00096c
 	lw	a0, 0(t0)
 	bal	hexserial
         nop
 	TTYDBG("\r\n")
 #endif
-	//li	t0, 0xbfe8096c
+	//li	t0, 0xba00096c
     dli	t0, 0x90000efdfe00096c
 	li	a0, 0x00001000
 	sw	a0, 0(t0)
@@ -1021,7 +1011,7 @@
 
 	TTYDBG("Watch dog Disable\r\n")
 	nop
-	//li	t0, 0xbfe809e8
+	//li	t0, 0xba0009e8
     dli	t0, 0x90000efdfe0009e8
 	lw	a0, 0(t0)
 	bal	hexserial
@@ -1045,14 +1035,14 @@
 
 	TTYDBG("Watch dog Enable\r\n")
 	nop
-	//li	t0, 0xbfe809e8
+	//li	t0, 0xba0009e8
     dli	t0, 0x90000efdfe0009e8
 	lw	a0, 0(t0)
 	bal	hexserial
         nop
 	TTYDBG("\r\n")
 #endif
-	//li	t0, 0xbfe809e8
+	//li	t0, 0xba0009e8
     dli	t0, 0x90000efdfe0009e8
 	lw	a0, 0(t0)
 	li	a1, 0xfbffffff
@@ -1173,7 +1163,7 @@
 
 #if 1
 	TTYDBG("Setting HyperTransport Southbridge back to be 8-bit width and 200Mhz for next RESET\r\n")
-	//li	t0, 0xbfe80000
+	//li	t0, 0xba000000
     dli	t0, 0x90000efdfe000000
 	li	t1, 0x00
 	sb	t1, 0x4b(t0)
@@ -1224,7 +1214,7 @@ crc_checking:
 
 1:
        TTYDBG("Checking HyperTransport SouthBridge CRC error bit.\r\n")
-	//li	t0, 0xbfe80000
+	//li	t0, 0xba000000
     dli	t0, 0x90000efdfe000000
 2:
         lw      a0, 0x48(t0)
@@ -1272,7 +1262,7 @@ crc_checking:
      	li	t1, 16
 	TTYDBG("start HT-LPC header scan\r\n")
 
-        //li	t0, 0xbfe80800
+        //li	t0, 0xba000800
     dli	t0, 0x90000efdfe000800
 1:
 	move	a0, t0
@@ -1296,7 +1286,7 @@ crc_checking:
 
 
      	li	t1, 6
-        //li	t0, 0xbfe80810
+        //li	t0, 0xba000810
     dli	t0, 0x90000efdfe000810
 1:
 	li	a0, 0xffffffff
@@ -1313,7 +1303,7 @@ crc_checking:
      	li	t1, 16
 	TTYDBG("start HT-LPC header scan\r\n")
 
-        //li	t0, 0xbfe80800
+        //li	t0, 0xba000800
     dli	t0, 0x90000efdfe000800
 1:
 	move	a0, t0
@@ -1340,7 +1330,7 @@ crc_checking:
 
 #if 1//Enable the LPC on the Southbridge, including SuperIO, LED....
 	TTYDBG("Check the LPC on the Southbridge\r\n")
-	//li	t0, 0xbfe80800
+	//li	t0, 0xba000800
     dli	t0, 0x90000efdfe000800
 	lw	a0, 0x78(t0)
 	bal	hexserial
@@ -1371,7 +1361,7 @@ crc_checking:
         nop
 	TTYDBG("\r\n")
 
-        li      a0,0xba000080
+        li      a0,0xb8000080
         li      t0,0x0c
         sb      t0,0x0(a0)
         sb      t0,0x4(a0)
@@ -1384,7 +1374,7 @@ crc_checking:
 
 
 
-        //li      t0,0xba000080
+        //li      t0,0xb8000080
         //li      a0,0x0c
         //sb      a0,0x0(t0)
 
@@ -1394,7 +1384,7 @@ crc_checking:
 	//TTYDBG("\r\n")
 
 //OUTPUT by COM1
-        //li	t0, 0xbfe80800
+        //li	t0, 0xba000800
     dli	t0, 0x90000efdfe000800
 	lw	a0, 0xa0(t0)
 	bal	hexserial
@@ -1450,7 +1440,7 @@ crc_checking:
 	TTYDBG("\r\n")
 
 //Start Super IO configuration KEYWORDS
-        li      t0,0xba000000
+        li      t0,0xb8000000
 	li	a0, 0x87
 	sb	a0, 0x2e(t0)
 	nop
@@ -1480,7 +1470,7 @@ crc_checking:
 	
 
 //Write Space 4 of LPC to NULL
-        //li	t0, 0xbfe80800
+        //li	t0, 0xba000800
     dli	t0, 0x90000efdfe000800
 	li	a0, 0x0000
 	sw	a0, 0xb4(t0)
@@ -1500,7 +1490,7 @@ crc_checking:
 	TTYDBG_COM1("Godson 3 PMON output from Southbridge\r\n")
 	nop
 
-        //li	t0, 0xbfe80800
+        //li	t0, 0xba000800
     dli	t0, 0x90000efdfe000800
 	lw	a0, 0x78(t0)
 	bal	hexserial_COM1
@@ -1517,7 +1507,7 @@ crc_checking:
         nop
 	TTYDBG("\r\n")
 
-        li      t0,0xba000080
+        li      t0,0xb8000080
         li      a0,0x0E
         sb      a0,0x0(t0)
         sb      a0,0x4(t0)
@@ -1529,7 +1519,7 @@ crc_checking:
 
 #if 0 //DISABLE all other devices
 	TTYDBG("DISABLE all other HT device\r\n")
-	//li	t0, 0xbfe80900
+	//li	t0, 0xba000900
     dli	t0, 0x90000efdfe000900
 	lw	a0, 0xe4(t0)
 	bal	hexserial
@@ -1568,7 +1558,7 @@ crc_checking:
 	TTYDBG("\r\n")
         nop
 
-	//li	t0, 0xbfe80800
+	//li	t0, 0xba000800
     dli	t0, 0x90000efdfe000800
 	lw	a0, 0xa4(t0)
 	bal	hexserial
@@ -1589,7 +1579,7 @@ crc_checking:
 	TTYDBG("\r\nD1,F0, 0x88\r\n")
         nop
 	
-	//li	t0, 0xbfe80800
+	//li	t0, 0xba000800
     dli	t0, 0x90000efdfe000800
 	lw	a0, 0x88(t0)
 	bal	hexserial
@@ -1603,7 +1593,7 @@ crc_checking:
 	
 	TTYDBG("\r\nD1,F1, 0x60\r\n")
 
-	//li	t0, 0xbfe80900
+	//li	t0, 0xba000900
     dli	t0, 0x90000efdfe000900
 	lw	a0, 0x60(t0)
 	bal	hexserial
@@ -1622,7 +1612,7 @@ crc_checking:
      	li	t1, 16
 	TTYDBG("start HT-PCI header scan\r\n")
 
-        //li	t0, 0xbfe84000
+        //li	t0, 0xba004000
     dli	t0, 0x90000efdfe004000
 1:
 	move	a0, t0

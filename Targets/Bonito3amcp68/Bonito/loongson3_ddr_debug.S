@@ -362,7 +362,7 @@ uncache_test:
         nop
 #endif
 
-#if 1 //LOOP whd
+#if 0 //LOOP whd
 33:
         li      t0, 0x80000400
         li      a0, 0x0
@@ -606,7 +606,7 @@ uncache_test:
 
 2:  
 
-#define ENDLESS_READ
+//#define ENDLESS_READ
 #ifdef ENDLESS_READ
         li      t0, 0x80000400
         cache   23, 0x0(t0) //HitWBInvalidate_S
@@ -1204,9 +1204,9 @@ uncache_test:
         nop
 #endif
 
-#if 0 //all space scan whd
+#if 1 //all space scan whd
 #define SPACE_1G_AT_MC1
-#ifdef SPACE_1G_AT_MC1
+#ifdef 0
   //OPEN WINDOWS 256-512M @ 0x20000000
         dli     t2, 0x900000003ff00000
         dli     t0, 0x20000000
@@ -1290,6 +1290,14 @@ uncache_test:
         bne     t2, t0, 1b
         nop
 	    TTYDBG("Space init 512M - 1G   Done\r\n")
+        dli     t2, 0x9000000060000000
+        dli     t0, 0x90000000a0000000
+1:
+        sd      t2, 0x0(t2)
+        daddi   t2, 0x8
+        bne     t2, t0, 1b
+        nop
+	    TTYDBG("Space init 1G   - 2G   Done\r\n")
 #endif
 	    TTYDBG("Space scan begin\r\n")
         dli     t2, 0x9000000000000000
@@ -1322,6 +1330,16 @@ uncache_test:
         bne     t2, t0, 1b
         nop
 	    TTYDBG("Space Done 512M - 1G   Done\r\n")
+        dli     t2, 0x9000000060000000
+        dli     t0, 0x90000000a0000000
+1:
+        ld      a1, 0x0(t2)
+        bne     a1, t2, scan_error
+        nop
+        daddi   t2, 0x8
+        bne     t2, t0, 1b
+        nop
+	    TTYDBG("Space Done 1G   - 2G   Done\r\n")
         b       2f
         nop
 scan_error:

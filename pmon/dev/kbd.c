@@ -338,7 +338,7 @@ int kbd_initialize(void)
 	 *
 	 * Set up to try again if the keyboard asks for RESEND.
 	 */
-	count = 0;
+	count = 1;
 	do {
 		kbd_clear_input();
 		kbd_write_output_w(KBD_CMD_RESET);
@@ -366,7 +366,7 @@ int kbd_initialize(void)
 	 *
 	 * Set up to try again if the keyboard asks for RESEND.
 	 */
-	count = 0;
+	count = 1;
 #ifndef FCRSOC
 	do {
 		kbd_write_output_w(KBD_CMD_DISABLE);

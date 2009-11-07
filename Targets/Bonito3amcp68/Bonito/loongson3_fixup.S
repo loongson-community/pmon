@@ -1,8 +1,17 @@
+/*whd : loongson3_fixup.S
+        used to fix up the potential addressing miss
+        caused by execute speculated
+*/
+
+//#define SINGLE_SCACHE
 
 #if 1
 #set XBAR to route all the DMA request to Scache0
-        //dli       a0,0xf #using 37:36
+#ifdef SINGLE_SCACHE
+        dli       a0,0xf #using 37:36
+#else
         dli       a0,0x2 #using 11:10
+#endif
         dli       t0,0x900000003ff00400
         sd        a0,0x0(t0)
 
@@ -15,6 +24,14 @@
     dli t1, 0x900000003ff02400
 	TTYDBG("Fix L1xbar illegal access \r\n")
 1:
+#ifdef SINGLE_SCACHE
+	dli	t0, 0x0000000000000000
+	sd	t0, 0x20(t2)
+	dli	t0, 0x0000000000000000
+	sd	t0, 0x60(t2)
+	dli	t0, 0x00000000000000f0
+	sd	t0, 0xa0(t2)
+#else
 	dli	t0, 0x0000000000000000
 	sd	t0, 0x20(t2)
 	dli	t0, 0x0000000000000c00
@@ -42,6 +59,7 @@
 	sd	t0, 0x78(t2)
 	dli	t0, 0x0000000000000cf3
 	sd	t0, 0xb8(t2)
+#endif
 
     daddiu  t2, t2, 0x100
     bne     t2, t1, 1b
@@ -53,15 +71,15 @@
 #if 1
 ############
 	TTYDBG("Fix L2xbar illegal access \r\n")
-	dli	t2, 0x900000003ff00020
+	dli	t2, 0x900000003ff00038
 	dli	t0, 0x0000000010000000
 	sd	t0, 0x0(t2)
 
-	dli	t2, 0x900000003ff00060
+	dli	t2, 0x900000003ff00078
 	dli	t0, 0xfffffffff0000000
 	sd	t0, 0x0(t2)
 
-	dli	t2, 0x900000003ff000a0
+	dli	t2, 0x900000003ff000b8
 	dli	t0, 0x00000000100000f2
 	sd	t0, 0x0(t2)
 
@@ -70,7 +88,6 @@
 	dli	t0, 0x0
 	sd	t0, 0x0(t2)
 
-	TTYDBG("Fix L2xbar illegal access \r\n")
 	dli	t2, 0x900000003ff00008
 	dli	t0, 0x000000001fc00000
 	sd	t0, 0x0(t2)
@@ -84,7 +101,7 @@
 	sd	t0, 0x0(t2)
 
 ############ 0x10000000 Set to not allow Cache access #######
-	dli	t2, 0x900000003ff000a0
+	dli	t2, 0x900000003ff000b8
 	dli	t0, 0x0000000010000082
 	sd	t0, 0x0(t2)
 

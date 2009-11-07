@@ -343,8 +343,16 @@ loop_here:
 #define CORE3_BUF0 0x900000003ff01320   
 
         dli     t1, CORE0_BUF0
-        dsll    t0, t0, 0x8
-        or      t1, t1, t0
+        andi    t3, t0, 0x3  #local cpuid
+        dsll    t3, 8
+        or      t1, t1, t3
+
+        andi    t4, t0, 0xc  #node id
+        dsll    t4, 42
+        or      t1, t1, t4
+
+        //dsll    t0, t0, 0x8
+        //or      t1, t1, t0
 
         dli     a0, 0x0
         sd      a0, 0x0(t1)
@@ -447,16 +455,6 @@ loop_here:
 	    nop
 #endif
 
-#if 0
-#set XBAR to route all the DMA request to Scache0
-        dli     t0,0x900000003ff00400
-        lw      a0,0x0(t0)
-        bal     hexserial
-        nop
-
-        PRINTSTR("\r\nScache index\r\n")
-#endif
-
 #ifdef DEBUG_LS3
         dli     t2, 0x9800000000000000
         cache   21, 0x0(t2)
@@ -509,7 +507,6 @@ loop_here:
         sw      a1, 0x0(a0)
 
 #endif
-
 
         li      a0,0x900000001ff00080
         li      t0,0x99
@@ -2048,11 +2045,11 @@ idle1000:
     or       v0, t1
 
     dli      t1, 0x9800000000000000 
-    lw      sp, SP_OFF(t0)
+    ld      sp, SP_OFF(t0)
     or      sp, t1
-    lw      gp, GP_OFF(t0)
+    ld      gp, GP_OFF(t0)
     or      gp, t1
-    lw      a1, A1_OFF(t0)
+    ld      a1, A1_OFF(t0)
 
 //PRINTSTR("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& !!\r\n");
 
@@ -2253,9 +2250,9 @@ data_aaa0:
 ddr2_reg_data:
 MC0_CTL_000 : .dword 0x0000000000000101
 //000000000000000_0 concurrentap(RW) 0000000_1 bank_split_en(RW) 0000000_0 auto_refresh_mode(RW) 0000000_0 arefresh(WR) 0000000_0 ap(RW) 0000000_1 addr_cmp_en(RW) 0000000_1 active_aging(RW) 
-MC0_CTL_010 : .dword 0x0000010100010000
+MC0_CTL_010 : .dword 0x0001000100010000
 //0000000_0 fwc(WR) 0000000_0 fast_write(RW) 0000000_1 enable_quick_srefresh(RW) 0000000_1 eight_bank_mode(RW) 0000000_0 ecc_disable_w_uc_err(RW) 0000000_1 dqs_n_en(RW) 0000000_0 dll_bypass_mode(RW) 0000000_0 dlllockreg(RD) 
-MC0_CTL_020 : .dword 0x0100010100000000
+MC0_CTL_020 : .dword 0x0100010101000000
 //0000000_1 priority_en(RW) 0000000_0 power_down(RW) 0000000_1 placement_en(RW) 0000000_1 odt_add_turn_clk_en(RW) 0000000_0 no_cmd_init(RW) 0000000_0 intrptwritea(RW) 0000000_0 intrptreada(RW) 0000000_0 intrptapburst(RW) 
 MC0_CTL_030 : .dword 0x0101000001000000
 //0000000_1 swap_port_rw_same_en(RW) 0000000_1 swap_en(RW) 0000000_0 start(RW) 0000000_0 srefresh(RW+) 0000000_1 rw_same_en(RW) 0000000_0 reg_dimm_enable(RW) 0000000_0 reduc(RW) 0000000_0 pwrup_srefresh_exit(RW) 
@@ -2265,14 +2262,14 @@ MC0_CTL_050 : .dword 0x0000000404050100
 //00000_000 q_fullness(RW) 00000_000 port_data_error_type(RD) 000_00000 out_of_range_type(RD) 00000_000 max_cs_reg(RD) 00000_100 column_size(RW) 0000_0101 caslat(RW) 00000_010 addr_pins(RW) 00000000
 MC0_CTL_060 : .dword 0x0a04040603040003
 //0000_1010 aprebit(RW) 0000_0101 wrlat(RW) 0000_0100 twtr(RW) 000_00110 twr_int(RW) 00000_011 trtp(RW) 00000_100 trrd(RW) 0000000000000_011 tcke(RW) 
-MC0_CTL_070 : .dword 0x0f0e020000040a08
+MC0_CTL_070 : .dword 0x0f0e020000010a08
 //0000_0000 max_row_reg(RD) 0000_0000 max_col_reg(RD) 0000_0000 initaref(RW) 00000000000000000000_1111 cs_map(RW) 000_01010 caslat_lin_gate(RW) 000_01010 caslat_lin(RW) 
-MC0_CTL_080 : .dword 0x0104040101040401
+MC0_CTL_080 : .dword 0x0104040101000400
 //0000_0001 odt_wr_map_cs3(RW) 0000_0010 odt_wr_map_cs2(RW) 0000_0100 odt_wr_map_cs1(RW) 0000_1000 odt_wr_map_cs0(RW) 0000_0001 odt_rd_map_cs3(RW) 0000_0010 odt_rd_map_cs2(RW) 0000_0100 odt_rd_map_cs1(RW) 0000_1000 odt_rd_map_cs0(RW) 
 MC0_CTL_090 : .dword 0x0000050b00000000
 //000_00000 ocd_adjust_pup_cs_0(RW) 000_00000 ocd_adjust_pdn_cs_0(RW) 0000_0101 trp(RW) 000_01011 tdal(RW) 000000000000_0000 port_cmd_error_type(RD) 0000000000000000
-//MC0_CTL_0a0 : .dword 0x0000003f3f140612
-MC0_CTL_0a0 : .dword 0x0000003f3f14021b
+MC0_CTL_0a0 : .dword 0x0000003f3f140612
+//MC0_CTL_0a0 : .dword 0x0000003f3f14021b
 //00000000000000000000000000_111111 command_age_count(RW) 00_111111 age_count(RW) 000_10100 trc(RW) 000_00110 tmrd(RW) 000_10010 tfaw(RW) 
 MC0_CTL_0b0 : .dword 0x0000000000000000
 MC0_CTL_0c0 : .dword 0x00002c050f000000
@@ -2281,15 +2278,15 @@ MC0_CTL_0d0 : .dword 0x0000000000000000
 MC0_CTL_0e0 : .dword 0x0000000000000000
 MC0_CTL_0f0 : .dword 0x0000000000000000
 MC0_CTL_100 : .dword 0x0000000000000000
-MC0_CTL_110 : .dword 0x0000000000000c2d
+MC0_CTL_110 : .dword 0x0000000000001c2d
 //0_000000000000000 emrs2_data_1(RW) 0_000000000000000 emrs2_data_0(RW) 000000000000000000_00110000101101 tref(RW) 
-MC0_CTL_120 : .dword 0x001c000000000000
+MC0_CTL_120 : .dword 0xffff000000000000
 //0000000000011100 axi0_en_size_lt_width_instr(RW) 00000000000000000_000000000000000 emrs2_data_3(RW) 0_000000000000000 emrs2_data_2(RW) 
 MC0_CTL_130 : .dword 0x0d56000302000000
 //0110110101010110 tras_max(RW) 0000000000000011 tpdex(RW) 0000001000000000 tdll(RW) 0000000000000000 tcpd(RW) 
 MC0_CTL_140 : .dword 0x0000204002000030
 //0000000000000000 xor_check_bits(RW) 0000000000000000 version(RD) 0000001000000000 txsr(RW) 0000000000110000 txsnr(RW) 
-MC0_CTL_150 : .dword 0x0000000000300004
+MC0_CTL_150 : .dword 0x0000000011000004
 //000_0000000000000000000000000000000000000 ecc_c_addr(RD) 000000000000000000011011 tinit(RW) 
 MC0_CTL_160 : .dword 0x0000000000000000
 //000000000000000000000000000_0000000000000000000000000000000000000 ecc_u_addr(RD) 
@@ -2325,23 +2322,23 @@ MC0_CTL_290 : .dword 0x0000000000000000
 MC0_CTL_2a0 : .dword 0x0000000000000000
 MC0_CTL_2b0 : .dword 0x0000000000000000
 MC0_CTL_2c0 : .dword 0x0000000000000000
-MC0_CTL_2d0 : .dword 0xf3004a480000099c
+MC0_CTL_2d0 : .dword 0xf300494603c0019d
 //11110100000000000011101100100111 phy_ctrl_reg_0_0(RD) 000000_00000000000000000110011101 pad_ctrl_reg_0(RW) 
-MC0_CTL_2e0 : .dword 0xf3004a48f3004a48
-MC0_CTL_2f0 : .dword 0xf3004a48f3004a48
-MC0_CTL_300 : .dword 0xf3004a48f3004a48
-MC0_CTL_310 : .dword 0xf3004a48f3004a48
+MC0_CTL_2e0 : .dword 0xf3004946f3004946
+MC0_CTL_2f0 : .dword 0xf3004946f3004946
+MC0_CTL_300 : .dword 0xf3004946f3004946
+MC0_CTL_310 : .dword 0xf3004946f3004946
 //MC0_CTL_2d0 : .dword 0xf3005a470000019d
 ////11110100000000000011101100100111 phy_ctrl_reg_0_0(RD) 000000_00000000000000000110011101 pad_ctrl_reg_0(RW) 
 //MC0_CTL_2e0 : .dword 0xf3005a47f3005a47
 //MC0_CTL_2f0 : .dword 0xf3005a47f3005a47
 //MC0_CTL_300 : .dword 0xf3005a47f3005a47
 //MC0_CTL_310 : .dword 0xf3005a47f3005a47
-MC0_CTL_320 : .dword 0x07c0000007c00000
-MC0_CTL_330 : .dword 0x07c0000007c00000
-MC0_CTL_340 : .dword 0x07c0000007c00000
-MC0_CTL_350 : .dword 0x07c0000007c00000
-MC0_CTL_360 : .dword 0x0800c00507c00000
+MC0_CTL_320 : .dword 0x06a0000006a00000
+MC0_CTL_330 : .dword 0x06a0000006a00000
+MC0_CTL_340 : .dword 0x06a0000006a00000
+MC0_CTL_350 : .dword 0x06a0000006a00000
+MC0_CTL_360 : .dword 0x0800c00506a00000
 //00000000000000001100000000000101 phy_ctrl_reg_2(RW) 00000111110000000000001100000001 phy_ctrl_reg_1_8(RD) 
 MC0_CTL_370 : .dword 0x0000000000000000
 MC0_CTL_380 : .dword 0x0000000000000000
@@ -2437,7 +2434,7 @@ MC0_CTL_840 : .dword 0x0000640064001313
 //00000000000000_0001100100 axi1_priority_relax(RW) 000000_0001100100 axi0_priority_relax(RW) 00000000 wrlvl_delay_8(RD) 00000000 wrlvl_delay_7(RD) 00000000 wrlvl_delay_6(RD) 
 MC0_CTL_850 : .dword 0x0000000000000064
 MC0_CTL_860 : .dword 0x0200004000000000
-MC0_CTL_870 : .dword 0x0044004400440044
+MC0_CTL_870 : .dword 0x0046004600460046
 //0_000000000000010 emrs1_data_3(RW) 0_000000000000010 emrs1_data_2(RW) 0_000000000000010 emrs1_data_1(RW) 0_000000000000010 emrs1_data_0(RW) 
 MC0_CTL_880 : .dword 0x0000000000000000
 MC0_CTL_890 : .dword 0x0a520a520a520a52
@@ -2447,7 +2444,8 @@ MC0_CTL_8b0 : .dword 0x0000000000000000
 MC0_CTL_8c0 : .dword 0x0004000000000000
 MC0_CTL_8d0 : .dword 0x00000000c8000000
 MC0_CTL_8e0 : .dword 0x0000000000000050
-MC0_CTL_8f0 : .dword 0x0000000020202080
+//MC0_CTL_8f0 : .dword 0x0000000020202080
+MC0_CTL_8f0 : .dword 0x000000002b352180
 //MC0_CTL_8f0 : .dword 0x0000000040404080
 //0000000000000000000000000111100_000000000000000000000000001111000 dll_ctrl_reg_2(RW) 
 MC0_CTL_900 : .dword 0x0000000000000000
@@ -2481,7 +2479,7 @@ MC1_CTL_060 : .dword 0x0a04040603040003
 //0000_1010 aprebit(RW) 0000_0101 wrlat(RW) 0000_0100 twtr(RW) 000_00110 twr_int(RW) 00000_011 trtp(RW) 00000_100 trrd(RW) 0000000000000_011 tcke(RW) 
 MC1_CTL_070 : .dword 0x0f0e020000010a08
 //0000_0000 max_row_reg(RD) 0000_0000 max_col_reg(RD) 0000_0000 initaref(RW) 00000000000000000000_1111 cs_map(RW) 000_01010 caslat_lin_gate(RW) 000_01010 caslat_lin(RW) 
-MC1_CTL_080 : .dword 0x0104040101000400
+MC1_CTL_080 : .dword 0x0004000100000000
 //0000_0001 odt_wr_map_cs3(RW) 0000_0010 odt_wr_map_cs2(RW) 0000_0100 odt_wr_map_cs1(RW) 0000_1000 odt_wr_map_cs0(RW) 0000_0001 odt_rd_map_cs3(RW) 0000_0010 odt_rd_map_cs2(RW) 0000_0100 odt_rd_map_cs1(RW) 0000_1000 odt_rd_map_cs0(RW) 
 MC1_CTL_090 : .dword 0x0000050b00000000
 //000_00000 ocd_adjust_pup_cs_0(RW) 000_00000 ocd_adjust_pdn_cs_0(RW) 0000_0101 trp(RW) 000_01011 tdal(RW) 000000000000_0000 port_cmd_error_type(RD) 0000000000000000
@@ -2550,11 +2548,11 @@ MC1_CTL_310 : .dword 0xf3004946f3004946
 //MC1_CTL_2f0 : .dword 0xf3005a47f3005a47
 //MC1_CTL_300 : .dword 0xf3005a47f3005a47
 //MC1_CTL_310 : .dword 0xf3005a47f3005a47
-MC1_CTL_320 : .dword 0x07a0000007a00000
-MC1_CTL_330 : .dword 0x07a0000007a00000
-MC1_CTL_340 : .dword 0x07a0000007a00000
-MC1_CTL_350 : .dword 0x07a0000007a00000
-MC1_CTL_360 : .dword 0x0800c00507a00000
+MC1_CTL_320 : .dword 0x06a0000006a00000
+MC1_CTL_330 : .dword 0x06a0000006a00000
+MC1_CTL_340 : .dword 0x06a0000006a00000
+MC1_CTL_350 : .dword 0x06a0000006a00000
+MC1_CTL_360 : .dword 0x0800c00506a00000
 //00000000000000001100000000000101 phy_ctrl_reg_2(RW) 00000111110000000000001100000001 phy_ctrl_reg_1_8(RD) 
 MC1_CTL_370 : .dword 0x0000000000000000
 MC1_CTL_380 : .dword 0x0000000000000000
@@ -2650,11 +2648,11 @@ MC1_CTL_840 : .dword 0x0000640064001313
 //00000000000000_0001100100 axi1_priority_relax(RW) 000000_0001100100 axi0_priority_relax(RW) 00000000 wrlvl_delay_8(RD) 00000000 wrlvl_delay_7(RD) 00000000 wrlvl_delay_6(RD) 
 MC1_CTL_850 : .dword 0x0000000000000064
 MC1_CTL_860 : .dword 0x0200004000000000
-MC1_CTL_870 : .dword 0x0000000000000046
+MC1_CTL_870 : .dword 0x0046004600460046
 //0_000000000000010 emrs1_data_3(RW) 0_000000000000010 emrs1_data_2(RW) 0_000000000000010 emrs1_data_1(RW) 0_000000000000010 emrs1_data_0(RW) 
 MC1_CTL_880 : .dword 0x0000000000000000
 //MC1_CTL_890 : .dword 0x0a520a520a520a52
-MC1_CTL_890 : .dword 0x0a520a520a520a5a
+MC1_CTL_890 : .dword 0x0a520a520a520a52
 //0_000010000010000 mrs_data_3(RW) 0_000010000010000 mrs_data_2(RW) 0_000010000010000 mrs_data_1(RW) 0_000010000010000 mrs_data_0(RW) 
 MC1_CTL_8a0 : .dword 0x00000000001c001c
 MC1_CTL_8b0 : .dword 0x0000000000000000
