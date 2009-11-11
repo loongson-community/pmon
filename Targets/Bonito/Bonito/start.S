@@ -52,7 +52,6 @@
 #include "target/prid.h"
 #include "target/sbd.h"
 #include "target/bonito.h"
-#include "target/via686b.h"
 #include "target/cs5536.h"
 #include "target/cs5536_pci.h"
 #include "target/i8254.h"
@@ -85,13 +84,6 @@
 #define CP0_CONFIG $16
 #define CP0_TAGLO  $28
 #define CP0_TAGHI  $29
-
-#define	DDR100 0x1d441091 
-//	#define	DDR100 0x0c011091
-#define	DDR266 0x0410435e
-#define DDR300 0x041453df
-
-#define DDR_DQ 0xbff00030             /*  zgj  */
 
 /*
  *   Register usage:
@@ -326,34 +318,6 @@ locate:
 #define BONITO_RMW(r,c,s) RMW_INIT(MOD_W,BONITO_BASE+(r),~(c),s)
 	
 #define CFGADDR(idsel,function,reg) ((1<<(11+(idsel)))+((function)<<8)+(reg))
-#define _ISABWR_INIT(mod,function,isabreg,val) \
-	WR_INIT(MOD_W,BONITO_BASE+BONITO_PCIMAP_CFG,CFGADDR(PCI_IDSEL_VIA686B,function,isabreg)>>16) ; \
-        RD_INIT(MOD_W,BONITO_BASE+BONITO_PCIMAP_CFG) ; \
-	WR_INIT(mod,PCI_CFG_SPACE+(CFGADDR(PCI_IDSEL_VIA686B,function,isabreg)&0xffff),val)
-	
-#define _ISABRD_INIT(mod,function,isabreg) \
-	WR_INIT(MOD_W,BONITO_BASE+BONITO_PCIMAP_CFG,CFGADDR(PCI_IDSEL_VIA686B,function,isabreg)>>16) ; \
-        RD_INIT(MOD_W,BONITO_BASE+BONITO_PCIMAP_CFG) ; \
-	RD_INIT(mod,PCI_CFG_SPACE+(CFGADDR(PCI_IDSEL_VIA686B,function,isabreg)&0xffff))
-
-
-#define _ISAWR_INIT(isareg,val) \
-	WR_INIT(MOD_B,PCI_IO_SPACE+(isareg),val)
-	
-#define _ISARD_INIT(isareg) \
-	RD_INIT(MOD_B,PCI_IO_SPACE+(isareg))
-	
-
-#define ISABBWR_INIT(function,isabreg,val) \
-	_ISABWR_INIT(MOD_B,function,(isabreg),val)
-#define ISABHWR_INIT(function,isabreg,val) \
-	_ISABWR_INIT(MOD_H,function,(isabreg),val)
-#define ISABWWR_INIT(function,isabreg,val) \
-	_ISABWR_INIT(MOD_W,function,isabreg,val)
-#define ISAWR_INIT(isareg,val) \
-	_ISAWR_INIT(isareg,val)
-#define ISARD_INIT(isareg) \
-	_ISARD_INIT(isareg)
 
 	bal	1f	
 	nop
@@ -402,25 +366,6 @@ locate:
 	/* Set debug mode */
 	BONITO_BIS(BONITO_BONGENCFG, BONITO_BONGENCFG_DEBUGMODE)
 
-    /******** added to init southbridge*/
-	
-	/* Set the SMB base address */
-	ISABWWR_INIT(4, SMBUS_IO_BASE_ADDR, SMBUS_IO_BASE_VALUE | 0x1)
-	/* enable the host controller */
-	ISABHWR_INIT(4, SMBUS_HOST_CONFIG_ADDR, SMBUS_HOST_CONFIG_ENABLE_BIT)
-	/* enable the SMB IO ports */
-	ISABBWR_INIT(4, PCI_COMMAND_STATUS_REG, PCI_COMMAND_IO_ENABLE)
-	
-/* 15us ISA bus refresh clock */
-#define ISAREFRESH (PT_CRYSTAL/(1000000/15))
-	ISARD_INIT(CTC_PORT+PT_CONTROL)
-	
-	/* program i8254 ISA refresh counter */
-	ISAWR_INIT(CTC_PORT+PT_CONTROL,PTCW_SC(PT_REFRESH)|PTCW_16B|PTCW_MODE(MODE_RG))
-	ISAWR_INIT(CTC_PORT+PT_REFRESH, ISAREFRESH & 0xff)
-	ISAWR_INIT(CTC_PORT+PT_REFRESH, ISAREFRESH >> 8)
-
-                                                                        
 	EXIT_INIT(0)
 
 
