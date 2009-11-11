@@ -154,44 +154,29 @@ ext_map_and_reboot:
  *  Exception vectors here for rom, before we are up and running. Catch
  *  whatever comes up before we have a fully fledged exception handler.
  */
+
 	.align	9			/* bfc00200 */
+exc_tlb:
 	move	k0, ra		#save ra
 	la	a0, v200_msg
 	bal	stringserial
 	nop
 	b	exc_common
-
-	.align	7			/* bfc00280 */
-	move	k0, ra	#save ra
-	la	a0, v280_msg
-	bal	stringserial
 	nop
-	b	exc_common
-
-/* Cache error */
-	.align	8			/* bfc00300 */
-	PRINTSTR("\r\nPANIC! Unexpected Cache Error exception! ")
-	mfc0	a0, COP_0_CACHE_ERR
-	bal	hexserial
+	
+	.align	8
 	nop
-	b	exc_common
 
 /* General exception */
 	.align	7			/* bfc00380 */
+exc_general:
 	move	k0, ra		#save ra
 	la	a0, v380_msg
 	bal	stringserial
 	nop
 	    
 	b	exc_common
-	
-	.align	8			/* bfc00400 */
-	move	k0, ra		#save ra
-	la	a0, v400_msg
-	bal	stringserial
 	nop
-
-
 	
 exc_common:
 	PRINTSTR("\r\nCAUSE=")
@@ -218,27 +203,10 @@ exc_common:
 	cfc0	a0, COP_0_DERR_1
 	bal	hexserial
 	nop
-
+stop:
+	b	stop
 //	b	ext_map_and_reboot
 	nop
-
-	.align 8
-		nop
-	.align 8
-	.word read
-	.word write
-	.word open
-	.word close
-	.word nullfunction
-	.word printf
-	.word vsprintf
-	.word nullfunction
-	.word nullfunction
-	.word getenv
-	.word nullfunction
-	.word nullfunction
-	.word nullfunction
-	.word nullfunction
 
 /****************************************LOCATE*********************************/
 
@@ -1434,16 +1402,10 @@ __main:
 
 
 	.rdata
-transmit_pat_msg:
-	.asciz	"\r\nInvalid transmit pattern.  Must be DDDD or DDxDDx\r\n"
 v200_msg:
 	.asciz	"\r\nPANIC! Unexpected TLB refill exception!\r\n"
-v280_msg:
-	.asciz	"\r\nPANIC! Unexpected XTLB refill exception!\r\n"
 v380_msg:
 	.asciz	"\r\nPANIC! Unexpected General exception!\r\n"
-v400_msg:
-	.asciz	"\r\nPANIC! Unexpected Interrupt exception!\r\n"
 hexchar:
 	.ascii	"0123456789abcdef"
 bigmem:
