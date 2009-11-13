@@ -1,6 +1,6 @@
     ###Enable the reg space###
 #if 1
-	TTYDBG	("\r\nEnable register space of MEMORY\r\n")
+	TTYDBG	("Enable register space of MEMORY\r\n")
         li  t2,0xbfe00180
         lw  a1, 0x0(t2)
         li  a0, 0xfffffeff
@@ -9,135 +9,448 @@
 #endif    
 
 
-	    li	msize,0x0f000000
-//#define MEMORY_512x2
-#define MEMORY_1G_MC1
-//#define DIMM_2G
+//#define MC0_ONLY
+//#define MC1_ONLY
 
-	    PRINTSTR("MC0 High DDR2 space open : 0x20000000 - 0x2FFFFFFF\r\n")
+//#define DDR_512
+#define DDR_1G
+
+//#define INTERLEAVE_27
+//#define INTERLEAVE_13
+#define INTERLEAVE_11
+
+#ifdef DDR_1G
+#ifdef MC0_ONLY
+	    li	msize,0x3f000000
+        dfadf
+#else
+#ifdef MC1_ONLY
+	    li	msize,0x3f000000
+#else
+	    li	msize,0x7f000000
+#endif
+#endif
+#else
+#ifdef DDR_512
+	    li	msize,0x1f000000
+#else
+	    li	msize,0x0f000000
+#endif
+#endif
+
+
+#ifndef MC1_ONLY
         dli     t0, 0x900000003ff00010  #base
-        dli     t1, 0x20000000
+        dli     t1, 0x00000000
         sd      t1, 0(t0)
-        sync    
 
         dli     t0, 0x900000003ff00050  #mask
         dli     t1, 0xfffffffff0000000
         sd      t1, 0(t0)
-        sync    
 
         dli     t0, 0x900000003ff00090  #mmap
-        dli     t1, 0x100000f0
+        dli     t1, 0x000000f0
         sd      t1, 0(t0)
         sync
 
-        #dli a0, 0xaff00000
-#ifdef MEMORY_1G_MC1 //set memory space of MC0 to MC1
-#ifdef DIMM_2G
-	    li	msize,0x7f000000
-#else
-	    li	msize,0x3f000000
-#endif
-	    PRINTSTR("MC1 USING MC0 space\r\n")
-	    PRINTSTR("MC1 DDR2 config begin\r\n")
-
-        dli     t0, 0x900000003ff00080  #mmap of Windows 0
-        dli     t1, 0xf1
-        sd      t1, 0(t0)
-        sync
-
-        dli     t0, 0x900000003ff00090  #mmap of Windows 2
-        dli     t1, 0x100000f1
-        sd      t1, 0(t0)
-        sync
-
-        dli     a0, 0x900000000ff00000
-	    bal	    ddr2_config_mc1
-	    nop
-	    PRINTSTR("MC1 DDR2 config end\r\n")
-#else
-	    li	msize,0x3f000000
-	    PRINTSTR("MC0 DDR2 config begin\r\n")
         dli     a0, 0x900000000ff00000
 	    bal	    ddr2_config
 	    nop
-	    PRINTSTR("MC0 DDR2 config end\r\n")
+
+	    PRINTSTR("MC0 Config DONE\r\n")
 #endif
 
-#ifdef MEMORY_512x2 /* initialize win2 to config the second ddr controller*/
-	    PRINTSTR("MC1 DDR2 space open : 0x40000000 - 0x5FFFFFFF\r\n")
-        dli     t0, 0x900000003ff00018  #base
-        dli     t1, 0x40000000
+#ifndef MC0_ONLY
+        dli     t0, 0x900000003ff00010  #base
+        dli     t1, 0x00000000
         sd      t1, 0(t0)
-        sync    
 
-        dli     t0, 0x900000003ff00058  #mask
-        dli     t1, 0xffffffffe0000000
+        dli     t0, 0x900000003ff00050  #mask
+        dli     t1, 0xfffffffff0000000
         sd      t1, 0(t0)
-        sync    
 
-        dli     t0, 0x900000003ff00098  #mmap
-        dli     t1, 0xf1
+        dli     t0, 0x900000003ff00090  #mmap
+        dli     t1, 0x000000f1
         sd      t1, 0(t0)
         sync
 
-	    PRINTSTR("MC1 DDR2 config begin\r\n")
-        dli     a0, 0x900000004ff00000
+        dli     a0, 0x900000000ff00000
 	    bal	    ddr2_config_mc1
 	    nop
 
-	    PRINTSTR("MC1 DDR2 config end\r\n")
-#else /* MEMORY_1G_MC1 */
-	    PRINTSTR("MC1 HIGH DDR2 space open : 0x40000000 - 0x5FFFFFFF\r\n")
-        dli     t0, 0x900000003ff00018  #base
-        dli     t1, 0x40000000
+	    PRINTSTR("MC1 Config DONE\r\n")
+#endif
+
+#ifdef MC0_ONLY
+	    PRINTSTR("MC0 space open : 0x00000000 - 0x0FFFFFFF\r\n")
+        dli     t0, 0x900000003ff00010  #base
+        dli     t1, 0x00000000
         sd      t1, 0(t0)
-        sync    
+
+        dli     t0, 0x900000003ff00050  #mask
+        dli     t1, 0xfffffffff0000000
+        sd      t1, 0(t0)
+
+        dli     t0, 0x900000003ff00090  #mmap
+        dli     t1, 0x000000f0
+        sd      t1, 0(t0)
+        sync
+
+#else
+#ifdef MC1_ONLY
+	    PRINTSTR("MC1 space open : 0x00000000 - 0x0FFFFFFF\r\n")
+        dli     t0, 0x900000003ff00010  #base
+        dli     t1, 0x00000000
+        sd      t1, 0(t0)
+
+        dli     t0, 0x900000003ff00050  #mask
+        dli     t1, 0xfffffffff0000000
+        sd      t1, 0(t0)
+
+        dli     t0, 0x900000003ff00090  #mmap
+        dli     t1, 0x000000f1
+        sd      t1, 0(t0)
+        sync
+
+#else
+#ifdef INTERLEAVE_27
+	    PRINTSTR("DDR Interleave space open : 0x00000000 - 0x0FFFFFFF\r\n")
+	    PRINTSTR("DDR Interleave using Bit 27\r\n")
+        dli     t0, 0x900000003ff00010  #base
+        dli     t1, 0x00000000
+        sd      t1, 0(t0)
+
+        dli     t0, 0x900000003ff00050  #mask
+        dli     t1, 0xfffffffff8000000
+        sd      t1, 0(t0)
+
+        dli     t0, 0x900000003ff00090  #mmap
+        dli     t1, 0x000000f0
+        sd      t1, 0(t0)
+
+        dli     t0, 0x900000003ff00018  #base
+        dli     t1, 0x08000000
+        sd      t1, 0(t0)
 
         dli     t0, 0x900000003ff00058  #mask
-        dli     t1, 0xffffffffe0000000
+        dli     t1, 0xfffffffff8000000
         sd      t1, 0(t0)
-        sync    
 
         dli     t0, 0x900000003ff00098  #mmap
-        dli     t1, 0x200000f1
+        dli     t1, 0x000000f1
+        sd      t1, 0(t0)
+        sync
+#else
+#ifdef INTERLEAVE_13
+	    PRINTSTR("DDR Interleave space open : 0x00000000 - 0x0FFFFFFF\r\n")
+	    PRINTSTR("DDR Interleave using Bit 13\r\n")
+        dli     t0, 0x900000003ff00010  #base
+        dli     t1, 0x0000000000000000
+        sd      t1, 0(t0)
+
+        dli     t0, 0x900000003ff00050  #mask
+        dli     t1, 0xfffffffff0002000
+        sd      t1, 0(t0)
+
+        dli     t0, 0x900000003ff00090  #mmap
+        dli     t1, 0x00000000000000f0
+        sd      t1, 0(t0)
+
+        dli     t0, 0x900000003ff00018  #base
+        dli     t1, 0x0000000000002000
+        sd      t1, 0(t0)
+
+        dli     t0, 0x900000003ff00058  #mask
+        dli     t1, 0xfffffffff0002000
+        sd      t1, 0(t0)
+
+        dli     t0, 0x900000003ff00098  #mmap
+        dli     t1, 0x00000000000000f1
+        sd      t1, 0(t0)
+        sync
+#else
+#ifdef INTERLEAVE_11
+	    PRINTSTR("DDR Interleave space open : 0x00000000 - 0x0FFFFFFF\r\n")
+	    PRINTSTR("DDR Interleave using Bit 11\r\n")
+        dli     t0, 0x900000003ff00010  #base
+        dli     t1, 0x0000000000000000
+        sd      t1, 0(t0)
+
+        dli     t0, 0x900000003ff00050  #mask
+        dli     t1, 0xfffffffff0000800
+        sd      t1, 0(t0)
+
+        dli     t0, 0x900000003ff00090  #mmap
+        dli     t1, 0x00000000000000f0
+        sd      t1, 0(t0)
+
+        dli     t0, 0x900000003ff00018  #base
+        dli     t1, 0x0000000000000800
+        sd      t1, 0(t0)
+
+        dli     t0, 0x900000003ff00058  #mask
+        dli     t1, 0xfffffffff0000800
+        sd      t1, 0(t0)
+
+        dli     t0, 0x900000003ff00098  #mmap
+        dli     t1, 0x00000000000000f1
+        sd      t1, 0(t0)
+        sync
+#else
+	    PRINTSTR("DDR Interleave space open : 0x00000000 - 0x0FFFFFFF\r\n")
+        dli     t0, 0x900000003ff00010  #base
+        dli     t1, 0x0000000000000000
+        sd      t1, 0(t0)
+
+        dli     t0, 0x900000003ff00050  #mask
+        dli     t1, 0xfffffffff0000400
+        sd      t1, 0(t0)
+
+        dli     t0, 0x900000003ff00090  #mmap
+        dli     t1, 0x00000000000000f0
+        sd      t1, 0(t0)
+        sync
+
+        dli     t0, 0x900000003ff00018  #base
+        dli     t1, 0x0000000000000400
+        sd      t1, 0(t0)
+
+        dli     t0, 0x900000003ff00058  #mask
+        dli     t1, 0xfffffffff0000400
+        sd      t1, 0(t0)
+
+        dli     t0, 0x900000003ff00098  #mmap
+        dli     t1, 0x00000000000000f1
         sd      t1, 0(t0)
         sync
 #endif
+#endif
+#endif
+#endif
+#endif
 
-#ifdef MEMORY_1G_MC1
-#ifdef DIMM_2G
-	    PRINTSTR("MC1 HIGH DDR2 space open : 0x60000000 - 0x9FFFFFFF\r\n")
+
+#ifdef MC0_ONLY
+#ifdef DDR_512
+	    PRINTSTR("MC0 pace open : 0x20000000 - 0x2FFFFFFF\r\n")
         dli     t0, 0x900000003ff00020  #base
-        dli     t1, 0x0000000060000000
+        dli     t1, 0x20000000
         sd      t1, 0(t0)
-        sync    
 
         dli     t0, 0x900000003ff00060  #mask
         dli     t1, 0xffffffffe0000000
         sd      t1, 0(t0)
-        sync    
 
         dli     t0, 0x900000003ff000a0  #mmap
-        dli     t1, 0x00000000400000f1
+        dli     t1, 0x100000f0
+        sd      t1, 0(t0)
+        sync
+#else
+#ifdef DDR_1G
+	    PRINTSTR("MC0 space open : 0x40000000 - 0x7FFFFFFF\r\n")
+        dli     t0, 0x900000003ff00020  #base
+        dli     t1, 0x40000000
+        sd      t1, 0(t0)
+
+        dli     t0, 0x900000003ff00060  #mask
+        dli     t1, 0xffffffffc0000000
+        sd      t1, 0(t0)
+
+        dli     t0, 0x900000003ff000a0  #mmap
+        dli     t1, 0x000000f0
         sd      t1, 0(t0)
         sync
 
-        dli     t0, 0x900000003ff00028  #base
-        dli     t1, 0x0000000080000000
-        sd      t1, 0(t0)
-        sync    
+#endif
+#endif
 
-        dli     t0, 0x900000003ff00068  #mask
+#else
+#ifdef MC1_ONLY
+#ifdef DDR_512
+	    PRINTSTR("MC1 space open : 0x20000000 - 0x2FFFFFFF\r\n")
+        dli     t0, 0x900000003ff00020  #base
+        dli     t1, 0x20000000
+        sd      t1, 0(t0)
+
+        dli     t0, 0x900000003ff00060  #mask
         dli     t1, 0xffffffffe0000000
         sd      t1, 0(t0)
-        sync    
 
-        dli     t0, 0x900000003ff000a8  #mmap
-        dli     t1, 0x00000000600000f1
+        dli     t0, 0x900000003ff000a0  #mmap
+        dli     t1, 0x100000f1
         sd      t1, 0(t0)
+        sync
+#else
+#ifdef DDR_1G
+	    PRINTSTR("MC1 space open : 0x40000000 - 0x7FFFFFFF\r\n")
+        dli     t0, 0x900000003ff00020  #base
+        dli     t1, 0x40000000
+        sd      t1, 0(t0)
+
+        dli     t0, 0x900000003ff00060  #mask
+        dli     t1, 0xffffffffc0000000
+        sd      t1, 0(t0)
+
+        dli     t0, 0x900000003ff000a0  #mmap
+        dli     t1, 0x000000f1
+        sd      t1, 0(t0)
+        sync
+
+#endif
+#endif
+
+#else
+#ifdef INTERLEAVE_27
+	    PRINTSTR("DDR Interleave space open : 0x80000000 - 0xFFFFFFFF\r\n")
+	    PRINTSTR("DDR Interleave using Bit 27\r\n")
+
+        dli     t0, 0x900000003ff00000  #base
+
+        dli     t1, 0x0000000080000000
+        sd      t1, 0x20(t0)
+        dli     t1, 0xFFFFFFFFC8000000
+        sd      t1, 0x60(t0)
+        dli     t1, 0x00000000000000F0
+        sd      t1, 0xa0(t0)
+
+        dli     t1, 0x0000000088000000
+        sd      t1, 0x28(t0)
+        dli     t1, 0xFFFFFFFFC8000000
+        sd      t1, 0x68(t0)
+        dli     t1, 0x00000000000000F1
+        sd      t1, 0xa8(t0)
+
+        dli     t1, 0x00000000C0000000
+        sd      t1, 0x30(t0)
+        dli     t1, 0xFFFFFFFFC8000000
+        sd      t1, 0x70(t0)
+        dli     t1, 0x00000000080000F0
+        sd      t1, 0xb0(t0)
+
+        dli     t1, 0x00000000C8000000
+        sd      t1, 0x38(t0)
+        dli     t1, 0xFFFFFFFFC8000000
+        sd      t1, 0x78(t0)
+        dli     t1, 0x00000000080000F1
+        sd      t1, 0xb8(t0)
+
+        sync
+
+#else
+#ifdef INTERLEAVE_13
+	    PRINTSTR("DDR Interleave space open : 0x80000000 - 0xFFFFFFFF\r\n")
+	    PRINTSTR("DDR Interleave using Bit 13\r\n")
+
+        dli     t0, 0x900000003ff00000  #base
+
+        dli     t1, 0x0000000080000000
+        sd      t1, 0x20(t0)
+        dli     t1, 0xFFFFFFFFC0002000
+        sd      t1, 0x60(t0)
+        dli     t1, 0x00000000000000F0
+        sd      t1, 0xa0(t0)
+
+        dli     t1, 0x0000000080002000
+        sd      t1, 0x28(t0)
+        dli     t1, 0xFFFFFFFFC0002000
+        sd      t1, 0x68(t0)
+        dli     t1, 0x00000000000000F1
+        sd      t1, 0xa8(t0)
+
+        dli     t1, 0x00000000C0000000
+        sd      t1, 0x30(t0)
+        dli     t1, 0xFFFFFFFFC0002000
+        sd      t1, 0x70(t0)
+        dli     t1, 0x00000000000020F0
+        sd      t1, 0xb0(t0)
+
+        dli     t1, 0x00000000C0002000
+        sd      t1, 0x38(t0)
+        dli     t1, 0xFFFFFFFFC0002000
+        sd      t1, 0x78(t0)
+        dli     t1, 0x00000000000020F1
+        sd      t1, 0xb8(t0)
+
+        sync
+
+#else
+#ifdef INTERLEAVE_11
+	    PRINTSTR("DDR Interleave space open : 0x80000000 - 0xFFFFFFFF\r\n")
+	    PRINTSTR("DDR Interleave using Bit 11\r\n")
+
+        dli     t0, 0x900000003ff00000  #base
+
+        dli     t1, 0x0000000080000000
+        sd      t1, 0x20(t0)
+        dli     t1, 0xFFFFFFFFC0000800
+        sd      t1, 0x60(t0)
+        dli     t1, 0x00000000000000F0
+        sd      t1, 0xa0(t0)
+
+        dli     t1, 0x0000000080000800
+        sd      t1, 0x28(t0)
+        dli     t1, 0xFFFFFFFFC0000800
+        sd      t1, 0x68(t0)
+        dli     t1, 0x00000000000000F1
+        sd      t1, 0xa8(t0)
+
+        dli     t1, 0x00000000C0000000
+        sd      t1, 0x30(t0)
+        dli     t1, 0xFFFFFFFFC0000800
+        sd      t1, 0x70(t0)
+        dli     t1, 0x00000000000008F0
+        sd      t1, 0xb0(t0)
+
+        dli     t1, 0x00000000C0000800
+        sd      t1, 0x38(t0)
+        dli     t1, 0xFFFFFFFFC0000800
+        sd      t1, 0x78(t0)
+        dli     t1, 0x00000000000008F1
+        sd      t1, 0xb8(t0)
+
+        sync
+
+#else
+	    PRINTSTR("DDR Interleave space open : 0x80000000 - 0xFFFFFFFF\r\n")
+
+        dli     t0, 0x900000003ff00000  #base
+
+        dli     t1, 0x0000000080000000
+        sd      t1, 0x20(t0)
+        dli     t1, 0xFFFFFFFFC0000400
+        sd      t1, 0x60(t0)
+        dli     t1, 0x00000000000000F0
+        sd      t1, 0xa0(t0)
+
+        dli     t1, 0x0000000080000400
+        sd      t1, 0x28(t0)
+        dli     t1, 0xFFFFFFFFC0000400
+        sd      t1, 0x68(t0)
+        dli     t1, 0x00000000000000F1
+        sd      t1, 0xa8(t0)
+
+        dli     t1, 0x00000000C0000000
+        sd      t1, 0x30(t0)
+        dli     t1, 0xFFFFFFFFC0000400
+        sd      t1, 0x70(t0)
+        dli     t1, 0x00000000000004F0
+        sd      t1, 0xb0(t0)
+
+        dli     t1, 0x00000000C0000400
+        sd      t1, 0x38(t0)
+        dli     t1, 0xFFFFFFFFC0000400
+        sd      t1, 0x78(t0)
+        dli     t1, 0x00000000000004F1
+        sd      t1, 0xb8(t0)
+
         sync
 #endif
 #endif
+#endif
+
+#endif
+#endif
+
 
 #if 0 //print registers
     li      t1, 152 ##0x72

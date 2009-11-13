@@ -26,6 +26,7 @@ option		MIPS
 option		INET
 option      LS3_HT              # Enable the IO cache coherent of HT
 option      MCP68_IDE           # Enable the MCP68 IDE 0 channel
+option      USE_LPC_UART
 
 select		mod_flash_amd		# AMD flash device programming
 select		mod_flash_intel		# intel flash device programming

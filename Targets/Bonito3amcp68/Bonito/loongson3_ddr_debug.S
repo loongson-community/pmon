@@ -1206,6 +1206,7 @@ uncache_test:
 
 #if 1 //all space scan whd
 #define SPACE_1G_AT_MC1
+#define SPACE_2G
 #ifdef 0
   //OPEN WINDOWS 256-512M @ 0x20000000
         dli     t2, 0x900000003ff00000
@@ -1272,8 +1273,18 @@ uncache_test:
 	    TTYDBG("Space init 0    - 256M Done\r\n")
 #endif
 
-#if 1
+//#if 1
 //
+#ifdef SPACE_2G
+        dli     t2, 0x9000000090000000
+        dli     t0, 0x9000000100000000
+1:
+        sd      t2, 0x0(t2)
+        daddi   t2, 0x8
+        bne     t2, t0, 1b
+        nop
+	    TTYDBG("Space init 256  - 2G   Done\r\n")
+#else
         dli     t2, 0x9000000020000000
         dli     t0, 0x9000000030000000
 1:
@@ -1299,6 +1310,7 @@ uncache_test:
         nop
 	    TTYDBG("Space init 1G   - 2G   Done\r\n")
 #endif
+
 	    TTYDBG("Space scan begin\r\n")
         dli     t2, 0x9000000000000000
         dli     t0, 0x9000000010000000
@@ -1310,6 +1322,20 @@ uncache_test:
         bne     t2, t0, 1b
         nop
 	    TTYDBG("Space Done 0    - 256M Done\r\n")
+
+#ifdef SPACE_2G
+        dli     t2, 0x9000000090000000
+        dli     t0, 0x9000000100000000
+1:
+        ld      a1, 0x0(t2)
+        bne     a1, t2, scan_error
+        nop
+        daddi   t2, 0x8
+        bne     t2, t0, 1b
+        nop
+	    TTYDBG("Space Done 256  - 2G   Done\r\n")
+
+#else
         dli     t2, 0x9000000020000000
         dli     t0, 0x9000000030000000
 1:
@@ -1340,6 +1366,7 @@ uncache_test:
         bne     t2, t0, 1b
         nop
 	    TTYDBG("Space Done 1G   - 2G   Done\r\n")
+#endif
         b       2f
         nop
 scan_error:
@@ -1844,7 +1871,7 @@ skipdot:
 #endif
 
 
-#if 1 /* Read adustment */
+#if 0 /* Read adustment */
 //CACHE WRITE whd
 	    TTYDBG("Write \r\n")
         li      t0, 0x80000400

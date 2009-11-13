@@ -318,7 +318,11 @@ ConfigEntry	ConfigTable[] =
 	#ifdef DEVBD2F_FIREWALL
 	 { (char *)LS2F_COMA_ADDR, 0, ns16550, 256, CONS_BAUD, NS16550HZ/2 },
 	#else
+    #ifdef USE_LPC_UART
 	 { (char *)COM3_BASE_ADDR, 0, ns16550, 256, CONS_BAUD, NS16550HZ },
+    #else
+	 { (char *)0xbfe001e0, 0, ns16550, 256, CONS_BAUD, NS16550HZ },
+    #endif
 	#endif
 #elif defined(USE_SM502_UART0)
 	{ (char *)0xb6030000, 0, ns16550, 256, CONS_BAUD, NS16550HZ/2 },

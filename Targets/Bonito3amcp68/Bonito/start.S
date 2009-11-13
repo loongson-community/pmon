@@ -453,6 +453,8 @@ loop_here:
 #else
 	    bal	initserial
 	    nop
+	    bal	initserial_uart
+	    nop
 #endif
 
 #ifdef DEBUG_LS3
@@ -1002,6 +1004,10 @@ gs_2f_v3_ddr2_cfg:
 
 ##########################################
 
+#include "loongson3_fixup.S"
+
+##########################################
+
 #include "loongson3_ddr2_config.S"
 
 ##########################################
@@ -1036,11 +1042,6 @@ gs_2f_v3_ddr2_cfg:
 #endif
 
 
-##########################################
-
-#include "loongson3_fixup.S"
-
-##########################################
 
 
 #if 1
@@ -1393,7 +1394,7 @@ LEAF(hexserial)
 	j	a2
 	nop
 END(hexserial)
-#define USE_LPC_UART
+//#define USE_LPC_UART # defined in pmon_cfg
 #ifdef USE_LPC_UART
 LEAF(tgt_putchar)
 #	la	v0, COM1_BASE_ADDR
@@ -1416,9 +1417,6 @@ LEAF(tgt_putchar)
 	nop	
 END(tgt_putchar)
 #else
-        #define GS3_UART0_BASE 0xbfe001e0
-        #define GS3_UART1_BASE 0xbfe001e8
-        #define GS3_UART_BASE GS3_UART0_BASE
 
 LEAF(tgt_putchar)
 	la	v0,GS3_UART_BASE 
@@ -1458,6 +1456,35 @@ END(tgt_putchar)
 #define B38400  38400
 #define B57600  57600
 #define B115200 115200
+
+        #define GS3_UART0_BASE 0xbfe001e0
+        #define GS3_UART1_BASE 0xbfe001e8
+        #define GS3_UART_BASE GS3_UART0_BASE
+
+LEAF(initserial_uart)
+    li  a0, GS3_UART_BASE
+
+ 	li	t1,128
+ #	addiu	a2,a0,3
+ 	sb	t1,3(a0)
+ 	li	t1,0x12      # divider, highest possible baud rate
+ 	sb	t1,0(a0)
+ 	li	t1,0x0     # divider, highest possible baud rate
+ 	sb	t1,1(a0)
+ 	li	t1,3
+ 	sb	t1,3(a0)
+
+ 	#srl	t1,t1,0x8
+ 	li	t1,0
+ 	sb	t1,1(a0)
+ 	#li	t1,1      # divider, highest possible baud rate
+
+
+ 	li	t1,71
+ 	sb	t1,2(a0)
+	jr	ra
+	nop
+END(initserial_uart)
 
 #ifdef USE_LPC_UART
 LEAF(initserial)
@@ -2322,7 +2349,8 @@ MC0_CTL_290 : .dword 0x0000000000000000
 MC0_CTL_2a0 : .dword 0x0000000000000000
 MC0_CTL_2b0 : .dword 0x0000000000000000
 MC0_CTL_2c0 : .dword 0x0000000000000000
-MC0_CTL_2d0 : .dword 0xf300494603c0019d
+//MC0_CTL_2d0 : .dword 0xf300494603c0019d
+MC0_CTL_2d0 : .dword 0xf300494603fc099c
 //11110100000000000011101100100111 phy_ctrl_reg_0_0(RD) 000000_00000000000000000110011101 pad_ctrl_reg_0(RW) 
 MC0_CTL_2e0 : .dword 0xf3004946f3004946
 MC0_CTL_2f0 : .dword 0xf3004946f3004946
