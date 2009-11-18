@@ -1204,7 +1204,7 @@ uncache_test:
         nop
 #endif
 
-#if 1 //all space scan whd
+#if 0 //all space scan whd
 #define SPACE_1G_AT_MC1
 #define SPACE_2G
 #ifdef 0
@@ -1835,11 +1835,11 @@ tmem:
 	beq	t1, t0, 2f
 	nop
 	and	t4, t1, 0x000fffff
-	bnez	t4, skipdot
+	bnez	t4, skipdot_0
 	li	a0, '.'
 	bal	tgt_putchar
 	nop
-skipdot:
+skipdot_0:
 	b	1b
 	nop
 1:
@@ -1871,7 +1871,16 @@ skipdot:
 #endif
 
 
-#if 0 /* Read adustment */
+#if 1 /* Read adustment */
+//#define SLICE_0
+#define SLICE_1
+	    TTYDBG	("Enable register space of MEMORY\r\n")
+        li  t2, 0xbfe00180
+        lw  a1, 0x0(t2)
+        li  a0, 0xfffffeff
+        and a1, a1,a0
+        sw  a1, 0x0(t2)
+
 //CACHE WRITE whd
 	    TTYDBG("Write \r\n")
         li      t0, 0x80000400
@@ -1900,32 +1909,36 @@ skipdot:
         li      t0, 0x80000400
         cache   23, 0x0(t0) //HitWBInvalidate_S
 
+//SLICE 0: Set Delay of DQS
+#ifdef SLICE_0
         dli     t0, 0
         dli     t1, 0xff
         li      v0, 0
         li      v1, 0
 
-//SLICE 0: Set Delay of DQS
-set_0:
+	    TTYDBG("SLICE 0.\r\n")
+	    TTYDBG("Posedge.\r\n")
+pos_set_0:
         li      t2, 0xaff001f0
         ld      a0, 0x0(t2)
-        li      a1, 0xffff00ffffffffff
+        dli     a1, 0xffff00ffffffffff
         and     a0, a0, a1
         dsll    a1, t0, 40
         or      a0, a0, a1
         sd      a0, 0x0(t2)
 
-	    TTYDBG("\r\nLOOP until value change done.\r\n")
-        li      t1, 0xfffffff #360Mhz
+	    //TTYDBG("\r\nLOOP until value change done.\r\n")
+        li      a2, 0x1fffffff #360Mhz
 1:
-        bnez    t1, 1b
-        addi    t1, t1, -1
+        bnez    a2, 1b
+        addi    a2, a2, -1
     
-	    TTYDBG("LOOP done.\r\n")
+	    //TTYDBG("LOOP done.\r\n")
+	    TTYDBG(".")
 
   //Test DQS
 
-read_right_0:
+read_posedge_0:
         li      t2, 0xa0000400
         lw      a0, 0x0(t2)
         li      a1, 0x000000ff
@@ -1934,23 +1947,190 @@ read_right_0:
 
         daddi   t0, t0, 1
 
-        bne     a0, a1, set_0
+        bne     a0, a1, pos_set_0
         nop
 
         lw      a0, 0x10(t2)
         li      a1, 0x000000ff
         and     a0, a0, a1
         li      a1, 0x55
-        bne     a0, a1, set_0
+        bne     a0, a1, pos_set_0
         nop
 
         addi    v0, t0, -1
         move    a0, v0
         bal     hexserial
         nop
-        bne     t0, t1, set_0
+	    TTYDBG("\r\n")
+        bne     t0, t1, pos_set_0
         nop
 
+	    TTYDBG("\r\nNegedge.\r\n")
+
+        dli     t0, 0
+        dli     t1, 0xff
+        li      v0, 0
+        li      v1, 0
+
+neg_set_0:
+        li      t2, 0xaff00240
+        ld      a0, 0x0(t2)
+        li      a1, 0xffffffffffff00ff
+        and     a0, a0, a1
+        dsll    a1, t0, 8
+        or      a0, a0, a1
+        sd      a0, 0x0(t2)
+
+	    //TTYDBG("\r\nLOOP until value change done.\r\n")
+        li      a2, 0x1fffffff #360Mhz
+1:
+        bnez    a2, 1b
+        addi    a2, a2, -1
+    
+	    //TTYDBG("LOOP done.\r\n")
+	    TTYDBG(".")
+
+  //Test DQS
+
+read_negedge_0:
+        li      t2, 0xa0000408
+        lw      a0, 0x0(t2)
+        li      a1, 0x000000ff
+        and     a0, a0, a1
+        li      a1, 0x66
+
+        daddi   t0, t0, 1
+
+        bne     a0, a1, neg_set_0
+        nop
+
+        lw      a0, 0x10(t2)
+        li      a1, 0x000000ff
+        and     a0, a0, a1
+        li      a1, 0xaa
+        bne     a0, a1, neg_set_0
+        nop
+
+        addi    v0, t0, -1
+        move    a0, v0
+        bal     hexserial
+        nop
+	    TTYDBG("\r\n")
+        bne     t0, t1, neg_set_0
+        nop
+#endif
+
+
+//SLICE 1: Set Delay of DQS
+#ifdef SLICE_1
+        dli     t0, 0
+        dli     t1, 0xff
+        li      v0, 0
+        li      v1, 0
+
+	    TTYDBG("SLICE 1.\r\n")
+	    TTYDBG("Posedge.\r\n")
+pos_set_1:
+        li      t2, 0xaff00200
+        ld      a0, 0x0(t2)
+        dli     a1, 0xffffffffffff00ff
+        and     a0, a0, a1
+        dsll    a1, t0, 8
+        or      a0, a0, a1
+        sd      a0, 0x0(t2)
+
+	    //TTYDBG("\r\nLOOP until value change done.\r\n")
+        li      a2, 0x1fffffff #360Mhz
+1:
+        bnez    a2, 1b
+        addi    a2, a2, -1
+    
+	    //TTYDBG("LOOP done.\r\n")
+	    TTYDBG(".")
+
+  //Test DQS
+
+read_posedge_1:
+        li      t2, 0xa0000400
+        lw      a0, 0x0(t2)
+        li      a1, 0x0000ff00
+        and     a0, a0, a1
+        li      a1, 0x9900
+
+        daddi   t0, t0, 1
+
+        bne     a0, a1, pos_set_1
+        nop
+
+        lw      a0, 0x10(t2)
+        li      a1, 0x0000ff00
+        and     a0, a0, a1
+        li      a1, 0x5500
+        bne     a0, a1, pos_set_1
+        nop
+
+        addi    v0, t0, -1
+        move    a0, v0
+        bal     hexserial
+        nop
+	    TTYDBG("\r\n")
+        bne     t0, t1, pos_set_1
+        nop
+
+	    TTYDBG("\r\nNegedge.\r\n")
+
+        dli     t0, 0
+        dli     t1, 0xff
+        li      v0, 0
+        li      v1, 0
+
+neg_set_1:
+        li      t2, 0xaff00240
+        ld      a0, 0x0(t2)
+        li      a1, 0xffff00ffffffffff
+        and     a0, a0, a1
+        dsll    a1, t0, 40
+        or      a0, a0, a1
+        sd      a0, 0x0(t2)
+
+	    //TTYDBG("\r\nLOOP until value change done.\r\n")
+        li      a2, 0x1fffffff #360Mhz
+1:
+        bnez    a2, 1b
+        addi    a2, a2, -1
+    
+	    //TTYDBG("LOOP done.\r\n")
+	    TTYDBG(".")
+
+  //Test DQS
+
+read_negedge_1:
+        li      t2, 0xa0000408
+        lw      a0, 0x0(t2)
+        li      a1, 0x0000ff00
+        and     a0, a0, a1
+        li      a1, 0x6600
+
+        daddi   t0, t0, 1
+
+        bne     a0, a1, neg_set_1
+        nop
+
+        lw      a0, 0x10(t2)
+        li      a1, 0x0000ff00
+        and     a0, a0, a1
+        li      a1, 0xaa00
+        bne     a0, a1, neg_set_1
+        nop
+
+        addi    v0, t0, -1
+        move    a0, v0
+        bal     hexserial
+        nop
+	    TTYDBG("\r\n")
+        bne     t0, t1, neg_set_1
+        nop
+#endif
 #endif
 
 /*

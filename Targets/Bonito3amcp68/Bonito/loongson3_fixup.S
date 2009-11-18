@@ -3,10 +3,10 @@
         caused by execute speculated
 */
 
-#define SINGLE_SCACHE
 
 #if 0
 #set XBAR to route all the DMA request to Scache0
+//#define SINGLE_SCACHE
 #ifdef SINGLE_SCACHE
         dli       a0,0xf #using 37:36
 #else
@@ -25,13 +25,15 @@
 	TTYDBG("Fix L1xbar illegal access \r\n")
 1:
 
+####### Unused HT0 port #########################
 	dli	t0, 0x00000c0000000000
-	sd	t0, 0x30(t2)
+	sd	t0, 0x28(t2)
 	dli	t0, 0xfffffe0000000000
-	sd	t0, 0x70(t2)
+	sd	t0, 0x68(t2)
 	dli	t0, 0x00000c00000000f7
-	sd	t0, 0xb0(t2)
+	sd	t0, 0xa8(t2)
 
+####### address space to other nodes ############
 	dli	t0, 0x0000200000000000
 	sd	t0, 0x30(t2)
 	dli	t0, 0x0000200000000000
@@ -80,178 +82,3 @@
 
 
 #endif
-
-#if 0 /* map 0xexxxx to HT1 */
-      //map 0x90000e00_00000000
-    dli t0, 0x900000003ff02000
-    dli t1, 0x00000e0000000000
-    sd  t1, 0x30(t0)
-    dli t1, 0xffffff0000000000
-    sd  t1, 0x70(t0)
-    dli t1, 0x00000000000000f7
-    sd  t1, 0xb0(t0)
-
-      //map 0x90000e00_00000000
-    dli t0, 0x900000003ff02100
-    dli t1, 0x00000e0000000000
-    sd  t1, 0x30(t0)
-    dli t1, 0xffffff0000000000
-    sd  t1, 0x70(t0)
-    dli t1, 0x00000000000000f7
-    sd  t1, 0xb0(t0)
-
-      //map 0x90000e00_00000000
-    dli t0, 0x900000003ff02200
-    dli t1, 0x00000e0000000000
-    sd  t1, 0x30(t0)
-    dli t1, 0xffffff0000000000
-    sd  t1, 0x70(t0)
-    dli t1, 0x00000000000000f7
-    sd  t1, 0xb0(t0)
-
-      //map 0x90000e00_00000000
-    dli t0, 0x900000003ff02300
-    dli t1, 0x00000e0000000000
-    sd  t1, 0x30(t0)
-    dli t1, 0xffffff0000000000
-    sd  t1, 0x70(t0)
-    dli t1, 0x00000000000000f7
-    sd  t1, 0xb0(t0)
-
-
-      /* all address using CACHE 1 */
-
-      //map 0x00000000_00000000
-    dli t0, 0x900000003ff02000
-    dli t1, 0x0000000000000000
-    sd  t1, 0x38(t0)
-    dli t1, 0x0000000000000000
-    sd  t1, 0x78(t0)
-    dli t1, 0x00000000000000f1
-    sd  t1, 0xb8(t0)
-    
-      //map 0x00000000_00000000
-    dli t0, 0x900000003ff02100
-    dli t1, 0x0000000000000000
-    sd  t1, 0x38(t0)
-    dli t1, 0x0000000000000000
-    sd  t1, 0x78(t0)
-    dli t1, 0x00000000000000f1
-    sd  t1, 0xb8(t0)
-    
-      //map 0x00000000_00000000
-    dli t0, 0x900000003ff02200
-    dli t1, 0x0000000000000000
-    sd  t1, 0x38(t0)
-    dli t1, 0x0000000000000000
-    sd  t1, 0x78(t0)
-    dli t1, 0x00000000000000f1
-    sd  t1, 0xb8(t0)
-    
-      //map 0x00000000_00000000
-    dli t0, 0x900000003ff02300
-    dli t1, 0x0000000000000000
-    sd  t1, 0x38(t0)
-    dli t1, 0x0000000000000000
-    sd  t1, 0x78(t0)
-    dli t1, 0x00000000000000f1
-    sd  t1, 0xb8(t0)
-
-	TTYDBG("HT RX DMA address TRANSLATE to Scache n\r\n")
-	dli	t2, 0x900000003ff02700
-	dli	t0, 0x0000000000000000
-	sd	t0, 0x0(t2)
-
-	dli	t2, 0x900000003ff02740
-	dli	t0, 0xffffffff00000000
-	sd	t0, 0x0(t2)
-
-	dli	t2, 0x900000003ff02780
-	dli	t0, 0xf1
-	sd	t0, 0x0(t2)
-
-
-    sync
-    
-#endif
-
-
-/*
-//Core 1
-	TTYDBG("Fix L1xbar illegal access \r\n")
-	dli	t2, 0x900000003ff02128
-	dli	t0, 0x00000e0000000000
-	sd	t0, 0x0(t2)
-
-	dli	t2, 0x900000003ff02168
-	dli	t0, 0xffffff0000000000
-	sd	t0, 0x0(t2)
-
-	dli	t2, 0x900000003ff021a8
-	dli	t0, 0x87
-	sd	t0, 0x0(t2)
-
-	dli	t2, 0x900000003ff02130
-	dli	t0, 0x00000e0000000000
-	sd	t0, 0x0(t2)
-
-	dli	t2, 0x900000003ff02170
-	dli	t0, 0xffffff0000000000
-	sd	t0, 0x0(t2)
-
-	dli	t2, 0x900000003ff021b0
-	dli	t0, 0xf0
-	sd	t0, 0x0(t2)
-
-//Core 2
-	TTYDBG("Fix L1xbar illegal access \r\n")
-	dli	t2, 0x900000003ff02228
-	dli	t0, 0x00000e0000000000
-	sd	t0, 0x0(t2)
-
-	dli	t2, 0x900000003ff02268
-	dli	t0, 0xffffff0000000000
-	sd	t0, 0x0(t2)
-
-	dli	t2, 0x900000003ff022a8
-	dli	t0, 0x87
-	sd	t0, 0x0(t2)
-
-	dli	t2, 0x900000003ff02230
-	dli	t0, 0x00000e0000000000
-	sd	t0, 0x0(t2)
-
-	dli	t2, 0x900000003ff02270
-	dli	t0, 0xffffff0000000000
-	sd	t0, 0x0(t2)
-
-	dli	t2, 0x900000003ff022b0
-	dli	t0, 0xf0
-	sd	t0, 0x0(t2)
-
-//Core 3
-	TTYDBG("Fix L1xbar illegal access \r\n")
-	dli	t2, 0x900000003ff02328
-	dli	t0, 0x00000e0000000000
-	sd	t0, 0x0(t2)
-
-	dli	t2, 0x900000003ff02368
-	dli	t0, 0xffffff0000000000
-	sd	t0, 0x0(t2)
-
-	dli	t2, 0x900000003ff023a8
-	dli	t0, 0x87
-	sd	t0, 0x0(t2)
-
-	dli	t2, 0x900000003ff02330
-	dli	t0, 0x00000e0000000000
-	sd	t0, 0x0(t2)
-
-	dli	t2, 0x900000003ff02370
-	dli	t0, 0xffffff0000000000
-	sd	t0, 0x0(t2)
-
-	dli	t2, 0x900000003ff023b0
-	dli	t0, 0xf0
-	sd	t0, 0x0(t2)
-    */

@@ -138,14 +138,6 @@ nop;
 #define CP0_DEPC   $24
 #define CP0_DESAVE $31
 
-#define	DDR100 0x1d441091 
-/* 
-#define	DDR100 0x0c011091*/
-#define	DDR266 0x0410435e
-#define DDR300 0x041453df
-
-#define DDR_DQ 0xbff00030             /*  zgj  */
-
 /*
  *   Register usage:
  *
@@ -1026,7 +1018,7 @@ gs_2f_v3_ddr2_cfg:
 	    TTYDBG("Init tlb...\r\n")
         bal     tlb_init
         nop
-	    TTYDBG("\r\nInit caches...\r\n")
+	    //TTYDBG("Init caches...\r\n")
 
 #if 1
         //mfc0    a0, COP_0_PRID
@@ -1457,9 +1449,6 @@ END(tgt_putchar)
 #define B57600  57600
 #define B115200 115200
 
-        #define GS3_UART0_BASE 0xbfe001e0
-        #define GS3_UART1_BASE 0xbfe001e8
-        #define GS3_UART_BASE GS3_UART0_BASE
 
 LEAF(initserial_uart)
     li  a0, GS3_UART_BASE
@@ -1546,7 +1535,7 @@ LEAF(initserial)
 END(initserial)
 #else
 LEAF(initserial)
-        li  a0, GS3_UART_BASE
+    li  a0, GS3_UART_BASE
 
  	li	t1,128
  #	addiu	a2,a0,3
@@ -1829,6 +1818,8 @@ tlb_flush_all:
 1:
         ###tlb_init finish####
         tlbp
+        jr      ra
+        nop
 END(tlb_init)
 ###############################
 LEAF(hexserial64)
@@ -2266,11 +2257,6 @@ reg_write_mc1:
     .end    ddr2_config_mc1
 
 
-	.data
-	.align	5
-data_aaa0:
-        .dword 0x0
-
 	.rdata
 	.align 5
     .global ddr2_reg_data
@@ -2289,9 +2275,9 @@ MC0_CTL_050 : .dword 0x0000000404050100
 //00000_000 q_fullness(RW) 00000_000 port_data_error_type(RD) 000_00000 out_of_range_type(RD) 00000_000 max_cs_reg(RD) 00000_100 column_size(RW) 0000_0101 caslat(RW) 00000_010 addr_pins(RW) 00000000
 MC0_CTL_060 : .dword 0x0a04040603040003
 //0000_1010 aprebit(RW) 0000_0101 wrlat(RW) 0000_0100 twtr(RW) 000_00110 twr_int(RW) 00000_011 trtp(RW) 00000_100 trrd(RW) 0000000000000_011 tcke(RW) 
-MC0_CTL_070 : .dword 0x0f0e020000010a08
+MC0_CTL_070 : .dword 0x0f0e020000040a08
 //0000_0000 max_row_reg(RD) 0000_0000 max_col_reg(RD) 0000_0000 initaref(RW) 00000000000000000000_1111 cs_map(RW) 000_01010 caslat_lin_gate(RW) 000_01010 caslat_lin(RW) 
-MC0_CTL_080 : .dword 0x0104040101000400
+MC0_CTL_080 : .dword 0x0004000100000000
 //0000_0001 odt_wr_map_cs3(RW) 0000_0010 odt_wr_map_cs2(RW) 0000_0100 odt_wr_map_cs1(RW) 0000_1000 odt_wr_map_cs0(RW) 0000_0001 odt_rd_map_cs3(RW) 0000_0010 odt_rd_map_cs2(RW) 0000_0100 odt_rd_map_cs1(RW) 0000_1000 odt_rd_map_cs0(RW) 
 MC0_CTL_090 : .dword 0x0000050b00000000
 //000_00000 ocd_adjust_pup_cs_0(RW) 000_00000 ocd_adjust_pdn_cs_0(RW) 0000_0101 trp(RW) 000_01011 tdal(RW) 000000000000_0000 port_cmd_error_type(RD) 0000000000000000
@@ -2473,6 +2459,7 @@ MC0_CTL_8c0 : .dword 0x0004000000000000
 MC0_CTL_8d0 : .dword 0x00000000c8000000
 MC0_CTL_8e0 : .dword 0x0000000000000050
 //MC0_CTL_8f0 : .dword 0x0000000020202080
+//MC0_CTL_8f0 : .dword 0x000000002b352180
 MC0_CTL_8f0 : .dword 0x000000002b352180
 //MC0_CTL_8f0 : .dword 0x0000000040404080
 //0000000000000000000000000111100_000000000000000000000000001111000 dll_ctrl_reg_2(RW) 
@@ -2680,7 +2667,7 @@ MC1_CTL_870 : .dword 0x0046004600460046
 //0_000000000000010 emrs1_data_3(RW) 0_000000000000010 emrs1_data_2(RW) 0_000000000000010 emrs1_data_1(RW) 0_000000000000010 emrs1_data_0(RW) 
 MC1_CTL_880 : .dword 0x0000000000000000
 //MC1_CTL_890 : .dword 0x0a520a520a520a52
-MC1_CTL_890 : .dword 0x0a520a520a520a52
+MC1_CTL_890 : .dword 0x0a5a0a5a0a5a0a52
 //0_000010000010000 mrs_data_3(RW) 0_000010000010000 mrs_data_2(RW) 0_000010000010000 mrs_data_1(RW) 0_000010000010000 mrs_data_0(RW) 
 MC1_CTL_8a0 : .dword 0x00000000001c001c
 MC1_CTL_8b0 : .dword 0x0000000000000000

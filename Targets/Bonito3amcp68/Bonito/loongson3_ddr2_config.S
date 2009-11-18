@@ -1,40 +1,50 @@
-    ###Enable the reg space###
-#if 1
-	TTYDBG	("Enable register space of MEMORY\r\n")
-        li  t2,0xbfe00180
-        lw  a1, 0x0(t2)
-        li  a0, 0xfffffeff
-        and a1,a1,a0
-        sw  a1,0x0(t2)
-#endif    
+/*whd : loongson3_ddr2_config.S
+        used to set up all ddr controllers
+        and set up the memory space on L2 Xbar
+*/
 
-
-//#define MC0_ONLY
+#######################################################
+/* Undefine the two to enable both */
+#define MC0_ONLY
 //#define MC1_ONLY
 
+/* Size of each DDR controller */
 //#define DDR_512
 #define DDR_1G
 
+/* Interleave pattern when both controller enabled */
 //#define INTERLEAVE_27
 //#define INTERLEAVE_13
+//#define INTERLEAVE_12
 #define INTERLEAVE_11
+#######################################################
+
+
+###Enable the reg space###
+#if 1
+	TTYDBG	("Enable register space of MEMORY\r\n")
+        li  t2, 0xbfe00180
+        lw  a1, 0x0(t2)
+        li  a0, 0xfffffeff
+        and a1, a1,a0
+        sw  a1, 0x0(t2)
+#endif    
 
 #ifdef DDR_1G
 #ifdef MC0_ONLY
-	    li	msize,0x3f000000
-        dfadf
+	    li	msize, 0x3f000000
 #else
 #ifdef MC1_ONLY
-	    li	msize,0x3f000000
+	    li	msize, 0x3f000000
 #else
-	    li	msize,0x7f000000
+	    li	msize, 0x7f000000
 #endif
 #endif
 #else
 #ifdef DDR_512
-	    li	msize,0x1f000000
+	    li	msize, 0x1f000000
 #else
-	    li	msize,0x0f000000
+	    li	msize, 0x0f000000
 #endif
 #endif
 
@@ -94,7 +104,6 @@
         dli     t0, 0x900000003ff00090  #mmap
         dli     t1, 0x000000f0
         sd      t1, 0(t0)
-        sync
 
 #else
 #ifdef MC1_ONLY
@@ -110,7 +119,6 @@
         dli     t0, 0x900000003ff00090  #mmap
         dli     t1, 0x000000f1
         sd      t1, 0(t0)
-        sync
 
 #else
 #ifdef INTERLEAVE_27
@@ -139,7 +147,6 @@
         dli     t0, 0x900000003ff00098  #mmap
         dli     t1, 0x000000f1
         sd      t1, 0(t0)
-        sync
 #else
 #ifdef INTERLEAVE_13
 	    PRINTSTR("DDR Interleave space open : 0x00000000 - 0x0FFFFFFF\r\n")
@@ -167,7 +174,33 @@
         dli     t0, 0x900000003ff00098  #mmap
         dli     t1, 0x00000000000000f1
         sd      t1, 0(t0)
-        sync
+#else
+#ifdef INTERLEAVE_12
+	    PRINTSTR("DDR Interleave space open : 0x00000000 - 0x0FFFFFFF\r\n")
+	    PRINTSTR("DDR Interleave using Bit 12\r\n")
+        dli     t0, 0x900000003ff00010  #base
+        dli     t1, 0x0000000000000000
+        sd      t1, 0(t0)
+
+        dli     t0, 0x900000003ff00050  #mask
+        dli     t1, 0xfffffffff0001000
+        sd      t1, 0(t0)
+
+        dli     t0, 0x900000003ff00090  #mmap
+        dli     t1, 0x00000000000000f0
+        sd      t1, 0(t0)
+
+        dli     t0, 0x900000003ff00018  #base
+        dli     t1, 0x0000000000001000
+        sd      t1, 0(t0)
+
+        dli     t0, 0x900000003ff00058  #mask
+        dli     t1, 0xfffffffff0001000
+        sd      t1, 0(t0)
+
+        dli     t0, 0x900000003ff00098  #mmap
+        dli     t1, 0x00000000000000f1
+        sd      t1, 0(t0)
 #else
 #ifdef INTERLEAVE_11
 	    PRINTSTR("DDR Interleave space open : 0x00000000 - 0x0FFFFFFF\r\n")
@@ -195,7 +228,6 @@
         dli     t0, 0x900000003ff00098  #mmap
         dli     t1, 0x00000000000000f1
         sd      t1, 0(t0)
-        sync
 #else
 	    PRINTSTR("DDR Interleave space open : 0x00000000 - 0x0FFFFFFF\r\n")
         dli     t0, 0x900000003ff00010  #base
@@ -209,7 +241,6 @@
         dli     t0, 0x900000003ff00090  #mmap
         dli     t1, 0x00000000000000f0
         sd      t1, 0(t0)
-        sync
 
         dli     t0, 0x900000003ff00018  #base
         dli     t1, 0x0000000000000400
@@ -222,7 +253,7 @@
         dli     t0, 0x900000003ff00098  #mmap
         dli     t1, 0x00000000000000f1
         sd      t1, 0(t0)
-        sync
+#endif
 #endif
 #endif
 #endif
@@ -234,22 +265,21 @@
 #ifdef DDR_512
 	    PRINTSTR("MC0 pace open : 0x20000000 - 0x2FFFFFFF\r\n")
         dli     t0, 0x900000003ff00020  #base
-        dli     t1, 0x20000000
+        dli     t1, 0x0000000020000000
         sd      t1, 0(t0)
 
         dli     t0, 0x900000003ff00060  #mask
-        dli     t1, 0xffffffffe0000000
+        dli     t1, 0xfffffffff0000000
         sd      t1, 0(t0)
 
         dli     t0, 0x900000003ff000a0  #mmap
-        dli     t1, 0x100000f0
+        dli     t1, 0x00000000100000f0
         sd      t1, 0(t0)
-        sync
 #else
 #ifdef DDR_1G
 	    PRINTSTR("MC0 space open : 0x40000000 - 0x7FFFFFFF\r\n")
         dli     t0, 0x900000003ff00020  #base
-        dli     t1, 0x40000000
+        dli     t1, 0x0000000040000000
         sd      t1, 0(t0)
 
         dli     t0, 0x900000003ff00060  #mask
@@ -257,9 +287,8 @@
         sd      t1, 0(t0)
 
         dli     t0, 0x900000003ff000a0  #mmap
-        dli     t1, 0x000000f0
+        dli     t1, 0x00000000000000f0
         sd      t1, 0(t0)
-        sync
 
 #endif
 #endif
@@ -269,22 +298,21 @@
 #ifdef DDR_512
 	    PRINTSTR("MC1 space open : 0x20000000 - 0x2FFFFFFF\r\n")
         dli     t0, 0x900000003ff00020  #base
-        dli     t1, 0x20000000
+        dli     t1, 0x0000000020000000
         sd      t1, 0(t0)
 
         dli     t0, 0x900000003ff00060  #mask
-        dli     t1, 0xffffffffe0000000
+        dli     t1, 0xfffffffff0000000
         sd      t1, 0(t0)
 
         dli     t0, 0x900000003ff000a0  #mmap
-        dli     t1, 0x100000f1
+        dli     t1, 0x00000000100000f1
         sd      t1, 0(t0)
-        sync
 #else
 #ifdef DDR_1G
 	    PRINTSTR("MC1 space open : 0x40000000 - 0x7FFFFFFF\r\n")
         dli     t0, 0x900000003ff00020  #base
-        dli     t1, 0x40000000
+        dli     t1, 0x0000000040000000
         sd      t1, 0(t0)
 
         dli     t0, 0x900000003ff00060  #mask
@@ -292,9 +320,8 @@
         sd      t1, 0(t0)
 
         dli     t0, 0x900000003ff000a0  #mmap
-        dli     t1, 0x000000f1
+        dli     t1, 0x00000000000000f1
         sd      t1, 0(t0)
-        sync
 
 #endif
 #endif
@@ -334,8 +361,6 @@
         dli     t1, 0x00000000080000F1
         sd      t1, 0xb8(t0)
 
-        sync
-
 #else
 #ifdef INTERLEAVE_13
 	    PRINTSTR("DDR Interleave space open : 0x80000000 - 0xFFFFFFFF\r\n")
@@ -371,7 +396,40 @@
         dli     t1, 0x00000000000020F1
         sd      t1, 0xb8(t0)
 
-        sync
+#else
+#ifdef INTERLEAVE_12
+	    PRINTSTR("DDR Interleave space open : 0x80000000 - 0xFFFFFFFF\r\n")
+	    PRINTSTR("DDR Interleave using Bit 12\r\n")
+
+        dli     t0, 0x900000003ff00000  #base
+
+        dli     t1, 0x0000000080000000
+        sd      t1, 0x20(t0)
+        dli     t1, 0xFFFFFFFFC0001000
+        sd      t1, 0x60(t0)
+        dli     t1, 0x00000000000000F0
+        sd      t1, 0xa0(t0)
+
+        dli     t1, 0x0000000080001000
+        sd      t1, 0x28(t0)
+        dli     t1, 0xFFFFFFFFC0001000
+        sd      t1, 0x68(t0)
+        dli     t1, 0x00000000000000F1
+        sd      t1, 0xa8(t0)
+
+        dli     t1, 0x00000000C0000000
+        sd      t1, 0x30(t0)
+        dli     t1, 0xFFFFFFFFC0001000
+        sd      t1, 0x70(t0)
+        dli     t1, 0x00000000000010F0
+        sd      t1, 0xb0(t0)
+
+        dli     t1, 0x00000000C0001000
+        sd      t1, 0x38(t0)
+        dli     t1, 0xFFFFFFFFC0001000
+        sd      t1, 0x78(t0)
+        dli     t1, 0x00000000000010F1
+        sd      t1, 0xb8(t0)
 
 #else
 #ifdef INTERLEAVE_11
@@ -408,8 +466,6 @@
         dli     t1, 0x00000000000008F1
         sd      t1, 0xb8(t0)
 
-        sync
-
 #else
 	    PRINTSTR("DDR Interleave space open : 0x80000000 - 0xFFFFFFFF\r\n")
 
@@ -443,14 +499,14 @@
         dli     t1, 0x00000000000004F1
         sd      t1, 0xb8(t0)
 
+#endif
+#endif
+#endif
+#endif
+#endif
+#endif
+
         sync
-#endif
-#endif
-#endif
-
-#endif
-#endif
-
 
 #if 0 //print registers
     li      t1, 152 ##0x72
@@ -471,6 +527,7 @@ reg_read:
 
 
 #if 0 /* read ddr2 registers */
+/* No use in Loongson 3A */
         li	t0, 0xaff00000
         
 not_locked:
@@ -481,40 +538,40 @@ not_locked:
 
         PRINTSTR("DDR2 DLL locked\r\n")
         
-        ld	t1, 0xf0(t0)
+        ld	    t1, 0xf0(t0)
         move    a0, t1
         bal     hexserial
         nop
 
 #endif
         
-    ###disable the reg space###
+###disable the reg space###
 #if 1
-	TTYDBG	("Disable register space of MEMORY\r\n")
+	    TTYDBG("Disable register space of MEMORY\r\n")
         li  t2,0xbfe00180
         lw  a1,0x0(t2)
         or  a1,a1,0x100
         sw  a1,0x0(t2)
-#endif    
+#endif
 
-#if 1 // AdonWang disable ddr3 readbuff
+#if 0 // AdonWang disable ddr3 readbuff
 /* !!!!!!!!!! IMPORTANT !!!!!!!!!! */
        TTYDBG("Disable read buffer\r\n")
-       li      t0,0xbfe00180
+       li      t0, 0xbfe00180
        //dli     t1,0x1ffffff617   
        //dli     t1,0x07fffff617   
        //dli     t2,0x4000000000
        //or      t1,t1,t2
        lw      t1, 0x4(t0)
-        li      a0, 0x18
-        or      t1, t1, a0
-       sw      t1,0x4(t0)
+       li      a0, 0x18
+       or      t1, t1, a0
+       sw      t1, 0x4(t0)
 #endif
 
 #if 1 // AdonWang disable cpu buffered read
 /* !!!!!!!!!! IMPORTANT !!!!!!!!!! */
        TTYDBG("Disable cpu buffered read\r\n")
-       li      t0,0xbfe00180
+       li      t0, 0xbfe00180
        lw      t1, 0x0(t0)
        li      a0, 0xfffffdff
        and     t1, t1, a0
