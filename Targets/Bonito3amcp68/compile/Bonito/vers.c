@@ -1,6 +1,6 @@
 char ostype[] = "PMON2000";
 char osrelease[] = "2.1";
-char osversion[] = "Bonito#1";
+char osversion[] = "Bonito#627";
 char sccs[8] = { ' ', ' ', ' ', ' ', '@', '(', '#', ')' };
 char vers[] =
-    "PMON2000 2.1 (Bonito) #1: Mon Oct 19 16:12:24 CST 2009 commit 17cf9a0aa9f641ee87734a46fc413f771361625f Author: root <root@Knoppix.(none)> Date:   Wed Aug 26 06:41:50 2009 +0800 ";
+    "PMON2000 2.1 (Bonito) #627: Tue Dec  8 21:44:38 CST 2009 commit 18385c1998cf811dc0543b3de50e8a4054c4b188 Author: wanghuandong <wanghuandong@pubserver.(none)> Date:   Wed Nov 18 23:25:09 2009 +0800 ";

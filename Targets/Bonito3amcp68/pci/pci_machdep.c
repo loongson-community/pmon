@@ -164,11 +164,14 @@ _pci_hwinit(initialise, iot, memt)
 
 /*set pci base0 address and window size*/
 	pci_local_mem_pci_base = 0x80000000;
-#if 0
+#ifdef LS3_HT
+#else
 	BONITO_PCIBASE0 = 0x80000000;
 	BONITO_PCIBASE1 = 0;
 	BONITO(BONITO_REGBASE + 0x50) = 0x8000000c;
 	BONITO(BONITO_REGBASE + 0x54) = 0xffffffff;
+#endif
+#if 0
    /*set master1's window0 to map pci 2G->DDR 0 */
 	  asm(".set mips3;dli $2,0x900000003ff00000;li $3,0x80000000;sd $3,0x60($2);sd $0,0xa0($2);dli $3,0xffffffff80000000;sd $3,0x80($2);.set mips0" :::"$2","$3");
 

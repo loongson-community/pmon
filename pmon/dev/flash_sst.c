@@ -261,3 +261,78 @@ fl_erase_suspend_sst(map, dev)
 	return(0);
 }
 
+/*
+ *  Function to Disable the LPC write protection of 49LF040B
+ *  For Loongson3 by wanghuandong(AdonWang, whd)
+ */
+
+int
+fl_write_protect_unlock(map, dev, offset)
+	struct fl_map *map;
+	struct fl_device *dev;
+    int offset;
+{
+    unsigned int trans_unlock_value;
+
+    if (!((dev->fl_mfg & 0xff) == 0xbf) && ((dev->fl_id & 0xff) == 0x50))//NOT SST49LF040B
+	    return(0);
+
+    printf("Disable all space write protection of 49LF040B. \r\n");
+    /* Open translation of 0xbc000000 - 0xbd00000 */
+    trans_unlock_value = inl(0xbfe00200);
+    outl(0xbfe00200, (0x00ff0000 | trans_unlock_value));
+    //outl(0xbfe00200, 0x00ff0000);
+
+    /* Disable all space write protection */
+    outb(0xbdbf0002, 0x0);
+    outb(0xbdbe0002, 0x0);
+    outb(0xbdbd0002, 0x0);
+    outb(0xbdbc0002, 0x0);
+    outb(0xbdbb0002, 0x0);
+    outb(0xbdba0002, 0x0);
+    outb(0xbdb90002, 0x0);
+    outb(0xbdb80002, 0x0);
+
+
+    outl(0xbfe00200, trans_unlock_value);
+
+	return(1);
+}
+
+/*
+ *  Function to enable the LPC write protection of 49LF040B
+ *  For Loongson3 by wanghuandong(AdonWang, whd)
+ */
+
+int
+fl_write_protect_lock(map, dev, offset)
+	struct fl_map *map;
+	struct fl_device *dev;
+    int offset;
+{
+    unsigned int trans_unlock_value;
+
+    if (!((dev->fl_mfg & 0xff) == 0xbf) && ((dev->fl_id & 0xff) == 0x50))//NOT SST49LF040B
+	    return(0);
+
+    printf("Enable all space write protection of 49LF040B. \r\n");
+    /* Open translation of 0xbc000000 - 0xbd00000 */
+    trans_unlock_value = inl(0xbfe00200);
+    //outl(0xbfe00200, 0x00ff0000);
+    outl(0xbfe00200, (0x00ff0000 | trans_unlock_value));
+
+    /* Enable all space write protection */
+    outb(0xbdbf0002, 0x1);
+    outb(0xbdbe0002, 0x1);
+    outb(0xbdbd0002, 0x1);
+    outb(0xbdbc0002, 0x1);
+    outb(0xbdbb0002, 0x1);
+    outb(0xbdba0002, 0x1);
+    outb(0xbdb90002, 0x1);
+    outb(0xbdb80002, 0x1);
+
+
+    outl(0xbfe00200, trans_unlock_value);
+
+	return(1);
+}

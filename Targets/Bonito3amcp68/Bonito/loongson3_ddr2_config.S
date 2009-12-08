@@ -5,8 +5,8 @@
 
 #######################################################
 /* Undefine the two to enable both */
-#define MC0_ONLY
-//#define MC1_ONLY
+//#define MC0_ONLY
+#define MC1_ONLY
 
 /* Size of each DDR controller */
 //#define DDR_512
@@ -324,6 +324,11 @@
         sd      t1, 0(t0)
 
 #endif
+	    PRINTSTR("PCI DMA SPACE reassigned to MC1\r\n")
+        dli     t0, 0x900000003ff00180  #mmap
+        dli     t1, 0x00000000000000f1
+        sd      t1, 0(t0)
+
 #endif
 
 #else
@@ -554,8 +559,8 @@ not_locked:
         sw  a1,0x0(t2)
 #endif
 
-#if 0 // AdonWang disable ddr3 readbuff
-/* !!!!!!!!!! IMPORTANT !!!!!!!!!! */
+#if 1 // AdonWang disable ddr3 readbuff
+/* !!! May Affect the Performance !!!!! */
        TTYDBG("Disable read buffer\r\n")
        li      t0, 0xbfe00180
        //dli     t1,0x1ffffff617   
@@ -569,7 +574,7 @@ not_locked:
 #endif
 
 #if 1 // AdonWang disable cpu buffered read
-/* !!!!!!!!!! IMPORTANT !!!!!!!!!! */
+/* !!!!!!!!!!!!! IMPORTANT !!!!!!!!!!!! */
        TTYDBG("Disable cpu buffered read\r\n")
        li      t0, 0xbfe00180
        lw      t1, 0x0(t0)

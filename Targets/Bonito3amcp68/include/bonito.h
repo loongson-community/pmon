@@ -39,8 +39,11 @@ extern char           *heaptop;
 
 //#define COM1_BASE_ADDR	0xbfd003f8
 //#define COM2_BASE_ADDR	0xbfd002f8
-#define COM1_BASE_ADDR	0xba0003f8
-#define COM2_BASE_ADDR	0xba0002f8
+#define GS3_UART0_BASE 0xbfe001e0
+#define GS3_UART1_BASE 0xbfe001e8
+#define GS3_UART_BASE   GS3_UART0_BASE
+#define COM1_BASE_ADDR	0xb80003f8
+#define COM2_BASE_ADDR	0xb80002f8
 #ifndef COM3_BASE_ADDR
 #define COM3_BASE_ADDR	0xbff003f8
 #endif

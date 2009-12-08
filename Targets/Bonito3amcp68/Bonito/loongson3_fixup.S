@@ -1,6 +1,6 @@
 /*whd : loongson3_fixup.S
         used to fix up the potential addressing miss
-        caused by execute speculated
+        caused by speculated execution
 */
 
 
@@ -59,9 +59,9 @@
 ############
 	TTYDBG("Fix L2xbar illegal access \r\n")
 ############ PCI Space
-	dli	t2, 0x900000003ff00080
-	dli	t0, 0x0
-	sd	t0, 0x0(t2)
+	//dli	t2, 0x900000003ff00080
+	//dli	t0, 0x0
+	//sd	t0, 0x0(t2)
 
 	dli	t2, 0x900000003ff00000
 	dli	t0, 0x000000001fc00000

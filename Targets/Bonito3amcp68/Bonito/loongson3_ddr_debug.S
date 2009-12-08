@@ -362,7 +362,7 @@ uncache_test:
         nop
 #endif
 
-#if 0 //LOOP whd
+#if 1 //LOOP whd
 33:
         li      t0, 0x80000400
         li      a0, 0x0
@@ -381,9 +381,9 @@ uncache_test:
         sw      a0, 0x10(t0)
         li      a0, 0xffffffff
         sw      a0, 0x14(t0)
-        //li      a0, 0x00000000
+        li      a0, 0x00000000
         sw      a0, 0x18(t0)
-        //li      a0, 0x00000000
+        li      a0, 0x00000000
         sw      a0, 0x1c(t0)
 #else
         li      a0, 0x03508023

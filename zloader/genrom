@@ -45,7 +45,7 @@ asm volatile(\
 " 	beq		\$2, \$3, godson_2f;\\n" \\
 " 	nop;\\n" \\
 "	li		\$2, 0x6302;				#godson2e prid;\\n" \\
-"	bne	\$2, \$3,11f ;\\n" \\
+"	bne     \$2, \$3,11f;             #godson3a/2g need not flush\\n" \\
 "	nop;\\n" \\
 "# godson2e;\\n" \\
 " godson_2f: " \\

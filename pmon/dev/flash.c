@@ -381,6 +381,7 @@ fl_erase_device(void *base, int size, int verbose)
         }
         
         tgt_flashwrite_enable();
+        fl_write_protect_unlock(map, dev, 0);/* Disable write protection of 49LF040B */
         
 	while(size > 0) {
 		int boffs = (int)base;
@@ -451,6 +452,7 @@ fl_erase_device(void *base, int size, int verbose)
 	}
 
 	tgt_flashwrite_disable();
+    fl_write_protect_lock(map, dev, 0);/* Enable write protection of 49LF040B */
 	return(ok);
 }
 
@@ -542,6 +544,7 @@ fl_program_device(void *fl_base, void *data_base, int data_size, int verbose)
 	}
 
 	tgt_flashwrite_enable();
+    fl_write_protect_unlock(map, dev, 0);/* Disable write protection of 49LF040B */
 
 	for(i = 0; i < data_size; i += map->fl_map_width) {
 
@@ -582,6 +585,7 @@ fl_program_device(void *fl_base, void *data_base, int data_size, int verbose)
 	}
 	
 	tgt_flashwrite_disable();
+    fl_write_protect_lock(map, dev, 0);/* Enable write protection of 49LF040B */
 	return(ok);
 }
 
@@ -654,6 +658,7 @@ fl_verify_device(void *fl_base, void *data_base, int data_size, int verbose)
 			if(str[0]=='y'||str[0]=='Y')
 			{
 				tgt_flashwrite_enable();
+                fl_write_protect_unlock(map, dev, 0);/* Disable write protection of 49LF040B */
 				printf("Erasing all FLASH blocks. ");
 				(*dev->functions->erase_chip)(map, dev);
 				delay(1000);
@@ -672,6 +677,7 @@ fl_verify_device(void *fl_base, void *data_base, int data_size, int verbose)
 				}
 				(*dev->functions->reset)(map, dev);
 				tgt_flashwrite_disable();
+                fl_write_protect_lock(map, dev, 0);/* Enable write protection of 49LF040B */
 			}
 		   }
 			break;

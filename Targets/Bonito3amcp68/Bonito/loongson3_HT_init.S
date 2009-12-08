@@ -10,7 +10,7 @@
 //#define HT_800M
 //#define HT_16bit
 //#define HT_RECONNECT
-//#define HT_REG_TRANS
+#define HT_REG_TRANS
 ######################################################
 
 #ifdef HT_32bit_TRANS //PCI CFG : TYPE 0: 
@@ -50,7 +50,7 @@
     sd  t1, 0x90(t0)
 
  //HT: PCI HI BASE
- //map 0x90000e00_10000000 --> 0x18000000
+ //map 0x90000e00_10000000 --> 0x10000000
     dli t1, 0x0000000010000000
     sd  t1, 0x18(t0)
     dli t1, 0xfffffffff8000000
@@ -95,6 +95,22 @@
 	nop
 	TTYDBG("DEBUG END......\r\n")
 #endif
+
+#if 0//Print all HT registers
+	TTYDBG("Print all HT registers\r\n")
+	dli	    t2, 0x90000efdfb000000
+    dli     t3, 0x90000efdfb000100
+1:
+    lw      a0, 0x00(t2)
+	bal	    hexserial
+    nop
+	TTYDBG("\r\n")
+
+    daddi   t2, t2, 0x4
+    bne     t2, t3, 1b
+    nop
+#endif
+
 
 #ifdef WITH_HT
 #if 1//wait until HT link up

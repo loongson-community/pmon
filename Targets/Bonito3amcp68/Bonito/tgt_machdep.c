@@ -321,7 +321,8 @@ ConfigEntry	ConfigTable[] =
     #ifdef USE_LPC_UART
 	 { (char *)COM3_BASE_ADDR, 0, ns16550, 256, CONS_BAUD, NS16550HZ },
     #else
-	 { (char *)0xbfe001e0, 0, ns16550, 256, CONS_BAUD, NS16550HZ },
+	 //{ (char *)0xbfe001e0, 0, ns16550, 256, CONS_BAUD, NS16550HZ },
+	 { (char *)GS3_UART_BASE, 0, ns16550, 256, CONS_BAUD, NS16550HZ },
     #endif
 	#endif
 #elif defined(USE_SM502_UART0)

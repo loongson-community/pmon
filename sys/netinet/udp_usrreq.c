@@ -270,6 +270,7 @@ udp_input(m, va_alist)
 		    sizeof ((struct ipovly *)ip)->ih_x1);
 		((struct ipovly *)ip)->ih_len = uh->uh_ulen;
 		if ((uh->uh_sum = in_cksum(m, len + sizeof (struct ip))) != 0) {
+	                printf("+++++++++++++++%s %s %d Abandon udp for checksum error !!!!!\n", __FILE__, __func__, __LINE__);
 			udpstat.udps_badsum++;
 			m_freem(m);
 			return;

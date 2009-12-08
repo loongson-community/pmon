@@ -20,6 +20,7 @@ extern struct cfdriver rtl_cd;
 extern struct cfdriver em_cd;
 extern struct cfdriver pciide_cd;
 extern struct cfdriver ppb_cd;
+extern struct cfdriver rtk_cd;
 extern struct cfdriver wd_cd;
 extern struct cfdriver ide_cd_cd;
 
@@ -34,6 +35,7 @@ extern struct cfattach rtl_ca;
 extern struct cfattach em_ca;
 extern struct cfattach pciide_ca;
 extern struct cfattach ppb_ca;
+extern struct cfattach rtk_ca;
 extern struct cfattach wd_ca;
 extern struct cfattach ide_cd_ca;
 
@@ -102,9 +104,11 @@ struct cfdata cfdata[] = {
     {&pciide_ca,	&pciide_cd,	 0, STAR, loc+  0,    0, pv+ 6, 9, 0,    0},
 /* 10: ppb* at pci* dev -1 function -1 */
     {&ppb_ca,		&ppb_cd,	 0, STAR, loc+  0,    0, pv+ 6, 9, 0,    0},
-/* 11: wd* at pciide* channel -1 drive -1 */
+/* 11: rtk* at pci* dev -1 function -1 */
+    {&rtk_ca,		&rtk_cd,	 0, STAR, loc+  0,    0, pv+ 6, 9, 0,    0},
+/* 12: wd* at pciide* channel -1 drive -1 */
     {&wd_ca,		&wd_cd,		 0, STAR, loc+  0,    0, pv+ 8, 12, 0,    0},
-/* 12: ide_cd* at pciide* channel -1 drive -1 */
+/* 13: ide_cd* at pciide* channel -1 drive -1 */
     {&ide_cd_ca,	&ide_cd_cd,	 0, STAR, loc+  0,  0x1, pv+ 8, 12, 0,    0},
     {0},
     {0},
