@@ -7140,11 +7140,7 @@ error_4:
 	}	/* if mode = "none" */
 
     //Fixme
-    outSISIDXREG(SISSR   , 0x2b, 0x54);
-    outSISIDXREG(SISSR   , 0x2c, 0x27);
 
-    outSISIDXREG(SISCR   , 0x11, 0x07);//disable write protect
-    outSISIDXREG(SISCR   , 0x00, 0xfc);
     orSISIDXREG (SISPART1, 0x2f, 0x01);
     orSISIDXREG (SISPART1, 0x00, 0x10);
     orSISIDXREG (SISPART1, 0x13, 0x04);
@@ -7168,6 +7164,10 @@ error_4:
     outSISIDXREG(SISPART1, 0x18, 0x02);
     setSISIDXREG(SISPART1, 0x19, 0xf0, 0x07);
 
+	outSISIDXREG(SISPART1,0x16,0xc7); /* 1368x768 */
+	outSISIDXREG(SISPART1,0x1a,0x18);
+	outSISIDXREG(SISPART1,0x1b,0x25);
+	outSISIDXREG(SISPART1,0x1d,0x13);
 	return 0;
 }
 
