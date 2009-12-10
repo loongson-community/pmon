@@ -565,66 +565,7 @@ fl_program_sst(map,0,offset,&argv[1][i]);
 	
 }
 #endif
-#ifdef LOONGSON2F_ALLINONE
-#include <target/cs5536.h>
-#define GPIO_11 11
-#define GPIO_BASE_ADDR 0xb000 
-
-static void GPIO_HI_BIT(int bit, int reg)
-{
-	int orig;
-	
-	orig = *(unsigned int *)(0xbfd00000 + reg);
-	orig = orig | (1 << bit);
-	orig = orig &( ~(1 << (16 + bit)));		
-	*(unsigned int *)(0xbfd00000 + reg) = orig;
-}
-
-static void GPIO_LO_BIT(int bit, int reg)
-{
-	int orig;
-	
-	orig = *(unsigned int *)(0xbfd00000 + reg);
-	orig = orig & (~(1 << bit));
-	orig = orig | (1 << (16 + bit));		
-	*(unsigned int *)(0xbfd00000 + reg) = orig;
-}
-
-void cmd_gpio_low(int argc, char *argv[])
-{
-	unsigned long gpio;
-	
-	if(argc > 2)
-		printf("too much  parameter!");
-	
-	get_rsa(&gpio, argv[1]);
-    GPIO_LO_BIT(gpio, GPIO_BASE_ADDR | GPIOL_OUT_VAL);
-    GPIO_HI_BIT(gpio, GPIO_BASE_ADDR | GPIOL_OUT_EN);
-    GPIO_LO_BIT(gpio, GPIO_BASE_ADDR | GPIOL_IN_EN);
-    GPIO_LO_BIT(gpio, GPIO_BASE_ADDR | GPIOL_OUT_AUX1_SEL);
-    GPIO_LO_BIT(gpio, GPIO_BASE_ADDR | GPIOL_OUT_AUX2_SEL);
-    GPIO_LO_BIT(gpio, GPIO_BASE_ADDR | GPIOL_IN_AUX1_SEL);
-    GPIO_HI_BIT(gpio, GPIO_BASE_ADDR | GPIOL_PU_EN);
-}
-
-void cmd_gpio_high(int argc, char *argv[])
-{
-	unsigned long gpio;
-	
-	if(argc > 2)
-		printf("too much  parameter!");
-	
-	get_rsa(&gpio, argv[1]);
-    GPIO_HI_BIT(gpio, GPIO_BASE_ADDR | GPIOL_OUT_VAL);
-    GPIO_HI_BIT(gpio, GPIO_BASE_ADDR | GPIOL_OUT_EN);
-    GPIO_LO_BIT(gpio, GPIO_BASE_ADDR | GPIOL_IN_EN);
-    GPIO_LO_BIT(gpio, GPIO_BASE_ADDR | GPIOL_OUT_AUX1_SEL);
-    GPIO_LO_BIT(gpio, GPIO_BASE_ADDR | GPIOL_OUT_AUX2_SEL);
-    GPIO_LO_BIT(gpio, GPIO_BASE_ADDR | GPIOL_IN_AUX1_SEL);
-    GPIO_HI_BIT(gpio, GPIO_BASE_ADDR | GPIOL_PU_EN);
-}
-
-#endif       
+       
 //-------------------------------------------------------------------------------------------
 static const Cmd Cmds[] =
 {
@@ -646,10 +587,7 @@ static const Cmd Cmds[] =
 	{"initkbd","",0,"kbd_initialize",initkbd,0,99,CMD_REPEAT},
 	{"tlbset","viraddr phyaddr [-x]",0,"tlbset viraddr phyaddr [-x]",tlbset,0,99,CMD_REPEAT},
 	{"cache","[0 1]",0,"cache [0 1]",setcache,0,99,CMD_REPEAT},
-#ifdef LOONGSON2F_ALLINONE
-	{"gpio_high","<index>",0,"pull high gpio <index>",cmd_gpio_high,1,2,0},
-	{"gpio_low","<index>",0,"pull low gpio <index>",cmd_gpio_low,1,2,0},
-#endif
+
 #if NMOD_FLASH_SST
 	{"erase","[0 1]",0,"cache [0 1]",erase,0,99,CMD_REPEAT},
 	{"program","[0 1]",0,"cache [0 1]",program,0,99,CMD_REPEAT},

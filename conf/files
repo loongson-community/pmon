@@ -208,6 +208,7 @@ file pmon/common/bootkernel.c
 file pmon/cmds/cmd_ls.c
 file pmon/cmds/cat.c
 file pmon/cmds/cmd_i2c.c        cmd_i2c
+file pmon/cmds/cmd_gpio.c        cmd_gpio
 #file pmon/cmds/cmd_tem.c      cmd_tem
 file pmon/cmds/cmd_main/cmd_main.c   cmd_bios
 file pmon/cmds/cmd_main/window.c     cmd_bios
