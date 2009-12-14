@@ -115,16 +115,28 @@ pmon.bin.c:  ../Targets/${TARGET}/compile/${TARGETEL}/pmon.bin
 endif
 
 ifeq ("${tgt}","rom")
+ifeq ($(PMON64),1)
+gencode=./genrom64
+else
 gencode=./genrom
+endif
 endif
 
 ifeq ("${tgt}","zlib_rom")
+ifeq (${PMON64},1)
+gencode=./genrom64
+else
 gencode=./genrom
+endif
 endif
 
 
 ifndef gencode
+ifeq ($(PMON64),1)
+gencode=./genram64
+else
 gencode=./genram
+endif
 endif
 
 cleanall: clean
