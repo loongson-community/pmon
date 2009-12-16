@@ -49,7 +49,7 @@ struct ed {
 
 	struct ed *ed_prev;
 	struct ed *ed_next;
-	u32 oINFO;
+	//u32 oINFO;
 	u32 pipe;
 	u8 int_period;
 	u8 int_branch;
@@ -58,12 +58,14 @@ struct ed {
 	u8 state;
 	u8 type;
 	u16 last_iso;
-    u32 cpued_num;
-	struct ed *ed_rm_list;
+    //u32 cpued_num;
+	//struct ed *ed_rm_list;
 
-	struct usb_device *usb_dev;
-	u32 unused[5];
-} __attribute((aligned(32)));
+	//struct usb_device *usb_dev;
+    void *purb;
+    //void *ptd;
+	//u32 unused[5];
+} __attribute((aligned(16)));
 typedef struct ed ed_t;
 
 
@@ -112,8 +114,8 @@ struct td {
   	u32 hwNextTD;   /* Next TD Pointer */
   	u32 hwBE;		/* Memory Buffer End Pointer */
 
-  	u16 hwPSW[MAXPSW];
-  	u8 unused;
+  	//u16 hwPSW[MAXPSW];
+  	//u8 unused;
   	u8 index;
 
 	u32 transfer_len;
@@ -122,11 +124,11 @@ struct td {
   	struct td *next_dl_td;
 	struct usb_device *usb_dev;
 
-	unsigned char *retbuf;
+	//unsigned char *retbuf;
 
 	unsigned long data;
 
-	u32 unused2[1];
+	//u32 unused2[1];
 } __attribute((aligned(32)));
 typedef struct td td_t;
 
@@ -340,17 +342,19 @@ struct virt_root_hub {
 #define N_URB_TD 32
 typedef struct
 {
-	ed_t *ed;
+	volatile ed_t *ed;
 	u16 length;	/* number of tds associated with this request */
 	u16 td_cnt;	/* number of tds already serviced */
+    struct usb_device *dev;
 	int   state;
-	unsigned long pipe;
-	int actual_length;
-	int trans_length;
-	unsigned char *trans_buffer, *setup_buffer;
-	unsigned char *dev_trans_buffer;
+	unsigned int pipe;
+	void *transfer_buffer;
+	int transfer_buffer_length;
+    int interval;
+    int actual_length;
+	int finished;
+    //td_t *ptd;
 	td_t *td[N_URB_TD];	/* list pointer to all corresponding TDs associated with this request */
-	//unsigned char *bufs[N_URB_TD];
 } urb_priv_t;
 #define URB_DEL 1
 
@@ -382,19 +386,20 @@ typedef struct ohci {
 	struct ohci_regs *regs;	/* OHCI controller's memory */
 	ed_t       *periodic [NUM_INTS];
 
-	ed_t *ed_rm_list[2];     /* lists of all endpoints to be removed */
+	//ed_t *ed_rm_list[2];     /* lists of all endpoints to be removed */
 	ed_t *ed_bulktail;       /* last endpoint of bulk list */
 	ed_t *ed_controltail;    /* last endpoint of control list */
-	int intrstatus;
+	//int intrstatus;
 	u32 hc_control;		/* copy of the hc control reg */
-	struct usb_device *dev[32];
+	//struct usb_device *dev[32];
+	struct usb_device *dev[16];
 	struct virt_root_hub rh;
 	struct usb_device *rdev;
 	
 	int         load [NUM_INTS];
 	const char	*slot_name;
 	unsigned char *setup;
-	unsigned char *control_buf;
+	//unsigned char *control_buf;
 
 	struct ohci_device *ohci_dev;
 	void *lmem;
@@ -409,9 +414,6 @@ typedef struct ohci {
 
 	unsigned int transfer_lock;
 
-    //09-08-03
-    int ohci_no;
-
 #ifdef CONFIG_SM502_USB_HCD
 	/*only for sm502 usb only*/
 #define MAX_SM502_BUFS 5 //This is sufficient
@@ -424,16 +426,14 @@ typedef struct ohci {
 
 struct ohci_device {
 	ed_t 	ed[NUM_EDS];
-	ed_t 	*cpu_ed;
 	int ed_cnt;
-	u32	unused[6];
-}__attribute__((aligned(32)));
+};//__attribute__((aligned(32)));
 
 /* hcd */
 /* endpoint */
 static int ep_link(ohci_t * ohci, ed_t * ed);
 static int ep_unlink(ohci_t * ohci, ed_t * ed);
-static ed_t * ep_add_ed(struct usb_device * usb_dev, unsigned long pipe);
+static ed_t * ep_add_ed(struct usb_device * usb_dev, unsigned int pipe);
 
 /*-------------------------------------------------------------------------*/
 
@@ -474,10 +474,11 @@ td_alloc (struct usb_device *usb_dev)
 	}
 	return td;
 }
-
+/*
 static inline void
 ed_free (struct ed *ed)
 {
 	ed->usb_dev = NULL;
 }
+*/
 #endif

@@ -210,10 +210,10 @@ TAILQ_HEAD(hostcontroller, usb_hc);
 #if 1
 //int usb_lowlevel_init(void);
 //int usb_lowlevel_stop(void);
-int submit_bulk_msg(struct usb_device *dev, unsigned long pipe, void *buffer,int transfer_len);
-int submit_control_msg(struct usb_device *dev, unsigned long pipe, void *buffer,
+int submit_bulk_msg(struct usb_device *dev, unsigned int pipe, void *buffer,int transfer_len);
+int submit_control_msg(struct usb_device *dev, unsigned int pipe, void *buffer,
 			int transfer_len,struct devrequest *setup);
-int submit_int_msg(struct usb_device *dev, unsigned long pipe, void *buffer,
+int submit_int_msg(struct usb_device *dev, unsigned int pipe, void *buffer,
 			int transfer_len, int interval);
 
 /* Defines */
@@ -273,11 +273,12 @@ int usb_control_msg(struct usb_device *dev, unsigned int pipe,
 			void *data, unsigned short size, int timeout);
 int usb_bulk_msg(struct usb_device *dev, unsigned int pipe,
 			void *data, int len, int *actual_length, int timeout);
-int usb_submit_int_msg(struct usb_device *dev, unsigned long pipe,
+int usb_submit_int_msg(struct usb_device *dev, unsigned int pipe,
 			void *buffer,int transfer_len, int interval);
 void usb_disable_asynch(int disable);
-int usb_maxpacket(struct usb_device *dev,unsigned long pipe);
+int usb_maxpacket(struct usb_device *dev,unsigned int pipe);
 void __inline__ wait_ms(unsigned long ms);
+void __inline__ delay_ms(unsigned int ms);
 int usb_get_configuration_no(struct usb_device *dev,unsigned char *buffer,int cfgno);
 int usb_get_report(struct usb_device *dev, int ifnum, unsigned char type, unsigned char id, void *buf, int size);
 int usb_get_class_descriptor(struct usb_device *dev, int ifnum,
@@ -295,7 +296,7 @@ int usb_new_device(struct usb_device *dev);
 #define LITTLEENDIAN
 #ifdef LITTLEENDIAN
 #define swap_16(x) ((unsigned short)(x))
-#define swap_32(x) ((unsigned long)(x))
+#define swap_32(x) ((unsigned int)(x))
 #else
 #define swap_16(x) \
 	({ unsigned short x_ = (unsigned short)x; \
@@ -303,8 +304,8 @@ int usb_new_device(struct usb_device *dev);
 		((x_ & 0x00FFU) << 8) | ((x_ & 0xFF00U) >> 8) ); \
 	})
 #define swap_32(x) \
-	({ unsigned long x_ = (unsigned long)x; \
-	 (unsigned long)( \
+	({ unsigned int x_ = (unsigned int)x; \
+	 (unsigned int)( \
 		((x_ & 0x000000FFUL) << 24) | \
 		((x_ & 0x0000FF00UL) <<	 8) | \
 		((x_ & 0x00FF0000UL) >>	 8) | \
@@ -422,10 +423,10 @@ struct usb_hub_device {
 };
 
 struct usb_ops {
-	int (*submit_bulk_msg)(struct usb_device *dev, unsigned long pipe, void *buffer, int transfer_len);
-	int (*submit_control_msg)(struct usb_device *dev, unsigned long pipe, void *buffer,
+	int (*submit_bulk_msg)(struct usb_device *dev, unsigned int pipe, void *buffer, int transfer_len);
+	int (*submit_control_msg)(struct usb_device *dev, unsigned int pipe, void *buffer,
 					int transfer_len, struct devrequest *setup);
-	int (*submit_int_msg)(struct usb_device *dev, unsigned long pipe, void *buffer,
+	int (*submit_int_msg)(struct usb_device *dev, unsigned int pipe, void *buffer,
 					        int transfer_len, int interval);
 };
 

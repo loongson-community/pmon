@@ -123,6 +123,13 @@ static int isprint (unsigned char ch)
 	return (0);
 }
 
+//syn,no switch context delay
+void __inline__ delay_ms(unsigned int ms)
+{
+	while(ms-->0)
+		delay(1000);
+}
+
 /*===========================================================================
 *
 *FUNTION: wait_ms
@@ -243,7 +250,7 @@ void usb_disable_asynch(int disable)
 *RETURN VALUE: same as the host controller's routine's return value.
 *
 *===========================================================================*/
-int submit_int_msg(struct usb_device *dev, unsigned long pipe, void *buffer, int transfer_len, int interval)
+int submit_int_msg(struct usb_device *dev, unsigned int pipe, void *buffer, int transfer_len, int interval)
 {
 	struct usb_hc *hc = dev->hc_private;
 
@@ -269,7 +276,7 @@ int submit_int_msg(struct usb_device *dev, unsigned long pipe, void *buffer, int
 *RETURN VALUE: same as the return of submit_int_msg.
 *
 *===========================================================================*/
-int usb_submit_int_msg(struct usb_device *dev, unsigned long pipe,
+int usb_submit_int_msg(struct usb_device *dev, unsigned int pipe,
 			void *buffer,int transfer_len, int interval)
 {
 	return submit_int_msg(dev,pipe,buffer,transfer_len,interval);
@@ -301,7 +308,7 @@ int usb_submit_int_msg(struct usb_device *dev, unsigned long pipe,
 *              dev->status.
 *
 *===========================================================================*/
-int submit_control_msg(struct usb_device *dev, unsigned long pipe,
+int submit_control_msg(struct usb_device *dev, unsigned int pipe,
 				void * buffer, int transfer_len, struct devrequest *setup)
 {
 	struct usb_hc *hc = dev->hc_private;
@@ -387,7 +394,7 @@ int usb_control_msg(struct usb_device *dev, unsigned int pipe,
 *RETURN VALUE: returns 0 if Ok or -1 if Error.
 *
 *===========================================================================*/
-int submit_bulk_msg(struct usb_device *dev, unsigned long pipe, void *buffer,int transfer_len)
+int submit_bulk_msg(struct usb_device *dev, unsigned int pipe, void *buffer,int transfer_len)
 {
 	struct usb_hc *hc= dev->hc_private;
 
@@ -453,7 +460,7 @@ int usb_bulk_msg(struct usb_device *dev, unsigned int pipe,
 *RETURN VALUE: the max packet size.
 *
 *===========================================================================*/
-int usb_maxpacket(struct usb_device *dev,unsigned long pipe)
+int usb_maxpacket(struct usb_device *dev,unsigned int pipe)
 {
 	if((pipe & USB_DIR_IN)==0) /* direction is out -> use emaxpacket out */
 		return(dev->epmaxpacketout[((pipe>>15) & 0xf)]);
@@ -1328,7 +1335,7 @@ int usb_new_device(struct usb_device *dev)
 	usb_parse_config(dev,&tmpbuf[0],0);
 #ifdef USB_DEBUG
 	{
-		struct usb_config_descriptor *p =  tmpbuf;
+		struct usb_config_descriptor *p =(struct usb_config_descriptor *)tmpbuf;
 		int i;
 
 		printf("bLength=%x\n",  p->bLength);
@@ -1367,8 +1374,13 @@ int usb_new_device(struct usb_device *dev)
 	USB_PRINTF("SerialNumber %s\n", dev->serial);
 	/* now prode if the device is a hub */
 	usb_hub_probe(dev,0);
-	config_found(dev->hc_private, dev, usbprint);
-	usb_find_drivers(dev);
+    USB_PRINTF("usb_new_device After usb_hub_probe()dev:%x.\n",dev);
+	if (dev->descriptor.bDeviceClass != USB_CLASS_HUB){
+        USB_PRINTF("usb_new_device before config_found()dev:%x dev->hc_private:%x.\n",dev,dev->hc_private);
+		config_found(dev->hc_private, dev, usbprint);
+        USB_PRINTF("usb_new_device before usb_find_drivers().\n");
+        usb_find_drivers(dev);
+	}
 	return 0;
 }
 

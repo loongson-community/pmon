@@ -97,7 +97,7 @@ unsigned char us_direction[256/8] = {
 #define US_DIRECTION(x) ((us_direction[x>>3] >> (x & 7)) & 1)
 
 static unsigned char usb_stor_buf[512] __attribute__((section("data"),aligned(512)));
-static ccb _usb_ccb __attribute__((section("data"),aligned(1024)));
+static ccb _usb_ccb[USB_MAX_STOR_DEV] __attribute__((section("data"),aligned(1024)));
 static ccb *usb_ccb;
 
 
@@ -152,7 +152,7 @@ typedef struct {
 } umass_bbb_csw_t;
 #define UMASS_BBB_CSW_SIZE	13
 
-#define USB_MAX_STOR_DEV 3
+//#define USB_MAX_STOR_DEV 3
 static int usb_max_devs = 0; /* number of highest available usb device */
 
 static block_dev_desc_t usb_dev_desc[USB_MAX_STOR_DEV];
@@ -191,7 +191,7 @@ static struct us_data usb_stor[USB_MAX_STOR_DEV];
 #define USB_STOR_TRANSPORT_ERROR  -2
 
 
-int usb_stor_get_info(struct usb_device *dev, struct us_data *us, block_dev_desc_t *dev_desc);
+int usb_stor_get_info(struct usb_device *dev, struct us_data *us, block_dev_desc_t *dev_desc,int devno);
 int usb_storage_probe(struct usb_device *dev, unsigned int ifnum,struct us_data *ss);
 static unsigned long 
 usb_stor_read(int device, unsigned long blknr, unsigned long blkcnt, unsigned long *buffer,unsigned char *cp);
@@ -280,7 +280,7 @@ int usb_stor_scan(int mode)
 		}
 		if(usb_storage_probe(dev,0,&usb_stor[usb_max_devs])) { /* ok, it is a storage devices */
 			/* get info and fill it in */
-			if(usb_stor_get_info(dev, &usb_stor[usb_max_devs], &usb_dev_desc[usb_max_devs]))
+			if(usb_stor_get_info(dev, &usb_stor[usb_max_devs], &usb_dev_desc[usb_max_devs],usb_max_devs))
 				usb_max_devs++;
 		} /* if storage device */
 		if(usb_max_devs==USB_MAX_STOR_DEV) {
@@ -337,7 +337,7 @@ static void display_int_status(unsigned long tmp)
  * Data transfer routines
  ***********************************************************************/
 
-static int us_one_transfer(struct us_data *us, int pipe, char *buf, int length)
+static int us_one_transfer(struct us_data *us, unsigned int pipe, char *buf, int length)
 {
 	int max_size;
 	int this_xfer;
@@ -976,7 +976,7 @@ usb_stor_read(int device, unsigned long blknr, unsigned long blkcnt, unsigned lo
 	struct usb_device *dev;
 	int retry,i;
 	int s;
-	ccb *srb = usb_ccb;
+	ccb *srb = (ccb*)CACHED_TO_UNCACHED(&_usb_ccb[device]);
 
 	if (blkcnt == 0)
 		return 0;
@@ -984,7 +984,7 @@ usb_stor_read(int device, unsigned long blknr, unsigned long blkcnt, unsigned lo
 	device &= 0xff;
 	/* Setup  device
 	 */
-	//USB_STOR_PRINTF("\nusb_read: dev %d \n",device);
+	//printf("\nusb_read: dev %d \n",device);
 	if(ohci_debug)printf("\nusb_read: dev %d buffer %x\n",device, buffer);
 	dev=NULL;
 	for(i=0;i<USB_MAX_DEVICE;i++) {
@@ -1058,6 +1058,9 @@ int usb_storage_probe(struct usb_device *dev, unsigned int ifnum,struct us_data 
 
 	int protocol = 0;
 	int subclass = 0;
+
+    USB_STOR_PRINTF("usb_storage_probe come in.\n");
+
 
 	/* let's examine the device now */
 	iface = &dev->config.if_desc[ifnum];
@@ -1181,17 +1184,18 @@ int usb_storage_probe(struct usb_device *dev, unsigned int ifnum,struct us_data 
 		dev->irq_handle=usb_stor_irq;
 	}
 	dev->privptr=(void *)ss;
+    USB_STOR_PRINTF("usb_storage_probe come out.\n");
 	return 1;
 }
 
-int usb_stor_get_info(struct usb_device *dev,struct us_data *ss,block_dev_desc_t *dev_desc)
+int usb_stor_get_info(struct usb_device *dev,struct us_data *ss,block_dev_desc_t *dev_desc,int devno)
 {
 	unsigned char perq,modi;
 	//static unsigned long cap[8] __attribute((section("data"), aligned(512)));
 	//unsigned long *capacity,*blksz;
 	static unsigned int cap[8] __attribute((section("data"), aligned(512)));
 	unsigned int *capacity,*blksz;	
-	ccb *pccb = usb_ccb;
+	ccb *pccb = (ccb*)CACHED_TO_UNCACHED(&_usb_ccb[devno]);
 
 	/* for some reasons a couple of devices would not survive this reset */
 	if (
@@ -1302,9 +1306,12 @@ static int usb_match(struct device *parent, void *match, void *aux)
 {
 	struct usb_device *dev = aux;
 
-	pci_sync_cache(0, _usb_ccb, sizeof(_usb_ccb), 1);
-	usb_ccb = (ccb*)CACHED_TO_UNCACHED(&_usb_ccb);
+    USB_STOR_PRINTF("usb_match parent:%x match:%x aux:%x\n",parent,match,aux);
+    
 
+	pci_sync_cache(0, &_usb_ccb[usb_max_devs], sizeof(ccb), 1);
+	//usb_ccb = (ccb*)CACHED_TO_UNCACHED(&_usb_ccb[usb_max_devs]);
+    USB_STOR_PRINTF("usb_match after pci_sync_cache.\n ");
 	if(usb_max_devs==USB_MAX_STOR_DEV) {
 		printf("max USB Storage Device reached: %d stopping\n",usb_max_devs);
 		return -1;	
@@ -1318,12 +1325,14 @@ static int usb_match(struct device *parent, void *match, void *aux)
 		usb_dev_desc[usb_max_devs].part_type=PART_TYPE_UNKNOWN;
 		usb_dev_desc[usb_max_devs].block_read=&usb_stor_read;
 		/* get info and fill it in */
-		if(usb_stor_get_info(dev, &usb_stor[usb_max_devs], &usb_dev_desc[usb_max_devs])){
+		if(usb_stor_get_info(dev, &usb_stor[usb_max_devs], &usb_dev_desc[usb_max_devs],usb_max_devs)){
 			usb_max_devs++;
 			return 1;
-		}
+            USB_STOR_PRINTF("usb_match return 1\n");
+        }
 	} /* if storage device */
 
+    USB_STOR_PRINTF("usb_match return 0\n");
 	return 0;
 }
 
