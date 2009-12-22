@@ -30,6 +30,24 @@
  * SUCH DAMAGE.
  *
  */
+
+/**********************************************************************************
+
+ Copyright (C)
+ File name:     boot_cfg.c
+ Author:  ***      Version:  ***      Date: ***
+ Description:   
+ Others:       
+ Function List:
+ 
+ Revision History:
+ 
+ ----------------------------------------------------------------------------------
+  Date          Author          Activity ID     Activity Headline
+  2009-12-22    QianYuli        PMON00001222    Add recovery item,to control whether 
+                                                show title used for system recovery.
+***********************************************************************************/
+ 
 #ifndef __BOOT_CFG_C__
 #define __BOOT_CFG_C__
 #include <stdio.h>
@@ -85,6 +103,7 @@ MenuOptions menu_options[] = {
 	{"md5_enable", 0, 0, "0"},	/* 1-md5 */
 };
 
+unsigned int bootcfg_flags = 0;
 int options_num = sizeof(menu_options) / sizeof(menu_options[0]);
 
 /***************************************************
@@ -400,11 +419,13 @@ int menu_list_read(ExecId id, int fd, int flags)
 				menu_items[j].args = malloc (VALUE_LEN + 1);
 				menu_items[j].initrd = malloc (VALUE_LEN + 1);
 				menu_items[j].root = malloc (VALUE_LEN + 1);
+				menu_items[j].recovery= malloc (VALUE_LEN + 1);
 			}
 			memset (menu_items[j].kernel, 0, VALUE_LEN + 1);
 			memset (menu_items[j].args, 0, VALUE_LEN + 1);
 			memset (menu_items[j].initrd, 0, VALUE_LEN + 1);
 			memset (menu_items[j].root, 0, VALUE_LEN + 1);
+			memset (menu_items[j].recovery, 0, VALUE_LEN + 1);
 			in_menu = 1;
 			continue;
 		}
@@ -437,6 +458,21 @@ int menu_list_read(ExecId id, int fd, int flags)
 						strncpy(menu_items[j].root, value, VALUE_LEN);
 					}
 				}
+                else if (strcasecmp(option, "recovery") == 0)
+                {
+                    /*this is not recovery item,or recovery item not used*/
+                    if (((bootcfg_flags & U_KEY_PRESSED) != U_KEY_PRESSED)
+                        &&(value[0] == '0'))
+                    {
+                        free(menu_items[j].kernel);
+                        free(menu_items[j].args);
+                        free(menu_items[j].initrd);
+                        free(menu_items[j].root);
+                        free(menu_items[j].recovery);
+		                memset (menu_items + j, 0, sizeof(menu_items[j]));
+                        j--;
+                    }
+                }
 				//drop other property.
 			}
 		}

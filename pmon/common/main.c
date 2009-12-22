@@ -32,7 +32,22 @@
  *  This code was created from code released to Public Domain
  *  by LSI Logic and Algorithmics UK.
  */ 
+/******************************************************************************
 
+ Copyright (C)
+ File name:     main.c
+ Author:  ***      Version:  ***      Date: ***
+ Description:   
+ Others:       
+ Function List:
+ 
+ Revision History:
+ 
+ -------------------------------------------------------------------------------
+  Date          Author          Activity ID     Activity Headline
+  2009-12-22    QianYuli        PMON00001222    the sequence of reading  boot.cfg 
+                                                is usb0,wd0
+*********************************************************************************/
 #include <stdio.h>
 #include <termio.h>
 #include <endian.h>
@@ -67,6 +82,7 @@ extern void    *callvec;
 
 #include "cs5536.h"
 #include "vt82c686.h"
+#include "../cmds/boot_cfg.h"
 
 extern void DevicesInit(void);
 extern void DeviceRelease(void);
@@ -81,9 +97,11 @@ unsigned int             memorysize;
 unsigned int             memorysize_high;
 char            prnbuf[LINESZ + 8]; /* commonly used print buffer */
 
-unsigned int    show_menu;
+//unsigned int    show_menu;
 int             repeating_cmd;
 unsigned int    moresz = 10;
+extern unsigned int bootcfg_flags ;
+
 #ifdef AUTOLOAD
 static void autoload __P((char *));
 #else
@@ -199,141 +217,75 @@ main()
     DeviceRelease();
     return(0);
 }
+#define RESCUE_MEDIA "usb"
+
 static int load_menu_list()
 {
-    unsigned int dly, lastt;
-    unsigned int cnt;
-    struct termio sav;
     int i = 0;
-    char* prg = "-\\|/";
     char* rootdev = NULL;
     char* path = NULL;
     int retid;
+    struct device *dev, *next_dev;
+    char load[256];
+    
+    memset(load, 0, 256);
+    //try to read boot.cfg from USB disk first
+    for (dev  = TAILQ_FIRST(&alldevs); dev != NULL; dev = next_dev) {
+        next_dev = TAILQ_NEXT(dev, dv_list);
+        if(dev->dv_class < DV_DISK) {
+            continue;
+        }
 
-    dly = 200;
-    //printf("booting: ");
-    /*ioctl (STDIN, CBREAK, &sav);
-    lastt = 0;
-    do {
-        ioctl (STDIN, FIONREAD, &cnt);
-        printf("\b%c", prg[i++ % 4]);
-        delay(10000);
-    } while (dly-- != 0 && cnt == 0);
-
-    if(cnt > 0 && strchr("\n\r", getchar())) {
-        cnt = 0;
+        if (strncmp(dev->dv_xname, RESCUE_MEDIA, 3) == 0) {
+            sprintf(load, "bl -d ide (%s,0)/boot.cfg", dev->dv_xname);
+            retid = do_cmd(load);
+            if (retid == 0) {
+                return 1;
+            }        
+        }
     }
 
-
-    ioctl (STDIN, TCSETAF, &sav);
-    //        video_cls();*/
+    //try to read boot.cfg from ide disk second
     printf("\n");
-    cnt = 0;
-
-    if(cnt == 0) {
-        show_menu=1;
+    if (path == NULL)
+    {
+        path = malloc(512);
         if (path == NULL)
         {
-            path = malloc(512);
-            if (path == NULL)
-            {
-                return 0;
-            }
+            return 0;
         }
+    }
 
-        memset(path, 0, 512);
-        rootdev = getenv("bootdev");
-        if (rootdev == NULL)
-        {
-            rootdev = "(wd0,0)";
-        }
-        //sprintf(path, "%s/boot.cfg", rootdev);
-        sprintf(path, "bl -d ide %s/boot.cfg", rootdev);
-        retid = do_cmd(path);
-        if (retid == 0)
-        {
-            show_menu = 0;
-            //                  video_cls();
-            free(path);
-            path = NULL;
-            return 1;
-        }
-        //sprintf(path, "%s/boot/boot.cfg", rootdev);
-        sprintf(path, "bl -d ide %s/boot/boot.cfg", rootdev);
-        retid = do_cmd(path);
-        if (retid == 0)
-        {
-            show_menu = 0;
-            //                  video_cls();
-            free(path);
-            path = NULL;
-            return 1;
-        }   
-        #if 0
-        sprintf(path, "%s/boot.cfg", rootdev);
-        if (check_config(path) == 1)
-        {
-            sprintf(path, "bl -d ide %s/boot.cfg", rootdev);
-            if (do_cmd(path) == 0)
-            {
-                show_menu = 0;
-                //                  video_cls();
-                free(path);
-                path = NULL;
-                return 1;
-            }
-        }
-        else
-        {
-            sprintf(path, "%s/boot/boot.cfg", rootdev);
-            if (check_config(path) == 1)
-            {
-                sprintf(path, "bl -d ide %s/boot/boot.cfg", rootdev);
-                if (do_cmd(path) == 0)
-                {
-                    show_menu = 0;
-                    //                      video_cls();
-                    free(path);
-                    path = NULL;
-                    return 1;
-                }
-            }
-        }
-        #endif
-#if 0           
-        if( check_ide() == 1 )// GOT IDE
-        {
-            if( do_cmd ("bl -d ide /dev/fs/ext2@wd0/boot.cfg") ==0 )
-            {
-                show_menu=0;
-                video_cls();
-                return 1;
-            }
-        }
-        else if( check_cdrom () == 1 ) // GOT CDROM
-        {
-            if( do_cmd ("bl -d cdrom /dev/fs/ext2@wd0/boot.cfg") ==0 )
-            {
-                show_menu=0;
-                video_cls();
-                return 1;
-            }
-        }
-#endif
-        if (retid == 1)
-            printf ("The selected kernel entry is wrong! System will try default entry from al.\n ");
-        else
-            printf ("The boot.cfg not existed!System will try default entry from al.\n");
-        delay(1000000);
+    memset(path, 0, 512);
+    rootdev = getenv("bootdev");
+    if (rootdev == NULL)
+    {
+        rootdev = "(wd0,0)";
+    }
+    sprintf(path, "bl -d ide %s/boot.cfg", rootdev);
+    retid = do_cmd(path);
+    if (retid == 0)
+    {
         free(path);
         path = NULL;
-        //          video_cls();
-        show_menu=0;
-        return 0;
-    }
-    //show_menu=0;
-    //return 1;
-
+        return 1;
+     }
+     sprintf(path, "bl -d ide %s/boot/boot.cfg", rootdev);
+     retid = do_cmd(path);
+     if (retid == 0)
+     {
+        free(path);
+        path = NULL;
+        return 1;
+     }   
+     if (retid == 1)
+        printf ("The selected kernel entry is wrong! System will try default entry from al.\n ");
+     else
+        printf ("The boot.cfg not existed!System will try default entry from al.\n");
+     delay(1000000);
+     free(path);
+     path = NULL;
+     return 0;
 }
 
 #define NO_KEY      0
@@ -581,41 +533,6 @@ autorun(char *s)
     }
 }
 #endif
-#define RESCUE_MEDIA "usb"
-
-static int rescue(void)
-{
-    //int i;
-    struct device *dev, *next_dev;
-    char load[256];
-    int retid;
-    memset(load, 0, 256);
-
-    for (dev  = TAILQ_FIRST(&alldevs); dev != NULL; dev = next_dev) {
-        next_dev = TAILQ_NEXT(dev, dv_list);
-        if(dev->dv_class < DV_DISK) {
-            continue;
-        }
-
-        if (strncmp(dev->dv_xname, RESCUE_MEDIA, 3) == 0) {
-            sprintf(load, "bl -d ide (%s,0)/boot.cfg", dev->dv_xname);
-            retid = do_cmd(load);
-            if (retid == 0)
-                return 1;
-            if (retid == 1)
-                printf ("The selected kernel entry is wrong! System will try default entry from al.\n ");
-            else
-                printf ("The boot.cfg not existed!System will try default entry from al.\n");
-            return 0;
-        }
-    }
-    if (dev == NULL) {
-        printf("Can't Find rescue disk!!!!!!System will try default entry from al.\n");
-        return 0;
-    }
-    return 0;
-}
-
 
 static int recover(void)
 {
@@ -627,8 +544,6 @@ static int recover(void)
     char cmdline[256] = "console=tty"; /*Modified by usb rescue or tftp .*/
     int ret;
 
-    //if(s != NULL  && strlen(s) != 0)
-//#ifdef LOONGSON2F_7INCH
 #if (defined(LOONGSON2F_7INCH) ||defined(LOONGSON2F_3GNB) )
     {
         pa = cmdline;
@@ -812,32 +727,14 @@ dbginit (char *adr)
     }
     switch (get_boot_selection()){
         case TAB_KEY: 
-            //#ifdef LOONGSON2F_7INCH 
-
-            //s = getenv ("al");
-            //if (s != 0){
             vga_available = 0;
             recover();
             vga_available = 1;
-            //#endif
-            //}
             break;
             
         case U_KEY:
             vga_available = 1;
-            if(!rescue())
-            {
-                /* second try autoload env */
-                s = getenv ("al");
-                if (s != 0){
-                    autoload (s);
-                } else {
-                    vga_available = 1;
-                    printf("[auto load error]you haven't set the kernel path!\n");
-                }           
-            }               
-            break;
-
+            bootcfg_flags |= U_KEY_PRESSED;
         case NO_KEY:
         case ENTER_KEY:
 #ifdef AUTOLOAD

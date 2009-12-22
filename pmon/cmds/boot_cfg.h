@@ -46,6 +46,8 @@
 
 #define MENU_TITLE_BUF_LEN 79
 
+#define U_KEY_PRESSED 0x01
+
 typedef struct menu_option
 {
 	char option [OPTION_LEN + 1];
@@ -61,6 +63,7 @@ typedef struct _Menu_Item_
 	char * args	;	//arguments for kernel.
 	char * initrd ;	//initrd file for kernel, maybe empty.
 	char * root;	//ROOT device from args.
+	char * recovery; //this is a recovery item?
 }Menu_Item;
 
 int OpenLoadConfig __P((const char* filename));
