@@ -170,6 +170,20 @@ extern char	*optarg;
 	strcat(clientcmd, EC_Version);
 	strcat(clientcmd, " ");
 #endif
+	/* machtype is needed by kernel(>=2.6.32) */
+	strcat(clientcmd, " machtype=");
+
+#ifdef LOONGSON2F_ALLINONE
+	strcat(clientcmd, "lemote-lynloong-2f");
+#endif 
+#ifdef LOONGSON2F_FULOONG
+	strcat(clientcmd, "lemote-fuloong-2f-box");
+#endif 
+#ifdef LOONGSON2F_7INCH
+	strcat(clientcmd, "lemote-yeeloong-2f-8.9inches");
+#endif 
+
+	strcat(clientcmd, " ");
 
 	if (initrd_execed())
 	{
