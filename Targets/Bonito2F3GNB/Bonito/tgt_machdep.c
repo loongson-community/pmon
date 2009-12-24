@@ -268,9 +268,6 @@ tgt_devconfig()
 	rc = radeon_init();
 #endif
 
-/*#ifdef SM712_GRAPHIC_CARD
-	rc = 1; 
-#endif*/
 #ifdef SMI502
     rc = 1;
 #endif
@@ -305,10 +302,12 @@ tgt_devconfig()
 #ifdef SMI502
         rc = video_hw_init();
         fbaddress |= PTR_PAD(0xb0000000);
-        ioaddress |= PTR_PAD(0xb0000000);
+		ioaddress |= mips_io_port_base;
+        //ioaddress |= PTR_PAD(0xb0000000);
 
         /*lit LCD and turn on audio*/
         //to do list
+        #if 0
 		{
 			unsigned long tag;
 			unsigned int mmio, tmp;
@@ -321,6 +320,7 @@ tgt_devconfig()
 			tmp = *(volatile int *)PTR_PAD(mmio + 0x10000);
 			*(volatile int *)PTR_PAD(mmio + 0x10000) = tmp|((1<<29)|(1<<31));
 		}
+        #endif
 #endif
 
 		fb_init(fbaddress, ioaddress);
@@ -328,6 +328,8 @@ tgt_devconfig()
 		printf("vga bios init failed, rc=%d\n",rc);
 	}
 #endif
+
+		printf("tgt_devconfig after fb_init().");
 
 #if	0
 	/* light the lcd */	
@@ -357,10 +359,10 @@ tgt_devconfig()
 
 	config_init();
 	configure();
-    
+/*    
 #if NMOD_VGACON >0
 #if !(defined(VGA_NOTEBOOK_V1) || defined(VGA_NOTEBOOK_V2)) && NCS5536 > 0
-	rc = kbd_initialize();
+    rc = kbd_initialize();
 #else
 	rc = -1;
 #endif
@@ -369,9 +371,11 @@ tgt_devconfig()
 		if(!getenv("nokbd")) kbd_available = 1;
 	}
 #endif
+*/
 	//kbd_available = 0;
 	if (vga_ok > 1)
 		vga_available = 1;
+    printf("tgt_devconfig return).");
 }
 
 extern int test_icache_1(short *addr);

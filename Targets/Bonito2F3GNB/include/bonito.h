@@ -24,7 +24,7 @@
 #define BONITO(x)	(x)
 
 #if (_MIPS_SZPTR == 32)
-#define PTR_PAD(x) x
+#define PTR_PAD(x) (x)
 #endif
 #if (_MIPS_SZPTR == 64)
 #define PTR_PAD(x) ((0xffffffff << 32)|x)

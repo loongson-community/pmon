@@ -103,7 +103,7 @@ static struct stdenv {
         {"Version", "LM-NAS-1.0.4", 0},
 #endif
 #ifdef LOONGSON2F_3GNB
-	{"Version", "LM****-1.0.0", 0},
+	{"Version", "LM-3G1001-1.0.1", 0},
 #endif
 {"BuildTime",  __DATE__ " " __TIME__ , 0},
 #if defined(TGT_DEFENV)

@@ -17,15 +17,22 @@
 #
 .SUFFIXES:	.S .c .o
 
-#CROSS_COMPILE 	=mips-elf-
+ifeq ($(PMON64),1)
 CROSS_COMPILE 	=mipsel-linux-
+else
+CROSS_COMPILE 	=mips-elf-
+endif
 
 #
 # Include the make variables (CC, etc...)
 #
 
 AS		= $(CROSS_COMPILE)as
+ifeq ($(PMON64),1)
 LD		= $(CROSS_COMPILE)ld -m elf64ltsmip -G 0 -static -n -nostdlib
+else
+LD		= $(CROSS_COMPILE)ld 
+endif
 #CC		= $(CROSS_COMPILE)gcc
 CPP		= $(CC) -E
 AR		= $(CROSS_COMPILE)ar
@@ -61,14 +68,24 @@ INCLUDES=	-I. -I${S}/include -I./machine -I${S} \
 		-I${TARGET} -I${COMPILEDIR} -nostdinc -I${S}/x86emu/src/x86emu -I${S}/x86emu/src/x86emu/include
 #CPPFLAGS=	${INCLUDES} ${IDENT} -D_KERNEL -D__OpenBSD__ -DPMON -D__PMON__\
 #		-${ENDIAN} -mno-abicalls -mips3 -mmemcpy -mcpu=r4000
+ifeq ($(PMON64),1)
 CPPFLAGS=	${INCLUDES} ${IDENT} -D_KERNEL -D__OpenBSD__ -DPMON -D__PMON__\
 		-mno-abicalls -mips3 -mmemcpy 
+else
+CPPFLAGS=	${INCLUDES} ${IDENT} -D_KERNEL -D__OpenBSD__ -DPMON -D__PMON__\
+		-$(ENDIAN) -mno-abicalls -mips3 -mmemcpy 
+endif
 #CWARNFLAGS=	-Werror -Wall -Wmissing-prototypes -Wstrict-prototypes \
 		-Wno-uninitialized -Wno-format -Wno-main
 CWARNFLAGS=	-Wall -Wstrict-prototypes \
 		-Wno-uninitialized -Wno-format -Wno-main
+ifeq ($(PMON64),1)
 CFLAGS=		${DEBUG} ${CWARNFLAGS} ${OPT} -G 0 -fno-pic -fno-builtin -mabi=64
 AFLAGS=		-D_LOCORE -G 0 -fno-pic -fno-builtin -mabi=64
+else
+CFLAGS=		${DEBUG} ${CWARNFLAGS} ${OPT} -G 0 
+AFLAGS=		-D_LOCORE -G 0 
+endif
 LFLAGS=		-${ENDIAN} -N -G 0 -T../../conf/ld.script -e start
 STRIPFLAGS=	-g -S --strip-debug
 
@@ -112,8 +129,13 @@ SYSTEM_OBJ=	start.o crtbegin.o param.o ioconf.o ri.o ${OBJS} ${LIBC} \
 		crtend.o
 SYSTEM_DEP=	Makefile ${SYSTEM_OBJ}
 SYSTEM_LD_HEAD=	rm -f $@
+ifeq ($(PMON64),1)
 SYSTEM_LD=	@echo ${LD} ${LFLAGS} -o $@ ${LIBDIR} '$${SYSTEM_OBJ}' vers.o; \
 		${LD} ${LFLAGS} -o $@ ${LIBDIR} ${SYSTEM_OBJ} vers.o -L. -lgcc
+else
+SYSTEM_LD=	@echo ${LD} ${LFLAGS} -o $@ ${LIBDIR} '$${SYSTEM_OBJ}' vers.o; \
+		${LD} ${LFLAGS} -o $@ ${LIBDIR} ${SYSTEM_OBJ} vers.o -L. 
+endif
 SYSTEM_LD_TAIL=	@${SIZE} $@; chmod 755 $@ ; \
 		${OBJCOPY} -O binary $@ $@.bin
 

@@ -2,7 +2,7 @@
 #define __LINUXIO_H_
 
 #if (_MIPS_SZPTR == 32)
-#define PTR_PAD(x) x
+#define PTR_PAD(x) (x)
 #endif
 #if (_MIPS_SZPTR == 64)
 #define PTR_PAD(x) ((0xffffffffULL <<32)|(x))
