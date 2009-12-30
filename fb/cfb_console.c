@@ -1023,7 +1023,7 @@ static void console_scrollup(void)
             VIDEO_VISIBLE_ROWS - VIDEO_LOGO_HEIGHT - VIDEO_FONT_HEIGHT  /* frame height */
         );
     #endif
-    #ifdef LOONGSON2F_ALLINONE
+    #if defined( LOONGSON2F_ALLINONE) && defined(NMOD_SISFB)
     {
     void sisfb_copyarea(int sx,int sy,int dx,int dy,int width,int height);
         sisfb_copyarea(0,VIDEO_LOGO_HEIGHT + VIDEO_FONT_HEIGHT,0,VIDEO_LOGO_HEIGHT,1360,768 - VIDEO_LOGO_HEIGHT - 16);
@@ -1682,7 +1682,7 @@ void _set_font_color(void)
     case GDF__8BIT_INDEX:
         cnt = sizeof(pallete_32) / sizeof(unsigned long);
         for (i = 0; i < cnt; i++) {            
-        #ifndef LOONGSON2F_3GNB    
+        #if defined(SM712_GRAPHIC_CARD)|| defined(VESAFB)||defined(RADEON7000)  
             video_set_lut2(i, pallete_32[i]);
         #endif
         }
@@ -1975,7 +1975,7 @@ void set_cursor_fb(unsigned char x,unsigned char y)
 int fb_init(unsigned long fbbase, unsigned long iobase)
 {
 
-    #ifndef LOONGSON2F_3GNB 
+    #ifndef SMI502 
     pGD = &GD;
     #ifdef NMOD_SISFB
         pGD->winSizeX = Sis_GetXRes();

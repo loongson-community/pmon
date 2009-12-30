@@ -54,7 +54,7 @@ endif
 
 # Defines
 
-TARGET= ${S}/Targets/BonitoHPC
+TARGET= ${S}/Targets/Bonito2FAIO
 MACHINE=mips
 MACHINE_ARCH=mips
 COMPILEDIR=${shell pwd}
@@ -83,7 +83,7 @@ ifeq ($(PMON64),1)
 CFLAGS=		${DEBUG} ${CWARNFLAGS} ${OPT} -G 0 -fno-pic -fno-builtin -mabi=64
 AFLAGS=		-D_LOCORE -G 0 -fno-pic -fno-builtin -mabi=64
 else
-CFLAGS=		${DEBUG} ${CWARNFLAGS} ${OPT} -G 0 
+CFLAGS=		${DEBUG} ${CWARNFLAGS} ${OPT} -G 0
 AFLAGS=		-D_LOCORE -G 0 
 endif
 LFLAGS=		-${ENDIAN} -N -G 0 -T../../conf/ld.script -e start

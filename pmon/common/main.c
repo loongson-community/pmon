@@ -734,7 +734,9 @@ dbginit (char *adr)
             
         case U_KEY:
             vga_available = 1;
+#if defined(LOONGSON2F_FULOONG) || defined(LOONGSON2F_7INCH)||defined(LOONGSON2F_ALLINONE) ||defined(LOONGSON2F_3GNB)
             bootcfg_flags |= U_KEY_PRESSED;
+#endif
         case NO_KEY:
         case ENTER_KEY:
 #ifdef AUTOLOAD

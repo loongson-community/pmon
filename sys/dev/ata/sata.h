@@ -37,6 +37,10 @@
 #define PCI_VENDOR_SATA_SIL3114  0x1095
 #define PCI_DEVICE_SATA_SIL3114  0x3114
 
+#define PCI_VENDOR_SATA_VT6421  0x1106
+#define PCI_DEVICE_SATA_VT6421  0x3249
+
+
 #define CONFIG_SYS_SATA_MAXBUS         2       /*Max Sata buses supported */
 #define CONFIG_SYS_SATA_DEVS_PER_BUS   2      /*Max no. of devices per bus/port */
 #define CONFIG_SYS_SATA_MAX_DEVICE     (CONFIG_SYS_SATA_MAXBUS* CONFIG_SYS_SATA_DEVS_PER_BUS)

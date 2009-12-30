@@ -185,91 +185,9 @@ void addr_tst2(void);
 void movinv1(int iter, ulong p1, ulong p2);
 
 
-void enable_cache()
-{
-         __asm__ volatile(
-         ".set mips3;
-         mfc0   $4,$16;
-         and    $4,$4,0xfffffff8;
-         or     $4,$4,0x3;
-         mtc0   $4,$16;
-        .set mips0;"
-        ::
-         :"$4"
-       );
- }
-
-void write_lowmem()
-{
-   __asm__ volatile(
-	  ".set mips3;
-	  li   $2, 0xa1000000;
-	  li   $13,0xb0000000;
-write_again_low:
-      sd   $13,0($2);
-	  sd   $13,8($2);
-	  sd   $13,16($2);
-	  sd   $13,24($2);
-	  sd   $13,32($2);
-	  sd   $13,40($2);
-	  sd   $13,48($2);
-	  sd   $13,56($2)
-	  addu  $2,$2,64;
-	  subu  $14,$13,$2;
-	  bnez  $14, write_again_low;
-	  nop;
-	  .set mips0;"
-	  :::"$2","$3","$13","$14","memory"
-	  );
-}
-
-void config64bit()
-{
-	    __asm__(
-         ".set mips3\n"
-         "dli $2, 0x900000003ff00000\n"
-         "dli $3, 0x0000000080000000\n"
-         "sd  $3, 0x10($2)\n"
-         "sd  $0, 0x50($2)\n"
-         "dli $3, 0xffffffffc0000000\n"
-          "sd  $3, 0x30($2)\n"
-         ".set mips0\n"
-         :::"$2","$3","memory");
-}
-
-void write_highmem(unsigned int highmemsize)
-{
-   __asm__(
-        ".set mips3\n"
-        "dli  $2,0x9000000090000000\n"
-        "dli  $3,0x55aa55aa55aa55aa\n"
-		//"dli  $13,0x90000000c0000000\n"
-		//"lw $14,0(%0)\n"
-		"daddu $13,$2,%0\n"
-		"write_again_high:\n"
-        "sd   $3,0($2)\n"
-		"sd   $3,8($2)\n"
-		"sd   $3,16($2)\n"
-		"sd   $3,24($2)\n"
-        "sd   $3,32($2)\n"
-		"sd   $3,40($2)\n"
-		"sd   $3,48($2)\n"
-		"sd   $3,56($2)\n"
-
-        "daddu $2,$2,64\n"		
-		"dsubu $14,$13,$2\n"
-		"bnez  $14,write_again_high\n"
-		"nop"
-		::"r"(highmemsize):"$2","$3","$13","$14","memory"
-		  );		   
-}
-
-
-
 void
 initmips(unsigned int memsz)
 {
-	unsigned int i;
 	/*
 	 *	Set up memory address decoders to map entire memory.
 	 *	But first move away bootrom map to high memory.
@@ -279,17 +197,9 @@ initmips(unsigned int memsz)
 	GT_WRITE(BOOTCS_HIGH_DECODE_ADDRESS, (BOOT_BASE - 1 + BOOT_SIZE) >> 20);
 #endif
 	//memsz = 512;
-	enable_cache();
-    SBD_DISPLAY("STP0",0);
-#if defined(HAVE_ECC_MEMORY)
-	write_lowmem();
-#endif
 	memorysize = memsz > 256 ? 256 << 20 : memsz << 20;
 	memorysize_high = memsz > 256 ? (memsz - 256) << 20 : 0;
-#if defined(HAVE_ECC_MEMORY)
-    config64bit();
-	write_highmem(memorysize_high);
-#endif	
+
 	/*
 	 *  Probe clock frequencys so delays will work properly.
 	 */
@@ -329,11 +239,18 @@ initmips(unsigned int memsz)
 extern void vt82c686_init(void);
 extern void cs5536_init(void);
 extern int fb_init(unsigned long,unsigned long);
+
+#ifdef LOONGSON2F_ALLINONE
+extern void i2c_write_single(int, int, char);
+extern char i2c_read_single(int, int, char*);
+#endif
+
 void
 tgt_devconfig()
 {
-	int rc = -1;
+	unsigned char temp;
 #if NMOD_VGACON > 0
+	int rc;
 #if NMOD_FRAMEBUFFER > 0 
 	unsigned long fbaddress,ioaddress;
 	extern struct pci_device *vga_dev;
@@ -343,7 +260,6 @@ tgt_devconfig()
 
 #if NMOD_X86EMU_INT10 > 0 || NMOD_X86EMU > 0
 	SBD_DISPLAY("VGAI", 0);
-	SBD_DISPLAY("XINT", 0);
 	rc = vga_bios_init();
 
 #elif (NMOD_X86EMU_INT10 == 0 && defined(RADEON7000))
@@ -351,7 +267,27 @@ tgt_devconfig()
 	rc = radeon_init();
 #endif
 
+#ifdef SMI502
+    rc = 1;
+#endif
+
+#if	0
+	/* light the lcd */	
+	*((volatile unsigned char *)(mips_io_port_base| HIGH_PORT)) = 0xfe;
+	*((volatile unsigned char *)(mips_io_port_base| LOW_PORT)) = 0x01;
+	temp = *((volatile unsigned char *)(mips_io_port_base| DATA_PORT));
+	/* light the lcd */	
+	*((volatile unsigned char *)(mips_io_port_base| HIGH_PORT)) = 0xfe;
+	*((volatile unsigned char *)(mips_io_port_base| LOW_PORT)) = 0x01;
+	*((volatile unsigned char *)(mips_io_port_base| DATA_PORT)) = 0x00;
+#endif
+
 #if NMOD_FRAMEBUFFER > 0
+    if(!vga_dev){
+        printf("ERROR !!! Display adapter is not found\n");
+        rc = -1;
+    }
+    
 	if (rc > 0) {
 		SBD_DISPLAY("FRBI", 0);
 		fbaddress  =_pci_conf_read(vga_dev->pa.pa_tag,0x10);
@@ -362,36 +298,83 @@ tgt_devconfig()
 
 		printf("fbaddress 0x%x\tioaddress 0x%x\n",fbaddress, ioaddress);
 
-		fb_init(fbaddress, ioaddress);
-		printf("after fb_init\n");
+#ifdef SMI502
+        rc = video_hw_init();
+        fbaddress |= PTR_PAD(0xb0000000);
+		ioaddress |= mips_io_port_base;
+        //ioaddress |= PTR_PAD(0xb0000000);
 
+        /*lit LCD and turn on audio*/
+        //to do list
+        #if 0
+		{
+			unsigned long tag;
+			unsigned int mmio, tmp;
+            //device no for sm107 is assumed 10 here
+			tag=_pci_make_tag(0,10,0);
+			mmio = _pci_conf_readn(tag,0x10,4);
+			mmio =(int)mmio|(0xb0000000);
+			tmp = *(volatile int *)PTR_PAD(mmio + 0x10008);
+			*(volatile int *)PTR_PAD(mmio + 0x10008) = tmp|((1<<29)|(1<<31));
+			tmp = *(volatile int *)PTR_PAD(mmio + 0x10000);
+			*(volatile int *)PTR_PAD(mmio + 0x10000) = tmp|((1<<29)|(1<<31));
+		}
+        #endif
+#endif
+
+		fb_init(fbaddress, ioaddress);
 	} else {
 		printf("vga bios init failed, rc=%d\n",rc);
 	}
 #endif
 
+		printf("tgt_devconfig after fb_init().");
+
+#if	0
+	/* light the lcd */	
+	*((volatile unsigned char *)(mips_io_port_base| HIGH_PORT)) = 0xfe;
+	*((volatile unsigned char *)(mips_io_port_base| LOW_PORT)) = 0x01;
+	*((volatile unsigned char *)(mips_io_port_base| DATA_PORT)) = temp;
+#endif
+
+#if	0
+	/* light the lcd */	
+	*((volatile unsigned char *)(mips_io_port_base| HIGH_PORT)) = 0xfe;
+	*((volatile unsigned char *)(mips_io_port_base| LOW_PORT)) = 0x01;
+	*((volatile unsigned char *)(mips_io_port_base| DATA_PORT)) = 0x80;
+#endif
+
 	if (rc > 0) {
-		if(!getenv("novga")) vga_available=1;
+		if(!getenv("novga")) { 
+			vga_available=1;
+			vga_ok = 2;
+		} else {
+			vga_ok = 1;
+			vga_available = 0;
+		}
 	}
 	
-	config_init();
+	//vga_available = 0; /*Suppress the output*/
 
+	config_init();
 	configure();
-    
+/*    
 #if NMOD_VGACON >0
-#if !(defined(VGA_NOTEBOOK_V1) || defined(VGA_NOTEBOOK_V2) || NCS5536 > 0)
-	//rc=kbd_initialize();
+#if !(defined(VGA_NOTEBOOK_V1) || defined(VGA_NOTEBOOK_V2)) && NCS5536 > 0
+    rc = kbd_initialize();
 #else
-	rc = 0;
+	rc = -1;
 #endif
 	printf("%s\n",kbd_error_msgs[rc]);
 	if(!rc){ 
-		kbd_available=1;
+		if(!getenv("nokbd")) kbd_available = 1;
 	}
-	kbd_available = 0;
 #endif
-	
-	printf("devconfig done.\n");
+*/
+	//kbd_available = 0;
+	if (vga_ok > 1)
+		vga_available = 1;
+    printf("tgt_devconfig return).");
 }
 
 extern int test_icache_1(short *addr);
@@ -463,7 +446,8 @@ tgt_reboot()
 void
 tgt_poweroff(void)
 {
-	unsigned long val;
+#if 0
+    unsigned long val;
 	unsigned long tag;
 	unsigned long base;
 
@@ -483,6 +467,30 @@ tgt_poweroff(void)
 	*(volatile unsigned long *)(base + 0x00) = val;
 
 	while(1);
+#endif
+#if 1
+    unsigned int val;
+	unsigned int tag;
+	unsigned long base;
+
+	tag = _pci_make_tag(0, 14, 0);
+	base = _pci_conf_read(tag, 0x14);
+	base |= PTR_PAD(0xbfd00000);
+	base &= ~3;
+
+	/* make cs5536 gpio13 output enable */
+	val = *(volatile unsigned int *)(base + 0x04);
+	val = ( val & ~(1 << (16 + 13)) ) | (1 << 13) ;
+	*(volatile unsigned int *)(base + 0x04) = val;
+	
+	/* make cs5536 gpio13 output low level voltage. */
+	val = *(volatile unsigned int *)(base + 0x00);
+	val = (val | (1 << (16 + 13))) & ~(1 << 13);
+	*(volatile unsigned int *)(base + 0x00) = val;
+
+	while(1);
+#endif
+
 }
 
 /*
@@ -594,7 +602,7 @@ _probe_frequencies()
                                                                                
                                                                                
 #if 1
-        md_pipefreq = 800000000;        /* Defaults */
+        md_pipefreq = 300000000;        /* Defaults */
         md_cpufreq  = 66000000;
 #else
         md_pipefreq = 120000000;        /* NB FPGA*/
@@ -882,9 +890,21 @@ tgt_mapenv(int (*func) __P((char *, char *)))
 	 *  initialize it to empty.
 	 */
 	printf("in envinit\n");
+#if 0
+	/*For 2F nas NOR flash*/
+	if (BONITO_IODEVCFG & BONITO_IODEVCFG_WIS16BIT) {
+		struct  fl_map *fl = tgt_flashmap();
+		while(fl&&fl->fl_map_base !=0) {
+			fl->fl_map_width = 2;
+			fl->fl_map_bus = FL_BUS_16;
+			fl ++;
+		}
+	}
+#endif
+
 #ifdef NVRAM_IN_FLASH
 	nvram = (char *)(tgt_flashmap()->fl_map_base + FLASH_OFFS);
-	printf("nvram %x\n", nvram);
+	printf("tgt_mapenv nvram %llx\n", nvram);
 	if(fl_devident((void *)(tgt_flashmap()->fl_map_base), NULL) == 0 ||
            cksum(nvram + NVRAM_OFFS, NVRAM_SIZE, 0) != 0) {
 #else
@@ -1296,8 +1316,12 @@ void prom_printf(char *fmt, ...)
 
 	for (p = buf; p < buf_end; p++) {
 		/* Crude cr/nl handling is better than none */
+#if 0
 		if(*p == '\n')putDebugChar('\r');
 		putDebugChar(*p);
+#endif
+		if(*p == '\n')tgt_putchar('\r');
+		tgt_putchar(*p);
 	}
 }
 

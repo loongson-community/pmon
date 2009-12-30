@@ -367,6 +367,7 @@ attach sata at satabus
 
 file sys/dev/ata/sata.c         mod_sata
 file sys/dev/ata/sata_sil3114.c mod_sil
+file sys/dev/ata/sata_vt6421.c  mod_vt
 file sys/dev/ata/libata_core.c  mod_sata
 file sys/dev/ata/libata_sff.c   mod_sata
 

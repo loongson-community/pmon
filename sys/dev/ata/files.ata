@@ -16,8 +16,13 @@ file	sys/dev/ata/ata.c				ata | atapi
 
 
 # PCI-SATA(sil3114) driver added by qianyl
-device  sil: satabus
-attach  sil at pci
+#device  sil: satabus
+#attach  sil at pci
+
+# PCI-SATA(vt6421) driver added by qianyl
+device  vt: satabus
+attach  vt at pci
+
 #for CDROM driver
 device  ide_cd: disk
 attach 	ide_cd at ata
