@@ -10,7 +10,8 @@
 #define MAIN_TAB_ID 0
 #define BOOT_TAB_ID 1
 #define NET_TAB_ID 2
-#define EXIT_TAB_ID 3
+#define ADVANCE_TAB_ID 3
+#define EXIT_TAB_ID 4
 
 #define DATETIME_WINDOW_ID 5
 #define RESTART_WARN_WINDOW_ID 31

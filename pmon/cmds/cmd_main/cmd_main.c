@@ -101,7 +101,9 @@ typedef struct _window_info{
     char w0[6][50];//buffer of window0"basic"
     char w1[6][50];//buffer of window1"boot"
     char w2[6][50];//buffer of window2"network"
-    char sibuf[4][20];
+    char w3[6][50];//buffer of window3"advanced"
+    char sibuf[5][20];//buffer of "Set disk","set file type",
+                      //select IC,select IC(CMOS),Recover from
 
 #ifdef  CHINESE
     char *maintabs[]={"主要","启动","网络","退出"};
@@ -109,10 +111,11 @@ typedef struct _window_info{
     char *f1b[]={"ext2","fat",0};
     char *f2[]={"rtl0","rtk0","em0","em1","fxp0",0};
 #else
-    char *maintabs[]={"Main","Boot","Network","Exit"};
+    char *maintabs[]={"Main","Boot","Network","Advanced","Exit"};
     char *f1[]={"wd0","wd1","usb0","usb1","tftp",0};
     char *f1b[]={"ext2","fat",0};
     char *f2[]={"rtl0","rtk0","em0","em1","fxp0",0};
+    char *f3[]={"usb0","wd0","tftp",0};
 #endif
 
     char *message;//message passing through windows
@@ -378,6 +381,139 @@ int do_net_tab(p_window_info_t pwinfo,char *phint)
             return 0;
 }
 
+
+int do_advanced_tab(p_window_info_t pwinfo, char *phint)
+{
+    int runstat = 0;
+    com_counts = 5;
+
+    #ifdef  CHINESE
+            w_window(1,3,pwinfo->l_window_width,pwinfo->l_window_height,"设置启动选项");
+            w_text(2,4,WA_RIGHT," ");
+            w_selectinput(24,5,24,"设置内核文件所在的设备:",f1,sibuf[0],10);
+            if(w_focused()) {
+                sprintf(phint,"设置内核文件所在的设备:wd0,wd1,usb0,usb1,tftp.\n使用<回车>键可切换选项; 若需修改则直接输入名称.");
+            }
+            w_input(24,6,24,"设置内核文件路径      :",w1[0],50);
+            if(w_focused()) {
+                sprintf(phint,"直接输入内核文件路径");
+            }
+            w_selectinput(24,7,24,"设置文件系统类型      :",f1b,sibuf[1],20);
+            if(w_focused()) {
+                sprintf(phint,"设置内核文件所在的文件系统的类型(ext2或fat).\n使用<回车>键可切换选项; 若需修改则直接输入名称.");
+            }
+            w_input(24,8,24,"设置启动参数          :",w1[1],50);
+            if(w_focused()) {
+                sprintf(phint,"设置内核启动的参数. 直接输入即可.");
+            }
+            w_input(24,9,24,"设置TFTP服务IP(可选)  :",w1[2],50);
+            if(w_focused()) {
+                sprintf(phint,"设置IP. 直接输入即可.注:从TFTP服务器装载内核文件时用,否则此选项忽略.");
+            }
+            if(w_button(22,10,10,"[启动系统]")) {
+                sprintf(phint,"");
+                if(!strncmp(sibuf[0], "tftp", 4)) {//tftp boot
+                    sprintf(line,"load tftp://%s%s",w1[2],w1[0]);
+                    runstat = run(line); 
+                }  else { //local boot               
+                    if(!strncmp(sibuf[1],"fat",3)){//fat file                    
+                        sprintf(line,"load /dev/fat/disk@%s%s",sibuf[0],w1[0]);
+                        runstat = run(line);
+                    } else{ //ext2 file                    
+                        sprintf(line,"load /dev/fs/ext2@%s%s",sibuf[0],w1[0]);
+                        runstat = run(line);
+                    }
+                }
+                if (runstat == 0) {
+                    sprintf(line,"g %s",w1[1]);
+                    run(line);  
+                }
+                message = "启动失败"; 
+                w_setpage(NOTE_WINDOW_ID);
+            }
+            if(w_focused()) {
+                sprintf(phint,"按设置启动内核.");
+            }         
+    #else
+            w_window(1,3,pwinfo->l_window_width,pwinfo->l_window_height,"Advanced option");
+            w_text(2,4,WA_RIGHT,"Set and launch Net Recovery");
+            w_input(20,5,20,"Local IP       :",w3[0],50);
+            if(w_focused()) {
+                sprintf(phint,"Set Local IP address . Just input the IP in the  textbox");
+            }  
+            w_input(20,6,20,"TFTP-Server IP :",w3[1],50);
+            if(w_focused()) {
+                sprintf(phint,"Set Server IP address of the TFTP where recover file resides. Just input the IP in the  textbox");
+            }  
+            w_input(20,7,20,"net_karg       :",w3[2],50);
+            if(w_focused()) {
+                sprintf(phint,"Set the net_karg needed when lanching recover file . ");
+            }  
+            w_input(20,8,20,"file name      :",w3[3],50);
+            if(w_focused()) {
+                sprintf(phint,"Set the recover file name. ");
+            }              
+
+            if(w_button(20,10,10,"[Launch]")) {
+                //to do list
+                sprintf(line,"load tftp://%s/%s",w3[1],w3[3]);
+                runstat = run(line);
+                if (runstat == 0){                
+                    sprintf(line,"g %s IP=%s SIP=%s",w3[2],w3[0],w3[1]);
+                    run(line); 
+                }
+            } 
+            if(w_focused()){            
+                sprintf(phint,"Starting net recovery.");
+            }  
+            #if 0     
+            w_input(20,6,20,"Set kernel path  :",w1[0],50);
+            if(w_focused()) {
+                sprintf(phint,"Set kernel path. Just input the path in the  textbox");
+            }
+            w_selectinput(20,7,20,"Set file type    :",f1b,sibuf[1],20);
+            if(w_focused()) {
+                sprintf(phint,"Set the file type of kernel file(ext2 or fat).Use <Enter> to switch, other keys to modify.");
+            }
+            w_input(20,8,20,"Set karg         :",w1[1],50);
+            if(w_focused()) {
+                sprintf(phint,"Set karg which is to be passed to kernel.Just input the karg in the textbox.");
+            }
+            w_input(20,9,20,"Set ip(optional) :",w1[2],50);
+            if(w_focused()) {
+                sprintf(phint,"Set TFTP server ip if kernel file is loaded  from TFTP server. Just input the TFTP server ip in the textbox.");
+            }
+            if(w_button(20,10,10,"[BOOT NOW]")) {
+                sprintf(phint,"");
+                if(!strncmp(sibuf[0], "tftp", 4)){//tftp boot                
+                    sprintf(line,"load tftp://%s%s",w1[2],w1[0]);
+                    runstat = run(line); 
+                }
+                else  {//local boot               
+                    if(!strncmp(sibuf[1],"fat",3)){//fat file                    
+                        sprintf(line,"load /dev/fat/disk@%s%s",sibuf[0],w1[0]);
+                        runstat = run(line); 
+                    }
+                    else{ //ext2 file                    
+                        sprintf(line,"load /dev/fs/ext2@%s%s",sibuf[0],w1[0]);
+                        runstat = run(line); 
+                    }
+                }
+                if (runstat == 0){                
+                    sprintf(line,"g %s",w1[1]);
+                    run(line); 
+                }
+                message = "Boot failed"; 
+                w_setpage(NOTE_WINDOW_ID);
+            }
+            if(w_focused()){            
+                sprintf(phint,"Booting the kernel.");
+            } 
+            #endif
+#endif
+            return  0;
+}
+
 int do_exit_tab(p_window_info_t pwinfo, char *phint)
 {
     com_counts = 4;
@@ -424,13 +560,15 @@ int do_exit_tab(p_window_info_t pwinfo, char *phint)
             if(w_focused()){
                 sprintf(phint,"<Enter> to restart system.");
             }
+            /*
             if(w_button(3,7,20,"[ Run Command ]")){
                 w_setpage(COMMAND_WINDOW_ID);       
             }
             if(w_focused()){
                 sprintf(phint,"<Enter> to run PMON commond");
             }
-            if(w_button(3,8,20,"  [ Return to PMON ]  "))  {
+            */
+            if(w_button(3,7,20,"  [ Return to PMON ]  "))  {
                 w_enterconsole();
                 return(-1);
             }
@@ -440,6 +578,8 @@ int do_exit_tab(p_window_info_t pwinfo, char *phint)
 #endif
             return 0;
 }
+
+
 
 int do_shutdown_warn_window(int oldwindow)
 {
@@ -643,14 +783,55 @@ void envstr_init(void)
             strcpy(w2[1],pstr);
         } else {
             strcpy(w2[0],"172.16.1.205");   
-            strcpy(w2[1],"192.16.1.205");            
+            strcpy(w2[1],"172.16.1.205");            
         }
     }
     else  {
         strcpy(w2[0],"172.16.1.205");   
-        strcpy(w2[1],"192.16.1.205");            
+        strcpy(w2[1],"172.16.1.205");            
     }
 
+    strcpy(w3[0],w2[0]);   
+    /*
+    envstr = getenv("IP");
+    if(envstr != NULL) {
+        if (envstr != NULL) {
+            strcpy(w3[0],envstr);
+        } else {
+            strcpy(w3[0],"172.16.1.205");   
+        }
+    }
+    else  {
+        strcpy(w3[0],"172.16.1.205");   
+    }  
+    */
+    envstr = getenv("SIP");
+    if(envstr != NULL) {
+        if (envstr != NULL) {
+            strcpy(w3[1],envstr);
+        } else {
+            strcpy(w3[1],"172.16.0.30");   
+        }
+    }
+    else  {
+        strcpy(w3[1],"172.16.0.30");   
+    } 
+
+    envstr = getenv("net_karg");
+    if(envstr != NULL) {
+        if (envstr != NULL) {
+            strcpy(w3[2],envstr);
+        } else {
+            strcpy(w3[2],"console=tty root=/dev/hda1 no_auto_cmd");   
+        }
+    }
+    else  {
+        strcpy(w3[2],"console=tty root=/dev/hda1 no_auto_cmd");   
+    }     
+
+    strcpy(w3[3],"vmlinux-recovery");   
+
+    
     envstr = getenv("al");
     if (envstr != NULL) {
         pstr = strchr(envstr, '@');
@@ -777,6 +958,10 @@ int cmd_main
             oldwindow = NET_TAB_ID;            
             do_net_tab(&window_info,hint);
         break;
+        case ADVANCE_TAB_ID:
+            oldwindow = ADVANCE_TAB_ID;
+            do_advanced_tab(&window_info, hint);
+        break;    
         case EXIT_TAB_ID://Save configuration and reboot the system
             oldwindow = EXIT_TAB_ID;            
             if(do_exit_tab(&window_info,hint) == -1)
