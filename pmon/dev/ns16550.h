@@ -173,3 +173,5 @@ extern int ns16550 __P((int, struct DevEntry *, unsigned long, int));
 #define	MSR_DCTS	0x01    /* CTS changed */
 
 
+#define UART_EXISTED 0x01
+#define UART_NOTEXISTED 0x00

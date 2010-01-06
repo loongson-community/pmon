@@ -45,6 +45,8 @@ int vprintf (const char *fmt, va_list ap)
 	return vfprintf (stdout, fmt, ap);
 }
 
+extern int uart_existed;
+
 int novga=0;
 int 
 vfprintf (FILE *fp, const char *fmt, va_list ap)
@@ -52,11 +54,17 @@ vfprintf (FILE *fp, const char *fmt, va_list ap)
 	int  n=0;
 	char buf[1024];
 
+    if(!uart_existed && (fp==&_iob[1]))
+        return n;
+    
+
+/*
 #ifdef FASTBOOT
 	static int inited=0;
 	if(!inited){if(getenv("novga"))novga=1;inited=1;}
 if((fp==&_iob[1])&&!novga)return n;
 #endif
+*/
 /*
 	buf = malloc(2000);
 */

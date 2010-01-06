@@ -103,6 +103,33 @@ static int nsprogram(volatile ns16550dev * dp, unsigned long freq, int baudrate)
 	return 0;
 }
 
+
+int nsprobe(volatile ns16550dev *dp)
+{     
+    char tmp,bak1,bak2;
+    
+    bak1 = inb(&dp->mcr);
+    outb(&dp->mcr,0x00);
+    outb(&dp->mcr,0x3f); 
+    tmp = inb(&dp->mcr);
+    if(tmp != 0x3f)
+    {
+        return UART_NOTEXISTED;
+    }else  {
+        bak2 = inb(&dp->ier);
+        outb(&dp->ier,0x00);
+        outb(&dp->ier,0xf);
+        tmp = inb(&dp->ier);
+        if (tmp == 0xf)
+        {    outb(&dp->mcr,bak1);
+             outb(&dp->ier,bak2);
+             return UART_EXISTED;
+        }else {
+            return UART_NOTEXISTED;
+        }    
+     }   
+}
+
 int ns16550(int op, struct DevEntry *dev, unsigned long param, int data)
 {
 	volatile ns16550dev *dp;
@@ -110,7 +137,9 @@ int ns16550(int op, struct DevEntry *dev, unsigned long param, int data)
 	dp = (ns16550dev *) dev->sio;
 
 	switch (op) {
-	case OP_INIT:
+    case OP_PROBE:
+        return nsprobe(dp);    
+    case OP_INIT:
 		return nsinit(dp);
 
 	case OP_XBAUD:

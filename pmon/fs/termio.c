@@ -46,6 +46,12 @@
 #include "mod_vgacon.h"
 #include "mod_usb_kbd.h"
 
+#undef OUTPUT_TO_BOTH
+#undef INPUT_FROM_BOTH
+
+int uart_existed = 0;
+extern int vga_available;
+
 int term_open __P((int, const char *, int, int));
 int term_close __P((int));
 int term_read __P((int, void *, size_t));
@@ -112,6 +118,11 @@ term_write (int fd, const void *buf, size_t nchar)
 	struct TermDev *devp;
 	char *buf2 = (char *)buf;
 	int i, n;
+
+    int timeout = 30000;
+
+    if(!uart_existed && !vga_available)
+        return nchar;
 	
 	devp = (struct TermDev *)_file[fd].data;
 	p = &DevTable[devp->dev];
@@ -134,8 +145,9 @@ term_write (int fd, const void *buf, size_t nchar)
 		tgt_smpunlock();
 		/* << UNLOCK >> */
 
-		while (Qused(p->txq)) {
+		while (timeout > 0 && Qused(p->txq)) {
 			scandevs();
+            timeout--;
 		}
 	}
 
@@ -148,7 +160,9 @@ term_write (int fd, const void *buf, size_t nchar)
 static void
 chwrite (DevEntry *p, char ch)
 {
-	while (!(*p->handler) (OP_TXRDY, p, NULL, NULL));
+    int timeout = 30000;
+    
+    while (timeout > 0 && !(*p->handler) (OP_TXRDY, p, NULL, NULL)){timeout--;}
 	(*p->handler) (OP_TX, p, NULL, ch);
 }
 /* yh
@@ -160,14 +174,25 @@ scandevs ()
 	int		s, c, n;
 	DevEntry	*p;
 
+    int timeout = 30000;
 
-	for (p = DevTable; p->rxq; p++) {
-		/* << LOCK >> */
+    if (!uart_existed && !vga_available)
+        return;
+    if (uart_existed){
+        p = &DevTable[0];
+    }else {
+        p = &DevTable[1];
+    }
+
+	//for (p = DevTable; p->rxq; p++) {
+    for (p = p; p->rxq; p++) {
+    /* << LOCK >> */
 		while(!tgt_smplock());
 
 		/* Read queue */
-		while ((*p->handler) (OP_RXRDY, p, NULL, NULL)) {
-			c = (*p->handler) (OP_RX, p, NULL, NULL);
+		while (timeout > 0 && (*p->handler) (OP_RXRDY, p, NULL, NULL)) {
+            timeout--;
+            c = (*p->handler) (OP_RX, p, NULL, NULL);
 			if (p->t.c_iflag & ISTRIP)
 				c &= 0x7f;
 
@@ -341,6 +366,8 @@ devinit (void)
 	DevEntry *p;
 	char dname[10];
 	char *s;
+
+    unsigned char *envstr;
 	
 	strcpy(dname, "tty_baud");
 	for (i = 0; ConfigTable[i].devinfo && i < DEV_MAX; i++) {
@@ -356,6 +383,19 @@ devinit (void)
 		p->tfunc = 0;
 		p->freq = q->freq;
 		p->nopen = 0;
+
+        // probe wether uart existed,or if existed but not used+        
+        if (i==0)
+        {
+            uart_existed = (*p->handler) (OP_PROBE, p, NULL, NULL);
+            //Unlucky,when come to here,env not configed yet 
+            //so getenv will return 0,so it makes no sense here.
+            /*if (uart_existed == 1)
+              {
+                    if((envstr = getenv("nouart"))&&!strcmp("yes", envstr))//existed,but for fast boot,not use,just like not existed
+                    uart_existed = 0;
+               }*/  
+        }        
 		
 		if (p->chan == 0)
 			(*p->handler) (OP_INIT, p, NULL, q->rxqsize);

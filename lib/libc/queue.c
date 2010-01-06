@@ -64,9 +64,12 @@ Qcreate(size_t size)
 void
 Qput(Queue *q, Msg msg)
 {
-	while (Qfull (q))
-		reschedule ();
-
+    int timeout = 300;
+    while (timeout > 0 && Qfull(q)){
+        timeout--;
+        reschedule();
+    }
+    
 	q->dat[(q->first + q->count) & q->limit] = msg;
 	q->count++;
 }
@@ -77,10 +80,12 @@ Msg
 Qget(Queue *q)
 {
 	Msg msg;
+    int timeout = 300;
 
-	while (Qempty(q))
-		reschedule ();
-
+	while (timeout > 0 &&  Qempty(q)){
+        timeout--;
+        reschedule ();
+    }
 	msg = q->dat[q->first];
 	q->first = (q->first + 1) & q->limit;
 	q->count--;

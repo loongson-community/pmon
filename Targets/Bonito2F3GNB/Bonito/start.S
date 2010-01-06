@@ -1367,6 +1367,17 @@ END(CPU_TLBInit)
 
 LEAF(stringserial)
 	move	a2, ra
+
+    //add by qianyl
+	la	v0, COM3_BASE_ADDR	
+	lbu	 v1, NSREG(NS16550_IER)(v0)	
+	xor v1,v1,0xf    
+	beqz v1, GO_THROUGH
+	nop    
+	b 2f
+	nop
+GO_THROUGH:    
+    
 	addu	a1, a0, s0
 	lbu	a0, 0(a1)
 1:
@@ -1422,6 +1433,14 @@ END(hexserial)
 
 LEAF(tgt_putchar)
 	LA	v0, COMMON_COM_BASE_ADDR
+    nop
+    //probe whether UART existed
+    lbu	t8, NSREG(NS16550_IER)(v0)
+    xor t8,t8,0xf
+    beqz t8, 1f
+    nop
+    b 2f 
+    nop    
 1:
 	lbu	v1, NSREG(NS16550_LSR)(v0)
 	and	v1, LSR_TXRDY
@@ -1432,7 +1451,7 @@ LEAF(tgt_putchar)
 	move v1,v0
 	LA	v0, COMMON_COM_BASE_ADDR
 	bne v0,v1,1b
-	nop
+2:	nop
 	.word 0x03e00008 #j	ra
 	nop	
 END(tgt_putchar)
@@ -1472,13 +1491,18 @@ LEAF(initserial)
         sb      v1, NSREG(NS16550_CFCR)(v0)
         li      v1, MCR_DTR|MCR_RTS
         sb      v1, NSREG(NS16550_MCR)(v0)
-        li      v1, 0x0
+        //li      v1, 0x0
+
+        li      v1,0x0
+        li      v1,0xf
         sb      v1, NSREG(NS16550_IER)(v0)
 
+        /*
         move    v1, v0
         LA      v0, COMMON_COM_BASE_ADDR
         bne     v0, v1, 1b
         nop
+        */
 
         .word  0x03e00008 	//j       ra
         nop

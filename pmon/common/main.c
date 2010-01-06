@@ -76,6 +76,7 @@
 #include "wd.h"
 
 extern void    *callvec;
+extern int uart_existed;
 
 #include "cmd_hist.h"       /* Test if command history selected */
 #include "cmd_more.h"       /* Test if more command is selected */
@@ -167,6 +168,8 @@ main()
 {
     char prompt[32];
 
+    int seted = 0;
+
     if (setjmp(jmpb)) {
         /* Bailing out, restore */
         closelst(0);
@@ -206,6 +209,13 @@ main()
 #endif
 
         printf("%s", prompt);
+
+        if(!seted && !uart_existed)
+        {
+            vga_available = 1;
+            seted = 1;
+        }
+
 #if NCMD_HIST > 0
         get_cmd(line);
 #else
@@ -608,6 +618,14 @@ dbginit (char *adr)
 
     SBD_DISPLAY ("ENVI", CHKPNT_ENVI);
     envinit ();
+
+    //uart existed,but for fast boot,not use,just like not existed
+    if (uart_existed == 1)
+    {
+        unsigned char *envstr;
+        if((envstr = getenv("nouart"))&&!strcmp("yes", envstr))//existed,but for fast boot,not use,just like not existed 
+        uart_existed = 0;
+    }
 
 #if NCS5536 > 0 || NVT82C686 > 0
     s = getenv("autopower");

@@ -75,6 +75,8 @@
 #define OP_CLOSE	11
 #define OP_XBAUD	12
 
+#define OP_PROBE    20  //detect wether UART exited
+
 extern int vga_available;
 extern int kbd_available;
 extern int usb_kbd_available;
