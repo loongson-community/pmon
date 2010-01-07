@@ -891,7 +891,7 @@ __wdcwait_reset(chp, drv_mask)
 	delay(50000);
 
 	/* wait for BSY to deassert */
-#ifdef LOOGSON2f_3GNB
+#ifdef LOONGSON2F_3GNB
 	// because ide is driver 1 in 3GNB
 	for (timeout = 0; timeout < 2 /*WDCNDELAY_RST/2*/;timeout++) {
 #else
