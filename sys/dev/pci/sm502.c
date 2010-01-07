@@ -357,10 +357,10 @@ const SMI_REGS init_regs[] =
 #endif
 	//{0x8004c, 0x00800000}, /*fb0 last address*/
 	{0x80200, 0x00010000}, /*crt display ctrl*/
-	{0x00010, 0x07f147c0},
+	{0x00010, 0x07f107c2},
 	{0x00054, 0x00000000},
 	{0x00074, 0x0002bcfd},
-	{0x00044, 0xc0090218}, /*bit 3-0 dram clock (1: 112M)*/
+	{0x00044, 0xc0090201}, /*bit 3-0 dram clock (1: 144M)*/
 	{0x0004c, 0xc0090208},
 	{0x00040, 0x0002184f},
 	{0x80024, 0x053f03ff},

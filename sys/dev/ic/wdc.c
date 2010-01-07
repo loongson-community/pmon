@@ -891,7 +891,12 @@ __wdcwait_reset(chp, drv_mask)
 	delay(50000);
 
 	/* wait for BSY to deassert */
+#ifdef LOOGSON2f_3GNB
+	// because ide is driver 1 in 3GNB
+	for (timeout = 0; timeout < 2 /*WDCNDELAY_RST/2*/;timeout++) {
+#else
 	for (timeout = 0; timeout < 20 /*WDCNDELAY_RST/2*/;timeout++) {
+#endif
 			delay(4000000);
 		CHP_WRITE_REG(chp, wdr_sdh, WDSD_IBM); /* master */
 		delay(10);
