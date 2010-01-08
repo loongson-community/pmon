@@ -14,10 +14,10 @@
  Revision History:
  
  -------------------------------------------------------------------------------------------------------------------------------
-  Date                Author             Activity ID               Activity Headline
-  2008-05-17    LiuXiangYu      PMON20080517    Create it.
-  2009-02-02    QianYuli           PMON20090202    Modified for porting to Fuloong and 8089 platform.
-  2009-07-02    QianYuli           PMON20090702    Make cmd_main() function thin
+  Date          Author             Activity ID               Activity Headline
+  2008-05-17    LiuXiangYu         PMON20080517              Create it.
+  2009-02-02    QianYuli           PMON20090202              Modified for porting to Fuloong and 8089 platform.
+  2009-07-02    QianYuli           PMON20090702              Make cmd_main() function thin
 ****************************************************************************************************************/
 #include <stdio.h>
 #include <termio.h>
@@ -101,7 +101,7 @@ typedef struct _window_info{
     char w0[6][50];//buffer of window0"basic"
     char w1[6][50];//buffer of window1"boot"
     char w2[6][50];//buffer of window2"network"
-    char w3[6][50];//buffer of window3"advanced"
+    char w3[4][128];//buffer of window3"advanced"
     char sibuf[5][20];//buffer of "Set disk","set file type",
                       //select IC,select IC(CMOS),Recover from
 
@@ -118,11 +118,11 @@ typedef struct _window_info{
     char *f3[]={"usb0","wd0","tftp",0};
 #endif
 
-    char *message;//message passing through windows
+    char message[100];//message passing through windows
+    char lines[100];
 
 int do_main_tab(p_window_info_t  pwinfo, char *phint,struct tm *p_tm)
 {
-    char line[100];
     int i;
     com_counts = 1;
 #ifdef  CHINESE
@@ -145,44 +145,44 @@ int do_main_tab(p_window_info_t  pwinfo, char *phint,struct tm *p_tm)
             w_text(2,4,WA_RIGHT,"Time and Date:");
 #endif
             for(i=0;i<6;i++) {
-                sprintf(line,"%s:%d",daytime[i].name,((int *)(p_tm))[5-i]+daytime[i].base);
-                w_text(daytime[i].x,daytime[i].y,WA_RIGHT,line);
+                sprintf(lines,"%s:%d",daytime[i].name,((int *)(p_tm))[5-i]+daytime[i].base);
+                w_text(daytime[i].x,daytime[i].y,WA_RIGHT,lines);
             }
             /* Display CPU information */
 #ifdef  CHINESE
-            sprintf(line,"一级指令缓存: %dkb",CpuPrimaryInstCacheSize / 1024);
-            w_bigtext(2,9,pwinfo->l_window_width-7,2,line);
-            sprintf(line,"一级数据缓存: %dkb ",CpuPrimaryDataCacheSize / 1024);
-            w_bigtext(2,10,pwinfo->l_window_width-7,2,line);
+            sprintf(lines,"一级指令缓存: %dkb",CpuPrimaryInstCacheSize / 1024);
+            w_bigtext(2,9,pwinfo->l_window_width-7,2,lines);
+            sprintf(lines,"一级数据缓存: %dkb ",CpuPrimaryDataCacheSize / 1024);
+            w_bigtext(2,10,pwinfo->l_window_width-7,2,lines);
             if(CpuSecondaryCacheSize != 0) {
-                sprintf(line,"二级缓存: %dkb", CpuSecondaryCacheSize / 1024);
+                sprintf(lines,"二级缓存: %dkb", CpuSecondaryCacheSize / 1024);
             }
-            w_bigtext(2,11,pwinfo->l_window_width-7,2,line);
+            w_bigtext(2,11,pwinfo->l_window_width-7,2,lines);
             if(CpuTertiaryCacheSize != 0) {
-                sprintf(line,"三级缓存: %dkb", CpuTertiaryCacheSize / 1024);
+                sprintf(lines,"三级缓存: %dkb", CpuTertiaryCacheSize / 1024);
             }
             
-            sprintf(line,"CPU: %s @ %d MHz",md_cpuname(),tgt_pipefreq()/1000000);
-            w_text(2,7,WA_RIGHT,line);
-            sprintf (line,"内存容量: %d MB",memorysize+memorysize_high);
-            w_bigtext(2,8,pwinfo->l_window_width-7,2,line);
+            sprintf(lines,"CPU: %s @ %d MHz",md_cpuname(),tgt_pipefreq()/1000000);
+            w_text(2,7,WA_RIGHT,lines);
+            sprintf (lines,"内存容量: %d MB",memorysize+memorysize_high);
+            w_bigtext(2,8,pwinfo->l_window_width-7,2,lines);
 #else
-            sprintf(line,"Primary Instruction cache size: %dkb",CpuPrimaryInstCacheSize / 1024);
-            w_bigtext(2,9,pwinfo->l_window_width-7,2,line);
-            sprintf(line,"Primary Data cache size: %dkb ",CpuPrimaryDataCacheSize / 1024);
-            w_bigtext(2,10,pwinfo->l_window_width-7,2,line);
+            sprintf(lines,"Primary Instruction cache size: %dkb",CpuPrimaryInstCacheSize / 1024);
+            w_bigtext(2,9,pwinfo->l_window_width-7,2,lines);
+            sprintf(lines,"Primary Data cache size: %dkb ",CpuPrimaryDataCacheSize / 1024);
+            w_bigtext(2,10,pwinfo->l_window_width-7,2,lines);
             if(CpuSecondaryCacheSize != 0) {
-                sprintf(line,"Secondary cache size: %dkb", CpuSecondaryCacheSize / 1024);
+                sprintf(lines,"Secondary cache size: %dkb", CpuSecondaryCacheSize / 1024);
             }
-            w_bigtext(2,11,pwinfo->l_window_width-7,2,line);
+            w_bigtext(2,11,pwinfo->l_window_width-7,2,lines);
             if(CpuTertiaryCacheSize != 0) {
-                sprintf(line,"Tertiary cache size: %dkb", CpuTertiaryCacheSize / 1024);
+                sprintf(lines,"Tertiary cache size: %dkb", CpuTertiaryCacheSize / 1024);
             }
             
-            sprintf(line,"CPU: %s @ %d MHz",md_cpuname(),tgt_pipefreq()/1000000);
-            w_text(2,7,WA_RIGHT,line);
-            sprintf (line,"Memory size: %3d MB", (memorysize+memorysize_high)/0x100000);
-            w_bigtext(2,8,pwinfo->l_window_width-7,2,line);
+            sprintf(lines,"CPU: %s @ %d MHz",md_cpuname(),tgt_pipefreq()/1000000);
+            w_text(2,7,WA_RIGHT,lines);
+            sprintf (lines,"Memory size: %3d MB", (memorysize+memorysize_high)/0x100000);
+            w_bigtext(2,8,pwinfo->l_window_width-7,2,lines);
 #endif
             return 0;
 }
@@ -218,22 +218,23 @@ int do_boot_tab(p_window_info_t pwinfo,char *phint)
             if(w_button(22,10,10,"[启动系统]")) {
                 sprintf(phint,"");
                 if(!strncmp(sibuf[0], "tftp", 4)) {//tftp boot
-                    sprintf(line,"load tftp://%s%s",w1[2],w1[0]);
-                    runstat = run(line); 
+                    sprintf(lines,"load tftp://%s%s",w1[2],w1[0]);
+                    runstat = run(lines); 
                 }  else { //local boot               
                     if(!strncmp(sibuf[1],"fat",3)){//fat file                    
-                        sprintf(line,"load /dev/fat/disk@%s%s",sibuf[0],w1[0]);
-                        runstat = run(line);
+                        sprintf(lines,"load /dev/fat/disk@%s%s",sibuf[0],w1[0]);
+                        runstat = run(lines);
                     } else{ //ext2 file                    
-                        sprintf(line,"load /dev/fs/ext2@%s%s",sibuf[0],w1[0]);
-                        runstat = run(line);
+                        sprintf(lines,"load /dev/fs/ext2@%s%s",sibuf[0],w1[0]);
+                        runstat = run(lines);
                     }
                 }
                 if (runstat == 0) {
-                    sprintf(line,"g %s",w1[1]);
-                    run(line);  
+                    sprintf(lines,"g %s",w1[1]);
+                    run(lines);  
                 }
-                message = "启动失败"; 
+                sprintf(message,"启动失败");
+                //message = "启动失败"; 
                 w_setpage(NOTE_WINDOW_ID);
             }
             if(w_focused()) {
@@ -264,24 +265,25 @@ int do_boot_tab(p_window_info_t pwinfo,char *phint)
             if(w_button(20,10,10,"[BOOT NOW]")) {
                 sprintf(phint,"");
                 if(!strncmp(sibuf[0], "tftp", 4)){//tftp boot                
-                    sprintf(line,"load tftp://%s%s",w1[2],w1[0]);
-                    runstat = run(line); 
+                    sprintf(lines,"load tftp://%s%s",w1[2],w1[0]);
+                    runstat = run(lines); 
                 }
                 else  {//local boot               
                     if(!strncmp(sibuf[1],"fat",3)){//fat file                    
-                        sprintf(line,"load /dev/fat/disk@%s%s",sibuf[0],w1[0]);
-                        runstat = run(line); 
+                        sprintf(lines,"load /dev/fat/disk@%s%s",sibuf[0],w1[0]);
+                        runstat = run(lines); 
                     }
                     else{ //ext2 file                    
-                        sprintf(line,"load /dev/fs/ext2@%s%s",sibuf[0],w1[0]);
-                        runstat = run(line); 
+                        sprintf(lines,"load /dev/fs/ext2@%s%s",sibuf[0],w1[0]);
+                        runstat = run(lines); 
                     }
                 }
                 if (runstat == 0){                
-                    sprintf(line,"g %s",w1[1]);
-                    run(line); 
+                    sprintf(lines,"g %s",w1[1]);
+                    run(lines); 
                 }
-                message = "Boot failed"; 
+                //message = "Boot failed"; 
+                sprintf(message,"Boot failed");
                 w_setpage(NOTE_WINDOW_ID);
             }
             if(w_focused()){            
@@ -291,9 +293,31 @@ int do_boot_tab(p_window_info_t pwinfo,char *phint)
             return  0;
 }
 
+int do_prompting_window(void)
+{
+        com_counts = 1;
+        w_setcolor(0x60,0x00,0x60);
+#ifdef CHINESE
+            w_window(screen_width/2-25,7,50,8,"注意");
+            w_text(screen_width/2,9,WA_CENTRE,message);
+            w_text(screen_width/2,11,WA_CENTRE,"按下<回车>键返回");
+            /*
+            if(w_button(screen_width/2-6,13,12,"[返回]")){
+                w_setpage(oldwindow);
+            }
+            */
+#else
+            w_window(screen_width/2-25,7,50,8,"Prompt");
+            w_text(screen_width/2,11,WA_CENTRE,"Net recovery is going...");
+            w_present();
+#endif
+            return 0;
+}
+
+
 int do_net_tab(p_window_info_t pwinfo,char *phint)
 {
-    com_counts = 6;
+    com_counts = 4;
 
     sprintf(phint,"");
 #ifdef  CHINESE
@@ -309,11 +333,11 @@ int do_net_tab(p_window_info_t pwinfo,char *phint)
             }
             if(w_button(19,7,10,"[确认]")){
                    if( ifconfig(sibuf[2],w2[0])!=0){//configure
-                        sprintf(line,"对[%s]的设置成功",sibuf[2]);
+                        sprintf(message,"对[%s]的设置成功",sibuf[2]);
                     }else{
-                        sprintf(line,"对[%s]的设置失败",sibuf[2]);
+                        sprintf(message,"对[%s]的设置失败",sibuf[2]);
                     }
-                    message = line;
+                    //message = lines;
                     w_setpage(NOTE_WINDOW_ID);
             }
             w_text(2,9,WA_RIGHT,"修改网络配置并保存到CMOS");
@@ -326,18 +350,19 @@ int do_net_tab(p_window_info_t pwinfo,char *phint)
                 sprintf(phint,"直接输入新的IP地址.");
             }
             if(w_button(19,12,10,"[确认]")){
-                sprintf(line,"set ifconfig %s:%s",sibuf[3],w2[1]);
-                printf(line);
-                if(run(line)==0){//configure
-                    sprintf(line,"对[%s]的 设置成功",sibuf[3]);
+                sprintf(lines,"set ifconfig %s:%s",sibuf[3],w2[1]);
+                printf(lines);
+                if(run(lines)==0){//configure
+                    sprintf(message,"对[%s]的 设置成功",sibuf[3]);
                 }else{
-                    sprintf(line,"对[%s]的 设置失败",sibuf[3]);
+                    sprintf(message,"对[%s]的 设置失败",sibuf[3]);
                 }
-                message = line;
+                //message = lines;
                 w_setpage(NOTE_WINDOW_ID);
             }
 #else
             w_window(1,3,pwinfo->l_window_width,pwinfo->l_window_height,"Modify the Network configuration");
+            /*
             w_text(2,4,WA_RIGHT,"Set IP for current system");
             w_selectinput(17,5,20,"Select IC      ",f2,sibuf[2],20);
             if(w_focused()) {
@@ -349,32 +374,38 @@ int do_net_tab(p_window_info_t pwinfo,char *phint)
             }
             if(w_button(19,7,10,"[Set IP]")){
                 if(ifconfig(sibuf[2],w2[0])!=0){//configure       
-                    sprintf(line,"The device [%s] now has a new IP",sibuf[2]);
+                    sprintf(message,"The device [%s] now has a new IP",sibuf[2]);
                 }else{
-                    sprintf(line,"Set new IP failed, input the correct IP and IC!");
+                    sprintf(message,"Set new IP failed, input the correct IP and IC!");
                 }
 
-                message = line;
+                //message = lines;
                 w_setpage(NOTE_WINDOW_ID);
             }
-            w_text(2,9,WA_RIGHT,"Set IP for current system and save it to CMOS");
-            w_selectinput(17,10,20,"Select IC      ",f2,sibuf[3],20);
+            */
+            w_text(2,4,WA_RIGHT,"Set IP for current system and save it to CMOS");
+            w_selectinput(17,5,20,"Select IC :  ",f2,sibuf[3],20);
             if(w_focused()) {
                 sprintf(phint,"Option:rtl0,rtk0,em0,em1,fxp0.Press Enter to Switch, other keys to modify");
             }
-            w_input(17,11,20,"New IP Address:",w2[1],50);
+            w_input(17,6,20,"IP Address:  ",w2[0],50);
             if(w_focused()) {
-                sprintf(phint,"Please input new IP in the textbox.");
+                sprintf(phint,"Set the IP of local machine.Please input new IP in the textbox.");
             }
-            if(w_button(19,12,10,"[Set IP]")){
-                sprintf(line,"set ifconfig %s:%s",sibuf[3],w2[1]);
-                printf(line);
-                if(run(line)==0){//configure
-                    sprintf(line,"The device [%s] now has a new IP",sibuf[3]);
+            w_input(17,7,20,"Server IP :  ",w2[1],50);
+            if(w_focused()) {
+                sprintf(phint,"Set the IP of TFTP-Server.Please input new IP in the textbox.");
+            }            
+            if(w_button(19,8,10,"[Set IP]")){
+                ifconfig(sibuf[2],w2[0]);
+                sprintf(lines,"set ifconfig %s:%s",sibuf[3],w2[0]);
+                printf(lines);
+                if(run(lines)==0){//configure
+                    sprintf(message,"The new IP has been set and saved to CMOS. ",sibuf[3]);
                 }else{
-                    sprintf(line,"Set new IP failed, input the correct IP and IC!");
+                    sprintf(message,"Set new IP failed, input the correct IP and IC!");
                 }
-                message = line;
+                //message = lines;
                 w_setpage(NOTE_WINDOW_ID);
             }
 #endif
@@ -413,22 +444,23 @@ int do_advanced_tab(p_window_info_t pwinfo, char *phint)
             if(w_button(22,10,10,"[启动系统]")) {
                 sprintf(phint,"");
                 if(!strncmp(sibuf[0], "tftp", 4)) {//tftp boot
-                    sprintf(line,"load tftp://%s%s",w1[2],w1[0]);
-                    runstat = run(line); 
+                    sprintf(lines,"load tftp://%s%s",w1[2],w1[0]);
+                    runstat = run(lines); 
                 }  else { //local boot               
                     if(!strncmp(sibuf[1],"fat",3)){//fat file                    
-                        sprintf(line,"load /dev/fat/disk@%s%s",sibuf[0],w1[0]);
-                        runstat = run(line);
+                        sprintf(lines,"load /dev/fat/disk@%s%s",sibuf[0],w1[0]);
+                        runstat = run(lines);
                     } else{ //ext2 file                    
-                        sprintf(line,"load /dev/fs/ext2@%s%s",sibuf[0],w1[0]);
-                        runstat = run(line);
+                        sprintf(lines,"load /dev/fs/ext2@%s%s",sibuf[0],w1[0]);
+                        runstat = run(lines);
                     }
                 }
                 if (runstat == 0) {
-                    sprintf(line,"g %s",w1[1]);
-                    run(line);  
+                    sprintf(lines,"g %s",w1[1]);
+                    run(lines);  
                 }
-                message = "启动失败"; 
+                //message = "启动失败";
+                sprintf(message,"启动失败");
                 w_setpage(NOTE_WINDOW_ID);
             }
             if(w_focused()) {
@@ -445,7 +477,7 @@ int do_advanced_tab(p_window_info_t pwinfo, char *phint)
             if(w_focused()) {
                 sprintf(phint,"Set Server IP address of the TFTP where recover file resides. Just input the IP in the  textbox");
             }  
-            w_input(20,7,20,"net_karg       :",w3[2],50);
+            w_input(20,7,20,"net_karg       :",w3[2],128);
             if(w_focused()) {
                 sprintf(phint,"Set the net_karg needed when lanching recover file . ");
             }  
@@ -455,61 +487,36 @@ int do_advanced_tab(p_window_info_t pwinfo, char *phint)
             }              
 
             if(w_button(20,10,10,"[Launch]")) {
-                //to do list
-                sprintf(line,"load tftp://%s/%s",w3[1],w3[3]);
-                runstat = run(line);
+                do_prompting_window();
+                sprintf(lines,"set IP %s",w3[0]);
+                run(lines);
+                sprintf(lines,"set SIP %s",w3[1]);
+                run(lines);
+                sprintf(lines,"set net_karg %s",w3[2]);
+                run(lines);
+                sprintf(lines,"set R_file %s",w3[3]);
+                run(lines);
+
+
+                
+                sprintf(lines,"load tftp://%s/%s",w3[1],w3[3]);
+                runstat = run(lines);
                 if (runstat == 0){                
-                    sprintf(line,"g %s IP=%s SIP=%s",w3[2],w3[0],w3[1]);
-                    run(line); 
+                    sprintf(lines,"g %s IP=%s SIP=%s",w3[2],w3[0],w3[1]);
+                    run(lines);
+                    sprintf(message,"Launch recovery file(vmlinuz) failed!");
+                    //message = lines;
+                    w_setpage(NOTE_WINDOW_ID);                    
+                } else {
+                    sprintf(message,"Load recovery file(vmlinuz) failed!");
+                    //message = lines;
+                    w_setpage(NOTE_WINDOW_ID);                    
                 }
+                    
             } 
             if(w_focused()){            
                 sprintf(phint,"Starting net recovery.");
             }  
-            #if 0     
-            w_input(20,6,20,"Set kernel path  :",w1[0],50);
-            if(w_focused()) {
-                sprintf(phint,"Set kernel path. Just input the path in the  textbox");
-            }
-            w_selectinput(20,7,20,"Set file type    :",f1b,sibuf[1],20);
-            if(w_focused()) {
-                sprintf(phint,"Set the file type of kernel file(ext2 or fat).Use <Enter> to switch, other keys to modify.");
-            }
-            w_input(20,8,20,"Set karg         :",w1[1],50);
-            if(w_focused()) {
-                sprintf(phint,"Set karg which is to be passed to kernel.Just input the karg in the textbox.");
-            }
-            w_input(20,9,20,"Set ip(optional) :",w1[2],50);
-            if(w_focused()) {
-                sprintf(phint,"Set TFTP server ip if kernel file is loaded  from TFTP server. Just input the TFTP server ip in the textbox.");
-            }
-            if(w_button(20,10,10,"[BOOT NOW]")) {
-                sprintf(phint,"");
-                if(!strncmp(sibuf[0], "tftp", 4)){//tftp boot                
-                    sprintf(line,"load tftp://%s%s",w1[2],w1[0]);
-                    runstat = run(line); 
-                }
-                else  {//local boot               
-                    if(!strncmp(sibuf[1],"fat",3)){//fat file                    
-                        sprintf(line,"load /dev/fat/disk@%s%s",sibuf[0],w1[0]);
-                        runstat = run(line); 
-                    }
-                    else{ //ext2 file                    
-                        sprintf(line,"load /dev/fs/ext2@%s%s",sibuf[0],w1[0]);
-                        runstat = run(line); 
-                    }
-                }
-                if (runstat == 0){                
-                    sprintf(line,"g %s",w1[1]);
-                    run(line); 
-                }
-                message = "Boot failed"; 
-                w_setpage(NOTE_WINDOW_ID);
-            }
-            if(w_focused()){            
-                sprintf(phint,"Booting the kernel.");
-            } 
-            #endif
 #endif
             return  0;
 }
@@ -560,14 +567,7 @@ int do_exit_tab(p_window_info_t pwinfo, char *phint)
             if(w_focused()){
                 sprintf(phint,"<Enter> to restart system.");
             }
-            /*
-            if(w_button(3,7,20,"[ Run Command ]")){
-                w_setpage(COMMAND_WINDOW_ID);       
-            }
-            if(w_focused()){
-                sprintf(phint,"<Enter> to run PMON commond");
-            }
-            */
+
             if(w_button(3,7,20,"  [ Return to PMON ]  "))  {
                 w_enterconsole();
                 return(-1);
@@ -635,7 +635,7 @@ int do_restart_warn_window(int oldwindow)
 
 int do_datetime_window(p_window_info_t pwinfo, char *phint, struct tm *p_tm,int oldwindow)
  { 
-     char line[100];
+     //char lines[100];
      int i;  
      com_counts = 7;
 
@@ -647,18 +647,18 @@ int do_datetime_window(p_window_info_t pwinfo, char *phint, struct tm *p_tm,int 
 #endif             
             for(i=0;i<6;i++){
                 if(w_input(daytime[i].x+8,daytime[i].y,6,daytime[i].name,daytime[i].buf,daytime[i].buflen))  {
-                    sprintf(line,"date %04s%02s%02s%02s%02s.%02s",
+                    sprintf(lines,"date %04s%02s%02s%02s%02s.%02s",
                             daytime[0].buf,daytime[1].buf,daytime[2].buf,daytime[3].buf,daytime[4].buf,daytime[5].buf);
-                            run(line);
+                            run(lines);
                     w_setfocusid(w_getfocusid()+1);                    
                 }
                 if(w_focused()) {
 #ifdef CHINESE
-                    sprintf(line,"直接输入数字更改%s.\n按下<回车>键确认.",daytime[i].name);
+                    sprintf(lines,"直接输入数字更改%s.\n按下<回车>键确认.",daytime[i].name);
 #else
-                    sprintf(line,"input %s, <Enter> to confirm.",daytime[i].name);
+                    sprintf(lines,"input %s, <Enter> to confirm.",daytime[i].name);
 #endif
-                    sprintf(phint,"%s",line);
+                    sprintf(phint,"%s",lines);
                 }  else{
                     sprintf(daytime[i].buf,"%d",((int *)(p_tm))[5-i]+daytime[i].base);
                 }
@@ -726,18 +726,18 @@ int do_command_window(p_window_info_t pwinfo, char *phint, char *ptinput, int ol
 #else
             w_window(1,3,pwinfo->l_window_width,pwinfo->l_window_height,"Run Command");
             w_setcolor(0x60,0x00,0x60);
-            if(w_biginput(pwinfo->l_window_width/6,5,pwinfo->l_window_width/3*2,10,"Input Command line",ptinput,256)){
+            if(w_biginput(pwinfo->l_window_width/6,5,pwinfo->l_window_width/3*2,10,"Input Command lines",ptinput,256)){
                 w_setpage(RUN_COMMAND_ID);
             }
             if(w_focused()){
-                sprintf(phint,"Input commad line in the textbox. <Enter> to run");
+                sprintf(phint,"Input commad lines in the textbox. <Enter> to run");
             }
             w_setcolor(0x10,0x10,0x60);
             if(w_button(pwinfo->l_window_width/2-5,17,10,"  [ Return ]  ")){
                 w_setpage(oldwindow);
             }
             if(w_focused()){
-                sprintf(phint,"<Enter> to return. Up Arrow key to Input command line");
+                sprintf(phint,"<Enter> to return. Up Arrow key to Input command lines");
             }
 #endif
 return 0;
@@ -780,31 +780,16 @@ void envstr_init(void)
         if (pstr != NULL) {
             pstr++;
             strcpy(w2[0],pstr);
-            strcpy(w2[1],pstr);
         } else {
             strcpy(w2[0],"172.16.1.205");   
-            strcpy(w2[1],"172.16.1.205");            
         }
     }
     else  {
         strcpy(w2[0],"172.16.1.205");   
-        strcpy(w2[1],"172.16.1.205");            
     }
 
     strcpy(w3[0],w2[0]);   
-    /*
-    envstr = getenv("IP");
-    if(envstr != NULL) {
-        if (envstr != NULL) {
-            strcpy(w3[0],envstr);
-        } else {
-            strcpy(w3[0],"172.16.1.205");   
-        }
-    }
-    else  {
-        strcpy(w3[0],"172.16.1.205");   
-    }  
-    */
+    
     envstr = getenv("SIP");
     if(envstr != NULL) {
         if (envstr != NULL) {
@@ -822,16 +807,24 @@ void envstr_init(void)
         if (envstr != NULL) {
             strcpy(w3[2],envstr);
         } else {
-            strcpy(w3[2],"console=tty root=/dev/hda1 no_auto_cmd");   
+            strcpy(w3[2],"console=tty machtype=lynloong video=sisfb:1360x768-16@60");   
         }
     }
     else  {
-        strcpy(w3[2],"console=tty root=/dev/hda1 no_auto_cmd");   
+        strcpy(w3[2],"console=tty machtype=lynloong video=sisfb:1360x768-16@60");   
     }     
 
-    strcpy(w3[3],"vmlinux-recovery");   
-
-    
+    envstr = getenv("R_file");
+    if(envstr != NULL) {
+        if (envstr != NULL) {
+            strcpy(w3[3],envstr);
+        } else {
+            strcpy(w3[3],"vmlinuz");   
+        }
+    }
+    else  {
+        strcpy(w3[3],"vmlinuz");   
+    }     
     envstr = getenv("al");
     if (envstr != NULL) {
         pstr = strchr(envstr, '@');
@@ -849,7 +842,8 @@ void envstr_init(void)
         strcpy(w1[1],"console=tty root=/dev/hda1");
     }    
 
-    strcpy(w1[2],"172.16.0.30");
+    strcpy(w1[2],w3[1]);
+    strcpy(w2[1],w3[1]);
     strcpy(sibuf[0],f1[0]);
     strcpy(sibuf[1],f1b[0]);
     strcpy(sibuf[2],f2[0]);
@@ -973,6 +967,10 @@ int cmd_main
         case RESTART_WARN_WINDOW_ID:
             do_restart_warn_window(oldwindow);
         break;
+        /*
+        case ADVANCE_TAB_ID:
+            do_netrecovery_fail_window(oldwindow);
+        */
         case DATETIME_WINDOW_ID://Modify Time and Date
             oldwindow=MAIN_TAB_ID;
             do_datetime_window(&window_info,hint,&tm,oldwindow);
