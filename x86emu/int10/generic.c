@@ -218,7 +218,8 @@ int vga_bios_init(void)
 		    printk("skipping matrox cards\n");
 		    return -1;
 	    }
-	    if (PCI_VENDOR(pdev->pa.pa_id) == 0x1002 && pdev->pa.pa_device == 0x4750)
+	    //if (PCI_VENDOR(pdev->pa.pa_id) == 0x1002 && pdev->pa.pa_device == 0x4750)
+ 	    if (PCI_VENDOR(pdev->pa.pa_id) == 0x1002 && PCI_PRODUCT(pdev->pa.pa_id) == 0x4750)
 			MEM_WW(pInt,0xc015e,0x4750);
 	    romaddress  =_pci_conf_read(pdev->pa.pa_tag,0x30);
 	    romaddress &= (~0xf);

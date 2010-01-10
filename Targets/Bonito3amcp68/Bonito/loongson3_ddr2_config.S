@@ -5,12 +5,13 @@
 
 #######################################################
 /* Undefine the two to enable both */
-//#define MC0_ONLY
-#define MC1_ONLY
+#define MC0_ONLY
+//#define MC1_ONLY
 
 /* Size of each DDR controller */
 //#define DDR_512
 #define DDR_1G
+//#define DDR_2G
 
 /* Interleave pattern when both controller enabled */
 //#define INTERLEAVE_27
@@ -19,17 +20,18 @@
 #define INTERLEAVE_11
 #######################################################
 
+/******************************************************
+ s1: [1:0]: NODE ID
+******************************************************/
+#define GET_NODE_ID_a0 dli a0, 0x3; and a0, s1, a0; dsll a0, 44;
 
-###Enable the reg space###
-#if 1
-	TTYDBG	("Enable register space of MEMORY\r\n")
-        li  t2, 0xbfe00180
-        lw  a1, 0x0(t2)
-        li  a0, 0xfffffeff
-        and a1, a1,a0
-        sw  a1, 0x0(t2)
-#endif    
-
+        
+        GET_NODE_ID_a0;
+        bnez    a0, 1f
+        nop
+#ifdef DDR_2G
+	    li	msize, 0x7f000000
+#else
 #ifdef DDR_1G
 #ifdef MC0_ONLY
 	    li	msize, 0x3f000000
@@ -47,23 +49,44 @@
 	    li	msize, 0x0f000000
 #endif
 #endif
+#endif
+
+1:
+
+        dli     t2, 0x900000001fe00180
+        dli     t0, 0x900000003ff00000
+        or      t2, t2, a0
+        or      t0, t0, a0
+
+
+###Enable the reg space###
+#if 1
+	TTYDBG	("Enable register space of MEMORY\r\n")
+        #li  t2, 0xbfe00180
+        #dli t2, 0x900000001fe00180
+        lw  a1, 0x0(t2)
+        li  a0, 0xfffffeff
+        and a1, a1,a0
+        sw  a1, 0x0(t2)
+#endif    
 
 
 #ifndef MC1_ONLY
-        dli     t0, 0x900000003ff00010  #base
+        GET_NODE_ID_a0;
+
         dli     t1, 0x00000000
-        sd      t1, 0(t0)
+        or      t1, t1, a0
+        sd      t1, 0x10(t0)
 
-        dli     t0, 0x900000003ff00050  #mask
         dli     t1, 0xfffffffff0000000
-        sd      t1, 0(t0)
+        sd      t1, 0x50(t0)
 
-        dli     t0, 0x900000003ff00090  #mmap
         dli     t1, 0x000000f0
-        sd      t1, 0(t0)
+        sd      t1, 0x90(t0)
         sync
 
-        dli     a0, 0x900000000ff00000
+        dli     a1, 0x900000000ff00000
+        or      a0, a0, a1
 	    bal	    ddr2_config
 	    nop
 
@@ -71,20 +94,21 @@
 #endif
 
 #ifndef MC0_ONLY
-        dli     t0, 0x900000003ff00010  #base
+        GET_NODE_ID_a0;
+
         dli     t1, 0x00000000
-        sd      t1, 0(t0)
+        or      t1, t1, a0
+        sd      t1, 0x10(t0)
 
-        dli     t0, 0x900000003ff00050  #mask
         dli     t1, 0xfffffffff0000000
-        sd      t1, 0(t0)
+        sd      t1, 0x50(t0)
 
-        dli     t0, 0x900000003ff00090  #mmap
         dli     t1, 0x000000f1
-        sd      t1, 0(t0)
+        sd      t1, 0x90(t0)
         sync
 
-        dli     a0, 0x900000000ff00000
+        dli     a1, 0x900000000ff00000
+        or      a0, a0, a1
 	    bal	    ddr2_config_mc1
 	    nop
 
@@ -93,166 +117,151 @@
 
 #ifdef MC0_ONLY
 	    PRINTSTR("MC0 space open : 0x00000000 - 0x0FFFFFFF\r\n")
-        dli     t0, 0x900000003ff00010  #base
+        #dli     t0, 0x900000003ff00000  #base
+        GET_NODE_ID_a0;
         dli     t1, 0x00000000
-        sd      t1, 0(t0)
+        or      t1, t1, a0
+        sd      t1, 0x10(t0)
 
-        dli     t0, 0x900000003ff00050  #mask
         dli     t1, 0xfffffffff0000000
-        sd      t1, 0(t0)
+        sd      t1, 0x50(t0)
 
-        dli     t0, 0x900000003ff00090  #mmap
         dli     t1, 0x000000f0
-        sd      t1, 0(t0)
+        sd      t1, 0x90(t0)
 
 #else
 #ifdef MC1_ONLY
 	    PRINTSTR("MC1 space open : 0x00000000 - 0x0FFFFFFF\r\n")
-        dli     t0, 0x900000003ff00010  #base
+        #dli     t0, 0x900000003ff00000  #base
+        GET_NODE_ID_a0;
         dli     t1, 0x00000000
-        sd      t1, 0(t0)
+        or      t1, t1, a0
+        sd      t1, 0x10(t0)
 
-        dli     t0, 0x900000003ff00050  #mask
         dli     t1, 0xfffffffff0000000
-        sd      t1, 0(t0)
+        sd      t1, 0x50(t0)
 
-        dli     t0, 0x900000003ff00090  #mmap
         dli     t1, 0x000000f1
-        sd      t1, 0(t0)
+        sd      t1, 0x90(t0)
 
 #else
 #ifdef INTERLEAVE_27
 	    PRINTSTR("DDR Interleave space open : 0x00000000 - 0x0FFFFFFF\r\n")
 	    PRINTSTR("DDR Interleave using Bit 27\r\n")
-        dli     t0, 0x900000003ff00010  #base
+        GET_NODE_ID_a0;
         dli     t1, 0x00000000
-        sd      t1, 0(t0)
+        or      t1, t1, a0
+        sd      t1, 0x10(t0)
 
-        dli     t0, 0x900000003ff00050  #mask
         dli     t1, 0xfffffffff8000000
-        sd      t1, 0(t0)
+        sd      t1, 0x50(t0)
 
-        dli     t0, 0x900000003ff00090  #mmap
         dli     t1, 0x000000f0
-        sd      t1, 0(t0)
+        sd      t1, 0x90(t0)
 
-        dli     t0, 0x900000003ff00018  #base
         dli     t1, 0x08000000
-        sd      t1, 0(t0)
+        or      t1, t1, a0
+        sd      t1, 0x18(t0)
 
-        dli     t0, 0x900000003ff00058  #mask
         dli     t1, 0xfffffffff8000000
-        sd      t1, 0(t0)
+        sd      t1, 0x58(t0)
 
-        dli     t0, 0x900000003ff00098  #mmap
         dli     t1, 0x000000f1
-        sd      t1, 0(t0)
+        sd      t1, 0x98(t0)
 #else
 #ifdef INTERLEAVE_13
 	    PRINTSTR("DDR Interleave space open : 0x00000000 - 0x0FFFFFFF\r\n")
 	    PRINTSTR("DDR Interleave using Bit 13\r\n")
-        dli     t0, 0x900000003ff00010  #base
+        GET_NODE_ID_a0;
         dli     t1, 0x0000000000000000
-        sd      t1, 0(t0)
+        or      t1, t1, a0
+        sd      t1, 0x10(t0)
 
-        dli     t0, 0x900000003ff00050  #mask
         dli     t1, 0xfffffffff0002000
-        sd      t1, 0(t0)
+        sd      t1, 0x50(t0)
 
-        dli     t0, 0x900000003ff00090  #mmap
         dli     t1, 0x00000000000000f0
-        sd      t1, 0(t0)
+        sd      t1, 0x90(t0)
 
-        dli     t0, 0x900000003ff00018  #base
         dli     t1, 0x0000000000002000
-        sd      t1, 0(t0)
+        or      t1, t1, a0
+        sd      t1, 0x18(t0)
 
-        dli     t0, 0x900000003ff00058  #mask
         dli     t1, 0xfffffffff0002000
-        sd      t1, 0(t0)
+        sd      t1, 0x58(t0)
 
-        dli     t0, 0x900000003ff00098  #mmap
         dli     t1, 0x00000000000000f1
-        sd      t1, 0(t0)
+        sd      t1, 0x98(t0)
 #else
 #ifdef INTERLEAVE_12
 	    PRINTSTR("DDR Interleave space open : 0x00000000 - 0x0FFFFFFF\r\n")
 	    PRINTSTR("DDR Interleave using Bit 12\r\n")
-        dli     t0, 0x900000003ff00010  #base
+        GET_NODE_ID_a0;
         dli     t1, 0x0000000000000000
-        sd      t1, 0(t0)
+        or      t1, t1, a0
+        sd      t1, 0x10(t0)
 
-        dli     t0, 0x900000003ff00050  #mask
         dli     t1, 0xfffffffff0001000
-        sd      t1, 0(t0)
+        sd      t1, 0x50(t0)
 
-        dli     t0, 0x900000003ff00090  #mmap
         dli     t1, 0x00000000000000f0
-        sd      t1, 0(t0)
+        sd      t1, 0x90(t0)
 
-        dli     t0, 0x900000003ff00018  #base
         dli     t1, 0x0000000000001000
-        sd      t1, 0(t0)
+        or      t1, t1, a0
+        sd      t1, 0x18(t0)
 
-        dli     t0, 0x900000003ff00058  #mask
         dli     t1, 0xfffffffff0001000
-        sd      t1, 0(t0)
+        sd      t1, 0x58(t0)
 
-        dli     t0, 0x900000003ff00098  #mmap
         dli     t1, 0x00000000000000f1
-        sd      t1, 0(t0)
+        sd      t1, 0x98(t0)
 #else
 #ifdef INTERLEAVE_11
 	    PRINTSTR("DDR Interleave space open : 0x00000000 - 0x0FFFFFFF\r\n")
 	    PRINTSTR("DDR Interleave using Bit 11\r\n")
-        dli     t0, 0x900000003ff00010  #base
+        GET_NODE_ID_a0;
         dli     t1, 0x0000000000000000
-        sd      t1, 0(t0)
+        or      t1, t1, a0
+        sd      t1, 0x10(t0)
 
-        dli     t0, 0x900000003ff00050  #mask
         dli     t1, 0xfffffffff0000800
-        sd      t1, 0(t0)
+        sd      t1, 0x50(t0)
 
-        dli     t0, 0x900000003ff00090  #mmap
         dli     t1, 0x00000000000000f0
-        sd      t1, 0(t0)
+        sd      t1, 0x90(t0)
 
-        dli     t0, 0x900000003ff00018  #base
         dli     t1, 0x0000000000000800
-        sd      t1, 0(t0)
+        or      t1, t1, a0
+        sd      t1, 0x18(t0)
 
-        dli     t0, 0x900000003ff00058  #mask
         dli     t1, 0xfffffffff0000800
-        sd      t1, 0(t0)
+        sd      t1, 0x58(t0)
 
-        dli     t0, 0x900000003ff00098  #mmap
         dli     t1, 0x00000000000000f1
-        sd      t1, 0(t0)
+        sd      t1, 0x98(t0)
 #else
 	    PRINTSTR("DDR Interleave space open : 0x00000000 - 0x0FFFFFFF\r\n")
-        dli     t0, 0x900000003ff00010  #base
+        GET_NODE_ID_a0;
         dli     t1, 0x0000000000000000
-        sd      t1, 0(t0)
+        or      t1, t1, a0
+        sd      t1, 0x10(t0)
 
-        dli     t0, 0x900000003ff00050  #mask
         dli     t1, 0xfffffffff0000400
-        sd      t1, 0(t0)
+        sd      t1, 0x50(t0)
 
-        dli     t0, 0x900000003ff00090  #mmap
         dli     t1, 0x00000000000000f0
-        sd      t1, 0(t0)
+        sd      t1, 0x90(t0)
 
-        dli     t0, 0x900000003ff00018  #base
         dli     t1, 0x0000000000000400
-        sd      t1, 0(t0)
+        or      t1, t1, a0
+        sd      t1, 0x18(t0)
 
-        dli     t0, 0x900000003ff00058  #mask
         dli     t1, 0xfffffffff0000400
-        sd      t1, 0(t0)
+        sd      t1, 0x58(t0)
 
-        dli     t0, 0x900000003ff00098  #mmap
         dli     t1, 0x00000000000000f1
-        sd      t1, 0(t0)
+        sd      t1, 0x98(t0)
 #endif
 #endif
 #endif
@@ -264,31 +273,29 @@
 #ifdef MC0_ONLY
 #ifdef DDR_512
 	    PRINTSTR("MC0 pace open : 0x20000000 - 0x2FFFFFFF\r\n")
-        dli     t0, 0x900000003ff00020  #base
+        GET_NODE_ID_a0;
         dli     t1, 0x0000000020000000
-        sd      t1, 0(t0)
+        or      t1, t1, a0
+        sd      t1, 0x20(t0)
 
-        dli     t0, 0x900000003ff00060  #mask
         dli     t1, 0xfffffffff0000000
-        sd      t1, 0(t0)
+        sd      t1, 0x60(t0)
 
-        dli     t0, 0x900000003ff000a0  #mmap
         dli     t1, 0x00000000100000f0
-        sd      t1, 0(t0)
+        sd      t1, 0xa0(t0)
 #else
 #ifdef DDR_1G
 	    PRINTSTR("MC0 space open : 0x40000000 - 0x7FFFFFFF\r\n")
-        dli     t0, 0x900000003ff00020  #base
+        GET_NODE_ID_a0;
         dli     t1, 0x0000000040000000
-        sd      t1, 0(t0)
+        or      t1, t1, a0
+        sd      t1, 0x20(t0)
 
-        dli     t0, 0x900000003ff00060  #mask
         dli     t1, 0xffffffffc0000000
-        sd      t1, 0(t0)
+        sd      t1, 0x60(t0)
 
-        dli     t0, 0x900000003ff000a0  #mmap
         dli     t1, 0x00000000000000f0
-        sd      t1, 0(t0)
+        sd      t1, 0xa0(t0)
 
 #endif
 #endif
@@ -297,37 +304,48 @@
 #ifdef MC1_ONLY
 #ifdef DDR_512
 	    PRINTSTR("MC1 space open : 0x20000000 - 0x2FFFFFFF\r\n")
-        dli     t0, 0x900000003ff00020  #base
+        GET_NODE_ID_a0;
         dli     t1, 0x0000000020000000
-        sd      t1, 0(t0)
+        or      t1, t1, a0
+        sd      t1, 0x20(t0)
 
-        dli     t0, 0x900000003ff00060  #mask
         dli     t1, 0xfffffffff0000000
-        sd      t1, 0(t0)
+        sd      t1, 0x60(t0)
 
-        dli     t0, 0x900000003ff000a0  #mmap
         dli     t1, 0x00000000100000f1
-        sd      t1, 0(t0)
+        sd      t1, 0xa0(t0)
 #else
 #ifdef DDR_1G
 	    PRINTSTR("MC1 space open : 0x40000000 - 0x7FFFFFFF\r\n")
-        dli     t0, 0x900000003ff00020  #base
+        GET_NODE_ID_a0;
         dli     t1, 0x0000000040000000
-        sd      t1, 0(t0)
+        or      t1, t1, a0
+        sd      t1, 0x20(t0)
 
-        dli     t0, 0x900000003ff00060  #mask
         dli     t1, 0xffffffffc0000000
-        sd      t1, 0(t0)
+        sd      t1, 0x60(t0)
 
-        dli     t0, 0x900000003ff000a0  #mmap
         dli     t1, 0x00000000000000f1
-        sd      t1, 0(t0)
+        sd      t1, 0xa0(t0)
+#else
+#ifdef DDR_2G
+	    PRINTSTR("MC1 space open : 0x80000000 - 0xFFFFFFFF\r\n")
+        GET_NODE_ID_a0;
+        dli     t1, 0x0000000080000000
+        or      t1, t1, a0
+        sd      t1, 0x20(t0)
+
+        dli     t1, 0xffffffff80000000
+        sd      t1, 0x60(t0)
+
+        dli     t1, 0x00000000000000f1
+        sd      t1, 0xa0(t0)
 
 #endif
+#endif
 	    PRINTSTR("PCI DMA SPACE reassigned to MC1\r\n")
-        dli     t0, 0x900000003ff00180  #mmap
         dli     t1, 0x00000000000000f1
-        sd      t1, 0(t0)
+        sd      t1, 0x180(t0)
 
 #endif
 
@@ -336,9 +354,9 @@
 	    PRINTSTR("DDR Interleave space open : 0x80000000 - 0xFFFFFFFF\r\n")
 	    PRINTSTR("DDR Interleave using Bit 27\r\n")
 
-        dli     t0, 0x900000003ff00000  #base
-
+        GET_NODE_ID_a0;
         dli     t1, 0x0000000080000000
+        or      t1, t1, a0
         sd      t1, 0x20(t0)
         dli     t1, 0xFFFFFFFFC8000000
         sd      t1, 0x60(t0)
@@ -346,6 +364,7 @@
         sd      t1, 0xa0(t0)
 
         dli     t1, 0x0000000088000000
+        or      t1, t1, a0
         sd      t1, 0x28(t0)
         dli     t1, 0xFFFFFFFFC8000000
         sd      t1, 0x68(t0)
@@ -353,6 +372,7 @@
         sd      t1, 0xa8(t0)
 
         dli     t1, 0x00000000C0000000
+        or      t1, t1, a0
         sd      t1, 0x30(t0)
         dli     t1, 0xFFFFFFFFC8000000
         sd      t1, 0x70(t0)
@@ -360,6 +380,7 @@
         sd      t1, 0xb0(t0)
 
         dli     t1, 0x00000000C8000000
+        or      t1, t1, a0
         sd      t1, 0x38(t0)
         dli     t1, 0xFFFFFFFFC8000000
         sd      t1, 0x78(t0)
@@ -371,9 +392,9 @@
 	    PRINTSTR("DDR Interleave space open : 0x80000000 - 0xFFFFFFFF\r\n")
 	    PRINTSTR("DDR Interleave using Bit 13\r\n")
 
-        dli     t0, 0x900000003ff00000  #base
-
+        GET_NODE_ID_a0;
         dli     t1, 0x0000000080000000
+        or      t1, t1, a0
         sd      t1, 0x20(t0)
         dli     t1, 0xFFFFFFFFC0002000
         sd      t1, 0x60(t0)
@@ -381,6 +402,7 @@
         sd      t1, 0xa0(t0)
 
         dli     t1, 0x0000000080002000
+        or      t1, t1, a0
         sd      t1, 0x28(t0)
         dli     t1, 0xFFFFFFFFC0002000
         sd      t1, 0x68(t0)
@@ -388,6 +410,7 @@
         sd      t1, 0xa8(t0)
 
         dli     t1, 0x00000000C0000000
+        or      t1, t1, a0
         sd      t1, 0x30(t0)
         dli     t1, 0xFFFFFFFFC0002000
         sd      t1, 0x70(t0)
@@ -395,6 +418,7 @@
         sd      t1, 0xb0(t0)
 
         dli     t1, 0x00000000C0002000
+        or      t1, t1, a0
         sd      t1, 0x38(t0)
         dli     t1, 0xFFFFFFFFC0002000
         sd      t1, 0x78(t0)
@@ -406,9 +430,9 @@
 	    PRINTSTR("DDR Interleave space open : 0x80000000 - 0xFFFFFFFF\r\n")
 	    PRINTSTR("DDR Interleave using Bit 12\r\n")
 
-        dli     t0, 0x900000003ff00000  #base
-
+        GET_NODE_ID_a0;
         dli     t1, 0x0000000080000000
+        or      t1, t1, a0
         sd      t1, 0x20(t0)
         dli     t1, 0xFFFFFFFFC0001000
         sd      t1, 0x60(t0)
@@ -416,6 +440,7 @@
         sd      t1, 0xa0(t0)
 
         dli     t1, 0x0000000080001000
+        or      t1, t1, a0
         sd      t1, 0x28(t0)
         dli     t1, 0xFFFFFFFFC0001000
         sd      t1, 0x68(t0)
@@ -423,6 +448,7 @@
         sd      t1, 0xa8(t0)
 
         dli     t1, 0x00000000C0000000
+        or      t1, t1, a0
         sd      t1, 0x30(t0)
         dli     t1, 0xFFFFFFFFC0001000
         sd      t1, 0x70(t0)
@@ -430,6 +456,7 @@
         sd      t1, 0xb0(t0)
 
         dli     t1, 0x00000000C0001000
+        or      t1, t1, a0
         sd      t1, 0x38(t0)
         dli     t1, 0xFFFFFFFFC0001000
         sd      t1, 0x78(t0)
@@ -441,9 +468,9 @@
 	    PRINTSTR("DDR Interleave space open : 0x80000000 - 0xFFFFFFFF\r\n")
 	    PRINTSTR("DDR Interleave using Bit 11\r\n")
 
-        dli     t0, 0x900000003ff00000  #base
-
+        GET_NODE_ID_a0;
         dli     t1, 0x0000000080000000
+        or      t1, t1, a0
         sd      t1, 0x20(t0)
         dli     t1, 0xFFFFFFFFC0000800
         sd      t1, 0x60(t0)
@@ -451,6 +478,7 @@
         sd      t1, 0xa0(t0)
 
         dli     t1, 0x0000000080000800
+        or      t1, t1, a0
         sd      t1, 0x28(t0)
         dli     t1, 0xFFFFFFFFC0000800
         sd      t1, 0x68(t0)
@@ -458,6 +486,7 @@
         sd      t1, 0xa8(t0)
 
         dli     t1, 0x00000000C0000000
+        or      t1, t1, a0
         sd      t1, 0x30(t0)
         dli     t1, 0xFFFFFFFFC0000800
         sd      t1, 0x70(t0)
@@ -465,6 +494,7 @@
         sd      t1, 0xb0(t0)
 
         dli     t1, 0x00000000C0000800
+        or      t1, t1, a0
         sd      t1, 0x38(t0)
         dli     t1, 0xFFFFFFFFC0000800
         sd      t1, 0x78(t0)
@@ -474,9 +504,9 @@
 #else
 	    PRINTSTR("DDR Interleave space open : 0x80000000 - 0xFFFFFFFF\r\n")
 
-        dli     t0, 0x900000003ff00000  #base
-
+        GET_NODE_ID_a0;
         dli     t1, 0x0000000080000000
+        or      t1, t1, a0
         sd      t1, 0x20(t0)
         dli     t1, 0xFFFFFFFFC0000400
         sd      t1, 0x60(t0)
@@ -484,6 +514,7 @@
         sd      t1, 0xa0(t0)
 
         dli     t1, 0x0000000080000400
+        or      t1, t1, a0
         sd      t1, 0x28(t0)
         dli     t1, 0xFFFFFFFFC0000400
         sd      t1, 0x68(t0)
@@ -491,6 +522,7 @@
         sd      t1, 0xa8(t0)
 
         dli     t1, 0x00000000C0000000
+        or      t1, t1, a0
         sd      t1, 0x30(t0)
         dli     t1, 0xFFFFFFFFC0000400
         sd      t1, 0x70(t0)
@@ -498,6 +530,7 @@
         sd      t1, 0xb0(t0)
 
         dli     t1, 0x00000000C0000400
+        or      t1, t1, a0
         sd      t1, 0x38(t0)
         dli     t1, 0xFFFFFFFFC0000400
         sd      t1, 0x78(t0)
@@ -553,32 +586,30 @@ not_locked:
 ###disable the reg space###
 #if 1
 	    TTYDBG("Disable register space of MEMORY\r\n")
-        li  t2,0xbfe00180
+        #li  t2,0xbfe00180
+        #dli t2,0x900000001fe00180
         lw  a1,0x0(t2)
         or  a1,a1,0x100
         sw  a1,0x0(t2)
 #endif
 
-#if 1 // AdonWang disable ddr3 readbuff
-/* !!! May Affect the Performance !!!!! */
+#if 0 // AdonWang disable ddr3 readbuff
+/*      May Affect the Performance     */
        TTYDBG("Disable read buffer\r\n")
-       li      t0, 0xbfe00180
-       //dli     t1,0x1ffffff617   
-       //dli     t1,0x07fffff617   
-       //dli     t2,0x4000000000
-       //or      t1,t1,t2
-       lw      t1, 0x4(t0)
+       #dli     t2, 0x900000001fe00180
+       lw      t1, 0x4(t2)
        li      a0, 0x18
        or      t1, t1, a0
-       sw      t1, 0x4(t0)
+       sw      t1, 0x4(t2)
 #endif
 
 #if 1 // AdonWang disable cpu buffered read
 /* !!!!!!!!!!!!! IMPORTANT !!!!!!!!!!!! */
        TTYDBG("Disable cpu buffered read\r\n")
-       li      t0, 0xbfe00180
-       lw      t1, 0x0(t0)
+       #dli     t2, 0x900000001fe00180 
+       lw      t1, 0x0(t2)
        li      a0, 0xfffffdff
        and     t1, t1, a0
-       sw      t1, 0x0(t0)
+       sw      t1, 0x0(t2)
 #endif
+

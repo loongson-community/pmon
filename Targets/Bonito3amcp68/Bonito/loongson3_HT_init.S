@@ -290,26 +290,7 @@ ht_next_id :
 	sw	    t0, 0xd0(t2)
 	li	    t0, 0x0010fff8
 	sw	    t0, 0xd4(t2)
-	//TTYDBG("HT RX DMA address ENABLE done 1\r\n")
 
-	//li	t0, 0x80000000
-	//sw	t0, 0x8(t2)
-	//li	t0, 0x0000ffc0
-	//sw	t0, 0xc(t2)
-	////TTYDBG("HT RX DMA address ENABLE done 2\r\n")
-
-	//li	t0, 0xc0000000
-	//sw	t0, 0x10(t2)
-	//li	t0, 0xfdfcfffc
-	//sw	t0, 0x14(t2)
-	//TTYDBG("HT RX DMA address ENABLE done 3\r\n")
-
-	//TTYDBG("HT RX DMA address ENABLE done 4\r\n")
-	//dli	t2, 0x90000efdfb0000f0
-	//li	t0, 0x80000000
-	//sw	t0, 0x0(t2)
-	//li	t0, 0x0000ff00
-	//sw	t0, 0x4(t2)
 #endif
 
 #ifdef HT_16bit//Set HT bridge to be 16-bit width
@@ -581,6 +562,7 @@ ht_next_id :
 	nop
 #endif
 
+#ifdef HT_RECONNECT
 #ifdef HT_16bit //Write Southbridge to 16 bit width
 	TTYDBG("Setting HyperTransport Southbridge to be 16-bit width\r\n")
 	//li	t0, 0xba000000
@@ -618,7 +600,6 @@ ht_next_id :
 	TTYDBG("\r\n")
 #endif
 
-#ifdef HT_RECONNECT
 #if 1 //Watch dog Trying
 	TTYDBG("Setting Watch Dog to make a WARM RESET\r\n")
 #ifdef WD_DEBUG
@@ -820,7 +801,7 @@ ht_next_id :
 
 
 #if 1//Check if CRC error bit set and reset it
-//#define RESET_CRC
+#define RESET_CRC
 crc_checking:
     TTYDBG("Checking HyperTransport bus CRC error bit.\r\n")
     dli     t0, 0x90000efdfb000000
@@ -833,18 +814,20 @@ crc_checking:
     beqz	a0,	1f
 	nop
 
+    lw      a0, 0x44(t0)
 	bal	    hexserial
 	nop
 	TTYDBG("\r\nReset the Controller errror CRC bit\r\n")
  	nop
 
     lw      a0, 0x44(t0)
-	li	    a1, 0xffffcff
-	or	    a0, a0, a1
+	li	    a1, 0xfffffcff
+	and	    a0, a0, a1
 
 	sw	    a0, 0x44(t0)
 	nop
-#if RESET_CRC
+
+#ifdef RESET_CRC
 	b	    2b
 	nop
 #endif
@@ -861,18 +844,20 @@ crc_checking:
     beqz	a0,	1f
 	nop
 
+    lw      a0, 0x48(t0)
 	bal	    hexserial
 	nop
 	TTYDBG("\r\nReset the Bridge errror CRC bit\r\n")
  	nop
 
     lw      a0, 0x48(t0)
-	li	    a1, 0xffffcff
-	or	    a0, a0, a1
+	li	    a1, 0xfffffcff
+	and	    a0, a0, a1
 
 	sw	    a0, 0x48(t0)
 	nop
-#if RESET_CRC
+
+#ifdef RESET_CRC
 	b	    2b
 	nop
 #endif

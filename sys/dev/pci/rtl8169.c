@@ -51,7 +51,10 @@ VERSION 2.2LK	<2005/01/25>
 	- baby (< 7200) Jumbo frames support
 	- Merge of Realtek's version 2.2 (new phy)
  */
+#include <stdlib.h>
 #include "bpfilter.h"
+//#include <string.h>
+//#include <stdio.h>
 
 #include <sys/param.h>
 #include <sys/systm.h>
@@ -142,8 +145,6 @@ VERSION 2.2LK	<2005/01/25>
 
 #define offsetof(TYPE, MEMBER) ((size_t) &((TYPE *)0)->MEMBER)
 
-//#define	EPLC46	1
-
 #ifdef CONFIG_R8169_NAPI
 #define NAPI_SUFFIX	"-NAPI"
 #else
@@ -185,7 +186,7 @@ VERSION 2.2LK	<2005/01/25>
 #endif
 
 /* Maximum events (Rx packets, etc.) to handle at each interrupt. */
-static int max_interrupt_work = 20;
+static const int max_interrupt_work = 20;
 //static const int max_interrupt_work = 200; //lihui.
 
 /* Maximum number of multicast addresses to filter (vs. Rx-all-multicast).
@@ -205,10 +206,8 @@ static const int multicast_filter_limit = 32;
 
 #define R8169_REGS_SIZE		256
 #define R8169_NAPI_WEIGHT	64
-//#define NUM_TX_DESC	64	/* Number of Tx descriptor registers */
-//#define NUM_RX_DESC	256	/* Number of Rx descriptor registers */
-#define NUM_TX_DESC  64	//it seems likely that I could not allocate too many buffers in pmon. I have tested 
-#define NUM_RX_DESC  128  //several times and these 2 values may be a good choice.lihui@mail.ustc.edu.cn
+#define NUM_TX_DESC  4	//it seems likely that I could not allocate too many buffers in pmon. I have tested 
+#define NUM_RX_DESC  8  //yeah, memory for device is precious
 #define R8169_TX_RING_BYTES	(NUM_TX_DESC * sizeof(struct TxDesc))
 #define R8169_RX_RING_BYTES	(NUM_RX_DESC * sizeof(struct RxDesc))
 
@@ -368,6 +367,17 @@ struct rtl8169_private {
 
 typedef struct rtl8169_private r8169;
 
+static unsigned short eeprom_data[]=
+{
+	0x8129, 0x10ec, 0x8167, 0x10ec, 0x8169, 0x4020, 0xa101, 0x2301, 
+	0x2323, 0xaa89, 0xcd15, 0xf7c2, 0x8000, 0x0000, 0x0000, 0x1300,
+	0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 
+	0x0000, 0x7ed7, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x2000, 
+	0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 
+	0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 
+	0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 
+	0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000 
+};
 static struct mbuf * getmbuf(struct rtl8169_private *tp)
 {
 	struct mbuf *m;
@@ -403,7 +413,8 @@ static struct mbuf * getmbuf(struct rtl8169_private *tp)
 	return m;
 }
 
-
+static void rtl8169_hw_reset(struct rtl8169_private *tp);
+static void rtl8169_tx_clear(struct rtl8169_private *tp);
 static int r8169_match( struct device *, void   *match, void * aux);
 static void r8169_attach(struct device * , struct device * , void *);
 
@@ -692,10 +703,20 @@ static int r8169_match(
 {
 	struct pci_attach_args *pa = aux;
 
+	static int fixme = 0;
+
+	if (getenv("rtkdev")) {
+		fixme = strtoul(getenv("rtkdev"), 0, 0); 
+		if (fixme != pa->pa_device)
+			return 0;
+		printf("rtk device %d\n", fixme);
+	}
+
 	switch(PCI_VENDOR(pa->pa_id)) {
 	case PCI_VENDOR_ID_REALTEK:
 		if(PCI_PRODUCT(pa->pa_id) == 0x8169 ||PCI_PRODUCT(pa->pa_id) == 0x8110
-			|| PCI_PRODUCT(pa->pa_id) == 0x8129)
+			|| PCI_PRODUCT(pa->pa_id) == 0x8129
+			|| PCI_PRODUCT(pa->pa_id) == 0x8167)
 			return 1;
 		else
 			return 0;
@@ -781,7 +802,7 @@ static void write_eeprom_enable(long ioaddr){
 
 	/* Shift the read command bits out. */
 #ifndef EPLC46
-	for (i = 10; i >= 0; i--) {
+	for (i = 8; i >= 0; i--) {
 		int dataval = (cmd & (1 << i)) ? EE_DATA_WRITE : 0;
 		myoutb(EE_ENB | dataval, ee_addr);
 		eeprom_delay();
@@ -830,7 +851,7 @@ static void write_eeprom_disable(unsigned long ioaddr)
 
 int rtl8169_write_eeprom(long ioaddr, int location,unsigned short data)
 {
-	int i;
+	volatile int i;
 	long ee_addr = ioaddr + Cfg9346;
 	int  cmd = location | EE_WRITE_CMD;
 
@@ -842,7 +863,7 @@ int rtl8169_write_eeprom(long ioaddr, int location,unsigned short data)
 	myoutb(EE_ENB, ee_addr);
 
 	/* Shift the read command bits out. */
-	for (i = 26; i >= 0; i--) {
+	for (i = 24; i >= 0; i--) {
 		int dataval = (cmd & (1 << i)) ? EE_DATA_WRITE : 0;
 		myoutb(EE_ENB | dataval, ee_addr);
 		eeprom_delay();
@@ -854,15 +875,13 @@ int rtl8169_write_eeprom(long ioaddr, int location,unsigned short data)
 	myoutb(~EE_CS, ee_addr);
 	eeprom_delay();
 
-	myoutb(EE_ENB, ee_addr);
-	 
-	 {int timeout=1000;
-    while( ! (inb(ee_addr) & EE_DATA_READ) ){
-		myoutb(EE_ENB, ee_addr);
-		eeprom_delay();
-		delay(100); if(!timeout--)break;
+	write_eeprom_disable(ioaddr);
+	/*delay()*/
+	{
+		volatile int j =0;
+		while(j++<600000);
 	}
-	}
+
 	return 0;
 }
 
@@ -889,17 +908,14 @@ int rtl8169_write_eeprom8(long ioaddr, int location,unsigned short data)
 	}
 	/* Terminate the EEPROM access. */
 
-//	myoutb(~EE_CS, ee_addr);
+	myoutb(~EE_CS, ee_addr);
 	eeprom_delay();
 
 	myoutb(EE_ENB, ee_addr);
 	 
-	{int timeout=1000;
        while( ! (inb(ee_addr) & EE_DATA_READ) ){
 		myoutb(EE_ENB, ee_addr);
 		eeprom_delay();
-		delay(100); if(!timeout--)break;
-	}
 	}
 	return 0;
 }
@@ -1595,6 +1611,11 @@ rtl8169_init_board(struct rtl8169_private *tp, struct pci_attach_args *pa)
 		delay(10);
 	}
 
+	if (RTL_R8(tp, Config2) & 0x7) {
+		RTL_W32(tp, 0x7c, 0x00ffffff);
+		printf("PCI clock is 66M\n");
+	}
+
 	printf("r8169: Reset device %s \n", i ? "success": "timeout");
 
 	/* Identify chip attached to board */
@@ -1621,18 +1642,13 @@ rtl8169_init_board(struct rtl8169_private *tp, struct pci_attach_args *pa)
        RTL_W8(tp, Config1, RTL_R8(tp, Config1) | PMEnable | 0xCD);
        RTL_W8(tp, Config3, RTL_R8(tp, Config3) | 0xA1);
        RTL_W8(tp, Config4, RTL_R8(tp, Config4) | 0x80);
-	RTL_W8(tp, Config5, RTL_R8(tp, Config5) & PMEStatus | 0x13);   //lihui.
+	RTL_W8(tp, Config5, (RTL_R8(tp, Config5) & PMEStatus) | 0x13); 
 	RTL_W8(tp, Cfg9346, Cfg9346_Lock);
-
-    //by liuqi
-    status = RTL_R16(tp, IntrStatus);
-    printf("After set-> %x ", status);
 
 	return rc;
 
 }
 
-static struct rtl8169_private* myRTL = NULL; 
 static int rtl8169_open(struct rtl8169_private *tp);
 
 static int
@@ -1689,27 +1705,6 @@ rtl8169_ether_ioctl(struct ifnet *ifp, unsigned long cmd, caddr_t data)
 		}
 		break;
 
-        case SIOCETHTOOL:
-        {
-        long *p=data;
-        myRTL = sc;
-        cmd_setmac(p[0],p[1]);
-        }
-        break;
-       case SIOCRDEEPROM:
-                {
-                long *p=data;
-                myRTL = sc;
-                cmd_reprom(p[0],p[1]);
-                }
-                break;
-       case SIOCWREEPROM:
-                {
-                long *p=data;
-                myRTL = sc;
-                cmd_wrprom(p[0],p[1]);
-                }
-                break;
 	default:
 		RTLDBG; 
 		error = EINVAL;
@@ -1720,47 +1715,9 @@ rtl8169_ether_ioctl(struct ifnet *ifp, unsigned long cmd, caddr_t data)
 	return (error);
 }
 
-static int rtl8169_set_hard_speed(struct rtl8169_private *tp,
-				  u8 autoneg, u16 speed, u8 duplex)
-{
-	int auto_nego, giga_ctrl;
-    int old_value;
-    int i;
+static struct rtl8169_private* myRTL = NULL; 
 
-	old_value = mdio_read(tp, PHY_CTRL_REG);
-    printf("the old PHY_CTRL_REG value is %x\n", old_value);
-    old_value &= ~0x1000;       //disable auto-negotiation
-    old_value |= 0x0040;       //set to 1000M
-    old_value &= ~0x2000;       
-    mdio_write(tp, PHY_CTRL_REG, old_value);
-   
-	for (i = 200000000; i > 0; i--) {
-		/* Check if the RTL8169 has completed */
-		if (mdio_read(tp, PHY_CTRL_REG) & 0x8000 == 0) {
-			break;
-		}
-		delay(2000);
-	}
-    printf("----------------> %d\n", i);
-#if 0
-	old_value = mdio_read(tp, PHY_CTRL_REG);
-    old_value |= 0x0040;       //set to 1000M
-    old_value &= ~0x2000;       //disable auto-negotiation
-    mdio_write(tp, PHY_CTRL_REG, old_value);
-   
-	for (i = 2000; i > 0; i--) {
-		/* Check if the RTL8169 has completed */
-		if (mdio_read(tp, PHY_CTRL_REG) & 0x8000 == 0) {
-			break;
-		}
-		delay(200);
-	}
-    printf("----------------> %d\n", i);
-#endif
-	return 0;
-}
-
-
+unsigned char	last_two_8169_mac[2];
 
 static void 
 r8169_attach(struct device * parent, struct device * self, void *aux)
@@ -1773,10 +1730,11 @@ r8169_attach(struct device * parent, struct device * self, void *aux)
 	struct  ifnet *ifp;
 	pci_intr_handle_t ih;
 	const char *intrstr = NULL;
-    u32 int_mask;
+	unsigned short MACaddr[3];
+	unsigned int MAC;
     u32 status;
 
-       myRTL = tp;
+	myRTL = tp;
 
 	board_idx++;
     if_in_attach = 1;
@@ -1801,18 +1759,33 @@ r8169_attach(struct device * parent, struct device * self, void *aux)
 		tp->link_ok = rtl8169_xmii_link_ok;
 	}
 
+	if(read_eeprom(tp, 0) != 0x8129 ) {
+		int i;
+		for (i=0; i<sizeof(eeprom_data)/2; i++)
+			rtl8169_write_eeprom(tp->ioaddr, i, eeprom_data[i]);
+	}
+
+/**************************change MAC address here****************************/	
+	for (i=0; i<3; i++)
+		MACaddr[i] = read_eeprom(tp, i+7);
+
+	RTL_W8(tp, Cfg9346, Cfg9346_Unlock);
+	MAC = MACaddr[0] | MACaddr[1] <<16;
+	RTL_W32(tp, MAC0, MAC);
+	MAC = MACaddr[2]; 
+	RTL_W32(tp, MAC0 + 4, MAC);
+	RTL_W8(tp, Cfg9346, Cfg9346_Lock);
     /*
     int_mask = RTL_R16(tp, IntrMask) & 0x7fff;
     RTL_W16(tp,IntrMask,int_mask);
 	*/
-    /* Get MAC address.  FIXME: read EEPROM */
 #if 0
+    /* Get MAC address.  FIXME: read EEPROM */
 	RTL_W8(tp, Cfg9346, Cfg9346_Unlock);
 	RTL_W32(tp, MAC0 + 4, 0x01000002);
 	RTL_W32(tp, MAC0, 0x44444400);
 	RTL_W8(tp, Cfg9346, Cfg9346_Lock);
 #endif
-//去掉接在93c46 sk脚上的上拉电阻,setmac后要关电
 
 	printf("MAC addr is ");
 	for (i = 0; i < MAC_ADDR_LEN; i++){
@@ -1826,6 +1799,9 @@ r8169_attach(struct device * parent, struct device * self, void *aux)
 		else
 				printf(":");
 	}		
+
+	last_two_8169_mac[0] = tp->dev_addr[4];
+	last_two_8169_mac[1] = tp->dev_addr[5];
 
 	for(i=0; i<32/2; i++){
 		printf("%04x", read_eeprom(tp, i));
@@ -1848,7 +1824,6 @@ r8169_attach(struct device * parent, struct device * self, void *aux)
 
     //by liuqi
     status = RTL_R16(tp, IntrStatus);
-    printf("before identified-> %x\n ", status);
 	
     printf("Identified chip type is '%s'.\n",
 		       rtl_chip_info[tp->chipset].name);
@@ -1878,17 +1853,11 @@ r8169_attach(struct device * parent, struct device * self, void *aux)
 		mdio_write(tp, 0x0b, 0x0000); //w 0x0b 15 0 0
 	}
 
-    //by liuqi
     status = RTL_R16(tp, IntrStatus);
-    printf("before link option-> %x\n ", status);
 	
     rtl8169_link_option(board_idx, &autoneg, &speed, &duplex);
 
-    printf("by whd: autoneg = %x, speed = %x, duplex = %x\n");
-    //by liuqi
     status = RTL_R16(tp, IntrStatus);
-    printf("before set speed-> %x\n ", status);
-	//rtl8169_set_hard_speed(tp, autoneg, speed, duplex);
 	rtl8169_set_speed(tp, AUTONEG_ENABLE, SPEED_1000, DUPLEX_FULL);
 	
 	if ((RTL_R8(tp, PHYstatus) & TBI_Enable))
@@ -1910,9 +1879,7 @@ r8169_attach(struct device * parent, struct device * self, void *aux)
 	if_attach(ifp);
 	ether_ifattach(ifp);
 	
-    //by liuqi
     status = RTL_R16(tp, IntrStatus);
-    printf("before open-> %x\n ", status);
 	
     rc = rtl8169_open(tp);
 	if(rc) {
@@ -1920,20 +1887,16 @@ r8169_attach(struct device * parent, struct device * self, void *aux)
 		return;
 	}
 
-    //by liuqi
     status = RTL_R16(tp, IntrStatus);
-    printf("before map interrupt-> %x\n ", status);
 	if (pci_intr_map(pc, pa->pa_intrtag, pa->pa_intrpin,
-	    pa->pa_intrline, &ih)) { //#define	pci_intr_map(a, b, c, d, e)		(*e = -1, 0)
+	    pa->pa_intrline, &ih)) {
 		printf(": couldn't map interrupt\n");
 		return;
 	}
 	
 	intrstr = pci_intr_string(pc, ih);
 
-    //by liuqi
     status = RTL_R16(tp, IntrStatus);
-    printf("before establish interrupt-> %x\n ", status);
 	
     tp->sc_ih = pci_intr_establish(pc, ih, IPL_NET, rtl8169_interrupt, tp, 
 			self->dv_xname);
@@ -1948,104 +1911,85 @@ r8169_attach(struct device * parent, struct device * self, void *aux)
 	return ;
 }
 
+#if 1 /*gx */
+struct rtl8169_private *mytp;
+int my_turnoff_rtl8169()
+{
+	rtl8169_asic_down(mytp);
+	//rtl8169_down(mytp);
+}
+#endif
 
-static void rtl8169_hw_reset(struct rtl8169_private *tp);
 static int rtl8169_open_times = 0; 
 static int rtl8169_open(struct rtl8169_private *tp)
 {
 	int retval = 0;
     u32 status;
 
+#if 1 /* gx */
+	mytp = tp;
+#endif
 	/*
 	 * Rx and Tx desscriptors needs 256 bytes alignment.
 	 * pci_alloc_consistent provides more.
 	 */
-    //by liuqi
     status = RTL_R16(tp, IntrStatus);
-    printf("1 -> %x\n ", status);
 	
     if(!tp->TxDescArray){
 		tp->TxDescArray = (struct TxDesc*)malloc(R8169_TX_RING_BYTES + 255, M_DEVBUF, M_DONTWAIT);
 		if (!tp->TxDescArray) {
-	       	RTLDBG;
-		       retval = -ENOMEM;
-		       goto err_free_tx;
-        	}
-	       memset((caddr_t)tp->TxDescArray, 0, R8169_TX_RING_BYTES + 255);
-       	pci_sync_cache(tp->sc_pc, (caddr_t)(tp->TxDescArray),  R8169_TX_RING_BYTES + 255, SYNC_W);
-       	tp->TxDescArray = ((unsigned long)(tp->TxDescArray) + 255) & ~255;	
+			RTLDBG;
+			retval = -ENOMEM;
+			goto err_free_tx;
+		}
+		memset((caddr_t)tp->TxDescArray, 0, R8169_TX_RING_BYTES + 255);
+       	pci_sync_cache(tp->sc_pc, (vm_offset_t)(tp->TxDescArray),  R8169_TX_RING_BYTES + 255, SYNC_W);
+       	tp->TxDescArray = (struct TxDesc *)(((unsigned long)(tp->TxDescArray) + 255) & ~255);	
 	}
 	tp->TxDescArray = (struct TxDesc*)CACHED_TO_UNCACHED((unsigned long)(tp->TxDescArray));
 	tp->TxPhyAddr = (unsigned long)vtophys((unsigned long)(tp->TxDescArray));
 
-    
-    //by liuqi
     status = RTL_R16(tp, IntrStatus);
-    printf("2 -> %x\n ", status);
 	
-
-
 	if(!tp->RxDescArray){
 		tp->RxDescArray = (struct RxDesc*)malloc(R8169_RX_RING_BYTES + 255, M_DEVBUF, M_DONTWAIT);
 	       if (!tp->RxDescArray) {
 		      RTLDBG;
 		      retval = -ENOMEM;
 		      goto err_free_rx;
-       	}		
-	       memset((caddr_t)(tp->RxDescArray), 0, R8169_RX_RING_BYTES + 255);
-       	pci_sync_cache(tp->sc_pc, (caddr_t)(tp->RxDescArray),  R8169_RX_RING_BYTES + 255, SYNC_W);
-       	tp->RxDescArray = ((unsigned long)(tp->RxDescArray) + 255) & ~255;		
+		   }		
+		   memset((caddr_t)(tp->RxDescArray), 0, R8169_RX_RING_BYTES + 255);
+		   pci_sync_cache(tp->sc_pc, (vm_offset_t)(tp->RxDescArray),  R8169_RX_RING_BYTES + 255, SYNC_W);
+		   tp->RxDescArray = (struct RxDesc *)(((unsigned long)(tp->RxDescArray) + 255) & ~255);	
 	}	
 	tp->RxDescArray = (struct RxDesc*)CACHED_TO_UNCACHED((unsigned long)(tp->RxDescArray));
 	tp->RxPhyAddr = (unsigned long)vtophys((unsigned long)(tp->RxDescArray));
 
-    
-    //by liuqi
     status = RTL_R16(tp, IntrStatus);
-    printf("3 -> %x\n ", status);
-	
 
-       tp->tx_buf_sz = TX_BUF_SIZE;
+	tp->tx_buf_sz = TX_BUF_SIZE;
 	tp->rx_buf_sz = RX_BUF_SIZE;
 	retval = rtl8169_init_ring(tp);
     
-    //by liuqi
     status = RTL_R16(tp, IntrStatus);
-    printf("4 -> %x\n ", status);
 	
 	if (retval < 0){
 		RTLDBG;
 		goto err_free_rx;
 	}
-    printf("hw_reset_first\n");
     
-    //by liuqi
-    status = RTL_R16(tp, IntrStatus);
-    printf("5 -> %x\n ", status);
-	
 	rtl8169_hw_reset(tp);//by AdonWang
     
-    //by liuqi
     status = RTL_R16(tp, IntrStatus);
-    printf("6 -> %x\n ", status);
 	
-	//rtl8169_hw_start(tp);
-	//rtl8169_hw_start(tp);
 	rtl8169_hw_start(tp);
     
-    //by liuqi
     status = RTL_R16(tp, IntrStatus);
-    printf("7 -> %x\n ", status);
 	
 	rtl8169_check_link_status(tp);
        tp->arpcom.ac_if.if_flags |=  IFF_RUNNING;
 
-    
-    //by liuqi
     status = RTL_R16(tp, IntrStatus);
-    printf("8 -> %x\n ", status);
-	CPU_FlushCache();//fix me
-	
 
 out:
 	return retval;
@@ -2057,7 +2001,6 @@ err_free_tx:
 
 	goto out;
 }
-
 
 static void rtl8169_hw_reset(struct rtl8169_private *tp)
 {
@@ -2071,9 +2014,7 @@ static void rtl8169_hw_reset(struct rtl8169_private *tp)
 	RTL_W8(tp, ChipCmd, CmdReset);
 
 	for (i = 1000; i > 0; i--) {
-		if ((RTL_R8(tp, ChipCmd) & CmdReset) == 0)
-        {
-            printf("reset_done!!! i= %d\n",i);
+		if ((RTL_R8(tp, ChipCmd) & CmdReset) == 0) {
 			break;
         }
 		delay(10);
@@ -2087,30 +2028,11 @@ rtl8169_hw_start(struct rtl8169_private *tp)
 {
 	u32 i;
     u32 status;
-    u32 RegAddr, value;
-#if 0 
-    RegAddr = 0x00;
-    //value = 0x2100;         //disable auto-nogotaitation and set to 100M full-duplex
-    //value = 0x0140;         //disable auto-nogotaitation and set to 1000M full-duplex
-    value = 0x8200;         //restart auto-nogotaitaiton
-	RTL_W32(tp, PHYAR, 0x80000000 | (RegAddr & 0xFF) << 16 | value);
-
-	for (i = 20; i > 0; i--) {
-		/* Check if the RTL8169 has completed writing to the specified MII register */
-		if (!(RTL_R32(tp, PHYAR) & 0x80000000)) 
-			break;
-		delay(25);
-	}
-#endif
     
-    //by liuqi
-    status = RTL_R16(tp, IntrStatus);
-    printf("11 -> %x ", status);
 	/* Soft reset the chip. */
 	RTL_W8(tp, ChipCmd, CmdReset);
 
     status = RTL_R16(tp, IntrStatus);
-    printf("12 -> %x ", status);
 	/* Check that the chip has finished the reset. */
 	for (i = 1000; i > 0; i--) {
 		if ((RTL_R8(tp, ChipCmd) & CmdReset) == 0)
@@ -2118,47 +2040,21 @@ rtl8169_hw_start(struct rtl8169_private *tp)
 		delay(10);
 	}
 
-    //by liuqi
-    status = RTL_R16(tp, IntrStatus);
-    printf("13 -> %x ", status);
-
 	RTL_W8(tp, Cfg9346, Cfg9346_Unlock);
 	//RTL_W8(tp, Cfg9346, Cfg9346_Autoload);
-    //delay(10000);
-#if 0
-	RTL_W8(tp, ChipCmd, CmdReset);
-	for (i = 1000; i > 0; i--) {
-		if ((RTL_R8(tp, ChipCmd) & CmdReset) == 0)
-			break;
-		delay(10);
-	}
-#endif
-//	RTL_W8(tp, ChipCmd, CmdTxEnb | CmdRxEnb);
-    printf("mtps : %x \n",RTL_R16(tp,EarlyTxThres));
-	//RTL_W8(tp, EarlyTxThres, EarlyTxThld);
-	RTL_W8(tp, EarlyTxThres, 0x5ff);
-
-    //by liuqi
-    status = RTL_R16(tp, IntrStatus);
-    printf("14 -> %x ", status);
+	
+	RTL_W8(tp, EarlyTxThres, EarlyTxThld);
 
 	/* Low hurts. Let's disable the filtering. */
 	RTL_W16(tp, RxMaxSize, 16383);
-
-    //by liuqi
-    status = RTL_R16(tp, IntrStatus);
-    printf("15 -> %x \n", status);
 
     printf("rtl_chip_info: %s, %x\n",rtl_chip_info[tp->chipset].name,rtl_chip_info[tp->chipset].mac_version);
 	/* Set Rx Config register */
 	i = rtl8169_rx_config |
 		(RTL_R32(tp, RxConfig) & rtl_chip_info[tp->chipset].RxConfigMask);
 	RTL_W32(tp, RxConfig, i);
-    printf("Rxconfig = %x",RTL_R32(tp,RxConfig));
 
-    //by liuqi
     status = RTL_R16(tp, IntrStatus);
-    printf("16 -> %x ", status);
 
 	/* Set DMA burst size and Interframe Gap Time */
 	RTL_W32(tp, TxConfig,
@@ -2166,10 +2062,6 @@ rtl8169_hw_start(struct rtl8169_private *tp)
 						TxInterFrameGapShift));
 	tp->cp_cmd |= RTL_R16(tp, CPlusCmd);
 	RTL_W16(tp, CPlusCmd, tp->cp_cmd);
-
-    //by liuqi
-    status = RTL_R16(tp, IntrStatus);
-    printf("17 -> %x ", status);
 
 	if ((tp->mac_version == RTL_GIGA_MAC_VER_D) ||
 	    (tp->mac_version == RTL_GIGA_MAC_VER_E)) 
@@ -2180,22 +2072,13 @@ rtl8169_hw_start(struct rtl8169_private *tp)
 		RTL_W16(tp, CPlusCmd, tp->cp_cmd);
 	}
 
-    //by liuqi
-    status = RTL_R16(tp, IntrStatus);
-    printf("18 -> %x ", status);
-
 	/*
 	 * Undocumented corner. Supposedly:
 	 * (TxTimer << 12) | (TxPackets << 8) | (RxTimer << 4) | RxPackets
 	 */
 	//RTL_W16(tp, IntrMitigate, 0x0000);
 
-    //by liuqi
-    status = RTL_R16(tp, IntrStatus);
-    printf("19 -> %x ", status);
-
 #define DMA_32BIT_MASK 0xffffffffUL
-
 
 	RTL_W32(tp, TxDescStartAddrLow, ((u64) tp->TxPhyAddr & DMA_32BIT_MASK));
 	RTL_W32(tp, TxDescStartAddrHigh, ((u64) tp->TxPhyAddr >> 32));
@@ -2203,75 +2086,30 @@ rtl8169_hw_start(struct rtl8169_private *tp)
 	RTL_W32(tp, RxDescAddrHigh, ((u64) tp->RxPhyAddr >> 32));
 	RTL_W8(tp, Cfg9346, Cfg9346_Lock);
 
-    //by liuqi
     status = RTL_R16(tp, IntrStatus);
-    printf("20 -> %x ", status);
 
 	delay(1000);
-
-    //by liuqi
-    status = RTL_R16(tp, IntrStatus);
-    printf("21 -> %x ", status);
 
 	RTL_W32(tp, RxMissed, 0);
 
 
 	RTL_W8(tp, ChipCmd, CmdTxEnb | CmdRxEnb);
-    //by liuqi
-    status = RTL_R16(tp, IntrStatus);
-    printf("22 -> %x ", status);
 
-	tp->flags=IFF_PROMISC;
 	rtl8169_set_rx_mode(tp);
-
-    //by liuqi
-    status = RTL_R16(tp, IntrStatus);
-    printf("23 -> %x \n", status);
 
 	/* no early-rx interrupts */
 	RTL_W16(tp, MultiIntr, RTL_R16(tp, MultiIntr) & 0xF000);
 
-    //by liuqi
-    status = RTL_R16(tp, IntrStatus);
-    printf("24 -> %x ", status);
-
-    
 	RTL_W16(tp, IntrMask, 0x0);
     RTL_W16(tp,IntrStatus,status);
-    /*
-	RTL_W8(tp, ChipCmd, CmdReset);
-	for (i = 1000; i > 0; i--) {
-		if ((RTL_R8(tp, ChipCmd) & CmdReset) == 0)
-			break;
-		delay(10);
-	}
-    delay(1000);
-    RTL_W16(tp,IntrStatus,status);
-    delay(1000);
-	RTL_W8(tp, ChipCmd, CmdReset);
-	for (i = 1000; i > 0; i--) {
-		if ((RTL_R8(tp, ChipCmd) & CmdReset) == 0)
-			break;
-		delay(10);
-	}
-    delay(1000);
-	RTL_W8(tp, ChipCmd, CmdTxEnb | CmdRxEnb);
-    status = RTL_R16(tp, IntrStatus);
-    printf("24 -> %x ", status);
-	*/
     /* Enable all known interrupts by setting the interrupt mask. */
 	RTL_W16(tp, IntrMask, rtl8169_intr_mask);
-
-    //by liuqi
-    status = RTL_R16(tp, IntrStatus);
-    printf("24 -> %x ", status);
 
 }
 
 static inline void rtl8169_make_unusable_by_asic(struct RxDesc *desc)
 {
-        desc->addr = 0x0badbadbadbadbadull;;
-
+	desc->addr = 0x0badbadbadbadbadull;;
 	desc->opts1 &=  ~cpu_to_le32(DescOwn | RsvdMask);
 } 
 
@@ -2312,8 +2150,8 @@ static int rtl8169_alloc_rx(unsigned char **rx_buffer,
               RTLDBG;
 		goto err_out;
 	}
-	*rx_buffer = ((unsigned long)(*rx_buffer) + 7) & ~7;
-	*rx_buffer = CACHED_TO_UNCACHED(*rx_buffer);	
+	*rx_buffer = (unsigned char *)(((unsigned long)(*rx_buffer) + 7) & ~7);
+	*rx_buffer = (unsigned char *)CACHED_TO_UNCACHED(*rx_buffer);	
 
 	mapping = (unsigned long)vtophys(*rx_buffer);
 
@@ -2342,11 +2180,15 @@ static int rtl8169_alloc_tx(unsigned char **tx_buffer,
 		goto err_out;
 	}
 
-	*tx_buffer = CACHED_TO_UNCACHED(tmp);
+#ifdef __mips__
+	pci_sync_cache(NULL, (vm_offset_t)tmp, tx_buf_sz, SYNC_W);
+#endif
+
+	*tx_buffer = (unsigned char *)CACHED_TO_UNCACHED(tmp);
 
 	mapping = (unsigned long)vtophys(*tx_buffer);
 
-       desc->addr = cpu_to_le64(mapping);
+	desc->addr = cpu_to_le64(mapping);
 
 	return ret;
 err_out:
@@ -2370,32 +2212,31 @@ static u32 rtl8169_rx_fill(struct rtl8169_private *tp,
 			   u32 start, u32 end, int caller)
 {
 	u32 cur = 0, tmprecord = 0;
-       int ret;
+	int ret;
  
-       if(caller == 0){
-             for(cur = 0; cur < NUM_RX_DESC; cur++){
-                    	if (tp->rx_buffer[cur])
+	if (caller == 0) {
+		for(cur = 0; cur < NUM_RX_DESC; cur++) {
+			if (tp->rx_buffer[cur])
 				continue;
 			
-
        		ret = rtl8169_alloc_rx(&(tp->rx_buffer[cur]), tp->RxDescArray + cur, tp->rx_buf_sz, caller);
 			if(ret < 0){
-                            printf("ERROR: %s, %d\n", __FUNCTION__, __LINE__);
+				printf("ERROR: %s, %d\n", __FUNCTION__, __LINE__);
 				break;
 			}
-             }
-	      tp->RxDescArray[cur - 1].opts1 |= RingEnd;
-	      return cur;
+		}
+		tp->RxDescArray[cur - 1].opts1 |= RingEnd;
+		return cur;
 	}
 
 	//caller == 1
 	for (cur = start; cur < end; cur++) {
 		int  entry = cur % NUM_RX_DESC;
 
-              if(tp->RxDescArray[entry].opts1& DescOwn)
-		       break;
+		if(tp->RxDescArray[entry].opts1& DescOwn)
+			break;
 
-              tmprecord = tp->RxDescArray[entry].opts1 & RingEnd;
+		tmprecord = tp->RxDescArray[entry].opts1 & RingEnd;
 		tp->RxDescArray[entry].opts1 = 0;
 		tp->RxDescArray[entry].opts1 = tmprecord | DescOwn | tp->rx_buf_sz;
 	}
@@ -2407,36 +2248,31 @@ static u32 rtl8169_tx_fill(struct rtl8169_private *tp,
 			   u32 start, u32 end, u32 caller)
 {
 	u32 cur, ret, entry;
-	int counter = 0;
 
+	for (cur = start;  cur < end; cur++) {
+		entry = cur % NUM_TX_DESC;
+		if(caller == 0){
+			if(tp->tx_buffer[entry])
+				continue;
+			tp->TxDescArray[entry].opts1 = 0;
+			tp->TxDescArray[entry].opts2 = 0;
+			tp->TxDescArray[entry].addr = 0;
+			tp->tx_buffer[entry] = NULL;
 
-     	
-       for (cur = start;  cur < end; cur++) {
-                 entry = cur % NUM_TX_DESC;
-                 if(caller == 0){
-			   if(tp->tx_buffer[entry])
-			   	   continue;
-                        tp->TxDescArray[entry].opts1 = 0;
-                        tp->TxDescArray[entry].opts2 = 0;
-		          tp->TxDescArray[entry].addr = 0;
-		          tp->tx_buffer[entry] = NULL;
+			ret = rtl8169_alloc_tx(&(tp->tx_buffer[entry]),
+						tp->TxDescArray + entry, tp->tx_buf_sz);
+			if (ret < 0) {
+				printf("ret = %d. %s, %d\n", ret, __FILE__, __LINE__);
+				break;
+			}
+		}			  
 
-                        ret = rtl8169_alloc_tx(&(tp->tx_buffer[entry]),
-				     tp->TxDescArray + entry, tp->tx_buf_sz);
-	                 if (ret < 0){
-                                 printf("ret = %d. %s, %d\n", ret, __FILE__, __LINE__);
-                                 break;
-	                 }
-       	   }			  
-	          counter ++;
-		   if(caller == 0)
-	                 tp->TxDescArray[cur - 1].opts1 |= RingEnd;
-	          if(caller == 1){
-		            if(tp->TxDescArray[entry].opts1 & DescOwn)
-		                  break; 
-                          tp->TxDescArray[entry].opts1 &= RingEnd;
-                 }		   
-       }
+		if(caller == 1) {
+			if(tp->TxDescArray[entry].opts1 & DescOwn)
+				break; 
+			tp->TxDescArray[entry].opts1 &= RingEnd;
+		}		   
+	}
 
 	return cur - start;
 }
@@ -2452,24 +2288,19 @@ static void rtl8169_init_ring_indexes(struct rtl8169_private *tp)
 	tp->dirty_tx = tp->dirty_rx = tp->cur_tx = tp->cur_rx = 0;
 }
 
-static void rtl8169_tx_clear(struct rtl8169_private *tp);
 static int rtl8169_init_ring(struct rtl8169_private *tp)
 {
-       int tmpres;
+	int tmpres;
 
 	rtl8169_init_ring_indexes(tp);
 
-	/*add two lines*/		
-//		memset(tp->tx_buffer, 0x0, sizeof(char*) * NUM_TX_DESC);
-//		memset(tp->rx_buffer, 0x0, sizeof(char*) * NUM_RX_DESC);
-
 	if(rtl8169_open_times== 1){
-	      memset(tp->tx_buffer, 0x0, sizeof(char*) * NUM_TX_DESC);
-	      memset(tp->rx_buffer, 0x0, sizeof(char*) * NUM_RX_DESC);
+		memset(tp->tx_buffer, 0x0, sizeof(char*) * NUM_TX_DESC);
+		memset(tp->rx_buffer, 0x0, sizeof(char*) * NUM_RX_DESC);
 	}
 
 	if ((tmpres = rtl8169_rx_fill(tp, 0, NUM_RX_DESC, 0)) != NUM_RX_DESC){
-              RTLDBG;
+		RTLDBG;
 		goto err_out1;
 	}		
 	
@@ -2489,11 +2320,12 @@ err_out1:
 }
 
 
-static void rtl8169_free_tx(struct rtl8169_private * tp, unsigned char * buf, struct TxDesc * desc){
-       free(buf, M_DEVBUF);
-       buf = NULL;
-	rtl8169_make_unusable_by_asic(desc);
-       return;
+static void rtl8169_free_tx(struct rtl8169_private * tp, unsigned char ** buf, struct TxDesc * desc)
+{
+	free(buf, M_DEVBUF);
+	*buf = NULL;
+	rtl8169_make_unusable_by_asic((struct RxDesc *)desc);
+	return;
 }
 static void rtl8169_tx_clear(struct rtl8169_private *tp)
 {
@@ -2501,8 +2333,8 @@ static void rtl8169_tx_clear(struct rtl8169_private *tp)
 
 	for (i = tp->dirty_tx; i < tp->dirty_tx + NUM_TX_DESC; i++) {
 		unsigned int entry = i % NUM_TX_DESC;
-              if(tp->tx_buffer[entry]){
-                     rtl8169_free_tx( tp, tp->tx_buffer[entry], tp->TxDescArray+entry);
+		if(tp->tx_buffer[entry]){
+			rtl8169_free_tx( tp, &tp->tx_buffer[entry], tp->TxDescArray+entry);
 		}
 		tp->stats.tx_dropped++;
 	}
@@ -2535,34 +2367,29 @@ static void rtl8169_reinit_task(void *_data)
 
 static int rtl8169_xmit_frags(struct rtl8169_private *tp,  struct ifnet *ifp)
 {
-       struct TxDesc* td;
+	struct TxDesc* td;
 	struct mbuf *mb_head;
 	unsigned int entry = 0;
 
 	while(ifp->if_snd.ifq_head != NULL){
 		u32 status, len;
-              u32 IfRingEnd = 0;
+		u32 IfRingEnd = 0;
 		  
-              entry = tp->cur_tx % NUM_TX_DESC;
-              if(tp->TxDescArray[entry].opts1 & DescOwn){
-                    printf("NO available TX buffer ! %d\n", __LINE__);
-                    break;
-	       }
+		entry = tp->cur_tx % NUM_TX_DESC;
+		if(tp->TxDescArray[entry].opts1 & DescOwn){
+				printf("NO available TX buffer ! %d\n", __LINE__);
+				break;
+		}
 		
 		td = tp->TxDescArray + entry;
-
 
 		IF_DEQUEUE(&ifp->if_snd, mb_head);
 		m_copydata(mb_head, 0, mb_head->m_pkthdr.len, tp->tx_buffer[entry]);
 	             
-          	
-/*** 
-*** rtl8169 will do padding work automatically. lihui.		
-***/
-              len = mb_head->m_pkthdr.len;
+		len = mb_head->m_pkthdr.len;
 		IfRingEnd = ((entry + 1) % NUM_TX_DESC) ? 0 : RingEnd;
-	       status = DescOwn |FirstFrag | LastFrag |len | IfRingEnd;//no fragement.
-  	      	td->opts1 = cpu_to_le32(status);
+	    status = DescOwn |FirstFrag | LastFrag |len | IfRingEnd;//no fragement.
+		td->opts1 = cpu_to_le32(status);
 
 #ifdef __mips__
 		pci_sync_cache(tp->sc_pc, (vm_offset_t)tp->tx_buffer[entry], 
@@ -2577,20 +2404,6 @@ static int rtl8169_xmit_frags(struct rtl8169_private *tp,  struct ifnet *ifp)
 	return 0;
 }
 
-
-static void rtl8169_TxDesc_Print(struct rtl8169_private *tp){
-        u32 entry;
-
-	 for(entry= 0; entry < NUM_TX_DESC; entry ++){
-	 	printf("Cur Desc is: %d.    The add of cur Desc is: %x\n", entry, &(tp->TxDescArray[entry]));
-	 	printf("The content of cur Desc is:\n");
-	       printf("opts1: %x   ---   opts2: %x  ---  addr: %x\n\n\n", 
-	 	         tp->TxDescArray[entry].opts1, tp->TxDescArray[entry].opts2, (tp->TxDescArray[entry].addr));
-	 }
-
-        return;
-}
-
 static void rtl8169_start_xmit(struct ifnet *ifp)
 {
 	struct rtl8169_private *tp = ifp->if_softc;
@@ -2598,20 +2411,20 @@ static void rtl8169_start_xmit(struct ifnet *ifp)
 	struct TxDesc *txd = tp->TxDescArray + entry;
 
 
-       if(tp->cur_tx - tp->dirty_tx == NUM_TX_DESC){
+	if(tp->cur_tx - tp->dirty_tx == NUM_TX_DESC){
 	      RTLDBG;
-             return;
+		  return;
 	}
 	
 	if (le32_to_cpu(txd->opts1) & DescOwn){
-              printf("DescOwn Error!Desc NUM = %d", entry); RTLDBG;
-	       tp->stats.tx_dropped++;
+		printf("DescOwn Error!Desc NUM = %d", entry); RTLDBG;
+		tp->stats.tx_dropped++;
 		return;
 	}
 
-       if(rtl8169_xmit_frags(tp, ifp) < 0){
-              printf("TX Error!  %s, %d\n", __FUNCTION__, __LINE__);
-	       return;
+	if(rtl8169_xmit_frags(tp, ifp) < 0){
+		printf("TX Error!  %s, %d\n", __FUNCTION__, __LINE__);
+		return;
 	}//transmit all
 
 	RTL_W8(tp, TxPoll, 0x40);	// set polling bit 
@@ -2704,10 +2517,10 @@ rtl8169_tx_interrupt(struct rtl8169_private *tp)
 
 		tp->stats.tx_packets++;
 
-              if(rtl8169_tx_fill(tp, entry, entry + 1, 1) != 1){//should I do it here ? lihui
-                     printf("TX fill eror!  %s, %d\n", __FUNCTION__, __LINE__);
-		       return;
-	       }           
+		if(rtl8169_tx_fill(tp, entry, entry + 1, 1) != 1){//should I do it here ? lihui
+			printf("TX fill eror!  %s, %d\n", __FUNCTION__, __LINE__);
+			return;
+		}           
 		dirty_tx++;
 		tx_left--;
 	}  
@@ -2861,11 +2674,13 @@ int rtl8169_interrupt(void *arg)
 			break;
 		}
 
+#if 0
 		if ((status & SYSErr)) { 
 			RTLDBG;
 			rtl8169_pcierr_interrupt(tp);
 			break;
 		}
+#endif
 
 		/* Rx interrupt */
 		if (status & (RxOK | RxOverflow | RxFIFOOver) && (ifp->if_flags  & IFF_RUNNING)) {
@@ -3002,8 +2817,6 @@ rtl8169_set_rx_mode(struct rtl8169_private *tp)
 
 }
 
-
-#if	1 
 #include <pmon.h>
 static int cmd_ifm(int ac, char *av[])
 {
@@ -3069,76 +2882,11 @@ REMIND:
        return 0;		
 }
 
-#if 1
-static unsigned long next = 1;
-
-           /* RAND_MAX assumed to be 32767 */
-static int myrand(void) {
-               next = next * 1103515245 + 12345;
-               return((unsigned)(next/65536) % 32768);
-           }
-
-static void mysrand(unsigned int seed) {
-               next = seed;
-           }
-#endif
-
-static int cmd_wrprom(int ac, char *av[])
-{
-        int i;
-        unsigned long clocks_num=0;
-unsigned short data;
-static unsigned char rom[]={
-/*00000000:*/0x29,0x81,0xec,0x10,0x69,0x81,0xec,0x10,0x69,0x81,0x20,0x40,0x01,0xa1,0x00,0xe0,
-/*00000010:*/0x4c,0x67,0x10,0x51,0x15,0xcd,0xc2,0xf7,0x00,0x80,0x00,0x00,0x00,0x00,0x00,0x13,
-/*00000020:*/0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-/*00000030:*/0x00,0x00,0xd7,0x7e,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x20,
-/*00000040:*/0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-/*00000050:*/0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-/*00000060:*/0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-/*00000070:*/0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
-	
-        if(!myRTL){
-                printf("8169 interface not initialized\n");
-                return 0;
-        }
-
-#if 1
-                clocks_num =CPU_GetCOUNT();
-                mysrand(clocks_num);
-                for( i = 0; i < 4;i++ )
-                {
-                        rom[0x8*2 + i]=myrand()%256;
-                        printf( " rom[%d]=02x%x\n", (0x8*2+i),rom[0x8*2+i]);
-                }
-#endif
-
-	for(i=0;i<0x40;i++)
-	{
-	while(1){
-#ifndef EPLC46
-		data = read_eeprom(myRTL,  i);
-#else
-		data = read_eeprom(myRTL, 2*i);
-		data = data | (read_eeprom(myRTL,2*i+1)) << 8;
-#endif
-if(data==((rom[2*i+1]<<8)|rom[2*i]))break;
-printf("program %02x:%04x\n",2*i,(rom[2*i+1]<<8)|rom[2*i]);
-#ifndef EPLC46
-		rtl8169_write_eeprom(myRTL->ioaddr, i, (rom[2*i+1]<<8)|rom[2*i]);
-#else 
-		rtl8169_write_eeprom8(myRTL->ioaddr, i*2, rom[2*i] );
-		rtl8169_write_eeprom8(myRTL->ioaddr, i*2+1, rom[2*i+1]);
-#endif
-};
-	}
-	printf("The whole eeprom have been programmed!\n");
-}
-
 static int cmd_setmac(int ac, char *av[])
 {
 	int i;
-	unsigned short val = 0, v;
+	unsigned short val = 0;
+	int32_t v;
 	
 	if(!myRTL){
 		printf("8169 interface not initialized\n");
@@ -3157,52 +2905,31 @@ static int cmd_setmac(int ac, char *av[])
 		printf("Use \"setmac <mac> \" to set mac address\n");
 		return 0;
 	}
-
-{
-unsigned short data;
-static unsigned char rom[]={
-/*00000000:*/0x29,0x81,0xec,0x10,0x69,0x81,0xec,0x10,0x69,0x81,0x20,0x40,0x01,0xa1,0x00,0xe0,
-/*00000010:*/0x4c,0x67,0x10,0x51,0x15,0xcd,0xc2,0xf7,0x00,0x80,0x00,0x00,0x00,0x00,0x00,0x13,
-/*00000020:*/0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-/*00000030:*/0x00,0x00,0xd7,0x7e,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x20,
-/*00000040:*/0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-/*00000050:*/0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-/*00000060:*/0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-/*00000070:*/0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
-	for (i = 0; i < 6; i++) {
+	for (i = 0; i < 3; i++) {
 		val = 0;
 		gethex(&v, av[1], 2);
 		val = v ;
-		rom[0x7*2+i]=val;
 		av[1]+=3;
-	}
 
-	for (i = 0; i < 0x40; i=i++) {
-	while(1){
+		gethex(&v, av[1], 2);
+		val = val | (v << 8);
+		av[1] += 3;
+
 #ifndef EPLC46
-		data = read_eeprom(myRTL,  i);
-#else
-		data = read_eeprom(myRTL, 2*i);
-		data = data | (read_eeprom(myRTL,2*i+1)) << 8;
-#endif
-if(data==((rom[2*i+1]<<8)|rom[2*i]))break;
-printf("program %02x:%04x\n",2*i,(rom[2*i+1]<<8)|rom[2*i]);
-#ifndef EPLC46
-		rtl8169_write_eeprom(myRTL->ioaddr, i, (rom[2*i+1]<<8)|rom[2*i]);
+		rtl8169_write_eeprom(myRTL->ioaddr, 0x7 + i, val);
 #else 
-		rtl8169_write_eeprom8(myRTL->ioaddr, i*2, rom[2*i] );
-		rtl8169_write_eeprom8(myRTL->ioaddr, i*2+1, rom[2*i+1]);
+		rtl8169_write_eeprom8(myRTL->ioaddr, (0x7 +i) *2, val & 0xff);
+		rtl8169_write_eeprom8(myRTL->ioaddr, (0x7 +i) *2+1, (val >> 8) & 0xff);
 #endif
-};
+
 	}
-}
 
 	printf("The machine should be restarted to make the mac change to take effect!!\n");
 
 	return 0;
 }
 
-static int cmd_reprom(int ac, char *av)
+static int cmd_reprom(int ac, char *av[])
 {
 	int i;
 	unsigned short data;	
@@ -3222,17 +2949,18 @@ static int cmd_reprom(int ac, char *av)
 	}
 	return 0;
 }
-static void cmd_set_frequency(int ac, char *av[])
+
+static int  cmd_set_frequency(int ac, char *av[])
 {
     char* par[] = {"1000", "100","1","0",};
     
     if (ac == 1) {
         printf(" 8110_speed : now status configuration at %x, force_speed_set = %x \n",if_frequency, !if_in_attach);
         printf(" usage : r8110_speed [1000|100] [1|0]\n");
-        return;
+        return 0;
     } else if (ac != 3) {
         printf(" usage : r8110_speed [1000|100] [1|0]\n");
-        return;
+        return 0;
     }
     if (!strcmp(av[1],par[0]))
         if_frequency = 0x13;
@@ -3240,22 +2968,20 @@ static void cmd_set_frequency(int ac, char *av[])
         if_frequency = 0xb;
     else {
         printf("error option 1, %s\n",av[1]);
-        return;
+        return 0;
     }
     if (!strcmp(av[2],par[2]))
         if_in_attach = 0;
     else if (!strcmp(av[2],par[3]))
         if_in_attach = 1;
     else printf("error option 2, %s\n",av[2]);
-    return;
+
+    return 0;
 }
 
-static int cmd_set_8110()
-				  
+static int cmd_set_8110(int ac, char *av[])
 {
-	int auto_nego, giga_ctrl;
     int old_value;
-    int i;
     struct rtl8169_private *tp;
 
     tp = myRTL;
@@ -3266,100 +2992,88 @@ static int cmd_set_8110()
     old_value |= 0x0200;       //set to re auto negotiation
     //old_value &= ~0x2000;       
     mdio_write(tp, PHY_CTRL_REG, old_value);
-#if 0 
-	for (i = 200000000; i > 0; i--) {
-		/* Check if the RTL8169 has completed */
-		if (mdio_read(tp, PHY_CTRL_REG) & 0x8000 == 0) {
-			break;
-		}
-		delay(200);
-	}
-#endif
-    printf("----------------> %d\n", i);
-#if 0
-	old_value = mdio_read(tp, PHY_CTRL_REG);
-    old_value |= 0x0040;       //set to 1000M
-    old_value &= ~0x2000;       //disable auto-negotiation
-    mdio_write(tp, PHY_CTRL_REG, old_value);
-   
-	for (i = 2000; i > 0; i--) {
-		/* Check if the RTL8169 has completed */
-		if (mdio_read(tp, PHY_CTRL_REG) & 0x8000 == 0) {
-			break;
-		}
-		delay(200);
-	}
-    printf("----------------> %d\n", i);
-#endif
+
 	return 0;
 }
+
+static int cmd_wrprom(int ac, char *av[])
+{
+    int i;
+    //unsigned long clocks_num=0;
+    unsigned short data;
+    static unsigned char rom[]={
+/*00000000:*/0x29,0x81,0xec,0x10,0x69,0x81,0xec,0x10,0x69,0x81,0x20,0x40,0x01,0xa1,0x00,0xe0,
+/*00000010:*/0x4c,0x67,0x10,0x51,0x15,0xcd,0xc2,0xf7,0x00,0x80,0x00,0x00,0x00,0x00,0x00,0x13,
+/*00000020:*/0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+/*00000030:*/0x00,0x00,0xd7,0x7e,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x20,
+/*00000040:*/0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+/*00000050:*/0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+/*00000060:*/0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+/*00000070:*/0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
+
+        if(!myRTL){
+                printf("8169 interface not initialized\n");
+                return 0;
+        }
+
+#if 0 //lwg
+                clocks_num =CPU_GetCOUNT();
+                mysrand(clocks_num);
+                for( i = 0; i < 4;i++ )
+                {
+                        rom[0x8*2 + i]=myrand()%256;
+                        printf( " rom[%d]=02x%x\n", (0x8*2+i),rom[0x8*2+i]);
+                }
+#endif
+
+    printf("myRTL->ioaddr = %x\n", myRTL->ioaddr);
+
+    for(i=0;i<0x40;i++)
+    {
+        int j = 10;
+        printf("program %02x:%04x\n",2*i,(rom[2*i+1]<<8)|rom[2*i]);
+//rewrite:
+        rtl8169_write_eeprom(myRTL->ioaddr, i, (rom[2*i+1]<<8)|rom[2*i]);
+        data = read_eeprom(myRTL,  i);
+        printf("data = %x\n", data);
+        if(data != ((rom[2*i+1]<<8)|rom[2*i])){
+            printf("write failed\n");
+            while(j--);
+            //goto rewrite;
+        }
+
+    }
+    printf("The whole eeprom have been programmed!\n");
+	return 0;
+}
+
+
+
+
+
+
+
 
 int db8169 = 0;
-static int netdmp_cmd (int ac, char *av[])
-{
-	struct ifnet *ifp;
-	int i;
-       if(myRTL == NULL){
-            printf("error: device is not working !\n");
-	     return -1;
-	}
-	
-	ifp = &myRTL->arpcom.ac_if;
-	printf("if_snd.mb_head: %x\n", ifp->if_snd.ifq_head);	
-	printf("if_snd.ifq_snd.ifqlen =%d\n", ifp->if_snd.ifq_len);
-	printf("ChipCmd= %x\n", RTL_R8(myRTL, ChipCmd));
-	printf("ifnet address=%8x\n", ifp);
-	printf("if_flags = %x\n", ifp->if_flags);
-	printf("Intr =%x\n", RTL_R16(myRTL, IntrStatus));
-	printf("TxConfig =%x\n", RTL_R32(myRTL, TxConfig));
-	printf("RxConfig =%x\n", RTL_R32(myRTL, RxConfig));
-	printf("cur_rx =%x\n", myRTL->cur_rx);
-	printf("cur_tx =%d, dirty_tx=%d\n", myRTL->cur_tx, myRTL->dirty_tx);
-	printf("RX Descriptor ring addr: %x \n", myRTL->RxDescArray);
-	printf("TX Descriptor ring addr: %x \n", myRTL->TxDescArray);
-	for(i = 0; i < NUM_RX_DESC; i ++){
-             printf("RX buffer i addr: %x \n", myRTL->rx_buffer[i]);
-	}
-	for(i = 0; i < NUM_TX_DESC; i ++){
-             printf("TX buffer i addr: %x \n", myRTL->tx_buffer[i]);
-	}
-
-	if(ac==2){
-		if(strcmp(av[1], "on")==0){
-			db8169=1;
-		}
-		else if(strcmp(av[1], "off")==0){
-			db8169=0;
-		}else {
-			int x=atoi(av[1]);
-			max_interrupt_work=x;
-		}
-		
-	}
-	printf("db8139=%d\n",db8169);
-	return 0;
-}
 		       
 static const Optdesc netdmp_opts[] =
 {
     {"<interface>", "Interface name"},
-    {"<netdmp>", "IP Address"},
     {0}
 };
 
 static const Cmd Cmds[] =
 {
-	{"8169"},
+	{"Realtek 8169"},
 
-	{"ifm", "", NULL,
+	{"ifm2", "", NULL,
 		    "Set 8169 interface mode", cmd_ifm, 1, 2, 0},
-	{"setmac", "", NULL,
+	{"setmac2", "", NULL,
 		    "Set mac address into 8169 eeprom", cmd_setmac, 1, 5, 0},
-	{"readrom", "", NULL,
+	{"reprom2", "", NULL,
 			"dump rtl8169 eprom content", cmd_reprom, 1, 1,0},
-	{"writerom", "", NULL,
-			"dump rtl8169 eprom content", cmd_wrprom, 1, 1,0},
-    {"r8169dump", "", NULL, "dump rtl8169 parameters", netdmp_cmd, 1, 2, 0},
+	{"writerom", "", NULL, 
+			"dump rtl8169 eprom content", cmd_wrprom, 1, 1, 0},
     {"r8110_reneo","",NULL, "set re-auto xx of rtl 8110 phy", cmd_set_8110,1,2,0},
     {"r8110_speed","",NULL, "disable/enable 8110 ifaddr config retry for 1000M/100M", cmd_set_frequency,1,3,0},
 	{0, 0}
@@ -3373,6 +3087,3 @@ init_cmd()
 {
 	cmdlist_expand(Cmds, 1);
 }
-
-#endif
-

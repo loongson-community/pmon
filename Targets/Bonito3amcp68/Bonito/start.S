@@ -432,7 +432,9 @@ loop_here:
 		nop
 #endif
 
-		bnez 	t0, slave_main
+        li      a0, 0x0
+        bne     t0, a0, slave_main
+		#bnez 	t0, slave_main
 		nop
 
 #if 0 /* Niuxie Tube */
@@ -506,8 +508,10 @@ loop_here:
         li      t0,0x99
         sb      t0,0x0(a0)
 
+#ifdef LS3_HT
         b       core0_start
         nop
+#endif
 
 #define MOD_MASK	0x00000003
 #define MOD_B		0x00000000 /* byte "modifier" */
@@ -608,7 +612,7 @@ loop_here:
 #define PCI_MAP_IO			0X00000001
 #define PCI_CFG_SPACE			BONITO_PCICFG_BASE
 
-        BONITO_INIT(BONITO_PCICLASS,(PCI_CLASS_BRIDGE << PCI_CLASS_SHIFT) | (PCI_SUBCLASS_BRIDGE_HOST << PCI_SUBCLASS_SHIFT))
+    BONITO_INIT(BONITO_PCICLASS,(PCI_CLASS_BRIDGE << PCI_CLASS_SHIFT) | (PCI_SUBCLASS_BRIDGE_HOST << PCI_SUBCLASS_SHIFT))
 	BONITO_INIT(BONITO_PCICMD, BONITO_PCICMD_PERR_CLR|BONITO_PCICMD_SERR_CLR|BONITO_PCICMD_MABORT_CLR|BONITO_PCICMD_MTABORT_CLR|BONITO_PCICMD_TABORT_CLR|BONITO_PCICMD_MPERR_CLR)
 	//BONITO_INIT(BONITO_PCILTIMER, 0)
 	BONITO_INIT(BONITO_PCILTIMER, 255)
@@ -618,7 +622,7 @@ loop_here:
 	BONITO_INIT(BONITO_PCIEXPRBASE, 0)
 	BONITO_INIT(BONITO_PCIINT, 0)
 
-        BONITO_INIT(0x150,0x8000000c)
+    BONITO_INIT(0x150,0x8000000c)
 	BONITO_INIT(0x154,0xffffffff)
 
 	BONITO_BIS(BONITO_PCICMD, BONITO_PCICMD_PERRRESPEN)
@@ -682,7 +686,7 @@ reginit:			/* local name */
 	 */
 8:	bne	t4, OP_DELAY, 8f
 	nop
-1:	bnez	t0,1b
+1:	/////bnez	t0,1b
 	subu	t0,1
 	b	.next
 	nop	
@@ -994,15 +998,73 @@ gs_2f_v3_ddr2_cfg:
 #endif    
 
 
+#ifdef MULTI_CHIP
+        //TTYDBG("CPU 1 READ TEST\r\n")
+        //dli      t0, 0x900010003ff00040
+        //lw       a0, 0x0(t0)
+        TTYDBG("CPU 2 READ TEST\r\n")
+        dli      t0, 0x900020003ff00040
+        lw       a0, 0x0(t0)
+        TTYDBG("CPU 3 READ TEST\r\n")
+        //dli      t0, 0x90001cfdfb000044
+        //lw      a0, 0x0(t0)
+        //bal     hexserial
+        //nop
+        //TTYDBG("\r\n")
+        //dli      t0, 0x90001dfdfb000044
+        //lw      a0, 0x0(t0)
+        //bal     hexserial
+        //nop
+        //TTYDBG("\r\n")
+        dli      t0, 0x90002cfdfb000044
+        lw      a0, 0x0(t0)
+        bal     hexserial
+        nop
+        TTYDBG("\r\n")
+        dli      t0, 0x90002dfdfb000044
+        lw      a0, 0x0(t0)
+        bal     hexserial
+        nop
+        TTYDBG("\r\n")
+        dli      t0, 0x90003cfdfb000044
+        lw      a0, 0x0(t0)
+        bal     hexserial
+        nop
+        TTYDBG("\r\n")
+        dli      t0, 0x90003dfdfb000044
+        lw      a0, 0x0(t0)
+        bal     hexserial
+        nop
+        TTYDBG("\r\n")
+
+        dli      t0, 0x900030003ff00040
+        lw       a0, 0x0(t0)
+#endif
 ##########################################
 
 #include "loongson3_fixup.S"
 
 ##########################################
-
+        TTYDBG("NODE 0 MEMORY CONFIG BEGIN\r\n")
+        li      s1, 0x0
 #include "loongson3_ddr2_config.S"
-
 ##########################################
+
+#ifdef MULTI_CHIP
+##########################################
+        TTYDBG("NODE 1 MEMORY CONFIG BEGIN\r\n")
+        li      s1, 0x1
+#include "loongson3_ddr2_config.S"
+##########################################
+        TTYDBG("NODE 2 MEMORY CONFIG BEGIN\r\n")
+        li      s1, 0x2
+#include "loongson3_ddr2_config.S"
+##########################################
+        TTYDBG("NODE 3 MEMORY CONFIG BEGIN\r\n")
+        li      s1, 0x3
+#include "loongson3_ddr2_config.S"
+##########################################
+#endif
 
 
 		bal CPU_TLBClear
@@ -1028,9 +1090,25 @@ gs_2f_v3_ddr2_cfg:
 	    TTYDBG("godson2 caches found\r\n")
         bal     godson2_cache_init
         nop
-	    TTYDBG("scache init\r\n")
-        bal	scache_init // smh
+	    TTYDBG("scache init node 0\r\n")
+        //bal	scache_init // smh
+        dli a0, 0x9800000000000000
+        bal	scache_init_64 // whd
         nop
+#ifdef MULTI_CHIP
+	    TTYDBG("scache init node 1\r\n")
+        dli a0, 0x9800100000000000
+        bal	scache_init_64 // whd
+        nop
+	    TTYDBG("scache init node 2\r\n")
+        dli a0, 0x9800200000000000
+        bal	scache_init_64 // whd
+        nop
+	    TTYDBG("scache init node 3\r\n")
+        dli a0, 0x9800300000000000
+        bal	scache_init_64 // whd
+        nop
+#endif
 #endif
 
 
@@ -1793,6 +1871,41 @@ scache_init_panic:
 1:      b       1b
         nop
 END(scache_init)
+LEAF(scache_init_64)
+	    move	t7, ra
+
+        #lui     a0, 0x8000
+        #lui     a2, 0x0010      #4M/4way
+        dli     a2, 0x00100000   #4M/4way
+        #lui     a2, 0x0002      #512k/4way
+        #lui     a2, 0x0004      #1M/4way
+scache_init_4way_64:
+#a0=0x80000000, a2=scache_size
+#a3, v0 and v1 used as local registers
+        li      t0, 0x22
+        mtc0    t0, CP0_ECC
+        mtc0    $0, CP0_TAGHI
+        mtc0    $0, CP0_TAGLO
+        daddu    v0, $0, a0
+        daddu    v1, a0, a2
+1:      //dslt     a3, v0, v1
+        //beq     a3, $0, 1f
+        beq     v0, v1, 1f
+        nop
+        cache   Index_Store_Tag_S, 0x0(v0)
+        cache   Index_Store_Tag_S, 0x1(v0)
+        cache   Index_Store_Tag_S, 0x2(v0)
+        cache   Index_Store_Tag_S, 0x3(v0)
+        beq     $0, $0, 1b
+        daddiu   v0, v0, 0x20
+1:
+
+        jr      ra
+        nop
+
+1:      b       1b
+        nop
+END(scache_init_64)
 LEAF(tlb_init)
         mtc0    $0, CP0_WIRED
         mtc0    $0, CP0_PAGEMASK
@@ -2094,78 +2207,78 @@ idle1000:
         .set    noreorder
         .set    mips3
 ddr2_config:
-    la      t0, ddr2_reg_data
-    addu    t0, t0, s0
+    la      a2, ddr2_reg_data
+    addu    a2, a2, s0
     li      t1, 152 ##0x72
-    #dli      t2, CONFIG_BASE
-    #move    t2, a0         #old:li      t2, CONFIG_BASE
-    daddiu	t2, a0, 0x0
+    #dli      v0, CONFIG_BASE
+    #move    v0, a0         #old:li      v0, CONFIG_BASE
+    daddiu	v0, a0, 0x0
 
 reg_write:
 
-    ld      a1, 0x0(t0)
-    sd      a1, REG_ADDRESS(t2)
+    ld      a1, 0x0(a2)
+    sd      a1, REG_ADDRESS(v0)
 
     subu    t1, t1, 0x1
-    addiu   t0, t0, 0x8
+    addiu   a2, a2, 0x8
     bne     t1, $0, reg_write
-    daddiu   t2, t2, 0x10
+    daddiu   v0, v0, 0x10
     
-    li      t2, 0xfff
+    li      v0, 0xfff
 1:
-    bnez    t2, 1b
-    addi    t2, t2, -1
+    bnez    v0, 1b
+    addi    v0, v0, -1
     nop
     sync
     ############start##########
-    #dli      t2, CONFIG_BASE
-    #move    t2, a0         #old:li      t2, CONFIG_BASE
-    daddiu	t2, a0, 0x0
-    la		t0,MC0_CTL_start_DATA_LO
-    #la		t0,ddr2_start_reg
-    addu    	t0, t0, s0
-    ld      a1, 0x0(t0)
-    sd      a1, 0x30(t2)
+    #dli      v0, CONFIG_BASE
+    #move    v0, a0         #old:li      v0, CONFIG_BASE
+    daddiu	v0, a0, 0x0
+    la		a2,MC0_CTL_start_DATA_LO
+    #la		a2,ddr2_start_reg
+    addu    	a2, a2, s0
+    ld      a1, 0x0(a2)
+    sd      a1, 0x30(v0)
 
 
-    daddiu  t2, a0, 0x960 //wait int status 
+    daddiu  v0, a0, 0x960 //wait int status 
 1:
-    ld      a1, 0x0(t2)
+    ld      a1, 0x0(v0)
     andi    a1, a1, 0x100
     beqz    a1, 1b
     nop
 
-    daddiu  t2, a0, 0x30 //Set to srefresh
+    daddiu  v0, a0, 0x30 //Set to srefresh
     dli     a1, 0x0000000100000000
-    ld      t0, 0x0(t2)
-    or      a1, a1, t0
-    sd      a1, 0x0(t2)
+    ld      a2, 0x0(v0)
+    or      a1, a1, a2
+    sd      a1, 0x0(v0)
 
-    li      t2, 0xfff
+    li      v0, 0xfff
 1:
-    bnez    t2, 1b
-    addi    t2, t2, -1
+    bnez    v0, 1b
+    addi    v0, v0, -1
     nop
     sync
 
-    daddiu  t2, a0, 0x30 //Out of srefresh
+    daddiu  v0, a0, 0x30 //Out of srefresh
     dli     a1, 0xffffff00ffffffff
-    ld      t0, 0x0(t2)
-    and     a1, a1, t0
-    sd      a1, 0x0(t2)
+    ld      a2, 0x0(v0)
+    and     a1, a1, a2
+    sd      a1, 0x0(v0)
 
-    li      t2, 0xfff
+    li      v0, 0xfff
 1:
-    bnez    t2, 1b
-    addi    t2, t2, -1
+    bnez    v0, 1b
+    addi    v0, v0, -1
     nop
     sync
 
-    daddiu  t2, a0, 0x40 //Write mode regs
+    daddiu  v0, a0, 0x40 //Write mode regs
     dli     a1, 0x0000000001000000
-    ld      t0, 0x0(t2)
-    or      a1, a1, t0
-    sd      a1, 0x0(t2)
+    ld      a2, 0x0(v0)
+    or      a1, a1, a2
+    sd      a1, 0x0(v0)
 
 
     jr      ra
@@ -2178,77 +2291,77 @@ reg_write:
         .set    noreorder
         .set    mips3
 ddr2_config_mc1:
-    la      t0, ddr2_reg_data_mc1
-    addu    t0, t0, s0
+    la      a2, ddr2_reg_data_mc1
+    addu    a2, a2, s0
     li      t1, 152 ##0x72
-    #dli      t2, CONFIG_BASE
-    #move    t2, a0         #old:li      t2, CONFIG_BASE
-    daddiu	t2, a0, 0x0
+    #dli      v0, CONFIG_BASE
+    #move    v0, a0         #old:li      v0, CONFIG_BASE
+    daddiu	v0, a0, 0x0
 
 reg_write_mc1:
 
-    ld      a1, 0x0(t0)
-    sd      a1, REG_ADDRESS(t2)
+    ld      a1, 0x0(a2)
+    sd      a1, REG_ADDRESS(v0)
 
     subu    t1, t1, 0x1
-    addiu   t0, t0, 0x8
+    addiu   a2, a2, 0x8
     bne     t1, $0, reg_write_mc1
-    daddiu   t2, t2, 0x10
+    daddiu   v0, v0, 0x10
     
-    li      t2, 0xfff
+    li      v0, 0xfff
 1:
-    bnez    t2, 1b
-    addi    t2, t2, -1
+    bnez    v0, 1b
+    addi    v0, v0, -1
     nop
     sync
     ############start##########
-    #dli      t2, CONFIG_BASE
-    #move    t2, a0         #old:li      t2, CONFIG_BASE
-    daddiu	t2, a0, 0x0
-    la		t0,MC1_CTL_start_DATA_LO
-    #la		t0,ddr2_start_reg
-    addu    	t0, t0, s0
-    ld      a1, 0x0(t0)
-    sd      a1, 0x30(t2)
+    #dli      v0, CONFIG_BASE
+    #move    v0, a0         #old:li      v0, CONFIG_BASE
+    daddiu	v0, a0, 0x0
+    la		a2,MC1_CTL_start_DATA_LO
+    #la		a2,ddr2_start_reg
+    addu    	a2, a2, s0
+    ld      a1, 0x0(a2)
+    sd      a1, 0x30(v0)
 
-    daddiu  t2, a0, 0x960 //wait int status 
+    daddiu  v0, a0, 0x960 //wait int status 
 1:
-    ld      a1, 0x0(t2)
+    ld      a1, 0x0(v0)
     andi    a1, a1, 0x100
     beqz    a1, 1b
     nop
 
-    daddiu  t2, a0, 0x30 //Set to srefresh
+    daddiu  v0, a0, 0x30 //Set to srefresh
     dli     a1, 0x0000000100000000
-    ld      t0, 0x0(t2)
-    or      a1, a1, t0
-    sd      a1, 0x0(t2)
+    ld      a2, 0x0(v0)
+    or      a1, a1, a2
+    sd      a1, 0x0(v0)
 
-    li      t2, 0xfff
+    li      v0, 0xfff
 1:
-    bnez    t2, 1b
-    addi    t2, t2, -1
+    bnez    v0, 1b
+    addi    v0, v0, -1
     nop
     sync
 
-    daddiu  t2, a0, 0x30 //Out of srefresh
+    daddiu  v0, a0, 0x30 //Out of srefresh
     dli     a1, 0xffffff00ffffffff
-    ld      t0, 0x0(t2)
-    and     a1, a1, t0
-    sd      a1, 0x0(t2)
+    ld      a2, 0x0(v0)
+    and     a1, a1, a2
+    sd      a1, 0x0(v0)
 
-    li      t2, 0xfff
+    li      v0, 0xfff
 1:
-    bnez    t2, 1b
-    addi    t2, t2, -1
+    bnez    v0, 1b
+    addi    v0, v0, -1
     nop
     sync
 
-    daddiu  t2, a0, 0x40 //Write mode regs
+    daddiu  v0, a0, 0x40 //Write mode regs
     dli     a1, 0x0000000001000000
-    ld      t0, 0x0(t2)
-    or      a1, a1, t0
-    sd      a1, 0x0(t2)
+    ld      a2, 0x0(v0)
+    or      a1, a1, a2
+    sd      a1, 0x0(v0)
 
     jr      ra
     nop
@@ -2273,7 +2386,7 @@ MC0_CTL_050 : .dword 0x0000000404050100
 //00000_000 q_fullness(RW) 00000_000 port_data_error_type(RD) 000_00000 out_of_range_type(RD) 00000_000 max_cs_reg(RD) 00000_100 column_size(RW) 0000_0101 caslat(RW) 00000_010 addr_pins(RW) 00000000
 MC0_CTL_060 : .dword 0x0a04040603040003
 //0000_1010 aprebit(RW) 0000_0101 wrlat(RW) 0000_0100 twtr(RW) 000_00110 twr_int(RW) 00000_011 trtp(RW) 00000_100 trrd(RW) 0000000000000_011 tcke(RW) 
-MC0_CTL_070 : .dword 0x0f0e020000040a08
+MC0_CTL_070 : .dword 0x0f0e020000010a08
 //0000_0000 max_row_reg(RD) 0000_0000 max_col_reg(RD) 0000_0000 initaref(RW) 00000000000000000000_1111 cs_map(RW) 000_01010 caslat_lin_gate(RW) 000_01010 caslat_lin(RW) 
 MC0_CTL_080 : .dword 0x0004000100000000
 //0000_0001 odt_wr_map_cs3(RW) 0000_0010 odt_wr_map_cs2(RW) 0000_0100 odt_wr_map_cs1(RW) 0000_1000 odt_wr_map_cs0(RW) 0000_0001 odt_rd_map_cs3(RW) 0000_0010 odt_rd_map_cs2(RW) 0000_0100 odt_rd_map_cs1(RW) 0000_1000 odt_rd_map_cs0(RW) 
@@ -2316,41 +2429,40 @@ MC0_CTL_1d0 : .dword 0x0203070400000101
 //0000_0010 tdfi_phy_wrlat_base(RW) 0000_0000 tdfi_phy_wrlat(RD) 000_00111 tdfi_phy_rdlat(RW) 0000_0000 tdfi_ctrlupd_min(RD) 000000000000_0000 dram_clk_disable(RW) 0000000_1 odt_alt_en(RW) 0000000_1 drive_dq_dqs(RW) 
 MC0_CTL_1e0 : .dword 0x0c2d0c2d0c2d0205
 //00_00000000000000 tdfi_phyupd_type0(RD) 00_00000000000000 tdfi_phyupd_resp(RD) 00_00000000000000 tdfi_ctrlupd_max(RD) 000_00000 tdfi_rddata_en_base(RW) 000_00000 tdfi_rddata_en(RD) 
-MC0_CTL_1f0 : .dword 0x00200e8000000000
-MC0_CTL_200 : .dword 0x00200e8000200e80
-MC0_CTL_210 : .dword 0x00200e8000200e80
+MC0_CTL_1f0 : .dword 0x00120d8000000000
+MC0_CTL_200 : .dword 0x00120d8000120d80
+MC0_CTL_210 : .dword 0x0012108000121080
 //00000000001000000000111510000000 dll_ctrl_reg_0_4(RW) 00000000001000000000111010000000 dll_ctrl_reg_0_3(RW) 
-MC0_CTL_220 : .dword 0x00200e8000200e80
+MC0_CTL_220 : .dword 0x000f1080000f1080
 //00000000001000000000111510000000 dll_ctrl_reg_0_6(RW) 00000000001000000000111010000000 dll_ctrl_reg_0_5(RW) 
-MC0_CTL_230 : .dword 0x00200e8000200e80
-MC0_CTL_240 : .dword 0x00000e0000000e00
+MC0_CTL_230 : .dword 0x000f1080000f1080
+MC0_CTL_240 : .dword 0x0000250000002500
 //00000000000000000000111000000000 dll_ctrl_reg_1_1(RW) 00000000000000000000111000000000 dll_ctrl_reg_1_0(RW) 
-MC0_CTL_250 : .dword 0x00000e0000000e00
-MC0_CTL_260 : .dword 0x00000e0000000e00
-MC0_CTL_270 : .dword 0x00000e0000000e00
-MC0_CTL_280 : .dword 0x0000000000000e00
+MC0_CTL_250 : .dword 0x0000250000002200
+MC0_CTL_260 : .dword 0x0000220000002200
+MC0_CTL_270 : .dword 0x0000220000002200
+MC0_CTL_280 : .dword 0x0000000000002200
 MC0_CTL_290 : .dword 0x0000000000000000
 MC0_CTL_2a0 : .dword 0x0000000000000000
 MC0_CTL_2b0 : .dword 0x0000000000000000
 MC0_CTL_2c0 : .dword 0x0000000000000000
-//MC0_CTL_2d0 : .dword 0xf300494603c0019d
-MC0_CTL_2d0 : .dword 0xf3004946003c099c
+MC0_CTL_2d0 : .dword 0xc4004646003c09b4
 //11110100000000000011101100100111 phy_ctrl_reg_0_0(RD) 000000_00000000000000000110011101 pad_ctrl_reg_0(RW) 
-MC0_CTL_2e0 : .dword 0xf3004946f3004946
-MC0_CTL_2f0 : .dword 0xf3004946f3004946
-MC0_CTL_300 : .dword 0xf3004946f3004946
-MC0_CTL_310 : .dword 0xf3004946f3004946
+MC0_CTL_2e0 : .dword 0xc4004646c4004646
+MC0_CTL_2f0 : .dword 0xc4004646c4004646
+MC0_CTL_300 : .dword 0xc4004646c4004646
+MC0_CTL_310 : .dword 0xc4004646c4004646
 //MC0_CTL_2d0 : .dword 0xf3005a470000019d
 ////11110100000000000011101100100111 phy_ctrl_reg_0_0(RD) 000000_00000000000000000110011101 pad_ctrl_reg_0(RW) 
 //MC0_CTL_2e0 : .dword 0xf3005a47f3005a47
 //MC0_CTL_2f0 : .dword 0xf3005a47f3005a47
 //MC0_CTL_300 : .dword 0xf3005a47f3005a47
 //MC0_CTL_310 : .dword 0xf3005a47f3005a47
-MC0_CTL_320 : .dword 0x06a0000006a00000
-MC0_CTL_330 : .dword 0x06a0000006a00000
-MC0_CTL_340 : .dword 0x06a0000006a00000
-MC0_CTL_350 : .dword 0x06a0000006a00000
-MC0_CTL_360 : .dword 0x0800c00506a00000
+MC0_CTL_320 : .dword 0x96c0000196c00001
+MC0_CTL_330 : .dword 0x96c0000196c00001
+MC0_CTL_340 : .dword 0x96c0000196c00001
+MC0_CTL_350 : .dword 0x96c0000196c00001
+MC0_CTL_360 : .dword 0x0800e00596c00001
 //00000000000000001100000000000101 phy_ctrl_reg_2(RW) 00000111110000000000001100000001 phy_ctrl_reg_1_8(RD) 
 MC0_CTL_370 : .dword 0x0000000000000000
 MC0_CTL_380 : .dword 0x0000000000000000
@@ -2435,18 +2547,18 @@ MC0_CTL_7f0 : .dword 0xff08000000000000
 //11111111 rdlvl_max_delay(RW) 00001000 rdlvl_gate_max_delay(RW) 00000000 rdlvl_gate_delay_8(RD) 00000000 rdlvl_gate_delay_7(RD) 00000000 rdlvl_gate_delay_6(RD) 00000000 rdlvl_gate_delay_5(RD) 00000000 rdlvl_gate_delay_4(RD) 00000000 rdlvl_gate_delay_3(RD) 
 MC0_CTL_800 : .dword 0x0000000000000000
 //00000000 rdlvl_midpoint_delay_7(RD) 00000000 rdlvl_midpoint_delay_6(RD) 00000000 rdlvl_midpoint_delay_5(RD) 00000000 rdlvl_midpoint_delay_4(RD) 00000000 rdlvl_midpoint_delay_3(RD) 00000000 rdlvl_midpoint_delay_2(RD) 00000000 rdlvl_midpoint_delay_1(RD) 00000000 rdlvl_midpoint_delay_0(RD) 
-MC0_CTL_810 : .dword 0x000000000000000e
+MC0_CTL_810 : .dword 0x0000000000000000
 //00000000 rdlvl_offset_delay_6(RW) 00000000 rdlvl_offset_delay_5(RW) 00000000 rdlvl_offset_delay_4(RW) 00000000 rdlvl_offset_delay_3(RW) 00000000 rdlvl_offset_delay_2(RW) 00000000 rdlvl_offset_delay_1(RW) 00000000 rdlvl_offset_delay_0(RW) 00000000 rdlvl_midpoint_delay_8(RD) 
 MC0_CTL_820 : .dword 0x0420000c20400000
 //00000100 tdfi_wrlvl_resplat(RW) 00000000 tdfi_wrlvl_resp(RD) 00000000 tdfi_rdlvl_rr(RW) 00001100 tdfi_rdlvl_resplat(RW) 00000000 tdfi_rdlvl_resp(RD) 01000000 refresh_per_zq(RW) 00000000 rdlvl_offset_delay_8(RW) 00000000 rdlvl_offset_delay_7(RW) 
 //MC0_CTL_830 : .dword 0x0000000000000c0a
-MC0_CTL_830 : .dword 0x1313131313130c0a
+MC0_CTL_830 : .dword 0x282a2a2525250c0a
 //00000000 wrlvl_delay_5(RD) 00000000 wrlvl_delay_4(RD) 00000000 wrlvl_delay_3(RD) 00000000 wrlvl_delay_2(RD) 00000000 wrlvl_delay_1(RD) 00000000 wrlvl_delay_0(RD) 00000010 tmod(RW) 00001010 tdfi_wrlvl_ww(RW) 
-MC0_CTL_840 : .dword 0x0000640064001313
+MC0_CTL_840 : .dword 0x0000640064002828 # 3A2
 //00000000000000_0001100100 axi1_priority_relax(RW) 000000_0001100100 axi0_priority_relax(RW) 00000000 wrlvl_delay_8(RD) 00000000 wrlvl_delay_7(RD) 00000000 wrlvl_delay_6(RD) 
 MC0_CTL_850 : .dword 0x0000000000000064
 MC0_CTL_860 : .dword 0x0200004000000000
-MC0_CTL_870 : .dword 0x0046004600460046
+MC0_CTL_870 : .dword 0x0046004600460006
 //0_000000000000010 emrs1_data_3(RW) 0_000000000000010 emrs1_data_2(RW) 0_000000000000010 emrs1_data_1(RW) 0_000000000000010 emrs1_data_0(RW) 
 MC0_CTL_880 : .dword 0x0000000000000000
 MC0_CTL_890 : .dword 0x0a520a520a520a52
@@ -2458,14 +2570,14 @@ MC0_CTL_8d0 : .dword 0x00000000c8000000
 MC0_CTL_8e0 : .dword 0x0000000000000050
 //MC0_CTL_8f0 : .dword 0x0000000020202080
 //MC0_CTL_8f0 : .dword 0x000000002b352180
-MC0_CTL_8f0 : .dword 0x000000002b352180
+MC0_CTL_8f0 : .dword 0x0000000025252a80 //clk skew of 3A2 0.4
 //MC0_CTL_8f0 : .dword 0x0000000040404080
 //0000000000000000000000000111100_000000000000000000000000001111000 dll_ctrl_reg_2(RW) 
 MC0_CTL_900 : .dword 0x0000000000000000
 MC0_CTL_910 : .dword 0x0000000000000000
 MC0_CTL_920 : .dword 0x0000000000000000
 MC0_CTL_930 : .dword 0x0000000000000000
-MC0_CTL_940 : .dword 0x0300000000050500
+MC0_CTL_940 : .dword 0x0306060000050500
 MC0_CTL_950 : .dword 0x0000000000000a03
 MC0_CTL_960 : .dword 0x0604000100000000
 //000_00101 rdlat_adj(RW) 0000_0100 wrlat_adj(RW) 0000000_0 swlvl_start(WR) 0000000_0 swlvl_load(WR) 0000000_0 swlvl_exit(WR) 000000_000000000000000000 int_status(RD) 
@@ -2490,9 +2602,9 @@ MC1_CTL_050 : .dword 0x0000000404050100
 //00000_000 q_fullness(RW) 00000_000 port_data_error_type(RD) 000_00000 out_of_range_type(RD) 00000_000 max_cs_reg(RD) 00000_100 column_size(RW) 0000_0101 caslat(RW) 00000_010 addr_pins(RW) 00000000
 MC1_CTL_060 : .dword 0x0a04040603040003
 //0000_1010 aprebit(RW) 0000_0101 wrlat(RW) 0000_0100 twtr(RW) 000_00110 twr_int(RW) 00000_011 trtp(RW) 00000_100 trrd(RW) 0000000000000_011 tcke(RW) 
-MC1_CTL_070 : .dword 0x0f0e020000010a08
+MC1_CTL_070 : .dword 0x0f0e020000030a08
 //0000_0000 max_row_reg(RD) 0000_0000 max_col_reg(RD) 0000_0000 initaref(RW) 00000000000000000000_1111 cs_map(RW) 000_01010 caslat_lin_gate(RW) 000_01010 caslat_lin(RW) 
-MC1_CTL_080 : .dword 0x0004000500000000
+MC1_CTL_080 : .dword 0x0004020500000000
 //0000_0001 odt_wr_map_cs3(RW) 0000_0010 odt_wr_map_cs2(RW) 0000_0100 odt_wr_map_cs1(RW) 0000_1000 odt_wr_map_cs0(RW) 0000_0001 odt_rd_map_cs3(RW) 0000_0010 odt_rd_map_cs2(RW) 0000_0100 odt_rd_map_cs1(RW) 0000_1000 odt_rd_map_cs0(RW) 
 MC1_CTL_090 : .dword 0x0000050b00000000
 //000_00000 ocd_adjust_pup_cs_0(RW) 000_00000 ocd_adjust_pdn_cs_0(RW) 0000_0101 trp(RW) 000_01011 tdal(RW) 000000000000_0000 port_cmd_error_type(RD) 0000000000000000
@@ -2532,40 +2644,40 @@ MC1_CTL_1d0 : .dword 0x0203070400000101
 //0000_0010 tdfi_phy_wrlat_base(RW) 0000_0000 tdfi_phy_wrlat(RD) 000_00111 tdfi_phy_rdlat(RW) 0000_0000 tdfi_ctrlupd_min(RD) 000000000000_0000 dram_clk_disable(RW) 0000000_1 odt_alt_en(RW) 0000000_1 drive_dq_dqs(RW) 
 MC1_CTL_1e0 : .dword 0x0c2d0c2d0c2d0205
 //00_00000000000000 tdfi_phyupd_type0(RD) 00_00000000000000 tdfi_phyupd_resp(RD) 00_00000000000000 tdfi_ctrlupd_max(RD) 000_00000 tdfi_rddata_en_base(RW) 000_00000 tdfi_rddata_en(RD) 
-MC1_CTL_1f0 : .dword 0x0010108000000000
-MC1_CTL_200 : .dword 0x0010108000101080
-MC1_CTL_210 : .dword 0x0010108000101080
+MC1_CTL_1f0 : .dword 0x000f108000000000
+MC1_CTL_200 : .dword 0x000f1080000f1080
+MC1_CTL_210 : .dword 0x000f1280000f1280
 //00000000001000000000111510000000 dll_ctrl_reg_0_4(RW) 00000000001000000000111010000000 dll_ctrl_reg_0_3(RW) 
-MC1_CTL_220 : .dword 0x0010108000101080
+MC1_CTL_220 : .dword 0x000f1080000f1080
 //00000000001000000000111510000000 dll_ctrl_reg_0_6(RW) 00000000001000000000111010000000 dll_ctrl_reg_0_5(RW) 
-MC1_CTL_230 : .dword 0x0010108000101080
-MC1_CTL_240 : .dword 0x0000100000001000
+MC1_CTL_230 : .dword 0x000f1080000f1080
+MC1_CTL_240 : .dword 0x0000220000002200
 //00000000000000000000111000000000 dll_ctrl_reg_1_1(RW) 00000000000000000000111000000000 dll_ctrl_reg_1_0(RW) 
-MC1_CTL_250 : .dword 0x0000100000001000
-MC1_CTL_260 : .dword 0x0000100000001000
-MC1_CTL_270 : .dword 0x0000100000001000
-MC1_CTL_280 : .dword 0x0000000000001000
+MC1_CTL_250 : .dword 0x0000220000002200
+MC1_CTL_260 : .dword 0x0000220000002200
+MC1_CTL_270 : .dword 0x0000220000002200
+MC1_CTL_280 : .dword 0x0000000000002200
 MC1_CTL_290 : .dword 0x0000000000000000
 MC1_CTL_2a0 : .dword 0x0000000000000000
 MC1_CTL_2b0 : .dword 0x0000000000000000
 MC1_CTL_2c0 : .dword 0x0000000000000000
-MC1_CTL_2d0 : .dword 0xc4004946003c0994
+MC1_CTL_2d0 : .dword 0xc4004646003c09b4
 //11110100000000000011101100100111 phy_ctrl_reg_0_0(RD) 000000_00000000000000000110011101 pad_ctrl_reg_0(RW) 
-MC1_CTL_2e0 : .dword 0xc4004946c4004946
-MC1_CTL_2f0 : .dword 0xc4004946c4004946
-MC1_CTL_300 : .dword 0xc4004946c4004946
-MC1_CTL_310 : .dword 0xc4004946c4004946
+MC1_CTL_2e0 : .dword 0xc4004646c4004646
+MC1_CTL_2f0 : .dword 0xc4004646c4004646
+MC1_CTL_300 : .dword 0xc4004646c4004646
+MC1_CTL_310 : .dword 0xc4004646c4004646
 //MC1_CTL_2d0 : .dword 0xf3005a470000019d
 ////11110100000000000011101100100111 phy_ctrl_reg_0_0(RD) 000000_00000000000000000110011101 pad_ctrl_reg_0(RW) 
 //MC1_CTL_2e0 : .dword 0xf3005a47f3005a47
 //MC1_CTL_2f0 : .dword 0xf3005a47f3005a47
 //MC1_CTL_300 : .dword 0xf3005a47f3005a47
 //MC1_CTL_310 : .dword 0xf3005a47f3005a47
-MC1_CTL_320 : .dword 0x88c0000188c00001
-MC1_CTL_330 : .dword 0x88c0000188c00001
-MC1_CTL_340 : .dword 0x88c0000188c00001
-MC1_CTL_350 : .dword 0x88c0000188c00001
-MC1_CTL_360 : .dword 0x0000c00588c00001
+MC1_CTL_320 : .dword 0x96c0000196c00001
+MC1_CTL_330 : .dword 0x96c0000196c00001
+MC1_CTL_340 : .dword 0x96c0000196c00001
+MC1_CTL_350 : .dword 0x96c0000196c00001
+MC1_CTL_360 : .dword 0x0800e00596c00001
 //00000000000000001100000000000101 phy_ctrl_reg_2(RW) 00000111110000000000001100000001 phy_ctrl_reg_1_8(RD) 
 MC1_CTL_370 : .dword 0x0000000000000000
 MC1_CTL_380 : .dword 0x0000000000000000
@@ -2627,8 +2739,11 @@ MC1_CTL_6f0 : .dword 0x0000000000000000
 MC1_CTL_700 : .dword 0x0000000000000000
 MC1_CTL_710 : .dword 0x0000000000000000
 MC1_CTL_720 : .dword 0x0000000000000000
+//0000000_0 rdlvl_gate_req(WR) 0000000_0 rdlvl_gate_preamble_check_en(RW) 0000000_0 rdlvl_gate_en(RW) 0000000_0 rdlvl_en(RW) 0000000_0 rdlvl_begin_delay_en(RW) 000000000000000_0 swlvl_op_done(RD) 00000000
 MC1_CTL_730 : .dword 0x0000000000000000
+//0000000_0 rdlvl_offset_dir_7(RW) 0000000_0 rdlvl_offset_dir_6(RW) 0000000_0 rdlvl_offset_dir_5(RW) 0000000_0 rdlvl_offset_dir_4(RW) 0000000_0 rdlvl_offset_dir_3(RW) 0000000_0 rdlvl_offset_dir_2(RW) 0000000_0 rdlvl_offset_dir_1(RW) 0000000_0 rdlvl_offset_dir_0(RW) 
 MC1_CTL_740 : .dword 0x0100000000000000
+//000000_01 axi1_port_ordering(RW) 000000_00 axi0_port_ordering(RW) 0000000_0 wrlvl_req(WR) 0000000_0 wrlvl_interval_ct_en(RW) 0000000_0 weighted_round_robin_weight_sharing(RW) 0000000_0 weighted_round_robin_latency_control(RW) 0000000_0 rdlvl_req(WR) 0000000_0 rdlvl_offset_dir_8(RW) 
 //MC1_CTL_750 : .dword 0x0100000101020101
 MC1_CTL_750 : .dword 0x0101000101020101
 //000000_01 wrlvl_cs(RW) 000000_00 sw_leveling_mode(RW) 000000_00 rdlvl_cs(RW) 000000_01 axi2_w_priority(RW) 000000_01 axi2_r_priority(RW) 000000_10 axi2_port_ordering(RW) 000000_01 axi1_w_priority(RW) 000000_01 axi1_r_priority(RW) 
@@ -2651,24 +2766,24 @@ MC1_CTL_7f0 : .dword 0xff08000000000000
 //11111111 rdlvl_max_delay(RW) 00001000 rdlvl_gate_max_delay(RW) 00000000 rdlvl_gate_delay_8(RD) 00000000 rdlvl_gate_delay_7(RD) 00000000 rdlvl_gate_delay_6(RD) 00000000 rdlvl_gate_delay_5(RD) 00000000 rdlvl_gate_delay_4(RD) 00000000 rdlvl_gate_delay_3(RD) 
 MC1_CTL_800 : .dword 0x0000000000000000
 //00000000 rdlvl_midpoint_delay_7(RD) 00000000 rdlvl_midpoint_delay_6(RD) 00000000 rdlvl_midpoint_delay_5(RD) 00000000 rdlvl_midpoint_delay_4(RD) 00000000 rdlvl_midpoint_delay_3(RD) 00000000 rdlvl_midpoint_delay_2(RD) 00000000 rdlvl_midpoint_delay_1(RD) 00000000 rdlvl_midpoint_delay_0(RD) 
-MC1_CTL_810 : .dword 0x000000000000000e
+MC1_CTL_810 : .dword 0x0000000000000000
 //00000000 rdlvl_offset_delay_6(RW) 00000000 rdlvl_offset_delay_5(RW) 00000000 rdlvl_offset_delay_4(RW) 00000000 rdlvl_offset_delay_3(RW) 00000000 rdlvl_offset_delay_2(RW) 00000000 rdlvl_offset_delay_1(RW) 00000000 rdlvl_offset_delay_0(RW) 00000000 rdlvl_midpoint_delay_8(RD) 
 MC1_CTL_820 : .dword 0x0420000c20400000
 //00000100 tdfi_wrlvl_resplat(RW) 00000000 tdfi_wrlvl_resp(RD) 00000000 tdfi_rdlvl_rr(RW) 00001100 tdfi_rdlvl_resplat(RW) 00000000 tdfi_rdlvl_resp(RD) 01000000 refresh_per_zq(RW) 00000000 rdlvl_offset_delay_8(RW) 00000000 rdlvl_offset_delay_7(RW) 
 //MC1_CTL_830 : .dword 0x1313131313130c0a # 3A1
 //MC1_CTL_830 : .dword 0x0000000000000c0a # 3A2
 //MC1_CTL_830 : .dword 0x1515151515150c0a # 3A2
-MC1_CTL_830 : .dword 0x2525252525250c0a
+MC1_CTL_830 : .dword 0x2a2a2a2d2d2d0c0a
 //00000000 wrlvl_delay_5(RD) 00000000 wrlvl_delay_4(RD) 00000000 wrlvl_delay_3(RD) 00000000 wrlvl_delay_2(RD) 00000000 wrlvl_delay_1(RD) 00000000 wrlvl_delay_0(RD) 00000010 tmod(RW) 00001010 tdfi_wrlvl_ww(RW) 
 //MC1_CTL_840 : .dword 0x0000640064001313 # 3A1
 //MC1_CTL_840 : .dword 0x0000640064000000 # 3A2
 //MC1_CTL_840 : .dword 0x0000640064151515 # 3A2
-MC1_CTL_840 : .dword 0x0000640064002525 # 3A2
+MC1_CTL_840 : .dword 0x0000640064002a2a # 3A2
 //00000000000000_0001100100 axi1_priority_relax(RW) 000000_0001100100 axi0_priority_relax(RW) 00000000 wrlvl_delay_8(RD) 00000000 wrlvl_delay_7(RD) 00000000 wrlvl_delay_6(RD) 
 MC1_CTL_850 : .dword 0x0000000000000064
 //000000_0000000000 out_of_range_source_id(RD) 000000_0000000000 ecc_u_id(RD) 000000_0000000000 ecc_c_id(RD) 000000_0001100100 axi2_priority_relax(RW) 
 MC1_CTL_860 : .dword 0x0200004000000000
-MC1_CTL_870 : .dword 0x0046004600460004
+MC1_CTL_870 : .dword 0x0046004600460046
 //0_000000000000010 emrs1_data_3(RW) 0_000000000000010 emrs1_data_2(RW) 0_000000000000010 emrs1_data_1(RW) 0_000000000000010 emrs1_data_0(RW) 
 MC1_CTL_880 : .dword 0x0000000000000000
 //0_000000000000000 emrs3_data_3(RW) 0_000000000000000 emrs3_data_2(RW) 0_000000000000000 emrs3_data_1(RW) 0_000000000000000 emrs3_data_0(RW) 
@@ -2694,7 +2809,7 @@ MC1_CTL_8e0 : .dword 0x0000000000000050
 //MC1_CTL_8f0 : .dword 0x0000000012101a80 //clk skew of 3A2 0.4
 //MC1_CTL_8f0 : .dword 0x000000000a0e1080 //clk skew of 3A2 0.4
 //MC1_CTL_8f0 : .dword 0x0000000085858580 //clk skew of 3A2 0.4
-MC1_CTL_8f0 : .dword 0x0000000018131580 //clk skew of 3A2 0.4
+MC1_CTL_8f0 : .dword 0x000000002a272780 //clk skew of 3A2 0.4
 //MC1_CTL_8f0 : .dword 0x0000000016151580 //clk skew of 3A2 0.4
 //MC1_CTL_8f0 : .dword 0x000000000c0d0d80 //clk skew of 3A2 0.4
 //0000000000000000000000000111100_000000000000000000000000001111000 dll_ctrl_reg_2(RW) 

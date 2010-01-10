@@ -1399,11 +1399,14 @@ tgt_machprint()
 register_t
 tgt_clienttos()
 {
+	return((register_t)(int)PHYS_TO_CACHED(memorysize & ~7) - 64);
+/*
 #if LS3_HT
 	return((register_t)(int)PHYS_TO_CACHED(memorysize & ~7) - 64);
 #else    
 	return((register_t)(int)PHYS_TO_UNCACHED(memorysize & ~7) - 64);
 #endif    
+*/
 }
 
 #ifdef HAVE_FLASH

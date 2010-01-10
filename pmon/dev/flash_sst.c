@@ -274,7 +274,8 @@ fl_write_protect_unlock(map, dev, offset)
 {
     unsigned int trans_unlock_value;
 
-    if (!((dev->fl_mfg & 0xff) == 0xbf) && ((dev->fl_id & 0xff) == 0x50))//NOT SST49LF040B
+    if (!(((dev->fl_mfg & 0xff) == 0xbf) && ((dev->fl_id & 0xff) == 0x50)))   //NOT SST49LF040B
+        //||((dev->fl_mfg & 0xff) == 0xbf) && ((dev->fl_id & 0xff) == 0x50))) //NOT SST49LF080A
 	    return(0);
 
     printf("Disable all space write protection of 49LF040B. \r\n");
@@ -312,7 +313,8 @@ fl_write_protect_lock(map, dev, offset)
 {
     unsigned int trans_unlock_value;
 
-    if (!((dev->fl_mfg & 0xff) == 0xbf) && ((dev->fl_id & 0xff) == 0x50))//NOT SST49LF040B
+    if (!(((dev->fl_mfg & 0xff) == 0xbf) && ((dev->fl_id & 0xff) == 0x50)))   //NOT SST49LF040B
+        //||((dev->fl_mfg & 0xff) == 0xbf) && ((dev->fl_id & 0xff) == 0x50))) //NOT SST49LF080A
 	    return(0);
 
     printf("Enable all space write protection of 49LF040B. \r\n");

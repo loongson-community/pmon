@@ -362,7 +362,7 @@ uncache_test:
         nop
 #endif
 
-#if 1 //LOOP whd
+#if 0 //LOOP whd
 33:
         li      t0, 0x80000400
         li      a0, 0x0
@@ -1204,8 +1204,8 @@ uncache_test:
         nop
 #endif
 
-#if 0 //all space scan whd
-#define SPACE_1G_AT_MC1
+#if 1 //all space scan whd
+//#define SPACE_1G
 #define SPACE_2G
 #ifdef 0
   //OPEN WINDOWS 256-512M @ 0x20000000
@@ -1285,6 +1285,16 @@ uncache_test:
         nop
 	    TTYDBG("Space init 256  - 2G   Done\r\n")
 #else
+#ifdef SPACE_1G
+        dli     t2, 0x9000000050000000
+        dli     t0, 0x9000000080000000
+1:
+        sd      t2, 0x0(t2)
+        daddi   t2, 0x8
+        bne     t2, t0, 1b
+        nop
+	    TTYDBG("Space init 256  - 1G   Done\r\n")
+#else
         dli     t2, 0x9000000020000000
         dli     t0, 0x9000000030000000
 1:
@@ -1310,6 +1320,7 @@ uncache_test:
         nop
 	    TTYDBG("Space init 1G   - 2G   Done\r\n")
 #endif
+#endif
 
 	    TTYDBG("Space scan begin\r\n")
         dli     t2, 0x9000000000000000
@@ -1334,6 +1345,19 @@ uncache_test:
         bne     t2, t0, 1b
         nop
 	    TTYDBG("Space Done 256  - 2G   Done\r\n")
+
+#else
+#ifdef SPACE_1G
+        dli     t2, 0x9000000050000000
+        dli     t0, 0x9000000080000000
+1:
+        ld      a1, 0x0(t2)
+        bne     a1, t2, scan_error
+        nop
+        daddi   t2, 0x8
+        bne     t2, t0, 1b
+        nop
+	    TTYDBG("Space Done 256  - 1G   Done\r\n")
 
 #else
         dli     t2, 0x9000000020000000
@@ -1366,6 +1390,7 @@ uncache_test:
         bne     t2, t0, 1b
         nop
 	    TTYDBG("Space Done 1G   - 2G   Done\r\n")
+#endif
 #endif
         b       2f
         nop
@@ -1871,7 +1896,7 @@ skipdot_0:
 #endif
 
 
-#if 1 /* Read adustment */
+#if 0 /* Read adustment */
 //#define SLICE_0
 #define SLICE_1
 	    TTYDBG	("Enable register space of MEMORY\r\n")

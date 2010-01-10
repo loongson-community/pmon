@@ -1292,7 +1292,7 @@ fxp_intr(arg)
 		/*
 		 * Free any finished transmit mbuf chains.
 		 */
-		if (statack & FXP_SCB_STATACK_CXTNO||FXP_SCB_STATACK_CNA) {
+		if (statack & (FXP_SCB_STATACK_CXTNO|FXP_SCB_STATACK_CNA)) {
 			struct fxp_cb_tx *txp;
 
 			for (txp = sc->cbl_first; sc->tx_queued &&
@@ -1327,6 +1327,7 @@ fxp_intr(arg)
 		if (statack & (FXP_SCB_STATACK_FR | FXP_SCB_STATACK_RNR)) {
 			struct mbuf *m;
 			u_int8_t *rfap;
+            int retry = 500;
 rcvloop:
 			//printf("recving a packet\n");
 			m = sc->rfa_headm;
@@ -1432,8 +1433,19 @@ rcvloop:
 					printf("HELP! fxp recycling rxbuf!\n");
 #endif
 				}
-				goto rcvloop;
-			}
+                retry = -retry;
+                goto rcvloop;
+			} else {
+                // memory not ready, retry! --smh
+                if (retry > 0) {
+                    retry --;
+                    goto rcvloop;
+                } else if (retry == 0){
+                    //printf("aoao~~ fxp packet lost in memory! statack = %x\n", statack);
+                    //printf("*");
+                }
+            }
+            //if (retry != -500) printf("rfa.rfa_status No. of retry = %d\n", 500+retry);
 			if (statack & FXP_SCB_STATACK_RNR) {
 				fxp_scb_wait(sc);
 /* XXXX MIPS: Flush not req. Already done when put on rfa_headm */

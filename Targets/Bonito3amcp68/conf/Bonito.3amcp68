@@ -27,6 +27,7 @@ option		INET
 option      LS3_HT              # Enable the IO cache coherent of HT
 option      MCP68_IDE           # Enable the MCP68 IDE 0 channel
 option      USE_LPC_UART
+#option      MULTI_CHIP
 
 select		mod_flash_amd		# AMD flash device programming
 select		mod_flash_intel		# intel flash device programming
@@ -79,8 +80,8 @@ select		ext2
 select		fatfs
 #select		mod_x86emu		# X86 emulation for VGA
 option 	MY40IO
-select		mod_x86emu_int10
-select		mod_vgacon
+#select		mod_x86emu_int10
+#select		mod_vgacon
 option		NOPCINAMES		# Save some space for x86emu
 #option		FASTBOOT
 #select	    vt82c686        #via686a/b code
