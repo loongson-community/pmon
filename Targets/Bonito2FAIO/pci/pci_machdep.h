@@ -1,4 +1,4 @@
-/*	$Id: pci_machdep.h,v 1.1.1.1 2006/06/29 06:43:25 cpu Exp $ */
+/*	$Id: pci_machdep.h,v 1.1.1.1 2006/09/14 01:59:09 root Exp $ */
 
 /*
  * Copyright (c) 2001 Opsycon AB  (www.opsycon.se)
@@ -31,8 +31,9 @@
  *
  */
 
-#ifndef __PCI_MACHDEP_H__
-#define __PCI_MACHDEP_H__
+#include <target/pmon_target.h>
+
+#include <pmon.h>
 
 /*
  * Types provided to machine-independent PCI code
@@ -40,12 +41,6 @@
 typedef struct arch_pci_chipset *pci_chipset_tag_t;
 typedef u_long pcitag_t;
 typedef u_long pci_intr_handle_t;
-
-
-#include <target/pmon_target.h>
-#include <bus.h>
-#include <sys/dev/pci/pcivar.h>
-#include <pmon.h>
 
 void	 _pci_flush __P((void));
 int	 _pci_hwinit __P((int, bus_space_tag_t, bus_space_tag_t));
@@ -121,4 +116,3 @@ extern struct pci_device *_pci_bus[];
  */
 #define VA_TO_PA(x)     UNCACHED_TO_PHYS(x)
 #define PA_TO_VA(x)     PHYS_TO_CACHED(x)
-#endif

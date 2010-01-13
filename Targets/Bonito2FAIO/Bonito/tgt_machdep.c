@@ -31,6 +31,27 @@
  *
  */
 //#define USE_LEGACY_RTC
+
+#include <include/stdarg.h>
+int
+tgt_printf (const char *fmt, ...)
+{
+    int  n;
+    char buf[1024];
+	char *p=buf;
+	char c;
+	va_list     ap;
+	va_start(ap, fmt);
+    n = vsprintf (buf, fmt, ap);
+    va_end(ap);
+	while((c=*p++))
+	{ 
+	 if(c=='\n')tgt_putchar('\r');
+	 tgt_putchar(c);
+	}
+    return (n);
+}
+
 #ifdef USE_LEGACY_RTC
 #      undef NVRAM_IN_FLASH
 #else
@@ -114,6 +135,17 @@ extern int fl_program(void *fl_base, void *data_base, int data_size, int verbose
 #endif
 #endif
 
+
+volatile char * mmio;
+
+extern unsigned char 
+i2c_send_s(unsigned char slave_addr,unsigned char
+				sub_addr,unsigned char * buf ,int count);
+extern unsigned char 
+i2c_send_s16(unsigned char slave_addr,unsigned char
+				sub_addr,unsigned short * buf, int count);
+
+
 extern struct trapframe DBGREG;
 
 extern void *memset(void *, int, size_t);
@@ -184,11 +216,113 @@ void addr_tst1(void);
 void addr_tst2(void);
 void movinv1(int iter, ulong p1, ulong p2);
 
+void fixup_sm502_rtc(void)
+{
+    char  data;
+	int tmp;
+	pcitag_t tag;
+
+	tag=_pci_make_tag(0,14,0);
+	
+	_pci_conf_writen(tag, 0x14, 0x6000000, 4);
+	tmp = _pci_conf_readn(tag, 0x04, 4);
+	tgt_printf("cmd %x\n", tmp);
+	_pci_conf_writen(tag, 0x04, tmp |0x02, 4);
+
+	mmio = _pci_conf_readn(tag,0x14,4);
+
+	tgt_printf("mmio %x\n", mmio);
+
+	mmio =(int)mmio|(0xb0000000); /*This is a global variable*/
+
+	//enable gpio clock
+	tmp = *(volatile int *)(mmio + 0x40);
+	*(volatile int *)(mmio + 0x40) =tmp|0x40;
+
+
+	data = 0x00;
+	i2c_send_s((unsigned char)0xd0,0x0c,&data,1);
+
+	i2c_rec_s((unsigned char)0xd0, 0x01, &data,1);
+	data |= 0x80;
+	i2c_send_s((unsigned char)0xd0,0x01,&data,1);
+	data &= 0x7f;
+	i2c_send_s((unsigned char)0xd0,0x01,&data,1);
+}
+
+void turn_fan(int on)
+{
+	unsigned char data8; 
+	unsigned short data16;
+
+	i2c_rec_s(0x90, 0x01, &data8, 1);
+
+	/* 
+	 * Reg 2,3 is the temparature limit, default is 0x4b00, 0x5000
+	 * Reg 0 is current temp
+	 * reg 1 is configuration --- valid level
+	 */
+	if(on) {
+		//data16 = 0x320 << 4;
+		//data16 = 0x260 << 4; /* 38 */
+		data16 = 0x300 << 4; /* 48 */
+		i2c_send_s16(0x90, 0x02, &data16, 1); /* Set Thyst*/
+		i2c_send_s16(0x90, 0x03, &data16, 1); /* Set Tos */
+		data8 &= ~0x04;
+		i2c_rec_s(0x90, 0x01, &data8, 1);
+	} else {
+		data16 = 0x4b00;
+		i2c_send_s16(0x90, 0x02, &data16, 1); /* Set Thyst*/
+
+		data16 = 0x5000;
+		i2c_send_s16(0x90, 0x03, &data16, 1); /* Set Tos */
+
+		data8 &= ~0x04;
+		i2c_send_s((unsigned char)0x90,0x01,&data8, 1);
+	}
+}
+
+
+void turnoff_backlight(void)
+{
+    //unsigned int xiangy_tmp, temp_mmio;
+    unsigned int tmp, temp_mmio;
+	pcitag_t tag=_pci_make_tag(0,14,0);
+    #define TEMP_GPIO_DIR_LOW    (volatile unsigned int *)(temp_mmio + 0x10008)
+    #define TEMP_GPIO_DATA_LOW   (volatile unsigned int *)(temp_mmio + 0x10000)
+
+    #define TEMP_GPIO_DIR_HIGH   (volatile unsigned int *)(temp_mmio + 0x1000c)
+    #define TEMP_GPIO_DATA_HIGH  (volatile unsigned int *)(temp_mmio + 0x10004)
+
+	_pci_conf_writen(tag, 0x14, 0x6000000, 4);
+	temp_mmio = _pci_conf_readn(tag,0x14,4);
+	temp_mmio =(int)temp_mmio|(0xb0000000);
+
+	/*gpio33 to LOW*/
+        tmp = *TEMP_GPIO_DATA_HIGH;
+        *TEMP_GPIO_DIR_HIGH = tmp  | 2;
+        *TEMP_GPIO_DATA_HIGH = tmp & (~0x2)  ;
+
+        tmp = *TEMP_GPIO_DATA_LOW;
+
+	/*gpio29 to HIGH*/
+        *TEMP_GPIO_DIR_LOW = tmp  | (1 << 29);
+        *TEMP_GPIO_DATA_LOW = tmp | (1 << 29);
+
+	/*gpio32 to HIGH*/
+        tmp = *TEMP_GPIO_DATA_HIGH;
+        *TEMP_GPIO_DIR_HIGH = tmp  | 1;
+        *TEMP_GPIO_DATA_HIGH = tmp & (~1);
+}
 
 void
 initmips(unsigned int memsz)
 {
-	/*
+
+
+    turnoff_backlight();
+
+    /*
 	 *	Set up memory address decoders to map entire memory.
 	 *	But first move away bootrom map to high memory.
 	 */
@@ -196,9 +330,23 @@ initmips(unsigned int memsz)
 	GT_WRITE(BOOTCS_LOW_DECODE_ADDRESS, BOOT_BASE >> 20);
 	GT_WRITE(BOOTCS_HIGH_DECODE_ADDRESS, (BOOT_BASE - 1 + BOOT_SIZE) >> 20);
 #endif
+
+    //log_level = 2;
+
+    tgt_fpuenable();
+
+	/*
+	 *	Set up memory address decoders to map entire memory.
+	 *	But first move away bootrom map to high memory.
+	 */
 	//memsz = 512;
 	memorysize = memsz > 256 ? 256 << 20 : memsz << 20;
 	memorysize_high = memsz > 256 ? (memsz - 256) << 20 : 0;
+
+#if defined(DEVBD2F_SM502)
+	fixup_sm502_rtc();
+	turn_fan(0);
+#endif
 
 	/*
 	 *  Probe clock frequencys so delays will work properly.
@@ -248,133 +396,69 @@ extern char i2c_read_single(int, int, char*);
 void
 tgt_devconfig()
 {
-	unsigned char temp;
-#if NMOD_VGACON > 0
-	int rc;
-#if NMOD_FRAMEBUFFER > 0 
+	int rc=1;
 	unsigned long fbaddress,ioaddress;
 	extern struct pci_device *vga_dev;
-#endif
-#endif
+    
 	_pci_devinit(1);	/* PCI device initialization */
 
-#if NMOD_X86EMU_INT10 > 0 || NMOD_X86EMU > 0
-	SBD_DISPLAY("VGAI", 0);
-	rc = vga_bios_init();
-
-#elif (NMOD_X86EMU_INT10 == 0 && defined(RADEON7000))
-	SBD_DISPLAY("VGAI", 0);
-	rc = radeon_init();
-#endif
-
-#ifdef SMI502
-    rc = 1;
-#endif
-
-#if	0
-	/* light the lcd */	
-	*((volatile unsigned char *)(mips_io_port_base| HIGH_PORT)) = 0xfe;
-	*((volatile unsigned char *)(mips_io_port_base| LOW_PORT)) = 0x01;
-	temp = *((volatile unsigned char *)(mips_io_port_base| DATA_PORT));
-	/* light the lcd */	
-	*((volatile unsigned char *)(mips_io_port_base| HIGH_PORT)) = 0xfe;
-	*((volatile unsigned char *)(mips_io_port_base| LOW_PORT)) = 0x01;
-	*((volatile unsigned char *)(mips_io_port_base| DATA_PORT)) = 0x00;
-#endif
-
-#if NMOD_FRAMEBUFFER > 0
-    if(!vga_dev){
-        printf("ERROR !!! Display adapter is not found\n");
-        rc = -1;
-    }
-    
+	if(!vga_dev) {
+		printf("ERROR !!! VGA device is not found\n"); 
+		rc = -1;
+	}
 	if (rc > 0) {
-		SBD_DISPLAY("FRBI", 0);
 		fbaddress  =_pci_conf_read(vga_dev->pa.pa_tag,0x10);
 		ioaddress  =_pci_conf_read(vga_dev->pa.pa_tag,0x18);
 
 		fbaddress = fbaddress &0xffffff00; //laster 8 bit
 		ioaddress = ioaddress &0xfffffff0; //laster 4 bit
 
-		printf("fbaddress 0x%x\tioaddress 0x%x\n",fbaddress, ioaddress);
-
-#ifdef SMI502
-        rc = video_hw_init();
-        fbaddress |= PTR_PAD(0xb0000000);
-		ioaddress |= mips_io_port_base;
-        //ioaddress |= PTR_PAD(0xb0000000);
-
-        /*lit LCD and turn on audio*/
-        //to do list
-        #if 0
+        rc = video_hw_init ();
+                fbaddress  =_pci_conf_read(vga_dev->pa.pa_tag,0x10);
+                ioaddress  =_pci_conf_read(vga_dev->pa.pa_tag,0x14);
+                fbaddress |= 0xb0000000;
+                ioaddress |= 0xb0000000;
+		/*lit LCD and turn on audio*/
 		{
 			unsigned long tag;
 			unsigned int mmio, tmp;
-            //device no for sm107 is assumed 10 here
-			tag=_pci_make_tag(0,10,0);
-			mmio = _pci_conf_readn(tag,0x10,4);
+
+			tag=_pci_make_tag(0,14,0);
+			mmio = _pci_conf_readn(tag,0x14,4);
 			mmio =(int)mmio|(0xb0000000);
-			tmp = *(volatile int *)PTR_PAD(mmio + 0x10008);
-			*(volatile int *)PTR_PAD(mmio + 0x10008) = tmp|((1<<29)|(1<<31));
-			tmp = *(volatile int *)PTR_PAD(mmio + 0x10000);
-			*(volatile int *)PTR_PAD(mmio + 0x10000) = tmp|((1<<29)|(1<<31));
+			tmp = *(volatile int *)(mmio + 0x10008);
+			*(volatile int *)(mmio + 0x10008) = tmp|((1<<29)|(1<<31));
+			tmp = *(volatile int *)(mmio + 0x10000);
+			*(volatile int *)(mmio + 0x10000) = tmp|((1<<29)|(1<<31));
 		}
-        #endif
-#endif
 
 		fb_init(fbaddress, ioaddress);
+		vga_available = 0;
 	} else {
 		printf("vga bios init failed, rc=%d\n",rc);
 	}
-#endif
 
-		printf("tgt_devconfig after fb_init().");
-
-#if	0
-	/* light the lcd */	
-	*((volatile unsigned char *)(mips_io_port_base| HIGH_PORT)) = 0xfe;
-	*((volatile unsigned char *)(mips_io_port_base| LOW_PORT)) = 0x01;
-	*((volatile unsigned char *)(mips_io_port_base| DATA_PORT)) = temp;
-#endif
-
-#if	0
-	/* light the lcd */	
-	*((volatile unsigned char *)(mips_io_port_base| HIGH_PORT)) = 0xfe;
-	*((volatile unsigned char *)(mips_io_port_base| LOW_PORT)) = 0x01;
-	*((volatile unsigned char *)(mips_io_port_base| DATA_PORT)) = 0x80;
-#endif
-
-	if (rc > 0) {
-		if(!getenv("novga")) { 
+    if (rc > 0) {
+		if(!getenv("novga")) 
 			vga_available=1;
-			vga_ok = 2;
-		} else {
-			vga_ok = 1;
-			vga_available = 0;
-		}
-	}
-	
-	//vga_available = 0; /*Suppress the output*/
+		else 
+			vga_available=0;
+	} 
+    config_init();
+    configure();
 
-	config_init();
-	configure();
-/*    
-#if NMOD_VGACON >0
-#if !(defined(VGA_NOTEBOOK_V1) || defined(VGA_NOTEBOOK_V2)) && NCS5536 > 0
-    rc = kbd_initialize();
-#else
-	rc = -1;
-#endif
+	//log_level = 2;
+#if 0    
+#if ((NMOD_VGACON >0) &&(PCI_IDSEL_VIA686B !=0)|| (PCI_IDSEL_CS5536 !=0))
+	if(getenv("nokbd")) rc=1;
+	else rc=kbd_initialize();
 	printf("%s\n",kbd_error_msgs[rc]);
 	if(!rc){ 
-		if(!getenv("nokbd")) kbd_available = 1;
+		kbd_available=1;
 	}
+//	psaux_init();
 #endif
-*/
-	//kbd_available = 0;
-	if (vga_ok > 1)
-		vga_available = 1;
-    printf("tgt_devconfig return).");
+#endif
 }
 
 extern int test_icache_1(short *addr);
@@ -387,18 +471,53 @@ extern void cs5536_gpio_init(void);
 extern void test_gpio_function(void);
 extern void cs5536_pci_fixup(void);
 
+#if 1
+static int w83627_read(int dev,int addr)
+{
+int data;
+/*enter*/
+outb(0xbfd0002e,0x87);
+outb(0xbfd0002e,0x87);
+/*select logic dev reg */
+outb(0xbfd0002e,0x7);
+outb(0xbfd0002f,dev);
+/*access reg */
+outb(0xbfd0002e,addr);
+data=inb(0xbfd0002f);
+/*exit*/
+outb(0xbfd0002e,0xaa);
+outb(0xbfd0002e,0xaa);
+return data;
+}
+
+static void w83627_write(int dev,int addr,int data)
+{
+/*enter*/
+outb(0xbfd0002e,0x87);
+outb(0xbfd0002e,0x87);
+/*select logic dev reg */
+outb(0xbfd0002e,0x7);
+outb(0xbfd0002f,dev);
+/*access reg */
+outb(0xbfd0002e,addr);
+outb(0xbfd0002f,data);
+/*exit*/
+outb(0xbfd0002e,0xaa);
+outb(0xbfd0002e,0xaa);
+}
+#endif
 void
 tgt_devinit()
 {
-	SBD_DISPLAY("5536",0);
-	
-#if NVT82C686 > 0
-	vt82c686_init();
-#endif
+	SBD_DISPLAY("SM502",0);
 
-#if	NCS5536 > 0
-	cs5536_init();
-#endif
+#ifndef USE_CS5536_UART
+w83627_write(2,0x30,0x01);
+w83627_write(2,0x60,0x03);
+w83627_write(2,0x61,0xf8);
+w83627_write(2,0x70,0x04);
+w83627_write(2,0xf0,0x00);
+#endif   
 
 	/*
 	 *  Gather info about and configure caches.
@@ -420,9 +539,6 @@ tgt_devinit()
 
 	_pci_businit(1);	/* PCI bus initialization */
 
-#if	NCS5536 > 0
-	cs5536_pci_fixup();
-#endif
 	return;
 }
 
@@ -579,21 +695,143 @@ void suppress_auto_start(void)
 
 static inline unsigned char CMOS_READ(unsigned char addr)
 {
-        unsigned char val;
-        linux_outb_p(addr, 0x70);
+	unsigned char val;
+	volatile int tmp;
+//	unsigned char and_char;
+	
+#ifndef DEVBD2F_SM502
+	linux_outb_p(addr, 0x70);
         val = linux_inb_p(0x71);
-        return val;
+#else
+
+	pcitag_t tag;
+	if(addr >= 32)
+		return 0;
+	switch(addr)
+	{
+		case 0:
+			addr = 0x0;
+			break;
+		case 2:
+			addr = 0x1;
+			break;
+		case 4:
+			addr = 0x2;
+			break;
+		case 6:
+			addr = 0x3;
+			break;
+		case 7:
+			addr = 0x04;
+			break;
+		case 8:
+			addr = 0x05;
+			break;
+		case 9:
+		    	addr = 0x06;
+			break;
+		case 0xf:
+			addr = 0x0f;
+			break;	
+		case 0x10:
+			addr = 0x10;
+			break;
+		default:
+			return;
+	}
+
+#if 1
+	tag=_pci_make_tag(0,14,0);
+	
+	mmio = _pci_conf_readn(tag,0x14,4);
+	mmio =(int)mmio|(0xb0000000);
+	tmp = *(volatile int *)(mmio + 0x40);
+	*(volatile int *)(mmio + 0x40) =tmp|0x40;
+#endif
+		
+	i2c_rec_s((unsigned char)0x64,addr,&val,1);
+	if(addr == 0x2) {
+		val = val & (~0x80);
+	}
+	
+#endif
+	return val;
 }
+      
                                                                                
 static inline void CMOS_WRITE(unsigned char val, unsigned char addr)
 {
-        linux_outb_p(addr, 0x70);
+#ifndef DEVBD2F_SM502
+	linux_outb_p(addr, 0x70);
         linux_outb_p(val, 0x71);
+#else
+
+	unsigned char tmp1,tmp2;
+	volatile int tmp;
+	tmp1 = (val/10)<<4;
+	tmp2  = (val%10);
+	val = tmp1|tmp2;
+	if(addr >=32)
+		return ;
+	switch(addr)
+	{
+		case 0:
+			addr = 0x0;
+			break;
+		case 2:
+			addr = 0x1;
+			break;
+		case 4:
+			addr = 0x2;
+			break;
+		case 6:
+			addr = 0x3;
+			break;
+		case 7:
+			addr = 0x04;
+			break;
+		case 8:
+			addr = 0x05;
+			break;
+		case 9:
+		    	addr = 0x06;
+			break;
+		case 0xf:
+			addr = 0x0f;
+			break;	
+		case 0x10:
+			addr = 0x10;
+			break;
+		default:
+			return;
+	}
+
+	{
+		pcitag_t tag;
+		unsigned char value;
+		tag=_pci_make_tag(0,14,0);
+	
+		mmio = _pci_conf_readn(tag,0x14,4);
+		mmio =(int)mmio|(0xb0000000);
+		tmp = *(volatile int *)(mmio + 0x40);
+		*(volatile int *)(mmio + 0x40) =tmp|0x40;
+
+		if (addr == 0x2)
+			val = val | 0x80;
+
+		i2c_send_s((unsigned char)0x64,addr,&val,1);
+	}
+#endif
 }
+
 
 static void
 _probe_frequencies()
 {
+
+        md_pipefreq = 800000000;        /* NB FPGA*/
+        md_cpufreq  =  60000000;
+#if 0        
 #if defined(HAVE_TOD) && HAVE_RTC 
         int i, timeout, cur, sec, cnt;
 #endif
@@ -653,6 +891,7 @@ _probe_frequencies()
 	}
                                                                                
 #endif /* HAVE_TOD */
+#endif
 }
                                                                                
 
@@ -720,25 +959,30 @@ tgt_gettime()
 void
 tgt_settime(time_t t)
 {
-	struct tm *tm;
-	int ctrlbsave;
+        struct tm *tm;
+        int ctrlbsave;
 
+	//return ;
+                                                                               
+//#ifdef HAVE_TOD
+        if(!clk_invalid) {
+	CMOS_WRITE(80,0x10);                                                                               
+	CMOS_WRITE(84,0x0f);                                                                               
 
-	if(!clk_invalid) {
-		tm = gmtime(&t);
-		ctrlbsave = CMOS_READ(DS_REG_CTLB);
-		CMOS_WRITE(ctrlbsave | DS_CTLB_SET, DS_REG_CTLB);
+                tm = gmtime(&t);
+                                                                               
+                CMOS_WRITE(tm->tm_year % 100, DS_REG_YEAR);
+                CMOS_WRITE(tm->tm_mon + 1, DS_REG_MONTH);
+                CMOS_WRITE(tm->tm_mday, DS_REG_DATE);
+                CMOS_WRITE(tm->tm_wday, DS_REG_WDAY);
+                CMOS_WRITE(tm->tm_hour, DS_REG_HOUR);
+                CMOS_WRITE(tm->tm_min, DS_REG_MIN);
+                CMOS_WRITE(tm->tm_sec, DS_REG_SEC);
 
-		CMOS_WRITE(tm->tm_year % 100, DS_REG_YEAR);
-		CMOS_WRITE(tm->tm_mon + 1, DS_REG_MONTH);
-		CMOS_WRITE(tm->tm_mday, DS_REG_DATE);
-		CMOS_WRITE(tm->tm_wday, DS_REG_WDAY);
-		CMOS_WRITE(tm->tm_hour, DS_REG_HOUR);
-		CMOS_WRITE(tm->tm_min, DS_REG_MIN);
-		CMOS_WRITE(tm->tm_sec, DS_REG_SEC);
-
-		CMOS_WRITE(ctrlbsave & ~DS_CTLB_SET, DS_REG_CTLB);
-	}
+	CMOS_WRITE(0x0,0x0f);                                                                               
+	CMOS_WRITE(0x0,0x10);                                                                               
+        }
+//#endif
 }
 
 
@@ -1384,3 +1628,5 @@ void tgt_netpoll()	{};
 #define MS_COPY		2
 #define MS_WRITE	3
 #define MS_READ		4
+
+#include "tgt_mycmd.c"

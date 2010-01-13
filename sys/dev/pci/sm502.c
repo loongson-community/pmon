@@ -357,10 +357,10 @@ const SMI_REGS init_regs[] =
 #endif
 	//{0x8004c, 0x00800000}, /*fb0 last address*/
 	{0x80200, 0x00010000}, /*crt display ctrl*/
-	{0x00010, 0x07f107c2},
+	{0x00010, 0x07f147c0},
 	{0x00054, 0x00000000},
 	{0x00074, 0x0002bcfd},
-	{0x00044, 0xc0090201}, /*bit 3-0 dram clock (1: 144M)*/
+	{0x00044, 0xc0090218}, /*bit 3-0 dram clock (1: 112M)*/
 	{0x0004c, 0xc0090208},
 	{0x00040, 0x0002184f},
 	{0x80024, 0x053f03ff},
@@ -370,6 +370,48 @@ const SMI_REGS init_regs[] =
 	{0x00000, 0x24100000},
 	{0x00004, 0x00000001}, //0x00000001
 	{0x00000, 0x24108030},
+#endif
+
+#ifdef X1368x768
+
+	{0x00000, 0x24108080},
+	{0x00004, 0x00000001},
+	{0x00010, 0x07f147c0},
+	{0x00054, 0x00000000},
+	{0x00074, 0x00020819},
+	{0x00044, 0xc0090218}, /*bit 3-0 dram clock (1: 144M)*/
+	{0x0004c, 0x40090201},
+	//{0x00040, 0x0002184f},
+	{0x00048, 0x0002180f}, /*Power Mode0 Gate*/
+	//{0x0004c, 0xc8090201}, /*Power Mode1 clock*/
+	//{0x00054, 0x00000000}, /*Power mode ctrl*/
+	{0x80000, 0x0f014105},
+
+	{0x8000c, 0x80000000}, /*Panel fb address*/
+	{0x80010, 0x0ab00ab0}, /*panel fb width*/
+	{0x80014, 0x05580000}, /*panel window width*/
+	{0x80018, 0x03000000}, /*panel window height*/
+	{0x8001c, 0x00000000}, /*panel tl*/
+	{0x80020, 0x02ff0557}, /*panel br*/
+	{0x80024, 0x07070557}, /*horizontal total*/
+	{0x80028, 0x0090059f},  /*horizontal sync*/
+	{0x8002c, 0x031a02ff}, /*vertical total*/
+	{0x80030, 0x00030300}, /*vertical sync*/
+#if defined(CONFIG_VIDEO_8BPP)
+	{0x80040, 0x00010000}, /*video display ctrl*/
+	{0x80080, 0x00010000}, /*alpha display ctrl*/
+#endif
+#if defined(CONFIG_VIDEO_16BPP)
+	{0x80040, 0x00010001}, /*video display ctrl*/
+	{0x80080, 0x00010001}, /*alpha display ctrl*/
+#endif
+#if defined(CONFIG_VIDEO_32BPP)
+	{0x80040, 0x00010002}, /*video display ctrl*/
+	{0x80080, 0x00010001}, /*alpha display ctrl*/
+#endif
+
+	{0x80200, 0x00010000}, /*crt display ctrl*/
+
 #endif
         {0, 0}
 };
@@ -580,7 +622,7 @@ static void SmiSetRegs (void)
 	 */
 	SMI_REGS *preg;
 	preg = board_get_regs();
-	while (preg->Index) {
+	while (preg->Index || preg->Value) {
 		write32 (preg->Index, preg->Value);
 		/*
 		 * Insert a delay between
@@ -590,7 +632,7 @@ static void SmiSetRegs (void)
 	}		
 #ifdef DEVBD2F_SM502
 if(getenv("sm502_rgb12"))
-write32(0x80000,0x0f413105); // bit22-21=10b: 12-bit RGB 4:4:4.
+write32(0x80000,0x0f014105); // bit22-21=10b: 12-bit RGB 4:4:4.
 #endif
 		
 }
@@ -714,7 +756,7 @@ int video_hw_init (void)
 	/* (see board/RPXClassic/RPXClassic.c) */
 	board_validate_screen (sm502.isaBase);
 	
-	set_current_gate();
+	//set_current_gate();
 
 	AutodeInit();
 

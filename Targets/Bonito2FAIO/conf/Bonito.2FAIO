@@ -5,7 +5,7 @@
 #  This file is supposed to be included by target file after
 #  endian has been defined.
 #
-machine         Bonito        mips    # CPU Architecture, Platform
+machine         Bonito2FAIO        mips    # CPU Architecture, Platform
 config          pmon 
 
 #
@@ -13,6 +13,9 @@ config          pmon
 #
 makeoptions	ENDIAN=EL		# Little endian version.
 
+option MAJOR=1
+option MINOR=4
+option PATCH=0
 
 include "conf/GENERIC_ALL"
 
@@ -24,7 +27,7 @@ option		MIPS
 option		INET
 #option		GODSONEV1		# GALILEO GT64240 Host Bridge
 #select     vt82c686        #via686a/b code
-select     cs5536 
+#select     cs5536 
 #select		sis315e
 option 	USETLB
 #option		SIS315E
@@ -33,7 +36,6 @@ option     LOONGSON2F_ALLINONE
 #option		HAVE_FLASH		# Platform has FLASH memory.
 #option		HAVE_NVENV		# Platform has non-volatile env mem 
 
-#
 # Module selection. Selects pmon features
 #
 select		mod_flash_amd		# AMD flash device programming
@@ -58,7 +60,7 @@ select      fat
 select     mod_framebuffer
 select     mod_smi502
 option     SMI502
-option     X1366x768
+option     X1368x768
 option      CONFIG_VIDEO_16BPP
 #select     mod_vesa
 #5-4
@@ -89,7 +91,7 @@ option		USB_OHCI_NO_ROM
 option          VGA_BASE=0xb0000000 
 #select		mod_vesa_fb
 #option          DEBUG_EMU_VGA
-
+#option      HAVE_TOD        # Time-Of-Day clock
 #behavior
 option CLEAR_WHEN_BOOT
 option ALL_OTHER_KEY_TO_STOP_BOOT
@@ -105,11 +107,11 @@ option		TARGETNAME="\"Bonito\""
 # Command selection. Selects pmon commands
 #
 select          cmd_about               # Display info about PMON
-select          cmd_i2c                 # i2c opration
-select          cmd_gpio                # gpio pull low/high opration
+#select          cmd_i2c                 # i2c opration
+#select          cmd_gpio                # gpio pull low/high opration
 select		cmd_gui
 select          cmd_boot                # Boot wrapper
-select          cmd_mycmd
+#select          cmd_mycmd
 select          cmd_newmt
 select 		cmd_test
 select          cmd_cache               # Cache enabling
@@ -135,7 +137,7 @@ select          cmd_shell               # Shell commands, vers, help, eval
 #
 select           boot_menu             #show boot menu
 #select          cmd_tem                #config cpu tempreture by commands
-#select           cmd_bios
+select           cmd_bios
 #
 #  Now the Machine specification
 #
@@ -193,3 +195,5 @@ vt0   at pci ? dev ? function ?  #vt6421(sata controller)
 sata* at satabus ?
 select mod_sata
 select mod_vt
+
+option DEVBD2F_SM502

@@ -57,9 +57,16 @@
 #include "pcivar.h"
 #include "pcireg.h"
 
+#if SMI502
+#define PCIVERBOSE 5
+#ifdef PCIVERBOSE
+#include "pcidevs.h"
+#endif
+#else
 #define PCIVERBOSE 0
 #ifdef PCIVERBOSE
 #include "pcidevs.h"
+#endif
 #endif
 
 #define PCI_ALLOC_UPWARDS
@@ -529,7 +536,7 @@ _pci_query_dev (struct pci_device *dev, int bus, int device, int initialise)
 	pcitag_t tag;
 	pcireg_t id;
 	pcireg_t misc;
-	
+
 	tag = _pci_make_tag(bus, device, 0);
 	if (!_pci_canscan (tag))
 		return;

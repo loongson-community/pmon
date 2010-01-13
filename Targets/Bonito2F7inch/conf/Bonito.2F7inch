@@ -29,7 +29,7 @@ select     sm712            # sm712 display card with fb support
 option     VGA_NO_ROM       # display card has no rom
 option     LOONGSON2F_7INCH
 option     HAS_EC
-
+option     X1024x768
 #option		HAVE_FLASH		# Platform has FLASH memory.
 #option		HAVE_NVENV		# Platform has non-volatile env mem 
 #option 		SPANISH	

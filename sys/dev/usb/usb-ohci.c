@@ -509,7 +509,9 @@ static void ohci_attach(struct device *parent, struct device *self, void *aux)
 #ifdef USB_OHCI_NO_ROM 
 	if(PCI_VENDOR(pa->pa_id) == 0x1033){
 		val = pci_conf_read(ohci->sc_pc, pa->pa_tag, 0xe0);
-		pci_conf_write(ohci->sc_pc, pa->pa_tag, 0xe0, (val & ~0x3) | 0x3);
+		//pci_conf_write(ohci->sc_pc, pa->pa_tag, 0xe0, (val & ~0x3) | 0x3);//3 ports
+		pci_conf_write(ohci->sc_pc, pa->pa_tag, 0xe0, (val & ~0x7) | 0x5);
+		pci_conf_write(ohci->sc_pc, pa->pa_tag, 0xe4, (1<<5));
 	}
 #endif
 	ohci->pa = *pa;

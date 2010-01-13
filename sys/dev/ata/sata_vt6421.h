@@ -185,6 +185,7 @@ typedef struct vt_sata {
 struct vt_sata_softc {
     /* General disk infos */
     struct device sc_dev;
+    //int sata_disk_exsit;
     int bs,count;
 };
 #endif

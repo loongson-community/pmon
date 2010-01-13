@@ -359,7 +359,6 @@ tgt_devconfig()
 
 	config_init();
 	configure();
-/*    
 #if NMOD_VGACON >0
 #if !(defined(VGA_NOTEBOOK_V1) || defined(VGA_NOTEBOOK_V2)) && NCS5536 > 0
     rc = kbd_initialize();
@@ -371,7 +370,6 @@ tgt_devconfig()
 		if(!getenv("nokbd")) kbd_available = 1;
 	}
 #endif
-*/
 	//kbd_available = 0;
 	if (vga_ok > 1)
 		vga_available = 1;
@@ -463,6 +461,8 @@ tgt_devinit()
 void
 tgt_reboot()
 {
+    printf("here in tgt_machdep tgt_reboot.");
+#if 0
 	/* reset the cs5536 whole chip */
 #if NCS5536 > 0 && !defined(LOONGSON2F_7INCH) 
 	unsigned long hi, lo;
@@ -500,7 +500,10 @@ tgt_reboot()
 #endif
 	/* we should not exec until here. */
 	//__asm__ ("jr %0\n"::"r"(0xbfc00000));
-
+#endif
+	*((volatile unsigned char *)(0xbfd00066)) = 0x4e;
+	delay(1000);
+	*((volatile unsigned char *)(0xbfd00062)) = 0x1;
 	while(1);
 }
 
@@ -549,7 +552,7 @@ tgt_poweroff()
 	unsigned int tag;
 	unsigned int base;
 
-#ifdef	LOONGSON2F_7INCH
+#ifdef	LOONGSON2F_3GNB
 #if 0
 	*((volatile unsigned char *)(0xbfd00000 | HIGH_PORT)) = 0xfc;
 	*((volatile unsigned char *)(0xbfd00000 | LOW_PORT)) = 0x29;

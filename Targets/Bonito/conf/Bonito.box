@@ -67,7 +67,7 @@ option 		AUTOLOAD
 # Functional options.
 #
 option		NOSNOOP			# Caches are no-snooping
-
+option   X800x600
 #
 #
 option		USB_OHCI_NO_ROM

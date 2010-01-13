@@ -273,6 +273,27 @@ static int cmd_rdbat(int ac, char *av[])
 	u8 index;
 	u8 val;
 
+    *((unsigned char *)(0xbfd00066)) = 0x54;
+    delay(1000);
+    *((unsigned char *)(0xbfd00062)) = 0x0;
+
+    val = *((unsigned char *)(0xbfd00062));
+
+    printf("bat temp:%x %d\n",val,val);
+    #if 0
+
+    val16 |= val;
+
+    *((unsigned char *)(0xbfd00066)) = 0x54;
+    delay(1000);
+    *((unsigned char *)(0xbfd00062)) = 0x02;
+    
+    val = *((unsigned char *)(0xbfd00062));
+    val16 |=(val<<8);
+
+    printf("fan speed:%x %d\n",val16,val16);
+
+
 	if(ac < 2){
 		printf("usage : rdbat %index\n");
 		return -1;
@@ -299,7 +320,7 @@ static int cmd_rdbat(int ac, char *av[])
 
 	val = rdec(REG_SMBDAT_START);
 	printf("value 0x%x\n", val);
-
+    #endif
 	return 0;
 }
 
@@ -309,9 +330,27 @@ static int cmd_rdbat(int ac, char *av[])
 static int cmd_rdfan(int ac, char *av[])
 {
 	u8 index;
-	u8 val;
+	u8 val = 0;
+    u16 val16 = 0;
 	u8 i;
 
+    //wrec();
+    *((unsigned char *)(0xbfd00066)) = 0x54;
+    delay(1000);
+    *((unsigned char *)(0xbfd00062)) = 0x01;
+
+    val = *((unsigned char *)(0xbfd00062));
+    val16 |= val;
+
+    *((unsigned char *)(0xbfd00066)) = 0x54;
+    delay(1000);
+    *((unsigned char *)(0xbfd00062)) = 0x02;
+    
+    val = *((unsigned char *)(0xbfd00062));
+    val16 |=(val<<8);
+
+    printf("fan speed:%x %d\n",val16,val16);
+    #if 0
 	wrec(REG_SMBCFG, rdec(REG_SMBCFG) & (~0x1f) | 0x04);
 	if(ac < 2){
 		printf("usage : rdfan %index\n");
@@ -341,6 +380,7 @@ static int cmd_rdfan(int ac, char *av[])
 	printf("value 0x%x\t", val);
 	val = rdec(REG_SMBDAT_START + 1);
 	printf("value2 0x%x\n", val);
+    #endif
 
 	return 0;
 }

@@ -232,11 +232,11 @@ main()
 static int load_menu_list()
 {
     int i = 0;
-    char* rootdev = NULL;
-    char* path = NULL;
+    //char* rootdev = NULL;
     int retid;
     struct device *dev, *next_dev;
     char load[256];
+
     
     memset(load, 0, 256);
     //try to read boot.cfg from USB disk first
@@ -256,46 +256,53 @@ static int load_menu_list()
     }
 
     //try to read boot.cfg from ide disk second
-    printf("\n");
-    if (path == NULL)
-    {
-        path = malloc(512);
-        if (path == NULL)
-        {
-            return 0;
+    for (dev  = TAILQ_FIRST(&alldevs); dev != NULL; dev = next_dev) {
+        next_dev = TAILQ_NEXT(dev, dv_list);
+        if(dev->dv_class < DV_DISK) {
+            continue;
+        }
+
+        if (strncmp(dev->dv_xname, "wd", 2) == 0) {
+            sprintf(load, "bl -d ide (%s,0)/boot.cfg", dev->dv_xname);
+            retid = do_cmd(load);
+            if (retid == 0) {
+                return 1;
+            }  
+            sprintf(load, "bl -d ide (%s,0)/boot/boot.cfg", dev->dv_xname);
+            retid = do_cmd(load); 
+            if (retid == 0) {
+                return 1;
+            }  
         }
     }
 
-    memset(path, 0, 512);
-    rootdev = getenv("bootdev");
-    if (rootdev == NULL)
-    {
-        rootdev = "(wd0,0)";
+    //try to read boot.cfg from sata disk third
+    for (dev  = TAILQ_FIRST(&alldevs); dev != NULL; dev = next_dev) {
+        next_dev = TAILQ_NEXT(dev, dv_list);
+        if(dev->dv_class < DV_DISK) {
+            continue;
+        }
+
+        if (strncmp(dev->dv_xname, "sata", 4) == 0) {
+            sprintf(load, "bl -d ide (%s,0)/boot.cfg", dev->dv_xname);
+            retid = do_cmd(load);
+            if (retid == 0) {
+                return 1;
+            }  
+            sprintf(load, "bl -d ide (%s,0)/boot/boot.cfg", dev->dv_xname);
+            retid = do_cmd(load); 
+            if (retid == 0) {
+                return 1;
+            }  
+        }
     }
-    sprintf(path, "bl -d ide %s/boot.cfg", rootdev);
-    retid = do_cmd(path);
-    if (retid == 0)
-    {
-        free(path);
-        path = NULL;
-        return 1;
-     }
-     sprintf(path, "bl -d ide %s/boot/boot.cfg", rootdev);
-     retid = do_cmd(path);
-     if (retid == 0)
-     {
-        free(path);
-        path = NULL;
-        return 1;
-     }   
-     if (retid == 1)
+     
+    if (retid == 1)
         printf ("The selected kernel entry is wrong! System will try default entry from al.\n ");
-     else
+    else
         printf ("The boot.cfg not existed!System will try default entry from al.\n");
-     delay(1000000);
-     free(path);
-     path = NULL;
-     return 0;
+    delay(1000000);
+    return 0;
 }
 
 #define NO_KEY      0
@@ -759,7 +766,6 @@ dbginit (char *adr)
         case ENTER_KEY:
 #ifdef AUTOLOAD
 #if defined(LOONGSON2F_FULOONG) || defined(LOONGSON2F_7INCH)||defined(LOONGSON2F_ALLINONE) ||defined(LOONGSON2F_3GNB)
-
             if (!load_menu_list())
             {
                 /* second try autoload env */

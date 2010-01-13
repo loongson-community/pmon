@@ -25,11 +25,13 @@
 
 #else /* !__ASSEMBLER */
 
+#ifndef PTR_PAD
 #if (_MIPS_SZPTR == 32)
 #define PTR_PAD(x) x
 #endif
 #if (_MIPS_SZPTR == 64)
 #define PTR_PAD(x) ((0xffffffffUL <<32)|(x))
+#endif
 #endif
 
 /* offsets from base pointer, this construct allows optimisation */
@@ -47,9 +49,10 @@
 #define COM2_BASE_ADDR	PTR_PAD(0xbfd002f8)
 #define COM3_BASE_ADDR	PTR_PAD(0xbff003f8)
 
-//#define	USE_GODSON2F_UART
+//AIO-9003 Using GODSON2F UART
+#define	USE_GODSON2F_UART
 //#define	USE_CS5536_UART1
-#define	USE_CS5536_UART2
+//#define	USE_CS5536_UART2
 
 #define	TEST_NO_CS5536	// if you use this, please use USE_GODSON2F_UART
 //#define	TEST_CS5536_ID

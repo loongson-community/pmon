@@ -311,7 +311,7 @@ void console_cursor(int state);
 #define CONSOLE_SIZE        (CONSOLE_ROW_SIZE * CONSOLE_ROWS)
 #define CONSOLE_ROW_LAST    (video_console_address + CONSOLE_SIZE - CONSOLE_ROW_SIZE)
 #define CONSOLE_SCROLL_SIZE (CONSOLE_SIZE - CONSOLE_ROW_SIZE)
-
+/*
 #ifdef LOONGSON2F_7INCH
 #if     1
 char console_buffer[2][38][128] = { 32 };   // 128x37.5 for 1024X600@16BPP LCD
@@ -320,8 +320,23 @@ char console_buffer[2][31][101] = { 32 };   // 100X30
 #endif
 #else
 char console_buffer[2][40][101] = { 32 };   // 80X24
-
+*/
+#if defined(X640x480)
+char console_buffer[2][31][81]={32};//80*30->640x480
+#elif defined(X800x600)
+char console_buffer[2][38][101]={32};//
+#elif defined(X1024x600)
+char console_buffer[2][38][128]={32};//
+#elif defined(X1024x768)
+char console_buffer[2][49][129]={32};//128*48->1024x768
+#elif defined(X1368x768)
+char console_buffer[2][49][172]={32};//171*48->1368x768
+#else
+char console_buffer[2][31][81]={32};//80*30->640x480
 #endif
+
+
+
 #define FB_SIZE ((pGD->winSizeX)*(pGD->winSizeY)*(pGD->gdfBytesPP))
 
 /* Macros */
@@ -2077,6 +2092,9 @@ int fb_init(unsigned long fbbase, unsigned long iobase)
 #elif defined(X1024x600)
     pGD->winSizeX  = 1024;
     pGD->winSizeY  = 600;
+#elif defined(X1368x768)   
+        pGD->winSizeX  = 1368;
+        pGD->winSizeY  = 768;
 #else
     pGD->winSizeX  = 640;
     pGD->winSizeY  = 480;
@@ -2154,6 +2172,7 @@ int fb_init(unsigned long fbbase, unsigned long iobase)
     eorx = fgx ^ bgx;
 
     memsetl (video_fb_address, CONSOLE_SIZE, CONSOLE_BG_COL);
+#if 0
 #ifdef CONFIG_VIDEO_LOGO
     /* Plot the logo and get start point of console */
     printf("Video: Drawing the logo ...\n");
@@ -2161,6 +2180,23 @@ int fb_init(unsigned long fbbase, unsigned long iobase)
 #else
     video_console_address = video_fb_address;
 #endif
+#endif
+
+#ifdef CONFIG_VIDEO_LOGO
+    /* Plot the logo and get start point of console */
+    printf("Video: Drawing the logo ...\n");
+    video_console_address = video_logo();
+#else
+#ifdef CONFIG_SPLASH_SCREEN
+#ifdef  LOONGSON2F_7INCH
+    video_display_bitmap(BIGBMP_START_ADDR, BIGBMP_X, BIGBMP_Y);
+#else
+    video_display_bitmap(PTR_PAD(PICBMP_START_ADDR), 0, 0);
+#endif
+#endif
+    video_console_address = video_fb_address;
+#endif
+
     printf("CONSOLE_SIZE %d\n", CONSOLE_SIZE);
 
     /* Initialize the console */

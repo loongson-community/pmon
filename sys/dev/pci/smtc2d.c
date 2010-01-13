@@ -491,6 +491,18 @@ void AutodeInit()
 #if defined(CONFIG_VIDEO_32BPP)
 		deInit(1024, 600, 32);
 #endif
+#elif defined(X1368x768)
+#if defined(CONFIG_VIDEO_8BPP)
+                deInit(1368, 768, 8);
+#endif
+#if defined(CONFIG_VIDEO_16BPP)
+                deInit(1368, 768, 16);
+printf("teddy deinit\n");
+
+#endif
+#if defined(CONFIG_VIDEO_32BPP)
+                deInit(1368, 768, 32);
+#endif
 #else
 #if defined(CONFIG_VIDEO_8BPP)
         deInit(640,480,8);
@@ -522,6 +534,9 @@ void AutodeFillRectModify(int color)
 #if defined(X1024x600)
 	deFillRectModify(0,0,600-16,1024,600,color);
 #endif
+#if defined(X1368x768)
+    deFillRectModify(0,0,768-16,1368,768,color);
+#endif
 }
 
 void AutodeCopyModify(int bpp)
@@ -537,5 +552,8 @@ void AutodeCopyModify(int bpp)
 #endif
 #if defined(X1024x600)
 	deCopyModify(bpp,0,1024,0,16,0,1024,0,0,1024,600-16,0x0c);
+#endif
+#if defined(X1368x768)
+	deCopyModify(bpp,0,1368,0,16,0,1368,0,0,1368,768-16,0x0c);
 #endif
 }

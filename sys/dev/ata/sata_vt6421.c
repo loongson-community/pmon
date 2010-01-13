@@ -219,6 +219,8 @@ static void vt_attach(struct device * parent,struct device * self,void *aux)
     int i = 0; 
     
     p_vt_device =(struct vt_sata_softc *)self;
+
+    printf("sata_vt6421.c p_vt_device:%x\n",p_vt_device);
     
     for (i = 0; i < 6; i++){    
         if (pci_io_find(pc, pa->pa_tag, 0x10+i*4, &iobase, &iosize)){
@@ -269,11 +271,10 @@ static void vt_attach(struct device * parent,struct device * self,void *aux)
         printf("vt_attach: ata_host_activate() failed.\n");
     }
 
-    for (i = 0; i <CONFIG_SYS_SATA_MAX_DEVICE; i++ ) {
+    for (i = 0; i <CONFIG_SYS_SATA_MAXPORTS; i++ ) {
         if(vt_ata_dev[i].port_no == -1) {
             continue;
         }
-        //printf("before config_found:port_no:%d device_no:%d\n",sbs_ata_dev[i].port_no,sbs_ata_dev[i].dev_no);
         config_found(p_vt_device, &vt_ata_dev[i], NULL);
     }
 
@@ -553,8 +554,12 @@ int vt_open(
     struct proc *p)
 {
     struct vt_sata_softc *priv;
+
     priv=vt_sata_lookup(dev);
-    if(!priv)return -1;
+    if(!priv){
+        printf("vt_open failed.\n");
+        return -1;
+    }
     priv->bs=ATA_SECT_SIZE;
     priv->count=-1;
     return 0;

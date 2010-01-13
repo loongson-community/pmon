@@ -32,7 +32,7 @@ option     VGA_NO_ROM       # display card has no rom
 option     LOONGSON2F_ALLINONE
 #option		HAVE_FLASH		# Platform has FLASH memory.
 #option		HAVE_NVENV		# Platform has non-volatile env mem 
-
+option    X1368x768
 #
 # Module selection. Selects pmon features
 #

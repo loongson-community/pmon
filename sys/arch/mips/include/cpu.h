@@ -51,6 +51,7 @@
 
 #include <machine/psl.h>
 
+#ifndef PTR_PAD
 #if (_MIPS_SZPTR == 32)
 #define PTR_PAD(x) x
 #endif
@@ -61,7 +62,7 @@
 #define PTR_PAD(x) ((0xffffffff <<32)|(x))
 #endif
 #endif
-
+#endif
 #define KUSEG_ADDR		0x0
 #define CACHED_MEMORY_ADDR	PTR_PAD(0x80000000)
 #define UNCACHED_MEMORY_ADDR	PTR_PAD(0xa0000000)
