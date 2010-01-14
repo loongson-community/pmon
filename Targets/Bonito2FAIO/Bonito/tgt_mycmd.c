@@ -1295,6 +1295,53 @@ int rdadt(int ac,char **argv)
 	return 0;
 }
 
+char *pcbv_string[]={
+    "PCBA=V0.1",
+    "PCBA=V0.2",
+    "PCBA=V0.3",
+    "PCBA=V0.4",
+    "PCBA=V0.5",
+    "PCBA=V0.6",
+    "PCBA=V0.7",
+    "PCBA=V0.8",
+    "PCBA=V0.9",
+    "PCBA=V0.A",
+    "PCBA=V0.B",
+    "PCBA=V0.C",
+    "PCBA=V0.D",
+    "PCBA=V0.E",
+    "PCBA=V0.F",
+    "PCBA=V0.G",
+};
+
+int rdpcbv(int ac,char **argv)
+{
+    unsigned int tmp, pcb_version = 0;
+    unsigned long temp_mmio;
+	pcitag_t tag=_pci_make_tag(0,14,0);
+    #define SM502_GPIO_DIR_LOW    (volatile unsigned int *)(temp_mmio + 0x10008)
+    #define SM502_GPIO_DATA_LOW   (volatile unsigned int *)(temp_mmio + 0x10000)
+
+    #define SM502_GPIO_DIR_HIGH   (volatile unsigned int *)(temp_mmio + 0x1000c)
+    #define SM502_GPIO_DATA_HIGH  (volatile unsigned int *)(temp_mmio + 0x10004)
+
+	_pci_conf_writen(tag, 0x14, 0x6000000, 4);
+	temp_mmio = _pci_conf_readn(tag,0x14,4);
+	temp_mmio =(unsigned long)temp_mmio|PTR_PAD(0xb0000000);
+
+    //read GPIO51~GPIO48's status
+    
+    tmp = *SM502_GPIO_DIR_HIGH;
+    *SM502_GPIO_DIR_HIGH = tmp & 0xfff0ffff;
+
+    tmp = *SM502_GPIO_DATA_HIGH;
+    pcb_version = (tmp & 0x000f0000)>>16;
+
+    printf("GPIO(51-48)=0x%x %s\n",pcb_version,pcbv_string[pcb_version]);
+    return 0;
+}
+
+
 static const Cmd Cmds[] =
 {
 	{"MyCmds"},
@@ -1305,6 +1352,7 @@ static const Cmd Cmds[] =
 	{"dataiic",	"", 0, "flash dexxon board with sector1 data", dataiic, 0, 99, CMD_REPEAT},
 	{"startiic",	"", 0, "flash dexxon board with sector1 data start ", startiic, 0, 99, CMD_REPEAT},
 	{"rdadt", "", 0, "read adt registers", rdadt, 0, 99, CMD_REPEAT},
+	{"rdpcbv", "", 0, "read PCB version", rdpcbv, 0, 99, CMD_REPEAT},
 	{0, 0}
 };
 

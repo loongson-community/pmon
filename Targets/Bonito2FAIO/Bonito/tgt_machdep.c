@@ -135,6 +135,8 @@ extern int fl_program(void *fl_base, void *data_base, int data_size, int verbose
 #endif
 #endif
 
+#define BCD2BIN(x) (((x&0xf0)>>4)*10+(x&0x0f))
+#define BIN2BCD(x)  ((x/10)<<4)+(x%10)
 
 volatile char * mmio;
 
@@ -286,7 +288,8 @@ void turn_fan(int on)
 void turnoff_backlight(void)
 {
     //unsigned int xiangy_tmp, temp_mmio;
-    unsigned int tmp, temp_mmio;
+    unsigned int tmp;
+    unsigned long temp_mmio;
 	pcitag_t tag=_pci_make_tag(0,14,0);
     #define TEMP_GPIO_DIR_LOW    (volatile unsigned int *)(temp_mmio + 0x10008)
     #define TEMP_GPIO_DATA_LOW   (volatile unsigned int *)(temp_mmio + 0x10000)
@@ -296,7 +299,7 @@ void turnoff_backlight(void)
 
 	_pci_conf_writen(tag, 0x14, 0x6000000, 4);
 	temp_mmio = _pci_conf_readn(tag,0x14,4);
-	temp_mmio =(int)temp_mmio|(0xb0000000);
+	temp_mmio =(unsigned long)temp_mmio|PTR_PAD(0xb0000000);
 
 	/*gpio33 to LOW*/
         tmp = *TEMP_GPIO_DATA_HIGH;
@@ -438,6 +441,11 @@ tgt_devconfig()
 		printf("vga bios init failed, rc=%d\n",rc);
 	}
 
+    //zhangpin
+    #ifdef SPREAD_SPECTRUM
+    do_cmd("wriic 0xd2 1 12");
+    #endif
+
     if (rc > 0) {
 		if(!getenv("novga")) 
 			vga_available=1;
@@ -546,67 +554,17 @@ w83627_write(2,0xf0,0x00);
 void
 tgt_reboot()
 {
-	/* reset the cs5536 whole chip */
-#if NCS5536 > 0 
-	unsigned long hi, lo;
-	_rdmsr(0xe0000014, &hi, &lo);
-	lo |= 0x00000001;
-	_wrmsr(0xe0000014, hi, lo);
-#endif
-
-	__asm__ ("jr %0\n"::"r"(0xbfc00000));
-
-	while(1);
+	/* call ec do the reset */
+    do_cmd("wriic 0xb6 1 2");
+    while(1);
 }
 
 void
 tgt_poweroff(void)
 {
-#if 0
-    unsigned long val;
-	unsigned long tag;
-	unsigned long base;
-
-	tag = _pci_make_tag(0, 14, 0);
-	base = _pci_conf_read(tag, 0x14);
-	base |= 0xbfd00000;
-	base &= ~3;
-
-	/* make cs5536 gpio13 output enable */
-	val = *(volatile unsigned long *)(base + 0x04);
-	val = ( val & ~(1 << (16 + 13)) ) | (1 << 13) ;
-	*(volatile unsigned long *)(base + 0x04) = val;
-	
-	/* make cs5536 gpio13 output low level voltage. */
-	val = *(volatile unsigned long *)(base + 0x00);
-	val = (val | (1 << (16 + 13))) & ~(1 << 13);
-	*(volatile unsigned long *)(base + 0x00) = val;
-
-	while(1);
-#endif
-#if 1
-    unsigned int val;
-	unsigned int tag;
-	unsigned long base;
-
-	tag = _pci_make_tag(0, 14, 0);
-	base = _pci_conf_read(tag, 0x14);
-	base |= PTR_PAD(0xbfd00000);
-	base &= ~3;
-
-	/* make cs5536 gpio13 output enable */
-	val = *(volatile unsigned int *)(base + 0x04);
-	val = ( val & ~(1 << (16 + 13)) ) | (1 << 13) ;
-	*(volatile unsigned int *)(base + 0x04) = val;
-	
-	/* make cs5536 gpio13 output low level voltage. */
-	val = *(volatile unsigned int *)(base + 0x00);
-	val = (val | (1 << (16 + 13))) & ~(1 << 13);
-	*(volatile unsigned int *)(base + 0x00) = val;
-
-	while(1);
-#endif
-
+    /* call ec do the poweroff*/
+    do_cmd("wriic 0xb6 1 1");
+    while(1);
 }
 
 /*
@@ -710,31 +668,25 @@ static inline unsigned char CMOS_READ(unsigned char addr)
 	switch(addr)
 	{
 		case 0:
-			addr = 0x0;
-			break;
-		case 2:
-			addr = 0x1;
-			break;
-		case 4:
 			addr = 0x2;
 			break;
-		case 6:
+		case 2:
 			addr = 0x3;
 			break;
-		case 7:
-			addr = 0x04;
+		case 4:
+			addr = 0x4;
 			break;
-		case 8:
+		case 6:
+			addr = 0x6;
+			break;
+		case 7:
 			addr = 0x05;
 			break;
-		case 9:
-		    	addr = 0x06;
+		case 8:
+			addr = 0x07;
 			break;
-		case 0xf:
-			addr = 0x0f;
-			break;	
-		case 0x10:
-			addr = 0x10;
+		case 9:
+		    	addr = 0x08;
 			break;
 		default:
 			return;
@@ -749,11 +701,7 @@ static inline unsigned char CMOS_READ(unsigned char addr)
 	*(volatile int *)(mmio + 0x40) =tmp|0x40;
 #endif
 		
-	i2c_rec_s((unsigned char)0x64,addr,&val,1);
-	if(addr == 0x2) {
-		val = val & (~0x80);
-	}
-	
+	i2c_rec_s((unsigned char)0xa2, addr,&val,1);
 #endif
 	return val;
 }
@@ -776,31 +724,25 @@ static inline void CMOS_WRITE(unsigned char val, unsigned char addr)
 	switch(addr)
 	{
 		case 0:
-			addr = 0x0;
-			break;
-		case 2:
-			addr = 0x1;
-			break;
-		case 4:
 			addr = 0x2;
 			break;
-		case 6:
+		case 2:
 			addr = 0x3;
 			break;
-		case 7:
-			addr = 0x04;
+		case 4:
+			addr = 0x4;
 			break;
-		case 8:
+		case 6:
+			addr = 0x6;
+			break;
+		case 7:
 			addr = 0x05;
 			break;
-		case 9:
-		    	addr = 0x06;
+		case 8:
+			addr = 0x07;
 			break;
-		case 0xf:
-			addr = 0x0f;
-			break;	
-		case 0x10:
-			addr = 0x10;
+		case 9:
+		    	addr = 0x08;
 			break;
 		default:
 			return;
@@ -816,10 +758,10 @@ static inline void CMOS_WRITE(unsigned char val, unsigned char addr)
 		tmp = *(volatile int *)(mmio + 0x40);
 		*(volatile int *)(mmio + 0x40) =tmp|0x40;
 
-		if (addr == 0x2)
-			val = val | 0x80;
+		if (addr == 0x7)
+			val = val & ~(0x80);
 
-		i2c_send_s((unsigned char)0x64,addr,&val,1);
+		i2c_send_s((unsigned char)0xa2,addr,&val,1);
 	}
 #endif
 }
@@ -930,19 +872,25 @@ tgt_gettime()
 	//return 0;
                                                                                
 	if(!clk_invalid) {
-		ctrlbsave = CMOS_READ(DS_REG_CTLB);
-		CMOS_WRITE(ctrlbsave | DS_CTLB_SET, DS_REG_CTLB);
-
-		tm.tm_sec = CMOS_READ(DS_REG_SEC);
-		tm.tm_min = CMOS_READ(DS_REG_MIN);
-		tm.tm_hour = CMOS_READ(DS_REG_HOUR);
-		tm.tm_wday = CMOS_READ(DS_REG_WDAY);
-		tm.tm_mday = CMOS_READ(DS_REG_DATE);
-		tm.tm_mon = CMOS_READ(DS_REG_MONTH) - 1;
+		/*BCD code and mask some bits*/
+		tm.tm_sec = CMOS_READ(DS_REG_SEC) & 0x7f;
+		tm.tm_min = CMOS_READ(DS_REG_MIN) & 0x7f;
+		tm.tm_hour = CMOS_READ(DS_REG_HOUR) & 0x3f;
+		tm.tm_wday = CMOS_READ(DS_REG_WDAY) & 0x07;
+		tm.tm_mday = CMOS_READ(DS_REG_DATE) & 0x3f;
+		tm.tm_mon = CMOS_READ(DS_REG_MONTH) & 0x1f;
 		tm.tm_year = CMOS_READ(DS_REG_YEAR);
-		if(tm.tm_year < 50)tm.tm_year += 100;
 
-		CMOS_WRITE(ctrlbsave & ~DS_CTLB_SET, DS_REG_CTLB);
+                tm.tm_sec =  BCD2BIN(tm.tm_sec);
+                tm.tm_min =  BCD2BIN(tm.tm_min);
+                tm.tm_hour = BCD2BIN(tm.tm_hour);
+                //tm.tm_wday = BCD2BIN(tm.tm_wday);
+                tm.tm_mon = BCD2BIN(tm.tm_mon);
+                tm.tm_mday = BCD2BIN(tm.tm_mday);
+                tm.tm_year = BCD2BIN(tm.tm_year);
+
+		tm.tm_mon = tm.tm_mon - 1;
+		if(tm.tm_year < 50)tm.tm_year += 100;
 
 		tm.tm_isdst = tm.tm_gmtoff = 0;
 		t = gmmktime(&tm);

@@ -197,3 +197,4 @@ select mod_sata
 select mod_vt
 
 option DEVBD2F_SM502
+option SPREAD_SPECTRUM
