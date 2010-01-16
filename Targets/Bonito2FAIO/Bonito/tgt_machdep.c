@@ -87,6 +87,7 @@ tgt_printf (const char *fmt, ...)
 #include "dev/pflash_tgt.h"
 
 #include "../pci/cs5536_io.h"
+#include "include/ATtiny44.h"
 #include "include/bonito.h"
 #include <pmon/dev/gt64240reg.h>
 #include <pmon/dev/ns16550.h>
@@ -1526,6 +1527,16 @@ int
 tgt_getmachtype()
 {
 	return(md_cputype());
+}
+
+/* update the ec_firmware */
+void tgt_ecprogram(void *s, int size)
+{
+	int ret;
+
+	ret = attiny44_update_rom(s, size);
+	if(ret)
+		printf("ret is %d, ec update error!\n");	
 }
 
 /*

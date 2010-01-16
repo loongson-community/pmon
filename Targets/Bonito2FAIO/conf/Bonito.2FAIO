@@ -25,6 +25,7 @@ include "conf/GENERIC_ALL"
 option		BONITOEL	
 option		MIPS
 option		INET
+option		HAS_EC	
 #option		GODSONEV1		# GALILEO GT64240 Host Bridge
 #select     vt82c686        #via686a/b code
 #select     cs5536 
@@ -47,6 +48,7 @@ select		mod_symbols		# Symbol table handling
 select		mod_s3load		# Srecord loading
 select		mod_fastload		# LSI Fastload
 select		mod_elfload		# ELF loading
+select		mod_attiny44		# 9003 EC 
 #select		mod_tod_mc146818	# Time-Of-Day clock based on MC146818
 #select		logfile			# Enable log file support
 
@@ -169,7 +171,7 @@ rtl0		 at pci? dev ? function ?
 rtk0		 at pci? dev ? function ?
 #option		 EPLC46
 #uhci0		 at pci? dev ? function ?
-ohci*		 at pci? dev ? function ?
+ohci0		 at pci? dev ? function ?
 usb*		 at usbbus ? 
 #ohci1		 at pci? dev ? function ?
 

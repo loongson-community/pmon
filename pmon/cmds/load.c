@@ -156,12 +156,7 @@ nload (argc, argv)
 #ifdef HAS_EC
 			case 'd':
 				flags |= DFLAG;
-				ec_ver[0] = 'D';
 				break;
-			case 'c':
-				if(optarg != NULL)
-					strcpy(ec_ver, optarg);
-				flags |= CFLAG; break;
 #endif
 			case 'o':
 				if (!get_rsa ((u_int32_t *)&offset, optarg)) {

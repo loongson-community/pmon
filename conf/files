@@ -352,6 +352,7 @@ file fb/sis/sis_main.c mod_sisfb needs-flag
 
 
 file sys/dev/pci/sm502.c          mod_smi502 needs-flag
+file sys/dev/ic/ATtiny44.c     mod_attiny44  
 
 #add by yuli
 #Sata 
