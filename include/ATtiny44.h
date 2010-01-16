@@ -11,9 +11,9 @@
 #define ATTINY_ACK_END     0xee    // end ack
 #define ATTINY_ACK_ERROR   0xff    // Error ack with size
 
-#define ATTINY_MAX_SIZE            0x700   // 1792Bytes for max whole chip size
-#define ATTINY_PROGRAM_SIZE        0x700   //  1792Bytes for program
-#define ATTINY_BLOCK_SIZE          0x40    // 32bytes for one block
+#define ATTINY_MAX_SIZE            0x6c0   // 1728 Bytes for max whole chip size
+#define ATTINY_PROGRAM_SIZE        0x6c0   // 1728 Bytes for program
+#define ATTINY_BLOCK_SIZE          0x40    // 64 Bytes for one block
 #define ATTINY_SLAVE_ADDRESS       0xb6
 #define ATTINY_ACK_REG             0x41
 
