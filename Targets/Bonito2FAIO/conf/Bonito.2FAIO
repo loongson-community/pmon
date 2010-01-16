@@ -171,7 +171,7 @@ rtl0		 at pci? dev ? function ?
 rtk0		 at pci? dev ? function ?
 #option		 EPLC46
 #uhci0		 at pci? dev ? function ?
-ohci0		 at pci? dev ? function ?
+ohci*		 at pci? dev ? function ?
 usb*		 at usbbus ? 
 #ohci1		 at pci? dev ? function ?
 
