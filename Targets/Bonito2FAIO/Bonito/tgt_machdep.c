@@ -668,26 +668,11 @@ static inline unsigned char CMOS_READ(unsigned char addr)
 		return 0;
 	switch(addr)
 	{
-		case 0:
-			addr = 0x2;
+		case 0xf:
+		    	addr = 0x0f;
 			break;
-		case 2:
-			addr = 0x3;
-			break;
-		case 4:
-			addr = 0x4;
-			break;
-		case 6:
-			addr = 0x6;
-			break;
-		case 7:
-			addr = 0x05;
-			break;
-		case 8:
-			addr = 0x07;
-			break;
-		case 9:
-		    	addr = 0x08;
+		case 0x10:
+		    	addr = 0x10;
 			break;
 		default:
 			return;
@@ -702,7 +687,7 @@ static inline unsigned char CMOS_READ(unsigned char addr)
 	*(volatile int *)(mmio + 0x40) =tmp|0x40;
 #endif
 		
-	i2c_rec_s((unsigned char)0xa2, addr,&val,1);
+	rtc_i2c_rec_s((unsigned char)0x64, addr,&val,1);
 #endif
 	return val;
 }
@@ -724,26 +709,11 @@ static inline void CMOS_WRITE(unsigned char val, unsigned char addr)
 		return ;
 	switch(addr)
 	{
-		case 0:
-			addr = 0x2;
+		case 0xf:
+		    	addr = 0x0f;
 			break;
-		case 2:
-			addr = 0x3;
-			break;
-		case 4:
-			addr = 0x4;
-			break;
-		case 6:
-			addr = 0x6;
-			break;
-		case 7:
-			addr = 0x05;
-			break;
-		case 8:
-			addr = 0x07;
-			break;
-		case 9:
-		    	addr = 0x08;
+		case 0x10:
+		    	addr = 0x10;
 			break;
 		default:
 			return;
@@ -759,10 +729,7 @@ static inline void CMOS_WRITE(unsigned char val, unsigned char addr)
 		tmp = *(volatile int *)(mmio + 0x40);
 		*(volatile int *)(mmio + 0x40) =tmp|0x40;
 
-		if (addr == 0x7)
-			val = val & ~(0x80);
-
-		i2c_send_s((unsigned char)0xa2,addr,&val,1);
+		rtc_i2c_send_s((unsigned char)0x64,addr,&val,1);
 	}
 #endif
 }
@@ -862,8 +829,101 @@ tgt_cpufreq()
 	return(md_cpufreq);
 }
 
-time_t
-tgt_gettime()
+void sd2068_write_enable()
+{
+	CMOS_WRITE(80, 0x10);
+	CMOS_WRITE(84, 0xf);
+}
+void sd2068_write_disable()
+{
+	CMOS_WRITE(0, 0xf);
+	CMOS_WRITE(0, 0x10);
+}
+void sd2068_write_date(struct tm *tm)
+{
+        pcitag_t tag;
+        int i;
+        unsigned int tmp;
+        unsigned char value[7];
+
+        tag=_pci_make_tag(0,14,0);
+        mmio = _pci_conf_readn(tag,0x14,4);
+        mmio =(int)mmio|(0xb0000000);
+        tmp = *(volatile int *)(mmio + 0x40);
+        *(volatile int *)(mmio + 0x40) =tmp|0x40;
+
+        value[0] = tm->tm_sec;
+        value[1] = tm->tm_min;
+        value[2] = tm->tm_hour;
+        value[3] = tm->tm_wday;
+        value[4] = tm->tm_mday;
+        value[5] = tm->tm_mon;
+        value[6] = tm->tm_year;
+
+        for(i=0; i < 7; i++)
+                value[i]=BIN2BCD(value[i]);
+        value[2] = value[2] | 0x80;
+
+        rtc_i2c_start();
+        rtc_i2c_send(0x64);
+        if(!rtc_i2c_rec_ack()){
+                printf("no_ack 1111\n");
+                return 0;
+        }
+        rtc_i2c_send(0);
+        if(!rtc_i2c_rec_ack()){
+                printf("no_ack 2222\n");
+                return 0;
+        }
+
+        for(i=0; i<7; i++) {
+                rtc_i2c_send(value[i]);
+                if(!rtc_i2c_rec_ack()){
+                        printf("no_ack 2222\n");
+                        return 0;
+                }
+        }
+        rtc_i2c_stop();
+}
+
+void sd2068_getdate(struct tm *tm)
+{
+        pcitag_t tag;
+        int i;
+        unsigned int tmp;
+        unsigned char value[7];
+
+        tag=_pci_make_tag(0,14,0);
+        mmio = _pci_conf_readn(tag,0x14,4);
+        mmio =(int)mmio|(0xb0000000);
+        tmp = *(volatile int *)(mmio + 0x40);
+        *(volatile int *)(mmio + 0x40) =tmp|0x40;
+
+        //start signal
+        rtc_i2c_start();
+        //write slave_addr
+        rtc_i2c_send(0x65);
+        if(!rtc_i2c_rec_ack())
+                return 0;
+
+        for(i=0; i<7; i++){
+                //read data
+                value[i]=rtc_i2c_rec();
+                if(i != 6)
+                        rtc_i2c_send_ack(0);//***add in***//
+        }
+        rtc_i2c_stop();
+
+        tm->tm_sec = value[0];
+        tm->tm_min = value[1];
+        tm->tm_hour = value[2] & 0x7f;
+        tm->tm_wday = value[3];
+        tm->tm_mday = value[4];
+        tm->tm_mon  = value[5];
+        tm->tm_year = value[6];
+}
+
+time_t tgt_gettime()
 {
 	struct tm tm;
 	int ctrlbsave;
@@ -873,6 +933,7 @@ tgt_gettime()
 	//return 0;
                                                                                
 	if(!clk_invalid) {
+#if 0 //for nxp
 		/*BCD code and mask some bits*/
 		tm.tm_sec = CMOS_READ(DS_REG_SEC) & 0x7f;
 		tm.tm_min = CMOS_READ(DS_REG_MIN) & 0x7f;
@@ -881,6 +942,9 @@ tgt_gettime()
 		tm.tm_mday = CMOS_READ(DS_REG_DATE) & 0x3f;
 		tm.tm_mon = CMOS_READ(DS_REG_MONTH) & 0x1f;
 		tm.tm_year = CMOS_READ(DS_REG_YEAR);
+#else //for sd2068
+		sd2068_getdate(&tm);
+#endif
 
                 tm.tm_sec =  BCD2BIN(tm.tm_sec);
                 tm.tm_min =  BCD2BIN(tm.tm_min);
@@ -911,27 +975,15 @@ tgt_settime(time_t t)
         struct tm *tm;
         int ctrlbsave;
 
-	//return ;
-                                                                               
-//#ifdef HAVE_TOD
         if(!clk_invalid) {
-	CMOS_WRITE(80,0x10);                                                                               
-	CMOS_WRITE(84,0x0f);                                                                               
-
-                tm = gmtime(&t);
-                                                                               
-                CMOS_WRITE(tm->tm_year % 100, DS_REG_YEAR);
-                CMOS_WRITE(tm->tm_mon + 1, DS_REG_MONTH);
-                CMOS_WRITE(tm->tm_mday, DS_REG_DATE);
-                CMOS_WRITE(tm->tm_wday, DS_REG_WDAY);
-                CMOS_WRITE(tm->tm_hour, DS_REG_HOUR);
-                CMOS_WRITE(tm->tm_min, DS_REG_MIN);
-                CMOS_WRITE(tm->tm_sec, DS_REG_SEC);
-
-	CMOS_WRITE(0x0,0x0f);                                                                               
-	CMOS_WRITE(0x0,0x10);                                                                               
+        	tm = gmtime(&t);
+                tm->tm_year = tm->tm_year % 100;
+	        tm->tm_mon = tm->tm_mon + 1;
+                                                         
+		sd2068_write_enable();
+		sd2068_write_date(tm);
+		sd2068_write_disable();
         }
-//#endif
 }
 
 

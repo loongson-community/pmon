@@ -40,6 +40,7 @@ option     LOONGSON2F_ALLINONE
 # Module selection. Selects pmon features
 #
 select		mod_flash_amd		# AMD flash device programming
+select		mod_sd2068		# 9003 rtc
 #select		mod_flash_intel		# intel flash device programming
 #select		mod_flash_sst           # sst flash device programming
 select		mod_flash_winbond       # winbond flash device programming
