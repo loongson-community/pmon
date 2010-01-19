@@ -396,6 +396,8 @@ void deFillRect(unsigned long dst_base,
     smtc_de_busy = 1;
 }
 
+
+
 void deCopyModify(unsigned long nbpp,unsigned long nSrcBase,unsigned long nSrcWidth, unsigned long nSrcX, unsigned long nSrcY,
                         unsigned long nDestBase,unsigned long nDestWidth, unsigned long nDestX,unsigned long nDestY,
                         unsigned long nWidth, unsigned long nHeight,  
@@ -433,7 +435,7 @@ unsigned long nColor)
             }
             else
             {
-                    DeltaX = nX2 - nX1 + 1;
+                    DeltaX = nX2 - nX1+1 ;
             }
 
             /* Determine delta Y */
@@ -444,7 +446,7 @@ unsigned long nColor)
             }
             else
             {
-                    DeltaY = nY2 - nY1 + 1;
+                    DeltaY = nY2 - nY1+1;
             }
 
 deFillRect(nDestBase,0,
@@ -453,6 +455,7 @@ deFillRect(nDestBase,0,
                 DeltaX, 
                 DeltaY, 
                 nColor);
+     
 }
 
 void AutodeInit()
@@ -489,7 +492,7 @@ void AutodeInit()
 		deInit(1024, 600, 16);
 #endif
 #if defined(CONFIG_VIDEO_32BPP)
-		deInit(1024, 600, 32);
+		deInit(1024, 768, 32);
 #endif
 #elif defined(X1368x768)
 #if defined(CONFIG_VIDEO_8BPP)
@@ -497,7 +500,6 @@ void AutodeInit()
 #endif
 #if defined(CONFIG_VIDEO_16BPP)
                 deInit(1368, 768, 16);
-printf("teddy deinit\n");
 
 #endif
 #if defined(CONFIG_VIDEO_32BPP)
@@ -535,7 +537,10 @@ void AutodeFillRectModify(int color)
 	deFillRectModify(0,0,600-16,1024,600,color);
 #endif
 #if defined(X1368x768)
-    deFillRectModify(0,0,768-16,1368,768,color);
+	/*20100119,Teddy:It seems that SM502's fillrect function has bug that it can't draw a large width rect.We draw it three times.*/
+    deFillRectModify(0,0,768-16,500,768,color); 
+    deFillRectModify(0,500,768-16,1000,768,color);
+    deFillRectModify(0,1000,768-16,1368,768,color);
 #endif
 }
 
