@@ -523,7 +523,7 @@ int do_advanced_tab(p_window_info_t pwinfo, char *phint)
 
 int do_exit_tab(p_window_info_t pwinfo, char *phint)
 {
-    com_counts = 4;
+    com_counts = 3;
 
     sprintf(phint,"");
 #ifdef  CHINESE

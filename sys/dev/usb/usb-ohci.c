@@ -2347,11 +2347,20 @@ int submit_common_msg(struct usb_device *dev, unsigned int pipe, void *buffer,
 	}
 
 	/* allow more time for a BULK device to react - some are slow */
+#if 0
 #define BULK_TO	 50000*200	/* timeout in milliseconds */
 	if (usb_pipetype (pipe) == PIPE_BULK)
 		timeout = BULK_TO;
 	else
 		timeout = 1000*200;
+#endif
+#if 1
+#define BULK_TO	 500*200	/* timeout in milliseconds */
+	if (usb_pipetype (pipe) == PIPE_BULK)
+		timeout = BULK_TO;
+	else
+		timeout = 10*200;
+#endif
 
 /* wait for it to complete */
 	for (;;) {
@@ -2377,7 +2386,7 @@ int submit_common_msg(struct usb_device *dev, unsigned int pipe, void *buffer,
 		}
 
 		if (--timeout) {
-			delay(1);
+			delay(100);
 		} else {
 			err("CTL:TIMEOUT ");
 			dbg("submit_common_msg: TO status %x\n", stat);
