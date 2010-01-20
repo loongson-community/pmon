@@ -301,10 +301,16 @@ tgt_devconfig()
 #endif
 #ifdef LOONGSON2F_ALLINONE
 	do_cmd("gpio_high 0xb");//backlight
-#if 1
-    do_cmd("i2cwrite 0xd2 1 0x84"); /* enable spread spectrum*/
-    do_cmd("i2cwrite 0xd2 3 0xBE"); /* stop clock in pin9 and pin17*/
-#endif
+	
+	{
+		unsigned char value;
+	
+		i2c_read_single(0xd2, 13, &value);
+		if(value == 0x95) // 9001 
+			do_cmd("i2cwrite 0xd2 1 0x84"); /* enable spread spectrum*/
+		else if (value == 0xc6) // 9002
+			do_cmd("i2cwrite 0xd2 1 0x12"); /* enable spread spectrum*/
+	}
 #endif
 	if (rc > 0) {
 		if(!getenv("novga")) vga_available=1;

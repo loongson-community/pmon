@@ -48,7 +48,7 @@ static int i2c_wait(void)
     return -2;
 }
 
-static char i2c_read_single(int addr, int regNo, char *value)
+char i2c_read_single(int addr, int regNo, char *value)
 {
     unsigned char 	c;
 	
