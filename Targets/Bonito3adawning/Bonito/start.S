@@ -1138,6 +1138,7 @@ PRINTSTR("Jump to 9fc\r\n")
 	nop
 #endif
 
+	PRINTSTR("\r\n======This is cww's world!\r\n")
 #if 0 //by AdonWang disable L2 cache
 	lw	a1,0xbfe00180
 	or	a1,a1,0x08 		/*disable L2 Cache*/
@@ -1158,10 +1159,117 @@ PRINTSTR("Jump to 9fc\r\n")
 
 ##########################################
 
-#include "machine/newtest/mydebug.S"
+//cww
+#include "3adawning_fixup.S"
+#if 1 //cww_X2
+	PRINTSTR("\r\n======X1 core0 map windows:\r\n")
+    	li      t1, 23
+    	dli     t2, 0x900000003ff02000
+1:
+	move	a0, t2
+    	bal	hexserial64
+    	nop
+    	PRINTSTR(": ")
+
+    	ld      a0, 0x0(t2)
+    	bal	hexserial64
+    	nop
+    	PRINTSTR("\r\n")
+
+    	daddiu  t2, t2, 8
+    	bnez    t1, 1b
+    	addiu   t1, t1, -1
+
+
+	PRINTSTR("\r\n======X2 cpu map windows:\r\n")
+    	li      t1, 23
+    	dli     t2, 0x900000003ff00000
+1:
+	move	a0, t2
+    	bal	hexserial64
+    	nop
+    	PRINTSTR(": ")
+
+    	ld      a0, 0x0(t2)
+    	bal	hexserial64
+    	nop
+    	PRINTSTR("\r\n")
+
+    	daddiu  t2, t2, 8
+    	bnez    t1, 1b
+    	addiu   t1, t1, -1
+
+	PRINTSTR("\r\n======X2 pci map windows:\r\n")
+    	li      t1, 23
+    	dli     t2, 0x900000003ff00100
+1:
+	move	a0, t2
+    	bal	hexserial64
+    	nop
+    	PRINTSTR(": ")
+
+    	ld      a0, 0x0(t2)
+    	bal	hexserial64
+    	nop
+    	PRINTSTR("\r\n")
+
+    	daddiu  t2, t2, 8
+    	bnez    t1, 1b
+    	addiu   t1, t1, -1
+#endif
+
+#if 1
+	PRINTSTR("\r\n======read HT config reg:\r\n")
+    	dli     t2, 0x90000efdfb000000
+
+	move	a0, t2
+    	bal	hexserial64
+    	nop
+    	PRINTSTR(": ")
+
+    	ld      a0, 0x0(t2)
+    	bal	hexserial64
+    	nop
+    	PRINTSTR("\r\n")
+
+	daddiu	a0, t2, 0x60
+    	bal	hexserial64
+    	nop
+    	PRINTSTR(": ")
+
+    	ld      a0, 0x60(t2)
+    	bal	hexserial64
+    	nop
+    	PRINTSTR("\r\n")
+
+	daddiu	a0, t2, 0x68
+    	bal	hexserial64
+    	nop
+    	PRINTSTR(": ")
+
+    	ld      a0, 0x68(t2)
+    	bal	hexserial64
+    	nop
+    	PRINTSTR("\r\n")
+
+	daddiu	a0, t2, 0x70
+    	bal	hexserial64
+    	nop
+    	PRINTSTR(": ")
+
+    	ld      a0, 0x70(t2)
+    	bal	hexserial64
+    	nop
+    	PRINTSTR("\r\n")
+#endif
 
 ##########################################
 
+	PRINTSTR("\r\n======This is cww's world:1\r\n")
+#include "machine/newtest/mydebug.S"
+	PRINTSTR("\r\n======This is cww's world:2\r\n")
+
+##########################################
 
 bootnow:
 	TTYDBG("Copy PMON to execute location...\r\n")
@@ -1935,11 +2043,11 @@ END(tlb_init)
 ###############################
 LEAF(hexserial64)
   move t7,ra
-  move a1,a0
+  move t6,a0
   dsrl a0,32
   bal hexserial
   nop
-  move a0,a1
+  move a0,t6
   bal hexserial
   nop
   jr t7
@@ -2194,7 +2302,10 @@ idle1000:
 
 #endif
 
+#if 1 //cww for 3adawning
+#include "loongson3a_ddr_config.S"
 
+#else
 #######################################
 #define REG_ADDRESS 0x0
 //#define CONFIG_BASE 0xaff00000
@@ -2829,3 +2940,4 @@ MC1_CTL_start_DATA_LO: .word  0x00000000
 //0000000_1 rw_same_en 0000000_0 reg_dimm_enable 0000000_0 reduc 0000000_0 pwrup_srefresh_exit
 MC1_CTL_start_DATA_HI: .word  0x01010100
 //0000000_1 swap_port_rw_same_en 0000000_1 swap_en 0000000_0 start 0000000_0 srefresh
+#endif

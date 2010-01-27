@@ -74,7 +74,7 @@
 #endif
 
 
-#if 1
+#if 0
 ############
 	TTYDBG("Fix L2xbar illegal access \r\n")
 ############ PCI Space

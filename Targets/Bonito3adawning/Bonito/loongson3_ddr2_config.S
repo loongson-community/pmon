@@ -115,6 +115,8 @@
 	    PRINTSTR("MC1 Config DONE\r\n")
 #endif
 
+//cww
+#if 0
 #ifdef MC0_ONLY
 	    PRINTSTR("MC0 space open : 0x00000000 - 0x0FFFFFFF\r\n")
         #dli     t0, 0x900000003ff00000  #base
@@ -537,6 +539,7 @@
         dli     t1, 0x00000000000004F1
         sd      t1, 0xb8(t0)
 
+#endif
 #endif
 #endif
 #endif
