@@ -84,6 +84,9 @@ tgt_printf (const char *fmt, ...)
 
 #include <pmon.h>
 
+#include "../pci/amd_780e.h"
+#include "../pci/rs780_cmn.h"
+
 #include "mod_x86emu_int10.h"
 #include "mod_x86emu.h"
 #include "mod_vgacon.h"
@@ -397,7 +400,7 @@ superio_reinit();
 	memorysize = memsz > 240 ? 240 << 20 : memsz << 20;
 	memorysize_high = memsz > 240 ? (memsz - 240) << 20 : 0;
 
-#if 1 /* whd : Disable gpu controller of MCP68 */
+#if 0 /* whd : Disable gpu controller of MCP68 */
 	//*(unsigned int *)0xbfe809e8 = 0x122380;
 	//*(unsigned int *)0xbfe809e8 = 0x2280;
 	*(unsigned int *)0xba0009e8 = 0x2280;
@@ -768,6 +771,8 @@ ConfigTable[0].flag=1;//reinit serial
 void
 tgt_devinit()
 {
+	int value;
+
 #if  (PCI_IDSEL_VIA686B != 0)
 	SBD_DISPLAY("686I",0);
 	
@@ -777,6 +782,69 @@ tgt_devinit()
 #if  (PCI_IDSEL_CS5536 != 0)
 	SBD_DISPLAY("5536",0);
 	cs5536_init();
+#endif
+
+
+	printf("rs780_early_setup\n");
+        rs780_early_setup();
+
+        printf("sb700_early_setup\n");
+        sb700_early_setup();
+        printf("rs780_before_pci_fixup\n");
+        rs780_before_pci_fixup();
+        printf("sb700_before_pci_fixup\n");
+        sb700_before_pci_fixup();
+        printf("rs780_enable\n");
+        //vga test
+        //rs780_enable(_pci_make_tag(0, 0, 0));
+        //rs780_enable(_pci_make_tag(0, 1, 0));
+        rs780_after_pci_fixup(); //name dug
+        printf("sb700_enable\n");
+        sb700_enable();
+
+#if 1
+        printf("disable bus0 device pcie bridges\n");
+        //disable bus0 device 3 pci bridges (dev2 to dev7, dev9-dev10)
+        set_nbmisc_enable_bits(_pci_make_tag(0,0,0), 0x0c,(1<<2|1<<3|1<<5|1<<6|1<<7|1<<17),
+                        (1<<2|1<<3|1<<5|1<<6|1<<7|1<<17));
+#endif
+
+#if 1
+        printf("disable internal graphics\n");
+        //disable internal graphics
+        set_nbcfg_enable_bits_8(_pci_make_tag(0,0,0), 0x7c, 1, 1);
+#endif
+
+#if 1
+        //SBD_DISPLAY("disable OHCI and EHCI controller",0);
+        //disable OHCI and EHCI controller
+        printf("disable OHCI and EHCI controller\n");
+        _pci_conf_write8(_pci_make_tag(0,0x14, 0), 0x68, 0x0);
+#endif
+
+#if 1
+        /* usb enable,68h
+        1<<0:usb1 ohci0 enable
+        1<<1:usb1 ohci1 enable
+        1<<2:usb1 ehci enable
+        1<<3:reserved
+        1<<4:usb2 ohci0 enable
+        1<<5:usb2 ohci1 enable
+        1<<6:usb2 ehci enable
+        1<<7:usb3 ohci enable  */
+        printf("enable OHCI controller\n");
+       _pci_conf_write8(_pci_make_tag(0,0x14, 0), 0x68, (1<<0)|(1<<1)|(1<<4)|(1<<5)|(1<<7));
+      	//  _pci_conf_write8(_pci_make_tag(0,0x14, 0), 0x68, (1<<0));
+#endif
+
+
+#if 1
+        //SBD_DISPLAY("disable data",0);
+        //disable sata
+        printf("disable sata\n");
+        value = _pci_conf_read32(_pci_make_tag(0, 0x14, 0), 0xac);
+        value &= ~(1 << 8);
+        _pci_conf_write32(_pci_make_tag(0, 0x14, 0), 0xac, value);
 #endif
 
 
@@ -850,6 +918,8 @@ if(getenv("noautopower"))	vt82c686_powerfixup();
 #if  (PCI_IDSEL_CS5536 != 0)
 	cs5536_pci_fixup();
 #endif
+	printf("sb700_after_pci_fixup\n");
+        sb700_after_pci_fixup();
 }
 
 

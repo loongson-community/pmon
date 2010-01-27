@@ -7,7 +7,13 @@ file	Targets/Bonito3adawning/pci/pci_machdep.c
 file	Targets/Bonito3adawning/Bonito/tgt_machdep.c 
 file	Targets/Bonito3adawning/pci/cs5536_io.c cs5536
 file	Targets/Bonito3adawning/pci/cs5536_vsm.c cs5536
-
+file    Targets/Bonito3adawning/pci/rs780_cmn.c  amd_780e
+file    Targets/Bonito3adawning/pci/amd_780e.c  amd_780e
+file    Targets/Bonito3adawning/pci/sb700.c  amd_780e
+file    Targets/Bonito3adawning/pci/sb700_ide.c  amd_780e
+file    Targets/Bonito3adawning/pci/sb700_lpc.c  amd_780e
+file    Targets/Bonito3adawning/pci/sb700_sata.c  amd_780e
+file    Targets/Bonito3adawning/pci/sb700_usb.c  amd_780e
 
 define  localbus { [base = -1 ] }
 device  localbus

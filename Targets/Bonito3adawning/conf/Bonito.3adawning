@@ -29,6 +29,8 @@ option      MCP68_IDE           # Enable the MCP68 IDE 0 channel
 option      USE_LPC_UART
 #option      MULTI_CHIP
 
+select     	amd_780e
+
 select		mod_flash_amd		# AMD flash device programming
 select		mod_flash_intel		# intel flash device programming
 select		mod_flash_sst		# intel flash device programming

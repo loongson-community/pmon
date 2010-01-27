@@ -295,6 +295,7 @@ _pci_canscan (pcitag_t tag)
 }
 
 
+#if 0
 pcireg_t
 _pci_conf_read(pcitag_t tag,int reg)
 {
@@ -489,7 +490,7 @@ _pci_conf_writen(pcitag_t tag, int reg, pcireg_t data,int width)
 	    _pci_tagprintf (tag, "_pci_conf_write: target abort\n");
     }
 }
-
+#endif
 
 
 void
