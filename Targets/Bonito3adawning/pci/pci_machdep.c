@@ -109,7 +109,8 @@ _pci_hwinit(initialise, iot, memt)
 	//printf("pd->pa.pa_iot=%p,bus_base=0x%x\n",pd->pa.pa_iot,pd->pa.pa_iot->bus_base);
 	pd->pa.pa_memt = pmalloc(sizeof(bus_space_tag_t));
 	pd->pa.pa_memt->bus_reverse = 1;
-	pd->pa.pa_memt->bus_base = PCI_LOCAL_MEM_PCI_BASE;
+	//pd->pa.pa_memt->bus_base = PCI_LOCAL_MEM_PCI_BASE;
+	pd->pa.pa_memt->bus_base = 0xb0000000;
 	pd->pa.pa_dmat = &bus_dmamap_tag;
 	pd->bridge.secbus = pb;
 	_pci_head = pd;
@@ -117,7 +118,7 @@ _pci_hwinit(initialise, iot, memt)
 #ifdef LS3_HT /* whd */
 	pb->minpcimemaddr  = BONITO_PCILO1_BASE;
 	pb->nextpcimemaddr = BONITO_PCILO1_BASE+BONITO_PCILO_SIZE;
-	pb->minpciioaddr   = PCI_IO_SPACE_BASE+0x0007000;
+	pb->minpciioaddr   = PCI_IO_SPACE_BASE+0x000b000;
 	pb->nextpciioaddr  = PCI_IO_SPACE_BASE+ BONITO_PCIIO_SIZE;
 	pb->pci_mem_base   = BONITO_PCILO_BASE_VA;
 	pb->pci_io_base    = BONITO_PCIIO_BASE_VA;
