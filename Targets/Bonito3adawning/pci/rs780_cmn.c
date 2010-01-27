@@ -21,7 +21,8 @@
 #include "rs780_cmn.h"
 
 #define HT_CONF_TYPE0_ADDR 0x90000efdfe000000
-#define HT_MAP_TYPE0_CONF_ADDR  0xbfe80000
+//#define HT_MAP_TYPE0_CONF_ADDR  0xbfe80000
+#define HT_MAP_TYPE0_CONF_ADDR  0xba000000
 
 
 typedef unsigned long long u64;
@@ -50,7 +51,8 @@ void pci_write_type0_config32(u32 dev, u32 func, u32 reg, u32 val){
 
 
 #define HT_CONF_TYPE1_ADDR 0x90000efdff000000
-#define HT_MAP_TYPE1_CONF_ADDR  0xbe000000
+//#define HT_MAP_TYPE1_CONF_ADDR  0xbe000000
+#define HT_MAP_TYPE1_CONF_ADDR  0xbb000000
 
 u32 pci_read_type1_config32(u32 bus, u32 dev, u32 func, u32 reg){
     //u64 addr = 0x90000efdff000000;
