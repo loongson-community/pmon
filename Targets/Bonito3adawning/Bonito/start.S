@@ -1153,6 +1153,9 @@ PRINTSTR("Jump to 9fc\r\n")
 #include "loongson3_HT_init.S"
 #endif
 
+	PRINTSTR("\r\n======This is cww's world:1\r\n")
+#include "3adawning_bridge_config.S"
+	PRINTSTR("\r\n======This is cww's world:2\r\n")
 ##########################################
 
 //#include "loongson3_ddr_debug.S"
@@ -1265,9 +1268,7 @@ PRINTSTR("Jump to 9fc\r\n")
 
 ##########################################
 
-	PRINTSTR("\r\n======This is cww's world:1\r\n")
 #include "machine/newtest/mydebug.S"
-	PRINTSTR("\r\n======This is cww's world:2\r\n")
 
 ##########################################
 
@@ -2118,6 +2119,85 @@ cache_init_panic:
 1:      b       1b
         nop
 	.end	godson2_cache_init
+
+//lycheng
+LEAF(nbmisc_read_index_mips)
+        dli   t1, HT_CONFIG_ADDR
+        or    t1, t1, a0
+        sw    a1, NBMISC_INDEX(t1)
+        lw    v0, 0x64(t1)
+        j  ra
+        nop
+END(nbmisc_read_index_mips)
+LEAF(nbmisc_write_index_mips)
+        dli   t1, HT_CONFIG_ADDR
+        or    t1, t1, a0
+        or    t2, a1, 0x80
+        sw    t2, 0x60(t1)
+        sw    a2, 0x64(t1)
+        j  ra
+        nop
+END(nbmisc_write_index_mips)
+LEAF(post_code_mips)
+        li t0, CPU_POST_PORT
+        sb a0, 0x0(t0)
+        j ra
+        nop
+END(post_code_mips)
+LEAF(enable_rs780_dev8)
+        move t6, ra
+        li   a0,  0x0
+        li   a1,  0x0
+        bal    nbmisc_read_index_mips
+        nop
+        move   v1, v0
+        li     t0,  0xffffffbf      // ~(1 << 6)
+        and   t1, v1, t0
+        li     t0,  0x40  // (1 << 6)
+        or    v1, t1, t0
+        beq    v1, v0, 1f
+        nop
+        //or  a1, a1, 0x80
+        move a2,  v1
+        bal   nbmisc_write_index_mips
+        nop
+1:
+        j  t6
+        nop
+END(enable_rs780_dev8)
+LEAF(pci_read_config32_mips)
+        dli t1, HT_CONFIG_ADDR
+        or  t2, t1, a0
+        or  t1, t2, a1
+        lw  v0, 0x0(t1)
+        j  ra
+        nop
+END(pci_read_config32_mips)
+LEAF(pci_write_config32_mips)
+        dli t1, HT_CONFIG_ADDR
+        or  t2, t1, a0
+        or  t1, t2, a1
+        sw  a2, 0x0(t1)
+        j  ra
+        nop
+END(pci_write_config32_mips)
+LEAF(pci_read_config8_mips)
+        dli t1, HT_CONFIG_ADDR
+        or  t2, t1, a0
+        or  t1, t2, a1
+        lb  v0, 0x0(t1)
+        j  ra
+        nop
+END(pci_read_config8_mips)
+LEAF(pci_write_config8_mips)
+        dli t1, HT_CONFIG_ADDR
+        or  t2, t1, a0
+        or  t1, t2, a1
+        sb  a2, 0x0(t1)
+        j  ra
+        nop
+END(pci_write_config8_mips)
+
 
 #if  1 /* slave main */
 
