@@ -3,10 +3,10 @@
 # Bonito Target specific files
 #
 
-file	Targets/Bonito3amcp68/pci/pci_machdep.c
-file	Targets/Bonito3amcp68/Bonito/tgt_machdep.c 
-file	Targets/Bonito3amcp68/pci/cs5536_io.c cs5536
-file	Targets/Bonito3amcp68/pci/cs5536_vsm.c cs5536
+file	Targets/Bonito3adawning/pci/pci_machdep.c
+file	Targets/Bonito3adawning/Bonito/tgt_machdep.c 
+file	Targets/Bonito3adawning/pci/cs5536_io.c cs5536
+file	Targets/Bonito3adawning/pci/cs5536_vsm.c cs5536
 
 
 define  localbus { [base = -1 ] }

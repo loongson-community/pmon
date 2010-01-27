@@ -1,7 +1,7 @@
 ifndef S
 S:=$(shell cd ../../../..; pwd)
 endif
-TARGET= ${S}/Targets/Bonito3amcp68
+TARGET= ${S}/Targets/Bonito3adawning
 SUBTARGET?=Bonito
 CPPFLAGS=-mips3
 

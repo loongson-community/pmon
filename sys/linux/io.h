@@ -1,5 +1,5 @@
 #ifdef LS3_HT
-#include "../../Targets/Bonito3amcp68/include/bonito.h"
+#include "../../Targets/Bonito3adawning/include/bonito.h"
 #endif
 #ifndef __LINUXIO_H_
 #define __LINUXIO_H_

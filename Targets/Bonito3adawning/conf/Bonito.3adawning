@@ -1,6 +1,6 @@
 # $Id: Bonito,v 1.1.1.1 2006/09/14 01:59:09 root Exp $ # #	GENERIC configuration for Galileo EV64240 # #  This file is supposed to be included by target file after #  endian has been defined.
 #
-machine         Bonito3amcp68        mips    # CPU Architecture, Platform
+machine         Bonito3adawning        mips    # CPU Architecture, Platform
 config          pmon 
 option          VGAROM_IN_BIOS
 #
