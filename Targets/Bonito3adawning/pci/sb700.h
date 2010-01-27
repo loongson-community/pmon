@@ -38,10 +38,10 @@ extern void     _pci_break_tag(device_t, int *, int *, int *);
 #define PM2_INDEX	0xba000cd0
 #define PM2_DATA	0xba000cd1
 #endif
-#define PM_INDEX	0xb8000cd6
-#define PM_DATA		0xb8000cd7
-#define PM2_INDEX	0xb8000cd0
-#define PM2_DATA	0xb8000cd1
+#define PM_INDEX	0xbfd00cd6
+#define PM_DATA		0xbfd00cd7
+#define PM2_INDEX	0xbfd00cd0
+#define PM2_DATA	0xbfd00cd1
 
 extern void pm_iowrite(u8 reg, u8 value);
 extern u8 pm_ioread(u8 reg);

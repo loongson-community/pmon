@@ -43,7 +43,7 @@
 
 //#define AB_INDX   0xCD8
 //#define AB_INDX   0xba000CD8
-#define AB_INDX   0xb8000CD8
+#define AB_INDX   0xbfd00CD8
 #define AB_DATA   (AB_INDX+4)
 
 /* Between 1-10 seconds, We should never timeout normally

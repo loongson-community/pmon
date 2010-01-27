@@ -329,7 +329,7 @@ void sb700_devices_por_init(void)
 	/* clear any lingering errors, so the transaction will run */
 	printk_info("IO Address Enable\n");
 	//OUTB(INB(0xba000000 + SMBUS_IO_BASE + SMBHSTSTAT), 0xba000000 + SMBUS_IO_BASE + SMBHSTSTAT);
-	OUTB(INB(0xb8000000 + SMBUS_IO_BASE + SMBHSTSTAT), 0xb8000000 + SMBUS_IO_BASE + SMBHSTSTAT);
+	OUTB(INB(0xbfd00000 + SMBUS_IO_BASE + SMBHSTSTAT), 0xbfd00000 + SMBUS_IO_BASE + SMBHSTSTAT);
 #endif
 	/* IDE Device, BDF:0-20-1 */
 	printk_info("sb700_devices_por_init(): IDE Device, BDF:0-20-1\n");

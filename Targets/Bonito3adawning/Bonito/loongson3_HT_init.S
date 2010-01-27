@@ -20,6 +20,7 @@
     dli t2, 0x900000003ff02400
 
 1:
+#if 0
  //map HT: PCI IO : 0x90000efd_fc000000 --> 0x18000000
  //map              0x90000efd_fd000000 --> 0x19000000
  //map HT: PCI CFG: 0x90000efd_fe000000 --> 0x1a000000
@@ -74,6 +75,73 @@
     nop
 
 #endif
+/******************************************/
+##################################### LEVEL-1 XBAR : CPU #########################################
+###HT CFG : TYPE 0: 
+###map 0x90000efd_fe000000 --> 0x1fe80000, size 0x00080000 
+	dli t1, 0x000000001fe80000
+	sd  t1, 0x0(t0)
+	dli t1, 0xfffffffffff80000
+	sd  t1, 0x40(t0)
+	dli t1, 0x00000efdfe0000f7
+	sd  t1, 0x80(t0)
+###HT CFG : TYPE 1:
+###map 0x90000efd_ff000000 --> 0x1e000000, size 0x01000000
+	dli t1, 0x000000001e000000
+	sd  t1, 0x8(t0)
+	dli t1, 0xffffffffff000000
+	sd  t1, 0x48(t0)
+	dli t1, 0x00000efdff0000f7
+	sd  t1, 0x88(t0)
+
+###HT LOW MEM
+###map 0x90000e00_00000000 --> 0x10000000, size 0x04000000
+	dli t1, 0x0000000010000000
+	sd  t1, 0x10(t0)
+	dli t1, 0xfffffffffc000000
+	sd  t1, 0x50(t0)
+	dli t1, 0x00000e00000000f7
+	sd  t1, 0x90(t0)
+
+###HT HIGH MEM
+###map 0x90000e00_10000000 --> 0x14000000, size 0x04000000
+	dli t1, 0x0000000014000000
+	sd  t1, 0x18(t0)
+	dli t1, 0xfffffffffc000000
+	sd  t1, 0x58(t0)
+	dli t1, 0x00000e00140000f7
+	sd  t1, 0x98(t0)
+
+###HT IO 
+###map 0x90000efd_fc000000 --> 0x1fd00000, size 0x01000000
+	dli t1, 0x000000001fd00000
+	sd  t1, 0x20(t0)
+	dli t1, 0xfffffffffff00000
+	sd  t1, 0x60(t0)
+	dli t1, 0x00000efdfc0000f7
+	sd  t1, 0xa0(t0)
+
+###HT BRIDGE CFG
+###map 0x90000efd_fb000000 --> 0x1b000000, size 0x01000000
+	dli t1, 0x000000001b000000
+	sd  t1, 0x28(t0)
+	dli t1, 0xffffffffff000000
+	sd  t1, 0x68(t0)
+	dli t1, 0x00000efdfb0000f7
+	sd  t1, 0xa8(t0)
+
+### ANY ELSE DEFAULY MEMORY 
+### Mapping 0x0 ---> 0x0, size 0x00001000_00000000
+
+	daddiu	t0, t0, 0x100
+	bne	t0, t2, 1b
+	nop
+
+
+/******************************************/
+#endif
+
+
 
 //////////////////
 #if	0
@@ -291,6 +359,25 @@ ht_next_id :
 	li	    t0, 0x0010fff8
 	sw	    t0, 0xd4(t2)
 
+#endif
+
+//lycheng
+#if 0
+        TTYDBG("-------------------HT HOST mode enable\r\n")
+        li      t2, 0xbb000040
+        lw      a0, 0x0(t2)
+        bal     hexserial
+        nop
+
+        li      t1, 0xfbffffff
+        and     a0, a0, t1
+        sw      a0, 0x0(t2)
+
+        lw      a0, 0x0(t2)
+        bal     hexserial
+        nop
+        TTYDBG("\r\n")
+        TTYDBG("-------------------HT HOST mode enable done\r\n")
 #endif
 
 #ifdef HT_16bit//Set HT bridge to be 16-bit width
@@ -949,7 +1036,7 @@ crc_checking:
 
 #endif
 
-#if 1//Enable the LPC on the Southbridge, including SuperIO, LED....
+#if 0//Enable the LPC on the Southbridge, including SuperIO, LED....
 	TTYDBG("Check the LPC on the Southbridge\r\n")
 	//li	t0, 0xba000800
     dli	    t0, 0x90000efdfe000800
