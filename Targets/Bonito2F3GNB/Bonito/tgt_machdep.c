@@ -461,7 +461,6 @@ tgt_devinit()
 void
 tgt_reboot()
 {
-    printf("here in tgt_machdep tgt_reboot.");
 #if 0
 	/* reset the cs5536 whole chip */
 #if NCS5536 > 0 && !defined(LOONGSON2F_7INCH) 
@@ -501,8 +500,9 @@ tgt_reboot()
 	/* we should not exec until here. */
 	//__asm__ ("jr %0\n"::"r"(0xbfc00000));
 #endif
+	/* Send reboot command */
 	*((volatile unsigned char *)(0xbfd00066)) = 0x4e;
-	delay(1000);
+	delay(1000000);
 	*((volatile unsigned char *)(0xbfd00062)) = 0x1;
 	while(1);
 }

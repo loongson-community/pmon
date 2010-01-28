@@ -85,6 +85,13 @@
 #define	VER_MAX_SIZE	7 //0x40
 #define	EC_ROM_MAX_SIZE	0xf7a8 //0xf400
 
+/**************************************************************/
+/* We should make ec rom content and pmon port number equal. */
+#define	WPCE775_HIGH_PORT	0xFF1E
+#define WPCE775_MID_PORT	0xFF1D
+#define	WPCE775_LOW_PORT	0xFF1C
+#define	WPCE775_DATA_PORT	0xFF1F
+
 /* access ec register content */
 static inline void wrec(unsigned short reg, unsigned char val)
 {
@@ -100,3 +107,38 @@ static inline unsigned char rdec(unsigned short reg)
 	return (*( (volatile unsigned char *)(mips_io_port_base| DATA_PORT) ));
 }
 
+/* access WPCE775x EC register content */
+static inline void wrwbec(unsigned long reg, unsigned char val)
+{
+	delay(10);
+	*( (volatile unsigned char *)(0xbfd00000 | WPCE775_HIGH_PORT) ) = (reg & 0xff0000) >> 16;
+	*( (volatile unsigned char *)(0xbfd00000 | WPCE775_MID_PORT) ) = (reg & 0x00ff00) >> 8;
+	*( (volatile unsigned char *)(0xbfd00000 | WPCE775_LOW_PORT) ) = (reg & 0x00ff);
+	*( (volatile unsigned char *)(0xbfd00000 | WPCE775_DATA_PORT) ) = val;
+}
+
+static inline unsigned char rdwbec(unsigned long reg)
+{
+	delay(10);
+	*( (volatile unsigned char *)(0xbfd00000 | WPCE775_HIGH_PORT) ) = (reg & 0xff0000) >> 16;
+	*( (volatile unsigned char *)(0xbfd00000 | WPCE775_MID_PORT) ) = (reg & 0x00ff00) >> 8;
+	*( (volatile unsigned char *)(0xbfd00000 | WPCE775_LOW_PORT) ) = (reg & 0x00ff);
+	return (*( (volatile unsigned char *)(0xbfd00000 | WPCE775_DATA_PORT) ));
+}
+
+/* access WPCE775l EC Space content for ACPI */
+static inline void wracpi(unsigned char cmd, unsigned char index, unsigned char data)
+{
+	delay(10);
+	*( (volatile unsigned char *)(0xbfd00066) ) = cmd;
+	*( (volatile unsigned char *)(0xbfd00062) ) = index;
+	*( (volatile unsigned char *)(0xbfd00062) ) = data;
+}
+
+static inline unsigned char rdacpi(unsigned char cmd, unsigned char index)
+{
+	delay(10);
+	*( (volatile unsigned char *)(0xbfd00066) ) = cmd;
+	*( (volatile unsigned char *)(0xbfd00062) ) = index;
+	return (*( (volatile unsigned char *)(0xbfd00062) ));
+}

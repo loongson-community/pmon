@@ -1812,7 +1812,7 @@ static int takeback_td(ohci_t *ohci, td_t *td_list)
 	/* error code of transfer */
 	cc = TD_CC_GET(tdINFO);
 	if (cc) {
-		err("takeback_td USB-error: %x", cc);
+		//err("takeback_td USB-error: %x", cc);
 		stat = cc_to_error[cc];
 	}
     dbg("takeback_td-1 td:%x ed:%x state:%x\n",td_list,ed,ed->state);
