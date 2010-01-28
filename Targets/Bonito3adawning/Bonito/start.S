@@ -1066,6 +1066,8 @@ gs_2f_v3_ddr2_cfg:
 ##########################################
 #endif
 
+//cww
+#include "3adawning_fixup.S"
 
 		bal CPU_TLBClear
 		nop
@@ -1162,8 +1164,6 @@ PRINTSTR("Jump to 9fc\r\n")
 
 ##########################################
 
-//cww
-#include "3adawning_fixup.S"
 #if 1 //cww_X2
 	PRINTSTR("\r\n======X1 core0 map windows:\r\n")
     	li      t1, 23

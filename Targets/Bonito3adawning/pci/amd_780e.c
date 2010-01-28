@@ -744,9 +744,11 @@ void rs780_enable(device_t dev)
 			temp8 &= ~(1<<1);
 			pci_write_config8(nb_dev, 0x8d, temp8);
 			/* BTDC: set temporary NB TOM to 0x40000000. */
-        		printk_info("set temporary NB TOM to 0xf0000000\n");
+        		//printk_info("set temporary NB TOM to 0xf0000000\n");
 			//pci_write_config32(nb_dev, 0x90, 0x40000000);
-			pci_write_config32(nb_dev, 0x90, 0xf0000000);
+			//pci_write_config32(nb_dev, 0x90, 0xf0000000);
+        		printk_info("set temporary NB TOM to 0xffffffff\n");
+			pci_write_config32(nb_dev, 0x90, 0xffffffff);
 			/* BTDC: Program NB HTIU table. */
         		printk_info("Program NB HTIU table\n");
 			set_htiu_enable_bits(nb_dev, 0x05, 1<<10 | 1<<9, 1<<10|1<<9);
