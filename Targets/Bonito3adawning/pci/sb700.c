@@ -1,16 +1,6 @@
 #include "sb700.h"
 #include "rs780_cmn.h"
 
-#if 0
-#define INB(addr) (*(volatile unsigned char *) (addr))
-#define INW(addr) (*(volatile unsigned short *) (addr))
-#define INL(addr) (*(volatile unsigned int *) (addr))
-
-#define OUTB(b,addr) (*(volatile unsigned char *) (addr) = (b))
-#define OUTW(b,addr) (*(volatile unsigned short *) (addr) = (b))
-#define OUTL(b,addr) (*(volatile unsigned int *) (addr) = (b))
-#endif
-
 #define NULL (void*)0
 
 void set_sm_enable_bits(device_t sm_dev, u32 reg_pos, u32 mask, u32 val)

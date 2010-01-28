@@ -30,19 +30,6 @@ typedef unsigned long device_t;
 extern device_t _pci_make_tag(int, int, int);
 extern void     _pci_break_tag(device_t, int *, int *, int *);
 
-
-/* Power management index/data registers */
-#if 0
-#define PM_INDEX	0xba000cd6
-#define PM_DATA		0xba000cd7
-#define PM2_INDEX	0xba000cd0
-#define PM2_DATA	0xba000cd1
-#endif
-#define PM_INDEX	0xbfd00cd6
-#define PM_DATA		0xbfd00cd7
-#define PM2_INDEX	0xbfd00cd0
-#define PM2_DATA	0xbfd00cd1
-
 extern void pm_iowrite(u8 reg, u8 value);
 extern u8 pm_ioread(u8 reg);
 extern void pm2_iowrite(u8 reg, u8 value);

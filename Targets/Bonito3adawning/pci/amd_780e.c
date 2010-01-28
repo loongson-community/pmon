@@ -329,7 +329,7 @@ void sb700_devices_por_init(void)
 	/* clear any lingering errors, so the transaction will run */
 	printk_info("IO Address Enable\n");
 	//OUTB(INB(0xba000000 + SMBUS_IO_BASE + SMBHSTSTAT), 0xba000000 + SMBUS_IO_BASE + SMBHSTSTAT);
-	OUTB(INB(0xbfd00000 + SMBUS_IO_BASE + SMBHSTSTAT), 0xbfd00000 + SMBUS_IO_BASE + SMBHSTSTAT);
+	OUTB(INB(BONITO_PCIIO_BASE_VA + SMBUS_IO_BASE + SMBHSTSTAT), BONITO_PCIIO_BASE_VA + SMBUS_IO_BASE + SMBHSTSTAT);
 #endif
 	/* IDE Device, BDF:0-20-1 */
 	printk_info("sb700_devices_por_init(): IDE Device, BDF:0-20-1\n");
@@ -830,7 +830,7 @@ void rs780_enable(device_t dev)
 			printk_info("Program Straps\n");
 			//lycheng
 			//MMIOBase |= 0xb0000000;
-			MMIOBase = 0xbe000000;
+			MMIOBase = BONITO_PCICFG1_BASE_VA;
 			printk_info("MMIOBase=%08x\n", MMIOBase);
 #if 1
 			strap = MMIOBase + 0x15020;

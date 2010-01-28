@@ -41,8 +41,8 @@ extern char           *heaptop;
 #define GS3_UART1_BASE 0xbfe001e8
 #define GS3_UART_BASE   GS3_UART0_BASE
 #ifdef LS3_HT
-#define COM1_BASE_ADDR	0xbfd003f8
-#define COM2_BASE_ADDR	0xbfd002f8
+#define COM1_BASE_ADDR	0xb80003f8
+#define COM2_BASE_ADDR	0xb80002f8
 #else
 #define COM1_BASE_ADDR	0xbfd003f8
 #define COM2_BASE_ADDR	0xbfd002f8
@@ -137,8 +137,8 @@ extern char           *heaptop;
 //#define BONITO_PCIHI_TOP		(BONITO_PCIHI_BASE+BONITO_PCIHI_SIZE-1)
 //#define BONITO_PCIIO_BASE		0x1fd00000
 //#define BONITO_PCIIO_BASE_VA		0xbfd00000
-#define BONITO_PCIIO_BASE		0x1fd00000
-#define BONITO_PCIIO_BASE_VA    0xbfd00000
+#define BONITO_PCIIO_BASE		0x18000000
+#define BONITO_PCIIO_BASE_VA    0xb8000000
 #define BONITO_PCIIO_SIZE		0x02000000
 #else
 #define BONITO_PCILO2_BASE		0x18000000
@@ -150,9 +150,13 @@ extern char           *heaptop;
 #define BONITO_PCIIO_SIZE		0x00010000
 #endif
 #define BONITO_PCIIO_TOP		(BONITO_PCIIO_BASE+BONITO_PCIIO_SIZE-1)
-#define BONITO_PCICFG_BASE		0x1fe80000
+#define BONITO_PCICFG_BASE		0x1a000000
 #define BONITO_PCICFG_SIZE		0x00080000
 #define BONITO_PCICFG_TOP		(BONITO_PCICFG_BASE+BONITO_PCICFG_SIZE-1)
+#define BONITO_PCICFG0_BASE             0x1a000000
+#define BONITO_PCICFG1_BASE             0x1b000000
+#define BONITO_PCICFG0_BASE_VA          0xba000000
+#define BONITO_PCICFG1_BASE_VA          0xbb000000
  
 
 /* Bonito Register Bases */

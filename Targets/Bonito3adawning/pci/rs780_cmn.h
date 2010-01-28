@@ -1,6 +1,7 @@
 #ifndef __RS780_CMN_H__
 #define __RS780_CMN_H__
 
+#include <include/bonito.h>
 #include "rs780.h"
 
 #define pci_read_config32(t, r)   _pci_conf_read32((t), (r))
@@ -32,10 +33,18 @@ void _pci_conf_write16(device_t tag, int reg, u16 data);
 void _pci_conf_write8(device_t tag, int reg, u8 data);
 void _pci_conf_writen(device_t tag, int reg, u32 data,int width);
 
+#define PM_INDEX        (BONITO_PCIIO_BASE_VA + 0x0cd6)
+#define PM_DATA         (BONITO_PCIIO_BASE_VA + 0x0cd7)
+#define PM2_INDEX       (BONITO_PCIIO_BASE_VA + 0x0cd0)
+#define PM2_DATA        (BONITO_PCIIO_BASE_VA + 0x0cd1)
+#define AB_INDX         (BONITO_PCIIO_BASE_VA + 0x0CD8)
+#define AB_DATA         (AB_INDX + 4)
 
 
 extern int printf (const char *fmt, ...);
 
+//#define DAWNINGBLADE_DEBUG
+#ifdef DAWNINGBLADE_DEBUG
 #define printk_emerg(fmt, arg...)   printf(fmt, ##arg)
 #define printk_alert(fmt, arg...)   printf(fmt, ##arg)
 #define printk_crit(fmt, arg...)    printf(fmt, ##arg)
@@ -46,6 +55,17 @@ extern int printf (const char *fmt, ...);
 #define printk_debug(fmt, arg...)   printf(fmt, ##arg)
 #define printk_spew(fmt, arg...)    printf(fmt, ##arg)
 #define printk(fmt, arg...)         printf(fmt, ##arg)
-
+#else
+#define printk_emerg(fmt, arg...)
+#define printk_alert(fmt, arg...)
+#define printk_crit(fmt, arg...)
+#define printk_err(fmt, arg...)
+#define printk_warning(fmt, arg...)
+#define printk_notice(fmt, arg...)
+#define printk_info(fmt, arg...)
+#define printk_debug(fmt, arg...)
+#define printk_spew(fmt, arg...)
+#define printk(fmt, arg...)
 #endif
 	
+#endif
