@@ -1756,9 +1756,44 @@ void _set_font_color(void)
     eorx = fgx ^ bgx;
 
 }
+
+//special for sm502's clear srceen
+#if (defined(SMI502))
+void sm502_video_cls(void)
+{
+#if (defined(X1368x768))
+	/*20100119,Teddy:It seems that SM502's fillrect function has bug that it can't draw a large width rect.We draw it three times.*/
+    deFillRectModify(0,0,0,500,768,CONSOLE_BG_COL); 
+    deFillRectModify(0,500,0,1000,768,CONSOLE_BG_COL);
+    deFillRectModify(0,1000,0,1368,768,CONSOLE_BG_COL);
+#endif
+#if defined(X1024x768)
+	deFillRectModify(0,0,0,1024,768,CONSOLE_BG_COL);
+#endif
+	
+#if defined(X800x600)	
+	deFillRectModify(0,0,0,800,600,CONSOLE_BG_COL);
+#endif
+	
+#if defined(X640x480)
+	deFillRectModify(0,0,0,640,480,CONSOLE_BG_COL);
+#endif
+
+#if defined(X1024x600)
+	deFillRectModify(0,0,0,400,600,CONSOLE_BG_COL);
+    deFillRectModify(0,400,0,800,600,CONSOLE_BG_COL);
+    deFillRectModify(0,800,0,1024,600,CONSOLE_BG_COL);
+#endif
+}
+#endif
+
 void video_cls(void)
 {
-#if  (defined(VIDEO_HW_RECTFILL)&&!defined(SMI502))
+#if  (defined(VIDEO_HW_RECTFILL))
+#if (defined(SMI502))
+    sm502_video_cls();
+#endif
+#if (defined(SM712_GRAPHIC_CARD))
     video_hw_rectfill(
             VIDEO_PIXEL_SIZE,   /* bytes per pixel */
             0,  /* dest pos x */
@@ -1772,10 +1807,9 @@ void video_cls(void)
 #endif
             CONSOLE_BG_COL  /* fill color */
         );
-#else
+#endif
 //5-8
 #ifdef NMOD_SISFB
-    //memsetl(video_fb_address,1360*768*2,CONSOLE_BG_COL);
 {
     void sisfb_rectfill(unsigned int bpp, unsigned int dst_x, unsigned int dst_y, 
                 unsigned int dim_x, unsigned int dim_y, unsigned int color);
@@ -1787,15 +1821,12 @@ void video_cls(void)
             VIDEO_VISIBLE_ROWS, /* frame height */
             CONSOLE_BG_COL);            
 }
+#endif
 #else
-
     memsetl(video_fb_address + VIDEO_LOGO_HEIGHT * VIDEO_LINE_LEN,
         CONSOLE_SIZE - VIDEO_LOGO_HEIGHT * VIDEO_LINE_LEN,
         CONSOLE_BG_COL);
 #endif
-#endif
-
-
 
     _set_font_color();
 /*

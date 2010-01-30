@@ -749,7 +749,18 @@ int video_hw_init (void)
 #else
 	printf("error Unsupported SM502 BPP\n");
 #endif
-     
+
+    #ifdef X1368x768
+    /* Clear video memory ,beacuse we use the different pitch in kernel and xorg */
+    i = 1368 * 768 * sm502.gdfBytesPP / 4  ;
+    while(i--)
+        *((unsigned int *)sm502.frameAdrs)++ = 0x00; 
+    #endif
+	#ifdef  X1024x600
+	i = 1024 * 600 * sm502.gdfBytesPP / 4;
+	while(i--)
+		*((unsigned int *)sm502.frameAdrs)++ = 0x00;
+	#endif
 	/* Load Smi registers */
 	SmiSetRegs (); //640x480
 
