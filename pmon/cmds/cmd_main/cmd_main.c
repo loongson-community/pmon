@@ -807,11 +807,11 @@ void envstr_init(void)
         if (envstr != NULL) {
             strcpy(w3[2],envstr);
         } else {
-            strcpy(w3[2],"console=tty machtype=lynloong video=sisfb:1360x768-16@60");   
+            strcpy(w3[2],"console=tty machtype=lynloong-2f-9003 video=sisfb:1360x768-16@60");   
         }
     }
     else  {
-        strcpy(w3[2],"console=tty machtype=lynloong video=sisfb:1360x768-16@60");   
+        strcpy(w3[2],"console=tty machtype=lynloong-2f-9003 video=sisfb:1360x768-16@60");   
     }     
 
     envstr = getenv("R_file");

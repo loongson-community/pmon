@@ -739,7 +739,8 @@ static void
 _probe_frequencies()
 {
 
-        md_pipefreq = 800000000;        /* NB FPGA*/
+        //md_pipefreq = 800000000;        /* NB FPGA*/
+        md_pipefreq = 800435000;
         md_cpufreq  =  60000000;
 #if 0        
 #if defined(HAVE_TOD) && HAVE_RTC 
