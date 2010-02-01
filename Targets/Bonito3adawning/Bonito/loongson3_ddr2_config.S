@@ -116,10 +116,10 @@
 #endif
 
 //cww
-#if 0
+#if 1
 #ifdef MC0_ONLY
 	    PRINTSTR("MC0 space open : 0x00000000 - 0x0FFFFFFF\r\n")
-        #dli     t0, 0x900000003ff00000  #base
+        dli     t0, 0x900000003ff00000  #base
         GET_NODE_ID_a0;
         dli     t1, 0x00000000
         or      t1, t1, a0
@@ -130,6 +130,7 @@
 
         dli     t1, 0x000000f0
         sd      t1, 0x90(t0)
+	    PRINTSTR("MC0 space open : 0x00000000 - 0x0FFFFFFF : done\r\n")
 
 #else
 #ifdef MC1_ONLY
@@ -288,16 +289,18 @@
 #else
 #ifdef DDR_1G
 	    PRINTSTR("MC0 space open : 0x40000000 - 0x7FFFFFFF\r\n")
+        dli     t0, 0x900000003ff00000  #base
         GET_NODE_ID_a0;
         dli     t1, 0x0000000040000000
         or      t1, t1, a0
-        sd      t1, 0x20(t0)
+        sd      t1, 0x18(t0)
 
         dli     t1, 0xffffffffc0000000
-        sd      t1, 0x60(t0)
+        sd      t1, 0x58(t0)
 
         dli     t1, 0x00000000000000f0
-        sd      t1, 0xa0(t0)
+        sd      t1, 0x98(t0)
+	PRINTSTR("MC0 space open : 0x40000000 - 0x7FFFFFFF : done\r\n")
 
 #endif
 #endif

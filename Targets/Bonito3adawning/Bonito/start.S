@@ -1067,7 +1067,7 @@ gs_2f_v3_ddr2_cfg:
 #endif
 
 //cww
-#include "3adawning_fixup.S"
+//#include "3adawning_fixup.S"
 
 		bal CPU_TLBClear
 		nop
