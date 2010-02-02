@@ -751,11 +751,17 @@ int video_hw_init (void)
 #endif
 
     #ifdef X1368x768
+	{
     /* Clear video memory ,beacuse we use the different pitch in kernel and xorg */
-    i = 1368 * 768 * sm502.gdfBytesPP / 4  ;
-    while(i--)
-        *((unsigned int *)sm502.frameAdrs)++ = 0x00; 
-    #endif
+    unsigned int *p_frameAdrs = (unsigned int *)sm502.frameAdrs;
+	i = 1368 * 768 * sm502.gdfBytesPP / 2  ;
+    while(i--){
+		*p_frameAdrs = 0x00;
+		p_frameAdrs++;
+	}
+	
+	}
+	#endif
 	#ifdef  X1024x600
 	i = 1024 * 600 * sm502.gdfBytesPP / 4;
 	while(i--)
