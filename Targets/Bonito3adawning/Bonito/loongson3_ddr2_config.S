@@ -10,8 +10,8 @@
 
 /* Size of each DDR controller */
 //#define DDR_512
-#define DDR_1G
-//#define DDR_2G
+//#define DDR_1G
+#define DDR_2G
 
 /* Interleave pattern when both controller enabled */
 //#define INTERLEAVE_27
@@ -93,7 +93,7 @@
 	    PRINTSTR("MC0 Config DONE\r\n")
 #endif
 
-#ifndef MC0_ONLY
+//#ifndef MC0_ONLY
         GET_NODE_ID_a0;
 
         dli     t1, 0x00000000
@@ -113,7 +113,7 @@
 	    nop
 
 	    PRINTSTR("MC1 Config DONE\r\n")
-#endif
+//#endif
 
 //cww
 #if 1
@@ -301,7 +301,35 @@
         dli     t1, 0x00000000000000f0
         sd      t1, 0x98(t0)
 	PRINTSTR("MC0 space open : 0x40000000 - 0x7FFFFFFF : done\r\n")
+#else
+#ifdef DDR_2G
+	    PRINTSTR("    MC0 space open : 0x80000000 - 0xbFFFFFFF\r\n")
+	    PRINTSTR("and MC1 space open : 0xc0000000 - 0xFFFFFFFF\r\n")
+        dli     t0, 0x900000003ff00000  #base
+        GET_NODE_ID_a0;
+        dli     t1, 0x0000000080000000
+        or      t1, t1, a0
+        sd      t1, 0x18(t0)
 
+        dli     t1, 0xffffffffc0000000
+        sd      t1, 0x58(t0)
+
+        dli     t1, 0x00000000000000f0
+        sd      t1, 0x98(t0)
+	PRINTSTR("    MC0 space open : 0x80000000 - 0xbFFFFFFF : done\r\n")
+
+        dli     t1, 0x00000000c0000000
+        or      t1, t1, a0
+        sd      t1, 0x20(t0)
+
+        dli     t1, 0xffffffffc0000000
+        sd      t1, 0x60(t0)
+
+        dli     t1, 0x00000000000000f1
+        sd      t1, 0xa0(t0)
+	PRINTSTR("and MC1 space open : 0xc0000000 - 0xFFFFFFFF : done\r\n")
+
+#endif
 #endif
 #endif
 

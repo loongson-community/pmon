@@ -333,16 +333,16 @@ ht_next_id :
 	dli	    t2, 0x90000efdfb000060
 	li	    t0, 0xc0000000
 	sw	    t0, 0x0(t2)
-	li	    t0, 0x0080ff80
+	li	    t0, 0x0080fff0
 	sw	    t0, 0x4(t2)
-	//TTYDBG("HT RX DMA address ENABLE done 1\r\n")
+	TTYDBG("HT RX DMA address ENABLE done 1\r\n")
 
 
-	//li	t0, 0x80000000
-	//sw	t0, 0x8(t2)
-	//li	t0, 0x0000ffc0
-	//sw	t0, 0xc(t2)
-	////TTYDBG("HT RX DMA address ENABLE done 2\r\n")
+	li	t0, 0xc0000080
+	sw	t0, 0x8(t2)
+	li	t0, 0x0080ff80
+	sw	t0, 0xc(t2)
+	TTYDBG("HT RX DMA address ENABLE done 2\r\n")
 
 	//li	t0, 0xc0000000
 	//sw	t0, 0x10(t2)
