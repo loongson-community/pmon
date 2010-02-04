@@ -5,19 +5,19 @@
 
 #######################################################
 /* Undefine the two to enable both */
-#define MC0_ONLY
+//#define MC0_ONLY
 //#define MC1_ONLY
 
 /* Size of each DDR controller */
 //#define DDR_512
-//#define DDR_1G
-#define DDR_2G
+#define DDR_1G
+//#define DDR_2G
 
 /* Interleave pattern when both controller enabled */
-//#define INTERLEAVE_27
+#define INTERLEAVE_27
 //#define INTERLEAVE_13
 //#define INTERLEAVE_12
-#define INTERLEAVE_11
+//#define INTERLEAVE_11
 #######################################################
 
 /******************************************************

@@ -2386,7 +2386,6 @@ idle1000:
 #include "loongson3a_ddr_config.S"
 
 #else
-
 #######################################
 #define REG_ADDRESS 0x0
 //#define CONFIG_BASE 0xaff00000
@@ -2399,9 +2398,26 @@ idle1000:
         .set    noreorder
         .set    mips3
 ddr2_config:
+
+	/*get a 8-byte number from the keyboard*/
+/*
+	move	t8, a0
+	move	t1, ra
+
+	PRINTSTR("Please input hex :\r\n");
+	li	t6, 0x00
+	bal	inputaddress	#input value stored in v0
+	nop
+	move	t5, v0	#store v0 to t5
+	
+	move	a0, t8
+	move	ra, t1
+*/
+
     la      a2, ddr2_reg_data
     addu    a2, a2, s0
     li      t1, 152 ##0x72
+    //li      t1, 0x8f	#first half loop #152 ##0x72	#TTTTTTTTTTTTTT
     #dli      v0, CONFIG_BASE
     #move    v0, a0         #old:li      v0, CONFIG_BASE
     daddiu	v0, a0, 0x0
@@ -2415,7 +2431,26 @@ reg_write:
     addiu   a2, a2, 0x8
     bne     t1, $0, reg_write
     daddiu   v0, v0, 0x10
-    
+
+/*
+	#write the register parameter specified by the keyboard input
+	sd	t5, REG_ADDRESS(v0)
+	
+	li	t1, 151-0x8f	#TTTTTTTTTTT***change the register to be specified	
+	addiu	a2, a2, 0x8
+	daddiu	v0, v0, 0x10
+
+1:
+	ld	a1, 0x0(a2)
+	sd	a1, REG_ADDRESS(v0)
+
+	subu	t1, t1, 0x1
+	addiu	a2, a2, 0x8
+	bne	t1, $0, 1b
+	daddiu	v0, v0, 0x10
+*/
+
+
     li      v0, 0xfff
 1:
     bnez    v0, 1b
@@ -2483,9 +2518,26 @@ reg_write:
         .set    noreorder
         .set    mips3
 ddr2_config_mc1:
+
+	/*get a 8-byte number from the keyboard*/
+/*
+	move	t8, a0
+	move	t1, ra
+
+	PRINTSTR("Please input hex :\r\n");
+	li	t6, 0x00
+	bal	inputaddress	#input value stored in v0
+	nop
+	move	t5, v0	#store v0 to t5
+	
+	move	a0, t8
+	move	ra, t1
+*/
+
     la      a2, ddr2_reg_data_mc1
     addu    a2, a2, s0
     li      t1, 152 ##0x72
+    //li      t1, 0x8f	#first half loop #152 ##0x72	#TTTTTTTTTTTTTT
     #dli      v0, CONFIG_BASE
     #move    v0, a0         #old:li      v0, CONFIG_BASE
     daddiu	v0, a0, 0x0
@@ -2499,7 +2551,25 @@ reg_write_mc1:
     addiu   a2, a2, 0x8
     bne     t1, $0, reg_write_mc1
     daddiu   v0, v0, 0x10
-    
+
+/*
+	#write the register parameter specified by the keyboard input
+	sd	t5, REG_ADDRESS(v0)
+	
+	li	t1, 151-0x8f	#TTTTTTTTTTT***change the register to be specified	
+	addiu	a2, a2, 0x8
+	daddiu	v0, v0, 0x10
+
+1:
+	ld	a1, 0x0(a2)
+	sd	a1, REG_ADDRESS(v0)
+
+	subu	t1, t1, 0x1
+	addiu	a2, a2, 0x8
+	bne	t1, $0, 1b
+	daddiu	v0, v0, 0x10
+*/
+
     li      v0, 0xfff
 1:
     bnez    v0, 1b
@@ -2578,7 +2648,7 @@ MC0_CTL_050 : .dword 0x0000000404050100
 //00000_000 q_fullness(RW) 00000_000 port_data_error_type(RD) 000_00000 out_of_range_type(RD) 00000_000 max_cs_reg(RD) 00000_100 column_size(RW) 0000_0101 caslat(RW) 00000_010 addr_pins(RW) 00000000
 MC0_CTL_060 : .dword 0x0a04040603040003
 //0000_1010 aprebit(RW) 0000_0101 wrlat(RW) 0000_0100 twtr(RW) 000_00110 twr_int(RW) 00000_011 trtp(RW) 00000_100 trrd(RW) 0000000000000_011 tcke(RW) 
-MC0_CTL_070 : .dword 0x0f0e020000030a08
+MC0_CTL_070 : .dword 0x0f0e020000010a08
 //0000_0000 max_row_reg(RD) 0000_0000 max_col_reg(RD) 0000_0000 initaref(RW) 00000000000000000000_1111 cs_map(RW) 000_01010 caslat_lin_gate(RW) 000_01010 caslat_lin(RW) 
 MC0_CTL_080 : .dword 0x0004020100000000
 //0000_0001 odt_wr_map_cs3(RW) 0000_0010 odt_wr_map_cs2(RW) 0000_0100 odt_wr_map_cs1(RW) 0000_1000 odt_wr_map_cs0(RW) 0000_0001 odt_rd_map_cs3(RW) 0000_0010 odt_rd_map_cs2(RW) 0000_0100 odt_rd_map_cs1(RW) 0000_1000 odt_rd_map_cs0(RW) 
@@ -2594,7 +2664,7 @@ MC0_CTL_0d0 : .dword 0x0000000000000000
 MC0_CTL_0e0 : .dword 0x0000000000000000
 MC0_CTL_0f0 : .dword 0x0000000000000000
 MC0_CTL_100 : .dword 0x0000000000000000
-MC0_CTL_110 : .dword 0x0000000000001c2d
+MC0_CTL_110 : .dword 0x000000000000052d
 //0_000000000000000 emrs2_data_1(RW) 0_000000000000000 emrs2_data_0(RW) 000000000000000000_00110000101101 tref(RW) 
 MC0_CTL_120 : .dword 0xffff000000000000
 //0000000000011100 axi0_en_size_lt_width_instr(RW) 00000000000000000_000000000000000 emrs2_data_3(RW) 0_000000000000000 emrs2_data_2(RW) 
@@ -2762,7 +2832,7 @@ MC0_CTL_8d0 : .dword 0x00000000c8000000
 MC0_CTL_8e0 : .dword 0x0000000000000050
 //MC0_CTL_8f0 : .dword 0x0000000020202080
 //MC0_CTL_8f0 : .dword 0x000000002b352180
-MC0_CTL_8f0 : .dword 0x0000000025252a80 //clk skew of 3A2 0.4
+MC0_CTL_8f0 : .dword 0x00000000373a3880 //clk skew of 3A2 0.4
 //MC0_CTL_8f0 : .dword 0x0000000040404080
 //0000000000000000000000000111100_000000000000000000000000001111000 dll_ctrl_reg_2(RW) 
 MC0_CTL_900 : .dword 0x0000000000000000
@@ -2794,7 +2864,7 @@ MC1_CTL_050 : .dword 0x0000000404050100
 //00000_000 q_fullness(RW) 00000_000 port_data_error_type(RD) 000_00000 out_of_range_type(RD) 00000_000 max_cs_reg(RD) 00000_100 column_size(RW) 0000_0101 caslat(RW) 00000_010 addr_pins(RW) 00000000
 MC1_CTL_060 : .dword 0x0a04040603040003
 //0000_1010 aprebit(RW) 0000_0101 wrlat(RW) 0000_0100 twtr(RW) 000_00110 twr_int(RW) 00000_011 trtp(RW) 00000_100 trrd(RW) 0000000000000_011 tcke(RW) 
-MC1_CTL_070 : .dword 0x0f0e020000030a08
+MC1_CTL_070 : .dword 0x0f0e020000010a08
 //0000_0000 max_row_reg(RD) 0000_0000 max_col_reg(RD) 0000_0000 initaref(RW) 00000000000000000000_1111 cs_map(RW) 000_01010 caslat_lin_gate(RW) 000_01010 caslat_lin(RW) 
 MC1_CTL_080 : .dword 0x0004020100000000
 //0000_0001 odt_wr_map_cs3(RW) 0000_0010 odt_wr_map_cs2(RW) 0000_0100 odt_wr_map_cs1(RW) 0000_1000 odt_wr_map_cs0(RW) 0000_0001 odt_rd_map_cs3(RW) 0000_0010 odt_rd_map_cs2(RW) 0000_0100 odt_rd_map_cs1(RW) 0000_1000 odt_rd_map_cs0(RW) 
@@ -2803,13 +2873,13 @@ MC1_CTL_090 : .dword 0x0000050b00000000
 MC1_CTL_0a0 : .dword 0x0000003f3f140612
 //00000000000000000000000000_111111 command_age_count(RW) 00_111111 age_count(RW) 000_10100 trc(RW) 000_00110 tmrd(RW) 000_10010 tfaw(RW) 
 MC1_CTL_0b0 : .dword 0x0000000000000000
-MC1_CTL_0c0 : .dword 0x00003c050f000000
+MC1_CTL_0c0 : .dword 0x00002c050f000000
 //000000000000000000101100 trfc(RW) 00000101 trcd_int(RW) 00001111 tras_min(RW) 00000000 out_of_range_length(RD) 00000000 ecc_u_synd(RD) 00000000 ecc_c_synd(RD) 
 MC1_CTL_0d0 : .dword 0x0000000000000000
 MC1_CTL_0e0 : .dword 0x0000000000000000
 MC1_CTL_0f0 : .dword 0x0000000000000000
 MC1_CTL_100 : .dword 0x0000000000000000
-MC1_CTL_110 : .dword 0x0000000000000c2d
+MC1_CTL_110 : .dword 0x00000000000005cd
 //0_000000000000000 emrs2_data_1(RW) 0_000000000000000 emrs2_data_0(RW) 000000000000000000_00110000101101 tref(RW) 
 MC1_CTL_120 : .dword 0xffff000000000000
 //0000000000011100 axi0_en_size_lt_width_instr(RW) 00000000000000000_000000000000000 emrs2_data_3(RW) 0_000000000000000 emrs2_data_2(RW) 
@@ -3001,7 +3071,7 @@ MC1_CTL_8e0 : .dword 0x0000000000000050
 //MC1_CTL_8f0 : .dword 0x0000000012101a80 //clk skew of 3A2 0.4
 //MC1_CTL_8f0 : .dword 0x000000000a0e1080 //clk skew of 3A2 0.4
 //MC1_CTL_8f0 : .dword 0x0000000085858580 //clk skew of 3A2 0.4
-MC1_CTL_8f0 : .dword 0x000000002a272780 //clk skew of 3A2 0.4
+MC1_CTL_8f0 : .dword 0x000000002d2d2f80 //clk skew of 3A2 0.4
 //MC1_CTL_8f0 : .dword 0x0000000016151580 //clk skew of 3A2 0.4
 //MC1_CTL_8f0 : .dword 0x000000000c0d0d80 //clk skew of 3A2 0.4
 //0000000000000000000000000111100_000000000000000000000000001111000 dll_ctrl_reg_2(RW) 
