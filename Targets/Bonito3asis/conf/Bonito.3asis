@@ -1,6 +1,6 @@
 # $Id: Bonito,v 1.1.1.1 2006/09/14 01:59:09 root Exp $ # #	GENERIC configuration for Galileo EV64240 # #  This file is supposed to be included by target file after #  endian has been defined.
 #
-machine         Bonito3amcp68        mips    # CPU Architecture, Platform
+machine         Bonito3asis		mips    # CPU Architecture, Platform
 config          pmon 
 option          VGAROM_IN_BIOS
 #
@@ -22,13 +22,15 @@ option		TARGETNAME="\"Bonito\""
 #
 option		BONITOEL	
 option      DEVBD2F
-option		LS3_DAWNING
+option		LS3_SIS
 option		MIPS
 option		INET
 option      LS3_HT              # Enable the IO cache coherent of HT
-option      MCP68_IDE           # Enable the MCP68 IDE 0 channel
-option      USE_LPC_UART
+#option      MCP68_IDE           # Enable the MCP68 IDE 0 channel
+#option      USE_LPC_UART
 #option      MULTI_CHIP
+
+select     	amd_780e
 
 select		mod_flash_amd		# AMD flash device programming
 select		mod_flash_intel		# intel flash device programming
@@ -105,7 +107,7 @@ option		USE_SUPERIO_UART
 #option		LONGMENG
 #option		RADEON7000
 #option 	DEBUG_EMU_VGA
-option		AUTOLOAD
+#option		AUTOLOAD
 #option		CONFIG_PCI0_LARGE_MEM	
 #option		CONFIG_PCI0_HUGE_MEM	
 #option		CONFIG_PCI0_GAINT_MEM	

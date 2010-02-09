@@ -22,6 +22,7 @@ option		TARGETNAME="\"Bonito\""
 #
 option		BONITOEL	
 option      DEVBD2F
+option		LS3_DAWNING
 option		MIPS
 option		INET
 option      LS3_HT              # Enable the IO cache coherent of HT
