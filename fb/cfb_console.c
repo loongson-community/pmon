@@ -154,6 +154,12 @@ CONFIG_VIDEO_HW_CURSOR:      - Uses the hardware cursor capability of the
 #define VIDEO_HW_RECTFILL           // video hw fillrect 2d acceleration config
 #endif
 
+#ifdef NMOD_SISFB
+#define CONFIG_SPLASH_SCREEN        // video splash(image) config
+#define CONFIG_VIDEO_BMP_GZIP       // video bmp image (un)compression config
+#define VIDEO_HW_BITBLT             // video hw bitblt 2d acceleration config
+#define VIDEO_HW_RECTFILL           // video hw fillrect 2d acceleration config
+#endif
 
 #ifdef CONFIG_SPLASH_SCREEN
 #ifdef LOONGSON2F_7INCH
@@ -1065,7 +1071,7 @@ static void console_scrollup(void)
 
     /* clear the last one */
 #ifdef VIDEO_HW_RECTFILL
-#ifndef SMI502
+#ifdef SM712_GRAPHIC_CARD
     video_hw_rectfill(VIDEO_PIXEL_SIZE, /* bytes per pixel */
               0,    /* dest pos x */
               (VIDEO_VISIBLE_ROWS - VIDEO_FONT_HEIGHT), /* dest pos y */
@@ -1076,6 +1082,23 @@ static void console_scrollup(void)
 #endif
 #if (defined(SMI502))
     AutodeFillRectModify(CONSOLE_BG_COL);
+#endif
+
+#ifdef NMOD_SISFB
+#if 0
+{
+    void sisfb_rectfill(unsigned int bpp, unsigned int dst_x, unsigned int dst_y, 
+                unsigned int dim_x, unsigned int dim_y, unsigned int color);
+    sisfb_rectfill(         
+            VIDEO_PIXEL_SIZE,   /* bytes per pixel */
+            0,  /* dest pos x */
+            VIDEO_VISIBLE_ROWS-VIDEO_FONT_HEIGHT,
+            VIDEO_VISIBLE_COLS, /* frame width */
+            VIDEO_FONT_HEIGHT, /* frame height */
+            CONSOLE_BG_COL);            
+}
+#endif
+    memsetl(CONSOLE_ROW_LAST, CONSOLE_ROW_SIZE, CONSOLE_BG_COL);
 #endif
 
 #else
@@ -2062,7 +2085,7 @@ int fb_init(unsigned long fbbase, unsigned long iobase)
     video_init_hw_cursor(VIDEO_FONT_WIDTH, VIDEO_FONT_HEIGHT);
 #endif
 
-#if 0
+#if 1
     video_cls ();
 #else
     memsetl(video_fb_address, CONSOLE_SIZE,  CONSOLE_BG_COL);
