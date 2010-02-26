@@ -305,10 +305,10 @@ tgt_devconfig()
 	{
 		unsigned char value;
 	
-		i2c_read_single(0xd2, 13, &value);
-		if(value == 0x95) // 9001 
+		i2c_read_single(0xd2, 12, &value);
+		if(value == 0x32) // 9001 
 			do_cmd("i2cwrite 0xd2 1 0x84"); /* enable spread spectrum*/
-		else if (value == 0xc6) // 9002
+		else // 9002
 			do_cmd("i2cwrite 0xd2 1 0x12"); /* enable spread spectrum*/
 	}
 #endif

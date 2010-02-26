@@ -170,11 +170,14 @@ static int draw_mid_main(int sel, const char *path)
 
     //Second line of middle graph
 	memset(str_line, ' ', sizeof(str_line));
-	str_line[FRAME_WIDTH] = '\0';
 	str_line[0] = (char)179;
 	sprintf(str_line + (FRAME_WIDTH - strlen(label) - strlen(tmp)) / 2, "%s %s ", label,tmp);
-	str_line[strlen(str_line)] = ' ';
+    if(strlen(str_line)<FRAME_WIDTH){
+        for(i=strlen(str_line);i<FRAME_WIDTH;i++)
+            str_line[i] = ' ';
+    }
 	str_line[FRAME_WIDTH - 1] = (char)179;
+	str_line[FRAME_WIDTH] = '\0';
 	video_console_print(0,mid_height++,str_line);
 
     //Third line of middle graph
@@ -217,9 +220,7 @@ static int draw_mid_main(int sel, const char *path)
 			memcpy(str_line + 2, tmp, strlen(tmp));
 		}
 		str_line[FRAME_WIDTH - 1] = (char)179;
-		//printf("%s\n", str_line);
 	    video_console_print(0,mid_height++,str_line);
-		//printf("%s\n", menu_items[i].kernel);
 	}
 	
 	memset(str_line, ' ', sizeof(str_line));
@@ -228,7 +229,6 @@ static int draw_mid_main(int sel, const char *path)
 	memset(tmp, 0, sizeof(tmp));
 	sprintf(tmp, "Please Select Boot Menu [%d]", selected);
 	memcpy(str_line + 2, tmp, strlen(tmp));
-	memset(str_line + strlen(str_line), ' ', FRAME_WIDTH - strlen(str_line));
 	str_line[FRAME_WIDTH - 1] = (char)179;
 	video_console_print(0,mid_height++,str_line);
 
@@ -266,15 +266,12 @@ static int show_main(int flag, const char* path)
 	unsigned int cnt;
 	int dly ; 	
 	int retid;
-
-	char str_line[81];
-	char tmp[100];
+	char tmp[50];
     char ch;
 	int not_delay = FALSE;
 	int not_erased = TRUE;
 	int selected_menu_num = 1; 
 
-	//if (load_list_menu(path))
 	retid = load_list_menu(path);
 	if (retid != 0)
 	{
@@ -316,12 +313,9 @@ static int show_main(int flag, const char* path)
 	ioctl(STDIN, FIOASYNC, &j);
 
 	memset(tmp, 0, sizeof(tmp));
-	memset(str_line, ' ', sizeof(str_line));
-	sprintf(tmp, "                Booting system in [%d] second(s)", dly);
+	sprintf(tmp, "Booting system in [%d] second(s)", dly);
 
-	str_line[(sizeof(str_line))] =  '\0';
-	memcpy(str_line + sizeof(str_line) - strlen(tmp) - 1, tmp, strlen(tmp));
-	video_console_print(0,bottom_height + 2,str_line);
+	video_console_print(FRAME_WIDTH,bottom_height + 2,tmp);
 	while (1)			
 	{
 		
@@ -373,11 +367,8 @@ static int show_main(int flag, const char* path)
 			if (j == 9)
 			{
 				memset(tmp, 0, sizeof(tmp));
-				memset(str_line, ' ', sizeof(str_line));				
 				sprintf(tmp, "Booting system in [%d] second(s)", --dly);
-				str_line[(sizeof(str_line))] =  '\0';
-				memcpy(str_line + sizeof(str_line) - strlen(tmp) - 1 , tmp, strlen(tmp));
-				video_console_print(0,bottom_height + 2,str_line);
+				video_console_print(FRAME_WIDTH,bottom_height + 2,tmp);
 				j = 0;
 			}
 			if (dly == 0)
@@ -387,12 +378,12 @@ static int show_main(int flag, const char* path)
 		}
 		else if (not_erased)
 		{
-			for (i = 0; i < 80; i++)
+			for (i = 0; i < 50; i++)
 			{
-				str_line[i] = ' ';
+				tmp[i] = ' ';
 			}
-			str_line[80] = '\0';
-			video_console_print(0,bottom_height + 2,str_line);
+			tmp[49] = '\0';
+			video_console_print(FRAME_WIDTH,bottom_height + 2,tmp);
 			not_erased = FALSE;
 		}
 	}

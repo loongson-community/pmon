@@ -51,7 +51,9 @@ static int i2c_wait(void)
 char i2c_read_single(int addr, int regNo, char *value)
 {
     unsigned char 	c;
-	
+
+	smb_base = get_smb_base();
+    
 	/* Start condition */
 	c = linux_inb(smb_base | SMB_CTRL1);
 	linux_outb(c | SMB_CTRL1_START, smb_base | SMB_CTRL1);
@@ -97,6 +99,8 @@ char i2c_read_single(int addr, int regNo, char *value)
 static void i2c_write_single(int addr, int regNo, char value)
 {
     unsigned char 	c;
+
+	smb_base = get_smb_base();
     
 	/* Start condition */
 	c = linux_inb(smb_base | SMB_CTRL1);
