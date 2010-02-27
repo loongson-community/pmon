@@ -35,7 +35,6 @@
     PRINTSTR("Scache index setup done\r\n")
 #endif
 
-
 #if 1//config L1 xbar cpu port
     dli t2, 0x900000003ff02000
     dli t1, 0x900000003ff02400
@@ -103,37 +102,10 @@
 #endif
 
 #ifdef MULTI_CHIP
-##########
 	TTYDBG("Fix L2xbar in NODE 1\r\n")
 	dli	t2, 0x900010003ff00000
 
     dli t0, 0x0000100010000000
-    sd  t0, 0x00(t2)
-    dli t0, 0xfffffffff0000000
-    sd  t0, 0x40(t2)
-    dli t0, 0x0000000010000082
-    sd  t0, 0x80(t2)
-
-    dli t0, 0
-    sd  t0, 0x88(t2)
-##########
-	TTYDBG("Fix L2xbar in NODE 2\r\n")
-	dli	t2, 0x900020003ff00000
-
-    dli t0, 0x0000200010000000
-    sd  t0, 0x00(t2)
-    dli t0, 0xfffffffff0000000
-    sd  t0, 0x40(t2)
-    dli t0, 0x0000000010000082
-    sd  t0, 0x80(t2)
-
-    dli t0, 0
-    sd  t0, 0x88(t2)
-##########
-	TTYDBG("Fix L2xbar in NODE 3\r\n")
-	dli	t2, 0x900030003ff00000
-
-    dli t0, 0x0000300010000000
     sd  t0, 0x00(t2)
     dli t0, 0xfffffffff0000000
     sd  t0, 0x40(t2)

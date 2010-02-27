@@ -997,48 +997,11 @@ gs_2f_v3_ddr2_cfg:
 2:      
 #endif    
 
-
 #ifdef MULTI_CHIP
-        //TTYDBG("CPU 1 READ TEST\r\n")
-        //dli      t0, 0x900010003ff00040
-        //lw       a0, 0x0(t0)
-        TTYDBG("CPU 2 READ TEST\r\n")
-        dli      t0, 0x900020003ff00040
+        TTYDBG("CPU 1 READ TEST...\r\n")
+        dli      t0, 0x900010003ff00040
         lw       a0, 0x0(t0)
-        TTYDBG("CPU 3 READ TEST\r\n")
-        //dli      t0, 0x90001cfdfb000044
-        //lw      a0, 0x0(t0)
-        //bal     hexserial
-        //nop
-        //TTYDBG("\r\n")
-        //dli      t0, 0x90001dfdfb000044
-        //lw      a0, 0x0(t0)
-        //bal     hexserial
-        //nop
-        //TTYDBG("\r\n")
-        dli      t0, 0x90002cfdfb000044
-        lw      a0, 0x0(t0)
-        bal     hexserial
-        nop
-        TTYDBG("\r\n")
-        dli      t0, 0x90002dfdfb000044
-        lw      a0, 0x0(t0)
-        bal     hexserial
-        nop
-        TTYDBG("\r\n")
-        dli      t0, 0x90003cfdfb000044
-        lw      a0, 0x0(t0)
-        bal     hexserial
-        nop
-        TTYDBG("\r\n")
-        dli      t0, 0x90003dfdfb000044
-        lw      a0, 0x0(t0)
-        bal     hexserial
-        nop
-        TTYDBG("\r\n")
-
-        dli      t0, 0x900030003ff00040
-        lw       a0, 0x0(t0)
+        TTYDBG("CPU 1 READ TEST OK.\r\n")
 #endif
 ##########################################
 
@@ -1054,14 +1017,6 @@ gs_2f_v3_ddr2_cfg:
 ##########################################
         TTYDBG("NODE 1 MEMORY CONFIG BEGIN\r\n")
         li      s1, 0x1
-#include "loongson3_ddr2_config.S"
-##########################################
-        TTYDBG("NODE 2 MEMORY CONFIG BEGIN\r\n")
-        li      s1, 0x2
-#include "loongson3_ddr2_config.S"
-##########################################
-        TTYDBG("NODE 3 MEMORY CONFIG BEGIN\r\n")
-        li      s1, 0x3
 #include "loongson3_ddr2_config.S"
 ##########################################
 #endif
@@ -1100,14 +1055,6 @@ gs_2f_v3_ddr2_cfg:
 #ifdef MULTI_CHIP
 	    TTYDBG("scache init node 1\r\n")
         dli a0, 0x9800100000000000
-        bal	scache_init_64 // whd
-        nop
-	    TTYDBG("scache init node 2\r\n")
-        dli a0, 0x9800200000000000
-        bal	scache_init_64 // whd
-        nop
-	    TTYDBG("scache init node 3\r\n")
-        dli a0, 0x9800300000000000
         bal	scache_init_64 // whd
         nop
 #endif

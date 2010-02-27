@@ -17,7 +17,7 @@
 	TTYDBG("32 bit PCI space translate to 64 bit HT space\r\n")
 
     dli t0, 0x900000003ff02000
-    dli t2, 0x900000003ff02400
+    dli t2, 0x900000003ff02800
 
 1:
 #if 1
