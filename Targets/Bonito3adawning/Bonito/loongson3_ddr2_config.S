@@ -6,7 +6,7 @@
 #######################################################
 /* Undefine the two to enable both */
 //#define MC0_ONLY
-//#define MC1_ONLY
+#define MC1_ONLY
 
 /* Size of each DDR controller */
 //#define DDR_512
@@ -93,7 +93,7 @@
 	    PRINTSTR("MC0 Config DONE\r\n")
 #endif
 
-//#ifndef MC0_ONLY
+#ifndef MC0_ONLY
         GET_NODE_ID_a0;
 
         dli     t1, 0x00000000
@@ -113,13 +113,13 @@
 	    nop
 
 	    PRINTSTR("MC1 Config DONE\r\n")
-//#endif
+#endif
 
 //cww
 #if 1
 #ifdef MC0_ONLY
 	    PRINTSTR("MC0 space open : 0x00000000 - 0x0FFFFFFF\r\n")
-        dli     t0, 0x900000003ff00000  #base
+        #dli     t0, 0x900000003ff00000  #base
         GET_NODE_ID_a0;
         dli     t1, 0x00000000
         or      t1, t1, a0
@@ -289,7 +289,7 @@
 #else
 #ifdef DDR_1G
 	    PRINTSTR("MC0 space open : 0x40000000 - 0x7FFFFFFF\r\n")
-        dli     t0, 0x900000003ff00000  #base
+        #dli     t0, 0x900000003ff00000  #base
         GET_NODE_ID_a0;
         dli     t1, 0x0000000040000000
         or      t1, t1, a0
@@ -305,7 +305,7 @@
 #ifdef DDR_2G
 	    PRINTSTR("    MC0 space open : 0x80000000 - 0xbFFFFFFF\r\n")
 	    PRINTSTR("and MC1 space open : 0xc0000000 - 0xFFFFFFFF\r\n")
-        dli     t0, 0x900000003ff00000  #base
+        #dli     t0, 0x900000003ff00000  #base
         GET_NODE_ID_a0;
         dli     t1, 0x0000000080000000
         or      t1, t1, a0
