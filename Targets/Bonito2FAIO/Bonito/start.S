@@ -646,19 +646,37 @@ reginit:                        /* local name */
         GPIOLED_SET(5)
         bal     superio_init
         nop
-
-        /* Set gpio32 to high level, shutdown noise */
+#if 1
+        /* Set gpio33 to low level, turn off backlight */
         li a0, MMIO_BASE + 0x10000
-        lw a1, 0xc(a0)
-        or a1, 1
-        sw a1, 0xc(a0)
         lw a1, 0x4(a0)
 #if 1
-        or a1, 1
+        and a1, ~2
 #else
         and a1, ~1
 #endif
         sw a1, 0x4(a0)
+        nop
+        lw a1, 0xc(a0)
+        or a1, 2
+        sw a1, 0xc(a0)   
+        nop
+
+        //set gpio29 to low
+        li a0, MMIO_BASE + 0x10000
+        lw a1, 0x0(a0)
+#if 1
+        and a1, 0xdfffffff
+#else
+        and a1, ~1
+#endif
+        sw a1, 0x0(a0)
+        nop
+        lw a1, 0x8(a0)
+        or a1, 0x20000000
+        sw a1, 0x8(a0) 
+        nop
+#endif
         
 #ifndef __NO_UART 
     GPIOLED_SET(6)

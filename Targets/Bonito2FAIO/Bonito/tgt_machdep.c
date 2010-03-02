@@ -284,9 +284,7 @@ void turn_fan(int on)
 		i2c_send_s((unsigned char)0x90,0x01,&data8, 1);
 	}
 }
-
-
-void turnoff_backlight(void)
+void turnon_backlight(void)
 {
     //unsigned int xiangy_tmp, temp_mmio;
     unsigned int tmp;
@@ -302,30 +300,22 @@ void turnoff_backlight(void)
 	temp_mmio = _pci_conf_readn(tag,0x14,4);
 	temp_mmio =(unsigned long)temp_mmio|PTR_PAD(0xb0000000);
 
-	/*gpio33 to LOW*/
+	/*gpio32 to LOW*/
         tmp = *TEMP_GPIO_DATA_HIGH;
-        *TEMP_GPIO_DIR_HIGH = tmp  | 2;
-        *TEMP_GPIO_DATA_HIGH = tmp & (~0x2)  ;
-
-        tmp = *TEMP_GPIO_DATA_LOW;
-
-	/*gpio29 to HIGH*/
-        *TEMP_GPIO_DIR_LOW = tmp  | (1 << 29);
-        *TEMP_GPIO_DATA_LOW = tmp | (1 << 29);
-
-	/*gpio32 to HIGH*/
-        tmp = *TEMP_GPIO_DATA_HIGH;
+        *TEMP_GPIO_DATA_HIGH = tmp & (~1);    
+        tmp = *TEMP_GPIO_DIR_HIGH;
         *TEMP_GPIO_DIR_HIGH = tmp  | 1;
-        *TEMP_GPIO_DATA_HIGH = tmp & (~1);
+    
+	/*gpio33 to HIGH*/
+        tmp = *TEMP_GPIO_DATA_HIGH;
+        *TEMP_GPIO_DATA_HIGH = tmp | 2;
+        tmp = *TEMP_GPIO_DIR_HIGH;
+        *TEMP_GPIO_DIR_HIGH = tmp  | 2;
 }
 
 void
 initmips(unsigned int memsz)
 {
-
-
-    turnoff_backlight();
-
     /*
 	 *	Set up memory address decoders to map entire memory.
 	 *	But first move away bootrom map to high memory.
@@ -422,20 +412,9 @@ tgt_devconfig()
                 ioaddress  =_pci_conf_read(vga_dev->pa.pa_tag,0x14);
                 fbaddress |= 0xb0000000;
                 ioaddress |= 0xb0000000;
-		/*lit LCD and turn on audio*/
-		{
-			unsigned long tag;
-			unsigned int mmio, tmp;
-
-			tag=_pci_make_tag(0,14,0);
-			mmio = _pci_conf_readn(tag,0x14,4);
-			mmio =(int)mmio|(0xb0000000);
-			tmp = *(volatile int *)(mmio + 0x10008);
-			*(volatile int *)(mmio + 0x10008) = tmp|((1<<29)|(1<<31));
-			tmp = *(volatile int *)(mmio + 0x10000);
-			*(volatile int *)(mmio + 0x10000) = tmp|((1<<29)|(1<<31));
-		}
-
+		
+        delay(100000);
+        turnon_backlight();
 		fb_init(fbaddress, ioaddress);
 		vga_available = 0;
 	} else {
@@ -455,19 +434,6 @@ tgt_devconfig()
 	} 
     config_init();
     configure();
-
-	//log_level = 2;
-#if 0    
-#if ((NMOD_VGACON >0) &&(PCI_IDSEL_VIA686B !=0)|| (PCI_IDSEL_CS5536 !=0))
-	if(getenv("nokbd")) rc=1;
-	else rc=kbd_initialize();
-	printf("%s\n",kbd_error_msgs[rc]);
-	if(!rc){ 
-		kbd_available=1;
-	}
-//	psaux_init();
-#endif
-#endif
 }
 
 extern int test_icache_1(short *addr);
