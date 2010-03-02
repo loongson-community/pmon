@@ -6,7 +6,7 @@
 #######################################################
 /* Undefine the two to enable both */
 //#define MC0_ONLY
-#define MC1_ONLY
+//#define MC1_ONLY
 
 /* Size of each DDR controller */
 //#define DDR_512
