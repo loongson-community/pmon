@@ -734,7 +734,7 @@ not_locked:
 
 #endif
         
-#if 0
+#if 1
 	TTYDBG	("\r\ndisable register space of MEMORY\r\n")
         li	t2, 0xbfe00180
         ld	a1, 0x0(t2)
@@ -2314,7 +2314,7 @@ spd_reg_read:
 	or  v1, v1, a0
 	sw  v1, 0(v0)
 	nop
-
+#if 0
 	//Config CS* ODT 
 	li a0,0xa0
 	li a1, 5
@@ -2370,7 +2370,8 @@ spd_reg_read:
 	sw t0, 0(v0)
 	nop 
 	sw t0, 4(v0)
-	nop	          
+	nop	
+#endif          
 5:
     PRINTSTR("Read the DDR2 No8 reg:\r\n")
 	li v0, 0xaffffe80
@@ -2532,7 +2533,7 @@ DDR2_CTL_03_DATA_HI: .word 0x01010000
 //Felix-2008-1020
 DDR2_CTL_04_DATA_LO: .word 0x01010101
 //DDR2_CTL_04_DATA_LO: .word 0x00010101
-DDR2_CTL_04_DATA_HI: .word 0x01000202
+DDR2_CTL_04_DATA_HI: .word 0x02000202
 DDR2_CTL_05_DATA_LO: .word 0x04050202 
 DDR2_CTL_05_DATA_HI: .word 0x00000000
 DDR2_CTL_06_DATA_LO: .word 0x03050203 #800
@@ -2547,8 +2548,8 @@ DDR2_CTL_07_DATA_HI: .word 0x00000400 #800
 //Felix-2008-12-11
 //DDR2_CTL_08_DATA_LO: .word 0x00000102
 //DDR2_CTL_08_DATA_HI: .word 0x00000102
-DDR2_CTL_08_DATA_LO: .word 0x00000001
-DDR2_CTL_08_DATA_HI: .word 0x00000001
+DDR2_CTL_08_DATA_LO: .word 0x00000000
+DDR2_CTL_08_DATA_HI: .word 0x00000201
 DDR2_CTL_09_DATA_LO: .word 0x00000000
 DDR2_CTL_09_DATA_HI: .word 0x0000060c #800
 //Felix-2008-10-20
@@ -2580,7 +2581,7 @@ DDR2_CTL_16_DATA_HI: .word 0x000007ff #no_interrupt
 //Felix-2008-10-20
 //Felix-2008-12-11
 //DDR2_CTL_17_DATA_LO: .word 0x0016101b #800
-DDR2_CTL_17_DATA_LO: .word 0x0016101f #800
+DDR2_CTL_17_DATA_LO: .word 0x0004101f #800
 //DDR2_CTL_17_DATA_LO: .word 0x0004101b #800
 DDR2_CTL_17_DATA_HI: .word 0x00000000
 DDR2_CTL_18_DATA_LO: .word 0x00000000
