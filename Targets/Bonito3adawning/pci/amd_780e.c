@@ -312,15 +312,16 @@ void sb700_devices_por_init(void)
 	printk_info("IO Address Enable\n");
 	/*pci_write_config8(dev, 0x79, 0x4F); */
 	pci_write_config8(dev, 0x78, 0xFF);
-
+#if 0
 	/* TODO: set ide as primary, if you want to boot from IDE, you'd better set it.Or add a configuration line.*/
 	printk_info("set ide as primary\n");
 	byte = pci_read_config8(dev, 0xAD);
 	byte |= 1 << 4;
 	pci_write_config8(dev, 0xAD, byte);
-	
+
 	/* This register is not used on sb700. It came from older chipset. */
 	/*pci_write_config8(dev, 0x95, 0xFF); */
+#endif	
 
 	/* Set smbus iospace enable, I don't know why write 0x04 into reg5 that is reserved */
 	printk_info("Set smbus iospace enable\n");
@@ -419,10 +420,10 @@ void sb700_devices_por_init(void)
 	printk_info("enable pcib_dual_en_up\n");
 	pci_write_config8(dev, 0x50, 0x01);
 
-	/* SATA Device, BDF:0-18-0, Non-Raid-5 SATA controller */
-	printk_info("sb700_devices_por_init(): SATA Device, BDF:0-18-0\n");
+	/* SATA Device, BDF:0-17-0, Non-Raid-5 SATA controller */
+	printk_info("sb700_devices_por_init(): SATA Device, BDF:0-17-0\n");
 	//dev = pci_locate_device(PCI_ID(0x1002, 0x4380), 0);
-	dev = _pci_make_tag(0, 18, 0);
+	dev = _pci_make_tag(0, 17, 0);
 	/*PHY Global Control, we are using A14.
 	 * default:  0x2c40 for ASIC revision A12 and below
 	 *      0x2c00 for ASIC revision A13 and above.*/
@@ -600,7 +601,7 @@ static void sb700_pci_cfg()
 
 	/* SATA Device, BDF:0-18-0, Non-Raid-5 SATA controller */
 	//dev = pci_locate_device(PCI_ID(0x1002, 0x4380), 0);
-	dev = _pci_make_tag(0, 18, 0);
+	dev = _pci_make_tag(0, 17, 0);
 	/* rpr7.12 SATA MSI and D3 Power State Capability.
 	 * TODO: We assume S1 is supported. What if it isn't support? */
 	byte = pci_read_config8(dev, 0x40);
@@ -998,7 +999,7 @@ void sb700_after_pci_fixup(void){
 	//sb700_enable();
 	//internal_gfx_pci_dev_init();
 	//vga_bios_init();
-#if 0
+#if 1
 	printk_info("sata init\n");
 	sata_init(_pci_make_tag(0, 0x11, 0));
 #endif

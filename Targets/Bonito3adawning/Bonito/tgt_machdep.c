@@ -838,7 +838,7 @@ tgt_devinit()
 #endif
 
 
-#if 1
+#if 0
         //SBD_DISPLAY("disable data",0);
         //disable sata
         printf("disable sata\n");

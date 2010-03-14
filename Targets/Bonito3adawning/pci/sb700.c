@@ -148,7 +148,7 @@ void sb700_enable()
 *	0:14.3  LPC	bit 20 of sm_dev 0x64 : 0 - disable, default  + 32 * 1
 *	0:14.4  PCI							4
 */
-#if 0	
+#if 1	
 	printk_info("enable_sata\n");
 	sb700_sata(1);
 #endif
