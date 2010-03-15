@@ -36,8 +36,6 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef WDCVAR_H
-#define WDCVAR_H
 
 #define	WAITTIME    (10 * hz)    /* time to wait for a completion */
 	/* this is a lot for hard drives, but not for cdroms */
@@ -250,9 +248,6 @@ void  wdcbit_bucket __P((struct channel_softc *, int));
 
 void  wdccommand __P((struct channel_softc *, u_int8_t, u_int8_t, u_int16_t,
 	                  u_int8_t, u_int8_t, u_int8_t, u_int8_t));
-//03-12
-void wdccommand_lba48 __P(	(struct channel_softc *, u_int8_t, u_int8_t, u_int32_t,u_int8_t, u_int8_t, u_int8_t));
-
 void   wdccommandshort __P((struct channel_softc *, int, int));
 void  wdctimeout	__P((void *arg));
 
@@ -268,11 +263,7 @@ void	wdc_delref __P((struct channel_softc *));
 #define wait_for_ready(chp, timeout) wdcwait((chp), WDCS_DRDY, \
 	WDCS_DRDY, (timeout))
 /* ATA/ATAPI specs says a device can take 31s to reset */
-//#define WDC_RESET_WAIT 31000
-#define WDC_RESET_WAIT 2000
-
-/*max sector counts of LBA28*/
-#define LBA28_MAX_SECTORS 268435456
+#define WDC_RESET_WAIT 31000
 
 void wdc_atapibus_attach __P((struct channel_softc *));
 int   atapi_print       __P((void *, const char *));
@@ -284,5 +275,3 @@ int wdc_select_drive __P((struct channel_softc *, int, int));
 void wdc_output_bytes __P((struct ata_drive_datas *drvp, void *, unsigned int));
 void wdc_input_bytes __P((struct ata_drive_datas *drvp, void *, unsigned int));
 
-
-#endif

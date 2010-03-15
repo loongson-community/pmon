@@ -148,10 +148,11 @@ void sb700_enable()
 *	0:14.3  LPC	bit 20 of sm_dev 0x64 : 0 - disable, default  + 32 * 1
 *	0:14.4  PCI							4
 */
-#if 1	
+#ifdef ENABLE_SATA	
 	printk_info("enable_sata\n");
 	sb700_sata(1);
 #endif
+
 	printk_info("enable usb0\n");
 	sb700_usb(_pci_make_tag(0, 0x12, 0), 1, 0);
 

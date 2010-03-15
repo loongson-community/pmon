@@ -83,11 +83,6 @@
 
 #define	WDCC_READ	0x20	/* disk read code */
 #define	WDCC_WRITE	0x30	/* disk write code */
-
-//03-12
-#define WDCC_READ_SECTORS_EXT 0x24 /*disk read ext code(for LBA48)*/
-#define WDCC_WRITE_SECTORS_EXT 0x34 /*disk write ext code(for LBA48)*/
-
 #define	 WDCC__LONG	 0x02	 /* modifier -- access ecc bytes */
 #define	 WDCC__NORETRY	 0x01	 /* modifier -- no retrys */
 
@@ -98,9 +93,6 @@
 #define	WDCC_READMULTI	0xc4	/* read multiple */
 #define	WDCC_WRITEMULTI	0xc5	/* write multiple */
 #define	WDCC_SETMULTI	0xc6	/* set multiple mode */
-//03-12
-#define WDCC_READMULTI_EXT 0x29 /* read multiple ext (for LBA48)*/
-#define WDCC_WRITEMULTI_EXT 0x39/* write multiple ext (for LBA48)*/
 
 #define	WDCC_READDMA	0xc8	/* read with DMA */
 #define	WDCC_WRITEDMA	0xca	/* write with DMA */

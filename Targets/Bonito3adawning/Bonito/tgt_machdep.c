@@ -784,7 +784,6 @@ tgt_devinit()
 	cs5536_init();
 #endif
 
-
 	printf("rs780_early_setup\n");
         rs780_early_setup();
 
@@ -838,7 +837,7 @@ tgt_devinit()
 #endif
 
 
-#if 0
+#ifndef ENABLE_SATA 
         //SBD_DISPLAY("disable data",0);
         //disable sata
         printf("disable sata\n");

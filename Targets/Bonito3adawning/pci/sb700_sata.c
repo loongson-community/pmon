@@ -13,7 +13,7 @@
 extern struct southbridge_ati_sb700_config conf_info;
 
 
-#if 1
+#ifndef 1
 static sata_drive_detect(int portnum, u32 iobar)
 {
 	u8 byte, byte2;
@@ -200,11 +200,11 @@ static void sata_init(device_t dev)
 	/* Use BAR5+0x1A8,BAR0 for Primary Slave */
 	/* Use BAR5+0x228,BAR2 for Secondary Master */
 	/* Use BAR5+0x2A8,BAR2 for Secondary Slave */
+#ifdef EANBLE_SATA
 	
 	sata_bar5 = sata_bar5 | 0xa0000000;
 	sata_bar0 = sata_bar0 | 0xb8000000;
 	sata_bar2 = sata_bar2 | 0xb8000000;
-#if 1
 	for (i = 0; i < 4; i++) {
 		byte = READB(sata_bar5 + 0x128 + 0x80 * i);
 		printk_spew("SATA port %d status = %x\n", i, byte);
@@ -256,7 +256,7 @@ static void sata_init(device_t dev)
 	}
 #endif
 
-#if 1
+#ifdef 1
 	/* Below is CIM InitSataLateFar */
 	/* Enable interrupts from the HBA  */
 	printk_info("Enable interrupts from the HBA\n");

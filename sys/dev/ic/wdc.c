@@ -96,7 +96,7 @@
 #include "atapiscsi.h"
 #endif
 
-#define WDCDELAY  50 /* 50 microseconds */
+#define WDCDELAY  100 /* 100 microseconds */
 #define WDCNDELAY_RST (WDC_RESET_WAIT * 1000 / WDCDELAY)
 #if 0
 /* If you enable this, it will report any delays more than WDCDELAY * N long. */
@@ -105,7 +105,7 @@
 
 LIST_HEAD(xfer_free_list, wdc_xfer) xfer_free_list;
 
-#ifndef PMON
+#if !defined(PMON)||defined(IDE_DMA)
 static void  __wdcerror	  __P((struct channel_softc*, char *));
 #endif
 static int   __wdcwait_reset  __P((struct channel_softc *, int));
@@ -125,21 +125,18 @@ void  wdc_kill_pending __P((struct channel_softc *));
 #define DEBUG_SDRIVE 0x40
 #define DEBUG_DETACH 0x80
 
-#define	WDCDEBUG
 #ifdef WDCDEBUG
 int wdcdebug_mask = 0;
 int wdc_nxfer = 0;
 #define WDCDEBUG_PRINT(args, level)  if (wdcdebug_mask & (level)) printf args
 #else
-#define WDCDEBUG_PRINT(args, level) 
+#define WDCDEBUG_PRINT(args, level)
 #endif
 
 int at_poll = AT_POLL;
 
 u_int8_t wdc_default_read_reg __P((struct channel_softc *, enum wdc_regs));
 void wdc_default_write_reg __P((struct channel_softc *, enum wdc_regs, u_int8_t));
-void wdc_default_read_raw_multi_1 __P((struct channel_softc *, 
-    void *, unsigned int));
 void wdc_default_read_raw_multi_2 __P((struct channel_softc *, 
     void *, unsigned int));
 void wdc_default_write_raw_multi_2 __P((struct channel_softc *, 
@@ -148,7 +145,6 @@ void wdc_default_read_raw_multi_4 __P((struct channel_softc *,
     void *, unsigned int));
 void wdc_default_write_raw_multi_4 __P((struct channel_softc *, 
     void *, unsigned int));
-
 
 struct channel_softc_vtbl wdc_default_vtbl = {
 	wdc_default_read_reg,
@@ -193,17 +189,14 @@ wdc_default_write_reg(chp, reg, val)
 #endif
 
 	if (reg & _WDC_AUX) 
-	{
 		bus_space_write_1(chp->ctl_iot, chp->ctl_ioh,
 		    reg & _WDC_REGMASK, val);
-//		printf("haha, ctl_ioh=%x, reg=%d\n", chp->ctl_ioh, reg & _WDC_REGMASK);
-	}
 	else
 		bus_space_write_1(chp->cmd_iot, chp->cmd_ioh,
 		    reg & _WDC_REGMASK, val);
 }
 
-static int mylbuf[2048/sizeof(int)];
+
 void
 wdc_default_read_raw_multi_2(chp, data, nbytes)
 	struct channel_softc *chp;
@@ -220,19 +213,20 @@ wdc_default_read_raw_multi_2(chp, data, nbytes)
 		return;
 	}
 
-	if (!((unsigned int)data & 1))
-		bus_space_read_raw_multi_2(chp->cmd_iot, chp->cmd_ioh, 0, 
-				data, nbytes);
-	else {
-		while (nbytes >0) {
-			int c = nbytes > 2048 ? 2048: nbytes;
-			bus_space_read_raw_multi_2(chp->cmd_iot, chp->cmd_ioh, 0, 
-				mylbuf, c);
-			memcpy(data, mylbuf, c);
-			nbytes -= c;
-			data += c;
-		}
-	}
+if((long)data&1)
+{
+unsigned int i;
+u_int16_t data16;
+
+for(i=0;i<nbytes;i+=2)
+ {
+    data16=bus_space_read_2(chp->cmd_iot, chp->cmd_ioh, 0); 
+	memcpy((char *)data+i,&data16,2);
+ }
+}
+else
+	bus_space_read_raw_multi_2(chp->cmd_iot, chp->cmd_ioh, 0, 
+	    data, nbytes);
 	return;
 }
 
@@ -253,6 +247,18 @@ wdc_default_write_raw_multi_2(chp, data, nbytes)
 		return;
 	}
 
+if((long)data&1)
+{
+unsigned int i;
+u_int16_t data16;
+
+for(i=0;i<nbytes;i+=2)
+ {
+ 			memcpy(&data16,(char *)data+i,4);
+			bus_space_write_2(chp->cmd_iot, chp->cmd_ioh, 0, data16);
+ }
+}
+ else
 	bus_space_write_raw_multi_2(chp->cmd_iot, chp->cmd_ioh, 0, 
 	    data, nbytes);
 	return;
@@ -274,6 +280,18 @@ wdc_default_write_raw_multi_4(chp, data, nbytes)
 
 		return;
 	}
+if((long)data&3)
+{
+unsigned int i;
+u_int32_t data32;
+
+for(i=0;i<nbytes;i+=4)
+ {
+ 			memcpy(&data32,(char *)data+i,4);
+			bus_space_write_4(chp->cmd_iot, chp->cmd_ioh, 0, data32);
+ }
+}
+else
 
 	bus_space_write_raw_multi_4(chp->cmd_iot, chp->cmd_ioh, 0, 
 	    data, nbytes);
@@ -297,18 +315,20 @@ wdc_default_read_raw_multi_4(chp, data, nbytes)
 		return;
 	}
 
-	if ((unsigned int)data & 3) {
-		while (nbytes > 0) {
-			int c = nbytes > 2048? 2048:nbytes;
-			bus_space_read_raw_multi_4(chp->cmd_iot, chp->cmd_ioh, 0, 
-					mylbuf, c);
-			memcpy(data, mylbuf, c);
-			nbytes -= c;
-			data += c;
-		}
-	} else
-		bus_space_read_raw_multi_4(chp->cmd_iot, chp->cmd_ioh, 0, 
-				data, nbytes);
+if((long)data&3)
+{
+unsigned int i;
+u_int32_t data32;
+
+for(i=0;i<nbytes;i+=4)
+ {
+	data32=bus_space_read_4(chp->cmd_iot, chp->cmd_ioh, 0); 
+	memcpy((char *)data+i,&data32,4);
+ }
+}
+else
+	bus_space_read_raw_multi_4(chp->cmd_iot, chp->cmd_ioh, 0, 
+	    data, nbytes);
 	return;
 }
 
@@ -388,25 +408,9 @@ wdc_select_drive(chp, drive, howlong)
  * - test ATA/ATAPI signatures. If at last one drive found -> return.
  * - try an ATA command on the master.
  */
- /************************************************************************
-
- Copyright (C)
- File name:     wdc.c
- Author:  ***      Version:  ***      Date: ***
- Description:   
- Others:        
- Function List:
- 
- Revision History:
- 
- --------------------------------------------------------------------------
-  Date          Author          Activity ID     Activity Headline
-  2008-03-13    QianYuli        PMON00000001    Add wdccommand_lba48() function to support LBA48
-*************************************************************************/
-
 
 int
-wdcprobe(chp)
+wdcprobe(chp) //yh
 	struct channel_softc *chp;
 {
 	u_int8_t st0, st1, sc, sn, cl, ch;
@@ -440,6 +444,9 @@ wdcprobe(chp)
 			return 0;
 	}
 
+#ifndef WDC_NORESET
+if(!getenv("wdcnoreset"))
+{
 	/* assert SRST, wait for reset to complete */
 	CHP_WRITE_REG(chp, wdr_sdh, WDSD_IBM);
 	delay(10);
@@ -455,6 +462,8 @@ wdcprobe(chp)
 	WDCDEBUG_PRINT(("%s:%d: after reset, ret_value=0x%d\n",
 	    chp->wdc ? chp->wdc->sc_dev.dv_xname : "wdcprobe", chp->channel,
 	    ret_value), DEBUG_PROBE);
+}
+#endif
 
 	/* if reset failed, there's nothing here */
 	if (ret_value == 0)
@@ -470,7 +479,7 @@ wdcprobe(chp)
 		if ((ret_value & (0x01 << drive)) == 0)
 			continue;
 		CHP_WRITE_REG(chp, wdr_sdh, WDSD_IBM | (drive << 4));
-		delay(10);
+		delay(100);
 		/* Save registers contents */
 		sc = CHP_READ_REG(chp, wdr_seccnt);
 		sn = CHP_READ_REG(chp, wdr_sector);
@@ -690,7 +699,7 @@ wdcattach(chp)
 	 * led on)
 	 */
 	if ((chp->wdc->cap & WDC_CAPABILITY_NO_EXTRA_RESETS) == 0) {
-		//wdcreset(chp, VERBOSE);
+		wdcreset(chp, VERBOSE);
 		/*
 		 * Read status registers to avoid spurious interrupts.
 		 */
@@ -805,7 +814,7 @@ int
 wdcintr(arg)
 	void *arg;
 {
-#ifndef PMON
+#if !defined(PMON)||defined(IDE_DMA)
 	struct channel_softc *chp = arg;
 	struct wdc_xfer *xfer;
 	int ret;
@@ -886,14 +895,12 @@ __wdcwait_reset(chp, drv_mask)
 {
 	int timeout;
 	u_int8_t st0, st1;
-	int busy_count = 0;
 
 	/* Wait 50ms for drive firmware to settle */
 	delay(50000);
 
 	/* wait for BSY to deassert */
-	for (timeout = 0; timeout < 20 /*WDCNDELAY_RST/2*/;timeout++) {
-			delay(3000000);
+	for (timeout = 0; timeout < WDCNDELAY_RST;timeout++) {
 		CHP_WRITE_REG(chp, wdr_sdh, WDSD_IBM); /* master */
 		delay(10);
 		st0 = CHP_READ_REG(chp, wdr_status);
@@ -901,7 +908,6 @@ __wdcwait_reset(chp, drv_mask)
 		delay(10);
 		st1 = CHP_READ_REG(chp, wdr_status);
 
-		printf("st0=%x,st1=%x\n", st0, st1);
 		if ((drv_mask & 0x01) == 0) {
 			/* no master */
 			if ((drv_mask & 0x02) != 0 && (st1 & WDCS_BSY) == 0) {
@@ -918,14 +924,7 @@ __wdcwait_reset(chp, drv_mask)
 			/* Wait for both master and slave to be ready */
 			if ((st0 & WDCS_BSY) == 0 && (st1 & WDCS_BSY) == 0) {
 				goto end;
-			} else
-				busy_count++;
-			/* FIXME For CS5536 ide, the busy bit cannot be cleared*/
-			if((st0 & WDCS_DWF) && (st1 & WDCS_DWF)) {
-				if (busy_count > 3)
-					goto end;
 			}
-
 		}
 		delay(WDCDELAY);
 	}
@@ -967,6 +966,9 @@ wdcwait(chp, mask, bits, timeout)
 	timeout = timeout * 1000 / WDCDELAY; /* delay uses microseconds */
 
 	for (;;) {
+#ifdef DEVBD2F_FIREWALL
+		delay(10); //atp8620 can not read too fast.
+#endif
 #ifdef TEST_ALTSTS
 		chp->ch_status = status = CHP_READ_REG(chp, wdr_altsts);
 #else
@@ -982,17 +984,16 @@ wdcwait(chp, mask, bits, timeout)
 			    CHP_READ_REG(chp, wdr_status);
 #endif
 		}
-		if ((status & WDCS_BSY) == 0 && (status & mask) == bits) {
+		if ((status & WDCS_BSY) == 0 && (status & mask) == bits) 
 			break;
-        }
-        if (++time > timeout) {
+		if (++time > timeout) {
 			WDCDEBUG_PRINT(("wdcwait: timeout, status %x "
 			    "error %x\n", status,
 			    CHP_READ_REG(chp, wdr_error)),
 			    DEBUG_STATUSX | DEBUG_STATUS); 
 			return -1;
 		}
-		delay(WDCDELAY/10);
+		delay(WDCDELAY);
 	}
 #ifdef TEST_ALTSTS
 	/* Acknowledge any pending interrupts */
@@ -1024,7 +1025,7 @@ wdcwait(chp, mask, bits, timeout)
 	return 0;
 }
 
-#ifndef PMON
+#if !defined(PMON)||defined(IDE_DMA)
 void
 wdctimeout(arg)
 	void *arg;
@@ -1310,7 +1311,7 @@ wdc_print_caps(drvp)
 	} else 
 		printf("16-bit");
 
-	printf(", PIO mode %d/%d", drvp->PIO_cap, drvp->PIO_mode);
+	printf(", PIO mode %d", drvp->PIO_cap);
 
 	if (drvp->drive_flags & DRIVE_DMA) {
 		printf(", DMA mode %d", drvp->DMA_cap);
@@ -1331,7 +1332,7 @@ int
 wdc_downgrade_mode(drvp)
 	struct ata_drive_datas *drvp;
 {
-#ifndef PMON
+#if !defined(PMON)||defined(IDE_DMA)
 	struct channel_softc *chp = drvp->chnl_softc;
 	struct wdc_softc *wdc = chp->wdc;
 	int cf_flags = drvp->cf_flags;
@@ -1450,6 +1451,8 @@ wdc_exec_command(drvp, wdc_c)
 	return ret;
 }
 
+
+
 void
 __wdccommand_start(chp, xfer)
 	struct channel_softc *chp;
@@ -1485,7 +1488,7 @@ __wdccommand_start(chp, xfer)
 		}
 	} else
 		DELAY(10);
-
+	
 	wdccommand(chp, drive, wdc_c->r_command, wdc_c->r_cyl, wdc_c->r_head,
 	    wdc_c->r_sector, wdc_c->r_count, wdc_c->r_precomp);
 #ifndef PMON
@@ -1595,6 +1598,7 @@ wdccommand(chp, drive, command, cylin, head, sector, count, precomp)
 	    "sector=%d count=%d precomp=%d\n", chp->wdc->sc_dev.dv_xname,
 	    chp->channel, drive, command, cylin, head, sector, count, precomp),
 	    DEBUG_FUNCS);
+
 	/* Select drive, head, and addressing mode. */
 	CHP_WRITE_REG(chp, wdr_sdh, WDSD_IBM | (drive << 4) | head);
 
@@ -1606,32 +1610,10 @@ wdccommand(chp, drive, command, cylin, head, sector, count, precomp)
 	CHP_WRITE_REG(chp, wdr_seccnt, count);
 
 	/* Send command. */
+		
 	CHP_WRITE_REG(chp, wdr_command, command);
 	return;
 }
-
-//03-12
-void
-wdccommand_lba48(	struct channel_softc *chp, u_int8_t drive, u_int8_t command, 	u_int32_t lba,u_int8_t head,u_int8_t count,u_int8_t  precomp)
-{
-	/* Select drive, head, and addressing mode. */
-	CHP_WRITE_REG(chp, wdr_sdh,  (drive << 4) | WDSD_LBA);
-
-	/* Load parameters for LBA48 read_sector_ext command */
-    CHP_WRITE_REG(chp, wdr_seccnt, 0);//Sector count register first time
-    CHP_WRITE_REG(chp, wdr_seccnt, count);//Sector count register second time
-    CHP_WRITE_REG(chp, wdr_sector, (lba >> 24) & 0xff);//LBA Low register first time
-    CHP_WRITE_REG(chp, wdr_sector, lba & 0xff);//LBA Low register  second time
-	CHP_WRITE_REG(chp, wdr_cyl_lo, 0);//LBA Mid register first time
-    CHP_WRITE_REG(chp, wdr_cyl_lo, (lba >> 8) & 0xff);//LBA Mid register second time
-    CHP_WRITE_REG(chp, wdr_cyl_hi, 0);//LBA Hight register first time
-    CHP_WRITE_REG(chp, wdr_cyl_hi, (lba >> 16) & 0xff);//LBA Hight register second time
-    
-    /* Send command. */
-	CHP_WRITE_REG(chp, wdr_command, command);
-	return;
-}
-
 
 /*
  * Simplified version of wdccommand().  Unbusy/ready/drq must be
@@ -1756,7 +1738,7 @@ wdc_kill_pending(chp)
 	}
 }
 
-#ifndef PMON
+#if !defined(PMON)||defined(IDE_DMA)
 static void
 __wdcerror(chp, msg) 
 	struct channel_softc *chp;

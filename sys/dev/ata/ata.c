@@ -42,9 +42,6 @@
 #include <dev/ata/atareg.h>
 #include <dev/ata/atavar.h>
 
-#include <machine/bus.h>
-#include <dev/ic/wdcvar.h>
-
 #define DEBUG_FUNCS  0x08
 #define DEBUG_PROBE  0x10
 #ifdef WDCDEBUG
@@ -81,8 +78,7 @@ ata_get_params(drvp, flags, prms)
 		wdc_c.r_command = WDCC_IDENTIFY;
 		wdc_c.r_st_bmask = WDCS_DRDY;
 		wdc_c.r_st_pmask = WDCS_DRQ;
-//		wdc_c.timeout = 1000; /* 1s */
-		wdc_c.timeout = 10000; /* 10s */
+		wdc_c.timeout = 1000; /* 1s */
 	} else if (drvp->drive_flags & DRIVE_ATAPI) {
 		wdc_c.r_command = ATAPI_IDENTIFY_DEVICE;
 		wdc_c.r_st_bmask = 0;
@@ -159,10 +155,6 @@ ata_set_mode(drvp, mode, flags)
 	u_int8_t flags;
 {
 	struct wdc_command wdc_c;
-#if 1
-    struct channel_softc *chp = drvp->chnl_softc;
-    struct wdc_softc *wdc = chp->wdc;
-#endif
 
 	WDCDEBUG_PRINT(("ata_set_mode=0x%x\n", mode), DEBUG_FUNCS);
 	bzero(&wdc_c, sizeof(struct wdc_command));
@@ -179,12 +171,6 @@ ata_set_mode(drvp, mode, flags)
 	if (wdc_c.flags & (AT_ERROR | AT_TIMEOU | AT_DF)) {
 		return CMD_ERR;
 	}
-
-#if 1
-	printf("begin set mode\n");
-	if(wdc->set_modes)
-		wdc->set_modes(chp);	
-#endif
 	return CMD_OK;
 }
 

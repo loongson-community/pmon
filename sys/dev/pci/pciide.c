@@ -76,36 +76,11 @@
  *
  */
 
-
 #define DEBUG_DMA   0x01
 #define DEBUG_XFERS  0x02
 #define DEBUG_FUNCS  0x08
 #define DEBUG_PROBE  0x10
 
-#define PCI_PRODUCT_AMD_SB710_IDE 0x439c
-#define  PCI_PRODUCT_AMD_SB710_SATA 0x4390
-#if 1
-struct pio_timing {
-        int command;   /*command width*/
-        int recovery; /*recovery width*/
-        int ct;  /*bus-cycle timing*/
-};
-#endif
-
-static struct pio_timing amdsb710_pio_set[5] = {
-        {9, 9, 600}, /* PIO 0 */
-        {4, 7, 390}, /* PIO 1 */
-        {3, 4, 270}, /* PIO 2 */
-        {2, 2, 180}, /* PIO 3 */
-        {2, 0, 120}, /* PIO 4 */
-};
-/* Channel enable */
-//#define amdsb710_CHANSTATUS_EN                0x4C
-
-#define AMDSB710_PIO_TIMING 0x40
-
-
-#define WDCDEBUG
 #ifdef WDCDEBUG
 int wdcdebug_pciide_mask = DEBUG_DMA|DEBUG_XFERS|DEBUG_FUNCS|DEBUG_PROBE;
 #define WDCDEBUG_PRINT(args, level) \
@@ -129,8 +104,8 @@ int wdcdebug_pciide_mask = DEBUG_DMA|DEBUG_XFERS|DEBUG_FUNCS|DEBUG_PROBE;
 #include <dev/pci/pciidevar.h>
 #include <dev/pci/pciide_piix_reg.h>
 #include <dev/pci/pciide_amd_reg.h>
-#ifndef PMON
 #include <dev/pci/pciide_apollo_reg.h>
+#ifndef PMON
 #endif
 #include <dev/pci/pciide_cmd_reg.h>
 #ifndef PMON
@@ -226,16 +201,10 @@ static u_int32_t piix_setup_idetim_drvs __P((struct ata_drive_datas*));
 static u_int32_t piix_setup_sidetim_timings __P((u_int8_t, u_int8_t, u_int8_t));
 
 void amd756_chip_map __P((struct pciide_softc*, struct pci_attach_args*));
-	  
 void amd756_setup_channel __P((struct channel_softc*));
 
 void amdcs5536_chip_map __P((struct pciide_softc*, struct pci_attach_args*));
 void amdcs5536_setup_channel __P((struct channel_softc*));
-
-void amdsb710_chip_map __P((struct pciide_softc*, struct pci_attach_args*));
-void amdsb710_setup_channel __P((struct channel_softc*));
-
-
 #ifndef PMON
 void apollo_chip_map __P((struct pciide_softc*, struct pci_attach_args*));
 void apollo_setup_channel __P((struct channel_softc*));
@@ -266,7 +235,7 @@ void pdc20268_setup_channel __P((struct channel_softc*));
 int  pdc202xx_pci_intr __P((void *));
 int  pdc20265_pci_intr __P((void *));
  
-#ifndef PMON
+#if !defined(PMON)||defined(IDE_DMA)
 void pciide_channel_dma_setup __P((struct pciide_channel *));
 int  pciide_dma_table_setup __P((struct pciide_softc*, int, int));
 int  pciide_dma_init __P((void*, int, int, void *, size_t, int));
@@ -332,22 +301,6 @@ const struct pciide_product_desc pciide_amd_products[] =  {
 	  amdcs5536_chip_map
 	},
 };
-
-const struct pciide_product_desc pciide_ati_products[] =  {
-        {
-      PCI_PRODUCT_AMD_SB710_IDE,   /* AMD SB710 IDE*/
-          0,
-          amdsb710_chip_map
-          //default_chip_map
-        },
-        {
-      PCI_PRODUCT_AMD_SB710_SATA,   /* AMD SB710 SATA*/
-          0,
-          default_chip_map
-        },
-};
-
-
 
 const struct pciide_product_desc pciide_cmd_products[] =  {
 	{ PCI_PRODUCT_CMDTECH_640,	/* CMD Technology PCI0640 */
@@ -444,8 +397,6 @@ const struct pciide_vendor_desc pciide_vendors[] = {
 	  sizeof(pciide_intel_products)/sizeof(pciide_intel_products[0]) },
 	{ PCI_VENDOR_AMD, pciide_amd_products,
 	  sizeof(pciide_amd_products)/sizeof(pciide_amd_products[0]) },
-	  { 0x1002, pciide_ati_products,
-               sizeof(pciide_ati_products)/sizeof(pciide_ati_products[0]) },
 	{ PCI_VENDOR_CMDTECH, pciide_cmd_products,
 	  sizeof(pciide_cmd_products)/sizeof(pciide_cmd_products[0]) },
 #ifndef PMON
@@ -459,7 +410,7 @@ const struct pciide_vendor_desc pciide_vendors[] = {
 	{ PCI_VENDOR_ALI, pciide_acer_products,
 	  sizeof(pciide_acer_products)/sizeof(pciide_acer_products[0]) },
 	{ PCI_VENDOR_PROMISE, pciide_promise_products,
-	  sizeof(pciide_promise_products)/sizeof(pciide_promise_products[0]) },
+	  sizeof(pciide_promise_products)/sizeof(pciide_promise_products[0]) }
 };
 
 #define	PCIIDE_CHANNEL_NAME(chan)	((chan) == 0 ? "ch 0" : "ch 1")
@@ -541,23 +492,7 @@ pciide_match(parent, match, aux)
 {
 	struct pci_attach_args *pa = aux;
 	const struct pciide_product_desc *pp;
-	int bus, device, function;
-	
-	_pci_break_tag(pa->pa_tag, &bus, &device, &function);
 
-	/* liujl for test.... */
-	{
-		int vid, did;
-		vid = _pci_conf_read(pa->pa_tag, 0);
-		did = (vid & 0xffff0000) >> 16;
-		vid = vid & 0x0000ffff;
-		if( (vid == 0x1002) && (did == 0x4380) ){
-			printf("sorry, reserved SATA to QYL.\n");
-			return 0;
-		}
-	
-	}
-	
 	/*
 	 * Check the ID register to see that it's a PCI IDE controller.
 	 * If it is, we assume that we can deal with it; it _should_
@@ -580,7 +515,6 @@ pciide_match(parent, match, aux)
 	return (0);
 }
 
-#include <sys/dev/pci/pcireg.h>
 void
 pciide_attach(parent, self, aux)
 	struct device *parent, *self;
@@ -593,6 +527,7 @@ pciide_attach(parent, self, aux)
 	pcitag_t tag = pa->pa_tag;
 	struct pciide_softc *sc = (struct pciide_softc *)self;
 	pcireg_t csr;
+    pcireg_t tmpreg;
 	char devinfo[256];
 
 	sc->sc_pp = pciide_lookup_product(pa->pa_id);
@@ -610,6 +545,14 @@ pciide_attach(parent, self, aux)
                printf("sc_pc %x, sc_tag %x\n", sc->sc_pc, sc->sc_tag);
 #endif
 
+#ifdef MCP68_IDE
+    /* Enable IDE controller of MCP68 */
+    tmpreg = pci_conf_read(pc, tag, 0x50);
+    pci_conf_write(pc, tag, 0x50, tmpreg | 0x02);
+    tmpreg = pci_conf_read(pc, tag, 0x50);
+    printf("\nMCP68 IDE enable : 0x50 : %8x\n",tmpreg);
+#endif
+
 	sc->sc_pp->chip_map(sc, pa);
 
 	if (sc->sc_dma_ok) {
@@ -619,7 +562,7 @@ pciide_attach(parent, self, aux)
 	}
 
 	WDCDEBUG_PRINT(("pciide: command/status register=%x\n",
-	pci_conf_read(pc, tag, PCI_COMMAND_STATUS_REG)), DEBUG_PROBE);
+	    pci_conf_read(pc, tag, PCI_COMMAND_STATUS_REG)), DEBUG_PROBE);
 }
 
 /* tell wether the chip is enabled or not */
@@ -746,7 +689,7 @@ pciide_mapreg_dma(sc, pa)
 	struct pciide_softc *sc;
 	struct pci_attach_args *pa;
 {
-#ifndef PMON
+#if !defined(PMON)||defined(IDE_DMA)
 	/*
 	 * Map DMA registers
 	 *
@@ -767,7 +710,7 @@ pciide_mapreg_dma(sc, pa)
 
 	sc->sc_dma_ok = (pci_mapreg_map(pa,
 	    PCIIDE_REG_BUS_MASTER_DMA, PCI_MAPREG_TYPE_IO, 0,
-	    &sc->sc_dma_iot, &sc->sc_dma_ioh, NULL, NULL) == 0);
+	    &sc->sc_dma_iot, &sc->sc_dma_ioh, NULL, NULL,0) == 0);
 	sc->sc_dmat = pa->pa_dmat;
 	if (sc->sc_dma_ok == 0) {
 		printf(", (unuseable)"); /* couldn't map registers */
@@ -828,7 +771,7 @@ pciide_pci_intr(arg)
 	return (rv);
 }
 
-#ifndef PMON
+#if !defined(PMON)||defined(IDE_DMA)
 void
 pciide_channel_dma_setup(cp)
 	struct pciide_channel *cp;
@@ -953,8 +896,7 @@ pciide_dma_init(v, channel, drive, databuf, datalen, flags)
 		    channel, drive, error);
 		return error;
 	}
-
-#ifndef __OpenBSD__
+#if !defined(__OpenBSD__)||defined(IDE_DMA)
 	bus_dmamap_sync(sc->sc_dmat, dma_maps->dmamap_xfer,
 	    0,
 	    dma_maps->dmamap_xfer->dm_mapsize,		
@@ -965,7 +907,6 @@ pciide_dma_init(v, channel, drive, databuf, datalen, flags)
 	    (flags & WDC_DMA_READ) ?
 	    BUS_DMASYNC_PREREAD : BUS_DMASYNC_PREWRITE);
 #endif
-
 	for (seg = 0; seg < dma_maps->dmamap_xfer->dm_nsegs; seg++) {
 #ifdef DIAGNOSTIC
 		/* A segment must not cross a 64k boundary */
@@ -994,7 +935,7 @@ pciide_dma_init(v, channel, drive, databuf, datalen, flags)
 	dma_maps->dma_table[dma_maps->dmamap_xfer->dm_nsegs -1].byte_count |=
 	    htopci(IDEDMA_BYTE_COUNT_EOT);
 
-#ifndef __OpenBSD__
+#if !defined(__OpenBSD__) || defined(IDE_DMA)
 	bus_dmamap_sync(sc->sc_dmat, dma_maps->dmamap_table, 
 	    0,
 	    dma_maps->dmamap_table->dm_mapsize,
@@ -1024,10 +965,10 @@ pciide_dma_init(v, channel, drive, databuf, datalen, flags)
 	    bus_space_read_1(sc->sc_dma_iot, sc->sc_dma_ioh,
 		(IDEDMA_CTL-1) + IDEDMA_SCH_OFFSET * channel));
 	/* Write table addr */
-printf("dma table start at 0x%08x\n", dma_maps->dmamap_table->dm_segs[0].ds_addr);
+//printf("dma table start at 0x%08x\n", dma_maps->dmamap_table->dm_segs[0].ds_addr);
 	bus_space_write_4(sc->sc_dma_iot, sc->sc_dma_ioh,
 	    IDEDMA_TBL + IDEDMA_SCH_OFFSET * channel,
-	    dma_maps->dmamap_table->dm_segs[0].ds_addr | 0x80000000); /* XXX */
+	    dma_maps->dmamap_table->dm_segs[0].ds_addr/* | 0x80000000*/); /* XXX */
 	/* set read/write */
 	bus_space_write_1(sc->sc_dma_iot, sc->sc_dma_ioh,
 	    IDEDMA_CMD + IDEDMA_SCH_OFFSET * channel,
@@ -1061,7 +1002,7 @@ pciide_dma_finish(v, channel, drive, flags)
 	    &sc->pciide_channels[channel].dma_maps[drive];
 
 	/* Unload the map of the data buffer */
-#ifndef __OpenBSD__
+#if !defined(__OpenBSD__)||defined(IDE_DMA)
 	bus_dmamap_sync(sc->sc_dmat, dma_maps->dmamap_xfer, 
 	    0,
 	    dma_maps->dmamap_xfer->dm_mapsize,
@@ -1188,13 +1129,14 @@ pciiide_chan_candisable(cp)
  * generic code to map the compat intr if hw_ok=1 and it is a compat channel.
  * Set hw_ok=0 on failure
  */
+#define	pciide_machdep_compat_intr_establish(a, b, c, d, e)	tgt_poll_register((c), (d), (e))
 void
 pciide_map_compat_intr(pa, cp, compatchan, interface)
 	struct pci_attach_args *pa;
 	struct pciide_channel *cp;
 	int compatchan, interface;
 {
-#ifndef PMON
+#if !defined(PMON)||defined(IDE_DMA)
 	struct pciide_softc *sc = (struct pciide_softc *)cp->wdc_channel.wdc;
 	struct channel_softc *wdc_cp = &cp->wdc_channel;
 
@@ -1265,14 +1207,11 @@ default_chip_map(sc, pa)
 	struct pci_attach_args *pa;
 {
 	struct pciide_channel *cp;
-	
-	/* setting the virtual class interface  */
-	pcireg_t interface = PCI_INTERFACE(pci_conf_read(sc->sc_pc,  sc->sc_tag, PCI_CLASS_REG));
-	//pcireg_t interface = 0x00;
-	
+	pcireg_t interface = PCI_INTERFACE(pci_conf_read(sc->sc_pc,
+				    sc->sc_tag, PCI_CLASS_REG));
 	pcireg_t csr;
 	int channel;
-#ifndef PMON
+#if !defined(PMON)||defined(IDE_DMA)
 	int drive;
 	struct ata_drive_datas *drvp;
 	u_int8_t idedma_ctl;
@@ -1285,12 +1224,15 @@ default_chip_map(sc, pa)
 
 	if (interface & PCIIDE_INTERFACE_BUS_MASTER_DMA) {
 		printf(": DMA");
+#ifndef IDE_DMA
 		if (sc->sc_pp == &default_product_desc &&
 		    (sc->sc_wdcdev.sc_dev.dv_cfdata->cf_flags &
 		    PCIIDE_OPTIONS_DMA) == 0) {
 			printf(" (unsupported)");
 			sc->sc_dma_ok = 0;
-		} else {
+		} else 
+#endif
+		{
 			pciide_mapreg_dma(sc, pa);
 		if (sc->sc_dma_ok != 0)
 			printf(", (partial support)");
@@ -1326,12 +1268,9 @@ default_chip_map(sc, pa)
 		 * Check to see if something appears to be there.
 		 */
 		failreason = NULL;
-		printf("wdc : entering probe.\n");
 		if (!wdcprobe(&cp->wdc_channel)) {
 			failreason = "not responding; disabled or no drives?";
 			goto next;
-		}else{
-			printf("%s:%s wdcprobeok\n",sc->sc_wdcdev.sc_dev.dv_xname,cp->name);
 		}
 		/*
 		 * Now, make sure it's actually attributable to this PCI IDE
@@ -1344,13 +1283,13 @@ default_chip_map(sc, pa)
 	  	    PCI_COMMAND_STATUS_REG);
 		pci_conf_write(sc->sc_pc, sc->sc_tag, PCI_COMMAND_STATUS_REG,
 		    csr & ~PCI_COMMAND_IO_ENABLE);
-#if 0 /* shoud be fixed in gxemul */
 		if (wdcprobe(&cp->wdc_channel))
 			failreason = "other hardware responding at addresses";
+#ifdef FOR_GXEMUL
+		failreason=0;
 #endif
 		pci_conf_write(sc->sc_pc, sc->sc_tag,
 		    PCI_COMMAND_STATUS_REG, csr);
-
 next:
 		if (failreason) {
 			printf("%s: %s ignored (%s)\n",
@@ -1371,7 +1310,7 @@ next:
 		}
 	}
 
-#ifndef PMON
+#if !defined(PMON)||defined(IDE_DMA)
 	if (sc->sc_dma_ok == 0)
 		return;
 
@@ -2056,88 +1995,6 @@ pio:		/* setup PIO mode */
 	pci_conf_write(sc->sc_pc, sc->sc_tag, AMD756_DATATIM, datatim_reg);
 	pci_conf_write(sc->sc_pc, sc->sc_tag, AMD756_UDMA, udmatim_reg);
 }
-
-void
-amdsb710_chip_map (sc, pa)
-        struct pciide_softc *sc;
-        struct pci_attach_args *pa;
-{
-        struct pciide_channel *cp;
-        pcireg_t interface = 0x00;
-        int channel;
-    pcireg_t chanenable0;
-    pcireg_t chanenable1;
-        bus_size_t cmdsize, ctlsize;
-    printf("enter amdsb710_chip_map\n");
-        if (pciide_chipen(sc, pa) == 0)
-    {
-            printf("pciide chip unenable\n");
-        return;
-    }
-        printf(": DMA");
-        pciide_mapreg_dma(sc, pa);
-
-        if (sc->sc_dma_ok)
-                sc->sc_wdcdev.cap |= WDC_CAPABILITY_DMA | WDC_CAPABILITY_UDMA;
-        sc->sc_wdcdev.cap |= WDC_CAPABILITY_DATA16 | WDC_CAPABILITY_DATA32 | WDC_CAPABILITY_MODE;
-        sc->sc_wdcdev.PIO_cap = 4;
-        sc->sc_wdcdev.DMA_cap = 0;//2; /*FIXME yinnn */
-        sc->sc_wdcdev.UDMA_cap = 0;//6;
-        sc->sc_wdcdev.set_modes = amdsb710_setup_channel;
-        sc->sc_wdcdev.channels = sc->wdc_chanarray;
-        sc->sc_wdcdev.nchannels = PCIIDE_NUM_CHANNELS;
-        //sc->sc_wdcdev.nchannels = 1;
-        sc->sc_wdcdev.cap |= WDC_CAPABILITY_DATA16;
-
-        pciide_print_channels(sc->sc_wdcdev.nchannels, interface);
-        for (channel = 0; channel < sc->sc_wdcdev.nchannels; channel++)
-	{
-                cp = &sc->pciide_channels[channel];
-                if (pciide_chansetup(sc, channel, interface) == 0)
-                        continue;
-
-        printf("current channel=%d,max channels=%d\n",channel,sc->sc_wdcdev.nchannels);
-                /* Really initialization work begin here */
-                pciide_mapchan(pa, cp, interface, &cmdsize, &ctlsize,
-                    pciide_pci_intr);
-
-                pciide_map_compat_intr(pa, cp, channel, interface);
-                if (cp->hw_ok == 0)
-                        continue;
-
-                amdsb710_setup_channel(&cp->wdc_channel);
-        }
-    printf("exit amdsb710_chip_map\n");
-        return;
-}
-
-void amdsb710_setup_channel(chp)
-                struct channel_softc* chp;
-{
-        u_int32_t recovery_reg, command_reg;
-        int mode, drive;
-        struct ata_drive_datas *drvp;
-        struct pciide_channel *cp = (struct pciide_channel*)chp;
-        struct pciide_softc *sc = (struct pciide_softc *)cp->wdc_channel.wdc;
-
-    printf("enter amdsb710_setup_channel\n");
-    for (drive = 0; drive < 1; drive++) {
-            printf("drive%d:\n",drive);
-        drvp = &chp->ch_drive[drive];
-                drvp->PIO_mode &= 0x7;
-                if(drvp->PIO_mode >4)
-                        drvp->PIO_mode = 4;
-
-                mode = drvp->PIO_mode;
-        printf("PIO_mode=%d\n",mode);
-
-        }
-        pciide_print_modes(cp);
-    printf("exit amdsb710_setup_channel\n");
-}
-
-
-
 
 #ifndef PMON
 void
