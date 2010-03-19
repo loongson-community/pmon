@@ -12,6 +12,8 @@
 #include "xf86int10.h"
 #include "xf86x86emu.h"
 #include "linux/io.h"
+
+
 #ifdef BONITOEL
 #	define vgaram_base 0xb00a0000
 #endif
@@ -100,66 +102,106 @@ static unsigned char regs[60] = {
     0x67,                                         /* MISC_OUT  */
 };
                                                                                                                   
-void outseq(int index,unsigned char val)
+static void outseq(int index, unsigned char val)
 {
-  int v;
-  v=((int)val<<8)+index;
-  linux_outw(v,0x3c4);
+        linux_outb(index, 0x3c4);
+        linux_outb(val, 0x3c5);
 }
-                                                                                                                  
-void outcrtc(int index,unsigned char val)
+static unsigned char inseq(unsigned char index)
 {
-  int v;
-  v=((int)val<<8)+index;
-  linux_outw(v,0x3d4);
-}
-unsigned char incrtc(int index)
-{
-  linux_outb(index,0x3d4);
-  return linux_inb(0x3d5);
-}
-                                                                                                                  
-void setregs(const unsigned char *regs)
-{
-  int i;
-  linux_outb(regs[MIS],0x3c2);
-  outseq(0x0,0x1);
-  outseq(0x01,regs[SEQ+1]|0x20);
-  linux_outb(0x1,0x3c4);
-  linux_outb(regs[SEQ+1]|0x20,0x3c5);
-  for(i=2;i<SEQ_C;i++)
-  {
-    outseq(i,regs[SEQ+i]);
-  }
-  outseq(0x0,0x3);
-  outcrtc(0x11,incrtc(0x11)&0x7f);
-                                                                                                                  
-  for(i=0;i<CRT_C;i++)
-  {
-    outcrtc(i,regs[CRT+i]);
-  }
-                                                                                                                  
-  for(i=0;i<GRA_C;i++)
-  {
-    linux_outb(i,0x3ce);
-    linux_outb(regs[GRA+i],0x3cf);
-  }
-                                                                                                                  
-  for(i=0;i<ATT_C;i++)
-  {
-    linux_inb(0x3da);
-    vgadelay();
-    linux_outb(i,0x3c0);
-    vgadelay();
-    linux_outb(regs[ATT+i],0x3c0);
-    vgadelay();
-  }
-  outseq(0x01,regs[SEQ+1]&0xDF);
-  linux_inb(0x3da);
-  vgadelay();
-  linux_outb(0x20,0x3c0);
+        linux_outb(index, 0x3c4);
+        return linux_inb(0x3c5);
 }
 
+static void outcrtc(int index, unsigned char val)
+{
+        linux_outb(index, 0x3d4);
+        linux_outb(val, 0x3d5);
+}
+
+static unsigned char incrtc(int index)
+{
+        linux_outb(index, 0x3d4);
+        return linux_inb(0x3d5);
+}
+
+static void outgra(int index, unsigned char val)
+{
+        linux_outb(index, 0x3ce);
+        linux_outb(val, 0x3cf);
+}
+
+static unsigned char ingra(int index)
+{
+        linux_outb(index, 0x3ce);
+        return linux_inb(0x3cf);
+}
+
+static void outatt(int index, unsigned char val)
+{
+        linux_inb(0x3da);
+        vgadelay();
+        linux_outb(index, 0x3c0);
+        vgadelay();
+        linux_outb(val, 0x3c0);
+        vgadelay();
+}
+static unsigned char inatt(int index)
+{
+        linux_inb(0x3da);
+        vgadelay();
+        linux_outb(index, 0x3c0);
+        vgadelay();
+        return linux_inb(0x3c1);
+}
+static void setregs(const unsigned char *regs)
+{
+        int i;
+        unsigned char val;
+
+        // misc
+        linux_outb(regs[MIS], 0x3c2);
+
+        // seq
+        outseq(0x0, 0x1);
+        outseq(0x01, regs[SEQ + 1] | 0x20);
+        outseq(0x01, regs[SEQ + 1] | 0x20);
+        for (i = 2; i < SEQ_C; i++) {
+                outseq(i, regs[SEQ + i]);
+        }
+        outseq(0x0, 0x3);
+
+        // crtc
+        // write enable
+        val = incrtc(0x11);
+        val &= 0x7F;
+        outcrtc(0x11, val);
+        // crtc setting
+        for (i = 0; i < CRT_C; i++) {
+                outcrtc(i, regs[CRT + i]);
+        }
+
+        // gra
+        for (i = 0; i < GRA_C; i++) {
+                outgra(i, regs[GRA + i]);
+        }
+
+        // att
+        for (i = 0; i < ATT_C; i++) {
+                outatt(i, regs[ATT + i]);
+        }
+        outseq(0x01, regs[SEQ + 1] & 0xDF);
+        linux_inb(0x3da);
+        vgadelay();
+        linux_outb(0x20, 0x3c0);
+
+        // misc readback
+        vgadelay();
+        linux_outb(0x67, 0x3c2);
+
+}
+
+                                                                                                                  
 
 extern struct pci_device *vga_dev;
 
@@ -172,19 +214,34 @@ int vga_bios_init(void)
     void* base = 0;
     void* vbiosMem = 0;
     legacyVGARec vga;
-    pInt = (xf86Int10InfoPtr)calloc(1,sizeof(xf86Int10InfoRec));
+    pInt = (xf86Int10InfoPtr)malloc(sizeof(xf86Int10InfoRec));
+    memset(pInt, 0, sizeof(xf86Int10InfoRec));
     if (!xf86Int10ExecSetup(pInt))
 	goto error0;
     pInt->mem = &genericMem;
-    pInt->private = (pointer)calloc(1,sizeof(genericInt10Priv));
+    pInt->private = (pointer)malloc(sizeof(genericInt10Priv));
+    memset(pInt->private, 0, sizeof(genericInt10Priv));
     pInt->scrnIndex = 0; /* screen */
-    base = INTPriv(pInt)->base = 0x80000000+memorysize-0x100000;
+    //base = INTPriv(pInt)->base = 0x80000000+memorysize-0x100000;
+     base = INTPriv(pInt)->base = malloc(0x100000);
+        {
+                unsigned int val;
+                if(vga_dev==NULL){
+                        printf("===no vga==\n");
+                        return -1; 
+                }
+                /* enable VGA legacy space decode */
+                val = _pci_conf_read(vga_dev->parent->pa.pa_tag, 0x3c);
+                val |= 1 << 19; 
+                _pci_conf_write(vga_dev->parent->pa.pa_tag, 0x3c, val);
+                /* reallocate the prefetchable address */
+        }
 
     /*
      * we need to map video RAM MMIO as some chipsets map mmio
      * registers into this range.
      */
-    INTPriv(pInt)->vRam=vgaram_base;
+    INTPriv(pInt)->vRam=(void*)vgaram_base;
     if (!sysMem) {
 	sysMem = malloc(BIOS_SIZE);
 	setup_system_bios(sysMem);
@@ -222,7 +279,7 @@ int vga_bios_init(void)
  	    if (PCI_VENDOR(pdev->pa.pa_id) == 0x1002 && PCI_PRODUCT(pdev->pa.pa_id) == 0x4750)
 			MEM_WW(pInt,0xc015e,0x4750);
 	    romaddress  =_pci_conf_read(pdev->pa.pa_tag,0x30);
-	    romaddress &= (~0xf);
+	    romaddress &= (~0x1);
 	    /* enable rom address decode */
 	    _pci_conf_write(pdev->pa.pa_tag,0x30,romaddress|1);
 #if defined(LONGMENG)||defined(BONITOEL_CPCI)//||defined(NC2E)
@@ -237,7 +294,7 @@ int vga_bios_init(void)
 		    return -1;
 	    }
 #ifdef BONITOEL
-	    romaddress|=0x10000000;
+	    //romaddress|=0x10000000;
 #endif
 #ifdef NC2E
 		if(!getenv("vga1"))
@@ -292,8 +349,9 @@ int vga_bios_init(void)
 	    memcpy(vbiosMem,(char *)(0xa0000000|romaddress),V_BIOS_SIZE);
 #ifndef BONITOEL_CPCI
 		if (PCI_VENDOR(pdev->pa.pa_id) == 0x1002 && pdev->pa.pa_device == 0x4750)
+		    MEM_WW(pInt,0xc015e,0x4750) ;
 #endif
-		MEM_WW(pInt,0xc015e,0x4750) ;
+		
     }
 
     pInt->BIOSseg = V_BIOS >> 4;
@@ -317,7 +375,7 @@ int vga_bios_init(void)
     //UnlockLegacyVGA(screen, &vga);
 #endif
     setregs(regs);
-    linux_outb(0x67,0x3c2);
+    //linux_outb(0x67,0x3c2);
 
 
 #if NMOD_FRAMEBUFFER == 0
@@ -366,6 +424,7 @@ int vga_bios_init(void)
     free(pInt->private);
     free(pInt);
     free(sysMem);
+    free(base);
    if(!getenv("novga")&&!novga) vga_available=1;
     return 1;
  error0:
@@ -410,28 +469,30 @@ MapCurrentInt10(xf86Int10InfoPtr pInt)
 	(VRAM(addr)) ? MMIO_IN8((CARD8*)VRAM_BASE,VRAM_ADDR(addr)) \
 	   : *(CARD8*) V_ADDR(addr)
 #define V_ADDR_RW(addr) \
-	(VRAM(addr)) ? MMIO_IN16((CARD16*)VRAM_BASE,VRAM_ADDR(addr)) \
-	   : ldw_u((pointer)V_ADDR(addr))
+        (VRAM((addr))) ? MMIO_IN16((CARD16*)VRAM_BASE,VRAM_ADDR((addr))) \
+           : (*(CARD16*)V_ADDR((addr)))
 #define V_ADDR_RL(addr) \
-	(VRAM(addr)) ? MMIO_IN32((CARD32*)VRAM_BASE,VRAM_ADDR(addr)) \
-	   : ldl_u((pointer)V_ADDR(addr))
+        (VRAM((addr))) ? MMIO_IN32((CARD32*)VRAM_BASE,VRAM_ADDR((addr))) \
+           : (*(CARD32*)V_ADDR((addr)))
+
 
 #define V_ADDR_WB(addr,val) \
-	if(VRAM(addr)) \
-	    MMIO_OUT8((CARD8*)VRAM_BASE,VRAM_ADDR(addr),val); \
-	else \
-	    *(CARD8*) V_ADDR(addr) = val;
+        if(VRAM((addr))) {      \
+            MMIO_OUT8((CARD8*)VRAM_BASE,VRAM_ADDR((addr)),val); \
+        } else \
+            *(CARD8*) V_ADDR((addr)) = val;
 #define V_ADDR_WW(addr,val) \
-	if(VRAM(addr)) \
-	    MMIO_OUT16((CARD16*)VRAM_BASE,VRAM_ADDR(addr),val); \
-	else \
-	    stw_u(val,(pointer)(V_ADDR(addr)));
+        if(VRAM((addr))) \
+            MMIO_OUT16((CARD16*)VRAM_BASE,VRAM_ADDR((addr)),val); \
+        else \
+            *(CARD16*)(V_ADDR((addr))) = val;
 
 #define V_ADDR_WL(addr,val) \
-	if (VRAM(addr)) \
-	    MMIO_OUT32((CARD32*)VRAM_BASE,VRAM_ADDR(addr),val); \
-	else \
-	    stl_u(val,(pointer)(V_ADDR(addr)));
+        if (VRAM((addr))) \
+            MMIO_OUT32((CARD32*)VRAM_BASE,VRAM_ADDR((addr)),val); \
+        else \
+            *(CARD32*)(V_ADDR((addr))) = val;
+
 
 static CARD8
 read_b(xf86Int10InfoPtr pInt, int addr)
@@ -442,54 +503,40 @@ read_b(xf86Int10InfoPtr pInt, int addr)
 static CARD16
 read_w(xf86Int10InfoPtr pInt, int addr)
 {
-#if 0 /*X_BYTE_ORDER == X_LITTLE_ENDIAN*/
-    if (OFF(addr + 1) > 0)
-	return V_ADDR_RW(addr);
-#endif
-    return V_ADDR_RB(addr) | (V_ADDR_RB(addr + 1) << 8);
+    return (CARD16)(V_ADDR_RB(addr)) | ((CARD16)(V_ADDR_RB(addr + 1)) << 8);
 }
 
 static CARD32
 read_l(xf86Int10InfoPtr pInt, int addr)
 {
-#if 0 /*X_BYTE_ORDER == X_LITTLE_ENDIAN*/
-    if (OFF(addr + 3) > 2)
-	return V_ADDR_RL(addr);
-#endif
-    return V_ADDR_RB(addr) |
-	   (V_ADDR_RB(addr + 1) << 8) |
-	   (V_ADDR_RB(addr + 2) << 16) |
-	   (V_ADDR_RB(addr + 3) << 24);
+     return (CARD32)(V_ADDR_RB(addr)) |
+            ((CARD32)(V_ADDR_RB(addr + 1)) << 8) |
+            ((CARD32)(V_ADDR_RB(addr + 2)) << 16) | ((CARD32)(V_ADDR_RB(addr + 3)) << 24);
+
 }
 
 static void
 write_b(xf86Int10InfoPtr pInt, int addr, CARD8 val)
 {
-    V_ADDR_WB(addr,val);
+     V_ADDR_WB(addr, (val & 0xff));
 }
 
 static void
 write_w(xf86Int10InfoPtr pInt, int addr, CARD16 val)
 {
-#if 0 /*X_BYTE_ORDER == X_LITTLE_ENDIAN*/
-    if (OFF(addr + 1) > 0)
-      { V_ADDR_WW(addr, val); }
-#endif
-    V_ADDR_WB(addr, val);
-    V_ADDR_WB(addr + 1, val >> 8);
+    V_ADDR_WB(addr, (val & 0xff));
+    V_ADDR_WB(addr+1, ((val >> 8) & 0xff));
+
 }
 
 static void
 write_l(xf86Int10InfoPtr pInt, int addr, CARD32 val)
 {
-#if 0 /*X_BYTE_ORDER == X_LITTLE_ENDIAN*/
-    if (OFF(addr + 3) > 2)
-      { V_ADDR_WL(addr, val); }
-#endif
-    V_ADDR_WB(addr, val);
-    V_ADDR_WB(addr + 1, val >> 8);
-    V_ADDR_WB(addr + 2, val >> 16);
-    V_ADDR_WB(addr + 3, val >> 24);
+     V_ADDR_WB(addr, (val & 0xff));
+     V_ADDR_WB(addr+1, ((val >> 8) & 0xff));
+     V_ADDR_WB(addr+2, ((val >> 16) & 0xff));
+     V_ADDR_WB(addr+3, ((val >> 24) & 0xff));
+
 }
 
 pointer

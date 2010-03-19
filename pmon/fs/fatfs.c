@@ -49,7 +49,6 @@
 #include <pmon.h>
 #include <file.h>
 #include "fat.h"
-#include <diskfs.h>
 
 extern int errno;
 
@@ -58,7 +57,6 @@ int   fat_close (int);
 int   fat_read (int, void *, size_t);
 int   fat_write (int, const void *, size_t);
 off_t fat_lseek (int, off_t, int);
-static void *_myfile[OPEN_MAX];
 
 
 /*
@@ -81,10 +79,23 @@ u_int8_t shortNameChkSum(u_int8_t *);
 int fat_parseDirEntries(int ,struct fat_fileentry *);
 
 
+//Yuli-2008-12-25
+static void fat_listfilename(struct fat_fileentry *filee,int dir_flag,int ilongName)
+{
+	if(dir_flag == 1)
+	{
+		printf("%-40s%-15s%d\n",ilongName ? filee->longName : filee->shortName,"<DIR>",filee->FileSize);
+	}
+	else
+	{
+		printf("%-40s%-15s%d\n",ilongName ? filee->longName : filee->shortName,"<FILE>",filee->FileSize);
+	}
+}
+
 /*
  * Supported paths:
- *	/dev/fat@wd0/file
- *	/dev/fs/fat@wd0/file
+ *	/dev/fat/disk@wd0/file
+ *	/dev/fat/ram@address/file
  *
  */
 int
@@ -100,13 +111,12 @@ fat_open(int fd, const char *path, int flags, int mode)
 	int partition = 0, dpathlen;
 	char * p;
 
+	//printf("fat_open path:%s\n",path);
 	/*  Try to get to the physical device */
 	opath = path;
 	if (strncmp(opath, "/dev/", 5) == 0)
 		opath += 5;
 	if (strncmp(opath, "fat/", 4) == 0)
-		opath += 4;
-	else if (strncmp(opath, "fat@", 4) == 0)
 		opath += 4;
 
 	/* There has to be at least one more component after the devicename */
@@ -135,6 +145,9 @@ fat_open(int fd, const char *path, int flags, int mode)
 	 */
 	_file[fd].valid = 1;
 
+	//we need to change the device name like this /dev/disk/wd0, not /dev/disk@wd0
+	if(p = strchr(dpath, '@'))
+		*p = '/';
 
 	//here we see if the name is /dev/disk/wd0a or something like this
 	dpathlen = strlen(dpath);
@@ -167,7 +180,7 @@ fat_open(int fd, const char *path, int flags, int mode)
 	fsc->LastSector = -1;	/* No valid sector in sector buffer */
 
 	_file[fd].posn = 0;
-	_myfile[fd] = (void *)fsc;
+	_file[fd].data = (void *)fsc;
 	return (fd);
 }
 
@@ -176,7 +189,7 @@ fat_close(int fd)
 {
 	struct fat_sc *fsc;
 
-	fsc = (struct fat_sc *)_myfile[fd];
+	fsc = (struct fat_sc *)_file[fd].data;
 
 	if (fsc->file.Chain.entries) {
 		free(fsc->file.Chain.entries);
@@ -201,7 +214,7 @@ fat_read(int fd, void *buf, size_t len)
 	int sector;
 	int res = 0;
 
-	fsc = (struct fat_sc *)_myfile[fd];
+	fsc = (struct fat_sc *)_file[fd].data;
 
 	origpos = _file[fd].posn;
 
@@ -263,7 +276,7 @@ fat_lseek(int fd, off_t offset, int whence)
 {
 	struct fat_sc *fsc;
 
-	fsc = (struct fat_sc *)_myfile[fd];
+	fsc = (struct fat_sc *)_file[fd].data;
 
 	switch (whence) {
 		case SEEK_SET:
@@ -286,15 +299,6 @@ fat_lseek(int fd, off_t offset, int whence)
 /*
  *  File system registration info.
  */
-static DiskFileSystem diskfile={
-        "fat", 
-        fat_open,
-        fat_read,
-        fat_write,
-        fat_lseek,
-        fat_close,
-	NULL
-};
 static FileSystem fatfs = {
         "fat", FS_FILE,
         fat_open,
@@ -311,7 +315,6 @@ static void
 init_fs()
 {
 	filefs_init(&fatfs);
-	diskfs_init(&diskfile);
 }
 
 /***************************************************************************************************
@@ -371,6 +374,12 @@ int fat_getPartition(struct fat_sc *fsc, int partition)
 	/*
 	 * Find the active partition
 	 */
+
+	if (buffer[510] != 0x55 || buffer[511] != 0xaa)
+    {   
+		return 0;/*check mbr magic failed */
+    }
+    
 	fsc->PartitionStart = letoh32(mbr->partition[partition].relsect);
 	return (1);
 }
@@ -402,7 +411,7 @@ int fat_init(int fd, struct fat_sc *fsc, int partition)
 	}
 	if((bootsector[0] == 0)&&(bootsector[1] == 0))
 	{
-		fprintf(stderr, "It's not fat!\n");
+		//fprintf(stderr, "It's not fat!\n");
 		return -1;
 	}
 	bpb = (struct bpb_t *)bootsector;
@@ -416,7 +425,6 @@ int fat_init(int fd, struct fat_sc *fsc, int partition)
 	fsc->SecPerClust = bpb->bpbSecPerClust;
 	fsc->NumFATs = bpb->bpbFATs;
 	fsc->FatCacheNum = -1;
-	fsc->RootClus = bpb->efat32.bpbRootClus;
 
 	if (bpb->bpbFATsecs != 0)
 		fsc->FATsecs = (u_int32_t)letoh16(bpb->bpbFATsecs);
@@ -558,12 +566,11 @@ int fat_findfile(struct fat_sc *fsc, char *name)
 	int flag = 0;
 	int dir_flag = 0;
 
-
 	if(fsc->FatType == TYPE_FAT32)
 	{
 		struct fatchain chain;
 		int res;
-		fat_getChain(fsc, fsc->RootClus , &chain);
+		fat_getChain(fsc, 2 , &chain);
 		res = fat_subdirscan(fsc, name, &chain);
 		if (chain.entries) {
 			free(chain.entries);
@@ -604,13 +611,7 @@ int fat_findfile(struct fat_sc *fsc, char *name)
 				{
 					continue;
 				}
-				if(dire->dirAttributes == ATTR_VOLUME)
-					continue;
 
-				if(dire->dirAttributes == ATTR_DIRECTORY)
-				{
-					dir_flag = 1;
-				}
 				if (dire->dirAttributes == ATTR_WIN95) {
 					bcopy((void *)dire, (void *)&dirbuf[long_name], sizeof(struct direntry));
 					flag = 1;
@@ -619,12 +620,21 @@ int fat_findfile(struct fat_sc *fsc, char *name)
 						long_name = 0;
 					continue;
 				}
+
+				//Yuli-2008-12-26
+				if((dire->dirAttributes & ATTR_DIRECTORY) == ATTR_DIRECTORY)
+				{
+					dir_flag = 1;
+				}
+				
 				bcopy((void *)dire, (void *)&dirbuf[long_name], sizeof(struct direntry));
 				fat_parseDirEntries(long_name, &filee);
 				long_name = 0;
 
 				if(dir_list)
 				{		
+					//Yuli-2008-12-26
+					#if 0
 					if((flag == 0)||(strcmp(filee.shortName,".") == 0)||(strcmp(filee.shortName, "..") == 0))
 					{
 						printf("%s",filee.shortName);
@@ -637,6 +647,17 @@ int fat_findfile(struct fat_sc *fsc, char *name)
 						printf("/");
 					}
 					printf("  ");
+					#endif
+					int ilongName = 1;
+					if((flag == 0)||(strcmp(filee.shortName,".") == 0)||(strcmp(filee.shortName, "..") == 0))
+					{
+						ilongName = 0;					
+					}
+					fat_listfilename(&filee,dir_flag,ilongName);
+					if (dir_flag == 1)
+					{
+						dir_flag = 0;
+					}
 					flag = 0;
 				}
 				else if ((strcasecmp(name, filee.shortName) == 0) || (strcasecmp(name, filee.longName) == 0)) {
@@ -697,8 +718,8 @@ int fat_subdirscan(struct fat_sc *fsc, char *name, struct fatchain *chain)
 
 			dire = (struct direntry *)fsc->DirBuffer;
 
-			for (k = 0; (k < (SECTORSIZE / sizeof(struct direntry))); k++, dire++) {
-				
+			for (k = 0; (k < (SECTORSIZE / sizeof(struct direntry))); k++, dire++) {				
+
 				if (dire->dirName[0] == SLOT_EMPTY)
 				{
 					if(dir_list)
@@ -710,13 +731,10 @@ int fat_subdirscan(struct fat_sc *fsc, char *name, struct fatchain *chain)
 				}
 
 				if (dire->dirName[0] == SLOT_DELETED)
-					continue;
-				if(dire->dirAttributes == ATTR_VOLUME)
-					continue;
-				if(dire->dirAttributes == ATTR_DIRECTORY)
 				{
-					dir_flag = 1;
+					continue;
 				}
+				
 				if (dire->dirAttributes == ATTR_WIN95) {
 					bcopy((void *)dire, (void *)&dirbuf[long_name], sizeof(struct direntry));
 					long_name++;
@@ -725,23 +743,44 @@ int fat_subdirscan(struct fat_sc *fsc, char *name, struct fatchain *chain)
 						long_name = 0;
 					continue;
 				}
+				
+				//Yuli-2008-12-26
+				if((dire->dirAttributes & ATTR_DIRECTORY) == ATTR_DIRECTORY)
+				{
+					dir_flag = 1;
+				}
+				
 				bcopy((void *)dire, (void *)&dirbuf[long_name], sizeof(struct direntry));
 				fat_parseDirEntries(long_name, &filee);
 				long_name = 0;
 				if(dir_list)
 				{
+					//Yuli-2008-12-25
+					#if 0
 					if((flag == 0)||(strcmp(filee.shortName,".") == 0)||(strcmp(filee.shortName, "..") == 0))
 					{
 						printf("%s", filee.shortName);
 					}
 					else
 						printf("%s", filee.longName);
+					
 					if(dir_flag == 1)
 					{
 						dir_flag = 0;
 						printf("/");
 					}
 					printf("  ");
+					#endif
+					int ilongName = 1;
+					if((flag == 0)||(strcmp(filee.shortName,".") == 0)||(strcmp(filee.shortName, "..") == 0))
+					{
+						ilongName = 0;					
+					}
+					fat_listfilename(&filee,dir_flag,ilongName);
+					if (dir_flag == 1)
+					{
+						dir_flag = 0;
+					}
 					flag = 0;
 				}
 				else if ((strcasecmp(name, filee.shortName) == 0) || (strcasecmp(name, filee.longName) == 0)) {
@@ -766,6 +805,7 @@ int fat_subdirscan(struct fat_sc *fsc, char *name, struct fatchain *chain)
 			}
 		}
 	}
+	vga_available = 1;
 	printf("\n");
 	return (0);
 }
@@ -854,13 +894,7 @@ int fat_getChain(struct fat_sc *fsc, int start, struct fatchain *chain)
 	while(1)
 	{
 		entry = getFatEntry(fsc, flag);
-		if(entry == (CLUST_EOFE & mask & 0xfffffff7))
-		{
-			printf("clust is error!");
-			return -1;
-		}
-		
-		if(entry >= (CLUST_EOFE & mask & 0xfffffff8))
+		if(entry >= (CLUST_EOFE & mask))
 			break;
 		flag = entry;
 		count++;
@@ -881,13 +915,7 @@ int fat_getChain(struct fat_sc *fsc, int start, struct fatchain *chain)
 	{
 		entry = getFatEntry(fsc, flag);
 		chain->entries[i+1] = entry;
-		if(entry == (CLUST_EOFE & mask & 0xfffffff7))
-		{
-			printf("clust is error!");
-			return -1;
-		}
-		
-		if(entry >= (CLUST_EOFE & mask & 0xfffffff8))
+		if(entry >= (CLUST_EOFE & mask))
 			break;
 		flag = entry;
 		i++;

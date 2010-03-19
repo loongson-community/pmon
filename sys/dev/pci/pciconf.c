@@ -450,6 +450,14 @@ if(pm_io == NULL) {
 				pm->reg = reg;
 				pm->flags = PCI_MAPREG_MEM_TYPE_32BIT;
 				pm->size = -(PCI_MAPREG_MEM_ADDR(mask));
+				//vga 0x10 > 32M bytes
+				if(PCI_ISCLASS(((pd->pa.pa_class)&0xff00ffff), PCI_CLASS_DISPLAY, PCI_SUBCLASS_DISPLAY_VGA)){
+                                        if(reg==0x10){
+                                                printf("fixup video mem size\n");
+                                                pm->size=0x2000000;
+                                        }
+                                }
+
 				_insertsort_window(&pd->parent->bridge.memspace, pm);
 			}
 		}

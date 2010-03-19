@@ -69,7 +69,7 @@ wordsz(const char *p)
 
 	while (isspace (*p))
 		p++;
-	for (n = 0; !*p && !isspace (*p); n++)
+	for (n = 0; *p && !isspace (*p); n++)
 		p++;
 	return (n);
 }

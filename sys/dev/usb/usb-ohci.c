@@ -99,6 +99,7 @@
 /* For initializing controller (mask in an HCFS mode too) */
 #define OHCI_CONTROL_INIT \
 	(OHCI_CTRL_CBSR & 0x3) | OHCI_CTRL_IE | OHCI_CTRL_PLE
+//	(OHCI_CTRL_CBSR & 0x3) | OHCI_CTRL_IE | OHCI_CTRL_PLE
 
 #define min_t(type,x,y) ({ type __x = (x); type __y = (y); __x < __y ? __x: __y; })
 
@@ -125,7 +126,8 @@
 #define readl(addr) *(volatile u32*)(((u32)(addr)) | 0xa0000000)
 #define writel(val, addr) *(volatile u32*)(((u32)(addr)) | 0xa0000000) = (val)
 
-#define MAX_OHCI_C 4   /*In most case it is enough */
+#define MAX_OHCI_C 4  /*In most case it is enough */
+//#define MAX_OHCI_C 8   /* Changed for RS690 */
 ohci_t *usb_ohci_dev[MAX_OHCI_C];
 /* RHSC flag */
 int got_rhsc;
@@ -496,7 +498,6 @@ static void ohci_attach(struct device *parent, struct device *self, void *aux)
 	bus_addr_t membase2;
 	bus_addr_t memsize2;
 #endif
-
 	/* Or we just return false in the match function */
 	if(ohci_dev_index >= MAX_OHCI_C) {
 		printf("Exceed max controller limits\n");
@@ -584,6 +585,8 @@ SM502_HC:
 		printf("Cant map mem space\n");
 		return;
 	}
+	printf("usb base addr : 0x%x, bus_base is : 0x%x\n", ohci->sc_sh, memt->bus_base);
+
 #ifdef CONFIG_SM502_USB_HCD
 	/*Can not be failed*/
 	if(ohci->flags & 0x80)
@@ -1149,7 +1152,11 @@ static int ep_unlink (ohci_t *ohci, ed_t *ed)
 			else
 #endif
 			{
+#ifdef LS3_HT			    
+				((ed_t *)(*((u32 *)&ed->hwNextED)))->ed_prev = ed->ed_prev;
+#else				
 				((ed_t *)CACHED_TO_UNCACHED(*((u32 *)&ed->hwNextED)))->ed_prev = ed->ed_prev;
+#endif				
 			}
 		}
 		break;
@@ -1175,7 +1182,11 @@ static int ep_unlink (ohci_t *ohci, ed_t *ed)
 			else
 #endif
 			{
-				((ed_t *)CACHED_TO_UNCACHED(ed->hwNextED))->ed_prev = ed->ed_prev;
+#ifdef LS3_HT			    
+				((ed_t *)(ed->hwNextED))->ed_prev = ed->ed_prev;
+#else
+                ((ed_t *)CACHED_TO_UNCACHED(ed->hwNextED))->ed_prev = ed->ed_prev;
+#endif            
 			}
 		}
 		break;
@@ -1186,6 +1197,30 @@ static int ep_unlink (ohci_t *ohci, ed_t *ed)
 	ed->state = ED_UNLINK;
 	return 0;
 }
+
+static int find_index(struct ohci_device * ohci_dev, unsigned long pipe)
+{
+	int i;
+
+	if(ohci_dev == NULL || pipe == 0){
+    	printf("argv is valid\n");
+		return -1;
+    }
+
+   	for(i = 0; i < NUM_EDS; i++) {
+        if(ohci_dev->cpu_ed[i].pipe == 0){ // pipe will not be 0,since bit30~bit31 never be 0.
+            break;
+        } else {
+            if(ohci_dev->cpu_ed[i].pipe == pipe)
+            	return i;
+        }
+    }
+    if(i >= NUM_EDS)
+        return -2;
+    else
+        return i;
+}
+
 
 /*===========================================================================
 *
@@ -1220,7 +1255,12 @@ static ed_t * ep_add_ed (struct usb_device *usb_dev, unsigned long pipe)
     //QYL-2008-03-07
     u_int32_t cpued_num = 0;
 
-    cpued_num = ((usb_pipedevice(pipe)&0x3)<<3)|((usb_pipeendpoint(pipe)&0x3)<<1)|(usb_pipein(pipe));
+//    cpued_num = ((usb_pipedevice(pipe)&0x3)<<3)|((usb_pipeendpoint(pipe)&0x3)<<1)|(usb_pipein(pipe));
+	cpued_num = find_index(ohci_dev, pipe);
+	if(cpued_num < 0){
+		err("Why you need so much? No more ed left\n");
+		return NULL;
+	}
     ed = ed_ret = &ohci_dev->cpu_ed[cpued_num];
     
 	if ((ed->state & ED_DEL) || (ed->state & ED_URB_DEL)) {
@@ -1247,6 +1287,7 @@ static ed_t * ep_add_ed (struct usb_device *usb_dev, unsigned long pipe)
 		ed->hwHeadP = ed->hwTailP;
 		ed->state = ED_UNLINK;
 		ed->type = usb_pipetype (pipe);
+		ed->pipe = pipe;
 		ohci_dev->ed_cnt++;
 	}
 
@@ -1316,7 +1357,11 @@ static void td_fill (ohci_t *ohci, unsigned int info,
 	else
 #endif
 	{
-		td_pt = (td_t *)CACHED_TO_UNCACHED(urb_priv->td[index]);
+#ifdef LS3_HT	    
+		td_pt = (td_t *)(urb_priv->td[index]);
+#else
+        td_pt = (td_t *)CACHED_TO_UNCACHED(urb_priv->td[index]);
+#endif		
 	}
 	td_pt->hwNextTD = 0;
 
@@ -1332,7 +1377,11 @@ static void td_fill (ohci_t *ohci, unsigned int info,
 	else
 #endif
 	{
-		td = urb_priv->td[index]= (td_t *)(CACHED_TO_UNCACHED(urb_priv->ed->hwTailP) & ~0xf);
+#ifdef LS3_HT	    
+		td = urb_priv->td[index]= (td_t *)((urb_priv->ed->hwTailP) & ~0xf);
+#else
+        td = urb_priv->td[index]= (td_t *)(CACHED_TO_UNCACHED(urb_priv->ed->hwTailP) & ~0xf);
+#endif        
 	}
 
 
@@ -1431,7 +1480,10 @@ static void td_submit_job (struct usb_device *dev, unsigned long pipe, void
 	else
 #endif
 	{
+#ifdef LS3_HT
+#else	    
 		pci_sync_cache(ohci->sc_pc, (vm_offset_t)CACHED_TO_UNCACHED(buffer), transfer_len, SYNC_W);
+#endif		
 	}
 
 	if(usb_gettoggle(dev, usb_pipeendpoint(pipe), usb_pipeout(pipe))) {
@@ -1563,7 +1615,11 @@ static void dl_transfer_length(td_t * td)
 	else
 #endif
 	{
-		tdCBP  = PHYS_TO_UNCACHED(m32_swap (td->hwCBP));
+#ifdef LS3_HT	    
+		tdCBP  = PHYS_TO_CACHED(m32_swap (td->hwCBP));
+#else
+        tdCBP  = PHYS_TO_UNCACHED(m32_swap (td->hwCBP));
+#endif        		
 	}
 
     //QYL-2008-03-07
@@ -1595,7 +1651,11 @@ static void dl_transfer_length(td_t * td)
 				else
 #endif
 				{
-					length = PHYS_TO_UNCACHED(tdBE) - CACHED_TO_UNCACHED(td->data) + 1;
+#ifdef LS3_HT				    
+					length = PHYS_TO_CACHED(tdBE) - (td->data) + 1;
+#else
+                    length = PHYS_TO_UNCACHED(tdBE) - CACHED_TO_UNCACHED(td->data) + 1;
+#endif                    					
 				}
 				lurb_priv->actual_length += length;
 				if(usb_pipecontrol(lurb_priv->pipe)&& usb_pipein(lurb_priv->pipe)){
@@ -1631,7 +1691,11 @@ static void dl_transfer_length(td_t * td)
 				else
 #endif
 				{
-					length = tdCBP - CACHED_TO_UNCACHED(td->data);
+#ifdef LS3_HT
+					length = tdCBP - (td->data);
+#else
+                    length = tdCBP - CACHED_TO_UNCACHED(td->data);
+#endif                    
 				}
 				lurb_priv->actual_length += length;
 				if(usb_pipein(lurb_priv->pipe) &&usb_pipecontrol(lurb_priv->pipe)){
@@ -1705,8 +1769,11 @@ static td_t * dl_reverse_done_list (ohci_t *ohci)
 		else
 #endif
 		{
-
-			td_list = (td_t *)PHYS_TO_UNCACHED(td_list_hc & 0x1fffffff);
+#ifdef LS3_HT
+			td_list = (td_t *)PHYS_TO_CACHED(td_list_hc & 0x1fffffff);
+#else
+            td_list = (td_t *)PHYS_TO_UNCACHED(td_list_hc & 0x1fffffff);
+#endif            			
 		}
 		td_list->hwINFO |= TD_DEL;
 
@@ -2437,7 +2504,7 @@ int submit_common_msg(struct usb_device *dev, unsigned long pipe, void *buffer,
 	else
 		timeout = 2000;
 
-	timeout *= 40;
+	timeout *= 10;
 
 	/* wait for it to complete */
 #if 0
@@ -2712,7 +2779,8 @@ static int hc_reset (ohci_t *ohci)
 			err("USB HC reset timed out!");
 			return -1;
 		}
-		udelay (1);
+		udelay (500);		// changed for test liujl
+//		udelay (1);
 	}
 	return 0;
 }
@@ -2742,6 +2810,7 @@ static int hc_start (ohci_t * ohci)
 
 	writel (0, &ohci->regs->ed_controlhead);
 	writel (0, &ohci->regs->ed_bulkhead);
+	writel (0, &ohci->regs->ed_periodcurrent);
 
 #ifdef CONFIG_SM502_USB_HCD
 	if(ohci->flags & 0x80)
@@ -2752,9 +2821,14 @@ static int hc_start (ohci_t * ohci)
 		writel ((u32)(vtophys(ohci->hcca)), &ohci->regs->hcca); /* a reset clears this */
 	}
 
+	printf("early period(0x%x)\n", readl(&ohci->regs->ed_periodcurrent));
+
 	fminterval = 0x2edf;
-	writel ((fminterval * 8) / 10, &ohci->regs->periodicstart);    
-    fminterval |= ((((fminterval - 210) * 6) / 7) << 16);
+//	fminterval = 0x2edf;
+	writel ((fminterval * 9) / 10, &ohci->regs->periodicstart);    
+	//writel ((fminterval * 8) / 10, &ohci->regs->periodicstart);    
+	fminterval |= ((((fminterval - 210) * 6) / 7) << 16);
+	//fminterval |= ((((fminterval - 210) * 6) / 7) << 16);
 	writel (fminterval, &ohci->regs->fminterval);
 	writel (0x628, &ohci->regs->lsthresh);
 
@@ -2762,7 +2836,15 @@ static int hc_start (ohci_t * ohci)
 	ohci->hc_control = OHCI_CONTROL_INIT | OHCI_USB_OPER;
 	ohci->disabled = 0;
 	writel (ohci->hc_control, &ohci->regs->control);
-
+	
+	{
+		int val;	
+		val = readl(&ohci->regs->intrstatus);
+		while(val & OHCI_INTR_SF){
+			udelay(10);
+			readl(&ohci->regs->intrstatus);
+		}
+	}
 	/* disable all interrupts */
 	mask = (OHCI_INTR_SO | OHCI_INTR_WDH | OHCI_INTR_SF | OHCI_INTR_RD |
 			OHCI_INTR_UE | OHCI_INTR_FNO | OHCI_INTR_RHSC |
@@ -2775,16 +2857,22 @@ static int hc_start (ohci_t * ohci)
 	mask = OHCI_INTR_RHSC | OHCI_INTR_UE | OHCI_INTR_WDH | OHCI_INTR_SO | OHCI_INTR_MIE;
 	writel (mask, &ohci->regs->intrenable);
 
+	udelay(1000);
+
+#if	0
 #ifdef	OHCI_USE_NPS
 	/* required for AMD-756 and some Mac platforms */
 	writel ((roothub_a (ohci) | RH_A_NPS) & ~RH_A_PSM,
 		&ohci->regs->roothub.a);
 	writel (RH_HS_LPSC, &ohci->regs->roothub.status);
 #endif	/* OHCI_USE_NPS */
-
+#endif
+	
 #define mdelay(n) do {unsigned long msec=(n); while (msec--) udelay(1000);} while(0)
 	/* POTPGT delay is bits 24-31, in 2 ms units. */
 	mdelay ((roothub_a (ohci) >> 23) & 0x1fe);
+
+	mdelay(1000);
 
 	/* connect the virtual root hub */
 	ohci->rh.devnum = 0;
@@ -2838,7 +2926,11 @@ static int hc_interrupt (void *hc_data)
 		else
 #endif
 		{
-			td = (td_t *)CACHED_TO_UNCACHED(ohci->hcca->done_head);
+#ifdef LS3_HT		    
+			td = (td_t *)(ohci->hcca->done_head);
+#else
+            td = (td_t *)CACHED_TO_UNCACHED(ohci->hcca->done_head);
+#endif
 		}
 	} else {
 		ints = readl (&regs->intrstatus);
@@ -2903,7 +2995,11 @@ static int hc_interrupt (void *hc_data)
 			else
 #endif
 			{
-				td = (td_t *)CACHED_TO_UNCACHED(ohci->hcca->done_head & ~0x1f);
+#ifdef LS3_HT			    
+				td = (td_t *)(ohci->hcca->done_head & ~0x1f);
+#else
+                td = (td_t *)CACHED_TO_UNCACHED(ohci->hcca->done_head & ~0x1f);
+#endif
 			}
 		}
 
@@ -2928,15 +3024,24 @@ static int hc_interrupt (void *hc_data)
 			} else {
 				stat = dl_done_list (ohci, dl_reverse_done_list (ohci));
 		    }
-        }
+        	}
 
 		writel (OHCI_INTR_WDH, &regs->intrenable);
 
 	}
 
+//	printf("liujl : reg (0x%x) intstatus(0x%x), cmdstats(0x%x)\n", (ohci->regs), ints, readl(&regs->cmdstatus));
 	if (ints & OHCI_INTR_SO) {
-		printf("USB Schedule overrun\n");
-		writel (OHCI_INTR_SO, &regs->intrenable);
+//		printf("USB Schedule overrun\n");
+		{
+			int val;
+			writel(OHCI_INTR_SO, &regs->intrstatus);
+			val = readl(&regs->intrdisable);
+			val |= OHCI_INTR_SO;
+			writel(val, &regs->intrdisable);
+		}
+//		writel (OHCI_INTR_SO, &regs->intrdisable);
+//		writel (OHCI_INTR_SO, &regs->intrenable);
 		stat = -1;
 	}
 
@@ -3009,7 +3114,7 @@ int usb_lowlevel_init(ohci_t *gohci)
 	{
 		hcca = malloc(sizeof(*gohci->hcca), M_DEVBUF, M_NOWAIT);
 		memset(hcca, 0, sizeof(*hcca));
-		pci_sync_cache(gohci->sc_pc, (vm_offset_t)hcca, sizeof(*hcca), SYNC_W);
+		//pci_sync_cache(gohci->sc_pc, (vm_offset_t)hcca, sizeof(*hcca), SYNC_W);
 	}
 
 	/* align the storage */
@@ -3034,15 +3139,20 @@ int usb_lowlevel_init(ohci_t *gohci)
 		err("EDs not aligned!!");
 		return -1;
 	}
-
+#ifdef CONFIG_SM502_USB_HCD
 	if((gohci->flags & 0x80)) 
 	{
 		ohci_dev->cpu_ed = ohci_dev->ed;
 	} 
+#endif
 	else 
 	{
-		pci_sync_cache(gohci->sc_pc, (vm_offset_t)ohci_dev->ed, sizeof(ohci_dev->ed),SYNC_W);
-		ohci_dev->cpu_ed = (ed_t *)CACHED_TO_UNCACHED(&ohci_dev->ed);
+	//	pci_sync_cache(gohci->sc_pc, (vm_offset_t)ohci_dev->ed, sizeof(ohci_dev->ed),SYNC_W);
+#ifdef LS3_HT
+		ohci_dev->cpu_ed = (ed_t *)(&ohci_dev->ed);
+#else
+        ohci_dev->cpu_ed = (ed_t *)CACHED_TO_UNCACHED(&ohci_dev->ed);
+#endif
 	}
 
 #ifdef CONFIG_SM502_USB_HCD
@@ -3055,7 +3165,7 @@ int usb_lowlevel_init(ohci_t *gohci)
 	{
 		gtd = malloc(sizeof(td_t) * (NUM_TD+1), M_DEVBUF, M_NOWAIT);
 		memset(gtd, 0, sizeof(td_t) * (NUM_TD + 1));
-		pci_sync_cache(gohci->sc_pc, (vm_offset_t)gtd, sizeof(td_t)*(NUM_TD+1), SYNC_W);
+		//pci_sync_cache(gohci->sc_pc, (vm_offset_t)gtd, sizeof(td_t)*(NUM_TD+1), SYNC_W);
 	}
 
 	if ((u32)gtd & 0x0f) {
@@ -3074,8 +3184,13 @@ int usb_lowlevel_init(ohci_t *gohci)
 	else
 #endif
 	{
-		gohci->hcca = (struct ohci_hcca*)CACHED_TO_UNCACHED(hcca);
+#ifdef LS3_HT	    
+		gohci->hcca = (struct ohci_hcca*)(hcca);
+		gohci->gtd = (td_t *)(gtd);
+#else
+        gohci->hcca = (struct ohci_hcca*)CACHED_TO_UNCACHED(hcca);
 		gohci->gtd = (td_t *)CACHED_TO_UNCACHED(gtd);
+#endif		
 		gohci->ohci_dev = ohci_dev;
 	}
 
@@ -3103,8 +3218,12 @@ int usb_lowlevel_init(ohci_t *gohci)
 		if((u32)tmpbuf & 0x1f)
 			printf("Malloc return not cache line aligned\n");
 		memset(tmpbuf, 0, 512);
-		pci_sync_cache(gohci->sc_pc, (vm_offset_t)tmpbuf,  512, SYNC_W);
-		gohci->control_buf = (unsigned char*)CACHED_TO_UNCACHED(tmpbuf);
+		//pci_sync_cache(gohci->sc_pc, (vm_offset_t)tmpbuf,  512, SYNC_W);
+#ifdef LS3_HT		
+		gohci->control_buf = (unsigned char*)(tmpbuf);
+#else
+        gohci->control_buf = (unsigned char*)CACHED_TO_UNCACHED(tmpbuf);
+#endif
 	}
 
 #ifdef CONFIG_SM502_USB_HCD
@@ -3126,8 +3245,12 @@ int usb_lowlevel_init(ohci_t *gohci)
 		if((u32)tmpbuf & 0x1f)
 			printf("Malloc return not cache line aligned\n");
 		memset(tmpbuf, 0, 64);
-		pci_sync_cache(tmpbuf, (vm_offset_t)tmpbuf, 64, SYNC_W);
-		gohci->setup = (unsigned char *)CACHED_TO_UNCACHED(tmpbuf);
+		//pci_sync_cache(tmpbuf, (vm_offset_t)tmpbuf, 64, SYNC_W);
+#ifdef LS3_HT
+		gohci->setup = (unsigned char *)(tmpbuf);
+#else
+        gohci->setup = (unsigned char *)CACHED_TO_UNCACHED(tmpbuf);
+#endif
 	}
 
 	gohci->disabled = 1;
@@ -3142,14 +3265,15 @@ int usb_lowlevel_init(ohci_t *gohci)
 #endif
 
 	dbg("OHCI: regs base %x\n", gohci->regs);
-
 	//gohci->flags = 0;
 	gohci->slot_name = "Godson";
 
-	dbg("OHCI revision: 0x%08x\n"
-	       "  RH: a: 0x%08x b: 0x%08x\n",
-	       readl(&gohci->regs->revision),
-	       readl(&gohci->regs->roothub.a), readl(&gohci->regs->roothub.b));
+//	dbg("OHCI revision: 0x%08x\n"
+//	       "  RH: a: 0x%08x b: 0x%08x\n",
+///	       readl(&gohci->regs->revision),
+//	       readl(&gohci->regs->roothub.a), readl(&gohci->regs->roothub.b));
+	printf("OHCI revision: 0x%08x\n" "  RH: a: 0x%08x b: 0x%08x\n", readl(&gohci->regs->revision), 
+			readl(&gohci->regs->roothub.a), readl(&gohci->regs->roothub.b));
 
 	if (hc_reset (gohci) < 0)
 		goto errout;
@@ -3157,7 +3281,6 @@ int usb_lowlevel_init(ohci_t *gohci)
 	/* FIXME this is a second HC reset; why?? */
 	writel (gohci->hc_control = OHCI_USB_RESET, &gohci->regs->control);
 	wait_ms (10);
-
 	if (hc_start (gohci) < 0)
 		goto errout;
 
@@ -3312,7 +3435,11 @@ static int hc_check_ohci_controller (void *hc_data)
 		else
 #endif
 		{
-			td = (td_t *)CACHED_TO_UNCACHED(ohci->hcca->done_head);
+#ifdef LS3_HT
+			td = (td_t *)(ohci->hcca->done_head);
+#else
+            td = (td_t *)CACHED_TO_UNCACHED(ohci->hcca->done_head);
+#endif
 		}
 	} else {
 		ints = readl (&regs->intrstatus);
@@ -3375,7 +3502,11 @@ static int hc_check_ohci_controller (void *hc_data)
 			else
 #endif
 			{
-				td = (td_t *)CACHED_TO_UNCACHED(ohci->hcca->done_head & ~0x1f);
+#ifdef LS3_HT			    
+				td = (td_t *)(ohci->hcca->done_head & ~0x1f);
+#else
+                td = (td_t *)CACHED_TO_UNCACHED(ohci->hcca->done_head & ~0x1f);
+#endif             				
 			}
 		}
 

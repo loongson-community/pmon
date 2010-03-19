@@ -163,7 +163,6 @@ struct fat_sc {
 	u_int32_t	DataSectors;
 	u_int32_t	DataSectorBase;
 	u_int32_t	PartitionStart;
-	u_int32_t	RootClus;
 	u_int8_t	FatBuffer[SECTORSIZE];
 	int		FatCacheNum;
 	u_int8_t	DirBuffer[SECTORSIZE];
@@ -185,9 +184,9 @@ struct fat_sc {
 #define	CLUST_EOFS	0xfffffff8	/* start of eof cluster range */
 #define	CLUST_EOFE	0xffffffff	/* end of eof cluster range */
 
-#define	FAT12_MASK	0x00000fff	/* mask for 12 bit cluster numbers */
-#define	FAT16_MASK	0x0000ffff	/* mask for 16 bit cluster numbers */
-#define	FAT32_MASK	0x0fffffff	/* mask for FAT32 cluster numbers */
+#define	FAT12_MASK	0x00000ff8	/* mask for 12 bit cluster numbers */
+#define	FAT16_MASK	0x0000fff8	/* mask for 16 bit cluster numbers */
+#define	FAT32_MASK	0x0ffffff8	/* mask for FAT32 cluster numbers */
  
 /*
  * Structure of a dos directory entry.
@@ -263,3 +262,4 @@ struct winentry {
 #define DD_YEAR_SHIFT		9
 
 #endif /* __FATFS_H__ */
+

@@ -293,6 +293,12 @@ x_inb(CARD16 port)
 #endif /* __NOT_YET__ */
     } else {
 	val = linux_inb(port);
+	if(port == 0x61){
+		static int sw = 0;
+		delay(5);
+		val = sw ? 0x00: 0x10;
+		sw = !sw;
+	}
 #ifdef PRINT_PORT
 	if(port!=0x3da&& port!=0x3ba&&port!=0x61) printf(" inb(%#x) = %2.2x\n", port, val);
 #endif
