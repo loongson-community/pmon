@@ -35,6 +35,54 @@
     PRINTSTR("Scache index setup done\r\n")
 #endif
 
+#ifdef MULTI_CHIP
+#if 1
+    TTYDBG("HT0 frequency reconfig \r\n")
+###################### HT@CPU1
+    dli a0, 0x90001cfdfb000000
+    //set 800 Mhz HT HOST
+    lw  a1, 0x48(a0)
+    li  a2, 0x500 ##800Mhz
+    or  a1, a1, a2  
+    sw  a1, 0x48(a0)
+
+    //set 8 bit HT HOST
+    lw  a1, 0x44(a0)
+    li  a2, 0x88ffffff        ##8bit mode
+    and a1, a1, a2            ##set to 8 bit mode
+    li  a2, 0x11000000        ##16bit
+    or  a1, a1, a2
+    sw  a1, 0x44(a0)
+
+###################### HT@CPU0
+    dli a0, 0x90000cfdfb000000
+    //set 800 Mhz HT HOST
+    lw  a1, 0x48(a0)
+    li  a2, 0x500 ##800Mhz
+    or  a1, a1, a2 ##
+    sw  a1, 0x48(a0)
+
+    //set 8 bit HT HOST
+    lw  a1, 0x44(a0)
+    li  a2, 0x88ffffff        ##8bit mode
+    and a1, a1, a2            ##set to 8 bit mode
+    li  a2, 0x11000000        ##16bit
+    or  a1, a1, a2
+    sw  a1, 0x44(a0)
+
+###################### Disconnect
+    dli a0, 0x90000cfdfb000000
+    //Disconnect HT BUS 
+    lw  a1, 0x50(a0)
+    li  a2, 0x40000000
+    or  a1, a1, a2
+    sw  a1, 0x50(a0)
+
+##################################################
+#endif
+#endif
+
+
 #if 1//config L1 xbar cpu port
     dli t2, 0x900000003ff02000
     dli t1, 0x900000003ff02400
