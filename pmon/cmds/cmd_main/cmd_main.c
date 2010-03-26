@@ -104,18 +104,23 @@ typedef struct _window_info{
     char w3[4][128];//buffer of window3"advanced"
     char sibuf[5][20];//buffer of "Set disk","set file type",
                       //select IC,select IC(CMOS),Recover from
+    char adbuf[4][25];
 
 #ifdef  CHINESE
     char *maintabs[]={"主要","启动","网络","退出"};
     char *f1[]={"wd0","wd1","usb0","usb1","tftp",0};
     char *f1b[]={"ext2","fat",0};
     char *f2[]={"rtl0","rtk0","em0","em1","fxp0",0};
+    char *f4[]={"(usb0,0)","(wd0,0)","(sata0,0)","(tftp,0)",0};
+    char *f5[]={"pmon-LM8089-1.4.5.bin","pmon-LM9002-1.4.6.bin","pmon-LM9003-1.4.7.bin",0};
 #else
     char *maintabs[]={"Main","Boot","Network","Advanced","Exit"};
     char *f1[]={"wd0","wd1","usb0","usb1","tftp",0};
     char *f1b[]={"ext2","fat",0};
     char *f2[]={"rtl0","rtk0","em0","em1","fxp0",0};
     char *f3[]={"usb0","wd0","tftp",0};
+    char *f4[]={"(usb0,0)","(wd0,0)","(sata0,0)","(tftp,0)",0};
+    char *f5[]={"pmon-LM8089-1.4.5.bin","pmon-LM9002-1.4.6.bin","pmon-LM9003-1.4.7.bin",0};
 #endif
 
     char message[100];//message passing through windows
@@ -293,7 +298,7 @@ int do_boot_tab(p_window_info_t pwinfo,char *phint)
             return  0;
 }
 
-int do_prompting_window(void)
+int do_prompting_window(char *message)
 {
         com_counts = 1;
         w_setcolor(0x60,0x00,0x60);
@@ -308,7 +313,7 @@ int do_prompting_window(void)
             */
 #else
             w_window(screen_width/2-25,7,50,8,"Prompt");
-            w_text(screen_width/2,11,WA_CENTRE,"Net recovery is going...");
+            w_text(screen_width/2,11,WA_CENTRE,message);
             w_present();
 #endif
             return 0;
@@ -416,7 +421,10 @@ int do_net_tab(p_window_info_t pwinfo,char *phint)
 int do_advanced_tab(p_window_info_t pwinfo, char *phint)
 {
     int runstat = 0;
-    com_counts = 5;
+    char *p;
+    char *p1;    
+    com_counts = 5+4;
+
 
     #ifdef  CHINESE
             w_window(1,3,pwinfo->l_window_width,pwinfo->l_window_height,"设置启动选项");
@@ -487,7 +495,8 @@ int do_advanced_tab(p_window_info_t pwinfo, char *phint)
             }              
 
             if(w_button(20,10,10,"[Launch]")) {
-                do_prompting_window();
+                sprintf(message,"Net recovery is going...");
+                do_prompting_window(message);
                 sprintf(lines,"set IP %s",w3[0]);
                 run(lines);
                 sprintf(lines,"set SIP %s",w3[1]);
@@ -517,6 +526,51 @@ int do_advanced_tab(p_window_info_t pwinfo, char *phint)
             if(w_focused()){            
                 sprintf(phint,"Starting net recovery.");
             }  
+            #define PMON_UPDATE
+            #ifdef PMON_UPDATE
+            w_text(2,12,WA_RIGHT,"Update PMON");
+            w_selectinput(20,13,25,"set path       :",f4,adbuf[0],25);
+            if(w_focused()) {
+                sprintf(phint,"Set the path where pmon image file resides.Use   <Enter> to switch, other keys to modify.");
+            }             
+            w_selectinput(20,14,25,"set file       :",f5,adbuf[1],25);
+            if(w_focused()) {
+                sprintf(phint,"Set the pmon image file name.Use   <Enter> to switch, other keys to modify.");
+            }            
+            w_input(20,15,25,"set IP(optional):",adbuf[2],25);
+            if(w_focused()) {
+                sprintf(phint,"Set Server IP address of the TFTP where pmon image file resides. Just input the IP in the  textbox");
+            }            
+            if(w_button(20,17,11,"[Do Update]")) {
+                sprintf(message,"PMON-Upadte is going...");
+                do_prompting_window(message);      
+                p = adbuf[0];
+                p1 = strstr(adbuf[0],"tftp");
+                if (p1){
+                    sprintf(lines,"load -r -f bfc00000 tftp://%s/%s",adbuf[2],adbuf[1]);
+                } else{
+                    sprintf(lines,"load -r -f bfc00000 %s/%s",adbuf[0],adbuf[1]);
+                }
+                
+                runstat = run(lines);
+                if (runstat == 0){                
+                    //sprintf(message,"PMON has been Updated!");
+                    sprintf(message,"PMON更新成功!");
+                    w_setpage(NOTE_WINDOW_ID);                    
+                } else {
+                    //sprintf(message,"Update PMON failed!!!");
+                    sprintf(message,"PMON更新失败!");
+                    w_setpage(NOTE_WINDOW_ID);                    
+                }           
+            }
+            
+            if(w_focused()){            
+                sprintf(phint,"Start to update pmon.");
+            }  
+
+            #endif
+            
+            
 #endif
             return  0;
 }
@@ -773,6 +827,8 @@ void envstr_init(void)
 {
     char *envstr;
     char *pstr;
+
+    strcpy(adbuf[2],"172.16.0.30");
 
     envstr = getenv("ifconfig");
     if(envstr != NULL) {

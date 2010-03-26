@@ -308,6 +308,7 @@ static int modify(int argc,char **argv)
 		lastaddr=addr;	
 		return 0;
 }
+#if 0
 //-------------------------------------------PNP------------------------------------------
 // MB PnP configuration register
 
@@ -381,7 +382,7 @@ data=PNPGetConfig(Index);
 nr_printf("result=0x%02x\n",data);
 return 0;
 }
-
+#endif
 extern int novga;
 static int setvga(int argc,char **argv)
 {
@@ -570,8 +571,8 @@ fl_program_sst(map,0,offset,&argv[1][i]);
 static const Cmd Cmds[] =
 {
 	{"MyCmds"},
-	{"pnpr",	"LDN index", 0, "pnpr LDN(logic device NO) index", PnpRead, 0, 99, CMD_REPEAT},
-	{"pnpw",	"LDN index value", 0, "pnpw LDN(logic device NO) index value", PnpWrite, 0, 99, CMD_REPEAT},
+	//{"pnpr",	"LDN index", 0, "pnpr LDN(logic device NO) index", PnpRead, 0, 99, CMD_REPEAT},
+	//{"pnpw",	"LDN index value", 0, "pnpw LDN(logic device NO) index value", PnpWrite, 0, 99, CMD_REPEAT},
 	{"pcs",	"bus dev func", 0, "select pci dev function", mypcs, 0, 99, CMD_REPEAT},
 	{"d1",	"[addr] [count]", 0, "dump address byte", dump, 0, 99, CMD_REPEAT},
 	{"d2",	"[addr] [count]", 0, "dump address half world", dump, 0, 99, CMD_REPEAT},

@@ -97,6 +97,7 @@ nload (argc, argv)
 	int c, err;
 	int flags;
 	unsigned long offset;
+    int ret;
 #ifdef HAVE_FLASH
 	void	    *flashaddr;
 	size_t	    flashsize;
@@ -179,7 +180,6 @@ nload (argc, argv)
 	else {
 		printf("boot what?\n");
 	}
-
 
 	if ((bootfd = open (path, O_RDONLY | O_NONBLOCK)) < 0) {
 		perror (path);
@@ -274,11 +274,18 @@ nload (argc, argv)
 		extern long dl_maxaddr;
 		if (flags & WFLAG)
 			bootbigend = !bootbigend;
-		tgt_flashprogram ((void *)flashaddr, 	   	/* address */
+		ret = tgt_flashprogram ((void *)flashaddr, 	   	/* address */
 				dl_maxaddr - dl_minaddr, 	/* size */
 				(void *)heaptop,		/* load */
 				bootbigend);
 	}
+    
+	if( (flags & FFLAG) || (flags & RFLAG) ){
+        if(ret == TRUE) {
+            printf("pmon has been sucessfully updated.\n");            
+        }    
+    }
+    
 #endif
 	return EXIT_SUCCESS;
 }

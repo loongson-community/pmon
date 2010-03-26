@@ -114,7 +114,7 @@ select          cmd_about               # Display info about PMON
 #select          cmd_gpio                # gpio pull low/high opration
 select		cmd_gui
 select          cmd_boot                # Boot wrapper
-#select          cmd_mycmd
+select          cmd_mycmd
 select          cmd_newmt
 select 		cmd_test
 select          cmd_cache               # Cache enabling

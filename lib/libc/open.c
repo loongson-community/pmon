@@ -41,6 +41,8 @@ extern SLIST_HEAD(FileSystems, FileSystem) FileSystems;
 static int __try_open(const char *, int, char *, int, int);
 extern void *malloc(size_t);
 extern void free(void *);
+extern int filesys_type(char *fname);
+
 										   
 int
 open(filename, mode)
@@ -49,7 +51,7 @@ open(filename, mode)
 {
 	char 	*fname;
 	char    *dname;
-	int     lu, i;
+	int     lu, i ,j;
 	int 	fnamelen;
 	
 	fnamelen = strlen(filename);
@@ -89,7 +91,36 @@ open(filename, mode)
 	}
 	else if (*dname == '(')
 	{
-		i = __try_open(fname, mode, "fs", lu, 0);
+        /*
+        switch(filesys_type(dname))
+        {
+            case 1:
+                i = __try_open(fname, mode, "fs", lu, 0);
+                break;
+            case 2:
+                i = __try_open(fname, mode, "fat", lu, 0);
+                break;
+            default:
+                i = __try_open(fname, mode, "fs", lu, 0);
+                break;
+                
+        }
+        */
+        //Diskpartition table is not so reliable.
+        j = filesys_type(dname);
+        if (j == 1){
+            i = __try_open(fname, mode, "fs", lu, 0);
+            if (i < 0 ){
+                i = __try_open(fname, mode, "fat", lu, 0);
+            }
+
+        }else if (j == 2){
+            i = __try_open(fname, mode, "fat", lu, 0);
+            if (i < 0 ){
+                i = __try_open(fname, mode, "fs", lu, 0);
+            }       
+        }
+
 	}
 	else 
 	{

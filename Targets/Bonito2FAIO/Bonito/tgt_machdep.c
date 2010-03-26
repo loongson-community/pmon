@@ -110,11 +110,7 @@ extern int fl_program(void *fl_base, void *data_base, int data_size, int verbose
 #include "vt82c686.h"
 #include "cs5536.h"
 
-#if (NCS5536 + NVT82C686) > 0
 #define HAVE_RTC 1
-#else
-#define HAVE_RTC 0
-#endif
 
 #if (NMOD_FLASH_AMD + NMOD_FLASH_INTEL + NMOD_FLASH_SST + NMOD_FLASH_WINBOND) == 0
 
@@ -582,33 +578,39 @@ tgt_logo()
 static void init_legacy_rtc(void)
 {
 	int year, month, date, hour, min, sec;
+    int tformat;
+    struct tm my_tm,my_tm1;
+  
+    my_tm1.tm_sec = 0;
+    my_tm1.tm_min = 0;
+    my_tm1.tm_hour = 0;
+    my_tm1.tm_wday = 5;
+    my_tm1.tm_mday = 1;
+    my_tm1.tm_mon = 1;
+    my_tm1.tm_year = 10;
 
-	CMOS_WRITE(DS_CTLA_DV1, DS_REG_CTLA);
-	CMOS_WRITE(DS_CTLB_24 | DS_CTLB_DM | DS_CTLB_SET, DS_REG_CTLB);
-	CMOS_WRITE(0, DS_REG_CTLC);
-	CMOS_WRITE(0, DS_REG_CTLD);
-	year = CMOS_READ(DS_REG_YEAR);
-	month = CMOS_READ(DS_REG_MONTH);
-	date = CMOS_READ(DS_REG_DATE);
-	hour = CMOS_READ(DS_REG_HOUR);
-	min = CMOS_READ(DS_REG_MIN);
-	sec = CMOS_READ(DS_REG_SEC);
-	if( (year > 99) || (month < 1 || month > 12) ||
-		(date < 1 || date > 31) || (hour > 23) || (min > 59) ||
-		(sec > 59) ){
-			/*
-			   printf("RTC time invalid, reset to epoch.\n");*/
-		CMOS_WRITE(3, DS_REG_YEAR);
-		CMOS_WRITE(1, DS_REG_MONTH);
-		CMOS_WRITE(1, DS_REG_DATE);
-		CMOS_WRITE(0, DS_REG_HOUR);
-		CMOS_WRITE(0, DS_REG_MIN);
-		CMOS_WRITE(0, DS_REG_SEC);
-	}
-	CMOS_WRITE(DS_CTLB_24 | DS_CTLB_DM, DS_REG_CTLB);
-
-	//printf("RTC: %02d-%02d-%02d %02d:%02d:%02d\n",
-	//    year, month, date, hour, min, sec);
+    tformat = CMOS_READ(0x2);//time format
+    if(!(tformat & 0x80)){//not 24 hour format
+        sd2068_write_enable();
+        sd2068_write_date(&my_tm1);
+        sd2068_write_disable();
+    }
+    sd2068_getdate(&my_tm); 
+    my_tm.tm_sec = BCD2BIN(my_tm.tm_sec);
+    my_tm.tm_min = BCD2BIN(my_tm.tm_min);
+    my_tm.tm_hour =BCD2BIN(my_tm.tm_hour);
+    my_tm.tm_wday = BCD2BIN(my_tm.tm_wday);
+    my_tm.tm_mday = BCD2BIN(my_tm.tm_mday);
+    my_tm.tm_mon = BCD2BIN(my_tm.tm_mon);
+    my_tm.tm_year =BCD2BIN(my_tm.tm_year);
+    
+	if( ((my_tm.tm_year > 37) && ( my_tm.tm_year < 70)) || (my_tm.tm_year > 99) || (my_tm.tm_mon< 1 || my_tm.tm_mon > 12) ||
+                (my_tm.tm_mday < 1 || my_tm.tm_mday > 31) || (my_tm.tm_hour > 23) || (my_tm.tm_min > 59) ||
+                (my_tm.tm_sec > 59) ){
+        sd2068_write_enable();
+        sd2068_write_date(&my_tm1);
+        sd2068_write_disable();
+    }
 }
 #endif
 
@@ -634,6 +636,9 @@ static inline unsigned char CMOS_READ(unsigned char addr)
 		return 0;
 	switch(addr)
 	{
+	    case 0x2:
+                addr = 0x02;
+                break;
 		case 0xf:
 		    	addr = 0x0f;
 			break;
@@ -708,6 +713,7 @@ _probe_frequencies()
         //md_pipefreq = 800000000;        /* NB FPGA*/
         md_pipefreq = 800435000;
         md_cpufreq  =  60000000;
+        init_legacy_rtc();
 #if 0        
 #if defined(HAVE_TOD) && HAVE_RTC 
         int i, timeout, cur, sec, cnt;
@@ -1035,7 +1041,7 @@ tgt_flashinfo(void *p, size_t *t)
 	}
 }
 
-void
+int 
 tgt_flashprogram(void *p, int size, void *s, int endian)
 {
 	printf("Programming flash %x:%x into %x\n", s, size, p);
@@ -1052,7 +1058,7 @@ tgt_flashprogram(void *p, int size, void *s, int endian)
 		printf("Programming failed!\n");
 	}
 	
-	fl_verify_device(p, s, size, TRUE);
+	return fl_verify_device(p, s, size, TRUE);
 }
 #endif /* PFLASH */
 

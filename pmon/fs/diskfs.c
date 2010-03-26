@@ -52,6 +52,81 @@ extern DeviceDisk* FindDevice(const char* device_name);
 extern DiskPartitionTable* FindPartitionFromDev(DiskPartitionTable* table, const char* device);
 extern DiskPartitionTable* FindPartitionFromID(DiskPartitionTable* table, int index);
 
+#define EXT2  0x83
+#define FAT16 0x6
+#define FAT32 0xB
+int filesys_type(char *fname)
+{
+	DiskPartitionTable* pPart;
+	char buff[50];
+	char *p, *p1;
+	char dev[20];
+	char id[20];
+	DeviceDisk* pdev;
+
+
+    p = fname;
+    if (*p != '(')
+    {
+        return -1;
+    }
+
+    p1 = strchr(fname,')');
+    if (p1 == NULL)
+    {
+        return -1;
+    }
+
+	p1 += 1;
+	if (*p1 != '\0' && *p1 != '/')
+	{
+		return -1;
+	}
+
+    memset(dev, 0, sizeof(dev));
+    strncpy(dev, fname+1, 19);
+    p = strchr(dev,',');
+    if (p == NULL)
+    {
+        return -1;
+    }
+    *p = '\0';
+    p +=1;
+	while (*p != '\0' && (*p == ' ' || *p == '\t'))
+	{
+		p++;
+	}    
+
+    memset(id, 0, sizeof(id));
+    strncpy(id, p, 19);
+    p = strchr(id, ')');
+    *p = '\0';
+    p += 1;
+
+	pdev = FindDevice(dev);
+	if (pdev == NULL)
+	{
+		printf("filesys_type():%s don't find\n", dev);
+		return -1;
+	} 
+	sprintf(buff, "%s%c", dev, 'a' + atoi(id));
+    pPart = FindPartitionFromDev(pdev->part, buff);
+    if (pPart == NULL)
+    {
+        printf("filesys_type():find partiton [%s] error\n", buff);
+        return -1;
+    }
+    switch(pPart->tag)
+    {
+        case EXT2:
+                return 1;
+        case FAT16:
+        case FAT32:
+                return 2;
+        default:
+                return 1;
+    }
+}
 static int diskfs_open (int , const char *, int, int);
 static int diskfs_close (int);
 static int diskfs_read (int, void *, size_t);

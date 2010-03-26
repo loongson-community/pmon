@@ -47,29 +47,15 @@
 #include "target/via686b.h"
 #include "target/i8254.h"
 #include "target/isapnpreg.h"
-/*#ifndef __NO_UART
-#define DEBUG_LOCORE
-#else
-#undef DEBUG_LOCORE
-#endif*/
 #define PCI_IDSEL_SM502 14
 #define MMIO            0x07000000
 #define MMIO_BASE       0xb7000000
 
-
-//#ifdef DEBUG_LOCORE
 #define TTYDBG(x) \
         .rdata;98: .asciz x; .text; la a0, 98b; bal stringserial; nop
-//#else
-//#define TTYDBG(x)
-//#endif
 
-//#ifndef __NO_UART
 #define PRINTSTR(x) \
         .rdata;98: .asciz x; .text; la a0, 98b; bal stringserial; nop
-//#else
-//#define PRINTSTR(x)
-//#endif
 
 #ifdef DEVBD2F_SM502
 #define GPIOLED_DIR  0xe
@@ -409,28 +395,7 @@ locate:
         #BONITO_BIS(BONITO_BONGENCFG, BONITO_BONGENCFG_BUSERREN)
 
         /* Set debug mode */
-        BONITO_BIS(BONITO_BONGENCFG, BONITO_BONGENCFG_DEBUGMODE)
-
-    /******** added to init southbridge*/
-        
-//#if  (PCI_IDSEL_VIA686B != 0)
-#if 0
-        /* Set the SMB base address */
-        ISABWWR_INIT(4, SMBUS_IO_BASE_ADDR, SMBUS_IO_BASE_VALUE | 0x1)
-        /* enable the host controller */
-        ISABHWR_INIT(4, SMBUS_HOST_CONFIG_ADDR, SMBUS_HOST_CONFIG_ENABLE_BIT)
-        /* enable the SMB IO ports */
-        ISABBWR_INIT(4, PCI_COMMAND_STATUS_REG, PCI_COMMAND_IO_ENABLE)
-        
-/* 15us ISA bus refresh clock */
-#define ISAREFRESH (PT_CRYSTAL/(1000000/15))
-        ISARD_INIT(CTC_PORT+PT_CONTROL)
-        
-        /* program i8254 ISA refresh counter */
-        ISAWR_INIT(CTC_PORT+PT_CONTROL,PTCW_SC(PT_REFRESH)|PTCW_16B|PTCW_MODE(MODE_RG))
-        ISAWR_INIT(CTC_PORT+PT_REFRESH, ISAREFRESH & 0xff)
-        ISAWR_INIT(CTC_PORT+PT_REFRESH, ISAREFRESH >> 8)
-#endif
+        BONITO_BIS(BONITO_BONGENCFG, BONITO_BONGENCFG_DEBUGMODE)       
                                                                         
         EXIT_INIT(0)
 
@@ -707,7 +672,7 @@ gs_2f_v3_ddr2_cfg:
         sd  a1,0x0(t2)
 #endif    
         PRINTSTR("DDR2 config begin_whd\r\n")
-        b       ddr2_config
+        bal       ddr2_config
         nop
 ddr2_config_done:
         PRINTSTR("DDR2 config end\r\n")
@@ -740,6 +705,8 @@ not_locked:
                 xor a1,0x600
         sw  a1,0x0(t2)
 #endif    
+
+#include "i2c_sm502.S"
 
 // FOR rom access speed update.
 #if     1
@@ -776,9 +743,7 @@ skipdimm:
                 
         /* set bar0 mask and translation to point to SDRAM */
     
-    //Felix-2008-07-02 changed
-    //sub       t0,msize,1
-    subu        t0,msize,1
+        subu        t0,msize,1
 
         not     t0
         srl     t0,BONITO_PCIMEMBASECFG_ASHIFT-BONITO_PCIMEMBASECFG_MEMBASE0_MASK_SHIFT
@@ -811,43 +776,6 @@ skipdimm:
         sw      t0,BONITO_BONPONCFG(bonito)
 
         PRINTSTR("Init SDRAM Done!\r\n");
-
-//detect whether it is a str reboot
-#define DEBUG_STR
-#ifdef DEBUG_STR
-    nop
-do_str_detection:
-    li v0,0xa0000100//get low 4 bytes to do the first judgement
-    lw v1,0(v0)
-    srl v1,v1,28
-    li v0,0xf
-    and v1,v1,v0
-    li v0,0x8
-    xor v1,v1,v0
-    bnez v1,normal_boot //Normal reboot
-    nop
-    li v0,0xa0000104//get high 4 bytes to do the second judgement
-    lw v1,0(v0)
-    li v0,0xffffffff
-    xor v1,v1,v0
-    bnez v1,normal_boot //Normal reboot
-    nop
-    
-    li v0,0xa0000100 //get 8 bytes to jump 
-    ld v1,0(v0)
-    nop          
-    li v0,0xa0000100 //to clear before jump
-    li t1,0x0
-    sd t1,0(v0)    
-    nop
-    jr v1     //STR reboot
-    nop
-normal_boot:
-    nop
-    nop
-#endif
-
-
 
 /*
  *  Reset and initialize caches to a known state.
@@ -1002,7 +930,6 @@ skipdot:
         b       1b
         nop
 #endif
-//#include "machine/newtest/mydebug.S"
 bootnow:
         TTYDBG("Copy PMON to execute location...\r\n")
 
@@ -1118,12 +1045,6 @@ zhb:
         bal     hexserial
         nop
 
-    //03-26-test
-    /*li a0,0xa8000000
-    li t7,0x78
-    sw t7,0(a0)
-    nop*/
-
         li      a0, 4096*1024
         sw      a0, CpuTertiaryCacheSize /* Set L3 cache size */
 
@@ -1178,10 +1099,6 @@ stuck:
         b       3b
         nop
 
-//#else
-        //b     stuck
-        //nop
-//#endif
 /*
  *  Clear the TLB. Normally called from start.S.
  */
@@ -1202,9 +1119,9 @@ LEAF(CPU_TLBClear)
 
 1:
         /*MTC0   zero, COP_0_TLB_HI     # Clear entry high.*/
-    sll    t0, a3, 15
-    or     t0, a0
-    MTC0   t0, COP_0_TLB_HI    #Clear entry high
+        sll    t0, a3, 15
+        or     t0, a0
+        MTC0   t0, COP_0_TLB_HI    #Clear entry high
         MTC0   zero, COP_0_TLB_LO0      # Clear entry low0.
         MTC0   zero, COP_0_TLB_LO1      # Clear entry low1.
 
@@ -1258,7 +1175,6 @@ LEAF(CPU_TLBInit)
 END(CPU_TLBInit)
 
 LEAF(stringserial)
-//#ifndef __NO_UART
         move    a2, ra
 
     #if 1
@@ -1270,8 +1186,7 @@ LEAF(stringserial)
     b 2f
     nop
 GO_THROUGH:
-#endif
-
+    #endif
     
         addu    a1, a0, s0
         lbu     a0, 0(a1)
@@ -1286,38 +1201,9 @@ GO_THROUGH:
 2:
         j       a2
         nop
-//#else
-        //j   ra
-        //nop
-//#endif
 END(stringserial)
 
-LEAF(outstring)
-/*#ifndef __NO_UART
-        move    a2, ra
-        move    a1, a0
-        lbu     a0, 0(a1)
-1:
-        beqz    a0, 2f
-        nop
-        bal     tgt_putchar
-        addiu   a1, 1
-        b       1b
-        lbu     a0, 0(a1)
-
-2:
-        j       a2
-        nop
-#else */
-        j  ra
-        nop
-//#endif
-END(outstring)
-
 LEAF(hexserial)
-//#ifndef __NO_UART
-
-
         move    a2, ra
         move    a1, a0
         li      a3, 7
@@ -1331,29 +1217,18 @@ LEAF(hexserial)
         bal     tgt_putchar
         lbu     a0, 0(v0)
 
-
         bnez    a3, 1b
         addu    a3, -1
 
         j       a2
         nop
-//#else 
-        //j  ra
-        //nop
-//#endif
+
 END(hexserial)
 
 LEAF(tgt_putchar)
         .set noat
-
-    //b 2f
-    //#ifndef __NO_UART
-    /*xor t8,t8,0x76//UART not existed ,just return,save the boot time
-    beqz t8,2f
-    nop*/
     
         la      v0, COM3_BASE_ADDR
-
 
     #if 1
     nop
@@ -1365,26 +1240,14 @@ LEAF(tgt_putchar)
     nop
     b 2f
     nop
-    #endif      
+    #endif  
+1:      
+    lbu     v1, NSREG(NS16550_LSR)(v0)
+    and     v1, LSR_TXRDY
+    beqz    v1, 1b
+    nop
 
-    /*//03-17
-    //li  t7, TMIEOUTCOUNT
-    li t7, 30*/
-
-1:  
-    /*//03-17
-    //subu  t7,t7,0x1
-    sub t7,t7,0x1
-    beqz t7, 2f
-    nop*/
-    
-        lbu     v1, NSREG(NS16550_LSR)(v0)
-        and     v1, LSR_TXRDY
-        beqz    v1, 1b
-        nop
-
-        sb      a0, NSREG(NS16550_DATA)(v0)
-//#endif 
+    sb      a0, NSREG(NS16550_DATA)(v0)
 2:  nop
         j       ra
         nop     
@@ -1415,25 +1278,6 @@ END(tgt_putchar)
 LEAF(initserial)
         .set noat
         la      v0, COM3_BASE_ADDR
-    #if 0
-    //probe whether UART existed
-    li t8,0x77 //default existed
-    li v1,0x00
-    sb v1,NSREG(NS16550_MCR)(v0)
-    nop 
-    li v1,0x1f
-    sb v1,NSREG(NS16550_MCR)(v0)
-    nop
-        lbu     v1, NSREG(NS16550_MCR)(v0)
-        xor v1,v1,0x1f
-    beqz v1, 1f
-    nop
-    li t8,0x76 //not existed
-    b 2f
-    nop
-
-1:  
-#endif
         li      a0, NS16550HZ/(16*CONS_BAUD)
 
         li      v1, FIFO_ENABLE|FIFO_RCV_RST|FIFO_XMT_RST|FIFO_TRIGGER_4
@@ -1447,85 +1291,16 @@ LEAF(initserial)
         sb      v1, NSREG(NS16550_CFCR)(v0)
         li      v1, MCR_DTR|MCR_RTS
         sb      v1, NSREG(NS16550_MCR)(v0)
-    //03-27
-    li  v1, 0x0
-    li  v1, 0xf
+        //03-27
+        li  v1, 0x0
+        li  v1, 0xf
         sb      v1, NSREG(NS16550_IER)(v0)
 2:
         j       ra
         nop
         .set at
 END(initserial)
-//#endif
 
-#if 0
-/* a0: slave address 
-   a1: reg off
-*/
-LEAF(i2cread)
-        /* set device address */
-        li  v0, 0xbfd00000 + SMBUS_HOST_ADDRESS
-
-        sb  a0, 0(v0);
-
-        /* store register offset */
-        li  v0, 0xbfd00000 + SMBUS_HOST_COMMAND
-        sb  a1, 0(v0);
-
-        /* read byte data protocol */
-        li  v0, 0x08
-        li  v1, 0xbfd00000 + SMBUS_HOST_CONTROL
-        sb  v0, 0(v1);
-
-        /* make sure SMB host ready to start, important!--zfx */
-        li  v1, 0xbfd00000 + SMBUS_HOST_STATUS
-        lbu v0, 0(v1)
-        andi v0,v0, 0x1f
-        beqz  v0,1f
-        nop
-        sb  v0, 0(v1)
-        lbu v0, 0(v1)   #flush the write
-1:
-
-        /* start */
-        li  v1, 0xbfd00000 + SMBUS_HOST_CONTROL
-        lbu v0, 0(v1)
-        ori v0, v0, 0x40
-        sb  v0, 0(v1);
-
-        /* wait */
-        li  v1, 0xbfd00000 + SMBUS_HOST_STATUS
-1:
-
-#if 0
-        /* delay */
-        li a0, 0x1000
-2:
-        bnez    a0,2b
-        addiu   a0, -1
-#endif
-
-        lbu  v0, 0(v1)
-        andi v0, SMBUS_HOST_STATUS_BUSY
-        bnez  v0, 1b  #IDEL ?
-        nop
-
-        li  v1, 0xbfd00000 + SMBUS_HOST_STATUS
-        lbu v0, 0(v1)
-        andi v0,v0, 0x1f
-        beqz  v0,1f
-        nop
-        sb  v0, 0(v1)   #reset
-        lbu v0, 0(v1)   #flush the write
-1:
-
-        li  v1, 0xbfd00000 + SMBUS_HOST_DATA0
-        lbu  v0, 0(v1)
-
-        jr      ra
-        nop
-END(i2cread)
-#endif
 
 __main:
         j       ra
@@ -1775,494 +1550,315 @@ LEAF(superio_init)
 END(superio_init)
 
 #######################################
+
 #define REG_ADDRESS 0x0
 #define CONFIG_BASE 0xaffffe00
-
-//03-26
-#define REG7_CS_REGION  0x000f0000 
-#define REG5_CAS_REGION 0x00070000
+    
 
         .global ddr2_config
+        .ent    ddr2_config
         .set    noreorder
         .set    mips3
 ddr2_config:
-    #if 0
-    //03-26
-    /*At first to test if the ddr2 has already configed under the 
-    STR reboot condition*/
-        li      v0,0xaffffe50
-        lw      v1,0(v0)
-        li  a0,0x00070000//REG5_CAS_REGION
-        and a0,a0,v1
-        beqz a0,1f  //likely not configed
-        nop
-    //03-26-test
-    li a0,0xa8000000// likely already configed,mark it as STR reboot by write 0x78 to memory address 0x88000000
-    li t7,0x00
-    sw t7,0(a0)
-    nop 
-    li t7,0x78
-    sw t7,0(a0)
-    nop  
-
-
-    li a0,0xf8f8f8f8
-    bal tgt_putchar
-    nop
-    b OUT_DDR2_CONIFG
-        nop
-1:
-    #endif
-        /* calculate how many sdrams in ddr2 modules */
-        li  a0, 0xa2
-        li  a1, 5  /* CS */
-        bal newi2cread
-        nop
-        li   s6, 0x7
-        and  s6, v0
-
-        li  a0, 0xa2
-        li  a1, 13 /*sdram width*/
-        bal newi2cread
-        nop;nop;nop 
-        beqz v0, 1f
-        nop;nop;nop
-        li a0, 64
-        divu a0, v0 
-        nop;nop;nop
-        mflo v0
-        nop;nop;nop
-        sllv  v0, v0, s6
-        li v1, 16
-        la t0, ddr2_reg_data_16
-        la t1, 0x1d
-        beq v0, v1, 2f
-        nop
-1:
-    la      t0, ddr2_reg_data
-2:
-    addu    t0, t0, s0
-    li      t1, 0x1d
-    li      t2, CONFIG_BASE
+    move s1, ra
+#if 1
+	la      t0, ddr2_reg_data
+#endif
+1:	
+	addu    t0, t0, s0
+	li      t1, 0x1d
+	li      t2, CONFIG_BASE
 
 reg_write:
-    ld      a1, 0x0(t0)
-    sd      a1, REG_ADDRESS(t2)
-    subu    t1, t1, 0x1
-    addiu     t0, t0, 0x8
-    bne     t1, $0, reg_write
-    addiu     t2, t2, 0x10
 
-        /* 
-         * Now determine DRAM configuration and size by
-         * reading the I2C EEROM on the DIMMS
-         */
-i2c_test:
-        li      k1,0
-#include "i2c_sm502.S"
+	ld      a1, 0x0(t0)
+	sd	a1, REG_ADDRESS(t2)
+	subu	t1, t1, 0x1
+	addiu	t0, t0, 0x8
+	bne	t1, $0, reg_write
+	addiu	t2, t2, 0x10
 
-    //Supporting 8 banks
-    li  v0,0xaffffe00
-    ld  v1,0x10(v0)
+    
+    //Felix-2008-10-13
+    //Read the DDR2 spd regs
+    #define QYL_SPD_DEBUG
+QYL_NEXT2:
+    #ifndef QYL_SPD_DEBUG
+    PRINTSTR("Read the DDR2 spd regs:\r\n")
+    li  a1, 0x0
+    li  s3, 0x80
+spd_reg_read:
+    li  a0, 0xa0
+    move t8, a1
+    bal newi2cread
+    nop 
+    move a0, v0
+    bal hexserial
+    nop 
+    li  a0, ' '
+    bal tgt_putchar
+    nop 
+    addu t8,t8,0x1
+    move a1, t8
+    subu s3,s3,0x1
+    bne s3,$0,spd_reg_read
+    nop    
+    #endif
+    
+#if 1
+	move k0, ra
+	/* read spd to initialize memory controller */
+	li a0, 0xa0
+	li a1, 3    //Row Address
+	bal newi2cread
+	nop
+	li v1, 15
+	sub v1, v0
+	and v1, 0x7
+	sll v1, 0x8
+	li  v0, 0xaffffe50
+	lw  a1, (v0)
+	and a1, 0xfffff8ff
+	or  a1, v1
+	sw  a1, (v0)
+
+	li  a0, 0xa0
+	li  a1, 0x04 // Column Address
+	bal newi2cread
+	nop
+	li v1, 14
+	sub v1, v0
+	sll v1, 24
+	li  v0, 0xaffffe50
+	lw  a1, (v0)
+	and a1, 0xffffff
+	or  a1, v1
+	sw  a1, (v0)
+
+	/* number of CS */
+	li a0, 0xa0
+	li a1, 5
+	bal newi2cread
+	nop
+	li v1, 0x7
+	and v1, v0
+	add v1, 1
+	li  a0, 1
+	sll a0, v1
+	sub a0, 1
+	li v0, 0xaffffe70
+	lw v1, 0(v0)
+	nop 
+	sll a0, a0, 16
+	li  t0, 0xfff0ffff
+	and v1, v1, t0
+	or  v1, v1, a0
+	sw  v1, 0(v0)
+	nop
+5:
+    PRINTSTR("Read the DDR2 No8 reg:\r\n")
+	li v0, 0xaffffe80
+	lw a0, 0(v0)
+	bal hexserial
+	nop
+    li v0, 0xaffffe80
+    lw a0, 4(v0)
+    bal hexserial
     nop
-        dsll    s3,s3,20
-        dsll    s3,s3,12
-        or  v1,v1,s3
-        sd  v1,0x10(v0)
-        nop    
+	//Config Unbuffered bit *fix me*
+	//Note:during debuging,we found that if there are more than 8 (exam. 16) chips on a module,
+	//Set Unbuffered bit will make it work,if not set, the module even can't work.
+	li a0, 0xa0
+	li a1, 5
+	bal newi2cread 
+	nop 
+	li s3, 0x7
+	and s3, v0
+	li a0, 0xa0
+	li a1, 13
+	bal newi2cread
+	nop
+	move t0, v0
+	bgtz s3, 1f // 1 cs, only (64/4*1=16 need to set)
+	nop 
+	sub t0, 4
+	bgtz t0, NOT_SET_UNBUFFERED
+	nop
+	b SET_UNBUFFERED
+	nop
+1:  sub s3, 1 // 2cs, (64/4*2=32, 64/8*2=16 need to set)
+	bgtz s3, 2f 
+	nop 	
+	sub t0, 8
+    bgtz t0, NOT_SET_UNBUFFERED
+    nop
+    b SET_UNBUFFERED
+    nop
+2:  sub s3, 1 // 3cs, (64/4*3=48, 64/8*3=24 64/16*3=12 need to set)
+	bgtz s3, 3f 
+	nop 	
+	sub t0, 16
+    bgtz t0, NOT_SET_UNBUFFERED
+    nop
+    b SET_UNBUFFERED
+    nop
+3:  sub s3, 1 // 4cs, (64/4*4=64, 64/8*4=32 64/16*4=16 need to set,in fact,it  can be integrated to the pre condition)
+	bgtz s3, NOT_SET_UNBUFFERED //More than 4cs ,not suported, give a default value,not set
+	nop 	
+	sub t0, 16
+    bgtz t0, NOT_SET_UNBUFFERED
+    nop
+    //b SET_UNBUFFERED
+SET_UNBUFFERED:
+	li v0, 0xafffffc0
+	li t0, 0x00000001
+	sw t0, 4(v0)
+	nop
+	b 5f
+	nop
+NOT_SET_UNBUFFERED:
+	li v0, 0xafffffc0
+	li t0, 0x00000000
+	sw t0, 4(v0)
+	nop
+5:   
+    PRINTSTR("Read the DDR2 No28 reg:\r\n")
+	li v0, 0xafffffc0
+	lw a0, 4(v0)
+	bal hexserial
+	nop
+	
+    //Felix-2008-10-27
+    li  v0, 0xaffffe70
+    lw  a0, 0(v0)
+    nop
+    bal hexserial
+    nop
+    
+	/* Number of banks */
+	li  a0, 0xa0 
+	li  a1, 0x11 //Bank 
+	bal newi2cread
+	nop 
+	li  v1, 0x8
+	bne v1, v0, 1f	
+	nop
+	li 	v1, 0x1
+	li  v0, 0xaffffe10
+	sw  v1, 4(v0) 
+	nop
 
-    //Felix-2008-07-02-changed
-        beqz msize,i2c_test
-        nop
-        PRINTSTR("DIMM SIZE=")
-        move    a0,msize
-        bal     hexserial
-        nop
-        PRINTSTR("\r\n")
 
-#debug 
-        li  a0, 0xa2
-        li  a1, 5  /* CS */
-        bal newi2cread
-        nop
-        li   v1, 0x7
-        and  v1, v0
-        add  v1, 1
-        li   a0, 1
-        sll  a0, v1
-        sub  a0, 1
-        li      v0,0xaffffe70
-        lw      v1,0(v0)
-        nop
-        sll     a0,a0,16
-        li      t0,0xfff0ffff
-        and     v1,v1,t0
-        or      v1,v1,a0
-        sw      v1,0(v0)
-        nop
-        
-PRINTSTR("cols rows:\r\n")
-        
-        //row addr numbers
-        li      v0,0xffffffff
-        and     a0,s6,v0
-        li      v0,15
-        subu    a0,v0,a0
+1:	
+    #ifndef QYL_DDR2_DEBUG
+    PRINTSTR("Read the DDR2 regs:\r\n")
+    li  t7, 0xaffffe00
+    li  s3, 29
+ddr2_reg_read:
+    lw  a0, 0(t7)
+    nop
+    bal hexserial
+    nop 
+    li  a0, ' '
+    bal tgt_putchar
+    nop 
+    lw  a0, 4(t7)
+    nop
+    bal hexserial
+    nop 
+    li  a0, ' '
+    bal tgt_putchar
+    nop     
+    addu t7,t7,0x10
+    subu s3,s3,0x1
+    bne s3,$0,ddr2_reg_read
+    nop    
+    #endif
 
-        //col addr numbers
-        dsrl    s6,s6,20
-        dsrl    s6,s6,12
-        li      v0,14
-        
-        move    a1,s6
-        subu    a1,v0,a1
-
-        sll     a1,a1,24
-        sll     a0,a0,8
-
-        li      v0,0xaffffe50
-        lw      v1,0(v0)
-        nop
-        li      t0,0xf8fff8ff
-        and     v1,v1,t0
-        or      v1,v1,a0
-        or      v1,v1,a1
-#debug 
-#ifdef BTC512DDR
-    li  v1, 0x04050102 ####BTC transend
+	move ra, k0
 #endif
-        sw      v1,0(v0)
-        nop
-        move    a0,v1
-        bal     hexserial
-        nop
 
     ############start##########
-    li      t2, CONFIG_BASE
-    la          t0,DDR2_CTL_start_DATA_LO
-    addu        t0, t0, s0
-    ld      a1, 0x0(t0)
-    sd      a1, 0x30(t2)
-
- //03-26
- OUT_DDR2_CONIFG:
-    nop
-
-        b ddr2_config_done
-        nop
-
-    jr      ra
-    nop
+	li      t2, CONFIG_BASE
+	la	t0,DDR2_CTL_start_DATA_LO
+	#la	t0,ddr2_start_reg
+	addu   	t0, t0, s0
+	ld      a1, 0x0(t0)
+	sd      a1, 0x30(t2)
 
 
+	move    ra, s1
+	jr      ra
+	nop
+    .set    mips0
+    .end    ddr2_config
+
+
+
+/* expanation of "old" is the reserved configuration data for 2f motherboard. */
         .text
         .ascii "ddr2_reg_data xxx-8-600\000"
         .align 5
         .global ddr2_reg_data;
 ddr2_reg_data:
-DDR2_CTL_00_DATA_LO:    .word 0x00000101
-DDR2_CTL_00_DATA_HI:    .word 0x01000100 #no_concurrentap
-DDR2_CTL_01_DATA_LO:    .word 0x00010000
-DDR2_CTL_01_DATA_HI:    .word 0x00000000
-DDR2_CTL_02_DATA_LO:    .word 0x00000000
-DDR2_CTL_02_DATA_HI:    .word 0x01000101
-DDR2_CTL_03_DATA_LO:    .word 0x01000000
-DDR2_CTL_03_DATA_HI:    .word 0x01010000
-DDR2_CTL_04_DATA_LO:    .word 0x00010101
-#ifdef DEVBD2F_SM502
-DDR2_CTL_04_DATA_HI:    .word 0x02000202
-DDR2_CTL_05_DATA_LO:    .word 0x04050200 #CL =4
-#else
-DDR2_CTL_04_DATA_HI:    .word 0x02000202
-DDR2_CTL_05_DATA_LO:    .word 0x04050100 #CL =4
-#endif
-DDR2_CTL_05_DATA_HI:    .word 0x00000000
-DDR2_CTL_06_DATA_LO:    .word 0x03070203 #800
-DDR2_CTL_06_DATA_HI:    .word 0x0a040707 #800
-#ifdef DEVBD2F_SM502
-DDR2_CTL_07_DATA_LO:    .word 0x00030909 #CL=5//cs_map to cs0-cs3
-#else
-DDR2_CTL_07_DATA_LO:    .word 0x000f0909 #CL=5//cs_map to cs0-cs3
-#endif
-DDR2_CTL_07_DATA_HI:    .word 0x00000400 #800
-#ifdef DEVBD2F_SM502
-DDR2_CTL_08_DATA_LO:    .word 0x00000000
-DDR2_CTL_08_DATA_HI:    .word 0x00000201
-#else
-DDR2_CTL_08_DATA_LO:    .word 0x00000000
-DDR2_CTL_08_DATA_HI:    .word 0x00000201
-#endif
-DDR2_CTL_09_DATA_LO:    .word 0x00000000
-DDR2_CTL_09_DATA_HI:    .word 0x0000060c #800
-DDR2_CTL_10_DATA_LO:    .word 0x3f1a021b #250M
-DDR2_CTL_10_DATA_HI:    .word 0x1414143f
-DDR2_CTL_11_DATA_LO:    .word 0x14141414
-DDR2_CTL_11_DATA_HI:    .word 0x66001414
-DDR2_CTL_12_DATA_LO:    .word 0x25000000 #800
-DDR2_CTL_12_DATA_HI:    .word 0x002a3c05 #250M
-DDR2_CTL_13_DATA_LO:    .word 0x002a002a 
-DDR2_CTL_13_DATA_HI:    .word 0x002a002a
-DDR2_CTL_14_DATA_LO:    .word 0x002a002a
-DDR2_CTL_14_DATA_HI:    .word 0x002a002a
-DDR2_CTL_15_DATA_LO:    .word 0x00000004
-DDR2_CTL_15_DATA_HI:    .word 0x00b40020
-DDR2_CTL_16_DATA_LO:    .word 0x00000087
-DDR2_CTL_16_DATA_HI:    .word 0x000007ff #no_interrupt
-DDR2_CTL_17_DATA_LO:    .word 0x0004101b #800
-DDR2_CTL_17_DATA_HI:    .word 0x00000000
-DDR2_CTL_18_DATA_LO:    .word 0x00000000
-DDR2_CTL_18_DATA_HI:    .word 0x001c0000
-DDR2_CTL_19_DATA_LO:    .word 0x00c8006b
-DDR2_CTL_19_DATA_HI:    .word 0x68e10002 #800
-DDR2_CTL_20_DATA_LO:    .word 0x00c8002f #800
-DDR2_CTL_20_DATA_HI:    .word 0x00000000
-DDR2_CTL_21_DATA_LO:    .word 0x00030d40 #real
-DDR2_CTL_21_DATA_HI:    .word 0x00000000
-DDR2_CTL_22_DATA_LO:    .word 0x00000000
-DDR2_CTL_22_DATA_HI:    .word 0x00000000
-DDR2_CTL_23_DATA_LO:    .word 0x00000000
-DDR2_CTL_23_DATA_HI:    .word 0x00000000
-DDR2_CTL_24_DATA_LO:    .word 0x00000000
-DDR2_CTL_24_DATA_HI:    .word 0x00000000
-DDR2_CTL_25_DATA_LO:    .word 0x00000000
-DDR2_CTL_25_DATA_HI:    .word 0x00000000
-DDR2_CTL_26_DATA_LO:    .word 0x00000000
-DDR2_CTL_26_DATA_HI:    .word 0x00000000
-DDR2_CTL_27_DATA_LO:    .word 0x00000000
-DDR2_CTL_27_DATA_HI:    .word 0x00000000
-#ifdef DEVBD2F_SM502
-DDR2_CTL_28_DATA_LO:    .word 0x00000000
-#else
-DDR2_CTL_28_DATA_LO:    .word 0x00000001
-#endif
-DDR2_CTL_28_DATA_HI:    .word 0x00000000
+DDR2_CTL_00_DATA_LO: .word 0x00000101
+DDR2_CTL_00_DATA_HI: .word 0x01000100 #no_concurrentap
+DDR2_CTL_01_DATA_LO: .word 0x00010000
+DDR2_CTL_01_DATA_HI: .word 0x00000000
+DDR2_CTL_02_DATA_LO: .word 0x00000000
+DDR2_CTL_02_DATA_HI: .word 0x01000101
+DDR2_CTL_03_DATA_LO: .word 0x01000000
+DDR2_CTL_03_DATA_HI: .word 0x01010000
+DDR2_CTL_04_DATA_LO: .word 0x01010101
+DDR2_CTL_04_DATA_HI: .word 0x02000202
+DDR2_CTL_05_DATA_LO: .word 0x04050200 
+DDR2_CTL_05_DATA_HI: .word 0x00000000
+DDR2_CTL_06_DATA_LO: .word 0x03050203 #800
+DDR2_CTL_06_DATA_HI: .word 0x0a040306 #800
+DDR2_CTL_07_DATA_LO: .word 0x00030909 #CL=5//cs_map to cs0-cs3 
+DDR2_CTL_07_DATA_HI: .word 0x00000400 #800
+DDR2_CTL_08_DATA_LO: .word 0x00000000
+DDR2_CTL_08_DATA_HI: .word 0x00000201
+DDR2_CTL_09_DATA_LO: .word 0x00000000
+DDR2_CTL_09_DATA_HI: .word 0x0000060c #800
+DDR2_CTL_10_DATA_LO: .word 0x3f1f0200 #800
+DDR2_CTL_10_DATA_HI: .word 0x1414143f //yanhua
+DDR2_CTL_11_DATA_LO: .word 0x14141414 //yanhua
+DDR2_CTL_11_DATA_HI: .word 0x66001414 //yanhua
+DDR2_CTL_12_DATA_LO: .word 0x15000000 #800
+DDR2_CTL_12_DATA_HI: .word 0x002a3c06 #800
+DDR2_CTL_13_DATA_LO: .word 0x002a002a
+DDR2_CTL_13_DATA_HI: .word 0x002a002a
+DDR2_CTL_14_DATA_LO: .word 0x002a002a
+DDR2_CTL_14_DATA_HI: .word 0x002a002a
+DDR2_CTL_15_DATA_LO: .word 0x00000004
+DDR2_CTL_15_DATA_HI: .word 0x00b40020
+DDR2_CTL_16_DATA_LO: .word 0x00000087
+DDR2_CTL_16_DATA_HI: .word 0x000007ff #no_interrupt
+DDR2_CTL_17_DATA_LO: .word 0x0004101f #800
+DDR2_CTL_17_DATA_HI: .word 0x00000000
+DDR2_CTL_18_DATA_LO: .word 0x00000000
+DDR2_CTL_18_DATA_HI: .word 0x001c0000
+DDR2_CTL_19_DATA_LO: .word 0x00c8006b
+DDR2_CTL_19_DATA_HI: .word 0x28e10002 #800
+DDR2_CTL_20_DATA_LO: .word 0x00c8002f #800
+DDR2_CTL_20_DATA_HI: .word 0x00000000
+DDR2_CTL_21_DATA_LO: .word 0x00030d40 #real
+DDR2_CTL_21_DATA_HI: .word 0x00000000
+DDR2_CTL_22_DATA_LO: .word 0x00000000
+DDR2_CTL_22_DATA_HI: .word 0x00000000
+DDR2_CTL_23_DATA_LO: .word 0x00000000
+DDR2_CTL_23_DATA_HI: .word 0x00000000
+DDR2_CTL_24_DATA_LO: .word 0x00000000
+DDR2_CTL_24_DATA_HI: .word 0x00000000
+DDR2_CTL_25_DATA_LO: .word 0x00000000
+DDR2_CTL_25_DATA_HI: .word 0x00000000
+DDR2_CTL_26_DATA_LO: .word 0x00000000
+DDR2_CTL_26_DATA_HI: .word 0x00000000
+DDR2_CTL_27_DATA_LO: .word 0x00000000
+DDR2_CTL_27_DATA_HI: .word 0x00000000
+DDR2_CTL_28_DATA_LO: .word 0x00000000
+DDR2_CTL_28_DATA_HI: .word 0x00000000
 DDR2_CTL_start_DATA_LO: .word 0x01000000
 DDR2_CTL_start_DATA_HI: .word 0x01010100
-        
-                .ascii "ddr2_reg_data_16 xxx-16-\000"
-                .align 5
-                .globl ddr2_reg_data_16
 
-ddr2_reg_data_16:
-DDR2_CTL_00_DATA_LO_16: .word 0x00000101
-DDR2_CTL_00_DATA_HI_16: .word 0x01000100 #no_concurrentap
-DDR2_CTL_01_DATA_LO_16: .word 0x00010000
-DDR2_CTL_01_DATA_HI_16: .word 0x00000000
-DDR2_CTL_02_DATA_LO_16: .word 0x00000000
-DDR2_CTL_02_DATA_HI_16: .word 0x01000101
-DDR2_CTL_03_DATA_LO_16: .word 0x01000000
-DDR2_CTL_03_DATA_HI_16: .word 0x01010000
-DDR2_CTL_04_DATA_LO_16: .word 0x01010101
-DDR2_CTL_04_DATA_HI_16: .word 0x02000202
-DDR2_CTL_05_DATA_LO_16: .word 0x04050200
-DDR2_CTL_05_DATA_HI_16: .word 0x00000000
-DDR2_CTL_06_DATA_LO_16: .word 0x03050203 #800
-DDR2_CTL_06_DATA_HI_16: .word 0x0a040507 #800
-DDR2_CTL_07_DATA_LO_16: .word 0x00030909 #CL=5//cs_map to cs0-cs3       
-DDR2_CTL_07_DATA_HI_16: .word 0x00000400 #800
-DDR2_CTL_08_DATA_LO_16: .word 0x00000000
-DDR2_CTL_08_DATA_HI_16: .word 0x00000201
-DDR2_CTL_09_DATA_LO_16: .word 0x00000000
-DDR2_CTL_09_DATA_HI_16: .word 0x0000060c #800
-DDR2_CTL_10_DATA_LO_16: .word 0x3f1a0200 #800
-DDR2_CTL_10_DATA_HI_16: .word 0x1414143f
-DDR2_CTL_11_DATA_LO_16: .word 0x14141414
-DDR2_CTL_11_DATA_HI_16: .word 0x66001414
-DDR2_CTL_12_DATA_LO_16: .word 0x13000000 #800
-DDR2_CTL_12_DATA_HI_16: .word 0x002a3c06 #800
-DDR2_CTL_13_DATA_LO_16: .word 0x002a002a 
-DDR2_CTL_13_DATA_HI_16: .word 0x002a002a
-DDR2_CTL_14_DATA_LO_16: .word 0x002a002a
-DDR2_CTL_14_DATA_HI_16: .word 0x002a002a
-DDR2_CTL_15_DATA_LO_16: .word 0x00000001
-DDR2_CTL_15_DATA_HI_16: .word 0x00420030
-DDR2_CTL_16_DATA_LO_16: .word 0x00000032
-DDR2_CTL_16_DATA_HI_16: .word 0x000007ff #no_interrupt
-DDR2_CTL_17_DATA_LO_16: .word 0x0004101b #800 yanhua
-DDR2_CTL_17_DATA_HI_16: .word 0x00000000
-DDR2_CTL_18_DATA_LO_16: .word 0x00000000
-DDR2_CTL_18_DATA_HI_16: .word 0x001c0000
-DDR2_CTL_19_DATA_LO_16: .word 0x00c8006b
-DDR2_CTL_19_DATA_HI_16: .word 0x68e10002 #800
-DDR2_CTL_20_DATA_LO_16: .word 0x00c80040 #800
-DDR2_CTL_20_DATA_HI_16: .word 0x00000000
-DDR2_CTL_21_DATA_LO_16: .word 0x00030d40 #real
-DDR2_CTL_21_DATA_HI_16: .word 0x00000000
-DDR2_CTL_22_DATA_LO_16: .word 0x00000000
-DDR2_CTL_22_DATA_HI_16: .word 0x00000000
-DDR2_CTL_23_DATA_LO_16: .word 0x00000000
-DDR2_CTL_23_DATA_HI_16: .word 0x00000000
-DDR2_CTL_24_DATA_LO_16: .word 0x00000000
-DDR2_CTL_24_DATA_HI_16: .word 0x00000000
-DDR2_CTL_25_DATA_LO_16: .word 0x00000000
-DDR2_CTL_25_DATA_HI_16: .word 0x00000000
-DDR2_CTL_26_DATA_LO_16: .word 0x00000000
-DDR2_CTL_26_DATA_HI_16: .word 0x00000000
-DDR2_CTL_27_DATA_LO_16: .word 0x00000000
-DDR2_CTL_27_DATA_HI_16: .word 0x00000000
-DDR2_CTL_28_DATA_LO_16: .word 0x00000001
-DDR2_CTL_28_DATA_HI_16: .word 0x00000000
-
-                .ascii "ddr2_reg_data_CL4 xxx-16-\000"
-                .align 5
-                .globl ddr2_reg_data_CL4
-ddr2_reg_data_CL4:
-DDR2_CTL_00_DATA_LO_CL4:        .word 0x00000101
-DDR2_CTL_00_DATA_HI_CL4:        .word 0x01000100 #no_concurrentap
-DDR2_CTL_01_DATA_LO_CL4:        .word 0x00010000
-DDR2_CTL_01_DATA_HI_CL4:        .word 0x00000000
-DDR2_CTL_02_DATA_LO_CL4:        .word 0x00000000
-DDR2_CTL_02_DATA_HI_CL4:        .word 0x01000101
-DDR2_CTL_03_DATA_LO_CL4:        .word 0x01000000
-DDR2_CTL_03_DATA_HI_CL4:        .word 0x01010000
-DDR2_CTL_04_DATA_LO_CL4:        .word 0x00010101
-#ifdef DEVBD2F_SM502
-DDR2_CTL_04_DATA_HI_CL4:        .word 0x02000202
-DDR2_CTL_05_DATA_LO_CL4:        .word 0x04050200 #CL =4
-#else
-DDR2_CTL_04_DATA_HI_CL4:        .word 0x02000202
-DDR2_CTL_05_DATA_LO_CL4:        .word 0x04050100 #CL =4
-#endif
-DDR2_CTL_05_DATA_HI_CL4:        .word 0x00000000
-DDR2_CTL_06_DATA_LO_CL4:        .word 0x03070203 #800
-DDR2_CTL_06_DATA_HI_CL4:        .word 0x0a040707 #800
-#ifdef DEVBD2F_SM502
-DDR2_CTL_07_DATA_LO_CL4:        .word 0x00030909 #CL=5//cs_map to cs0-cs3
-#else
-DDR2_CTL_07_DATA_LO_CL4:        .word 0x000f0909 #CL=5//cs_map to cs0-cs3
-#endif
-DDR2_CTL_07_DATA_HI_CL4:        .word 0x00000400 #800
-#ifdef DEVBD2F_SM502
-DDR2_CTL_08_DATA_LO_CL4:        .word 0x00000000
-DDR2_CTL_08_DATA_HI_CL4:        .word 0x00000201
-#else
-DDR2_CTL_08_DATA_LO_CL4:        .word 0x00000000
-DDR2_CTL_08_DATA_HI_CL4:        .word 0x00000201
-#endif
-DDR2_CTL_09_DATA_LO_CL4:        .word 0x00000000
-DDR2_CTL_09_DATA_HI_CL4:        .word 0x0000060c #800
-DDR2_CTL_10_DATA_LO_CL4:        .word 0x3f1a021b #250M 
-DDR2_CTL_10_DATA_HI_CL4:        .word 0x1414143f
-DDR2_CTL_11_DATA_LO_CL4:        .word 0x14141414
-DDR2_CTL_11_DATA_HI_CL4:        .word 0x66001414
-DDR2_CTL_12_DATA_LO_CL4:        .word 0x25000000 #800
-DDR2_CTL_12_DATA_HI_CL4:        .word 0x002a3c05 #250M
-DDR2_CTL_13_DATA_LO_CL4:        .word 0x002a002a 
-DDR2_CTL_13_DATA_HI_CL4:        .word 0x002a002a
-DDR2_CTL_14_DATA_LO_CL4:        .word 0x002a002a
-DDR2_CTL_14_DATA_HI_CL4:        .word 0x002a002a
-DDR2_CTL_15_DATA_LO_CL4:        .word 0x00000004
-DDR2_CTL_15_DATA_HI_CL4:        .word 0x00b40020
-DDR2_CTL_16_DATA_LO_CL4:        .word 0x00000087
-DDR2_CTL_16_DATA_HI_CL4:        .word 0x000007ff #no_interrupt
-DDR2_CTL_17_DATA_LO_CL4:        .word 0x0004101b #800
-DDR2_CTL_17_DATA_HI_CL4:        .word 0x00000000
-DDR2_CTL_18_DATA_LO_CL4:        .word 0x00000000
-DDR2_CTL_18_DATA_HI_CL4:        .word 0x001c0000
-DDR2_CTL_19_DATA_LO_CL4:        .word 0x00c8006b
-DDR2_CTL_19_DATA_HI_CL4:        .word 0x68e10002 #800
-DDR2_CTL_20_DATA_LO_CL4:        .word 0x00c8002f #800
-DDR2_CTL_20_DATA_HI_CL4:        .word 0x00000000
-DDR2_CTL_21_DATA_LO_CL4:        .word 0x00030d40 #real
-DDR2_CTL_21_DATA_HI_CL4:        .word 0x00000000
-DDR2_CTL_22_DATA_LO_CL4:        .word 0x00000000
-DDR2_CTL_22_DATA_HI_CL4:        .word 0x00000000
-DDR2_CTL_23_DATA_LO_CL4:        .word 0x00000000
-DDR2_CTL_23_DATA_HI_CL4:        .word 0x00000000
-DDR2_CTL_24_DATA_LO_CL4:        .word 0x00000000
-DDR2_CTL_24_DATA_HI_CL4:        .word 0x00000000
-DDR2_CTL_25_DATA_LO_CL4:        .word 0x00000000
-DDR2_CTL_25_DATA_HI_CL4:        .word 0x00000000
-DDR2_CTL_26_DATA_LO_CL4:        .word 0x00000000
-DDR2_CTL_26_DATA_HI_CL4:        .word 0x00000000
-DDR2_CTL_27_DATA_LO_CL4:        .word 0x00000000
-DDR2_CTL_27_DATA_HI_CL4:        .word 0x00000000
-#ifdef DEVBD2F_SM502
-DDR2_CTL_28_DATA_LO_CL4:        .word 0x00000000
-#else
-DDR2_CTL_28_DATA_LO_CL4:        .word 0x00000001
-#endif
-DDR2_CTL_28_DATA_HI_CL4:        .word 0x00000000
-
-
-        .rdata
-        .align 5
-ddr2_reg_data1:
-DDR2_CTL_00_DATA_LO_1:  .word 0x00000101
-DDR2_CTL_00_DATA_HI_1:  .word 0x01000100 #no_concurrentap
-DDR2_CTL_01_DATA_LO_1:  .word 0x00010000
-DDR2_CTL_01_DATA_HI_1:  .word 0x00010000
-DDR2_CTL_02_DATA_LO_1:  .word 0x00000000
-DDR2_CTL_02_DATA_HI_1:  .word 0x01000101
-DDR2_CTL_03_DATA_LO_1:  .word 0x01000000
-DDR2_CTL_03_DATA_HI_1:  .word 0x01010000
-DDR2_CTL_04_DATA_LO_1:  .word 0x00010101
-#ifdef DEVBD2F_SM502
-DDR2_CTL_04_DATA_HI_1:  .word 0x02000202
-DDR2_CTL_05_DATA_LO_1:  .word 0x04050200 #CL =4
-#else
-DDR2_CTL_04_DATA_HI_1:  .word 0x02000202
-DDR2_CTL_05_DATA_LO_1:  .word 0x04050100 #CL =4
-#endif
-DDR2_CTL_05_DATA_HI_1:  .word 0x00000000
-DDR2_CTL_06_DATA_LO_1:  .word 0x03050203 #800
-DDR2_CTL_06_DATA_HI_1:  .word 0x0a040306 #800
-#ifdef DEVBD2F_SM502
-DDR2_CTL_07_DATA_LO_1:  .word 0x000f0909 #CL=5//cs_map to cs0-cs3
-#else
-DDR2_CTL_07_DATA_LO_1:  .word 0x000f0909 #CL=5//cs_map to cs0-cs3
-#endif
-DDR2_CTL_07_DATA_HI_1:  .word 0x00000400 #800
-#ifdef DEVBD2F_SM502
-DDR2_CTL_08_DATA_LO_1:  .word 0x00000000
-DDR2_CTL_08_DATA_HI_1:  .word 0x00000201
-#else
-DDR2_CTL_08_DATA_LO_1:  .word 0x00000000
-DDR2_CTL_08_DATA_HI_1:  .word 0x00000201
-#endif
-DDR2_CTL_09_DATA_LO_1:  .word 0x00000000
-DDR2_CTL_09_DATA_HI_1:  .word 0x0000060c #800
-DDR2_CTL_10_DATA_LO_1:  .word 0x3f1a021b #250M
-DDR2_CTL_10_DATA_HI_1:  .word 0x1414143f
-DDR2_CTL_11_DATA_LO_1:  .word 0x14141414
-DDR2_CTL_11_DATA_HI_1:  .word 0x66001414
-DDR2_CTL_12_DATA_LO_1:  .word 0x15000000 #800
-DDR2_CTL_12_DATA_HI_1:  .word 0x002a3c05 #250M
-DDR2_CTL_13_DATA_LO_1:  .word 0x002a002a 
-DDR2_CTL_13_DATA_HI_1:  .word 0x002a002a
-DDR2_CTL_14_DATA_LO_1:  .word 0x002a002a
-DDR2_CTL_14_DATA_HI_1:  .word 0x002a002a
-DDR2_CTL_15_DATA_LO_1:  .word 0x00000004
-DDR2_CTL_15_DATA_HI_1:  .word 0x00b40020
-DDR2_CTL_16_DATA_LO_1:  .word 0x00000087
-DDR2_CTL_16_DATA_HI_1:  .word 0x000007ff #no_interrupt
-DDR2_CTL_17_DATA_LO_1:  .word 0x0004101b #800
-DDR2_CTL_17_DATA_HI_1:  .word 0x00000000
-DDR2_CTL_18_DATA_LO_1:  .word 0x00000000
-DDR2_CTL_18_DATA_HI_1:  .word 0x001c0000
-DDR2_CTL_19_DATA_LO_1:  .word 0x00c8006b
-DDR2_CTL_19_DATA_HI_1:  .word 0x68e10002 #800
-DDR2_CTL_20_DATA_LO_1:  .word 0x00c8002f #800
-DDR2_CTL_20_DATA_HI_1:  .word 0x00000000
-DDR2_CTL_21_DATA_LO_1:  .word 0x00030d40 #real 
-DDR2_CTL_21_DATA_HI_1:  .word 0x00000000
-DDR2_CTL_22_DATA_LO_1:  .word 0x00000000
-DDR2_CTL_22_DATA_HI_1:  .word 0x00000000
-DDR2_CTL_23_DATA_LO_1:  .word 0x00000000
-DDR2_CTL_23_DATA_HI_1:  .word 0x00000000
-DDR2_CTL_24_DATA_LO_1:  .word 0x00000000
-DDR2_CTL_24_DATA_HI_1:  .word 0x00000000
-DDR2_CTL_25_DATA_LO_1:  .word 0x00000000
-DDR2_CTL_25_DATA_HI_1:  .word 0x00000000
-DDR2_CTL_26_DATA_LO_1:  .word 0x00000000
-DDR2_CTL_26_DATA_HI_1:  .word 0x00000000
-DDR2_CTL_27_DATA_LO_1:  .word 0x00000000
-DDR2_CTL_27_DATA_HI_1:  .word 0x00000000
-#ifdef DEVBD2F_SM502
-DDR2_CTL_28_DATA_LO_1:  .word 0x00000000
-#else
-DDR2_CTL_28_DATA_LO_1:  .word 0x00000001
-#endif
-DDR2_CTL_28_DATA_HI_1:  .word 0x00000000
-DDR2_CTL_start_DATA_LO_1: .word 0x01000000
-DDR2_CTL_start_DATA_HI_1: .word 0x01010100

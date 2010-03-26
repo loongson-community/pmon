@@ -78,6 +78,54 @@ int fat_dump_fileentry(struct fat_sc *);
 u_int8_t shortNameChkSum(u_int8_t *);
 int fat_parseDirEntries(int ,struct fat_fileentry *);
 
+int path_convert(char *dst, const char *src);
+
+
+/*do the path tranform,for example
+	(usb0,0)/ -> /dev/fat/disk@usb0/
+	(usb0,1)/ -> /dev/fat/disk@usb0b/
+	(usb0,2)/ -> /dev/fat/disk@usb0c/
+	(wd0,0)/ -> /dev/fat/disk@wd0/
+	(wd0,1)/ -> /dev/fat/disk@wd0b/
+	(wd0,2)/ -> /dev/fat/disk@wd0c/
+	(usb0,0)/boot -> /dev/fat/disk@usb0/boot/
+	(usb0,1)/boot/ -> /dev/fat/disk@usb0b/boot/
+	(usb0,2)/boot -> /dev/fat/disk@usb0c/boot/
+	(wd0,0)/boot -> /dev/fat/disk@wd0/boot/
+	(wd0,1)/boot/ -> /dev/fat/disk@wd0b/boot/
+	(wd0,2)/boot -> /dev/fat/disk@wd0c/boot/	*/
+int path_convert(char * dst, const char * src)
+{
+	char fat_device_path[10];
+	char *pDeviceStart = NULL;
+	char *pDeviceEnd = NULL;
+	unsigned int DevNameLength;
+	
+
+    if(!dst || !src)
+        return -3;
+    
+	pDeviceStart = strchr(src,'(');
+	if (pDeviceStart==NULL)
+		return -1;
+	pDeviceEnd = strchr(src,',');
+	if (pDeviceEnd==NULL)
+		return -1;
+	DevNameLength = (unsigned int)pDeviceEnd -(unsigned int)pDeviceStart -1;
+	memset(fat_device_path, 0, 10);
+	memcpy(fat_device_path, src+1, DevNameLength);
+	fat_device_path[DevNameLength] =*(++pDeviceEnd)+0x31;
+	fat_device_path[DevNameLength+1] = '\0';
+	pDeviceStart = strchr(src,')');
+	if (pDeviceStart==NULL)
+		return -1;
+	if ('/' == (*++pDeviceStart))
+		sprintf(dst, "/dev/fat/disk@%s%s",fat_device_path,pDeviceStart);
+	else 
+		sprintf(dst, "/dev/fat/disk@%s/%s",fat_device_path,pDeviceStart);
+
+    return 0;
+}
 
 //Yuli-2008-12-25
 static void fat_listfilename(struct fat_fileentry *filee,int dir_flag,int ilongName)
@@ -101,9 +149,11 @@ static void fat_listfilename(struct fat_fileentry *filee,int dir_flag,int ilongN
 int
 fat_open(int fd, const char *path, int flags, int mode)
 {
-	char dpath[64];
-	char dpath2[64];
-	const char *opath;
+	char dpath[128];
+	char dpath2[128];
+	//const char *opath;
+	char fatpath[128];
+    char *opath = fatpath;
 	char *filename;
 	struct fat_sc *fsc;
 	int fd2;
@@ -111,9 +161,9 @@ fat_open(int fd, const char *path, int flags, int mode)
 	int partition = 0, dpathlen;
 	char * p;
 
-	//printf("fat_open path:%s\n",path);
-	/*  Try to get to the physical device */
-	opath = path;
+	memset(fatpath, 0, sizeof(fatpath));
+	if(path_convert(fatpath, path) == -1)
+        opath = path;
 	if (strncmp(opath, "/dev/", 5) == 0)
 		opath += 5;
 	if (strncmp(opath, "fat/", 4) == 0)

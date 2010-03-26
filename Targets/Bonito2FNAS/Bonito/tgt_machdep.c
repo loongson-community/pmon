@@ -724,7 +724,7 @@ tgt_flashinfo(void *p, size_t *t)
 	}
 }
 
-void
+int
 tgt_flashprogram(void *p, int size, void *s, int endian)
 {
 	printf("Programming flash %x:%x into %x\n", s, size, p);
@@ -741,7 +741,7 @@ tgt_flashprogram(void *p, int size, void *s, int endian)
 		printf("Programming failed!\n");
 	}
 	
-	fl_verify_device(p, s, size, TRUE);
+	return fl_verify_device(p, s, size, TRUE);
 }
 #endif /* PFLASH */
 

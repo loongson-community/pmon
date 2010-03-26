@@ -1,12 +1,7 @@
-#if 1
-#define DDR_I2C_ADDR 0xa0
-#else
-#define DDR_I2C_ADDR 0xa2
-#endif
 
+#define DDR_I2C_ADDR 0xa0
 #define i2cread newi2cread
-//	b	211f
-#if 1
+
 	li	msize,0
 	PRINTSTR("DIMM read\r\n")
 
@@ -42,41 +37,14 @@
 	b 2f
 	nop
 1:
-//	or  	sdCfg, 0x1<<29
 	nop
 	li a0,DDR_I2C_ADDR
 	bal ii2c_cfg
 	nop
-#if 0 // ONLY one dimm in lm502
-2:
-	li  	a1, 0x0
-    li      a0,0xa2
-    bal     i2cread
-	nop
-	li 	a1,0x0
-	beq	v0,0xff,1f
-	nop
-	beq v0,0x80,1f
-	nop
-	move a0,v0
-	bal hexserial
-	nop
-    PRINTSTR ("\r\nNo DIMM in slot 1 \r\n");
-	b 2f
-	nop
-1:
-	li a0,0xa2
-	bal ii2c_cfg
-	nop
-
-	b 2f
-	nop
-#endif
 
 2:
 	b 211f
 	nop
-#endif
 /*ic2 cfg
 * a0=0xa1 for slot 0,a0=0xa3 for slot 1
 * t5 used for save i2c addr a0,t6 save ra.
@@ -89,9 +57,7 @@ LEAF(ii2c_cfg)
 	# set some parameters for DDR333
 	# rank number and DDR type field will be filled later
 	# to check: fix TCAS?
-
        
-//	PRINTSTR("read memory type\r\n") 
 	PRINTSTR("read DIMM number of rows\r\n") 
 
 	/* read DIMM number of rows */
@@ -102,8 +68,6 @@ LEAF(ii2c_cfg)
 	move	s6,v0
 	move	a0, v0
 	subu	v0, 12
-	//Felix-2008-07-02 changed
-	//bgtu	v0, 2,.nodimm1
     bgtu	v0, 3,.nodimm1
 
 	nop
@@ -122,9 +86,6 @@ LEAF(ii2c_cfg)
 	daddu	s6,a0
 /////////////////////
 	subu	v0, 8
-	
-    //Felix-2008-07-02-chaned
-	//bgtu	v0, 4,.nodimm1
 	bgtu	v0, 6,.nodimm1
 	nop
 	
@@ -199,7 +160,6 @@ LEAF(ii2c_cfg)
 	#bit 25:22 is DDR type field
 	sll	v0, 22 
 	and	v0,0x03c00000
-//	or	sdCfg,v0
 	
 	/* read DDR RATE*/
 	move	a0,t5
@@ -217,17 +177,14 @@ LEAF(ii2c_cfg)
 	
 	/* config sdCfg bits [ 9:0 ] */
 40:	/* ddr200 */
-//	or	sdCfg,0x0b1
 	b	47f
 	nop
 
 41:     /* ddr266 */
-//    or      sdCfg,0x3ae	
 	b     47f
     nop
 
 42:     /* ddr333 */
-//    or      sdCfg,0x3df
 	b     47f
     nop
 
@@ -255,13 +212,11 @@ LEAF(ii2c_cfg)
     nop
     bne     v0,0x82,10f
     nop
-//    or      sdCfg,780<<10
 	b	45f
 	nop
 10:
     bne     v0,0x80,.nodimm1
     nop
-//    or      sdCfg,1560<<10
     b     45f
     nop
 
@@ -272,13 +227,11 @@ LEAF(ii2c_cfg)
     nop
     bne     v0,0x82,11f
     nop
-//    or      sdCfg,1040<<10
 	b	45f
 	nop
 11:
      bne     v0,0x80,.nodimm1
      nop
-//     or      sdCfg,2080<<10
      b     45f
      nop
 
@@ -289,25 +242,17 @@ LEAF(ii2c_cfg)
     nop
     bne     v0,0x82,12f
     nop
-//    or      sdCfg,1300<<10
 	b	45f
 	nop
 12:
      bne     v0,0x80,.nodimm1
      nop
-//     or      sdCfg,2600<<10
      b     45f
      nop
 
 
 #####################################################
 
-
-	/* Minimum Ras to Cas Delay (tRCD) 
-	move	a0,t5
-	bal 	i2cread
-	li	a1,29
-	or	*/
 45:
 2:
     //Felix-2008-07-07
@@ -319,12 +264,10 @@ LEAF(ii2c_cfg)
 	nop
 	beq	v0,2,2f
 	nop
-    //Felix-2008-07-01
     beq v0,4,2f
     nop
 	bne	v0,8,.nodimm1
 	nop
-	//Felix-2008-07-07
 	li s3, 0x1
 	PRINTSTR("number of banks on sdram device\r\n");
 
@@ -967,4 +910,3 @@ END(i2cread)
 
 #endif
 211:
-//#undef i2cread

@@ -97,7 +97,7 @@ static struct stdenv {
   {"Version", "LM9002-1.4.6", 0},
 #endif
 #if defined(LOONGSON2F_ALLINONE) && defined(SMI502)
-  {"Version", "LM9003-1.4.7", 0},
+  {"Version", "LM9003-1.4.9", 0},
 #endif 
 #ifdef LOONGSON2F_HPC
 	{"Version", "LM-HPC-1.0.2", 0},
