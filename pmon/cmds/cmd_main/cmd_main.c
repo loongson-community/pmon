@@ -542,7 +542,7 @@ int do_advanced_tab(p_window_info_t pwinfo, char *phint)
                 sprintf(phint,"Set Server IP address of the TFTP where pmon image file resides. Just input the IP in the  textbox");
             }            
             if(w_button(20,17,11,"[Do Update]")) {
-                sprintf(message,"PMON-Upadte is going...");
+                sprintf(message,"PMON-Update is going...");
                 do_prompting_window(message);      
                 p = adbuf[0];
                 p1 = strstr(adbuf[0],"tftp");
