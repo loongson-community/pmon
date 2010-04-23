@@ -31,6 +31,7 @@
   2008-05-12    QianYuli        PMON00000001    porting it from u-boot and linux
   2008-06-26    QianYuli        PMON00000002    move some function to libata_***.c
   2009-12-24    QianYuli        PMON00001224    porting it from sata_sil3114.c
+  2010-04-23    QianYuli        PMON20100423    vt6421 only supports sata1 disk
 ************************************************************************************/
 /*
 Note to myself:
@@ -239,6 +240,19 @@ static void vt_attach(struct device * parent,struct device * self,void *aux)
     cmd = _pci_conf_readn(pa->pa_tag,PCI_COMMAND,2);
     cmd |= PCI_COMMAND_MASTER | PCI_COMMAND_IO | PCI_COMMAND_MEMORY;
      _pci_conf_writen(pa->pa_tag, PCI_COMMAND, cmd,2);
+
+    //fix me
+    /*
+    vt6421 is a SATA1 controller, if SATA2 or SATA3 hard disk attached to
+    its ports, need to do this fix.
+    This support came from VIA.
+    */
+    {
+        unsigned char reg52;
+        reg52 = _pci_conf_readn(pa->pa_tag, 0x52, 1);
+        reg52 |= (1 << 2);
+        _pci_conf_writen(pa->pa_tag, 0x52, reg52, 1);
+    }
 
     //do the necessary init 
     vt_host.p_ops = &vt_ops;

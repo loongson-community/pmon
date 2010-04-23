@@ -29,6 +29,23 @@
  * SUCH DAMAGE.
  *
  */
+/************************************************************************
+
+ Copyright (C)
+ File name:     cmd_go.c
+ Author:  ***      Version:  ***      Date: ***
+ Description:   
+ Others:        
+ Function List:
+ 
+ Revision History:
+ 
+ -------------------------------------------------------------------------------------------------------------------------------
+  Date          Author             Activity ID               Activity Headline
+  2010-04-23    QianYuli           PMON20100423              Add machtype Environment Variable
+****************************************************************************************************************/
+
+ 
 #include <stdio.h>
 #include <termio.h>
 #include <string.h>
@@ -103,6 +120,7 @@ cmd_go (ac, av)
 	int	c;
 	unsigned char *Version;
 	unsigned char *EC_Version;
+    unsigned char *machtype;
 extern int	optind;
 extern char	*optarg;
 	
@@ -165,14 +183,16 @@ extern char	*optarg;
 
 	if((EC_Version = getenv("ECVersion")) == NULL) 
 		EC_Version="undefined";
-			
+	if((machtype = getenv("machtype")) == NULL) 
+		EC_Version="undefined";
+    
 	strcat(clientcmd, " EC_VER=");
 	strcat(clientcmd, EC_Version);
 	strcat(clientcmd, " ");
 #endif
 	/* machtype is needed by kernel(>=2.6.32) */
 	strcat(clientcmd, " machtype=");
-
+/*
 #ifdef LOONGSON2F_ALLINONE
 	strcat(clientcmd, "lemote-lynloong-2f");
 #endif 
@@ -182,7 +202,8 @@ extern char	*optarg;
 #ifdef LOONGSON2F_7INCH
 	strcat(clientcmd, "lemote-yeeloong-2f-8.9inches");
 #endif 
-
+*/
+	strcat(clientcmd, machtype);
 	strcat(clientcmd, " ");
 
 	if (initrd_execed())

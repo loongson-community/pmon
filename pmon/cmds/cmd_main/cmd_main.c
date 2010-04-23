@@ -18,6 +18,7 @@
   2008-05-17    LiuXiangYu         PMON20080517              Create it.
   2009-02-02    QianYuli           PMON20090202              Modified for porting to Fuloong and 8089 platform.
   2009-07-02    QianYuli           PMON20090702              Make cmd_main() function thin
+  2010-04-23    QianYuli           PMON20100423              Modify do_advanced_tab()
 ****************************************************************************************************************/
 #include <stdio.h>
 #include <termio.h>
@@ -35,9 +36,15 @@
 #else
 #include <sys/ioctl.h>
 #endif
+
+#include <sys/device.h>
+#include <sys/queue.h>
+
 #include <pmon.h>
 #include <exec.h>
 #include <file.h>
+
+
 #include "window.h"
 
 #include "mod_debugger.h"
@@ -56,7 +63,7 @@ extern unsigned int memorysize_high;
 extern int screen_height;
 extern int screen_width;
 int com_counts;
-
+int ip_env_changed = FALSE;
 extern int vga_available;
 
 int run(char *cmd)
@@ -106,18 +113,20 @@ typedef struct _window_info{
                       //select IC,select IC(CMOS),Recover from
     char adbuf[4][25];
 
+    char *net_type[5] = {0,0,0,0,0};
+
 #ifdef  CHINESE
     char *maintabs[]={"主要","启动","网络","退出"};
     char *f1[]={"wd0","wd1","usb0","usb1","tftp",0};
     char *f1b[]={"ext2","fat",0};
-    char *f2[]={"rtl0","rtk0","em0","em1","fxp0",0};
+    //char *f2[]={"rtl0","rtk0","em0","em1","fxp0",0};
     char *f4[]={"(usb0,0)","(wd0,0)","(sata0,0)","(tftp,0)",0};
     char *f5[]={"pmon-LM8089-1.4.5.bin","pmon-LM9002-1.4.6.bin","pmon-LM9003-1.4.7.bin",0};
 #else
     char *maintabs[]={"Main","Boot","Network","Advanced","Exit"};
     char *f1[]={"wd0","wd1","usb0","usb1","tftp",0};
     char *f1b[]={"ext2","fat",0};
-    char *f2[]={"rtl0","rtk0","em0","em1","fxp0",0};
+    //char *f2[]={"rtl0","rtk0","em0","em1","fxp0",0};
     char *f3[]={"usb0","wd0","tftp",0};
     char *f4[]={"(usb0,0)","(wd0,0)","(sata0,0)","(tftp,0)",0};
     char *f5[]={"pmon-LM8089-1.4.5.bin","pmon-LM9002-1.4.6.bin","pmon-LM9003-1.4.7.bin",0};
@@ -125,6 +134,34 @@ typedef struct _window_info{
 
     char message[100];//message passing through windows
     char lines[100];
+
+int get_net_type(void)
+{
+	struct device *dev, *next_dev;
+    int i = 0;
+    for (dev  = TAILQ_FIRST(&alldevs); dev != NULL; dev = next_dev) {
+		next_dev = TAILQ_NEXT(dev, dv_list);
+        if(strstr(dev->dv_xname,"rtl") || strstr(dev->dv_xname,"rtk")){
+            net_type[i] =(char *) malloc(sizeof(dev->dv_xname));
+		    memset(net_type[i], 0, sizeof(dev->dv_xname));
+            strcpy(net_type[i], dev->dv_xname);
+            i++;
+        }
+    }
+    return 1;
+}
+    
+int cleanup(void)
+{
+    int i = 0;
+    for(i = 0; i < 5; i++){
+        if(net_type[i]){
+            free(net_type[i]);
+        }
+            
+    }
+    return 1;
+}
 
 int do_main_tab(p_window_info_t  pwinfo, char *phint,struct tm *p_tm)
 {
@@ -367,29 +404,9 @@ int do_net_tab(p_window_info_t pwinfo,char *phint)
             }
 #else
             w_window(1,3,pwinfo->l_window_width,pwinfo->l_window_height,"Modify the Network configuration");
-            /*
-            w_text(2,4,WA_RIGHT,"Set IP for current system");
-            w_selectinput(17,5,20,"Select IC      ",f2,sibuf[2],20);
-            if(w_focused()) {
-                sprintf(phint,"Option:rtl0,rtk0,em0,em1,fxp0.Press Enter to Switch, other keys to modify");
-            }
-            w_input(17,6,20,"New IP Address:",w2[0],50);
-            if(w_focused()) {
-                sprintf(phint,"Please input new IP in the textbox.");
-            }
-            if(w_button(19,7,10,"[Set IP]")){
-                if(ifconfig(sibuf[2],w2[0])!=0){//configure       
-                    sprintf(message,"The device [%s] now has a new IP",sibuf[2]);
-                }else{
-                    sprintf(message,"Set new IP failed, input the correct IP and IC!");
-                }
-
-                //message = lines;
-                w_setpage(NOTE_WINDOW_ID);
-            }
-            */
+            
             w_text(2,4,WA_RIGHT,"Set IP for current system and save it to CMOS");
-            w_selectinput(17,5,20,"Select IC :  ",f2,sibuf[3],20);
+            w_selectinput(17,5,20,"Select IC :  ",net_type,sibuf[3],20);
             if(w_focused()) {
                 sprintf(phint,"Option:rtl0,rtk0,em0,em1,fxp0.Press Enter to Switch, other keys to modify");
             }
@@ -397,21 +414,34 @@ int do_net_tab(p_window_info_t pwinfo,char *phint)
             if(w_focused()) {
                 sprintf(phint,"Set the IP of local machine.Please input new IP in the textbox.");
             }
-            w_input(17,7,20,"Server IP :  ",w2[1],50);
-            if(w_focused()) {
-                sprintf(phint,"Set the IP of TFTP-Server.Please input new IP in the textbox.");
-            }            
             if(w_button(19,8,10,"[Set IP]")){
-                ifconfig(sibuf[2],w2[0]);
-                sprintf(lines,"set ifconfig %s:%s",sibuf[3],w2[0]);
-                printf(lines);
-                if(run(lines)==0){//configure
-                    sprintf(message,"The new IP has been set and saved to CMOS. ",sibuf[3]);
+                if(ifconfig(sibuf[3],w2[0])){
+                    ip_env_changed = TRUE;
+                    sprintf(message,"The new IP has been set. ");
                 }else{
                     sprintf(message,"Set new IP failed, input the correct IP and IC!");
                 }
-                //message = lines;
                 w_setpage(NOTE_WINDOW_ID);
+            }
+            
+            if(w_focused()){            
+                sprintf(phint,"Do the setting IP of local machine.");
+            }  
+            
+            if(w_button(18,10,12,"[Set&Save]")){
+                ifconfig(sibuf[3],w2[0]);
+                sprintf(lines,"set ifconfig %s:%s",sibuf[3],w2[0]);
+                if(run(lines)==0){//configure
+                    ip_env_changed = TRUE;
+                    sprintf(message,"The new IP has been set and saved to CMOS. ");
+                }else{
+                    sprintf(message,"Set new IP failed, input the correct IP and IC!");
+                }
+                w_setpage(NOTE_WINDOW_ID);
+            }
+
+            if(w_focused()){            
+                sprintf(phint,"Do the setting&saving IP of local machine.");
             }
 #endif
             return 0;
@@ -477,10 +507,15 @@ int do_advanced_tab(p_window_info_t pwinfo, char *phint)
     #else
             w_window(1,3,pwinfo->l_window_width,pwinfo->l_window_height,"Advanced option");
             w_text(2,4,WA_RIGHT,"Set and launch Net Recovery");
+            if(ip_env_changed){                
+                sprintf(w3[0],"%s",w2[0]);
+                //sprintf(w3[1],"%s",w2[1]);
+                ip_env_changed = FALSE;
+            }
             w_input(20,5,20,"Local IP       :",w3[0],50);
             if(w_focused()) {
                 sprintf(phint,"Set Local IP address . Just input the IP in the  textbox");
-            }  
+            } 
             w_input(20,6,20,"TFTP-Server IP :",w3[1],50);
             if(w_focused()) {
                 sprintf(phint,"Set Server IP address of the TFTP where recover file resides. Just input the IP in the  textbox");
@@ -506,7 +541,7 @@ int do_advanced_tab(p_window_info_t pwinfo, char *phint)
                 sprintf(lines,"set R_file %s",w3[3]);
                 run(lines);
 
-
+                ifconfig(sibuf[3],w3[0]);
                 
                 sprintf(lines,"load tftp://%s/%s",w3[1],w3[3]);
                 runstat = run(lines);
@@ -828,7 +863,9 @@ void envstr_init(void)
     char *envstr;
     char *pstr;
 
-    strcpy(adbuf[2],"172.16.0.30");
+    get_net_type();
+
+    //strcpy(adbuf[2],"172.16.0.30");
 
     envstr = getenv("ifconfig");
     if(envstr != NULL) {
@@ -836,51 +873,36 @@ void envstr_init(void)
         if (pstr != NULL) {
             pstr++;
             strcpy(w2[0],pstr);
-        } else {
-            strcpy(w2[0],"172.16.1.205");   
         }
-    }
-    else  {
-        strcpy(w2[0],"172.16.1.205");   
     }
 
     strcpy(w3[0],w2[0]);   
+
+    envstr = getenv("IP");
+    if(envstr != NULL) {
+        strcpy(w3[0],envstr);
+    }
     
     envstr = getenv("SIP");
     if(envstr != NULL) {
-        if (envstr != NULL) {
-            strcpy(w3[1],envstr);
-        } else {
-            strcpy(w3[1],"172.16.0.30");   
-        }
+        strcpy(w3[1],envstr);
     }
-    else  {
-        strcpy(w3[1],"172.16.0.30");   
-    } 
+
 
     envstr = getenv("net_karg");
     if(envstr != NULL) {
-        if (envstr != NULL) {
-            strcpy(w3[2],envstr);
-        } else {
-            strcpy(w3[2],"console=tty machtype=lynloong-2f-9003 video=sisfb:1360x768-16@60");   
-        }
-    }
-    else  {
-        strcpy(w3[2],"console=tty machtype=lynloong-2f-9003 video=sisfb:1360x768-16@60");   
+        strcpy(w3[2],envstr);
+    }else  {
+        strcpy(w3[2],"console=tty video=sisfb:1360x768-16@60");   
     }     
 
     envstr = getenv("R_file");
     if(envstr != NULL) {
-        if (envstr != NULL) {
-            strcpy(w3[3],envstr);
-        } else {
-            strcpy(w3[3],"vmlinuz");   
-        }
-    }
-    else  {
+        strcpy(w3[3],envstr);
+    }else  {
         strcpy(w3[3],"vmlinuz");   
     }     
+    
     envstr = getenv("al");
     if (envstr != NULL) {
         pstr = strchr(envstr, '@');
@@ -902,8 +924,7 @@ void envstr_init(void)
     strcpy(w2[1],w3[1]);
     strcpy(sibuf[0],f1[0]);
     strcpy(sibuf[1],f1b[0]);
-    strcpy(sibuf[2],f2[0]);
-    strcpy(sibuf[3],f2[0]);
+    strcpy(sibuf[3],net_type[0]);
 
 }
 
@@ -1014,8 +1035,11 @@ int cmd_main
         break;    
         case EXIT_TAB_ID://Save configuration and reboot the system
             oldwindow = EXIT_TAB_ID;            
-            if(do_exit_tab(&window_info,hint) == -1)
+            if(do_exit_tab(&window_info,hint) == -1){
+                cleanup();
                 return 0;
+                
+            }
         break;
         case SHUTDOWN_WARN_WINDOW_ID:           
             do_shutdown_warn_window(oldwindow);
