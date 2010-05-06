@@ -88,7 +88,7 @@ static struct stdenv {
     {"fpfmt", "both", "both double single none"},
     {"fpdis", "yes", "no yes"},
 #ifdef LOONGSON2F_7INCH
-	{"Version", "LM8089-1.4.7", 0},
+	{"Version", "LM8089-1.4.8", 0},
 #endif
 #ifdef LOONGSON2F_FULOONG
 	{"Version", "LM6004-1.3.6", 0},
@@ -106,7 +106,7 @@ static struct stdenv {
         {"Version", "LM-NAS-1.0.4", 0},
 #endif
 #ifdef LOONGSON2F_3GNB
-	{"Version", "LM-3G1001-1.0.1", 0},
+	{"Version", "LM-3G1001-1.0.2", 0},
 #endif
 {"BuildTime",  __DATE__ " " __TIME__ , 0},
 #if defined(TGT_DEFENV)

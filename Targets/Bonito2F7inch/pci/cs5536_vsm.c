@@ -1588,7 +1588,7 @@ pcireg_t cs5536_pci_conf_read4(int function, int reg){
 
 /***************************************************************************/
 
-#if	1
+#if	0
 static int cmd_rdecreg(int ac, char *av[])
 {
 	u32 start, size, reg;

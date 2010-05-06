@@ -183,12 +183,14 @@ extern char	*optarg;
 
 	if((EC_Version = getenv("ECVersion")) == NULL) 
 		EC_Version="undefined";
-	if((machtype = getenv("machtype")) == NULL) 
-		EC_Version="undefined";
     
 	strcat(clientcmd, " EC_VER=");
 	strcat(clientcmd, EC_Version);
 	strcat(clientcmd, " ");
+
+     if((machtype = getenv("machtype")) == NULL)
+		 machtype = "undefined";
+
 #endif
 	/* machtype is needed by kernel(>=2.6.32) */
 	strcat(clientcmd, " machtype=");

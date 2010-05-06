@@ -67,8 +67,8 @@
 
 #include "../pci/cs5536_io.h"
 #include "include/bonito.h"
-#ifdef LOONGSON2F_7INCH
-#include "include/kb3310.h"
+#ifdef LOONGSON2F_3GNB
+#include "include/wpce775x.h"
 #endif
 #include <pmon/dev/gt64240reg.h>
 #include <pmon/dev/ns16550.h>
@@ -272,17 +272,6 @@ tgt_devconfig()
     rc = 1;
 #endif
 
-#if	0
-	/* light the lcd */	
-	*((volatile unsigned char *)(mips_io_port_base| HIGH_PORT)) = 0xfe;
-	*((volatile unsigned char *)(mips_io_port_base| LOW_PORT)) = 0x01;
-	temp = *((volatile unsigned char *)(mips_io_port_base| DATA_PORT));
-	/* light the lcd */	
-	*((volatile unsigned char *)(mips_io_port_base| HIGH_PORT)) = 0xfe;
-	*((volatile unsigned char *)(mips_io_port_base| LOW_PORT)) = 0x01;
-	*((volatile unsigned char *)(mips_io_port_base| DATA_PORT)) = 0x00;
-#endif
-
 #if NMOD_FRAMEBUFFER > 0
     if(!vga_dev){
         printf("ERROR !!! Display adapter is not found\n");
@@ -329,21 +318,7 @@ tgt_devconfig()
 	}
 #endif
 
-		printf("tgt_devconfig after fb_init().");
-
-#if	0
-	/* light the lcd */	
-	*((volatile unsigned char *)(mips_io_port_base| HIGH_PORT)) = 0xfe;
-	*((volatile unsigned char *)(mips_io_port_base| LOW_PORT)) = 0x01;
-	*((volatile unsigned char *)(mips_io_port_base| DATA_PORT)) = temp;
-#endif
-
-#if	0
-	/* light the lcd */	
-	*((volatile unsigned char *)(mips_io_port_base| HIGH_PORT)) = 0xfe;
-	*((volatile unsigned char *)(mips_io_port_base| LOW_PORT)) = 0x01;
-	*((volatile unsigned char *)(mips_io_port_base| DATA_PORT)) = 0x80;
-#endif
+	printf("tgt_devconfig after fb_init().");
 
 	if (rc > 0) {
 		if(!getenv("novga")) { 
@@ -383,8 +358,10 @@ extern void godson1_cache_flush(void);
 #define tgt_putchar_uc(x) (*(void (*)(char)) (((long)tgt_putchar)|0x20000000)) (x)
 
 extern void cs5536_pci_fixup(void);
-extern void ec_fixup(void);
+
+#ifdef LOONGSON2F_3GNB
 extern void ec_update_rom(void *src, int size);
+#endif
 
 /* disable AC_BEEP for cs5536 gpio1,         *
  * only used EC_BEEP to control U13 gate     *
@@ -450,9 +427,6 @@ tgt_devinit()
 	cs5536_pci_fixup();
 #endif
 	cs5536_gpio1_fixup();
-#ifdef HAS_EC
-	ec_fixup();
-#endif
 
 	return;
 }
@@ -461,130 +435,25 @@ tgt_devinit()
 void
 tgt_reboot()
 {
-#if 0
-	/* reset the cs5536 whole chip */
-#if NCS5536 > 0 && !defined(LOONGSON2F_7INCH) 
-	unsigned long hi, lo;
-	_rdmsr(0xe0000014, &hi, &lo);
-	lo |= 0x00000001;
-	_wrmsr(0xe0000014, hi, lo);
-#endif
-
-#ifdef LOONGSON2F_7INCH
-
-#if	0
-	/* dark the lcd */
-	*((volatile unsigned char *)(0xbfd00000 | HIGH_PORT)) = 0xfe;
-	*((volatile unsigned char *)(0xbfd00000 | LOW_PORT)) = 0x01;
-	*((volatile unsigned char *)(0xbfd00000 | DATA_PORT)) = 0x00;
-#endif
-
-#if 0
-	*((volatile unsigned char *)(0xbfd00000 | HIGH_PORT)) = 0xfc;
-	*((volatile unsigned char *)(0xbfd00000 | LOW_PORT)) = 0x20;
-	val = *((volatile unsigned char *)(0xbfd00000 | DATA_PORT));
-	/* output the low level for reset sequence */
-	*((volatile unsigned char *)(0xbfd00000 | DATA_PORT)) = val & (~(1 << 5));
-	/* delay for 100~200ms */
-	for(i = 0; i < 200; i++);
-		delay(1000);
-	/* output the high level for reset sequence */
-	*((volatile unsigned char *)(0xbfd00000 | DATA_PORT)) = val | (1 << 5);
-#else
-	*((volatile unsigned char *)(mips_io_port_base | HIGH_PORT)) = 0xf4;
-	*((volatile unsigned char *)(mips_io_port_base | LOW_PORT)) = 0xec;
-	*((volatile unsigned char *)(mips_io_port_base | DATA_PORT)) = 0x01;
-#endif
-
-#endif
-	/* we should not exec until here. */
-	//__asm__ ("jr %0\n"::"r"(0xbfc00000));
-#endif
+#ifdef LOONGSON2F_3GNB
 	/* Send reboot command */
 	*((volatile unsigned char *)(0xbfd00066)) = 0x4e;
 	delay(1000000);
 	*((volatile unsigned char *)(0xbfd00062)) = 0x1;
 	while(1);
+#endif	// end ifdef LOONGSON2F_3GNB
 }
 
 void
 tgt_poweroff()
 {
-#if 0
-	unsigned long val;
-	unsigned long tag;
-	unsigned long base;
-
-#ifdef	LOONGSON2F_7INCH
-#if 0
-	*((volatile unsigned char *)(0xbfd00000 | HIGH_PORT)) = 0xfc;
-	*((volatile unsigned char *)(0xbfd00000 | LOW_PORT)) = 0x29;
-	val = *((volatile unsigned char *)(0xbfd00000 | DATA_PORT));
-	*((volatile unsigned char *)(0xbfd00000 | DATA_PORT)) = val & ~(1 << 1);
-	for(i = 0; i < 0x10000; i++)
-		for(j = 0; j < 0x10000; i++);
-	*((volatile unsigned char *)(0xbfd00000 | DATA_PORT)) = val | (1 << 1);
-#else
-	/* cpu-gpio0 output low */
-	*((volatile unsigned long *)(PTR_PAD(0xbfe0011c))) &= ~0x00000001;
-	/* cpu-gpio0 as output */
-	*((volatile unsigned long *)(PTR_PAD(0xbfe00120))) &= ~0x00000001;
-#endif
-#else
-	tag = _pci_make_tag(0, 14, 0);
-	base = _pci_conf_read(tag, 0x14);
-	base |= mips_io_port_base;
-	base &= ~3;
-
-	/* make cs5536 gpio13 output enable */
-	val = *(volatile unsigned long *)(base + 0x04);
-	val = ( val & ~(1 << (16 + 13)) ) | (1 << 13) ;
-	*(volatile unsigned long *)(base + 0x04) = val;
-	
-	/* make cs5536 gpio13 output low level voltage. */
-	val = *(volatile unsigned long *)(base + 0x00);
-	val = (val | (1 << (16 + 13))) & ~(1 << 13);
-	*(volatile unsigned long *)(base + 0x00) = val;
-#endif
-	while(1);
-#endif
-	unsigned int val;
-	unsigned int tag;
-	unsigned int base;
-
 #ifdef	LOONGSON2F_3GNB
-#if 0
-	*((volatile unsigned char *)(0xbfd00000 | HIGH_PORT)) = 0xfc;
-	*((volatile unsigned char *)(0xbfd00000 | LOW_PORT)) = 0x29;
-	val = *((volatile unsigned char *)(0xbfd00000 | DATA_PORT));
-	*((volatile unsigned char *)(0xbfd00000 | DATA_PORT)) = val & ~(1 << 1);
-	for(i = 0; i < 0x10000; i++)
-		for(j = 0; j < 0x10000; i++);
-	*((volatile unsigned char *)(0xbfd00000 | DATA_PORT)) = val | (1 << 1);
-#else
 	/* cpu-gpio0 output low */
 	*((volatile unsigned int *)(PTR_PAD(0xbfe0011c))) &= ~0x00000001;
 	/* cpu-gpio0 as output */
 	*((volatile unsigned int *)(PTR_PAD(0xbfe00120))) &= ~0x00000001;
-#endif
-#else
-	tag = _pci_make_tag(0, 14, 0);
-	base = _pci_conf_read(tag, 0x14);
-	base |= mips_io_port_base;
-	base &= ~3;
-
-	/* make cs5536 gpio13 output enable */
-	val = *(volatile unsigned int *)(base + 0x04);
-	val = ( val & ~(1 << (16 + 13)) ) | (1 << 13) ;
-	*(volatile unsigned int *)(base + 0x04) = val;
-	
-	/* make cs5536 gpio13 output low level voltage. */
-	val = *(volatile unsigned int *)(base + 0x00);
-	val = (val | (1 << (16 + 13))) & ~(1 << 13);
-	*(volatile unsigned int *)(base + 0x00) = val;
-#endif
 	while(1);
-
+#endif
 }
 
 /*
@@ -938,12 +807,14 @@ tgt_flashprogram(void *p, int size, void *s, int endian)
 }
 #endif /* PFLASH */
 
+#ifdef LOONGSON2F_3GNB
 /* update the ec_firmware */
 void tgt_ecprogram(void *s, int size)
 {
 	ec_update_rom(s, size);
  	return;
 }
+#endif
 
 /*
  *  Network stuff.
@@ -965,7 +836,9 @@ tgt_netreset()
 {
 }
 
+#ifdef LOONGSON2F_3GNB
 extern unsigned char *get_ecver(void);
+#endif
 
 /*************************************************************************/
 /*
@@ -1062,10 +935,12 @@ tgt_mapenv(int (*func) __P((char *, char *)))
 
 	(*func)("systype", SYSTYPE);
 
+#ifdef LOONGSON2F_3GNB
 	/* get ec version */
 	ec_version = get_ecver();
 	sprintf(env, "%s", ec_version);
 	(*func)("ECVersion", env);
+#endif
 }
 
 int

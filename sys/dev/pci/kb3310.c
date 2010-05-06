@@ -18,6 +18,7 @@
 #include "include/kb3310.h"
 
 /************************************************************/
+#if 0
 /* ec delay time 500us for register and status access */
 #define	EC_REG_DELAY	500	//unit : us
 /* ec rom flash id size and array : Manufacture ID[1], Device ID[2] */
@@ -59,210 +60,713 @@ unsigned char ec_ver[VER_MAX_SIZE];
 #define	PROGRAM_FLAG_VERSION	0x01
 #define	PROGRAM_FLAG_ROM	0x02
 
+#endif
+
+#define EC_ROM_PROTECTION
+/* ec rom flash id size and array : Manufacture ID[1], Device ID[2] */
+unsigned char ec_rom_id[EC_ROM_ID_SIZE];
+/* version array */
+unsigned char ec_ver[VER_MAX_SIZE];
+
 /***************************************************************/
 
-/* enable the internal watchdog */
-void ec_enable_wdt_mode(void)
+/*
+ * ec_query_seq
+ * this function is used for ec command writing and the corresponding status query 
+ */
+int ec_query_seq(unsigned char cmd)
 {
-	wrec(REG_WDTCFG, 0x83);
+	int timeout;
+	unsigned char status;
+	unsigned long flags;
+	int ret = 0;
+
+	/* make chip goto reset mode */
+	udelay(EC_REG_DELAY);
+	write_port(EC_CMD_PORT, cmd);
+	udelay(EC_REG_DELAY);
+
+	/* check if the command is received by ec */
+	timeout = EC_CMD_TIMEOUT;
+	status = read_port(EC_STS_PORT);
+	while(timeout--){
+		if(status & (1 << 1)){
+			status = read_port(EC_STS_PORT);
+			udelay(EC_REG_DELAY);
+			continue;
+		}
+		break;
+	}
+	
+	if(timeout <= 0){
+		printf("EC QUERY SEQ : deadable error : timeout...\n");
+		ret = -1;
+	}
+
+	return ret;
 }
 
-/* disable the internal watchdog */
-void ec_disable_wdt_mode(void)
-{
-	wrec(REG_WDTPF,  0x03);
-	wrec(REG_WDTCFG, 0x48);
-}
+/************************************************************************/
 
 /* enable the chip reset mode */
 int ec_init_reset_mode(void)
 {
 	int timeout;
 	unsigned char status = 0;
+	int ret = 0;
 	
 	/* make chip goto reset mode */
-	delay(EC_REG_DELAY);
-	write_port(EC_CMD_PORT, CMD_INIT_RESET_MODE);
-	delay(EC_REG_DELAY);
+	ret = ec_query_seq(CMD_INIT_RESET_MODE);
+	if(ret < 0){
+		printf("ec init reset mode failed.\n");
+		goto out;
+	}
 
-	timeout = 0x1000;
-	status = read_port(EC_STS_PORT);
-	while(timeout--){
-		if(status & (1 << 1)){
-			status = read_port(EC_STS_PORT);
-			delay(EC_REG_DELAY);
-			printf("ec issued reset command status : 0x%x\n", status);
-			continue;
-		}
-		break;
-	}
-	if(timeout <= 0){
-		printf("ec rom fixup : enter reset mode failed.\n");
-		return -1;
-	}
-	
 	/* make the action take active */
-	timeout = 1000;
+	timeout = EC_CMD_TIMEOUT;
 	status = rdec(REG_POWER_MODE) & FLAG_RESET_MODE;
 	while(timeout--){
 		if(status){
-			delay(EC_REG_DELAY);
+			udelay(EC_REG_DELAY);
 			break;
 		}
 		status = rdec(REG_POWER_MODE) & FLAG_RESET_MODE;
-		delay(EC_REG_DELAY);
-		printf("reset 0xf710 :  0x%x\n", rdec(REG_POWER_MODE));
+		udelay(EC_REG_DELAY);
 	}
 	if(timeout <= 0){
 		printf("ec rom fixup : can't check reset status.\n");
-		return -1;
+		ret = -1;
 	}
-	
+
 	/* set MCU to reset mode */
-	delay(EC_REG_DELAY);
+	udelay(EC_REG_DELAY);
 	status = rdec(REG_PXCFG);
 	status |= (1 << 0);
 	wrec(REG_PXCFG, status);
-	delay(EC_REG_DELAY);
+	udelay(EC_REG_DELAY);
 
 	/* disable FWH/LPC */
-	delay(EC_REG_DELAY);
+	udelay(EC_REG_DELAY);
 	status = rdec(REG_LPCCFG);
 	status &= ~(1 << 7);
 	wrec(REG_LPCCFG, status);
-	delay(EC_REG_DELAY);
+	udelay(EC_REG_DELAY);
 
-	printf("entering reset mode ok................\n");
+	//printf("entering reset mode ok..............\n");
 
-	return 0;
+out :
+	return ret;
 }
 
 /* make ec exit from reset mode */
 void ec_exit_reset_mode(void)
 {
-	u8 regval;
+	unsigned char regval;
 
-	delay(EC_REG_DELAY);
-	regval = rdec(0xfe95);
+	udelay(EC_REG_DELAY);
+	regval = rdec(REG_LPCCFG);
 	regval |= (1 << 7);
-	wrec(0xfe95, regval);
-	delay(EC_REG_DELAY);
+	wrec(REG_LPCCFG, regval);
 	regval = rdec(REG_PXCFG);
 	regval &= ~(1 << 0);
 	wrec(REG_PXCFG, regval);
-	delay(EC_REG_DELAY);
+	//printf("exit reset mode ok..................\n");
 
 	return;
 }
 
+/* make ec disable WDD */
+void ec_disable_WDD(void)
+{
+	unsigned char status;
+
+	udelay(EC_REG_DELAY);
+	status = rdec(REG_WDTCFG);
+	wrec(REG_WDTPF, 0x03);
+	wrec(REG_WDTCFG, (status & 0x80) | 0x48);
+	//printf("Disable WDD ok..................\n");
+
+	return;
+}
+
+/* make ec enable WDD */
+void ec_enable_WDD(void)
+{
+	unsigned char status;
+
+	udelay(EC_REG_DELAY);
+	status = rdec(REG_WDTCFG);
+	wrec(REG_WDT, 0x28);		//set WDT 5sec(0x28)
+	wrec(REG_WDTCFG, (status & 0x80) | 0x03);
+	//printf("Enable WDD ok..................\n");
+
+	return;
+}
+
+#if 1
+/* re-power the whole system for new ec firmware working correctly. */
+void ec_reboot_system(void)
+{
+	ec_query_seq(CMD_REBOOT_SYSTEM);
+	//printf("reboot system...................\n");
+}
+#endif
+
 /* make ec goto idle mode */
-void ec_init_idle_mode(void)
+int ec_init_idle_mode(void)
 {
 	int timeout;
 	unsigned char status = 0;
-	
-	/* make chip goto idle mode */
-	delay(EC_REG_DELAY);
-	write_port(EC_CMD_PORT, CMD_INIT_IDLE_MODE);
-	delay(EC_REG_DELAY);
+	int ret = 0;
 
-	timeout = 0x1000;
-	status = read_port(EC_STS_PORT);
-	delay(EC_REG_DELAY);
-	while(timeout--){
-		if(status & (1 << 1)){
-			status = read_port(EC_STS_PORT);
-			delay(EC_REG_DELAY);
-			printf("ec issued init command status : 0x%x\n", status);
-			continue;
-		}
-		break;
-	}
-	if(timeout <= 0){
-		printf("ec rom fixup : enter idle mode failed.\n");
-		return;
-	}
-	
+	ec_query_seq(CMD_INIT_IDLE_MODE);
+
 	/* make the action take active */
-	timeout = 1000;
+	timeout = EC_CMD_TIMEOUT;
 	status = rdec(REG_POWER_MODE) & FLAG_IDLE_MODE;
 	while(timeout--){
 		if(status){
-			delay(EC_REG_DELAY);
+			udelay(EC_REG_DELAY);
 			break;
 		}
 		status = rdec(REG_POWER_MODE) & FLAG_IDLE_MODE;
-		delay(EC_REG_DELAY);
-		printf("0xf710 :  0x%x\n", rdec(0xF710));
+		udelay(EC_REG_DELAY);
 	}
 	if(timeout <= 0){
-		printf("ec rom fixup : can't check out the status.\n");
-		return;
+		printf("ec rom fixup : can't check idle status.\n");
+		ret = -1;
 	}
 
-	return;
+	//printf("entering idle mode ok...................\n");
+
+	return ret;
 }
 
 /* make ec exit from idle mode */
-void ec_exit_idle_mode(void)
+int ec_exit_idle_mode(void)
 {
-	int timeout;
-	u8 status;
-	
-	/* make chip exit idle mode */
-	delay(EC_REG_DELAY);
-	write_port(EC_CMD_PORT, CMD_EXIT_IDLE_MODE);
-	delay(EC_REG_DELAY);
 
-	timeout = 0x1000;
-	status = read_port(EC_STS_PORT);
-	while(timeout--){
-		if(status & (1 << 1)){
-			status = read_port(EC_STS_PORT);
-			delay(EC_REG_DELAY);
-			continue;
-		}
-		break;
-	}
-	if(timeout <= 0){
-		printf("ec rom fixup : exit idle mode failed.\n");
-		printf(" status 0x%x\n", rdec(REG_POWER_MODE));
-		return;
-	}
+	ec_query_seq(CMD_EXIT_IDLE_MODE);
+
+	//printf("exit idle mode ok...................\n");
 	
-	return;
+	return 0;
 }
 
-/* reboot system for syncing including EC rom self */
-void ec_shutdown_system(void)
-{
-	int timeout;
-	u8 status;
-	
-	/* make chip exit idle mode */
-	delay(EC_REG_DELAY * 50);
-	write_port(EC_CMD_PORT, CMD_REBOOT_SYSTEM);
-	delay(EC_REG_DELAY);
+/**********************************************************************/
 
-	timeout = 0x1000;
-	status = read_port(EC_STS_PORT);
-	printf("ec will shutdown the whole system.\n");
-	while(timeout--){
-		if(status & (1 << 1)){
-			status = read_port(EC_STS_PORT);
-			delay(EC_REG_DELAY);
-			continue;
-		}
-		break;
+int ec_instruction_cycle(void)
+{
+	unsigned long timeout;
+	int ret = 0;
+
+	timeout = EC_FLASH_TIMEOUT;
+	while(timeout-- >= 0){
+		if( !(rdec(REG_XBISPICFG) & SPICFG_SPI_BUSY) )
+				break;
 	}
 	if(timeout <= 0){
-		printf("ec shutdown system failed.\n");
-		return;
+		printf("EC_INSTRUCTION_CYCLE : timeout for check flag.\n");
+		ret = -1;
+		goto out;
+	}
+
+out :
+	return ret;
+}
+
+/* To see if the ec is in busy state or not. */
+static inline int ec_flash_busy(unsigned long timeout)
+{
+	/* assurance the first command be going to rom */
+	if( ec_instruction_cycle() < 0 ){
+		return EC_STATE_BUSY;
+	}
+
+	timeout = timeout / EC_MAX_DELAY_UNIT;
+	while(timeout-- > 0){
+		/* check the rom's status of busy flag */
+		wrec(REG_XBISPICMD, SPICMD_READ_STATUS);
+		if( ec_instruction_cycle() < 0 ){
+			return EC_STATE_BUSY;
+		}	
+		if((rdec(REG_XBISPIDAT) & 0x01) == 0x00){
+			return EC_STATE_IDLE;
+		}
+		udelay(EC_MAX_DELAY_UNIT);
+	}
+	if( timeout <= 0 ){
+		printf("EC_FLASH_BUSY : timeout for check rom flag.\n");
+		return EC_STATE_BUSY;
+	}
+
+	return EC_STATE_IDLE;
+}
+
+int rom_instruction_cycle(unsigned char cmd)
+{
+	unsigned long timeout = 0;
+
+	switch(cmd){
+		case	SPICMD_READ_STATUS :
+		case	SPICMD_WRITE_ENABLE :
+		case	SPICMD_WRITE_DISABLE :
+		case	SPICMD_READ_BYTE :
+		case	SPICMD_HIGH_SPEED_READ :
+				timeout = 0;
+				break;
+		case	SPICMD_WRITE_STATUS :
+				timeout = 300 * 1000;
+				break;
+		case	SPICMD_BYTE_PROGRAM :
+				timeout = 5 * 1000;
+				break;
+		case	SPICMD_SST_SEC_ERASE :
+		case	SPICMD_SEC_ERASE :
+				timeout = 1000 * 1000;
+				break;
+		case	SPICMD_SST_BLK_ERASE :
+		case	SPICMD_BLK_ERASE :
+				timeout = 3 * 1000 * 1000;
+				break;
+		case	SPICMD_SST_CHIP_ERASE :
+		case	SPICMD_CHIP_ERASE :
+				timeout = 20 * 1000 * 1000;
+				break;
+		default :
+				timeout = EC_SPICMD_STANDARD_TIMEOUT;
+	}
+	if(timeout == 0){
+		return ec_instruction_cycle();
+	}
+	if(timeout < EC_SPICMD_STANDARD_TIMEOUT)
+			timeout = EC_SPICMD_STANDARD_TIMEOUT;
+
+	return ec_flash_busy(timeout);
+}
+
+/* delay for start/stop action */
+void delay_spi(int n)
+{
+	while(n--)
+		read_port(HIGH_PORT);
+}
+
+/* start the action to spi rom function */
+void ec_start_spi(void)
+{
+	unsigned char val;
+
+	delay_spi(SPI_FINISH_WAIT_TIME);
+	val = rdec(REG_XBISPICFG) | SPICFG_EN_SPICMD | SPICFG_AUTO_CHECK;
+	wrec(REG_XBISPICFG, val);
+	delay_spi(SPI_FINISH_WAIT_TIME);
+}
+
+/* stop the action to spi rom function */
+void ec_stop_spi(void)
+{
+	unsigned char val;
+
+	delay_spi(SPI_FINISH_WAIT_TIME);
+	val = rdec(REG_XBISPICFG) & (~(SPICFG_EN_SPICMD | SPICFG_AUTO_CHECK));
+	wrec(REG_XBISPICFG, val);
+	delay_spi(SPI_FINISH_WAIT_TIME);
+}
+
+/* read one byte from xbi interface */
+int ec_read_byte(unsigned int addr, unsigned char *byte)
+{
+	int ret = 0;
+
+	/* enable spicmd writing. */
+	ec_start_spi();
+
+	/* enable write spi flash */
+	wrec(REG_XBISPICMD, SPICMD_WRITE_ENABLE);
+	if(rom_instruction_cycle(SPICMD_WRITE_ENABLE) == EC_STATE_BUSY){
+			printf("EC_READ_BYTE : SPICMD_WRITE_ENABLE failed.\n");
+			ret = -1;
+			goto out;
 	}
 	
-	return;
+	/* write the address */
+	wrec(REG_XBISPIA2, (addr & 0xff0000) >> 16);
+	wrec(REG_XBISPIA1, (addr & 0x00ff00) >> 8);
+	wrec(REG_XBISPIA0, (addr & 0x0000ff) >> 0);
+	/* start action */
+	wrec(REG_XBISPICMD, SPICMD_HIGH_SPEED_READ);
+	if(rom_instruction_cycle(SPICMD_HIGH_SPEED_READ) == EC_STATE_BUSY){
+			printf("EC_READ_BYTE : SPICMD_HIGH_SPEED_READ failed.\n");
+			ret = -1;
+			goto out;
+	}
+	
+	*byte = rdec(REG_XBISPIDAT);
+
+out :
+	/* disable spicmd writing. */
+	ec_stop_spi();
+
+	return ret;
 }
-#ifndef NO_ROM_ID_NEEDED
+
+/* write one byte to ec rom */
+int ec_write_byte(unsigned int addr, unsigned char byte)
+{
+	int ret = 0;
+
+	/* enable spicmd writing. */
+	ec_start_spi();
+
+	/* enable write spi flash */
+	wrec(REG_XBISPICMD, SPICMD_WRITE_ENABLE);
+	if(rom_instruction_cycle(SPICMD_WRITE_ENABLE) == EC_STATE_BUSY){
+			printf("EC_WRITE_BYTE : SPICMD_WRITE_ENABLE failed.\n");
+			ret = -1;
+			goto out;
+	}
+
+	/* write the address */
+	wrec(REG_XBISPIA2, (addr & 0xff0000) >> 16);
+	wrec(REG_XBISPIA1, (addr & 0x00ff00) >> 8);
+	wrec(REG_XBISPIA0, (addr & 0x0000ff) >> 0);
+	wrec(REG_XBISPIDAT, byte);
+	/* start action */
+	wrec(REG_XBISPICMD, SPICMD_BYTE_PROGRAM);
+	if(rom_instruction_cycle(SPICMD_BYTE_PROGRAM) == EC_STATE_BUSY){
+			printf("EC_WRITE_BYTE : SPICMD_BYTE_PROGRAM failed.\n");
+			ret = -1;
+			goto out;
+	}
+	
+out :
+	/* disable spicmd writing. */
+	ec_stop_spi();
+
+	return ret;
+}
+
+/* unprotect SPI ROM */
+/* EC_ROM_unprotect function code */
+int EC_ROM_unprotect(void)
+{
+	unsigned char status;
+
+	/* enable write spi flash */
+	wrec(REG_XBISPICMD, SPICMD_WRITE_ENABLE);
+	if(rom_instruction_cycle(SPICMD_WRITE_ENABLE) == EC_STATE_BUSY){
+		printf("EC_UNIT_ERASE : SPICMD_WRITE_ENABLE failed.\n");
+		return 1;
+	}
+
+	/* unprotect the status register of rom */
+	wrec(REG_XBISPICMD, SPICMD_READ_STATUS);
+	if(rom_instruction_cycle(SPICMD_READ_STATUS) == EC_STATE_BUSY){
+		printf("EC_UNIT_ERASE : SPICMD_READ_STATUS failed.\n");
+		return 1;
+	}
+	status = rdec(REG_XBISPIDAT);
+	wrec(REG_XBISPIDAT, status & 0x02);
+	if(ec_instruction_cycle() < 0){
+		printf("EC_UNIT_ERASE : write status value failed.\n");
+		return 1;
+	}
+
+	wrec(REG_XBISPICMD, SPICMD_WRITE_STATUS);
+	if(rom_instruction_cycle(SPICMD_WRITE_STATUS) == EC_STATE_BUSY){
+		printf("EC_UNIT_ERASE : SPICMD_WRITE_STATUS failed.\n");
+		return 1;
+	}
+
+	/* enable write spi flash */
+	wrec(REG_XBISPICMD, SPICMD_WRITE_ENABLE);
+	if(rom_instruction_cycle(SPICMD_WRITE_ENABLE) == EC_STATE_BUSY){
+		printf("EC_UNIT_ERASE : SPICMD_WRITE_ENABLE failed.\n");
+		return 1;
+	}
+
+	return 0;
+}
+
+/* Starts to execute the unprotect SPI ROM function. */
+int EC_ROM_start_unprotect(void)
+{
+	unsigned char status;
+	int ret = 0, i = 0;
+	int unprotect_count = 3;
+	int check_flag =0;
+
+	/* added for re-check SPICMD_READ_STATUS */
+	while(unprotect_count-- > 0){
+		if(EC_ROM_unprotect()){
+			ret = -1;
+			return ret;
+		}
+		
+		for(i = 0; i < ((2 - unprotect_count) * 100 + 10); i++)	//first time:500ms --> 5.5sec -->10.5sec
+			udelay(50000);
+		wrec(REG_XBISPICMD, SPICMD_READ_STATUS);
+		if(rom_instruction_cycle(SPICMD_READ_STATUS) == EC_STATE_BUSY){
+			printf("EC_PROGRAM_ROM : SPICMD_READ_STATUS failed.\n");
+		} else {
+			status = rdec(REG_XBISPIDAT);
+			//printf("Read unprotect status : 0x%x\n", status);
+			if((status & 0x1C) == 0x00){
+				//printf("Read unprotect status OK1 : 0x%x\n", status & 0x1C);
+				check_flag = 1;
+				break;
+			}
+		}	
+	}
+
+	if(!check_flag){
+		printf("SPI ROM unprotect fail.\n");
+		return 1;
+	}
+	//printf("SPI ROM unprotect success.\n");
+
+	return ret;
+}
+
+/* Starts to execute the protect SPI ROM function. */
+int EC_ROM_start_protect(void)
+{
+	unsigned char status;
+	int j;
+
+	/* we should start spi access firstly */
+	ec_start_spi();
+
+	/* enable write spi flash */
+	wrec(REG_XBISPICMD, SPICMD_WRITE_ENABLE);
+	if(rom_instruction_cycle(SPICMD_WRITE_ENABLE) == EC_STATE_BUSY){
+			printf("EC_PROGRAM_ROM : SPICMD_WRITE_ENABLE failed.\n");
+			goto out1;
+	}
+	
+	/* protect the status register of rom */
+	wrec(REG_XBISPICMD, SPICMD_READ_STATUS);
+	if(rom_instruction_cycle(SPICMD_READ_STATUS) == EC_STATE_BUSY){
+			printf("EC_PROGRAM_ROM : SPICMD_READ_STATUS failed.\n");
+			goto out1;
+	}
+	status = rdec(REG_XBISPIDAT);
+
+	wrec(REG_XBISPIDAT, status | 0x1C);
+	if(ec_instruction_cycle() < 0){
+			printf("EC_PROGRAM_ROM : write status value failed.\n");
+			goto out1;
+	}
+
+	wrec(REG_XBISPICMD, SPICMD_WRITE_STATUS);
+	if(rom_instruction_cycle(SPICMD_WRITE_STATUS) == EC_STATE_BUSY){
+			printf("EC_PROGRAM_ROM : SPICMD_WRITE_STATUS failed.\n");
+			goto out1;
+	}
+
+	/* disable the write action to spi rom */
+	wrec(REG_XBISPICMD, SPICMD_WRITE_DISABLE);
+	if(rom_instruction_cycle(SPICMD_WRITE_DISABLE) == EC_STATE_BUSY){
+			printf("EC_PROGRAM_ROM : SPICMD_WRITE_DISABLE failed.\n");
+			goto out1;
+	}
+	
+out1:
+	/* we should stop spi access firstly */
+	ec_stop_spi();
+out:
+	/* for security */
+	//for(j = 0; j < 2000; j++)
+	//	udelay(1000);
+
+	/* exit from the reset mode */
+	//ec_exit_reset_mode();
+
+	return 0;
+}
+
+/* erase one block or chip or sector as needed */
+int ec_unit_erase(unsigned char erase_cmd, unsigned int addr)
+{
+	unsigned char status;
+	int ret = 0, i = 0;
+	int unprotect_count = 3;
+	int check_flag =0;
+
+	/* enable spicmd writing. */
+	ec_start_spi();
+
+#ifdef EC_ROM_PROTECTION
+	/* added for re-check SPICMD_READ_STATUS */
+	while(unprotect_count-- > 0){
+		if(EC_ROM_unprotect()){
+			ret = -1;
+			goto out;
+		}
+		
+		for(i = 0; i < ((2 - unprotect_count) * 100 + 10); i++)	//first time:500ms --> 5.5sec -->10.5sec
+			udelay(50000);
+		wrec(REG_XBISPICMD, SPICMD_READ_STATUS);
+		if(rom_instruction_cycle(SPICMD_READ_STATUS) == EC_STATE_BUSY){
+			printf("EC_PROGRAM_ROM : SPICMD_READ_STATUS failed.\n");
+		} else {
+			status = rdec(REG_XBISPIDAT);
+			//printf("Read unprotect status : 0x%x\n", status);
+			if((status & 0x1C) == 0x00){
+				//printf("Read unprotect status OK1 : 0x%x\n", status & 0x1C);
+				check_flag = 1;
+				break;
+			}
+		}	
+	}
+
+	if(!check_flag){
+		printf("SPI ROM unprotect fail.\n");
+		return 1;
+	}
+#endif
+
+	/* block address fill */
+	if(erase_cmd == SPICMD_BLK_ERASE){
+		wrec(REG_XBISPIA2, (addr & 0x00ff0000) >> 16);
+		wrec(REG_XBISPIA1, (addr & 0x0000ff00) >> 8);
+		wrec(REG_XBISPIA0, (addr & 0x000000ff) >> 0);
+	}
+
+	/* erase the whole chip first */
+	wrec(REG_XBISPICMD, erase_cmd);
+	if(rom_instruction_cycle(erase_cmd) == EC_STATE_BUSY){
+			printf("EC_UNIT_ERASE : erase failed.\n");
+			ret = -1;
+			goto out;
+	}
+
+out :
+	/* disable spicmd writing. */
+	ec_stop_spi();
+
+	return ret;
+}
+
+#ifdef LOONGSON2F_7INCH
+/* update the whole rom content with H/W mode
+ * PLEASE USING ec_unit_erase() FIRSTLY
+ */
+int ec_update_rom(void *src, int size)
+{
+	unsigned char *buf;
+	unsigned int addr = 0;
+	unsigned char val;
+	unsigned char data;
+	int ret = 0, ret1; 
+	int i, j;
+	unsigned char status;
+
+	buf = src;
+	if(size > EC_ROM_MAX_SIZE){
+        printf("ec-update : out of range.\n");
+        return;
+	}
+	
+	/* goto reset mode */
+	ret = ec_init_reset_mode();
+
+	if(ret < 0){
+		return ret;
+	}
+
+    printf("starting update ec ROM..............\n");
+
+	ret = ec_unit_erase(SPICMD_BLK_ERASE, addr);
+	if(ret){
+		printf("program ec : erase block failed.\n");
+		goto out;
+	}
+	printf("program ec : erase block OK.\n");
+
+	i = 0;
+	while(i < size){
+		data = *(buf + i);
+		ec_write_byte(addr, data);
+		ec_read_byte(addr, &val);
+		if(val != data){
+			ec_write_byte(addr, data);
+			ec_read_byte(addr, &val);
+			if(val != data){
+				printf("EC : Second flash program failed at:\t");
+				printf("addr : 0x%x, source : 0x%x, dest: 0x%x\n", addr, data, val);
+				printf("This should not happened... STOP\n");
+				break;				
+			}
+		}
+		if( (i % 0x400) == 0x00 ){
+			printf(".");
+		}
+		i++;
+		addr++;
+	}
+	printf("\n");
+	printf("Update EC ROM OK.\n");
+
+#ifdef	EC_ROM_PROTECTION
+	/* we should start spi access firstly */
+	ec_start_spi();
+
+	/* enable write spi flash */
+	wrec(REG_XBISPICMD, SPICMD_WRITE_ENABLE);
+	if(rom_instruction_cycle(SPICMD_WRITE_ENABLE) == EC_STATE_BUSY){
+			printf("EC_PROGRAM_ROM : SPICMD_WRITE_ENABLE failed.\n");
+			goto out1;
+	}
+	
+	/* protect the status register of rom */
+	wrec(REG_XBISPICMD, SPICMD_READ_STATUS);
+	if(rom_instruction_cycle(SPICMD_READ_STATUS) == EC_STATE_BUSY){
+			printf("EC_PROGRAM_ROM : SPICMD_READ_STATUS failed.\n");
+			goto out1;
+	}
+	status = rdec(REG_XBISPIDAT);
+
+	wrec(REG_XBISPIDAT, status | 0x1C);
+	if(ec_instruction_cycle() < 0){
+			printf("EC_PROGRAM_ROM : write status value failed.\n");
+			goto out1;
+	}
+
+	wrec(REG_XBISPICMD, SPICMD_WRITE_STATUS);
+	if(rom_instruction_cycle(SPICMD_WRITE_STATUS) == EC_STATE_BUSY){
+			printf("EC_PROGRAM_ROM : SPICMD_WRITE_STATUS failed.\n");
+			goto out1;
+	}
+#endif
+
+	/* disable the write action to spi rom */
+	wrec(REG_XBISPICMD, SPICMD_WRITE_DISABLE);
+	if(rom_instruction_cycle(SPICMD_WRITE_DISABLE) == EC_STATE_BUSY){
+			printf("EC_PROGRAM_ROM : SPICMD_WRITE_DISABLE failed.\n");
+			goto out1;
+	}
+	
+out1:
+	/* we should stop spi access firstly */
+	ec_stop_spi();
+out:
+	/* for security */
+	for(j = 0; j < 2000; j++)
+		udelay(1000);
+
+	/* exit from the reset mode */
+	ec_exit_reset_mode();
+
+	/* reboot bios and EC rom for syncing */
+	//ec_reboot_system();
+	printf("Please reboot system................\n");
+
+	return 0;
+}
+
+//#ifndef NO_ROM_ID_NEEDED
 /* get flash rom product id number */
 void ec_get_product_id(void)
 {
@@ -293,337 +797,33 @@ void ec_get_product_id(void)
 
 	return;
 }
-#endif
-/* check if flash busy or not */
-int ec_flash_busy(void)
-{
-	unsigned char count = 0;
 
-	while(count < 10){
-		wrec(XBI_BANK | XBISPICMD, 5);
-		while( (rdec(XBI_BANK | XBISPICFG)) & (1 << 1) );
-		if((rdec(XBI_BANK | XBISPIDAT) & 0x01) == 0x00){
-			return 0x00;
-		}
-		count++;
-	}
-
-	return 0x01;
-}
-
-/* erase the whole flash chip */
-int ec_flash_erase(void)
-{
-	int timeout = 0x10000;
-	unsigned char val;
-
-	/* enable spicmd writing. */
-	val = rdec(XBI_BANK | XBISPICFG);
-	wrec(XBI_BANK | XBISPICFG, val | (1 << 3) | (1 << 0));
-
-	/* check is it busy. */
-	if(ec_flash_busy()){
-			printf("xbi : flash busy 2.\n");
-			return -1;
-	}
-
-	/* unprotect the status register */
-	wrec(XBI_BANK | XBISPIDAT, 2);
-	/* write the status register */
-	wrec(XBI_BANK | XBISPICMD, 1);
-	timeout = 0x1000;
-	while(timeout-- >= 0){
-		if( !(rdec(XBI_BANK | XBISPICFG) & (1 << 1)) )
-				break;
-	}
-	if(timeout <= 0){
-		printf("xbi : write timeout 3.\n");
-		return -1;
-	}
-
-	/* enable write spi flash */
-	wrec(XBI_BANK | XBISPICMD, 0x06);
-	timeout = 0x1000;
-	while(timeout-- >= 0){
-		if( !(rdec(XBI_BANK | XBISPICFG) & (1 << 1)) )
-				break;
-	}
-	if(timeout <= 0){
-		printf("xbi : write timeout 4.\n");
-		return -1;
-	}
-
-	/* erase the whole chip first */
-	wrec(XBI_BANK | XBISPICMD, 0xC7);
-	timeout = 0x10000000;
-	while(timeout-- >= 0){
-		if( !(rdec(XBI_BANK | XBISPICFG) & (1 << 1)) )
-				break;
-	}
-	if(timeout <= 0){
-		printf("xbi : write timeout 5.\n");
-		return -1;
-	}
-	/* disable spicmd writing. */
-	val = rdec(XBI_BANK | XBISPICFG) & (~((1 << 3) | (1 << 0)));
-	wrec(XBI_BANK | XBISPICFG, val);
-
-	return 0;
-}
-
-/* programing one byte to ec rom */
-int ec_program_byte(unsigned long addr, unsigned char byte)
-{
-	int timeout = 0x10000;
-	unsigned char val;
-
-	/* enable spicmd writing. */
-	val = rdec(XBI_BANK | XBISPICFG);
-	wrec(XBI_BANK | XBISPICFG, val | (1 << 3) | (1 << 0));
-
-	/* check is it busy. */
-	if(ec_flash_busy()){
-			printf("xbi : flash busy 1.\n");
-			return 0x00;
-	}
-
-	/* enable write spi flash */
-	wrec(XBI_BANK | XBISPICMD, 0x06);
-	timeout = 0x1000;
-	while(timeout-- >= 0){
-		if( !(rdec(XBI_BANK | XBISPICFG) & (1 << 1)) )
-				break;
-	}
-	if(timeout <= 0){
-		printf("xbi : write timeout 1.\n");
-		return -1;
-	}
-	if(ec_flash_busy()){
-			printf("xbi : flash busy 1.\n");
-			return 0x00;
-	}
-
-	/* write the address */
-	wrec(XBI_BANK | XBISPIA2, (unsigned char)((addr & 0xff0000) >> 16));
-	wrec(XBI_BANK | XBISPIA1, (unsigned char)((addr & 0x00ff00) >> 8));
-	wrec(XBI_BANK | XBISPIA0, (unsigned char)((addr & 0x0000ff) >> 0));
-	wrec(XBI_BANK | XBISPIDAT, byte);
-	/* start action */
-	wrec(XBI_BANK | XBISPICMD, 2);
-	timeout = 0x1000;
-	while(timeout-- >= 0){
-		if( !(rdec(XBI_BANK | XBISPICFG) & (1 << 1)) )
-				break;
-	}
-	if(timeout <= 0){
-		printf("xbi : write timeout 2.\n");
-		return -1;
-	}
-	if(ec_flash_busy()){
-			printf("xbi : flash busy 1.\n");
-			return 0x00;
-	}
-
-	/* disable spicmd writing. */
-	val = rdec(XBI_BANK | XBISPICFG) & (~((1 << 3) | (1 << 0)));
-	wrec(XBI_BANK | XBISPICFG, val);
-
-	if(ec_flash_busy()){
-			printf("xbi : flash busy 1.\n");
-			return 0x00;
-	}
-
-	return 0;
-}
-
-/* program data to ec flash rom */
-int ec_program_data(unsigned char *buf, unsigned long len, int flag)
-{
-	unsigned char val;
-	int i;
-	int ret = 0;
-	unsigned long addr = 0;
-	unsigned char *ptr = NULL;
-	unsigned long size = 0;
-	
-	ptr = (unsigned char *)buf;
-	size = len;
-	if(flag == PROGRAM_FLAG_NONE){
-		return -1;
-	}
-	else if(flag == PROGRAM_FLAG_VERSION){
-		if(ptr[0] == 'D'){
-			return 0;
-		}
-		addr = 0xf300;
-		ptr[size - 1] = '\0';
-		printf("starting programming ec version : %s\n", ptr);
-	}else if(flag == PROGRAM_FLAG_ROM){
-		addr = 0x00;
-		printf("starting programming ec rom.\n");
-	}
-
-	/* program data */
-	for(i = 0; i < size; i++){
-		ec_program_byte(addr + i, ptr[i]);
-		val = rdec(addr + i);
-		if(val != ptr[i]){
-			//we make the flash data equal to the memory data.
-			ec_program_byte(addr + i, ptr[i]);
-			val = rdec(addr + i);
-			if(val != ptr[i]){
-				printf("Second flash program failed at:\t");
-				printf("addr : 0x%x, memory : 0x%x, flash : 0x%x\n", addr + i, ptr[i], val);
-				ret = -1;
-				break;
-			}/* if '2' time */
-		}/* if '1' time */
-		if( (i % 0x400) == 0x00 ){
-			printf(".");
-		}
-	}
-
-	if(flag == PROGRAM_FLAG_VERSION){
-		if(ret){
-			printf("programming ec version error.\n");
-		}else{		
-			printf("programming ec version ok.\n");
-		}
-	}else if(flag == PROGRAM_FLAG_ROM){
-		if(ret){
-			printf("\nprogramming ec rom error.\n");
-		}else{		
-			printf("\nprogramming ec rom ok.\n");
-		}
-	}
-
-	return ret;
-}
-
-/***************************************************************/
-
-/* fixup ec fan bug */
-void ec_fan_fixup(void)
-{
-	int i;
-	unsigned char val;
-	unsigned char reg_config;
-	
-	/* read the fan device config */
-	for(i = 0; i < SMBDAT_SIZE; i++){
-		wrec(REG_SMBDAT_START + i, 0x00);
-	}
-	wrec(REG_SMBSTS, 0x00);
-	wrec(REG_SMBCNT, 0x01);
-	val = rdec(REG_SMBPIN);
-	val = (val & 0xfc) | (1 << 1);
-	wrec(REG_SMBPIN, val);
-	wrec(REG_SMBADR, 0x90|0x01);
-	wrec(REG_SMBCMD, 0x01);
-	wrec(REG_SMBPRTCL, 0x09);
-	while(!(rdec(REG_SMBSTS) & (1 << 7)));
-	reg_config = rdec(REG_SMBDAT_START);
-					 
-	/* enable the fan device */
-	for(i = 0; i < SMBDAT_SIZE; i++){
-		wrec(REG_SMBDAT_START + i, 0x00);
-	}
-	wrec(REG_SMBSTS, 0x00);
-	wrec(REG_SMBCNT, 0x01);
-	val = rdec(REG_SMBPIN);
-	val = (val & 0xfc) | (1 << 1);
-	wrec(REG_SMBPIN, val);
-	wrec(REG_SMBADR, 0x90);
-	wrec(REG_SMBCMD, 1);
-	wrec(REG_SMBDAT_START, reg_config | (1 << 2));
-	wrec(REG_SMBPRTCL, 0x06);
-
-	/* enable fan function, corresponding gpio and read status  */
-	val = rdec(0xfc02);
-	wrec(0xfc02, val & ~(1 << 4));
-		 
-	val = rdec(0xfc62);
-	wrec(0xfc62, val | (1 << 4));
-						 
-	val = rdec(0xfe20);
-	wrec(0xfe20, val | (1 << 7) | (1 << 0));
-
-	return;
-}
-
-#ifndef NO_ROM_ID_NEEDED
 /* get ec rom type */
-void ec_get_rom_type(void)
+int ec_get_rom_type(void)
 {
+	int ret = 0;
+
 	/* make chip goto idle mode */
-	ec_init_idle_mode();
+	ret = ec_init_idle_mode();
+	ec_disable_WDD();
+	if(ret < 0){
+		ec_enable_WDD();
+		return ret;
+	}
 
 	/* get product id from ec rom */
 	ec_get_product_id();
 
 	/* make chip exit idle mode */
-	ec_exit_idle_mode();
+	ret = ec_exit_idle_mode();
+	ec_enable_WDD();
+	if(ret < 0){
+		return ret;
+	}
 	
 	printf("ec rom id : PRODUCT ID : 0x%2x, FIRST DEVICE ID : 0x%2x, SECOND DEVICE ID : 0x%2x\n", ec_rom_id[0], ec_rom_id[1], ec_rom_id[2]);
 	
-	return;
-}
-#endif
-/***************************************************************/
-
-/* update ec rom */
-void ec_update_rom(void *src, int size)
-{
-	unsigned char *buf;
-	unsigned char val;
-	int ret = 0;
-	
-	buf = src;
-	if(size > EC_ROM_MAX_SIZE){
-		printf("ec-update : out of range.\n");
-		return;
-	}
-	
-	/* goto reset mode */
-	ret = ec_init_reset_mode();
-	if(ret < 0){
-		printf("ec-update : init reset mode failed.\n");
-		return;
-	}
-
-	/* erase stage */
-	printf("erasing start erasing the whole chip.\n");
-	ret = ec_flash_erase();
-	if(ret < 0){
-		printf("erase chip failed for first time.\n");
-		val = ec_flash_erase();
-		if(val){
-			printf("erase chip failed for second time.\n");
-			return;
-		}
-	}
-	printf("erasing the whole chip ok.\n");
-	delay(1000000);
-
-	/* program rom stage */
-	ret = ec_program_data(buf, size, PROGRAM_FLAG_ROM);
-	if(ret < 0){
-		return;
-	}
-	
-	/* program version stage */
-	ret = ec_program_data(ec_ver, VER_MAX_SIZE, PROGRAM_FLAG_VERSION);
-	if(ret < 0){
-		return;
-	}
-
-	/* exit reset mode */
-	ec_exit_reset_mode();
-
-	/* reboot bios and EC rom for syncing */
-	ec_shutdown_system();
-	
-	return;
+	return ret;
 }
 
 /* ec fixup routine */
@@ -639,18 +839,19 @@ void ec_fixup(void)
 
 /* get EC version from EC rom */
 unsigned char *get_ecver(void){
-	static unsigned char val[VER_MAX_SIZE] = {0};
 	int i;
 	unsigned char *p;
+	static unsigned char val[VER_MAX_SIZE] = {0};
 	unsigned int addr = VER_ADDR;
+
 	for(i = 0; i < VER_MAX_SIZE && rdec(addr) != '\0'; i++){
 		val[i] = rdec(addr);
 		addr++;
 	}
 	p = val;
-	//if((strncmp(p, "LM8089", 6)) != 0){
 	if (*p == 0){
 		p = "undefined";
 	}
 	return p;
 }
+#endif

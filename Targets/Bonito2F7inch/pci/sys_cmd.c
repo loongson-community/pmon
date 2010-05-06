@@ -11,7 +11,9 @@
 #include <machine/bus.h>
 
 #include <include/bonito.h>
+#ifdef LOONGSON2F_7INCH
 #include <include/kb3310.h>
+#endif
 #include <include/cs5536.h>
 #include <include/cs5536_pci.h>
 #include <pmon.h>
@@ -186,6 +188,7 @@ static int cmd_powerdebug(int ac, char *av[])
 	return 0;
 }
 
+#ifdef LOONGSON2F_7INCH	
 /***********************************EC debug*******************************/
 
 /*
@@ -263,42 +266,36 @@ static int cmd_wrecreg(int ac, char *av[])
 
 	return 0;
 }
+#endif
+
+/*******************************************************************************/
+
+#ifdef LOONGSON2F_7INCH	
+extern int ec_read_byte(unsigned int addr, unsigned char *byte);
+extern int ec_write_byte(unsigned int addr, unsigned char byte);
+extern int ec_init_idle_mode(void);
+extern int ec_exit_idle_mode(void);
+extern void ec_get_product_id(void);
+extern unsigned char ec_rom_id[3];
 
 /*
  * rdbat : read a register of battery.
  */
 static int cmd_rdbat(int ac, char *av[])
 {
-	u8 i;
-	u8 index;
-	u8 val;
+	u16 voltage = 0, current = 0, temperature = 0, capacity = 0;
+	unsigned char bat_status;
 
-	if(ac < 2){
-		printf("usage : rdbat %index\n");
-		return -1;
+	voltage = (rdec(REG_BAT_VOLTAGE_HIGH) << 8) | (rdec(REG_BAT_VOLTAGE_LOW));
+	current = (rdec(REG_BAT_CURRENT_HIGH) << 8) | (rdec(REG_BAT_CURRENT_LOW));
+	temperature = (rdec(REG_BAT_TEMPERATURE_HIGH) << 8) | (rdec(REG_BAT_TEMPERATURE_LOW));
+	capacity = (rdec(REG_BAT_RELATIVE_CAP_HIGH) << 8) | (rdec(REG_BAT_RELATIVE_CAP_LOW));
+	if(current & 0x8000){
+		current = 0xffff - current;
 	}
 
-	if(!get_rsa(&index, av[1])) {
-		printf("rdbat : access error!\n");
-		return -1;
-	}
-
-	for(i = 0; i < SMBDAT_SIZE; i++){
-		wrec(REG_SMBDAT_START + i, 0x00);
-	}
-	printf("battery : index 0x%x \t", index);
-	wrec(REG_SMBSTS, 0x00);
-	wrec(REG_SMBCNT, 0x01);
-	val = rdec(REG_SMBPIN);
-	val = (val & 0xfc) | (1 << 0);
-	wrec(REG_SMBPIN, val);
-	wrec(REG_SMBADR, 0x6c|0x01);
-	wrec(REG_SMBCMD, index);
-	wrec(REG_SMBPRTCL, 0x07);
-	while(!(rdec(REG_SMBSTS) & (1 << 7)));
-
-	val = rdec(REG_SMBDAT_START);
-	printf("value 0x%x\n", val);
+	printf("Battery infomation, voltage: %dmV, current: %dmA, temperature: %d, capacity: %d%%.\n",
+			voltage, current, temperature, capacity);
 
 	return 0;
 }
@@ -308,39 +305,33 @@ static int cmd_rdbat(int ac, char *av[])
  */
 static int cmd_rdfan(int ac, char *av[])
 {
-	u8 index;
-	u8 val;
-	u8 i;
+	unsigned char  val, reg_val;
+	unsigned char  fan_on; 
+	unsigned short fan_speed;
+	unsigned char  temperature;
 
-	wrec(REG_SMBCFG, rdec(REG_SMBCFG) & (~0x1f) | 0x04);
-	if(ac < 2){
-		printf("usage : rdfan %index\n");
-		return -1;
+	val = rdec(REG_FAN_STATUS);
+	fan_speed = FAN_SPEED_DIVIDER / ( ((rdec(REG_FAN_SPEED_HIGH) & 0x0f) << 8) | rdec(REG_FAN_SPEED_LOW) );
+	reg_val = rdec(REG_TEMPERATURE_VALUE);
+	
+	if(val){
+	    fan_on = FAN_STATUS_ON;
 	}
-
-	if(!get_rsa(&index, av[1])) {
-		printf("rdfan : access error!\n");
-		return -1;
+	else{
+	    fan_on = FAN_STATUS_OFF;
+		fan_speed  = 0x00;
 	}
-
-	for(i = 0; i < SMBDAT_SIZE; i++){
-		wrec(REG_SMBDAT_START + i, 0x00);
+	
+	/* temperature negative or positive */
+	if(reg_val & (1 << 7)){	// Temperature is negative.
+	    temperature = (reg_val & 0x7f) - 128;
+    	printf("Fan information, status: 0x%02x, speed: %dRPM, CPU temperature: -%d.\n",
+				fan_on, fan_speed, temperature);
+	}else{	// Temperature is positive.
+	    temperature = (reg_val & 0xff);
+    	printf("Fan information, status: 0x%02x, speed: %dRPM, CPU temperature: %d.\n",
+				fan_on, fan_speed, temperature);
 	}
-	printf("fan : index 0x%x \t", index);
-	wrec(REG_SMBSTS, 0x00);
-	wrec(REG_SMBCNT, 0x02);
-	val = rdec(REG_SMBPIN);
-	val = (val & 0xfc) | (1 << 1);
-	wrec(REG_SMBPIN, val);
-	wrec(REG_SMBADR, 0x90|0x01);
-	wrec(REG_SMBCMD, index);
-	wrec(REG_SMBPRTCL, 0x09);
-	while(!(rdec(REG_SMBSTS) & (1 << 7)));
-
-	val = rdec(REG_SMBDAT_START);
-	printf("value 0x%x\t", val);
-	val = rdec(REG_SMBDAT_START + 1);
-	printf("value2 0x%x\n", val);
 
 	return 0;
 }
@@ -361,24 +352,10 @@ static inline int ec_flash_busy(void)
 	return 0x01;
 }
 
-extern void delay(int us);
-extern void ec_init_idle_mode(void);
-extern void ec_exit_idle_mode(void);
-extern void ec_get_product_id(void);
 
-#ifndef NO_ROM_ID_NEEDED
-extern unsigned char ec_rom_id[3];
+#ifdef NO_ROM_ID_NEEDED
 static int cmd_readspiid(int ac, char *av[])
 {
-	u8 cmd;
-
-	if(!get_rsa(&cmd, av[1])) {
-		printf("xbi : access error!\n");
-		return -1;
-	}
-	printf("read spi id command : 0x%x\n", cmd);
-
-
 	/* goto idle mode */
 	ec_init_idle_mode();
 
@@ -389,6 +366,26 @@ static int cmd_readspiid(int ac, char *av[])
 	ec_exit_idle_mode();
 	
 	printf("Manufacture ID 0x%x, Device ID : 0x%x 0x%x\n", ec_rom_id[0], ec_rom_id[1], ec_rom_id[2]);
+    printf("EC ROM manufacturer: ");
+	switch(ec_rom_id[0]){
+        case EC_ROM_PRODUCT_ID_SPANSION :
+		    printf("SPANSION.\n");
+		    break;
+		case EC_ROM_PRODUCT_ID_MXIC :
+		    printf("MXIC.\n");
+		    break;
+		case EC_ROM_PRODUCT_ID_AMIC :
+		    printf("AMIC.\n");
+		    break;
+		case EC_ROM_PRODUCT_ID_EONIC :
+		    printf("EONIC.\n");
+		    break;
+		
+		default :
+		    printf("Unknown chip type.\n");
+		    break;
+	}
+
 	return 0;
 }
 #endif
@@ -416,6 +413,10 @@ static int cmd_xbird(int ac, char *av[])
 		return -1;
 	}
 
+#if 0
+	ec_read_byte(addr, data);
+	printf("ec : addr 0x%x\t, data 0x%x, %c\n", addr, data, data);
+#else
 	/* enable spicmd writing. */
 	val = rdec(XBI_BANK | XBISPICFG);
 	wrec(XBI_BANK | XBISPICFG, val | (1 << 3) | (1 << 0));
@@ -469,10 +470,11 @@ static int cmd_xbird(int ac, char *av[])
 
 	/* get data */
 	data = rdec(XBI_BANK | XBISPIDAT);
-	printf("ec : addr 0x%x\t, data 0x%x, %c\n", addr, data, data);
+	printf("ec : address 0x%x\t, data 0x%x\n", addr, data);
 
 	val = rdec(XBI_BANK | XBISPICFG) & (~((1 << 3) | (1 << 0)));
 	wrec(XBI_BANK | XBISPICFG, val);
+#endif
 
 	return 0;
 }
@@ -483,9 +485,10 @@ static int cmd_xbird(int ac, char *av[])
 static int cmd_xbiwr(int ac, char *av[])
 {
 	u8 val;
-	u8 cmd;
+	//u8 cmd;
 	u32 addr;
 	u8 data;
+	int ret;
 	int timeout;
 
 	if(ac < 3){
@@ -502,6 +505,59 @@ static int cmd_xbiwr(int ac, char *av[])
 		return -1;
 	}
 
+#if 0
+	/* make chip goto idle mode */
+	ret = ec_init_idle_mode();
+	ec_disable_WDD();
+	if(ret < 0){
+		ec_enable_WDD();
+		return ret;
+	}
+	
+	/* enable spicmd writing. */
+	ec_start_spi();
+
+	/* Unprotect SPI ROM */
+	ret = EC_ROM_start_unprotect();
+	if(ret) goto out;
+
+	/* disable spicmd writing. */
+	ec_stop_spi();
+
+		ec_write_byte(addr, data);
+		ec_read_byte(addr, &val);
+		if(val != data){
+			ec_write_byte(addr, data);
+			ec_read_byte(addr, &val);
+			if(val != data){
+				printf("EC : Second flash program failed at:\t");
+				printf("addr : 0x%x, source : 0x%x, dest: 0x%x\n", addr, data, val);
+				printf("This should not happened... STOP\n");
+				//break;
+				goto out;
+			}
+		}
+
+
+	//ec_write_byte(addr, data);
+
+	/* Protect SPI ROM */
+	EC_ROM_start_protect();
+	goto out1;
+
+out:
+	/* disable spicmd writing. */
+	ec_stop_spi();
+
+out1:
+	/* make chip exit idle mode */
+	ret = ec_exit_idle_mode();
+	ec_enable_WDD();
+	if(ret < 0){
+		ec_enable_WDD();
+		return ret;
+	}
+#else
 	/* enable spicmd writing. */
 	val = rdec(XBI_BANK | XBISPICFG);
 	wrec(XBI_BANK | XBISPICFG, val | (1 << 3) | (1 << 0));
@@ -535,9 +591,11 @@ static int cmd_xbiwr(int ac, char *av[])
 	}
 	val = rdec(XBI_BANK | XBISPICFG) & (~((1 << 3) | (1 << 0)));
 	wrec(XBI_BANK | XBISPICFG, val);
+#endif
 
 	return 0;
 }
+#endif	// end ifdef LOONGSON2F_7INCH
 
 int cmd_testvideo(int ac, char *av[])
 {
@@ -556,14 +614,15 @@ static const Cmd Cmds[] =
 	{"powerdebug", "reg", NULL, "for debug the power state of sm712 graphic", cmd_powerdebug, 2, 99, CMD_REPEAT},
 	{"rdmsr", "reg", NULL, "msr read test", cmd_rdmsr, 2, 99, CMD_REPEAT},
 	{"wrmsr", "reg", NULL, "msr write test", cmd_wrmsr, 2, 99, CMD_REPEAT},
-	
+#ifdef LOONGSON2F_7INCH	
 	{"rdecreg", "reg", NULL, "KB3310 EC reg read test", cmd_rdecreg, 2, 99, CMD_REPEAT},
 	{"wrecreg", "reg", NULL, "KB3310 EC reg write test", cmd_wrecreg, 2, 99, CMD_REPEAT},
-//	{"readspiid", "reg", NULL, "KB3310 read spi device id test", cmd_readspiid, 2, 99, CMD_REPEAT},
-	{"rdbat", "reg", NULL, "KB3310 smbus battery reg read test", cmd_rdbat, 2, 99, CMD_REPEAT},
-	{"rdfan", "reg", NULL, "KB3310 smbus fan reg read test", cmd_rdfan, 2, 99, CMD_REPEAT},
+	{"rdspiid", "reg", NULL, "KB3310 read spi device id test", cmd_readspiid, 0, 99, CMD_REPEAT},
+	{"rdbat", "reg", NULL, "KB3310 smbus battery reg read test", cmd_rdbat, 0, 99, CMD_REPEAT},
+	{"rdfan", "reg", NULL, "KB3310 smbus fan reg read test", cmd_rdfan, 0, 99, CMD_REPEAT},
 	{"xbiwr", "reg", NULL, "for debug write data to xbi interface of ec", cmd_xbiwr, 2, 99, CMD_REPEAT},
 	{"xbird", "reg", NULL, "for debug read data from xbi interface of ec", cmd_xbird, 2, 99, CMD_REPEAT},
+#endif
 	{"testvideo", "reg", NULL, "for debug read data from xbi interface of ec", cmd_testvideo, 2, 99, CMD_REPEAT},
 	{0},
 };
