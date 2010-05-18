@@ -460,6 +460,41 @@ static int dev_part_read(int fd, DiskPartitionTable** ppTable)
 		*ppTable = table;
 	}
 
+	// if the filesystem info is certainly wrong, change it
+	for (p = table; p != NULL; p = p->Next)
+	{
+		unsigned char byte0;
+		unsigned short magic;
+		off_t begin_sector_addr;
+
+		begin_sector_addr = (off_t)p->sec_begin * SECTOR_SIZE;
+
+		if (p->tag == 0x83){ //aclaim to be ext2/3
+			lseek(fd, begin_sector_addr + 0x438, 0); // 0x438 is offset of ext2/3 magic number
+
+                        if ((read(fd, &magic, 2)) != 2)
+                        {
+                                return 0;
+                        }
+                        //printf("magic is 0x%04x\n", magic);
+			if (magic != 0xEF53) {
+                                p->tag = 0xb; // fat16/32
+			}
+
+
+		} else if ((p->tag == 0xb) || (p->tag == 0x6)) {
+
+                        lseek(fd, begin_sector_addr, 0);
+                        if ((read(fd, &byte0, 1)) != 1)
+                        {
+                                return 0;
+                        }
+                        //printf("byte0 is 0x%02x\n", byte0);
+			if ((byte0 & 0xF0) != 0xE0) {
+                                p->tag = 0x83; // ext2/3
+			}
+		}
+	}
 	return cnt;
 }
 

@@ -42,7 +42,7 @@ static int __try_open(const char *, int, char *, int, int);
 extern void *malloc(size_t);
 extern void free(void *);
 extern int filesys_type(char *fname);
-
+extern int errno;
 										   
 int
 open(filename, mode)
@@ -116,7 +116,7 @@ open(filename, mode)
 
         }else if (j == 2){
             i = __try_open(fname, mode, "fat", lu, 0);
-            if (i < 0 ){
+            if (i < 0 && errno != EISDIR){
                 i = __try_open(fname, mode, "fs", lu, 0);
             }       
         }

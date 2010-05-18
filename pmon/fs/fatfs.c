@@ -777,7 +777,6 @@ int fat_subdirscan(struct fat_sc *fsc, char *name, struct fatchain *chain)
 				{
 					if(dir_list)
 					{
-						printf("\n");
 						return 2;
 					}
 					return (0);
@@ -859,8 +858,11 @@ int fat_subdirscan(struct fat_sc *fsc, char *name, struct fatchain *chain)
 		}
 	}
 	vga_available = 1;
-	printf("\n");
-	return (0);
+	if(dir_list)
+		return (2);
+	else{
+		return (0);
+	}
 }
 
 
