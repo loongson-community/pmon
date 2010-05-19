@@ -280,17 +280,20 @@ void turn_fan(int on)
 		i2c_send_s((unsigned char)0x90,0x01,&data8, 1);
 	}
 }
+    
+
+#define TEMP_GPIO_DIR_LOW    (volatile unsigned int *)(temp_mmio + 0x10008)
+#define TEMP_GPIO_DATA_LOW   (volatile unsigned int *)(temp_mmio + 0x10000)
+
+#define TEMP_GPIO_DIR_HIGH   (volatile unsigned int *)(temp_mmio + 0x1000c)
+#define TEMP_GPIO_DATA_HIGH  (volatile unsigned int *)(temp_mmio + 0x10004)
+
 void turnon_backlight(void)
 {
     //unsigned int xiangy_tmp, temp_mmio;
     unsigned int tmp;
     unsigned long temp_mmio;
 	pcitag_t tag=_pci_make_tag(0,14,0);
-    #define TEMP_GPIO_DIR_LOW    (volatile unsigned int *)(temp_mmio + 0x10008)
-    #define TEMP_GPIO_DATA_LOW   (volatile unsigned int *)(temp_mmio + 0x10000)
-
-    #define TEMP_GPIO_DIR_HIGH   (volatile unsigned int *)(temp_mmio + 0x1000c)
-    #define TEMP_GPIO_DATA_HIGH  (volatile unsigned int *)(temp_mmio + 0x10004)
 
 	_pci_conf_writen(tag, 0x14, 0x6000000, 4);
 	temp_mmio = _pci_conf_readn(tag,0x14,4);
@@ -309,6 +312,25 @@ void turnon_backlight(void)
         *TEMP_GPIO_DIR_HIGH = tmp  | 2;
 }
 
+void fix_audio(void)
+{
+	
+    unsigned int tmp;
+    unsigned long temp_mmio;
+	pcitag_t tag=_pci_make_tag(0,14,0);
+
+	_pci_conf_writen(tag, 0x14, 0x6000000, 4);
+	temp_mmio = _pci_conf_readn(tag,0x14,4);
+	temp_mmio =(unsigned long)temp_mmio|PTR_PAD(0xb0000000);
+
+	//gpio24 output high
+	tmp = *TEMP_GPIO_DIR_LOW;
+	*TEMP_GPIO_DIR_LOW = tmp | (1 << 24);        
+	tmp = *TEMP_GPIO_DATA_LOW;
+	*TEMP_GPIO_DATA_LOW = tmp | (1 << 24);
+}
+
+
 void
 initmips(unsigned int memsz)
 {
@@ -322,7 +344,8 @@ initmips(unsigned int memsz)
 #endif
 
     //log_level = 2;
-
+	//fix IDT's problem
+	fix_audio();
     tgt_fpuenable();
 
 	/*
