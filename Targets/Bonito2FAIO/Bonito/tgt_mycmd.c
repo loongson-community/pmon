@@ -259,7 +259,8 @@ static void i2c_sleep(int ntime)
 	//for(i=0; i<280*ntime; i++)		// 50KHz
 //	for(i=0; i<493*ntime; i++)		// 50KHz on 618MHz
 	//for(i=0; i<986*ntime; i++)		// 100KHz on 618MHz
-	for(i=0; i<1640*ntime; i++)		// 25KHz on 900MHz
+	//for(i=0; i<1640*ntime; i++)		// 25KHz on 900MHz
+	for(i=0; i<3280*ntime; i++)		// 25KHz on 900MHz
 //	for(i=0; i<175*ntime; i++)		// 50KHz
 	{
 		j=i;
@@ -438,9 +439,9 @@ static unsigned char i2c_rec(void)
 	for(i=7;i>=0;i--)
 	{
 //		i2c_sleep(6);
-		i2c_sleep(5);
+		i2c_sleep(7);
 		scl_bit(1);
-		i2c_sleep(3);
+		i2c_sleep(2);
 #ifdef	SM502_USE_LOWC
 		tmp = ((*GPIO_DATA_LOW)&(1 << DAT_PIN));
 #else
@@ -453,7 +454,7 @@ static unsigned char i2c_rec(void)
 			or_char=0x0;
 		or_char<<=i;
 		value|=or_char;
-		i2c_sleep(3);
+		i2c_sleep(2);
 		scl_bit(0);
 	}
 	return value;
@@ -475,10 +476,10 @@ static unsigned char i2c_send(unsigned char value)
 			sda_bit(0);
 		i2c_sleep(1);
 		scl_bit(1);
-		i2c_sleep(5);
+		i2c_sleep(4);
 		scl_bit(0);
 //		i2c_sleep(3);
-		i2c_sleep(1);
+		i2c_sleep(2);
 	}
 	sda_bit(1);	
 	return 1;
