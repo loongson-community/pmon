@@ -10,15 +10,31 @@
 #ifdef LS3_SIS
 #include "../../Targets/Bonito3asis/include/bonito.h"
 #endif
+
 #endif
+
+#ifdef LS2G_HT
+
+#ifdef LS2_SIS
+#include "../../Targets/Bonito2gsis/include/bonito.h"
+#endif
+
+#ifdef LS2G_AMD
+#include "../../Targets/Bonito2g690e/include/bonito.h"
+#endif
+
+#endif
+
 #ifndef __LINUXIO_H_
 #define __LINUXIO_H_
 #if defined(FCRSOC)||defined(BONITOEL)
-#ifdef LS3_HT
+
+#if defined(LS3_HT)||defined(LS2G_HT)
 #define mips_io_port_base BONITO_PCIIO_BASE_VA
 #else
 #define mips_io_port_base 0xbfd00000
 #endif
+
 #else
 #ifdef CONFIG_PCI0_GAINT_MEM
 #define mips_io_port_base 0xbea00000

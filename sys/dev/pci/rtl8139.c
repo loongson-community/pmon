@@ -835,7 +835,7 @@ static void rtl8139_transmit(struct ifnet *ifp)
 		     memset(nic->tx_buf[entry]+mb_head->m_pkthdr.len, 0, 60-mb_head->m_pkthdr.len);
 		
 #ifdef __mips__
-#ifdef LS3_HT
+#if (defined(LS3_HT) || defined(LS2G_HT))
 #else
 		pci_sync_cache(nic->sc_pc, (vm_offset_t)nic->tx_buf[entry], 
 				max(60, mb_head->m_pkthdr.len), SYNC_W);
@@ -913,7 +913,7 @@ static struct mbuf * getmbuf(struct nic *nic)
 	}
 	
 #if defined(__mips__)
-#ifdef LS3_HT
+#if (defined(LS3_HT) || defined(LS2G_HT))
 	m->m_data += RFA_ALIGNMENT_FUDGE;
 #else
 	/*
@@ -1210,13 +1210,13 @@ static void rtl8139_init_ring(struct nic *nic)
 	 */
 	buf = (unsigned long)malloc(TX_BUF_SIZE*4+15, M_DEVBUF, M_DONTWAIT );
 	memset((caddr_t)buf, 0, TX_BUF_SIZE*14+15);
-#ifdef LS3_HT
+#if (defined(LS3_HT) || defined(LS2G_HT))
 #else
 	pci_sync_cache(nic->sc_pc, buf, TX_BUF_SIZE*4+15, SYNC_W);
 #endif
 	
 	buf = (buf+15) & ~15;
-#ifdef LS3_HT
+#if (defined(LS3_HT) || defined(LS2G_HT))
 	nic->tx_buffer = (unsigned char *)(buf);
 #else
 	nic->tx_buffer = (unsigned char *)CACHED_TO_UNCACHED(buf);
@@ -1228,13 +1228,13 @@ static void rtl8139_init_ring(struct nic *nic)
 	 */
 	buf = (unsigned long)malloc(RX_BUF_LEN+15, M_DEVBUF, M_DONTWAIT );
 	memset((caddr_t)buf, 0, RX_BUF_LEN+15);
-#ifdef LS3_HT
+#if (defined(LS3_HT) || defined(LS2G_HT))
 #else
 	pci_sync_cache(nic->sc_pc, buf, RX_BUF_LEN, SYNC_W);
 #endif
 
 	buf = (buf+15) & ~15;
-#ifdef LS3_HT
+#if (defined(LS3_HT) || defined(LS2G_HT))
 	nic->rx_buffer = (unsigned char *)(buf);
 #else
 	nic->rx_buffer = (unsigned char *)CACHED_TO_UNCACHED(buf);

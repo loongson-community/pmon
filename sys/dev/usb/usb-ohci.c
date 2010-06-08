@@ -1152,11 +1152,11 @@ static int ep_unlink (ohci_t *ohci, ed_t *ed)
 			else
 #endif
 			{
-#ifdef LS3_HT			    
+#if (defined(LS3_HT) || defined(LS2G_HT))
 				((ed_t *)(*((u32 *)&ed->hwNextED)))->ed_prev = ed->ed_prev;
-#else				
+#else
 				((ed_t *)CACHED_TO_UNCACHED(*((u32 *)&ed->hwNextED)))->ed_prev = ed->ed_prev;
-#endif				
+#endif
 			}
 		}
 		break;
@@ -1182,11 +1182,11 @@ static int ep_unlink (ohci_t *ohci, ed_t *ed)
 			else
 #endif
 			{
-#ifdef LS3_HT			    
+#if (defined(LS3_HT) || defined(LS2G_HT))
 				((ed_t *)(ed->hwNextED))->ed_prev = ed->ed_prev;
 #else
                 ((ed_t *)CACHED_TO_UNCACHED(ed->hwNextED))->ed_prev = ed->ed_prev;
-#endif            
+#endif
 			}
 		}
 		break;
@@ -1357,11 +1357,11 @@ static void td_fill (ohci_t *ohci, unsigned int info,
 	else
 #endif
 	{
-#ifdef LS3_HT	    
+#if (defined(LS3_HT) || defined(LS2G_HT))
 		td_pt = (td_t *)(urb_priv->td[index]);
 #else
         td_pt = (td_t *)CACHED_TO_UNCACHED(urb_priv->td[index]);
-#endif		
+#endif
 	}
 	td_pt->hwNextTD = 0;
 
@@ -1377,11 +1377,11 @@ static void td_fill (ohci_t *ohci, unsigned int info,
 	else
 #endif
 	{
-#ifdef LS3_HT	    
+#if (defined(LS3_HT) || defined(LS2G_HT))
 		td = urb_priv->td[index]= (td_t *)((urb_priv->ed->hwTailP) & ~0xf);
 #else
         td = urb_priv->td[index]= (td_t *)(CACHED_TO_UNCACHED(urb_priv->ed->hwTailP) & ~0xf);
-#endif        
+#endif
 	}
 
 
@@ -1480,10 +1480,10 @@ static void td_submit_job (struct usb_device *dev, unsigned long pipe, void
 	else
 #endif
 	{
-#ifdef LS3_HT
-#else	    
+#if (defined(LS3_HT) || defined(LS2G_HT))
+#else
 		pci_sync_cache(ohci->sc_pc, (vm_offset_t)CACHED_TO_UNCACHED(buffer), transfer_len, SYNC_W);
-#endif		
+#endif
 	}
 
 	if(usb_gettoggle(dev, usb_pipeendpoint(pipe), usb_pipeout(pipe))) {
@@ -1615,11 +1615,11 @@ static void dl_transfer_length(td_t * td)
 	else
 #endif
 	{
-#ifdef LS3_HT	    
+#if (defined(LS3_HT) || defined(LS2G_HT))
 		tdCBP  = PHYS_TO_CACHED(m32_swap (td->hwCBP));
 #else
         tdCBP  = PHYS_TO_UNCACHED(m32_swap (td->hwCBP));
-#endif        		
+#endif
 	}
 
     //QYL-2008-03-07
@@ -1651,11 +1651,11 @@ static void dl_transfer_length(td_t * td)
 				else
 #endif
 				{
-#ifdef LS3_HT				    
+#if (defined(LS3_HT) || defined(LS2G_HT))
 					length = PHYS_TO_CACHED(tdBE) - (td->data) + 1;
 #else
                     length = PHYS_TO_UNCACHED(tdBE) - CACHED_TO_UNCACHED(td->data) + 1;
-#endif                    					
+#endif
 				}
 				lurb_priv->actual_length += length;
 				if(usb_pipecontrol(lurb_priv->pipe)&& usb_pipein(lurb_priv->pipe)){
@@ -1691,11 +1691,11 @@ static void dl_transfer_length(td_t * td)
 				else
 #endif
 				{
-#ifdef LS3_HT
+#if (defined(LS3_HT) || defined(LS2G_HT))
 					length = tdCBP - (td->data);
 #else
                     length = tdCBP - CACHED_TO_UNCACHED(td->data);
-#endif                    
+#endif
 				}
 				lurb_priv->actual_length += length;
 				if(usb_pipein(lurb_priv->pipe) &&usb_pipecontrol(lurb_priv->pipe)){
@@ -1769,11 +1769,11 @@ static td_t * dl_reverse_done_list (ohci_t *ohci)
 		else
 #endif
 		{
-#ifdef LS3_HT
+#if (defined(LS3_HT) || defined(LS2G_HT))
 			td_list = (td_t *)PHYS_TO_CACHED(td_list_hc & 0x1fffffff);
 #else
             td_list = (td_t *)PHYS_TO_UNCACHED(td_list_hc & 0x1fffffff);
-#endif            			
+#endif
 		}
 		td_list->hwINFO |= TD_DEL;
 
@@ -2926,7 +2926,7 @@ static int hc_interrupt (void *hc_data)
 		else
 #endif
 		{
-#ifdef LS3_HT		    
+#if (defined(LS3_HT) || defined(LS2G_HT))
 			td = (td_t *)(ohci->hcca->done_head);
 #else
             td = (td_t *)CACHED_TO_UNCACHED(ohci->hcca->done_head);
@@ -2995,7 +2995,7 @@ static int hc_interrupt (void *hc_data)
 			else
 #endif
 			{
-#ifdef LS3_HT			    
+#if (defined(LS3_HT) || defined(LS2G_HT))
 				td = (td_t *)(ohci->hcca->done_head & ~0x1f);
 #else
                 td = (td_t *)CACHED_TO_UNCACHED(ohci->hcca->done_head & ~0x1f);
@@ -3143,12 +3143,12 @@ int usb_lowlevel_init(ohci_t *gohci)
 	if((gohci->flags & 0x80)) 
 	{
 		ohci_dev->cpu_ed = ohci_dev->ed;
-	} 
+	}
 #endif
 	else 
 	{
 	//	pci_sync_cache(gohci->sc_pc, (vm_offset_t)ohci_dev->ed, sizeof(ohci_dev->ed),SYNC_W);
-#ifdef LS3_HT
+#if (defined(LS3_HT) || defined(LS2G_HT))
 		ohci_dev->cpu_ed = (ed_t *)(&ohci_dev->ed);
 #else
         ohci_dev->cpu_ed = (ed_t *)CACHED_TO_UNCACHED(&ohci_dev->ed);
@@ -3184,13 +3184,13 @@ int usb_lowlevel_init(ohci_t *gohci)
 	else
 #endif
 	{
-#ifdef LS3_HT	    
+#if (defined(LS3_HT) || defined(LS2G_HT))
 		gohci->hcca = (struct ohci_hcca*)(hcca);
 		gohci->gtd = (td_t *)(gtd);
 #else
         gohci->hcca = (struct ohci_hcca*)CACHED_TO_UNCACHED(hcca);
 		gohci->gtd = (td_t *)CACHED_TO_UNCACHED(gtd);
-#endif		
+#endif
 		gohci->ohci_dev = ohci_dev;
 	}
 
@@ -3219,7 +3219,7 @@ int usb_lowlevel_init(ohci_t *gohci)
 			printf("Malloc return not cache line aligned\n");
 		memset(tmpbuf, 0, 512);
 		//pci_sync_cache(gohci->sc_pc, (vm_offset_t)tmpbuf,  512, SYNC_W);
-#ifdef LS3_HT		
+#if (defined(LS3_HT) || defined(LS2G_HT))
 		gohci->control_buf = (unsigned char*)(tmpbuf);
 #else
         gohci->control_buf = (unsigned char*)CACHED_TO_UNCACHED(tmpbuf);
@@ -3246,7 +3246,7 @@ int usb_lowlevel_init(ohci_t *gohci)
 			printf("Malloc return not cache line aligned\n");
 		memset(tmpbuf, 0, 64);
 		//pci_sync_cache(tmpbuf, (vm_offset_t)tmpbuf, 64, SYNC_W);
-#ifdef LS3_HT
+#if (defined(LS3_HT) || defined(LS2G_HT))
 		gohci->setup = (unsigned char *)(tmpbuf);
 #else
         gohci->setup = (unsigned char *)CACHED_TO_UNCACHED(tmpbuf);
@@ -3435,7 +3435,7 @@ static int hc_check_ohci_controller (void *hc_data)
 		else
 #endif
 		{
-#ifdef LS3_HT
+#if (defined(LS3_HT) || defined(LS2G_HT))
 			td = (td_t *)(ohci->hcca->done_head);
 #else
             td = (td_t *)CACHED_TO_UNCACHED(ohci->hcca->done_head);
@@ -3502,11 +3502,11 @@ static int hc_check_ohci_controller (void *hc_data)
 			else
 #endif
 			{
-#ifdef LS3_HT			    
+#if (defined(LS3_HT) || defined(LS2G_HT))
 				td = (td_t *)(ohci->hcca->done_head & ~0x1f);
 #else
                 td = (td_t *)CACHED_TO_UNCACHED(ohci->hcca->done_head & ~0x1f);
-#endif             				
+#endif
 			}
 		}
 

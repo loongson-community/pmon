@@ -402,7 +402,7 @@ static struct mbuf * getmbuf(struct rtl8169_private *tp)
 	 * Sync the buffer so we can access it uncached.
 	 */
 	if (m->m_ext.ext_buf!=NULL) {
-#ifndef LS3_HT
+#if !(defined(LS3_HT) || defined(LS2G_HT))
 		pci_sync_cache(tp->sc_pc, (vm_offset_t)m->m_ext.ext_buf,
 				MCLBYTES, SYNC_R);
 #endif
@@ -1945,12 +1945,12 @@ static int rtl8169_open(struct rtl8169_private *tp)
 			goto err_free_tx;
 		}
 		memset((caddr_t)tp->TxDescArray, 0, R8169_TX_RING_BYTES + 255);
-#ifndef LS3_HT
+#if !(defined(LS3_HT) || defined(LS2G_HT))
        	pci_sync_cache(tp->sc_pc, (vm_offset_t)(tp->TxDescArray),  R8169_TX_RING_BYTES + 255, SYNC_W);
 #endif
        	tp->TxDescArray = (struct TxDesc *)(((unsigned long)(tp->TxDescArray) + 255) & ~255);	
 	}
-#ifndef LS3_HT
+#if !(defined(LS3_HT) || defined(LS2G_HT))
 	tp->TxDescArray = (struct TxDesc*)CACHED_TO_UNCACHED((unsigned long)(tp->TxDescArray));
 #else
 		 tp->TxDescArray = (struct TxDesc*)((unsigned long)(tp->TxDescArray));
@@ -1968,12 +1968,12 @@ static int rtl8169_open(struct rtl8169_private *tp)
 		      goto err_free_rx;
 		   }		
 		   memset((caddr_t)(tp->RxDescArray), 0, R8169_RX_RING_BYTES + 255);
-#ifndef LS3_HT
+#if !(defined(LS3_HT) || defined(LS2G_HT))
 		   pci_sync_cache(tp->sc_pc, (vm_offset_t)(tp->RxDescArray),  R8169_RX_RING_BYTES + 255, SYNC_W);
 #endif
 		   tp->RxDescArray = (struct RxDesc *)(((unsigned long)(tp->RxDescArray) + 255) & ~255);	
 	}	
-#ifndef LS3_HT
+#if !(defined(LS3_HT) || defined(LS2G_HT))
 	tp->RxDescArray = (struct RxDesc*)CACHED_TO_UNCACHED((unsigned long)(tp->RxDescArray));
 #else
 	  tp->RxDescArray = (struct RxDesc*)((unsigned long)(tp->RxDescArray));
@@ -2167,7 +2167,7 @@ static int rtl8169_alloc_rx(unsigned char **rx_buffer,
 		goto err_out;
 	}
 	*rx_buffer = (unsigned char *)(((unsigned long)(*rx_buffer) + 7) & ~7);
-#ifndef LS3_HT
+#if !(defined(LS3_HT) || defined(LS2G_HT))
 	*rx_buffer = (unsigned char *)CACHED_TO_UNCACHED(*rx_buffer);	
 #else
 	  *rx_buffer = (unsigned char *)(*rx_buffer);	
@@ -2202,12 +2202,12 @@ static int rtl8169_alloc_tx(unsigned char **tx_buffer,
 	}
 
 #ifdef __mips__
-#ifndef LS3_HT
+#if !(defined(LS3_HT) || defined(LS2G_HT))
 	pci_sync_cache(NULL, (vm_offset_t)tmp, tx_buf_sz, SYNC_W);
 #endif
 #endif
 
-#ifndef LS3_HT
+#if !(defined(LS3_HT) || defined(LS2G_HT))
 	*tx_buffer = (unsigned char *)CACHED_TO_UNCACHED(tmp);
 #else
 	*tx_buffer = (unsigned char *)(tmp);
@@ -2419,7 +2419,7 @@ static int rtl8169_xmit_frags(struct rtl8169_private *tp,  struct ifnet *ifp)
 		td->opts1 = cpu_to_le32(status);
 
 #ifdef __mips__
-#ifndef LS3_HT
+#if !(defined(LS3_HT) || defined(LS2G_HT))
 		pci_sync_cache(tp->sc_pc, (vm_offset_t)tp->tx_buffer[entry], 
 				len, SYNC_W);
 #endif
