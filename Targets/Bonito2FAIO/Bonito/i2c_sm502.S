@@ -535,7 +535,7 @@ LEAF(_scl_bit)
 	nop
 	jr	ra
 	nop
-END(_sda_bit)
+END(_scl_bit)
 
 
 LEAF(_i2c_start)

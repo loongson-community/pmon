@@ -57,13 +57,6 @@
 #define PRINTSTR(x) \
         .rdata;98: .asciz x; .text; la a0, 98b; bal stringserial; nop
 
-#ifdef DEVBD2F_SM502
-#define GPIOLED_DIR  0xe
-#else
-#define GPIOLED_DIR  0xf
-#endif
-
-#define GPIOLED_SET(x) 
 
 #define CONFIG_CACHE_64K_4WAY 1
 
@@ -77,13 +70,6 @@
 #define CP0_TAGLO  $28
 #define CP0_TAGHI  $29
 
-#define DDR100 0x1d441091 
-/* 
-#define DDR100 0x0c011091*/
-#define DDR266 0x0410435e
-#define DDR300 0x041453df
-
-#define DDR_DQ 0xbff00030             /*  zgj  */
 
 /*
  *   Register usage:
@@ -116,11 +102,9 @@ stack = start - 0x4000          /* Place PMON stack below PMON start in RAM */
         mtc0    t0, COP_0_STATUS_REG
         la      sp, stack
         la      gp, _gp
-        GPIOLED_SET(1)
         
         bal     uncached                /* Switch to uncached address space */
         nop
-        GPIOLED_SET(2)
 
         bal     locate                  /* Get current execute address */
         nop
@@ -216,8 +200,6 @@ exc_common:
         bal     hexserial
         nop
 
-//      b       ext_map_and_reboot
-        nop
 
         .align 8
         .ascii "Ver:"
@@ -250,7 +232,6 @@ locate:
         la      s0,start
         subu    s0,ra,s0
         and     s0,0xffff0000
-        GPIOLED_SET(3)
 
         li      t0,SR_BOOT_EXC_VEC
         mtc0    t0,COP_0_STATUS_REG
@@ -333,7 +314,6 @@ locate:
         _ISAWR_INIT(isareg,val)
 #define ISARD_INIT(isareg) \
         _ISARD_INIT(isareg)
-        GPIOLED_SET(4)
 
         bal     1f      
         nop
@@ -608,7 +588,6 @@ reginit:                        /* local name */
         nop
 .done:  
 
-        GPIOLED_SET(5)
         bal     superio_init
         nop
 #if 1
@@ -630,10 +609,8 @@ reginit:                        /* local name */
 #endif
         
 #ifndef __NO_UART 
-    GPIOLED_SET(6)
         bal     initserial
         nop
-        GPIOLED_SET(7)
 #endif
     //bal initserial
         
@@ -647,7 +624,6 @@ reginit:                        /* local name */
         PRINTSTR("\r\n")
 
 gs_2f_v3_ddr2_cfg:
-        GPIOLED_SET(9)
 
     ###enable the reg space###
 #if 1
@@ -692,7 +668,21 @@ not_locked:
         sw  a1,0x0(t2)
 #endif    
 
+        //add for on board ddr2
+        nop
+        bal pcbv
+		nop
+		move s3,a0
+		bal hexserial
+        nop
+		move a0,s3
+		nop
+        bnez a0,ESCAPE_I2C
+        nop
+
 #include "i2c_sm502.S"
+nop
+ESCAPE_I2C:
 
 // FOR rom access speed update.
 #if     1
@@ -723,7 +713,6 @@ not_locked:
 
         
 skipdimm:
-        GPIOLED_SET(10)
 
         li      t1,0            # accumulate pcimembasecfg settings
                 
@@ -1534,6 +1523,40 @@ LEAF(superio_init)
         jr ra
         nop
 END(superio_init)
+/*
+note:
+before,sm502's GPIO51,GPIO50,GPIO49's 
+status represent the pcb verion of 
+platform.but now,they are used as a 
+sign of DDR2 config
+out:a0[2..0] = GPIO51 GPIO50 GPIO49
+组合选择 颗粒型号及数量 总容量 CS数 Bank数     Row         Column 
+[0 0 0]  预留给有SPD 　 　 　 　 　 
+[0 0 1]  64M*16 8颗       1GB   2     8      A0——A12    A0——A9 
+[0 1 0]  64M*16 4颗      512MB  1     8      A0——A12    A0——A9 
+[0 1 1]  256M*8 4颗       1GB   1     8      A0——A14    A0——A9 
+[1 0 0]  128M*8 4颗      512MB  1     8      A0——A13    A0——A9 
+[1 0 1]  64M*8  8颗      512MB  2     4      A0——A13    A0——A9 
+[1 1 0]  128M*8 8颗       1GB   2     8      A0——A13    A0——A9 
+[1 1 1]  256M*8 8颗       2GB   2     8      A0——A14    A0——A9
+*/
+LEAF(pcbv)
+        li v0, MMIO_BASE + 0x10000
+        lw a1, 0xc(v0)
+        and a1, 0xfff1ffff
+        
+        sw a1, 0xc(v0)
+        nop
+        lw a1, 0x4(v0)
+        and a1, 0xe0000
+        srl a0,a1,17
+        and a0,0x7
+        nop
+
+        .word 0x03e00008
+        nop
+END(pcbv)
+
 
 #######################################
 
@@ -1552,6 +1575,7 @@ ddr2_config:
 #endif
 1:	
 	addu    t0, t0, s0
+    move    s3,t0
 	li      t1, 0x1d
 	li      t2, CONFIG_BASE
 
@@ -1563,6 +1587,57 @@ reg_write:
 	addiu	t0, t0, 0x8
 	bne	t1, $0, reg_write
 	addiu	t2, t2, 0x10
+    nop
+
+    /*
+        do the modification of DDR2 config by pcbv        
+    */
+    bal pcbv
+    nop
+    beqz a0,QYL_NEXT2
+    nop
+
+    //do the modification of on board DDR2
+
+    move      t0,s3
+    addu      t0,t0,240
+1:	
+    subu    a0,1
+	li      v0,20
+	dmul    a0,a0,v0
+	nop
+    addu    t0, t0, a0
+
+	//banks
+	lw  a1,0x0(t0)
+	li  v0,0xaffffe10
+	sw  a1,0x4(v0)
+	nop
+
+	//64bit or 32bit 
+	lw a1,0x4(t0)
+    li  v0,0xaffffe30
+	sw a1,0x0(v0)
+	nop	
+
+    //rows and columns
+    lw  a1,0x8(t0)
+    li  v0,0xaffffe50
+    sw  a1,0x0(v0)
+    nop
+
+    //cs
+    lw  a1,0xc(t0)
+    li  v0,0xaffffe70
+    sw  a1,0x0(v0)
+    nop
+
+    //memsize
+    lw  a1,0x10(t0)
+    move msize,a1
+    nop
+    b   ddr2_start
+    nop
 
     
     //Felix-2008-10-13
@@ -1593,7 +1668,7 @@ spd_reg_read:
     
 #if 1
 	move k0, ra
-	/* read spd to initialize memory controller */
+	/* read spd to modify memory controller */
 	li a0, 0xa0
 	li a1, 3    //Row Address
 	bal newi2cread
@@ -1734,8 +1809,9 @@ NOT_SET_UNBUFFERED:
 	sw  v1, 4(v0) 
 	nop
 
-
+ddr2_start:
 1:	
+    #define QYL_DDR2_DEBUG
     #ifndef QYL_DDR2_DEBUG
     PRINTSTR("Read the DDR2 regs:\r\n")
     li  t7, 0xaffffe00
@@ -1763,15 +1839,16 @@ ddr2_reg_read:
 
 	move ra, k0
 #endif
-
+nop
     ############start##########
 	li      t2, CONFIG_BASE
-	la	t0,DDR2_CTL_start_DATA_LO
+	//la	t0,DDR2_CTL_start_DATA_LO
+	la	t0,DDR2_CTL_start_DATA_HI
 	#la	t0,ddr2_start_reg
 	addu   	t0, t0, s0
-	ld      a1, 0x0(t0)
-	sd      a1, 0x30(t2)
-
+	lw      a1, 0x0(t0)
+	sw      a1, 0x34(t2)
+	nop
 
 	move    ra, s1
 	jr      ra
@@ -1847,4 +1924,46 @@ DDR2_CTL_28_DATA_LO: .word 0x00000000
 DDR2_CTL_28_DATA_HI: .word 0x00000000
 DDR2_CTL_start_DATA_LO: .word 0x01000000
 DDR2_CTL_start_DATA_HI: .word 0x01010100
+
+DDR2_CTL_01_DATA_HI_001: .word 0x00000001
+DDR2_CTL_03_DATA_LO_001: .word 0x01000000
+DDR2_CTL_05_DATA_LO_001: .word 0x04050200
+DDR2_CTL_07_DATA_LO_001: .word 0x00030909
+MEMSIZE_001:             .word 0x40000000       
+
+DDR2_CTL_01_DATA_HI_002: .word 0x00000001
+DDR2_CTL_03_DATA_LO_002: .word 0x01000000
+DDR2_CTL_05_DATA_LO_002: .word 0x04050200
+DDR2_CTL_07_DATA_LO_002: .word 0x00010909
+MEMSIZE_002:             .word 0x20000000   
+
+DDR2_CTL_01_DATA_HI_003: .word 0x00000001
+DDR2_CTL_03_DATA_LO_003: .word 0x01000100
+DDR2_CTL_05_DATA_LO_003: .word 0x04050000
+DDR2_CTL_07_DATA_LO_003: .word 0x00010909
+MEMSIZE_003:             .word 0x40000000
+
+DDR2_CTL_01_DATA_HI_004: .word 0x00000001
+DDR2_CTL_03_DATA_LO_004: .word 0x01000100
+DDR2_CTL_05_DATA_LO_004: .word 0x04050100
+DDR2_CTL_07_DATA_LO_004: .word 0x00010909
+MEMSIZE_004:             .word 0x20000000
+
+DDR2_CTL_01_DATA_HI_005: .word 0x00000000
+DDR2_CTL_03_DATA_LO_005: .word 0x01000100
+DDR2_CTL_05_DATA_LO_005: .word 0x04050100
+DDR2_CTL_07_DATA_LO_005: .word 0x00030909
+MEMSIZE_005:             .word 0x20000000
+
+DDR2_CTL_01_DATA_HI_006: .word 0x00000001
+DDR2_CTL_03_DATA_LO_006: .word 0x01000100
+DDR2_CTL_05_DATA_LO_006: .word 0x04050100
+DDR2_CTL_07_DATA_LO_006: .word 0x00030909
+MEMSIZE_006:             .word 0x40000000
+
+DDR2_CTL_01_DATA_HI_007: .word 0x00000001
+DDR2_CTL_03_DATA_LO_007: .word 0x01000100
+DDR2_CTL_05_DATA_LO_007: .word 0x04050000
+DDR2_CTL_07_DATA_LO_007: .word 0x00030909
+MEMSIZE_007:             .word 0x80000000
 
