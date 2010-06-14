@@ -1246,13 +1246,11 @@ tgt_pipefreq()
 	int
 tgt_cpufreq()
 {
-	/*
 	if(md_cpufreq == 0) {
 		_probe_frequencies();
 	}
+
 	return(md_cpufreq);
-	*/
-	return 700000000;
 }
 
 	time_t
