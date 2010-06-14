@@ -19,7 +19,7 @@
 #include <time.h>
 #include "rs690_cmn.h"
 
-#define HT_CONF_TYPE0_ADDR 0x90000efdfe000000
+#define HT_CONF_TYPE0_ADDR 0x90000cfdfe000000
 //#define HT_MAP_TYPE0_CONF_ADDR  0xbfe80000
 #define HT_MAP_TYPE0_CONF_ADDR  BONITO_PCICFG0_BASE_VA
 
@@ -49,18 +49,18 @@ void pci_write_type0_config32(u32 dev, u32 func, u32 reg, u32 val){
 }
 
 
-#define HT_CONF_TYPE1_ADDR 0x90000efdff000000
+#define HT_CONF_TYPE1_ADDR 0x90000cfdff000000
 //#define HT_MAP_TYPE1_CONF_ADDR  0xbe000000
 #define HT_MAP_TYPE1_CONF_ADDR  BONITO_PCICFG1_BASE_VA
 
 u32 pci_read_type1_config32(u32 bus, u32 dev, u32 func, u32 reg){
     //u64 addr = 0x90000efdff000000;
     u32 addr = HT_MAP_TYPE1_CONF_ADDR;
-    
+
     //printk("addr=%x,bus=%x,dev=%x, fn=%x, reg=%x\n", addr, bus, dev, func, reg);
-    
+
     addr |= (bus << 16 | dev << 11 | func << 8 | reg);
-    
+
     return *((u32 *) addr);
 }
 
@@ -68,11 +68,10 @@ void pci_write_type1_config32(u32 bus, u32 dev, u32 func, u32 reg, u32 val){
     //u64 addr = 0x90000efdff000000;
     u32 addr = HT_MAP_TYPE1_CONF_ADDR;
 
-    
     //printk("addr=%x,bus=%x,dev=%x, fn=%x, reg=%x\n", addr, bus, dev, func, reg);
-    
+
     addr |= (bus << 16 | dev << 11 | func << 8 | reg);
-    
+
     *((u32 *) addr) = val;
 }
 
@@ -195,20 +194,19 @@ void _pci_conf_writen(device_t tag, int reg, u32 data,int width)
     if (bus == 0) {
     	/* Type 0 configuration on onboard PCI bus */
     	if (device > 31 || function > 7)
-    	{	
-		printk("_pci_conf_writen: bad device 0x%x, function 0x%x\n", device, function);
-    	    	return;		/* device out of range */
-	}
-    }
-    else {
+    	{
+			printk("_pci_conf_writen: bad device 0x%x, function 0x%x\n", device, function);
+			return;		/* device out of range */
+		}
+    } else {
     	/* Type 1 configuration on offboard PCI bus */
     	if (bus > 255 || device > 31 || function > 7)
-    	{	
-		printk("_pci_conf_writen: bad bus 0x%x, device 0x%x, function 0x%x\n", bus, device, function);
-    	    	return;		/* device out of range */
-	}
+    	{
+			printk("_pci_conf_writen: bad bus 0x%x, device 0x%x, function 0x%x\n", bus, device, function);
+			return;		/* device out of range */
+		}
     }
-    
+
     ori = _pci_conf_read(tag, reg & 0xfc);
     if(width == 2){
         if(reg & 2){
@@ -217,8 +215,7 @@ void _pci_conf_writen(device_t tag, int reg, u32 data,int width)
         else{
             mask = 0xffff0000;
         }
-    }
-    else if(width == 1){
+    } else if(width == 1){
         if ((reg & 3) == 1) {
     	  mask = 0xffff00ff;
     	}else if ((reg & 3) == 2) {
@@ -229,15 +226,13 @@ void _pci_conf_writen(device_t tag, int reg, u32 data,int width)
     	  mask = 0xffffff00;
     	}
     }
-    
+
     data = data << ((reg & 3) * 8);
     data = (ori & mask) | data;
-    
-    
+
     if (bus == 0) {
     	return pci_write_type0_config32(device, function, reg & 0xfc, data);
-    }
-    else {
+    } else {
     	return pci_write_type1_config32(bus, device, function, reg & 0xfc, data);
     }
 }

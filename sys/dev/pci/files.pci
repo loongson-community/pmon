@@ -26,6 +26,11 @@ device  rtl: ether, ifnet
 attach  rtl  at pci
 file    sys/dev/pci/rtl8139.c       rtl
 
+device  rte: ether, ifnet
+attach  rte  at pci
+file    sys/dev/pci/rtl8168.c       rte
+
+
 # Ethernet driver for fxp-based boards
 device em: ether, ifnet, ifmedia, mii
 attach em at pci

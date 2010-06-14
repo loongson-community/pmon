@@ -67,7 +67,7 @@ select		cmd_misc		# Reboot & Flush etc.
 select		cmd_tr			# Host port-through command
 select		cmd_devls		# Device list
 select		cmd_set			# As cmd_env but not req. cmd_hist
-select		cmd_testdisk
+#select		cmd_testdisk
 #
 select		cmd_shell		# Shell commands, vers, help, eval
 
@@ -80,7 +80,7 @@ select		mod_uart_ns16550	# Standard UART driver
 #option		CONS_BAUD=B9600
 option		CONS_BAUD=B115200
 select		ext2
-select		fatfs
+#select		fatfs
 #select		mod_x86emu		# X86 emulation for VGA
 option 	MY40IO
 #select		mod_x86emu_int10
@@ -143,9 +143,10 @@ pci*		at ppb? bus ?
 # fxp normally only used for debugging (enable/disable both)
 fxp0            at pci? dev ? function ?        # Intel 82559 Device
 inphy*          at mii? phy ?                   # Intel 82555 PHYs
-rtl*        at pci? dev ? function ?
+#rtl*        at pci? dev ? function ?
 rtk*		 at pci? dev ? function ?
-em*        at pci? dev ? function ?
+#em*        at pci? dev ? function ?
+rte*		 at pci? dev ? function ?
 #uhci*		 at pci? dev ? function ?
 #ohci0		 at pci? dev ? function ?
 #usb*		 at usbbus ? 
@@ -167,18 +168,18 @@ wd*		at pciide? channel ? drive ? flags 0x0000
 #### Pseudo devices
 pseudo-device	loop	1	# network loopback
 
-ide_cd* 	at pciide? channel ? drive ? flags 0x0001
-select 		iso9660
-select		ramfiles
+#ide_cd* 	at pciide? channel ? drive ? flags 0x0001
+#select 		iso9660
+#select		ramfiles
 select 		cmd_xyzmodem
-option IDECD 
+#option IDECD 
 option HAVE_NB_SERIAL
 #option USE_ENVMAC
 #option LOOKLIKE_PC
 #select cmd_lwdhcp
 #select cmd_bootp
 option FOR_GXEMUL
-select fatfs
+#select fatfs
 option FLOATINGPT
 #option PCI_IDSEL_VIA686B=17
 option WDC_NORESET
