@@ -282,7 +282,7 @@ rtl8168_init_board(struct rtl8168_private *tp, struct pci_attach_args *pa)
 	for (i = 1000; i > 0; i--) {
 		if ((RTL_R8(tp, ChipCmd) & CmdReset) == 0)
 			break;
-		delay(10);
+		delay(100);
 	}
 
 	if (RTL_R8(tp, Config2) & 0x7) {
@@ -302,8 +302,7 @@ rtl8168_init_board(struct rtl8168_private *tp, struct pci_attach_args *pa)
 	}
 	if (i < 0) {
 		/* Unknown chip: assume array element #0, original RTL-8168 */
-		printf( "unknown chip version, assuming %s\n",
-			       rtl_chip_info[0].name);
+		printf( "unknown chip version, assuming %s\n", rtl_chip_info[0].name);
 		i++;
 	}
 	tp->chipset = i;
@@ -340,8 +339,10 @@ r8168_attach(struct device * parent, struct device * self, void *aux)
     u32 status;
 	struct pci_attach_args *pa = aux;
 
+	/*
 	rtl8168_config_reg();
 	rtl8168_io_reg();
+	*/
 
 	tp->pa = (struct pci_attach_args *)aux;
 	myRTL = tp;
@@ -363,10 +364,9 @@ r8168_attach(struct device * parent, struct device * self, void *aux)
     tp->features |= rtl8168_try_msi(tp);
     RTL_W8(tp, Cfg9346, Cfg9346_Lock);
 
-    /* Get MAC address.  FIXME: read EEPROM */
-    for (i = 0; i < MAC_ADDR_LEN; i++)
-        tp->dev_addr[i] = RTL_R8(tp, MAC0 + i);
-
+#define DEBUG
+#ifdef DEBUG
+#undef DEBUG
 	/* Read eeprom content */
 	{
 		int data;
@@ -380,14 +380,36 @@ r8168_attach(struct device * parent, struct device * self, void *aux)
 		printf("\n");
 	}
 
-#if DEBUG
+	/* Set MAC ADDRESS */
 	tp->dev_addr[0] = 0x00;
 	tp->dev_addr[1] = 0x00;
 	tp->dev_addr[2] = 0x22;
 	tp->dev_addr[3] = 0x33;
 	tp->dev_addr[4] = 0x44;
 	tp->dev_addr[5] = 0x1f;
+#else
+    /* Get MAC address by reading EEPROM */
+	{
+		u16 data = 0;
+
+		data = read_eeprom(tp, 7);
+		tp->dev_addr[0] = 0xff & data;
+		tp->dev_addr[1] = 0xff & (data >> 8);
+		data = read_eeprom(tp, 8);
+		tp->dev_addr[2] = 0xff & data;
+		tp->dev_addr[3] = 0xff & (data >> 8);
+		data = read_eeprom(tp, 9);
+		tp->dev_addr[4] = 0xff & data;
+		tp->dev_addr[5] = 0xff & (data >> 8);
+
+		printf("MAC ADDRESS: ");
+		printf("%x:%x:%x:%x:%x:%x\n", tp->dev_addr[0],tp->dev_addr[1],
+				tp->dev_addr[2],tp->dev_addr[3],tp->dev_addr[4],tp->dev_addr[5]);
+	}
 #endif
+		printf("MAC ADDRESS: ");
+		printf("%02x:%02x:%02x:%02x:%02x:%02x\n", tp->dev_addr[0],tp->dev_addr[1],
+				tp->dev_addr[2],tp->dev_addr[3],tp->dev_addr[4],tp->dev_addr[5]);
 
 #ifdef CONFIG_R8168_NAPI
     RTL_NAPI_CONFIG(dev, tp, rtl8168_poll, R8168_NAPI_WEIGHT);
@@ -402,38 +424,29 @@ r8168_attach(struct device * parent, struct device * self, void *aux)
 #ifdef CONFIG_NET_POLL_CONTROLLER
     dev->poll_controller = rtl8168_netpoll;
 #endif
+
     tp->cp_cmd |= RxChkSum;
     tp->cp_cmd |= RTL_R16(tp, CPlusCmd);
-
     tp->intr_mask = rtl8168_intr_mask;
-
     tp->mmio_addr = tp->ioaddr;
-
     tp->max_jumbo_frame_size = rtl_chip_info[tp->chipset].jumbo_frame_sz;
-
 	rtl8168_hw_phy_config(tp);
 
 #define PCI_LATENCY_TIMER 0x0d
 	_pci_conf_writen(pa->pa_tag, PCI_LATENCY_TIMER, 0x40, 1);
-
     rtl8168_link_option(board_idx, &autoneg, &speed, &duplex);
-
     rtl8168_set_speed(tp, autoneg, speed, duplex);
-
 	ifp = &tp->arpcom.ac_if;
 	bcopy(tp->dev_addr, tp->arpcom.ac_enaddr, sizeof(tp->arpcom.ac_enaddr));
-
 	bcopy(tp->sc_dev.dv_xname, ifp->if_xname, IFNAMSIZ);
 
 	ifp->if_softc = tp;
 	ifp->if_ioctl = rtl8168_ether_ioctl;
 	ifp->if_start = rtl8168_start_xmit;
-
 	ifp->if_snd.ifq_maxlen = NUM_TX_DESC - 1;
 
 	if_attach(ifp);
 	ether_ifattach(ifp);
-
     rc = rtl8168_open(tp);
 	if(rc) {
 		printf("rtl8168_open: error code %d \n", rc);
@@ -447,11 +460,8 @@ r8168_attach(struct device * parent, struct device * self, void *aux)
 	}
 
 	intrstr = pci_intr_string(pc, ih);
-
     status = RTL_R16(tp, IntrStatus);
-
-    tp->sc_ih = pci_intr_establish(pc, ih, IPL_NET, rtl8168_interrupt, tp, 
-			self->dv_xname);
+    tp->sc_ih = pci_intr_establish(pc, ih, IPL_NET, rtl8168_interrupt, tp, self->dv_xname);
 #if 0
 	if(tp->sc_ih == NULL){
              printf("error: could not establish interrupt !");
@@ -542,8 +552,7 @@ rtl8168_print_mac_version(struct rtl8168_private *tp)
     int i;
     for (i = sizeof(rtl_chip_info)/sizeof(rtl_chip_info[0]) - 1; i >= 0; i--) {
         if (tp->mcfg == rtl_chip_info[i].mcfg){
-            dprintk("mcfg == %s (%04d)\n", rtl_chip_info[i].name,
-                  rtl_chip_info[i].mcfg);
+            dprintk("mcfg == %s (%04d)\n", rtl_chip_info[i].name, rtl_chip_info[i].mcfg);
             return;
         }
     }
@@ -606,14 +615,14 @@ rtl8168_set_speed_xmii(struct rtl8168_private *tp,
 
 		rtl8168_phy_power_up (tp);
 
-		delay(10);
+		delay(100);
 
 		mdio_write(tp, 0x1f, 0x0000);
 		mdio_write(tp, MII_ADVERTISE, auto_nego);
 		mdio_write(tp, MII_CTRL1000, giga_ctrl);
 		mdio_write(tp, MII_BMCR, BMCR_RESET | BMCR_ANENABLE | BMCR_ANRESTART);
 
-		delay(10);
+		delay(100);
 	} else {
 		/*true force*/
 #ifndef BMCR_SPEED100
@@ -666,15 +675,13 @@ static void rtl8168_phy_power_down (struct rtl8168_private *tp)
 static void mdio_write(struct rtl8168_private *tp, int RegAddr, int value)
 {
 	int i;
-	RTL_W32(tp, PHYAR, PHYAR_Write | 
-		(RegAddr & PHYAR_Reg_Mask) << PHYAR_Reg_shift | 
-		(value & PHYAR_Data_Mask));
+	RTL_W32(tp, PHYAR, PHYAR_Write | (RegAddr & PHYAR_Reg_Mask) << PHYAR_Reg_shift | (value & PHYAR_Data_Mask));
 
 	for (i = 0; i < 10; i++) {
 		/* Check if the RTL8168 has completed writing to the specified MII register */
 		if (!(RTL_R32(tp, PHYAR) & PHYAR_Flag)) 
 			break;
-		delay(10);
+		delay(100);
 	}
 }
 
@@ -691,7 +698,7 @@ static int mdio_read(struct rtl8168_private * tp, int RegAddr)
 			value = (int) (RTL_R32(tp, PHYAR) & PHYAR_Data_Mask);
 			break;
 		}
-		delay(10);
+		delay(100);
 	}
 
 	return value;
@@ -757,7 +764,7 @@ rtl8168_xmii_reset_enable(struct rtl8168_private * tp)
 		if(!(mdio_read(tp, MII_BMSR) & BMCR_RESET))
 			return;
 
-		delay(10);
+		delay(100);
 	}
 }
 
@@ -1891,7 +1898,7 @@ static u8 rtl8168_efuse_read(struct rtl8168_private *tp, u16 reg)
 	RTL_W32(tp, EFUSEAR, temp);
 
 	do {
-		delay(10);
+		delay(100);
 		temp = RTL_R32(tp, EFUSEAR);
 		cnt++;
 	} while (!(temp & EFUSE_READ_OK) && (temp < EFUSE_Check_Cnt));
@@ -2410,7 +2417,7 @@ rtl8168_nic_reset(struct rtl8168_private *tp)
 	    (tp->mcfg != CFG_METHOD_2) &&
 	    (tp->mcfg != CFG_METHOD_11)) {
 		RTL_W8(tp, ChipCmd, StopReq | CmdRxEnb | CmdTxEnb);
-		delay(10);
+		delay(100);
 	}
 
 	if (tp->mcfg == CFG_METHOD_11)
@@ -2423,7 +2430,7 @@ rtl8168_nic_reset(struct rtl8168_private *tp)
 	for (i = 1000; i > 0; i--) {
 		if ((RTL_R8(tp, ChipCmd) & CmdReset) == 0)
 			break;
-		delay(10);
+		delay(100);
 	}
 
 	if (tp->mcfg == CFG_METHOD_11) {
@@ -2434,7 +2441,7 @@ rtl8168_nic_reset(struct rtl8168_private *tp)
 		for (i = 1000; i > 0; i--) {
 			if ((RTL_R32(tp, OCPAR) & 0xFFFF) == 0)
 				break;
-			delay(10);
+			delay(100);
 		}
 	}
 }
@@ -3055,7 +3062,7 @@ static void rtl8168_hw_start(struct rtl8168_private *tp)
 		tp->wol_enabled = WOL_ENABLED;
 	else
 		tp->wol_enabled = WOL_DISABLED;
-	delay(10);
+	delay(100);
 }
 
 
@@ -3520,8 +3527,6 @@ static int rtl8168_rx_interrupt(struct rtl8168_private *tp)
 
 			m->m_data += sizeof(struct ether_header);
 
-			//printf("======================== pkt_size = %d\n", pkt_size);
-
 			ether_input(ifp, eh, m);
 
 			tp->stats.rx_bytes += pkt_size;
@@ -3721,7 +3726,6 @@ static void rtl8168_tx_interrupt(struct rtl8168_private *tp)
 	return;
 }
 
-
 void rtl8168_config_reg()
 {
 	int i;
@@ -3737,6 +3741,7 @@ void rtl8168_config_reg()
 								_pci_conf_read(rtl8168_dev, i+8),
 								_pci_conf_read(rtl8168_dev, i+12));
 	}
+
 }
 
 void rtl8168_io_reg()
@@ -3881,17 +3886,17 @@ int read_eeprom(struct rtl8168_private *tp, int RegAddr)
 		for (i = 10; i >= 0; i--) {
 			int dataval = (read_cmd & (1 << i)) ? EE_DATA_WRITE : 0;
 			RTL_W8(tp, Cfg9346, EE_ENB | dataval);
-			delay(10);
+			delay(100);
 			RTL_W8(tp, Cfg9346, EE_ENB | dataval | EE_SHIFT_CLK);
-			delay(10);
+			delay(100);
 		}
 #else
 	for (i = 11; i >= 0; i--) {
 		int dataval = (read_cmd & (1 << i)) ? EE_DATA_WRITE : 0;
 		RTL_W8(tp, Cfg9346, EE_ENB | dataval);
-		delay(10);
+		delay(100);
 		RTL_W8(tp, Cfg9346, EE_ENB | dataval | EE_SHIFT_CLK);
-		delay(10);
+		delay(100);
 	}
 #endif
 	RTL_W8(tp, Cfg9346, EE_ENB);
@@ -3900,18 +3905,18 @@ int read_eeprom(struct rtl8168_private *tp, int RegAddr)
 		retval = 0;
 	for( i = 16; i > 0; i--) {
 		RTL_W8(tp, Cfg9346, EE_ENB | EE_SHIFT_CLK);
-		delay(10);
+		delay(100);
 		retval = (retval << 1) | ((RTL_R8(tp, Cfg9346) & EE_DATA_READ) ? 1 : 0);
 		RTL_W8(tp, Cfg9346, EE_ENB);
-		delay(10);
+		delay(100);
 	}
 #else
 	for( i = 16; i > 0; i--) {
 		RTL_W8(tp, Cfg9346, EE_ENB | EE_SHIFT_CLK);
-		delay(10);
+		delay(100);
 		retval = (retval << 1) | ((RTL_R8(tp, Cfg9346) & EE_DATA_READ) ? 1 : 0);
 		RTL_W8(tp, Cfg9346, EE_ENB);
-		delay(10);
+		delay(100);
 	}
 #endif
 	return retval;
