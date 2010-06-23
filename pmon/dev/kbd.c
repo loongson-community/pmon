@@ -739,7 +739,7 @@ static void do_shift(unsigned char value, char up_flag)
 	} else if (value == 0) {	//key shift
 		shift_state = 1;
 	} else if (value == 2) {	//key ctrl
-		shift_state = 2;
+		shift_state = 3;
 #ifdef SPANISH
 	} else {	//key AltGr spanish
 		shift_state = 3;
