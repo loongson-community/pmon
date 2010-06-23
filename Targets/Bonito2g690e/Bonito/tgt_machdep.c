@@ -382,7 +382,7 @@ initmips(unsigned int memsz)
 	tgt_fpuenable();
 	CPU_TLBClear();
 
-#if PCI_IDSEL_CS5536 != 0
+#ifdef LS2G_AMD
 	superio_reinit();
 #endif
 	/*
@@ -627,7 +627,10 @@ tgt_devconfig()
 	//#if ((NMOD_VGACON >0) &&(PCI_IDSEL_VIA686B !=0)|| (PCI_IDSEL_CS5536 !=0))
 #if NMOD_VGACON >0
 	if(getenv("nokbd")) rc=1;
-	else rc=kbd_initialize();
+	else {
+		superio_reinit();
+		rc=kbd_initialize();
+	}
 	printf("%s\n",kbd_error_msgs[rc]);
 	if(!rc){ 
 		kbd_available=1;
@@ -647,7 +650,7 @@ extern void cs5536_gpio_init(void);
 extern void test_gpio_function(void);
 extern void cs5536_pci_fixup(void);
 
-#if PCI_IDSEL_CS5536 != 0
+#ifdef LS2G_AMD
 static int w83627_read(int dev,int addr)
 {
 	int data;
@@ -711,7 +714,7 @@ static void w83627_write(int dev,int addr,int data)
 }
 #endif
 
-#if PCI_IDSEL_CS5536 != 0
+#ifdef LS2G_AMD
 static void superio_reinit()
 {
 	w83627_write(0,0x24,0xc1);
@@ -723,6 +726,7 @@ static void superio_reinit()
 	w83627_write(5,0x70,1);
 	w83627_write(5,0x72,0xc);
 	w83627_write(5,0xf0,0x80);
+#if 0
 	_wrmsr(GET_MSR_ADDR(0x5140001F), 0, 0);//no keyboard emulation
 
 #ifdef USE_CS5536_UART
@@ -763,6 +767,7 @@ static void superio_reinit()
 	w83627_write(1,0x74,0x04);
 	w83627_write(1,0xf0,0xF0); 
 	ConfigTable[0].flag=1;//reinit serial
+#endif
 }
 #endif
 

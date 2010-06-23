@@ -84,7 +84,7 @@ select		ext2
 #select		mod_x86emu		# X86 emulation for VGA
 option 	MY40IO
 #select		mod_x86emu_int10
-#select		mod_vgacon
+select		mod_vgacon
 option		NOPCINAMES		# Save some space for x86emu
 #option		FASTBOOT
 #select	    vt82c686        #via686a/b code

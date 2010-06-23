@@ -53,7 +53,8 @@
 #define E0_MSLW	125
 #define E0_MSRW	126
 #define E0_MSTM	127
-
+int numlock = 0;
+int capslock = 0;
 char inputbuf[300];
 static unsigned char e0_keys[128] = {
 	0, 0, 0, 0, 0, 0, 0, 0,	/* 0x00-0x07 */
@@ -304,11 +305,6 @@ int kbd_initialize(void)
 	 * If the test is successful a x55 is placed in the input buffer.
 	 */
 	kbd_write_command_w(KBD_CCMD_SELF_TEST);
-	kbd_write_command_w(KBD_CCMD_SELF_TEST);
-	kbd_write_command_w(KBD_CCMD_SELF_TEST);
-	kbd_write_command_w(KBD_CCMD_SELF_TEST);
-	kbd_write_command_w(KBD_CCMD_SELF_TEST);
-
 	if (kbd_wait_for_input() != 0x55) {
 		printf("Self test cmd failed,ignored!\n");
 		//return 1;
@@ -367,20 +363,6 @@ int kbd_initialize(void)
 	 * Set up to try again if the keyboard asks for RESEND.
 	 */
 	count = 1;
-#ifndef FCRSOC
-	do {
-		kbd_write_output_w(KBD_CMD_DISABLE);
-		status = kbd_wait_for_input();
-		if (status == KBD_REPLY_ACK)
-			break;
-		if (status != KBD_REPLY_RESEND) {
-			printf("disable failed\n");
-			if (++count > 1)
-				break;
-			//return 4;
-		}
-	} while (1);
-#endif
 
 	kbd_write_command_w(KBD_CCMD_WRITE_MODE);
 	kbd_write_output_w(KBD_MODE_KBD_INT
@@ -416,6 +398,7 @@ int kbd_initialize(void)
 	return 0;
 }
 
+int led_ps = 0;
 int kbd_translate(unsigned char scancode, unsigned char *keycode)
 {
 	static int prev_scancode;
@@ -426,6 +409,34 @@ int kbd_translate(unsigned char scancode, unsigned char *keycode)
 		return 0;
 	}
 
+	/* control Num Lock */
+	if (scancode == 0x45){
+		numlock = ~numlock;
+		kbd_write_output_w(0xed);
+		if (numlock) {
+			led_ps |= 0x02;
+			kbd_write_output_w(led_ps);
+		}else{
+			led_ps &= ~(0x02);
+			kbd_write_output_w(led_ps);
+		}
+		return 0;
+	}
+	if(scancode == 0x3a){
+		if(capslock == 0)
+			capslock = 1;
+		else
+			capslock = 0;
+		kbd_write_output_w(0xed);
+		if (capslock){
+			led_ps |= 0x04;
+			kbd_write_output_w(led_ps);
+		}else{
+			led_ps &= ~0x04;
+			kbd_write_output_w(led_ps);
+		}
+		return 0;
+	}
 	/* 0xFF is sent by a few keyboards, ignore it. 0x00 is error */
 	if (scancode == 0x00 || scancode == 0xff) {
 		prev_scancode = 0;
@@ -437,7 +448,7 @@ int kbd_translate(unsigned char scancode, unsigned char *keycode)
 	if (prev_scancode) {
 		if (prev_scancode != 0xe0) {
 			return 0;
-		} else {
+		}else{
 			prev_scancode = 0;
 			/*
 			 *  The keyboard maintains its own internal caps lock and
@@ -453,8 +464,7 @@ int kbd_translate(unsigned char scancode, unsigned char *keycode)
 			 *  So, we should also ignore the latter. - aeb@cwi.nl
 			 */
 			if (scancode == 0x2a || scancode == 0x36)
-				return 0;
-
+					return 0;
 			if (e0_keys[scancode])
 				*keycode = e0_keys[scancode];
 			else {
@@ -464,6 +474,7 @@ int kbd_translate(unsigned char scancode, unsigned char *keycode)
 	} else {
 		*keycode = scancode;
 	}
+
 	return 1;
 }
 
@@ -484,7 +495,6 @@ static unsigned char handle_kbd_event(void)
 		unsigned char scancode;
 
 		scancode = kbd_read_input();
-
 		/* Error bytes must be ignored to make the 
 		   Synaptics touchpads compaq use work */
 #if 1
@@ -560,14 +570,17 @@ void handle_scancode(unsigned char scancode, int down)
 	if (1) {
 		u_short keysym;
 		u_char type;
-		
+
 		ushort *key_map = key_maps[shift_state];
+		if(capslock==1 && shift_state==0)
+		{
+		   key_map = key_maps[2];
+		}
+		if(capslock==1 && shift_state==1)
+		   key_map = key_maps[0];
 		if (key_map != NULL) {
 			keysym = key_map[keycode];
 			type = KTYP(keysym);
-	//		printf("keycode = %d\n",keycode);
-	//		printf("[kbd] keysym %x\n", keysym);
-
 			if (type >= 0xf0) {
 				type -= 0xf0;
 				if (type == KT_LETTER) {
@@ -615,18 +628,88 @@ static void do_fn(unsigned char value, char up_flag)
 
 static void do_pad(unsigned char value, char up_flag)
 {
+	char t = 0x0;
+	if (numlock)
+		t = 0xff;
+	else
+		t = 0x0;
+
 	if (!up_flag) {
 		switch (value) {
+		case 0x0:
+			kbd_code = 0x30&t;
+			break;
+		case 0x1:
+			kbd_code = 0x31&t;
+			break;
+		case 0x2:
+			if (!numlock) {
+				SEND_ESC_SEQ('B');
+			}else{
+				kbd_code = 0x32&t;
+			}
+			break;
+		case 0x3:
+			kbd_code = 0x33&t;
+			break;
+		case 0x4:
+			if (!numlock) {
+				SEND_ESC_SEQ('D');
+			}else{
+				kbd_code = 0x34&t;
+			}
+			break;
+		case 0x5:
+			kbd_code = 0x35&t;
+			break;
+		case 0x6:
+			if (!numlock) {
+				SEND_ESC_SEQ('C');
+			}else{
+				kbd_code = 0x36&t;
+			}
+			break;
+		case 0x7:
+			kbd_code = 0x37&t;
+			break;
+		case 0x8:
+			if (!numlock) {
+				SEND_ESC_SEQ('A');
+			}else{
+				kbd_code = 0x38&t;
+			}
+			break;
+		case 0x9:
+			kbd_code = 0x39&t;
+			break;
 		case 0x10:
-			SEND_ESC_SEQ('G');
+			if (!numlock) {
+	//			SEND_ESC_SEQ('');
+				}
+			else{
+				kbd_code = 0x2e;
+				}
 			break;
 		case 0xe:
 			kbd_code = 10;
+			/* simple implemention of number pad.base on ps/2 kbd scancode set 1 */
+			break;
+		case 0xa:
+			kbd_code = 0x2b;
+			break;
+		case 0xb:
+			kbd_code = 0x2d;
+			break;
+		case 0xc:
+			kbd_code = 0x2a;
+			break;
+		case 0xd:
+			kbd_code = 0x2f;
+			break;
 		default:
 			break;
+			}
 		}
-	}
-	printf("do_pad value=%x\n", value);
 }
 
 static void do_cur(unsigned char value, char up_flag)
@@ -910,5 +993,4 @@ int psaux_init(void)
 	send_data(KBD_CMD_ENABLE);	/* try to workaround toshiba4030cdt problem */
 	return 0;
 }
-
 
