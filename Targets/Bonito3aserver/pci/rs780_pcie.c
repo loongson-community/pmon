@@ -28,7 +28,7 @@ PCIE_CFG AtiPcieCfg = {
 struct southbridge_amd_rs780_config chip_info = {
 	0xfff0000,
 	1,
-	2,
+	3,
 	0x6fc,
 	1,
 	1,
