@@ -18,55 +18,55 @@
 /* int10 info structure */
 struct pci_dev;
 typedef struct {
-    int entityIndex;
-    int scrnIndex;
-    pointer cpuRegs;
-    CARD16  BIOSseg;
-    CARD16  inb40time;
-    pointer private;
-    struct _int10Mem* mem;
-    int num;
-    int ax;
-    int bx;
-    int cx;
-    int dx;
-    int si;
-    int di;
-    int es;
-    int bp;
-    int flags;
-    int stackseg;
-    struct pci_device *pdev;
+	int entityIndex;
+	int scrnIndex;
+	pointer cpuRegs;
+	CARD16 BIOSseg;
+	CARD16 inb40time;
+	pointer private;
+	struct _int10Mem *mem;
+	int num;
+	int ax;
+	int bx;
+	int cx;
+	int dx;
+	int si;
+	int di;
+	int es;
+	int bp;
+	int flags;
+	int stackseg;
+	struct pci_device *pdev;
 } xf86Int10InfoRec, *xf86Int10InfoPtr;
 
 typedef struct _int10Mem {
-    CARD8(*rb)(xf86Int10InfoPtr, int);
-    CARD16(*rw)(xf86Int10InfoPtr, int);
-    CARD32(*rl)(xf86Int10InfoPtr, int);
-    void(*wb)(xf86Int10InfoPtr, int, CARD8);
-    void(*ww)(xf86Int10InfoPtr, int, CARD16);
-    void(*wl)(xf86Int10InfoPtr, int, CARD32);
+	CARD8(*rb) (xf86Int10InfoPtr, int);
+	CARD16(*rw) (xf86Int10InfoPtr, int);
+	CARD32(*rl) (xf86Int10InfoPtr, int);
+	void (*wb) (xf86Int10InfoPtr, int, CARD8);
+	void (*ww) (xf86Int10InfoPtr, int, CARD16);
+	void (*wl) (xf86Int10InfoPtr, int, CARD32);
 } int10MemRec, *int10MemPtr;
 
 typedef struct {
-    CARD8 save_msr;
-    CARD8 save_pos102;
-    CARD8 save_vse;
-    CARD8 save_46e8;
+	CARD8 save_msr;
+	CARD8 save_pos102;
+	CARD8 save_vse;
+	CARD8 save_46e8;
 } legacyVGARec, *legacyVGAPtr;
 
 typedef struct {
-    int bus;
-    union {
-	struct {
-	    int bus;
-	    int dev;
-	    int func;
-	} pci;
-	int legacy;
-    } location;
+	int bus;
+	union {
+		struct {
+			int bus;
+			int dev;
+			int func;
+		} pci;
+		int legacy;
+	} location;
 } xf86int10BiosLocation, *xf86int10BiosLocationPtr;
-    
+
 /* OS dependent functions */
 xf86Int10InfoPtr xf86InitInt10(int entityIndex);
 void xf86FreeInt10(xf86Int10InfoPtr pInt);
@@ -84,7 +84,7 @@ void xf86ExecX86int10(xf86Int10InfoPtr pInt);
 #define SYS_BIOS 0xF0000
 #if 1
 #define BIOS_SIZE 0x10000
-#else /* a bug in DGUX requires this - let's try it */
+#else				/* a bug in DGUX requires this - let's try it */
 #define BIOS_SIZE (0x10000 - 1)
 #endif
 #define LOW_PAGE_SIZE 0x600
@@ -133,7 +133,7 @@ void dump_code(xf86Int10InfoPtr pInt);
 void dump_registers(xf86Int10InfoPtr pInt);
 void stack_trace(xf86Int10InfoPtr pInt);
 xf86Int10InfoPtr getInt10Rec(int entityIndex);
-CARD8 bios_checksum(CARD8 *start, int size);
+CARD8 bios_checksum(CARD8 * start, int size);
 void LockLegacyVGA(int screenIndex, legacyVGAPtr vga);
 void UnlockLegacyVGA(int screenIndex, legacyVGAPtr vga);
 int port_rep_inb(xf86Int10InfoPtr pInt,
@@ -168,10 +168,9 @@ void setup_int_vect(xf86Int10InfoPtr pInt);
 int setup_system_bios(void *base_addr);
 void reset_int_vect(xf86Int10InfoPtr pInt);
 void set_return_trap(xf86Int10InfoPtr pInt);
-Bool int10_check_bios(int scrnIndex, int codeSeg, unsigned char* vbiosMem);
-Bool initPrimary(void* options);
-void xf86int10ParseBiosLocation(void* options, 
-				xf86int10BiosLocationPtr bios);
+Bool int10_check_bios(int scrnIndex, int codeSeg, unsigned char *vbiosMem);
+Bool initPrimary(void *options);
+void xf86int10ParseBiosLocation(void *options, xf86int10BiosLocationPtr bios);
 #ifdef DEBUG_EMU_VGA
 void dprint(unsigned long start, unsigned long size);
 #endif
@@ -179,5 +178,5 @@ void dprint(unsigned long start, unsigned long size);
 /* pci.c */
 int mapPciRom(int pciEntity, unsigned char *address);
 
-#endif /* _INT10_PRIVATE */
-#endif /* _XF86INT10_H */
+#endif				/* _INT10_PRIVATE */
+#endif				/* _XF86INT10_H */

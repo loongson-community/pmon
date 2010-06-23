@@ -2849,6 +2849,7 @@ void x86emuOp_xor_byte_R_RM(u8 X86EMU_UNUSED(op1))
         *destreg = xor_byte(*destreg, *srcreg);
         break;
     }
+
     DECODE_CLEAR_SEGOVR();
     END_OF_INSTR();
 }
@@ -7949,6 +7950,7 @@ void x86emuOp_mov_word_AX_IMM(u8 X86EMU_UNUSED(op1))
     u32 srcval;
 
     START_OF_INSTR();
+
     if (M.x86.mode & SYSMODE_PREFIX_DATA) {
         DECODE_PRINTF("MOV\tEAX,");
         srcval = fetch_long_imm();
@@ -7956,8 +7958,10 @@ void x86emuOp_mov_word_AX_IMM(u8 X86EMU_UNUSED(op1))
         DECODE_PRINTF("MOV\tAX,");
         srcval = fetch_word_imm();
     }
+
     DECODE_PRINTF2("%x\n", srcval);
     TRACE_AND_STEP();
+
     if (M.x86.mode & SYSMODE_PREFIX_DATA) {
         M.x86.R_EAX = srcval;
     } else {
@@ -9562,10 +9566,18 @@ void x86emuOp_in_byte_AL_IMM(u8 X86EMU_UNUSED(op1))
 
     START_OF_INSTR();
     DECODE_PRINTF("IN\t");
+	if (M.x86.R_AX == 0x4e00)
+		printf("=====>IN\n");
 	port = (u8) fetch_byte_imm();
+	if (M.x86.R_AX == 0x4e00)
+		printf("=====>IN port = %x\n", port);
     DECODE_PRINTF2("%x,AL\n", port);
     TRACE_AND_STEP();
+	if (M.x86.R_AX == 0x4e00)
+		printf("======> port = %x,value = %x\n", port, (*sys_inb)(port));
     M.x86.R_AL = (*sys_inb)(port);
+	if (M.x86.R_AX == 0x4e00)
+		printf("======> assign OK \n");
     DECODE_CLEAR_SEGOVR();
     END_OF_INSTR();
 }
@@ -9742,6 +9754,11 @@ Handles opcode 0xed
 void x86emuOp_in_word_AX_DX(u8 X86EMU_UNUSED(op1))
 {
     START_OF_INSTR();
+	if(M.x86.R_AX == 0xf1B8) {
+		printf("mode = %x\n", M.x86.mode);
+		printf("value = %x\n", (*sys_inl)(M.x86.R_DX));
+		printf("value = %x\n", (*sys_inw)(M.x86.R_DX));
+	}
     if (M.x86.mode & SYSMODE_PREFIX_DATA) {
         DECODE_PRINTF("IN\tEAX,DX\n");
     } else {

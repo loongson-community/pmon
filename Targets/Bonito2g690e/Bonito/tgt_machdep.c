@@ -125,6 +125,7 @@ extern void *memset(void *, int, size_t);
 int kbd_available;
 int usb_kbd_available;;
 int vga_available;
+int vga_ok = 0;
 
 static int md_pipefreq = 0;
 static int md_cpufreq = 0;
@@ -552,8 +553,7 @@ initmips(unsigned int memsz)
  *  is done after console has been initialized so it's safe
  *  to output configuration and debug information with printf.
  */
-extern void	vt82c686_init(void);
-int psaux_init(void);
+extern int psaux_init(void);
 extern int video_hw_init (void);
 
 extern int fb_init(unsigned long,unsigned long);
@@ -571,6 +571,11 @@ tgt_devconfig()
 #if (NMOD_X86EMU_INT10 > 0)||(NMOD_X86EMU >0)
 	SBD_DISPLAY("VGAI", 0);
 	rc = vga_bios_init();
+#if defined(VESAFB)
+	SBD_DISPLAY("VESA", 0);
+	if(rc > 0)
+		vesafb_init();
+#endif
 #endif
 #if (NMOD_X86EMU_INT10 == 0 && defined(RADEON7000))
 	SBD_DISPLAY("VGAI", 0);
@@ -588,12 +593,11 @@ tgt_devconfig()
 
 		fbaddress = fbaddress &0xffffff00; //laster 8 bit
 		ioaddress = ioaddress &0xfffffff0; //laster 4 bit
+		printf("fbaddress 0x%x\tioaddress 0x%x\n",fbaddress, ioaddress);
 
 #if NMOD_SISFB
 		fbaddress=sisfb_init_module();
 #endif
-		printf("fbaddress 0x%x\tioaddress 0x%x\n",fbaddress, ioaddress);
-
 #if NMOD_SMI712 > 0
 		fbaddress |= 0xb0000000;
 		//ioaddress |= 0xbfd00000;
@@ -608,6 +612,21 @@ tgt_devconfig()
 		fbaddress |= 0xb0000000;
 		ioaddress |= 0xb0000000;
 #endif
+
+#if (SHARED_VRAM == 128)
+		fbaddress = 0xf8000000;//64M graph memory
+#elif (SHARED_VRAM == 64)
+		fbaddress = 0xf8000000;//64M graph memory
+#elif (SHARED_VRAM == 32)
+		fbaddress = 0xfe000000;//32 graph memory
+#endif
+
+		/* lwg add.
+		 * The address mapped from 0x10000000 to 0xf800000
+		 * wouldn't work through tlb.
+		_*/
+		fbaddress = 0xb0000000; /* FIXME */
+
 		printf("begin fb_init\n");
 		fb_init(fbaddress, ioaddress);
 		printf("after fb_init\n");
@@ -619,12 +638,21 @@ tgt_devconfig()
 
 #if (NMOD_FRAMEBUFFER > 0) || (NMOD_VGACON > 0 )
 	if (rc > 0)
-		if(!getenv("novga")) vga_available=1;
-		else vga_available=0;
+		if(!getenv("novga"))
+			vga_available = 1;
+		else
+			vga_available = 0;
 #endif
 	config_init();
 	configure();
-	//#if ((NMOD_VGACON >0) &&(PCI_IDSEL_VIA686B !=0)|| (PCI_IDSEL_CS5536 !=0))
+
+	/* rs690 pcie part post init */
+	pcie_post_init();
+	/* rs690 NB part post init */
+	nb_post_init();
+	/* sb600 last init routine */
+	sb_last_init();
+
 #if NMOD_VGACON >0
 	if(getenv("nokbd")) rc=1;
 	else {
@@ -632,8 +660,8 @@ tgt_devconfig()
 		rc=kbd_initialize();
 	}
 	printf("%s\n",kbd_error_msgs[rc]);
-	if(!rc){ 
-		kbd_available=1;
+	if (!rc) {
+		kbd_available = 1;
 	}
 	//	psaux_init();
 #endif

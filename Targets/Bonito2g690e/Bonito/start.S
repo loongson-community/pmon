@@ -1034,6 +1034,12 @@ gs_2f_v3_ddr2_cfg:
 	    TTYDBG("Init tlb...\r\n")
         bal     tlb_init
         nop
+
+#if 1 /* TLB init */
+	TTYDBG("Init htpcitlb...\r\n")
+	#include "pcitlb.S"  /* Fixme */
+#endif
+
 	    //TTYDBG("Init caches...\r\n")
 
 #if 1
@@ -1223,8 +1229,8 @@ bootnow:
 	la	a0, start
 	li	a1, 0xbfc00000
 	la	a2, _edata
-        or      a0, 0xa0000000
-        or      a2, 0xa0000000
+    //    or      a0, 0xa0000000
+    //    or      a2, 0xa0000000
 	subu	t1, a2, a0
 	srl	t1, t1, 2
 
@@ -1269,8 +1275,8 @@ zhb:
 	la	a0, start
 	li	a1, 0xbfc00000
 	la	a2, _edata
-        or      a0, 0xa0000000
-        or      a2, 0xa0000000
+ //       or      a0, 0xa0000000
+ //       or      a2, 0xa0000000
 /*	subu	s6, a2, a0*/
 /*	srl	s6, s6, 2*/
 

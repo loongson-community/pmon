@@ -119,10 +119,9 @@ DB(				printf("halted\n");
 			M.x86.R_AX, M.x86.R_BX, M.x86.R_CX, M.x86.R_DX,M.x86.R_SP);
 		printf("\tBP=%4X,SI=%4X,DI=%4X,DS=%4X,SS=%4X,ES=%4X\n",M.x86.R_BP,M.x86.R_SI,M.x86.R_DI,
 			M.x86.R_DS,M.x86.R_SS,M.x86.R_ES);}*/
+
 		op1 = (*sys_rdb)(((u32)M.x86.R_CS << 4) + (M.x86.R_IP++));
 		(*x86emu_optab[op1])(op1);
-		//if (M.x86.R_IP==0x7Ac9) X86EMU_trace_on();
-		//if (M.x86.R_IP==0x7Acd) X86EMU_trace_on();
     }
 }
 

@@ -167,6 +167,7 @@ void x86emu_inc_decoded_inst_len (int x)
 void x86emu_decode_printf (char *x)
 {
 	sprintf(M.x86.decoded_buf+M.x86.enc_str_pos,"%s",x);
+	printf("%s",x);
 	M.x86.enc_str_pos += strlen(x);
 }
 
@@ -175,6 +176,7 @@ void x86emu_decode_printf2 (char *x, int y)
 	char temp[100];
 	sprintf(temp,x,y);
 	sprintf(M.x86.decoded_buf+M.x86.enc_str_pos,"%s",temp);
+	printf("%s",temp);
 	M.x86.enc_str_pos += strlen(temp);
 }
 
@@ -322,7 +324,7 @@ void x86emu_single_step (void)
 
 int X86EMU_trace_on(void)
 {
-	return M.x86.debug |= /*DEBUG_STEP_F |*/ DEBUG_DECODE_F | DEBUG_TRACE_F;
+	return M.x86.debug |= /*DEBUG_STEP_F | DEBUG_DECODE_F | DEBUG_TRACE_F |*/ DEBUG_MEM_TRACE_F | DEBUG_IO_TRACE_F;
 }
 
 int X86EMU_trace_off(void)

@@ -274,6 +274,7 @@ file x86emu/int10/helper_exec.c				mod_x86emu_int10	needs-flag
 file x86emu/int10/helper_mem.c				mod_x86emu_int10	needs-flag
 file x86emu/int10/xf86int10.c				mod_x86emu_int10	needs-flag
 file x86emu/int10/xf86x86emu.c				mod_x86emu_int10	needs-flag
+file x86emu/int10/rs690_struct.c		mod_x86emu_int10	needs-flag
 
 file x86emu/src/x86emu/debug.c		mod_x86emu	needs-flag
 file x86emu/src/x86emu/decode.c		mod_x86emu	needs-flag
@@ -287,6 +288,7 @@ file x86emu/src/biosemu/bios.c		mod_x86emu	needs-flag
 file x86emu/src/biosemu/linuxpci.c	mod_x86emu	needs-flag
 file x86emu/src/biosemu/biosemu.c	mod_x86emu	needs-flag
 file x86emu/src/biosemu/freebiosvga.c	mod_x86emu	needs-flag
+file x86emu/int10/vesafb.c		mod_vesa & mod_framebuffer		needs-flag
 
 file fb/cfb_console.c                                       mod_framebuffer         needs-flag
 file pmon/dev/kbd.c			mod_vgacon	needs-flag

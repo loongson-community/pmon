@@ -101,11 +101,14 @@ static inline unsigned char linux_inb_p(unsigned long port)
         return __val;
 }
 
-
-
-
+#if !defined(LS2G_AMD) /* modify for x86emu */
 #define readb(addr)             (*(volatile unsigned char *)(0xa0000000|(long)(addr)))
 #define readw(addr)             ((*(volatile unsigned short *)(0xa0000000|(long)(addr))))
 #define readl(addr)             ((*(volatile unsigned int *)(0xa0000000|(long)(addr))))
+#else
+#define readb(addr)             (*(volatile unsigned char *)(0x00000000|(long)(addr)))
+#define readw(addr)             ((*(volatile unsigned short *)(0x00000000|(long)(addr))))
+#define readl(addr)             ((*(volatile unsigned int *)(0x00000000|(long)(addr))))
+#endif
 
 #endif /* __LINUXIO_H_ */

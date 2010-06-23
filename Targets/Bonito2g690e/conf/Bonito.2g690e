@@ -26,12 +26,27 @@ option		LS2G_AMD
 option		MIPS
 option		INET
 option      LS2G_HT              # Enable the IO cache coherent of HT
+select		amd_690e
 #option      USE_LPC_UART
 #option      MULTI_CHIP
 
-#select		sis_761e
-select		amd_690e
+## VGA option ##
+option		RS690
+option      VGA_NO_ROM
+option		VGA_BASE=0xbe000000
+option      SHARED_VRAM=64
+option      GPU_UMA
+option		VESAFB
+#option		DEBUG_EMU_VGA
 
+#select		mod_x86emu		# X86 emulation for VGA
+select		mod_x86emu_int10
+select      mod_framebuffer
+select		mod_vesa
+select		mod_vgacon
+##############
+
+## misc refer ##
 select		mod_flash_amd		# AMD flash device programming
 select		mod_flash_intel		# intel flash device programming
 select		mod_flash_sst		# intel flash device programming
@@ -46,7 +61,7 @@ select		mod_elfload		# ELF loading
 #
 select		cmd_newmt
 select		cmd_setup
-select		mod_display
+#select		mod_display
 select		cmd_about		# Display info about PMON
 select		cmd_boot		# Boot wrapper
 select		cmd_mycmd
@@ -81,10 +96,8 @@ select		mod_uart_ns16550	# Standard UART driver
 option		CONS_BAUD=B115200
 select		ext2
 #select		fatfs
-#select		mod_x86emu		# X86 emulation for VGA
-option 	MY40IO
-#select		mod_x86emu_int10
-select		mod_vgacon
+#option 	MY40IO
+
 option		NOPCINAMES		# Save some space for x86emu
 #option		FASTBOOT
 #select	    vt82c686        #via686a/b code
@@ -127,9 +140,6 @@ pci*		at pcibr?
 ppb*		at pci? dev ? function ?	# PCI-PCI bridges
 pci*		at ppb? bus ?
 
-#### USB
-#uhci*		at pci? dev ? function ?
-
 #### SCSI support
 #siop*		at pci? dev ? function ?	# Symbios/NCR 53c...
 #scsibus*	at siop?
@@ -147,6 +157,8 @@ inphy*          at mii? phy ?                   # Intel 82555 PHYs
 rtk*		 at pci? dev ? function ?
 #em*        at pci? dev ? function ?
 rte*		 at pci? dev ? function ?
+
+#####USB Devices######
 #uhci*		 at pci? dev ? function ?
 #ohci0		 at pci? dev ? function ?
 #usb*		 at usbbus ? 

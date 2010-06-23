@@ -7,10 +7,10 @@
 ######################################################
 #define HT_32bit_TRANS
 #define WITH_HT
-//#define HT_800M
+#define HT_800M
 //#define HT_16bit
-//#define HT_RECONNECT
-#define HT_REG_TRANS
+#define HT_RECONNECT
+//#define HT_REG_TRANS
 ######################################################
 
 #ifdef HT_32bit_TRANS //PCI CFG : TYPE 0: 
@@ -20,11 +20,10 @@
     dli t2, 0x900000003ff02400
 
 1:
-#if 1
- //map HT: PCI IO : 0x90000efd_fc000000 --> 0x18000000
- //map              0x90000efd_fd000000 --> 0x19000000
- //map HT: PCI CFG: 0x90000efd_fe000000 --> 0x1a000000
- //map HT: PCI CFG: 0x90000efd_ff000000 --> 0x1b000000
+ //map HT: PCI IO : 0x90000cfd_fc000000 --> 0x18000000
+ //map              0x90000cfd_fd000000 --> 0x19000000
+ //map HT: PCI CFG: 0x90000cfd_fe000000 --> 0x1a000000
+ //map HT: PCI CFG: 0x90000cfd_ff000000 --> 0x1b000000
     dli t1, 0x0000000018000000
     sd  t1, 0x0(t0)
     dli t1, 0xfffffffffc000000
@@ -41,6 +40,7 @@
     dli t1, 0x00000c00000000f6
     sd  t1, 0x88(t0)
 
+#if 0
  //HT: PCI LO BASE
  //map 0x90000e00_00000000 --> 0x10000000
     dli t1, 0x0000000010000000
@@ -49,6 +49,7 @@
     sd  t1, 0x50(t0)
     dli t1, 0x00000c00000000f6
     sd  t1, 0x90(t0)
+#endif
 
  //HT: PCI HI BASE
  //map 0x90000e00_10000000 --> 0x10000000
@@ -61,12 +62,21 @@
 
 #ifdef HT_REG_TRANS
  //HT REG BASE
- //map 0x90000efd_fb000000 --> 0x1e000000
+ //map 0x90000cfd_fb000000 --> 0x1e000000
     dli t1, 0x000000001e000000
     sd  t1, 0x20(t0)
     dli t1, 0xffffffffff000000
     sd  t1, 0x60(t0)
     dli t1, 0x00000cfdfb0000f6
+    sd  t1, 0xa0(t0)
+#else
+ //HT RESEVER MEM
+ //map 0x90000c00_00000000 --> 0x1e000000
+    dli t1, 0x000000001e000000
+    sd  t1, 0x20(t0)
+    dli t1, 0xffffffffff000000
+    sd  t1, 0x60(t0)
+    dli t1, 0x00000c00000000f6
     sd  t1, 0xa0(t0)
 #endif
 
@@ -74,84 +84,6 @@
     bne     t0, t2, 1b
     nop
 
-#if 0
-// change the dma addresssssssssssss
-    daddiu  t0, t0, 0x300
-
-	TTYDBG("North HT dma changed!!!!!!!!!!!!!!!!!!!\r\n")
-    dli t1, 0x0000000000000000
-    sd  t1, 0x0(t0)
-    dli t1, 0x0000000000000000
-    sd  t1, 0x40(t0)
-    dli t1, 0x00000000000000f6
-    sd  t1, 0x80(t0)
-#endif 
-#else
-/******************************************/
-##################################### LEVEL-1 XBAR : CPU #########################################
-###HT CFG : TYPE 0: 
-###map 0x90000efd_fe000000 --> 0x1fe80000, size 0x00080000 
-	dli t1, 0x000000001fe80000
-	sd  t1, 0x0(t0)
-	dli t1, 0xfffffffffff80000
-	sd  t1, 0x40(t0)
-	dli t1, 0x00000cfdfe0000f6
-	sd  t1, 0x80(t0)
-###HT CFG : TYPE 1:
-###map 0x90000efd_ff000000 --> 0x1e000000, size 0x01000000
-	dli t1, 0x000000001e000000
-	sd  t1, 0x8(t0)
-	dli t1, 0xffffffffff000000
-	sd  t1, 0x48(t0)
-	dli t1, 0x00000cfdff0000f6
-	sd  t1, 0x88(t0)
-
-###HT LOW MEM
-###map 0x90000e00_00000000 --> 0x10000000, size 0x04000000
-	dli t1, 0x0000000010000000
-	sd  t1, 0x10(t0)
-	dli t1, 0xfffffffffc000000
-	sd  t1, 0x50(t0)
-	dli t1, 0x00000c00000000f6
-	sd  t1, 0x90(t0)
-
-###HT HIGH MEM
-###map 0x90000e00_10000000 --> 0x14000000, size 0x04000000
-	dli t1, 0x0000000014000000
-	sd  t1, 0x18(t0)
-	dli t1, 0xfffffffffc000000
-	sd  t1, 0x58(t0)
-	dli t1, 0x00000c00140000f6
-	sd  t1, 0x98(t0)
-
-###HT IO 
-###map 0x90000efd_fc000000 --> 0x1fd00000, size 0x01000000
-	dli t1, 0x000000001fd00000
-	sd  t1, 0x20(t0)
-	dli t1, 0xfffffffffff00000
-	sd  t1, 0x60(t0)
-	dli t1, 0x00000cfdfc0000f6
-	sd  t1, 0xa0(t0)
-
-###HT BRIDGE CFG
-###map 0x90000efd_fb000000 --> 0x1b000000, size 0x01000000
-	dli t1, 0x000000001b000000
-	sd  t1, 0x28(t0)
-	dli t1, 0xffffffffff000000
-	sd  t1, 0x68(t0)
-	dli t1, 0x00000cfdfb0000f6
-	sd  t1, 0xa8(t0)
-
-### ANY ELSE DEFAULY MEMORY 
-### Mapping 0x0 ---> 0x0, size 0x00001000_00000000
-
-	daddiu	t0, t0, 0x100
-	bne	t0, t2, 1b
-	nop
-
-
-/******************************************/
-#endif
 #endif
 
 
@@ -177,7 +109,7 @@
 	TTYDBG("DEBUG END......\r\n")
 #endif
 
-#if 1//Print all HT registers
+#if 0//Print all HT registers
 	TTYDBG("Print all HT registers\r\n")
 	dli	    t2, 0x90000cfdfb000000
     dli     t3, 0x90000cfdfb000100
@@ -349,24 +281,40 @@ ht_next_id :
 	sw	    t0, 0x4(t2)
 	TTYDBG("HT RX DMA address ENABLE done 1\r\n")
 
-    /*
-	li	    t0, 0xc0000000
-	sw	    t0, 0x8(t2)
-	li	    t0, 0x0000f000
-	sw	    t0, 0xc(t2)
-    */
-/*
-	li	t0, 0xc0000000
+
+#if 1
+    li      a0, 0x3f000000
+    bleu    msize, a0, 1f
+    nop
+	li	t0, 0xc0000080
 	sw	t0, 0x8(t2)
-	li	t0, 0x00008000
+	li	t0, 0x0080ff80
 	sw	t0, 0xc(t2)
 	TTYDBG("HT RX DMA address ENABLE done 2\r\n")
-*/
-	//li	t0, 0xc0000000
+
+	//li	t0, 0xc00000f0
 	//sw	t0, 0x10(t2)
-	//li	t0, 0xfdfcfffc
+	//li	t0, 0x0070fff0
 	//sw	t0, 0x14(t2)
-	////TTYDBG("HT RX DMA address ENABLE done 3\r\n")
+	//TTYDBG("HT RX DMA address ENABLE done 3\r\n")
+    b   2f
+    nop
+#endif
+
+1:
+	li	t0, 0xc0000040
+	sw	t0, 0x8(t2)
+	li	t0, 0x0040ffc0
+	sw	t0, 0xc(t2)
+
+	TTYDBG("HT RX DMA address ENABLE done 2\r\n")
+2:
+
+	//li	t0, 0xc00000f0
+	//sw	t0, 0x10(t2)
+	//li	t0, 0x0070fff0
+	//sw	t0, 0x14(t2)
+	//TTYDBG("HT RX DMA address ENABLE done 3\r\n")
 
 #endif
 
@@ -423,8 +371,8 @@ ht_next_id :
 #ifdef HT_800M//Set HT bridge to be 800Mhz
 	TTYDBG("Setting HyperTransport Controller to be 800Mhz\r\n")
 	dli	    t2, 0x90000cfdfb000000
-	#li	    t0, 0x2 //Frequency: 400 Mhz
-	li	    t0, 0x5 //Frequency: 800 Mhz
+	#li	    t0, 0x2 //Frequency: 400Mhz
+	li	    t0, 0x5 //Frequency: 800Mhz
 	sb	    t0, 0x49(t2)
     lw      a0, 0x48(t2)
 	bal	    hexserial
@@ -459,10 +407,9 @@ ht_next_id :
 	bal	    hexserial
     nop
 
-	li	    t1, 0xfbffffff
+	//li	    t1, 0xfbffffff
+	li	    t1, 0xffffffff
 	and	    a0, a0, t1
-   // li      t1, 0x04000000
-   // or      a0, a0, t1
 	sw	    a0, 0x0(t2)
 	lw	    a0, 0x0(t2)
 
@@ -677,8 +624,8 @@ ht_next_id :
     dli	    t0, 0x90000cfdfe000000
 	#li	    t1, 0x01 //DRIVER 16bit
 	li	    t1, 0x11
-	sb	    t1, 0x4b(t0)
-    lw      a0, 0x48(t0)
+	sb	    t1, 0xcb(t0)
+    lw      a0, 0xc8(t0)
 	bal	    hexserial
     nop
 	TTYDBG("\r\n")
@@ -687,8 +634,10 @@ ht_next_id :
 	//li	t0, 0xba000000
     dli	    t0, 0x90000cfdfe000000
 	li	    t1, 0x00
-	sb	    t1, 0x4b(t0)
-    lw      a0, 0x48(t0)
+    sync
+	sb	    t1, 0xcb(t0)
+    sync
+    lw      a0, 0xc8(t0)
 	bal	    hexserial
     nop
 	TTYDBG("\r\n")
@@ -701,126 +650,144 @@ ht_next_id :
     dli	    t0, 0x90000cfdfe000000
 	#li	    t1, 0x2 //Frequency : 400Mhz
 	li	    t1, 0x5 //Frequency : 800Mhz
-	sb	    t1, 0x51(t0)
-    lw      a0, 0x4c(t0)
-	bal	    hexserial
-    nop
-	TTYDBG("\r\n")
+    sync
+	sb	    t1, 0xd1(t0)
+    sync
+    lw      a0, 0xd0(t0)
+    sync
+	//bal	    hexserial
+    //sync
+    //nop
+	//TTYDBG("\r\n")
 #endif
 
 #if 1 //Watch dog Trying
 	TTYDBG("Setting Watch Dog to make a WARM RESET\r\n")
-#ifdef WD_DEBUG
-	TTYDBG("Setting Watch dog BAR\r\n")
-	nop
-	//li	t0, 0xba00096c
-    dli	    t0, 0x90000cfdfe00096c
-	lw	    a0, 0(t0)
-	bal	    hexserial
-    nop
-	TTYDBG("\r\n")
-#endif
-	//li	t0, 0xba00096c
-    dli	    t0, 0x90000cfdfe00096c
-	li	    a0, 0x00001000
-	sw	    a0, 0(t0)
-	nop
-#ifdef WD_DEBUG
-	lw	    a0, 0(t0)
-	bal	    hexserial
-    nop
-	TTYDBG("\r\n")
-
-	li	    t0, 0xb0001000
-	lw	    a0, 0x0(t0)
-	bal	    hexserial
-    nop
-	TTYDBG("\r\n")
-
-	TTYDBG("Watch dog Disable\r\n")
-	//li	t0, 0xba0009e8
-    dli	    t0, 0x90000cfdfe0009e8
-	lw	    a0, 0(t0)
-	bal	    hexserial
-    nop
-	TTYDBG("\r\n")
-	lw	    a0, 0(t0)
-	li	    a1, 0x04000000
-	or	    a0, a0, a1
-
-	sw	    a0, 0(t0)
-	nop
-	lw	    a0, 0(t0)
-	bal	    hexserial
-    nop
-	TTYDBG("\r\n")
-	li	    t0, 0xb0001000
-	lw	    a0, 0x0(t0)
-	bal	    hexserial
-	nop	
-	TTYDBG("\r\n")
-
+    li      t1, 10
+//#define WD_DEBUG
 	TTYDBG("Watch dog Enable\r\n")
-	//li	t0, 0xba0009e8
-    dli	    t0, 0x90000cfdfe0009e8
-	lw	    a0, 0(t0)
+    dli	    t0, 0x90000cfdfc000cd6
+	li	    a0, 0x00000069
+    sync
+	sb	    a0, 0(t0)
+    sync
+	li	    a0, 0x00000000
+	sb	    a0, 1(t0)
+    sync
+	lb	    a0, 1(t0)
+    sync
+	//bal	    hexserial
+    nop
+	TTYDBG("\r\n")
+	nop
+    dli	    t0, 0x90000cfdfc000cd6
+	li	    a0, 0x0000006c
+	sb	    a0, 0(t0)
+	li	    a0, 0x00000000
+	sb	    a0, 1(t0)
+	nop
+	li	    a0, 0x0000006d
+	sb	    a0, 0(t0)
+	li	    a0, 0x00000000
+	sb	    a0, 1(t0)
+	nop
+	li	    a0, 0x0000006e
+	sb	    a0, 0(t0)
+	li	    a0, 0x00000001
+	sb	    a0, 1(t0)
+	nop
+	li	    a0, 0x0000006f
+	sb	    a0, 0(t0)
+	li	    a0, 0x00000000
+	sb	    a0, 1(t0)
+	nop
+#ifdef WD_DEBUG
+    lb      a0, 1(t0)
 	bal	    hexserial
     nop
 	TTYDBG("\r\n")
 #endif
-	//li	t0, 0xba0009e8
-    dli	    t0, 0x90000cfdfe0009e8
-	lw	    a0, 0(t0)
-	li	    a1, 0xfbffffff
-	and	    a0, a0, a1
 
-	sw	    a0, 0(t0)
-	nop
 #ifdef WD_DEBUG
-	lw	    a0, 0(t0)
-	bal	    hexserial
-	nop	
-	TTYDBG("\r\n")
-	li	    t0, 0xb0001000
-	lw	    a0, 0x0(t0)
+	lb	    a0, 1(t0)
 	bal	    hexserial
 	nop	
 	TTYDBG("\r\n")
 
-	TTYDBG("Watch dog counter value\r\n")
-	li	    t0, 0xb0001000
-	lw	    a0, 0x8(t0)
+	TTYDBG("Watch dog base value\r\n")
+	li	    a0, 0x00000069
+	sb	    a0, 0(t0)
+    lb      a0, 1(t0)
+	bal	    hexserial
+	nop	
+	TTYDBG("\r\n")
+	li	    a0, 0x0000006c
+	sb	    a0, 0(t0)
+    lb      a0, 1(t0)
+	bal	    hexserial
+	nop	
+	TTYDBG("\r\n")
+	li	    a0, 0x0000006d
+	sb	    a0, 0(t0)
+    lb      a0, 1(t0)
+	bal	    hexserial
+	nop	
+	TTYDBG("\r\n")
+	li	    a0, 0x0000006e
+	sb	    a0, 0(t0)
+    lb      a0, 1(t0)
+	bal	    hexserial
+	nop	
+	TTYDBG("\r\n")
+	li	    a0, 0x0000006f
+	sb	    a0, 0(t0)
+    lb      a0, 1(t0)
 	bal	    hexserial
 	nop	
 	TTYDBG("\r\n")
 #endif
-	li	    t0, 0xb0001000
-	li	    a0, 0x1
-	sw	    a0, 0x8(t0)
-
-	TTYDBG("Watch dog begin to work\r\n")
-	li	    t0, 0xb0001000
-	li	    t1, 0x1
-	sw	    t1, 0(t0)
-	li	    t1, 0x81
-	sw	    t1, 0(t0)
-	li	    t0, 0xb0001000
-	lw	    a0, 0x0(t0)
+	TTYDBG("Watch dog decode enable\r\n")
+    dli	    t0, 0x90000cfdfe00a041
+    li      a0, 0xff
+    sb      a0, 0(t0)
+    lb      a0, 0(t0)
 	bal	    hexserial
 	nop	
 	TTYDBG("\r\n")
 
-	TTYDBG("Watch dog counter value\r\n")
-	li	    t0, 0xb0001000
-	li	    t1, 0x1
+	TTYDBG("Watch dog control value\r\n")
+    dli	    t0, 0x90000c0000010000
+    sync
+	lw	    a0, 0(t0)
+	bal	    hexserial
+	nop	
+	TTYDBG("\r\n")
+    sync
+	lw	    a0, 4(t0)
+	bal	    hexserial
+	nop	
+	TTYDBG("\r\n")
+	TTYDBG("Set Watch dog control value\r\n")
+    li      a0, 0x15
+	sw	    a0, 4(t0)
+	nop	
+    li      a0, 0x01
+	sw	    a0, 0(t0)
+	nop	
+    li      a0, 0x81
+	sw	    a0, 0(t0)
+	nop	
+
+#if 0
 1:
-	lw	    a0, 0x8(t0)
+    lw      a0, 4(t0)
 	bal	    hexserial
 	nop	
 	TTYDBG("\r\n")
-	lw	    a0, 0x8(t0)
+    lb      a0, 4(t0)
 	bne	    a0, t1, 1b
 	nop
+#endif
 
 #endif
 	
@@ -829,6 +796,7 @@ ht_next_id :
     dli     t0, 0x90000cfdfb000000
 	li	    t1, 0x1f
 1:
+    sync
     lw      a0, 0x44(t0)
 	#bal	hexserial
     nop
@@ -842,6 +810,7 @@ ht_next_id :
 	li	    t1, 0x1f
 
 3:
+    sync
     lw      a0, 0x44(t0)
 	li	    a1, 0x20
 	and	    a0, a0, a1
@@ -850,6 +819,7 @@ ht_next_id :
 	nop
 
 	TTYDBG("\r\n")
+    sync
     lw      a0, 0x44(t0)
 	bal	    hexserial
     nop
@@ -861,6 +831,7 @@ ht_next_id :
     dli     t0, 0x90000cfdfb000000
 	li	    t1, 0x1f
 1:
+    sync
     lw      a0, 0x44(t0)
 	#bal	hexserial
     nop
@@ -874,6 +845,7 @@ ht_next_id :
 	li	    t1, 0x1f
 
 3:
+    sync
     lw      a0, 0x44(t0)
 	li	    a1, 0x20
 	and	    a0, a0, a1
@@ -882,20 +854,30 @@ ht_next_id :
 	nop
 
 	TTYDBG("\r\n")
+    sync
     lw      a0, 0x44(t0)
+	bal	    hexserial
+    nop
+    sync
+    lw      a0, 0x48(t0)
 	bal	    hexserial
     nop
 	TTYDBG("\r\n")
 #endif
+
+	TTYDBG("\r\n")
 
 #if 1
 	TTYDBG("Setting HyperTransport Southbridge back to be 8-bit width and 200Mhz for next RESET\r\n")
 	//li	t0, 0xba000000
     dli	    t0, 0x90000cfdfe000000
 	li	    t1, 0x00
-	sb	    t1, 0x4b(t0)
-    lw      a0, 0x48(t0)
-	bal	    hexserial
+    sync
+	sb	    t1, 0xd1(t0)
+    sync
+    lw      a0, 0xd0(t0)
+    sync
+	//bal	    hexserial
     nop
 	TTYDBG("\r\n")
 	//li	t1, 0x0
@@ -915,6 +897,7 @@ crc_checking:
     dli     t0, 0x90000cfdfb000000
 
 2:
+    sync
     lw      a0, 0x44(t0)
 	li	    a1, 0x300
 	and	    a0, a0, a1
@@ -922,12 +905,14 @@ crc_checking:
     beqz	a0,	1f
 	nop
 
+    sync
     lw      a0, 0x44(t0)
 	bal	    hexserial
 	nop
 	TTYDBG("\r\nReset the Controller errror CRC bit\r\n")
  	nop
 
+    sync
     lw      a0, 0x44(t0)
 	li	    a1, 0xfffffcff
 	and	    a0, a0, a1
@@ -945,6 +930,7 @@ crc_checking:
 	//li	t0, 0xba000000
     dli	    t0, 0x90000cfdfe000000
 2:
+    sync
     lw      a0, 0x48(t0)
 	li	    a1, 0x300
 	and	    a0, a0, a1
@@ -952,12 +938,14 @@ crc_checking:
     beqz	a0,	1f
 	nop
 
+    sync
     lw      a0, 0x48(t0)
 	bal	    hexserial
 	nop
 	TTYDBG("\r\nReset the Bridge errror CRC bit\r\n")
  	nop
 
+    sync
     lw      a0, 0x48(t0)
 	li	    a1, 0xfffffcff
 	and	    a0, a0, a1
@@ -981,6 +969,7 @@ crc_checking:
 #if 1//Read HT channel priority
 	TTYDBG("Read HT Channel priority\r\n")
 	dli	    t2, 0x90000cfdfb000000
+    sync
     lw      a0, 0x50(t2)
 	bal	    hexserial
     nop
@@ -1000,6 +989,7 @@ crc_checking:
 	nop
 	TTYDBG("  :  ")
 
+    sync
 	lw	    a0, 0x0(t0)
 	bal	    hexserial
     nop
@@ -1040,6 +1030,7 @@ crc_checking:
 	nop
 	TTYDBG("  :  ")
 
+    sync
 	lw	    a0, 0x0(t0)
 	bal	    hexserial
     nop
@@ -1160,6 +1151,7 @@ crc_checking:
 	li	    a0, 0xffff0000
 	sw	    a0, 0xb4(t0)
 	nop
+    sync
 	lw	    a0, 0xb4(t0)
 	bal	    hexserial
     nop

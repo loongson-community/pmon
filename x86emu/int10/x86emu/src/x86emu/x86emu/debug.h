@@ -124,10 +124,25 @@
 		M.x86.saved_ip = y;                          			\
 	}
 #else
+#if		0			// liujl for debug
+char temp[100];
+# define INC_DECODED_INST_LEN(x)
+# define DECODE_PRINTF(x)	printf("%s", x)
+# define DECODE_PRINTF2(x,y)	\
+		do {				\
+			sprintf(temp, x, y);	\
+			printf("%s", temp);	\
+		}while(0)
+
+# define SAVE_IP_CS(x,y)
+#else
+
 # define INC_DECODED_INST_LEN(x)
 # define DECODE_PRINTF(x)
 # define DECODE_PRINTF2(x,y)
 # define SAVE_IP_CS(x,y)
+
+#endif
 #endif
 
 #ifdef DEBUG_EMU_VGA

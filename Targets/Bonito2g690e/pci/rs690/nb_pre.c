@@ -34,6 +34,8 @@
 
 /*---------------------------------------------------------------------*/
 
+extern int memorysize_high;
+
 /*
  * nb_pre_init :
  * NorthBridge init before PCI emulation
@@ -42,7 +44,7 @@ void nb_pre_init(void)
 {
 	pcitag_t nb_dev = _pci_make_tag(0, 0, 0);
 
-	DEBUG_INFO("+++++++++++++++++++++++++++++++++++++++++++++++++ NB PRE STAGE ++++++++++++++++++++++++++++++++++++\n");
+	DEBUG_INFO("+++++++++++++++++++++++++++++++++++++++++++++++ NB PRE STAGE ++++++++++++++++++++++++++++++++++++\n");
 
 	/* disable NB_BAR2_PM2 */
 	set_nbcfg_enable_bits(nb_dev, 0x4C, 1 << 17, 0 << 17);
@@ -50,12 +52,19 @@ void nb_pre_init(void)
 	/* make preparation for pci_nb_cfg struct */
 	ati_nb_cfg.nb_revision = get_nb_revision();
 
+	/* Readjust the size of system_memory_tom_lo */
+	if(memorysize_high > (1000 << 20))
+		ati_nb_cfg.system_memory_tom_lo = 0x1000;
+	else
+		//ati_nb_cfg.system_memory_tom_lo = 0x800;
+		ati_nb_cfg.system_memory_tom_lo = 0x7c0;
+
 	/* setting TOM LOW basically */
 	_pci_conf_write(nb_dev, 0x90, ati_nb_cfg.system_memory_tom_lo << 20);
 
 	/* gfx pre init */
 #if	defined(CFG_UMA_SUPPORT) || defined (CFG_SP_SUPPORT)
-	gfx_pre_init();	
+	gfx_pre_init();
 #endif
 
 	/* report UMA information to user  */
