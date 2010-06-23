@@ -323,7 +323,9 @@ rtl8168_init_board(struct rtl8168_private *tp, struct pci_attach_args *pa)
 
 }
 
-static struct rtl8168_private* myRTL = NULL;
+static struct rtl8168_private* myRTL[2] = {0, 0};
+static int pn = 0;
+static int cnt = 0;
 
 static void
 r8168_attach(struct device * parent, struct device * self, void *aux)
@@ -339,13 +341,19 @@ r8168_attach(struct device * parent, struct device * self, void *aux)
     u32 status;
 	struct pci_attach_args *pa = aux;
 
+	if (cnt >= 2)
+		cnt = 0;
+	pn += cnt;
+	myRTL[pn] = tp;
+	cnt++;
+
 	/*
 	rtl8168_config_reg();
 	rtl8168_io_reg();
 	*/
 
 	tp->pa = (struct pci_attach_args *)aux;
-	myRTL = tp;
+	myRTL[pn] = tp;
 
 	board_idx++;
     if_in_attach = 1;
@@ -380,13 +388,26 @@ r8168_attach(struct device * parent, struct device * self, void *aux)
 		printf("\n");
 	}
 
-	/* Set MAC ADDRESS */
-	tp->dev_addr[0] = 0x00;
-	tp->dev_addr[1] = 0x00;
-	tp->dev_addr[2] = 0x22;
-	tp->dev_addr[3] = 0x33;
-	tp->dev_addr[4] = 0x44;
-	tp->dev_addr[5] = 0x1f;
+	if(pn == 0)
+	{
+		/* Set MAC ADDRESS */
+		tp->dev_addr[0] = 0x00;
+		tp->dev_addr[1] = 0x00;
+		tp->dev_addr[2] = 0x22;
+		tp->dev_addr[3] = 0x33;
+		tp->dev_addr[4] = 0x44;
+		tp->dev_addr[5] = 0x1f;
+	}
+	else
+	{
+		/* Set MAC ADDRESS */
+		tp->dev_addr[0] = 0x00;
+		tp->dev_addr[1] = 0x00;
+		tp->dev_addr[2] = 0x22;
+		tp->dev_addr[3] = 0x33;
+		tp->dev_addr[4] = 0x44;
+		tp->dev_addr[5] = 0x2f;
+	}
 #else
     /* Get MAC address by reading EEPROM */
 	{
@@ -3871,6 +3892,11 @@ void rtl_shift_out_bits(int data, int count, struct rtl8168_private *tp)
 #define EE_DATA_READ    0x01    /* EEPROM chip data out. */
 #define EE_ENB          (0x80 | EE_CS)
 
+#define myoutb(v, a)  (*(volatile unsigned char *)(a) = (v))
+#define myoutw(v, a)  (*(volatile unsigned short*)(a) = (v))
+#define myoutl(v, a)  (*(volatile unsigned long *)(a) = (v))
+#define eeprom_delay()  inl(ee_addr)
+
 int read_eeprom(struct rtl8168_private *tp, int RegAddr)
 {
 	int i;
@@ -3920,4 +3946,311 @@ int read_eeprom(struct rtl8168_private *tp, int RegAddr)
 	}
 #endif
 	return retval;
+}
+
+static void write_eeprom_enable(long ioaddr){
+	int i;
+	long ee_addr = ioaddr + Cfg9346;
+	int  cmd = EE_WEN_CMD;
+
+	myoutb(EE_ENB & ~EE_CS, ee_addr);
+	myoutb(EE_ENB, ee_addr);
+
+	/* Shift the read command bits out. */
+#ifndef EPLC46
+	for (i = 8; i >= 0; i--) {
+		int dataval = (cmd & (1 << i)) ? EE_DATA_WRITE : 0;
+		myoutb(EE_ENB | dataval, ee_addr);
+		eeprom_delay();
+		myoutb(EE_ENB | dataval | EE_SHIFT_CLK, ee_addr);
+		eeprom_delay();
+	}
+#else
+	for (i = 11; i >= 0; i--) {
+		int dataval = (cmd & (1 << i)) ? EE_DATA_WRITE : 0;
+		myoutb(EE_ENB | dataval, ee_addr);
+		eeprom_delay();
+		myoutb(EE_ENB | dataval | EE_SHIFT_CLK, ee_addr);
+		eeprom_delay();
+	}
+#endif
+	myoutb(~EE_CS, ee_addr);
+
+}
+
+static void write_eeprom_disable(unsigned long ioaddr)
+{
+	int i;
+	long ee_addr = ioaddr + Cfg9346;
+	int  cmd = EE_WDS_CMD;
+
+	myoutb(EE_ENB & ~EE_CS, ee_addr);
+	myoutb(EE_ENB, ee_addr);
+
+	/* Shift the read command bits out. */
+
+#ifndef EPLC46
+	i=10;
+#else
+	i=11;
+#endif
+	for (; i >= 0; i--) {
+		int dataval = (cmd & (1 << i)) ? EE_DATA_WRITE : 0;
+		myoutb(EE_ENB | dataval, ee_addr);
+		eeprom_delay();
+		myoutb(EE_ENB | dataval | EE_SHIFT_CLK, ee_addr);
+		eeprom_delay();
+	}
+	myoutb(~EE_CS, ee_addr);
+}
+
+int rtl8168_write_eeprom(long ioaddr, int location,unsigned short data)
+{
+	volatile int i;
+	long ee_addr = ioaddr + Cfg9346;
+	int  cmd = location | EE_WRITE_CMD;
+
+	write_eeprom_enable(ioaddr);
+
+	cmd <<=16;
+	cmd |= data;
+	myoutb(EE_ENB & ~EE_CS, ee_addr);
+	myoutb(EE_ENB, ee_addr);
+
+	/* Shift the read command bits out. */
+	for (i = 24; i >= 0; i--) {
+		int dataval = (cmd & (1 << i)) ? EE_DATA_WRITE : 0;
+		myoutb(EE_ENB | dataval, ee_addr);
+		eeprom_delay();
+		myoutb(EE_ENB | dataval | EE_SHIFT_CLK, ee_addr);
+		eeprom_delay();
+	}
+	/* Terminate the EEPROM access. */
+	myoutb(~EE_CS, ee_addr);
+		delay(10);
+
+	myoutb(EE_ENB, ee_addr);
+	 
+    while( ! (inb(ee_addr) & EE_DATA_READ) ){
+		myoutb(EE_ENB, ee_addr);
+		delay(10);
+	}
+
+	return 0;
+}
+
+static int cmd_reprom(int ac, char *av[])
+{
+	int i;
+	int n = 0;
+	unsigned short data;	
+
+	printf("dump eprom:\n");
+
+	if (!strcmp(av[1], "rte0")){
+		n = 0; 
+		printf("Now read rte0 e2prom\n");
+	}
+	else if (!strcmp(av[1], "rte1")){
+		n = 1; 
+		printf("Now read rte1 e2prom\n");
+	}
+	else{
+		printf("input device Error \n");
+		return 0;
+	}
+
+    if(!myRTL[n]){
+           printf("r8111/8168 interface not initialized\n");
+           return 0;
+    }
+	printf("myRTL[%d] = %x\n", n, myRTL[n]);
+
+	for(i=0; i< 64; i++){
+#ifndef EPLC46
+		data = read_eeprom(myRTL[n],  i); //run 
+#else
+		data = read_eeprom(myRTL[n], 2*i);
+		data = data | (read_eeprom(myRTL[n],2*i+1)) << 8;
+#endif
+		printf("%04x ", data);
+		if((i+1)%8 == 0)
+			printf("\n");
+	}
+
+	return data;
+}
+
+static int cmd_wrprom(int ac, char *av[])
+{
+    int i;
+	int n = 0; 
+    unsigned short data;
+
+static unsigned char rom[]={
+/*00000000:*/0x29,0x81,0xEC,0x10,0x68,0x81,0xEC,0x10,0x68,0x81,0x04,0x01,0x9C,0x62,0x00,0xE0,
+/*00000010:*/0x4C,0x68,0x00,0x01,0x05,0xCF,0xC3,0xFF,0x04,0x02,0xC0,0x8C,0x80,0x02,0x00,0x00,
+/*00000020:*/0x11,0x3C,0x07,0x00,0x10,0x20,0x76,0x00,0x63,0x01,0x01,0xFF,0x00,0x27,0xAA,0x03,
+/*00000030:*/0x02,0x20,0x99,0xA5,0x80,0x02,0x00,0x20,0x04,0x40,0x20,0x00,0x04,0x40,0x20,0x20,
+/*00000040:*/0x00,0x00,0x20,0xE1,0x22,0xB5,0x60,0x00,0x0A,0x00,0xE0,0x00,0x68,0x4C,0x00,0x00,
+/*00000050:*/0x01,0x00,0x00,0x00,0xB2,0x73,0x75,0xEA,0x87,0x75,0x7A,0x39,0xCA,0x98,0x00,0x00,
+/*00000060:*/0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+/*00000070:*/0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
+
+	if (!strcmp(av[1], "rte0")){
+		n = 0; 
+		printf("Now write rte0 e2prom\n");
+	}
+	else if (!strcmp(av[1], "rte1")){
+		n = 1; 
+		printf("Now write rte1 e2prom\n");
+	}
+	else{
+		printf("Error rte device\n");
+		return 0;
+	}
+
+    if(!myRTL[n]){
+    	printf("rtl8111/8168 interface not initialized\n");
+        return 0;
+    }
+
+    printf("myRTL[%d]->ioaddr = %x\n", n, myRTL[n]->ioaddr);
+
+    for(i = 0; i < 0x40; i++)
+    {
+        int j = 5;
+        printf("program %02x:%04x\n",2*i,(rom[2*i+1]<<8)|rom[2*i]);
+rewrite:
+        rtl8168_write_eeprom(myRTL[n]->ioaddr, i, (rom[2*i+1]<<8)|rom[2*i]);
+        data = read_eeprom(myRTL[n],  i);
+        printf("data = %x\n", data);
+
+        if(data != ((rom[2*i+1]<<8)|rom[2*i])){
+            printf("write failed, rewrite now\n");
+			j--;
+			if (j < 0){
+				printf("write e2prom failed\n");
+
+				return -1;
+			}
+            goto rewrite;
+        }
+
+    }
+    printf("The whole eeprom have been programmed!\n");
+
+	/* set mac address */
+	if (NULL != av[2]){
+		int v;
+		char *p = av[2];
+		unsigned short val = 0;
+
+		printf("Set Macaddress\n");
+		for (i = 0; i < 3; i++){
+			val = 0;
+			gethex(&v, av[2], 2);
+			val = v;
+			av[2] += 3;
+
+			gethex(&v, av[2], 2);
+			val = val | (v << 8);
+			av[2] += 3;	
+
+			printf("value[%x] = %4x\n", i, val);
+
+			rtl8168_write_eeprom(myRTL[n]->ioaddr, 0x7 + i, val);
+		}
+		printf("Set Macaddress : %s End\n", p);
+
+	}
+	else
+		printf("No Set Macaddress\n");
+
+	return 0;
+}
+
+static int cmd_setmac(int ac, char *av[])
+{
+	int i, n;
+	unsigned short val = 0;
+	int32_t v;
+
+	if (!strcmp(av[1], "rte0")){
+		n = 0; 
+		printf("Now set rte0 MAC\n");
+	}
+	else if (!strcmp(av[1], "rte1")){
+		n = 1; 
+		printf("Now set rte1 MAC\n");
+	}
+	else{
+		printf("Error rte device\n");
+		return 0;
+	}
+
+	if(!myRTL[n]){
+		printf("r8111/8168 interface not initialized\n");
+		return 0;
+	}
+
+	if(ac != 3){
+		printf("MAC ADDRESS ");
+		for(i=0; i<6; i++){
+			printf("%02x", myRTL[n]->dev_addr[i]);
+			if(i==5)
+				printf("\n");
+			else
+				printf(":");
+		}
+		printf("Use \"setmac rte0/1 <mac> \" to set mac address\n");
+		return 0;
+	}
+	for (i = 0; i < 3; i++) {
+		val = 0;
+		gethex(&v, av[2], 2);
+		val = v ;
+		av[2]+=3;
+
+		gethex(&v, av[2], 2);
+		val = val | (v << 8);
+		av[2] += 3;
+
+		rtl8168_write_eeprom(myRTL[n]->ioaddr, 0x7 + i, val);
+
+	}
+
+	printf("The machine should be restarted to make the mac change to take effect!!\n");
+
+	return 0;
+}
+
+
+
+static const Optdesc netdmp_opts[] =
+{
+    {"<interface>", "Interface name"},
+    {0}
+};
+
+static const Cmd Cmds[] =
+{
+	{"Realtek 8111dl/8168"},
+
+	{"readrom", "", NULL,
+			"dump rtl8111dl/8168 eeprom content and mac address", cmd_reprom, 1, 2,0},
+	{"writerom", "", NULL,
+			"dump rtl8111dl/8168 eeprom content", cmd_wrprom, 1, 3, 0},
+	{"setmac", "", NULL,
+		    "Set mac address into rtl8111dl/8168 eeprom", cmd_setmac, 1, 5, 0},
+	{0, 0}
+};
+
+
+static void init_cmd __P((void)) __attribute__ ((constructor));
+
+static void
+init_cmd()
+{
+	cmdlist_expand(Cmds, 1);
 }
