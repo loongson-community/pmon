@@ -11,6 +11,10 @@
 #include "../../Targets/Bonito3asis/include/bonito.h"
 #endif
 
+#ifdef LS3_SERVER
+#include "../../Targets/Bonito3aserver/include/bonito.h"
+#endif
+
 #endif
 
 #ifdef LS2G_HT

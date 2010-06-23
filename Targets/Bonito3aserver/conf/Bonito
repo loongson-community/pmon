@@ -1,0 +1,3 @@
+include "Targets/Bonito3aserver/conf/Bonito.3aserver"
+#include "Targets/Bonito2fdev/conf/Bonito.2fdev.sm502"
+#include "Targets/Bonito2fdev/conf/Bonito.2feva"
