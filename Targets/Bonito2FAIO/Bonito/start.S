@@ -1538,7 +1538,10 @@ out:a0[2..0] = GPIO51 GPIO50 GPIO49
 [1 0 0]  128M*8 4薪      512MB  1     8      A0！！A13    A0！！A9 
 [1 0 1]  64M*8  8薪      512MB  2     4      A0！！A13    A0！！A9 
 [1 1 0]  128M*8 8薪       1GB   2     8      A0！！A13    A0！！A9 
-[1 1 1]  256M*8 8薪       2GB   2     8      A0！！A14    A0！！A9
+[1 1 1]  32M*16 8薪      512MB  2     4      A0！！A12    A0！！A9
+GPIO48 indicates 533 or 667 MHz
+1: 533
+0: 667
 */
 LEAF(pcbv)
         li v0, MMIO_BASE + 0x10000
@@ -1557,7 +1560,22 @@ LEAF(pcbv)
         nop
 END(pcbv)
 
+LEAF(readgpio48)
+        li v0, MMIO_BASE + 0x10000
+        lw a1, 0xc(v0)
+        and a1, 0xfffeffff
+        
+        sw a1, 0xc(v0)
+        nop
+        lw a1, 0x4(v0)
+        and a1, 0x10000
+        srl a0,a1,16
+        and a0,0x1
+        nop
 
+        .word 0x03e00008
+        nop
+END(readgpio48)
 #######################################
 
 #define REG_ADDRESS 0x0
@@ -1636,6 +1654,18 @@ reg_write:
     lw  a1,0x10(t0)
     move msize,a1
     nop
+    
+    //533 or 667 config
+    bal readgpio48
+    nop
+	bne	a0, $0, ddr2_start
+	nop
+	li  v0, 0xaffffe70
+	lw  v1,0(v0)
+	and v1,0xffff0000
+	or  v1,0x0a0b
+	sw  v1,0(v0)
+	nop 	
     b   ddr2_start
     nop
 
@@ -1809,6 +1839,21 @@ NOT_SET_UNBUFFERED:
 	sw  v1, 4(v0) 
 	nop
 
+    /* 533 or 667 config*/
+    bal readgpio48
+    nop
+	bne	a0, $0, ddr2_start
+	nop
+	//li  v1,0x00030a0b
+	li  v0, 0xaffffe70
+	lw  v1,0(v0)
+	and v1,0xffff0000
+	or  v1,0x0a0b
+	sw  v1,0(v0)
+	nop
+	
+
+
 ddr2_start:
 1:	
     #define QYL_DDR2_DEBUG
@@ -1961,9 +2006,9 @@ DDR2_CTL_05_DATA_LO_006: .word 0x04050100
 DDR2_CTL_07_DATA_LO_006: .word 0x00030909
 MEMSIZE_006:             .word 0x40000000
 
-DDR2_CTL_01_DATA_HI_007: .word 0x00000001
-DDR2_CTL_03_DATA_LO_007: .word 0x01000100
-DDR2_CTL_05_DATA_LO_007: .word 0x04050000
+DDR2_CTL_01_DATA_HI_007: .word 0x00000000
+DDR2_CTL_03_DATA_LO_007: .word 0x01000000
+DDR2_CTL_05_DATA_LO_007: .word 0x04050200
 DDR2_CTL_07_DATA_LO_007: .word 0x00030909
-MEMSIZE_007:             .word 0x80000000
+MEMSIZE_007:             .word 0x20000000
 
