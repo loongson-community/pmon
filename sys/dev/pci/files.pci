@@ -34,7 +34,7 @@ file    sys/dev/pci/rtl8168.c       rte
 # Ethernet driver for fxp-based boards
 device em: ether, ifnet, ifmedia, mii
 attach em at pci
-file   sys/dev/pci/em/if_em.c          em
+file   sys/dev/pci/e1000e/if_em.c          em
 
 
 # Ethernet driver for wx-based boards
