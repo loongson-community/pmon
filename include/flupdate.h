@@ -2,14 +2,11 @@
  * Winbond W25x80
  * ------------------------------- */
 #define FLASH_ID   			0x13EF  /* device ID & Manufacturer */
-#define FLASH_SIZE 			1024    /* (1M) Flash size in KBytes */
-#define SECTOR_DEF 			256     /* 256 sectors of 4K */
-                                	/* The format is: n:sK,n:sK,....,n:sK */
-                                	/* n - number of sectors */
-                                	/* s - size of sectors */
-#define BLOCK_SIZE 			64		/* (64K) block size in Kbytes. If block erase is not supported then */
+#define EC_FLASH_SIZE		1024    /* (1M) Flash size in KBytes */
+#define EC_SECTOR_SIZE 		4       /* (4K) sector size in Kbytes. */
+#define EC_BLOCK_SIZE 		64		/* (64K) block size in Kbytes. If block erase is not supported then */
                                 	/* block size should be equal to FLASH_SIZE */
-#define PAGE_SIZE  			256     /* Page size in bytes */
+#define EC_PAGE_SIZE  		256     /* Page size in bytes */
 #define PROG_SIZE  			0xFF	/* Max number of bytes that can be programmed at on time. FF --> means page size */
 #define READ_DEV_ID_TYPE 	0		/* Read Device ID type. Read with/without dummy */
 

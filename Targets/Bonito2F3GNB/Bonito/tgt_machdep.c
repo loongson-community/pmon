@@ -359,7 +359,7 @@ extern void godson1_cache_flush(void);
 
 extern void cs5536_pci_fixup(void);
 
-#ifdef LOONGSON2F_3GNB
+#ifndef LOONGSON2F_3GNB
 extern void ec_update_rom(void *src, int size);
 #endif
 
@@ -437,9 +437,7 @@ tgt_reboot()
 {
 #ifdef LOONGSON2F_3GNB
 	/* Send reboot command */
-	*((volatile unsigned char *)(0xbfd00066)) = 0x4e;
-	delay(1000000);
-	*((volatile unsigned char *)(0xbfd00062)) = 0x1;
+	ec_wr_noindex(CMD_RESET, BIT_RESET_ON);
 	while(1);
 #endif	// end ifdef LOONGSON2F_3GNB
 }

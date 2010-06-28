@@ -8,6 +8,24 @@
 #include <linux/io.h>
 #include "include/shm.h"
 
+#ifdef	LOONGSON2F_3GNB
+/* delay function */
+extern void delay(int microseconds);
+/* version array */
+extern unsigned char *get_ecver(void);
+
+/* read and write operation */
+/* PM (Power Management) Channels Register access.
+ * channel 1: legacy 62h, 66h; channel 2: legacy 68h, 6Ch; channel 3: legacy 6Ah, 6Eh
+ * other, 8042 KBD standard interface: port 60h, 64h;
+ */
+#undef	read_port
+#undef	write_port
+#define	read_port(x)	 (*(volatile unsigned char *)(MIPS_IO_BASE | x))
+#define	write_port(x, y) (*(volatile unsigned char *)(MIPS_IO_BASE | x) = y)	
+
+/**************************************************************/
+
 /* base address for io access */
 #undef	MIPS_IO_BASE
 #define	MIPS_IO_BASE	(0xbfd00000)
@@ -17,192 +35,66 @@
 /* EC access port for sci communication */
 #define	EC_CMD_PORT			0x66
 #define	EC_STS_PORT			0x66
-#define	EC_DATA_PORT		0x62
-
-#ifdef	LOONGSON2F_3GNB
-/* We should make ec rom content and pmon port number equal. */
-#define	WPCE775_HIGH_PORT	0xFF1E
-#define WPCE775_MID_PORT	0xFF1D
-#define	WPCE775_LOW_PORT	0xFF1C
-#define	WPCE775_DATA_PORT	0xFF1F
-#define	RD_REG_DELAY		30000
-#define CMD_RD_VER			0x4F
-#define VER_START_INDEX		0
-#define	OEMVER_MAX_SIZE		36 
-
-/* SMBUS relative register block according to the EC(WPCE775x) datasheet. */
-#define SMB_BASE_ADDR	0xFFF500
-#define SMB_CHNL_SIZE	0x40
-#define SMB_CHNL1		0
-#define SMB_CHNL2		1
-#define SMB_CHNL3		2
-#define SMB_CHNL4		3
-
-#define REG_SMB1SDA		0xFFF500
-#define REG_SMB2SDA		0xFFF540
-#define REG_SMB3SDA		0xFFF580
-#define REG_SMB4SDA		0xFFF5C0
-#define	SMBSDA_SIZE		8
-#define REG_SMBSDA		0x00
-#define REG_SMBST		0x02
-#define REG_SMB2SDA		0xFFF540
-#define REG_SMB2ST		0xFFF542
-#define SMBST_XMIT	(1 << 0)	/* Transmit Mode(RO).*/
-							/* 0:SMB not in master/slave Transmit mode
-							 * 1:SMB in master/slave Transmit mode */
-#define SMBST_MASTER	(1 << 1)	/* Master Mode(RO). */
-							/* 0:Arbitration loss(BER is set) or Stop condition occurred 
-							 * 1:SMB in Master mode(successful request for bus mastership) */
-#define SMBST_NMATCH	(1 << 2)	/* New Match(R/W1C). */
-#define SMBST_STASTR	(1 << 3)	/* Stall Atfer Start(R/W1C) */
-							/* Set by the successful completion of the sending of an address
-							 * (i.e.,a Start condition sent without a bus error or negative
-							 * acknowledge) if STASTRE in SMBnCTL1 register is set. */
-#define SMBST_NEGACK	(1 << 4)	/* Negative Acknowledge(R/W1C).*/
-							/* Set by hardware when a transmission is not acknowledged
-							 * on the ninth clock(in this case,SDAST is not set).
-							 * After a Stop condition, writing 1 to NEGACK clears it. */
-#define SMBST_BER		(1 << 5)	/* Bus Error(R/W1C). */
-							/* Set by the hardware either when an invalid Start/Stop condition
-							 * is detected(i.g.,during data transfer or acknowledge cycle) or
-							 * when an arbitration problem is detected(such as a stalled clock
-							 * transaction). Writing 1 to BER clears it. */
-#define SMBST_SDAST	(1 << 6)	/* SDA Status(RO). */
-							/* When set, indicates that the SDA data register is waiting for
-							 * data(Transmit mode - master or slave) or holds data that should
-							 * be read(Receive mode - master or slave). This bit is cleared
-							 * when reading from SMBnSDA register during a receive or when
-							 * written to during a transmit. */
-#define SMBST_SLVSTP	(1 << 7)	/* Slave Stop(R/W1C). */
-							/* When set, indicates that a Stop condition was detected after
-							 * a slave transfer(i.e., after a slave transfer in which MATCH,
-							 * ARPMATCH or GCMATCH was set). Writing 1 to SLVSTP clears it. */
-#define REG_SMBCST		0x04
-#define REG_SMB2CST		0xFFF544
-#define SMBCST_BUSY	(1 << 0)	/* Busy (RO) */
-							/* when set(1),indicates that the SMB module is one of the
-							 * following states:
-							 * -Generating a Start condition
-							 * -In Master mode(MASTER in SMBnST register is set)
-							 * -In Slave mode(MATCH,GMATCH or ARPMATCH in SMBnCST reg is set)
-							 * -In the period between detecting a Start condition and
-							 *  completing of the address byte; after this, the SMB either
-							 *  becomes not busy or enters Slave mode. */
-#define SMBCST_BB		(1 << 1)	/* Bus Busy (R/W1C) */
-							/* When set(1), indicates the bus is busy. It is set either when
-							 * the bus is active(i.g., a low level on either SDA or SCL) or
-							 * by a Start condition. It is cleared when the module is disabled
-							 * or on detection of a valid Stop condition or by writing 1 to
-							 * this bit. */
-#define SMBCST_MATCH	(1 << 2)	/* Address Match (RO). */
-							/* In Slave mode, set(1) when SAEN in SMBnADDR1 or SMBnADDR2
-							 * register is set and the first seven bits of the address byte
-							 * (the first byte transferred after a Start condition) match the
-							 * 7-bit ADDR field in the respective register.It is cleared by
-							 * Start, Repeated Start or Stop condition(including illegal Start
-							 * or Stop condition). */
-#define SMBCST_GCMATCH	(1 << 3)	/* Global Call Match (RO). */
-							/* In Slave mode, set(1) when GCMEN in SMBnCTL1 register is set
-							 * and the address byte(the first byte transferred afte a Start
-							 * condition) is 00h. It is cleared by a Start Repeated Start or
-							 * Stop condition(including illegal Start or Stop condition). */
-#define SMBCST_TSDA	(1 << 4)	/* Test SDA Line (RO). */
-							/* Reads the current value of the SDA line. This bit can be used
-							 * while recovering from an error condition in which the SDA line
-							 * is constantly pulled low by a slave that went out of synch. 
-							 * Data written to this bit is ignored. */
-#define SMBCST_TGSCL	(1 << 5)	/* Toggle SCL line (R/W). */
-							/* Enables toggling the SCL line during the process of error
-							 * recovery. When the SDA line is low, writing 1 to this bit
-							 * toggles the SCL line for one cycle.
-							 * TGSCL bit is cleared when the SCL line toggle is completed. */
-#define SMBCST_MATCHAF	(1 << 6)	/* Match Address Field (RO). */
-							/* When MATCH bit is set, MATCHAF bit indicates which slave
-							 * address was matched. MATCHAF is cleared for a match with ADDR
-							 * in SMBnADDR1 register and is set for a match with ADDR in
-							 * SMBnADDR2 register. */
-#define SMBCST_ARPMATCH (1 << 7)	/* ARP Address Match (RO). */
-							/* In Slave mode,set(1) when ARPMEN in SMBnCTL3 reg is set and the
-							 * address byte(the first byte transferred after a Start condition)
-							 * is 110001b. It is cleared by a Start, Repeated Start or Stop
-							 * condition(including illegal Start or Stop condition). */
-#define REG_SMBCTL1	0x06
-#define REG_SMB2CTL1	0xFFF546
-#define SMBCTL1_START	(1 << 0) /*Should be set to generate a Start condition on the SMBus.*/
-							/* -If the WPCE775x is not the active bus master(MASTER in SMBnST
-							 *  register is set to 0), setting START generates a Start
-							 *  condition as soon as the Smbus is free(BB in SMBnCST register
-							 *  is set to 0). An address transmission sequence should then
-							 *  be performed.
-							 * -If the WPCE775x is the active master of the bus(MASTER in
-							 *  SMBnST register is set to 1), when START is set, a write to
-							 *  SMBnSDA register generates a Start condition. SMBnSDA data,
-							 *  containing the slave address and the transfer direction, is
-							 *  then transmitted. In case of a Repeated Start condition, the
-							 *  set bit can be used to switch the direction of the data flow
-							 *  between the master and the slave or to choose another slave
-							 *  device. without requiring a Stop condition in either case.
-							 * This bit is cleared either when the Start condition is sent or
-							 * on detection of a bus error(BER in SMBnST register is set to 1).
-							 * START should be set only when in Master mode or when requesting
-							 * Master mode. */
-#define SMBCTL1_STOP (1 << 1) /*In Master mode,setting this bit generates a Stop condition,*/
-							/* which completes or aborts the current message transfer. This bit
-							 * clears itself after the Stop condition is generated. */
-#define SMBCTL1_INTEN	(1 << 2)	/* Interrupt Enable. 0:disable, 1:enable */
-#define SMBCTL1_ACK	(1 << 4)	/* Acknowledge. */
-							/* When acting as a receiver, holds the value of the next
-							 * acknowledge cycle. It should be set when a negative acknowledge
-							 * must be issued on the next byte. Cleared(0) after each
-							 * acknowledge cycle. It cannot be reset by software. */
-#define SMBCTL1_GCMEN	(1 << 5)	/*Global Call Match Enable. */
-							/* When set,enables the matching of an incoming address byte to
-							 * the general call address(start condition followed by address
-							 * byte of 00h) while the SMB is in Slave mode. When cleared,
-							 * the SMB does not respond to a global call. */
-#define SMBCTL1_NMINTE	(1 << 6)	/* New Match Interrupt Enable. */
-							/* When set, enables the interrupt on a new match(i.e., when
-							 * NMATCH in SMBnST register is set). The interrupt is issued
-							 * only if INTEN in SMBnCTL1 reg is set. */
-#define SMBCTL1_STASTRE	(1 << 7)	/* Stall After Start Enable. */
-							/* When set(1), enables the Stall After Start mechanism. In this
-							 * case,the SMB stalls the bus after the address byte. When STASTRE
-							 * is cleared, STASTR bit in SMBnST register cannot be set. */
+#define	EC_DAT_PORT			0x62
 
 /**************************************************************/
 
-#define	rdcore(x)		rdwbec(x)
-#define	wrcore(x, y)	wrwbec(x, y)
-#define	SMB_DELAY	100
+/* ACPI OEM commands */
 
-/* delay function */
-extern void delay(int microseconds);
-/* version array */
-extern unsigned char ec_ver[OEMVER_MAX_SIZE];
-extern unsigned char *get_ecver(void);
+/* reset the machine auto-clear : rd/wr */
+#define CMD_RESET           0x4E
+#define BIT_RESET_ON        1
+/* read version number: rd */
+#define CMD_RD_VER			0x4F
+#define VER_START_INDEX		0
+#define	OEMVER_MAX_SIZE		36 
+ 
+/* ACPI legacy commands */
+#define CMD_READ_EC 	  	0x80	/* Read Embedded Controller command. */
+#define CMD_WRITE_EC  		0x81	/* Write Embedded Controller command. */
+#define	CMD_QUERY			0x84	/* Query Embedded Controller command, for get SCI event number. */
 
-/* access WPCE775x EC register content */
-static inline void wrwbec(unsigned long reg, unsigned char val)
-{
-	delay(10);
-	*( (volatile unsigned char *)(MIPS_IO_BASE | WPCE775_HIGH_PORT) ) = (reg & 0xff0000) >> 16;
-	*( (volatile unsigned char *)(MIPS_IO_BASE | WPCE775_MID_PORT) ) = (reg & 0x00ff00) >> 8;
-	*( (volatile unsigned char *)(MIPS_IO_BASE | WPCE775_LOW_PORT) ) = (reg & 0x00ff);
-	*( (volatile unsigned char *)(MIPS_IO_BASE | WPCE775_DATA_PORT) ) = val;
-}
+/* Read temperature & fan index information */
+#define INDEX_TEMPERATURE_VALUE         0x1B    /* current CPU temperature value */
+#define BIT_TEMPERATURE_PN		    (1 << 7)    /* current CPU temperature value positive or negative */
+#define TEMPERATURE_VALUE_MASK			0x7F
+#define INDEX_FAN_SPEED_HIGH            0x09    /* fan speed high byte */
+#define INDEX_FAN_SPEED_LOW             0x08    /* fan speed low byte */
+ 
+/* Read battery index information */
+#define INDEX_BATTERY_VOL_LOW           0x90    /* Battery Voltage Low byte. */
+#define INDEX_BATTERY_VOL_HIGH          0x91    /* Battery Voltage High byte. */
+#define INDEX_BATTERY_CAPACITY          0x92    /* Battery Capacity byte. */
+#define INDEX_BATTERY_TEMP_LOW          0x93    /* Battery Temperature Low byte. */
+#define INDEX_BATTERY_TEMP_HIGH         0x94    /* Battery Temperature High byte. */
+#define INDEX_BATTERY_FLAG              0x95    /* Battery Flags byte. */
+#define BIT_BATTERY_CURRENT_PN          7       /* Battery current sign is positive or negative */
+#define INDEX_BATTERY_AI_LOW            0x96    /* Battery Current Low byte. */
+#define INDEX_BATTERY_AI_HIGH           0x97    /* Battery Current High byte. */
 
-static inline unsigned char rdwbec(unsigned long reg)
-{
-	delay(10);
-	*( (volatile unsigned char *)(MIPS_IO_BASE | WPCE775_HIGH_PORT) ) = (reg & 0xff0000) >> 16;
-	*( (volatile unsigned char *)(MIPS_IO_BASE | WPCE775_MID_PORT) ) = (reg & 0x00ff00) >> 8;
-	*( (volatile unsigned char *)(MIPS_IO_BASE | WPCE775_LOW_PORT) ) = (reg & 0x00ff);
-	return (*( (volatile unsigned char *)(MIPS_IO_BASE | WPCE775_DATA_PORT) ));
-}
+/* Read Current Power Status */
+#define INDEX_POWER_STATUS              0xA2
+#define BIT_POWER_BATPRES			(1 << 6)	/* Battery present */
+
+/* EC_SC input */
+#define   EC_SMI_EVT    (1 << 6)    // 1: SMI event pending
+#define   EC_SCI_EVT    (1 << 5)    // 1: SCI event pending
+#define   EC_BURST      (1 << 4)    // controller is in burst mode
+#define   EC_CMD        (1 << 3)    // 1: byte in data register is command
+                                    // 0: byte in data register is data
+#define   EC_IBF        (1 << 1)    // 1: input buffer full (data ready for ec)
+#define   EC_OBF        (1 << 0)    // 1: output buffer full (data ready for host)
+									
+#define	RD_REG_DELAY		30000
+#define EC_CMD_TIMEOUT      0x1000  // command checkout timeout including cmd to port or state flag check
+#define EC_SEND_TIMEOUT 	0x7ff
+
+/**************************************************************/
 
 /* 07h - 2Fh: SuperI/O Control and Configuration Registers */
 /* Standard Control Registers */
 #define REG_SLDN			0x7		/* Logical Device Number */
+#define SIO_SID             0x20        // Super IO identification
 #define REG_SID				0x20	/* SuperI/O ID */
 #define REG_SIOCF1			0x21	/* SuperI/O Configuration 1 */
 #define CF1_GLOBEN		(1 << 0)	/* Global Device Enable. */
@@ -267,8 +159,7 @@ static inline unsigned char rdwbec(unsigned long reg)
 #define DOCKING_LPC_LDN     0x19
 
 /* SuperI/O Values */
-#define LDN_SHM             0xF		/* LDN of Shared Memory logical device */
-#define SID_WPCE775l		0xFC	/* Identity Number of the device family */
+#define SID_WPCE775L		0xFC	/* Identity Number of the device family */
 #define CHIPID_WPCE775L	(0xA << 5)	/* Chip ID. Identifies a specific device of a family. */
  
 /* Logical Device values */
@@ -276,11 +167,13 @@ static inline unsigned char rdwbec(unsigned long reg)
 
 // Memory Map definitions
 // Device memory
-#define MAX_FLASH_CAPACITY  (2 * 1024 * 1024)
+#define MAX_FLASH_CAPACITY  (1 * 1024 * 1024)
+#define	EC_ROM_MAX_SIZE		0xFFFF
 
 // PC memory
-#define PC_WCB_BASE   0xB8000000 // 4GB-8MB
-#define WCB_BASE_ADDR 0xB8000000
+#define WCB_BASE_ADDR 		0xBBF00000
+#define FLASH_WIN_BASE_ADDR	0xBBE00000
+#define RDBK_STAT_VAL_ADDR 	0xBBF00008
 
 // Firmware Update Protocol definitions
 /* Semaphore bits */
@@ -292,6 +185,7 @@ static inline unsigned char rdwbec(unsigned long reg)
 #define WCB_MAX_DATA             8
 #define WCB_SIZE_ERASE_CMD       5 // 1 command byte, 4 address bytes
 #define WCB_SIZE_READ_IDS_CMD    1
+#define WCB_SIZE_READ_STS_CMD    1
 #define WCB_SIZE_ENTER_CMD       5 // 1 command byte, 4 code bytes
 #define WCB_SIZE_EXIT_CMD        1
 #define WCB_SIZE_ADDRESS_SET_CMD 5
@@ -316,6 +210,9 @@ static inline unsigned char rdwbec(unsigned long reg)
 #define EXIT_OP                 0x20
 #define RESET_EC_OP             0x21
 #define GOTO_BOOT_BLOCK_OP      0x22
+#define READ_STSREG_OP          0x30
+#define WRITE_STSREG_OP         0x31
+#define PROGRAM_BYTE_OP         0x32
 #define ERASE_OP                0x80
 #define SECTOR_ERASE_OP         0x82
 #define ADDRESS_SET_OP          0xA0
@@ -323,31 +220,56 @@ static inline unsigned char rdwbec(unsigned long reg)
 #define READ_IDS_OP             0xC0
 #define GENERIC_OP              0xD0
 #define SET_WINDOW_OP           0xC5
+#define READ_DATA_OP            0xE0
 
 #define DEV_SIZE_UNIT           0x20000 // 128 Kb
 #define PROGRAM_FLASH_BADDR		0x20000	// to program flash base address
+
+#define EC_ROM_PRODUCT_ID_SPANSION	0x01
+#define EC_ROM_PRODUCT_ID_MXIC		0xC2
+#define EC_ROM_PRODUCT_ID_AMIC		0x37
+#define EC_ROM_PRODUCT_ID_EONIC		0x1C
+#define EC_ROM_PRODUCT_ID_WINBOND	0xEF	// Winbond W25x80
 
 // Write Command Buffer (WCB) commands structure
 #pragma pack(1)
 typedef struct
 {
-    unsigned char	Command;		// Byte  3
+    unsigned char	Command;			// Byte  3
     union
     {
         FLASH_device_commands_t InitCommands;
-        unsigned long   EnterCode;  // Bytes 4-7 For Flash Update "Unlock" code
-        unsigned long	Address;    // Bytes 4-7 For Erase and Set Address
-        unsigned char	Byte;		// Byte  4
-        unsigned short	Word;		// Bytes 4-5
-        unsigned long	DWord;		// Bytes 4-7
+        unsigned long   EnterCode;  	// Bytes 4-7 For Flash Update "Unlock" code
+        unsigned long	Address;    	// Bytes 4-7 For Erase and Set Address
+        unsigned char	Byte;			// Byte  4
+        unsigned short	Word;			// Bytes 4-5
+        unsigned long	DWord;			// Bytes 4-7
         struct
         {
-            unsigned long DWord1;   // Bytes 4-7
-            unsigned long DWord2;   // Bytes 8-11
+            unsigned long DWord1;   	// Bytes 4-7
+            unsigned long DWord2;   	// Bytes 8-11
         } EightBytes;
+        struct
+        {
+            unsigned long DWAddress;	// Bytes 4-7
+            unsigned long DWData;   	// Bytes 8-11
+			unsigned char BFlashCmd;	// Bytes 12
+			unsigned char BHasAddr;		// Bytes 13
+			unsigned char BNumOfData;	// Bytes 14
+			unsigned char BWriteTrans;	// Bytes 15
+        } GenericOPBytes;
     } Param;
 } WCB_struct;
 #pragma pack()
+
+// Possible protocol termination options
+typedef enum
+{
+    WCB_EXIT_NORMAL = 0,
+    WCB_EXIT_RESET_EC,
+    WCB_EXIT_GOTO_BOOT_BLOCK,
+    WCB_EXIT_LAST
+} WCB_exit_t;
 
 /* Used standard Control Registers to access WPCE775x resource by superio index/data port. */
 static inline void wrsio(unsigned char reg, unsigned char data)
@@ -364,28 +286,39 @@ static inline unsigned char rdsio(unsigned char reg)
 	return (*( (volatile unsigned char *)(MIPS_IO_BASE | SIO_DATA_PORT) ));
 }
 
-static inline void wrwcb(unsigned short addr, unsigned char data)
+static inline void PcIoWriteB(unsigned char port, unsigned char reg)
 {
 	delay(10);
-	*( (volatile unsigned char *)(WCB_BASE_ADDR | addr) ) = data;
+	*( (volatile unsigned char *)(MIPS_IO_BASE | port) ) = reg;
 }
 
-static inline unsigned char rdwcb(unsigned short addr)
+static inline unsigned char PcIoReadB(unsigned char port)
 {
 	delay(10);
-	return (*( (volatile unsigned char *)(WCB_BASE_ADDR | addr) ));
+	return (*( (volatile unsigned char *)(MIPS_IO_BASE | port) ));
 }
 
-static inline void wr_wcb(unsigned short addr, unsigned char data)
+/****************************************************************************** 
+ * Function: PcMemReadB 
+ * Purpose:  Read one byte from PC linear memory 
+ * Params:   Address - the physical address in the PC to read from 
+ * Returns:  the value read
+ ******************************************************************************/
+static inline unsigned char PcMemReadB(unsigned long Address) 
+{                
+    return *(unsigned char *)Address;
+}         
+
+static inline void wrwcb(u32 addr, unsigned char data)
 {
 	delay(10);
-	*( (volatile unsigned char *)(addr) ) = data;
+	*( (volatile unsigned char *) addr ) = data;
 }
 
-static inline unsigned char rd_wcb(unsigned int addr)
+static inline unsigned char rdwcb(u32 addr)
 {
 	delay(10);
-	return (*( (volatile unsigned char *)(addr) ));
+	return (*((volatile unsigned char *) addr));
 }
 
 /* Access WPCE775x LDN register by superio index/data port. */
@@ -407,24 +340,131 @@ static inline unsigned char rdldn(unsigned char ldn_bank, unsigned char index)
 	return (*( (volatile unsigned char *)(MIPS_IO_BASE | SIO_DATA_PORT) ));
 }
 
-/* access WPCE775l EC Space content for ACPI */
-static inline void wracpi(unsigned char cmd, unsigned char index, unsigned char data)
+/*******************************************************************/
+
+static inline int send_ec_command(unsigned char command)
 {
-	delay(10);
-	*( (volatile unsigned char *)(MIPS_IO_BASE | EC_CMD_PORT) ) = cmd;
-	delay(RD_REG_DELAY);
-	*( (volatile unsigned char *)(MIPS_IO_BASE | EC_DATA_PORT) ) = index;
-	delay(RD_REG_DELAY);
-	*( (volatile unsigned char *)(MIPS_IO_BASE | EC_DATA_PORT) ) = data;
+	int timeout;
+
+	timeout = EC_SEND_TIMEOUT;
+	while ((read_port(EC_STS_PORT) & EC_IBF) && --timeout) {
+		delay(10);
+	}
+	if (!timeout) {
+		printf("Timeout while sending command 0x%02x to EC!\n",	command);
+	}
+
+	write_port(EC_CMD_PORT, command);
+	return 0;
 }
 
-static inline unsigned char rdacpi(unsigned char cmd, unsigned char index)
+static inline int send_ec_data(unsigned char data)
 {
-	delay(10);
-	*( (volatile unsigned char *)(MIPS_IO_BASE | EC_CMD_PORT) ) = cmd;
-	delay(RD_REG_DELAY);
-	*( (volatile unsigned char *)(MIPS_IO_BASE | EC_DATA_PORT) ) = index;
-	delay(RD_REG_DELAY);
-	return (*( (volatile unsigned char *)(MIPS_IO_BASE | EC_DATA_PORT) ));
+	int timeout;
+
+	timeout = EC_SEND_TIMEOUT;
+	while ((read_port(EC_STS_PORT) & EC_IBF) && --timeout) {    // wait for IBF = 0
+		delay(10);
+	}
+	if (!timeout) {
+		printf("Timeout while sending data 0x%02x to EC!\n", data);
+	}
+
+	write_port(EC_DAT_PORT, data);
+
+	return 0;
 }
-#endif
+
+static inline int send_ec_data_nowait(unsigned char data)
+{
+	write_port(EC_DAT_PORT, data);
+
+	return 0;
+}
+
+static inline unsigned char recv_ec_data(void)
+{
+	int timeout;
+	unsigned char data;
+
+	timeout = EC_SEND_TIMEOUT;
+	while (--timeout) {     // Wait for OBF = 1
+		if (read_port(EC_STS_PORT) & EC_OBF) {
+			break;
+		}
+		delay(10);
+	}
+	if (!timeout) {
+		printf("\nTimeout while receiving data from EC!\n");
+	}
+
+	delay(RD_REG_DELAY);
+	data = read_port(EC_DAT_PORT);
+
+	return data;
+}
+
+static inline unsigned char ec_read(unsigned char command, unsigned char index)
+{
+    send_ec_command(command);
+    send_ec_data(index);
+
+    return recv_ec_data();
+}
+
+static inline unsigned char ec_rd_noindex(unsigned char command)
+{
+    send_ec_command(command);
+
+    return recv_ec_data();
+}
+
+static inline int ec_write(unsigned char command, unsigned char index, unsigned char data)
+{
+    send_ec_command(command);
+    send_ec_data(index);
+
+    return send_ec_data(data);
+}
+
+static inline int ec_wr_noindex(unsigned char command, unsigned char data)
+{
+    send_ec_command(command);
+
+    return send_ec_data(data);
+}
+
+/*
+ * ec_query_seq
+ * this function is used for ec command writing and the corresponding status query 
+ */
+static inline int ec_query_seq(unsigned char cmd)
+{
+	int timeout;
+	unsigned char status;
+	int ret = 0;
+
+	/* Send Query Command. */
+	send_ec_command(cmd);
+
+	/* check if the command is received by ec */
+	timeout = EC_CMD_TIMEOUT;
+	status = read_port(EC_STS_PORT);
+	while(timeout--){
+		if(status & EC_IBF){
+			status = read_port(EC_STS_PORT);
+			delay(RD_REG_DELAY);
+			continue;
+		}
+		break;
+	}
+	
+	if(timeout <= 0){
+		printf("EC QUERY SEQ : deadable error : timeout...\n");
+		ret = -1;
+	}
+
+	return ret;
+}
+
+#endif	// end ifdef LOONGSON2F_3GNB

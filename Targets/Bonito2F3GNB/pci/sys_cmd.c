@@ -186,322 +186,46 @@ static int cmd_powerdebug(int ac, char *av[])
 	return 0;
 }
 
+#ifdef LOONGSON2F_3GNB
 /*******************************************************************************/
 
-#ifdef LOONGSON2F_3GNB
-static void smbus_stop(unsigned char chnl)
+/* Write EC port */
+static int cmd_wrport(int ac, char *av[])
 {
-	unsigned char value;
-	unsigned long chnl_base_addr;
-
-	// set the stop bit and clear some flag
-	chnl_base_addr = SMB_BASE_ADDR + chnl * SMB_CHNL_SIZE;
-
-	value = rdcore(chnl_base_addr + REG_SMBCTL1);
-	value |= SMBCTL1_STOP;
-	wrcore(chnl_base_addr + REG_SMBCTL1, value);
-
-	wrcore(chnl_base_addr + REG_SMBST, SMBST_BER | SMBST_NEGACK | SMBST_STASTR);
-
-	return;
-}
-
-static void smbus_error(unsigned char chnl)
-{
-	unsigned char value;
-	unsigned long chnl_base_addr;
-
-	// set the stop bit and clear some flag
-	chnl_base_addr = SMB_BASE_ADDR + chnl * SMB_CHNL_SIZE;
-
-	value = rdcore(chnl_base_addr + REG_SMBCTL1);
-	value |= SMBCTL1_STOP;
-	value &= ~SMBCTL1_STASTRE;
-	wrcore(chnl_base_addr + REG_SMBCTL1, value);
-
-	wrcore(chnl_base_addr + REG_SMBST, SMBST_BER | SMBST_NEGACK | SMBST_STASTR);
-	
-	return;
-}
-
-static void smbus_start(unsigned char chnl)
-{
-	unsigned char value;
-	unsigned long chnl_base_addr;
-
-	chnl_base_addr = SMB_BASE_ADDR + chnl * SMB_CHNL_SIZE;
-
-	/* clear int */
-	value = rdcore(chnl_base_addr + REG_SMBCTL1);
-	value &= ~(SMBCTL1_NMINTE | SMBCTL1_GCMEN | SMBCTL1_INTEN | SMBCTL1_ACK);
-	wrcore(chnl_base_addr + REG_SMBCTL1, value);
-	/* clear status bit */
-	wrcore(chnl_base_addr + REG_SMBST, SMBST_NMATCH | SMBST_STASTR | SMBST_NEGACK | SMBST_BER | SMBST_SLVSTP);
-
-	value = rdcore(chnl_base_addr + REG_SMBCTL1);
-	value |= SMBCTL1_START;
-	wrcore(chnl_base_addr + REG_SMBCTL1, value);
-	delay(SMB_DELAY);
-
-	return;
-}
-
-static int smbus_addr(unsigned char chnl, unsigned char addr)
-{
-	unsigned char value;
-	unsigned char status;
-	unsigned long chnl_base_addr;
-
-	chnl_base_addr = SMB_BASE_ADDR + chnl * SMB_CHNL_SIZE;
-
-	status = rdcore(chnl_base_addr + REG_SMBST);
-	if(status & (SMBST_BER + SMBST_NEGACK)){
-		printf("addr stage : err 0 : status 0x%x, ctrl 0x%x\n",
-				rdcore(chnl_base_addr + REG_SMBST), rdcore(chnl_base_addr + REG_SMBCTL1));
-		smbus_error(chnl);
-		return -1;
-	}else if((status & (SMBST_MASTER + SMBST_SDAST)) == (SMBST_MASTER + SMBST_SDAST)){
-		/* enable after send address stall the bus */
-		value = rdcore(chnl_base_addr + REG_SMBCTL1);
-		value |= SMBCTL1_STASTRE;
-		wrcore(chnl_base_addr + REG_SMBCTL1, value);
-		delay(SMB_DELAY);
-
-		wrcore(chnl_base_addr + REG_SMBSDA, addr);
-		delay(SMB_DELAY);
-	}else{
-		printf("addr stage : err 1 : status 0x%x, ctrl 0x%x\n",
-				rdcore(chnl_base_addr + REG_SMBST), rdcore(chnl_base_addr + REG_SMBCTL1));
-		smbus_error(chnl);
-		return -1;
-	}
-	delay(SMB_DELAY);
-
-	return 0;
-}
-
-static int smbus_send(unsigned char chnl, unsigned char index)
-{
-	unsigned char status;
-	unsigned char value;
-	unsigned long chnl_base_addr;
-
-	chnl_base_addr = SMB_BASE_ADDR + chnl * SMB_CHNL_SIZE;
-
-	status = rdcore(chnl_base_addr + REG_SMBST);
-	if(status & (SMBST_BER + SMBST_NEGACK)){
-		printf("send stage : err 1 : status 0x%x, ctrl 0x%x\n", 
-			rdcore(chnl_base_addr + REG_SMBST), rdcore(chnl_base_addr + REG_SMBCTL1));
-		smbus_error(chnl);
-		return -1;
-	}else if(status & SMBST_STASTR){
-		// start send cmd or data
-		if(rdcore(chnl_base_addr + REG_SMBCTL1) & SMBCTL1_STASTRE)
-			wrcore(chnl_base_addr + REG_SMBST, SMBST_STASTR);
-		delay(SMB_DELAY);
-		wrcore(chnl_base_addr + REG_SMBSDA, index);		
-		delay(SMB_DELAY);
-	}else{
-		printf("send stage : err 2 : status 0x%x, ctrl 0x%x\n", 
-			rdcore(chnl_base_addr + REG_SMBST), rdcore(chnl_base_addr + REG_SMBCTL1));
-		smbus_error(chnl);
-		return -1;
-	}
-		
-	// stop internal stage
-	delay(SMB_DELAY);
-	status = rdcore(chnl_base_addr + REG_SMBST);
-	if(status & (SMBST_BER + SMBST_NEGACK)){
-		printf("send stop stage : err 1 : status 0x%x, ctrl 0x%x\n", 
-			rdcore(chnl_base_addr + REG_SMBST), rdcore(chnl_base_addr + REG_SMBCTL1));
-		smbus_error(chnl);
-		return -1;
-	}else if(status & SMBST_SDAST){
-		smbus_stop(chnl);
-	}else{
-		printf("send stop stage : err 2 : status 0x%x, ctrl 0x%x\n", 
-			rdcore(chnl_base_addr + REG_SMBST), rdcore(chnl_base_addr + REG_SMBCTL1));
-		smbus_error(chnl);
-		return -1;
-	}
-
-	return 0;
-}
-
-static int smbus_recv(unsigned char chnl, unsigned char *val)
-{
-	unsigned char status, value;
-	unsigned long chnl_base_addr;
-
-	chnl_base_addr = SMB_BASE_ADDR + chnl * SMB_CHNL_SIZE;
-
-	status = rdcore(chnl_base_addr + REG_SMBST);
-	if(status & (SMBST_BER + SMBST_NEGACK)){
-		printf("recv stage : err 1 : status 0x%x, ctrl 0x%x\n", 
-			rdcore(chnl_base_addr + REG_SMBST), rdcore(chnl_base_addr + REG_SMBCTL1));
-		smbus_error(chnl);
-		return -1;
-	}else if(status & SMBST_STASTR){
-		// have send out address, and recv now
-		if(rdcore(chnl_base_addr + REG_SMBCTL1) & SMBCTL1_STASTRE)
-			wrcore(chnl_base_addr + REG_SMBST, SMBST_STASTR);	
-		delay(SMB_DELAY);
-		value = rdcore(chnl_base_addr + REG_SMBCTL1);
-		value &= ~SMBCTL1_STASTRE;		// ??? now STASTR AGAIN, maybe no need
-		value |= SMBCTL1_ACK;
-		wrcore(chnl_base_addr + REG_SMBCTL1, value);
-		delay(SMB_DELAY);
-		//delay(1000);
-	}else{
-		printf("recv stage : err 2 : status 0x%x, ctrl 0x%x\n", 
-			rdcore(chnl_base_addr + REG_SMBST), rdcore(chnl_base_addr + REG_SMBCTL1));
-		smbus_error(chnl);
-		return -1;
-	}
-
-	//////////////////////////////// stop internal stage
-	delay(SMB_DELAY);
-	status = rdcore(chnl_base_addr + REG_SMBST);
-
-	if(status & SMBST_SDAST){
-		// issue stop and get data
-		value = rdcore(chnl_base_addr + REG_SMBCTL1);
-		value |= SMBCTL1_STOP;
-		wrcore(chnl_base_addr + REG_SMBCTL1, value);
-		delay(SMB_DELAY);
-
-		*val = rdcore(chnl_base_addr + REG_SMBSDA);
-	}else{
-		printf("recv stop stage : err 1 : status 0x%x, ctrl 0x%x\n", 
-			rdcore(chnl_base_addr + REG_SMBST), rdcore(chnl_base_addr + REG_SMBCTL1));
-		smbus_error(chnl);
-		return -1;
-	}
-
-	return 0;
-}
-
-static int cmd_rdsmbus(int ac, char *av[])
-{
-    unsigned long addr;
-    unsigned long index;
-	unsigned char data;
-	unsigned char chnl;
-	int ret = 0;
+	u8 port;
+	u8 value = 0;
 
 	if(ac < 3){
-	    printf("usage : rdsmbus channel addr index\n");
-	    return -1;
-	}
-
-	if(!get_rsa(&chnl, av[1])) {
-	    printf("ecreg : access error!\n");
-	    return -1;
-	}
-	
-	if(!get_rsa(&addr, av[2])) {
-	    printf("ecreg : access error!\n");
-	    return -1;
-	}
-	
-	if(!get_rsa(&index, av[3])){
-	    printf("ecreg : size error\n");
+		printf("usage : wrport port value\n");
 		return -1;
 	}
 
-	printf("channel SMB%d, addr 0x%x, index 0x%x\n", chnl + 1, addr, index, data);
-	smbus_start(chnl);
-	ret = smbus_addr(chnl, addr & 0xfe);
-	if(ret < 0){
-		return ret;
-	}
-	ret = smbus_send(chnl, index);
-	if(ret < 0){
-		return ret;
-	}
-	
-	smbus_start(chnl);
-	
-	ret = smbus_addr(chnl, addr | 0x01);
-	if(ret < 0){
-		return ret;
-	}
-	ret = smbus_recv(chnl, &data);
-	if(ret < 0){
-		return ret;
-	}
-	printf("final : channel SMB%d, addr 0x%x, index 0x%x, data 0x%x\n", chnl, addr, index, data);
+	port = strtoul(av[1], NULL, 16);
+	value = strtoul(av[2], NULL, 16);
+	printf("Write EC port : port 0x%x, value 0x%x\n", port, value);
+	/* Write value to EC port */
+	write_port(port, value);
 
 	return 0;
-}
+} 
 
-/*
- * wr775reg : write a WPEC775x EC register area.
- */
-static int cmd_wr775reg(int ac, char *av[])
+/* Read EC port */
+static int cmd_rdport(int ac, char *av[])
 {
-    u32 addr;
-    u32 value;
-    u8 val8;
-
-	if(ac < 3){
-	    printf("usage : wrecreg addr val\n");
-	    return -1;
-	}
-	 
-	if(!get_rsa(&addr, av[1])) {
-	    printf("ecreg : access error!\n");
-	    return -1;
-	}
+	u8 port;
+	u8 val = 0;
 	
-	if(!get_rsa(&value, av[2])){
-	    printf("ecreg : size error\n");
-		return -1;
-	}
-	 
-	val8 = (u8)value;
-	
-	if((addr > 0x1000000)){
-	    printf("ecreg : addr not available.\n");
-	}
-	
-	printf("ecreg : addr=0x%x value=0x%x\n", addr , val8);
-	wrwbec(addr, val8);
-	
-	return 0;
-}
-
-/*
- * WPCE775_rdecreg : read a WPEC775x EC register area.
- */
-static int cmd_rd775reg(int ac, char *av[])
-{
-	u32 start, size, reg;
-	u8 value;
-
-	size = 0;
-
 	if(ac < 2){
-		printf("usage : rdecreg start_addr size\n");
+		printf("usage : rdport port\n");
 		return -1;
 	}
+	
+	port = strtoul(av[1], NULL, 16);
 
-	//start = strtoul(av[1], NULL, 16);
-	//size = strtoul(av[2], NULL, 16);
+	printf("Read EC port : port 0x%x", port);
 
-	if(!get_rsa(&start, av[1])) {
-	//if(!start) {
-		printf("ecreg : access error!\n");
-		return -1;
-	}
-
-	reg = start;
-//	while(size > 0){
-		//printf("reg address : 0x%x, value1 : 0x%x, value2 : %c\n", reg, WPCE775_rdec(reg), WPCE775_rdec(reg));
-		printf("reg address : 0x%x, value : 0x%x\n", reg, rdwbec(reg));
-//		reg++;
-//		size--;
-//	}
+	val = read_port(port);
+	printf(" value 0x%x\n", val);
 
 	return 0;
 }
@@ -512,17 +236,27 @@ static int cmd_wr775(int ac, char *av[])
 	u8 cmd;
 	u8 value = 0;
 
-	if(ac < 4){
-		printf("usage : wr775 cmd index value\n");
+	if(ac < 3){
+		printf("usage : wr775 cmd [index] value\n");
+		printf("  e.g.: wr775 81 5A 1 (adjust brightness level to 1)\n");
+		printf("        wr775 49 0/1 (close/open backlight)\n");
 		return -1;
 	}
 
 	cmd = strtoul(av[1], NULL, 16);
-	index = strtoul(av[2], NULL, 16);
-	value = strtoul(av[3], NULL, 16);
-	printf("Write EC 775 : command 0x%x, index 0x%x, data 0x%x \n", cmd, index, value);
-	/* Write index value to EC 775 space */
-	wracpi(cmd, index, value);
+
+	if(ac == 4){
+		index = strtoul(av[2], NULL, 16);
+		value = strtoul(av[3], NULL, 16);
+		printf("Write EC 775 : command 0x%x, index 0x%x, data 0x%x \n", cmd, index, value);
+		/* Write index value to EC 775 space */
+		ec_write(cmd, index, value);
+	}else{
+		value = strtoul(av[2], NULL, 16);
+		printf("Write EC 775 : command 0x%x, data 0x%x \n", cmd, value);
+		/* Write index value to EC 775 space */
+		ec_wr_noindex(cmd, value);
+	}
 
 	return 0;
 } 
@@ -545,23 +279,48 @@ static int cmd_rd775(int ac, char *av[])
 		return -1;
 	}
 	
-	if(ac > 3){
+	if(strcmp(av[1], "-h") == 0){
+		printf("usage : rd775 {-h | cmd [index] [size]}\n");
+		printf("  e.g.: rd775 -h      (this help)\n");
+		printf("        rd775 80 5A 1 (read command 80h, index 5A, size 1 data)\n");
+		printf("        rd775 46 1    (read command 46h, size 1 data)\n");
+		printf("        rd775 46      (read command 46h, i.e., read device status)\n");
+		return 0;
+	}
+	
+	cmd = strtoul(av[1], NULL, 16);
+
+	if(ac == 4){
+		index = strtoul(av[2], NULL, 16);
 		if(!get_rsa(&size, av[3])){
 			printf("ERROR : arguments error!\n");
 			return -1;
 		}
 	}
 
-	cmd = strtoul(av[1], NULL, 16);
-	index = strtoul(av[2], NULL, 16);
+	if(ac == 3){
+		if(!get_rsa(&size, av[2])){
+			printf("ERROR : arguments error!\n");
+			return -1;
+		}
+	}
 
-	printf("Read EC 775 : command 0x%x, index 0x%x, size %d \n", cmd, index, size);
+	if(ac == 2){
+		size = 1;
+	}
+
+	printf("Read EC 775 : command 0x%x, size %d\n", cmd, size);
 
 	for(i = 0; i < size; i++){
 		/* Read EC 775 space value */
-		val = rdacpi(cmd, index);
-		printf("Read EC 775 : command 0x%x, index 0x%x, value 0x%x %d '%c'\n", cmd, index, val, val, val);
-		index++;
+		if(ac == 4){
+			val = ec_read(cmd, index);
+			printf("index 0x%x, value 0x%x %d '%c'\n", index, val, val, val);
+			index++;
+		}else{
+			val = ec_rd_noindex(cmd + i);
+			printf("value 0x%x %d '%c'\n", val, val, val);
+		}
 	}
 
 	return 0;
@@ -602,60 +361,6 @@ static int cmd_rdsio(int ac, char *av[])
 
 	val = rdsio(index);
 	printf("data 0x%x\n", val);
-
-	return 0;
-}
-
-static int cmd_wrwcb(int ac, char *av[])
-{
-    u16 wcb_addr;
-	u8 data;
- 
-    if(ac < 2){
-        printf("usage : wrwcb index data\n");
-        return -1;
-    }
-
-	wcb_addr = strtoul(av[1], NULL, 16);
-	data = strtoul(av[2], NULL, 16);
-
-	printf("Write EC775 WCB : address 0x%x, data 0x%x\n", wcb_addr, data);
-
-	wrwcb(wcb_addr, data);
-
-	return 0;
-}
-
-static int cmd_rdwcb(int ac, char *av[])
-{
-    u16 wcb_addr;
-	u8 size = 1;
-    u8 val = 0;
-	int i;
- 
-    if(ac < 2){
-        printf("usage : rdwcb index [size]\n");
-        return -1;
-    }
-
-	wcb_addr = strtoul(av[1], NULL, 16);
-	size = strtoul(av[2], NULL, 16);
-
-	if(size > 64){
-		printf("ERROR : out of size range.\n");
-		return -1;
-	}
-
-	if(size < 1 || size == ""){
-		size = 1;
-	}
-
-	printf("Read EC775 WCB : start address 0x%x, size %d\n", wcb_addr, size);
-
-	for(i = 0; i < size; i++){
-		val = rdwcb(wcb_addr + i);
-		printf("WCB address 0x%x, data 0x%x\n", wcb_addr + i, val);
-	}
 
 	return 0;
 }
@@ -701,97 +406,6 @@ static int cmd_rdldn(int ac, char *av[])
 	return 0;
 }
 
-static int cmd_loop_rdwcb(int ac, char *av[])
-{
-    u32 wcb_addr;
-	u8 size = 1;
-    u8 val = 0;
-	int i;
- 
-    if(ac < 2){
-        printf("usage : rd_wcb address size\n");
-        return -1;
-    }
-
-	wcb_addr = strtoul(av[1], NULL, 16);
-	size = strtoul(av[2], NULL, 16);
-
-	if(size > 64){
-		printf("ERROR : out of size range.\n");
-		return -1;
-	}
-
-	if(size < 1 || size == ""){
-		size = 1;
-	}
-
-	printf("Read EC775 WCB : start address 0x%x, size %d\n", wcb_addr, size);
-
-	while(1){
-		for(i = 0; i < size; i++){
-			val = rd_wcb(wcb_addr + i);
-			printf("WCB address 0x%x, data 0x%x\n", wcb_addr + i, val);
-			delay(50000);
-		}
-	}
-
-	return 0;
-}
-
-#include "include/flupdate.h"
-extern unsigned short Read_ECROM_IDs(void);
-static int cmd_rdids(int ac, char *av[])
-{
-    u16 ec_ids;
-/* 
-    if(ac < 2){
-        printf("usage : rdids\n");
-        return -1;
-    }
-*/
-	//wcb_addr = strtoul(av[1], NULL, 16);
-	//size = strtoul(av[2], NULL, 16);
-
-
-	Update_Flash_Init();
-	//wrwbec(0x10fe0, CMD_READ_DEV_ID);
-	ec_ids = Read_ECROM_IDs();
-	printf("Read EC775 ROM ID : ");
-	printf("0x%x\n", ec_ids);
-
-	return 0;
-}
-
-
-#if 0	// test SHM module for wpce775l, daway 2010-03-19
-
-
-
-
-static int cmd_rdids(int ac, char *av[])
-{
-    //u8 index;
-    unsigned short val = 0;
- 
-    if(ac < 2){
-        printf("usage : rdids\n");
-        return -1;
-    }
-
-	//index = strtoul(av[1], NULL, 16);
-
-	Sio_index = 0x2E;
-	Sio_data = 0x2F;
-	pc_wcb_base = getPcWcbBase();
-	printf("Get WCB base address 0x%x\n", pc_wcb_base);
-	printf("Read EC775 EC ID : ");
-	//val = SHMReadIDs();
-	printf("data 0x%x\n", val);
-
-	return 0;
-}
-#endif
-
 /*
  * rdbat : read a register of battery.
  */
@@ -802,35 +416,41 @@ static int cmd_rdbat(int ac, char *av[])
 	u16 bat_voltage;
 	u16 bat_current;
 	u16 bat_temperature;
+	char current_sign;
 	
 	/* read battery status */
-	bat_present = rdacpi(0x80, 0xA2) & (1 << 6);
+	bat_present = ec_read(CMD_READ_EC, INDEX_POWER_STATUS) & BIT_POWER_BATPRES;
 
 	/* read battery voltage */
-	bat_voltage = (u16) rdacpi(0x80, 0x90);
-	bat_voltage |= (((u16) rdacpi(0x80, 0x91)) << 8);
+	bat_voltage = (u16) ec_read(CMD_READ_EC, INDEX_BATTERY_VOL_LOW);
+	bat_voltage |= (((u16) ec_read(CMD_READ_EC, INDEX_BATTERY_VOL_HIGH)) << 8);
 	bat_voltage = bat_voltage * 2;
 
 	/* read battery current */
-	bat_current = (u16) rdacpi(0x80, 0x96);
-	bat_current |= (((u16) rdacpi(0x80, 0x97)) << 8);
+	bat_current = (u16) ec_read(CMD_READ_EC, INDEX_BATTERY_AI_LOW);
+	bat_current |= (((u16) ec_read(CMD_READ_EC, INDEX_BATTERY_AI_HIGH)) << 8);
 	bat_current = bat_current * 357 / 2000;
+	if( (ec_read(CMD_READ_EC, INDEX_BATTERY_FLAG) & BIT_BATTERY_CURRENT_PN) != 0 ){
+		current_sign = '-';
+	}else{
+		current_sign = ' ';
+	}
 
 	/* read battery capacity % */
-	bat_capacity = rdacpi(0x80, 0x92);
+	bat_capacity = ec_read(CMD_READ_EC, INDEX_BATTERY_CAPACITY);
 
 	/* read battery temperature */
-	bat_temperature = (u16) rdacpi(0x80, 0x93);
-	bat_temperature |= (((u16) rdacpi(0x80, 0x94)) << 8);
-	if(bat_present && bat_temperature <= 0x5D4){	/* temp <= 100 (0x5D4 = 1492(d)) */
+	bat_temperature = (u16) ec_read(CMD_READ_EC, INDEX_BATTERY_TEMP_LOW);
+	bat_temperature |= (((u16) ec_read(CMD_READ_EC, INDEX_BATTERY_TEMP_HIGH)) << 8);
+	if(bat_present){	// && bat_temperature <= 0x5D4){	/* temp <= 100 (0x5D4 = 1492(d)) */
 		bat_temperature = bat_temperature / 4 - 273;
 	}else{
 		bat_temperature = 0;
 	}
 
     printf("Read battery current information:\n");
-	printf("Voltage %dmV, Current %dmA, Capacity %d%%, Temperature %d\n",
-			bat_voltage, bat_current, bat_capacity, bat_temperature);
+	printf("Voltage %dmV, Current %c%dmA, Capacity %d%%, Temperature %d\n",
+			bat_voltage, current_sign, bat_current, bat_capacity, bat_temperature);
 
 	return 0;
 }
@@ -842,17 +462,543 @@ static int cmd_rdfan(int ac, char *av[])
 {
     u16 speed = 0;
 	u8 temperature;
+	char sign = ' ';
 
-	speed = (u16)rdacpi(0x80, 0x08);
+	speed = (u16)ec_read(CMD_READ_EC, INDEX_FAN_SPEED_LOW);
+    speed |= (((u16)ec_read(CMD_READ_EC, INDEX_FAN_SPEED_HIGH)) << 8); 
 
-    speed |= (((u16)rdacpi(0x80, 0x09)) << 8); 
+	temperature = ec_read(CMD_READ_EC, INDEX_TEMPERATURE_VALUE);
+	if(temperature & BIT_TEMPERATURE_PN){
+		temperature = (temperature & TEMPERATURE_VALUE_MASK) - 128;
+		sign = '-';
+	}
 
-	temperature = rdacpi(0x80, 0x1B);
-
-    printf("Fan speed: %dRPM, CPU temperature: %d.\n", speed, temperature);
+    printf("Fan speed: %dRPM, CPU temperature: %c%d.\n", speed, sign, temperature);
 
 	return 0;
 }
+
+static int cmd_test_sci(int ac, char *av[])
+{
+    u32 i = 0;
+	u8 sci_num;
+ 
+	while(1){
+		delay(100000);
+		while( (read_port(EC_STS_PORT) & (EC_SCI_EVT | EC_OBF)) == 0 );
+		if(!ec_query_seq(CMD_QUERY)){
+			sci_num = recv_ec_data();
+		}
+		printf("sci number (%d): 0x%x\n", ++i, sci_num);
+	}
+
+	return 0;
+}
+
+#if 1	// test update flash function, daway 2010-05-10
+#include "include/flupdate.h"
+extern void set_interface_cfg(u8 flag);
+extern unsigned short Read_Flash_IDs(void);
+extern void Update_Flash_Init(void);
+extern void Init_Flash_Command(void);
+extern int ec_update_rom_test(u32 Address, void *src, int size);
+extern unsigned char PcMemReadB (unsigned long Address);
+extern unsigned char Flash_Data[MAX_FLASH_CAPACITY];
+extern void Enter_Flash_Update(void);
+extern void flash_sector_erase(unsigned long Address);
+extern void exit_flash_update(WCB_exit_t exit_type);
+extern void Flash_Set_Address(unsigned long Address);
+extern void Flash_program_byte(u8 data);
+extern unsigned char read_status_register(void);
+extern void write_status_register(u8 data);
+extern void Flash_write_byte(u8 data);
+extern WCB_exit_t exit_type;                           // Type of protocol termination to use
+extern void Flash_Program(unsigned char * Data, unsigned int Size);
+
+static int cmd_rdstsreg(int ac, char *av[])
+{
+    u8 val = 0;
+ 
+    set_interface_cfg(0);
+	Init_Flash_Command();
+
+	val = read_status_register();
+
+	printf("Read EC FLASH status register: 0x%x\n", val);
+
+	return 0;
+}
+
+static int cmd_wrstsreg(int ac, char *av[])
+{
+    u8 data;
+
+	if(ac < 2){
+        printf("usage : wrstsreg status_value\n");
+        return -1;
+    }
+ 
+	data = strtoul(av[1], NULL, 16);
+
+	printf("Write EC FLASH status register: data 0x%x\n", data);
+    set_interface_cfg(0);
+	Init_Flash_Command();
+
+	write_status_register(data);
+
+	return 0;
+}
+
+static int cmd_rdids(int ac, char *av[])
+{
+    u16 ec_ids = 0;
+	u8 mf_id, dev_id;
+
+    set_interface_cfg(0);
+	Init_Flash_Command();
+	ec_ids = Read_Flash_IDs();
+	printf("Read wpce775l flash ID: 0x%x\n", ec_ids);
+
+	mf_id = ec_ids & 0x00FF;
+	dev_id = (u8) ((ec_ids & 0xFF00) >> 8);
+	printf("Manufacture ID 0x%x, Device ID : 0x%x\n", mf_id, dev_id);
+
+    printf("EC ROM manufacturer: ");
+    switch(mf_id){
+        case EC_ROM_PRODUCT_ID_SPANSION :
+            printf("SPANSION.\n");
+            break;
+        case EC_ROM_PRODUCT_ID_MXIC :
+            printf("MXIC.\n");
+            break;
+        case EC_ROM_PRODUCT_ID_AMIC :
+            printf("AMIC.\n");
+            break;
+        case EC_ROM_PRODUCT_ID_EONIC :
+            printf("EONIC.\n");
+            break;
+        case EC_ROM_PRODUCT_ID_WINBOND :
+            printf("WINBOND W25x80.\n");
+            break;
+ 
+		default :
+            printf("Unknown chip type.\n");
+            break;
+    }
+
+	return 0;
+}
+         
+static int cmd_rdshmreg(int ac, char *av[])
+{
+	u8 data;
+	u16 i;
+
+	for(i = 0; i < 16; i++)
+	{
+		data = rdldn(0xf, SHM_CFG + i);
+		printf("Read SHM configuration: reg 0x%x, data 0x%x\n", SHM_CFG + i, data);
+	}
+
+	return 0;
+}
+       
+static int cmd_setshm_ram_flash(int ac, char *av[])
+{
+	u8 shm_ram_flg;	// 0 = shmram, 1 = shmflash
+ 
+    if(ac < 2){
+        printf("usage : setshmram flag\n");
+        printf(" note : flag = 1 as shared flash access\n");
+        printf("        flag = 0 as shared ram access\n");
+        return -1;
+    }
+
+	shm_ram_flg = strtoul(av[1], NULL, 16);
+
+	if(shm_ram_flg)
+    	printf("set SHM interface is shared FLASH access: 0x%x\n", shm_ram_flg);
+	else
+    	printf("set SHM interface is shared RAM access: 0x%x\n", shm_ram_flg);
+
+    set_interface_cfg(shm_ram_flg);
+
+    printf("set SHM interface success.\n");
+
+	return 0;
+}
+
+static int cmd_initcmd(int ac, char *av[])
+{
+	u16 i;
+
+    set_interface_cfg(0);
+
+	printf("Before Init: ");
+	for(i = 0; i < 16; i++)
+	{
+		printf("0x%x ", rdwcb(WCB_BASE_ADDR + i));
+	}
+	printf("\n");
+
+	Init_Flash_Command();
+	
+	printf("After Init: ");
+	for(i = 0; i < 16; i++)
+	{
+		printf("0x%x ", rdwcb(WCB_BASE_ADDR + i));
+	}
+	printf("\n");
+
+	return 0;
+}
+
+static int cmd_wrwcb(int ac, char *av[])
+{
+    u32 wcb_addr;
+	u8 data;
+ 
+    if(ac < 2){
+        printf("usage : wrwcb address data\n");
+        return -1;
+    }
+
+	wcb_addr = strtoul(av[1], NULL, 16);
+	data = strtoul(av[2], NULL, 16);
+
+	printf("Write EC775 WCB : address 0x%x, data 0x%x\n", wcb_addr, data);
+
+	wrwcb(wcb_addr, data);
+
+	return 0;
+}
+
+static int cmd_rdwcb(int ac, char *av[])
+{
+    u32 wcb_addr;
+	u8 size = 1;
+    u8 val = 0;
+	int i;
+ 
+    if(ac < 2){
+        printf("usage : rdwcb address [size]\n");
+        return -1;
+    }
+
+	wcb_addr = strtoul(av[1], NULL, 16);
+
+	if(ac == 3){
+		size = strtoul(av[2], NULL, 16);
+	}else{
+		size = 1;
+	}
+
+	if(size > 16){
+		printf("ERROR : out of size range.\n");
+		return -1;
+	}
+
+	printf("Read EC775 WCB : start address 0x%x, size %d\n", wcb_addr, size);
+
+	for(i = 0; i < size; i++){
+		val = rdwcb(wcb_addr + i);
+		printf("WCB address 0x%x, data 0x%x\n", wcb_addr + i, val);
+	}
+
+	return 0;
+}
+
+static int cmd_sector_erase(int ac, char *av[])
+{
+    u32 address;
+
+	if(ac < 2){
+        printf("usage : secerase address\n");
+        return -1;
+    }
+ 
+	address = strtoul(av[1], NULL, 16);
+
+	printf("Erase sector: start address 0x%x\n", address);
+    set_interface_cfg(0);
+	Init_Flash_Command();
+
+    Enter_Flash_Update();
+	flash_sector_erase(address);
+	printf("Erase sector OK...\n");
+    exit_flash_update(EXIT_OP);
+
+	return 0;
+}
+
+/* program data to SPI data */
+void Flash_program_data(u32 addr, u8 *src, u32 size)
+{
+	u8 *buf;
+	u16 sector, page_cnt = 0; 
+	u16 page, page1, i, j, sec_cnt = 0;
+	u32 program_addr, erase_addr;
+	u8 flags, remainder, status;
+	
+    exit_type = WCB_EXIT_NORMAL;
+	sector = 1;
+	page = 1;
+	erase_addr = program_addr = addr;
+	buf = src;
+	
+	printf("Progarm data to address :  0x%lx\n", addr);
+	printf("Progarm data size is %d\n", size);
+	
+	remainder = size % 256;
+	
+	/* start sector erase active */
+	if(size > 0x1000){
+		sector = size / 0x1000 + 1;
+	}
+	if(size > 256){
+		page = size / 256 + 1;
+	}
+	printf("The sum total has %d sectors to need to erase:\n", sector);
+	
+	Update_Flash_Init();
+    set_interface_cfg(0);
+	Init_Flash_Command();
+
+	printf("Ready enter flash update...\n");
+    // Indicate Flash Update beginning to Firmware
+    Enter_Flash_Update();
+
+#if 0
+	/* unlock block protection active. */
+	status = Flash_read_status_reg();
+	if(status & 0x1C){
+		Flash_write_status_reg(status & ~0x1C);
+		printf("Block protection unlocked OK.\n");
+	}else{
+		printf("No block protection.\n");
+	}
+#endif
+
+	/* Start sector erase active. */
+	while(sector){
+		printf("Starting erase sector %d ...\n", sec_cnt);
+		flash_sector_erase(erase_addr);
+		printf("Erase sector %d OK...\n", sec_cnt++);
+		
+		if((page * 256) > (4 * 1024)){
+			page1 = (4 * 1024) / 256;
+			flags = 1;
+		}else{
+			page1 = page;
+			flags = 0;
+		}
+		
+	Init_Flash_Command();
+		/* start page program active */
+		printf("The sum total has %d page to need to program:\n", page);
+		while(page1){
+			if(!flags){
+				if(size > 256){
+					j = 256;
+				}
+				else{
+					j = size;
+				}
+			}
+			else{
+				j = 256;
+			}
+			for(i = 0; i < j; i++){
+				Flash_Set_Address(program_addr);
+				Flash_write_byte(*buf);
+				if(!(i % 0xF)) printf(".");
+				program_addr++;
+				buf++;
+				size--;
+			}
+			printf("\npage %d program ok.\n", page_cnt++);
+			page1--;
+		}
+		page -= (4 * 1024) / 256;
+		printf("All page programming completes for sector %d.\n", sec_cnt - 1);
+		
+		erase_addr += 0x1000;
+		sector--;
+	}
+	
+	/*Flash_write_status_reg(status | 0x1C);
+	printf("All page programming completes for all sectors.\n");*/
+	
+    // Indicate Flash Update termination to Firmware
+    exit_flash_update(exit_type);
+}
+        
+static int cmd_rdrom(int ac, char *av[])
+{
+    u16 i, val;
+	u32 start_addr;
+	u32 size;
+
+    if(ac < 2){
+        printf("usage : rdrom start_address size\n");
+        return -1;
+    }
+
+	if(!(strcmp(av[1], "-h")) || (!strcmp(av[1], "--help"))){
+        printf("Read data from EC flash tool for wpce775l.\n");
+        printf("usage : rdrom start_address size\n");
+        printf(" Note : start_address is from 0 to (1MB - 1) range.\n");
+        printf("        size is up to (1MB - start_address).\n");
+		return 0;
+	}
+
+
+	start_addr = (strtoul(av[1], NULL, 16) | FLASH_WIN_BASE_ADDR);
+	size = strtoul(av[2], NULL, 16);
+
+	if(size > (1024 * 1024 - start_addr)){
+		printf("Warnning: size out of range, reset size is 1.\n");
+		size = 1;
+	}
+
+	printf("Read data in EC ROM from address 0x%x, size %d:\n", start_addr, size);
+	printf("Address ");
+	for(i = 0; i < 15; i++){
+		if(((i % 8 ) == 0) && (i != 0)){
+			printf(" -");
+		}
+		printf(" 0%x", i);
+	}
+	printf(" 0%x\n%5x", i, start_addr);
+    set_interface_cfg(1);
+	for(i = 0; i < size; i++){
+		val = PcMemReadB(start_addr + i);
+		if(((i % 8 ) == 0) && ((i % 16) != 0)){
+			printf(" -");
+		}
+		if((val >> 4) == 0){
+			printf(" 0%x", val);
+		}else{
+			printf(" %x", val);
+		}
+		if((i + 1) % 16 == 0){
+			printf("\n");
+			printf("%5x", (start_addr + i + 1));
+		}
+	}
+	printf("\n");
+    set_interface_cfg(0);
+
+	return 0;
+}
+
+/* test program data to SPI data */
+void Test_program_multbyte(u32 address, u32 size)
+{
+	u16 sector, page, i = 0, j = 0;
+	u32 program_addr, erase_addr;
+	u16 remainder;
+
+    exit_type = WCB_EXIT_NORMAL;
+	sector = 1;
+	page = 1;
+	erase_addr = program_addr = address;
+
+	printf("Progarm data to address: 0x%x, size %d\n", address, size);
+	
+	/* start sector erase active */
+	if(size > 0x1000){
+		sector = size / 0x1000 + 1;
+	}
+	if(size > 256){
+		page = size / 256 + 1;
+	}
+
+	Update_Flash_Init();
+    set_interface_cfg(0);
+	Init_Flash_Command();
+
+	printf("Ready enter flash update...\n");
+    // Indicate Flash Update beginning to Firmware
+    Enter_Flash_Update();
+
+	/* start sector erase active */
+	printf("The sum total has %d sectors to need to erase:\n", sector);
+	while(sector){
+		printf("Starting erase sector %d ...\n", j);
+		flash_sector_erase(erase_addr);
+		printf("Erase sector %d OK...\n", j++);
+
+	Init_Flash_Command();
+		/* start page program active */
+		printf("The sum total has %d page to need to program:\n", page);
+		while(page){
+			if(size > 0xFF){
+				remainder = 256;
+			}else{
+				remainder = size;
+			}
+			for(i = 0; i < remainder; i++){
+				Flash_Set_Address(program_addr);
+				Flash_write_byte(i);
+				program_addr++;
+				size--;
+			}
+			printf(".");
+			page--;
+		}
+		printf("\nAll page programming completes.\n");
+		erase_addr += 0x1000;
+		sector--;
+	}
+    // Indicate Flash Update termination to Firmware
+    exit_flash_update(exit_type);
+}
+
+static int cmd_program_multbytes(int ac, char *av[])
+{
+	u32 addr, size;
+
+    if(ac < 2){
+        printf("usage : wrmb address size\n");
+        return -1;
+    }
+
+	addr = strtoul(av[1], NULL, 16);
+	size = strtoul(av[2], NULL, 16);
+
+	printf("Start multbyte program: address 0x%x, size %d\n", addr, size);
+
+    Test_program_multbyte(addr, size);
+
+	return 0;
+}
+
+static int cmd_program_data(int ac, char *av[])
+{
+	u32 start_addr;
+	u8 *data;
+	u32 size;
+
+    if(ac < 2){
+        printf("usage : wrdata address data\n");
+        return -1;
+    }
+
+	start_addr = strtoul(av[1], NULL, 16);
+	data = av[2];
+	size = strlen(data);
+
+	printf("Progarm data: start address 0x%x, data %s, size %d\n", start_addr, data, size);
+
+	Flash_program_data(start_addr, data, size);
+
+	printf("Program data completed.\n");
+
+	return 0;
+}
+#endif	// end if 1, test update flash function, daway 2010-05-10
+
 #endif	//end ifdef LOONGSON2F_3GNB
 
 int cmd_testvideo(int ac, char *av[])
@@ -873,22 +1019,33 @@ static const Cmd Cmds[] =
 	{"rdmsr", "reg", NULL, "msr read test", cmd_rdmsr, 2, 99, CMD_REPEAT},
 	{"wrmsr", "reg", NULL, "msr write test", cmd_wrmsr, 2, 99, CMD_REPEAT},
 #ifdef LOONGSON2F_3GNB	
-	{"wri", "reg", NULL, "WPEC775L EC reg write test", cmd_wr775reg, 2, 99, CMD_REPEAT},
-	{"rdi", "reg", NULL, "WPEC775L EC reg read test", cmd_rd775reg, 2, 99, CMD_REPEAT},
-	{"rdsmbus", "reg", NULL, "WPEC775L sumbus reg read test", cmd_rdsmbus, 2, 99, CMD_REPEAT},
-	{"wr775", "reg", NULL, "WPCE775L Space write test", cmd_wr775, 2, 99, CMD_REPEAT},
-	{"rd775", "reg", NULL, "WPCE775L Space read test", cmd_rd775, 2, 99, CMD_REPEAT},
+	{"wrport", "reg", NULL, "WPCE775L write port test", cmd_wrport, 2, 99, CMD_REPEAT},
+	{"rdport", "reg", NULL, "WPCE775L read port test", cmd_rdport, 2, 99, CMD_REPEAT},
 	{"wrsio", "reg", NULL, "WPCE775L Super IO port write test", cmd_wrsio, 2, 99, CMD_REPEAT},
 	{"rdsio", "reg", NULL, "WPCE775L Super IO port read test", cmd_rdsio, 2, 99, CMD_REPEAT},
 	{"wrwcb", "reg", NULL, "WPCE775L WCB(Write Command Buffer) write test", cmd_wrwcb, 2, 99, CMD_REPEAT},
 	{"rdwcb", "reg", NULL, "WPCE775L WCB(Write Command Buffer) read test", cmd_rdwcb, 2, 99, CMD_REPEAT},
 	{"wrldn", "reg", NULL, "WPCE775L logical device write test", cmd_wrldn, 2, 99, CMD_REPEAT},
 	{"rdldn", "reg", NULL, "WPCE775L logical device read test", cmd_rdldn, 2, 99, CMD_REPEAT},
-	{"rd_wcb", "reg", NULL, "WPCE775L WCB(Write Command Buffer) read test", cmd_loop_rdwcb, 2, 99, CMD_REPEAT},
+
+	{"updec", "reg", NULL, "WPCE775L Flash program test", cmd_program_data, 2, 99, CMD_REPEAT},
+	{"rdrom", "reg", NULL, "WPCE775L read flash test", cmd_rdrom, 2, 99, CMD_REPEAT},
+	{"wrmb", "reg", NULL, "WPCE775L Flash program test", cmd_program_multbytes, 2, 99, CMD_REPEAT},
+	{"secerase", "reg", NULL, "WPCE775L Flash sector erase test", cmd_sector_erase, 2, 99, CMD_REPEAT},
+	{"setshmmode", "reg", NULL, "WPCE775L read flash test", cmd_setshm_ram_flash, 2, 99, CMD_REPEAT},
+	{"rdshmreg", "reg", NULL, "WPCE775L EC ID read test", cmd_rdshmreg, 0, 99, CMD_REPEAT},
+	{"initcmd", "reg", NULL, "WPCE775L EC ID read test", cmd_initcmd, 0, 99, CMD_REPEAT},
+	{"rdstsreg", "reg", NULL, "WPCE775L EC ID read test", cmd_rdstsreg, 0, 99, CMD_REPEAT},
+	{"wrstsreg", "reg", NULL, "WPCE775L read flash test", cmd_wrstsreg, 2, 99, CMD_REPEAT},
+
+	{"tsci", "reg", NULL, "WPCE775L EC ID read test", cmd_test_sci, 0, 99, CMD_REPEAT},
+	{"wr775", "reg", NULL, "WPCE775L Space write test", cmd_wr775, 2, 99, CMD_REPEAT},
+	{"rd775", "reg", NULL, "WPCE775L Space read test", cmd_rd775, 2, 99, CMD_REPEAT},
 	{"rdids", "reg", NULL, "WPCE775L EC ID read test", cmd_rdids, 0, 99, CMD_REPEAT},
 	{"rdbat", "reg", NULL, "WPCE775L battery reg read test", cmd_rdbat, 0, 99, CMD_REPEAT},
 	{"rdfan", "reg", NULL, "WPCE775L CPU temperature and fan reg read test", cmd_rdfan, 0, 99, CMD_REPEAT},
 #endif
+
 	{"testvideo", "reg", NULL, "for debug read data from xbi interface of ec", cmd_testvideo, 2, 99, CMD_REPEAT},
 	{0},
 };
