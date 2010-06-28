@@ -629,7 +629,10 @@ tgt_devconfig()
 //#if ((NMOD_VGACON >0) &&(PCI_IDSEL_VIA686B !=0)|| (PCI_IDSEL_CS5536 !=0))
 #if NMOD_VGACON >0
 	if(getenv("nokbd")) rc=1;
-	else rc=kbd_initialize();
+	else {
+		superio_reinit();
+		rc=kbd_initialize();
+	}
 	printf("%s\n",kbd_error_msgs[rc]);
 	if(!rc){ 
 		kbd_available=1;
@@ -648,6 +651,70 @@ extern void godson1_cache_flush(void);
 extern void cs5536_gpio_init(void);
 extern void test_gpio_function(void);
 extern void cs5536_pci_fixup(void);
+
+#if PCI_IDSEL_SB700 != 0
+static int w83627_read(int dev,int addr)
+{
+int data;
+#if 0
+/*enter*/
+outb(0xbfd0002e,0x87);
+outb(0xbfd0002e,0x87);
+/*select logic dev reg */
+outb(0xbfd0002e,0x7);
+outb(0xbfd0002f,dev);
+/*access reg */
+outb(0xbfd0002e,addr);
+data=inb(0xbfd0002f);
+/*exit*/
+outb(0xbfd0002e,0xaa);
+outb(0xbfd0002e,0xaa);
+#endif
+/*enter*/
+outb(BONITO_PCIIO_BASE_VA + 0x002e,0x87);
+outb(BONITO_PCIIO_BASE_VA + 0x002e,0x87);
+/*select logic dev reg */
+outb(BONITO_PCIIO_BASE_VA + 0x002e,0x7);
+outb(BONITO_PCIIO_BASE_VA + 0x002f,dev);
+/*access reg */
+outb(BONITO_PCIIO_BASE_VA + 0x002e,addr);
+data=inb(BONITO_PCIIO_BASE_VA + 0x002f);
+/*exit*/
+outb(BONITO_PCIIO_BASE_VA + 0x002e,0xaa);
+outb(BONITO_PCIIO_BASE_VA + 0x002e,0xaa);
+return data;
+}
+
+static void w83627_write(int dev,int addr,int data)
+{
+#if 0
+/*enter*/
+outb(0xbfd0002e,0x87);
+outb(0xbfd0002e,0x87);
+/*select logic dev reg */
+outb(0xbfd0002e,0x7);
+outb(0xbfd0002f,dev);
+/*access reg */
+outb(0xbfd0002e,addr);
+outb(0xbfd0002f,data);
+/*exit*/
+outb(0xbfd0002e,0xaa);
+outb(0xbfd0002e,0xaa);
+#endif
+/*enter*/
+outb(BONITO_PCIIO_BASE_VA + 0x002e,0x87);
+outb(BONITO_PCIIO_BASE_VA + 0x002e,0x87);
+/*select logic dev reg */
+outb(BONITO_PCIIO_BASE_VA + 0x002e,0x7);
+outb(BONITO_PCIIO_BASE_VA + 0x002f,dev);
+/*access reg */
+outb(BONITO_PCIIO_BASE_VA + 0x002e,addr);
+outb(BONITO_PCIIO_BASE_VA + 0x002f,data);
+/*exit*/
+outb(BONITO_PCIIO_BASE_VA + 0x002e,0xaa);
+outb(BONITO_PCIIO_BASE_VA + 0x002e,0xaa);
+}
+#endif
 
 #if PCI_IDSEL_CS5536 != 0
 static int w83627_read(int dev,int addr)
@@ -710,6 +777,20 @@ outb(BONITO_PCIIO_BASE_VA + 0x002f,data);
 /*exit*/
 outb(BONITO_PCIIO_BASE_VA + 0x002e,0xaa);
 outb(BONITO_PCIIO_BASE_VA + 0x002e,0xaa);
+}
+#endif
+#if PCI_IDSEL_SB700 != 0
+static void superio_reinit()
+{
+w83627_write(0,0x24,0xc1);
+w83627_write(5,0x30,1);
+w83627_write(5,0x60,0);
+w83627_write(5,0x61,0x60);
+w83627_write(5,0x62,0);
+w83627_write(5,0x63,0x64);
+w83627_write(5,0x70,1);
+w83627_write(5,0x72,0xc);
+w83627_write(5,0xf0,0x80);
 }
 #endif
 

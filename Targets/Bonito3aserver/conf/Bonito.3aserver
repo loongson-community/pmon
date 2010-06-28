@@ -183,6 +183,7 @@ option FOR_GXEMUL
 select fatfs
 option FLOATINGPT
 #option PCI_IDSEL_VIA686B=17
+option PCI_IDSEL_SB700=14
 option WDC_NORESET
 select gzip
 option INPUT_FROM_BOTH
