@@ -89,10 +89,12 @@ extern void _sbd_nsdelay (unsigned long);
 /* Define UART baud rate and register layout */
 #define NS16550_HZ	(24000000/13)
 #ifdef __ASSEMBLER__
+#ifndef NSREG
 #if #endian(big)
 #define NSREG(x)	((x)^3)
 #else
 #define NSREG(x)	(x)
+#endif
 #endif
 #else
 #define nsreg(x)	unsigned char x

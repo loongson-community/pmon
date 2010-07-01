@@ -48,16 +48,16 @@
 #define	FSTORE	swc1	/* 32 bit mode float register store */
 #define	FLOAD	lwc1	/* 32 bit mode float register load */
 #define RSIZE   4       /* 32 bit mode register size */
-#define MTC0	mtc0
-#define MFC0	mfc0
+//#define MTC0	mtc0
+//#define MFC0	mfc0
 #else
 #define STORE   sd      /* 64 bit mode regsave instruction */
 #define LOAD    ld      /* 64 bit mode regload instruction */
 #define	FSTORE	sdc1	/* 32 bit mode float register store */
 #define	FLOAD	ldc1	/* 32 bit mode float register load */
 #define RSIZE   8       /* 64 bit mode register size */
-#define MTC0	dmtc0
-#define MFC0	dmfc0
+//#define MTC0	dmtc0
+//#define MFC0	dmfc0
 
 #endif
 #define	NOP8	nop;nop;nop;nop;nop;nop;nop;nop

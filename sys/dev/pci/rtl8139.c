@@ -1607,11 +1607,11 @@ int cmd_setmac(int ac, char *av[])
 	}
 	for (i = 0; i < 3; i++) {
 		val = 0;
-		gethex(&v, av[1], 2);
+		gethex((int32_t *)&v, av[1], 2);
 		val = v ;
 		av[1]+=3;
 
-		gethex(&v, av[1], 2);
+		gethex((int32_t *)&v, av[1], 2);
 		val = val | (v << 8);
 		av[1] += 3;
 

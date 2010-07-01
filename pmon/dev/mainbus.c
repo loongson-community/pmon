@@ -42,6 +42,8 @@ struct mainbus_softc {
 	struct bushook sc_bus;
 };
 
+extern int strcmp(const char *s1, const char *s2);
+
 /* Definition of the mainbus driver. */
 static int mainbus_match(struct device *parent, void *match, void *aux);
 static void mainbus_attach(struct device *parent, struct device *self,

@@ -87,6 +87,9 @@ int	if_detach_rtdelete __P((struct radix_node *, void *));
 int	ifqmaxlen = IFQ_MAXLEN;
 void	if_slowtimo __P((void *arg));
 
+extern size_t strlen(const char *p);
+extern int strcmp(const char *s1, const char *s2);
+
 /*
  * Network interface utility routines.
  *

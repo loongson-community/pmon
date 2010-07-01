@@ -63,6 +63,8 @@ extern void    gsignal __P((struct jmp_buf *, int sig));
 extern ConfigEntry ConfigTable[];
 extern int errno;
 extern void kbd_poll(void);
+extern void usb_kbd_poll(void);
+
 
 DevEntry        DevTable[DEV_MAX];
 
@@ -367,7 +369,6 @@ devinit (void)
 	char dname[10];
 	char *s;
 
-    unsigned char *envstr;
 	
 	strcpy(dname, "tty_baud");
 	for (i = 0; ConfigTable[i].devinfo && i < DEV_MAX; i++) {

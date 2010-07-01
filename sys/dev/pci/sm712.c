@@ -9,6 +9,7 @@
  ***************************************************************************/
 
 #include "sm712.h"
+#include "include/bonito.h"
 
 /*******************************SM712 2D Engine*******************************/
 
@@ -158,12 +159,12 @@ void sm712_2d_fill_rect(unsigned long dst_base, unsigned long dst_x, unsigned lo
 		while( !((*((volatile unsigned char *)(0xbfd00000 | 0x3ba))) & 0x08) );
 	}
 */
-	if( (*((volatile unsigned char *)(PTR_PAD(0xbfd00000) | 0x3cc))) & 0x01 ){
-		while( (*((volatile unsigned char *)(PTR_PAD(0xbfd00000) | 0x3da))) & 0x08 );
-		while( !((*((volatile unsigned char *)(PTR_PAD(0xbfd00000) | 0x3da))) & 0x08) );
+	if( (*((volatile unsigned char *)(PTR_PAD_BONITO(0xbfd00000) | 0x3cc))) & 0x01 ){
+		while( (*((volatile unsigned char *)(PTR_PAD_BONITO(0xbfd00000) | 0x3da))) & 0x08 );
+		while( !((*((volatile unsigned char *)(PTR_PAD_BONITO(0xbfd00000) | 0x3da))) & 0x08) );
 	}else{
-		while( (*((volatile unsigned char *)(PTR_PAD(0xbfd00000) | 0x3ba))) & 0x08 );
-		while( !((*((volatile unsigned char *)(PTR_PAD(0xbfd00000) | 0x3ba))) & 0x08) );
+		while( (*((volatile unsigned char *)(PTR_PAD_BONITO(0xbfd00000) | 0x3ba))) & 0x08 );
+		while( !((*((volatile unsigned char *)(PTR_PAD_BONITO(0xbfd00000) | 0x3ba))) & 0x08) );
 	}
 #else
 	delay(100);

@@ -455,10 +455,11 @@ deFillRect(nDestBase,0,
                 DeltaX, 
                 DeltaY, 
                 nColor);
+return 0;
      
 }
 
-void AutodeInit()
+void AutodeInit(void)
 {
 #if defined(X1024x768)
 

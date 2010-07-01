@@ -5,6 +5,8 @@ typedef unsigned long ul;
 typedef unsigned long long ull;
 typedef unsigned long volatile ulv;
 
+extern char *getenv (const char *);
+
 int err_continue = 0;
 char progress[] = "-\\|/";
 #define PROGRESSLEN 4
@@ -18,7 +20,7 @@ char progress[] = "-\\|/";
 struct test
 {
 	char *name;
-	int (*fp)();
+	int (*fp)(ulv *, ulv *, size_t );
 };
 
 int test_random_value(ulv *bufa, ulv *bufb, size_t count);

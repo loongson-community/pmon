@@ -58,13 +58,20 @@
 #define TM_YEAR_BASE 1900
 #include "cmd_hist.h"
 #include "cmd_more.h"
+
+extern int ifconfig (char *, char *);
+extern void tgt_reboot(void);
+extern void tgt_poweroff(void);       
+
+
 extern unsigned int memorysize;
 extern unsigned int memorysize_high;
 extern int screen_height;
 extern int screen_width;
+extern int vga_available;
+
 int com_counts;
 int ip_env_changed = FALSE;
-extern int vga_available;
 
 int run(char *cmd)
 {
@@ -842,7 +849,7 @@ int do_run_command(char *ptinput)
     return 0;
 }
 
-int do_reboot()
+int do_reboot(void)
 {
     printf("正在启动系统.....");
     printf("Rebooting.....");
@@ -850,7 +857,7 @@ int do_reboot()
     return 0;
 }
 
-int do_shutdown()
+int do_shutdown(void)
 {
     printf("正在关机.....");
     printf("Power off.....");
@@ -928,7 +935,7 @@ void envstr_init(void)
 
 }
 
-int page_update(p_window_info_t pwinfo,char *phint)
+void page_update(p_window_info_t pwinfo,char *phint)
 {
     int i;
     if(w_getpage()>=0 && w_getpage()<pwinfo->number_of_tabs)  {

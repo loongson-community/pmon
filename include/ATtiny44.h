@@ -1,3 +1,5 @@
+#ifndef _ATTINY44_H_
+#define _ATTINY44_H_
 #define ATTINY_PID_S       0x53    // 'S'
 #define ATTINY_PID_E       0x45    // 'E'
 #define ATTINY_HID_N       0x4E    // 'N'
@@ -18,3 +20,4 @@
 #define ATTINY_ACK_REG             0x41
 
 extern int attiny44_update_rom(void *src, int size);
+#endif

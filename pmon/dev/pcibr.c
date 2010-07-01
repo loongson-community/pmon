@@ -79,6 +79,9 @@ struct cfdriver pcibr_cd = {
 };
 
 static int pcibrprint __P((void *, const char *pnp));
+
+extern int strcmp(const char *s1, const char *s2);
+
 extern struct tgt_bus_space def_bus_iot;
 extern struct tgt_bus_space def_bus_memt;
 extern int monarch_mode;

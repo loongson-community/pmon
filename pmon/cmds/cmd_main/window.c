@@ -96,6 +96,14 @@ extern void video_enableoutput(void);
 #else
 extern unsigned char* vgabh;
 #endif
+extern void   video_cls(void);
+extern int get_scr_width(void);
+extern int get_scr_height(void);
+extern int ioctl(int fd, unsigned long op, ...);
+extern void set_cursor_fb(unsigned char,unsigned char);
+extern void set_cursor(unsigned char, unsigned char);
+
+
 extern int com_counts;
 extern int vga_available;
 
@@ -168,6 +176,7 @@ void w_init(void)
     w_setcolor(0x10,0x10,0x60);
     ioctl (STDIN, SETNCNE, &tbuf);  //fixme
 }
+/*
 static void w_copy(void *src,void *dest)//å¯¹é?ï¼?!!
 {
     int i;
@@ -176,9 +185,10 @@ static void w_copy(void *src,void *dest)//å¯¹é?ï¼?!!
         *((long long *)(dest+i))=*((long long *)(src+i));
     }
 }
+*/
 static void w_background(void)
 {
-    int i,j,y,y1;
+    int i,j;
         
     //line 0 line screen_height-2 and line screen_height-3 dark green background(case theme1)
     for(j=0; j<screen_width; j++){  
@@ -243,14 +253,14 @@ int isdifferent(scr* x_scr, scr* y_scr,int j)
     return 0;
 }
 
-void w_updatescreen()
+void w_updatescreen(void)
 {
     int i,j,x,y;
     char s[2];
 
     video_enableoutput();
     for(j=0,y=VIDEO_FONT_HEIGHT*y_start;j<screen_height;j++,y+=VIDEO_FONT_HEIGHT){
-        if(isdifferent(finalbuf, foreground, j)){
+        if(isdifferent(finalbuf[0], foreground[0], j)){
             for(i=0,x=0;i<screen_width;i++){  
                 fgx=p_pal[foreground[j][i].color&0xf];
                 bgx=p_pal[foreground[j][i].color>>4];
@@ -293,9 +303,11 @@ void changetheme(void)
 
 void w_present(void)
 {
-    char c,c0,c1;    
+    char c;    
     int cnt;
+#ifndef NMOD_FRAMEBUFFER
     int ij,ik;
+#endif
 
     if(vga_available) {
 #if NMOD_FRAMEBUFFER    

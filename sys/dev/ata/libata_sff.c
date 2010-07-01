@@ -48,6 +48,10 @@
 *************************************************************************/
 
 #include <linux/libata.h>
+#include <stdio.h>
+
+extern int ata_port_start(struct ata_port *);
+
 
 int ata_sff_softreset(struct ata_port *p_ap);
 int sata_sff_hardreset(struct ata_port *p_ap);
@@ -62,8 +66,8 @@ void ata_bmdma_start(struct ata_port *p_ap);
 void ata_bmdma_stop(struct ata_port *p_ap);
 u8 ata_bmdma_status(struct ata_port *p_ap);
 
-extern const struct ata_port_operations ata_base_port_ops;
-const struct ata_port_operations ata_sff_port_ops = {
+extern struct ata_port_operations ata_base_port_ops;
+struct ata_port_operations ata_sff_port_ops = {
     .inherits       = &ata_base_port_ops,
     .softreset      = ata_sff_softreset,
     .hardreset      = sata_sff_hardreset,
@@ -74,7 +78,7 @@ const struct ata_port_operations ata_sff_port_ops = {
     .port_start     = ata_sff_port_start,
 };
 
-const struct ata_port_operations ata_bmdma_port_ops = {
+struct ata_port_operations ata_bmdma_port_ops = {
     .inherits       = &ata_sff_port_ops,
     .bmdma_setup        = ata_bmdma_setup,
     .bmdma_start        = ata_bmdma_start,
@@ -293,7 +297,7 @@ int ata_sff_softreset(struct ata_port *p_ap)
 {
 
     u8 status = 0;
-    int timeout = 10;
+    int timeout = 20;
 
     p_ap->ctl =0x08;    //Default value of control reg
     /* software reset.  causes dev0 to be selected */
@@ -314,12 +318,12 @@ int ata_sff_softreset(struct ata_port *p_ap)
     if(status&ATA_BUSY) {
         printf("ata port%d's device%d is slow to respond,plz be patient.\n",p_ap->port_no,p_ap->dev_no);
     }
-
+    /*
     while(status&ATA_BUSY) {
         mdelay(100);
         status = ata_sff_check_status(p_ap,0);
     }
-
+    */
     if(status&ATA_BUSY) {
         printf("ata port%d's device%d failed to respond: ",p_ap->port_no,p_ap->dev_no);
         printf("bus reset failed\n");

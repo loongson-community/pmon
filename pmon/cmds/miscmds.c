@@ -50,6 +50,7 @@
 #include <machine/cpu.h>
 
 #include <pmon.h>
+extern void tgt_poweroff(void);
 
 int cmd_flush __P((int, char *[]));
 int cmd_reboot __P((int, char *[]));

@@ -48,7 +48,7 @@
 
 #include <pmon.h>
 
-extern void idle();
+extern void idle(void);
 extern char end[];
 extern char edata[];
 //Felix-2008-10-28
@@ -294,7 +294,7 @@ extern int ticks;
 }
 
 /*for toolchain mips-elf-gcc mips3 use 32 fpu regs*/
-void tgt_fpuenable()
+void tgt_fpuenable(void)
 {
 #if __mips < 3
 asm(\

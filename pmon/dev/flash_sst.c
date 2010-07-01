@@ -241,7 +241,7 @@ int erase;
 						busy = 0;
 				}
 			} else {
-				if (poll1 & 0x80 == 0x00)
+				if ((poll1 & 0x80) == 0x00)
 					busy = 1;
 				else {
 					poll1 = inb(map->fl_map_base + offset);

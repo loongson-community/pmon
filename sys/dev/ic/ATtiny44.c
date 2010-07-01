@@ -11,6 +11,7 @@
 
 #include "stdio.h"
 #include "include/ATtiny44.h"
+#include <cpu.h>
 
 typedef unsigned int pcitag_t; 
 
@@ -38,7 +39,7 @@ int attiny44_update_rom(void *src, int size)
 	/* set the mmio base and config the gpio clock */
 	tag  = _pci_make_tag(0, 14, 0);
 	mmio = (volatile char *)_pci_conf_readn(tag, 0x14, 4);
-	mmio = (unsigned int)mmio | 0xb0000000;
+	mmio = (volatile char *)((unsigned long)mmio | PTR_PAD(0xb0000000));
 	temp = _pci_conf_readn(tag, 0x04, 4);
 	_pci_conf_writen(tag, 0x04, temp | 0x07, 0x04);
 

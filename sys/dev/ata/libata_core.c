@@ -35,7 +35,7 @@
  */
 
 #include <linux/libata.h>
-
+#include <stdio.h>
 //tmp
 #define ERANGE      34  /* Math result not representable */
 #define EINVAL      22  /* Invalid argument */
@@ -43,7 +43,11 @@
 #define NULL    0
 #endif
 extern void udelay(int usec);
-const struct ata_port_operations ata_base_port_ops = {
+
+extern unsigned int ata_sff_dev_classify(p_ata_port_t);
+extern u8 ata_sff_busy_wait (struct ata_port *,int ,unsigned int ,u8);
+
+struct ata_port_operations ata_base_port_ops = {
     .devchk              = ata_devchk,
     .port_identify     = ata_identify,
 };
@@ -359,11 +363,10 @@ int ata_dev_configure(struct ata_port *p_ap,u16 *p_id)
     return sr;
 }
 
-unsigned int ata_identify (struct ata_port  *p_ap)
+int ata_identify (struct ata_port  *p_ap)
 {
     u8 cmd = 0, status = 0;
     u16 iobuf[ATA_SECTOR_WORDS];
-    u64 n_sectors = 0;
     u32 *p_iobuf = (u32 *)iobuf;
 
     memset (iobuf, 0, sizeof (iobuf));
@@ -513,7 +516,7 @@ int ata_host_start(p_ata_host_t p_host)
 //not finished yet
 int ata_host_register(p_ata_host_t  p_host)
 {
-    int i, rc;
+    int i;
     static int dev_no = 0;
     //Host must have been started
     if(!(p_host->flags & ATA_HOST_STARTED)) {

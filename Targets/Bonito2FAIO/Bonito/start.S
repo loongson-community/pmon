@@ -52,11 +52,10 @@
 #define MMIO_BASE       0xb7000000
 
 #define TTYDBG(x) \
-        .rdata;98: .asciz x; .text; la a0, 98b; bal stringserial; nop
+        .rdata;98: .asciz x; .text; LA a0, 98b; bal stringserial; nop
 
 #define PRINTSTR(x) \
-        .rdata;98: .asciz x; .text; la a0, 98b; bal stringserial; nop
-
+        .rdata;98: .asciz x; .text; LA a0, 98b; bal stringserial; nop
 
 #define CONFIG_CACHE_64K_4WAY 1
 
@@ -69,7 +68,6 @@
 #define CP0_CONFIG $16
 #define CP0_TAGLO  $28
 #define CP0_TAGHI  $29
-
 
 /*
  *   Register usage:
@@ -100,8 +98,10 @@ stack = start - 0x4000          /* Place PMON stack below PMON start in RAM */
         mtc0    zero, COP_0_CAUSE_REG
         li      t0, SR_BOOT_EXC_VEC     /* Exception to Boostrap Location */
         mtc0    t0, COP_0_STATUS_REG
-        la      sp, stack
-        la      gp, _gp
+        //la      sp, stack
+        LA      sp, stack        
+        //la      gp, _gp
+        LA      gp, _gp
         
         bal     uncached                /* Switch to uncached address space */
         nop
@@ -111,7 +111,8 @@ stack = start - 0x4000          /* Place PMON stack below PMON start in RAM */
 
 uncached:
         or      ra, UNCACHED_MEMORY_ADDR
-        j       ra
+        //j       ra
+        .word  0x03e00008
         nop
 
 /*
@@ -126,12 +127,15 @@ ext_map_and_reboot:
         li      a1, 0x40000000
         bal     CPU_TLBInit
         nop
-        la      v0, tgt_reboot
-        la      v1, start
+        //la      v0, tgt_reboot
+        LA      v0, tgt_reboot        
+        //la      v1, start
+        LA      v1, start      
         subu    v0, v1
         lui     v1, 0xffc0
         addu    v0, v1
-        jr      v0
+        //jr      v0
+        .word  0x00400008
         nop
 
 /*
@@ -139,13 +143,15 @@ ext_map_and_reboot:
  *  whatever comes up before we have a fully fledged exception handler.
  */
         .align  9                       /* bfc00200 */
-        la      a0, v200_msg
+        //la      a0, v200_msg
+        LA      a0, v200_msg   
         bal     stringserial
         nop
         b       exc_common
 
         .align  7                       /* bfc00280 */
-        la      a0, v280_msg
+        //la      a0, v280_msg
+        LA      a0, v280_msg
         bal     stringserial
         nop
         b       exc_common
@@ -160,7 +166,8 @@ ext_map_and_reboot:
 
 /* General exception */
         .align  7                       /* bfc00380 */
-        la      a0, v380_msg
+        //la      a0, v380_msg
+        LA      a0, v380_msg
         bal     stringserial
         nop
         mfc0 a0, COP_0_EXC_PC
@@ -170,7 +177,8 @@ ext_map_and_reboot:
         b       exc_common
         
         .align  8                       /* bfc00400 */
-        la      a0, v400_msg
+        //la      a0, v400_msg
+        LA      a0, v400_msg
         bal     stringserial
         nop
 
@@ -200,7 +208,6 @@ exc_common:
         bal     hexserial
         nop
 
-
         .align 8
         .ascii "Ver:"
         .word MAJOR
@@ -229,7 +236,8 @@ exc_common:
  *  location into ra. Check to see if we run from ROM or if this is ramloaded.
  */
 locate:
-        la      s0,start
+        //la      s0,start
+        LA      s0,start
         subu    s0,ra,s0
         and     s0,0xffff0000
 
@@ -624,7 +632,6 @@ reginit:                        /* local name */
         PRINTSTR("\r\n")
 
 gs_2f_v3_ddr2_cfg:
-
     ###enable the reg space###
 #if 1
         TTYDBG  ("\r\nenable register space of MEMORY\r\n")
@@ -713,7 +720,6 @@ ESCAPE_I2C:
 
         
 skipdimm:
-
         li      t1,0            # accumulate pcimembasecfg settings
                 
         /* set bar0 mask and translation to point to SDRAM */
@@ -908,9 +914,11 @@ skipdot:
 bootnow:
         TTYDBG("Copy PMON to execute location...\r\n")
 
-        la      a0, start
+        //la      a0, start
+        LA      a0,start
         li      a1, 0xbfc00000
-        la      a2, _edata
+        //la      a2, _edata
+        LA       a2,_edata
     add a2,  31
     and a2,  ~31
         or      a0, 0xa0000000
@@ -955,8 +963,10 @@ bootnow:
         PRINTSTR("\ncopy text section done.\r\n")
         
         /* Clear BSS */
-        la      a0, _edata
-        la      a2, _end
+        //la      a0, _edata
+        //la      a2, _end
+        LA      a0, _edata
+        LA      a2, _end
     sw  zero, 0(a0)
     add a0, 7       /*For speed up*/
     and a0, ~7
@@ -1033,16 +1043,19 @@ zhb:
 
 
     /* pass pointer to kseg1 tgt_putchar */
-    la  a1, tgt_putchar
+    //la  a1, tgt_putchar
+    LA  a1, tgt_putchar
         addu a1,a1,s0
 
-    la  a2, stringserial
+    //la  a2, stringserial
+    LA  a2, stringserial
         addu a2,a2,s0
 
         move    a0,msize
         srl     a0,20
         
-        la      v0, initmips
+        //la      v0, initmips
+        LA      v0, initmips
         jalr    v0
         nop
 stuck:
@@ -1077,11 +1090,6 @@ stuck:
 /*
  *  Clear the TLB. Normally called from start.S.
  */
-#if __mips64
-#define MTC0 dmtc0
-#else 
-#define MTC0 mtc0
-#endif
 LEAF(CPU_TLBClear)
         li      a3, 0                   # First TLB index.
 
@@ -1110,7 +1118,8 @@ LEAF(CPU_TLBClear)
         bne     a3, a2, 1b
         nop
 
-        jr      ra
+        //jr      ra
+        .word   0x03e00008
         nop
 END(CPU_TLBClear)
 
@@ -1145,7 +1154,8 @@ LEAF(CPU_TLBInit)
         bgtz    a1, 1b
         addu    a0, a2                  # Step address 32Mb.
 
-        jr      ra
+        //jr      ra
+        .word   0x03e00008
         nop
 END(CPU_TLBInit)
 
@@ -1153,7 +1163,9 @@ LEAF(stringserial)
         move    a2, ra
 
     #if 1
-        la      v0, COM3_BASE_ADDR
+        //la      v0, COM3_BASE_ADDR
+        //LA      v0, COM3_BASE_ADDR
+        LA       v0, COM3_BASE_ADDR
         lbu      v1, NSREG(NS16550_IER)(v0)
         xor v1,v1,0xf
     beqz v1, GO_THROUGH
@@ -1174,7 +1186,9 @@ GO_THROUGH:
         lbu     a0, 0(a1)
 
 2:
-        j       a2
+        //j       a2
+        move ra,a2
+        .word  0x03e00008
         nop
 END(stringserial)
 
@@ -1186,7 +1200,8 @@ LEAF(hexserial)
         rol     a0, a1, 4
         move    a1, a0
         and     a0, 0xf
-        la      v0, hexchar
+        //la      v0, hexchar
+        LA      v0, hexchar
         addu    v0, s0
         addu    v0, a0
         bal     tgt_putchar
@@ -1195,7 +1210,9 @@ LEAF(hexserial)
         bnez    a3, 1b
         addu    a3, -1
 
-        j       a2
+        //j       a2
+        move ra,a2
+        .word  0x03e00008
         nop
 
 END(hexserial)
@@ -1203,8 +1220,9 @@ END(hexserial)
 LEAF(tgt_putchar)
         .set noat
     
-        la      v0, COM3_BASE_ADDR
-
+        //la      v0, COM3_BASE_ADDR
+        //LA      v0, COM3_BASE_ADDR
+        LA      v0, COM3_BASE_ADDR
     #if 1
     nop
     //probe whether UART existed
@@ -1224,7 +1242,8 @@ LEAF(tgt_putchar)
 
     sb      a0, NSREG(NS16550_DATA)(v0)
 2:  nop
-        j       ra
+        //j       ra
+        .word  0x03e00008
         nop     
         .set at
 END(tgt_putchar)
@@ -1252,7 +1271,9 @@ END(tgt_putchar)
 //#ifndef __NO_UART
 LEAF(initserial)
         .set noat
-        la      v0, COM3_BASE_ADDR
+        //la      v0, COM3_BASE_ADDR
+        //LA      v0, COM3_BASE_ADDR
+        LA      v0, COM3_BASE_ADDR
         li      a0, NS16550HZ/(16*CONS_BAUD)
 
         li      v1, FIFO_ENABLE|FIFO_RCV_RST|FIFO_XMT_RST|FIFO_TRIGGER_4
@@ -1271,14 +1292,16 @@ LEAF(initserial)
         li  v1, 0xf
         sb      v1, NSREG(NS16550_IER)(v0)
 2:
-        j       ra
+        //j       ra
+        .word  0x03e00008
         nop
         .set at
 END(initserial)
 
 
 __main:
-        j       ra
+        //j       ra
+        .word  0x03e00008
         nop
 
 
@@ -1335,7 +1358,8 @@ hexchar:
 #define Index_Writeback_Inv_S                   0x03
 
 LEAF(nullfunction)
-        jr ra
+        //jr ra
+        .word  0x03e00008
         nop
 END(nullfunction)
 
@@ -1444,7 +1468,8 @@ cache_flush_d2way:
 1:
 cache_init_finish:
         nop
-        jr      ra
+        //jr      ra
+        .word 0x03e00008
         nop
 
 cache_init_panic:
@@ -1520,9 +1545,11 @@ LEAF(superio_init)
         nop
         
                 
-        jr ra
+        //jr ra
+        .word 0x03e00008
         nop
 END(superio_init)
+
 /*
 note:
 before,sm502's GPIO51,GPIO50,GPIO49's 
@@ -1589,7 +1616,8 @@ END(readgpio48)
 ddr2_config:
     move s1, ra
 #if 1
-	la      t0, ddr2_reg_data
+	//la      t0, ddr2_reg_data
+	LA      t0, ddr2_reg_data
 #endif
 1:	
 	addu    t0, t0, s0
@@ -1654,7 +1682,6 @@ reg_write:
     lw  a1,0x10(t0)
     move msize,a1
     nop
-    
     //533 or 667 config
     bal readgpio48
     nop
@@ -1668,6 +1695,8 @@ reg_write:
 	nop 	
     b   ddr2_start
     nop
+
+
 
     
     //Felix-2008-10-13
@@ -1695,6 +1724,9 @@ spd_reg_read:
     bne s3,$0,spd_reg_read
     nop    
     #endif
+
+
+
     
 #if 1
 	move k0, ra
@@ -1852,8 +1884,6 @@ NOT_SET_UNBUFFERED:
 	sw  v1,0(v0)
 	nop
 	
-
-
 ddr2_start:
 1:	
     #define QYL_DDR2_DEBUG
@@ -1888,15 +1918,17 @@ nop
     ############start##########
 	li      t2, CONFIG_BASE
 	//la	t0,DDR2_CTL_start_DATA_LO
-	la	t0,DDR2_CTL_start_DATA_HI
+	LA	t0,DDR2_CTL_start_DATA_HI
 	#la	t0,ddr2_start_reg
 	addu   	t0, t0, s0
+
 	lw      a1, 0x0(t0)
 	sw      a1, 0x34(t2)
 	nop
 
 	move    ra, s1
-	jr      ra
+	//jr      ra
+	.word 0x03e00008
 	nop
     .set    mips0
     .end    ddr2_config

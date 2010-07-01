@@ -1,7 +1,7 @@
 #include <pmon.h>
 #include <stdio.h>
 #include <string.h>
-
+#include <cpu.h>
 #ifdef DEVBD2F_SM502
 #define	SM502_USE_LOWC
 extern volatile char *mmio;
@@ -11,11 +11,12 @@ extern volatile char *mmio;
 #define SM502_I2C_ADDR 0x010043      //0:write,1:read
 #define SM502_I2C_DATA 0x010044      //44-53
 
-#define GPIO_DIR_LOW 		(volatile unsigned int *)(mmio + 0x10008)
-#define GPIO_DATA_LOW		(volatile unsigned int *)(mmio + 0x10000)
+#define GPIO_DIR_LOW 		(volatile unsigned int *)PTR_PAD((unsigned long)(mmio + 0x10008))
+#define GPIO_DATA_LOW		(volatile unsigned int *)PTR_PAD((unsigned long)(mmio + 0x10000))
 
-#define GPIO_DIR_HIGH 		(volatile unsigned int *)(mmio + 0x1000c)
-#define GPIO_DATA_HIGH		(volatile unsigned int *)(mmio + 0x10004)
+#define GPIO_DIR_HIGH 		(volatile unsigned int *)PTR_PAD((unsigned long)(mmio + 0x1000c))
+#define GPIO_DATA_HIGH		(volatile unsigned int *)PTR_PAD((unsigned long)(mmio + 0x10004))
+
 #define G_OUTPUT		1
 #define G_INPUT			0
 #define	DAT_PIN			21//13	
@@ -27,6 +28,7 @@ extern volatile char *mmio;
 extern pcitag_t _pci_make_tag(int, int, int);
 extern pcitag_t _pci_conf_readn(pcitag_t, int, int);
 extern void _pci_conf_writen(pcitag_t, int, pcitag_t, int);
+extern unsigned long strtoul(const char *,char **,int);
 
 void rtc_i2c_sleep(int ntime)
 {
@@ -422,7 +424,7 @@ unsigned short rtc_i2c_rec_s16(unsigned char slave_addr,unsigned char sub_addr,u
 
 unsigned char rtc_i2c_send_s16(unsigned char slave_addr,unsigned char sub_addr,unsigned short* buf ,int count)
 {
-	unsigned char *data8 = buf;
+	unsigned char *data8 = (unsigned char *)buf;
 
 	while(count)
 	{	
@@ -467,8 +469,8 @@ int wriic2(int argc,char **argv)
 	unsigned char value;
 
 	tag  = _pci_make_tag(0, 14, 0);
-	mmio = _pci_conf_readn(tag, 0x14, 4);
-	mmio = (int)mmio | 0xb0000000;
+	mmio = (volatile char *)_pci_conf_readn(tag, 0x14, 4);
+	mmio = (volatile char *)((unsigned long)mmio | PTR_PAD(0xb0000000));
 	temp = _pci_conf_readn(tag, 0x04, 4);
 	_pci_conf_writen(tag, 0x04, temp | 0x07, 0x04);
 	temp = _pci_conf_readn(tag, 0x04, 4);
@@ -522,8 +524,6 @@ out :
 
 int rdiic2(int argc,char **argv)
 {
-	pcitag_t tag;
-	unsigned long temp;
 	int ret = 0;
 	unsigned char slave_addr, index_addr;
 	unsigned char value;

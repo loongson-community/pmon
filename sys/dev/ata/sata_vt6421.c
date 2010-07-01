@@ -56,11 +56,20 @@ The rest may be deduced by analogy.
 #include <sys/unistd.h>
 #undef _KERNEL
 #include <errno.h>
+#include <machine/cpu.h>
+#include <machine/pio.h>
 
 /* Convert sectorsize to wordsize */
 #define ATA_SECTOR_WORDS (ATA_SECT_SIZE/2)
 #define vtophys(p)      _pci_dmamap((vm_offset_t)p, 1)
 #define CFG_SATA_MAX_DEVICE 2
+
+
+extern void ata_sff_std_ports(struct ata_ioports *);
+extern int ata_host_activate(p_ata_host_t);
+extern void ata_tf_to_host(struct ata_port *);
+extern int ata_build_rw_tf(struct ata_port *,u64 , u32 , unsigned int,unsigned int);
+extern unsigned long strtoul(const char *,char **,int);
 
 static int vt_match (struct device *, void *, void *);
 static void vt_attach (struct device *, struct device *, void *);
@@ -108,8 +117,8 @@ p_ata_device_t p_vt_ata_dev[CONFIG_SYS_SATA_MAXPORTS] = {
 static int fault_timeout;
 struct vt_sata_softc *p_vt_device;
 
-extern const struct ata_port_operations_t ata_bmdma_port_ops;
-static struct ata_port_operations vt_ops = {
+extern struct ata_port_operations ata_bmdma_port_ops;
+struct ata_port_operations vt_ops = {
     .inherits       = &ata_bmdma_port_ops,   
     .bmdma_setup            = vt_bmdma_setup,
     .bmdma_start            = vt_bmdma_start,
@@ -211,12 +220,10 @@ static void vt_attach(struct device * parent,struct device * self,void *aux)
 {
     struct pci_attach_args *pa = (struct pci_attach_args *)aux;
     pci_chipset_tag_t pc = pa->pa_pc;
-    bus_space_tag_t memt = pa->pa_memt;
 	bus_space_tag_t iot = pa->pa_iot;
-    bus_addr_t membase,iobase; 
-    bus_size_t memsize,iosize; 
+    bus_addr_t iobase; 
+    bus_size_t iosize; 
     u16 cmd = 0;
-    int cachable;
     int i = 0; 
     
     p_vt_device =(struct vt_sata_softc *)self;
@@ -272,9 +279,9 @@ static void vt_attach(struct device * parent,struct device * self,void *aux)
          vt_ata_ports[i].port_no = i;
          vt_ata_ports[i].dev_no = -1;//no device attached from init
          vt_ata_ports[i].p_ops = &vt_ops;
-         p_ioaddr->cmd_addr = g_iobase[i];
+         p_ioaddr->cmd_addr = (void *)g_iobase[i];
          p_ioaddr->altstatus_addr = 
-         p_ioaddr->ctl_addr = g_iobase[i] + 0xa;
+         p_ioaddr->ctl_addr = (void *)(g_iobase[i] + 0xa);
          printf("vt_attach p_ioaddr->ctl_addr:%x\n",(unsigned long)p_ioaddr->ctl_addr);
 
          ata_sff_std_ports(p_ioaddr);
@@ -289,7 +296,7 @@ static void vt_attach(struct device * parent,struct device * self,void *aux)
         if(vt_ata_dev[i].port_no == -1) {
             continue;
         }
-        config_found(p_vt_device, &vt_ata_dev[i], NULL);
+        config_found((struct device *)p_vt_device, &vt_ata_dev[i], NULL);
     }
 
     sata_op.open = vt_open;
@@ -309,7 +316,7 @@ unsigned int vt_devchk (struct ata_port *p_ap)
     port_addr =(unsigned long) p_host->iomap[5];
     port_no = p_ap->port_no;
 
-    printf("vt_devchk port_addr:%x\n",(unsigned long)port_addr);
+    printf("vt_devchk port_addr:%llx\n",(unsigned long)port_addr);
 
     //find SSTATUS reg
     port_addr +=(port_no*0x40); 
@@ -369,7 +376,9 @@ void setup_prd_table(struct ata_port *p_ap,void *buff,u32 size)
 //seems ok
 void del_prd_table(struct ata_port *p_ap)
 {
-    u8 *prd_buff = (u8 *)PHYS_TO_UNCACHED(p_ap->prd_dma);
+    //u8 *prd_buff = (u8 *)PHYS_TO_UNCACHED(p_ap->prd_dma);
+    u8 *prd_buff = (u8 *)PHYS_TO_CACHED(p_ap->prd_dma);
+
     free(prd_buff,M_DEVBUF);
     return;
 }
@@ -410,7 +419,8 @@ static u32 vt_do_one_read(p_ata_port_t p_ap, ulong block, u16 blkcnt, u16 * buff
     }
     
     //build cmd for DMA transfer
-    if(rv = ata_build_rw_tf(p_ap,block,blkcnt,tf_flags,tag)) {
+    rv = ata_build_rw_tf(p_ap,block,blkcnt,tf_flags,tag);
+    if(rv) {
         printf("--vt_do_one_read--   ata_build_rw_tf failed.  rv = %d\n ",rv);
         return 0;
     }
@@ -568,6 +578,8 @@ int vt_open(
     struct proc *p)
 {
     struct vt_sata_softc *priv;
+
+
 
     priv=vt_sata_lookup(dev);
     if(!priv){

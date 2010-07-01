@@ -223,13 +223,14 @@ int main_win_ctor(struct wincb *this);
 void main_win_dtor(struct wincb *this);
 int main_win_process(struct wincb *this, int message_type, int message);
 
+
 struct wincb main_win = 
 {
-	main_win_ctor,
-	main_win_process,
-	main_win_dtor,
-	(struct widgetcb *)0,
-	LIST_HEAD_INIT(main_win.widget_list)
+	.ctor = main_win_ctor,
+	.process = main_win_process,
+	.dtor = main_win_dtor,
+	.current_widget = (struct widgetcb *)0,
+	.widget_list = LIST_HEAD_INIT(main_win.widget_list),
 
 };
 

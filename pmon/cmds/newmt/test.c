@@ -206,7 +206,7 @@ void addr_tst2()
 ulong bad;
 			for (; p < pe; p++) {
  				if((bad = *p) != (ulong)p) {
- 					ad_err2((ulong)p, bad);
+ 					ad_err2(p, bad);
  				}
  			}
  }
@@ -342,7 +342,7 @@ ulong bad;
  * produce random numbers in reverse order testing is only done in the forward
  * direction.
  */
-void movinvr()
+void movinvr(void)
 {
 	int i, j, done, seed1, seed2;
 	volatile ulong *pe;
@@ -862,14 +862,14 @@ void block_move(int iter)
 			for(i=0; i<iter; i++) {
             #if (_MIPS_SZPTR == 32)
 			{int *src,*dst,j;
-				src=p;
-				dst=pp;
+				src=(int *)p;
+				dst=(int *)pp;
 				for(j=0;j<len;j++)
 				{
 					*dst++=*src++;
 				}
-				dst=p;
-				src=pp;
+				dst=(int *)p;
+				src=(int *)pp;
 				for(j=0;j<i;j++)
 				{
 					*dst++=*src++;
@@ -877,14 +877,14 @@ void block_move(int iter)
 			}
             #else
             {long *src,*dst,j;
-				src=p;
-				dst=pp;
+				src=(long *)p;
+				dst=(long *)pp;
 				for(j=0;j<len;j++)
 				{
 					*dst++=*src++;
 				}
-				dst=p;
-				src=pp;
+				dst=(long *)p;
+				src=(long *)pp;
 				for(j=0;j<i;j++)
 				{
 					*dst++=*src++;
@@ -933,8 +933,8 @@ void block_move(int iter)
 
             #if (_MIPS_SZPTR == 32)
 			{
-			int *x=p;
-			while(x<pe)
+			ulong *x=(ulong *)p;
+			while((ulong)x<pe)
 			{
 			if(x[0]!=x[1])
 			{
@@ -946,7 +946,7 @@ void block_move(int iter)
             #else
 			{
 			long *x=p;
-			while(x<pe)
+			while((ulong)x<pe)
 			{
 			if(x[0]!=x[1])
 			{
@@ -1135,8 +1135,10 @@ static void update_err_counts(void)
 
 static void print_err_counts(void)
 {
+#if NMOD_X86EMU_INT10 > 0
 	int i;
 	char *pp;
+#endif
 
 #if NMOD_FRAMEBUFFER >0
 	video_set_bg(128, 0, 0);
@@ -1159,6 +1161,62 @@ static void print_err_counts(void)
 #endif
 
 }
+/*
+out:a0[2..0] = GPIO51 GPIO50 GPIO49
+组合选择 颗粒型号及数量 总容量 CS数 Bank数     Row         Column 
+[0 0 0]  预留给有SPD 　 　 　 　 　 
+[0 0 1]  64M*16 8颗       1GB   2     8      A0——A12    A0——A9 
+[0 1 0]  64M*16 4颗      512MB  1     8      A0——A12    A0——A9 
+[0 1 1]  256M*8 4颗       1GB   1     8      A0——A14    A0——A9 
+[1 0 0]  128M*8 4颗      512MB  1     8      A0——A13    A0——A9 
+[1 0 1]  64M*8  8颗      512MB  2     4      A0——A13    A0——A9 
+[1 1 0]  128M*8 8颗       1GB   2     8      A0——A13    A0——A9 
+[1 1 1]  32M*16 8颗      512MB  2     4      A0——A12    A0——A9
+*/
+//prompt which chip of DDR2 module is bad
+extern int pcbver(void);
+void errchip_prompt(ulong *adr,ulong xor)
+{
+    int pcbv_verion = 0;
+    int i=0;
+    ulong tmp =  xor;
+    pcbv_verion = pcbver();
+    pcbv_verion = pcbv_verion >> 1;
+    switch(pcbv_verion){
+        //P-bank is 64 bit
+        case 0:
+        case 1:
+        case 2:
+        case 7:
+            for(i=0;i<4;i++){                
+                tmp = tmp >>(i*16);
+                tmp = tmp &0xffff;
+                if(tmp)
+                cprint(15, 100, "chip  semms wrong!");
+                hprint2(15, 104, i, 1);
+                break;
+            }
+            break;
+        //P-bank is 32 bit
+        case 3:
+        case 4:
+        case 5:
+        case 6:
+            for(i=0;i<8;i++){                
+                tmp = tmp >>(i*8);
+                tmp = tmp &0xff;
+                if(tmp)
+                cprint(15, 100, "chip  semms wrong!");
+                hprint(15, 104, (i%4));
+                break;
+            }
+            break; 
+        default:
+              cprint(15, 100, "This ddr2 module is not in the lists."); 
+              break;
+        }
+}
+
 
 static void common_err(ulong page, ulong offset)
 {
@@ -1189,6 +1247,7 @@ void print_err( ulong *adr, ulong good, ulong bad, ulong xor)
 	page = page_of(adr);
 	offset = ((unsigned long)adr) & 0xFFF;
 	common_err(page, offset);
+    errchip_prompt(adr ,xor);
 
 	ecount = 1;
 	hprint(v->msg_line, 36, good);

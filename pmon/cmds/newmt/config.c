@@ -17,6 +17,8 @@ extern int bail;
 extern struct tseq tseq[];
 short e820_nr=0;
 
+extern char video_get_console_char(int, int);
+
 void set_ecc_polling(int val)
 {
 	cprint(LINE_INFO, COL_ECC, "off");
@@ -377,8 +379,10 @@ void get_config()
 void popup()
 {
 	int i, j;
+#if NMOD_X86EMU_INT10 > 0
 	char *pp;
-	
+#endif
+
 #if NMOD_FRAMEBUFFER > 0 
 	stop_record();
 #endif
@@ -411,7 +415,9 @@ void popup()
 void popdown()
 {
 	int i, j;
+#if NMOD_X86EMU_INT10 > 0
 	char *pp;
+#endif
 	char buf[2]={0};
 	
 #if NMOD_X86EMU_INT10 > 0
@@ -444,8 +450,9 @@ void popdown()
 void popclear()
 {
 	int i, j;
+#if NMOD_X86EMU_INT10 > 0
 	char *pp;
-	
+#endif	
 
 	for (i=POP_Y; i<POP_Y + POP_H; i++) { 
 		for (j=POP_X; j<POP_X + POP_W; j++) { 
@@ -465,8 +472,10 @@ void popclear()
 
 void clear_screen()
 {
+#if NMOD_X86EMU_INT10 > 0 
 	int i;
 	volatile char *pp;
+#endif
 
 #if NMOD_X86EMU_INT10 > 0
 	for(i=0, pp=(char *)(SCREEN_ADR); i<80*24; i++) {

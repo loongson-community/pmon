@@ -55,13 +55,13 @@ int nticks;
 int ecount=0;
 
 char firsttime = 0;
-static autotest=0;
+static int autotest=0;
 
 struct vars variables = {};
 struct vars * const v = &variables;
 
 void mv_error(ulong *adr, ulong good, ulong bad);
-void poll_errors();
+void poll_errors(void);
 short memsz_mode = SZ_MODE_BIOS;
 struct cpu_ident cpu_id;
 static void compute_segments(int win);
@@ -90,8 +90,10 @@ struct tseq tseq[] = {
 
 void restart()
 {
+#if NMOD_X86EMU_INT10 > 0
     int i;
     volatile char *pp;
+#endif
 
     /* clear variables */
     firsttime = 0;
@@ -254,19 +256,17 @@ static void compute_segments(int win)
 
 void set_cache(int val);
 
-static int newmt()
+static int newmt(void)
 {
 	int i = 0, j = 0;
 	unsigned long chunks;
 	unsigned long lo, hi;
-	int cnt;
 
 
 #if NMOD_FRAMEBUFFER > 0 
 	video_cls();
 #endif
 	if(setjmp(jmpb_mt)&&(returncode==2)){
-		volatile char *pp;
 		ioctl (STDIN, TCSETAF, &sav);
 		firsttime = 0;
 		v->test = 0;

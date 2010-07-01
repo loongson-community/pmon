@@ -98,10 +98,13 @@ unsigned char us_direction[256/8] = {
 
 static unsigned char usb_stor_buf[512] __attribute__((section("data"),aligned(512)));
 static ccb _usb_ccb[USB_MAX_STOR_DEV] __attribute__((section("data"),aligned(1024)));
-static ccb *usb_ccb;
+//static ccb *usb_ccb;
 
 
 extern void dev_print(block_dev_desc_t *);
+extern void pci_sync_cache(void *, vm_offset_t, size_t, int );
+extern void usb_storage_notify(struct usb_device *);
+
 
 /*
  * CBI style
@@ -524,9 +527,9 @@ int usb_stor_BBB_comdat(ccb *srb, struct us_data *us)
 	cbw.bCDBLength = srb->cmdlen;
 	/* copy the command data into the CBW command data buffer */
 	/* DST SRC LEN!!! */
-	memcpy(cbw.CBWCDB, srb->cmd, srb->cmdlen);
+	memcpy((void *)(cbw.CBWCDB), srb->cmd, srb->cmdlen);
 
-	result = usb_bulk_msg(us->pusb_dev, pipe, &cbw, UMASS_BBB_CBW_SIZE, &actlen, USB_CNTL_TIMEOUT*5);
+	result = usb_bulk_msg(us->pusb_dev, pipe, (void *)&cbw, UMASS_BBB_CBW_SIZE, &actlen, USB_CNTL_TIMEOUT*5);
 	if (result < 0)
 		USB_STOR_PRINTF("usb_stor_BBB_comdat:usb_bulk_msg error\n");
 	return result;
@@ -710,7 +713,7 @@ int usb_stor_BBB_transport(ccb *srb, struct us_data *us)
    again:
 	USB_STOR_PRINTF("STATUS phase\n");
 
-	result = usb_bulk_msg(us->pusb_dev, pipein, &csw, UMASS_BBB_CSW_SIZE,
+	result = usb_bulk_msg(us->pusb_dev, pipein, (void *)&csw, UMASS_BBB_CSW_SIZE,
 				&actlen, USB_CNTL_TIMEOUT*5);
 
 	/* special handling of STALL in STATUS phase */
@@ -1036,7 +1039,7 @@ retry_it:
 		blks-=smallblks;
 		if(cp) {
 			/*use the temp buf, a copy is needed*/
-			memcpy(cp, buf_addr, srb->datalen);
+			memcpy(cp, (const void *)buf_addr, srb->datalen);
 			cp += srb->datalen;
 		}else 
 			buf_addr+=srb->datalen;
@@ -1309,7 +1312,7 @@ static int usb_match(struct device *parent, void *match, void *aux)
     USB_STOR_PRINTF("usb_match parent:%x match:%x aux:%x\n",parent,match,aux);
     
 
-	pci_sync_cache(0, &_usb_ccb[usb_max_devs], sizeof(ccb), 1);
+	pci_sync_cache(0, (vm_offset_t)&_usb_ccb[usb_max_devs], sizeof(ccb), 1);
 	//usb_ccb = (ccb*)CACHED_TO_UNCACHED(&_usb_ccb[usb_max_devs]);
     USB_STOR_PRINTF("usb_match after pci_sync_cache.\n ");
 	if(usb_max_devs==USB_MAX_STOR_DEV) {
@@ -1379,7 +1382,7 @@ void usb_strategy(struct buf *bp)
 {
 	unsigned int dev, blkno, blkcnt;
 	unsigned int d_secsize; 
-	struct  block_dev_desc_t *block_usb;
+	//struct  block_dev_desc_t *block_usb;
 	int device;
 	int ret ;
 			

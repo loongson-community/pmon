@@ -52,6 +52,7 @@
 
 extern int errno;                       /* global error number */
 extern char *heaptop;
+extern void tgt_ecprogram(void *, int);
 
 static int	bootfd;
 static int	bootbigend;
@@ -102,7 +103,6 @@ nload (argc, argv)
 	void	    *flashaddr;
 	size_t	    flashsize;
 #endif
-	extern char ec_ver[32];
 
 	flags = 0;
 	optind = err = 0;

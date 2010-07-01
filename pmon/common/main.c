@@ -68,6 +68,9 @@
 #include <exec.h>
 #include <file.h>
 
+#include <machine/cpu.h>
+#include <machine/pio.h>
+
 #include <sys/device.h>
 #include "mod_debugger.h"
 #include "mod_symbols.h"
@@ -88,6 +91,9 @@ extern int uart_existed;
 extern void DevicesInit(void);
 extern void DeviceRelease(void);
 extern int check_config (const char * file);
+extern char *getenv(const char *);
+extern void _set_font_color(void);
+
 
 jmp_buf         jmpb;       /* non-local goto jump buffer */
 char            line[LINESZ + 1];   /* input line */
@@ -229,10 +235,8 @@ main()
 }
 #define RESCUE_MEDIA "usb"
 
-static int load_menu_list()
+static int load_menu_list(void)
 {
-    int i = 0;
-    //char* rootdev = NULL;
     int retid;
     struct device *dev, *next_dev;
     char load[256];
@@ -553,6 +557,7 @@ autorun(char *s)
 
 static int recover(void)
 {
+#if (defined(LOONGSON2F_7INCH) ||defined(LOONGSON2F_3GNB) )
     char buf[LINESZ] = {0};
     char *pa = NULL;
     char *rd;
@@ -561,7 +566,6 @@ static int recover(void)
     char cmdline[256] = "console=tty"; /*Modified by usb rescue or tftp .*/
     int ret;
 
-#if (defined(LOONGSON2F_7INCH) ||defined(LOONGSON2F_3GNB) )
     {
         pa = cmdline;
         ui_select(buf, pa);
@@ -626,6 +630,7 @@ dbginit (char *adr)
     SBD_DISPLAY ("ENVI", CHKPNT_ENVI);
     envinit ();
 
+
     //uart existed,but for fast boot,not use,just like not existed
     if (uart_existed == 1)
     {
@@ -648,12 +653,15 @@ dbginit (char *adr)
 #endif
 
     SBD_DISPLAY ("SBDD", CHKPNT_SBDD);
+
     tgt_devinit();
 
 #ifdef INET
     SBD_DISPLAY ("NETI", CHKPNT_NETI);
     init_net (1);
 #endif
+
+
 
 #if NCMD_HIST > 0
     SBD_DISPLAY ("HSTI", CHKPNT_HSTI);
@@ -734,7 +742,6 @@ dbginit (char *adr)
     md_setpc(NULL, (int32_t) CLIENTPC);
     md_setsp(NULL, tgt_clienttos ());
     DevicesInit();
-
     /*printf("Press <DEL> key to enter pmon console.\n");
     printf("Press <TAB> key to recover system .\n");
     printf("Press <ENTER> key to boot selection .\n");*/
@@ -799,7 +806,7 @@ dbginit (char *adr)
             break;
 #endif
 
-#if defined(LOONGSON2F_7INCH)||defined(LOONGSON2F_3GNB)
+#if defined(LOONGSON2F_7INCH)||defined(LOONGSON2F_3GNB)||defined(LOONGSON2F_ALLINONE)
     case M_KEY:
             printf("before do_cmd(newmt).\n");
             vga_available = 1;

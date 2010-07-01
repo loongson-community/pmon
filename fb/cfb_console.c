@@ -336,7 +336,8 @@ char console_buffer[2][38][128]={32};//
 #elif defined(X1024x768)
 char console_buffer[2][49][129]={32};//128*48->1024x768
 #elif defined(X1368x768)
-char console_buffer[2][49][172]={32};//171*48->1368x768
+//char console_buffer[2][49][172]={32};//171*48->1368x768
+char console_buffer[2][49][172];//171*48->1368x768
 #else
 char console_buffer[2][31][81]={32};//80*30->640x480
 #endif
@@ -372,6 +373,16 @@ extern void video_get_info_str( /* setup a board string: type, speed, etc. */
     );
 
 #endif
+
+#ifdef SMI502
+extern void AutodeCopyModify(int);
+extern void AutodeFillRectModify(int);
+extern int  deFillRectModify(unsigned long,unsigned long , unsigned long , unsigned long , unsigned long ,unsigned long);
+#endif
+
+extern int gunzip(void *, int , unsigned char *, unsigned long *);
+;
+
 
 /* Locals */
 static GraphicDevice *pGD, GD;  /* Pointer to Graphic array */
@@ -1312,7 +1323,7 @@ int video_display_bitmap(ulong bmp_image, int x, int y)
             return (1);
         }
 
-        memcpy(bg_img_src, bmp_image, len);
+        memcpy(bg_img_src,(const void *) bmp_image, len);
         if (gunzip(dst, CFG_VIDEO_LOGO_MAX_SIZE, 
                 (unsigned char *)bg_img_src, &len) != 0) {
             printf("Error: no valid bmp or bmp.gz image at %lx\n",
@@ -2031,6 +2042,8 @@ int GetGDFIndex(int BytesPP)
         return GDF_16BIT_565RGB;
     case 4:
         return GDF_32BIT_X888RGB;
+    default:
+        return GDF_16BIT_565RGB;
     }
 }
 
@@ -2044,7 +2057,7 @@ void set_cursor_fb(unsigned char x,unsigned char y)
 int fb_init(unsigned long fbbase, unsigned long iobase)
 {
 
-    #ifndef SMI502 
+#ifndef SMI502 
     pGD = &GD;
     #ifdef NMOD_SISFB
         pGD->winSizeX = Sis_GetXRes();
@@ -2073,38 +2086,38 @@ int fb_init(unsigned long fbbase, unsigned long iobase)
     #endif  
 
     
-#if 0
+    #if 0
     printf("x %d, y %d, bpp %d, index %d\n", pGD->winSizeX, pGD->winSizeY, pGD->gdfBytesPP, pGD->gdfIndex);
     printf("cfb_console init,fb=%x\n", pGD->frameAdrs);
-#endif
+    #endif
 
     _set_font_color();
 
     video_fb_address = (void *)VIDEO_FB_ADRS;
-#ifdef CONFIG_VIDEO_HW_CURSOR
+    #ifdef CONFIG_VIDEO_HW_CURSOR
     video_init_hw_cursor(VIDEO_FONT_WIDTH, VIDEO_FONT_HEIGHT);
-#endif
+    #endif
 
-#if 1
+    #if 1
     video_cls ();
-#else
+    #else
     memsetl(video_fb_address, CONSOLE_SIZE,  CONSOLE_BG_COL);
-#endif
+    #endif
 
-#ifdef CONFIG_VIDEO_LOGO
+    #ifdef CONFIG_VIDEO_LOGO
     /* Plot the logo and get start point of console */
     printf("Video: Drawing the logo ...\n");
     video_console_address = video_logo();
-#else
-#ifdef CONFIG_SPLASH_SCREEN
-#ifdef  LOONGSON2F_7INCH
-    video_display_bitmap(BIGBMP_START_ADDR, BIGBMP_X, BIGBMP_Y);
-#else
-    video_display_bitmap(PTR_PAD(PICBMP_START_ADDR), 0, 0);
-#endif
-#endif
+    #else
+        #ifdef CONFIG_SPLASH_SCREEN
+            #ifdef  LOONGSON2F_7INCH
+            video_display_bitmap(BIGBMP_START_ADDR, BIGBMP_X, BIGBMP_Y);
+            #else
+            video_display_bitmap(PTR_PAD(PICBMP_START_ADDR), 0, 0);
+            #endif
+        #endif
     video_console_address = video_fb_address;
-#endif
+    #endif
     printf("CONSOLE_SIZE %d, CONSOLE_ROW_SIZE %d\n", CONSOLE_SIZE, CONSOLE_ROW_SIZE);
     //saved_frame_buffer = malloc(FB_SIZE);
     //memcpy(saved_frame_buffer, video_fb_address, FB_SIZE);
@@ -2115,10 +2128,10 @@ int fb_init(unsigned long fbbase, unsigned long iobase)
 
     memset(console_buffer, ' ', sizeof console_buffer);
 
-#ifdef  LOONGSON2F_7INCH
+    #ifdef  LOONGSON2F_7INCH
     video_display_bitmap(SMALLBMP0_START_ADDR, SMALLBMP0_X, SMALLBMP0_Y);
     video_display_bitmap(SMALLBMP_START_ADDR_EN_01, SMALLBMP01_EN_X, SMALLBMP01_EN_Y);
-#endif
+    #endif
     return 0;
 
 
@@ -2127,63 +2140,65 @@ int fb_init(unsigned long fbbase, unsigned long iobase)
     unsigned char color8;
 
     pGD = &GD;
-#if defined(VGA_NOTEBOOK_V1)
+    #if defined(VGA_NOTEBOOK_V1)
     pGD->winSizeX  = 1280;
     pGD->winSizeY  = 800;
-#elif defined(VGA_NOTEBOOK_V2)
+    #elif defined(VGA_NOTEBOOK_V2)
     pGD->winSizeX  = 1024;
     pGD->winSizeY  = 768;
-#else
+    #else
     pGD->winSizeX  = 640;
     pGD->winSizeY  = 480;
-#endif
-#if defined(X800x600)
+    #endif
+    
+    #if defined(X800x600)
     pGD->winSizeX  = 800;
     pGD->winSizeY  = 600;
-#elif defined(X1024x768)
+    #elif defined(X1024x768)
     pGD->winSizeX  = 1024;
     pGD->winSizeY  = 768;
-#elif defined(X1024x600)
+    #elif defined(X1024x600)
     pGD->winSizeX  = 1024;
     pGD->winSizeY  = 600;
-#elif defined(X1368x768)   
-        pGD->winSizeX  = 1368;
-        pGD->winSizeY  = 768;
-#else
+    #elif defined(X1368x768)   
+    pGD->winSizeX  = 1368;
+    pGD->winSizeY  = 768;
+    #else
     pGD->winSizeX  = 640;
     pGD->winSizeY  = 480;
-#endif          
+    #endif          
     
-#if defined(CONFIG_VIDEO_8BPP)
+    #if defined(CONFIG_VIDEO_8BPP)
     pGD->gdfBytesPP= 1;
 //  pGD->gdfIndex  = GDF__8BIT_INDEX;
     pGD->gdfIndex  = GDF__8BIT_332RGB;
-#elif defined(CONFIG_VIDEO_16BPP)
-        pGD->gdfBytesPP= 2;
-        pGD->gdfIndex  = GDF_16BIT_565RGB;
-#elif defined(CONFIG_VIDEO_32BPP)
-        pGD->gdfBytesPP= 4;
-        pGD->gdfIndex  = GDF_32BIT_X888RGB;
-#else
-        pGD->gdfBytesPP= 2;
-        pGD->gdfIndex  = GDF_16BIT_565RGB;
-#endif
+    #elif defined(CONFIG_VIDEO_16BPP)
+    pGD->gdfBytesPP= 2;
+    pGD->gdfIndex  = GDF_16BIT_565RGB;
+    #elif defined(CONFIG_VIDEO_32BPP)
+    pGD->gdfBytesPP= 4;
+    pGD->gdfIndex  = GDF_32BIT_X888RGB;
+    #else
+    pGD->gdfBytesPP= 2;
+    pGD->gdfIndex  = GDF_16BIT_565RGB;
+    #endif
+
     pGD->frameAdrs = PTR_PAD(0xb0000000) | fbbase;
 
     video_fb_address = (void *) VIDEO_FB_ADRS;
-#ifdef CONFIG_VIDEO_HW_CURSOR
+    #ifdef CONFIG_VIDEO_HW_CURSOR
     video_init_hw_cursor (VIDEO_FONT_WIDTH, VIDEO_FONT_HEIGHT);
-#endif
+    #endif
     /* Init drawing pats */
     switch (VIDEO_DATA_FORMAT) {
-#if 0
+    #if 0
         case GDF__8BIT_INDEX:
             video_set_lut (0x01, CONSOLE_FG_COL, CONSOLE_FG_COL, CONSOLE_FG_COL);
             video_set_lut (0x00, CONSOLE_BG_COL, CONSOLE_BG_COL, CONSOLE_BG_COL);
             fgx = 0x01010101;
             bgx = 0x00000000;
             break;
-#endif
+    #endif
         case GDF__8BIT_332RGB:
             color8 = ((CONSOLE_FG_COL & 0xe0) |
                     ((CONSOLE_FG_COL >> 3) & 0x1c) | CONSOLE_FG_COL >> 6);
@@ -2226,30 +2241,30 @@ int fb_init(unsigned long fbbase, unsigned long iobase)
     eorx = fgx ^ bgx;
 
     memsetl (video_fb_address, CONSOLE_SIZE, CONSOLE_BG_COL);
-#if 0
-#ifdef CONFIG_VIDEO_LOGO
-    /* Plot the logo and get start point of console */
-    printf("Video: Drawing the logo ...\n");
-    video_console_address = video_logo ();
-#else
-    video_console_address = video_fb_address;
-#endif
-#endif
+    #if 0
+        #ifdef CONFIG_VIDEO_LOGO
+        /* Plot the logo and get start point of console */
+        printf("Video: Drawing the logo ...\n");
+        video_console_address = video_logo ();
+        #else
+        video_console_address = video_fb_address;
+        #endif
+    #endif
 
-#ifdef CONFIG_VIDEO_LOGO
+    #ifdef CONFIG_VIDEO_LOGO
     /* Plot the logo and get start point of console */
     printf("Video: Drawing the logo ...\n");
     video_console_address = video_logo();
-#else
-#ifdef CONFIG_SPLASH_SCREEN
-#ifdef  LOONGSON2F_7INCH
-    video_display_bitmap(BIGBMP_START_ADDR, BIGBMP_X, BIGBMP_Y);
-#else
-    video_display_bitmap(PTR_PAD(PICBMP_START_ADDR), 0, 0);
-#endif
-#endif
+    #else
+        #ifdef CONFIG_SPLASH_SCREEN
+            #ifdef  LOONGSON2F_7INCH
+            video_display_bitmap(BIGBMP_START_ADDR, BIGBMP_X, BIGBMP_Y);
+            #else
+            video_display_bitmap(PTR_PAD(PICBMP_START_ADDR), 0, 0);
+            #endif
+        #endif
     video_console_address = video_fb_address;
-#endif
+    #endif
 
     printf("CONSOLE_SIZE %d\n", CONSOLE_SIZE);
 
@@ -2261,17 +2276,15 @@ int fb_init(unsigned long fbbase, unsigned long iobase)
 
     return 0;
 
-
-
 #endif    
 }
 
-int getX()
+int getX(void)
 {
     return console_col;
 }
 
-int getY()
+int getY(void)
 {
     return console_row;
 }
@@ -2291,12 +2304,12 @@ void setY(int y)
 }
 
 //get the width of screen(units:font)
-int get_scr_width()
+int get_scr_width(void)
 {
     return GD.winSizeX/VIDEO_FONT_WIDTH;
 }
 
-int get_scr_height()
+int get_scr_height(void)
 {
     return GD.winSizeY/VIDEO_FONT_HEIGHT;
 }

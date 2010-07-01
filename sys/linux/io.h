@@ -1,23 +1,27 @@
 #ifndef __LINUXIO_H_
 #define __LINUXIO_H_
 
-#ifndef PTR_PRD
+#ifndef PTR_PAD_IO
 #if (_MIPS_SZPTR == 32)
-#define PTR_PAD(x) (x)
+#define PTR_PAD_IO(x) (x)
 #endif
 #if (_MIPS_SZPTR == 64)
-#define PTR_PAD(x) ((0xffffffffULL <<32)|(x))
+#ifndef _LOCORE
+#define PTR_PAD_IO(x) ((0xffffffffUL <<32)|(x))
+#else
+#define PTR_PAD_IO(x) ((0xffffffff <<32)|(x))
+#endif
 #endif
 #endif
 
 #ifndef	BONITOEL
 #ifdef CONFIG_PCI0_GAINT_MEM
-#define mips_io_port_base PTR_PAD(0xbea00000)
+#define mips_io_port_base PTR_PAD_IO(0xbea00000)
 #else
-#define mips_io_port_base PTR_PAD(0xb0100000)
+#define mips_io_port_base PTR_PAD_IO(0xb0100000)
 #endif
 #else 
-#define mips_io_port_base PTR_PAD(0xbfd00000) 
+#define mips_io_port_base PTR_PAD_IO(0xbfd00000) 
 #endif
 #define __SLOW_DOWN_IO \
 	__asm__ __volatile__( \
@@ -77,8 +81,8 @@ static inline unsigned char linux_inb_p(unsigned long port)
 
 
 
-#define readb(addr)             (*(volatile unsigned char *)(PTR_PAD(0xa0000000)|(long)(addr)))
-#define readw(addr)             ((*(volatile unsigned short *)(PTR_PAD(0xa0000000)|(long)(addr))))
-#define readl(addr)             ((*(volatile unsigned int *)(PTR_PAD(0xa0000000)|(long)(addr))))
+#define readb(addr)             (*(volatile unsigned char *)(PTR_PAD_IO(0xa0000000)|(long)(addr)))
+#define readw(addr)             ((*(volatile unsigned short *)(PTR_PAD_IO(0xa0000000)|(long)(addr))))
+#define readl(addr)             ((*(volatile unsigned int *)(PTR_PAD_IO(0xa0000000)|(long)(addr))))
 
 #endif /* __LINUXIO_H_ */

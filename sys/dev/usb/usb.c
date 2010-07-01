@@ -99,7 +99,7 @@
 struct usb_device usb_dev[USB_MAX_DEVICE];
 
 int dev_index;
-static int running;
+//static int running;
 static int asynch_allowed;
 static struct devrequest setup_packet;
 

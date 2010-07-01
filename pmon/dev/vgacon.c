@@ -10,6 +10,10 @@
 
 #define crt_index 0x3d4
 #define crt_data 0x3d5
+
+extern void video_putc(const char);
+
+
 extern int vga_available;
 extern unsigned char kbd_code;
 #if NMOD_USB_KBD != 0

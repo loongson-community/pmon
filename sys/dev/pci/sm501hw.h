@@ -653,7 +653,9 @@
 #define INT_STATUS_CMD_INTPR_INACTIVE                   0
 #define INT_STATUS_CMD_INTPR_ACTIVE                     1
 
-#define INT_MASK                                        0x000030
+//INT_MASK was defined in cpu.h
+//#define INT_MASK                                        0x000030
+
 #define INT_MASK_USB_SLAVE_PLUG_IN                      31:31
 #define INT_MASK_USB_SLAVE_PLUG_IN_DISABLE              0
 #define INT_MASK_USB_SLAVE_PLUG_IN_ENABLE               1

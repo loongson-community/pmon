@@ -79,11 +79,11 @@ sbrk (n)
 #else
 		if (memorysize >= 0x4000000) {
 #if (_MIPS_SZPTR == 32)
-			allocp1 = 0x82000000;
-			heaptop = top = 0x83000000;
+			allocp1 = (char *)0x82000000;
+			heaptop = top = (char *)0x83000000;
 #elif (_MIPS_SZPTR == 64)
-			allocp1 = 0xffffffff82000000UL;
-			heaptop = top = 0xffffffff83000000UL;
+			allocp1 = (char *)0xffffffff82000000UL;
+			heaptop = top = (char *)0xffffffff83000000UL;
 #else
 #error  "Unkown long address"
 #endif

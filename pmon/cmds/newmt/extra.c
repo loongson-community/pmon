@@ -29,7 +29,7 @@ tag=_pci_make_tag(bus,dev,func);
 _pci_conf_writen(tag,reg,data,width);
 }
 
-void support();
+void support(void);
 
 static int ctrl = -1;
 
@@ -201,7 +201,7 @@ void change_timing(int cas, int rcd, int rp, int ras)
 	}
 }
 
-void amd64_option()
+void amd64_option(void)
 {
 	int rwt=0, wrt=0, ref=0, en2t=0, rct=0, rrd=0, rwqb=0, wr = 0, flag=0;
 	
@@ -438,7 +438,7 @@ void get_option()
 	}
 }
 
-void get_option_1()
+void get_option_1(void)
 {
 	int rp=0, rcd=0, ras=0, sflag = 0 ;
 	

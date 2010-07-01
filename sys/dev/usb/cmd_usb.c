@@ -33,7 +33,6 @@
 #include "usb.h"
 #include "mod_usb_ohci.h"
 
-
 static int usb_stor_curr_dev=-1; /* current device */
 
 /* some display routines (info command) */
@@ -468,7 +467,6 @@ static int do_usb (int argc, char *argv[])
 			}
 			printf ("\n    Device %d: ", dev);
 			stor_dev=usb_stor_get_dev(dev);
-			dev_print(stor_dev);
 			if (stor_dev->type == DEV_TYPE_UNKNOWN) {
 				return 1;
 			}
@@ -479,7 +477,6 @@ static int do_usb (int argc, char *argv[])
 		else {
 			printf ("USB device %d: \n", usb_stor_curr_dev);
 			stor_dev=usb_stor_get_dev(usb_stor_curr_dev);
-			dev_print(stor_dev);
 			if (stor_dev->type == DEV_TYPE_UNKNOWN) {
 				return 1;
 			}

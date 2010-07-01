@@ -21,6 +21,7 @@
 #include <dev/pci/pcivar.h>
 #include <dev/pci/pcidevs.h>
 #include <flash.h>
+#include <pflash.h>
 
 #define rm9000_tlb_hazard(...)
 #define CONFIG_PAGE_SIZE_64KB
@@ -51,6 +52,11 @@ static union commondata{
 }mydata,*pmydata;
 
 static	pcitag_t mytag=0;
+
+extern struct fl_map *tgt_flashmap(void);
+extern void cacheflush(void);
+extern int fl_erase_sector_sst(struct fl_map *,struct fl_device*, int);
+extern int fl_program_sst(struct fl_map *,struct fl_device*, int, unsigned char *);
 
 static int __pcisyscall1(int type,unsigned int addr,union commondata *mydata)
 {
@@ -486,6 +492,7 @@ static int tlbset(int argc,char **argv)
 	}
 	write_c0_entryhi(pid);
     if(eflag)    __asm__ __volatile__ ("mtc0 %0,$22;"::"r"(0x4));
+    return 0;
 }
 
 #if NMOD_VGACON > 0
@@ -494,7 +501,9 @@ extern int kbd_initialize(void);
 static int initkbd(int argc,char **argv)
 {
 #if NMOD_VGACON > 0
- return kbd_initialize();
+    return kbd_initialize();
+#else
+    return 0;
 #endif
 }
 
@@ -550,7 +559,7 @@ int offset;
 if(argc!=2)return -1;
 map=tgt_flashmap();
 offset=strtoul(argv[1],0,0);
-fl_erase_sector_sst(map,0,offset);
+return fl_erase_sector_sst(map,0,offset);
 }
 
 static int program(int argc,char **argv)
@@ -562,8 +571,8 @@ if(argc!=3)return -1;
 map=tgt_flashmap();
 offset=strtoul(argv[1],0,0);
 for(i=0;i<strlen(argv[1]);i++)
-fl_program_sst(map,0,offset,&argv[1][i]);
-	
+    fl_program_sst(map,0,offset,&argv[1][i]);
+return 0;	
 }
 #endif
        

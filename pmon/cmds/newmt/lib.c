@@ -79,8 +79,6 @@ void *memmove(void *dest, const void *src, ulong n)
  */
 void scroll(void) 
 {
-	int i, j;
-	char *s, tmp;
 
 	/* Only scroll if at the bottom of the screen */
 	if (v->msg_line < 23) {
@@ -116,9 +114,9 @@ void scroll(void)
  */
 void cprint(int y, int x, const char *text)
 {
+#if NMOD_X86EMU_INT10 > 0
 	register int i;
 	char *dptr;
-#if NMOD_X86EMU_INT10 > 0
 	dptr = (char *)(SCREEN_ADR + (160*y) + (2*x));
 	for (i=0; text[i]; i++) {
 		*dptr = text[i];
@@ -302,7 +300,6 @@ void xprint(int y,int x, ulong val)
 
 void set_cache(int val) 
 {
-	extern struct cpu_ident cpu_id;
 	switch(val) {
 	case 0:
 		cache_off();	

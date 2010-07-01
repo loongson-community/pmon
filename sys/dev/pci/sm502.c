@@ -44,6 +44,7 @@
 #include <linux/types.h>
 #include "linux/io.h"
 #include <linux/pci.h>
+#include <machine/cpu.h>
 
 #include "sm502.h"
 #include "smtc2d.h"
@@ -107,12 +108,14 @@ extern int pci_read_config_dword(struct pci_device *linuxpd, int reg, u32 *val);
 /******************************************************************************/
 
 typedef struct {
-    int isaBase;
+    //int isaBase;
+    unsigned long isaBase;
     unsigned int pciBase;
     unsigned int dprBase;
     unsigned int vprBase;
     unsigned int cprBase;
-    int frameAdrs;
+    //int frameAdrs;
+    unsigned long frameAdrs;
     unsigned int memSize;
     unsigned int mode;
     unsigned int gdfIndex;
@@ -170,7 +173,7 @@ void video_init_hw_cursor(int font_width, int font_height);
 
 //#endif /*_VIDEO_FB_H_ */                                                                                                                                 
 
-const SMI_REGS init_regs[] =
+SMI_REGS init_regs[] =
 {
 
 #ifdef X640x480
@@ -421,7 +424,33 @@ const SMI_REGS init_regs[] =
 #define CONFIG_VIDEO_SM502
 
 #ifdef CONFIG_VIDEO_SM502
+#if 1
+#define read8(ptrReg)                \
+    *(volatile unsigned char *)PTR_PAD((unsigned long)(sm502.isaBase + ptrReg))
 
+#define write8(ptrReg,value) \
+    *(volatile unsigned char *)PTR_PAD((unsigned long)(sm502.isaBase + ptrReg)) = value
+
+#define read16(ptrReg) \
+    (*(volatile unsigned short *)PTR_PAD((unsigned long)(sm502.isaBase + ptrReg))
+
+#define write16(ptrReg,value) \
+    (*(volatile unsigned short *)PTR_PAD((unsigned long)(sm502.isaBase + ptrReg)) = value)
+
+#define read32(ptrReg) \
+    (*(volatile unsigned int *)PTR_PAD((unsigned long)(sm502.isaBase + ptrReg)))
+
+#define write32(ptrReg, value) \
+    (*(volatile unsigned int *)PTR_PAD((unsigned long)(sm502.isaBase + ptrReg)) = value)
+
+#define regWrite32(ptrReg, value)  (*(volatile unsigned int *)PTR_PAD((unsigned long)(sm502.isaBase + 0x100000 + ptrReg)) = value)
+
+#define SMTC_write2Dreg(ptrReg, value) (*(volatile unsigned int *)PTR_PAD((unsigned long)(sm502.isaBase + 0x100000 + ptrReg)) = value)
+
+#define smi_mmiowl_1(dat,reg) (*(volatile unsigned int *)PTR_PAD((unsigned long)(sm502.isaBase + reg)) = dat)
+
+#define regRead32(ptrReg)  (*(volatile unsigned int *)PTR_PAD((unsigned long)(sm502.isaBase + ptrReg)))
+#else
 #define read8(ptrReg)                \
     *(volatile unsigned char *)PTR_PAD(sm502.isaBase + ptrReg)
 
@@ -448,6 +477,7 @@ const SMI_REGS init_regs[] =
 
 #define regRead32(ptrReg)  (*(volatile unsigned int *)PTR_PAD(sm502.isaBase + ptrReg))
 
+#endif
 GraphicDevice sm502;
 
 /////////////////////////////////
@@ -547,15 +577,17 @@ int pci_read_config_dword(struct pci_device *linuxpd, int reg, u32 *val)
  * board_video_init -- init de l'EPSON, config du CS
  *-----------------------------------------------------------------------------
  */
-int board_video_init (void)
+unsigned long board_video_init (void)
 {
-    int mimoaddr;	
+    //int mimoaddr;	
+    unsigned long mimoaddr;
     struct pci_device *pdev;
     if (vga_dev != NULL){
 	pdev = vga_dev;
     	pci_read_config_dword(pdev,0x14,(int *)&mimoaddr);
-    	mimoaddr = 0xb0000000|mimoaddr;
-	printf("mimobase=0x%x\n",mimoaddr);
+    	//mimoaddr = 0xb0000000|mimoaddr;
+    	mimoaddr |= PTR_PAD(0xb0000000);
+	printf("mimobase=0x%llx\n",mimoaddr);
 	}
     return(mimoaddr);
 }
@@ -572,7 +604,7 @@ void board_validate_screen (unsigned int base)
  * board_get_regs --
  *-----------------------------------------------------------------------------
  */
-const SMI_REGS *board_get_regs (void)
+SMI_REGS *board_get_regs (void)
 {
     return (init_regs);
 }
@@ -595,17 +627,19 @@ int board_get_height (void)
     return (DISPLAY_HEIGHT);
 }
 
-int  board_video_get_fb (void)
+unsigned long  board_video_get_fb (void)
 {
 
-    int fbaddr;
+    //int fbaddr;
+    unsigned long fbaddr;
     struct pci_device *pdev;
     if (vga_dev != NULL)
 	{
             pdev = vga_dev;
     	    pci_read_config_dword(pdev,0x10,(int *)&fbaddr);
-    	    fbaddr = 0xb0000000|fbaddr;
-	    printf("fbaddr=0x%x\n",fbaddr);
+    	    //fbaddr = 0xb0000000|fbaddr;
+    	    fbaddr |= PTR_PAD(0xb0000000);
+	    printf("fbaddr=0x%llx\n",fbaddr);
 	}
     return(fbaddr);
 }

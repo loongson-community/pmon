@@ -28,7 +28,7 @@ void EnterMBPnP(void)
 void ExitMBPnP(void)
 {
 	pcitag_t tag;
-	char confval,val;
+	char confval;
 	tag=_pci_make_tag(VTSB_BUS,VTSB_DEV, VTSB_ISA_FUNC);
 	confval=_pci_conf_readn(tag,SUPERIO_CFG_REG,1);
 	_pci_conf_writen(tag,SUPERIO_CFG_REG,confval&~2,1);	
@@ -58,7 +58,7 @@ char PNPGetConfig(char Index)
 int dumpsis(int argc,char **argv)
 {
 int i;
-volatile unsigned char *p=0xbfd003c4;
+volatile unsigned char *p=(volatile unsigned char *)PTR_PAD(0xbfd003c4);
 unsigned char c;
 for(i=0;i<0x15;i++)
 {
@@ -164,11 +164,11 @@ default: return -1;break;
 return 0;
 }
 
-static int rom_ddr_reg_read(int type,long long addr,union commondata *mydata)
+static int rom_ddr_reg_read(int type,unsigned long addr,union commondata *mydata)
 {
     char *nvrambuf;
 	extern char ddr2_reg_data,_start;
-	nvrambuf = 0xbfc00000+((int)&ddr2_reg_data -(int)&_start)+addr;
+	nvrambuf =(char *)(addr+((unsigned long)&ddr2_reg_data -(unsigned long)&_start)+PTR_PAD(0xbfc00000));
 	//printf("ddr2_reg_data=%x\nbuf=%x,ddr=%x\n",&ddr2_reg_data,nvrambuf,addr);
 	switch(type)
 	{
@@ -187,12 +187,12 @@ static int rom_ddr_reg_write(int type,long long addr,union commondata *mydata)
 	char *nvram;
 	int offs;
 	extern char ddr2_reg_data,_start;
-	struct fl_device *dev=fl_devident(0xbfc00000,0);
+	struct fl_device *dev=fl_devident((void *)PTR_PAD(0xbfc00000),0);
 	int nvram_size=dev->fl_secsize;
 
-	nvram = 0xbfc00000+((int)&ddr2_reg_data -(int)&_start);
+	nvram = (char *)(PTR_PAD(0xbfc00000)+((unsigned long)&ddr2_reg_data -(unsigned long)&_start));
 	offs=(int)nvram &(nvram_size - 1);
-	nvram  =(int)nvram & ~(nvram_size - 1);
+	nvram  =(char *)((unsigned long)nvram & ~(nvram_size - 1));
 
 	/* Deal with an entire sector even if we only use part of it */
 
@@ -240,11 +240,11 @@ extern volatile char *mmio;
 #define SM502_I2C_ADDR 0x010043      //0:write,1:read
 #define SM502_I2C_DATA 0x010044      //44-53
 
-#define GPIO_DIR_LOW 		(volatile unsigned int *)(mmio + 0x10008)
-#define GPIO_DATA_LOW		(volatile unsigned int *)(mmio + 0x10000)
+#define GPIO_DIR_LOW 		(volatile unsigned int *)PTR_PAD((unsigned long)(mmio + 0x10008))
+#define GPIO_DATA_LOW		(volatile unsigned int *)PTR_PAD((unsigned long)(mmio + 0x10000))
 
-#define GPIO_DIR_HIGH 		(volatile unsigned int *)(mmio + 0x1000c)
-#define GPIO_DATA_HIGH		(volatile unsigned int *)(mmio + 0x10004)
+#define GPIO_DIR_HIGH 		(volatile unsigned int *)PTR_PAD((unsigned long)(mmio + 0x1000c))
+#define GPIO_DATA_HIGH		(volatile unsigned int *)PTR_PAD((unsigned long)(mmio + 0x10004))
 #define G_OUTPUT		1
 #define G_INPUT			0
 #define	DAT_PIN			47//13	
@@ -650,7 +650,7 @@ unsigned short i2c_rec_s16(unsigned char slave_addr,unsigned char sub_addr,unsig
 
 unsigned char i2c_send_s16(unsigned char slave_addr,unsigned char sub_addr,unsigned short* buf ,int count)
 {
-	unsigned char *data8 = buf;
+	unsigned char *data8 = (unsigned char *)buf;
 
 	while(count)
 	{	
@@ -686,7 +686,7 @@ unsigned char i2c_send_s16(unsigned char slave_addr,unsigned char sub_addr,unsig
 
 static int sm502SPDRead(int type,long long addr,union commondata *mydata)
 {
-	char c;
+	unsigned char c;
 
 //	printf("mmio =%x\n",mmio);
 //	printf("%x\n",addr);
@@ -791,7 +791,7 @@ default:
 
 
 
-void i2c_test()
+void i2c_test(void)
 {
 	unsigned int  rst,suc;
 	asm volatile(
@@ -847,8 +847,8 @@ int wriic(int argc,char **argv)
 	unsigned char slave_addr, index_addr;
 	unsigned char value;
 	tag  = _pci_make_tag(0, 14, 0);
-	mmio = _pci_conf_readn(tag, 0x14, 4);
-	mmio = (int)mmio | 0xb0000000;
+	mmio =(volatile char *)_pci_conf_readn(tag, 0x14, 4);
+	mmio = (volatile char *)((unsigned long)mmio |PTR_PAD(0xb0000000));
 	temp = _pci_conf_readn(tag, 0x04, 4);
 	_pci_conf_writen(tag, 0x04, temp | 0x07, 0x04);
 	temp = _pci_conf_readn(tag, 0x04, 4);
@@ -903,31 +903,15 @@ out :
 
 int rdiic(int argc,char **argv)
 {
-	pcitag_t tag;
-	unsigned long temp;
+	//pcitag_t tag;
+	//unsigned long temp;
 	int ret = 0;
 	unsigned char slave_addr, index_addr;
 	unsigned char value;
-#if 0
-	tag  = _pci_make_tag(0, 14, 0);
-	mmio = (volatile char *)_pci_conf_readn(tag, 0x14, 4);
-	mmio = (volatile char *)((int)mmio | 0xb0000000);
-	temp = _pci_conf_readn(tag, 0x04, 4);
-	_pci_conf_writen(tag, 0x04, temp | 0x07, 0x04);
-	temp = _pci_conf_readn(tag, 0x04, 4);
-
-
-	sda_dir(G_OUTPUT);
-	scl_dir(G_OUTPUT);
-	sda_bit(1);
-	scl_bit(1);
-	i2c_sleep(1000);
-#endif
 
 	slave_addr = strtoul(argv[1], 0, 16);
 	index_addr = strtoul(argv[2], 0, 16);
 	printf("slave_addr 0x%x, index_addr 0x%x\n", slave_addr, index_addr);
-
 
     //start signal
     i2c_start();
@@ -1118,12 +1102,12 @@ int flashiic(int argc,char **argv)
 	pcitag_t tag;
 	unsigned long temp;
 	int ret = 0;
-	unsigned char slave_addr, index_addr;
+	unsigned char slave_addr;//, index_addr;
 	unsigned char s_e;
 	unsigned char whole_size;
 	tag  = _pci_make_tag(0, 14, 0);
 	mmio = (volatile char *)_pci_conf_readn(tag, 0x14, 4);
-	mmio = (volatile char *)((int)mmio | 0xb0000000);
+	mmio = (volatile char *)((unsigned long)mmio |PTR_PAD( 0xb0000000));
 	temp = _pci_conf_readn(tag, 0x04, 4);
 	_pci_conf_writen(tag, 0x04, temp | 0x07, 0x04);
 	temp = _pci_conf_readn(tag, 0x04, 4);
@@ -1184,7 +1168,7 @@ int flashiic(int argc,char **argv)
 //		return 0;
 //	}
 
-out :
+//out :
 	return 0;
 }
 
@@ -1198,7 +1182,7 @@ int dataiic(int argc,char **argv)
 	int i;
 	tag  = _pci_make_tag(0, 14, 0);
 	mmio = (volatile char *)_pci_conf_readn(tag, 0x14, 4);
-	mmio = (volatile char *)((int)mmio | 0xb0000000);
+	mmio = (volatile char *)((unsigned long)mmio | PTR_PAD(0xb0000000));
 	temp = _pci_conf_readn(tag, 0x04, 4);
 	_pci_conf_writen(tag, 0x04, temp | 0x07, 0x04);
 	temp = _pci_conf_readn(tag, 0x04, 4);
@@ -1218,7 +1202,7 @@ int dataiic(int argc,char **argv)
 //		return 0;
 //	}
 
-out :
+//out :
 	return 0;
 }
 
@@ -1227,10 +1211,10 @@ int startiic(int argc,char **argv)
 	pcitag_t tag;
 	unsigned long temp;
 	int ret = 0;
-	unsigned char slave_addr, index_addr;
+	unsigned char slave_addr;//, index_addr;
 	tag  = _pci_make_tag(0, 14, 0);
 	mmio = (volatile char *)_pci_conf_readn(tag, 0x14, 4);
-	mmio = (volatile char *)((int)mmio | 0xb0000000);
+	mmio = (volatile char *)((unsigned long)mmio | PTR_PAD(0xb0000000));
 	temp = _pci_conf_readn(tag, 0x04, 4);
 	_pci_conf_writen(tag, 0x04, temp | 0x07, 0x04);
 	temp = _pci_conf_readn(tag, 0x04, 4);
@@ -1275,7 +1259,6 @@ int startiic(int argc,char **argv)
 
 int rdadt(int ac,char **argv)
 {
-	int reg;
 	unsigned char d8;
 	unsigned short d16;
 
@@ -1315,9 +1298,9 @@ char *pcbv_string[]={
     "PCBA=V0.G",
 };
 
-int rdpcbv(int ac,char **argv)
+int pcbver(void)
 {
-    unsigned int tmp, pcb_version = 0;
+   unsigned int tmp, pcb_version = 0;
     unsigned long temp_mmio;
 	pcitag_t tag=_pci_make_tag(0,14,0);
     #define SM502_GPIO_DIR_LOW    (volatile unsigned int *)(temp_mmio + 0x10008)
@@ -1337,6 +1320,17 @@ int rdpcbv(int ac,char **argv)
 
     tmp = *SM502_GPIO_DATA_HIGH;
     pcb_version = (tmp & 0x000f0000)>>16;
+
+    //printf("GPIO(51-48)=0x%x %s\n",pcb_version,pcbv_string[pcb_version]);
+    return pcb_version;
+}
+
+
+int rdpcbv(int ac,char **argv)
+{
+    unsigned pcb_version = 0;
+
+    pcb_version = pcbver();
 
     printf("GPIO(51-48)=0x%x %s\n",pcb_version,pcbv_string[pcb_version]);
     return 0;

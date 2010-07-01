@@ -34,7 +34,8 @@
 /*
  * NS16550 UART registers
  */
-
+#ifndef _NS16550_H_
+#define _NS16550_H_
 #define NS16550_CHANA	PHYS_TO_K1(UART0_BASE)
 #define NS16550_CHANB	PHYS_TO_K1(UART1_BASE)
 
@@ -175,3 +176,4 @@ extern int ns16550 __P((int, struct DevEntry *, unsigned long, int));
 
 #define UART_EXISTED 0x01
 #define UART_NOTEXISTED 0x00
+#endif

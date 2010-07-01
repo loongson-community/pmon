@@ -17,7 +17,7 @@
 #include <include/bonito.h>
 #include <include/cs5536.h>
 #include <machine/pio.h> 
-
+#include <cpu.h>
 /******************************************************************************/
 
 extern void delay(int microseconds);

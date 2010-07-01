@@ -33,6 +33,9 @@
  *
  */
 
+#ifndef _PFLASH_H_ 
+#define _PFLASH_H_
+
 struct fl_functions;
 
 /*
@@ -145,3 +148,5 @@ extern struct fl_functions fl_func_amd;
 extern struct fl_functions fl_func_int;
 extern struct fl_functions fl_func_sst;
 extern struct fl_functions fl_func_winbond;
+
+#endif

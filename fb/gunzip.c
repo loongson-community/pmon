@@ -25,7 +25,7 @@
  * Boot support
  */
 #include "zlib.h"
-
+#include <string.h>
 /*
  * Some systems (for example LWMON) have very short watchdog periods;
  * we must make sure to split long operations like memmove() or
@@ -41,6 +41,11 @@ static void *zalloc(void *, unsigned, unsigned);
 static void zfree(void *, void *, unsigned);
 
 #define	ZALLOC_ALIGNMENT	16
+
+extern void *malloc(size_t);
+extern void *free(void *);
+extern int puts(const char *);
+int printf (const char *, ...);
 
 static void *zalloc(void *x, unsigned items, unsigned size)
 {

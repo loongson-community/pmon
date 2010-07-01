@@ -19,15 +19,14 @@ ulong end_low, end_high;
 ulong cal_low, cal_high;
 ulong extclock;
 
-static ulong memspeed(ulong src, ulong len, int iter);
-static void cpu_type(void);
 static void cacheable(void);
-static int cpuspeed(void);
 
 static void display_init(void)
 {
+#if NMOD_X86EMU_INT10 > 0
 	int i;
 	volatile char *pp;
+#endif
 
 	serial_echo_init();
         serial_echo_print("[LINE_SCROLL;24r"); /* Set scroll area row 7-23 */
@@ -69,7 +68,6 @@ static void display_init(void)
 
 static void mem_size(void)
 {
-	int i, n;
 char string[]="L1 Cache: Unknown ";
 	/* Build the memory map for testing */
 
@@ -83,7 +81,7 @@ char string[]="L1 Cache: Unknown ";
 }
 
 
-void config_64bit()
+void config_64bit(void)
 {
 	    __asm__(
          ".set mips3\n"

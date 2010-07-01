@@ -103,6 +103,7 @@ unsigned char kbd_code;
 unsigned int esc_seq;
 unsigned int esc_code;
 extern void delay __P((int));
+extern void delay1(int);
 
 typedef void (*k_hand) (unsigned char value, char up_flag);
 typedef void (k_handfn) (unsigned char value, char up_flag);

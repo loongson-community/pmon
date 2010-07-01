@@ -19,7 +19,7 @@
 static int sata_match(struct device *, void *, void *);
 static void sata_attach (struct device *, struct device *, void *);
 
-sata_operation_t sata_op = {NULL, NULL, NULL, NULL, NULL};
+sata_operation_t sata_op = {NULL, NULL, NULL, NULL};
 struct cfattach sata_ca = {
     sizeof(struct device),sata_match,sata_attach,
 };

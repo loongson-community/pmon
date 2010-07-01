@@ -1723,7 +1723,7 @@ static void check_status(td_t *td_list)
 	phwHeadP = (u32 *)CACHED_TO_UNCACHED(phwHeadP);
 	cc = TD_CC_GET(m32_swap(td_list->hwINFO));
 	if (cc) {
-		err(" check_status USB-error: %x", cc);
+		//err(" check_status USB-error: %x", cc);
 
 		if (*phwHeadP & m32_swap(0x1)) {
 			if (lurb_priv &&
@@ -3098,7 +3098,7 @@ void usb_ohci_stop_one(ohci_t *ohci)
 	pci_conf_write(ohci->sc_pc, ohci->pa.pa_tag, 0x04, (cmd & ~0x7));
 }
 
-void usb_ohci_stop()
+void usb_ohci_stop(void)
 {
 	int i;
 

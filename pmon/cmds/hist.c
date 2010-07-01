@@ -227,8 +227,7 @@ get_nchar (p, len)
      char    *p;
 	 int	len;
 {
-	enum esc_state esc_state = NONE;
-	int c, oc, i, n, mark, count = 0;
+	int c, oc, mark, count = 0;
 	struct termio tbuf;
 
 	ioctl (STDIN, SETNCNE, &tbuf);

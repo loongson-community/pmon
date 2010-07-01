@@ -53,6 +53,8 @@
 #include <gzipfs.h>
 #endif /* NGZIP */
 
+extern long load_elf64 (int, char *, int *, int);
+
 static int	bootseg;
 static unsigned long tablebase;
 

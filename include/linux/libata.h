@@ -485,12 +485,13 @@ enum ata_completion_errors {
     AC_ERR_NCQ      = (1 << 10), /* marker for offending NCQ qc */
 };
 
-typedef struct ata_prd {
+struct ata_prd {
     unsigned int addr;
     unsigned int flag_len;
-}ata_prd_t, *p_ata_prd_t;
+};
+typedef struct ata_prd ata_prd_t, *p_ata_prd_t;
 
-typedef struct ata_taskfile {
+struct ata_taskfile {
     unsigned long       flags;      /* ATA_TFLAG_xxx */
     u8          protocol;   /* ATA_PROT_xxx */
 
@@ -511,11 +512,17 @@ typedef struct ata_taskfile {
     u8          device;
 
     u8          command;    /* IO operation */
-}ata_taskfile_t, *p_ata_taskfile_t;
+};
+typedef struct ata_taskfile ata_taskfile_t, *p_ata_taskfile_t;
+
+struct ata_port;
+struct ata_device;
+struct ata_host;
 
 #define USE_LIBATA
 #ifdef USE_LIBATA
-typedef struct ata_port_operations {
+
+struct ata_port_operations {
     /*
      * Configuration and exception handling
      */
@@ -565,13 +572,16 @@ typedef struct ata_port_operations {
 
 #endif /* CONFIG_ATA_SFF */
  
-    const struct ata_port_operations    *inherits;
-}ata_port_operations_t, *p_ata_port_operations_t;
+    struct ata_port_operations    *inherits;
+};
 
-struct ata_host;
+
+typedef  struct ata_port_operations ata_port_operations_t, *p_ata_port_operations_t;
+
 #define CONFIG_ATA_SFF
 #ifdef CONFIG_ATA_SFF
-typedef struct ata_ioports {
+
+struct ata_ioports {
     void  *cmd_addr;
     void  *data_addr;
     void  *error_addr;
@@ -587,10 +597,11 @@ typedef struct ata_ioports {
     void  *ctl_addr;
     void  *bmdma_addr;
     void  *scr_addr;
-} ata_ioports_t, *p_ata_ioports_t;
+};
+typedef struct ata_ioports ata_ioports_t, *p_ata_ioports_t;
 #endif /* CONFIG_ATA_SFF */
 
- typedef struct ata_port {
+struct ata_port {
     p_ata_port_operations_t    p_ops;
     int                      port_no;  
     int                      dev_no;  /*attched to this port's dev no;*/
@@ -612,11 +623,13 @@ typedef struct ata_ioports {
     unsigned int                      port_state;
     unsigned char                   ctl;  
     struct ata_host                  *p_host;
-} ata_port_t, *p_ata_port_t;
+};
+
+typedef struct ata_port ata_port_t, *p_ata_port_t;
 
 typedef struct ata_device  ata_device_t,*p_ata_device_t;
 
-typedef struct ata_host {
+struct ata_host {
     void                                      **iomap;
     unsigned int                          n_ports;
     void                                      *p_private_data;
@@ -624,14 +637,17 @@ typedef struct ata_host {
     unsigned long                       flags;
     p_ata_port_t                         *pp_ports;
     p_ata_device_t                      *pp_dev;
-}ata_host_t, *p_ata_host_t;
+};
+
+typedef struct ata_host ata_host_t, *p_ata_host_t;
 
 struct ata_device {
     struct device r_dev;
     int port_no; /*which port the device connect to*/
     int dev_no;/*the number assigned to device*/
     p_ata_host_t  p_host;     
-} ;
+};
+
 
 #endif
 #define readb(addr) (*(volatile unsigned char *)(addr))
@@ -661,7 +677,7 @@ struct ata_device {
  *function protype
 */
 unsigned int ata_devchk(struct ata_port *p_ap);
-unsigned int ata_identify (struct ata_port  *p_ap);
+int ata_identify (struct ata_port  *p_ap);
 
 extern void udelay(int usec);
 extern void ndelay(int nsec);

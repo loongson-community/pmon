@@ -124,7 +124,7 @@ void xprint(int y,int x,ulong val);
 void aprint(int y,int x,ulong page);
 void dprint(int y,int x,ulong val,int len, int right);
 void movinv1(int iter, ulong p1, ulong p2);
-void movinvr();
+void movinvr(void);
 void movinv32(int iter, u_int32_t p1, u_int32_t lb, u_int32_t mb, int sval, int off);
 void modtst(int off, int iter, ulong p1, ulong p2);
 void error(ulong* adr, ulong good, ulong bad);
@@ -152,10 +152,11 @@ void bit_fade(void);
 void Sleep(int sec);
 void block_move(int iter);
 void find_ticks(void);
+void errchip_prompt(ulong *adr,ulong xor);
 void print_err(ulong *adr, ulong good, ulong bad, ulong xor);
 void print_ecc_err(ulong page, ulong offset, int corrected, 
 	unsigned short syndrome, int channel);
-void mem_size(void);
+static void mem_size(void);
 void adj_mem(void);
 ulong getval(int x, int y, int result_shift);
 int get_key(void);
@@ -171,6 +172,10 @@ int map_page(unsigned long page);
 void *mapping(unsigned long page_address);
 void *emapping(unsigned long page_address);
 unsigned long page_of(void *ptr);
+static int find_ticks_for_test(unsigned long chunks, int test);
+
+
+extern void cacheflush(void);
 
 #define PRINTMODE_ADDRESSES 0
 #define PRINTMODE_PATTERNS  1

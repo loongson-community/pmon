@@ -369,7 +369,9 @@ LEAF(ii2c_cfg)
 .nodimm1:
 	PRINTSTR ("\r\nNo DIMM in this slot ");
 1:
-	jr t6
+	//jr t6
+	move  ra,t6
+	.word 0x03e00008
 	nop
 END(ii2c_cfg)
 
@@ -402,7 +404,8 @@ LEAF(_i2c_sleep)
 	bnez	a0,1b
 	nop
 	
-	jr ra
+	//jr ra
+	.word 0x03e00008
 	nop
 	
 END(_i2c_sleep)
@@ -435,7 +438,8 @@ LEAF(_sda_dir)
 2:	sw	t2,0(t0)
 
 	nop
-	jr	ra
+	//jr	ra
+	.word   0x03e00008
 	nop
 	
 END(_sda_dir)
@@ -468,7 +472,8 @@ LEAF(_scl_dir)
 2:	sw	t2,0(t0)
 
 	nop
-	jr	ra
+	//jr	ra
+	.word   0x03e00008
 	nop
 
 END(_scl_dir)
@@ -501,7 +506,8 @@ LEAF(_sda_bit)
 2:	sw	t2,0(t0)
 
 	nop
-	jr	ra
+	//jr	ra
+	.word  0x03e00008
 	nop
 END(_sda_bit)
 
@@ -533,7 +539,8 @@ LEAF(_scl_bit)
 2:	sw	t2,0(t0)
 
 	nop
-	jr	ra
+	//jr	ra
+	.word  0x03e00008
 	nop
 END(_scl_bit)
 
@@ -580,7 +587,9 @@ LEAF(_i2c_start)
 	bal	_i2c_sleep
 	nop
 
-	jr 	t7
+	//jr 	t7
+	move  ra,t7
+	.word  0x03e00008
 	nop
 	
 END(_i2c_start)
@@ -625,7 +634,9 @@ LEAF(_i2c_stop)
 	bal	_i2c_sleep
 	nop
 	
-	jr	t7
+	//jr	t7
+	move  ra,t7
+	.word  0x03e00008
 	nop
 END(_i2c_stop)
 LEAF(_i2c_send_ack)
@@ -655,7 +666,9 @@ LEAF(_i2c_send_ack)
 	bal	_i2c_sleep
 	nop
 	
-	jr	t7
+	//jr	t7
+	move ra,t7
+	.word   0x03e00008
 	nop
 END(_i2c_send_ack)
 
@@ -724,7 +737,9 @@ LEAF(_i2c_rec_ack)
 	bal	_i2c_sleep
 	nop
 	
-	jr	t7
+	//jr	t7
+	move ra,t7
+	.word  0x03e00008
 	nop	
 
 END(_i2c_rec_ack)
@@ -781,7 +796,9 @@ LEAF(_i2c_rec)
 	b	2b
 	nop
 	
-1:	jr t7
+1:	//jr t7
+    move ra,t7
+    .word 0x03e00008
 	nop
 	
 END(_i2c_rec)
@@ -827,7 +844,9 @@ LEAF(_i2c_send)
 	bal	_sda_bit
 	nop
 
-	jr	t7
+	//jr	t7
+	move ra,t7
+	.word  0x03e00008
 	nop
 
 END(_i2c_send)
@@ -902,7 +921,10 @@ LEAF(i2cread)
 	nop
 
 1:	li	v1,1
-2:	jr	t8 
+2:	
+    //jr	t8 
+    move ra,t8
+    .word  0x03e00008
 	nop
 
 

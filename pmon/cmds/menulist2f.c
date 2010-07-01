@@ -51,6 +51,8 @@
 
 #include <machine/cpu.h>
 #include <machine/bus.h>
+#include <machine/pio.h>
+
 
 #include <pmon.h>
 
@@ -312,6 +314,8 @@ static int show_main(int flag, const char* path)
 	ioctl(STDIN, FIONBIO, &j);
 	ioctl(STDIN, FIOASYNC, &j);
 
+    j = 0;
+    
 	memset(tmp, 0, sizeof(tmp));
 	sprintf(tmp, "Booting system in [%d] second(s)", dly);
 
@@ -322,7 +326,7 @@ static int show_main(int flag, const char* path)
 		ioctl (STDIN, FIONREAD, &cnt);	
         if (cnt != 0)
         {
-			not_delay = TRUE;
+            not_delay = TRUE;
             ch = getchar();			
 			if (strchr("\r\n", ch) != NULL)
 			{
@@ -364,7 +368,7 @@ static int show_main(int flag, const char* path)
         }
 		if (not_delay != TRUE)
 		{
-			if (j == 9)
+            if (j == 9)
 			{
 				memset(tmp, 0, sizeof(tmp));
 				sprintf(tmp, "Booting system in [%d] second(s)", --dly);

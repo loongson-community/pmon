@@ -42,12 +42,12 @@ typedef struct {
 } SMI_REGS;
 
 /* Board specific functions                                                  */
-int board_video_init (void);
+unsigned long board_video_init (void);
 void board_validate_screen (unsigned int base);
-const SMI_REGS *board_get_regs (void);
+SMI_REGS *board_get_regs (void);
 int board_get_width (void);
 int board_get_height (void);
-int board_video_get_fb (void);
+unsigned long board_video_get_fb (void);
 
 
 

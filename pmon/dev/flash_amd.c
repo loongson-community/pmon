@@ -217,7 +217,7 @@ unsigned char *pd;
 	int stat;
 	unsigned short *pd1;
 
-	pd1=pd;
+	pd1=(unsigned short *)pd;
 	switch (map->fl_map_bus) {
 	case FL_BUS_8:
 		outb((map->fl_map_base + AMD_CMDOFFS1), 0xAA);
