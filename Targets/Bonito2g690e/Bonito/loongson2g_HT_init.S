@@ -31,6 +31,7 @@
     dli t1, 0x00000cfdfc0000f6
     sd  t1, 0x80(t0)
 
+/*
  //HT Space enable
  //map 0x90000e00_00000000 --> 0x90000e00_00000000
     dli t1, 0x00000e0000000000
@@ -39,6 +40,7 @@
     sd  t1, 0x48(t0)
     dli t1, 0x00000c00000000f6
     sd  t1, 0x88(t0)
+*/
 
 #if 0
  //HT: PCI LO BASE

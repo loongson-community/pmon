@@ -42,15 +42,16 @@
 1:
 
 ####### Unused HT0 port #########################
-	dli	t0, 0x00000e0000000000
+	dli	t0, 0x00000c0000000000
 	sd	t0, 0x28(t2)
-	dli	t0, 0xfffffe0000000000
+	dli	t0, 0xfffffc0000000000
 	sd	t0, 0x68(t2)
 	dli	t0, 0x00000c00000000f6
 	sd	t0, 0xa8(t2)
 
 #ifndef MULTI_CHIP
 ####### address space to other nodes ############
+/*
 	dli	t0, 0x0000200000000000
 	sd	t0, 0x30(t2)
 	dli	t0, 0x0000200000000000
@@ -63,6 +64,13 @@
 	dli	t0, 0x0000300000000000
 	sd	t0, 0x78(t2)
 	dli	t0, 0x00001000000000f6
+	sd	t0, 0xb8(t2)
+*/
+	dli	t0, 0x0000000000000000
+	sd	t0, 0x38(t2)
+	dli	t0, 0x0000000000000000
+	sd	t0, 0x78(t2)
+	dli	t0, 0x00000000000000f0
 	sd	t0, 0xb8(t2)
 
     daddiu  t2, t2, 0x100
