@@ -35,7 +35,8 @@ option		RS690
 option      VGA_NO_ROM
 option		VGA_BASE=0xbe000000
 option      SHARED_VRAM=64
-option      GPU_UMA
+#option      GPU_UMA
+option      GPU_SP
 option		VESAFB
 #option		DEBUG_EMU_VGA
 

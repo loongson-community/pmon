@@ -56,8 +56,16 @@ void nb_pre_init(void)
 	if(memorysize_high > (1000 << 20))
 		ati_nb_cfg.system_memory_tom_lo = 0x1000;
 	else
-		//ati_nb_cfg.system_memory_tom_lo = 0x800;
 		ati_nb_cfg.system_memory_tom_lo = 0x7c0;
+
+	/* PCI memory top configure.
+	 * The address is like a filter to walk thougth PCI's address.
+	 * FIXME (wgl): when systerm_memory_tom_lo set 0x800 in sp mode, the network don't work;
+	 *         But when systerm_memory_tom_lo set 0x800 in sp mode, the network work correctly.
+	 */
+#ifdef GPU_SP
+		ati_nb_cfg.system_memory_tom_lo = 0xff8;
+#endif
 
 	/* setting TOM LOW basically */
 	_pci_conf_write(nb_dev, 0x90, ati_nb_cfg.system_memory_tom_lo << 20);

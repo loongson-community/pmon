@@ -87,12 +87,19 @@ extern void delay(u32 val);
 #undef	CFG_PCIE_REFCLK_SHARE
 
 /* gfx_post.c */
-#define	CFG_UMA_SUPPORT
+#ifdef GPU_UMA
+	#define	CFG_UMA_SUPPORT
+#else
+	#undef	CFG_UMA_SUPPORT
+#endif
 
-//#define	CFG_SP_SUPPORT
-#undef	CFG_SP_SUPPORT
-#define	CFG_SP_SIZE					0x00		// 1MB unit default 32MB
-//#undef	CFG_SP_SIZE
+#ifdef GPU_SP
+	#define	CFG_SP_SUPPORT
+	#define	CFG_SP_SIZE					0x40		// 1MB unit default 32MB
+#else
+	#undef	CFG_SP_SUPPORT
+	#undef	CFG_SP_SIZE
+#endif
 
 /* ati_integrated_system_information struct parameters setting */
 // 1MHz unit, default 400MHz for graphic engine

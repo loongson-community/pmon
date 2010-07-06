@@ -182,10 +182,15 @@ struct vuma_gen_info vuma_gen_info = {
 
 /* nb basic struct */
 NBCONFIGINFO	ati_nb_cfg = {
-	  GFX_UMA_ENABLE
-//	| GFX_SP_ENABLE
+	0
+#ifdef GPU_UMA
+	| GFX_UMA_ENABLE
+#endif
+#ifdef GPU_SP
+	| GFX_SP_ENABLE
+	| GFX_ASYNC_MODE
+#endif
 //	| GFX_TMDS_PHY_MODE
-//	| GFX_ASYNC_MODE
 //	| GFX_CLK_REF_PCIE
 //	| GFX_CLOCK_GATING
 	| GFX_2D_OPTIMIZATION,				// gfx_config
@@ -199,9 +204,16 @@ NBCONFIGINFO	ati_nb_cfg = {
 //	| EXT_GFX_FORCE_IGFX_ENABLE
 	| EXT_AZALIA_ENABLE,				// ext config
 
-	0x40,	// MB unit			// uma_fb_size, filled by init
-
-	0, 									// sp_fb_size, filled by init
+#if (SHARED_VRAM == 128)
+    0x80,   // MB unit chengguipeng         // uma_fb_size, filled by init
+    0x80,                       // sp_fb_size, filled by init
+#elif (SHARED_VRAM == 64)
+    0x40,   // MB unit chengguipeng         // uma_fb_size, filled by init
+    0x40,                       // sp_fb_size, filled by init
+#elif (SHARED_VRAM == 32)
+    0x20,   // MB unit chengguipeng         // uma_fb_size, filled by init
+    0x20,                       // sp_fb_size, filled by init
+#endif
 
 	AUTO_INTERLEAVE,					// sp_interleave_mode
 
@@ -219,8 +231,11 @@ NBCONFIGINFO	ati_nb_cfg = {
 
 	0, 									// ati_gfx_info, same as pcie_gfx_info, set when ATI GFX founded
 
-	0x800,	 							// system_memory_tom_lo : 1MB based, 1G
-
+#ifdef GPU_UMA
+	0x7c0,	 							// system_memory_tom_lo : 1MB based, 1G
+#elif GPU_SP
+	0xff8,
+#endif
 	0,									// system_memory_tom_hi : 1MB based
 
 	0,									// cstate

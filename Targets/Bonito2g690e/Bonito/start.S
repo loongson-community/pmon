@@ -1103,6 +1103,14 @@ PRINTSTR("Jump to 9fc\r\n")
 #ifdef LS2G_HT
 #include "loongson2g_HT_init.S"
 #endif
+
+	TTYDBG("==========> HT freq reg48 = ")
+	dli    t2, 0x90000cfdfb000000
+	lw      a0, 0x48(t2)
+	bal    hexserial
+	nop
+	TTYDBG("\r\n")
+
 ##########################################
 
 #if 1 //cww_X2

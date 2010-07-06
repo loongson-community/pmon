@@ -186,10 +186,10 @@ static void sp_mc_startup_table(pcitag_t nb_dev)
 	nbmc_write_index(nb_dev, 0xD6, 0x05555555);
 	nbmc_write_index(nb_dev, 0xD7, 0x05555555);
 
-	nbmc_write_index(nb_dev, 0x00, 0x00000000);
-	nbmc_write_index(nb_dev, 0x01, 0x00000000);
-	nbmc_write_index(nb_dev, 0x08, 0x003E003E);
-	nbmc_write_index(nb_dev, 0x09, 0x003E003E);
+	nbmc_write_index(nb_dev, 0xE0, 0x00000000);
+	nbmc_write_index(nb_dev, 0xE1, 0x00000000);
+	nbmc_write_index(nb_dev, 0xE8, 0x003E003E);
+	nbmc_write_index(nb_dev, 0xE9, 0x003E003E);
 
 	return;
 }
@@ -303,11 +303,11 @@ static void sp_mc_init_table(pcitag_t nb_dev)
  */
 static void gfx_sp_uma_init(pcitag_t nb_dev)
 {
-	u8 ratio, mode;
-	u32 chunk, sp_no_interleave_size, uma_interleave_size;
+	u8 ratio = 0, mode = 0;
+	u32 chunk, sp_no_interleave_size = 0, uma_interleave_size = 0;
 	u32 sp_temp, uma_temp;
 	u32 fb_start, fb_end;
-	u32 val, temp;
+	u32 val = 0, temp = 0;
 
 	if(ati_nb_cfg.gfx_config & GFX_UMA_ENABLE){
 		if(ati_nb_cfg.sp_interleave_mode == COARSE_INTERLEAVE){
@@ -368,6 +368,12 @@ static void gfx_sp_uma_init(pcitag_t nb_dev)
 		val |= 1 << 28;
 	}
 	nbmc_write_index(nb_dev, 0x1D, val);
+
+	/* wgl : Add frame buffer configure for rs690's video ram */
+	/* the start of frame buffer in the systerm memory */
+	nbmc_write_index(nb_dev, 0x1E, 0x10000000);
+	/* the start and top of local frame buffer int the internal address space */
+	nbmc_write_index(nb_dev, 0x100, 0x13ff1000);
 
 	DEBUG_INFO("gfx_sp_uma_init : mcreg1B (0x%x)\n", nbmc_read_index(nb_dev, 0x1B));
 	DEBUG_INFO("gfx_sp_uma_init : mcreg1C (0x%x)\n", nbmc_read_index(nb_dev, 0x1C));
@@ -880,9 +886,9 @@ static void gfx_init_vuma_info(pcitag_t nb_dev)
 	info->major_ver = MAJOR_REVISION;
 	info->minor_ver = MINOR_REVISION;
 	info->struct_size = sizeof(struct ati_integrated_system_info);
-	
+
 	return;
-} 
+}
 
 /*-------------------------------------------------------------------*/
 

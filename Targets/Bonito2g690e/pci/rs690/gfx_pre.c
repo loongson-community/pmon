@@ -190,7 +190,13 @@ static void get_pcie_gfx_card(void)
  * uma_size : used for caculating interleave mode
  */
 static u8 uma_size[] = {
+#if (SHARED_VRAM == 128)
+	0x80,		// 128M -> 2G 0x80 : 0x20 for debugging with (uma_fb_size equal) : by liujl
+#elif (SHARED_VRAM == 64)
 	0x40,		// 128M -> 2G 0x80 : 0x20 for debugging with (uma_fb_size equal) : by liujl
+#elif (SHARED_VRAM == 32)
+	0x20,
+#endif
 	0x80,		// 128M -> 1G
 	0x40,		// 64M -> 512M
 	0x40,		// 64M -> 384M
@@ -204,7 +210,13 @@ static u8 uma_size[] = {
  * aperture_size : BAR0 aperture size for both or single fb
  */
 static u8 aperture_size[] = {
+#if (SHARED_VRAM == 128)
+	0x00,	// 2G 0x01 : 0x80000000 for testing with  32MB aperture with properly(uma_fb_size) : by liujl
+#elif (SHARED_VRAM == 64)
 	0x02,	// 2G 0x01 : 0x80000000 for testing with  32MB aperture with properly(uma_fb_size) : by liujl
+#elif (SHARED_VRAM == 32)
+	0x03,	// 2G 0x01 : 0x80000000 for testing with  32MB aperture with properly(uma_fb_size) : by liujl
+#endif
 	0x01,	// 1G	---> 256MB
 	0x01,	// 512M	---> 256MB
 	0x01,	// 384M	---> 256MB
@@ -256,7 +268,7 @@ static void gfx_auto_config(void)
 	if(ati_nb_cfg.gfx_config & GFX_SP_ENABLE){
 		if(ati_nb_cfg.sp_fb_size == 0){
 			ati_nb_cfg.sp_fb_size = CFG_SP_SIZE;
-		}			
+		}
 	}
 #endif
 	
@@ -303,22 +315,22 @@ static void gfx_config_fb_size(void)
 {
 	pcitag_t nb_dev = _pci_make_tag(0, 0, 0);
 	u8 index = 0;
-		
+
 	if( (ati_nb_cfg.uma_fb_size != 0) && (ati_nb_cfg.gfx_config & GFX_UMA_ENABLE) ){
 		index = get_uma_size_index();
 		if(ati_nb_cfg.uma_fb_size > uma_size[index]){
 			ati_nb_cfg.uma_fb_size = uma_size[index];
 		}
 	}
-	
+
 	if(ati_nb_cfg.uma_fb_size + ati_nb_cfg.sp_fb_size > 0x400){
 		ati_nb_cfg.uma_fb_size /= 2;			// just for adapter
 	}
-	
+
 	set_nbcfg_enable_bits(nb_dev, 0x8C, 0x07 << 4, aperture_size[index] << 4);
-	
+
 	ati_nb_cfg.vuma_gen->uma_support_map = uma_size[index];
-	
+
 	return;
 }
 
