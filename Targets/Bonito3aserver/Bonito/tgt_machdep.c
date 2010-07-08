@@ -546,6 +546,7 @@ unsigned int addr;
 	/*
 	 * Launch!
 	 */
+	_pci_conf_write(_pci_make_tag(0,0,0),0x90,0xff800000); 
 	main();
 }
 
@@ -886,7 +887,7 @@ tgt_devinit()
         printf("disable bus0 device pcie bridges\n");
         //disable bus0 device 3 pci bridges (dev2 to dev7, dev9-dev10)
         set_nbmisc_enable_bits(_pci_make_tag(0,0,0), 0x0c,(1<<2|1<<3|1<<5|1<<6|1<<7|1<<17),
-                        (1<<2|1<<3|1<<5|1<<6|1<<7|0<<17));
+                        (0<<2|0<<3|1<<5|1<<6|1<<7|0<<17));
 #endif
 
 #if 1
