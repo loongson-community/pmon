@@ -9,9 +9,15 @@
 #define KBD_STAT_GTO 		0x40	/* General receive/xmit timeout */
 #define KBD_STAT_PERR 		0x80	/* Parity error */
 
+#ifdef  FCRSOC
+#define KBD_STATUS_REG		(0xbf004044-0xbfd00000)	/* Status register (R) */
+#define KBD_CNTL_REG		(0xbf004044-0xbfd00000)	/* Controller command register (W) */
+#define KBD_DATA_REG		(0xbf004040-0xbfd00000)	/* Keyboard data register (R/W) */
+#else
 #define KBD_STATUS_REG		0x64	/* Status register (R) */
 #define KBD_CNTL_REG		0x64	/* Controller command register (W) */
 #define KBD_DATA_REG		0x60	/* Keyboard data register (R/W) */
+#endif
 #define kbd_read_input() linux_inb(KBD_DATA_REG)
 #define kbd_read_status() linux_inb(KBD_STATUS_REG)
 #define kbd_write_output(val) linux_outb(val, KBD_DATA_REG)

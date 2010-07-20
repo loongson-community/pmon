@@ -87,9 +87,15 @@ struct inpcb {
 #ifdef IP6
 		struct ipv6 hu_ipv6;
 #endif
+		struct {
+		char ofname[16];
+		char ifname[16];
+		} name;
 	} inp_hu;
 #define	inp_ip		inp_hu.hu_ip
 #define	inp_ipv6	inp_hu.hu_ipv6
+#define	inp_ifname	inp_hu.name.ifname
+#define	inp_ofname	inp_hu.name.ofname
 	struct	  mbuf *inp_options;	/* IP options */
 	union {
 		struct ip_moptions *mou_mo;    /* IPv4 multicast options */

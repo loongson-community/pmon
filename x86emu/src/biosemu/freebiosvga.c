@@ -52,7 +52,11 @@ int vga_bios_init(void)
 		}
 
 		pci_read_config_dword(pdev,0x30,(int*)&romaddress);
+        #if defined(LOONGSON3A_3AEV)
+		romaddress &= (~0xf);
+        #else
 		romaddress &= (~1);
+        #endif
 		/* enable rom address decode */
 		pci_write_config_dword(pdev,0x30,romaddress|1);
 
@@ -65,7 +69,7 @@ int vga_bios_init(void)
 #ifdef BONITOEL
 		romaddress |= 0x10000000;
 #endif
-#ifdef VGA_NO_ROM
+#if defined(VGA_NO_ROM)||defined(VGAROM_IN_BIOS)
 		romaddress = vgarom;
 #endif
 		printf("Rom mapped to %lx\n",romaddress);
@@ -115,7 +119,11 @@ int vga_bios_init(void)
 			return -1;
 		}
 		VGAInfo[0].BIOSImageLen = romsize;
+#ifdef VGAROM_IN_BIOS
+		  memcpy(VGAInfo[0].BIOSImage,(char*)romaddress,romsize);
+#else		  
 		memcpy(VGAInfo[0].BIOSImage,(char*)(0xa0000000|romaddress),romsize);
+#endif
 
     		BE_init(debugFlags,65536,&VGAInfo[0]);
 

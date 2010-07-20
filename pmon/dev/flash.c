@@ -69,20 +69,61 @@ static quad_t widedata;
 /*
  *  Inlineable function to Auto Select Device
  */
+#define TYPE_AMD 0x5a5a0001
+#define TYPE_SST 0x5a5a0002
+#define TYPE_ST 0x5a5a0003
+#define ConvAddr1(A) (2*A+!(A&0x1))  /* Convert a word mode command to byte mode command :
+                                           Word Mode Command    Byte Mode Command
+                                                0x555      ->     0xAAA
+                                                0x2AA      ->     0x555
+                                                0x55       ->     0xAA            */
+#define ConvAddr2(A) (A*2)
+static __inline void fl_mydetect(struct fl_map *map)
+{
+		char oldc=inb(map->fl_map_base);	
+        outb((map->fl_map_base + SST_CMDOFFS1), 0xAA);
+        outb((map->fl_map_base + SST_CMDOFFS2), 0x55);
+        outb((map->fl_map_base + SST_CMDOFFS1), FL_AUTOSEL);
+        if(inb(map->fl_map_base)!=oldc){map->fl_type=TYPE_SST;return;}
+        outb((map->fl_map_base + ConvAddr1(0x555)), 0xAA);
+        outb((map->fl_map_base + ConvAddr1(0x2aa)), 0x55);
+        outb((map->fl_map_base + ConvAddr1(0x555)), FL_AUTOSEL);
+        if(inb(map->fl_map_base)!=oldc){map->fl_type=TYPE_ST;return;}
+		outb((map->fl_map_base + AMD_CMDOFFS1), 0xAA);
+		outb((map->fl_map_base + AMD_CMDOFFS2), 0x55);
+		outb((map->fl_map_base + AMD_CMDOFFS1), FL_AUTOSEL);
+        if(inb(map->fl_map_base)!=oldc){map->fl_type=TYPE_AMD;return;}
+	    else {map->fl_type=0;printf("unknow flash type\n");	}
+}
 static __inline void fl_autoselect(struct fl_map *map)
 {
 
 	switch (map->fl_map_bus) {
 	case FL_BUS_8:
+		if((map->fl_type>>16)!=0x5a5a)fl_mydetect(map);
 #if NMOD_FLASH_SST
+		if(map->fl_type==TYPE_SST) 
+		{
 		outb((map->fl_map_base + SST_CMDOFFS1), 0xAA);
 		outb((map->fl_map_base + SST_CMDOFFS2), 0x55);
 		outb((map->fl_map_base + SST_CMDOFFS1), FL_AUTOSEL);
+		}
 #endif
 #if NMOD_FLASH_AMD
+		if(map->fl_type==TYPE_AMD)
+		{
 		outb((map->fl_map_base + AMD_CMDOFFS1), 0xAA);
 		outb((map->fl_map_base + AMD_CMDOFFS2), 0x55);
 		outb((map->fl_map_base + AMD_CMDOFFS1), FL_AUTOSEL);
+		}
+#endif
+#if NMOD_FLASH_ST
+		if(map->fl_type==TYPE_ST)
+		{
+		outb((map->fl_map_base + ConvAddr1(0x555)), 0xAA);
+		outb((map->fl_map_base + ConvAddr1(0x2aa)), 0x55);
+		outb((map->fl_map_base + ConvAddr1(0x555)), FL_AUTOSEL);
+		}
 #endif
 #if NMOD_FLASH_WINBOND
 		outb((map->fl_map_base + WINBOND_CMDOFFS1), 0xAA);
@@ -96,9 +137,12 @@ static __inline void fl_autoselect(struct fl_map *map)
 
 	case FL_BUS_16:
 #if NMOD_FLASH_AMD
-		outw((map->fl_map_base + (AMD_CMDOFFS1<<1)), 0xaa);
-		outw((map->fl_map_base + (AMD_CMDOFFS2<<1)), 0x55);
-		outw((map->fl_map_base + (AMD_CMDOFFS<<1)), FL_AUTOSEL);
+		SETWIDE(0xaa);
+		outw(map->fl_map_base + ConvAddr2(0x00555), widedata);
+		SETWIDE(0x55);
+		outw(map->fl_map_base + ConvAddr2(0x002AA), widedata);
+		SETWIDE(FL_AUTOSEL);
+		outw(map->fl_map_base + ConvAddr2(0x00555), widedata);
 #endif
 		break;
 
@@ -131,11 +175,24 @@ static __inline void fl_reset(struct fl_map *map)
 
 	switch (map->fl_map_bus) {
 	case FL_BUS_8:
+		if(!map->fl_type)fl_mydetect(map);
 #if NMOD_FLASH_SST || NMOD_FLASH_WINBOND
 		outb((map->fl_map_base), 0xf0);
-#else
+#endif
+#if NMOD_FLASH_AMD
+        if(map->fl_type==TYPE_AMD)
+        {
 		outb((map->fl_map_base), 0x90);
 		outb((map->fl_map_base), 0x00);
+
+		}
+#endif
+#if NMOD_FLASH_ST
+		if(map->fl_type==TYPE_ST)
+		{
+		outb(map->fl_map_base, 0xf0);
+	
+		}
 #endif
 		break;
 
@@ -429,9 +486,13 @@ int fl_program(void *fl_base, void *data_base, int data_size, int verbose)
 	memcpy(tmpbuf, base, size);
 	memcpy(tmpbuf + (unsigned int)fl_base - (unsigned int)base, 
 		data_base, data_size);
-	if (fl_erase_device(base, size, verbose) == 0 && 
-		fl_program_device(base, tmpbuf, size, verbose) == 0){
-		return 0;
+	if (fl_erase_device(base, size, verbose) == 0){
+		printf("Error! Nvram erase failed!\n");
+        return 0;
+    }
+	if(	fl_program_device(base, tmpbuf, size, verbose) == 0){
+		printf("Error! Nvram program failed!\n");
+        return 0;
 	}
 	return -1;
 	
@@ -469,6 +530,7 @@ int fl_program_device(void *fl_base, void *data_base, int data_size, int verbose
 	}
 
 	tgt_flashwrite_enable();
+    fl_write_protect_unlock(map, dev, 0);/* Disable write protection of 49LF040B */
 
 	for (i = 0; i < data_size; i += map->fl_map_width) {
 
@@ -509,6 +571,7 @@ int fl_program_device(void *fl_base, void *data_base, int data_size, int verbose
 	}
 
 	tgt_flashwrite_disable();
+    fl_write_protect_lock(map, dev, 0);/* Enable write protection of 49LF040B */
 	return (ok);
 }
 

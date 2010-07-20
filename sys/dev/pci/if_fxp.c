@@ -149,6 +149,7 @@
 #define	RFA_ALIGNMENT_FUDGE	2
 #endif
 
+#define EEPROM_CHECKSUM_REG 0x3F
 int fxp_debug = 0;
 
 /*
@@ -347,6 +348,59 @@ static void fxp_attach __P((struct device *, struct device *, void *));
 static void	fxp_shutdown __P((void *));
 void	fxp_power __P((int, void *));
 
+/******************************************************************************
+ * Calculates the EEPROM checksum and writes it to the EEPROM
+ *
+ * sc - Struct containing variables accessed by shared code
+ *
+ * Sums the first 63 16 bit words of the EEPROM. Subtracts the sum from 0xBABA.
+ * Writes the difference to word offset 63 of the EEPROM.
+ *****************************************************************************/
+#define E100_ERR_EEPROM   1
+#define E100_EEPROM_SUM 0xBABA
+int32_t fxp_update_eeprom_checksum(struct fxp_softc *sc)
+{
+    uint16_t checksum = 0;
+    uint16_t i, eeprom_data;
+    printf("\n e100_update_eeprom_checksum\n");
+    for(i = 0; i < EEPROM_CHECKSUM_REG; i++) {
+        fxp_read_eeprom(sc,  (u_int16_t *)&eeprom_data,i,1);
+        checksum += eeprom_data;
+    }
+    checksum = (uint16_t) E100_EEPROM_SUM - checksum;
+    fxp_write_eeprom(sc, &checksum, EEPROM_CHECKSUM_REG, 1) ;
+        printf("eeprom checksum : 0x%x\n",checksum);
+    return 0;
+}
+/******************************************************************************
+ * Verifies that the EEPROM has a valid checksum
+ *
+ * hw - Struct containing variables accessed by shared code
+ *
+ * Reads the first 64 16 bit words of the EEPROM and sums the values read.
+ * If the the sum of the 64 16 bit words is 0xBABA, the EEPROM's checksum is
+ * valid.
+ *****************************************************************************/
+int32_t fxp_validate_eeprom_checksum(struct fxp_softc *sc)
+{
+    uint16_t checksum = 0;
+    uint16_t i, eeprom_data;
+    printf("\n e100_validate_eeprom_checksum\n");
+    for(i = 0; i < (EEPROM_CHECKSUM_REG + 1); i++) {
+        fxp_read_eeprom(sc,  (u_int16_t *)&eeprom_data,i,1);
+        checksum += eeprom_data;
+    }
+
+    if(checksum == (uint16_t) E100_EEPROM_SUM)
+        {
+                return 0;
+        }
+    else
+        {
+                printf("EEPROM Checksum Invalid\n");
+                return -E100_ERR_EEPROM;
+        }
+}
 /* Compensate for lack of a generic ether_ioctl() */
 static int	fxp_ether_ioctl __P((struct ifnet *,
 				    FXP_IOCTLCMD_TYPE, caddr_t));
@@ -388,6 +442,7 @@ fxp_match(parent, match, aux)
 	return (0);
 }
 
+struct fxp_softc *mynic_fxp;
 static void
 fxp_attach(parent, self, aux)
 	struct device *parent, *self;
@@ -406,6 +461,7 @@ fxp_attach(parent, self, aux)
 	bus_addr_t iobase;
 	bus_size_t iosize;
 #endif
+	mynic_fxp = sc ;
 
 #ifndef __OpenBSD__
 	/*
@@ -634,6 +690,27 @@ fxp_ether_ioctl(ifp, cmd, data)
 			break;
 		}
 		break;
+       case SIOCETHTOOL:
+                {
+                long *p=data;
+                mynic_fxp = sc;
+                cmd_setmac_fxp0(p[0],p[1]);
+                }
+                break;
+       case SIOCRDEEPROM:
+                {
+                long *p=data;
+                mynic_fxp = sc;
+                cmd_reprom_fxp0(p[0],p[1]);
+                }
+                break;
+       case SIOCWREEPROM:
+                {
+                long *p=data;
+                mynic_fxp = sc;
+                cmd_wrprom_fxp0(p[0],p[1]);
+                }
+                break;
 
 	default:
 		return (EINVAL);
@@ -672,27 +749,39 @@ fxp_attach_common(sc, enaddr)
 	 *  Due to MIPS processor cache behaviour we change to uncached
 	 *  addresses to access control structure areas.
 	 */
+#ifdef LS3_HT
+	sc->cbl_base = (void *)PHYS_TO_CACHED(vtophys(sc->cbl_base));
+#else
 	pci_sync_cache(sc->sc_pc, (vm_offset_t)sc->cbl_base,
 				sizeof(struct fxp_cb_tx) * FXP_NTXCB, SYNC_W);
 	sc->cbl_base = (void *)PHYS_TO_UNCACHED(vtophys(sc->cbl_base));
+#endif
 #endif /*__mips__*/
 	sc->fxp_stats = malloc(sizeof(struct fxp_stats), M_DEVBUF, M_NOWAIT);
 	if (sc->fxp_stats == NULL)
 		goto fail;
 	bzero(sc->fxp_stats, sizeof(struct fxp_stats));
 #if defined(__mips__)
+#ifdef LS3_HT
+	sc->fxp_stats = (void *)PHYS_TO_CACHED(vtophys(sc->fxp_stats));
+#else
 	pci_sync_cache(sc->sc_pc, (vm_offset_t)sc->fxp_stats,
 				sizeof(struct fxp_stats), SYNC_W);
 	sc->fxp_stats = (void *)PHYS_TO_UNCACHED(vtophys(sc->fxp_stats));
+#endif
 #endif /*__mips__*/
 	
 	sc->mcsp = malloc(sizeof(struct fxp_cb_mcs), M_DEVBUF, M_NOWAIT);
 	if (sc->mcsp == NULL)
 		goto fail;
 #if defined(__mips__)
+#ifdef LS3_HT
+	sc->mcsp = (void *)PHYS_TO_CACHED(vtophys(sc->mcsp));
+#else
 	pci_sync_cache(sc->sc_pc, (vm_offset_t)sc->mcsp,
 				sizeof(struct fxp_cb_mcs), SYNC_W);
 	sc->mcsp = (void *)PHYS_TO_UNCACHED(vtophys(sc->mcsp));
+#endif
 #endif /*__mips__*/
 
 	/*
@@ -711,11 +800,17 @@ fxp_attach_common(sc, enaddr)
 	/*
 	 * Get info about the primary PHY
 	 */
+        if( fxp_validate_eeprom_checksum(sc) )
+        {
+                printf("The eeprom checksum is unvalidate!\n");
+                cmd_wrprom_fxp0(0,0);
+        }
 #if   defined(GODSONEV1)
 	data=0x4701;
 #else	
 	fxp_read_eeprom(sc, (u_int16_t *)&data, 6, 1);
 #endif
+	fxp_read_eeprom(sc, (u_int16_t *)&data, 6, 1);
 	sc->phy_primary_addr = data & 0xff;
 	sc->phy_primary_device = (data >> 8) & 0x3f;
 	sc->phy_10Mbps_only = data >> 15;
@@ -894,7 +989,7 @@ fxp_read_eeprom(sc, data, offset, words)
 	}
 }
 
-#if 0
+#if 1
 /*
  * Write to the serial EEPROM. This is not intended to be used
  * uncautiosly(?). The main intention is to privide a means to
@@ -1060,8 +1155,11 @@ tbdinit:
 				    htole32(vtophys(mtod(m, vm_offset_t)));
 				txp->tbd[segment].tb_size = htole32(m->m_len);
 #if defined(__mips__)
+#ifdef LS3_HT
+#else
 				pci_sync_cache(sc->sc_pc, mtod(m, vm_offset_t),
 						m->m_len, SYNC_W);
+#endif
 #endif
 				segment++;
 			}
@@ -1185,7 +1283,7 @@ fxp_intr(arg)
 		/*
 		 * Free any finished transmit mbuf chains.
 		 */
-		if (statack & FXP_SCB_STATACK_CXTNO||FXP_SCB_STATACK_CNA) {
+		if (statack & (FXP_SCB_STATACK_CXTNO|FXP_SCB_STATACK_CNA)) {
 			struct fxp_cb_tx *txp;
 
 			for (txp = sc->cbl_first; sc->tx_queued &&
@@ -1220,6 +1318,7 @@ fxp_intr(arg)
 		if (statack & (FXP_SCB_STATACK_FR | FXP_SCB_STATACK_RNR)) {
 			struct mbuf *m;
 			u_int8_t *rfap;
+            int retry = 500;
 rcvloop:
 			//printf("recving a packet\n");
 			m = sc->rfa_headm;
@@ -1231,7 +1330,11 @@ rcvloop:
 			 * cache coherency side effects.
 			 */
 			//printf("rfap=%x\n",rfap);
+#ifdef LS3_HT
+			if (*(u_int16_t *)(PHYS_TO_CACHED(vtophys(rfap)) +
+#else
 			if (*(u_int16_t *)(PHYS_TO_UNCACHED(vtophys(rfap)) +
+#endif
 			    offsetof(struct fxp_rfa, rfa_status)) &
 			    htole16(FXP_RFA_STATUS_C)) {
 #else 
@@ -1276,16 +1379,28 @@ rcvloop:
 #ifdef GODSONEV1
 					{
 						int i;
+#ifdef LS3_HT
+					        if ((*(unsigned char* volatile)PHYS_TO_CACHED(vtophys(m->m_data+0)))!=0xff) {
+#else
 					        if ((*(unsigned char* volatile)PHYS_TO_UNCACHED(vtophys(m->m_data+0)))!=0xff) {
+#endif
 							for(i=0;i<total_len;i+=32){
+#ifdef LS3_HT
+							    m->m_data[i]=*(unsigned char*)PHYS_TO_CACHED(vtophys(m->m_data+i));
+#else
 								m->m_data[i]=*(unsigned char*)PHYS_TO_UNCACHED(vtophys(m->m_data+i));
+#endif
 #ifdef BEBUG_DMA_FLUSH_CACHE
 								printf("%x: %2x\n", (unsigned char*)PHYS_TO_UNCACHED(vtophys(m->m_data+i)),*(unsigned char*)PHYS_TO_UNCACHED(vtophys(m->m_data+i)));
 								printf("%x: %2x\t%x,(%2x)\n", (unsigned int)&m->m_data[i],(unsigned int)(unsigned char)m->m_data[80], (unsigned char*)PHYS_TO_UNCACHED(vtophys(m->m_data+i)),*(unsigned char*)PHYS_TO_UNCACHED(vtophys(m->m_data+i)));
 #endif
 							}
 						}
+#ifdef LS3_HT
+					    m->m_data[total_len-1]=*(unsigned char*)PHYS_TO_CACHED(vtophys(m->m_data+total_len-1));
+#else
 						m->m_data[total_len-1]=*(unsigned char*)PHYS_TO_UNCACHED(vtophys(m->m_data+total_len-1));
+#endif
 							
 					}
 
@@ -1309,8 +1424,18 @@ rcvloop:
 					printf("HELP! fxp recycling rxbuf!\n");
 #endif
 				}
+                retry = -retry;
 				goto rcvloop;
-			}
+			} else {
+                // memory not ready, retry! --smh
+                if (retry > 0) {
+                    retry --;
+                    goto rcvloop;
+                } else if (retry == 0){
+                    //printf("aoao~~ fxp packet lost in memory! statack = %x\n", statack);
+                    //printf("*");
+			    }
+            }
 			if (statack & FXP_SCB_STATACK_RNR) {
 				fxp_scb_wait(sc);
 /* XXXX MIPS: Flush not req. Already done when put on rfa_headm */
@@ -1529,6 +1654,8 @@ fxp_init(xsc)
 	struct fxp_cb_tx *txp;
 	int i, s, prm;
 
+	int *j;
+	int k;
 	s = splimp();
 	/*
 	 * Cancel any pending I/O
@@ -1585,6 +1712,29 @@ fxp_init(xsc)
 	for (i = 0; !(cbp->cb_status & htole16(FXP_CB_STATUS_C)) && i < FXP_MAX_STATUS_READS; ++i)
 		DELAY(2);
 	
+#if 0//cache/uncache debug whd
+	j = &cbp->cb_status;
+	j = (int *)(((int)j & (0x1FFFFFFF)) | 0xa0000000);
+	printf("j = 0x%X, *j = 0x%X\n", j, *j);
+	j = j+ 1;
+	printf("j = 0x%X, *j = 0x%X\n", j, *j);
+	j = j+ 1;
+	printf("j = 0x%X, *j = 0x%X\n", j, *j);
+	j = j+ 1;
+	printf("j = 0x%X, *j = 0x%X\n", j, *j);
+
+	printf("i = %d\n", i);
+
+	j = &cbp->cb_status;
+	j = (int *)(((int)j & (0x1FFFFFFF)) | 0x80000000);
+	printf("j = 0x%X, *j = 0x%X\n", j, *j);
+	j = j+ 1;
+	printf("j = 0x%X, *j = 0x%X\n", j, *j);
+	j = j+ 1;
+	printf("j = 0x%X, *j = 0x%X\n", j, *j);
+	j = j+ 1;
+	printf("j = 0x%X, *j = 0x%X\n", j, *j);
+#endif
 	if (i == FXP_MAX_STATUS_READS) {
 		printf("bus congestion, restarting");
 		return -1;
@@ -1742,11 +1892,18 @@ fxp_add_rfabuf(sc, oldm)
 	 * Sync the buffer so we can access it uncached.
 	 */
 	if (m->m_ext.ext_buf!=NULL) {
+#ifdef LS3_HT
+#else
 		pci_sync_cache(sc->sc_pc, (vm_offset_t)m->m_ext.ext_buf,
 				MCLBYTES, SYNC_R);
+#endif
 	}
 	m->m_data += RFA_ALIGNMENT_FUDGE;
+#ifdef LS3_HT
+	rfap = (u_int8_t *)PHYS_TO_CACHED(vtophys(m->m_data));
+#else
 	rfap = (u_int8_t *)PHYS_TO_UNCACHED(vtophys(m->m_data));
+#endif
 	//printf("rfap=%x\n",rfap);
 #else
 	m->m_data += RFA_ALIGNMENT_FUDGE;
@@ -1782,7 +1939,11 @@ fxp_add_rfabuf(sc, oldm)
 		rfap = sc->rfa_tailm->m_ext.ext_buf + RFA_ALIGNMENT_FUDGE;
 #if defined(__mips__)
 		/* Noone should have touched this, so no flush req. */
+#ifdef LS3_HT
+		rfap = (u_int8_t *)PHYS_TO_CACHED(vtophys(rfap));
+#else
 		rfap = (u_int8_t *)PHYS_TO_UNCACHED(vtophys(rfap));
+#endif
 #endif /* __mips__ */
 		fxp_lwcopy(&v,
 		    (u_int32_t *)(rfap + offsetof(struct fxp_rfa, link_addr)));
@@ -1935,6 +2096,27 @@ fxp_ioctl(ifp, command, data)
 	case SIOCGIFMEDIA:
 		error = ifmedia_ioctl(ifp, ifr, &sc->sc_mii.mii_media, command);
 		break;
+       case SIOCETHTOOL:
+                {
+                long *p=data;
+                mynic_fxp = sc;
+                cmd_setmac_fxp0(p[0],p[1]);
+                }
+                break;
+       case SIOCRDEEPROM:
+                {
+                long *p=data;
+                mynic_fxp = sc;
+                cmd_reprom_fxp0(p[0],p[1]);
+                }
+                break;
+       case SIOCWREEPROM:
+                {
+                long *p=data;
+                mynic_fxp = sc;
+                cmd_wrprom_fxp0(p[0],p[1]);
+                }
+                break;
 
 	default:
 		error = EINVAL;
@@ -2089,3 +2271,190 @@ fxp_mc_setup(sc)
 	return;
 }
 #endif
+static long long e100_read_mac(struct fxp_softc *nic)
+{
+        int i;
+        long long mac_tmp = 0;
+	u_int16_t enaddr[3];
+	unsigned short tmp=0;
+        fxp_read_eeprom(nic, enaddr, 0, 3);
+        for (i = 0; i < 3; i++) {
+		tmp=0;
+		tmp = ((enaddr[i] & 0xff) <<8)|((enaddr[i] & 0xff00)>>8); 
+                mac_tmp <<= 16;
+                mac_tmp |= tmp;
+	}
+        return mac_tmp;
+}
+#include <pmon.h>
+        unsigned short val_fxp = 0;
+int cmd_setmac_fxp0(int ac, char *av[])
+{
+        int i;
+        unsigned short v;
+        struct fxp_softc *nic = mynic_fxp ;
+        if(nic == NULL){
+               printf("epro100 interface not initialized\n");
+                return 0;
+        }
+	if(ac != 2){
+        long long macaddr;
+        u_int8_t *paddr;
+        u_int8_t enaddr[6];
+        macaddr=e100_read_mac(nic);
+        paddr=(uint8_t*)&macaddr;
+        enaddr[0] = paddr[5- 0];
+        enaddr[1] = paddr[5- 1];
+        enaddr[2] = paddr[5- 2];
+        enaddr[3] = paddr[5- 3];
+        enaddr[4] = paddr[5- 4];
+        enaddr[5] = paddr[5- 5];
+                printf("MAC ADDRESS ");
+                for(i=0; i<6; i++){
+                        printf("%02x",enaddr[i]);
+                        if(i==5)
+                                printf("\n");
+                        else
+                                printf(":");
+                }
+                printf("Use \"setmac <mac> \" to set mac address\n");
+                return 0;
+        }
+        for (i = 0; i < 3; i++) {
+                val_fxp = 0;
+                gethex(&v, av[1], 2);
+                val_fxp = v ;
+                av[1]+=3;
+                gethex(&v, av[1], 2);
+                val_fxp = val_fxp | (v << 8);
+                av[1] += 3;
+             fxp_write_eeprom(nic, &val_fxp, i, 1);
+        }
+	fxp_update_eeprom_checksum(nic);
+	printf("Write MAC address successfully!\n");
+        return 0;
+}
+#if 1
+static unsigned long next = 1;
+
+           /* RAND_MAX assumed to be 32767 */
+static int myrand(void) {
+               next = next * 1103515245 + 12345;
+               return((unsigned)(next/65536) % 32768);
+           }
+static void mysrand(unsigned int seed) {
+               next = seed;
+           }
+#endif
+int cmd_wrprom_fxp0(int ac,char **av)
+{
+        int i=0;
+        unsigned long clocks_num=0;
+        unsigned char tmp[4];
+	unsigned short eeprom_data;
+        unsigned short rom[EEPROM_CHECKSUM_REG+1]={
+#if 0			
+				0x0a00, 0x5dc4, 0x9b78, 0x0203, 0x0000, 0x0201, 0x4701, 0x0000,
+				0xa276, 0x9501, 0x5022, 0x5022, 0x5022, 0x007f, 0x0000, 0x0000,
+				0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+				0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+				0x0000, 0x0000, 0x0000, 0x1229, 0x0000, 0x0000, 0x0000, 0x0000,
+				0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+				0x0128, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+				0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x30cc
+#else
+                                0x0200, 0x00B3, 0x0000, 0x0203, 0xFFFF, 0x0201, 0x4701, 0xFFFF,
+                                0xA795, 0x7401, 0x5FA2, 0x0070, 0x8086, 0x007F, 0xFFFF, 0xFFFF,
+                                0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF,
+                                0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF,
+                                0xFFFF, 0xFFFF, 0xFFFF, 0x1209, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF,
+                                0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF,
+                                0x00EC, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF,
+                                0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF
+#endif
+      	             };
+	struct fxp_softc *sc = mynic_fxp;
+        printf("Now beginningwrite whole eprom\n");
+#if 1
+                clocks_num =CPU_GetCOUNT(); // clock();
+                mysrand(clocks_num);
+                for( i = 0; i < 4;i++ )
+                {
+                        tmp[i]=myrand()%256;
+                        printf( " tmp[%d]=0x%2x\n", i,tmp[i]);
+                }
+                eeprom_data =tmp[1] |( tmp[0]<<8);
+                rom[1] = eeprom_data ;
+                printf("eeprom_data [1] = 0x%4x\n",eeprom_data);
+                eeprom_data =tmp[3] |( tmp[2]<<8);
+                rom[2] = eeprom_data;
+                printf("eeprom_data [2] = 0x%4x\n",eeprom_data);
+#endif
+	if(ac>1)
+	{
+	 //offset:data,data
+	 int i;
+	 int offset;
+	 int data;
+	 for(i=1;i<ac;i++)
+	 {
+	 	char *p=av[i];
+		char *nextp;
+	 	int offset=strtoul(p,&nextp,0);
+		while(nextp!=p)
+		{
+		p=++nextp;
+		data=strtoul(p,&nextp,0);
+		if(nextp==p)break;
+		rom[offset++]=data;
+		}
+	 }
+	}
+        for(i=0; i< EEPROM_CHECKSUM_REG; i++)
+        {
+                eeprom_data = rom[i];
+                fxp_write_eeprom(sc, &eeprom_data, i, 1);
+        }
+	printf("Write the whole eeprom OK!\n");
+	fxp_update_eeprom_checksum(sc);
+	return 0;
+}
+int cmd_reprom_fxp0(int ac, char *av)
+{
+        int i;
+        unsigned short eeprom_data;
+	struct fxp_softc *sc = mynic_fxp;
+        printf("dump eprom:\n");
+        for(i=0; i <= EEPROM_CHECKSUM_REG;)
+        {
+		fxp_read_eeprom(sc, &eeprom_data, i, 1);
+                printf("%04x ", eeprom_data);
+                ++i;
+                if( i%8 == 0 )
+                        printf("\n");
+        }
+        return 0;
+}
+static const Optdesc netdmp_opts[] =
+{
+    {"<interface>", "Interface name"},
+    {"<netdmp>", "IP Address"},
+    {0}
+};
+static const Cmd Cmds[] =
+{
+        {"fxp"},
+        {"setmac_fxp", "", NULL,
+                    "Set mac address into E100 eeprom", cmd_setmac_fxp0, 1, 5, 0},
+        {"readrom_fxp", "", NULL,
+                        "dump E100 eprom content", cmd_reprom_fxp0, 1, 2, 0},
+        {"writerom_fxp", "", NULL,
+                        "write E100 eprom content", cmd_wrprom_fxp0, 1, 2, 0},
+        {0, 0}
+};
+static void init_cmd __P((void)) __attribute__ ((constructor));
+static void
+init_cmd()
+{
+        cmdlist_expand(Cmds, 1);
+}

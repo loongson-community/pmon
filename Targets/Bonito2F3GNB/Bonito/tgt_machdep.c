@@ -1299,7 +1299,10 @@ tgt_getmachtype()
 {
 	return(md_cputype());
 }
-
+int pcbver(void)
+{
+	return 0;
+}
 /*
  *  Create stubs if network is not compiled in
  */

@@ -92,7 +92,11 @@ static void outseq(int index, unsigned char val)
 	v = ((int)val << 8) + index;
 	linux_outw(v, 0x3c4);
 }
-
+static unsigned char inseq(unsigned char index)
+{
+	linux_outb(index, 0x3c4);
+	return linux_inb(0x3c5);
+}
 static void outcrtc(int index, unsigned char val)
 {
 	int v;
@@ -105,6 +109,33 @@ static unsigned char incrtc(int index)
 	return linux_inb(0x3d5);
 }
 
+static void outgra(int index, unsigned char val)
+{
+	linux_outb(index, 0x3ce);
+	linux_outb(val, 0x3cf);
+}
+static unsigned char ingra(int index)
+{
+	linux_outb(index, 0x3ce);
+	return linux_inb(0x3cf);
+}
+static void outatt(int index, unsigned char val)
+{
+	linux_inb(0x3da);
+	vgadelay();
+	linux_outb(index, 0x3c0);
+	vgadelay();
+	linux_outb(val, 0x3c0);
+	vgadelay();
+}
+static unsigned char inatt(int index)
+{
+	linux_inb(0x3da);
+	vgadelay();
+	linux_outb(index, 0x3c0);
+	vgadelay();
+	return linux_inb(0x3c1);
+}
 static void setregs(const unsigned char *regs)
 {
 	int i;
@@ -124,23 +155,19 @@ static void setregs(const unsigned char *regs)
 	}
 
 	for (i = 0; i < GRA_C; i++) {
-		linux_outb(i, 0x3ce);
-		linux_outb(regs[GRA + i], 0x3cf);
+		outgra(i, regs[GRA + i]);
 	}
 
 	for (i = 0; i < ATT_C; i++) {
-		linux_inb(0x3da);
-		vgadelay();
-		linux_outb(i, 0x3c0);
-		vgadelay();
-		linux_outb(regs[ATT + i], 0x3c0);
-		vgadelay();
+		outatt(i, regs[ATT + i]);
 	}
 	outseq(0x01, regs[SEQ + 1] & 0xDF);
 	linux_inb(0x3da);
 	vgadelay();
 	linux_outb(0x20, 0x3c0);
 
+	vgadelay();
+	linux_outb(0x67, 0x3c2);
 }
 
 extern struct pci_device *vga_dev;
@@ -165,6 +192,26 @@ int vga_bios_init(void)
 	memset(pInt->private, 0, sizeof(genericInt10Priv));
 	pInt->scrnIndex = 0;	/* screen */
 	base = INTPriv(pInt)->base = malloc(0x100000);
+#ifdef	RS690
+	{
+		pcitag_t vga_bridge = _pci_make_tag(0, 1, 0);
+		unsigned int val;
+		val = _pci_conf_read(vga_bridge, 0x3c);
+		val |= 1 << 19;
+		_pci_conf_write(vga_bridge, 0x3c, val);
+		/* reallocate the prefetchable address */
+#if		0
+		//_pci_conf_write(vga_bridge, 0x20, 0x16101600);
+		//_pci_conf_write(vga_bridge, 0x24, 0x15f01400);
+	printf("\n\nvga_bridge, 0x20=%x,0x24=%x\n\n\n", 
+		_pci_conf_read(vga_bridge, 0x20),_pci_conf_read(vga_bridge, 0x24));
+		_pci_conf_write(vga_bridge, 0x20, 0x12101200);
+		_pci_conf_write(vga_bridge, 0x24, 0x11f01000);
+#else
+		/* using the old one */
+#endif
+	}
+#endif
 
 	/*
 	 * we need to map video RAM MMIO as some chipsets map mmio
@@ -212,13 +259,14 @@ int vga_bios_init(void)
 		romaddress &= (~1);
 		/* enable rom address decode */
 		_pci_conf_write(pdev->pa.pa_tag, 0x30, romaddress | 1);
-#if defined(RADEON7000) || defined(VESAFB)
+#if defined(RADEON7000) || defined(RS690) || defined(VESAFB)
 		{
 			extern unsigned char vgarom[];
 			unsigned char *tmp;
 			romaddress = (unsigned long)vgarom;
 			tmp = (unsigned char *)vgarom;
 			printk("Here after vgarom romaddress:%x\n",tmp[4]);
+			printk(" vgarom romaddress:0x%x\n",romaddress);
 		}
 #endif
 
@@ -226,8 +274,8 @@ int vga_bios_init(void)
 			printk("No rom address assigned,skipped\n");
 			return -1;
 		}
-#if defined(BONITOEL) && !(defined(RADEON7000) || defined(VESAFB))
-		romaddress += 0x10000000;
+#if defined(BONITOEL) && !( defined(RADEON7000) || defined(VESAFB) || defined(RS690) )
+		romaddress |= 0x10000000;
 #endif
 
 		printk("Rom base addr: %lx\n", romaddress);
@@ -264,6 +312,9 @@ int vga_bios_init(void)
 				return -1;
 			}
 
+#ifdef	RS690
+			*((volatile unsigned int *)(0xa0000000 | (romaddress + ppcidata + 4))) = _pci_conf_read(pdev->pa.pa_tag, 0x00);
+#endif
 		} else {
 			printk("No valid bios found,magic=%x%x\n", magic[0],
 			       magic[1]);
@@ -271,8 +322,13 @@ int vga_bios_init(void)
 		}
 
 		pInt->pdev = pdev;
+        #if defined(LOONGSON3A_3AEV)
+        memcpy(vbiosMem, (char *)(0x00000000 | romaddress),
+		       V_BIOS_SIZE);
+        #else
 		memcpy(vbiosMem, (char *)(0xa0000000 | romaddress),
 		       V_BIOS_SIZE);
+        #endif
 		if (PCI_VENDOR(pdev->pa.pa_id) == 0x1002
 		    && PCI_PRODUCT(pdev->pa.pa_id) == 0x4750)
 			MEM_WW(pInt, 0xc015e, 0x4750);
@@ -283,12 +339,13 @@ int vga_bios_init(void)
 	printf("lock vga\n");
 	//LockLegacyVGA(screen, &vga);
 	printf("starting bios emu...\n");
+	M.x86.debug |= /*DEBUG_STEP_F | DEBUG_DECODE_F | DEBUG_TRACE_F | DEBUG_MEM_TRACE_F */ DEBUG_IO_TRACE_F | DEBUG_DECODE_F;
 	//X86EMU_trace_on();
-	printf("ax=%lx,bx=%lx,cx=%lx,dx=%lx\n", pInt->ax, pInt->bx, pInt->cx,
-	       pInt->dx);
+	printf("end of trace ......................................\n");
+	printf("ax=%lx,bx=%lx,cx=%lx,dx=%lx\n", pInt->ax, pInt->bx, pInt->cx, pInt->dx);
 	xf86ExecX86int10(pInt);
 	printf("bios emu done\n");
-#if 1
+#if !defined(LOONGSON3A_3AEV)
 	pInt->num = 0x10;
 	pInt->ax = 0x03;
 	xf86ExecX86int10(pInt);
@@ -296,7 +353,9 @@ int vga_bios_init(void)
 
 	//UnlockLegacyVGA(screen, &vga);
 	setregs(regs);
+#if !defined(LOONGSON3A_3AEV)
 	linux_outb(0x67, 0x3c2);
+#endif
 
 #if NMOD_FRAMEBUFFER == 0
 	printf("setting text mode...\n");
@@ -314,14 +373,22 @@ int vga_bios_init(void)
 		mode = getenv("vesa_mode");
 		if (mode != 0)
 			vesa_mode = strtol(mode, 0, 0);
+		else
+			vesa_mode = 0x00;
 	}
+	for(vesa_mode = 0; vesa_mode <= 24; vesa_mode++){
+		printk("\n\nvesa_mode : 0x%x\n", vesa_mode);
 	pInt->ax = 0x4f02;
 //	pInt->bx = 0x4114;
 	pInt->bx = (USE_LINEAR_FRAMEBUFFER | vesa_mode_head[vesa_mode].mode);
 	printk("ax %x bx %x\n", pInt->ax, pInt->bx);
 	xf86ExecX86int10(pInt);
-	if (pInt->ax != 0x004f)
-		printk("set vesa mode failed,ax=%x\n", pInt->ax);
+		if (pInt->ax != 0x004f){
+			printk("set vesa mode failed,ax=%x mode(0x%x)\n", pInt->ax, pInt->bx);
+		}else{
+			break;
+		}
+	}
 
 #ifdef DEBUG
 	pInt->ax = 0x4f01;	/* get mode information */

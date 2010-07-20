@@ -58,15 +58,20 @@
 #include "pcireg.h"
 
 #if SMI502
-#define PCIVERBOSE 5
-#ifdef PCIVERBOSE
-#include "pcidevs.h"
-#endif
+    #define PCIVERBOSE 5
+    #ifdef PCIVERBOSE
+    #include "pcidevs.h"
+    #endif
+#elif defined(LOONGSON3A_3AEV)
+    #define PCIVERBOSE 10
+    #ifdef PCIVERBOSE
+    #include "pcidevs.h"
+    #endif
 #else
-#define PCIVERBOSE 0
-#ifdef PCIVERBOSE
-#include "pcidevs.h"
-#endif
+    #define PCIVERBOSE 0
+    #ifdef PCIVERBOSE
+    #include "pcidevs.h"
+    #endif
 #endif
 
 #define PCI_ALLOC_UPWARDS
@@ -113,7 +118,11 @@ pcitag_t have_vga = 0;			/* Have tag if VGA board found */
 int monarch_mode = 1;			/* Default as master on the bus! */
 int pci_roots;				/* How many pci roots to init */
 int _pciverbose = _PCIVERBOSE;
+#if defined(LOONGSON3A_3AEV)
+static int _pci_nbus = 0;		/* Allow for zero roots */
+#else
 static int _pci_nbus = 8;		/* Allow for eight roots */
+#endif
 struct tgt_bus_space def_bus_iot;		/* Default bus tags */
 struct tgt_bus_space def_bus_memt;		/* Default bus tags */
 struct pci_device *_pci_head;
@@ -215,6 +224,7 @@ _pci_query_dev_func (struct pci_device *dev, pcitag_t tag, int initialise)
 	 * Calculated Interrupt routing
 	 */
 	_pci_setupIntRouting(pd);
+	tgt_printf("_pci_device_insert,%x,%x,%x,%x\n",dev,bus,device,function);
 
 	/*
 	 *  Shut off device if we initialize from non reset.
@@ -223,7 +233,14 @@ _pci_query_dev_func (struct pci_device *dev, pcitag_t tag, int initialise)
 	stat &= ~(PCI_COMMAND_MASTER_ENABLE |
 		  PCI_COMMAND_IO_ENABLE |
 		  PCI_COMMAND_MEM_ENABLE);
+#ifdef USE_SM502_UART0
+	if(device!=14)
+	{
+#endif
 	_pci_conf_write(tag, PCI_COMMAND_STATUS_REG, stat);
+#ifdef USE_SM502_UART0
+	}
+#endif
 	pd->stat = stat;
     
 	/* do all devices support fast back-to-back */
@@ -317,6 +334,11 @@ _pci_query_dev_func (struct pci_device *dev, pcitag_t tag, int initialise)
 		pd->bridge.secbus->bus = pd->bridge.secbus_num;
 
 		_pci_bus_insert(pd->bridge.secbus);
+		{
+		extern  struct pci_device *_pci_bus[];
+		extern int _max_pci_bus;
+		_pci_bus[_max_pci_bus++] = pd;
+		}
 
 		/* Scan secondary bus of the bridge */
 		_pci_scan_dev(pd, pd->bridge.secbus_num, 0, initialise);
@@ -326,7 +348,9 @@ _pci_query_dev_func (struct pci_device *dev, pcitag_t tag, int initialise)
 		 */
 
 		/* Sum up I/O Space needed */
+        #if !defined(LOONGSON3A_3AEV)
 		for(pm = pd->bridge.iospace; pm != NULL; pm = pm->next) {
+        #endif
 			if(pm_io == NULL) {
 				pm_io = pmalloc(sizeof(struct pci_win));
 				if(pm_io == NULL) {
@@ -337,12 +361,16 @@ _pci_query_dev_func (struct pci_device *dev, pcitag_t tag, int initialise)
 				pm_io->reg = PCI_IOBASEL_1;
 				pm_io->flags = PCI_MAPREG_TYPE_IO;
 			}
+        #if !defined(LOONGSON3A_3AEV)
 			pm_io->size += pm->size;
 		}
+        #endif
 
 		/* Sum up Memory Space needed */
+        #if !defined(LOONGSON3A_3AEV)
 		for(pm = pd->bridge.memspace; pm != NULL; pm = pm->next) {
-			if(pm_mem == NULL) {
+        #endif
+            if(pm_mem == NULL) {
 				pm_mem = pmalloc(sizeof(struct pci_win));
 				if(pm_mem == NULL) {
 					PRINTF ("pci: can't alloc memory for pci memory window\n");
@@ -353,7 +381,16 @@ _pci_query_dev_func (struct pci_device *dev, pcitag_t tag, int initialise)
 				pm_mem->reg = PCI_MEMBASE_1; 
 				pm_mem->flags = PCI_MAPREG_MEM_TYPE_32BIT;
 			}
-			pm_mem->size += pm->size;
+        #if defined(LOONGSON3A_3AEV)
+		/* Sum up I/O Space needed */
+		for(pm = pd->bridge.iospace; pm != NULL; pm = pm->next) {
+			pm_io->size += pm->size;
+		}
+
+		/* Sum up Memory Space needed */
+		for(pm = pd->bridge.memspace; pm != NULL; pm = pm->next) {			
+        #endif
+            pm_mem->size += pm->size;
 		}
         
 		/* Round to minimum granularity requierd for a bridge */
@@ -388,7 +425,11 @@ _pci_query_dev_func (struct pci_device *dev, pcitag_t tag, int initialise)
 			}
 
 			old = _pci_conf_read(tag, reg);
+            #if defined(LOONGSON3A_3AEV)
+			_pci_conf_write(tag, reg, 0xfffffffe);
+            #else
 			_pci_conf_write(tag, reg, 0xffffffff);
+            #endif
 			mask = _pci_conf_read(tag, reg);
 			_pci_conf_write(tag, reg, old);
 #if 0
@@ -494,7 +535,7 @@ _pci_roundup(value, round)
 {
     int result = (value / round) * round;
 
-    if(value % round)
+    if(value % round ||!value)
         result += round;
 
     return(result);
@@ -618,9 +659,14 @@ _pci_allocate_io(dev, size)
 	dev->bridge.secbus->nextpciioaddr = address;
 #else
 	/* allocate downwards, then round to size boundary */
+    #if defined(LOONGSON3A_3AEV)
+	address=(dev->bridge.secbus->minpciioaddr+size-1)& ~(size - 1);
+	address1 = address+size;
+    #else
 	address=dev->bridge.secbus->minpciioaddr;
 	address1 = (dev->bridge.secbus->minpciioaddr + size) & ~(size - 1);
-	if (address1 > dev->bridge.secbus->nextpciioaddr ||
+    #endif
+    if (address1 > dev->bridge.secbus->nextpciioaddr ||
             address1 < dev->bridge.secbus->minpciioaddr) {
 		return -1;
 	}
@@ -648,7 +694,10 @@ _insertsort_window(pm_list, pm)
 	pm->next = pm2;
 }
 
-
+#ifndef PCI_BIGMEM_ADDRESS
+#define PCI_BIGMEM_ADDRESS 0x40000000
+#endif
+static pci_bigmem_address=PCI_BIGMEM_ADDRESS;
 static void
 _pci_setup_windows (struct pci_device *dev)
 {
@@ -662,10 +711,16 @@ _pci_setup_windows (struct pci_device *dev)
         next = pm->next;
         pm->address = _pci_allocate_mem (dev, pm->size);
         if (pm->address == -1) {
+	pci_bigmem_address = (pci_bigmem_address + pm->size-1) & ~(pm->size - 1);
+		    pm->address = pci_bigmem_address;
+	pci_bigmem_address += pm->size;
             _pci_tagprintf (pd->pa.pa_tag, 
                             "not enough PCI mem space (%d requested)\n", 
                             pm->size);
+        #if !defined(LOONGSON3A_3AEV)
             continue;
+        #else
+        #endif
         }
         if (_pciverbose >= 2)
             _pci_tagprintf (pd->pa.pa_tag, "mem @%p, %d bytes\n", pm->address, pm->size);
@@ -676,13 +731,18 @@ _pci_setup_windows (struct pci_device *dev)
 
             pcireg_t memory;
 
-	    printf("bridge class=%x\n",pd->pa.pa_class);
+	    //printf("bridge class=%x\n",pd->pa.pa_class);
 
             pd->bridge.secbus->minpcimemaddr = pm->address;
             pd->bridge.secbus->nextpcimemaddr = pm->address + pm->size;
-
+            #if defined(LOONGSON3A_3AEV)
+            memory = (((pm->address+pm->size-1) >> 16) << 16) | (pm->address >> 16);
+            #else
             memory = (((pm->address+pm->size) >> 16) << 16) | (pm->address >> 16);
+            #endif
             _pci_conf_write(pd->pa.pa_tag, pm->reg, memory);
+			/*set end memory bellow start memory to disable prefectable memory*/
+            _pci_conf_write(pd->pa.pa_tag,PCI_PMBASEL_1,0x00000010);
 
         } else if (pm->reg != PCI_MAPREG_ROM) {
             /* normal memory - expansion rom done below */
@@ -698,10 +758,14 @@ _pci_setup_windows (struct pci_device *dev)
        to keep DEC ethernet chip happy */
     for (pm = dev->bridge.memspace; pm != NULL; pm = next) {
 
-	pd = pm->device;
-    printf("_pci_setup_windows pd:%x pd->pa.pa_class:%x\n",pd,pd->pa.pa_class);
-	if (PCI_ISCLASS(((pd->pa.pa_class)&0xff00ffff), PCI_CLASS_DISPLAY, PCI_SUBCLASS_DISPLAY_VGA)) 
-		vga_dev = pd;
+	    pd = pm->device;
+        //printf("_pci_setup_windows pd:%x pd->pa.pa_class:%x\n",pd,pd->pa.pa_class);
+		if (PCI_ISCLASS(((pd->pa.pa_class)&0xff00ffff),
+			PCI_CLASS_DISPLAY, PCI_SUBCLASS_DISPLAY_VGA)) {
+			vga_dev = pd;
+			pd->disable=0;
+
+		}
 #if 0
 	/*
 	 * If this is the first VGA card we find, set the BIOS rom
@@ -756,13 +820,21 @@ _pci_setup_windows (struct pci_device *dev)
 	    tmp = _pci_conf_read(pd->pa.pa_tag,PCI_IOBASEL_1);
 	    tmp &= 0xffff0000;
 	    tmp |= (pm->address >> 8) & 0xf0;
+        #if defined(LOONGSON3A_3AEV)
+	    tmp |= ((pm->address + pm->size-1) & 0xf000);
+	    _pci_conf_write(pd->pa.pa_tag,PCI_IOBASEL_1, tmp);
+
+	    tmp = (pm->address >> 16) & 0xffff;
+	    tmp |= ((pm->address + pm->size-1) & 0xffff0000);
+	    _pci_conf_write(pd->pa.pa_tag,PCI_IOBASEH_1, tmp);
+        #else
 	    tmp |= ((pm->address + pm->size) & 0xf000);
 	    _pci_conf_write(pd->pa.pa_tag,PCI_IOBASEL_1, tmp);
 
 	    tmp = (pm->address >> 16) & 0xffff;
 	    tmp |= ((pm->address + pm->size) & 0xffff0000);
 	    _pci_conf_write(pd->pa.pa_tag,PCI_IOBASEH_1, tmp);
-
+        #endif
         }
         else {
             _pci_conf_write(pd->pa.pa_tag, pm->reg, pm->address | PCI_MAPREG_TYPE_IO);
@@ -876,9 +948,10 @@ _pci_setup_devices (struct pci_device *parent, int initialise)
 
 	    if (pb->fast_b2b)
 		cmd |= PCI_COMMAND_BACKTOBACK_ENABLE;
+		if(pd->disable)cmd=0;
             _pci_conf_write(tag, PCI_COMMAND_STATUS_REG, cmd);
 
-#if 0
+#if defined(LOONGSON3A_3AEV)
 	    ltim = pd->min_gnt * 33 / 4;
 	    ltim = MIN (MAX (pb->def_ltim, ltim), pb->max_ltim);
 #else

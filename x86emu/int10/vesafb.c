@@ -510,7 +510,11 @@ int  vesafb_init()
 
 	fb_address  =_pci_conf_read(vga_dev->pa.pa_tag,0x10);
 	io_address  =_pci_conf_read(vga_dev->pa.pa_tag,0x18);
-	io_vaddr = io_address | 0xbfd00000;
+    #if defined(LOONGSON3A_3AEV)
+	    io_vaddr = io_address | 0xb8000000;
+    #else
+	    io_vaddr = io_address | 0xbfd00000;
+    #endif
 
 	/* We assume all the framebuffer is required remmapping */
 #ifdef USETLB
@@ -542,12 +546,14 @@ int  vesafb_init()
 	/* TLB map physical address to virtual address in kseg3. Start address is 0xe0000000 */
 	tlbmap(0xe0000000, 0x40000000, video_mem_size);
 #else
+    #if !defined(LOONGSON3A_3AEV)
 	/* 0x10000000 -> 0x40000000 PCI mapping */
 	_pci_conf_write(vga_dev->pa.pa_tag, 0x10, 0x40000000);
 	tmp = BONITO_PCIMAP;
 	BONITO_PCIMAP = 
 	    BONITO_PCIMAP_WIN(0, 0x40000000) |	
 		(tmp & ~BONITO_PCIMAP_PCIMAP_LO0);
+    #endif
 #endif
 
 	printf("VESA FB init complete.\n");

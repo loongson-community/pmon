@@ -62,6 +62,8 @@ select      fat
 #select		mod_x86emu_int10
 select     mod_framebuffer
 select     mod_smi502
+select     mod_zlib
+select     mod_gunzip
 option     SMI502
 option     X1368x768
 option      CONFIG_VIDEO_16BPP

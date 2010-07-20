@@ -105,7 +105,7 @@ int gunzip(void *dst, int dstlen, unsigned char *src, unsigned long *lenp)
 	s.outcb = Z_NULL;
 #endif				/* CONFIG_HW_WATCHDOG */
 
-	r = inflateInit2(&s, -MAX_WBITS);
+	r = new_inflateInit2(&s, -MAX_WBITS);
 	if (r != Z_OK) {
 		printf("Error: inflateInit2() returned %d\n", r);
 		return (-1);
@@ -114,13 +114,13 @@ int gunzip(void *dst, int dstlen, unsigned char *src, unsigned long *lenp)
 	s.avail_in = *lenp - i;
 	s.next_out = dst;
 	s.avail_out = dstlen;
-	r = inflate(&s, Z_FINISH);
+	r = new_inflate(&s, Z_FINISH);
 	if (r != Z_OK && r != Z_STREAM_END) {
 		printf("Error: inflate() returned %d\n", r);
 		return (-1);
 	}
 	*lenp = s.next_out - (unsigned char *)dst;
-	inflateEnd(&s);
+	new_inflateEnd(&s);
 
 	return (0);
 }

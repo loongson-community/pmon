@@ -17,13 +17,18 @@ attach	de at pci
 file	sys/dev/pci/if_de.c		de
 
 # Ethernet driver for fxp-based boards
-device	fxp: ether, ifnet
+device	fxp: ether, ifnet, ifmedia, mii
 attach	fxp at pci
 file	sys/dev/pci/if_fxp.c		fxp
+#file	sys/dev/pci/e100.c		fxp & e100
 
 device  rtl: ether, ifnet
 attach  rtl at pci
 file    sys/dev/pci/rtl8139.c		rtl needs-flag
+# Ethernet driver for fxp-based boards
+device em: ether, ifnet, ifmedia, mii
+attach em at pci
+file   sys/dev/pci/e1000e/if_em.c          em
 
 # Ethernet driver for wx-based boards
 device	wx: ether, ifnet, ifmedia, mii, mii_phy
@@ -92,3 +97,44 @@ attach ohci at pci
 device  rtk: ether, ifnet
 attach  rtk at pci
 file    sys/dev/pci/rtl8169.c         rtk
+device  ste: ether, ifnet
+attach  ste at pci
+file    sys/dev/pci/sundance.c         ste
+
+device  ipg: ether, ifnet
+attach  ipg at pci
+file    sys/dev/pci/ipg.c         ipg
+# PCI-SATA driver added by zgj
+device  atp {[channel = -1]}: wdc_base, ata, atapi, ide
+attach  atp at pci
+file    sys/dev/pci/atpsata.c           atp needs-flag
+
+device  satadisk
+attach  satadisk at atp
+file    sys/dev/pci/sata.c           satadisk
+
+#Support for rs690e and sb600
+file    sys/dev/pci/rs690/nb_por.c          pci&rs690
+file    sys/dev/pci/rs690/nb_pre.c          pci&rs690
+file    sys/dev/pci/rs690/nb_post.c         pci&rs690
+file    sys/dev/pci/rs690/pcie_pre.c        pci&rs690
+file    sys/dev/pci/rs690/pcie_post.c       pci&rs690
+file    sys/dev/pci/rs690/gfx_pre.c         pci&rs690
+file    sys/dev/pci/rs690/gfx_post.c        pci&rs690
+file    sys/dev/pci/rs690/ht.c              pci&rs690
+file    sys/dev/pci/rs690/rs690_dispatch.c  pci&rs690
+file    sys/dev/pci/rs690/rs690_struct.c    pci&rs690
+
+file    sys/dev/pci/sb600/sb_por.c          pci&sb600
+file    sys/dev/pci/sb600/sb_misc.c         pci&sb600
+file    sys/dev/pci/sb600/sb_pre.c          pci&sb600
+file    sys/dev/pci/sb600/sb_post.c         pci&sb600
+file    sys/dev/pci/sb600/sb_last.c         pci&sb600
+file    sys/dev/pci/sb600/sb600_struct.c    pci&sb600
+file    sys/dev/pci/sb600/sb_sata.c         pci&sb600
+file    sys/dev/pci/sb600/sb_ac97.c         pci&sb600
+file    sys/dev/pci/sb600/sb_azalia.c       pci&sb600
+file    sys/dev/pci/sb600/sb_hwm.c          pci&sb600
+file    sys/dev/pci/sb600/sb_ide.c          pci&sb600
+file    sys/dev/pci/sb600/sb_usb.c          pci&sb600
+file    sys/dev/pci/sb600/sb_smi.c          pci&sb600

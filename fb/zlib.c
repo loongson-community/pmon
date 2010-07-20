@@ -269,7 +269,7 @@ struct internal_state {
 
 };
 
-int inflateReset(z)
+int new_inflateReset(z)
 z_stream *z;
 {
 	uLong c;
@@ -284,7 +284,7 @@ z_stream *z;
 	return Z_OK;
 }
 
-int inflateEnd(z)
+int new_inflateEnd(z)
 z_stream *z;
 {
 	uLong c;
@@ -299,7 +299,7 @@ z_stream *z;
 	return Z_OK;
 }
 
-int inflateInit2(z, w)
+int new_inflateInit2(z, w)
 z_stream *z;
 int w;
 {
@@ -322,35 +322,35 @@ int w;
 
 	/* set window size */
 	if (w < 8 || w > 15) {
-		inflateEnd(z);
+		new_inflateEnd(z);
 		return Z_STREAM_ERROR;
 	}
 	z->state->wbits = (uInt) w;
 
 	/* create inflate_blocks state */
 	if ((z->state->blocks =
-	     inflate_blocks_new(z, z->state->nowrap ? Z_NULL : adler32, 1 << w))
+	     inflate_blocks_new(z, z->state->nowrap ? Z_NULL : new_adler32, 1 << w))
 	    == Z_NULL) {
-		inflateEnd(z);
+		new_inflateEnd(z);
 		return Z_MEM_ERROR;
 	}
 	Trace((stderr, "inflate: allocated\n"));
 
 	/* reset state */
-	inflateReset(z);
+	new_inflateReset(z);
 	return Z_OK;
 }
 
-int inflateInit(z)
+int new_inflateInit(z)
 z_stream *z;
 {
-	return inflateInit2(z, DEF_WBITS);
+	return new_inflateInit2(z, DEF_WBITS);
 }
 
 #define NEEDBYTE {if(z->avail_in==0)goto empty;r=Z_OK;}
 #define NEXTBYTE (z->avail_in--,z->total_in++,*z->next_in++)
 
-int inflate(z, f)
+int new_inflate(z, f)
 z_stream *z;
 int f;
 {
@@ -461,7 +461,7 @@ int f;
  * will have been updated if need be.
  */
 
-int inflateIncomp(z)
+int new_inflateIncomp(z)
 z_stream *z;
 {
 	if (z->state->mode != BLOCKS)
@@ -469,7 +469,7 @@ z_stream *z;
 	return inflate_addhistory(z->state->blocks, z);
 }
 
-int inflateSync(z)
+int new_inflateSync(z)
 z_stream *z;
 {
 	uInt n;			/* number of bytes to look at */
@@ -511,7 +511,7 @@ z_stream *z;
 		return Z_DATA_ERROR;
 	r = z->total_in;
 	w = z->total_out;
-	inflateReset(z);
+	new_inflateReset(z);
 	z->total_in = r;
 	z->total_out = w;
 	z->state->mode = BLOCKS;
@@ -2044,7 +2044,7 @@ char *z_errmsg[] = {
 #define DO16(buf) DO8(buf); DO8(buf);
 
 /* ========================================================================= */
-uLong adler32(adler, buf, len)
+uLong new_adler32(adler, buf, len)
 uLong adler;
 Bytef *buf;
 uInt len;

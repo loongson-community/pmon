@@ -30,6 +30,7 @@
  * SUCH DAMAGE.
  *
  */
+#undef FLOATINGPT
 #include <stdio.h>
 #include <termio.h>
 #ifdef _KERNEL

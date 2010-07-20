@@ -1,3 +1,22 @@
+#ifdef LS3_HT
+#ifdef LS3_MCP68
+#include "../../Targets/Bonito3amcp68/include/bonito.h"
+#endif
+
+#ifdef LS3_DAWNING
+#include "../../Targets/Bonito3adawning/include/bonito.h"
+#endif
+
+#ifdef LS3_SIS
+#include "../../Targets/Bonito3asis/include/bonito.h"
+#endif
+
+#ifdef LS3_EV
+#include "../../Targets/Bonito3aev/include/bonito.h"
+#endif
+
+#endif
+
 #ifndef __LINUXIO_H_
 #define __LINUXIO_H_
 
@@ -15,13 +34,17 @@
 #endif
 
 #ifndef	BONITOEL
-#ifdef CONFIG_PCI0_GAINT_MEM
-#define mips_io_port_base PTR_PAD_IO(0xbea00000)
-#else
-#define mips_io_port_base PTR_PAD_IO(0xb0100000)
-#endif
+    #ifdef CONFIG_PCI0_GAINT_MEM
+    #define mips_io_port_base PTR_PAD_IO(0xbea00000)
+    #else
+    #define mips_io_port_base PTR_PAD_IO(0xb0100000)
+    #endif
 #else 
-#define mips_io_port_base PTR_PAD_IO(0xbfd00000) 
+    #ifdef LS3_HT
+    #define mips_io_port_base BONITO_PCIIO_BASE_VA
+    #else
+    #define mips_io_port_base PTR_PAD_IO(0xbfd00000)
+    #endif
 #endif
 #define __SLOW_DOWN_IO \
 	__asm__ __volatile__( \
@@ -80,9 +103,14 @@ static inline unsigned char linux_inb_p(unsigned long port)
 
 
 
-
+#ifdef LS3_HT
+#define readb(addr)             (*(volatile unsigned char *)(0x00000000|(long)(addr)))
+#define readw(addr)             ((*(volatile unsigned short *)(0x00000000|(long)(addr))))
+#define readl(addr)             ((*(volatile unsigned int *)(0x00000000|(long)(addr))))
+#else
 #define readb(addr)             (*(volatile unsigned char *)(PTR_PAD_IO(0xa0000000)|(long)(addr)))
 #define readw(addr)             ((*(volatile unsigned short *)(PTR_PAD_IO(0xa0000000)|(long)(addr))))
 #define readl(addr)             ((*(volatile unsigned int *)(PTR_PAD_IO(0xa0000000)|(long)(addr))))
+#endif
 
 #endif /* __LINUXIO_H_ */

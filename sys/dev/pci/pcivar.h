@@ -244,6 +244,7 @@ struct pci_device {
 	unsigned char		min_gnt;
 	unsigned char		max_lat;
 	unsigned char		int_line;
+	unsigned char		disable;
 	pcireg_t		stat;
 	u_int8_t		intr_routing[4];
 	struct pci_bridge  	bridge;

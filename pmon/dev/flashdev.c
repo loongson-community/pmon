@@ -62,7 +62,36 @@ int secsize_am29LV008bt[] =
 	32 * __KB, 8 * __KB, 8 * __KB, 16 * __KB, 0
 };
 #endif				/* NMOD_FLASH_AMD */
-
+#if NMOD_FLASH_ST > 0
+   static const int secsize_M29W640F16bt[] = 
+    {4*__KB, 4*__KB,4*__KB,4*__KB,4*__KB,
+    4*__KB,4*__KB,4*__KB,32*__KB,32*__KB,
+    32*__KB,32*__KB,32*__KB,32*__KB,32*__KB,
+    32*__KB,32*__KB,32*__KB,32*__KB,32*__KB,
+    32*__KB,32*__KB,32*__KB,32*__KB,32*__KB,
+    32*__KB,32*__KB,32*__KB,32*__KB,32*__KB,
+    32*__KB,32*__KB,32*__KB,32*__KB,32*__KB,
+    32*__KB,32*__KB,32*__KB,32*__KB,32*__KB,
+    32*__KB,32*__KB,32*__KB,32*__KB,32*__KB,
+    32*__KB,32*__KB,32*__KB,32*__KB,32*__KB,
+    32*__KB,32*__KB,32*__KB,32*__KB,32*__KB,
+    32*__KB,32*__KB,32*__KB,32*__KB,32*__KB,
+    32*__KB,32*__KB,32*__KB,32*__KB,32*__KB,
+    32*__KB,32*__KB,32*__KB,32*__KB,32*__KB,
+    32*__KB,32*__KB,32*__KB,32*__KB,32*__KB,
+    32*__KB,32*__KB,32*__KB,32*__KB,32*__KB,
+    32*__KB,32*__KB,32*__KB,32*__KB,32*__KB,
+    32*__KB,32*__KB,32*__KB,32*__KB,32*__KB,
+    32*__KB,32*__KB,32*__KB,32*__KB,32*__KB,
+    32*__KB,32*__KB,32*__KB,32*__KB,32*__KB,
+    32*__KB,32*__KB,32*__KB,32*__KB,32*__KB,
+    32*__KB,32*__KB,32*__KB,32*__KB,32*__KB,
+    32*__KB,32*__KB,32*__KB,32*__KB,32*__KB,
+    32*__KB,32*__KB,32*__KB,32*__KB,32*__KB,
+    32*__KB,32*__KB,32*__KB,32*__KB,32*__KB,
+    32*__KB,32*__KB,32*__KB,32*__KB,32*__KB,
+    32*__KB,32*__KB,32*__KB,32*__KB,32*__KB};
+#endif
 /*
  *  Flash devices known by this code.
  */
@@ -76,6 +105,10 @@ struct fl_device fl_known_dev[] = {
 	 4096 * __KB, 64 * __KB, NULL, &fl_func_amd},
 	{"Am29LV040", 0x01, 0x4f, FL_PROTO_AMD, FL_CAP_DE,
 	 512 * __KB, 64 * __KB, NULL, &fl_func_amd},
+	{ "S29GL128",	0x01, 0x7e, FL_PROTO_AMD, FL_CAP_DE,
+	16384*__KB, 128*__KB,  NULL, &fl_func_amd },
+	{ "Am29LV160",	0x01, 0xc4, FL_PROTO_AMD, FL_CAP_DE,
+	2048*__KB, 64*__KB,  NULL, &fl_func_amd },
 	{"Am29LV017", 0x01, 0xc8, FL_PROTO_AMD, FL_CAP_DE,
 	 2048 * __KB, 64 * __KB, NULL, &fl_func_amd},
 	{"Am29LV065", 0x01, 0xc8, FL_PROTO_AMD, FL_CAP_DE,
@@ -98,6 +131,10 @@ struct fl_device fl_known_dev[] = {
     /* hw, should be compatible */
     {"EN29LV040A", 0x1C, 0x4F, FL_PROTO_AMD, FL_CAP_DE,
      512 * __KB, 64 * __KB, NULL, &fl_func_amd},
+	{"MX29LV040", 0xC2, 0x4F, FL_PROTO_SST, FL_CAP_DE,
+	 512 * __KB, 64 * __KB, NULL, &fl_func_sst},
+    { "Am29LV160",  0x01, 0x49, FL_PROTO_AMD, FL_CAP_DE,  
+      2048*__KB, 8*__KB,  NULL, &fl_func_amd },  //hwm     
 #endif				/* NMOD_FLASH_AMD */
 #if NMOD_FLASH_INTEL > 0
 	{"i28F016SA", 0x89, 0xa0, FL_PROTO_INT, FL_CAP_A7,
@@ -128,6 +165,16 @@ struct fl_device fl_known_dev[] = {
 	 4096 * __KB, 64 * __KB, NULL, &fl_func_sst},
 	{"SST39F040", 0x0bf, 0xd7, FL_PROTO_SST, FL_CAP_DE,
 	 512 * __KB, 4 * __KB, NULL, &fl_func_sst},
+    { "SST39VF6401B",	0xbf, 0x236d, FL_PROTO_SST, FL_CAP_DE,
+      8192*__KB, 64*__KB,  NULL, &fl_func_sst },   //hwm
+	{ "SST39SF040",	0x0bf, 0xb7, FL_PROTO_SST, FL_CAP_DE,
+	512*__KB, 4*__KB,  NULL, &fl_func_sst }, /*sector size must be correct*/
+	{ "SST49LF040",	0xbf, 0x51, FL_PROTO_SST, FL_CAP_DE,
+	512*__KB, 4*__KB,  NULL, &fl_func_sst },//whd
+	{ "SST49LF040B",	0xbf, 0x50, FL_PROTO_SST, FL_CAP_DE,
+	512*__KB, 4*__KB,  NULL, &fl_func_sst },//whd
+	{ "SST49LF080A",	0xbf, 0x5b, FL_PROTO_SST, FL_CAP_DE,
+	1024*__KB, 4*__KB,  NULL, &fl_func_sst },//whd
 	{"Am29LV017", 0x01, 0xc8, FL_PROTO_SST, FL_CAP_DE,
 	 2048 * __KB, 64 * __KB, NULL, &fl_func_sst},
 	{"Am29LV065", 0x01, 0xc8, FL_PROTO_SST, FL_CAP_DE,
@@ -138,10 +185,16 @@ struct fl_device fl_known_dev[] = {
 	 512 * __KB, 64 * __KB, NULL, &fl_func_sst},
 #endif
 #if NMOD_FLASH_WINBOND > 0
+	{ "W29C040",	0xda, 0x46, FL_PROTO_WINBOND, FL_CAP_DE,
+	512*__KB, 256,  NULL, &fl_func_winbond }, /*sector size must be correct*/
 	{"WINBOND39LV040A", 0xda, 0xd6, FL_PROTO_WINBOND, FL_CAP_DE,
 	 512 * __KB, 64 * __KB, NULL, &fl_func_winbond},
 	{"WINBOND39LV040", 0xda, 0xb6, FL_PROTO_WINBOND, FL_CAP_DE,
 	 512 * __KB, 64 * __KB, NULL, &fl_func_winbond},
+#endif
+#if NMOD_FLASH_ST > 0
+	{ "M29W640F",	0x20, 0x22ED, FL_PROTO_ST, FL_CAP_DE,
+	8192*__KB, 4*__KB,secsize_M29W640F16bt, &fl_func_st }, /*sector size must be correct*/
 #endif
 	{0},
 };

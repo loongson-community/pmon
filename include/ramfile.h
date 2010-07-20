@@ -46,6 +46,7 @@ typedef struct Ramfile {
 #define RAMFILE_STATIC  0x0000
 #define RAMFILE_DYNAMIC 0x0001
 #define RAMFILE_RDONLY  0x0002
+#define RAMFILE_CPHY 0x0004
 	int flags;
 	LIST_ENTRY(Ramfile)	i_next;
 } Ramfile;

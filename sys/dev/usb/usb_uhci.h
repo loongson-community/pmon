@@ -1,4 +1,5 @@
 /*
+ *
  * (C) Copyright 2001
  * Denis Peter, MPL AG Switzerland
  *
@@ -190,9 +191,11 @@ struct virt_root_hub {
 	int c_p_r[8];             /* C_PORT_RESET */
 };
 
+#define USB_MAX_TEMP_TD      512  /* number of temporary TDs for bulk and control transfers */
+#define USB_MAX_TEMP_INT_TD  32   /* number of temporary TDs for Interrupt transfers */
 struct uhci {
 	struct usb_hc hc;	//for all host controller's common object
-	struct pci_attach_args *pa;
+	struct pci_attach_args pa;
     void *sc_ih;            /* interrupt handler cookie */
 	bus_space_tag_t sc_st;		/* bus space tag */
 	bus_space_handle_t sc_sh;	/* bus space handle */
@@ -214,7 +217,30 @@ struct uhci {
 	//struct uhci_qh *skelqh[UHCI_NUM_SKELQH];	/* Skeleton QH's */
 
 	int is_suspended;
+uhci_td_t td_int0;
+uhci_td_t td_int[8];/* Interrupt Transfer descriptors */
+uhci_qh_t qh_cntrl;/* control Queue Head */
+uhci_qh_t qh_bulk;/*  bulk Queue Head */
+uhci_qh_t qh_end;/* end Queue Head */
+uhci_td_t td_last; /* last TD (linked with end chain) */
+unsigned char hc_setup[32];
+unsigned char control_buf0[256];
+uhci_td_t tmp_td[USB_MAX_TEMP_TD];/* temporary bulk/control td's  */
+uhci_td_t tmp_int_td[USB_MAX_TEMP_INT_TD]; /* temporary interrupt td's  */
+unsigned long framelist[1024]; /* frame list */
 };
 typedef struct uhci uhci_t;
+#define td_int uhci->td_int
+#define td_int0 uhci->td_int0
+#define qh_cntrl uhci->qh_cntrl
+#define qh_bulk uhci->qh_bulk
+#define qh_end uhci->qh_end
+#define td_last uhci->td_last
+#define hc_setup uhci->hc_setup
+#define  tmp_td uhci->tmp_td
+#define tmp_int_td uhci->tmp_int_td
+#define framelist uhci->framelist
+#define usb_base_addr uhci->io_addr
+#define control_buf0 uhci->control_buf0
 
 #endif /* _USB_UHCI_H_ */

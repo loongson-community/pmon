@@ -70,12 +70,15 @@ void *aux;
 	return (1);
 }
 
-static void mainbus_attach(parent, self, aux)
+extern int _max_pci_bus;
+static void
+mainbus_attach(parent, self, aux)
 struct device *parent, *self;
 void *aux;
 {
 	struct mainbus_softc *sc = (struct mainbus_softc *)self;
 	struct confargs nca;
+	int i;
 
 	printf("\n");
 	sc->sc_bus.bh_dv = (struct device *)sc;
@@ -90,19 +93,30 @@ void *aux;
 	config_found(self, &nca, mbprint);
 
 	nca.ca_node = NULL;
+    #if defined(LOONGSON3A_3AEV)
+    nca.ca_name = "fd";
+    #else
 	nca.ca_name = "pcibr";
+    #endif
 	nca.ca_bus = &sc->sc_bus;
 	config_found(self, &nca, mbprint);
 
 	nca.ca_node = NULL;
+    #if defined(LOONGSON3A_3AEV)
+    nca.ca_name = "loopdev";
+    #else
 	nca.ca_name = "pcibr";
+    #endif
 	nca.ca_bus = &sc->sc_bus;
 	config_found(self, &nca, mbprint);
 
+	for(i=0;i<_max_pci_bus;i++)
+	{
 	nca.ca_node = NULL;
 	nca.ca_name = "pcibr";
 	nca.ca_bus = &sc->sc_bus;
 	config_found(self, &nca, mbprint);
+	}
 }
 
 static int mbprint(aux, pnp)

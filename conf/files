@@ -118,6 +118,10 @@ pseudo-device crypto: ifnet
 
 
 # Tweak!
+file pmon/cmds/lwdhcp/options.c cmd_lwdhcp needs-flag
+file pmon/cmds/lwdhcp/packet.c  cmd_lwdhcp needs-flag
+file pmon/cmds/lwdhcp/lwdhcp.c  cmd_lwdhcp needs-flag
+file pmon/cmds/cmd_bootp.c  cmd_bootp 
 file net/if_bridge.c			bridge			needs-count
 file net/bpf.c				bpfilter		needs-count
 
@@ -141,6 +145,7 @@ file sys/netinet/ip_id.c		inet
 file sys/netinet/ip_input.c		inet
 file sys/netinet/ip_output.c		inet
 file sys/netinet/raw_ip.c		inet
+file sys/netinet/raw_ether.c	raw_ether needs-flag
 file sys/netinet/udp_usrreq.c		inet
 
 file sys/netinet/tcp_debug.c		tcp	needs-flag
@@ -174,7 +179,16 @@ file pmon/cmds/gui.c			cmd_gui & mod_framebuffer
 file pmon/cmds/boot.c			cmd_boot
 file pmon/cmds/call.c			cmd_call
 file pmon/cmds/mycmd.c                  cmd_mycmd
+file pmon/cmds/mycmd_debug.c		cmd_mycmd_debug
+file pmon/cmds/xmodem.c			cmd_xmodem & !cmd_xyzmodem
+file pmon/cmds/xyzModem.c		cmd_xyzmodem
+file pmon/cmds/crc16.c			cmd_xyzmodem
+file pmon/cmds/sysinfo.c		cmd_setup & mod_display
 file pmon/cmds/newmt/newmt.c   		cmd_newmt
+file pmon/cmds/setup.c			cmd_setup & mod_display
+file pmon/cmds/display.c		mod_display needs-flag
+#file pmon/cmds/test/test.c			cmd_test & mod_display
+file pmon/cmds/test/test_fire.c			cmd_testfire & mod_display
 file pmon/cmds/test/test.c		cmd_test & mod_framebuffer
 file pmon/cmds/cmdtable.c 
 file pmon/cmds/debuggercmds.c		mod_debugger
@@ -184,6 +198,7 @@ file pmon/cmds/hist.c			cmd_hist	needs-flag
 file pmon/cmds/ifaddr.c			(inet & cmd_ifaddr)
 #file pmon/cmds/oload.c			(mod_load | mod_fastload | mod_elfload | mod_s3load) needs-flag
 file pmon/cmds/load.c
+file pmon/cmds/tftpd.c			tftpd
 file pmon/cmds/cmd_grub.c
 file pmon/cmds/memcmds.c		cmd_mem
 file pmon/cmds/memtst.c			cmd_mt
@@ -210,6 +225,8 @@ file pmon/cmds/cat.c
 file pmon/cmds/cmd_i2c.c        cmd_i2c
 file pmon/cmds/cmd_gpio.c        cmd_gpio
 #file pmon/cmds/cmd_tem.c      cmd_tem
+#file pmon/cmds/cmd_main/cmd_main.c cmd_main
+#file pmon/cmds/cmd_main/window.c cmd_main
 file pmon/cmds/cmd_main/cmd_main.c   cmd_bios
 file pmon/cmds/cmd_main/window.c     cmd_bios
 
@@ -230,14 +247,17 @@ file pmon/common/env.c
 #
 # File systems
 #
-file pmon/fs/ramfile.c			ramfiles
+#file pmon/fs/ramfile.c			ramfiles  needs-flag
+file pmon/fs/ramfile.c			ramfiles  needs-flag
 file pmon/fs/termio.c
 file pmon/fs/socket.c			inet
 file pmon/fs/gzip.c			gzip		needs-flag
 file pmon/fs/iso9660fs.c		iso9660		needs-flag
 file pmon/fs/devfs.c			(scsi | ide | usbbus)
 file pmon/fs/diskfs.c			(scsi | ide | usbbus)
+#file pmon/fs/fatfs.c			fatfs
 file pmon/fs/ext2fs.c			ext2
+file pmon/fs/yaffsfs.c			yaffsfs
 file pmon/fs/fatfs.c            fat
 file pmon/fs/dev_part.c
 file pmon/loaders/loadfn.c		(mod_s3load | mod_fastload)
@@ -246,8 +266,10 @@ file pmon/loaders/zmodem/crctab.c	(pmon_zmodem_rz | pmon_zmodem_tz)
 file pmon/loaders/zmodem/zmrz.c		pmon_zmodem_rz
 file pmon/loaders/exec.c
 file pmon/loaders/exec_bin.c
-file pmon/loaders/exec_elf.c		
+file pmon/loaders/exec_elf.c
+#file pmon/loaders/exec_elf64.c	!elf32only needs-flag		
 file pmon/loaders/exec_elf64.c
+file pmon/loaders/exec_wince.c   mod_wince
 file pmon/loaders/exec_srec.c		mod_s3load needs-flag
 file pmon/loaders/exec_txt.c
 
@@ -256,10 +278,13 @@ file pmon/netio/bootp.c			inet
 file pmon/netio/ifconfig.c		inet
 file pmon/netio/ping.c			inet
 file pmon/netio/tftplib.c		inet
+file pmon/netio/nfs.c           inet & nfs
+file pmon/netio/httplib.c		inet & http & tcp
 #file pmon/netio/udptty.c		inet
 
-file x86emu/int10/radeon_init.c		
-
+file x86emu/int10/radeon_init.c radeon7000
+file x86emu/int10/rs690_struct.c       mod_x86emu_int10    needs-flag
+#file x86emu/int10/vesafb.c     mod_vesa & mod_framebuffer      needs-flag
 ##int10
 file x86emu/int10/x86emu/src/x86emu/debug.c		mod_x86emu_int10	needs-flag
 file x86emu/int10/x86emu/src/x86emu/decode.c		mod_x86emu_int10	needs-flag
@@ -293,8 +318,8 @@ file x86emu/int10/vesafb.c				mod_vesa & mod_framebuffer		needs-flag
 #file fb/fb_text_16.c                    mod_framebuffer         needs-flag
 #file fb/display_main.c                  mod_framebuffer         needs-flag
 file fb/cfb_console.c                  mod_framebuffer         needs-flag
-file fb/gunzip.c			mod_framebuffer		needs-flag
-file fb/zlib.c			mod_framebuffer		needs-flag
+file fb/gunzip.c			mod_gunzip		needs-flag
+file fb/zlib.c			mod_zlib		needs-flag
 
 file pmon/dev/kbd.c			mod_vgacon	needs-flag
 file pmon/dev/vgacon.c			mod_vgacon	needs-flag
@@ -309,6 +334,8 @@ file pmon/dev/flash.c			(flash | mod_flash_amd | mod_flash_intel | mod_flash_sst
 file pmon/dev/flashdev.c		(flash | mod_flash_amd | mod_flash_intel | mod_flash_sst | mod_flash_winbond)
 file pmon/dev/flash_amd.c		mod_flash_amd
 file pmon/dev/flash_int.c		mod_flash_intel
+#file pmon/dev/flash_sst.c		mod_flash_sst
+#file pmon/dev/flash_st.c		mod_flash_st
 file pmon/dev/flash_sst.c		mod_flash_intel
 file pmon/dev/flash_winbond.c   	mod_flash_winbond 
 file pmon/dev/fl_nvram.c		flash_based_nvram
@@ -329,13 +356,28 @@ file pmon/arch/mips/mips_machdep.c	mips
 file pmon/arch/mips/disassemble.c	(mips & mod_debugger)
 file pmon/arch/mips/mips.S		mips
 file pmon/arch/mips/cache.S		mips
+#file pmon/arch/mips/cache.S		(mips & !godson2c)
+file pmon/arch/mips/cache.2c.S		(mips & godson2c)
 
 file pmon/arch/i386/machdep.c		i386
 file pmon/arch/i386/mips_machdep.c	i386
 file pmon/arch/i386/disassemble.c	(i386 & mod_debugger)
 #file pmon/arch/i386/i386.S		i386
 file pmon/arch/i386/i386_pci.c		i386
-
+file pmon/cmds/gzip/zlib_deflate/deflate.c  select_gzip
+file pmon/cmds/gzip/zlib_deflate/deflate_syms.c    select_gzip
+file pmon/cmds/gzip/zlib_deflate/deftree.c  select_gzip
+file pmon/cmds/gzip/zlib_inflate/infblock.c    select_gzip
+file pmon/cmds/gzip/zlib_inflate/infcodes.c    select_gzip
+file pmon/cmds/gzip/zlib_inflate/inffast.c    select_gzip
+file pmon/cmds/gzip/zlib_inflate/inflate.c    select_gzip
+file pmon/cmds/gzip/zlib_inflate/inflate_syms.c    select_gzip
+file pmon/cmds/gzip/zlib_inflate/inftrees.c    select_gzip
+file pmon/cmds/gzip/zlib_inflate/infutil.c  select_gzip
+file pmon/cmds/gzip/gzip.c  select_gzip
+device fd
+attach fd at mainbus
+file    sys/dev/fd/fd.c fd needs-flag
 define usbbus {} 
 device usb: disk 
 attach usb at usbbus
@@ -349,7 +391,7 @@ file sys/dev/usb/cmd_usb.c		  mod_usb & mod_usb_storage
 
 file sys/dev/usb/usb_uhci.c		  mod_usb_uhci needs-flag
 file fb/sis/sis_main.c mod_sisfb needs-flag
-
+file sys/dev/pci/smi712.c		  mod_smi712 needs-flag
 
 file sys/dev/pci/sm502.c          mod_smi502 needs-flag
 file sys/dev/ic/ATtiny44.c     mod_attiny44  
@@ -374,7 +416,6 @@ file sys/dev/ata/libata_sff.c   mod_sata
 file Targets/Bonito2FAIO/Bonito/rtc_iic.c  mod_sd2068
 
 
-file    sys/dev/fd/fd.c fd needs-flag
 
 #add by yuli
 #Sata 
@@ -384,3 +425,26 @@ file    sys/dev/fd/fd.c fd needs-flag
 
 #file sys/dev/pci/sata.c
 #file sys/dev/pci/sata_sil3114.c
+
+file sys/dev/nand/nand_base.c	  nand
+file sys/dev/nand/nand_ecc.c      nand
+file sys/dev/nand/nand_ids.c      nand
+file sys/dev/nand/nand_bbt.c      nand
+file sys/dev/nand/fcr-nand.c      nand
+file pmon/fs/mtd.c		  nand
+device loopdev
+attach loopdev at mainbus
+file    pmon/dev/loopdev.c loopdev needs-flag
+
+#boot menu 
+#file pmon/loaders/exec_txt.c 	mod_txt
+#file pmon/cmds/menulist2f.c     mod_display
+#file pmon/cmds/boot_cfg.c
+#file pmon/common/bootkernel.c
+
+
+#pmon password
+file pmon/cmds/password.c      
+file pmon/dev/md5.c            
+#command: cat
+#file pmon/cmds/cat.c	mod_cat

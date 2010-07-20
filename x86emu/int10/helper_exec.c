@@ -289,8 +289,8 @@ CARD8 x_inb(CARD16 port)
 	} else {
 		val = linux_inb(port);
 		if (port == 0x61) {
-			static sw = 0;
-			udelay(5);
+			static int sw = 0;
+			delay(5);
 			val = sw ? 0x00: 0x10;
 			sw = !sw;
 		}

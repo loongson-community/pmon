@@ -116,6 +116,7 @@ typedef struct ConfigEntry {
 	int rxqsize;
 	int brate;
 	unsigned long freq;
+	unsigned int flag;
 } ConfigEntry;
 
 #include "queue.h"

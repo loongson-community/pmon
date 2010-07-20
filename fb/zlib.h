@@ -257,7 +257,7 @@ extern char *zlib_version;
 
 			/* basic functions */
 
-extern int inflateInit OF((z_stream * strm));
+extern int new_inflateInit OF((z_stream * strm));
 /*
      Initializes the internal stream state for decompression. The fields
    zalloc and zfree must be initialized before by the caller.  If zalloc and
@@ -270,7 +270,7 @@ extern int inflateInit OF((z_stream * strm));
    inflate().
 */
 
-extern int inflate OF((z_stream * strm, int flush));
+extern int new_inflate OF((z_stream * strm, int flush));
 /*
   Performs one or both of the following actions:
 
@@ -320,7 +320,7 @@ extern int inflate OF((z_stream * strm, int flush));
   when Z_FINISH is used. In the Z_DATA_ERROR case, the application may then
   call inflateSync to look for a good compression block.  */
 
-extern int inflateEnd OF((z_stream * strm));
+extern int new_inflateEnd OF((z_stream * strm));
 /*
      All dynamically allocated data structures for this stream are freed.
    This function discards any unprocessed input and does not flush any
@@ -333,7 +333,7 @@ extern int inflateEnd OF((z_stream * strm));
 
 			/* advanced functions */
 
-extern int inflateInit2 OF((z_stream * strm, int windowBits));
+extern int new_inflateInit2 OF((z_stream * strm, int windowBits));
 /*
      This is another version of inflateInit with more compression options. The
    fields next_out, zalloc and zfree must be initialized before by the caller.
@@ -365,7 +365,7 @@ extern int inflateInit2 OF((z_stream * strm, int windowBits));
    inflate().
 */
 
-extern int inflateSync OF((z_stream * strm));
+extern int new_inflateSync OF((z_stream * strm));
 /*
     Skips invalid compressed data until the special marker (see deflate()
   above) can be found, or until all available input is skipped. No output
@@ -380,7 +380,7 @@ extern int inflateSync OF((z_stream * strm));
   until success or end of the input data.
 */
 
-extern int inflateReset OF((z_stream * strm));
+extern int new_inflateReset OF((z_stream * strm));
 /*
      This function is equivalent to inflateEnd followed by inflateInit,
    but does not free and reallocate all the internal decompression state.
@@ -390,7 +390,7 @@ extern int inflateReset OF((z_stream * strm));
    stream state was inconsistent (such as zalloc or state being NULL).
 */
 
-extern int inflateIncomp OF((z_stream * strm));
+extern int new_inflateIncomp OF((z_stream * strm));
 /*
      This function adds the data at next_in (avail_in bytes) to the output
    history without performing any output.  There must be no pending output,
@@ -407,7 +407,7 @@ extern int inflateIncomp OF((z_stream * strm));
    compression library.
 */
 
-extern uLong adler32 OF((uLong adler, Bytef * buf, uInt len));
+extern uLong new_adler32 OF((uLong adler, Bytef * buf, uInt len));
 
 /*
      Update a running Adler-32 checksum with the bytes buf[0..len-1] and

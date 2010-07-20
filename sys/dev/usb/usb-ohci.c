@@ -585,6 +585,8 @@ static void ohci_attach(struct device *parent, struct device *self, void *aux)
 		dbg("Can not find mem space for ohci\n");
 		return;
 	}
+	printf("membase : 0x%x, memsize : 0x%x, cachable : 0x%x\n", membase, memsize,cachable);
+    
 #ifdef CONFIG_SM502_USB_HCD
 SM502_HC:
 	if((ohci->flags & 0x80) && pci_mem_find(pa->pa_pc, pa->pa_tag, 0x10, &membase2, &memsize2, &cachable))
@@ -597,6 +599,7 @@ SM502_HC:
 		dbg("Cant map mem space\n");
 		return;
 	}
+	printf("usb base addr : 0x%x, bus_base is : 0x%x\n", ohci->sc_sh, memt->bus_base);
 #ifdef CONFIG_SM502_USB_HCD
 	/*Can not be failed*/
 	if(ohci->flags & 0x80)
@@ -1211,7 +1214,11 @@ static int ep_unlink (ohci_t *ohci, ed_t *ed)
 			else
 #endif
 			{
+#ifdef LS3_HT			    
+				((ed_t *)(*((u32 *)&ed->hwNextED)))->ed_prev = ed->ed_prev;
+#else				
 				((ed_t *)CACHED_TO_UNCACHED(*((u32 *)&ed->hwNextED)))->ed_prev = ed->ed_prev;
+#endif				
 			}
 		}
         //dbg("ep_unlink(control - 2) ohci->ed_controltail:%x ed:%x\n",ohci->ed_controltail,ed);
@@ -1241,7 +1248,11 @@ static int ep_unlink (ohci_t *ohci, ed_t *ed)
 			else
 #endif
 			{
+#ifdef LS3_HT			    
+				((ed_t *)(ed->hwNextED))->ed_prev = ed->ed_prev;
+#else
 				((ed_t *)CACHED_TO_UNCACHED(ed->hwNextED))->ed_prev = ed->ed_prev;
+#endif            
 			}
 		}
         //dbg("ep_unlink(bulk - 2) ohci->ed_bulktail:%x ed:%x\n",ohci->ed_bulktail,ed);
@@ -1418,7 +1429,11 @@ static void td_fill (ohci_t *ohci, unsigned int info,
 	else
 #endif
 	{
+#ifdef LS3_HT	    
+		td_pt = (td_t *)(urb_priv->td[index]);
+#else
 		td_pt = (td_t *)CACHED_TO_UNCACHED(urb_priv->td[index]);
+#endif		
 	}
 	td_pt->hwNextTD = 0;
 
@@ -1434,7 +1449,11 @@ static void td_fill (ohci_t *ohci, unsigned int info,
 	else
 #endif
 	{
+#ifdef LS3_HT	    
+		td = urb_priv->td[index]= (td_t *)((urb_priv->ed->hwTailP) & ~0xf);
+#else
 		td = urb_priv->td[index]= (td_t *)(CACHED_TO_UNCACHED(urb_priv->ed->hwTailP) & ~0xf);
+#endif        
 	}
 
 
@@ -1533,7 +1552,10 @@ static void td_submit_job (struct usb_device *dev, unsigned int pipe, void
 	else
 #endif
 	{
+#ifdef LS3_HT
+#else	    
 		pci_sync_cache(ohci->sc_pc, (vm_offset_t)CACHED_TO_UNCACHED(buffer), transfer_len, SYNC_W);
+#endif		
 	}
 
 	if(usb_gettoggle(dev, usb_pipeendpoint(pipe), usb_pipeout(pipe))) {
@@ -1666,7 +1688,11 @@ static void dl_transfer_length(td_t * td)
 	else
 #endif
 	{
+#ifdef LS3_HT	    
+		tdCBP  = PHYS_TO_CACHED(m32_swap (td->hwCBP));
+#else
 		tdCBP  = PHYS_TO_UNCACHED(m32_swap (td->hwCBP));
+#endif        		
 	}
 
 	if (!(usb_pipetype (lurb_priv->pipe) == PIPE_CONTROL &&
@@ -1682,7 +1708,11 @@ static void dl_transfer_length(td_t * td)
 				else
 #endif
 				{
+#ifdef LS3_HT				    
+					length = PHYS_TO_CACHED(tdBE) - (td->data) + 1;
+#else
 					length = PHYS_TO_UNCACHED(tdBE) - CACHED_TO_UNCACHED(td->data) + 1;
+#endif                    					
 				}
 				lurb_priv->actual_length += length;
              }  else {
@@ -1694,7 +1724,11 @@ static void dl_transfer_length(td_t * td)
 				else
 #endif
 				{
+#ifdef LS3_HT
+					length = tdCBP - (td->data);
+#else
 					length = tdCBP - CACHED_TO_UNCACHED(td->data);
+#endif                    
 				}
 				lurb_priv->actual_length += length;
             }			
@@ -1776,8 +1810,11 @@ static td_t * dl_reverse_done_list (ohci_t *ohci)
 		else
 #endif
 		{
-
+#ifdef LS3_HT
+			td_list = (td_t *)PHYS_TO_CACHED(td_list_hc & 0x1fffffff);
+#else
 			td_list = (td_t *)PHYS_TO_UNCACHED(td_list_hc & 0x1fffffff);
+#endif            			
 		}
 		//td_list->hwINFO |= TD_DEL;
         check_status(td_list);
@@ -2954,8 +2991,13 @@ int usb_lowlevel_init(ohci_t *gohci)
 	else
 #endif
 	{
+#ifdef LS3_HT	    
+		gohci->hcca = (struct ohci_hcca*)(hcca);
+		gohci->gtd = (td_t *)(gtd);
+#else
 		gohci->hcca = (struct ohci_hcca*)CACHED_TO_UNCACHED(hcca);
 		gohci->gtd = (td_t *)CACHED_TO_UNCACHED(gtd);
+#endif		
 		gohci->ohci_dev = (struct ohci_device *)CACHED_TO_UNCACHED(ohci_dev);
 	}
 
@@ -2988,7 +3030,11 @@ int usb_lowlevel_init(ohci_t *gohci)
 			dbg("Malloc return not cache line aligned\n");
 		memset(tmpbuf, 0, 512);
 		pci_sync_cache(gohci->sc_pc, (vm_offset_t)tmpbuf,  512, SYNC_W);
+#ifdef LS3_HT		
+		gohci->control_buf = (unsigned char*)(tmpbuf);
+#else
 		gohci->control_buf = (unsigned char*)CACHED_TO_UNCACHED(tmpbuf);
+#endif
 	}
 #endif
 #ifdef CONFIG_SM502_USB_HCD
@@ -3011,7 +3057,11 @@ int usb_lowlevel_init(ohci_t *gohci)
 			dbg("Malloc return not cache line aligned\n");
 		memset(tmpbuf, 0, 64);
 		pci_sync_cache(tmpbuf, (vm_offset_t)tmpbuf, 64, SYNC_W);
+#ifdef LS3_HT
+		gohci->setup = (unsigned char *)(tmpbuf);
+#else
 		gohci->setup = (unsigned char *)CACHED_TO_UNCACHED(tmpbuf);
+#endif
 	}
 
 	gohci->disabled = 1;

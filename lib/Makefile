@@ -1,4 +1,4 @@
 
-SUBDIR=	libc liblinux
+SUBDIR=	libc liblinux libm
 
 .include <pmon.subdir.mk>

@@ -393,5 +393,10 @@ int		spawn __P((char *, int(*) __P((int, char *[])), int, char *[]));
 unsigned long ulmin __P((unsigned long, unsigned long));
 long lmin(long, long);
 int min(int, int);
+#define maincpu (!cpuid)
+extern int cpuid;
+#define I2C_SINGLE 0 
+#define I2C_BLOCK 1
+#define I2C_SMB_BLOCK 2
 
 #endif /* _PMON_H_ */

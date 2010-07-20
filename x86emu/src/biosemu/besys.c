@@ -293,6 +293,7 @@ DB( if (DEBUG_MEM())
 
 void check_io(int port,int read,int val)
 {
+	return;
 	if(port==0x40||port==0x43) return;
 	//if(port>0x3ff) return;
 /*	static int printed[1024];
@@ -310,9 +311,23 @@ void check_io(int port,int read,int val)
 #define check_io(port,type,val) 
 #endif
 
+#define VGA_RAGE_XL //cuckoo, for ragexl bios emu
+#ifdef VGA_RAGE_XL //cuckoo, for ragexl bios emu
+static unsigned int Int10Current_inb40time=0;
+static unsigned int BE_inb_cnt=0;
+static unsigned int inb_port_cnt=0;
+#endif
 u8 X86API BE_inb(int port)
 {
     u8 val;
+#ifdef VGA_RAGE_XL //cuckoo, for ragexl bios emu
+    if (port == 0x40) {
+	Int10Current_inb40time++;
+	val = (unsigned char)(Int10Current_inb40time >>
+		      ((Int10Current_inb40time & 1) << 3));
+	return val;
+    } 
+#endif
 
 #ifdef PLAY_SAFE
     if (port < 0 || port > 0x10000) {
@@ -336,6 +351,19 @@ static unsigned short Int10Current_inb40time=0;
 }
 #endif
 
+#ifdef MY61IO
+{
+static unsigned short Int10Current_inb61time=0;
+    if (port == 0x61) {
+	Int10Current_inb61time++;
+	val = (u8)(Int10Current_inb61time>>3); 
+#ifdef PRINT_PORT
+	printf(" inb(%#x) = %2.2x\n", port, val);
+#endif
+	return val;
+    } 
+}
+#endif
 #if !defined(_PC) && !defined(_PC_PCI)
     if (!pciCfg1in(port,(u32 *)&val,1))
 #endif
@@ -418,6 +446,11 @@ void X86API BE_outb(int port, u8 val)
 #ifdef PLAY_SAFE
     if (port < 0 || port > 0x10000) {
 	    printf("Invalid ioport %x\n",port);
+	    return;
+    }
+#endif
+#ifdef VGA_RAGE_XL //cuckoo, for ragexl bios emu
+    if ((port == 0x43) && (val == 0)) {
 	    return;
     }
 #endif

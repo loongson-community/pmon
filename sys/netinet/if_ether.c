@@ -818,12 +818,13 @@ revarpwhoami(in, ifp)
 	return (revarpwhoarewe(ifp, &server, in));
 }
 
-
+#define DDB
 #ifdef DDB
 
-#include <machine/db_machdep.h>
-#include <ddb/db_interface.h>
-#include <ddb/db_output.h>
+//#include <machine/db_machdep.h>
+//#include <ddb/db_interface.h>
+//#include <ddb/db_output.h>
+#define db_printf printf
 
 
 static void

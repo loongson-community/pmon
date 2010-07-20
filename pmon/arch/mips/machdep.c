@@ -306,10 +306,20 @@ md_getpc(struct trapframe *tf)
  *  is to decode the exception and return the exception
  *  type to the caller for further processing.
  */
+#define MYINB(port) *(volatile unsigned char *)(port)
+#define MYOUTB(val,port) *(volatile unsigned char *)(port)=val
 int
 md_exc_type(struct trapframe *frame)
 {
 	switch((frame->cause & CR_EXC_CODE) >> CR_EXC_CODE_SHIFT) {
+	case T_INT:
+		{
+		struct trapframe *cpuinfo;
+		cpuinfo = cpuinfotab[0];
+		printf("inb(0x20)=%x inb(0x21)=%x inb(0xa0)%x inb(0xa1)=%x\n",MYINB(PTR_PAD(0xbfd00020)),MYINB(PTR_PAD(0xbfd00021)),MYINB(PTR_PAD(0xbfd000a0)),MYINB(PTR_PAD(0xbfd000a1)));
+		cpuinfo->sr|=1;
+		_go();
+		}
 	case T_BREAK:
 	case T_TRAP:
 		return(EXC_BPT);
@@ -322,7 +332,6 @@ md_exc_type(struct trapframe *frame)
 #ifdef BONITOEL
 		return(EXC_RES);
 #endif
-	case T_INT:
 	case T_TLB_MOD:
 	case T_TLB_LD_MISS:
 	case T_TLB_ST_MISS:
@@ -333,8 +342,19 @@ md_exc_type(struct trapframe *frame)
 	case T_SYSCALL:
 	case T_COP_UNUSABLE:
 	case T_OVFLOW:
+#ifndef  HANDLE_FPE
 	case T_FPE:
+#endif
 		return(EXC_BAD);
+#ifdef HANDLE_FPE
+	case T_FPE:
+		{
+		struct trapframe *cpuinfo;
+		cpuinfo = cpuinfotab[0];
+		cpuinfo->pc+=4;
+		_go();
+		}
+#endif
 	
 	case T_VCEI:
 	case T_VCED:

@@ -51,8 +51,11 @@
 #include "cd.h"
 #include "sd.h"
 #include "wd.h"
+#include "fd.h"
 #include "ide_cd.h"
 #include "mod_usb_storage.h"
+#include "loopdev.h"
+#include "atp.h"
 
 extern int errno;
 
@@ -94,6 +97,18 @@ extern int usb_write __P((dev_t dev, void *uio, int flag));
 extern int usb_close __P((dev_t dev, int flag, int mode, void *));
 #endif
 
+extern int loopdevopen __P((dev_t dev, int flags, int mode, void *));
+extern int loopdevread __P((dev_t dev, void *uio, int flag));
+extern int loopdevwrite __P((dev_t dev, void *uio, int flag));
+extern int loopdevclose __P((dev_t dev, int flag, int mode, void *));
+
+#if NATP > 0
+extern int atp_open __P((dev_t dev, int flags, int mode, void *));
+extern int atp_read __P((dev_t dev, void *uio, int flag));
+extern int atp_write __P((dev_t dev, void *uio, int flag));
+extern int atp_close __P((dev_t dev, int flag, int mode, void *));
+#endif
+
 #if NSATA > 0
 extern int sata_open __P((dev_t dev, int flags, int mode, void *));
 extern int sata_read __P((dev_t dev, void *uio, int flag));
@@ -110,10 +125,17 @@ TGT_DEV_DECL
 
 void disksort __P((struct buf *, struct buf *));
 
+extern int fdopen __P((dev_t dev, int flags, int mode, void *));
+extern int fdread __P((dev_t dev, void *uio, int flag));
+extern int fdwrite __P((dev_t dev, void *uio, int flag));
+extern int fdclose __P((dev_t dev, int flag, int mode, void *));
 struct devsw devswitch[] = {
     { "console" },
 #if NSD > 0
     { "sd", sdopen, sdread, sdwrite, sdclose },
+#endif
+#if NFD > 0
+	    { "fd", fdopen, fdread, fdwrite, fdclose },
 #endif
 #if NWD > 0
     { "wd", wdopen, wdread, wdwrite, wdclose },
@@ -127,7 +149,12 @@ struct devsw devswitch[] = {
 #if NMOD_USB_STORAGE > 0
     { "usb", usb_open, usb_read, usb_write, usb_close},
 #endif
-
+#if  NLOOPDEV > 0
+	{ "loopdev", loopdevopen, loopdevread, loopdevwrite, loopdevclose},
+#endif
+#if NATP > 0
+        { "sata", atp_open, atp_read, atp_write, atp_close},
+#endif
 #if NSATA > 0
     { "sata", sata_open, sata_read, sata_write, sata_close},
 #endif

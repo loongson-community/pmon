@@ -82,11 +82,102 @@ int11_handler(xf86Int10InfoPtr pInt)
 	M.x86.R_AX=0xc823;
 	return 1;
 }*/
+extern struct ati_integrated_system_info ati_int_info;
 static int int15_handler(xf86Int10InfoPtr pInt)
 {
 	switch (M.x86.R_AX) {
 	case 0x4e08:
 		M.x86.R_AX = 0x4e00;
+#if		1	
+		printf("system info : 0x%x\n", &ati_int_info);
+		printf("----M.x86.R.Ax:%x---------int15(0x%x) called witch CX(0x%x).\n", M.x86.R_AX,M.x86.R_BL, M.x86.R_CX);
+#endif
+#ifdef	RS690
+		{
+			switch(M.x86.R_BL) {
+				case 0x00 :		// get panel ID
+					M.x86.R_BL = 0x00;		// NO LCD PANEL 
+					break;
+				case 0x01 :		// get request display
+					printf("int15-0x01 : request display 0x%x in %d mode\n", M.x86.R_BH, M.x86.R_CL);
+					if(M.x86.R_BH & (1 << 1)){
+						M.x86.R_BL = (1 << 1);	// | (1 << 6);
+						M.x86.R_BH = 0x00;
+					}
+					break;
+				case 0x02 :		// set LCD requested expansion
+					M.x86.R_BL = 0x00;	// center mode
+					break;
+				case 0x03 :		// set LCD default refresh rate
+					if(M.x86.R_CX & (1 << 6))
+						M.x86.R_BL = 60;
+					else if(M.x86.R_CX & (1 << 5))
+						M.x86.R_BL = 56;
+					else if(M.x86.R_CX & (1 << 4))
+						M.x86.R_BL = 50;
+					else if(M.x86.R_CX & (1 << 3))
+						M.x86.R_BL = 40;
+					else if(M.x86.R_CX & (1 << 2))
+						M.x86.R_BL = 30;
+					else
+						printf("int15-0x03 : error not supported refresh rate 0x%x\n", M.x86.R_BL);
+					break;
+				case 0x05 : 	// TV standards
+					if(M.x86.R_CL != 0){
+						M.x86.R_BL = 0xFF;	// no TV support
+					}
+					break;
+				case 0x08 : 	// set requested display in CMOS
+					printf("int15-0x08 : error not supported store to CMOS yet.\n");
+					break;
+				case 0x09 : 	// set request expansion in CMOS
+					printf("int15-0x09 : error not supported store to CMOS yet.\n");
+					break;
+				case 0x0A :		// set selected TV standard in CMOS
+					printf("int15-0x08 : error not supported store to CMOS yet.\n");
+					break;
+				case 0x0B :		// get LVDS spread spectrum information
+					M.x86.R_BL = 0x00;	// LVDS spread spectrum not supported yet.
+					break;
+				case 0x0C :		// get multi-media information
+					M.x86.R_BL = 0x00;	// no multi-media device
+					break;
+				case 0x0E :		// get lid status
+					M.x86.R_BL = 0X00;	// LID open
+					break;
+				case 0x1C :		// get video memory ID
+					M.x86.R_BH = 0x00;	//>>> TODO liujl 
+					break;
+				case 0x1D :		// get Hyper-memory support
+					M.x86.R_BL = 0x00;	//>>> TODO liujl
+					break;
+				case 0x2C :		// get thermal state
+					M.x86.R_BH = 0x00;	//>>> TODO liujl
+					break;
+				case 0x80 :		// get integrated system information
+					M.x86.R_DX = ((unsigned long)(&ati_int_info) >> 16) & 0x0000000f;
+					M.x86.R_DI = ((unsigned long)(&ati_int_info)) & 0x0000ffff;
+					break;
+				case 0x89 :		// get requested and supported device from system
+					if(M.x86.R_BH & (1 << 1)){
+						M.x86.R_BL = 1 << 1;
+					}else{
+						M.x86.R_BH = 1 << 1;
+					}
+					M.x86.R_CH = 1 << 1;
+					break;
+				case 0x90 :		// out of critical session notification
+					printf("int15-0x90 : out of critical session now.\n");
+					break;
+				case 0x94 :		// inform ADC display switch mode supported
+					printf("int15-0x94 : ADC display switch mode supported.\n");
+					break;
+				default :
+					printf("int15-0x%x : not supported!\n", M.x86.R_BL);
+					break;
+			}
+		}
+#endif
 		break;
 	default:
 		M.x86.R_AL = 0x86;
@@ -127,6 +218,7 @@ static int int15_handler(xf86Int10InfoPtr pInt)
                         printk("biosEmu/bios.int15: unknown function AH=%#02x, AL=%#02x, BL=%#02x\n",M.x86.R_AH, M.x86.R_AL, M.x86.R_BL);
         }
 	return 1;*/
+	printf("int15 called is exiting...\n");
 	return 1;
 }
 

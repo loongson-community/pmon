@@ -1,4 +1,4 @@
-#	$Id: Makefile.inc,v 1.1.1.1 2006/06/29 06:43:26 cpu Exp $ */
+#	$Id: Makefile.inc,v 1.1.1.1 2006/09/14 01:59:06 root Exp $ */
 #
 #
 # Copyright (c) 2001 Opsycon AB  (www.opsycon.se)
@@ -46,7 +46,7 @@ ZLIBMAKE= \
 	    AR='${AR}' RANLIB='${RANLIB}' NM='${NM}' LORDER='${LORDER}'	\
 	    XMACHINE='${MACHINE}' XMACHINE_ARCH='${MACHINE_ARCH}'	\
 	    MKDEP='${MKDEP}' ZLIBDIR=${ZLIBDIR} PMONDIR=${PMONDIR}	\
-	    ZLIBCPPFLAGS='${CPPFLAGS:S@^-I.@-I../../.@g}' S='${S}'	\
+	    ZLIBCPPFLAGS='${CPPFLAGS}' S='${S}'	\
 	    OBJDIR='${ZLIBDST}'
 
 ${ZLIB}:		__always_make_zliblib

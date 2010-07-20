@@ -60,8 +60,13 @@ struct tgt_bus_space {
 /*
  * Access methods for bus resources
  */
+#if defined(LOONGSON3A_3AEV)
+#define bus_space_map(t, addr, size, cacheable, bshp)			      \
+    ((*(bshp) = (t)->bus_base | (addr)), 0)
+#else 
 #define bus_space_map(t, addr, size, cacheable, bshp)			      \
     ((*(bshp) = (t)->bus_base + (addr)), 0)
+#endif
 
 #define bus_space_unmap(t, bsh, size)
 

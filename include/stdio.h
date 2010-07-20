@@ -80,6 +80,8 @@ extern int usb_kbd_available;
 #define stderr	(vga_available?(&_iob[4]):(&_iob[2]))
 #define kbdin	(&_iob[3])
 #define vgaout	(&_iob[4])
+#define serialin (&_iob[0])
+#define serialout (&_iob[1])
 
 #ifdef OPEN_MAX
 #undef OPEN_MAX

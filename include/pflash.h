@@ -57,6 +57,7 @@ struct fl_device {
 #define	FL_PROTO_AMD	2	/* AMD in lack of better name... */
 #define FL_PROTO_SST	3
 #define FL_PROTO_WINBOND	4 
+#define FL_PROTO_ST		2
 
 #define	FL_CAP_DE	0x01	/* Device have entire device Erase */
 #define	FL_CAP_A7	0x02	/* Device uses a7 for Bulk Erase */
@@ -71,6 +72,7 @@ struct fl_map {
 	int	fl_map_chips;	/* Number of chips to operate in one cycle */
 	int	fl_map_bus;	/* Bus width type, se below */
 	int	fl_map_offset;	/* Flash Offset mapped in memory */
+	int fl_type;
 };
 
 #define	FL_BUS_8	0x01	/* Byte wide bus */
@@ -147,6 +149,7 @@ extern struct fl_device fl_known_dev[];
 extern struct fl_functions fl_func_amd;
 extern struct fl_functions fl_func_int;
 extern struct fl_functions fl_func_sst;
+extern struct fl_functions fl_func_st;
 extern struct fl_functions fl_func_winbond;
 
 #endif

@@ -21,13 +21,125 @@
 #include <dev/pci/pcivar.h>
 #include <dev/pci/pcidevs.h>
 #include <flash.h>
+#include <sys/ioctl.h>
+#include <sys/socket.h>
+#include <sys/net/if.h>
+#include "mod_vgacon.h"
+#include "mod_display.h"
+void route_init();
+
 #include <pflash.h>
 
 #define rm9000_tlb_hazard(...)
 #define CONFIG_PAGE_SIZE_64KB
 #include "mipsregs.h"
+#include "gzip.h"
+#if NGZIP > 0
+#include <gzipfs.h>
+#endif /* NGZIP */
 int cmd_mycfg __P((int, char *[]));
+extern char  *heaptop;
 
+#include <errno.h>
+unsigned long strtoul(const char *nptr,char **endptr,int base);
+#define ULONGLONG_MAX 0xffffffffffffffffUL
+unsigned long long
+strtoull(const char *nptr,char **endptr,int base)
+{
+#if __mips >= 3
+    int c;
+    unsigned long long  result = 0L;
+    unsigned long long limit;
+    int negative = 0;
+    int overflow = 0;
+    int digit;
+    while ((c = *nptr) && isspace(c)) /* skip leading white space */
+      nptr++;
+    if ((c = *nptr) == '+' || c == '-') { /* handle signs */
+	negative = (c == '-');
+	nptr++;
+    }
+    if (base == 0) {		/* determine base if unknown */
+	base = 10;
+	if (*nptr == '0') {
+	    base = 8;
+	    nptr++;
+	    if ((c = *nptr) == 'x' || c == 'X') {
+		base = 16;
+		nptr++;
+	    }
+	}
+    } else if (base == 16 && *nptr == '0') {	
+	nptr++;
+	if ((c = *nptr == 'x') || c == 'X')
+	  nptr++;
+    }
+    limit = ULONGLONG_MAX / base;	/* ensure no overflow */
+    nptr--;			/* convert the number */
+    while ((c = *++nptr) != 0) {
+	if (isdigit(c))
+	  digit = c - '0';
+	else if(isalpha(c))
+	  digit = c - (isupper(c) ? 'A' : 'a') + 10;
+	else
+	  break;
+	if (digit < 0 || digit >= base)
+	  break;
+	if (result > limit)
+	  overflow = 1;
+	if (!overflow) {
+	    result = base * result;
+	    if (digit > ULONGLONG_MAX - result)
+	      overflow = 1;
+	    else	
+	      result += digit;
+	}
+    }
+    if (negative && !overflow)	/* BIZARRE, but ANSI says we should do this! */
+      result = 0L - result;
+    if (overflow) {
+	extern int errno;
+	errno = ERANGE;
+	result = ULONGLONG_MAX;
+    }
+    if (endptr != NULL)		/* point at tail */
+      *endptr = (char *)nptr;
+    return result;
+#else
+return strtoul(nptr,endptr,base);
+#endif
+}
+static union commondata{
+		unsigned char data1;
+		unsigned short data2;
+		unsigned int data4;
+		unsigned int data8[2];
+		unsigned char c[8];
+}mydata,*pmydata;
+unsigned int syscall_addrtype=0;
+static int __syscall1(int type,long long addr,union commondata *mydata);
+static int __syscall2(int type,long long addr,union commondata *mydata);
+int (*syscall1)(int type,long long addr,union commondata *mydata)=(void *)&__syscall1;
+int (*syscall2)(int type,long long addr,union commondata *mydata)=(void *)&__syscall2;
+static char *str2addmsg[]={"32 bit cpu address","64 bit cpu address","64 bit cached phyiscal address","64 bit uncached phyiscal address"};
+#if __mips >= 3
+static unsigned long long
+str2addr(const char *nptr,char **endptr,int base)
+{
+unsigned long long result;
+if(syscall_addrtype%4==0)
+{
+result=(long)strtoul(nptr,endptr,base);
+}
+else
+{
+result=strtoull(nptr,endptr,base);
+if(syscall_addrtype%4==3)result|=0x9000000000000000UL;
+else if(syscall_addrtype%4==2)result|=0x9800000000000000UL;
+}
+return result;
+}
+#endif
 /*
  *  Execute the 'call' command
  *  ==========================
@@ -40,16 +152,16 @@ int cmd_mycfg __P((int, char *[]));
 #define nr_printf printf
 #define nr_gets gets
 #define nr_strtol strtoul
+#define nr_strtoll strtoull
+#if __mips >= 3
+#define nr_str2addr str2addr
+#else
+#define nr_str2addr strtoul
+#endif
+
 #define X16 16
 #define X10 10
 #define X0 0
-static union commondata{
-		unsigned char data1;
-		unsigned short data2;
-		unsigned long data4;
-		unsigned long data8[2];
-		unsigned char c[8];
-}mydata,*pmydata;
 
 static	pcitag_t mytag=0;
 
@@ -58,7 +170,134 @@ extern void cacheflush(void);
 extern int fl_erase_sector_sst(struct fl_map *,struct fl_device*, int);
 extern int fl_program_sst(struct fl_map *,struct fl_device*, int, unsigned char *);
 
-static int __pcisyscall1(int type,unsigned int addr,union commondata *mydata)
+size_t fread (void *src, size_t size, size_t count, FILE *fp);
+size_t fwrite (const void *dst, size_t size, size_t count, FILE *fp);
+static char diskname[0x40];
+
+static int __disksyscall1(int type,long long addr,union commondata *mydata)
+{
+	char fname[0x40];
+	FILE *fp;
+	if(strncmp(diskname,"/dev/",5)) sprintf(fname,"/dev/disk/%s",diskname);
+	else strcpy(fname,diskname);
+	fp=fopen(fname,"r+");
+	if(!fp){printf("open %s error!\n",fname);return -1;}
+	fseek(fp,addr,SEEK_SET);
+switch(type)
+{
+case 1:fread(&mydata->data1,1,1,fp);break;
+case 2:fread(&mydata->data2,2,1,fp);break;
+case 4:fread(&mydata->data4,4,1,fp);break;
+case 8:fread(&mydata->data8,8,1,fp);break;
+}
+	fclose(fp);
+return 0;
+}
+static int __disksyscall2(int type,long long addr,union commondata *mydata)
+{
+	char fname[0x40];
+	FILE *fp;
+	if(strncmp(diskname,"/dev/",5)) sprintf(fname,"/dev/disk/%s",diskname);
+	else strcpy(fname,diskname);
+	fp=fopen(fname,"r+");
+	if(!fp){printf("open %s error!\n",fname);return -1;}
+	fseek(fp,addr,SEEK_SET);
+switch(type)
+{
+case 1:fwrite(&mydata->data1,1,1,fp);break;
+case 2:fwrite(&mydata->data2,2,1,fp);break;
+case 4:fwrite(&mydata->data4,4,1,fp);break;
+case 8:fwrite(&mydata->data8,8,1,fp);break;
+}
+	fclose(fp);
+return 0;
+}
+static int devcp(int argc,char **argv)
+{
+char *buf;
+int fp0,fp1;
+int n,i;
+int bs=0x20000;
+int seek=0,skip=0;
+char *fsrc=0,*fdst=0;
+unsigned int count=-1,nowcount=0;
+char pstr[80]="";
+int quiet=0;
+#if NGZIP > 0
+int unzip=0;
+#endif
+if(argc<3)return -1;
+	fsrc=argv[1];
+	fdst=argv[2];
+	for(i=3;i<argc;i++)
+	{
+	if(!strncmp(argv[i],"bs=",3))
+	 bs=strtoul(&argv[i][3],0,0);
+	else if(!strncmp(argv[i],"count=",6))
+	 count=strtoul(&argv[i][6],0,0);
+	else  if(!strncmp(argv[i],"skip=",5))
+	 skip=strtoul(&argv[i][5],0,0);
+	else if(!strncmp(argv[i],"seek=",5))
+	 seek=strtoul(&argv[i][5],0,0);
+	else if(!strncmp(argv[i],"quiet=",6))
+	 quiet=strtoul(&argv[i][6],0,0);
+#if NGZIP > 0
+	else if(!strcmp(argv[i],"unzip=1"))
+	unzip=1;
+#endif
+	}
+	if(!fsrc||!fdst)return -1;
+	fp0=open(fsrc,O_RDONLY);
+	fp1=open(fdst,O_WRONLY);
+	buf=malloc(bs);
+	if(!buf){printf("malloc failed!,please set heaptop bigger\n");return -1;}
+	if(!fp0||!fp1){printf("open file error!\n");free(buf);return -1;}
+	lseek(fp0,skip*bs,SEEK_SET);
+	lseek(fp1,seek*bs,SEEK_SET);
+#if NGZIP > 0
+	if(unzip)if(gz_open(fp0)==-1)unzip=0;
+#endif
+	while(count--)
+	{
+	int rcount=0;
+	char *pnow=buf;
+#if NGZIP > 0
+	if(unzip) 
+		while(rcount<bs)
+		{
+		n=gz_read(fp0,pnow,bs);
+		if(n<=0)break; 
+		rcount+=n;
+		pnow+=n;
+		}
+	else
+#endif
+		while(rcount<bs)
+		{
+		n=read(fp0,pnow,bs-rcount);
+		if(n<=0)break; 
+		rcount+=n;
+		pnow+=n;
+		}
+	nowcount+=rcount;
+	if(!(strstr(argv[1],"/dev/tty")||strstr(argv[2],"/dev/tty")||quiet))
+	{
+	int i;
+	for(i=0;i<strlen(pstr);i++)printf("\b \b");
+	sprintf(pstr,"%d",nowcount);
+	printf("%s",pstr);
+	}
+	if(write(fp1,buf,rcount)<rcount||rcount<bs)break;
+	}
+	free(buf);
+#if NGZIP > 0
+	if(unzip)gz_close(fp0);
+#endif
+	close(fp0);
+	close(fp1);
+return 0;
+}
+static int __pcisyscall1(int type,unsigned long long addr,union commondata *mydata)
 {
 switch(type)
 {
@@ -71,7 +310,7 @@ case 8:mydata->data8[0]=_pci_conf_readn(mytag,addr,4);
 return 0;
 }
 
-static int __pcisyscall2(int type,unsigned int addr,union commondata *mydata)
+static int __pcisyscall2(int type,unsigned long long addr,union commondata *mydata)
 {
 switch(type)
 {
@@ -83,40 +322,111 @@ case 8:break;
 return -1;
 }
 
-static int __syscall1(int type,unsigned int addr,union commondata *mydata)
+#if __mips >= 3
+#define MYASM asm
+#define MYC(...)
+#else
+#define MYASM(...)
+#define MYC(x) x
+#endif
+static int __syscall1(int type,long long addr,union commondata *mydata)
 {
+union {
+unsigned long long ll;
+unsigned int l[2];
+} a;
+a.ll=addr;
 switch(type)
 {
-case 1:mydata->data1=*(volatile char *)addr;break;
-case 2:mydata->data2=*(volatile short *)addr;break;
-case 4:mydata->data4=*(volatile long *)addr;break;
-case 8:mydata->data8[0]=*(volatile long *)addr;mydata->data8[1]=*(volatile long *)(addr+4);break;
+case 1:
+	  MYC(mydata->data1=*(volatile char *)addr;);
+	  MYASM("dsll32 %1,%1,0;dsrl32 %1,%1,0;dsll32 %2,%2,0;or %1,%2;lbu $2,(%1);" \
+		  "sb $2,(%0);" \
+		  ::"r"(&mydata->data1),"r"(a.l[0]),"r"(a.l[1])
+		  :"$2"
+		 );
+	   break;
+case 2:
+	  MYC(mydata->data2=*(volatile short *)addr;);
+	  MYASM("dsll32 %1,%1,0;dsrl32 %1,%1,0;dsll32 %2,%2,0;or %1,%2;lhu $2,(%1);" \
+		  "sh $2,(%0);" \
+		  ::"r"(&mydata->data2),"r"(a.l[0]),"r"(a.l[1])
+		  :"$2"
+		 );
+	   break;
+case 4:
+	  MYC(mydata->data4=*(volatile int *)addr;);
+	  MYASM("dsll32 %1,%1,0;dsrl32 %1,%1,0;dsll32 %2,%2,0;or %1,%2;lwu $2,(%1);" \
+		   "sw $2,(%0);" \
+		  ::"r"(&mydata->data4),"r"(a.l[0]),"r"(a.l[1])
+		  :"$2"
+		 );
+	   break;
+case 8:
+	  MYC( mydata->data8[0]=*(volatile int *)addr;mydata->data8[1]=*(volatile int *)(addr+4);)
+	  MYASM("dsll32 %1,%1,0;dsrl32 %1,%1,0;dsll32 %2,%2,0;or %1,%2;ld $2,(%1);" \
+		  "sd $2,(%0);" \
+		  ::"r"(mydata->data8),"r"(a.l[0]),"r"(a.l[1])
+		  :"$2"
+		 );
+	   break;
 }
 return 0;
 }
 
-static int __syscall2(int type,unsigned int addr,union commondata *mydata)
+static int __syscall2(int type,long long addr,union commondata *mydata)
 {
+union {
+unsigned long long ll;
+unsigned int l[2];
+} a;
+a.ll=addr;
 switch(type)
 {
-case 1:*(volatile char *)addr=mydata->data1;break;
-case 2:*(volatile short *)addr=mydata->data2;break;
-case 4:*(volatile long *)addr=mydata->data4;break;
-case 8:*(volatile long *)addr=mydata->data8[0];*(volatile long *)(addr+4)=mydata->data8[1];break;
+case 1:
+	 MYC(*(volatile char *)addr=mydata->data1;);
+	  MYASM("dsll32 %1,%1,0;dsrl32 %1,%1,0;dsll32 %2,%2,0;or %1,%2;lbu $2,(%0);" \
+		  "sb $2,(%1);" \
+		  ::"r"(&mydata->data1),"r"(a.l[0]),"r"(a.l[1])
+		  :"$2"
+		 );
+	   break;
+case 2:
+	  MYC(*(volatile short *)addr=mydata->data2;);
+	  MYASM("dsll32 %1,%1,0;dsrl32 %1,%1,0;dsll32 %2,%2,0;or %1,%2;lhu $2,(%0);" \
+		   "sh $2,(%1);" \
+		  ::"r"(&mydata->data2),"r"(a.l[0]),"r"(a.l[1])
+		  :"$2"
+		 );
+	  break;
+case 4:
+	  MYC(*(volatile int *)addr=mydata->data4;);
+	  MYASM("dsll32 %1,%1,0;dsrl32 %1,%1,0;dsll32 %2,%2,0;or %1,%2;lwu $2,(%0);" \
+		   "sw $2,(%1);" \
+		  ::"r"(&mydata->data2),"r"(a.l[0]),"r"(a.l[1])
+		  :"$2"
+		 );
+	    break;
+case 8:
+	   MYC(*(volatile int *)addr=mydata->data8[0];*(volatile int *)(addr+4)=mydata->data8[1];);
+	  MYASM("dsll32 %1,%1,0;dsrl32 %1,%1,0;dsll32 %2,%2,0;or %1,%2;ld $2,(%0);" \
+		   "sd $2,(%1);" \
+		  ::"r"(mydata->data8),"r"(a.l[0]),"r"(a.l[1])
+		  :"$2"
+		 );
+	   break;
 }
 return 0;
 }
 
-static int (*syscall1)(int type,unsigned addr,union commondata *mydata)=&__pcisyscall1;
-static int (*syscall2)(int type,unsigned addr,union commondata *mydata)=&__pcisyscall2;
 
-static int mydump(char type,unsigned addr,unsigned count)
+static int mydump(char type,unsigned long long addr,unsigned count)
 {
 		int i,j,k;
 		char memdata[16];
 		for(j=0;j<count;j=j+16/type,addr=addr+16)
 		{
-		nr_printf("%08x: ",addr);
+		nr_printf("%08llx: ",addr);
 
 		pmydata=(void *)memdata;
 		for(i=0;type*i<16;i++)
@@ -157,6 +467,7 @@ int mypcs(int ac,char **av)
 	int bus;
 	int dev;
 	int func;
+    int tmp;
 
 if(ac==4)
 {
@@ -164,31 +475,61 @@ if(ac==4)
 	dev=nr_strtol(av[2],0,0);
 	func=nr_strtol(av[3],0,0);
 	mytag=_pci_make_tag(bus,dev,func);
-	syscall1=__pcisyscall1;
-	syscall2=__pcisyscall2;
+	syscall1=(void *)__pcisyscall1;
+	syscall2=(void *)__pcisyscall2;
 }
-else if((ac==2) && (nr_strtol(av[1],0,0)==-1))
+else if(ac==2)
 {
+	syscall_addrtype=nr_strtol(av[1],0,0);
 	syscall1=__syscall1;
 	syscall2=__syscall2;
 	mytag=-1;
+   printf("select normal memory access (%s)\n",str2addmsg[syscall_addrtype%4]);
 }
-
+else if(ac==1)
+{
+int i;
+for(i=0;i>-4;i--)
+printf("pcs %d : select select normal memory access %s\n",i,str2addmsg[(unsigned)i%4]);
+printf("pcs bus dev func : select pci configuration space access with bus dev func\n");
 if(mytag!=-1)
 {
 	_pci_break_tag(mytag,&bus,&dev,&func);
 	printf("pci select bus=%d,dev=%d,func=%d\n",bus,dev,func);
+}
+}
+	return (0);
+}
+int mydisks(int ac,char **av)
+{
+if(ac>2)return -1;
+if(ac==2)
+{
+if(nr_strtol(av[1],0,0)==-1)
+{
+	syscall1=__syscall1;
+	syscall2=__syscall2;
+	diskname[0]=0;
+}
+else{ strncpy(diskname,av[1],0x40);diskname[0x3f]=0;}
+}
+if(diskname[0])
+{
+	syscall1=(void *)__disksyscall1;
+	syscall2=(void *)__disksyscall2;
+	printf("disk select %s\n",diskname);
 }
 else printf("select normal memory access\n");
 
 	return (0);
 }
 
-static unsigned lastaddr=0;
+static unsigned long long lastaddr=0;
 static int dump(int argc,char **argv)
 {
 		char type=4;
-static	unsigned int addr,count=1;
+unsigned long long  addr;
+static int count=1;
 //		char opts[]="bhwd";
 		if(argc>3){nr_printf("d{b/h/w/d} adress count\n");return -1;}
 
@@ -200,7 +541,7 @@ static	unsigned int addr,count=1;
 				case '8':	type=8;break;
 		}
 
-		if(argc>1)addr=nr_strtol(argv[1],0,X0);
+		if(argc>1)addr=nr_str2addr(argv[1],0,0);
 		else addr=lastaddr;
 		if(argc>2)count=nr_strtol(argv[2],0,X0);
 		else if(count<=0||count>=1024) count=1;
@@ -402,6 +743,19 @@ static int setvga(int argc,char **argv)
 	return 0;
 }
 
+static int setkbd(int argc,char **argv)
+{
+//#if NMOD_VGACON > 0
+	if(argc>1)
+	{
+	if(argv[1][0]=='1')kbd_available=1;
+	else kbd_available=0;
+	}
+	printf("kbd_available=%d\n",kbd_available);
+//#endif
+	return 0;
+}
+
 static int writefb(int argc,char **argv)
 {
 	int i;
@@ -418,19 +772,6 @@ static int writefb(int argc,char **argv)
 			*(volatile short *)(base + 2*i) = value;
 		}
 	}
-	return 0;
-}
-
-static int setkbd(int argc,char **argv)
-{
-//#if NMOD_VGACON > 0
-	if(argc>1)
-	{
-	if(argv[1][0]=='1')kbd_available=1;
-	else kbd_available=0;
-	}
-	printf("kbd_available=%d\n",kbd_available);
-//#endif
 	return 0;
 }
 
@@ -575,14 +916,903 @@ for(i=0;i<strlen(argv[1]);i++)
 return 0;	
 }
 #endif
+
+static int loopcmd(int ac,char **av)
+{
+static char buf[0x100];
+int count,i;
+int n=1;
+	if(ac<3)return -1;
+	count=strtol(av[1],0,0);
+	while(count--)
+	{
+	buf[0]=0;
+		for(i=2;i<ac;i++)
+		{
+		strcat(buf,av[i]);
+		strcat(buf," ");
+		}
+	if(av[0][0]=='l')printf("NO %d\n",n++);
+	do_cmd(buf);
+	}
+	return 0;
+}
+
+static int checksum(int argc,char **argv)
+{
+	int i;
+	unsigned long size,left,total,bs,sum,want,count,idx;
+	int quiet,checkwant,fp0,ret;
+	int fsrc;
+	char *buf,*cmd_buf=0;
+	char *cmd=0;
+
+	if (argc<2)
+		return -1;
+
+	bs=0x20000;
+	total=0;
+	size=0x7fffffff;
+	checkwant=0;
+	count=1;
+	quiet=0;
+
+	fsrc=argv[1];
+	for(i=2;i<argc;i++)
+	{
+	if(!strncmp(argv[i],"bs=",3))
+	 bs=strtoul(&argv[i][3],0,0);
+	else if(!strncmp(argv[i],"count=",6))
+	 count=strtoul(&argv[i][6],0,0);
+	else if(!strncmp(argv[i],"size=",5))
+	 size=strtoul(&argv[i][5],0,0);
+	else if(!strncmp(argv[i],"want=",5))
+	{
+	 want=strtoul(&argv[i][5],0,0);
+	 checkwant=1;
+	}
+	else if(!strncmp(argv[i],"quiet=",6))
+	 quiet=strtoul(&argv[i][6],0,0);
+	}
+	
+
+	if(!fsrc)return -1;
+	buf=malloc(bs);
+	if(!buf){printf("malloc failed!,please set heaptop bigger\n");return -1;}
+	if((cmd=getenv("checksum"))) cmd_buf=malloc(strlen(cmd)+1);
+	for(idx=0;idx<count;idx++)
+	{
+	 total=0;
+	 left=size;
+	 sum=0;
+
+	if(cmd){
+	strcpy(cmd_buf,cmd);
+	do_cmd(cmd_buf);
+	}
+
+	fp0=open(fsrc,O_RDONLY);
+
+	
+	while(left)
+	{
+	 ret=read(fp0,buf,min(left,bs));
+	 if(ret>0){
+	 for(i=0;i<ret;i++) sum += buf[i];
+	 total+=ret;
+	 left -=ret;
+	 }
+	 else break;
+	}
+
+	close(fp0);
+
+/*quiet:
+ * 0:print everything
+ * 1:only print when error
+ * 2:goto cmdline when error
+ * 3:reload and print error when error
+ * 4:reload no msg
+ */
+	if(quiet<1)printf("%d:checksuming  0x%lx,size=0x%lx\n",idx,sum,total);
+	if(checkwant && (want!=sum)){
+	if(quiet<4)printf("%d:checksum error want 0x%x, got 0x%x\n",idx,want,sum);
+	if(quiet>2) count++;
+	else if(quiet==2)main();
+	else break;
+	}
+   }
+	free(buf);
+	if(cmd_buf)free(cmd_buf);
+
+	return 0;
+}
+
+static int testide(int ac,char **av)
+{
+	FILE *fp;
+	char *buf;
+	long bufsize;
+	unsigned long count,x,tmp;
+	bufsize=(ac==1)?0x100000:strtoul(av[1],0,0);
+	buf=heaptop;
+	x=count=0;
+	tmp=bufsize>>24;
+	fp=fopen("/dev/disk/wd0","r");
+	if(!fp){printf("open error!\n");return -1;}
+	while(!feof(fp))
+	{
+		fread(buf,bufsize,1,fp);
+		x +=bufsize;
+		if((x&0xffffff)==0){count+=tmp?tmp:16;printf("%d\n",count);}
+	}
+	fclose(fp);
+	return 0;
+}
+//------------------------------------------------------------------------------------------
+static struct parttype
+{char *name;
+unsigned char type;
+} known_parttype[]=
+ {
+	"FAT12",1,
+	"FAT16",4,
+	"W95 FAT32",0xb,
+	"W95 FAT32 (LBA)",0xc,
+	"W95 FAT16 (LBA)",0xe,
+	"W95 Ext'd (LBA)",0xf,
+	"Linux",0x83,
+	"Linux Ext'd" , 0x85,
+	"Dos Ext'd" , 5,
+	"Linux swap / Solaris" , 0x82,
+	"Linux raid" , 0xfd,	/* autodetect RAID partition */
+	"Freebsd" , 0xa5,    /* FreeBSD Partition ID */
+	"Openbsd" , 0xa6,    /* OpenBSD Partition ID */
+	"Netbsd" , 0xa9,   /* NetBSD Partition ID */
+	"Minix" , 0x81,  /* Minix Partition ID */
+};
+struct partition {
+    unsigned char boot_ind;     /* 0x80 - active */
+    unsigned char head;     /* starting head */
+    unsigned char sector;       /* starting sector */
+    unsigned char cyl;      /* starting cylinder */
+    unsigned char sys_ind;      /* What partition type */
+    unsigned char end_head;     /* end head */
+    unsigned char end_sector;   /* end sector */
+    unsigned char end_cyl;      /* end cylinder */
+    unsigned int start_sect;    /* starting sector counting from 0 */
+    unsigned int nr_sects;      /* nr of sectors in partition */
+} __attribute__((packed));
+
+
+static int fdisk(int argc,char **argv)
+{
+int j,n,type_counts;
+struct partition *p0;
+FILE *fp;
+char device[0x40];
+int buf[0x10];
+	if(strncmp(argv[1],"/dev/",5)) sprintf(device,"/dev/disk/%s",argv[1]);
+	else strcpy(device,diskname);
+sprintf(device,"/dev/disk/%s",(argc==1)?"wd0":argv[1]);
+type_counts=sizeof(known_parttype)/sizeof(struct parttype);
+fp=fopen(device,"rb");
+if(!fp)return -1;
+fseek(fp,446,0);
+fread(buf,0x40,1,fp);
+fclose(fp);
+
+printf("Device Boot %-16s%-16s%-16sId System\n","Start","End","Sectors");
+for(n=0,p0=(void *)buf;n<4;n++,p0++)
+{
+if(!p0->sys_ind)continue;
+
+for(j=0;j<type_counts;j++)
+if(known_parttype[j].type==p0->sys_ind)break;
+
+printf("%-6d %-4c %-16d%-16d%-16d%x %s\n",n,(p0->boot_ind==0x80)?'*':' ',p0->start_sect,p0->start_sect+p0->nr_sects,p0->nr_sects,\
+p0->sys_ind,j<type_counts?known_parttype[j].name:"unknown");
+}
+return 0;
+}
+#include <sys/netinet/in.h>
+#include <sys/netinet/in_var.h>
+#define SIN(x) ((struct sockaddr_in *)&(x))
+extern char activeif_name[];
+
+static void
+setsin (struct sockaddr_in *sa, int family, u_long addr)
+{
+    bzero (sa, sizeof (*sa));
+    sa->sin_len = sizeof (*sa);
+    sa->sin_family = family;
+    sa->sin_addr.s_addr = addr;
+}
+
+static int cmd_testnet(int argc,char **argv)
+{
+	char buf[100];
+	int i,j;
+	int s;
+	struct sockaddr addr;
+
+	if(argc<3)return -1;
+	addr.sa_len=sizeof(addr);
+	strcpy(addr.sa_data,argv[1]);
+
+	s= socket (AF_UNSPEC, SOCK_RAW, 0);
+	if(s==-1){
+	printf("please select raw_ether\n");
+	return -1;
+	}
+	if(!strcmp(argv[2],"send"))
+	{
+		for(j=0;;j++)
+		{
+			memset(buf,0xff,12);
+			buf[12]=8;buf[13]=0;
+			for(i=14;i<100;i++) buf[i]=i+j;
+			sendto(s,buf,100,0,&addr,sizeof(addr));
+			delay1(500);
+			printf("%d\r",j);
+		}
+	}
+	else if(!strcmp(argv[2],"recv"))
+	{
+		bind(s,&addr,sizeof(addr));
+		while(1)
+		{
+			unsigned char buf[1500];
+			int len;
+			len=recv(s,buf,1500,0);
+			for(i=0;i<len;i++)
+			{
+				if((i&15)==0)printf("\n%02x: ",i);
+				printf("%02x ",buf[i]);
+			}
+		}
+	}
+	else
+	{
+	int errors=0;
+		bind(s,&addr,sizeof(addr));
+		while(1)
+		{
+			unsigned char buf[1500];
+			int len;
+		for(j=0;;j++)
+		{
+			memset(buf,0xff,12);
+			buf[12]=8;buf[13]=0;
+			for(i=14;i<100;i++) buf[i]=i-12+j;
+			sendto(s,buf,100,0,&addr,sizeof(addr));
+			len=recv(s,buf,100,0);
+			for(i=12;i<100-4;i++) 
+			{
+			if(buf[i]!=i-12+j)break;
+			}
+
+			if(i==100-4)
+			{
+			printf("\r%d,%d",j,errors);
+			}
+			else
+			{
+			errors++;
+				for(i=0;i<len;i++)
+				{
+					if((i&15)==0)printf("\n%02x: ",i);
+					printf("%02x ",buf[i]);
+				}
+			}
+			delay1(500);
+		}
+		}
+
+	}
+	close(s);
+	return 0;
+}
+
+static int del_if_rt(char *ifname);
+static int cmd_ifconfig(int argc,char **argv)
+{
+struct ifreq *ifr;
+struct in_aliasreq *ifra;
+struct in_aliasreq data;
+int s = socket (AF_INET, SOCK_DGRAM, 0);
+	if (s < 0) {
+		perror("ifconfig: socket");
+		return -1;
+	}
+ifra=(void *)&data;
+ifr=(void *)&data;
+bzero (ifra, sizeof(*ifra));
+strcpy(ifr->ifr_name,argv[1]);
+if(argc==2)
+{
+(void) ioctl(s, SIOCGIFADDR, ifr);
+printf("ip:%s\n",inet_ntoa(satosin(&ifr->ifr_addr)->sin_addr));
+(void) ioctl(s,SIOCGIFNETMASK, ifr);
+printf("netmask:%s\n",inet_ntoa(satosin(&ifr->ifr_addr)->sin_addr));
+(void) ioctl(s,SIOCGIFBRDADDR, ifr);
+printf("boradcast:%s\n",inet_ntoa(satosin(&ifr->ifr_addr)->sin_addr));
+(void) ioctl(s,SIOCGIFFLAGS,ifr);
+printf("status:%s %s\n",ifr->ifr_flags&IFF_UP?"up":"down",ifr->ifr_flags&IFF_RUNNING?"running":"stoped");
+}
+else if(argc>=3)
+{
+char *cmds[]={"down","up","remove","stat","setmac","readrom","writerom"};
+int i;
+	for(i=0;i<sizeof(cmds)/sizeof(char *);i++)
+	if(!strcmp(argv[2],cmds[i]))break;
+	switch(i)
+	{
+	case 0://down
+		(void) ioctl(s,SIOCGIFFLAGS,ifr);
+		ifr->ifr_flags &=~IFF_UP;
+		(void) ioctl(s,SIOCSIFFLAGS,ifr);
+		break;
+	case 1://up
+		(void) ioctl(s,SIOCGIFFLAGS,ifr);
+		ifr->ifr_flags |=IFF_UP;
+		(void) ioctl(s,SIOCSIFFLAGS,ifr);
+		break;
+	case 2://remove
+		(void) ioctl(s,SIOCGIFFLAGS,ifr);
+		ifr->ifr_flags &=~IFF_UP;
+		(void) ioctl(s,SIOCSIFFLAGS,ifr);
+		while(ioctl(s, SIOCGIFADDR, ifra)==0)
+		{
+		(void) ioctl(s, SIOCDIFADDR, ifr);
+		}
+		del_if_rt(argv[1]);
+		break;
+	case 3: //stat
+		{
+		register struct ifnet *ifp;
+		ifp = ifunit(argv[1]);
+		if(!ifp){printf("can not find dev %s.\n",argv[1]);return -1;}
+		printf("RX packets:%d,TX packets:%d,collisions:%d\n" \
+			   "RX errors:%d,TX errors:%d\n" \
+			   "RX bytes:%d TX bytes:%d\n" ,
+		ifp->if_ipackets, 
+		ifp->if_opackets, 
+		ifp->if_collisions,
+		ifp->if_ierrors, 
+		ifp->if_oerrors,  
+		ifp->if_ibytes, 
+		ifp->if_obytes 
+		);
+		if(ifp->if_baudrate)printf("link speed up to %d Mbps\n",ifp->if_baudrate);
+		}
+		break;
+	case 4: //setmac
+	    {
+		struct ifnet *ifp;
+		ifp = ifunit(argv[1]);
+		if(ifp)
+		{
+		long arg[2]={argc-2,(long)&argv[2]};
+		ifp->if_ioctl(ifp,SIOCETHTOOL,arg);
+		}
+	    }
+		break;
+        case 5: //read eeprom
+            {
+                struct ifnet *ifp;
+                ifp = ifunit(argv[1]);
+                if(ifp)
+                {
+                long arg[2]={argc-2,(long)&argv[2]};
+                ifp->if_ioctl(ifp,SIOCRDEEPROM,arg);
+                }
+            }
+                break;
+        case 6: //write eeprom
+            {
+                struct ifnet *ifp;
+                ifp = ifunit(argv[1]);
+                if(ifp)
+                {
+                long arg[2]={argc-2,(long)&argv[2]};
+                ifp->if_ioctl(ifp,SIOCWREEPROM,arg);
+                }
+            }
+                break;
+
+	default:
+		while(ioctl(s, SIOCGIFADDR, ifra)==0)
+		{
+		(void) ioctl(s, SIOCDIFADDR, ifr);
+		}
+		setsin (SIN(ifra->ifra_addr), AF_INET, inet_addr(argv[2]));
+		(void) ioctl(s, SIOCSIFADDR, ifra);
+		if(argc>=4)
+		 {
+		 setsin (SIN(ifra->ifra_addr), AF_INET, inet_addr(argv[3]));
+		 (void) ioctl(s,SIOCSIFNETMASK, ifra);
+		 }
+		 break;
+	}
+}
+close(s);
+return 0;
+}
+
+static int cmd_ifdown(int argc,char **argv)
+{
+struct ifreq ifr;
+int s = socket (AF_INET, SOCK_DGRAM, 0);
+	if (s < 0) {
+		perror("ifconfig: socket");
+		return -1;
+	}
+bzero (&ifr, sizeof(ifr));
+strcpy(ifr.ifr_name,argv[1]);
+(void) ioctl(s, SIOCGIFADDR, &ifr);
+printf("%s",inet_ntoa(satosin(&ifr.ifr_addr)->sin_addr));
+(void) ioctl(s, SIOCDIFADDR, &ifr);
+ifr.ifr_flags=0;
+(void) ioctl(s,SIOCSIFFLAGS,(void *)&ifr);
+close(s);
+return 0;
+}
+
+static int cmd_ifup(int argc,char **argv)
+{
+struct ifreq ifr;
+int s = socket (AF_INET, SOCK_DGRAM, 0);
+	if (s < 0) {
+		perror("ifconfig: socket");
+		return -1;
+	}
+bzero (&ifr, sizeof(ifr));
+strcpy(ifr.ifr_name,argv[1]);
+ifr.ifr_flags=IFF_UP;
+(void) ioctl(s,SIOCSIFFLAGS,(void *)&ifr);
+close(s);
+return 0;
+}
+static int  cmd_rtlist(int argc,char **argv)
+{
+	db_show_arptab();
+return 0;
+}
+#include <sys/net/route.h>
+static int cmd_rtdel(int argc,char **argv)
+{
+	struct sockaddr dst;
+	bzero(&dst,sizeof(dst));
+	setsin (SIN(dst), AF_INET, inet_addr("10.0.0.3"));
+	rtrequest(RTM_DELETE, &dst, 0, 0, 0,0);
+	return 0;
+}
+
+static int mydelrt(rn, w)
+	struct radix_node *rn;
+	void *w;
+{
+	struct rtentry *rt = (struct rtentry *)rn;
+	register struct ifaddr *ifa;
+
+	if (*(char *)w=='*'||rt->rt_ifp)
+	{
+		if(*(char *)w=='*'||!strcmp(rt->rt_ifp->if_xname,(char *)w))
+		{
+		rtrequest(RTM_DELETE, rt_key(rt), rt->rt_gateway, rt_mask(rt), 0,0);
+		}
+	}
+
+	return (0);
+}
+
+/*
+ * Function to print all the route trees.
+ * Use this from ddb:  "call db_show_arptab"
+ */
+static int del_if_rt(char *ifname)
+{
+	struct radix_node_head *rnh;
+	rnh = rt_tables[AF_INET];
+	rn_walktree(rnh, mydelrt, ifname);
+	if (rnh == NULL) {
+		printf(" (not initialized)\n");
+		return (0);
+	}
+	return (0);
+}
+
+
+
+static int cmd_sleep(int argc,char **argv)
+{
+	unsigned long long microseconds;
+	unsigned long long total, start;
+	int i;
+
+	microseconds=strtoul(argv[1],0,0);
+//	printf("%d\n",microseconds);
+	for(i=0;i<microseconds;i++)
+	{
+	delay(1000);
+	}
+	return 0;
+}
+
+static int cmd_sleep1(int argc,char **argv)
+{
+	unsigned long long microseconds;
+	unsigned long long total, start;
+	int i;
+
+	microseconds=strtoul(argv[1],0,0);
+//	printf("%d\n",microseconds);
+	for(i=0;i<microseconds;i++)
+	{
+	delay1(1000);
+	}
+	return 0;
+}
+
+#if NMOD_VGACON
+static void cmd_led(int argc,char **argv)
+{
+	int led;
+	led=strtoul(argv[1],0,0);
+	pckbd_leds(led);
+}
+#endif
+
+
+int highmemcpy(long long dst,long long src,long long count);
+
+int highmemcpy(long long dst,long long src,long long count)
+{
+#if __mips >= 3
+asm(
+".set noreorder\n"
+"1:\n"
+"beqz %2,2f\n"
+"nop\n"
+"lb $2,(%0)\n"
+"sb $2,(%1)\n"
+"daddiu %0,1\n"
+"daddiu %1,1\n"
+"b 1b\n"
+"daddiu %2,-1\n"
+"2:\n"
+".set reorder\n"
+::"r"(src),"r"(dst),"r"(count)
+:"$2"
+);
+#else
+ memcpy(dst,src,count);
+#endif
+return 0;
+}
+
+int highmemset(long long addr,char c,long long count)
+{
+#if __mips >= 3
+asm(
+".set noreorder\n"
+"1:\n"
+"beqz %2,2f\n"
+"nop\n"
+"sb %1,(%0)\n"
+"daddiu %0,1\n"
+"b 1b\n"
+"daddiu %2,-1\n"
+"2:\n"
+".set reorder\n"
+::"r"(addr),"r"(c),"r"(count)
+:"$2"
+);
+#else
+memset(addr,c,count);
+#endif
+return 0;
+}
+
+static cmd_mymemcpy(int argc,char **argv)
+{
+	long long src,dst,count;
+	int ret;
+	if(argc!=4)return -1;
+	src=nr_str2addr(argv[1],0,0);
+	dst=nr_str2addr(argv[2],0,0);
+	count=nr_strtoll(argv[3],0,0);
+	ret=highmemcpy(dst,src,count);	
+	return ret;	
+}
+//------------------------------------------------------------------------------------------
+#if defined(NMOD_FLASH_ST)&&defined(FLASH_ST_DEBUG)
+#include "c2311.c"
+int cmd_testst(void) {
+ParameterType fp; /* Contains all Flash Parameters */
+ReturnType rRetVal; /* Return Type Enum */
+Flash(ReadManufacturerCode, &fp);
+printf("Manufacturer Code: %08Xh\r\n",
+fp.ReadManufacturerCode.ucManufacturerCode);
+Flash(ReadDeviceId, &fp);
+printf("Device Code: %08Xh\r\n",
+fp.ReadDeviceId.ucDeviceId);
+fp.BlockErase.ublBlockNr = 10; /* block number 10 will be erased
+*/
+rRetVal = Flash(BlockErase, &fp); /* function execution */
+return rRetVal;
+} /* EndFunction Main*/
+#endif
+
+
+static int mycmp(int argc,char **argv)
+{
+	unsigned char *s1,*s2;
+	int length,left;
+	if(argc!=4)return -1;
+	s1=strtoul(argv[1],0,0);
+	s2=strtoul(argv[2],0,0);
+	length=strtoul(argv[3],0,0);
+	while(left=bcmp(s1,s2,length))
+	{
+		s1=s1+length-left;
+		s2=s2+length-left;
+		length=left;
+		printf("[%p]!=[%p](0x%02x!=0x%02x)\n",s1,s2,*s1,*s2);
+		s1++;
+		s2++;
+		length--;
+	}
+	return 0;
+}
+
+static int (*oldwrite)(int fd,char *buf,int len)=0;
+static char *buffer;
+static int total;
+extern void (*__msgbox)(int yy,int xx,int height,int width,char *msg);
+void *restdout(int  (*newwrite) (int fd, const void *buf, size_t n));
+static int newwrite(int fd,char *buf,int len)
+{
+//if(stdout->fd==fd)
+{
+memcpy(buffer+total,buf,len);
+total+=len;
+}
+oldwrite(fd,buf,len);
+return len;
+}
+
+#if NMOD_DISPLAY
+static int mymore(int ac,char **av)
+{
+int i;
+char *myline;
+if(ac<2)return -1;
+myline=heaptop;
+total=0;
+buffer=heaptop+0x100000;
+oldwrite=restdout(newwrite);
+myline[0]=0;
+for(i=1;i<ac;i++)
+{
+strcat(myline,av[i]);
+strcat(myline," ");
+}
+do_cmd(myline);
+restdout(oldwrite);
+buffer[total]='\n';
+buffer[total+1]=0;
+__console_init();
+__msgbox(0,0,24,80,buffer);
+return 0;
+}
+#endif
+
+static unsigned long flashs_rombase;
+static int rom_read(int type,long long addr,union commondata *mydata)
+{
+memcpy(&mydata->data1,flashs_rombase+addr,type);
+return 0;
+}
+
+static int rom_write(int type,long long addr,union commondata *mydata)
+{
+        char *nvrambuf;
+        char *nvramsecbuf;
+	    char *nvram;
+		int offs;
+		struct fl_device *dev=fl_devident(flashs_rombase,0);
+		int nvram_size=dev->fl_secsize;
+
+        nvram =flashs_rombase + addr;
+		if(fl_program_device(nvram,&mydata->data1,type, FALSE)) {
+		return -1;
+		}
+
+		if(bcmp(nvram,&mydata->data1,type))
+		{
+		offs=(int)nvram &(nvram_size - 1);
+        nvram  =(int)nvram & ~(nvram_size - 1);
+
+	/* Deal with an entire sector even if we only use part of it */
+
+        /* If NVRAM is found to be uninitialized, reinit it. */
+
+        /* Find end of evironment strings */
+	nvramsecbuf = (char *)malloc(nvram_size);
+
+	if(nvramsecbuf == 0) {
+		printf("Warning! Unable to malloc nvrambuffer!\n");
+		return(-1);
+	}
+
+        memcpy(nvramsecbuf, nvram, nvram_size);
+        if(fl_erase_device(nvram, nvram_size, FALSE)) {
+		printf("Error! Nvram erase failed!\n");
+		free(nvramsecbuf);
+                return(0);
+        }
+	    
+		nvrambuf = nvramsecbuf + offs;
+
+		memcpy(nvrambuf,&mydata->data1,type);
+        
+		if(fl_program_device(nvram, nvramsecbuf, nvram_size, FALSE)) {
+		printf("Error! Nvram program failed!\n");
+		free(nvramsecbuf);
+                return(0);
+        }
+	free(nvramsecbuf);
+	 }
+        return 0;
+}
+
+
+static int flashs(int ac,char **av)
+{
+struct fl_device *dev;
+if(ac!=2)return -1;
+flashs_rombase=strtoul(av[1],0,0);
+dev=fl_devident(flashs_rombase,0);
+if(!dev){
+printf("can not find flash\n");
+return -1;
+}
+else
+{
+	syscall1=rom_read;
+	syscall2=rom_write;
+	syscall_addrtype=0;
+}
+return 0;
+}
+
+//----------------------------------
+//
+
+#define MTC0(RT,RD,SEL) ((0x408<<20)|((RT)<<16)|((RD)<<11)|SEL)
+#define MFC0(RT,RD,SEL) ((0x400<<20)|((RT)<<16)|((RD)<<11)|SEL)
+#define DMTC0(RT,RD,SEL) ((0x40a<<20)|((RT)<<16)|((RD)<<11)|SEL)
+#define DMFC0(RT,RD,SEL) ((0x402<<20)|((RT)<<16)|((RD)<<11)|SEL)
+static int cp0s_sel=0;
+static int __cp0syscall1(int type,unsigned long long addr,union commondata *mydata)
+{
+long data8;
+extern int mycp0ins();
+unsigned long *p=mycp0ins;
+if(type!=8)return -1;
+memset(mydata->data8,0,8);
+addr=(addr>>3)&0x1f;
+#if __mips>=3
+*p=DMFC0(2,addr,cp0s_sel);
+#else
+*p=MFC0(2,addr,cp0s_sel);
+#endif
+pci_sync_cache(0,(long)mycp0ins&~31UL,32,1);
+CPU_FlushICache((long)mycp0ins&~31UL,32);
+
+ asm(".global mycp0ins;mycp0ins:mfc0 $2,$0;move %0,$2" :"=r"(data8)::"$2");
+
+ *(long *)mydata->data8=data8;
+
+return 0;
+}
+
+static int __cp0syscall2(int type,unsigned long long addr,union commondata *mydata)
+{
+extern int mycp0ins1();
+unsigned long *p=mycp0ins1;
+if(type!=8)return -1;
+addr=(addr>>3)&0x1f;
+#if __mips>=3
+*p=DMTC0(2,addr,cp0s_sel);
+#else
+*p=MTC0(2,addr,cp0s_sel);
+#endif
+pci_sync_cache(0,(long)mycp0ins1&~31UL,32,1);
+CPU_FlushICache((long)mycp0ins1&~31UL,32);
+
+ asm(".global mycp0ins1;move $2,%0;mycp0ins1:mtc0 $2,$0;"::"r"(*(long *)mydata->data8):"$2");
+
+return 0;
+}
+
+static int mycp0s(int argc,char **argv)
+{
+syscall1=__cp0syscall1;
+syscall2=__cp0syscall2;
+	syscall_addrtype=0;
+if(argc>1)cp0s_sel=strtoul(argv[1],0,0);
+else cp0s_sel=0;
+return 0;	
+}
+
+void mycacheflush(long long addrin,unsigned int size,unsigned int rw)
+{
+unsigned int status;
+unsigned long long addr;
+addr=addrin&~0x1fULL;
+size=(addrin-addr+size+0x1f)&~0x1fUL;
+
+#if __mips >= 3
+asm(" #define COP_0_STATUS_REG	$12 \n"
+	"	#define SR_DIAG_DE		0x00010000\n"
+	"	mfc0	%0, $12		# Save the status register.\n"
+	"	li	$2, 0x00010000\n"
+	"	mtc0	$2, $12		# Disable interrupts\n"
+		:"=r"(status)
+		::"$2");
+if(rw)
+{
+	asm("#define HitWBInvalidate_S   0x17 \n"
+		"#define HitWBInvalidate_D   0x15 \n"
+		".set noreorder\n"
+		"1:	\n"
+		"sync \n"
+		"cache   0x17, 0(%0) \n"
+		"daddiu %0,32 \n"
+		"addiu %1,-32 \n"
+		"bnez %1,1b \n"
+		"nop \n"
+		".set reorder \n"
+			::"r"(addr),"r"(size));
+}
+else
+{
+	asm("#define HitInvalidate_S     0x13 \n"
+	"#define HitInvalidate_D     0x11\n"
+"	.set noreorder\n"
+"	1:	\n"
+"	sync\n"
+"	cache	0x13, 0(%0)\n"
+"	daddiu %0,32\n"
+"	addiu %1,-32\n"
+"	bnez %1,1b\n"
+"	nop\n"
+"	.set reorder\n"
+		::"r"(addr),"r"(size));
+}
+
+asm("\n"
+"	#define COP_0_STATUS_REG	$12\n"
+"	mtc0	%0, $12		# Restore the status register.\n"
+		::"r"(status));
+
+#else
+pci_sync_cache(0,addr,size,rw);
+#endif
+}
+
        
 //-------------------------------------------------------------------------------------------
 static const Cmd Cmds[] =
 {
 	{"MyCmds"},
-	//{"pnpr",	"LDN index", 0, "pnpr LDN(logic device NO) index", PnpRead, 0, 99, CMD_REPEAT},
-	//{"pnpw",	"LDN index value", 0, "pnpw LDN(logic device NO) index value", PnpWrite, 0, 99, CMD_REPEAT},
+	{"testnet",	"", 0, "testnet rtl0 [recv|send|loop]", cmd_testnet, 0, 99, CMD_REPEAT},
+	{"cp0s",	"", 0, "access cp0", mycp0s, 0, 99, CMD_REPEAT},
 	{"pcs",	"bus dev func", 0, "select pci dev function", mypcs, 0, 99, CMD_REPEAT},
+	{"disks",	"disk", 0, "select disk", mydisks, 0, 99, CMD_REPEAT},
 	{"d1",	"[addr] [count]", 0, "dump address byte", dump, 0, 99, CMD_REPEAT},
 	{"d2",	"[addr] [count]", 0, "dump address half world", dump, 0, 99, CMD_REPEAT},
 	{"d4",	"[addr] [count]", 0, "dump address world", dump, 0, 99, CMD_REPEAT},
@@ -597,11 +1827,35 @@ static const Cmd Cmds[] =
 	{"initkbd","",0,"kbd_initialize",initkbd,0,99,CMD_REPEAT},
 	{"tlbset","viraddr phyaddr [-x]",0,"tlbset viraddr phyaddr [-x]",tlbset,0,99,CMD_REPEAT},
 	{"cache","[0 1]",0,"cache [0 1]",setcache,0,99,CMD_REPEAT},
-
-#if NMOD_FLASH_SST
+	{"loop","count cmd...",0,"loopcmd count cmd...",loopcmd,0,99,CMD_REPEAT},
+	{"Loop","count cmd...",0,"loopcmd count cmd...",loopcmd,0,99,CMD_REPEAT},
+	{"testide","[onecesize]",0,"test ide dma",testide,0,99,CMD_REPEAT},
+	{"checksum","start size",0,"calculate checksum for a memory section",checksum,0,99,CMD_REPEAT},
+	{"fdisk","diskname",0,"dump disk partation",fdisk,0,99,CMD_REPEAT},
+#if NMOD_FLASH_ST
 	{"erase","[0 1]",0,"cache [0 1]",erase,0,99,CMD_REPEAT},
 	{"program","[0 1]",0,"cache [0 1]",program,0,99,CMD_REPEAT},
+#ifdef FLASH_ST_DEBUG
+	{"testst","n",0,"",cmd_testst,0,99,CMD_REPEAT},
 #endif
+#endif
+	{"ifconfig","ifname",0,"ifconig fx0 [up|down|remove|stat|setmac|readrom|setrom|addr [netmask]",cmd_ifconfig,2,99,CMD_REPEAT},
+	{"ifup","ifname",0,"ifup fxp0",cmd_ifup,2,99,CMD_REPEAT},
+	{"ifdown","ifname",0,"ifdown fxp0",cmd_ifdown,2,99,CMD_REPEAT},
+	{"rtlist","",0,"rtlist",cmd_rtlist,0,99,CMD_REPEAT},
+	{"rtdel","",0,"rtdel",cmd_rtdel,0,99,CMD_REPEAT},
+	{"sleep","ms",0,"sleep ms",cmd_sleep,2,2,CMD_REPEAT},
+	{"sleep1","ms",0,"sleep1 s",cmd_sleep1,2,2,CMD_REPEAT},
+	{"memcpy","src dst count",0,"mymemcpy src dst count",cmd_mymemcpy,0,99,CMD_REPEAT},
+#if NMOD_VGACON
+	{"led","n",0,"led n",cmd_led,2,2,CMD_REPEAT},
+#endif
+	{"mycmp","s1 s2 len",0,"mecmp s1 s2 len",mycmp,4,4,CMD_REPEAT},
+#if NMOD_DISPLAY
+	{"mymore","",0,"mymore",mymore,1,99,CMD_REPEAT},
+#endif
+	{"flashs",	"rom", 0, "select flash for read/write", flashs, 0, 99, CMD_REPEAT},
+	{"devcp",	"srcfile dstfile [bs=0x20000] [count=-1] [seek=0] [skip=0] [quiet=0]", 0, "copy form src to dst",devcp, 0, 99, CMD_REPEAT},
 	{0, 0}
 };
 

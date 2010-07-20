@@ -400,8 +400,10 @@ static struct mbuf * getmbuf(struct rtl8169_private *tp)
 	 * Sync the buffer so we can access it uncached.
 	 */
 	if (m->m_ext.ext_buf!=NULL) {
+#ifndef LS3_HT
 		pci_sync_cache(tp->sc_pc, (vm_offset_t)m->m_ext.ext_buf,
 				MCLBYTES, SYNC_R);
+#endif
 	}
 #define RFA_ALIGNMENT_FUDGE 2
 	m->m_data += RFA_ALIGNMENT_FUDGE;
@@ -1717,6 +1719,7 @@ rtl8169_ether_ioctl(struct ifnet *ifp, unsigned long cmd, caddr_t data)
 
 static struct rtl8169_private* myRTL = NULL; 
 
+unsigned char	last_two_8169_mac[2];
 static void 
 r8169_attach(struct device * parent, struct device * self, void *aux)
 {
@@ -1797,6 +1800,8 @@ r8169_attach(struct device * parent, struct device * self, void *aux)
 		else
 				printf(":");
 	}		
+	last_two_8169_mac[0] = tp->dev_addr[4];
+	last_two_8169_mac[1] = tp->dev_addr[5];
 
 	for(i=0; i<32/2; i++){
 		printf("%04x", read_eeprom(tp, i));
@@ -1906,6 +1911,14 @@ r8169_attach(struct device * parent, struct device * self, void *aux)
 	return ;
 }
 
+#if 1 /*gx */
+struct rtl8169_private *mytp;
+int my_turnoff_rtl8169()
+{
+	rtl8169_asic_down(mytp);
+	//rtl8169_down(mytp);
+}
+#endif
 
 static int rtl8169_open_times = 0; 
 static int rtl8169_open(struct rtl8169_private *tp)
@@ -1913,6 +1926,9 @@ static int rtl8169_open(struct rtl8169_private *tp)
 	int retval = 0;
     u32 status;
 
+#if 1 /* gx */
+	mytp = tp;
+#endif
 	/*
 	 * Rx and Tx desscriptors needs 256 bytes alignment.
 	 * pci_alloc_consistent provides more.
@@ -1927,10 +1943,16 @@ static int rtl8169_open(struct rtl8169_private *tp)
 			goto err_free_tx;
 		}
 		memset((caddr_t)tp->TxDescArray, 0, R8169_TX_RING_BYTES + 255);
+#ifndef LS3_HT
        	pci_sync_cache(tp->sc_pc, (vm_offset_t)(tp->TxDescArray),  R8169_TX_RING_BYTES + 255, SYNC_W);
+#endif
        	tp->TxDescArray = (struct TxDesc *)(((unsigned long)(tp->TxDescArray) + 255) & ~255);	
 	}
+#ifndef LS3_HT
 	tp->TxDescArray = (struct TxDesc*)CACHED_TO_UNCACHED((unsigned long)(tp->TxDescArray));
+#else
+		 tp->TxDescArray = (struct TxDesc*)((unsigned long)(tp->TxDescArray));
+#endif
 	tp->TxPhyAddr = (unsigned long)vtophys((unsigned long)(tp->TxDescArray));
 
     status = RTL_R16(tp, IntrStatus);
@@ -1943,10 +1965,16 @@ static int rtl8169_open(struct rtl8169_private *tp)
 		      goto err_free_rx;
 		   }		
 		   memset((caddr_t)(tp->RxDescArray), 0, R8169_RX_RING_BYTES + 255);
+#ifndef LS3_HT
 		   pci_sync_cache(tp->sc_pc, (vm_offset_t)(tp->RxDescArray),  R8169_RX_RING_BYTES + 255, SYNC_W);
+#endif
 		   tp->RxDescArray = (struct RxDesc *)(((unsigned long)(tp->RxDescArray) + 255) & ~255);	
 	}	
+#ifndef LS3_HT
 	tp->RxDescArray = (struct RxDesc*)CACHED_TO_UNCACHED((unsigned long)(tp->RxDescArray));
+#else
+	  tp->RxDescArray = (struct RxDesc*)((unsigned long)(tp->RxDescArray));
+#endif
 	tp->RxPhyAddr = (unsigned long)vtophys((unsigned long)(tp->RxDescArray));
 
     status = RTL_R16(tp, IntrStatus);
@@ -2135,7 +2163,11 @@ static int rtl8169_alloc_rx(unsigned char **rx_buffer,
 		goto err_out;
 	}
 	*rx_buffer = (unsigned char *)(((unsigned long)(*rx_buffer) + 7) & ~7);
+#ifndef LS3_HT
 	*rx_buffer = (unsigned char *)CACHED_TO_UNCACHED(*rx_buffer);	
+#else
+	  *rx_buffer = (unsigned char *)(*rx_buffer);	
+#endif
 
 	mapping = (unsigned long)vtophys(*rx_buffer);
 
@@ -2165,10 +2197,16 @@ static int rtl8169_alloc_tx(unsigned char **tx_buffer,
 	}
 
 #ifdef __mips__
+#ifndef LS3_HT
 	pci_sync_cache(NULL, (vm_offset_t)tmp, tx_buf_sz, SYNC_W);
 #endif
+#endif
 
+#ifndef LS3_HT
 	*tx_buffer = (unsigned char *)CACHED_TO_UNCACHED(tmp);
+#else
+	*tx_buffer = (unsigned char *)(tmp);
+#endif
 
 	mapping = (unsigned long)vtophys(*tx_buffer);
 
@@ -2376,8 +2414,10 @@ static int rtl8169_xmit_frags(struct rtl8169_private *tp,  struct ifnet *ifp)
 		td->opts1 = cpu_to_le32(status);
 
 #ifdef __mips__
+#ifndef LS3_HT
 		pci_sync_cache(tp->sc_pc, (vm_offset_t)tp->tx_buffer[entry], 
 				len, SYNC_W);
+#endif
 #endif
 		m_freem(mb_head);
 		wbflush();  
@@ -2483,11 +2523,14 @@ static void
 rtl8169_tx_interrupt(struct rtl8169_private *tp)
 {
 	unsigned int dirty_tx, tx_left;
+    int retry, flag = 0;
 
 	assert(tp != NULL);
        
+	retry = 300;
+txloop:
 	dirty_tx = tp->dirty_tx;
-	tx_left = tp->cur_tx - dirty_tx;
+	flag = tx_left = tp->cur_tx - dirty_tx;
  
 	while (tx_left > 0) {
 		unsigned int entry = dirty_tx % NUM_TX_DESC;
@@ -2507,6 +2550,11 @@ rtl8169_tx_interrupt(struct rtl8169_private *tp)
 		}           
 		dirty_tx++;
 		tx_left--;
+	}  
+	if ( flag == tx_left )
+	{
+	  if (retry-- > 0)
+		goto txloop;
 	}  
 	tp->dirty_tx = dirty_tx;
 
@@ -2541,10 +2589,13 @@ rtl8169_rx_interrupt(struct rtl8169_private *tp)
 	u32 status = 0;
 	struct RxDesc *desc;
 
+    int retry, flag = 0;
 	assert(tp != NULL);
 
+	retry = 300;
+recvloop:
 	cur_rx = tp->cur_rx;
-	rx_left = NUM_RX_DESC + tp->dirty_rx - cur_rx;     
+	flag = rx_left = NUM_RX_DESC + tp->dirty_rx - cur_rx;     
 
 	for (; rx_left > 0; rx_left--, cur_rx++) {
 		unsigned int entry = cur_rx % NUM_RX_DESC;
@@ -2608,6 +2659,14 @@ rtl8169_rx_interrupt(struct rtl8169_private *tp)
                      delta = rtl8169_rx_fill(tp,  entry, entry + 1, 1);//should this work be done here ? lihui.
                      tp->dirty_rx += delta; //FIXME			
 		}
+	}
+	if (flag ==  rx_left) // no loop
+	{ 
+	  if ( retry > 0)
+	  {
+		retry--;
+		goto recvloop;
+	  }
 	}
 
 	count = cur_rx - tp->cur_rx;
@@ -2978,6 +3037,57 @@ static int cmd_set_8110(int ac, char *av[])
 	return 0;
 }
 
+static int cmd_wrprom(int ac, char *av[])
+{
+    int i;
+    //unsigned long clocks_num=0;
+    unsigned short data;
+    static unsigned char rom[]={
+/*00000000:*/0x29,0x81,0xec,0x10,0x69,0x81,0xec,0x10,0x69,0x81,0x20,0x40,0x01,0xa1,0x00,0xe0,
+/*00000010:*/0x4c,0x67,0x10,0x51,0x15,0xcd,0xc2,0xf7,0x00,0x80,0x00,0x00,0x00,0x00,0x00,0x13,
+/*00000020:*/0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+/*00000030:*/0x00,0x00,0xd7,0x7e,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x20,
+/*00000040:*/0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+/*00000050:*/0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+/*00000060:*/0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+/*00000070:*/0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
+
+        if(!myRTL){
+                printf("8169 interface not initialized\n");
+                return 0;
+        }
+
+#if 0 //lwg
+                clocks_num =CPU_GetCOUNT();
+                mysrand(clocks_num);
+                for( i = 0; i < 4;i++ )
+                {
+                        rom[0x8*2 + i]=myrand()%256;
+                        printf( " rom[%d]=02x%x\n", (0x8*2+i),rom[0x8*2+i]);
+                }
+#endif
+
+    printf("myRTL->ioaddr = %x\n", myRTL->ioaddr);
+
+    for(i=0;i<0x40;i++)
+    {
+        int j = 10;
+        printf("program %02x:%04x\n",2*i,(rom[2*i+1]<<8)|rom[2*i]);
+//rewrite:
+        rtl8169_write_eeprom(myRTL->ioaddr, i, (rom[2*i+1]<<8)|rom[2*i]);
+        data = read_eeprom(myRTL,  i);
+        printf("data = %x\n", data);
+        if(data != ((rom[2*i+1]<<8)|rom[2*i])){
+            printf("write failed\n");
+            while(j--);
+            //goto rewrite;
+        }
+
+    }
+    printf("The whole eeprom have been programmed!\n");
+	return 0;
+}
+
 int db8169 = 0;
 		       
 static const Optdesc netdmp_opts[] =
@@ -2996,6 +3106,8 @@ static const Cmd Cmds[] =
 		    "Set mac address into 8169 eeprom", cmd_setmac, 1, 5, 0},
 	{"reprom2", "", NULL,
 			"dump rtl8169 eprom content", cmd_reprom, 1, 1,0},
+	{"writerom", "", NULL, 
+			"dump rtl8169 eprom content", cmd_wrprom, 1, 1, 0},
     {"r8110_reneo","",NULL, "set re-auto xx of rtl 8110 phy", cmd_set_8110,1,2,0},
     {"r8110_speed","",NULL, "disable/enable 8110 ifaddr config retry for 1000M/100M", cmd_set_frequency,1,3,0},
 	{0, 0}

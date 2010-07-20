@@ -818,8 +818,11 @@ static void rtl8139_transmit(struct ifnet *ifp)
 		     memset(nic->tx_buf[entry]+mb_head->m_pkthdr.len, 0, 60-mb_head->m_pkthdr.len);
 		
 #ifdef __mips__
+#ifdef LS3_HT
+#else
 		pci_sync_cache(nic->sc_pc, (vm_offset_t)nic->tx_buf[entry], 
 				max(60, mb_head->m_pkthdr.len), SYNC_W);
+#endif
 #endif				   
 
 
@@ -893,6 +896,9 @@ static struct mbuf * getmbuf(struct nic *nic)
 	}
 	
 #if defined(__mips__)
+#ifdef LS3_HT
+	m->m_data += RFA_ALIGNMENT_FUDGE;
+#else
 	/*
 	 * Sync the buffer so we can access it uncached.
 	 */
@@ -901,6 +907,7 @@ static struct mbuf * getmbuf(struct nic *nic)
 				MCLBYTES, SYNC_R);
 	}
 	m->m_data += RFA_ALIGNMENT_FUDGE;
+#endif
 #else
 	m->m_data += RFA_ALIGNMENT_FUDGE;
 #endif
@@ -1185,10 +1192,17 @@ static void rtl8139_init_ring(struct nic *nic)
 	 */
 	buf = (unsigned long)malloc(TX_BUF_SIZE*4+15, M_DEVBUF, M_DONTWAIT );
 	memset((caddr_t)buf, 0, TX_BUF_SIZE*14+15);
+#ifdef LS3_HT
+#else
 	pci_sync_cache(nic->sc_pc, buf, TX_BUF_SIZE*4+15, SYNC_W);
+#endif
 	
 	buf = (buf+15) & ~15;
+#ifdef LS3_HT
+	nic->tx_buffer = (unsigned char *)(buf);
+#else
 	nic->tx_buffer = (unsigned char *)CACHED_TO_UNCACHED(buf);
+#endif
 	nic->tx_dma =(unsigned char *)vtophys(buf);
 
 	/*
@@ -1196,10 +1210,17 @@ static void rtl8139_init_ring(struct nic *nic)
 	 */
 	buf = (unsigned long)malloc(RX_BUF_LEN+15, M_DEVBUF, M_DONTWAIT );
 	memset((caddr_t)buf, 0, RX_BUF_LEN+15);
+#ifdef LS3_HT
+#else
 	pci_sync_cache(nic->sc_pc, buf, RX_BUF_LEN, SYNC_W);
+#endif
 
 	buf = (buf+15) & ~15;
+#ifdef LS3_HT
+	nic->rx_buffer = (unsigned char *)(buf);
+#else
 	nic->rx_buffer = (unsigned char *)CACHED_TO_UNCACHED(buf);
+#endif
 	nic->rx_dma =(unsigned char *)vtophys(buf);
 
 	
@@ -1268,7 +1289,7 @@ static void rtl8139_attach(struct device * parent, struct device * self, void *a
 	nic->sc_ih = pci_intr_establish(pc, ih, IPL_NET, rtl8139_intr, nic,
 	    self->dv_xname);
 #else
-#error "__OpenBSD__ should be defined"	
+	nic->sc_ih = pci_intr_establish(pc, ih, IPL_NET, fxp_intr, nic);
 #endif
 	
 	if (nic->sc_ih == NULL) {
@@ -1439,7 +1460,42 @@ rtl_ether_ioctl(ifp, cmd, data)
 				;//fxp_stop(sc, 1);
 		}
 		break;
+	case SIOCETHTOOL:
+	{
+	long *p=data;
+	mynic = sc;
+	cmd_setmac(p[0],p[1]);
+	}
+	break;
+	case SIOCGETHERADDR:
+	{
+		long long val;
+		char *p=data;
+		mynic = sc;
+		val =rtl_read_mac(mynic);
+		p[5] = val>>40&0xff; 
+		p[4] = val>>32&0xff; 
+		p[3] = val>>24&0xff; 
+		p[2] = val>>16&0xff; 
+		p[1] = val>>8&0xff; 
+		p[0] = val&0xff; 
 
+	}
+	break;
+       case SIOCRDEEPROM:
+                {
+                long *p=data;
+                mynic = sc;
+                cmd_reprom(p[0],p[1]);
+                }
+                break;
+       case SIOCWREEPROM:
+                {
+                long *p=data;
+                mynic = sc;
+                cmd_wrprom(p[0],p[1]);
+                }
+                break;
 	default:
 		error = EINVAL;
 	}
@@ -1650,6 +1706,112 @@ int cmd_reprom(int ac, char *av[])
 	return 0;
 }
 
+#if 1
+static unsigned long next = 1;
+static int myrand(void) {
+               next = next * 1103515245 + 12345;
+               return((unsigned)(next/65536) % 32768);
+           }
+static void mysrand(unsigned int seed) {
+               next = seed;
+           }
+#endif
+int cmd_wrprom(int ac,char **av)
+{
+        int i=0;
+        unsigned long clocks_num=0;
+        unsigned char tmp[4];
+        unsigned short eeprom_data;
+        unsigned short rom[64]={
+				0x8129, 0x10ec, 0x8139, 0x10ec, 0x8139, 0x4020, 0xe512, 0x0a00,
+        			0x56eb, 0x135b, 0x4d15, 0xf7c2, 0x8801, 0x03b9, 0x60f4, 0x071a,
+				0xdfa3, 0x9836, 0xdfa3, 0x9836, 0x03b9, 0x60f4, 0x1a1a, 0x1a1a,
+				0x0000, 0xb6e3, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x2000,
+				0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+				0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+				0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+				0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000                        
+                        };
+        printf("Now beginningwrite whole eprom\n");
+#if 1
+                clocks_num =CPU_GetCOUNT(); // clock();
+                mysrand(clocks_num);
+                for( i = 0; i < 4;i++ )
+                {
+                        tmp[i]=myrand()%256;
+                        printf( " tmp[%d]=02x%x\n", i,tmp[i]);
+                }
+                eeprom_data =tmp[1] |( tmp[0]<<8);
+		rom[8] = eeprom_data;
+                printf("eeprom_data [8] = 0x%4x\n",eeprom_data);
+                eeprom_data =tmp[3] |( tmp[2]<<8);
+		rom[9] = eeprom_data;
+                printf("eeprom_data [9] = 0x%4x\n",eeprom_data);
+#endif
+	if(ac>1)
+	{
+	 //offset:data,data
+	 int i;
+	 int offset;
+	 int data;
+	 for(i=1;i<ac;i++)
+	 {
+	 	char *p=av[i];
+		char *nextp;
+	 	int offset=strtoul(p,&nextp,0);
+		while(nextp!=p)
+		{
+		p=++nextp;
+		data=strtoul(p,&nextp,0);
+		if(nextp==p)break;
+		rom[offset++]=data;
+		}
+	 }
+	}
+        for(i=0; i< 64; i++)
+        {
+                eeprom_data = rom[i];
+                write_eeprom(ioaddr, i, eeprom_data);
+        }
+        printf("Write the whole eeprom OK!\n");
+        return 0;
+}
+int netdmp_cmd (int ac, char *av[])
+{
+	struct ifnet *ifp;
+	int i;
+	ifp = &mynic->arpcom.ac_if;
+	printf("if_snd.mb_head: %x\n", ifp->if_snd.ifq_head);	
+	printf("if_snd.ifq_snd.ifqlen =%d\n", ifp->if_snd.ifq_len);
+	printf("ChipCmd= %x\n", RTL_READ_1(mynic, ChipCmd));
+	printf("ifnet address=%8x\n", ifp);
+	printf("if_flags = %x\n", ifp->if_flags);
+	printf("Intr =%x\n", RTL_READ_2(mynic, IntrStatus));
+	printf("TxConfig =%x\n", RTL_READ_4(mynic, TxConfig));
+	printf("RxConfig =%x\n", RTL_READ_4(mynic, RxConfig));
+	printf("RxBufPtr= %x\n", RTL_READ_2(mynic, RxBufPtr));
+	printf("RxBufAddr =%x\n", RTL_READ_2(mynic, RxBufAddr));
+	printf("cur_rx =%x\n", cur_rx);
+	printf("rx_ring: %x\n",mynic->rx_dma);
+	printf("tx_dma: %x\n",mynic->tx_dma);
+	printf("cur_tx =%d, dirty_tx=%d\n", cur_tx, dirty_tx);
+	for (i =0; i<4; i++){
+		printf("Txstatus[%d]=%x\n", i, RTL_READ_4(mynic, TxStatus0+i*4));
+	}
+	if(ac==2){
+		if(strcmp(av[1], "on")==0){
+			db8139=1;
+		}
+		else if(strcmp(av[1], "off")==0){
+			db8139=0;
+		}else {
+			int x=atoi(av[1]);
+			max_interrupt_work=x;
+		}
+	}
+	printf("db8139=%d\n",db8139);
+	return 0;
+}
 static const Optdesc netdmp_opts[] =
 {
     {"<interface>", "Interface name"},
@@ -1659,13 +1821,18 @@ static const Optdesc netdmp_opts[] =
 
 static const Cmd Cmds[] =
 {
-	{"Realtek 8139"},
+	{"8139"},
+	{"netdmp",	"",
+			0,
+			"8139 helper", netdmp_cmd, 1, 3, 0},
 	{"ifm", "", NULL,
 		    "Set 8139 interface mode", cmd_ifm, 1, 2, 0},
 	{"setmac", "", NULL,
 		    "Set mac address into 8139 eeprom", cmd_setmac, 1, 5, 0},
 	{"reprom", "", NULL,
 			"dump rtl8139 eprom content", cmd_reprom, 1, 1,0},
+	{"writerom", "", NULL,
+			"write the whole rtl8139 eprom content", cmd_wrprom, 1, 1,0},
 	{0, 0}
 };
 

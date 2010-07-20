@@ -4,6 +4,7 @@
 #include <linux/types.h>
 #include <linux/io.h>
 #include "mod_framebuffer.h"
+#include <machine/cpu.h>
 
 #define index_cursor_pos_hi 0x0e
 #define index_cursor_pos_lo 0x0f
@@ -19,8 +20,27 @@ extern unsigned char kbd_code;
 #if NMOD_USB_KBD != 0
 extern unsigned char usb_kbd_code;
 #endif
+extern unsigned char usb_kbd_code; 
+#ifndef VGA_BASE
+#ifdef BONITOEL
+	unsigned char * vgabh=(unsigned char *)PTR_PAD(0xb00b8000);
+#endif
+#ifdef CONFIG_PCI0_GAINT_MEM
+	unsigned char * vgabh=(unsigned char *)PTR_PAD(0xbeeb8000);
+#endif
 
+#ifdef CONFIG_PCI0_HUGE_MEM
+	unsigned char * vgabh=(unsigned char *)PTR_PAD(0xb48b8000);
+#endif
+#ifdef CONFIG_PCI0_LARGE_MEM
+	unsigned char * vgabh=(unsigned char *)PTR_PAD(0xb50b8000);
+#endif
+#if !(defined(BONITOEL)|defined(CONFIG_PCI0_GAINT_MEM)|defined(CONFIG_PCI0_HUGE_MEM)|defined(CONFIG_PCI0_LARGE_MEM)) 
+	unsigned char * vgabh=(unsigned char *)PTR_PAD(0xb00b8000);
+#endif
+#else
 unsigned char *vgabh = (unsigned char *)(VGA_BASE + 0xb8000);
+#endif
 
 int rowcount = 25;
 int colcount = 80;

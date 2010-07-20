@@ -104,6 +104,10 @@ domaininit()
 #endif
 #endif
 #endif
+#include "raw_ether.h"
+#if NRAW_ETHER
+	ADDDOMAIN(ether);
+#endif
 
 	for (dp = domains; dp; dp = dp->dom_next) {
 		if (dp->dom_init)

@@ -51,7 +51,7 @@ vsprintf (char *d, const char *s, va_list ap)
 	double dbl;
 
 #ifndef NEWFP
-	EP ex;
+//	EP ex;
 #endif
 #endif
 
@@ -136,8 +136,15 @@ vsprintf (char *d, const char *s, va_list ap)
 					if (longlong)
 						llbtoa(d, va_arg (ap, quad_t),
 						    base);
-					else
+#else
+					if (longlong)
+					{
+					long x=va_arg (ap, long long);
+						btoa(d, (long)x,
+						    base);
+					}
 #endif
+					else
 						btoa(d, va_arg (ap, int), base);
 
 					if (*s == 'X')

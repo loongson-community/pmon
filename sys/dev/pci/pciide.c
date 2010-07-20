@@ -105,8 +105,8 @@ int wdcdebug_pciide_mask = DEBUG_DMA|DEBUG_XFERS|DEBUG_FUNCS|DEBUG_PROBE;
 #include <dev/pci/pciidevar.h>
 #include <dev/pci/pciide_piix_reg.h>
 #include <dev/pci/pciide_amd_reg.h>
-#ifndef PMON
 #include <dev/pci/pciide_apollo_reg.h>
+#ifndef PMON
 #endif
 #include <dev/pci/pciide_cmd_reg.h>
 #ifndef PMON
@@ -237,7 +237,7 @@ void pdc20268_setup_channel __P((struct channel_softc*));
 int  pdc202xx_pci_intr __P((void *));
 int  pdc20265_pci_intr __P((void *));
  
-#ifndef PMON
+#if !defined(PMON)||defined(IDE_DMA)
 void pciide_channel_dma_setup __P((struct pciide_channel *));
 int  pciide_dma_table_setup __P((struct pciide_softc*, int, int));
 int  pciide_dma_init __P((void*, int, int, void *, size_t, int));
@@ -494,10 +494,12 @@ pciide_match(parent, match, aux)
 {
 	struct pci_attach_args *pa = aux;
 	const struct pciide_product_desc *pp;
+    #if !defined(LOONGSON3A_3AEV)
 	int bus, device, function;
 	
 	_pci_break_tag(pa->pa_tag, &bus, &device, &function);
-	
+    #endif
+    
 	/*
 	 * Check the ID register to see that it's a PCI IDE controller.
 	 * If it is, we assume that we can deal with it; it _should_
@@ -533,6 +535,7 @@ pciide_attach(parent, self, aux)
 	pcitag_t tag = pa->pa_tag;
 	struct pciide_softc *sc = (struct pciide_softc *)self;
 	pcireg_t csr;
+    pcireg_t tmpreg;
 	char devinfo[256];
 
 	sc->sc_pp = pciide_lookup_product(pa->pa_id);
@@ -548,6 +551,14 @@ pciide_attach(parent, self, aux)
 #ifdef WDCDEBUG
        if (wdcdebug_pciide_mask & DEBUG_PROBE)
                printf("sc_pc %x, sc_tag %x\n", sc->sc_pc, sc->sc_tag);
+#endif
+
+#ifdef MCP68_IDE
+    /* Enable IDE controller of MCP68 */
+    tmpreg = pci_conf_read(pc, tag, 0x50);
+    pci_conf_write(pc, tag, 0x50, tmpreg | 0x02);
+    tmpreg = pci_conf_read(pc, tag, 0x50);
+    printf("\nMCP68 IDE enable : 0x50 : %8x\n",tmpreg);
 #endif
 
 	sc->sc_pp->chip_map(sc, pa);
@@ -686,7 +697,7 @@ pciide_mapreg_dma(sc, pa)
 	struct pciide_softc *sc;
 	struct pci_attach_args *pa;
 {
-#ifndef PMON
+#if !defined(PMON)||defined(IDE_DMA)
 	/*
 	 * Map DMA registers
 	 *
@@ -768,7 +779,7 @@ pciide_pci_intr(arg)
 	return (rv);
 }
 
-#ifndef PMON
+#if !defined(PMON)||defined(IDE_DMA)
 void
 pciide_channel_dma_setup(cp)
 	struct pciide_channel *cp;
@@ -894,7 +905,7 @@ pciide_dma_init(v, channel, drive, databuf, datalen, flags)
 		return error;
 	}
 
-#ifndef __OpenBSD__
+#if !defined(__OpenBSD__)||defined(IDE_DMA)
 	bus_dmamap_sync(sc->sc_dmat, dma_maps->dmamap_xfer,
 	    0,
 	    dma_maps->dmamap_xfer->dm_mapsize,		
@@ -934,7 +945,7 @@ pciide_dma_init(v, channel, drive, databuf, datalen, flags)
 	dma_maps->dma_table[dma_maps->dmamap_xfer->dm_nsegs -1].byte_count |=
 	    htopci(IDEDMA_BYTE_COUNT_EOT);
 
-#ifndef __OpenBSD__
+#if !defined(__OpenBSD__) || defined(IDE_DMA)
 	bus_dmamap_sync(sc->sc_dmat, dma_maps->dmamap_table, 
 	    0,
 	    dma_maps->dmamap_table->dm_mapsize,
@@ -967,8 +978,12 @@ pciide_dma_init(v, channel, drive, databuf, datalen, flags)
 printf("dma table start at 0x%08x\n", dma_maps->dmamap_table->dm_segs[0].ds_addr);
 	bus_space_write_4(sc->sc_dma_iot, sc->sc_dma_ioh,
 	    IDEDMA_TBL + IDEDMA_SCH_OFFSET * channel,
+	    #if defined(LOONGSON3A_3AEV)
+	    dma_maps->dmamap_table->dm_segs[0].ds_addr); /* XXX */
+        #else
 	    dma_maps->dmamap_table->dm_segs[0].ds_addr | 0x80000000); /* XXX */
-	/* set read/write */
+        #endif
+    /* set read/write */
 	bus_space_write_1(sc->sc_dma_iot, sc->sc_dma_ioh,
 	    IDEDMA_CMD + IDEDMA_SCH_OFFSET * channel,
 	    (flags & WDC_DMA_READ) ? IDEDMA_CMD_WRITE: 0);
@@ -1001,7 +1016,7 @@ pciide_dma_finish(v, channel, drive, flags)
 	    &sc->pciide_channels[channel].dma_maps[drive];
 
 	/* Unload the map of the data buffer */
-#ifndef __OpenBSD__
+#if !defined(__OpenBSD__)||defined(IDE_DMA)
 	bus_dmamap_sync(sc->sc_dmat, dma_maps->dmamap_xfer, 
 	    0,
 	    dma_maps->dmamap_xfer->dm_mapsize,
@@ -1128,13 +1143,14 @@ pciiide_chan_candisable(cp)
  * generic code to map the compat intr if hw_ok=1 and it is a compat channel.
  * Set hw_ok=0 on failure
  */
+#define	pciide_machdep_compat_intr_establish(a, b, c, d, e)	tgt_poll_register((c), (d), (e))
 void
 pciide_map_compat_intr(pa, cp, compatchan, interface)
 	struct pci_attach_args *pa;
 	struct pciide_channel *cp;
 	int compatchan, interface;
 {
-#ifndef PMON
+#if !defined(PMON)||defined(IDE_DMA)
 	struct pciide_softc *sc = (struct pciide_softc *)cp->wdc_channel.wdc;
 	struct channel_softc *wdc_cp = &cp->wdc_channel;
 
@@ -1207,12 +1223,15 @@ default_chip_map(sc, pa)
 	struct pciide_channel *cp;
 	
 	/* setting the virtual class interface  */
-	//pcireg_t interface = PCI_INTERFACE(pci_conf_read(sc->sc_pc,  sc->sc_tag, PCI_CLASS_REG));
-	pcireg_t interface = 0x00;
+    #if defined(LOONGSON3A_3AEV)
+	pcireg_t interface = PCI_INTERFACE(pci_conf_read(sc->sc_pc,  sc->sc_tag, PCI_CLASS_REG));
+    #else
+    pcireg_t interface = 0x00;
+    #endif
 	
 	pcireg_t csr;
 	int channel;
-#ifndef PMON
+#if !defined(PMON)||defined(IDE_DMA)
 	int drive;
 	struct ata_drive_datas *drvp;
 	u_int8_t idedma_ctl;
@@ -1225,12 +1244,15 @@ default_chip_map(sc, pa)
 
 	if (interface & PCIIDE_INTERFACE_BUS_MASTER_DMA) {
 		printf(": DMA");
+#ifndef IDE_DMA
 		if (sc->sc_pp == &default_product_desc &&
 		    (sc->sc_wdcdev.sc_dev.dv_cfdata->cf_flags &
 		    PCIIDE_OPTIONS_DMA) == 0) {
 			printf(" (unsupported)");
 			sc->sc_dma_ok = 0;
-		} else {
+		} else 
+#endif
+		{
 			pciide_mapreg_dma(sc, pa);
 		if (sc->sc_dma_ok != 0)
 			printf(", (partial support)");
@@ -1311,7 +1333,7 @@ next:
 		}
 	}
 
-#ifndef PMON
+#if !defined(PMON)||defined(IDE_DMA)
 	if (sc->sc_dma_ok == 0)
 		return;
 

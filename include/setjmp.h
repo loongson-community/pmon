@@ -50,7 +50,7 @@
 typedef long sigjmp_buf[_JBLEN + 1];
 #endif /* not ANSI */
 
-typedef long jmp_buf[_JBLEN];
+typedef long jmp_buf[_JBLEN] __attribute__((aligned(8)));
 
 #include <sys/cdefs.h>
 

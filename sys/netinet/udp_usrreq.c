@@ -94,6 +94,8 @@ extern int ipv6_defhoplmt;
 
 #endif /* INET6 */
 
+#include "cmd_lwdhcp.h"
+extern int dhcp_request;
 /*
  * UDP protocol implementation.
  * Per RFC 768, August, 1980.
@@ -267,6 +269,7 @@ udp_input(m, va_alist)
 		    sizeof ((struct ipovly *)ip)->ih_x1);
 		((struct ipovly *)ip)->ih_len = uh->uh_ulen;
 		if ((uh->uh_sum = in_cksum(m, len + sizeof (struct ip))) != 0) {
+	                printf("+++++++++++++++%s %s %d Abandon udp for checksum error !!!!!\n", __FILE__, __func__, __LINE__);
 			udpstat.udps_badsum++;
 			m_freem(m);
 			return;
@@ -320,7 +323,11 @@ udp_input(m, va_alist)
 	    (ip && in_broadcast(ip->ip_dst, m->m_pkthdr.rcvif))) {
 #else /* INET6 */
 	if (IN_MULTICAST(ip->ip_dst.s_addr) ||
-	    in_broadcast(ip->ip_dst, m->m_pkthdr.rcvif)) {
+	    in_broadcast(ip->ip_dst, m->m_pkthdr.rcvif)
+#if NCMD_LWHDCP
+ || dhcp_request
+#endif
+) {
 #endif /* INET6 */
 		struct socket *last;
 		/*

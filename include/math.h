@@ -32,7 +32,7 @@ double ldexp(double x, int i);
 double log(double x);
 double log10(double x);
 double modf(double x, double *i);
-double pow(double x);
+double pow(double x,double y);
 double sin(double x);
 double sinh(double x);
 double sqrt(double x);

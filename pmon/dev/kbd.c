@@ -458,6 +458,7 @@ int kbd_translate(unsigned char scancode, unsigned char *keycode)
 	return 1;
 }
 
+static inline void handle_mouse_event(unsigned char scancode);
 /*
  * This reads the keyboard status port, and does the
  * appropriate action.
@@ -482,7 +483,8 @@ static unsigned char handle_kbd_event(void)
 		if (!(status & (KBD_STAT_GTO | KBD_STAT_PERR)))
 #endif
 		{
-			if (status & KBD_STAT_MOUSE_OBF) ;	//handle_mouse_event(scancode);
+			if (status & KBD_STAT_MOUSE_OBF) 
+				handle_mouse_event(scancode);
 			else
 				handle_keyboard_event(scancode);
 		}
@@ -718,3 +720,182 @@ void pckbd_leds(unsigned char leds)
 		kbd_available = 0;
 	}
 }
+//--------------------------------------mouse-------------------------------
+#ifdef CONFIG_PSMOUSE
+#endif
+static int aux_reconnect = 0;
+
+
+#define AUX_RECONNECT1 0xaa	/* scancode1 when ps2 device is plugged (back) in */
+#define AUX_RECONNECT2 0x00	/* scancode2 when ps2 device is plugged (back) in */
+ 
+static int aux_count;
+/* used when we send commands to the mouse that expect an ACK. */
+static unsigned char mouse_reply_expected;
+
+#define AUX_INTS_OFF (KBD_MODE_KCC | KBD_MODE_DISABLE_MOUSE | KBD_MODE_SYS | KBD_MODE_KBD_INT)
+#define AUX_INTS_ON  (KBD_MODE_KCC | KBD_MODE_SYS | KBD_MODE_MOUSE_INT | KBD_MODE_KBD_INT)
+
+#define MAX_RETRIES	60		/* some aux operations take long time*/
+
+
+static void __aux_write_ack(int val);
+static inline void handle_mouse_event(unsigned char scancode)
+{
+	static unsigned char prev_code;
+	if (mouse_reply_expected) {
+		if (scancode == AUX_ACK) {
+			mouse_reply_expected--;
+			return;
+		}
+		mouse_reply_expected = 0;
+	}
+	else if(scancode == AUX_RECONNECT2 && prev_code == AUX_RECONNECT1
+		&& aux_reconnect) {
+		printf ("PS/2 mouse reconnect detected\n");
+		__aux_write_ack(AUX_ENABLE_DEV);  /* ping the mouse :) */
+		return;
+	}
+
+	prev_code = scancode;
+	if (getenv("aux")) {
+		printf("mouse:%x\n",scancode);
+	}
+}
+
+static void kb_wait(void)
+{
+	unsigned long timeout = KBC_TIMEOUT;
+
+	do {
+		/*
+		 * "handle_kbd_event()" will handle any incoming events
+		 * while we wait - keypresses or mouse movement.
+		 */
+		unsigned char status = handle_kbd_event();
+
+		if (! (status & KBD_STAT_IBF))
+			return;
+		mdelay(1);
+		timeout--;
+	} while (timeout);
+#ifdef KBD_REPORT_TIMEOUTS
+	printf("Keyboard timed out[1]\n");
+#endif
+}
+
+/*
+ * Check if this is a dual port controller.
+ */
+static int detect_auxiliary_port(void)
+{
+	unsigned long flags;
+	int loops = 10;
+	int retval = 0;
+
+
+	/* Put the value 0x5A in the output buffer using the "Write
+	 * Auxiliary Device Output Buffer" command (0xD3). Poll the
+	 * Status Register for a while to see if the value really
+	 * turns up in the Data Register. If the KBD_STAT_MOUSE_OBF
+	 * bit is also set to 1 in the Status Register, we assume this
+	 * controller has an Auxiliary Port (a.k.a. Mouse Port).
+	 */
+	kb_wait();
+	kbd_write_command(KBD_CCMD_WRITE_AUX_OBUF);
+
+	kb_wait();
+	kbd_write_output(0x5a); /* 0x5a is a random dummy value. */
+
+	do {
+		unsigned char status = kbd_read_status();
+
+		if (status & KBD_STAT_OBF) {
+			(void) kbd_read_input();
+			if (status & KBD_STAT_MOUSE_OBF) {
+				printf("Detected PS/2 Mouse Port.\n");
+				retval = 1;
+			}
+			break;
+		}
+		mdelay(1);
+	} while (--loops);
+
+	return retval;
+}
+
+/*
+ * Send a byte to the mouse.
+ */
+static void aux_write_dev(int val)
+{
+	unsigned long flags;
+
+	kb_wait();
+	kbd_write_command(KBD_CCMD_WRITE_MOUSE);
+	kb_wait();
+	kbd_write_output(val);
+}
+
+/*
+ * Send a byte to the mouse & handle returned ack
+ */
+static void __aux_write_ack(int val)
+{
+	kb_wait();
+	kbd_write_command(KBD_CCMD_WRITE_MOUSE);
+	kb_wait();
+	kbd_write_output(val);
+	/* we expect an ACK in response. */
+	mouse_reply_expected++;
+	kb_wait();
+}
+
+static void aux_write_ack(int val)
+{
+	unsigned long flags;
+
+	__aux_write_ack(val);
+}
+
+static void kbd_write_cmd(int cmd)
+{
+	unsigned long flags;
+
+	kb_wait();
+	kbd_write_command(KBD_CCMD_WRITE_MODE);
+	kb_wait();
+	kbd_write_output(cmd);
+}
+
+
+int psaux_init(void)
+{
+	int retval;
+
+	if (!detect_auxiliary_port())
+		return -1;
+
+	kbd_write_command_w(KBD_CCMD_MOUSE_ENABLE); /* Enable Aux. */
+	aux_write_ack(AUX_SET_SAMPLE);
+	aux_write_ack(100);			/* 100 samples/sec */
+	aux_write_ack(AUX_SET_RES);
+	aux_write_ack(3);			/* 8 counts per mm */
+	aux_write_ack(AUX_SET_SCALE21);		/* 2:1 scaling */
+	kbd_write_command(KBD_CCMD_MOUSE_DISABLE); /* Disable aux device. */
+	kbd_write_cmd(AUX_INTS_OFF); /* Disable controller ints. */
+
+//---------------------------------------
+	kbd_write_command_w(KBD_CCMD_MOUSE_ENABLE);	/* Enable the
+							   auxiliary port on
+							   controller. */
+	aux_write_ack(AUX_ENABLE_DEV); /* Enable aux device */
+	kbd_write_cmd(AUX_INTS_ON); /* Enable controller ints */
+	
+	mdelay(2);			/* Ensure we follow the kbc access delay rules.. */
+
+	send_data(KBD_CMD_ENABLE);	/* try to workaround toshiba4030cdt problem */
+	return 0;
+}
+
+
