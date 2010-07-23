@@ -409,15 +409,16 @@ if(!run)
 {
 	run=1;
 #ifdef AUTOLOAD
+
+	if(getenv("al") == NULL)
+	{
+		setenv("al","/dev/fs/ext2@wd0/boot/vmlinux");
+		setenv("append","console=tty root=/dev/sda1 video=vfb:1");
+	}
+
 	s = getenv ("al");
-	//autoload (s);
-    autoload ("/dev/fs/ext2@wd0/boot/vmlinux.whd");
-    //s = "ifaddr rtl0 10.2.0.129";
-    //do_cmd (s);
-    ////s = "load tftp://10.2.5.9/vmlinux.whd.debug.1";
-    //while(1) {
-    //strcpy(buf,"load tftp://10.2.5.9/vmlinux.whd.debug.1");
-    //do_cmd(buf);}
+	autoload (s);
+
 #else
 	s = getenv ("autoboot");
 	autorun (s);
