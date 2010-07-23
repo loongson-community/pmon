@@ -86,7 +86,7 @@ void	oack(void);
 
 struct	formats;
 
-struct tftphdr *w_init(void);
+struct tftphdr *wr_init(void);
 struct tftphdr *r_init(void);
 int	validate_access(char *filename, int mode);
 int	recvfile(struct formats *pf);
@@ -755,12 +755,12 @@ send_data:
 int
 recvfile(struct formats *pf)
 {
-	struct tftphdr *dp, *w_init(void);
+	struct tftphdr *dp, *wr_init(void);
 	struct tftphdr *ap;    /* ack buffer */
 	volatile unsigned short block = 0;
 	int n, size, ecode;
 
-	dp = w_init();
+	dp = wr_init();
 	ap = (struct tftphdr *)ackbuf;
 	v.trfsize = 0;
 	ecode = 0;
@@ -1014,7 +1014,7 @@ int prevchar = -1;		/* putbuf: previous char (cr check) */
 static struct tftphdr *rw_init(int);
 
 struct tftphdr *
-w_init(void)
+wr_init(void)
 {
 	return rw_init(0);	/* write-behind */
 }

@@ -767,7 +767,6 @@ dbginit (char *adr)
         case U_KEY:
             vga_available = 1;
 #if defined(LOONGSON2F_FULOONG) || defined(LOONGSON2F_7INCH)||defined(LOONGSON2F_ALLINONE) ||defined(LOONGSON2F_3GNB)
-            bootcfg_flags |= U_KEY_PRESSED;
 #endif
         case NO_KEY:
         case ENTER_KEY:
@@ -798,7 +797,7 @@ dbginit (char *adr)
 #endif
             break;
 
-#if defined(LOONGSON2F_7INCH)||defined(LOONGSON2F_FULOONG)||defined(LOONGSON2F_ALLINONE)||defined(LOONGSON2F_3GNB)
+#if defined(LOONGSON2F_7INCH)||defined(LOONGSON2F_FULOONG)||defined(LOONGSON2F_ALLINONE)||defined(LOONGSON2F_3GNB)||defined(LOONGSON3A_3AEV)
     case B_KEY:
             vga_available = 1;
             _set_font_color();

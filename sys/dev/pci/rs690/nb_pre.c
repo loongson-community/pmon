@@ -53,7 +53,7 @@ void nb_pre_init(void)
 	if(memorysize_high > (1000 << 20))
 		ati_nb_cfg.system_memory_tom_lo = 0x1000;
 	else
-		ati_nb_cfg.system_memory_tom_lo = 0x7c0;
+		ati_nb_cfg.system_memory_tom_lo = 0x800;
 #ifdef GPU_SP
 		ati_nb_cfg.system_memory_tom_lo = 0xff8;
 #endif

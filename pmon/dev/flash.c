@@ -101,8 +101,8 @@ static __inline void fl_autoselect(struct fl_map *map)
 	switch (map->fl_map_bus) {
 	case FL_BUS_8:
 		if((map->fl_type>>16)!=0x5a5a)fl_mydetect(map);
-#if NMOD_FLASH_SST
-		if(map->fl_type==TYPE_SST) 
+#if NMOD_FLASH_SST || NMOD_FLASH_WINBOND	
+		if(map->fl_type==TYPE_SST) //SST or WINBOND
 		{
 		outb((map->fl_map_base + SST_CMDOFFS1), 0xAA);
 		outb((map->fl_map_base + SST_CMDOFFS2), 0x55);
@@ -125,14 +125,7 @@ static __inline void fl_autoselect(struct fl_map *map)
 		outb((map->fl_map_base + ConvAddr1(0x555)), FL_AUTOSEL);
 		}
 #endif
-#if NMOD_FLASH_WINBOND
-		outb((map->fl_map_base + WINBOND_CMDOFFS1), 0xAA);
-		delay(10);
-		outb((map->fl_map_base + WINBOND_CMDOFFS2), 0x55);
-		delay(10);
-		outb((map->fl_map_base + WINBOND_CMDOFFS1), FL_AUTOSEL);
-		delay(10);
-#endif
+
 		break;
 
 	case FL_BUS_16:
@@ -177,7 +170,10 @@ static __inline void fl_reset(struct fl_map *map)
 	case FL_BUS_8:
 		if(!map->fl_type)fl_mydetect(map);
 #if NMOD_FLASH_SST || NMOD_FLASH_WINBOND
+		if(map->fl_type==TYPE_SST)
+		{
 		outb((map->fl_map_base), 0xf0);
+        }
 #endif
 #if NMOD_FLASH_AMD
         if(map->fl_type==TYPE_AMD)
@@ -298,10 +294,10 @@ struct fl_device *fl_devident(void *base, struct fl_map **m)
 				if (m) {
 					*m = map;
 				}
+		        //printf("Mfg %2x, Id %2x\n", mfgid, chipid);
 				return (dev);	/* GOT IT! */
 			}
 		}
-		printf("Mfg %2x, Id %2x\n", mfgid, chipid);
 	}
 
 	tgt_flashwrite_disable();
@@ -486,15 +482,15 @@ int fl_program(void *fl_base, void *data_base, int data_size, int verbose)
 	memcpy(tmpbuf, base, size);
 	memcpy(tmpbuf + (unsigned int)fl_base - (unsigned int)base, 
 		data_base, data_size);
-	if (fl_erase_device(base, size, verbose) == 0){
+	if (fl_erase_device(base, size, verbose) != 0){
 		printf("Error! Nvram erase failed!\n");
-        return 0;
+        return -1;
     }
-	if(	fl_program_device(base, tmpbuf, size, verbose) == 0){
+	if(	fl_program_device(base, tmpbuf, size, verbose) != 0){
 		printf("Error! Nvram program failed!\n");
-        return 0;
+        return -1;
 	}
-	return -1;
+	return 0;
 	
 }
 

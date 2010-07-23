@@ -1178,7 +1178,7 @@ extern int pcbver(void);
 void errchip_prompt(ulong *adr,ulong xor)
 {
     int pcbv_verion = 0;
-    int i=0;
+    int j,i=0;
     ulong tmp =  xor;
     pcbv_verion = pcbver();
     pcbv_verion = pcbv_verion >> 1;
@@ -1188,27 +1188,78 @@ void errchip_prompt(ulong *adr,ulong xor)
         case 1:
         case 2:
         case 7:
-            for(i=0;i<4;i++){                
-                tmp = tmp >>(i*16);
-                tmp = tmp &0xffff;
-                if(tmp)
-                cprint(15, 100, "chip  semms wrong!");
-                hprint2(15, 104, i, 1);
-                break;
+            for(i=0;i<64;i++){
+
+                tmp = xor >> i;
+                tmp = tmp & 0x1;
+                if(tmp){
+                    
+                    if(i<10){
+                        cprint(14,104,"DQ0 ERROR");
+                    }else{
+                        cprint(14,104,"DQ0  ERROR");
+                    }
+
+                    dprint(14,106,i,1,0);  
+                    break;                   
+                }
+
+            }        
+            
+            for(i=0;i<8;i++){                
+                tmp = xor >> (i*8);
+                tmp = tmp &0xff;
+                if(tmp){
+                    cprint(15, 100, "U100 seems Error!");
+                    hprint2(15, 103, (i%4),1);
+                    //Hardware design sign chip0 as U100
+                    //chip1 as U101,chip2 as U103, chip3 as U104
+                    //so it needs modifing code here which make
+                    //the code seems not so grace.
+                    if ((i%4)>1)
+                        hprint2(15, 103, (i%4)+1,1);
+                    break;
+               }
             }
-            break;
+            break; 
         //P-bank is 32 bit
         case 3:
         case 4:
         case 5:
         case 6:
+            for(i=0;i<64;i++){
+
+                tmp = xor >> i;
+                tmp = tmp & 0x1;
+                if(tmp){
+                    j = (i % 32);
+                    
+                    if(j<10){
+                        cprint(14,104,"DQ0 ERROR");
+                    }else{
+                        cprint(14,104,"DQ0  ERROR");
+                    }
+
+                    dprint(14,106,j,1,0);  
+                    break;                   
+                }
+
+            }        
+            
             for(i=0;i<8;i++){                
-                tmp = tmp >>(i*8);
+                tmp = xor >> (i*8);
                 tmp = tmp &0xff;
-                if(tmp)
-                cprint(15, 100, "chip  semms wrong!");
-                hprint(15, 104, (i%4));
-                break;
+                if(tmp){
+                    cprint(15, 100, "U100 seems Error!");
+                    hprint2(15, 103, (i%4),1);
+                    //Hardware design sign chip0 as U100
+                    //chip1 as U101,chip2 as U103, chip3 as U104
+                    //so it needs modifing code here which make
+                    //the code seems not so grace.
+                    if ((i%4)>1)
+                        hprint2(15, 103, (i%4)+1,1);
+                    break;
+               }
             }
             break; 
         default:

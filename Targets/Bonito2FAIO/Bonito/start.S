@@ -847,7 +847,7 @@ do_caches:
 //#endif
 
 /* zhb */
-#if 0
+#if 1
 /*      li      t0, 0           */
 /*      li      t1, 0x90000     */
 /*1:    addiu   t0, 1           */
@@ -856,9 +856,11 @@ do_caches:
 
         TTYDBG("Testing memory...\r\n")
         
-        li      t7, 10
+        //li      t7, 10
+        li      t7, 2
 tmem:
-        li      t0, 0xa0000000+1*1024*1024
+        //li      t0, 0xa0000000+1*1024*1024
+        li      t0, 0xa0000000+1*1024
         li      t1, 0xa0000000
         li      t2, 0xffffffff
 1:
@@ -897,6 +899,11 @@ skipdot:
         move    a0, t3
         bal     hexserial
         nop
+        TTYDBG("\r\nErrorBit=");
+        xor  a0, t2, t3
+        bal     hexserial
+        nop
+        
 1:
         b       1b
         nop
@@ -907,9 +914,13 @@ skipdot:
         nop
         b       tmem
         nop
+/*
 1:      
         b       1b
         nop
+*/
+1:
+    nop
 #endif
 bootnow:
         TTYDBG("Copy PMON to execute location...\r\n")

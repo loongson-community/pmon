@@ -97,12 +97,7 @@ static struct stdenv {
   {"Version", "LM9002-1.4.8", 0},
 #endif
 #if defined(LOONGSON2F_ALLINONE) && defined(SMI502)
-    #if (_MIPS_SZPTR == 32)
     {"Version", "LM9013-1.6.1", 0},
-    #endif
-    #if (_MIPS_SZPTR == 64)
-    {"Version", "LM9013-1.6.1-64bit", 0},
-    #endif
 #endif  
 #ifdef LOONGSON2F_HPC
 	{"Version", "LM-HPC-1.0.2", 0},
@@ -113,6 +108,12 @@ static struct stdenv {
 #ifdef LOONGSON2F_3GNB
 	{"Version", "LM-3G1001-1.0.2", 0},
 #endif
+#if (_MIPS_SZPTR == 32)
+	{"mips_szptr","32",0 },
+#endif
+#if (_MIPS_SZPTR == 64)
+	{"mips_szptr","64",0 },
+#endif	
 {"BuildTime",  __DATE__ " " __TIME__ , 0},
 #if defined(TGT_DEFENV)
     TGT_DEFENV,

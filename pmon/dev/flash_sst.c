@@ -35,6 +35,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <machine/pio.h>
+#include <machine/cpu.h>
 
 #include <pmon.h>
 
@@ -241,17 +242,12 @@ int erase;
 						busy = 0;
 				}
 			} else {
-				if ((poll1 & 0x80) == 0x00)
-					busy = 1;
-				else {
-					poll1 = inb(map->fl_map_base + offset);
-					poll2 = inb(map->fl_map_base + offset);
-
-					if ((poll1 ^ poll2) & 0x40)
-						busy = 1;
-					else
-						busy = 0;
-				}
+		        poll1 = inb(map->fl_map_base + offset);
+				poll2 = inb(map->fl_map_base + offset);                    
+		        if ((poll1 ^ poll2) & 0x40)
+				    busy = 1;
+				else
+					busy = 0;
 			}
 		}
 
@@ -288,22 +284,22 @@ fl_write_protect_unlock(map, dev, offset)
 
     printf("Disable all space write protection of 49LF040B. \r\n");
     /* Open translation of 0xbc000000 - 0xbd00000 */
-    trans_unlock_value = inl(0xbfe00200);
-    outl(0xbfe00200, (0x00ff0000 | trans_unlock_value));
+    trans_unlock_value = inl(PTR_PAD(0xbfe00200));
+    outl(PTR_PAD(0xbfe00200), (0x00ff0000 | trans_unlock_value));
     //outl(0xbfe00200, 0x00ff0000);
 
     /* Disable all space write protection */
-    outb(0xbdbf0002, 0x0);
-    outb(0xbdbe0002, 0x0);
-    outb(0xbdbd0002, 0x0);
-    outb(0xbdbc0002, 0x0);
-    outb(0xbdbb0002, 0x0);
-    outb(0xbdba0002, 0x0);
-    outb(0xbdb90002, 0x0);
-    outb(0xbdb80002, 0x0);
+    outb(PTR_PAD(0xbdbf0002), 0x0);
+    outb(PTR_PAD(0xbdbe0002), 0x0);
+    outb(PTR_PAD(0xbdbd0002), 0x0);
+    outb(PTR_PAD(0xbdbc0002), 0x0);
+    outb(PTR_PAD(0xbdbb0002), 0x0);
+    outb(PTR_PAD(0xbdba0002), 0x0);
+    outb(PTR_PAD(0xbdb90002), 0x0);
+    outb(PTR_PAD(0xbdb80002), 0x0);
 
 
-    outl(0xbfe00200, trans_unlock_value);
+    outl(PTR_PAD(0xbfe00200), trans_unlock_value);
 
 	return(1);
 }
@@ -327,22 +323,22 @@ fl_write_protect_lock(map, dev, offset)
 
     printf("Enable all space write protection of 49LF040B. \r\n");
     /* Open translation of 0xbc000000 - 0xbd00000 */
-    trans_unlock_value = inl(0xbfe00200);
+    trans_unlock_value = inl(PTR_PAD(0xbfe00200));
     //outl(0xbfe00200, 0x00ff0000);
-    outl(0xbfe00200, (0x00ff0000 | trans_unlock_value));
+    outl(PTR_PAD(0xbfe00200), (0x00ff0000 | trans_unlock_value));
 
     /* Enable all space write protection */
-    outb(0xbdbf0002, 0x1);
-    outb(0xbdbe0002, 0x1);
-    outb(0xbdbd0002, 0x1);
-    outb(0xbdbc0002, 0x1);
-    outb(0xbdbb0002, 0x1);
-    outb(0xbdba0002, 0x1);
-    outb(0xbdb90002, 0x1);
-    outb(0xbdb80002, 0x1);
+    outb(PTR_PAD(0xbdbf0002), 0x1);
+    outb(PTR_PAD(0xbdbe0002), 0x1);
+    outb(PTR_PAD(0xbdbd0002), 0x1);
+    outb(PTR_PAD(0xbdbc0002), 0x1);
+    outb(PTR_PAD(0xbdbb0002), 0x1);
+    outb(PTR_PAD(0xbdba0002), 0x1);
+    outb(PTR_PAD(0xbdb90002), 0x1);
+    outb(PTR_PAD(0xbdb80002), 0x1);
 
 
-    outl(0xbfe00200, trans_unlock_value);
+    outl(PTR_PAD(0xbfe00200), trans_unlock_value);
 
 	return(1);
 }

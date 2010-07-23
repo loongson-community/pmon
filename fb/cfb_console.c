@@ -1092,7 +1092,7 @@ static void memcpyl(int *d, int *s, int c)
 static void console_scrollup(void)
 {
     /* copy up rows ignoring the first one */
-    //if(disableoutput)return;
+    if(disableoutput)return;
  #if defined(LOONGSON3A_3AEV)
 	video_drawsline(memfb, CONSOLE_ROWS, CONSOLE_COLS);
 

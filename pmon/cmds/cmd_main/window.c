@@ -169,23 +169,21 @@ void w_leaveconsole()
 void w_init(void)
 {
     struct termio tbuf;
+    int i,j;
 
     video_cls();
     screen_width = get_scr_width();
     screen_height = get_scr_height();
+    for (j = 0; j < screen_height; j++)
+        for (i = 0; i < screen_width; i++) {
+            finalbuf[j][i].text = foreground[j][i].text = 0;
+            finalbuf[j][i].color = foreground[j][i].color = 0;
+        }
+    
     w_setcolor(0x10,0x10,0x60);
     ioctl (STDIN, SETNCNE, &tbuf);  //fixme
 }
-/*
-static void w_copy(void *src,void *dest)//瀵归?锛?!!
-{
-    int i;
-    //for(i=0;i<80*25*2;i+=8)
-    for(i=0;i<screen_width*screen_height*2;i+=8){
-        *((long long *)(dest+i))=*((long long *)(src+i));
-    }
-}
-*/
+
 static void w_background(void)
 {
     int i,j;
@@ -233,16 +231,11 @@ static void w_background(void)
         foreground[2][i].text=foreground[screen_height-3][i].text=' ';
     }
 
-#ifdef  CHINESE
-        w_text(screen_width/2,0,WA_CENTRE,"龙芯BIOS设置");
-        w_bigtext(0,screen_height-2,screen_width,2,"方向键←&→: 切换页面    <TAB>:切换选项    <回车>:确认和切换   <~>:切换主题");
-#else
         w_text(screen_width/2,0,WA_CENTRE,"LOONGSON BIOS SETUP");   
         w_bigtext(0,screen_height-2,screen_width,2,"<-&->: Switch Page     TAB: Switch Item     Enter: Confirm and Switch   `:Change Theme");
-#endif  
 }
 
-int isdifferent(scr* x_scr, scr* y_scr,int j)
+int isdifferent(int j)
 {
     int i;
 
@@ -260,7 +253,7 @@ void w_updatescreen(void)
 
     video_enableoutput();
     for(j=0,y=VIDEO_FONT_HEIGHT*y_start;j<screen_height;j++,y+=VIDEO_FONT_HEIGHT){
-        if(isdifferent(finalbuf[0], foreground[0], j)){
+        if(isdifferent(j)){
             for(i=0,x=0;i<screen_width;i++){  
                 fgx=p_pal[foreground[j][i].color&0xf];
                 bgx=p_pal[foreground[j][i].color>>4];
