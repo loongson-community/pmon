@@ -454,7 +454,14 @@ if(pm_io == NULL) {
 				if(PCI_ISCLASS(((pd->pa.pa_class)&0xff00ffff), PCI_CLASS_DISPLAY, PCI_SUBCLASS_DISPLAY_VGA)){
                                         if(reg==0x10){
                                                 printf("fixup video mem size\n");
+#ifdef USE_780E_VGA
+                                                if (pm->size > 0x4000000)
+                                                {
+                                                    pm->size = 0x4000000;
+                                                }
+#else
                                                 pm->size=0x2000000;
+#endif
                                         }
                                 }
 
@@ -552,6 +559,13 @@ _pci_query_dev (struct pci_device *dev, int bus, int device, int initialise)
 		PRINTF ("completed\n");
 	}
 
+#if defined(SERVER_3A) && defined(USE_780E_VGA)
+    if (PCI_VENDOR(id) == 0x1a03 && PCI_PRODUCT(id) == 0x2000)
+    {
+        printf("Don't use other vga in 3a server!!!!!!!!!!!!!!\n");
+        return;
+    }
+#endif
 	if (id == 0 || id == 0xffffffff) {
 		return;
 	}
@@ -710,8 +724,14 @@ _pci_setup_windows (struct pci_device *dev)
 	pd = pm->device;
 	if (PCI_ISCLASS(((pd->pa.pa_class)&0xff00ffff), PCI_CLASS_DISPLAY, PCI_SUBCLASS_DISPLAY_VGA)) 
 	{
-		vga_dev = pd;
-		pd->disable=0;
+#ifdef USE_780E_VGA
+        //changed by oldtai
+        if (PCI_VENDOR(pd->pa.pa_id) == 0x1002)
+#endif
+        {
+            vga_dev = pd;
+            pd->disable=0;
+        }
 	}
 #if 0
 	/*

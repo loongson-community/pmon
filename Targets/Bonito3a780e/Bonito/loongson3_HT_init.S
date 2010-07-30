@@ -10,7 +10,7 @@
 //#define HT_800M
 //#define HT_16bit
 //#define HT_RECONNECT
-#define HT_REG_TRANS
+//#define HT_REG_TRANS
 ######################################################
 
 #ifdef HT_32bit_TRANS //PCI CFG : TYPE 0: 
@@ -40,7 +40,7 @@
     sd  t1, 0x48(t0)
     dli t1, 0x00000e00000000f7
     sd  t1, 0x88(t0)
-
+#if 0
  //HT: PCI LO BASE
  //map 0x90000e00_00000000 --> 0x10000000
     dli t1, 0x0000000010000000
@@ -49,6 +49,7 @@
     sd  t1, 0x50(t0)
     dli t1, 0x00000e00000000f7
     sd  t1, 0x90(t0)
+#endif
 
  //HT: PCI HI BASE
  //map 0x90000e00_10000000 --> 0x10000000
@@ -67,6 +68,14 @@
     dli t1, 0xffffffffff000000
     sd  t1, 0x60(t0)
     dli t1, 0x00000efdfb0000f7
+    sd  t1, 0xa0(t0)
+#else
+ //map 0x90000e00_00000000 --> 0x1e000000
+    dli t1, 0x000000001e000000
+    sd  t1, 0x20(t0)
+    dli t1, 0xffffffffff000000
+    sd  t1, 0x60(t0)
+    dli t1, 0x00000e00000000f7
     sd  t1, 0xa0(t0)
 #endif
 

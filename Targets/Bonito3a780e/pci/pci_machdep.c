@@ -116,8 +116,8 @@ _pci_hwinit(initialise, iot, memt)
 	_pci_head = pd;
 
 #ifdef LS3_HT /* whd */
-	pb->minpcimemaddr  = BONITO_PCILO1_BASE;
-	pb->nextpcimemaddr = BONITO_PCILO1_BASE+BONITO_PCILO_SIZE;
+	pb->minpcimemaddr  = BONITO_PCILO0_BASE;
+	pb->nextpcimemaddr = BONITO_PCILO0_BASE+BONITO_PCILO_SIZE;
 	pb->minpciioaddr   = PCI_IO_SPACE_BASE+0x000b000;
 	pb->nextpciioaddr  = PCI_IO_SPACE_BASE+ BONITO_PCIIO_SIZE;
 	pb->pci_mem_base   = BONITO_PCILO_BASE_VA;

@@ -211,7 +211,7 @@ int vga_bios_init(void)
 	base = INTPriv(pInt)->base = malloc(0x100000);
     //base = INTPriv(pInt)->base = 0x80000000+memorysize-0x100000;
 //#if		0
-#ifdef	RS690
+#if     defined(RS690) || defined(RS780E)
 	{
 		pcitag_t vga_bridge = _pci_make_tag(0, 1, 0);
 		unsigned int val;
@@ -280,7 +280,7 @@ int vga_bios_init(void)
 		romaddress &= (~1);
 		/* enable rom address decode */
 		_pci_conf_write(pdev->pa.pa_tag, 0x30, romaddress | 1);
-#if defined(RADEON7000) || defined(RS690) || defined(VESAFB)
+#if defined(RADEON7000) || defined(RS690) || defined(VESAFB) || defined(RS780E)
 		{
 			extern unsigned char vgarom[];
 			unsigned char *tmp;
@@ -296,7 +296,7 @@ int vga_bios_init(void)
 			return -1;
 		}
 
-#if defined(BONITOEL) && !( defined(RADEON7000) || defined(VESAFB) || defined(RS690) )
+#if defined(BONITOEL) && !( defined(RADEON7000) || defined(VESAFB) || defined(RS690) || defined(RS780E))
 		romaddress |= 0x10000000;
 #endif
 
@@ -356,7 +356,7 @@ int vga_bios_init(void)
 				return -1;
 			}
 
-#ifdef	RS690
+#if   defined(RS690) || defined(RS780E)
 			// fixup PCI ID
 			//*((volatile unsigned int *)(0xa0000000 | (romaddress + ppcidata + 4))) = _pci_conf_read(pdev->pa.pa_tag, 0x00);
 			*((volatile unsigned int *)((romaddress + ppcidata + 4))) = _pci_conf_read(pdev->pa.pa_tag, 0x00);
@@ -373,6 +373,9 @@ int vga_bios_init(void)
 		if (PCI_VENDOR(pdev->pa.pa_id) == 0x1002
 		    && PCI_PRODUCT(pdev->pa.pa_id) == 0x4750)
 			MEM_WW(pInt, 0xc015e, 0x4750);
+
+        //for test
+        MEM_WW(pInt , 0xcac90 , 0x1 | MEM_RW(pInt , 0xcac90));
 	}
 
 #if	0

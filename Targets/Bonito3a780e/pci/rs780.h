@@ -116,6 +116,77 @@ typedef enum _NB_REVISION_ {
 
 
 
+/* The Integrated Info Table */
+#define USHORT	u16
+#define UCHAR	u8
+#define ULONG	u32
+
+typedef struct _ATOM_COMMON_TABLE_HEADER
+{
+	USHORT usStructureSize;
+	UCHAR  ucTableFormatRevision;
+	UCHAR  ucTableContentRevision;
+}ATOM_COMMON_TABLE_HEADER;
+
+typedef struct _ATOM_INTEGRATED_SYSTEM_INFO_V2
+{
+	ATOM_COMMON_TABLE_HEADER	sHeader;
+	ULONG				ulBootUpEngineClock; //in 10kHz unit
+	ULONG				ulReserved1[2]; //must be 0x0 for the reserved
+	ULONG				ulBootUpUMAClock; //in 10kHz unit
+	ULONG				ulBootUpSidePortClock; //in 10kHz unit
+	ULONG				ulMinSidePortClock; //in 10kHz unit
+	ULONG				ulReserved2[6]; //must be 0x0 for the reserved
+	ULONG				ulSystemConfig;
+//[0]=1: PowerExpress mode
+//   =0 Non-PowerExpress mode;
+//[1]=1: system boots up at AMD overdrived state or user customized mode. In this case, driver will disable other power state in VBIOS table.
+//   =0: system boots up at driver control state. Power state depends on VBIOS PP table.
+//[2]=1: PWM method is used on NB voltage control.
+//   =0: GPIO method is used.
+//[3]=1: Only one power state(Performance) will be supported.
+//   =0: Number of power states supported is from VBIOS PP table.
+//[4]=1: CLMC is supported and enabled on current system.
+//   =0: CLMC is not supported or enabled on current system. SBIOS need to support HT link/freq change through ATIF interface.
+//[5]=1: Enable CDLW for all driver control power states. Max HT width is from SBIOS, while Min HT width is determined by display requirement.
+//   =0: CDLW is disabled. If CLMC is enabled case, Min HT width will be set equal to Max HT width. If CLMC disabled case, Max HT width will be applied.
+//[6]=1: High Voltage requested for all power states. In this case, voltage will be forced at 1.1v and VBIOS PP table voltage drop/throttling request will be ignored.
+//   =0: Voltage settings is determined by VBIOS PP table.
+//[7]=1: Enable CLMC Hybird Mode. CDLD and CILR will be disabled in this case and we're using legacy C1E. This is workaround for CPU(Griffin) performance issue.
+//   =0: Enable regular CLMC mode, CDLD and CILR will be enabled.
+//[8]=1: CDLF is supported and enabled by fuse   //CHP 914
+//   =0: CDLF is not supported and not enabled by fuses
+	ULONG                      ulBootUpReqDisplayVector;
+	ULONG                      ulOtherDisplayMisc;
+	ULONG                      ulDDISlot1Config;
+	ULONG                      ulDDISlot2Config;
+	UCHAR                      ucMemoryType; //[3:0]=1:DDR1;=2:DDR2;=3:DDR3.[7:4] is reserved
+	UCHAR                      ucUMAChannelNumber;
+	UCHAR                      ucDockingPinBit;
+	UCHAR                      ucDockingPinPolarity;
+	ULONG                      ulDockingPinCFGInfo;
+	ULONG                      ulCPUCapInfo;
+	USHORT                     usNumberOfCyclesInPeriod; //usNumberOfCyclesInPeriod[15] = 0 - invert waveform
+                                                       //                               1 - non inverted waveform
+	USHORT                     usMaxNBVoltage;
+	USHORT                     usMinNBVoltage;
+	USHORT                     usBootUpNBVoltage;
+	ULONG                      ulHTLinkFreq; //in 10Khz
+	USHORT                     usMinHTLinkWidth; // if no CLMC, usMinHTLinkWidth should be equal to usMaxHTLinkWidth??
+	USHORT                     usMaxHTLinkWidth;
+	USHORT                     usUMASyncStartDelay; // will be same as usK8SyncStartDelay on RS690
+	USHORT                     usUMADataReturnTime; // will be same as usK8DataReturnTime on RS690
+	USHORT                     usLinkStatusZeroTime;
+	USHORT                     usReserved;
+	ULONG                      ulHighVoltageHTLinkFreq; // in 10Khz
+	ULONG                      ulLowVoltageHTLinkFreq; // in 10Khz
+	USHORT                     usMaxUpStreamHTLinkWidth;
+	USHORT                     usMaxDownStreamHTLinkWidth;
+	USHORT                     usMinUpStreamHTLinkWidth;
+	USHORT                     usMinDownStreamHTLinkWidth;
+	ULONG                      ulReserved3[97]; //must be 0x0
+} ATOM_INTEGRATED_SYSTEM_INFO_V2;
+
 /* ------------------------------------------------
 * Global variable
 * ------------------------------------------------- */

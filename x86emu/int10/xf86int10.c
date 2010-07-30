@@ -97,7 +97,7 @@ static int int15_handler(xf86Int10InfoPtr pInt)
 		printf("----M.x86.R.Ax:%x---------int15(0x%x) called witch CX(0x%x).\n", M.x86.R_AX,M.x86.R_BL, M.x86.R_CX);
 #endif
 
-#ifdef	RS690
+#if    defined(RS690) || defined(RS780E)
 		{
 			switch(M.x86.R_BL) {
 				case 0x00 :		// get panel ID
