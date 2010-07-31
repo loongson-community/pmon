@@ -76,7 +76,8 @@ select		cmd_set			# As cmd_env but not req. cmd_hist
 select		cmd_testdisk
 #
 select		cmd_shell		# Shell commands, vers, help, eval
-
+select          cmd_bios
+select          boot_menu
 
 #
 #
@@ -119,7 +120,7 @@ option		USE_SUPERIO_UART
 #option		LONGMENG
 #option		RADEON7000
 #option 	DEBUG_EMU_VGA
-#option		AUTOLOAD
+option		AUTOLOAD
 #option		CONFIG_PCI0_LARGE_MEM
 #option		CONFIG_PCI0_HUGE_MEM
 #option		CONFIG_PCI0_GAINT_MEM
@@ -159,8 +160,8 @@ em*        at pci? dev ? function ?
 
 #USB controllers
 #uhci*		 at pci? dev ? function ?
-#ohci*		 at pci? dev ? function ?
-#usb*		 at usbbus ?
+ohci*		 at pci? dev ? function ?
+usb*		 at usbbus ?
 #ohci1		 at pci? dev ? function ?
 
 select      mod_usb

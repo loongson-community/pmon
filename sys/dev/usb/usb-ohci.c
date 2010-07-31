@@ -481,7 +481,11 @@ extern struct usb_device * usb_alloc_new_device(void *hc_private);
 *===========================================================================*/
 static void ohci_attach(struct device *parent, struct device *self, void *aux)
 {
+#ifdef LS3_HT
+	struct ohci *ohci = (struct ohci*)(self);
+#else
 	struct ohci *ohci = (struct ohci*)CACHED_TO_UNCACHED(self);
+#endif
 	struct pci_attach_args *pa = (struct pci_attach_args *)aux;
 	static int ohci_dev_index = 0;
 	int val;
@@ -497,9 +501,10 @@ static void ohci_attach(struct device *parent, struct device *self, void *aux)
 	bus_addr_t memsize2;
 #endif
 
-
+#ifdef LS3_HT
+#else
     pci_sync_cache(NULL, (vm_offset_t)ohci, sizeof(struct ohci), SYNC_W);
-
+#endif
 
 	/* Or we just return false in the match function */
 	if(ohci_dev_index >= MAX_OHCI_C) {
@@ -2923,8 +2928,11 @@ int usb_lowlevel_init(ohci_t *gohci)
 	{
 		hcca = malloc(sizeof(*gohci->hcca), M_DEVBUF, M_NOWAIT);
 		memset(hcca, 0, sizeof(*hcca));
+#ifdef LS3_HT
+#else
 		pci_sync_cache(gohci->sc_pc, (vm_offset_t)hcca, sizeof(*hcca), SYNC_W);
-	}
+#endif
+}
 
 	/* align the storage */
 	if ((unsigned long)&hcca[0] & 0xff) {
@@ -2943,7 +2951,10 @@ int usb_lowlevel_init(ohci_t *gohci)
 	{
 		ohci_dev = malloc(sizeof (struct ohci_device), M_DEVBUF, M_NOWAIT);
 		memset(ohci_dev, 0, sizeof(struct ohci_device));
+#ifdef LS3_HT
+#else
 		pci_sync_cache(gohci->sc_pc, (vm_offset_t)ohci_dev, sizeof(struct ohci_device), SYNC_W);
+#endif
 	}
 	if ((unsigned long)&ohci_dev->ed[0] & 31) {
 		err("EDs not aligned!!");
@@ -2972,7 +2983,10 @@ int usb_lowlevel_init(ohci_t *gohci)
 	{
 		gtd = malloc(sizeof(td_t) * (NUM_TD+1), M_DEVBUF, M_NOWAIT);
 		memset(gtd, 0, sizeof(td_t) * (NUM_TD + 1));
+#ifdef LS3_HT
+#else
 		pci_sync_cache(gohci->sc_pc, (vm_offset_t)gtd, sizeof(td_t)*(NUM_TD+1), SYNC_W);
+#endif
 	}
 
 	if ((unsigned long)gtd & 0x0f) {
@@ -2994,11 +3008,12 @@ int usb_lowlevel_init(ohci_t *gohci)
 #ifdef LS3_HT	    
 		gohci->hcca = (struct ohci_hcca*)(hcca);
 		gohci->gtd = (td_t *)(gtd);
+		gohci->ohci_dev = (struct ohci_device *)(ohci_dev);
 #else
 		gohci->hcca = (struct ohci_hcca*)CACHED_TO_UNCACHED(hcca);
 		gohci->gtd = (td_t *)CACHED_TO_UNCACHED(gtd);
-#endif		
 		gohci->ohci_dev = (struct ohci_device *)CACHED_TO_UNCACHED(ohci_dev);
+#endif		
 	}
 
     for(i=0;i<NUM_TD+1;i++)
@@ -3056,7 +3071,11 @@ int usb_lowlevel_init(ohci_t *gohci)
 		if((unsigned long)tmpbuf & 0x1f)
 			dbg("Malloc return not cache line aligned\n");
 		memset(tmpbuf, 0, 64);
+#ifdef LS3_HT
+#else
 		pci_sync_cache(tmpbuf, (vm_offset_t)tmpbuf, 64, SYNC_W);
+#endif
+
 #ifdef LS3_HT
 		gohci->setup = (unsigned char *)(tmpbuf);
 #else
