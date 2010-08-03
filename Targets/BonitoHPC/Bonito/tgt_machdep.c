@@ -1272,6 +1272,25 @@ tgt_display(char *msg, int x)
 	tgt_putchar('\n');
 }
 
+int
+tgt_printf (const char *fmt, ...)
+{
+    int  n;
+    char buf[1024];
+	char *p=buf;
+	char c;
+	va_list     ap;
+	va_start(ap, fmt);
+    n = vsprintf (buf, fmt, ap);
+    va_end(ap);
+	while((c=*p++))
+	{ 
+	 if(c=='\n')tgt_putchar('\r');
+	 tgt_putchar(c);
+	}
+    return (n);
+}
+
 static int putDebugChar(unsigned char byte)
 {
 	while ((linux_inb(0x3fd) & 0x20) == 0);

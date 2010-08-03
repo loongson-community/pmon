@@ -53,6 +53,8 @@ VERSION 2.2LK	<2005/01/25>
  */
 #include <stdlib.h>
 #include "bpfilter.h"
+//#include <string.h>
+//#include <stdio.h>
 
 #include <sys/param.h>
 #include <sys/systm.h>
@@ -400,7 +402,7 @@ static struct mbuf * getmbuf(struct rtl8169_private *tp)
 	 * Sync the buffer so we can access it uncached.
 	 */
 	if (m->m_ext.ext_buf!=NULL) {
-#ifndef LS3_HT
+#if !(defined(LS3_HT) || defined(LS2G_HT))
 		pci_sync_cache(tp->sc_pc, (vm_offset_t)m->m_ext.ext_buf,
 				MCLBYTES, SYNC_R);
 #endif
@@ -1550,9 +1552,7 @@ rtl8169_init_board(struct rtl8169_private *tp, struct pci_attach_args *pa)
 	int rc = 0, i, acpi_idle_state = 0, pm_cap;
 	pci_chipset_tag_t pc = pa->pa_pc;
 	int tmp;
-       //int iobase, iosize;
-	bus_addr_t iobase;
-	bus_size_t iosize;
+       int iobase, iosize;
     u32 status;
 
 	/* save power state before pci_enable_device overwrites it */
@@ -1589,7 +1589,7 @@ rtl8169_init_board(struct rtl8169_private *tp, struct pci_attach_args *pa)
 		printf(": can't map i/o space\n");
 		return -1;
 	}
-	printf("rtl8169_init_borad 8169 tp->sc_sh =%llx iobase =%llx iosize=%llx pa->pa_iot=%llx pa->pa_iot->bus_base=%llx\n", tp->sc_sh,iobase,iosize,pa->pa_iot,pa->pa_iot->bus_base);	
+	printf("8169 iobase =%8x\n", tp->sc_sh);	
 	tp->sc_st = pa->pa_iot;
 	tp->sc_pc = pc;
 	tp->cp_cmd = PCIMulRW | RxChkSum;
@@ -1720,6 +1720,7 @@ rtl8169_ether_ioctl(struct ifnet *ifp, unsigned long cmd, caddr_t data)
 static struct rtl8169_private* myRTL = NULL; 
 
 unsigned char	last_two_8169_mac[2];
+
 static void 
 r8169_attach(struct device * parent, struct device * self, void *aux)
 {
@@ -1800,6 +1801,7 @@ r8169_attach(struct device * parent, struct device * self, void *aux)
 		else
 				printf(":");
 	}		
+
 	last_two_8169_mac[0] = tp->dev_addr[4];
 	last_two_8169_mac[1] = tp->dev_addr[5];
 
@@ -1943,16 +1945,17 @@ static int rtl8169_open(struct rtl8169_private *tp)
 			goto err_free_tx;
 		}
 		memset((caddr_t)tp->TxDescArray, 0, R8169_TX_RING_BYTES + 255);
-#ifndef LS3_HT
+#if !(defined(LS3_HT) || defined(LS2G_HT))
        	pci_sync_cache(tp->sc_pc, (vm_offset_t)(tp->TxDescArray),  R8169_TX_RING_BYTES + 255, SYNC_W);
 #endif
        	tp->TxDescArray = (struct TxDesc *)(((unsigned long)(tp->TxDescArray) + 255) & ~255);	
 	}
-#ifndef LS3_HT
+#if !(defined(LS3_HT) || defined(LS2G_HT))
 	tp->TxDescArray = (struct TxDesc*)CACHED_TO_UNCACHED((unsigned long)(tp->TxDescArray));
 #else
 		 tp->TxDescArray = (struct TxDesc*)((unsigned long)(tp->TxDescArray));
 #endif
+
 	tp->TxPhyAddr = (unsigned long)vtophys((unsigned long)(tp->TxDescArray));
 
     status = RTL_R16(tp, IntrStatus);
@@ -1965,16 +1968,17 @@ static int rtl8169_open(struct rtl8169_private *tp)
 		      goto err_free_rx;
 		   }		
 		   memset((caddr_t)(tp->RxDescArray), 0, R8169_RX_RING_BYTES + 255);
-#ifndef LS3_HT
+#if !(defined(LS3_HT) || defined(LS2G_HT))
 		   pci_sync_cache(tp->sc_pc, (vm_offset_t)(tp->RxDescArray),  R8169_RX_RING_BYTES + 255, SYNC_W);
 #endif
 		   tp->RxDescArray = (struct RxDesc *)(((unsigned long)(tp->RxDescArray) + 255) & ~255);	
 	}	
-#ifndef LS3_HT
+#if !(defined(LS3_HT) || defined(LS2G_HT))
 	tp->RxDescArray = (struct RxDesc*)CACHED_TO_UNCACHED((unsigned long)(tp->RxDescArray));
 #else
 	  tp->RxDescArray = (struct RxDesc*)((unsigned long)(tp->RxDescArray));
 #endif
+
 	tp->RxPhyAddr = (unsigned long)vtophys((unsigned long)(tp->RxDescArray));
 
     status = RTL_R16(tp, IntrStatus);
@@ -2163,11 +2167,12 @@ static int rtl8169_alloc_rx(unsigned char **rx_buffer,
 		goto err_out;
 	}
 	*rx_buffer = (unsigned char *)(((unsigned long)(*rx_buffer) + 7) & ~7);
-#ifndef LS3_HT
+#if !(defined(LS3_HT) || defined(LS2G_HT))
 	*rx_buffer = (unsigned char *)CACHED_TO_UNCACHED(*rx_buffer);	
 #else
 	  *rx_buffer = (unsigned char *)(*rx_buffer);	
 #endif
+
 
 	mapping = (unsigned long)vtophys(*rx_buffer);
 
@@ -2197,12 +2202,12 @@ static int rtl8169_alloc_tx(unsigned char **tx_buffer,
 	}
 
 #ifdef __mips__
-#ifndef LS3_HT
+#if !(defined(LS3_HT) || defined(LS2G_HT))
 	pci_sync_cache(NULL, (vm_offset_t)tmp, tx_buf_sz, SYNC_W);
 #endif
 #endif
 
-#ifndef LS3_HT
+#if !(defined(LS3_HT) || defined(LS2G_HT))
 	*tx_buffer = (unsigned char *)CACHED_TO_UNCACHED(tmp);
 #else
 	*tx_buffer = (unsigned char *)(tmp);
@@ -2346,7 +2351,7 @@ static void rtl8169_free_tx(struct rtl8169_private * tp, unsigned char ** buf, s
 {
 	free(buf, M_DEVBUF);
 	*buf = NULL;
-	rtl8169_make_unusable_by_asic(desc);
+	rtl8169_make_unusable_by_asic((struct RxDesc *)desc);
 	return;
 }
 static void rtl8169_tx_clear(struct rtl8169_private *tp)
@@ -2414,7 +2419,7 @@ static int rtl8169_xmit_frags(struct rtl8169_private *tp,  struct ifnet *ifp)
 		td->opts1 = cpu_to_le32(status);
 
 #ifdef __mips__
-#ifndef LS3_HT
+#if !(defined(LS3_HT) || defined(LS2G_HT))
 		pci_sync_cache(tp->sc_pc, (vm_offset_t)tp->tx_buffer[entry], 
 				len, SYNC_W);
 #endif
@@ -2526,11 +2531,15 @@ rtl8169_tx_interrupt(struct rtl8169_private *tp)
     int retry, flag = 0;
 
 	assert(tp != NULL);
-       
+
 	retry = 300;
+
 txloop:
+
 	dirty_tx = tp->dirty_tx;
 	flag = tx_left = tp->cur_tx - dirty_tx;
+ 
+       
  
 	while (tx_left > 0) {
 		unsigned int entry = dirty_tx % NUM_TX_DESC;
@@ -2555,7 +2564,7 @@ txloop:
 	{
 	  if (retry-- > 0)
 		goto txloop;
-	}  
+	}
 	tp->dirty_tx = dirty_tx;
 
 	return;
@@ -2593,6 +2602,7 @@ rtl8169_rx_interrupt(struct rtl8169_private *tp)
 	assert(tp != NULL);
 
 	retry = 300;
+
 recvloop:
 	cur_rx = tp->cur_rx;
 	flag = rx_left = NUM_RX_DESC + tp->dirty_rx - cur_rx;     
@@ -2669,6 +2679,8 @@ recvloop:
 	  }
 	}
 
+
+
 	count = cur_rx - tp->cur_rx;
 	tp->cur_rx = cur_rx;
 
@@ -2717,11 +2729,13 @@ int rtl8169_interrupt(void *arg)
 			break;
 		}
 
+#if 0
 		if ((status & SYSErr)) { 
 			RTLDBG;
 			rtl8169_pcierr_interrupt(tp);
 			break;
 		}
+#endif
 
 		/* Rx interrupt */
 		if (status & (RxOK | RxOverflow | RxFIFOOver) && (ifp->if_flags  & IFF_RUNNING)) {
@@ -3087,6 +3101,13 @@ static int cmd_wrprom(int ac, char *av[])
     printf("The whole eeprom have been programmed!\n");
 	return 0;
 }
+
+
+
+
+
+
+
 
 int db8169 = 0;
 		       

@@ -52,7 +52,7 @@ int vga_bios_init(void)
 		}
 
 		pci_read_config_dword(pdev,0x30,(int*)&romaddress);
-        #if defined(LOONGSON3A_3AEV)
+        #if defined(LOONGSON3A_3AEV)||defined(LOONGSON2G_2G690E)
 		romaddress &= (~0xf);
         #else
 		romaddress &= (~1);

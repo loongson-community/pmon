@@ -1,3 +1,4 @@
+/*
 void
 tgt_reboot()
 {
@@ -10,3 +11,4 @@ tgt_reboot()
 	while(1);
 
 }
+*/

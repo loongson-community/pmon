@@ -50,6 +50,18 @@
 #include <machine/cpu.h>
 #endif
 
+
+#include "flash.h"
+#if (NMOD_FLASH_AMD + NMOD_FLASH_INTEL + NMOD_FLASH_SST == 0)
+    #ifdef HAVE_FLASH
+    #undef HAVE_FLASH
+    #endif
+#else
+    #ifndef HAVE_FLASH
+    #define HAVE_FLASH
+    #endif
+#endif
+
 extern int errno;                       /* global error number */
 extern char *heaptop;
 extern void tgt_ecprogram(void *, int);

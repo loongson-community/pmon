@@ -313,7 +313,7 @@ int vga_bios_init(void)
 			}
 
 #ifdef	RS690
-			*((volatile unsigned int *)(0xa0000000 | (romaddress + ppcidata + 4))) = _pci_conf_read(pdev->pa.pa_tag, 0x00);
+			*((volatile unsigned int *)((romaddress + ppcidata + 4))) = _pci_conf_read(pdev->pa.pa_tag, 0x00);
 #endif
 		} else {
 			printk("No valid bios found,magic=%x%x\n", magic[0],
@@ -322,7 +322,7 @@ int vga_bios_init(void)
 		}
 
 		pInt->pdev = pdev;
-        #if defined(LOONGSON3A_3AEV)
+        #if defined(LOONGSON3A_3AEV)||defined(LOONGSON2G_2G690E)
         memcpy(vbiosMem, (char *)(0x00000000 | romaddress),
 		       V_BIOS_SIZE);
         #else
@@ -345,7 +345,7 @@ int vga_bios_init(void)
 	printf("ax=%lx,bx=%lx,cx=%lx,dx=%lx\n", pInt->ax, pInt->bx, pInt->cx, pInt->dx);
 	xf86ExecX86int10(pInt);
 	printf("bios emu done\n");
-#if !defined(LOONGSON3A_3AEV)
+#if !defined(LOONGSON3A_3AEV)&&!defined(LOONGSON2G_2G690E)
 	pInt->num = 0x10;
 	pInt->ax = 0x03;
 	xf86ExecX86int10(pInt);
@@ -353,7 +353,7 @@ int vga_bios_init(void)
 
 	//UnlockLegacyVGA(screen, &vga);
 	setregs(regs);
-#if !defined(LOONGSON3A_3AEV)
+#if !defined(LOONGSON3A_3AEV)&&!defined(LOONGSON2G_2G690E)
 	linux_outb(0x67, 0x3c2);
 #endif
 

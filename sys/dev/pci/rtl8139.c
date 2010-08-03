@@ -1,8 +1,5 @@
 /* rtl8139.c - etherboot driver for the Realtek 8139 chipset
 
-  Copyright (c) 2005 CAS, ict (www.ict.ac.cn)
-  ported to loongson by Yanhua
-
   ported from the linux driver written by Donald Becker
   by Rainer Bawidamann (Rainer.Bawidamann@informatik.uni-ulm.de) 1999
 
@@ -58,6 +55,9 @@
      transmission performace - below 1kBytes/s.
 
 */
+//yh
+#if 1  
+
 #ifdef DEBUG_8139
 #  define DPRINTF(fmt, args...) printf("%s:" fmt, __FUNCTION__, ##args)
 #else
@@ -173,6 +173,7 @@
 #else
 #define	RFA_ALIGNMENT_FUDGE	2
 #endif
+#endif //yh
 
 
 /* to get some global routines like printf */
@@ -199,8 +200,8 @@
 #define RX_BUF_LEN_IDX 2	/* 0, 1, 2 is allowed - 8,16,32K rx buffer */
 #define RX_BUF_LEN (8192 << RX_BUF_LEN_IDX)
 
-#undef DEBUG_TX
-#undef DEBUG_RX
+//#undef DEBUG_TX
+//#undef DEBUG_RX
 
 #define DEBUG_TX
 #define DEBUG_RX
@@ -432,6 +433,23 @@ int write_eeprom8(long idaddr,int,unsigned short);
 #define RTL8139_PCI_MEMA  0x14
 #define RTL8139_PCI_IOBA  0x10
 int db8139=0;
+#if 0
+static void dump_buf(unsigned char* data, int len)
+{
+	int i;
+	printf("\nThe buffer %p contents is\n", data);
+	for (i=0; i<len; i++) {
+		if ((i&15) == 0)
+		    printf("Off %04x: ", i);
+		printf("%02x ", data[i]);
+		if (i%16 == 15)
+		    printf("\n");
+		else if ((i&3) == 3)
+		    printf(" - ");
+	}
+	printf("\n");
+}
+#endif
 
 /* Serial EEPROM section. */
 
@@ -465,10 +483,6 @@ int db8139=0;
 #define EE_READ_CMD     (6 << 7)
 #define EE_ERASE_CMD    (7 << 7)
 #endif
-
-#undef  outb
-#undef  outw
-#undef  outl
 
 #define outb(v, a)  (*(volatile unsigned char *)(a) = (v))
 #define outw(v, a)  (*(volatile unsigned short*)(a) = (v))
@@ -764,7 +778,7 @@ static int rtl8139_init(struct nic* nic)
 	RTL_WRITE_4(nic, RxConfig, 
 			rtl8139_rx_config | AcceptBroadcast  |AcceptMyPhys
 			);
-	/* XXX accept no frames yet!  */
+				/* XXX accept no frames yet!  */
 	RTL_WRITE_4(nic, TxConfig, (TX_DMA_BURST<<8)|0x03000000);
 
 
@@ -792,6 +806,9 @@ static int rtl8139_init(struct nic* nic)
 	// ifp->if_flags |= IFF_BROADCAST | IFF_SIMPLEX ; //| IFF_MULTICAST;
 	ifp->if_flags = IFF_BROADCAST | IFF_SIMPLEX ; //| IFF_MULTICAST;
 	ifp->if_flags |=IFF_RUNNING;	
+	//for(i = 0; i <4; i++){
+	//	printf("TxStatus[%d]=%x\n", i, RTL_READ_4(nic, TxStatus0+i*4));
+	//}
 	
 	return 0;
 }
@@ -818,7 +835,7 @@ static void rtl8139_transmit(struct ifnet *ifp)
 		     memset(nic->tx_buf[entry]+mb_head->m_pkthdr.len, 0, 60-mb_head->m_pkthdr.len);
 		
 #ifdef __mips__
-#ifdef LS3_HT
+#if (defined(LS3_HT) || defined(LS2G_HT))
 #else
 		pci_sync_cache(nic->sc_pc, (vm_offset_t)nic->tx_buf[entry], 
 				max(60, mb_head->m_pkthdr.len), SYNC_W);
@@ -896,7 +913,7 @@ static struct mbuf * getmbuf(struct nic *nic)
 	}
 	
 #if defined(__mips__)
-#ifdef LS3_HT
+#if (defined(LS3_HT) || defined(LS2G_HT))
 	m->m_data += RFA_ALIGNMENT_FUDGE;
 #else
 	/*
@@ -1054,6 +1071,8 @@ static long long rtl_read_mac(struct nic *nic)
 	return mac_tmp;
 }
 
+#if 1 //yanhua
+
 #if defined(__BROKEN_INDIRECT_CONFIG) || defined(__OpenBSD__)
 static int rtl8139_match (struct device *, void *, void *);
 #else
@@ -1123,7 +1142,7 @@ rtl8139_attach_common(struct nic *nic, u_int8_t *enaddr)
 	 }
 	} 
 #else
-#if 0
+
 #ifndef EPLC46
 	if (read_eeprom (nic, ioaddr, 0) != 0x8129) 
 #else
@@ -1161,7 +1180,6 @@ rtl8139_attach_common(struct nic *nic, u_int8_t *enaddr)
 #endif
 		}
 	}
-#endif
 /*
 	for(i =0; i <6; i++)
 	{	
@@ -1192,13 +1210,13 @@ static void rtl8139_init_ring(struct nic *nic)
 	 */
 	buf = (unsigned long)malloc(TX_BUF_SIZE*4+15, M_DEVBUF, M_DONTWAIT );
 	memset((caddr_t)buf, 0, TX_BUF_SIZE*14+15);
-#ifdef LS3_HT
+#if (defined(LS3_HT) || defined(LS2G_HT))
 #else
 	pci_sync_cache(nic->sc_pc, buf, TX_BUF_SIZE*4+15, SYNC_W);
 #endif
 	
 	buf = (buf+15) & ~15;
-#ifdef LS3_HT
+#if (defined(LS3_HT) || defined(LS2G_HT))
 	nic->tx_buffer = (unsigned char *)(buf);
 #else
 	nic->tx_buffer = (unsigned char *)CACHED_TO_UNCACHED(buf);
@@ -1210,13 +1228,13 @@ static void rtl8139_init_ring(struct nic *nic)
 	 */
 	buf = (unsigned long)malloc(RX_BUF_LEN+15, M_DEVBUF, M_DONTWAIT );
 	memset((caddr_t)buf, 0, RX_BUF_LEN+15);
-#ifdef LS3_HT
+#if (defined(LS3_HT) || defined(LS2G_HT))
 #else
 	pci_sync_cache(nic->sc_pc, buf, RX_BUF_LEN, SYNC_W);
 #endif
 
 	buf = (buf+15) & ~15;
-#ifdef LS3_HT
+#if (defined(LS3_HT) || defined(LS2G_HT))
 	nic->rx_buffer = (unsigned char *)(buf);
 #else
 	nic->rx_buffer = (unsigned char *)CACHED_TO_UNCACHED(buf);
@@ -1271,6 +1289,7 @@ static void rtl8139_attach(struct device * parent, struct device * self, void *a
 	}
 	ioaddr = nic->sc_sh;      //iobase 0x1fd0ff00
 
+	printf("8139 iobase =%8x\n", ioaddr);
 	nic->sc_st = iot;
 	nic->sc_pc = pc;
 	
@@ -1299,6 +1318,7 @@ static void rtl8139_attach(struct device * parent, struct device * self, void *a
 		printf("\n");
 		return;
 	}
+	
 	
 	rtl8139_init_ring(nic);
 	/* Do generic parts of attach. */
@@ -1342,9 +1362,9 @@ static void rtl8139_attach(struct device * parent, struct device * self, void *a
 	//ifp->if_watchdog = fxp_watchdog;
 	ifp->if_watchdog = NULL; 
 	
-#if 0
 	printf(": %s, address %s\n", intrstr,
 	    ether_sprintf(nic->arpcom.ac_enaddr));
+#if 0
 	/*
 	 * Initialize our media structures and probe the MII.
 	 */
@@ -1584,6 +1604,8 @@ void rtl8139_stop(void)
 	}
 }
 
+
+#if 1
 #include <pmon.h>
 int cmd_ifm(int ac, char *av[])
 {
@@ -1650,9 +1672,20 @@ int cmd_setmac(int ac, char *av[])
 	printf("The machine should be restarted to make the mac change to take effect!!\n");
 #else
 	if(ac != 2){
+	long long macaddr;
+	u_int8_t *paddr;
+	u_int8_t enaddr[6];
+	macaddr=rtl_read_mac(nic);
+	paddr=(uint8_t*)&macaddr;
+	enaddr[0] = paddr[5- 0];
+	enaddr[1] = paddr[5- 1];
+	enaddr[2] = paddr[5- 2];
+	enaddr[3] = paddr[5- 3];
+	enaddr[4] = paddr[5- 4];
+	enaddr[5] = paddr[5- 5];
 		printf("MAC ADDRESS ");
 		for(i=0; i<6; i++){
-			printf("%02x",nic->arpcom.ac_enaddr[i]);
+			printf("%02x",enaddr[i]);
 			if(i==5)
 				printf("\n");
 			else
@@ -1663,11 +1696,11 @@ int cmd_setmac(int ac, char *av[])
 	}
 	for (i = 0; i < 3; i++) {
 		val = 0;
-		gethex((int32_t *)&v, av[1], 2);
+		gethex(&v, av[1], 2);
 		val = v ;
 		av[1]+=3;
 
-		gethex((int32_t *)&v, av[1], 2);
+		gethex(&v, av[1], 2);
 		val = val | (v << 8);
 		av[1] += 3;
 
@@ -1679,13 +1712,11 @@ int cmd_setmac(int ac, char *av[])
 #endif
 
 	}
-
-	printf("The machine should be restarted to make the mac change to take effect!!\n");
 #endif
 	return 0;
 }
 
-int cmd_reprom(int ac, char *av[])
+int cmd_reprom(int ac, char *av)
 {
 	int i;
 	unsigned short data;	
@@ -1708,14 +1739,18 @@ int cmd_reprom(int ac, char *av[])
 
 #if 1
 static unsigned long next = 1;
+
+           /* RAND_MAX assumed to be 32767 */
 static int myrand(void) {
                next = next * 1103515245 + 12345;
                return((unsigned)(next/65536) % 32768);
            }
+
 static void mysrand(unsigned int seed) {
                next = seed;
            }
 #endif
+
 int cmd_wrprom(int ac,char **av)
 {
         int i=0;
@@ -1732,7 +1767,9 @@ int cmd_wrprom(int ac,char **av)
 				0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
 				0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000                        
                         };
+
         printf("Now beginningwrite whole eprom\n");
+
 #if 1
                 clocks_num =CPU_GetCOUNT(); // clock();
                 mysrand(clocks_num);
@@ -1773,13 +1810,16 @@ int cmd_wrprom(int ac,char **av)
                 eeprom_data = rom[i];
                 write_eeprom(ioaddr, i, eeprom_data);
         }
+
         printf("Write the whole eeprom OK!\n");
         return 0;
 }
+
 int netdmp_cmd (int ac, char *av[])
 {
 	struct ifnet *ifp;
 	int i;
+	
 	ifp = &mynic->arpcom.ac_if;
 	printf("if_snd.mb_head: %x\n", ifp->if_snd.ifq_head);	
 	printf("if_snd.ifq_snd.ifqlen =%d\n", ifp->if_snd.ifq_len);
@@ -1799,6 +1839,7 @@ int netdmp_cmd (int ac, char *av[])
 		printf("Txstatus[%d]=%x\n", i, RTL_READ_4(mynic, TxStatus0+i*4));
 	}
 	if(ac==2){
+		
 		if(strcmp(av[1], "on")==0){
 			db8139=1;
 		}
@@ -1808,10 +1849,12 @@ int netdmp_cmd (int ac, char *av[])
 			int x=atoi(av[1]);
 			max_interrupt_work=x;
 		}
+		
 	}
 	printf("db8139=%d\n",db8139);
 	return 0;
 }
+		       
 static const Optdesc netdmp_opts[] =
 {
     {"<interface>", "Interface name"},
@@ -1829,7 +1872,7 @@ static const Cmd Cmds[] =
 		    "Set 8139 interface mode", cmd_ifm, 1, 2, 0},
 	{"setmac", "", NULL,
 		    "Set mac address into 8139 eeprom", cmd_setmac, 1, 5, 0},
-	{"reprom", "", NULL,
+	{"readrom", "", NULL,
 			"dump rtl8139 eprom content", cmd_reprom, 1, 1,0},
 	{"writerom", "", NULL,
 			"write the whole rtl8139 eprom content", cmd_wrprom, 1, 1,0},
@@ -1844,3 +1887,7 @@ init_cmd()
 {
 	cmdlist_expand(Cmds, 1);
 }
+
+#endif 
+
+#endif

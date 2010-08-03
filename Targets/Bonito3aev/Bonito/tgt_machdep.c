@@ -906,47 +906,18 @@ tgt_devinit()
 }
 
 
-#ifdef DEVBD2F_CS5536
-	void
+void
 tgt_reboot()
 {
-	unsigned long hi, lo;
-
-	/* reset the cs5536 whole chip */
-	_rdmsr(0xe0000014, &hi, &lo);
-	lo |= 0x00000001;
-	_wrmsr(0xe0000014, hi, lo);
+	void (*longreach) (void);
+	
+	longreach = (void *)0xbfc00000;
+	(*longreach)();
 
 	while(1);
 }
 
-	void
-tgt_poweroff()
-{
-	unsigned long val;
-	unsigned long tag;
-	unsigned long base;
-
-	tag = _pci_make_tag(0, 14, 0);
-	base = _pci_conf_read(tag, 0x14);
-	//base |= 0xbfd00000;
-	base |= BONITO_PCIIO_BASE_VA;
-	base &= ~3;
-
-	/* make cs5536 gpio13 output enable */
-	val = *(volatile unsigned long *)(base + 0x04);
-	val = ( val & ~(1 << (16 + 13)) ) | (1 << 13) ;
-	*(volatile unsigned long *)(base + 0x04) = val;
-
-	/* make cs5536 gpio13 output low level voltage. */
-	val = *(volatile unsigned long *)(base + 0x00);
-	val = (val | (1 << (16 + 13))) & ~(1 << 13);
-	*(volatile unsigned long *)(base + 0x00) = val;
-
-	while(1);
-}
-#else
-	void
+void
 tgt_poweroff()
 {
 	unsigned int val;
@@ -962,7 +933,6 @@ tgt_poweroff()
 	p[0]&=~1;
 	p[0]|=1;*/
 }
-#endif
 
 
 /*

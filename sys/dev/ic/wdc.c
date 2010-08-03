@@ -439,6 +439,9 @@ wdcprobe(chp)
 			return 0;
 	}
 
+#ifndef WDC_NORESET
+if(!getenv("wdcnoreset"))
+{
 	/* assert SRST, wait for reset to complete */
 	CHP_WRITE_REG(chp, wdr_sdh, WDSD_IBM);
 	delay(10);
@@ -454,6 +457,8 @@ wdcprobe(chp)
 	WDCDEBUG_PRINT(("%s:%d: after reset, ret_value=0x%d\n",
 	    chp->wdc ? chp->wdc->sc_dev.dv_xname : "wdcprobe", chp->channel,
 	    ret_value), DEBUG_PROBE);
+}
+#endif
 
 	/* if reset failed, there's nothing here */
 	if (ret_value == 0)
