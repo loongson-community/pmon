@@ -943,8 +943,8 @@ void rs780_after_pci_fixup(void){
 	rs780_enable(dev);
 	printk_info("Bus-0, Dev-3, Fun-0\n");
         dev = _pci_make_tag(0, 3, 0);
-	rs780_enable(dev);
-
+	set_nbmisc_enable_bits(_pci_make_tag(0, 0, 0), 0x0c, 1 << 3,0 << 3);
+	rs780_gfx_3_init(_pci_make_tag(0, 0, 0), dev, 3);
 	/* bus0, dev4-7, four GPPSB */	
 	printk_info("Bus-0, Dev-4, Fun-0\n");
         dev = _pci_make_tag(0, 4, 0);

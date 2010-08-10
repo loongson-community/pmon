@@ -959,3 +959,261 @@ void rs780_gfx_init(device_t nb_dev, device_t dev, u32 port)
 		break;
 	}
 }
+void rs780_gfx_3_init(device_t nb_dev, device_t dev, u32 port)
+{
+	u8  byte;
+	u16 reg16;
+	u32 reg32;
+        u32 dev_ind;
+        u8 result, width;
+	void set_pcie_reset();
+	void set_pcie_dereset();
+	//u8   is_dev3_present();
+
+	struct southbridge_amd_rs780_config *cfg =
+		&chip_info;
+        _pci_break_tag(dev, NULL, &dev_ind, NULL);
+	printk_info("rs780_gfx_init, nb_dev=0x%p, dev=0x%p, port=0x%x.\n",
+		    nb_dev, dev, port);
+
+	/* GFX Core Initialization */
+	//if (port == 2) return;
+
+
+
+	/* step 2, TMDS, (only need if CMOS option is enabled) */
+	if (cfg->gfx_tmds) {
+	}
+
+//#if 1				/* external clock mode */
+	/* table 5-22, 5.9.1. REFCLK */
+	/* 5.9.1.1. Disables the GFX REFCLK transmitter so that the GFX
+	 * REFCLK PAD can be driven by an external source. */
+	/* 5.9.1.2. Enables GFX REFCLK receiver to receive the REFCLK from an external source. */
+	//set_nbmisc_enable_bits(nb_dev, 0x38, 1 << 29 | 1 << 28, 0 << 29 | 1 << 28);
+
+	/* 5.9.1.3 Selects the GFX REFCLK to be the source for PLL A. */
+	/* 5.9.1.4 Selects the GFX REFCLK to be the source for PLL B. */
+	/* 5.9.1.5 Selects the GFX REFCLK to be the source for PLL C. */
+	//set_nbmisc_enable_bits(nb_dev, 0x28, 3 << 6 | 3 << 8 | 3 << 10,
+			    //   1 << 6 | 1 << 8 | 1 << 10);
+	//reg32 = nbmisc_read_index(nb_dev, 0x28);
+	//printk_info("misc 28 = %x\n", reg32);
+
+	/* 5.9.1.6.Selects the single ended GFX REFCLK to be the source for core logic. */
+	//set_nbmisc_enable_bits(nb_dev, 0x6C, 1 << 31, 1 << 31);
+//#else				/* internal clock mode */
+	/* table 5-23, 5.9.1. REFCLK */
+	/* 5.9.1.1. Enables the GFX REFCLK transmitter so that the GFX
+	 * REFCLK PAD can be driven by the SB REFCLK. */
+	/* 5.9.1.2. Disables GFX REFCLK receiver from receiving the
+	 * REFCLK from an external source.*/
+	//set_nbmisc_enable_bits(nb_dev, 0x38, 1 << 29 | 1 << 28, 1 << 29 | 0 << 28);
+
+	/* 5.9.1.3 Selects the GFX REFCLK to be the source for PLL A. */
+	/* 5.9.1.4 Selects the GFX REFCLK to be the source for PLL B. */
+	/* 5.9.1.5 Selects the GFX REFCLK to be the source for PLL C. */
+	//set_nbmisc_enable_bits(nb_dev, 0x28, 3 << 6 | 3 << 8 | 3 << 10,
+	//		       0);
+	//reg32 = nbmisc_read_index(nb_dev, 0x28);
+	//printk_info("misc 28 = %x\n", reg32);
+
+	/* 5.9.1.6.Selects the single ended GFX REFCLK to be the source for core logic. */
+	//set_nbmisc_enable_bits(nb_dev, 0x6C, 1 << 31, 0 << 31);
+//#endif
+
+	/* step 5.9.3, GFX overclocking, (only need if CMOS option is enabled) */
+	/* 5.9.3.1. Increases PLL BW for 6G operation.*/
+	/* set_nbmisc_enable_bits(nb_dev, 0x36, 0x3FF << 4, 0xB5 << 4); */
+	/* skip */
+
+	/* step 5.9.4, reset the GFX link */
+	/* step 5.9.4.1 asserts both calibration reset and global reset */
+	//set_nbmisc_enable_bits(nb_dev, 0x8, 0x3 << 14, 0x3 << 14);
+
+	/* step 5.9.4.2 de-asserts calibration reset */
+	//set_nbmisc_enable_bits(nb_dev, 0x8, 1 << 14, 0 << 14);
+
+	/* step 5.9.4.3 wait for at least 200us */
+	//udelay(300);
+
+	/* step 5.9.4.4 de-asserts global reset */
+	//set_nbmisc_enable_bits(nb_dev, 0x8, 1 << 15, 0 << 15);
+
+	/* 5.9.5 Reset PCIE_GFX Slot */
+	/* It is done in mainboard.c */
+	set_pcie_reset();
+	delay(1000);
+	set_pcie_dereset();
+
+	/* step 5.9.8 program PCIE memory mapped configuration space */
+	/* done by enable_pci_bar3() before */
+
+	/* step 7 compliance state, (only need if CMOS option is enabled) */
+	/* the compliance stete is just for test. refer to 4.2.5.2 of PCIe specification */
+	if (cfg->gfx_compliance) {
+		/* force compliance */
+		//set_nbmisc_enable_bits(nb_dev, 0x32, 1 << 6, 1 << 6);
+		/* release hold training for device 2. GFX initialization is done. */
+		//set_nbmisc_enable_bits(nb_dev, 0x8, 1 << 4, 0 << 4);
+		dynamic_link_width_control(nb_dev, dev, cfg->gfx_link_width);
+		printk_info("rs780_gfx_init step7.\n");
+		return;
+	}
+
+	/* 5.9.12 Core Initialization. */
+	/* 5.9.12.1 sets RCB timeout to be 25ms */
+	/* 5.9.12.2. RCB Cpl timeout on link down. */
+	set_pcie_enable_bits(dev, 0x70, 7 << 16 | 1 << 19, 4 << 16 | 1 << 19);
+	printk_info("rs780_gfx_init step5.9.12.1.\n");
+
+	/* step 5.9.12.3 disables slave ordering logic */
+	//set_pcie_enable_bits(nb_dev, 0x20, 1 << 8, 1 << 8);
+	//printk_info("rs780_gfx_init step5.9.12.3.\n");
+
+	/* step 5.9.12.4 sets DMA payload size to 64 bytes */
+	//set_pcie_enable_bits(nb_dev, 0x10, 7 << 10, 4 << 10);
+	/* 5.9.12.5. Blocks DMA traffic during C3 state. */
+	set_pcie_enable_bits(dev, 0x10, 1 << 0, 0 << 0);
+
+	/* 5.9.12.6. Disables RC ordering logic */
+	//set_pcie_enable_bits(nb_dev, 0x20, 1 << 9, 1 << 9);
+
+	/* Enabels TLP flushing. */
+	/* Note: It is got from RS690. The system will hang without this action. */
+	set_pcie_enable_bits(dev, 0x20, 1 << 19, 0 << 19);
+
+	/* 5.9.12.7. Ignores DLLPs during L1 so that txclk can be turned off */
+	//set_pcie_enable_bits(nb_dev, 0x2, 1 << 0, 1 << 0);
+
+	/* 5.9.12.8 Prevents LC to go from L0 to Rcv_L0s if L1 is armed. */
+	set_pcie_enable_bits(dev, 0xA1, 1 << 11, 1 << 11);
+
+	/* 5.9.12.9 CMGOOD_OVERRIDE for end point initiated lane degradation. */
+	//set_nbmisc_enable_bits(nb_dev, 0x6a, 1 << 17, 1 << 17);
+	//printk_info("rs780_gfx_init step5.9.12.9.\n");
+
+	/* 5.9.12.10 Sets the timer in Config state from 20us to */
+	/* 5.9.12.11 De-asserts RX_EN in L0s. */
+	/* 5.9.12.12 Enables de-assertion of PG2RX_CR_EN to lock clock
+	 * recovery parameter when lane is in electrical idle in L0s.*/
+	set_pcie_enable_bits(dev, 0xB1, 1 << 23 | 1 << 19 | 1 << 28, 1 << 23 | 1 << 19 | 1 << 28);
+
+	/* 5.9.12.13. Turns off offset calibration. */
+	/* 5.9.12.14. Enables Rx Clock gating in CDR */
+	//set_nbmisc_enable_bits(nb_dev, 0x34, 1 << 10/* | 1 << 22 */, 1 << 10/* | 1 << 22 */);
+
+	/* 5.9.12.15. Sets number of TX Clocks to drain TX Pipe to 3. */
+	set_pcie_enable_bits(dev, 0xA0, 0xF << 4, 3 << 4);
+
+	/* 5.9.12.16. Lets PI use Electrical Idle from PHY when
+	 * turning off PLL in L1 at Gen2 speed instead Inferred Electrical Idle. */
+	//set_pcie_enable_bits(nb_dev, 0x40, 3 << 14, 2 << 14);
+
+	/* 5.9.12.17. Prevents the Electrical Idle from causing a transition from Rcv_L0 to Rcv_L0s. */
+	set_pcie_enable_bits(dev, 0xB1, 1 << 20, 1 << 20);
+
+	/* 5.9.12.18. Prevents the LTSSM from going to Rcv_L0s if it has already
+	 * acknowledged a request to go to L1. */
+	set_pcie_enable_bits(dev, 0xA1, 1 << 11, 1 << 11);
+
+	/* 5.9.12.19. LDSK only taking deskew on deskewing error detect */
+	//set_pcie_enable_bits(nb_dev, 0x40, 1 << 28, 0 << 28);
+
+	/* 5.9.12.20. Bypasses lane de-skew logic if in x1 */
+	//set_pcie_enable_bits(nb_dev, 0xC2, 1 << 14, 1 << 14);
+
+	/* 5.9.12.21. Sets Electrical Idle Threshold. */
+	//set_nbmisc_enable_bits(nb_dev, 0x35, 3 << 21, 2 << 21);
+
+	/* 5.9.12.22. Advertises -6 dB de-emphasis value in TS1 Data Rate Identifier
+	 * Only if CMOS Option in section. skip */
+
+	/* 5.9.12.23. Disables GEN2 capability of the device. */
+	set_pcie_enable_bits(dev, 0xA4, 1 << 0, 0 << 0);
+
+	/* 5.9.12.24.Disables advertising Upconfigure Support. */
+	set_pcie_enable_bits(dev, 0xA2, 1 << 13, 1 << 13);
+
+	/* 5.9.12.25. No comment in RPR. */
+	//set_nbmisc_enable_bits(nb_dev, 0x39, 1 << 10, 0 << 10);
+
+	/* 5.9.12.26. This capacity is required since links wider than x1 and/or multiple link
+	 * speed are supported */
+	//set_pcie_enable_bits(nb_dev, 0xC1, 1 << 0, 1 << 0);
+
+	/* 5.9.12.27. Enables NVG86 ECO. A13 above only. */
+	/* TODO: Check if it is A13. */
+	if (0)			/* A12 */
+		set_pcie_enable_bits(dev, 0x02, 1 << 11, 1 << 11);
+
+	/* 5.9.12.28 Hides and disables the completion timeout method. */
+	//set_pcie_enable_bits(nb_dev, 0xC1, 1 << 2, 0 << 2);
+
+	/* 5.9.12.29. Use the bif_core de-emphasis strength by default. */
+	/* set_nbmisc_enable_bits(nb_dev, 0x36, 1 << 28, 1 << 28); */
+
+	/* 5.9.12.30. Set TX arbitration algorithm to round robin */
+	//set_pcie_enable_bits(nb_dev, 0x1C,
+			//     1 << 0 | 0x1F << 1 | 0x1F << 6,
+			 //    1 << 0 | 0x04 << 1 | 0x04 << 6);
+
+
+
+
+	/* Single-port/Dual-port configureation. */
+	switch (cfg->gfx_dual_slot) {
+	case 0:
+		/* step 1, lane reversal (only need if CMOS option is enabled) */
+		if (cfg->gfx_lane_reversal) {
+			set_nbmisc_enable_bits(nb_dev, 0x33, 1 << 2, 1 << 2);
+		}
+		printk_info("rs780_gfx_init step1.\n");
+		printk_info("rs780_gfx_init step2.\n");
+
+		printk_info("device = %x\n", dev_ind);
+		if(dev_ind == 2)
+			single_port_configuration(nb_dev, dev);
+		else{
+			set_nbmisc_enable_bits(nb_dev, 0xc, 0x2 << 2, 0x2 << 2); /* hide the GFX bridge. */
+			printk_info("If dev3.., single port. Do nothing.\n");
+		}
+
+		break;
+	case 1:
+	/* This function will be called twice, so we dont have to do dev 3 here. */
+	/* step 17: Training for Device 3 */
+	//set_nbmisc_enable_bits(nb_dev, 0x8, 1 << 5, 0 << 5);
+	/* Releases hold training for GFX port 0 (device 3) */
+	PcieReleasePortTraining(nb_dev, dev, 3);
+	/* PCIE Link Training Sequence */
+	result = PcieTrainPort(nb_dev, dev, 3);
+
+	/*step 18: Power Down Control for Device 3 */
+	/* step 18.a Link Training was NOT successful */
+	if (!result) {
+		/* Powers down all lanes for port B and PLL1 */
+		nbpcie_ind_write_index(nb_dev, 0x65, 0xccf0f0);
+	} else {		/* step 18.b Link Training was successful */
+
+		reg32 = nbpcie_p_read_index(dev, 0xa2);
+		width = (reg32 >> 4) & 0x7;
+		printk_debug("GFX LC_LINK_WIDTH = 0x%x.\n", width);
+		switch (width) {
+		case 1:
+		case 2:
+			nbpcie_ind_write_index(nb_dev, 0x65,
+					       cfg->gfx_lane_reversal ? 0x7070 : 0xe0e0);
+			break;
+		case 4:
+			nbpcie_ind_write_index(nb_dev, 0x65,
+					       cfg->gfx_lane_reversal ? 0x3030 : 0x0f0f);
+			break;
+		}
+	}
+		break;
+	default:
+		printk_info("Incorrect configuration of external gfx slot.\n");
+		break;
+	}
+}
