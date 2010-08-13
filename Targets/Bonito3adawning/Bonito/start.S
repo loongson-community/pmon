@@ -1008,8 +1008,108 @@ gs_2f_v3_ddr2_cfg:
 #include "loongson3_fixup.S"
 
 ##########################################
+/***********************************************************
+ s1: 
+|[35:35]| mc1_dimm_type      | 1'b1    | registered dual   |	
+|       |                    | 1'b0    | unbuffered dual   |
+|[34:34]| mc1_ecc            | 1'b1    | with data ecc     |	
+|       |                    | 1'b0    | no data ecc       |
+|[33:33]| mc0_dimm_type      | 1'b1    | registered dual   |	
+|       |                    | 1'b0    | unbuffered dual   |
+|[32:32]| mc0_ecc            | 1'b1    | with data ecc     |	
+|       |                    | 1'b0    | no	  data ecc     |
+|[31:31]|                    | 1'b0    | not used          |
+|[30:28]| mc1_row            | mc0_row | 15 - mc1_row_size |
+|[27:27]| mc1_eight_bank     | 1'b0    | four  banks       |
+|       |                    | 1'b1    | eight banks       |
+|[26:24]| mc1_col            | mc0_col | 14 - mc1_col_size |
+|[22:20]| mc0_row            | mc0_row | 15 - mc0_row_size |
+|[19:19]| mc0_eight_bank     | 1'b0    | four  banks       |
+|       |                    | 1'b1    | eight banks       |
+|[18:16]| mc0_col_size       | mc0_col | 14 - col_size     |
+|[15:12]| mc1_cs_map         |         |                   |
+|[11: 8]| mc0_cs_map         |         |                   |
+|[ 7: 7]| ddr_type           | 1'b0    | ddr2              |
+|       |                    | 1'b1    | ddr3              |
+|[ 6: 4]| size_per_controller| 3'b001  | 512mb             |
+|       |                    | 3'b010  | 1g                |
+|       |                    | 3'b011  | 2g                |
+|[ 3: 2]| controller_select  | 2'b00   | use both          |
+|       |                    | 2'b01   | mc0_only          |
+|       |                    | 2'b10   | mc1_only          |
+|[ 1: 0]| node id            |         |                   |
+***********************************************************/
         TTYDBG("NODE 0 MEMORY CONFIG BEGIN\r\n")
-        li      s1, 0x0
+#define MC0_USED 0x4
+#define MC1_USED 0x8
+
+#ifdef AUTO_DDR_CONFIG
+
+        /* Open the SMBUS controller */
+	    dli	    a1,0x90001efdfe00a090 ; #b:d:f:r=0:14:0:90 set tmp config address
+	    li	    a0,SMBUS_IO_BASE_VALUE | 0x1
+	    sw	    a0, 0x0(a1);
+
+	    /* enable the host controller */
+	    dli	    a1,0x90001efdfe00a0d0 ; #b:d:f:r=0:14:0:d2 bit0=1
+	    lw	    a0,0x0(a1);
+	    li	    t1, 0x10000;
+	    or 	    a0, t1
+	    sw	    a0, 0x0(a1);
+
+        PRINTSTR("\r\nProbing DDR SLOT: ");
+        li      s1,0x0
+        //PRINTSTR("\r\nProbe MC0:JB09: ");
+        li      a0,0xa1;
+        li      a1,MC0_USED;
+		li		a2,0x1
+        bal     PROBE_DIMM;
+        nop;
+        //move	a0,s1;
+        //bal hexserial;
+        //nop;
+
+        //PRINTSTR("\r\nProbe MC0:JB10: ");
+        li      a0,0xa3;
+        li      a1,MC0_USED;
+		li		a2,0x1
+        bal     PROBE_DIMM;
+        nop;
+        //move	a0,s1;
+        //bal hexserial;
+        //nop;
+
+          //PRINTSTR("\r\nProbe MC1:JB11: ");
+        li      a0,0xa5;
+        li      a1,MC1_USED;
+		li		a2,0x1
+        bal     PROBE_DIMM;
+        nop;
+        //move	a0,s1;
+        //bal hexserial;
+        //nop;
+
+          //PRINTSTR("\r\nProbe MC1:JB12: ");
+        li      a0,0xa7;
+        li      a1,MC1_USED;
+		li		a2,0x1
+        bal     PROBE_DIMM;
+        nop;
+
+		/* show value of 64 bit s1 */
+        move	a0,s1;
+		dsrl	a0,32;
+        bal     hexserial;
+        nop;
+        PRINTSTR("_");
+        move	a0,s1;
+        bal     hexserial;
+        nop;
+        PRINTSTR("\r\n");
+#else
+        li      s1, 0x14140c24
+#endif
+
 #include "loongson3_ddr2_config.S"
 ##########################################
 
