@@ -301,7 +301,8 @@ u16 pci_ext_read_config16(device_t nb_tag, device_t tag, u32 reg)
 	/*get BAR3 base address for nbcfg0x1c */
 	addr = (_pci_conf_read(bar3_tag, 0x1c)  & ~(0x0f))| 0xA0000000;
 	addr |= bus << 20 | dev << 15 | func << 12 | reg;
-//	printf("addr=%x,bus=%x,dev=%x, fn=%x\n", addr, bus, dev, func);
+    addr |= 0x0e000000;  //added by oldtai for the cpu win changed  maybe cause ide not passing 
+//	printf("ext ===========   addr=%x,bus=%x,dev=%x, fn=%x\n", addr, bus, dev, func);
 
 	return *((volatile u16 *) addr);
 }
@@ -316,6 +317,7 @@ void pci_ext_write_config16(device_t nb_tag, device_t tag, u32 reg_pos, u32 mask
 	/*get BAR3 base address for nbcfg0x1c */
 	addr = (_pci_conf_read(bar3_tag, 0x1c)  & ~(0x0f))| 0xA0000000;
 	addr |= bus << 20 | dev << 15 | func << 12 | reg_pos;
+    addr |= 0x0e000000;  //added by oldtai for the cpu win changed
 //	printf("addr=%x,bus=%x,dev=%x, fn=%x\n", addr, bus, dev, func);
 	*((volatile u16 *) addr) = val;
 

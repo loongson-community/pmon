@@ -889,7 +889,7 @@ void sisfb_copyarea(int sx,int sy,int dx,int dy,int width,int height);
 #elif X800x600
 	memsetl (CONSOLE_ROW_LAST - CONSOLE_ROW_SIZE/2, CONSOLE_ROW_SIZE >> 2, CONSOLE_BG_COL);
 #else
-	memsetl (CONSOLE_ROW_LAST, CONSOLE_ROW_SIZE >> 2, CONSOLE_BG_COL);
+	memsetl (CONSOLE_ROW_LAST - CONSOLE_ROW_SIZE/2, CONSOLE_ROW_SIZE >> 2, CONSOLE_BG_COL);
 #endif
 }
 

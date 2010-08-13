@@ -48,7 +48,7 @@
 #include "target/i8254.h"
 #include "target/isapnpreg.h"
 #define DEBUG_LOCORE
-
+#undef USE_GPIO_SERIAL
 
 
 #ifdef DEBUG_LOCORE
@@ -172,7 +172,7 @@ stack = start - 0x4000		/* Place PMON stack below PMON start in RAM */
 
 //	bal	uncached		/* Switch to uncached address space */
 	nop
-	GPIOLED_SET(2)
+	GPIOLED_SET(0xd)
 
 	bal	locate			/* Get current execute address */
 	nop

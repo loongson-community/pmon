@@ -118,6 +118,9 @@ static void rs780_por_misc_index_init(device_t nb_dev)
 	set_nbmisc_enable_bits(nb_dev, 0x00, ~0xFFFF0000, 0x00000506);	/* set bit 10 for MSI */
 	//lycheng
 	//set_nbmisc_enable_bits(nb_dev, 0x00, ~0xFFFF0000, 0x00000004);	/* set bit 10 for MSI */
+	set_nbmisc_enable_bits(nb_dev, 0x00, 1 << 10, 1 << 10);   //added by oldtai
+	set_nbmisc_enable_bits(nb_dev, 0x01, 1 << 8, 1 << 8);   //added by oldtai
+
 
 	/* NBMISCIND:0x6A[16]= 1 SB link can get a full swing
 	 *      set_nbmisc_enable_bits(nb_dev, 0x6A, 0ffffffffh, 000010000);
@@ -801,81 +804,7 @@ void rs780_enable(device_t dev)
                 break;
 	case 1: /* bus0, dev1, APC. */
 		printk_info("Bus-0, Dev-1, Fun-0.\n");
-		{
-			/* BTDC: NB_InitGFXStraps */
-			u32 u32temp;
-			u8  u8temp;
-			u32 MMIOBase, apc04, apc18, apc24;
-			volatile u32 * strap;
-			/* BTDC: Get PCIe configuration space. */
-			printk_info("Get PCIe configuration space.\n");
-			MMIOBase = pci_read_config32(nb_dev, 0x1c) & 0xfffffff0;
-			printk_info("MMIOBase=%08x\n", MMIOBase);
-			/* BTDC: Temporarily disable PCIe configuration space. */
-			printk_info("Temporarily disable PCIe configuration space\n");
-			set_htiu_enable_bits(nb_dev, 0x32, 1<<28, 0);
-			set_nbmisc_enable_bits(nb_dev, 0x1e, 0xffffffff, 1<<1 | 1<<4 | 1<<6 | 1<<7);
-			/* BTDC: Set a temporary Bus number. */
-			printk_info("Set a temporary Bus number.\n");
-			apc18 = pci_read_config32(dev, 0x18);
-			pci_write_config32(dev, 0x18, 0x010100);
-			/* BTDC: Set MMIO for AGP target(graphics controller). base = 0xe0000000, limit = 0x20000 */
-			printk_info("Set MMIO for AGP target(graphics controller).\n");
-			apc24 = pci_read_config32(dev, 0x24);
-			pci_write_config32(dev, 0x24, (MMIOBase>>16)+((MMIOBase+0x20000)&0xffff0000));
-			/* BTDC: Enable memory access. */
-			printk_info("Enable memory access\n");
-			apc04 = pci_read_config32(dev, 0x04);
-			pci_write_config8(dev, 0x04, 0x02);
-			
-			/* BTDC: Program Straps. */
-			printk_info("Program Straps\n");
-			//lycheng
-			//MMIOBase |= 0xb0000000;
-			MMIOBase = BONITO_PCICFG1_BASE_VA;
-			printk_info("MMIOBase=%08x\n", MMIOBase);
-#if 1
-			strap = MMIOBase + 0x15020;
-//#if (CONFIG_GFXUMA == 1)
-#if 0
-			*strap = 1<<7; /* BTDC: the format of BIF_MEM_AP_SIZE. 001->256MB? */
-#else
-			*strap = 0; /* BTDC: 128M SP memory, 000 -> 128MB */
-#endif
-			strap = MMIOBase + 0x15000;
-			*strap = 0x2c006300;
-			strap = MMIOBase + 0x15010;
-			*strap = 0x03015330;
-			//strap = MMIOBase + 0x15020;
-			//*strap |= 0x00000040; /* BTDC: Disable HDA device. */
-			strap = MMIOBase + 0x15030;
-			*strap = 0x00001002;
-			strap = MMIOBase + 0x15040;
-			*strap = 0x00000000;
-			strap = MMIOBase + 0x15050;
-			*strap = 0x00000000;
-			strap = MMIOBase + 0x15220;
-			*strap = 0x03c03800;
-			strap = MMIOBase + 0x15060;
-			*strap = 0x00000000;
-#endif
-			/* BTDC: BIF switches into normal functional mode. */
-			printk_info("BIF switches into normal functional mode.\n");
-			set_nbmisc_enable_bits(nb_dev, 0x1e, 1<<4 | 1<<5, 1<<5);
-			/* BTDC: NB Revision is A12. */
-			printk_info("NB Revision is A12\n");
-			set_nbmisc_enable_bits(nb_dev, 0x1e, 1<<9, 1<<9);
-			/* BTDC: Restore APC04, APC18, APC24. */
-			printk_info("Restore APC04, APC18, APC24.\n");
-			pci_write_config32(dev, 0x04, apc04);
-			pci_write_config32(dev, 0x18, apc18);
-			pci_write_config32(dev, 0x24, apc24);
-			/* BTDC: Enable PCIe configuration space. */
-			printk_info("Enable PCIe configuration space.\n");
-			set_htiu_enable_bits(nb_dev, 0x32, 0, 1<<28);
-			printk_info("BTDC: GC is accessible from now on.\n");
-		}
-		//set_nbcfg_enable_bits(nb_dev, 0x7C, 1 << 0, 0);
+        rs780_internal_gfx_enable(nb_dev,dev);
 		break;
         case 2:
 	case 3:
@@ -934,6 +863,7 @@ void rs780_after_pci_fixup(void){
 	/* bus0, dev1, APC. */	
 	printk_info("Bus-0, Dev-1, Fun-0.\n");
         dev = _pci_make_tag(0, 1, 0);
+    rs780_internal_gfx_init(_pci_make_tag(0,0,0) , _pci_make_tag(0,1,0));
 	rs780_enable(dev);
 
 
@@ -945,6 +875,8 @@ void rs780_after_pci_fixup(void){
         dev = _pci_make_tag(0, 3, 0);
 	set_nbmisc_enable_bits(_pci_make_tag(0, 0, 0), 0x0c, 1 << 3,0 << 3);
 	rs780_gfx_3_init(_pci_make_tag(0, 0, 0), dev, 3);
+	//rs780_enable(dev);
+
 	/* bus0, dev4-7, four GPPSB */	
 	printk_info("Bus-0, Dev-4, Fun-0\n");
         dev = _pci_make_tag(0, 4, 0);
@@ -1030,7 +962,9 @@ void sb700_after_pci_fixup(void){
 	pci_init(_pci_make_tag(0, 0x14, 4));
 	printk_info("sm init\n");
 	sm_init(_pci_make_tag(0, 0x14, 0));
-	
-	//printk_info("rs780_internal_gfx_enable\n");
-	//rs780_internal_gfx_enable();
+#ifdef USE_780E_VGA
+	printk_info("rs780_internal_gfx_init\n");
+ //   rs780_internal_gfx_init(_pci_make_tag(0,0,0) , _pci_make_tag(0,1,0));
+	internal_gfx_pci_dev_init(_pci_make_tag(0,0,0) , _pci_make_tag(1,0x5,0));
+#endif
 }

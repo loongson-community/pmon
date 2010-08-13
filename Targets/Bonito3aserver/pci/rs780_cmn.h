@@ -43,7 +43,7 @@ void _pci_conf_writen(device_t tag, int reg, u32 data,int width);
 
 extern int printf (const char *fmt, ...);
 
-//#define DAWNINGBLADE_DEBUG
+#define DAWNINGBLADE_DEBUG
 #ifdef DAWNINGBLADE_DEBUG
 #define printk_emerg(fmt, arg...)   printf(fmt, ##arg)
 #define printk_alert(fmt, arg...)   printf(fmt, ##arg)
