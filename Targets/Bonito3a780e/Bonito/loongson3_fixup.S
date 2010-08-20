@@ -134,7 +134,7 @@
 
 #endif
 
-#if 1//config L1 xbar cpu port
+#if 0//config L1 xbar cpu port
     dli t2, 0x900010003ff02000
     dli t1, 0x900010003ff02700
 	TTYDBG("Fix L1xbar illegal access \r\n")
