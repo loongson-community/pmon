@@ -131,8 +131,7 @@ static void internal_gfx_pci_dev_init(device_t nb , device_t dev)
 	set_nbmc_enable_bits(nb_dev, 0x6, 0, 1<<31);
 	/* GFX_StartMC finished. */
 #else
-#if 0
-// sp mode is not tested
+#if 1
 	/* for SP mode. */
 	set_nbmc_enable_bits(nb_dev, 0xaa, 0xf0, 0x30);
 	set_nbmc_enable_bits(nb_dev, 0xce, 0xf0, 0x30);
@@ -144,8 +143,8 @@ static void internal_gfx_pci_dev_init(device_t nb , device_t dev)
 	set_nbmc_enable_bits(nb_dev, 0xb4, 0, 1<<6);
 	set_nbmc_enable_bits(nb_dev, 0xc3, 1<<11, 0);
 	set_nbmc_enable_bits(nb_dev, 0xa0, 1<<29, 0);
-	nbmc_write_index(nb_dev, 0xa4, 0x3484576f);
-	nbmc_write_index(nb_dev, 0xa5, 0x222222df);
+	nbmc_write_index(nb_dev, 0xa4, 0x1845761F);
+	nbmc_write_index(nb_dev, 0xa5, 0x22259422);
 	nbmc_write_index(nb_dev, 0xa6, 0x00000000);
 	nbmc_write_index(nb_dev, 0xa7, 0x00000000);
 	set_nbmc_enable_bits(nb_dev, 0xc3, 1<<8, 0);
@@ -161,7 +160,7 @@ static void internal_gfx_pci_dev_init(device_t nb , device_t dev)
 	set_nbmc_enable_bits(nb_dev, 0xa0, 0, 1<<30);
 	set_nbmc_enable_bits(nb_dev, 0xa0, 1<<31, 0);
 	set_nbmc_enable_bits(nb_dev, 0xa0, 0, 1<<29);
-	nbmc_write_index(nb_dev, 0xa4, 0x23484576);
+	nbmc_write_index(nb_dev, 0xa4, 0x22484576);
 	nbmc_write_index(nb_dev, 0xa5, 0x00000000);
 	nbmc_write_index(nb_dev, 0xa6, 0x00000000);
 	nbmc_write_index(nb_dev, 0xa7, 0x00000000);
@@ -258,7 +257,7 @@ void rs780_internal_gfx_init(device_t nb_dev,device_t dev)
 #ifdef CONFIG_GFXUMA 
     *strap = 0x2 << 7; /* BTDC: the format of BIF_MEM_AP_SIZE. 001->256MB? */
 #else
-    *strap = 0; /* BTDC: 128M SP memory, 000 -> 128MB */
+    *strap = 0x2 << 7; /* BTDC: 128M SP memory, 000 -> 128MB */
 #endif
     //strap = MMIOBase + 0x15020;
     //*strap |= 0x00000040; /* BTDC: Disable HDA device. */
@@ -296,9 +295,15 @@ void rs780_internal_gfx_init(device_t nb_dev,device_t dev)
 * Set registers in RS780 and CPU to enable the internal GFX.
 * Please refer to CIM source code and BKDG.
 */
+#ifdef CONFIG_GFXUMA
 static uint64_t uma_memory_base = 0xf8000000;
 static uint64_t uma_memory_size = 0x04000000;
 static uint64_t uma_memory_top = 0xfc000000; //base + size
+#else
+static uint64_t uma_memory_base = 0x10000000;
+static uint64_t uma_memory_size = 0x04000000;
+static uint64_t uma_memory_top = 0x12000000; //base + size
+#endif
 
 static void rs780_internal_gfx_enable(device_t nb , device_t dev)
 {
@@ -309,9 +314,6 @@ static void rs780_internal_gfx_enable(device_t nb , device_t dev)
 	device_t k8_f2 = _pci_make_tag(0, 0x18, 2);
     u32 temp;
 
-#ifndef CONFIG_GFXUMA 
-    u32 FB_Start, FB_End;
-#endif
 	printk_info( "rs780_internal_gfx_enable dev = 0x%p, nb_dev = 0x%p.\n", dev, nb_dev);
 
 	/* The system top memory in 780. */
@@ -358,26 +360,27 @@ static void rs780_internal_gfx_enable(device_t nb , device_t dev)
 
 	/* GFX_InitUMA finished. */
 #else
-#if 0
-//sp mode is not tested  
+#if 1
 	/* GFX_InitSP. */
-	/* SP memory:Hynix HY5TQ1G631ZNFP. 128MB = 64M * 16. 667MHz. DDR3. */
 
 	/* Enable Async mode. */
 	set_nbmc_enable_bits(nb_dev, 0x06, 7<<8, 1<<8);
 	set_nbmc_enable_bits(nb_dev, 0x08, 1<<10, 0);
 	/* The last item in AsynchMclkTaskFileIndex. Why? */
+
+	/* Change the freq. to 266 MHz. by liuqi */
 	/* MC_MPLL_CONTROL2. */
-	nbmc_write_index(nb_dev, 0x07, 0x40100028);
+	nbmc_write_index(nb_dev, 0x07, 0x40114478);
 	/* MC_MPLL_DIV_CONTROL. */
-	nbmc_write_index(nb_dev, 0x0b, 0x00000028);
+	nbmc_write_index(nb_dev, 0x0b, 0x00004478);
 	/* MC_MPLL_FREQ_CONTROL. */
-	set_nbmc_enable_bits(nb_dev, 0x09, 3<<12|15<<16|15<<8, 1<<12|4<<16|0<<8);
+	set_nbmc_enable_bits(nb_dev, 0x09, 3<<12|15<<16|15<<8, 1<<12|4<<16|1<<8);
+
 	/* MC_MPLL_CONTROL3. For PM. */
 	set_nbmc_enable_bits(nb_dev, 0x08, 0xff<<13, 1<<13|1<<18);
 	/* MPLL_CAL_TRIGGER. */
 	set_nbmc_enable_bits(nb_dev, 0x06, 0, 1<<0);
-	udelay(200); /* time is long enough? */
+	delay(2000); /* time is long enough? */
 	set_nbmc_enable_bits(nb_dev, 0x06, 0, 1<<1);
 	set_nbmc_enable_bits(nb_dev, 0x06, 1<<0, 0);
 	/* MCLK_SRC_USE_MPLL. */
@@ -389,15 +392,15 @@ static void rs780_internal_gfx_enable(device_t nb , device_t dev)
 	nbmc_write_index(nb_dev, 0x04, 0x08881018);
 	nbmc_write_index(nb_dev, 0x05, 0x000000bb);
 	nbmc_write_index(nb_dev, 0x0c, 0x0f00001f);
-	nbmc_write_index(nb_dev, 0xa1, 0x01f10000);
+	nbmc_write_index(nb_dev, 0xa1, 0x01f10002);
 	/* MCA_INIT_DLL_PM. */
 	set_nbmc_enable_bits(nb_dev, 0xc9, 1<<24, 1<<24);
 	nbmc_write_index(nb_dev, 0xa2, 0x74f20000);
-	nbmc_write_index(nb_dev, 0xa3, 0x8af30000);
+	nbmc_write_index(nb_dev, 0xa3, 0x4AF30000);
 	nbmc_write_index(nb_dev, 0xaf, 0x47d0a41c);
 	nbmc_write_index(nb_dev, 0xb0, 0x88800130);
 	nbmc_write_index(nb_dev, 0xb1, 0x00000040);
-	nbmc_write_index(nb_dev, 0xb4, 0x41247000);
+	nbmc_write_index(nb_dev, 0xb4, 0x00000000);
 	nbmc_write_index(nb_dev, 0xb5, 0x00066664);
 	nbmc_write_index(nb_dev, 0xb6, 0x00000022);
 	nbmc_write_index(nb_dev, 0xb7, 0x00000044);
@@ -419,29 +422,30 @@ static void rs780_internal_gfx_enable(device_t nb , device_t dev)
 	nbmc_write_index(nb_dev, 0xe1, 0x00200020);
 	nbmc_write_index(nb_dev, 0xe8, 0x00200020);
 	nbmc_write_index(nb_dev, 0xe9, 0x00200020);
-	nbmc_write_index(nb_dev, 0xe0, 0x00180018);
-	nbmc_write_index(nb_dev, 0xe1, 0x00180018);
-	nbmc_write_index(nb_dev, 0xe8, 0x00180018);
-	nbmc_write_index(nb_dev, 0xe9, 0x00180018);
+//if (pConfig->MCLK >= 4)
+	nbmc_write_index(nb_dev, 0xe0, 0x00200020);
+	nbmc_write_index(nb_dev, 0xe1, 0x00200020);
+	nbmc_write_index(nb_dev, 0xe8, 0x00200020);
+	nbmc_write_index(nb_dev, 0xe9, 0x00200020);
 
 	/* Misc options. */
 	/* Memory Termination. */
-	set_nbmc_enable_bits(nb_dev, 0xa1, 0x0ff, 0x044);
-	set_nbmc_enable_bits(nb_dev, 0xb4, 0xf00, 0xb00);
+	//set_nbmc_enable_bits(nb_dev, 0xa1, 0x0ff, 0x046);
+	//set_nbmc_enable_bits(nb_dev, 0xb4, 0xf00, 0xb00);
 #if 0
 	/* Controller Termation. */
 	set_nbmc_enable_bits(nb_dev, 0xb1, 0x77770000, 0x77770000);
 #endif
 
-	/* OEM Init MC. 667MHz. */
-	nbmc_write_index(nb_dev, 0xa8, 0x7a5aaa78);
-	nbmc_write_index(nb_dev, 0xa9, 0x514a2319);
-	nbmc_write_index(nb_dev, 0xaa, 0x54400520);
-	nbmc_write_index(nb_dev, 0xab, 0x441460ff);
-	nbmc_write_index(nb_dev, 0xa0, 0x20f00a48);
+	/* OEM Init MC. 266MHz. */
+	nbmc_write_index(nb_dev, 0xa8, 0x34244456);
+	nbmc_write_index(nb_dev, 0xa9, 0x2022100c);
+	nbmc_write_index(nb_dev, 0xaa, 0x23400220);
+	nbmc_write_index(nb_dev, 0xab, 0x2000e088);
+	nbmc_write_index(nb_dev, 0xa0, 0x20f0066b);
 	set_nbmc_enable_bits(nb_dev, 0xa2, ~(0xffffffc7), 0x10);
-	nbmc_write_index(nb_dev, 0xb2, 0x00000303);
-	set_nbmc_enable_bits(nb_dev, 0xb1, ~(0xffffff70), 0x45);
+	nbmc_write_index(nb_dev, 0xb2, 0x0);
+	set_nbmc_enable_bits(nb_dev, 0xb1, ~(0xffffff70), 0x43);
 	/* Do it later. */
 	/* set_nbmc_enable_bits(nb_dev, 0xac, ~(0xfffffff0), 0x0b); */
 
@@ -456,18 +460,20 @@ static void rs780_internal_gfx_enable(device_t nb , device_t dev)
 		l_dword = nbmc_read_index(nb_dev, 0xa8+i);
 		nbmc_write_index(nb_dev, 0xcc+i, l_dword);
 	}
+    l_dword = nbmc_read_index(nb_dev, 0xb2);
+    nbmc_write_index(nb_dev , 0xd0,l_dword);
 	l_dword = nbmc_read_index(nb_dev, 0xb1);
 	set_nbmc_enable_bits(nb_dev, 0xc8, 0xff<<24, ((l_dword&0x0f)<<24)|((l_dword&0xf00)<<20));
 
 	/* Init MC FB. */
 	/* FB_Start = ; FB_End = ; iSpSize = 0x0080, 128MB. */
-	nbmc_write_index(nb_dev, 0x11, 0x78000000);
-	FB_Start = 0x700 + 0x080;
-	FB_End = 0x700 + 0x0c0;
-	nbmc_write_index(nb_dev, 0x10, (((FB_End&0xfff)<<20)-0x10000)|(((FB_Start&0xfff))<<4));
-	set_nbmc_enable_bits(nb_dev, 0x0d, ~0x000ffff0, (FB_End&0xfff)<<20);
-	nbmc_write_index(nb_dev, 0x0f, 0);
-	nbmc_write_index(nb_dev, 0x0e, (FB_End&0xfff)|(0xaaaa<<12));
+	nbmc_write_index(nb_dev, 0x12, 0x80000000);
+	nbmc_write_index(nb_dev, 0xd, (uma_memory_top & 0xfff00000) | 0x00054060);
+    set_nbmc_enable_bits(nb_dev , 0xe , 0xfffffff , 0x0aaaa000 | (uma_memory_top >> 20));
+    nbmc_write_index(nb_dev, 0x11, uma_memory_base);
+ //   pci_write_config32(nb_dev,0x90,0x90000000);
+	nbmc_write_index(nb_dev, 0x10, ((uma_memory_top - 1) & 0xff000000 ) | (uma_memory_base >> 16) & 0xffff);
+    printf("config SP only!!!!!!!!!!!!!!!!!!!!!!!!!!!!1\n");
     printf("mc : %d  ============value: %x\n" , 0xd , nbmc_read_index(nb_dev,0xd));
     printf("mc : %d  ============value: %x\n" , 0xe , nbmc_read_index(nb_dev,0xe));
     printf("mc : %d  ============value: %x\n" , 0x10 , nbmc_read_index(nb_dev,0x10));
