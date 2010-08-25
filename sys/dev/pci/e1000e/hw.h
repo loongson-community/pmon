@@ -26,6 +26,23 @@
 
 *******************************************************************************/
 
+/************************************************************************
+
+ Copyright (C)
+ File name:     hw.h
+ Author:       Version:  ***      Date: ***
+ Description:   
+ Others:        
+ Function List:
+ 
+ Revision History:
+ 
+ -----------------------------------------------------------------------------------------------------------
+  Date          Author          Activity ID     Activity Headline
+  2010-08-25    QianYuli        PMON20100825    Move typedef unsigned long long u64 to sys/linux/types.h
+***********************************************************************************************************/
+ 
+
 #ifndef _E1000_HW_H_
 #define _E1000_HW_H_
 #ifndef PMON //zxj
@@ -34,7 +51,7 @@
 #if 1 //zxj
 typedef unsigned int bool;
 typedef unsigned long long  __u64;
-typedef unsigned long long  u64;
+//typedef unsigned long long  u64;
 typedef unsigned int __u32;
 typedef unsigned short __u16;
 typedef signed int __s32;

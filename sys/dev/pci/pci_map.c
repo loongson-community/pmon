@@ -47,7 +47,9 @@
 
 #include <dev/pci/pcireg.h>
 #include <dev/pci/pcivar.h>
-
+#include <sys/mbuf.h>
+#include <machine/bus.h>
+#include <machine/cpu.h>
 
 static int nbsd_pci_io_find __P((pci_chipset_tag_t, pcitag_t, int, pcireg_t,
     bus_addr_t *, bus_size_t *, int *));
@@ -332,4 +334,51 @@ pci_mapreg_map(pa, reg, type, busflags, tagp, handlep, basep, sizep, maxsize)
 		*sizep = size;
 
 	return (0);
+}
+
+//pci_alloc_consistent 最后一个参数是DMA地址，返回的是非cache的cpu地址。
+void *pci_alloc_consistent(void *hwdev, size_t size,dma_addr_t * dma_handle)
+{
+    void *buf;
+    
+    buf = malloc(size,M_DEVBUF, M_DONTWAIT );
+#if defined(LS3_HT)||defined(LS2G_HT)
+#else
+    pci_sync_cache(hwdev, buf,size, SYNC_R);
+    buf = (unsigned char *)CACHED_TO_UNCACHED(buf);
+#endif
+
+    *dma_handle =vtophys(buf);
+
+	return (void *)buf;
+}
+
+void pci_free_consistent(struct pci_dev *pdev, size_t size, void *cpu_addr,
+            dma_addr_t dma_addr)
+{
+	free(UNCACHED_TO_CACHED(cpu_addr),M_DEVBUF);
+}
+
+dma_addr_t pci_map_single(struct pci_dev *pdev, void *ptr,
+		                    size_t size, int direction)
+{
+	    unsigned long addr = (unsigned long) ptr;
+#if defined(LS3_HT)||defined(LS2G_HT)
+#else
+    if(direction == 1)
+        pci_sync_cache(pdev,addr,size, SYNC_W);
+    else
+        pci_sync_cache(pdev,addr,size, SYNC_R);
+#endif
+    return _pci_dmamap(addr,size);
+}
+
+void pci_unmap_single(struct pci_dev *pdev, dma_addr_t dma_addr,
+                    size_t size, int direction)
+{
+#if defined(LS3_HT)||defined(LS2G_HT)
+
+#else
+    pci_sync_cache(pdev, _pci_cpumap(dma_addr,size), size, SYNC_R);
+#endif
 }

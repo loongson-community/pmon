@@ -214,6 +214,19 @@ _pci_dmamap(va, len)
 #endif
 	return(pci_local_mem_pci_base + VA_TO_PA (va));
 }
+#if 1
+/*
+ *  Map the PCI address of an area of local memory to a CPU physical
+ *  address.
+ */
+vm_offset_t
+_pci_cpumap(pcia, len)
+	vm_offset_t pcia;
+	unsigned int len;
+{
+	return PA_TO_VA(pcia - pci_local_mem_pci_base);
+}
+#endif
 
 
 #if 0

@@ -62,7 +62,6 @@ didn't get a copy, you may request one from <license@ipv6.nrl.navy.mil>.
 #include <sys/protosw.h>
 
 #include <machine/cpu.h>
-
 #include <vm/vm.h>
 
 #if defined(UVM)
@@ -728,6 +727,43 @@ bad:
 	MPFail++;
 	return (NULL);
 }
+
+struct mbuf * getmbuf(void)
+{
+	struct mbuf *m;
+
+	MGETHDR(m, M_DONTWAIT, MT_DATA);
+	if(m == NULL){
+		printf("getmbuf failed, Out of memory!!!\n");
+		return  NULL;
+	} else {
+		MCLGET(m, M_DONTWAIT);
+		if ((m->m_flags & M_EXT) == 0) {
+			m_freem(m);
+			return NULL;
+		}
+		if(m->m_data != m->m_ext.ext_buf){
+			printf("m_data not equal to ext_buf!!!\n");
+		}
+	}
+	
+#if defined(__mips__)
+	/*
+	 * Sync the buffer so we can access it uncached.
+	 */
+	if (m->m_ext.ext_buf!=NULL) {
+#if !(defined(LS3_HT) || defined(LS2G_HT))
+		pci_sync_cache(NULL, (vm_offset_t)m->m_ext.ext_buf, MCLBYTES, 0);
+#endif
+	}
+#define RFA_ALIGNMENT_FUDGE 2
+	m->m_data += RFA_ALIGNMENT_FUDGE;
+#else
+	m->m_data += RFA_ALIGNMENT_FUDGE;
+#endif
+	return m;
+}
+
 
 #ifndef PMON
 /*

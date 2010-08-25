@@ -57,6 +57,8 @@ select      fat
 select		mod_x86emu_int10
 select     mod_framebuffer
 select     mod_vesa
+select     mod_gunzip
+select     mod_zlib
 #5-4
 select mod_sisfb
 #select		mod_x86emu		# X86 emulation for VGA

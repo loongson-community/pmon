@@ -160,6 +160,7 @@ inphy*          at mii? phy ?                   # Intel 82555 PHYs
 rtk*		 at pci? dev ? function ?
 #em*        at pci? dev ? function ?
 rte*		 at pci? dev ? function ?
+atl0             at pci? dev ? function ?
 
 #####USB Devices######
 uhci*		 at pci? dev ? function ?

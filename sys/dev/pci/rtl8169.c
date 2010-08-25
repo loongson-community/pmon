@@ -51,6 +51,24 @@ VERSION 2.2LK	<2005/01/25>
 	- baby (< 7200) Jumbo frames support
 	- Merge of Realtek's version 2.2 (new phy)
  */
+
+
+ /************************************************************************
+
+ Copyright (C)
+ File name:     rtl8169.c
+ Author:       Version:  ***      Date: ***
+ Description:   
+ Others:        
+ Function List:
+ 
+ Revision History:
+ 
+ -----------------------------------------------------------------------------------------------------------
+  Date          Author          Activity ID     Activity Headline
+  2010-08-12    QianYuli        PMON20100812    Move typedef unsigned long long u64 to sys/linux/types.h
+***********************************************************************************************************/
+ 
 #include <stdlib.h>
 #include "bpfilter.h"
 //#include <string.h>
@@ -246,7 +264,7 @@ static const int multicast_filter_limit = 32;
 static int if_in_attach;
 static int if_frequency;
 
-typedef unsigned long long u64;
+//typedef unsigned long long u64;
 
 struct TxDesc {
 	u32 opts1;

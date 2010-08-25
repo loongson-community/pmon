@@ -65,12 +65,26 @@ typedef	unsigned short		 uint16_t;
 typedef	int			  int32_t;
 typedef	unsigned int		u_int32_t;
 typedef	unsigned int		 uint32_t;
+
+
+#if (_MIPS_SZPTR == 64)
+    typedef __signed__ long int64_t;
+    typedef unsigned long u_int64_t;
+#else
+    #if defined(__GNUC__) && !defined(__STRICT_ANSI__)
+        typedef __signed__ long long int64_t;
+        typedef unsigned long long u_int64_t;
+        typedef	unsigned long long	 uint64_t;
+    #endif
+#endif
+#if 0
 /* LONGLONG */
 typedef	long long		  int64_t;
 /* LONGLONG */
 typedef	unsigned long long	u_int64_t;
 /* LONGLONG */
 typedef	unsigned long long	 uint64_t;
+#endif
 
 #if __mips >= 3
 #define	HAVE_QUAD

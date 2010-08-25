@@ -282,8 +282,11 @@ void delay1(int microseconds){
 		};
 }
 
-
-
+void mdelay (int millisecond)
+{
+	while(millisecond-->0)
+		delay(1000);
+}
 
 u_int __res_randomid(void);
 u_int

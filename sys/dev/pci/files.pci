@@ -38,6 +38,10 @@ device	wx: ether, ifnet, ifmedia, mii, mii_phy
 attach	wx at pci
 file	sys/dev/pci/if_wx.c		wx
 
+# Ethernet driver for atl1c-based boards, such as AR8131
+device  atl: ether, ifnet
+attach  atl at pci
+file    sys/dev/pci/atl1c.c         atl
 # NCR 53c8xx SCSI chips
 device	ncr: scsi
 attach	ncr at pci

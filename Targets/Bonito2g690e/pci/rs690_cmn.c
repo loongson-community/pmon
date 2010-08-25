@@ -16,6 +16,23 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
  */
+
+/************************************************************************
+
+ Copyright (C)
+ File name:     rs690_cmn.c
+ Author:       Version:  ***      Date: ***
+ Description:   
+ Others:        
+ Function List:
+ 
+ Revision History:
+ 
+ -----------------------------------------------------------------------------------------------------------
+  Date          Author          Activity ID     Activity Headline
+  2010-08-12    QianYuli        PMON20100812    Move typedef unsigned long long u64 to sys/linux/types.h
+***********************************************************************************************************/
+ 
 #include <time.h>
 #include "rs690_cmn.h"
 
@@ -24,7 +41,7 @@
 #define HT_MAP_TYPE0_CONF_ADDR  BONITO_PCICFG0_BASE_VA
 
 
-typedef unsigned long long u64;
+//typedef unsigned long long u64;
 u32 pci_read_type0_config32(u32 dev, u32 func, u32 reg){
     //u64 addr = 0x90000efdfe000000;
     u32 addr = HT_MAP_TYPE0_CONF_ADDR;

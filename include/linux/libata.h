@@ -33,9 +33,10 @@
  Revision History:
  
  -----------------------------------------------------------------------------------------------------------
-  Date               Author          Activity ID             Activity Headline
+  Date          Author          Activity ID     Activity Headline
   2008-05-12    QianYuli        PMON00000001    porting it from u-boot and linux
   2008-06-26    QianYuli        PMON00000002    Add some ata*** like struct
+  2010-08-12    QianYuli        PMON20100812    Move dma_addr_t typedef to machine/bus.h
 ************************************************************************************/
 #ifndef __LIBATA_H__
 #define __LIBATA_H__
@@ -43,9 +44,10 @@
 #include <sys/param.h>
 #include <ctype.h>
 #include <sys/device.h>
+#include <machine/bus.h>
 
-typedef unsigned long long u64;
-typedef unsigned long dma_addr_t;
+//typedef unsigned long long u64;
+//typedef unsigned long dma_addr_t;
 
 #define CONFIG_ATA_SFF
 
@@ -681,13 +683,14 @@ int ata_identify (struct ata_port  *p_ap);
 
 extern void udelay(int usec);
 extern void ndelay(int nsec);
+/*
 static inline void mdelay(u32 msec)
 {
     u32 i;
     for (i = 0; i < msec; i++)
         udelay(1000);
 }
-
+*/
 static inline void sdelay(u64 sec)
 {
     u64 i;

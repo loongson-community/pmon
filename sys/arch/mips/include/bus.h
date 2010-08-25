@@ -30,11 +30,27 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+/************************************************************************
+
+ Copyright (C)
+ File name:     bus.h
+ Author:        Version:  ***      Date: ***
+ Description:   
+ Others:        
+ Function List:
+ 
+ Revision History:
+ 
+ -----------------------------------------------------------------------------------------------------------
+  Date          Author          Activity ID     Activity Headline
+  2010-08-12    QianYuli        PMON20100812    Add dma_addr_t typedef 
+************************************************************************************/
 
 #ifndef _MACHINE_BUS_H_
 #define _MACHINE_BUS_H_
 
 #include <machine/pio.h>
+#include <machine/types.h>
 
 #ifdef __STDC__
 #define CAT(a,b)	a##b
@@ -51,6 +67,14 @@ typedef unsigned long bus_addr_t;
 typedef u_int32_t bus_size_t;
 typedef unsigned long bus_space_handle_t;
 typedef struct tgt_bus_space *bus_space_tag_t;
+
+#if (_MIPS_SZPTR == 64)
+    typedef u_int64_t dma_addr_t;
+#else
+    typedef u_int32_t dma_addr_t;
+#endif
+
+typedef u_int64_t dma64_addr_t;
 
 struct tgt_bus_space {
 	unsigned long bus_base;

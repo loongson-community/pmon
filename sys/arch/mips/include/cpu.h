@@ -77,6 +77,7 @@
 #define	PHYS_TO_UNCACHED(x) 	((unsigned long)(x) | UNCACHED_MEMORY_ADDR)
 #define VA_TO_CINDEX(x) 	((unsigned long)(x) & 0xffffff | CACHED_MEMORY_ADDR)
 #define	CACHED_TO_UNCACHED(x)	(PHYS_TO_UNCACHED(CACHED_TO_PHYS(x)))
+#define UNCACHED_TO_CACHED(x) (PHYS_TO_CACHED(UNCACHED_TO_PHYS(x)))
 #else
 #define	CACHED_TO_PHYS(x)	((x) & 0x1fffffff)
 #define	PHYS_TO_CACHED(x)	((x) | CACHED_MEMORY_ADDR)
@@ -84,6 +85,7 @@
 #define	PHYS_TO_UNCACHED(x) 	((x) | UNCACHED_MEMORY_ADDR)
 #define VA_TO_CINDEX(x) 	((x) & 0xffffff | CACHED_MEMORY_ADDR)
 #define	CACHED_TO_UNCACHED(x)	(PHYS_TO_UNCACHED(CACHED_TO_PHYS(x)))
+#define UNCACHED_TO_CACHED(x) (PHYS_TO_CACHED(UNCACHED_TO_PHYS(x)))
 #endif
 
 /* Watchpoint Register */
@@ -479,6 +481,7 @@ void flushicache __P((void *, size_t));
 void flushdcache __P((void *, size_t));
 void syncicache __P((void *, size_t));
 void delay __P((int));
+void mdelay __P((int));
 
 int	CPU_ConfigCache __P((void));
 void	CPU_SetWIRED __P((int));

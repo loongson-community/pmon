@@ -1110,11 +1110,13 @@ static void console_scrollup(void)
             VIDEO_VISIBLE_ROWS - VIDEO_LOGO_HEIGHT - VIDEO_FONT_HEIGHT  /* frame height */
         );
     #endif
-    #if defined( LOONGSON2F_ALLINONE) && #if(NMOD_SISFB)
-    {
-    void sisfb_copyarea(int sx,int sy,int dx,int dy,int width,int height);
-        sisfb_copyarea(0,VIDEO_LOGO_HEIGHT + VIDEO_FONT_HEIGHT,0,VIDEO_LOGO_HEIGHT,1360,768 - VIDEO_LOGO_HEIGHT - 16);
-    }
+    #if defined( LOONGSON2F_ALLINONE) 
+        #if(NMOD_SISFB)
+        {
+            void sisfb_copyarea(int sx,int sy,int dx,int dy,int width,int height);
+                sisfb_copyarea(0,VIDEO_LOGO_HEIGHT + VIDEO_FONT_HEIGHT,0,VIDEO_LOGO_HEIGHT,1360,768 - VIDEO_LOGO_HEIGHT - 16);
+        }
+        #endif
     #endif
     #ifdef LOONGSON2F_FULOONG
     video_hw_bitblt(VIDEO_PIXEL_SIZE,   /* bytes per pixel */

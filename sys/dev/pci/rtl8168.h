@@ -1,3 +1,19 @@
+/************************************************************************
+
+ Copyright (C)
+ File name:     rtl8168.h
+ Author:       Version:  ***      Date: ***
+ Description:   
+ Others:        
+ Function List:
+ 
+ Revision History:
+ 
+ -----------------------------------------------------------------------------------------------------------
+  Date          Author          Activity ID     Activity Headline
+  2010-08-12    QianYuli        PMON20100812    Move typedef unsigned long long u64 to sys/linux/types.h
+***********************************************************************************************************/
+ 
 #include <sys/linux/types.h>
 
 /* MAC address length */
@@ -244,7 +260,7 @@ enum effuse {
 #define RsvdMask	0x3fffc000
 
 
-typedef unsigned long long u64;
+//typedef unsigned long long u64;
 
 struct TxDesc {
 	u32 opts1;

@@ -402,7 +402,7 @@ typedef int irqreturn_t;
 #define time_after(t1,t2)            (((long)t1-t2) > 0)
 extern int ticks;
 
-typedef unsigned int dma_addr_t;
+//typedef unsigned int dma_addr_t;
 struct e1000_adapter;
 struct net_device;
 #define MAX_ADDR_LEN    8       /* Largest hardware address length */
@@ -795,14 +795,15 @@ int reg=PCI_MAP_REG_START+bar*4;
 }
 
 
-
+/*
 void
 pci_free_consistent(struct pci_dev *pdev, size_t size, void *cpu_addr,
             dma_addr_t dma_addr)
 {
 	kfree(cpu_addr);
 }
-
+*/
+/*
 //pci_alloc_consistent 最后一个参数是DMA地址，返回的是非cache的cpu地址。
 static void *pci_alloc_consistent(void *hwdev, size_t size,
 		               dma_addr_t * dma_handle)
@@ -818,7 +819,7 @@ void *buf;
 
 	return (void *)buf;
 }
-
+*/
 
 /*
  * Unmap a single streaming mode DMA translation.  The dma_addr and size
@@ -1026,7 +1027,7 @@ static inline void iounmap(void *addr)
 static inline void pci_disable_device(struct pci_dev *dev) { }
 
 void wmb(void){}
-void mdelay(int ms){}
+//void mdelay(int ms){}
 #define udelay delay
 
 #define MODULE_PARM(...)

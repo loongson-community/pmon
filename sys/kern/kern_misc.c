@@ -36,6 +36,21 @@
 /*
  *  Miscelaneous code requiered by the kernel code.
  */
+/************************************************************************
+
+ Copyright (C)
+ File name:     kern_misc.c
+ Author:        Version:  ***      Date: ***
+ Description:   
+ Others:        
+ Function List:
+ 
+ Revision History:
+ 
+ -----------------------------------------------------------------------------------------------------------
+  Date          Author          Activity ID     Activity Headline
+  2010-08-17    QianYuli        PMON20100817    enlarge kmem's size from 0.5MB to 16MB 
+************************************************************************************/
 
 #include <sys/param.h>
 #include <sys/syslog.h>
@@ -315,6 +330,8 @@ void vminit __P((void));
 void
 vminit ()
 {
+    unsigned int vm_kmem_size = VM_KMEM_SIZE;
+
 extern unsigned int memorysize;
     #if (_MIPS_SZPTR == 32)
         unsigned  int v_memorysize = memorysize;
@@ -345,6 +362,8 @@ extern unsigned int memorysize;
 		kmem = (u_char *)v_memorysize;
 #endif
 	}
+
+    printf("vminit kmem:0x%x vm_kmem_size:0x%x kmem_offs:0x%x\n",(unsigned long)kmem,vm_kmem_size,kmem_offs);
 }
 
 vm_offset_t
@@ -359,7 +378,7 @@ kmem_malloc (map, size, canwait)
 	}
 
 	size = (size + PGOFSET) & ~PGOFSET;
-	if (kmem_offs + size > VM_KMEM_SIZE) {
+	if (kmem_offs + size > (32 * VM_KMEM_SIZE)) {
 		log (LOG_DEBUG, "kmem_malloc: request for %d bytes fails\n", size);
 		return 0;
 	}
