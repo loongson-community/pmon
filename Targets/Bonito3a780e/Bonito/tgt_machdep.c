@@ -1141,7 +1141,7 @@ tgt_logo()
 
 static void init_legacy_rtc(void)
 {
-        int year, month, date, hour, min, sec;
+		int year, month, date, hour, min, sec;
         CMOS_WRITE(DS_CTLA_DV1, DS_REG_CTLA);
         CMOS_WRITE(DS_CTLB_24 | DS_CTLB_DM | DS_CTLB_SET, DS_REG_CTLB);
         CMOS_WRITE(0, DS_REG_CTLC);
@@ -1152,41 +1152,15 @@ static void init_legacy_rtc(void)
         hour = CMOS_READ(DS_REG_HOUR);
         min = CMOS_READ(DS_REG_MIN);
         sec = CMOS_READ(DS_REG_SEC);
-        if( (year > 99) || (month < 1 || month > 12) ||
-                (date < 1 || date > 31) || (hour > 23) || (min > 59) ||
-                (sec > 59) ){
-                
-                tgt_printf("RTC time invalid, reset to epoch.\n");
-#ifdef DEVBD2F_FIREWALL
-	{
-
-		struct tm tm;
-		time_t t;
-		clk_invalid = 0;
-		tm.tm_sec = 0;
-		tm.tm_min = 0;
-		tm.tm_hour = 0;
-		tm.tm_mday = 1;
-		tm.tm_mon = 0;
-		tm.tm_year = 108;
-		t = mktime(&tm);
-		tgt_settime(t);
-		clk_invalid = 1;
-	}
-#else
-                CMOS_WRITE(3, DS_REG_YEAR);
-                CMOS_WRITE(1, DS_REG_MONTH);
-                CMOS_WRITE(1, DS_REG_DATE);
-                CMOS_WRITE(0, DS_REG_HOUR);
-                CMOS_WRITE(0, DS_REG_MIN);
-                CMOS_WRITE(0, DS_REG_SEC);
-#endif
-        }
-
+		year = year%16 + year/16*10;
+		month = month%16 + month/16*10;
+		date = date%16 + date/16*10;
+		hour = hour%16 + hour/16*10;
+		min = min%16 + min/16*10;
+		sec = sec%16 + sec/16*10;
         CMOS_WRITE(DS_CTLB_24 | DS_CTLB_DM, DS_REG_CTLB);
-                                                                               
-	//printf("RTC: %02d-%02d-%02d %02d:%02d:%02d\n",
-	//    year, month, date, hour, min, sec);
+		tgt_printf("RTC: %02d-%02d-%02d %02d:%02d:%02d\n", year, month, date, hour, min, sec);
+
 }
 
 int word_addr;
@@ -1487,10 +1461,11 @@ tgt_cpufreq()
 time_t
 tgt_gettime()
 {
-        struct tm tm;
+    struct tm tm;
         int ctrlbsave;
         time_t t;
 
+        int year, month, date, hour, min, sec, wday;
 	/*gx 2005-01-17 */
 	//return 0;
                                                                                
@@ -1499,15 +1474,31 @@ tgt_gettime()
                 ctrlbsave = CMOS_READ(DS_REG_CTLB);
                 CMOS_WRITE(ctrlbsave | DS_CTLB_SET, DS_REG_CTLB);
                                                                                
-                tm.tm_sec = CMOS_READ(DS_REG_SEC);
-                tm.tm_min = CMOS_READ(DS_REG_MIN);
-                tm.tm_hour = CMOS_READ(DS_REG_HOUR);
-                tm.tm_wday = CMOS_READ(DS_REG_WDAY);
-                tm.tm_mday = CMOS_READ(DS_REG_DATE);
-                tm.tm_mon = CMOS_READ(DS_REG_MONTH) - 1;
-                tm.tm_year = CMOS_READ(DS_REG_YEAR);
-                if(tm.tm_year < 50)tm.tm_year += 100;
-                                                                               
+		year = CMOS_READ(DS_REG_YEAR);
+        month = CMOS_READ(DS_REG_MONTH);
+        month = CMOS_READ(DS_REG_MONTH);
+        date = CMOS_READ(DS_REG_DATE);
+		wday = CMOS_READ(DS_REG_WDAY);
+        hour = CMOS_READ(DS_REG_HOUR);
+        min = CMOS_READ(DS_REG_MIN);
+        sec = CMOS_READ(DS_REG_SEC);
+
+		year = year%16 + year/16*10;
+		if(year < 50) year += 100;
+		month = (month%16 + month/16*10) - 1;
+		wday = wday%16 + wday/16*10;
+		date = date%16 + date/16*10;
+		hour = hour%16 + hour/16*10;
+		min = min%16 + min/16*10;
+		sec = sec%16 + sec/16*10;
+               tm.tm_sec = sec;
+               tm.tm_min = min;
+               tm.tm_hour = hour;
+               tm.tm_wday = wday;
+               tm.tm_mday = date;
+               tm.tm_mon = month;
+               tm.tm_year = year;
+
                 CMOS_WRITE(ctrlbsave & ~DS_CTLB_SET, DS_REG_CTLB);
                                                                                
                 tm.tm_isdst = tm.tm_gmtoff = 0;
@@ -1519,6 +1510,7 @@ tgt_gettime()
                 t = 957960000;  /* Wed May 10 14:00:00 2000 :-) */
         }
         return(t);
+
 }
 
 char gpio_i2c_settime(struct tm *tm);
@@ -1529,33 +1521,31 @@ char gpio_i2c_settime(struct tm *tm);
 void
 tgt_settime(time_t t)
 {
-        struct tm *tm;
+    struct tm *tm;
         int ctrlbsave;
-
 	//return ;
-                                                                               
 #ifdef HAVE_TOD
         if(!clk_invalid) {
                 tm = gmtime(&t);
 	#ifndef DEVBD2F_FIREWALL
                 ctrlbsave = CMOS_READ(DS_REG_CTLB);
                 CMOS_WRITE(ctrlbsave | DS_CTLB_SET, DS_REG_CTLB);
-                                                                               
-                CMOS_WRITE(tm->tm_year % 100, DS_REG_YEAR);
-                CMOS_WRITE(tm->tm_mon + 1, DS_REG_MONTH);
-                CMOS_WRITE(tm->tm_mday, DS_REG_DATE);
-                CMOS_WRITE(tm->tm_wday, DS_REG_WDAY);
-                CMOS_WRITE(tm->tm_hour, DS_REG_HOUR);
-                CMOS_WRITE(tm->tm_min, DS_REG_MIN);
-                CMOS_WRITE(tm->tm_sec, DS_REG_SEC);
-                                                                               
+
+				CMOS_WRITE((((tm->tm_year) % 100)/10*16 + ((tm->tm_year) % 100)%10), DS_REG_YEAR);
+				CMOS_WRITE((((tm->tm_mon) + 1)/10*16 + ((tm->tm_mon) + 1)%10), DS_REG_MONTH);
+				CMOS_WRITE(tm->tm_mday/10*16 + tm->tm_mday%10, DS_REG_DATE);
+                CMOS_WRITE(tm->tm_wday/10*16 + tm->tm_wday%10, DS_REG_WDAY);
+                CMOS_WRITE(tm->tm_hour/10*16 + tm->tm_hour%10, DS_REG_HOUR);
+                CMOS_WRITE(tm->tm_min/10*16 + tm->tm_min%10, DS_REG_MIN);
+                CMOS_WRITE(tm->tm_sec/10*16 + tm->tm_sec%10, DS_REG_SEC);
+
                 CMOS_WRITE(ctrlbsave & ~DS_CTLB_SET, DS_REG_CTLB);
 	#else
 		gpio_i2c_settime(tm);	
 	#endif
         }
 #endif
-}
+ }
 
 
 /*
