@@ -161,10 +161,10 @@ pci*		at ppb? bus ?
 # fxp normally only used for debugging (enable/disable both)
 fxp0        at pci? dev ? function ?        # Intel 82559 Device
 inphy*      at mii? phy ?                   # Intel 82555 PHYs
-rtl*        at pci? dev ? function ?
+# rtl*        at pci? dev ? function ?
 rte*		at pci? dev ? function ?
-rtk*		at pci? dev ? function ?
-em*         at pci? dev ? function ?
+#rtk*		at pci? dev ? function ?
+#em*         at pci? dev ? function ?
 
 #### USB
 uhci*		 at pci? dev ? function ?

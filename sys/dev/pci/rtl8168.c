@@ -372,7 +372,7 @@ r8168_attach(struct device * parent, struct device * self, void *aux)
     tp->features |= rtl8168_try_msi(tp);
     RTL_W8(tp, Cfg9346, Cfg9346_Lock);
 
-#define DEBUG
+//#define DEBUG
 #ifdef DEBUG
 #undef DEBUG
 	/* Read eeprom content */
@@ -3895,8 +3895,8 @@ void rtl_shift_out_bits(int data, int count, struct rtl8168_private *tp)
 #define myoutb(v, a)  (*(volatile unsigned char *)(a) = (v))
 #define myoutw(v, a)  (*(volatile unsigned short*)(a) = (v))
 #define myoutl(v, a)  (*(volatile unsigned long *)(a) = (v))
-#define eeprom_delay()  inl(ee_addr)
-
+//#define eeprom_delay()  inl(ee_addr)
+#define eeprom_delay()	delay(100)
 int read_eeprom(struct rtl8168_private *tp, int RegAddr)
 {
 	int i;
@@ -3930,11 +3930,11 @@ int read_eeprom(struct rtl8168_private *tp, int RegAddr)
 #ifndef EPLC46
 		retval = 0;
 	for( i = 16; i > 0; i--) {
+		delay(100);
 		RTL_W8(tp, Cfg9346, EE_ENB | EE_SHIFT_CLK);
 		delay(100);
 		retval = (retval << 1) | ((RTL_R8(tp, Cfg9346) & EE_DATA_READ) ? 1 : 0);
 		RTL_W8(tp, Cfg9346, EE_ENB);
-		delay(100);
 	}
 #else
 	for( i = 16; i > 0; i--) {
@@ -4035,7 +4035,7 @@ int rtl8168_write_eeprom(long ioaddr, int location,unsigned short data)
 		myoutb(EE_ENB, ee_addr);
 		delay(10);
 	}
-
+	
 	return 0;
 }
 
@@ -4141,7 +4141,8 @@ rewrite:
     printf("The whole eeprom have been programmed!\n");
 
 	/* set mac address */
-	if (NULL != av[2]){
+//	if (NULL != av[2]){
+	if (3 == ac) {
 		int v;
 		char *p = av[2];
 		unsigned short val = 0;
@@ -4238,11 +4239,11 @@ static const Cmd Cmds[] =
 	{"Realtek 8111dl/8168"},
 
 	{"readrom", "", NULL,
-			"dump rtl8111dl/8168 eeprom content and mac address", cmd_reprom, 1, 2,0},
+			"dump rtl8111dl/8168 eeprom content and mac address", cmd_reprom, 2, 2,0},
 	{"writerom", "", NULL,
-			"dump rtl8111dl/8168 eeprom content", cmd_wrprom, 1, 3, 0},
+			"dump rtl8111dl/8168 eeprom content", cmd_wrprom, 2, 3, 0},
 	{"setmac", "", NULL,
-		    "Set mac address into rtl8111dl/8168 eeprom", cmd_setmac, 1, 5, 0},
+		    "Set mac address into rtl8111dl/8168 eeprom", cmd_setmac, 2, 5, 0},
 	{0, 0}
 };
 
