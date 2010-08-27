@@ -3,6 +3,38 @@
         and set up the memory space on L2 Xbar
 */
 
+	/* Set SMBus(I2C) base address */
+	#bus:device:func:reg = 0:14:0:90
+	dli	a1,0x90000cfdfe00a090
+	li	a0,SMBUS_IO_BASE_VALUE | 0x1
+	sw	a0,0(a1)
+	nop
+	/* Enable SMBus host controller */
+	#bus:device:func:reg = 0:14:0:d2
+	dli	a1,0x90000cfdfe00a0d2
+	li	a0,0x01
+	sb	a0,0(a1)
+	nop
+	/* Read SPD data */
+	li	a0,0xa0
+	li	a1,0x00
+	bal	i2cread
+	nop
+	beq	v0,0xff,1f	#No ddr2 device
+	nop
+	beq	v0,0x80,3f
+	nop
+1:
+	bal	beep_on
+	nop
+2:
+	nop
+	b	1b	#loop
+	nop
+3:
+	nop	#Continue
+	//i2ccfg
+
 #######################################################
 /* Undefine the two to enable both */
 #define MC0_ONLY

@@ -1008,6 +1008,22 @@ gs_2f_v3_ddr2_cfg:
 #include "loongson2g_fixup.S"
 
 ##########################################
+/*
+ *__Start "bi..."
+ */
+	nop
+	bal	beep_on
+	nop
+	li	a0,5000
+1:
+	addiu	a0,-1	#delay
+	nop
+	bnez	a0,1b
+	nop
+	bal	beep_off
+	nop
+
+##########################################
         TTYDBG("NODE 0 MEMORY CONFIG BEGIN\r\n")
         li      s1, 0x0
 #include "loongson2g_ddr2_config.S"
@@ -1799,6 +1815,26 @@ LEAF(tgt_putchar_COM1)
 	nop	
 END(tgt_putchar_COM1)
 
+/* Beep on/off function */
+LEAF(beep_on)
+	nop
+	dli	t1,0x90000cfdfe00a080
+	lbu	t0,0(t1)
+	or	t0,0x04
+	sb	t0,0(t1)
+	nop
+	jr	ra
+	nop
+END(beep_on)
+LEAF(beep_off)
+	nop
+	dli	t1,0x90000cfdfe00a080
+	lbu	t0,0(t1)
+	and	t0,0xfb
+	sb	t0,0(t1)
+	nop
+	jr	ra
+END(beep_off)
 
 #include "i2c.S"
 __main:
