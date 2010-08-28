@@ -887,10 +887,34 @@ tgt_poweroff()
 	void
 tgt_poweroff()
 {
-	volatile int *p=0xbfe0011c;
-	p[1]&=~1;
-	p[0]&=~1;
-	p[0]|=1;
+	char * watch_dog_base = 0xb8000cd6;
+	char * watch_dog_config = 0xba00a041;
+	unsigned int * watch_dog_mem = 0xbe010000;
+	unsigned char * reg_cf9 = (unsigned char *) 0xb8000cf9;
+
+	*reg_cf9 = 4;
+
+	/* set WatchDogTimer base address is 0x10000 */
+	* watch_dog_base = 0x69;
+	*(watch_dog_base + 1) = 0x0;
+	* watch_dog_base = 0x6c;
+	*(watch_dog_base + 1) = 0x0;
+
+	* watch_dog_base  = 0x6d;
+	*(watch_dog_base + 1) = 0x0;
+
+	* watch_dog_base = 0x6e;
+	*(watch_dog_base + 1) = 0x1;
+
+	* watch_dog_base = 0x6f;
+	*(watch_dog_base + 1) = 0x0;
+
+	* watch_dog_config = 0xff;
+
+	* watch_dog_mem = 0x05;
+	*(watch_dog_mem + 1) = 0x15;
+	* watch_dog_mem = 0x85;
+
 }
 #endif
 
