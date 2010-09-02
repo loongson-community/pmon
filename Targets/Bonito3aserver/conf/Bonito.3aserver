@@ -28,6 +28,7 @@ option		INET
 option      LS3_HT              # Enable the IO cache coherent of HT
 #option      MCP68_IDE           # Enable the MCP68 IDE 0 channel
 #option      USE_LPC_UART
+#option      USE_SB700_LPC_UART
 option      MULTI_CHIP
 option      ENABLE_SATA         #Enable SATA  ,when enable IDE can also use, when commended only IDE can use
 

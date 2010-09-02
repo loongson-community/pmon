@@ -38,5 +38,6 @@ extern void set_sm_enable_bits(device_t sm_dev, u32 reg_pos, u32 mask, u32 val);
 
 extern void sb700_enable();
 
+void uart_init(void);
 
 #endif

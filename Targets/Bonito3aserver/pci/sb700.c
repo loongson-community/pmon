@@ -1,7 +1,115 @@
 #include "sb700.h"
 #include "rs780_cmn.h"
-
+#include <include/bonito.h>
 #define NULL (void*)0
+/* Base Address */
+#ifndef CONFIG_TTYS0_BASE
+//#define CONFIG_TTYS0_BASE 0x3f8
+#define CONFIG_TTYS0_BASE 0x2f8
+#endif
+ 
+#ifndef CONFIG_TTYS0_BAUD
+#define CONFIG_TTYS0_BAUD 115200
+#endif
+ 
+#if ((115200%CONFIG_TTYS0_BAUD) != 0)
+#error Bad ttys0 baud rate
+#endif
+ 
+#ifndef CONFIG_TTYS0_DIV
+#define CONFIG_TTYS0_DIV        (115200/CONFIG_TTYS0_BAUD)
+#endif
+ 
+/* Line Control Settings */
+#ifndef CONFIG_TTYS0_LCS
+/* Set 8bit, 1 stop bit, no parity */
+#define CONFIG_TTYS0_LCS        0x3
+#endif
+ 
+#define UART_LCS        CONFIG_TTYS0_LCS
+
+
+/* Data */
+#define UART_RBR 0x00
+#define UART_TBR 0x00
+ 
+/* Control */
+#define UART_IER 0x01
+#define UART_IIR 0x02
+#define UART_FCR 0x02
+#define UART_LCR 0x03
+#define UART_MCR 0x04
+#define UART_DLL 0x00
+#define UART_DLM 0x01
+ 
+#define UART_LSR 0x05
+#define UART_MSR 0x06
+#define UART_SCR 0x07
+
+
+int uart8250_can_tx_byte(unsigned base_port)
+{
+        return INB(base_port + UART_LSR+BONITO_PCIIO_BASE_VA) & 0x20;
+}
+ 
+void uart8250_wait_to_tx_byte(unsigned base_port)
+{
+        while(!uart8250_can_tx_byte(base_port))
+                ;
+}
+ 
+void uart8250_wait_until_sent(unsigned base_port)
+{
+        while(!(INB(base_port + UART_LSR+BONITO_PCIIO_BASE_VA) & 0x40))
+                ;
+}
+ 
+void uart8250_tx_byte(unsigned base_port, unsigned char data)
+{
+        uart8250_wait_to_tx_byte(base_port);
+        OUTB(data, base_port + UART_TBR+BONITO_PCIIO_BASE_VA);
+        /* Make certain the data clears the fifos */
+        uart8250_wait_until_sent(base_port);
+}
+ 
+int uart8250_can_rx_byte(unsigned base_port)
+{
+        return INB(base_port + UART_LSR+BONITO_PCIIO_BASE_VA) & 0x01;
+}
+ 
+unsigned char uart8250_rx_byte(unsigned base_port)
+{
+        while(!uart8250_can_rx_byte(base_port))
+                ;
+        return INB(base_port + UART_RBR+BONITO_PCIIO_BASE_VA);
+}
+ 
+void uart8250_init(unsigned base_port, unsigned divisor, unsigned lcs)
+{
+        lcs &= 0x7f;
+        /* disable interrupts */
+        OUTB(0x0, base_port + UART_IER+BONITO_PCIIO_BASE_VA);
+        /* enable fifo's */
+        OUTB(0x01, base_port + UART_FCR+BONITO_PCIIO_BASE_VA);
+        /* assert DTR and RTS so the other end is happy */
+        OUTB(0x03, base_port + UART_MCR+BONITO_PCIIO_BASE_VA);
+        /* Set Baud Rate Divisor to 12 ==> 115200 Baud */
+        OUTB(0x80 | lcs, base_port + UART_LCR+BONITO_PCIIO_BASE_VA);
+        OUTB(divisor & 0xFF,   base_port + UART_DLL+BONITO_PCIIO_BASE_VA);
+        OUTB((divisor >> 8) & 0xFF,    base_port + UART_DLM+BONITO_PCIIO_BASE_VA);
+        OUTB(lcs, base_port + UART_LCR+BONITO_PCIIO_BASE_VA);
+}
+/* CONFIG_USE_PRINTK_IN_CAR == 1 */
+ 
+//extern void uart8250_init(unsigned base_port, unsigned divisor, unsigned lcs);
+void uart_init(void)
+{
+        //for port 0
+        uart8250_init(0x3f8, CONFIG_TTYS0_DIV, UART_LCS);
+        //for port 1
+        uart8250_init(CONFIG_TTYS0_BASE, CONFIG_TTYS0_DIV, UART_LCS);
+}
+
 
 void set_sm_enable_bits(device_t sm_dev, u32 reg_pos, u32 mask, u32 val)
 {

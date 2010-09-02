@@ -86,6 +86,7 @@ tgt_printf (const char *fmt, ...)
 
 #include "../pci/amd_780e.h"
 #include "../pci/rs780_cmn.h"
+#include "../pci/sb700.h"
 
 #include "mod_x86emu_int10.h"
 #include "mod_x86emu.h"
@@ -324,12 +325,15 @@ ConfigEntry	ConfigTable[] =
     #ifdef USE_LPC_UART
 	 { (char *)COM3_BASE_ADDR, 0, ns16550, 256, CONS_BAUD, NS16550HZ },
     #else
-	 //{ (char *)0xbfe001e0, 0, ns16550, 256, CONS_BAUD, NS16550HZ },
+	#ifdef USE_SB700_LPC_UART
+	 { (char *)0xb80003f8, 0, ns16550, 256, CONS_BAUD, NS16550HZ },
+	#else
 	 { (char *)GS3_UART_BASE, 0, ns16550, 256, CONS_BAUD, NS16550HZ },
+	#endif
     #endif
 	#endif
 #elif defined(USE_SM502_UART0)
-	{ (char *)0xb6030000, 0, ns16550, 256, CONS_BAUD, NS16550HZ/2 },
+	 { (char *)0xb6030000, 0, ns16550, 256, CONS_BAUD, NS16550HZ/2 },
 #elif defined(USE_GPIO_SERIAL)
 	 { (char *)COM1_BASE_ADDR, 0,ppns16550, 256, CONS_BAUD, NS16550HZ }, 
 #else
@@ -364,7 +368,7 @@ void addr_tst2(void);
 void movinv1(int iter, ulong p1, ulong p2);
 
 pcireg_t _pci_allocate_io(struct pci_device *dev, vm_size_t size);
-static void superio_reinit();
+static void euperio_reinit();
 
 void
 initmips(unsigned int memsz)
@@ -387,6 +391,7 @@ CPU_TLBClear();
 #if PCI_IDSEL_CS5536 != 0
 superio_reinit();
 #endif
+
 	/*
 	 *	Set up memory address decoders to map entire memory.
 	 *	But first move away bootrom map to high memory.
@@ -571,7 +576,7 @@ tgt_devconfig()
 #ifdef RS780E
     int test;
     int  i;
-    printf(" ====================  frame buffer test begin======================:%x \n" , test);
+    tgt_printf(" ====================  frame buffer test begin======================:%x \n" , test);
     for (i = 0;i < 0x100000;i += 4)
     {
         //printf(" i = %x \n" , i);
@@ -587,7 +592,7 @@ tgt_devconfig()
         }
     }
 
-    printf(" ====================  frame buffer test end======================:%x \n" , test);
+    tgt_printf(" ====================  frame buffer test end======================:%x \n" , test);
 #endif
 #endif
 #endif
@@ -671,7 +676,6 @@ tgt_devconfig()
 #if NMOD_VGACON >0
 	if(getenv("nokbd")) rc=1;
 	else {
-		superio_reinit();
         rc=kbd_initialize();
     }
 	printf("%s\n",kbd_error_msgs[rc]);
@@ -824,6 +828,7 @@ outb(BONITO_PCIIO_BASE_VA + 0x002e,0xaa);
 static void superio_reinit()
 {
 w83627_write(0,0x24,0xc1);
+
 w83627_write(5,0x30,1);
 w83627_write(5,0x60,0);
 w83627_write(5,0x61,0x60);
@@ -832,6 +837,21 @@ w83627_write(5,0x63,0x64);
 w83627_write(5,0x70,1);
 w83627_write(5,0x72,0xc);
 w83627_write(5,0xf0,0x80);
+
+//w83627_UART1
+w83627_write(2,0x30,0x01);
+w83627_write(2,0x60,0x03);
+w83627_write(2,0x61,0xf8);
+w83627_write(2,0x70,0x04);
+w83627_write(2,0xf0,0x00);
+
+//w83627_UART2
+w83627_write(3,0x30,0x01);
+w83627_write(3,0x60,0x02);
+w83627_write(3,0x61,0xf8);
+w83627_write(3,0x70,0x03);
+w83627_write(3,0xf0,0x00);
+
 }
 #endif
 
@@ -906,25 +926,25 @@ tgt_devinit()
 	cs5536_init();
 #endif
 
-	printf("rs780_early_setup\n");
+	tgt_printf("rs780_early_setup\n");
         rs780_early_setup();
 
-        printf("sb700_early_setup\n");
+        tgt_printf("sb700_early_setup\n");
         sb700_early_setup();
-        printf("rs780_before_pci_fixup\n");
+        tgt_printf("rs780_before_pci_fixup\n");
         rs780_before_pci_fixup();
-        printf("sb700_before_pci_fixup\n");
+        tgt_printf("sb700_before_pci_fixup\n");
         sb700_before_pci_fixup();
-        printf("rs780_enable\n");
+        tgt_printf("rs780_enable\n");
         //vga test
         //rs780_enable(_pci_make_tag(0, 0, 0));
         //rs780_enable(_pci_make_tag(0, 1, 0));
         rs780_after_pci_fixup(); //name dug
-        printf("sb700_enable\n");
+        tgt_printf("sb700_enable\n");
         sb700_enable();
 
 #if 1
-        printf("disable bus0 device pcie bridges\n");
+        tgt_printf("disable bus0 device pcie bridges\n");
         //disable bus0 device 3 pci bridges (dev2 to dev7, dev9-dev10)
         //dev 2 and dev3 should not be open otherwise the vga could not work
         //==by oldtai
@@ -933,7 +953,7 @@ tgt_devinit()
 #endif
 
 #ifndef USE_780E_VGA 
-        printf("disable internal graphics\n");
+        tgt_printf("disable internal graphics\n");
         //disable internal graphics
         set_nbcfg_enable_bits_8(_pci_make_tag(0,0,0), 0x7c, 1, 1);
 #endif
@@ -941,7 +961,7 @@ tgt_devinit()
 #if 1
         //SBD_DISPLAY("disable OHCI and EHCI controller",0);
         //disable OHCI and EHCI controller
-        printf("disable OHCI and EHCI controller\n");
+        tgt_printf("disable OHCI and EHCI controller\n");
         _pci_conf_write8(_pci_make_tag(0,0x14, 0), 0x68, 0x0);
 #endif
 
@@ -955,7 +975,7 @@ tgt_devinit()
         1<<5:usb2 ohci1 enable
         1<<6:usb2 ehci enable
         1<<7:usb3 ohci enable  */
-        printf("enable OHCI controller\n");
+        tgt_printf("enable OHCI controller\n");
        _pci_conf_write8(_pci_make_tag(0,0x14, 0), 0x68, (1<<0)|(1<<1)|(1<<4)|(1<<5)|(1<<7));
       	//  _pci_conf_write8(_pci_make_tag(0,0x14, 0), 0x68, (1<<0));
 #endif
@@ -964,7 +984,7 @@ tgt_devinit()
 #ifndef ENABLE_SATA 
         //SBD_DISPLAY("disable data",0);
         //disable sata
-        printf("disable sata\n");
+        tgt_printf("disable sata\n");
         value = _pci_conf_read32(_pci_make_tag(0, 0x14, 0), 0xac);
         value &= ~(1 << 8);
         _pci_conf_write32(_pci_make_tag(0, 0x14, 0), 0xac, value);
@@ -1032,6 +1052,8 @@ tgt_devinit()
 #endif
 }
 #endif
+	superio_reinit();
+	uart_init();
 
 	_pci_businit(1);	/* PCI bus initialization */
 #if defined(VIA686B_POWERFIXUP) && (PCI_IDSEL_VIA686B != 0)
@@ -1041,7 +1063,7 @@ if(getenv("noautopower"))	vt82c686_powerfixup();
 #if  (PCI_IDSEL_CS5536 != 0)
 	cs5536_pci_fixup();
 #endif
-	printf("sb700_after_pci_fixup\n");
+	tgt_printf("sb700_after_pci_fixup\n");
         sb700_after_pci_fixup();
 }
 
@@ -1141,7 +1163,7 @@ tgt_logo()
 
 static void init_legacy_rtc(void)
 {
-        int year, month, date, hour, min, sec;
+		int year, month, date, hour, min, sec;
         CMOS_WRITE(DS_CTLA_DV1, DS_REG_CTLA);
         CMOS_WRITE(DS_CTLB_24 | DS_CTLB_DM | DS_CTLB_SET, DS_REG_CTLB);
         CMOS_WRITE(0, DS_REG_CTLC);
@@ -1152,41 +1174,15 @@ static void init_legacy_rtc(void)
         hour = CMOS_READ(DS_REG_HOUR);
         min = CMOS_READ(DS_REG_MIN);
         sec = CMOS_READ(DS_REG_SEC);
-        if( (year > 99) || (month < 1 || month > 12) ||
-                (date < 1 || date > 31) || (hour > 23) || (min > 59) ||
-                (sec > 59) ){
-                
-                tgt_printf("RTC time invalid, reset to epoch.\n");
-#ifdef DEVBD2F_FIREWALL
-	{
-
-		struct tm tm;
-		time_t t;
-		clk_invalid = 0;
-		tm.tm_sec = 0;
-		tm.tm_min = 0;
-		tm.tm_hour = 0;
-		tm.tm_mday = 1;
-		tm.tm_mon = 0;
-		tm.tm_year = 108;
-		t = mktime(&tm);
-		tgt_settime(t);
-		clk_invalid = 1;
-	}
-#else
-                CMOS_WRITE(3, DS_REG_YEAR);
-                CMOS_WRITE(1, DS_REG_MONTH);
-                CMOS_WRITE(1, DS_REG_DATE);
-                CMOS_WRITE(0, DS_REG_HOUR);
-                CMOS_WRITE(0, DS_REG_MIN);
-                CMOS_WRITE(0, DS_REG_SEC);
-#endif
-        }
-
+		year = year%16 + year/16*10;
+		month = month%16 + month/16*10;
+		date = date%16 + date/16*10;
+		hour = hour%16 + hour/16*10;
+		min = min%16 + min/16*10;
+		sec = sec%16 + sec/16*10;
         CMOS_WRITE(DS_CTLB_24 | DS_CTLB_DM, DS_REG_CTLB);
-                                                                               
-	//printf("RTC: %02d-%02d-%02d %02d:%02d:%02d\n",
-	//    year, month, date, hour, min, sec);
+		tgt_printf("RTC: %02d-%02d-%02d %02d:%02d:%02d\n", year, month, date, hour, min, sec);
+
 }
 
 int word_addr;
@@ -1487,38 +1483,54 @@ tgt_cpufreq()
 time_t
 tgt_gettime()
 {
-        struct tm tm;
-        int ctrlbsave;
-        time_t t;
-
+	struct tm tm;
+	int ctrlbsave;
+	time_t t;
+	int year, month, date, hour, min, sec, wday;
 	/*gx 2005-01-17 */
 	//return 0;
                                                                                
 #ifdef HAVE_TOD
-        if(!clk_invalid) {
-                ctrlbsave = CMOS_READ(DS_REG_CTLB);
-                CMOS_WRITE(ctrlbsave | DS_CTLB_SET, DS_REG_CTLB);
-                                                                               
-                tm.tm_sec = CMOS_READ(DS_REG_SEC);
-                tm.tm_min = CMOS_READ(DS_REG_MIN);
-                tm.tm_hour = CMOS_READ(DS_REG_HOUR);
-                tm.tm_wday = CMOS_READ(DS_REG_WDAY);
-                tm.tm_mday = CMOS_READ(DS_REG_DATE);
-                tm.tm_mon = CMOS_READ(DS_REG_MONTH) - 1;
-                tm.tm_year = CMOS_READ(DS_REG_YEAR);
-                if(tm.tm_year < 50)tm.tm_year += 100;
-                                                                               
-                CMOS_WRITE(ctrlbsave & ~DS_CTLB_SET, DS_REG_CTLB);
-                                                                               
-                tm.tm_isdst = tm.tm_gmtoff = 0;
-                t = gmmktime(&tm);
+	if(!clk_invalid) {
+	    ctrlbsave = CMOS_READ(DS_REG_CTLB);
+	    CMOS_WRITE(ctrlbsave | DS_CTLB_SET, DS_REG_CTLB);
+	    year = CMOS_READ(DS_REG_YEAR);
+	    month = CMOS_READ(DS_REG_MONTH);
+	    month = CMOS_READ(DS_REG_MONTH);
+	    date = CMOS_READ(DS_REG_DATE);
+	    wday = CMOS_READ(DS_REG_WDAY);
+	    hour = CMOS_READ(DS_REG_HOUR);
+	    min = CMOS_READ(DS_REG_MIN);
+	    sec = CMOS_READ(DS_REG_SEC);
+
+	    year = year%16 + year/16*10;
+	    if(year < 50) year += 100;
+	    month = (month%16 + month/16*10) - 1;
+	    wday = wday%16 + wday/16*10;
+	    date = date%16 + date/16*10;
+	    hour = hour%16 + hour/16*10;
+	    min = min%16 + min/16*10;
+	    sec = sec%16 + sec/16*10;
+	    tm.tm_sec = sec;
+	    tm.tm_min = min;
+	    tm.tm_hour = hour;
+	    tm.tm_wday = wday;
+	    tm.tm_mday = date;
+	    tm.tm_mon = month;
+	    tm.tm_year = year;
+
+	    CMOS_WRITE(ctrlbsave & ~DS_CTLB_SET, DS_REG_CTLB);
+
+	    tm.tm_isdst = tm.tm_gmtoff = 0;
+	    t = gmmktime(&tm);
         }
         else 
 #endif
-		{
-                t = 957960000;  /* Wed May 10 14:00:00 2000 :-) */
+	{
+	    t = 957960000;  /* Wed May 10 14:00:00 2000 :-) */
         }
         return(t);
+
 }
 
 char gpio_i2c_settime(struct tm *tm);
@@ -1529,32 +1541,30 @@ char gpio_i2c_settime(struct tm *tm);
 void
 tgt_settime(time_t t)
 {
-        struct tm *tm;
-        int ctrlbsave;
-
-	//return ;
-                                                                               
+	struct tm *tm;
+	int ctrlbsave;
 #ifdef HAVE_TOD
         if(!clk_invalid) {
-                tm = gmtime(&t);
+		tm = gmtime(&t);
 	#ifndef DEVBD2F_FIREWALL
-                ctrlbsave = CMOS_READ(DS_REG_CTLB);
-                CMOS_WRITE(ctrlbsave | DS_CTLB_SET, DS_REG_CTLB);
-                                                                               
-                CMOS_WRITE(tm->tm_year % 100, DS_REG_YEAR);
-                CMOS_WRITE(tm->tm_mon + 1, DS_REG_MONTH);
-                CMOS_WRITE(tm->tm_mday, DS_REG_DATE);
-                CMOS_WRITE(tm->tm_wday, DS_REG_WDAY);
-                CMOS_WRITE(tm->tm_hour, DS_REG_HOUR);
-                CMOS_WRITE(tm->tm_min, DS_REG_MIN);
-                CMOS_WRITE(tm->tm_sec, DS_REG_SEC);
-                                                                               
-                CMOS_WRITE(ctrlbsave & ~DS_CTLB_SET, DS_REG_CTLB);
+		ctrlbsave = CMOS_READ(DS_REG_CTLB);
+		CMOS_WRITE(ctrlbsave | DS_CTLB_SET, DS_REG_CTLB);
+
+		CMOS_WRITE((((tm->tm_year) % 100)/10*16 + ((tm->tm_year) % 100)%10), DS_REG_YEAR);
+		CMOS_WRITE((((tm->tm_mon) + 1)/10*16 + ((tm->tm_mon) + 1)%10), DS_REG_MONTH);
+		CMOS_WRITE(tm->tm_mday/10*16 + tm->tm_mday%10, DS_REG_DATE);
+		CMOS_WRITE(tm->tm_wday/10*16 + tm->tm_wday%10, DS_REG_WDAY);
+		CMOS_WRITE(tm->tm_hour/10*16 + tm->tm_hour%10, DS_REG_HOUR);
+		CMOS_WRITE(tm->tm_min/10*16 + tm->tm_min%10, DS_REG_MIN);
+		CMOS_WRITE(tm->tm_sec/10*16 + tm->tm_sec%10, DS_REG_SEC);
+
+		CMOS_WRITE(ctrlbsave & ~DS_CTLB_SET, DS_REG_CTLB);
 	#else
 		gpio_i2c_settime(tm);	
 	#endif
         }
 #endif
+
 }
 
 

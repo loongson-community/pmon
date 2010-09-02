@@ -86,7 +86,7 @@ static void internal_gfx_pci_dev_init(device_t nb , device_t dev)
 
 	GpuF0MMReg = (u32 *)(BONITO_PCILO_BASE_VA | pci_read_config32(dev, 0x18));
 
-    printf("GpuF0MMReg :   %x =============\n" , GpuF0MMReg);
+    tgt_printf("GpuF0MMReg :   %x =============\n" , GpuF0MMReg);
 	/* GFX_InitFBAccess. */
     *(GpuF0MMReg + 0x0) = 0x544c;
     printk_info("first reg succeeded:%x \n",*(GpuF0MMReg + 0x0));
@@ -348,13 +348,13 @@ static void rs780_internal_gfx_enable(device_t nb , device_t dev)
     nbmc_write_index(nb_dev, 0x11, uma_memory_base);
  //   pci_write_config32(nb_dev,0x90,0x90000000);
 	nbmc_write_index(nb_dev, 0x10, ((uma_memory_top - 1) & 0xff000000 ) | (uma_memory_base >> 16) & 0xffff);
-    printf("config UMA!!!!!!!!!!!!!!!!!!!!!!!!!!!!1\n");
-    printf("mc : %d  ============value: %x\n" , 0xd , nbmc_read_index(nb_dev,0xd));
-    printf("mc : %d  ============value: %x\n" , 0xe , nbmc_read_index(nb_dev,0xe));
-    printf("mc : %d  ============value: %x\n" , 0x10 , nbmc_read_index(nb_dev,0x10));
-    printf("mc : %d  ============value: %x\n" , 0x11 , nbmc_read_index(nb_dev,0x11));
-    printf("mc : %d  ============value: %x\n" , 0x12 , nbmc_read_index(nb_dev,0x12));
-    printf("nb : %d  ============value: %x\n" , 0x90 , pci_read_config32(nb_dev,0x90));
+    tgt_printf("config UMA!!!!!!!!!!!!!!!!!!!!!!!!!!!!1\n");
+    tgt_printf("mc : %d  ============value: %x\n" , 0xd , nbmc_read_index(nb_dev,0xd));
+    tgt_printf("mc : %d  ============value: %x\n" , 0xe , nbmc_read_index(nb_dev,0xe));
+    tgt_printf("mc : %d  ============value: %x\n" , 0x10 , nbmc_read_index(nb_dev,0x10));
+    tgt_printf("mc : %d  ============value: %x\n" , 0x11 , nbmc_read_index(nb_dev,0x11));
+    tgt_printf("mc : %d  ============value: %x\n" , 0x12 , nbmc_read_index(nb_dev,0x12));
+    tgt_printf("nb : %d  ============value: %x\n" , 0x90 , pci_read_config32(nb_dev,0x90));
 
 	/* GFX_InitUMA finished. */
 #else
@@ -468,12 +468,12 @@ static void rs780_internal_gfx_enable(device_t nb , device_t dev)
 	set_nbmc_enable_bits(nb_dev, 0x0d, ~0x000ffff0, (FB_End&0xfff)<<20);
 	nbmc_write_index(nb_dev, 0x0f, 0);
 	nbmc_write_index(nb_dev, 0x0e, (FB_End&0xfff)|(0xaaaa<<12));
-    printf("mc : %d  ============value: %x\n" , 0xd , nbmc_read_index(nb_dev,0xd));
-    printf("mc : %d  ============value: %x\n" , 0xe , nbmc_read_index(nb_dev,0xe));
-    printf("mc : %d  ============value: %x\n" , 0x10 , nbmc_read_index(nb_dev,0x10));
-    printf("mc : %d  ============value: %x\n" , 0x11 , nbmc_read_index(nb_dev,0x11));
-    printf("mc : %d  ============value: %x\n" , 0x12 , nbmc_read_index(nb_dev,0x12));
-    printf("nb : %d  ============value: %x\n" , 0x90 , pci_read_config32(nb_dev,0x90));
+    tgt_printf("mc : %d  ============value: %x\n" , 0xd , nbmc_read_index(nb_dev,0xd));
+    tgt_printf("mc : %d  ============value: %x\n" , 0xe , nbmc_read_index(nb_dev,0xe));
+    tgt_printf("mc : %d  ============value: %x\n" , 0x10 , nbmc_read_index(nb_dev,0x10));
+    tgt_printf("mc : %d  ============value: %x\n" , 0x11 , nbmc_read_index(nb_dev,0x11));
+    tgt_printf("mc : %d  ============value: %x\n" , 0x12 , nbmc_read_index(nb_dev,0x12));
+    tgt_printf("nb : %d  ============value: %x\n" , 0x90 , pci_read_config32(nb_dev,0x90));
 #endif
 #endif
 }
