@@ -548,6 +548,7 @@ result = ( A * Alpha + B * ( 32-Alpha ) ) / 32¡¡¡¡¡¡Alpha < 32
 ->
 result = ( ( A-B ) * Alpha ) >> 5 + B
 */
+
 void alpha_blend(unsigned int *fb, unsigned int target)
 {
     unsigned int fbtarget;
@@ -2354,41 +2355,9 @@ int fb_init(unsigned long fbbase, unsigned long iobase)
 
     int i,j;
 	pGD = &GD;
-#if defined(VGA_NOTEBOOK_V1)
-	pGD->winSizeX  = 1280;
-	pGD->winSizeY  = 800;
-#elif defined(VGA_NOTEBOOK_V2)
-	pGD->winSizeX  = 1024;
-	pGD->winSizeY  = 768;
-#else
-	pGD->winSizeX  = 640;
-	pGD->winSizeY  = 480;
-#endif
-#if defined(X800x600)
-	pGD->winSizeX  = 800;
-	pGD->winSizeY  = 600;
-#elif defined(X1024x768)
-        pGD->winSizeX  = 1024;
-        pGD->winSizeY  = 768;
-#elif defined(X1280x1024)
-        pGD->winSizeX  = 1280;
-        pGD->winSizeY  = 1024;
-#elif defined(X800x480)
-        pGD->winSizeX  = 800;
-        pGD->winSizeY  = 480;
-#elif defined(X320x240)
-        pGD->winSizeX  = 320;
-        pGD->winSizeY  = 240;
-#else
-#ifndef FB_XSIZE
-#define FB_XSIZE 800
-#endif
-#ifndef FB_YSIZE
-#define FB_YSIZE 600
-#endif
-        pGD->winSizeX  = FB_XSIZE;
-        pGD->winSizeY  = FB_YSIZE;
-#endif			
+	
+    pGD->winSizeX  =  1024;
+    pGD->winSizeY  =  768;
 	
 #if   defined(CONFIG_VIDEO_1BPP)
         pGD->gdfIndex  = GDF__1BIT;

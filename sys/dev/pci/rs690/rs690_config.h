@@ -122,9 +122,11 @@ extern void delay(u32 val);
 /* ati_integrated_system_information struct parameters setting end */
 
 /* we should choose only one from them */
-#define	CFG_SP_MCLK_133
+//#define	CFG_SP_MCLK_133
+#define	CFG_SP_MCLK_200
+#undef	CFG_SP_MCLK_133
 #undef	CFG_SP_MCLK_166
-#undef	CFG_SP_MCLK_200
+//#undef	CFG_SP_MCLK_200
 #undef	CFG_SP_MCLK_266
 #undef	CFG_SP_MCLK_300
 #undef	CFG_SP_MCLK_333

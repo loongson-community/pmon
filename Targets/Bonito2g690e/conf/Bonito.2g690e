@@ -157,13 +157,13 @@ pci*		at ppb? bus ?
 fxp0            at pci? dev ? function ?        # Intel 82559 Device
 inphy*          at mii? phy ?                   # Intel 82555 PHYs
 #rtl*        at pci? dev ? function ?
-rtk*		 at pci? dev ? function ?
+#rtk*		 at pci? dev ? function ?
 #em*        at pci? dev ? function ?
 rte*		 at pci? dev ? function ?
 atl0             at pci? dev ? function ?
 
 #####USB Devices######
-uhci*		 at pci? dev ? function ?
+#uhci*		 at pci? dev ? function ?
 ohci*		 at pci? dev ? function ?
 usb*		 at usbbus ?
 

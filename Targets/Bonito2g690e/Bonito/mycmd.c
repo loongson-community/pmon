@@ -470,6 +470,44 @@ int pcbver(void)
     return 0;
 }
 
+static int nbmis_config(int argc,char **argv)
+{
+	pcitag_t nb_dev_tag;
+	int rw;
+    unsigned int ureg1,ureg2;
+	if(argc < 3) 
+		return -1;
+
+	rw = strtoul(argv[1],0,0);
+
+	switch(rw)
+	{
+		case 0:
+            //read nb mis register
+            nb_dev_tag =  _pci_make_tag(0, 0, 0);
+            ureg1 = strtoul(argv[2],0,16);
+            _pci_conf_write(nb_dev_tag,0x60,ureg1);            
+            ureg2 = _pci_conf_read(nb_dev_tag,0x64);
+            printf("rs690(nb)'s mis register 0x%x value is 0x%x \n ",ureg1,ureg2);
+            break;
+		case 1:
+            //write nb mis register
+            nb_dev_tag =  _pci_make_tag(0, 0, 0);
+            ureg1 = strtoul(argv[2],0,16);
+            ureg2 = strtoul(argv[3],0,16);
+            _pci_conf_write(nb_dev_tag,0x60,(ureg1|0x80));            
+            _pci_conf_write(nb_dev_tag,0x64,ureg2);
+            ureg2 = _pci_conf_read(nb_dev_tag,0x64);
+            printf("after updates rs690(nb)'s mis register 0x%x value is 0x%x \n ",ureg1,ureg2);
+            break;
+		default:
+			 return -1;
+	}
+
+	return 0;
+}
+
+
 
 static const Cmd Cmds[] =
 {
@@ -477,7 +515,8 @@ static const Cmd Cmds[] =
 	{"pnps",	"", 0, "select pnp ops for d1,m1 ", pnps, 0, 99, CMD_REPEAT},
 	{"dumpsis",	"", 0, "dump sis registers", dumpsis, 0, 99, CMD_REPEAT},
 	{"i2cs","slotno #slot 0-1 for dimm,slot 2 for ics95220,3 for ddrcfg,3 revert for revert to default ddr setting", 0, "select i2c ops for d1,m1", i2cs, 0, 99, CMD_REPEAT},
-	{0, 0}
+	{"nbmis_config",	"", 0, "do the config of rs690's mis register", nbmis_config, 0, 99, CMD_REPEAT},
+    {0, 0}
 };
 
 #ifdef DEVBD2F_SM502

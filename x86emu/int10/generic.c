@@ -357,6 +357,8 @@ int vga_bios_init(void)
 	linux_outb(0x67, 0x3c2);
 #endif
 
+
+
 #if NMOD_FRAMEBUFFER == 0
 	printf("setting text mode...\n");
 	//X86EMU_trace_on();
@@ -365,7 +367,9 @@ int vga_bios_init(void)
 	pInt->ax = 0x0003;
 	xf86ExecX86int10(pInt);
 #else
+    #if 1
 	printf("setting fb mode...\n");
+
 	pInt->BIOSseg = V_BIOS >> 4;
 	pInt->num = 0x10;
 	{
@@ -376,8 +380,10 @@ int vga_bios_init(void)
 		else
 			vesa_mode = 0x00;
 	}
+    /*
 	for(vesa_mode = 0; vesa_mode <= 24; vesa_mode++){
 		printk("\n\nvesa_mode : 0x%x\n", vesa_mode);
+     */   
 	pInt->ax = 0x4f02;
 //	pInt->bx = 0x4114;
 	pInt->bx = (USE_LINEAR_FRAMEBUFFER | vesa_mode_head[vesa_mode].mode);
@@ -386,11 +392,13 @@ int vga_bios_init(void)
 		if (pInt->ax != 0x004f){
 			printk("set vesa mode failed,ax=%x mode(0x%x)\n", pInt->ax, pInt->bx);
 		}else{
-			break;
+			//break;
 		}
-	}
+	//}
+    #endif
 
-#ifdef DEBUG
+//#ifdef DEBUG
+#if 1
 	pInt->ax = 0x4f01;	/* get mode information */
 	pInt->cx = 0x4114;
 	pInt->di = 0;
@@ -408,6 +416,7 @@ int vga_bios_init(void)
 #endif
 
 #endif
+
 
 #if 0
 	radeon_init_regbase();

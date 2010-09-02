@@ -444,7 +444,7 @@ file    pmon/dev/loopdev.c loopdev needs-flag
 
 
 #pmon password
-file pmon/cmds/password.c      
+file pmon/cmds/password.c   mod_psd   
 file pmon/dev/md5.c            
 #command: cat
 #file pmon/cmds/cat.c	mod_cat
