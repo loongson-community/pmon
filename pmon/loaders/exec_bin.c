@@ -50,7 +50,8 @@ static long
    load_bin (int fd, char *buf, int *n, int flags)
 {
 	void *addr = (void *)dl_offset;
-	int size = 512;
+	//int size = 512;
+	int size = 4096*16*16;
 	int n2;
 	int count = 0;
 
