@@ -45,19 +45,12 @@ typedef struct SectorDef
 /*------------------------------------------------------------------------*/
 /*-----------------   Global Variables                --------------------*/
 /*------------------------------------------------------------------------*/
-extern SHM_mem_access_t SHM_interface;
 extern FLASH_device_commands_t FLASH_commands;
-extern unsigned int FLASH_id;
 extern unsigned int FLASH_size;
 extern unsigned int FLASH_sector_size;
 extern unsigned int FLASH_page_size;
 extern unsigned int FLASH_block_size;
-extern unsigned char FLASH_block_erase, FLASH_sector_erase;
-extern unsigned char protected_sectors[64];
-extern Sector_t Flash_sectors[20];
 extern int NumOfSectoresInBlock;
-extern int NumOfSectores;
 extern int verbose;
-extern char Config_file_name[];
 
 #endif //_shm_h_

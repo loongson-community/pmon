@@ -212,7 +212,6 @@ extern unsigned char *get_ecver(void);
 #define GOTO_BOOT_BLOCK_OP      0x22
 #define READ_STSREG_OP          0x30
 #define WRITE_STSREG_OP         0x31
-#define PROGRAM_BYTE_OP         0x32
 #define ERASE_OP                0x80
 #define SECTOR_ERASE_OP         0x82
 #define ADDRESS_SET_OP          0xA0
@@ -306,7 +305,7 @@ static inline unsigned char PcIoReadB(unsigned char port)
  ******************************************************************************/
 static inline unsigned char PcMemReadB(unsigned long Address) 
 {                
-    return *(unsigned char *)Address;
+    return *(volatile unsigned char *)Address;
 }         
 
 static inline void wrwcb(u32 addr, unsigned char data)

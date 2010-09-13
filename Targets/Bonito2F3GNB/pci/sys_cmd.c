@@ -196,9 +196,19 @@ static int cmd_wrport(int ac, char *av[])
 	u8 value = 0;
 
 	if(ac < 3){
-		printf("usage : wrport port value\n");
-		return -1;
+		if(strcmp(av[1], "-h") == 0){
+			printf("Write PM and KM channel port for wpce775l.\n");
+			printf("usage : %s port value\n", av[0]);
+			printf(" Note : port contain 64h/60h or 66h/62h etc.\n");
+			printf("  e.g.: %s 66 80 (write command 80h to port 66h)\n", av[0]);
+			printf("        %s 62 5a (write index 5ah to port 62h)\n", av[0]);
+			return 0;
+		}else{
+			printf("ERROR : Too few parameters.\n");
+			return -1;
+		}
 	}
+	
 
 	port = strtoul(av[1], NULL, 16);
 	value = strtoul(av[2], NULL, 16);
@@ -216,8 +226,16 @@ static int cmd_rdport(int ac, char *av[])
 	u8 val = 0;
 	
 	if(ac < 2){
-		printf("usage : rdport port\n");
+		printf("ERROR : Too few parameters.\n");
 		return -1;
+	}
+	
+	if(strcmp(av[1], "-h") == 0){
+		printf("Read PM and KM channel port for wpce775l.\n");
+		printf("usage : %s port\n", av[0]);
+		printf(" Note : port contain 64h/60h, 66h/62h etc.\n");
+		printf("  e.g.: %s 62 (read io port 62h)\n", av[0]);
+		return 0;
 	}
 	
 	port = strtoul(av[1], NULL, 16);
@@ -237,12 +255,18 @@ static int cmd_wr775(int ac, char *av[])
 	u8 value = 0;
 
 	if(ac < 3){
-		printf("usage : wr775 cmd [index] value\n");
-		printf("  e.g.: wr775 81 5A 1 (adjust brightness level to 1)\n");
-		printf("        wr775 49 0/1 (close/open backlight)\n");
-		return -1;
+		if(strcmp(av[1], "-h") == 0){
+			printf("Write EC space for wpce775l.\n");
+			printf("usage : %s cmd [index] value\n", av[0]);
+			printf("  e.g.: %s 81 5A 1 (adjust brightness level to 1)\n", av[0]);
+			printf("        %s 49 0/1 (close/open backlight)\n", av[0]);
+			return 0;
+		}else{
+			printf("ERROR : Too few parameters.\n");
+			return -1;
+		}
 	}
-
+	
 	cmd = strtoul(av[1], NULL, 16);
 
 	if(ac == 4){
@@ -275,16 +299,17 @@ static int cmd_rd775(int ac, char *av[])
 	u8 size = 1, val = 0;
 	
 	if(ac < 2){
-		printf("usage : rd775 cmd [index] [size]\n");
+		printf("ERROR : Too few parameters.\n");
 		return -1;
 	}
 	
 	if(strcmp(av[1], "-h") == 0){
-		printf("usage : rd775 {-h | cmd [index] [size]}\n");
-		printf("  e.g.: rd775 -h      (this help)\n");
-		printf("        rd775 80 5A 1 (read command 80h, index 5A, size 1 data)\n");
-		printf("        rd775 46 1    (read command 46h, size 1 data)\n");
-		printf("        rd775 46      (read command 46h, i.e., read device status)\n");
+		printf("Read EC space for wpce775l.\n");
+		printf("usage : %s {-h | cmd [index] [size]}\n", av[0]);
+		printf("  e.g.: %s -h      (this help)\n", av[0]);
+		printf("        %s 80 5A 1 (read command 80h, index 5A, size 1 data)\n", av[0]);
+		printf("        %s 46 1    (read command 46h, size 1 data)\n", av[0]);
+		printf("        %s 46      (read command 46h, i.e., read device status)\n", av[0]);
 		return 0;
 	}
 	
@@ -330,11 +355,19 @@ static int cmd_wrsio(int ac, char *av[])
 {
     u8 index, data;
  
-    if(ac < 2){
-        printf("usage : wrsio index data\n");
-        return -1;
-    }
-
+	if(ac < 3){
+		if(strcmp(av[1], "-h") == 0){
+			printf("Write super io for wpce775l.\n");
+			printf("usage : %s index data\n", av[0]);
+			printf("  e.g.: %s 2E 7   (write LDN register to io index port)\n", av[0]);
+			printf("        %s 2F 0xF (write LDN to io data port)\n", av[0]);
+			return 0;
+		}else{
+			printf("ERROR : Too few parameters.\n");
+			return -1;
+		}
+	}
+	
 	index = strtoul(av[1], NULL, 16);
 	data = strtoul(av[2], NULL, 16);
 
@@ -351,9 +384,16 @@ static int cmd_rdsio(int ac, char *av[])
     u8 val = 0;
  
     if(ac < 2){
-        printf("usage : rdsio index\n");
-        return -1;
-    }
+		printf("ERROR : Too few parameters.\n");
+		return -1;
+	}
+	
+	if(strcmp(av[1], "-h") == 0){
+		printf("Read super io for wpce775l.\n");
+        printf("usage : %s index\n", av[0]);
+		printf("  e.g.: %s 2F (read LDN value from io data port)\n", av[0]);
+		return 0;
+	}
 
 	index = strtoul(av[1], NULL, 16);
 
@@ -369,10 +409,17 @@ static int cmd_wrldn(int ac, char *av[])
 {
     u8 ld_num, index, data;
  
-    if(ac < 3){
-        printf("usage : wrldn logical_device_num index data\n");
-        return -1;
-    }
+	if(ac < 3){
+		if(strcmp(av[1], "-h") == 0){
+			printf("Write LDN data for wpce775l.\n");
+			printf("usage : %s logical_device_num index data\n", av[0]);
+			printf("  e.g.: %s f 30 1 (write Logic Device Control register is activate.)\n", av[0]);
+			return 0;
+		}else{
+			printf("ERROR : Too few parameters.\n");
+			return -1;
+		}
+	}
 
 	ld_num = strtoul(av[1], NULL, 16);
 	index = strtoul(av[2], NULL, 16);
@@ -387,13 +434,20 @@ static int cmd_wrldn(int ac, char *av[])
 
 static int cmd_rdldn(int ac, char *av[])
 {
-    u8 ld_num, index;
-    u8 val = 0;
- 
-    if(ac < 2){
-        printf("usage : rdldn logical_device_num index\n");
-        return -1;
-    }
+	u8 ld_num, index;
+	u8 val = 0;
+
+	if(ac < 3){
+		if(strcmp(av[1], "-h") == 0){
+			printf("Read LDN data for wpce775l.\n");
+			printf("usage : %s logical_device_num index\n", av[0]);
+			printf("  e.g.: %s f 30 (read Logic Device Control register.)\n", av[0]);
+			return 0;
+		}else{
+			printf("ERROR : Too few parameters.\n");
+			return -1;
+		}
+	}
 
 	ld_num = strtoul(av[1], NULL, 16);
 	index = strtoul(av[2], NULL, 16);
@@ -501,19 +555,15 @@ extern void set_interface_cfg(u8 flag);
 extern unsigned short Read_Flash_IDs(void);
 extern void Update_Flash_Init(void);
 extern void Init_Flash_Command(void);
-extern int ec_update_rom_test(u32 Address, void *src, int size);
 extern unsigned char PcMemReadB (unsigned long Address);
-extern unsigned char Flash_Data[MAX_FLASH_CAPACITY];
 extern void Enter_Flash_Update(void);
 extern void flash_sector_erase(unsigned long Address);
 extern void exit_flash_update(WCB_exit_t exit_type);
 extern void Flash_Set_Address(unsigned long Address);
-extern void Flash_program_byte(u8 data);
-extern unsigned char read_status_register(void);
-extern void write_status_register(u8 data);
-extern void Flash_write_byte(u8 data);
-extern WCB_exit_t exit_type;                           // Type of protocol termination to use
-extern void Flash_Program(unsigned char * Data, unsigned int Size);
+extern unsigned char Flash_read_status_register(void);
+extern void Flash_write_status_register(u8 data);
+extern WCB_exit_t exit_type;    // Type of protocol termination to use
+extern void Flash_program_data(u32 addr, u8 *src, u32 size);
 
 static int cmd_rdstsreg(int ac, char *av[])
 {
@@ -522,7 +572,7 @@ static int cmd_rdstsreg(int ac, char *av[])
     set_interface_cfg(0);
 	Init_Flash_Command();
 
-	val = read_status_register();
+	val = Flash_read_status_register();
 
 	printf("Read EC FLASH status register: 0x%x\n", val);
 
@@ -534,17 +584,22 @@ static int cmd_wrstsreg(int ac, char *av[])
     u8 data;
 
 	if(ac < 2){
-        printf("usage : wrstsreg status_value\n");
-        return -1;
-    }
+		printf("ERROR : Too few parameters.\n");
+		return -1;
+	}
+	if(strcmp(av[1], "-h") == 0){
+		printf("Write EC flash status register for wpce775l.\n");
+        printf("usage : %s status_value\n", av[0]);
+		printf("  e.g.: %s 18 (write protect all blocks option to EC flash status register.)\n", av[0]);
+		return 0;
+	}
  
 	data = strtoul(av[1], NULL, 16);
 
 	printf("Write EC FLASH status register: data 0x%x\n", data);
     set_interface_cfg(0);
 	Init_Flash_Command();
-
-	write_status_register(data);
+	Flash_write_status_register(data);
 
 	return 0;
 }
@@ -589,85 +644,29 @@ static int cmd_rdids(int ac, char *av[])
 	return 0;
 }
          
-static int cmd_rdshmreg(int ac, char *av[])
-{
-	u8 data;
-	u16 i;
-
-	for(i = 0; i < 16; i++)
-	{
-		data = rdldn(0xf, SHM_CFG + i);
-		printf("Read SHM configuration: reg 0x%x, data 0x%x\n", SHM_CFG + i, data);
-	}
-
-	return 0;
-}
-       
-static int cmd_setshm_ram_flash(int ac, char *av[])
-{
-	u8 shm_ram_flg;	// 0 = shmram, 1 = shmflash
- 
-    if(ac < 2){
-        printf("usage : setshmram flag\n");
-        printf(" note : flag = 1 as shared flash access\n");
-        printf("        flag = 0 as shared ram access\n");
-        return -1;
-    }
-
-	shm_ram_flg = strtoul(av[1], NULL, 16);
-
-	if(shm_ram_flg)
-    	printf("set SHM interface is shared FLASH access: 0x%x\n", shm_ram_flg);
-	else
-    	printf("set SHM interface is shared RAM access: 0x%x\n", shm_ram_flg);
-
-    set_interface_cfg(shm_ram_flg);
-
-    printf("set SHM interface success.\n");
-
-	return 0;
-}
-
-static int cmd_initcmd(int ac, char *av[])
-{
-	u16 i;
-
-    set_interface_cfg(0);
-
-	printf("Before Init: ");
-	for(i = 0; i < 16; i++)
-	{
-		printf("0x%x ", rdwcb(WCB_BASE_ADDR + i));
-	}
-	printf("\n");
-
-	Init_Flash_Command();
-	
-	printf("After Init: ");
-	for(i = 0; i < 16; i++)
-	{
-		printf("0x%x ", rdwcb(WCB_BASE_ADDR + i));
-	}
-	printf("\n");
-
-	return 0;
-}
-
 static int cmd_wrwcb(int ac, char *av[])
 {
     u32 wcb_addr;
 	u8 data;
  
-    if(ac < 2){
-        printf("usage : wrwcb address data\n");
-        return -1;
-    }
+	if(ac < 3){
+		if(strcmp(av[1], "-h") == 0){
+			printf("Write WCB for wpce775l.\n");
+			printf("usage : %s address data\n", av[0]);
+			printf("  e.g.: %s bbf00002 55 (write data to WCB.)\n", av[0]);
+			return 0;
+		}else{
+			printf("ERROR : Too few parameters.\n");
+			return -1;
+		}
+	}
 
 	wcb_addr = strtoul(av[1], NULL, 16);
 	data = strtoul(av[2], NULL, 16);
 
 	printf("Write EC775 WCB : address 0x%x, data 0x%x\n", wcb_addr, data);
 
+    set_interface_cfg(0);
 	wrwcb(wcb_addr, data);
 
 	return 0;
@@ -681,8 +680,15 @@ static int cmd_rdwcb(int ac, char *av[])
 	int i;
  
     if(ac < 2){
-        printf("usage : rdwcb address [size]\n");
-        return -1;
+		printf("ERROR : Too few parameters.\n");
+		return -1;
+	}
+	if(strcmp(av[1], "-h") == 0){
+        printf("Read WCB for wpce775l.\n");
+        printf("usage : %s address [size]\n", av[0]);
+		printf("  e.g.: %s bbf00000 10 (read 16 bytes data from WCB.)\n", av[0]);
+		printf("  e.g.: %s bbf00000 (read 1 byte data from WCB.)\n", av[0]);
+		return 0;
     }
 
 	wcb_addr = strtoul(av[1], NULL, 16);
@@ -700,6 +706,7 @@ static int cmd_rdwcb(int ac, char *av[])
 
 	printf("Read EC775 WCB : start address 0x%x, size %d\n", wcb_addr, size);
 
+    set_interface_cfg(0);
 	for(i = 0; i < size; i++){
 		val = rdwcb(wcb_addr + i);
 		printf("WCB address 0x%x, data 0x%x\n", wcb_addr + i, val);
@@ -713,8 +720,14 @@ static int cmd_sector_erase(int ac, char *av[])
     u32 address;
 
 	if(ac < 2){
-        printf("usage : secerase address\n");
-        return -1;
+		printf("ERROR : Too few parameters.\n");
+		return -1;
+	}
+	if(strcmp(av[1], "-h") == 0){
+        printf("Erase a sector from EC flash for wpce775l.\n");
+        printf("usage : %s address\n", av[0]);
+		printf("  e.g.: %s 20000 (erase a sector from 0x20000.)\n", av[0]);
+		return 0;
     }
  
 	address = strtoul(av[1], NULL, 16);
@@ -725,114 +738,12 @@ static int cmd_sector_erase(int ac, char *av[])
 
     Enter_Flash_Update();
 	flash_sector_erase(address);
+    exit_flash_update(WCB_EXIT_NORMAL);
 	printf("Erase sector OK...\n");
-    exit_flash_update(EXIT_OP);
 
 	return 0;
 }
-
-/* program data to SPI data */
-void Flash_program_data(u32 addr, u8 *src, u32 size)
-{
-	u8 *buf;
-	u16 sector, page_cnt = 0; 
-	u16 page, page1, i, j, sec_cnt = 0;
-	u32 program_addr, erase_addr;
-	u8 flags, remainder, status;
-	
-    exit_type = WCB_EXIT_NORMAL;
-	sector = 1;
-	page = 1;
-	erase_addr = program_addr = addr;
-	buf = src;
-	
-	printf("Progarm data to address :  0x%lx\n", addr);
-	printf("Progarm data size is %d\n", size);
-	
-	remainder = size % 256;
-	
-	/* start sector erase active */
-	if(size > 0x1000){
-		sector = size / 0x1000 + 1;
-	}
-	if(size > 256){
-		page = size / 256 + 1;
-	}
-	printf("The sum total has %d sectors to need to erase:\n", sector);
-	
-	Update_Flash_Init();
-    set_interface_cfg(0);
-	Init_Flash_Command();
-
-	printf("Ready enter flash update...\n");
-    // Indicate Flash Update beginning to Firmware
-    Enter_Flash_Update();
-
-#if 0
-	/* unlock block protection active. */
-	status = Flash_read_status_reg();
-	if(status & 0x1C){
-		Flash_write_status_reg(status & ~0x1C);
-		printf("Block protection unlocked OK.\n");
-	}else{
-		printf("No block protection.\n");
-	}
-#endif
-
-	/* Start sector erase active. */
-	while(sector){
-		printf("Starting erase sector %d ...\n", sec_cnt);
-		flash_sector_erase(erase_addr);
-		printf("Erase sector %d OK...\n", sec_cnt++);
-		
-		if((page * 256) > (4 * 1024)){
-			page1 = (4 * 1024) / 256;
-			flags = 1;
-		}else{
-			page1 = page;
-			flags = 0;
-		}
-		
-	Init_Flash_Command();
-		/* start page program active */
-		printf("The sum total has %d page to need to program:\n", page);
-		while(page1){
-			if(!flags){
-				if(size > 256){
-					j = 256;
-				}
-				else{
-					j = size;
-				}
-			}
-			else{
-				j = 256;
-			}
-			for(i = 0; i < j; i++){
-				Flash_Set_Address(program_addr);
-				Flash_write_byte(*buf);
-				if(!(i % 0xF)) printf(".");
-				program_addr++;
-				buf++;
-				size--;
-			}
-			printf("\npage %d program ok.\n", page_cnt++);
-			page1--;
-		}
-		page -= (4 * 1024) / 256;
-		printf("All page programming completes for sector %d.\n", sec_cnt - 1);
-		
-		erase_addr += 0x1000;
-		sector--;
-	}
-	
-	/*Flash_write_status_reg(status | 0x1C);
-	printf("All page programming completes for all sectors.\n");*/
-	
-    // Indicate Flash Update termination to Firmware
-    exit_flash_update(exit_type);
-}
-        
+       
 static int cmd_rdrom(int ac, char *av[])
 {
     u16 i, val;
@@ -840,15 +751,16 @@ static int cmd_rdrom(int ac, char *av[])
 	u32 size;
 
     if(ac < 2){
-        printf("usage : rdrom start_address size\n");
+		printf("ERROR : Too few parameters.\n");
         return -1;
     }
 
 	if(!(strcmp(av[1], "-h")) || (!strcmp(av[1], "--help"))){
-        printf("Read data from EC flash tool for wpce775l.\n");
-        printf("usage : rdrom start_address size\n");
+        printf("Read data from EC flash for wpce775l.\n");
+        printf("usage : %s start_address size\n", av[0]);
         printf(" Note : start_address is from 0 to (1MB - 1) range.\n");
         printf("        size is up to (1MB - start_address).\n");
+        printf(" e.g. : %s 0x20000 10 (Read 16 bytes data from 0x20000 in EC flash.)\n", av[0]);
 		return 0;
 	}
 
@@ -861,7 +773,7 @@ static int cmd_rdrom(int ac, char *av[])
 		size = 1;
 	}
 
-	printf("Read data in EC ROM from address 0x%x, size %d:\n", start_addr, size);
+	printf("In EC ROM read data from address 0x%x, size %d:\n", start_addr, size);
 	printf("Address ");
 	for(i = 0; i < 15; i++){
 		if(((i % 8 ) == 0) && (i != 0)){
@@ -892,97 +804,22 @@ static int cmd_rdrom(int ac, char *av[])
 	return 0;
 }
 
-/* test program data to SPI data */
-void Test_program_multbyte(u32 address, u32 size)
-{
-	u16 sector, page, i = 0, j = 0;
-	u32 program_addr, erase_addr;
-	u16 remainder;
-
-    exit_type = WCB_EXIT_NORMAL;
-	sector = 1;
-	page = 1;
-	erase_addr = program_addr = address;
-
-	printf("Progarm data to address: 0x%x, size %d\n", address, size);
-	
-	/* start sector erase active */
-	if(size > 0x1000){
-		sector = size / 0x1000 + 1;
-	}
-	if(size > 256){
-		page = size / 256 + 1;
-	}
-
-	Update_Flash_Init();
-    set_interface_cfg(0);
-	Init_Flash_Command();
-
-	printf("Ready enter flash update...\n");
-    // Indicate Flash Update beginning to Firmware
-    Enter_Flash_Update();
-
-	/* start sector erase active */
-	printf("The sum total has %d sectors to need to erase:\n", sector);
-	while(sector){
-		printf("Starting erase sector %d ...\n", j);
-		flash_sector_erase(erase_addr);
-		printf("Erase sector %d OK...\n", j++);
-
-	Init_Flash_Command();
-		/* start page program active */
-		printf("The sum total has %d page to need to program:\n", page);
-		while(page){
-			if(size > 0xFF){
-				remainder = 256;
-			}else{
-				remainder = size;
-			}
-			for(i = 0; i < remainder; i++){
-				Flash_Set_Address(program_addr);
-				Flash_write_byte(i);
-				program_addr++;
-				size--;
-			}
-			printf(".");
-			page--;
-		}
-		printf("\nAll page programming completes.\n");
-		erase_addr += 0x1000;
-		sector--;
-	}
-    // Indicate Flash Update termination to Firmware
-    exit_flash_update(exit_type);
-}
-
-static int cmd_program_multbytes(int ac, char *av[])
-{
-	u32 addr, size;
-
-    if(ac < 2){
-        printf("usage : wrmb address size\n");
-        return -1;
-    }
-
-	addr = strtoul(av[1], NULL, 16);
-	size = strtoul(av[2], NULL, 16);
-
-	printf("Start multbyte program: address 0x%x, size %d\n", addr, size);
-
-    Test_program_multbyte(addr, size);
-
-	return 0;
-}
-
-static int cmd_program_data(int ac, char *av[])
+static int cmd_wrrom(int ac, char *av[])
 {
 	u32 start_addr;
 	u8 *data;
 	u32 size;
 
     if(ac < 2){
-        printf("usage : wrdata address data\n");
+		printf("ERROR : Too few parameters.\n");
         return -1;
+    }
+
+	if(!(strcmp(av[1], "-h")) || (!strcmp(av[1], "--help"))){
+        printf("Write data string to EC flash for wpce775l.\n");
+        printf("usage : %s start_address data_string\n", av[0]);
+        printf(" e.g. : %s 0x20000 aaaaa (Write \"aaaaa\" to address 0x20000 of EC flash.)\n", av[0]);
+		return 0;
     }
 
 	start_addr = strtoul(av[1], NULL, 16);
@@ -992,8 +829,6 @@ static int cmd_program_data(int ac, char *av[])
 	printf("Progarm data: start address 0x%x, data %s, size %d\n", start_addr, data, size);
 
 	Flash_program_data(start_addr, data, size);
-
-	printf("Program data completed.\n");
 
 	return 0;
 }
@@ -1028,13 +863,9 @@ static const Cmd Cmds[] =
 	{"wrldn", "reg", NULL, "WPCE775L logical device write test", cmd_wrldn, 2, 99, CMD_REPEAT},
 	{"rdldn", "reg", NULL, "WPCE775L logical device read test", cmd_rdldn, 2, 99, CMD_REPEAT},
 
-	{"updec", "reg", NULL, "WPCE775L Flash program test", cmd_program_data, 2, 99, CMD_REPEAT},
+	{"wrrom", "reg", NULL, "WPCE775L write flash test", cmd_wrrom, 2, 99, CMD_REPEAT},
 	{"rdrom", "reg", NULL, "WPCE775L read flash test", cmd_rdrom, 2, 99, CMD_REPEAT},
-	{"wrmb", "reg", NULL, "WPCE775L Flash program test", cmd_program_multbytes, 2, 99, CMD_REPEAT},
 	{"secerase", "reg", NULL, "WPCE775L Flash sector erase test", cmd_sector_erase, 2, 99, CMD_REPEAT},
-	{"setshmmode", "reg", NULL, "WPCE775L read flash test", cmd_setshm_ram_flash, 2, 99, CMD_REPEAT},
-	{"rdshmreg", "reg", NULL, "WPCE775L EC ID read test", cmd_rdshmreg, 0, 99, CMD_REPEAT},
-	{"initcmd", "reg", NULL, "WPCE775L EC ID read test", cmd_initcmd, 0, 99, CMD_REPEAT},
 	{"rdstsreg", "reg", NULL, "WPCE775L EC ID read test", cmd_rdstsreg, 0, 99, CMD_REPEAT},
 	{"wrstsreg", "reg", NULL, "WPCE775L read flash test", cmd_wrstsreg, 2, 99, CMD_REPEAT},
 
