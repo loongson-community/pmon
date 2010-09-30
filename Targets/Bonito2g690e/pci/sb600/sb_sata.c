@@ -153,6 +153,10 @@ void sb_sata_init(void)
 	_pci_conf_writen(sata_dev, 0xB5, port_bist, 1);
 	_pci_conf_writen(sata_dev, 0xBD, port_bist, 1);
 
+    //patch for pass test
+	set_sbcfg_enable_bits(sata_dev, 0x8c, 3 << 0, 3 << 2);
+	set_sbcfg_enable_bits(sata_dev, 0xac, 1 << 0, 7 << 13);
+
 	/* port reset */
 
 	delay(1000);		// delay 1ms

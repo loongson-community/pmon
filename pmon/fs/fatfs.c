@@ -266,6 +266,7 @@ fat_read(int fd, void *buf, size_t len)
 	int offset;
 	int sector;
 	int res = 0;
+	unsigned char sectornum;
 
 	fsc = (struct fat_sc *)_file[fd].data;
 
@@ -285,23 +286,30 @@ fat_read(int fd, void *buf, size_t len)
 	while (len) {
 		offset = _file[fd].posn % SECTORSIZE;
 		sectorIndex = _file[fd].posn / SECTORSIZE;
-		
+
 		sector = getSectorIndex_read(fsc, &fsc->file.Chain, sectorIndex);
 
 		copylen = len;
-		if (copylen > (SECTORSIZE - offset)) {
-			copylen = (SECTORSIZE - offset);
+		if (copylen >= fsc->ClusterSize){
+			copylen = fsc->ClusterSize;
+			sectornum = fsc->SecPerClust;
+		}else{
+			if((copylen % SECTORSIZE)){
+				sectornum = copylen / SECTORSIZE + 1;
+			}else{
+				sectornum = copylen / SECTORSIZE;
+			}
 		}
 
 		if (sector != fsc->LastSector) {
-			res = readsector(fsc, sector, 1, fsc->LastSectorBuffer);
+			res = readsector(fsc, sector, sectornum, fsc->LastSectorBuffer);
 			if (res < 0)
 				break;
 			fsc->LastSector = sector;
 		}
-		
+
 		memcpy(buf, &fsc->LastSectorBuffer[offset], copylen);
-		
+
 		buf += copylen;
 		_file[fd].posn += copylen;
 		len -= copylen;

@@ -169,7 +169,7 @@ struct fat_sc {
 	int		DirCacheNum;
 	struct fat_fileentry file;
 	int		LastSector;	/* Sector in last sector buffer */
-	u_int8_t	LastSectorBuffer[SECTORSIZE];
+	u_int8_t	LastSectorBuffer[SECTORSIZE * 8];
 };
 
 /*
