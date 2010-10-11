@@ -930,6 +930,22 @@ initmips(unsigned int memsz)
 	cpuinfotab[0] = &DBGREG;
 	dbginit(NULL);
 
+	{
+		pcitag_t sata_dev = _pci_make_tag(0, 18, 0);
+		u32 reg04,reg8c,regac;
+
+		reg8c=_pci_conf_read(sata_dev,0x8c);
+		reg8c|=(3<<3);
+		reg8c&=~(3<<1);
+		_pci_conf_write(sata_dev,0x8c,reg8c);
+		 
+		regac=_pci_conf_read(sata_dev,0xac);
+		regac|=(7<<13);
+		regac&=~(1<<12);
+		 _pci_conf_write(sata_dev,0xac,regac);
+
+	}
+
 	/*
 	 *  Set up exception vectors.
 	 */
