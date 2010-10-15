@@ -69,6 +69,7 @@
 #define GPIOLED_DIR  0xf
 #endif
 
+#undef USE_GPIO_SERIAL
 #ifndef USE_GPIO_SERIAL
 #define GPIOLED_SET(x) \
 	li v0,0xbfe0011c; \
@@ -86,6 +87,59 @@ nop;
 #else
 #define GPIOLED_SET(x)
 #endif
+
+/* set GPIO as output
+ * x : 0x1<<offset
+ */
+#define GPIO_SET_OUTPUT(x) \
+li		v0,		0xbfe0011c; \
+lw		v1,		0(v0); \
+or		v1,		x&0xffff; \
+xor		v1,		0x0; \
+sw		v1,		0(v0); \
+lw		v1,		4(v0); \
+or		v1,		x&0xffff; \
+xor		v1,		x; \
+sw		v1,		4(v0); \
+nop; \
+nop;
+
+/* clear GPIO as output
+ * x : 0x1 <<offsest
+ */
+#define GPIO_CLEAR_OUTPUT(x) \
+li		v0,		0xbfe0011c; \
+lw		v1,		0(v0); \
+or		v1,		x&0xffff; \
+xor		v1,		x; \
+sw		v1,		0(v0); \
+lw		v1,		4(v0); \
+or		v1,		x&0xffff; \
+xor		v1,		x; \
+sw		v1,		4(v0); \
+nop; \
+nop;
+
+/* WatchDog Close for chip MAX6369*/
+#define WatchDog_Close \
+GPIO_CLEAR_OUTPUT(0x1<<5); \
+GPIO_SET_OUTPUT(0x1<<3|0x1<<4); \
+GPIO_CLEAR_OUTPUT(0x1<<13); \
+
+/* WatchDog Enable for chip MAX6369*/
+#define WatchDog_Enable \
+GPIO_CLEAR_OUTPUT(0x1<<13); \
+GPIO_SET_OUTPUT(0x1<<14); \
+GPIO_SET_OUTPUT(0x1<<5); \
+GPIO_CLEAR_OUTPUT(0x1<<4); \
+GPIO_SET_OUTPUT(0x1<<3); \
+GPIO_CLEAR_OUTPUT(0x1<<14); \
+li v1,0x100;\
+78:; \
+subu v1,1; \
+bnez v1,78b; \
+nop; \
+GPIO_SET_OUTPUT(0x1<<13); 
 
 
 #define CONFIG_CACHE_64K_4WAY 1
@@ -172,7 +226,10 @@ la	gp, _gp
 
 //	bal	uncached		/* Switch to uncached address space */
 	nop
-GPIOLED_SET(2)
+//GPIOLED_SET(2)
+	
+	/* WatchDog chip MAX6369 disable work */
+	WatchDog_Close
 
 	bal	locate			/* Get current execute address */
 	nop
@@ -587,7 +644,7 @@ li      t1, 0x00e0      # {cu3,cu2,cu1,cu0}<={0110, status_fr<=1
 		_ISAWR_INIT(isareg,val)
 #define ISARD_INIT(isareg) \
 		_ISARD_INIT(isareg)
-		GPIOLED_SET(4)
+	//	GPIOLED_SET(4)
 
 		bal	1f
 		nop
@@ -1092,7 +1149,8 @@ gs_2f_v3_ddr2_cfg:
 	PRINTSTR("\r\n");
 #else
 	//li      s1, 0x14140c24
-	li      s1, 0x1c1c02b4
+	//li      s1, 0x1c1c02b4
+	li      s1, 0x1c1c03a4
 #endif
 
 #include "loongson3_ddr2_config.S"
@@ -1164,19 +1222,17 @@ gs_2f_v3_ddr2_cfg:
 		nop
 #endif
 
-##########################################
+		WatchDog_Enable;
 
+##########################################
 #ifdef LS3_HT
 #include "loongson3_HT_init.S"
 #endif
+		PRINTSTR("\r\n======LeeWG : Watch Dog : 3\r\n")
+		WatchDog_Close;
+		PRINTSTR("\r\n======LeeWG : Watch Dog : 4\r\n")
 
-		PRINTSTR("\r\n======This is cww's world:1\r\n")
 #include "3aserver_bridge_config.S"
-		PRINTSTR("\r\n======This is cww's world:2\r\n")
-##########################################
-
-		//#include "loongson3_ddr_debug.S"
-
 ##########################################
 
 #if 1 //cww_X2
@@ -1660,6 +1716,7 @@ gs_2f_v3_ddr2_cfg:
 #	addiu	a2,a0,3
 		sb	t1,3(a0)
 		li	t1,0x12      # divider, highest possible baud rate
+		//li	t1,0x0e      # divider, highest possible baud rate
 		sb	t1,0(a0)
 		li	t1,0x0     # divider, highest possible baud rate
 		sb	t1,1(a0)
