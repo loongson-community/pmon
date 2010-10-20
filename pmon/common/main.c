@@ -78,8 +78,8 @@ char            line[LINESZ + 1];	/* input line */
 struct termio	clntterm;	/* client terminal mode */
 struct termio	consterm;	/* console terminal mode */
 register_t	initial_sr;
-int             memorysize;
-int             memorysize_high;
+unsigned long long             memorysize;
+unsigned long long             memorysize_high;
 char            prnbuf[LINESZ + 8];	/* commonly used print buffer */
 
 int             repeating_cmd;
@@ -596,7 +596,7 @@ autorun(char *s)
 void
 dbginit (char *adr)
 {
-	int	memsize, freq;
+	unsigned long long	memsize, freq;
 	char	fs[10], *fp;
 	char	*s;
 

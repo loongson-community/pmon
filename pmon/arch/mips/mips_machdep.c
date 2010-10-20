@@ -50,7 +50,7 @@
 
 extern char end[];
 extern char edata[];
-extern int memorysize;
+extern unsigned long long memorysize;
 
 extern char MipsException[], MipsExceptionEnd[];
 

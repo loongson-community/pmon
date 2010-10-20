@@ -207,7 +207,7 @@ int		no_cmd __P((int, char *[]));
 void		closelst __P((int));
 void		console_state(int);
 
-extern int      memorysize;
+extern unsigned long long      memorysize;
 extern int	repeating_cmd;
 extern char     prnbuf[];
 extern char     line[LINESZ + 1];

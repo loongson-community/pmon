@@ -640,7 +640,7 @@ syminit ()
 #if !defined(BSOTSUN) && 0 
     extern char     _ftext[], etext[], _fdata[], edata[];
 #endif
-    extern int	    memorysize;
+    extern unsigned long long	    memorysize;
 
 #ifdef __mips__
     defsyms ((u_int32_t)sbrk(0) + 1024, memorysize | (CLIENTPC & 0xc0000000), CLIENTPC);

@@ -190,7 +190,7 @@ myfree(addr)
 	splx(s);
 }
 
-extern int memorysize;
+extern unsigned long long memorysize;
 #define  mymemorysize memorysize
 /*
  * Initialize the kernel memory allocator

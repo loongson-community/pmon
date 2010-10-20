@@ -56,7 +56,7 @@
 
 #include <pmon.h>
 
-extern int memorysize;
+extern unsigned long long memorysize;
 extern u_int8_t end[];
 extern u_int8_t start[];
 #ifdef GODSONEV1

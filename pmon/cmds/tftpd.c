@@ -74,7 +74,7 @@
 #define OACK    06          /* option acknowledgement */
 int errno;
 #define CMD_SPAWN   8   /* Run as a subprocess */
-extern int memorysize;
+extern unsigned long long memorysize;
 #define memtop PHYS_TO_CACHED (memorysize)
 
 int	cmd_tftpd(int argc, char *argv[]);

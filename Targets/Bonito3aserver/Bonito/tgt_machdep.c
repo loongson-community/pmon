@@ -350,8 +350,8 @@ ConfigEntry	ConfigTable[] =
 
 unsigned long _filebase;
 
-extern int memorysize;
-extern int memorysize_high;
+extern unsigned long long  memorysize;
+extern unsigned long long  memorysize_high;
 
 extern char MipsException[], MipsExceptionEnd[];
 
@@ -398,7 +398,7 @@ superio_reinit();
 	//memorysize = memsz > 256 ? 256 << 20 : memsz << 20;
 	//memorysize_high = memsz > 256 ? (memsz - 256) << 20 : 0;
 	memorysize = memsz > 240 ? 240 << 20 : memsz << 20;
-	memorysize_high = memsz > 240 ? (memsz - 240) << 20 : 0;
+	memorysize_high = memsz > 240 ? (((unsigned long long)memsz) - 240) << 20 : 0;
 
 #if 0 /* whd : Disable gpu controller of MCP68 */
 	//*(unsigned int *)0xbfe809e8 = 0x122380;

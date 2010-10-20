@@ -33,7 +33,7 @@
 extern char *heaptop;
 int returncode=0;
 struct termio sav;
-extern int memorysize;
+extern unsigned long long memorysize;
 #define LOW_TEST_ADR    ((unsigned int)heaptop)      /* Final adrs for test code */
 #define HIGH_TEST_ADR   (0x80000000+memorysize)      /* Relocation base address */
 #include "test.h"
