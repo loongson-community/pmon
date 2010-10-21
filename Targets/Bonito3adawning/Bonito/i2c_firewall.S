@@ -3,10 +3,10 @@
 #define	G_OUTPUT	0
 #define	G_INPUT		1
 
-#define GPIO_SDA_DIR_SHIFT	2
-#define	GPIO_SCL_DIR_SHIFT	3
-#define GPIO_SDA_DATA_SHIFT	2
-#define GPIO_SCL_DATA_SHIFT	3
+#define GPIO_SDA_DIR_SHIFT	1
+#define	GPIO_SCL_DIR_SHIFT	8
+#define GPIO_SDA_DATA_SHIFT	1
+#define GPIO_SCL_DATA_SHIFT	8
 
 /*
 can't use t1,t5,t6
@@ -29,6 +29,12 @@ LEAF(_i2c_sleep)
 	
 END(_i2c_sleep)
 
+
+/*****************************************/
+/* used to set sda direction             */
+/* a0: 1,means set input, 0 means output */
+/*****************************************/
+
 LEAF(_sda_dir)
 	li	t0,GPIO_DIR_HIGH
 	lwu	t2,0(t0)
@@ -49,6 +55,12 @@ LEAF(_sda_dir)
 	nop
 	
 END(_sda_dir)
+
+
+/*****************************************/
+/* used to set scl direction             */
+/* a0: 1,means set input, 0 means output */
+/*****************************************/
 
 LEAF(_scl_dir)
 	li	t0,GPIO_DIR_HIGH
@@ -71,6 +83,12 @@ LEAF(_scl_dir)
 
 END(_scl_dir)
 
+
+/*****************************************/
+/* used to write date to sda             */
+/* a0: 1,means set high, 0 means set low */
+/*****************************************/
+
 LEAF(_sda_bit)
 	li	t0,GPIO_DATA_HIGH
 	lwu	t2,0(t0)
@@ -90,6 +108,12 @@ LEAF(_sda_bit)
 	jr	ra
 	nop
 END(_sda_bit)
+
+
+/*****************************************/
+/* used to write date to scl             */
+/* a0: 1,means set high, 0 means set low */
+/*****************************************/
 
 LEAF(_scl_bit)
 	li	t0,GPIO_DATA_HIGH
@@ -113,9 +137,11 @@ END(_sda_bit)
 
 
 LEAF(_i2c_start)
+	/* used to save returun PC */
 	move	t7,ra
 
 
+	/* begin to set start condition */
 	li 	a0,G_OUTPUT
 	bal	_sda_dir
 	nop
@@ -218,8 +244,8 @@ LEAF(_i2c_send_ack)
 	nop
 	li 	a0,1
 	bal	_scl_bit
-	nop
-	li	a0,5
+    nop
+    li	a0,5
 	bal	_i2c_sleep
 	nop
 	li	a0,0

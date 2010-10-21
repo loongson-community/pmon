@@ -1375,7 +1375,11 @@ END(Hexserial)
 #ifndef BONITOEL_CPCI
 LEAF(tgt_testchar)
 #ifdef HAVE_NB_SERIAL
+#ifdef USE_LPC_UART
 	la	v0, COM3_BASE_ADDR
+#else
+    la  v0, GS3_UART_BASE
+#endif
 #else
 	la	v0, COM1_BASE_ADDR
 #endif
@@ -1388,7 +1392,11 @@ END(tgt_testchar)
 
 LEAF(tgt_getchar)
 #ifdef HAVE_NB_SERIAL
+#ifdef USE_LPC_UART
 	la	v0, COM3_BASE_ADDR
+#else
+    la  v0, GS3_UART_BASE
+#endif
 #else
 	la	v0, COM1_BASE_ADDR
 #endif
@@ -1404,7 +1412,11 @@ END(tgt_getchar)
 #else
 LEAF(tgt_testchar)
 #ifdef HAVE_NB_SERIAL
+#ifdef USE_LPC_UART
 	la	v0, COM3_BASE_ADDR
+#else
+    la  v0, GS3_UART_BASE
+#endif
 #else
 	la	v0, COM1_BASE_ADDR
 	and v1,k1,1
@@ -1427,7 +1439,11 @@ END(tgt_testchar)
 
 LEAF(tgt_getchar)
 #ifdef HAVE_NB_SERIAL
+#ifdef USE_LPC_UART
 	la	v0, COM3_BASE_ADDR
+#else
+    la  v0, GS3_UART_BASE
+#endif
 #else
 	la	v0, COM1_BASE_ADDR
 	and v1,k1,1
