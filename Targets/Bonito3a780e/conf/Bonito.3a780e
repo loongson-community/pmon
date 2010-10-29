@@ -127,7 +127,7 @@ option		USE_SUPERIO_UART
 #option		LONGMENG
 #option		RADEON7000
 #option 	DEBUG_EMU_VGA
-#option		AUTOLOAD
+option		AUTOLOAD
 #option		CONFIG_PCI0_LARGE_MEM	
 #option		CONFIG_PCI0_HUGE_MEM	
 #option		CONFIG_PCI0_GAINT_MEM	
