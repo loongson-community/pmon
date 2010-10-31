@@ -402,7 +402,11 @@ superio_reinit();
 #endif
 	//memorysize = memsz > 256 ? 256 << 20 : memsz << 20;
 	//memorysize_high = memsz > 256 ? (memsz - 256) << 20 : 0;
+#ifdef CONFIG_GFXUMA
+	memorysize = memsz > 128 ? 128 << 20 : memsz << 20;
+#else
 	memorysize = memsz > 240 ? 240 << 20 : memsz << 20;
+#endif
 	memorysize_high = memsz > 240 ? (((unsigned long long)memsz) - 240) << 20 : 0;
 
 #if 0 /* whd : Disable gpu controller of MCP68 */
@@ -654,7 +658,11 @@ tgt_devconfig()
 		 * The address mapped from 0x10000000 to 0xf800000
 		 * wouldn't work through tlb.
 		_*/
+#ifdef CONFIG_GFXUMA
+        fbaddress = 0x88000000;
+#else
 		fbaddress = 0xb0000000; /* FIXME */
+#endif
 
 		printf("begin fb_init\n");
 		fb_init(fbaddress, ioaddress);

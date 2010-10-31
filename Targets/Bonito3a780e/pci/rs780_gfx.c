@@ -296,13 +296,13 @@ void rs780_internal_gfx_init(device_t nb_dev,device_t dev)
 * Please refer to CIM source code and BKDG.
 */
 #ifdef CONFIG_GFXUMA
-static uint64_t uma_memory_base = 0xf8000000;
+static uint64_t uma_memory_base = 0x08000000;
 static uint64_t uma_memory_size = 0x04000000;
-static uint64_t uma_memory_top = 0xfc000000; //base + size
+static uint64_t uma_memory_top = 0x0c000000; //base + size
 #else
 static uint64_t uma_memory_base = 0x10000000;
 static uint64_t uma_memory_size = 0x04000000;
-static uint64_t uma_memory_top = 0x12000000; //base + size
+static uint64_t uma_memory_top = 0x14000000; //base + size
 #endif
 
 static void rs780_internal_gfx_enable(device_t nb , device_t dev)
