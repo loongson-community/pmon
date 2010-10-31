@@ -1273,7 +1273,7 @@ aa:
 
 			while(CMOS_READ(DS_REG_CTLA) & DS_CTLA_UIP);
 			cur = CMOS_READ(DS_REG_SEC);
-		} while(timeout != 0 && ((cur == sec)||(cur !=((sec+1)%60))) && (CPU_GetCOUNT() - cnt<0x30000000));
+		} while(timeout != 0 && (cur == sec));
 		cnt = CPU_GetCOUNT() - cnt;
 		if(timeout == 0) {
 			tgt_printf("time out!\n");
