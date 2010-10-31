@@ -1148,9 +1148,21 @@ gs_2f_v3_ddr2_cfg:
 	nop;
 	PRINTSTR("\r\n");
 #else
-	//li      s1, 0x14140c24
-	//li      s1, 0x1c1c02b4
-	li      s1, 0x1c1c03a4
+	li      s1, 0x1c1c33a4
+
+	bal     tgt_testchar
+	la      v0, 0
+	nop
+	beqz    v0, ddr_config_entry
+	nop
+
+	//PRINTSTR("[ 6: 4]: SIZE_PER_CONTROLLER\r\n  | 3'b001: 512MB |\r\n  | 3'b010: 1G    |\r\n | 3'b011: 2G  |\r\n[ 3: 2]:CONTROLLER_SELECT\r\n | 2'b00 : USE BOTH |\r\n  | 2'b01 : MC0_ONLY |\r\n  | 2'b10 : MC1_ONLY |\r\n[ 1: 0]: NODE ID\r\n")
+	li     t6, 0x00
+	bal     inputaddress    #input value stored in v0
+	nop
+	move    s1, v0  #store v0 to s1
+ddr_config_entry:
+
 #endif
 
 #include "loongson3_ddr2_config.S"
@@ -2476,7 +2488,11 @@ cache_init_finish:
 	move	a0, t8
 	move	ra, t1
 #else
+#ifdef loongson3A3
+#define MODIFY_PARAM_MC0 180 - 8
+#else
 #define MODIFY_PARAM_MC0 152 - 8
+#endif
 #endif
 
 	GET_DDR_TYPE
@@ -2524,7 +2540,7 @@ cache_init_finish:
 
 #####CS_MAP ##########################################
 	ld      t1, 0x38(a2)
-	dli     a1, 0xffffffff00ffffff
+	dli     a1, 0xffffffffff00ffff
 	and     t1, t1, a1
 	GET_MC0_CS_MAP
 	or      t1, t1, a1
@@ -2644,7 +2660,11 @@ cache_init_finish:
 	move	a0, t8
 	move	ra, t1
 #else
+#ifdef loongson3A3
+#define MODIFY_PARAM_MC1 180 - 8
+#else
 #define MODIFY_PARAM_MC1 152 - 8
+#endif
 #endif
 
 	GET_DDR_TYPE
@@ -2692,7 +2712,7 @@ cache_init_finish:
 
 #####CS_MAP ##########################################
 	ld      t1, 0x38(a2)
-	dli     a1, 0xffffffff00ffffff
+	dli     a1, 0xffffffffff00ffff
 	and     t1, t1, a1
 	GET_MC1_CS_MAP
 	or      t1, t1, a1

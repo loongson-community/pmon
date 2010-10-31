@@ -51,8 +51,8 @@
 #define GET_MC1_ONLY    dli a0, 0x00000008; and a0, s1, a0;
 #define GET_DDR_SIZE    dli a0, 0x00000070; and a0, s1, a0;
 #define GET_DDR_TYPE    dli a1, 0x00000080; and a1, s1, a1;
-#define GET_MC0_CS_MAP  dli a1, 0x00000f00; and a1, s1, a1;
-#define GET_MC1_CS_MAP  dli a1, 0x0000f000; and a1, s1, a1; dsrl a1, 4;
+#define GET_MC0_CS_MAP  dli a1,   0x00000f00; and a1, s1, a1; dsll a1, 8
+#define GET_MC1_CS_MAP  dli a1,   0x0000f000; and a1, s1, a1; dsll a1, 4;
 #define GET_MC0_EIGHT   dli a1, 0x00080000; and a1, s1, a1; dsll a1, 13;
 #define GET_MC0_ROW     dli a1, 0x00700000; and a1, s1, a1; dsrl a1, 12;
 #define GET_MC0_COL     dli a1, 0x00070000; and a1, s1, a1; dsll a1, 8;
@@ -136,11 +136,11 @@ ddr_1GB:
 #endif    
 
 #if 1
-#ifdef AUTO_DDR_CONFIG
+//#ifdef AUTO_DDR_CONFIG
         GET_MC0_CS_MAP
         beqz    a1, 1f
         nop
-#endif
+//#endif
         GET_NODE_ID_a0;
         XBAR_CONFIG_NODE_a0(0x10, \
                             0x0000000000000000, \
@@ -571,13 +571,15 @@ ddr_512MB_MC1:
 2:
 
 #if 0 //print registers
-    li      t1, 152 ##0x72
+    //li      t1, 152 ##0x72
+    li      t1, 180 ##0x72
     li      t2, 0xaff00000
 
 reg_read:
     ld      a0, 0x0(t2)
 
-    bal	    hexserial
+    //bal	    hexserial
+    bal	    hexserial64
     nop
     PRINTSTR("\r\n")
 
