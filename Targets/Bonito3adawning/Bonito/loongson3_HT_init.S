@@ -7,10 +7,10 @@
 ######################################################
 #define HT_32bit_TRANS
 #define WITH_HT
-//#define HT_800M
+#define HT_800M
 //#define HT_16bit
-//#define HT_RECONNECT
-#define HT_REG_TRANS
+#define HT_RECONNECT
+//#define HT_REG_TRANS
 ######################################################
 
 #ifdef HT_32bit_TRANS //PCI CFG : TYPE 0: 
@@ -40,7 +40,7 @@
     sd  t1, 0x48(t0)
     dli t1, 0x00000e00000000f7
     sd  t1, 0x88(t0)
-
+#if 0
  //HT: PCI LO BASE
  //map 0x90000e00_00000000 --> 0x10000000
     dli t1, 0x0000000010000000
@@ -49,6 +49,7 @@
     sd  t1, 0x50(t0)
     dli t1, 0x00000e00000000f7
     sd  t1, 0x90(t0)
+#endif
 
  //HT: PCI HI BASE
  //map 0x90000e00_10000000 --> 0x10000000
@@ -67,6 +68,14 @@
     dli t1, 0xffffffffff000000
     sd  t1, 0x60(t0)
     dli t1, 0x00000efdfb0000f7
+    sd  t1, 0xa0(t0)
+#else
+ //map 0x90000e00_00000000 --> 0x1e000000
+    dli t1, 0x000000001e000000
+    sd  t1, 0x20(t0)
+    dli t1, 0xffffffffff000000
+    sd  t1, 0x60(t0)
+    dli t1, 0x00000e00000000f7
     sd  t1, 0xa0(t0)
 #endif
 
@@ -657,8 +666,8 @@ ht_next_id :
     dli	    t0, 0x90000efdfe000000
 	#li	    t1, 0x01 //DRIVER 16bit
 	li	    t1, 0x11
-	sb	    t1, 0x4b(t0)
-    lw      a0, 0x48(t0)
+	sb	    t1, 0xcb(t0)
+    lw      a0, 0xc8(t0)
 	bal	    hexserial
     nop
 	TTYDBG("\r\n")
@@ -667,8 +676,10 @@ ht_next_id :
 	//li	t0, 0xba000000
     dli	    t0, 0x90000efdfe000000
 	li	    t1, 0x00
-	sb	    t1, 0x4b(t0)
-    lw      a0, 0x48(t0)
+    sync
+	sb	    t1, 0xcb(t0)
+    sync
+    lw      a0, 0xc8(t0)
 	bal	    hexserial
     nop
 	TTYDBG("\r\n")
@@ -681,126 +692,140 @@ ht_next_id :
     dli	    t0, 0x90000efdfe000000
 	#li	    t1, 0x2 //Frequency : 400Mhz
 	li	    t1, 0x5 //Frequency : 800Mhz
-	sb	    t1, 0x51(t0)
-    lw      a0, 0x4c(t0)
-	bal	    hexserial
-    nop
-	TTYDBG("\r\n")
+    sync
+	sb	    t1, 0xd1(t0)
+    sync
+    lw      a0, 0xd0(t0)
+    sync
 #endif
 
 #if 1 //Watch dog Trying
 	TTYDBG("Setting Watch Dog to make a WARM RESET\r\n")
-#ifdef WD_DEBUG
-	TTYDBG("Setting Watch dog BAR\r\n")
-	nop
-	//li	t0, 0xba00096c
-    dli	    t0, 0x90000efdfe00096c
-	lw	    a0, 0(t0)
-	bal	    hexserial
-    nop
-	TTYDBG("\r\n")
-#endif
-	//li	t0, 0xba00096c
-    dli	    t0, 0x90000efdfe00096c
-	li	    a0, 0x00001000
-	sw	    a0, 0(t0)
-	nop
-#ifdef WD_DEBUG
-	lw	    a0, 0(t0)
-	bal	    hexserial
-    nop
-	TTYDBG("\r\n")
-
-	li	    t0, 0xb0001000
-	lw	    a0, 0x0(t0)
-	bal	    hexserial
-    nop
-	TTYDBG("\r\n")
-
-	TTYDBG("Watch dog Disable\r\n")
-	//li	t0, 0xba0009e8
-    dli	    t0, 0x90000efdfe0009e8
-	lw	    a0, 0(t0)
-	bal	    hexserial
-    nop
-	TTYDBG("\r\n")
-	lw	    a0, 0(t0)
-	li	    a1, 0x04000000
-	or	    a0, a0, a1
-
-	sw	    a0, 0(t0)
-	nop
-	lw	    a0, 0(t0)
-	bal	    hexserial
-    nop
-	TTYDBG("\r\n")
-	li	    t0, 0xb0001000
-	lw	    a0, 0x0(t0)
-	bal	    hexserial
-	nop	
-	TTYDBG("\r\n")
-
+    li      t1, 10
+//#define WD_DEBUG
 	TTYDBG("Watch dog Enable\r\n")
-	//li	t0, 0xba0009e8
-    dli	    t0, 0x90000efdfe0009e8
-	lw	    a0, 0(t0)
+    dli	    t0, 0x90000efdfc000cd6
+	li	    a0, 0x00000069
+    sync
+	sb	    a0, 0(t0)
+    sync
+	li	    a0, 0x00000000
+	sb	    a0, 1(t0)
+    sync
+	lb	    a0, 1(t0)
+    sync
+	//bal	    hexserial
+    nop
+	TTYDBG("\r\n")
+	nop
+    dli	    t0, 0x90000efdfc000cd6
+	li	    a0, 0x0000006c
+	sb	    a0, 0(t0)
+	li	    a0, 0x00000000
+	sb	    a0, 1(t0)
+	nop
+	li	    a0, 0x0000006d
+	sb	    a0, 0(t0)
+	li	    a0, 0x00000000
+	sb	    a0, 1(t0)
+	nop
+	li	    a0, 0x0000006e
+	sb	    a0, 0(t0)
+	li	    a0, 0x00000001
+	sb	    a0, 1(t0)
+	nop
+	li	    a0, 0x0000006f
+	sb	    a0, 0(t0)
+	li	    a0, 0x00000000
+	sb	    a0, 1(t0)
+	nop
+#ifdef WD_DEBUG
+    lb      a0, 1(t0)
 	bal	    hexserial
     nop
 	TTYDBG("\r\n")
 #endif
-	//li	t0, 0xba0009e8
-    dli	    t0, 0x90000efdfe0009e8
-	lw	    a0, 0(t0)
-	li	    a1, 0xfbffffff
-	and	    a0, a0, a1
 
-	sw	    a0, 0(t0)
-	nop
 #ifdef WD_DEBUG
-	lw	    a0, 0(t0)
-	bal	    hexserial
-	nop	
-	TTYDBG("\r\n")
-	li	    t0, 0xb0001000
-	lw	    a0, 0x0(t0)
+	lb	    a0, 1(t0)
 	bal	    hexserial
 	nop	
 	TTYDBG("\r\n")
 
-	TTYDBG("Watch dog counter value\r\n")
-	li	    t0, 0xb0001000
-	lw	    a0, 0x8(t0)
+	TTYDBG("Watch dog base value\r\n")
+	li	    a0, 0x00000069
+	sb	    a0, 0(t0)
+    lb      a0, 1(t0)
+	bal	    hexserial
+	nop	
+	TTYDBG("\r\n")
+	li	    a0, 0x0000006c
+	sb	    a0, 0(t0)
+    lb      a0, 1(t0)
+	bal	    hexserial
+	nop	
+	TTYDBG("\r\n")
+	li	    a0, 0x0000006d
+	sb	    a0, 0(t0)
+    lb      a0, 1(t0)
+	bal	    hexserial
+	nop	
+	TTYDBG("\r\n")
+	li	    a0, 0x0000006e
+	sb	    a0, 0(t0)
+    lb      a0, 1(t0)
+	bal	    hexserial
+	nop	
+	TTYDBG("\r\n")
+	li	    a0, 0x0000006f
+	sb	    a0, 0(t0)
+    lb      a0, 1(t0)
 	bal	    hexserial
 	nop	
 	TTYDBG("\r\n")
 #endif
-	li	    t0, 0xb0001000
-	li	    a0, 0x1
-	sw	    a0, 0x8(t0)
-
-	TTYDBG("Watch dog begin to work\r\n")
-	li	    t0, 0xb0001000
-	li	    t1, 0x1
-	sw	    t1, 0(t0)
-	li	    t1, 0x81
-	sw	    t1, 0(t0)
-	li	    t0, 0xb0001000
-	lw	    a0, 0x0(t0)
+	TTYDBG("Watch dog decode enable\r\n")
+    dli	    t0, 0x90000efdfe00a041
+    li      a0, 0xff
+    sb      a0, 0(t0)
+    lb      a0, 0(t0)
 	bal	    hexserial
 	nop	
 	TTYDBG("\r\n")
 
-	TTYDBG("Watch dog counter value\r\n")
-	li	    t0, 0xb0001000
-	li	    t1, 0x1
+	TTYDBG("Watch dog control value\r\n")
+    dli	    t0, 0x90000e0000010000
+    sync
+	lw	    a0, 0(t0)
+	bal	    hexserial
+	nop	
+	TTYDBG("\r\n")
+    sync
+	lw	    a0, 4(t0)
+	bal	    hexserial
+	nop	
+	TTYDBG("\r\n")
+	TTYDBG("Set Watch dog control value\r\n")
+    li      a0, 0x15
+	sw	    a0, 4(t0)
+	nop	
+    li      a0, 0x01
+	sw	    a0, 0(t0)
+	nop	
+    li      a0, 0x81
+	sw	    a0, 0(t0)
+	nop	
+
+#if 0
 1:
-	lw	    a0, 0x8(t0)
+    lw      a0, 4(t0)
 	bal	    hexserial
 	nop	
 	TTYDBG("\r\n")
-	lw	    a0, 0x8(t0)
+    lb      a0, 4(t0)
 	bne	    a0, t1, 1b
 	nop
+#endif
 
 #endif
 	
@@ -873,9 +898,11 @@ ht_next_id :
 	//li	t0, 0xba000000
     dli	    t0, 0x90000efdfe000000
 	li	    t1, 0x00
-	sb	    t1, 0x4b(t0)
-    lw      a0, 0x48(t0)
-	bal	    hexserial
+    sync
+	sb	    t1, 0xd1(t0)
+    sync
+    lw      a0, 0xd0(t0)
+    sync
     nop
 	TTYDBG("\r\n")
 	//li	t1, 0x0

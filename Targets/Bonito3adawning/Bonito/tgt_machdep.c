@@ -397,7 +397,13 @@ superio_reinit();
 #endif
 	//memorysize = memsz > 256 ? 256 << 20 : memsz << 20;
 	//memorysize_high = memsz > 256 ? (memsz - 256) << 20 : 0;
+
+    //oldtai:move framebuffer to low address(128M~256M) if using UMA 
+#ifdef CONFIG_GFXUMA
+	memorysize = memsz > 128 ? 128 << 20 : memsz << 20;
+#else
 	memorysize = memsz > 240 ? 240 << 20 : memsz << 20;
+#endif
 	memorysize_high = memsz > 240 ? (((unsigned long long)memsz) - 240) << 20 : 0;
 
 #if 0 /* whd : Disable gpu controller of MCP68 */
@@ -567,12 +573,36 @@ tgt_devconfig()
 #if NMOD_FRAMEBUFFER > 0 
 	unsigned long fbaddress,ioaddress;
 	extern struct pci_device *vga_dev;
+#ifdef RS780E
+    int test;
+    int  i;
+    printf(" ====================  frame buffer test begin======================:%x \n" , test);
+    for (i = 0;i < 0x100000;i += 4)
+    {
+        //printf(" i = %x \n" , i);
+        *((volatile int *)(0xb0000010 + i)) = i;
+    } 
+    for (i = 0xffffc;i >= 0;i -= 4)
+    {
+        if (*((volatile int *)(0xb0000010 + i)) != i)
+        {
+            printf(" not equal ====  %x\n" ,i);
+            break;
+        }
+    }
+    printf(" ====================  frame buffer test end======================:%x \n" , test);
+#endif
 #endif
 #endif
 	_pci_devinit(1);	/* PCI device initialization */
 #if (NMOD_X86EMU_INT10 > 0)||(NMOD_X86EMU >0)
 	SBD_DISPLAY("VGAI", 0);
 	rc = vga_bios_init();
+#endif
+#if defined(VESAFB)
+	SBD_DISPLAY("VESA", 0);
+	if(rc > 0)
+		vesafb_init();
 #endif
 #if (NMOD_X86EMU_INT10 == 0 && defined(RADEON7000))
 	SBD_DISPLAY("VGAI", 0);
@@ -610,6 +640,26 @@ tgt_devconfig()
                 fbaddress |= 0xb0000000;
                 ioaddress |= 0xb0000000;
 #endif
+#if (SHARED_VRAM == 128)
+		fbaddress = 0xf8000000;//64M graph memory
+#elif (SHARED_VRAM == 64)
+		fbaddress = 0xf8000000;//64M graph memory
+#elif (SHARED_VRAM == 32)
+		fbaddress = 0xfe000000;//32 graph memory
+#endif
+
+		/* lwg add.
+		 * The address mapped from 0x10000000 to 0xf800000
+		 * wouldn't work through tlb.
+		_*/
+#ifdef CONFIG_GFXUMA
+        //oldtai: use 0x88000000 is faster 
+		fbaddress = 0x88000000; /* FIXME */
+#else
+		fbaddress = 0xb0000000; /* FIXME */
+#endif
+
+
 		printf("begin fb_init\n");
 		fb_init(fbaddress, ioaddress);
 		printf("after fb_init\n");
@@ -783,7 +833,6 @@ tgt_devinit()
 	SBD_DISPLAY("5536",0);
 	cs5536_init();
 #endif
-
 	printf("rs780_early_setup\n");
         rs780_early_setup();
 
@@ -805,10 +854,10 @@ tgt_devinit()
         printf("disable bus0 device pcie bridges\n");
         //disable bus0 device 3 pci bridges (dev2 to dev7, dev9-dev10)
         set_nbmisc_enable_bits(_pci_make_tag(0,0,0), 0x0c,(1<<2|1<<3|1<<5|1<<6|1<<7|1<<17),
-                        (1<<2|1<<3|1<<5|1<<6|1<<7|1<<17));
+                        (1<<2|1<<3|1<<5|1<<6|1<<7|0<<17));
 #endif
 
-#if 1
+#if 0
         printf("disable internal graphics\n");
         //disable internal graphics
         set_nbcfg_enable_bits_8(_pci_make_tag(0,0,0), 0x7c, 1, 1);

@@ -2,7 +2,7 @@
 #
 machine         Bonito3adawning        mips    # CPU Architecture, Platform
 config          pmon 
-#option          VGAROM_IN_BIOS
+option          VGAROM_IN_BIOS
 #
 #  Define target endian
 #
@@ -34,6 +34,24 @@ option      ENABLE_SATA         #Enable SATA  ,when enable IDE can also use, whe
 
 select     	amd_780e
 
+## VGA option ##
+option      SERVER_3A
+option		RS780E
+option      USE_780E_VGA
+option      VGA_NO_ROM
+option		VGA_BASE=0xbe000000
+option      SHARED_VRAM=64
+option      GPU_UMA
+option		VESAFB
+#option		DEBUG_EMU_VGA
+option      CONFIG_GFXUMA
+
+#select		mod_x86emu		# X86 emulation for VGA
+select		mod_x86emu_int10
+select      mod_framebuffer
+select		mod_vesa
+select		mod_vgacon
+#############
 select		mod_flash_amd		# AMD flash device programming
 select		mod_flash_intel		# intel flash device programming
 select		mod_flash_sst		# intel flash device programming
@@ -85,12 +103,12 @@ select		ext2
 select		fatfs
 #select		mod_x86emu		# X86 emulation for VGA
 option 	MY40IO
-select		mod_x86emu_int10
-select		mod_vgacon
+#select		mod_x86emu_int10
+#select		mod_vgacon
 option		NOPCINAMES		# Save some space for x86emu
 #option		FASTBOOT
 #select	    vt82c686        #via686a/b code
-option      VGA_BASE=0xb0000000
+#option      VGA_BASE=0xb0000000
 
 #
 # Functional options.
