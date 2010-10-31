@@ -1448,22 +1448,18 @@ aa:
                 cnt = CPU_GetCOUNT();
                 timeout = 10000000;
                 while(CMOS_READ(DS_REG_CTLA) & DS_CTLA_UIP);
-                                                                               
                 sec = CMOS_READ(DS_REG_SEC);
-                                                                               
                 do {
                         timeout--;
-			
                         while(CMOS_READ(DS_REG_CTLA) & DS_CTLA_UIP);
                         cur = CMOS_READ(DS_REG_SEC);
-                } while(timeout != 0 && ((cur == sec)||(cur !=((sec+1)%60))) && (CPU_GetCOUNT() - cnt<0x30000000));
+                } while(timeout != 0 && (cur == sec));
                 cnt = CPU_GetCOUNT() - cnt;
                 if(timeout == 0) {
 			tgt_printf("time out!\n");
                         break;          /* Get out if clock is not running */
                 }
         }
-                                                                               
 	/*
 	 *  Calculate the external bus clock frequency.
 	 */
@@ -1475,10 +1471,9 @@ aa:
 		 */
 		md_cpufreq = 66000000;
 	}
-         tgt_printf("cpu fre %u\n",md_pipefreq);                                                                      
+         tgt_printf("cpu fre %u\n",md_pipefreq);
 #endif /* HAVE_TOD */
 }
-                                                                               
 
 /*
  *   Returns the CPU pipelie clock frequency
