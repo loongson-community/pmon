@@ -307,14 +307,19 @@ rtl8168_init_board(struct rtl8168_private *tp, struct pci_attach_args *pa)
 	}
 	tp->chipset = i;
 
-	RTL_W8(tp, Cfg9346, Cfg9346_Unlock);
-    //RTL_W8( tp, Config0, RTL_R8(tp, Config0) | 0x15);
-    RTL_W8(tp, Config1, RTL_R8( tp, Config1) | PMEnable);
-    //RTL_W8( tp, Config3, RTL_R8(tp, Config3) | 0xA1);
-    //RTL_W8( tp, Config4, RTL_R8(tp, Config4) | 0x80);
-	RTL_W8(tp, Config5, (RTL_R8(tp, Config5) & PMEStatus)); 
-	//RTL_W8(tp, Cfg9346, Cfg9346_Lock);
-#if 0	
+	{
+		int val = 0x0;
+		val = 0xff & (read_eeprom(tp, 41));
+
+		RTL_W8(tp, Cfg9346, Cfg9346_Unlock);
+		//RTL_W8( tp, Config0, RTL_R8(tp, Config0) | 0x15);
+		RTL_W8(tp, Config1, val);
+		//RTL_W8( tp, Config3, RTL_R8(tp, Config3) | 0xA1);
+		//RTL_W8( tp, Config4, RTL_R8(tp, Config4) | 0x80);
+		RTL_W8(tp, Config5, (RTL_R8(tp, Config5) & PMEStatus));
+		RTL_W8(tp, Cfg9346, Cfg9346_Lock);
+	}
+#if 0
 	rtl8168_get_phy_version(tp, ioaddr);
 	rtl8168_print_phy_version(tp);
 #endif
@@ -381,7 +386,7 @@ r8168_attach(struct device * parent, struct device * self, void *aux)
 		for (i = 0; i < 64; i++){
 			data = read_eeprom(tp, i);
 
-			printf("%x ", data);
+			printf("%2x ", data);
 			if ((i+1)>0 && (i+1)%4==0)
 				printf("\n");
 		}
@@ -423,9 +428,6 @@ r8168_attach(struct device * parent, struct device * self, void *aux)
 		tp->dev_addr[4] = 0xff & data;
 		tp->dev_addr[5] = 0xff & (data >> 8);
 
-		printf("MAC ADDRESS: ");
-		printf("%x:%x:%x:%x:%x:%x\n", tp->dev_addr[0],tp->dev_addr[1],
-				tp->dev_addr[2],tp->dev_addr[3],tp->dev_addr[4],tp->dev_addr[5]);
 	}
 #endif
 		printf("MAC ADDRESS: ");
@@ -2911,7 +2913,7 @@ static void rtl8168_hw_start(struct rtl8168_private *tp)
 			RTL_W16(tp, CPlusCmd, tp->cp_cmd);
 		}
 #endif
-		RTL_W8(tp, Config1, 0xDF);
+		RTL_W8(tp, Config1, RTL_R8(tp, Config1) | 0x0F);
 
 		/* set EPHY registers */
 		rtl8168_ephy_write(tp, 0x01, 0x6C7F);
@@ -2961,7 +2963,8 @@ static void rtl8168_hw_start(struct rtl8168_private *tp)
 			RTL_W16(tp, CPlusCmd, tp->cp_cmd);
 		}
 #endif
-		RTL_W8(tp, Config1, 0xDF);
+		//RTL_W8(tp, Config1, 0xDF);
+		RTL_W8(tp, Config1, RTL_R8(tp, Config1) | 0x0F);
 
 	} else if (tp->mcfg == CFG_METHOD_1) {
 		RTL_W8(tp, Config3, RTL_R8(tp, Config3) & ~Beacon_en);
@@ -4093,7 +4096,7 @@ static unsigned char rom[]={
 /*00000020:*/0x11,0x3C,0x07,0x00,0x10,0x20,0x76,0x00,0x63,0x01,0x01,0xFF,0x00,0x27,0xAA,0x03,
 /*00000030:*/0x02,0x20,0x99,0xA5,0x80,0x02,0x00,0x20,0x04,0x40,0x20,0x00,0x04,0x40,0x20,0x20,
 /*00000040:*/0x00,0x00,0x20,0xE1,0x22,0xB5,0x60,0x00,0x0A,0x00,0xE0,0x00,0x68,0x4C,0x00,0x00,
-/*00000050:*/0x01,0x00,0x00,0x00,0xB2,0x73,0x75,0xEA,0x87,0x75,0x7A,0x39,0xCA,0x98,0x00,0x00,
+/*00000050:*/0x01,0x00,0x4f,0x00,0xB2,0x73,0x75,0xEA,0x87,0x75,0x7A,0x39,0xCA,0x98,0x00,0x00,
 /*00000060:*/0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
 /*00000070:*/0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
 
