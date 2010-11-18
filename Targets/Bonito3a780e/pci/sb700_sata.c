@@ -98,12 +98,16 @@ static void sata_init(device_t dev)
 	printk_spew("sata_bar4=%x\n", sata_bar4);	/* 3000 */
 	printk_spew("sata_bar5=%x\n", sata_bar5);	/* e0309000 */
 
+#if 0 /* All SATA(six) interfaces work correctly in combined mode,
+	   * other didn't.
+	   */
 	//add for sb700
 	/* disable combined mode to */
 	printk_info("disable combined mode to\n");
 	byte = pci_read_config8(sm_dev, 0xAD);
 	byte &= ~(1 << 3);
 	pci_write_config8(sm_dev, 0xAD, byte);
+#endif
 
 	/* Program the 2C to 0x43801002 */
 	printk_info("Program the 2C to 0x43801002\n");

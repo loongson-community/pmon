@@ -320,7 +320,8 @@ void sb700_devices_por_init(void)
 	/* TODO: set ide as primary, if you want to boot from IDE, you'd better set it.Or add a configuration line.*/
 	printk_info("set ide as primary\n");
 	byte = pci_read_config8(dev, 0xAD);
-	byte |= 1 << 4;
+	byte |= 0x1<<3;
+	byte &= ~(0x1<<4);
 	pci_write_config8(dev, 0xAD, byte);
 
 	/* This register is not used on sb700. It came from older chipset. */
