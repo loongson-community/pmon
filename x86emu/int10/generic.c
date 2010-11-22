@@ -370,12 +370,17 @@ int vga_bios_init(void)
 		pInt->pdev = pdev;
 		memcpy(vbiosMem, (char *)(0x00000000 | romaddress),
 		       V_BIOS_SIZE);
+#if   defined(RS780E)
+        memcpy(0xb3f00000 , (char *)(0x00000000 | romaddress) , V_BIOS_SIZE);
+#endif
 		if (PCI_VENDOR(pdev->pa.pa_id) == 0x1002
 		    && PCI_PRODUCT(pdev->pa.pa_id) == 0x4750)
 			MEM_WW(pInt, 0xc015e, 0x4750);
 
+#if   defined(RS780E)
         //for test
         MEM_WW(pInt , 0xcac90 , 0x1 | MEM_RW(pInt , 0xcac90));
+#endif
 	}
 
 #if	0
