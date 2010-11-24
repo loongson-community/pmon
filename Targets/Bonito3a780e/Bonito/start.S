@@ -88,6 +88,22 @@ nop;
 #define GPIOLED_SET(x)
 #endif
 
+/* Beep ON/OFF Function */
+#define BEEP_ON \
+	dli t1, 0x90000cfdfe00a080; \
+	lbu t0, 0x0(t1); \
+	or  t0, 0x4; \
+	sb  t0, 0x0(t1); \
+	nop; \
+	nop;
+#define BEEP_OFF \
+	dli t1, 0x90000cfdfe00a080; \
+	lbu t0, 0x0(t1); \
+	and t0, 0xfb; \
+	sb  t0, 0x0(t1); \
+	nop; \
+	nop;
+
 /* set GPIO as output
  * x : 0x1<<offset
  */
@@ -1070,6 +1086,17 @@ gs_2f_v3_ddr2_cfg:
 ##########################################
 
 #include "loongson3_fixup.S"
+
+/*
+ * Beep function for working correctly.
+ */
+	BEEP_ON
+	li a0, 5000
+1:
+	addiu a0, -1
+	bnez  a0, 1b
+	nop
+	BEEP_OFF
 
 	//##########################################
 	//TTYDBG("NODE 0 MEMORY CONFIG BEGIN\r\n")
