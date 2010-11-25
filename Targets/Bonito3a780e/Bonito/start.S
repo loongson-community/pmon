@@ -295,7 +295,14 @@ la	gp, _gp
 	bal	stringserial
 	nop
 
+#if 1
+	b	exc_common
+	nop
 
+	/* Debug exception */
+	.align  7           /* bfc00480 */
+	#include "exc_ejtag.S"
+#endif
 
 	exc_common:
 	PRINTSTR("\r\nCAUSE=")
@@ -2333,6 +2340,8 @@ cache_init_finish:
 				//PRINTSTR("$$$$$$$$!!\r\n");
 
 #if 1 /* gx */
+				bal 	tlb_init
+				nop
 				bal     godson2_cache_init
 				nop
 
@@ -2737,7 +2746,11 @@ cache_init_finish:
 #write the register parameter specified by the keyboard input
 	sd	t5, 0x0(v0)
 
+#ifdef loongson3A3
+	li	t1, 179-MODIFY_PARAM_MC1 #TTTTTTTTTTT***change the register to be specified	
+#else
 	li	t1, 151-MODIFY_PARAM_MC1 #TTTTTTTTTTT***change the register to be specified	
+#endif
 	addiu	a2, a2, 0x8
 	daddiu	v0, v0, 0x10
 
