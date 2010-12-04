@@ -85,7 +85,7 @@ char            prnbuf[LINESZ + 8];	/* commonly used print buffer */
 int             repeating_cmd;
 unsigned int  	moresz = 10;
 #ifdef AUTOLOAD
-static void autoload __P((char *));
+static int autoload __P((char *));
 #else
 static void autorun __P((char *));
 #endif
@@ -367,6 +367,7 @@ void __gccmain(void);
 void __gccmain(void)
 {
 }
+
 int
 main()
 {
@@ -404,20 +405,39 @@ main()
 {
 static int run=0;
 char *s;
+int ret = -1;
 char buf[LINESZ];
 if(!run)
 {
 	run=1;
 #ifdef AUTOLOAD
 
-	if(getenv("al") == NULL)
+	if(getenv("FR") == NULL)
+		setenv("FR","0");
+	if (strcmp (getenv("FR"),"0") == 0) {
+		unsetenv("al");
+		unsetenv("al1");
+		unsetenv("append");
+		printf("==WARN: First Run\n==WARN: Setup the default boot configure\n");
+		setenv("FR", "1");
+	}
+
+	if(getenv("al") == NULL) /* CDROM autoload */
 	{
-		setenv("al","/dev/fs/ext2@wd0/boot/vmlinux");
-		setenv("append","console=tty root=/dev/sda1 video=vfb:1");
+		setenv("al","/dev/fs/iso9600@cd0/boot/vmlinux");
+		setenv("append","console=tty root=/dev/sda1");
+	}
+	if (getenv("al1") == NULL) { /* HARDDISK autoload */
+		setenv("al1","/dev/fs/ext2@wd0/boot/vmlinux");
+		setenv("append","console=tty root=/dev/sda1");
 	}
 
 	s = getenv ("al");
-	autoload (s);
+	ret = autoload (s);
+	if (ret == 1) {
+		s = getenv("al1");
+		ret = autoload (s);
+	}
 
 #else
 	s = getenv ("autoboot");
@@ -457,7 +477,7 @@ if(!run)
 	return(0);
 }
 #ifdef AUTOLOAD
-static void
+static int
 autoload(char *s)
 {
 	char buf[LINESZ];
@@ -466,11 +486,12 @@ autoload(char *s)
 	unsigned int dly, lastt;
 	unsigned int cnt;
 	struct termio sav;
+	int ret = -1;
 
 	if(s != NULL  && strlen(s) != 0) {
 		char *d = getenv ("bootdelay");
 		if(!d || !atob (&dly, d, 10) || dly < 0 || dly > 99) {
-			dly = 15;
+			dly = 3;
 		}
 
 		SBD_DISPLAY ("AUTO", CHKPNT_AUTO);
@@ -526,9 +547,11 @@ autoload(char *s)
 			}
 			printf("%s\n",buf);
 			delay(100000);
-			do_cmd (buf);
+			ret = do_cmd (buf);
 		}
 	}
+
+	return ret;
 }
 
 #else
