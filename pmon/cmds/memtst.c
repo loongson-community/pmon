@@ -42,6 +42,7 @@
 #include <pmon.h>
 
 int cmd_memtst __P((int, char *[]));
+int cmd_spacescan __P((int, char *[]));
 static int do_mt __P((u_int32_t *, u_int32_t *, int));
 
 const Optdesc         mt_opts[] = {
@@ -57,6 +58,11 @@ static const Cmd MtestCmd[] =
 			mt_opts,
 			"simple memory test",
 			cmd_memtst,
+			1, 4, CMD_REPEAT},
+	{"spacescan",		"[-v] [start [end]]",
+			"",
+			"ALL space cached scan test",
+			cmd_spacescan,
 			1, 4, CMD_REPEAT},
 	{0, 0}
 };
@@ -206,3 +212,69 @@ do_mt(u_int32_t *saddr, u_int32_t *eaddr, int vflag)
 	}
 	return (err);
 }
+
+unsigned long long __raw_readq(unsigned long long q)
+{
+  unsigned long long ret; 
+
+  asm volatile(
+      ".set mips3;\r\n"  \
+      "move $8,%1;\r\n" \
+      "ld   %0,0($8);\r\n"  \
+      :"=r"(ret)
+      :"r" (q)
+      :"$8");
+
+    return ret; 
+}
+
+static unsigned long long
+strtoull(const char *nptr,char **endptr,int base);
+
+int
+cmd_spacescan(int ac, char **av)
+{
+    unsigned long long address_bottom, address_top;
+    int data;
+    int vflag;
+    char c;
+
+    address_bottom = 0x9800000000000000;
+    address_top    = 0x9801000000000000;
+    vflag = 0;
+
+	optind = 0;
+	while((c = getopt(ac, av, "cv")) != EOF) {
+		switch(c) {
+		case 'v':
+			vflag = 1;
+			break;
+		default:
+			return(-1);
+		}
+	}
+
+	if(optind < ac) {
+		//if (!get_rsa(&address_bottom, av[optind++])) {
+        printf("%llx, %llx\n",optind, ac);
+		address_bottom = strtoull(av[optind++],0,0);
+        printf("%llx\n",address_bottom);
+		if(optind < ac) {
+		    address_top  = strtoull(av[optind++],0,0);
+        printf("%llx\n",address_top);
+			}
+	}
+
+    while(address_bottom < address_top)
+    {
+        if((address_bottom % 0x100000000 == 0)||
+           (address_bottom % 0x100000    == 0)&& vflag)
+            printf("\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\scanning 0x%llx",address_bottom);
+        //if(address_bottom % 0x1000== 0)
+            ////printf("%c",'\'+1);
+        data = __raw_readq(address_bottom);
+        address_bottom = address_bottom + 0x100;
+    }
+    printf("\n");
+}
+
