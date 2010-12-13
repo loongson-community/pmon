@@ -15,6 +15,10 @@
     #include "../../Targets/Bonito3aev/include/bonito.h"
     #endif
 
+    #ifdef RS780E
+    #include "../../Targets/Bonito3a780e/include/bonito.h"
+    #endif
+
 #endif
 
 #ifdef LS2G_HT
