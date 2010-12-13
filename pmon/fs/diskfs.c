@@ -54,7 +54,9 @@ extern DiskPartitionTable* FindPartitionFromID(DiskPartitionTable* table, int in
 
 #define EXT2  0x83
 #define FAT16 0x6
+#define FAT16_1 0xE
 #define FAT32 0xB
+#define FAT32_1 0xC
 int filesys_type(char *fname)
 {
 	DiskPartitionTable* pPart;
@@ -121,7 +123,9 @@ int filesys_type(char *fname)
         case EXT2:
                 return 1;
         case FAT16:
+        case FAT16_1:
         case FAT32:
+        case FAT32_1:
                 return 2;
         default:
                 return 1;
@@ -149,14 +153,11 @@ static DiskFile* GetDiskFile(const char* fname, char* filename)
 	char *devname = NULL;
 	int i;
 	char* p;
-	
-	dname = (char *)fname;
 
-	//printf("GetDiskFile fname:%s filename:%s \n",fname,filename);
+	dname = (char *)fname;
 
 	if (strncmp (dname, "/dev/fs/", 8) == 0)
 	{
-		//printf("GetDiskFile strncmp()/dev/fs/\n");
 		dname += 8;
 		for (i=0; i < strlen(dname); i++)
 		{
@@ -173,7 +174,7 @@ static DiskFile* GetDiskFile(const char* fname, char* filename)
 		{
 			printf("path is not complete, haven't selected the device or file!\n");
 			errno = EINVAL;			
-            return NULL;
+			return NULL;
 		}
 
 		p = strchr(devname, '/');
@@ -212,8 +213,6 @@ static DiskFile* GetDiskFile(const char* fname, char* filename)
 	}
 	else if (*dname == '(')
 	{
-		//char c;
-		//printf("GetDiskFile strncmp() (\n");
 		devname = dname + 1;
 		p = strchr(devname, '/');
 		if (p == NULL)
@@ -286,8 +285,6 @@ static int
 {
 	DiskFile *dfp;
 	char filename[256];
-
-	//printf("diskfs_open,fd:%d, fname:%s, \n",fd,fname);
 
 	strcpy(filename, fname);
 #if 0

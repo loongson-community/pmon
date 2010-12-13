@@ -307,7 +307,7 @@ static int
 		keh->e_phentsize = 0;
 		keh->e_phnum = 0;
 
-		printf("\nKernel debugger symbols ELF hdr @ %p", keh);
+		printf("\nKernel debugger symbols ELF64 hdr @ %p", keh);
 
 		symptr[0] = (int)keh;
 		symptr[1] = roundup((int)symend, sizeof(int));
@@ -402,12 +402,12 @@ long
 		return (-1);
 	}
 
-	fprintf (stderr, "(elf)\n");
+	fprintf (stderr, "(elf64)\n");
 
 	{
 		char *nogood = (char *)0;
 		if (ep->e_ident[EI_CLASS] != ELFCLASS64)
-			nogood = "not 32-bit";
+			nogood = "not 64-bit";
 		else if (
 #if BYTE_ORDER == BIG_ENDIAN
 			 ep->e_ident[EI_DATA] != ELFDATA2MSB
@@ -433,7 +433,7 @@ long
 			nogood = "incorrect machine type";
 
 		if (nogood) {
-			fprintf (stderr, "Invalid ELF: %s\n", nogood);
+			fprintf (stderr, "Invalid ELF64: %s\n", nogood);
 #if NGZIP > 0
 			gz_close(fd);
 #endif /* NGZIP */

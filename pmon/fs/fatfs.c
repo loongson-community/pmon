@@ -276,11 +276,18 @@ fat_read(int fd, void *buf, size_t len)
 	 * Check file size bounder
 	 */
 	if (_file[fd].posn >= fsc->file.FileSize) {
-	        return (-1);
+		return (-1);
 	}
 
 	if ((_file[fd].posn + len) > fsc->file.FileSize) {
 		len = fsc->file.FileSize - _file[fd].posn;
+	}
+
+	/* Dynamic allocation of memory buffer used to store the read sector data. */
+	fsc->LastSectorBuffer = (unsigned char *)malloc(SECTORSIZE * fsc->SecPerClust);
+	if(fsc->LastSectorBuffer == NULL){
+		printf("fat_read: memory malloc failed!\n");
+		return (-1);
 	}
 
 	while (len) {
@@ -290,23 +297,33 @@ fat_read(int fd, void *buf, size_t len)
 		sector = getSectorIndex_read(fsc, &fsc->file.Chain, sectorIndex);
 
 		copylen = len;
-		if (copylen >= fsc->ClusterSize){
-			copylen = fsc->ClusterSize;
-			sectornum = fsc->SecPerClust;
+		if((offset && (copylen > (SECTORSIZE - offset)))){
+			copylen = (SECTORSIZE - offset);
+			sectornum = 1;
 		}else{
-			if((copylen % SECTORSIZE)){
-				sectornum = copylen / SECTORSIZE + 1;
+			if(copylen < SECTORSIZE){
+				if(copylen > (SECTORSIZE - offset)){
+					copylen = (SECTORSIZE - offset);
+				}
+				sectornum = 1;
 			}else{
-				sectornum = copylen / SECTORSIZE;
+				if(copylen >= fsc->ClusterSize){
+					copylen = fsc->ClusterSize;
+					sectornum = fsc->SecPerClust;
+				}else{
+					sectornum = copylen / SECTORSIZE;
+					copylen = sectornum * SECTORSIZE;
+				}
 			}
 		}
 
-		if (sector != fsc->LastSector) {
-			res = readsector(fsc, sector, sectornum, fsc->LastSectorBuffer);
-			if (res < 0)
-				break;
-			fsc->LastSector = sector;
-		}
+		/* Do not need to compare the current sector number and the last sector number,
+		 * must read sector operation, because each time before read operation dynamically
+		 * allocated memory buffer. */
+		res = readsector(fsc, sector, sectornum, fsc->LastSectorBuffer);
+		if (res < 0)
+			break;
+		fsc->LastSector = sector;
 
 		memcpy(buf, &fsc->LastSectorBuffer[offset], copylen);
 
@@ -315,13 +332,14 @@ fat_read(int fd, void *buf, size_t len)
 		len -= copylen;
 		totalcopy += copylen;
 	}
-	
+
 	if (res < 0) {
 		_file[fd].posn = origpos;
+		free(fsc->LastSectorBuffer);
 		return res;
-		
 	}
 
+	free(fsc->LastSectorBuffer);
 	return totalcopy;
 }
 
@@ -401,7 +419,6 @@ int getSectorIndex_read(struct fat_sc *fsc, struct fatchain * chain, int index)
 	return (sector);
 }
 
-
 int getSectorIndex(struct fat_sc *fsc, struct fatchain * chain, int index, int clust_num)
 {
 	int clusterIndex;
@@ -420,14 +437,52 @@ int getSectorIndex(struct fat_sc *fsc, struct fatchain * chain, int index, int c
 	sector = fsc->DataSectorBase + (entry - 2) * fsc->SecPerClust + sectorIndex;
 	return (sector);
 }
+ 
+u_int32_t read_extended_partition_table(struct fat_fc *fsc, struct mbr_t **mbr, int id, int partition)
+{
+	struct mbr_t *ebr = *mbr;
+	int i;
+	int cnt;
+	u_int32_t sec_off;
+	u_int32_t current_secnum = 0;
+
+	cnt = partition + 1;
+	sec_off = ebr->partition[id].relsect;
+
+	/* find extended boot recorder (EBR) */
+	for(i = 0; i < cnt; i++){
+		if(readsector(fsc, ebr->partition[id].relsect, 1, (u_int8_t *)ebr) != 1){
+			printf("read extended boot recorder failed!\n");
+			return 0;
+		}
+
+		if(ebr->signature != 0xaa55){
+			printf("check partition table magic failed!\n");
+			return 0;
+		}
+
+		if(i == partition)
+		{
+			break;
+		}
+
+		current_secnum = ebr->partition[1].relsect;
+		ebr->partition[1].relsect += sec_off;
+	}
+
+	return current_secnum;
+}
 
 int fat_getPartition(struct fat_sc *fsc, int partition)
 {
 	u_int8_t buffer[SECTORSIZE];
 	struct mbr_t *mbr;
+	u_int32_t edpt_off;
+	u_int32_t current_secnum = 0;
+	int id;
 
 	fsc->PartitionStart = 0;
-	devio_read(fsc->fd,buffer,SECTORSIZE);
+	devio_read(fsc->fd, buffer, SECTORSIZE);
 	/*
 	 * Check if there exists a MBR
 	 */
@@ -437,10 +492,30 @@ int fat_getPartition(struct fat_sc *fsc, int partition)
 	 */
 
 	if (buffer[510] != 0x55 || buffer[511] != 0xaa)
-    {   
-		return 0;/*check mbr magic failed */
-    }
-    
+	{   
+		return 0;  /*check mbr magic failed */
+	}
+
+#define IS_EXTENDED(tag) ((tag) == 0x05 || (tag) == 0x0F || (tag) == 0x85)
+	if(partition > 3){
+		for(id = 0; id < 4; id++){
+			if(IS_EXTENDED(mbr->partition[id].systid)){
+				break;
+			}
+		}
+
+		if(id >= 4){
+			printf("Not found extended partition!\n");
+			return 0;
+		}
+
+		edpt_off = mbr->partition[id].relsect;
+		partition -= 4;
+		current_secnum = read_extended_partition_table(fsc, &mbr, id, partition);
+		fsc->PartitionStart = letoh32(mbr->partition[0].relsect + edpt_off + current_secnum);
+		return (1);
+	}
+
 	fsc->PartitionStart = letoh32(mbr->partition[partition].relsect);
 	return (1);
 }
@@ -713,10 +788,15 @@ int fat_findfile(struct fat_sc *fsc, char *name)
 					if((flag == 0)||(strcmp(filee.shortName,".") == 0)||(strcmp(filee.shortName, "..") == 0))
 					{
 						ilongName = 0;					
+						/* Filter out the volume label not listed. */
+						if(fsc->DirCacheNum == fsc->FirstRootDirSecNum)
+						{
+							continue;
+						}
 					}
 					fat_listfilename(&filee,dir_flag,ilongName);
 					if (dir_flag == 1)
-					{
+					{
 						dir_flag = 0;
 					}
 					flag = 0;
@@ -834,11 +914,16 @@ int fat_subdirscan(struct fat_sc *fsc, char *name, struct fatchain *chain)
 					int ilongName = 1;
 					if((flag == 0)||(strcmp(filee.shortName,".") == 0)||(strcmp(filee.shortName, "..") == 0))
 					{
-						ilongName = 0;					
+						ilongName = 0;
+						/* Filter out the volume label not listed. */
+						if(i == 0 && j == 0 && k == 0 && (strcmp(filee.shortName, ".") != 0))
+						{
+							continue;
+						}
 					}
 					fat_listfilename(&filee,dir_flag,ilongName);
 					if (dir_flag == 1)
-					{
+					{
 						dir_flag = 0;
 					}
 					flag = 0;
