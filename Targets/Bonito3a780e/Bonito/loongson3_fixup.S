@@ -176,6 +176,7 @@
 	//dli	t0, 0x0
 	//sd	t0, 0x0(t2)
 
+/*
 	dli	t2, 0x900000003ff00040
 	dli	t0, 0xfffffffffff00000
 	sd	t0, 0x0(t2)
@@ -192,7 +193,31 @@
 	dli	t2, 0x900000003ff00088
 	dli	t0, 0x0000000010000082
 	sd	t0, 0x0(t2)
+*/
 
+	dli	t2, 0x900000003ff00000
+
+############ 0x10000000 Set to default ######################
+	dli	t0, 0x00000000100000f2
+	sd	t0, 0x88(t2)
+
+############ disable windows 0         ######################
+	dli	t0, 0x0
+	sd	t0, 0x80(t2)
+
+############ fill in windows 0         ######################
+	dli	t0, 0x000000001fc00000
+	sd	t0, 0x0(t2)
+
+	dli	t0, 0xfffffffffff00000
+	sd	t0, 0x40(t2)
+
+	dli	t0, 0x000000001fc000f2
+	sd	t0, 0x80(t2)
+
+############ 0x10000000 Set to not allow Cache access #######
+	dli	t0, 0x0000000010000082
+	sd	t0, 0x88(t2)
 
 #endif
 
