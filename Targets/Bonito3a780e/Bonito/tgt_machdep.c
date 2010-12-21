@@ -937,7 +937,7 @@ tgt_devinit()
         //dev 2 and dev3 should not be open otherwise the vga could not work
         //==by oldtai
         set_nbmisc_enable_bits(_pci_make_tag(0,0,0), 0x0c,(1<<2|1<<3|1<<4|1<<5|1<<6|1<<7|1<<16|1<<17),
-                        (1<<2|1<<3|0<<4|0<<5|0<<6|0<<7|0<<16|0<<17));
+                        (0<<2|0<<3|0<<4|0<<5|0<<6|0<<7|0<<16|0<<17));
 #endif
 
 #ifndef USE_780E_VGA 

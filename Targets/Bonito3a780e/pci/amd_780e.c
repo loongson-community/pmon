@@ -810,9 +810,7 @@ void rs780_enable(device_t dev)
         case 2:
 	case 3:
 		set_nbmisc_enable_bits(nb_dev, 0x0c, 1 << dev_ind,
-				       //(dev->enabled ? 0 : 1) << dev_ind);
 				       (1 ? 0 : 1) << dev_ind);
-		//if (dev->enabled)
 			rs780_gfx_init(nb_dev, dev, dev_ind);
 		break;
 	case 4:		/* bus0, dev4-7, four GPP */
@@ -820,16 +818,12 @@ void rs780_enable(device_t dev)
 	case 6:
 	case 7:
 		set_nbmisc_enable_bits(nb_dev, 0x0c, 1 << dev_ind,
-				       //(dev->enabled ? 0 : 1) << dev_ind);
 				       (1 ? 0 : 1) << dev_ind);
-		//if (dev->enabled)
 			rs780_gpp_sb_init(nb_dev, dev, dev_ind);
 		break;
 	case 8:		/* bus0, dev8, SB */
 		set_nbmisc_enable_bits(nb_dev, 0x00, 1 << 6,
-				       //(dev->enabled ? 1 : 0) << 6);
 				       (1 ? 0 : 1) << dev_ind);
-		//if (dev->enabled)
 			rs780_gpp_sb_init(nb_dev, dev, dev_ind);
 		disable_pcie_bar3(nb_dev);
 		break;
@@ -838,20 +832,12 @@ void rs780_enable(device_t dev)
 		enable_pcie_bar3(nb_dev);	/* PCIEMiscInit */
 		set_nbmisc_enable_bits(nb_dev, 0x0c, 1 << (7 + dev_ind),
 				       (1 ? 0 : 1) << (7 + dev_ind));
-		//if (dev->enabled)
 			rs780_gpp_sb_init(nb_dev, dev, dev_ind);
-		/* disable_pcie_bar3(nb_dev); */
 		break;
 	default:
 		printk_debug("unknown dev: %s\n", dev_ind);
 	}
 }
-
-
-		
-
-
-
 
 void rs780_after_pci_fixup(void){
  	device_t dev;
@@ -867,14 +853,14 @@ void rs780_after_pci_fixup(void){
     rs780_internal_gfx_init(_pci_make_tag(0,0,0) , _pci_make_tag(0,1,0));
 	rs780_enable(dev);
 
-
 	/* bus0, dev2,3, two GFX */
 	printk_info("Bus-0, Dev-2, Fun-0\n");
         dev = _pci_make_tag(0, 2, 0);
 	rs780_enable(dev);
 	printk_info("Bus-0, Dev-3, Fun-0\n");
         dev = _pci_make_tag(0, 3, 0);
-	rs780_enable(dev);
+	set_nbmisc_enable_bits(_pci_make_tag(0, 0, 0), 0x0c, 1 << 3,0 << 3);
+	rs780_gfx_3_init(_pci_make_tag(0, 0, 0), dev, 3);
 
 	/* bus0, dev4-7, four GPPSB */	
 	printk_info("Bus-0, Dev-4, Fun-0\n");
@@ -902,14 +888,7 @@ void rs780_after_pci_fixup(void){
         dev = _pci_make_tag(0, 8, 0);
 	rs780_enable(dev);
 #endif	
-
-	
 }
-
-		
-
-
-
 
 /************
 *       0:11.0  SATA  
@@ -928,9 +907,6 @@ void rs780_after_pci_fixup(void){
 *************/
 
 void sb700_after_pci_fixup(void){
-	//sb700_enable();
-	//internal_gfx_pci_dev_init();
-	//vga_bios_init();
 #ifdef ENABLE_SATA
 	printk_info("sata init\n");
 	sata_init(_pci_make_tag(0, 0x11, 0));
@@ -963,7 +939,6 @@ void sb700_after_pci_fixup(void){
 	sm_init(_pci_make_tag(0, 0x14, 0));
 #ifdef USE_780E_VGA
 	printk_info("rs780_internal_gfx_init\n");
- //   rs780_internal_gfx_init(_pci_make_tag(0,0,0) , _pci_make_tag(0,1,0));
 	internal_gfx_pci_dev_init(_pci_make_tag(0,0,0) , _pci_make_tag(1,0x5,0));
 #endif
 }

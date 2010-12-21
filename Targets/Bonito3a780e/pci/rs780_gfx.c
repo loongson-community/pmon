@@ -499,8 +499,6 @@ static void pcie_commoncoreinit(device_t nb_dev, device_t dev)
 	set_pcie_enable_bits(nb_dev,0xc2, 1 << 14 | 1 << 25, 1 << 14 | 1 << 25);
 	set_pcie_enable_bits(nb_dev,0xc1, 1 << 0 | 1 << 2, 1 << 0);
 	set_pcie_enable_bits(nb_dev,0x1c, 0xffffffff, 4 << 6 | 4 << 1);
-
-
 }
 
 static void pcie_commonportinit(device_t nb_dev, device_t dev)
@@ -538,7 +536,6 @@ static void pcie_initgen2(device_t nb_dev, device_t dev)
 	pci_write_config32(dev, 0x88, reg);
 	set_nbmisc_enable_bits(nb_dev, 0x34, 1 << 5, 0 << 5);
 
-
 	set_pcie_enable_bits(dev, 0xa4, 1 << 0, 1 << 0);
 	reg = pci_read_config32(dev, 0x88);
 	reg &= 0xfffffff0;
@@ -546,17 +543,12 @@ static void pcie_initgen2(device_t nb_dev, device_t dev)
 	pci_write_config32(dev, 0x88, reg);
 	set_nbmisc_enable_bits(nb_dev, 0x34, 1 << 5, 1 << 5);
 
-
 	set_pcie_enable_bits(dev, 0xa4, 0, 1 << 29);
 	set_pcie_enable_bits(dev, 0xc0, 1 << 15, 0 << 15);
 	set_pcie_enable_bits(dev, 0xa2, 1 << 13, 0 << 13);
 
 //set interrupt pin info
 	pci_write_config8(dev, 0x3d, 0x1);
-
-
-//	while(1);
-
 }
 
 static void pcie_gen2workaround(device_t nb_dev, device_t dev)
@@ -566,8 +558,6 @@ static void pcie_gen2workaround(device_t nb_dev, device_t dev)
 	u8  byte;
 	void set_pcie_reset();
 	void set_pcie_dereset();
-
-
 
 	set_pcie_enable_bits(dev, 0xa4, 1 << 0, 0 << 0);
 	reg = pci_read_config32(dev,0x88);
@@ -587,8 +577,6 @@ static void pcie_gen2workaround(device_t nb_dev, device_t dev)
 	set_pcie_reset();
 	delay(1000);
 	set_pcie_dereset();
-
-
 }
 
 /* step 12 ~ step 14 from rpr */
@@ -700,39 +688,7 @@ static void dual_port_configuration(device_t nb_dev, device_t dev)
 			break;
 		}
 	}
-#if 0		/* This function will be called twice, so we dont have to do dev 3 here. */
-	/* step 17: Training for Device 3 */
-	//set_nbmisc_enable_bits(nb_dev, 0x8, 1 << 5, 0 << 5);
-	/* Releases hold training for GFX port 0 (device 3) */
-	PcieReleasePortTraining(nb_dev, dev, 3);
-	/* PCIE Link Training Sequence */
-	result = PcieTrainPort(nb_dev, dev, 3);
-
-	/*step 18: Power Down Control for Device 3 */
-	/* step 18.a Link Training was NOT successful */
-	if (!result) {
-		/* Powers down all lanes for port B and PLL1 */
-		nbpcie_ind_write_index(nb_dev, 0x65, 0xccf0f0);
-	} else {		/* step 18.b Link Training was successful */
-
-		reg32 = nbpcie_p_read_index(dev, 0xa2);
-		width = (reg32 >> 4) & 0x7;
-		printk_debug("GFX LC_LINK_WIDTH = 0x%x.\n", width);
-		switch (width) {
-		case 1:
-		case 2:
-			nbpcie_ind_write_index(nb_dev, 0x65,
-					       cfg->gfx_lane_reversal ? 0x7070 : 0xe0e0);
-			break;
-		case 4:
-			nbpcie_ind_write_index(nb_dev, 0x65,
-					       cfg->gfx_lane_reversal ? 0x3030 : 0x0f0f);
-			break;
-		}
-	}
-#endif
 }
-
 
 /* For single port GFX configuration Only
 * width:
@@ -797,18 +753,12 @@ void rs780_gfx_init(device_t nb_dev, device_t dev, u32 port)
         u32 dev_ind;
 	void set_pcie_reset();
 	void set_pcie_dereset();
-	//u8   is_dev3_present();
 
 	struct southbridge_amd_rs780_config *cfg =
 		&chip_info;
         _pci_break_tag(dev, NULL, &dev_ind, NULL);
 	printk_info("rs780_gfx_init, nb_dev=0x%p, dev=0x%p, port=0x%x.\n",
 		    nb_dev, dev, port);
-
-	/* GFX Core Initialization */
-	//if (port == 2) return;
-
-
 
 	/* step 2, TMDS, (only need if CMOS option is enabled) */
 	if (cfg->gfx_tmds) {
@@ -850,11 +800,6 @@ void rs780_gfx_init(device_t nb_dev, device_t dev, u32 port)
 	/* 5.9.1.6.Selects the single ended GFX REFCLK to be the source for core logic. */
 	set_nbmisc_enable_bits(nb_dev, 0x6C, 1 << 31, 0 << 31);
 #endif
-
-	/* step 5.9.3, GFX overclocking, (only need if CMOS option is enabled) */
-	/* 5.9.3.1. Increases PLL BW for 6G operation.*/
-	/* set_nbmisc_enable_bits(nb_dev, 0x36, 0x3FF << 4, 0xB5 << 4); */
-	/* skip */
 
 	/* step 5.9.4, reset the GFX link */
 	/* step 5.9.4.1 asserts both calibration reset and global reset */
@@ -1032,4 +977,133 @@ void rs780_gfx_init(device_t nb_dev, device_t dev, u32 port)
 		break;
 	}
 }
+void rs780_gfx_3_init(device_t nb_dev, device_t dev, u32 port)
+{
+	u8  byte;
+	u16 reg16;
+	u32 reg32;
+        u32 dev_ind;
+        u8 result, width;
+	void set_pcie_reset();
+	void set_pcie_dereset();
+
+	struct southbridge_amd_rs780_config *cfg =
+		&chip_info;
+        _pci_break_tag(dev, NULL, &dev_ind, NULL);
+	printk_info("rs780_gfx_init, nb_dev=0x%p, dev=0x%p, port=0x%x.\n",
+		    nb_dev, dev, port);
+
+	/* step 2, TMDS, (only need if CMOS option is enabled) */
+	if (cfg->gfx_tmds) {
+	}
+
+	set_pcie_reset();
+	delay(1000);
+	set_pcie_dereset();
+
+	/* step 7 compliance state, (only need if CMOS option is enabled) */
+	/* the compliance stete is just for test. refer to 4.2.5.2 of PCIe specification */
+	if (cfg->gfx_compliance) {
+		dynamic_link_width_control(nb_dev, dev, cfg->gfx_link_width);
+		printk_info("rs780_gfx_init step7.\n");
+		return;
+	}
+
+	/* 5.9.12 Core Initialization. */
+	/* 5.9.12.1 sets RCB timeout to be 25ms */
+	/* 5.9.12.2. RCB Cpl timeout on link down. */
+	set_pcie_enable_bits(dev, 0x70, 7 << 16 | 1 << 19, 4 << 16 | 1 << 19);
+	printk_info("rs780_gfx_init step5.9.12.1.\n");
+
+	/* 5.9.12.5. Blocks DMA traffic during C3 state. */
+	set_pcie_enable_bits(dev, 0x10, 1 << 0, 0 << 0);
+
+	/* Enabels TLP flushing. */
+	/* Note: It is got from RS690. The system will hang without this action. */
+	set_pcie_enable_bits(dev, 0x20, 1 << 19, 0 << 19);
+
+	/* 5.9.12.8 Prevents LC to go from L0 to Rcv_L0s if L1 is armed. */
+	set_pcie_enable_bits(dev, 0xA1, 1 << 11, 1 << 11);
+
+	/* 5.9.12.10 Sets the timer in Config state from 20us to */
+	/* 5.9.12.11 De-asserts RX_EN in L0s. */
+	/* 5.9.12.12 Enables de-assertion of PG2RX_CR_EN to lock clock
+	 * recovery parameter when lane is in electrical idle in L0s.*/
+	set_pcie_enable_bits(dev, 0xB1, 1 << 23 | 1 << 19 | 1 << 28, 1 << 23 | 1 << 19 | 1 << 28);
+
+	/* 5.9.12.15. Sets number of TX Clocks to drain TX Pipe to 3. */
+	set_pcie_enable_bits(dev, 0xA0, 0xF << 4, 3 << 4);
+
+	/* 5.9.12.17. Prevents the Electrical Idle from causing a transition from Rcv_L0 to Rcv_L0s. */
+	set_pcie_enable_bits(dev, 0xB1, 1 << 20, 1 << 20);
+
+	/* 5.9.12.18. Prevents the LTSSM from going to Rcv_L0s if it has already
+	 * acknowledged a request to go to L1. */
+	set_pcie_enable_bits(dev, 0xA1, 1 << 11, 1 << 11);
+
+	/* 5.9.12.23. Disables GEN2 capability of the device. */
+	set_pcie_enable_bits(dev, 0xA4, 1 << 0, 0 << 0);
+
+	/* 5.9.12.24.Disables advertising Upconfigure Support. */
+	set_pcie_enable_bits(dev, 0xA2, 1 << 13, 1 << 13);
+
+	/* 5.9.12.27. Enables NVG86 ECO. A13 above only. */
+	/* TODO: Check if it is A13. */
+	if (0)			/* A12 */
+		set_pcie_enable_bits(dev, 0x02, 1 << 11, 1 << 11);
+
+	/* Single-port/Dual-port configureation. */
+	switch (cfg->gfx_dual_slot) {
+	case 0:
+		/* step 1, lane reversal (only need if CMOS option is enabled) */
+		if (cfg->gfx_lane_reversal) {
+			set_nbmisc_enable_bits(nb_dev, 0x33, 1 << 2, 1 << 2);
+		}
+		printk_info("rs780_gfx_init step1.\n");
+		printk_info("rs780_gfx_init step2.\n");
+
+		printk_info("device = %x\n", dev_ind);
+		if(dev_ind == 2)
+			single_port_configuration(nb_dev, dev);
+		else{
+			set_nbmisc_enable_bits(nb_dev, 0xc, 0x2 << 2, 0x2 << 2); /* hide the GFX bridge. */
+			printk_info("If dev3.., single port. Do nothing.\n");
+		}
+
+		break;
+	case 1:
+	/* Releases hold training for GFX port 0 (device 3) */
+	PcieReleasePortTraining(nb_dev, dev, 3);
+	/* PCIE Link Training Sequence */
+	result = PcieTrainPort(nb_dev, dev, 3);
+
+	/*step 18: Power Down Control for Device 3 */
+	/* step 18.a Link Training was NOT successful */
+	if (!result) {
+		/* Powers down all lanes for port B and PLL1 */
+		nbpcie_ind_write_index(nb_dev, 0x65, 0xccf0f0);
+	} else {		/* step 18.b Link Training was successful */
+
+		reg32 = nbpcie_p_read_index(dev, 0xa2);
+		width = (reg32 >> 4) & 0x7;
+		printk_debug("GFX LC_LINK_WIDTH = 0x%x.\n", width);
+		switch (width) {
+		case 1:
+		case 2:
+			nbpcie_ind_write_index(nb_dev, 0x65,
+					       cfg->gfx_lane_reversal ? 0x7070 : 0xe0e0);
+			break;
+		case 4:
+			nbpcie_ind_write_index(nb_dev, 0x65,
+					       cfg->gfx_lane_reversal ? 0x3030 : 0x0f0f);
+			break;
+		}
+	}
+		break;
+	default:
+		printk_info("Incorrect configuration of external gfx slot.\n");
+		break;
+	}
+}
+
 #endif
