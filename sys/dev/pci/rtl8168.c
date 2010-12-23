@@ -418,18 +418,27 @@ r8168_attach(struct device * parent, struct device * self, void *aux)
 #else
     /* Get MAC address by reading EEPROM */
 	{
+		unsigned int MAC;
 		u16 data = 0;
+		u16 data1 = 0;
+		u16 data2 = 0;
 
 		data = read_eeprom(tp, 7);
 		tp->dev_addr[0] = 0xff & data;
 		tp->dev_addr[1] = 0xff & (data >> 8);
-		data = read_eeprom(tp, 8);
-		tp->dev_addr[2] = 0xff & data;
-		tp->dev_addr[3] = 0xff & (data >> 8);
-		data = read_eeprom(tp, 9);
-		tp->dev_addr[4] = 0xff & data;
-		tp->dev_addr[5] = 0xff & (data >> 8);
+		data1 = read_eeprom(tp, 8);
+		tp->dev_addr[2] = 0xff & data1;
+		tp->dev_addr[3] = 0xff & (data1 >> 8);
+		data2 = read_eeprom(tp, 9);
+		tp->dev_addr[4] = 0xff & data2;
+		tp->dev_addr[5] = 0xff & (data2 >> 8);
 
+		RTL_W8(tp, Cfg9346, Cfg9346_Unlock);
+		MAC = data | data1 <<16;
+		RTL_W32(tp, MAC0, MAC);
+		MAC = data2;
+		RTL_W32(tp, MAC4, MAC);
+		RTL_W8(tp, Cfg9346, Cfg9346_Lock);
 	}
 #endif
 		printf("MAC ADDRESS: ");
