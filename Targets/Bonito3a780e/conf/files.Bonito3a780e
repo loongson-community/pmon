@@ -15,6 +15,8 @@ file    Targets/Bonito3a780e/pci/sb700_lpc.c  amd_780e
 file    Targets/Bonito3a780e/pci/sb700_sata.c  amd_780e
 file    Targets/Bonito3a780e/pci/sb700_usb.c  amd_780e
 
+file	pmon/cmds/msqt.c		cmd_test_sata
+
 define  localbus { [base = -1 ] }
 device  localbus
 attach  localbus at mainbus

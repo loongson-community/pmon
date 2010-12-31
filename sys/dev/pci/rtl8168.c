@@ -327,7 +327,7 @@ rtl8168_init_board(struct rtl8168_private *tp, struct pci_attach_args *pa)
 	return rc;
 
 }
-
+struct rtl8168_private *mytp;
 static struct rtl8168_private* myRTL[2] = {0, 0};
 static int pn = 0;
 static int cnt = 0;
@@ -377,7 +377,9 @@ r8168_attach(struct device * parent, struct device * self, void *aux)
     tp->features |= rtl8168_try_msi(tp);
     RTL_W8(tp, Cfg9346, Cfg9346_Lock);
 
-//#define DEBUG
+	mytp = tp;
+
+	//#define DEBUG
 #ifdef DEBUG
 #undef DEBUG
 	/* Read eeprom content */
@@ -416,18 +418,27 @@ r8168_attach(struct device * parent, struct device * self, void *aux)
 #else
     /* Get MAC address by reading EEPROM */
 	{
+		unsigned int MAC;
 		u16 data = 0;
+		u16 data1 = 0;
+		u16 data2 = 0;
 
 		data = read_eeprom(tp, 7);
 		tp->dev_addr[0] = 0xff & data;
 		tp->dev_addr[1] = 0xff & (data >> 8);
-		data = read_eeprom(tp, 8);
-		tp->dev_addr[2] = 0xff & data;
-		tp->dev_addr[3] = 0xff & (data >> 8);
-		data = read_eeprom(tp, 9);
-		tp->dev_addr[4] = 0xff & data;
-		tp->dev_addr[5] = 0xff & (data >> 8);
+		data1 = read_eeprom(tp, 8);
+		tp->dev_addr[2] = 0xff & data1;
+		tp->dev_addr[3] = 0xff & (data1 >> 8);
+		data2 = read_eeprom(tp, 9);
+		tp->dev_addr[4] = 0xff & data2;
+		tp->dev_addr[5] = 0xff & (data2 >> 8);
 
+		RTL_W8(tp, Cfg9346, Cfg9346_Unlock);
+		MAC = data | data1 <<16;
+		RTL_W32(tp, MAC0, MAC);
+		MAC = data2;
+		RTL_W32(tp, MAC4, MAC);
+		RTL_W8(tp, Cfg9346, Cfg9346_Lock);
 	}
 #endif
 		printf("MAC ADDRESS: ");
@@ -4229,7 +4240,36 @@ static int cmd_setmac(int ac, char *av[])
 	return 0;
 }
 
-
+int cmd_msqt_lan(int ac, char *av[])
+{
+struct rtl8168_private *tp;
+	tp = mytp;
+	if (!strcmp(av[1], "100M")) {
+		if (!strcmp(av[2], "chana")) {
+			mdio_write(tp, 14, 0x0660);
+			mdio_write(tp, 16, 0x0020);
+		} else if (!strcmp(av[2], "chanb")) {
+			mdio_write(tp, 14, 0x0660);
+			mdio_write(tp, 16, 0x0000);
+		} else {
+			printf("Error options\n");
+			return 0;
+		}
+	} else if (!strcmp(av[1], "1000M")) {
+		if (!strcmp(av[2], "mode1"))
+			mdio_write(tp, 0x9, 0x2000);
+		else if (!strcmp(av[2], "mode4"))
+			mdio_write(tp, 0x9, 0x8000);
+		else {
+			printf("Error options\n");
+			return 0;
+		}
+	} else {
+		printf("Error options\n");
+		return 0;
+	}
+		return 0;
+}
 
 static const Optdesc netdmp_opts[] =
 {
@@ -4247,6 +4287,7 @@ static const Cmd Cmds[] =
 			"dump rtl8111dl/8168 eeprom content", cmd_wrprom, 2, 3, 0},
 	{"setmac", "", NULL,
 		    "Set mac address into rtl8111dl/8168 eeprom", cmd_setmac, 2, 5, 0},
+	{"msqt_lan", " [100M/1000M] [mode1(waveform)/mode4(distortion)]/[chana/chanb]", NULL, "Motherboard Signal Quality Test for RTL8111", cmd_msqt_lan, 3, 3, 0},
 	{0, 0}
 };
 

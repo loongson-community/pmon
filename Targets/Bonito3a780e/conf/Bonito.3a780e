@@ -91,6 +91,7 @@ select		cmd_testdisk
 #
 select		cmd_shell		# Shell commands, vers, help, eval
 
+#select		cmd_test_sata	# Sata signal test command
 
 #
 #
