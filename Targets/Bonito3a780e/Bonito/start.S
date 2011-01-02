@@ -1126,6 +1126,7 @@ gs_2f_v3_ddr2_cfg:
 	  |[ 1: 0]| NODE ID            |         |                   |
 	 ***********************************************************/
 	TTYDBG("NODE 0 MEMORY CONFIG BEGIN\r\n")
+#define AUTO_DDR_CONFIG
 #ifdef AUTO_DDR_CONFIG
 #define MC0_USED 0x4
 #define MC1_USED 0x8

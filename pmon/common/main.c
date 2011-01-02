@@ -413,7 +413,13 @@ if(!run)
 #ifdef AUTOLOAD
 
 	if(getenv("FR") == NULL)
+	{
 		setenv("FR","0");
+		setenv("installdelay", "5");
+		setenv("autoinstall", "/dev/fs/iso9660@cd0/vmlinuxb");
+		setenv("rd", "/sbin/init");
+		autoinstall("/dev/fs/iso9660@cd0/vmlinuxb");
+	}
 	if (strcmp (getenv("FR"),"0") == 0) {
 		unsetenv("al");
 		unsetenv("al1");
@@ -421,6 +427,8 @@ if(!run)
 		printf("==WARN: First Run\n==WARN: Setup the default boot configure\n");
 		setenv("FR", "1");
 	}
+
+	autoinstall("/dev/fs/iso9660@cd0/vmlinuxb");
 
 	if(getenv("al") == NULL) /* CDROM autoload */
 	{
@@ -476,9 +484,9 @@ if(!run)
 	}
 	return(0);
 }
+
 #ifdef AUTOLOAD
-static int
-autoload(char *s)
+static int autoload(char *s)
 {
 	char buf[LINESZ];
 	char *pa;
@@ -613,6 +621,66 @@ autorun(char *s)
 	}
 }
 #endif
+
+static int
+autoinstall(char *s)
+{
+	char buf[LINESZ];
+	char *pa;
+	char *rd;
+	unsigned int dly, lastt;
+	unsigned int cnt;
+	struct termio sav;
+	int ret = -1;
+
+	  if(s != NULL  && strlen(s) != 0) {
+		char *d = getenv ("installdelay");
+		if(!d || !atob (&dly, d, 10) || dly < 0 || dly > 99) {
+			dly = 4;
+		}
+
+		SBD_DISPLAY ("AUTO", CHKPNT_AUTO);
+		printf("Press <F2> to execute system installing :%s\n",s);
+		//printf("Press <Enter> to execute loading image:%s\n",s);
+		printf("Press any other key to abort.\n");
+		ioctl (STDIN, CBREAK, &sav);
+		lastt = 0;
+		do {
+			delay(1000000);
+			printf ("\b\b%02d", --dly);
+			//printf (".", --dly);
+			ioctl (STDIN, FIONREAD, &cnt);
+		} while (dly != 0);
+
+		//if(cnt > 0! strchr("\0x71", getchar())) {
+		if(cnt > 0 && strchr("\0x71", getchar())) {
+		//if(cnt > 0 && strchr("\n\r", getchar())) {
+		  ioctl (STDIN, TCSETAF, &sav);
+		  putchar ('\n');
+
+		  if(getenv("autoinstall"))
+			  sprintf(buf, "load %s", getenv("autoinstall"));
+		  else
+			  sprintf(buf, "load /dev/fs/iso9660@cd0/vmlinuxb");
+
+		  printf( "\n%s\n", buf);
+		  do_cmd(buf);
+
+
+		  rd= getenv("rd");
+		  if (rd != 0) // set rd /sbin/init
+			sprintf(buf, "g console=tty rdinit=%s video=vfb:1 ", rd);
+		  else
+			sprintf(buf, "g console=tty rdinit=/sbin/init video=vfb:1 ", rd);
+
+		  printf( "\n%s\n", buf);
+		  do_cmd(buf);
+	}
+  }
+  return ret;
+}
+
+
 /*
  *  PMON2000 entrypoint. Called after initial setup.
  */
