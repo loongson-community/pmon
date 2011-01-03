@@ -6,14 +6,14 @@
 #######################################################
 /* Undefine the two to enable both */
 /* !!!NOT USE ANYMORE !!!!! */
-#define MC0_ONLY
-//#define MC1_ONLY
+///////#define MC0_ONLY
+///////#define MC1_ONLY
 
 /* Size of each DDR controller */
 /* !!!NOT USE ANYMORE !!!!! */
 //#define DDR_512
 //#define DDR_1G
-#define DDR_2G
+//#define DDR_2G
 
 /* Only DDR_1G CAN USE INTERLEAVE by now           */
 /* Interleave pattern when both controller enabled */
@@ -25,7 +25,16 @@
 #######################################################
 
 /***********************************************************
- s1: 
+| s1:													   |
+|[35:35]| MC1_DIMM_TYPE      | 1'b1    | Registered Dual   |	
+|       |                    | 1'b0    | Unbuffered Dual   |
+|[34:34]| MC1_ECC            | 1'b1    | WITH DATA ECC     |	
+|       |                    | 1'b0    | NO DATA ECC       |
+|[33:33]| MC0_DIMM_TYPE      | 1'b1    | Registered Dual   |	
+|       |                    | 1'b0    | Unbuffered Dual   |
+|[32:32]| MC0_ECC            | 1'b1    | WITH DATA ECC     |	
+|       |                    | 1'b0    | NO	  DATA ECC     |
+|[31:31]|                    | 1'b0    | NOT USED          |
 |[30:28]| MC1_ROW            | MC0_ROW | 15 - MC1_ROW_SIZE |
 |[27:27]| MC1_EIGHT_BANK     | 1'b0    | FOUR  BANKS       |
 |       |                    | 1'b1    | EIGHT BANKS       |
@@ -36,11 +45,12 @@
 |[18:16]| MC0_COL_SIZE       | MC0_COL | 14 - COL_SIZE     |
 |[15:12]| MC1_CS_MAP         |         |                   |
 |[11: 8]| MC0_CS_MAP         |         |                   |
-|[ 7: 7]| DIMM_TYPE          | 1'b0    | DDR2              |
+|[ 7: 7]| DDR_TYPE           | 1'b0    | DDR2              |
 |       |                    | 1'b1    | DDR3              |
 |[ 6: 4]| SIZE_PER_CONTROLLER| 3'b001  | 512MB             |
 |       |                    | 3'b010  | 1G                |
 |       |                    | 3'b011  | 2G                |
+|       |                    | 3'b100  | 4G                |
 |[ 3: 2]| CONTROLLER_SELECT  | 2'b00   | USE BOTH          |
 |       |                    | 2'b01   | MC0_ONLY          |
 |       |                    | 2'b10   | MC1_ONLY          |
@@ -51,16 +61,20 @@
 #define GET_MC1_ONLY    dli a0, 0x00000008; and a0, s1, a0;
 #define GET_DDR_SIZE    dli a0, 0x00000070; and a0, s1, a0;
 #define GET_DDR_TYPE    dli a1, 0x00000080; and a1, s1, a1;
-#define GET_MC0_CS_MAP  dli a1,   0x00000f00; and a1, s1, a1; dsll a1, 8
-#define GET_MC1_CS_MAP  dli a1,   0x0000f000; and a1, s1, a1; dsll a1, 4;
+#define GET_MC0_CS_MAP  dli a1, 0x00000f00; and a1, s1, a1; dsll a1, 8
+#define GET_MC1_CS_MAP  dli a1, 0x0000f000; and a1, s1, a1; dsll a1, 4;
 #define GET_MC0_EIGHT   dli a1, 0x00080000; and a1, s1, a1; dsll a1, 13;
 #define GET_MC0_ROW     dli a1, 0x00700000; and a1, s1, a1; dsrl a1, 12;
 #define GET_MC0_COL     dli a1, 0x00070000; and a1, s1, a1; dsll a1, 8;
 #define GET_MC1_EIGHT   dli a1, 0x08000000; and a1, s1, a1; dsll a1, 5;
 #define GET_MC1_ROW     dli a1, 0x70000000; and a1, s1, a1; dsrl a1, 20;
 #define GET_MC1_COL     dli a1, 0x07000000; and a1, s1, a1;
+#define GET_MC0_ECC     dli a1, 0x100000000; and a1, s1, a1; dsrl a1, 32;
+#define GET_MC0_DIMM    dli a1, 0x200000000; and a1, s1, a1; dsrl a1, 33;
+#define GET_MC1_ECC     dli a1, 0x400000000; and a1, s1, a1; dsrl a1, 34;
+#define GET_MC1_DIMM    dli a1, 0x800000000; and a1, s1, a1; dsrl a1, 35;
 #define XBAR_CONFIG_NODE_a0(OFFSET, BASE, MASK, MMAP) \
-                        daddi   v0, t0, OFFSET;       \
+						daddi   v0, t0, OFFSET;       \
                         dli     t1, BASE;             \
                         or      t1, t1, a0;           \
                         sd      t1, 0x00(v0);         \
@@ -80,6 +94,7 @@
         bnez    a0, 3f
         nop
 
+#if 0
         GET_DDR_SIZE
         dli     a1, 0x10
         beq     a1, a0, ddr_512MB
@@ -121,6 +136,7 @@ ddr_1GB:
 //        li      a0, 0x02000000
 //#endif
         sub     msize, msize, a0
+#endif
 
 3:
 
@@ -136,11 +152,11 @@ ddr_1GB:
 #endif    
 
 #if 1
-//#ifdef AUTO_DDR_CONFIG
+#ifdef AUTO_DDR_CONFIG
         GET_MC0_CS_MAP
         beqz    a1, 1f
         nop
-//#endif
+#endif
         GET_NODE_ID_a0;
         XBAR_CONFIG_NODE_a0(0x10, \
                             0x0000000000000000, \
@@ -571,23 +587,26 @@ ddr_512MB_MC1:
 2:
 
 #if 0 //print registers
-    //li      t1, 152 ##0x72
-    li      t1, 180 ##0x72
+    li      t1, 151
     li      t2, 0xaff00000
 
 reg_read:
-    ld      a0, 0x0(t2)
+    lw      a0, 0x4(t2)
+    bal	    hexserial
+    nop
+    PRINTSTR("  ")
 
-    //bal	    hexserial
-    bal	    hexserial64
+    lw      a0, 0x0(t2)
+    bal	    hexserial
     nop
     PRINTSTR("\r\n")
 
     addiu   t2, t2, 16
     bnez    t1, reg_read
     addiu   t1, t1, -1
-
 #endif
+
+
 
 
 #if 0 /* read ddr2 registers */

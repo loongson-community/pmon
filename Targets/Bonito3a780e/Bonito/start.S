@@ -1126,10 +1126,15 @@ gs_2f_v3_ddr2_cfg:
 	  |[ 1: 0]| NODE ID            |         |                   |
 	 ***********************************************************/
 	TTYDBG("NODE 0 MEMORY CONFIG BEGIN\r\n")
+#define MC0DIMM0_USED 0x34 /* 0x3 ---> CS[1:0]=2'b11, 4 ----> MC0 */ 
+#define MC0DIMM1_USED 0xc4 /* 0xc ---> CS[3:2]=2'b11, 4 ----> MC0 */ 
+#define MC1DIMM0_USED 0x38 /* 0x3 ---> CS[1:0]=2'b11, 8 ----> MC1 */ 
+#define MC1DIMM1_USED 0xc8 /* 0xc ---> CS[3:2]=2'b11, 8 ----> MC1 */ 
+#define MC0_USED	  0x04 /* 0x4 ----> MC0 */ 
+#define MC1_USED	  0x08 /* 0x8 ----> MC1 */ 
+
 #define AUTO_DDR_CONFIG
 #ifdef AUTO_DDR_CONFIG
-#define MC0_USED 0x4
-#define MC1_USED 0x8
 
 	/* Open the SMBUS controller */
 	dli	    a1,0x90000efdfe00a090 ; #b:d:f:r=0:14:0:90 set tmp config address
@@ -1138,66 +1143,171 @@ gs_2f_v3_ddr2_cfg:
 
 	/* enable the host controller */
 	dli	    a1,0x90000efdfe00a0d0 ; #b:d:f:r=0:14:0:d2 bit0=1
-		lw	    a0,0x0(a1);
+	lw	    a0,0x0(a1);
 	li	    t1, 0x10000;
 	or 	    a0, t1
-		sw	    a0, 0x0(a1);
+	sw	    a0, 0x0(a1);
+/*************************************************************
+ * NOTICE HERE: scan dimm of MC0 first, then dimm of MC1     * 
+ * below define need to be CHANGED according different board *
+*************************************************************/
+#define MC0DIMM0  0xa1  /* SA2 = 0, SA1 = 0, SA0 = 0 <--->  MAP_CS 0011 */ //CON36
+#define MC0DIMM1  0xa3  /* SA2 = 0, SA1 = 0, SA0 = 1 <--->  MAP_CS 1100 */ //CON37
+#define MC1DIMM0  0xa5  /* SA2 = 0, SA1 = 1, SA0 = 0 <--->  MAP_CS 0011 */ //CON38
+#define MC1DIMM1  0xa7  /* SA2 = 0, SA1 = 1, SA0 = 1 <--->  MAP_CS 1100 */ //CON39
 
-	li      s1,0x0
+        PRINTSTR("\r\nProbing DDR SLOT: ");
+        PRINTSTR("\r\nProbe MC0DIMM0: ");
+        li      s1,0x0
+        li      v0,0x0
+        li      a0,MC0DIMM0;
+        li      a1,MC0DIMM0_USED;
+        bal     PROBE_DIMM;
+        nop;
+        move	s4,v0;
+        move	a0,v0;
+        bal hexserial;
+        nop;
+	  
+        PRINTSTR("\r\nProbe MC0DIMM1: ");
+        li      s1,0x0
+        li      v0,0x0
+        li      a0,MC0DIMM1;
+        li      a1,MC0DIMM1_USED;
+        bal     PROBE_DIMM;
+        nop;
+		move    s5,v0
+        move	a0,v0;
+        bal hexserial;
+        nop;
 
-	PRINTSTR("\r\nProbe MC0:JB09: ");
-	li      a0,0xa1;
-	li      a1,MC0_USED;
-	bal     PROBE_DIMM;
-	nop;
-	move	a0,s1;
-	bal hexserial;
-	nop;
+		/* check whether DDR in the same MC controler has same BANK/ROW/COL/TYP */
+        li    v0,0x0
+		move  a0,s4
+		move  a1,s5
+		li	  a2,MC0_USED 
+		bal	MERGE_DIMM
+		nop
+		move  s6, v0  /* s6 used to save detected infomation from MC0 */
+		beqz  v0, probe_mc1
+		nop
 
-	PRINTSTR("\r\nProbe MC0:JB10: ");
-	li      a0,0xa3;
-	li      a1,MC0_USED;
-	bal     PROBE_DIMM;
-	nop;
-	move	a0,s1;
-	bal hexserial;
-	nop;
+		/* show value of 64 bit s1 of MC0 */
+        PRINTSTR("\r\nNow Merged MC0: ");
+        move	a0,s6;
+		dsrl	a0,32;
+        bal     hexserial;
+        nop;
+        PRINTSTR("_");
+        move	a0,s6;
+        bal     hexserial;
+        nop;
+        PRINTSTR("\r\n");
 
-	PRINTSTR("\r\nProbe MC1:JB11: ");
-	li      a0,0xa5;
-	li      a1,MC1_USED;
-	bal     PROBE_DIMM;
-	nop;
-	move	a0,s1;
-	bal hexserial;
-	nop;
+probe_mc1:
 
-	PRINTSTR("\r\nProbe MC1:JB12: ");
-	li      a0,0xa7;
-	li      a1,MC1_USED;
-	bal     PROBE_DIMM;
-	nop;
+        PRINTSTR("\r\nProbe MC1DIMM0: ");
+        li      s1,0x0
+        li      v0,0x0
+        li      a0,MC1DIMM0;
+        li      a1,MC1DIMM0_USED;
+        bal     PROBE_DIMM;
+        nop;
+        move	s4,v0;
+        move	a0,v0;
+        bal hexserial;
+        nop;
 
-	move	a0,s1;
-	bal     hexserial;
-	nop;
-	PRINTSTR("\r\n");
+        PRINTSTR("\r\nProbe MC1DIMM1: ");
+        li      s1,0x0
+        li      v0,0x0
+        li      a0,MC1DIMM1;
+        li      a1,MC1DIMM1_USED;
+        bal     PROBE_DIMM;
+        nop;
+		move  s5,v0
+        move  a0,v0;
+        bal hexserial;
+        nop;
+
+	 /* now check whether DDR in the same MC controler has same BANK/ROW/COL/TYPE */
+        li      v0,0x0
+		move  a0,s4
+		move  a1,s5
+		li	  a2,MC1_USED 
+		bal	  MERGE_DIMM
+		nop
+		move  s7, v0  
+
+		/* show value of 64 bit s1 of MC1 */
+        PRINTSTR("\r\nNow Merged MC1: ");
+        move	a0,s7;
+		dsrl	a0,32;
+        bal     hexserial;
+        nop;
+        PRINTSTR("_");
+        move	a0,s7;
+        bal     hexserial;
+        nop;
+        PRINTSTR("\r\n");
 #else
-	li      s1, 0x1c1c33a4
+        li      s6, 0x14140c24 /* s6 used to save detected infomation from MC0 */
+        li      s7, 0x14140c24 /* s7 used to save detected infomation from MC1 */
+#endif
 
-	bal     tgt_testchar
-	la      v0, 0
-	nop
-	beqz    v0, ddr_config_entry
-	nop
+		/* calculate memory size */
+		move	a0,s6
+		move	a1,s7
+		bal		CALCULATE_MEMSZ
+		nop
+		move	msize,v0
 
-	//PRINTSTR("[ 6: 4]: SIZE_PER_CONTROLLER\r\n  | 3'b001: 512MB |\r\n  | 3'b010: 1G    |\r\n | 3'b011: 2G  |\r\n[ 3: 2]:CONTROLLER_SELECT\r\n | 2'b00 : USE BOTH |\r\n  | 2'b01 : MC0_ONLY |\r\n  | 2'b10 : MC1_ONLY |\r\n[ 1: 0]: NODE ID\r\n")
-	li     t6, 0x00
-	bal     inputaddress    #input value stored in v0
-	nop
-	move    s1, v0  #store v0 to s1
+        PRINTSTR("\r\nTotal Memory Size: ");
+		/* show value of 64 bit memsize */
+        move	a0,msize;
+		dsrl	a0,32;
+        bal     hexserial;
+        nop;
+        PRINTSTR("_");
+        move	a0,msize;
+        bal     hexserial;
+        nop;
+        PRINTSTR("\r\n");
+
+
+        PRINTSTR("\r\nLast S1: ");
+		/* merge mem deteced info together */
+        li      v0,0x0
+		move	a0,s6
+		move	a1,s7
+		bal		MERGE_CHANNEL
+		nop
+		move	s1,v0
+
+		/* show value of 64 bit s1 of MC0 and MC1 */
+        move	a0,s1;
+		dsrl	a0,32;
+        bal     hexserial;
+        nop;
+        PRINTSTR("_");
+        move	a0,s1;
+        bal     hexserial;
+        nop;
+        PRINTSTR("\r\n");
+
+//#define DEBUG_DDR
+#ifdef  DEBUG_DDR
+        bal     tgt_testchar
+        nop
+        beqz    v0, ddr_config_entry
+        nop
+
+	    //PRINTSTR("[ 6: 4]: SIZE_PER_CONTROLLER\r\n         | 3'b001: 512MB |\r\n         | 3'b010: 1G    |\r\n         | 3'b011: 2G    |\r\n[ 3: 2]: CONTROLLER_SELECT\r\n         | 2'b00 : USE BOTH |\r\n         | 2'b01 : MC0_ONLY |\r\n         | 2'b10 : MC1_ONLY |\r\n[ 1: 0]: NODE ID\r\n")
+        li	    t6, 0x00
+	    bal	    inputaddress	#input value stored in v0
+	    nop
+	    move	s1, v0	#store v0 to s1
 ddr_config_entry:
-
 #endif
 
 #include "loongson3_ddr2_config.S"
@@ -1847,7 +1957,7 @@ ddr_config_entry:
 		li	t1,128
 #	addiu	a2,a0,3
 		sb	t1,3(a0)
-		li	t1,0x12      # divider, highest possible baud rate
+		li	t1,0x0e      # divider, highest possible baud rate
 		sb	t1,0(a0)
 		li	t1,0x0     # divider, highest possible baud rate
 		sb	t1,1(a0)
