@@ -1143,36 +1143,36 @@ gs_2f_v3_ddr2_cfg:
 	or 	    a0, t1
 		sw	    a0, 0x0(a1);
 
-	PRINTSTR("\r\nProbing DDR SLOT: ");
 	li      s1,0x0
-		//PRINTSTR("\r\nProbe MC0:JB09: ");
-		li      a0,0xa1;
+
+	PRINTSTR("\r\nProbe MC0:JB09: ");
+	li      a0,0xa1;
 	li      a1,MC0_USED;
 	bal     PROBE_DIMM;
 	nop;
-	//move	a0,s1;
-	//bal hexserial;
-	//nop;
+	move	a0,s1;
+	bal hexserial;
+	nop;
 
-	//PRINTSTR("\r\nProbe MC0:JB10: ");
+	PRINTSTR("\r\nProbe MC0:JB10: ");
 	li      a0,0xa3;
 	li      a1,MC0_USED;
 	bal     PROBE_DIMM;
 	nop;
-	//move	a0,s1;
-	//bal hexserial;
-	//nop;
+	move	a0,s1;
+	bal hexserial;
+	nop;
 
-	//PRINTSTR("\r\nProbe MC1:JB11: ");
+	PRINTSTR("\r\nProbe MC1:JB11: ");
 	li      a0,0xa5;
 	li      a1,MC1_USED;
 	bal     PROBE_DIMM;
 	nop;
-	//move	a0,s1;
-	//bal hexserial;
-	//nop;
+	move	a0,s1;
+	bal hexserial;
+	nop;
 
-	//PRINTSTR("\r\nProbe MC1:JB12: ");
+	PRINTSTR("\r\nProbe MC1:JB12: ");
 	li      a0,0xa7;
 	li      a1,MC1_USED;
 	bal     PROBE_DIMM;
