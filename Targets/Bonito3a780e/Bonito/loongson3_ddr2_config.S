@@ -328,6 +328,21 @@ ddr_1GB:
         dli     a1, 0x20
         beq     a1, a0, ddr_1GB_MC0
         nop
+        dli     a1, 0x30
+        beq     a1, a0, ddr_2GB_MC0
+        nop
+
+ddr_4GB_MC0:
+	    PRINTSTR("MC0 space open : 0x100000000 - 0x1FFFFFFFF\r\n")
+
+        GET_NODE_ID_a0;
+        XBAR_CONFIG_NODE_a0(0x20, \
+                            0x0000000100000000, \
+                            0xffffffff00000000, \
+                            0x00000000000000f0)
+        b       2f
+        nop
+
 ddr_2GB_MC0:
 	    PRINTSTR("MC0 space open : 0x80000000 - 0xFFFFFFFF\r\n")
 
@@ -372,6 +387,22 @@ ddr_512MB_MC0:
         dli     a1, 0x20
         beq     a1, a0, ddr_1GB_MC1
         nop
+        dli     a1, 0x30
+        beq     a1, a0, ddr_2GB_MC1
+        nop
+
+ddr_4GB_MC1:
+	    PRINTSTR("MC1 space open : 0x100000000 - 0x1FFFFFFFF\r\n")
+
+        GET_NODE_ID_a0;
+        XBAR_CONFIG_NODE_a0(0x20, \
+                            0x0000000100000000, \
+                            0xffffffff00000000, \
+                            0x00000000000000f1)
+        b       2f
+        nop
+
+
 ddr_2GB_MC1:
 	    PRINTSTR("MC1 space open : 0x80000000 - 0xFFFFFFFF\r\n")
 
@@ -409,7 +440,21 @@ ddr_512MB_MC1:
         nop
 
 1:
-/* ONLY 1GB has INTERLEAVE mode by now */
+#define PER_CONTROLLER_512M 0x10
+#define PER_CONTROLLER_1G	0x20
+#define PER_CONTROLLER_2G	0x30
+
+		GET_DDR_SIZE    
+//		beq	a0, PER_CONTROLLER_512M, interleave_512m  ; almost no 512M mem used now
+		nop
+		beq	a0, PER_CONTROLLER_1G, interleave_1g 
+		nop
+		beq	a0, PER_CONTROLLER_2G, interleave_2g 
+		nop
+		
+/* 1GB INTERLEAVE below*/
+
+interleave_1g:
 #ifdef NO_INTERLEAVE
 	    PRINTSTR("DDR space open : 0x80000000 - 0xFFFFFFFF\r\n")
 
@@ -584,7 +629,188 @@ ddr_512MB_MC1:
 #endif
 #endif
 #endif
+		  b  interleave_out;
+		  nop
+
+interleave_2g:
+#ifdef NO_INTERLEAVE
+	    PRINTSTR("DDR space open : 0x100000000 - 0x1FFFFFFFF\r\n")
+
+        GET_NODE_ID_a0;
+        XBAR_CONFIG_NODE_a0(0x20, \
+                            0x0000000100000000, \
+                            0xffffffff80000000, \
+                            0x00000000000000f0)
+        XBAR_CONFIG_NODE_a0(0x38, \
+                            0x0000000180000000, \
+                            0xffffffff80000000, \
+                            0x00000000000000f1)
+
+	    PRINTSTR("PCI DDR space open : 0x100000000 - 0x1FFFFFFFF\r\n")
+
+        // Disable the default Windows
+        dli     t1, 0x0
+        sd      t1, 0x180(t0)
+
+        // Enable others
+        GET_NODE_ID_a0;
+        XBAR_CONFIG_NODE_a0(0x120, \
+                            0x0000000100000000, \
+                            0xffffffff80000000, \
+                            0x00000000000000f0)
+        XBAR_CONFIG_NODE_a0(0x138, \
+                            0x0000000180000000, \
+                            0xffffffff80000000, \
+                            0x00000000000000f1)
+
+#else
+#ifdef INTERLEAVE_27
+	    PRINTSTR("DDR Interleave space open : 0x100000000 - 0x1FFFFFFFF\r\n")
+	    PRINTSTR("DDR Interleave using Bit 27\r\n")
+
+        GET_NODE_ID_a0;
+        XBAR_CONFIG_NODE_a0(0x20, \
+                            0x0000000100000000, \
+                            0xffffffff88000000, \
+                            0x00000000000000f0)
+        XBAR_CONFIG_NODE_a0(0x28, \
+                            0x0000000108000000, \
+                            0xffffffff88000000, \
+                            0x00000000000000f1)
+        XBAR_CONFIG_NODE_a0(0x30, \
+                            0x0000000180000000, \
+                            0xffffffff88000000, \
+                            0x00000000080000f0)
+        XBAR_CONFIG_NODE_a0(0x38, \
+                            0x0000000188000000, \
+                            0xffffffff88000000, \
+                            0x00000000080000f1)
+
+#else
+#ifdef INTERLEAVE_13
+	    PRINTSTR("DDR Interleave space open : 0x100000000 - 0x1FFFFFFFF\r\n")
+	    PRINTSTR("DDR Interleave using Bit 13\r\n")
+
+        GET_NODE_ID_a0;
+        XBAR_CONFIG_NODE_a0(0x20, \
+                            0x0000000100000000, \
+                            0xffffffff80002000, \
+                            0x00000000000000f0)
+        XBAR_CONFIG_NODE_a0(0x28, \
+                            0x0000000100002000, \
+                            0xffffffff80002000, \
+                            0x00000000000000f1)
+        XBAR_CONFIG_NODE_a0(0x30, \
+                            0x0000000180000000, \
+                            0xffffffff80002000, \
+                            0x00000000000020f0)
+        XBAR_CONFIG_NODE_a0(0x38, \
+                            0x0000000180002000, \
+                            0xffffffff80002000, \
+                            0x00000000000020f1)
+
+#else
+#ifdef INTERLEAVE_12
+	    PRINTSTR("DDR Interleave space open : 0x100000000 - 0x1FFFFFFFF\r\n")
+	    PRINTSTR("DDR Interleave using Bit 12\r\n")
+
+        GET_NODE_ID_a0;
+        XBAR_CONFIG_NODE_a0(0x20, \
+                            0x0000000100000000, \
+                            0xffffffff80001000, \
+                            0x00000000000000f0)
+        XBAR_CONFIG_NODE_a0(0x28, \
+                            0x0000000100001000, \
+                            0xffffffff80001000, \
+                            0x00000000000000f1)
+        XBAR_CONFIG_NODE_a0(0x30, \
+                            0x0000000180000000, \
+                            0xffffffff80001000, \
+                            0x00000000000010f0)
+        XBAR_CONFIG_NODE_a0(0x38, \
+                            0x0000000180001000, \
+                            0xffffffff80001000, \
+                            0x00000000000010f1)
+
+#else
+#ifdef INTERLEAVE_11
+	    PRINTSTR("DDR Interleave space open : 0x100000000 - 0x1FFFFFFFF\r\n")
+	    PRINTSTR("DDR Interleave using Bit 11\r\n")
+
+        GET_NODE_ID_a0;
+        XBAR_CONFIG_NODE_a0(0x20, \
+                            0x0000000100000000, \
+                            0xffffffff80000800, \
+                            0x00000000000000f0)
+        XBAR_CONFIG_NODE_a0(0x28, \
+                            0x0000000100000800, \
+                            0xffffffff80000800, \
+                            0x00000000000000f1)
+        XBAR_CONFIG_NODE_a0(0x30, \
+                            0x0000000180000000, \
+                            0xffffffff80000800, \
+                            0x00000000000008f0)
+        XBAR_CONFIG_NODE_a0(0x38, \
+                            0x0000000180000800, \
+                            0xffffffff80000800, \
+                            0x00000000000008f1)
+
+	    PRINTSTR("PCI DDR Interleave space open : 0x80000000 - 0xFFFFFFFF\r\n")
+	    PRINTSTR("PCI DDR Interleave using Bit 11\r\n")
+
+        // Disable the default Windows
+        dli     t1, 0x0
+        sd      t1, 0x180(t0)
+
+        // Enable others
+        GET_NODE_ID_a0;
+        XBAR_CONFIG_NODE_a0(0x120, \
+                            0x0000000100000000, \
+                            0xffffffff80000800, \
+                            0x00000000000000f0)
+        XBAR_CONFIG_NODE_a0(0x128, \
+                            0x0000000100000800, \
+                            0xffffffff80000800, \
+                            0x00000000000000f1)
+        XBAR_CONFIG_NODE_a0(0x130, \
+                            0x0000000180000000, \
+                            0xffffffff80000800, \
+                            0x00000000000008f0)
+        XBAR_CONFIG_NODE_a0(0x138, \
+                            0x0000000180000800, \
+                            0xffffffff80000800, \
+                            0x00000000000008f1)
+
+#else
+	    PRINTSTR("DDR Interleave space open : 0x100000000 - 0x1FFFFFFFF\r\n")
+
+        GET_NODE_ID_a0;
+        XBAR_CONFIG_NODE_a0(0x20, \
+                            0x0000000100000000, \
+                            0xffffffff80000400, \
+                            0x00000000000000f0)
+        XBAR_CONFIG_NODE_a0(0x28, \
+                            0x0000000100000400, \
+                            0xffffffff80000400, \
+                            0x00000000000000f1)
+        XBAR_CONFIG_NODE_a0(0x30, \
+                            0x0000000180000000, \
+                            0xffffffff80000400, \
+                            0x00000000000004f0)
+        XBAR_CONFIG_NODE_a0(0x38, \
+                            0x0000000180000400, \
+                            0xffffffff80000400, \
+                            0x00000000000004f1)
+
+#endif
+#endif
+#endif
+#endif
+#endif
+
 2:
+
+interleave_out:
 
 #if 0 //print registers
     li      t1, 151

@@ -383,3 +383,4 @@ file pmon/dev/md5.c
 #command: cat
 file pmon/cmds/cat.c	mod_cat
 file pmon/cmds/install.c	
+file pmon/cmds/showwindows.c	

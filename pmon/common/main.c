@@ -427,7 +427,6 @@ if(!run)
 		printf("==WARN: First Run\n==WARN: Setup the default boot configure\n");
 		setenv("FR", "1");
 	}
-
 	autoinstall("/dev/fs/iso9660@cd0/vmlinuxb");
 
 	if(getenv("al") == NULL) /* CDROM autoload */
@@ -440,12 +439,18 @@ if(!run)
 		setenv("append","console=tty root=/dev/sda1");
 	}
 
-	s = getenv ("al");
+	//autoload("/dev/fs/ext2@wd0/boot/vmlinux");
+	cmd_showwindows();
+	do_cmd("load /dev/fs/ext2@wd0/boot/vmlinux"); 
+	do_cmd("g console=tty root=/dev/sda1"); 
+#if 0
+	s = getenv ("al1");
 	ret = autoload (s);
 	if (ret == 1) {
-		s = getenv("al1");
+		s = getenv("al");
 		ret = autoload (s);
 	}
+#endif
 
 #else
 	s = getenv ("autoboot");
@@ -499,7 +504,7 @@ static int autoload(char *s)
 	if(s != NULL  && strlen(s) != 0) {
 		char *d = getenv ("bootdelay");
 		if(!d || !atob (&dly, d, 10) || dly < 0 || dly > 99) {
-			dly = 3;
+			dly = 8;
 		}
 
 		SBD_DISPLAY ("AUTO", CHKPNT_AUTO);
@@ -621,7 +626,6 @@ autorun(char *s)
 	}
 }
 #endif
-
 static int
 autoinstall(char *s)
 {
@@ -629,14 +633,15 @@ autoinstall(char *s)
 	char *pa;
 	char *rd;
 	unsigned int dly, lastt;
-	unsigned int cnt;
+	unsigned int cnt = 0;
+	//unsigned int cnt ;
 	struct termio sav;
 	int ret = -1;
 
 	  if(s != NULL  && strlen(s) != 0) {
 		char *d = getenv ("installdelay");
 		if(!d || !atob (&dly, d, 10) || dly < 0 || dly > 99) {
-			dly = 4;
+			dly = 5;
 		}
 
 		SBD_DISPLAY ("AUTO", CHKPNT_AUTO);
@@ -650,7 +655,8 @@ autoinstall(char *s)
 			printf ("\b\b%02d", --dly);
 			//printf (".", --dly);
 			ioctl (STDIN, FIONREAD, &cnt);
-		} while (dly != 0);
+		 } while (dly != 0 && cnt == 0);
+		//} while (dly != 0);
 
 		//if(cnt > 0! strchr("\0x71", getchar())) {
 		if(cnt > 0 && strchr("\0x71", getchar())) {
@@ -676,6 +682,7 @@ autoinstall(char *s)
 		  printf( "\n%s\n", buf);
 		  do_cmd(buf);
 	}
+//	printf( "\n NO <F2> entered in 5 secs\n");
   }
   return ret;
 }

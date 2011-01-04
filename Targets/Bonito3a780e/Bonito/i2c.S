@@ -158,7 +158,7 @@ LEAF(PROBE_DIMM)
 	beqz  a0,100f //DDR2
 	nop
 
-#if 1
+#if 0
 	ori	s1,DDRPERSZ_1G // DDR3, default size 2G
 	b	  15f	
 	nop
@@ -613,6 +613,7 @@ MERGE_DIMM:
 	nop
 	move  v0,a1	  /* no DIMM on CS[1:0], return a1 */
 	jr	  ra
+	nop
 	
 10:
 	bne	  a1,0x0,12f
@@ -667,13 +668,14 @@ MERGE_DIMM:
 
 1:
   	############## now check MC1 ###########
-
 	/* check whther both Register or Unbuffered */
+#if 1
 	dli	  t2, 0x800000000
 	and  t0,a0,t2
 	and  t1,a1,t2
 	bne  t0,t1, err
 	nop
+#endif
 
 	/* check whther has same row */
 	dli	  t2, 0x70000000
@@ -698,14 +700,22 @@ MERGE_DIMM:
 	
 2: ## now merge mem size together of DIMM0 and DIMM1 on the same MC ##
 	/* set v0 with a0 first */
-	move  v0, a0
 
+	move  v0, a0
 	/* merge CS_MAP together */
 	// shift right 2 bits, NOTICE here assume cs[3:2] connected DIMMB
 	//andi  t0, a0, 0xc00 
 	//srl	  t0,0x2
 	//or	v0,t0
-	andi  t0, a1, 0xc00 
+
+	beq	a2, MC0_USED,221f
+	nop
+	andi  t0, a1, 0xc000  // MC1
+	b	222f
+	nop
+221:
+	andi  t0, a1, 0xc00   // MC0
+222:
 	or	v0,t0
 
 	/* merge MIMM mem size together */
