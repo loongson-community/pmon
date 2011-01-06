@@ -63,79 +63,80 @@ ${OBJDIR}/lib${LIB}.a: ${OBJS}
 adler32.o: zlib.h zconf.h
 crc32.o: zlib.h zconf.h
 infblock.o: zutil.h zlib.h zconf.h
-infblock.o: /home2/xiaqichao/pmon-loongson3-show/include/stddef.h
-infblock.o: /home2/xiaqichao/pmon-loongson3-show/Targets/Bonito3a780e/compile/Bonito/machine/ansi.h
-infblock.o: /home2/xiaqichao/pmon-loongson3-show/include/string.h
-infblock.o: /home2/xiaqichao/pmon-loongson3-show/sys/sys/cdefs.h
-infblock.o: /home2/xiaqichao/pmon-loongson3-show/Targets/Bonito3a780e/compile/Bonito/machine/cdefs.h
-infblock.o: /home2/xiaqichao/pmon-loongson3-show/include/stdlib.h
-infblock.o: /home2/xiaqichao/pmon-loongson3-show/sys/sys/types.h
-infblock.o: /home2/xiaqichao/pmon-loongson3-show/Targets/Bonito3a780e/compile/Bonito/machine/types.h
-infblock.o: /home2/xiaqichao/pmon-loongson3-show/Targets/Bonito3a780e/compile/Bonito/machine/endian.h
-infblock.o: /home2/xiaqichao/pmon-loongson3-show/sys/sys/endian.h
-infblock.o: /home2/xiaqichao/pmon-loongson3-show/include/errno.h infblock.h
-infblock.o: inftrees.h infcodes.h infutil.h
+infblock.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/include/stddef.h
+infblock.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/Targets/Bonito3a780e/compile/Bonito/machine/ansi.h
+infblock.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/include/string.h
+infblock.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/sys/sys/cdefs.h
+infblock.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/Targets/Bonito3a780e/compile/Bonito/machine/cdefs.h
+infblock.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/include/stdlib.h
+infblock.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/sys/sys/types.h
+infblock.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/Targets/Bonito3a780e/compile/Bonito/machine/types.h
+infblock.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/Targets/Bonito3a780e/compile/Bonito/machine/endian.h
+infblock.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/sys/sys/endian.h
+infblock.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/include/errno.h
+infblock.o: infblock.h inftrees.h infcodes.h infutil.h
 infcodes.o: zutil.h zlib.h zconf.h
-infcodes.o: /home2/xiaqichao/pmon-loongson3-show/include/stddef.h
-infcodes.o: /home2/xiaqichao/pmon-loongson3-show/Targets/Bonito3a780e/compile/Bonito/machine/ansi.h
-infcodes.o: /home2/xiaqichao/pmon-loongson3-show/include/string.h
-infcodes.o: /home2/xiaqichao/pmon-loongson3-show/sys/sys/cdefs.h
-infcodes.o: /home2/xiaqichao/pmon-loongson3-show/Targets/Bonito3a780e/compile/Bonito/machine/cdefs.h
-infcodes.o: /home2/xiaqichao/pmon-loongson3-show/include/stdlib.h
-infcodes.o: /home2/xiaqichao/pmon-loongson3-show/sys/sys/types.h
-infcodes.o: /home2/xiaqichao/pmon-loongson3-show/Targets/Bonito3a780e/compile/Bonito/machine/types.h
-infcodes.o: /home2/xiaqichao/pmon-loongson3-show/Targets/Bonito3a780e/compile/Bonito/machine/endian.h
-infcodes.o: /home2/xiaqichao/pmon-loongson3-show/sys/sys/endian.h
-infcodes.o: /home2/xiaqichao/pmon-loongson3-show/include/errno.h inftrees.h
-infcodes.o: infblock.h infcodes.h infutil.h inffast.h
+infcodes.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/include/stddef.h
+infcodes.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/Targets/Bonito3a780e/compile/Bonito/machine/ansi.h
+infcodes.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/include/string.h
+infcodes.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/sys/sys/cdefs.h
+infcodes.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/Targets/Bonito3a780e/compile/Bonito/machine/cdefs.h
+infcodes.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/include/stdlib.h
+infcodes.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/sys/sys/types.h
+infcodes.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/Targets/Bonito3a780e/compile/Bonito/machine/types.h
+infcodes.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/Targets/Bonito3a780e/compile/Bonito/machine/endian.h
+infcodes.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/sys/sys/endian.h
+infcodes.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/include/errno.h
+infcodes.o: inftrees.h infblock.h infcodes.h infutil.h inffast.h
 inffast.o: zutil.h zlib.h zconf.h
-inffast.o: /home2/xiaqichao/pmon-loongson3-show/include/stddef.h
-inffast.o: /home2/xiaqichao/pmon-loongson3-show/Targets/Bonito3a780e/compile/Bonito/machine/ansi.h
-inffast.o: /home2/xiaqichao/pmon-loongson3-show/include/string.h
-inffast.o: /home2/xiaqichao/pmon-loongson3-show/sys/sys/cdefs.h
-inffast.o: /home2/xiaqichao/pmon-loongson3-show/Targets/Bonito3a780e/compile/Bonito/machine/cdefs.h
-inffast.o: /home2/xiaqichao/pmon-loongson3-show/include/stdlib.h
-inffast.o: /home2/xiaqichao/pmon-loongson3-show/sys/sys/types.h
-inffast.o: /home2/xiaqichao/pmon-loongson3-show/Targets/Bonito3a780e/compile/Bonito/machine/types.h
-inffast.o: /home2/xiaqichao/pmon-loongson3-show/Targets/Bonito3a780e/compile/Bonito/machine/endian.h
-inffast.o: /home2/xiaqichao/pmon-loongson3-show/sys/sys/endian.h
-inffast.o: /home2/xiaqichao/pmon-loongson3-show/include/errno.h inftrees.h
-inffast.o: infblock.h infcodes.h infutil.h inffast.h
+inffast.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/include/stddef.h
+inffast.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/Targets/Bonito3a780e/compile/Bonito/machine/ansi.h
+inffast.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/include/string.h
+inffast.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/sys/sys/cdefs.h
+inffast.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/Targets/Bonito3a780e/compile/Bonito/machine/cdefs.h
+inffast.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/include/stdlib.h
+inffast.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/sys/sys/types.h
+inffast.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/Targets/Bonito3a780e/compile/Bonito/machine/types.h
+inffast.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/Targets/Bonito3a780e/compile/Bonito/machine/endian.h
+inffast.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/sys/sys/endian.h
+inffast.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/include/errno.h
+inffast.o: inftrees.h infblock.h infcodes.h infutil.h inffast.h
 inflate.o: zutil.h zlib.h zconf.h
-inflate.o: /home2/xiaqichao/pmon-loongson3-show/include/stddef.h
-inflate.o: /home2/xiaqichao/pmon-loongson3-show/Targets/Bonito3a780e/compile/Bonito/machine/ansi.h
-inflate.o: /home2/xiaqichao/pmon-loongson3-show/include/string.h
-inflate.o: /home2/xiaqichao/pmon-loongson3-show/sys/sys/cdefs.h
-inflate.o: /home2/xiaqichao/pmon-loongson3-show/Targets/Bonito3a780e/compile/Bonito/machine/cdefs.h
-inflate.o: /home2/xiaqichao/pmon-loongson3-show/include/stdlib.h
-inflate.o: /home2/xiaqichao/pmon-loongson3-show/sys/sys/types.h
-inflate.o: /home2/xiaqichao/pmon-loongson3-show/Targets/Bonito3a780e/compile/Bonito/machine/types.h
-inflate.o: /home2/xiaqichao/pmon-loongson3-show/Targets/Bonito3a780e/compile/Bonito/machine/endian.h
-inflate.o: /home2/xiaqichao/pmon-loongson3-show/sys/sys/endian.h
-inflate.o: /home2/xiaqichao/pmon-loongson3-show/include/errno.h infblock.h
+inflate.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/include/stddef.h
+inflate.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/Targets/Bonito3a780e/compile/Bonito/machine/ansi.h
+inflate.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/include/string.h
+inflate.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/sys/sys/cdefs.h
+inflate.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/Targets/Bonito3a780e/compile/Bonito/machine/cdefs.h
+inflate.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/include/stdlib.h
+inflate.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/sys/sys/types.h
+inflate.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/Targets/Bonito3a780e/compile/Bonito/machine/types.h
+inflate.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/Targets/Bonito3a780e/compile/Bonito/machine/endian.h
+inflate.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/sys/sys/endian.h
+inflate.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/include/errno.h
+inflate.o: infblock.h
 inftrees.o: zutil.h zlib.h zconf.h
-inftrees.o: /home2/xiaqichao/pmon-loongson3-show/include/stddef.h
-inftrees.o: /home2/xiaqichao/pmon-loongson3-show/Targets/Bonito3a780e/compile/Bonito/machine/ansi.h
-inftrees.o: /home2/xiaqichao/pmon-loongson3-show/include/string.h
-inftrees.o: /home2/xiaqichao/pmon-loongson3-show/sys/sys/cdefs.h
-inftrees.o: /home2/xiaqichao/pmon-loongson3-show/Targets/Bonito3a780e/compile/Bonito/machine/cdefs.h
-inftrees.o: /home2/xiaqichao/pmon-loongson3-show/include/stdlib.h
-inftrees.o: /home2/xiaqichao/pmon-loongson3-show/sys/sys/types.h
-inftrees.o: /home2/xiaqichao/pmon-loongson3-show/Targets/Bonito3a780e/compile/Bonito/machine/types.h
-inftrees.o: /home2/xiaqichao/pmon-loongson3-show/Targets/Bonito3a780e/compile/Bonito/machine/endian.h
-inftrees.o: /home2/xiaqichao/pmon-loongson3-show/sys/sys/endian.h
-inftrees.o: /home2/xiaqichao/pmon-loongson3-show/include/errno.h inftrees.h
-inftrees.o: inffixed.h
+inftrees.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/include/stddef.h
+inftrees.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/Targets/Bonito3a780e/compile/Bonito/machine/ansi.h
+inftrees.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/include/string.h
+inftrees.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/sys/sys/cdefs.h
+inftrees.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/Targets/Bonito3a780e/compile/Bonito/machine/cdefs.h
+inftrees.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/include/stdlib.h
+inftrees.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/sys/sys/types.h
+inftrees.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/Targets/Bonito3a780e/compile/Bonito/machine/types.h
+inftrees.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/Targets/Bonito3a780e/compile/Bonito/machine/endian.h
+inftrees.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/sys/sys/endian.h
+inftrees.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/include/errno.h
+inftrees.o: inftrees.h inffixed.h
 infutil.o: zutil.h zlib.h zconf.h
-infutil.o: /home2/xiaqichao/pmon-loongson3-show/include/stddef.h
-infutil.o: /home2/xiaqichao/pmon-loongson3-show/Targets/Bonito3a780e/compile/Bonito/machine/ansi.h
-infutil.o: /home2/xiaqichao/pmon-loongson3-show/include/string.h
-infutil.o: /home2/xiaqichao/pmon-loongson3-show/sys/sys/cdefs.h
-infutil.o: /home2/xiaqichao/pmon-loongson3-show/Targets/Bonito3a780e/compile/Bonito/machine/cdefs.h
-infutil.o: /home2/xiaqichao/pmon-loongson3-show/include/stdlib.h
-infutil.o: /home2/xiaqichao/pmon-loongson3-show/sys/sys/types.h
-infutil.o: /home2/xiaqichao/pmon-loongson3-show/Targets/Bonito3a780e/compile/Bonito/machine/types.h
-infutil.o: /home2/xiaqichao/pmon-loongson3-show/Targets/Bonito3a780e/compile/Bonito/machine/endian.h
-infutil.o: /home2/xiaqichao/pmon-loongson3-show/sys/sys/endian.h
-infutil.o: /home2/xiaqichao/pmon-loongson3-show/include/errno.h infblock.h
-infutil.o: inftrees.h infcodes.h infutil.h
+infutil.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/include/stddef.h
+infutil.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/Targets/Bonito3a780e/compile/Bonito/machine/ansi.h
+infutil.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/include/string.h
+infutil.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/sys/sys/cdefs.h
+infutil.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/Targets/Bonito3a780e/compile/Bonito/machine/cdefs.h
+infutil.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/include/stdlib.h
+infutil.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/sys/sys/types.h
+infutil.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/Targets/Bonito3a780e/compile/Bonito/machine/types.h
+infutil.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/Targets/Bonito3a780e/compile/Bonito/machine/endian.h
+infutil.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/sys/sys/endian.h
+infutil.o: /home2/xiaqichao/bios/3a-amd/780/pmon-loongson3-show/include/errno.h
+infutil.o: infblock.h inftrees.h infcodes.h infutil.h

@@ -439,10 +439,10 @@ if(!run)
 		setenv("append","console=tty root=/dev/sda1");
 	}
 
-	//autoload("/dev/fs/ext2@wd0/boot/vmlinux");
+	autoload("/dev/fs/ext2@wd0/boot/vmlinux");
 	cmd_showwindows();
-	do_cmd("load /dev/fs/ext2@wd0/boot/vmlinux"); 
-	do_cmd("g console=tty root=/dev/sda1"); 
+	//do_cmd("load /dev/fs/ext2@wd0/boot/vmlinux"); 
+	//do_cmd("g console=tty root=/dev/sda1"); 
 #if 0
 	s = getenv ("al1");
 	ret = autoload (s);
