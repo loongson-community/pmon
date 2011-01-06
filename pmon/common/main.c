@@ -440,7 +440,7 @@ if(!run)
 	}
 
 	autoload("/dev/fs/ext2@wd0/boot/vmlinux");
-	cmd_showwindows();
+//	cmd_showwindows();
 	//do_cmd("load /dev/fs/ext2@wd0/boot/vmlinux"); 
 	//do_cmd("g console=tty root=/dev/sda1"); 
 #if 0
