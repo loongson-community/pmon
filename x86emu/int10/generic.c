@@ -286,8 +286,8 @@ int vga_bios_init(void)
 			unsigned char *tmp;
 			romaddress = (unsigned long)vgarom;
 			tmp = (unsigned char *)vgarom;
-			printk("Here after vgarom romaddress:%x\n",tmp[4]);
-			printk(" vgarom romaddress:0x%x\n",romaddress);
+//			printk("Here after vgarom romaddress:%x\n",tmp[4]);
+			printk("vgarom romaddress:0x%x\n",romaddress);
 		}
 #endif
 
@@ -393,7 +393,7 @@ int vga_bios_init(void)
 	printf("starting bios emu...\n");
 	M.x86.debug |= /*DEBUG_STEP_F | DEBUG_DECODE_F | DEBUG_TRACE_F | DEBUG_MEM_TRACE_F */ DEBUG_IO_TRACE_F | DEBUG_DECODE_F;
 	//X86EMU_trace_on();
-	printf("end of trace ......................................\n");
+//	printf("end of trace ......................................\n");
 	printf("ax=%lx,bx=%lx,cx=%lx,dx=%lx\n", pInt->ax, pInt->bx, pInt->cx, pInt->dx);
 	xf86ExecX86int10(pInt);
 	printf("just before emu done ax(0x%x)\n", pInt->ax);
@@ -417,7 +417,7 @@ int vga_bios_init(void)
 	pInt->ax = 0x0003;
 	xf86ExecX86int10(pInt);
 #else
-	printf("setting fb mode...\n");
+	//printf("setting fb mode...\n");
 	pInt->BIOSseg = V_BIOS >> 4;
 	pInt->num = 0x10;
 	{

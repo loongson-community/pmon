@@ -417,7 +417,7 @@ if(!run)
 		setenv("FR","0");
 		setenv("installdelay", "5");
 		setenv("autoinstall", "/dev/fs/iso9660@cd0/vmlinuxb");
-		setenv("rd", "/sbin/init");
+		//setenv("rd", "/sbin/init");
 		autoinstall("/dev/fs/iso9660@cd0/vmlinuxb");
 	}
 	if (strcmp (getenv("FR"),"0") == 0) {
@@ -439,11 +439,12 @@ if(!run)
 		setenv("append","console=tty root=/dev/sda1");
 	}
 
-	autoload("/dev/fs/ext2@wd0/boot/vmlinux");
+	//autoload("/dev/fs/ext2@wd0/boot/vmlinux");
+	//autorun("g console=tty root=/dev/sda1 rw");
 //	cmd_showwindows();
 	//do_cmd("load /dev/fs/ext2@wd0/boot/vmlinux"); 
 	//do_cmd("g console=tty root=/dev/sda1"); 
-#if 0
+#if 1
 	s = getenv ("al1");
 	ret = autoload (s);
 	if (ret == 1) {
@@ -641,7 +642,7 @@ autoinstall(char *s)
 	  if(s != NULL  && strlen(s) != 0) {
 		char *d = getenv ("installdelay");
 		if(!d || !atob (&dly, d, 10) || dly < 0 || dly > 99) {
-			dly = 5;
+			dly = 6;
 		}
 
 		SBD_DISPLAY ("AUTO", CHKPNT_AUTO);
@@ -659,8 +660,9 @@ autoinstall(char *s)
 		//} while (dly != 0);
 
 		//if(cnt > 0! strchr("\0x71", getchar())) {
-		if(cnt > 0 && strchr("\0x71", getchar())) {
-		//if(cnt > 0 && strchr("\n\r", getchar())) {
+	//	if(cnt > 0 && strchr("\0x71", getchar())) {
+		//if( cnt > 0 ) {
+		if(cnt > 0 && strchr("\n\r", getchar())) {
 		  ioctl (STDIN, TCSETAF, &sav);
 		  putchar ('\n');
 
@@ -673,11 +675,11 @@ autoinstall(char *s)
 		  do_cmd(buf);
 
 
-		  rd= getenv("rd");
+		  rd= getenv("rdinit");
 		  if (rd != 0) // set rd /sbin/init
 			sprintf(buf, "g console=tty rdinit=%s video=vfb:1 ", rd);
 		  else
-			sprintf(buf, "g console=tty rdinit=/sbin/init video=vfb:1 ", rd);
+			sprintf(buf, "g console=tty rdinit=/sbin/init video=vfb:1 ");
 
 		  printf( "\n%s\n", buf);
 		  do_cmd(buf);

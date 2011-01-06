@@ -35,7 +35,7 @@ int int_handler(xf86Int10InfoPtr pInt)
 	int num = pInt->num;
 	int ret = 0;
 
-	printf("int_handler called,int=%x\n", num);
+//	printf("int_handler called,int=%x\n", num);
 
 	switch (num) {
 #ifndef _PC

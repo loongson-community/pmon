@@ -20,7 +20,7 @@
         nop
         bal enable_rs780_dev8
         nop
-        PRINTSTR("\r\n test GPPSB\r\n")
+//        PRINTSTR("\r\n test GPPSB\r\n")
         li   a0,  0x0
         li   a1,  0x0
         bal    nbmisc_read_index_mips

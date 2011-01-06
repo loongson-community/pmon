@@ -575,7 +575,7 @@ tgt_devconfig()
 #ifdef RS780E
     int test;
     int  i;
-    printf(" ====================  frame buffer test begin======================:%x \n" , test);
+//    printf(" ====================  frame buffer test begin======================:%x \n" , test);
     for (i = 0;i < 0x100000;i += 4)
     {
         //printf(" i = %x \n" , i);
@@ -586,12 +586,12 @@ tgt_devconfig()
     {
         if (*((volatile int *)(0xb0000010 + i)) != i)
         {
-            printf(" not equal ====  %x\n" ,i);
+            //printf(" not equal ====  %x\n" ,i);
             break;
         }
     }
 
-    printf(" ====================  frame buffer test end======================:%x \n" , test);
+//    printf(" ====================  frame buffer test end======================:%x \n" , test);
 #endif
 #endif
 #endif

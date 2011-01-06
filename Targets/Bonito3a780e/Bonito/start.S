@@ -1272,8 +1272,7 @@ probe_mc1:
         move	a0,msize;
         bal     hexserial;
         nop;
-        PRINTSTR("\r\n");
-
+        //PRINTSTR("\r\n");
 
         PRINTSTR("\r\nLast S1: ");
 		/* merge mem deteced info together */
@@ -1385,14 +1384,14 @@ ddr_config_entry:
 #ifdef LS3_HT
 #include "loongson3_HT_init.S"
 #endif
-		PRINTSTR("\r\n======LeeWG : Watch Dog : 3\r\n")
+//		PRINTSTR("\r\n======LeeWG : Watch Dog : 3\r\n")
 		WatchDog_Close;
-		PRINTSTR("\r\n======LeeWG : Watch Dog : 4\r\n")
+//		PRINTSTR("\r\n======LeeWG : Watch Dog : 4\r\n")
 
 #include "3aserver_bridge_config.S"
 ##########################################
 
-#if 1 //cww_X2
+#if 0 //cww_X2
 		PRINTSTR("\r\n======X1 core0 map windows:\r\n")
 		li      t1, 23
 		dli     t2, 0x900000003ff02000
@@ -1448,7 +1447,7 @@ ddr_config_entry:
 		addiu   t1, t1, -1
 #endif
 
-#if 1
+#if 0
 		PRINTSTR("\r\n======read HT config reg:\r\n")
 		dli     t2, 0x90000efdfb000000
 

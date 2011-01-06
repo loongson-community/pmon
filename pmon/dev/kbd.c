@@ -344,7 +344,7 @@ int kbd_initialize(void)
 		if (status == KBD_REPLY_ACK)
 			break;
 		if (status != KBD_REPLY_RESEND) {
-			printf("reset failed\n");
+//			printf("reset failed\n");
 			if (++count > 1)
 				break;
 			//return 2;
