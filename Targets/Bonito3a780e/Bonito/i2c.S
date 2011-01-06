@@ -158,7 +158,7 @@ LEAF(PROBE_DIMM)
 	beqz  a0,100f //DDR2
 	nop
 
-#if 0
+#if 1 //NOTICE HERE!!!! changed to 1g mem
 	ori	s1,DDRPERSZ_1G // DDR3, default size 2G
 	b	  15f	
 	nop

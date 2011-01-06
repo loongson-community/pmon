@@ -1136,6 +1136,8 @@ gs_2f_v3_ddr2_cfg:
 #define AUTO_DDR_CONFIG
 #ifdef AUTO_DDR_CONFIG
 
+		WatchDog_Enable;
+
 	/* Open the SMBUS controller */
 	dli	    a1,0x90000efdfe00a090 ; #b:d:f:r=0:14:0:90 set tmp config address
 	li	    a0,SMBUS_IO_BASE_VALUE | 0x1
@@ -1147,6 +1149,8 @@ gs_2f_v3_ddr2_cfg:
 	li	    t1, 0x10000;
 	or 	    a0, t1
 	sw	    a0, 0x0(a1);
+
+		WatchDog_Close;
 /*************************************************************
  * NOTICE HERE: scan dimm of MC0 first, then dimm of MC1     * 
  * below define need to be CHANGED according different board *
@@ -1379,7 +1383,6 @@ ddr_config_entry:
 #endif
 
 		WatchDog_Enable;
-
 ##########################################
 #ifdef LS3_HT
 #include "loongson3_HT_init.S"

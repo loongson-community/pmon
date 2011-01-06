@@ -416,9 +416,11 @@ if(!run)
 	{
 		setenv("FR","0");
 		setenv("installdelay", "5");
-		setenv("autoinstall", "/dev/fs/iso9660@cd0/vmlinuxb");
+		//setenv("autoinstall", "/dev/fs/iso9660@cd0/vmlinuxb");
+		setenv("autoinstall", "/dev/fs/ext2@usb0/vmlinuxboot");
 		//setenv("rd", "/sbin/init");
-		autoinstall("/dev/fs/iso9660@cd0/vmlinuxb");
+		//autoinstall("/dev/fs/iso9660@cd0/vmlinuxb");
+		autoinstall("/dev/fs/ext2@usb0/vmlinuxboot");
 	}
 	if (strcmp (getenv("FR"),"0") == 0) {
 		unsetenv("al");
@@ -427,7 +429,9 @@ if(!run)
 		printf("==WARN: First Run\n==WARN: Setup the default boot configure\n");
 		setenv("FR", "1");
 	}
-	autoinstall("/dev/fs/iso9660@cd0/vmlinuxb");
+	//autoinstall("/dev/fs/iso9660@cd0/vmlinuxb");
+	//autoinstall("/dev/fs/iso9660@cd0/vmlinuxb");
+	autoinstall("/dev/fs/ext2@usb0/vmlinuxboot");
 
 	if(getenv("al") == NULL) /* CDROM autoload */
 	{
@@ -660,9 +664,9 @@ autoinstall(char *s)
 		//} while (dly != 0);
 
 		//if(cnt > 0! strchr("\0x71", getchar())) {
-	//	if(cnt > 0 && strchr("\0x71", getchar())) {
+		if(cnt > 0 && strchr("\0x71\0x72\0x73", getchar())) {
 		//if( cnt > 0 ) {
-		if(cnt > 0 && strchr("\n\r", getchar())) {
+		//if(cnt > 0 && strchr("\n\r", getchar())) {
 		  ioctl (STDIN, TCSETAF, &sav);
 		  putchar ('\n');
 
