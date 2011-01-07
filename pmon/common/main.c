@@ -650,8 +650,9 @@ autoinstall(char *s)
 		}
 
 		SBD_DISPLAY ("AUTO", CHKPNT_AUTO);
-		printf("Press <F2> to execute system installing :%s\n",s);
+		//printf("Press <F2> to execute system installing :%s\n",s);
 		//printf("Press <Enter> to execute loading image:%s\n",s);
+		printf("Press 'i' to execute install image:%s\n",s);
 		printf("Press any other key to abort.\n");
 		ioctl (STDIN, CBREAK, &sav);
 		lastt = 0;
@@ -664,9 +665,9 @@ autoinstall(char *s)
 		//} while (dly != 0);
 
 		//if(cnt > 0! strchr("\0x71", getchar())) {
-		if(cnt > 0 && strchr("\0x71\0x72\0x73", getchar())) {
+		//if(cnt > 0 && strchr("\0x71\0x72\0x73", getchar())) {
 		//if( cnt > 0 ) {
-		//if(cnt > 0 && strchr("\n\r", getchar())) {
+		if(cnt > 0 && strchr("iI", getchar())) {
 		  ioctl (STDIN, TCSETAF, &sav);
 		  putchar ('\n');
 
@@ -680,7 +681,7 @@ autoinstall(char *s)
 
 
 		  rd= getenv("rdinit");
-		  if (rd != 0) // set rd /sbin/init
+	  if (rd != 0) // set rd /sbin/init
 			sprintf(buf, "g console=tty rdinit=%s video=vfb:1 ", rd);
 		  else
 			sprintf(buf, "g console=tty rdinit=/sbin/init video=vfb:1 ");
