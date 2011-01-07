@@ -642,6 +642,7 @@ autoinstall(char *s)
 	//unsigned int cnt ;
 	struct termio sav;
 	int ret = -1;
+	char c;
 
 	  if(s != NULL  && strlen(s) != 0) {
 		char *d = getenv ("installdelay");
@@ -652,7 +653,7 @@ autoinstall(char *s)
 		SBD_DISPLAY ("AUTO", CHKPNT_AUTO);
 		//printf("Press <F2> to execute system installing :%s\n",s);
 		//printf("Press <Enter> to execute loading image:%s\n",s);
-		printf("Press 'i' to execute install image:%s\n",s);
+		printf("Press 'u(usb)' or 'c(cdrom)' to  install image from usb or cdrom:%s\n",s);
 		printf("Press any other key to abort.\n");
 		ioctl (STDIN, CBREAK, &sav);
 		lastt = 0;
@@ -667,14 +668,27 @@ autoinstall(char *s)
 		//if(cnt > 0! strchr("\0x71", getchar())) {
 		//if(cnt > 0 && strchr("\0x71\0x72\0x73", getchar())) {
 		//if( cnt > 0 ) {
-		if(cnt > 0 && strchr("iI", getchar())) {
+		if(cnt > 0 && strchr("uUcC", c=getchar())) {
+		//if(cnt > 0 && (c=getchar())) {
+		//if(cnt > 0) {
+		 // printf("cnt = %d: input = 0x%08x\n", cnt, getchar());
+		  //printf("input = 0x%08x\n", c=getchar());
+		  //putchar();
 		  ioctl (STDIN, TCSETAF, &sav);
 		  putchar ('\n');
 
+#if 0
 		  if(getenv("autoinstall"))
 			  sprintf(buf, "load %s", getenv("autoinstall"));
 		  else
 			  sprintf(buf, "load /dev/fs/iso9660@cd0/vmlinuxb");
+#else
+		  if(c == 'u' || c == 'U')
+			  //sprintf(buf, "load %s", getenv("autoinstall"));
+			  sprintf(buf, "load /dev/fs/ext2@usb0/vmlinuxboot");
+		  if(c == 'c' || c == 'C')
+			  sprintf(buf, "load /dev/fs/iso9660@cd0/vmlinuxb");
+#endif
 
 		  printf( "\n%s\n", buf);
 		  do_cmd(buf);
