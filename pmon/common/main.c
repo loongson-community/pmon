@@ -80,6 +80,9 @@ struct termio	consterm;	/* console terminal mode */
 register_t	initial_sr;
 unsigned long long             memorysize;
 unsigned long long             memorysize_high;
+unsigned long long             memorysize_n1;
+unsigned long long             memorysize_n2;
+unsigned long long             memorysize_n3;
 char            prnbuf[LINESZ + 8];	/* commonly used print buffer */
 
 int             repeating_cmd;
