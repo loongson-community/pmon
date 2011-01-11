@@ -414,8 +414,11 @@ typedef u_int8_t pci_revision_t;
 	    ((mr) & PCI_MAPREG_IO_ADDR_MASK)
 #define	PCI_MAPREG_IO_SIZE(mr)						\
 	    (PCI_MAPREG_IO_ADDR(mr) & -PCI_MAPREG_IO_ADDR(mr))
+#if defined(LOONGSON3A_3AEV)||defined(LOONGSON2G_2G690E)||defined(LOONGSON3A_3A780E)
+#define	PCI_MAPREG_IO_ADDR_MASK			0xfffffff8
+#else
 #define	PCI_MAPREG_IO_ADDR_MASK			0xfffffffe
-
+#endif
 #define	PCI_MAPREG_ROM_ADDR(mr)						\
 	    ((mr) & PCI_MAPREG_ROM_ADDR_MASK)
 #define	PCI_MAPREG_ROM_SIZE(mr)						\

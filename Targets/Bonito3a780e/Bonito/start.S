@@ -1148,7 +1148,9 @@ gs_2f_v3_ddr2_cfg:
 	nop;
 	PRINTSTR("\r\n");
 #else
+	TTYDBG("not auto ddr2 config\r\n")
 	li      s1, 0x1c1c33a4
+	//li      s1, 0x1c1c33b0
 
 	bal     tgt_testchar
 	la      v0, 0
@@ -1480,7 +1482,7 @@ ddr_config_entry:
 		la  a2, stringserial
 		addu a2,a2,s0
 
-		srl	msize,20
+		//srl	msize,20
 		move	a0,msize
 
 #if 1 

@@ -192,7 +192,8 @@ int vga_bios_init(void)
 	memset(pInt->private, 0, sizeof(genericInt10Priv));
 	pInt->scrnIndex = 0;	/* screen */
 	base = INTPriv(pInt)->base = malloc(0x100000);
-#ifdef	RS690
+//#ifdef	RS690
+#if     defined(RS690) || defined(RS780E)
 	{
 		pcitag_t vga_bridge = _pci_make_tag(0, 1, 0);
 		unsigned int val;
@@ -274,7 +275,7 @@ int vga_bios_init(void)
 			printk("No rom address assigned,skipped\n");
 			return -1;
 		}
-#if defined(BONITOEL) && !( defined(RADEON7000) || defined(VESAFB) || defined(RS690) )
+#if defined(BONITOEL) && !( defined(RADEON7000) || defined(VESAFB) || defined(RS690)||defined(RS780E) )
 		romaddress |= 0x10000000;
 #endif
 
@@ -312,7 +313,8 @@ int vga_bios_init(void)
 				return -1;
 			}
 
-#ifdef	RS690
+//#ifdef	RS690
+#if   defined(RS690) || defined(RS780E)
 			*((volatile unsigned int *)((romaddress + ppcidata + 4))) = _pci_conf_read(pdev->pa.pa_tag, 0x00);
 #endif
 		} else {
@@ -322,7 +324,7 @@ int vga_bios_init(void)
 		}
 
 		pInt->pdev = pdev;
-        #if defined(LOONGSON3A_3AEV)||defined(LOONGSON2G_2G690E)
+        #if defined(LOONGSON3A_3AEV)||defined(LOONGSON2G_2G690E)||defined(LOONGSON3A_3A780E)
         memcpy(vbiosMem, (char *)(0x00000000 | romaddress),
 		       V_BIOS_SIZE);
         #else
@@ -332,6 +334,11 @@ int vga_bios_init(void)
 		if (PCI_VENDOR(pdev->pa.pa_id) == 0x1002
 		    && PCI_PRODUCT(pdev->pa.pa_id) == 0x4750)
 			MEM_WW(pInt, 0xc015e, 0x4750);
+        #if defined(LOONGSON3A_3AEV)||defined(LOONGSON2G_2G690E)||defined(LOONGSON3A_3A780E)
+        //for test
+        MEM_WW(pInt , 0xcac90 , 0x1 | MEM_RW(pInt , 0xcac90));
+        #else
+        #endif
 	}
 
 	pInt->BIOSseg = V_BIOS >> 4;
@@ -345,7 +352,7 @@ int vga_bios_init(void)
 	printf("ax=%lx,bx=%lx,cx=%lx,dx=%lx\n", pInt->ax, pInt->bx, pInt->cx, pInt->dx);
 	xf86ExecX86int10(pInt);
 	printf("bios emu done\n");
-#if !defined(LOONGSON3A_3AEV)&&!defined(LOONGSON2G_2G690E)
+#if !defined(LOONGSON3A_3AEV)&&!defined(LOONGSON2G_2G690E)&&!defined(LOONGSON3A_3A780E)
 	pInt->num = 0x10;
 	pInt->ax = 0x03;
 	xf86ExecX86int10(pInt);
@@ -353,7 +360,7 @@ int vga_bios_init(void)
 
 	//UnlockLegacyVGA(screen, &vga);
 	setregs(regs);
-#if !defined(LOONGSON3A_3AEV)&&!defined(LOONGSON2G_2G690E)
+#if !defined(LOONGSON3A_3AEV)&&!defined(LOONGSON2G_2G690E)&&!defined(LOONGSON3A_3A780E)
 	linux_outb(0x67, 0x3c2);
 #endif
 

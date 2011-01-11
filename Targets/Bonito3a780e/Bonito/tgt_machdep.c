@@ -373,22 +373,14 @@ initmips(unsigned int memsz)
 {
 	int i;
 	int* io_addr;
-tgt_fpuenable();
-#ifdef DEVBD2F_SM502
-{
-/*set lio bus to 16 bit*/
-volatile int *p=0xbfe00108;
-*p=((*p)&~(0x1f<<8))|(0x8<<8) |(1<<13);
-}
-#endif
-tgt_printf("memsz %d\n",memsz);
-/*enable float*/
-tgt_fpuenable();
-CPU_TLBClear();
+    unsigned int tmp_memsz = 0;
+    
+    tgt_fpuenable();
+    tgt_printf("memsz %d\n",memsz);
+    /*enable float*/
+    tgt_fpuenable();
+    CPU_TLBClear();
 
-#if PCI_IDSEL_CS5536 != 0
-superio_reinit();
-#endif
 	/*
 	 *	Set up memory address decoders to map entire memory.
 	 *	But first move away bootrom map to high memory.
@@ -397,14 +389,22 @@ superio_reinit();
 	GT_WRITE(BOOTCS_LOW_DECODE_ADDRESS, BOOT_BASE >> 20);
 	GT_WRITE(BOOTCS_HIGH_DECODE_ADDRESS, (BOOT_BASE - 1 + BOOT_SIZE) >> 20);
 #endif
-	//memorysize = memsz > 256 ? 256 << 20 : memsz << 20;
-	//memorysize_high = memsz > 256 ? (memsz - 256) << 20 : 0;
+    /*
+      tmp_memsz = memsz * 256M
+    */
+    tmp_memsz = memsz;
+    tmp_memsz = tmp_memsz << 28;
+    tmp_memsz = tmp_memsz >> 20;
+    tmp_memsz = tmp_memsz - 16;
+    tgt_printf("tmp_memsz : %d\n",tmp_memsz);
 #ifdef CONFIG_GFXUMA
-	memorysize = memsz > 128 ? 128 << 20 : memsz << 20;
+	memorysize = tmp_memsz > 128 ? 128 << 20 : tmp_memsz << 20;
 #else
-	memorysize = memsz > 240 ? 240 << 20 : memsz << 20;
+	memorysize = tmp_memsz > 240 ? 240 << 20 : tmp_memsz << 20;
 #endif
-	memorysize_high = memsz > 240 ? (((unsigned long long)memsz) - 240) << 20 : 0;
+	memorysize_high = tmp_memsz > 240 ? (tmp_memsz - 240) << 20 : 0;
+
+    tgt_printf("memorysize : %d memorysize_high : %d\n",memorysize,memorysize_high);
 
 #if 0 /* whd : Disable gpu controller of MCP68 */
 	//*(unsigned int *)0xbfe809e8 = 0x122380;
@@ -670,12 +670,15 @@ tgt_devconfig()
 	}
 #endif
 
+/*
 #if (NMOD_FRAMEBUFFER > 0) || (NMOD_VGACON > 0 )
     if (rc > 0)
 	 if(!getenv("novga")) vga_available=1;
 	 else vga_available=0;
 #endif
+*/
     config_init();
+    printf("before calling configure()\n");
     configure();
 //#if ((NMOD_VGACON >0) &&(PCI_IDSEL_VIA686B !=0)|| (PCI_IDSEL_CS5536 !=0))
 #if NMOD_VGACON >0
@@ -845,60 +848,6 @@ w83627_write(5,0xf0,0x80);
 }
 #endif
 
-#if PCI_IDSEL_CS5536 != 0
-static void superio_reinit()
-{
-w83627_write(0,0x24,0xc1);
-w83627_write(5,0x30,1);
-w83627_write(5,0x60,0);
-w83627_write(5,0x61,0x60);
-w83627_write(5,0x62,0);
-w83627_write(5,0x63,0x64);
-w83627_write(5,0x70,1);
-w83627_write(5,0x72,0xc);
-w83627_write(5,0xf0,0x80);
-_wrmsr(GET_MSR_ADDR(0x5140001F), 0, 0);//no keyboard emulation
-
-#ifdef USE_CS5536_UART
-//w83627_UART1
-w83627_write(2,0x30,0x01);
-w83627_write(2,0x60,0x03);
-w83627_write(2,0x61,0xe8);
-w83627_write(2,0x70,0x04);
-w83627_write(2,0xf0,0x00);
-
-//w83627_UART2
-w83627_write(3,0x30,0x01);
-w83627_write(3,0x60,0x02);
-w83627_write(3,0x61,0xe8);
-w83627_write(3,0x70,0x03);
-w83627_write(3,0xf0,0x00);
-#else
-//w83627_UART1
-w83627_write(2,0x30,0x01);
-w83627_write(2,0x60,0x03);
-w83627_write(2,0x61,0xf8);
-w83627_write(2,0x70,0x04);
-w83627_write(2,0xf0,0x00);
-
-//w83627_UART2
-w83627_write(3,0x30,0x01);
-w83627_write(3,0x60,0x02);
-w83627_write(3,0x61,0xf8);
-w83627_write(3,0x70,0x03);
-w83627_write(3,0xf0,0x00);
-#endif
-
-////w83627_PALLPort
-w83627_write(1,0x30,0x01);
-w83627_write(1,0x60,0x03);
-w83627_write(1,0x61,0x78);
-w83627_write(1,0x70,0x07);
-w83627_write(1,0x74,0x04);
-w83627_write(1,0xf0,0xF0); 
-ConfigTable[0].flag=1;//reinit serial
-}
-#endif
 
 void
 tgt_devinit()

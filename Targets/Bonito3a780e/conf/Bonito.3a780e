@@ -20,6 +20,7 @@ option		TARGETNAME="\"Bonito\""
 #
 # Platform options
 #
+option  LOONGSON3A_3A780E
 option		BONITOEL
 option      DEVBD2F
 option		LS3_SERVER
@@ -89,9 +90,11 @@ select		cmd_misc		# Reboot & Flush etc.
 select		cmd_tr			# Host port-through command
 select		cmd_devls		# Device list
 select		cmd_set			# As cmd_env but not req. cmd_hist
-select		cmd_testdisk
+#select		cmd_testdisk
 #
 select		cmd_shell		# Shell commands, vers, help, eval
+select           cmd_bios
+select          boot_menu
 
 
 #
@@ -170,13 +173,13 @@ rte*		at pci? dev ? function ?
 #em*         at pci? dev ? function ?
 
 #### USB
-uhci*		 at pci? dev ? function ?
+#uhci*		 at pci? dev ? function ?
 ohci*		 at pci? dev ? function ?
 usb*		 at usbbus ?
 
 select      mod_usb
 select  	mod_usb_storage
-select      mod_usb_uhci
+#select      mod_usb_uhci
 select 	 	mod_usb_ohci
 select      mod_usb_kbd
 
@@ -193,7 +196,7 @@ pseudo-device	loop	1	# network loopback
 ide_cd* 	at pciide? channel ? drive ? flags 0x0001
 select 		iso9660
 select		ramfiles
-select 		cmd_xyzmodem
+#select 		cmd_xyzmodem
 option IDECD 
 option HAVE_NB_SERIAL
 #option USE_ENVMAC
@@ -201,7 +204,7 @@ option HAVE_NB_SERIAL
 #select cmd_lwdhcp
 #select cmd_bootp
 option FOR_GXEMUL
-select fatfs
+#select fatfs
 option FLOATINGPT
 #option PCI_IDSEL_VIA686B=17
 option PCI_IDSEL_SB700=14
@@ -212,9 +215,9 @@ option OUTPUT_TO_BOTH
 #option VIA686B_POWERFIXUP
 option DEVBD2F_VIA
 #option USE_GPIO_SERIAL
-select http
+#select http
 #select nfs
-select tcp
-select inet
-select tftpd
+#select tcp
+#select inet
+#select tftpd
 #select e100

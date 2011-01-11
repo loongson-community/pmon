@@ -769,7 +769,7 @@ dbginit (char *adr)
         case NO_KEY:
         case ENTER_KEY:
 #ifdef AUTOLOAD
-#if defined(LOONGSON2F_FULOONG) || defined(LOONGSON2F_7INCH)||defined(LOONGSON2F_ALLINONE) ||defined(LOONGSON2F_3GNB)||defined(LOONGSON3A_3AEV)||defined(LOONGSON2G_2G690E)
+#if defined(LOONGSON2F_FULOONG) || defined(LOONGSON2F_7INCH)||defined(LOONGSON2F_ALLINONE) ||defined(LOONGSON2F_3GNB)||defined(LOONGSON3A_3AEV)||defined(LOONGSON2G_2G690E)||defined(LOONGSON3A_3A780E)
             if (!load_menu_list())
             {
                 /* second try autoload env */
@@ -795,7 +795,7 @@ dbginit (char *adr)
 #endif
             break;
 
-#if defined(LOONGSON2F_7INCH)||defined(LOONGSON2F_FULOONG)||defined(LOONGSON2F_ALLINONE)||defined(LOONGSON2F_3GNB)||defined(LOONGSON3A_3AEV)||defined(LOONGSON2G_2G690E)
+#if defined(LOONGSON2F_7INCH)||defined(LOONGSON2F_FULOONG)||defined(LOONGSON2F_ALLINONE)||defined(LOONGSON2F_3GNB)||defined(LOONGSON3A_3AEV)||defined(LOONGSON2G_2G690E)||defined(LOONGSON3A_3A780E)
     case B_KEY:
             vga_available = 1;
             _set_font_color();

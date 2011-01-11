@@ -134,7 +134,7 @@ CONFIG_VIDEO_HW_CURSOR:      - Uses the hardware cursor capability of the
 #define VIDEO_HW_BITBLT
 #endif
 
-#if !defined(LOONGSON3A_3AEV)&&!defined(LOONGSON2G_2G690E)
+#if !defined(LOONGSON3A_3AEV)&&!defined(LOONGSON2G_2G690E)&&!defined(LOONGSON3A_3A780E)
 #ifdef VESAFB
 #define CONFIG_SPLASH_SCREEN
 #define CONFIG_VIDEO_BMP_GZIP
@@ -973,7 +973,7 @@ void video_drawstring(int xx, int yy, unsigned char *s)
 
 /*****************************************************************************/
 //#ifndef VIDEO_HW_BITBLT
-#if defined(LOONGSON3A_3AEV)||defined(LOONGSON2G_2G690E)
+#if defined(LOONGSON3A_3AEV)||defined(LOONGSON2G_2G690E)||defined(LOONGSON3A_3A780E)
 void video_drawsline(char *str, int rows, int cols)
 {
 	int xx, yy;
@@ -1094,7 +1094,7 @@ static void console_scrollup(void)
 {
     /* copy up rows ignoring the first one */
     if(disableoutput)return;
- #if defined(LOONGSON3A_3AEV)||defined(LOONGSON2G_2G690E)
+ #if defined(LOONGSON3A_3AEV)||defined(LOONGSON2G_2G690E)||defined(LOONGSON3A_3A780E)
 	video_drawsline(memfb, CONSOLE_ROWS, CONSOLE_COLS);
 
     memsetl(CONSOLE_ROW_LAST, CONSOLE_ROW_SIZE, CONSOLE_BG_COL);
@@ -1244,7 +1244,7 @@ void video_putc(const char c)
         video_putchar(console_col * VIDEO_FONT_WIDTH,
                   console_row * VIDEO_FONT_HEIGHT, c);
 
-#if defined(LOONGSON3A_3AEV) || defined(LOONGSON2G_2G690E)
+#if defined(LOONGSON3A_3AEV) || defined(LOONGSON2G_2G690E)||defined(LOONGSON3A_3A780E)
 		memfb[console_row * CONSOLE_COLS + console_col] = c;
 #endif 
 
@@ -2128,7 +2128,7 @@ void set_cursor_fb(unsigned char x,unsigned char y)
 int fb_init(unsigned long fbbase, unsigned long iobase)
 {
 
-#if !defined(SMI502) && !defined(LOONGSON3A_3AEV) && !defined(LOONGSON2G_2G690E)
+#if !defined(SMI502) && !defined(LOONGSON3A_3AEV) && !defined(LOONGSON2G_2G690E)&& !defined(LOONGSON3A_3A780E)
     pGD = &GD;
     #if NMOD_SISFB
         pGD->winSizeX = Sis_GetXRes();
@@ -2350,15 +2350,17 @@ int fb_init(unsigned long fbbase, unsigned long iobase)
 #endif 
 
 
-#if defined(LOONGSON3A_3AEV) || defined(LOONGSON2G_2G690E)
+#if defined(LOONGSON3A_3AEV) || defined(LOONGSON2G_2G690E)||defined(LOONGSON3A_3A780E)
 	unsigned char color8;
 
     int i,j;
 	pGD = &GD;
 	
-    pGD->winSizeX  =  1024;
-    pGD->winSizeY  =  768;
-	
+    //pGD->winSizeX  =  1024;
+    //pGD->winSizeY  =  768;
+    pGD->winSizeX  =  800;
+    pGD->winSizeY  =  600;	
+    
 #if   defined(CONFIG_VIDEO_1BPP)
         pGD->gdfIndex  = GDF__1BIT;
 	pGD->gdfBytesPP= 1;

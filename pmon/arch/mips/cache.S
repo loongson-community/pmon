@@ -30,7 +30,7 @@
  * SUCH DAMAGE.
  *
  */
-#if defined(LOONGSON3A_3AEV)|| defined(LOONGSON2G_2G690E)
+#if defined(LOONGSON3A_3AEV)|| defined(LOONGSON2G_2G690E)||defined(LOONGSON3A_3A780E)
  
 #ifndef _KERNEL
 #define _KERNEL
