@@ -86,6 +86,59 @@ nop;
 #else
 #define GPIOLED_SET(x) 
 #endif
+/* set GPIO as output
+ * x : 0x1<<offset
+ */
+#define GPIO_SET_OUTPUT(x) \
+li		v0,		0xbfe0011c; \
+lw		v1,		0(v0); \
+or		v1,		x&0xffff; \
+xor		v1,		0x0; \
+sw		v1,		0(v0); \
+lw		v1,		4(v0); \
+or		v1,		x&0xffff; \
+xor		v1,		x; \
+sw		v1,		4(v0); \
+nop; \
+nop;
+
+/* clear GPIO as output
+ * x : 0x1 <<offsest
+ */
+#define GPIO_CLEAR_OUTPUT(x) \
+li		v0,		0xbfe0011c; \
+lw		v1,		0(v0); \
+or		v1,		x&0xffff; \
+xor		v1,		x; \
+sw		v1,		0(v0); \
+lw		v1,		4(v0); \
+or		v1,		x&0xffff; \
+xor		v1,		x; \
+sw		v1,		4(v0); \
+nop; \
+nop;
+
+/* WatchDog Close for chip MAX6369*/
+#define WatchDog_Close \
+GPIO_CLEAR_OUTPUT(0x1<<5); \
+GPIO_SET_OUTPUT(0x1<<3|0x1<<4); \
+GPIO_CLEAR_OUTPUT(0x1<<13); \
+
+/* WatchDog Enable for chip MAX6369*/
+#define WatchDog_Enable \
+GPIO_CLEAR_OUTPUT(0x1<<13); \
+GPIO_SET_OUTPUT(0x1<<14); \
+GPIO_SET_OUTPUT(0x1<<5); \
+GPIO_CLEAR_OUTPUT(0x1<<4); \
+GPIO_SET_OUTPUT(0x1<<3); \
+GPIO_CLEAR_OUTPUT(0x1<<14); \
+li v1,0x100;\
+78:; \
+subu v1,1; \
+bnez v1,78b; \
+nop; \
+GPIO_SET_OUTPUT(0x1<<13); 
+
 
 #define CONFIG_CACHE_64K_4WAY 1
 
@@ -173,6 +226,7 @@ stack = start - 0x4000		/* Place PMON stack below PMON start in RAM */
 	nop
 	GPIOLED_SET(0xd)
 
+	WatchDog_Close
 
 	bal	locate			/* Get current execute address */
 	nop
@@ -1112,12 +1166,15 @@ PRINTSTR("Jump to 9fc\r\n")
 	TTYDBG("Disable L2 Cache done\r\n")
 #endif
 
+WatchDog_Enable;
 
 ##########################################
 
 #ifdef LS3_HT
 #include "loongson3_HT_init.S"
 #endif
+
+WatchDog_Close;
 
 	PRINTSTR("\r\n======This is cww's world:1\r\n")
 #include "3aserver_bridge_config.S"
