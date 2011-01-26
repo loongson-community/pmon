@@ -464,7 +464,7 @@ extern struct usb_device * usb_alloc_new_device(void *hc_private);
 *DESCRIPTION: This function is used to do the attachment of the USB OHCI controller,
 *             for USB OHCI controller is  accessed through PCI bus, so here it 
 *             needs do some initializations such as mapping between CPU address 
-*             and PCI address¡¢ configuring the OHCI registers¡¢enumerating the 
+*             and PCI address?? configuring the OHCI registers??enumerating the 
 *             USB devices attached to the USB HUB ports.In fact,this function 
 *             does the most of initial works by calling other related functions.
 *
@@ -2498,7 +2498,7 @@ int submit_common_msg(struct usb_device *dev, unsigned long pipe, void *buffer,
 	}
 
 	/* allow more time for a BULK device to react - some are slow */
-#define BULK_TO	 500	/* timeout in milliseconds */
+#define BULK_TO	 1000	/* timeout in milliseconds */
 	if (usb_pipetype (pipe) == PIPE_BULK)
 		timeout = BULK_TO;
 	else
