@@ -64,6 +64,16 @@ void cmd_cdinstall(void)
 	sprintf(buf, "g console=tty rdinit=/sbin/init video=vfb:1");
 	do_cmd(buf);
 }
+void cmd_usbcdinstall(void)
+{
+
+	char buf[100];
+
+	sprintf(buf, "load /dev/fs/iso9660@usb0/vmlinuxboot");
+	do_cmd(buf);
+	sprintf(buf, "g console=tty rdinit=/sbin/init video=vfb:1");
+	do_cmd(buf);
+}
 
 void cmd_usbinstall(void)
 {
@@ -81,6 +91,7 @@ static const Cmd Cmds[] =
 	{"Misc"},
 	{"cdinstall", "",0,"install Linux system from CD-ROM", cmd_cdinstall, 1, 99, 0},
 	{"usbinstall", "",0,"install Linux system from USB DISK", cmd_usbinstall, 1, 99, 0},
+	{"usbcdinstall", "",0,"install Linux system from USB CD-ROM", cmd_usbcdinstall, 1, 99, 0},
 	{0, 0}
 };
 
