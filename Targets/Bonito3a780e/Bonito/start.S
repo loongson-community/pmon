@@ -430,6 +430,9 @@ li      t1, 0x00e0      # {cu3,cu2,cu1,cu0}<={0110, status_fr<=1
 		sd      a0, 0x0(t1)
 #endif
 
+		bal	initserial
+		nop
+
 		//#define DEBUG_LS3
 #ifdef DEBUG_LS3
 		dli     a0, 0xfff
@@ -439,8 +442,6 @@ li      t1, 0x00e0      # {cu3,cu2,cu1,cu0}<={0110, status_fr<=1
 		bnez    t1, 1b
 		daddi   t1, t1, -1
 
-		bal	initserial
-		nop
 
 		PRINTSTR("CP0_STATUS:")
 		mfc0    a0, CP0_STATUS
@@ -521,14 +522,6 @@ li      t1, 0x00e0      # {cu3,cu2,cu1,cu0}<={0110, status_fr<=1
 		li      a0,0xbff00080
 		li      t0,0xcc
 		sb      t0,0x0(a0)
-#endif
-
-#ifdef DEBUG_LS3
-#else
-		bal	initserial
-		nop
-		bal	initserial_uart
-		nop
 #endif
 
 #ifdef DEBUG_LS3
@@ -1255,8 +1248,9 @@ probe_mc1:
         nop;
         PRINTSTR("\r\n");
 #else
-        li      s6, 0x14140c24 /* s6 used to save detected infomation from MC0 */
-        li      s7, 0x14140c24 /* s7 used to save detected infomation from MC1 */
+        li      s6, 0x001c03a4 /* s6 used to save detected infomation from MC0DIMM0 */
+//        li      s6, 0x001c03a4 /* s6 used to save detected infomation from MC0DIMM0 */
+       li      s7, 0x0 /* s7 used to save detected infomation from MC1 */
 #endif
 
 		/* calculate memory size */
@@ -1867,32 +1861,6 @@ ddr_config_entry:
 #define B57600  57600
 #define B115200 115200
 
-
-		LEAF(initserial_uart)
-		li  a0, GS3_UART_BASE
-
-		li	t1,128
-#	addiu	a2,a0,3
-		sb	t1,3(a0)
-		//li	t1,0x12      # divider, highest possible baud rate
-		li	t1,0x0e      # divider, highest possible baud rate
-		sb	t1,0(a0)
-		li	t1,0x0     # divider, highest possible baud rate
-		sb	t1,1(a0)
-		li	t1,3
-		sb	t1,3(a0)
-
-#srl	t1,t1,0x8
-		li	t1,0
-		sb	t1,1(a0)
-#li	t1,1      # divider, highest possible baud rate
-
-
-		li	t1,71
-		sb	t1,2(a0)
-		jr	ra
-		nop
-		END(initserial_uart)
 
 #ifdef USE_LPC_UART
 		LEAF(initserial)
