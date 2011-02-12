@@ -88,9 +88,14 @@ const Optdesc         cmd_nload_opts[] =
 	{"-o<offs>", "load offset"},
 	{"-r", "load raw file"},
 	{"path", "path and filename"},
+    {"\n Most frequenty cmds about load:\
+	\n\tload from hard disk: load /dev/fs/ext2@wd0/boot/vmlinux\
+	\n\tload from tftp server:load tftp://10.2.5.22/vmlinux\
+	\n\tupdate bios: load -r -f 0xbfc00000 tftp://10.2.5.22/gzrom.bin\n"},
 	{0}
 };
 
+//	\n\tload kernel from usb disk: load /dev/fs/ext2@usb0/boot/vmlinux\
 
 unsigned long long dl_loffset;
 char *dl_Oloadbuffer;
