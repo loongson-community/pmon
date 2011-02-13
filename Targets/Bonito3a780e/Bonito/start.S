@@ -1149,7 +1149,7 @@ gs_2f_v3_ddr2_cfg:
 	PRINTSTR("\r\n");
 #else
 	TTYDBG("not auto ddr2 config\r\n")
-	li      s1, 0x1c1c33a4
+	li      s1, 0x1c1c1124
 	//li      s1, 0x1c1c33b0
 
 	bal     tgt_testchar
@@ -1411,6 +1411,77 @@ ddr_config_entry:
 
 
 		TTYDBG("Copy PMON to execute location done.\r\n")
+
+#if 1
+        nop
+
+        TTYDBG("Testing memory...\r\n")
+        
+        //li      t7, 10
+        li      t7, 2
+tmem:
+        //li      t0, 0xa0000000+1*1024*1024
+        li      t0, 0xa0000000+1*1024
+        li      t1, 0xa0000000
+        li      t2, 0xffffffff
+1:
+        sw      t2, 0(t1)
+        lw      t3, 0(t1)
+        bne     t3, t2, 1f
+        nop
+        not     t2
+        sw      t2, 0(t1)
+        lw      t3, 0(t1)
+        bne     t3, t2, 1f
+        nop
+        not     t2
+        subu    t2, 1
+        addu    t1, 4
+        beq     t1, t0, 2f
+        nop
+        and     t4, t1, 0x000fffff
+        bnez    t4, skip_dot
+        li      a0, '.'
+        bal     tgt_putchar
+        nop
+skip_dot:
+        b       1b
+        nop
+1:
+        TTYDBG("Memory test failed at ");
+        move    a0,     t1
+        bal     hexserial
+        nop
+        TTYDBG("\r\nWrite=");
+        move    a0, t2
+        bal     hexserial
+        nop
+        TTYDBG("\r\nRead=");
+        move    a0, t3
+        bal     hexserial
+        nop
+        TTYDBG("\r\nErrorBit=");
+        xor  a0, t2, t3
+        bal     hexserial
+        nop
+        
+1:
+        b       1b
+        nop
+2:
+        TTYDBG("Testing ok...\r\n");
+        sub     t7,1
+        beqz    t7, 1f
+        nop
+        b       tmem
+        nop
+
+1:
+    nop
+#endif
+
+
+
 		/* zhb */
 #if 0
 		zhb:
@@ -1729,8 +1800,8 @@ ddr_config_entry:
 		li	t1,128
 #	addiu	a2,a0,3
 		sb	t1,3(a0)
-		//li	t1,0x12      # divider, highest possible baud rate
-		li	t1,0x0e      # divider, highest possible baud rate
+		li	t1,0x12      # divider, highest possible baud rate
+		//li	t1,0x0e      # divider, highest possible baud rate
 		sb	t1,0(a0)
 		li	t1,0x0     # divider, highest possible baud rate
 		sb	t1,1(a0)
@@ -2498,7 +2569,7 @@ cache_init_finish:
 #endif
 
 	GET_DDR_TYPE
-	la      a2, ddr3_reg_data
+	la      a2, ddr2_reg_data
 	beqz    a1, 1f
 	nop
 	la      a2, ddr3_reg_data
@@ -2810,8 +2881,16 @@ cache_init_finish:
 	nop
 	.end    ddr2_config_mc1
 
+#if 1 
 	.rdata
 	.align 5
 	.global ddr3_reg_data
 
 #include "loongson3a_ddr3_param.S"
+
+	.rdata
+	.align 5
+	.global ddr2_reg_data
+
+#include "loongson3A3_ddr2_param.S"
+#endif
