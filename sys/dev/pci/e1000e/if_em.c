@@ -525,7 +525,6 @@ err_dma:
 
 struct net_device *mynic_em;
 static unsigned int net_device_count = 0;
-struct net_device *mynic_em_all[2] = {0, 0};
 static void
 em_attach(parent, self, aux)
 	struct device *parent, *self;
@@ -543,7 +542,6 @@ em_attach(parent, self, aux)
 	//bus_size_t iosize;
 #endif
 	mynic_em = sc;
-	mynic_em_all[net_device_count++] = mynic_em;
 	/*
 	 * Allocate our interrupt.
 	 */
@@ -573,7 +571,7 @@ em_attach(parent, self, aux)
 	if (em_probe(sc,e1000_pci_id,&sc->pcidev)) {
 		/* Failed! */
 		printf("em_probe failed\n");
-		//cmd_wrprom_em0(0,0);  //zgj		
+		cmd_wrprom_em0(0,0);  //zgj		
 		return;
 	}
 #ifdef __OpenBSD__
@@ -825,62 +823,6 @@ int cmd_setmac_em0(int ac, char *av[])
         struct net_device *nic = mynic_em ;
         struct e1000_adapter *adapter = (struct e1000_adapter *) (mynic_em->priv);
 
-		adapter = (struct e1000_adapter *)(mynic_em_all[0]->priv);
-
-        if(nic == NULL){
-               printf("E1000 interface not initialized\n");
-                return 0;
-        }
-        if(ac != 2){
-        long long macaddr;
-        u_int8_t *paddr;
-        u_int8_t enaddr[6];
-        macaddr=e1000_read_mac(nic);
-        paddr=(uint8_t*)&macaddr;
-        enaddr[0] = paddr[5- 0];
-        enaddr[1] = paddr[5- 1];
-        enaddr[2] = paddr[5- 2];
-        enaddr[3] = paddr[5- 3];
-        enaddr[4] = paddr[5- 4];
-        enaddr[5] = paddr[5- 5];
-                printf("MAC ADDRESS ");
-                for(i=0; i<6; i++){
-                        printf("%02x",enaddr[i]);
-                        if(i==5)
-                                printf("\n");
-                        else
-                                printf(":");
-                }
-                printf("Use \"setmac <mac> \" to set mac address\n");
-                return 0;
-        }
-        for (i = 0; i < 3; i++) {
-                val = 0;
-                gethex(&v, av[1], 2);
-                val = v ;
-                av[1]+=3;
-                gethex(&v, av[1], 2);
-                val = val | (v << 8);
-                av[1] += 3;
-        //e1000_write_eeprom(&adapter->hw,i,1,&val);
-        e1000_write_nvm(&adapter->hw,i,1,&val);
-        }
-
-        //if(e1000_update_eeprom_checksum(&adapter->hw) == 0) zxj
-        if(e1000e_update_nvm_checksum(&adapter->hw) == 0)
-                printf("the checksum is right!\n");
-        printf("The MAC address have been written done\n");
-        return 0;
-}
-int cmd_setmac_em1(int ac, char *av[])
-{
-        int i;
-        unsigned short v;
-        struct net_device *nic = mynic_em ;
-        struct e1000_adapter *adapter = (struct e1000_adapter *) (mynic_em->priv);
-
-		adapter = (struct e1000_adapter *)(mynic_em_all[1]->priv);
-
         if(nic == NULL){
                printf("E1000 interface not initialized\n");
                 return 0;
@@ -966,65 +908,6 @@ int cmd_wrprom_em0(int ac,char **av)
 };
         struct e1000_adapter *adapter = (struct e1000_adapter *)(mynic_em->priv);
 
-		adapter = (struct e1000_adapter *)(mynic_em_all[0]->priv);
-        printf("write the whole eeprom\n");
-
-#if 1
-		clocks_num =CPU_GetCOUNT();
-		mysrand(clocks_num);
-		for( i = 0; i < 4;i++ )
-		{
-			tmp[i]=myrand()%256;
-			printf( " tmp[%d]=0x%2x\n", i,tmp[i]);
-		}
-		eeprom_data =tmp[1] |( tmp[0]<<8);
-		rom[1] = eeprom_data ;
-		printf("eeprom_data [1] = 0x%4x\n",eeprom_data);
-		eeprom_data =tmp[3] |( tmp[2]<<8);
-		rom[2] = eeprom_data;
-		printf("eeprom_data [2] = 0x%4x\n",eeprom_data);
-#endif
-        for(i=0; i<= EEPROM_CHECKSUM_REG; i++)
-        {
-                eeprom_data = rom[i];
-				printf("rom[%d] = 0x%x\n",i,rom[i]);
-                //e1000_write_eeprom(&adapter->hw, i, 1 , &eeprom_data) ;
-                e1000_write_nvm(&adapter->hw, i, 1 , &eeprom_data) ;
-        }
-        //if(e1000_update_eeprom_checksum(&adapter->hw) == 0) zxj
-        if(e1000e_update_nvm_checksum(&adapter->hw) == 0)
-                printf("the checksum is right!\n");
-        printf("The whole eeprom have been written done\n");
-	return 0;
-}
-int cmd_wrprom_em1(int ac,char **av)
-{
-        int i=0;
-	unsigned long clocks_num=0;
-        unsigned short eeprom_data;
-        unsigned char tmp[4];
-	unsigned short rom[EEPROM_CHECKSUM_REG+1]={
-                                /*0x1b00, 0x0821, 0x23a7, 0x0210, 0xffff, 0x1000 ,0xffff, 0xffff,
-                                0xc802, 0x3502, 0x640b, 0x1376, 0x8086, 0x107c, 0x8086, 0xb284,
-                                0x20dd, 0x5555, 0x0000, 0x2f90, 0x3200, 0x0012, 0x1e20, 0x0012,
-                                0x1e20, 0x0012, 0x1e20, 0x0012, 0x1e20, 0x0009, 0x0200, 0x0000,
-                                0x000c, 0x93a6, 0x280b, 0x0000, 0x0400, 0xffff, 0xffff, 0xffff,
-                                0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0x0602,
-                                0x0100, 0x4000, 0x1216, 0x4007, 0xffff, 0xffff, 0xffff, 0xffff,
-                                0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0x7dfa*/
-0x1b00, 0x3d21, 0x6602, 0x0420, 0xf746, 0x1080, 0xffff, 0xffff,
-0xe469, 0x8103, 0x026b, 0xa01f, 0x8086, 0x10d3, 0xffff, 0x9c58,
-0x0000, 0x2001, 0x7e94, 0xffff, 0x1000, 0x0048, 0x0000, 0x2704,
-0x6cc9, 0x3150, 0x073e, 0x460b, 0x2d84, 0x0140, 0xf000, 0x0706,
-0x6000, 0x7100, 0x1408, 0xffff, 0x4d01, 0x92ec, 0xfc5c, 0xf083,
-0x0028, 0x0233, 0x0050, 0x7d1f, 0x1961, 0x0453, 0x00a0, 0xffff,
-0x0100, 0x4000, 0x1315, 0x4003, 0xffff, 0xffff, 0xffff, 0xffff,
-0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0x0130, 0xffff, 0xb69e,
-								/*zxj for e1000e 82574 */	
-};
-        struct e1000_adapter *adapter = (struct e1000_adapter *)(mynic_em->priv);
-
-		adapter = (struct e1000_adapter *)(mynic_em_all[1]->priv);
         printf("write the whole eeprom\n");
 
 #if 1
@@ -1061,31 +944,6 @@ int cmd_reprom_em0(int ac, char *av)
         int i;
         unsigned short eeprom_data;
         struct e1000_adapter *adapter = (struct e1000_adapter *) (mynic_em->priv);
-		adapter = (struct e1000_adapter *)(mynic_em_all[0]->priv);
-
-        printf("dump eprom:\n");
-
-        for(i=0; i <= EEPROM_CHECKSUM_REG;)
-        {
-                //if(e1000_read_eeprom(&adapter->hw, i, 1 , &eeprom_data) < 0) zxj
-                if(e1000_read_nvm(&adapter->hw, i, 1 , &eeprom_data) < 0)
-                {
-                        printf("EEPROM Read Error\n");
-                //        return -E1000_ERR_EEPROM;
-                }
-                printf("%04x ", eeprom_data);
-                ++i;
-                if( i%8 == 0 )
-                        printf("\n");
-        }
-        return 0;
-}
-int cmd_reprom_em1(int ac, char *av)
-{
-        int i;
-        unsigned short eeprom_data;
-        struct e1000_adapter *adapter = (struct e1000_adapter *) (mynic_em->priv);
-		adapter = (struct e1000_adapter *)(mynic_em_all[1]->priv);
 
         printf("dump eprom:\n");
 
@@ -1117,18 +975,12 @@ static const Cmd Cmds[] =
         {"em"},
         {"setmac_em0", "", NULL,
                     "Set mac address into E1000 eeprom", cmd_setmac_em0, 1, 5, 0},
-		{"setmac_em1", "", NULL,
-                    "Set mac address into E1000 eeprom", cmd_setmac_em1, 1, 5, 0},
 
         {"readrom_em0", "", NULL,
                         "dump E1000 eprom content", cmd_reprom_em0, 1, 2, 0},
-		{"readrom_em1", "", NULL,
-                        "dump E1000 eprom content", cmd_reprom_em1, 1, 2, 0},
 
         {"writerom_em0", "", NULL,
                         "write E1000 eprom content", cmd_wrprom_em0, 1, 2, 0},
-		{"writerom_em1", "", NULL,
-                        "write E1000 eprom content", cmd_wrprom_em1, 1, 2, 0},
 
         {0, 0}
 };
