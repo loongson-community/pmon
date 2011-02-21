@@ -1080,16 +1080,18 @@ gs_2f_v3_ddr2_cfg:
 
 #include "loongson3_fixup.S"
 
-/*
- * Beep function for working correctly.
- */
-	BEEP_ON
-	li a0, 5000
-1:
-	addiu a0, -1
-	bnez  a0, 1b
+//begin :Beep on -> delay -> Beep off
+	bal	beep_on
 	nop
-	BEEP_OFF
+	li	a0,0x1000
+	1:
+	addiu	a0,-1
+	nop
+	bnez	a0,1b
+	nop
+	bal	beep_off
+	nop
+//end
 
 	//##########################################
 	//TTYDBG("NODE 0 MEMORY CONFIG BEGIN\r\n")
@@ -1152,7 +1154,6 @@ gs_2f_v3_ddr2_cfg:
 #define MC0DIMM1  0xa3  /* SA2 = 0, SA1 = 0, SA0 = 1 <--->  MAP_CS 1100 */ //CON37
 #define MC1DIMM0  0xa5  /* SA2 = 0, SA1 = 1, SA0 = 0 <--->  MAP_CS 0011 */ //CON38
 #define MC1DIMM1  0xa7  /* SA2 = 0, SA1 = 1, SA0 = 1 <--->  MAP_CS 1100 */ //CON39
-
         PRINTSTR("\r\nProbing DDR SLOT: ");
         PRINTSTR("\r\nProbe MC0DIMM0: ");
         li      s1,0x0
@@ -1248,11 +1249,20 @@ probe_mc1:
         nop;
         PRINTSTR("\r\n");
 #else
-        li      s6, 0x001c03a4 /* s6 used to save detected infomation from MC0DIMM0 */
-//        li      s6, 0x001c03a4 /* s6 used to save detected infomation from MC0DIMM0 */
-       li      s7, 0x0 /* s7 used to save detected infomation from MC1 */
+        li      s6, 0x14140c24 /* s6 used to save detected infomation from MC0 */
+        li      s7, 0x14140c24 /* s7 used to save detected infomation from MC1 */
 #endif
-
+		bnez s6,1f
+		nop
+		bnez s7,1f
+		nop
+        PRINTSTR("\r\nNO FOUND DDR MEMORY");
+		bal beep_on
+		nop
+		2:
+		bal 2b
+		nop
+1:
 		/* calculate memory size */
 		move	a0,s6
 		move	a1,s7
@@ -1841,6 +1851,26 @@ ddr_config_entry:
 		nop	
 		END(tgt_putchar)
 #endif
+		LEAF(beep_on)
+		nop
+		dli	t1,0x90000cfdfe00a080
+		lbu	t0,0(t1)
+		or	t0,0x04
+		sb	t0,0(t1)
+		nop
+		jr	ra
+		nop
+		END(beep_on)
+		LEAF(beep_off)
+		nop
+		dli	t1,0x90000cfdfe00a080
+		lbu	t0,0(t1)
+		and	t0,0xfd
+		sb	t0,0(t1)
+		nop
+		jr	ra
+		nop
+		END(beep_off)
 		/* baud rate definitions, matching include/termios.h */
 #define B0      0
 #define B50     50      
