@@ -104,6 +104,28 @@ void sb700_lpc(int enabled)
         set_sm_enable_bits(sm_dev, 0x64, 1 << index, (enabled ? 1 : 0) << index);
 }
 
+/* Set Memory Range Port Enable/Disable for LPC memory target range. daway added 2011-02-18 */
+void sb700_lpc_memory(int enabled)
+{
+	device_t sm_dev;
+	int index = 5;
+
+	sm_dev = _pci_make_tag(0, 0x14, 3);
+	set_sm_enable_bits(sm_dev, 0x48, 1 << index, (enabled ? 1 : 0) << index);	
+}
+
+/* Set PCI Memory Start Address for LPC target Cycle - PCI_REG: 60h,
+ * and set PCI Memory End Address for LPC target Cycle - PCI_REG: 62h.
+ * This range can be enabled/disabled using register 48h, bit5.
+ * daway added 2011-02-18 */
+void sb700_lpcmem_address(int value)
+{
+	device_t sm_dev;
+
+	sm_dev = _pci_make_tag(0, 0x14, 3);
+	pci_write_config32(sm_dev, 0x60, value);
+}
+
 void sb700_aci(device_t dev, int enabled)
 {
         device_t sm_dev;
@@ -133,21 +155,21 @@ void sb700_mci(device_t dev, int enabled)
 
 void sb700_enable()
 {
-/*
-*	0:11.0  SATA	bit 8 of sm_dev 0xac : 1 - enable, default         + 32 * 3
-*	0:12.0  OHCI0-USB1	bit 0 of sm_dev 0x68
-*	0:12.1  OHCI1-USB1	bit 1 of sm_dev 0x68
-*	0:12.2  EHCI-USB1	bit 2 of sm_dev 0x68
-*	0:13.0  OHCI0-USB2	bit 4 of sm_dev 0x68
-*	0:13.1  OHCI1-USB2	bit 5 of sm_dev 0x68
-*	0:13.2  EHCI-USB2	bit 6 of sm_dev 0x68
-*	0:14.5  OHCI0-USB3	bit 7 of sm_dev 0x68
-*	0:14.0  SMBUS							0
-*	0:14.1  IDE							1
-*	0:14.2  HDA	bit 3 of pm_io 0x59 : 1 - enable, default	    + 32 * 4
-*	0:14.3  LPC	bit 20 of sm_dev 0x64 : 0 - disable, default  + 32 * 1
-*	0:14.4  PCI							4
-*/
+	/*
+	 *	0:11.0  SATA	bit 8 of sm_dev 0xac : 1 - enable, default         + 32 * 3
+	 *	0:12.0  OHCI0-USB1	bit 0 of sm_dev 0x68
+	 *	0:12.1  OHCI1-USB1	bit 1 of sm_dev 0x68
+	 *	0:12.2  EHCI-USB1	bit 2 of sm_dev 0x68
+	 *	0:13.0  OHCI0-USB2	bit 4 of sm_dev 0x68
+	 *	0:13.1  OHCI1-USB2	bit 5 of sm_dev 0x68
+	 *	0:13.2  EHCI-USB2	bit 6 of sm_dev 0x68
+	 *	0:14.5  OHCI0-USB3	bit 7 of sm_dev 0x68
+	 *	0:14.0  SMBUS							0
+	 *	0:14.1  IDE							1
+	 *	0:14.2  HDA	bit 3 of pm_io 0x59 : 1 - enable, default	    + 32 * 4
+	 *	0:14.3  LPC	bit 20 of sm_dev 0x64 : 0 - disable, default  + 32 * 1
+	 *	0:14.4  PCI							4
+	 */
 #ifdef ENABLE_SATA	
 	printk_info("enable_sata\n");
 	sb700_sata(1);
@@ -176,5 +198,17 @@ void sb700_enable()
 	sb700_lpc(1);
 	//sb700_aci(_pci_make_tag(0, 0x14, 5), 1);
 	//sb700_mci(_pci_make_tag(0, 0x14, 6), 1);
+
+	/* Enable LPC memory target range. daway added 2011-02-18 */
+	printk_info("enable lpc memory\n");
+	sb700_lpc_memory(1);
+	/* Set PCI Memory Start Address for LPC target Cycle - PCI_REG: 60h,
+	 * and PCI Memory End Address for LPC target Cycle - PCI_REG: 62h,
+	 * as EC Shared Memory map to host memory, using to update ec firmware.
+	 * Start address(upper 16-bits): 0x1700, End address(upper 16-bits): 0x171f.
+	 * i.e. 0x17000000 - 0x171fffff, tatol 2MB size.
+	 * daway added 2011-02-18 */
+	printk_info("Set lpc memory range: 0x17000000 - 0x171fffff\n");
+	sb700_lpcmem_address(0x171f1700);
 }
 

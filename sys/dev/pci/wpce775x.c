@@ -25,7 +25,7 @@
 
 /************************************************************/
 
-#ifdef LOONGSON2F_3GNB
+//#ifdef LOONGSON2F_3GNB
 #define boolean unsigned char
 WCB_struct	     WCB;
 FLASH_device_commands_t FLASH_commands;
@@ -52,19 +52,29 @@ void set_interface_cfg(u8 flag)
 		/* Enable shared flash access. */
 		wrldn(LDN_SHM, SHM_CFG, FLASH_ACC_EN);
 		wrldn(LDN_SHM, SHAW1BA_2, (FLASH_WIN_BASE_ADDR & 0x00FF0000) >> 16);
+#ifdef LOONGSON3A_3A780E
+		wrldn(LDN_SHM, SHAW1BA_3, ((FLASH_WIN_BASE_ADDR & 0x1F000000) >> 24));
+#endif
+#ifdef LOONGSON2F_3GNB
 		wrldn(LDN_SHM, SHAW1BA_3, ((FLASH_WIN_BASE_ADDR & 0xFF000000) >> 24) & 0x0F);
+#endif
 	}else{
 		/* Enable shared ram access. */
 		wrldn(LDN_SHM, SHM_CFG, rdldn(LDN_SHM, SHM_CFG) & ~FLASH_ACC_EN);
 		wrldn(LDN_SHM, SHAW2BA_2, (WCB_BASE_ADDR & 0x00FF0000) >> 16);
+#ifdef LOONGSON3A_3A780E
+		wrldn(LDN_SHM, SHAW2BA_3, ((WCB_BASE_ADDR & 0x1F000000) >> 24));
+#endif
+#ifdef LOONGSON2F_3GNB
 		wrldn(LDN_SHM, SHAW2BA_3, ((WCB_BASE_ADDR & 0xFF000000) >> 24) & 0x0F);
+#endif
 	}
 	wrldn(LDN_SHM, WIN_CFG, rdldn(LDN_SHM, WIN_CFG) & ~SHWIN_ACC_FWH);
 }
 
-void Init_Flash_Command(void)
+void Init_Flash_Command(unsigned char rd_devid_cmd)
 {
-	FLASH_commands.read_device_id = CMD_READ_DEV_ID;
+	FLASH_commands.read_device_id = rd_devid_cmd;
 	FLASH_commands.write_status_enable = CMD_WRITE_STAT_EN;
 	FLASH_commands.write_enable = CMD_WRITE_EN;
 	FLASH_commands.read_status_reg = CMD_READ_STAT;
@@ -115,7 +125,7 @@ void Init_Flash_Command(void)
  *           0 in the case of an error.
  *           
  ******************************************************************************/
-int PcMemWrite(u32 Address, unsigned long NumOfBytes, int UnitSize, const void* Data)
+int PcMemWrite(unsigned long Address, unsigned long NumOfBytes, int UnitSize, const void* Data)
 {    
     int i;
     unsigned char const *ByteDataP = Data;
@@ -288,16 +298,16 @@ void exit_flash_update(WCB_exit_t exit_type)
     SHMRunCommand(WCB_SIZE_EXIT_CMD);	     // Execute the Command in WCB
 }
 
-unsigned short Read_Flash_IDs(void)
+unsigned int Read_Flash_IDs(void)
 {
-	unsigned char val;
-	unsigned short ids;
+	unsigned int ids = 0, i;
 
 	/* Setup the WCB for Read ID */
 	WCB.Command = READ_IDS_OP;
 	SHMRunCommand(WCB_SIZE_READ_IDS_CMD);
-	val = rdwcb(WCB_BASE_ADDR + OFFSET_DATA);
-	ids = (((unsigned short)rdwcb(WCB_BASE_ADDR + OFFSET_DATA + 1)) << 8) | val;
+	for(i = 0; i < 3; i++){
+		ids |= rdwcb(WCB_BASE_ADDR + OFFSET_DATA + i) << (i * 8);
+	}
 
 	return ids;
 }
@@ -374,13 +384,13 @@ void Flash_Set_Address(unsigned long Address)
 }
 
 /* Program data to SPI data for test command "updec". */
-void Flash_program_data(u32 addr, u8 *src, u32 size)
+void Flash_program_data(unsigned long addr, u8 *src, u32 size)
 {
 	u8 *buf;
 	u16 sector, page_cnt = 0; 
 	u16 page, page1, i, j, sec_cnt = 0;
 	u16 id = 0;
-	u32 program_addr, erase_addr;
+	unsigned long program_addr, erase_addr;
 	u8 flags, remainder, status;
 	u8 debug_msg = 0;
 
@@ -406,7 +416,7 @@ void Flash_program_data(u32 addr, u8 *src, u32 size)
 
 	Update_Flash_Init();
 	set_interface_cfg(0);
-	Init_Flash_Command();
+	Init_Flash_Command(CMD_READ_DEV_ID);
 
 	printf("Ready enter flash update...\n");
 	/* Indicate Flash Update beginning to Firmware */
@@ -447,7 +457,7 @@ void Flash_program_data(u32 addr, u8 *src, u32 size)
 			flags = 0;
 		}
 
-		Init_Flash_Command();
+		Init_Flash_Command(CMD_READ_DEV_ID);
 		/* start page program active */
 		if(debug_msg) printf("The sum total has %d page to need to program:\n", page);
 		while(page1){
@@ -503,15 +513,15 @@ out:
 int ec_update_rom(void *src, int size)
 {
 	u8 *buf;
-	u32 addr = 0;
+	unsigned long addr = 0;
 	u16 sector, page_cnt = 0; 
 	u16 page, page1, i, j, sec_cnt = 0;
-	u32 program_addr, erase_addr;
+	unsigned long program_addr, erase_addr;
 	u8 flags, status;
 	u8 val;
 	u8 data;
 	u16 id;
-	u8 debug_msg = 0;
+	u8 debug_msg = 1;
 	u8 verbose1 = 0;
 	
 	verbose = 0;
@@ -538,7 +548,7 @@ int ec_update_rom(void *src, int size)
 	
 	Update_Flash_Init();
     set_interface_cfg(0);
-	Init_Flash_Command();
+	Init_Flash_Command(CMD_READ_DEV_ID);
 
 	if(debug_msg) printf("Ready enter flash update...\n");
     /* Indicate Flash Update beginning to Firmware */
@@ -580,7 +590,7 @@ int ec_update_rom(void *src, int size)
 			flags = 0;
 		}
 		
-		Init_Flash_Command();
+		Init_Flash_Command(CMD_READ_DEV_ID);
 		/* start page program active */
 		if(verbose1) printf("The sum total has %d page to need to program:\n", page);
 		while(page1){
@@ -667,4 +677,4 @@ unsigned char *get_ecver(void)
 	}
 	return p;
 }
-#endif	// end ifdef LOONGSON2F_3GNB
+//#endif	// end ifdef LOONGSON2F_3GNB

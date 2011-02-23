@@ -8,11 +8,13 @@
 #include <linux/io.h>
 #include "include/shm.h"
 
-#ifdef	LOONGSON2F_3GNB
+//#ifdef LOONGSON3A_3A780E
 /* delay function */
 extern void delay(int microseconds);
 /* version array */
 extern unsigned char *get_ecver(void);
+/* program data to SPI data */
+extern int ec_update_rom(void *src, int size);
 
 /* read and write operation */
 /* PM (Power Management) Channels Register access.
@@ -28,7 +30,12 @@ extern unsigned char *get_ecver(void);
 
 /* base address for io access */
 #undef	MIPS_IO_BASE
+#ifdef LOONGSON3A_3A780E
+#define	MIPS_IO_BASE	(0xb8000000)
+#endif
+#ifdef LOONGSON2F_3GNB
 #define	MIPS_IO_BASE	(0xbfd00000)
+#endif
 #define SIO_INDEX_PORT	0x2E
 #define SIO_DATA_PORT	0x2F
 
@@ -41,9 +48,10 @@ extern unsigned char *get_ecver(void);
 
 /* ACPI OEM commands */
 
-/* reset the machine auto-clear : rd/wr */
+/* reset and poweroff the machine auto-clear : rd/wr */
 #define CMD_RESET           0x4E
 #define BIT_RESET_ON        1
+#define BIT_PWROFF_ON       2
 /* read version number: rd */
 #define CMD_RD_VER			0x4F
 #define VER_START_INDEX		0
@@ -171,9 +179,16 @@ extern unsigned char *get_ecver(void);
 #define	EC_ROM_MAX_SIZE		0xFFFF
 
 // PC memory
+#ifdef LOONGSON3A_3A780E
+#define WCB_BASE_ADDR 		0xB7100000
+#define FLASH_WIN_BASE_ADDR	0xB7000000
+#define RDBK_STAT_VAL_ADDR 	0xB7100008
+#endif
+#ifdef LOONGSON2F_3GNB
 #define WCB_BASE_ADDR 		0xBBF00000
 #define FLASH_WIN_BASE_ADDR	0xBBE00000
 #define RDBK_STAT_VAL_ADDR 	0xBBF00008
+#endif
 
 // Firmware Update Protocol definitions
 /* Semaphore bits */
@@ -228,7 +243,9 @@ extern unsigned char *get_ecver(void);
 #define EC_ROM_PRODUCT_ID_MXIC		0xC2
 #define EC_ROM_PRODUCT_ID_AMIC		0x37
 #define EC_ROM_PRODUCT_ID_EONIC		0x1C
-#define EC_ROM_PRODUCT_ID_WINBOND	0xEF	// Winbond W25x80
+#define EC_ROM_PRODUCT_ID_WINBOND	0xEF	// Winbond EC Flash
+#define EC_ROM_PRODUCT_ID_WBW25x80A		0x3014	// Winbond W25x80A
+#define EC_ROM_PRODUCT_ID_WBW25Q80BV	0x4014	// Winbond W25Q80BV
 
 // Write Command Buffer (WCB) commands structure
 #pragma pack(1)
@@ -308,13 +325,13 @@ static inline unsigned char PcMemReadB(unsigned long Address)
     return *(volatile unsigned char *)Address;
 }         
 
-static inline void wrwcb(u32 addr, unsigned char data)
+static inline void wrwcb(unsigned long addr, unsigned char data)
 {
 	delay(10);
 	*( (volatile unsigned char *) addr ) = data;
 }
 
-static inline unsigned char rdwcb(u32 addr)
+static inline unsigned char rdwcb(unsigned long addr)
 {
 	delay(10);
 	return (*((volatile unsigned char *) addr));
@@ -466,4 +483,4 @@ static inline int ec_query_seq(unsigned char cmd)
 	return ret;
 }
 
-#endif	// end ifdef LOONGSON2F_3GNB
+//#endif	// end ifdef LOONGSON3A_3A780E

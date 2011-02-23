@@ -554,7 +554,7 @@ static int cmd_test_sci(int ac, char *av[])
 extern void set_interface_cfg(u8 flag);
 extern unsigned short Read_Flash_IDs(void);
 extern void Update_Flash_Init(void);
-extern void Init_Flash_Command(void);
+extern void Init_Flash_Command(unsigned char rd_devid_cmd);
 extern unsigned char PcMemReadB (unsigned long Address);
 extern void Enter_Flash_Update(void);
 extern void flash_sector_erase(unsigned long Address);
@@ -563,14 +563,14 @@ extern void Flash_Set_Address(unsigned long Address);
 extern unsigned char Flash_read_status_register(void);
 extern void Flash_write_status_register(u8 data);
 extern WCB_exit_t exit_type;    // Type of protocol termination to use
-extern void Flash_program_data(u32 addr, u8 *src, u32 size);
+extern void Flash_program_data(unsigned long addr, u8 *src, u32 size);
 
 static int cmd_rdstsreg(int ac, char *av[])
 {
     u8 val = 0;
  
     set_interface_cfg(0);
-	Init_Flash_Command();
+	Init_Flash_Command(CMD_READ_DEV_ID);
 
 	val = Flash_read_status_register();
 
@@ -598,7 +598,7 @@ static int cmd_wrstsreg(int ac, char *av[])
 
 	printf("Write EC FLASH status register: data 0x%x\n", data);
     set_interface_cfg(0);
-	Init_Flash_Command();
+	Init_Flash_Command(CMD_READ_DEV_ID);
 	Flash_write_status_register(data);
 
 	return 0;
@@ -606,16 +606,26 @@ static int cmd_wrstsreg(int ac, char *av[])
 
 static int cmd_rdids(int ac, char *av[])
 {
-    u16 ec_ids = 0;
-	u8 mf_id, dev_id;
+    u32 temp_val = 0, ec_ids = 0;
+	u8 mf_id = 0;
+	u16 dev_id = 0;
 
     set_interface_cfg(0);
-	Init_Flash_Command();
+	Init_Flash_Command(CMD_READ_DEV_ID);
 	ec_ids = Read_Flash_IDs();
-	printf("Read wpce775l flash ID: 0x%x\n", ec_ids);
 
-	mf_id = ec_ids & 0x00FF;
-	dev_id = (u8) ((ec_ids & 0xFF00) >> 8);
+	if((ec_ids & 0x000000FF) == EC_ROM_PRODUCT_ID_WINBOND){
+		Init_Flash_Command(CMD_READ_JEDEC_ID);
+		temp_val = Read_Flash_IDs();
+		ec_ids = (ec_ids & 0x0) | ((temp_val & 0x00FF0000) >> 8) |
+			((temp_val & 0x0000FF00) << 8) | ((temp_val & 0x000000FF));
+		dev_id = (u16) ((ec_ids & 0x00FFFF00) >> 8);
+	}else{
+		dev_id = (u16) ((ec_ids & 0x0000FF00) >> 8);
+	}
+	
+	//printf("Read wpce775l flash ID: 0x%x\n", ec_ids);
+	mf_id = ec_ids & 0x000000FF;
 	printf("Manufacture ID 0x%x, Device ID : 0x%x\n", mf_id, dev_id);
 
     printf("EC ROM manufacturer: ");
@@ -633,7 +643,14 @@ static int cmd_rdids(int ac, char *av[])
             printf("EONIC.\n");
             break;
         case EC_ROM_PRODUCT_ID_WINBOND :
-            printf("WINBOND W25x80.\n");
+			printf("WINBOND, Device: ");
+			if(dev_id == EC_ROM_PRODUCT_ID_WBW25x80A){
+				printf("W25x80.");
+			}
+			else if(dev_id == EC_ROM_PRODUCT_ID_WBW25Q80BV){
+				printf("W25Q80BV.");
+			}
+            printf("\n");
             break;
  
 		default :
@@ -643,10 +660,10 @@ static int cmd_rdids(int ac, char *av[])
 
 	return 0;
 }
-         
+
 static int cmd_wrwcb(int ac, char *av[])
 {
-    u32 wcb_addr;
+    unsigned long wcb_addr;
 	u8 data;
  
 	if(ac < 3){
@@ -674,7 +691,7 @@ static int cmd_wrwcb(int ac, char *av[])
 
 static int cmd_rdwcb(int ac, char *av[])
 {
-    u32 wcb_addr;
+    unsigned long wcb_addr;
 	u8 size = 1;
     u8 val = 0;
 	int i;
@@ -717,7 +734,7 @@ static int cmd_rdwcb(int ac, char *av[])
 
 static int cmd_sector_erase(int ac, char *av[])
 {
-    u32 address;
+    unsigned long address;
 
 	if(ac < 2){
 		printf("ERROR : Too few parameters.\n");
@@ -734,7 +751,7 @@ static int cmd_sector_erase(int ac, char *av[])
 
 	printf("Erase sector: start address 0x%x\n", address);
     set_interface_cfg(0);
-	Init_Flash_Command();
+	Init_Flash_Command(CMD_READ_DEV_ID);
 
     Enter_Flash_Update();
 	flash_sector_erase(address);
@@ -747,7 +764,7 @@ static int cmd_sector_erase(int ac, char *av[])
 static int cmd_rdrom(int ac, char *av[])
 {
     u16 i, val;
-	u32 start_addr;
+	unsigned long start_addr;
 	u32 size;
 
     if(ac < 2){
@@ -806,7 +823,7 @@ static int cmd_rdrom(int ac, char *av[])
 
 static int cmd_wrrom(int ac, char *av[])
 {
-	u32 start_addr;
+	unsigned long start_addr;
 	u8 *data;
 	u32 size;
 

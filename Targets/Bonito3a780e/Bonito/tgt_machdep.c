@@ -94,6 +94,9 @@ tgt_printf (const char *fmt, ...)
 #include "mod_smi712.h"
 #include "mod_smi502.h"
 #include "mod_sisfb.h"
+
+#include "mycmd.c"
+
 #if PCI_IDSEL_CS5536 != 0
 #include <include/cs5536.h>
 #endif
@@ -856,7 +859,7 @@ tgt_devinit()
 
 #if  (PCI_IDSEL_VIA686B != 0)
 	SBD_DISPLAY("686I",0);
-	
+
 	vt82c686_init();
 #endif
 
@@ -866,67 +869,67 @@ tgt_devinit()
 #endif
 
 	printf("rs780_early_setup\n");
-        rs780_early_setup();
+	rs780_early_setup();
 
-        printf("sb700_early_setup\n");
-        sb700_early_setup();
-        printf("rs780_before_pci_fixup\n");
-        rs780_before_pci_fixup();
-        printf("sb700_before_pci_fixup\n");
-        sb700_before_pci_fixup();
-        printf("rs780_enable\n");
-        //vga test
-        //rs780_enable(_pci_make_tag(0, 0, 0));
-        //rs780_enable(_pci_make_tag(0, 1, 0));
-        rs780_after_pci_fixup(); //name dug
-        printf("sb700_enable\n");
-        sb700_enable();
+	printf("sb700_early_setup\n");
+	sb700_early_setup();
+	printf("rs780_before_pci_fixup\n");
+	rs780_before_pci_fixup();
+	printf("sb700_before_pci_fixup\n");
+	sb700_before_pci_fixup();
+	printf("rs780_enable\n");
+	//vga test
+	//rs780_enable(_pci_make_tag(0, 0, 0));
+	//rs780_enable(_pci_make_tag(0, 1, 0));
+	rs780_after_pci_fixup(); //name dug
+	printf("sb700_enable\n");
+	sb700_enable();
 
 #if 1
-        printf("disable bus0 device pcie bridges\n");
-        //disable bus0 device 3 pci bridges (dev2 to dev7, dev9-dev10)
-        //dev 2 and dev3 should not be open otherwise the vga could not work
-        //==by oldtai
-        set_nbmisc_enable_bits(_pci_make_tag(0,0,0), 0x0c,(1<<2|1<<3|1<<4|1<<5|1<<6|1<<7|1<<16|1<<17),
-                        (1<<2|1<<3|0<<4|0<<5|0<<6|0<<7|0<<16|0<<17));
+	printf("disable bus0 device pcie bridges\n");
+	//disable bus0 device 3 pci bridges (dev2 to dev7, dev9-dev10)
+	//dev 2 and dev3 should not be open otherwise the vga could not work
+	//==by oldtai
+	set_nbmisc_enable_bits(_pci_make_tag(0,0,0), 0x0c,(1<<2|1<<3|1<<4|1<<5|1<<6|1<<7|1<<16|1<<17),
+			(1<<2|1<<3|0<<4|0<<5|0<<6|0<<7|0<<16|0<<17));
 #endif
 
 #ifndef USE_780E_VGA 
-        printf("disable internal graphics\n");
-        //disable internal graphics
-        set_nbcfg_enable_bits_8(_pci_make_tag(0,0,0), 0x7c, 1, 1);
+	printf("disable internal graphics\n");
+	//disable internal graphics
+	set_nbcfg_enable_bits_8(_pci_make_tag(0,0,0), 0x7c, 1, 1);
 #endif
 
 #if 1
-        //SBD_DISPLAY("disable OHCI and EHCI controller",0);
-        //disable OHCI and EHCI controller
-        printf("disable OHCI and EHCI controller\n");
-        _pci_conf_write8(_pci_make_tag(0,0x14, 0), 0x68, 0x0);
+	//SBD_DISPLAY("disable OHCI and EHCI controller",0);
+	//disable OHCI and EHCI controller
+	printf("disable OHCI and EHCI controller\n");
+	_pci_conf_write8(_pci_make_tag(0,0x14, 0), 0x68, 0x0);
 #endif
 
 #if 1
-        /* usb enable,68h
-        1<<0:usb1 ohci0 enable
-        1<<1:usb1 ohci1 enable
-        1<<2:usb1 ehci enable
-        1<<3:reserved
-        1<<4:usb2 ohci0 enable
-        1<<5:usb2 ohci1 enable
-        1<<6:usb2 ehci enable
-        1<<7:usb3 ohci enable  */
-        printf("enable OHCI controller\n");
-       _pci_conf_write8(_pci_make_tag(0,0x14, 0), 0x68, (1<<0)|(1<<1)|(1<<4)|(1<<5)|(1<<7));
-      	//  _pci_conf_write8(_pci_make_tag(0,0x14, 0), 0x68, (1<<0));
+	/* usb enable,68h
+	   1<<0:usb1 ohci0 enable
+	   1<<1:usb1 ohci1 enable
+	   1<<2:usb1 ehci enable
+	   1<<3:reserved
+	   1<<4:usb2 ohci0 enable
+	   1<<5:usb2 ohci1 enable
+	   1<<6:usb2 ehci enable
+	   1<<7:usb3 ohci enable  */
+	printf("enable OHCI controller\n");
+	_pci_conf_write8(_pci_make_tag(0,0x14, 0), 0x68, (1<<0)|(1<<1)|(1<<4)|(1<<5)|(1<<7));
+	//  _pci_conf_write8(_pci_make_tag(0,0x14, 0), 0x68, (1<<0));
 #endif
 
 
 #ifndef ENABLE_SATA 
-        //SBD_DISPLAY("disable data",0);
-        //disable sata
-        printf("disable sata\n");
-        value = _pci_conf_read32(_pci_make_tag(0, 0x14, 0), 0xac);
-        value &= ~(1 << 8);
-        _pci_conf_write32(_pci_make_tag(0, 0x14, 0), 0xac, value);
+	//SBD_DISPLAY("disable data",0);
+	//disable sata
+	printf("disable sata\n");
+	value = _pci_conf_read32(_pci_make_tag(0, 0x14, 0), 0xac);
+	value &= ~(1 << 8);
+	_pci_conf_write32(_pci_make_tag(0, 0x14, 0), 0xac, value);
 #endif
 
 
@@ -945,74 +948,78 @@ tgt_devinit()
 	else {
 		CpuExternalCacheOn = 1;
 	}
-	
+
 #if 1
-    CPU_ConfigCache();
+	CPU_ConfigCache();
 #else
-{       
+	{       
 #define CTYPE_HAS_L2  0x100	
-	CpuPrimaryInstCacheSize = 64<<10;
-	CpuPrimaryInstCacheLSize = 32;
-	CpuPrimaryInstSetSize = (64<<10)/32/4;
-	CpuPrimaryDataCacheSize = 64<<10;
-	CpuPrimaryDataCacheLSize = 32;;
-	CpuPrimaryDataSetSize =  (64<<10)/32/4;
-	//CpuCacheAliasMask ;
-	CpuSecondaryCacheSize = ((1024*4)<<10);
-	CpuTertiaryCacheSize = 0;
-	CpuNWayCache = 4;
-	CpuCacheType = CTYPE_HAS_L2 ;		/* R4K, R5K, RM7K */
-	//CpuConfigRegister;
-	//CpuStatusRegister;
-	//CpuExternalCacheOn;	/* R5K, RM7K */
-	//CpuOnboardCacheOn;	/* RM7K */
+		CpuPrimaryInstCacheSize = 64<<10;
+		CpuPrimaryInstCacheLSize = 32;
+		CpuPrimaryInstSetSize = (64<<10)/32/4;
+		CpuPrimaryDataCacheSize = 64<<10;
+		CpuPrimaryDataCacheLSize = 32;;
+		CpuPrimaryDataSetSize =  (64<<10)/32/4;
+		//CpuCacheAliasMask ;
+		CpuSecondaryCacheSize = ((1024*4)<<10);
+		CpuTertiaryCacheSize = 0;
+		CpuNWayCache = 4;
+		CpuCacheType = CTYPE_HAS_L2 ;		/* R4K, R5K, RM7K */
+		//CpuConfigRegister;
+		//CpuStatusRegister;
+		//CpuExternalCacheOn;	/* R5K, RM7K */
+		//CpuOnboardCacheOn;	/* RM7K */
 
-	//printf("whd:2\n");
-	//CPU_FlushCache();
-	//printf("whd:3\n");
-	asm volatile("mfc0 $4, $16\n"
-            "and    $4,0xfffffff8\n"
-            "or     $4,0x3\n"
-            "mtc0   $4,$16\n":::"a0");
+		//printf("whd:2\n");
+		//CPU_FlushCache();
+		//printf("whd:3\n");
+		asm volatile("mfc0 $4, $16\n"
+				"and    $4,0xfffffff8\n"
+				"or     $4,0x3\n"
+				"mtc0   $4,$16\n":::"a0");
 
-	//printf("whd:4\n");
+		//printf("whd:4\n");
 #if 0
-	unsigned long config1, config2, lsize, linesz, sets, ways; 
-	asm(".word 0x40028001\n":"=r"(config2));
-	if ((lsize = ((config2 >> 4) & 15)))
-          linesz = 2 << lsize;
-        else
-          linesz = lsize;
+		unsigned long config1, config2, lsize, linesz, sets, ways; 
+		asm(".word 0x40028001\n":"=r"(config2));
+		if ((lsize = ((config2 >> 4) & 15)))
+			linesz = 2 << lsize;
+		else
+			linesz = lsize;
 
-        sets = 64 << ((config2 >> 8) & 15);
-        ways = 1 + ((config2  ) & 15);
+		sets = 64 << ((config2 >> 8) & 15);
+		ways = 1 + ((config2  ) & 15);
 
-        CPUSecondaryCacheSize = sets * ways * linesz;
+		CPUSecondaryCacheSize = sets * ways * linesz;
 #endif
-}
+	}
 #endif
 
 	_pci_businit(1);	/* PCI bus initialization */
 #if defined(VIA686B_POWERFIXUP) && (PCI_IDSEL_VIA686B != 0)
-if(getenv("noautopower"))	vt82c686_powerfixup();
+	if(getenv("noautopower"))	vt82c686_powerfixup();
 #endif
 
 #if  (PCI_IDSEL_CS5536 != 0)
 	cs5536_pci_fixup();
 #endif
 	printf("sb700_after_pci_fixup\n");
-        sb700_after_pci_fixup();
+	sb700_after_pci_fixup();
 }
 
 
 void
 tgt_reboot()
 {
+#ifdef LOONGSON3A_3A780E
+	/* Send reboot command */
+	ec_wr_noindex(CMD_RESET, BIT_RESET_ON);
+#else
 	void (*longreach) (void);
 	
 	longreach = (void *)0xbfc00000;
 	(*longreach)();
-
+#endif
 	while(1);
 }
 
@@ -1050,6 +1057,12 @@ tgt_poweroff()
     *(watch_dog_mem  + 1) = 0x15;
     * watch_dog_mem       = 0x05;
     * watch_dog_mem       = 0x85;
+#else
+#ifdef LOONGSON3A_3A780E
+	/* Send poweroff command */
+#if 1
+	ec_wr_noindex(CMD_RESET, BIT_PWROFF_ON);
+	while(1);
 #else
     __asm__(
          ".set mips3\n"
@@ -1097,8 +1110,9 @@ tgt_poweroff()
 
          ".set mips0\n"
          :::"$2","$3","memory");
-#endif
-
+#endif	// end if 1
+#endif	// end ifdef LOONGSON3A_3A780E
+#endif	// end if 0
 }
 
 
@@ -1651,6 +1665,15 @@ tgt_flashprogram(void *p, int size, void *s, int endian)
 }
 #endif /* PFLASH */
 
+#ifdef LOONGSON3A_3A780E
+/* update the ec_firmware */
+void tgt_ecprogram(void *s, int size)
+{
+	ec_update_rom(s, size);
+ 	return;
+}
+#endif /* ifdef LOONGSON3A_3A780E, update the ec_firmware */
+
 /*
  *  Network stuff.
  */
@@ -1766,7 +1789,6 @@ tgt_mapenv(int (*func) __P((char *, char *)))
 	(*func)("busclock", env);
 
 	(*func)("systype", SYSTYPE);
-	
 }
 
 int
@@ -2141,7 +2163,7 @@ void tgt_netpoll()	{};
 #define MS_COPY		2
 #define MS_WRITE	3
 #define MS_READ		4
-#include "mycmd.c"
+//#include "mycmd.c"
 
 #ifdef DEVBD2F_FIREWALL
 #include "i2c-sm502.c"

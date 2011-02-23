@@ -94,7 +94,6 @@ extern int check_config (const char * file);
 extern char *getenv(const char *);
 extern void _set_font_color(void);
 
-
 jmp_buf         jmpb;       /* non-local goto jump buffer */
 char            line[LINESZ + 1];   /* input line */
 struct termio   clntterm;   /* client terminal mode */
@@ -610,7 +609,7 @@ static int recover(void)
     
 }
 
-
+extern void get_ec_version(void);
 /*
  *  PMON2000 entrypoint. Called after initial setup.
  */
@@ -655,6 +654,12 @@ dbginit (char *adr)
     SBD_DISPLAY ("SBDD", CHKPNT_SBDD);
 
     tgt_devinit();
+
+	/* daway added 2011-02-18 */
+#ifdef LOONGSON3A_3A780E
+	/* get ec version */
+	get_ec_version();
+#endif
 
 #ifdef INET
     SBD_DISPLAY ("NETI", CHKPNT_NETI);

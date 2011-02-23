@@ -46,6 +46,10 @@
 
 #include "cmd_more.h"
 
+#ifdef LOONGSON3A_3A780E
+#include "include/wpce775x.h"
+#endif
+
 static int	envinited = 0;
 
 static struct stdenv {
@@ -112,7 +116,7 @@ static struct stdenv {
 	{"Version", "LM9019-1.0.3", 0},
 #endif
 #ifdef LOONGSON3A_3A780E
-	{"Version", "LM9020-1.0.0", 0},
+	{"Version", "LM9020-1.0.1", 0},
 #endif
 #if (_MIPS_SZPTR == 32)
 	{"mips_szptr","32",0 },
@@ -411,4 +415,15 @@ envbuild (char **vsp, char *ssp)
 	}
 	*((int*)vsp)++ = 0;
 }
+	
+#ifdef LOONGSON3A_3A780E
+void get_ec_version(void)
+{
+	char env[512];
 
+	/* get ec version */
+	sprintf(env, "%s", get_ecver());
+	_setenv("ECVersion", env);
+	printf("ECVersion = %s\n", env);
+}
+#endif

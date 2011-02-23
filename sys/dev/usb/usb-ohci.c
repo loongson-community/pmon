@@ -427,14 +427,20 @@ void * sm502_phystov(struct ohci *ohci, bus_addr_t phys)
 *===========================================================================*/
 static int ohci_match(struct device *parent, void *match, void *aux)
 {
-		
+
 	struct pci_attach_args *pa = aux;
 #ifdef CONFIG_SM502_USB_HCD
 	char *no502;
 #endif
 
+	/* Solved when detect SD card, program stop running. daway added 2011-02-18 */
+	if((pa->pa_device == 18) && (pa->pa_function == 1)) {
+		printf("--------18   1 --------\n");
+		return 0;
+	}
+
 	if(PCI_CLASS(pa->pa_class) == PCI_CLASS_SERIALBUS && 
-		  PCI_SUBCLASS(pa->pa_class) == PCI_SUBCLASS_SERIALBUS_USB){ 
+			PCI_SUBCLASS(pa->pa_class) == PCI_SUBCLASS_SERIALBUS_USB){ 
 		if(((pa->pa_class >>8) & 0xff) == 0x10){
 			//dbg("Found usb ohci controller\n");
 			return 1; 
@@ -444,8 +450,8 @@ static int ohci_match(struct device *parent, void *match, void *aux)
 	if((no502 = getenv("no502"))&&strtoul(no502, NULL, 0))
 		return 0;
 	if(PCI_VENDOR(pa->pa_id) == 0x126f && 
-		PCI_PRODUCT(pa->pa_id) == 0x501)
-			return 1;
+			PCI_PRODUCT(pa->pa_id) == 0x501)
+		return 1;
 #endif
 
 	return 0;

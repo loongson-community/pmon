@@ -85,6 +85,9 @@ const Optdesc         cmd_nload_opts[] =
 #ifdef HAVE_FLASH
 	{"-f flash_addr -o load_addr offsetr", ""},
 #endif
+#ifdef HAS_EC
+	{"-d", "load ec_firmware file to update ec flash"},
+#endif
 	{"-n", "don't load symbols"},
 	{"-y", "only load symbols"},
 	{"-v", "verbose messages"},

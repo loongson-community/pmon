@@ -12,6 +12,7 @@
 
 /* Define spi Flash commands */
 #define CMD_READ_DEV_ID		0x90	/* read device id command. */
+#define CMD_READ_JEDEC_ID	0x9f	/* read JEDEC ID command. */
 #define CMD_WRITE_STAT_EN 	0x06  	/* enable write to status register */
 #define CMD_WRITE_EN      	0x06  	/* write enable */
 #define CMD_READ_STAT     	0x05  	/* read status register */
