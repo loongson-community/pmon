@@ -596,6 +596,21 @@ static void
 	term_open(5, "/dev/tty2", 0, 0); /* vgaout */
 }
 
+void tty_flush()
+ {
+     int cnt;
+     while(1){
+         ioctl (STDIN, FIONREAD, &cnt);
+         if(cnt)
+             getchar();
+         else break;
+     }
+
+     scancode_queue_init();
+ }
+
+
+
 void *restdout(int  (*newwrite) (int fd, const void *buf, size_t n))
 {
 int  (*oldwrite) (int fd, const void *buf, size_t n);

@@ -31,7 +31,34 @@
  *
  */
 #include <include/stdarg.h>
-void		tgt_putchar (int);
+#include <include/stdio.h>
+#include <include/string.h>
+#include <include/file.h>
+#include <include/termio.h>
+#include "target/sbd.h"
+
+#include "../../../pmon/cmds/cmd_main/window.h"
+#include "../../../pmon/cmds/cmd_main/cmd_main.h"
+
+// 
+#include <sys/ioccom.h>
+
+/* Generic file-descriptor ioctl's. */
+#define	FIOCLEX		 _IO('f', 1)		/* set close on exec on fd */
+#define	FIONCLEX	 _IO('f', 2)		/* remove close on exec */
+#define	FIONREAD	_IOR('f', 127, int)	/* get # bytes to read */
+#define	FIONBIO		_IOW('f', 126, int)	/* set/clear non-blocking i/o */
+#define	FIOASYNC	_IOW('f', 125, int)	/* set/clear async i/o */
+#define	FIOSETOWN	_IOW('f', 124, int)	/* set owner */
+#define	FIOGETOWN	_IOR('f', 123, int)	/* get owner */
+
+
+
+
+#define STDIN		((kbd_available|usb_kbd_available)?3:0)
+//include "sys/sys/filio.h"
+
+void	tgt_putchar (int);
 int
 tgt_printf (const char *fmt, ...)
 {
@@ -125,6 +152,7 @@ extern struct trapframe DBGREG;
 extern void *memset(void *, int, size_t);
 
 int kbd_available;
+int bios_available;
 int usb_kbd_available;;
 int vga_available;
 
@@ -564,9 +592,31 @@ int psaux_init(void);
 extern int video_hw_init (void);
 
 extern int fb_init(unsigned long,unsigned long);
+
+int afxIsReturnToPmon = 0;
+struct FackTermDev
+{
+	int dev;
+};
 void
 tgt_devconfig()
 {
+         int ic, len;
+	         int count = 0;
+	         char key;
+	         char copyright[9] ="REV_";
+	         char bootup[] = "Booting...";
+	         char *tmp_copy = NULL;
+	         char tmp_date[11];
+          char * s;
+char *a;
+		unsigned int dly, lastt;
+		unsigned int cnt=0;
+		struct termio sav;
+		unsigned char inchar;
+		unsigned char set_bios_menu = 0;
+
+
 #if NMOD_VGACON > 0
 	int rc=1;
 #if NMOD_FRAMEBUFFER > 0 
@@ -641,6 +691,7 @@ tgt_devconfig()
                 fbaddress |= 0xb0000000;
                 ioaddress |= 0xb0000000;
 #endif
+/***********for what?************/
 #if (SHARED_VRAM == 128)
 		fbaddress = 0xf8000000;//64M graph memory
 #elif (SHARED_VRAM == 64)
@@ -649,10 +700,6 @@ tgt_devconfig()
 		fbaddress = 0xfe000000;//32 graph memory
 #endif
 
-		/* lwg add.
-		 * The address mapped from 0x10000000 to 0xf800000
-		 * wouldn't work through tlb.
-		_*/
 #ifdef CONFIG_GFXUMA
 		fbaddress = 0x88000000; /* FIXME */
 #else
@@ -675,6 +722,7 @@ tgt_devconfig()
 #endif
     config_init();
     configure();
+//key_board init
 //#if ((NMOD_VGACON >0) &&(PCI_IDSEL_VIA686B !=0)|| (PCI_IDSEL_CS5536 !=0))
 #if NMOD_VGACON >0
 	if(getenv("nokbd")) rc=1;
@@ -688,7 +736,113 @@ tgt_devconfig()
 	}
 //	psaux_init();
 #endif
-   printf("devconfig done.\n");
+		 
+		vga_available = 1;
+		kbd_available=1;
+	    bios_available = 1; //support usb_kbd in bios
+
+	  // Ask user whether to set bios menu
+
+		dly = 4;
+		printf("Press <Enter> to set BIOS,waiting for 4 seconds here..... \n");
+
+		ioctl (STDIN, CBREAK, &sav);
+		lastt = 0;
+		do {
+			delay(72000);
+			printf ("\b\b%02d", --dly);
+			ioctl (STDIN, FIONREAD, &cnt);
+		} while (dly != 0 && cnt == 0);
+		ioctl (STDIN, TCSETAF, &sav);
+		putchar ('\n');
+        
+		if(cnt > 0 && strchr("\r\n",inchar=getchar())){
+        	printf ("#################getchar() return %08x\n", inchar );
+			set_bios_menu = 1;
+		}
+		else
+			set_bios_menu = 0;
+
+
+	
+#if 1 
+			//put some words from vers to copyright,this is not use in pom3a
+	         copyright[10] = '\0';
+              vga_available = 1;
+	           if(getenv("bios_ver") == NULL || strcmp(getenv("bios_ver"), &copyright[4]) != 0)
+	         {
+	             setenv("bios_ver", &copyright[4]);
+	         }
+	
+	         video_set_color(0x7);
+	
+	         len = strlen(copyright);
+			for (ic = 0; ic < len; ic++){
+	             video_putchar1(2 + ic*8, REV_ROW_LINE, copyright[ic]);
+	         }
+			
+#endif
+	         get_update(tmp_date);
+	         for (ic = 0; ic < 11; ic++){
+	             video_putchar1(2 + (len+2)*8+ic*8, 560, tmp_date[ic]);
+			  }
+  
+			 video_set_color(0xf);
+			
+	        vga_available = 0;          //lwg close printf output
+	
+	         init_win_device();
+	
+
+
+              vga_available = 1;
+              video_set_color(0xf);
+  		
+              for (ic = 0; ic < 64; ic++)
+              {
+                  video_putchar1(2 + ic*8, REV_ROW_LINE, ' ');
+                  video_putchar1(2 + ic*8, INF_ROW_LINE, ' ');
+              }
+
+             vga_available = 0;
+ 
+              if (set_bios_menu == 0)
+                  goto run;
+              else
+                  goto bios;
+
+  bios:
+
+      
+         if(!(s = getenv("SHOW_DISPLAY")) || s[0] !='2')
+          {
+              char buf[10];
+              video_set_color(0xf);
+              video_set_color(0x8);
+              tty_flush();
+        //printf("it needs to execute window here,but where am I??"); 
+			  vga_available = 1;
+              do_cmd("main");
+              if (!afxIsReturnToPmon)
+              {
+                 vga_available = 0;
+              }
+          }
+      
+run:
+	  	vga_available = 1;
+		bios_available = 0;//support usb_kbd in bios
+       kbd_available = 1;
+
+			  len = strlen(bootup);
+              for (ic = 0; ic < len; ic++)
+              {
+                  video_putchar1(2 + ic*8, INF_ROW_LINE,bootup[ic]);
+              }
+
+  
+	printf("devconfig done.\n");
+
 }
 
 extern int test_icache_1(short *addr);
@@ -2217,4 +2371,67 @@ void tgt_netpoll()	{};
 #include "i2c-via.c"
 #endif
 
+char *tran_month(char *c, char *i)
+ {
+     switch (*c++){
+     case  'J':
+         if(*c++ == 'a')     /* Jan */
+             i = "01";
+         else if(*c++ == 'n')    /* June */
+             i = "06";
+         else                /* July */
+             i = "07";
+         break;
+     case  'F':              /* Feb */
+         i = "02";
+         break;
+     case  'M':
+         c++;
+         if(*c++ == 'r')     /* Mar */
+             i = "03";
+         else                /* May */
+             i = "05";
+         break;
+     case  'A':
+         if(*c++ == 'p')     /* Apr */
+             i = "04";
+         else                /* Aug */
+             i = "08";
+         break;
+	 case  'S':              /* Sept */
+         i = "09";
+         break;
+     case  'O':              /* Oct */
+         i = "10";
+         break;
+     case  'N':              /* Nov */
+         i = "11";
+         break;
+     case  'D':              /* Dec */
+         i = "12";
+         break;
+     default :
+         i = NULL;
+     }
+
+     return i;
+ }
+
+
+int get_update(char *p)
+ {
+     int i=0;
+     char *t,*mp,m[3];
+
+     t  = strstr(vers, ":");
+     strncpy(p, t+26, 4);     /* year */
+     p[4] = '-';
+     mp = tran_month(t+6, m);    /* month */
+     strncpy(p+5,mp,2);
+     p[7]='-';
+     strncpy(p+8, t+10, 2);   /* day */
+     p[10] = '\0';
+
+     return 0;
+ }
 

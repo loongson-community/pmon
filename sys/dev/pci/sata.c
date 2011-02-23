@@ -102,6 +102,20 @@ static int fault_timeout;
 static int sata_match (struct device *, void *, void *);
 static void sata_attach (struct device *, struct device *, void *);
 #define myudelay delay
+
+int curr_device = -1;
+  //block_dev_desc_t sata_dev_desc[CFG_SATA_MAX_DEVICE];
+ 
+  /* atapi devide isatapi = 1, or isatapi = 0
+   * 0 : atapi
+   * 1 : dev
+   */
+  struct atapit devinf[2] = {
+      {-1, -1},
+      {-1, -1}
+  };
+  int curdev = -1;
+
 static inline void mdelay(u64 msec)
 {
 	u64 i;

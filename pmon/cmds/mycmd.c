@@ -42,11 +42,12 @@ extern char  *heaptop;
 
 #include <errno.h>
 unsigned long strtoul(const char *nptr,char **endptr,int base);
-#define ULONGLONG_MAX 0xffffffffffffffffUL
+#define ULONGLONG_MAX 0xffffffffffffffffUL //32 or 64?
 int abs(int x)
 {
 return x>=0?x:-x;
 }
+// strtoul : convert the sting into an unsigned long interger
 unsigned long long
 strtoull(const char *nptr,char **endptr,int base)
 {
@@ -64,7 +65,7 @@ strtoull(const char *nptr,char **endptr,int base)
     if ((c = *nptr) == '+' || c == '-') { /* handle signs */
 	negative = (c == '-');
 	nptr++;
-    }
+    }//this *nptr is '+'or'-',if it`s '-',negative=1,else negative=0,zhizhen nptr go step
 
     if (base == 0) {		/* determine base if unknown */
 	base = 10;
@@ -137,6 +138,8 @@ int (*syscall1)(int type,long long addr,union commondata *mydata)=(void *)&__sys
 int (*syscall2)(int type,long long addr,union commondata *mydata)=(void *)&__syscall2;
 static char *str2addmsg[]={"32 bit cpu address","64 bit cpu address","64 bit cached phyiscal address","64 bit uncached phyiscal address"};
 #if __mips >= 3
+
+//convert function for 4 cores 
 static unsigned long long
 str2addr(const char *nptr,char **endptr,int base)
 {
@@ -180,6 +183,7 @@ size_t fread (void *src, size_t size, size_t count, FILE *fp);
 size_t fwrite (const void *dst, size_t size, size_t count, FILE *fp);
 static char diskname[0x40];
 
+//read info about the disk
 static int __disksyscall1(int type,long long addr,union commondata *mydata)
 {
 	char fname[0x40];
@@ -188,7 +192,7 @@ static int __disksyscall1(int type,long long addr,union commondata *mydata)
 	else strcpy(fname,diskname);
 	fp=fopen(fname,"r+");
 	if(!fp){printf("open %s error!\n",fname);return -1;}
-	fseek(fp,addr,SEEK_SET);
+	fseek(fp,addr,SEEK_SET);//put fp faraway from the beginning of addr length point of this file
 switch(type)
 {
 case 1:fread(&mydata->data1,1,1,fp);break;
@@ -200,6 +204,7 @@ case 8:fread(&mydata->data8,8,1,fp);break;
 return 0;
 }
 
+//write info into the disk
 static int __disksyscall2(int type,long long addr,union commondata *mydata)
 {
 	char fname[0x40];
@@ -219,7 +224,7 @@ case 8:fwrite(&mydata->data8,8,1,fp);break;
 	fclose(fp);
 return 0;
 }
-
+//devcp is read info from the dev
 static int devcp(int argc,char **argv)
 {
 char *buf;
@@ -434,7 +439,7 @@ case 8:
 return 0;
 }
 
-
+//cmd mydump
 static int mydump(char type,unsigned long long addr,unsigned count)
 {
 		int i,j,k;
@@ -568,6 +573,7 @@ static int count=1;
 		return 0;
 }
 
+//read data from memory,then modify will use this function 
 static int getdata(char *str)
 {
 	static char buf[17];

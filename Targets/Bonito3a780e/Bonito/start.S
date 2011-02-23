@@ -1249,8 +1249,9 @@ probe_mc1:
         nop;
         PRINTSTR("\r\n");
 #else
-        li      s6, 0x14140c24 /* s6 used to save detected infomation from MC0 */
-        li      s7, 0x14140c24 /* s7 used to save detected infomation from MC1 */
+        li      s6, 0x001c03a4 /* s6 used to save detected infomation from MC0DIMM0 */
+//        li      s6, 0x001c03a4 /* s6 used to save detected infomation from MC0DIMM0 */
+       li      s7, 0x0 /* s7 used to save detected infomation from MC1 */
 #endif
 		bnez s6,1f
 		nop
