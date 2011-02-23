@@ -61,7 +61,8 @@
 
 #include "sd.h"
 #include "wd.h"
-
+#include "../cmds/cmd_main/window.h"
+#include "../cmds/cmd_main/cmd_main.h"
 
 #include <pflash.h>
 #include <flash.h>

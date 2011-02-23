@@ -204,6 +204,10 @@ struct cfdriver rte_cd = {
 	NULL, "rte", DV_IFNET,
 };
 
+ /* Provide Interface for BIOS Interface */
+  unsigned char MACAddr0[6] = {0};
+  unsigned char MACAddr1[6] = {0};
+
 
 #define PCI_VENDOR_ID_REALTEK       0x10ec
 
@@ -442,8 +446,30 @@ r8168_attach(struct device * parent, struct device * self, void *aux)
 	}
 #endif
 		printf("MAC ADDRESS: ");
-		printf("%02x:%02x:%02x:%02x:%02x:%02x\n", tp->dev_addr[0],tp->dev_addr[1],
-				tp->dev_addr[2],tp->dev_addr[3],tp->dev_addr[4],tp->dev_addr[5]);
+//		printf("%02x:%02x:%02x:%02x:%02x:%02x\n", tp->dev_addr[0],tp->dev_addr[1],
+//				tp->dev_addr[2],tp->dev_addr[3],tp->dev_addr[4],tp->dev_addr[5]);
+
+//   printf("MAC addr is ");
+     for (i = 0; i < MAC_ADDR_LEN; i++){
+
+         tp->dev_addr[i] = RTL_R8(tp, MAC0 + i);
+
+         /* wgl add for BIOS Interface display macaddress */
+         if (pn == 0){
+             MACAddr0[i] = tp->dev_addr[i];
+         }
+         else if (pn == 1){
+             MACAddr1[i] = tp->dev_addr[i];
+         }
+
+         printf("%02x", tp->dev_addr[i]);
+
+         if ( i == 5 )
+                 printf("\n");
+         else
+                 printf(":");
+     }
+
 
 #ifdef CONFIG_R8168_NAPI
     RTL_NAPI_CONFIG(dev, tp, rtl8168_poll, R8168_NAPI_WEIGHT);
@@ -493,7 +519,7 @@ r8168_attach(struct device * parent, struct device * self, void *aux)
 		return;
 	}
 
-	intrstr = pci_intr_string(pc, ih);
+	//intrstr = pci_intr_st//ring(pc, ih);
     status = RTL_R16(tp, IntrStatus);
     tp->sc_ih = pci_intr_establish(pc, ih, IPL_NET, rtl8168_interrupt, tp, self->dv_xname);
 #if 0
@@ -4095,6 +4121,22 @@ static int cmd_reprom(int ac, char *av[])
 	return data;
 }
 
+#if 0
+ static int cmd_set_811(int ac, char *av[])
+{
+     int old_value;
+     struct rtl8169_private *tp;
+
+     tp = myRTL[pn];
+
+     old_value = mdio_read(tp, PHY_CTRL_REG);
+     printf("the old PHY_CTRL_REG value is %x\n", old_value);
+     old_value |= 0x0200;       //set to re auto negotiation
+     mdio_write(tp, PHY_CTRL_REG, old_value);
+
+     return 0;
+ }
+#endif
 static int cmd_wrprom(int ac, char *av[])
 {
     int i;

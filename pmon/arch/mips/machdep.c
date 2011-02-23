@@ -69,7 +69,7 @@ extern int global_div_num;
 #define	CPU_7		0x0001		/* RM7000 */
 #define	CPU_5		0x0002		/* R5000 */
 #define CPU_GOD1	0x0004
-#define CPU_GOD2	0x0008
+#define CPU_GOD3	0x0008
 #define	CPU_41		0x0010		/* R4100 */
 #define	F_FMT	0x1000		/* Field uses format */
 
@@ -114,9 +114,9 @@ md_cpuname()
 	case MIPS_RM52X0:
 		cputype = CPU_5;
 		return("RM52x0");
-	case MIPS_GODSON2:
-		cputype = CPU_GOD2; // ?????????????
-		return("GODSON2");
+	case MIPS_GODSON3:
+		cputype = CPU_GOD3; // ?????????????
+		return("GODSON3");
 	case MIPS_GODSON1:
 		cputype=CPU_GOD1;
 #ifdef CPU_NAME

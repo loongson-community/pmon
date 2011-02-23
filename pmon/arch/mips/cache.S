@@ -932,7 +932,7 @@ LEAF(CPU_FlushDCache)
 	li      t6, (MIPS_GODSON1<<8)
 	beq     t5,t6,3f
 	nop
-	li      t6, (MIPS_GODSON2<<8)
+	li      t6, (MIPS_GODSON3<<8)  
 	bne     t5,t6,non_godson2_1
 	nop
 3:

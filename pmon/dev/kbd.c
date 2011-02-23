@@ -486,6 +486,36 @@ static inline void handle_mouse_event(unsigned char scancode);
  * It requires that we hold the keyboard controller
  * spinlock.
  */
+
+  #define KEYBUFF_LEN 64
+  #define KEYBUFF_MASK (KEYBUFF_LEN-1)
+  static unsigned char scancode_queue[KEYBUFF_LEN];
+  static unsigned int scancode_writeptr=0;
+  static unsigned int scancode_readptr=0;
+  void scancode_queue_init()
+  {
+      scancode_writeptr=scancode_readptr=0;
+  }
+ 
+  unsigned int scancode_queue_read()
+  {
+     int ret;
+      if(scancode_readptr==scancode_writeptr)
+          return KBD_NO_DATA;
+      ret=scancode_queue[scancode_readptr&KEYBUFF_MASK];
+      scancode_readptr++;
+ 
+      return ret;
+  }
+ 
+  void scancode_queue_write(unsigned char scancode)
+  {
+   if((scancode_writeptr-scancode_readptr)>=KEYBUFF_LEN)
+   return;
+    scancode_queue[scancode_writeptr&KEYBUFF_MASK]=scancode;
+    scancode_writeptr++;
+  }
+
 static unsigned char handle_kbd_event(void)
 {
 	unsigned char status = kbd_read_status();

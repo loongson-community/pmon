@@ -590,6 +590,7 @@ enum RTL8168_register_content {
 	PHYAR_Reg_Mask = 0x1f,
 	PHYAR_Reg_shift = 16,
 	PHYAR_Data_Mask = 0xffff,
+	//PHY_CTRL_REG = 0x0;
 
 	/* EPHY access */
 	EPHYAR_Flag = 0x80000000,

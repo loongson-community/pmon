@@ -1,4 +1,4 @@
-IDENT=-DVGAROM_IN_BIOS -DSYSTYPE="\"Bonito\"" -DTARGETNAME="\"Bonito\"" -DBONITOEL -DDEVBD2F -DLS3_SERVER -DMIPS -DINET -DLS3_HT -DENABLE_SATA -Dloongson3A3 -DSERVER_3A -DRS780E -DUSE_780E_VGA -DVGA_NO_ROM -DVGA_BASE="0xbe000000" -DSHARED_VRAM="0x40" -DGPU_UMA -DVESAFB -DCONS_BAUD="B115200" -DMY40IO -DNOPCINAMES -DNOSNOOP -DHAVE_TOD -DHAVE_NVENV -DHAVE_LOGO -DUSE_SUPERIO_UART -DAUTOLOAD -DCONFIG_CACHE_64K_4WAY -DNVRAM_IN_FLASH -DIDECD -DHAVE_NB_SERIAL -DFOR_GXEMUL -DFLOATINGPT -DPCI_IDSEL_SB700="0xe" -DWDC_NORESET -DINPUT_FROM_BOTH -DOUTPUT_TO_BOTH -DDEVBD2F_VIA
+IDENT=-DVGAROM_IN_BIOS -DSYSTYPE="\"Bonito\"" -DTARGETNAME="\"Bonito\"" -DBONITOEL -DDEVBD2F -DLS3_SERVER -DMIPS -DINET -DLS3_HT -DENABLE_SATA -Dloongson3A3 -DSERVER_3A -DRS780E -DUSE_780E_VGA -DVGA_NO_ROM -DVGA_BASE="0xbe000000" -DSHARED_VRAM="0x40" -DGPU_UMA -DVESAFB -DCONS_BAUD="B115200" -DMY40IO -DNOPCINAMES -DNOSNOOP -DHAVE_TOD -DHAVE_NVENV -DHAVE_LOGO -DUSE_SUPERIO_UART -DAUTOLOAD -DCONFIG_CACHE_64K_4WAY -DNVRAM_IN_FLASH -DIDECD -DHAVE_NB_SERIAL -DFOR_GXEMUL -DFLOATINGPT -DPCI_IDSEL_SB700="0xe" -DWDC_NORESET -DINPUT_FROM_BOTH -DOUTPUT_TO_BOTH -DDEVBD2F_VIA -DCONFIG_VIDEO_SW_CURSOR
 S!=	echo `/bin/pwd`/../../../..
 ENDIAN=EL
 ifndef S
@@ -21,14 +21,14 @@ OBJS=	wdc.o mainbus.o pcibr.o if.o if_ethersubr.o if_loop.o if_media.o \
 	setup.o display.o cmdtable.o debuggercmds.o devls.o cmd_go.o \
 	hist.o ifaddr.o oload.o load.o tftpd.o cmd_grub.o memcmds.o \
 	memtst.o miscmds.o pcicmds.o pflash.o cmd_env.o transp.o sym.o \
-	time.o shellcmds.o about.o autoconf.o callvec.o cmdparser.o \
-	debugger.o exception.o main.o more.o rsa.o sbrk.o env.o ramfile.o \
-	termio.o socket.o gzip.o iso9660fs.o devfs.o diskfs.o fatfs.o \
-	ext2fs.o loadfn.o exec.o exec_bin.o exec_elf.o exec_elf64.o \
-	exec_srec.o netio.o bootp.o ifconfig.o ping.o tftplib.o httplib.o \
-	debug.o decode.o fpu.o ops.o ops2.o prim_ops.o sys.o generic.o \
-	helper_exec.o helper_mem.o xf86int10.o xf86x86emu.o \
-	rs690_struct.o vesafb.o cfb_console.o kbd.o vgacon.o \
+	time.o shellcmds.o cmd_main.o window.o about.o autoconf.o \
+	callvec.o cmdparser.o debugger.o exception.o main.o more.o rsa.o \
+	sbrk.o env.o ramfile.o termio.o socket.o gzip.o iso9660fs.o \
+	devfs.o diskfs.o fatfs.o ext2fs.o loadfn.o exec.o exec_bin.o \
+	exec_elf.o exec_elf64.o exec_srec.o netio.o bootp.o ifconfig.o \
+	ping.o tftplib.o httplib.o debug.o decode.o fpu.o ops.o ops2.o \
+	prim_ops.o sys.o generic.o helper_exec.o helper_mem.o xf86int10.o \
+	xf86x86emu.o rs690_struct.o vesafb.o cfb_console.o kbd.o vgacon.o \
 	generic_poll.o flash.o flashdev.o flash_amd.o flash_int.o \
 	flash_sst.o ns16550.o machdep.o mips_machdep.o disassemble.o \
 	mips.o cache.o usb.o usb_storage.o part.o usb-ohci.o usb_kbd.o \
@@ -73,6 +73,7 @@ CFILES=	$S/sys/dev/ic/wdc.c $S/pmon/dev/mainbus.c $S/pmon/dev/pcibr.c \
 	$S/pmon/cmds/pcicmds.c $S/pmon/cmds/pflash.c \
 	$S/pmon/cmds/cmd_env.c $S/pmon/cmds/transp.c $S/pmon/cmds/sym.c \
 	$S/pmon/cmds/time.c $S/pmon/cmds/shellcmds.c \
+	$S/pmon/cmds/cmd_main/cmd_main.c $S/pmon/cmds/cmd_main/window.c \
 	$S/pmon/common/about.c $S/pmon/common/autoconf.c \
 	$S/pmon/common/callvec.c $S/pmon/common/cmdparser.c \
 	$S/pmon/common/debugger.c $S/pmon/common/exception.c \
@@ -366,6 +367,12 @@ time.o: $S/pmon/cmds/time.c
 	${NORMAL_C}
 
 shellcmds.o: $S/pmon/cmds/shellcmds.c
+	${NORMAL_C}
+
+cmd_main.o: $S/pmon/cmds/cmd_main/cmd_main.c
+	${NORMAL_C}
+
+window.o: $S/pmon/cmds/cmd_main/window.c
 	${NORMAL_C}
 
 about.o: $S/pmon/common/about.c

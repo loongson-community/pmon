@@ -351,7 +351,7 @@ static char *memfb;
 
 static int console_col = 0; /* cursor col */
 static int console_row = 0; /* cursor row */
-//static ¸Ä³Éextern
+//static ?Ä³?extern
 unsigned int eorx, fgx, bgx;  /* color pats */
 
 static const char video_font_draw_table2[] = {
@@ -752,6 +752,10 @@ void video_drawsline(char *str, int rows, int cols)
 void video_putchar (int xx, int yy, unsigned char c)
 {
 	video_drawchars (xx, yy + VIDEO_LOGO_HEIGHT, &c, 1);
+}
+void video_putchar1(int xx, int yy, unsigned char c)
+{
+    video_drawchars (xx, yy, &c, 1);
 }
 void video_putchar_xor (int xx, int yy, unsigned char c)
 {
@@ -1525,6 +1529,18 @@ SWAP16 ((unsigned short) (((255 >> 3) << 11) | ((0   >> 2) << 5) | (255 >> 3))),
 SWAP16 ((unsigned short) (((255 >> 3) << 11) | ((255 >> 2) << 5) | (0   >> 3))),
 SWAP16 ((unsigned short) (((255 >> 3) << 11) | ((255 >> 2) << 5) | (255 >> 3)))
 };
+
+void video_set_color(unsigned char color)
+ {
+ #ifndef FB_MENU_NOCLOLOR
+         bgx = pallete[color>>4];
+         bgx |= (bgx << 16);
+         fgx =  pallete[color&0xf];
+         fgx |= (fgx << 16);
+         eorx = fgx ^ bgx;
+ #endif
+ }
+
 static void __cprint(int y, int x,int width,char color, const char *buf)
 {
 #ifndef FB_MENU_NOCLOLOR
@@ -1566,6 +1582,14 @@ void set_cursor_fb(unsigned char x,unsigned char y)
 }
 
 /*****************************************************************************/
+void get_screen_address(int xx,int yy)
+{
+long dest0;
+int offset = (yy*VIDEO_FONT_HEIGHT+VIDEO_LOGO_HEIGHT)*VIDEO_LINE_LEN+xx*VIDEO_FONT_WIDTH*VIDEO_PIXEL_SIZE;
+dest0 = video_fb_address + offset;
+
+return dest0;
+}
 
 int fb_init (unsigned long fbbase,unsigned long iobase)
 {

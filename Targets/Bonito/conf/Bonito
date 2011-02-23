@@ -19,6 +19,7 @@ include "conf/GENERIC_ALL1"
 select		cmd_newmt
 select		cmd_setup
 select		cmd_test
+select		cmd_main
 #
 # Platform options
 #
