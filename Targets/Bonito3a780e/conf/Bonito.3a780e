@@ -96,7 +96,7 @@ select		cmd_test		# test commands,test hardisk
 select		cmd_shell		# Shell commands, vers, help, eval
 
 #select		cmd_test_sata	# Sata signal test command
-
+select		cmd_test_spi
 #
 #
 # Platform options
