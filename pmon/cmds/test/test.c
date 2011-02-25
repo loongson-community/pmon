@@ -32,7 +32,7 @@
 #define TEST_MEM 2
 #define TEST_FXP0 4
 #define TEST_EM0 8
-#define TEST_EM1 16
+#define TEST_RTE0 16
 #define TEST_PCI 32
 #define TEST_VIDEO 64
 #define TEST_HD 128
@@ -80,8 +80,8 @@ return 0;
 #include "video.c"
 #endif
 #include "pci.c"
-#include "pp.c"
-#include "fd.c"
+//#include "pp.c"
+//#include "fd.c"
 
 #include "../setup.h"
 
@@ -125,7 +125,7 @@ struct setupMenu testmenu1={
 {POP_Y,POP_X,1,1,TYPE_NONE,"    board test"},
 {POP_Y+1,POP_X,2,2,TYPE_CMD,"(1)cpu:${?&#mytest 1}=[on=| _or mytest 1||off=| _andn mytest 1]test 1"},
 {POP_Y+2,POP_X,3,3,TYPE_CMD,"(2)memory:${?&#mytest 2}=[on=| _or mytest 2||off=| _andn mytest 2]test 2"},
-{POP_Y+3,POP_X,4,4,TYPE_CMD,"(3)netcard net0:${?&#mytest 4}=[on=| _or mytest 4||off=| _andn mytest 4]test 4"},
+{POP_Y+3,POP_X,4,4,TYPE_CMD,"(3)netcard net0:${?&#mytest 4}=[on=| _or mytest 4||off=| _andn mytest 16]test 16"},
 {POP_Y+4,POP_X,5,5,TYPE_CMD,"(4)pci:${?&#mytest 32}=[on=| _or mytest 32||off=| _andn mytest 32]test 32"},
 {POP_Y+5,POP_X,6,6,TYPE_CMD,"(5)video:${?&#mytest 64}=[on=| _or mytest 64||off=| _andn mytest 64]test 64"},
 {POP_Y+6,POP_X,7,7,TYPE_CMD,"(6)harddisk:${?&#mytest 128}=[on=| _or mytest 128||off=| _andn mytest 128]test 128"},
@@ -158,9 +158,9 @@ else
 tests=strtoul(av[1],0,0);
 
 if(!(serverip=getenv("serverip")))
-	serverip="172.16.21.66";
+	serverip="10.2.5.22";
 if(!(clientip=getenv("clientip")))
-	clientip="172.16.21.65";
+	clientip="10.2.1.104";
 
 for(i=0;i<31;i++)
 {
@@ -174,17 +174,22 @@ for(i=0;i<31;i++)
 			memtest();
 			break;
 		case TEST_SERIAL:
-			serialtest();
+			//serialtest();
+			serial_selftest(1);
 			break;
+
+/* no paraport dirver support in 3A780E */
+/*
 		case TEST_PPPORT:
 			pptest();
 			break;
+*/
 		case TEST_FXP0:
 			sprintf(cmd,"ifconfig em0 remove;ifconfig em1 remove;ifconfig fxp0 remove;ifconfig fxp0 %s;",clientip);
 			do_cmd(cmd);
 			printf("Plese plug net wire into fxp0\n");
 			pause();
-			sprintf(cmd,"ping -c 3 %s",serverip);
+			sprintf(cmd,"ping -c 8 %s",serverip);
 			do_cmd(cmd);
 			break;
 		case TEST_EM0:
@@ -192,15 +197,15 @@ for(i=0;i<31;i++)
 			do_cmd(cmd);
 			printf("Plese plug net wire into em0\n");
 			pause();
-			sprintf(cmd,"ping -c 3 %s",serverip);
+			sprintf(cmd,"ping -c 8 %s",serverip);
 			do_cmd(cmd);
 			break;
-		case TEST_EM1:
-			sprintf(cmd,"ifconfig em0 remove;ifconfig em1 remove;ifconfig fxp0 remove;ifconfig em1 %s;",clientip);
+		case TEST_RTE0:
+			sprintf(cmd,"ifconfig em0 remove;ifconfig em1 remove;ifconfig fxp0 remove;ifconfig rte0 %s;",clientip);
 			do_cmd(cmd);
-			printf("Plese plug net wire into em1\n");
+			printf("Plese plug net wire into rte0\n");
 			pause();
-			sprintf(cmd,"ping -c 3 %s",serverip);
+			sprintf(cmd,"ping -c 8 %s",serverip);
 			do_cmd(cmd);
 			break;
 #if NMOD_VGACON
@@ -219,22 +224,47 @@ for(i=0;i<31;i++)
 		case TEST_PCI:
 			pcitest();
 			break;
+  }
+
+/* no floppy dirver support now in 3A780E */
+/*
 		case TEST_FLOPPY:
 			fdtest();
 			break;
-	}
-			pause();
+*/ 
+  pause();
+  }
 }
 
+static int cmd_functest(int ac,char **av)
+{
+char cmd[200];
+printf("--------------------memory test---------------\n");
+			strcpy(cmd,"mt -v 0x88000000 0x89000000");
+			do_cmd(cmd);
+printf("--------------------serial test---------------\n");
+			serial_selftest(1);
+#if 0
+printf("--------------------paraport test---------------\n");
+			pptest();
+printf("--------------------net test---------------\n");
+			net_looptest();
+#endif
+printf("--------------------disk test---------------\n");
+			disktest();
+printf("--------------------all done---------------\n");
 
 return 0;
 }
+
+
 
 //-------------------------------------------------------------------------------------------
 static const Cmd Cmds[] =
 {
 	{"MyCmds"},
 	{"test","val",0,"hardware test",cmd_test,0,99,CMD_REPEAT},
+	{"functest","",0,"function test",cmd_functest,0,99,CMD_REPEAT},
 	{"serial","val",0,"hardware test",cmd_serial,0,99,CMD_REPEAT},
 	{0,0}
 };

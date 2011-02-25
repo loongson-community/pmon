@@ -63,7 +63,12 @@ typedef unsigned int uint32;
 static int serialbase[]={0xbe000000,0xbe000020};
 #else
 //static int serialbase[]={0xbfd003f8,0xbfd002f8,0xbff003f8};
+#ifdef RS780E
+//static int serialbase[]={0xbfe0001e0,0xbfe0001e8,0xbfe0001e0};
+static int serialbase[]={GS3_UART0_BASE, GS3_UART1_BASE, GS3_UART0_BASE};
+#else
 static int serialbase[]={BONITO_PCIIO_BASE_VA+0x03f8,BONITO_PCIIO_BASE_VA+0x2f8,0xbff003f8};
+#endif
 #endif
 extern void delay(int);
 /* memory-mapped read/write of the port */
@@ -131,7 +136,7 @@ static int initserial(int line)
 	return 0;
 }
 
-#define TIMEOUT 50
+#define TIMEOUT 100
 static int serial_selftest(int channel)
 {
 	int i,j,error=0;
@@ -146,7 +151,7 @@ static int serial_selftest(int channel)
 		else break;
 	}
 	
-	printf("serial 1 send data to serial 1...");
+	printf(" serial  send data to itself\n");
 
 	for(i=0;i<10;i++)
 	{
