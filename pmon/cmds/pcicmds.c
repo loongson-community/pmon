@@ -274,12 +274,14 @@ pci_query_bar(tag, index)
 	_pci_conf_write(tag, index, 0xffffffff);
 	bar = _pci_conf_read(tag, index);
 	if( old_bar & 0x1 ){
-		printf("0x%08x:0x%08x i/o @0x%08x, %d bytes\n", old_bar, bar, old_bar & 0xfffffffc, (~(bar&0xfffffffc))+1);
+		//printf("0x%08x:0x%08x i/o @0x%08x, %d bytes\n", old_bar, bar, old_bar & 0xfffffffc, (~(bar&0xfffffffc))+1);
+		printf("0x%08x:0x%08x i/o @0x%08x, %d bytes\n", old_bar, bar, old_bar & 0xfffffffc, (((bar&0xfffffffc)^((bar&0xfffffffc)-1))+1)>>1);
 	}else if(old_bar & 0x4){
 		printf("64-bit mem\n");
 		skipnext = 1;
 	}else {
-		printf("0x%08x:0x%08x mem @0x%08x, %d bytes\n", old_bar, bar, old_bar & 0xfffffff0, (~(bar&0xfffffff0))+1);
+		//printf("0x%08x:0x%08x mem @0x%08x, %d bytes\n", old_bar, bar, old_bar & 0xfffffff0, (~(bar&0xfffffff0))+1);
+		printf("0x%08x:0x%08x mem @0x%08x, %d bytes\n", old_bar, bar, old_bar & 0xfffffff0, (((bar&0xfffffff0)^((bar&0xfffffff0)-1))+1)>>1);
 
 	}
 
