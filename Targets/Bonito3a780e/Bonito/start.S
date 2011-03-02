@@ -1121,13 +1121,13 @@ gs_2f_v3_ddr2_cfg:
 
 	//PRINTSTR("\r\nProbe MC0:JB10: ");
 	li      a0,0xa3;
-	li      a1,MC0_USED;
+	li      a1,MC1_USED;
 	bal     PROBE_DIMM;
 	nop;
 	//move	a0,s1;
 	//bal hexserial;
 	//nop;
-
+    #if 0
 	//PRINTSTR("\r\nProbe MC1:JB11: ");
 	li      a0,0xa5;
 	li      a1,MC1_USED;
@@ -1142,7 +1142,7 @@ gs_2f_v3_ddr2_cfg:
 	li      a1,MC1_USED;
 	bal     PROBE_DIMM;
 	nop;
-
+    #endif
 	move	a0,s1;
 	bal     hexserial;
 	nop;
@@ -1350,11 +1350,16 @@ ddr_config_entry:
 		PRINTSTR("\r\n")
 #endif
 
+		TTYDBG("Pull up GPIO15.\r\n")
+        GPIO_SET_OUTPUT(0x1<<15)
+        nop
+
 ##########################################
 
 #include "machine/newtest/mydebug.S"
 
 ##########################################
+
 
 		bootnow:
 		TTYDBG("Copy PMON to execute location...\r\n")
@@ -2741,7 +2746,7 @@ cache_init_finish:
 #endif
 
 	GET_DDR_TYPE
-	la      a2, ddr3_reg_data_mc1
+	la      a2, ddr2_reg_data_mc1
 	beqz    a1, 1f
 	nop
 	la      a2, ddr3_reg_data_mc1

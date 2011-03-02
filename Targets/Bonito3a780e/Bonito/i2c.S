@@ -244,15 +244,27 @@ LEAF(PROBE_DIMM)
 	bne	s3,	0x4, 2f;
 	nop;
 	/* set DDR MC0_CS_MAP @s1[11:8] */
-	ori	s1, 0x400 // at leaset one bit is selected
-	move  a0,s2;
+	//ori	s1, 0x400 // at leaset one bit is selected
+	//ori	s1, 0x100 // at leaset one bit is selected
+    move  a0,s2;
 	li	a1, 5;
 	bal	i2cread;
 	nop;
-	andi  v0,0x1;
-	beq	v0,0x0,16f;
-	nop;
-	ori	s1,0x800;
+	//andi  v0,0x1;
+	//beq	v0,0x0,16f;
+	//nop;
+    //li  v1, 0x7
+    //andi   v0, 0x7
+    li  v1, 0x7
+    and v1, v0
+    add  v1, 1
+    li  a0, 1
+    sll a0, v1
+    sub  a0,1
+    sll  a0,a0,0x8
+    or   s1,s1,a0
+    nop
+	//ori	s1,0x800;
 
 16:
 	/* set DDR MC0_COL_SIZE @s1[18:16] */
@@ -292,15 +304,23 @@ LEAF(PROBE_DIMM)
 #if 1
 
 	/* set DDR MC1_CS_MAP @s1[15:12] ?  */
-	ori	s1, 0x4000  // at leaset one bit is selected
+	//ori	s1, 0x4000  // at leaset one bit is selected
 	move  a0,s2;
 	li	a1, 5;
 	bal	i2cread;
 	nop;
-	andi  v0,0x1;
-	beq	v0,0x0, 26f
-	nop
-	ori	s1,0x8000
+	//andi  v0,0x1;
+	//beq	v0,0x0, 26f
+	//nop
+    li  v1, 0x7
+    and v1, v0
+    add  v1, 1
+    li  a0, 1
+    sll a0, v1
+    sub  a0,1
+    sll  a0,a0,12
+    or   s1,s1,a0
+    //nop	ori	s1,0x8000
 26:
 	
 	/* set DDR MC1_COL_SIZE @s1[26:24] */
