@@ -702,6 +702,11 @@ MERGE_DIMM:
 	/* set v0 with a0 first */
 
 	move  v0, a0
+
+	########## set ddr autocalily decrease freq flag #############
+	dli	  t3, 0x1000000000
+	or	  v0,t3
+
 	/* merge CS_MAP together */
 	// shift right 2 bits, NOTICE here assume cs[3:2] connected DIMMB
 	//andi  t0, a0, 0xc00 
@@ -786,6 +791,7 @@ LEAF(CALCULATE_MEMSZ)
 	dsll  t1, t0	  
 	dsubu  t1, 0x1000000 /* remain 16M according linux kernel */
 	move  v0, t1
+
 	b	  4f
 	nop
 
@@ -850,6 +856,7 @@ LEAF(MERGE_CHANNEL)
 	li	  t2,0xffffff8f
 	and  v0,t2
 	or	  v0,v0,t0
+
 	b	  4f
 	nop
 

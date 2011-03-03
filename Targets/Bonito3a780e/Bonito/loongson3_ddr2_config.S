@@ -27,7 +27,10 @@
 #######################################################
 
 /***********************************************************
-| s1:													   |
+| s1:						 |		   |				   |						   |
+|[36:36]| FREQ_ADDAPTER      | 1'b1    |				   |	
+|       |				     | 1'b0    | Enable freq adapt |	
+|       |					 | 1'b1    | Disable freq adapt|  	
 |[35:35]| MC1_DIMM_TYPE      | 1'b1    | Registered Dual   |	
 |       |                    | 1'b0    | Unbuffered Dual   |
 |[34:34]| MC1_ECC            | 1'b1    | WITH DATA ECC     |	
@@ -61,6 +64,7 @@
 #define GET_NODE_ID_a0  dli a0, 0x00000003; and a0, s1, a0; dsll a0, 44;
 #define GET_MC0_ONLY    dli a0, 0x00000004; and a0, s1, a0;
 #define GET_MC1_ONLY    dli a0, 0x00000008; and a0, s1, a0;
+#define GET_DDR_ADAPTER dli a0, 0x1000000000; and a0, s1, a0;
 #define GET_DDR_SIZE    dli a0, 0x00000070; and a0, s1, a0;
 #define GET_DDR_TYPE    dli a1, 0x00000080; and a1, s1, a1;
 #define GET_MC0_CS_MAP  dli a1, 0x00000f00; and a1, s1, a1; dsll a1, 8
@@ -86,6 +90,50 @@
                         sd      t1, 0x80(v0);
 #######################################################
 
+###Set DDR frequency ### 
+#if 1 
+		/* software ddr clk_sel can take effect when hardware ddrclk is in bypass mode */
+        dli     t2, 0x900000001fe00180
+        lw  a1, 0x14(t2)
+        li  a0, 0x000003e0
+        and a1, a1, a0
+        bne a0, a1, no_software_ddrclksel
+        nop 
+
+        TTYDBG  ("\r\nSet DDR frequency by software\r\n")
+        dli t2, 0x900000001fe00180
+
+		/* clear ddr_clksel */
+        lw  a1, 0x0(t2)
+        li  a0, 0xe0ffffff
+        and a1, a1,a0
+
+		/* set ddr_clksel according memory size and scatter in DIMMS */
+		// NOTICE HERE: autocalily decrease ddr freq only when two ddr in one channel 
+		// if decrease freq     : ddr_clksel = 5'10110 means X09
+		// if not decrease freq : ddr_clksel = 5'00110 means X12
+
+		GET_DDR_ADAPTER 
+		beqz  a0, 1f
+		nop
+        li  a0, 0x16000000 // ddr_freq X 0x09
+		b	2f
+		nop
+1:
+        li  a0, 0x06000000 // ddr_freq X 0x12
+2:
+        or  a1, a1, a0
+        sw  a1, 0x0(t2)
+
+		/* enable software ddr_clksel */
+        li  a0, 0x00000008
+        or  a1, a1, a0
+        sw  a1, 0x0(t2)
+
+no_software_ddrclksel:
+
+#endif
+        
         GET_NODE_ID_a0
         dli     t2, 0x900000001fe00180
         dli     t0, 0x900000003ff00000
