@@ -1632,7 +1632,7 @@ ddr_config_entry:
 		la  a2, stringserial
 		addu a2,a2,s0
 
-		srl	msize,20
+		dsrl	msize,20
 		move	a0,msize
 
 #if 1 

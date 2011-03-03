@@ -385,7 +385,7 @@ extern char MipsException[], MipsExceptionEnd[];
 
 unsigned char hwethadr[6];
 
-void initmips(unsigned int memsz);
+void initmips(unsigned long long  memsz);
 
 void addr_tst1(void);
 void addr_tst2(void);
@@ -395,7 +395,7 @@ pcireg_t _pci_allocate_io(struct pci_device *dev, vm_size_t size);
 static void superio_reinit();
 
 void
-initmips(unsigned int memsz)
+initmips(unsigned long long memsz)
 {
 	int i;
 	int* io_addr;
@@ -407,7 +407,7 @@ volatile int *p=0xbfe00108;
 *p=((*p)&~(0x1f<<8))|(0x8<<8) |(1<<13);
 }
 #endif
-tgt_printf("memsz %d\n",memsz);
+tgt_printf("memsz %ld\n",memsz);
 /*enable float*/
 tgt_fpuenable();
 CPU_TLBClear();

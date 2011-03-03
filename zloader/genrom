@@ -20,7 +20,7 @@ if(/([0-9a-f]+).+\s_start$/){
 }
 printf(<< "END"
 void stringserial(char *msg);
-void realinitmips(unsigned int msize);
+void realinitmips(unsigned long long msize);
 void enable_cache()
 {
 	    __asm__ volatile(
@@ -93,7 +93,7 @@ asm volatile(\
 ::: "\$5","\$6");
 }
 #endif
-void initmips(unsigned int msize,int dmsize,int dctrl)
+void initmips(unsigned long long msize,unsigned long long dmsize, unsigned long long dctrl)
 {
     long *edata=(void *)$myedata;
     long *end=(void *)$myend;
@@ -121,7 +121,7 @@ void initmips(unsigned int msize,int dmsize,int dctrl)
 }
 
 
-void realinitmips(unsigned int msize)
+void realinitmips(unsigned long long msize)
 {
 	     asm ("li  \$29,$mystart-0x4000;\\n" \\
 "		       li \$2,$myinitmips;\\n" \\
