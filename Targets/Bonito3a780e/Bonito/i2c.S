@@ -164,15 +164,98 @@ LEAF(PROBE_DIMM)
 	nop
 #else
     //DDR3
+	//step 1. calulate SDRAM_CAPCITY (byte)
     move    a0, s2;  //store a1: REG offset in i2c dev  
     li      a1, 4;
     bal     i2cread;
     nop;
     andi    v0, v0, 0xf 
-    addi    v0, v0, 1
-    sll     v0, v0, 4
-    nop 
-    or      s1, s1, v0
+    addi    v0, v0, 25 // 2**25 = 256Mb/8
+	move	t2, v0
+
+	//step 2. multi (Primary bus width)
+    move    a0, s2;  //store a1: REG offset in i2c dev  
+    li      a1, 8;
+    bal     i2cread;
+    nop;
+	andi	v0,0x7
+	addi	v0,0x3	//2**3 = 8 bit
+	daddu	t2,v0
+  
+	//step 3. divide (SDARM width)
+    move    a0, s2;  //store a1: REG offset in i2c dev  
+    li      a1, 7;
+    bal     i2cread;
+    nop;
+	andi	v0,0x7
+	addi	v0,0x2	//2**3 = 8 bit
+	dsubu	t2,v0
+
+	//step 4. mulip * (number of Ranks)
+	li		a0,0x1
+	dsll	t2,a0,t2
+    move    a0, s2;  //store a1: REG offset in i2c dev  
+    li      a1, 7;
+    bal     i2cread;
+    nop;
+	andi	v0,0x38
+	srl		v0,v0,0x3
+	move	a0,t2
+continue_add:
+	beqz	v0, calculate_over
+	nop
+	daddu	t2,t2, a0
+	subu	v0,1
+	b		continue_add
+	nop
+calculate_over:
+
+	// step 5. merge memsz t2 into s1
+
+	//jr	ra
+//	move  v0,t2
+//	jr	a2
+//	nop
+
+	dli	t3,0x20000000
+	beq	t2,t3, 311f;
+	nop;
+	dli	t3,0x40000000
+	beq	t2,t3, 312f;
+	nop;
+	dli	t3,0x80000000
+	beq	t2,t3, 313f;
+	nop;
+	dli	t3,0x100000000
+	beq	t2,t3, 314f;
+	nop;
+	dli	t3,0x200000000
+	beq	t2,t3, 315f;
+	nop;
+
+311:
+	li		t2, 0x10
+    b    out_probesize  // 512M 
+	nop
+312:
+	li		t2, 0x20	// 1G
+    b    out_probesize   
+	nop
+313:
+	li		t2, 0x30	// 2G
+    b    out_probesize   
+	nop
+314:
+	li		t2, 0x40	// 4G
+    b    out_probesize   
+	nop
+315:
+	li		t2, 0x50	// 8G
+    b    out_probesize   
+	nop
+
+out_probesize:
+    or      s1, s1, t2
     nop 
     b       15f
     nop 
@@ -787,8 +870,8 @@ LEAF(CALCULATE_MEMSZ)
 	move  t0,t1	  
 3: /* t0 used to record smller size  */
 	li	  t1, 0x1
-	addu  t0, 28+1;/* both MC0 and CM1 used */	  
-	dsll  t1, t0	  
+	addu  t0, 29;/* both MC0 and CM1 used */	  
+	dsll  t1, t1,t0	  
 	dsubu  t1, 0x1000000 /* remain 16M according linux kernel */
 	move  v0, t1
 
