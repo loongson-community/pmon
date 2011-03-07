@@ -40,6 +40,7 @@
 #define TEST_SERIAL 512
 #define TEST_PPPORT 1024
 #define TEST_FLOPPY 2048
+#define TEST_ALL	4096
 
 #define INFO_Y  24
 #define INFO_W  80
@@ -132,7 +133,8 @@ struct setupMenu testmenu1={
 {POP_Y+7,POP_X,8,8,TYPE_CMD,"(7)keyboard:${?&#mytest 256}=[on=| _or mytest 256||off=| _andn mytest 256]test 256"},
 {POP_Y+8,POP_X,9,9,TYPE_CMD,"(8)serial:${?&#mytest 512}=[on=| _or mytest 512||off=| _andn mytest 512]test 512"},
 {POP_Y+9,POP_X,10,10,TYPE_CMD,"(9)parallel:${?&#mytest 1024}=[on=| _or mytest 1024||off=| _andn mytest 1024]test 1024"},
-{POP_Y+10,POP_X,11,11,TYPE_CMD,"(10)all selected=test ${#mytest}"},
+{POP_Y+10,POP_X,11,11,TYPE_CMD,"(10)all selected:${?&#mytest 4096}=[on=| _or mytest 4096||off=| _andn mytest 4096]test 4096"},
+//{POP_Y+10,POP_X,11,11,TYPE_CMD,"(10)all selected=test ${#mytest}"},
 {POP_Y+11,POP_X,1,1,TYPE_CMD,"(11)quit=| _quit",0},
 {}
 }
@@ -203,7 +205,6 @@ for(i=0;i<31;i++)
 		case TEST_RTE0:
 			sprintf(cmd,"ifconfig em0 remove;ifconfig em1 remove;ifconfig fxp0 remove;ifconfig rte0 %s;",clientip);
 			do_cmd(cmd);
-			printf("Plese plug net wire into rte0\n");
 			pause();
 			sprintf(cmd,"ping -c 8 %s",serverip);
 			do_cmd(cmd);
@@ -224,6 +225,10 @@ for(i=0;i<31;i++)
 		case TEST_PCI:
 			pcitest();
 			break;
+
+		case TEST_ALL:
+			cmd_functest(1,NULL);
+			break;
   }
 
 /* no floppy dirver support now in 3A780E */
@@ -238,7 +243,17 @@ for(i=0;i<31;i++)
 
 static int cmd_functest(int ac,char **av)
 {
+char *serverip;
+char *clientip;
 char cmd[200];
+
+if(!(serverip=getenv("serverip")))
+	serverip="10.2.5.22";
+if(!(clientip=getenv("clientip")))
+	clientip="10.2.1.104";
+
+printf("--------------------cpu test---------------\n");
+			cputest();
 printf("--------------------memory test---------------\n");
 			strcpy(cmd,"mt -v 0x88000000 0x89000000");
 			do_cmd(cmd);
@@ -247,11 +262,25 @@ printf("--------------------serial test---------------\n");
 #if 0
 printf("--------------------paraport test---------------\n");
 			pptest();
-printf("--------------------net test---------------\n");
-			net_looptest();
 #endif
+printf("--------------------net test---------------\n");
+			sprintf(cmd,"ifconfig em0 remove;ifconfig em1 remove;ifconfig fxp0 remove;ifconfig rte0 %s;",clientip);
+			do_cmd(cmd);
+			sprintf(cmd,"ping -c 8 %s",serverip);
+			do_cmd(cmd);
+#if NMOD_VGACON
+printf("--------------------video test---------------\n");
+			videotest();
+printf("--------------------keyboard test---------------\n");
+			kbdtest();
+#endif
+
+printf("--------------------hd test---------------\n");
+			hdtest();
 printf("--------------------disk test---------------\n");
 			disktest();
+printf("--------------------pci test---------------\n");
+			pcitest();
 printf("--------------------all done---------------\n");
 
 return 0;
