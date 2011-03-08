@@ -742,45 +742,9 @@ char *a;
 	    bios_available = 1; //support usb_kbd in bios
 
 	  // Ask user whether to set bios menu
-
-		dly = 4;
-		printf("Press <Enter> to set BIOS,waiting for 4 seconds here..... \n");
-
-		ioctl (STDIN, CBREAK, &sav);
-		lastt = 0;
-		do {
-			delay(72000);
-			printf ("\b\b%02d", --dly);
-			ioctl (STDIN, FIONREAD, &cnt);
-		} while (dly != 0 && cnt == 0);
-		ioctl (STDIN, TCSETAF, &sav);
-		putchar ('\n');
-        
-		if(cnt > 0 && strchr("\r\n",inchar=getchar())){
-        	printf ("#################getchar() return %08x\n", inchar );
-			set_bios_menu = 1;
-		}
-		else
-			set_bios_menu = 0;
-
-
-	
 #if 1 
-			//put some words from vers to copyright,this is not use in pom3a
-	         copyright[10] = '\0';
-              vga_available = 1;
-	           if(getenv("bios_ver") == NULL || strcmp(getenv("bios_ver"), &copyright[4]) != 0)
-	         {
-	             setenv("bios_ver", &copyright[4]);
-	         }
+	         printf("Press <Delte> to set BIOS,waiting for 3 seconds here..... \n");
 	
-	         video_set_color(0x7);
-	
-	         len = strlen(copyright);
-			for (ic = 0; ic < len; ic++){
-	             video_putchar1(2 + ic*8, REV_ROW_LINE, copyright[ic]);
-	         }
-			
 #endif
 	         get_update(tmp_date);
 	         for (ic = 0; ic < 11; ic++){
@@ -794,6 +758,43 @@ char *a;
 	         init_win_device();
 	
 
+	{ 
+			struct FackTermDev *devp;
+            int fd = 0;
+            DevEntry* p;
+            Msg msg;   //==char msg
+			int sign = 0;
+
+            //get input without wait ===========   add by oldtai
+            fd = ((FILE*)stdin)->fd;
+            devp = (struct FackTermDev *)(_file[fd].data);
+            p = &DevTable[devp->dev];
+
+            for (count = 0;count < 10;count++)
+            {
+                //get input without wait
+                scandevs();
+
+                while(!tgt_smplock());
+
+		/* 'DEL' to BIOS Interface */
+		if(p->rxq->count >= 3){
+		  if ((p->rxq->dat[p->rxq->first + p->rxq->count-3] == 0x1b)
+			  && (p->rxq->dat[p->rxq->first + p->rxq->count-2] == '[')
+			  && (p->rxq->dat[p->rxq->first + p->rxq->count-1] == 'G')) {
+			sign = 1;
+			p->rxq->count -= 3;
+		  }
+		  if (sign == 1) {
+                        tgt_smpunlock();
+			break;
+		  }
+		}
+                tgt_smpunlock();
+
+                delay1(300);
+            }
+  }
 
               vga_available = 1;
               video_set_color(0xf);
@@ -806,7 +807,7 @@ char *a;
 
              vga_available = 0;
  
-              if (set_bios_menu == 0)
+              if (count >= 10)
                   goto run;
               else
                   goto bios;
