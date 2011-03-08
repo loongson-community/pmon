@@ -49,8 +49,14 @@
 #include <pmon.h>
 #include <file.h>
 #include "fat.h"
+#include <diskfs.h>
 
 extern int errno;
+  extern int devio_open(int, const char *, int, int );
+  extern int   devio_close (int);
+  extern int   devio_read (int, void *, size_t);
+  extern int   devio_write (int, const void *, size_t);
+  extern off_t devio_lseek (int, off_t, int);
 
 int   fat_open (int, const char *, int, int);
 int   fat_close (int);
@@ -118,6 +124,8 @@ fat_open(int fd, const char *path, int flags, int mode)
 		opath += 5;
 	if (strncmp(opath, "fat/", 4) == 0)
 		opath += 4;
+	else if (strncmp(opath, "fat@", 4) == 0)
+	opath += 4;
 
 	/* There has to be at least one more component after the devicename */
 	if (strchr(opath, '/') == NULL) {
@@ -299,6 +307,17 @@ fat_lseek(int fd, off_t offset, int whence)
 /*
  *  File system registration info.
  */
+
+static DiskFileSystem diskfile={
+        "fat", 
+        fat_open,
+        fat_read,
+        fat_write,
+        fat_lseek,
+        fat_close,
+  NULL
+};
+
 static FileSystem fatfs = {
         "fat", FS_FILE,
         fat_open,
@@ -315,6 +334,7 @@ static void
 init_fs()
 {
 	filefs_init(&fatfs);
+	diskfs_init(&diskfile);
 }
 
 /***************************************************************************************************
