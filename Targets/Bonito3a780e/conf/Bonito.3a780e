@@ -69,13 +69,12 @@ select		mod_elfload		# ELF loading
 #
 # Command selection. Selects pmon commands
 #
-select		cmd_newmt
-select		cmd_setup
+#select		cmd_setup
 #select		mod_display
 select		cmd_about		# Display info about PMON
 select		cmd_boot		# Boot wrapper
 select		cmd_mycmd
-select		cmd_newmt
+#select		cmd_newmt
 select		cmd_cache		# Cache enabling
 #select		cmd_call		# Call a function command
 select		cmd_date		# Time of day command
@@ -86,10 +85,10 @@ select		cmd_ifaddr		# Interface address command
 select		cmd_l			# Disassemble
 select		cmd_mem			# Memory manipulation commands
 select		cmd_more		# More paginator
-select		cmd_mt			# Simple memory test command
+#select		cmd_mt			# Simple memory test command
 select		cmd_misc		# Reboot & Flush etc.
 #select		cmd_stty		# TTY setings command
-select		cmd_tr			# Host port-through command
+#select		cmd_tr			# Host port-through command
 select		cmd_devls		# Device list
 select		cmd_set			# As cmd_env but not req. cmd_hist
 #select		cmd_testdisk
@@ -168,8 +167,8 @@ pci*		at ppb? bus ?
 #gt1		at localbus? base 5
 #gt2		at localbus? base 6
 # fxp normally only used for debugging (enable/disable both)
-fxp0        at pci? dev ? function ?        # Intel 82559 Device
-inphy*      at mii? phy ?                   # Intel 82555 PHYs
+#fxp0        at pci? dev ? function ?        # Intel 82559 Device
+#inphy*      at mii? phy ?                   # Intel 82555 PHYs
 # rtl*        at pci? dev ? function ?
 rte*		at pci? dev ? function ?
 #rtk*		at pci? dev ? function ?
@@ -196,8 +195,8 @@ wd*		at pciide? channel ? drive ? flags 0x0000
 #### Pseudo devices
 pseudo-device	loop	1	# network loopback
 
-ide_cd* 	at pciide? channel ? drive ? flags 0x0001
-select 		iso9660
+#ide_cd* 	at pciide? channel ? drive ? flags 0x0001
+#select 		iso9660
 select		ramfiles
 #select 		cmd_xyzmodem
 option IDECD 

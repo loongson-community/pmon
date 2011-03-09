@@ -97,15 +97,10 @@ tgt_printf (const char *fmt, ...)
 
 #include "mycmd.c"
 
-#if PCI_IDSEL_CS5536 != 0
-#include <include/cs5536.h>
-#endif
 #if (NMOD_X86EMU_INT10 > 0)||(NMOD_X86EMU >0)
 extern int vga_bios_init(void);
 #endif
-extern int radeon_init(void);
 extern int kbd_initialize(void);
-extern int write_at_cursor(char val);
 extern const char *kbd_error_msgs[];
 #include "flash.h"
 #if (NMOD_FLASH_AMD + NMOD_FLASH_INTEL + NMOD_FLASH_SST) == 0
@@ -122,8 +117,6 @@ int vga_available=0;
 #include "vgarom.c"
 #endif
 
-int tgt_i2cread(int type,unsigned char *addr,int addrlen,unsigned char reg,unsigned char* buf ,int count);
-int tgt_i2cwrite(int type,unsigned char *addr,int addrlen,unsigned char reg,unsigned char* buf ,int count);
 extern struct trapframe DBGREG;
 extern void *memset(void *, int, size_t);
 
@@ -157,166 +150,6 @@ void print_err( unsigned long *adr, unsigned long good, unsigned long bad, unsig
 static inline unsigned char CMOS_READ(unsigned char addr);
 static inline void CMOS_WRITE(unsigned char val, unsigned char addr);
 static void init_legacy_rtc(void);
-
-#ifdef USE_GPIO_SERIAL
-//modified by zhanghualiang 
-//this function is for parallel port to send and received  data
-//via GPIO
-//GPIO bit 2 for Receive clk   clk hight for request
-//GPIO bit 3 for receive data 
-#define DBG     
-#define WAITSTART 10
-#define START 20
-#define HIBEGCLK 30
-#define HINEXTCLK 40
-#define LOWCLK 50
-#define RXERROR 60
-//static int zhlflg = 0;
-static int
-ppns16550 (int op, struct DevEntry *dev, unsigned long param, int data)
-{
-	volatile ns16550dev *dp;  
-	static int zhlflg = 0;
-	int     crev,crevp,dat,datap,clk,clkp; //zhl begin
-	int 	cnt = 0;
-	int 	tick = 0;
-	int	STAT = START;
-	int	tmp;
-	char    cget = 0;
-	crev = 0;
-	crevp = 0;
-	dat = 0;
-	datap = 0;	
-	clk = 0;
-	clkp = 0;	
-	cget = 0;                                         //zhl end
-	
-	dp = (ns16550dev *) dev->sio;
-	if(dp==-1)return 1;
-	switch (op) {
-		case OP_INIT:
-			return 1;
-
-		case OP_XBAUD:
-		case OP_BAUD:
-			return 0;
-
-		case OP_TXRDY:
-			return 1;
-
-		case OP_TX:
-		tgt_putchar(data);
-			break;
-
-		case OP_RXRDY:
-		tmp = *(volatile int *)(0xbfe0011c);
-	//	tgt_printf("tmp=(%x)H, %d  ",tmp,tmp);
-		tmp = tmp >> 18;
-		tmp = tmp & 1;
-		if (tmp)
-		{
-	//	tgt_printf("pmon pmon pom pmon pomn pmon get signal ");
-	//	tgt_putchar('O');
-	//	tgt_putchar('K');
-		tgt_putchar(0x80);
-	//	tgt_printf("\n");
-		}
-		return (tmp);
-                
-		case OP_RX:
-		cget = 0;
-		cnt = 0;
-		tick = 0;
-		while (cnt < 8)
-		{
-			crevp = crev;
-			tmp = *(volatile int *)(0xbfe0011c);
-                 //     tgt_printf("pmon tmp=%x,\n",tmp);
-			tmp = tmp >> 18;
-	 		tmp = tmp & 3;
-			crev = tmp;
-		     
-			clkp = clk;
-			clk = crev & 1;
-			datap = dat;
-			dat = crev & 2;
-			dat = dat >> 1;
-			dat = dat & 1;
-		//	if (clkp != clk)
-		//	{
-			tick++;
-			if(tick>5000000)
-			{	
-		//	tgt_putchar(0x80);
-			return 10;	
-			}
-	//		tgt_printf("%d,%d\n",clk,dat);
-	//		}       
-	//		continue;
-			switch(STAT)
-			{
-			case START:
-			if (clk == 0)
-			{
-				STAT = LOWCLK;		
-			}
-			break;
-
-			case LOWCLK:
-			if(clk == 1)
-			{	
-				STAT = HIBEGCLK;
-			}
-			break;
-			
-			case HIBEGCLK:
-			dat = dat << cnt;
-			cget = cget | dat;
-			cnt++;
-			STAT = HINEXTCLK;
-	//		tgt_printf("p c=%d, d=%d,\n",cnt,dat);
-			if (cnt == 8 )
-			{
-			do {
-			tmp = *(volatile int *)(0xbfe0011c);
-			tmp = tmp >> 18;
-	 		tmp = tmp & 1;
-		     	}
-			while(tmp);
-	/*	{	sl_tgt_putchar('p');
-			sl_tgt_putchar(' ');
-			sl_tgt_putchar('c');
-			sl_tgt_putchar('=');
-			sl_tgt_putchar(cget);
-			sl_tgt_putchar('\n');
-		}	*/
-	//		tgt_printf(" ch = (%x)h,%d\n",cget,cget);
-			return cget;
-			}
-			break;
-			
-			case HINEXTCLK:
-			if (clk == 0)
-			STAT = LOWCLK;
-			break;
-			
-			case RXERROR:
-			break;
-			}
-		   }
-					
-	
-
-		case OP_RXSTOP:
-		return (0);
-			break;
-	}
-	return 0;
-}
-//end modification by zhanghualiang
-#endif
-
-
 
 ConfigEntry	ConfigTable[] =
 {
@@ -409,48 +242,6 @@ initmips(unsigned int memsz)
 
     tgt_printf("memorysize : %d memorysize_high : %d\n",memorysize,memorysize_high);
 
-#if 0 /* whd : Disable gpu controller of MCP68 */
-	//*(unsigned int *)0xbfe809e8 = 0x122380;
-	//*(unsigned int *)0xbfe809e8 = 0x2280;
-	*(unsigned int *)0xba0009e8 = 0x2280;
-#endif
-
-#if 0 /* whd : Enable IDE controller of MCP68 */
-	*(unsigned int *)0xbfe83050 = (*(unsigned int *)0xbfe83050) | 0x2;
-
-#endif
-
-#if 0
-asm(\
-"	 sd %1,0x18(%0);;\n" \
-"	 sd %2,0x28(%0);;\n" \
-"	 sd %3,0x20(%0);;\n" \
-	 ::"r"(0xffffffffbff00000ULL),"r"(memorysize),"r"(memorysize_high),"r"(0x20000000)
-	 :"$2"
-   );
-#endif
-
-#if 0
-	{
-	  int start = 0x80000000;
-	  int end = 0x80000000 + 16384;
-
-	  while (start < end) {
-	    __asm__ volatile (" cache 1,0(%0)\r\n"
-		              " cache 1,1(%0)\r\n"
-		              " cache 1,2(%0)\r\n"
-		              " cache 1,3(%0)\r\n"
-		              " cache 0,0(%0)\r\n"::"r"(start));
-	    start += 32;
-	  }
-
-	  __asm__ volatile ( " mfc0 $2,$16\r\n"
-	                   " and  $2, $2, 0xfffffff8\r\n"
-			   " or   $2, $2, 2\r\n"
-			   " mtc0 $2, $16\r\n" :::"$2");
-	}
-#endif
-
 	/*
 	 *  Probe clock frequencys so delays will work properly.
 	 */
@@ -478,80 +269,6 @@ asm(\
 	
 	printf("BEV in SR set to zero.\n");
 
-	
-
-#if PCI_IDSEL_VIA686B
-if(getenv("powermg"))
-{
-pcitag_t mytag;
-unsigned char data;
-unsigned int addr;
-	mytag=_pci_make_tag(0,PCI_IDSEL_VIA686B,4);
-	data=_pci_conf_readn(mytag,0x41,1);
-	_pci_conf_writen(mytag,0x41,data|0x80,1);
-	addr=_pci_allocate_io(_pci_head,256);
-	printf("power management addr=%x\n",addr);
-	_pci_conf_writen(mytag,0x48,addr|1,4);
-}
-#endif
-
-#if 0//HT BUS DEBUG whd
-	printf("HT-PCI header scan:\n");
-	io_addr = 0xbfe84000;
-	for(i=0 ;i < 16;i++)
-	{
-		printf("io_addr : 0x%8X = 0x%8X\n",io_addr, *io_addr);
-		io_addr = io_addr + 1;
-	}
-
-	//printf("BUS 9 scan:\n");
-	//io_addr = 0xbe090000;
-	//for(i=0 ;i < 16;i++)
-	//{
-	//	printf("io_addr : 0x%X = 0x%X\n",io_addr, *io_addr);
-	//	io_addr = io_addr + (1<<9);
-	//}
-
-	printf("PCI bus header scan:\n");
-	io_addr = 0xbe014800;
-	for(i=0 ;i < 16;i++)
-	{
-		printf("io_addr : 0x%8X = 0x%8X\n",io_addr, *io_addr);
-		io_addr = io_addr + 1;
-	}
-
-	//printf("write network IO space test\n");
-	//io_addr = 0xba00ffc0;
-	//for(i=0 ;i < 16;i++)
-	//{
-	//	printf("io_addr : 0x%X = 0x%X\n",io_addr, *io_addr);
-	//	io_addr = io_addr + 1;
-	//}
-
-	//io_addr = 0xba00ffc0;
-	//i = *io_addr;
-	//	printf("io_addr : 0x%X = 0x%X\n",io_addr, i);
-
-	//i = i | 0x1000000;
-	//*io_addr = i;
-	//	printf("io_addr : 0x%X = 0x%X\n",io_addr, *io_addr);
-	//
-	//printf("HT-SATA header scan:\n");
-	//io_addr = 0xbfe84800;
-	//for(i=0 ;i < 64;i++)
-	//{
-	//	printf("io_addr : 0x%8X = 0x%8X\n",io_addr, *io_addr);
-	//	io_addr = io_addr + 1;
-    //}
-	//printf("HT Register\n");
-	//io_addr = 0xbb000050;
-	//for(i=0 ;i < 1;i++)
-	//{
-	//	printf("io_addr : 0x%X = 0x%X\n",io_addr, *io_addr);
-	//	io_addr = io_addr + 1;
-	//}
-#endif
-
 	/*
 	 * Launch!
 	 */
@@ -564,7 +281,6 @@ unsigned int addr;
  *  is done after console has been initialized so it's safe
  *  to output configuration and debug information with printf.
  */
-extern void	vt82c686_init(void);
 int psaux_init(void);
 extern int video_hw_init (void);
 
@@ -610,10 +326,6 @@ tgt_devconfig()
 	if(rc > 0)
 		vesafb_init();
 #endif
-#if (NMOD_X86EMU_INT10 == 0 && defined(RADEON7000))
-	SBD_DISPLAY("VGAI", 0);
-	rc = radeon_init();
-#endif
 #if NMOD_FRAMEBUFFER > 0
 	vga_available=0;
 	if(!vga_dev) {
@@ -627,25 +339,9 @@ tgt_devconfig()
 		fbaddress = fbaddress &0xffffff00; //laster 8 bit
 		ioaddress = ioaddress &0xfffffff0; //laster 4 bit
 
-#if NMOD_SISFB
-		fbaddress=sisfb_init_module();
-#endif
 		printf("fbaddress 0x%x\tioaddress 0x%x\n",fbaddress, ioaddress);
 
-#if NMOD_SMI712 > 0
-		fbaddress |= 0xb0000000;
-		//ioaddress |= 0xbfd00000;
-		ioaddress |= BONITO_PCIIO_BASE_VA;
-        smi712_init((unsigned char *)fbaddress,(unsigned char *)ioaddress);
-#endif
 
-#if NMOD_SMI502 > 0
-        rc = video_hw_init ();
-                fbaddress  =_pci_conf_read(vga_dev->pa.pa_tag,0x10);
-                ioaddress  =_pci_conf_read(vga_dev->pa.pa_tag,0x14);
-                fbaddress |= 0xb0000000;
-                ioaddress |= 0xb0000000;
-#endif
 #if (SHARED_VRAM == 128)
 		fbaddress = 0xf8000000;//64M graph memory
 #elif (SHARED_VRAM == 64)
@@ -857,17 +553,6 @@ tgt_devinit()
 {
 	int value;
 
-#if  (PCI_IDSEL_VIA686B != 0)
-	SBD_DISPLAY("686I",0);
-
-	vt82c686_init();
-#endif
-
-#if  (PCI_IDSEL_CS5536 != 0)
-	SBD_DISPLAY("5536",0);
-	cs5536_init();
-#endif
-
 	printf("rs780_early_setup\n");
 	rs780_early_setup();
 
@@ -931,8 +616,6 @@ tgt_devinit()
 	value &= ~(1 << 8);
 	_pci_conf_write32(_pci_make_tag(0, 0x14, 0), 0xac, value);
 #endif
-
-
 	/*
 	 *  Gather info about and configure caches.
 	 */
@@ -949,60 +632,10 @@ tgt_devinit()
 		CpuExternalCacheOn = 1;
 	}
 
-#if 1
 	CPU_ConfigCache();
-#else
-	{       
-#define CTYPE_HAS_L2  0x100	
-		CpuPrimaryInstCacheSize = 64<<10;
-		CpuPrimaryInstCacheLSize = 32;
-		CpuPrimaryInstSetSize = (64<<10)/32/4;
-		CpuPrimaryDataCacheSize = 64<<10;
-		CpuPrimaryDataCacheLSize = 32;;
-		CpuPrimaryDataSetSize =  (64<<10)/32/4;
-		//CpuCacheAliasMask ;
-		CpuSecondaryCacheSize = ((1024*4)<<10);
-		CpuTertiaryCacheSize = 0;
-		CpuNWayCache = 4;
-		CpuCacheType = CTYPE_HAS_L2 ;		/* R4K, R5K, RM7K */
-		//CpuConfigRegister;
-		//CpuStatusRegister;
-		//CpuExternalCacheOn;	/* R5K, RM7K */
-		//CpuOnboardCacheOn;	/* RM7K */
-
-		//printf("whd:2\n");
-		//CPU_FlushCache();
-		//printf("whd:3\n");
-		asm volatile("mfc0 $4, $16\n"
-				"and    $4,0xfffffff8\n"
-				"or     $4,0x3\n"
-				"mtc0   $4,$16\n":::"a0");
-
-		//printf("whd:4\n");
-#if 0
-		unsigned long config1, config2, lsize, linesz, sets, ways; 
-		asm(".word 0x40028001\n":"=r"(config2));
-		if ((lsize = ((config2 >> 4) & 15)))
-			linesz = 2 << lsize;
-		else
-			linesz = lsize;
-
-		sets = 64 << ((config2 >> 8) & 15);
-		ways = 1 + ((config2  ) & 15);
-
-		CPUSecondaryCacheSize = sets * ways * linesz;
-#endif
-	}
-#endif
 
 	_pci_businit(1);	/* PCI bus initialization */
-#if defined(VIA686B_POWERFIXUP) && (PCI_IDSEL_VIA686B != 0)
-	if(getenv("noautopower"))	vt82c686_powerfixup();
-#endif
 
-#if  (PCI_IDSEL_CS5536 != 0)
-	cs5536_pci_fixup();
-#endif
 	printf("sb700_after_pci_fixup\n");
 	sb700_after_pci_fixup();
 }
@@ -1011,110 +644,18 @@ tgt_devinit()
 void
 tgt_reboot()
 {
-#ifdef LOONGSON3A_3A780E
 	/* Send reboot command */
 	ec_wr_noindex(CMD_RESET, BIT_RESET_ON);
-#else
-	void (*longreach) (void);
-	
-	longreach = (void *)0xbfc00000;
-	(*longreach)();
-#endif
+
 	while(1);
 }
 
 void
 tgt_poweroff()
 {
-/*
-	volatile int *p=0xbfe0011c;
-	p[1]&=~1;
-	p[0]&=~1;
-	p[0]|=1;
-	*/
-#if 0
-    char * watch_dog_base        = 0x90000efdfc000cd6;
-    char * watch_dog_config      = 0x90000efdfe00a041;
-    unsigned int * watch_dog_mem = 0x90000e0000010000;
-
-    * watch_dog_base      = 0x69;
-    *(watch_dog_base + 1) = 0x0;
-
-    * watch_dog_base      = 0x6c;
-    *(watch_dog_base + 1) = 0x0;
-
-    * watch_dog_base      = 0x6d;
-    *(watch_dog_base + 1) = 0x0;
-
-    * watch_dog_base      = 0x6e;
-    *(watch_dog_base + 1) = 0x1;
-
-    * watch_dog_base      = 0x6f;
-    *(watch_dog_base + 1) = 0x0; 
-    
-    * watch_dog_config    = 0xff;
-
-    *(watch_dog_mem  + 1) = 0x15;
-    * watch_dog_mem       = 0x05;
-    * watch_dog_mem       = 0x85;
-#else
-#ifdef LOONGSON3A_3A780E
-	/* Send poweroff command */
-#if 1
 	ec_wr_noindex(CMD_RESET, BIT_PWROFF_ON);
 	while(1);
-#else
-    __asm__(
-         ".set mips3\n"
-         "dli $2, 0x90000efdfc000cd6\n"
-         
-         "dli $3, 0x69\n"
-         "sb  $3, 0x0($2)\n"
-         "sb  $0, 0x1($2)\n"
-
-
-         "dli $3, 0x6c\n"
-         "sb  $3, 0x0($2)\n"
-         "sb  $0, 0x1($2)\n"
-
-         "dli $3, 0x6d\n"
-         "sb  $3, 0x0($2)\n"
-         "sb  $0, 0x1($2)\n"
-
-         "dli $3, 0x6e\n"
-         "sb  $3, 0x0($2)\n"
-         "dli $3, 0x1\n"
-         "sb  $3, 0x1($2)\n"
-        
-         "dli $3, 0x6f\n"
-         "sb  $3, 0x0($2)\n"
-         "sb  $0, 0x1($2)\n"
-
-
-         "dli $2, 0x90000efdfe00a041\n"
-         
-         "dli $3, 0xff\n"
-         "sb  $3, 0x0($2)\n"
-
-         "dli $2, 0x90000e0000010000\n"
-
-         "dli $3, 0x15\n"
-         "sw  $3, 0x4($2)\n"
-        
-         "dli $3, 0x5\n"
-         "sw  $3, 0x0($2)\n"
-
-
-         "dli $3, 0x85\n"
-         "sw  $3, 0x0($2)\n"        
-
-         ".set mips0\n"
-         :::"$2","$3","memory");
-#endif	// end if 1
-#endif	// end ifdef LOONGSON3A_3A780E
-#endif	// end if 0
 }
-
 
 /*
  *  This function makes inital HW setup for debugger and
@@ -1127,16 +668,10 @@ tgt_enable(int machtype)
 	return(SR_COP_1_BIT|SR_FR_32|SR_EXL);
 }
 
-
-/*
- *  Target dependent version printout.
- *  Printout available target version information.
- */
 void
 tgt_cmd_vers()
 {
 }
-
 /*
  *  Display any target specific logo.
  */
@@ -1186,253 +721,59 @@ int word_addr;
 
 static inline unsigned char CMOS_READ(unsigned char addr)
 {
-        unsigned char val;
-        unsigned char tmp1,tmp2;
-	volatile int tmp;
+    unsigned char val;
 	
-#if defined(DEVBD2F_VIA)||defined(DEVBD2F_CS5536)||defined(DEVBD2F_EVA)
 	linux_outb_p(addr, 0x70);
-        val = linux_inb_p(0x71);
-#elif defined(DEVBD2F_SM502)
+    val = linux_inb_p(0x71);
 
-	pcitag_t tag;
-	unsigned char value;
-	char i2caddr[]={(unsigned char)0x64};
-	if(addr >= 0x0a)
-		return 0;
-	switch(addr)
-	{
-		case 0:
-			break;
-		case 2:
-			addr = 1;
-			break;
-		case 4:
-			addr = 2;
-			break;
-		case 6:
-			addr = 3;
-			break;
-		case 7:
-			addr = 4;
-			break;
-		case 8:
-			addr = 5;
-			break;
-		case 9:
-			addr = 6;
-			break;
-		
-	}
-		
-	tgt_i2cread(I2C_SINGLE,i2caddr,1,0xe<<4,&value,1);
-		value = value|0x20;
-	tgt_i2cwrite(I2C_SINGLE,i2caddr,1,0xe<<4,&value,1);
-	tgt_i2cread(I2C_SINGLE,i2caddr,1,addr<<4,&val,1);
-	tmp1 = ((val>>4)&0x0f)*10;
-	tmp2  = val&0x0f;
-	val = tmp1 + tmp2;
-	
-#elif defined(DEVBD2F_FIREWALL)
-	char i2caddr[]={0xde,0};
-	if(addr >= 0x0a)
-		return 0;
-	switch(addr)
-	{
-		case 0:
-			addr= 0x30;
-			break;
-		case 2:
-			addr = 0x31;
-			break;
-		case 4:
-			addr = 0x32;
-			break;
-		case 6:
-			addr = 0x36;
-			break;
-		case 7:
-			addr = 0x33;
-			break;
-		case 8:
-			addr = 0x34;
-			break;
-		case 9:
-			addr = 0x35;
-			break;
-		
-	}
-#ifndef GPIO_I2C
-	//atp8620_i2c_read(0xde,addr,&tmp,1);
-#else	
-	tgt_i2cread(I2C_SINGLE,i2caddr,2,addr,&tmp,1);
-#endif
-	if(addr == 0x32)
-		tmp = tmp&0x7f;
-	val = ((tmp>>4)&0x0f)*10;
-	val = val + (tmp&0x0f);
-#endif
-
-        return val;
+    return val;
 }
                                                                                
 static inline void CMOS_WRITE(unsigned char val, unsigned char addr)
 {
+    linux_outb_p(addr, 0x70);
+    linux_outb_p(val, 0x71);
 
-	char a;
-#if defined(DEVBD2F_VIA)||defined(DEVBD2F_CS5536)||defined(DEVBD2F_EVA)
-	linux_outb_p(addr, 0x70);
-        linux_outb_p(val, 0x71);
-
-#elif defined(DEVBD2F_SM502)
-  
-  	unsigned char tmp1,tmp2;
-	volatile int tmp;
-	char i2caddr[]={(unsigned char)0x64};
-	tmp1 = (val/10)<<4;
-	tmp2  = (val%10);
-	val = tmp1|tmp2;
-	if(addr >=0x0a)
-		return 0;
-	switch(addr)
-	{
-		case 0:
-			break;
-		case 2:
-			addr = 1;
-			break;
-		case 4:
-			addr = 2;
-			break;
-		case 6:
-			addr = 3;
-			break;
-		case 7:
-			addr = 4;
-			break;
-		case 8:
-			addr = 5;
-			break;
-		case 9:
-			addr = 6;
-			break;
-		
-	}
-	{
-		unsigned char value;
-	
-		tgt_i2cread(I2C_SINGLE,i2caddr,1,0xe<<4,&value,1);
-		value = value|0x20;
-		tgt_i2cwrite(I2C_SINGLE,i2caddr,1,0xe<<4,&value,1);
-		tgt_i2cwrite(I2C_SINGLE,i2caddr,1,addr<<4,&val,1);
-	}
-
-#elif defined(DEVBD2F_FIREWALL)
-	unsigned char tmp;
-	char i2caddr[]={0xde,0,0};
-	if(addr >= 0x0a)
-		return 0;
-	switch(addr)
-	{
-		case 0:
-			addr= 0x30;
-			break;
-		case 2:
-			addr = 0x31;
-			break;
-		case 4:
-			addr = 0x32;
-			break;
-		case 6:
-			addr = 0x36;
-			break;
-		case 7:
-			addr = 0x33;
-			break;
-		case 8:
-			addr = 0x34;
-			break;
-		case 9:
-			addr = 0x35;
-			break;
-		
-	}
-	
-	tmp = (val/10)<<4;
-	val = tmp|(val%10);
-#ifndef GPIO_I2C
-	atp8620_i2c_write(0xde,addr,&val,1);
-#else	
-	a = 2;
-	tgt_i2cwrite(I2C_SINGLE,i2caddr,2,0x3f,&a,1);
-	a = 6;
-	tgt_i2cwrite(I2C_SINGLE,i2caddr,2,0x3f,&a,1);
-	tgt_i2cwrite(I2C_SINGLE,i2caddr,2,addr,&tmp,1);
-#endif
-#endif
 }
 
 static void
 _probe_frequencies()
 {
 #ifdef HAVE_TOD
-        int i, timeout, cur, sec, cnt;
-#endif
-                                                                    
-        SBD_DISPLAY ("FREQ", CHKPNT_FREQ);
+    int i, timeout, cur, sec, cnt;
+#endif                                                                    
+    SBD_DISPLAY ("FREQ", CHKPNT_FREQ);
 
-#if 0
-        md_pipefreq = 300000000;        /* Defaults */
-        md_cpufreq  = 66000000;
-#else
-        md_pipefreq = 660000000;        /* NB FPGA*/
-        md_cpufreq  =  60000000;
-#endif
+    md_pipefreq = 660000000;        /* NB FPGA*/
+    md_cpufreq  =  60000000;
 
-        clk_invalid = 1;
+
+    clk_invalid = 1;
 #ifdef HAVE_TOD
-#ifdef DEVBD2F_FIREWALL 
-{
-	extern void __main();
-	char tmp;
-	char i2caddr[]={0xde};
-	tgt_i2cread(I2C_SINGLE,i2caddr,2,0x3f,&tmp,1);
-	/*
-	 * bit0:Battery is run out ,please replace the rtc battery
-	 * bit4:Rtc oscillator is no operating,please reset the machine
-	 */
-	tgt_printf("0x3f value  %x\n",tmp);
-	init_legacy_rtc();
-	tgt_i2cread(I2C_SINGLE,i2caddr,2,0x14,&tmp,1);
-	tgt_printf("0x14 value  %x\n",tmp);
-}
-#else
-        init_legacy_rtc();
-#endif
+    init_legacy_rtc();
+    SBD_DISPLAY ("FREI", CHKPNT_FREQ);
 
-        SBD_DISPLAY ("FREI", CHKPNT_FREQ);
-
-        /*
-         * Do the next twice for two reasons. First make sure we run from
-         * cache. Second make sure synched on second update. (Pun intended!)
-         */
+    /*
+     * Do the next twice for two reasons. First make sure we run from
+     * cache. Second make sure synched on second update. (Pun intended!)
+     */
 aa:
-        for(i = 2;  i != 0; i--) {
-                cnt = CPU_GetCOUNT();
-                timeout = 10000000;
+    for(i = 2;  i != 0; i--) {
+        cnt = CPU_GetCOUNT();
+        timeout = 10000000;
+        while(CMOS_READ(DS_REG_CTLA) & DS_CTLA_UIP);
+        sec = CMOS_READ(DS_REG_SEC);
+        do {
+                timeout--;
                 while(CMOS_READ(DS_REG_CTLA) & DS_CTLA_UIP);
-                sec = CMOS_READ(DS_REG_SEC);
-                do {
-                        timeout--;
-                        while(CMOS_READ(DS_REG_CTLA) & DS_CTLA_UIP);
-                        cur = CMOS_READ(DS_REG_SEC);
-                } while(timeout != 0 && (cur == sec));
-                cnt = CPU_GetCOUNT() - cnt;
-                if(timeout == 0) {
-			tgt_printf("time out!\n");
-                        break;          /* Get out if clock is not running */
-                }
+                cur = CMOS_READ(DS_REG_SEC);
+        } while(timeout != 0 && (cur == sec));
+        cnt = CPU_GetCOUNT() - cnt;
+        if(timeout == 0) {
+            tgt_printf("time out!\n");
+            break;          /* Get out if clock is not running */
         }
+    }
 	/*
 	 *  Calculate the external bus clock frequency.
 	 */
@@ -1444,7 +785,7 @@ aa:
 		 */
 		md_cpufreq = 66000000;
 	}
-         tgt_printf("cpu fre %u\n",md_pipefreq);
+    tgt_printf("cpu fre %u\n",md_pipefreq);
 #endif /* HAVE_TOD */
 }
 
@@ -1484,9 +825,9 @@ tgt_gettime()
 	//return 0;
                                                                                
 #ifdef HAVE_TOD
-        if(!clk_invalid) {
-                ctrlbsave = CMOS_READ(DS_REG_CTLB);
-                CMOS_WRITE(ctrlbsave | DS_CTLB_SET, DS_REG_CTLB);
+    if(!clk_invalid) {
+        ctrlbsave = CMOS_READ(DS_REG_CTLB);
+        CMOS_WRITE(ctrlbsave | DS_CTLB_SET, DS_REG_CTLB);
                                                                                
 		year = CMOS_READ(DS_REG_YEAR);
         month = CMOS_READ(DS_REG_MONTH);
@@ -1536,28 +877,24 @@ void
 tgt_settime(time_t t)
 {
     struct tm *tm;
-        int ctrlbsave;
-	//return ;
+    int ctrlbsave;
 #ifdef HAVE_TOD
-        if(!clk_invalid) {
-                tm = gmtime(&t);
-	#ifndef DEVBD2F_FIREWALL
-                ctrlbsave = CMOS_READ(DS_REG_CTLB);
-                CMOS_WRITE(ctrlbsave | DS_CTLB_SET, DS_REG_CTLB);
+    if(!clk_invalid) {
+        tm = gmtime(&t);
+        ctrlbsave = CMOS_READ(DS_REG_CTLB);
+        CMOS_WRITE(ctrlbsave | DS_CTLB_SET, DS_REG_CTLB);
 
-				CMOS_WRITE((((tm->tm_year) % 100)/10*16 + ((tm->tm_year) % 100)%10), DS_REG_YEAR);
-				CMOS_WRITE((((tm->tm_mon) + 1)/10*16 + ((tm->tm_mon) + 1)%10), DS_REG_MONTH);
-				CMOS_WRITE(tm->tm_mday/10*16 + tm->tm_mday%10, DS_REG_DATE);
-                CMOS_WRITE(tm->tm_wday/10*16 + tm->tm_wday%10, DS_REG_WDAY);
-                CMOS_WRITE(tm->tm_hour/10*16 + tm->tm_hour%10, DS_REG_HOUR);
-                CMOS_WRITE(tm->tm_min/10*16 + tm->tm_min%10, DS_REG_MIN);
-                CMOS_WRITE(tm->tm_sec/10*16 + tm->tm_sec%10, DS_REG_SEC);
+	    CMOS_WRITE((((tm->tm_year) % 100)/10*16 + ((tm->tm_year) % 100)%10), DS_REG_YEAR);
+	    CMOS_WRITE((((tm->tm_mon) + 1)/10*16 + ((tm->tm_mon) + 1)%10), DS_REG_MONTH);
+	    CMOS_WRITE(tm->tm_mday/10*16 + tm->tm_mday%10, DS_REG_DATE);
+        CMOS_WRITE(tm->tm_wday/10*16 + tm->tm_wday%10, DS_REG_WDAY);
+        CMOS_WRITE(tm->tm_hour/10*16 + tm->tm_hour%10, DS_REG_HOUR);
+        CMOS_WRITE(tm->tm_min/10*16 + tm->tm_min%10, DS_REG_MIN);
+        CMOS_WRITE(tm->tm_sec/10*16 + tm->tm_sec%10, DS_REG_SEC);
 
-                CMOS_WRITE(ctrlbsave & ~DS_CTLB_SET, DS_REG_CTLB);
-	#else
-		gpio_i2c_settime(tm);	
-	#endif
-        }
+        CMOS_WRITE(ctrlbsave & ~DS_CTLB_SET, DS_REG_CTLB);
+
+    }
 #endif
  }
 
@@ -1597,13 +934,6 @@ register_t
 tgt_clienttos()
 {
 	return((register_t)(int)PHYS_TO_CACHED(memorysize & ~7) - 64);
-/*
-#if LS3_HT
-	return((register_t)(int)PHYS_TO_CACHED(memorysize & ~7) - 64);
-#else    
-	return((register_t)(int)PHYS_TO_UNCACHED(memorysize & ~7) - 64);
-#endif    
-*/
 }
 
 #ifdef HAVE_FLASH
@@ -2164,7 +1494,8 @@ void tgt_netpoll()	{};
 #define MS_WRITE	3
 #define MS_READ		4
 //#include "mycmd.c"
-
+#include "i2c-via.c"
+/*
 #ifdef DEVBD2F_FIREWALL
 #include "i2c-sm502.c"
 #elif defined(DEVBD2F_SM502)
@@ -2175,5 +1506,5 @@ void tgt_netpoll()	{};
 #else
 #include "i2c-via.c"
 #endif
-
+*/
 

@@ -658,7 +658,7 @@ dbginit (char *adr)
 	/* daway added 2011-02-18 */
 #ifdef LOONGSON3A_3A780E
 	/* get ec version */
-	get_ec_version();
+	//get_ec_version();
 #endif
 
 #ifdef INET
