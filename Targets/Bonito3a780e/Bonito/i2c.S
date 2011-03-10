@@ -377,6 +377,12 @@ out_probesize:
 	
 
 15:
+
+	andi  a0, s1,0x80
+	bnez  a0, 1601f	  // jump to ddr3 CS_MAP setting
+	nop
+
+	// below is  ddr2 CS_MAP setting
 	/* check whether MC0 or MC1 used to set CS_MAP */
 	move  a0,s3
 	andi  a0,0xc
@@ -418,9 +424,6 @@ out_probesize:
 
 16:
 	
-	andi  a0, s1,0x80
-	bnez  a0, 1601f
-	nop
 
 	/* set DDR2 MC0_COL_SIZE @s1[18:16] */
 	move  a0,s2;
@@ -475,6 +478,50 @@ out_probesize:
 	nop
 
 1601: //DDR3
+
+	// below is  ddr3 CS_MAP setting
+
+	/* check whether MC0 or MC1 used to set CS_MAP */
+	move  a0,s3
+	andi  a0,0xc
+	bne	a0,	MC0_USED, 2f;
+	nop;
+
+	/* set DDR MC0_CS_MAP @s1[11:8] */
+
+	// First,check whether MC0DIMM0 used 
+	move  a0,s3
+	andi  a0,0xf0
+	bne	  a0,0x30,170f
+	nop
+
+	// MC0_DIMM0
+	ori	s1, 0x100 // at leaset one bit is selected, CS_MAP[0]
+	move  a0,s2;
+	li	a1, 7;
+	bal	i2cread;
+	nop;
+	andi  v0,0x38;
+	beq	v0,0x0,17f;
+	nop;
+	ori	s1,0x200; // set CS_MAP[1] = 1'b1
+	b	17f
+	nop
+
+170:
+	// MC0_DIMM1
+	ori	s1, 0x400 // at leaset one bit is selected, CS_MAP[2]
+	move  a0,s2;
+	li	a1, 7;
+	bal	i2cread;
+	nop;
+	andi  v0,0x38;
+	beq	v0,0x0,17f;
+	nop;
+	ori	s1,0x800;
+
+
+17:
 	/* set DDR3 MC0_COL_SIZE @s1[18:16] */
 	move  a0,s2;
 	li	a1, 5;
@@ -533,6 +580,11 @@ out_probesize:
 
 2:	/* MC1_USED */
 
+	andi  a0, s1,0x80
+	bnez  a0, 2601f
+	nop
+
+	// below begin to set DDR2 CS_MAP
 	// First,check whether MC1DIMM0 used 
 	move  a0,s3
 	andi  a0,0xf0
@@ -565,9 +617,6 @@ out_probesize:
 	ori	s1,0x8000
 26:
 	
-	andi  a0, s1,0x80
-	bnez  a0, 2601f
-	nop
 
 	/* set DDR MC1_COL_SIZE @s1[26:24] */
 	move  a0,s2;
@@ -621,6 +670,41 @@ out_probesize:
 	nop
 
 2601:
+
+	// below begin to set DDR3 CS_MAP
+
+	// First,check whether MC1DIMM0 used 
+	move  a0,s3
+	andi  a0,0xf0
+	bne	  a0,0x30,270f
+	nop
+
+	/* set DDR MC1_CS_MAP @s1[15:12] ?  */
+	//below check for MC1_DIMM0
+	ori	s1, 0x1000 // at leaset one bit is selected, CS_MAP[0]
+	move  a0,s2;
+	li	a1, 7;
+	bal	i2cread;
+	nop;
+	andi  v0,0x38;
+	beq	v0,0x0,27f;
+	nop;
+	ori	s1,0x2000; // set CS_MAP[1] = 1'b1
+	b	27f
+	nop
+
+270: // MC1_DIMM1
+	ori	s1, 0x4000  // at leaset one bit is selected
+	move  a0,s2;
+	li	a1, 7;
+	bal	i2cread;
+	nop;
+	andi  v0,0x38;
+	beq	v0,0x0, 27f
+	nop
+	ori	s1,0x8000
+27:
+	
 	/* set DDR3 MC1_COL_SIZE @s1[26:24] */
 	move  a0,s2;
 	li	a1, 5;
