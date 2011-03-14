@@ -423,6 +423,7 @@ li      t1, 0x00e0      # {cu3,cu2,cu1,cu0}<={0110, status_fr<=1
 		dsll    t4, 42
 		or      t1, t1, t4
 
+
 		//dsll    t0, t0, 0x8
 		//or      t1, t1, t0
 
@@ -1958,7 +1959,7 @@ ddr_config_entry:
 		li	t1,128
 #	addiu	a2,a0,3
 		sb	t1,3(a0)
-		li	t1,0x0e      # divider, highest possible baud rate
+		li	t1,0x12      # divider, highest possible baud rate
 		sb	t1,0(a0)
 		li	t1,0x0     # divider, highest possible baud rate
 		sb	t1,1(a0)
