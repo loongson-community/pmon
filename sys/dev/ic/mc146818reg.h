@@ -53,6 +53,8 @@
 #define	DS_REG_CTLC	0x0c		/* Control reg A */
 #define	DS_REG_CTLD	0x0d		/* Control reg B */
 
+#define DS_REG_ECTL4A 0x4a
+#define DS_REG_ECTL4B 0x4b
 
 #define	DS_MONTH_E32K	0x40		/* Enable 32Khz out when 0 */
 #define	DS_MONTH_EOSC	0x80		/* Enable oscilator when 0 */
@@ -74,6 +76,11 @@
 #define	DS_CTLB_AIE	0x20		/* Alarm interrupt enable */
 #define	DS_CTLB_PIE	0x40		/* Periodic interrupt enable */
 #define	DS_CTLB_SET	0x80		/* Set registers enable */
+
+
+#define DS_CTLC_PF  0x40        /* The Interrupt Request Flag*/
+
+#define DS_ECTL4B_E32K 0x40
 
 /*
  *  Registers in Bank 1

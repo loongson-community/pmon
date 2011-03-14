@@ -738,22 +738,6 @@ gs_2f_v3_ddr2_cfg:
 	//move	a0,s1;
 	//bal hexserial;
 	//nop;
-    #if 0
-	//PRINTSTR("\r\nProbe MC1:JB11: ");
-	li      a0,0xa5;
-	li      a1,MC1_USED;
-	bal     PROBE_DIMM;
-	nop;
-	//move	a0,s1;
-	//bal hexserial;
-	//nop;
-
-	//PRINTSTR("\r\nProbe MC1:JB12: ");
-	li      a0,0xa7;
-	li      a1,MC1_USED;
-	bal     PROBE_DIMM;
-	nop;
-    #endif
 	move	a0,s1;
 	bal     hexserial;
 	nop;
@@ -812,8 +796,8 @@ ddr_config_entry:
 		nop
 		TTYDBG("scache init node 0\r\n")
 		//bal	scache_init // smh
-		dli a0, 0x9800000000000000
-		bal	scache_init_64 // whd
+		//dli a0, 0x9800000000000000
+		//bal	scache_init_64 // whd
 		nop
 #ifdef MULTI_CHIP
 		TTYDBG("scache init node 1\r\n")
@@ -824,6 +808,24 @@ ddr_config_entry:
 #endif
 
 #if 1
+/* close L2 cache */
+        li      a0, 0xbfe00164
+        sw      zero, 0(a0);
+
+        mfc0   a0,COP_0_CONFIG
+        and    a0,a0,~((1<<12) | 3)
+        or     a0,a0,2
+        mtc0   a0,COP_0_CONFIG
+//#ifdef DEBUG_LOCORE
+        TTYDBG("Init caches done, cfg = ")
+        mfc0    a0, COP_0_CONFIG
+        bal     hexserial
+        nop
+        TTYDBG("\r\n\r\n")
+//#endif
+#endif
+
+#if 0
 		PRINTSTR("Jump to 9fc\r\n")
 		lui     t0, 0xdfff ####################### go to 9fc
 		ori     t0, t0, 0xffff
@@ -837,7 +839,7 @@ ddr_config_entry:
 
 #endif
 
-#if 1
+#if 0
 		mfc0   $4, $16
 		and    $4,0xfffffff8
 		or     $4,0x3
@@ -860,7 +862,7 @@ ddr_config_entry:
 #include "3aserver_bridge_config.S"
 ##########################################
 
-#if 1 //cww_X2
+#if 0 //cww_X2
 		PRINTSTR("\r\n======X1 core0 map windows:\r\n")
 		li      t1, 23
 		dli     t2, 0x900000003ff02000
@@ -916,7 +918,7 @@ ddr_config_entry:
 		addiu   t1, t1, -1
 #endif
 
-#if 1
+#if 0
 		PRINTSTR("\r\n======read HT config reg:\r\n")
 		dli     t2, 0x90000efdfb000000
 
@@ -965,6 +967,31 @@ ddr_config_entry:
         GPIO_SET_OUTPUT(0x1<<15)
         nop
 
+// FOR rom access speed update.
+#if     1
+        li      t2, 0xbfe00108;
+        lw      t1, 0(t2);
+        li      a0, 0xffffff83;
+        and     t1, a0;
+        ori     t1, 0xc;
+        sw      t1, 0(t2);
+        nop;
+        
+        li      t2, 0xbfe00108;
+        lw      t1, 0(t2);
+        li      a0, 0xffffe0ff;
+        and     t1, a0;
+        ori     t1, 0x0f00;
+        sw      t1, 0(t2);
+
+        PRINTSTR("jlliu : rom speed reg : 0x");
+        lw      t1, 0(t2);
+        move    a0, t1;
+        bal     hexserial;
+        nop;
+        PRINTSTR("\r\n");
+#endif
+
 ##########################################
 
 //#include "machine/newtest/mydebug.S"
@@ -974,21 +1001,15 @@ ddr_config_entry:
 
 		bootnow:
 		TTYDBG("Copy PMON to execute location...\r\n")
-#ifdef DEBUG_LOCORE
-		TTYDBG("  start = 0x")
-		la	a0, start
-		bal	hexserial
-		nop
-		TTYDBG("\r\n  s0 = 0x")
-		move	a0, s0
-		bal	hexserial
-		nop
-		TTYDBG("\r\n")
-#endif
+
 		la	a0, start
 		li	a1, 0xbfc00000
 		la	a2, _edata
-		or      a0, 0xa0000000
+		//03-11
+        add a2,  31
+        and a2,  ~31
+        
+        or      a0, 0xa0000000
 		or      a2, 0xa0000000
 		subu	t1, a2, a0
 		srl	t1, t1, 2
@@ -997,35 +1018,35 @@ ddr_config_entry:
 		move	t1, a1
 		move	t2, a2
 
-		/* copy text section */
 
-		1:	and	t3,t0,0x0000ffff
-		bnez	t3,2f
-		nop
-		move	a0,t0
-		bal	hexserial
-		nop
-		li	a0,'\r'
-		bal 	tgt_putchar
-		nop
-		2:	lw	t3, 0(t1)
-		nop
-		sw	t3, 0(t0)
-		addu	t0, 4
-		addu	t1, 4
-		bne	t2, t0, 1b
-		nop
+1:      ld      t3, 0(t1)
+        sd      t3, 0(t0)
+        ld  t3, 8(t1) /*For speed up*/
+        sd      t3, 8(t0)
+        ld  t3, 16(t1) 
+        sd      t3, 16(t0)
+        ld  t3, 24(t1) 
+        sd      t3, 24(t0)
+        addu    t0, 32
+        addu    t1, 32
+        bne     t2, t0, 1b
+        nop
 
-		PRINTSTR("\ncopy text section done.\r\n")
-
-		/* Clear BSS */
-		la	a0, _edata
-		la	a2, _end
-		2:	sw	zero, 0(a0)
-		bne	a2, a0, 2b
-		addu	a0, 4
-
-
+        PRINTSTR("\ncopy text section done.\r\n")
+        
+        /* Clear BSS */
+        //la      a0, _edata
+        //la      a2, _end
+        LA      a0, _edata
+        LA      a2, _end
+    sw  zero, 0(a0)
+    add a0, 7       /*For speed up*/
+    and a0, ~7
+    add a2, 7
+    and a2, ~7
+2:      sd      zero, 0(a0)
+        bne     a2, a0, 2b
+        addu    a0, 8
 		TTYDBG("Copy PMON to execute location done.\r\n")
 
 #if 1
@@ -1096,53 +1117,6 @@ skip_dot:
     nop
 #endif
 
-
-
-		/* zhb */
-#if 0
-		zhb:
-		TTYDBG("Testing...\r\n")
-		la	a0, start
-		li	a1, 0xbfc00000
-		la	a2, _edata
-		or      a0, 0xa0000000
-		or      a2, 0xa0000000
-		/*	subu	s6, a2, a0*/
-		/*	srl	s6, s6, 2*/
-
-		move	t0, a0
-		move	t1, a1
-		move	t2, a2
-		/* copy text section */
-
-		1:	lw	t4, 0(t1)
-		nop
-		lw	t5, 0(t0)
-		addu	t0, 4
-		addu	t1, 4
-		beq	t4, t5, 2f
-		nop
-		move	a0, t0
-		subu	a0, 4
-		bal	hexserial
-		nop
-		TTYDBG	(" ")
-		move	a0, t4
-		bal	hexserial
-		nop
-		TTYDBG	(" ")
-		move	a0, t5
-		bal	hexserial
-		nop
-		TTYDBG	("\r\n")
-		2:	bne	t2, t0, 1b
-		nop
-		TTYDBG	("test ok!\r\n")
-		/*
-		   3:	beqz	zero, 3b
-		   nop
-		 */
-#endif
 
 
 		TTYDBG("sp=");
@@ -1567,25 +1541,19 @@ scache_init_finish:
 		1:      b       1b
 		nop
 		END(scache_init)
+		
 		LEAF(scache_init_64)
 		move	t7, ra
 
-#lui     a0, 0x8000
-#lui     a2, 0x0010      #4M/4way
 		dli     a2, 0x00100000   #4M/4way
-#lui     a2, 0x0002      #512k/4way
-#lui     a2, 0x0004      #1M/4way
 		scache_init_4way_64:
-#a0=0x80000000, a2=scache_size
-#a3, v0 and v1 used as local registers
 		li      t0, 0x22
 		mtc0    t0, CP0_ECC
 		mtc0    $0, CP0_TAGHI
 		mtc0    $0, CP0_TAGLO
 		daddu    v0, $0, a0
 		daddu    v1, a0, a2
-		1:      //dslt     a3, v0, v1
-		//beq     a3, $0, 1f
+		1:      
 		beq     v0, v1, 1f
 		nop
 		cache   Index_Store_Tag_S, 0x0(v0)
@@ -1602,6 +1570,7 @@ scache_init_finish:
 		1:      b       1b
 		nop
 		END(scache_init_64)
+		
 		LEAF(tlb_init)
 		mtc0    $0, CP0_WIRED
 		mtc0    $0, CP0_PAGEMASK

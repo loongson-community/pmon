@@ -38,30 +38,54 @@ void enable_cache()
 #ifndef NOCACHE2
 void flush_cache2()
 {
+
 asm volatile("
 	mfc0	\$3, \$15			# read processor ID register
 	li		\$2, 0x6303				#godson2f prid
 	beq		\$2, \$3, godson_2f
 	nop
-	li		\$2, 0x6302				#godson2e prid
-	bne	\$2, \$3,11f 
+	
+	li		\$2, 0x6305				#godson2e prid
+	beq 	\$2, \$3,godson_3a 
 	nop
+
+	li		\$2, 0x6302				#godson2e prid
+	bne	    \$2, \$3, 99f
+	nop	
+	
+godson_3a:
+		dli \$2, 0x9800000000000000
+		daddu     \$3, \$2, 0x00100000   #4M/4way
+		li      \$8, 0x22
+		mtc0    \$8, \$26
+		mtc0    \$0, \$29
+		mtc0    \$0, \$28
+10:   		
+		nop
+		cache   0x0b, 0x0(\$2)
+		cache   0x0b, 0x1(\$2)
+		cache   0x0b, 0x2(\$2)
+		cache   0x0b, 0x3(\$2)		
+		daddiu   \$2, \$2, 0x20	
+		nop
+	    bne	    \$2,\$3, 10b
+	    nop
 # godson2e
 godson_2f:
 	li	  \$2, 0x80000000
     addu  \$3,\$2,512*1024
-10:
+11:
 	cache	3, 0(\$2)
 	cache	3, 1(\$2)
 	cache	3, 2(\$2)
 	cache	3, 3(\$2)
 	addu	\$2, 32
-	bne	    \$2,\$3, 10b
+	bne	    \$2,\$3, 11b
 	nop
-11:
+99:
 "
 ::
-:"\$2","\$3"
+:"\$2","\$3","\$8"
 );
 }
 #else
@@ -91,7 +115,12 @@ void initmips(unsigned int msize,int dmsize,int dctrl)
     long *p;
 	int debug=(msize==0);
     //stringserial("Uncompressing Bios");
-    if(!debug||dctrl&1)enable_cache();
+#ifdef NOCACHE2
+	flush_cache();
+#else
+	flush_cache2();
+#endif
+    if(!debug||dctrl&1)enable_cache();    
 	while(1)
 	{
     if(run_unzip(biosdata,$mystart)>=0)break;
@@ -102,11 +131,7 @@ void initmips(unsigned int msize,int dmsize,int dctrl)
         *p=0;
     }
 	memset($mystart-0x1000,0,0x1000);//$mystart-0x1000 for frame(registers),memset for pretty
-#ifdef NOCACHE2
-	flush_cache();
-#else
-	flush_cache2();
-#endif
+
     realinitmips(debug?dmsize:msize);
 }
 

@@ -696,7 +696,9 @@ tgt_logo()
 static void init_legacy_rtc(void)
 {
 		int year, month, date, hour, min, sec;
-        CMOS_WRITE(DS_CTLA_DV1, DS_REG_CTLA);
+        unsigned char ctlsave;
+        
+        CMOS_WRITE(DS_CTLA_DV1|0xd, DS_REG_CTLA);
         CMOS_WRITE(DS_CTLB_24 | DS_CTLB_DM | DS_CTLB_SET, DS_REG_CTLB);
         CMOS_WRITE(0, DS_REG_CTLC);
         CMOS_WRITE(0, DS_REG_CTLD);
@@ -714,7 +716,6 @@ static void init_legacy_rtc(void)
 		sec = sec%16 + sec/16*10;
         CMOS_WRITE(DS_CTLB_24 | DS_CTLB_DM, DS_REG_CTLB);
 		tgt_printf("RTC: %02d-%02d-%02d %02d:%02d:%02d\n", year, month, date, hour, min, sec);
-
 }
 
 int word_addr;
@@ -741,7 +742,9 @@ _probe_frequencies()
 {
 #ifdef HAVE_TOD
     int i, timeout, cur, sec, cnt;
-#endif                                                                    
+#endif     
+    unsigned char ctlval;
+
     SBD_DISPLAY ("FREQ", CHKPNT_FREQ);
 
     md_pipefreq = 660000000;        /* NB FPGA*/
@@ -758,34 +761,21 @@ _probe_frequencies()
      * cache. Second make sure synched on second update. (Pun intended!)
      */
 aa:
-    for(i = 2;  i != 0; i--) {
+    for(i = 2;  i != 0; i--) { 
+        while((CMOS_READ(DS_REG_CTLC) & DS_CTLC_PF) == 0x0);
         cnt = CPU_GetCOUNT();
-        timeout = 10000000;
-        while(CMOS_READ(DS_REG_CTLA) & DS_CTLA_UIP);
-        sec = CMOS_READ(DS_REG_SEC);
-        do {
-                timeout--;
-                while(CMOS_READ(DS_REG_CTLA) & DS_CTLA_UIP);
-                cur = CMOS_READ(DS_REG_SEC);
-        } while(timeout != 0 && (cur == sec));
+        while((CMOS_READ(DS_REG_CTLC) & DS_CTLC_PF) == 0x0);
         cnt = CPU_GetCOUNT() - cnt;
-        if(timeout == 0) {
-            tgt_printf("time out!\n");
-            break;          /* Get out if clock is not running */
-        }
+
     }
-	/*
-	 *  Calculate the external bus clock frequency.
+    clk_invalid = 0;
+    md_pipefreq = cnt * 16;
+    /* we have no simple way to read multiplier value
 	 */
-	if (timeout != 0) {
-		clk_invalid = 0;
-		md_pipefreq = cnt / 10000;
-		md_pipefreq *= 20000;
-		/* we have no simple way to read multiplier value
-		 */
-		md_cpufreq = 66000000;
-	}
+    md_cpufreq = 66000000;
     tgt_printf("cpu fre %u\n",md_pipefreq);
+    tgt_printf("pipe fre %u\n",md_cpufreq);
+
 #endif /* HAVE_TOD */
 }
 
