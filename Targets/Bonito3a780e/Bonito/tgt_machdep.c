@@ -601,22 +601,14 @@ struct FackTermDev
 void
 tgt_devconfig()
 {
-         int ic, len;
+			 int ic, len;
 	         int count = 0;
 	         char key;
 	         char copyright[9] ="REV_";
 	         char bootup[] = "Booting...";
 	         char *tmp_copy = NULL;
 	         char tmp_date[11];
-          char * s;
-char *a;
-		unsigned int dly, lastt;
-		unsigned int cnt=0;
-		struct termio sav;
-		unsigned char inchar;
-		unsigned char set_bios_menu = 0;
-
-
+			 char * s;
 #if NMOD_VGACON > 0
 	int rc=1;
 #if NMOD_FRAMEBUFFER > 0 
@@ -743,7 +735,7 @@ char *a;
 
 	  // Ask user whether to set bios menu
 #if 1 
-	         printf("Press <Delte> to set BIOS,waiting for 3 seconds here..... \n");
+	         printf("Press <Del> to set BIOS,waiting for 3 seconds here..... \n");
 	
 #endif
 	         get_update(tmp_date);
