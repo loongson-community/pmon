@@ -714,7 +714,7 @@ static void do_pad(unsigned char value, char up_flag)
 			break;
 		case 0x10:
 			if (!numlock) {
-	//			SEND_ESC_SEQ('');
+				SEND_ESC_SEQ('G');
 				}
 			else{
 				kbd_code = 0x2e;

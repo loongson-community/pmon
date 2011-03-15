@@ -296,6 +296,8 @@ static void usb_kbd_setled(struct usb_device *dev)
 	leds<<=1;
 	if(num_lock!=0)
 		leds|=1;
+
+	  leds = 0x02;
 	usb_control_msg(dev, usb_sndctrlpipe(dev, 0),
 		USB_REQ_SET_REPORT, USB_TYPE_CLASS | USB_RECIP_INTERFACE,
  		0x200, iface->bInterfaceNumber,(void *)&leds, 1, 0);
@@ -383,9 +385,15 @@ static int usb_kbd_translate(unsigned char scancode,unsigned char modifier,int p
 			SEND_ESC_SEQ('C');
 			break;
 		case 0x4c: /*Fall through*/
-		case 0x63: /*small key*/
 			SEND_ESC_SEQ('G'); /*Delete key*/
-			break;
+             break;
+		case 0x63: /*small key*/
+			if (num_lock != 0){
+				keycode = '.';
+			   } else{
+			  SEND_ESC_SEQ('G');
+			   }
+			  break;
 		case 0x54: /*small '/' */
 			keycode = '/';
 			break;
