@@ -85,6 +85,7 @@ extern int ec_update_rom(void *src, int size);
 #define BIT_POWER_BATPRES			(1 << 6)	/* Battery present */
 
 /* EC_SC input */
+/* Host Interface PM 1 Status Register (HIPM1ST) in EC. Below is the register bit-field. */
 #define   EC_SMI_EVT    (1 << 6)    // 1: SMI event pending
 #define   EC_SCI_EVT    (1 << 5)    // 1: SCI event pending
 #define   EC_BURST      (1 << 4)    // controller is in burst mode
@@ -363,14 +364,14 @@ static inline int send_ec_command(unsigned char command)
 	int timeout;
 
 	timeout = EC_SEND_TIMEOUT;
-	while ((read_port(EC_STS_PORT) & EC_IBF) && --timeout) {
-		delay(10);
-	}
+	while ((read_port(EC_STS_PORT) & EC_IBF) && --timeout);    // wait for IBF = 0
+
 	if (!timeout) {
 		printf("Timeout while sending command 0x%02x to EC!\n",	command);
 	}
 
 	write_port(EC_CMD_PORT, command);
+
 	return 0;
 }
 
@@ -379,9 +380,8 @@ static inline int send_ec_data(unsigned char data)
 	int timeout;
 
 	timeout = EC_SEND_TIMEOUT;
-	while ((read_port(EC_STS_PORT) & EC_IBF) && --timeout) {    // wait for IBF = 0
-		delay(10);
-	}
+	while ((read_port(EC_STS_PORT) & EC_IBF) && --timeout);    // wait for IBF = 0
+
 	if (!timeout) {
 		printf("Timeout while sending data 0x%02x to EC!\n", data);
 	}
@@ -408,13 +408,11 @@ static inline unsigned char recv_ec_data(void)
 		if (read_port(EC_STS_PORT) & EC_OBF) {
 			break;
 		}
-		delay(10);
 	}
 	if (!timeout) {
 		printf("\nTimeout while receiving data from EC!\n");
 	}
 
-	delay(RD_REG_DELAY);
 	data = read_port(EC_DAT_PORT);
 
 	return data;
@@ -446,6 +444,7 @@ static inline int ec_write(unsigned char command, unsigned char index, unsigned 
 static inline int ec_wr_noindex(unsigned char command, unsigned char data)
 {
     send_ec_command(command);
+	delay(100);
 
     return send_ec_data(data);
 }
@@ -469,7 +468,6 @@ static inline int ec_query_seq(unsigned char cmd)
 	while(timeout--){
 		if(status & EC_IBF){
 			status = read_port(EC_STS_PORT);
-			delay(RD_REG_DELAY);
 			continue;
 		}
 		break;

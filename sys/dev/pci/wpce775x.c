@@ -668,13 +668,16 @@ unsigned char *get_ecver(void)
 	unsigned char *p;
 	static unsigned char val[OEMVER_MAX_SIZE];
 
-	for(i = 0; i < OEMVER_MAX_SIZE && ec_read(CMD_RD_VER, i) != '\0'; i++){
-		val[i] = ec_read(CMD_RD_VER, i);
+	//val[0] = ec_read(CMD_RD_VER, 0);
+	for(i = 0; i < OEMVER_MAX_SIZE && (val[i] = ec_read(CMD_RD_VER, i)) != '\0'; i++){
+        delay(10);
+		//val[i] = ec_read(CMD_RD_VER, i);
 	}
 	p = val;
 	if (*p == 0){
 		p = "undefined";
 	}
+
 	return p;
 }
 //#endif	// end ifdef LOONGSON2F_3GNB

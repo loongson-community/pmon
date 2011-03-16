@@ -88,14 +88,58 @@
         beq     a1, a0, ddr_1GB
         nop
 ddr_2GB:
+        /*
         b       2f
 	    //li	    msize, 0x7f000000
+	    li	    msize, 0x8
+        */
+        GET_MC0_ONLY
+        beqz    a0, 1f
+        nop
+	    //li	    msize, 0x3f000000
+	    li	    msize, 0x8
+        b       3f
+        nop
+1:
+        GET_MC1_ONLY
+        beqz    a0, 1f
+        nop
+	    //li	    msize, 0x3f000000
+	    li	    msize, 0x8
+        b       3f
+        nop
+1:
+	    //li	    msize, 0x7f000000
 	    li	    msize, 0x10
+        b    3f
+        nop
 
 ddr_512MB:
+        /*
         b       2f
 	    //li	    msize, 0x1f000000
 	    li	    msize, 0x2
+        */
+        GET_MC0_ONLY
+        beqz    a0, 1f
+        nop
+	    //li	    msize, 0x3f000000
+	    li	    msize, 0x2
+        b       3f
+        nop
+1:
+        GET_MC1_ONLY
+        beqz    a0, 1f
+        nop
+	    //li	    msize, 0x3f000000
+	    li	    msize, 0x2
+        b       3f
+        nop
+1:
+	    //li	    msize, 0x7f000000
+	    li	    msize, 0x4
+        b        3f
+        nop
 
 ddr_1GB:
         GET_MC0_ONLY
@@ -103,7 +147,7 @@ ddr_1GB:
         nop
 	    //li	    msize, 0x3f000000
 	    li	    msize, 0x4
-        b       2f
+        b       3f
         nop
 1:
         GET_MC1_ONLY
@@ -111,23 +155,24 @@ ddr_1GB:
         nop
 	    //li	    msize, 0x3f000000
 	    li	    msize, 0x4
-        b       2f
+        b       3f
         nop
 1:
 	    //li	    msize, 0x7f000000
 	    li	    msize, 0x8
-2:
+	    nop
+3:
 
 /* RESERVE MEMORY FOR VRAM */
-        li      a0, 0x00000000
+        //li      a0, 0x00000000
 //#if (SHARED_VRAM == 64)
 //        li      a0, 0x04000000
 //#elif (SHARED_VRAM == 32)
 //        li      a0, 0x02000000
 //#endif
-        sub     msize, msize, a0
+        //sub     msize, msize, a0
 
-3:
+//3:
 
 ###Enable the reg space###
 #if 1

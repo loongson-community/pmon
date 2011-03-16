@@ -120,7 +120,7 @@ CONFIG_VIDEO_HW_CURSOR:      - Uses the hardware cursor capability of the
 #include <linux/io.h>
 
 
-#ifdef LOONGSON2F_ALLINONE
+#if defined(LOONGSON2F_ALLINONE) || defined(LOONGSON3A_3A780E)
 #define PICBMP_START_ADDR 0xbfc70000
 #else
 #define PICBMP_START_ADDR 0xbfc60000
@@ -132,6 +132,11 @@ CONFIG_VIDEO_HW_CURSOR:      - Uses the hardware cursor capability of the
 #define CONFIG_SPLASH_SCREEN
 #define CONFIG_VIDEO_BMP_GZIP
 #define VIDEO_HW_BITBLT
+#endif
+
+#ifdef RS780E
+#define CONFIG_SPLASH_SCREEN
+#define CONFIG_VIDEO_BMP_GZIP
 #endif
 
 #if !defined(LOONGSON3A_3AEV)&&!defined(LOONGSON2G_2G690E)&&!defined(LOONGSON3A_3A780E)
@@ -2468,6 +2473,9 @@ int fb_init(unsigned long fbbase, unsigned long iobase)
 	printf("Video: Drawing the logo ...\n");
 	video_console_address = video_logo ();
 #else
+    #ifdef CONFIG_SPLASH_SCREEN
+    video_display_bitmap(PTR_PAD(PICBMP_START_ADDR), 0, 0);
+    #endif
 	video_console_address = video_fb_address;
 #endif
 	printf("CONSOLE_SIZE %d\n", CONSOLE_SIZE);
