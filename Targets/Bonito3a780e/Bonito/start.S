@@ -157,6 +157,24 @@ bnez v1,78b; \
 nop; \
 GPIO_SET_OUTPUT(0x1<<13); 
 
+#define w83627write(x,y,z) \
+li		v0,		0xb800002e; \
+li		v1,		0x87; \
+sb		v1,		0(v0); \
+sb		v1,		0(v0); \
+li		v1,		0x7; \
+sb		v1,		0(v0); \
+li		v1,		x; \
+sb		v1,		1(v0); \
+li		v1,		y; \
+sb		v1,		0(v0); \
+li		v1,		z; \
+sb		v1,		1(v0); \
+li		v1,		0xaa; \
+sb		v1,		0(v0); \
+sb		v1,		0(v0); \
+nop; \
+nop 
 
 #define CONFIG_CACHE_64K_4WAY 1
 
@@ -1399,6 +1417,14 @@ ddr_config_entry:
 #include "3aserver_bridge_config.S"
 ##########################################
 
+		/* enable power led */
+		bal	 enable_lpcio_dev8  /* enable Super IO config port 2e-2h, 4e-4f */
+		nop
+		w83627write(0x8,0x30,0x1)
+		w83627write(0x8,0xf5,0x40)
+		w83627write(0x7,0x2d,0x1)
+		w83627write(0x9,0xf3,0x0)
+
 #if 0 //cww_X2
 		PRINTSTR("\r\n======X1 core0 map windows:\r\n")
 		li      t1, 23
@@ -2426,6 +2452,40 @@ cache_init_finish:
 		j  ra
 		nop
 		END(pci_write_config8_mips)
+
+		LEAF(pci_read_config8)
+		dli t1, HT_CONFIG_ADDR
+		or  t2, t1, a0
+		or  t1, t2, a1
+		lb  v0, 0x48(t1)
+		j  ra
+		nop
+		END(pci_read_config8)
+		LEAF(pci_write_config8)
+		dli t1, HT_CONFIG_ADDR
+		or  t2, t1, a0
+		or  t1, t2, a1
+		sb  a2, 0x48(t1)
+		j  ra
+		nop
+		END(pci_write_config8)
+		LEAF(enable_lpcio_dev8)
+		move t6, ra
+		li   a0,20
+		li	 a1,3
+		sll  a0,11
+		sll  a1,8
+		bal    pci_read_config8
+		nop
+		move   v1, v0
+		li     t0,  0x3
+		or     t1, v1, t0
+		move   a2,  t1
+		bal   pci_write_config8
+		nop
+		j  t6
+		nop
+		END(enable_lpcio_dev8)
 
 
 #if  1 /* slave main */
