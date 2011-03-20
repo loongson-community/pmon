@@ -620,6 +620,7 @@ static void
 	term_open(5, "/dev/tty2", 0, 0); /* vgaout */
 }
 
+#ifdef INTERFACE_3A780E
 void tty_flush()
  {
      int cnt;
@@ -632,7 +633,7 @@ void tty_flush()
 
      scancode_queue_init();
  }
-
+#endif
 
 
 void *restdout(int  (*newwrite) (int fd, const void *buf, size_t n))

@@ -43,7 +43,7 @@
 #define HINT_WIN_HEIGHT    (VIDEO_HEIGHT - 6)//31
 
 void w_present(void);
-void ww_init(void);
+void win_init(void);
 void w_enterconsole(void);
 void w_leaveconsole(void);
 

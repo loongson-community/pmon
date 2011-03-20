@@ -490,13 +490,14 @@ static inline void handle_mouse_event(unsigned char scancode);
   #define KEYBUFF_LEN 64
   #define KEYBUFF_MASK (KEYBUFF_LEN-1)
   static unsigned char scancode_queue[KEYBUFF_LEN];
+  
   static unsigned int scancode_writeptr=0;
   static unsigned int scancode_readptr=0;
   void scancode_queue_init()
   {
       scancode_writeptr=scancode_readptr=0;
   }
- 
+  
   unsigned int scancode_queue_read()
   {
      int ret;

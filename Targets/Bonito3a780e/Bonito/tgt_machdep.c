@@ -31,6 +31,8 @@
  *
  */
 #include <include/stdarg.h>
+ unsigned int mem_size = 0;
+
 #include <include/stdio.h>
 #include <include/string.h>
 #include <include/file.h>
@@ -183,6 +185,18 @@ static inline unsigned char CMOS_READ(unsigned char addr);
 static inline void CMOS_WRITE(unsigned char val, unsigned char addr);
 static void init_legacy_rtc(void);
 
+#ifdef INTERFACE_3A780E
+#define REV_ROW_LINE 560
+#define INF_ROW_LINE 576
+
+int afxIsReturnToPmon = 0;
+
+  struct FackTermDev
+  {
+      int dev;
+  };
+
+#endif
 #ifdef USE_GPIO_SERIAL
 //modified by zhanghualiang 
 //this function is for parallel port to send and received  data
@@ -431,7 +445,7 @@ superio_reinit();
 	memorysize = memsz > 240 ? 240 << 20 : memsz << 20;
 #endif
 	memorysize_high = memsz > 240 ? (((unsigned long long)memsz) - 240) << 20 : 0;
-
+     mem_size = memsz;
 #if 0 /* whd : Disable gpu controller of MCP68 */
 	//*(unsigned int *)0xbfe809e8 = 0x122380;
 	//*(unsigned int *)0xbfe809e8 = 0x2280;
@@ -590,14 +604,9 @@ unsigned int addr;
 extern void	vt82c686_init(void);
 int psaux_init(void);
 extern int video_hw_init (void);
-
+extern int init_win_device(void);
 extern int fb_init(unsigned long,unsigned long);
 
-int afxIsReturnToPmon = 0;
-struct FackTermDev
-{
-	int dev;
-};
 void
 tgt_devconfig()
 {
@@ -728,26 +737,28 @@ tgt_devconfig()
 	}
 //	psaux_init();
 #endif
-		 
+
+#ifdef INTERFACE_3A780E 
+	
 		vga_available = 1;
 		kbd_available=1;
 	    bios_available = 1; //support usb_kbd in bios
-
+		init_win_device();
 	  // Ask user whether to set bios menu
-#if 1 
+//#if 1 
 	         printf("Press <Del> to set BIOS,waiting for 3 seconds here..... \n");
 	
-#endif
+//#endif
 	         get_update(tmp_date);
 	         for (ic = 0; ic < 11; ic++){
 	             video_putchar1(2 + (len+2)*8+ic*8, 560, tmp_date[ic]);
 			  }
   
 			 video_set_color(0xf);
-			
+
+		//	init_win_device();
+
 	        vga_available = 0;          //lwg close printf output
-	
-	         init_win_device();
 	
 
 	{ 
@@ -837,7 +848,7 @@ run:
 	printf("devconfig done.\n");
 
 }
-
+#endif
 extern int test_icache_1(short *addr);
 extern int test_icache_2(int addr);
 extern int test_icache_3(int addr);

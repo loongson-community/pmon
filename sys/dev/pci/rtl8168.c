@@ -436,6 +436,14 @@ r8168_attach(struct device * parent, struct device * self, void *aux)
 		data2 = read_eeprom(tp, 9);
 		tp->dev_addr[4] = 0xff & data2;
 		tp->dev_addr[5] = 0xff & (data2 >> 8);
+ #ifdef INTERFACE_3A780E
+          {
+              int i = 0;
+              for (; i < 6; i++) {
+                  MACAddr0[i] = tp->dev_addr[i];
+              }
+          }
+  #endif
 
 		RTL_W8(tp, Cfg9346, Cfg9346_Unlock);
 		MAC = data | data1 <<16;
@@ -519,7 +527,7 @@ r8168_attach(struct device * parent, struct device * self, void *aux)
 		return;
 	}
 
-	//intrstr = pci_intr_st//ring(pc, ih);
+	intrstr = pci_intr_string(pc, ih);
     status = RTL_R16(tp, IntrStatus);
     tp->sc_ih = pci_intr_establish(pc, ih, IPL_NET, rtl8168_interrupt, tp, self->dv_xname);
 #if 0

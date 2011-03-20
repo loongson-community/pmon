@@ -139,6 +139,14 @@ extern int wdcdebug_wd_mask; /* init'ed in ata_wdc.c */
 #define readdisklabel(x1, x2, x3, x4, x5) "no label"
 #endif
 
+#ifdef INTERFACE_3A780E
+#define DEV_MAX_NUM 8
+  int drivnum[DEV_MAX_NUM] = {-1};
+  int b_channel[DEV_MAX_NUM] = {-1};
+  char b_dev_name[DEV_MAX_NUM][41];
+  unsigned long b_hdsize[DEV_MAX_NUM];
+#endif
+
 struct wd_softc {
 	/* General disk infos */
 	struct device sc_dev;
@@ -163,7 +171,12 @@ struct wd_softc {
 #define WDF_WAIT	0x20 /* waiting for resources */
 #define WDF_LBA	 0x40 /* using LBA mode */
 
-	int sc_capacity;
+#ifdef INTERFACE_3A780E
+      unsigned long sc_capacity; /* disk size Lc modify */
+#else
+      int sc_capacity;
+#endif
+
 	int cyl; /* actual drive parameters */
 	int heads;
 	int sectors;
@@ -272,6 +285,13 @@ wdprobe(parent, match_, aux)
 	struct ata_atapi_attach *aa_link = aux;
 	struct cfdata *match = match_;
 
+#ifdef INTERFACE_3A780E
+      static int i = 0;
+          drivnum[i] = aa_link->aa_drv_data->drive;
+          b_channel[i] = aa_link->aa_channel;
+          i++;
+ #endif
+
 	if (aa_link == NULL)
 		return 0;
 	if (aa_link->aa_type != T_ATA)
@@ -307,6 +327,9 @@ wdattach(parent, self, aux)
 	struct ata_atapi_attach *aa_link= aux;
 	int i, blank;
 	char buf[41], c, *p, *q;
+#ifdef INTERFACE_3A780E
+      static int j = 0;
+#endif
 	WDCDEBUG_PRINT(("wdattach\n"), DEBUG_FUNCS | DEBUG_PROBE);
 
 	wd->openings = aa_link->aa_openings;
@@ -337,6 +360,10 @@ wdattach(parent, self, aux)
 			blank = 1;
 		}
 	*q++ = '\0';
+
+#ifdef INTERFACE_3A780E
+     strcpy(b_dev_name[j], buf);
+ #endif
 
 	printf(": <%s>\n", buf);
 
@@ -383,6 +410,10 @@ wdattach(parent, self, aux)
 		    wd->sc_params.atap_sectors,
 		    wd->sc_capacity);
 	}
+ #ifdef INTERFACE_3A780E
+      b_hdsize[j] = wd->sc_capacity;
+      j++
+  #endif
 	WDCDEBUG_PRINT(("%s: atap_dmatiming_mimi=%d, atap_dmatiming_recom=%d\n",
 	    self->dv_xname, wd->sc_params.atap_dmatiming_mimi,
 	    wd->sc_params.atap_dmatiming_recom), DEBUG_PROBE);
