@@ -743,7 +743,6 @@ tgt_devconfig()
 		vga_available = 1;
 		kbd_available=1;
 	    bios_available = 1; //support usb_kbd in bios
-		init_win_device();
 	  // Ask user whether to set bios menu
 //#if 1 
 	         printf("Press <Del> to set BIOS,waiting for 3 seconds here..... \n");
@@ -756,7 +755,7 @@ tgt_devconfig()
   
 			 video_set_color(0xf);
 
-		//	init_win_device();
+			init_win_device();
 
 	        vga_available = 0;          //lwg close printf output
 	
@@ -824,7 +823,6 @@ tgt_devconfig()
               video_set_color(0xf);
               video_set_color(0x8);
               tty_flush();
-        //printf("it needs to execute window here,but where am I??"); 
 			  vga_available = 1;
               do_cmd("main");
               if (!afxIsReturnToPmon)

@@ -31,6 +31,7 @@ option      LS3_HT              # Enable the IO cache coherent of HT
 #option      MULTI_CHIP
 option      ENABLE_SATA         #Enable SATA  ,when enable IDE can also use, when commended only IDE can use
 option      loongson3A3
+option		INTERFACE_3A780E
 
 option      AUTO_DDR_CONFIG
 
