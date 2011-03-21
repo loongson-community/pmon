@@ -63,6 +63,11 @@
 /*
  * Autoconfiguration subroutines.
  */
+#ifdef INTERFACE_3A780E
+#define DEV_MAX_NUM	8
+char *b_name[DEV_MAX_NUM];
+int b_idenum[DEV_MAX_NUM];
+#endif
 
 typedef int (*cond_predicate_t) __P((struct device *, void *));
 
@@ -406,7 +411,23 @@ config_attach(parent, match, aux, print)
 	if (parent == ROOT)
 		printf("%s (root)", dev->dv_xname);
 	else {
-		printf("%s at %s", dev->dv_xname, parent->dv_xname);
+
+#ifdef INTERFACE_3A780E
+		{
+			static i = 0;
+if (strstr(dev->dv_xname, "wd") != NULL || strstr(dev->dv_xname, "cd") != NULL || strstr(dev->dv_xname,"usb") != NULL) {
+				/* use for BIOS code find the drive */
+				b_name[i] = dev->dv_xname; 
+				if (strstr(parent->dv_xname, "pciide") != NULL) {
+/* use for BIOS code to differentiate the IDE controller or SATA controller. b_idenum = 0 : SATA controller, b_idenum = 1 : IDE controller */
+					b_idenum[i] = parent->dv_xname[6] - 48; 
+				}
+				i++;
+			}
+			b_name[i] = NULL;
+		}
+#endif	
+	printf("%s at %s", dev->dv_xname, parent->dv_xname);
 		if (print)
 			(void) (*print)(aux, (char *)0);
 	}

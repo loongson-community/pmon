@@ -753,10 +753,12 @@ void video_putchar (int xx, int yy, unsigned char c)
 {
 	video_drawchars (xx, yy + VIDEO_LOGO_HEIGHT, &c, 1);
 }
+#ifdef INTERFACE_3A780E
 void video_putchar1(int xx, int yy, unsigned char c)
 {
     video_drawchars (xx, yy, &c, 1);
 }
+#endif
 void video_putchar_xor (int xx, int yy, unsigned char c)
 {
 	video_drawchars_xor (xx, yy + VIDEO_LOGO_HEIGHT, &c, 1);
@@ -1530,6 +1532,7 @@ SWAP16 ((unsigned short) (((255 >> 3) << 11) | ((255 >> 2) << 5) | (0   >> 3))),
 SWAP16 ((unsigned short) (((255 >> 3) << 11) | ((255 >> 2) << 5) | (255 >> 3)))
 };
 
+#ifdef INTERFACE_3A780E
 void video_set_color(unsigned char color)
  {
  #ifndef FB_MENU_NOCLOLOR
@@ -1540,7 +1543,7 @@ void video_set_color(unsigned char color)
          eorx = fgx ^ bgx;
  #endif
  }
-
+#endif
 static void __cprint(int y, int x,int width,char color, const char *buf)
 {
 #ifndef FB_MENU_NOCLOLOR
@@ -1582,6 +1585,7 @@ void set_cursor_fb(unsigned char x,unsigned char y)
 }
 
 /*****************************************************************************/
+#if 0
 void get_screen_address(int xx,int yy)
 {
 long dest0;
@@ -1590,7 +1594,7 @@ dest0 = video_fb_address + offset;
 
 return dest0;
 }
-
+#endif
 int fb_init (unsigned long fbbase,unsigned long iobase)
 {
 	unsigned char color8;

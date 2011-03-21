@@ -215,7 +215,7 @@ void w_leaveconsole()
 #endif
 }
 
-void ww_init(void)
+void win_init(void)
 {
 	int i,j;
 	tty_flush();

@@ -1,6 +1,6 @@
-/**
- **PMON Display commond line 
- **/
+/*
+	PMON command main
+*/
 #include <stdio.h>
 #include <termio.h>
 #include <endian.h>
@@ -34,26 +34,16 @@
 #include "cmd_hist.h"
 #include "cmd_more.h"
 
+#include <sys/atapi.h>
 #include <sys/disk.h>
 #include <sys/buf.h>
 #include <dev/ata/wdvar.h>
 #include <dev/ata/atareg.h>
-#include "include/part.h"
+#include <include/part.h>
 
-#define wdlookup(unit) (struct wd_softc *)device_lookup(&wd_cd, (unit))
-
-extern block_dev_desc_t  sata_dev_desc[];
-extern struct cfdriver wd_cd;
-
-//#ifndef __ATAPI_H__
-//#define __ATAPI_H__
-struct atapit{
-  char isatapi;
-  char devnu;
-}devinf[];
-//#endif
-
-
+#define DEBUG_ON	1
+#define DEBUG_OFF	0
+#define DEV_MAX_NUM	8
 struct wd_softc {
 	/* General disk infos */
 	struct device sc_dev;
@@ -89,30 +79,40 @@ struct wd_softc {
 	void *sc_sdhook;
 };
 
-void i2c_read_spd(int addr, int regNo, char *value);
+void  i2c_read_spd(int addr, int regNo, char *value);
 int bootinfo_init(void);
 int loaddef_hint(char *s);
 int bootdef_save(void);
 
-//extern struct atapit devinf[];
-//extern 
-char t_dispdev[40];
-//extern 
-char t_dispdev1[40];
+/********************************************* Lc add *****************************************************/
+struct atapit devinf[2] = {
+	{-1, -1},
+	{-1, -1}
+};
+/***********************************/
+char t_dispdev[40]; // Lc add
+char t_dispdev1[40]; // Lc add
+
+extern struct atapit devinf[];
+extern char t_dispdev[40];
+extern char t_dispdev1[40];
 
 /* display BIOS Interface */
 char dispdev[40] = {0};
 char dispdev1[40] = {0};
 char *dip_diskdev[10] = {0};
+char *port_name[10] = {0};
+char portname[40];
+char portname1[40];
 
 int passwdsetflag = 0;
 int passwdcleanflag = 0;
 char password[20]="";
 char password1[20]="";
 
-int dispon = 0;	//control displaying some subwindows	
-int bootdev0 = 0;  //enable bootdev0	
-int bootdev1 = 0;  //enable bootdev1
+int dispon = 0;	//control displaying some subwindows
+int bootdev0 = 0;  //enable bootdev0	 // Lc add
+int bootdev1 = 0;  //enable bootdev1   // Lc add
 jmp_buf jmpb;
 
 struct _daytime daytime[6]= {
@@ -123,7 +123,6 @@ struct _daytime daytime[6]= {
 	{"Month",16,5,"",4,1},
 	{"Year",1,5,"",6,TM_YEAR_BASE}
 };
-//extern int memorysize;
 extern int memorysize_high;
 extern int afxIsReturnToPmon;
 extern char *devclass[];
@@ -135,12 +134,10 @@ char langbuf[100];
 char hintlangbuf[200];
 struct _sysconfig sysconfig;
 
+/********************************* Lc add ****************************************/
 extern unsigned char MACAddr0[6];
 extern unsigned char MACAddr1[6];
-//unsigned char MACAddr0[6]={0};
-//unsigned char MACAddr1[6]={0};
-
-
+/*******************************/
 win_dp win_tp;
 char *diskdev_name[10]={0};
 char *netdev_name[10]={0};
@@ -174,285 +171,473 @@ static inline int prev_page(void)
 	}
 	return oldpage;
 }
+/*********************** Lc add ******************************/
+struct HD_info {
+	/* can get the channel and drive nummber */
+	int b_drivnum;
+	int b_channel;
+	/* device name */
+	char *b_name;
+	/* device cortroller num */
+	int b_idenum;
+	/* vendor */
+	char *dev_vendor;
+	unsigned long disk_size;
+};
 
-#if 0
-/* return to number of devices */
-static int devnum(char **disk_name){
-	int i;
-
-	for (i = 0; i < 10; i++){
-		if (disk_name[i] == NULL)
+void dev_bootnum(const char *dest, char *bootname) {
+	char *q = NULL;
+	char s[5] = {0};
+	int i = 0;
+	q = (char *)dest; q = strchr(q, '@'); q++;
+	while (*q) {
+		if (*q == '/')
 			break;
+		else {
+			s[i] = *q;
+			i++;
+			q++;
+		}
 	}
-
-	return i;
+	s[i] = 0;
+	strcpy(bootname, s);
+	return 0;
 }
-#endif
 
+void swap_port12(int a, int b)
+{
+	char *tmp;
+	tmp = port_name[a];
+	port_name[a] = port_name[b]; 
+	port_name[b] = tmp;
+}
+
+extern char *b_name[DEV_MAX_NUM]; 
+extern int b_idenum[DEV_MAX_NUM]; 
+extern int drivnum[DEV_MAX_NUM];
+extern int b_channel[DEV_MAX_NUM];
+extern char b_dev_name[DEV_MAX_NUM][41];
+extern unsigned long b_hdsize[DEV_MAX_NUM];
+/********************************************/
 int init_win_device(void){
-	int i,blank,j;
-	int c = 0, d = 0;
+	int i, j, x, a, blank;
 	unsigned long long lba,blksz;
-	char buf[41], tmp, *p, *q,*vp;
 	struct wd_softc *wd;
+	struct HD_info hdinfo[9]; /* Lc add */
+	int sa_mark = 0;
+	int sa_disk = 0;
+	int sa_port1 = 0;
+	int sa_port2 = 0;
+	int sa_pmark1 = 0;
+	int sa_pmark2 = 0;
+	int sa_cd = 0;
+	int cd_port1 = 0;
+	int cd_port2 = 0;
+	int cd_pmark1 = 0;
+	int cd_pmark2 = 0;
+	int cd_cont = 0;
+	char boot_k[] = "/dev/fs/ext2@wd0/boot/vmlinux";
+	char boot_p[] = "console=tty root=/dev/sda1";
+	char sa_diskname[] = "SATA DISK0";
+	char ide_diskname[] = "IDE DISK0";
+	char cd_sdiskname[] = "SATA CDROM0";
+	char cd_idiskname[] = "IDE CDROM0";
+	char boot_kc[] = "/dev/fs/iso9660@cd0/vmlinuxboot";
+	char u_buf[40];
+
+/****************************** Lc add *********************************/
+	/* hard disk info copy to this struct */
+	i = 0, a = 0;
+	for (j = 0; b_name[j] != NULL && j < DEV_MAX_NUM; j++) {
+		if (strstr(b_name[j], "cd") != NULL){
+			hdinfo[j].dev_vendor = 0;
+			hdinfo[j].disk_size = 0;
+		}
+		else {
+			if (strstr(b_name[j], "usb") == NULL) {
+				hdinfo[j].dev_vendor = b_dev_name[i];
+				hdinfo[j].disk_size = b_hdsize[i];
+				i++;
+			}
+		}
+		if (strstr(b_name[j], "usb") != NULL) {
+			hdinfo[j].dev_vendor = 0;
+			hdinfo[j].disk_size = 0;
+			hdinfo[j].b_drivnum = -1;
+			hdinfo[j].b_channel = -1;
+		}
+		else {
+			hdinfo[j].b_drivnum = drivnum[a];
+			hdinfo[j].b_channel = b_channel[a];
+			a++;
+		}
+		hdinfo[j].b_name = b_name[j];
+		hdinfo[j].b_idenum = b_idenum[j];
+		diskdev_name[j] = b_name[j];
+#if DEBUG_OFF
+		printf("b_dev_name[%d] %s\n", j, b_dev_name[j]);
+		printf("hdinfo[%d].dev_vendor : %s\n", j, hdinfo[j].dev_vendor);
+		printf("b_hdsize[%d] %d\n", j, b_hdsize[j]);
+		printf("hdinfo[%d].disk_size : %d\n", j, hdinfo[j].disk_size);
+		printf("hdinfo[%d].b_drivnum %d\n", j, hdinfo[j].b_drivnum);
+		printf("hdinfo[%d].b_channel %d\n", j, hdinfo[j].b_channel);
+		printf("hdinfo[%d].b_name %s\n", j, hdinfo[j].b_name);
+		printf("hdinfo[%d].b_idenum %d\n", j, hdinfo[j].b_idenum);
+		printf("hdinfo[%d].dev_vendor %s\n", j, hdinfo[j].dev_vendor);
+		printf("hdinfo[%d].disk_size %d\n", j, hdinfo[j].disk_size);
+#endif
+	}
+	/*****************************/
 
 	win_tp = malloc(sizeof(struct win_device));
 	memset(win_tp, 0x0, sizeof(struct win_device));
-
+		
 	init_device_name();
 
-	for (i = 0; i < 10; i++) {
-		if (diskdev_name[i] == NULL)
+/* At most, we can find 16 divice. Of course, it never happened ... */
+	for (i = 0; i < 16; i++) {
+		if (b_name[i] == NULL)
 			break;
 
 		dip_diskdev[i] = malloc(10);
+		port_name[i] = malloc(6);
 
-		if (!strcmp(diskdev_name[i], "usb0")) {
-
+		if (!strcmp(b_name[i], "usb0")) {
 			win_tp->win_mask |= 1 << 0;
 			win_tp->usb.w_flag = 1;
+			if (sa_mark != 0) {
+				boot_p[24] += 1;
+			}
 			strcpy(dip_diskdev[i], "USB MEDIA");
 			strcpy(win_tp->usb.w_para, "/dev/fs/ext2@usb0/vmlinux");
 #ifdef NO_MSG_DEBUG
 			strcpy(win_tp->usb.w_kpara, "console=tty root=/dev/sda1 quiet loglevel=0");
 #else
-			strcpy(win_tp->usb.w_kpara, "console=tty root=/dev/sda1");
+			strcpy(u_buf, boot_p);
+			strcat(u_buf, " rootdelay=10");
+			strcpy(win_tp->usb.w_kpara, u_buf);
 #endif
 		}
+				/************** CD-ROM ***************/
+		if (strstr(b_name[i], "cd") != NULL) {
+			for(x = 0; x < j; x++) {
+				if (!strcmp(hdinfo[x].b_name, b_name[i])) {
+					if (hdinfo[x].b_idenum == 0) {
+						/*************** SATA0 port *************/
+						if		 (hdinfo[x].b_channel == 0 && hdinfo[x].b_drivnum == 0) {
+							win_tp->win_mask |= 1 << 3;
+							win_tp->sata0.w_flag = 2;
+							/* set the boot path */
+							strncpy(win_tp->sata0.w_para, boot_kc, 128);
+							strncpy(win_tp->sata0.w_kpara, "rdinit=/bin/init.sh console=tty", 128);
 
-		if (!strcmp(diskdev_name[i], "wd0")) {
-
-			win_tp->win_mask |= 1 << 1;
-			win_tp->ide.w_flag = 1;
-			strcpy(dip_diskdev[i], "IDE DISK");
-			strncpy(win_tp->ide.w_para, "/dev/fs/ext2@wd0/boot/vmlinux", 128);
-#ifdef NO_MSG_DEBUG
-			strncpy(win_tp->ide.w_kpara, "console=tty2 root=/dev/hda2 quiet loglevel=0", 128);
-#else
-			strncpy(win_tp->ide.w_kpara, "console=tty2 root=/dev/hda2", 128);
+							dev_bootnum(boot_kc, (win_tp->sata0.dev_name));
+							strcpy(dip_diskdev[i], cd_sdiskname);
+							sa_cd++;
+							cd_sdiskname[10] += 1;
+							cd_cont++;
+#if DEBUG_OFF
+							printf("CD SATA0%s\n", hdinfo[x].dev_vendor);
 #endif
-			/*find ide dev hook*/
-			for(j=0;j<4;j++)
-			{
-				wd = wdlookup(j);
-				if(!wd)
-					continue;
-				else
-					break;
-			}
-			/*vendor*/
-			for (blank = 0, p = wd->sc_params.atap_model, q = buf, j = 0;
-				j < sizeof(wd->sc_params.atap_model); j++)
-			{
-				tmp = *p++;
-				if (tmp == '\0')
-					break;
-				if (tmp != ' ') {
-					if (blank) {
-						*q++ = ' ';
-						blank = 0;
-					}
-					*q++ = tmp;
-				} else
-					blank = 1;
-			}
-			*q++ = '\0';
-
-			strcpy(win_tp->ide.vendor, buf);
-			win_tp->ide.capacity =  wd->sc_capacity / (1000000000 / 512);
-		}
-
-		if (!strcmp(diskdev_name[i], "sata0")) {
-
-			win_tp->win_mask |= 1 << 2;
-			j = 0;
-			if(devinf[0].devnu < 0)
-				j = 1;
-
-			//vp = sata_dev_desc[j].vendor;
-			//while(*vp++ == ' ');
-			//strcpy(win_tp->sata0.vendor, vp);
-
-			if (devinf[0].isatapi == 1 || (devinf[1].isatapi == 1 && devinf[0].devnu < 0)) {   //cdrom
-				win_tp->sata0.w_flag = 1;
-				strcpy(win_tp->sata0.w_para, "/dev/fs/iso9660@sata0/vmlinux");
-#ifdef NO_MSG_DEBUG
-				strcpy(win_tp->sata0.w_kpara, "console=tty root=/dev/sda1 quiet loglevel=0");
-#else
-				strcpy(win_tp->sata0.w_kpara, "console=tty root=/dev/sda1");
-#endif
-				win_tp->sata0.capacity  = 0;
-
-				if (c > 0) {
-					strcpy(dip_diskdev[i], "SATA CDROM1");
-					c++;
-				} else {
-					strcpy(dip_diskdev[i], "SATA CDROM0");
-					c++;
-				}
-			} else {   //disk
-				win_tp->sata0.w_flag = 2;
-				strcpy(win_tp->sata0.w_para, "/dev/fs/ext2@sata0/boot/vmlinux");
-#ifdef NO_MSG_DEBUG
-				strcpy(win_tp->sata0.w_kpara, "console=tty root=/dev/sda1 quiet loglevel=0");
-#else
-				strcpy(win_tp->sata0.w_kpara, "console=tty root=/dev/sda1");
-#endif
-				//lba = sata_dev_desc[j].lba;
-				//blksz = sata_dev_desc[j].blksz;
-				//win_tp->sata0.capacity  = lba*blksz/1000000000;
-
-				if (d > 0) {
-					strcpy(dip_diskdev[i], "SATA DISK1");
-					d++;
-				} else {
-					strcpy(dip_diskdev[i], "SATA DISK0");
-					d++;
-				}
-			}
-
-		}
-
-		if (!strcmp(diskdev_name[i], "sata1")) {
-
-			win_tp->win_mask |= 1 << 3;
-
-			//vp = sata_dev_desc[1].vendor;
-			//while(*vp++ == ' ');
-			//strcpy(win_tp->sata1.vendor, vp);
-
-			if (devinf[1].isatapi == 1) {   //cdrom
-				win_tp->sata1.w_flag = 1;
-				strcpy(win_tp->sata1.w_para, "/dev/fs/iso9660@sata1/vmlinux");
-#ifdef NO_MSG_DEBUG
-				strcpy(win_tp->sata1.w_kpara, "console=tty root=/dev/sda1 quiet loglevel=0");
-#else
-				strcpy(win_tp->sata1.w_kpara, "console=tty root=/dev/sda1");
-#endif
-
-				win_tp->sata1.capacity  = 0;
-
-				if (c > 0) {
-					strcpy(dip_diskdev[i], "SATA CDROM1");
-					c++;
-				} else {
-					strcpy(dip_diskdev[i], "SATA CDROM0");
-					c++;
-				}
-			} else {   //disk
-				win_tp->sata1.w_flag = 2;
-				strcpy(win_tp->sata1.w_para, "/dev/fs/ext2@sata1/boot/vmlinux");
-				if (win_tp->sata0.w_flag == 2)
-#ifdef NO_MSG_DEBUG
-					strcpy(win_tp->sata1.w_kpara, "console=tty root=/dev/sdb1 quiet loglevel=0");
-#else
-					strcpy(win_tp->sata1.w_kpara, "console=tty root=/dev/sdb1");
-#endif
-				else
-#ifdef NO_MSG_DEBUG
-					strcpy(win_tp->sata1.w_kpara, "console=tty root=/dev/sda1 quiet loglevel=0");
-#else
-					strcpy(win_tp->sata1.w_kpara, "console=tty root=/dev/sda1");
-#endif
-
-				//lba = sata_dev_desc[1].lba;
-				//blksz = sata_dev_desc[1].blksz;
-				//win_tp->sata1.capacity  = lba*blksz/1000000000;
-
-				if (d > 0) {
-					strcpy(dip_diskdev[i], "SATA DISK1");
-					d++;
-				} else {
-					strcpy(dip_diskdev[i], "SATA DISK0");
-					d++;
-				}
-			}
-		}
-	}
-	
-	return i;
-}
-
-#if 0
-static int devtodisp(char **disk_name){
-	int i, j;
-	int c = 0, d = 0;
-
-	j = devnum(disk_name);
-
-	for (i = 0; i < 10; i++){
-		if (disk_name[i] == NULL)
-			break;
-
-	dip_diskdev[i] = malloc(10);
-
-	if (!strcmp(disk_name[i], "sata0")){
-			if (j == 1){
-				if (devinf[0].isatapi == 0 || devinf[1].isatapi == 0){
-					strcpy(dip_diskdev[i], "SATA DISK0");
-				} else if (devinf[0].isatapi == 1 || devinf[1].isatapi == 1){
-					strcpy(dip_diskdev[i], "SATA CDROM0");
-				}
-			} else if (j == 2 || j == 3){
-				if (devinf[0].devnu == -1 || devinf[1].devnu == -1){
-					if (devinf[0].isatapi == 0 || devinf[1].isatapi == 0)
-						strcpy(dip_diskdev[i], "SATA DISK0");
-					else if (devinf[0].isatapi == 1 || devinf[1].isatapi == 1)
-						strcpy(dip_diskdev[i], "SATA CDROM0");
-				} else {
-					if (devinf[0].isatapi == 0){
-						if (d == 0){
-							strcpy(dip_diskdev[i], "SATA DISK0");
-							d++;
-						} else if (d == 1){
-							strcpy(dip_diskdev[i], "SATA DISK1");
-							d++;
 						}
-					} else if (devinf[0].isatapi == 1){
-						if (c == 0){
-							strcpy(dip_diskdev[i], "SATA CDROM0");
-							c++;
-						} else if (c == 1){
-							strcpy(dip_diskdev[i], "SATA CDROM1");
-							c++;
+						/*************** SATA1 port *************/
+						else if (hdinfo[x].b_channel == 1 && hdinfo[x].b_drivnum == 0) {
+							win_tp->win_mask |= 1 << 4;
+							win_tp->sata1.w_flag = 2;
+							if (cd_cont != 0) {
+								boot_kc[18] += 1;
+							}
+							strncpy(win_tp->sata1.w_para, boot_kc, 128);
+							strncpy(win_tp->sata1.w_kpara, "rdinit=/bin/init.sh console=tty", 128);
+							dev_bootnum(boot_kc, (win_tp->sata1.dev_name));
+							strcpy(dip_diskdev[i], cd_sdiskname);
+							cd_port1 = sa_cd;
+							sa_cd++;
+							cd_sdiskname[10] += 1;
+							cd_cont++;
+							cd_pmark1 = 1;
+						}
+						/*************** SATA2 port *************/
+						else if (hdinfo[x].b_channel == 0 && hdinfo[x].b_drivnum == 1) {
+							win_tp->win_mask |= 1 << 5;
+							win_tp->sata2.w_flag = 2;
+							if (cd_cont != 0) {
+								boot_kc[18] += 1;
+							}
+							strncpy(win_tp->sata2.w_para, boot_kc, 128);
+							strncpy(win_tp->sata2.w_kpara, "rdinit=/bin/init.sh console=tty", 128);
+							dev_bootnum(boot_kc, (win_tp->sata2.dev_name));
+							strcpy(dip_diskdev[i], cd_sdiskname);
+							cd_sdiskname[10] += 1;
+							cd_port2 = sa_cd;
+							sa_cd++;
+							cd_cont++;
+							cd_pmark2 = 1;
+						}
+						/*************** SATA3 port *************/
+						else if (hdinfo[x].b_channel == 1 && hdinfo[x].b_drivnum == 1) {
+							win_tp->win_mask |= 1 << 6;
+							win_tp->sata3.w_flag = 2;
+							if (cd_cont != 0) {
+								boot_kc[18] += 1;
+							}
+							strncpy(win_tp->sata3.w_para, boot_kc, 128);
+							strncpy(win_tp->sata3.w_kpara, "rdinit=/bin/init.sh console=tty", 128);
+							dev_bootnum(boot_kc, (win_tp->sata3.dev_name));
+							strcpy(dip_diskdev[i], cd_sdiskname);
+							sa_cd++;
+							cd_cont++;
+						}
+					}
+					else {
+						/**************** IDE0 port *************/
+						if (hdinfo[x].b_drivnum == 0 && hdinfo[x].b_channel == 0) {
+							win_tp->win_mask |= 1 << 1;
+							win_tp->ide0.w_flag = 2;
+							if (cd_cont != 0) {
+								boot_kc[18] += 1;
+							}
+							strncpy(win_tp->ide0.w_para, boot_kc, 128);
+							strncpy(win_tp->ide0.w_kpara, "rdinit=/bin/init.sh console=tty", 128);
+							dev_bootnum(boot_kc, (win_tp->ide0.dev_name));
+							strcpy(dip_diskdev[i], cd_idiskname);
+							cd_idiskname[9] += 1;
+							cd_cont++;
+						}
+						/**************** IDE1 port *************/
+						else if (hdinfo[x].b_drivnum == 1 && hdinfo[x].b_channel == 0) {
+							win_tp->win_mask |= 1 << 2;
+							win_tp->ide1.w_flag = 2;
+							if (cd_cont != 0) {
+								boot_kc[18] += 1;
+							}
+							strncpy(win_tp->ide1.w_para, boot_kc, 128);
+							strncpy(win_tp->ide1.w_kpara, "rdinit=/bin/init.sh console=tty", 128);
+							dev_bootnum(boot_kc, (win_tp->ide1.dev_name));
+							strcpy(dip_diskdev[i], cd_idiskname);
+							cd_idiskname[9] += 1;
+							cd_cont++;
+						}
+						/**************** IDE2 port *************/
+						else if (hdinfo[x].b_drivnum == 0 && hdinfo[x].b_channel == 1) {
+							win_tp->win_mask |= 1 << 7;
+							win_tp->ide.w_flag = 2;
+							if (cd_cont != 0) {
+								boot_kc[18] += 1;
+							}
+							strncpy(win_tp->ide.w_para, boot_kc, 128);
+							strncpy(win_tp->ide.w_kpara, "rdinit=/bin/init.sh console=tty", 128);
+							dev_bootnum(boot_kc, (win_tp->ide.dev_name));
+							strcpy(dip_diskdev[i], cd_idiskname);
+							cd_cont++;
 						}
 					}
 				}
 			}
-		} else if (!strcmp(disk_name[i], "sata1")){
-			if (devinf[1].isatapi == 0){
-				if (d == 0){
-					strcpy(dip_diskdev[i], "SATA DISK0");
-					d++;
-				} else if (d == 1){
-					strcpy(dip_diskdev[i], "SATA DISK1");
-					d++;
-				}
-			} else if (devinf[1].isatapi == 1){
-				if (c == 0){
-					strcpy(dip_diskdev[i], "SATA CDROM0");
-					c++;
-				} else if (c == 1){
-					strcpy(dip_diskdev[i], "SATA CDROM1");
-					c++;
+		}
+		/******************** DISK ********************/
+		if (strstr(b_name[i], "wd") != NULL) {
+			for (x = 0; x < j; x++){
+				if (!strcmp(hdinfo[x].b_name, b_name[i])) {
+					/**************** SATA controller *****************/
+					if (hdinfo[x].b_idenum == 0) {
+						/**************** SATA0 port **************/
+						if		  (hdinfo[x].b_channel == 0 && hdinfo[x].b_drivnum == 0) {
+							win_tp->win_mask |= 1 << 3;
+							win_tp->sata0.w_flag = 1;
+
+							/* set the boot path */
+							strncpy(win_tp->sata0.w_para, boot_k, 128);
+							strncpy(win_tp->sata0.w_kpara, boot_p, 128);
+							sa_mark++;
+
+							dev_bootnum(boot_k, (win_tp->sata0.dev_name));
+							/* vendor and disk size*/
+							strcpy(win_tp->sata0.vendor, hdinfo[x].dev_vendor);
+							win_tp->sata0.capacity = hdinfo[x].disk_size /(1000000000 / 512);
+
+							strcpy(dip_diskdev[i], sa_diskname);
+							strcpy(port_name[i], "sata0");
+							sa_disk++;
+							sa_diskname[9] += 1;
+#if DEBUG_OFF
+							printf("SATA0\n");
+							printf("sata0:%s\n", win_tp->sata0.vendor);
+#endif
+						/**************** SATA1 port **************/
+						} else if (hdinfo[x].b_channel == 1 && hdinfo[x].b_drivnum == 0) {
+							win_tp->win_mask |= 1 << 4;
+							win_tp->sata1.w_flag = 1;
+							if (sa_mark != 0) {
+								boot_k[15] += 1;
+								boot_p[24] += 1;
+							}
+							/* set the boot path */
+							strncpy(win_tp->sata1.w_para, boot_k, 128);
+							strncpy(win_tp->sata1.w_kpara, boot_p, 128);
+							sa_mark++;
+
+							dev_bootnum(boot_k, (win_tp->sata1.dev_name));
+							/* vendor and disk size*/
+							strcpy(win_tp->sata1.vendor, hdinfo[x].dev_vendor);
+							win_tp->sata1.capacity = hdinfo[x].disk_size /(1000000000 / 512);
+
+							strcpy(dip_diskdev[i], sa_diskname);
+							strcpy(port_name[i], "sata1");
+							sa_port1 = sa_disk;
+							sa_disk++;
+							sa_diskname[9] += 1;
+							sa_pmark1 = 1;
+#if DEBUG_OFF
+							printf("SATA1\n");
+							printf("sata1:%s\n", win_tp->sata1.vendor);
+#endif
+						/**************** SATA2 port **************/
+						} else if (hdinfo[x].b_channel == 0 && hdinfo[x].b_drivnum == 1) {
+							win_tp->win_mask |= 1 << 5;
+							win_tp->sata2.w_flag = 1;
+							if (sa_mark != 0) {
+								boot_k[15] += 1;
+								boot_p[24] += 1;
+							}
+							/* set the boot path */
+							strncpy(win_tp->sata2.w_para, boot_k, 128);
+							strncpy(win_tp->sata2.w_kpara, boot_p, 128);
+							sa_mark++;
+
+							dev_bootnum(boot_k, (win_tp->sata2.dev_name));
+
+							/* vendor and disk size*/
+							strcpy(win_tp->sata2.vendor, hdinfo[x].dev_vendor);
+							win_tp->sata2.capacity = hdinfo[x].disk_size /(1000000000 / 512);
+
+							strcpy(dip_diskdev[i], sa_diskname);
+							strcpy(port_name[i], "sata2");
+							sa_port2 = sa_disk;
+							sa_disk++;
+							sa_diskname[9] += 1;
+							sa_pmark2 = 1;
+#if DEBUG_OFF
+							printf("SATA2\n");
+							printf("sata2:%s\n", win_tp->sata2.vendor);
+#endif
+						/**************** SATA3 port **************/
+						} else if (hdinfo[x].b_channel == 1 && hdinfo[x].b_drivnum == 1) {
+							win_tp->win_mask |= 1 << 6;
+							win_tp->sata3.w_flag = 1;
+							if (sa_mark != 0) {
+								boot_k[15] += 1;
+								boot_p[24] += 1;
+							}
+							/* set the boot path */
+							strncpy(win_tp->sata3.w_para, boot_k, 128);
+							strncpy(win_tp->sata3.w_kpara, boot_p, 128);
+							sa_mark++;
+
+							dev_bootnum(boot_k, (win_tp->sata3.dev_name));
+							/* vendor and disk size*/
+							strcpy(win_tp->sata3.vendor, hdinfo[x].dev_vendor);
+							win_tp->sata3.capacity = hdinfo[x].disk_size /(1000000000 / 512);
+
+							strcpy(dip_diskdev[i], sa_diskname);
+							strcpy(port_name[i], "sata3");
+							sa_disk++;
+#if DEBUG_OFF
+							printf("SATA3\n");
+							printf("sata3:%s\n", win_tp->sata3.vendor);
+#endif
+						}
+					}
+					/********************** IDE controller ***********************/
+					else {
+						/***************** IDE0 port **************/
+						if (hdinfo[x].b_drivnum == 0 && hdinfo[x].b_channel == 0) {
+							win_tp->win_mask |= 1 << 1;
+							win_tp->ide0.w_flag = 1;
+							if (sa_mark != 0) {
+								boot_k[15] += 1;
+							}
+							strncpy(win_tp->ide0.w_para, boot_k, 128);
+							strncpy(win_tp->ide0.w_kpara, "console=tty root=/dev/hda1", 128);
+							sa_mark++;
+
+							dev_bootnum(boot_k, (win_tp->ide0.dev_name));
+							strcpy(dip_diskdev[i], ide_diskname);
+							strcpy(port_name[i], "ide0");
+							ide_diskname[8] += 1;
+
+							/* display vendor and disk size */
+							strcpy(win_tp->ide0.vendor, hdinfo[x].dev_vendor);
+							win_tp->ide0.capacity = hdinfo[x].disk_size /(1000000000 / 512);
+#if DEBUG_OFF
+							printf("IDE0\n");
+							printf("ide0:%s\n", win_tp->ide0.vendor);
+#endif
+						}
+						/***************** IDE1 port ***************/
+						else if (hdinfo[x].b_drivnum == 1 && hdinfo[x].b_channel == 0) {
+							win_tp->ide1.w_flag = 1;
+							win_tp->win_mask |= 1 << 2;
+							if (sa_mark != 0) {
+								boot_k[15] += 1;
+							}
+							strncpy(win_tp->ide1.w_para, boot_k, 128);
+							strncpy(win_tp->ide1.w_kpara, "console=tty root=/dev/hdb1", 128);
+
+							dev_bootnum(boot_k, (win_tp->ide1.dev_name));
+							strcpy(dip_diskdev[i], ide_diskname);
+							strcpy(port_name[i], "ide1");
+							ide_diskname[8] += 1;
+
+							/* display vendor and disk size */
+							strcpy(win_tp->ide1.vendor, hdinfo[x].dev_vendor);
+							win_tp->ide1.capacity = hdinfo[x].disk_size /(1000000000 / 512);
+#if DEBUG_OFF
+							printf("IDE1\n");
+							printf("ide1:%s\n", win_tp->ide1.vendor);
+#endif
+						}
+						/***************** IDE2 port ***************/
+						else if (hdinfo[x].b_drivnum == 0 && hdinfo[x].b_channel == 1) {
+							win_tp->ide.w_flag = 1;
+							win_tp->win_mask |= 1 << 7;
+							if (sa_mark != 0) {
+								boot_k[15] += 1;
+							}
+							strncpy(win_tp->ide.w_para, boot_k, 128);
+							strncpy(win_tp->ide.w_kpara, "console=tty root=/dev/hdc1", 128);
+
+							dev_bootnum(boot_k, (win_tp->ide.dev_name));
+							strcpy(dip_diskdev[i], ide_diskname);
+							strcpy(port_name[i], "ide");
+
+							strcpy(win_tp->ide.vendor, hdinfo[x].dev_vendor);
+							win_tp->ide.capacity = hdinfo[x].disk_size /(1000000000 / 512);
+#if DEBUG_OFF
+							printf("IDE2\n");
+							printf("ide:%s\n", win_tp->ide.vendor);
+#endif
+						}
+					}
 				}
 			}
-		} else if (!strcmp(disk_name[i], "usb0")){
-			strcpy(dip_diskdev[i], "USB MEDIA");
-		} else if (!strcmp(disk_name[i], "wd0")) {
-			strcpy(dip_diskdev[i], "IDE DISK");
 		}
 	}
-
-	return 0;
-}
+	/* Because the sata1 port and sata2 port has wrong seat, so we must swap them */
+		if (sa_pmark1 == 1 && sa_pmark2 == 1) {
+			swap_port12(sa_port1, sa_port2);
+			printf("in disk\n");
+		}
+		else if (cd_pmark1 == 1 && cd_pmark2 == 1) {
+			swap_port12(cd_port1, cd_port2);
+		}
+#if DEBUG_OFF
+		printf("dev num : %d \n", i);
 #endif
+		return i;
+}
 
-#if 0
-void init_device_name(char *netdev_name[],char *diskdev_name[])
-#else
 void init_device_name(void)
-#endif
 {
 	int i = 0, j = 0, n = 0;
 	struct device *dev, *next_dev;
@@ -484,8 +669,8 @@ void init_device_name(void)
 		diskdev_name[0]=0;
 		diskdev_name[1]=0;
 	}
+	printf("diskdev_num : %d\n", j);
 }
-
 void init_sysconfig(char *diskdev_name[])
 {
 	char *s = 0;
@@ -532,45 +717,6 @@ void init_sysconfig(char *diskdev_name[])
 		strcpy(dispdev1, t_dispdev1);
 	}
 
-#if 0
-	if (dispdev[0]<'a' && dispdev1[0]<'a') {
-		int j;
-		int k =0;
-		int d =0;
-		int e = 0;
-		for (j = 0; dip_diskdev[j]; j++) {
-			if (!strcmp(dip_diskdev[j], "SATA CDROM0")) {
-				strcpy(dispdev, dip_diskdev[j]);
-				k++;
-			} else if (!strcmp(dip_diskdev[j], "SATA CDROM1")) {
-				strcpy(dispdev1, dip_diskdev[j]);
-				k++;
-			} else if (!strcmp(dip_diskdev[j], "SATA DISK0")) {
-				if (k == 0)
-					strcpy(dispdev, dip_diskdev[j]);
-				else
-					strcpy(dispdev1, dip_diskdev[j]);
-				d++;
-			} else if (!strcmp(dip_diskdev[j], "SATA DISK1")) {
-				strcpy(dispdev1, dip_diskdev[j]);
-				d++;
-			} else if (!strcmp(dip_diskdev[j], "IDE DISK")) {
-				if (k > 0 || d > 0)
-					strcpy(dispdev1, dip_diskdev[j]);
-				else
-					strcpy(dispdev, dip_diskdev[j]);
-				e++;
-			} else if (!strcmp(dip_diskdev[j], "USB MEDIA")) {
-				if (k > 0 || d > 0 || e > 0)
-					strcpy(dispdev1, dip_diskdev[j]);
-				else
-					strcpy(dispdev, dip_diskdev[j]);
-			}
-		}
-	}
-#endif
-
-
 	if(getenv("al")) {
 		sysconfig.boottype=1;
 		strncpy(sysconfig.kpath, getenv("al"), 255);
@@ -594,8 +740,26 @@ void init_sysconfig(char *diskdev_name[])
 		sysconfig.usbkey=0;
 	}
 }
+/******************************* Lc add ************************************/
+#define KBD_NO_DATA	(-1)
+#define KEYBUFF_MASK	(63)
+static unsigned char scancode_queue[64];
+static unsigned int scancode_writeptr=0;
+static unsigned int scancode_readptr=0;
+#if 0
+unsigned int scancode_queue_read()
+{
+	int ret;
+	if (scancode_readptr == scancode_writeptr) {
+		return KBD_NO_DATA;
+	}
+	ret = scancode_queue[scancode_readptr & KEYBUFF_MASK];
+	scancode_readptr++;
 
-
+	return ret;
+}
+#endif
+/********************/
 void deal_keyboard_input(int *esc_tag ,int *to_command_tag, int *esc_down)
 {
 	int	scancode;
@@ -619,13 +783,13 @@ void deal_keyboard_input(int *esc_tag ,int *to_command_tag, int *esc_down)
 	scancode = scancode_queue_read();
 	switch(scancode)
 	{
-		case 0x44: //F10
+		case 0x44: /* F10 */
 			w_setpage(W_PAGE_SAVEQUIT);
 			break;
-		case 0x43:   //ESC
+		case 0x43:   /* ESC */
 			w_setpage(W_PAGE_SKIPQUIT);
 			break;
-		case 0x3b://F1
+		case 0x3b:/* F1 */
 			if(getenv("lang") && !strcmp(getenv("lang"),"en"))
 			{
 				setenv("lang","cn");
@@ -647,16 +811,16 @@ void deal_keyboard_input(int *esc_tag ,int *to_command_tag, int *esc_down)
 	}
 	if(w_getpage()>=0 && w_getpage()<6)
 	{
-		if(w_keydown('[C'))//HOOK  keyboard right
+		if(w_keydown('[C'))/* HOOK  keyboard right */
 		{
 			w_setpage(next_page());
 		}
-		if(w_keydown('[D'))//HOOK keyboard left
+		if(w_keydown('[D'))/* HOOK keyboard left */
 		{
 			w_setpage(prev_page());
 		}
 	}
-	if(w_keydown('`') || w_keydown('~'))//HOOK keyboard ~/`
+	if(w_keydown('`') || w_keydown('~'))/* HOOK keyboard ~/` */
 	{
 		//	w_setpage_safe(101);
 		*to_command_tag = 1;
@@ -666,7 +830,7 @@ void deal_keyboard_input(int *esc_tag ,int *to_command_tag, int *esc_down)
 		*to_command_tag = 0;
 	}
 
-	if (w_keydown(0x1b)) //HOOK Keyboard esc
+	if (w_keydown(0x1b)) /* HOOK Keyboard esc */
 	{
 		*esc_tag = 1;
 	}
@@ -675,6 +839,7 @@ void deal_keyboard_input(int *esc_tag ,int *to_command_tag, int *esc_down)
 		*esc_tag = 0;
 	}
 }
+
 void paint_mainframe(char *hint)
 {
 	int i;
@@ -699,6 +864,7 @@ void paint_mainframe(char *hint)
 	}
 }
 
+
 void memory_size_gb(char *p){
 	int memsize = 0;
 	static unsigned int i = 0,memory_fre = 0;
@@ -709,7 +875,7 @@ void memory_size_gb(char *p){
 
 		i = 1;
 #ifndef DEVBD2F_SM502
-		//i2c_read_spd(0xa0, 0x09, &v);
+		//i2c_read_spd(0xa0, 0x09, &v); /* Lc add */
 #endif
 		tmp = ((v>>4) & 0xf) * 10;
 		tmp += (v & 0xf);
@@ -733,23 +899,26 @@ void memory_size_gb(char *p){
 		sprintf(p, "Memory size: 4 GB @ DDRII %d", memory_fre*2);
 	}
 }
+/* use for display the memory size */
+extern unsigned int mem_size;
 
 int paint_childwindow(char **hint,char *diskdev_name[],char *netdev_name[],int esc_down)
 {
-	time_t t;//current date and time
+	time_t t;/* current date and time */
 	struct tm tm;
-	static int oldwindow;//save the previous number of oldwindow
-	char *message;//message passing through windows
-	int i;
+	static int oldwindow;/* save the previous number of oldwindow */
+	char *message;/* message passing through windows */
+	int i, j;
 	int selnum;
 	char hints[100];
 	char line[100];
 	char sibuf[4][20];
 	char *tty_name[]={"tty","ttyS0","ttyS1",0};
-	char w1[6][50];//buffer of window1"boot"
-	char w2[6][50];//buffer of window2"network"
-	char tinput[256];//input buffer1
+	char w1[6][50];/* buffer of window1"boot" */
+	char w2[6][50];/* buffer of window2"network" */
+	char tinput[256];/* input buffer1 */
 	static int pre_selnum = -1;
+	int selcont = 0;
 
 	t = tgt_gettime();
 	tm = *localtime(&t);
@@ -766,7 +935,8 @@ int paint_childwindow(char **hint,char *diskdev_name[],char *netdev_name[],int e
 
 	switch(w_getpage())
 	{
-		case W_PAGE_SYS://Main window.Also display basic information
+		/* Main window.Also display basic information */
+		case W_PAGE_SYS:
 			oldwindow = 0;
 			w_window(BASE_WIN_START, 3, BASE_WIN_WIDTH, BASE_WIN_HEIGHT, "Basic Information");
 			*hint = "This is the basic information of Loongson Computer.";
@@ -804,21 +974,20 @@ int paint_childwindow(char **hint,char *diskdev_name[],char *netdev_name[],int e
 
 			sprintf(line,"CPU Type: %s @ %d MHz",md_cpuname(),tgt_pipefreq()/1000000);
 			w_text(3,7,WA_LEFT,line);
-			memory_size_gb(line);
+			/* Display Memory size */
+			sprintf(line, "Memory size: %dMB DDRII", mem_size);
 			w_bigtext(3,8,40,2,line);
 			/* Display MAC address */
 			sprintf(line, "MACAddr0: %02x:%02x:%02x:%02x:%02x:%02x", 
 					MACAddr0[0],MACAddr0[1], MACAddr0[2],MACAddr0[3],MACAddr0[4],MACAddr0[5]);
 			w_bigtext(3,12,40,2,line);
-
-			sprintf(line, "MACAddr1: %02x:%02x:%02x:%02x:%02x:%02x", 
-					MACAddr1[0],MACAddr1[1],MACAddr1[2],MACAddr1[3],MACAddr1[4],MACAddr1[5]);
-			w_bigtext(3,13,40,2,line);
-
 			break;
 
-		case W_PAGE_BOOT://Boot related functions
+		/* Boot related functions */
+		case W_PAGE_BOOT:
 			oldwindow = 1;
+
+			
 
 			if (win_tp->win_mask > 0) {
 				*hint = " Use <Enter> to switch.\n Other  keys to modify.";
@@ -828,9 +997,10 @@ int paint_childwindow(char **hint,char *diskdev_name[],char *netdev_name[],int e
 				strcpy(dispdev, "Disable");
 				strcpy(dispdev1, "Disable");
 			}
-			
 
-			if (win_tp->win_mask == 1 || win_tp->win_mask == 2 || win_tp->win_mask == 4 || win_tp->win_mask == 8){
+
+			/* Lc modify */
+			if (win_tp->win_mask == 1 || win_tp->win_mask == 2 || win_tp->win_mask == 4 || win_tp->win_mask == 8 || win_tp->win_mask == 16 || win_tp->win_mask == 32 || win_tp->win_mask == 64 || win_tp->win_mask == 128){
 				strcpy(dispdev1, "Disable");
 			}
 
@@ -840,7 +1010,6 @@ int paint_childwindow(char **hint,char *diskdev_name[],char *netdev_name[],int e
 
 				boottype[0]= "Directly Boot";
 				boottype[1]= "Directly Boot";
-				//boottype[1]= "MENU";
 				w_select(26,4,20,"Boot Type:          ",boottype, &sysconfig.boottype);
 
 				if(w_selectinput1(26,5,20,"  1st Boot Device:    ", dip_diskdev, dispdev,20,&dispon))
@@ -883,47 +1052,103 @@ int paint_childwindow(char **hint,char *diskdev_name[],char *netdev_name[],int e
 				if (win_tp->win_mask > 0)
 					s += sprintf(s, " Set boot device. Press\n <Enter> to confirm device.");
 
+				/************** 1st boot **************/
 				if (sysconfig.bootdev != NULL && !strcmp(sysconfig.bootdev, "usb0")) {
 					if (win_tp->usb.w_flag != 0) {
 						strcpy(sysconfig.kpath, win_tp->usb.w_para);
 						strcpy(sysconfig.kargs, win_tp->usb.w_kpara);
 					}
-				} else if (sysconfig.bootdev != NULL && !strcmp(sysconfig.bootdev, "wd0")) {
+				}
+				else if (sysconfig.bootdev != NULL && win_tp->ide0.dev_name != NULL && !strcmp(sysconfig.bootdev, win_tp->ide0.dev_name)) {
+					if (win_tp->ide0.w_flag != 0) {
+						strcpy(sysconfig.kpath, win_tp->ide0.w_para);
+						strcpy(sysconfig.kargs, win_tp->ide0.w_kpara);
+					}
+				}
+				else if (sysconfig.bootdev != NULL && win_tp->ide1.dev_name != NULL && !strcmp(sysconfig.bootdev, win_tp->ide1.dev_name)) {
+					if (win_tp->ide1.w_flag != 0) {
+						strcpy(sysconfig.kpath, win_tp->ide1.w_para);
+						strcpy(sysconfig.kargs, win_tp->ide1.w_kpara);
+					}
+				}
+				else if (sysconfig.bootdev != NULL && win_tp->ide.dev_name != NULL && !strcmp(sysconfig.bootdev, win_tp->ide.dev_name)) {
 					if (win_tp->ide.w_flag != 0) {
 						strcpy(sysconfig.kpath, win_tp->ide.w_para);
 						strcpy(sysconfig.kargs, win_tp->ide.w_kpara);
 					}
-				} else if (sysconfig.bootdev != NULL && !strcmp(sysconfig.bootdev, "sata0")) {
+				}
+				else if (sysconfig.bootdev != NULL && win_tp->sata0.dev_name != NULL && !strcmp(sysconfig.bootdev, win_tp->sata0.dev_name)) {
 					if (win_tp->sata0.w_flag != 0) {
 						strcpy(sysconfig.kpath, win_tp->sata0.w_para);
 						strcpy(sysconfig.kargs, win_tp->sata0.w_kpara);
 					}
-				} else if (sysconfig.bootdev != NULL && !strcmp(sysconfig.bootdev, "sata1")) {
+				}
+				else if (sysconfig.bootdev != NULL && win_tp->sata1.dev_name != NULL && !strcmp(sysconfig.bootdev, win_tp->sata1.dev_name)) {
 					if (win_tp->sata1.w_flag != 0) {
 						strcpy(sysconfig.kpath, win_tp->sata1.w_para);
 						strcpy(sysconfig.kargs, win_tp->sata1.w_kpara);
 					}
 				}
+				else if (sysconfig.bootdev != NULL && win_tp->sata2.dev_name != NULL && !strcmp(sysconfig.bootdev, win_tp->sata2.dev_name)) {
+					if (win_tp->sata2.w_flag != 0){
+						strcpy(sysconfig.kpath, win_tp->sata2.w_para);
+						strcpy(sysconfig.kargs, win_tp->sata2.w_kpara);
+					}
+				}
+				else if (sysconfig.bootdev != NULL && win_tp->sata3.dev_name != NULL && !strcmp(sysconfig.bootdev, win_tp->sata3.dev_name)) {
+					if (win_tp->sata3.w_flag != 0) {
+						strcpy(sysconfig.kpath, win_tp->sata3.w_para);
+						strcpy(sysconfig.kargs, win_tp->sata3.w_kpara);
+					}
+				}
 
+				/************************ 2nd boot ***********************/
 				if (sysconfig.bootdev1 != NULL && !strcmp(sysconfig.bootdev1, "usb0")) {
 					if (win_tp->usb.w_flag != 0) {
 						strcpy(sysconfig.kpath1, win_tp->usb.w_para);
 						strcpy(sysconfig.kargs1, win_tp->usb.w_kpara);
 					}
-				} else if (sysconfig.bootdev1 != NULL && !strcmp(sysconfig.bootdev1, "wd0")) {
+				}
+				else if (sysconfig.bootdev1 != NULL && win_tp->ide0.dev_name != NULL && !strcmp(sysconfig.bootdev1, win_tp->ide0.dev_name)) {
+					if (win_tp->ide0.w_flag != 0) {
+						strcpy(sysconfig.kpath1, win_tp->ide0.w_para);
+						strcpy(sysconfig.kargs1, win_tp->ide0.w_kpara);
+					}
+				}
+				else if (sysconfig.bootdev1 != NULL && win_tp->ide1.dev_name != NULL && !strcmp(sysconfig.bootdev1, win_tp->ide1.dev_name)) {
+					if (win_tp->ide1.w_flag != 0) {
+						strcpy(sysconfig.kpath1, win_tp->ide1.w_para);
+						strcpy(sysconfig.kargs1, win_tp->ide1.w_kpara);
+					}
+				}
+				else if (sysconfig.bootdev1 != NULL && win_tp->ide.dev_name != NULL && !strcmp(sysconfig.bootdev1, win_tp->ide.dev_name)) {
 					if (win_tp->ide.w_flag != 0) {
 						strcpy(sysconfig.kpath1, win_tp->ide.w_para);
 						strcpy(sysconfig.kargs1, win_tp->ide.w_kpara);
 					}
-				} else if (sysconfig.bootdev1 != NULL && !strcmp(sysconfig.bootdev1, "sata0")) {
+				}
+				else if (sysconfig.bootdev1 != NULL && win_tp->sata0.dev_name != NULL && !strcmp(sysconfig.bootdev1, win_tp->sata0.dev_name)) {
 					if (win_tp->sata0.w_flag != 0) {
 						strcpy(sysconfig.kpath1, win_tp->sata0.w_para);
 						strcpy(sysconfig.kargs1, win_tp->sata0.w_kpara);
 					}
-				} else if (sysconfig.bootdev1 != NULL && !strcmp(sysconfig.bootdev1, "sata1")) {
+				}
+				else if (sysconfig.bootdev1 != NULL && win_tp->sata1.dev_name != NULL && !strcmp(sysconfig.bootdev1, win_tp->sata1.dev_name)) {
 					if (win_tp->sata1.w_flag != 0) {
 						strcpy(sysconfig.kpath1, win_tp->sata1.w_para);
 						strcpy(sysconfig.kargs1, win_tp->sata1.w_kpara);
+					}
+				}
+				else if (sysconfig.bootdev1 != NULL && win_tp->sata2.dev_name != NULL && !strcmp(sysconfig.bootdev1, win_tp->sata2.dev_name)) {
+					if (win_tp->sata2.w_flag != 0){
+						strcpy(sysconfig.kpath1, win_tp->sata2.w_para);
+						strcpy(sysconfig.kargs1, win_tp->sata2.w_kpara);
+					}
+				}
+				else if (sysconfig.bootdev1 != NULL && win_tp->sata3.dev_name != NULL && !strcmp(sysconfig.bootdev1, win_tp->sata3.dev_name)) {
+					if (win_tp->sata3.w_flag != 0) {
+						strcpy(sysconfig.kpath1, win_tp->sata3.w_para);
+						strcpy(sysconfig.kargs1, win_tp->sata3.w_kpara);
 					}
 				}
 
@@ -933,46 +1158,47 @@ int paint_childwindow(char **hint,char *diskdev_name[],char *netdev_name[],int e
 				if(bootdev1 == 1) {
 					w_text(8,8,WA_LEFT,"Select 2nd Boot Device:");
 				}
-
 				while(diskdev_name[i])
 					i++;
 
 				selnum_tmp = w_window4(20, 9, 14, 1,dip_diskdev, i);
 				selnum = (selnum_tmp & 0xff) - 1;
-
-				if(selnum >= 0 && selnum <= 3) {
+				selcont = selnum;
+				if(selnum >= 0 && selnum <= 8) {
 
 					pre_selnum = selnum ;
 
 					if(bootdev0 == 1) {
 						strcpy(sysconfig.bootdev, diskdev_name[selnum]);
 						strcpy(dispdev, dip_diskdev[selnum]);
+						strcpy(portname, port_name[selnum]);
 					}
 					if(bootdev1 == 1) {
 						strcpy(sysconfig.bootdev1, diskdev_name[selnum]);
 						strcpy(dispdev1, dip_diskdev[selnum]);
+						strcpy(portname1, port_name[selnum]);
 					}
 				}
 
 				selnum = ((selnum_tmp >>8) & 0xff) - 1;
 
-				if(selnum >= 0 && selnum <= 3)
+				if(selnum >= 0 && selnum <= 8)
 					pre_selnum = selnum ;
 
-				if(pre_selnum >= 0 && pre_selnum <= 3)
+				if(pre_selnum >= 0 && pre_selnum <= 8)
 				{
 					s += sprintf(s,"\n Device:\n   %s",dip_diskdev[pre_selnum]);
-					display_devinf(s,dip_diskdev[pre_selnum]);
+					display_devinf(s,dip_diskdev[pre_selnum], port_name[pre_selnum]);
 				}
 				else
 				{
 					if(bootdev0 == 1) {
 						s += sprintf(s,"\n Device:\n   %s", dispdev);
-						display_devinf(s,dispdev);
+						display_devinf(s,dispdev, portname);
 					}
 					if(bootdev1 == 1) {
 						s += sprintf(s,"\n Device:\n   %s",dispdev1);
-						display_devinf(s,dispdev1);
+						display_devinf(s,dispdev1, portname1);
 					}
 				}
 				*hint=hints;
@@ -997,7 +1223,7 @@ int paint_childwindow(char **hint,char *diskdev_name[],char *netdev_name[],int e
 			}
 			if(w_button(19,8,10,"[Set IP]"))
 			{
-				ifconfig(sibuf[2],w2[0]);//configure
+				ifconfig(sibuf[2],w2[0]);/* configure */
 				sprintf(line,"The device [%s] now has a new IP",sibuf[2]);
 				message = line;
 				w_setpage(100);
@@ -1017,7 +1243,8 @@ int paint_childwindow(char **hint,char *diskdev_name[],char *netdev_name[],int e
 			{
 				sprintf(line,"set ifconfig %s:%s",sibuf[3],w2[1]);
 				printf(line);
-				run(line);//configure
+				/* configure */
+				run(line);
 				sprintf(line,"The device [%s] now has a new IP",sibuf[3]);
 				message = line;
 				w_setpage(100);
@@ -1040,7 +1267,9 @@ int paint_childwindow(char **hint,char *diskdev_name[],char *netdev_name[],int e
 			}
 
 			break;
-		case W_PAGE_QUIT://Save configuration and reboot the system
+
+		/* Save configuration and reboot the system */
+		case W_PAGE_QUIT:
 			oldwindow = 3;
 			*hint = "";
 			w_window(BASE_WIN_START, 3, BASE_WIN_WIDTH, BASE_WIN_HEIGHT,"Save configuration and/or Restart the system");
@@ -1173,7 +1402,9 @@ int paint_childwindow(char **hint,char *diskdev_name[],char *netdev_name[],int e
 				w_setpage(oldwindow);
 			}
 			break;
-		case W_PAGE_TIME://Modify Time and Date
+
+		/* Modify Time and Date */
+		case W_PAGE_TIME:
 			oldwindow=0;
 			w_window(BASE_WIN_START, 3, BASE_WIN_WIDTH, BASE_WIN_HEIGHT, "Modify Time and Date");
 			if(w_button(14,16,22,"[ Return ]") || esc_down)
@@ -1202,90 +1433,95 @@ int paint_childwindow(char **hint,char *diskdev_name[],char *netdev_name[],int e
 			}
 			break;
 		case W_PAGE_LOADDEF: {
-				int i;
+			int i;
+			w_window(30,8,40,8,"WARRNING");
+			w_text(50,10,WA_CENTRE, "LOADER DEFAULT CONFIG!");
 
-				w_window(30,8,40,8,"WARRNING");
-				w_text(50,10,WA_CENTRE, "LOADER DEFAULT CONFIG!");
+			if(w_button(45,12,10,"[ YES ]")){
 
-				if(w_button(45,12,10,"[ YES ]")){
+#if 1
+			/* Open this judgement statement, default boot can not be saved some times */
+				 //if(getenv("def_devnum") == NULL) { 
+					i = bootinfo_init();
 
-					if(getenv("def_devnum") == NULL)
-					{
-						i = bootinfo_init();
+					if(i == 0){
+						 w_setcolor(0,0xc0,0,0x80,0xf0);
 
-						if(i == 0){
-							w_setcolor(0,0xc0,0,0x80,0xf0);
-
-							while(1){
-								w_window(20,8,50,6, "ERROR NO DEVICE!");
-								if(w_button(35,10,20, "Confirm"))
-								{
-									w_setpage(oldwindow);
-									break;
-								}
-
-								w_present();
+						while(1){
+							w_window(20,8,50,6, "ERROR NO DEVICE!");
+							if(w_button(35,10,20, "Confirm"))
+							{
+								w_setpage(oldwindow);
+								break;
 							}
+
+							w_present();
 						}
 					}
-					if(getenv("def_devnum") != NULL)
-					{
-						bootdef_save();
-					}
-					w_setpage(oldwindow);
-				}
-			if(w_button(45,14,10,"[ NO ]") || esc_down)
-			{
+				 //}
+#endif
+			/* The same to "getenv("def_devnum")" situation, if open this, defailt boot can not be saved some times */
+				 //if(getenv("def_devnum") != NULL) {
+					bootdef_save();
+				 //}
 				w_setpage(oldwindow);
 			}
-			}
-			break;
+			 if(w_button(45,14,10,"[ NO ]") || esc_down)
+			 {
+				 w_setpage(oldwindow);
+			 }
+		 }
+		 break;
 
 
 		case 100:
-			w_window(20,7,40,9,"Notice");
-			w_text(39,9,WA_CENTRE,message);
-			w_text(39,11,WA_CENTRE,"Press Enter to return");
-			if(w_button(30,13,20,"[Return]") || esc_down)
-			{
-				w_setpage(oldwindow);
-			}
-			break;
-		case 101://run command
-			w_window(BASE_WIN_START, 3, BASE_WIN_WIDTH, BASE_WIN_HEIGHT,"Run Command");
-			w_bigtext(HINT_WIN_START, 4, HINT_WIN_WIDTH, HINT_WIN_HEIGHT, *hint);
-			if(w_biginput(1,5,47,10,"Input Command line",tinput,256))
-			{
-				w_setpage(-3);
-			}
-			if(w_focused())
-			{
-				*hint = "Input commad line in the textbox. <Enter> to run";
-			}
-			if(w_button(18,17,10,"  [ Return ]  ") || esc_down)
-			{
-				w_setpage(oldwindow);
-			}
-			if(w_focused())
-			{
-				*hint = "<Enter> to return. Up Arrow key to Input command line";
-			}
-			break;
-		case -3://run command
-			w_enterconsole();
-			run(tinput);
-			w_hitanykey();
-			w_leaveconsole();
-			w_setpage(101);
-			break;
+			 w_window(20,7,40,9,"Notice");
+			 w_text(39,9,WA_CENTRE,message);
+			 w_text(39,11,WA_CENTRE,"Press Enter to return");
+			 if(w_button(30,13,20,"[Return]") || esc_down)
+			 {
+				 w_setpage(oldwindow);
+			 }
+			 break;
+
+		/* run command */
+		case 101:
+			 w_window(BASE_WIN_START, 3, BASE_WIN_WIDTH, BASE_WIN_HEIGHT,"Run Command");
+			 w_bigtext(HINT_WIN_START, 4, HINT_WIN_WIDTH, HINT_WIN_HEIGHT, *hint);
+			 if(w_biginput(1,5,47,10,"Input Command line",tinput,256))
+			 {
+				 w_setpage(-3);
+			 }
+			 if(w_focused())
+			 {
+				 *hint = "Input commad line in the textbox. <Enter> to run";
+			 }
+			 if(w_button(18,17,10,"  [ Return ]  ") || esc_down)
+			 {
+				 w_setpage(oldwindow);
+			 }
+			 if(w_focused())
+			 {
+				 *hint = "<Enter> to return. Up Arrow key to Input command line";
+			 }
+			 break;
+
+		/* run command */
+		case -3:
+			 w_enterconsole();
+			 run(tinput);
+			 w_hitanykey();
+			 w_leaveconsole();
+			 w_setpage(101);
+			 break;
+
+		/* reboot */
 		case -4:
-			//	signal(SIGINT, pre_handler);
-			//sigsetmask(0);
-			printf("Rebooting.....");
-			tgt_reboot();
-			break;
+			 printf("Rebooting.....");
+			 tgt_reboot();
+			 break;
 		default:
-			break;
+			 break;
 	}
 	return -1;
 }
@@ -1293,12 +1529,10 @@ int paint_childwindow(char **hint,char *diskdev_name[],char *netdev_name[],int e
 
 int cmd_main (ac, av)
 	int ac;
-	char *av[];
+char *av[];
 {
 	char* hint="";
 	int bp;
-	//char *diskdev_name[10]={0};
-	//char *netdev_name[10]={0};
 	int i;
 	struct tm tm;
 
@@ -1313,7 +1547,7 @@ int cmd_main (ac, av)
 
 	init_sysconfig(diskdev_name);
 
-	ww_init();
+	win_init();
 	bp=0;
 
 	if(setjmp(jmpb))
@@ -1333,6 +1567,7 @@ int cmd_main (ac, av)
 	}
 #endif
 
+	//init_win_device();
 	while(1)
 	{
 		int esc_down = 0;
@@ -1345,9 +1580,12 @@ int cmd_main (ac, av)
 		w_present();
 	}
 
-	//free(win_tp);
+	/* free dip_diskdev and port_name memory space */
 	for (i = 0; i < dip_diskdev[i]; i++) {
 		free(dip_diskdev[i]);
+	}
+	for (i = 0; i < port_name[i]; i++) {
+		free(port_name[i]);
 	}
 
 	return(0);
@@ -1431,12 +1669,12 @@ int  w_setup_pass(char *type)
 	{
 		if (esc_tag && w_keydown(0))
 		{
-			//when input esc return ,this should be earlier than any keydown
-			//func or their will be a bug
+			/* when input esc return ,this should be earlier than any keydown
+			   func or their will be a bug */
 			w_setpage(W_PAGE_PASS);
 			return 0;
 		}
-		//hotkey esc
+		/* hotkey esc */
 		if (w_keydown(0x1b))
 		{
 			esc_tag = 1;
@@ -1452,7 +1690,7 @@ int  w_setup_pass(char *type)
 				w_window(20,8,40,8,"WARRNING");
 				w_password(40,10,10,"Input password", password,9);
 				w_password(40,12,10, "Confirm password",password1,9);
-				if(w_button(40,14,10, "Confirm")) //加长＝＝＝＝＝
+				if(w_button(40,14,10, "Confirm")) /* Confirm passwd input done */
 				{
 					if(strcmp(password,password1))
 					{
@@ -1497,6 +1735,17 @@ int  w_setup_pass(char *type)
 	return 0;
 }
 
+/******************************************** Lc add ****************************************************/
+static void *video_fb_address;
+long get_screen_address(int xx, int yy)
+{
+	long dest0;
+	int offset = (yy * VIDEO_FONT_HEIGHT) * 800 + xx * VIDEO_FONT_WIDTH * 2;
+	dest0 = video_fb_address + offset;
+	return dest0;
+}
+/**************************************/
+
 int check_password_textwindow(char *type)
 {
 	struct termio tty;
@@ -1525,7 +1774,7 @@ int check_password_textwindow(char *type)
 	{
 		char password[32]="";
 		w_setup(0,0);
-		ww_init();
+		win_init();
 		w_setpage(1);
 
 		while(1)
@@ -1614,84 +1863,108 @@ int bootdef_save(void)
 
 int loaddef_hint(char *s)
 {
+	win_dp p;
+	p = win_tp;
 	s += sprintf(s,"<Enter> to loader default configuration and restart system.");
 
-	if(devinf[0].isatapi == 1)
-		s += sprintf(s,"\nsata0: CD-ROM");
-	else if(devinf[0].isatapi == 0)
-		s += sprintf(s,"\nsata0: DISK");
-	else
-		s += sprintf(s,"\nsata0: NO DEVICE");
+	if (p->win_mask == 0) {
+		s += sprintf(s, "\nNO DEVICE");
+		return -1;
+	}
+	if (p->sata0.w_flag == 1) 
+		s += sprintf(s, "\nsata0: DISK");
+	else if (p->sata0.w_flag == 2)
+		s += sprintf(s, "\nsata0: CD-ROM");
 
-	if(devinf[1].isatapi == 1)
-		s += sprintf(s,"\nsata1: CD-ROM");
-	else if(devinf[1].isatapi == 0)
-		s += sprintf(s,"\nsata1: DISK");
-	else
-	    s += sprintf(s,"\nsata1: NO DEVICE");
+	if (p->sata1.w_flag == 1) 
+		s += sprintf(s, "\nsata1: DISK");
+	else if (p->sata1.w_flag == 2)
+		s += sprintf(s, "\nsata1: CD-ROM");
+
+	if (p->sata2.w_flag == 1) 
+		s += sprintf(s, "\nsata2: DISK");
+	else if (p->sata2.w_flag == 2)
+		s += sprintf(s, "\nsata2: CD-ROM");
+
+	if (p->sata3.w_flag == 1) 
+		s += sprintf(s, "\nsata3: DISK");
+	else if (p->sata3.w_flag == 2)
+		s += sprintf(s, "\nsata3: CD-ROM");
+
+	if (p->usb.w_flag == 1) 
+		s += sprintf(s, "\nusb: USB MEDIA");
+
+	if (p->ide0.w_flag == 1) 
+		s += sprintf(s, "\nide0: DISK");
+	else if (p->ide0.w_flag == 2)
+		s += sprintf(s, "\nide0: CD-ROM");
+
+	if (p->ide1.w_flag == 1) 
+		s += sprintf(s, "\nide1: DISK");
+	else if (p->ide1.w_flag == 2)
+		s += sprintf(s, "\nide1: CD-ROM");
+
+	if (p->ide.w_flag == 1) 
+		s += sprintf(s, "\nide2: DISK");
+	else if (p->ide.w_flag == 2)
+		s += sprintf(s, "\nide2: CD-ROM");
 
 	return 0;
 }
 
-int disk_namefind(unsigned char *name)
+int disk_namefind(unsigned char *name, unsigned char *p_name)
 {
 	int i;
-
-	for(i = 0; i < 4 && dip_diskdev[i] != NULL; i++)
-		if(!strcmp(dip_diskdev[i], name))
+	for(i = 0; i < 8 && dip_diskdev[i] != NULL; i++) /* Lc modify */
+		if(!strcmp(dip_diskdev[i], name) && !strcmp(port_name[i], p_name))
 			return i;
-
 	return -1;
 }
-
-int display_devinf(unsigned char *s ,unsigned char *name)
+int display_devinf(unsigned char *s ,unsigned char *name, unsigned char *p_name)
 {
 
-	if(disk_namefind(name) == -1)
+	if(disk_namefind(name, p_name) == -1)
 		return 0;
-
-	if(!strcmp(name,"SATA DISK1")||!strcmp(name,"SATA CDROM1"))
-	{
-		s += sprintf(s,"\n Vendor:\n   %s", win_tp->sata1.vendor);
-
-		if(win_tp->sata1.capacity)
-			s += sprintf(s,"\n Capacity:\n   %dG", win_tp->sata1.capacity);
+	if (!strcmp(p_name, "sata0")) {
+		s += sprintf(s, "\n Vendor:\n   %s", win_tp->sata0.vendor);
+		s += sprintf(s, "\n Capacity:\n   %dG", win_tp->sata0.capacity);
 	}
-
-	if(!strcmp(name,"SATA DISK0"))
-	{
-		if(win_tp->sata0.w_flag == 2)
-		{
-			s += sprintf(s,"\n Vendor:\n   %s", win_tp->sata0.vendor);
-			s += sprintf(s,"\n Capacity:\n   %dG", win_tp->sata0.capacity);
-		}
-		else
-		{
-			s += sprintf(s,"\n Vendor:\n   %s", win_tp->sata1.vendor);
-			s += sprintf(s,"\n Capacity:\n   %dG", win_tp->sata1.capacity);
-		}
+	else if (!strcmp(p_name, "sata1")) {
+		s += sprintf(s, "\n Vendor:\n   %s", win_tp->sata1.vendor);
+		s += sprintf(s, "\n Capacity:\n   %dG", win_tp->sata1.capacity);
 	}
-	if(!strcmp(name,"SATA CDROM0"))
-	{
-		if(win_tp->sata0.w_flag == 1)
-			s += sprintf(s,"\n Vendor:\n   %s", win_tp->sata0.vendor);
-		else
-			s += sprintf(s,"\n vendor:\n   %s", win_tp->sata1.vendor);
+	else if (!strcmp(p_name, "sata2")) {
+		s += sprintf(s, "\n Vendor:\n   %s", win_tp->sata2.vendor);
+		s += sprintf(s, "\n Capacity:\n   %dG", win_tp->sata2.capacity);
 	}
-
-	if(!strcmp(name,"IDE DISK"))
-	{
-		s += sprintf(s,"\n Vendor:\n   %s", win_tp->ide.vendor);
-		s += sprintf(s,"\n Capacity:\n   %dG", win_tp->ide.capacity);
+	else if (!strcmp(p_name, "sata3")) {
+		s += sprintf(s, "\n Vendor:\n   %s", win_tp->sata3.vendor);
+		s += sprintf(s, "\n Capacity:\n   %dG", win_tp->sata3.capacity);
+	}
+	else if (!strcmp(p_name, "ide")) {
+		s += sprintf(s, "\n Vendor:\n   %s", win_tp->ide.vendor);
+		s += sprintf(s, "\n Capacity:\n   %dG", win_tp->ide.capacity);
+	}
+	else if (!strcmp(p_name, "ide0")) {
+		s += sprintf(s, "\n Vendor:\n   %s", win_tp->ide0.vendor);
+		s += sprintf(s, "\n Capacity:\n   %dG", win_tp->ide0.capacity);
+	}
+	else if (!strcmp(p_name, "ide1")) {
+		s += sprintf(s, "\n Vendor:\n   %s", win_tp->ide1.vendor);
+		s += sprintf(s, "\n Capacity:\n   %dG", win_tp->ide1.capacity);
 	}
 	return 1;
-
 }
-
 int bootinfo_init(void)
 {
 	int i,tmp,num = 0,mask;
 	char s[2];
+	int cd_mark[7] = {0};
+	int sata_mark[4] = {0};
+	int ide_mark[3] = {0};
+	int usb_mark = 0;
+	char sataname[] = "SATA DISK0";
+	char idename[] = "IDE DISK0";
 	win_dp p;
 
 	unsetenv("def_dev");
@@ -1701,110 +1974,227 @@ int bootinfo_init(void)
 	unsetenv("def_kargs1");
 	unsetenv("def_kpath1");
 	unsetenv("def_devnum");
+	unsetenv("bootdev");
+	unsetenv("bootdev1");
+	unsetenv("al");
+	unsetenv("al1");
+	unsetenv("disp");
+	unsetenv("disp1");
+	unsetenv("append");
+	unsetenv("append1");
 
 	p = win_tp;
 	if(p->win_mask == 0)
-
 		return 0;
 
-	mask = (p->win_mask >> 2) | ( (p->win_mask & 0x2) << 1 );//mask : 1_bit : sata0, 2_bit : sata1, 3 bit : ide
-	if(disk_namefind("SATA CDROM1") != -1)
-	{
+
+	/* CDROM 1st default boot select */
+	if (p->sata0.w_flag == 2 && cd_mark[0] == 0) {
 		setenv("def_kpath", p->sata0.w_para);
 		setenv("def_kargs", p->sata0.w_kpara);
 		setenv("def_dev", "SATA CDROM0");
+		cd_mark[0] += 1;
+		num++;
+	}
+	else if (p->sata1.w_flag == 2 && cd_mark[1] == 0) {
+		setenv("def_kpath", p->sata1.w_para);
+		setenv("def_kargs", p->sata1.w_kpara);
+		setenv("def_dev", "SATA CDROM0");
+		cd_mark[1] += 1;
+		num++;
+	}
+	else if (p->sata2.w_flag == 2 && cd_mark[2] == 0) {
+		setenv("def_kpath", p->sata2.w_para);
+		setenv("def_kargs", p->sata2.w_kpara);
+		setenv("def_dev", "SATA CDROM0");
+		cd_mark[2] += 1;
+		num++;
+	}
+	else if (p->sata3.w_flag == 2 && cd_mark[3] == 0) {
+		setenv("def_kpath", p->sata3.w_para);
+		setenv("def_kargs", p->sata3.w_kpara);
+		setenv("def_dev", "SATA CDROM0");
+		cd_mark[3] += 1;
+		num++;
+	}
+	else if (p->ide0.w_flag == 2 && cd_mark[4] == 0) {
+		setenv("def_kpath", p->ide0.w_para);
+		setenv("def_kargs", p->ide0.w_kpara);
+		setenv("def_dev", "IDE CDROM0");
+		cd_mark[4] += 1;
+		num++;
+	}
+	else if (p->ide1.w_flag == 2 && cd_mark[5] == 0) {
+		setenv("def_kpath", p->ide1.w_para);
+		setenv("def_kargs", p->ide1.w_kpara);
+		setenv("def_dev", "IDE CDROM0");
+		cd_mark[5] += 1;
+		num++;
+	}
+	else if (p->ide.w_flag == 2 && cd_mark[6] == 0) {
+		setenv("def_kpath", p->ide.w_para);
+		setenv("def_kargs", p->ide.w_kpara);
+		setenv("def_dev", "IDE CDROM0");
+		cd_mark[6] += 1;
+		num++;
+	}
+		/* DISK 1st default boot select */
+	else if (p->sata0.w_flag == 1 && sata_mark[0] == 0) {
+		setenv("def_kpath", p->sata0.w_para);
+		setenv("def_kargs", p->sata0.w_kpara);
+		setenv("def_dev", sataname);
+		sataname[9] += 1;
+		sata_mark[0] += 1;
+		num++;
+	}
+	else if (p->sata1.w_flag == 1 && sata_mark[1] == 0) {
+		setenv("def_kpath", p->sata1.w_para);
+		setenv("def_kargs", p->sata1.w_kpara);
+		setenv("def_dev", sataname);
+		sataname[9] += 1;
+		sata_mark[1] += 1;
+		num++;
+	}
+	else if (p->sata2.w_flag == 1 && sata_mark[2] == 0) {
+		setenv("def_kpath", p->sata2.w_para);
+		setenv("def_kargs", p->sata2.w_kpara);
+		setenv("def_dev", sataname);
+		sataname[9] += 1;
+		sata_mark[2] += 1;
+		num++;
+	}
+	else if (p->sata3.w_flag == 1 && sata_mark[3] == 0) {
+		setenv("def_kpath", p->sata3.w_para);
+		setenv("def_kargs", p->sata3.w_kpara);
+		setenv("def_dev", sataname);
+		sataname[9] += 1;
+		sata_mark[3] += 1;
+		num++;
+	}
+	else if (p->usb.w_flag == 1 && usb_mark == 0) {
+		setenv("def_kpath", p->usb.w_para);
+		setenv("def_kargs", p->usb.w_kpara);
+		setenv("def_dev", "USB MEDIA");
+		usb_mark += 1;
+		num++;
+	}
+	else if (p->ide0.w_flag == 1 && ide_mark[0] == 0) {
+		setenv("def_kpath", p->ide0.w_para);
+		setenv("def_kargs", p->ide0.w_kpara);
+		setenv("def_dev", idename);
+		idename[8] += 1;
+		ide_mark[0] += 1;
+		num++;
+	}
+	else if (p->ide1.w_flag == 1 && ide_mark[1] == 0) {
+		setenv("def_kpath", p->ide1.w_para);
+		setenv("def_kargs", p->ide1.w_kpara);
+		setenv("def_dev", idename);
+		idename[8] += 1;
+		ide_mark[1] += 1;
+		num++;
+	}
+	else if (p->ide.w_flag == 1 && ide_mark[2] == 0) {
+		setenv("def_kpath", p->ide.w_para);
+		setenv("def_kargs", p->ide.w_kpara);
+		setenv("def_dev", idename);
+		idename[8] += 1;
+		ide_mark[2] += 1;
+		num++;
+	}
+
+	/* CDROM 2nd default boot select */
+	if (p->sata0.w_flag == 2 && cd_mark[0] == 0) {
+		setenv("def_kpath1", p->sata0.w_para);
+		setenv("def_kargs1", p->sata0.w_kpara);
+		setenv("def_dev1", "SATA CDROM1");
+		num++;
+	}
+	else if (p->sata1.w_flag == 2 && cd_mark[1] == 0) {
 		setenv("def_kpath1", p->sata1.w_para);
 		setenv("def_kargs1", p->sata1.w_kpara);
 		setenv("def_dev1", "SATA CDROM1");
-		num = 2;
+		num++;
 	}
-	else if(disk_namefind("SATA	DISK1") != -1)
-	{
-		setenv("def_kpath", p->sata0.w_para);
-		setenv("def_kargs", p->sata0.w_kpara);
-		setenv("def_dev", "SATA DISK0");
+	else if (p->sata2.w_flag == 2 && cd_mark[2] == 0) {
+		setenv("def_kpath1", p->sata2.w_para);
+		setenv("def_kargs1", p->sata2.w_kpara);
+		setenv("def_dev1", "SATA CDROM1");
+		num++;
+	}
+	else if (p->sata3.w_flag == 2 && cd_mark[3] == 0) {
+		setenv("def_kpath1", p->sata3.w_para);
+		setenv("def_kargs1", p->sata3.w_kpara);
+		setenv("def_dev1", "SATA CDROM1");
+		num++;
+	}
+	else if (p->ide0.w_flag == 2 && cd_mark[4] == 0) {
+		setenv("def_kpath1", p->ide0.w_para);
+		setenv("def_kargs1", p->ide0.w_kpara);
+		setenv("def_dev1", "IDE CDROM1");
+		num++;
+	}
+	else if (p->ide1.w_flag == 2 && cd_mark[5] == 0) {
+		setenv("def_kpath1", p->ide1.w_para);
+		setenv("def_kargs1", p->ide1.w_kpara);
+		setenv("def_dev1", "IDE CDROM1");
+		num++;
+	}
+	else if (p->ide.w_flag == 2 && cd_mark[6] == 0) {
+		setenv("def_kpath1", p->ide.w_para);
+		setenv("def_kargs1", p->ide.w_kpara);
+		setenv("def_dev1", "IDE CDROM1");
+		num++;
+	}
+		/* DISK 2nd default boot select */
+	else if (p->sata0.w_flag == 1 && sata_mark[0] == 0) {
+		setenv("def_kpath1", p->sata0.w_para);
+		setenv("def_kargs1", p->sata0.w_kpara);
+		setenv("def_dev1", sataname);
+		num++;
+	}
+	else if (p->sata1.w_flag == 1 && sata_mark[1] == 0) {
 		setenv("def_kpath1", p->sata1.w_para);
 		setenv("def_kargs1", p->sata1.w_kpara);
-		setenv("def_dev1", "SATA DISK1");
-		num = 2;
+		setenv("def_dev1", sataname);
+		num++;
 	}
-	else if(disk_namefind("SATA CDROM0") != -1)
-	{
-		if(p->sata0.w_flag == 1)
-		{
-			setenv("def_kpath", p->sata0.w_para);
-			setenv("def_kargs", p->sata0.w_kpara);
-			mask = mask & (~1);
-		}
-		else
-		{
-			setenv("def_kpath", p->sata1.w_para);
-			setenv("def_kargs", p->sata1.w_kpara);
-			mask = mask & (~2);
-		}
-
-		setenv("def_dev", "SATA CDROM0");
-		num = 1;
+	else if (p->sata2.w_flag == 1 && sata_mark[2] == 0) {
+		setenv("def_kpath1", p->sata2.w_para);
+		setenv("def_kargs1", p->sata2.w_kpara);
+		setenv("def_dev1", sataname);
+		num++;
 	}
-
-	if(num == 2)
-
-		return 1;
-
-	for(i = 0; i < 3; i++)
-	{
-		tmp = mask & (1 << i);
-
-		switch(tmp)
-		{
-			case 1:
-				if(num == 0)
-				{
-					setenv("def_kpath", p->sata0.w_para);
-					setenv("def_kargs", p->sata0.w_kpara);
-					setenv("def_dev", "SATA DISK0");
-					num++;
-				}
-				else
-				{
-					setenv("def_kpath1", p->sata0.w_para);
-					setenv("def_kargs1", p->sata0.w_kpara);
-					setenv("def_dev1", "SATA DISK0");
-					num++;
-				}
-				break;
-
-			case 2:
-				setenv("def_kpath1", p->sata1.w_para);
-				setenv("def_kargs1", p->sata1.w_kpara);
-				setenv("def_dev1", "SATA DISK0");
-				num++;
-				break;
-
-			case 4:
-				if(num == 0)
-				{
-					setenv("def_kpath", p->ide.w_para);
-					setenv("def_kargs", p->ide.w_kpara);
-					setenv("def_dev", "IDE DISK0");
-					num++;
-				}
-				else
-				{
-					setenv("def_kpath1", p->ide.w_para);
-					setenv("def_kargs1", p->ide.w_kpara);
-					setenv("def_dev1", "IDE DISK0");
-					num++;
-				}
-				break;
-			default:
-				break;
-		}
-
-		if(num == 2)
-			break;
+	else if (p->sata3.w_flag == 1 && sata_mark[3] == 0) {
+		setenv("def_kpath1", p->sata3.w_para);
+		setenv("def_kargs1", p->sata3.w_kpara);
+		setenv("def_dev1", sataname);
+		num++;
 	}
-
+	else if (p->usb.w_flag == 1 && usb_mark == 0) {
+		setenv("def_kpath1", p->usb.w_para);
+		setenv("def_kargs1", p->usb.w_kpara);
+		setenv("def_dev1", "USB MEDIA");
+		num++;
+	}
+	else if (p->ide0.w_flag == 1 && ide_mark[0] == 0) {
+		setenv("def_kpath1", p->ide0.w_para);
+		setenv("def_kargs1", p->ide0.w_kpara);
+		setenv("def_dev1", idename);
+		num++;
+	}
+	else if (p->ide1.w_flag == 1 && ide_mark[1] == 0) {
+		setenv("def_kpath1", p->ide1.w_para);
+		setenv("def_kargs1", p->ide1.w_kpara);
+		setenv("def_dev1", idename);
+		num++;
+	}
+	else if (p->ide.w_flag == 1 && ide_mark[3] == 0) {
+		setenv("def_kpath1", p->ide.w_para);
+		setenv("def_kargs1", p->ide.w_kpara);
+		setenv("def_dev1", idename);
+		num++;
+	}
 	s[0] = num + '0';
 	s[1] = '\0';
 	setenv("def_devnum", s);

@@ -45,6 +45,8 @@ struct win_para {
 	char w_kpara[128];
 	char vendor[40+1];
 	int capacity;  //unit GB
+	char dev_name[5]; /* Lc add */
+	int w_used; /* Lc add */
 };
 /* discripte find device
  * win_mask : 1_bit :  usb0, 2_bit : wd0, 3_bit : sata0, 4_bit : sata1
@@ -54,7 +56,11 @@ struct win_device {
 	char win_mask;
 	struct win_para sata0;
 	struct win_para sata1;
+	struct win_para sata2; /* Lc add */
+    struct win_para sata3; /* Lc add */
 	struct win_para ide;
+	struct win_para ide0; /* Lc add */
+    struct win_para ide1; /* Lc add */
 	struct win_para usb;
 };
 

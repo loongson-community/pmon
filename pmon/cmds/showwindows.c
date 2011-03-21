@@ -229,7 +229,7 @@ static void dump_l1xbar(int node)
 	for (i = 0; i < 8; i++) {
 		p = q;
 		for (j = 0; j < 3; j++) {
-			printf("%llx = %016llx\t", p, __raw__readq(p));
+			printf("%llx = %016llx\t\n", p, __raw__readq(p));
 			p+=0x40;
 			//printf("%p = %llx\n", p, *((unsigned long long *)p));
 
@@ -248,7 +248,7 @@ static void dump_ht0(int node)
 	for (i = 0; i < 8; i++) {
 		p = q;
 		for (j = 0; j < 3; j++) {
-			printf("%llx = %016llx\t", p, __raw__readq(p));
+			printf("%llx = %016llx\t\n", p, __raw__readq(p));
 			p+=0x40;
 			//printf("%p = %llx\n", p, *((unsigned long long *)p));
 
@@ -267,7 +267,7 @@ static void dump_ht1(int node)
 	for (i = 0; i < 8; i++) {
 		p = q;
 		for (j = 0; j < 3; j++) {
-			printf("%llx = %016llx\t", p, __raw__readq(p));
+			printf("%llx = %016llx\t\n", p, __raw__readq(p));
 			p+=0x40;
 			//printf("%p = %llx\n", p, *((unsigned long long *)p));
 
@@ -288,7 +288,7 @@ static void dump_l2xbar(int node)
 	for (i = 0; i < 8; i++) {
 		p = q;
 		for (j = 0; j < 3; j++) {
-			printf("%llx = %016llx\t", p, __raw__readq(p));
+			printf("%llx = %016llx\t\n", p, __raw__readq(p));
 			p+=0x40;
 			//printf("%p = %llx\n", p, *((unsigned long long *)p));
 
@@ -308,7 +308,7 @@ static void dump_pcibar(int node)
 	for (i = 0; i < 8; i++) {
 		p = q;
 		for (j = 0; j < 3; j++) {
-			printf("%llx = %016llx\t", p, __raw__readq(p));
+			printf("%llx = %016llx\t\n", p, __raw__readq(p));
 			p+=0x40;
 			//printf("%p = %llx\n", p, *((unsigned long long *)p));
 
@@ -329,7 +329,7 @@ static void node1_dump_l1xbar(int node)
 	for (i = 0; i < 8; i++) {
 		p = q;
 		for (j = 0; j < 3; j++) {
-			printf("%llx = %016llx\t", p, __raw__readq(p));
+			printf("%llx = %016llx\t\n", p, __raw__readq(p));
 			p+=0x40;
 			//printf("%p = %llx\n", p, *((unsigned long long *)p));
 
@@ -348,7 +348,7 @@ static void node1_dump_ht0(int node)
 	for (i = 0; i < 8; i++) {
 		p = q;
 		for (j = 0; j < 3; j++) {
-			printf("%llx = %016llx\t", p, __raw__readq(p));
+			printf("%llx = %016llx\t\n", p, __raw__readq(p));
 			p+=0x40;
 			//printf("%p = %llx\n", p, *((unsigned long long *)p));
 
@@ -367,7 +367,7 @@ static void node1_dump_ht1(int node)
 	for (i = 0; i < 8; i++) {
 		p = q;
 		for (j = 0; j < 3; j++) {
-			printf("%llx = %016llx\t", p, __raw__readq(p));
+			printf("%llx = %016llx\t\n", p, __raw__readq(p));
 			p+=0x40;
 			//printf("%p = %llx\n", p, *((unsigned long long *)p));
 
@@ -388,7 +388,7 @@ static void node1_dump_l2xbar(int node)
 	for (i = 0; i < 8; i++) {
 		p = q;
 		for (j = 0; j < 3; j++) {
-			printf("%llx = %016llx\t", p, __raw__readq(p));
+			printf("%llx = %016llx\t\n", p, __raw__readq(p));
 			p+=0x40;
 			//printf("%p = %llx\n", p, *((unsigned long long *)p));
 
@@ -408,7 +408,7 @@ static void node1_dump_pcibar(int node)
 	for (i = 0; i < 8; i++) {
 		p = q;
 		for (j = 0; j < 3; j++) {
-			printf("%llx = %016llx\t", p, __raw__readq(p));
+			printf("%llx = %016llx\t\n", p, __raw__readq(p));
 			p+=0x40;
 			//printf("%p = %llx\n", p, *((unsigned long long *)p));
 
