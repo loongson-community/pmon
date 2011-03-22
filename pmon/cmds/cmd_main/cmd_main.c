@@ -292,7 +292,6 @@ int init_win_device(void){
 	win_tp = malloc(sizeof(struct win_device));
 	memset(win_tp, 0x0, sizeof(struct win_device));
 		
-	init_device_name();
 
 /* At most, we can find 16 divice. Of course, it never happened ... */
 	for (i = 0; i < 16; i++) {
@@ -1159,8 +1158,8 @@ int paint_childwindow(char **hint,char *diskdev_name[],char *netdev_name[],int e
 					w_text(8,8,WA_LEFT,"Select 2nd Boot Device:");
 				}
 				while(diskdev_name[i])
-					i++;
-
+				  	i++;
+ 
 				selnum_tmp = w_window4(20, 9, 14, 1,dip_diskdev, i);
 				selnum = (selnum_tmp & 0xff) - 1;
 				selcont = selnum;
@@ -1567,7 +1566,6 @@ char *av[];
 	}
 #endif
 
-	//init_win_device();
 	while(1)
 	{
 		int esc_down = 0;
