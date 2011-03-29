@@ -3025,3 +3025,12 @@ cache_init_finish:
 	.global ddr3_reg_data
 
 #include "loongson3a_ddr3_param.S"
+
+	.global watchdog_enable
+	.ent    watchdog_enable
+	.set    noreorder
+	.set    mips3
+watchdog_enable:
+	WatchDog_Enable
+	jr		ra
+	.end watchdog_enable
