@@ -76,8 +76,15 @@ static int
 	
 	dname = (char *)fname;
 
-	if (strncmp (dname, "/dev/fs/", 8) == 0)
+	if (strncmp (dname, "/dev/fs/", 8) == 0) {
 		dname += 8;
+
+		/* Support /dev/fs/fat or /dev/fs/ram also */
+		if (strncmp (dname, "fat", 3) == 0)
+			return (-1);
+		else if (strncmp (dname, "ram", 3) == 0)
+			return (-1);
+	}
 	else
 		return (-1);
 

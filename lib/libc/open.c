@@ -41,6 +41,27 @@ extern SLIST_HEAD(FileSystems, FileSystem) FileSystems;
 
 static int __try_open(const char *, int, char *, int, int);
 
+static char *fat_support(int fnamelen, char *dname)
+{
+	char *temp = NULL;
+
+	temp = (char *)malloc((fnamelen - 5) + 2 + 1);
+	if (strncmp (dname, "fs/fat", 6) == 0) {
+		strcpy(temp, dname);
+		temp += 6;
+		sprintf (dname, "fat/disk%s", temp);
+		temp -= 6;
+	}
+	else if (strncmp (dname, "fs/ram", 6) == 0) {
+		strcpy(temp, dname);
+		temp += 6;
+		sprintf (dname, "fat/ram%s", temp);
+		temp -= 6;
+	}
+	free(temp);
+	return  (dname);
+}
+
 int
 open(filename, mode)
 	const char *filename;
@@ -52,8 +73,8 @@ open(filename, mode)
 	int 	fnamelen;
 	
 	fnamelen = strlen(filename);
-	fname = malloc(fnamelen+1);
-	memcpy(fname, filename, fnamelen+1);
+	fname = (char *)malloc(fnamelen+2+1);/* +2 used to change path from fs/fat to fat/disk */
+	memcpy(fname, filename, fnamelen+2+1);
 
 	for (lu = 0; lu < OPEN_MAX && _file[lu].valid; lu++);
 
@@ -67,6 +88,11 @@ open(filename, mode)
 	dname = (char *)fname;
 	if (strncmp (dname, "/dev/", 5) == 0) {
 		dname += 5;
+
+		/* change command from /dev/fat/disk or /dev/fat/ram
+		 * TO /dev/fs/fat or /dev/fs/ram */
+		fat_support(fnamelen, dname);
+
 		i = __try_open(fname, mode, dname, lu, 0);
 		free(fname);
 		if(i==-1)_file[lu].valid = 0;
