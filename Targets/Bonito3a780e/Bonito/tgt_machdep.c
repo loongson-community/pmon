@@ -31,6 +31,7 @@
  *
  */
 #include <include/stdarg.h>
+#include "lvds_reg.h"
 void		tgt_putchar (int);
 int
 tgt_printf (const char *fmt, ...)
@@ -99,6 +100,10 @@ tgt_printf (const char *fmt, ...)
 
 #if (NMOD_X86EMU_INT10 > 0)||(NMOD_X86EMU >0)
 extern int vga_bios_init(void);
+#endif
+
+#if NMOD_FRAMEBUFFER > 0
+extern struct pci_device *vga_dev;
 #endif
 extern int kbd_initialize(void);
 extern const char *kbd_error_msgs[];
@@ -203,6 +208,22 @@ void movinv1(int iter, ulong p1, ulong p2);
 
 pcireg_t _pci_allocate_io(struct pci_device *dev, vm_size_t size);
 static void superio_reinit();
+void lvds_reg_init()
+{
+    int i=0;
+    unsigned long ioaddress;
+
+	ioaddress  =_pci_conf_read(vga_dev->pa.pa_tag,0x18);
+    ioaddress = ioaddress &0xfffffff0; //laster 4 bit
+    ioaddress |= ioaddress | 0xb0000000;
+    printf("ioaddress:%x for LVDS patch\n ",ioaddress);
+
+    while(lvds_reg[i].reg) {
+        *(volatile unsigned int *)(ioaddress + lvds_reg[i].reg*4)  = lvds_reg[i].val;
+        delay(1000);
+        i++;
+    }
+}
 
 void
 initmips(unsigned int memsz)
@@ -292,7 +313,7 @@ tgt_devconfig()
 	int rc=1;
 #if NMOD_FRAMEBUFFER > 0 
 	unsigned long fbaddress,ioaddress;
-	extern struct pci_device *vga_dev;
+	//extern struct pci_device *vga_dev;
 #ifdef RS780E
     int test;
     int  i;
@@ -325,6 +346,7 @@ tgt_devconfig()
 	SBD_DISPLAY("VESA", 0);
 	if(rc > 0)
 		vesafb_init();
+lvds_reg_init();
 #endif
 #if NMOD_FRAMEBUFFER > 0
 	vga_available=0;

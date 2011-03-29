@@ -540,6 +540,7 @@ unsigned long pallete_32[16] = {
 
 extern int vga_available;
 int *saved_frame_buffer;
+
 // GDF_16BIT_565RGB
 #define R_MASK 0xf800f800
 #define G_MASK 0x07e007e0
@@ -2360,11 +2361,11 @@ int fb_init(unsigned long fbbase, unsigned long iobase)
 
     int i,j;
 	pGD = &GD;
-	
-    //pGD->winSizeX  =  1024;
-    //pGD->winSizeY  =  768;
-    pGD->winSizeX  =  800;
-    pGD->winSizeY  =  600;	
+
+    //pGD->winSizeX  =  800;
+    //pGD->winSizeY  =  600;	
+    pGD->winSizeX = GetXRes();
+    pGD->winSizeY = GetYRes();
     
 #if   defined(CONFIG_VIDEO_1BPP)
         pGD->gdfIndex  = GDF__1BIT;
