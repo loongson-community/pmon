@@ -262,79 +262,143 @@ fl_erase_suspend_sst(map, dev)
 }
 
 /*
- *  Function to Disable the LPC write protection of 49LF040B
+ *  Function to Disable the LPC write protection of SST49LF040B/Disable the FIRMWARE HUB write protection of SST49LF008A
  *  For Loongson3 by wanghuandong(AdonWang, whd)
  */
 
-int
+	int
 fl_write_protect_unlock(map, dev, offset)
 	struct fl_map *map;
 	struct fl_device *dev;
-    int offset;
+	int offset;
 {
-    unsigned int trans_unlock_value;
+	unsigned int trans_unlock_value;
+	unsigned int value;
 
-    if (!(((dev->fl_mfg & 0xff) == 0xbf) && ((dev->fl_id & 0xff) == 0x50)))   //NOT SST49LF040B
-        //||((dev->fl_mfg & 0xff) == 0xbf) && ((dev->fl_id & 0xff) == 0x50))) //NOT SST49LF080A
-	    return(0);
+	if (!((((dev->fl_mfg & 0xff) == 0xbf) && ((dev->fl_id & 0xff) == 0x50))   //NOT SST49LF040B
+				||(((dev->fl_mfg & 0xff) == 0xbf) && ((dev->fl_id & 0xff) == 0x5a)))) /* NOT SST49LF008A */
+		return(0);
 
-    printf("Disable all space write protection of 49LF040B. \r\n");
-    /* Open translation of 0xbc000000 - 0xbd00000 */
-    trans_unlock_value = inl(0xbfe00200);
-    outl(0xbfe00200, (0x00ff0000 | trans_unlock_value));
-    //outl(0xbfe00200, 0x00ff0000);
+	if (((dev->fl_mfg & 0xff) == 0xbf) && ((dev->fl_id & 0xff) == 0x50)) /* SST49LF040B */
+	{
+		printf("Disable all space write protection of 49LF040B. \r\n");
+		/* Open translation of 0xbc000000 - 0xbd00000 */
+		trans_unlock_value = inl(0xbfe00200);
+		outl(0xbfe00200, (0x00ff0000 | trans_unlock_value));
 
-    /* Disable all space write protection */
-    outb(0xbdbf0002, 0x0);
-    outb(0xbdbe0002, 0x0);
-    outb(0xbdbd0002, 0x0);
-    outb(0xbdbc0002, 0x0);
-    outb(0xbdbb0002, 0x0);
-    outb(0xbdba0002, 0x0);
-    outb(0xbdb90002, 0x0);
-    outb(0xbdb80002, 0x0);
+		/* Disable all space write protection */
+		outb(0xbdbf0002, 0x0);
+		outb(0xbdbe0002, 0x0);
+		outb(0xbdbd0002, 0x0);
+		outb(0xbdbc0002, 0x0);
+		outb(0xbdbb0002, 0x0);
+		outb(0xbdba0002, 0x0);
+		outb(0xbdb90002, 0x0);
+		outb(0xbdb80002, 0x0);
 
+		outl(0xbfe00200, trans_unlock_value);
+	}
+	else if (((dev->fl_mfg & 0xff) == 0xbf) && ((dev->fl_id & 0xff) == 0x5a))   /* SST49LF008A */
+	{
+		printf("Disable all space write protection of 49LF008A. \r\n");
+		/* Open translation of 0xbc000000 - 0xbd00000 */
+		trans_unlock_value = inl(0xbfe00200);
+		outl(0xbfe00200, (0x00870000 | trans_unlock_value));
+		/* Enable firmware memory access */
+		value = inl(0xbfe00204);
+		value |= 1 << 31;
+		outl(0xbfe00204, value);
 
-    outl(0xbfe00200, trans_unlock_value);
+		/* Disable all space write protection */
+		outb(0xbdbf0002, 0x0);
+		outb(0xbdbe0002, 0x0);
+		outb(0xbdbd0002, 0x0);
+		outb(0xbdbc0002, 0x0);
+		outb(0xbdbb0002, 0x0);
+		outb(0xbdba0002, 0x0);
+		outb(0xbdb90002, 0x0);
+		outb(0xbdb80002, 0x0);
+		outb(0xbdb70002, 0x0);
+		outb(0xbdb60002, 0x0);
+		outb(0xbdb50002, 0x0);
+		outb(0xbdb40002, 0x0);
+		outb(0xbdb30002, 0x0);
+		outb(0xbdb20002, 0x0);
+		outb(0xbdb10002, 0x0);
+		outb(0xbdb00002, 0x0);
 
+		outl(0xbfe00200, trans_unlock_value);
+	}
 	return(1);
 }
 
 /*
- *  Function to enable the LPC write protection of 49LF040B
+ *  Function to enable the LPC write protection of SST49LF040B/enable the FIRMWARE HUB write protection of SST49LF008A
  *  For Loongson3 by wanghuandong(AdonWang, whd)
  */
 
-int
+	int
 fl_write_protect_lock(map, dev, offset)
 	struct fl_map *map;
 	struct fl_device *dev;
-    int offset;
+	int offset;
 {
-    unsigned int trans_unlock_value;
+	unsigned int trans_unlock_value;
+	unsigned int value;
 
-    if (!(((dev->fl_mfg & 0xff) == 0xbf) && ((dev->fl_id & 0xff) == 0x50)))   //NOT SST49LF040B
-        //||((dev->fl_mfg & 0xff) == 0xbf) && ((dev->fl_id & 0xff) == 0x50))) //NOT SST49LF080A
-	    return(0);
+	if (!((((dev->fl_mfg & 0xff) == 0xbf) && ((dev->fl_id & 0xff) == 0x50))   /* NOT SST49LF040B */
+				||(((dev->fl_mfg & 0xff) == 0xbf) && ((dev->fl_id & 0xff) == 0x5a)))) /* NOT SST49LF008A */
+		return(0);
 
-    printf("Enable all space write protection of 49LF040B. \r\n");
-    /* Open translation of 0xbc000000 - 0xbd00000 */
-    trans_unlock_value = inl(0xbfe00200);
-    //outl(0xbfe00200, 0x00ff0000);
-    outl(0xbfe00200, (0x00ff0000 | trans_unlock_value));
+	if (((dev->fl_mfg & 0xff) == 0xbf) && ((dev->fl_id & 0xff) == 0x50)) /* SST49LF040B */
+	{
+		printf("Enable all space write protection of 49LF040B. \r\n");
+		/* Open translation of 0xbc000000 - 0xbd00000 */
+		trans_unlock_value = inl(0xbfe00200);
+		outl(0xbfe00200, (0x00ff0000 | trans_unlock_value));
 
-    /* Enable all space write protection */
-    outb(0xbdbf0002, 0x1);
-    outb(0xbdbe0002, 0x1);
-    outb(0xbdbd0002, 0x1);
-    outb(0xbdbc0002, 0x1);
-    outb(0xbdbb0002, 0x1);
-    outb(0xbdba0002, 0x1);
-    outb(0xbdb90002, 0x1);
-    outb(0xbdb80002, 0x1);
+		/* Enable all space write protection */
+		outb(0xbdbf0002, 0x1);
+		outb(0xbdbe0002, 0x1);
+		outb(0xbdbd0002, 0x1);
+		outb(0xbdbc0002, 0x1);
+		outb(0xbdbb0002, 0x1);
+		outb(0xbdba0002, 0x1);
+		outb(0xbdb90002, 0x1);
+		outb(0xbdb80002, 0x1);
 
+		outl(0xbfe00200, trans_unlock_value);
+	}
+	else if (((dev->fl_mfg & 0xff) == 0xbf) && ((dev->fl_id & 0xff) == 0x5a))   /* SST49LF008A */
+	{
+		printf("Enable all space write protection of 49LF008A. \r\n");
+		/* Open translation of 0xbc000000 - 0xbd00000 */
+		trans_unlock_value = inl(0xbfe00200);
+		outl(0xbfe00200, (0x00870000 | trans_unlock_value));
+		/* Enable firmware memory access */
+		value = inl(0xbfe00204);
+		value |= 1 << 31;
+		outl(0xbfe00204, value);
 
-    outl(0xbfe00200, trans_unlock_value);
+		/* Enable all space write protection */
+		outb(0xbdbf0002, 0x1);
+		outb(0xbdbe0002, 0x1);
+		outb(0xbdbd0002, 0x1);
+		outb(0xbdbc0002, 0x1);
+		outb(0xbdbb0002, 0x1);
+		outb(0xbdba0002, 0x1);
+		outb(0xbdb90002, 0x1);
+		outb(0xbdb80002, 0x1);
+		outb(0xbdb70002, 0x1);
+		outb(0xbdb60002, 0x1);
+		outb(0xbdb50002, 0x1);
+		outb(0xbdb40002, 0x1);
+		outb(0xbdb30002, 0x1);
+		outb(0xbdb20002, 0x1);
+		outb(0xbdb10002, 0x1);
+		outb(0xbdb00002, 0x1);
 
+		outl(0xbfe00200, trans_unlock_value);
+	}
 	return(1);
 }
