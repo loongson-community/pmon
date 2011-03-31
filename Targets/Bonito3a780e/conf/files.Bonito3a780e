@@ -5,6 +5,7 @@
 
 file	Targets/Bonito3a780e/pci/pci_machdep.c
 file	Targets/Bonito3a780e/Bonito/tgt_machdep.c
+file    Targets/Bonito3a780e/Bonito/spread.c 
 file	Targets/Bonito3a780e/pci/cs5536_io.c cs5536
 file	Targets/Bonito3a780e/pci/cs5536_vsm.c cs5536
 file    Targets/Bonito3a780e/pci/rs780_cmn.c  amd_780e

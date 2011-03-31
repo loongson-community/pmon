@@ -414,6 +414,7 @@ lvds_reg_init();
 	}
 //	psaux_init();
 #endif
+   clock_spread();
    printf("devconfig done.\n");
 }
 
