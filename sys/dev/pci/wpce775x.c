@@ -415,7 +415,7 @@ void Flash_program_data(unsigned long addr, u8 *src, u32 size)
 	if(debug_msg) printf("The sum total has %d sectors to need to erase:\n", sector);
 
 	Update_Flash_Init();
-	set_interface_cfg(0);
+	//set_interface_cfg(0);
 	Init_Flash_Command(CMD_READ_DEV_ID);
 
 	printf("Ready enter flash update...\n");
@@ -547,7 +547,7 @@ int ec_update_rom(void *src, int size)
 	}
 	
 	Update_Flash_Init();
-    set_interface_cfg(0);
+    //set_interface_cfg(0);
 	Init_Flash_Command(CMD_READ_DEV_ID);
 
 	if(debug_msg) printf("Ready enter flash update...\n");
@@ -611,17 +611,17 @@ int ec_update_rom(void *src, int size)
 				/* program a byte data */
 				Flash_write_byte(data);
 				/* Enable shared flash access. */
-    			set_interface_cfg(1);
+    			//set_interface_cfg(1);
 				val = PcMemReadB(FLASH_WIN_BASE_ADDR + program_addr);
 				/* Enable shared ram access. */
-    			set_interface_cfg(0);
+    			//set_interface_cfg(0);
 				/* Verify data. */
 				if(val != data){
 					Flash_Set_Address(program_addr);
 					Flash_write_byte(data);
-					set_interface_cfg(1);
+					//set_interface_cfg(1);
 					val = PcMemReadB(FLASH_WIN_BASE_ADDR + program_addr);
-					set_interface_cfg(0);
+					//set_interface_cfg(0);
 					if(val != data){
 						printf("EC : Second flash program failed at:\t");
 						printf("addr : 0x%x, source : 0x%x, dest: 0x%x\n", program_addr, data, val);

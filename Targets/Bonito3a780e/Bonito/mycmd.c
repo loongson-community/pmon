@@ -665,25 +665,11 @@ static int cmd_test_sci(int ac, char *av[])
 
 #if 1	// test update flash function, daway 2011-02-15
 #include "include/flupdate.h"
-/*extern void set_interface_cfg(u8 flag);
-extern unsigned short Read_Flash_IDs(void);
-extern void Update_Flash_Init(void);
-extern void Init_Flash_Command(unsigned char rd_devid_cmd);
-extern unsigned char PcMemReadB (unsigned long Address);
-extern void Enter_Flash_Update(void);
-extern void flash_sector_erase(unsigned long Address);
-extern void exit_flash_update(WCB_exit_t exit_type);
-extern void Flash_Set_Address(unsigned long Address);
-extern unsigned char Flash_read_status_register(void);
-extern void Flash_write_status_register(u8 data);
-extern WCB_exit_t exit_type;    // Type of protocol termination to use
-extern void Flash_program_data(u32 addr, u8 *src, u32 size);
-*/
 static int cmd_rdstsreg(int ac, char *av[])
 {
     u8 val = 0;
  
-    set_interface_cfg(0);
+    //set_interface_cfg(0);
 	Init_Flash_Command(CMD_READ_DEV_ID);
 
 	val = Flash_read_status_register();
@@ -711,7 +697,7 @@ static int cmd_wrstsreg(int ac, char *av[])
 	data = strtoul(av[1], NULL, 16);
 
 	printf("Write EC FLASH status register: data 0x%x\n", data);
-    set_interface_cfg(0);
+    //set_interface_cfg(0);
 	Init_Flash_Command(CMD_READ_DEV_ID);
 	Flash_write_status_register(data);
 
@@ -724,7 +710,7 @@ static int cmd_rdids(int ac, char *av[])
 	u8 mf_id = 0;
 	u16 dev_id = 0;
 
-    set_interface_cfg(0);
+    //set_interface_cfg(0);
 	Init_Flash_Command(CMD_READ_DEV_ID);
 	ec_ids = Read_Flash_IDs();
 
@@ -796,7 +782,7 @@ static int cmd_wrwcb(int ac, char *av[])
 
 	printf("Write EC775 WCB : address 0x%x, data 0x%x\n", wcb_addr, data);
 
-    set_interface_cfg(0);
+    //set_interface_cfg(0);
 	wrwcb(wcb_addr, data);
 
 	return 0;
@@ -836,7 +822,7 @@ static int cmd_rdwcb(int ac, char *av[])
 
 	printf("Read EC775 WCB : start address 0x%x, size %d\n", wcb_addr, size);
 
-    set_interface_cfg(0);
+    //set_interface_cfg(0);
 	for(i = 0; i < size; i++){
 		val = rdwcb(wcb_addr + i);
 		printf("WCB address 0x%x, data 0x%x\n", wcb_addr + i, val);
@@ -884,7 +870,7 @@ static int cmd_rdrom(int ac, char *av[])
 		printf(" 0%x", i);
 	}
 	printf(" 0%x\n%5x", i, start_addr);
-    set_interface_cfg(1);
+    //set_interface_cfg(1);
 	for(i = 0; i < size; i++){
 		val = PcMemReadB(start_addr + i);
 		if(((i % 8 ) == 0) && ((i % 16) != 0)){
@@ -901,7 +887,7 @@ static int cmd_rdrom(int ac, char *av[])
 		}
 	}
 	printf("\n");
-    set_interface_cfg(0);
+    //set_interface_cfg(0);
 
 	return 0;
 }

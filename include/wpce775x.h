@@ -96,7 +96,7 @@ extern int ec_update_rom(void *src, int size);
 									
 #define	RD_REG_DELAY		30000
 #define EC_CMD_TIMEOUT      0x1000  // command checkout timeout including cmd to port or state flag check
-#define EC_SEND_TIMEOUT 	0x7ff
+#define EC_SEND_TIMEOUT 	0x7fff
 
 /**************************************************************/
 
@@ -177,7 +177,12 @@ extern int ec_update_rom(void *src, int size);
 // Memory Map definitions
 // Device memory
 #define MAX_FLASH_CAPACITY  (1 * 1024 * 1024)
+#ifdef LOONGSON3A_3A780E
+#define	EC_ROM_MAX_SIZE		0x20000  /* 128KB space distribution of for EC firmware. */
+#endif
+#ifdef LOONGSON2F_3GNB
 #define	EC_ROM_MAX_SIZE		0xFFFF
+#endif
 
 // PC memory
 #ifdef LOONGSON3A_3A780E
