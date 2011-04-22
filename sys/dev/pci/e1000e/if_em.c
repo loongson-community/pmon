@@ -252,7 +252,7 @@ extern char activeif_name[];
 static int em_intr(void *data)
 {
 struct net_device *netdev = data;
-int irq=netdev->irq;
+int irq=netdev->pcidev.irq;
 struct ifnet *ifp = &netdev->arpcom.ac_if;
 	if(ifp->if_flags & IFF_RUNNING)
 	{
