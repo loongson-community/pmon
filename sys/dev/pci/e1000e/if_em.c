@@ -764,6 +764,14 @@ e1000_ether_ioctl(ifp, cmd, data)
 	}
 	break;
 
+	case 0x8951:
+	{
+       		long *p=data;
+		mynic_em = sc;
+        cmd_msqt_lan(p[0],p[1]);
+	}
+	break;
+
        case SIOCRDEEPROM:
                 {
                 long *p=data;
@@ -963,6 +971,39 @@ int cmd_reprom_em0(int ac, char *av)
         return 0;
 }
 
+int cmd_msqt_lan(int ac, char *av[])
+{
+struct e1000_adapter *adapter = (struct e1000_adapter *) (mynic_em->priv);
+struct e1000_hw *tp= &adapter->hw;
+#define mdio_write e1000e_write_phy_reg_igp
+
+	if (!strcmp(av[1], "100M")) {
+		if (!strcmp(av[2], "chana")) {
+			mdio_write(tp, 14, 0x0660);
+			mdio_write(tp, 16, 0x0020);
+		} else if (!strcmp(av[2], "chanb")) {
+			mdio_write(tp, 14, 0x0660);
+			mdio_write(tp, 16, 0x0000);
+		} else {
+			printf("Error options\n");
+			return 0;
+		}
+	} else if (!strcmp(av[1], "1000M")) {
+		if (!strcmp(av[2], "mode1"))
+			mdio_write(tp, 0x9, 0x2000);
+		else if (!strcmp(av[2], "mode4"))
+			mdio_write(tp, 0x9, 0x8000);
+		else {
+			printf("Error options\n");
+			return 0;
+		}
+	} else {
+		printf("Error options\n");
+		return 0;
+	}
+		return 0;
+}
+
 static const Optdesc netdmp_opts[] =
 {
     {"<interface>", "Interface name"},
@@ -981,9 +1022,11 @@ static const Cmd Cmds[] =
 
         {"writerom_em0", "", NULL,
                         "write E1000 eprom content", cmd_wrprom_em0, 1, 2, 0},
+	{"msqt_lan", " [100M/1000M] [mode1(waveform)/mode4(distortion)]/[chana/chanb]", NULL, "Motherboard Signal Quality Test for RTL8111", cmd_msqt_lan, 3, 3, 0},
 
         {0, 0}
 };
+
 
 
 static void init_cmd __P((void)) __attribute__ ((constructor));
