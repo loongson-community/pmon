@@ -324,7 +324,7 @@ int vga_bios_init(void)
 		}
 
 		pInt->pdev = pdev;
-        #if defined(LOONGSON3A_3AEV)||defined(LOONGSON2G_2G690E)||defined(LOONGSON3A_3A780E)
+        #if defined(LOONGSON3A_3AEV)||defined(LOONGSON2G_2G690E)||defined(LOONGSON3A_3A780E)||defined(LOONGSON3A_3AITX)
         memcpy(vbiosMem, (char *)(0x00000000 | romaddress),
 		       V_BIOS_SIZE);
         #else
@@ -334,7 +334,7 @@ int vga_bios_init(void)
 		if (PCI_VENDOR(pdev->pa.pa_id) == 0x1002
 		    && PCI_PRODUCT(pdev->pa.pa_id) == 0x4750)
 			MEM_WW(pInt, 0xc015e, 0x4750);
-        #if defined(LOONGSON3A_3AEV)||defined(LOONGSON2G_2G690E)||defined(LOONGSON3A_3A780E)
+        #if defined(LOONGSON3A_3AEV)||defined(LOONGSON2G_2G690E)||defined(LOONGSON3A_3A780E)||defined(LOONGSON3A_3AITX)
         //for test
         MEM_WW(pInt , 0xcac90 , 0x1 | MEM_RW(pInt , 0xcac90));
         #else
@@ -352,7 +352,7 @@ int vga_bios_init(void)
 	printf("ax=%lx,bx=%lx,cx=%lx,dx=%lx\n", pInt->ax, pInt->bx, pInt->cx, pInt->dx);
 	xf86ExecX86int10(pInt);
 	printf("bios emu done\n");
-#if !defined(LOONGSON3A_3AEV)&&!defined(LOONGSON2G_2G690E)&&!defined(LOONGSON3A_3A780E)
+#if !defined(LOONGSON3A_3AEV)&&!defined(LOONGSON2G_2G690E)&&!defined(LOONGSON3A_3A780E)&&!defined(LOONGSON3A_3AITX)
 	pInt->num = 0x10;
 	pInt->ax = 0x03;
 	xf86ExecX86int10(pInt);
@@ -360,7 +360,7 @@ int vga_bios_init(void)
 
 	//UnlockLegacyVGA(screen, &vga);
 	setregs(regs);
-#if !defined(LOONGSON3A_3AEV)&&!defined(LOONGSON2G_2G690E)&&!defined(LOONGSON3A_3A780E)
+#if !defined(LOONGSON3A_3AEV)&&!defined(LOONGSON2G_2G690E)&&!defined(LOONGSON3A_3A780E)&&!defined(LOONGSON3A_3AITX)
 	linux_outb(0x67, 0x3c2);
 #endif
 

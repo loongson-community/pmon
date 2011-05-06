@@ -434,10 +434,12 @@ static int ohci_match(struct device *parent, void *match, void *aux)
 #endif
 
 	/* Solved when detect SD card, program stop running. daway added 2011-02-18 */
-	if((pa->pa_device == 18) && (pa->pa_function == 1)) {
+#if defined(LOONGSON3A_3A780E)
+    if((pa->pa_device == 18) && (pa->pa_function == 1)) {
 		printf("--------18   1 --------\n");
 		return 0;
 	}
+#endif
 
 	if(PCI_CLASS(pa->pa_class) == PCI_CLASS_SERIALBUS && 
 			PCI_SUBCLASS(pa->pa_class) == PCI_SUBCLASS_SERIALBUS_USB){ 

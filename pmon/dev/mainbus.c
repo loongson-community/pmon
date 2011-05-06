@@ -93,7 +93,7 @@ void *aux;
 	config_found(self, &nca, mbprint);
 
 	nca.ca_node = NULL;
-    #if defined(LOONGSON3A_3AEV)||defined(LOONGSON2G_2G690E)||defined(LOONGSON3A_3A780E)
+    #if defined(LS2G_HT)||defined(LS3_HT)
     nca.ca_name = "fd";
     #else
 	nca.ca_name = "pcibr";
@@ -102,7 +102,7 @@ void *aux;
 	config_found(self, &nca, mbprint);
 
 	nca.ca_node = NULL;
-    #if defined(LOONGSON3A_3AEV)||defined(LOONGSON2G_2G690E)||defined(LOONGSON3A_3A780E)
+    #if defined(LS2G_HT)||defined(LS3_HT)
     nca.ca_name = "loopdev";
     #else
 	nca.ca_name = "pcibr";

@@ -64,7 +64,9 @@
 
 extern int errno;                       /* global error number */
 extern char *heaptop;
+#ifdef HAS_EC
 extern void tgt_ecprogram(void *, int);
+#endif
 
 static int	bootfd;
 static int	bootbigend;

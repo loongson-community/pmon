@@ -118,7 +118,7 @@ pcitag_t have_vga = 0;			/* Have tag if VGA board found */
 int monarch_mode = 1;			/* Default as master on the bus! */
 int pci_roots;				/* How many pci roots to init */
 int _pciverbose = _PCIVERBOSE;
-#if defined(LOONGSON3A_3AEV)||defined(LOONGSON2G_2G690E)||defined(LOONGSON3A_3A780E)
+#if defined(LS2G_HT)||defined(LS3_HT)
 static int _pci_nbus = 0;		/* Allow for zero roots */
 #else
 static int _pci_nbus = 8;		/* Allow for eight roots */
@@ -348,7 +348,7 @@ _pci_query_dev_func (struct pci_device *dev, pcitag_t tag, int initialise)
 		 */
 
 		/* Sum up I/O Space needed */
-        #if !defined(LOONGSON3A_3AEV)&&!defined(LOONGSON2G_2G690E)&&!defined(LOONGSON3A_3A780E)
+        #if !defined(LS2G_HT)&&!defined(LS3_HT)
 		for(pm = pd->bridge.iospace; pm != NULL; pm = pm->next) {
         #endif
 			if(pm_io == NULL) {
@@ -361,13 +361,13 @@ _pci_query_dev_func (struct pci_device *dev, pcitag_t tag, int initialise)
 				pm_io->reg = PCI_IOBASEL_1;
 				pm_io->flags = PCI_MAPREG_TYPE_IO;
 			}
-        #if !defined(LOONGSON3A_3AEV)&&!defined(LOONGSON2G_2G690E)&&!defined(LOONGSON3A_3A780E)
+        #if !defined(LS2G_HT)&&!defined(LS3_HT)
 			pm_io->size += pm->size;
 		}
         #endif
 
 		/* Sum up Memory Space needed */
-        #if !defined(LOONGSON3A_3AEV)&&!defined(LOONGSON2G_2G690E)&&!defined(LOONGSON3A_3A780E)
+        #if !defined(LS2G_HT)&&!defined(LS3_HT)
 		for(pm = pd->bridge.memspace; pm != NULL; pm = pm->next) {
         #endif
             if(pm_mem == NULL) {
@@ -381,7 +381,7 @@ _pci_query_dev_func (struct pci_device *dev, pcitag_t tag, int initialise)
 				pm_mem->reg = PCI_MEMBASE_1; 
 				pm_mem->flags = PCI_MAPREG_MEM_TYPE_32BIT;
 			}
-        #if defined(LOONGSON3A_3AEV)||defined(LOONGSON2G_2G690E)||defined(LOONGSON3A_3A780E)
+        #if defined(LS2G_HT)||defined(LS3_HT)
 		/* Sum up I/O Space needed */
 		for(pm = pd->bridge.iospace; pm != NULL; pm = pm->next) {
 			pm_io->size += pm->size;
@@ -425,7 +425,7 @@ _pci_query_dev_func (struct pci_device *dev, pcitag_t tag, int initialise)
 			}
 
 			old = _pci_conf_read(tag, reg);
-            #if defined(LOONGSON3A_3AEV)||defined(LOONGSON2G_2G690E)||defined(LOONGSON3A_3A780E)
+            #if defined(LS2G_HT)||defined(LS3_HT)
 			_pci_conf_write(tag, reg, 0xfffffffe);
             #else
 			_pci_conf_write(tag, reg, 0xffffffff);
@@ -497,7 +497,7 @@ _pci_query_dev_func (struct pci_device *dev, pcitag_t tag, int initialise)
 				pm->reg = reg;
 				pm->flags = PCI_MAPREG_MEM_TYPE_32BIT;
 				pm->size = -(PCI_MAPREG_MEM_ADDR(mask));
-                #if defined(LOONGSON2G_2G690E)||defined(LOONGSON3A_3A780E)
+                #if defined(LOONGSON2G_2G690E)||defined(LOONGSON3A_3A780E)||defined(LOONGSON3A_3AITX)
                 //vga 0x10 > 32M bytes
 				if(PCI_ISCLASS(((pd->pa.pa_class)&0xff00ffff), PCI_CLASS_DISPLAY, PCI_SUBCLASS_DISPLAY_VGA)){
                     if(reg==0x10){
@@ -681,7 +681,7 @@ _pci_allocate_io(dev, size)
 	dev->bridge.secbus->nextpciioaddr = address;
 #else
 	/* allocate downwards, then round to size boundary */
-    #if defined(LOONGSON3A_3AEV)||defined(LOONGSON2G_2G690E)||defined(LOONGSON3A_3A780E)
+    #if defined(LS2G_HT)||defined(LS3_HT)
 	address=(dev->bridge.secbus->minpciioaddr+size-1)& ~(size - 1);
 	address1 = address+size;
     #else
@@ -739,7 +739,7 @@ _pci_setup_windows (struct pci_device *dev)
             _pci_tagprintf (pd->pa.pa_tag, 
                             "not enough PCI mem space (%d requested)\n", 
                             pm->size);
-        #if !defined(LOONGSON3A_3AEV)&&!defined(LOONGSON2G_2G690E)&&!defined(LOONGSON3A_3A780E)
+        #if !defined(LS2G_HT)&&!defined(LS3_HT)
             continue;
         #else
         #endif
@@ -757,7 +757,7 @@ _pci_setup_windows (struct pci_device *dev)
 
             pd->bridge.secbus->minpcimemaddr = pm->address;
             pd->bridge.secbus->nextpcimemaddr = pm->address + pm->size;
-            #if defined(LOONGSON3A_3AEV)||defined(LOONGSON2G_2G690E)||defined(LOONGSON3A_3A780E)
+            #if defined(LS2G_HT)||defined(LS3_HT)
             memory = (((pm->address+pm->size-1) >> 16) << 16) | (pm->address >> 16);
             #else
             memory = (((pm->address+pm->size) >> 16) << 16) | (pm->address >> 16);
@@ -847,7 +847,7 @@ _pci_setup_windows (struct pci_device *dev)
 	    tmp = _pci_conf_read(pd->pa.pa_tag,PCI_IOBASEL_1);
 	    tmp &= 0xffff0000;
 	    tmp |= (pm->address >> 8) & 0xf0;
-        #if defined(LOONGSON3A_3AEV)||defined(LOONGSON2G_2G690E)||defined(LOONGSON3A_3A780E)
+        #if defined(LS2G_HT)||defined(LS3_HT)
 	    tmp |= ((pm->address + pm->size-1) & 0xf000);
 	    _pci_conf_write(pd->pa.pa_tag,PCI_IOBASEL_1, tmp);
 
@@ -978,7 +978,7 @@ _pci_setup_devices (struct pci_device *parent, int initialise)
 		if(pd->disable)cmd=0;
             _pci_conf_write(tag, PCI_COMMAND_STATUS_REG, cmd);
 
-#if defined(LOONGSON3A_3AEV)||defined(LOONGSON2G_2G690E)||defined(LOONGSON3A_3A780E)
+#if defined(LS2G_HT)||defined(LS3_HT)
 	    ltim = pd->min_gnt * 33 / 4;
 	    ltim = MIN (MAX (pb->def_ltim, ltim), pb->max_ltim);
 #else

@@ -494,7 +494,7 @@ pciide_match(parent, match, aux)
 {
 	struct pci_attach_args *pa = aux;
 	const struct pciide_product_desc *pp;
-    #if !defined(LOONGSON3A_3AEV)&&!defined(LOONGSON2G_2G690E)&&!defined(LOONGSON3A_3A780E)
+    #if !defined(LS2G_HT)&&!defined(LS3_HT)
 	int bus, device, function;
 	
 	_pci_break_tag(pa->pa_tag, &bus, &device, &function);
@@ -978,7 +978,7 @@ pciide_dma_init(v, channel, drive, databuf, datalen, flags)
 printf("dma table start at 0x%08x\n", dma_maps->dmamap_table->dm_segs[0].ds_addr);
 	bus_space_write_4(sc->sc_dma_iot, sc->sc_dma_ioh,
 	    IDEDMA_TBL + IDEDMA_SCH_OFFSET * channel,
-	    #if defined(LOONGSON3A_3AEV)||defined(LOONGSON2G_2G690E)||defined(LOONGSON3A_3A780E)
+	    #if defined(LS2G_HT)||defined(LS3_HT)
 	    dma_maps->dmamap_table->dm_segs[0].ds_addr); /* XXX */
         #else
 	    dma_maps->dmamap_table->dm_segs[0].ds_addr | 0x80000000); /* XXX */
@@ -1223,7 +1223,7 @@ default_chip_map(sc, pa)
 	struct pciide_channel *cp;
 	
 	/* setting the virtual class interface  */
-    #if defined(LOONGSON3A_3AEV)||defined(LOONGSON2G_2G690E)||defined(LOONGSON3A_3A780E)
+    #if defined(LS2G_HT)||defined(LS3_HT)
 	pcireg_t interface = PCI_INTERFACE(pci_conf_read(sc->sc_pc,  sc->sc_tag, PCI_CLASS_REG));
     #else
     pcireg_t interface = 0x00;
