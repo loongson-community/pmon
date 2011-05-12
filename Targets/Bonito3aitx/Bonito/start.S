@@ -2442,3 +2442,12 @@ cache_init_finish:
 
 #include "loongson3A3_ddr2_param.S"
 #endif
+	.global watchdog_enable
+	.ent    watchdog_enable
+	.set    noreorder
+	.set    mips3
+watchdog_enable:
+	WatchDog_Enable
+	jr		ra
+	.end watchdog_enable
+

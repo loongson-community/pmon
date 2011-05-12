@@ -663,16 +663,58 @@ tgt_devinit()
 	sb700_after_pci_fixup();
 }
 
-
+extern void watchdog_enable(void);
 void
 tgt_reboot()
 {
+#if 0
 	unsigned char * reg_cf9		 = (unsigned char *)0xb8000cf9;
 
     //From coreboot
 	delay(20000);
 	*reg_cf9 = 0xa;
 	*reg_cf9 = 0xe;
+#else
+	char * watch_dog_base		 = 0xb8000cd6;
+	char * watch_dog_config		 = 0xba00a041;
+	unsigned int * watch_dog_mem = 0xbe010000;
+	unsigned char * reg_cf9		 = (unsigned char *)0xb8000cf9;
+
+	delay(20000);
+	*reg_cf9 = 0;
+
+	/* enable WatchDogTimer */
+	delay(100);
+	watchdog_enable();
+
+	/* set WatchDogTimer base address is 0x10000 */
+	delay(100);
+	* watch_dog_base = 0x6c;
+	*(watch_dog_base + 1) = 0x0;
+
+	delay(100);
+	* watch_dog_base = 0x6d;
+	*(watch_dog_base + 1) = 0x0;
+
+	delay(100);
+	* watch_dog_base = 0x6e;
+	*(watch_dog_base + 1) = 0x1;
+
+	delay(100);
+	* watch_dog_base = 0x6f;
+	*(watch_dog_base + 1) = 0x0;
+
+	delay(100);
+	* watch_dog_config = 0xff;
+
+	/* set WatchDogTimer to starting */
+	delay(100);
+	* watch_dog_mem = 0x01;
+	delay(100);
+	*(watch_dog_mem + 1) = 0x01;
+	delay(100);
+	* watch_dog_mem = 0x81;
+#endif
 }
 
 void
