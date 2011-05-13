@@ -208,22 +208,6 @@ void movinv1(int iter, ulong p1, ulong p2);
 
 pcireg_t _pci_allocate_io(struct pci_device *dev, vm_size_t size);
 static void superio_reinit();
-void lvds_reg_init()
-{
-    int i=0;
-    unsigned long ioaddress;
-
-	ioaddress  =_pci_conf_read(vga_dev->pa.pa_tag,0x18);
-    ioaddress = ioaddress &0xfffffff0; //laster 4 bit
-    ioaddress |= ioaddress | 0xb0000000;
-    printf("ioaddress:%x for LVDS patch\n ",ioaddress);
-
-    while(lvds_reg[i].reg) {
-        *(volatile unsigned int *)(ioaddress + lvds_reg[i].reg*4)  = lvds_reg[i].val;
-        delay(1000);
-        i++;
-    }
-}
 
 void
 initmips(unsigned int memsz)
@@ -346,7 +330,6 @@ tgt_devconfig()
 	SBD_DISPLAY("VESA", 0);
 	if(rc > 0)
 		vesafb_init();
-lvds_reg_init();
 #endif
 #if NMOD_FRAMEBUFFER > 0
 	vga_available=0;

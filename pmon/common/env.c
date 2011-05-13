@@ -119,7 +119,7 @@ static struct stdenv {
 	{"Version", "LM9020-1.0.8", 0},
 #endif
 #ifdef LOONGSON3A_3AITX
-	{"Version", "A1101-1.0.1", 0},
+	{"Version", "A1101-1.0.2", 0},
 #endif
 #if (_MIPS_SZPTR == 32)
 	{"mips_szptr","32",0 },
