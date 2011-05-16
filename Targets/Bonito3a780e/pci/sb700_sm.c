@@ -158,6 +158,9 @@ static void sm_init(device_t dev)
 	printk_info("Enabling Additional Address Bits Checking in Downstream\n");
 	abcfg_reg(0x9c, 3 << 0 | 1 << 8, 3 << 0 | 1 << 8);
 
+	/* Fix the bug of A-Link deadlock when operating in the extreme-stress test environment */
+	abcfg_reg(0x9c, 1 << 8, 0 << 8);
+
 	/* 3.8 Set B-Link Prefetch Mode */
 	printk_info("Set B-Link Prefetch Mode\n");
 	abcfg_reg(0x80, 3 << 1, 3 << 1);

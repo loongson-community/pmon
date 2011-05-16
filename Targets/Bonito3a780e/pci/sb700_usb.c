@@ -112,6 +112,12 @@ static void usb_init2(device_t dev)
 	word &= ~(1 << 12);
 	WRITEW(word, usb2_bar0 + 0xBC);
 #endif
+
+	/* Fixed EHCI Controller cause intermittent systerm hange */
+	byte = pci_read_config8(dev, 0x50);
+	byte |= (1 << 27);
+	pci_write_config8(dev, 0x50, byte);
+
 	/* Set a default latency timer. */
         pci_write_config8(dev, 0x0d, 0x40); //PCI_LATENCY_TIMER
 
