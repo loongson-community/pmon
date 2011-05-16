@@ -40,14 +40,16 @@ int test_walkbits1_comparison(ulv *bufa, ulv *bufb, size_t count);
 int test_walkbits0_comparison(ulv *bufa, ulv *bufb, size_t count); 
 
 struct test tests[] = {
-    //{ "Random Value", test_random_value },
-    //{ "Compare XOR", test_xor_comparison },
-    //{ "Compare SUB", test_sub_comparison },
-    //{ "Compare MUL", test_mul_comparison },
-    //{ "Compare DIV",test_div_comparison },
-    //{ "Compare OR", test_or_comparison },
-    //{ "Compare AND", test_and_comparison },
-    //{ "Sequential Increment", test_seqinc_comparison },
+#if 1
+    { "Random Value", test_random_value },
+    { "Compare XOR", test_xor_comparison },
+    { "Compare SUB", test_sub_comparison },
+    { "Compare MUL", test_mul_comparison },
+    { "Compare DIV",test_div_comparison },
+    { "Compare OR", test_or_comparison },
+    { "Compare AND", test_and_comparison },
+    { "Sequential Increment", test_seqinc_comparison },
+//#else
     { "Solid Bits", test_solidbits_comparison },
     { "Block Sequential", test_blockseq_comparison },
     { "Checkerboard", test_checkerboard_comparison },
@@ -55,8 +57,24 @@ struct test tests[] = {
     { "Bit Flip", test_bitflip_comparison },
     { "Walking Ones", test_walkbits1_comparison },
     { "Walking Zeroes", test_walkbits0_comparison },
+#endif
     { NULL, NULL }
+
 };
+
+static unsigned int seed_x = 521288629;
+static unsigned int seed_y = 362436069;
+
+
+unsigned int rand_ul ()
+   {
+   static unsigned int a = 18000, b = 30903;
+
+   seed_x = a*(seed_x&65535) + (seed_x>>16);
+   seed_y = b*(seed_y&65535) + (seed_y>>16);
+
+   return ((seed_x<<16) + (seed_y&65535));
+   }
 
 int compare_regions(ulv *bufa, ulv *bufb, size_t count) {
     int r = 0;
@@ -74,7 +92,6 @@ int compare_regions(ulv *bufa, ulv *bufb, size_t count) {
     }
     return r;
 }
-/*
 int test_random_value(ulv *bufa, ulv *bufb, size_t count) {
     ulv *p1 = bufa;
     ulv *p2 = bufb;
@@ -185,7 +202,6 @@ int test_seqinc_comparison(ulv *bufa, ulv *bufb, size_t count) {
     }
     return compare_regions(bufa, bufb, count);
 }
-*/
 int test_solidbits_comparison(ulv *bufa, ulv *bufb, size_t count) {
     ulv *p1 = bufa;
     ulv *p2 = bufb;

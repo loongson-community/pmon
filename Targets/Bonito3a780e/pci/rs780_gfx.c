@@ -257,7 +257,7 @@ void rs780_internal_gfx_init(device_t nb_dev,device_t dev)
 #ifdef CONFIG_GFXUMA 
     *strap = 0x2 << 7; /* BTDC: the format of BIF_MEM_AP_SIZE. 001->256MB? */
 #else
-    *strap = 0x2 << 7; /* BTDC: 128M SP memory, 000 -> 128MB */
+    *strap = (0x2 << 7 | 0x040000040); /* BTDC: 128M SP memory, 000 -> 128MB */
 #endif
     //strap = MMIOBase + 0x15020;
     //*strap |= 0x00000040; /* BTDC: Disable HDA device. */

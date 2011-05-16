@@ -639,6 +639,9 @@ tgt_devinit()
 	value &= ~(1 << 8);
 	_pci_conf_write32(_pci_make_tag(0, 0x14, 0), 0xac, value);
 #endif
+
+    //Add codec PCI Subsystem vendor&Subsystem id
+    _pci_conf_write32(_pci_make_tag(0,0x14,2), 0x2c, 0x20111c06);
 	/*
 	 *  Gather info about and configure caches.
 	 */
