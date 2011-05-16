@@ -206,6 +206,7 @@ iso9660_open(int fd, const char *path, int flags, int mode)
 	for (bno = 16;; bno++) {
 		devio_lseek(fd, cdb2devb(bno), SEEK_SET);
 		rc = devio_read(fd, buf, ISO_DEFAULT_BLOCK_SIZE);
+//		printf("here")
 		if (rc != ISO_DEFAULT_BLOCK_SIZE) {
 			goto out;
 		}
@@ -230,6 +231,7 @@ iso9660_open(int fd, const char *path, int flags, int mode)
 	}
 
 	devio_lseek(fd, cdb2devb(bno), SEEK_SET);
+	buf_size = 2048; //force to set buf_size to 2048 by huangzhihuan for load iso "...file" error
 	rc = devio_read(fd, buf, buf_size);
 		if (rc != buf_size) {
 		goto out;
