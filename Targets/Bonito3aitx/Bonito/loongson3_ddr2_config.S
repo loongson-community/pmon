@@ -6,14 +6,14 @@
 #######################################################
 /* Undefine the two to enable both */
 /* !!!NOT USE ANYMORE !!!!! */
-#define MC0_ONLY
-//#define MC1_ONLY
+///////#define MC0_ONLY
+///////#define MC1_ONLY
 
 /* Size of each DDR controller */
 /* !!!NOT USE ANYMORE !!!!! */
 //#define DDR_512
 //#define DDR_1G
-#define DDR_2G
+//#define DDR_2G
 
 /* Only DDR_1G CAN USE INTERLEAVE by now           */
 /* Interleave pattern when both controller enabled */
@@ -61,8 +61,8 @@
 #define GET_MC1_ONLY    dli a0, 0x00000008; and a0, s1, a0;
 #define GET_DDR_SIZE    dli a0, 0x00000070; and a0, s1, a0;
 #define GET_DDR_TYPE    dli a1, 0x00000080; and a1, s1, a1;
-#define GET_MC0_CS_MAP  dli a1,   0x00000f00; and a1, s1, a1; dsll a1, 8
-#define GET_MC1_CS_MAP  dli a1,   0x0000f000; and a1, s1, a1; dsll a1, 4;
+#define GET_MC0_CS_MAP  dli a1, 0x00000f00; and a1, s1, a1; dsll a1, 8
+#define GET_MC1_CS_MAP  dli a1, 0x0000f000; and a1, s1, a1; dsll a1, 4;
 #define GET_MC0_EIGHT   dli a1, 0x00080000; and a1, s1, a1; dsll a1, 13;
 #define GET_MC0_ROW     dli a1, 0x00700000; and a1, s1, a1; dsrl a1, 12;
 #define GET_MC0_COL     dli a1, 0x00070000; and a1, s1, a1; dsll a1, 8;
@@ -74,7 +74,7 @@
 #define GET_MC1_ECC     dli a1, 0x400000000; and a1, s1, a1; dsrl a1, 34;
 #define GET_MC1_DIMM    dli a1, 0x800000000; and a1, s1, a1; dsrl a1, 35;
 #define XBAR_CONFIG_NODE_a0(OFFSET, BASE, MASK, MMAP) \
-                        daddi   v0, t0, OFFSET;       \
+						daddi   v0, t0, OFFSET;       \
                         dli     t1, BASE;             \
                         or      t1, t1, a0;           \
                         sd      t1, 0x00(v0);         \
@@ -94,6 +94,7 @@
         bnez    a0, 3f
         nop
 
+#if 0
         GET_DDR_SIZE
         dli     a1, 0x10
         beq     a1, a0, ddr_512MB
@@ -102,91 +103,42 @@
         beq     a1, a0, ddr_1GB
         nop
 ddr_2GB:
-        /*
         b       2f
-	    //li	    msize, 0x7f000000
-	    li	    msize, 0x8
-        */
-        GET_MC0_ONLY
-        beqz    a0, 1f
-        nop
-	    //li	    msize, 0x3f000000
-	    li	    msize, 0x8
-        b       3f
-        nop
-1:
-        GET_MC1_ONLY
-        beqz    a0, 1f
-        nop
-	    //li	    msize, 0x3f000000
-	    li	    msize, 0x8
-        b       3f
-        nop
-1:
-	    //li	    msize, 0x7f000000
-	    li	    msize, 0x10
-        b    3f
-        nop
+	    li	    msize, 0x7f000000
 
 ddr_512MB:
-        /*
         b       2f
-	    //li	    msize, 0x1f000000
-	    li	    msize, 0x2
-        */
-        GET_MC0_ONLY
-        beqz    a0, 1f
-        nop
-	    //li	    msize, 0x3f000000
-	    li	    msize, 0x2
-        b       3f
-        nop
-1:
-        GET_MC1_ONLY
-        beqz    a0, 1f
-        nop
-	    //li	    msize, 0x3f000000
-	    li	    msize, 0x2
-        b       3f
-        nop
-1:
-	    //li	    msize, 0x7f000000
-	    li	    msize, 0x4
-        b        3f
-        nop
+	    li	    msize, 0x1f000000
 
 ddr_1GB:
         GET_MC0_ONLY
         beqz    a0, 1f
         nop
-	    //li	    msize, 0x3f000000
-	    li	    msize, 0x4
-        b       3f
+	    li	    msize, 0x3f000000
+        b       2f
         nop
 1:
         GET_MC1_ONLY
         beqz    a0, 1f
         nop
-	    //li	    msize, 0x3f000000
-	    li	    msize, 0x4
-        b       3f
+	    li	    msize, 0x3f000000
+        b       2f
         nop
 1:
-	    //li	    msize, 0x7f000000
-	    li	    msize, 0x8
-	    nop
-3:
+	    li	    msize, 0x7f000000
+2:
 
 /* RESERVE MEMORY FOR VRAM */
-        //li      a0, 0x00000000
+        li      a0, 0x00000000
 //#if (SHARED_VRAM == 64)
 //        li      a0, 0x04000000
 //#elif (SHARED_VRAM == 32)
 //        li      a0, 0x02000000
 //#endif
-        //sub     msize, msize, a0
+        sub     msize, msize, a0
+#endif
 
-//3:
+3:
 
 ###Enable the reg space###
 #if 1
@@ -200,11 +152,11 @@ ddr_1GB:
 #endif    
 
 #if 1
-//#ifdef AUTO_DDR_CONFIG
+#ifdef AUTO_DDR_CONFIG
         GET_MC0_CS_MAP
         beqz    a1, 1f
         nop
-//#endif
+#endif
         GET_NODE_ID_a0;
         XBAR_CONFIG_NODE_a0(0x10, \
                             0x0000000000000000, \
@@ -379,8 +331,10 @@ ddr_1GB:
         dli     a1, 0x30
         beq     a1, a0, ddr_2GB_MC0
         nop
+
 ddr_4GB_MC0:
 	    PRINTSTR("MC0 space open : 0x100000000 - 0x1FFFFFFFF\r\n")
+
         GET_NODE_ID_a0;
         XBAR_CONFIG_NODE_a0(0x20, \
                             0x0000000100000000, \
@@ -447,6 +401,8 @@ ddr_4GB_MC1:
                             0x00000000000000f1)
         b       2f
         nop
+
+
 ddr_2GB_MC1:
 	    PRINTSTR("MC1 space open : 0x80000000 - 0xFFFFFFFF\r\n")
 
@@ -875,6 +831,8 @@ reg_read:
     bnez    t1, reg_read
     addiu   t1, t1, -1
 #endif
+
+
 
 
 #if 0 /* read ddr2 registers */

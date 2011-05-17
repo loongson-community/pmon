@@ -1163,16 +1163,16 @@ ddr_config_entry:
 		move	t2, a2
 
 
-1:      ld      t3, 0(t1)
-        sd      t3, 0(t0)
-        ld  t3, 8(t1) /*For speed up*/
-        sd      t3, 8(t0)
-        ld  t3, 16(t1) 
-        sd      t3, 16(t0)
-        ld  t3, 24(t1) 
-        sd      t3, 24(t0)
-        addu    t0, 32
-        addu    t1, 32
+1:      lw      t3, 0(t1)
+        sw      t3, 0(t0)
+        lw  t3, 4(t1) /*For speed up*/
+        sw      t3, 4(t0)
+        lw  t3, 8(t1) 
+        sw      t3, 8(t0)
+        lw  t3, 12(t1) 
+        sw      t3, 12(t0)
+        addu    t0, 16
+        addu    t1, 16
         bne     t2, t0, 1b
         nop
 
@@ -1188,9 +1188,9 @@ ddr_config_entry:
     and a0, ~7
     add a2, 7
     and a2, ~7
-2:      sd      zero, 0(a0)
+2:      sw      zero, 0(a0)
         bne     a2, a0, 2b
-        addu    a0, 8
+        addu    a0, 4
 		TTYDBG("Copy PMON to execute location done.\r\n")
 
 #if 1

@@ -616,9 +616,10 @@ extern void get_ec_version(void);
 void
 dbginit (char *adr)
 {
-    int memsize, freq;
+    int  freq;
     char    fs[10], *fp;
     char    *s;
+    unsigned int memsize;
 
 /*  splhigh();*/
 

@@ -214,7 +214,6 @@ initmips(unsigned int memsz)
 {
 	int i;
 	int* io_addr;
-    unsigned int tmp_memsz = 0;
     
     tgt_fpuenable();
     tgt_printf("memsz %d\n",memsz);
@@ -230,20 +229,12 @@ initmips(unsigned int memsz)
 	GT_WRITE(BOOTCS_LOW_DECODE_ADDRESS, BOOT_BASE >> 20);
 	GT_WRITE(BOOTCS_HIGH_DECODE_ADDRESS, (BOOT_BASE - 1 + BOOT_SIZE) >> 20);
 #endif
-    /*
-      tmp_memsz = memsz * 256M
-    */
-    tmp_memsz = memsz;
-    tmp_memsz = tmp_memsz << 28;
-    tmp_memsz = tmp_memsz >> 20;
-    tmp_memsz = tmp_memsz - 16;
-    tgt_printf("tmp_memsz : %d\n",tmp_memsz);
 #ifdef CONFIG_GFXUMA
-	memorysize = tmp_memsz > 128 ? 128 << 20 : tmp_memsz << 20;
+	memorysize = memsz > (128 << 20) ? 128 << 20 : memsz;
 #else
-	memorysize = tmp_memsz > 240 ? 240 << 20 : tmp_memsz << 20;
+	memorysize = memsz > (240 << 20) ? 240 << 20 : memsz ;
 #endif
-	memorysize_high = tmp_memsz > 240 ? (tmp_memsz - 240) << 20 : 0;
+	memorysize_high = memsz > (240 << 20) ? (memsz - (240 << 20)) : 0;
 
     tgt_printf("memorysize : %d memorysize_high : %d\n",memorysize,memorysize_high);
 
