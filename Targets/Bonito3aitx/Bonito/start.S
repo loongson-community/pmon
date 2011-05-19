@@ -836,14 +836,14 @@ probe_mc1:
 		bnez s7,1f
 		nop
         PRINTSTR("\r\nNO FOUND DDR MEMORY");
-		//bal beep_on
+		bal beep_on
 		nop
 		2:
 		bal 2b
 		nop
 1:
 		/* Beep on -> delay -> Beep off */
-		//bal	beep_on
+		bal	beep_on
 		nop
 		li	a0,0x1000
 		3:
@@ -851,7 +851,7 @@ probe_mc1:
 		nop
 		bnez	a0,3b
 		nop
-		//bal	beep_off
+		bal	beep_off
 		nop
 
 		/* calculate memory size */
@@ -1507,6 +1507,26 @@ skip_dot:
 		nop	
 		END(tgt_putchar)
 #endif
+		LEAF(beep_on)
+		nop
+		dli	t1,0x90000cfdfe00a080
+		lbu	t0,0(t1)
+		or	t0,0x04
+		sb	t0,0(t1)
+		nop
+		jr	ra
+		nop
+		END(beep_on)
+		LEAF(beep_off)
+		nop
+		dli	t1,0x90000cfdfe00a080
+		lbu	t0,0(t1)
+		and	t0,0xfd
+		sb	t0,0(t1)
+		nop
+		jr	ra
+		nop
+		END(beep_off)
 		/* baud rate definitions, matching include/termios.h */
 #define B0      0
 #define B50     50      
