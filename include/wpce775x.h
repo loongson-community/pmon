@@ -69,20 +69,85 @@ extern int ec_update_rom(void *src, int size);
 #define INDEX_FAN_SPEED_HIGH            0x09    /* fan speed high byte */
 #define INDEX_FAN_SPEED_LOW             0x08    /* fan speed low byte */
  
-/* Read battery index information */
-#define INDEX_BATTERY_VOL_LOW           0x90    /* Battery Voltage Low byte. */
-#define INDEX_BATTERY_VOL_HIGH          0x91    /* Battery Voltage High byte. */
-#define INDEX_BATTERY_CAPACITY          0x92    /* Battery Capacity byte. */
-#define INDEX_BATTERY_TEMP_LOW          0x93    /* Battery Temperature Low byte. */
-#define INDEX_BATTERY_TEMP_HIGH         0x94    /* Battery Temperature High byte. */
-#define INDEX_BATTERY_FLAG              0x95    /* Battery Flags byte. */
-#define BIT_BATTERY_CURRENT_PN          7       /* Battery current sign is positive or negative */
-#define INDEX_BATTERY_AI_LOW            0x96    /* Battery Current Low byte. */
-#define INDEX_BATTERY_AI_HIGH           0x97    /* Battery Current High byte. */
+/* >>>>>>>>Read battery index information */
+/* battery register dynamic value. */
+#define INDEX_BATTERY_TEMP_LOW          0x20    /* Battery Temperature Low byte. Unit: 0.1K. */
+#define INDEX_BATTERY_TEMP_HIGH         0x21    /* Battery Temperature High byte. */
+#define INDEX_BATTERY_VOL_LOW           0x22    /* Battery Voltage Low byte. Unit: mV. */
+#define INDEX_BATTERY_VOL_HIGH          0x23    /* Battery Voltage High byte. */
+#define INDEX_BATTERY_CURR_LOW          0x24    /* Battery Current Low byte. Unit: mA. */
+#define INDEX_BATTERY_CURR_HIGH         0x25    /* Battery Current High byte. */
+#define INDEX_BATTERY_AC_LOW            0x26    /* Battery AverageCurrent Low byte. Unit: mA. */
+#define INDEX_BATTERY_AC_HIGH           0x27    /* Battery AverageCurrent High byte. */
+#define INDEX_BATTERY_MAXERROR			0x48    /* Battery MaxError byte. Unit: %. */
+#define INDEX_BATTERY_RELCAPACITY       0x2A    /* Battery RelativeStateOfCharge byte. Unit: %. */
+												/* i.e. remaining battery capacity */
+												/* expressed as a percentage of FullChargeCapacity */
+#define INDEX_BATTERY_ABSCAPACITY       0x4C    /* Battery AbsoluteStateOfCharge byte. Unit: %. */
+#define INDEX_BATTERY_RC_LOW            0x2E    /* Battery RemainingCapacity Low byte. Unit: mAh. */
+#define INDEX_BATTERY_RC_HIGH	        0x2F    /* Battery RemainingCapacity High byte. */
+#define INDEX_BATTERY_FCC_LOW           0x34    /* Battery FullChargeCapacity Low byte. Unit: mAh. */
+#define INDEX_BATTERY_FCC_HIGH	        0x35    /* Battery FullChargeCapacity High byte. */
+#define INDEX_BATTERY_RTTE_LOW          0x28    /* Battery RunTimeToEmpty Low byte. Unit: min. */
+#define INDEX_BATTERY_RTTE_HIGH	        0x29    /* Battery RunTimeToEmpty High byte. */
+#define INDEX_BATTERY_ATTE_LOW          0x30    /* Battery AverageTimeToEmpty Low byte. Unit: min. */
+#define INDEX_BATTERY_ATTE_HIGH	        0x31    /* Battery AverageTimeToEmpty High byte. */
+#define INDEX_BATTERY_ATTF_LOW          0x32    /* Battery AverageTimeToFull Low byte. Unit: min. */
+#define INDEX_BATTERY_ATTF_HIGH	        0x33    /* Battery AverageTimeToFull High byte. */
+#define INDEX_BATTERY_CC_LOW         	0x36    /* Battery ChargingCurrent Low byte. Unit: mA. */
+#define INDEX_BATTERY_CC_HIGH           0x37    /* Battery ChargingCurrent High byte. */
+#define INDEX_BATTERY_CV_LOW         	0x38    /* Battery ChargingVoltage Low byte. Unit: mV. */
+#define INDEX_BATTERY_CV_HIGH           0x39    /* Battery ChargingVoltage High byte. */
+#define INDEX_BATTERY_STS_LOW           0x2C    /* Battery Status Low byte. */
+#define BIT_BATTERY_STS_INIT          	7       /* Initialization. This flag is cleared approx. */
+												/* 1 second after device reset, after all SBS parameters
+												   have been measured and updated */
+#define BIT_BATTERY_STS_DSG          	6       /* Discharging. 0 = bq3060 is in charging mode */
+												/*              1 = bq3060 is in discharging mode, relaxation mode,
+																    or valid charge termination has occurred */
+#define BIT_BATTERY_STS_FC          	5       /* 1 = Fully Charged */
+#define BIT_BATTERY_STS_FD          	4       /* 1 = Fully Discharged */ 
+#define BIT_BATTERY_STS_EC3          	3	/* Error Code, returns status of processed SBS function. */ 
+#define BIT_BATTERY_STS_EC2          	2	/*0,0,0,0=OK bq3060 processed the function code with no errors detected. */
+#define BIT_BATTERY_STS_EC1          	1	/*0,0,0,1=BUSY bq3060 is unable to process the function code at this time.*/
+#define BIT_BATTERY_STS_EC0          	0        
+#define INDEX_BATTERY_STS_HIGH          0x2D    /* Battery Status High byte. */
+#define BIT_BATTERY_STS_OCA          	7       /* 1 = Over Charged Alarm */
+#define BIT_BATTERY_STS_TCA          	6       /* 1 = Terminate Charge Alarm */
+#define BIT_BATTERY_STS_OTA          	4       /* 1 = Over Temperatur Alarm */
+#define BIT_BATTERY_STS_TDA          	3       /* 1 = Terminate Discharge Alarm */
+#define BIT_BATTERY_STS_RCA          	1       /* Remaining Capacity Alarm, 1 = Remaining Capacity Alarm is set */
+#define BIT_BATTERY_STS_RTA          	0       /* Remaining Time Alarm, 1 = Remaining Time Alarm is set */
+#define INDEX_BATTERY_CYCNT_LOW        	0x4A    /* Battery CycleCount Low byte. */
+#define INDEX_BATTERY_CYCNT_HIGH        0x4B    /* Battery CycleCount High byte. */
+
+/* battery register static value. */
+#define INDEX_BATTERY_DC_LOW        	0x60    /* Battery DesignCapacity Low byte. Unit: mAh. */
+#define INDEX_BATTERY_DC_HIGH      		0x61    /* Battery DesignCapacity High byte. */
+#define INDEX_BATTERY_DV_LOW        	0x62    /* Battery DesignVoltage Low byte. Unit: mV. */
+#define INDEX_BATTERY_DV_HIGH      		0x63    /* Battery DesignVoltage High byte. */
+#define INDEX_BATTERY_MFDATE_LOW       	0x64    /* Battery ManufactureDate Low byte. Unit: ASCII. */
+#define INDEX_BATTERY_MFDATE_HIGH    	0x65    /* Battery ManufactureDate High byte. */
+#define INDEX_BATTERY_SN_LOW   	    	0x66    /* Battery SerialNumber Low byte. */
+#define INDEX_BATTERY_SN_HIGH   	 	0x67    /* Battery SerialNumber High byte. */
+#define INDEX_BATTERY_MFNAME_SIZE     	0x68    /* Battery ManufacturerName Size byte. Unit: ASCII. */
+#define INDEX_BATTERY_MFNAME_START 	 	0x69    /* Battery ManufacturerName Start byte. */
+#define INDEX_BATTERY_DEVNAME_SIZE     	0x73    /* Battery DeviceName Size byte. Unit: ASCII. */
+#define INDEX_BATTERY_DEVNAME_START  	0x74    /* Battery DeviceName Start byte. */
+#define INDEX_BATTERY_DEVCHEM_SIZE     	0x7B    /* Battery DeviceChemistry Size byte. Unit: ASCII. */
+#define INDEX_BATTERY_DEVCHEM_START  	0x7C    /* Battery DeviceChemistry Start byte. Unit: ASCII. */
+
+/* <<<<<<<<End read battery index information. */
 
 /* Read Current Power Status */
 #define INDEX_POWER_STATUS              0xA2
+#define BIT_POWER_BATVLOW			(1 << 1)	/* Battery in very low state (< 10%) */
+#define BIT_POWER_BATLOW			(1 << 2)	/* Battery in low state (< 5%) */
+#define BIT_POWER_BATFCHG			(1 << 3)	/* Battery in full charge */
+#define BIT_POWER_BATCHG			(1 << 4)	/* Battery in charging */
+#define BIT_POWER_LIDSTS			(1 << 5)	/* Lid status, 0 = close, 1 = open */
 #define BIT_POWER_BATPRES			(1 << 6)	/* Battery present */
+#define BIT_POWER_ACPRES			(1 << 7)	/* AC present */
 
 /* EC_SC input */
 /* Host Interface PM 1 Status Register (HIPM1ST) in EC. Below is the register bit-field. */

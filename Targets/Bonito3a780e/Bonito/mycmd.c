@@ -714,16 +714,19 @@ static int cmd_rdids(int ac, char *av[])
 	Init_Flash_Command(CMD_READ_DEV_ID);
 	ec_ids = Read_Flash_IDs();
 
-	if((ec_ids & 0x000000FF) == EC_ROM_PRODUCT_ID_WINBOND){
+	if((ec_ids & 0x000000FF) == EC_ROM_PRODUCT_ID_WINBOND)
+	{
 		Init_Flash_Command(CMD_READ_JEDEC_ID);
 		temp_val = Read_Flash_IDs();
 		ec_ids = (ec_ids & 0x0) | ((temp_val & 0x00FF0000) >> 8) |
 			((temp_val & 0x0000FF00) << 8) | ((temp_val & 0x000000FF));
 		dev_id = (u16) ((ec_ids & 0x00FFFF00) >> 8);
-	}else{
+	}
+	else
+	{
 		dev_id = (u16) ((ec_ids & 0x0000FF00) >> 8);
 	}
-	//printf("Read wpce775l flash ID: 0x%x\n", ec_ids);
+
 	mf_id = ec_ids & 0x000000FF;
 	printf("Manufacture ID 0x%x, Device ID : 0x%x\n", mf_id, dev_id);
 
@@ -743,10 +746,12 @@ static int cmd_rdids(int ac, char *av[])
             break;
         case EC_ROM_PRODUCT_ID_WINBOND :
 			printf("WINBOND, Device: ");
-			if(dev_id == EC_ROM_PRODUCT_ID_WBW25x80A){
+			if(dev_id == EC_ROM_PRODUCT_ID_WBW25x80A)
+			{
 				printf("W25x80.");
 			}
-			else if(dev_id == EC_ROM_PRODUCT_ID_WBW25Q80BV){
+			else if(dev_id == EC_ROM_PRODUCT_ID_WBW25Q80BV)
+			{
 				printf("W25Q80BV.");
 			}
             printf("\n");
@@ -927,46 +932,171 @@ static int cmd_wrrom(int ac, char *av[])
  */
 static int cmd_rdbat(int ac, char *av[])
 {
-	u8 bat_present;
-	u8 bat_capacity;
+	u8 i;
+	u8 bat_present, ac_present, power_status;
+	u8 ByteSize;
+	u8 m_month, m_day;
+	u8 bat_capacity; // %
+	u8 current_sign;
+	u8 bat_ManufacturerName[11];
+	u8 bat_DeviceName[7];
+	u8 bat_DeviceChem[4];
+	u8 *time_type = "Unknown";
+	u8 *bat_charging_status_string = "Unknown";
+	u16 bat_DesignCapacity;
+	u16 bat_DesignVoltage;
+	u16 bat_ManufactureDate;
+	u16 bat_sn;
+	u16 m_year;
+	u16 bat_remaining_capacity;
+	u16 remain_charge_time;
 	u16 bat_voltage;
 	u16 bat_current;
 	u16 bat_temperature;
-	char current_sign;
-	
+	u16 bat_charging_status;
+
 	/* read battery status */
-	bat_present = ec_read(CMD_READ_EC, INDEX_POWER_STATUS) & BIT_POWER_BATPRES;
+	power_status = ec_read(CMD_READ_EC, INDEX_POWER_STATUS);
+	ac_present = power_status & BIT_POWER_ACPRES;
+	bat_present = power_status & BIT_POWER_BATPRES;
 
-	/* read battery voltage */
-	bat_voltage = (u16) ec_read(CMD_READ_EC, INDEX_BATTERY_VOL_LOW);
-	bat_voltage |= (((u16) ec_read(CMD_READ_EC, INDEX_BATTERY_VOL_HIGH)) << 8);
-	bat_voltage = bat_voltage * 2;
+	if(bat_present)
+	{
+		printf("Read battery current information:\n");
+		/* >>>>>Read battery static information. */
+		/* Read battery Design Capacity. */
+		bat_DesignCapacity = (u16) ec_read(CMD_READ_EC, INDEX_BATTERY_DC_LOW);
+		bat_DesignCapacity |= (((u16) ec_read(CMD_READ_EC, INDEX_BATTERY_DC_HIGH)) << 8);
 
-	/* read battery current */
-	bat_current = (u16) ec_read(CMD_READ_EC, INDEX_BATTERY_AI_LOW);
-	bat_current |= (((u16) ec_read(CMD_READ_EC, INDEX_BATTERY_AI_HIGH)) << 8);
-	bat_current = bat_current * 357 / 2000;
-	if( (ec_read(CMD_READ_EC, INDEX_BATTERY_FLAG) & BIT_BATTERY_CURRENT_PN) != 0 ){
-		current_sign = '-';
-	}else{
-		current_sign = ' ';
+		/* Read battery Design Voltage. */
+		bat_DesignVoltage = (u16) ec_read(CMD_READ_EC, INDEX_BATTERY_DV_LOW);
+		bat_DesignVoltage |= (((u16) ec_read(CMD_READ_EC, INDEX_BATTERY_DV_HIGH)) << 8);
+
+		/* Read battery Manufacture Date. (Year - 1980) * 512 + Month * 32 + Day */
+		bat_ManufactureDate = (u16) ec_read(CMD_READ_EC, INDEX_BATTERY_MFDATE_LOW);
+		bat_ManufactureDate |= (((u16) ec_read(CMD_READ_EC, INDEX_BATTERY_MFDATE_HIGH)) << 8);
+		m_year = ((u8) (bat_ManufactureDate >> 9)) + 1980;
+		m_month = (u8) ((bat_ManufactureDate & (~0xFE00)) >> 5);
+		m_day = (u8) (bat_ManufactureDate & 0x001F);
+
+		/* Read battery Serial Number. */
+		bat_sn = (u16) ec_read(CMD_READ_EC, INDEX_BATTERY_SN_LOW);
+		bat_sn |= (((u16) ec_read(CMD_READ_EC, INDEX_BATTERY_SN_HIGH)) << 8);
+
+		/* Read battery Manufacturer Name. */
+		ByteSize = ec_read(CMD_READ_EC, INDEX_BATTERY_MFNAME_SIZE);
+		for(i = 0; i < ByteSize; i++)
+		{
+			bat_ManufacturerName[i] = ec_read(CMD_READ_EC, INDEX_BATTERY_MFNAME_START + i);
+		}
+		bat_ManufacturerName[i] = '\0';
+
+		/* Read battery Device Name. */
+		ByteSize = ec_read(CMD_READ_EC, INDEX_BATTERY_DEVNAME_SIZE);
+		for(i = 0; i < ByteSize; i++)
+		{
+			bat_DeviceName[i] = ec_read(CMD_READ_EC, INDEX_BATTERY_DEVNAME_START + i);
+		}
+		bat_DeviceName[i] = '\0';
+
+		/* Read battery Device Chemitry. */
+		ByteSize = ec_read(CMD_READ_EC, INDEX_BATTERY_DEVCHEM_SIZE);
+		for(i = 0; i < ByteSize; i++)
+		{
+			bat_DeviceChem[i] = ec_read(CMD_READ_EC, INDEX_BATTERY_DEVCHEM_START + i);
+		}
+		bat_DeviceChem[i] = '\0';
+
+		printf("Design Capacity: %dmAh, Design Voltage: %dmV, Manufacture Date: %d-%d-%d\n",
+				bat_DesignCapacity, bat_DesignVoltage, m_year, m_month, m_day);
+		printf("Serial Number: 0x%x, Manufacturer Name: %s, Device Name: %s, Device Chemistry: %s\n",
+				bat_sn, bat_ManufacturerName, bat_DeviceName, bat_DeviceChem);
+		/* <<<<<End read battery static information. */
+
+		/* Read battery voltage. */
+		bat_voltage = (u16) ec_read(CMD_READ_EC, INDEX_BATTERY_VOL_LOW);
+		bat_voltage |= (((u16) ec_read(CMD_READ_EC, INDEX_BATTERY_VOL_HIGH)) << 8);
+
+		/* Read battery average current. */
+		bat_current = (u16) ec_read(CMD_READ_EC, INDEX_BATTERY_AC_LOW);
+		bat_current |= (((u16) ec_read(CMD_READ_EC, INDEX_BATTERY_AC_HIGH)) << 8);
+		if((bat_current & (1 << 15)) != 0)
+		{
+			bat_current = (~bat_current) + 1;
+			current_sign = '-';
+		}
+		else
+		{
+			current_sign = '+';
+		}
+
+		/* Read battery capacity percentage(%). */
+		bat_capacity = ec_read(CMD_READ_EC, INDEX_BATTERY_RELCAPACITY);
+
+		/* Read battery remaining capacity. */
+		bat_remaining_capacity = (u16) ec_read(CMD_READ_EC, INDEX_BATTERY_RC_LOW);
+		bat_remaining_capacity |= (((u16) ec_read(CMD_READ_EC, INDEX_BATTERY_RC_HIGH)) << 8);
+
+		/* Read battery temperature. */
+		bat_temperature = (u16) ec_read(CMD_READ_EC, INDEX_BATTERY_TEMP_LOW);
+		bat_temperature |= (((u16) ec_read(CMD_READ_EC, INDEX_BATTERY_TEMP_HIGH)) << 8);
+		if(bat_present && (bat_temperature <= 0xE92))
+		{	/* temp <= 100 (0xE92 = 3730(d)) */
+			bat_temperature = bat_temperature / 10 - 273;
+		}
+		else
+		{
+			bat_temperature = 0;
+		}
+		if(ac_present)
+		{
+			/* Read battery Average Time To Full. */
+			remain_charge_time = (u16) ec_read(CMD_READ_EC, INDEX_BATTERY_ATTF_LOW);
+			remain_charge_time |= (((u16) ec_read(CMD_READ_EC, INDEX_BATTERY_ATTF_HIGH)) << 8);
+			if(power_status & BIT_POWER_BATCHG)
+			{
+				bat_charging_status_string = "Charging";
+			}
+			else
+			if(power_status & BIT_POWER_BATFCHG)
+			{   // Fully Charging
+				bat_charging_status_string = "Fully Charging";
+			}
+			else
+			if(remain_charge_time == 0xFFFF)
+			{
+				bat_charging_status_string = "Terminate Charging";
+			}
+			time_type = "FullCharging";  // Indicates predicted remaining battery life, base on AverageCurrent.
+		}
+		else
+		{
+			/* Read battery Average Time To Empty. */
+			remain_charge_time = (u16) ec_read(CMD_READ_EC, INDEX_BATTERY_ATTE_LOW);
+			remain_charge_time |= (((u16) ec_read(CMD_READ_EC, INDEX_BATTERY_ATTE_HIGH)) << 8);
+			if(power_status & BIT_POWER_BATVLOW)
+			{
+				bat_charging_status_string = "Capacity under 5%";
+			}
+			else if(power_status & BIT_POWER_BATLOW)
+			{
+				bat_charging_status_string = "Capacity under 10%";
+			}
+			else
+			{
+				bat_charging_status_string = "Discharging";
+			}
+			time_type = "Remaining";  // Indicates predicted remaining battery life, base on AverageCurrent.
+		}
+		printf("Voltage: %dmV, AverageCurrent: %c%dmA, Capacity: %dmAh %d%%, Temperature: %d\n%sTime: %dmin, ChargeStatus: %s\n",
+				bat_voltage, current_sign, bat_current, bat_remaining_capacity, bat_capacity,
+				bat_temperature, time_type, remain_charge_time,
+				bat_charging_status_string);
 	}
-
-	/* read battery capacity % */
-	bat_capacity = ec_read(CMD_READ_EC, INDEX_BATTERY_CAPACITY);
-
-	/* read battery temperature */
-	bat_temperature = (u16) ec_read(CMD_READ_EC, INDEX_BATTERY_TEMP_LOW);
-	bat_temperature |= (((u16) ec_read(CMD_READ_EC, INDEX_BATTERY_TEMP_HIGH)) << 8);
-	if(bat_present){	// && bat_temperature <= 0x5D4){	/* temp <= 100 (0x5D4 = 1492(d)) */
-		bat_temperature = bat_temperature / 4 - 273;
-	}else{
-		bat_temperature = 0;
+	else
+	{
+		printf("The battery does not exist!\n");
 	}
-
-    printf("Read battery current information:\n");
-	printf("Voltage %dmV, Current %c%dmA, Capacity %d%%, Temperature %d\n",
-			bat_voltage, current_sign, bat_current, bat_capacity, bat_temperature);
 
 	return 0;
 }
