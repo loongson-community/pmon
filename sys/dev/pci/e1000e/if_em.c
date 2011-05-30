@@ -764,11 +764,64 @@ e1000_ether_ioctl(ifp, cmd, data)
 	}
 	break;
 
-	case 0x8951:
+	case SIOCWRPHY:
 	{
-       		long *p=data;
+		long *p=data;
+		int ac;
+		char **av;
+		int i;
+        struct e1000_adapter *adapter = (struct e1000_adapter *) (sc->priv);
 		mynic_em = sc;
-        cmd_msqt_lan(p[0],p[1]);
+
+		ac = p[0];
+		av = p[1];
+		if(ac>1)
+		{
+			//offset:data,data
+			int i;
+			int offset;
+			int data;
+			for(i=1;i<ac;i++)
+			{
+				char *p=av[i];
+				char *nextp;
+				int offset=strtoul(p,&nextp,0);
+				while(nextp!=p)
+				{
+					p=++nextp;
+					data=strtoul(p,&nextp,0);
+					if(nextp==p)break;
+					printf("offset=%d,data=0x%x\n",offset,data);
+					e1000e_write_phy_reg_igp(&adapter->hw,offset, data);
+				}
+			}
+		}
+	}
+	break;
+	case SIOCRDPHY:
+	{
+		long *p=data;
+		int ac;
+		char **av;
+		int i;
+		unsigned data;
+		int offset=0,count=32;
+        struct e1000_adapter *adapter = (struct e1000_adapter *) (sc->priv);
+		mynic_em = sc;
+		ac = p[0];
+		av = p[1];
+
+		if(ac>1) offset = strtoul(av[1],0,0);
+		if(ac>2) count = strtoul(av[2],0,0);
+		
+		for(i=0;i<count;i++)
+		{
+			data = 0;
+			e1000e_read_phy_reg_igp(&adapter->hw,i+offset,&data);
+			if((i&0xf)==0)printf("\n%02x: ",i+offset);
+			printf("%04x ",data);
+		}
+		printf("\n");
 	}
 	break;
 
@@ -975,32 +1028,8 @@ int cmd_msqt_lan(int ac, char *av[])
 {
 struct e1000_adapter *adapter = (struct e1000_adapter *) (mynic_em->priv);
 struct e1000_hw *tp= &adapter->hw;
-#define mdio_write e1000e_write_phy_reg_igp
 
-	if (!strcmp(av[1], "100M")) {
-		if (!strcmp(av[2], "chana")) {
-			mdio_write(tp, 14, 0x0660);
-			mdio_write(tp, 16, 0x0020);
-		} else if (!strcmp(av[2], "chanb")) {
-			mdio_write(tp, 14, 0x0660);
-			mdio_write(tp, 16, 0x0000);
-		} else {
-			printf("Error options\n");
-			return 0;
-		}
-	} else if (!strcmp(av[1], "1000M")) {
-		if (!strcmp(av[2], "mode1"))
-			mdio_write(tp, 0x9, 0x2000);
-		else if (!strcmp(av[2], "mode4"))
-			mdio_write(tp, 0x9, 0x8000);
-		else {
-			printf("Error options\n");
-			return 0;
-		}
-	} else {
-		printf("Error options\n");
-		return 0;
-	}
+printf("dummy!\n");
 		return 0;
 }
 
