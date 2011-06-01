@@ -174,19 +174,19 @@ static void sata_init(device_t dev)
 	pci_write_config16(dev, 0x86, word);
 	/* RPR7.6.2 SATA GENI PHY ports setting */
 	printk_info("sata geni phy ports setting\n");
-	pci_write_config32(dev, 0x88, 0x01B48017);
-	pci_write_config32(dev, 0x8c, 0x01B48019);
-	pci_write_config32(dev, 0x90, 0x01B48016);
-	pci_write_config32(dev, 0x94, 0x01B48016);
+ 	pci_write_config32(dev, 0x88, 0x01B48074);
+	pci_write_config32(dev, 0x8c, 0x01B48074);
+	pci_write_config32(dev, 0x90, 0x01B48074);
+	pci_write_config32(dev, 0x94, 0x01B48074);
 	pci_write_config32(dev, 0x98, 0x01B48016);
 	pci_write_config32(dev, 0x9C, 0x01B48016);
 
 	/* RPR7.6.3 SATA GEN II PHY port setting for port [0~5]. */
 	printk_info("sata gen II PHY port setting for port\n");
-	pci_write_config16(dev, 0xA0, 0xA09A);
-	pci_write_config16(dev, 0xA2, 0xA09F);
-	pci_write_config16(dev, 0xA4, 0xA07A);
-	pci_write_config16(dev, 0xA6, 0xA07A);
+	pci_write_config16(dev, 0xA0, 0xA016);
+	pci_write_config16(dev, 0xA2, 0xA016);
+	pci_write_config16(dev, 0xA4, 0xA016);
+	pci_write_config16(dev, 0xA6, 0xA016);
 	pci_write_config16(dev, 0xA8, 0xA07A);
 	pci_write_config16(dev, 0xAA, 0xA07A);
 
