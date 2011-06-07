@@ -2810,6 +2810,14 @@ void sb700_interrupt_fixup(void)
 	if ( val != 0xffffffff) // device on the slot
 	  pci_write_config8(dev, 0x3c, 0x03);
 
+	// 8.4 route  00:02:00 (pciex8 slot) INTA->INTC# -----------------> int6 
+	// First check if any device in the slot ( return -1 means no device, else there is device ) 
+	dev = _pci_make_tag(2, 0x0, 0x0);
+	val = pci_read_config32(dev, 0x00);
+	if ( val != 0xffffffff) // device on the slot
+	  pci_write_config8(dev, 0x3c, 0x06);
+
+
 	// 9. route 00:0a:00  (pci slot: con20 and con19)
 	// 9.1  route 0a:05:00 (con19 with add_19) INTA->INTC --> INTG# ---------------------> int5
 	// NOTICE here: now assume dev 2, dev3 and dev 4 are all enable on x16 pcie slot, but 
