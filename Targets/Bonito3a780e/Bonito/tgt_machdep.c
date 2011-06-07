@@ -2636,23 +2636,23 @@ void sb700_interrupt_fixup(void)
       *(pic_index) =  0x9;
       *(pic_data) =  0x5;
       if (*(pic_data) !=  0x5)
-          printf("set pic fail: read back %d,should be 0x4\n", *(pic_data));
+          printf("set pic fail: read back %d,should be 0x5\n", *(pic_data));
       else
           printf("set pic_5 pass\n");
 	
-	/* bus 10: dev 4: INTF -->IRQ5 PCI(left) */
+	/* bus 10: dev 4: INTF -->IRQ3 PCI(left) */
      *(pic_index) =  0xa;
-     *(pic_data) =  0x5;
-     if (*(pic_data) !=  0x5)
-         printf("set pic fail: read back %d,should be 0x4\n", *(pic_data));
+     *(pic_data) =  0x3;
+     if (*(pic_data) !=  0x3)
+         printf("set pic fail: read back %d,should be 0x3\n", *(pic_data));
      else
          printf("set pic_a pass\n");
 
-	/* bus 10: dev 5:INTG -->IRQ5 PCI(right) */
+	/* bus 10: dev 5:INTG -->IRQ3 PCI(right) */
 	*(pic_index) =  0xb;
-	*(pic_data) =  0x5;
-	if (*(pic_data) !=  0x5)
-		printf("set pic fail: read back %d,should be 0x5\n", *(pic_data));
+	*(pic_data) =  0x3;
+	if (*(pic_data) !=  0x3)
+		printf("set pic fail: read back %d,should be 0x3\n", *(pic_data));
 	else
 		printf("set pic_9 pass\n");
 
@@ -2826,13 +2826,13 @@ void sb700_interrupt_fixup(void)
 	  dev = _pci_make_tag(busnum, 0x5, 0x0);
 	  val = pci_read_config32(dev, 0x00);
 	  if ( val != 0xffffffff) // device on the slot
-		pci_write_config8(dev, 0x3c, 0x5);// 0x14 means set interrupt pin to be 1, use interrupt line 0x4
+		pci_write_config8(dev, 0x3c, 0x3);// 0x14 means set interrupt pin to be 1, use interrupt line 0x4
 
-	  // 9.2  route 0a:04:00 (con20 with add_20) INTA->INTB --> INTF## ---------------------> int5
+	  // 9.2  route 0a:04:00 (con20 with add_20) INTA->INTB --> INTF## ---------------------> int3
 	  dev = _pci_make_tag(busnum, 0x4, 0x0);
 	  val = pci_read_config32(dev, 0x00);
 	  if ( val != 0xffffffff) // device on the slot
-		pci_write_config8(dev, 0x3c, 0x05);// 0x14 means set interrupt pin to be 1, use interrupt line 0x4
+		pci_write_config8(dev, 0x3c, 0x03);// 0x14 means set interrupt pin to be 1, use interrupt line 0x3
 	}
 
 
