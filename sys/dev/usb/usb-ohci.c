@@ -123,8 +123,8 @@
 #undef readl
 #undef writel
 
-#define readl(addr) *(volatile u32*)(((u32)(addr)) | 0xa0000000)
-#define writel(val, addr) *(volatile u32*)(((u32)(addr)) | 0xa0000000) = (val)
+#define readl(addr) *(volatile u32*)((addr >= 0x40000000) ? ((u32)(addr)) | 0x80000000:((u32)(addr)) | 0xa0000000)
+#define writel(val, addr) *(volatile u32*)((((u32)(addr))>= 0x40000000) ? ((u32)(addr)) | 0x80000000:((u32)(addr)) | 0xa0000000) = (val)
 
 #define MAX_OHCI_C 4  /*In most case it is enough */
 //#define MAX_OHCI_C 8   /* Changed for RS690 */
@@ -2405,7 +2405,8 @@ static int ohci_submit_rh_msg(struct usb_device *dev, unsigned long pipe,
 	dev->act_len = len;
 	dev->status = stat;
 
-#ifdef DEBUG
+//#ifdef DEBUG
+#if 0
 	if (transfer_len)
 		urb_priv.actual_length = transfer_len;
 #else
@@ -2971,7 +2972,8 @@ static int hc_interrupt (void *hc_data)
 		printf("Unrecoverable Error, controller usb-%s disabled\n",
 			ohci->slot_name);
 		/* e.g. due to PCI Master/Target Abort */
-#ifdef	DEBUG
+//#ifdef	DEBUG
+#if 0
 		ohci_dump (ohci, 1);
 #endif
 		/* FIXME: be optimistic, hope that bug won't repeat often. */
@@ -3249,6 +3251,7 @@ int usb_lowlevel_init(ohci_t *gohci)
 		//pci_sync_cache(tmpbuf, (vm_offset_t)tmpbuf, 64, SYNC_W);
 #if (defined(LS3_HT) || defined(LS2G_HT))
 		gohci->setup = (unsigned char *)(tmpbuf);
+		dbg(" gohci->setup =%x\n", gohci->setup);
 #else
         gohci->setup = (unsigned char *)CACHED_TO_UNCACHED(tmpbuf);
 #endif
@@ -3257,7 +3260,10 @@ int usb_lowlevel_init(ohci_t *gohci)
 	gohci->disabled = 1;
 	gohci->sleeping = 0;
 	gohci->irq = -1;
-	gohci->regs = (struct ohci_regs *)(gohci->sc_sh | 0xA0000000);
+
+	dbg("original OHCI: regs base %x\n", gohci->sc_sh);//0xc4808000
+	//gohci->regs = (struct ohci_regs *)(gohci->sc_sh | 0x80000000);
+	gohci->regs = (struct ohci_regs *)(gohci->sc_sh);
 
 #ifdef CONFIG_SM502_USB_HCD
 	if(gohci->flags & 0x80){
@@ -3273,6 +3279,7 @@ int usb_lowlevel_init(ohci_t *gohci)
 //	       "  RH: a: 0x%08x b: 0x%08x\n",
 ///	       readl(&gohci->regs->revision),
 //	       readl(&gohci->regs->roothub.a), readl(&gohci->regs->roothub.b));
+//gohci->regs->revision====0xffffffff
 	printf("OHCI revision: 0x%08x\n" "  RH: a: 0x%08x b: 0x%08x\n", readl(&gohci->regs->revision), 
 			readl(&gohci->regs->roothub.a), readl(&gohci->regs->roothub.b));
 
@@ -3481,7 +3488,7 @@ static int hc_check_ohci_controller (void *hc_data)
 			ohci->slot_name);
 		/* e.g. due to PCI Master/Target Abort */
 #ifdef	DEBUG
-		ohci_dump (ohci, 1);
+		//ohci_dump (ohci, 1);
 #endif
 		/* FIXME: be optimistic, hope that bug won't repeat often. */
 		/* Make some non-interrupt context restart the controller. */

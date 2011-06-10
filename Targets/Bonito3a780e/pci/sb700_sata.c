@@ -206,7 +206,7 @@ static void sata_init(device_t dev)
 	/* Use BAR5+0x2A8,BAR2 for Secondary Slave */
 #ifdef EANBLE_SATA
 	
-	sata_bar5 = sata_bar5 | 0xa0000000;
+	sata_bar5 = sata_bar5 | 0x80000000;
 	sata_bar0 = sata_bar0 | 0xb8000000;
 	sata_bar2 = sata_bar2 | 0xb8000000;
 	for (i = 0; i < 4; i++) {

@@ -52,11 +52,12 @@
 
  //HT: PCI HI BASE
  //map 0x90000e00_10000000 --> 0x10000000
-    dli t1, 0x0000000010000000
+ //map 0x90000e00_40000000 --> 0x40000000
+    dli t1, 0x0000000040000000
     sd  t1, 0x18(t0)
-    dli t1, 0xfffffffff8000000
+    dli t1, 0xffffffffc0000000
     sd  t1, 0x58(t0)
-    dli t1, 0x00000e00100000f7
+    dli t1, 0x00000e00400000f7
     sd  t1, 0x98(t0)
 
 #ifdef HT_REG_TRANS
@@ -286,11 +287,13 @@ ht_next_id :
 	sw	t0, 0xc(t2)
 	TTYDBG("HT RX DMA address ENABLE done 2\r\n")
 
-	//li	t0, 0xc0000000
-	//sw	t0, 0x10(t2)
-	//li	t0, 0xfdfcfffc
-	//sw	t0, 0x14(t2)
-	////TTYDBG("HT RX DMA address ENABLE done 3\r\n")
+#if 0
+	li	t0, 0xc0000000
+	sw	t0, 0x10(t2)
+	li	t0, 0x0040ffc0
+	sw	t0, 0x14(t2)
+	TTYDBG("HT RX DMA address ENABLE done 3\r\n")
+#endif
 
 #endif
 

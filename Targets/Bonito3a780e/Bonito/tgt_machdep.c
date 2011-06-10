@@ -424,7 +424,7 @@ volatile int *p=0xbfe00108;
 tgt_printf("memsz %ld\n",memsz);
 /*enable float*/
 tgt_fpuenable();
-CPU_TLBClear();
+//CPU_TLBClear();
 
 #if PCI_IDSEL_CS5536 != 0
 superio_reinit();
@@ -704,7 +704,7 @@ tgt_devconfig()
 #ifdef CONFIG_GFXUMA
 		fbaddress = 0x88000000; /* FIXME */
 #else
-		fbaddress = 0xb0000000; /* FIXME */
+		fbaddress = 0xc0000000; /* FIXME */
 #endif
 
 		printf("begin fb_init\n");
@@ -846,6 +846,7 @@ run:
 	printf("devconfig done.\n");
 
 	sb700_interrupt_fixup();
+
 
 }
 #endif
@@ -1209,7 +1210,7 @@ if(getenv("noautopower"))	vt82c686_powerfixup();
 	cs5536_pci_fixup();
 #endif
 	printf("sb700_after_pci_fixup\n");
-        sb700_after_pci_fixup();
+        sb700_after_pci_fixup(); // maybe interrupt route can be placed here
 }
 
 

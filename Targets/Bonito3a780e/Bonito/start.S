@@ -1359,6 +1359,10 @@ ddr_config_entry:
 		TTYDBG("Init tlb...\r\n")
 		bal     tlb_init
 		nop
+#if 1 /* TLB init */
+	    TTYDBG("Init htpcitlb...\r\n")
+#include "pcitlb.S"
+#endif
 		//TTYDBG("Init caches...\r\n")
 
 #if 1
@@ -2541,6 +2545,7 @@ cache_init_finish:
 
 #if 1 /* gx */
 				bal 	tlb_init
+
 				nop
 				bal     godson2_cache_init
 				nop

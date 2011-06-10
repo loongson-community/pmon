@@ -42,7 +42,7 @@
 #ifdef UNUSED_CODE
 static u32 clkind_read(device_t dev, u32 index)
 {
-	u32	gfx_bar2 = BONITO_PCILO_BASE_VA | (pci_read_config32(dev, 0x18) & ~0xF);
+	u32	gfx_bar2 = 0x80000000 | (pci_read_config32(dev, 0x18) & ~0xF);
 
 	*(u32*)(gfx_bar2+CLK_CNTL_INDEX) = index & 0x7F;
 	return *(u32*)(gfx_bar2+CLK_CNTL_DATA);
@@ -51,7 +51,7 @@ static u32 clkind_read(device_t dev, u32 index)
 
 static void clkind_write(device_t dev, u32 index, u32 data)
 {
-	u32	gfx_bar2 = (pci_read_config32(dev, 0x18) & ~0xF) | BONITO_PCILO_BASE_VA;
+	u32	gfx_bar2 = (pci_read_config32(dev, 0x18) & ~0xF) | 0x80000000;
 
 	*(u32*)(gfx_bar2+CLK_CNTL_INDEX) = index | 1<<7;
 	*(u32*)(gfx_bar2+CLK_CNTL_DATA)  = data;
@@ -84,15 +84,19 @@ static void internal_gfx_pci_dev_init(device_t nb , device_t dev)
     pci_write_config32(_pci_make_tag(0,1,0) ,0x04 , 0x7 | pci_read_config32(_pci_make_tag(0,1,0) , 0x04));
     printk_info("apc_dev------04 ----------%x \n" , pci_read_config32(_pci_make_tag(0,1,0) , 0x04));
 
-	GpuF0MMReg = (u32 *)(BONITO_PCILO_BASE_VA | pci_read_config32(dev, 0x18));
+	printk_info("pci_read_config==========%x\n",pci_read_config32(dev, 0x18));
+	
+	GpuF0MMReg = (u32 *)(0x80000000 | pci_read_config32(dev, 0x18));
 
-//    printf("GpuF0MMReg :   %x =============\n" , GpuF0MMReg);
+    //	printk_info("GpuF0MMReg :   %x =============\n" , GpuF0MMReg);
 	/* GFX_InitFBAccess. */
     *(GpuF0MMReg + 0x0) = 0x544c;
-    printk_info("first reg succeeded:%x \n",*(GpuF0MMReg + 0x0));
+
+    printk_info("first reg succeeded:%x un",*(GpuF0MMReg + 0x0));
     printk_info("first reg succeeded:%x \n",*(GpuF0MMReg + 0x4));
 
 	value = nbmc_read_index(nb_dev, 0x10);
+
 	*(GpuF0MMReg + 0x2000/4) = 0x11;
     printk_info("first reg succeeded:%x \n",*(GpuF0MMReg + 0x2000/4));
 
@@ -101,10 +105,12 @@ static void internal_gfx_pci_dev_init(device_t nb , device_t dev)
 	*(GpuF0MMReg + 0x5428/4) = ((value&0xffff0000)+0x10000)-((value&0xffff)<<16);
 	*(GpuF0MMReg + 0x2000/4) = 0x00000011;
 	*(GpuF0MMReg + 0x200c/4) = 0x00000020;
+	//*(GpuF0MMReg + 0x2010/4) = 0x00204810 | PCI_MEM_SPACE_PCI_BASE;
 	*(GpuF0MMReg + 0x2010/4) = 0x10204810;
     printk_info("first reg succeeded:%x\n",*(GpuF0MMReg + 0x2010/4));
     
 	*(GpuF0MMReg + 0x2010/4) = 0x00204810;
+	//*(GpuF0MMReg + 0x2014/4) = 0x00408810| PCI_MEM_SPACE_PCI_BASE;
 	*(GpuF0MMReg + 0x2014/4) = 0x10408810;
 	*(GpuF0MMReg + 0x2014/4) = 0x00408810;
 	*(GpuF0MMReg + 0x2414/4) = 0x00000080;
@@ -218,14 +224,18 @@ void rs780_internal_gfx_init(device_t nb_dev,device_t dev)
 
     /* BTDC: Get PCIe configuration space. */
     printk_info("Get PCIe configuration space.\n");
+    //MMIOBase = pci_read_config32(nb_dev, 0x1c) & 0xfffffff0;
+    MMIOBase = pci_read_config32(nb_dev, 0x1c);
+    printk_info("original : MMIOBase=%08x\n", MMIOBase);
+	MMIOBase  += 0x30000000;
+    pci_write_config32(nb_dev, 0x1c, MMIOBase);
     MMIOBase = pci_read_config32(nb_dev, 0x1c) & 0xfffffff0;
-    printk_info("MMIOBase=%08x\n", MMIOBase);
+    printk_info("Fixup MMIOBase=%08x\n", MMIOBase);
 
     /* BTDC: Temporarily disable PCIe configuration space. */
     printk_info("Temporarily disable PCIe configuration space\n");
     set_htiu_enable_bits(nb_dev, 0x32, 1<<28, 0);
-    set_nbmisc_enable_bits(nb_dev, 0x1e, 0xffffffff, 1<<1 | 1<<4 | 1<<6 | 1 << 7);
-
+    set_nbmisc_enable_bits(nb_dev, 0x1e, 0xffffffff, 1<<1 | 1<<4 | 1<<6 | 1 << 7); 
     /* BTDC: Set a temporary Bus number. */
     printk_info("Set a temporary Bus number.\n");
     apc18 = pci_read_config32(dev, 0x18);
@@ -247,7 +257,7 @@ void rs780_internal_gfx_init(device_t nb_dev,device_t dev)
     //lycheng
   //  MMIOBase |= 0xb6000000;
    // MMIOBase = BONITO_PCICFG1_BASE_VA;
-    MMIOBase |= BONITO_PCILO_BASE_VA;
+    MMIOBase |= 0x80000000;
     printk_info("MMIOBase=%08x\n", MMIOBase);
     strap = MMIOBase + 0x15000;
     *strap = 0x2c006300;
@@ -257,7 +267,11 @@ void rs780_internal_gfx_init(device_t nb_dev,device_t dev)
 #ifdef CONFIG_GFXUMA 
     *strap = 0x2 << 7; /* BTDC: the format of BIF_MEM_AP_SIZE. 001->256MB? */
 #else
-    *strap = 0x2 << 7; /* BTDC: 128M SP memory, 000 -> 128MB */
+    *strap = 0x2 << 7; /* BTDC: 128M SP memory, 000 -> 64MB */
+    //*strap = 0x4 << 7; /* BTDC: 128M SP memory, 000 -> 512MB */
+    //*strap = 0x0 << 7; /* BTDC: 128M SP memory, 000 -> 32MB */
+    //*strap = 0x1 << 7; /* BTDC: 128M SP memory, 000 -> 32MB */
+    //*strap = 0x3 << 7; /* BTDC: 1024M SP memory, 111 -> (3+1)*128MB */
 #endif
     //strap = MMIOBase + 0x15020;
     //*strap |= 0x00000040; /* BTDC: Disable HDA device. */
@@ -300,9 +314,10 @@ static uint64_t uma_memory_base = 0x08000000;
 static uint64_t uma_memory_size = 0x04000000;
 static uint64_t uma_memory_top = 0x0c000000; //base + size
 #else
-static uint64_t uma_memory_base = 0x10000000;
+static uint64_t uma_memory_base = PCI_MEM_SPACE_PCI_BASE;
 static uint64_t uma_memory_size = 0x04000000;
-static uint64_t uma_memory_top = 0x14000000; //base + size
+//static uint64_t uma_memory_top = 0x08000000| PCI_MEM_SPACE_PCI_BASE; //base + size
+static uint64_t uma_memory_top = 0x40000000 | PCI_MEM_SPACE_PCI_BASE; //base + size
 #endif
 
 static void rs780_internal_gfx_enable(device_t nb , device_t dev)

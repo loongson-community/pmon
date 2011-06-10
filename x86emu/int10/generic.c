@@ -356,8 +356,7 @@ int vga_bios_init(void)
 				return -1;
 			}
 
-#if   defined(RS690) || defined(RS780E)
-			// fixup PCI ID
+#if   defined(RS690) || defined(RS780E) // fixup PCI ID
 			//*((volatile unsigned int *)(0xa0000000 | (romaddress + ppcidata + 4))) = _pci_conf_read(pdev->pa.pa_tag, 0x00);
 			*((volatile unsigned int *)((romaddress + ppcidata + 4))) = _pci_conf_read(pdev->pa.pa_tag, 0x00);
 #endif
@@ -371,7 +370,9 @@ int vga_bios_init(void)
 		memcpy(vbiosMem, (char *)(0x00000000 | romaddress),
 		       V_BIOS_SIZE);
 #if   defined(RS780E)
-        memcpy(0xb3f00000 , (char *)(0x00000000 | romaddress) , V_BIOS_SIZE);
+        memcpy(0xc3f00000 , (char *)(0x00000000 | romaddress) , V_BIOS_SIZE);
+        //memcpy(0xdff00000 , (char *)(0x00000000 | romaddress) , V_BIOS_SIZE);
+        //memcpy(0xc7f00000 , (char *)(0x00000000 | romaddress) , V_BIOS_SIZE);
 #endif
 		if (PCI_VENDOR(pdev->pa.pa_id) == 0x1002
 		    && PCI_PRODUCT(pdev->pa.pa_id) == 0x4750)

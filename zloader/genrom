@@ -99,7 +99,7 @@ void initmips(unsigned long long msize,unsigned long long dmsize, unsigned long 
     long *end=(void *)$myend;
     int *p;
 	int debug=(msize==0);
-	CPU_TLBClear();
+//	CPU_TLBClear();
     stringserial("Uncompressing Bios");
     if(!debug||dctrl&1)enable_cache();
 	while(1)
