@@ -2498,13 +2498,14 @@ int submit_common_msg(struct usb_device *dev, unsigned long pipe, void *buffer,
 	}
 
 	/* allow more time for a BULK device to react - some are slow */
-#define BULK_TO	 1000	/* timeout in milliseconds */
+#define BULK_TO	 500	/* timeout in milliseconds */
+//#define BULK_TO	 1000	/* timeout in milliseconds */
 	if (usb_pipetype (pipe) == PIPE_BULK)
 		timeout = BULK_TO;
 	else
 		timeout = 2000;
 
-	timeout *= 10;
+	timeout *= 40;
 
 	/* wait for it to complete */
 #if 0
@@ -2779,8 +2780,8 @@ static int hc_reset (ohci_t *ohci)
 			err("USB HC reset timed out!");
 			return -1;
 		}
-		udelay (500);		// changed for test liujl
-//		udelay (1);
+//		udelay (500);		// changed for test liujl
+		udelay (1); // by xqch
 	}
 	return 0;
 }
