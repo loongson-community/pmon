@@ -2485,24 +2485,19 @@ int get_update(char *p)
  }
 
 
-/***This function assigns irqs to the device and route thm,then pass the result to kenel***/
-/*
-pci device routeing:
-bus dev                    INT A --> INT D
-2
-*/ 
-
-// PCIE INT TABLE
 /********************************************
-BUS DEV					INTA-->
-2						C 3						D
-4						A
-5						B
-6                       C
-7                       D
-9						B
-10						C
-********************************************/
+*     PCI/PCIE device interrupt talbe      **
+*********************************************
+BUS:DEV:FUN 		 interrupt line
+01:05:00			    6
+02:00:00			    3
+03:00:00			    3
+04:00:00			    3
+05:00:00			    3
+07:00:00			    5
+0a:04:00			    3
+0a:05:00			    3
+*******************************************/
 
 /*
 ﻿PCI IRQ Routing Index 
@@ -2521,31 +2516,6 @@ BUS DEV					INTA-->
 IRQ0, 2, 8, 13 are reserved	   
 */
 
-
-// by xiaqichao
-// now used 
-/********************************************
-now PCI PIC [index <--------> val ]
-PCI PIC [ 15 <-------->  0 ]
-PCI PIC [ 14 <-------->  0 ]
-PCI PIC [ 13 <-------->  0 ]
-PCI PIC [ 12 <-------->  4 ]
-PCI PIC [ 11 <-------->  5 ]
-PCI PIC [ 10 <-------->  0 ]
-PCI PIC [ 9 <-------->  0 ]
-PCI PIC [ 8 <-------->  0 ]
-PCI PIC [ 7 <-------->  0 ]
-PCI PIC [ 6 <-------->  0 ]
-PCI PIC [ 5 <-------->  0 ]
-PCI PIC [ 4 <-------->  0 ]
-PCI PIC [ 3 <-------->  3 ] INTD#
-PCI PIC [ 2 <-------->  6 ] INTC#
-PCI PIC [ 1 <-------->  3 ] INTB#
-PCI PIC [ 0 <-------->  3 ] INTA#
-********************************************/
-
-
-
 #define SMBUS_IO_BASE	  0x0000  //ynn
 #define PCI_BRADGE_TOTAL  0x0001  //ynn
 
@@ -2558,7 +2528,7 @@ void sb700_interrupt_fixup(void)
 	unsigned short origin_busnum;
 
 	device_t dev,dev1;
-	u32 val;
+	u32 val, tmp;
 	u8 byte;
 
 	//0.  smubs fixup
@@ -2845,6 +2815,54 @@ void sb700_interrupt_fixup(void)
 	}
 
 
-		
+	/*******************************************************/
+	// below added to check pci/pcie interrupt line register
+	/*******************************************************/
+	// 10.1 check all pcie slot interrupt line register
+    for ( tmp == 2; tmp < 7; tmp++)
+    {
+      dev = _pci_make_tag(tmp, 0x0, 0x0);
+      val = pci_read_config32(dev, 0x00);
+      if ( val != 0xffffffff) // device on the slot
+      {
+        val = pci_read_config8(dev, 0x3c);
+        if ( val != 0x3)
+          printf("%02x:00:00 interrupt line : Error\n",tmp );
+      }
+    }
+      
+	// 10.2 check all pci slot interrupt line register
+    for ( tmp == 0x4; tmp < 0x6; tmp++)
+    {
+      dev = _pci_make_tag(0xa, dev, 0x0);
+      val = pci_read_config32(dev, 0x00);
+      if ( val != 0xffffffff) // device on the slot
+      {
+        val = pci_read_config8(dev, 0x3c);
+        if ( val != 0x3)
+          printf("0a:%02x:00 interrupt line : Error\n",dev );
+      }
+    }
+	
+	// 10.4 check RTE/CON30 interrupt line register
+	dev = _pci_make_tag(0x7, 0x0, 0x0);
+    val = pci_read_config32(dev, 0x00);
+	if ( val != 0xffffffff) // device on the slot
+    {
+	  val = pci_read_config8(dev, 0x3c);
+	  if ( val != 0x5)
+		printf("07:00:00 interrupt line : Error\n");
+	}
+
+  	// 10.5 check  VGA interrupt line register
+	dev = _pci_make_tag(0x1, 0x5, 0x0);
+    val = pci_read_config32(dev, 0x00);
+	if ( val != 0xffffffff) // device on the slot
+    {
+	  val = pci_read_config8(dev, 0x3c);
+	  if ( val != 0x6)
+		printf("01:05:00 interrupt line : Error\n");
+	}
+
 }
 
