@@ -333,7 +333,7 @@ ddr_1GB:
         nop
 
 ddr_4GB_MC0:
-	    PRINTSTR("MC0 space open : 0x100000000 - 0x1FFFFFFFF\r\n")
+	    PRINTSTR("MC0 space open : 0x1_1000_0000 - 0x1_FFFF_FFFF\r\n")
 
         GET_NODE_ID_a0;
         XBAR_CONFIG_NODE_a0(0x20, \
@@ -344,33 +344,33 @@ ddr_4GB_MC0:
         nop
 
 ddr_2GB_MC0:
-	    PRINTSTR("MC0 space open : 0x80000000 - 0xFFFFFFFF\r\n")
+	    PRINTSTR("MC0 space open : 0x1_1000_0000 - 0x17FF_FFFF\r\n")
 
         GET_NODE_ID_a0;
         XBAR_CONFIG_NODE_a0(0x20, \
-                            0x0000000080000000, \
+                            0x0000000100000000, \
                             0xffffffff80000000, \
                             0x00000000000000f0)
         b       2f
         nop
 ddr_1GB_MC0:
-	    PRINTSTR("MC0 space open : 0x40000000 - 0x7FFFFFFF\r\n")
+	    PRINTSTR("MC0 space open : 0x1_1000_0000 - 0x1_3FFF_FFFF\r\n")
 
         GET_NODE_ID_a0;
         XBAR_CONFIG_NODE_a0(0x20, \
-                            0x0000000040000000, \
+                            0x0000000100000000, \
                             0xffffffffc0000000, \
                             0x00000000000000f0)
         b       2f
         nop
 ddr_512MB_MC0:
-	    PRINTSTR("MC0 pace open : 0x20000000 - 0x2FFFFFFF\r\n")
+	    PRINTSTR("MC0 pace open : 0x1_1000_0000 - 0x1_1FFF_FFFF\r\n")
 
         GET_NODE_ID_a0;
         XBAR_CONFIG_NODE_a0(0x20, \
-                            0x0000000020000000, \
-                            0xfffffffff0000000, \
-                            0x00000000100000f0)
+                            0x0000000100000000, \
+                            0xffffffffe0000000, \
+                            0x00000000000000f0)
         b       2f
         nop
 
@@ -392,7 +392,7 @@ ddr_512MB_MC0:
         nop
 
 ddr_4GB_MC1:
-	    PRINTSTR("MC1 space open : 0x100000000 - 0x1FFFFFFFF\r\n")
+	    PRINTSTR("MC1 space open : 0x1_1000_0000 - 0x1_FFFF_FFFF\r\n")
 
         GET_NODE_ID_a0;
         XBAR_CONFIG_NODE_a0(0x20, \
@@ -404,33 +404,33 @@ ddr_4GB_MC1:
 
 
 ddr_2GB_MC1:
-	    PRINTSTR("MC1 space open : 0x80000000 - 0xFFFFFFFF\r\n")
+	    PRINTSTR("MC1 space open : 0x1_1000_0000 - 0x1_7FFF_FFFF\r\n")
 
         GET_NODE_ID_a0;
         XBAR_CONFIG_NODE_a0(0x20, \
-                            0x0000000080000000, \
+                            0x0000000100000000, \
                             0xffffffff80000000, \
                             0x00000000000000f1)
         b       3f
         nop
 ddr_1GB_MC1:
-	    PRINTSTR("MC1 space open : 0x40000000 - 0x7FFFFFFF\r\n")
+	    PRINTSTR("MC1 space open : 0x1_1000_0000 - 0x1_3FFF_FFFF\r\n")
 
         GET_NODE_ID_a0;
         XBAR_CONFIG_NODE_a0(0x20, \
-                            0x0000000040000000, \
+                            0x0000000100000000, \
                             0xffffffffc0000000, \
                             0x00000000000000f1)
         b       3f
         nop
 ddr_512MB_MC1:
-	    PRINTSTR("MC1 space open : 0x20000000 - 0x2FFFFFFF\r\n")
+	    PRINTSTR("MC1 space open : 0x1_1000_0000 - 0x1_1FFF_FFFF\r\n")
 
         GET_NODE_ID_a0;
         XBAR_CONFIG_NODE_a0(0x20, \
-                            0x0000000020000000, \
-                            0xfffffffff0000000, \
-                            0x00000000100000f1)
+                            0x0000000100000000, \
+                            0xffffffffe0000000, \
+                            0x00000000000000f1)
 3:
 	    PRINTSTR("PCI DMA SPACE reassigned to MC1\r\n")
         dli     t1, 0x00000000000000f1
@@ -510,49 +510,98 @@ interleave_1g:
 
 #else
 #ifdef INTERLEAVE_13
-	    PRINTSTR("DDR Interleave space open : 0x80000000 - 0xFFFFFFFF\r\n")
-	    PRINTSTR("DDR Interleave using Bit 13\r\n")
+	beq msize, 0x10, INTERLEAVE_2GB	
+	nop
+
+	beq msize, 0x4, INTERLEAVE_512MB	
+	nop
+
+INTERLEAVE_1GB:  // 1Gx2
+	PRINTSTR("DDR Interleave space open : 0x1_1000_0000 - 0x1_7FFF_FFFF\r\n")
+	PRINTSTR("DDR Interleave using Bit 13\r\n")
 
         GET_NODE_ID_a0;
         XBAR_CONFIG_NODE_a0(0x20, \
-                            0x0000000080000000, \
+                            0x0000000100000000, \
                             0xffffffffc0002000, \
                             0x00000000000000f0)
         XBAR_CONFIG_NODE_a0(0x28, \
-                            0x0000000080002000, \
+                            0x0000000100002000, \
                             0xffffffffc0002000, \
                             0x00000000000000f1)
         XBAR_CONFIG_NODE_a0(0x30, \
-                            0x00000000c0000000, \
+                            0x0000000140000000, \
                             0xffffffffc0002000, \
                             0x00000000000020f0)
         XBAR_CONFIG_NODE_a0(0x38, \
-                            0x00000000c0002000, \
+                            0x0000000140002000, \
                             0xffffffffc0002000, \
                             0x00000000000020f1)
+	b 1f
 
-#else
-#ifdef INTERLEAVE_12
-	    PRINTSTR("DDR Interleave space open : 0x80000000 - 0xFFFFFFFF\r\n")
-	    PRINTSTR("DDR Interleave using Bit 12\r\n")
+INTERLEAVE_512MB:  // 512MBx2
+	PRINTSTR("DDR Interleave space open : 0x1_1000_0000 - 0x1_3FFF_FFFF\r\n")
+	PRINTSTR("DDR Interleave using Bit 13\r\n")
 
         GET_NODE_ID_a0;
         XBAR_CONFIG_NODE_a0(0x20, \
-                            0x0000000080000000, \
-                            0xffffffffc0001000, \
+                            0x000000010000000, \
+                            0xffffffffe0002000, \
                             0x00000000000000f0)
         XBAR_CONFIG_NODE_a0(0x28, \
-                            0x0000000080001000, \
-                            0xffffffffc0001000, \
+                            0x0000000100002000, \
+                            0xffffffffe0002000, \
                             0x00000000000000f1)
         XBAR_CONFIG_NODE_a0(0x30, \
-                            0x00000000c0000000, \
-                            0xffffffffc0001000, \
-                            0x00000000000010f0)
+                            0x0000000120000000, \
+                            0xffffffffe0002000, \
+                            0x00000000000020f0)
         XBAR_CONFIG_NODE_a0(0x38, \
-                            0x00000000c0001000, \
-                            0xffffffffc0001000, \
-                            0x00000000000010f1)
+                            0x0000000120002000, \
+                            0xffffffffe0002000, \
+                            0x00000000000020f1)
+
+	b 1f
+
+INTERLEAVE_2GB: // 2Gx2
+	PRINTSTR("DDR Interleave space open : 0x1_1000_0000 - 0x1_FFFF_FFFF\r\n")
+	PRINTSTR("DDR Interleave using Bit 13\r\n")
+
+	GET_NODE_ID_a0;
+        XBAR_CONFIG_NODE_a0(0x20, \
+                            0x0000000100000000, \
+                            0xffffffff80002000, \
+                            0x00000000000000f0)
+        XBAR_CONFIG_NODE_a0(0x28, \
+                            0x0000000100002000, \
+                            0xffffffff80002000, \
+                            0x00000000000000f1)
+        XBAR_CONFIG_NODE_a0(0x30, \
+                            0x0000000180000000, \
+                            0xffffffff80002000, \
+                            0x00000000000020f0)
+        XBAR_CONFIG_NODE_a0(0x38, \
+                            0x0000000180002000, \
+                            0xffffffff80002000, \
+                            0x00000000000020f1)
+	b 1f
+
+1:
+
+#else
+#ifdef INTERLEAVE_12
+	    PRINTSTR("DDR Interleave space open : 0x00000000 - 0x0FFFFFFF\r\n")
+	    PRINTSTR("DDR Interleave using Bit 12\r\n")
+
+        GET_NODE_ID_a0;
+        XBAR_CONFIG_NODE_a0(0x10, \
+                            0x0000000000000000, \
+                            0xfffffffff0001000, \
+                            0x00000000000000f0)
+        XBAR_CONFIG_NODE_a0(0x18, \
+                            0x0000000000001000, \
+                            0xfffffffff0001000, \
+                            0x00000000000000f1)
 
 #else
 #ifdef INTERLEAVE_11

@@ -504,7 +504,7 @@ _pci_query_dev_func (struct pci_device *dev, pcitag_t tag, int initialise)
                         printf("fixup video mem size\n");
                         #ifdef USE_780E_VGA
                         if (pm->size > 0x4000000){
-                            pm->size = 0x4000000;
+                            pm->size = 0xc000000; //to cross 1800_0000-1bff_ffff
                         }
                         #else
                         pm->size=0x2000000;

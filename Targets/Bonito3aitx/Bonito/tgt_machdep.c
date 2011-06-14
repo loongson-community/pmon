@@ -289,27 +289,6 @@ tgt_devconfig()
 #if NMOD_FRAMEBUFFER > 0 
 	unsigned long fbaddress,ioaddress;
 	//extern struct pci_device *vga_dev;
-#ifdef RS780E
-    int test;
-    int  i;
-    printf(" ====================  frame buffer test begin======================:%x \n" , test);
-    for (i = 0;i < 0x100000;i += 4)
-    {
-        //printf(" i = %x \n" , i);
-        *((volatile int *)(0xb0000010 + i)) = i;
-    }
-
-    for (i = 0xffffc;i >= 0;i -= 4)
-    {
-        if (*((volatile int *)(0xb0000010 + i)) != i)
-        {
-            printf(" not equal ====  %x\n" ,i);
-            break;
-        }
-    }
-
-    printf(" ====================  frame buffer test end======================:%x \n" , test);
-#endif
 #endif
 #endif
 	_pci_devinit(1);	/* PCI device initialization */

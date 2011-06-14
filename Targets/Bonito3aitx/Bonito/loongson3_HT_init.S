@@ -39,16 +39,15 @@
     sd  t1, 0x48(t0)
     dli t1, 0x00000e00000000f7
     sd  t1, 0x88(t0)
-#if 0
- //HT: PCI LO BASE
- //map 0x90000e00_00000000 --> 0x10000000
-    dli t1, 0x0000000010000000
+
+ //HT: PCI HIGH MEM
+ //map 0x90000e00_40000000 --> 0x40000000
+    dli t1, 0x0000000040000000
     sd  t1, 0x10(t0)
-    dli t1, 0xfffffffffc000000
+    dli t1, 0xffffffffc0000000
     sd  t1, 0x50(t0)
-    dli t1, 0x00000e00000000f7
+    dli t1, 0x00000e00400000f7
     sd  t1, 0x90(t0)
-#endif
 
  //HT: PCI HI BASE
  //map 0x90000e00_10000000 --> 0x10000000

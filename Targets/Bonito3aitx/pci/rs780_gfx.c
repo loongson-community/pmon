@@ -38,6 +38,7 @@
 
 /* The Integrated Info Table. */
 //ATOM_INTEGRATED_SYSTEM_INFO_V2 vgainfo;
+struct _ATOM_INTEGRATED_SYSTEM_INFO_V2 vgainfo;
 
 #ifdef UNUSED_CODE
 static u32 clkind_read(device_t dev, u32 index)
@@ -182,7 +183,51 @@ static void internal_gfx_pci_dev_init(device_t nb , device_t dev)
 		temp8 |= 1<<1|1<<2;
 		pci_write_config8(dev, 0x4, temp8);
 	}
+#define PATCH_128MB
+#ifdef PATCH_128MB
+	vgainfo.sHeader.usStructureSize = sizeof(ATOM_INTEGRATED_SYSTEM_INFO_V2);
+        vgainfo.sHeader.ucTableFormatRevision = 1;
+        vgainfo.sHeader.ucTableContentRevision = 2;
 
+#if (CONFIG_GFXUMA == 0) /* SP mode. */
+        // Side port support is incomplete, do not use it
+        // These parameters must match the motherboard
+        vgainfo.ulBootUpSidePortClock = 400*100;
+        vgainfo.ucMemoryType = 2;  // 3=ddr3 sp mem, 2=ddr2 sp mem
+        vgainfo.ulMinSidePortClock = 200*100;
+#endif
+
+        vgainfo.ulBootUpEngineClock = 500 * 100;   
+
+        /* UMA Channel Number: 1 or 2. */
+        vgainfo.ucUMAChannelNumber = 1;
+
+        vgainfo.ulHTLinkFreq = 800 * 100;    // HT frequency in units of 100 MHz
+        vgainfo.ulHighVoltageHTLinkFreq = vgainfo.ulHTLinkFreq;
+        vgainfo.ulLowVoltageHTLinkFreq = vgainfo.ulHTLinkFreq;
+
+	vgainfo.ulLowVoltageHTLinkFreq = vgainfo.ulHTLinkFreq;
+
+        vgainfo.usMinDownStreamHTLinkWidth =
+        vgainfo.usMaxDownStreamHTLinkWidth =
+        vgainfo.usMinUpStreamHTLinkWidth =
+        vgainfo.usMaxUpStreamHTLinkWidth =
+        vgainfo.usMinHTLinkWidth =
+        vgainfo.usMaxHTLinkWidth = 16;
+
+        /* Transfer the Table to VBIOS. */
+        pointer = (u32 *)&vgainfo;
+        for(i=0; i<sizeof(ATOM_INTEGRATED_SYSTEM_INFO_V2); i+=4)
+        {
+#if (CONFIG_GFXUMA == 1)
+                *GpuF0MMReg = 0x80000000 + uma_memory_size - 512 + i;
+#else
+                *GpuF0MMReg = 0x80000000 + 0x8000000 - 512 + i;
+#endif
+                *(GpuF0MMReg+1) = *pointer++;
+        }
+
+#endif
 	/* clk ind */
 	clkind_write(dev, 0x08, 0x01);
 	clkind_write(dev, 0x0C, 0x22);
@@ -255,9 +300,9 @@ void rs780_internal_gfx_init(device_t nb_dev,device_t dev)
     *strap = 0x03015330;
     strap = MMIOBase + 0x15020;
 #ifdef CONFIG_GFXUMA 
-    *strap = 0x2 << 7; /* BTDC: the format of BIF_MEM_AP_SIZE. 001->256MB? */
+    *strap = 0x3 << 7; /* BTDC: the format of BIF_MEM_AP_SIZE. 001->256MB? */
 #else
-    *strap = 0x2 << 7; /* BTDC: 128M SP memory, 000 -> 128MB */
+    *strap = 0x40; /* BTDC: 128M SP memory, 000 -> 128MB */
 #endif
     //strap = MMIOBase + 0x15020;
     //*strap |= 0x00000040; /* BTDC: Disable HDA device. */
@@ -301,8 +346,8 @@ static uint64_t uma_memory_size = 0x04000000;
 static uint64_t uma_memory_top = 0x0c000000; //base + size
 #else
 static uint64_t uma_memory_base = 0x10000000;
-static uint64_t uma_memory_size = 0x04000000;
-static uint64_t uma_memory_top = 0x14000000; //base + size
+static uint64_t uma_memory_size = 0x08000000;
+static uint64_t uma_memory_top = 0x18000000; //base + size
 #endif
 
 static void rs780_internal_gfx_enable(device_t nb , device_t dev)

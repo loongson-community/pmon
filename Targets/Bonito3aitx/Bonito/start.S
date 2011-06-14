@@ -842,6 +842,7 @@ probe_mc1:
 		bal 2b
 		nop
 1:
+#if 0
 		/* Beep on -> delay -> Beep off */
 		bal	beep_on
 		nop
@@ -853,7 +854,7 @@ probe_mc1:
 		nop
 		bal	beep_off
 		nop
-
+#endif
 		/* calculate memory size */
 		move	a0,s6
 		move	a1,s7
