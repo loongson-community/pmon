@@ -688,24 +688,18 @@ autoinstall(char *s)
 			  sprintf(buf, "load /dev/fs/iso9660@cd0/vmlinuxb");
 #else
 		  if(c == 'u' || c == 'U')
+		  {
 			  //sprintf(buf, "load %s", getenv("autoinstall"));
-			  sprintf(buf, "load /dev/fs/ext2@usb0/vmlinuxboot");
+			  //sprintf(buf, "load /dev/fs/ext2@usb0/vmlinuxboot");
+			  sprintf(buf, "usbinstall");
+			  ret = do_cmd(buf);
+		  }
 		  if(c == 'c' || c == 'C')
-			  sprintf(buf, "load /dev/fs/iso9660@cd0/vmlinuxb");
+		  {
+			  sprintf(buf, "cdinstall");
+			  ret = do_cmd(buf);
+		  }
 #endif
-
-		  printf( "\n%s\n", buf);
-		  do_cmd(buf);
-
-
-		  rd= getenv("rdinit");
-	  if (rd != 0) // set rd /sbin/init
-			sprintf(buf, "g console=tty rdinit=%s video=vfb:1 ", rd);
-		  else
-			sprintf(buf, "g console=tty rdinit=/sbin/init video=vfb:1 ");
-
-		  printf( "\n%s\n", buf);
-		  do_cmd(buf);
 	}
 //	printf( "\n NO <F2> entered in 5 secs\n");
   }

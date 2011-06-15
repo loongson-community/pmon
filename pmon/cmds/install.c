@@ -57,21 +57,42 @@ void cmd_cdinstall(void)
 {
 
 	char buf[100];
+	int ret = 0;
+	char *rd;
 
 	sprintf(buf, "load /dev/fs/iso9660@cd0/vmlinuxb");
 	//buf = "load /dev/fs/iso9660@cd0/vmlinuxb";
-	do_cmd(buf);
-	sprintf(buf, "g console=tty rdinit=/sbin/init video=vfb:1");
+	ret = do_cmd(buf);
+	if (ret != 0)
+		return;
+
+	rd= getenv("rdinit");
+	if (rd != 0) // set rd /sbin/init
+	  sprintf(buf, "g console=tty rdinit=%s video=vfb:1 ", rd);
+	else
+	  sprintf(buf, "g console=tty rdinit=/sbin/init video=vfb:1 ");
+
 	do_cmd(buf);
 }
 void cmd_usbcdinstall(void)
 {
 
 	char buf[100];
+	char *rd;
+	int ret = 0;
 
 	sprintf(buf, "load /dev/fs/iso9660@usb0/vmlinuxboot");
-	do_cmd(buf);
-	sprintf(buf, "g console=tty rdinit=/sbin/init video=vfb:1");
+	ret = do_cmd(buf);
+	if (ret != 0)
+		return;
+
+	rd= getenv("rdinit");
+	if (rd != 0) // set rd /sbin/init
+	  sprintf(buf, "g console=tty rdinit=%s video=vfb:1 ", rd);
+	else
+	  sprintf(buf, "g console=tty rdinit=/sbin/init video=vfb:1 ");
+
+	printf( "\n%s\n", buf);
 	do_cmd(buf);
 }
 
@@ -79,10 +100,28 @@ void cmd_usbinstall(void)
 {
 
 	char buf[100];
+	int ret = 0;
+	char *rd;
 
+	/* first try ext2 file system format */
 	sprintf(buf, "load /dev/fs/ext2@usb0/vmlinuxboot");
-	do_cmd(buf);
-	sprintf(buf, "g console=tty rdinit=/sbin/init video=vfb:1");
+	ret = do_cmd(buf);
+	if (ret != 0)
+	{
+	  /* then try fat file system format */
+	  sprintf(buf, "load /dev/fs/fat@usb0/vmlinuxboot");
+	  ret = do_cmd(buf);
+	}
+	if (ret != 0)
+		return;
+
+	rd= getenv("rdinit");
+	if (rd != 0) // set rd /sbin/init
+	  sprintf(buf, "g console=tty rdinit=%s video=vfb:1 ", rd);
+	else
+	  sprintf(buf, "g console=tty rdinit=/sbin/init video=vfb:1 ");
+
+	printf( "\n%s\n", buf);
 	do_cmd(buf);
 }
 
