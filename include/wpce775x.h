@@ -251,9 +251,9 @@ extern int ec_update_rom(void *src, int size);
 
 // PC memory
 #ifdef LOONGSON3A_3A780E
-#define WCB_BASE_ADDR 		0xB7100000
-#define FLASH_WIN_BASE_ADDR	0xB7000000
-#define RDBK_STAT_VAL_ADDR 	0xB7100008
+#define WCB_BASE_ADDR 		0xBCF00000
+#define FLASH_WIN_BASE_ADDR	0xBCE00000
+#define RDBK_STAT_VAL_ADDR 	0xBCF00008
 #endif
 #ifdef LOONGSON2F_3GNB
 #define WCB_BASE_ADDR 		0xBBF00000

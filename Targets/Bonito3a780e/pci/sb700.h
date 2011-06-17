@@ -25,6 +25,8 @@ typedef unsigned long device_t;
 
 #endif
 
+#define EC_LPCMEM_RANGE 0x1CFF1CE0  /* Set lpc memory range: 0x1CE00000 - 0x1CFFFFFF */
+
 //typedef unsigned long pcitag_t;
 
 extern device_t _pci_make_tag(int, int, int);

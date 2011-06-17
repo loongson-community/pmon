@@ -208,7 +208,8 @@ void sb700_enable()
 	 * Start address(upper 16-bits): 0x1700, End address(upper 16-bits): 0x171f.
 	 * i.e. 0x17000000 - 0x171fffff, tatol 2MB size.
 	 * daway added 2011-02-18 */
-	printk_info("Set lpc memory range: 0x17000000 - 0x171fffff\n");
-	sb700_lpcmem_address(0x171f1700);
+	printk_info("Set lpc memory range: 0x%x - 0x%x\n",
+	        (EC_LPCMEM_RANGE & 0xFFFF) << 16, (EC_LPCMEM_RANGE & 0xFFFF0000) | 0xFFFF);
+	sb700_lpcmem_address(EC_LPCMEM_RANGE);
 }
 
