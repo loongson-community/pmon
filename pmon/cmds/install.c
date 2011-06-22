@@ -52,20 +52,63 @@
 
 
 //int	cmd_install  __P((void)); 
+char *elf_addr = 0x80205c00; //huang
+char *myversion = "2.6.36";//huang
+int flag = 0; //huang
+int judge_kernel_version(char *src, char *dest)
+{
+	char *p = src;
+	char *tmp = "version ";
+	char *q = tmp;
+	int i = 20;
+	char *ver;
+	while(*tmp != '\0')
+	{
+		if(*src++ != *tmp++)
+		{
+			src = ++p;
+			tmp = q;	
+		}
+	}
+	q = ver;
+	while(i-- >= 0)
+	*ver++ = *p++;	
+	*ver = '\0';
+	ver  = strstr(q, dest);
+	if(ver == NULL)
+	return 0;
 
+	return 1;	
+
+}
 void cmd_cdinstall(void)
 {
 
 	char buf[100];
 	int ret = 0;
 	char *rd;
-
+	int flag = 0; //huang
 	sprintf(buf, "load /dev/fs/iso9660@cd0/vmlinuxb");
 	//buf = "load /dev/fs/iso9660@cd0/vmlinuxb";
 	ret = do_cmd(buf);
+	
 	if (ret != 0)
 		return;
 
+	flag = judge_kernel_version(elf_addr, myversion);
+
+	if(flag == 1)
+{
+	rd= getenv("rdinit");
+        if (rd != 0) // set rd /sbin/init
+          sprintf(buf, "g console=tty rdinit=%s ", rd);
+        else
+          sprintf(buf, "g console=tty rdinit=/sbin/init ");
+
+        do_cmd(buf);
+}
+	else
+{	
 	rd= getenv("rdinit");
 	if (rd != 0) // set rd /sbin/init
 	  sprintf(buf, "g console=tty rdinit=%s video=vfb:1 ", rd);
@@ -74,6 +117,8 @@ void cmd_cdinstall(void)
 
 	do_cmd(buf);
 }
+}
+
 void cmd_usbcdinstall(void)
 {
 
@@ -85,15 +130,28 @@ void cmd_usbcdinstall(void)
 	ret = do_cmd(buf);
 	if (ret != 0)
 		return;
+ flag = judge_kernel_version(elf_addr, myversion);
 
-	rd= getenv("rdinit");
-	if (rd != 0) // set rd /sbin/init
-	  sprintf(buf, "g console=tty rdinit=%s video=vfb:1 ", rd);
-	else
-	  sprintf(buf, "g console=tty rdinit=/sbin/init video=vfb:1 ");
+        if(flag == 1)
+{
+        rd= getenv("rdinit");
+        if (rd != 0) // set rd /sbin/init
+          sprintf(buf, "g console=tty rdinit=%s ", rd);
+        else
+          sprintf(buf, "g console=tty rdinit=/sbin/init ");
 
-	printf( "\n%s\n", buf);
-	do_cmd(buf);
+        do_cmd(buf);
+}
+        else
+{
+        rd= getenv("rdinit");
+        if (rd != 0) // set rd /sbin/init
+          sprintf(buf, "g console=tty rdinit=%s video=vfb:1 ", rd);
+        else
+          sprintf(buf, "g console=tty rdinit=/sbin/init video=vfb:1 ");
+
+        do_cmd(buf);
+}
 }
 
 void cmd_usbinstall(void)
@@ -114,17 +172,29 @@ void cmd_usbinstall(void)
 	}
 	if (ret != 0)
 		return;
+ flag = judge_kernel_version(elf_addr, myversion);
 
-	rd= getenv("rdinit");
-	if (rd != 0) // set rd /sbin/init
-	  sprintf(buf, "g console=tty rdinit=%s video=vfb:1 ", rd);
-	else
-	  sprintf(buf, "g console=tty rdinit=/sbin/init video=vfb:1 ");
+        if(flag == 1)
+{
+        rd= getenv("rdinit");
+        if (rd != 0) // set rd /sbin/init
+          sprintf(buf, "g console=tty rdinit=%s ", rd);
+        else
+          sprintf(buf, "g console=tty rdinit=/sbin/init ");
 
-	printf( "\n%s\n", buf);
-	do_cmd(buf);
+        do_cmd(buf);
 }
+        else
+{
+        rd= getenv("rdinit");
+        if (rd != 0) // set rd /sbin/init
+          sprintf(buf, "g console=tty rdinit=%s video=vfb:1 ", rd);
+        else
+          sprintf(buf, "g console=tty rdinit=/sbin/init video=vfb:1 ");
 
+        do_cmd(buf);
+}
+}
 static const Cmd Cmds[] =
 {
 	{"Misc"},
