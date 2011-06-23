@@ -1169,7 +1169,7 @@ int usb_storage_probe(struct usb_device *dev, unsigned int ifnum,struct us_data 
 	 * The SFF8070 accepts the requests used in u-boot
 	 */
 	if (ss->subclass != US_SC_UFI && ss->subclass != US_SC_SCSI &&
-	    ss->subclass != US_SC_8070) {
+	    ss->subclass != US_SC_8070 && ss->subclass != US_SC_8020) {
 		printf("Sorry, protocol %d not yet supported.\n",ss->subclass);
 		return 0;
 	}

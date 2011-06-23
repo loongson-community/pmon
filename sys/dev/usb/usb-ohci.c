@@ -2506,7 +2506,7 @@ int submit_common_msg(struct usb_device *dev, unsigned long pipe, void *buffer,
 	else
 		timeout = 2000;
 
-	timeout *= 40;
+	timeout *= 100;
 
 	/* wait for it to complete */
 #if 0
@@ -2782,7 +2782,7 @@ static int hc_reset (ohci_t *ohci)
 			return -1;
 		}
 //		udelay (500);		// changed for test liujl
-		udelay (1); // by xqch
+		udelay (1); 
 	}
 	return 0;
 }
