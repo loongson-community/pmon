@@ -370,7 +370,7 @@ int vga_bios_init(void)
 		memcpy(vbiosMem, (char *)(0x00000000 | romaddress),
 		       V_BIOS_SIZE);
 #if   defined(RS780E)
-        memcpy(0xc3f00000 , (char *)(0x00000000 | romaddress) , V_BIOS_SIZE);
+        memcpy(0xc7f00000 , (char *)(0x00000000 | romaddress) , V_BIOS_SIZE);
         //memcpy(0xdff00000 , (char *)(0x00000000 | romaddress) , V_BIOS_SIZE);
         //memcpy(0xc7f00000 , (char *)(0x00000000 | romaddress) , V_BIOS_SIZE);
 #endif

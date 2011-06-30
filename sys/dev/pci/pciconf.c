@@ -457,7 +457,7 @@ if(pm_io == NULL) {
 #ifdef USE_780E_VGA
                                                 if (pm->size > 0x4000000)
                                                 {
-                                                    pm->size = 0x4000000;
+                                                    pm->size = 0x8000000;
                                                 }
 #else
                                                 pm->size=0x2000000;
