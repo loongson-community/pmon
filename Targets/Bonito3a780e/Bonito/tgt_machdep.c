@@ -439,11 +439,7 @@ superio_reinit();
 #endif
 	//memorysize = memsz > 256 ? 256 << 20 : memsz << 20;
 	//memorysize_high = memsz > 256 ? (memsz - 256) << 20 : 0;
-#ifdef CONFIG_GFXUMA
-	memorysize = memsz > 128 ? 128 << 20 : memsz << 20;
-#else
 	memorysize = memsz > 240 ? 240 << 20 : memsz << 20;
-#endif
 	memorysize_high = memsz > 240 ? (((unsigned long long)memsz) - 240) << 20 : 0;
      mem_size = memsz;
 #if 0 /* whd : Disable gpu controller of MCP68 */
@@ -607,6 +603,9 @@ extern int video_hw_init (void);
 extern int init_win_device(void);
 extern int fb_init(unsigned long,unsigned long);
 
+extern unsigned long long uma_memory_base;
+extern unsigned long long uma_memory_size;
+
 void
 tgt_devconfig()
 {
@@ -692,20 +691,13 @@ tgt_devconfig()
                 fbaddress |= 0xb0000000;
                 ioaddress |= 0xb0000000;
 #endif
-/***********for what?************/
-#if (SHARED_VRAM == 128)
-		fbaddress = 0xf8000000;//64M graph memory
-#elif (SHARED_VRAM == 64)
-		fbaddress = 0xf8000000;//64M graph memory
-#elif (SHARED_VRAM == 32)
-		fbaddress = 0xfe000000;//32 graph memory
-#endif
 
 #ifdef CONFIG_GFXUMA
-		fbaddress = 0x88000000; /* FIXME */
+		fbaddress = 0x50000000; // virtual address mapped to the second 256M memory
 #else
-		fbaddress = 0xc0000000; /* FIXME */
+		fbaddress = uma_memory_base | BONITO_PCILO_BASE_VA;
 #endif
+		printf("fbaddress = %08x\n", fbaddress);
 
 		printf("begin fb_init\n");
 		fb_init(fbaddress, ioaddress);
@@ -2031,8 +2023,18 @@ tgt_mapenv(int (*func) __P((char *, char *)))
 	sprintf(env, "%d", md_cpufreq);
 	(*func)("busclock", env);
 
+	sprintf(env, "%d",VRAM_SIZE);
+	(*func)("vramsize", env);
+
+#ifdef CONFIG_GFXUMA
+	sprintf(env, "%d",1);
+#else
+	sprintf(env, "%d",0);
+#endif
+	(*func)("sharevram", env);
+
 	(*func)("systype", SYSTYPE);
-	
+
 }
 
 int

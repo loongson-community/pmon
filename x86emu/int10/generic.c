@@ -191,6 +191,11 @@ extern int vga_available;
 extern int novga;
 extern int vesa_mode;
 extern struct vesamode *vesa_mode_head;
+
+extern unsigned long long uma_memory_size;
+unsigned long long  vbios_addr;
+//static unsigned long long * vfb_top;
+
 int vga_bios_init(void)
 {
 	xf86Int10InfoPtr pInt;
@@ -370,9 +375,46 @@ int vga_bios_init(void)
 		memcpy(vbiosMem, (char *)(0x00000000 | romaddress),
 		       V_BIOS_SIZE);
 #if   defined(RS780E)
-        memcpy(0xc7f00000 , (char *)(0x00000000 | romaddress) , V_BIOS_SIZE);
-        //memcpy(0xdff00000 , (char *)(0x00000000 | romaddress) , V_BIOS_SIZE);
-        //memcpy(0xc7f00000 , (char *)(0x00000000 | romaddress) , V_BIOS_SIZE);
+
+		/*************************************************************************************************************************
+		 ********************************************  address map table as below  ***********************************************
+		 *************************************************************************************************************************
+		  uma_memory_base  vbiosMem    memory_total uma_memory_size gfx_mode  (virtual address	    <-->   physical address)
+		   0x50000000     0x53f00000    2G			  64M			  UMA	  0x40000000~0x7fffffff <--> 0x80000000~0xbfffffff
+		   0x50000000     0x57f00000    2G			  128M			  UMA	  0x40000000~0x7fffffff <--> 0x80000000~0xbfffffff
+		   0x50000000     0x5ff00000    2G			  256M			  UMA	  0x40000000~0x7fffffff <--> 0x80000000~0xbfffffff
+		   0x50000000     0x5ff00000    2G			  512M			  UMA	  0x40000000~0x7fffffff <--> 0x80000000~0xbfffffff
+		   0x50000000     0x53f00000    4G			  64M			  UMA	  0x40000000~0x7fffffff <--> 0x80000000~0xbfffffff
+		   0x50000000     0x57f00000    4G			  128M			  UMA	  0x40000000~0x7fffffff <--> 0x80000000~0xbfffffff
+		   0x50000000     0x5ff00000    4G			  256M			  UMA	  0x40000000~0x7fffffff <--> 0x80000000~0xbfffffff
+		   0x50000000     0x5ff00000    4G			  512M			  UMA	  0x40000000~0x7fffffff <--> 0x80000000~0xbfffffff
+
+		   0xc0000000     0xc3f00000    2G			  64M			  SP	  0xc0000000~0xffffffff <--> 0x40000000~0x7fffffff
+		   0xc0000000     0xc7f00000    2G			  128M			  SP	  0xc0000000~0xffffffff <--> 0x40000000~0x7fffffff
+		   0xc0000000     0xcff00000    2G			  256M			  SP      0xc0000000~0xffffffff <--> 0x40000000~0x7fffffff
+		   0xc0000000     0xdff00000    2G			  512M			  SP	  0xc0000000~0xffffffff <--> 0x40000000~0x7fffffff
+		   0xc0000000     0xc3f00000    4G			  64M			  SP	  0xc0000000~0xffffffff <--> 0x40000000~0x7fffffff
+		   0xc0000000     0xc7f00000    4G			  128M			  SP	  0xc0000000~0xffffffff <--> 0x40000000~0x7fffffff
+		   0xc0000000     0xcff00000    4G			  256M			  SP	  0xc0000000~0xffffffff <--> 0x40000000~0x7fffffff
+		   0xc0000000     0xdff00000    4G			  512M			  SP	  0xc0000000~0xffffffff <--> 0x40000000~0x7fffffff
+
+		*************************************************************************************************************************
+		*************************************************************************************************************************
+		// Rules:
+		 1. In GFX_UMA mode, always use share video frame buffer from second 256M system memory no matter how much system mem is,
+			That is because only 32-bit address is available to do config accessing for internal gpu in rs780e bridge;
+		 2. Max size of video frame buffer supported at this moment is only 512M, because usb/ifnet device need pci memory space 
+		 3. If 1G video memory need to be suported, should map 0x00000000~0x7fffffff to 0x00000e0000000000~0x00000e007fffffff 
+			both for UMA and SP mode and change above confgiruation.
+		*************************************************************************************************************************/
+	
+#ifdef CONFIG_GFXUMA
+		vbiosMem	= 0x50000000 + uma_memory_size  - 0x100000; 
+#else
+		vbiosMem	= (unsigned long) (0xc0000000 + uma_memory_size  - 0x100000 );
+#endif
+		printf("video bios address: %08x\n",vbiosMem);
+        memcpy(vbiosMem, (char *)(0x00000000 | romaddress), V_BIOS_SIZE);
 #endif
 		if (PCI_VENDOR(pdev->pa.pa_id) == 0x1002
 		    && PCI_PRODUCT(pdev->pa.pa_id) == 0x4750)
@@ -394,7 +436,7 @@ int vga_bios_init(void)
 	printf("starting bios emu...\n");
 	M.x86.debug |= /*DEBUG_STEP_F | DEBUG_DECODE_F | DEBUG_TRACE_F | DEBUG_MEM_TRACE_F */ DEBUG_IO_TRACE_F | DEBUG_DECODE_F;
 	//X86EMU_trace_on();
-//	printf("end of trace ......................................\n");
+	//printf("end of trace ......................................\n");
 	printf("ax=%lx,bx=%lx,cx=%lx,dx=%lx\n", pInt->ax, pInt->bx, pInt->cx, pInt->dx);
 	xf86ExecX86int10(pInt);
 	printf("just before emu done ax(0x%x)\n", pInt->ax);

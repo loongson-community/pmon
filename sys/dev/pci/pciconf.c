@@ -68,6 +68,9 @@
 extern char *getenv __P((const char *));
 extern long atol __P((const char *));
 
+
+
+
 extern void *pmalloc __P((size_t ));
 extern void pfree __P((void * ));
 
@@ -113,7 +116,7 @@ struct pci_bus *_pci_bushead;
 struct pci_intline_routing *_pci_inthead;
 struct pci_device *vga_dev;
 
-
+
 static void
 print_bdf (int bus, int device, int function)
 {
@@ -157,7 +160,6 @@ _pci_tagprintf (pcitag_t tag, const char *fmt, ...)
  * requirements.
  */
 
-static void
 _pci_query_dev_func (struct pci_device *dev, pcitag_t tag, int initialise)
 {
 	pcireg_t id, class;
@@ -457,7 +459,8 @@ if(pm_io == NULL) {
 #ifdef USE_780E_VGA
                                                 if (pm->size > 0x4000000)
                                                 {
-                                                    pm->size = 0x8000000;
+												    pm->size = VRAM_SIZE<<20;
+													printf("pm->size = %08x\n", pm->size);
                                                 }
 #else
                                                 pm->size=0x2000000;

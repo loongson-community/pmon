@@ -43,7 +43,7 @@ option		RS780E
 option      USE_780E_VGA
 option      VGA_NO_ROM
 option		VGA_BASE=0xbe000000
-option      SHARED_VRAM=64
+option      VRAM_SIZE=128
 option		VESAFB
 #option		DEBUG_EMU_VGA
 #option      CONFIG_GFXUMA

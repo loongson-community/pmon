@@ -36,6 +36,18 @@
 #define CLK_CNTL_INDEX	0x8
 #define CLK_CNTL_DATA	0xC
 
+extern unsigned long long memorysize;
+extern unsigned long long memorysize_high;
+
+/*
+* Set registers in RS780 and CPU to enable the internal GFX.
+* Please refer to CIM source code and BKDG.
+*/
+
+uint64_t uma_memory_top;
+uint64_t uma_memory_size;
+uint64_t uma_memory_base;
+
 /* The Integrated Info Table. */
 //ATOM_INTEGRATED_SYSTEM_INFO_V2 vgainfo;
 struct _ATOM_INTEGRATED_SYSTEM_INFO_V2 vgainfo;
@@ -189,8 +201,8 @@ static void internal_gfx_pci_dev_init(device_t nb , device_t dev)
 		temp8 |= 1<<1|1<<2;
 		pci_write_config8(dev, 0x4, temp8);
 	}
-#define PATCH_128MB
-#ifdef PATCH_128MB
+//#define PATCH_128MB
+#if( VRAMVRAM_SIZE == 128)
 	vgainfo.sHeader.usStructureSize = sizeof(ATOM_INTEGRATED_SYSTEM_INFO_V2);
         vgainfo.sHeader.ucTableFormatRevision = 1;
         vgainfo.sHeader.ucTableContentRevision = 2;
@@ -266,6 +278,19 @@ void rs780_internal_gfx_init(device_t nb_dev,device_t dev)
     u8  u8temp;
     u32 MMIOBase, apc04, apc18, apc24;
     volatile u32 * strap;
+    volatile u32 romstrap2;
+
+#ifdef CONFIG_GFXUMA
+	uma_memory_base = 0x90000000;
+	uma_memory_size = VRAM_SIZE<<20;
+	uma_memory_top = uma_memory_base + uma_memory_size;
+#else
+	uma_memory_base = PCI_MEM_SPACE_PCI_BASE;
+	uma_memory_size = VRAM_SIZE<<20;// max 256M because of graphpic chip capacity
+	uma_memory_top = PCI_MEM_SPACE_PCI_BASE + uma_memory_size;
+#endif
+	printk_info( "!!!! uma_memory_top = %08x, uma_memory_size = %x.\n",uma_memory_top,uma_memory_size);
+	printk_info( "!!!! uma_memory_top = %08x, uma_memory_size = %x.\n",uma_memory_top,uma_memory_size);
 
     /* BTDC: Get PCIe configuration space. */
     printk_info("Get PCIe configuration space.\n");
@@ -309,15 +334,32 @@ void rs780_internal_gfx_init(device_t nb_dev,device_t dev)
     strap = MMIOBase + 0x15010;
     *strap = 0x03015330;
     strap = MMIOBase + 0x15020;
+	//romstrap2 = 1 << 26; // enables audio function  
+	romstrap2 = 0; // enables audio function  
 #ifdef CONFIG_GFXUMA 
-    *strap = 0x3 << 7; /* BTDC: the format of BIF_MEM_AP_SIZE. 001->256MB? */
+	// bits 7-9: aperture size  
+	// 0-7: 128mb, 256mb, 64mb, 32mb, 512mb, 1g, 2g, 4g   
+	if (uma_memory_size == 0x02000000) romstrap2 |= 3 << 7;
+	if (uma_memory_size == 0x04000000) romstrap2 |= 2 << 7;
+	if (uma_memory_size == 0x08000000) romstrap2 |= 0 << 7;
+	if (uma_memory_size == 0x10000000) romstrap2 |= 1 << 7;
+	if (uma_memory_size == 0x20000000) romstrap2 |= 4 << 7;
+	if (uma_memory_size == 0x40000000) romstrap2 |= 5 << 7;
+	if (uma_memory_size == 0x80000000) romstrap2 |= 6 << 7;
 #else
-    *strap = 0x00; /* BTDC: 128M SP memory, 000 -> 128MB */
-    //*strap = 0x4 << 7; /* BTDC: 128M SP memory, 000 -> 512MB */
-    //*strap = 0x0 << 7; /* BTDC: 128M SP memory, 000 -> 32MB */
-    //*strap = 0x1 << 7; /* BTDC: 128M SP memory, 000 -> 32MB */
-    //*strap = 0x3 << 7; /* BTDC: 1024M SP memory, 111 -> (3+1)*128MB */
+	// bits 7-9: aperture size  
+	// 0-7: 128mb, 256mb, 64mb, 32mb, 512mb, 1g, 2g, 4g   
+	if (uma_memory_size == 0x02000000) romstrap2 |= 3 << 7;
+	if (uma_memory_size == 0x04000000) romstrap2 |= 2 << 7;
+	if (uma_memory_size == 0x08000000) romstrap2 |= 0 << 7;
+	if (uma_memory_size == 0x10000000) romstrap2 |= 1 << 7;
+	if (uma_memory_size == 0x20000000) romstrap2 |= 4 << 7;
+	if (uma_memory_size == 0x40000000) romstrap2 |= 5 << 7;
+	if (uma_memory_size == 0x80000000) romstrap2 |= 6 << 7;
+
 #endif
+    *strap = romstrap2;
+
     //strap = MMIOBase + 0x15020;
     //*strap |= 0x00000040; /* BTDC: Disable HDA device. */
     strap = MMIOBase + 0x15030;
@@ -349,21 +391,6 @@ void rs780_internal_gfx_init(device_t nb_dev,device_t dev)
 //	set_nbcfg_enable_bits(nb_dev, 0x7C, 1 << 30, 1 << 30);
 }
 
-
-/*
-* Set registers in RS780 and CPU to enable the internal GFX.
-* Please refer to CIM source code and BKDG.
-*/
-#ifdef CONFIG_GFXUMA
-static uint64_t uma_memory_base = 0x08000000;
-static uint64_t uma_memory_size = 0x04000000;
-static uint64_t uma_memory_top = 0x0c000000; //base + size
-#else
-static uint64_t uma_memory_base = PCI_MEM_SPACE_PCI_BASE;
-static uint64_t uma_memory_size = 0x08000000;
-//static uint64_t uma_memory_top = 0x08000000| PCI_MEM_SPACE_PCI_BASE; //base + size
-static uint64_t uma_memory_top = 0x08000000 | PCI_MEM_SPACE_PCI_BASE; //base + size
-#endif
 
 static void rs780_internal_gfx_enable(device_t nb , device_t dev)
 {
