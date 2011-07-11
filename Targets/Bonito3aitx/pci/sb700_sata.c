@@ -183,10 +183,10 @@ static void sata_init(device_t dev)
 
 	/* RPR7.6.3 SATA GEN II PHY port setting for port [0~5]. */
 	printk_info("sata gen II PHY port setting for port\n");
-	pci_write_config16(dev, 0xA0, 0xA016);
-	pci_write_config16(dev, 0xA2, 0xA016);
-	pci_write_config16(dev, 0xA4, 0xA016);
-	pci_write_config16(dev, 0xA6, 0xA016);
+	pci_write_config16(dev, 0xA0, 0xA076);
+	pci_write_config16(dev, 0xA2, 0xA076);
+	pci_write_config16(dev, 0xA4, 0xA076);
+	pci_write_config16(dev, 0xA6, 0xA076);
 	pci_write_config16(dev, 0xA8, 0xA07A);
 	pci_write_config16(dev, 0xAA, 0xA07A);
 

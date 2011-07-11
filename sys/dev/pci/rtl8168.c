@@ -2911,7 +2911,7 @@ static void rtl8168_hw_start(struct rtl8168_private *tp)
 			RTL_W16(tp, CPlusCmd, tp->cp_cmd);
 		}
 #endif
-		RTL_W8(tp, Config1, 0xDF);
+		//RTL_W8(tp, Config1, 0xDF);
 
 		/* set EPHY registers */
 		rtl8168_ephy_write(tp, 0x01, 0x6C7F);
@@ -2961,7 +2961,7 @@ static void rtl8168_hw_start(struct rtl8168_private *tp)
 			RTL_W16(tp, CPlusCmd, tp->cp_cmd);
 		}
 #endif
-		RTL_W8(tp, Config1, 0xDF);
+		//RTL_W8(tp, Config1, 0xDF);
 
 	} else if (tp->mcfg == CFG_METHOD_1) {
 		RTL_W8(tp, Config3, RTL_R8(tp, Config3) & ~Beacon_en);
