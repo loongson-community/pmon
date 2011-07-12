@@ -459,7 +459,8 @@ if(pm_io == NULL) {
 #ifdef USE_780E_VGA
                                                 if (pm->size > 0x4000000)
                                                 {
-												    pm->size = VRAM_SIZE<<20;
+												    pm->size = 0x8000000;
+												    //pm->size = VRAM_SIZE<<20;
 													printf("pm->size = %08x\n", pm->size);
                                                 }
 #else

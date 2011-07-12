@@ -451,7 +451,8 @@ li      t1, 0x00e0      # {cu3,cu2,cu1,cu0}<={0110, status_fr<=1
 
 		bal	initserial
 		nop
-
+		bal     initserial1
+		nop
 		//#define DEBUG_LS3
 #ifdef DEBUG_LS3
 		dli     a0, 0xfff
@@ -1790,6 +1791,8 @@ ddr_config_entry:
 		beqz	a0, 2f
 		nop
 		bal	tgt_putchar
+		nop
+		bal     tgt_putchar1
 		addiu	a1, 1
 		b	1b
 		lbu	a0, 0(a1)
@@ -1883,6 +1886,25 @@ ddr_config_entry:
 		nop	
 		END(tgt_putchar)
 #endif
+		 LEAF(tgt_putchar1)
+                la      v0,GS3_UART1_BASE
+                1:
+                lbu     v1, NSREG(NS16550_LSR)(v0)
+                and     v1, LSR_TXRDY
+#       li      v1, 1
+                beqz    v1, 1b
+                nop
+
+                sb      a0, NSREG(NS16550_DATA)(v0)
+                move    v1, v0
+                la      v0, GS3_UART1_BASE
+                bne     v0, v1, 1b
+                nop
+
+                j       ra
+                nop
+                END(tgt_putchar1)
+
 		LEAF(beep_on)
 		nop
 		dli	t1,0x90000cfdfe00a080
@@ -2008,6 +2030,33 @@ ddr_config_entry:
 		nop
 		END(initserial)
 #endif
+ 		LEAF(initserial1)
+                li  a0, GS3_UART1_BASE
+
+                li      t1,128
+#       addiu   a2,a0,3
+                sb      t1,3(a0)
+                li      t1,0x12      # divider, highest possible baud rate
+                sb      t1,0(a0)
+                li      t1,0x0     # divider, highest possible baud rate
+                sb      t1,1(a0)
+                li      t1,3
+                sb      t1,3(a0)
+
+#srl    t1,t1,0x8
+                li      t1,0
+                sb      t1,1(a0)
+#li     t1,1      # divider, highest possible baud rate
+
+
+                li      t1,71
+                sb      t1,2(a0)
+                jr      ra
+		nop
+                END(initserial1)
+
+
+
 
 		LEAF(initserial_COM1)
 		la	v0, COM1_BASE_ADDR
