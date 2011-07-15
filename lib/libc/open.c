@@ -110,15 +110,9 @@ open(filename, mode)
         j = filesys_type(dname);
         if (j == 1){
             i = __try_open(fname, mode, "fs", lu, 0);
-            if (i < 0 ){
-                i = __try_open(fname, mode, "fat", lu, 0);
-            }
 
         }else if (j == 2){
             i = __try_open(fname, mode, "fat", lu, 0);
-            if (i < 0 && errno != EISDIR){
-                i = __try_open(fname, mode, "fs", lu, 0);
-            }       
         }
 
 	}

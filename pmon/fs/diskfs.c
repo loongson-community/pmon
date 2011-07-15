@@ -53,10 +53,12 @@ extern DiskPartitionTable* FindPartitionFromDev(DiskPartitionTable* table, const
 extern DiskPartitionTable* FindPartitionFromID(DiskPartitionTable* table, int index);
 
 #define EXT2  0x83
-#define FAT16 0x6
-#define FAT16_1 0xE
-#define FAT32 0xB
-#define FAT32_1 0xC
+#define FAT16_1 0x4
+#define FAT16_2 0x6
+#define W95_FAT16 0xE
+#define W95_FAT32_1 0xB
+#define W95_FAT32_2 0xC
+#define FAT32  0x1
 int filesys_type(char *fname)
 {
 	DiskPartitionTable* pPart;
@@ -122,11 +124,13 @@ int filesys_type(char *fname)
     {
         case EXT2:
                 return 1;
-        case FAT16:
         case FAT16_1:
+        case FAT16_2:
+        case W95_FAT16:
         case FAT32:
-        case FAT32_1:
-                return 2;
+        case W95_FAT32_1:
+        case W95_FAT32_2:
+               return 2;
         default:
                 return 1;
     }

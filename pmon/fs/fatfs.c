@@ -161,6 +161,7 @@ fat_open(int fd, const char *path, int flags, int mode)
 	int partition = 0, dpathlen;
 	char * p;
 
+
 	memset(fatpath, 0, sizeof(fatpath));
 	if(path_convert(fatpath, path) == -1)
         opath = path;
@@ -481,6 +482,8 @@ int fat_getPartition(struct fat_sc *fsc, int partition)
 	u_int32_t current_secnum = 0;
 	int id;
 
+
+
 	fsc->PartitionStart = 0;
 	devio_read(fsc->fd, buffer, SECTORSIZE);
 	/*
@@ -516,8 +519,15 @@ int fat_getPartition(struct fat_sc *fsc, int partition)
 		return (1);
 	}
 
-	fsc->PartitionStart = letoh32(mbr->partition[partition].relsect);
-	return (1);
+    if ((buffer[0]==0xEB)&& (buffer[1]==0x58)&& (buffer[2]==0x90))
+    {
+        fsc->PartitionStart = 0;
+    }
+    else
+    {
+	    fsc->PartitionStart = letoh32(mbr->partition[partition].relsect);
+    }
+    return (1);
 }
 
 int fat_init(int fd, struct fat_sc *fsc, int partition)
@@ -528,6 +538,8 @@ int fat_init(int fd, struct fat_sc *fsc, int partition)
 	bzero(fsc, sizeof(struct fat_sc));
 
 	fsc->fd = fd;
+
+
 
 	/*
 	 * Check for partition
@@ -561,6 +573,8 @@ int fat_init(int fd, struct fat_sc *fsc, int partition)
 	fsc->SecPerClust = bpb->bpbSecPerClust;
 	fsc->NumFATs = bpb->bpbFATs;
 	fsc->FatCacheNum = -1;
+
+
 
 	if (bpb->bpbFATsecs != 0)
 		fsc->FATsecs = (u_int32_t)letoh16(bpb->bpbFATsecs);

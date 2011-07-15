@@ -223,6 +223,22 @@ static int read_primary_part_table(int fd, __u32 mbr_sec_off, DiskPartitionTable
 	}
 #endif
 	
+    if ((leadbuf[0]==0xEB)&& (leadbuf[1]==0x58)&& (leadbuf[2]==0x90))
+    {
+		part = (DiskPartitionTable *)malloc(sizeof(DiskPartitionTable));
+		memset(part, 0, sizeof(DiskPartitionTable));
+        part->tag = 0x1;//FAT32
+		part->Next = NULL;
+		part->logical = NULL;
+		part->fs = NULL;
+		part->bootflag = 0;
+		part->sec_begin = 0;
+		part_node_insert(table, part);
+        part->id = 1;;
+		cnt++;
+    }
+    else{
+
 	//search the partion table to find the partition with id=0x83 and 0x05
 	for (cnt = 0, i = 446; i < 510; i += 0x10)
 	{
@@ -259,6 +275,7 @@ static int read_primary_part_table(int fd, __u32 mbr_sec_off, DiskPartitionTable
 		cnt++;
 		id++;
 	}
+    } 
 	free(leadbuf);
 	return cnt;
 }
