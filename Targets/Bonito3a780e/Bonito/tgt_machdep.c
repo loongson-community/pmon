@@ -650,7 +650,7 @@ void
 tgt_reboot()
 {
 	/* Send reboot command */
-	ec_wr_noindex(CMD_RESET, BIT_RESET_ON);
+	ec_wr_noindex(CMD_RESET, INDEX_RESET_ON);
 
 	while(1);
 }
@@ -658,7 +658,7 @@ tgt_reboot()
 void
 tgt_poweroff()
 {
-	ec_wr_noindex(CMD_RESET, BIT_PWROFF_ON);
+	ec_wr_noindex(CMD_RESET, INDEX_PWROFF_ON);
 	while(1);
 }
 

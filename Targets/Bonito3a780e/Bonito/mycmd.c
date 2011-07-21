@@ -535,7 +535,7 @@ static int cmd_rdport(int ac, char *av[])
 	return 0;
 }
 
-static int cmd_wr775(int ac, char *av[])
+static int cmd_wrec(int ac, char *av[])
 {
 	u8 index;
 	u8 cmd;
@@ -579,7 +579,7 @@ static int cmd_wr775(int ac, char *av[])
  * return: value (hex, dec, char)
  * daway added 2010-01-13
  */
-static int cmd_rd775(int ac, char *av[])
+static int cmd_rdec(int ac, char *av[])
 {
 	u8 i;
 	u8 cmd, index;
@@ -925,6 +925,28 @@ static int cmd_wrrom(int ac, char *av[])
 
 	return 0;
 }
+
+static int cmd_wrSharedAddress(int ac, char *av[])
+{
+	/* Write shared flash base address to SHAW1BA register. */
+	wrldn(LDN_SHM, SHAW1BA_2, (FLASH_WIN_BASE_ADDR & 0x00FF0000) >> 16);
+#ifdef LOONGSON3A_3A780E
+	wrldn(LDN_SHM, SHAW1BA_3, ((FLASH_WIN_BASE_ADDR & 0x1F000000) >> 24));
+#endif
+#ifdef LOONGSON2F_3GNB
+	wrldn(LDN_SHM, SHAW1BA_3, ((FLASH_WIN_BASE_ADDR & 0xFF000000) >> 24) & 0x0F);
+#endif
+	/* Write shared ram base address to SHAW2BA register. */
+	wrldn(LDN_SHM, SHAW2BA_2, (WCB_BASE_ADDR & 0x00FF0000) >> 16);
+#ifdef LOONGSON3A_3A780E
+	wrldn(LDN_SHM, SHAW2BA_3, ((WCB_BASE_ADDR & 0x1F000000) >> 24));
+#endif
+#ifdef LOONGSON2F_3GNB
+	wrldn(LDN_SHM, SHAW2BA_3, ((WCB_BASE_ADDR & 0xFF000000) >> 24) & 0x0F);
+#endif
+
+	return 0;
+}
 #endif // end if 1
 
 /*
@@ -943,6 +965,7 @@ static int cmd_rdbat(int ac, char *av[])
 	u8 bat_DeviceChem[4];
 	u8 *time_type = "Unknown";
 	u8 *bat_charging_status_string = "Unknown";
+	u8 bat_cell_count_string[4];
 	u16 bat_DesignCapacity;
 	u16 bat_DesignVoltage;
 	u16 bat_ManufactureDate;
@@ -1007,8 +1030,17 @@ static int cmd_rdbat(int ac, char *av[])
 		}
 		bat_DeviceChem[i] = '\0';
 
+		/* Read battery Cell count. */
+		ByteSize = BATTERY_CELLCOUNT_SIZE;
+		for(i = 0; i < ByteSize; i++)
+		{
+			bat_cell_count_string[i] = ec_read(CMD_READ_EC, INDEX_BATTERY_CELLCOUNT_START + i);
+		}
+		bat_cell_count_string[i] = '\0';
+
 		printf("Design Capacity: %dmAh, Design Voltage: %dmV, Manufacture Date: %d-%d-%d\n",
 				bat_DesignCapacity, bat_DesignVoltage, m_year, m_month, m_day);
+		//printf("Serial Number: 0x%x, Manufacturer Name: %s, Device Name: %s, Device Chemistry: %s\n",
 		printf("Serial Number: 0x%x, Manufacturer Name: %s, Device Name: %s, Device Chemistry: %s\n",
 				bat_sn, bat_ManufacturerName, bat_DeviceName, bat_DeviceChem);
 		/* <<<<<End read battery static information. */
@@ -1055,7 +1087,14 @@ static int cmd_rdbat(int ac, char *av[])
 			remain_charge_time |= (((u16) ec_read(CMD_READ_EC, INDEX_BATTERY_ATTF_HIGH)) << 8);
 			if(power_status & BIT_POWER_BATCHG)
 			{
-				bat_charging_status_string = "Charging";
+				if(ec_read(CMD_READ_EC, INDEX_BATTERY_CHGSTS_HIGH) & BIT_BATTERY_CHGSTS_PCHG)
+				{
+					bat_charging_status_string = "Precharging";
+				}
+				else
+				{
+					bat_charging_status_string = "Normal Charging";
+				}
 			}
 			else
 			if(power_status & BIT_POWER_BATFCHG)
@@ -1088,10 +1127,10 @@ static int cmd_rdbat(int ac, char *av[])
 			}
 			time_type = "Remaining";  // Indicates predicted remaining battery life, base on AverageCurrent.
 		}
-		printf("Voltage: %dmV, AverageCurrent: %c%dmA, Capacity: %dmAh %d%%, Temperature: %d\n%sTime: %dmin, ChargeStatus: %s\n",
-				bat_voltage, current_sign, bat_current, bat_remaining_capacity, bat_capacity,
-				bat_temperature, time_type, remain_charge_time,
-				bat_charging_status_string);
+		printf("Voltage: %dmV, AverageCurrent: %c%dmA, Capacity: %dmAh %d%%, Temperature: %d\n",
+				bat_voltage, current_sign, bat_current, bat_remaining_capacity, bat_capacity, bat_temperature);
+		printf("%sTime: %dmin, ChargeStatus: %s, CellNumber: %s\n",
+				time_type, remain_charge_time, bat_charging_status_string, bat_cell_count_string);
 	}
 	else
 	{
@@ -1144,10 +1183,11 @@ static const Cmd Cmds[] =
 	{"rdrom", "reg", NULL, "WPCE775L read flash test", cmd_rdrom, 2, 99, CMD_REPEAT},
 	{"rdstsreg", "", NULL, "WPCE775L EC ID read test", cmd_rdstsreg, 0, 99, CMD_REPEAT},
 	{"wrstsreg", "reg", NULL, "WPCE775L read flash test", cmd_wrstsreg, 2, 99, CMD_REPEAT},
+	{"wrmapaddr", "reg", NULL, "WPCE775L shared memory reg write test", cmd_wrSharedAddress, 0, 99, CMD_REPEAT},
 
 	{"tsci", "", NULL, "WPCE775L EC ID read test", cmd_test_sci, 0, 99, CMD_REPEAT},
-	{"wr775", "reg", NULL, "WPCE775L Space write test", cmd_wr775, 2, 99, CMD_REPEAT},
-	{"rd775", "reg", NULL, "WPCE775L Space read test", cmd_rd775, 2, 99, CMD_REPEAT},
+	{"wrec", "reg", NULL, "WPCE775L Space write test", cmd_wrec, 2, 99, CMD_REPEAT},
+	{"rdec", "reg", NULL, "WPCE775L Space read test", cmd_rdec, 2, 99, CMD_REPEAT},
 	{"rdids", "", NULL, "WPCE775L EC ID read test", cmd_rdids, 0, 99, CMD_REPEAT},
 	{"rdecver", "", NULL, "EC F/W version for LS3ANB read test", cmd_rdecver, 0, 99, CMD_REPEAT},
 	{"rdbat", "", NULL, "WPCE775L battery reg read test", cmd_rdbat, 0, 99, CMD_REPEAT},
