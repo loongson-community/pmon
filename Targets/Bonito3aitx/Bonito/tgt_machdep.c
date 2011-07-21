@@ -209,6 +209,88 @@ void movinv1(int iter, ulong p1, ulong p2);
 pcireg_t _pci_allocate_io(struct pci_device *dev, vm_size_t size);
 static void superio_reinit();
 
+/* 
+ * 3A ITX(A1101) reset method 
+ *
+ * Loongson3A have 16 GPIOs,
+ * GPIO1,GPIO3,GPIO4 & GPIO14 are used in driver watchdog chip(MAX6369)
+ *
+ * GPIO14 should keep high/low to start watchdog counter.
+ *
+ * GPIO1, GPIO4 & GPIO3 are link to watchdong pin SET2, SET1, SET0.
+ * SET2, SET1, SET0 determine watchdog timing characteristics, the timing table as follow:
+ *
+ * [SET2, SET1, SET0]     watchdog timeout period
+ *
+ *   [0, 0, 0]			  1 ms
+ *   [0, 0, 1]			 10 ms
+ *   [0, 1, 0]			 30 ms
+ *   [0, 1, 1]			Disable
+ *   [1, 0, 0]			100 ms
+ *   [1, 0, 1]			   1 s
+ *   [1, 1, 0]			  10 s
+ *   [1, 1, 1]			  60 s
+ */
+
+#define GPIO1	(1<<1)
+#define GPIO3	(1<<3)
+#define GPIO4	(1<<4)
+#define GPIO14	(1<<14)
+
+#define LOONGSON3A_GPIO_OUTPUT_DATA	0xbfe0011c
+#define LOONGSON3A_GPIO_OUTPUT_ENABLE	0xbfe00120
+
+static void loongson3a_gpio_out_low(u32 gpio)
+{
+	u32 reg;
+
+	/* set output low level*/
+	reg = *(u32 *)LOONGSON3A_GPIO_OUTPUT_DATA;
+	reg &= ~(gpio);
+	*(u32 *)LOONGSON3A_GPIO_OUTPUT_DATA = reg;
+
+	/* enable output*/
+	reg = *(u32 *)LOONGSON3A_GPIO_OUTPUT_ENABLE;
+	reg &= ~(gpio);
+	*(u32 *)LOONGSON3A_GPIO_OUTPUT_ENABLE = reg;
+}
+
+static void loongson3a_gpio_out_high(u32 gpio)
+{
+	u32 reg;
+
+	/* set output high level*/
+	reg = *(u32 *)LOONGSON3A_GPIO_OUTPUT_DATA;
+	reg |= (gpio);
+	*(u32 *)LOONGSON3A_GPIO_OUTPUT_DATA = reg;
+
+	/* enable output*/
+	reg = *(u32 *)LOONGSON3A_GPIO_OUTPUT_ENABLE;
+	reg &= ~(gpio);
+	*(u32 *)LOONGSON3A_GPIO_OUTPUT_ENABLE = reg;
+}
+
+static void enable_cpu_watchdog(void)
+{
+	loongson3a_gpio_out_high(GPIO14);
+	
+	/* [SET2, SET1, SET0] ---  [0, 0, 0]  ---  1ms */
+	loongson3a_gpio_out_low(GPIO1);
+	loongson3a_gpio_out_low(GPIO4);
+	loongson3a_gpio_out_low(GPIO3);
+	
+	/* start watchdog counter */
+	loongson3a_gpio_out_low (GPIO14);
+}
+
+static void disable_cpu_watchdog(void)
+{
+	/* [SET2, SET1, SET0] ---  [0, 1, 1]  ---  disable */
+	loongson3a_gpio_out_low (GPIO1);
+	loongson3a_gpio_out_high(GPIO4);
+	loongson3a_gpio_out_high(GPIO3);
+}
+
 void
 initmips(unsigned int memsz)
 {
@@ -616,58 +698,10 @@ tgt_devinit()
 	sb700_after_pci_fixup();
 }
 
-extern void watchdog_enable(void);
 void
 tgt_reboot()
 {
-#if 0
-	unsigned char * reg_cf9		 = (unsigned char *)0xb8000cf9;
-
-    //From coreboot
-	delay(20000);
-	*reg_cf9 = 0xa;
-	*reg_cf9 = 0xe;
-#else
-	char * watch_dog_base		 = 0xb8000cd6;
-	char * watch_dog_config		 = 0xba00a041;
-	unsigned int * watch_dog_mem = 0xbe010000;
-	unsigned char * reg_cf9		 = (unsigned char *)0xb8000cf9;
-
-	delay(20000);
-	*reg_cf9 = 0;
-
-	/* enable WatchDogTimer */
-	delay(100);
-	watchdog_enable();
-
-	/* set WatchDogTimer base address is 0x10000 */
-	delay(100);
-	* watch_dog_base = 0x6c;
-	*(watch_dog_base + 1) = 0x0;
-
-	delay(100);
-	* watch_dog_base = 0x6d;
-	*(watch_dog_base + 1) = 0x0;
-
-	delay(100);
-	* watch_dog_base = 0x6e;
-	*(watch_dog_base + 1) = 0x1;
-
-	delay(100);
-	* watch_dog_base = 0x6f;
-	*(watch_dog_base + 1) = 0x0;
-
-	delay(100);
-	* watch_dog_config = 0xff;
-
-	/* set WatchDogTimer to starting */
-	delay(100);
-	* watch_dog_mem = 0x01;
-	delay(100);
-	*(watch_dog_mem + 1) = 0x01;
-	delay(100);
-	* watch_dog_mem = 0x81;
-#endif
+	enable_cpu_watchdog();
 }
 
 void

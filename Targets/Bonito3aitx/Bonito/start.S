@@ -98,15 +98,13 @@ nop;
 
 /* WatchDog Close for chip MAX6369*/
 #define WatchDog_Close \
-GPIO_CLEAR_OUTPUT(0x1<<5); \
-GPIO_SET_OUTPUT(0x1<<3|0x1<<4); \
-GPIO_CLEAR_OUTPUT(0x1<<13); \
+GPIO_CLEAR_OUTPUT(0x1<<1); \
+GPIO_SET_OUTPUT(0x1<<3|0x1<<4);
 
 /* WatchDog Enable for chip MAX6369*/
 #define WatchDog_Enable \
-GPIO_CLEAR_OUTPUT(0x1<<13); \
 GPIO_SET_OUTPUT(0x1<<14); \
-GPIO_SET_OUTPUT(0x1<<5); \
+GPIO_SET_OUTPUT(0x1<<1); \
 GPIO_CLEAR_OUTPUT(0x1<<4); \
 GPIO_SET_OUTPUT(0x1<<3); \
 GPIO_CLEAR_OUTPUT(0x1<<14); \
@@ -114,8 +112,7 @@ li v1,0x100;\
 78:; \
 subu v1,1; \
 bnez v1,78b; \
-nop; \
-GPIO_SET_OUTPUT(0x1<<13); 
+nop;
 
 
 #define CONFIG_CACHE_64K_4WAY 1
