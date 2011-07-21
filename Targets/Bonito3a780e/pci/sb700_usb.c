@@ -7,7 +7,7 @@ static void usb_init(device_t dev)
 	u8 byte;
 	u16 word;
 	u32 dword;
-	device_t sm_dev;
+	device_t sm_dev,ehci0_dev;
 //lycheng do in tgt_devinit()
 #if 1
 	/* Enable OHCI0-4 and EHCI Controllers */
@@ -65,6 +65,11 @@ static void usb_init(device_t dev)
         /*enable io/memory space*/
 	pci_write_config8(dev, 0x04, (1<<0|1<<1|1<<2)); 
 #endif
+       /* avoid two USB2.0 devices conflict */
+       ehci0_dev = _pci_make_tag(0, 0x12, 2);
+       dword = pci_read_config32(ehci0_dev, 0x50);
+       dword |= (1 << 27);
+       pci_write_config32(ehci0_dev, 0x50, dword);
 }
 
 static void usb_init2(device_t dev)
