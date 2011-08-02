@@ -448,11 +448,11 @@ ddr_2GB_MC0:
         b       2f
         nop
 ddr_1GB_MC0:
-	    PRINTSTR("MC0 space open : 0x40000000 - 0x7FFFFFFF\r\n")
+	    PRINTSTR("MC0 space open : 0x80000000 - 0xbFFFFFFF\r\n")
 
         GET_NODE_ID_a0;
         XBAR_CONFIG_NODE_a0(0x20, \
-                            0x0000000040000000, \
+                            0x0000000080000000, \
                             0xffffffffc0000000, \
                             0x00000000000000f0)
         b       2f
@@ -508,11 +508,11 @@ ddr_2GB_MC1:
         b       3f
         nop
 ddr_1GB_MC1:
-	    PRINTSTR("MC1 space open : 0x40000000 - 0x7FFFFFFF\r\n")
+	    PRINTSTR("MC1 space open : 0x80000000 - 0xbFFFFFFF\r\n")
 
         GET_NODE_ID_a0;
         XBAR_CONFIG_NODE_a0(0x20, \
-                            0x0000000040000000, \
+                            0x0000000080000000, \
                             0xffffffffc0000000, \
                             0x00000000000000f1)
         b       3f
