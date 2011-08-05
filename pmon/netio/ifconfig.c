@@ -49,8 +49,6 @@
 #endif
 #include <net/route.h>
 
-#include <netinet/in_var.h> /*add*/
-
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -89,22 +87,13 @@ int
 ifconfig (ifname, ipaddr)
 	char *ifname;
 	char *ipaddr;
-{       
-        struct ifreq *ifr;
-        struct in_aliasreq *ifra;
-        struct in_aliasreq data;
-
+{
 	struct sockaddr local, loop;
 	struct sockaddr zmask;
 	struct bootparams bootp;
 	struct ifaliasreq addreq;
 	char *gw;
 	int s, bootplev;
-
-        ifra=(void *)&data;
-        ifr=(void *)&data;
-        bzero (ifra, sizeof(*ifra));
-        strcpy(ifr->ifr_name,ifname);
 
 	if (ifname == NULL) {
 		printf("ifconfig: no ifc name\n");
@@ -121,6 +110,7 @@ ifconfig (ifname, ipaddr)
 		return(0);
 	}
 
+		//printf("bootp=%x\n",&bootp);
 	/*
 	 * Get the parameters for the ethernet interface 
 	 */
@@ -191,13 +181,16 @@ ifconfig (ifname, ipaddr)
 	}
 	/* remember our local address for later */
 	local = *SAD(addreq.ifra_addr);
-  /* now set our actual address */
-      while(ioctl(s, SIOCGIFADDR, ifra)==0)
-                {
-                (void) ioctl(s, SIOCDIFADDR, ifr);
-                }
-                setsin (SIN(ifra->ifra_addr), AF_INET, inet_addr(ipaddr));
-                (void) ioctl(s, SIOCSIFADDR, ifra);
+
+	/* now set our actual address */
+	if (ioctl(s, SIOCAIFADDR, &addreq) < 0) {
+		/* Assume this means no network interface to attach to */
+		fprintf (stderr, "\nNOTICE: No network interface available\n");
+		/*perror("ioctl (SIOCAIFADDR)"); */
+		close (s);
+		return(0);
+	}
+
 	/*
 	 * Configure the loopback i/f (lo0).
 	 */
