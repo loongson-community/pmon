@@ -1209,10 +1209,10 @@ int i;
                 break;
 
 	default:
-		while(ioctl(s, SIOCGIFADDR, ifra)==0)
-		{
-		(void) ioctl(s, SIOCDIFADDR, ifr);
-		}
+		//while(ioctl(s, SIOCGIFADDR, ifra)==0)
+		//{
+		//(void) ioctl(s, SIOCDIFADDR, ifr);
+		//}
 		setsin (SIN(ifra->ifra_addr), AF_INET, inet_addr(argv[2]));
 		(void) ioctl(s, SIOCSIFADDR, ifra);
 		if(argc>=4)
@@ -1239,7 +1239,7 @@ bzero (&ifr, sizeof(ifr));
 strcpy(ifr.ifr_name,argv[1]);
 (void) ioctl(s, SIOCGIFADDR, &ifr);
 printf("%s",inet_ntoa(satosin(&ifr.ifr_addr)->sin_addr));
-(void) ioctl(s, SIOCDIFADDR, &ifr);
+//(void) ioctl(s, SIOCDIFADDR, &ifr);
 ifr.ifr_flags=0;
 (void) ioctl(s,SIOCSIFFLAGS,(void *)&ifr);
 close(s);

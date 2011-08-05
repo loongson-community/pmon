@@ -183,6 +183,7 @@ ifconfig (ifname, ipaddr)
 	local = *SAD(addreq.ifra_addr);
 
 	/* now set our actual address */
+	ioctl(s, SIOCSIFADDR, &addreq); 
 	if (ioctl(s, SIOCAIFADDR, &addreq) < 0) {
 		/* Assume this means no network interface to attach to */
 		fprintf (stderr, "\nNOTICE: No network interface available\n");
@@ -205,7 +206,7 @@ ifconfig (ifname, ipaddr)
 		perror("ioctl (SIOCAIFADDR) loopback");
 		close (s);
 		return(0);
-	}
+	 }
 
 	/*
 	 * Now setup the routing tables, equivalent to:
