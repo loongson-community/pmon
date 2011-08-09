@@ -168,6 +168,18 @@ GPIO_SET_OUTPUT(0x1<<13);
 #define CP0_DEPC   $24
 #define CP0_DESAVE $31
 
+//str need
+#define STR_XBAR_CONFIG_NODE_a0(OFFSET, BASE, MASK, MMAP) \
+                        daddi   v0, t0, OFFSET;       \
+                        dli     t1, BASE;             \
+                        or      t1, t1, a0;           \
+                        sd      t1, 0x00(v0);         \
+                        dli     t1, MASK;             \
+                        sd      t1, 0x40(v0);         \
+                        dli     t1, MMAP;             \
+                        sd      t1, 0x80(v0);
+
+
 /*
  *   Register usage:
  *
@@ -271,7 +283,82 @@ la	gp, _gp
 	bal	stringserial
 	nop
 
+    //str debug
+    .align  8            /* bfc00500*/
 
+#if 1
+1:      lui   t0, 0xbfe0  /* Enable DDR control register  */
+        lw    t1, 0x0180(t0)
+        nop
+        li    t2, 0xfffffeff
+        and   t1, t1, t2
+        sw    t1, 0x0180(t0)
+        sync
+
+        li  a0,0x0
+        dli     t0, 0x900000003ff00000
+
+        STR_XBAR_CONFIG_NODE_a0(0x10, \
+                            0x0000000000000000, \
+                            0xfffffffff0000000, \
+                            0x00000000000000f0)        
+        dli     a0, 0x900000000ff00000
+        ld      t1, 0x30(a0)
+        dli     t3, 0x0000000100000000
+        or      t1, t1, t3  /* bit32 for self refresh*/
+        sd      t1, 0x30(a0)
+        
+        sync
+
+        li  a0,0x0
+        dli     t0, 0x900000003ff00000
+
+        STR_XBAR_CONFIG_NODE_a0(0x10, \
+                            0x0000000000000000, \
+                            0xfffffffff0000000, \
+                            0x00000000000000f1)
+        dli     a0, 0x900000000ff00000
+        ld      t1, 0x30(a0)
+        dli     t3, 0x0000000100000000
+        or      t1, t1, t3  /* bit32 for self refresh*/
+        sd      t1, 0x30(a0)
+        sync
+#endif
+        //info ec
+        lui    t1, 0xb800
+        li     t6, 0x100000
+1:      lb     t2, 0x66(t1)
+        li     t3, 2
+        and    t2, t2, t3
+        subu   t6,0x1
+        beqz   t6,1f
+        nop
+        bnez   t2, 1b
+        nop
+        li     t2, 0x4e
+        sb    t2, 0x66(t1)
+        sync
+        nop
+        nop
+        nop
+        li     t6, 0x100000
+2:      lb     t2, 0x66(t1)
+        li     t3, 2
+        and    t2, t2, t3
+        subu   t6,0x1
+        beqz   t6,1f
+        nop
+        bnez   t2, 2b
+        nop
+        li     t2, 0x03
+        sb     t2, 0x62(t1)
+        sync
+	
+	jr ra
+	nop
+1:
+	b  1b
+	nop
 
 	exc_common:
 	PRINTSTR("\r\nCAUSE=")
@@ -1058,8 +1145,8 @@ ddr_config_entry:
         li      t7, 2
 tmem:
         //li      t0, 0xa0000000+1*1024*1024
-        li      t0, 0xa0000000+1*1024
-        li      t1, 0xa0000000
+        li      t0, 0xaf000000+1*1024
+        li      t1, 0xaf000000
         li      t2, 0xffffffff
 1:
         sw      t2, 0(t1)

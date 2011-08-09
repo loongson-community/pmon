@@ -116,7 +116,7 @@ static struct stdenv {
 	{"Version", "LM9019-1.0.3", 0},
 #endif
 #ifdef LOONGSON3A_3A780E
-	{"Version", "A1004-1.1.5", 0},
+	{"Version", "A1004-1.1.6", 0},
 #endif
 #ifdef LOONGSON3A_3AITX
 	{"Version", "A1101-1.1.1", 0},

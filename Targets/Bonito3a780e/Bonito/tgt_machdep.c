@@ -225,6 +225,48 @@ void lvds_reg_init()
     }
 }
 
+uint64_t cmos_read64(unsigned long addr)
+{
+	unsigned char bytes[8];
+	int i;
+
+	for(i=0; i<8; i++)
+		bytes[i] = CMOS_READ(addr + i);
+
+	return *(uint64_t *)bytes;
+}
+
+void cmos_write64(uint64_t data, unsigned long addr)
+{
+	int i;
+	unsigned char * bytes = (unsigned char *)&data;
+
+	for(i=0; i<8; i++)
+		CMOS_WRITE(bytes[i], addr + i);
+}
+
+void check_str()
+{
+	uint64_t str_ra, str_sp;
+
+	str_ra = cmos_read64(0x40);
+	str_sp = cmos_read64(0x48);
+	tgt_printf("SP=%llx, RA=%llx\n",str_sp,str_ra);
+	if(!str_ra) return;
+
+	cmos_write64(0x0,0x40);
+	cmos_write64(0x0,0x48);
+	__asm__ __volatile__(
+	"       .set    noat                             \n"
+	"       move    $sp, %0                          \n"
+	"       jr      %1                               \n"
+	"       nop                                      \n"
+	"       .set    at                               \n"
+	: /* No outputs */
+	: "r" (str_sp), "r" (str_ra));
+}
+
+
 void
 initmips(unsigned int memsz)
 {

@@ -8,8 +8,13 @@ else
 CC=${PMONCC}
 endif
 
+ifeq ($(3A_NB),1)
+GZROMSTARTADDR=0xffffffff8f800000
+ROMSTARTADDR=0xffffffff8f010000
+else
 GZROMSTARTADDR=0xffffffff81000000
 ROMSTARTADDR=0xffffffff80010000
+endif
 RAMSTARTADDR=0xffffffff80200000
 export CC += ${MYCC}
 

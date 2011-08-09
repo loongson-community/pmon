@@ -656,6 +656,10 @@ dbginit (char *adr)
 
     tgt_devinit();
 
+#ifdef LOONGSON3A_3A780E
+    check_str();
+#endif
+
 	/* daway added 2011-02-18 */
 #ifdef LOONGSON3A_3A780E
 	/* get ec version */
