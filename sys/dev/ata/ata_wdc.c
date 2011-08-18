@@ -183,7 +183,8 @@ _wdc_ata_bio_start(chp, xfer)
 	struct ata_bio *ata_bio = xfer->cmd;
 	struct ata_drive_datas *drvp = &chp->ch_drive[xfer->drive];
 	u_int16_t cyl;
-	u_int8_t head, sect, cmd = 0;
+	u_int8_t head1, head, sect, cmd = 0;
+	u_int8_t LBA1,LBA2,LBA3,LBA4,LBA5,LBA6,precomp;
 	int nblks;
 	int ata_delay;
 #if !defined(PMON) || defined(IDE_DMA)
@@ -244,22 +245,35 @@ _wdc_ata_bio_start(chp, xfer)
 			nblks = 1;
 		else 
 			nblks = xfer->c_bcount / ata_bio->lp->d_secsize;
+#ifdef DEBUG_IDE
+		printf("nblks=%d\n",nblks);
+#endif
 		/* Check for bad sectors and adjust transfer, if necessary. */
 		if ((ata_bio->lp->d_flags & D_BADSECT) != 0) {
 			long blkdiff;
 			int i;
 			for (i = 0; (blkdiff = ata_bio->badsect[i]) != -1;
 			     i++) {
+#ifdef DEBUG_IDE
+				printf("blkdiff=%ld\n",blkdiff);
+                                printf("ata_bio->blkno=%lld\n",ata_bio->blkno);
+#endif
 				blkdiff -= ata_bio->blkno;
 				if (blkdiff < 0)
 					continue;
 				if (blkdiff == 0) {
 					/* Replace current block of transfer. */
+#ifdef DEBUG_IDE
+       		 		        printf("Replace current block of transfer.\n");
+#endif
 					ata_bio->blkno =
 					    ata_bio->lp->d_secperunit -
 					    ata_bio->lp->d_nsectors - i - 1;
 				}
 				if (blkdiff < nblks) {
+#ifdef DEBUG_IDE
+					printf("Bad block inside transfer.\n");
+#endif		
 					/* Bad block inside transfer. */
 					ata_bio->flags |= ATA_SINGLE;
 					nblks = 1;
@@ -269,12 +283,38 @@ _wdc_ata_bio_start(chp, xfer)
 			/* Transfer is okay now. */
 		}
 		if (ata_bio->flags & ATA_LBA) {
-			sect = (ata_bio->blkno >> 0) & 0xff;
+#ifdef DEBUG_IDE
+			printf("mov right\n");
+#endif
+/*			sect = (ata_bio->blkno >> 0) & 0xff;
 			cyl = (ata_bio->blkno >> 8) & 0xffff;
 			head = (ata_bio->blkno >> 24) & 0x0f;
-			head |= WDSD_LBA;
+			head |= WDSD_LBA;*/
+#ifdef DEBUG_IDE
+			printf("ata_bio->blkno=%llx\n",ata_bio->blkno);
+#endif
+			LBA1 = (ata_bio->blkno >> 0) & 0xff;
+                        LBA2 = (ata_bio->blkno >> 8) & 0xff;
+                        LBA3 = (ata_bio->blkno >> 16) & 0xff;
+                        LBA4 = (ata_bio->blkno >> 24) & 0xff;
+                        LBA5 = (ata_bio->blkno >> 32) & 0xff;
+                        LBA6 = (ata_bio->blkno >> 40) & 0xff;
+                        head1 = (ata_bio->blkno >> 44) & 0x0f;
+                        head1 |= WDSD_LBA;
+#ifdef DEBUG_IDE
+                        printf("LBA1=%x\n",LBA1);
+                        printf("LBA2=%x\n",LBA2);
+                        printf("LBA3=%x\n",LBA3);
+                        printf("LBA4=%x\n",LBA4);
+                        printf("LBA5=%x\n",LBA5);
+                        printf("LBA6=%x\n",LBA6);
+                        printf("head1=%x\n",head1);
+#endif
 		} else {
 			int blkno = ata_bio->blkno;
+#ifdef DEBUG_IDE
+			printf("not move right\n");
+#endif
 			sect = blkno % ata_bio->lp->d_nsectors;
 			sect++;    /* Sectors begin with 1, not 0. */
 			blkno /= ata_bio->lp->d_nsectors;
@@ -286,10 +326,19 @@ _wdc_ata_bio_start(chp, xfer)
 #if !defined(PMON) || defined(IDE_DMA)
 		if (xfer->c_flags & C_DMA) {
 			ata_bio->nblks = nblks;
+#ifdef DEBUG_IDE
+			printf("1.ata_bio->nblks=%d,nblks=%d\n",ata_bio->nblks,nblks);
+#endif
 			ata_bio->nbytes = xfer->c_bcount;
+#ifdef DEBUG_IDE
+			printf("ata_bio->nbytes=%d\n",ata_bio->nbytes);
+#endif
 			cmd = (ata_bio->flags & ATA_READ) ?
 			    WDCC_READDMA : WDCC_WRITEDMA;
 			nblks = ata_bio->nblks;
+#ifdef DEBUG_IDE
+			 printf("2.ata_bio->nblks=%d,nblks=%d\n",ata_bio->nblks,nblks);
+#endif
 	    		/* Init the DMA channel. */
 			if ((*chp->wdc->dma_init)(chp->wdc->dma_arg,
 			    chp->channel, xfer->drive,
@@ -314,7 +363,13 @@ _wdc_ata_bio_start(chp, xfer)
 			goto intr;
 		} /* else not DMA */
 #endif
+#ifdef DEBUG_IDE
+		printf("!defined(PMON) || defined(IDE_DMA)\n");
+#endif
 		ata_bio->nblks = min(nblks, ata_bio->multi);
+#ifdef DEBUG_IDE
+		printf("ata_bio->nblks=%d\n",ata_bio->nblks);
+#endif
 		ata_bio->nbytes = ata_bio->nblks * ata_bio->lp->d_secsize;
 		if (ata_bio->nblks > 1 && (ata_bio->flags & ATA_SINGLE) == 0) {
 			cmd = (ata_bio->flags & ATA_READ) ?
@@ -327,12 +382,32 @@ _wdc_ata_bio_start(chp, xfer)
 		CHP_WRITE_REG(chp, wdr_sdh, WDSD_IBM | (xfer->drive << 4));
 		if (wait_for_ready(chp, ata_delay) < 0)
 			goto timeout;
-		wdccommand(chp, xfer->drive, cmd, cyl,
+/*		wdccommand(chp, xfer->drive, cmd, cyl,
 		    head, sect, nblks, 
 		    (ata_bio->lp->d_type == DTYPE_ST506) ?
-		    ata_bio->lp->d_precompcyl / 4 : 0);
+		    ata_bio->lp->d_precompcyl / 4 : 0);*/
+		 precomp=(ata_bio->lp->d_type == DTYPE_ST506)?ata_bio->lp->d_precompcyl/4:0;
+	   	 CHP_WRITE_REG(chp, wdr_sdh, WDSD_IBM | (xfer->drive << 4) | head1);
+		 CHP_WRITE_REG(chp, wdr_seccnt, 0);
+                 CHP_WRITE_REG(chp, wdr_sector, LBA4);
+                 CHP_WRITE_REG(chp, wdr_cyl_lo, LBA5);
+                 CHP_WRITE_REG(chp, wdr_cyl_hi, LBA6);
+		 DELAY(1);
+                 CHP_WRITE_REG(chp, wdr_precomp, precomp);
+                 CHP_WRITE_REG(chp, wdr_seccnt, nblks);
+                 CHP_WRITE_REG(chp, wdr_sector, LBA1);
+                 CHP_WRITE_REG(chp, wdr_cyl_lo, LBA2);
+                 CHP_WRITE_REG(chp, wdr_cyl_hi, LBA3);
+                 CHP_WRITE_REG(chp, wdr_sdh, WDSD_IBM | (xfer->drive << 4) | head1);
+                 CHP_WRITE_REG(chp, wdr_command, cmd);
+#ifdef DEBUG_IDE
+		 printf("cmd=%x\n",cmd);
+#endif
 	} else if (ata_bio->nblks > 1) {
 		/* The number of blocks in the last stretch may be smaller. */
+#ifdef DEBUG_IDE
+		printf("The number of blocks in the last stretch may be smaller.\n");
+#endif
 		nblks = xfer->c_bcount / ata_bio->lp->d_secsize;
 		if (ata_bio->nblks > nblks) {
 			ata_bio->nblks = nblks;

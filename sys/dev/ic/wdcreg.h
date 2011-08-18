@@ -81,8 +81,8 @@
 #define WDCC_NOP	0x00	/* NOP - Always fail with "aborted command" */
 #define	WDCC_RECAL	0x10	/* disk restore code -- resets cntlr */
 
-#define	WDCC_READ	0x20	/* disk read code */
-#define	WDCC_WRITE	0x30	/* disk write code */
+#define	WDCC_READ	0x29	/* disk read code */
+#define	WDCC_WRITE	0x39	/* disk write code */
 #define	 WDCC__LONG	 0x02	 /* modifier -- access ecc bytes */
 #define	 WDCC__NORETRY	 0x01	 /* modifier -- no retrys */
 
@@ -90,8 +90,8 @@
 #define	WDCC_DIAGNOSE	0x90	/* controller diagnostic */
 #define	WDCC_IDP	0x91	/* initialize drive parameters */
 
-#define	WDCC_READMULTI	0xc4	/* read multiple */
-#define	WDCC_WRITEMULTI	0xc5	/* write multiple */
+#define	WDCC_READMULTI  0x29	//	0xc4	/* read multiple */
+#define	WDCC_WRITEMULTI	0x39	//      0xc5	/* write multiple */
 #define	WDCC_SETMULTI	0xc6	/* set multiple mode */
 
 #define	WDCC_READDMA	0xc8	/* read with DMA */

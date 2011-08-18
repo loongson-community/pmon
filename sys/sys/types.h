@@ -67,7 +67,7 @@ typedef	int64_t		quad_t;
 typedef	quad_t *	qaddr_t;
 
 typedef	char *		caddr_t;	/* core address */
-typedef	int32_t		daddr_t;	/* disk address */
+typedef	int64_t		daddr_t;	/* disk address */
 typedef	int32_t		dev_t;		/* device number */
 typedef	u_int32_t	fixpt_t;	/* fixed point number */
 typedef	u_int32_t	gid_t;		/* group id */
