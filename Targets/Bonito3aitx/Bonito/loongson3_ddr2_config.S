@@ -545,7 +545,7 @@ INTERLEAVE_512MB:  // 512MBx2
 
         GET_NODE_ID_a0;
         XBAR_CONFIG_NODE_a0(0x20, \
-                            0x000000010000000, \
+                            0x0000000100000000, \
                             0xffffffffe0002000, \
                             0x00000000000000f0)
         XBAR_CONFIG_NODE_a0(0x28, \

@@ -363,11 +363,11 @@ ddr_1GB:
         beq     a1, a0, ddr_1GB_MC0
         nop
 ddr_2GB_MC0:
-	    PRINTSTR("MC0 space open : 0x80000000 - 0xFFFFFFFF\r\n")
+	    PRINTSTR("MC0 space open : 0x1_1000_0000 - 0x1_7FFF_FFFF\r\n")
 
         GET_NODE_ID_a0;
         XBAR_CONFIG_NODE_a0(0x20, \
-                            0x0000000080000000, \
+                            0x0000000100000000, \
                             0xffffffff80000000, \
                             0x00000000000000f0)
         b       2f
@@ -534,7 +534,7 @@ INTERLEAVE_512MB:  // 512MBx2
 
         GET_NODE_ID_a0;
         XBAR_CONFIG_NODE_a0(0x20, \
-                            0x000000010000000, \
+                            0x0000000100000000, \
                             0xffffffffe0002000, \
                             0x00000000000000f0)
         XBAR_CONFIG_NODE_a0(0x28, \
