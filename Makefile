@@ -47,3 +47,5 @@ clean:
 	perl -i -ne 'print;exit if(/^# DO NOT DELETE/);' lib/libc/Makefile
 	perl -i -ne 'print;exit if(/^# DO NOT DELETE/);' lib/libm/Makefile 
 	perl -i -ne 'print;exit if(/^# DO NOT DELETE/);' lib/libz/Makefile 
+	rm -f `find . -type f \( -name ld.script -o -name tags \)`
+	rm -rf `find . -type d -name compile -exec echo ./{}/\* \;`
