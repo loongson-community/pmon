@@ -584,7 +584,7 @@ int load_initrd_from_menu(Menu_Item* pItem)
 		printf("%s\n",cmd);
 #endif
 //		stat=do_cmd(cmd);
-		stat = boot_initrd(cmd, 0x80800000,0);
+		stat = boot_initrd(cmd, 0x84000000,0);
 #ifdef MENU_DEBUG
 		printf("Load initrd return %d\n",stat);
 #endif
