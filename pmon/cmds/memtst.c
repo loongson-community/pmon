@@ -218,14 +218,27 @@ unsigned long long __raw_readq(unsigned long long q)
   unsigned long long ret; 
 
   asm volatile(
-      ".set mips3;\r\n"  \
-      "move $8,%1;\r\n" \
-      "ld   %0,0($8);\r\n"  \
-      :"=r"(ret)
-      :"r" (q)
-      :"$8");
+      ".set mips3;\r\n"  
+      "ld   $2,%1;\r\n"  
+      "ld   $2,($2);\r\n"  
+      "sd   $2,%0;\r\n"  
+      ::"m"(ret), "m" (q)
+      :"$2");
 
     return ret; 
+}
+
+void __raw_writeq(unsigned long long addr, unsigned long long val)
+{
+
+  asm volatile(
+      ".set mips3;\r\n"  
+      "ld   $2,%1;\r\n"  
+      "ld   $3,%0;\r\n"  
+      "sd   $3,($2);\r\n"  
+      ::"m"(val), "m" (addr)
+      :"$2","$3");
+
 }
 
 static unsigned long long
