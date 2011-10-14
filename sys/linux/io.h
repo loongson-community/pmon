@@ -1,32 +1,5 @@
-#ifdef LS3_HT
-#ifdef LS3_MCP68
-#include "../../Targets/Bonito3amcp68/include/bonito.h"
-#endif
-
-#ifdef LS3_DAWNING
-#include "../../Targets/Bonito3adawning/include/bonito.h"
-#endif
-
-#ifdef LS3_SIS
-#include "../../Targets/Bonito3asis/include/bonito.h"
-#endif
-
-#ifdef LS3_SERVER
-#include "../../Targets/Bonito3aserver/include/bonito.h"
-#endif
-
-#endif
-
-#ifdef LS2G_HT
-
-#ifdef LS2_SIS
-#include "../../Targets/Bonito2gsis/include/bonito.h"
-#endif
-
-#ifdef LS2G_AMD
-#include "../../Targets/Bonito2g690e/include/bonito.h"
-#endif
-
+#if defined(LS3_HT) || defined(LS2G_HT)
+#include <target/bonito.h>
 #endif
 
 #ifndef __LINUXIO_H_
