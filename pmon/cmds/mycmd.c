@@ -39,15 +39,15 @@ void route_init();
 #endif /* NGZIP */
 int cmd_mycfg __P((int, char *[]));
 extern char  *heaptop;
+void * memcpy(void *s1, const void *s2, size_t n);
 
 #include <errno.h>
 unsigned long strtoul(const char *nptr,char **endptr,int base);
-#define ULONGLONG_MAX 0xffffffffffffffffUL //32 or 64?
+#define ULONGLONG_MAX 0xffffffffffffffffUL
 int abs(int x)
 {
 return x>=0?x:-x;
 }
-// strtoul : convert the sting into an unsigned long interger
 unsigned long long
 strtoull(const char *nptr,char **endptr,int base)
 {
@@ -65,7 +65,7 @@ strtoull(const char *nptr,char **endptr,int base)
     if ((c = *nptr) == '+' || c == '-') { /* handle signs */
 	negative = (c == '-');
 	nptr++;
-    }//this *nptr is '+'or'-',if it`s '-',negative=1,else negative=0,zhizhen nptr go step
+    }
 
     if (base == 0) {		/* determine base if unknown */
 	base = 10;
@@ -132,15 +132,14 @@ static union commondata{
 }mydata,*pmydata;
 
 unsigned int syscall_addrtype=0;
+#define syscall_addrwidth ((syscall_addrtype>256?0:(syscall_addrtype>>4))+1)
 static int __syscall1(int type,long long addr,union commondata *mydata);
 static int __syscall2(int type,long long addr,union commondata *mydata);
 int (*syscall1)(int type,long long addr,union commondata *mydata)=(void *)&__syscall1;
 int (*syscall2)(int type,long long addr,union commondata *mydata)=(void *)&__syscall2;
 static char *str2addmsg[]={"32 bit cpu address","64 bit cpu address","64 bit cached phyiscal address","64 bit uncached phyiscal address"};
 #if __mips >= 3
-
-//convert function for 4 cores 
-static unsigned long long
+unsigned long long
 str2addr(const char *nptr,char **endptr,int base)
 {
 unsigned long long result;
@@ -151,8 +150,8 @@ result=(long)strtoul(nptr,endptr,base);
 else
 {
 result=strtoull(nptr,endptr,base);
-if(syscall_addrtype%4==3)result|=0x9000000000000000UL;
-else if(syscall_addrtype%4==2)result|=0x9800000000000000UL;
+if(syscall_addrtype%4==3)result|=0x9000000000000000ULL;
+else if(syscall_addrtype%4==2)result|=0x9800000000000000ULL;
 }
 return result;
 }
@@ -183,7 +182,6 @@ size_t fread (void *src, size_t size, size_t count, FILE *fp);
 size_t fwrite (const void *dst, size_t size, size_t count, FILE *fp);
 static char diskname[0x40];
 
-//read info about the disk
 static int __disksyscall1(int type,long long addr,union commondata *mydata)
 {
 	char fname[0x40];
@@ -192,7 +190,7 @@ static int __disksyscall1(int type,long long addr,union commondata *mydata)
 	else strcpy(fname,diskname);
 	fp=fopen(fname,"r+");
 	if(!fp){printf("open %s error!\n",fname);return -1;}
-	fseek(fp,addr,SEEK_SET);//put fp faraway from the beginning of addr length point of this file
+	fseek(fp,addr,SEEK_SET);
 switch(type)
 {
 case 1:fread(&mydata->data1,1,1,fp);break;
@@ -204,7 +202,6 @@ case 8:fread(&mydata->data8,8,1,fp);break;
 return 0;
 }
 
-//write info into the disk
 static int __disksyscall2(int type,long long addr,union commondata *mydata)
 {
 	char fname[0x40];
@@ -224,7 +221,7 @@ case 8:fwrite(&mydata->data8,8,1,fp);break;
 	fclose(fp);
 return 0;
 }
-//devcp is read info from the dev
+
 static int devcp(int argc,char **argv)
 {
 char *buf;
@@ -261,7 +258,7 @@ if(argc<3)return -1;
 	}
 	if(!fsrc||!fdst)return -1;
 	fp0=open(fsrc,O_RDONLY);
-	fp1=open(fdst,O_WRONLY);
+	fp1=open(fdst,O_RDWR|O_CREAT|O_TRUNC);
 
 	buf=malloc(bs);
 	if(!buf){printf("malloc failed!,please set heaptop bigger\n");return -1;}
@@ -313,6 +310,7 @@ if(argc<3)return -1;
 return 0;
 }
 
+#ifndef NOPCI
 static int __pcisyscall1(int type,unsigned long long addr,union commondata *mydata)
 {
 switch(type)
@@ -337,6 +335,7 @@ case 8:break;
 }
 return -1;
 }
+#endif
 
 #if __mips >= 3
 #define MYASM asm
@@ -347,12 +346,6 @@ return -1;
 #endif
 static int __syscall1(int type,long long addr,union commondata *mydata)
 {
-union {
-unsigned long long ll;
-unsigned int l[2];
-} a;
-a.ll=addr;
-
 /*
  * use lw to load l[2],will make high bit extension.
  */
@@ -360,33 +353,33 @@ switch(type)
 {
 case 1:
 	  MYC(mydata->data1=*(volatile char *)addr;);
-	  MYASM("dsll32 %1,%1,0;dsrl32 %1,%1,0;dsll32 %2,%2,0;or %1,%2;lbu $2,(%1);" \
-		  "sb $2,(%0);" \
-		  ::"r"(&mydata->data1),"r"(a.l[0]),"r"(a.l[1])
-		  :"$2"
+	  MYASM("ld $2,%1;lb $2,($2);" \
+		  "sb $2,%0;" \
+		  ::"m"(mydata->data1),"m"(addr)
+		  :"$2","memory"
 		 );
 	   break;
 case 2:
 	  MYC(mydata->data2=*(volatile short *)addr;);
-	  MYASM("dsll32 %1,%1,0;dsrl32 %1,%1,0;dsll32 %2,%2,0;or %1,%2;lhu $2,(%1);" \
-		  "sh $2,(%0);" \
-		  ::"r"(&mydata->data2),"r"(a.l[0]),"r"(a.l[1])
+	  MYASM("ld $2,%1;lh $2,($2);" \
+		  "sh $2,%0;" \
+		  ::"m"(mydata->data2),"m"(addr)
 		  :"$2"
 		 );
 	   break;
 case 4:
 	  MYC(mydata->data4=*(volatile int *)addr;);
-	  MYASM("dsll32 %1,%1,0;dsrl32 %1,%1,0;dsll32 %2,%2,0;or %1,%2;lwu $2,(%1);" \
-		   "sw $2,(%0);" \
-		  ::"r"(&mydata->data4),"r"(a.l[0]),"r"(a.l[1])
+	  MYASM("ld $2,%1;lw $2,($2);" \
+		   "sw $2,%0;" \
+		  ::"m"(mydata->data4),"m"(addr)
 		  :"$2"
 		 );
 	   break;
 case 8:
 	  MYC( mydata->data8[0]=*(volatile int *)addr;mydata->data8[1]=*(volatile int *)(addr+4);)
-	  MYASM("dsll32 %1,%1,0;dsrl32 %1,%1,0;dsll32 %2,%2,0;or %1,%2;ld $2,(%1);" \
-		  "sd $2,(%0);" \
-		  ::"r"(mydata->data8),"r"(a.l[0]),"r"(a.l[1])
+	  MYASM("ld $2,%1;ld $2,($2);" \
+		  "sd $2,%0;" \
+		  ::"m"(mydata->data8[0]),"m"(addr)
 		  :"$2"
 		 );
 	   break;
@@ -396,90 +389,38 @@ return 0;
 
 static int __syscall2(int type,long long addr,union commondata *mydata)
 {
-union {
-unsigned long long ll;
-unsigned int l[2];
-} a;
-a.ll=addr;
 switch(type)
 {
 case 1:
 	 MYC(*(volatile char *)addr=mydata->data1;);
-	  MYASM("dsll32 %1,%1,0;dsrl32 %1,%1,0;dsll32 %2,%2,0;or %1,%2;lbu $2,(%0);" \
-		  "sb $2,(%1);" \
-		  ::"r"(&mydata->data1),"r"(a.l[0]),"r"(a.l[1])
-		  :"$2"
+	  MYASM("ld $2,%1;lb $3,%0;sb $3,($2);" \
+		  ::"m"(mydata->data1),"m"(addr)
+		  :"$2","$3"
 		 );
 	   break;
 case 2:
 	  MYC(*(volatile short *)addr=mydata->data2;);
-	  MYASM("dsll32 %1,%1,0;dsrl32 %1,%1,0;dsll32 %2,%2,0;or %1,%2;lhu $2,(%0);" \
-		   "sh $2,(%1);" \
-		  ::"r"(&mydata->data2),"r"(a.l[0]),"r"(a.l[1])
-		  :"$2"
+	  MYASM("ld $2,%1;lh $3,%0;sh $3,($2);" \
+		  ::"m"(mydata->data2),"m"(addr)
+		  :"$2","$3"
 		 );
 	  break;
 case 4:
 	  MYC(*(volatile int *)addr=mydata->data4;);
-	  MYASM("dsll32 %1,%1,0;dsrl32 %1,%1,0;dsll32 %2,%2,0;or %1,%2;lwu $2,(%0);" \
-		   "sw $2,(%1);" \
-		  ::"r"(&mydata->data2),"r"(a.l[0]),"r"(a.l[1])
-		  :"$2"
+	  MYASM("ld $2,%1;lw $3,%0;sw $3,($2);" \
+		  ::"m"(mydata->data2),"m"(addr)
+		  :"$2","$3"
 		 );
 	    break;
 case 8:
 	   MYC(*(volatile int *)addr=mydata->data8[0];*(volatile int *)(addr+4)=mydata->data8[1];);
-	  MYASM("dsll32 %1,%1,0;dsrl32 %1,%1,0;dsll32 %2,%2,0;or %1,%2;ld $2,(%0);" \
-		   "sd $2,(%1);" \
-		  ::"r"(mydata->data8),"r"(a.l[0]),"r"(a.l[1])
-		  :"$2"
+	  MYASM("ld $2,%1;ld $3,%0;sd $3,($2);" \
+		  ::"m"(mydata->data8[0]),"m"(addr)
+		  :"$2","$3"
 		 );
 	   break;
 }
 return 0;
-}
-
-//cmd mydump
-static int mydump(char type,unsigned long long addr,unsigned count)
-{
-		int i,j,k;
-		char memdata[16];
-		for(j=0;j<count;j=j+16/type,addr=addr+16)
-		{
-		nr_printf("%08llx: ",addr);
-
-		pmydata=(void *)memdata;
-		for(i=0;type*i<16;i++)
-		{
-		if(syscall1(type,addr+i*type,pmydata)<0){nr_printf("read address %p error\n",addr+i*type);return -1;}
-		pmydata=(void *)((char *)pmydata+type);
-		if(j+i+1>=count)break;
-		}
-		
-		pmydata=(void *)memdata;
-		for(i=0;type*i<16;i++)
-		{
-		switch(type)
-		{
-		case 1:	nr_printf("%02x ",pmydata->data1);break;
-		case 2: nr_printf("%04x ",pmydata->data2);break;
-		case 4: nr_printf("%08x ",pmydata->data4);break;
-		case 8: nr_printf("%08x%08x ",pmydata->data8[1],pmydata->data8[0]);break;
-		}
-		if(j+i+1>=count){int k;for(i=i+1;type*i<16;i++){for(k=0;k<type;k++)nr_printf("  ");nr_printf(" ");}break;}
-		pmydata=(void *)((char *)pmydata+type);
-		}
-		
-		pmydata=(void *)memdata;
-		#define CPMYDATA ((char *)pmydata)
-		for(k=0;k<16;k++)
-		{
-		nr_printf("%c",(CPMYDATA[k]<0x20 || CPMYDATA[k]>0x7e)?'.':CPMYDATA[k]);
-		if(j+(k+1)/type>=count)break;
-		}
-		nr_printf("\n");
-		}
-		return 0;
 }
 
 int mypcs(int ac,char **av)
@@ -489,6 +430,7 @@ int mypcs(int ac,char **av)
 	int func;
     int tmp;
 
+#ifndef NOPCI
 if(ac==4)
 {
 	bus=nr_strtol(av[1],0,0);
@@ -498,7 +440,9 @@ if(ac==4)
 	syscall1=(void *)__pcisyscall1;
 	syscall2=(void *)__pcisyscall2;
 }
-else if(ac==2)
+else 
+#endif
+if(ac==2)
 {
 	syscall_addrtype=nr_strtol(av[1],0,0);
 	syscall1=__syscall1;
@@ -512,11 +456,13 @@ int i;
 for(i=0;i>-4;i--)
 printf("pcs %d : select select normal memory access %s\n",i,str2addmsg[(unsigned)i%4]);
 printf("pcs bus dev func : select pci configuration space access with bus dev func\n");
+#ifndef NOPCI
 if(mytag!=-1)
 {
 	_pci_break_tag(mytag,&bus,&dev,&func);
 	printf("pci select bus=%d,dev=%d,func=%d\n",bus,dev,func);
 }
+#endif
 }
 
 	return (0);
@@ -553,6 +499,8 @@ static int dump(int argc,char **argv)
 		char type=4;
 unsigned long long  addr;
 static int count=1;
+		int i,j,k;
+		char memdata[16];
 //		char opts[]="bhwd";
 		if(argc>3){nr_printf("d{b/h/w/d} adress count\n");return -1;}
 
@@ -568,57 +516,88 @@ static int count=1;
 		else addr=lastaddr;
 		if(argc>2)count=nr_strtol(argv[2],0,0);
 		else if(count<=0||count>=1024) count=1;
-		mydump(type,addr,count);
+
+		for(j=0;j<count;j=j+16/type,addr=addr+16/syscall_addrwidth)
+		{
+		nr_printf("%08llx: ",addr);
+
+		pmydata=(void *)memdata;
+		for(i=0;type*i<16;i++)
+		{
+		if(syscall1(type,addr+i*type/syscall_addrwidth,pmydata)<0){nr_printf("read address %p error\n",addr+i*type/syscall_addrwidth);return -1;}
+		pmydata=(void *)((char *)pmydata+type);
+		if(j+i+1>=count)break;
+		}
+		
+		pmydata=(void *)memdata;
+		for(i=0;type*i<16;i++)
+		{
+		switch(type)
+		{
+		case 1:	nr_printf("%02x ",pmydata->data1);break;
+		case 2: nr_printf("%04x ",pmydata->data2);break;
+		case 4: nr_printf("%08x ",pmydata->data4);break;
+		case 8: nr_printf("%08x%08x ",pmydata->data8[1],pmydata->data8[0]);break;
+		}
+		if(j+i+1>=count){int k;for(i=i+1;type*i<16;i++){for(k=0;k<type;k++)nr_printf("  ");nr_printf(" ");}break;}
+		pmydata=(void *)((char *)pmydata+type);
+		}
+		
+		pmydata=(void *)memdata;
+		#define CPMYDATA ((char *)pmydata)
+		for(k=0;k<16;k++)
+		{
+		nr_printf("%c",(CPMYDATA[k]<0x20 || CPMYDATA[k]>0x7e)?'.':CPMYDATA[k]);
+		if(j+(k+1)/type>=count)break;
+		}
+		nr_printf("\n");
+		}
+
 		lastaddr=addr+count*type;
 		return 0;
 }
 
-//read data from memory,then modify will use this function 
 static int getdata(char *str)
 {
 	static char buf[17];
 	char *pstr;
-	int sign=1;
+	int negative=0;
 	int radix=10;
+	unsigned long long result;
+	int digit,c;
 	pstr=strtok(str," \t\x0a\x0d");
 
-		if(pstr)
-		{
+	if(pstr)
+	{
 		if(pstr[0]=='q')return -1;
-		memset(buf,'0',16); buf[17]=0;
 		if(pstr[0]=='-')
 		{
-		sign=-1;
-		pstr++;
-		}
-		else if(pstr[0]=='+')
-		{
+			negative=1;
 			pstr++;
 		}
+		else if(pstr[0]=='+')
+			pstr++;
 
 		if(pstr[0]!='0'){radix=10;}
 		else if(pstr[1]=='x'){radix=16;pstr=pstr+2;}
-		else {radix=8;pstr++;}
-			
-		memcpy(buf+16-strlen(pstr),pstr,strlen(pstr));
-		pstr=buf;
-		pstr[16]=pstr[8];pstr[8]=0;
-		mydata.data8[1]=nr_strtol(pstr,0,radix);
-		pstr[8]=pstr[16];pstr[16]=0;
-		mydata.data8[0]=nr_strtol(&pstr[8],0,radix);
-		if(sign==-1)
-		{
-		long x=mydata.data8[0];
-			mydata.data8[0]=-mydata.data8[0];
-			if(x<0)
-			mydata.data8[1]=-mydata.data8[1];
-			else mydata.data8[1]=~mydata.data8[1];
-			
-		}
-		return 1;
-		}
-		return 0;
 
+		result=0;
+
+		while ((c = *pstr++) != 0) {
+			if(c>='0' && c<='9') digit= c - '0';
+			if(c>='a' && c<='f') digit= c - 'a' + 0xa;
+			if(c>='A' && c<='F') digit= c - 'A' + 0xa;
+			result = result*radix + digit;
+		}
+
+		if(negative) result = -result;
+
+		memcpy(mydata.data8,&result,8);
+
+
+		return 1;
+	}
+	return 0;
 }
 
 static int modify(int argc,char **argv)
@@ -647,7 +626,7 @@ static int modify(int argc,char **argv)
 	       	   getdata(argv[i]);
 		   if(syscall2(type,addr,&mydata)<0)
 		   {nr_printf("write address %p error\n",addr);return -1;};
-		   addr=addr+type;
+		   addr=addr+type/syscall_addrwidth;
 		 i++;
 		 }
 		  return 0;
@@ -674,7 +653,7 @@ static int modify(int argc,char **argv)
 		if(syscall2(type,addr,&mydata)<0)
 		{nr_printf("write address %p error\n",addr);return -1;};
 		}
-	addr=addr+type;
+	addr=addr+type/syscall_addrwidth;
 		}	
 		lastaddr=addr;	
 		return 0;
@@ -1129,10 +1108,11 @@ printf("status:%s %s\n",ifr->ifr_flags&IFF_UP?"up":"down",ifr->ifr_flags&IFF_RUN
 }
 else if(argc>=3)
 {
-char *cmds[]={"down","up","remove","stat","setmac","readrom","writerom"};
+char *cmds[]={"down","up","remove","stat","setmac","readrom","writerom","readphy","writephy","0x"};
 int i;
 	for(i=0;i<sizeof(cmds)/sizeof(char *);i++)
-	if(!strcmp(argv[2],cmds[i]))break;
+	if(!strncmp(argv[2],cmds[i],strlen(cmds[i])))break;
+
 	switch(i)
 	{
 	case 0://down
@@ -1207,12 +1187,45 @@ int i;
                 }
             }
                 break;
+		case 7: //readphy
+            {
+                struct ifnet *ifp;
+                ifp = ifunit(argv[1]);
+                if(ifp)
+                {
+                long arg[2]={argc-2,(long)&argv[2]};
+                ifp->if_ioctl(ifp,SIOCRDPHY,arg);
+                }
+            }
+                break;
+		case 8: //writephy
+			{
+                struct ifnet *ifp;
+                ifp = ifunit(argv[1]);
+                if(ifp)
+                {
+                long arg[2]={argc-2,(long)&argv[2]};
+                ifp->if_ioctl(ifp,SIOCWRPHY,arg);
+                }
+			}
+			break;
+		case sizeof(cmds)/sizeof(cmds[0]) -1:
+			{
+                struct ifnet *ifp;
+                ifp = ifunit(argv[1]);
+                if(ifp)
+                {
+                long arg[2]={argc-2,(long)&argv[2]};
+                ifp->if_ioctl(ifp,strtoul(argv[2],0,0),arg);
+                }
+			}
+			break;
 
 	default:
-		//while(ioctl(s, SIOCGIFADDR, ifra)==0)
-		//{
-		//(void) ioctl(s, SIOCDIFADDR, ifr);
-		//}
+		while(ioctl(s, SIOCGIFADDR, ifra)==0)
+		{
+		(void) ioctl(s, SIOCDIFADDR, ifr);
+		}
 		setsin (SIN(ifra->ifra_addr), AF_INET, inet_addr(argv[2]));
 		(void) ioctl(s, SIOCSIFADDR, ifra);
 		if(argc>=4)
@@ -1239,7 +1252,7 @@ bzero (&ifr, sizeof(ifr));
 strcpy(ifr.ifr_name,argv[1]);
 (void) ioctl(s, SIOCGIFADDR, &ifr);
 printf("%s",inet_ntoa(satosin(&ifr.ifr_addr)->sin_addr));
-//(void) ioctl(s, SIOCDIFADDR, &ifr);
+(void) ioctl(s, SIOCDIFADDR, &ifr);
 ifr.ifr_flags=0;
 (void) ioctl(s,SIOCSIFFLAGS,(void *)&ifr);
 close(s);
@@ -1499,7 +1512,7 @@ return 0;
 static unsigned long flashs_rombase;
 static int rom_read(int type,long long addr,union commondata *mydata)
 {
-memcpy(&mydata->data1,flashs_rombase+addr,type);
+memcpy(&mydata->data1,(long)(flashs_rombase+addr),type);
 return 0;
 }
 
@@ -1590,13 +1603,13 @@ extern int mycp0ins();
 unsigned long *p=mycp0ins;
 if(type!=8)return -1;
 memset(mydata->data8,0,8);
-addr=(addr>>3)&0x1f;
+addr=addr&0x1f;
 #if __mips>=3
 *p=DMFC0(2,addr,cp0s_sel);
 #else
 *p=MFC0(2,addr,cp0s_sel);
 #endif
-pci_sync_cache(0,(long)mycp0ins&~31UL,32,1);
+CPU_IOFlushDCache((long)mycp0ins&~31UL,32,1);
 CPU_FlushICache((long)mycp0ins&~31UL,32);
 
  asm(".global mycp0ins;mycp0ins:mfc0 $2,$0;move %0,$2" :"=r"(data8)::"$2");
@@ -1611,13 +1624,13 @@ static int __cp0syscall2(int type,unsigned long long addr,union commondata *myda
 extern int mycp0ins1();
 unsigned long *p=mycp0ins1;
 if(type!=8)return -1;
-addr=(addr>>3)&0x1f;
+addr=addr&0x1f;
 #if __mips>=3
 *p=DMTC0(2,addr,cp0s_sel);
 #else
 *p=MTC0(2,addr,cp0s_sel);
 #endif
-pci_sync_cache(0,(long)mycp0ins1&~31UL,32,1);
+CPU_IOFlushDCache((long)mycp0ins1&~31UL,32,1);
 CPU_FlushICache((long)mycp0ins1&~31UL,32);
 
  asm(".global mycp0ins1;move $2,%0;mycp0ins1:mtc0 $2,$0;"::"r"(*(long *)mydata->data8):"$2");
@@ -1629,7 +1642,7 @@ static int mycp0s(int argc,char **argv)
 {
 syscall1=__cp0syscall1;
 syscall2=__cp0syscall2;
-	syscall_addrtype=0;
+	syscall_addrtype=0x70;
 if(argc>1)cp0s_sel=strtoul(argv[1],0,0);
 else cp0s_sel=0;
 return 0;	
@@ -1687,7 +1700,7 @@ asm("\n"
 		::"r"(status));
 
 #else
-pci_sync_cache(0,addr,size,rw);
+CPU_IOFlushDCache(addr,size,rw);
 #endif
 }
 
