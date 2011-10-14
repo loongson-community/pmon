@@ -112,7 +112,7 @@ ns16550 (int op, struct DevEntry *dev, unsigned long param, int data)
 	volatile ns16550dev *dp;
 
 	dp = (ns16550dev *) dev->sio;
-	if(dp==-1)return 1;
+	if(dp==-1)return (op == OP_RXRDY)?0:1;
 
 	switch (op) {
 		case OP_INIT:
