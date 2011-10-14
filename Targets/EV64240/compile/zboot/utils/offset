@@ -1,3 +1,0 @@
-#!/bin/sh
-
-echo "0x"`$1 -h $2  | grep $3 | grep -v zvmlinux| awk '{print $6}'`
