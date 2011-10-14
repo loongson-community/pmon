@@ -396,14 +396,13 @@ main()
         
 	md_setsr(NULL, initial_sr);	/* XXX does this belong here? */
 
-#if 0
+#ifdef CONFIG_MENULIST
 	{
 
-		check_user_password();
+//		check_user_password();
 		if(!getenv("al"))
 		load_menu_list();
 	}
-		load_menu_list();
 #endif
 
 {
