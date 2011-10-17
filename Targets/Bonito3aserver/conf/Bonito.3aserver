@@ -37,6 +37,8 @@ select     	amd_780e
 ## VGA option ##
 option      SERVER_3A
 option		RS780E
+#option      DHCP_3A780E
+option      DHCP_3ASERVER
 option      USE_780E_VGA
 option      VGA_NO_ROM
 option		VGA_BASE=0xbe000000
@@ -198,6 +200,7 @@ option HAVE_NB_SERIAL
 #option USE_ENVMAC
 #option LOOKLIKE_PC
 #select cmd_lwdhcp
+option cmd_lwdhcp
 #select cmd_bootp
 option FOR_GXEMUL
 select fatfs

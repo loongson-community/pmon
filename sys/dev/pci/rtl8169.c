@@ -2003,7 +2003,7 @@ static int rtl8169_open(struct rtl8169_private *tp)
     status = RTL_R16(tp, IntrStatus);
 	
 	rtl8169_check_link_status(tp);
-       tp->arpcom.ac_if.if_flags |=  IFF_RUNNING;
+       tp->arpcom.ac_if.if_flags |=  IFF_RUNNING | IFF_BROADCAST | IFF_SIMPLEX;;
 
     status = RTL_R16(tp, IntrStatus);
 

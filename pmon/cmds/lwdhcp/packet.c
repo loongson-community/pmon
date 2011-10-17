@@ -161,17 +161,17 @@ int raw_packet(struct dhcp_packet *payload, uint32_t source_ip, int source_port,
         close (sock);
         return -1;
     }
-	/*
+
     if (setsockopt (sock, SOL_SOCKET, SO_DONTROUTE, &n, sizeof (n)) < 0) {
         perror ("bootp setsockopt(DONTROUTE)");
         close (sock);
         return -1;
-    }*/
+    }
 
-	bzero((char *)&clnt, sizeof(clnt));
-	clnt.sin_family = AF_INET;
-	clnt.sin_port = htons(CLIENT_PORT+2);
-	clnt.sin_addr.s_addr = INADDR_ANY;
+    bzero((char *)&clnt, sizeof(clnt));
+    clnt.sin_family = AF_INET;
+    clnt.sin_port = htons(CLIENT_PORT+2);
+    clnt.sin_addr.s_addr = INADDR_ANY;
 
     if (bind (sock, (struct sockaddr *)&clnt, sizeof(clnt)) < 0) {
         PERROR ("bind failed");
@@ -219,6 +219,16 @@ static void add_requests(struct dhcp_packet *packet)
 
 }
 
+static void add_1_request(struct dhcp_packet *packet, uint8_t option)
+{
+	int end = end_option(packet->options);
+	
+	packet->options[end + OPT_CODE] = DHCP_PARAM_REQ;
+	packet->options[end + OPT_DATA] = option;
+	packet->options[end + OPT_LEN] = 1;
+	packet->options[end + OPT_DATA + 1] = DHCP_END;
+}
+
 int send_request(unsigned long xid, uint32_t server, uint32_t requested_ip)
 {
 	struct dhcp_packet packet;
@@ -227,8 +237,25 @@ int send_request(unsigned long xid, uint32_t server, uint32_t requested_ip)
 	packet.xid = xid;
 
 	add_simple_option(packet.options, DHCP_SERVER_ID, server);
-	add_simple_option(packet.options, DHCP_REQUESTED_IP, requested_ip);
+	add_simple_option(packet.options, DHCP_REQUESTED_IP, requested_ip);	
+	add_requests(&packet);
+	DbgPrint("Sending DHCPREQUEST...\n");
 
+	return raw_packet(&packet, INADDR_ANY, CLIENT_PORT, INADDR_BROADCAST, 
+			SERVER_PORT, MAC_BCAST_ADDR, client_config.ifindex);
+}
+
+int send_1_request(unsigned long xid, uint32_t server, uint32_t requested_ip, uint8_t option)
+{
+	struct dhcp_packet packet;
+
+	init_packet(&packet, DHCPREQUEST);
+	packet.xid = xid;
+
+	add_simple_option(packet.options, DHCP_SERVER_ID, server);
+	add_simple_option(packet.options, DHCP_REQUESTED_IP, requested_ip);
+  
+    	add_1_request(&packet, option);
 	DbgPrint("Sending DHCPREQUEST...\n");
 
 	return raw_packet(&packet, INADDR_ANY, CLIENT_PORT, INADDR_BROADCAST, 
