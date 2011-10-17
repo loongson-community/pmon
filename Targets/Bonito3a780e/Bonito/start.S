@@ -3088,7 +3088,6 @@ cache_init_finish:
 	.rdata
 	.align 5
 	.global ddr3_reg_data
-
 #include "loongson3a_ddr3_param.S"
 
 	.global watchdog_enable
@@ -3099,3 +3098,11 @@ watchdog_enable:
 	WatchDog_Enable
 	jr		ra
 	.end watchdog_enable
+
+	.text
+	.global  nvram_offs
+	.align 12
+nvram_offs:
+	.dword 0x0
+	.align 12
+	.dword 0x0

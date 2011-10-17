@@ -60,6 +60,8 @@
 #define STDIN		((kbd_available|usb_kbd_available)?3:0)
 //include "sys/sys/filio.h"
 
+extern char * nvram_offs;
+
 void	tgt_putchar (int);
 int
 tgt_printf (const char *fmt, ...)
@@ -1942,6 +1944,8 @@ tgt_netreset()
 /*
  *  Read in environment from NV-ram and set.
  */
+
+
 void
 tgt_mapenv(int (*func) __P((char *, char *)))
 {
@@ -1949,6 +1953,7 @@ tgt_mapenv(int (*func) __P((char *, char *)))
 	char env[512];
 	char *nvram;
 	int i;
+
 
         /*
          *  Check integrity of the NVRAM env area. If not in order
@@ -1959,7 +1964,7 @@ tgt_mapenv(int (*func) __P((char *, char *)))
     nvram = (char *)(tgt_flashmap())->fl_map_base;
 	printf("nvram=%08x\n",(unsigned int)nvram);
 	if(fl_devident(nvram, NULL) == 0 ||
-           cksum(nvram + NVRAM_OFFS, NVRAM_SIZE, 0) != 0) {
+           cksum(nvram + ((unsigned long)(&nvram_offs)-0x80010000), NVRAM_SIZE, 0) != 0) {
 #else
     nvram = (char *)malloc(512);
 	nvram_get(nvram);
@@ -1969,7 +1974,7 @@ tgt_mapenv(int (*func) __P((char *, char *)))
                 nvram_invalid = 1;
         }
         else {
-				nvram += NVRAM_OFFS;
+				nvram += ((unsigned long)(&nvram_offs)-0x80010000);
                 ep = nvram+2;;
 
                 while(*ep != 0) {
@@ -2046,6 +2051,7 @@ tgt_unsetenv(char *name)
         char *nvramsecbuf;
 	int status;
 
+
         if(nvram_invalid) {
                 return(0);
         }
@@ -2055,14 +2061,14 @@ tgt_unsetenv(char *name)
         nvram = (char *)(tgt_flashmap())->fl_map_base;
 
 	/* Map. Deal with an entire sector even if we only use part of it */
-        nvram += NVRAM_OFFS & ~(NVRAM_SECSIZE - 1);
+        nvram += ((unsigned long)(&nvram_offs)-0x80010000) & ~(NVRAM_SECSIZE - 1);
 	nvramsecbuf = (char *)malloc(NVRAM_SECSIZE);
 	if(nvramsecbuf == 0) {
 		printf("Warning! Unable to malloc nvrambuffer!\n");
 		return(-1);
 	}
         memcpy(nvramsecbuf, nvram, NVRAM_SECSIZE);
-	nvrambuf = nvramsecbuf + (NVRAM_OFFS & (NVRAM_SECSIZE - 1));
+	nvrambuf = nvramsecbuf + (((unsigned long)(&nvram_offs)-0x80010000) & (NVRAM_SECSIZE - 1));
 #else
         nvramsecbuf = nvrambuf = nvram = (char *)malloc(512);
 	nvram_get(nvram);
@@ -2147,7 +2153,7 @@ tgt_setenv(char *name, char *value)
         nvram = (char *)(tgt_flashmap())->fl_map_base;
 
 	/* Deal with an entire sector even if we only use part of it */
-        nvram += NVRAM_OFFS & ~(NVRAM_SECSIZE - 1);
+        nvram += ((unsigned long)(&nvram_offs)-0x80010000) & ~(NVRAM_SECSIZE - 1);
 #endif
 
         /* If NVRAM is found to be uninitialized, reinit it. */
@@ -2160,7 +2166,7 @@ tgt_setenv(char *name, char *value)
 #ifdef NVRAM_IN_FLASH
 		memcpy(nvramsecbuf, nvram, NVRAM_SECSIZE);
 #endif
-		nvrambuf = nvramsecbuf + (NVRAM_OFFS & (NVRAM_SECSIZE - 1));
+		nvrambuf = nvramsecbuf + (((unsigned long)(&nvram_offs)-0x80010000) & (NVRAM_SECSIZE - 1));
                 memset(nvrambuf, -1, NVRAM_SIZE);
                 nvrambuf[2] = '\0';
                 nvrambuf[3] = '\0';
@@ -2198,7 +2204,7 @@ tgt_setenv(char *name, char *value)
 #else
         memcpy(nvramsecbuf, nvram, NVRAM_SECSIZE);
 #endif
-	nvrambuf = nvramsecbuf + (NVRAM_OFFS & (NVRAM_SECSIZE - 1));
+	nvrambuf = nvramsecbuf + (((unsigned long)(&nvram_offs)-0x80010000) & (NVRAM_SECSIZE - 1));
 	/* Etheraddr is special case to save space */
 	if (strcmp("ethaddr", name) == 0) {
 		char *s = value;
