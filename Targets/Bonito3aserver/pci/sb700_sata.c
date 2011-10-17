@@ -97,7 +97,10 @@ static void sata_init(device_t dev)
 	printk_spew("sata_bar3=%x\n", sata_bar3);	/* 3080 */
 	printk_spew("sata_bar4=%x\n", sata_bar4);	/* 3000 */
 	printk_spew("sata_bar5=%x\n", sata_bar5);	/* e0309000 */
-#if 0
+
+#if 0 /* All SATA(six) interfaces work correctly in combined mode,
+	   * other didn't.
+	   */
 	//add for sb700
 	/* disable combined mode to */
 	printk_info("disable combined mode to\n");
@@ -176,7 +179,7 @@ static void sata_init(device_t dev)
 	/* RPR7.6.2 SATA GENI PHY ports setting */
 	printk_info("sata geni phy ports setting\n");
 	pci_write_config32(dev, 0x88, 0x01B48017);
-	pci_write_config32(dev, 0x8c, 0x01B48019);
+	pci_write_config32(dev, 0x8c, 0x01B48016);
 	pci_write_config32(dev, 0x90, 0x01B48016);
 	pci_write_config32(dev, 0x94, 0x01B48016);
 	pci_write_config32(dev, 0x98, 0x01B48016);
@@ -185,7 +188,7 @@ static void sata_init(device_t dev)
 	/* RPR7.6.3 SATA GEN II PHY port setting for port [0~5]. */
 	printk_info("sata gen II PHY port setting for port\n");
 	pci_write_config16(dev, 0xA0, 0xA09A);
-	pci_write_config16(dev, 0xA2, 0xA09F);
+	pci_write_config16(dev, 0xA2, 0xA09A);
 	pci_write_config16(dev, 0xA4, 0xA07A);
 	pci_write_config16(dev, 0xA6, 0xA07A);
 	pci_write_config16(dev, 0xA8, 0xA07A);
@@ -203,7 +206,7 @@ static void sata_init(device_t dev)
 	/* Use BAR5+0x2A8,BAR2 for Secondary Slave */
 #ifdef EANBLE_SATA
 	
-	sata_bar5 = sata_bar5 | 0xa0000000;
+	sata_bar5 = sata_bar5 | 0x80000000;
 	sata_bar0 = sata_bar0 | 0xb8000000;
 	sata_bar2 = sata_bar2 | 0xb8000000;
 	for (i = 0; i < 4; i++) {

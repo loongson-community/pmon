@@ -146,30 +146,35 @@
 	dli	t0, 0x00001c0000000000
 	sd	t0, 0x68(t2)
 	dli	t0, 0x00001c00000000f7
+
 	sd	t0, 0xa8(t2)
 
 	dli	t0, 0x0000200000000000
 	sd	t0, 0x30(t2)
 	dli	t0, 0x0000200000000000
 	sd	t0, 0x70(t2)
+
 	dli	t0, 0x00002000000000f7
 	sd	t0, 0xb0(t2)
 
 	dli	t0, 0x000000fdfe000000
 	sd	t0, 0x38(t2)
 	dli	t0, 0x000000fffe000000
+
 	sd	t0, 0x78(t2)
 	dli	t0, 0x000000fdfe0000f7
 	sd	t0, 0xb8(t2)
 
     daddiu  t2, t2, 0x100
     bne     t2, t1, 1b
+
     nop
 
 #endif
 
 #if 1
 ############
+
 	TTYDBG("Fix L2xbar illegal access \r\n")
 ############ PCI Space
 	//dli	t2, 0x900000003ff00080

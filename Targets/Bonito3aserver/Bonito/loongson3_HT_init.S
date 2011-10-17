@@ -17,7 +17,7 @@
 	TTYDBG("32 bit PCI space translate to 64 bit HT space\r\n")
 
     dli t0, 0x900000003ff02000
-    dli t2, 0x900000003ff02800
+    dli t2, 0x900000003ff02700
 
 1:
 #if 1
@@ -51,13 +51,13 @@
     sd  t1, 0x90(t0)
 #endif
 
- //HT: PCI HI BASE
- //map 0x90000e00_10000000 --> 0x10000000
-    dli t1, 0x0000000010000000
+ //HT: PCI HI BASE  By Lc modify
+ //map 0x90000e00_40000000 --> 0x40000000
+    dli t1, 0x0000000040000000
     sd  t1, 0x18(t0)
-    dli t1, 0xfffffffff8000000
+    dli t1, 0xffffffffc0000000
     sd  t1, 0x58(t0)
-    dli t1, 0x00000e00100000f7
+    dli t1, 0x00000e00400000f7
     sd  t1, 0x98(t0)
 
 #ifdef HT_REG_TRANS

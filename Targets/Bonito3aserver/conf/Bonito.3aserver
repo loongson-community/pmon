@@ -40,10 +40,10 @@ option		RS780E
 option      USE_780E_VGA
 option      VGA_NO_ROM
 option		VGA_BASE=0xbe000000
-option      SHARED_VRAM=64
+option      VRAM_SIZE=128
 option		VESAFB
 #option		DEBUG_EMU_VGA
-option      CONFIG_GFXUMA
+#option      CONFIG_GFXUMA
 
 #select		mod_x86emu		# X86 emulation for VGA
 select		mod_x86emu_int10
@@ -170,7 +170,7 @@ rtk*		 at pci? dev ? function ?
 em*        at pci? dev ? function ?
 #uhci*		 at pci? dev ? function ?
 ohci0		 at pci? dev ? function ?
-usb*		 at usbbus ? 
+usb*		 at usbbus ?
 ohci1		 at pci? dev ? function ?
 
 select      mod_usb
