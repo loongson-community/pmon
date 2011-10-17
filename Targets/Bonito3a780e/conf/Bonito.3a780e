@@ -35,6 +35,12 @@ option		INTERFACE_3A780E
 
 option      AUTO_DDR_CONFIG
 
+#
+# Uart serial baud rate selection
+#
+option      BONITO_33M
+#option      BONITO_25M
+#option      BONITO_50M
 select     	amd_780e
 
 ## VGA option ##
