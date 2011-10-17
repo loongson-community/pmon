@@ -37,6 +37,7 @@ select     	amd_780e
 ## VGA option ##
 option      SERVER_3A
 option		RS780E
+option          INTERFACE_3A780E
 #option      DHCP_3A780E
 option      DHCP_3ASERVER
 option      USE_780E_VGA

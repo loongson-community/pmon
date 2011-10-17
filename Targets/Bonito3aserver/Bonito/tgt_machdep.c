@@ -30,6 +30,9 @@
  * SUCH DAMAGE.
  *
  */
+
+#define STDIN ((kbd_available|usb_kbd_available)?3:0)
+
 #include <include/stdarg.h>
 void		tgt_putchar (int);
     int
@@ -126,6 +129,7 @@ extern struct trapframe DBGREG;
 extern void *memset(void *, int, size_t);
 
 int kbd_available;
+int bios_available;
 int usb_kbd_available;;
 int vga_available;
 
@@ -712,6 +716,7 @@ void tgt_devconfig()
 	}
 	//	psaux_init();
 #endif
+	bios_available = 1;
 	printf("devconfig done.\n");
 
 	sb700_interrupt_fixup();
