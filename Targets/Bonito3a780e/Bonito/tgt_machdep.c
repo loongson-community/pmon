@@ -2521,6 +2521,13 @@ IRQ0, 2, 8, 13 are reserved
 #define SMBUS_IO_BASE	  0x0000  //ynn
 #define PCI_BRADGE_TOTAL  0x0001  //ynn
 
+//#define DEBUG_FIXINTERRUPT
+#ifdef DEBUG_FIXINTERRUPT
+#define fixup_interrupt_printf(format, args...) printf(format, ##args)
+#else
+#define fixup_interrupt_printf(format, args...)	 __asm__ __volatile__("sync")
+#endif
+
 void sb700_interrupt_fixup(void)
 {
 	unsigned char * pic_index = 0xb8000c00 + SMBUS_IO_BASE; 
@@ -2534,7 +2541,7 @@ void sb700_interrupt_fixup(void)
 	u8 byte;
 
 	//0.  smubs fixup
-	printf("\n-----------------godson3a_smbus_fixup---------------\n");
+	fixup_interrupt_printf("\n-----------------godson3a_smbus_fixup---------------\n");
 
 	/* Set SATA and PATA Controller to combined mode
 	 * Port0-Port3 is SATA mode, Port4-Port5 is IDE mode */
@@ -2544,12 +2551,12 @@ void sb700_interrupt_fixup(void)
 	map usbint2map usbint4map(ehci use) to PCI_INTC# */
 	pci_write_config16(dev, 0xbe, ((2<<0)|(2 << 3)|(2 << 8)|(2 << 11)) );
 	val = pci_read_config16(dev, 0xbe);
-	printf(" set smbus reg (0xbe) :%x (usb intr map)\n", val);
+	fixup_interrupt_printf(" set smbus reg (0xbe) :%x (usb intr map)\n", val);
 
 	/*2. sata interrupt map smbus reg:0Xaf map sataintmap to PCI_INTH#*/
     pci_write_config8(dev, 0xaf,  0x1c);
 	byte = pci_read_config8(dev, 0xaf);
-	printf(" set smbus reg (0xaf) :%x (sata intr map)\n", byte);
+	fixup_interrupt_printf(" set smbus reg (0xaf) :%x (sata intr map)\n", byte);
 
 	/* Set SATA and PATA Controller to combined mode
 	 * Port0-Port3 is SATA mode, Port4-Port5 is IDE mode
@@ -2571,108 +2578,108 @@ void sb700_interrupt_fixup(void)
 
 
 	//Begin to set SB700 interrupt PIC
-	printf("SB700 interrupt PIC set begin,  \n");
+	fixup_interrupt_printf("SB700 interrupt PIC set begin,  \n");
 	/* bus4: INTA -->IRQ3 PCIeX1(right) */
 	*(pic_index) =  0x0;
 	*(pic_data) =  0x3;
 	if (*(pic_data) !=  0x3)
-		printf("set pic fail: read back %d,should be 0x3\n", *(pic_data));
+		fixup_interrupt_printf("set pic fail: read back %d,should be 0x3\n", *(pic_data));
 	else
-		printf("set pic_3 pass\n");
+		fixup_interrupt_printf("set pic_3 pass\n");
 
 	/* bus5: INTB -->IRQ3 PCIeX1(left) */
 	*(pic_index) =  0x1;
 	*(pic_data) =  0x3;
 	if (*(pic_data) !=  0x3)
-		printf("set pic fail: read back %d,should be 0x3\n", *(pic_data));
+		fixup_interrupt_printf("set pic fail: read back %d,should be 0x3\n", *(pic_data));
 	else
-		printf("set pic_3 pass\n");
+		fixup_interrupt_printf("set pic_3 pass\n");
 
 	/* INTC -->IRQ6 USB */
 	/* INTC -->IRQ6 PCIex8 dev2 */
 	*(pic_index) =  0x2;
 	*(pic_data) =  0x6;
 	if (*(pic_data) !=  0x6)
-		printf("set pic fail: read back %d,should be 0x6\n", *(pic_data));
+		fixup_interrupt_printf("set pic fail: read back %d,should be 0x6\n", *(pic_data));
 	else
-		printf("set pic_6 pass\n");
+		fixup_interrupt_printf("set pic_6 pass\n");
 
 	/* bus7: INTD -->IRQ5  RTL8169DL */
 	*(pic_index) =  0x3;
 	*(pic_data) =  0x5;
 	if (*(pic_data) !=  0x5)
-		printf("set pic fail: read back %d,should be 0x5\n", *(pic_data));
+		fixup_interrupt_printf("set pic fail: read back %d,should be 0x5\n", *(pic_data));
 	else
-		printf("set pic_5 pass\n");
+		fixup_interrupt_printf("set pic_5 pass\n");
 	
 	/* INTE -->IRQ5 HDA */
       *(pic_index) =  0x9;
       *(pic_data) =  0x5;
       if (*(pic_data) !=  0x5)
-          printf("set pic fail: read back %d,should be 0x5\n", *(pic_data));
+          fixup_interrupt_printf("set pic fail: read back %d,should be 0x5\n", *(pic_data));
       else
-          printf("set pic_5 pass\n");
+          fixup_interrupt_printf("set pic_5 pass\n");
 	
 	/* bus 10: dev 4: INTF -->IRQ3 PCI(left) */
      *(pic_index) =  0xa;
      *(pic_data) =  0x3;
      if (*(pic_data) !=  0x3)
-         printf("set pic fail: read back %d,should be 0x3\n", *(pic_data));
+         fixup_interrupt_printf("set pic fail: read back %d,should be 0x3\n", *(pic_data));
      else
-         printf("set pic_a pass\n");
+         fixup_interrupt_printf("set pic_a pass\n");
 
 	/* bus 10: dev 5:INTG -->IRQ3 PCI(right) */
 	*(pic_index) =  0xb;
 	*(pic_data) =  0x3;
 	if (*(pic_data) !=  0x3)
-		printf("set pic fail: read back %d,should be 0x3\n", *(pic_data));
+		fixup_interrupt_printf("set pic fail: read back %d,should be 0x3\n", *(pic_data));
 	else
-		printf("set pic_9 pass\n");
+		fixup_interrupt_printf("set pic_9 pass\n");
 
 	/* INTH -->IRQ4 SATA */
 	*(pic_index) =  0xc;
 	*(pic_data) =  0x4;
 	if (*(pic_data) !=  0x4)
-		printf("set pic fail: read back %d,should be 0x4\n", *(pic_data));
+		fixup_interrupt_printf("set pic fail: read back %d,should be 0x4\n", *(pic_data));
 	else
-		printf("set pic_4 pass\n");
+		fixup_interrupt_printf("set pic_4 pass\n");
 
 	/* 5. set int triggle model: level or edge */
 	dev = _pci_make_tag(0, 0x14, 0x0);
-	printf("PIC control bit: %08x\n", pci_read_config16(dev, 0x64));
+	fixup_interrupt_printf("PIC control bit: %08x\n", pci_read_config16(dev, 0x64));
 
-	printf("original int mode: 0x%08x \n", (*intr_contrl));
+	fixup_interrupt_printf("original int mode: 0x%08x \n", (*intr_contrl));
 	(*intr_contrl) = ((*intr_contrl)|(1<<6)|(1<<5)|(1<<4)|(1<<3));
-	printf("<1> now int mode: 0x%08x \n", (*intr_contrl));
-	printf("waiting....\n");
+	fixup_interrupt_printf("<1> now int mode: 0x%08x \n", (*intr_contrl));
+	fixup_interrupt_printf("waiting....\n");
 #if 1
 	(*intr_contrl) = ((*intr_contrl)|(1<<6)|(1<<5)|(1<<4)|(1<<3));
-	printf("<1> now int mode: 0x%08x \n", (*intr_contrl));
+	fixup_interrupt_printf("<1> now int mode: 0x%08x \n", (*intr_contrl));
 #endif
 
-	printf("SB700 interrupt PIC set done \n");
+	fixup_interrupt_printf("SB700 interrupt PIC set done \n");
 
 
 
 	// Fix bonito interrupt according fixup_3a780e.c in kernel source code
-	printf("SB700 device interrupt route begin \n");
+	fixup_interrupt_printf("SB700 device interrupt route begin \n");
 
 	// 1.fix up rte0: rourte 00:07:00 rte0: INTD-->IRQ5  
-	printf("\nrte0 fixup: rte ---------------> int5\n");
-	printf("SB700 device  route rte0: int5 \n");
+	fixup_interrupt_printf("\nrte0 fixup: rte ---------------> int5\n");
+	fixup_interrupt_printf("SB700 device  route rte0: int5 \n");
 	dev = _pci_make_tag(7, 0x0, 0x0);
 	val = pci_read_config32(dev, 0x00);
 	if ( val != 0xffffffff) // device on the slot
 	  pci_write_config8(dev, 0x3c, 0x05);
 
-	printf("SB700 device  route rte0: int5 \n");
+	fixup_interrupt_printf("SB700 device  route rte0: int5 \n");
 	dev = _pci_make_tag(8, 0x0, 0x0);
 	val = pci_read_config32(dev, 0x00);
 	if ( val != 0xffffffff) // device on the slot
 	  pci_write_config8(dev, 0x3c, 0x05);
 
 		//2.fixup sata int line
-	 printf("\n godson3a_sata_fixup: sata ---------------> int4 \n");
+	 fixup_interrupt_printf("\n godson3a_sata_fixup: sata ---------------> int4 \n");
 
    	/*2.1. enable the subcalss code register for setting sata controller mode*/
 	dev = _pci_make_tag(0, 0x11, 0x0);
@@ -2687,79 +2694,79 @@ void sb700_interrupt_fixup(void)
 	/*2.3. disable the subcalss code register*/
     val = pci_read_config8(dev, 0x40);
     (void) pci_write_config8(dev, 0x40, val & (~0x01));
-	printf("-----------------tset sata------------------\n");
+	fixup_interrupt_printf("-----------------tset sata------------------\n");
 	val = pci_read_config32(dev, 0x40);
-	printf("sata pci_config 0x40 (%x)\n", val);
+	fixup_interrupt_printf("sata pci_config 0x40 (%x)\n", val);
 	pci_write_config8(dev, 0x3c, 0x4); 
-	printf("godson3a_sata: fix sata mode==:%d\n",pci_read_config8(dev,0x3c));
+	fixup_interrupt_printf("godson3a_sata: fix sata mode==:%d\n",pci_read_config8(dev,0x3c));
 
 	/*3. ide fixup*/
-	printf("godson3a_ide_fixup: fix ide mode\n");
+	fixup_interrupt_printf("godson3a_ide_fixup: fix ide mode\n");
 	dev = _pci_make_tag(0, 0x14, 1);  
 	/*set IDE ultra DMA enable as master and slalve device*/
     (void) pci_write_config8(dev, 0x54, 0xf);
 	/*set ultral DAM mode 0~6  we use 6 as high speed !*/
 	(void) pci_write_config16(dev, 0x56, (0x6 << 0)|(0x6 << 4)|(0x6 << 8)|(0x6 << 12));
-	printf("godson3a_ide_fixup: fix ide mode\n");
+	fixup_interrupt_printf("godson3a_ide_fixup: fix ide mode\n");
 
 	/*4. usb fixup*/
-	printf("godson3a fixup: usb ------> int6 \n");
+	fixup_interrupt_printf("godson3a fixup: usb ------> int6 \n");
 	dev = _pci_make_tag(0, 0x12, 0);
 	pci_write_config8(dev, 0x3c, 0x6);
-	printf("godson3a fixup: usb ------> int6 \n");
+	fixup_interrupt_printf("godson3a fixup: usb ------> int6 \n");
 	dev = _pci_make_tag(0, 0x12, 1);
 	pci_write_config8(dev, 0x3c, 0x6);
-	printf("godson3a fixup: usb ------> int6 \n");
+	fixup_interrupt_printf("godson3a fixup: usb ------> int6 \n");
 	dev = _pci_make_tag(0, 0x12, 2);
 	pci_write_config8(dev, 0x3c, 0x6);
-	printf("godson3a fixup: usb ------> int6 \n");
+	fixup_interrupt_printf("godson3a fixup: usb ------> int6 \n");
 	dev = _pci_make_tag(0, 0x13, 0);
 	pci_write_config8(dev, 0x3c, 0x6);
-	printf("godson3a fixup: usb ------> int6 \n");
+	fixup_interrupt_printf("godson3a fixup: usb ------> int6 \n");
 	dev = _pci_make_tag(0, 0x13, 1);
 	pci_write_config8(dev, 0x3c, 0x6);
-	printf("godson3a fixup: usb ------> int6 \n");
+	fixup_interrupt_printf("godson3a fixup: usb ------> int6 \n");
 	dev = _pci_make_tag(0, 0x13, 2);
 	pci_write_config8(dev, 0x3c, 0x6);
-	printf("godson3a fixup: usb ------> int6 \n");
+	fixup_interrupt_printf("godson3a fixup: usb ------> int6 \n");
 	dev = _pci_make_tag(0, 0x14, 5);
 	pci_write_config8(dev, 0x3c, 0x6);
-	printf("godson3a fixup: usb ------> int6 \n");
+	fixup_interrupt_printf("godson3a fixup: usb ------> int6 \n");
 	
 	/*5. lpc fixup*/
 	dev = _pci_make_tag(0, 0x14, 3);
-	printf("godson3a fixup: lpc ------> int6 \n");
+	fixup_interrupt_printf("godson3a fixup: lpc ------> int6 \n");
     val = pci_read_config8(dev, 0x46);
-    printk("Fixup: lpc: 0x46 value is 0x%x\n",val);
+    fixup_interrupt_printf("Fixup: lpc: 0x46 value is 0x%x\n",val);
     pci_write_config8(dev, 0x46, val|(0x3 << 6));
     val = pci_read_config8(dev, 0x46);
-    printk("Fixup: lpc: 0x47 value is 0x%x\n",val);
+    fixup_interrupt_printf("Fixup: lpc: 0x47 value is 0x%x\n",val);
 
     val = pci_read_config8(dev, 0x47);
-    printk("Fixup: lpc: 0x47 value is 0x%x\n",val);
+    fixup_interrupt_printf("Fixup: lpc: 0x47 value is 0x%x\n",val);
     pci_write_config8(dev, 0x47, val|0xff);
     val = pci_read_config8(dev, 0x47);
-    printk("Fixup: lpc: 0x47 value is 0x%x\n",val);
+    fixup_interrupt_printf("Fixup: lpc: 0x47 value is 0x%x\n",val);
 
     val = pci_read_config8(dev, 0x48);
-    printk("Fixup: lpc: 0x48 value is 0x%x\n",val);
+    fixup_interrupt_printf("Fixup: lpc: 0x48 value is 0x%x\n",val);
     pci_write_config8(dev, 0x48, val|0xff);
     val = pci_read_config8(dev, 0x48);
-    printk("Fixup: lpc: 0x48 value is 0x%x\n",val);
+    fixup_interrupt_printf("Fixup: lpc: 0x48 value is 0x%x\n",val);
 	
 	/*6. hda fixup*/
-	printf("godson3a fixup: HDA ------> int5 \n");
+	fixup_interrupt_printf("godson3a fixup: HDA ------> int5 \n");
 	dev = _pci_make_tag(0, 0x14, 2);
     pci_write_config8(dev,0x3c,0x05);
 
-	printf("godson3a fixup: HDA ------> int5 \n");
+	fixup_interrupt_printf("godson3a fixup: HDA ------> int5 \n");
 
 	/*7. VGA fixup*/
-     printf("godson3a fixup: VGA ------> int6 \n");
+     fixup_interrupt_printf("godson3a fixup: VGA ------> int6 \n");
      dev = _pci_make_tag(1, 0x5, 0);
      pci_write_config8(dev,0x3c,0x06);
  
-     printf("godson3a fixup: VGA ------> int6 \n");	
+     fixup_interrupt_printf("godson3a fixup: VGA ------> int6 \n");	
 
 	/*8. pci/pcie slot fixup */
 	//8.1. route  00:06:00 (pcie slot) INTA->INTC# -----------------> int6
@@ -2829,7 +2836,7 @@ void sb700_interrupt_fixup(void)
       {
         val = pci_read_config8(dev, 0x3c);
         if ( val != 0x3)
-          printf("%02x:00:00 interrupt line : Error\n",tmp );
+          fixup_interrupt_printf("%02x:00:00 interrupt line : Error\n",tmp );
       }
     }
       
@@ -2842,7 +2849,7 @@ void sb700_interrupt_fixup(void)
       {
         val = pci_read_config8(dev, 0x3c);
         if ( val != 0x3)
-          printf("0a:%02x:00 interrupt line : Error\n",dev );
+          fixup_interrupt_printf("0a:%02x:00 interrupt line : Error\n",dev );
       }
     }
 	
@@ -2853,7 +2860,7 @@ void sb700_interrupt_fixup(void)
     {
 	  val = pci_read_config8(dev, 0x3c);
 	  if ( val != 0x5)
-		printf("07:00:00 interrupt line : Error\n");
+		fixup_interrupt_printf("07:00:00 interrupt line : Error\n");
 	}
 
   	// 10.5 check  VGA interrupt line register
@@ -2863,7 +2870,7 @@ void sb700_interrupt_fixup(void)
     {
 	  val = pci_read_config8(dev, 0x3c);
 	  if ( val != 0x6)
-		printf("01:05:00 interrupt line : Error\n");
+		fixup_interrupt_printf("01:05:00 interrupt line : Error\n");
 	}
 
 }
