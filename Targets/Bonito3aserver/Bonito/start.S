@@ -120,19 +120,30 @@ nop;
 
 /* WatchDog Close for chip MAX6369*/
 #define WatchDog_Close \
+GPIO_CLEAR_OUTPUT(0x1<<13); \
+GPIO_SET_OUTPUT(0x1<<14); \
 GPIO_CLEAR_OUTPUT(0x1<<5); \
 GPIO_SET_OUTPUT(0x1<<3|0x1<<4); \
-GPIO_CLEAR_OUTPUT(0x1<<13); \
+li v1,0x1000;\
+78:; \
+subu v1,1; \
+bnez v1,78b; \
+nop; \
+GPIO_CLEAR_OUTPUT(0x1<<14);
 
 /* WatchDog Enable for chip MAX6369*/
 #define WatchDog_Enable \
-GPIO_CLEAR_OUTPUT(0x1<<13); \
 GPIO_SET_OUTPUT(0x1<<14); \
 GPIO_SET_OUTPUT(0x1<<5); \
 GPIO_CLEAR_OUTPUT(0x1<<4); \
 GPIO_SET_OUTPUT(0x1<<3); \
-GPIO_CLEAR_OUTPUT(0x1<<14); \
 li v1,0x100;\
+78:; \
+subu v1,1; \
+bnez v1,78b; \
+nop; \
+GPIO_CLEAR_OUTPUT(0x1<<14); \
+li v1,0x1000;\
 78:; \
 subu v1,1; \
 bnez v1,78b; \
@@ -239,7 +250,7 @@ uncached:
 /*
  *  Reboot vector usable from outside pmon.
  */
-	.align	8
+	.align	8   /* bfc00200 */
 ext_map_and_reboot:
 	bal	CPU_TLBClear
 	nop
@@ -260,11 +271,13 @@ ext_map_and_reboot:
  *  Exception vectors here for rom, before we are up and running. Catch
  *  whatever comes up before we have a fully fledged exception handler.
  */
+#if 0
 	.align	9			/* bfc00200 */
 	la	a0, v200_msg
 	bal	stringserial
 	nop
 	b	exc_common
+#endif
 
 	.align	7			/* bfc00280 */
 	la	a0, v280_msg
@@ -291,6 +304,15 @@ ext_map_and_reboot:
 	la	a0, v400_msg
 	bal	stringserial
 	nop
+
+#if 1
+	b	exc_common
+	nop
+
+	/* Debug exception */
+	.align	7 /* bfc00480 */
+#include "exc_ejtag.S"
+#endif
 
 
 	
@@ -488,6 +510,18 @@ loop_here:
         bne     t0, a0, slave_main
 		#bnez 	t0, slave_main
 		nop
+
+#define SHUTDOWN_CORE
+#ifdef  SHUTDOWN_CORE
+        li	  a0, 0xbfe00184
+	    li	  t1, 0x0001ffff
+		sw	  t1, 0x0(a0)
+        li	  a0, 0x900010001fe00184
+	    li	  t1, 0x0000ffff
+		sw	  t1, 0x0(a0)
+#endif
+
+
 
 #if 0 /* Niuxie Tube */
         li      a0,0xbff00080
@@ -974,7 +1008,7 @@ core0_start:
 gs_2f_v3_ddr2_cfg:
 
 //Read sys_clk_sel
-#if 1
+#if 0
 	TTYDBG ("\r\n0xbfe00190  : ")
         li  t2,0xbfe00190
         ld  t1, 0x0(t2)
@@ -1050,15 +1084,19 @@ gs_2f_v3_ddr2_cfg:
 #endif    
 
 #ifdef MULTI_CHIP
+		WatchDog_Enable;
         TTYDBG("CPU 1 READ TEST...\r\n")
         dli      t0, 0x900010003ff00040
         lw       a0, 0x0(t0)
         TTYDBG("CPU 1 READ TEST OK.\r\n")
+		WatchDog_Close;
 #endif
 ##########################################
+		WatchDog_Enable;
 
 #include "loongson3_fixup.S"
 
+		WatchDog_Close;
 ##########################################
 #include "ddr_config_define.h"
 	dli	msize, 0
@@ -1066,7 +1104,8 @@ gs_2f_v3_ddr2_cfg:
    //     li      s1, 0x0
 //	dli     s1, 0x81c1000081c12200
 //	dli     s1, 0x98c3000098c38800
-	dli     s1, 0x98c3000098c38804
+	//dli     s1, 0x98c3000098c38804
+	dli     s1, 0x98c1000098c10404 //2G singel
 	/* show value of s1 */
 	PRINTSTR("\r\ns1 = 0x");
 	dsrl    a0, s1, 32
@@ -1078,7 +1117,9 @@ gs_2f_v3_ddr2_cfg:
 	nop
 	PRINTSTR("\r\n")
 
+	WatchDog_Enable;
 #include "loongson3_ddr2_config.S"
+	WatchDog_Close;
 ##########################################
 
 #ifdef MULTI_CHIP
@@ -1087,8 +1128,11 @@ gs_2f_v3_ddr2_cfg:
 //        li      s1, 0x1
 //	dli     s1, 0x81c1000081c12201
 //	dli     s1, 0x98c3000098c38801
-	dli     s1, 0x98c3000098c38809
+	//dli     s1, 0x98c3000098c38805
+	dli     s1, 0x98c1000098c10405 //2G singel
+WatchDog_Enable;
 #include "loongson3_ddr2_config.S"
+WatchDog_Close;
 ##########################################
 #endif
 
@@ -1108,6 +1152,10 @@ gs_2f_v3_ddr2_cfg:
 	    TTYDBG("Init tlb...\r\n")
         bal     tlb_init
         nop
+#if 1 /* TLB init */
+		TTYDBG("Init htpcitlb...\r\n")
+#include "pcitlb.S" /* map 0x1000000-0x1700000 to 0x4000000 */
+#endif
 	    //TTYDBG("Init caches...\r\n")
 
 #if 1
@@ -1666,8 +1714,8 @@ LEAF(initserial_uart)
  	li	t1,128
  #	addiu	a2,a0,3
  	sb	t1,3(a0)
- 	li	t1,0x12      # divider, highest possible baud rate
-# 	li	t1,0x0e     # divider, highest possible baud rate
+	#li	t1,0x12      # divider, highest possible baud rate
+	li	t1,0x0e     # divider, highest possible baud rate
  	sb	t1,0(a0)
  	li	t1,0x0     # divider, highest possible baud rate
  	sb	t1,1(a0)
@@ -1751,8 +1799,8 @@ LEAF(initserial)
  	li	t1,128
  #	addiu	a2,a0,3
  	sb	t1,3(a0)
- 	li	t1,0x12      # divider, highest possible baud rate
-# 	li	t1,0x0e     # divider, highest possible baud rate
+	#li	t1,0x12      # divider, highest possible baud rate
+	li	t1,0x0e     # divider, highest possible baud rate
  	sb	t1,0(a0)
  	li	t1,0x0     # divider, highest possible baud rate
  	sb	t1,1(a0)
@@ -2221,6 +2269,14 @@ LEAF(pci_write_config8_mips)
         nop
 END(pci_write_config8_mips)
 
+.global watchdog_enable
+.ent    watchdog_enable
+.set    noreorder
+.set    mips3
+watchdog_enable:
+	WatchDog_Enable
+	jr	ra
+.end watchdog_enable
 
 #if  1 /* slave main */
 

@@ -93,7 +93,8 @@ ifconfig (ifname, ipaddr)
 	struct bootparams bootp;
 	struct ifaliasreq addreq;
 	char *gw;
-	int s, bootplev;
+	int s, bootplev, lwdhcplev;
+	char cmdbuf[LINESZ];
 
 	if (ifname == NULL) {
 		printf("ifconfig: no ifc name\n");
@@ -116,9 +117,13 @@ ifconfig (ifname, ipaddr)
 	 */
 #if 1
 	bootplev = matchenv ("bootp");
-	if (strncmp(ipaddr, "bootp", 5) == 0) {
+	lwdhcplev = 0;
+	if (strncmp(ipaddr, "lwdhcp", 6) == 0) {
 		bootplev = 2;
-	} else {
+		lwdhcplev = 1;
+	} else if(strncmp(ipaddr, "bootp", 5) == 0){
+		bootplev = 2;
+	} else{
 		boot_parsecfg(&bootp, ipaddr);
 	}
 #endif
@@ -134,12 +139,15 @@ ifconfig (ifname, ipaddr)
 	}
 
 	if (bootplev >= 1) {
+	     if(lwdhcplev == 0)
+	     {
 		/* Enable interface with an initial dummy net address.
 		   Note ipintr() has been kludged to route all input packets
 		   to an interface on the loopback net. */
 		bzero (&addreq, sizeof(addreq));
 		strncpy(addreq.ifra_name, ifname, IFNAMSIZ);
-		setsin (SIN(addreq.ifra_addr), AF_INET, htonl (0x7f000002));
+		//setsin (SIN(addreq.ifra_addr), AF_INET, htonl (0x7f000002));
+		setsin (SIN(addreq.ifra_addr), AF_INET, INADDR_ANY);
 		setsin (SIN(addreq.ifra_broadaddr), AF_INET, INADDR_ANY);
 		if (ioctl(s, SIOCAIFADDR, &addreq) < 0) {
 			perror("ioctl (SIOCAIFADDR) dummy");
@@ -155,7 +163,14 @@ ifconfig (ifname, ipaddr)
 
 		/* get any remaining unknown parameters from environment */
 		boot_getenv (&bootp, ifname);
-	}
+	     }
+	     else{
+#ifdef cmd_lwdhcp
+		mylwdhcp(&bootp, ifname);
+		boot_getenv(&bootp, ifname);
+#endif
+	     }
+  	}	
 
 	if (!(bootp.have & BOOT_ADDR)) {
 		if (bootplev >= 1)

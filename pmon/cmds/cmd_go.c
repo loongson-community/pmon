@@ -50,7 +50,8 @@
 #include <debugger.h>
 
 #include "mod_debugger.h"
-
+#include "mod_usb_uhci.h"
+#include "mod_usb_ohci.h"
 #include "initrd.h"
 
 extern struct trapframe DBGREG;
@@ -82,6 +83,9 @@ const Optdesc         cmd_g_opts[] = {
 
 #if NMOD_USB_UHCI != 0
 extern void usb_uhci_stop(void);
+#endif
+#if NMOD_USB_OHCI !=0
+extern void usb_ohci_stop(void);
 #endif
 /*************************************************************
  *  go(ac,av), the 'g' command
@@ -168,6 +172,9 @@ extern char	*optarg;
 #endif
 #if NMOD_USB_UHCI > 0
 	usb_uhci_stop();
+#endif
+#if NMOD_USB_OHCI !=0
+	usb_ohci_stop();
 #endif
 #if NMOD_DEBUGGER > 0
 	if (setjmp (go_return_jump) == 0) {	

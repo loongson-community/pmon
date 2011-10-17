@@ -61,7 +61,9 @@ extern void kbd_poll(void);
 extern int ioctl(int , unsigned long, ...);
 extern void scancode_queue_init(void);
 
+#ifdef INTERFACE_3A780E
 extern int bios_available;
+#endif
 extern unsigned char usb_kbd_code;
 extern unsigned char kbd_code;
 
@@ -268,6 +270,8 @@ scandevs ()
 #if NMOD_USB_KBD >0
 //	if (usb_kbd_available) //before use
 //		usb_kbd_poll();  //before use
+
+#ifdef INTERFACE_3A780E
 if (usb_kbd_available)
     {
      if (bios_available) /* fix some usb_kbd problems in bios window */
@@ -284,6 +288,7 @@ if (usb_kbd_available)
       return ;
      }
    }
+#endif
 
 #endif
 	if (kbd_available)

@@ -36,13 +36,26 @@
 #define CLK_CNTL_INDEX	0x8
 #define CLK_CNTL_DATA	0xC
 
+extern unsigned long long memorysize;
+extern unsigned long long memorysize_high;
+
+/*
+* Set registers in RS780 and CPU to enable the internal GFX.
+* Please refer to CIM source code and BKDG.
+*/
+
+uint64_t uma_memory_top;
+uint64_t uma_memory_size;
+uint64_t uma_memory_base;
+
 /* The Integrated Info Table. */
 //ATOM_INTEGRATED_SYSTEM_INFO_V2 vgainfo;
+struct _ATOM_INTEGRATED_SYSTEM_INFO_V2 vgainfo;
 
 #ifdef UNUSED_CODE
 static u32 clkind_read(device_t dev, u32 index)
 {
-	u32	gfx_bar2 = BONITO_PCILO_BASE_VA | (pci_read_config32(dev, 0x18) & ~0xF);
+	u32	gfx_bar2 = 0x80000000 | (pci_read_config32(dev, 0x18) & ~0xF);
 
 	*(u32*)(gfx_bar2+CLK_CNTL_INDEX) = index & 0x7F;
 	return *(u32*)(gfx_bar2+CLK_CNTL_DATA);
@@ -51,7 +64,7 @@ static u32 clkind_read(device_t dev, u32 index)
 
 static void clkind_write(device_t dev, u32 index, u32 data)
 {
-	u32	gfx_bar2 = (pci_read_config32(dev, 0x18) & ~0xF) | BONITO_PCILO_BASE_VA;
+	u32	gfx_bar2 = (pci_read_config32(dev, 0x18) & ~0xF) | 0x80000000;
 
 	*(u32*)(gfx_bar2+CLK_CNTL_INDEX) = index | 1<<7;
 	*(u32*)(gfx_bar2+CLK_CNTL_DATA)  = data;
@@ -84,15 +97,19 @@ static void internal_gfx_pci_dev_init(device_t nb , device_t dev)
     pci_write_config32(_pci_make_tag(0,1,0) ,0x04 , 0x7 | pci_read_config32(_pci_make_tag(0,1,0) , 0x04));
     printk_info("apc_dev------04 ----------%x \n" , pci_read_config32(_pci_make_tag(0,1,0) , 0x04));
 
-	GpuF0MMReg = (u32 *)(BONITO_PCILO_BASE_VA | pci_read_config32(dev, 0x18));
+	printk_info("pci_read_config==========%x\n",pci_read_config32(dev, 0x18));
+	
+	GpuF0MMReg = (u32 *)(0x80000000 | pci_read_config32(dev, 0x18));
 
-    tgt_printf("GpuF0MMReg :   %x =============\n" , GpuF0MMReg);
+    //	printk_info("GpuF0MMReg :   %x =============\n" , GpuF0MMReg);
 	/* GFX_InitFBAccess. */
     *(GpuF0MMReg + 0x0) = 0x544c;
-    printk_info("first reg succeeded:%x \n",*(GpuF0MMReg + 0x0));
+
+    printk_info("first reg succeeded:%x un",*(GpuF0MMReg + 0x0));
     printk_info("first reg succeeded:%x \n",*(GpuF0MMReg + 0x4));
 
 	value = nbmc_read_index(nb_dev, 0x10);
+
 	*(GpuF0MMReg + 0x2000/4) = 0x11;
     printk_info("first reg succeeded:%x \n",*(GpuF0MMReg + 0x2000/4));
 
@@ -101,10 +118,12 @@ static void internal_gfx_pci_dev_init(device_t nb , device_t dev)
 	*(GpuF0MMReg + 0x5428/4) = ((value&0xffff0000)+0x10000)-((value&0xffff)<<16);
 	*(GpuF0MMReg + 0x2000/4) = 0x00000011;
 	*(GpuF0MMReg + 0x200c/4) = 0x00000020;
+	//*(GpuF0MMReg + 0x2010/4) = 0x00204810 | PCI_MEM_SPACE_PCI_BASE;
 	*(GpuF0MMReg + 0x2010/4) = 0x10204810;
     printk_info("first reg succeeded:%x\n",*(GpuF0MMReg + 0x2010/4));
     
 	*(GpuF0MMReg + 0x2010/4) = 0x00204810;
+	//*(GpuF0MMReg + 0x2014/4) = 0x00408810| PCI_MEM_SPACE_PCI_BASE;
 	*(GpuF0MMReg + 0x2014/4) = 0x10408810;
 	*(GpuF0MMReg + 0x2014/4) = 0x00408810;
 	*(GpuF0MMReg + 0x2414/4) = 0x00000080;
@@ -131,8 +150,7 @@ static void internal_gfx_pci_dev_init(device_t nb , device_t dev)
 	set_nbmc_enable_bits(nb_dev, 0x6, 0, 1<<31);
 	/* GFX_StartMC finished. */
 #else
-#if 0
-// sp mode is not tested
+#if 1
 	/* for SP mode. */
 	set_nbmc_enable_bits(nb_dev, 0xaa, 0xf0, 0x30);
 	set_nbmc_enable_bits(nb_dev, 0xce, 0xf0, 0x30);
@@ -144,8 +162,8 @@ static void internal_gfx_pci_dev_init(device_t nb , device_t dev)
 	set_nbmc_enable_bits(nb_dev, 0xb4, 0, 1<<6);
 	set_nbmc_enable_bits(nb_dev, 0xc3, 1<<11, 0);
 	set_nbmc_enable_bits(nb_dev, 0xa0, 1<<29, 0);
-	nbmc_write_index(nb_dev, 0xa4, 0x3484576f);
-	nbmc_write_index(nb_dev, 0xa5, 0x222222df);
+	nbmc_write_index(nb_dev, 0xa4, 0x1845761F);
+	nbmc_write_index(nb_dev, 0xa5, 0x22259422);
 	nbmc_write_index(nb_dev, 0xa6, 0x00000000);
 	nbmc_write_index(nb_dev, 0xa7, 0x00000000);
 	set_nbmc_enable_bits(nb_dev, 0xc3, 1<<8, 0);
@@ -161,7 +179,7 @@ static void internal_gfx_pci_dev_init(device_t nb , device_t dev)
 	set_nbmc_enable_bits(nb_dev, 0xa0, 0, 1<<30);
 	set_nbmc_enable_bits(nb_dev, 0xa0, 1<<31, 0);
 	set_nbmc_enable_bits(nb_dev, 0xa0, 0, 1<<29);
-	nbmc_write_index(nb_dev, 0xa4, 0x23484576);
+	nbmc_write_index(nb_dev, 0xa4, 0x22484576);
 	nbmc_write_index(nb_dev, 0xa5, 0x00000000);
 	nbmc_write_index(nb_dev, 0xa6, 0x00000000);
 	nbmc_write_index(nb_dev, 0xa7, 0x00000000);
@@ -183,7 +201,51 @@ static void internal_gfx_pci_dev_init(device_t nb , device_t dev)
 		temp8 |= 1<<1|1<<2;
 		pci_write_config8(dev, 0x4, temp8);
 	}
+//#define PATCH_128MB
+#if( VRAMVRAM_SIZE == 128)
+	vgainfo.sHeader.usStructureSize = sizeof(ATOM_INTEGRATED_SYSTEM_INFO_V2);
+        vgainfo.sHeader.ucTableFormatRevision = 1;
+        vgainfo.sHeader.ucTableContentRevision = 2;
 
+#if (CONFIG_GFXUMA == 0) /* SP mode. */
+        // Side port support is incomplete, do not use it
+        // These parameters must match the motherboard
+        vgainfo.ulBootUpSidePortClock = 400*100;
+        vgainfo.ucMemoryType = 2;  // 3=ddr3 sp mem, 2=ddr2 sp mem
+        vgainfo.ulMinSidePortClock = 200*100;
+#endif
+
+        vgainfo.ulBootUpEngineClock = 500 * 100;   
+
+        /* UMA Channel Number: 1 or 2. */
+        vgainfo.ucUMAChannelNumber = 1;
+
+        vgainfo.ulHTLinkFreq = 800 * 100;    // HT frequency in units of 100 MHz
+        vgainfo.ulHighVoltageHTLinkFreq = vgainfo.ulHTLinkFreq;
+        vgainfo.ulLowVoltageHTLinkFreq = vgainfo.ulHTLinkFreq;
+
+	vgainfo.ulLowVoltageHTLinkFreq = vgainfo.ulHTLinkFreq;
+
+        vgainfo.usMinDownStreamHTLinkWidth =
+        vgainfo.usMaxDownStreamHTLinkWidth =
+        vgainfo.usMinUpStreamHTLinkWidth =
+        vgainfo.usMaxUpStreamHTLinkWidth =
+        vgainfo.usMinHTLinkWidth =
+        vgainfo.usMaxHTLinkWidth = 16;
+
+        /* Transfer the Table to VBIOS. */
+        pointer = (u32 *)&vgainfo;
+        for(i=0; i<sizeof(ATOM_INTEGRATED_SYSTEM_INFO_V2); i+=4)
+        {
+#if (CONFIG_GFXUMA == 1)
+                *GpuF0MMReg = 0x80000000 + uma_memory_size - 512 + i;
+#else
+                *GpuF0MMReg = 0x80000000 + 0x8000000 - 512 + i;
+#endif
+                *(GpuF0MMReg+1) = *pointer++;
+        }
+
+#endif
 	/* clk ind */
 	clkind_write(dev, 0x08, 0x01);
 	clkind_write(dev, 0x0C, 0x22);
@@ -216,17 +278,34 @@ void rs780_internal_gfx_init(device_t nb_dev,device_t dev)
     u8  u8temp;
     u32 MMIOBase, apc04, apc18, apc24;
     volatile u32 * strap;
+    volatile u32 romstrap2;
+
+#ifdef CONFIG_GFXUMA
+	uma_memory_base = 0x90000000;
+	uma_memory_size = VRAM_SIZE<<20;
+	uma_memory_top = uma_memory_base + uma_memory_size;
+#else
+	uma_memory_base = PCI_MEM_SPACE_PCI_BASE;
+	uma_memory_size = VRAM_SIZE<<20;// max 256M because of graphpic chip capacity
+	uma_memory_top = PCI_MEM_SPACE_PCI_BASE + uma_memory_size;
+#endif
+	printk_info( "!!!! uma_memory_top = %08x, uma_memory_size = %x.\n",uma_memory_top,uma_memory_size);
+	printk_info( "!!!! uma_memory_top = %08x, uma_memory_size = %x.\n",uma_memory_top,uma_memory_size);
 
     /* BTDC: Get PCIe configuration space. */
     printk_info("Get PCIe configuration space.\n");
+    //MMIOBase = pci_read_config32(nb_dev, 0x1c) & 0xfffffff0;
+    MMIOBase = pci_read_config32(nb_dev, 0x1c);
+    printk_info("original : MMIOBase=%08x\n", MMIOBase);
+	MMIOBase  += 0x30000000;
+    pci_write_config32(nb_dev, 0x1c, MMIOBase);
     MMIOBase = pci_read_config32(nb_dev, 0x1c) & 0xfffffff0;
-    printk_info("MMIOBase=%08x\n", MMIOBase);
+    printk_info("Fixup MMIOBase=%08x\n", MMIOBase);
 
     /* BTDC: Temporarily disable PCIe configuration space. */
     printk_info("Temporarily disable PCIe configuration space\n");
     set_htiu_enable_bits(nb_dev, 0x32, 1<<28, 0);
-    set_nbmisc_enable_bits(nb_dev, 0x1e, 0xffffffff, 1<<1 | 1<<4 | 1<<6 | 1 << 7);
-
+    set_nbmisc_enable_bits(nb_dev, 0x1e, 0xffffffff, 1<<1 | 1<<4 | 1<<6 | 1 << 7); 
     /* BTDC: Set a temporary Bus number. */
     printk_info("Set a temporary Bus number.\n");
     apc18 = pci_read_config32(dev, 0x18);
@@ -248,18 +327,39 @@ void rs780_internal_gfx_init(device_t nb_dev,device_t dev)
     //lycheng
   //  MMIOBase |= 0xb6000000;
    // MMIOBase = BONITO_PCICFG1_BASE_VA;
-    MMIOBase |= BONITO_PCILO_BASE_VA;
+    MMIOBase |= 0x80000000;
     printk_info("MMIOBase=%08x\n", MMIOBase);
     strap = MMIOBase + 0x15000;
     *strap = 0x2c006300;
     strap = MMIOBase + 0x15010;
     *strap = 0x03015330;
     strap = MMIOBase + 0x15020;
+	//romstrap2 = 1 << 26; // enables audio function  
+	romstrap2 = 0; // enables audio function  
 #ifdef CONFIG_GFXUMA 
-    *strap = 0x2 << 7; /* BTDC: the format of BIF_MEM_AP_SIZE. 001->256MB? */
+	// bits 7-9: aperture size  
+	// 0-7: 128mb, 256mb, 64mb, 32mb, 512mb, 1g, 2g, 4g   
+	if (uma_memory_size == 0x02000000) romstrap2 |= 3 << 7;
+	if (uma_memory_size == 0x04000000) romstrap2 |= 2 << 7;
+	if (uma_memory_size == 0x08000000) romstrap2 |= 0 << 7;
+	if (uma_memory_size == 0x10000000) romstrap2 |= 1 << 7;
+	if (uma_memory_size == 0x20000000) romstrap2 |= 4 << 7;
+	if (uma_memory_size == 0x40000000) romstrap2 |= 5 << 7;
+	if (uma_memory_size == 0x80000000) romstrap2 |= 6 << 7;
 #else
-    *strap = 0; /* BTDC: 128M SP memory, 000 -> 128MB */
+	// bits 7-9: aperture size  
+	// 0-7: 128mb, 256mb, 64mb, 32mb, 512mb, 1g, 2g, 4g   
+	if (uma_memory_size == 0x02000000) romstrap2 |= 3 << 7;
+	if (uma_memory_size == 0x04000000) romstrap2 |= 2 << 7;
+	if (uma_memory_size == 0x08000000) romstrap2 |= 0 << 7;
+	if (uma_memory_size == 0x10000000) romstrap2 |= 1 << 7;
+	if (uma_memory_size == 0x20000000) romstrap2 |= 4 << 7;
+	if (uma_memory_size == 0x40000000) romstrap2 |= 5 << 7;
+	if (uma_memory_size == 0x80000000) romstrap2 |= 6 << 7;
+
 #endif
+    *strap = romstrap2;
+
     //strap = MMIOBase + 0x15020;
     //*strap |= 0x00000040; /* BTDC: Disable HDA device. */
     strap = MMIOBase + 0x15030;
@@ -292,21 +392,6 @@ void rs780_internal_gfx_init(device_t nb_dev,device_t dev)
 }
 
 
-/*
-* Set registers in RS780 and CPU to enable the internal GFX.
-* Please refer to CIM source code and BKDG.
-*/
-#ifdef CONFIG_GFXUMA
-static uint64_t uma_memory_base = 0x08000000;
-static uint64_t uma_memory_size = 0x04000000;
-static uint64_t uma_memory_top = 0x0c000000; //base + size
-#else
-static uint64_t uma_memory_base = 0x10000000;
-static uint64_t uma_memory_size = 0x04000000;
-static uint64_t uma_memory_top = 0x14000000; //base + size
-#endif
-
-
 static void rs780_internal_gfx_enable(device_t nb , device_t dev)
 {
 	u32 l_dword;
@@ -316,9 +401,6 @@ static void rs780_internal_gfx_enable(device_t nb , device_t dev)
 	device_t k8_f2 = _pci_make_tag(0, 0x18, 2);
     u32 temp;
 
-#ifndef CONFIG_GFXUMA 
-    u32 FB_Start, FB_End;
-#endif
 	printk_info( "rs780_internal_gfx_enable dev = 0x%p, nb_dev = 0x%p.\n", dev, nb_dev);
 
 	/* The system top memory in 780. */
@@ -355,36 +437,39 @@ static void rs780_internal_gfx_enable(device_t nb , device_t dev)
     nbmc_write_index(nb_dev, 0x11, uma_memory_base);
  //   pci_write_config32(nb_dev,0x90,0x90000000);
 	nbmc_write_index(nb_dev, 0x10, ((uma_memory_top - 1) & 0xff000000 ) | (uma_memory_base >> 16) & 0xffff);
-    tgt_printf("config UMA!!!!!!!!!!!!!!!!!!!!!!!!!!!!1\n");
-    tgt_printf("mc : %d  ============value: %x\n" , 0xd , nbmc_read_index(nb_dev,0xd));
-    tgt_printf("mc : %d  ============value: %x\n" , 0xe , nbmc_read_index(nb_dev,0xe));
-    tgt_printf("mc : %d  ============value: %x\n" , 0x10 , nbmc_read_index(nb_dev,0x10));
-    tgt_printf("mc : %d  ============value: %x\n" , 0x11 , nbmc_read_index(nb_dev,0x11));
-    tgt_printf("mc : %d  ============value: %x\n" , 0x12 , nbmc_read_index(nb_dev,0x12));
-    tgt_printf("nb : %d  ============value: %x\n" , 0x90 , pci_read_config32(nb_dev,0x90));
+#if 0
+    printf("config UMA!!!!!!!!!!!!!!!!!!!!!!!!!!!!1\n");
+    printf("mc : %d  ============value: %x\n" , 0xd , nbmc_read_index(nb_dev,0xd));
+    printf("mc : %d  ============value: %x\n" , 0xe , nbmc_read_index(nb_dev,0xe));
+    printf("mc : %d  ============value: %x\n" , 0x10 , nbmc_read_index(nb_dev,0x10));
+    printf("mc : %d  ============value: %x\n" , 0x11 , nbmc_read_index(nb_dev,0x11));
+    printf("mc : %d  ============value: %x\n" , 0x12 , nbmc_read_index(nb_dev,0x12));
+    printf("nb : %d  ============value: %x\n" , 0x90 , pci_read_config32(nb_dev,0x90));
+#endif
 
 	/* GFX_InitUMA finished. */
 #else
-#if 0
-//sp mode is not tested  
+#if 1
 	/* GFX_InitSP. */
-	/* SP memory:Hynix HY5TQ1G631ZNFP. 128MB = 64M * 16. 667MHz. DDR3. */
 
 	/* Enable Async mode. */
 	set_nbmc_enable_bits(nb_dev, 0x06, 7<<8, 1<<8);
 	set_nbmc_enable_bits(nb_dev, 0x08, 1<<10, 0);
 	/* The last item in AsynchMclkTaskFileIndex. Why? */
+
+	/* Change the freq. to 266 MHz. by liuqi */
 	/* MC_MPLL_CONTROL2. */
-	nbmc_write_index(nb_dev, 0x07, 0x40100028);
+	nbmc_write_index(nb_dev, 0x07, 0x40114478);
 	/* MC_MPLL_DIV_CONTROL. */
-	nbmc_write_index(nb_dev, 0x0b, 0x00000028);
+	nbmc_write_index(nb_dev, 0x0b, 0x00004478);
 	/* MC_MPLL_FREQ_CONTROL. */
-	set_nbmc_enable_bits(nb_dev, 0x09, 3<<12|15<<16|15<<8, 1<<12|4<<16|0<<8);
+	set_nbmc_enable_bits(nb_dev, 0x09, 3<<12|15<<16|15<<8, 1<<12|4<<16|1<<8);
+
 	/* MC_MPLL_CONTROL3. For PM. */
 	set_nbmc_enable_bits(nb_dev, 0x08, 0xff<<13, 1<<13|1<<18);
 	/* MPLL_CAL_TRIGGER. */
 	set_nbmc_enable_bits(nb_dev, 0x06, 0, 1<<0);
-	udelay(200); /* time is long enough? */
+	delay(2000); /* time is long enough? */
 	set_nbmc_enable_bits(nb_dev, 0x06, 0, 1<<1);
 	set_nbmc_enable_bits(nb_dev, 0x06, 1<<0, 0);
 	/* MCLK_SRC_USE_MPLL. */
@@ -396,15 +481,15 @@ static void rs780_internal_gfx_enable(device_t nb , device_t dev)
 	nbmc_write_index(nb_dev, 0x04, 0x08881018);
 	nbmc_write_index(nb_dev, 0x05, 0x000000bb);
 	nbmc_write_index(nb_dev, 0x0c, 0x0f00001f);
-	nbmc_write_index(nb_dev, 0xa1, 0x01f10000);
+	nbmc_write_index(nb_dev, 0xa1, 0x01f10002);
 	/* MCA_INIT_DLL_PM. */
 	set_nbmc_enable_bits(nb_dev, 0xc9, 1<<24, 1<<24);
 	nbmc_write_index(nb_dev, 0xa2, 0x74f20000);
-	nbmc_write_index(nb_dev, 0xa3, 0x8af30000);
+	nbmc_write_index(nb_dev, 0xa3, 0x4AF30000);
 	nbmc_write_index(nb_dev, 0xaf, 0x47d0a41c);
 	nbmc_write_index(nb_dev, 0xb0, 0x88800130);
 	nbmc_write_index(nb_dev, 0xb1, 0x00000040);
-	nbmc_write_index(nb_dev, 0xb4, 0x41247000);
+	nbmc_write_index(nb_dev, 0xb4, 0x00000000);
 	nbmc_write_index(nb_dev, 0xb5, 0x00066664);
 	nbmc_write_index(nb_dev, 0xb6, 0x00000022);
 	nbmc_write_index(nb_dev, 0xb7, 0x00000044);
@@ -426,29 +511,30 @@ static void rs780_internal_gfx_enable(device_t nb , device_t dev)
 	nbmc_write_index(nb_dev, 0xe1, 0x00200020);
 	nbmc_write_index(nb_dev, 0xe8, 0x00200020);
 	nbmc_write_index(nb_dev, 0xe9, 0x00200020);
-	nbmc_write_index(nb_dev, 0xe0, 0x00180018);
-	nbmc_write_index(nb_dev, 0xe1, 0x00180018);
-	nbmc_write_index(nb_dev, 0xe8, 0x00180018);
-	nbmc_write_index(nb_dev, 0xe9, 0x00180018);
+//if (pConfig->MCLK >= 4)
+	nbmc_write_index(nb_dev, 0xe0, 0x00200020);
+	nbmc_write_index(nb_dev, 0xe1, 0x00200020);
+	nbmc_write_index(nb_dev, 0xe8, 0x00200020);
+	nbmc_write_index(nb_dev, 0xe9, 0x00200020);
 
 	/* Misc options. */
 	/* Memory Termination. */
-	set_nbmc_enable_bits(nb_dev, 0xa1, 0x0ff, 0x044);
-	set_nbmc_enable_bits(nb_dev, 0xb4, 0xf00, 0xb00);
+	//set_nbmc_enable_bits(nb_dev, 0xa1, 0x0ff, 0x046);
+	//set_nbmc_enable_bits(nb_dev, 0xb4, 0xf00, 0xb00);
 #if 0
 	/* Controller Termation. */
 	set_nbmc_enable_bits(nb_dev, 0xb1, 0x77770000, 0x77770000);
 #endif
 
-	/* OEM Init MC. 667MHz. */
-	nbmc_write_index(nb_dev, 0xa8, 0x7a5aaa78);
-	nbmc_write_index(nb_dev, 0xa9, 0x514a2319);
-	nbmc_write_index(nb_dev, 0xaa, 0x54400520);
-	nbmc_write_index(nb_dev, 0xab, 0x441460ff);
-	nbmc_write_index(nb_dev, 0xa0, 0x20f00a48);
+	/* OEM Init MC. 266MHz. */
+	nbmc_write_index(nb_dev, 0xa8, 0x34244456);
+	nbmc_write_index(nb_dev, 0xa9, 0x2022100c);
+	nbmc_write_index(nb_dev, 0xaa, 0x23400220);
+	nbmc_write_index(nb_dev, 0xab, 0x2000e088);
+	nbmc_write_index(nb_dev, 0xa0, 0x20f0066b);
 	set_nbmc_enable_bits(nb_dev, 0xa2, ~(0xffffffc7), 0x10);
-	nbmc_write_index(nb_dev, 0xb2, 0x00000303);
-	set_nbmc_enable_bits(nb_dev, 0xb1, ~(0xffffff70), 0x45);
+	nbmc_write_index(nb_dev, 0xb2, 0x0);
+	set_nbmc_enable_bits(nb_dev, 0xb1, ~(0xffffff70), 0x43);
 	/* Do it later. */
 	/* set_nbmc_enable_bits(nb_dev, 0xac, ~(0xfffffff0), 0x0b); */
 
@@ -463,24 +549,28 @@ static void rs780_internal_gfx_enable(device_t nb , device_t dev)
 		l_dword = nbmc_read_index(nb_dev, 0xa8+i);
 		nbmc_write_index(nb_dev, 0xcc+i, l_dword);
 	}
+    l_dword = nbmc_read_index(nb_dev, 0xb2);
+    nbmc_write_index(nb_dev , 0xd0,l_dword);
 	l_dword = nbmc_read_index(nb_dev, 0xb1);
 	set_nbmc_enable_bits(nb_dev, 0xc8, 0xff<<24, ((l_dword&0x0f)<<24)|((l_dword&0xf00)<<20));
 
 	/* Init MC FB. */
 	/* FB_Start = ; FB_End = ; iSpSize = 0x0080, 128MB. */
-	nbmc_write_index(nb_dev, 0x11, 0x78000000);
-	FB_Start = 0x700 + 0x080;
-	FB_End = 0x700 + 0x0c0;
-	nbmc_write_index(nb_dev, 0x10, (((FB_End&0xfff)<<20)-0x10000)|(((FB_Start&0xfff))<<4));
-	set_nbmc_enable_bits(nb_dev, 0x0d, ~0x000ffff0, (FB_End&0xfff)<<20);
-	nbmc_write_index(nb_dev, 0x0f, 0);
-	nbmc_write_index(nb_dev, 0x0e, (FB_End&0xfff)|(0xaaaa<<12));
-    tgt_printf("mc : %d  ============value: %x\n" , 0xd , nbmc_read_index(nb_dev,0xd));
-    tgt_printf("mc : %d  ============value: %x\n" , 0xe , nbmc_read_index(nb_dev,0xe));
-    tgt_printf("mc : %d  ============value: %x\n" , 0x10 , nbmc_read_index(nb_dev,0x10));
-    tgt_printf("mc : %d  ============value: %x\n" , 0x11 , nbmc_read_index(nb_dev,0x11));
-    tgt_printf("mc : %d  ============value: %x\n" , 0x12 , nbmc_read_index(nb_dev,0x12));
-    tgt_printf("nb : %d  ============value: %x\n" , 0x90 , pci_read_config32(nb_dev,0x90));
+	nbmc_write_index(nb_dev, 0x12, 0x80000000);
+	nbmc_write_index(nb_dev, 0xd, (uma_memory_top & 0xfff00000) | 0x00054060);
+    set_nbmc_enable_bits(nb_dev , 0xe , 0xfffffff , 0x0aaaa000 | (uma_memory_top >> 20));
+    nbmc_write_index(nb_dev, 0x11, uma_memory_base);
+ //   pci_write_config32(nb_dev,0x90,0x90000000);
+	nbmc_write_index(nb_dev, 0x10, ((uma_memory_top - 1) & 0xff000000 ) | (uma_memory_base >> 16) & 0xffff);
+#if 0
+    printf("config SP only!!!!!!!!!!!!!!!!!!!!!!!!!!!!1\n");
+    printf("mc : %d  ============value: %x\n" , 0xd , nbmc_read_index(nb_dev,0xd));
+    printf("mc : %d  ============value: %x\n" , 0xe , nbmc_read_index(nb_dev,0xe));
+    printf("mc : %d  ============value: %x\n" , 0x10 , nbmc_read_index(nb_dev,0x10));
+    printf("mc : %d  ============value: %x\n" , 0x11 , nbmc_read_index(nb_dev,0x11));
+    printf("mc : %d  ============value: %x\n" , 0x12 , nbmc_read_index(nb_dev,0x12));
+    printf("nb : %d  ============value: %x\n" , 0x90 , pci_read_config32(nb_dev,0x90));
+#endif
 #endif
 #endif
 }
@@ -500,8 +590,6 @@ static void pcie_commoncoreinit(device_t nb_dev, device_t dev)
 	set_pcie_enable_bits(nb_dev,0xc2, 1 << 14 | 1 << 25, 1 << 14 | 1 << 25);
 	set_pcie_enable_bits(nb_dev,0xc1, 1 << 0 | 1 << 2, 1 << 0);
 	set_pcie_enable_bits(nb_dev,0x1c, 0xffffffff, 4 << 6 | 4 << 1);
-
-
 }
 
 static void pcie_commonportinit(device_t nb_dev, device_t dev)
@@ -539,7 +627,6 @@ static void pcie_initgen2(device_t nb_dev, device_t dev)
 	pci_write_config32(dev, 0x88, reg);
 	set_nbmisc_enable_bits(nb_dev, 0x34, 1 << 5, 0 << 5);
 
-
 	set_pcie_enable_bits(dev, 0xa4, 1 << 0, 1 << 0);
 	reg = pci_read_config32(dev, 0x88);
 	reg &= 0xfffffff0;
@@ -547,17 +634,12 @@ static void pcie_initgen2(device_t nb_dev, device_t dev)
 	pci_write_config32(dev, 0x88, reg);
 	set_nbmisc_enable_bits(nb_dev, 0x34, 1 << 5, 1 << 5);
 
-
 	set_pcie_enable_bits(dev, 0xa4, 0, 1 << 29);
 	set_pcie_enable_bits(dev, 0xc0, 1 << 15, 0 << 15);
 	set_pcie_enable_bits(dev, 0xa2, 1 << 13, 0 << 13);
 
 //set interrupt pin info
 	pci_write_config8(dev, 0x3d, 0x1);
-
-
-//	while(1);
-
 }
 
 static void pcie_gen2workaround(device_t nb_dev, device_t dev)
@@ -567,8 +649,6 @@ static void pcie_gen2workaround(device_t nb_dev, device_t dev)
 	u8  byte;
 	void set_pcie_reset();
 	void set_pcie_dereset();
-
-
 
 	set_pcie_enable_bits(dev, 0xa4, 1 << 0, 0 << 0);
 	reg = pci_read_config32(dev,0x88);
@@ -588,8 +668,6 @@ static void pcie_gen2workaround(device_t nb_dev, device_t dev)
 	set_pcie_reset();
 	delay(1000);
 	set_pcie_dereset();
-
-
 }
 
 /* step 12 ~ step 14 from rpr */
@@ -701,39 +779,7 @@ static void dual_port_configuration(device_t nb_dev, device_t dev)
 			break;
 		}
 	}
-#if 0		/* This function will be called twice, so we dont have to do dev 3 here. */
-	/* step 17: Training for Device 3 */
-	//set_nbmisc_enable_bits(nb_dev, 0x8, 1 << 5, 0 << 5);
-	/* Releases hold training for GFX port 0 (device 3) */
-	PcieReleasePortTraining(nb_dev, dev, 3);
-	/* PCIE Link Training Sequence */
-	result = PcieTrainPort(nb_dev, dev, 3);
-
-	/*step 18: Power Down Control for Device 3 */
-	/* step 18.a Link Training was NOT successful */
-	if (!result) {
-		/* Powers down all lanes for port B and PLL1 */
-		nbpcie_ind_write_index(nb_dev, 0x65, 0xccf0f0);
-	} else {		/* step 18.b Link Training was successful */
-
-		reg32 = nbpcie_p_read_index(dev, 0xa2);
-		width = (reg32 >> 4) & 0x7;
-		printk_debug("GFX LC_LINK_WIDTH = 0x%x.\n", width);
-		switch (width) {
-		case 1:
-		case 2:
-			nbpcie_ind_write_index(nb_dev, 0x65,
-					       cfg->gfx_lane_reversal ? 0x7070 : 0xe0e0);
-			break;
-		case 4:
-			nbpcie_ind_write_index(nb_dev, 0x65,
-					       cfg->gfx_lane_reversal ? 0x3030 : 0x0f0f);
-			break;
-		}
-	}
-#endif
 }
-
 
 /* For single port GFX configuration Only
 * width:
@@ -798,18 +844,12 @@ void rs780_gfx_init(device_t nb_dev, device_t dev, u32 port)
         u32 dev_ind;
 	void set_pcie_reset();
 	void set_pcie_dereset();
-	//u8   is_dev3_present();
 
 	struct southbridge_amd_rs780_config *cfg =
 		&chip_info;
         _pci_break_tag(dev, NULL, &dev_ind, NULL);
 	printk_info("rs780_gfx_init, nb_dev=0x%p, dev=0x%p, port=0x%x.\n",
 		    nb_dev, dev, port);
-
-	/* GFX Core Initialization */
-	//if (port == 2) return;
-
-
 
 	/* step 2, TMDS, (only need if CMOS option is enabled) */
 	if (cfg->gfx_tmds) {
@@ -851,11 +891,6 @@ void rs780_gfx_init(device_t nb_dev, device_t dev, u32 port)
 	/* 5.9.1.6.Selects the single ended GFX REFCLK to be the source for core logic. */
 	set_nbmisc_enable_bits(nb_dev, 0x6C, 1 << 31, 0 << 31);
 #endif
-
-	/* step 5.9.3, GFX overclocking, (only need if CMOS option is enabled) */
-	/* 5.9.3.1. Increases PLL BW for 6G operation.*/
-	/* set_nbmisc_enable_bits(nb_dev, 0x36, 0x3FF << 4, 0xB5 << 4); */
-	/* skip */
 
 	/* step 5.9.4, reset the GFX link */
 	/* step 5.9.4.1 asserts both calibration reset and global reset */
@@ -1042,7 +1077,6 @@ void rs780_gfx_3_init(device_t nb_dev, device_t dev, u32 port)
         u8 result, width;
 	void set_pcie_reset();
 	void set_pcie_dereset();
-	//u8   is_dev3_present();
 
 	struct southbridge_amd_rs780_config *cfg =
 		&chip_info;
@@ -1050,86 +1084,17 @@ void rs780_gfx_3_init(device_t nb_dev, device_t dev, u32 port)
 	printk_info("rs780_gfx_init, nb_dev=0x%p, dev=0x%p, port=0x%x.\n",
 		    nb_dev, dev, port);
 
-	/* GFX Core Initialization */
-	//if (port == 2) return;
-
-
-
 	/* step 2, TMDS, (only need if CMOS option is enabled) */
 	if (cfg->gfx_tmds) {
 	}
 
-//#if 1				/* external clock mode */
-	/* table 5-22, 5.9.1. REFCLK */
-	/* 5.9.1.1. Disables the GFX REFCLK transmitter so that the GFX
-	 * REFCLK PAD can be driven by an external source. */
-	/* 5.9.1.2. Enables GFX REFCLK receiver to receive the REFCLK from an external source. */
-	//set_nbmisc_enable_bits(nb_dev, 0x38, 1 << 29 | 1 << 28, 0 << 29 | 1 << 28);
-
-	/* 5.9.1.3 Selects the GFX REFCLK to be the source for PLL A. */
-	/* 5.9.1.4 Selects the GFX REFCLK to be the source for PLL B. */
-	/* 5.9.1.5 Selects the GFX REFCLK to be the source for PLL C. */
-	//set_nbmisc_enable_bits(nb_dev, 0x28, 3 << 6 | 3 << 8 | 3 << 10,
-			    //   1 << 6 | 1 << 8 | 1 << 10);
-	//reg32 = nbmisc_read_index(nb_dev, 0x28);
-	//printk_info("misc 28 = %x\n", reg32);
-
-	/* 5.9.1.6.Selects the single ended GFX REFCLK to be the source for core logic. */
-	//set_nbmisc_enable_bits(nb_dev, 0x6C, 1 << 31, 1 << 31);
-//#else				/* internal clock mode */
-	/* table 5-23, 5.9.1. REFCLK */
-	/* 5.9.1.1. Enables the GFX REFCLK transmitter so that the GFX
-	 * REFCLK PAD can be driven by the SB REFCLK. */
-	/* 5.9.1.2. Disables GFX REFCLK receiver from receiving the
-	 * REFCLK from an external source.*/
-	//set_nbmisc_enable_bits(nb_dev, 0x38, 1 << 29 | 1 << 28, 1 << 29 | 0 << 28);
-
-	/* 5.9.1.3 Selects the GFX REFCLK to be the source for PLL A. */
-	/* 5.9.1.4 Selects the GFX REFCLK to be the source for PLL B. */
-	/* 5.9.1.5 Selects the GFX REFCLK to be the source for PLL C. */
-	//set_nbmisc_enable_bits(nb_dev, 0x28, 3 << 6 | 3 << 8 | 3 << 10,
-	//		       0);
-	//reg32 = nbmisc_read_index(nb_dev, 0x28);
-	//printk_info("misc 28 = %x\n", reg32);
-
-	/* 5.9.1.6.Selects the single ended GFX REFCLK to be the source for core logic. */
-	//set_nbmisc_enable_bits(nb_dev, 0x6C, 1 << 31, 0 << 31);
-//#endif
-
-	/* step 5.9.3, GFX overclocking, (only need if CMOS option is enabled) */
-	/* 5.9.3.1. Increases PLL BW for 6G operation.*/
-	/* set_nbmisc_enable_bits(nb_dev, 0x36, 0x3FF << 4, 0xB5 << 4); */
-	/* skip */
-
-	/* step 5.9.4, reset the GFX link */
-	/* step 5.9.4.1 asserts both calibration reset and global reset */
-	//set_nbmisc_enable_bits(nb_dev, 0x8, 0x3 << 14, 0x3 << 14);
-
-	/* step 5.9.4.2 de-asserts calibration reset */
-	//set_nbmisc_enable_bits(nb_dev, 0x8, 1 << 14, 0 << 14);
-
-	/* step 5.9.4.3 wait for at least 200us */
-	//udelay(300);
-
-	/* step 5.9.4.4 de-asserts global reset */
-	//set_nbmisc_enable_bits(nb_dev, 0x8, 1 << 15, 0 << 15);
-
-	/* 5.9.5 Reset PCIE_GFX Slot */
-	/* It is done in mainboard.c */
 	set_pcie_reset();
 	delay(1000);
 	set_pcie_dereset();
 
-	/* step 5.9.8 program PCIE memory mapped configuration space */
-	/* done by enable_pci_bar3() before */
-
 	/* step 7 compliance state, (only need if CMOS option is enabled) */
 	/* the compliance stete is just for test. refer to 4.2.5.2 of PCIe specification */
 	if (cfg->gfx_compliance) {
-		/* force compliance */
-		//set_nbmisc_enable_bits(nb_dev, 0x32, 1 << 6, 1 << 6);
-		/* release hold training for device 2. GFX initialization is done. */
-		//set_nbmisc_enable_bits(nb_dev, 0x8, 1 << 4, 0 << 4);
 		dynamic_link_width_control(nb_dev, dev, cfg->gfx_link_width);
 		printk_info("rs780_gfx_init step7.\n");
 		return;
@@ -1141,31 +1106,15 @@ void rs780_gfx_3_init(device_t nb_dev, device_t dev, u32 port)
 	set_pcie_enable_bits(dev, 0x70, 7 << 16 | 1 << 19, 4 << 16 | 1 << 19);
 	printk_info("rs780_gfx_init step5.9.12.1.\n");
 
-	/* step 5.9.12.3 disables slave ordering logic */
-	//set_pcie_enable_bits(nb_dev, 0x20, 1 << 8, 1 << 8);
-	//printk_info("rs780_gfx_init step5.9.12.3.\n");
-
-	/* step 5.9.12.4 sets DMA payload size to 64 bytes */
-	//set_pcie_enable_bits(nb_dev, 0x10, 7 << 10, 4 << 10);
 	/* 5.9.12.5. Blocks DMA traffic during C3 state. */
 	set_pcie_enable_bits(dev, 0x10, 1 << 0, 0 << 0);
-
-	/* 5.9.12.6. Disables RC ordering logic */
-	//set_pcie_enable_bits(nb_dev, 0x20, 1 << 9, 1 << 9);
 
 	/* Enabels TLP flushing. */
 	/* Note: It is got from RS690. The system will hang without this action. */
 	set_pcie_enable_bits(dev, 0x20, 1 << 19, 0 << 19);
 
-	/* 5.9.12.7. Ignores DLLPs during L1 so that txclk can be turned off */
-	//set_pcie_enable_bits(nb_dev, 0x2, 1 << 0, 1 << 0);
-
 	/* 5.9.12.8 Prevents LC to go from L0 to Rcv_L0s if L1 is armed. */
 	set_pcie_enable_bits(dev, 0xA1, 1 << 11, 1 << 11);
-
-	/* 5.9.12.9 CMGOOD_OVERRIDE for end point initiated lane degradation. */
-	//set_nbmisc_enable_bits(nb_dev, 0x6a, 1 << 17, 1 << 17);
-	//printk_info("rs780_gfx_init step5.9.12.9.\n");
 
 	/* 5.9.12.10 Sets the timer in Config state from 20us to */
 	/* 5.9.12.11 De-asserts RX_EN in L0s. */
@@ -1173,16 +1122,8 @@ void rs780_gfx_3_init(device_t nb_dev, device_t dev, u32 port)
 	 * recovery parameter when lane is in electrical idle in L0s.*/
 	set_pcie_enable_bits(dev, 0xB1, 1 << 23 | 1 << 19 | 1 << 28, 1 << 23 | 1 << 19 | 1 << 28);
 
-	/* 5.9.12.13. Turns off offset calibration. */
-	/* 5.9.12.14. Enables Rx Clock gating in CDR */
-	//set_nbmisc_enable_bits(nb_dev, 0x34, 1 << 10/* | 1 << 22 */, 1 << 10/* | 1 << 22 */);
-
 	/* 5.9.12.15. Sets number of TX Clocks to drain TX Pipe to 3. */
 	set_pcie_enable_bits(dev, 0xA0, 0xF << 4, 3 << 4);
-
-	/* 5.9.12.16. Lets PI use Electrical Idle from PHY when
-	 * turning off PLL in L1 at Gen2 speed instead Inferred Electrical Idle. */
-	//set_pcie_enable_bits(nb_dev, 0x40, 3 << 14, 2 << 14);
 
 	/* 5.9.12.17. Prevents the Electrical Idle from causing a transition from Rcv_L0 to Rcv_L0s. */
 	set_pcie_enable_bits(dev, 0xB1, 1 << 20, 1 << 20);
@@ -1191,49 +1132,16 @@ void rs780_gfx_3_init(device_t nb_dev, device_t dev, u32 port)
 	 * acknowledged a request to go to L1. */
 	set_pcie_enable_bits(dev, 0xA1, 1 << 11, 1 << 11);
 
-	/* 5.9.12.19. LDSK only taking deskew on deskewing error detect */
-	//set_pcie_enable_bits(nb_dev, 0x40, 1 << 28, 0 << 28);
-
-	/* 5.9.12.20. Bypasses lane de-skew logic if in x1 */
-	//set_pcie_enable_bits(nb_dev, 0xC2, 1 << 14, 1 << 14);
-
-	/* 5.9.12.21. Sets Electrical Idle Threshold. */
-	//set_nbmisc_enable_bits(nb_dev, 0x35, 3 << 21, 2 << 21);
-
-	/* 5.9.12.22. Advertises -6 dB de-emphasis value in TS1 Data Rate Identifier
-	 * Only if CMOS Option in section. skip */
-
 	/* 5.9.12.23. Disables GEN2 capability of the device. */
 	set_pcie_enable_bits(dev, 0xA4, 1 << 0, 0 << 0);
 
 	/* 5.9.12.24.Disables advertising Upconfigure Support. */
 	set_pcie_enable_bits(dev, 0xA2, 1 << 13, 1 << 13);
 
-	/* 5.9.12.25. No comment in RPR. */
-	//set_nbmisc_enable_bits(nb_dev, 0x39, 1 << 10, 0 << 10);
-
-	/* 5.9.12.26. This capacity is required since links wider than x1 and/or multiple link
-	 * speed are supported */
-	//set_pcie_enable_bits(nb_dev, 0xC1, 1 << 0, 1 << 0);
-
 	/* 5.9.12.27. Enables NVG86 ECO. A13 above only. */
 	/* TODO: Check if it is A13. */
 	if (0)			/* A12 */
 		set_pcie_enable_bits(dev, 0x02, 1 << 11, 1 << 11);
-
-	/* 5.9.12.28 Hides and disables the completion timeout method. */
-	//set_pcie_enable_bits(nb_dev, 0xC1, 1 << 2, 0 << 2);
-
-	/* 5.9.12.29. Use the bif_core de-emphasis strength by default. */
-	/* set_nbmisc_enable_bits(nb_dev, 0x36, 1 << 28, 1 << 28); */
-
-	/* 5.9.12.30. Set TX arbitration algorithm to round robin */
-	//set_pcie_enable_bits(nb_dev, 0x1C,
-			//     1 << 0 | 0x1F << 1 | 0x1F << 6,
-			 //    1 << 0 | 0x04 << 1 | 0x04 << 6);
-
-
-
 
 	/* Single-port/Dual-port configureation. */
 	switch (cfg->gfx_dual_slot) {
@@ -1255,9 +1163,6 @@ void rs780_gfx_3_init(device_t nb_dev, device_t dev, u32 port)
 
 		break;
 	case 1:
-	/* This function will be called twice, so we dont have to do dev 3 here. */
-	/* step 17: Training for Device 3 */
-	//set_nbmisc_enable_bits(nb_dev, 0x8, 1 << 5, 0 << 5);
 	/* Releases hold training for GFX port 0 (device 3) */
 	PcieReleasePortTraining(nb_dev, dev, 3);
 	/* PCIE Link Training Sequence */
@@ -1291,4 +1196,5 @@ void rs780_gfx_3_init(device_t nb_dev, device_t dev, u32 port)
 		break;
 	}
 }
+
 #endif

@@ -585,6 +585,7 @@ void handle_scancode(unsigned char scancode, int down)
 {
 	unsigned char keycode;
 	char up_flag = down ? 0 : 0200;
+	scancode_queue_write(scancode);
 	if(kbd_test){ printf("%02x\n",scancode);kbd_test_hit=1;return;}
 
 	/*

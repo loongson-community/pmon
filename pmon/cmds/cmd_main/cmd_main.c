@@ -1440,7 +1440,7 @@ int paint_childwindow(char **hint,char *diskdev_name[],char *netdev_name[],int e
 
 #if 1
 			/* Open this judgement statement, default boot can not be saved some times */
-				 //if(getenv("def_devnum") == NULL) { 
+				// if(getenv("def_devnum") == NULL) { 
 					i = bootinfo_init();
 
 					if(i == 0){
@@ -1457,12 +1457,13 @@ int paint_childwindow(char **hint,char *diskdev_name[],char *netdev_name[],int e
 							w_present();
 						}
 					}
-				 //}
+					pwd_clear("admin");
+				// }
 #endif
 			/* The same to "getenv("def_devnum")" situation, if open this, defailt boot can not be saved some times */
-				 //if(getenv("def_devnum") != NULL) {
+				//if(getenv("def_devnum") != NULL) {
 					bootdef_save();
-				 //}
+				// }
 				w_setpage(oldwindow);
 			}
 			 if(w_button(45,14,10,"[ NO ]") || esc_down)

@@ -1148,7 +1148,7 @@ gs_2f_v3_ddr2_cfg:
 #define MC0_USED	  0x04 /* 0x4 ----> MC0 */ 
 #define MC1_USED	  0x08 /* 0x8 ----> MC1 */ 
 
-#define AUTO_DDR_CONFIG
+//#define AUTO_DDR_CONFIG
 #ifdef AUTO_DDR_CONFIG
 
 		WatchDog_Enable;
@@ -2011,7 +2011,17 @@ ddr_config_entry:
 		li	t1,128
 #	addiu	a2,a0,3
 		sb	t1,3(a0)
-		li	t1,0x12      # divider, highest possible baud rate
+#ifdef BONITO_33M 
+               li      t1,0x12      # divider, highest possible baud rate,for 33M crystal
+#else
+#ifdef BONITO_25M 
+               li      t1,0x0e      # divider, highest possible baud rate,for 25M crystal
+#else
+#ifdef BONITO_50M 
+               li      t1,0x1b      # divider, highest possible baud rate,for 50M crystal
+#endif
+#endif
+#endif
 		sb	t1,0(a0)
 		li	t1,0x0     # divider, highest possible baud rate
 		sb	t1,1(a0)
@@ -3078,7 +3088,6 @@ cache_init_finish:
 	.rdata
 	.align 5
 	.global ddr3_reg_data
-
 #include "loongson3a_ddr3_param.S"
 
 	.global watchdog_enable
@@ -3089,3 +3098,11 @@ watchdog_enable:
 	WatchDog_Enable
 	jr		ra
 	.end watchdog_enable
+
+	.text
+	.global  nvram_offs
+	.align 12
+nvram_offs:
+	.dword 0x0
+	.align 12
+	.dword 0x0
