@@ -176,7 +176,7 @@ crtend.o: crtend.c Makefile
 	${NORMAL_C_C}
 
 newvers: ${SYSTEM_DEP} ${SYSTEM_SWAP_DEP}
-	sh $S/conf/newvers.sh ${TARGET}
+	sh $S/conf/newvers.sh
 	${CC} ${CFLAGS} ${CPPFLAGS} ${PROF} -c vers.c
 
 clean::
