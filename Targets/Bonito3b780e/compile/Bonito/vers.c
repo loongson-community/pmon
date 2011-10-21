@@ -1,6 +1,6 @@
 char ostype[] = "PMON2011";
 char osrelease[] = "2.1";
-char osversion[] = "Bonito3b780e#522";
+char osversion[] = "Bonito#0";
 char sccs[8] = { ' ', ' ', ' ', ' ', '@', '(', '#', ')' };
 char vers[] =
-    "PMON2011 2.1 (Bonito3b780e) #522: Wed Oct 19 10:56:40 CST 2011 commit be326cd02be688e3e3f8fab78e8094f96c199306 Author: xueshuangbai@ict.ac.cn <xiaqichao@ict.ac.cn> Date:   Sat Oct 15 16:11:56 2011 +0800 ";
+    "PMON2011 2.1 (Bonito) #0: Thu Oct 20 17:26:33 CST 2011 commit ffbc7d87c13710e093ae3312543ea788c1023958 Author: sizhiying <sizhiying@node22.(none)> Date:   Thu Oct 20 16:45:28 2011 +0800 ";

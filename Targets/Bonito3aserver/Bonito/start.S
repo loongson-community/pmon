@@ -50,6 +50,12 @@
 #define DEBUG_LOCORE
 #undef USE_GPIO_SERIAL
 
+#ifdef DDR3_DIMM
+#define USE_SB_I2C
+#else
+#define USE_GPIO_I2C
+#define MULTI_I2C_BUS
+#endif
 
 #ifdef DEBUG_LOCORE
 #define	TTYDBG(x) \
@@ -118,38 +124,75 @@ sw		v1,		4(v0); \
 nop; \
 nop;
 
-/* WatchDog Close for chip MAX6369*/
-#define WatchDog_Close \
-GPIO_CLEAR_OUTPUT(0x1<<13); \
-GPIO_SET_OUTPUT(0x1<<14); \
-GPIO_CLEAR_OUTPUT(0x1<<5); \
-GPIO_SET_OUTPUT(0x1<<3|0x1<<4); \
-li v1,0x1000;\
-78:; \
-subu v1,1; \
-bnez v1,78b; \
-nop; \
-GPIO_CLEAR_OUTPUT(0x1<<14);
+#ifdef DDR3_DIMM
+  /* WatchDog Close for chip MAX6369*/
+  #define WatchDog_Close \
+  GPIO_CLEAR_OUTPUT(0x1<<13); \
+  GPIO_CLEAR_OUTPUT(0x1<<14); \
+  GPIO_CLEAR_OUTPUT(0x1<<6 | 0x1<<5|0x1<<4); \
+  GPIO_SET_OUTPUT(0x1<<3); \
 
-/* WatchDog Enable for chip MAX6369*/
-#define WatchDog_Enable \
-GPIO_SET_OUTPUT(0x1<<14); \
-GPIO_SET_OUTPUT(0x1<<5); \
-GPIO_CLEAR_OUTPUT(0x1<<4); \
-GPIO_SET_OUTPUT(0x1<<3); \
-li v1,0x100;\
-78:; \
-subu v1,1; \
-bnez v1,78b; \
-nop; \
-GPIO_CLEAR_OUTPUT(0x1<<14); \
-li v1,0x1000;\
-78:; \
-subu v1,1; \
-bnez v1,78b; \
-nop; \
-GPIO_SET_OUTPUT(0x1<<13); 
+#if 0
+  li v1,0x1000;\
+  78:; \
+  subu v1,1; \
+  bnez v1,78b; \
+  nop; \
+  GPIO_CLEAR_OUTPUT(0x1<<14);
+#endif 
 
+  /* WatchDog Enable for chip MAX6369*/
+  #define WatchDog_Enable \
+  GPIO_SET_OUTPUT(0x1<<4 | 0x1<<5 | 0x1 << 6 | 0x1<<13); \
+  GPIO_CLEAR_OUTPUT(0x1<<13); \
+  li v1,0x100;\
+  78:; \
+  subu v1,1; \
+  bnez v1,78b; \
+  nop; \
+  GPIO_SET_OUTPUT(0x1<<14); \
+  li v1,0x1000;\
+  78:; \
+  subu v1,1; \
+  bnez v1,78b; \
+  nop; \
+  GPIO_CLEAR_OUTPUT(0x1<<14);
+
+#else
+
+  /* WatchDog Close for chip MAX6369*/
+  #define WatchDog_Close \
+  GPIO_CLEAR_OUTPUT(0x1<<13); \
+  GPIO_SET_OUTPUT(0x1<<14); \
+  GPIO_CLEAR_OUTPUT(0x1<<5); \
+  GPIO_SET_OUTPUT(0x1<<3|0x1<<4); \
+  li v1,0x1000;\
+  78:; \
+  subu v1,1; \
+  bnez v1,78b; \
+  nop; \
+  GPIO_CLEAR_OUTPUT(0x1<<14);
+
+  /* WatchDog Enable for chip MAX6369*/
+  #define WatchDog_Enable \
+  GPIO_SET_OUTPUT(0x1<<14); \
+  GPIO_SET_OUTPUT(0x1<<5); \
+  GPIO_CLEAR_OUTPUT(0x1<<4); \
+  GPIO_SET_OUTPUT(0x1<<3); \
+  li v1,0x100;\
+  78:; \
+  subu v1,1; \
+  bnez v1,78b; \
+  nop; \
+  GPIO_CLEAR_OUTPUT(0x1<<14); \
+  li v1,0x1000;\
+  78:; \
+  subu v1,1; \
+  bnez v1,78b; \
+  nop; \
+  GPIO_SET_OUTPUT(0x1<<13); 
+
+#endif
 
 #define CONFIG_CACHE_64K_4WAY 1
 
@@ -235,7 +278,12 @@ stack = start - 0x4000		/* Place PMON stack below PMON start in RAM */
 
 //	bal	uncached		/* Switch to uncached address space */
 	nop
+
+#ifdef DDR3_DIMM
+	GPIO_CLEAR_OUTPUT(0x1<<2);  
+#else
 	GPIOLED_SET(0xd)
+#endif
 
 	WatchDog_Close
 
@@ -965,7 +1013,7 @@ reginit:			/* local name */
     */
 	
 core0_start:
-	PRINTSTR("\r\nPMON2000 MIPS Initializing. Standby...\r\n")
+	PRINTSTR("\r\n\r\nPMON2000 MIPS Initializing. Standby...\r\n")
     /*
 	PRINTSTR("ERRORPC=")
 	mfc0	a0, COP_0_ERROR_PC
@@ -1092,64 +1140,18 @@ gs_2f_v3_ddr2_cfg:
 		WatchDog_Close;
 #endif
 ##########################################
+
 		WatchDog_Enable;
-
 #include "loongson3_fixup.S"
-
 		WatchDog_Close;
-##########################################
-#include "ddr_config_define.h"
-	dli	msize, 0
-        TTYDBG("NODE 0 MEMORY CONFIG BEGIN\r\n")
-   //     li      s1, 0x0
-//	dli     s1, 0x81c1000081c12200
-//	dli     s1, 0x98c3000098c38800
-	//dli     s1, 0x98c3000098c38804
-	dli     s1, 0x98c1000098c10404 //2G singel
-	/* show value of s1 */
-	PRINTSTR("\r\ns1 = 0x");
-	dsrl    a0, s1, 32
-	bal     hexserial
-	nop
-	PRINTSTR("__")
-	move    a0, s1
-	bal     hexserial
-	nop
-	PRINTSTR("\r\n")
-
-	WatchDog_Enable;
-#include "loongson3_ddr2_config.S"
-	WatchDog_Close;
-##########################################
-
-#ifdef MULTI_CHIP
-##########################################
-        TTYDBG("NODE 1 MEMORY CONFIG BEGIN\r\n")
-//        li      s1, 0x1
-//	dli     s1, 0x81c1000081c12201
-//	dli     s1, 0x98c3000098c38801
-	//dli     s1, 0x98c3000098c38805
-	dli     s1, 0x98c1000098c10405 //2G singel
-WatchDog_Enable;
-#include "loongson3_ddr2_config.S"
-WatchDog_Close;
-##########################################
-#endif
-
-//cww
-//#include "3adawning_fixup.S"
-
-		bal CPU_TLBClear
-		nop
-
 
 /*
  *  Reset and initialize caches to a known state.
  */
 
-	    and	t1, t3, 0x10
-	    addu	s6, t1, 16		/* s6 = D cache line size */
 	    TTYDBG("Init tlb...\r\n")
+		bal CPU_TLBClear
+		nop
         bal     tlb_init
         nop
 #if 1 /* TLB init */
@@ -1157,17 +1159,11 @@ WatchDog_Close;
 #include "pcitlb.S" /* map 0x1000000-0x1700000 to 0x4000000 */
 #endif
 	    //TTYDBG("Init caches...\r\n")
-
 #if 1
-        //mfc0    a0, COP_0_PRID
-        //li      a1, 0x6301
-        //bne     a0,a1,1f
-        //nop
 	    TTYDBG("godson2 caches found\r\n")
         bal     godson2_cache_init
         nop
 	    TTYDBG("scache init node 0\r\n")
-        //bal	scache_init // smh
         dli a0, 0x9800000000000000
         bal	scache_init_64 // whd
         nop
@@ -1178,8 +1174,6 @@ WatchDog_Close;
         nop
 #endif
 #endif
-
-
 
 
 #if 1
@@ -1214,15 +1208,73 @@ PRINTSTR("Jump to 9fc\r\n")
 	TTYDBG("Disable L2 Cache done\r\n")
 #endif
 
-WatchDog_Enable;
+//##########################################
+#if 1
+//DDR config start
+//cxk
+#include "ddr_param_define.h"
+#include "ddr_config_define.h"
+#define DISABLE_DIMM_ECC
+#define PRINT_MSG
+//#define DEBUG_DDR
+//#define DEBUG_DDR_PARAM
+        dli     msize, 0
+		GPIO_SET_OUTPUT(0x1<<8)
+        TTYDBG("NODE 0 MEMORY CONFIG BEGIN\r\n")
+//!!!!important--s1 must be correctly set
+#ifdef DDR3_DIMM
+#ifdef  AUTO_DDR_CONFIG
+        dli     s1, 0x32100000
+#else
+        dli     s1, 0xc1c30400c1c30404  // use MC0
+#endif
+#else
+#ifdef  AUTO_DDR_CONFIG
+        dli     s1, 0x32100000
+#else
+	    dli     s1, 0xb0c10400b0c10404
+#endif
+#endif
 
+#include "loongson3_ddr2_config.S"
+
+#ifdef MULTI_CHIP
+        TTYDBG("NODE 1 MEMORY CONFIG BEGIN\r\n")
+//!!!!important--s1 must be correctly set
+#ifdef DDR3_DIMM
+#ifdef  AUTO_DDR_CONFIG
+        dli     s1, 0x76540001
+#else
+        dli     s1, 0xc1c30400c1c30405  // use MC0
+#endif
+#else
+#ifdef  AUTO_DDR_CONFIG
+        dli     s1, 0x32100011
+#else
+	    dli     s1, 0xb0c10400b0c10405
+#endif
+#endif
+
+#include "loongson3_ddr2_config.S"
+
+#endif
+
+#ifdef ARB_LEVEL
+        b       ARB_level_over
+        nop
+#include "ARB_level.S"
+ARB_level_over:
+#endif
+
+		GPIO_SET_OUTPUT(0x1<<9)
+#endif
 ##########################################
 
 #ifdef LS3_HT
+WatchDog_Enable;
 #include "loongson3_HT_init.S"
-#endif
-
 WatchDog_Close;
+#endif
 
 	PRINTSTR("\r\n======This is cww's world:1\r\n")
 #include "3aserver_bridge_config.S"
@@ -1233,7 +1285,7 @@ WatchDog_Close;
 
 ##########################################
 
-#if 1 //cww_X2
+#if 0 //cww_X2
 	PRINTSTR("\r\n======X1 core0 map windows:\r\n")
     	li      t1, 23
     	dli     t2, 0x900000003ff02000
@@ -1337,7 +1389,7 @@ WatchDog_Close;
 
 ##########################################
 
-#include "machine/newtest/mydebug.S"
+#include "machine/newtest/newdebug.S"
 
 ##########################################
 
@@ -1714,8 +1766,8 @@ LEAF(initserial_uart)
  	li	t1,128
  #	addiu	a2,a0,3
  	sb	t1,3(a0)
-	#li	t1,0x12      # divider, highest possible baud rate
-	li	t1,0x0e     # divider, highest possible baud rate
+	li	t1,0x12      # divider, highest possible baud rate
+	#li	t1,0x0e     # divider, highest possible baud rate
  	sb	t1,0(a0)
  	li	t1,0x0     # divider, highest possible baud rate
  	sb	t1,1(a0)
@@ -1923,6 +1975,10 @@ END(tgt_putchar_COM1)
 
 
 #include "i2c.S"
+#ifdef  AUTO_DDR_CONFIG
+#include "detect_node_dimm.S"
+#endif
+
 __main:
 	j	ra
 	nop
@@ -2285,10 +2341,10 @@ slave_main:
 
 #if 1
 	mfc0	t0, CP0_STATUS
-        li      t1, 0x00e0      # {cu3,cu2,cu1,cu0}<={0110, status_fr<=1
-        or      t0, t0, t1
+    li      t1, 0x00e0      # {cu3,cu2,cu1,cu0}<={0110, status_fr<=1
+    or      t0, t0, t1
 
-        mtc0    t0, CP0_STATUS
+    mtc0    t0, CP0_STATUS
 
 	mfc0    t0, CP0_STATUS
 	#lui     t1, 0x10
@@ -2297,16 +2353,6 @@ slave_main:
 	or      t0, t0, t1
 	mtc0    t0, CP0_STATUS
 	mtc0    zero, CP0_CAUSE
-
-        #PRINTSTR("CP0_STATUS:")
-        #mfc0    a0, CP0_STATUS
-        #bal	    hexserial
-        #nop
-        #PRINTSTR("\r\n\r\n")
-
-        #PRINTSTR("hello world!!\r\n");
-
-
 #endif
 
 #if 1 
@@ -2328,8 +2374,12 @@ myidle:
 //PRINTSTR("$$$$$$$$!!\r\n");
 
 #if 1 /* gx */
-        bal     godson2_cache_init
-        nop
+	bal CPU_TLBClear
+	nop
+    bal     tlb_init
+    nop
+    bal     godson2_cache_init
+    nop
 
 	mfc0	t0, CP0_CONFIG
 	ori	    t0, t0, 7
@@ -2358,30 +2408,6 @@ next:
         ################################
 #endif
 
-#if 0
-############
-        mtc0    $0, CP0_WIRED
-        mtc0    $0, CP0_PAGEMASK
-tlb_flush_all_slave:
-        lui     a0, 0x8000
-        addiu   a1, $0, 64
-#a0=KSEG0,a1 = tlbsize, v0, v1, a3 used as local registers
-        mtc0    $0, CP0_ENTRYLO0
-        mtc0    $0, CP0_ENTRYLO1
-        mfc0    v0, CP0_WIRED
-        addu    v1, $0, a0
-1:      sltu    a3, v0, a1
-        beq     a3, $0, 1f
-        nop
-        mtc0    v1, CP0_ENTRYHI
-        mtc0    v0, CP0_INDEX
-        tlbwi
-        addiu   v1, v1, 0x2000
-        beq     $0, $0, 1b
-        addiu   v0, v0, 1
-1:
-############
-#endif
 
     .set mips64
     mfc0    t2, $15, 1
@@ -2405,21 +2431,6 @@ tlb_flush_all_slave:
 
 waitforinit:   
 
-#if 0 /* gx */
-    .set mips64
-    mfc0    s1, $15, 1
-    andi    s1, 0x3ff
-    .set mips3
-	move	a0, s1
-	bal	hexserial
-	nop
-	//move	a0, v0
-	//bal	hexserial
-	//nop
-	//move	a0, s1
-	//bal	hexserial
-	//nop
-#endif	
     li      a0, 0x1000000
 idle1000:    
     addiu   a0, -1
@@ -2430,11 +2441,6 @@ idle1000:
     beqz    v0, waitforinit
     nop
 
-#if 0 /* gx */
-    move	a0, v0
-    bal	        hexserial
-    nop
-#endif
 
     dli      t1, 0xffffffff00000000 
     or       v0, t1
@@ -2461,3 +2467,39 @@ idle1000:
 #endif
 
 #include "ddr_config.S"
+
+    .text
+    .global ddr2_reg_data
+    .global ddr3_reg_data
+    .global n1_ddr2_reg_data
+#ifdef  ARB_LEVEL
+    .global ddr2_leveled_mark
+    .global ddr2_reg_data_leveled
+    .global ddr2_reg_data_mc1_leveled
+#ifdef  MULTI_CHIP
+    .global n1_ddr2_reg_data_leveled
+    .global n1_ddr2_reg_data_mc1_leveled
+#endif
+#endif
+
+    .align  5
+#include "loongson3A3_ddr_param.S"
+#ifdef  MULTI_NODE_DDR_PARAM
+#include "loongson3A3_ddr_param_c1.S"
+#endif
+
+#ifdef  ARB_LEVEL
+#include "loongson3A3_ddr_param.lvled.S"
+#ifdef  MULTI_CHIP
+#include "loongson3A3_ddr_param_c1.lvled.S"
+#endif
+
+    .align  12
+ddr2_leveled_mark:
+.dword 0x0
+    .align  12
+#else
+#ifdef FIX_DDR_PARAM
+#include "loongson3A3_ddr_param.fix.S"
+#endif
+#endif

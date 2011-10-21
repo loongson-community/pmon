@@ -363,7 +363,7 @@ static int emu_div(struct pt_regs *regs,mips_instruction ir)
 	if( y == 0 ) {/*overflow*/
 		return SIGABRT;
 	}
-	/*x and y ?????欠???同*/
+	/*x and y 符号是否不同*/
 	flag = (x&0x80000000)^(y&0x80000000);
 	
 	/*get the abs(x)*/
@@ -408,7 +408,7 @@ static int emu_div(struct pt_regs *regs,mips_instruction ir)
 	absremainder = absx;
 
 end:	
-	if( flag ){/*????????*/
+	if( flag ){/*符号相异*/
 		quotient = -absquotient;
 		remainder = x-quotient*y;
 	}else {

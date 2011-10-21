@@ -413,6 +413,9 @@ char buf[LINESZ];
 if(!run)
 {
 	run=1;
+#ifdef ARB_LEVEL
+    save_board_ddrparam();
+#endif
 #ifdef AUTOLOAD
 
 	if(getenv("FR") == NULL)
