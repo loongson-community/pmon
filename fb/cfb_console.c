@@ -1461,7 +1461,7 @@ void video_set_background(unsigned char r, unsigned char g, unsigned char b)
 		cnt -= 2;		
 	}
 }
-static int record = 1;
+static int record = 0;
 //80*24
 #if defined(X640x480)
 char console_buffer[2][31][81]={32};//80*30->640x480
@@ -1562,6 +1562,7 @@ void video_set_color(unsigned char color)
 #endif
 static void __cprint(int y, int x,int width,char color, const char *buf)
 {
+	begin_record();
 #ifndef FB_MENU_NOCLOLOR
 	bgx = pallete[color>>4];
 	bgx |= (bgx << 16);
