@@ -73,6 +73,7 @@ unsigned int show_menu;
 #include "cmd_hist.h"		/* Test if command history selected */
 #include "cmd_more.h"		/* Test if more command is selected */
 
+#include "../cmds/bootparam.h"
 
 jmp_buf         jmpb;		/* non-local goto jump buffer */
 char            line[LINESZ + 1];	/* input line */
@@ -961,6 +962,16 @@ initstack (ac, av, addenv)
 	int	ec, stringlen, vectorlen, stacklen, i;
 	register_t nsp;
 
+	struct boot_params *bp;
+	struct loongson_params  *lp;
+struct efi_memory_map_loongson *emap;
+struct efi_cpuinfo_loongson *ecpu;
+struct system_loongson *esys;
+struct irq_source_routing_table *eirq_source;
+struct interface_info *einter;
+	
+	int param_len = 0;
+ 
 	/*
 	 *  Calculate the amount of stack space needed to build args.
 	 */
@@ -971,18 +982,37 @@ initstack (ac, av, addenv)
 	else {
 		ec = 0;
 	}
+#ifdef BOOT_PARAM
+      param_len = stringlen;
+	  param_len = ( param_len + 7 ) & ~7;
+      stringlen = 0x0;
+ #endif
 	for (i = 0; i < ac; i++) {
 		stringlen += strlen(av[i]) + 1;
 	}
-	stringlen = (stringlen + 3) & ~3;	/* Round to words */
+	stringlen = (stringlen + 7) & ~7;	/* Round to words */
+
+#ifndef BOOT_PARAM
 	vectorlen = (ac + ec + 2) * sizeof (char *);
 	stacklen = ((vectorlen + stringlen) + 7) & ~7;
 
+#else
+	vectorlen = (ac + 1) * sizeof (char *);
+	vectorlen = ( vectorlen + 7 ) & ~7;
+	stacklen = ((vectorlen + stringlen + param_len) + 7) & ~7;
+#endif
 	/*
 	 *  Allocate stack and us md code to set args.
 	 */
 	nsp = md_adjstack(NULL, 0) - stacklen;
+
+#ifndef BOOT_PARAM
 	md_setargs(NULL, ac, nsp, nsp + (ac + 1) * sizeof(char *), (int)callvec);
+	printf("ac = %08x, nsp @ %08x, env @ %08x, en @ %08x\n", ac, nsp, nsp + (ac + 1) * sizeof(char *), callvec);
+#else
+	md_setargs(NULL, ac, nsp, nsp + vectorlen + stringlen, (int)callvec);
+	printf("ac = %08x, nsp @ %08x, env @ %08x, en @ %08x\n", ac, nsp, nsp + vectorlen + stringlen, callvec);
+#endif
 
 	/* put $sp below vectors, leaving 32 byte argsave */
 	md_adjstack(NULL, nsp - 32);
@@ -1000,12 +1030,37 @@ initstack (ac, av, addenv)
 		strcpy (ssp, av[i]);
 		ssp += strlen(av[i]) + 1;
 	}
+
+	ssp = ((int)ssp + 7) & ~7;	/* Round to words */
+
 	*vsp++ = (char *)0;
 
 	/* build environment vector on stack */
 	if (ec) {
+		printf("vsp = 08x%llx, ssp @ 08x%llx\n", (unsigned long long )vsp, (unsigned long long)ssp);
+		if (ssp !=  (nsp + vectorlen + stringlen))
+		{
+			printf("!!! Error @@@: stack not meet \n");
+		}
 		envbuild (vsp, ssp);
-	}
+#ifdef BOOT_PARAM
+	bp = (struct boot_params *) ssp;
+	lp = &(bp->efi.smbios.lp);
+        emap = (struct efi_memory_map_loongson *)((unsigned long long)lp+lp->memory_offset);
+		ecpu = (struct efi_cpuinfo_loongson *)((unsigned long long)lp + lp->cpu_offset);
+		esys = (struct system_loongson *)((unsigned long long)lp+lp->system_offset);
+		eirq_source = (struct irq_source_routing_table *)((unsigned long long)lp+lp->irq_offset);
+
+//printf("nr_maps::%d,mem_freq:%d,\nlow--id:%d name:%d,mem_start:%x,mem_size:%d \nhigh--id:%d name:%d,mem_start:%x,mem_size:%d\n",emap->nr_map,emap->mem_freq,emap->map[0].node_id,emap->map[0].mem_type,emap->map[0].mem_start,emap->map[0].mem_size,emap->map[1].node_id,emap->map[1].mem_type,emap->map[1].mem_start,emap->map[1].mem_size);
+
+//printf("mem:%ld, highmem:%ld cpu_clock:%ld cputye:%d,nr_cpus:%d,ccnuma_smp:%d,sing_double_channel:%d\n",emap->mem_size,emap->memsz_high,ecpu->cpu_clock_freq,ecpu->cputype,ecpu->nr_cpus,esys->ccnuma_smp,esys->sing_double_channel);
+
+//printf("bp:%p,irq_source:%p,offset:%ld ht_int_bit%x,ht_enable:%x\npci-start:%x,pci-end:%x\n",lp,eirq_source,lp->irq_offset,eirq_source->ht_int_bit,eirq_source->ht_enable,eirq_source->pci_mem_start_addr,eirq_source->pci_mem_end_addr);  
+#else
+printf("ssp:%lx line=%d\n",ssp,__LINE__);
+
+#endif	
+}
 	else {
 		*vsp++ = (char *)0;
 	}
@@ -1014,4 +1069,3 @@ initstack (ac, av, addenv)
 	 */
 	md_setlr(NULL, (register_t)_exit);
 }
-

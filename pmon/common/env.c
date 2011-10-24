@@ -46,6 +46,8 @@
 
 #include "cmd_more.h"
 
+#include "../cmds/bootparam.h"
+
 static int	envinited = 0;
 
 static struct stdenv {
@@ -338,6 +340,7 @@ matchenv (name)
 
 /* Two helpers to build a traditional environment for clients */
 
+#ifndef BOOT_PARAM
 void
 envsize (int *ec, int *slen)
 {
@@ -372,4 +375,20 @@ envbuild (char **vsp, char *ssp)
 	}
 	*vsp++ = (char *)0;
 }
+#else
+void envsize(int *ec, int* slen)
+{
+  *ec =1; 
+  *slen = sizeof(struct boot_params);
+	printf ("%s:length of boot_param is %08x\n", __FILE__, *slen);
+}
 
+void envbuild(char **vsp, char *ssp)
+{
+
+	struct boot_params * bp;
+	bp = (struct boot_params *) ssp;
+
+  init_boot_param(bp);
+}
+#endif

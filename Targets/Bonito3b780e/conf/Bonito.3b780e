@@ -35,7 +35,8 @@ option		INTERFACE_3A780E
 
 #option      AUTO_DDR_CONFIG
 
-
+option LOONGSON_3BSINGLE
+option		BOOT_PARAM
 select     	amd_780e
 
 ## VGA option ##
