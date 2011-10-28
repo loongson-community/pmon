@@ -125,38 +125,38 @@ nop; \
 nop;
 
 #ifdef DDR3_DIMM
-  /* WatchDog Close for chip MAX6369*/
-  #define WatchDog_Close \
-  GPIO_CLEAR_OUTPUT(0x1<<13); \
-  GPIO_CLEAR_OUTPUT(0x1<<14); \
-  GPIO_CLEAR_OUTPUT(0x1<<6 | 0x1<<5|0x1<<4); \
-  GPIO_SET_OUTPUT(0x1<<3); \
+/* WatchDog Close for chip MAX6369*/
+#define WatchDog_Close \
+GPIO_CLEAR_OUTPUT(0x1<<13); \
+GPIO_CLEAR_OUTPUT(0x1<<14); \
+GPIO_CLEAR_OUTPUT(0x1<<6 | 0x1<<5|0x1<<4); \
+GPIO_SET_OUTPUT(0x1<<3); \
 
 #if 0
-  li v1,0x1000;\
-  78:; \
-  subu v1,1; \
-  bnez v1,78b; \
-  nop; \
-  GPIO_CLEAR_OUTPUT(0x1<<14);
+li v1,0x1000;\
+78:; \
+subu v1,1; \
+bnez v1,78b; \
+nop; \
+GPIO_CLEAR_OUTPUT(0x1<<14);
 #endif 
 
-  /* WatchDog Enable for chip MAX6369*/
-  #define WatchDog_Enable \
-  GPIO_SET_OUTPUT(0x1<<4 | 0x1<<5 | 0x1 << 6 | 0x1<<13); \
-  GPIO_CLEAR_OUTPUT(0x1<<13); \
-  li v1,0x100;\
-  78:; \
-  subu v1,1; \
-  bnez v1,78b; \
-  nop; \
-  GPIO_SET_OUTPUT(0x1<<14); \
-  li v1,0x1000;\
-  78:; \
-  subu v1,1; \
-  bnez v1,78b; \
-  nop; \
-  GPIO_CLEAR_OUTPUT(0x1<<14);
+/* WatchDog Enable for chip MAX6369*/
+#define WatchDog_Enable \
+GPIO_SET_OUTPUT(0x1<<4 | 0x1<<5 | 0x1 << 6 | 0x1<<13); \
+GPIO_CLEAR_OUTPUT(0x1<<13); \
+li v1,0x100;\
+78:; \
+subu v1,1; \
+bnez v1,78b; \
+nop; \
+GPIO_SET_OUTPUT(0x1<<14); \
+li v1,0x1000;\
+78:; \
+subu v1,1; \
+bnez v1,78b; \
+nop; \
+GPIO_CLEAR_OUTPUT(0x1<<14);
 
 #else
 
@@ -319,13 +319,11 @@ ext_map_and_reboot:
  *  Exception vectors here for rom, before we are up and running. Catch
  *  whatever comes up before we have a fully fledged exception handler.
  */
-#if 0
 	.align	9			/* bfc00200 */
 	la	a0, v200_msg
 	bal	stringserial
 	nop
 	b	exc_common
-#endif
 
 	.align	7			/* bfc00280 */
 	la	a0, v280_msg
@@ -380,6 +378,9 @@ exc_common:
 	PRINTSTR("\r\nEPC=")
 	mfc0	a0, COP_0_EXC_PC
 	bal	hexserial
+	nop
+1:
+	b       1b
 	nop
 #ifndef ROM_EXCEPTION
 	PRINTSTR("\r\nDERR0=")
@@ -721,7 +722,10 @@ loop_here:
 	_ISAWR_INIT(isareg,val)
 #define ISARD_INIT(isareg) \
 	_ISARD_INIT(isareg)
-	GPIOLED_SET(4)
+#ifdef DDR3_DIMM
+#else
+	 GPIOLED_SET(4)
+#endif
 
 	bal	1f	
 	nop
@@ -1217,6 +1221,7 @@ PRINTSTR("Jump to 9fc\r\n")
 #define DISABLE_DIMM_ECC
 #define PRINT_MSG
 //#define DEBUG_DDR
+//#define MY_DEBUG_DDR
 //#define DEBUG_DDR_PARAM
         dli     msize, 0
 		GPIO_SET_OUTPUT(0x1<<8)
@@ -1269,6 +1274,97 @@ ARB_level_over:
 		GPIO_SET_OUTPUT(0x1<<9)
 #endif
 ##########################################
+#ifdef  DEBUG_DDR
+    b       TM_over
+    nop
+#include "ddr_code_dir/Test_Mem.S"
+TM_over:
+
+#if 1
+    PRINTSTR("\r\nDo test?(0xf: skip): ")
+    bal     inputaddress
+    nop
+    and     v0, v0, 0xf
+    dli     a1, 0x1
+    bgt     v0, a1, 3f
+    nop
+#endif
+
+#if 0
+#if 0
+    PRINTSTR("\r\nStart other core test?(0xcccc: start): ")
+    bal     inputaddress
+    nop
+    move    t1, v0
+#else
+    li      t1, 0xcccc
+#endif
+
+#ifdef NODE1_BOOT
+    dli     t0, NODE1_CORE0_BUF0 #buf of cpu1
+#else
+    dli     t0, NODE0_CORE0_BUF0 #buf of cpu0
+#endif
+    sw      t1, FN_OFF(t0)
+    nop
+#endif
+
+#if 0
+    PRINTSTR("\r\nStart simple_test_mem......\r\n")
+1:
+    dli     t1, 0x0010
+    dli     s1, 0x0004000080000000  //NODE 0, start from 0x80000000
+    dli     t0, 0xaaaaaaaaaaaaaaaa
+    bal     simple_test_mem
+    nop
+    b       1b
+    nop
+#endif
+
+    dli     s1, 0x0010000080000000  //NODE 0, start from 0x80000000
+#if 1
+    PRINTSTR("\r\ndefault s1 = 0x");
+    dsrl    a0, s1, 32
+    bal     hexserial
+    nop
+    PRINTSTR("__")
+    move    a0, s1
+    bal     hexserial
+    nop
+    PRINTSTR("\r\nChange test param s1(0: skip)?: ")
+    bal     inputaddress
+    nop
+    beqz    v0, 1f
+    nop
+    move    s1, v0
+1:
+#endif
+1:
+    dli     t1, 0x0010
+    bal     test_mem
+    nop
+    move    t1, v0
+    PRINTSTR("\r\n")
+    dsrl    a0, t1, 32
+    bal     hexserial
+    nop
+    move    a0, t1
+    bal     hexserial
+    nop
+    beqz    t1, 2f
+    nop
+    PRINTSTR("  Error found!!\r\n")
+2:
+#if 0
+//loop test
+    b       1b
+    nop
+2:
+    b       2b
+    nop
+#endif
+#endif
+#########################################
 
 #ifdef LS3_HT
 WatchDog_Enable;
@@ -1409,8 +1505,8 @@ bootnow:
 	la	a0, start
 	li	a1, 0xbfc00000
 	la	a2, _edata
-        or      a0, 0xa0000000
-        or      a2, 0xa0000000
+    //or      a0, 0xa0000000
+    //or      a2, 0xa0000000
 	subu	t1, a2, a0
 	srl	t1, t1, 2
 
@@ -1449,16 +1545,14 @@ bootnow:
 
 	TTYDBG("Copy PMON to execute location done.\r\n")
 /* zhb */
-#if 0
+#if 1
 zhb:
 	TTYDBG("Testing...\r\n")
 	la	a0, start
 	li	a1, 0xbfc00000
 	la	a2, _edata
-        or      a0, 0xa0000000
-        or      a2, 0xa0000000
-/*	subu	s6, a2, a0*/
-/*	srl	s6, s6, 2*/
+    //or      a0, 0xa0000000
+    //or      a2, 0xa0000000
 
 	move	t0, a0
 	move	t1, a1
@@ -2466,6 +2560,7 @@ idle1000:
 
 #endif
 
+#define MULTI_NODE_DDR_PARAM
 #include "ddr_config.S"
 
     .text

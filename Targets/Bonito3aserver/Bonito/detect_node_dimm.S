@@ -43,13 +43,13 @@ LEAF(PROBE_NODE_DIMM)
     PRINTSTR("\r\nOpen SMBUS controller\r\n");
     WatchDog_Enable;
     /* Open the SMBUS controller */
-    dli     a1,0x90000efdfe00a090 ; #b:d:f:r=0:14:0:90 set tmp config address
-    li      a0,SMBUS_IO_BASE_VALUE | 0x1
+    dli     a1, 0x90000efdfe00a090 ; #b:d:f:r=0:14:0:90 set tmp config address
+    li      a0, SMBUS_IO_BASE_VALUE | 0x1
     sw      a0, 0x0(a1);
 
     /* enable the host controller */
-    dli     a1,0x90000efdfe00a0d0 ; #b:d:f:r=0:14:0:d2 bit0=1
-    lw      a0,0x0(a1);
+    dli     a1, 0x90000efdfe00a0d0 ; #b:d:f:r=0:14:0:d2 bit0=1
+    lw      a0, 0x0(a1);
     li      a2, 0x10000;
     or      a0, a2
     sw      a0, 0x0(a1);

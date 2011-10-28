@@ -10,7 +10,6 @@
             0: MC0
             1: MC1
 **********************************/
-//#define MULTI_NODE_DDR_PARAM
 #define CONFIG_BASE 0x900000000ff00000
 
         .global ddr2_config
