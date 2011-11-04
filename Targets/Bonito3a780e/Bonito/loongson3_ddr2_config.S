@@ -898,50 +898,6 @@ interleave_2g:
 #else
 #ifdef INTERLEAVE_13
 
-#ifndef CONFIG_GFXUMA
-
-	    PRINTSTR(" DDR and PCI Interleave space open : 0x100000000 - 0x1FFFFFFFF\r\n")
-	    PRINTSTR(" DDR and PCI Interleave using Bit 13\r\n")
-        GET_NODE_ID_a0;
-        XBAR_CONFIG_NODE_a0(0x20, \
-                            0x0000000100000000, \
-                            0xffffffff80002000, \
-                            0x00000000000000f0)
-        XBAR_CONFIG_NODE_a0(0x28, \
-                            0x0000000100002000, \
-                            0xffffffff80002000, \
-                            0x00000000000000f1)
-        XBAR_CONFIG_NODE_a0(0x30, \
-                            0x0000000180000000, \
-                            0xffffffff80002000, \
-                            0x00000000000020f0)
-        XBAR_CONFIG_NODE_a0(0x38, \
-                            0x0000000180002000, \
-                            0xffffffff80002000, \
-                            0x00000000000020f1)
-
-		// Disable the default Windows
-        dli     t1, 0x0
-        sd      t1, 0x180(t0)
-
-        // Enable others
-        XBAR_CONFIG_NODE_a0(0x120, \
-                            0x0000000100000000, \
-                            0xffffffff80002000, \
-                            0x00000000000000f0)
-        XBAR_CONFIG_NODE_a0(0x128, \
-                            0x0000000100002000, \
-                            0xffffffff80002000, \
-                            0x00000000000000f1)
-        XBAR_CONFIG_NODE_a0(0x130, \
-                            0x0000000180000000, \
-                            0xffffffff80002000, \
-                            0x00000000000020f0)
-        XBAR_CONFIG_NODE_a0(0x138, \
-                            0x0000000180002000, \
-                            0xffffffff80002000, \
-                            0x00000000000020f1)
-#else
 	    PRINTSTR(" DDR and PCI Interleave space open : 0x80000000 - 0x17FFFFFFF for GFX UMA\r\n")
 	    PRINTSTR(" DDR and PCI Interleave using Bit 13\r\n")
 
@@ -984,7 +940,6 @@ interleave_2g:
                             0xffffffff80002000, \
                             0x00000000000020f1)
 
-#endif
 
 #else
 #ifdef INTERLEAVE_12
