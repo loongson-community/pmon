@@ -655,7 +655,7 @@ for_godson3a:
     mfc0	v0, COP_0_CONFIG,1		# Get configuration register
     .set mips3
 
-	and     v0, 0x8000
+	and     v0, 0x80000000
 	beqz	v0, noscache
 	nop
 
