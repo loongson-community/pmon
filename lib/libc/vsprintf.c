@@ -62,7 +62,7 @@ vsprintf (char *d, const char *s, va_list ap)
 			fmt = FMT_RJUST;
 			width = trunc = haddot = longlong = 0;
 			for (; *s; s++) {
-				if (strchr ("dobpxXulscefg%", *s))
+				if (strchr ("diobpxXulscefg%", *s))
 					break;
 				else if (*s == '-')
 					fmt = FMT_LJUST;
@@ -109,9 +109,9 @@ vsprintf (char *d, const char *s, va_list ap)
 						++s;
 					}
 				}
-				if (strchr ("dobpxXu", *s)) {
-					if (*s == 'd')
-						base = -10;
+				if (strchr ("diobpxXu", *s)) {
+				 if ((*s == 'd') || (*s == 'i'))
+					 base = -10;
 					else if (*s == 'u')
 						base = 10;
 					else if (*s == 'x' || *s == 'X')
