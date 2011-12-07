@@ -38,8 +38,8 @@ option      AUTO_DDR_CONFIG
 #
 # Uart serial baud rate selection
 #
-#option      BONITO_33M
-option      BONITO_25M
+option      BONITO_33M
+#option      BONITO_25M
 #option      BONITO_50M
 
 option  LOONGSON_3ASINGLE

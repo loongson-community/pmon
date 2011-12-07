@@ -969,6 +969,7 @@ struct efi_cpuinfo_loongson *ecpu;
 struct system_loongson *esys;
 struct irq_source_routing_table *eirq_source;
 struct interface_info *einter;
+struct board_devices *eboard;
 	
 	int param_len = 0;
  
@@ -1050,6 +1051,9 @@ struct interface_info *einter;
 		ecpu = (struct efi_cpuinfo_loongson *)((unsigned long long)lp + lp->cpu_offset);
 		esys = (struct system_loongson *)((unsigned long long)lp+lp->system_offset);
 		eirq_source = (struct irq_source_routing_table *)((unsigned long long)lp+lp->irq_offset);
+		eboard = (struct board_devices *)((unsigned long long)lp+lp->boarddev_table_offset);
+
+printf("board_name:%s ---%p %d\n",&(eboard->name),eboard->name,eboard->num_resources);
 
 //printf("nr_maps::%d,mem_freq:%d,\nlow--id:%d name:%d,mem_start:%x,mem_size:%d \nhigh--id:%d name:%d,mem_start:%x,mem_size:%d\n",emap->nr_map,emap->mem_freq,emap->map[0].node_id,emap->map[0].mem_type,emap->map[0].mem_start,emap->map[0].mem_size,emap->map[1].node_id,emap->map[1].mem_type,emap->map[1].mem_start,emap->map[1].mem_size);
 

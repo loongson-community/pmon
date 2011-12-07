@@ -6,6 +6,7 @@ struct efi_cpuinfo_loongson g_cpuinfo_loongson = { 0 };
 struct system_loongson g_sysitem = { 0 };
 struct irq_source_routing_table g_irq_source = { 0 };
 struct interface_info g_interface = { 0 };
+struct interface_info g_board = { 0 };
 struct loongson_special_attribute g_special = { 0 };
 
 int init_boot_param(struct boot_params *bp)
@@ -40,6 +41,7 @@ void init_loongson_params(struct loongson_params *lp)
   lp->system_offset = (unsigned long long)init_system_loongson() - (unsigned long long)lp;
   lp->irq_offset = (unsigned long long)init_irq_source() - (unsigned long long)lp; 
   lp->interface_offset = (unsigned long long)init_interface_info() - (unsigned long long)lp;
+  lp->boarddev_table_offset = (unsigned long long)board_devices_info() - (unsigned long long)lp;
   //lp->special_offset = (unsigned long long)init_special() - (unsigned long long)lp; 
 }
 
@@ -174,12 +176,34 @@ struct interface_info *init_interface_info()
   
  struct interface_info *inter = &g_interface;
  
-  inter->vers = 0x0000;
+  inter->vers = 0x0001;
   inter->size = 0x5 ;
   inter->flag = 1;
 
-  strcpy(inter->description,"hello");
+  strcpy(inter->description,"Interface_OF_Bios_And_Kernel_version_0.1");
   
   return inter;
+}
+
+struct board_devices *board_devices_info()
+{
+  
+ struct board_devices *bd = &g_board;
+ 
+#ifdef LOONGSON_3ASINGLE
+  strcpy(bd->name,"Loongson-3A780E-1-V1.03-demo");
+#endif
+#ifdef LOONGSON_3ASERVER
+  strcpy(bd->name,"Loongson-3A780E-2-V1.02-demo");
+#endif
+#ifdef LEMOTE_3AITX
+  strcpy(bd->name,"lemote-3a-itx-a1101");
+#endif
+#ifdef LEMOTE_3ANOTEBOOK
+  strcpy(bd->name,"lemote-3a-notebook-a1004");
+#endif
+  bd->num_resources = 10;
+ 
+  return bd;
 }
 
