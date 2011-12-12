@@ -1,3 +1,4 @@
+    .align  5
 #ifdef DDR3_DIMM
 ddr2_reg_data:
 ddr2_reg_data_mc1:

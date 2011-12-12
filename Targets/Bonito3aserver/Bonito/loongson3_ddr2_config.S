@@ -54,7 +54,7 @@
     nop
 #endif
 
-#if 1
+#ifdef  PRINT_MSG
     /* show value of s1 */
     PRINTSTR("\r\n\r\ns1 = 0x");
     dsrl    a0, s1, 32
@@ -148,7 +148,6 @@
     dli     a1, 0xffffffff00000000
     and     s1, s1, a1
     or      s1, s1, t1
-1:
 #if 1
     /* show value of s1 */
     PRINTSTR("\r\nnew s1 = 0x");
@@ -161,6 +160,7 @@
     nop
     PRINTSTR("\r\n")
 #endif
+1:
 #endif
 
 #ifdef  MY_DEBUG_DDR
@@ -264,7 +264,7 @@ t0,t2 shouldn't be changed to the end of this file.
 
 #if 1 // AdonWang disable cpu buffered read
 /* !!!!!!!!!!!!! IMPORTANT !!!!!!!!!!!! */
-    TTYDBG("Disable cpu buffered read\r\n")
+    PRINTSTR("Disable cpu buffered read\r\n")
     lw      a1, 0x0(t2)
     li      a0, 0xfffffdff
     and     a1, a1, a0
@@ -275,7 +275,7 @@ t0,t2 shouldn't be changed to the end of this file.
 /*      May Affect the Performance     */
 //This seems better for the spec2000
 //if we enable ECC, this bit will be reset in mc_init
-    TTYDBG("Disable read buffer\r\n")
+    PRINTSTR("Disable read buffer\r\n")
     lw      a1, 0x4(t2)
     li      a0, 0x18
     or      a1, a1, a0
@@ -340,11 +340,13 @@ t0,t2 shouldn't be changed to the end of this file.
     dsll    t5, t5, a0
     or      msize, msize, t5
 
+#ifdef  PRINT_MSG
     PRINTSTR("\r\nmsize = 0x")
     move    a0, msize
     bal     hexserial
     nop
     PRINTSTR("\r\n")
+#endif
 /*******************************
  4. config L2 X-bar
     code procedure: first, MC*_ONLY bits in s1 decides whether this MC is
@@ -353,6 +355,11 @@ t0,t2 shouldn't be changed to the end of this file.
     note: currently,when use only 1 MC,support memory size: 512M, 1G, 2G, 3G, 4G;
       when use MC0&MC1 both, only support 1G, 2G or 4G Memory size of each Controller.
 *******************************/
+    sync
+    nop
+    nop
+    nop
+    nop
     //disable default pci window
     L2XBAR_DISABLE_WINDOW(0x100);
     GET_MC_SEL_BITS
@@ -449,7 +456,7 @@ t0,t2 shouldn't be changed to the end of this file.
     nop
 #endif
 1:
-    PRINTSTR("!!!MEM is at NO_INTERLEAVE mode. If this is not the excepted setting, \r\nplease check whether the two MC_MEMSIZE is equal\r\n")
+    PRINTSTR("!!!MEM is at NO_INTERLEAVE mode. If this is not the expected setting, \r\nplease check whether the two MC_MEMSIZE is equal\r\n")
     GET_NODE_ID_a0;
     XBAR_CONFIG_NODE_a0(0x10, \
                     0x0000000000000000, \
@@ -967,7 +974,7 @@ t0,t2 shouldn't be changed to the end of this file.
     b       1f
     nop
 
-70:     //error: memory size not in support range
+70: //error: memory size not in support range
     PRINTSTR("The MEMSIZE is not supported, the L2-Xbar will not be configured!!!\r\n")
     PRINTSTR("-------------------------------------------\r\n")
 #if 0
@@ -979,3 +986,8 @@ t0,t2 shouldn't be changed to the end of this file.
     PRINTSTR("!!!!!!!!!!MC space is disabled\r\n")
 #endif
 1:
+    sync
+    nop
+    nop
+    nop
+    nop

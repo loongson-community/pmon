@@ -179,11 +179,11 @@
 	dli	t0, 0x00002000000000f7
 	sd	t0, 0xb0(t2)
 
-	dli	t0, 0x000000fdfe000000
+	dli	t0, 0x00000efdfe000000
 	sd	t0, 0x38(t2)
-	dli	t0, 0x000000fffe000000
+	dli	t0, 0x0000fffffe000000
 	sd	t0, 0x78(t2)
-	dli	t0, 0x000000fdfe0000f7
+	dli	t0, 0x000000fdfe0000f6
 	sd	t0, 0xb8(t2)
 
     daddiu  t2, t2, 0x100
