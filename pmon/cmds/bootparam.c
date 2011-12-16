@@ -180,7 +180,7 @@ struct interface_info *init_interface_info()
   inter->size = 0x5 ;
   inter->flag = 1;
 
-  strcpy(inter->description,"Interface_OF_Bios_And_Kernel_version_0.1");
+  strcpy(inter->description,"PMON_Version_v2.1");
   
   return inter;
 }
