@@ -1098,7 +1098,9 @@ gs_2f_v3_ddr2_cfg:
 #endif
 ##########################################
 
+		WatchDog_Enable;
 #include "loongson3_fixup.S"
+		WatchDog_Close;
 
 //begin :Beep on -> delay -> Beep off
 	bal	beep_on
@@ -1419,6 +1421,10 @@ ddr_config_entry:
 //		PRINTSTR("\r\n======LeeWG : Watch Dog : 3\r\n")
 		WatchDog_Close;
 //		PRINTSTR("\r\n======LeeWG : Watch Dog : 4\r\n")
+
+		WatchDog_Enable;
+#include "dma_test.S"
+		WatchDog_Close;
 
 #include "3aserver_bridge_config.S"
 ##########################################
