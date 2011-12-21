@@ -44,7 +44,9 @@ DIMM infor:
 |[26:24]| SDRAM_ROW_SIZE     | MC_ROW  | 15 - ROW_SIZE     |
 |[23:23]| SDRAM_EIGHT_BANK   | 1'b0    | FOUR  BANKS       |
 |       |                    | 1'b1    | EIGHT BANKS       |
-|[22:20]| SDRAM_COL_SIZE     | MC_COL  | 14 - COL_SIZE     |
+|[22:22]| ADDR_MIRROR        | 1'b1    | ADDR MIRROR       |	
+|       |                    | 1'b0    | STANDARD          |
+|[21:20]| SDRAM_COL_SIZE     | MC_COL  | 12 - COL_SIZE     |
 |[19:16]| MC_CS_MAP          |         |                   |
 ------------------------------------------------------------
 |[63:48]| MC1--like s1[31:16] for MC0
@@ -69,7 +71,7 @@ s1: [ 3: 3]: MC1_ONLY
 /* Interleave pattern when both controller enabled */
 //note: NO_INTERLEAVE has highest priority. and define interleave_X mode doesn't
 //guarantee mem will be at interleave mode unless MC0 and MC1 have the same memsize
-//#define NO_INTERLEAVE
+#define NO_INTERLEAVE
 //#define INTERLEAVE_27
 //#define INTERLEAVE_13
 //#define INTERLEAVE_12
@@ -142,6 +144,7 @@ s1: [ 3: 3]: MC1_ONLY
 #define DIMM_WIDTH_OFFSET   27
 #define ROW_SIZE_OFFSET     24
 #define EIGHT_BANK_OFFSET   23
+#define ADDR_MIRROR_OFFSET  22
 #define COL_SIZE_OFFSET     20
 #define MC_CS_MAP_OFFSET    16
 #define MC_CS_MAP_MASK      (0xf)
@@ -181,8 +184,13 @@ dli     a1, 0x1;\
 dsll    a1, a1, EIGHT_BANK_OFFSET;\
 and     a1, s1, a1;\
 dsrl    a1, a1, EIGHT_BANK_OFFSET;
+#define GET_ADDR_MIRROR      \
+dli     a1, 0x1;\
+dsll    a1, a1, ADDR_MIRROR_OFFSET;\
+and     a1, s1, a1;\
+dsrl    a1, a1, ADDR_MIRROR_OFFSET;
 #define GET_COL_SIZE      \
-dli     a1, 0x7;\
+dli     a1, 0x3;\
 dsll    a1, a1, COL_SIZE_OFFSET;\
 and     a1, s1, a1;\
 dsrl    a1, a1, COL_SIZE_OFFSET;

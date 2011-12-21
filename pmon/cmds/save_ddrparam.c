@@ -83,9 +83,9 @@ u64 __raw_writeq_sp(u64 addr, u64 val)
 
 extern char _start;
 extern char ddr2_leveled_mark;
-extern char ddr2_reg_data_leveled, ddr2_reg_data_mc1_leveled;
+extern char ddr2_reg_data_mc0_leveled, ddr2_reg_data_mc1_leveled;
 #ifdef MULTI_CHIP
-extern char n1_ddr2_reg_data_leveled, n1_ddr2_reg_data_mc1_leveled;
+extern char n1_ddr2_reg_data_mc0_leveled, n1_ddr2_reg_data_mc1_leveled;
 #endif
 
 //#define DEBUG
@@ -319,10 +319,10 @@ int save_board_ddrparam()
     if(ld(0x900000001fc00000 + (int) &ddr2_leveled_mark - (int)&_start) == 0)
     {
         node_id = 0;
-        save_ddrparam(node_id << 44, (int)&ddr2_reg_data_leveled, (int)&ddr2_reg_data_mc1_leveled);
+        save_ddrparam(node_id << 44, (int)&ddr2_reg_data_mc0_leveled, (int)&ddr2_reg_data_mc1_leveled);
 #ifdef MULTI_CHIP
         node_id = 1;
-        save_ddrparam(node_id << 44, (int)&n1_ddr2_reg_data_leveled, (int)&n1_ddr2_reg_data_mc1_leveled);
+        save_ddrparam(node_id << 44, (int)&n1_ddr2_reg_data_mc0_leveled, (int)&n1_ddr2_reg_data_mc1_leveled);
 #endif
         flag = 0x1;
         tgt_flashprogram((int *)(0xbfc00000 + ((int)&ddr2_leveled_mark - (int)&_start)), 8, &flag, TRUE);

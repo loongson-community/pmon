@@ -41,7 +41,6 @@ LEAF(PROBE_NODE_DIMM)
     move    t1, s1
 #ifdef USE_SB_I2C
     PRINTSTR("\r\nOpen SMBUS controller\r\n");
-    WatchDog_Enable;
     /* Open the SMBUS controller */
     dli     a1, 0x90000efdfe00a090 ; #b:d:f:r=0:14:0:90 set tmp config address
     li      a0, SMBUS_IO_BASE_VALUE | 0x1
@@ -53,7 +52,6 @@ LEAF(PROBE_NODE_DIMM)
     li      a2, 0x10000;
     or      a0, a2
     sw      a0, 0x0(a1);
-    WatchDog_Close;
 #endif
 #if 0  //for debug, give the SPD device id directly.
 //scan the devices and display DIMM SPD values when the first device is detected.
@@ -682,7 +680,7 @@ DDR2:
     andi    v0, v0, 0xff
     //v0 should < 14
     andi    v0, v0, 0x0f
-    dli     t5, 14
+    dli     t5, 12
     dsubu   t5, t5, v0
     dsll    t5, t5, COL_SIZE_OFFSET
     or      s1, s1, t5
@@ -865,7 +863,7 @@ DDR3:  //DDR3 SDRAM
     or      s1, s1, t5
     //set SDRAM_COL_SIZE
     andi    v0, v0, 0x3 //the bit 2 is reserved currently.
-    dli     t5, 5
+    dli     t5, 3
     dsubu   t5, t5, v0
     dsll    t5, t5, COL_SIZE_OFFSET
     or      s1, s1, t5
@@ -961,6 +959,17 @@ DDR3:  //DDR3 SDRAM
     nop
 1:
     dsll    t5, t5, DIMM_MEMSIZE_OFFSET
+    or      s1, s1, t5
+
+//probe DIMM Address Mirroring
+    dli     a1, 63
+    GET_I2C_NODE_ID_a2
+    bal     i2cread
+    nop
+    //only bit[0] used
+    andi    v0, v0, 0x1
+    move    t5, v0
+    dsll    t5, t5, ADDR_MIRROR_OFFSET 
     or      s1, s1, t5
 
 //DDR3 probe finished

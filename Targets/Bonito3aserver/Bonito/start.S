@@ -521,6 +521,14 @@ common:
     sd      $0, GP_OFF(t1)
     sd      $0, A1_OFF(t1)
 
+#ifdef NODE1_BOOT
+    dli     a0, 0x4 
+#else
+    dli     a0, 0x0;
+#endif
+    bne     t0, a0, slave_main
+    nop
+
 //#define DEBUG_LS3
 #ifdef DEBUG_LS3
     dli     a0, 0xfff
@@ -602,14 +610,6 @@ common:
     bnez    t0, 1b
     nop
 #endif
-
-#ifdef NODE1_BOOT
-    dli     a0, 0x4 
-#else
-    dli     a0, 0x0;
-#endif
-    bne     t0, a0, slave_main
-    nop
 
 #define SHUTDOWN_CORE
 #ifdef  SHUTDOWN_CORE
@@ -1292,9 +1292,9 @@ gs_2f_v3_ddr2_cfg:
 #include "ddr_config_define.h"
 #define DISABLE_DIMM_ECC
 #define PRINT_MSG
-#define DEBUG_DDR
-#define MY_DEBUG_DDR
-#define DEBUG_DDR_PARAM
+#define FIX_DDR_PARAM
+//#define DEBUG_DDR
+//#define DEBUG_DDR_PARAM
 
     TTYDBG("\r\nStart Init Memory, wait a while......\r\n")
     GPIO_SET_OUTPUT(0x1<<8)
@@ -1382,12 +1382,226 @@ MEM_INIT_DONE:
 #include "ARB_level.S"
 ARB_level_over:
 #endif
+##########################################
 
+#if 1 //cww_X2
+//dump L1-L2-HT config windows
+    PRINTSTR("\r\n======X1 core0 map windows:\r\n")
+    li      t1, 23
+    dli     t2, 0x900000003ff02000
+1:
+    move    a0, t2
+    bal    hexserial64
+    nop
+    PRINTSTR(": ")
+
+    ld      a0, 0x0(t2)
+    bal    hexserial64
+    nop
+    PRINTSTR("\r\n")
+
+    daddiu  t2, t2, 8
+    bnez    t1, 1b
+    addiu   t1, t1, -1
+
+
+    PRINTSTR("\r\n======X2 cpu map windows:\r\n")
+    li      t1, 23
+    dli     t2, 0x900000003ff00000
+1:
+    move    a0, t2
+    bal    hexserial64
+    nop
+    PRINTSTR(": ")
+
+    ld      a0, 0x0(t2)
+    bal    hexserial64
+    nop
+    PRINTSTR("\r\n")
+
+    daddiu  t2, t2, 8
+    bnez    t1, 1b
+    addiu   t1, t1, -1
+
+    PRINTSTR("\r\n======X2 pci map windows:\r\n")
+    li      t1, 23
+    dli     t2, 0x900000003ff00100
+1:
+    move    a0, t2
+    bal    hexserial64
+    nop
+    PRINTSTR(": ")
+
+    ld      a0, 0x0(t2)
+    bal    hexserial64
+    nop
+    PRINTSTR("\r\n")
+
+    daddiu  t2, t2, 8
+    bnez    t1, 1b
+    addiu   t1, t1, -1
+
+    PRINTSTR("\r\n======read HT config reg:\r\n")
+    dli     t2, 0x90000efdfb000000
+
+    move    a0, t2
+    bal    hexserial64
+    nop
+    PRINTSTR(": ")
+
+    ld      a0, 0x0(t2)
+    bal    hexserial64
+    nop
+    PRINTSTR("\r\n")
+
+    daddiu    a0, t2, 0x60
+    bal    hexserial64
+    nop
+    PRINTSTR(": ")
+
+    ld      a0, 0x60(t2)
+    bal    hexserial64
+    nop
+    PRINTSTR("\r\n")
+
+    daddiu    a0, t2, 0x68
+    bal    hexserial64
+    nop
+    PRINTSTR(": ")
+
+    ld      a0, 0x68(t2)
+    bal    hexserial64
+    nop
+    PRINTSTR("\r\n")
+
+    daddiu    a0, t2, 0x70
+    bal    hexserial64
+    nop
+    PRINTSTR(": ")
+
+    ld      a0, 0x70(t2)
+    bal    hexserial64
+    nop
+    PRINTSTR("\r\n")
+
+#ifdef MULTI_CHIP 
+    PRINTSTR("\r\nNode 1 Xbar map windows:\r\n")
+    PRINTSTR("\r\n======X1 core0 map windows:\r\n")
+    li      t1, 23
+    dli     t2, 0x900010003ff02000
+#ifdef LS3B
+    daddu   t2, t2, 0x4000
+#endif
+1:
+    move    a0, t2
+    bal    hexserial64
+    nop
+    PRINTSTR(": ")
+
+    ld      a0, 0x0(t2)
+    bal    hexserial64
+    nop
+    PRINTSTR("\r\n")
+
+    daddiu  t2, t2, 8
+    bnez    t1, 1b
+    addiu   t1, t1, -1
+
+
+    PRINTSTR("\r\n======X2 cpu map windows:\r\n")
+    li      t1, 23
+    dli     t2, 0x900010003ff00000
+#ifdef LS3B
+    daddu   t2, t2, 0x4000
+#endif
+1:
+    move    a0, t2
+    bal    hexserial64
+    nop
+    PRINTSTR(": ")
+
+    ld      a0, 0x0(t2)
+    bal    hexserial64
+    nop
+    PRINTSTR("\r\n")
+
+    daddiu  t2, t2, 8
+    bnez    t1, 1b
+    addiu   t1, t1, -1
+
+    PRINTSTR("\r\n======X2 pci map windows:\r\n")
+    li      t1, 23
+    dli     t2, 0x900010003ff00100
+#ifdef LS3B
+    daddu   t2, t2, 0x4000
+#endif
+1:
+    move    a0, t2
+    bal    hexserial64
+    nop
+    PRINTSTR(": ")
+
+    ld      a0, 0x0(t2)
+    bal    hexserial64
+    nop
+    PRINTSTR("\r\n")
+
+    daddiu  t2, t2, 8
+    bnez    t1, 1b
+    addiu   t1, t1, -1
+
+    PRINTSTR("\r\n======read HT config reg:\r\n")
+    dli     t2, 0x90001efdfb000000
+#ifdef LS3B
+    daddu   t2, t2, 0x4000
+#endif
+
+    move    a0, t2
+    bal    hexserial64
+    nop
+    PRINTSTR(": ")
+
+    ld      a0, 0x0(t2)
+    bal    hexserial64
+    nop
+    PRINTSTR("\r\n")
+
+    daddiu    a0, t2, 0x60
+    bal    hexserial64
+    nop
+    PRINTSTR(": ")
+
+    ld      a0, 0x60(t2)
+    bal    hexserial64
+    nop
+    PRINTSTR("\r\n")
+
+    daddiu    a0, t2, 0x68
+    bal    hexserial64
+    nop
+    PRINTSTR(": ")
+
+    ld      a0, 0x68(t2)
+    bal    hexserial64
+    nop
+    PRINTSTR("\r\n")
+
+    daddiu    a0, t2, 0x70
+    bal    hexserial64
+    nop
+    PRINTSTR(": ")
+
+    ld      a0, 0x70(t2)
+    bal    hexserial64
+    nop
+    PRINTSTR("\r\n")
+#endif
+#endif
 ##########################################
 #ifdef  DEBUG_DDR
     b       TM_over
     nop
-#include "ddr_code_dir/Test_Mem.S"
+#include "Test_Mem.S"
 TM_over:
 
 #if 1
@@ -1465,14 +1679,8 @@ TM_over:
     nop
     PRINTSTR("  Error found!!\r\n")
 2:
-#if 0
-//loop test
-    b       1b
-    nop
-2:
-    b       2b
-    nop
-#endif
+
+3:
 #endif
 #########################################
 
@@ -1595,7 +1803,9 @@ WatchDog_Close;
     PRINTSTR("\r\n======X1 core0 map windows:\r\n")
     li      t1, 23
     dli     t2, 0x900010003ff02000
+#ifdef LS3B
     daddu   t2, t2, 0x4000
+#endif
 1:
     move    a0, t2
     bal    hexserial64
@@ -1615,7 +1825,9 @@ WatchDog_Close;
     PRINTSTR("\r\n======X2 cpu map windows:\r\n")
     li      t1, 23
     dli     t2, 0x900010003ff00000
+#ifdef LS3B
     daddu   t2, t2, 0x4000
+#endif
 1:
     move    a0, t2
     bal    hexserial64
@@ -1634,7 +1846,9 @@ WatchDog_Close;
     PRINTSTR("\r\n======X2 pci map windows:\r\n")
     li      t1, 23
     dli     t2, 0x900010003ff00100
+#ifdef LS3B
     daddu   t2, t2, 0x4000
+#endif
 1:
     move    a0, t2
     bal    hexserial64
@@ -1652,7 +1866,9 @@ WatchDog_Close;
 
     PRINTSTR("\r\n======read HT config reg:\r\n")
     dli     t2, 0x90001efdfb000000
+#ifdef LS3B
     daddu   t2, t2, 0x4000
+#endif
 
     move    a0, t2
     bal    hexserial64
@@ -3057,14 +3273,16 @@ ALL_NODE_MEM_INIT_DONE:
     nop
 #endif
     //all core0 mem init done
-    //load msize from ALL 3 NODE
+    //load msize from ALL NODEs
     dli     t1, 0x0
     dli     t0, NODE0_CORE0_BUF0
     lw      a0, SP_OFF(t0)
     or      t1, t1, a0
+#ifdef  MULTI_CHIP
     dli     t0, NODE1_CORE0_BUF0
     lw      a0, SP_OFF(t0)
     or      t1, t1, a0
+#endif
 #ifdef  DUAL_3B
     dli     t0, NODE2_CORE0_BUF0
     lw      a0, SP_OFF(t0)
@@ -3155,7 +3373,7 @@ next:
 wait_to_jump_kernel:
 
 //cxk test mem
-#ifdef  DEBUG_DDR
+#ifdef DEBUG_DDR_MT
 #ifdef NODE1_BOOT
     dli     t0, NODE1_CORE0_BUF0 #buf of cpu1
 #else
@@ -3448,20 +3666,19 @@ idle1000:
 #endif
 
 #ifndef DDR3_DIMM
-#define MULTI_NODE_DDR_PARAM
+//#define MULTI_NODE_DDR_PARAM
 #endif
 #include "ddr_config.S"
 
     .text
     .global ddr2_reg_data
     .global ddr3_reg_data
-    .global n1_ddr2_reg_data
 #ifdef  ARB_LEVEL
     .global ddr2_leveled_mark
-    .global ddr2_reg_data_leveled
+    .global ddr2_reg_data_mc0_leveled
     .global ddr2_reg_data_mc1_leveled
 #ifdef  MULTI_CHIP
-    .global n1_ddr2_reg_data_leveled
+    .global n1_ddr2_reg_data_mc0_leveled
     .global n1_ddr2_reg_data_mc1_leveled
 #endif
 #endif
@@ -3484,6 +3701,7 @@ ddr2_leveled_mark:
     .align  12
 #else
 #ifdef FIX_DDR_PARAM
-#include "loongson3A3_ddr_param.fix.S"
+//#include "loongson3A3_ddr_param.fix.S"
+#include "loongson3A3_ddr_param.fix.S.UDIMM-2G"
 #endif
 #endif

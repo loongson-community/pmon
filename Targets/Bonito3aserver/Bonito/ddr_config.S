@@ -10,6 +10,7 @@
             0: MC0
             1: MC1
 **********************************/
+//#define MULTI_NODE_DDR_PARAM
 #define CONFIG_BASE 0x900000000ff00000
 
         .global ddr2_config
@@ -24,7 +25,7 @@ ddr2_config:
     ld      a2, 0x0(a2)
     beqz    a2, 1f
     nop
-    dla     a2, ddr2_reg_data_leveled
+    dla     a2, ddr2_reg_data_mc0_leveled
     beqz    t3, 21f
     nop
     dla     a2, ddr2_reg_data_mc1_leveled
@@ -33,7 +34,7 @@ ddr2_config:
     GET_NODE_ID_a1
     beqz    a1, 21f
     nop
-    dla     a2, n1_ddr2_reg_data_leveled
+    dla     a2, n1_ddr2_reg_data_mc0_leveled
     beqz    t3, 21f
     nop
     dla     a2, n1_ddr2_reg_data_mc1_leveled
@@ -169,6 +170,7 @@ ddr2_config:
     dsll    a1, a1, ADDR_PINS_OFFSET
     or      a2, a2, a1
     GET_COL_SIZE
+    daddu   a1, a1, 0x2
     dsll    a1, a1, COLUMN_SIZE_OFFSET
     or      a2, a2, a1
     sd      a2, COLUMN_SIZE_ADDR(t8)
@@ -182,6 +184,121 @@ ddr2_config:
     dsll    a1, a1, CS_MAP_OFFSET
     or      a2, a2, a1
     sd      a2, CS_MAP_ADDR(t8)
+    //reconfig address_mirroring
+    ld      a2, ADDRESS_MIRROR_ADDR(t8)
+    dli     a1, 0xff
+    dsll    a1, a1, ADDRESS_MIRROR_OFFSET
+    not     a1, a1
+    and     a2, a2, a1
+    GET_ADDR_MIRROR
+    beqz    a1, 1f
+    nop
+    dli     a1, 0xa
+1:
+    dsll    a1, a1, ADDRESS_MIRROR_OFFSET
+    or      a2, a2, a1
+    sd      a2, ADDRESS_MIRROR_ADDR(t8)
+    //reconfig ODT map
+    //set default first
+    dli     a2, 0x0804020100000000
+    sd      a2, ODT_MAP_CS_ADDR(t8)
+
+    //v0 store cs map
+    GET_MC_CS_MAP
+    move    v0, a1
+    //step 1: swap open wr odt if it's a Dual Rank DIMM
+    //check cs_map[3]
+    dsrl    a2, v0, 3
+    beqz    a2, 1f
+    nop
+    //slot 1 is a DR DIMM
+    ld      a2, ODT_MAP_CS_ADDR(t8)
+    dli     a1, 0x0000ffffffffffff
+    and     a2, a2, a1
+    dli     a1, 0x0408000000000000
+    or      a2, a2, a1
+    sd      a2, ODT_MAP_CS_ADDR(t8)
+1:
+    //check cs_map[1]
+    dsrl    a2, v0, 1
+    and     a2, a2, 0x1
+    beqz    a2, 1f
+    nop
+    //slot 0 is a DR DIMM
+    ld      a2, ODT_MAP_CS_ADDR(t8)
+    dli     a1, 0xffff0000ffffffff
+    and     a2, a2, a1
+    dli     a1, 0x0000010200000000
+    or      a2, a2, a1
+    sd      a2, ODT_MAP_CS_ADDR(t8)
+1:
+    //step 2: open extra RD/WR ODT CS if there is 2 DIMM
+    //check CS[0] and CS[2]
+    dsrl    a2, v0, 2
+    xor     a2, v0, a2
+    and     a2, a2, 0x1
+    bnez    a2, 1f
+    nop
+    //2 DIMM: open the first rank of the non-target DIMM
+    ld      a2, ODT_MAP_CS_ADDR(t8)
+    dli     a1, 0x0101040401010404
+    or      a2, a2, a1
+    sd      a2, ODT_MAP_CS_ADDR(t8)
+    //if its DDR3_DIMM, enable dynamic ODT and reset ODT value
+    GET_SDRAM_TYPE
+    dli     a2, 0x3
+    bne     a2, a1, 1f
+    nop
+    //DDR3 DIMM, enable RTT_wr
+    ld      a2, MR2_DATA_0_ADDR(t8)
+    dli     a1, 0x0400
+    dsll    a1, a1, MR2_DATA_0_OFFSET
+    or      a2, a2, a1
+    sd      a2, MR2_DATA_0_ADDR(t8)
+
+    ld      a2, MR2_DATA_1_ADDR(t8)
+    dli     a1, 0x0400
+    dsll    a1, a1, MR2_DATA_1_OFFSET
+    or      a2, a2, a1
+    sd      a2, MR2_DATA_1_ADDR(t8)
+
+    ld      a2, MR2_DATA_2_ADDR(t8)
+    dli     a1, 0x0400
+    dsll    a1, a1, MR2_DATA_2_OFFSET
+    or      a2, a2, a1
+    sd      a2, MR2_DATA_2_ADDR(t8)
+
+    ld      a2, MR2_DATA_3_ADDR(t8)
+    dli     a1, 0x0400
+    dsll    a1, a1, MR2_DATA_3_OFFSET
+    or      a2, a2, a1
+    sd      a2, MR2_DATA_3_ADDR(t8)
+1:  //1 DIMM
+#if 0
+    //check 1 rank or 2 ranks populated by xor CS[0] and CS[2]
+    GET_MC_CS_MAP
+    dsrl    a2, a1, 2
+    xor     a2, a1, a2
+    and     v0, a2, 0x1
+    beqz    v0, 1f
+    nop
+    //1 DIMM, check its SR DIMM or DR DIMM
+    //here a2[1:0] store the valid CS
+    and     v0, a2, 0x3
+    dsrl    v0, v0, 1
+    beqz    v0, 2f
+    nop
+    //Dual Rank DIMM
+    dli     a2, 0x0408010200000000
+    sd      a2, ODT_MAP_CS_ADDR(t8)
+2:  //1 SR DIMM, use the default setting
+    b       8f
+    nop
+1:  //2 DIMM
+    
+
+8:
+#endif
     //set data bus width
     ld      a2, REDUC_ADDR(t8)
     dli     a1, 0xff
@@ -1060,7 +1177,7 @@ mc_init:
     b       8f
     nop
 10:
-    dla     t1, N0_fix_ddr_reg_data
+    dla     t1, N0_fix_ddr_reg_data_mc0
     beqz    t3, 11f
     nop
     dla     t1, N0_fix_ddr_reg_data_mc1
@@ -1068,7 +1185,7 @@ mc_init:
     b       4f
     nop
 1:
-    dla     t1, N1_fix_ddr_reg_data
+    dla     t1, N1_fix_ddr_reg_data_mc0
     beqz    t3, 11f
     nop
     dla     t1, N1_fix_ddr_reg_data_mc1
@@ -1076,11 +1193,11 @@ mc_init:
     b       4f
     nop
 2:
-    dla     t1, N2_fix_ddr_reg_data
+    dla     t1, N2_fix_ddr_reg_data_mc0
     b       4f
     nop
 3:
-    dla     t1, N3_fix_ddr_reg_data
+    dla     t1, N3_fix_ddr_reg_data_mc0
     b       4f
     nop
 4:

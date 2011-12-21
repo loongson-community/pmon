@@ -124,7 +124,7 @@ ARB_TM_begin:
     dsll    s4, s4, 0x1
 
 #ifdef ARB_TM_DBG
-    ARB_TM_PRINTSTR("s4= 0x")
+    ARB_TM_PRINTSTR("\r\ns4= 0x")
     dsrl    a0, s4, 32
     bal     hexserial
     nop

@@ -19,7 +19,7 @@ N1_MC0_DDR3_CTL_040 : .dword 0x0002010200000101
 //000000_00 rtt_0(RD) 000000_11 ctrl_raw(RW) 000000_01 axi0_w_priority(RW) 000000_01 axi0_r_priority(RW) 0000000_0 write_modereg(WR) 0000000_1 writeinterp(RW) 0000000_1 tref_enable(RW) 0000000_1 tras_lockout(RW) 
 N1_MC0_DDR3_CTL_050 : .dword 0x0200000004060100
 //00000_000 q_fullness(RW) 00000_000 port_data_error_type(RD) 000_00000 out_of_range_type(RD) 00000_000 max_cs_reg(RD) 00000_100 column_size(RW) 0000_0101 caslat(RW) 00000_010 an1_ddr_pins(RW) 00000000
-N1_MC0_DDR3_CTL_060 : .dword 0x0a0e0e0e0e0e0003
+N1_MC0_DDR3_CTL_060 : .dword 0x0a050e0e0e0e0003
 //0000_1010 aprebit(RW) 0000_0101 wrlat(RW) 0000_0100 twtr(RW) 000_00110 twr_int(RW) 00000_011 trtp(RW) 00000_100 trrd(RW) 0000000000000_011 tcke(RW) 
 N1_MC0_DDR3_CTL_070 : .dword 0x0000000000030c0c
 //0000_1111 max_row_reg(RD) 0000_1110 max_col_reg(RD) 0000_0000 initaref(RW) 00000000000000000000_1111 cs_map(RW) 000_01010 caslat_lin_gate(RW) 000_01010 caslat_lin(RW) 

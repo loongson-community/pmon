@@ -18,6 +18,10 @@
 #define INIT_COMPLETE_OFFSET    8
 #define RESYNC_DLL_OFFSET       16
 
+#define ODT_MAP_CS_ADDR          (0x080)
+#define ADDRESS_MIRROR_ADDR      (0x760)
+#define ADDRESS_MIRROR_OFFSET    32
+
 #define CLKLVL_DELAY_2_ADDR      (0x8f0)
 #define CLKLVL_DELAY_1_ADDR      (0x8f0)
 #define CLKLVL_DELAY_0_ADDR      (0x8f0)
@@ -129,6 +133,15 @@
 #define RDLVL_DQSN_DELAY_0_OFFSET    8
 
 #ifdef  loongson3A3
+#define MR2_DATA_0_ADDR         (0x9e0)
+#define MR2_DATA_0_OFFSET       48
+#define MR2_DATA_1_ADDR         (0x9f0)
+#define MR2_DATA_1_OFFSET       0
+#define MR2_DATA_2_ADDR         (0x9f0)
+#define MR2_DATA_2_OFFSET       16
+#define MR2_DATA_3_ADDR         (0x9f0)
+#define MR2_DATA_3_OFFSET       32
+
 #define CLKLVL_DELAY_MASK       (0xff)
 #define RDLVL_GATE_DELAY_MASK   (0xffff)
 #define RDLVL_DELAY_MASK        (0xffff)
@@ -322,3 +335,39 @@
 #define RDLVL_CS_OFFSET         40
 #define RDLVL_EDGE_ADDR         (0x940)
 #define RDLVL_EDGE_OFFSET       24
+
+//cmd extern interval
+#define ONE_BYTE_MASK           0xff
+#define THREE_BITS_MASK         0x7
+#define FOUR_BITS_MASK          0xf
+
+#define W2R_SAMECS_DLY_ADDR     (0x940)
+#define W2R_SAMECS_DLY_OFFSET   48
+#define W2R_DIFFCS_DLY_ADDR     (0x940)
+#define W2R_DIFFCS_DLY_OFFSET   40
+#define W2W_SAMECS_DLY_ADDR     (0x990)
+#define W2W_SAMECS_DLY_OFFSET   56
+#define W2W_DIFFCS_DLY_ADDR     (0x990)
+#define W2W_DIFFCS_DLY_OFFSET   48
+#define R2W_SAMECS_DLY_ADDR     (0x990)
+#define R2W_SAMECS_DLY_OFFSET   32
+#define R2W_DIFFCS_DLY_ADDR     (0x990)
+#define R2W_DIFFCS_DLY_OFFSET   24
+#define R2R_SAMECS_DLY_ADDR     (0x990)
+#define R2R_SAMECS_DLY_OFFSET   16
+#define R2R_DIFFCS_DLY_ADDR     (0x990)
+#define R2R_DIFFCS_DLY_OFFSET   8
+
+#define ADD_ODT_CLK_DTDC_ADDR   (0x9a0)
+#define ADD_ODT_CLK_DTDC_OFFSET 0x24
+#define ADD_ODT_CLK_STDC_ADDR   (0x9a0)
+#define ADD_ODT_CLK_STDC_OFFSET 0x8
+#define ADD_ODT_CLK_DTSC_ADDR   (0x9a0)
+#define ADD_ODT_CLK_DTSC_OFFSET 0x0
+
+//-------------------
+//lowpower mode
+#define LP_AUTO_EN_ADDR         (0x790)
+#define LP_AUTO_EN_OFFSET       32
+#define LP_CONTROL_ADDR         (0x790)
+#define LP_CONTROL_OFFSET       40

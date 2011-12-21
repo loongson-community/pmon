@@ -416,10 +416,14 @@ initmips(unsigned int raw_memsz)
     memorysize = memsz > 240 ? 240 << 20 : memsz << 20;
     memorysize_high = memsz > 240 ? (((unsigned long long)memsz) - 240) << 20 : 0;
 
+#ifdef MULTI_CHIP
     memsz = raw_memsz & 0xff00;
     memsz = memsz >> 8;
     memsz = memsz << 29;
     memorysize_n1 = memsz;
+    tgt_printf("memorysize_n1 0x%llx\n", memorysize_n1);
+#endif
+#ifdef DUAL_3B
     memsz = raw_memsz & 0xff0000;
     memsz = memsz >> 16;
     memsz = memsz << 29;
@@ -428,8 +432,6 @@ initmips(unsigned int raw_memsz)
     memsz = memsz >> 24;
     memsz = memsz << 29;
     memorysize_n3 = memsz;
-#if 1
-    tgt_printf("memorysize_n1 0x%llx\n", memorysize_n1);
     tgt_printf("memorysize_n2 0x%llx\n", memorysize_n2);
     tgt_printf("memorysize_n3 0x%llx\n", memorysize_n3);
 #endif

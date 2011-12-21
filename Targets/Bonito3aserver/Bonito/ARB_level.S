@@ -28,8 +28,10 @@ algrithm:
 ********************************/
 #include "ARB_level.h"
 
-#define CLEAR_HALF_CLK_SHIFT
 //#define DEBUG_ARB_LEVEL
+//#define ARB_LEVEL_INTERVAL
+
+#define CLEAR_HALF_CLK_SHIFT
 #define LOG2_STEP   2   //log2 of TM step interval, remember to small WINDOW_ZERO_NUM when we use larger STEP
 #define WINDOW_ZERO_NUM     0x4
 #define GATE_MINUS  -3
@@ -101,6 +103,7 @@ ARB_start:
     PRINTSTR("\r\nStart ARB Leveling....\r\n")
 #endif
 
+//leveling for Delay line setting.
 One_ARB_level_begin:
     dli     t8, ARB_STORE_BASE
     GET_ARB_LEVEL_NODE_ID
@@ -711,15 +714,21 @@ boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
     dsrl    a0, a0, 1
     dli     a1, 0x7f7f7f7f7f7f7f7f
     and     a0, a0, a1
-#if 0
+#if 1   //special deal with rdlvl_gate
     dli     a2, 0x2
     bne     t6, a2, 2f
     nop
+#if 0
     //rdlvl gate use (min + mid value) / 2.
     ld      a1, GD_MIN(t8)
     daddu   a0, a0, a1
     dsrl    a0, a0, 1
     dli     a1, 0x7f7f7f7f7f7f7f7f
+    and     a0, a0, a1
+#endif
+    //if leveled rdlvl gate <= 8, use 0
+    //minus as bigger as 7.
+    dli     a1, 0xf8f8f8f8f8f8f8f8
     and     a0, a0, a1
 2:
 #endif
@@ -1075,8 +1084,170 @@ One_ARB_level_end:
     nop
     b       One_ARB_level_begin
     nop
-
 2:
+
+#ifdef  ARB_LEVEL_INTERVAL
+//leveling for DRAM command interval.
+ARB_level_int_begin:
+    dli     t8, ARB_STORE_BASE
+    GET_ARB_LEVEL_NODE_ID
+    dsll    a1, a1, 44
+    daddu   t8, t8, a1
+    //set level sequence--byte 0 mark the end
+#ifdef  DDR3_DIMM
+    dli     a0, 0x0807060504030201
+    sd      a0, LEVEL_SEQ_BASE(t8)
+    daddiu  t8, t8, 0x8
+    dli     a0, 0x00
+#else
+    dli     a0, 0x0807060504030201
+    sd      a0, LEVEL_SEQ_BASE(t8)
+    daddiu  t8, t8, 0x8
+    dli     a0, 0x00
+#endif
+    sd      a0, LEVEL_SEQ_BASE(t8)
+    daddiu  t8, t8, 0x8
+    dli     a0, 0
+    sd      a0, LEVEL_SEQ_BASE(t8)
+
+    dli     s3, 0x0
+
+21:
+//one level begin
+    dli     t8, ARB_STORE_BASE
+    GET_ARB_LEVEL_NODE_ID
+    dsll    a1, a1, 44
+    daddu   t8, t8, a1
+    daddu   a0, t8, s3
+    lb      a1, LEVEL_SEQ_BASE(a0)
+    move    t6, a1
+    beqz    t6, ARB_level_int_end
+    nop
+
+#ifdef  PRINT_MSG
+    PRINTSTR("\r\nt6 = 0x")
+    move    a0, t6
+    bal     hexserial
+    nop
+    PRINTSTR("\r\n")
+#endif
+
+    //set t2 start value
+    dli     t2, 0x1 //decrease interval
+    //initialize
+    dli     t3, 0x0
+    dli     t4, 0x0
+31:
+//write new delay value
+//input: t6---target, t2---update direction(1--dec;0--inc)
+//output: t5---target value after update
+#include "ARB_Modify_interval_param.S"
+
+//do Test and print test result
+    bal     arb_test_mem
+    nop
+    move    t3, v0
+    move    t4, v1
+#ifdef  DEBUG_ARB_LEVEL
+    PRINTSTR("\r\nt5 = 0x")
+    move    a0, t5
+    bal     hexserial
+    nop
+    PRINTSTR(":")
+    beqz    t3, 1f
+    nop
+    PRINTSTR("\r\nRW Diff 0x")
+    dsrl    a0, t3, 32
+    bal     hexserial
+    nop
+    move    a0, t3
+    bal     hexserial
+    nop
+    PRINTSTR("\r\nRD Diff 0x")
+    dsrl    a0, t4, 32
+    bal     hexserial
+    nop
+    move    a0, t4
+    bal     hexserial
+    nop
+    b       2f
+    nop
+1:
+    PRINTSTR("\r\nNo Error detected.")
+2:
+#endif
+//process test result
+#if 0
+    //for level--1 ~ 4, use RD Error info
+    dli     a0, 0x4
+    bgtu    t6, a0, 1f
+    nop
+    move    t3, t4
+1:
+#endif
+    beqz    t3, 11f
+    nop
+    //test fail,if not reach the maximum interval, increase it; else, move to next
+    dli     t2, 0x0
+    dsrl    a1, t5, 63
+    beqz    a1, 31b
+    nop
+    b       18f
+    nop
+11:
+    //test pass
+    beqz    t2, 18f  //increasing process, stop this level element
+    nop
+    //decreasing process, not zero, continue
+    and     a1, t5, 0xf
+    bnez    a1, 31b
+    nop
+    //reach zero
+    b       18f
+    nop
+
+18:
+#ifdef  PRINT_MSG
+    PRINTSTR("\r\nFinal used value: 0x")
+    move    a0, t5
+    bal     hexserial
+    nop
+    PRINTSTR("\r\n")
+#endif
+#if 0
+//seems no effect
+    dli     a0, 0x1
+    bne     t6, a0, 2f
+    nop
+    //delay some time
+    dli     a0, 0x400000
+1:
+    daddiu  a0, a0, -1
+    bnez    a0, 1b
+    nop
+2:
+#endif
+    //move to next level
+    daddiu  s3, s3, 0x1
+    b       21b
+    nop
+
+ARB_level_int_end:
+    bal     arb_test_mem
+    nop
+    beqz    v0, 2f
+    nop
+    //level fail, delay some time and level again
+    dli     a0, 0x4000000
+1:
+    daddiu  a0, a0, -1
+    bnez    a0, 1b
+    nop
+    b       ARB_level_int_begin
+    nop
+2:
+#endif
+
 #ifdef  PRINT_MSG
     PRINTSTR("\r\nARB Leveling Finished.\r\n")
 #endif
