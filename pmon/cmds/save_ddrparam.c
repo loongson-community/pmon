@@ -226,7 +226,7 @@ void save_ddrparam(u64 node_id_shift44, int mc0_param_store_addr, int mc1_param_
 {
 
   unsigned long long ddr_param_buf[DDR_PARAM_NUM + 1];
-  unsigned long long tmp1, tmp2;
+  unsigned long long tmp1, tmp2, tmp3, tmp4;
 
 #ifdef DEBUG
   int   i;
@@ -251,20 +251,22 @@ void save_ddrparam(u64 node_id_shift44, int mc0_param_store_addr, int mc1_param_
 
   // step 1. Read out DDR controler register values and save them in buffers
 
-  //according to low 256M route manner to decide NODE MC enable state.
-    tmp1 = ld((CPU_L2XBAR_CONFIG_ADDR | node_id_shift44) + 0x90);
-    tmp2 = ld((CPU_L2XBAR_CONFIG_ADDR | node_id_shift44) + 0x98);
+  //according to low 256M route manner to decide NODE MC enable state.  not ok now!
+  //according to high memory route manner to decide NODE MC enable state.
+    tmp1 = ld((CPU_L2XBAR_CONFIG_ADDR | node_id_shift44) + 0xa0);
+    tmp2 = ld((CPU_L2XBAR_CONFIG_ADDR | node_id_shift44) + 0xa8);
+    tmp3 = ld((CPU_L2XBAR_CONFIG_ADDR | node_id_shift44) + 0xb0);
+    tmp4 = ld((CPU_L2XBAR_CONFIG_ADDR | node_id_shift44) + 0xb8);
 #ifdef DEBUG
   printf("tmp1=0x%016llx\n", tmp1);
   printf("tmp2=0x%016llx\n", tmp2);
 #endif
+    //note, only check the last 4-bit is not ok!
     tmp1 &= 0xff;
     tmp2 &= 0xff;
-#ifdef DEBUG
-  printf("tmp1=0x%016llx\n", tmp1);
-  printf("tmp2=0x%016llx\n", tmp2);
-#endif
-    if ((tmp1 == 0xf0) || (tmp2 == 0xf0))
+    tmp3 &= 0xff;
+    tmp4 &= 0xff;
+    if ((tmp1 == 0xf0) || (tmp2 == 0xf0) || (tmp3 == 0xf0) || (tmp4 == 0xf0))
     {
         // step 1.1 Read out DDR controler register from MC0 and save them in buffer0
         read_ddr_param(node_id_shift44, MC0, ddr_param_buf);
@@ -287,7 +289,7 @@ void save_ddrparam(u64 node_id_shift44, int mc0_param_store_addr, int mc1_param_
 #endif
     }
 
-    if ((tmp1 == 0xf1) || (tmp2 == 0xf1))
+    if ((tmp1 == 0xf1) || (tmp2 == 0xf1) || (tmp3 == 0xf1) || (tmp4 == 0xf1))
     {
         // step 2.2 Read out DDR controler register from MC1 and save them in buffer1
         read_ddr_param(node_id_shift44, MC1, ddr_param_buf);

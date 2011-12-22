@@ -1294,6 +1294,7 @@ gs_2f_v3_ddr2_cfg:
 #define PRINT_MSG
 #define FIX_DDR_PARAM
 //#define DEBUG_DDR
+//#define DEBUG_DDR_MT
 //#define DEBUG_DDR_PARAM
 
     TTYDBG("\r\nStart Init Memory, wait a while......\r\n")
@@ -1614,8 +1615,8 @@ TM_over:
     nop
 #endif
 
-#if 0
-#if 0
+#if 1
+#if 1
     PRINTSTR("\r\nStart other core test?(0xcccc: start): ")
     bal     inputaddress
     nop
@@ -1645,7 +1646,7 @@ TM_over:
     nop
 #endif
 
-    dli     s1, 0x0010000080000000  //NODE 0, start from 0x80000000
+    dli     s1, 0x0004000080000000  //NODE 0, start from 0x80000000
 #if 1
     PRINTSTR("\r\ndefault s1 = 0x");
     dsrl    a0, s1, 32
@@ -1664,7 +1665,7 @@ TM_over:
 1:
 #endif
 1:
-    dli     t1, 0x0010
+    dli     t1, 0x1010
     bal     test_mem
     nop
     move    t1, v0
@@ -3472,11 +3473,9 @@ wait_to_jump_kernel:
     b       4f
     nop
 10:
-    b       10b
-    nop
     dli     s1, 0x4004000080000000
-    dli     t1, 0x1010
-    bal     test_mem_1_silence
+    dli     t1, 0x0010
+    bal     test_mem    //_1_silence
     nop
     b       10b
     nop
