@@ -344,11 +344,41 @@ t0,t2 shouldn't be changed to the end of this file.
     note: currently,when use only 1 MC,support memory size: 512M, 1G, 2G, 3G, 4G;
       when use MC0&MC1 both, only support 1G, 2G or 4G Memory size of each Controller.
 *******************************/
+#define NO_INTERLEAVE
+
     sync
     nop
     nop
     nop
     nop
+#if 0
+    PRINTSTR("\r\nt0=0x");
+    dsrl    a0, t0, 32
+    bal     hexserial
+    nop
+    move    a0, t0
+    bal     hexserial
+    nop
+
+    PRINTSTR("\r\nSkip Clear L2 window?(1: skip;)\r\n");
+    dli     t6, 0x00
+    bal     inputaddress    #input value stored in v0
+    nop
+    bnez    v0, 1f
+    nop
+    //not work ok!!!
+    //L2XBAR_CLEAR_WINDOW(0x10) //this two window can NOT be cleared! ????
+    //L2XBAR_CLEAR_WINDOW(0x18) //this two window can NOT be cleared! ????
+    //L2XBAR_CLEAR_WINDOW(0x20)
+    //L2XBAR_CLEAR_WINDOW(0x28)
+    //L2XBAR_CLEAR_WINDOW(0x30)
+    //L2XBAR_CLEAR_WINDOW(0x38)
+1:
+#endif
+#ifndef NO_INTERLEAVE
+    //clear L2 window(introduced by ARB_LEVEL or ECC initialize)
+    L2XBAR_DISABLE_WINDOW(0x20);
+#endif
     //disable default pci window
     L2XBAR_DISABLE_WINDOW(0x100);
     GET_MC_SEL_BITS

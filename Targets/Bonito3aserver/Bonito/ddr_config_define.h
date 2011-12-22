@@ -37,14 +37,14 @@ DIMM infor:
 |       |                    | 2'b11   | DDR3              |
 |[29:29]| DIMM_ECC           | 1'b1    | With ECC          |
 |       |                    | 1'b0    | No ECC            |
-|[28:28]| DIMM_TYPE          | 1'b1    | Registered DIMM   |	
+|[28:28]| DIMM_TYPE          | 1'b1    | Registered DIMM   |
 |       |                    | 1'b0    | Unbuffered DIMM   |
-|[27:27]| DIMM_WIDTH         | 1'b1    | REDUC--32bits     |	
+|[27:27]| DIMM_WIDTH         | 1'b1    | REDUC--32bits     |
 |       |                    | 1'b0    | NORMAL--64 bits   |
 |[26:24]| SDRAM_ROW_SIZE     | MC_ROW  | 15 - ROW_SIZE     |
 |[23:23]| SDRAM_EIGHT_BANK   | 1'b0    | FOUR  BANKS       |
 |       |                    | 1'b1    | EIGHT BANKS       |
-|[22:22]| ADDR_MIRROR        | 1'b1    | ADDR MIRROR       |	
+|[22:22]| ADDR_MIRROR        | 1'b1    | ADDR MIRROR       |
 |       |                    | 1'b0    | STANDARD          |
 |[21:20]| SDRAM_COL_SIZE     | MC_COL  | 12 - COL_SIZE     |
 |[19:16]| MC_CS_MAP          |         |                   |
@@ -88,7 +88,7 @@ s1: [ 3: 3]: MC1_ONLY
 #define GET_MC0_ONLY    dli a1, 0x00000004; and a1, s1, a1;
 #define GET_MC1_ONLY    dli a1, 0x00000008; and a1, s1, a1;
 #define XBAR_CONFIG_NODE_a0(OFFSET, BASE, MASK, MMAP) \
-						daddiu  v0, t0, OFFSET;       \
+                        daddiu  v0, t0, OFFSET;       \
                         dli     v1, BASE;             \
                         or      v1, v1, a0;           \
                         sd      v1, 0x00(v0);         \
@@ -96,8 +96,13 @@ s1: [ 3: 3]: MC1_ONLY
                         sd      v1, 0x40(v0);         \
                         dli     v1, MMAP;             \
                         sd      v1, 0x80(v0);
+#define L2XBAR_CLEAR_WINDOW(OFFSET) \
+                        daddiu  v0, t0, OFFSET;       \
+                        sd      $0, 0x00(v0);         \
+                        sd      $0, 0x40(v0);         \
+                        sd      $0, 0x80(v0);
 #define L2XBAR_CONFIG_INTERLEAVE(OFFSET, BASE, MASK, MMAP) \
-						daddiu  v0, t0, OFFSET;       \
+                        daddiu  v0, t0, OFFSET;       \
                         ld      v1, 0x00(v0);         \
                         or      v1, v1, BASE;         \
                         sd      v1, 0x00(v0);         \
@@ -108,12 +113,12 @@ s1: [ 3: 3]: MC1_ONLY
                         or      v1, v1, MMAP;         \
                         sd      v1, 0x80(v0);
 #define L2XBAR_RECONFIG_TO_MC1(OFFSET) \
-						daddiu  v0, t0, OFFSET;       \
+                        daddiu  v0, t0, OFFSET;       \
                         ld      v1, 0x80(v0);         \
                         ori     v1, v1, 0x1;          \
                         sd      v1, 0x80(v0);
 #define L2XBAR_CONFIG_PCI_AS_CPU(OFFSET) \
-						daddiu  v0, t0, OFFSET;       \
+                        daddiu  v0, t0, OFFSET;       \
                         ld      v1, 0x0(v0);          \
                         sd      v1, 0x100(v0);        \
                         ld      v1, 0x40(v0);         \
@@ -122,17 +127,17 @@ s1: [ 3: 3]: MC1_ONLY
                         sd      v1, 0x180(v0);
 //special used, not general.
 #define L2XBAR_CONFIG_PCI_BASE_0to8(OFFSET) \
-						daddiu  v0, t0, OFFSET;       \
+                        daddiu  v0, t0, OFFSET;       \
                         ld      v1, 0x0(v0);          \
                         dli     a1, 0x80000000;       \
                         or      v1, v1, a1;           \
                         sd      v1, 0x0(v0);
 #define L2XBAR_DISABLE_WINDOW(OFFSET) \
-						daddiu  v0, t0, OFFSET;       \
+                        daddiu  v0, t0, OFFSET;       \
                         dli     v1, 0x0;              \
                         sd      v1, 0x80(v0);
 #define L2XBAR_ENABLE_WINDOW(OFFSET) \
-						daddiu  v0, t0, OFFSET;       \
+                        daddiu  v0, t0, OFFSET;       \
                         ld      v1, 0x80(v0);         \
                         ori     v1, v1, 0x80;         \
                         sd      v1, 0x80(v0);

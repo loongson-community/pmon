@@ -1253,30 +1253,6 @@ Fix_ddr_param:
 
 //cxk
 #ifdef  ARB_LEVEL
-    //route 0x1000000000 ~ 0x1FFFFFFFFF(64G) to MC for ARB_level
-    sync
-    nop
-    nop
-    nop
-    nop
-    GET_NODE_ID_a0;
-    XBAR_CONFIG_NODE_a0(0x20, \
-                    0x0000001000000000, \
-                    0xFFFFFFF000000000, \
-                    0x00000000000000F0)
-    beqz    t3, 1f
-    nop
-    GET_NODE_ID_a0;
-    XBAR_CONFIG_NODE_a0(0x20, \
-                    0x0000001000000000, \
-                    0xFFFFFFF000000000, \
-                    0x00000000000000F1)
-1:
-    sync
-    nop
-    nop
-    nop
-    nop
 #ifdef  DEBUG_DDR_PARAM
     PRINTSTR("\r\nSkip Memory training?(0: use mark to decide;1: skip ARB_level;)\r\n");
     dli     t6, 0x00
@@ -1290,6 +1266,31 @@ Fix_ddr_param:
     daddu   a2, a2, s0
     ld      a2, 0x0(a2)
     bnez    a2, 1f
+    nop
+
+    //route 0x1000000000 ~ 0x1FFFFFFFFF(64G) to MC for ARB_level
+    sync
+    nop
+    nop
+    nop
+    nop
+    GET_NODE_ID_a0;
+    XBAR_CONFIG_NODE_a0(0x20, \
+                    0x0000001000000000, \
+                    0xFFFFFFF000000000, \
+                    0x00000000000000F0)
+    beqz    t3, 2f
+    nop
+    GET_NODE_ID_a0;
+    XBAR_CONFIG_NODE_a0(0x20, \
+                    0x0000001000000000, \
+                    0xFFFFFFF000000000, \
+                    0x00000000000000F1)
+2:
+    sync
+    nop
+    nop
+    nop
     nop
 
     bal     ARB_level
