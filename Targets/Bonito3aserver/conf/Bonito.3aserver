@@ -55,6 +55,7 @@ option      VRAM_SIZE=128
 option		VESAFB
 #option		DEBUG_EMU_VGA
 #option      CONFIG_GFXUMA
+option		AUTOLOAD
 
 #select		mod_x86emu		# X86 emulation for VGA
 select		mod_x86emu_int10
