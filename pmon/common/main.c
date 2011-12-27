@@ -397,14 +397,14 @@ main()
         
 	md_setsr(NULL, initial_sr);	/* XXX does this belong here? */
 
-#ifdef CONFIG_MENULIST
 	{
-
-//		check_user_password();
-		if(!getenv("al"))
-		load_menu_list();
+		unsigned char *envstr;
+		
+		if((envstr = getenv("ShowBootMenu")) && (strcmp("no", envstr) == 0))
+			;
+		else
+			load_menu_list();
 	}
-#endif
 
 {
 static int run=0;
