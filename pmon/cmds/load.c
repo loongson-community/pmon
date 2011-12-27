@@ -99,6 +99,7 @@ const Optdesc         cmd_nload_opts[] =
 
 unsigned long long dl_loffset;
 char *dl_Oloadbuffer;
+unsigned long elf_address;
 
 unsigned long long strtoull(const char *nptr,char **endptr,int base);
 static int
@@ -257,7 +258,7 @@ nload (argc, argv)
 	}
 
 	if (!(flags & (FFLAG|YFLAG))) {
-		printf ("Entry address is %08x\n", ep);
+		printf ("Entry address is %08x\n", elf_address=ep);
 		/* Flush caches if they are enabled */
 		if (md_cachestat())
 			flush_cache (DCACHE | ICACHE, NULL);

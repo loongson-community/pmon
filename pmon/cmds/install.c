@@ -52,33 +52,38 @@
 
 
 //int	cmd_install  __P((void)); 
-char *elf_addr = 0x80205c00; //huang
-char *myversion = "2.6.36";//huang
-int flag = 0; //huang
-int judge_kernel_version(char *src, char *dest)
-{
-	char *p = src;
-	char *tmp = "version ";
-	char *q = tmp;
-	int i = 20;
-	char *ver;
-	while(*tmp != '\0')
-	{
-		if(*src++ != *tmp++)
-		{
-			src = ++p;
-			tmp = q;	
-		}
-	}
-	q = ver;
-	while(i-- >= 0)
-	*ver++ = *p++;	
-	*ver = '\0';
-	ver  = strstr(q, dest);
-	if(ver == NULL)
-	return 0;
+extern unsigned long elf_address; 
 
-	return 1;	
+int flag = 0;
+
+/*
+   if kernel version is 2.6 or advanced,return 1,else return 0
+*/
+int judge_kernel_version(char *S)
+{ 
+        int i = 0,j = 0;
+        char temp[51];
+        char *T = "Linux version ";
+	while(*(T+j) != '\0')
+        { 
+          if(*(S+j) == *(T+j))
+            {
+             j++;
+            }
+          else
+           {
+             S++;j=0;
+           }
+        }
+       for(j = 0; j < 50; j++)
+         temp[j] = S[j];
+            
+         temp[50] = '\0';
+     
+       if(strstr(temp,"2.4"))
+            return 0; //kernel version is 2.4;
+      else 
+             return 1;//kernel version is 2.6 or advanced;
 
 }
 void cmd_cdinstall(void)
@@ -88,14 +93,16 @@ void cmd_cdinstall(void)
 	int ret = 0;
 	char *rd;
 	int flag = 0; //huang
+        char *elf_addr;
 	sprintf(buf, "load /dev/fs/iso9660@cd0/vmlinuxb");
 	//buf = "load /dev/fs/iso9660@cd0/vmlinuxb";
 	ret = do_cmd(buf);
 	
 	if (ret != 0)
 		return;
+         elf_addr = (char *)elf_address;
 
-	flag = judge_kernel_version(elf_addr, myversion);
+	flag = judge_kernel_version(elf_addr);
 
 	if(flag == 1)
 {
@@ -125,12 +132,14 @@ void cmd_usbcdinstall(void)
 	char buf[100];
 	char *rd;
 	int ret = 0;
+        char *elf_addr;
 
 	sprintf(buf, "load /dev/fs/iso9660@usb0/vmlinuxboot");
 	ret = do_cmd(buf);
 	if (ret != 0)
 		return;
- flag = judge_kernel_version(elf_addr, myversion);
+        elf_addr = (char *)elf_address;
+ flag = judge_kernel_version(elf_addr);
 
         if(flag == 1)
 {
@@ -160,7 +169,7 @@ void cmd_usbinstall(void)
 	char buf[100];
 	int ret = 0;
 	char *rd;
-
+        char *elf_addr;
 	/* first try ext2 file system format */
 	sprintf(buf, "load /dev/fs/ext2@usb0/vmlinuxboot");
 	ret = do_cmd(buf);
@@ -172,8 +181,9 @@ void cmd_usbinstall(void)
 	}
 	if (ret != 0)
 		return;
- flag = judge_kernel_version(elf_addr, myversion);
-
+      elf_addr = (char *)elf_address;
+      flag = judge_kernel_version(elf_addr);
+        //flag = 1;
         if(flag == 1)
 {
         rd= getenv("rdinit");
