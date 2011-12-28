@@ -3700,7 +3700,6 @@ ddr2_leveled_mark:
     .align  12
 #else
 #ifdef FIX_DDR_PARAM
-//#include "loongson3A3_ddr_param.fix.S"
-#include "loongson3A3_ddr_param.fix.S.UDIMM-2G"
+#include "loongson3A3_ddr_param.fix.S"
 #endif
 #endif

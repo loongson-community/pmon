@@ -565,7 +565,7 @@ LEAF(PROBE_DIMM)
 
 #if 0
 //probe SDRAM type, if SDRAM type error, repeat t5 times.----seems no benefit
-    dli     t5, 3   //max probing times(t5)
+    dli     t5, 1   //max probing times(t5)
 1:
     daddiu  t5, t5, -1
 #endif
