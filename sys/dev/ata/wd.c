@@ -174,7 +174,7 @@ struct wd_softc {
 #ifdef INTERFACE_3A780E
       unsigned long sc_capacity; /* disk size Lc modify */
 #else
-      int sc_capacity;
+      unsigned long sc_capacity;
 #endif
 
 	int cyl; /* actual drive parameters */
@@ -392,6 +392,10 @@ wdattach(parent, self, aux)
 		wd->sc_capacity =
 		    (wd->sc_params.atap_capacity[1] << 16) |
 		    wd->sc_params.atap_capacity[0];
+		
+		if(wd->sc_capacity >= 0xFFFFFFF)
+			wd->drvp->drive_flags |= DRIVE_LBA48;
+		
 		printf(" LBA, %dMB, %d cyl, %d head, %d sec, %d sectors\n",
 		    wd->sc_capacity / (1048576 / DEV_BSIZE),
 		    wd->sc_params.atap_cylinders,
@@ -629,7 +633,11 @@ __wdstart(wd, bp)
 	 * the sector number of the problem, and will eventually allow the
 	 * transfer to succeed.
 	 */
+#ifdef IDE_DMA
 	if (wd->sc_multi == 1 || wd->retries >= WDIORETRIES_SINGLE)
+#else
+	if (wd->sc_multi != 1 || wd->retries >= WDIORETRIES_SINGLE)
+#endif
 		wd->sc_wdc_bio.flags = ATA_SINGLE | ATA_POLL;
 	else
 		wd->sc_wdc_bio.flags = ATA_POLL;

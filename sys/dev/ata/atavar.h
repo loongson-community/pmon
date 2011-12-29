@@ -55,6 +55,7 @@ struct ata_drive_datas {
 #define DRIVE_DMAERR	0x0100 /* Udma transfer had crc error, don't try DMA */
 #define DRIVE_DSCBA	0x0200 /* DSC in buffer availability mode */
 #define DRIVE_DSCWAIT	0x0400 /* In wait for DSC to be asserted */
+#define DRIVE_LBA48		0x8000 /* for LBA48 */
 
     /*
      * Current setting of drive's PIO, DMA and UDMA modes.

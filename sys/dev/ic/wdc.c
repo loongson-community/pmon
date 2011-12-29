@@ -1071,7 +1071,7 @@ wdc_probe_caps(drvp, params)
 	struct wdc_softc *wdc = chp->wdc;
 	int i, printed;
 	int cf_flags = drvp->cf_flags;
-
+	
 	if ((wdc->cap & (WDC_CAPABILITY_DATA16 | WDC_CAPABILITY_DATA32)) ==
 	    (WDC_CAPABILITY_DATA16 | WDC_CAPABILITY_DATA32)) {
 		struct ataparams params2;

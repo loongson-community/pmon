@@ -81,8 +81,10 @@
 #define WDCC_NOP	0x00	/* NOP - Always fail with "aborted command" */
 #define	WDCC_RECAL	0x10	/* disk restore code -- resets cntlr */
 
-#define	WDCC_READ	0x29	/* disk read code */
-#define	WDCC_WRITE	0x39	/* disk write code */
+#define	WDCC_READ	0x20	/* disk read code */
+#define	WDCC_READ_EXT	0x24	/* disk read code */
+#define	WDCC_WRITE	0x30	/* disk write code */
+#define	WDCC_WRITE_EXT	0x34	/* disk write code */
 #define	 WDCC__LONG	 0x02	 /* modifier -- access ecc bytes */
 #define	 WDCC__NORETRY	 0x01	 /* modifier -- no retrys */
 
@@ -94,8 +96,10 @@
 #define	WDCC_WRITEMULTI	0x39	//      0xc5	/* write multiple */
 #define	WDCC_SETMULTI	0xc6	/* set multiple mode */
 
-#define	WDCC_READDMA	0xc8	/* read with DMA */
-#define	WDCC_WRITEDMA	0xca	/* write with DMA */
+#define	WDCC_READDMA		0xc8	/* read with DMA */
+#define	WDCC_READDMA_EXT	0x25	/* read with DMA */
+#define	WDCC_WRITEDMA		0xca	/* write with DMA */
+#define	WDCC_WRITEDMA_EXT	0x35	/* write with DMA */
 
 #define	WDCC_ACKMC	0xdb	/* acknowledge media change */
 #define	WDCC_LOCK	0xde	/* lock drawer */
