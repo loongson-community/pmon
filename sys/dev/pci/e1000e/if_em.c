@@ -908,7 +908,12 @@ int cmd_setmac_em0(int ac, char *av[])
                         else
                                 printf(":");
                 }
+#ifdef	 SETMAC_3ASERVER
+                printf("Use \"setmac_em0/em1 <mac> \" to set mac address\n");
+#else
                 printf("Use \"setmac <mac> \" to set mac address\n");
+#endif
+
                 return 0;
         }
         for (i = 0; i < 3; i++) {
