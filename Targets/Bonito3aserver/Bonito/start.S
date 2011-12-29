@@ -1200,6 +1200,19 @@ gs_2f_v3_ddr2_cfg:
 #include "loongson3_fixup.S"
     WatchDog_Close;
 
+//begin :Beep on -> delay -> Beep off
+       bal     beep_on
+       nop
+       li      a0,0x1000
+       1:
+       addiu   a0,-1
+       nop
+       bnez    a0,1b
+       nop
+       bal     beep_off
+       nop
+//end
+
 ##########################################
 //let other cores going
 #ifdef NODE1_BOOT
@@ -2272,6 +2285,28 @@ LEAF(tgt_putchar)
     nop	
 END(tgt_putchar)
 #endif
+
+		LEAF(beep_on)
+		nop
+		dli	t1,0x90000cfdfe00a080
+		lbu	t0,0(t1)
+		or	t0,0x04
+		sb	t0,0(t1)
+		nop
+		jr	ra
+		nop
+		END(beep_on)
+		LEAF(beep_off)
+		nop
+		dli	t1,0x90000cfdfe00a080
+		lbu	t0,0(t1)
+		and	t0,0xfd
+		sb	t0,0(t1)
+		nop
+		jr	ra
+		nop
+		END(beep_off)
+
 /* baud rate definitions, matching include/termios.h */
 #define B0      0
 #define B50     50      
