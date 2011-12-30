@@ -80,11 +80,12 @@ char            line[LINESZ + 1];	/* input line */
 struct termio	clntterm;	/* client terminal mode */
 struct termio	consterm;	/* console terminal mode */
 register_t	initial_sr;
-unsigned long long             memorysize;
-unsigned long long             memorysize_high;
-unsigned long long             memorysize_n1;
-unsigned long long             memorysize_n2;
-unsigned long long             memorysize_n3;
+unsigned long long             memorysize = 0;
+unsigned long long             memorysize_high = 0;
+unsigned long long             memorysize_high_n1 = 0;
+unsigned long long             memorysize_high_n2 = 0;
+unsigned long long             memorysize_high_n3 = 0;
+unsigned long long	       memorysize_total = 0;
 char            prnbuf[LINESZ + 8];	/* commonly used print buffer */
 
 int             repeating_cmd;
@@ -837,9 +838,15 @@ dbginit (char *adr)
 	fp[0] = '.';
 	printf (" / Bus @ %s MHz\n", fs);
 
-	printf ("Memory size %3d MB (%3d MB Low memory, %3d MB High memory) .\n", (memsize+memorysize_high)>>20,
-		(memsize>>20), (memorysize_high>>20));
-
+	//printf ("Memory size %3d MB (%3d MB Low memory, %3d MB High memory) .\n", (memsize+memorysize_high)>>20,(memsize>>20), (memorysize_high>>20));
+	memorysize_total = ((memsize + memorysize_high) >> 20);  
+#ifdef  MULTI_CHIP
+	memorysize_total = ((memsize + memorysize_high + memorysize_high_n1 + 256) >> 20);  
+#endif
+#ifdef DUAL_3B
+	memorysize_total = ((memsize + memorysize_high + memorysize_high_n1 + 256 + memorysize_high_n2 + 256 + memorysize_high_n3 + 256) >> 20);  
+#endif
+	printf ("Memory size %3d MB .\n", memorysize_total);
 	tgt_memprint();
 #if defined(SMP)
 	tgt_smpstartup();

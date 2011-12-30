@@ -373,9 +373,9 @@ unsigned long _filebase;
 
 extern unsigned long long  memorysize;
 extern unsigned long long  memorysize_high;
-extern unsigned long long  memorysize_n1;
-extern unsigned long long  memorysize_n2;
-extern unsigned long long  memorysize_n3;
+extern unsigned long long  memorysize_high_n1;
+extern unsigned long long  memorysize_high_n2;
+extern unsigned long long  memorysize_high_n3;
 
 extern char MipsException[], MipsExceptionEnd[];
 
@@ -433,20 +433,20 @@ initmips(unsigned int raw_memsz)
     memsz = raw_memsz & 0xff00;
     memsz = memsz >> 8;
     memsz = memsz << 29;
-    memorysize_n1 = memsz;
-    tgt_printf("memorysize_n1 0x%llx\n", memorysize_n1);
+    memorysize_high_n1 = (memsz - (256 << 20));
+    tgt_printf("memorysize_high_n1 0x%llx\n", memorysize_high_n1);
 #endif
 #ifdef DUAL_3B
     memsz = raw_memsz & 0xff0000;
     memsz = memsz >> 16;
     memsz = memsz << 29;
-    memorysize_n2 = memsz;
+    memorysize_high_n2 = (memsz - (256 << 20));
     memsz = raw_memsz & 0xff000000;
     memsz = memsz >> 24;
     memsz = memsz << 29;
-    memorysize_n3 = memsz;
-    tgt_printf("memorysize_n2 0x%llx\n", memorysize_n2);
-    tgt_printf("memorysize_n3 0x%llx\n", memorysize_n3);
+    memorysize_high_n3 = (memsz - (256 << 20));
+    tgt_printf("memorysize_high_n2 0x%llx\n", memorysize_high_n2);
+    tgt_printf("memorysize_high_n3 0x%llx\n", memorysize_high_n3);
 #endif
 
 #if 0 /* whd : Disable gpu controller of MCP68 */
@@ -1989,14 +1989,14 @@ tgt_mapenv(int (*func) __P((char *, char *)))
 		sprintf(env, "%d", memorysize_high / (1024 * 1024));
 		(*func)("highmemsize", env);
 
-		sprintf(env, "%d", memorysize_n1 / (1024 * 1024));
-		(*func)("memorysize_n1", env);
+		sprintf(env, "%d", memorysize_high_n1 / (1024 * 1024));
+		(*func)("memorysize_high_n1", env);
 
-		sprintf(env, "%d", memorysize_n2 / (1024 * 1024));
-		(*func)("memorysize_n2", env);
+		sprintf(env, "%d", memorysize_high_n2 / (1024 * 1024));
+		(*func)("memorysize_high_n2", env);
 
-		sprintf(env, "%d", memorysize_n3 / (1024 * 1024));
-		(*func)("memorysize_n3", env);
+		sprintf(env, "%d", memorysize_high_n3 / (1024 * 1024));
+		(*func)("memorysize_high_n3", env);
 
 		sprintf(env, "%d", md_pipefreq);
 		(*func)("cpuclock", env);

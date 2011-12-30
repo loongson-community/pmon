@@ -83,7 +83,7 @@ struct efi_memory_map_loongson * init_memory_map()
   //strcpy(emap->map[1].mem_name, "node0_high");
   emap->map[3].mem_type = 2;
   emap->map[3].mem_start = 0x90000000;
-  emap->map[3].mem_size = atoi(getenv("highmemsize"));
+  emap->map[3].mem_size = atoi(getenv("memorysize_high_n1"));
 #endif
 #endif
 
