@@ -69,6 +69,7 @@ tgt_printf (const char *fmt, ...)
 #include <string.h>
 #include <time.h>
 #include <stdlib.h>
+#include <include/file.h>
 
 #include <dev/ic/mc146818reg.h>
 #include <linux/io.h>
@@ -160,6 +161,18 @@ static inline unsigned char CMOS_READ(unsigned char addr);
 static inline void CMOS_WRITE(unsigned char val, unsigned char addr);
 static void init_legacy_rtc(void);
 
+#ifdef INTERFACE_3A780E
+#define REV_ROW_LINE 560
+#define INF_ROW_LINE 576
+
+int afxIsReturnToPmon = 0;
+
+  struct FackTermDev
+  {
+      int dev;
+  };
+
+#endif
 #ifdef USE_GPIO_SERIAL
 //modified by zhanghualiang 
 //this function is for parallel port to send and received  data
@@ -602,6 +615,14 @@ extern unsigned long long uma_memory_size;
 
 void tgt_devconfig()
 {
+	int ic, len;
+        int count = 0;
+        char key;
+        char copyright[9] ="REV_";
+        char bootup[] = "Booting...";
+        char *tmp_copy = NULL;
+        char tmp_date[11];
+       	char * s;
 #if NMOD_VGACON > 0
     int rc=1;
 #if NMOD_FRAMEBUFFER > 0 
@@ -718,7 +739,107 @@ void tgt_devconfig()
 	}
 	//	psaux_init();
 #endif
-	bios_available = 1;
+#ifdef INTERFACE_3A780E 
+
+	vga_available = 1;
+       	kbd_available=1;
+        bios_available = 1; //support usb_kbd in bios
+// Ask user whether to set bios menu
+        printf("Press <Del> to set BIOS,waiting for 3 seconds here..... \n");
+
+        get_update(tmp_date);
+        for (ic = 0; ic < 1; ic++){
+        	video_putchar1(2 + (len+2)*8+ic*8, 560, tmp_date[ic]);
+         }
+
+         video_set_color(0xf);
+
+//         init_win_device();
+
+         vga_available = 0;          //lwg close printf output
+
+	{
+       	struct FackTermDev *devp;
+        int fd = 0;
+        DevEntry* p;
+        Msg msg;   //==char msg
+        int sign = 0;
+
+        //get input without wait ===========   add by oldtai
+        fd = ((FILE*)stdin)->fd;
+        devp = (struct FackTermDev *)(_file[fd].data);
+        p = &DevTable[devp->dev];
+
+        for (count = 0;count < 10;count++)
+        {
+          	//get input without wait
+                scandevs();
+
+                while(!tgt_smplock());
+
+                /* 'DEL' to BIOS Interface */
+                if(p->rxq->count >= 3){
+                  if ((p->rxq->dat[p->rxq->first + p->rxq->count-3] == 0x1b)
+                          && (p->rxq->dat[p->rxq->first + p->rxq->count-2] == '[')
+                          && (p->rxq->dat[p->rxq->first + p->rxq->count-1] == 'G')) {
+                        sign = 1;
+                        p->rxq->count -= 3;
+                  }
+                  if (sign == 1) {
+                        tgt_smpunlock();
+                        break;
+                  }
+                }
+                tgt_smpunlock();
+
+                delay1(30);
+      	
+  	}
+
+        vga_available = 1;
+        video_set_color(0xf);
+
+        for (ic = 0; ic < 64; ic++)
+        {
+         	video_putchar1(2 + ic*8, REV_ROW_LINE, ' ');
+                video_putchar1(2 + ic*8, INF_ROW_LINE, ' ');
+        }
+
+        vga_available = 0;
+
+        if (count >= 10)
+        	goto run;
+        else
+                goto bios;
+
+  bios:
+
+         if(!(s = getenv("SHOW_DISPLAY")) || s[0] !='2')
+          {
+              char buf[10];
+              video_set_color(0xf);
+              video_set_color(0x8);
+              tty_flush();
+                          vga_available = 1;
+              do_cmd("main");
+              if (!afxIsReturnToPmon)
+              {
+                 vga_available = 0;
+              }
+          }
+
+run:
+        vga_available = 1;
+        bios_available = 0;//support usb_kbd in bios
+       	kbd_available = 1;
+
+        len = strlen(bootup);
+        for (ic = 0; ic < len; ic++)
+        {
+         	video_putchar1(2 + ic*8, INF_ROW_LINE,bootup[ic]);
+        }
+	}
+#endif
 	printf("devconfig done.\n");
 
 	sb700_interrupt_fixup();
@@ -2283,7 +2404,68 @@ tgt_mapenv(int (*func) __P((char *, char *)))
 #include "i2c-via.c"
 #endif
 
+char *tran_month(char *c, char *i)
+ {
+     switch (*c++){
+     case  'J':
+         if(*c++ == 'a')     /* Jan */
+             i = "01";
+         else if(*c++ == 'n')    /* June */
+             i = "06";
+         else                /* July */
+             i = "07";
+         break;
+     case  'F':              /* Feb */
+         i = "02";
+         break;
+     case  'M':
+         c++;
+         if(*c++ == 'r')     /* Mar */
+             i = "03";
+         else                /* May */
+             i = "05";
+         break;
+     case  'A':
+         if(*c++ == 'p')     /* Apr */
+             i = "04";
+         else                /* Aug */
+             i = "08";
+         break;
+         case  'S':              /* Sept */
+         i = "09";
+         break;
+     case  'O':              /* Oct */
+         i = "10";
+         break;
+     case  'N':              /* Nov */
+         i = "11";
+         break;
+     case  'D':              /* Dec */
+         i = "12";
+         break;
+     default :
+         i = NULL;
+     }
 
+     return i;
+ }
+
+int get_update(char *p)
+ {
+     int i=0;
+     char *t,*mp,m[3];
+
+     t  = strstr(vers, ":");
+     strncpy(p, t+26, 4);     /* year */
+     p[4] = '-';
+     mp = tran_month(t+6, m);    /* month */
+     strncpy(p+5,mp,2);
+     p[7]='-';
+     strncpy(p+8, t+10, 2);   /* day */
+     p[10] = '\0';
+
+     return 0;
+ }
 
 /********************************************
 *     PCI/PCIE device interrupt talbe      **
