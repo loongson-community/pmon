@@ -128,10 +128,34 @@ get_line(char *line, int how)
 static int load_menu_list()
 {
         char* rootdev = NULL;
+	char *rootdev_USB = NULL;
+	char *rootdev_CD = NULL;
         char* path = NULL;
+	char *path_USB = NULL;
+	char *path_CD = NULL;
 
 
                 show_menu=1;
+                if (path_USB == NULL)
+                {
+                        path_USB = malloc(512);
+                        if (path_USB == NULL)
+                        {
+                                return 0;
+                        }
+                }
+                memset(path_USB, 0, 512);
+
+                if (path_CD == NULL)
+                {
+                        path_CD = malloc(512);
+                        if (path_CD == NULL)
+                        {
+                                return 0;
+                        }
+                }
+                memset(path_CD, 0, 512);
+
                 if (path == NULL)
                 {
                         path = malloc(512);
@@ -140,33 +164,44 @@ static int load_menu_list()
                                 return 0;
                         }
                 }
-
                 memset(path, 0, 512);
+
                 rootdev = getenv("bootdev");
                 if (rootdev == NULL)
                 {
                         rootdev = "/dev/fs/ext2@wd0";
                 }
 
-                sprintf(path, "%s/boot/boot.cfg", rootdev);
-                if (check_config(path) == 1)
+		rootdev_USB = "/dev/fs/ext2@usb0";
+                sprintf(path_USB, "%s/boot/boot.cfg", rootdev_USB);
+		path_USB = "/dev/fs/ext2@usb0/boot/boot.cfg";
+		rootdev_CD = "/dev/fs/iso9660@cd0";	
+                sprintf(path_CD, "%s/boot/boot.cfg", rootdev_CD);
+
+                if (check_config(path_USB) == 1)
                 {
-                        sprintf(path, "bl -d ide %s/boot/boot.cfg", rootdev);
-                        if (do_cmd(path) == 0)
+                        sprintf(path_USB, "bl -d ide %s/boot/boot.cfg", rootdev_USB);
+                        if (do_cmd(path_USB) == 0)
                         {
-                                show_menu = 0;
-                                //                                      video_cls();
-                                free(path);
-                                path = NULL;
-                                return 1;
+				free(path_USB);
+                                path_USB = NULL;
                         }
                 }
-                else
+		else if(check_config(path_CD) == 1)
                 {
-                        sprintf(path, "/dev/fs/ext2@wd0/boot/boot.cfg", rootdev);
+                        sprintf(path_CD, "bl -d ide %s/boot/boot.cfg", rootdev_CD);
+                        if (do_cmd(path_CD) == 0)
+                        {
+				free(path_CD);
+                                path_CD = NULL;
+                        }
+                }
+		else
+                {
+                        sprintf(path, "%s/boot/boot.cfg", rootdev);
                         if (check_config(path) == 1)
                         {
-                                sprintf(path, "bl -d ide /dev/fs/ext2@wd0/boot/boot.cfg", rootdev);
+                                sprintf(path, "bl -d ide %s/boot/boot.cfg", rootdev);
                                 if (do_cmd(path) == 0)
                                 {
                                         show_menu = 0;
