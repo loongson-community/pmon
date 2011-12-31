@@ -124,18 +124,19 @@ get_line(char *line, int how)
 }
 #endif
 
-
 static int load_menu_list()
 {
         char* rootdev = NULL;
 	char *rootdev_USB = NULL;
 	char *rootdev_CD = NULL;
+	char *rootdev_usb0 = NULL;
         char* path = NULL;
 	char *path_USB = NULL;
 	char *path_CD = NULL;
+	char *path_usb0 = NULL;
 
+	show_menu=1;
 
-                show_menu=1;
                 if (path_USB == NULL)
                 {
                         path_USB = malloc(512);
@@ -155,6 +156,16 @@ static int load_menu_list()
                         }
                 }
                 memset(path_CD, 0, 512);
+
+                if (path_usb0 == NULL)
+                {
+                        path_usb0 = malloc(512);
+                        if (path_usb0 == NULL)
+                        {
+                                return 0;
+                        }
+                }
+                memset(path_usb0, 0, 512);
 
                 if (path == NULL)
                 {
@@ -177,6 +188,8 @@ static int load_menu_list()
 		path_USB = "/dev/fs/ext2@usb0/boot/boot.cfg";
 		rootdev_CD = "/dev/fs/iso9660@cd0";	
                 sprintf(path_CD, "%s/boot/boot.cfg", rootdev_CD);
+		rootdev_usb0 = "/dev/fs/iso9660@usb0";	
+                sprintf(path_usb0, "%s/boot/boot.cfg", rootdev_usb0);
 
                 if (check_config(path_USB) == 1)
                 {
@@ -185,6 +198,15 @@ static int load_menu_list()
                         {
 				free(path_USB);
                                 path_USB = NULL;
+                        }
+                }
+		else if(check_config(path_usb0) == 1)
+                {
+                        sprintf(path_usb0, "bl -d ide %s/boot/boot.cfg", rootdev_usb0);
+                        if (do_cmd(path_usb0) == 0)
+                        {
+				free(path_usb0);
+                                path_usb0 = NULL;
                         }
                 }
 		else if(check_config(path_CD) == 1)
