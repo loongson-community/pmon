@@ -122,7 +122,6 @@ option		NOPCINAMES		# Save some space for x86emu
 #select	    vt82c686        #via686a/b code
 #option      VGA_BASE=0xb0000000
 
-option		SETMAC_3ASERVER		#setmac help for 3aserver
 #
 # Functional options.
 #
