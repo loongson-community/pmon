@@ -908,7 +908,7 @@ int cmd_setmac_em0(int ac, char *av[])
                         else
                                 printf(":");
                 }
-                printf("Use \"setmac <mac> \" to set mac address\n");
+//                printf("Use \"setmac <mac> \" to set mac address\n");
                 return 0;
         }
         for (i = 0; i < 3; i++) {
@@ -1043,8 +1043,8 @@ static const Optdesc netdmp_opts[] =
 static const Cmd Cmds[] =
 {
         {"em"},
-        {"setmac_em0", "", NULL,
-                    "Set mac address into E1000 eeprom", cmd_setmac_em0, 1, 5, 0},
+//        {"setmac_em0", "", NULL,
+//                    "Set mac address into E1000 eeprom", cmd_setmac_em0, 1, 5, 0},
 
         {"readrom_em0", "", NULL,
                         "dump E1000 eprom content", cmd_reprom_em0, 1, 2, 0},
