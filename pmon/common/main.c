@@ -563,19 +563,6 @@ if(!run)
 	return(0);
 }
 
-char bootp_c_ip_string[15];
-char bootp_s_ip_string[15];
-char bootp_file[129];
-char bootp_opt[129];
-
-char dhcp_netmask[16];
-char dhcp_c_ip_string[16];
-char dhcp_s_ip_string[16];
-char dhcp_sname[65];
-char dhcp_file[129];
-char dhcp_host_name[309];
-char dhcp_root_path[309];
-
 #ifdef AUTOLOAD
 static int autoload(char *s)
 {
@@ -613,19 +600,6 @@ static int autoload(char *s)
 		putchar ('\n');
 
 		if(cnt == 0) {
-#define IDHCP 1
-#define IBOOTP 0
-#ifdef IDHCP
-oh_yeah_one_more:
-		strcpy(buf, "ifaddr rte0 lwdhcp");
-		printf("========> %s\n",buf);
-                ret = do_cmd(buf);
-#elif IBOOTP
-		strcpy(buf, "ifaddr rte0 bootp");
-		printf("========> %s\n",buf);
-		delay(500000);
-		do_cmd(buf);
-#endif
 	        if(getenv("autocmd"))
 			{
 			strcpy(buf,getenv("autocmd"));

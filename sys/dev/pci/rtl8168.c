@@ -2204,7 +2204,7 @@ static int rtl8168_open(struct rtl8168_private *tp)
 	rtl8168_hw_start(tp);
     
 	rtl8168_check_link_status(tp);
-    tp->arpcom.ac_if.if_flags |=  IFF_RUNNING | IFF_BROADCAST | IFF_SIMPLEX;
+    tp->arpcom.ac_if.if_flags |=  IFF_RUNNING;
 
     status = RTL_R16(tp, IntrStatus);
 
