@@ -256,6 +256,8 @@ ifconfig (ifname, ipaddr)
 	}
 
 	close (s);
+
+delay1(2500);
 	return (1);
 }
 
