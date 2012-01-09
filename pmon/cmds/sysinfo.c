@@ -28,7 +28,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include "setup.h"
-
+extern unsigned long long memorysize_total;
 extern void delay1(int);
 extern void (*__cprint)(int y, int x,int width,char color, const char *text);
 static int pause()
@@ -50,6 +50,8 @@ static int cpuinfo(){
 	int	memsize, freq;
 	char	fs[10], *fp;
 	char	*s;
+	int clk,clk30,clk4;
+        int memfreq;
 printf("cpu info:\n");
 	freq = tgt_pipefreq ();
 	sprintf(fs, "%d", freq);
@@ -59,8 +61,20 @@ printf("cpu info:\n");
 	fp[1] = fp[0];
 	fp[0] = '.';
 	printf (" %s MHz", fs);
-
-	freq = tgt_cpufreq ();
+      
+ 
+	clk = get_mem_clk();
+	if(clk != 0x1f)
+	{ 
+         clk30 = clk & 0x0f;
+	 clk4 = (clk >> 4) & 0x01;
+	 memfreq = 33*(clk30 + 30)/(clk4 + 3);/*to calculate memory frequency.we can find this function in loongson 3A manual,memclk*(clksel[8:5]+30)/(clksel[9]+3)*/
+	 printf("/ Bus @ %d MHz\n",memfreq);
+	}
+	else
+	 printf("/ Bus @ 33 MHz\n");
+	
+/*	freq = tgt_cpufreq ();
 	sprintf(fs, "%d", freq);
 	fp = fs + strlen(fs) - 6;
 	fp[3] = '\0';
@@ -68,14 +82,14 @@ printf("cpu info:\n");
 	fp[1] = fp[0];
 	fp[0] = '.';
 	printf (" / Bus @ %s MHz\n", fs);
-
+*/
 	//tgt_memprint();
 }
 
 
 static int meminfo(){
 printf("mem info:\n");
-	printf ("Memory size 512 MB .\n");
+	printf ("Memory size %3d MB .\n",memorysize_total);
 return 0;
 }
 

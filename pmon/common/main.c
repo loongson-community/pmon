@@ -778,6 +778,7 @@ void
 dbginit (char *adr)
 {
 	unsigned long long	memsize, freq;
+	int	memfreq,clk,clk30,clk4;
 	char	fs[10], *fp;
 	char	*s;
 
@@ -859,8 +860,19 @@ dbginit (char *adr)
 	fp[1] = fp[0];
 	fp[0] = '.';
 	printf (" %s MHz", fs);
+	
 
-	freq = tgt_cpufreq ();
+ 	clk = get_mem_clk();
+        if(clk != 0x1f)
+        {
+         clk30 = clk & 0x0f;
+         clk4 = (clk >> 4) & 0x01;
+         memfreq = 33*(clk30 + 30)/(clk4 + 3);/*to calculate memory frequency.we can find this function in loongson 3A manual,memclk*(clksel[8:5]+30)/(clksel[9]+3)*/
+         printf("/ Bus @ %d MHz\n",memfreq);
+        }
+        else
+         printf("/ Bus @ 33 MHz\n");
+	/*freq = tgt_cpufreq ();
 	sprintf(fs, "%d", freq);
 	fp = fs + strlen(fs) - 6;
 	fp[3] = '\0';
@@ -868,7 +880,7 @@ dbginit (char *adr)
 	fp[1] = fp[0];
 	fp[0] = '.';
 	printf (" / Bus @ %s MHz\n", fs);
-
+	*/
 	//printf ("Memory size %3d MB (%3d MB Low memory, %3d MB High memory) .\n", (memsize+memorysize_high)>>20,(memsize>>20), (memorysize_high>>20));
 	memorysize_total = ((memsize + memorysize_high) >> 20);  
 #ifdef  MULTI_CHIP
