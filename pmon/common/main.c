@@ -56,6 +56,7 @@
 #include <exec.h>
 #include <file.h>
 
+#include <sys/device.h>
 #include "mod_debugger.h"
 #include "mod_symbols.h"
 
@@ -74,6 +75,8 @@ unsigned int show_menu;
 #include "cmd_more.h"		/* Test if more command is selected */
 
 #include "../cmds/bootparam.h"
+
+extern int bios_available;
 
 jmp_buf         jmpb;		/* non-local goto jump buffer */
 char            line[LINESZ + 1];	/* input line */
@@ -127,141 +130,80 @@ get_line(char *line, int how)
 static int load_menu_list()
 {
         char* rootdev = NULL;
-	char *rootdev_USB = NULL;
-	char *rootdev_CD = NULL;
-	char *rootdev_usb0 = NULL;
         char* path = NULL;
-	char *path_USB = NULL;
-	char *path_CD = NULL;
-	char *path_usb0 = NULL;
+	int retid;
+        struct device *dev, *next_dev;
+        char load[256];
+        memset(load, 0, 256);
 
 	show_menu=1;
 
-                if (path_USB == NULL)
-                {
-                        path_USB = malloc(512);
-                        if (path_USB == NULL)
-                        {
-                                return 0;
-                        }
-                }
-                memset(path_USB, 0, 512);
-
-                if (path_CD == NULL)
-                {
-                        path_CD = malloc(512);
-                        if (path_CD == NULL)
-                        {
-                                return 0;
-                        }
-                }
-                memset(path_CD, 0, 512);
-
-                if (path_usb0 == NULL)
-                {
-                        path_usb0 = malloc(512);
-                        if (path_usb0 == NULL)
-                        {
-                                return 0;
-                        }
-                }
-                memset(path_usb0, 0, 512);
-
+        if (path == NULL)
+        {
+        	path = malloc(512);
                 if (path == NULL)
                 {
-                        path = malloc(512);
-                        if (path == NULL)
-                        {
-                                return 0;
-                        }
+                	return 0;
                 }
-                memset(path, 0, 512);
+       	}
+        memset(path, 0, 512);
 
-                rootdev = getenv("bootdev");
-                if (rootdev == NULL)
-                {
-                        rootdev = "/dev/fs/ext2@wd0";
+       	rootdev = getenv("bootdev");
+        if (rootdev == NULL)
+        {
+        	rootdev = "/dev/fs/ext2@wd0";
+       	}
+
+       //try to read boot.cfg from USB disk first
+        for (dev  = TAILQ_FIRST(&alldevs); dev != NULL; dev = next_dev) {
+                next_dev = TAILQ_NEXT(dev, dv_list);
+                if(dev->dv_class < DV_DISK) {
+                        continue;
                 }
 
-		rootdev_USB = "/dev/fs/ext2@usb0";
-                sprintf(path_USB, "%s/boot/boot.cfg", rootdev_USB);
-		path_USB = "/dev/fs/ext2@usb0/boot/boot.cfg";
-		rootdev_CD = "/dev/fs/iso9660@cd0";	
-                sprintf(path_CD, "%s/boot/boot.cfg", rootdev_CD);
-		rootdev_usb0 = "/dev/fs/iso9660@usb0";	
-                sprintf(path_usb0, "%s/boot/boot.cfg", rootdev_usb0);
-
-                if (check_config(path_USB) == 1)
-                {
-                        sprintf(path_USB, "bl -d ide %s/boot/boot.cfg", rootdev_USB);
-                        if (do_cmd(path_USB) == 0)
-                        {
-				free(path_USB);
-                                path_USB = NULL;
+                if (strncmp(dev->dv_xname, "usb", 3) == 0) {
+                        sprintf(load, "bl -d ide /dev/fs/ext2@%s/boot/boot.cfg", dev->dv_xname);
+                        retid = do_cmd(load);
+                        if (retid == 0) {
+                                return 1;
                         }
-                }
-		else if(check_config(path_usb0) == 1)
-                {
-                        sprintf(path_usb0, "bl -d ide %s/boot/boot.cfg", rootdev_usb0);
-                        if (do_cmd(path_usb0) == 0)
-                        {
-				free(path_usb0);
-                                path_usb0 = NULL;
-                        }
-                }
-		else if(check_config(path_CD) == 1)
-                {
-                        sprintf(path_CD, "bl -d ide %s/boot/boot.cfg", rootdev_CD);
-                        if (do_cmd(path_CD) == 0)
-                        {
-				free(path_CD);
-                                path_CD = NULL;
-                        }
-                }
-		else
-                {
-                        sprintf(path, "%s/boot/boot.cfg", rootdev);
-                        if (check_config(path) == 1)
-                        {
-                                sprintf(path, "bl -d ide %s/boot/boot.cfg", rootdev);
-                                if (do_cmd(path) == 0)
-                                {
-                                        show_menu = 0;
-                                        //                                              video_cls();
-                                        free(path);
-                                        path = NULL;
-                                        return 1;
-                                }
-                        }
-                }
-#if 0
-                if( check_ide() == 1 )// GOT IDE
-                {
-                        if( do_cmd ("bl -d ide /dev/fs/ext2@wd0/boot.cfg") ==0 )
-                        {
-                                show_menu=0;
-                                video_cls();
+                        sprintf(load, "bl -d ide /dev/fs/iso9660@%s/boot/boot.cfg", dev->dv_xname);
+                        retid = do_cmd(load);
+                        if (retid == 0) {
                                 return 1;
                         }
                 }
-                else if( check_cdrom () == 1 ) // GOT CDROM
-                {
-                        if( do_cmd ("bl -d cdrom /dev/fs/ext2@wd0/boot.cfg") ==0 )
-                        {
-                                show_menu=0;
-                                video_cls();
+        }
+
+        //try to read boot.cfg from CD-ROM disk second
+        for (dev  = TAILQ_FIRST(&alldevs); dev != NULL; dev = next_dev) {
+                next_dev = TAILQ_NEXT(dev, dv_list);
+                if(dev->dv_class < DV_DISK) {
+                        continue;
+                }
+
+                if (strncmp(dev->dv_xname, "cd", 2) == 0) {
+                        sprintf(load, "bl -d ide /dev/fs/iso9660@%s/boot/boot.cfg", dev->dv_xname);
+                        retid = do_cmd(load);
+                        if (retid == 0) {
                                 return 1;
                         }
                 }
-#endif
-                free(path);
-                path = NULL;
-                //                      video_cls();
-                show_menu=0;
-                return 0;
-        show_menu=0;
-        return 1;
+        }
 
+        //try to read boot.cfg from sata disk third
+	sprintf(path, "%s/boot/boot.cfg", rootdev);
+       	if (check_config(path) == 1)
+        {
+        	sprintf(path, "bl -d ide %s/boot/boot.cfg", rootdev);
+                if (do_cmd(path) == 0)
+                {
+                   	show_menu = 0;
+                        free(path);
+                        path = NULL;
+                        return 1;
+                }
+        }
 }
 
 int check_user_password()
@@ -452,18 +394,19 @@ main()
 #if NMOD_DEBUGGER > 0
 	rm_bpts();
 #endif
-        
-	md_setsr(NULL, initial_sr);	/* XXX does this belong here? */
-
-	{
-		unsigned char *envstr;
-		
-		if((envstr = getenv("ShowBootMenu")) && (strcmp("no", envstr) == 0))
-			;
-		else
-			load_menu_list();
-	}
-
+        {
+                unsigned char *envstr;
+                if((envstr = getenv("ShowBootMenu")) && (strcmp("no", envstr) == 0))
+                {
+                        ;
+                }
+                else
+                {
+                        bios_available = 1;//support usb_kbd in bios
+                        load_menu_list();
+                        bios_available = 0;
+                }
+        }
 {
 static int run=0;
 char *s;
