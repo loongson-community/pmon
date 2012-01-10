@@ -64,8 +64,14 @@ struct disk {
 	TAILQ_ENTRY(disk) dk_link;	/* link in global disklist */
 	struct lock     dk_lock;        /* disk lock */
 	char		*dk_name;	/* disk name */
+	struct device	*dk_device; /* disk device structure. *///wan+
+	dev_t	dk_devno;		/* disk device number. *///wan+
 	int             dk_flags;       /* disk flags */
+
 #define DKF_CONSTRUCTED  0x0001
+#define DKF_OPENED       0x0002 /*wan+ */
+#define DKF_NOLABELREAD  0x0004 /*wan+ */
+
 	int		dk_bopenmask;	/* block devices open */
 	int		dk_copenmask;	/* character devices open */
 	int		dk_openmask;	/* composite (bopen|copen) */
@@ -78,6 +84,10 @@ struct disk {
 	 * on certain types of disks.
 	 */
 	int		dk_busy;	/* busy counter */
+	u_int64_t   dk_rxfer;   /* total number of read transfers *///wan+
+	u_int64_t   dk_wxfer;   /* total number of write transfers *///wan+
+	u_int64_t   dk_rbytes;  /* total bytes read *///wan+
+	u_int64_t   dk_wbytes;  /* total bytes written *///wan+
 	u_int64_t	dk_xfer;	/* total number of transfers */
 	u_int64_t	dk_seek;	/* total independent seek operations */
 	u_int64_t	dk_bytes;	/* total bytes transfered */
@@ -118,6 +128,10 @@ struct dkdriver {
 #define	DK_OPEN		4		/* label read, drive open */
 #define	DK_OPENRAW	5		/* open without label */
 
+/* Disk map flags. */
+#define DM_OPENPART 0x1     /* Open raw partition. wan+ */
+#define DM_OPENBLCK 0x2     /* Open block device. wan+ */
+
 #ifdef DISKSORT_STATS
 /*
  * Stats from disksort().
@@ -139,14 +153,17 @@ struct disksort_stats {
 TAILQ_HEAD(disklist_head, disk);	/* the disklist is a TAILQ */
 
 #ifdef _KERNEL
+extern	struct disklist_head disklist;	/* list of disks attached to system wan+ */
 extern	int disk_count;			/* number of disks in global disklist */
 
 void	disk_init __P((void));
 int     disk_construct __P((struct disk *, char *));
-void	disk_attach __P((struct disk *));
+//void	disk_attach __P((struct disk *));//wan-
+void	disk_attach(struct device *, struct disk *);//wan^
 void	disk_detach __P((struct disk *));
 void	disk_busy __P((struct disk *));
-void	disk_unbusy __P((struct disk *, long));
+//void	disk_unbusy __P((struct disk *, long));//wan-
+void    disk_unbusy(struct disk *, long, int);//wan^
 void	disk_resetstat __P((struct disk *));
 struct	disk *disk_find __P((char *));
 
@@ -156,3 +173,24 @@ void    disk_unlock __P((struct disk *));
 struct device;
 void	dk_establish __P((struct disk *, struct device *));
 #endif
+//wan+ 
+#if 0
+extern  struct disklist_head disklist;__/* list of disks attached to system */
+extern  int disk_count;_________/* number of disks in global disklist */
+extern  int disk_change;________/* disk attached/detached */
+
+void	disk_init(void);
+int     disk_construct(struct disk *, char *);
+void	disk_attach(struct device *, struct disk *);
+void    disk_detach(struct disk *);
+void    disk_busy(struct disk *);
+void    disk_unbusy(struct disk *, long, int);
+
+int     disk_lock(struct disk *);
+void    disk_unlock(struct disk *);
+struct device *disk_lookup(struct cfdriver *, int);
+
+int	disk_map(char *, char *, int, int);
+#endif
+//wan+ 
+

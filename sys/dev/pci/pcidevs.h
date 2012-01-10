@@ -952,6 +952,34 @@
 #define	PCI_PRODUCT_DELTA_8139	0x1360		/* 8139 */
 #define	PCI_PRODUCT_DELTA_RHINEII	0x1320		/* RhineII */
 
+//wan+ if
+/* Dell Computer products */
+#define PCI_PRODUCT_DELL_PERC_2SI   0x0001      /* PERC 2/Si */
+#define PCI_PRODUCT_DELL_PERC_3DI   0x0002      /* PERC 3/Di */
+#define PCI_PRODUCT_DELL_PERC_3SI   0x0003      /* PERC 3/Si */
+#define PCI_PRODUCT_DELL_PERC_3SI_2 0x0004      /* PERC 3/Si */
+#define PCI_PRODUCT_DELL_DRAC_3_ADDIN   0x0007      /* DRAC 3 Add-in */
+#define PCI_PRODUCT_DELL_DRAC_3_VUART   0x0008      /* DRAC 3 Virtual UART */
+#define PCI_PRODUCT_DELL_DRAC_3_EMBD    0x0009      /* DRAC 3 Embedded/Optional */
+#define PCI_PRODUCT_DELL_PERC_3DI_3     0x000a      /* PERC 3/Di */
+#define PCI_PRODUCT_DELL_DRAC_4_EMBD    0x000c      /* DRAC 4 Embedded/Optional */
+#define PCI_PRODUCT_DELL_DRAC_3_OPT 0x000d      /* DRAC 3 Optional */
+#define PCI_PRODUCT_DELL_PERC_4DI   0x000e      /* PERC 4/Di i960 */
+#define PCI_PRODUCT_DELL_PERC_4DI_2 0x000f      /* PERC 4/Di Verde */
+#define PCI_PRODUCT_DELL_DRAC_4     0x0011      /* DRAC 4 */
+#define PCI_PRODUCT_DELL_DRAC_4_VUART   0x0012      /* DRAC 4 Virtual UART */
+#define PCI_PRODUCT_DELL_PERC_4EDI      0x0013      /* PERC 4e/Di */
+#define PCI_PRODUCT_DELL_DRAC_4_SMIC    0x0014      /* DRAC 4 SMIC */
+#define PCI_PRODUCT_DELL_PERC_3DI_2_SUB 0x00cf      /* PERC 3/Di */
+#define PCI_PRODUCT_DELL_PERC_3SI_2_SUB 0x00d0      /* PERC 3/Si */
+#define PCI_PRODUCT_DELL_PERC_3DI_SUB2  0x00d1      /* PERC 3/Di */
+#define PCI_PRODUCT_DELL_PERC_3DI_SUB3  0x00d9      /* PERC 3/Di */
+#define PCI_PRODUCT_DELL_PERC_3DI_3_SUB 0x0106      /* PERC 3/Di */
+#define PCI_PRODUCT_DELL_PERC_3DI_3_SUB2    0x011b      /* PERC 3/Di */
+#define PCI_PRODUCT_DELL_PERC_3DI_3_SUB3    0x0121      /* PERC 3/Di */
+#define PCI_PRODUCT_DELL_PERC5              0x0015      /* PERC 5 wan+*/
+//wan+ end
+
 /* Diamond products */
 
 /* Distributed Processing Technology products */
@@ -1233,6 +1261,32 @@
 #define	PCI_PRODUCT_SYMBIOS_1010	0x0020		/* 53c1010 */
 #define	PCI_PRODUCT_SYMBIOS_1010R	0x0021		/* 53c1010R */
 #define	PCI_PRODUCT_SYMBIOS_875J	0x008f		/* 53c875J */
+//wan+ if
+#define PCI_PRODUCT_SYMBIOS_SAS1064     0x0050      /* SAS1064 */
+#define PCI_PRODUCT_SYMBIOS_SAS1068     0x0054      /* SAS1068 */
+#define PCI_PRODUCT_SYMBIOS_SAS1068_2   0x0055      /* SAS1068 */
+#define PCI_PRODUCT_SYMBIOS_SAS1064E    0x0056      /* SAS1064E */
+#define PCI_PRODUCT_SYMBIOS_SAS1064E_2  0x0057      /* SAS1064E */
+#define PCI_PRODUCT_SYMBIOS_SAS1068E    0x0058      /* SAS1068E */
+#define PCI_PRODUCT_SYMBIOS_SAS1068E_2  0x0059      /* SAS1068E */
+#define PCI_PRODUCT_SYMBIOS_SAS1066E    0x005a      /* SAS1066E */
+#define PCI_PRODUCT_SYMBIOS_SAS1064A    0x005c      /* SAS1064A */
+#define PCI_PRODUCT_SYMBIOS_SAS1066     0x005e      /* SAS1066 */
+#define PCI_PRODUCT_SYMBIOS_SAS1078     0x0060      /* SAS1078 wan+*/
+#define PCI_PRODUCT_SYMBIOS_SAS1078_PCIE 0x0062     /* SAS1078 */
+#define PCI_PRODUCT_SYMBIOS_SAS1078DE   0x007c      /* SAS1078DE wan+*/
+#define PCI_PRODUCT_SYMBIOS_875J        0x008f      /* 53c875J */
+#define PCI_PRODUCT_SYMBIOS_MEGARAID_320    0x0407      /* MegaRAID 320 */
+#define PCI_PRODUCT_SYMBIOS_MEGARAID_3202E  0x0408      /* MegaRAID 320-2E */
+#define PCI_PRODUCT_SYMBIOS_MEGARAID_SATA   0x0409      /* MegaRAID SATA 4x/8x */
+#define PCI_PRODUCT_SYMBIOS_MEGARAID_SAS    0x0411      /* MegaRAID SAS 1064R wan+*/
+#define PCI_PRODUCT_SYMBIOS_MEGARAID_VERDE_ZCR  0x0413  /* MegaRAID Verde ZCR wan+*/
+#define PCI_PRODUCT_SYMBIOS_MEGARAID    0x1960      /* MegaRAID */
+#define PCI_PRODUCT_SYMBIOS_SAS2004     0x0070      /* SAS2004 */
+#define PCI_PRODUCT_SYMBIOS_SAS2008     0x0072      /* SAS2008 */
+#define PCI_PRODUCT_SYMBIOS_SAS2108_1   0x0078      /* MegaRAID SAS2108 CRYPTO GEN2 wan+*/
+#define PCI_PRODUCT_SYMBIOS_SAS2108_2   0x0079      /* MegaRAID SAS2108 GEN2 wan+*/
+//wan+ end
 
 /* Packet Engines products */
 #define	PCI_PRODUCT_SYMBIOS_PE_GNIC	0x0702		/* Packet Engines G-NIC */

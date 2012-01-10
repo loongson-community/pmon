@@ -1,4 +1,4 @@
-/*	$OpenBSD: scsi_ioctl.c,v 1.9 1997/09/01 19:11:46 niklas Exp $	*/
+/*	$OpenBSD: scsi_ioctl.c,v 1.46 2010/07/22 05:32:10 matthew Exp $	*/
 /*	$NetBSD: scsi_ioctl.c,v 1.23 1996/10/12 23:23:17 christos Exp $	*/
 
 /*
@@ -30,11 +30,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/* 
+/*
  * Contributed by HD Associates (hd@world.std.com).
  * Copyright (c) 1992, 1993 HD Associates
  *
- * Berkeley style copyright.  
+ * Berkeley style copyright.
  */
 
 #include <sys/types.h>
@@ -43,296 +43,308 @@
 #include <sys/systm.h>
 #include <sys/file.h>
 #include <sys/malloc.h>
-#include "queue.h"
 #include <sys/buf.h>
-#include <sys/proc.h>
 #include <sys/device.h>
 #include <sys/fcntl.h>
 
-#include "scsi_all.h"
-#include "scsiconf.h"
-#include <sys/scsiio.h>
+#include <scsi/scsi_all.h>
+#include <scsi/scsiconf.h>
 
-struct scsi_ioctl {
-	LIST_ENTRY(scsi_ioctl) si_list;
-	struct buf si_bp;
-	struct uio si_uio;
-	struct iovec si_iov;
-	scsireq_t si_screq;
-	struct scsi_link *si_sc_link;
+#include <sys/scsiio.h>
+#include <sys/ataio.h>
+
+int			scsi_ioc_cmd(struct scsi_link *, scsireq_t *);
+int			scsi_ioc_ata_cmd(struct scsi_link *, atareq_t *);
+
+const unsigned char scsi_readsafe_cmd[256] = {
+	[0x00] = 1,	/* TEST UNIT READY */
+	[0x03] = 1,	/* REQUEST SENSE */
+	[0x08] = 1,	/* READ(6) */
+	[0x12] = 1,	/* INQUIRY */
+	[0x1a] = 1,	/* MODE SENSE */
+	[0x1b] = 1,	/* START STOP */
+	[0x23] = 1,	/* READ FORMAT CAPACITIES */
+	[0x25] = 1,	/* READ CDVD CAPACITY */
+	[0x28] = 1,	/* READ(10) */
+	[0x2b] = 1,	/* SEEK */
+	[0x2f] = 1,	/* VERIFY(10) */
+	[0x3c] = 1,	/* READ BUFFER */
+	[0x3e] = 1,	/* READ LONG */
+	[0x42] = 1,	/* READ SUBCHANNEL */
+	[0x43] = 1,	/* READ TOC PMA ATIP */
+	[0x44] = 1,	/* READ HEADER */
+	[0x45] = 1,	/* PLAY AUDIO(10) */
+	[0x46] = 1,	/* GET CONFIGURATION */
+	[0x47] = 1,	/* PLAY AUDIO MSF */
+	[0x48] = 1,	/* PLAY AUDIO TI */
+	[0x4a] = 1,	/* GET EVENT STATUS NOTIFICATION */
+	[0x4b] = 1,	/* PAUSE RESUME */
+	[0x4e] = 1,	/* STOP PLAY SCAN */
+	[0x51] = 1,	/* READ DISC INFO */
+	[0x52] = 1,	/* READ TRACK RZONE INFO */
+	[0x5a] = 1,	/* MODE SENSE(10) */
+	[0x88] = 1,	/* READ(16) */
+	[0x8f] = 1,	/* VERIFY(16) */
+	[0xa4] = 1,	/* REPORT KEY */
+	[0xa5] = 1,	/* PLAY AUDIO(12) */
+	[0xa8] = 1,	/* READ(12) */
+	[0xac] = 1,	/* GET PERFORMANCE */
+	[0xad] = 1,	/* READ DVD STRUCTURE */
+	[0xb9] = 1,	/* READ CD MSF */
+	[0xba] = 1,	/* SCAN */
+	[0xbc] = 1,	/* PLAY CD */
+	[0xbd] = 1,	/* MECHANISM STATUS */
+	[0xbe] = 1	/* READ CD */
 };
 
-LIST_HEAD(, scsi_ioctl) si_head;
-
-struct scsi_ioctl *si_get __P((void));
-void si_free __P((struct scsi_ioctl *));
-struct scsi_ioctl *si_find __P((struct buf *));
-void scsistrategy __P((struct buf *));
-
-struct scsi_ioctl *
-si_get()
+int
+scsi_ioc_cmd(struct scsi_link *link, scsireq_t *screq)
 {
-	struct scsi_ioctl *si;
-	int s;
-
-	si = malloc(sizeof(struct scsi_ioctl), M_TEMP, M_WAITOK);
-	bzero(si, sizeof(struct scsi_ioctl));
-	s = splbio();
-	LIST_INSERT_HEAD(&si_head, si, si_list);
-	splx(s);
-	return (si);
-}
-
-void
-si_free(si)
-	struct scsi_ioctl *si;
-{
-	int s;
-
-	s = splbio();
-	LIST_REMOVE(si, si_list);
-	splx(s);
-	free(si, M_TEMP);
-}
-
-struct scsi_ioctl *
-si_find(bp)
-	struct buf *bp;
-{
-	struct scsi_ioctl *si;
-	int s;
-
-	s = splbio();
-	for (si = si_head.lh_first; si != 0; si = si->si_list.le_next)
-		if (bp == &si->si_bp)
-			break;
-	splx(s);
-	return (si);
-}
-
-/*
- * We let the user interpret his own sense in the generic scsi world.
- * This routine is called at interrupt time if the SCSI_USER bit was set
- * in the flags passed to scsi_scsi_cmd(). No other completion processing
- * takes place, even if we are running over another device driver.
- * The lower level routines that call us here, will free the xs and restart
- * the device's queue if such exists.
- */
-void
-scsi_user_done(xs)
 	struct scsi_xfer *xs;
-{
-	struct buf *bp;
-	struct scsi_ioctl *si;
-	scsireq_t *screq;
-	struct scsi_link *sc_link;
+	int err = 0;
 
-	bp = xs->bp;
-	if (!bp) {	/* ALL user requests must have a buf */
-		sc_print_addr(xs->sc_link);
-		printf("User command with no buf\n");
-		return;
+	if (screq->cmdlen > sizeof(struct scsi_generic))
+		return (EFAULT);
+	if (screq->datalen > MAXPHYS)
+		return (EINVAL);
+
+	xs = scsi_xs_get(link, 0);
+	if (xs == NULL)
+		return (ENOMEM);
+
+	memcpy(xs->cmd, screq->cmd, screq->cmdlen);
+	xs->cmdlen = screq->cmdlen;
+
+	if (screq->datalen > 0) {
+		/* XXX dma accessible */
+		xs->data = malloc(screq->datalen, M_TEMP,
+		    M_WAITOK | M_CANFAIL | M_ZERO);
+		if (xs->data == NULL) {
+			err = ENOMEM;
+			goto err;
+		}
+		xs->datalen = screq->datalen;
 	}
-	si = si_find(bp);
-	if (!si) {
-		sc_print_addr(xs->sc_link);
-		printf("User command with no ioctl\n");
-		return;
+
+	if (screq->flags & SCCMD_READ)
+		xs->flags |= SCSI_DATA_IN;
+	if (screq->flags & SCCMD_WRITE) {
+		if (screq->datalen > 0) {
+			err = copyin(screq->databuf, xs->data, screq->datalen);
+			if (err != 0)
+				goto err;
+		}
+
+		xs->flags |= SCSI_DATA_OUT;
 	}
-	screq = &si->si_screq;
-	sc_link = si->si_sc_link;
-	SC_DEBUG(xs->sc_link, SDEV_DB2, ("user-done\n"));
+
+	xs->flags |= SCSI_SILENT;	/* User is responsible for errors. */
+	xs->timeout = screq->timeout;
+	xs->retries = 0; /* user must do the retries *//* ignored */
+
+	scsi_xs_sync(xs);
 
 	screq->retsts = 0;
 	screq->status = xs->status;
 	switch (xs->error) {
 	case XS_NOERROR:
-		SC_DEBUG(sc_link, SDEV_DB3, ("no error\n"));
-		screq->datalen_used = xs->datalen - xs->resid; /* probably rubbish */
+		/* probably rubbish */
+		screq->datalen_used = xs->datalen - xs->resid;
 		screq->retsts = SCCMD_OK;
 		break;
 	case XS_SENSE:
-		SC_DEBUG(sc_link, SDEV_DB3, ("have sense\n"));
-		screq->senselen_used = min(sizeof(xs->sense), SENSEBUFLEN);
-		bcopy(&xs->sense, screq->sense, screq->senselen);
+#ifdef SCSIDEBUG
+		scsi_sense_print_debug(xs);
+#endif
+		screq->senselen_used = min(sizeof(xs->sense),
+		    sizeof(screq->sense));
+		bcopy(&xs->sense, screq->sense, screq->senselen_used);
 		screq->retsts = SCCMD_SENSE;
 		break;
+	case XS_SHORTSENSE:
+#ifdef SCSIDEBUG
+		scsi_sense_print_debug(xs);
+#endif
+		printf("XS_SHORTSENSE\n");
+		screq->senselen_used = min(sizeof(xs->sense),
+		    sizeof(screq->sense));
+		bcopy(&xs->sense, screq->sense, screq->senselen_used);
+		screq->retsts = SCCMD_UNKNOWN;
+		break;
 	case XS_DRIVER_STUFFUP:
-		sc_print_addr(sc_link);
-		printf("host adapter code inconsistency\n");
 		screq->retsts = SCCMD_UNKNOWN;
 		break;
 	case XS_TIMEOUT:
-		SC_DEBUG(sc_link, SDEV_DB3, ("timeout\n"));
 		screq->retsts = SCCMD_TIMEOUT;
 		break;
 	case XS_BUSY:
-		SC_DEBUG(sc_link, SDEV_DB3, ("busy\n"));
 		screq->retsts = SCCMD_BUSY;
 		break;
 	default:
-		sc_print_addr(sc_link);
-		printf("unknown error category from host adapter code\n");
 		screq->retsts = SCCMD_UNKNOWN;
 		break;
 	}
-	biodone(bp); 	/* we're waiting on it in scsi_strategy() */
+
+	if (screq->datalen > 0 && screq->flags & SCCMD_READ) {
+		err = copyout(xs->data, screq->databuf, screq->datalen);
+		if (err != 0)
+			goto err;
+	}
+
+err:
+	if (xs->data)
+		free(xs->data, M_TEMP);
+	scsi_xs_put(xs);
+
+	return (err);
 }
 
-
-/* Pseudo strategy function
- * Called by scsi_do_ioctl() via physio/physstrat if there is to
- * be data transfered, and directly if there is no data transfer.
- * 
- * Should I reorganize this so it returns to physio instead
- * of sleeping in scsiio_scsi_cmd?  Is there any advantage, other
- * than avoiding the probable duplicate wakeup in iodone? [PD]
- *
- * No, seems ok to me... [JRE]
- * (I don't see any duplicate wakeups)
- *
- * Can't be used with block devices or raw_read/raw_write directly
- * from the cdevsw/bdevsw tables because they couldn't have added
- * the screq structure. [JRE]
- */
-void
-scsistrategy(bp)
-	struct buf *bp;
+int
+scsi_ioc_ata_cmd(struct scsi_link *link, atareq_t *atareq)
 {
-	struct scsi_ioctl *si;
-	scsireq_t *screq;
-	struct scsi_link *sc_link;
-	int error;
-	int flags = 0;
-	int s;
+	struct scsi_xfer *xs;
+	struct scsi_ata_passthru_12 *cdb;
+	int err = 0;
 
-	si = si_find(bp);
-	if (!si) {
-		printf("user_strat: No ioctl\n");
-		error = EINVAL;
-		goto bad;
+	if (atareq->datalen > MAXPHYS)
+		return (EINVAL);
+
+	xs = scsi_xs_get(link, 0);
+	if (xs == NULL)
+		return (ENOMEM);
+
+	cdb = (struct scsi_ata_passthru_12 *)xs->cmd;
+	cdb->opcode = ATA_PASSTHRU_12;
+
+	if (atareq->datalen > 0) {
+		if (atareq->flags & ATACMD_READ) {
+			cdb->count_proto = ATA_PASSTHRU_PROTO_PIO_DATAIN;
+			cdb->flags = ATA_PASSTHRU_T_DIR_READ;
+		} else {
+			cdb->count_proto = ATA_PASSTHRU_PROTO_PIO_DATAOUT;
+			cdb->flags = ATA_PASSTHRU_T_DIR_WRITE;
+		}
+		cdb->flags |= ATA_PASSTHRU_T_LEN_SECTOR_COUNT;
+	} else {
+		cdb->count_proto = ATA_PASSTHRU_PROTO_NON_DATA;
+		cdb->flags = ATA_PASSTHRU_T_LEN_NONE;
 	}
-	screq = &si->si_screq;
-	sc_link = si->si_sc_link;
-	SC_DEBUG(sc_link, SDEV_DB2, ("user_strategy\n"));
+	cdb->features = atareq->features;
+	cdb->sector_count = atareq->sec_count;
+	cdb->lba_low = atareq->sec_num;
+	cdb->lba_mid = atareq->cylinder;
+	cdb->lba_high = atareq->cylinder >> 8;
+	cdb->device = atareq->head & 0x0f;
+	cdb->command = atareq->command;
 
-	/*
-	 * We're in trouble if physio tried to break up the transfer.
-	 */
-	if (bp->b_bcount != screq->datalen) {
-		sc_print_addr(sc_link);
-		printf("physio split the request.. cannot proceed\n");
-		error = EIO;
-		goto bad;
+	xs->cmdlen = sizeof(*cdb);
+
+	if (atareq->datalen > 0) {
+		/* XXX dma accessible */
+		xs->data = malloc(atareq->datalen, M_TEMP,
+		    M_WAITOK | M_CANFAIL | M_ZERO);
+		if (xs->data == NULL) {
+			err = ENOMEM;
+			goto err;
+		}
+		xs->datalen = atareq->datalen;
 	}
 
-	if (screq->timeout == 0) {
-		error = EINVAL;
-		goto bad;
+	if (atareq->flags & ATACMD_READ)
+		xs->flags |= SCSI_DATA_IN;
+	if (atareq->flags & ATACMD_WRITE) {
+		if (atareq->datalen > 0) {
+			err = copyin(atareq->databuf, xs->data,
+			    atareq->datalen);
+			if (err != 0)
+				goto err;
+		}
+
+		xs->flags |= SCSI_DATA_OUT;
 	}
 
-	if (screq->cmdlen > sizeof(struct scsi_generic)) {
-		sc_print_addr(sc_link);
-		printf("cmdlen too big\n");
-		error = EFAULT;
-		goto bad;
+	xs->flags |= SCSI_SILENT;	/* User is responsible for errors. */
+	xs->retries = 0; /* user must do the retries *//* ignored */
+
+	scsi_xs_sync(xs);
+
+	atareq->retsts = ATACMD_ERROR;
+	switch (xs->error) {
+	case XS_SENSE:
+	case XS_SHORTSENSE:
+#ifdef SCSIDEBUG
+		scsi_sense_print_debug(xs);
+#endif
+		/* XXX this is not right */
+	case XS_NOERROR:
+		atareq->retsts = ATACMD_OK;
+		break;
+	default:
+		atareq->retsts = ATACMD_ERROR;
+		break;
 	}
 
-	if (screq->flags & SCCMD_READ)
-		flags |= SCSI_DATA_IN;
-	if (screq->flags & SCCMD_WRITE)
-		flags |= SCSI_DATA_OUT;
-	if (screq->flags & SCCMD_TARGET)
-		flags |= SCSI_TARGET;
-	if (screq->flags & SCCMD_ESCAPE)
-		flags |= SCSI_ESCAPE;
+	if (atareq->datalen > 0 && atareq->flags & ATACMD_READ) {
+		err = copyout(xs->data, atareq->databuf, atareq->datalen);
+		if (err != 0)
+			goto err;
+	}
 
-	error = scsi_scsi_cmd(sc_link, (struct scsi_generic *)screq->cmd,
-	    screq->cmdlen, (u_char *)bp->b_data, screq->datalen,
-	    0, /* user must do the retries *//* ignored */
-	    screq->timeout, bp, flags | SCSI_USER | SCSI_NOSLEEP);
+err:
+	if (xs->data)
+		free(xs->data, M_TEMP);
+	scsi_xs_put(xs);
 
-	/* because there is a bp, scsi_scsi_cmd will return immediatly */
-	if (error)
-		goto bad;
-
-	SC_DEBUG(sc_link, SDEV_DB3, ("about to sleep\n"));
-	s = splbio();
-	while ((bp->b_flags & B_DONE) == 0)
-		tsleep(bp, PRIBIO, "scistr", 0);
-	splx(s);
-	SC_DEBUG(sc_link, SDEV_DB3, ("back from sleep\n"));
-
-	return;
-
-bad:
-	bp->b_flags |= B_ERROR;
-	bp->b_error = error;
-	biodone(bp);
+	return (err);
 }
 
 /*
  * Something (e.g. another driver) has called us
  * with an sc_link for a target/lun/adapter, and a scsi
  * specific ioctl to perform, better try.
- * If user-level type command, we must still be running
- * in the context of the calling process
  */
 int
-scsi_do_ioctl(sc_link, dev, cmd, addr, flag, p)
-	struct scsi_link *sc_link;
-	dev_t dev;
-	u_long cmd;
-	caddr_t addr;
-	int flag;
-	struct proc *p;
+scsi_do_ioctl(struct scsi_link *sc_link, u_long cmd, caddr_t addr, int flag)
 {
-	int error;
-
 	SC_DEBUG(sc_link, SDEV_DB2, ("scsi_do_ioctl(0x%lx)\n", cmd));
 
-	/* If we don't have write access, just skip to the safe ones. */
-	if ((flag & FWRITE) == 0)
-		return scsi_do_safeioctl(sc_link, dev, cmd, addr, flag, p);
+	switch(cmd) {
+	case SCIOCIDENTIFY: {
+		struct scsi_addr *sca = (struct scsi_addr *)addr;
+
+		if ((sc_link->flags & (SDEV_ATAPI | SDEV_UMASS)) == 0)
+			/* A 'real' SCSI target. */
+			sca->type = TYPE_SCSI;
+		else	
+			/* An 'emulated' SCSI target. */
+			sca->type = TYPE_ATAPI;
+		sca->scbus = sc_link->scsibus;
+		sca->target = sc_link->target;
+		sca->lun = sc_link->lun;
+		return (0);
+	}
+	case SCIOCCOMMAND:
+		if (scsi_readsafe_cmd[((scsireq_t *)addr)->cmd[0]])
+			break;
+		/* FALLTHROUGH */
+	case ATAIOCCOMMAND:
+	case SCIOCDEBUG:
+		if ((flag & FWRITE) == 0)
+			return (EPERM);
+		break;
+	default:
+		if (sc_link->adapter->ioctl)
+			return ((sc_link->adapter->ioctl)(sc_link, cmd, addr,
+			    flag));
+		else
+			return (ENOTTY);
+	}
 
 	switch(cmd) {
-	case SCIOCCOMMAND: {
-		scsireq_t *screq = (scsireq_t *)addr;
-		struct scsi_ioctl *si;
-		int len;
-
-		si = si_get();
-		si->si_screq = *screq;
-		si->si_sc_link = sc_link;
-		len = screq->datalen;
-		if (len) {
-			si->si_iov.iov_base = screq->databuf;
-			si->si_iov.iov_len = len;
-			si->si_uio.uio_iov = &si->si_iov;
-			si->si_uio.uio_iovcnt = 1;
-			si->si_uio.uio_resid = len;
-			si->si_uio.uio_offset = 0;
-			si->si_uio.uio_segflg = UIO_USERSPACE;
-			si->si_uio.uio_rw = 
-			    (screq->flags & SCCMD_READ) ? UIO_READ : UIO_WRITE;
-			si->si_uio.uio_procp = p;
-			error = physio(scsistrategy, &si->si_bp, dev,
-			    (screq->flags & SCCMD_READ) ? B_READ : B_WRITE,
-			    sc_link->adapter->scsi_minphys, &si->si_uio);
-		} else {
-			/* if no data, no need to translate it.. */
-			si->si_bp.b_flags = 0;
-			si->si_bp.b_data = 0;
-			si->si_bp.b_bcount = 0;
-			si->si_bp.b_dev = dev;
-			si->si_bp.b_proc = p;
-			scsistrategy(&si->si_bp);
-			error = si->si_bp.b_error;
-		}
-		*screq = si->si_screq;
-		si_free(si);
-		return error;
-	}
+	case SCIOCCOMMAND:
+		return (scsi_ioc_cmd(sc_link, (scsireq_t *)addr));
+	case ATAIOCCOMMAND:
+		return (scsi_ioc_ata_cmd(sc_link, (atareq_t *)addr));
 	case SCIOCDEBUG: {
 		int level = *((int *)addr);
 
@@ -346,61 +358,12 @@ scsi_do_ioctl(sc_link, dev, cmd, addr, flag, p)
 			sc_link->flags |= SDEV_DB3;
 		if (level & 8)
 			sc_link->flags |= SDEV_DB4;
-		return 0;
-	}
-	case SCIOCREPROBE: {
-		struct scsi_addr *sca = (struct scsi_addr *)addr;
-
-		return scsi_probe_busses(sca->scbus, sca->target, sca->lun);
-	}
-	case SCIOCRECONFIG:
-	case SCIOCDECONFIG:
-		return EINVAL;
-	case SCIOCRESET: {
-		if ((flag & FWRITE) == 0)
-			return EBADF;
-		scsi_scsi_cmd(sc_link, 0, 0, 0, 0, GENRETRY, 2000, NULL,
-		      SCSI_RESET);
-		return 0;
+		return (0);
 	}
 	default:
-		return scsi_do_safeioctl(sc_link, dev, cmd, addr, flag, p);
-	}
-
 #ifdef DIAGNOSTIC
-	panic("scsi_do_ioctl: impossible");
+		panic("scsi_do_ioctl: impossible cmd (%#lx)", cmd);
 #endif
-}
-
-int
-scsi_do_safeioctl(sc_link, dev, cmd, addr, flag, p)
-	struct scsi_link *sc_link;
-	dev_t dev;
-	u_long cmd;
-	caddr_t addr;
-	int flag;
-	struct proc *p;
-{
-	SC_DEBUG(sc_link, SDEV_DB2, ("scsi_do_safeioctl(0x%lx)\n", cmd));
-
-	switch(cmd) {
-	case SCIOCIDENTIFY: {
-		struct scsi_addr *sca = (struct scsi_addr *)addr;
-
-		sca->scbus = sc_link->scsibus;
-		sca->target = sc_link->target;
-		sca->lun = sc_link->lun;
-		return 0;
-	}
-	case SCIOCCOMMAND:
-	case SCIOCDEBUG:
-	case SCIOCREPROBE:
-	case SCIOCRESET:
-		return EBADF;
-	case SCIOCRECONFIG:
-	case SCIOCDECONFIG:
-		return EINVAL;
-	default:
-		return ENOTTY;
+		return (0);
 	}
 }

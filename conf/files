@@ -163,12 +163,16 @@ file sys/kern/kern_proc.c		sys
 file sys/kern/kern_syscall.c		sys
 file sys/kern/sys_generic.c		sys
 file sys/kern/subr_autoconf.c		sys
+### wan+
+file sys/kern/subr_disk.c		sys
 file sys/kern/uipc_mbuf.c		sys
 file sys/kern/uipc_syscalls.c		sys
 file sys/kern/init_main.c		sys
 file sys/kern/kern_malloc.c		sys
 file sys/kern/kern_sig.c		sys
 file sys/kern/kern_time.c		sys
+### wan+
+file sys/kern/kern_bufq.c		sys
 file sys/kern/sys_socket.c		sys
 file sys/kern/uipc_socket.c		sys
 file sys/dev/bus_dma.c			sys

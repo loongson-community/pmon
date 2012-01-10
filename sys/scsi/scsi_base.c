@@ -1,4 +1,4 @@
-/*	$OpenBSD: scsi_base.c,v 1.28 2001/02/18 22:38:44 fgsch Exp $	*/
+/*	$OpenBSD: scsi_base.c,v 1.197 2010/09/20 00:19:47 dlg Exp $	*/
 /*	$NetBSD: scsi_base.c,v 1.43 1997/04/02 02:29:36 mycroft Exp $	*/
 
 /*
@@ -45,493 +45,1456 @@
 #include <sys/errno.h>
 #include <sys/device.h>
 #include <sys/proc.h>
+//#include <sys/pool.h>//wan-
 
 #include <scsi/scsi_all.h>
 #include <scsi/scsi_disk.h>
 #include <scsi/scsiconf.h>
 
-LIST_HEAD(xs_free_list, scsi_xfer) xs_free_list;
+static __inline void asc2ascii(u_int8_t, u_int8_t ascq, char *result,
+    size_t len);
+int	scsi_xs_error(struct scsi_xfer *);
+char   *scsi_decode_sense(struct scsi_sense_data *, int);
 
-static __inline struct scsi_xfer *scsi_make_xs __P((struct scsi_link *,
-    struct scsi_generic *, int cmdlen, u_char *data_addr,
-    int datalen, int retries, int timeout, struct buf *, int flags));
-static __inline void asc2ascii __P((u_char asc, u_char ascq, char *result));
-int sc_err1 __P((struct scsi_xfer *, int));
-int scsi_interpret_sense __P((struct scsi_xfer *));
-char *scsi_decode_sense __P((void *, int));
+void	scsi_xs_sync_done(struct scsi_xfer *);
+
+/* Values for flag parameter to scsi_decode_sense. */
+#define	DECODE_SENSE_KEY	1
+#define	DECODE_ASC_ASCQ		2
+#define DECODE_SKSV		3
+
+//wan+
+#define wakeup_one(c)
+int lbolt;          /* once a second sleep address */
+
+//struct pool		scsi_xfer_pool;//wan-
+//struct pool		scsi_plug_pool;//wan-
+
+struct scsi_plug {
+//	struct workq_task	wqt;//wan-
+	int			target;
+	int			lun;
+	int			how;
+};
+
+void	scsi_plug_probe(void *, void *);
+void	scsi_plug_detach(void *, void *);
+
+struct scsi_xfer *	scsi_xs_io(struct scsi_link *, void *, int);
+
+int			scsi_ioh_pending(struct scsi_iopool *);
+struct scsi_iohandler *	scsi_ioh_deq(struct scsi_iopool *);
+void			scsi_ioh_runqueue(struct scsi_iopool *);
+
+void			scsi_xsh_runqueue(struct scsi_link *);
+void			scsi_xsh_ioh(void *, void *);
+
+int			scsi_link_open(struct scsi_link *);
+void			scsi_link_close(struct scsi_link *);
+
+//int			scsi_sem_enter(struct mutex *, u_int *);//wan-
+//int			scsi_sem_leave(struct mutex *, u_int *);//wan-
+
+/* ioh/xsh queue state */
+#define RUNQ_IDLE	0
+#define RUNQ_LINKQ	1
+#define RUNQ_POOLQ	2
+
+#if 0   //wan+
+/*
+ * Simple non-mp implementation.
+ */
+struct mutex {
+	int mtx_lock;
+	int mtx_wantipl;
+	int mtx_oldipl;
+};
+#endif
+
+/* synchronous api for allocating an io. */
+struct scsi_io_mover {
+//	struct mutex mtx;//wan-
+	void *io;
+	u_int done;
+};
+//#define SCSI_IO_MOVER_INITIALIZER { MUTEX_INITIALIZER(IPL_BIO), NULL, 0 }//wan-
+
+void scsi_move(struct scsi_io_mover *);
+void scsi_move_done(void *, void *);
+
+void scsi_io_get_done(void *, void *);
+void scsi_xs_get_done(void *, void *);
 
 /*
- * Get a scsi transfer structure for the caller. Charge the structure
- * to the device that is referenced by the sc_link structure. If the 
- * sc_link structure has no 'credits' then the device already has the
- * maximum number or outstanding operations under way. In this stage,
- * wait on the structure so that when one is freed, we are awoken again
- * If the SCSI_NOSLEEP flag is set, then do not wait, but rather, return
- * a NULL pointer, signifying that no slots were available
- * Note in the link structure, that we are waiting on it.
+ * Called when a scsibus is attached to initialize global data.
+ */
+void
+scsi_init()
+{
+	static int scsi_init_done;
+
+	if (scsi_init_done)
+		return;
+	scsi_init_done = 1;
+
+#if defined(SCSI_DELAY) && SCSI_DELAY > 0
+	/* Historical. Older buses may need a moment to stabilize. */
+	delay(1000000 * SCSI_DELAY);
+#endif
+
+#if 0 //wan-
+	/* Initialize the scsi_xfer pool. */
+	pool_init(&scsi_xfer_pool, sizeof(struct scsi_xfer), 0,
+	    0, 0, "scxspl", NULL);
+	pool_setipl(&scsi_xfer_pool, IPL_BIO);
+	/* Initialize the scsi_plug pool */
+	pool_init(&scsi_plug_pool, sizeof(struct scsi_plug), 0,
+	    0, 0, "scsiplug", NULL);
+	pool_setipl(&scsi_plug_pool, IPL_BIO);
+#endif
+}
+
+int
+scsi_req_probe(struct scsibus_softc *sc, int target, int lun)
+{
+	struct scsi_plug *p;
+
+//	p = pool_get(&scsi_plug_pool, PR_NOWAIT);//wan-
+	p = malloc(sizeof(struct scsi_plug *), M_TEMP, M_NOWAIT);//wan^
+	if (p == NULL)
+		return (ENOMEM);
+
+	p->target = target;
+	p->lun = lun;
+
+//	workq_queue_task(NULL, &p->wqt, 0, scsi_plug_probe, sc, p);//wan-
+
+	return (0);
+}
+
+int
+scsi_req_detach(struct scsibus_softc *sc, int target, int lun, int how)
+{
+	struct scsi_plug *p;
+
+	//p = pool_get(&scsi_plug_pool, PR_NOWAIT);//wan-
+	p = malloc(sizeof(struct scsi_plug *), M_TEMP, M_NOWAIT);//wan^
+	if (p == NULL)
+		return (ENOMEM);
+
+	p->target = target;
+	p->lun = lun;
+	p->how = how;
+
+//	workq_queue_task(NULL, &p->wqt, 0, scsi_plug_detach, sc, p);//wan-
+
+	return (0);
+}
+
+void
+scsi_plug_probe(void *xsc, void *xp)
+{
+	struct scsibus_softc *sc = xsc;
+	struct scsi_plug *p = xp;
+	int target = p->target, lun = p->lun;
+
+//	pool_put(&scsi_plug_pool, p);//wan-
+	free(p, M_TEMP);//wan^
+
+	if (target == -1 && lun == -1)
+		scsi_probe_bus(sc);
+
+	/* specific lun and wildcard target is bad */
+	if (target == -1)
+		return;
+
+	if (lun == -1)
+		scsi_probe_target(sc, target);
+
+	scsi_probe_lun(sc, target, lun);
+}
+
+void
+scsi_plug_detach(void *xsc, void *xp)
+{
+	struct scsibus_softc *sc = xsc;
+	struct scsi_plug *p = xp;
+	int target = p->target, lun = p->lun;
+	int how = p->how;
+
+	//pool_put(&scsi_plug_pool, p);//wan-
+	free(p, M_TEMP);//wan^
+
+	if (target == -1 && lun == -1)
+		scsi_detach_bus(sc, how);
+
+	/* specific lun and wildcard target is bad */
+	if (target == -1)
+		return;
+
+	if (lun == -1)
+		scsi_detach_target(sc, target, how);
+
+	scsi_detach_lun(sc, target, lun, how);
+}
+
+int
+//scsi_sem_enter(struct mutex *mtx, u_int *running)//wan-
+scsi_sem_enter(u_int *running)//wan^
+{
+	int rv = 1;
+
+//	mtx_enter(mtx);//wan-
+	(*running)++;
+	if ((*running) > 1)
+		rv = 0;
+//	mtx_leave(mtx);//wan-
+
+	return (rv);
+}
+
+int
+//scsi_sem_leave(struct mutex *mtx, u_int *running)//wan-
+scsi_sem_leave(u_int *running)//wan^
+{
+	int rv = 1;
+
+//	mtx_enter(mtx);//wan-
+	(*running)--;
+	if ((*running) > 0)
+		rv = 0;
+//	mtx_leave(mtx);//wan-
+
+	return (rv);
+}
+
+void
+scsi_iopool_init(struct scsi_iopool *iopl, void *iocookie,
+    void *(*io_get)(void *), void (*io_put)(void *, void *))
+{
+	iopl->iocookie = iocookie;
+	iopl->io_get = io_get;
+	iopl->io_put = io_put;
+
+	TAILQ_INIT(&iopl->queue);
+	iopl->running = 0;
+//	mtx_init(&iopl->mtx, IPL_BIO);//wan-
+}
+
+void
+scsi_iopool_destroy(struct scsi_iopool *iopl)
+{
+	struct scsi_runq sleepers = TAILQ_HEAD_INITIALIZER(sleepers);
+	struct scsi_iohandler *ioh = NULL;
+
+//	mtx_enter(&iopl->mtx);//wan-
+	while ((ioh = TAILQ_FIRST(&iopl->queue)) != NULL) {
+		TAILQ_REMOVE(&iopl->queue, ioh, q_entry);
+		ioh->q_state = RUNQ_IDLE;
+
+		if (ioh->handler == scsi_io_get_done)
+			TAILQ_INSERT_TAIL(&sleepers, ioh, q_entry);
+#ifdef DIAGNOSTIC
+		else
+			panic("scsi_iopool_destroy: scsi_iohandler on pool");
+#endif
+	}
+//	mtx_leave(&iopl->mtx);//wan-
+
+	while ((ioh = TAILQ_FIRST(&sleepers)) != NULL) {
+		TAILQ_REMOVE(&sleepers, ioh, q_entry);
+		ioh->handler(ioh->cookie, NULL);
+	}
+}
+
+void *
+scsi_default_get(void *iocookie)
+{
+	return (iocookie);
+}
+
+void
+scsi_default_put(void *iocookie, void *io)
+{
+#ifdef DIAGNOSTIC
+	if (iocookie != io)
+		panic("unexpected opening returned");
+#endif
+}
+
+/*
+ * public interface to the ioh api.
+ */
+
+void
+scsi_ioh_set(struct scsi_iohandler *ioh, struct scsi_iopool *iopl,
+    void (*handler)(void *, void *), void *cookie)
+{
+	ioh->q_state = RUNQ_IDLE;
+	ioh->pool = iopl;
+	ioh->handler = handler;
+	ioh->cookie = cookie;
+}
+
+void
+scsi_ioh_add(struct scsi_iohandler *ioh)
+{
+	struct scsi_iopool *iopl = ioh->pool;
+
+//	mtx_enter(&iopl->mtx);//wan-
+	switch (ioh->q_state) {
+	case RUNQ_IDLE:
+		TAILQ_INSERT_TAIL(&iopl->queue, ioh, q_entry);
+		ioh->q_state = RUNQ_POOLQ;
+		break;
+#ifdef DIAGNOSTIC
+	case RUNQ_POOLQ:
+		break;
+	default:
+		panic("scsi_ioh_add: unexpected state %u", ioh->q_state);
+#endif
+	}
+//	mtx_leave(&iopl->mtx);//wan-
+
+	/* lets get some io up in the air */
+	scsi_ioh_runqueue(iopl);
+}
+
+void
+scsi_ioh_del(struct scsi_iohandler *ioh)
+{
+	struct scsi_iopool *iopl = ioh->pool;
+
+//	mtx_enter(&iopl->mtx);//wan-
+	switch (ioh->q_state) {
+	case RUNQ_POOLQ:
+		TAILQ_REMOVE(&iopl->queue, ioh, q_entry);
+		ioh->q_state = RUNQ_IDLE;
+		break;
+#ifdef DIAGNOSTIC
+	case RUNQ_IDLE:
+		break;
+	default:
+		panic("scsi_ioh_del: unexpected state %u", ioh->q_state);
+#endif
+	}
+
+//	mtx_leave(&iopl->mtx);//wan-
+}
+
+/*
+ * internal iopool runqueue handling.
+ */
+
+struct scsi_iohandler *
+scsi_ioh_deq(struct scsi_iopool *iopl)
+{
+	struct scsi_iohandler *ioh = NULL;
+
+//	mtx_enter(&iopl->mtx);//wan-
+	ioh = TAILQ_FIRST(&iopl->queue);
+	if (ioh != NULL) {
+		TAILQ_REMOVE(&iopl->queue, ioh, q_entry);
+		ioh->q_state = RUNQ_IDLE;
+	}
+//	mtx_leave(&iopl->mtx);//wan-
+
+	return (ioh);
+}
+
+int
+scsi_ioh_pending(struct scsi_iopool *iopl)
+{
+	int rv;
+
+//	mtx_enter(&iopl->mtx);//wan-
+	rv = !TAILQ_EMPTY(&iopl->queue);
+//	mtx_leave(&iopl->mtx);//wan-
+
+	return (rv);
+}
+
+void
+scsi_ioh_runqueue(struct scsi_iopool *iopl)
+{
+	struct scsi_iohandler *ioh;
+	void *io;
+
+	//if (!scsi_sem_enter(&iopl->mtx, &iopl->running))//wan-
+	if (!scsi_sem_enter(&iopl->running))//wan^
+		return;
+	do {
+		while (scsi_ioh_pending(iopl)) {
+			io = iopl->io_get(iopl->iocookie);
+			if (io == NULL)
+				break;
+
+			ioh = scsi_ioh_deq(iopl);
+			if (ioh == NULL) {
+				iopl->io_put(iopl->iocookie, io);
+				break;
+			}
+
+			ioh->handler(ioh->cookie, io);
+		}
+	//} while (!scsi_sem_leave(&iopl, &iopl->running));//wan-
+	} while (!scsi_sem_leave(&iopl->running));//wan^
+}
+
+/*
+ * move an io from a runq to a proc thats waiting for an io.
+ */
+
+void
+scsi_move(struct scsi_io_mover *m)
+{
+//	mtx_enter(&m->mtx);//wan-
+#if 0 //wan-
+	while (!m->done)
+		msleep(m, &m->mtx, PRIBIO, "scsiiomv", 0);
+#endif
+//	mtx_leave(&m->mtx);//wan-
+}
+
+void
+scsi_move_done(void *cookie, void *io)
+{
+	struct scsi_io_mover *m = cookie;
+
+//	mtx_enter(&m->mtx);//wan-
+	m->io = io;
+	m->done = 1;
+	wakeup_one(m);
+//	mtx_leave(&m->mtx);//wan-
+}
+
+/*
+ * synchronous api for allocating an io.
+ */
+
+void *
+scsi_io_get(struct scsi_iopool *iopl, int flags)
+{
+	//struct scsi_io_mover m = SCSI_IO_MOVER_INITIALIZER;//wan-
+	struct scsi_io_mover m ;//wan^
+	struct scsi_iohandler ioh;
+	void *io;
+
+	/* try and sneak an io off the backend immediately */
+	io = iopl->io_get(iopl->iocookie);//wan: mfi_get_ccb(sc);
+	if (io != NULL)
+		return (io);
+	else if (ISSET(flags, SCSI_NOSLEEP))
+		return (NULL);
+
+	printf("wan: ERROR! IN %S SHOULDN'T SEE HERE! \n", __func__);//wan+ T
+	/* otherwise sleep until we get one */
+	scsi_ioh_set(&ioh, iopl, scsi_io_get_done, &m);
+	scsi_ioh_add(&ioh);
+	scsi_move(&m);
+
+	return (m.io);
+}
+
+void
+scsi_io_get_done(void *cookie, void *io)
+{
+	scsi_move_done(cookie, io);
+}
+
+void
+scsi_io_put(struct scsi_iopool *iopl, void *io)
+{
+	iopl->io_put(iopl->iocookie, io);//wan: mfi_put_ccb(sc, ccb);
+	scsi_ioh_runqueue(iopl);
+}
+
+/*
+ * public interface to the xsh api.
+ */
+
+void
+scsi_xsh_set(struct scsi_xshandler *xsh, struct scsi_link *link,
+    void (*handler)(struct scsi_xfer *))
+{
+	scsi_ioh_set(&xsh->ioh, link->pool, scsi_xsh_ioh, xsh);
+
+	xsh->link = link;
+	xsh->handler = handler;
+}
+
+void
+scsi_xsh_add(struct scsi_xshandler *xsh)
+{
+	struct scsi_link *link = xsh->link;
+
+	if (ISSET(link->state, SDEV_S_DYING))
+		return;
+
+//	mtx_enter(&link->pool->mtx);//wan-
+	if (xsh->ioh.q_state == RUNQ_IDLE) {
+		TAILQ_INSERT_TAIL(&link->queue, &xsh->ioh, q_entry);
+		xsh->ioh.q_state = RUNQ_LINKQ;
+	}
+//	mtx_leave(&link->pool->mtx);//wan-
+
+	/* lets get some io up in the air */
+	scsi_xsh_runqueue(link);
+}
+
+void
+scsi_xsh_del(struct scsi_xshandler *xsh)
+{
+	struct scsi_link *link = xsh->link;
+
+//	mtx_enter(&link->pool->mtx);//wan-
+	switch (xsh->ioh.q_state) {
+	case RUNQ_IDLE:
+		break;
+	case RUNQ_LINKQ:
+		TAILQ_REMOVE(&link->queue, &xsh->ioh, q_entry);
+		break;
+	case RUNQ_POOLQ:
+		TAILQ_REMOVE(&link->pool->queue, &xsh->ioh, q_entry);
+		link->pending--;
+		if (ISSET(link->state, SDEV_S_DYING) && link->pending == 0)
+			wakeup_one(&link->pending);
+		break;
+	default:
+		panic("unexpected xsh state %u", xsh->ioh.q_state);
+	}
+	xsh->ioh.q_state = RUNQ_IDLE;
+//	mtx_leave(&link->pool->mtx);//wan-
+}
+
+/*
+ * internal xs runqueue handling.
+ */
+
+void
+scsi_xsh_runqueue(struct scsi_link *link)
+{
+	struct scsi_iohandler *ioh;
+	int runq;
+
+//	if (!scsi_sem_enter(&link->pool->mtx, &link->running))//wan-
+	if (!scsi_sem_enter(&link->running))//wan^
+		return;
+	do {
+		runq = 0;
+
+//		mtx_enter(&link->pool->mtx);//wan-
+		while (!ISSET(link->state, SDEV_S_DYING) &&
+		    link->pending < link->openings &&
+		    ((ioh = TAILQ_FIRST(&link->queue)) != NULL)) {
+			link->pending++;
+
+			TAILQ_REMOVE(&link->queue, ioh, q_entry);
+			TAILQ_INSERT_TAIL(&link->pool->queue, ioh, q_entry);
+			ioh->q_state = RUNQ_POOLQ;
+
+			runq = 1;
+		}
+//		mtx_leave(&link->pool->mtx);//wan-
+
+		if (runq)
+			scsi_ioh_runqueue(link->pool);
+	//} while (!scsi_sem_leave(&link->pool->mtx, &link->running));//wan-
+	} while (!scsi_sem_leave(&link->running));//wan^
+}
+
+void
+scsi_xsh_ioh(void *cookie, void *io)
+{
+	struct scsi_xshandler *xsh = cookie;
+	struct scsi_xfer *xs;
+
+	xs = scsi_xs_io(xsh->link, io, SCSI_NOSLEEP);
+	if (xs == NULL) {
+		/*
+		 * in this situation we should queue things waiting for an
+		 * xs and then give them xses when they were supposed be to
+		 * returned to the pool.
+		 */
+
+		printf("scsi_xfer pool exhausted!\n");
+		scsi_xsh_add(xsh);
+		return;
+	}
+
+	xsh->handler(xs);
+}
+
+/*
+ * Get a scsi transfer structure for the caller.
+ * Go to the iopool backend for an "opening" and then attach an xs to it.
  */
 
 struct scsi_xfer *
-scsi_get_xs(sc_link, flags)
-	struct scsi_link *sc_link;	/* who to charge the xs to */
-	int flags;			/* if this call can sleep */
+scsi_xs_get(struct scsi_link *link, int flags)
 {
-	struct scsi_xfer *xs;
-	int s;
+	struct scsi_xshandler xsh;
+//	struct scsi_io_mover m = SCSI_IO_MOVER_INITIALIZER;//wan-
+	struct scsi_io_mover m ;//wan^
 
-	SC_DEBUG(sc_link, SDEV_DB3, ("scsi_get_xs\n"));
-	s = splbio();
-	while (sc_link->openings <= 0) {
-		SC_DEBUG(sc_link, SDEV_DB3, ("sleeping\n"));
-		if ((flags & SCSI_NOSLEEP) != 0) {
-			splx(s);
-			return 0;
+	struct scsi_iopool *iopl = link->pool;//wan: iopl = &sc->sc_iopool;
+	void *io;
+
+	if (ISSET(link->state, SDEV_S_DYING))
+		return (NULL);
+
+	/* really custom xs handler to avoid scsi_xsh_ioh */
+	scsi_ioh_set(&xsh.ioh, iopl, scsi_xs_get_done, &m);
+	xsh.link = link;
+
+	if (!scsi_link_open(link)) {//wan: invalid
+		if (ISSET(flags, SCSI_NOSLEEP))
+			return (NULL);
+
+		scsi_xsh_add(&xsh);
+		scsi_move(&m);
+		if (m.io == NULL)
+			return (NULL);
+
+		io = m.io;
+	} else if ((io = iopl->io_get(iopl->iocookie)) == NULL) {//wan: invalid, io = ccb[n] from sc_iopool
+		if (ISSET(flags, SCSI_NOSLEEP)) {
+			scsi_link_close(link);
+			return (NULL);
 		}
-		sc_link->flags |= SDEV_WAITING;
-		(void) tsleep(sc_link, PRIBIO, "getxs", 0);
-	}
-	sc_link->openings--;
-	if ((xs = xs_free_list.lh_first) != NULL) {
-		LIST_REMOVE(xs, free_list);
-		splx(s);
-	} else {
-		splx(s);
-		SC_DEBUG(sc_link, SDEV_DB3, ("making\n"));
-		xs = malloc(sizeof(*xs), M_DEVBUF,
-		    ((flags & SCSI_NOSLEEP) != 0 ? M_NOWAIT : M_WAITOK));
-		if (!xs) {
-			sc_print_addr(sc_link);
-			printf("cannot allocate scsi xs\n");
-			return 0;
-		}
+
+		scsi_ioh_add(&xsh.ioh);
+		scsi_move(&m);
+		if (m.io == NULL)
+			return (NULL);
+
+		io = m.io;
 	}
 
-	SC_DEBUG(sc_link, SDEV_DB3, ("returning\n"));
-	xs->flags = flags;
-	return xs;
+	return (scsi_xs_io(link, io, flags));
 }
 
-/*
- * Given a scsi_xfer struct, and a device (referenced through sc_link)
- * return the struct to the free pool and credit the device with it
- * If another process is waiting for an xs, do a wakeup, let it proceed
- */
-void 
-scsi_free_xs(xs, flags)
-	struct scsi_xfer *xs;
-	int flags;
+void
+scsi_xs_get_done(void *cookie, void *io)
 {
-	struct scsi_link *sc_link = xs->sc_link;
+	scsi_move_done(cookie, io);
+}
 
-	LIST_INSERT_HEAD(&xs_free_list, xs, free_list);
+void
+scsi_link_shutdown(struct scsi_link *link)
+{
+	struct scsi_runq sleepers = TAILQ_HEAD_INITIALIZER(sleepers);
+	struct scsi_iopool *iopl = link->pool;
+	struct scsi_iohandler *ioh;
+	struct scsi_xshandler *xsh;
 
-	SC_DEBUG(sc_link, SDEV_DB3, ("scsi_free_xs\n"));
-	/* if was 0 and someone waits, wake them up */
-	sc_link->openings++;
-	if ((sc_link->flags & SDEV_WAITING) != 0) {
-		sc_link->flags &= ~SDEV_WAITING;
-		wakeup(sc_link);
-	} else {
-		if (sc_link->device->start) {
-			SC_DEBUG(sc_link, SDEV_DB2, ("calling private start()\n"));
-			(*(sc_link->device->start)) (sc_link->device_softc);
+//	mtx_enter(&iopl->mtx);//wan-
+	while ((ioh = TAILQ_FIRST(&link->queue)) != NULL) {
+		TAILQ_REMOVE(&link->queue, ioh, q_entry);
+		ioh->q_state = RUNQ_IDLE;
+
+		if (ioh->handler == scsi_xs_get_done)
+			TAILQ_INSERT_TAIL(&sleepers, ioh, q_entry);
+#ifdef DIAGNOSTIC
+		else
+			panic("scsi_link_shutdown: scsi_xshandler on link");
+#endif
+	}
+
+	ioh = TAILQ_FIRST(&iopl->queue);
+	while (ioh != NULL) {
+		xsh = (struct scsi_xshandler *)ioh;
+		ioh = TAILQ_NEXT(ioh, q_entry);
+
+#ifdef DIAGNOSTIC
+		if (xsh->ioh.handler == scsi_xsh_ioh &&
+		    xsh->link == link)
+			panic("scsi_link_shutdown: scsi_xshandler on pool");
+#endif
+
+		if (xsh->ioh.handler == scsi_xs_get_done &&
+		    xsh->link == link) {
+			TAILQ_REMOVE(&iopl->queue, &xsh->ioh, q_entry);
+			xsh->ioh.q_state = RUNQ_IDLE;
+			link->pending--;
+
+			TAILQ_INSERT_TAIL(&sleepers, &xsh->ioh, q_entry);
 		}
+	}
+
+#if 0 //wan-
+	while (link->pending > 0)
+		msleep(&link->pending, &iopl->mtx, PRIBIO, "pendxs", 0);
+#endif
+//	mtx_leave(&iopl->mtx);wan-
+
+	while ((ioh = TAILQ_FIRST(&sleepers)) != NULL) {
+		TAILQ_REMOVE(&sleepers, ioh, q_entry);
+		ioh->handler(ioh->cookie, NULL);
 	}
 }
 
-/*
- * Make a scsi_xfer, and return a pointer to it.
- */
-static __inline struct scsi_xfer *
-scsi_make_xs(sc_link, scsi_cmd, cmdlen, data_addr, datalen,
-	     retries, timeout, bp, flags)
-	struct scsi_link *sc_link;
-	struct scsi_generic *scsi_cmd;
-	int cmdlen;
-	u_char *data_addr;
-	int datalen;
-	int retries;
-	int timeout;
-	struct buf *bp;
-	int flags;
+int
+scsi_link_open(struct scsi_link *link)
+{
+	int open = 0;
+
+//	mtx_enter(&link->pool->mtx);//wan-
+	if (link->pending < link->openings) {
+		link->pending++;
+		open = 1;
+	}
+//	mtx_leave(&link->pool->mtx);//wan-
+
+	return (open);
+}
+
+void
+scsi_link_close(struct scsi_link *link)
+{
+//	mtx_enter(&link->pool->mtx);//wan-
+	link->pending--;
+	if (ISSET(link->state, SDEV_S_DYING) && link->pending == 0)
+		wakeup_one(&link->pending);
+//	mtx_leave(&link->pool->mtx);//wan-
+
+	scsi_xsh_runqueue(link);
+}
+
+struct scsi_xfer *
+scsi_xs_io(struct scsi_link *link, void *io, int flags)
 {
 	struct scsi_xfer *xs;
 
-	if ((xs = scsi_get_xs(sc_link, flags)) == NULL)
-		return NULL;
+	//xs = pool_get(&scsi_xfer_pool, PR_ZERO |
+	//    (ISSET(flags, SCSI_NOSLEEP) ? PR_NOWAIT : PR_WAITOK));//wan-
+	xs = malloc(sizeof(struct scsi_xfer ), M_TEMP, M_NOWAIT);//wan^ resolve the panic
+	bzero(xs, sizeof(struct scsi_xfer ));//wan+
+	if (xs == NULL) {
+		scsi_io_put(link->pool, io);
+		scsi_link_close(link);
+	} else {
+		xs->flags = flags;
+		xs->sc_link = link;
+		xs->retries = SCSI_RETRIES;
+		xs->timeout = 10000;
+		xs->cmd = &xs->cmdstore;
+		xs->io = io;
+	}
 
-	/*
-	 * Fill out the scsi_xfer structure.  We don't know whose context
-	 * the cmd is in, so copy it.
-	 */
-	xs->sc_link = sc_link;
-	bcopy(scsi_cmd, &xs->cmdstore, cmdlen);
-	xs->cmd = &xs->cmdstore;
-	xs->cmdlen = cmdlen;
-	xs->data = data_addr;
-	xs->datalen = datalen;
-	xs->retries = retries;
-	xs->timeout = timeout;
-	xs->bp = bp;
-	xs->req_sense_length = 0;	/* XXX - not used by scsi internals */
+	return (xs);
+}
 
-	/*
-	 * Set the LUN in the CDB.  This may only be needed if we have an
-	 * older device.  However, we also set it for more modern SCSI
-	 * devices "just in case".  The old code assumed everything newer
-	 * than SCSI-2 would not need it, but why risk it?  This was the
-	 * old conditional:
-	 *
-	 * if ((sc_link->scsi_version & SID_ANSII) <= 2)
-	 */
-	xs->cmd->bytes[0] &= ~SCSI_CMD_LUN_MASK;
-	xs->cmd->bytes[0] |=
-	    ((sc_link->lun << SCSI_CMD_LUN_SHIFT) & SCSI_CMD_LUN_MASK);
+void
+scsi_xs_put(struct scsi_xfer *xs)
+{
+	struct scsi_link *link = xs->sc_link;
+	void *io = xs->io;
 
-	return xs;
+//	pool_put(&scsi_xfer_pool, xs);//wan-
+	free(xs, M_TEMP);//wan^
+
+	scsi_io_put(link->pool, io);
+	scsi_link_close(link);
 }
 
 /*
  * Find out from the device what its capacity is.
  */
-u_long
-scsi_size(sc_link, flags)
-	struct scsi_link *sc_link;
-	int flags;
+int64_t
+scsi_size(struct scsi_link *sc_link, int flags, u_int32_t *blksize)
 {
-	struct scsi_read_cap_data rdcap;
-	struct scsi_read_capacity scsi_cmd;
+	struct scsi_read_cap_data_16 *rdcap16;
+	struct scsi_read_capacity_16 *cmd;
+	struct scsi_read_cap_data *rdcap;
+	struct scsi_read_capacity *cmd10;
+	struct scsi_xfer *xs;
+	//daddr64_t max_addr;//wan-
+	int64_t max_addr;//wan^
+	int error;
+
+	if (blksize != NULL)
+		*blksize = 0;
+
+	CLR(flags, SCSI_IGNORE_ILLEGAL_REQUEST);
 
 	/*
-	 * make up a scsi command and ask the scsi driver to do
-	 * it for you.
+	 * Start with a READ CAPACITY(10).
 	 */
-	bzero(&scsi_cmd, sizeof(scsi_cmd));
-	scsi_cmd.opcode = READ_CAPACITY;
+	rdcap = malloc(sizeof(*rdcap), M_TEMP, ((flags & SCSI_NOSLEEP) ?
+	    M_NOWAIT : M_WAITOK) | M_ZERO);
+	if (rdcap == NULL)
+		return (0);
 
-	/*
-	 * If the command works, interpret the result as a 4 byte
-	 * number of blocks
-	 */
-	if (scsi_scsi_cmd(sc_link, (struct scsi_generic *)&scsi_cmd,
-			  sizeof(scsi_cmd), (u_char *)&rdcap, sizeof(rdcap),
-			  2, 20000, NULL, flags | SCSI_DATA_IN) != 0) {
-		sc_print_addr(sc_link);
-		printf("could not get size\n");
-		return 0;
+	xs = scsi_xs_get(sc_link, flags | SCSI_DATA_IN | SCSI_SILENT);
+	if (xs == NULL) {
+		free(rdcap, M_TEMP);
+		return (0);
+	}
+	xs->cmdlen = sizeof(*cmd10);
+	xs->data = (void *)rdcap;
+	xs->datalen = sizeof(*rdcap);
+	xs->timeout = 20000;
+
+	cmd10 = (struct scsi_read_capacity *)xs->cmd;
+	cmd10->opcode = READ_CAPACITY;
+
+	error = scsi_xs_sync(xs);
+	scsi_xs_put(xs);
+
+	if (error) {
+		SC_DEBUG(sc_link, SDEV_DB1, ("READ CAPACITY error (%#x)\n",
+		    error));
+		free(rdcap, M_TEMP);
+		return (0);
 	}
 
-	return _4btol(rdcap.addr) + 1;
+	max_addr = _4btol(rdcap->addr);
+	if (blksize != NULL)
+		*blksize = _4btol(rdcap->length);
+	free(rdcap, M_TEMP);
+
+	if (SCSISPC(sc_link->inqdata.version) < 3 && max_addr != 0xffffffff)
+		goto exit;
+
+	/*
+	 * SCSI-3 devices, or devices reporting more than 2^32-1 sectors can
+	 * try READ CAPACITY(16).
+	 */
+	rdcap16 = malloc(sizeof(*rdcap16), M_TEMP, ((flags & SCSI_NOSLEEP) ?
+	    M_NOWAIT : M_WAITOK) | M_ZERO);
+	if (rdcap16 == NULL)
+		goto exit;
+
+	xs = scsi_xs_get(sc_link, flags | SCSI_DATA_IN | SCSI_SILENT);
+	if (xs == NULL) {
+		free(rdcap16, M_TEMP);
+		goto exit;
+	}
+	xs->cmdlen = sizeof(*cmd);
+	xs->data = (void *)rdcap16;
+	xs->datalen = sizeof(*rdcap16);
+	xs->timeout = 20000;
+
+	cmd = (struct scsi_read_capacity_16 *)xs->cmd;
+	cmd->opcode = READ_CAPACITY_16;
+	cmd->byte2 = SRC16_SERVICE_ACTION;
+	_lto4b(sizeof(*rdcap16), cmd->length);
+
+	error = scsi_xs_sync(xs);
+	scsi_xs_put(xs);
+	if (error) {
+		SC_DEBUG(sc_link, SDEV_DB1, ("READ CAPACITY 16 error (%#x)\n",
+		    error));
+		free(rdcap16, M_TEMP);
+		goto exit;
+	}
+
+	max_addr = _8btol(rdcap16->addr);
+	if (blksize != NULL)
+		*blksize = _4btol(rdcap16->length);
+	/* XXX The other READ CAPACITY(16) info could be stored away. */
+	free(rdcap16, M_TEMP);
+
+	return (max_addr + 1);
+
+exit:
+	/* Return READ CAPACITY 10 values. */
+	if (max_addr != 0xffffffff)
+		return (max_addr + 1);
+	else if (blksize != NULL)
+		*blksize = 0;
+	return (0);
 }
 
 /*
  * Get scsi driver to send a "are you ready?" command
  */
-int 
-scsi_test_unit_ready(sc_link, flags)
-	struct scsi_link *sc_link;
-	int flags;
+int
+scsi_test_unit_ready(struct scsi_link *sc_link, int retries, int flags)
 {
-	struct scsi_test_unit_ready scsi_cmd;
+	struct scsi_test_unit_ready *cmd;
+	struct scsi_xfer *xs;
+	int error;
 
-	bzero(&scsi_cmd, sizeof(scsi_cmd));
-	scsi_cmd.opcode = TEST_UNIT_READY;
+	xs = scsi_xs_get(sc_link, flags);
+	if (xs == NULL)
+		return (ENOMEM);
+	xs->cmdlen = sizeof(*cmd);
+	xs->retries = retries;
+	xs->timeout = 10000;
 
-	return scsi_scsi_cmd(sc_link, (struct scsi_generic *) &scsi_cmd,
-			     sizeof(scsi_cmd), 0, 0, 5, 10000, NULL, flags);
+	cmd = (struct scsi_test_unit_ready *)xs->cmd;
+	cmd->opcode = TEST_UNIT_READY;
+
+	error = scsi_xs_sync(xs);
+	scsi_xs_put(xs);
+
+	return (error);
 }
 
 /*
- * Do a scsi operation, asking a device to run as SCSI-II if it can.
- */
-int 
-scsi_change_def(sc_link, flags)
-	struct scsi_link *sc_link;
-	int flags;
-{
-	struct scsi_changedef scsi_cmd;
-
-	bzero(&scsi_cmd, sizeof(scsi_cmd));
-	scsi_cmd.opcode = CHANGE_DEFINITION;
-	scsi_cmd.how = SC_SCSI_2;
-
-	return scsi_scsi_cmd(sc_link, (struct scsi_generic *) &scsi_cmd,
-			     sizeof(scsi_cmd), 0, 0, 2, 100000, NULL, flags);
-}
-
-/*
- * Do a scsi operation asking a device what it is
+ * Do a scsi operation asking a device what it is.
  * Use the scsi_cmd routine in the switch table.
  */
-int 
-scsi_inquire(sc_link, inqbuf, flags)
-	struct scsi_link *sc_link;
-	struct scsi_inquiry_data *inqbuf;
-	int flags;
+int
+scsi_inquire(struct scsi_link *link, struct scsi_inquiry_data *inqbuf,
+    int flags)
 {
-	struct scsi_inquiry scsi_cmd;
+	struct scsi_inquiry *cmd;
+	struct scsi_xfer *xs;
+	size_t length;
+	int error;
 
-	bzero(&scsi_cmd, sizeof(scsi_cmd));
-	scsi_cmd.opcode = INQUIRY;
-	scsi_cmd.length = sizeof(struct scsi_inquiry_data);
+	xs = scsi_xs_get(link, flags);
+	if (xs == NULL)
+		return (EBUSY);
 
-	return scsi_scsi_cmd(sc_link, (struct scsi_generic *) &scsi_cmd,
-			     sizeof(scsi_cmd), (u_char *) inqbuf,
-			     sizeof(struct scsi_inquiry_data), 2, 10000, NULL,
-			     SCSI_DATA_IN | flags);
+	/*
+	 * Ask for only the basic 36 bytes of SCSI2 inquiry information. This
+	 * avoids problems with devices that choke trying to supply more.
+	 */
+	length = SID_INQUIRY_HDR + SID_SCSI2_ALEN;
+
+	cmd = (struct scsi_inquiry *)xs->cmd;
+	cmd->opcode = INQUIRY;
+	_lto2b(length, cmd->length);
+
+	xs->cmdlen = sizeof(*cmd);
+
+	xs->flags |= SCSI_DATA_IN;
+	xs->data = (void *)inqbuf;
+	xs->datalen = length;
+
+	bzero(inqbuf, sizeof(*inqbuf));
+	memset(&inqbuf->vendor, ' ', sizeof inqbuf->vendor);
+	memset(&inqbuf->product, ' ', sizeof inqbuf->product);
+	memset(&inqbuf->revision, ' ', sizeof inqbuf->revision);
+	memset(&inqbuf->extra, ' ', sizeof inqbuf->extra);
+
+	error = scsi_xs_sync(xs);
+
+	scsi_xs_put(xs);
+
+	return (error);
+}
+
+/*
+ * Query a VPD inquiry page
+ */
+int
+scsi_inquire_vpd(struct scsi_link *sc_link, void *buf, u_int buflen,
+    u_int8_t page, int flags)
+{
+	struct scsi_inquiry *cmd;
+	struct scsi_xfer *xs;
+	int error;
+
+	bzero(buf, buflen);
+
+	if (sc_link->flags & SDEV_UMASS)
+		return (EJUSTRETURN);
+
+	xs = scsi_xs_get(sc_link, flags | SCSI_DATA_IN | SCSI_SILENT);
+	if (xs == NULL)
+		return (ENOMEM);
+	xs->cmdlen = sizeof(*cmd);
+	xs->data = buf;
+	xs->datalen = buflen;
+	xs->retries = 2;
+	xs->timeout = 10000;
+
+	cmd = (struct scsi_inquiry *)xs->cmd;
+	cmd->opcode = INQUIRY;
+	cmd->flags = SI_EVPD;
+	cmd->pagecode = page;
+	_lto2b(buflen, cmd->length);
+
+	error = scsi_xs_sync(xs);
+	scsi_xs_put(xs);
+
+	return (error);
 }
 
 /*
  * Prevent or allow the user to remove the media
  */
-int 
-scsi_prevent(sc_link, type, flags)
-	struct scsi_link *sc_link;
-	int type, flags;
+int
+scsi_prevent(struct scsi_link *sc_link, int type, int flags)
 {
-	struct scsi_prevent scsi_cmd;
+	struct scsi_prevent *cmd;
+	struct scsi_xfer *xs;
+	int error;
 
-	bzero(&scsi_cmd, sizeof(scsi_cmd));
-	scsi_cmd.opcode = PREVENT_ALLOW;
-	scsi_cmd.how = type;
-	return scsi_scsi_cmd(sc_link, (struct scsi_generic *) &scsi_cmd,
-			     sizeof(scsi_cmd), 0, 0, 2, 5000, NULL, flags);
+	if (sc_link->quirks & ADEV_NODOORLOCK)
+		return (0);
+
+	xs = scsi_xs_get(sc_link, flags);
+	if (xs == NULL)
+		return (ENOMEM);
+	xs->cmdlen = sizeof(*cmd);
+	xs->retries = 2;
+	xs->timeout = 5000;
+
+	cmd = (struct scsi_prevent *)xs->cmd;
+	cmd->opcode = PREVENT_ALLOW;
+	cmd->how = type;
+
+	error = scsi_xs_sync(xs);
+	scsi_xs_put(xs);
+
+	return (error);
 }
 
 /*
  * Get scsi driver to send a "start up" command
  */
-int 
-scsi_start(sc_link, type, flags)
-	struct scsi_link *sc_link;
-	int type, flags;
+int
+scsi_start(struct scsi_link *sc_link, int type, int flags)
 {
-	struct scsi_start_stop scsi_cmd;
-
-	if ((sc_link->quirks & SDEV_NOSTARTUNIT) == SDEV_NOSTARTUNIT)
-		return 0;
-
-	bzero(&scsi_cmd, sizeof(scsi_cmd));
-	scsi_cmd.opcode = START_STOP;
-	scsi_cmd.byte2 = 0x00;
-	scsi_cmd.how = type;
-	return scsi_scsi_cmd(sc_link, (struct scsi_generic *) &scsi_cmd,
-			     sizeof(scsi_cmd), 0, 0, 2,
-			     type == SSS_START ? 30000 : 10000, NULL, flags);
-}
-
-/*
- * This routine is called by the scsi interrupt when the transfer is complete.
- */
-void 
-scsi_done(xs)
+	struct scsi_start_stop *cmd;
 	struct scsi_xfer *xs;
-{
-	struct scsi_link *sc_link = xs->sc_link;
-	struct buf *bp;
 	int error;
 
-	SC_DEBUG(sc_link, SDEV_DB2, ("scsi_done\n"));
-#ifdef	SCSIDEBUG
-	if ((sc_link->flags & SDEV_DB1) != 0)
-		show_scsi_cmd(xs);
-#endif /* SCSIDEBUG */
+	xs = scsi_xs_get(sc_link, flags);
+	if (xs == NULL)
+		return (ENOMEM);
+	xs->cmdlen = sizeof(*cmd);
+	xs->retries = 2;
+	xs->timeout = (type == SSS_START) ? 30000 : 10000;
 
-#ifndef PMON
-	/*
- 	 * If it's a user level request, bypass all usual completion processing,
- 	 * let the user work it out.. We take reponsibility for freeing the
- 	 * xs when the user returns. (and restarting the device's queue).
- 	 */
-	if ((xs->flags & SCSI_USER) != 0) {
-		SC_DEBUG(sc_link, SDEV_DB3, ("calling user done()\n"));
-		scsi_user_done(xs); /* to take a copy of the sense etc. */
-		SC_DEBUG(sc_link, SDEV_DB3, ("returned from user done()\n "));
+	cmd = (struct scsi_start_stop *)xs->cmd;
+	cmd->opcode = START_STOP;
+	cmd->how = type;
 
-		scsi_free_xs(xs, SCSI_NOSLEEP); /* restarts queue too */
-		SC_DEBUG(sc_link, SDEV_DB3, ("returning to adapter\n"));
-		return;
-	}
-#endif
+	error = scsi_xs_sync(xs);
+	scsi_xs_put(xs);
 
-	if (!((xs->flags & (SCSI_NOSLEEP | SCSI_POLL)) == SCSI_NOSLEEP)) {
-		/*
-		 * if it's a normal upper level request, then ask
-		 * the upper level code to handle error checking
-		 * rather than doing it here at interrupt time
-		 */
-		wakeup(xs);
-		return;
-	}
-
-	/*
-	 * Go and handle errors now.
-	 * If it returns ERESTART then we should RETRY
-	 */
-retry:
-	error = sc_err1(xs, 1);
-	if (error == ERESTART) {
-		switch ((*(sc_link->adapter->scsi_cmd)) (xs)) {
-		case SUCCESSFULLY_QUEUED:
-			return;
-
-		case TRY_AGAIN_LATER:
-			xs->error = XS_BUSY;
-		case COMPLETE:
-			goto retry;
-		}
-	}
-
-	bp = xs->bp;
-	if (bp) {
-		if (error) {
-			bp->b_error = error;
-			bp->b_flags |= B_ERROR;
-			bp->b_resid = bp->b_bcount;
-		} else {
-			bp->b_error = 0;
-			bp->b_resid = xs->resid;
-		}
-	}
-	if (sc_link->device->done) {
-		/*
-		 * Tell the device the operation is actually complete.
-		 * No more will happen with this xfer.  This for
-		 * notification of the upper-level driver only; they
-		 * won't be returning any meaningful information to us.
-		 */
-		(*sc_link->device->done)(xs);
-	}
-	scsi_free_xs(xs, SCSI_NOSLEEP);
-	if (bp)
-		biodone(bp);
+	return (error);
 }
 
 int
-scsi_execute_xs(xs)
-	struct scsi_xfer *xs;
+scsi_mode_sense(struct scsi_link *sc_link, int byte2, int page,
+    struct scsi_mode_header *data, size_t len, int flags, int timeout)
 {
+	struct scsi_mode_sense *cmd;
+	struct scsi_xfer *xs;
 	int error;
-	int s;
 
-	xs->flags &= ~ITSDONE;
+	xs = scsi_xs_get(sc_link, flags | SCSI_DATA_IN);
+	if (xs == NULL)
+		return (ENOMEM);
+	xs->cmdlen = sizeof(*cmd);
+	xs->data = (void *)data;
+	xs->datalen = len;
+	xs->timeout = timeout;
+
+	/*
+	 * Make sure the sense buffer is clean before we do the mode sense, so
+	 * that checks for bogus values of 0 will work in case the mode sense
+	 * fails.
+	 */
+	bzero(data, len);
+
+	cmd = (struct scsi_mode_sense *)xs->cmd;
+	cmd->opcode = MODE_SENSE;
+	cmd->byte2 = byte2;
+	cmd->page = page;
+
+	if (len > 0xff)
+		len = 0xff;
+	cmd->length = len;
+
+	error = scsi_xs_sync(xs);
+	scsi_xs_put(xs);
+
+	SC_DEBUG(sc_link, SDEV_DB2, ("scsi_mode_sense: page %#x, error = %d\n",
+	    page, error));
+
+	return (error);
+}
+
+int
+scsi_mode_sense_big(struct scsi_link *sc_link, int byte2, int page,
+    struct scsi_mode_header_big *data, size_t len, int flags, int timeout)
+{
+	struct scsi_mode_sense_big *cmd;
+	struct scsi_xfer *xs;
+	int error;
+
+	xs = scsi_xs_get(sc_link, flags | SCSI_DATA_IN);
+	if (xs == NULL)
+		return (ENOMEM);
+	xs->cmdlen = sizeof(*cmd);
+	xs->data = (void *)data;
+	xs->datalen = len;
+	xs->timeout = timeout;
+
+	/*
+	 * Make sure the sense buffer is clean before we do the mode sense, so
+	 * that checks for bogus values of 0 will work in case the mode sense
+	 * fails.
+	 */
+	bzero(data, len);
+
+	cmd = (struct scsi_mode_sense_big *)xs->cmd;
+	cmd->opcode = MODE_SENSE_BIG;
+	cmd->byte2 = byte2;
+	cmd->page = page;
+
+	if (len > 0xffff)
+		len = 0xffff;
+	_lto2b(len, cmd->length);
+
+	error = scsi_xs_sync(xs);
+	scsi_xs_put(xs);
+
+	SC_DEBUG(sc_link, SDEV_DB2,
+	    ("scsi_mode_sense_big: page %#x, error = %d\n", page, error));
+
+	return (error);
+}
+
+void *
+scsi_mode_sense_page(struct scsi_mode_header *hdr, const int page_len)
+{
+	int					total_length, header_length;
+
+	total_length = hdr->data_length + sizeof(hdr->data_length);
+	header_length = sizeof(*hdr) + hdr->blk_desc_len;
+
+	if ((total_length - header_length) < page_len)
+		return (NULL);
+
+	return ((u_char *)hdr + header_length);
+}
+
+void *
+scsi_mode_sense_big_page(struct scsi_mode_header_big *hdr, const int page_len)
+{
+	int					total_length, header_length;
+
+	total_length = _2btol(hdr->data_length) + sizeof(hdr->data_length);
+	header_length = sizeof(*hdr) + _2btol(hdr->blk_desc_len);
+
+	if ((total_length - header_length) < page_len)
+		return (NULL);
+
+	return ((u_char *)hdr + header_length);
+}
+
+int
+scsi_do_mode_sense(struct scsi_link *sc_link, int page,
+    union scsi_mode_sense_buf *buf, void **page_data, u_int32_t *density,
+    u_int64_t *block_count, u_int32_t *block_size, int page_len, int flags,
+    int *big)
+{
+	struct scsi_direct_blk_desc		*direct;
+	struct scsi_blk_desc			*general;
+	int					error, blk_desc_len, offset;
+
+	*page_data = NULL;
+
+	if (density != NULL)
+		*density = 0;
+	if (block_count != NULL)
+		*block_count = 0;
+	if (block_size != NULL)
+		*block_size = 0;
+	if (big != NULL)
+		*big = 0;
+
+	if ((sc_link->flags & SDEV_ATAPI) == 0 ||
+	    (sc_link->inqdata.device & SID_TYPE) == T_SEQUENTIAL) {
+		/*
+		 * Try 6 byte mode sense request first. Some devices don't
+		 * distinguish between 6 and 10 byte MODE SENSE commands,
+		 * returning 6 byte data for 10 byte requests. ATAPI tape
+		 * drives use MODE SENSE (6) even though ATAPI uses 10 byte
+		 * everything else. Don't bother with SMS_DBD. Check returned
+		 * data length to ensure that at least a header (3 additional
+		 * bytes) is returned.
+		 */
+		error = scsi_mode_sense(sc_link, 0, page, &buf->hdr,
+		    sizeof(*buf), flags, 20000);
+		if (error == 0) {
+			*page_data = scsi_mode_sense_page(&buf->hdr, page_len);
+			if (*page_data == NULL) {
+				/*
+				 * XXX
+				 * Page data may be invalid (e.g. all zeros)
+				 * but we accept the device's word that this is
+				 * the best it can do. Some devices will freak
+				 * out if their word is not accepted and 
+				 * MODE_SENSE_BIG is attempted.
+				 */
+				return (0);
+			}
+			offset = sizeof(struct scsi_mode_header);
+			blk_desc_len = buf->hdr.blk_desc_len;
+			goto blk_desc;
+		}
+	}
+
+	/*
+	 * Try 10 byte mode sense request. Don't bother with SMS_DBD or
+	 * SMS_LLBAA. Bail out if the returned information is less than
+	 * a big header in size (6 additional bytes).
+	 */
+	error = scsi_mode_sense_big(sc_link, 0, page, &buf->hdr_big,
+	    sizeof(*buf), flags, 20000);
+	if (error != 0)
+		return (error);
+	if (_2btol(buf->hdr_big.data_length) < 6)
+		return (EIO);
+
+	if (big != NULL)
+		*big = 1;
+	offset = sizeof(struct scsi_mode_header_big);
+	*page_data = scsi_mode_sense_big_page(&buf->hdr_big, page_len);
+	blk_desc_len = _2btol(buf->hdr_big.blk_desc_len);
+
+blk_desc:
+	/* Both scsi_blk_desc and scsi_direct_blk_desc are 8 bytes. */
+	if (blk_desc_len == 0 || (blk_desc_len % 8 != 0))
+		return (0);
+
+	switch (sc_link->inqdata.device & SID_TYPE) {
+	case T_SEQUENTIAL:
+		/*
+		 * XXX What other device types return general block descriptors?
+		 */
+		general = (struct scsi_blk_desc *)&buf->buf[offset];
+		if (density != NULL)
+			*density = general->density;
+		if (block_size != NULL)
+			*block_size = _3btol(general->blklen);
+		if (block_count != NULL)
+			*block_count = (u_int64_t)_3btol(general->nblocks);
+		break;
+
+	default:
+		direct = (struct scsi_direct_blk_desc *)&buf->buf[offset];
+		if (density != NULL)
+			*density = direct->density;
+		if (block_size != NULL)
+			*block_size = _3btol(direct->blklen);
+		if (block_count != NULL)
+			*block_count = (u_int64_t)_4btol(direct->nblocks);
+		break;
+	}
+
+	return (0);
+}
+
+int
+scsi_mode_select(struct scsi_link *sc_link, int byte2,
+    struct scsi_mode_header *data, int flags, int timeout)
+{
+	struct scsi_mode_select *cmd;
+	struct scsi_xfer *xs;
+	u_int32_t len;
+	int error;
+
+	len = data->data_length + 1; /* 1 == sizeof(data_length) */
+
+	xs = scsi_xs_get(sc_link, flags | SCSI_DATA_OUT);
+	if (xs == NULL)
+		return (ENOMEM);
+	xs->cmdlen = sizeof(*cmd);
+	xs->data = (void *)data;
+	xs->datalen = len;
+	xs->timeout = timeout;
+
+	cmd = (struct scsi_mode_select *)xs->cmd;
+	cmd->opcode = MODE_SELECT;
+	cmd->byte2 = byte2;
+	cmd->length = len;
+
+	/* Length is reserved when doing mode select so zero it. */
+	data->data_length = 0;
+
+	error = scsi_xs_sync(xs);
+	scsi_xs_put(xs);
+
+	SC_DEBUG(sc_link, SDEV_DB2, ("scsi_mode_select: error = %d\n", error));
+
+	return (error);
+}
+
+int
+scsi_mode_select_big(struct scsi_link *sc_link, int byte2,
+    struct scsi_mode_header_big *data, int flags, int timeout)
+{
+	struct scsi_mode_select_big *cmd;
+	struct scsi_xfer *xs;
+	u_int32_t len;
+	int error;
+
+	len = _2btol(data->data_length) + 2; /* 2 == sizeof data_length */
+
+	xs = scsi_xs_get(sc_link, flags | SCSI_DATA_OUT);
+	if (xs == NULL)
+		return (ENOMEM);
+	xs->cmdlen = sizeof(*cmd);
+	xs->data = (void *)data;
+	xs->datalen = len;
+	xs->timeout = timeout;
+
+	cmd = (struct scsi_mode_select_big *)xs->cmd;
+	cmd->opcode = MODE_SELECT_BIG;
+	cmd->byte2 = byte2;
+	_lto2b(len, cmd->length);
+
+	/* Length is reserved when doing mode select so zero it. */
+	_lto2b(0, data->data_length);
+
+	error = scsi_xs_sync(xs);
+	scsi_xs_put(xs);
+
+	SC_DEBUG(sc_link, SDEV_DB2, ("scsi_mode_select_big: error = %d\n",
+	    error));
+
+	return (error);
+}
+
+int
+scsi_report_luns(struct scsi_link *sc_link, int selectreport,
+    struct scsi_report_luns_data *data, u_int32_t datalen, int flags,
+    int timeout)
+{
+	struct scsi_report_luns *cmd;
+	struct scsi_xfer *xs;
+	int error;
+
+	xs = scsi_xs_get(sc_link, flags | SCSI_DATA_IN);
+	if (xs == NULL)
+		return (ENOMEM);
+	xs->cmdlen = sizeof(*cmd);
+	xs->data = (void *)data;
+	xs->datalen = datalen;
+	xs->timeout = timeout;
+
+	bzero(data, datalen);
+
+	cmd = (struct scsi_report_luns *)xs->cmd;
+	cmd->opcode = REPORT_LUNS;
+	cmd->selectreport = selectreport;
+	_lto4b(datalen, cmd->length);
+
+	error = scsi_xs_sync(xs);
+	scsi_xs_put(xs);
+
+	SC_DEBUG(sc_link, SDEV_DB2, ("scsi_report_luns: error = %d\n", error));
+
+	return (error);
+}
+
+void
+scsi_xs_exec(struct scsi_xfer *xs)
+{
 	xs->error = XS_NOERROR;
 	xs->resid = xs->datalen;
 	xs->status = 0;
+	CLR(xs->flags, ITSDONE);
 
-retry:
-	/*
-	 * Do the transfer. If we are polling we will return:
-	 * COMPLETE,  Was poll, and scsi_done has been called
-	 * TRY_AGAIN_LATER, Adapter short resources, try again
-	 * 
-	 * if under full steam (interrupts) it will return:
-	 * SUCCESSFULLY_QUEUED, will do a wakeup when complete
-	 * TRY_AGAIN_LATER, (as for polling)
-	 * After the wakeup, we must still check if it succeeded
-	 * 
-	 * If we have a SCSI_NOSLEEP (typically because we have a buf)
-	 * we just return.  All the error proccessing and the buffer
-	 * code both expect us to return straight to them, so as soon
-	 * as the command is queued, return.
-	 */
-	switch ((*(xs->sc_link->adapter->scsi_cmd)) (xs)) {
-	case SUCCESSFULLY_QUEUED:
-		if ((xs->flags & (SCSI_NOSLEEP | SCSI_POLL)) == SCSI_NOSLEEP)
-			return EJUSTRETURN;
-#ifdef DIAGNOSTIC
-		if (xs->flags & SCSI_NOSLEEP)
-			panic("scsi_execute_xs: NOSLEEP and POLL");
-#endif
-		s = splbio();
-		while ((xs->flags & ITSDONE) == 0) {
-			tsleep(xs, PRIBIO + 1, "scsi_scsi_cmd", 0);
-		}
-		splx(s);
-	case COMPLETE:		/* Polling command completed ok */
-		if (xs->bp)
-			return EJUSTRETURN;
-	doit:
-		SC_DEBUG(xs->sc_link, SDEV_DB3, ("back in cmd()\n"));
-		if ((error = sc_err1(xs, 0)) != ERESTART)
-			return error;
-		goto retry;
-
-	case TRY_AGAIN_LATER:	/* adapter resource shortage */
-		xs->error = XS_BUSY;
-		goto doit;
-
-	default:
-		panic("scsi_execute_xs: invalid return code");
+#ifdef SCSIDEBUG
+	if (xs->sc_link->flags & SDEV_DB1) {
+		scsi_xs_show(xs);
+		if (xs->datalen && (xs->flags & SCSI_DATA_OUT))
+			scsi_show_mem(xs->data, min(64, xs->datalen));
 	}
-
-#ifdef DIAGNOSTIC
-	panic("scsi_execute_xs: impossible");
 #endif
-	return EINVAL;
+
+	/* The adapter's scsi_cmd() is responsible for callng scsi_done(). */
+	xs->sc_link->adapter->scsi_cmd(xs);//wan: xs->sc_link->adapter = &mfi_switch; ...->scsi_cmd() = mfi_scsi_cmd();
 }
 
 /*
- * ask the scsi driver to perform a command for us.
- * tell it where to read/write the data, and how
- * long the data is supposed to be. If we have  a buf
- * to associate with the transfer, we need that too.
+ * This routine is called by the adapter when its xs handling is done.
  */
-int 
-scsi_scsi_cmd(sc_link, scsi_cmd, cmdlen, data_addr, datalen,
-    retries, timeout, bp, flags)
-	struct scsi_link *sc_link;
-	struct scsi_generic *scsi_cmd;
-	int cmdlen;
-	u_char *data_addr;
-	int datalen;
-	int retries;
-	int timeout;
-	struct buf *bp;
-	int flags;
+void
+scsi_done(struct scsi_xfer *xs)
 {
-	struct scsi_xfer *xs;
-	int error;
-
-	SC_DEBUG(sc_link, SDEV_DB2, ("scsi_cmd\n"));
-
-#ifdef DIAGNOSTIC
-	if (bp != 0 && (flags & SCSI_NOSLEEP) == 0)
-		panic("scsi_scsi_cmd: buffer without nosleep");
-#endif
-
-	if ((xs = scsi_make_xs(sc_link, scsi_cmd, cmdlen, data_addr, datalen,
-	    retries, timeout, bp, flags)) == NULL)
-		return ENOMEM;
-
-	if ((error = scsi_execute_xs(xs)) == EJUSTRETURN) {
-		return 0;
+#ifdef SCSIDEBUG
+	if (xs->sc_link->flags & SDEV_DB1) {
+		if (xs->datalen && (xs->flags & SCSI_DATA_IN))
+			scsi_show_mem(xs->data, min(64, xs->datalen));
 	}
+#endif /* SCSIDEBUG */
 
-	/*
-	 * we have finished with the xfer stuct, free it and
-	 * check if anyone else needs to be started up.
-	 */
-	scsi_free_xs(xs, flags);
-	return error;
+	SET(xs->flags, ITSDONE);
+	xs->done(xs);
 }
 
-int 
-sc_err1(xs, async)
-	struct scsi_xfer *xs;
-	int async;
+int
+scsi_xs_sync(struct scsi_xfer *xs)
 {
+//	struct mutex cookie = MUTEX_INITIALIZER(IPL_BIO);//wan-
 	int error;
 
-	SC_DEBUG(xs->sc_link, SDEV_DB3, ("sc_err1,err = 0x%x \n", xs->error));
+#ifdef DIAGNOSTIC
+	if (xs->cookie != NULL)
+		panic("xs->cookie != NULL in scsi_xs_sync");
+	if (xs->done != NULL)
+		panic("xs->done != NULL in scsi_xs_sync");
+#endif
 
 	/*
-	 * If it has a buf, we might be working with
-	 * a request from the buffer cache or some other
-	 * piece of code that requires us to process
-	 * errors at interrupt time. We have probably
-	 * been called by scsi_done()
+	 * If we cant sleep while waiting for completion, get the adapter to
+	 * complete it for us.
 	 */
+	if (ISSET(xs->flags, SCSI_NOSLEEP))
+		SET(xs->flags, SCSI_POLL);
+
+	xs->done = scsi_xs_sync_done;
+
+	do {
+//		xs->cookie = &cookie;//wan-
+
+		scsi_xs_exec(xs);
+
+//		mtx_enter(&cookie);//wan-
+#if 0 //wan-
+		while (xs->cookie != NULL)
+			msleep(xs, &cookie, PRIBIO, "syncxs", 0);
+#endif
+//		mtx_leave(&cookie);//wan-
+
+		error = scsi_xs_error(xs);
+	} while (error == ERESTART);
+
+	return (error);
+}
+
+void
+scsi_xs_sync_done(struct scsi_xfer *xs)
+{
+#if 0 //wan-
+	struct mutex *cookie = xs->cookie;
+
+	if (cookie == NULL)
+		panic("scsi_done called twice on xs(%p)", xs);
+
+	mtx_enter(cookie);
+	xs->cookie = NULL;
+	if (!ISSET(xs->flags, SCSI_NOSLEEP))
+		wakeup_one(xs);
+	mtx_leave(cookie);
+#endif
+}
+
+int
+scsi_xs_error(struct scsi_xfer *xs)
+{
+	int error = EIO;
+
+	SC_DEBUG(xs->sc_link, SDEV_DB3, ("scsi_xs_error,err = 0x%x\n",
+	    xs->error));
+
+	if (ISSET(xs->sc_link->state, SDEV_S_DYING))
+		return (ENXIO);
+
 	switch (xs->error) {
 	case XS_NOERROR:	/* nearly always hit this one */
 		error = 0;
@@ -539,70 +1502,92 @@ sc_err1(xs, async)
 
 	case XS_SENSE:
 	case XS_SHORTSENSE:
-		if ((error = scsi_interpret_sense(xs)) == ERESTART) {
-			if (xs->error == XS_BUSY) {
-				xs->error = XS_SENSE;
-				goto sense_retry;
-			}
-			goto retry;
-		}
+#ifdef SCSIDEBUG
+		scsi_sense_print_debug(xs);
+#endif
+		error = xs->sc_link->interpret_sense(xs);
 		SC_DEBUG(xs->sc_link, SDEV_DB3,
-		    ("scsi_interpret_sense returned %d\n", error));
+		    ("scsi_interpret_sense returned %#x\n", error));
 		break;
 
+	case XS_NO_CCB:
 	case XS_BUSY:
-	sense_retry:
-		if (xs->retries) {
-			if ((xs->flags & SCSI_POLL) != 0)
-				delay(1000000);
-#if 0
-			else if ((xs->flags & SCSI_NOSLEEP) == 0) {
-				tsleep(&lbolt, PRIBIO, "scbusy", 0);
-			}
-#endif
-			else {
-#if 0
-				timeout(scsi_requeue, xs, hz);
-#else
-				goto lose;
-#endif
-			}
-		}
+		error = scsi_delay(xs, 1);
+		break;
+
 	case XS_TIMEOUT:
-	retry:
-		if (xs->retries--) {
-			xs->error = XS_NOERROR;
-			xs->flags &= ~ITSDONE;
-			return ERESTART;
-		}
+	case XS_RESET:
+		error = ERESTART;
+		break;
+
 	case XS_DRIVER_STUFFUP:
-	lose:
-		error = EIO;
-		break;
-
 	case XS_SELTIMEOUT:
-		/* XXX Disable device? */
-		error = EIO;
 		break;
-
-        case XS_RESET:
-                if (xs->retries) {
-                        SC_DEBUG(xs->sc_link, SDEV_DB3,
-                            ("restarting command destroyed by reset\n"));
-                        goto retry;
-                }
-                error = EIO;
-                break;
 
 	default:
 		sc_print_addr(xs->sc_link);
-		printf("unknown error category from scsi driver\n");
-		error = EIO;
+		printf("unknown error category (0x%x) from scsi driver\n",
+		    xs->error);
 		break;
 	}
 
-	return error;
+	if (error == ERESTART && xs->retries-- < 1)
+		return (EIO);
+	else
+		return (error);
 }
+
+int
+scsi_delay(struct scsi_xfer *xs, int seconds)
+{
+	switch (xs->flags & (SCSI_POLL | SCSI_NOSLEEP)) {
+	case SCSI_POLL:
+		delay(1000000 * seconds);
+		return (ERESTART);
+	case SCSI_NOSLEEP:
+		/* Retry the command immediately since we can't delay. */
+		return (ERESTART);
+	case (SCSI_POLL | SCSI_NOSLEEP):
+		/* Invalid combination! */
+		return (EIO);
+	}
+
+	while (seconds-- > 0) {
+		if (tsleep(&lbolt, PRIBIO|PCATCH, "scbusy", 0)) {
+			/* Signal == abort xs. */
+			return (EIO);
+		}
+	}
+
+	return (ERESTART);
+}
+
+#ifdef SCSIDEBUG
+/*
+ * Print out sense data details.
+ */
+void
+scsi_sense_print_debug(struct scsi_xfer *xs)
+{
+	struct scsi_sense_data *sense = &xs->sense;
+	struct scsi_link *sc_link = xs->sc_link;
+
+	SC_DEBUG(sc_link, SDEV_DB1,
+	    ("code:%#x valid:%d key:%#x ili:%d eom:%d fmark:%d extra:%d\n",
+	    sense->error_code & SSD_ERRCODE,
+	    sense->error_code & SSD_ERRCODE_VALID ? 1 : 0,
+	    sense->flags & SSD_KEY,
+	    sense->flags & SSD_ILI ? 1 : 0,
+	    sense->flags & SSD_EOM ? 1 : 0,
+	    sense->flags & SSD_FILEMARK ? 1 : 0,
+	    sense->extra_len));
+
+	if (xs->sc_link->flags & SDEV_DB1)
+		scsi_show_mem((u_char *)&xs->sense, sizeof(xs->sense));
+
+	scsi_print_sense(xs);
+}
+#endif
 
 /*
  * Look at the returned sense and act on the error, determining
@@ -610,154 +1595,145 @@ sc_err1(xs, async)
  *
  * THIS IS THE DEFAULT ERROR HANDLER
  */
-int 
-scsi_interpret_sense(xs)
-	struct scsi_xfer *xs;
+int
+scsi_interpret_sense(struct scsi_xfer *xs)
 {
-	struct scsi_sense_data *sense;
-	struct scsi_link *sc_link = xs->sc_link;
-	u_int8_t key;
-	u_int32_t info;
-	int error;
+	struct scsi_sense_data			*sense = &xs->sense;
+	struct scsi_link			*sc_link = xs->sc_link;
+	u_int8_t				serr, skey;
+	int					error;
 
-	sense = &xs->sense;
-#ifdef	SCSIDEBUG
-	if ((sc_link->flags & SDEV_DB1) != 0) {
-		int count;
-		printf("code%x valid%x ",
-		    sense->error_code & SSD_ERRCODE,
-		    sense->error_code & SSD_ERRCODE_VALID ? 1 : 0);
-		printf("seg%x key%x ili%x eom%x fmark%x\n",
-		    sense->segment,
-		    sense->flags & SSD_KEY,
-		    sense->flags & SSD_ILI ? 1 : 0,
-		    sense->flags & SSD_EOM ? 1 : 0,
-		    sense->flags & SSD_FILEMARK ? 1 : 0);
-		printf("info: %x %x %x %x followed by %d extra bytes\n",
-		    sense->info[0],
-		    sense->info[1],
-		    sense->info[2],
-		    sense->info[3],
-		    sense->extra_len);
-		printf("extra: ");
-		for (count = 0; count < sense->extra_len; count++)
-			printf("%x ", sense->cmd_spec_info[count]);
-		printf("\n");
-	}
-#endif	/* SCSIDEBUG */
+	/* Default sense interpretation. */
+	serr = sense->error_code & SSD_ERRCODE;
+	if (serr != SSD_ERRCODE_CURRENT && serr != SSD_ERRCODE_DEFERRED)
+		skey = 0xff;	/* Invalid value, since key is 4 bit value. */
+	else
+		skey = sense->flags & SSD_KEY;
+
 	/*
-	 * If the device has it's own error handler, call it first.
-	 * If it returns a legit error value, return that, otherwise
-	 * it wants us to continue with normal error processing.
+	 * Interpret the key/asc/ascq information where appropriate.
 	 */
-	if (sc_link->device->err_handler) {
-		SC_DEBUG(sc_link, SDEV_DB2, ("calling private err_handler()\n"));
-		error = (*sc_link->device->err_handler) (xs);
-		if (error != SCSIRET_CONTINUE)
-			return error;		/* error >= 0  better ? */
-	}
-	/* otherwise use the default */
-	switch (sense->error_code & SSD_ERRCODE) {
-		/*
-		 * If it's code 70, use the extended stuff and interpret the key
-		 */
-	case 0x71:		/* delayed error */
-		sc_print_addr(sc_link);
-		key = sense->flags & SSD_KEY;
-		printf(" DEFERRED ERROR, key = 0x%x\n", key);
-		/* FALLTHROUGH */
-	case 0x70:
-		if ((sense->error_code & SSD_ERRCODE_VALID) != 0)
-			info = _4btol(sense->info);
-		else
-			info = 0;
-		key = sense->flags & SSD_KEY;
-
-		switch (key) {
-		case SKEY_NO_SENSE:
-		case SKEY_RECOVERED_ERROR:
-			if (xs->resid == xs->datalen)
-				xs->resid = 0;	/* not short read */
-		case SKEY_EQUAL:
-			error = 0;
-			break;
-		case SKEY_NOT_READY:
-			if ((sc_link->flags & SDEV_REMOVABLE) != 0)
+	error = 0;
+	switch (skey) {
+	case SKEY_NO_SENSE:
+	case SKEY_RECOVERED_ERROR:
+		if (xs->resid == xs->datalen)
+			xs->resid = 0;	/* not short read */
+		break;
+	case SKEY_BLANK_CHECK:
+	case SKEY_EQUAL:
+		break;
+	case SKEY_NOT_READY:
+		if ((xs->flags & SCSI_IGNORE_NOT_READY) != 0)
+			return (0);
+		error = EIO;
+		if (xs->retries) {
+			switch (ASC_ASCQ(sense)) {
+			case SENSE_NOT_READY_BECOMING_READY:
+			case SENSE_NOT_READY_FORMAT:
+			case SENSE_NOT_READY_REBUILD:
+			case SENSE_NOT_READY_RECALC:		
+			case SENSE_NOT_READY_INPROGRESS:
+			case SENSE_NOT_READY_LONGWRITE:
+			case SENSE_NOT_READY_SELFTEST:
+			case SENSE_NOT_READY_INIT_REQUIRED:
+				SC_DEBUG(sc_link, SDEV_DB1,
+		    		    ("not ready (ASC_ASCQ == %#x)\n",
+				    ASC_ASCQ(sense)));
+				return (scsi_delay(xs, 1));
+			case SENSE_NOMEDIUM:
+			case SENSE_NOMEDIUM_TCLOSED:
+			case SENSE_NOMEDIUM_TOPEN:
+			case SENSE_NOMEDIUM_LOADABLE:
+			case SENSE_NOMEDIUM_AUXMEM:
 				sc_link->flags &= ~SDEV_MEDIA_LOADED;
-			if ((xs->flags & SCSI_IGNORE_NOT_READY) != 0)
-				return 0;
-			if (xs->retries && sense->add_sense_code == 0x04 &&
-			    sense->add_sense_code_qual == 0x01) {
-				xs->error = XS_BUSY;	/* ie. sense_retry */
-				return ERESTART;
+				error = ENOMEDIUM;
+				break;
+			default:
+				break;
 			}
-			if (xs->retries && !(sc_link->flags & SDEV_REMOVABLE)) {
-				delay(1000000);
-				return ERESTART;
-			}
-			if ((xs->flags & SCSI_SILENT) != 0)
-				return EIO;
-			error = EIO;
+		}
+		break;
+	case SKEY_MEDIUM_ERROR:
+		switch (ASC_ASCQ(sense)) {
+		case SENSE_NOMEDIUM:
+		case SENSE_NOMEDIUM_TCLOSED:
+		case SENSE_NOMEDIUM_TOPEN:
+		case SENSE_NOMEDIUM_LOADABLE:
+		case SENSE_NOMEDIUM_AUXMEM:
+			sc_link->flags &= ~SDEV_MEDIA_LOADED;
+			error = ENOMEDIUM;
 			break;
-		case SKEY_ILLEGAL_REQUEST:
-			if ((xs->flags & SCSI_IGNORE_ILLEGAL_REQUEST) != 0)
-				return 0;
-			if ((xs->flags & SCSI_SILENT) != 0)
-				return EIO;
-			error = EINVAL;
-			break;
-		case SKEY_UNIT_ATTENTION:
-			if (sense->add_sense_code == 0x29 &&
-                            sense->add_sense_code_qual == 0x00)
-                                return (ERESTART); /* device or bus reset */
-			if ((sc_link->flags & SDEV_REMOVABLE) != 0)
-				sc_link->flags &= ~SDEV_MEDIA_LOADED;
-			if ((xs->flags & SCSI_IGNORE_MEDIA_CHANGE) != 0 ||
-			    /* XXX Should reupload any transient state. */
-			    (sc_link->flags & SDEV_REMOVABLE) == 0)
-				return ERESTART;
-			if ((xs->flags & SCSI_SILENT) != 0)
-				return EIO;
-			error = EIO;
-			break;
-		case SKEY_WRITE_PROTECT:
-			error = EROFS;
-			break;
-		case SKEY_BLANK_CHECK:
-			error = 0;
-			break;
-		case SKEY_ABORTED_COMMAND:
-			error = ERESTART;
-			break;
-		case SKEY_VOLUME_OVERFLOW:
-			error = ENOSPC;
+		case SENSE_BAD_MEDIUM:
+		case SENSE_NR_MEDIUM_UNKNOWN_FORMAT:
+		case SENSE_NR_MEDIUM_INCOMPATIBLE_FORMAT:
+		case SENSE_NW_MEDIUM_UNKNOWN_FORMAT:
+		case SENSE_NW_MEDIUM_INCOMPATIBLE_FORMAT:
+		case SENSE_NF_MEDIUM_INCOMPATIBLE_FORMAT:
+		case SENSE_NW_MEDIUM_AC_MISMATCH:
+			error = EMEDIUMTYPE;
 			break;
 		default:
 			error = EIO;
 			break;
 		}
-
-		if ((xs->flags & SCSI_SILENT) == 0)
-			scsi_print_sense(xs, 0);
-
-		return error;
-
-	/*
-	 * Not code 70, just report it
-	 */
-	default:
-		sc_print_addr(sc_link);
-		printf("Sense Error Code %d",
-		    sense->error_code & SSD_ERRCODE);
-		if ((sense->error_code & SSD_ERRCODE_VALID) != 0) {
-			struct scsi_sense_data_unextended *usense =
-			    (struct scsi_sense_data_unextended *)sense;
-			printf(" at block no. %d (decimal)",
-			    _3btol(usense->block));
+		break;
+	case SKEY_ILLEGAL_REQUEST:
+		if ((xs->flags & SCSI_IGNORE_ILLEGAL_REQUEST) != 0)
+			return (0);
+		if (ASC_ASCQ(sense) == SENSE_MEDIUM_REMOVAL_PREVENTED)
+			return(EBUSY);
+		error = EINVAL;
+		break;
+	case SKEY_UNIT_ATTENTION:
+		switch (ASC_ASCQ(sense)) {
+		case SENSE_POWER_RESET_OR_BUS:
+		case SENSE_POWER_ON:
+		case SENSE_BUS_RESET:
+		case SENSE_BUS_DEVICE_RESET:
+		case SENSE_DEVICE_INTERNAL_RESET:
+		case SENSE_TSC_CHANGE_SE:
+		case SENSE_TSC_CHANGE_LVD:
+		case SENSE_IT_NEXUS_LOSS:
+			return (scsi_delay(xs, 1));
+		default:
+			break;
 		}
-		printf("\n");
-		return EIO;
+		if ((sc_link->flags & SDEV_REMOVABLE) != 0)
+			sc_link->flags &= ~SDEV_MEDIA_LOADED;
+		if ((xs->flags & SCSI_IGNORE_MEDIA_CHANGE) != 0 ||
+		    /* XXX Should reupload any transient state. */
+		    (sc_link->flags & SDEV_REMOVABLE) == 0) {
+			return (scsi_delay(xs, 1));
+		}
+		error = EIO;
+		break;
+	case SKEY_WRITE_PROTECT:
+		error = EROFS;
+		break;
+	case SKEY_ABORTED_COMMAND:
+		error = ERESTART;
+		break;
+	case SKEY_VOLUME_OVERFLOW:
+		error = ENOSPC;
+		break;
+	case SKEY_HARDWARE_ERROR:
+		if (ASC_ASCQ(sense) == SENSE_CARTRIDGE_FAULT)
+			return(EMEDIUMTYPE);
+		error = EIO;
+		break;
+	default:
+		error = EIO;
+		break;
 	}
+
+#ifndef SCSIDEBUG
+	/* SCSIDEBUG would mean it has already been printed. */
+	if (skey && (xs->flags & SCSI_SILENT) == 0)
+		scsi_print_sense(xs);
+#endif /* SCSIDEBUG */
+
+	return (error);
 }
 
 /*
@@ -769,15 +1745,15 @@ scsi_interpret_sense(xs)
  * Print out the scsi_link structure's address info.
  */
 void
-sc_print_addr(sc_link)
-	struct scsi_link *sc_link;
+sc_print_addr(struct scsi_link *sc_link)
 {
+	struct device *adapter_device = sc_link->bus->sc_dev.dv_parent;
 
 	printf("%s(%s:%d:%d): ",
 	    sc_link->device_softc ?
 	    ((struct device *)sc_link->device_softc)->dv_xname : "probe",
-	    ((struct device *)sc_link->adapter_softc)->dv_xname,
-	    sc_link->target, sc_link->lun);		
+	    adapter_device->dv_xname,
+	    sc_link->target, sc_link->lun);
 }
 
 static const char *sense_keys[16] = {
@@ -798,9 +1774,16 @@ static const char *sense_keys[16] = {
 	"Miscompare Error",
 	"Reserved"
 };
-#ifndef SCSITERSE
+
+#ifdef SCSITERSE
+static __inline void
+asc2ascii(u_int8_t asc, u_int8_t ascq, char *result, size_t len)
+{
+	snprintf(result, len, "ASC 0x%02x ASCQ 0x%02x", asc, ascq);
+}
+#else
 static const struct {
-	u_char asc, ascq;
+	u_int8_t asc, ascq;
 	char *description;
 } adesc[] = {
 	{ 0x00, 0x00, "No Additional Sense Information" },
@@ -815,6 +1798,13 @@ static const struct {
 	{ 0x00, 0x13, "Audio Play Operation Successfully Completed" },
 	{ 0x00, 0x14, "Audio Play Operation Stopped Due to Error" },
 	{ 0x00, 0x15, "No Current Audio Status To Return" },
+	{ 0x00, 0x16, "Operation In Progress" },
+	{ 0x00, 0x17, "Cleaning Requested" },
+	{ 0x00, 0x18, "Erase Operation In Progress" },
+	{ 0x00, 0x19, "Locate Operation In Progress" },
+	{ 0x00, 0x1A, "Rewind Operation In Progress" },
+	{ 0x00, 0x1B, "Set Capacity Operation In Progress" },
+	{ 0x00, 0x1C, "Verify Operation In Progress" },
 	{ 0x01, 0x00, "No Index/Sector Signal" },
 	{ 0x02, 0x00, "No Seek Complete" },
 	{ 0x03, 0x00, "Peripheral Device Write Fault" },
@@ -825,34 +1815,77 @@ static const struct {
 	{ 0x04, 0x02, "Logical Unit Not Ready, Initialization Command Required" },
 	{ 0x04, 0x03, "Logical Unit Not Ready, Manual Intervention Required" },
 	{ 0x04, 0x04, "Logical Unit Not Ready, Format In Progress" },
+	{ 0x04, 0x05, "Logical Unit Not Ready, Rebuild In Progress" },
+	{ 0x04, 0x06, "Logical Unit Not Ready, Recalculation In Progress" },
+	{ 0x04, 0x07, "Logical Unit Not Ready, Operation In Progress" },
+	{ 0x04, 0x08, "Logical Unit Not Ready, Long Write In Progress" },
+	{ 0x04, 0x09, "Logical Unit Not Ready, Self-Test In Progress" },
+	{ 0x04, 0x0A, "Logical Unit Not Accessible, Asymmetric Access State Transition" },
+	{ 0x04, 0x0B, "Logical Unit Not Accessible, Target Port In Standby State" },
+	{ 0x04, 0x0C, "Logical Unit Not Accessible, Target Port In Unavailable State" },
+	{ 0x04, 0x10, "Logical Unit Not Ready, Auxiliary Memory Not Accessible" },
+	{ 0x04, 0x11, "Logical Unit Not Ready, Notify (Enable Spinup) Required" },
 	{ 0x05, 0x00, "Logical Unit Does Not Respond To Selection" },
 	{ 0x06, 0x00, "No Reference Position Found" },
 	{ 0x07, 0x00, "Multiple Peripheral Devices Selected" },
 	{ 0x08, 0x00, "Logical Unit Communication Failure" },
 	{ 0x08, 0x01, "Logical Unit Communication Timeout" },
 	{ 0x08, 0x02, "Logical Unit Communication Parity Error" },
+	{ 0x08, 0x03, "Logical Unit Communication CRC Error (ULTRA-DMA/32)" },
+	{ 0x08, 0x04, "Unreachable Copy Target" },
 	{ 0x09, 0x00, "Track Following Error" },
 	{ 0x09, 0x01, "Tracking Servo Failure" },
 	{ 0x09, 0x02, "Focus Servo Failure" },
 	{ 0x09, 0x03, "Spindle Servo Failure" },
+	{ 0x09, 0x04, "Head Select Fault" },
 	{ 0x0A, 0x00, "Error Log Overflow" },
+	{ 0x0B, 0x00, "Warning" },
+	{ 0x0B, 0x01, "Warning - Specified Temperature Exceeded" },
+	{ 0x0B, 0x02, "Warning - Enclosure Degraded" },
 	{ 0x0C, 0x00, "Write Error" },
 	{ 0x0C, 0x01, "Write Error Recovered with Auto Reallocation" },
 	{ 0x0C, 0x02, "Write Error - Auto Reallocate Failed" },
+	{ 0x0C, 0x03, "Write Error - Recommend Reassignment" },
+	{ 0x0C, 0x04, "Compression Check Miscompare Error" },
+	{ 0x0C, 0x05, "Data Expansion Occurred During Compression" },
+	{ 0x0C, 0x06, "Block Not Compressible" },
+	{ 0x0C, 0x07, "Write Error - Recovery Needed" },
+	{ 0x0C, 0x08, "Write Error - Recovery Failed" },
+	{ 0x0C, 0x09, "Write Error - Loss Of Streaming" },
+	{ 0x0C, 0x0A, "Write Error - Padding Blocks Added" },
+	{ 0x0C, 0x0B, "Auxiliary Memory Write Error" },
+	{ 0x0C, 0x0C, "Write Error - Unexpected Unsolicited Data" },
+	{ 0x0C, 0x0D, "Write Error - Not Enough Unsolicited Data" },
+	{ 0x0D, 0x00, "Error Detected By Third Party Temporary Initiator" },
+	{ 0x0D, 0x01, "Third Party Device Failure" },
+	{ 0x0D, 0x02, "Copy Target Device Not Reachable" },
+	{ 0x0D, 0x03, "Incorrect Copy Target Device Type" },
+	{ 0x0D, 0x04, "Copy Target Device Data Underrun" },
+	{ 0x0D, 0x05, "Copy Target Device Data Overrun" },
+	{ 0x0E, 0x00, "Invalid Information Unit" },
+	{ 0x0E, 0x01, "Information Unit Too Short" },
+	{ 0x0E, 0x02, "Information Unit Too Long" },
 	{ 0x10, 0x00, "ID CRC Or ECC Error" },
 	{ 0x11, 0x00, "Unrecovered Read Error" },
-	{ 0x11, 0x01, "Read Retried Exhausted" },
+	{ 0x11, 0x01, "Read Retries Exhausted" },
 	{ 0x11, 0x02, "Error Too Long To Correct" },
 	{ 0x11, 0x03, "Multiple Read Errors" },
 	{ 0x11, 0x04, "Unrecovered Read Error - Auto Reallocate Failed" },
 	{ 0x11, 0x05, "L-EC Uncorrectable Error" },
 	{ 0x11, 0x06, "CIRC Unrecovered Error" },
 	{ 0x11, 0x07, "Data Resynchronization Error" },
-	{ 0x11, 0x08, "Incomplete Block Found" },
+	{ 0x11, 0x08, "Incomplete Block Read" },
 	{ 0x11, 0x09, "No Gap Found" },
 	{ 0x11, 0x0A, "Miscorrected Error" },
 	{ 0x11, 0x0B, "Uncorrected Read Error - Recommend Reassignment" },
-	{ 0x11, 0x0C, "Uncorrected Read Error - Recommend Rewrite the Data" },
+	{ 0x11, 0x0C, "Uncorrected Read Error - Recommend Rewrite The Data" },
+	{ 0x11, 0x0D, "De-Compression CRC Error" },
+	{ 0x11, 0x0E, "Cannot Decompress Using Declared Algorithm" },
+	{ 0x11, 0x0F, "Error Reading UPC/EAN Number" },
+	{ 0x11, 0x10, "Error Reading ISRC Number" },
+	{ 0x11, 0x11, "Read Error - Loss Of Streaming" },
+	{ 0x11, 0x12, "Auxiliary Memory Read Error" },
+	{ 0x11, 0x13, "Read Error - Failed Retransmission Request" },
 	{ 0x12, 0x00, "Address Mark Not Found for ID Field" },
 	{ 0x13, 0x00, "Address Mark Not Found for Data Field" },
 	{ 0x14, 0x00, "Recorded Entity Not Found" },
@@ -860,10 +1893,17 @@ static const struct {
 	{ 0x14, 0x02, "Filemark or Setmark Not Found" },
 	{ 0x14, 0x03, "End-Of-Data Not Found" },
 	{ 0x14, 0x04, "Block Sequence Error" },
+	{ 0x14, 0x05, "Record Not Found - Recommend Reassignment" },
+	{ 0x14, 0x06, "Record Not Found - Data Auto-Reallocated" },
+	{ 0x14, 0x07, "Locate Operation Failure" },
 	{ 0x15, 0x00, "Random Positioning Error" },
 	{ 0x15, 0x01, "Mechanical Positioning Error" },
 	{ 0x15, 0x02, "Positioning Error Detected By Read of Medium" },
 	{ 0x16, 0x00, "Data Synchronization Mark Error" },
+	{ 0x16, 0x01, "Data Sync Error - Data Rewritten" },
+	{ 0x16, 0x02, "Data Sync Error - Recommend Rewrite" },
+	{ 0x16, 0x03, "Data Sync Error - Data Auto-Reallocated" },
+	{ 0x16, 0x04, "Data Sync Error - Recommend Reassignment" },
 	{ 0x17, 0x00, "Recovered Data With No Error Correction Applied" },
 	{ 0x17, 0x01, "Recovered Data With Retries" },
 	{ 0x17, 0x02, "Recovered Data With Positive Head Offset" },
@@ -873,13 +1913,16 @@ static const struct {
 	{ 0x17, 0x06, "Recovered Data Without ECC - Data Auto-Reallocated" },
 	{ 0x17, 0x07, "Recovered Data Without ECC - Recommend Reassignment" },
 	{ 0x17, 0x08, "Recovered Data Without ECC - Recommend Rewrite" },
+	{ 0x17, 0x09, "Recovered Data Without ECC - Data Rewritten" },
 	{ 0x18, 0x00, "Recovered Data With Error Correction Applied" },
 	{ 0x18, 0x01, "Recovered Data With Error Correction & Retries Applied" },
 	{ 0x18, 0x02, "Recovered Data - Data Auto-Reallocated" },
 	{ 0x18, 0x03, "Recovered Data With CIRC" },
-	{ 0x18, 0x04, "Recovered Data With LEC" },
+	{ 0x18, 0x04, "Recovered Data With L-EC" },
 	{ 0x18, 0x05, "Recovered Data - Recommend Reassignment" },
 	{ 0x18, 0x06, "Recovered Data - Recommend Rewrite" },
+	{ 0x18, 0x07, "Recovered Data With ECC - Data Rewritten" },
+	{ 0x18, 0x08, "Recovered Data With Linking" },
 	{ 0x19, 0x00, "Defect List Error" },
 	{ 0x19, 0x01, "Defect List Not Available" },
 	{ 0x19, 0x02, "Defect List Error in Primary List" },
@@ -891,43 +1934,123 @@ static const struct {
 	{ 0x1C, 0x02, "Grown Defect List Not Found" },
 	{ 0x1D, 0x00, "Miscompare During Verify Operation" },
 	{ 0x1E, 0x00, "Recovered ID with ECC" },
+	{ 0x1F, 0x00, "Partial Defect List Transfer" },
 	{ 0x20, 0x00, "Invalid Command Operation Code" },
+	{ 0x20, 0x01, "Access Denied - Initiator Pending-Enrolled" },
+	{ 0x20, 0x02, "Access Denied - No Access rights" },
+	{ 0x20, 0x03, "Access Denied - Invalid Mgmt ID Key" },
+	{ 0x20, 0x04, "Illegal Command While In Write Capable State" },
+	{ 0x20, 0x05, "Obsolete" },
+	{ 0x20, 0x06, "Illegal Command While In Explicit Address Mode" },
+	{ 0x20, 0x07, "Illegal Command While In Implicit Address Mode" },
+	{ 0x20, 0x08, "Access Denied - Enrollment Conflict" },
+	{ 0x20, 0x09, "Access Denied - Invalid LU Identifier" },
+	{ 0x20, 0x0A, "Access Denied - Invalid Proxy Token" },
+	{ 0x20, 0x0B, "Access Denied - ACL LUN Conflict" },
 	{ 0x21, 0x00, "Logical Block Address Out of Range" },
 	{ 0x21, 0x01, "Invalid Element Address" },
+	{ 0x21, 0x02, "Invalid Address For Write" },
 	{ 0x22, 0x00, "Illegal Function (Should 20 00, 24 00, or 26 00)" },
 	{ 0x24, 0x00, "Illegal Field in CDB" },
+	{ 0x24, 0x01, "CDB Decryption Error" },
+	{ 0x24, 0x02, "Obsolete" },
+	{ 0x24, 0x03, "Obsolete" },
+	{ 0x24, 0x04, "Security Audit Value Frozen" },
+	{ 0x24, 0x05, "Security Working Key Frozen" },
+	{ 0x24, 0x06, "Nonce Not Unique" },
+	{ 0x24, 0x07, "Nonce Timestamp Out Of Range" },
 	{ 0x25, 0x00, "Logical Unit Not Supported" },
 	{ 0x26, 0x00, "Invalid Field In Parameter List" },
 	{ 0x26, 0x01, "Parameter Not Supported" },
 	{ 0x26, 0x02, "Parameter Value Invalid" },
 	{ 0x26, 0x03, "Threshold Parameters Not Supported" },
+	{ 0x26, 0x04, "Invalid Release Of Persistent Reservation" },
+	{ 0x26, 0x05, "Data Decryption Error" },
+	{ 0x26, 0x06, "Too Many Target Descriptors" },
+	{ 0x26, 0x07, "Unsupported Target Descriptor Type Code" },
+	{ 0x26, 0x08, "Too Many Segment Descriptors" },
+	{ 0x26, 0x09, "Unsupported Segment Descriptor Type Code" },
+	{ 0x26, 0x0A, "Unexpected Inexact Segment" },
+	{ 0x26, 0x0B, "Inline Data Length Exceeded" },
+	{ 0x26, 0x0C, "Invalid Operation For Copy Source Or Destination" },
+	{ 0x26, 0x0D, "Copy Segment Granularity Violation" },
+	{ 0x26, 0x0E, "Invalid Parameter While Port Is Enabled" },
 	{ 0x27, 0x00, "Write Protected" },
+	{ 0x27, 0x01, "Hardware Write Protected" },
+	{ 0x27, 0x02, "Logical Unit Software Write Protected" },
+	{ 0x27, 0x03, "Associated Write Protect" },
+	{ 0x27, 0x04, "Persistent Write Protect" },
+	{ 0x27, 0x05, "Permanent Write Protect" },
+	{ 0x27, 0x06, "Conditional Write Protect" },
 	{ 0x28, 0x00, "Not Ready To Ready Transition (Medium May Have Changed)" },
 	{ 0x28, 0x01, "Import Or Export Element Accessed" },
 	{ 0x29, 0x00, "Power On, Reset, or Bus Device Reset Occurred" },
+	{ 0x29, 0x01, "Power On Occurred" },
+	{ 0x29, 0x02, "SCSI Bus Reset Occurred" },
+	{ 0x29, 0x03, "Bus Device Reset Function Occurred" },
+	{ 0x29, 0x04, "Device Internal Reset" },
+	{ 0x29, 0x05, "Transceiver Mode Changed to Single Ended" },
+	{ 0x29, 0x06, "Transceiver Mode Changed to LVD" },
+	{ 0x29, 0x07, "I_T Nexus Loss Occurred" },
 	{ 0x2A, 0x00, "Parameters Changed" },
 	{ 0x2A, 0x01, "Mode Parameters Changed" },
 	{ 0x2A, 0x02, "Log Parameters Changed" },
+	{ 0x2A, 0x03, "Reservations Preempted" },
+	{ 0x2A, 0x04, "Reservations Released" },
+	{ 0x2A, 0x05, "Registrations Preempted" },
+	{ 0x2A, 0x06, "Asymmetric Access State Changed" },
+	{ 0x2A, 0x07, "Implicit Asymmetric Access State Transition Failed" },
 	{ 0x2B, 0x00, "Copy Cannot Execute Since Host Cannot Disconnect" },
 	{ 0x2C, 0x00, "Command Sequence Error" },
 	{ 0x2C, 0x01, "Too Many Windows Specified" },
 	{ 0x2C, 0x02, "Invalid Combination of Windows Specified" },
+	{ 0x2C, 0x03, "Current Program Area Is Not Empty" },
+	{ 0x2C, 0x04, "Current Program Area Is Empty" },
+	{ 0x2C, 0x05, "Illegal Power Condition Request" },
+	{ 0x2C, 0x06, "Persistent Prevent Conflict" },
+	{ 0x2C, 0x07, "Previous Busy Status" },
+	{ 0x2C, 0x08, "Previous Task Set Full Status" },
+	{ 0x2C, 0x09, "Previous Reservation Conflict Status" },
+	{ 0x2C, 0x0A, "Partition Or Collection Contains User Objects" },
 	{ 0x2D, 0x00, "Overwrite Error On Update In Place" },
+	{ 0x2E, 0x00, "Insufficient Time For Operation" },
 	{ 0x2F, 0x00, "Commands Cleared By Another Initiator" },
 	{ 0x30, 0x00, "Incompatible Medium Installed" },
 	{ 0x30, 0x01, "Cannot Read Medium - Unknown Format" },
 	{ 0x30, 0x02, "Cannot Read Medium - Incompatible Format" },
 	{ 0x30, 0x03, "Cleaning Cartridge Installed" },
+	{ 0x30, 0x04, "Cannot Write Medium - Unknown Format" },
+	{ 0x30, 0x05, "Cannot Write Medium - Incompatible Format" },
+	{ 0x30, 0x06, "Cannot Format Medium - Incompatible Medium" },
+	{ 0x30, 0x07, "Cleaning Failure" },
+	{ 0x30, 0x08, "Cannot Write - Application Code Mismatch" },
+	{ 0x30, 0x09, "Current Session Not Fixated For Append" },
+	{ 0x30, 0x0A, "Cleaning Request Rejected" },
+	{ 0x30, 0x10, "Medium Not Formatted" },
 	{ 0x31, 0x00, "Medium Format Corrupted" },
 	{ 0x31, 0x01, "Format Command Failed" },
 	{ 0x32, 0x00, "No Defect Spare Location Available" },
 	{ 0x32, 0x01, "Defect List Update Failure" },
 	{ 0x33, 0x00, "Tape Length Error" },
+	{ 0x34, 0x00, "Enclosure Failure" },
+	{ 0x35, 0x00, "Enclosure Services Failure" },
+	{ 0x35, 0x01, "Unsupported Enclosure Function" },
+	{ 0x35, 0x02, "Enclosure Services Unavailable" },
+	{ 0x35, 0x03, "Enclosure Services Transfer Failure" },
+	{ 0x35, 0x04, "Enclosure Services Transfer Refused" },
 	{ 0x36, 0x00, "Ribbon, Ink, or Toner Failure" },
 	{ 0x37, 0x00, "Rounded Parameter" },
+	{ 0x38, 0x00, "Event Status Notification" },
+	{ 0x38, 0x02, "ESN - Power Management Class Event" },
+	{ 0x38, 0x04, "ESN - Media Class Event" },
+	{ 0x38, 0x06, "ESN - Device Busy Class Event" },
 	{ 0x39, 0x00, "Saving Parameters Not Supported" },
 	{ 0x3A, 0x00, "Medium Not Present" },
-	{ 0x3B, 0x00, "Positioning Error" },
+	{ 0x3A, 0x01, "Medium Not Present - Tray Closed" },
+	{ 0x3A, 0x02, "Medium Not Present - Tray Open" },
+	{ 0x3A, 0x03, "Medium Not Present - Loadable" },
+	{ 0x3A, 0x04, "Medium Not Present - Medium Auxiliary Memory Accessible" },
+	{ 0x3B, 0x00, "Sequential Positioning Error" },
 	{ 0x3B, 0x01, "Tape Position Error At Beginning-of-Medium" },
 	{ 0x3B, 0x02, "Tape Position Error At End-of-Medium" },
 	{ 0x3B, 0x03, "Tape or Electronic Vertical Forms Unit Not Ready" },
@@ -937,18 +2060,47 @@ static const struct {
 	{ 0x3B, 0x07, "Failed To Sense Bottom-Of-Form" },
 	{ 0x3B, 0x08, "Reposition Error" },
 	{ 0x3B, 0x09, "Read Past End Of Medium" },
-	{ 0x3B, 0x0A, "Read Past Begining Of Medium" },
+	{ 0x3B, 0x0A, "Read Past Beginning Of Medium" },
 	{ 0x3B, 0x0B, "Position Past End Of Medium" },
 	{ 0x3B, 0x0C, "Position Past Beginning Of Medium" },
 	{ 0x3B, 0x0D, "Medium Destination Element Full" },
 	{ 0x3B, 0x0E, "Medium Source Element Empty" },
-	{ 0x3D, 0x00, "Invalid Bits In IDENTFY Message" },
+	{ 0x3B, 0x0F, "End Of Medium Reached" },
+	{ 0x3B, 0x11, "Medium Magazine Not Accessible" },
+	{ 0x3B, 0x12, "Medium Magazine Removed" },
+	{ 0x3B, 0x13, "Medium Magazine Inserted" },
+	{ 0x3B, 0x14, "Medium Magazine Locked" },
+	{ 0x3B, 0x15, "Medium Magazine Unlocked" },
+	{ 0x3B, 0x16, "Mechanical Positioning Or Changer Error" },
+	{ 0x3D, 0x00, "Invalid Bits In IDENTIFY Message" },
 	{ 0x3E, 0x00, "Logical Unit Has Not Self-Configured Yet" },
+	{ 0x3E, 0x01, "Logical Unit Failure" },
+	{ 0x3E, 0x02, "Timeout On Logical Unit" },
+	{ 0x3E, 0x03, "Logical Unit Failed Self-Test" },
+	{ 0x3E, 0x04, "Logical Unit Unable To Update Self-Test Log" },
 	{ 0x3F, 0x00, "Target Operating Conditions Have Changed" },
 	{ 0x3F, 0x01, "Microcode Has Changed" },
 	{ 0x3F, 0x02, "Changed Operating Definition" },
 	{ 0x3F, 0x03, "INQUIRY Data Has Changed" },
+	{ 0x3F, 0x04, "component Device Attached" },
+	{ 0x3F, 0x05, "Device Identifier Changed" },
+	{ 0x3F, 0x06, "Redundancy Group Created Or Modified" },
+	{ 0x3F, 0x07, "Redundancy Group Deleted" },
+	{ 0x3F, 0x08, "Spare Created Or Modified" },
+	{ 0x3F, 0x09, "Spare Deleted" },
+	{ 0x3F, 0x0A, "Volume Set Created Or Modified" },
+	{ 0x3F, 0x0B, "Volume Set Deleted" },
+	{ 0x3F, 0x0C, "Volume Set Deassigned" },
+	{ 0x3F, 0x0D, "Volume Set Reassigned" },
+	{ 0x3F, 0x0E, "Reported LUNs Data Has Changed" },
+	{ 0x3F, 0x0F, "Echo Buffer Overwritten" },
+	{ 0x3F, 0x10, "Medium Loadable" },
+	{ 0x3F, 0x11, "Medium Auxiliary Memory Accessible" },
 	{ 0x40, 0x00, "RAM FAILURE (Should Use 40 NN)" },
+	/*
+	 * ASC 0x40 also has an ASCQ range from 0x80 to 0xFF.
+	 * 0x40 0xNN DIAGNOSTIC FAILURE ON COMPONENT NN
+	 */
 	{ 0x41, 0x00, "Data Path FAILURE (Should Use 40 NN)" },
 	{ 0x42, 0x00, "Power-On or Self-Test FAILURE (Should Use 40 NN)" },
 	{ 0x43, 0x00, "Message Error" },
@@ -956,26 +2108,49 @@ static const struct {
 	{ 0x45, 0x00, "Select Or Reselect Failure" },
 	{ 0x46, 0x00, "Unsuccessful Soft Reset" },
 	{ 0x47, 0x00, "SCSI Parity Error" },
-	{ 0x48, 0x00, "INITIATOR DETECTED ERROR Message Received" },
+	{ 0x47, 0x01, "Data Phase CRC Error Detected" },
+	{ 0x47, 0x02, "SCSI Parity Error Detected During ST Data Phase" },
+	{ 0x47, 0x03, "Information Unit iuCRC Error Detected" },
+	{ 0x47, 0x04, "Asynchronous Information Protection Error Detected" },
+	{ 0x47, 0x05, "Protocol Service CRC Error" },
+	{ 0x47, 0x7F, "Some Commands Cleared By iSCSI Protocol Event" },
+	{ 0x48, 0x00, "Initiator Detected Error Message Received" },
 	{ 0x49, 0x00, "Invalid Message Error" },
 	{ 0x4A, 0x00, "Command Phase Error" },
 	{ 0x4B, 0x00, "Data Phase Error" },
+	{ 0x4B, 0x01, "Invalid Target Port Transfer Tag Received" },
+	{ 0x4B, 0x02, "Too Much Write Data" },
+	{ 0x4B, 0x03, "ACK/NAK Timeout" },
+	{ 0x4B, 0x04, "NAK Received" },
+	{ 0x4B, 0x05, "Data Offset Error" },
+	{ 0x4B, 0x06, "Initiator Response Timeout" },
 	{ 0x4C, 0x00, "Logical Unit Failed Self-Configuration" },
+	/*
+	 * ASC 0x4D has an ASCQ range from 0x00 to 0xFF.
+	 * 0x4D 0xNN TAGGED OVERLAPPED COMMANDS (NN = TASK TAG)
+	 */
 	{ 0x4E, 0x00, "Overlapped Commands Attempted" },
 	{ 0x50, 0x00, "Write Append Error" },
 	{ 0x50, 0x01, "Write Append Position Error" },
 	{ 0x50, 0x02, "Position Error Related To Timing" },
 	{ 0x51, 0x00, "Erase Failure" },
+	{ 0x51, 0x01, "Erase Failure - Incomplete Erase Operation Detected" },
 	{ 0x52, 0x00, "Cartridge Fault" },
 	{ 0x53, 0x00, "Media Load or Eject Failed" },
 	{ 0x53, 0x01, "Unload Tape Failure" },
 	{ 0x53, 0x02, "Medium Removal Prevented" },
 	{ 0x54, 0x00, "SCSI To Host System Interface Failure" },
 	{ 0x55, 0x00, "System Resource Failure" },
+	{ 0x55, 0x01, "System Buffer Full" },
+	{ 0x55, 0x02, "Insufficient Reservation Resources" },
+	{ 0x55, 0x03, "Insufficient Resources" },
+	{ 0x55, 0x04, "Insufficient Registration Resources" },
+	{ 0x55, 0x05, "Insufficient Access Control Resources" },
+	{ 0x55, 0x06, "Auxiliary Memory Out Of Space" },
 	{ 0x57, 0x00, "Unable To Recover Table-Of-Contents" },
 	{ 0x58, 0x00, "Generation Does Not Exist" },
 	{ 0x59, 0x00, "Updated Block Read" },
-	{ 0x5A, 0x00, "Operator Request or State Change Input (Unspecified)" },
+	{ 0x5A, 0x00, "Operator Request or State Change Input" },
 	{ 0x5A, 0x01, "Operator Medium Removal Requested" },
 	{ 0x5A, 0x02, "Operator Selected Write Protect" },
 	{ 0x5A, 0x03, "Operator Selected Write Permit" },
@@ -986,266 +2161,354 @@ static const struct {
 	{ 0x5C, 0x00, "RPL Status Change" },
 	{ 0x5C, 0x01, "Spindles Synchronized" },
 	{ 0x5C, 0x02, "Spindles Not Synchronized" },
+	{ 0x5D, 0x00, "Failure Prediction Threshold Exceeded" },
+	{ 0x5D, 0x01, "Media Failure Prediction Threshold Exceeded" },
+	{ 0x5D, 0x02, "Logical Unit Failure Prediction Threshold Exceeded" },
+	{ 0x5D, 0x03, "Spare Area Exhaustion Prediction Threshold Exceeded" },
+	{ 0x5D, 0x10, "Hardware Impending Failure General Hard Drive Failure" },
+	{ 0x5D, 0x11, "Hardware Impending Failure Drive Error Rate Too High" },
+	{ 0x5D, 0x12, "Hardware Impending Failure Data Error Rate Too High" },
+	{ 0x5D, 0x13, "Hardware Impending Failure Seek Error Rate Too High" },
+	{ 0x5D, 0x14, "Hardware Impending Failure Too Many Block Reassigns" },
+	{ 0x5D, 0x15, "Hardware Impending Failure Access Times Too High" },
+	{ 0x5D, 0x16, "Hardware Impending Failure Start Unit Times Too High" },
+	{ 0x5D, 0x17, "Hardware Impending Failure Channel Parametrics" },
+	{ 0x5D, 0x18, "Hardware Impending Failure Controller Detected" },
+	{ 0x5D, 0x19, "Hardware Impending Failure Throughput Performance" },
+	{ 0x5D, 0x1A, "Hardware Impending Failure Seek Time Performance" },
+	{ 0x5D, 0x1B, "Hardware Impending Failure Spin-Up Retry Count" },
+	{ 0x5D, 0x1C, "Hardware Impending Failure Drive Calibration Retry Count" },
+	{ 0x5D, 0x20, "Controller Impending Failure General Hard Drive Failure" },
+	{ 0x5D, 0x21, "Controller Impending Failure Drive Error Rate Too High" },
+	{ 0x5D, 0x22, "Controller Impending Failure Data Error Rate Too High" },
+	{ 0x5D, 0x23, "Controller Impending Failure Seek Error Rate Too High" },
+	{ 0x5D, 0x24, "Controller Impending Failure Too Many Block Reassigns" },
+	{ 0x5D, 0x25, "Controller Impending Failure Access Times Too High" },
+	{ 0x5D, 0x26, "Controller Impending Failure Start Unit Times Too High" },
+	{ 0x5D, 0x27, "Controller Impending Failure Channel Parametrics" },
+	{ 0x5D, 0x28, "Controller Impending Failure Controller Detected" },
+	{ 0x5D, 0x29, "Controller Impending Failure Throughput Performance" },
+	{ 0x5D, 0x2A, "Controller Impending Failure Seek Time Performance" },
+	{ 0x5D, 0x2B, "Controller Impending Failure Spin-Up Retry Count" },
+	{ 0x5D, 0x2C, "Controller Impending Failure Drive Calibration Retry Count" },
+	{ 0x5D, 0x30, "Data Channel Impending Failure General Hard Drive Failure" },
+	{ 0x5D, 0x31, "Data Channel Impending Failure Drive Error Rate Too High" },
+	{ 0x5D, 0x32, "Data Channel Impending Failure Data Error Rate Too High" },
+	{ 0x5D, 0x33, "Data Channel Impending Failure Seek Error Rate Too High" },
+	{ 0x5D, 0x34, "Data Channel Impending Failure Too Many Block Reassigns" },
+	{ 0x5D, 0x35, "Data Channel Impending Failure Access Times Too High" },
+	{ 0x5D, 0x36, "Data Channel Impending Failure Start Unit Times Too High" },
+	{ 0x5D, 0x37, "Data Channel Impending Failure Channel Parametrics" },
+	{ 0x5D, 0x38, "Data Channel Impending Failure Controller Detected" },
+	{ 0x5D, 0x39, "Data Channel Impending Failure Throughput Performance" },
+	{ 0x5D, 0x3A, "Data Channel Impending Failure Seek Time Performance" },
+	{ 0x5D, 0x3B, "Data Channel Impending Failure Spin-Up Retry Count" },
+	{ 0x5D, 0x3C, "Data Channel Impending Failure Drive Calibration Retry Count" },
+	{ 0x5D, 0x40, "Servo Impending Failure General Hard Drive Failure" },
+	{ 0x5D, 0x41, "Servo Impending Failure Drive Error Rate Too High" },
+	{ 0x5D, 0x42, "Servo Impending Failure Data Error Rate Too High" },
+	{ 0x5D, 0x43, "Servo Impending Failure Seek Error Rate Too High" },
+	{ 0x5D, 0x44, "Servo Impending Failure Too Many Block Reassigns" },
+	{ 0x5D, 0x45, "Servo Impending Failure Access Times Too High" },
+	{ 0x5D, 0x46, "Servo Impending Failure Start Unit Times Too High" },
+	{ 0x5D, 0x47, "Servo Impending Failure Channel Parametrics" },
+	{ 0x5D, 0x48, "Servo Impending Failure Controller Detected" },
+	{ 0x5D, 0x49, "Servo Impending Failure Throughput Performance" },
+	{ 0x5D, 0x4A, "Servo Impending Failure Seek Time Performance" },
+	{ 0x5D, 0x4B, "Servo Impending Failure Spin-Up Retry Count" },
+	{ 0x5D, 0x4C, "Servo Impending Failure Drive Calibration Retry Count" },
+	{ 0x5D, 0x50, "Spindle Impending Failure General Hard Drive Failure" },
+	{ 0x5D, 0x51, "Spindle Impending Failure Drive Error Rate Too High" },
+	{ 0x5D, 0x52, "Spindle Impending Failure Data Error Rate Too High" },
+	{ 0x5D, 0x53, "Spindle Impending Failure Seek Error Rate Too High" },
+	{ 0x5D, 0x54, "Spindle Impending Failure Too Many Block Reassigns" },
+	{ 0x5D, 0x55, "Spindle Impending Failure Access Times Too High" },
+	{ 0x5D, 0x56, "Spindle Impending Failure Start Unit Times Too High" },
+	{ 0x5D, 0x57, "Spindle Impending Failure Channel Parametrics" },
+	{ 0x5D, 0x58, "Spindle Impending Failure Controller Detected" },
+	{ 0x5D, 0x59, "Spindle Impending Failure Throughput Performance" },
+	{ 0x5D, 0x5A, "Spindle Impending Failure Seek Time Performance" },
+	{ 0x5D, 0x5B, "Spindle Impending Failure Spin-Up Retry Count" },
+	{ 0x5D, 0x5C, "Spindle Impending Failure Drive Calibration Retry Count" },
+	{ 0x5D, 0x60, "Firmware Impending Failure General Hard Drive Failure" },
+	{ 0x5D, 0x61, "Firmware Impending Failure Drive Error Rate Too High" },
+	{ 0x5D, 0x62, "Firmware Impending Failure Data Error Rate Too High" },
+	{ 0x5D, 0x63, "Firmware Impending Failure Seek Error Rate Too High" },
+	{ 0x5D, 0x64, "Firmware Impending Failure Too Many Block Reassigns" },
+	{ 0x5D, 0x65, "Firmware Impending Failure Access Times Too High" },
+	{ 0x5D, 0x66, "Firmware Impending Failure Start Unit Times Too High" },
+	{ 0x5D, 0x67, "Firmware Impending Failure Channel Parametrics" },
+	{ 0x5D, 0x68, "Firmware Impending Failure Controller Detected" },
+	{ 0x5D, 0x69, "Firmware Impending Failure Throughput Performance" },
+	{ 0x5D, 0x6A, "Firmware Impending Failure Seek Time Performance" },
+	{ 0x5D, 0x6B, "Firmware Impending Failure Spin-Up Retry Count" },
+	{ 0x5D, 0x6C, "Firmware Impending Failure Drive Calibration Retry Count" },
+	{ 0x5D, 0xFF, "Failure Prediction Threshold Exceeded (false)" },
+	{ 0x5E, 0x00, "Low Power Condition On" },
+	{ 0x5E, 0x01, "Idle Condition Activated By Timer" },
+	{ 0x5E, 0x02, "Standby Condition Activated By Timer" },
+	{ 0x5E, 0x03, "Idle Condition Activated By Command" },
+	{ 0x5E, 0x04, "Standby Condition Activated By Command" },
+	{ 0x5E, 0x41, "Power State Change To Active" },
+	{ 0x5E, 0x42, "Power State Change To Idle" },
+	{ 0x5E, 0x43, "Power State Change To Standby" },
+	{ 0x5E, 0x45, "Power State Change To Sleep" },
+	{ 0x5E, 0x47, "Power State Change To Device Control" },
 	{ 0x60, 0x00, "Lamp Failure" },
 	{ 0x61, 0x00, "Video Acquisition Error" },
 	{ 0x61, 0x01, "Unable To Acquire Video" },
 	{ 0x61, 0x02, "Out Of Focus" },
 	{ 0x62, 0x00, "Scan Head Positioning Error" },
 	{ 0x63, 0x00, "End Of User Area Encountered On This Track" },
+	{ 0x63, 0x01, "Packet Does Not Fit In Available Space" },
 	{ 0x64, 0x00, "Illegal Mode For This Track" },
+	{ 0x64, 0x01, "Invalid Packet Size" },
+	{ 0x65, 0x00, "Voltage Fault" },
+	{ 0x66, 0x00, "Automatic Document Feeder Cover Up" },
+	{ 0x66, 0x01, "Automatic Document Feeder Lift Up" },
+	{ 0x66, 0x02, "Document Jam In Automatic Document Feeder" },
+	{ 0x66, 0x03, "Document Miss Feed Automatic In Document Feeder" },
+	{ 0x67, 0x00, "Configuration Failure" },
+	{ 0x67, 0x01, "Configuration Of Incapable Logical Units Failed" },
+	{ 0x67, 0x02, "Add Logical Unit Failed" },
+	{ 0x67, 0x03, "Modification Of Logical Unit Failed" },
+	{ 0x67, 0x04, "Exchange Of Logical Unit Failed" },
+	{ 0x67, 0x05, "Remove Of Logical Unit Failed" },
+	{ 0x67, 0x06, "Attachment Of Logical Unit Failed" },
+	{ 0x67, 0x07, "Creation Of Logical Unit Failed" },
+	{ 0x67, 0x08, "Assign Failure Occurred" },
+	{ 0x67, 0x09, "Multiply Assigned Logical Unit" },
+	{ 0x67, 0x0A, "Set Target Port Groups Command Failed" },
+	{ 0x68, 0x00, "Logical Unit Not Configured" },
+	{ 0x69, 0x00, "Data Loss On Logical Unit" },
+	{ 0x69, 0x01, "Multiple Logical Unit Failures" },
+	{ 0x69, 0x02, "Parity/Data Mismatch" },
+	{ 0x6A, 0x00, "Informational, Refer To Log" },
+	{ 0x6B, 0x00, "State Change Has Occurred" },
+	{ 0x6B, 0x01, "Redundancy Level Got Better" },
+	{ 0x6B, 0x02, "Redundancy Level Got Worse" },
+	{ 0x6C, 0x00, "Rebuild Failure Occurred" },
+	{ 0x6D, 0x00, "Recalculate Failure Occurred" },
+	{ 0x6E, 0x00, "Command To Logical Unit Failed" },
+	{ 0x6F, 0x00, "Copy Protection Key Exchange Failure - Authentication Failure" },
+	{ 0x6F, 0x01, "Copy Protection Key Exchange Failure - Key Not Present" },
+	{ 0x6F, 0x02, "Copy Protection Key Exchange Failure - Key Not Established" },
+	{ 0x6F, 0x03, "Read Of Scrambled Sector Without Authentication" },
+	{ 0x6F, 0x04, "Media Region Code Is Mismatched To Logical Unit Region" },
+	{ 0x6F, 0x05, "Drive Region Must Be Permanent/Region Reset Count Error" },
+	/*
+	 * ASC 0x70 has an ASCQ range from 0x00 to 0xFF.
+	 * 0x70 0xNN DECOMPRESSION EXCEPTION SHORT ALGORITHM ID Of NN
+	 */
+	{ 0x71, 0x00, "Decompression Exception Long Algorithm ID" },
+	{ 0x72, 0x00, "Session Fixation Error" },
+	{ 0x72, 0x01, "Session Fixation Error Writing Lead-In" },
+	{ 0x72, 0x02, "Session Fixation Error Writing Lead-Out" },
+	{ 0x72, 0x03, "Session Fixation Error - Incomplete Track In Session" },
+	{ 0x72, 0x04, "Empty Or Partially Written Reserved Track" },
+	{ 0x72, 0x05, "No More Track Reservations Allowed" },
+	{ 0x73, 0x00, "CD Control Error" },
+	{ 0x73, 0x01, "Power Calibration Area Almost Full" },
+	{ 0x73, 0x02, "Power Calibration Area Is Full" },
+	{ 0x73, 0x03, "Power Calibration Area Error" },
+	{ 0x73, 0x04, "Program Memory Area Update Failure" },
+	{ 0x73, 0x05, "Program Memory Area Is Full" },
+	{ 0x73, 0x06, "RMA/PMA Is Almost Full" },
 	{ 0x00, 0x00, NULL }
 };
 
 static __inline void
-asc2ascii(asc, ascq, result)
-	u_char asc, ascq;
-	char *result;
+asc2ascii(u_int8_t asc, u_int8_t ascq, char *result, size_t len)
 {
-	register int i = 0;
+	int					i;
 
-	while (adesc[i].description != NULL) {
-		if (adesc[i].asc == asc && adesc[i].ascq == ascq)
-			break;
-		i++;
-	}
-	if (adesc[i].description == NULL) {
-		if (asc == 0x40 && ascq != 0) {
-			(void) sprintf(result,
-			    "Diagnostic Failure on Component 0x%02x",
-			    ascq & 0xff);
-		} else {
-			(void) sprintf(result, "ASC 0x%02x ASCQ 0x%02x",
-			    asc & 0xff, ascq & 0xff);
+	/* Check for a dynamically built description. */
+	switch (asc) {
+	case 0x40:
+		if (ascq >= 0x80) {
+			snprintf(result, len,
+		            "Diagnostic Failure on Component 0x%02x", ascq);
+			return;
 		}
-	} else {
-		(void) strcpy(result, adesc[i].description);
+		break;
+	case 0x4d:
+		snprintf(result, len,
+	 	    "Tagged Overlapped Commands (0x%02x = TASK TAG)", ascq);
+		return;
+	case 0x70:
+		snprintf(result, len,
+		    "Decompression Exception Short Algorithm ID OF 0x%02x",
+		    ascq);
+		return;
+	default:
+		break;
 	}
-}
 
-#else
+	/* Check for a fixed description. */
+	for (i = 0; adesc[i].description != NULL; i++) {
+		if (adesc[i].asc == asc && adesc[i].ascq == ascq) {
+			strlcpy(result, adesc[i].description, len);
+			return;
+		}
+	}
 
-static __inline void
-asc2ascii(asc, ascq, result)
-	u_char asc, ascq;
-	char *result;
-{
-	(void) sprintf(result, "ASC 0x%02x ASCQ 0x%02x", asc & 0xff,
-	    ascq & 0xff);
+	/* Just print out the ASC and ASCQ values as a description. */
+	snprintf(result, len, "ASC 0x%02x ASCQ 0x%02x", asc, ascq);
 }
 #endif /* SCSITERSE */
 
 void
-scsi_print_sense(xs, verbosity)
-	struct scsi_xfer *xs;
-	int verbosity;
+scsi_print_sense(struct scsi_xfer *xs)
 {
-	int32_t info;
-	register int i, j, k;
-	char *sbs, *s;
+	struct scsi_sense_data			*sense = &xs->sense;
+	u_int8_t				serr = sense->error_code &
+						    SSD_ERRCODE;
+	int32_t					info;
+	char					*sbs;
 
 	sc_print_addr(xs->sc_link);
-	s = (char *) &xs->sense;
-	printf("Check Condition on opcode 0x%x\n", xs->cmd->opcode);
 
-	/*
-	 * Basics- print out SENSE KEY
-	 */
-	printf("    SENSE KEY: %s\n", scsi_decode_sense(s, 0));
+	/* XXX For error 0x71, current opcode is not the relevant one. */
+	printf("%sCheck Condition (error %#x) on opcode 0x%x\n",
+	    (serr == SSD_ERRCODE_DEFERRED) ? "DEFERRED " : "", serr,
+	    xs->cmd->opcode);
 
-	/*
- 	 * Print out, unqualified but aligned, FMK, EOM and ILI status.
-	 */
-	if (s[2] & 0xe0) {
+	if (serr != SSD_ERRCODE_CURRENT && serr != SSD_ERRCODE_DEFERRED) {
+		if ((sense->error_code & SSD_ERRCODE_VALID) != 0) {
+			struct scsi_sense_data_unextended *usense =
+			    (struct scsi_sense_data_unextended *)sense;
+			printf("   AT BLOCK #: %d (decimal)",
+			    _3btol(usense->block));
+		}
+		return;
+	}
+
+	printf("    SENSE KEY: %s\n", scsi_decode_sense(sense,
+	    DECODE_SENSE_KEY));
+
+	if (sense->flags & (SSD_FILEMARK | SSD_EOM | SSD_ILI)) {
 		char pad = ' ';
 
 		printf("             ");
-		if (s[2] & SSD_FILEMARK) {
+		if (sense->flags & SSD_FILEMARK) {
 			printf("%c Filemark Detected", pad);
 			pad = ',';
 		}
-		if (s[2] & SSD_EOM) {
+		if (sense->flags & SSD_EOM) {
 			printf("%c EOM Detected", pad);
 			pad = ',';
 		}
-		if (s[2] & SSD_ILI)
+		if (sense->flags & SSD_ILI)
 			printf("%c Incorrect Length Indicator Set", pad);
 		printf("\n");
 	}
+
 	/*
-	 * Now we should figure out, based upon device type, how
-	 * to format the information field. Unfortunately, that's
-	 * not convenient here, so we'll print it as a signed
-	 * 32 bit integer.
+	 * It is inconvenient to use device type to figure out how to
+	 * format the info fields. So print them as 32 bit integers.
 	 */
-	info = _4btol(&s[3]);
+	info = _4btol(&sense->info[0]);
 	if (info)
-		printf("   INFO FIELD: %u\n", info);
+		printf("         INFO: 0x%x (VALID flag %s)\n", info,
+		    sense->error_code & SSD_ERRCODE_VALID ? "on" : "off");
 
-	/*
-	 * Now we check additional length to see whether there is
-	 * more information to extract.
-	 */
-
-	/* enough for command specific information? */
-	if (s[7] < 4)
+	if (sense->extra_len < 4)
 		return;
-	info = _4btol(&s[8]);
+
+	info = _4btol(&sense->cmd_spec_info[0]);
 	if (info)
-		printf(" COMMAND INFO: %d (0x%x)\n", info, info);
-
-	/*
-	 * Decode ASC && ASCQ info, plus FRU, plus the rest...
-	 */
-
-	sbs = scsi_decode_sense(s, 1);
-	if (sbs)
+		printf(" COMMAND INFO: 0x%x\n", info);
+	sbs = scsi_decode_sense(sense, DECODE_ASC_ASCQ);
+	if (strlen(sbs) > 0)
 		printf("     ASC/ASCQ: %s\n", sbs);
-	if (s[14] != 0)
-		printf("     FRU CODE: 0x%x\n", s[14] & 0xff);
-	sbs = scsi_decode_sense(s, 3);
-	if (sbs)
+	if (sense->fru != 0)
+		printf("     FRU CODE: 0x%x\n", sense->fru);
+	sbs = scsi_decode_sense(sense, DECODE_SKSV);
+	if (strlen(sbs) > 0)
 		printf("         SKSV: %s\n", sbs);
-	if (verbosity == 0)
-		return;
-
-	/*
-	 * Now figure whether we should print any additional informtion.
-	 *
-	 * Where should we start from? If we had SKSV data,
-	 * start from offset 18, else from offset 15.
-	 *
-	 * From that point until the end of the buffer, check for any
-	 * nonzero data. If we have some, go back and print the lot,
-	 * otherwise we're done.
-	 */
-	if (sbs)
-		i = 18;
-	else
-		i = 15;
-
-	for (j = i; j < sizeof (xs->sense); j++)
-		if (s[j])
-			break;
-	if (j == sizeof (xs->sense))
-		return;
-
-	printf(" Additional Sense Information (byte %d out...):\n", i);
-	if (i == 15) {
-		printf("        %2d:", i);
-		k = 7;
-	} else {
-		printf("        %2d:", i);
-		k = 2;
-		j -= 2;
-	}
-	while (j > 0) {
-		if (i >= sizeof (xs->sense))
-			break;
-		if (k == 8) {
-			k = 0;
-			printf("\n        %2d:", i);
-		}
-		printf(" 0x%02x", s[i] & 0xff);
-		k++;
-		j--;
-		i++;
-	}
-	printf("\n");
 }
 
 char *
-scsi_decode_sense(sinfo, flag)
-	void *sinfo;
-	int flag;
+scsi_decode_sense(struct scsi_sense_data *sense, int flag)
 {
-	u_char *snsbuf, skey;
-	static char rqsbuf[132];
+	static char				rqsbuf[132];
+	u_int16_t				count;
+	u_int8_t				skey, spec_1;
+	int					len;
 
-	skey = 0;
+	bzero(rqsbuf, sizeof(rqsbuf));
 
-	snsbuf = (u_char *) sinfo;
-	if (flag == 0 || flag == 2 || flag == 3) {
-		skey = snsbuf[2] & 0xf;
-	}
-	if (flag == 0) {		/* Sense Key Only */
-		(void) strcpy(rqsbuf, sense_keys[skey]);
-		return (rqsbuf);
-	} else if (flag == 1) {		/* ASC/ASCQ Only */
-		asc2ascii(snsbuf[12], snsbuf[13], rqsbuf);
-		return (rqsbuf);
-	} else  if (flag == 2) {	/* Sense Key && ASC/ASCQ */
-		asc2ascii(snsbuf[12], snsbuf[13],
-		    rqsbuf + sprintf(rqsbuf, "%s, ", sense_keys[skey]));
-		return (rqsbuf);
-	} else if (flag == 3  && snsbuf[7] >= 9 && (snsbuf[15] & 0x80)) {
-		/*
-		 * SKSV Data
-		 */
+	skey = sense->flags & SSD_KEY;
+	spec_1 = sense->sense_key_spec_1;
+	count = _2btol(&sense->sense_key_spec_2);
+
+	switch (flag) {
+	case DECODE_SENSE_KEY:
+		strlcpy(rqsbuf, sense_keys[skey], sizeof(rqsbuf));
+		break;
+	case DECODE_ASC_ASCQ:
+		asc2ascii(sense->add_sense_code, sense->add_sense_code_qual,
+		    rqsbuf, sizeof(rqsbuf));
+		break;
+	case DECODE_SKSV:
+		if (sense->extra_len < 9 || ((spec_1 & SSD_SCS_VALID) == 0))
+			break;
 		switch (skey) {
-		case 0x5:	/* Illegal Request */
-			if (snsbuf[15] & 0x8) {
-				(void) sprintf(rqsbuf,
-				    "Error in %s, Offset %d, bit %d",
-				    (snsbuf[15] & 0x40)? "CDB" : "Parameters",
-				    (snsbuf[16] & 0xff) << 8 |
-				    (snsbuf[17] & 0xff), snsbuf[15] & 0xf);
-			} else {
-				(void) sprintf(rqsbuf,
-				    "Error in %s, Offset %d",
-				    (snsbuf[15] & 0x40)? "CDB" : "Parameters",
-				    (snsbuf[16] & 0xff) << 8 |
-				    (snsbuf[17] & 0xff));
-			}
-			return (rqsbuf);
-		case 0x1:
-		case 0x3:
-		case 0x4:
-			(void) sprintf(rqsbuf, "Actual Retry Count: %d",
-			    (snsbuf[16] & 0xff) << 8 | (snsbuf[17] & 0xff));
-			return (rqsbuf);
-		case 0x2:
-			(void) sprintf(rqsbuf, "Progress Indicator: %d",
-			    (snsbuf[16] & 0xff) << 8 | (snsbuf[17] & 0xff));
-			return (rqsbuf);
+		case SKEY_ILLEGAL_REQUEST:
+			len = snprintf(rqsbuf, sizeof rqsbuf,
+			    "Error in %s, Offset %d",
+			    (spec_1 & SSD_SCS_CDB_ERROR) ? "CDB" : "Parameters",
+			    count);
+			if ((len != -1 && len < sizeof rqsbuf) &&
+			    (spec_1 & SSD_SCS_VALID_BIT_INDEX))
+				snprintf(rqsbuf+len, sizeof rqsbuf - len,
+				    ", bit %d", spec_1 & SSD_SCS_BIT_INDEX);
+			break;
+		case SKEY_RECOVERED_ERROR:
+		case SKEY_MEDIUM_ERROR:
+		case SKEY_HARDWARE_ERROR:
+			snprintf(rqsbuf, sizeof rqsbuf,
+			    "Actual Retry Count: %d", count);
+			break;
+		case SKEY_NOT_READY:
+			snprintf(rqsbuf, sizeof rqsbuf,
+			    "Progress Indicator: %d", count);
+			break;
 		default:
 			break;
 		}
+		break;
+	default:
+		break;
 	}
-	return (NULL);
+
+	return (rqsbuf);
 }
 
-#ifdef	SCSIDEBUG
+#ifdef SCSIDEBUG
 /*
- * Given a scsi_xfer, dump the request, in all it's glory
+ * Given a scsi_xfer, dump the request, in all its glory
  */
 void
-show_scsi_xs(xs)
-	struct scsi_xfer *xs;
+scsi_xs_show(struct scsi_xfer *xs)
 {
-	printf("xs(%p): ", xs);
+	u_char *b = (u_char *)xs->cmd;
+	int i = 0;
+
+	sc_print_addr(xs->sc_link);
+	printf("xs  (%p): ", xs);
+
 	printf("flg(0x%x)", xs->flags);
 	printf("sc_link(%p)", xs->sc_link);
 	printf("retr(0x%x)", xs->retries);
 	printf("timo(0x%x)", xs->timeout);
-	printf("cmd(%p)", xs->cmd);
-	printf("len(0x%x)", xs->cmdlen);
 	printf("data(%p)", xs->data);
-	printf("len(0x%x)", xs->datalen);
 	printf("res(0x%x)", xs->resid);
 	printf("err(0x%x)", xs->error);
-	printf("bp(%p)", xs->bp);
-	show_scsi_cmd(xs);
-}
-
-void
-show_scsi_cmd(xs)
-	struct scsi_xfer *xs;
-{
-	u_char *b = (u_char *) xs->cmd;
-	int     i = 0;
+	printf("bp(%p)\n", xs->bp);
 
 	sc_print_addr(xs->sc_link);
-	printf("command: ");
+	printf("cmd (%p): ", xs->cmd);
 
 	if ((xs->flags & SCSI_RESET) == 0) {
 		while (i < xs->cmdlen) {
@@ -1254,16 +2517,12 @@ show_scsi_cmd(xs)
 			printf("%x", b[i++]);
 		}
 		printf("-[%d bytes]\n", xs->datalen);
-		if (xs->datalen)
-			show_mem(xs->data, min(64, xs->datalen));
 	} else
 		printf("-RESET-\n");
 }
 
 void
-show_mem(address, num)
-	u_char *address;
-	int num;
+scsi_show_mem(u_char *address, int num)
 {
 	int x;
 
@@ -1276,3 +2535,41 @@ show_mem(address, num)
 	printf("\n------------------------------\n");
 }
 #endif /* SCSIDEBUG */
+
+void
+scsi_cmd_rw_decode(struct scsi_generic *cmd, u_int64_t *blkno,
+    u_int32_t *nblks)
+{
+	switch (cmd->opcode) {
+	case READ_COMMAND:
+	case WRITE_COMMAND: {
+		struct scsi_rw *rw = (struct scsi_rw *)cmd;
+		*blkno = _3btol(rw->addr) & (SRW_TOPADDR << 16 | 0xffff);
+		*nblks = rw->length ? rw->length : 0x100;
+		break;
+	}
+	case READ_BIG:
+	case WRITE_BIG: {
+		struct scsi_rw_big *rwb = (struct scsi_rw_big *)cmd;
+		*blkno = _4btol(rwb->addr);
+		*nblks = _2btol(rwb->length);
+		break;
+	}
+	case READ_12:
+	case WRITE_12: {
+		struct scsi_rw_12 *rw12 = (struct scsi_rw_12 *)cmd;
+		*blkno = _4btol(rw12->addr);
+		*nblks = _4btol(rw12->length);
+		break;
+	}
+	case READ_16:
+	case WRITE_16: {
+		struct scsi_rw_16 *rw16 = (struct scsi_rw_16 *)cmd;
+		*blkno = _8btol(rw16->addr);
+		*nblks = _4btol(rw16->length);
+		break;
+	}
+	default:
+		panic("scsi_cmd_rw_decode: bad opcode 0x%02x", cmd->opcode);
+	}
+}

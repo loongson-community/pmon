@@ -248,6 +248,8 @@ bus_space_write_raw_multi(4,32,2)
 #define	BUS_DMA_ALLOCNOW	0x02
 #define	BUS_DMAMEM_NOSYNC	0x04
 #define	BUS_DMA_COHERENT	0x04
+//wan+
+#define BUS_DMA_ZERO        0x800  /* zero memory in dmamem_alloc */
 
 /* Forwards needed by prototypes below. */
 struct mbuf;

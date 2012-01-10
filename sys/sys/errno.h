@@ -165,6 +165,9 @@ extern char *sys_errlist[];
 #define	ENEEDAUTH	81		/* Need authenticator */
 #define	EIPSEC		82		/* IPsec processing failure */
 #define	ELAST		82		/* Must be equal largest errno */
+//wan+
+#define ENOMEDIUM   85      /* No medium found */
+#define EMEDIUMTYPE 86      /* Wrong Medium Type */
 #endif /* _POSIX_SOURCE */
 
 #ifdef _KERNEL

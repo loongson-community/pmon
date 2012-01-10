@@ -71,6 +71,17 @@ enum devact {
 	DVACT_DEACTIVATE,	/* deactivate the device */
 };
 
+//wan+ if
+/*
+ * Actions for ca_activate.
+ */
+#define DVACT_ACTIVATE      0   /* activate the device */
+#define DVACT_DEACTIVATE    1   /* deactivate the device */
+#define DVACT_SUSPEND       2   /* suspend the device */
+#define DVACT_RESUME        3   /* resume the device */
+#define DVACT_QUIESCE       4   /* warn the device about suspend */
+//wan+ end
+
 struct device {
 	enum	devclass dv_class;	/* this device's classification */
 	TAILQ_ENTRY(device) dv_list;	/* entry on list of all devices */
@@ -211,6 +222,11 @@ void evcnt_attach __P((struct device *, const char *, struct evcnt *));
 struct device *device_lookup __P((struct cfdriver *, int unit));
 void device_ref __P((struct device *));
 void device_unref __P((struct device *));
+
+struct nam2blk { //wan+
+	char	*name;
+	int	maj;
+};
 
 #ifdef __HAVE_DEVICE_REGISTER
 void device_register(struct device *, void *);

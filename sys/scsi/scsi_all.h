@@ -1,4 +1,4 @@
-/*	$OpenBSD: scsi_all.h,v 1.12 2001/11/11 21:38:17 krw Exp $	*/
+/*	$OpenBSD: scsi_all.h,v 1.52 2010/12/24 02:45:33 krw Exp $	*/
 /*	$NetBSD: scsi_all.h,v 1.10 1996/09/12 01:57:17 thorpej Exp $	*/
 
 /*
@@ -47,7 +47,7 @@
 
 struct scsi_generic {
 	u_int8_t opcode;
-	u_int8_t bytes[11];
+	u_int8_t bytes[15];
 };
 
 struct scsi_test_unit_ready {
@@ -79,16 +79,21 @@ struct scsi_sense {
 
 struct scsi_inquiry {
 	u_int8_t opcode;
-	u_int8_t byte2;
-	u_int8_t unused[2];
-	u_int8_t length;
+	u_int8_t flags;
+#define SI_EVPD		0x01
+	u_int8_t pagecode;
+#define SI_PG_SUPPORTED	0x00
+#define SI_PG_SERIAL	0x80
+#define SI_PG_DEVID	0x83
+#define SI_PG_ATA	0x89
+	u_int8_t length[2];
 	u_int8_t control;
 };
 
 struct scsi_mode_sense {
 	u_int8_t opcode;
 	u_int8_t byte2;
-#define	SMS_DBD				0x08
+#define	SMS_DBD				0x08	/* Disable Block Descriptors */
 	u_int8_t page;
 #define	SMS_PAGE_CODE 			0x3F
 #define	SMS_PAGE_CTRL 			0xC0
@@ -103,8 +108,9 @@ struct scsi_mode_sense {
 
 struct scsi_mode_sense_big {
 	u_int8_t opcode;
-	u_int8_t byte2;		/* same bits as small version */
-	u_int8_t page; 		/* same bits as small version */
+	u_int8_t byte2;				/* same bits as small version */
+#define SMS_LLBAA			0x10	/*    plus: Long LBA Accepted */
+	u_int8_t page;				/* same bits as small version */
 	u_int8_t unused[4];
 	u_int8_t length[2];
 	u_int8_t control;
@@ -154,17 +160,18 @@ struct scsi_prevent {
 #define	PR_PREVENT 0x01
 #define PR_ALLOW   0x00
 
-struct scsi_changedef {
+struct scsi_report_luns {
 	u_int8_t opcode;
-	u_int8_t byte2;
-	u_int8_t unused1;
-	u_int8_t how;
-	u_int8_t unused[4];
-	u_int8_t datalen;
+	u_int8_t unused;
+	u_int8_t selectreport;
+#define	REPORT_NORMAL		0x00
+#define	REPORT_WELLKNOWN	0x01
+#define	REPORT_ALL		0x02
+	u_int8_t unused2[3];
+	u_int8_t length[4];
+	u_int8_t unused4;
 	u_int8_t control;
 };
-#define SC_SCSI_1 0x01
-#define SC_SCSI_2 0x03
 
 /*
  * Opcodes
@@ -173,15 +180,20 @@ struct scsi_changedef {
 #define REQUEST_SENSE		0x03
 #define INQUIRY			0x12
 #define MODE_SELECT		0x15
-#define MODE_SENSE		0x1a
-#define START_STOP		0x1b
 #define RESERVE			0x16
 #define RELEASE			0x17
+#define MODE_SENSE		0x1a
+#define START_STOP		0x1b
+#define RECEIVE_DIAGNOSTIC	0x1c
+#define SEND_DIAGNOSTIC		0x1d
 #define PREVENT_ALLOW		0x1e
 #define POSITION_TO_ELEMENT	0x2b
+#define WRITE_BUFFER		0x3b
+#define READ_BUFFER		0x3c
 #define	CHANGE_DEFINITION	0x40
-#define	MODE_SENSE_BIG		0x54
 #define	MODE_SELECT_BIG		0x55
+#define	MODE_SENSE_BIG		0x5a
+#define	REPORT_LUNS		0xa0
 
 /*
  * Sort of an extra one, for SCSI_RESET.
@@ -199,6 +211,7 @@ struct scsi_changedef {
 #define T_CDROM		5
 #define T_SCANNER 	6
 #define T_OPTICAL 	7
+#define T_RDIRECT 	14
 #define T_NODEVICE	0x1F
 
 #define T_CHANGER	8
@@ -225,6 +238,8 @@ struct scsi_inquiry_data {
 #define SID_ISO		0xC0
 	u_int8_t response_format;
 	u_int8_t additional_length;
+#define SID_INQUIRY_HDR	5	/* Bytes up to & including additional_length */
+#define SID_SCSI2_ALEN	31	/* Additional bytes of basic SCSI2 info */
 	u_int8_t unused[2];
 	u_int8_t flags;
 #define	SID_SftRe	0x01
@@ -245,6 +260,55 @@ struct scsi_inquiry_data {
 	u_int8_t reserved;
 };
 
+struct scsi_vpd_hdr {
+	u_int8_t device;
+	u_int8_t page_code;
+	u_int8_t page_length[2];
+};
+
+struct scsi_vpd_serial {
+	struct scsi_vpd_hdr hdr;
+	char serial[32];
+};
+
+#define VPD_PROTO_ID_FC		0x0 /* Fibre Channel */
+#define VPD_PROTO_ID_SPI	0x1 /* Parallel SCSI */
+#define VPD_PROTO_ID_SSA	0x2
+#define VPD_PROTO_ID_IEEE1394	0x3
+#define VPD_PROTO_ID_SRP	0x4 /* SCSI RDMA Protocol */
+#define VPD_PROTO_ID_ISCSI	0x5 /* Internet SCSI (iSCSI) */
+#define VPD_PROTO_ID_SAS	0x6 /* Serial Attached SCSI */
+#define VPD_PROTO_ID_ADT	0x7 /* Automation/Drive Interface Transport */
+#define VPD_PROTO_ID_ATA	0x7 /* ATA/ATAPI */
+#define VPD_PROTO_ID_NONE	0xf
+
+struct scsi_vpd_devid_hdr {
+	u_int8_t pi_code;
+#define VPD_DEVID_PI(_f)	(((_f) >> 4) & 0x0f)
+#define VPD_DEVID_CODE(_f)	(((_f) >> 0) & 0x0f)
+#define VPD_DEVID_CODE_BINARY		0x1
+#define VPD_DEVID_CODE_ASCII		0x2
+#define VPD_DEVID_CODE_UTF8		0x3
+	u_int8_t flags;
+#define VPD_DEVID_PIV		0x80
+#define VPD_DEVID_ASSOC(_f)	((_f) & 0x30)
+#define VPD_DEVID_ASSOC_LU		0x00
+#define VPD_DEVID_ASSOC_PORT		0x10
+#define VPD_DEVID_ASSOC_TARG		0x20
+#define VPD_DEVID_TYPE(_f)	((_f) & 0x0f)
+#define VPD_DEVID_TYPE_VENDOR		0x0
+#define VPD_DEVID_TYPE_T10		0x1
+#define VPD_DEVID_TYPE_EUI64		0x2
+#define VPD_DEVID_TYPE_NAA		0x3
+#define VPD_DEVID_TYPE_RELATIVE		0x4
+#define VPD_DEVID_TYPE_PORT		0x5
+#define VPD_DEVID_TYPE_LU		0x6
+#define VPD_DEVID_TYPE_MD5		0x7
+#define VPD_DEVID_TYPE_NAME		0x8
+	u_int8_t reserved;
+	u_int8_t len;
+};
+
 struct scsi_sense_data_unextended {
 /* 1*/	u_int8_t error_code;
 /* 4*/	u_int8_t block[3];
@@ -252,6 +316,8 @@ struct scsi_sense_data_unextended {
 
 struct scsi_sense_data {
 /* 1*/	u_int8_t error_code;
+#define	SSD_ERRCODE_CURRENT	0x70
+#define	SSD_ERRCODE_DEFERRED	0x71
 #define	SSD_ERRCODE		0x7F
 #define	SSD_ERRCODE_VALID	0x80
 /* 2*/	u_int8_t segment;
@@ -267,10 +333,13 @@ struct scsi_sense_data {
 /*14*/	u_int8_t add_sense_code_qual;
 /*15*/	u_int8_t fru;
 /*16*/	u_int8_t sense_key_spec_1;
-#define	SSD_SCS_VALID	0x80
+#define	SSD_SCS_VALID		0x80
+#define SSD_SCS_CDB_ERROR	0x40
+#define SSD_SCS_SEGMENT_DESC	0x20
+#define SSD_SCS_VALID_BIT_INDEX	0x08
+#define SSD_SCS_BIT_INDEX	0x07
 /*17*/	u_int8_t sense_key_spec_2;
 /*18*/	u_int8_t sense_key_spec_3;
-/*32*/	u_int8_t extra_bytes[14];
 };
 
 #define SKEY_NO_SENSE		0x00
@@ -290,6 +359,41 @@ struct scsi_sense_data {
 #define SKEY_MISCOMPARE		0x0E
 #define SKEY_RESERVED		0x0F
 
+
+/* Additional sense code info */
+#define ASC_ASCQ(ssd)	((ssd->add_sense_code << 8) | ssd->add_sense_code_qual)
+
+#define SENSE_NOT_READY_BECOMING_READY		0x0401
+#define SENSE_NOT_READY_INIT_REQUIRED		0x0402
+#define SENSE_NOT_READY_FORMAT			0x0404
+#define SENSE_NOT_READY_REBUILD			0x0405
+#define SENSE_NOT_READY_RECALC			0x0406
+#define SENSE_NOT_READY_INPROGRESS		0x0407
+#define SENSE_NOT_READY_LONGWRITE		0x0408
+#define SENSE_NOT_READY_SELFTEST		0x0409
+#define SENSE_POWER_RESET_OR_BUS		0x2900
+#define SENSE_POWER_ON				0x2901
+#define SENSE_BUS_RESET				0x2902
+#define SENSE_BUS_DEVICE_RESET			0x2903
+#define SENSE_DEVICE_INTERNAL_RESET		0x2904
+#define SENSE_TSC_CHANGE_SE			0x2905
+#define SENSE_TSC_CHANGE_LVD			0x2906
+#define SENSE_IT_NEXUS_LOSS			0x2907
+#define SENSE_BAD_MEDIUM			0x3000
+#define SENSE_NR_MEDIUM_UNKNOWN_FORMAT		0x3001
+#define SENSE_NR_MEDIUM_INCOMPATIBLE_FORMAT	0x3002
+#define SENSE_NW_MEDIUM_UNKNOWN_FORMAT		0x3004
+#define SENSE_NW_MEDIUM_INCOMPATIBLE_FORMAT	0x3005
+#define SENSE_NF_MEDIUM_INCOMPATIBLE_FORMAT	0x3006
+#define SENSE_NW_MEDIUM_AC_MISMATCH		0x3008
+#define SENSE_NOMEDIUM				0x3A00
+#define SENSE_NOMEDIUM_TCLOSED			0x3A01
+#define SENSE_NOMEDIUM_TOPEN			0x3A02
+#define SENSE_NOMEDIUM_LOADABLE			0x3A03
+#define SENSE_NOMEDIUM_AUXMEM			0x3A04
+#define SENSE_CARTRIDGE_FAULT			0x5200
+#define SENSE_MEDIUM_REMOVAL_PREVENTED		0x5302
+
 struct scsi_blk_desc {
 	u_int8_t density;
 	u_int8_t nblocks[3];
@@ -297,8 +401,21 @@ struct scsi_blk_desc {
 	u_int8_t blklen[3];
 };
 
+struct scsi_direct_blk_desc {
+	u_int8_t nblocks[4];
+	u_int8_t density;
+	u_int8_t blklen[3];
+};
+
+struct scsi_blk_desc_big {
+	u_int8_t nblocks[8];
+	u_int8_t density;
+	u_int8_t reserved[3];
+	u_int8_t blklen[4];
+};
+
 struct scsi_mode_header {
-	u_int8_t data_length;	/* Sense data length */
+	u_int8_t data_length;		/* Sense data length */
 	u_int8_t medium_type;
 	u_int8_t dev_spec;
 	u_int8_t blk_desc_len;
@@ -308,10 +425,134 @@ struct scsi_mode_header_big {
 	u_int8_t data_length[2];	/* Sense data length */
 	u_int8_t medium_type;
 	u_int8_t dev_spec;
-	u_int8_t unused[2];
+	u_int8_t reserved;
+#define LONGLBA	0x01
+	u_int8_t reserved2;
 	u_int8_t blk_desc_len[2];
 };
 
+/* Both disks and tapes use dev_spec to report READONLY status. */
+#define	SMH_DSP_WRITE_PROT	0x80
+
+union scsi_mode_sense_buf {
+	struct scsi_mode_header hdr;
+	struct scsi_mode_header_big hdr_big;
+	u_char buf[254];	/* 255 & 256 bytes breaks some devices. */
+				/* ahci doesn't like 255, various don't like */
+				/* 256 because length must fit in 8 bits. */
+} __packed;			/* Ensure sizeof() is 254! */
+
+struct scsi_report_luns_data {
+	u_int8_t length[4];	/* length of LUN inventory, in bytes */
+	u_int8_t reserved[4];	/* unused */
+	/*
+	 * LUN inventory- we only support the type zero form for now.
+	 */
+#define RPL_LUNDATA_SIZE 8	/* Bytes per lun */
+	struct {
+		u_int8_t lundata[RPL_LUNDATA_SIZE];
+	} luns[256];		/* scsi_link->luns is u_int8_t. */
+};
+#define	RPL_LUNDATA_T0LUN	1	/* Type 0 LUN is in lundata[1] */
+
+/*
+ * ATA PASS-THROUGH as per SAT2
+ */
+
+#define ATA_PASSTHRU_12		0xa1
+#define ATA_PASSTHRU_16		0x85
+
+#define ATA_PASSTHRU_PROTO_MASK		0x1e
+#define ATA_PASSTHRU_PROTO_HW_RESET	0x00
+#define ATA_PASSTHRU_PROTO_SW_RESET	0x02
+#define ATA_PASSTHRU_PROTO_NON_DATA	0x06
+#define ATA_PASSTHRU_PROTO_PIO_DATAIN	0x08
+#define ATA_PASSTHRU_PROTO_PIO_DATAOUT	0x0a
+#define ATA_PASSTHRU_PROTO_DMA		0x0c
+#define ATA_PASSTHRU_PROTO_DMA_QUEUED	0x0e
+#define ATA_PASSTHRU_PROTO_EXEC_DIAG	0x10
+#define ATA_PASSTHRU_PROTO_NON_DATA_RST	0x12
+#define ATA_PASSTHRU_PROTO_UDMA_DATAIN	0x14
+#define ATA_PASSTHRU_PROTO_UDMA_DATAOUT	0x16
+#define ATA_PASSTHRU_PROTO_FPDMA	0x18
+#define ATA_PASSTHRU_PROTO_RESPONSE	0x1e
+
+#define ATA_PASSTHRU_T_DIR_MASK		0x08
+#define ATA_PASSTHRU_T_DIR_READ		0x08
+#define ATA_PASSTHRU_T_DIR_WRITE	0x00
+
+#define ATA_PASSTHRU_T_LEN_MASK		0x03
+#define ATA_PASSTHRU_T_LEN_NONE		0x00
+#define ATA_PASSTHRU_T_LEN_FEATURES	0x01
+#define ATA_PASSTHRU_T_LEN_SECTOR_COUNT	0x02
+#define ATA_PASSTHRU_T_LEN_TPSIU	0x03
+
+struct scsi_ata_passthru_12 {
+	u_int8_t opcode;
+	u_int8_t count_proto;
+	u_int8_t flags;
+	u_int8_t features;
+	u_int8_t sector_count;
+	u_int8_t lba_low;
+	u_int8_t lba_mid;
+	u_int8_t lba_high;
+	u_int8_t device;
+	u_int8_t command;
+	u_int8_t _reserved;
+	u_int8_t control;
+};
+
+struct scsi_ata_passthru_16 {
+	u_int8_t opcode;
+	u_int8_t count_proto;
+	u_int8_t flags;
+	u_int8_t features[2];
+	u_int8_t sector_count[2];
+	u_int8_t lba_low[2];
+	u_int8_t lba_mid[2];
+	u_int8_t lba_high[2];
+	u_int8_t device;
+	u_int8_t command;
+	u_int8_t control;
+};
+
+/*
+ * SPI status information unit. See section 14.3.5 of SPI-3.
+ */
+struct scsi_status_iu_header {
+/* 2*/	u_int8_t reserved[2];
+/* 3*/	u_int8_t flags;
+#define	SIU_SNSVALID 0x2
+#define	SIU_RSPVALID 0x1
+/* 4*/	u_int8_t status;
+/* 8*/	u_int8_t sense_length[4];
+/*12*/	u_int8_t pkt_failures_length[4];
+	u_int8_t data[1]; /* <pkt failure list><sense data> OR <sense_data> */
+};
+
+#define SIU_PKTFAIL_CODE(siu)	((siu)->data[3])
+#define		SIU_PFC_NONE			0x00
+#define		SIU_PFC_CIU_FIELDS_INVALID	0x02
+#define		SIU_PFC_TMF_NOT_SUPPORTED	0x04
+#define		SIU_PFC_TMF_FAILED		0x05
+#define		SIU_PFC_INVALID_TYPE_CODE	0x06
+#define		SIU_PFC_ILLEGAL_REQUEST		0x07
+
+#define SIU_SENSE_LENGTH(siu)	(_4btol((siu)->sense_length))
+#define SIU_SENSE_DATA(siu)	(((siu)->flags & SIU_RSPVALID) ?	\
+   &(siu)->data[_4btol((siu)->pkt_failures_length)] : &(siu)->data[0])
+
+/*
+ * Values for 'Task Management Flags' field of SPI command information unit.
+ * See section 14.3.1 of SPI-3.
+ */
+#define	SIU_TASKMGMT_NONE		0x00
+#define	SIU_TASKMGMT_ABORT_TASK		0x01
+#define	SIU_TASKMGMT_ABORT_TASK_SET	0x02
+#define	SIU_TASKMGMT_CLEAR_TASK_SET	0x04
+#define	SIU_TASKMGMT_LUN_RESET		0x08
+#define	SIU_TASKMGMT_TARGET_RESET	0x20
+#define	SIU_TASKMGMT_CLEAR_ACA		0x40
 
 /*
  * Status Byte
@@ -319,7 +560,7 @@ struct scsi_mode_header_big {
 #define SCSI_OK			0x00
 #define SCSI_CHECK		0x02
 #define SCSI_COND_MET		0x04
-#define SCSI_BUSY		0x08	
+#define SCSI_BUSY		0x08
 #define SCSI_INTERM		0x10
 #define SCSI_INTERM_COND_MET	0x14
 #define SCSI_RESV_CONFLICT	0x18

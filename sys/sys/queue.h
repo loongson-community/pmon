@@ -136,6 +136,20 @@ struct {								\
 	(head)->slh_first = (head)->slh_first->field.sle_next;		\
 } while (0)
 
+//wan+
+#define SLIST_REMOVE(head, elm, type, field) do { \
+	if ((head)->slh_first == (elm)) { \
+		SLIST_REMOVE_HEAD((head), field); \
+	} else { \
+		struct type *curelm = (head)->slh_first; \
+		 \
+		while (curelm->field.sle_next != (elm)) \
+			curelm = curelm->field.sle_next; \
+		curelm->field.sle_next = \
+			curelm->field.sle_next->field.sle_next; \
+	} \
+} while (0)
+
 /*
  * List definitions.
  */

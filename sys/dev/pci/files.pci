@@ -11,6 +11,14 @@ file	sys/dev/pci/pciconf.c		pci
 file	sys/dev/pci/pci_map.c		pci
 file	sys/dev/pci/pci.c		pci
 
+# wan+
+# LSI MegaRAID SAS controllers
+device  mfi: scsi
+file    sys/dev/ic/mfi.c                mfi
+# LSI MegaRAID SAS RAID controllers
+attach  mfi at pci with mfi_pci
+file    sys/dev/pci/mfi_pci.c           mfi_pci
+
 # Ethernet driver for DC21040-based boards
 device	de: ether, ifnet, ifmedia
 attach	de at pci

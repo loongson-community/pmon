@@ -50,6 +50,9 @@ typedef struct	scsireq {
 #define SCIOCDEBUG	_IOW('Q', 2, int)	/* from 0 to 15 */
 
 struct	scsi_addr {
+	int	type;		/*wan+*/
+#define TYPE_SCSI	0	/*wan+*/
+#define TYPE_ATAPI	1	/*wan+*/
 	int	scbus;		/* -1 if wildcard */
 	int	target;		/* -1 if wildcard */
 	int	lun;		/* -1 if wildcard */

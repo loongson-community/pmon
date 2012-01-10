@@ -181,6 +181,15 @@
 #define	MAXPATHLEN	PATH_MAX
 #define MAXSYMLINKS	32
 
+//wan+ if
+/* Macros to set/clear/test flags. */
+#ifdef _KERNEL
+#define SET(t, f)   ((t) |= (f))
+#define CLR(t, f)   ((t) &= ~(f))
+#define ISSET(t, f) ((t) & (f))
+#endif
+//wan endif
+
 /* Macros to set/clear/test flags. */
 #ifdef _KERNEL
 #define SET(t, f)      ((t) |= (f))
@@ -225,7 +234,7 @@
 #define MINBUCKET	4		/* 4 => min allocation of 16 bytes */
 #ifdef PMON
 /* always permanently allocate */
-#define	MAXALLOCSAVE	(MINALLOCSIZE * 32768)
+#define        MAXALLOCSAVE    (MINALLOCSIZE * 32768) /* wan! 512k*/
 #else
 #define MAXALLOCSAVE	(2 * CLBYTES)
 #endif

@@ -56,6 +56,46 @@ struct vnode;
 
 LIST_HEAD(workhead, worklist);
 
+//wan+ if
+/*
+ * Buffer queues
+ */
+#define BUFQ_DISKSORT	0
+#define BUFQ_FIFO	1
+#define BUFQ_DEFAULT	BUFQ_DISKSORT
+#define BUFQ_HOWMANY	2
+struct bufq {
+	SLIST_ENTRY(bufq)    bufq_entries;
+//	struct mutex         bufq_mtx;//wan-
+	void            *bufq_data;
+	u_int            bufq_outstanding;
+	int          bufq_stop;
+	int          bufq_type;
+	const struct bufq_impl	*bufq_impl;
+};
+/* disksort */
+struct bufq_disksort {
+    struct buf   *bqd_actf;
+    struct buf  **bqd_actb;
+};
+ /* fifo */
+SIMPLEQ_HEAD(bufq_fifo_head, buf);
+struct bufq_fifo {
+	SIMPLEQ_ENTRY(buf)	bqf_entries;
+};
+ /* Abuse bufq_fifo, for swapping to regular files. */
+struct bufq_swapreg {
+    SIMPLEQ_ENTRY(buf)  bqf_entries;
+//    struct workq_task_  bqf_wqtask;//wan-
+};
+ /* bufq link in struct buf */
+union bufq_data {
+    struct bufq_disksort	bufq_data_disksort;
+    struct bufq_fifo	bufq_data_fifo;
+    struct bufq_swapreg	bufq_swapreg;
+};
+//wan+ end
+
 /*
  * These are currently used only by the soft dependency code, hence
  * are stored once in a global variable. If other subsystems wanted
@@ -105,6 +145,9 @@ struct buf {
 	int	b_validoff;		/* Offset in buffer of valid region. */
 	int	b_validend;		/* Offset of end of valid region. */
  	struct	workhead b_dep;		/* List of filesystem dependencies. */
+
+	union	bufq_data b_bufq;//wan+
+	struct	bufq	*b_bq;		/* What bufq this buf is on *///wan+
 };
 
 /*
