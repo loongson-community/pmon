@@ -481,7 +481,7 @@ ether_output(ifp, m0, dst, rt0)
 		senderr(ENOBUFS);
 	}
 	ifp->if_obytes += m->m_pkthdr.len;
-	IF_ENQUEUE(&ifp->if_snd, m);
+	IF_ENQUEUE(&ifp->if_snd, m);//wan: add mbuf m to ifp->if_snd
 	if (m->m_flags & M_MCAST)
 		ifp->if_omcasts++;
 	if ((ifp->if_flags & IFF_OACTIVE) == 0)
@@ -516,6 +516,13 @@ ether_input(ifp, eh, m)
 		m_freem(m);
 		return;
 	}
+
+       //wan+
+       if (eh == NULL) {
+               eh = mtod(m, struct ether_header *);
+               m_adj(m, ETHER_HDR_LEN);
+       }
+
 #include "raw_ether.h"
 #if NRAW_ETHER
 {
@@ -805,7 +812,7 @@ ether_ifattach(ifp)
 	ifp->if_addrlen = 6;
 	ifp->if_hdrlen = 14;
 	ifp->if_mtu = ETHERMTU;
-	ifp->if_output = ether_output;
+	ifp->if_output = ether_output;//wan: implete ifp->if_output in ping -> ... -> udp_output()
 	for (ifa = ifp->if_addrlist.tqh_first; ifa != 0;
 	    ifa = ifa->ifa_list.tqe_next)
 		if ((sdl = (struct sockaddr_dl *)ifa->ifa_addr) &&

@@ -159,6 +159,13 @@ int	pci_mem_find __P((pci_chipset_tag_t, pcitag_t, int, bus_addr_t *,
 int pci_get_capability __P((pci_chipset_tag_t, pcitag_t, int,
 			    int *, pcireg_t *));
 
+struct pci_matchid {
+       pci_vendor_id_t         pm_vid;
+       pci_product_id_t        pm_pid;
+};
+
+int pci_matchbyid(struct pci_attach_args *, const struct pci_matchid *, int);
+
 /*
  * Helper functions for autoconfiguration.
  */

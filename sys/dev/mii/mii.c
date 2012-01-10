@@ -74,7 +74,12 @@ mii_phy_probe(parent, mii, capmask)
 	struct mii_attach_args ma;
 	struct mii_softc *child;
 
-	LIST_INIT(&mii->mii_phys);
+	//LIST_INIT(&mii->mii_phys);//wan-
+	//wan+
+	if ((mii->mii_flags & MIIF_INITDONE) == 0) {
+        	LIST_INIT(&mii->mii_phys);
+        	mii->mii_flags |= MIIF_INITDONE;
+	}
 
 	for (ma.mii_phyno = 0; ma.mii_phyno < MII_NPHY; ma.mii_phyno++) {
 		/*
@@ -109,6 +114,7 @@ mii_phy_probe(parent, mii, capmask)
 
 		ma.mii_data = mii;
 		ma.mii_capmask = capmask;
+		ma.mii_flags = (mii->mii_flags & MIIF_INHERIT_MASK);//wan+
 
 		if ((child = (struct mii_softc *)config_found_sm(parent, &ma,
 		    mii_print, mii_submatch)) != NULL) {
@@ -163,7 +169,7 @@ mii_submatch(parent, match, aux)
 	    cf->cf_loc[MIICF_PHY] != MIICF_PHY_DEFAULT)
 		return (0);
 
-	return ((*cf->cf_attach->ca_match)(parent, cf, aux));
+	return ((*cf->cf_attach->ca_match)(parent, cf, aux));//wan: valid
 }
 
 /*

@@ -4,6 +4,10 @@ file    sys/dev/mii/mii.c			mii
 define mii_phy
 file sys/dev/mii/mii_physubr.c			mii_phy
 
+device brgphy: mii_phy
+attach brgphy at mii
+file sys/dev/mii/brgphy.c                      brgphy
+
 device inphy: mii_phy
 attach inphy at mii
 file sys/dev/mii/inphy.c			inphy

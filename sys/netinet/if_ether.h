@@ -35,7 +35,8 @@
  *
  *	@(#)if_ether.h	8.1 (Berkeley) 6/10/93
  */
-
+#ifndef _NETINET_IN_IF_ETHER_H
+#define _NETINET_IN_IF_ETHER_H
 /*
  * Ethernet address - 6 octets
  * this is only used by the ethers(3) functions.
@@ -48,6 +49,12 @@ struct ether_addr {
  * Structure of a Ethernet header.
  */
 #define	ETHER_ADDR_LEN	6
+
+#define ETHER_CRC_LEN  4       /* Ethernet CRC length                  */
+#define ETHER_ALIGN            2       /* driver adjust for IP hdr alignment */
+//wan+
+#define ETHER_TYPE_LEN 2       /* Ethernet type field length_______*/
+#define ETHER_HDR_LEN  ((ETHER_ADDR_LEN * 2) + ETHER_TYPE_LEN)
 
 struct	ether_header {
 	u_int8_t  ether_dhost[ETHER_ADDR_LEN];
@@ -264,4 +271,5 @@ int ether_ntohost __P((char *, struct ether_addr *));
 int ether_hostton __P((char *, struct ether_addr *));
 int ether_line __P((char *, struct ether_addr *, char *));
 
+#endif
 #endif

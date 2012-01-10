@@ -181,6 +181,13 @@
 #define	MAXPATHLEN	PATH_MAX
 #define MAXSYMLINKS	32
 
+/* Macros to set/clear/test flags. */
+#ifdef _KERNEL
+#define SET(t, f)      ((t) |= (f))
+#define CLR(t, f)      ((t) &= ~(f))
+#define ISSET(t, f)    ((t) & (f))
+#endif
+
 /* Bit map related macros. */
 #define	setbit(a,i)	((a)[(i)/NBBY] |= 1<<((i)%NBBY))
 #define	clrbit(a,i)	((a)[(i)/NBBY] &= ~(1<<((i)%NBBY)))
@@ -199,7 +206,7 @@
 #define	MIN(a,b) (((a)<(b))?(a):(b))
 #define	MAX(a,b) (((a)>(b))?(a):(b))
 #endif
-
+#define nitems(_a)     (sizeof((_a)) / sizeof((_a)[0]))
 /*
  * Constants for setting the parameters of the kernel memory allocator.
  *

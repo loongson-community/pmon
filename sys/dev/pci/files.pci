@@ -102,6 +102,14 @@ device  rtk: ether, ifnet
 attach  rtk at pci
 file    sys/dev/pci/rtl8169.c         rtk
 
+#added by wxy
+# Broadcom BCM5709S gigabit ethernet
+#device        bnx: ether, ifnet, mii, ifmedia, mii_phy
+device bnx: ether, ifnet, mii, ifmedia, mii_phy
+attach bnx at pci
+#file  sys/dev/pci/if_bnx.c                      bnx
+file   sys/dev/pci/bnx/if_bnx.c           bnx
+
 device  ste: ether, ifnet
 attach  ste at pci
 file    sys/dev/pci/sundance.c         ste

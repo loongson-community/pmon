@@ -174,9 +174,13 @@ pci*		at ppb? bus ?
 # fxp normally only used for debugging (enable/disable both)
 fxp0            at pci? dev ? function ?        # Intel 82559 Device
 inphy*          at mii? phy ?                   # Intel 82555 PHYs
+brgphy*          at mii? phy ?                   # Broadcom PHYs
 rtl*        at pci? dev ? function ?
 rtk*		 at pci? dev ? function ?
 em*        at pci? dev ? function ?
+#added by wxy
+bnx*            at pci? dev ? function ?                       # BCM5709S
+
 #uhci*		 at pci? dev ? function ?
 ohci0		 at pci? dev ? function ?
 usb*		 at usbbus ?

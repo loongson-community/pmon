@@ -283,6 +283,20 @@ pcisubmatch(parent, match, aux)
 	return (success);
 }
 
+int
+pci_matchbyid(struct pci_attach_args *pa, const struct pci_matchid *ids,
+    int nent)
+{
+       const struct pci_matchid *pm;
+       int i;
+
+       for (i = 0, pm = ids; i < nent; i++, pm++)
+               if (PCI_VENDOR(pa->pa_id) == pm->pm_vid &&
+                   PCI_PRODUCT(pa->pa_id) == pm->pm_pid)
+                       return (1);
+       return (0);
+}
+
 void
 set_pci_isa_bridge_callback(fn, arg)
 	void (*fn) __P((void *));

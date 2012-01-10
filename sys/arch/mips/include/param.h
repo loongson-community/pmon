@@ -55,6 +55,9 @@
 #define MACHINE_ARCH	"mips"
 #define _MACHINE_ARCH	mips
 
+//wan+
+#define PAGE_SHIFT 12
+
 #define MID_MACHINE	0	/* None but has to be defined */
 
 /*
@@ -113,7 +116,7 @@
 #define	MCLBYTES	(1 << MCLSHIFT)	/* enough for whole Ethernet packet */
 #define	MCLOFSET	(MCLBYTES - 1)
 #ifdef PMON
-#define	NMBCLUSTERS	256		/* map size, max cluster allocation */
+#define	NMBCLUSTERS	512		/* map size, max cluster allocation */
 #endif
 #ifndef NMBCLUSTERS
 #ifdef GATEWAY
@@ -130,7 +133,8 @@
  */ 
 #ifndef NKMEMCLUSTERS
 #ifdef PMON
-#define NKMEMCLUSTERS   (2048 * 1024 / CLBYTES)	/* 0.5Mb */
+#define NKMEMCLUSTERS   (4 * 2048 * 1024 / CLBYTES)    /* wan+ */
+//#define NKMEMCLUSTERS   (2048 * 1024 / CLBYTES)      /* 0.5Mb *//* wan^ */
 #else
 #define NKMEMCLUSTERS   (128 * 1024 * 1024 / CLBYTES)
 #endif

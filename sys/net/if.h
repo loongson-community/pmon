@@ -36,6 +36,8 @@
  *	@(#)if.h	8.1 (Berkeley) 6/10/93
  */
 
+#ifndef _NET_IN_IF_H_
+#define _NET_IN_IF_H_
 #include <sys/queue.h>
 
 /*
@@ -81,6 +83,9 @@ struct	if_data {
 	u_char	ifi_type;		/* ethernet, tokenring, etc. */
 	u_char	ifi_addrlen;		/* media address length */
 	u_char	ifi_hdrlen;		/* media header length */
+        //wan
+        u_char  ifi_link_state;         /* current link state */
+
 	u_long	ifi_mtu;		/* maximum transmission unit */
 	u_long	ifi_metric;		/* routing metric (external only) */
 	u_long	ifi_baudrate;		/* linespeed */
@@ -144,6 +149,24 @@ struct ifnet {				/* and the entries */
 		int	ifq_drops;
 	} if_snd;			/* output queue */
 };
+
+//wan #if 0
+/*
+ * Values for if_link_state.
+ */
+#define LINK_STATE_UNKNOWN  0  /* link unknown */
+#define LINK_STATE_INVALID  1  /* link invalid */
+#define LINK_STATE_DOWN     2  /* link is down */
+#define LINK_STATE_KALIVE_DOWN  3      _/* keepalive reports down */
+#define LINK_STATE_UP       4  /* link is up */
+#define LINK_STATE_HALF_DUPLEX  5      /* link is up and half duplex */
+#define LINK_STATE_FULL_DUPLEX  6      /* link is up and full duplex */
+
+#define LINK_STATE_IS_UP(_s)   ((_s) >= LINK_STATE_UP)
+
+#define if_link_state   if_data.ifi_link_state
+//wan #endif
+
 #define	if_mtu		if_data.ifi_mtu
 #define	if_type		if_data.ifi_type
 #define	if_addrlen	if_data.ifi_addrlen
@@ -185,12 +208,28 @@ struct ifnet {				/* and the entries */
 	(IFF_BROADCAST|IFF_POINTOPOINT|IFF_RUNNING|IFF_OACTIVE|\
 	    IFF_SIMPLEX|IFF_MULTICAST|IFF_ALLMULTI)
 
+//wan
+/*
+ * Some convenience macros used for setting ifi_baudrate.
+ */
+#define IF_Kbps(x)     ((x) * 1000ULL)                         /* kilobits/sec. */
+#define IF_Mbps(x)     (IF_Kbps((x) * 1000ULL))        /* megabits/sec. */
+#define IF_Gbps(x)     (IF_Mbps((x) * 1000ULL))        /* gigabits/sec. */
+
 /*
  * Output queues (ifp->if_snd) and internetwork datagram level (pup level 1)
  * input routines have queues of messages stored on ifqueue structures
  * (defined above).  Entries are added to and deleted from these structures
  * by these macros, which should be called with ipl raised to splimp().
  */
+
+#define        IF_POLL(ifq, m)                                                 \
+do {                                                                   \
+       do {                                                            \
+               (m) = (ifq)->ifq_head;          \
+       } while (!(m) && --((ifq)->ifq_len) >= 0);                      \
+} while (/* CONSTCOND */0)
+
 #define	IF_QFULL(ifq)		((ifq)->ifq_len >= (ifq)->ifq_maxlen)
 #define	IF_DROP(ifq)		((ifq)->ifq_drops++)
 #define	IF_ENQUEUE(ifq, m) { \
@@ -221,6 +260,13 @@ struct ifnet {				/* and the entries */
 
 #define	IFQ_MAXLEN	50
 #define	IFNET_SLOWHZ	1		/* granularity is 1 second */
+
+#define        IFQ_LEN(ifq)                    IF_LEN(ifq)
+#define        IFQ_IS_EMPTY(ifq)               ((ifq)->ifq_len == 0)
+#define        IFQ_INC_LEN(ifq)                ((ifq)->ifq_len++)
+#define        IFQ_DEC_LEN(ifq)                (--(ifq)->ifq_len)
+#define        IFQ_INC_DROPS(ifq)              ((ifq)->ifq_drops++)
+#define        IFQ_SET_MAXLEN(ifq, len)        ((ifq)->ifq_maxlen = (len))
 
 /*
  * The ifaddr structure contains information about one address
@@ -355,6 +401,8 @@ struct	if_nameindex *if_nameindex __P((void));
 struct ifnet_head ifnet;
 struct ifnet *lo0ifp;
 
+#define        ether_input_mbuf(ifp, m)        ether_input((ifp), NULL, (m))
+
 void	ether_ifattach __P((struct ifnet *));
 void	ether_ifdetach __P((struct ifnet *));
 int	ether_ioctl __P((struct ifnet *, struct arpcom *, u_long, caddr_t));
@@ -393,3 +441,4 @@ int	looutput __P((struct ifnet *,
 	   struct mbuf *, struct sockaddr *, struct rtentry *));
 void	lortrequest __P((int, struct rtentry *, struct sockaddr *));
 #endif /* _KERNEL */
+#endif
