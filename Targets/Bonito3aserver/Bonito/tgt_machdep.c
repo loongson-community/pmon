@@ -433,18 +433,18 @@ initmips(unsigned int raw_memsz)
     memsz = raw_memsz & 0xff00;
     memsz = memsz >> 8;
     memsz = memsz << 29;
-    memorysize_high_n1 = (memsz - (256 << 20));
+    memorysize_high_n1 = (memsz == 0) ? 0 : (memsz - (256 << 20));
     tgt_printf("memorysize_high_n1 0x%llx\n", memorysize_high_n1);
 #endif
 #ifdef DUAL_3B
     memsz = raw_memsz & 0xff0000;
     memsz = memsz >> 16;
     memsz = memsz << 29;
-    memorysize_high_n2 = (memsz - (256 << 20));
+    memorysize_high_n2 = (memsz == 0) ? 0 : (memsz - (256 << 20));
     memsz = raw_memsz & 0xff000000;
     memsz = memsz >> 24;
     memsz = memsz << 29;
-    memorysize_high_n3 = (memsz - (256 << 20));
+    memorysize_high_n3 = (memsz == 0) ? 0 : (memsz - (256 << 20));
     tgt_printf("memorysize_high_n2 0x%llx\n", memorysize_high_n2);
     tgt_printf("memorysize_high_n3 0x%llx\n", memorysize_high_n3);
 #endif
