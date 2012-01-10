@@ -99,8 +99,14 @@ void cmd_cdinstall(void)
 	ret = do_cmd(buf);
 	
 	if (ret != 0)
-		return;
-         elf_addr = (char *)elf_address;
+	{
+	  {sprintf(buf, "load /dev/fs/iso9660@cd1/vmlinuxb");
+	  ret = do_cmd(buf);}
+	  if (ret != 0)
+	     return;
+         }
+       
+	  elf_addr = (char *)elf_address;
 
 	flag = judge_kernel_version(elf_addr);
 
@@ -137,7 +143,13 @@ void cmd_usbcdinstall(void)
 	sprintf(buf, "load /dev/fs/iso9660@usb0/vmlinuxboot");
 	ret = do_cmd(buf);
 	if (ret != 0)
-		return;
+	{
+	 { sprintf(buf, "load /dev/fs/iso9660@usb1/vmlinuxboot");
+	  ret = do_cmd(buf);
+         }
+	  if (ret != 0)
+	     return;
+         }
         elf_addr = (char *)elf_address;
  flag = judge_kernel_version(elf_addr);
 
@@ -178,9 +190,20 @@ void cmd_usbinstall(void)
 	  /* then try fat file system format */
 	  sprintf(buf, "load /dev/fs/fat@usb0/vmlinuxboot");
 	  ret = do_cmd(buf);
-	}
 	if (ret != 0)
-		return;
+	{
+         sprintf(buf, "load /dev/fs/ext2@usb1/vmlinuxboot");
+	 ret = do_cmd(buf);
+        }
+	if (ret != 0)
+	 {
+           sprintf(buf, "load /dev/fs/fat@usb1/vmlinuxboot");
+	   ret = do_cmd(buf);
+         }
+	  if (ret != 0)
+	     return;
+	 
+	}
       elf_addr = (char *)elf_address;
       flag = judge_kernel_version(elf_addr);
         //flag = 1;
