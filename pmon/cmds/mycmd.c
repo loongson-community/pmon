@@ -1237,6 +1237,7 @@ int i;
 	}
 }
 close(s);
+delay1(2500);
 return 0;
 }
 
