@@ -533,6 +533,50 @@ li      t1, 0x00e0      # {cu3,cu2,cu1,cu0}<={0110, status_fr<=1
 		nop
 #endif
 
+// core3 to init 1MB (0-1MB)
+        li      a0, 0x3
+        bne     t0, a0, 1f
+        nop
+
+	dli a0, 0x9800000000000000
+	bal     scache_init_64_fast // whd
+	nop
+
+        dli      a0, CORE3_BUF0
+        dli      a1, 0x12345678
+        sd      a1, 0x0(a0)
+
+1:
+//	  core2 to init 1MB (1-2MB)
+          li      a0, 0x2
+          bne     t0, a0, 1f
+          nop
+
+	dli	a0, 0x9800000000040000
+	bal     scache_init_64_fast // whd
+	nop
+
+            dli      a0, CORE2_BUF0
+            dli      a1, 0x12345678
+            sd      a1, 0x0(a0)
+
+1:
+	 // core1 to init 1MB (2-3MB)
+         li      a0, 0x1
+         bne     t0, a0, 1f
+         nop
+
+	dli	a0, 0x9800000000080000
+	bal     scache_init_64_fast // whd
+	nop
+
+           dli      a0, CORE1_BUF0
+           dli      a1, 0x12345678
+           sd      a1, 0x0(a0)
+
+
+1:
+
 		li      a0, 0x0
 		bne     t0, a0, slave_main
 #bnez 	t0, slave_main
@@ -1378,9 +1422,43 @@ ddr_config_entry:
 		nop
 		TTYDBG("scache init node 0\r\n")
 		//bal	scache_init // smh
-		dli a0, 0x9800000000000000
-		bal	scache_init_64 // whd
-		nop
+       // wait core3 L2-cache init done
+                dli      a0, CORE3_BUF0
+	        dli      a1, 0x12345678
+	1:
+        	lw      t0, 0x0(a0)
+        	bne     t0, a1, 1b
+        	nop
+
+        	sw      $0, 0x0(a0)
+              // wait core2 L2-cache init done
+	        dli      a0, CORE2_BUF0
+		dli      a1, 0x12345678
+	1:
+        	lw      t0, 0x0(a0)
+        	bne     t0, a1, 1b
+        	nop
+
+        	sw      $0, 0x0(a0)
+
+		// wait core1 L2-cache init done
+        	dli      a0, CORE1_BUF0
+       		dli      a1, 0x12345678
+	1:
+        	lw      t0, 0x0(a0)
+        	bne     t0, a1, 1b
+        	nop
+
+        	sw      $0, 0x0(a0)
+            //core 0 to init cache 1M
+           dli a0, 0x98000000000c0000
+         bal     scache_init_64_fast // whd
+        nop
+
+
+	//	dli a0, 0x9800000000000000
+	//	bal	scache_init_64 // whd
+	//	nop
 #ifdef MULTI_CHIP
 		TTYDBG("scache init node 1\r\n")
 		dli a0, 0x9800100000000000
@@ -2353,6 +2431,47 @@ scache_init_finish:
 		1:      b       1b
 		nop
 		END(scache_init_64)
+       
+        	LEAF(scache_init_64_fast)
+		move	t7, ra
+
+		dli     a2, 0x00040000   #cache init 1M/4way
+	scache_init_4way_64_fast:
+		li      t0, 0x22
+		mtc0    t0, CP0_ECC
+		mtc0    $0, CP0_TAGHI
+		mtc0    $0, CP0_TAGLO
+		daddu    v0, $0, a0
+		daddu    v1, a0, a2
+	1:      
+		daddiu   v0, v0, 0x80
+		cache   Index_Store_Tag_S, -0x80(v0)
+		cache   Index_Store_Tag_S, -0x7f(v0)
+		cache   Index_Store_Tag_S, -0x7e(v0)
+		cache   Index_Store_Tag_S, -0x7d(v0)
+
+		cache   Index_Store_Tag_S, -0x60(v0)
+		cache   Index_Store_Tag_S, -0x5f(v0)
+		cache   Index_Store_Tag_S, -0x5e(v0)
+		cache   Index_Store_Tag_S, -0x5d(v0)
+
+		cache   Index_Store_Tag_S, -0x40(v0)
+		cache   Index_Store_Tag_S, -0x3f(v0)
+		cache   Index_Store_Tag_S, -0x3e(v0)
+		cache   Index_Store_Tag_S, -0x3d(v0)
+
+		cache   Index_Store_Tag_S, -0x20(v0)
+		cache   Index_Store_Tag_S, -0x1f(v0)
+		cache   Index_Store_Tag_S, -0x1e(v0)
+		bne     v0, v1, 1b
+		cache   Index_Store_Tag_S, -0x1d(v0)
+
+	1:
+		jr      ra
+        	nop
+
+             END(scache_init_64_fast)
+
 		LEAF(tlb_init)
 		mtc0    $0, CP0_WIRED
 		mtc0    $0, CP0_PAGEMASK
