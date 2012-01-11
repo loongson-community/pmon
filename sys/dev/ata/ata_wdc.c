@@ -286,21 +286,21 @@ _wdc_ata_bio_start(chp, xfer)
 #ifdef DEBUG_IDE
 			printf("mov right\n");
 #endif
-/*			sect = (ata_bio->blkno >> 0) & 0xff;
+			sect = (ata_bio->blkno >> 0) & 0xff;
 			cyl = (ata_bio->blkno >> 8) & 0xffff;
 			head = (ata_bio->blkno >> 24) & 0x0f;
-			head |= WDSD_LBA;*/
+			head |= WDSD_LBA;
 #ifdef DEBUG_IDE
 			printf("ata_bio->blkno=%llx\n",ata_bio->blkno);
 #endif
-			LBA1 = (ata_bio->blkno >> 0) & 0xff;
+/*			LBA1 = (ata_bio->blkno >> 0) & 0xff;
                         LBA2 = (ata_bio->blkno >> 8) & 0xff;
                         LBA3 = (ata_bio->blkno >> 16) & 0xff;
                         LBA4 = (ata_bio->blkno >> 24) & 0xff;
                         LBA5 = (ata_bio->blkno >> 32) & 0xff;
                         LBA6 = (ata_bio->blkno >> 40) & 0xff;
                         head1 = (ata_bio->blkno >> 44) & 0x0f;
-                        head1 |= WDSD_LBA;
+                        head1 |= WDSD_LBA;*/
 #ifdef DEBUG_IDE
                         printf("LBA1=%x\n",LBA1);
                         printf("LBA2=%x\n",LBA2);
@@ -354,8 +354,27 @@ _wdc_ata_bio_start(chp, xfer)
 			    WDSD_IBM | (xfer->drive << 4));
 			if (wait_for_ready(chp, ata_delay) < 0)
 				goto timeout;
+/*
+#ifdef IDE_DMA
+                       	precomp=(ata_bio->lp->d_type == DTYPE_ST506)?ata_bio->lp->d_precompcyl/4:0;
+                       	CHP_WRITE_REG(chp, wdr_sdh, WDSD_IBM | (xfer->drive << 4) | head1);
+                       	CHP_WRITE_REG(chp, wdr_seccnt, 0);
+            		CHP_WRITE_REG(chp, wdr_sector, LBA4);
+            		CHP_WRITE_REG(chp, wdr_cyl_lo, LBA5);
+            		CHP_WRITE_REG(chp, wdr_cyl_hi, LBA6);
+                       	DELAY(3);
+            		CHP_WRITE_REG(chp, wdr_precomp, 0);
+            		CHP_WRITE_REG(chp, wdr_seccnt, nblks);
+            		CHP_WRITE_REG(chp, wdr_sector, LBA1);
+                       	CHP_WRITE_REG(chp, wdr_cyl_lo, LBA2);
+                       	CHP_WRITE_REG(chp, wdr_cyl_hi, LBA3);
+                       	CHP_WRITE_REG(chp, wdr_sdh, WDSD_IBM | (xfer->drive << 4) | head1);
+                       	CHP_WRITE_REG(chp, wdr_command, cmd);
+#else
+*/
 			wdccommand(chp, xfer->drive, cmd, cyl,
 			    head, sect, nblks, 0);
+//#endif
 			/* start the DMA channel */
 			(*chp->wdc->dma_start)(chp->wdc->dma_arg,
 			    chp->channel, xfer->drive, dma_flags);
@@ -382,11 +401,11 @@ _wdc_ata_bio_start(chp, xfer)
 		CHP_WRITE_REG(chp, wdr_sdh, WDSD_IBM | (xfer->drive << 4));
 		if (wait_for_ready(chp, ata_delay) < 0)
 			goto timeout;
-/*		wdccommand(chp, xfer->drive, cmd, cyl,
+		wdccommand(chp, xfer->drive, cmd, cyl,
 		    head, sect, nblks, 
 		    (ata_bio->lp->d_type == DTYPE_ST506) ?
-		    ata_bio->lp->d_precompcyl / 4 : 0);*/
-		 precomp=(ata_bio->lp->d_type == DTYPE_ST506)?ata_bio->lp->d_precompcyl/4:0;
+		    ata_bio->lp->d_precompcyl / 4 : 0);
+/*		 precomp=(ata_bio->lp->d_type == DTYPE_ST506)?ata_bio->lp->d_precompcyl/4:0;
 	   	 CHP_WRITE_REG(chp, wdr_sdh, WDSD_IBM | (xfer->drive << 4) | head1);
 		 CHP_WRITE_REG(chp, wdr_seccnt, 0);
                  CHP_WRITE_REG(chp, wdr_sector, LBA4);
@@ -399,7 +418,7 @@ _wdc_ata_bio_start(chp, xfer)
                  CHP_WRITE_REG(chp, wdr_cyl_lo, LBA2);
                  CHP_WRITE_REG(chp, wdr_cyl_hi, LBA3);
                  CHP_WRITE_REG(chp, wdr_sdh, WDSD_IBM | (xfer->drive << 4) | head1);
-                 CHP_WRITE_REG(chp, wdr_command, cmd);
+                 CHP_WRITE_REG(chp, wdr_command, cmd);*/
 #ifdef DEBUG_IDE
 		 printf("cmd=%x\n",cmd);
 #endif

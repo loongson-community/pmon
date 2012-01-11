@@ -210,6 +210,8 @@ fat_close(int fd)
 	return (0);
 }
 
+#define        FAT_BUFFER_SIZE 0x8000
+
 int
 fat_read(int fd, void *buf, size_t len)
 {
@@ -221,6 +223,10 @@ fat_read(int fd, void *buf, size_t len)
 	int offset;
 	int sector;
 	int res = 0;
+        unsigned char data_buf[FAT_BUFFER_SIZE];
+        unsigned int read_len = 0;
+        unsigned int i = 1;
+        unsigned int sec_temp = 0;
 
 	fsc = (struct fat_sc *)_file[fd].data;
 
@@ -241,21 +247,39 @@ fat_read(int fd, void *buf, size_t len)
 		offset = _file[fd].posn % SECTORSIZE;
 		sectorIndex = _file[fd].posn / SECTORSIZE;
 		
-		sector = getSectorIndex_read(fsc, &fsc->file.Chain, sectorIndex);
+		sec_temp = sector = getSectorIndex_read(fsc, &fsc->file.Chain, sectorIndex);
 
 		copylen = len;
-		if (copylen > (SECTORSIZE - offset)) {
-			copylen = (SECTORSIZE - offset);
+ 
+                if(len <= FAT_BUFFER_SIZE){
+                        if (copylen > (SECTORSIZE - offset)) {
+                                copylen = (SECTORSIZE - offset);
+                        }
+ 
+                        if (sector != fsc->LastSector) {
+                                res = readsector(fsc, sector, 1, fsc->LastSectorBuffer);
+                                if (res < 0)
+                                        break;
+                                fsc->LastSector = sector;
+                        }
+                
+                        memcpy(buf, &fsc->LastSectorBuffer[offset], copylen);
 		}
-
-		if (sector != fsc->LastSector) {
-			res = readsector(fsc, sector, 1, fsc->LastSectorBuffer);
-			if (res < 0)
+                else {
+                        for(i = 1; i < FAT_BUFFER_SIZE / SECTORSIZE; i++){
+                                if(++sector != getSectorIndex_read(fsc, &fsc->file.Chain, ++sectorIndex))
+                                        break;
+                        }
+                        
+                        if(copylen > (SECTORSIZE * i - offset))
+                                copylen = SECTORSIZE * i - offset;
+                        res = readsector(fsc, sec_temp, i, data_buf);
+                        
+                        if(res < 0)
 				break;
-			fsc->LastSector = sector;
+                        fsc->LastSector = sec_temp + i - 1;
+                        memcpy(buf, &data_buf[offset], copylen);
 		}
-		
-		memcpy(buf, &fsc->LastSectorBuffer[offset], copylen);
 		
 		buf += copylen;
 		_file[fd].posn += copylen;
