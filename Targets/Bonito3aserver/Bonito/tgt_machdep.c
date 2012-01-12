@@ -2685,10 +2685,17 @@ void sb700_interrupt_fixup(void)
 	pci_write_config8(dev, 0x3c, 0x5); 
 	fixup_interrupt_printf("godson3a_sata: fix sata mode==:%d\n",pci_read_config8(dev,0x3c));
 
-#if 0
 	/*3. ide fixup*/
 	fixup_interrupt_printf("godson3a_ide_fixup: fix ide mode\n");
-	dev = _pci_make_tag(0, 0x14, 1);  
+	dev = _pci_make_tag(0, 0x14, 1); 
+       
+        /* enable IDE DMA --Multi-Word DMA */
+        pci_write_config32(dev, 0x44, 0x20000000);
+        byte = pci_read_config8(dev, 0x54);
+        byte |= 1 << 0;
+        pci_write_config8(dev, 0x54, byte);
+
+#if 0 
 	/*set IDE ultra DMA enable as master and slalve device*/
     (void) pci_write_config8(dev, 0x54, 0xf);
 	/*set ultral DAM mode 0~6  we use 6 as high speed !*/
