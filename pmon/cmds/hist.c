@@ -213,6 +213,8 @@ get_line (p, usehist)
 	} else if (c == '\n' || c == '\r') {
 	    putstr ("\n");
 	    break;
+	} else if (c == '\t'){
+	    ;
 	} else if (isprint (c)) {
 	    addchar (p, c);
 	} else
