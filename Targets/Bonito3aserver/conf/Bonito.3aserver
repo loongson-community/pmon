@@ -74,6 +74,7 @@ select		mod_elfload		# ELF loading
 #
 # Command selection. Selects pmon commands
 #
+select          cmd_test_spi
 select		cmd_newmt
 select		cmd_setup
 select		mod_display
