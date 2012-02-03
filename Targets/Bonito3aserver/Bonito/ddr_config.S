@@ -1344,7 +1344,6 @@ Fix_ddr_param:
     lw      a1,0x0(t2)
     or      a1,a1,0x100
     sw      a1,0x0(t2)
-
     //route 0x1000000000 ~ 0x1FFFFFFFFF(64G) to MC for ECC init
     sync
     nop
@@ -1372,6 +1371,8 @@ Fix_ddr_param:
     nop
 //init mem to all 0
     dli     t1, 0x9800001000000000
+    GET_NODE_ID_a0
+    or		t1, t1, a0 
     GET_MC0_MEMSIZE
     beqz    t3, 1f
     nop
@@ -1403,7 +1404,6 @@ Fix_ddr_param:
     li      a0, 0xfffffeff
     and     a1, a1,a0
     sw      a1, 0x0(t2)
-
     GET_NODE_ID_a0;
     dli     a1, 0x900000000ff00000
     or      t8, a0, a1
