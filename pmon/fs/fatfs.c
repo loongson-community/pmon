@@ -992,7 +992,7 @@ int readsector(struct fat_sc *fsc, int sector, int count, u_int8_t *buffer)
 {
 	long long res;
 
-	res = (long long)(fsc->PartitionStart) * SECTORSIZE + SECTORSIZE * sector;
+	res = (unsigned long long)(fsc->PartitionStart) * (unsigned long long)SECTORSIZE + (unsigned long long)SECTORSIZE * (unsigned long long)sector;
 	res = devio_lseek(fsc->fd,	res, 0);
 	res =devio_read(fsc->fd, buffer, (SECTORSIZE * count));
 	if (res == (SECTORSIZE * count)) {
