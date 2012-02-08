@@ -73,17 +73,22 @@ struct efi_memory_map_loongson * init_memory_map()
   emap->map[1].mem_size = atoi(getenv("highmemsize"));
   
 #ifdef MULTI_CHIP
-  emap->map[2].node_id = 1;
-  //strcpy(emap->map[0].mem_name, "node0_low");
-  emap->map[2].mem_type = 1;
-  emap->map[2].mem_start = 0x01000000;
-  emap->map[2].mem_size = atoi(getenv("memsize"));
 
-  emap->map[3].node_id = 1;
-  //strcpy(emap->map[1].mem_name, "node0_high");
-  emap->map[3].mem_type = 2;
-  emap->map[3].mem_start = 0x90000000;
   emap->map[3].mem_size = atoi(getenv("memorysize_high_n1"));
+  if ( emap->map[3].mem_size != 0 )
+  {
+	emap->map[2].node_id = 1;
+	//strcpy(emap->map[0].mem_name, "node0_low");
+	emap->map[2].mem_type = 1;
+	emap->map[2].mem_start = 0x01000000;
+	emap->map[2].mem_size = atoi(getenv("memsize"));
+
+	emap->map[3].node_id = 1;
+	//strcpy(emap->map[1].mem_name, "node0_high");
+	emap->map[3].mem_type = 2;
+	emap->map[3].mem_start = 0x90000000;
+  }
+
 #endif
 #endif
 
