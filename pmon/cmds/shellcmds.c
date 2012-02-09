@@ -288,16 +288,12 @@ cmd_help(int ac, char *av[])
 			while(CmdTable->name != 0) {
 				if (!(CmdTable->flag & CMD_ALIAS) &&
 				    (!(CmdTable->flag & CMD_HIDE) || expert)) {
-					j += sprintf(prnbuf + j, "%*s  %-*s", namemax,
+					sprintf(prnbuf, "%*s  %-*s", namemax,
 					       CmdTable->name, descmax, CmdTable->desc);
 					if(i % 2 != 0) {
 						if(more(prnbuf, &ln, siz)) {
 							return(0);
 						}
-						j = 0;
-					}
-					else {
-						j += sprintf(prnbuf + j, "   ");
 					}
 					i++;
 				}
