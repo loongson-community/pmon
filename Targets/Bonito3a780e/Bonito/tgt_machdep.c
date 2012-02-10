@@ -836,14 +836,13 @@ run:
                   video_putchar1(2 + ic*8, INF_ROW_LINE,bootup[ic]);
               }
 
+#endif
   
 	printf("devconfig done.\n");
 
 	sb700_interrupt_fixup();
-
-
 }
-#endif
+
 extern int test_icache_1(short *addr);
 extern int test_icache_2(int addr);
 extern int test_icache_3(int addr);
