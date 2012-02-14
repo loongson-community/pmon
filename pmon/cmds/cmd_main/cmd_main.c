@@ -114,6 +114,7 @@ int dispon = 0;	//control displaying some subwindows
 int bootdev0 = 0;  //enable bootdev0	 // Lc add
 int bootdev1 = 0;  //enable bootdev1   // Lc add
 jmp_buf jmpb;
+extern int cmd_main_mutex;
 
 struct _daytime daytime[6]= {
 	{"Sec",29,6,"",4,0},
@@ -1295,6 +1296,7 @@ int paint_childwindow(char **hint,char *diskdev_name[],char *netdev_name[],int e
 				w_enterconsole();
 				video_cls();
 				tty_flush();
+				cmd_main_mutex = 1;
 				return 0;
 			}
 			if(w_focused())
@@ -1550,11 +1552,19 @@ char *av[];
 	win_init();
 	bp=0;
 
-	if(setjmp(jmpb))
-	{
-		sigsetmask(0);
-		w_setpage(W_PAGE_SKIPQUIT);
-	}
+        cmd_main_mutex = 0;
+        if(setjmp(jmpb))
+        {
+                sigsetmask(0);
+                if(cmd_main_mutex == 0) {
+                        w_setpage(W_PAGE_SKIPQUIT);
+                }
+                else {
+                        cmd_main_mutex = 2;
+                        main();
+                        return 0;
+                }
+        }
 	else
 	{
 		admin_auth = check_password(W_PAGE_SYS);

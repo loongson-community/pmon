@@ -77,6 +77,7 @@ unsigned int show_menu;
 #include "../cmds/bootparam.h"
 
 extern int bios_available;
+extern int cmd_main_mutex;
 
 jmp_buf         jmpb;		/* non-local goto jump buffer */
 char            line[LINESZ + 1];	/* input line */
@@ -378,6 +379,19 @@ main()
 {
 	char prompt[32];
 
+        if(cmd_main_mutex == 2)
+                ;
+        else {
+                unsigned char *bootmenu_envstr;
+                if((bootmenu_envstr = getenv("ShowBootMenu")) && (strcmp("no",bootmenu_envstr) == 0))
+                        ;
+                else {
+                        bios_available = 1;//support usb_kbd in bios
+                        load_menu_list();
+                        bios_available = 0;
+                }
+        }
+
 	if (setjmp(jmpb)) {
 		/* Bailing out, restore */
 		closelst(0);
@@ -394,19 +408,7 @@ main()
 #if NMOD_DEBUGGER > 0
 	rm_bpts();
 #endif
-        {
-                unsigned char *envstr;
-                if((envstr = getenv("ShowBootMenu")) && (strcmp("no", envstr) == 0))
-                {
-                        ;
-                }
-                else
-                {
-                        bios_available = 1;//support usb_kbd in bios
-                        load_menu_list();
-                        bios_available = 0;
-                }
-        }
+
 {
 static int run=0;
 char *s;
@@ -493,6 +495,11 @@ if(!run)
 			stristr(p, tmp);
 		}
 #endif
+
+                if(cmd_main_mutex == 2) {
+                        cmd_main_mutex = 1;
+                        printf(" break!\r\n");
+                }
 
 		printf("%s", prompt);
 #if NCMD_HIST > 0
