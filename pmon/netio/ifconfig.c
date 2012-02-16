@@ -334,8 +334,8 @@ boot_parsecfg (struct bootparams *bootp, char *cfg)
 static void
 __setenv (char *name, char *val, int level)
 {
-	if (level <= 1 && getenv(name))
-		return;
+//	if (level <= 1 && getenv(name))
+//		return;
 	if (level >= 3)
 		/* write to non-volatile environment */
 		do_setenv (name, val, 0);
