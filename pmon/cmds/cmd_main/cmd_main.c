@@ -820,6 +820,14 @@ void deal_keyboard_input(int *esc_tag ,int *to_command_tag, int *esc_down)
 			w_setpage(prev_page());
 		}
 	}
+	if(w_keydown('[E'))
+	{
+		w_setpage(W_PAGE_SKIPQUIT);
+	}
+	if(w_keydown('[F'))
+	{
+		w_setpage(W_PAGE_SAVEQUIT);
+	}
 	if(w_keydown('`') || w_keydown('~'))/* HOOK keyboard ~/` */
 	{
 		//	w_setpage_safe(101);

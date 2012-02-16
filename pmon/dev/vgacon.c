@@ -15,7 +15,6 @@ extern unsigned char kbd_code;
 #if NMOD_USB_KBD != 0
 extern unsigned char usb_kbd_code; 
 #endif
-extern unsigned char usb_kbd_code; 
 #ifndef VGA_MEM_BASE
 #ifdef BONITOEL
 	unsigned char * vgabh=(unsigned char *)0xb00b8000;

@@ -387,6 +387,12 @@ static int usb_kbd_translate(unsigned char scancode,unsigned char modifier,int p
 		case 0x4c: /*Fall through*/
 			SEND_ESC_SEQ('G'); /*Delete key*/
              break;
+		case 0x42:
+			SEND_ESC_SEQ('E');
+			break;
+		case 0x43:
+			SEND_ESC_SEQ('F');
+			break;
 		case 0x63: /*small key*/
 			if (num_lock != 0){
 				keycode = '.';
