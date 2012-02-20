@@ -1,0 +1,484 @@
+/*****************************
+    Macro defination for DDR MC parameters
+    Author: Chen Xinke
+    v0.1    
+*******************************/
+#define DDR_MC_CONFIG_BASE      0x900000000ff00000
+#define MC_CONFIG_REG_BASE_ADDR 0x900000000ff00000
+#define DDR_PARAM_NUM   102
+
+#define START_ADDR              (0x18)
+#define START_OFFSET            0
+#define INT_STATUS_ADDR         (0x960)
+#define INIT_COMPLETE_OFFSET    8
+#define RESYNC_DLL_ADDR         (0x980)
+#define RESYNC_DLL_OFFSET       16
+
+#define DRAM_INIT_ADDR          (0x160)
+#define DRAM_INIT_OFFSET        24
+
+#define RD_GATE_LEVEL           0x2
+#define ONE_BYTE_MASK           0xff
+#define LEVEL_MODE_ADDR         (0x180)
+#define LEVEL_MODE_OFFSET       0
+#define LEVEL_CS_ADDR           (0x180)
+#define LEVEL_CS_OFFSET         24
+#define LEVEL_READY_ADDR        (0x180)
+#define LEVEL_READY_OFFSET      40
+#define LEVEL_REQ_ADDR          (0x180)
+#define LEVEL_REQ_OFFSET        8
+#define LEVEL_DONE_ADDR         (0x180)
+#define LEVEL_DONE_OFFSET       48
+#define LEVEL_RESP_0_ADDR       (0x180)
+#define LEVEL_RESP_0_OFFSET     56
+#define LEVEL_RESP_7_ADDR       (0x188)
+#define LEVEL_RESP_7_OFFSET     48
+
+//the old 3A/B param define
+#define CLKLVL_DELAY_2_ADDR      (0x8f0)
+#define CLKLVL_DELAY_1_ADDR      (0x8f0)
+#define CLKLVL_DELAY_0_ADDR      (0x8f0)
+#define CLKLVL_DELAY_2_OFFSET    24
+#define CLKLVL_DELAY_1_OFFSET    16
+#define CLKLVL_DELAY_0_OFFSET    8
+
+#define PAD_CTRL_REG_ADDR             (0x2d0)
+#define PAD_CTRL_COMP_OFFSET          18
+#define PAD_CTRL_COMP_MASK            (0xff)
+
+#define PAD_OUTPUT_WINDOW_8_ADDR      (0x310)
+#define PAD_OUTPUT_WINDOW_7_ADDR      (0x310)
+#define PAD_OUTPUT_WINDOW_6_ADDR      (0x300)
+#define PAD_OUTPUT_WINDOW_5_ADDR      (0x300)
+#define PAD_OUTPUT_WINDOW_4_ADDR      (0x2f0)
+#define PAD_OUTPUT_WINDOW_3_ADDR      (0x2f0)
+#define PAD_OUTPUT_WINDOW_2_ADDR      (0x2e0)
+#define PAD_OUTPUT_WINDOW_1_ADDR      (0x2e0)
+#define PAD_OUTPUT_WINDOW_0_ADDR      (0x2d0)
+#define PAD_OUTPUT_WINDOW_8_OFFSET    32
+#define PAD_OUTPUT_WINDOW_7_OFFSET    0
+#define PAD_OUTPUT_WINDOW_6_OFFSET    32
+#define PAD_OUTPUT_WINDOW_5_OFFSET    0
+#define PAD_OUTPUT_WINDOW_4_OFFSET    32
+#define PAD_OUTPUT_WINDOW_3_OFFSET    0
+#define PAD_OUTPUT_WINDOW_2_OFFSET    32
+#define PAD_OUTPUT_WINDOW_1_OFFSET    0
+#define PAD_OUTPUT_WINDOW_0_OFFSET    32
+#define PAD_OUTPUT_WINDOW_MASK     (0xffff)
+
+#define ADD_HALF_CLK_SHIFT       17
+
+#define RD_OE_EDGE_8_ADDR        (0x128)
+#define RD_OE_EDGE_7_ADDR        (0x108)
+#define RD_OE_EDGE_6_ADDR        (0x0e8)
+#define RD_OE_EDGE_5_ADDR        (0x0c8)
+#define RD_OE_EDGE_4_ADDR        (0x0a8)
+#define RD_OE_EDGE_3_ADDR        (0x088)
+#define RD_OE_EDGE_2_ADDR        (0x068)
+#define RD_OE_EDGE_1_ADDR        (0x048)
+#define RD_OE_EDGE_0_ADDR        (0x028)
+#define RD_OE_EDGE_8_OFFSET      32
+#define RD_OE_EDGE_7_OFFSET      32
+#define RD_OE_EDGE_6_OFFSET      32
+#define RD_OE_EDGE_5_OFFSET      32
+#define RD_OE_EDGE_4_OFFSET      32
+#define RD_OE_EDGE_3_OFFSET      32
+#define RD_OE_EDGE_2_OFFSET      32
+#define RD_OE_EDGE_1_OFFSET      32
+#define RD_OE_EDGE_0_OFFSET      32
+#define RD_OE_EDGE_MASK          (0xffffffff)
+
+#define WR_DQS_OE_EDGE_8_ADDR        (0x128)
+#define WR_DQS_OE_EDGE_7_ADDR        (0x108)
+#define WR_DQS_OE_EDGE_6_ADDR        (0x0e8)
+#define WR_DQS_OE_EDGE_5_ADDR        (0x0c8)
+#define WR_DQS_OE_EDGE_4_ADDR        (0x0a8)
+#define WR_DQS_OE_EDGE_3_ADDR        (0x088)
+#define WR_DQS_OE_EDGE_2_ADDR        (0x068)
+#define WR_DQS_OE_EDGE_1_ADDR        (0x048)
+#define WR_DQS_OE_EDGE_0_ADDR        (0x028)
+#define WR_DQS_OE_EDGE_8_OFFSET      0
+#define WR_DQS_OE_EDGE_7_OFFSET      0
+#define WR_DQS_OE_EDGE_6_OFFSET      0
+#define WR_DQS_OE_EDGE_5_OFFSET      0
+#define WR_DQS_OE_EDGE_4_OFFSET      0
+#define WR_DQS_OE_EDGE_3_OFFSET      0
+#define WR_DQS_OE_EDGE_2_OFFSET      0
+#define WR_DQS_OE_EDGE_1_OFFSET      0
+#define WR_DQS_OE_EDGE_0_OFFSET      0 
+#define WR_DQS_OE_EDGE_MASK          (0xffffffff)
+
+#define WR_DQ_OE_EDGE_8_ADDR        (0x120)
+#define WR_DQ_OE_EDGE_7_ADDR        (0x100)
+#define WR_DQ_OE_EDGE_6_ADDR        (0x0e0)
+#define WR_DQ_OE_EDGE_5_ADDR        (0x0c0)
+#define WR_DQ_OE_EDGE_4_ADDR        (0x0a0)
+#define WR_DQ_OE_EDGE_3_ADDR        (0x080)
+#define WR_DQ_OE_EDGE_2_ADDR        (0x060)
+#define WR_DQ_OE_EDGE_1_ADDR        (0x040)
+#define WR_DQ_OE_EDGE_0_ADDR        (0x020)
+#define WR_DQ_OE_EDGE_8_OFFSET      32
+#define WR_DQ_OE_EDGE_7_OFFSET      32
+#define WR_DQ_OE_EDGE_6_OFFSET      32
+#define WR_DQ_OE_EDGE_5_OFFSET      32
+#define WR_DQ_OE_EDGE_4_OFFSET      32
+#define WR_DQ_OE_EDGE_3_OFFSET      32
+#define WR_DQ_OE_EDGE_2_OFFSET      32
+#define WR_DQ_OE_EDGE_1_OFFSET      32
+#define WR_DQ_OE_EDGE_0_OFFSET      32
+#define WR_DQ_OE_EDGE_MASK          (0xffffffff)
+
+#define WR_ODT_OE_EDGE_8_ADDR        (0x130)
+#define WR_ODT_OE_EDGE_7_ADDR        (0x110)
+#define WR_ODT_OE_EDGE_6_ADDR        (0x0f0)
+#define WR_ODT_OE_EDGE_5_ADDR        (0x0d0)
+#define WR_ODT_OE_EDGE_4_ADDR        (0x0b0)
+#define WR_ODT_OE_EDGE_3_ADDR        (0x090)
+#define WR_ODT_OE_EDGE_2_ADDR        (0x070)
+#define WR_ODT_OE_EDGE_1_ADDR        (0x050)
+#define WR_ODT_OE_EDGE_0_ADDR        (0x030)
+#define WR_ODT_OE_EDGE_8_OFFSET      0
+#define WR_ODT_OE_EDGE_7_OFFSET      0
+#define WR_ODT_OE_EDGE_6_OFFSET      0
+#define WR_ODT_OE_EDGE_5_OFFSET      0
+#define WR_ODT_OE_EDGE_4_OFFSET      0
+#define WR_ODT_OE_EDGE_3_OFFSET      0
+#define WR_ODT_OE_EDGE_2_OFFSET      0
+#define WR_ODT_OE_EDGE_1_OFFSET      0
+#define WR_ODT_OE_EDGE_0_OFFSET      0 
+#define WR_ODT_OE_EDGE_MASK          (0xffffffff)
+
+#define WRDQ_CLK_DELAY_8_ADDR        (0x130)
+#define WRDQ_CLK_DELAY_7_ADDR        (0x110)
+#define WRDQ_CLK_DELAY_6_ADDR        (0x0f0)
+#define WRDQ_CLK_DELAY_5_ADDR        (0x0d0)
+#define WRDQ_CLK_DELAY_4_ADDR        (0x0b0)
+#define WRDQ_CLK_DELAY_3_ADDR        (0x090)
+#define WRDQ_CLK_DELAY_2_ADDR        (0x070)
+#define WRDQ_CLK_DELAY_1_ADDR        (0x050)
+#define WRDQ_CLK_DELAY_0_ADDR        (0x030)
+#define WRDQ_CLK_DELAY_8_OFFSET      32
+#define WRDQ_CLK_DELAY_7_OFFSET      32
+#define WRDQ_CLK_DELAY_6_OFFSET      32
+#define WRDQ_CLK_DELAY_5_OFFSET      32
+#define WRDQ_CLK_DELAY_4_OFFSET      32
+#define WRDQ_CLK_DELAY_3_OFFSET      32
+#define WRDQ_CLK_DELAY_2_OFFSET      32
+#define WRDQ_CLK_DELAY_1_OFFSET      32
+#define WRDQ_CLK_DELAY_0_OFFSET      32
+#define WRDQ_CLK_DELAY_MASK          (0xff)
+
+#define RDDATA_DELAY_8_ADDR        (0x120)
+#define RDDATA_DELAY_7_ADDR        (0x100)
+#define RDDATA_DELAY_6_ADDR        (0x0e0)
+#define RDDATA_DELAY_5_ADDR        (0x0c0)
+#define RDDATA_DELAY_4_ADDR        (0x0a0)
+#define RDDATA_DELAY_3_ADDR        (0x080)
+#define RDDATA_DELAY_2_ADDR        (0x060)
+#define RDDATA_DELAY_1_ADDR        (0x040)
+#define RDDATA_DELAY_0_ADDR        (0x020)
+#define RDDATA_DELAY_8_OFFSET      24
+#define RDDATA_DELAY_7_OFFSET      24
+#define RDDATA_DELAY_6_OFFSET      24
+#define RDDATA_DELAY_5_OFFSET      24
+#define RDDATA_DELAY_4_OFFSET      24
+#define RDDATA_DELAY_3_OFFSET      24
+#define RDDATA_DELAY_2_OFFSET      24
+#define RDDATA_DELAY_1_OFFSET      24
+#define RDDATA_DELAY_0_OFFSET      24
+#define RDDATA_DELAY_MASK          (0xff)
+
+#define RDDQS_LT_HALF_8_ADDR        (0x120)
+#define RDDQS_LT_HALF_7_ADDR        (0x100)
+#define RDDQS_LT_HALF_6_ADDR        (0x0e0)
+#define RDDQS_LT_HALF_5_ADDR        (0x0c0)
+#define RDDQS_LT_HALF_4_ADDR        (0x0a0)
+#define RDDQS_LT_HALF_3_ADDR        (0x080)
+#define RDDQS_LT_HALF_2_ADDR        (0x060)
+#define RDDQS_LT_HALF_1_ADDR        (0x040)
+#define RDDQS_LT_HALF_0_ADDR        (0x020)
+#define RDDQS_LT_HALF_8_OFFSET      16
+#define RDDQS_LT_HALF_7_OFFSET      16
+#define RDDQS_LT_HALF_6_OFFSET      16
+#define RDDQS_LT_HALF_5_OFFSET      16
+#define RDDQS_LT_HALF_4_OFFSET      16
+#define RDDQS_LT_HALF_3_OFFSET      16
+#define RDDQS_LT_HALF_2_OFFSET      16
+#define RDDQS_LT_HALF_1_OFFSET      16
+#define RDDQS_LT_HALF_0_OFFSET      16
+#define RDDQS_LT_HALF_MASK          (0xff)
+
+#define WRDQS_LT_HALF_8_ADDR        (0x120)
+#define WRDQS_LT_HALF_7_ADDR        (0x100)
+#define WRDQS_LT_HALF_6_ADDR        (0x0e0)
+#define WRDQS_LT_HALF_5_ADDR        (0x0c0)
+#define WRDQS_LT_HALF_4_ADDR        (0x0a0)
+#define WRDQS_LT_HALF_3_ADDR        (0x080)
+#define WRDQS_LT_HALF_2_ADDR        (0x060)
+#define WRDQS_LT_HALF_1_ADDR        (0x040)
+#define WRDQS_LT_HALF_0_ADDR        (0x020)
+#define WRDQS_LT_HALF_8_OFFSET      8
+#define WRDQS_LT_HALF_7_OFFSET      8
+#define WRDQS_LT_HALF_6_OFFSET      8
+#define WRDQS_LT_HALF_5_OFFSET      8
+#define WRDQS_LT_HALF_4_OFFSET      8
+#define WRDQS_LT_HALF_3_OFFSET      8
+#define WRDQS_LT_HALF_2_OFFSET      8
+#define WRDQS_LT_HALF_1_OFFSET      8
+#define WRDQS_LT_HALF_0_OFFSET      8
+#define WRDQS_LT_HALF_MASK          (0xff)
+
+#define WRDQ_LT_HALF_8_ADDR        (0x120)
+#define WRDQ_LT_HALF_7_ADDR        (0x100)
+#define WRDQ_LT_HALF_6_ADDR        (0x0e0)
+#define WRDQ_LT_HALF_5_ADDR        (0x0c0)
+#define WRDQ_LT_HALF_4_ADDR        (0x0a0)
+#define WRDQ_LT_HALF_3_ADDR        (0x080)
+#define WRDQ_LT_HALF_2_ADDR        (0x060)
+#define WRDQ_LT_HALF_1_ADDR        (0x040)
+#define WRDQ_LT_HALF_0_ADDR        (0x020)
+#define WRDQ_LT_HALF_8_OFFSET      0
+#define WRDQ_LT_HALF_7_OFFSET      0
+#define WRDQ_LT_HALF_6_OFFSET      0
+#define WRDQ_LT_HALF_5_OFFSET      0
+#define WRDQ_LT_HALF_4_OFFSET      0
+#define WRDQ_LT_HALF_3_OFFSET      0
+#define WRDQ_LT_HALF_2_OFFSET      0
+#define WRDQ_LT_HALF_1_OFFSET      0
+#define WRDQ_LT_HALF_0_OFFSET      0
+#define WRDQ_LT_HALF_MASK          (0xff)
+
+#define WRLVL_DQ_DELAY_8_ADDR      (0x230)
+#define WRLVL_DQ_DELAY_7_ADDR      (0x230)
+#define WRLVL_DQ_DELAY_6_ADDR      (0x220)
+#define WRLVL_DQ_DELAY_5_ADDR      (0x220)
+#define WRLVL_DQ_DELAY_4_ADDR      (0x210)
+#define WRLVL_DQ_DELAY_3_ADDR      (0x210)
+#define WRLVL_DQ_DELAY_2_ADDR      (0x200)
+#define WRLVL_DQ_DELAY_1_ADDR      (0x200)
+#define WRLVL_DQ_DELAY_0_ADDR      (0x1f0)
+#define WRLVL_DQ_DELAY_8_OFFSET    48
+#define WRLVL_DQ_DELAY_7_OFFSET    16
+#define WRLVL_DQ_DELAY_6_OFFSET    48
+#define WRLVL_DQ_DELAY_5_OFFSET    16
+#define WRLVL_DQ_DELAY_4_OFFSET    48
+#define WRLVL_DQ_DELAY_3_OFFSET    16
+#define WRLVL_DQ_DELAY_2_OFFSET    48
+#define WRLVL_DQ_DELAY_1_OFFSET    16
+#define WRLVL_DQ_DELAY_0_OFFSET    48
+
+#define RDLVL_DQSN_DELAY_8_ADDR      (0x280)
+#define RDLVL_DQSN_DELAY_7_ADDR      (0x270)
+#define RDLVL_DQSN_DELAY_6_ADDR      (0x270)
+#define RDLVL_DQSN_DELAY_5_ADDR      (0x260)
+#define RDLVL_DQSN_DELAY_4_ADDR      (0x260)
+#define RDLVL_DQSN_DELAY_3_ADDR      (0x250)
+#define RDLVL_DQSN_DELAY_2_ADDR      (0x250)
+#define RDLVL_DQSN_DELAY_1_ADDR      (0x240)
+#define RDLVL_DQSN_DELAY_0_ADDR      (0x240)
+#define RDLVL_DQSN_DELAY_8_OFFSET    8
+#define RDLVL_DQSN_DELAY_7_OFFSET    40
+#define RDLVL_DQSN_DELAY_6_OFFSET    8
+#define RDLVL_DQSN_DELAY_5_OFFSET    40
+#define RDLVL_DQSN_DELAY_4_OFFSET    8
+#define RDLVL_DQSN_DELAY_3_OFFSET    40
+#define RDLVL_DQSN_DELAY_2_OFFSET    8
+#define RDLVL_DQSN_DELAY_1_OFFSET    40
+#define RDLVL_DQSN_DELAY_0_OFFSET    8
+
+#ifdef  loongson3A3
+#define CLKLVL_DELAY_MASK       (0xff)
+#define RDLVL_GATE_DELAY_MASK   (0xffff)
+#define RDLVL_DELAY_MASK        (0xffff)
+#define RDLVL_DQSN_DELAY_MASK   (0xffff)
+#define WRLVL_DELAY_MASK        (0xffff)
+#define WRLVL_DQ_DELAY_MASK     (0xffff)
+
+#define WRLVL_DELAY_8_ADDR      (0xb10)
+#define WRLVL_DELAY_7_ADDR      (0xb10)
+#define WRLVL_DELAY_6_ADDR      (0xb10)
+#define WRLVL_DELAY_5_ADDR      (0xb00)
+#define WRLVL_DELAY_4_ADDR      (0xb00)
+#define WRLVL_DELAY_3_ADDR      (0xb00)
+#define WRLVL_DELAY_2_ADDR      (0xb00)
+#define WRLVL_DELAY_1_ADDR      (0xaf0)
+#define WRLVL_DELAY_0_ADDR      (0xaf0)
+#define WRLVL_DELAY_8_OFFSET    32
+#define WRLVL_DELAY_7_OFFSET    16
+#define WRLVL_DELAY_6_OFFSET    0
+#define WRLVL_DELAY_5_OFFSET    48
+#define WRLVL_DELAY_4_OFFSET    32
+#define WRLVL_DELAY_3_OFFSET    16
+#define WRLVL_DELAY_2_OFFSET    0
+#define WRLVL_DELAY_1_OFFSET    48
+#define WRLVL_DELAY_0_OFFSET    32
+
+#define RDLVL_GATE_DELAY_8_ADDR (0xa90)
+#define RDLVL_GATE_DELAY_7_ADDR (0xa90)
+#define RDLVL_GATE_DELAY_6_ADDR (0xa90)
+#define RDLVL_GATE_DELAY_5_ADDR (0xa90)
+#define RDLVL_GATE_DELAY_4_ADDR (0xa80)
+#define RDLVL_GATE_DELAY_3_ADDR (0xa80)
+#define RDLVL_GATE_DELAY_2_ADDR (0xa80)
+#define RDLVL_GATE_DELAY_1_ADDR (0xa80)
+#define RDLVL_GATE_DELAY_0_ADDR (0xa70)
+#define RDLVL_GATE_DELAY_8_OFFSET    48
+#define RDLVL_GATE_DELAY_7_OFFSET    32
+#define RDLVL_GATE_DELAY_6_OFFSET    16
+#define RDLVL_GATE_DELAY_5_OFFSET    0
+#define RDLVL_GATE_DELAY_4_OFFSET    48
+#define RDLVL_GATE_DELAY_3_OFFSET    32
+#define RDLVL_GATE_DELAY_2_OFFSET    16
+#define RDLVL_GATE_DELAY_1_OFFSET    0
+#define RDLVL_GATE_DELAY_0_OFFSET    48
+
+#define RDLVL_DELAY_8_ADDR      (0xa50)
+#define RDLVL_DELAY_7_ADDR      (0xa50)
+#define RDLVL_DELAY_6_ADDR      (0xa40)
+#define RDLVL_DELAY_5_ADDR      (0xa40)
+#define RDLVL_DELAY_4_ADDR      (0xa40)
+#define RDLVL_DELAY_3_ADDR      (0xa40)
+#define RDLVL_DELAY_2_ADDR      (0xa30)
+#define RDLVL_DELAY_1_ADDR      (0xa30)
+#define RDLVL_DELAY_0_ADDR      (0xa30)
+#define RDLVL_DELAY_8_OFFSET    16
+#define RDLVL_DELAY_7_OFFSET    0
+#define RDLVL_DELAY_6_OFFSET    48
+#define RDLVL_DELAY_5_OFFSET    32
+#define RDLVL_DELAY_4_OFFSET    16
+#define RDLVL_DELAY_3_OFFSET    0
+#define RDLVL_DELAY_2_OFFSET    48
+#define RDLVL_DELAY_1_OFFSET    32
+#define RDLVL_DELAY_0_OFFSET    16
+#else
+#define CLKLVL_DELAY_MASK       (0xff)
+#define RDLVL_GATE_DELAY_MASK   (0xff)
+#define RDLVL_DELAY_MASK        (0xff)
+#define RDLVL_DQSN_DELAY_MASK   (0xff)
+#define WRLVL_DELAY_MASK        (0xff)
+#define WRLVL_DQ_DELAY_MASK     (0xff)
+
+#define WRLVL_DELAY_8_ADDR      (0x840)
+#define WRLVL_DELAY_7_ADDR      (0x840)
+#define WRLVL_DELAY_6_ADDR      (0x840)
+#define WRLVL_DELAY_5_ADDR      (0x830)
+#define WRLVL_DELAY_4_ADDR      (0x830)
+#define WRLVL_DELAY_3_ADDR      (0x830)
+#define WRLVL_DELAY_2_ADDR      (0x830)
+#define WRLVL_DELAY_1_ADDR      (0x830)
+#define WRLVL_DELAY_0_ADDR      (0x830)
+#define WRLVL_DELAY_8_OFFSET    16
+#define WRLVL_DELAY_7_OFFSET    8
+#define WRLVL_DELAY_6_OFFSET    0
+#define WRLVL_DELAY_5_OFFSET    56
+#define WRLVL_DELAY_4_OFFSET    48
+#define WRLVL_DELAY_3_OFFSET    40
+#define WRLVL_DELAY_2_OFFSET    32
+#define WRLVL_DELAY_1_OFFSET    24
+#define WRLVL_DELAY_0_OFFSET    16
+
+#define RDLVL_GATE_DELAY_8_ADDR     (0x7f0)
+#define RDLVL_GATE_DELAY_7_ADDR     (0x7f0)
+#define RDLVL_GATE_DELAY_6_ADDR     (0x7f0)
+#define RDLVL_GATE_DELAY_5_ADDR     (0x7f0)
+#define RDLVL_GATE_DELAY_4_ADDR     (0x7f0)
+#define RDLVL_GATE_DELAY_3_ADDR     (0x7f0)
+#define RDLVL_GATE_DELAY_2_ADDR     (0x7e0)
+#define RDLVL_GATE_DELAY_1_ADDR     (0x7e0)
+#define RDLVL_GATE_DELAY_0_ADDR     (0x7e0)
+#define RDLVL_GATE_DELAY_8_OFFSET    40
+#define RDLVL_GATE_DELAY_7_OFFSET    32
+#define RDLVL_GATE_DELAY_6_OFFSET    24
+#define RDLVL_GATE_DELAY_5_OFFSET    16
+#define RDLVL_GATE_DELAY_4_OFFSET    8
+#define RDLVL_GATE_DELAY_3_OFFSET    0
+#define RDLVL_GATE_DELAY_2_OFFSET    56
+#define RDLVL_GATE_DELAY_1_OFFSET    48
+#define RDLVL_GATE_DELAY_0_OFFSET    40
+
+#define RDLVL_DELAY_8_ADDR      (0x230)
+#define RDLVL_DELAY_7_ADDR      (0x230)
+#define RDLVL_DELAY_6_ADDR      (0x220)
+#define RDLVL_DELAY_5_ADDR      (0x220)
+#define RDLVL_DELAY_4_ADDR      (0x210)
+#define RDLVL_DELAY_3_ADDR      (0x210)
+#define RDLVL_DELAY_2_ADDR      (0x200)
+#define RDLVL_DELAY_1_ADDR      (0x200)
+#define RDLVL_DELAY_0_ADDR      (0x1f0)
+#define RDLVL_DELAY_8_OFFSET    40
+#define RDLVL_DELAY_7_OFFSET    8
+#define RDLVL_DELAY_6_OFFSET    40
+#define RDLVL_DELAY_5_OFFSET    8
+#define RDLVL_DELAY_4_OFFSET    40
+#define RDLVL_DELAY_3_OFFSET    8
+#define RDLVL_DELAY_2_OFFSET    40
+#define RDLVL_DELAY_1_OFFSET    8
+#define RDLVL_DELAY_0_OFFSET    40
+#endif
+
+//------------------------
+//define for ddr configure register param location
+#define EIGHT_BANK_MODE_ADDR     (0x210)
+#define EIGHT_BANK_MODE_OFFSET   8
+#define COLUMN_SIZE_ADDR         (0x210)
+#define COLUMN_SIZE_OFFSET       0
+#define ADDR_PINS_ADDR           (0x210)
+#define ADDR_PINS_OFFSET         16
+#define CS_MAP_ADDR              (0x168)
+#define CS_MAP_OFFSET            0
+#define CS_MRS_ADDR              (0x168)
+#define CS_MRS_OFFSET            8
+#define REDUC_ADDR               (0x1f0)
+#define REDUC_OFFSET             18
+#define CTRL_RAW_ADDR            (0x250)
+#define CTRL_RAW_OFFSET          16 
+#define ECC_DISABLE_W_UC_ERR_ADDR   (0x250)
+#define ECC_DISABLE_W_UC_ERR_OFFSET 18  //????????
+//------------------------
+
+//------------------------------------
+//for ddr3_level.S
+#define SWLVL_RESP_8_ADDR       (0x7b0)
+#define SWLVL_RESP_7_ADDR       (0x7b0)
+#define SWLVL_RESP_6_ADDR       (0x7a0)
+#define SWLVL_RESP_5_ADDR       (0x7a0)
+#define SWLVL_RESP_4_ADDR       (0x7a0)
+#define SWLVL_RESP_3_ADDR       (0x7a0)
+#define SWLVL_RESP_2_ADDR       (0x7a0)
+#define SWLVL_RESP_1_ADDR       (0x7a0)
+#define SWLVL_RESP_0_ADDR       (0x7a0)
+
+#define SWLVL_START_ADDR        (0x960)
+#define SWLVL_START_OFFSET      40
+#define SWLVL_LOAD_ADDR         (0x960)
+#define SWLVL_LOAD_OFFSET       32
+#define SWLVL_EXIT_ADDR         (0x960)
+#define SWLVL_EXIT_OFFSET       24
+#define SW_LEVELING_MODE_ADDR   (0x750)
+#define SW_LEVELING_MODE_OFFSET 48
+#define SWLVL_OP_DONE_ADDR      (0x720)
+#define SWLVL_OP_DONE_OFFSET    8
+
+#ifdef  loongson3A3
+#define WRLVL_EN_ADDR           (0x980)
+#define WRLVL_EN_OFFSET         32
+#define WRLVL_REG_EN_ADDR       (0x980)
+#define WRLVL_REG_EN_OFFSET     40
+#define RDLVL_GATE_REG_EN_ADDR  (0x980)
+#define RDLVL_GATE_REG_EN_OFFSET 0
+#define RDLVL_REG_EN_ADDR       (0x980)
+#define RDLVL_REG_EN_OFFSET     8
+#else
+#define WRLVL_EN_ADDR           (0x710)
+#define WRLVL_EN_OFFSET         48
+#endif
+#define WRLVL_CS_ADDR           (0x750)
+#define WRLVL_CS_OFFSET         56
+#define RDLVL_GATE_EN_ADDR      (0x720)
+#define RDLVL_GATE_EN_OFFSET    40
+#define RDLVL_EN_ADDR           (0x720)
+#define RDLVL_EN_OFFSET         32
+#define RDLVL_CS_ADDR           (0x750)
+#define RDLVL_CS_OFFSET         40
+#define RDLVL_EDGE_ADDR         (0x940)
+#define RDLVL_EDGE_OFFSET       24

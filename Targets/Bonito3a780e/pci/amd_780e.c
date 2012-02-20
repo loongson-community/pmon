@@ -817,6 +817,7 @@ void rs780_enable(device_t dev)
 	case 5:
 	case 6:
 	case 7:
+		enable_pcie_bar3(nb_dev);	/* PCIEMiscInit */
 		set_nbmisc_enable_bits(nb_dev, 0x0c, 1 << dev_ind,
 				       (1 ? 0 : 1) << dev_ind);
 			rs780_gpp_sb_init(nb_dev, dev, dev_ind);
