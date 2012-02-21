@@ -115,7 +115,6 @@ int bootdev0 = 0;  //enable bootdev0	 // Lc add
 int bootdev1 = 0;  //enable bootdev1   // Lc add
 jmp_buf jmpb;
 extern int cmd_main_mutex;
-extern int bios_available;
 
 struct _daytime daytime[6]= {
 	{"Sec",29,6,"",4,0},
@@ -1593,7 +1592,6 @@ char *av[];
 		paint_mainframe(hint);
 		if(paint_childwindow(&hint,diskdev_name,netdev_name, esc_down)==0)
 		{
-			bios_available = 1;//support usb_kbd in bios
 			return 0;
 		}
 		w_present();
