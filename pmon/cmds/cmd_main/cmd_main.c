@@ -983,7 +983,7 @@ int paint_childwindow(char **hint,char *diskdev_name[],char *netdev_name[],int e
 			sprintf(line,"CPU Type: %s @ %d MHz",md_cpuname(),tgt_pipefreq()/1000000);
 			w_text(3,7,WA_LEFT,line);
 			/* Display Memory size */
-			sprintf(line, "Memory size: %dMB DDRII", mem_size);
+			sprintf(line, "Memory size: %dMB", mem_size);
 			w_bigtext(3,8,40,2,line);
 			/* Display MAC address */
 			sprintf(line, "MACAddr0: %02x:%02x:%02x:%02x:%02x:%02x", 
