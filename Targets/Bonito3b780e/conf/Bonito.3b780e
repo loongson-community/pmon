@@ -33,9 +33,8 @@ option      ENABLE_SATA         #Enable SATA  ,when enable IDE can also use, whe
 option      loongson3A3
 option		INTERFACE_3A780E
 
-#option      AUTO_DDR_CONFIG
-
-option LOONGSON_3BSINGLE
+option      AUTO_DDR_CONFIG
+option 		LOONGSON_3BSINGLE
 option		BOOT_PARAM
 select     	amd_780e
 

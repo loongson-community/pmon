@@ -157,6 +157,7 @@ int kbd_available;
 int bios_available;
 int usb_kbd_available;;
 int vga_available;
+int cmd_main_mutex = 0;
 
 static int md_pipefreq = 0;
 static int md_cpufreq = 0;
@@ -421,6 +422,7 @@ volatile int *p=0xbfe00108;
 *p=((*p)&~(0x1f<<8))|(0x8<<8) |(1<<13);
 }
 #endif
+gpio_set_output(0x1<<2);
 tgt_printf("memsz %ld\n",memsz);
 /*enable float*/
 tgt_fpuenable();
@@ -629,12 +631,12 @@ tgt_devconfig()
     for (i = 0;i < 0x100000;i += 4)
     {
         //printf(" i = %x \n" , i);
-        *((volatile int *)(0xb0000010 + i)) = i;
+        *((volatile int *)( BONITO_PCILO_BASE_VA + i)) = i;
     }
 
     for (i = 0xffffc;i >= 0;i -= 4)
     {
-        if (*((volatile int *)(0xb0000010 + i)) != i)
+        if (*((volatile int *)(BONITO_PCILO_BASE_VA + i)) != i)
         {
             //printf(" not equal ====  %x\n" ,i);
             break;
@@ -2485,6 +2487,23 @@ int get_update(char *p)
 
      return 0;
  }
+
+void gpio_set_output(unsigned short x)
+{
+	unsigned long v1;
+
+	/* set value */
+	v1 = *(unsigned long *)0xbfe0011c;
+	v1 |= (x&0xffff);
+	*(unsigned long *)0xbfe0011c = v1;
+	
+	/* enable gpio direction: output */
+	v1 = *(unsigned long *)0xbfe00120;
+	v1 &= ~(x&0xffff);
+	*(unsigned long *)0xbfe00120 = v1;
+
+}
+ 
 
 
 /********************************************

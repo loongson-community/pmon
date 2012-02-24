@@ -180,6 +180,7 @@ nop
 
 #define tmpsize		s1
 #define msize		s2	//NOTICE : s2 used to as temperature
+#define msize_node1	s3	//NOTICE : s3 used to as temperature
 #define bonito		s4
 #define dbg			s5
 #define sdCfg		s6
@@ -1658,6 +1659,7 @@ gs_2f_v3_ddr2_cfg:
 #endif
 ##########################################
 
+	WatchDog_Enable
 #include "loongson3_fixup.S"
 
 //begin :Beep on -> delay -> Beep off
@@ -1672,6 +1674,7 @@ gs_2f_v3_ddr2_cfg:
         bal     beep_off
         nop
 //end
+	WatchDog_Close
 
 //#define EJTAG_TEST 
 #ifdef EJTAG_TEST
@@ -1690,6 +1693,11 @@ gs_2f_v3_ddr2_cfg:
 		nop
 
 #endif
+
+
+##########################################
+# Now begin memory detection on board
+##########################################
 
 	//##########################################
 	//TTYDBG("NODE 0 MEMORY CONFIG BEGIN\r\n")
@@ -1718,7 +1726,14 @@ gs_2f_v3_ddr2_cfg:
 	  |       |                    | 2'b10   | MC1_ONLY          |
 	  |[ 1: 0]| NODE ID            |         |                   |
 	 ***********************************************************/
-	TTYDBG("NODE 0 MEMORY CONFIG BEGIN\r\n")
+#define MC0DIMM0_USED 0x34 /* 0x3 ---> CS[1:0]=2'b11, 4 ----> MC0 */ 
+#define MC0DIMM1_USED 0xc4 /* 0xc ---> CS[3:2]=2'b11, 4 ----> MC0 */ 
+#define MC1DIMM0_USED 0x38 /* 0x3 ---> CS[1:0]=2'b11, 8 ----> MC1 */ 
+#define MC1DIMM1_USED 0xc8 /* 0xc ---> CS[3:2]=2'b11, 8 ----> MC1 */ 
+#define MC0_USED	  0x04 /* 0x4 ----> MC0 */ 
+#define MC1_USED	  0x08 /* 0x8 ----> MC1 */ 
+
+
 #ifdef AUTO_DDR_CONFIG
 #define MC0_USED 0x4
 #define MC1_USED 0x8
@@ -1732,65 +1747,203 @@ gs_2f_v3_ddr2_cfg:
 
 	/* enable the host controller */
 	dli	    a1,0x90000efdfe00a0d0 ; #b:d:f:r=0:14:0:d2 bit0=1
-		lw	    a0,0x0(a1);
+	lw	    a0,0x0(a1);
 	li	    t1, 0x10000;
 	or 	    a0, t1
-		sw	    a0, 0x0(a1);
+	sw	    a0, 0x0(a1);
 
 		WatchDog_Close;
+/*************************************************************
+ * NOTICE HERE: scan dimm of MC0 first, then dimm of MC1     * 
+ * below define need to be CHANGED according different board *
+*************************************************************/
+#define MC0DIMM0  0xa1  /* SA2 = 0, SA1 = 0, SA0 = 0 <--->  MAP_CS 0011 */ //CON36
+#define MC0DIMM1  0xa3  /* SA2 = 0, SA1 = 0, SA0 = 1 <--->  MAP_CS 1100 */ //CON37
+#define MC1DIMM0  0xa5  /* SA2 = 0, SA1 = 1, SA0 = 0 <--->  MAP_CS 0011 */ //CON38
+#define MC1DIMM1  0xa7  /* SA2 = 0, SA1 = 1, SA0 = 1 <--->  MAP_CS 1100 */ //CON39
+        PRINTSTR("\r\nProbing DDR SLOT: ");
+        PRINTSTR("\r\nProbe NODE0_MC0DIMM0: ");
+        li      s1,0x0
+        li      v0,0x0
+        li      a0,MC0DIMM0;
+        li      a1,MC0DIMM0_USED;
+        bal     PROBE_DIMM;
+        nop;
+        move	s4,v0;
+        move	a0,v0;
+        bal hexserial;
+        nop;
+	  
+        PRINTSTR("\r\nProbe NODE0_MC0DIMM1: ");
+        li      s1,0x0
+        li      v0,0x0
+        li      a0,MC0DIMM1;
+        li      a1,MC0DIMM1_USED;
+        bal     PROBE_DIMM;
+        nop;
+		move    s5,v0
+        move	a0,v0;
+        bal hexserial;
+        nop;
 
-	PRINTSTR("\r\nProbing DDR SLOT: ");
-	li      s1,0x0
-		//PRINTSTR("\r\nProbe MC0:JB09: ");
-		li      a0,0xa1;
-	li      a1,MC0_USED;
-	bal     PROBE_DIMM;
-	nop;
-	//move	a0,s1;
-	//bal hexserial;
-	//nop;
+		/* check whether DDR in the same MC controler has same BANK/ROW/COL/TYP */
+        li    v0,0x0
+		move  a0,s4
+		move  a1,s5
+		li	  a2,MC0_USED 
+		bal	MERGE_DIMM
+		nop
+		move  s6, v0  /* s6 used to save detected infomation from MC0 */
+		beqz  v0, probe_node1_mc0
+		nop
 
-	//PRINTSTR("\r\nProbe MC0:JB10: ");
-	li      a0,0xa3;
-	li      a1,MC0_USED;
-	bal     PROBE_DIMM;
-	nop;
-	//move	a0,s1;
-	//bal hexserial;
-	//nop;
+		/* show value of 64 bit s1 of MC0 */
+        PRINTSTR("\r\nNow Merged MC0 on NODE0: ");
+        move	a0,s6;
+		dsrl	a0,32;
+        bal     hexserial;
+        nop;
+        PRINTSTR("_");
+        move	a0,s6;
+        bal     hexserial;
+        nop;
+        PRINTSTR("\r\n");
 
-	//PRINTSTR("\r\nProbe MC1:JB11: ");
-	li      a0,0xa5;
-	li      a1,MC1_USED;
-	bal     PROBE_DIMM;
-	nop;
-	//move	a0,s1;
-	//bal hexserial;
-	//nop;
+probe_node1_mc0:
 
-	//PRINTSTR("\r\nProbe MC1:JB12: ");
-	li      a0,0xa7;
-	li      a1,MC1_USED;
-	bal     PROBE_DIMM;
-	nop;
+        PRINTSTR("\r\nProbe NODE1_MC0DIMM0: ");
+        li      s1,0x0
+        li      v0,0x0
+        li      a0,MC1DIMM0;
+        li      a1,MC0DIMM0_USED;
+        bal     PROBE_DIMM;
+        nop;
+        move	s4,v0;
+        move	a0,v0;
+        bal hexserial;
+        nop;
 
-	move	a0,s1;
-	bal     hexserial;
-	nop;
-	PRINTSTR("\r\n");
+        PRINTSTR("\r\nProbe NODE1_MC0DIMM1: ");
+        li      s1,0x0
+        li      v0,0x0
+        li      a0,MC1DIMM1;
+        li      a1,MC0DIMM1_USED;
+        bal     PROBE_DIMM;
+        nop;
+	move  s5,v0
+        move  a0,v0;
+        bal hexserial;
+        nop;
+
+	 /* now check whether DDR in the same MC controler has same BANK/ROW/COL/TYPE */
+        li      v0,0x0
+		move  a0,s4
+		move  a1,s5
+		li	  a2,MC0_USED 
+		bal	  MERGE_DIMM
+		nop
+		move  s7, v0  
+
+		/* show value of 64 bit s1 of MC1 */
+        PRINTSTR("\r\nNow Merged MC0 on NODE1: ");
+        move	a0,s7;
+	dsrl	a0,32;
+        bal     hexserial;
+        nop;
+        PRINTSTR("_");
+        move	a0,s7;
+        bal     hexserial;
+        nop;
+        PRINTSTR("\r\n");
 #else
-	//li      s1, 0x14140c24
-	//li      s1, 0x1c1c03a4 // 1G
-	li      s1, 0x1c1c03b4 // 2G
+        li      s6, 0x001c03a4 /* s6 used to save detected infomation from MC0*/
+ 	li      s7, 0x001c03a4 /* s7 used to save detected infomation from MC1*/
+//        li      s7, 0x0 /* s7 used to save detected infomation from MC1 */
 #endif
 
-#include "loongson3_ddr2_config.S"
+		/* s6 should not be zeror, otherwize system won't boot successfully */
+		bnez s6,get_node0_size
+		nop
+no_mem:
+        PRINTSTR("NO MEMORY FOUND ON MC0/NODE0\r\n");
+		bal beep_on
+		nop
+2:
+		bal 2b
+		nop
+
+get_node0_size:
+	/* calculate memory size */
+	move	a0,s6
+	li		a1,0x0
+	bal		CALCULATE_MEMSZ
+	nop
+	move	msize,v0
+
+        PRINTSTR("Node0 Total Memory Size:");
+	/* show value of 64 bit memsize */
+        move	a0,msize;
+	dsrl	a0,32;
+        bal     hexserial;
+        nop;
+        PRINTSTR("_");
+        move	a0,msize;
+        bal     hexserial;
+        nop;
+        PRINTSTR("\r\n");
+
+	bnez s7,get_node1_size
+	nop
+	b	out_mem;
+	nop
+
+get_node1_size:
+	/* calculate memory size */
+	move	a0,s7
+	li		a1,0x0
+	bal		CALCULATE_MEMSZ
+	nop
+	move	msize_node1,v0
+
+        PRINTSTR("Node1 Total Memory Size: ");
+	/* show value of 64 bit memsize */
+        move	a0,msize_node1;
+	dsrl	a0,32;
+        bal     hexserial;
+        nop;
+        PRINTSTR("_");
+        move	a0,msize_node1;
+        bal     hexserial;
+        nop;
+        PRINTSTR("\r\n");
+
+out_mem:
+
 ##########################################
-//temp code
-		TTYDBG("NODE 1 MEMORY CONFIG BEGIN\r\n")
-		//li      s1, 0x1c1c03a5 //1G
-		li      s1, 0x1c1c03b5 //2G
+# Now begin initialize MC0 and MC1
+##########################################
+
+		/* First intitialize MC0 on NODE0 */
+		TTYDBG("NODE 0 MEMORY CONFIG BEGIN\r\n")
+		move  s1, s6
 #include "loongson3_ddr2_config.S"
+
+		TTYDBG("NODE 1 MEMORY CONFIG BEGIN\r\n")
+		beqz	s7,mc_config_out
+		nop
+		ori	s1, s7,0x01;	// to set NODE number
+#include "loongson3_ddr2_config.S"
+mc_config_out:
+
+//#include "loongson3_showwindows.S"
+
+	/* Used to show memory controler configuration over */
+	//GPIO_CLEAR_OUTPUT(0x1<<2)
+	GPIO_SET_OUTPUT(0x1<<15)
+
+##########################################
+# Now begin TLB clean and initializing  
+##########################################
 
 		bal CPU_TLBClear
 		nop
@@ -1892,6 +2045,7 @@ gs_2f_v3_ddr2_cfg:
 		nop
 #endif
 
+#if 0
 	TTYDBG("Save system temperature:(* ") // save  temp
     la  a1,temperature
 	move  a0,a1
@@ -1904,181 +2058,34 @@ gs_2f_v3_ddr2_cfg:
     TTYDBG("\r\n")
 //  sb  s2, 0x0(a1)
 
+	TTYDBG("Saving node1 memory size:(* ") 
+    la  a1,memsz_node1
+	move  a0,a1
+    bal hexserial
+    nop  
+    TTYDBG(") == ")
+    move a0,msize_node1
+    bal hexserial
+    nop  
+    TTYDBG("\r\n")
+    sd  msize_node1, 0x0(a1)
+#endif
+
 		WatchDog_Enable;
 ##########################################
 
 #ifdef LS3_HT
 #include "loongson3_HT_init.S"
 /***************************************/
-	
 #endif
 		WatchDog_Close;
 
-		PRINTSTR("\r\n======This is cww's world:1\r\n")
 #include "3aserver_bridge_config.S"
-		PRINTSTR("\r\n======This is cww's world:2\r\n")
 ##########################################
 
 		//#include "loongson3_ddr_debug.S"
 
 ##########################################
-
-#if 1 //cww_X2
-		PRINTSTR("\r\n======X1 core0 map windows:\r\n")
-		li      t1, 23
-		dli     t2, 0x900000003ff02000
-		1:
-		move	a0, t2
-		bal	hexserial64
-		nop
-		PRINTSTR(": ")
-
-		ld      a0, 0x0(t2)
-		bal	hexserial64
-		nop
-		PRINTSTR("\r\n")
-
-		daddiu  t2, t2, 8
-		bnez    t1, 1b
-		addiu   t1, t1, -1
-
-		PRINTSTR("\r\n======X2 cpu map windows:\r\n")
-		li      t1, 23
-		dli     t2, 0x900000003ff00000
-		1:
-		move	a0, t2
-		bal	hexserial64
-		nop
-		PRINTSTR(": ")
-
-		ld      a0, 0x0(t2)
-		bal	hexserial64
-		nop
-		PRINTSTR("\r\n")
-
-		daddiu  t2, t2, 8
-		bnez    t1, 1b
-		addiu   t1, t1, -1
-
-		//PRINTSTR("\r\n======X2 pci map windows:\r\n")
-		PRINTSTR("\r\n======X1 core 4 windows:\r\n")
-		li      t1, 23
-		dli     t2, 0x900010003ff06000
-		1:
-		move	a0, t2
-		bal	hexserial64
-		nop
-		PRINTSTR(": ")
-
-		ld      a0, 0x0(t2)
-		bal	hexserial64
-		nop
-		PRINTSTR("\r\n")
-
-		daddiu  t2, t2, 8
-		bnez    t1, 1b
-		addiu   t1, t1, -1
-
-		PRINTSTR("\r\n======X1 core 5 windows:\r\n")
-		li      t1, 23
-		dli     t2, 0x900010003ff06100
-		1:
-		move	a0, t2
-		bal	hexserial64
-		nop
-		PRINTSTR(": ")
-
-		ld      a0, 0x0(t2)
-		bal	hexserial64
-		nop
-		PRINTSTR("\r\n")
-
-		daddiu  t2, t2, 8
-		bnez    t1, 1b
-		addiu   t1, t1, -1
-
-		PRINTSTR("\r\n======X1 core 6 windows:\r\n")
-		li      t1, 23
-		dli     t2, 0x900010003ff06200
-		1:
-		move	a0, t2
-		bal	hexserial64
-		nop
-		PRINTSTR(": ")
-
-		ld      a0, 0x0(t2)
-		bal	hexserial64
-		nop
-		PRINTSTR("\r\n")
-
-		daddiu  t2, t2, 8
-		bnez    t1, 1b
-		addiu   t1, t1, -1
-
-		PRINTSTR("\r\n======X1 core 7 windows:\r\n")
-		li      t1, 23
-		dli     t2, 0x900010003ff06300
-		1:
-		move	a0, t2
-		bal	hexserial64
-		nop
-		PRINTSTR(": ")
-
-		ld      a0, 0x0(t2)
-		bal	hexserial64
-		nop
-		PRINTSTR("\r\n")
-
-		daddiu  t2, t2, 8
-		bnez    t1, 1b
-		addiu   t1, t1, -1
-#endif
-
-#if 1
-		PRINTSTR("\r\n======read HT config reg:\r\n")
-		dli     t2, 0x90000efdfb000000
-
-		move	a0, t2
-		bal	hexserial64
-		nop
-		PRINTSTR(": ")
-
-		ld      a0, 0x0(t2)
-		bal	hexserial64
-		nop
-		PRINTSTR("\r\n")
-
-		daddiu	a0, t2, 0x60
-		bal	hexserial64
-		nop
-		PRINTSTR(": ")
-
-		ld      a0, 0x60(t2)
-		bal	hexserial64
-		nop
-		PRINTSTR("\r\n")
-
-		daddiu	a0, t2, 0x68
-		bal	hexserial64
-		nop
-		PRINTSTR(": ")
-
-		ld      a0, 0x68(t2)
-		bal	hexserial64
-		nop
-		PRINTSTR("\r\n")
-
-		daddiu	a0, t2, 0x70
-		bal	hexserial64
-		nop
-		PRINTSTR(": ")
-
-		ld      a0, 0x70(t2)
-		bal	hexserial64
-		nop
-		PRINTSTR("\r\n")
-#endif
-
 /***************************************/
 
 ##########################################
@@ -2289,6 +2296,19 @@ gs_2f_v3_ddr2_cfg:
 #else 
 #define MTC0 mtc0
 #endif
+	       	LEAF(get_mem_clk)
+
+               	li t0,0xbfe00190
+               	ld t1,0x0(t0)
+               	dsrl t2,t1,37
+               	andi t2,t2,0x0000001f
+               	move v0,t2
+
+               	nop
+               	jr ra
+               	nop
+       		END(get_mem_clk)
+
 		LEAF(CPU_TLBClear)
 		li	a3, 0			# First TLB index.
 
@@ -3535,7 +3555,9 @@ reg_write:
 
 		.text
 		.global temperature
+		.global memsz_node1
 	temperature:		.dword	  2
+	memsz_node1:		.dword	  0
 
 
 	.global watchdog_enable

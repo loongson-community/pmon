@@ -72,7 +72,7 @@ struct efi_memory_map_loongson * init_memory_map()
   emap->map[1].mem_start = 0x90000000;
   emap->map[1].mem_size = atoi(getenv("highmemsize"));
   
-#ifdef MULTI_CHIP
+#if (defined(MULTI_CHIP)) || (defined(LOONGSON_3BSINGLE))
 
   emap->map[3].mem_size = atoi(getenv("memorysize_high_n1"));
   if ( emap->map[3].mem_size != 0 )
@@ -211,6 +211,9 @@ struct board_devices *board_devices_info()
  
 #ifdef LOONGSON_3ASINGLE
   strcpy(bd->name,"Loongson-3A780E-1-V1.03-demo");
+#endif
+#ifdef LOONGSON_3BSINGLE
+  strcpy(bd->name,"Loongson-3B780E-1-V1.03-demo");
 #endif
 #ifdef LOONGSON_3ASERVER
   strcpy(bd->name,"Loongson-3A780E-2-V1.02-demo");
