@@ -2,7 +2,7 @@
     Author: chenxinke
     Date:   20110125
     v2.0
-        support both 3A and 3A3 according macro defination--loongson3A3
+        support both 3A and 3A3
         MC0/1 both use the same subroutine, add an input param: t3.
     input param:
         t8: input, Memory Controller config register base

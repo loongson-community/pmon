@@ -1301,11 +1301,13 @@ gs_2f_v3_ddr2_cfg:
 //cxk
 #define MULTI_NODE_INIT_MEM
 
-#include "ddr_param_define.h"
-#include "ddr_config_define.h"
+#include "pmon/arch/mips/mm/ddr_param_define.h"
+#include "pmon/arch/mips/mm/ddr_config_define.h"
 #define DISABLE_DIMM_ECC
 #define PRINT_MSG
+#ifndef ARB_LEVEL
 #define FIX_DDR_PARAM
+#endif
 //#define DEBUG_DDR
 //#define DEBUG_DDR_MT
 //#define DEBUG_DDR_PARAM
@@ -1393,7 +1395,7 @@ MEM_INIT_DONE:
 #ifdef ARB_LEVEL
     b       ARB_level_over
     nop
-#include "ARB_level.S"
+#include "pmon/arch/mips/mm/ARB_level.S"
 ARB_level_over:
 #endif
 ##########################################
@@ -3714,7 +3716,7 @@ idle1000:
 #ifndef DDR3_DIMM
 //#define MULTI_NODE_DDR_PARAM
 #endif
-#include "ddr_config.S"
+#include "pmon/arch/mips/mm/ddr_config.S"
 
     .text
     .global ddr2_reg_data

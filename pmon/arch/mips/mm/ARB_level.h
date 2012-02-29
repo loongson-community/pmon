@@ -41,5 +41,6 @@
 #define GD_MAX      (0x40)
 #define GD_MIN      (0x48)
 #define GD_MID      (0x50)
-#define LEVEL_SEQ_BASE   (0x60)
-
+#define BS_LEN      (0x58)
+#define BS_VAL      (0x60)
+#define LEVEL_SEQ_BASE   (0x80)

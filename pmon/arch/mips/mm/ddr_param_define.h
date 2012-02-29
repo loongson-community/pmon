@@ -5,7 +5,7 @@
 *******************************/
 #define DDR_MC_CONFIG_BASE      0x900000000ff00000
 #define MC_CONFIG_REG_BASE_ADDR 0x900000000ff00000
-#ifdef  loongson3A3
+#ifdef  LSMCD3_2
 #define DDR_PARAM_NUM   180
 #else
 #define DDR_PARAM_NUM   152
@@ -132,7 +132,7 @@
 #define RDLVL_DQSN_DELAY_1_OFFSET    40
 #define RDLVL_DQSN_DELAY_0_OFFSET    8
 
-#ifdef  loongson3A3
+#ifdef  LSMCD3_2
 #define MR2_DATA_0_ADDR         (0x9e0)
 #define MR2_DATA_0_OFFSET       48
 #define MR2_DATA_1_ADDR         (0x9f0)
@@ -312,7 +312,7 @@
 #define SWLVL_OP_DONE_ADDR      (0x720)
 #define SWLVL_OP_DONE_OFFSET    8
 
-#ifdef  loongson3A3
+#ifdef  LSMCD3_2
 #define WRLVL_EN_ADDR           (0x980)
 #define WRLVL_EN_OFFSET         32
 #define WRLVL_REG_EN_ADDR       (0x980)

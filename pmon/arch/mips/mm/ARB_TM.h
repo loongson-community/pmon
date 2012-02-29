@@ -60,25 +60,19 @@ Function: Macro defination for Test_Mem.S
 #define PATTERN_Zero2fd 0x00020002fffdfffd
 
 #define ARB_TM_BASE     0x9800001000000000
-#define MEM_TEST_BASE   0x9800000000200000
-#define UNCACHED_MEM_TEST_BASE   0x9000000000200000
+//#define MEM_TEST_BASE   0x9800000000200000
+//#define UNCACHED_MEM_TEST_BASE   0x9000000000200000
 #define MT_PATTERN_BASE 0x9800000000000000  //(0 ~ 400 -- 0 ~ 1K)
 #define MT_STACK_BASE   0x9800000000000400  //(400 ~ 600 -- 512Byte max, 64 registers)
-#define MT_CODE_BASE    0x9800000000000600  //(600 ~ 4000 -- 1.5K ~ 16K, 14.5K max)
-#define MT_MSG_BASE     0x9800000000004000  //(4000 ~ 10000 -- 16K ~ 64K, 48K max)
+//#define MT_CODE_BASE    0x9800000000000600  //(600 ~ 4000 -- 1.5K ~ 16K, 14.5K max)
+//#define MT_MSG_BASE     0x9800000000004000  //(4000 ~ 10000 -- 16K ~ 64K, 48K max)
 
 #define GET_TM_NODE_ID_a1 GET_ARB_LEVEL_NODE_ID 
 
-#define ROW_COL_UPPER_LIMIT 29
+#define ROW_COL_UPPER_LIMIT 27
 #define GET_TM_UP_ADDR  dli t3, ARB_TM_BASE; GET_TM_NODE_ID_a1; dsll a1, a1, 44; daddu t3, t3, a1; daddu t3, t3, s4;
 #define GET_TM_MSIZE    dli  a1, 0x400000;
 //Memory size to be tested
-
-//obsolete now
-#define GET_RD_LEVEL    dli a1, 0x0;
-#define GET_MICRO_TUNE  dli a2, 0x0;
-#define MACRO_SCALE     3
-//obsolete now
 
 //#define LEVEL_SPECIFIED_BYTE_LANES
 #ifdef  LEVEL_SPECIFIED_BYTE_LANES
@@ -88,6 +82,10 @@ Function: Macro defination for Test_Mem.S
 #define REDUCED_MEM_TEST
 #define ADDR_INTERVAL   (0x800)
 
-#define TM_MAX_RPT_ERRORS    0x10
 #define TM_MAX_ERRORS  0x10
-//#define   PRINT_LESS_ERROR
+
+//obsolete now
+//#define GET_RD_LEVEL    dli a1, 0x0;
+//#define GET_MICRO_TUNE  dli a2, 0x0;
+//#define MACRO_SCALE     3
+//obsolete now

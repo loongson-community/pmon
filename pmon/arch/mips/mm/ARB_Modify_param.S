@@ -453,6 +453,7 @@ input param:
     sd      a1, WRLVL_DELAY_0_ADDR(t7)
 #endif
 
+#ifdef  CLEAR_HALF_CLK_SHIFT
     //modify phy_ctrl_reg_0[17]--add half clk delay.
     dli     a1, 0x40
     blt     t2, a1, 51f
@@ -512,6 +513,7 @@ input param:
     b       40f
     nop
 51:
+#endif
 #ifdef  CLEAR_HALF_CLK_SHIFT
     //wrlvl_delay < 0x40, clear phy_ctrl_reg_0[17] to 1'b0.
 #ifdef  LEVEL_UPPER_BYTES
