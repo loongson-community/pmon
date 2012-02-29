@@ -1011,6 +1011,13 @@ static void superio_reinit()
 	w83627_write(3,0x70,0x03);
 	w83627_write(3,0xf0,0x00);
 
+        ////w83627_PALLPort
+        w83627_write(1,0x30,0x01);
+        w83627_write(1,0x60,0x03);
+        w83627_write(1,0x61,0x78);
+        w83627_write(1,0x70,0x07);
+        w83627_write(1,0x74,0x04);
+        w83627_write(1,0xf0,0xF0);
 }
 #endif
 
