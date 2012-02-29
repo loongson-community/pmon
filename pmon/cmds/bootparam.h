@@ -144,6 +144,13 @@ struct smbios_tables {
 	struct loongson_params lp;
 };
 
+struct efi_reset_system_t
+{
+        unsigned long long  ResetCold;
+        unsigned long long  ResetWarm;
+        unsigned long long  ResetType;
+        unsigned long long  Shutdown;
+};
 
 struct efi {
 	//efi_system_table_t systab;       /* EFI system table */
@@ -171,6 +178,7 @@ struct boot_params{
 	//struct screen_info *screen_info;
 	//struct sys_desc_table *sys_desc_table;
 	struct efi efi;
+        struct efi_reset_system_t  reset_system;
 };
 
 #endif

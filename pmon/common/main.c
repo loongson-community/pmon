@@ -1057,6 +1057,7 @@ struct board_devices *eboard;
 		eboard = (struct board_devices *)((unsigned long long)lp+lp->boarddev_table_offset);
 
 printf("board_name:%s ---%p %d\n",&(eboard->name),eboard->name,eboard->num_resources);
+printf("Shutdown:%p reset:%p\n",bp->reset_system.Shutdown,bp->reset_system.ResetWarm);
 
 //printf("nr_maps::%d,mem_freq:%d,\nlow--id:%d name:%d,mem_start:%x,mem_size:%d \nhigh--id:%d name:%d,mem_start:%x,mem_size:%d\n",emap->nr_map,emap->mem_freq,emap->map[0].node_id,emap->map[0].mem_type,emap->map[0].mem_start,emap->map[0].mem_size,emap->map[1].node_id,emap->map[1].mem_type,emap->map[1].mem_start,emap->map[1].mem_size);
 

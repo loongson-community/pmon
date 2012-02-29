@@ -231,7 +231,7 @@ file pmon/common/more.c			cmd_more	needs-flag
 file pmon/common/rsa.c
 file pmon/common/sbrk.c
 file pmon/common/env.c
-
+file pmon/common/reset.c
 #
 # File systems
 #

@@ -9,10 +9,15 @@ struct interface_info g_interface = { 0 };
 struct interface_info g_board = { 0 };
 struct loongson_special_attribute g_special = { 0 };
 
+extern void (*poweroff_pt)(void);
+extern void (*reboot_pt)(void);
+
 int init_boot_param(struct boot_params *bp)
 {
   
   init_efi(&(bp->efi));
+  init_reset_system(&(bp->reset_system));
+
 
   return bp;
 }
@@ -20,6 +25,12 @@ int init_boot_param(struct boot_params *bp)
 void init_efi(struct efi *efi)
 {
     init_smbios(&(efi->smbios));
+}
+
+void init_reset_system(struct efi_reset_system_t *reset)
+{
+  reset->Shutdown = poweroff_pt;
+  reset->ResetWarm = reboot_pt;
 }
 
 void init_smbios(struct smbios_tables *smbios)
