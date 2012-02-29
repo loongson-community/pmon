@@ -355,6 +355,9 @@ la	gp, _gp
 	mfc0	a0, COP_0_EXC_PC
 	bal	hexserial
 	nop
+1:
+	b 1b
+	nop
 #ifndef ROM_EXCEPTION
 	PRINTSTR("\r\nDERR0=")
 	cfc0	a0, COP_0_DERR_0
@@ -365,7 +368,7 @@ la	gp, _gp
 	bal	hexserial
 	nop
 #else
-	1:
+1:
 	b 1b
 	nop
 #endif
@@ -1133,13 +1136,6 @@ gs_2f_v3_ddr2_cfg:
 	TTYDBG (" 3\r\n")
 	2:      
 #endif    
-
-#ifdef MULTI_CHIP
-	TTYDBG("CPU 1 READ TEST...\r\n")
-	dli      t0, 0x900010003ff00040
-	lw       a0, 0x0(t0)
-	TTYDBG("CPU 1 READ TEST OK.\r\n")
-#endif
 ##########################################
 
 		WatchDog_Enable;
@@ -1158,242 +1154,6 @@ gs_2f_v3_ddr2_cfg:
 	bal	beep_off
 	nop
 //end
-
-	//##########################################
-	//TTYDBG("NODE 0 MEMORY CONFIG BEGIN\r\n")
-	//       li      s1, 0x0
-
-##########################################
-	/***********************************************************
-	  s1: 
-	  |[30:28]| MC1_ROW            | MC0_ROW | 15 - MC1_ROW_SIZE |
-	  |[27:27]| MC1_EIGHT_BANK     | 1'b0    | FOUR  BANKS       |
-	  |       |                    | 1'b1    | EIGHT BANKS       |
-	  |[26:24]| MC1_COL            | MC0_COL | 14 - MC1_COL_SIZE |
-	  |[22:20]| MC0_ROW            | MC0_ROW | 15 - MC0_ROW_SIZE |
-	  |[19:19]| MC0_EIGHT_BANK     | 1'b0    | FOUR  BANKS       |
-	  |       |                    | 1'b1    | EIGHT BANKS       |
-	  |[18:16]| MC0_COL_SIZE       | MC0_COL | 14 - COL_SIZE     |
-	  |[15:12]| MC1_CS_MAP         |         |                   |
-	  |[11: 8]| MC0_CS_MAP         |         |                   |
-	  |[ 7: 7]| DIMM_TYPE          | 1'b0    | DDR2              |
-	  |       |                    | 1'b1    | DDR3              |
-	  |[ 6: 4]| SIZE_PER_CONTROLLER| 3'b001  | 512MB             |
-	  |       |                    | 3'b010  | 1G                |
-	  |       |                    | 3'b011  | 2G                |
-	  |[ 3: 2]| CONTROLLER_SELECT  | 2'b00   | USE BOTH          |
-	  |       |                    | 2'b01   | MC0_ONLY          |
-	  |       |                    | 2'b10   | MC1_ONLY          |
-	  |[ 1: 0]| NODE ID            |         |                   |
-	 ***********************************************************/
-	TTYDBG("NODE 0 MEMORY CONFIG BEGIN\r\n")
-#define MC0DIMM0_USED 0x34 /* 0x3 ---> CS[1:0]=2'b11, 4 ----> MC0 */ 
-#define MC0DIMM1_USED 0xc4 /* 0xc ---> CS[3:2]=2'b11, 4 ----> MC0 */ 
-#define MC1DIMM0_USED 0x38 /* 0x3 ---> CS[1:0]=2'b11, 8 ----> MC1 */ 
-#define MC1DIMM1_USED 0xc8 /* 0xc ---> CS[3:2]=2'b11, 8 ----> MC1 */ 
-#define MC0_USED	  0x04 /* 0x4 ----> MC0 */ 
-#define MC1_USED	  0x08 /* 0x8 ----> MC1 */ 
-
-//#define AUTO_DDR_CONFIG
-#ifdef AUTO_DDR_CONFIG
-
-		WatchDog_Enable;
-
-	/* Open the SMBUS controller */
-	dli	    a1,0x90000efdfe00a090 ; #b:d:f:r=0:14:0:90 set tmp config address
-	li	    a0,SMBUS_IO_BASE_VALUE | 0x1
-	sw	    a0, 0x0(a1);
-
-	/* enable the host controller */
-	dli	    a1,0x90000efdfe00a0d0 ; #b:d:f:r=0:14:0:d2 bit0=1
-	lw	    a0,0x0(a1);
-	li	    t1, 0x10000;
-	or 	    a0, t1
-	sw	    a0, 0x0(a1);
-
-		WatchDog_Close;
-/*************************************************************
- * NOTICE HERE: scan dimm of MC0 first, then dimm of MC1     * 
- * below define need to be CHANGED according different board *
-*************************************************************/
-#define MC0DIMM0  0xa1  /* SA2 = 0, SA1 = 0, SA0 = 0 <--->  MAP_CS 0011 */ //CON36
-#define MC0DIMM1  0xa3  /* SA2 = 0, SA1 = 0, SA0 = 1 <--->  MAP_CS 1100 */ //CON37
-#define MC1DIMM0  0xa5  /* SA2 = 0, SA1 = 1, SA0 = 0 <--->  MAP_CS 0011 */ //CON38
-#define MC1DIMM1  0xa7  /* SA2 = 0, SA1 = 1, SA0 = 1 <--->  MAP_CS 1100 */ //CON39
-        PRINTSTR("\r\nProbing DDR SLOT: ");
-        PRINTSTR("\r\nProbe MC0DIMM0: ");
-        li      s1,0x0
-        li      v0,0x0
-        li      a0,MC0DIMM0;
-        li      a1,MC0DIMM0_USED;
-        bal     PROBE_DIMM;
-        nop;
-        move	s4,v0;
-        move	a0,v0;
-        bal hexserial;
-        nop;
-	  
-        PRINTSTR("\r\nProbe MC0DIMM1: ");
-        li      s1,0x0
-        li      v0,0x0
-        li      a0,MC0DIMM1;
-        li      a1,MC0DIMM1_USED;
-        bal     PROBE_DIMM;
-        nop;
-		move    s5,v0
-        move	a0,v0;
-        bal hexserial;
-        nop;
-
-		/* check whether DDR in the same MC controler has same BANK/ROW/COL/TYP */
-        li    v0,0x0
-		move  a0,s4
-		move  a1,s5
-		li	  a2,MC0_USED 
-		bal	MERGE_DIMM
-		nop
-		move  s6, v0  /* s6 used to save detected infomation from MC0 */
-		beqz  v0, probe_mc1
-		nop
-
-		/* show value of 64 bit s1 of MC0 */
-        PRINTSTR("\r\nNow Merged MC0: ");
-        move	a0,s6;
-		dsrl	a0,32;
-        bal     hexserial;
-        nop;
-        PRINTSTR("_");
-        move	a0,s6;
-        bal     hexserial;
-        nop;
-        PRINTSTR("\r\n");
-
-probe_mc1:
-
-        PRINTSTR("\r\nProbe MC1DIMM0: ");
-        li      s1,0x0
-        li      v0,0x0
-        li      a0,MC1DIMM0;
-        li      a1,MC1DIMM0_USED;
-        bal     PROBE_DIMM;
-        nop;
-        move	s4,v0;
-        move	a0,v0;
-        bal hexserial;
-        nop;
-
-        PRINTSTR("\r\nProbe MC1DIMM1: ");
-        li      s1,0x0
-        li      v0,0x0
-        li      a0,MC1DIMM1;
-        li      a1,MC1DIMM1_USED;
-        bal     PROBE_DIMM;
-        nop;
-		move  s5,v0
-        move  a0,v0;
-        bal hexserial;
-        nop;
-
-	 /* now check whether DDR in the same MC controler has same BANK/ROW/COL/TYPE */
-        li      v0,0x0
-		move  a0,s4
-		move  a1,s5
-		li	  a2,MC1_USED 
-		bal	  MERGE_DIMM
-		nop
-		move  s7, v0  
-
-		/* show value of 64 bit s1 of MC1 */
-        PRINTSTR("\r\nNow Merged MC1: ");
-        move	a0,s7;
-		dsrl	a0,32;
-        bal     hexserial;
-        nop;
-        PRINTSTR("_");
-        move	a0,s7;
-        bal     hexserial;
-        nop;
-        PRINTSTR("\r\n");
-#else
-        li      s6, 0x001c03a4 /* s6 used to save detected infomation from MC0DIMM0 */
-//        li      s6, 0x001c03a4 /* s6 used to save detected infomation from MC0DIMM0 */
-       li      s7, 0x0 /* s7 used to save detected infomation from MC1 */
-#endif
-		bnez s6,1f
-		nop
-		bnez s7,1f
-		nop
-        PRINTSTR("\r\nNO FOUND DDR MEMORY");
-		bal beep_on
-		nop
-		2:
-		bal 2b
-		nop
-1:
-		/* calculate memory size */
-		move	a0,s6
-		move	a1,s7
-		bal		CALCULATE_MEMSZ
-		nop
-		move	msize,v0
-
-        PRINTSTR("\r\nTotal Memory Size: ");
-		/* show value of 64 bit memsize */
-        move	a0,msize;
-		dsrl	a0,32;
-        bal     hexserial;
-        nop;
-        PRINTSTR("_");
-        move	a0,msize;
-        bal     hexserial;
-        nop;
-        //PRINTSTR("\r\n");
-
-        PRINTSTR("\r\nLast S1: ");
-		/* merge mem deteced info together */
-        li      v0,0x0
-		move	a0,s6
-		move	a1,s7
-		bal		MERGE_CHANNEL
-		nop
-		move	s1,v0
-
-		/* show value of 64 bit s1 of MC0 and MC1 */
-        move	a0,s1;
-		dsrl	a0,32;
-        bal     hexserial;
-        nop;
-        PRINTSTR("_");
-        move	a0,s1;
-        bal     hexserial;
-        nop;
-        PRINTSTR("\r\n");
-
-//#define DEBUG_DDR
-#ifdef  DEBUG_DDR
-        bal     tgt_testchar
-        nop
-        beqz    v0, ddr_config_entry
-        nop
-
-	    //PRINTSTR("[ 6: 4]: SIZE_PER_CONTROLLER\r\n         | 3'b001: 512MB |\r\n         | 3'b010: 1G    |\r\n         | 3'b011: 2G    |\r\n[ 3: 2]: CONTROLLER_SELECT\r\n         | 2'b00 : USE BOTH |\r\n         | 2'b01 : MC0_ONLY |\r\n         | 2'b10 : MC1_ONLY |\r\n[ 1: 0]: NODE ID\r\n")
-        li	    t6, 0x00
-	    bal	    inputaddress	#input value stored in v0
-	    nop
-	    move	s1, v0	#store v0 to s1
-ddr_config_entry:
-#endif
-
-#include "loongson3_ddr2_config.S"
-##########################################
-
-#ifdef MULTI_CHIP
-##########################################
-		TTYDBG("NODE 1 MEMORY CONFIG BEGIN\r\n")
-		li      s1, 0x1
-#include "loongson3_ddr2_config.S"
-##########################################
-#endif
 
 		bal CPU_TLBClear
 		nop
@@ -1491,14 +1251,352 @@ ddr_config_entry:
 		nop
 #endif
 
-		WatchDog_Enable;
+//cxk
+####################################
+#include "pmon/arch/mips/mm/ddr_param_define.h"
+#include "pmon/arch/mips/mm/ddr_config_define.h"
+#define DISABLE_DIMM_ECC
+#define PRINT_MSG
+#ifndef ARB_LEVEL
+#define FIX_DDR_PARAM
+#endif
+//#define DEBUG_DDR
+//#define DEBUG_DDR_MT
+//#define DEBUG_DDR_PARAM
+
+    TTYDBG("\r\nStart Init Memory, wait a while......\r\n")
+####################################
+    dli     msize, 0
+
+//!!!!important--s1 must be correctly set
+
+    TTYDBG("NODE 0 MEMORY CONFIG BEGIN\r\n")
+
+#ifdef  AUTO_DDR_CONFIG
+    dli     s1, 0x32100000
+#else
+    dli     s1, 0xc1e30400c1e30400  // use MC0
+#endif
+
+#include "loongson3_ddr2_config.S"
+
+    TTYDBG("Init Memory done.\r\n")
+
+#ifdef ARB_LEVEL
+    b       ARB_level_over
+    nop
+#include "pmon/arch/mips/mm/ARB_level.S"
+ARB_level_over:
+#endif
+##########################################
+
+#if 1 //cww_X2
+//dump L1-L2-HT config windows
+    PRINTSTR("\r\n======X1 core0 map windows:\r\n")
+    li      t1, 23
+    dli     t2, 0x900000003ff02000
+1:
+    move    a0, t2
+    bal    hexserial64
+    nop
+    PRINTSTR(": ")
+
+    ld      a0, 0x0(t2)
+    bal    hexserial64
+    nop
+    PRINTSTR("\r\n")
+
+    daddiu  t2, t2, 8
+    bnez    t1, 1b
+    addiu   t1, t1, -1
+
+
+    PRINTSTR("\r\n======X2 cpu map windows:\r\n")
+    li      t1, 23
+    dli     t2, 0x900000003ff00000
+1:
+    move    a0, t2
+    bal    hexserial64
+    nop
+    PRINTSTR(": ")
+
+    ld      a0, 0x0(t2)
+    bal    hexserial64
+    nop
+    PRINTSTR("\r\n")
+
+    daddiu  t2, t2, 8
+    bnez    t1, 1b
+    addiu   t1, t1, -1
+
+    PRINTSTR("\r\n======X2 pci map windows:\r\n")
+    li      t1, 23
+    dli     t2, 0x900000003ff00100
+1:
+    move    a0, t2
+    bal    hexserial64
+    nop
+    PRINTSTR(": ")
+
+    ld      a0, 0x0(t2)
+    bal    hexserial64
+    nop
+    PRINTSTR("\r\n")
+
+    daddiu  t2, t2, 8
+    bnez    t1, 1b
+    addiu   t1, t1, -1
+
+    PRINTSTR("\r\n======read HT config reg:\r\n")
+    dli     t2, 0x90000efdfb000000
+
+    move    a0, t2
+    bal    hexserial64
+    nop
+    PRINTSTR(": ")
+
+    ld      a0, 0x0(t2)
+    bal    hexserial64
+    nop
+    PRINTSTR("\r\n")
+
+    daddiu    a0, t2, 0x60
+    bal    hexserial64
+    nop
+    PRINTSTR(": ")
+
+    ld      a0, 0x60(t2)
+    bal    hexserial64
+    nop
+    PRINTSTR("\r\n")
+
+    daddiu    a0, t2, 0x68
+    bal    hexserial64
+    nop
+    PRINTSTR(": ")
+
+    ld      a0, 0x68(t2)
+    bal    hexserial64
+    nop
+    PRINTSTR("\r\n")
+
+    daddiu    a0, t2, 0x70
+    bal    hexserial64
+    nop
+    PRINTSTR(": ")
+
+    ld      a0, 0x70(t2)
+    bal    hexserial64
+    nop
+    PRINTSTR("\r\n")
+
+#ifdef MULTI_CHIP 
+    PRINTSTR("\r\nNode 1 Xbar map windows:\r\n")
+    PRINTSTR("\r\n======X1 core0 map windows:\r\n")
+    li      t1, 23
+    dli     t2, 0x900010003ff02000
+#ifdef LS3B
+    daddu   t2, t2, 0x4000
+#endif
+1:
+    move    a0, t2
+    bal    hexserial64
+    nop
+    PRINTSTR(": ")
+
+    ld      a0, 0x0(t2)
+    bal    hexserial64
+    nop
+    PRINTSTR("\r\n")
+
+    daddiu  t2, t2, 8
+    bnez    t1, 1b
+    addiu   t1, t1, -1
+
+
+    PRINTSTR("\r\n======X2 cpu map windows:\r\n")
+    li      t1, 23
+    dli     t2, 0x900010003ff00000
+#ifdef LS3B
+    daddu   t2, t2, 0x4000
+#endif
+1:
+    move    a0, t2
+    bal    hexserial64
+    nop
+    PRINTSTR(": ")
+
+    ld      a0, 0x0(t2)
+    bal    hexserial64
+    nop
+    PRINTSTR("\r\n")
+
+    daddiu  t2, t2, 8
+    bnez    t1, 1b
+    addiu   t1, t1, -1
+
+    PRINTSTR("\r\n======X2 pci map windows:\r\n")
+    li      t1, 23
+    dli     t2, 0x900010003ff00100
+#ifdef LS3B
+    daddu   t2, t2, 0x4000
+#endif
+1:
+    move    a0, t2
+    bal    hexserial64
+    nop
+    PRINTSTR(": ")
+
+    ld      a0, 0x0(t2)
+    bal    hexserial64
+    nop
+    PRINTSTR("\r\n")
+
+    daddiu  t2, t2, 8
+    bnez    t1, 1b
+    addiu   t1, t1, -1
+
+    PRINTSTR("\r\n======read HT config reg:\r\n")
+    dli     t2, 0x90001efdfb000000
+#ifdef LS3B
+    daddu   t2, t2, 0x4000
+#endif
+
+    move    a0, t2
+    bal    hexserial64
+    nop
+    PRINTSTR(": ")
+
+    ld      a0, 0x0(t2)
+    bal    hexserial64
+    nop
+    PRINTSTR("\r\n")
+
+    daddiu    a0, t2, 0x60
+    bal    hexserial64
+    nop
+    PRINTSTR(": ")
+
+    ld      a0, 0x60(t2)
+    bal    hexserial64
+    nop
+    PRINTSTR("\r\n")
+
+    daddiu    a0, t2, 0x68
+    bal    hexserial64
+    nop
+    PRINTSTR(": ")
+
+    ld      a0, 0x68(t2)
+    bal    hexserial64
+    nop
+    PRINTSTR("\r\n")
+
+    daddiu    a0, t2, 0x70
+    bal    hexserial64
+    nop
+    PRINTSTR(": ")
+
+    ld      a0, 0x70(t2)
+    bal    hexserial64
+    nop
+    PRINTSTR("\r\n")
+#endif
+#endif
+##########################################
+#ifdef  DEBUG_DDR
+    b       TM_over
+    nop
+#include "Test_Mem.S"
+TM_over:
+
+#if 1
+    PRINTSTR("\r\nDo test?(0xf: skip): ")
+    bal     inputaddress
+    nop
+    and     v0, v0, 0xf
+    dli     a1, 0x1
+    bgt     v0, a1, 3f
+    nop
+#endif
+
+#if 1
+#if 1
+    PRINTSTR("\r\nStart other core test?(0xcccc: start): ")
+    bal     inputaddress
+    nop
+    move    t1, v0
+#else
+    li      t1, 0xcccc
+#endif
+
+#ifdef NODE1_BOOT
+    dli     t0, NODE1_CORE0_BUF0 #buf of cpu1
+#else
+    dli     t0, NODE0_CORE0_BUF0 #buf of cpu0
+#endif
+    sw      t1, FN_OFF(t0)
+    nop
+#endif
+
+#if 0
+    PRINTSTR("\r\nStart simple_test_mem......\r\n")
+1:
+    dli     t1, 0x0010
+    dli     s1, 0x0004000080000000  //NODE 0, start from 0x80000000
+    dli     t0, 0xaaaaaaaaaaaaaaaa
+    bal     simple_test_mem
+    nop
+    b       1b
+    nop
+#endif
+
+    dli     s1, 0x0004000080000000  //NODE 0, start from 0x80000000
+#if 1
+    PRINTSTR("\r\ndefault s1 = 0x");
+    dsrl    a0, s1, 32
+    bal     hexserial
+    nop
+    PRINTSTR("__")
+    move    a0, s1
+    bal     hexserial
+    nop
+    PRINTSTR("\r\nChange test param s1(0: skip)?: ")
+    bal     inputaddress
+    nop
+    beqz    v0, 1f
+    nop
+    move    s1, v0
+1:
+#endif
+1:
+    dli     t1, 0x1010
+    bal     test_mem
+    nop
+    move    t1, v0
+    PRINTSTR("\r\n")
+    dsrl    a0, t1, 32
+    bal     hexserial
+    nop
+    move    a0, t1
+    bal     hexserial
+    nop
+    beqz    t1, 2f
+    nop
+    PRINTSTR("  Error found!!\r\n")
+2:
+
+3:
+#endif
+#########################################
+
+
 ##########################################
 #ifdef LS3_HT
+		WatchDog_Enable;
 #include "loongson3_HT_init.S"
-#endif
-//		PRINTSTR("\r\n======LeeWG : Watch Dog : 3\r\n")
 		WatchDog_Close;
-//		PRINTSTR("\r\n======LeeWG : Watch Dog : 4\r\n")
+#endif
 
 		WatchDog_Enable;
 #include "dma_test.S"
@@ -1618,7 +1716,8 @@ ddr_config_entry:
 
 ##########################################
 
-#include "machine/newtest/mydebug.S"
+//#include "machine/newtest/mydebug.S"
+#include "machine/newtest/newdebug.S"
 
 ##########################################
 
@@ -1748,7 +1847,7 @@ ddr_config_entry:
 		la  a2, stringserial
 		addu a2,a2,s0
 
-		dsrl	msize,20
+		//dsrl	msize,20
 		move	a0,msize
 
 #if 1 
@@ -2268,6 +2367,10 @@ ddr_config_entry:
 
 
 #include "i2c.S"
+#ifdef  AUTO_DDR_CONFIG
+#include "detect_node_dimm.S"
+#endif
+
 		__main:
 		j	ra
 		nop
@@ -2877,356 +2980,6 @@ cache_init_finish:
 #endif
 
 #######################################
-	.global ddr2_config
-	.ent    ddr2_config
-	.set    noreorder
-	.set    mips3
-	ddr2_config:
-
-	//#define DEBUG_DDR_MC0
-#ifdef DEBUG_DDR_MC0
-#define MODIFY_PARAM_MC0 0x8f
-	/*get a 8-byte number from the keyboard*/
-	move	t8, a0
-	move	t1, ra
-
-	PRINTSTR("Please input hex :\r\n");
-	li	t6, 0x00
-	bal	inputaddress	#input value stored in v0
-	nop
-	move	t5, v0	#store v0 to t5
-
-	move	a0, t8
-	move	ra, t1
-#else
-#ifdef loongson3A3
-#define MODIFY_PARAM_MC0 180 - 8
-#else
-#define MODIFY_PARAM_MC0 152 - 8
-#endif
-#endif
-
-	GET_DDR_TYPE
-	la      a2, ddr3_reg_data
-	beqz    a1, 1f
-	nop
-	la      a2, ddr3_reg_data
-1:
-
-	addu    a2, a2, s0
-	daddiu	v0, a0, 0x0
-######################################################
-	ld      a1, 0x0(a2)
-	sd      a1, 0x0(v0)
-
-#####Eight_bank_mode #################################
-	ld      t1, 0x8(a2)
-	dli     a1, 0xffffff00ffffffff
-	and     t1, t1, a1
-	GET_MC0_EIGHT
-	or      t1, t1, a1
-	sd      t1, 0x10(v0)
-
-######################################################
-	ld      a1, 0x10(a2)
-	sd      a1, 0x20(v0)
-	ld      a1, 0x18(a2)
-	sd      a1, 0x30(v0)
-	ld      a1, 0x20(a2)
-	sd      a1, 0x40(v0)
-
-#####COL_SIZE / ROW_SIZE #############################
-	ld      t1, 0x28(a2)
-	dli     a1, 0xffffffff00ff00ff
-	and     t1, t1, a1
-	GET_MC0_ROW
-	or      t1, t1, a1
-	GET_MC0_COL
-	or      t1, t1, a1
-	sd      t1, 0x50(v0)
-
-######################################################
-	ld      a1, 0x30(a2)
-	sd      a1, 0x60(v0)
-
-#####CS_MAP ##########################################
-	ld      t1, 0x38(a2)
-	dli     a1, 0xffffffffff00ffff
-	and     t1, t1, a1
-	GET_MC0_CS_MAP
-	or      t1, t1, a1
-	sd      t1, 0x70(v0)
-
-######################################################
-
-	li      t1, MODIFY_PARAM_MC0 #first half loop
-	daddiu	v0, a0, 0x80
-
-	reg_write:
-
-	ld      a1, 0x40(a2)
-	sd      a1, 0x0(v0)
-
-	subu    t1, t1, 0x1
-	addiu   a2, a2, 0x8
-	bne     t1, $0, reg_write
-	daddiu   v0, v0, 0x10
-
-#ifdef DEBUG_DDR_MC0
-#write the register parameter specified by the keyboard input
-	sd	t5, 0x0(v0)
-
-	li	t1, 151-MODIFY_PARAM_MC0 #TTTTTTTTTTT***change the register to be specified	
-	addiu	a2, a2, 0x8
-	daddiu	v0, v0, 0x10
-
-1:
-	ld	a1, 0x40(a2)
-	sd	a1, 0x0(v0)
-
-	subu	t1, t1, 0x1
-	addiu	a2, a2, 0x8
-	bne	t1, $0, 1b
-	daddiu	v0, v0, 0x10
-#endif
-
-	li      v0, 0xfff
-1:
-	bnez    v0, 1b
-	addi    v0, v0, -1
-	nop
-	sync
-############start##########
-	daddiu	v0, a0, 0x0
-	ld      a1, 0x30(v0)
-	dli     a2, 0x0000010000000000
-	or      a1, a1, a2
-	sd      a1, 0x30(v0)
-###########################
-
-	daddiu  v0, a0, 0x960 //wait int status 
-1:
-	ld      a1, 0x0(v0)
-	andi    a1, a1, 0x100
-	beqz    a1, 1b
-	nop
-
-	daddiu  v0, a0, 0x30 //Set to srefresh
-	dli     a1, 0x0000000100000000
-	ld      a2, 0x0(v0)
-	or      a1, a1, a2
-	sd      a1, 0x0(v0)
-
-	li      v0, 0xfff
-1:
-	bnez    v0, 1b
-	addi    v0, v0, -1
-	nop
-	sync
-
-	daddiu  v0, a0, 0x30 //Out of srefresh
-	dli     a1, 0xffffff00ffffffff
-	ld      a2, 0x0(v0)
-	and     a1, a1, a2
-	sd      a1, 0x0(v0)
-
-	li      v0, 0xfff
-1:
-	bnez    v0, 1b
-	addi    v0, v0, -1
-	nop
-	sync
-
-	daddiu  v0, a0, 0x40 //Write mode regs
-	dli     a1, 0x0000000001000000
-	ld      a2, 0x0(v0)
-	or      a1, a1, a2
-	sd      a1, 0x0(v0)
-
-
-	jr      ra
-	nop
-	.end    ddr2_config
-
-
-	.global ddr2_config_mc1
-	.ent    ddr2_config_mc1
-	.set    noreorder
-	.set    mips3
-
-	ddr2_config_mc1:
-
-#ifdef DEBUG_DDR_MC1
-#define MODIFY_PARAM_MC1 0x8f
-	/*get a 8-byte number from the keyboard*/
-	move	t8, a0
-	move	t1, ra
-
-	PRINTSTR("Please input hex :\r\n");
-	li	t6, 0x00
-	bal	inputaddress	#input value stored in v0
-	nop
-	move	t5, v0	#store v0 to t5
-
-	move	a0, t8
-	move	ra, t1
-#else
-#ifdef loongson3A3
-#define MODIFY_PARAM_MC1 180 - 8
-#else
-#define MODIFY_PARAM_MC1 152 - 8
-#endif
-#endif
-
-	GET_DDR_TYPE
-	la      a2, ddr3_reg_data_mc1
-	beqz    a1, 1f
-	nop
-	la      a2, ddr3_reg_data_mc1
-1:
-
-	addu    a2, a2, s0
-	daddiu	v0, a0, 0x0
-#####This first eight is written by configuration ####
-	ld      a1, 0x0(a2)
-	sd      a1, 0x0(v0)
-
-#####Eight_bank_mode #################################
-	ld      t1, 0x8(a2)
-	dli     a1, 0xffffff00ffffffff
-	and     t1, t1, a1
-	GET_MC1_EIGHT
-	or      t1, t1, a1
-	sd      t1, 0x10(v0)
-
-######################################################
-	ld      a1, 0x10(a2)
-	sd      a1, 0x20(v0)
-	ld      a1, 0x18(a2)
-	sd      a1, 0x30(v0)
-	ld      a1, 0x20(a2)
-	sd      a1, 0x40(v0)
-
-#####COL_SIZE / ROW_SIZE #############################
-	ld      t1, 0x28(a2)
-	dli     a1, 0xffffffff00ff00ff
-	and     t1, t1, a1
-	GET_MC1_ROW
-	or      t1, t1, a1
-	GET_MC1_COL
-	or      t1, t1, a1
-	sd      t1, 0x50(v0)
-
-######################################################
-	ld      a1, 0x30(a2)
-	sd      a1, 0x60(v0)
-
-#####CS_MAP ##########################################
-	ld      t1, 0x38(a2)
-	dli     a1, 0xffffffffff00ffff
-	and     t1, t1, a1
-	GET_MC1_CS_MAP
-	or      t1, t1, a1
-	sd      t1, 0x70(v0)
-
-#####################################################
-
-	li      t1, MODIFY_PARAM_MC1 #first half loop
-	daddiu	v0, a0, 0x80
-
-	reg_write_mc1:
-
-	ld      a1, 0x40(a2)
-	sd      a1, 0x0(v0)
-
-	subu    t1, t1, 0x1
-	addiu   a2, a2, 0x8
-	bne     t1, $0, reg_write_mc1
-	daddiu   v0, v0, 0x10
-
-#ifdef DEBUG_DDR_MC1
-#write the register parameter specified by the keyboard input
-	sd	t5, 0x0(v0)
-
-#ifdef loongson3A3
-	li	t1, 179-MODIFY_PARAM_MC1 #TTTTTTTTTTT***change the register to be specified	
-#else
-	li	t1, 151-MODIFY_PARAM_MC1 #TTTTTTTTTTT***change the register to be specified	
-#endif
-	addiu	a2, a2, 0x8
-	daddiu	v0, v0, 0x10
-
-1:
-	ld	a1, 0x40(a2)
-	sd	a1, 0x0(v0)
-
-	subu	t1, t1, 0x1
-	addiu	a2, a2, 0x8
-	bne	t1, $0, 1b
-	daddiu	v0, v0, 0x10
-#endif
-
-	li      v0, 0xfff
-1:
-	bnez    v0, 1b
-	addi    v0, v0, -1
-	nop
-	sync
-############start##########
-	daddiu	v0, a0, 0x0
-	ld      a1, 0x30(v0)
-	dli     a2, 0x0000010000000000
-	or      a1, a1, a2
-	sd      a1, 0x30(v0)
-###########################
-
-	daddiu  v0, a0, 0x960 //wait int status 
-1:
-	ld      a1, 0x0(v0)
-	andi    a1, a1, 0x100
-	beqz    a1, 1b
-	nop
-
-	daddiu  v0, a0, 0x30 //Set to srefresh
-	dli     a1, 0x0000000100000000
-	ld      a2, 0x0(v0)
-	or      a1, a1, a2
-	sd      a1, 0x0(v0)
-
-	li      v0, 0xfff
-1:
-	bnez    v0, 1b
-	addi    v0, v0, -1
-	nop
-	sync
-
-	daddiu  v0, a0, 0x30 //Out of srefresh
-	dli     a1, 0xffffff00ffffffff
-	ld      a2, 0x0(v0)
-	and     a1, a1, a2
-	sd      a1, 0x0(v0)
-
-	li      v0, 0xfff
-1:
-	bnez    v0, 1b
-	addi    v0, v0, -1
-	nop
-	sync
-
-	daddiu  v0, a0, 0x40 //Write mode regs
-	dli     a1, 0x0000000001000000
-	ld      a2, 0x0(v0)
-	or      a1, a1, a2
-	sd      a1, 0x0(v0)
-
-	jr      ra
-	nop
-	.end    ddr2_config_mc1
-
-	.rdata
-	.align 5
-	.global ddr3_reg_data
-#include "loongson3a_ddr3_param.S"
 
 	.global watchdog_enable
 	.ent    watchdog_enable
@@ -3235,6 +2988,7 @@ cache_init_finish:
 watchdog_enable:
 	WatchDog_Enable
 	jr		ra
+    nop
 	.end watchdog_enable
 
 	.text
@@ -3243,4 +2997,41 @@ watchdog_enable:
 nvram_offs:
 	.dword 0x0
 	.align 12
-	.dword 0x0
+
+#######################################
+#include "pmon/arch/mips/mm/ddr_config.S"
+
+    .text
+    .global ddr2_reg_data
+    .global ddr3_reg_data
+#ifdef  ARB_LEVEL
+    .global ddr2_leveled_mark
+    .global ddr2_reg_data_mc0_leveled
+    .global ddr2_reg_data_mc1_leveled
+#ifdef  MULTI_CHIP
+    .global n1_ddr2_reg_data_mc0_leveled
+    .global n1_ddr2_reg_data_mc1_leveled
+#endif
+#endif
+
+    .align  5
+#include "loongson3A3_ddr_param.S"
+#ifdef  MULTI_NODE_DDR_PARAM
+#include "loongson3A3_ddr_param_c1.S"
+#endif
+
+#ifdef  ARB_LEVEL
+#include "loongson3A3_ddr_param.lvled.S"
+#ifdef  MULTI_CHIP
+#include "loongson3A3_ddr_param_c1.lvled.S"
+#endif
+
+    .align  12
+ddr2_leveled_mark:
+.dword 0x0
+    .align  12
+#else
+#ifdef FIX_DDR_PARAM
+#include "loongson3A3_ddr_param.fix.S"
+#endif
+#endif

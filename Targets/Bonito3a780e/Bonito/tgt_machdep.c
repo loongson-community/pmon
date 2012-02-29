@@ -402,7 +402,7 @@ extern char MipsException[], MipsExceptionEnd[];
 
 unsigned char hwethadr[6];
 
-void initmips(unsigned long long  memsz);
+void initmips(unsigned long long  raw_memsz);
 
 void addr_tst1(void);
 void addr_tst2(void);
@@ -412,10 +412,11 @@ pcireg_t _pci_allocate_io(struct pci_device *dev, vm_size_t size);
 static void superio_reinit();
 
 void
-initmips(unsigned long long memsz)
+initmips(unsigned long long raw_memsz)
 {
 	int i;
 	int* io_addr;
+    unsigned long long memsz;
 tgt_fpuenable();
 #ifdef DEVBD2F_SM502
 {
@@ -424,7 +425,6 @@ volatile int *p=0xbfe00108;
 *p=((*p)&~(0x1f<<8))|(0x8<<8) |(1<<13);
 }
 #endif
-tgt_printf("memsz %ld\n",memsz);
 /*enable float*/
 tgt_fpuenable();
 //CPU_TLBClear();
@@ -436,15 +436,15 @@ superio_reinit();
 	 *	Set up memory address decoders to map entire memory.
 	 *	But first move away bootrom map to high memory.
 	 */
-#if 0
-	GT_WRITE(BOOTCS_LOW_DECODE_ADDRESS, BOOT_BASE >> 20);
-	GT_WRITE(BOOTCS_HIGH_DECODE_ADDRESS, (BOOT_BASE - 1 + BOOT_SIZE) >> 20);
-#endif
-	//memorysize = memsz > 256 ? 256 << 20 : memsz << 20;
-	//memorysize_high = memsz > 256 ? (memsz - 256) << 20 : 0;
+    memsz = raw_memsz & 0xff;
+    memsz = memsz << 29;
+    memsz = memsz - 0x1000000;
+    memsz = memsz >> 20;
+    tgt_printf("memsz %ld\n",memsz);
+
 	memorysize = memsz > 240 ? 240 << 20 : memsz << 20;
 	memorysize_high = memsz > 240 ? (((unsigned long long)memsz) - 240) << 20 : 0;
-     mem_size = memsz;
+    mem_size = memsz;
 #if 0 /* whd : Disable gpu controller of MCP68 */
 	//*(unsigned int *)0xbfe809e8 = 0x122380;
 	//*(unsigned int *)0xbfe809e8 = 0x2280;
