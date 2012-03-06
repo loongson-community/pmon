@@ -385,6 +385,7 @@ fl_erase_device(void *base, int size, int verbose)
         
 	while(size > 0) {
 		int boffs = (int)base;
+#if 0
 		if(size == map->fl_map_size &&
 			dev->fl_cap & (FL_CAP_DE|FL_CAP_A7)) {
 			/*
@@ -399,6 +400,7 @@ fl_erase_device(void *base, int size, int verbose)
 			size = 0;
 		}
 		else {
+#endif
 			/*
 			 * Not entire flash or no BULK erase feature. We
 			 * use sector/block erase.
@@ -423,7 +425,7 @@ fl_erase_device(void *base, int size, int verbose)
                                 size -= dev->fl_secsize * map->fl_map_chips;
                                 block++;
                         }
-		}
+//		}
 
 		delay(1000);
 		for(timeout = 0 ;
