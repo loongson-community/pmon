@@ -633,14 +633,18 @@ __wdstart(wd, bp)
 	 * the sector number of the problem, and will eventually allow the
 	 * transfer to succeed.
 	 */
-#ifdef IDE_DMA
-	if (wd->sc_multi == 1 || wd->retries >= WDIORETRIES_SINGLE)
-#else
+//#ifdef IDE_DMA
+//	if (wd->sc_multi == 1 || wd->retries >= WDIORETRIES_SINGLE)
+//#else
 	if (wd->sc_multi != 1 || wd->retries >= WDIORETRIES_SINGLE)
-#endif
+//#endif
 		wd->sc_wdc_bio.flags = ATA_SINGLE | ATA_POLL;
 	else
 		wd->sc_wdc_bio.flags = ATA_POLL;
+#ifdef IDE_DMA
+        if(wd->sc_multi == 0x10)
+                wd->sc_wdc_bio.flags = ATA_POLL;
+#endif
 	if (wd->sc_flags & WDF_LBA)
 		wd->sc_wdc_bio.flags |= ATA_LBA;
 	if (bp->b_flags & B_READ)
