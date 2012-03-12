@@ -168,6 +168,11 @@ static int load_menu_list()
                         if (retid == 0) {
                                 return 1;
                         }
+                        sprintf(load, "bl -d ide /dev/fs/fat@%s/boot/boot.cfg", dev->dv_xname);
+                        retid = do_cmd(load);
+                        if (retid == 0) {
+                                return 1;
+                        }
                         sprintf(load, "bl -d ide /dev/fs/iso9660@%s/boot/boot.cfg", dev->dv_xname);
                         retid = do_cmd(load);
                         if (retid == 0) {
