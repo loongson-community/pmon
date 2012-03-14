@@ -1346,7 +1346,6 @@ int paint_childwindow(char **hint,char *diskdev_name[],char *netdev_name[],int e
 					unsetenv("disp");
 					unsetenv("disp1");
 
-					setenv("bootdev", sysconfig.kpath);
 					setenv("bootdev1", sysconfig.kpath1);
 
 					setenv("al",sysconfig.kpath);
