@@ -21,7 +21,6 @@ option		TARGETNAME="\"Bonito\""
 # Platform options
 #
 option      loongson3A3
-option      LSMCD3_2
 #option      ARB_LEVEL
 option      DDR3_DIMM
 

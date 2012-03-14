@@ -1258,7 +1258,7 @@ gs_2f_v3_ddr2_cfg:
 #define DISABLE_DIMM_ECC
 #define PRINT_MSG
 #ifndef ARB_LEVEL
-#define FIX_DDR_PARAM
+//#define FIX_DDR_PARAM
 #endif
 //#define DEBUG_DDR
 //#define DEBUG_DDR_MT
@@ -3008,28 +3008,22 @@ nvram_offs:
     .global ddr2_leveled_mark
     .global ddr2_reg_data_mc0_leveled
     .global ddr2_reg_data_mc1_leveled
-#ifdef  MULTI_CHIP
-    .global n1_ddr2_reg_data_mc0_leveled
-    .global n1_ddr2_reg_data_mc1_leveled
-#endif
 #endif
 
     .align  5
+#ifndef ARB_LEVEL
+#include "loongson3a_ddr3_param.S"
+#else
 #include "loongson3A3_ddr_param.S"
-#ifdef  MULTI_NODE_DDR_PARAM
-#include "loongson3A3_ddr_param_c1.S"
 #endif
 
 #ifdef  ARB_LEVEL
-#include "loongson3A3_ddr_param.lvled.S"
-#ifdef  MULTI_CHIP
-#include "loongson3A3_ddr_param_c1.lvled.S"
-#endif
-
     .align  12
 ddr2_leveled_mark:
 .dword 0x0
     .align  12
+
+#include "loongson3A3_ddr_param.lvled.S"
 #else
 #ifdef FIX_DDR_PARAM
 #include "loongson3A3_ddr_param.fix.S"

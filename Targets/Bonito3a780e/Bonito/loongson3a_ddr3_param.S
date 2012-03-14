@@ -1,3 +1,9 @@
+
+ddr2_reg_data:
+ddr2_reg_data_mc1:
+ddr2_RDIMM_reg_data:
+ddr2_RDIMM_reg_data_mc1:
+
 /*DDR3 PARAMETER */
 //#define REGDIMM_5
 ddr3_reg_data:
@@ -560,3 +566,5 @@ MC1_DDR3_CTL_b30 : .dword 0x00000c2d00000000
 //00000000000000000000110000101101 tdfi_wrlvl_resp(RW) 00000000000000000000000000000000 tdfi_wrlvl_max(RW) 
 #endif
 
+ddr3_RDIMM_reg_data:
+ddr3_RDIMM_reg_data_mc1:

@@ -30,7 +30,7 @@ algrithm:
 
 //#define DEBUG_ARB_LEVEL
 //#define ARB_LEVEL_INTERVAL
-#define  ARB_LEVEL_PAD
+//#define  ARB_LEVEL_PAD
 
 #define CLEAR_HALF_CLK_SHIFT
 #define LOG2_STEP   2   //log2 of TM step interval, remember to small WINDOW_ZERO_NUM when we use larger STEP
@@ -664,30 +664,32 @@ boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
     dsrl    a0, a0, 1
     dli     a1, 0x7f7f7f7f7f7f7f7f
     and     a0, a0, a1
-#ifdef  DDR3_DIMM
-    //special deal with wrlvl_dqs
+#ifdef  DDR3_DIMM //special deal with wrlvl_dqs when use DDR3 DIMM
     dli     a1, 0x5
-    bne     t6, a1, 8f
+    bne     t6, a1, 88f
+    nop
+    GET_DIMM_TYPE
+    bnez    a1, 88f
     nop
     ld      a1, GD_MIN(t8)
     ld      a3, GD_MAX(t8)
     //Byte 1~0
-    //refer byte 1 MIN
+    //refer byte 1
     dsrl    a2, a1, 8
     and     a2, a2, 0x7f
     bnez    a2, 1f
     nop
     //min==0
     dsrl    v0, a0, 2   //mid_value / 4
-    dli     a2, 0x7f7f    //byte1~0, mid_value/4
+    dli     a2, 0x7f7f
     and     v0, v0, a2
     dli     a2, 0xffff
     not     a2, a2
     and     a0, a0, a2
     or      a0, a0, v0
 1:
-2:
     //Byte 3~2
+    //refer byte 3
     dsrl    a2, a1, 24
     and     a2, a2, 0x7f
     bnez    a2, 1f
@@ -702,6 +704,7 @@ boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
     or      a0, a0, v0
 1:
     //Byte 5~4
+    //refer byte 5
     dsrl    a2, a3, 40
     and     a2, a2, 0x7f
     dli     v0, 0x58
@@ -728,7 +731,7 @@ boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
     dsrl    a2, a3, 56
     and     a2, a2, 0x7f
     dli     v0, 0x58
-    blt     a2, v0, 2f
+    blt     a2, v0, 1f
     nop
     //MAX reach boundary, use (MAX+MID)/2
     daddu   v0, a3, a0
@@ -739,9 +742,74 @@ boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
     not     v1, v1
     and     a0, a0, v1
     or      a0, a0, v0
-2:
+1:
+    b       88f
+    nop
+4:
+    ld      a1, GD_MIN(t8)
+    ld      a3, GD_MAX(t8)
+    //Byte 1~0
+    //refer byte 0 MIN
+    dsrl    a2, a1, 0
+    and     a2, a2, 0x7f
+    bnez    a2, 1f
+    nop
+    //min==0
+    dsrl    v0, a0, 0   //mid_value / 1
+    dli     a2, 0x7f7f
+    and     v0, v0, a2
+    dli     a2, 0xffff
+    not     a2, a2
+    and     a0, a0, a2
+    or      a0, a0, v0
+1:
+    //Byte 3~2
+    //refer byte 2 MIN
+    dsrl    a2, a1, 16
+    and     a2, a2, 0x7f
+    bnez    a2, 1f
+    nop
+    //MIN==0
+    dsrl    v0, a0, 1   //mid_value / 2
+    dli     a2, 0x7f7f0000
+    and     v0, v0, a2
+    dli     a2, 0xffff0000
+    not     a2, a2
+    and     a0, a0, a2
+    or      a0, a0, v0
+1:
+    //Byte 5~4
+    //refer byte 5 MIN
+    dsrl    a2, a1, 40
+    and     a2, a2, 0x7f
+    bnez    a2, 1f
+    nop
+    //MIN==0
+    dsrl    v0, a0, 1   //mid_value / 2
+    dli     a2, 0x7f7f00000000
+    and     v0, v0, a2
+    dli     a2, 0xffff00000000
+    not     a2, a2
+    and     a0, a0, a2
+    or      a0, a0, v0
+1:
+    //Byte 7~6
+    //refer byte 7 MIN
+    dsrl    a2, a1, 56
+    and     a2, a2, 0x7f
+    bnez    a2, 1f
+    nop
+    //MIN==0
+    dsrl    v0, a0, 0   //mid_value / 1
+    dli     a2, 0x7f7f000000000000
+    and     v0, v0, a2
+    dli     a2, 0xffff000000000000
+    not     a2, a2
+    and     a0, a0, a2
+    or      a0, a0, v0
+1:
 
-8:
+88:
 #endif
     sd      a0, GD_MID(t8)
 One_Level_Caled_1:
@@ -782,6 +850,8 @@ One_Level_Caled_1:
     beq     t6, a0, ARB_level_PAD_ready
     nop
     //process level result
+    bnez    t9, 1f   //level fail
+    nop
     ld      a1, GD_MAX(t8)
     ld      a0, GD_MIN(t8)
     dsubu   a1, a1, a0
@@ -1505,30 +1575,32 @@ boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
     and     a0, a0, a1
 2:
 #endif
-#ifdef  DDR3_DIMM
-    //special deal with wrlvl_dqs
+#ifdef  DDR3_DIMM //special deal with wrlvl_dqs when use DDR3 DIMM
     dli     a1, 0x5
-    bne     t6, a1, 8f
+    bne     t6, a1, 88f
+    nop
+    GET_DIMM_TYPE
+    bnez    a1, 88f
     nop
     ld      a1, GD_MIN(t8)
     ld      a3, GD_MAX(t8)
     //Byte 1~0
-    //refer byte 1 MIN
+    //refer byte 1
     dsrl    a2, a1, 8
     and     a2, a2, 0x7f
     bnez    a2, 1f
     nop
     //min==0
     dsrl    v0, a0, 2   //mid_value / 4
-    dli     a2, 0x7f7f    //byte1~0, mid_value/4
+    dli     a2, 0x7f7f
     and     v0, v0, a2
     dli     a2, 0xffff
     not     a2, a2
     and     a0, a0, a2
     or      a0, a0, v0
 1:
-2:
     //Byte 3~2
+    //refer byte 3
     dsrl    a2, a1, 24
     and     a2, a2, 0x7f
     bnez    a2, 1f
@@ -1543,6 +1615,7 @@ boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
     or      a0, a0, v0
 1:
     //Byte 5~4
+    //refer byte 5
     dsrl    a2, a3, 40
     and     a2, a2, 0x7f
     dli     v0, 0x58
@@ -1569,7 +1642,7 @@ boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
     dsrl    a2, a3, 56
     and     a2, a2, 0x7f
     dli     v0, 0x58
-    blt     a2, v0, 2f
+    blt     a2, v0, 1f
     nop
     //MAX reach boundary, use (MAX+MID)/2
     daddu   v0, a3, a0
@@ -1580,9 +1653,74 @@ boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
     not     v1, v1
     and     a0, a0, v1
     or      a0, a0, v0
-2:
+1:
+    b       88f
+    nop
+4:
+    ld      a1, GD_MIN(t8)
+    ld      a3, GD_MAX(t8)
+    //Byte 1~0
+    //refer byte 0 MIN
+    dsrl    a2, a1, 0
+    and     a2, a2, 0x7f
+    bnez    a2, 1f
+    nop
+    //min==0
+    dsrl    v0, a0, 0   //mid_value / 1
+    dli     a2, 0x7f7f
+    and     v0, v0, a2
+    dli     a2, 0xffff
+    not     a2, a2
+    and     a0, a0, a2
+    or      a0, a0, v0
+1:
+    //Byte 3~2
+    //refer byte 2 MIN
+    dsrl    a2, a1, 16
+    and     a2, a2, 0x7f
+    bnez    a2, 1f
+    nop
+    //MIN==0
+    dsrl    v0, a0, 1   //mid_value / 2
+    dli     a2, 0x7f7f0000
+    and     v0, v0, a2
+    dli     a2, 0xffff0000
+    not     a2, a2
+    and     a0, a0, a2
+    or      a0, a0, v0
+1:
+    //Byte 5~4
+    //refer byte 5 MIN
+    dsrl    a2, a1, 40
+    and     a2, a2, 0x7f
+    bnez    a2, 1f
+    nop
+    //MIN==0
+    dsrl    v0, a0, 1   //mid_value / 2
+    dli     a2, 0x7f7f00000000
+    and     v0, v0, a2
+    dli     a2, 0xffff00000000
+    not     a2, a2
+    and     a0, a0, a2
+    or      a0, a0, v0
+1:
+    //Byte 7~6
+    //refer byte 7 MIN
+    dsrl    a2, a1, 56
+    and     a2, a2, 0x7f
+    bnez    a2, 1f
+    nop
+    //MIN==0
+    dsrl    v0, a0, 0   //mid_value / 1
+    dli     a2, 0x7f7f000000000000
+    and     v0, v0, a2
+    dli     a2, 0xffff000000000000
+    not     a2, a2
+    and     a0, a0, a2
+    or      a0, a0, v0
+1:
 
-8:
+88:
 #endif
 #if 0
     //add some offset for wrlvl_dq

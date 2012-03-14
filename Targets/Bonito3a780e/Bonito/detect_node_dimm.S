@@ -43,15 +43,25 @@ LEAF(PROBE_NODE_DIMM)
     PRINTSTR("\r\nOpen SMBUS controller\r\n");
     /* Open the SMBUS controller */
     dli     a1, 0x90000efdfe00a090 ; #b:d:f:r=0:14:0:90 set tmp config address
+#ifdef  MULTI_I2C_BUS
+    GET_I2C_NODE_ID_a2
+    dsll    a2, a2, 44
+    or      a1, a1, a2
+#endif
     li      a0, SMBUS_IO_BASE_VALUE | 0x1
     sw      a0, 0x0(a1);
 
     /* enable the host controller */
     dli     a1, 0x90000efdfe00a0d0 ; #b:d:f:r=0:14:0:d2 bit0=1
-    lw      a0, 0x0(a1);
-    li      a2, 0x10000;
-    or      a0, a2
-    sw      a0, 0x0(a1);
+#ifdef  MULTI_I2C_BUS
+    GET_I2C_NODE_ID_a2
+    dsll    a2, a2, 44
+    or      a1, a1, a2
+#endif
+    lw      a0, 0x0(a1)
+    li      a2, 0x10000
+    or      a0, a0, a2
+    sw      a0, 0x0(a1)
 #endif
 #if 0  //for debug, give the SPD device id directly.
 //scan the devices and display DIMM SPD values when the first device is detected.

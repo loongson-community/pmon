@@ -3,6 +3,14 @@
     Author: Chen Xinke
     v0.1    
 *******************************/
+#ifdef  loongson3A3
+#define LSMCD3_2
+#else
+#ifdef  LS3B
+#define LSMCD3_2
+#endif
+#endif
+
 #define DDR_MC_CONFIG_BASE      0x900000000ff00000
 #define MC_CONFIG_REG_BASE_ADDR 0x900000000ff00000
 #ifdef  LSMCD3_2

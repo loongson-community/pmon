@@ -83,9 +83,21 @@ u64 __raw_writeq_sp(u64 addr, u64 val)
 
 extern char _start;
 extern char ddr2_leveled_mark;
+
+#ifndef LS3B
 extern char ddr2_reg_data_mc0_leveled, ddr2_reg_data_mc1_leveled;
 #ifdef MULTI_CHIP
 extern char n1_ddr2_reg_data_mc0_leveled, n1_ddr2_reg_data_mc1_leveled;
+#endif
+#else
+extern char ddr2_reg_data_leveled;
+#ifdef MULTI_CHIP
+extern char n1_ddr2_reg_data_leveled;
+#endif
+#ifdef DUAL_3B
+extern char n2_ddr2_reg_data_leveled;
+extern char n3_ddr2_reg_data_leveled;
+#endif
 #endif
 
 //#define DEBUG
@@ -94,7 +106,7 @@ extern int do_cmd(char *);
 extern void dump_l2xbar(int node);
 #endif
 
-#ifdef  loongson3A3
+#ifdef  LSMCD3_2
 #define DDR_PARAM_NUM     180
 #else
 #define DDR_PARAM_NUM     152
@@ -190,6 +202,7 @@ int read_ddr_param(u64 node_id_shift44, int mc_selector,  unsigned long long * b
     //do_cmd("showwindows");
     //dump_l2xbar(1);
 
+#ifndef LS3B
     // step 1. Change The Primest window for MC0 or MC1 register space 
     enable_ddrcfgwindow(node_id_shift44, mc_selector, buf);
 
@@ -198,7 +211,7 @@ int read_ddr_param(u64 node_id_shift44, int mc_selector,  unsigned long long * b
 
     // step 2. Enabel access to MC0 or MC1 register space 
     enable_ddrconfig(node_id_shift44);
-
+#endif
     // step 3. Read out ddr config register to buffer
     printf("\nNow Read out DDR parameter from DDR MC%d controler after DDR training\n", mc_selector);
     for ( i = DDR_PARAM_NUM - 1; i >= 0; i--) // NOTICE HERE: it means system has DDR_PARAM_NUM double words
@@ -206,21 +219,25 @@ int read_ddr_param(u64 node_id_shift44, int mc_selector,  unsigned long long * b
         val[i] =  ld((MC_CONFIG_ADDR | node_id_shift44) + (0x10 * i)); 
 
 #ifdef DEBUG
-        printf("< CFGREG >:val[%d]  = %016llx \n", i, val[i]); 
+        printf("< CFGREG >:val[%03d]  = %016llx \n", i, val[i]); 
 #endif
     }
     //clear param_start
     val[3]  &=  0xfffffeffffffffff;
 
+#ifndef LS3B
     // step 4. Disabel access to MC0 or MC1 register space 
     disable_ddrconfig(node_id_shift44);
 
     // step 5. Restore The Primest window for accessing system memory
     disable_ddrcfgwidow(node_id_shift44, mc_selector, buf);
+#endif
 
     printf("Read out DDR MC%d config Done.\n", mc_selector);
     return 0;
 }
+
+#ifndef LS3B
 
 void save_ddrparam(u64 node_id_shift44, int mc0_param_store_addr, int mc1_param_store_addr)
 {
@@ -234,7 +251,7 @@ void save_ddrparam(u64 node_id_shift44, int mc0_param_store_addr, int mc1_param_
 #endif
 
 #ifdef DEBUG
-  printf("node_id_shift44=0x%016llx\n", node_id_shift44);
+  printf("\nnode_id_shift44=0x%016llx\n", node_id_shift44);
 #endif
   /********************************************************/
   /************************/ // End of flash 
@@ -313,7 +330,6 @@ void save_ddrparam(u64 node_id_shift44, int mc0_param_store_addr, int mc1_param_
 
 }
 
-// test : master
 int save_board_ddrparam()
 {
     unsigned long long flag;
@@ -331,6 +347,83 @@ int save_board_ddrparam()
     }
     return(1);
 }
+#else
+
+void save_ddrparam(u64 node_id_shift44, int mc0_param_store_addr)
+{
+
+  unsigned long long ddr_param_buf[DDR_PARAM_NUM + 1];
+
+#ifdef DEBUG
+  int   i;
+  unsigned long long tmp;
+#endif
+
+#ifdef DEBUG
+  printf("\nnode_id_shift44=0x%016llx\n", node_id_shift44);
+#endif
+  /********************************************************/
+  /************************/ // End of flash 
+  /*      DDRPTOVF          */ // End - 8 (byte) (1M-8)
+  /* -------------------- */ //
+  /*                      */ // 
+  /*      .......          */
+  /*      .......          */
+  /*      .......          */ // $ddr3_data
+  /*      .......          */
+  /*                      */ 
+  /************************/ // Base of flash: offset 0x00
+  /********************************************************/
+
+  // step 1. Read out DDR controler register values and save them in buffers
+
+  // step 1.1 Read out DDR controler register from MC0 and save them in buffer0
+  read_ddr_param(node_id_shift44, MC0, ddr_param_buf);
+
+  //ddr_param_buf[DDR_PARAM_NUM] = 0x0;
+  // step 1.2 Program buffers of MC0 register into FLASH 
+  tgt_flashprogram((int *)(0xbfc00000+(mc0_param_store_addr -(int)&_start)), DDR_PARAM_NUM*8, ddr_param_buf,TRUE);
+
+#ifdef DEBUG
+  for(i = 0; i< DDR_PARAM_NUM; i++)
+    {
+        tmp =  ld(0x900000001fc00000 + mc0_param_store_addr - (int)&_start + i * 8);
+        if(ddr_param_buf[i] != tmp)
+        {
+            printf("\nMiscompare:i=%d, val=%016llx", i, tmp);
+        }
+        else
+            printf("\nSame:i=%d, val=%016llx", i, tmp);
+    }
+#endif
+
+}
+
+int save_board_ddrparam()
+{
+    unsigned long long flag;
+    unsigned long long node_id;
+    if(ld(0x900000001fc00000 + (int) &ddr2_leveled_mark - (int)&_start) == 0)
+    {
+        node_id = 0;
+        save_ddrparam(node_id << 44, (int)&ddr2_reg_data_leveled);
+#ifdef MULTI_CHIP
+        node_id = 1;
+        save_ddrparam(node_id << 44, (int)&n1_ddr2_reg_data_leveled);
+#endif
+#ifdef DUAL_3B
+        node_id = 2;
+        save_ddrparam(node_id << 44, (int)&n2_ddr2_reg_data_leveled);
+        node_id = 3;
+        save_ddrparam(node_id << 44, (int)&n3_ddr2_reg_data_leveled);
+#endif
+        flag = 0x1;
+        tgt_flashprogram((int *)(0xbfc00000 + ((int)&ddr2_leveled_mark - (int)&_start)), 8, &flag, TRUE);
+    }
+    return(1);
+}
+
+#endif
 
 int cmd_save_ddrparam(ac, av)
     int ac;

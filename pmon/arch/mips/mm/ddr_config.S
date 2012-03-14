@@ -10,7 +10,6 @@
             0: MC0
             1: MC1
 **********************************/
-//#define MULTI_NODE_DDR_PARAM
 #define CONFIG_BASE 0x900000000ff00000
 
         .global ddr2_config
@@ -244,6 +243,8 @@ ddr2_config:
     dli     a1, 0x0101040401010404
     or      a2, a2, a1
     sd      a2, ODT_MAP_CS_ADDR(t8)
+1:  //1 DIMM
+#if 1
     //if its DDR3_DIMM, enable dynamic ODT and reset ODT value
     GET_SDRAM_TYPE
     dli     a2, 0x3
@@ -273,31 +274,7 @@ ddr2_config:
     dsll    a1, a1, MR2_DATA_3_OFFSET
     or      a2, a2, a1
     sd      a2, MR2_DATA_3_ADDR(t8)
-1:  //1 DIMM
-#if 0
-    //check 1 rank or 2 ranks populated by xor CS[0] and CS[2]
-    GET_MC_CS_MAP
-    dsrl    a2, a1, 2
-    xor     a2, a1, a2
-    and     v0, a2, 0x1
-    beqz    v0, 1f
-    nop
-    //1 DIMM, check its SR DIMM or DR DIMM
-    //here a2[1:0] store the valid CS
-    and     v0, a2, 0x3
-    dsrl    v0, v0, 1
-    beqz    v0, 2f
-    nop
-    //Dual Rank DIMM
-    dli     a2, 0x0408010200000000
-    sd      a2, ODT_MAP_CS_ADDR(t8)
-2:  //1 SR DIMM, use the default setting
-    b       8f
-    nop
-1:  //2 DIMM
-    
-
-8:
+1:
 #endif
     //set data bus width
     ld      a2, REDUC_ADDR(t8)
@@ -1065,6 +1042,13 @@ t5: value
     sync
 
     //wait initialization complete 
+ //delay
+    dli     v0, 0x100
+1:
+    bnez    v0, 1b
+    daddi   v0, v0, -1
+    nop
+
     daddiu  v0, t8, 0x960
 1:
     ld      a1, 0x0(v0)
@@ -1212,6 +1196,7 @@ Fix_ddr_param:
     blt     t6, a1, Fix_ddr_param
     nop
 8:
+
     move    t2, t5
 
     //ARB_Write_Leveled_param.S will disable DDR register space
@@ -1372,7 +1357,7 @@ Fix_ddr_param:
 //init mem to all 0
     dli     t1, 0x9800001000000000
     GET_NODE_ID_a0
-    or		t1, t1, a0 
+    or      t1, t1, a0
     GET_MC0_MEMSIZE
     beqz    t3, 1f
     nop
