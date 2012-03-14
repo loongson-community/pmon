@@ -1,4 +1,7 @@
+#include <stdlib.h>
+#include <stdio.h>
 #include "bootparam.h"
+
 
 struct loongson_params  g_lp = { 0 };
 struct efi_memory_map_loongson g_map = { 0 };
@@ -53,7 +56,7 @@ void init_loongson_params(struct loongson_params *lp)
   lp->irq_offset = (unsigned long long)init_irq_source() - (unsigned long long)lp; 
   lp->interface_offset = (unsigned long long)init_interface_info() - (unsigned long long)lp;
   lp->boarddev_table_offset = (unsigned long long)board_devices_info() - (unsigned long long)lp;
-  //lp->special_offset = (unsigned long long)init_special() - (unsigned long long)lp; 
+  lp->special_offset = (unsigned long long)init_special_info() - (unsigned long long)lp; 
 }
 
 
@@ -205,13 +208,16 @@ struct interface_info *init_interface_info()
 {
   
  struct interface_info *inter = &g_interface;
- 
+ int flashsize;
+
+  tgt_flashinfo((void *)0xbfc00000, &flashsize);
+
   inter->vers = 0x0001;
-  inter->size = 0x5 ;
+  inter->size = flashsize/0x400;
   inter->flag = 1;
 
   strcpy(inter->description,"PMON_Version_v2.1");
-  
+ 
   return inter;
 }
 
@@ -238,5 +244,20 @@ struct board_devices *board_devices_info()
   bd->num_resources = 10;
  
   return bd;
+}
+
+
+struct loongson_special_attribute *init_special_info()
+{
+  
+  struct loongson_special_attribute  *special = &g_special;
+  char update[11];
+  
+  get_update(update);
+
+
+  strcpy(special->special_name,update);
+  
+  return special;
 }
 
