@@ -106,6 +106,7 @@ extern int do_cmd(char *);
 extern void dump_l2xbar(int node);
 #endif
 
+#define LSMCD3_2
 #ifdef  LSMCD3_2
 #define DDR_PARAM_NUM     180
 #else

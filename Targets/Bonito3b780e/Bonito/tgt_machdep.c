@@ -393,14 +393,19 @@ ConfigEntry	ConfigTable[] =
 
 unsigned long _filebase;
 
-extern unsigned long long  memorysize;
-extern unsigned long long  memorysize_high;
+extern unsigned long long memorysize;
+extern unsigned long long memorysize_high;
+#ifdef MULTI_CHIP
+extern unsigned long long  memorysize_high_n1;
+extern unsigned long long  memorysize_high_n2;
+extern unsigned long long  memorysize_high_n3;
+#endif
 
 extern char MipsException[], MipsExceptionEnd[];
 
 unsigned char hwethadr[6];
 
-void initmips(unsigned long long  memsz);
+void initmips(unsigned int raw_memsz);
 
 void addr_tst1(void);
 void addr_tst2(void);
@@ -410,10 +415,11 @@ pcireg_t _pci_allocate_io(struct pci_device *dev, vm_size_t size);
 static void superio_reinit();
 
 void
-initmips(unsigned long long memsz)
+initmips(unsigned int raw_memsz)
 {
 	int i;
 	int* io_addr;
+    unsigned long long memsz;
 tgt_fpuenable();
 #ifdef DEVBD2F_SM502
 {
@@ -422,8 +428,6 @@ volatile int *p=0xbfe00108;
 *p=((*p)&~(0x1f<<8))|(0x8<<8) |(1<<13);
 }
 #endif
-gpio_set_output(0x1<<2);
-tgt_printf("memsz %ld\n",memsz);
 /*enable float*/
 tgt_fpuenable();
 //CPU_TLBClear();
@@ -431,6 +435,10 @@ tgt_fpuenable();
 #if PCI_IDSEL_CS5536 != 0
 superio_reinit();
 #endif
+    memsz = raw_memsz & 0xff;
+    memsz = memsz << 29;
+    memsz = memsz - 0x1000000;
+    memsz = memsz >> 20;
 	/*
 	 *	Set up memory address decoders to map entire memory.
 	 *	But first move away bootrom map to high memory.
@@ -443,7 +451,26 @@ superio_reinit();
 	//memorysize_high = memsz > 256 ? (memsz - 256) << 20 : 0;
 	memorysize = memsz > 240 ? 240 << 20 : memsz << 20;
 	memorysize_high = memsz > 240 ? (((unsigned long long)memsz) - 240) << 20 : 0;
-     mem_size = memsz;
+    mem_size = memsz;
+#ifdef MULTI_CHIP
+    memsz = raw_memsz & 0xff00;
+    memsz = memsz >> 8;
+    memsz = memsz << 29;
+    memorysize_high_n1 = (memsz == 0) ? 0 : (memsz - (256 << 20));
+    tgt_printf("memorysize_high_n1 0x%llx\n", memorysize_high_n1);
+#endif
+#ifdef DUAL_3B
+    memsz = raw_memsz & 0xff0000;
+    memsz = memsz >> 16;
+    memsz = memsz << 29;
+    memorysize_high_n2 = (memsz == 0) ? 0 : (memsz - (256 << 20));
+    memsz = raw_memsz & 0xff000000;
+    memsz = memsz >> 24;
+    memsz = memsz << 29;
+    memorysize_high_n3 = (memsz == 0) ? 0 : (memsz - (256 << 20));
+    tgt_printf("memorysize_high_n2 0x%llx\n", memorysize_high_n2);
+    tgt_printf("memorysize_high_n3 0x%llx\n", memorysize_high_n3);
+#endif
 #if 0 /* whd : Disable gpu controller of MCP68 */
 	//*(unsigned int *)0xbfe809e8 = 0x122380;
 	//*(unsigned int *)0xbfe809e8 = 0x2280;
@@ -631,12 +658,12 @@ tgt_devconfig()
     for (i = 0;i < 0x100000;i += 4)
     {
         //printf(" i = %x \n" , i);
-        *((volatile int *)( BONITO_PCILO_BASE_VA + i)) = i;
+        *((volatile int *)(0xb0000010 + i)) = i;
     }
 
     for (i = 0xffffc;i >= 0;i -= 4)
     {
-        if (*((volatile int *)(BONITO_PCILO_BASE_VA + i)) != i)
+        if (*((volatile int *)(0xb0000010 + i)) != i)
         {
             //printf(" not equal ====  %x\n" ,i);
             break;
@@ -2019,6 +2046,19 @@ tgt_mapenv(int (*func) __P((char *, char *)))
 	sprintf(env, "%d", memorysize_high / (1024 * 1024));
 	(*func)("highmemsize", env);
 
+#ifdef MULTI_CHIP
+	sprintf(env, "%d", memorysize_high_n1 / (1024 * 1024));
+	(*func)("memorysize_high_n1", env);
+
+#ifdef  DUAL_3B
+	sprintf(env, "%d", memorysize_high_n2 / (1024 * 1024));
+	(*func)("memorysize_high_n2", env);
+
+	sprintf(env, "%d", memorysize_high_n3 / (1024 * 1024));
+    (*func)("memorysize_high_n3", env);
+#endif
+#endif
+
 	sprintf(env, "%d", md_pipefreq);
 	(*func)("cpuclock", env);
 
@@ -2487,23 +2527,6 @@ int get_update(char *p)
 
      return 0;
  }
-
-void gpio_set_output(unsigned short x)
-{
-	unsigned long v1;
-
-	/* set value */
-	v1 = *(unsigned long *)0xbfe0011c;
-	v1 |= (x&0xffff);
-	*(unsigned long *)0xbfe0011c = v1;
-	
-	/* enable gpio direction: output */
-	v1 = *(unsigned long *)0xbfe00120;
-	v1 &= ~(x&0xffff);
-	*(unsigned long *)0xbfe00120 = v1;
-
-}
- 
 
 
 /********************************************

@@ -9,6 +9,8 @@
         t3: controller select(config param select)
             0: MC0
             1: MC1
+    v3.0    Modify for 3B which is MC0_only.
+            not use t3 any more
 **********************************/
 #define CONFIG_BASE 0x900000000ff00000
 
@@ -22,26 +24,41 @@ ddr2_config:
     dla     a2, ddr2_leveled_mark
     daddu   a2, a2, s0
     ld      a2, 0x0(a2)
-    beqz    a2, 1f
+    beqz    a2, 5f
     nop
-    dla     a2, ddr2_reg_data_mc0_leveled
-    beqz    t3, 21f
-    nop
-    dla     a2, ddr2_reg_data_mc1_leveled
-21:
-#ifdef  MULTI_CHIP
+    dla     a2, ddr2_reg_data_leveled
+#ifdef  DUAL_3B
     GET_NODE_ID_a1
-    beqz    a1, 21f
+    dli     v0, 0x1
+    beq     a1, v0, 1f
     nop
-    dla     a2, n1_ddr2_reg_data_mc0_leveled
-    beqz    t3, 21f
+    daddiu  v0, v0, 0x1
+    beq     a1, v0, 2f
     nop
-    dla     a2, n1_ddr2_reg_data_mc1_leveled
-21:
-#endif
+    daddiu  v0, v0, 0x1
+    beq     a1, v0, 3f
+    nop
     b       4f
     nop
 1:
+    dla     a2, n1_ddr2_reg_data_leveled
+    b       4f
+    nop
+2:
+    dla     a2, n2_ddr2_reg_data_leveled
+    b       4f
+    nop
+3:
+    dla     a2, n3_ddr2_reg_data_leveled
+#else
+    GET_NODE_ID_a1
+    beqz    a1, 4f
+    nop
+    dla     a2, n1_ddr2_reg_data_leveled
+#endif
+    b       4f
+    nop
+5:
 #endif
     GET_SDRAM_TYPE
     dli     t1, 0x2
@@ -62,37 +79,41 @@ ddr2_config:
     nop
     //UDIMM
     dla     a2, ddr2_reg_data
-    beqz    t3, 21f
+    GET_NODE_ID_a1
+    and     v1, a1, 0x1
+    beqz    v1, 4f
     nop
     dla     a2, ddr2_reg_data_mc1
-21:
 #ifdef  MULTI_NODE_DDR_PARAM
     GET_NODE_ID_a1
-    beqz    a1, 4f
+    dsrl    v1, a1, 1
+    beqz    v1, 4f
     nop
     dla     a2, n1_ddr2_reg_data
-    beqz    t3, 21f
+    and     v1, a1, 0x1
+    beqz    v1, 4f
     nop
     dla     a2, n1_ddr2_reg_data_mc1
-21:
 #endif
     b       4f
     nop
 1:  //RDIMM
     dla     a2, ddr2_RDIMM_reg_data
-    beqz    t3, 21f
+    GET_NODE_ID_a1
+    and     v1, a1, 0x1
+    beqz    v1, 4f
     nop
     dla     a2, ddr2_RDIMM_reg_data_mc1
-21:
 #ifdef  MULTI_NODE_DDR_PARAM
     GET_NODE_ID_a1
-    beqz    a1, 4f
+    dsrl    v1, a1, 1
+    beqz    v1, 4f
     nop
     dla     a2, n1_ddr2_RDIMM_reg_data
-    beqz    t3, 21f
+    and     v1, a1, 0x1
+    beqz    v1, 4f
     nop
     dla     a2, n1_ddr2_RDIMM_reg_data_mc1
-21:
 #endif
     b       4f
     nop
@@ -102,40 +123,42 @@ ddr2_config:
     nop
     //UDIMM
     dla     a2, ddr3_reg_data
-    beqz    t3, 21f
+    GET_NODE_ID_a1
+    and     v1, a1, 0x1
+    beqz    v1, 4f
     nop
     dla     a2, ddr3_reg_data_mc1
-21:
 #ifdef  MULTI_NODE_DDR_PARAM
     GET_NODE_ID_a1
-    beqz    a1, 4f
+    dsrl    v1, a1, 1
+    beqz    v1, 4f
     nop
     dla     a2, n1_ddr3_reg_data
-    beqz    t3, 21f
+    and     v1, a1, 0x1
+    beqz    v1, 4f
     nop
     dla     a2, n1_ddr3_reg_data_mc1
-21:
 #endif
     b       4f
     nop
 1:  //RDIMM
     dla     a2, ddr3_RDIMM_reg_data
-    beqz    t3, 21f
+    GET_NODE_ID_a1
+    and     v1, a1, 0x1
+    beqz    v1, 4f
     nop
     dla     a2, ddr3_RDIMM_reg_data_mc1
-21:
 #ifdef  MULTI_NODE_DDR_PARAM
     GET_NODE_ID_a1
-    beqz    a1, 4f
+    dsrl    v1, a1, 1
+    beqz    v1, 4f
     nop
     dla     a2, n1_ddr3_RDIMM_reg_data
-    beqz    t3, 21f
+    and     v1, a1, 0x1
+    beqz    v1, 4f
     nop
     dla     a2, n1_ddr3_RDIMM_reg_data_mc1
-21:
 #endif
-    b       4f
-    nop
 4:
 
     daddu   a2, a2, s0
@@ -999,13 +1022,13 @@ t5: value
     bgt     t5, a1, 2f    #if input address offset exceed range,jump out
     nop
     dsll    t5, t5, 4    #t5 is the offset relative to a0
-    daddu    t5, t5, t8
+    daddu   t5, t5, t8
 
     PRINTSTR("\r\nPlease input the data-hex: ");
     dli     t6, 0x00
-    bal        inputaddress
+    bal     inputaddress
     nop
-    sd        v0, 0x0(t5)    #v0 is the input value
+    sd      v0, 0x0(t5)    #v0 is the input value
 
     //print the new register value
     move    t6, t5
@@ -1024,7 +1047,7 @@ t5: value
     bal     hexserial
     nop
 
-    b        1b
+    b       1b
     nop
 2:    
     /* recover the ra */
@@ -1082,7 +1105,7 @@ ddr2_config_end:
 
 
 //subroutine: mc_init
-//input: t3--MC select, 0--MC0; 1--MC1
+//input: t3--MC select, 0--MC0; 1--MC1  --obselete
         .global mc_init
         .ent    mc_init
         .set    noreorder
@@ -1090,16 +1113,6 @@ ddr2_config_end:
 mc_init:
     move    t4, ra
 
-    beqz    t3, 1f
-    nop
-    //shift MC1 DIMM info to low 32bit of s1
-    dsrl    t5, s1, 32
-    dli     a1, 0xffff0000
-    and     t5, t5, a1
-    dli     a1, 0xffffffff0000ffff
-    and     s1, s1, a1
-    or      s1, s1, t5
-1:
     sync
     nop
     nop
@@ -1111,26 +1124,11 @@ mc_init:
                     0x0000000000000000, \
                     0xfffffffff0000000, \
                     0x00000000000000f0)
-    beqz    t3, 1f
-    nop
-    GET_NODE_ID_a0;
-    XBAR_CONFIG_NODE_a0(0x10, \
-                    0x0000000000000000, \
-                    0xfffffffff0000000, \
-                    0x00000000000000f1)
-1:
-
     sync
     nop
     nop
     nop
     nop
-
-    TTYDBG("\r\nEnable register space of MEMORY\r\n")
-    lw      a1, 0x0(t2)
-    li      a0, 0xfffffeff
-    and     a1, a1,a0
-    sw      a1, 0x0(t2)
 
     GET_NODE_ID_a0;
     dli     a1, 0x900000000ff00000
@@ -1161,27 +1159,19 @@ mc_init:
     b       8f
     nop
 10:
-    dla     t1, N0_fix_ddr_reg_data_mc0
-    beqz    t3, 11f
-    nop
-    dla     t1, N0_fix_ddr_reg_data_mc1
-11:
+    dla     t1, N0_fix_ddr_reg_data
     b       4f
     nop
 1:
-    dla     t1, N1_fix_ddr_reg_data_mc0
-    beqz    t3, 11f
-    nop
-    dla     t1, N1_fix_ddr_reg_data_mc1
-11:
+    dla     t1, N1_fix_ddr_reg_data
     b       4f
     nop
 2:
-    dla     t1, N2_fix_ddr_reg_data_mc0
+    dla     t1, N2_fix_ddr_reg_data
     b       4f
     nop
 3:
-    dla     t1, N3_fix_ddr_reg_data_mc0
+    dla     t1, N3_fix_ddr_reg_data
     b       4f
     nop
 4:
@@ -1198,13 +1188,6 @@ Fix_ddr_param:
 8:
 
     move    t2, t5
-
-    //ARB_Write_Leveled_param.S will disable DDR register space
-    //TTYDBG("\r\nEnable register space of MEMORY\r\n")
-    lw      a1, 0x0(t2)
-    li      a0, 0xfffffeff
-    and     a1, a1,a0
-    sw      a1, 0x0(t2)
 #endif
 #endif
 
@@ -1230,11 +1213,6 @@ Fix_ddr_param:
     bnez    t1, 1b
     nop
 #endif
-
-    TTYDBG("Disable register space of MEMORY\r\n")
-    lw      a1,0x0(t2)
-    or      a1,a1,0x100
-    sw      a1,0x0(t2)
 
 //cxk
 #ifdef  ARB_LEVEL
@@ -1264,14 +1242,6 @@ Fix_ddr_param:
                     0x0000001000000000, \
                     0xFFFFFFF000000000, \
                     0x00000000000000F0)
-    beqz    t3, 2f
-    nop
-    GET_NODE_ID_a0;
-    XBAR_CONFIG_NODE_a0(0x20, \
-                    0x0000001000000000, \
-                    0xFFFFFFF000000000, \
-                    0x00000000000000F1)
-2:
     sync
     nop
     nop
@@ -1291,18 +1261,16 @@ Fix_ddr_param:
     TTYDBG("ECC init start(maybe take 1 minute or so)....\r\n")
 
     TTYDBG("Enable MC read buffer\r\n")
-    lw      a1, 0x4(t2)
-    li      a0, 0x8
-    sll     a0, a0, t3
+    GET_NODE_ID_a1
+    and     a1, a1, 0x1 //a1 == 0(even NODE) or 1(odd NODE)
+    dsll    a2, a1, 2   //a2 == 0(even NODE) or 4(odd NODE)
+    daddu   a1, a2, a1  //a1 == 0(even NODE) or 5(odd NODE)
+    lw      a2, 0x0(t2)
+    li      a0, 0x40    //bit[6]--MC0_read_buffer_bypass
+    sll     a0, a0, a1  //sll 0 or 5
     not     a0, a0
-    and     a1, a1, a0
-    sw      a1, 0x4(t2)
-
-    //TTYDBG("Enable register space of MEMORY\r\n")
-    lw      a1, 0x0(t2)
-    li      a0, 0xfffffeff
-    and     a1, a1,a0
-    sw      a1, 0x0(t2)
+    and     a2, a2, a0
+    sw      a2, 0x0(t2)
 
     //set ecc_disable_w_uc_err to 1'b1
     ld      a2, ECC_DISABLE_W_UC_ERR_ADDR(t8)
@@ -1325,10 +1293,6 @@ Fix_ddr_param:
     or      a2, a2, a1
     sd      a2, CTRL_RAW_ADDR(t8)
 
-    //TTYDBG("Disable register space of MEMORY\r\n")
-    lw      a1,0x0(t2)
-    or      a1,a1,0x100
-    sw      a1,0x0(t2)
     //route 0x1000000000 ~ 0x1FFFFFFFFF(64G) to MC for ECC init
     sync
     nop
@@ -1340,15 +1304,6 @@ Fix_ddr_param:
                     0x0000001000000000, \
                     0xFFFFFFF000000000, \
                     0x00000000000000F0)
-    beqz    t3, 1f
-    nop
-    GET_NODE_ID_a0;
-    XBAR_CONFIG_NODE_a0(0x20, \
-                    0x0000001000000000, \
-                    0xFFFFFFF000000000, \
-                    0x00000000000000F1)
-
-1:
     sync
     nop
     nop
@@ -1359,10 +1314,6 @@ Fix_ddr_param:
     GET_NODE_ID_a0
     or      t1, t1, a0
     GET_MC0_MEMSIZE
-    beqz    t3, 1f
-    nop
-    GET_MC1_MEMSIZE
-1:
     dsll    a1, a1, 29   //a1*512M
     daddu   t3, t1, a1
     dli     a1, 0x0
@@ -1384,11 +1335,7 @@ Fix_ddr_param:
     nop
 1:
 
-    //TTYDBG("Enable register space of MEMORY\r\n")
-    lw      a1, 0x0(t2)
-    li      a0, 0xfffffeff
-    and     a1, a1,a0
-    sw      a1, 0x0(t2)
+#if 1
     GET_NODE_ID_a0;
     dli     a1, 0x900000000ff00000
     or      t8, a0, a1
@@ -1402,11 +1349,7 @@ Fix_ddr_param:
     dsll    a1, a1, ECC_DISABLE_W_UC_ERR_OFFSET
     or      a2, a2, a1
     sd      a2, ECC_DISABLE_W_UC_ERR_ADDR(t8)
-
-    //TTYDBG("Disable register space of MEMORY\r\n")
-    lw      a1,0x0(t2)
-    or      a1,a1,0x100
-    sw      a1,0x0(t2)
+#endif
 
     TTYDBG("MC ECC init done.\r\n")
 4:

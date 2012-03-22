@@ -843,10 +843,10 @@ dbginit (char *adr)
 	//printf ("Memory size %3d MB (%3d MB Low memory, %3d MB High memory) .\n", (memsize+memorysize_high)>>20,(memsize>>20), (memorysize_high>>20));
 	memorysize_total = ((memsize + memorysize_high) >> 20);  
 #ifdef  MULTI_CHIP
-	memorysize_total = ((memsize + memorysize_high + memorysize_high_n1 + 256) >> 20);  
+	memorysize_total += ((memorysize_high_n1 + (256 << 20)) >> 20);  
 #endif
 #ifdef DUAL_3B
-	memorysize_total = ((memsize + memorysize_high + memorysize_high_n1 + 256 + memorysize_high_n2 + 256 + memorysize_high_n3 + 256) >> 20);  
+	memorysize_total += ((memorysize_high_n2 + (256 << 20) + memorysize_high_n3 + (256 << 20)) >> 20);  
 #endif
 	printf ("Memory size %3d MB .\n", memorysize_total);
 	tgt_memprint();

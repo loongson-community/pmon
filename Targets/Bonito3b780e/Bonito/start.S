@@ -179,10 +179,9 @@ nop
 #define CONFIG_CACHE_64K_4WAY 1
 
 #define tmpsize		s1
-#define msize		s2	//NOTICE : s2 used to as temperature
-#define msize_node1	s3	//NOTICE : s3 used to as temperature
+#define msize		s2
 #define bonito		s4
-#define dbg			s5
+#define dbg			s5	//NOTICE : s2 used to as temperature
 #define sdCfg		s6
 
 #define CP0_CONFIG $16
@@ -453,8 +452,11 @@ exc_common:
 	 */
 	locate:
 
+//#define TEMPERATURE
+#ifdef TEMPERATURE
 	li	s0, 0xbfe00198;	// temperature register
-	ld	s2, 0x0(s0); //save it in s2
+	ld	s5, 0x0(s0);
+#endif
 
 	la	s0,start
 	subu	s0,ra,s0
@@ -498,7 +500,7 @@ loop_here:
 #endif
 
 
-#if 1
+#if 0
 	.set 	mips64
 	mfc0	t0, $15, 1
 	.set 	mips3
@@ -712,6 +714,13 @@ out_bootloop:
 #define SP_OFF 0x028
 #define GP_OFF 0x030
 #define A1_OFF 0x038
+
+#define MAIN_CORE_PRE_TLB_INIT_OK   0x1111
+#define NODE_MEM_INIT_DONE 0x6666
+#define ALL_CORE0_INIT_DONE 0x8888
+#define NODE_SCACHE_ENABLED   0x2222
+#define SYSTEM_INIT_OK  0x5a5a
+
 /**************************************************/
 
 /**************************************************/
@@ -1659,23 +1668,7 @@ gs_2f_v3_ddr2_cfg:
 #endif
 ##########################################
 
-	WatchDog_Enable
-#include "loongson3_fixup.S"
-
-//begin :Beep on -> delay -> Beep off
-        bal     beep_on
-        nop
-        li      a0,0x1000
-        1:
-        addiu   a0,-1
-        nop
-        bnez    a0,1b
-        nop
-        bal     beep_off
-        nop
-//end
-	WatchDog_Close
-
+#include "loongson3B_fixup.S"
 //#define EJTAG_TEST 
 #ifdef EJTAG_TEST
 
@@ -1693,406 +1686,485 @@ gs_2f_v3_ddr2_cfg:
 		nop
 
 #endif
-
-
 ##########################################
-# Now begin memory detection on board
-##########################################
-
-	//##########################################
-	//TTYDBG("NODE 0 MEMORY CONFIG BEGIN\r\n")
-	//       li      s1, 0x0
-
-##########################################
-	/***********************************************************
-	  s1: 
-	  |[30:28]| MC1_ROW            | MC0_ROW | 15 - MC1_ROW_SIZE |
-	  |[27:27]| MC1_EIGHT_BANK     | 1'b0    | FOUR  BANKS       |
-	  |       |                    | 1'b1    | EIGHT BANKS       |
-	  |[26:24]| MC1_COL            | MC0_COL | 14 - MC1_COL_SIZE |
-	  |[22:20]| MC0_ROW            | MC0_ROW | 15 - MC0_ROW_SIZE |
-	  |[19:19]| MC0_EIGHT_BANK     | 1'b0    | FOUR  BANKS       |
-	  |       |                    | 1'b1    | EIGHT BANKS       |
-	  |[18:16]| MC0_COL_SIZE       | MC0_COL | 14 - COL_SIZE     |
-	  |[15:12]| MC1_CS_MAP         |         |                   |
-	  |[11: 8]| MC0_CS_MAP         |         |                   |
-	  |[ 7: 7]| DIMM_TYPE          | 1'b0    | DDR2              |
-	  |       |                    | 1'b1    | DDR3              |
-	  |[ 6: 4]| SIZE_PER_CONTROLLER| 3'b001  | 512MB             |
-	  |       |                    | 3'b010  | 1G                |
-	  |       |                    | 3'b011  | 2G                |
-	  |[ 3: 2]| CONTROLLER_SELECT  | 2'b00   | USE BOTH          |
-	  |       |                    | 2'b01   | MC0_ONLY          |
-	  |       |                    | 2'b10   | MC1_ONLY          |
-	  |[ 1: 0]| NODE ID            |         |                   |
-	 ***********************************************************/
-#define MC0DIMM0_USED 0x34 /* 0x3 ---> CS[1:0]=2'b11, 4 ----> MC0 */ 
-#define MC0DIMM1_USED 0xc4 /* 0xc ---> CS[3:2]=2'b11, 4 ----> MC0 */ 
-#define MC1DIMM0_USED 0x38 /* 0x3 ---> CS[1:0]=2'b11, 8 ----> MC1 */ 
-#define MC1DIMM1_USED 0xc8 /* 0xc ---> CS[3:2]=2'b11, 8 ----> MC1 */ 
-#define MC0_USED	  0x04 /* 0x4 ----> MC0 */ 
-#define MC1_USED	  0x08 /* 0x8 ----> MC1 */ 
-
-
-#ifdef AUTO_DDR_CONFIG
-#define MC0_USED 0x4
-#define MC1_USED 0x8
-
 		WatchDog_Enable;
-
-	/* Open the SMBUS controller */
-	dli	    a1,0x90000efdfe00a090 ; #b:d:f:r=0:14:0:90 set tmp config address
-	li	    a0,SMBUS_IO_BASE_VALUE | 0x1
-	sw	    a0, 0x0(a1);
-
-	/* enable the host controller */
-	dli	    a1,0x90000efdfe00a0d0 ; #b:d:f:r=0:14:0:d2 bit0=1
-	lw	    a0,0x0(a1);
-	li	    t1, 0x10000;
-	or 	    a0, t1
-	sw	    a0, 0x0(a1);
-
-		WatchDog_Close;
-/*************************************************************
- * NOTICE HERE: scan dimm of MC0 first, then dimm of MC1     * 
- * below define need to be CHANGED according different board *
-*************************************************************/
-#define MC0DIMM0  0xa1  /* SA2 = 0, SA1 = 0, SA0 = 0 <--->  MAP_CS 0011 */ //CON36
-#define MC0DIMM1  0xa3  /* SA2 = 0, SA1 = 0, SA0 = 1 <--->  MAP_CS 1100 */ //CON37
-#define MC1DIMM0  0xa5  /* SA2 = 0, SA1 = 1, SA0 = 0 <--->  MAP_CS 0011 */ //CON38
-#define MC1DIMM1  0xa7  /* SA2 = 0, SA1 = 1, SA0 = 1 <--->  MAP_CS 1100 */ //CON39
-        PRINTSTR("\r\nProbing DDR SLOT: ");
-        PRINTSTR("\r\nProbe NODE0_MC0DIMM0: ");
-        li      s1,0x0
-        li      v0,0x0
-        li      a0,MC0DIMM0;
-        li      a1,MC0DIMM0_USED;
-        bal     PROBE_DIMM;
-        nop;
-        move	s4,v0;
-        move	a0,v0;
-        bal hexserial;
-        nop;
-	  
-        PRINTSTR("\r\nProbe NODE0_MC0DIMM1: ");
-        li      s1,0x0
-        li      v0,0x0
-        li      a0,MC0DIMM1;
-        li      a1,MC0DIMM1_USED;
-        bal     PROBE_DIMM;
-        nop;
-		move    s5,v0
-        move	a0,v0;
-        bal hexserial;
-        nop;
-
-		/* check whether DDR in the same MC controler has same BANK/ROW/COL/TYP */
-        li    v0,0x0
-		move  a0,s4
-		move  a1,s5
-		li	  a2,MC0_USED 
-		bal	MERGE_DIMM
-		nop
-		move  s6, v0  /* s6 used to save detected infomation from MC0 */
-		beqz  v0, probe_node1_mc0
-		nop
-
-		/* show value of 64 bit s1 of MC0 */
-        PRINTSTR("\r\nNow Merged MC0 on NODE0: ");
-        move	a0,s6;
-		dsrl	a0,32;
-        bal     hexserial;
-        nop;
-        PRINTSTR("_");
-        move	a0,s6;
-        bal     hexserial;
-        nop;
-        PRINTSTR("\r\n");
-
-probe_node1_mc0:
-
-        PRINTSTR("\r\nProbe NODE1_MC0DIMM0: ");
-        li      s1,0x0
-        li      v0,0x0
-        li      a0,MC1DIMM0;
-        li      a1,MC0DIMM0_USED;
-        bal     PROBE_DIMM;
-        nop;
-        move	s4,v0;
-        move	a0,v0;
-        bal hexserial;
-        nop;
-
-        PRINTSTR("\r\nProbe NODE1_MC0DIMM1: ");
-        li      s1,0x0
-        li      v0,0x0
-        li      a0,MC1DIMM1;
-        li      a1,MC0DIMM1_USED;
-        bal     PROBE_DIMM;
-        nop;
-	move  s5,v0
-        move  a0,v0;
-        bal hexserial;
-        nop;
-
-	 /* now check whether DDR in the same MC controler has same BANK/ROW/COL/TYPE */
-        li      v0,0x0
-		move  a0,s4
-		move  a1,s5
-		li	  a2,MC0_USED 
-		bal	  MERGE_DIMM
-		nop
-		move  s7, v0  
-
-		/* show value of 64 bit s1 of MC1 */
-        PRINTSTR("\r\nNow Merged MC0 on NODE1: ");
-        move	a0,s7;
-	dsrl	a0,32;
-        bal     hexserial;
-        nop;
-        PRINTSTR("_");
-        move	a0,s7;
-        bal     hexserial;
-        nop;
-        PRINTSTR("\r\n");
-#else
-        li      s6, 0x001c03a4 /* s6 used to save detected infomation from MC0*/
- 	li      s7, 0x001c03a4 /* s7 used to save detected infomation from MC1*/
-//        li      s7, 0x0 /* s7 used to save detected infomation from MC1 */
-#endif
-
-		/* s6 should not be zeror, otherwize system won't boot successfully */
-		bnez s6,get_node0_size
-		nop
-no_mem:
-        PRINTSTR("NO MEMORY FOUND ON MC0/NODE0\r\n");
-		bal beep_on
-		nop
-2:
-		bal 2b
-		nop
-
-get_node0_size:
-	/* calculate memory size */
-	move	a0,s6
-	li		a1,0x0
-	bal		CALCULATE_MEMSZ
-	nop
-	move	msize,v0
-
-        PRINTSTR("Node0 Total Memory Size:");
-	/* show value of 64 bit memsize */
-        move	a0,msize;
-	dsrl	a0,32;
-        bal     hexserial;
-        nop;
-        PRINTSTR("_");
-        move	a0,msize;
-        bal     hexserial;
-        nop;
-        PRINTSTR("\r\n");
-
-	bnez s7,get_node1_size
-	nop
-	b	out_mem;
-	nop
-
-get_node1_size:
-	/* calculate memory size */
-	move	a0,s7
-	li		a1,0x0
-	bal		CALCULATE_MEMSZ
-	nop
-	move	msize_node1,v0
-
-        PRINTSTR("Node1 Total Memory Size: ");
-	/* show value of 64 bit memsize */
-        move	a0,msize_node1;
-	dsrl	a0,32;
-        bal     hexserial;
-        nop;
-        PRINTSTR("_");
-        move	a0,msize_node1;
-        bal     hexserial;
-        nop;
-        PRINTSTR("\r\n");
-
-out_mem:
-
-##########################################
-# Now begin initialize MC0 and MC1
-##########################################
-
-		/* First intitialize MC0 on NODE0 */
-		TTYDBG("NODE 0 MEMORY CONFIG BEGIN\r\n")
-		move  s1, s6
-#include "loongson3_ddr2_config.S"
-
-		TTYDBG("NODE 1 MEMORY CONFIG BEGIN\r\n")
-		beqz	s7,mc_config_out
-		nop
-		ori	s1, s7,0x01;	// to set NODE number
-#include "loongson3_ddr2_config.S"
-mc_config_out:
-
-//#include "loongson3_showwindows.S"
-
-	/* Used to show memory controler configuration over */
-	//GPIO_CLEAR_OUTPUT(0x1<<2)
-	GPIO_SET_OUTPUT(0x1<<15)
-
-##########################################
-# Now begin TLB clean and initializing  
-##########################################
-
-		bal CPU_TLBClear
-		nop
-		/*
-		 *  Reset and initialize caches to a known state.
-		 */
-
-		and	t1, t3, 0x10
-		addu	s6, t1, 16		/* s6 = D cache line size */
-		TTYDBG("Init tlb...\r\n")
-		bal     tlb_init
-		nop
-
-#if 1 /* TLB init */
-	    TTYDBG("Init htpcitlb...\r\n")
-#include "pcitlb.S"
-#endif
-	
-		//TTYDBG("Init caches...\r\n")
-
-#if 1
-		//mfc0    a0, COP_0_PRID
-		//li      a1, 0x6301
-		//bne     a0,a1,1f
-		//nop
-		TTYDBG("godson2 caches found\r\n")
-		bal     godson2_cache_init
-		nop
-		TTYDBG("scache init node 0\r\n")
-		//bal	scache_init // smh
-		dli a0, 0x9800000000000000
-		bal	scache_init_64 // whd
-		nop
-#if 0
-		dli a0, 0x9800000100000000
-		bal	scache_init_64 // whd
-		nop
-		dli a0, 0x9800000200000000
-		bal	scache_init_64 // whd
-		nop
-		dli a0, 0x9800000300000000
-		bal	scache_init_64 // whd
-		nop
-#endif
-		nop
-#if	1 //def MULTI_CHIP
-		TTYDBG("scache init node 1\r\n")
-		dli a0, 0x9800100000000000
-		bal	scache_init_64 // whd
-		nop
-
-#if 0
-		bal	scache_init_64 // whd
-		dli a0, 0x9800100100000000
-		bal	scache_init_64 // whd
-		nop
-		dli a0, 0x9800100200000000
-		bal	scache_init_64 // whd
-		nop
-		dli a0, 0x9800100300000000
-		bal	scache_init_64 // whd
-		nop
-#endif
-
-		nop
-#endif
-#endif
-
-#if 0
-	bal lock_scache
-        nop
-	TTYDBG("cache lock done\r\n")
-	nop
-#endif
-
-
-
-#if 1
-		PRINTSTR("Jump to 9fc\r\n")
-		lui     t0, 0xdfff ####################### go to 9fc
-		ori     t0, t0, 0xffff
-		bal     1f
-		nop
-		1:
-		and     ra, ra, t0
-		addiu   ra, ra, 16
-		jr      ra
-		nop
-
-#endif
-
-#if 1
-		mfc0   $4, $16
-		and    $4,0xfffffff8
-		or     $4,0x3
-		mtc0   $4,$16
-
-		TTYDBG("cache enable done\r\n")
-		nop
-#endif
-
-#if 0
-	TTYDBG("Save system temperature:(* ") // save  temp
-    la  a1,temperature
-	move  a0,a1
-    bal hexserial
-    nop  
-    TTYDBG(") == ")
-    move a0,s2
-    bal hexserial
-    nop  
-    TTYDBG("\r\n")
-//  sb  s2, 0x0(a1)
-
-	TTYDBG("Saving node1 memory size:(* ") 
-    la  a1,memsz_node1
-	move  a0,a1
-    bal hexserial
-    nop  
-    TTYDBG(") == ")
-    move a0,msize_node1
-    bal hexserial
-    nop  
-    TTYDBG("\r\n")
-    sd  msize_node1, 0x0(a1)
-#endif
-
-		WatchDog_Enable;
-##########################################
 
 #ifdef LS3_HT
 #include "loongson3_HT_init.S"
-/***************************************/
 #endif
 		WatchDog_Close;
 
+		PRINTSTR("\r\n======This is cww's world:1\r\n")
 #include "3aserver_bridge_config.S"
+		PRINTSTR("\r\n======This is cww's world:2\r\n")
 ##########################################
 
-		//#include "loongson3_ddr_debug.S"
+//let other cores going
+#ifdef NODE1_BOOT
+    dli     t0,NODE1_CORE0_BUF0  #buf of cpu0
+#else
+    dli     t0,NODE0_CORE0_BUF0  #buf of cpu0
+#endif
+    li      t1, MAIN_CORE_PRE_TLB_INIT_OK
+    sw      t1, FN_OFF(t0)
+    sync
+
+    TTYDBG("Init tlb...\r\n")
+    bal     CPU_TLBClear
+    nop
+    bal     tlb_init
+    nop
+
+    TTYDBG("Init pci-tlb...\r\n")
+#include "pcitlb.S"
+
+
+/*
+ *  Reset and initialize caches to a known state.
+ */
+
+#if 1
+    TTYDBG("godson2 caches found\r\n")
+    bal     godson2_cache_init
+    nop
+    TTYDBG("scache init\r\n")
+    .set     mips64
+    mfc0    t0, $15, 1
+    .set     mips3
+    andi    t0, 0xc
+    dsll    a1, t0, 42
+    dli     a0, 0x9800000000000000
+    or      a0, a0, a1
+    bal     scache_init_64
+    nop
+#endif
+
+#if 1
+    TTYDBG("Jump to 9fc\r\n")
+    lui     t0, 0xdfff
+    ori     t0, t0, 0xffff
+    bal     1f
+    nop
+1:
+    and     ra, ra, t0
+    addiu   ra, ra, 16
+    jr      ra
+    nop
+
+    sync
+    nop
+    nop
+    nop
+    nop
+    ## enable kseg0 cachablilty####
+    mfc0   $4, $16
+    and    $4,0xfffffff8
+    or     $4,0x3
+    mtc0   $4,$16
+
+    TTYDBG("scache init done\r\n")
+
+    .set    mips64
+    mfc0    t1, $15, 1
+    .set    mips3
+    andi    a1, t1, 0xc
+    dsll    a1, a1, 42
+    dli     t0, NODE0_CORE0_BUF0
+    or      t0, t0, a1
+#ifdef LS3B
+    andi    a1, t1, 0xc
+    dsll    a1, a1, 12
+    daddu   t0, t0, a1
+#endif
+    li      a0, NODE_SCACHE_ENABLED
+    sw      a0, SP_OFF(t0)
+    sync
+#endif
 
 ##########################################
+//cxk
+#define MULTI_NODE_INIT_MEM
+
+#include "pmon/arch/mips/mm/ddr_config_define.h"
+#include "pmon/arch/mips/mm/ddr_param_define.h"
+#define DISABLE_DIMM_ECC
+#define PRINT_MSG
+//#define DEBUG_DDR
+//#define DEBUG_DDR_PARAM
+
+    TTYDBG("\r\nStart Init Memory, wait a while......\r\n")
+#ifdef MULTI_NODE_INIT_MEM
+####################################
+    b       MEM_INIT_BEGIN
+    nop
+
+MEM_INIT_DONE:
+####################################
+#else
+####################################
+    //wait the NODE scache enabled
+    dli     t0, NODE0_CORE0_BUF0
+    li      a1, NODE_SCACHE_ENABLED
+1:
+    lw      a0, SP_OFF(t0)
+    bne     a0, a1, 1b
+    nop
+
+    dli     msize, 0
+
+//!!!!important--s1 must be correctly set
+//bit[3:2]: not used any more
+
+    TTYDBG("NODE 0 MEMORY CONFIG BEGIN\r\n")
+#ifdef  AUTO_DDR_CONFIG
+    dli     s1, 0xff100000
+#else
+    dli     s1, 0xc1c30400
+#endif
+#include "loongson3B_ddr_config.S"
+
+#if 0
+    PRINTSTR("Skip other core:")
+    dli     t6, 0x00
+    bal     inputaddress    #input value stored in v0
+    nop
+    bnez    v0, SYS_MEM_INIT_END
+    nop
+#endif
+
+#ifdef MULTI_CHIP
+    //wait the NODE scache enabled
+    dli     t0, NODE1_CORE0_BUF0
+1:
+    li      a1, NODE_SCACHE_ENABLED
+    lw      a0, SP_OFF(t0)
+    bne     a0, a1, 1b
+    nop
+
+    TTYDBG("NODE 1 MEMORY CONFIG BEGIN\r\n")
+#ifdef  AUTO_DDR_CONFIG
+    dli     s1, 0xff320000
+#else
+    dli     s1, 0xc1c30001
+#endif
+#include "loongson3B_ddr_config.S"
+#endif
+
+#ifdef DUAL_3B
+    //wait the NODE scache enabled
+    dli     t0, NODE2_CORE0_BUF0
+1:
+    li      a1, NODE_SCACHE_ENABLED
+    lw      a0, SP_OFF(t0)
+    bne     a0, a1, 1b
+    nop
+
+    TTYDBG("NODE 2 MEMORY CONFIG BEGIN\r\n")
+#ifdef  AUTO_DDR_CONFIG
+    dli     s1, 0xff100000
+#else
+    dli     s1, 0xc1c30002
+#endif
+#include "loongson3B_ddr_config.S"
+
+    //wait the NODE scache enabled
+    dli     t0, NODE3_CORE0_BUF0
+1:
+    li      a1, NODE_SCACHE_ENABLED
+    lw      a0, SP_OFF(t0)
+    bne     a0, a1, 1b
+    nop
+
+    TTYDBG("NODE 3 MEMORY CONFIG BEGIN\r\n")
+#ifdef  AUTO_DDR_CONFIG
+    dli     s1, 0xff100000
+#else
+    dli     s1, 0xc1c30003
+#endif
+#include "loongson3B_ddr_config.S"
+#endif
+####################################
+#endif
+    TTYDBG("Init Memory done.\r\n")
+
+#ifdef ARB_LEVEL
+    b       Mem_Init_over
+    nop
+#include "pmon/arch/mips/mm/ARB_level.S"
+Mem_Init_over:
+#endif
+####################################
+#ifdef  DEBUG_DDR
+        b       TM_over
+        nop
+#include "pmon/arch/mips/mm/Test_Mem.S"
+TM_over:
+
+#if 1
+    PRINTSTR("\r\nDo test?(0xf: skip): ")
+    bal     inputaddress
+    nop
+    and     v0, v0, 0xf
+    dli     a1, 0x1
+    bgt     v0, a1, 3f
+    nop
+#endif
+
+#if 1
+#if 1
+    PRINTSTR("\r\nStart other core test?(0xcccc: start): ")
+    bal     inputaddress
+    nop
+    move    t1, v0
+#else
+    li      t1, 0xcccc
+#endif
+
+#ifdef NODE1_BOOT
+    dli     t0, NODE1_CORE0_BUF0 #buf of cpu1
+#else
+    dli     t0, NODE0_CORE0_BUF0 #buf of cpu0
+#endif
+    sw      t1, FN_OFF(t0)
+    nop
+#endif
+
+#if 0
+    PRINTSTR("\r\nStart simple_test_mem......\r\n")
+1:
+    dli     t1, 0x0010
+    dli     s1, 0x0004000080000000  //NODE 0, start from 0x80000000
+    dli     t0, 0xaaaaaaaaaaaaaaaa
+    bal     simple_test_mem
+    nop
+    b       1b
+    nop
+#endif
+
+    dli     s1, 0x0004000080000000  //NODE 0, start from 0x80000000
+#if 1
+    PRINTSTR("\r\ndefault s1 = 0x");
+    dsrl    a0, s1, 32
+    bal     hexserial
+    nop
+    PRINTSTR("__")
+    move    a0, s1
+    bal     hexserial
+    nop
+    PRINTSTR("\r\nChange test param s1(0: skip)?: ")
+    bal     inputaddress
+    nop
+    beqz    v0, 1f
+    nop
+    move    s1, v0
+1:
+#endif
+1:
+    dli     t1, 0x1010
+    bal     test_mem
+    nop
+    move    t1, v0
+    PRINTSTR("\r\n")
+    dsrl    a0, t1, 32
+    bal     hexserial
+    nop
+    move    a0, t1
+    bal     hexserial
+    nop
+    beqz    t1, 2f
+    nop
+    PRINTSTR("  Error found!!\r\n")
+2:
+
+3:
+#endif
+#########################################
+
+#ifdef TEMPERATURE
+	TTYDBG("Save system temperature:(* ") // save  temp
+    la      a1,temperature
+	move  a0,a1
+    bal hexserial
+    nop  
+    TTYDBG(") == ")
+    move a0,s5
+    bal hexserial
+    nop  
+    TTYDBG("\r\n")
+//  sb  s5, 0x0(a1)
+#endif
+
+#if 0
+	// lock 1.5MB L2 cache
+	bal lock_scache
+    nop
+	TTYDBG("L2 cache lock done\r\n")
+#endif
+
+##########################################
+
+#if 1 //cww_X2
+		PRINTSTR("\r\n======X1 core0 map windows:\r\n")
+		li      t1, 23
+		dli     t2, 0x900000003ff02000
+		1:
+		move	a0, t2
+		bal	hexserial64
+		nop
+		PRINTSTR(": ")
+
+		ld      a0, 0x0(t2)
+		bal	hexserial64
+		nop
+		PRINTSTR("\r\n")
+
+		daddiu  t2, t2, 8
+		bnez    t1, 1b
+		addiu   t1, t1, -1
+
+		PRINTSTR("\r\n======X2 cpu map windows:\r\n")
+		li      t1, 23
+		dli     t2, 0x900000003ff00000
+		1:
+		move	a0, t2
+		bal	hexserial64
+		nop
+		PRINTSTR(": ")
+
+		ld      a0, 0x0(t2)
+		bal	hexserial64
+		nop
+		PRINTSTR("\r\n")
+
+		daddiu  t2, t2, 8
+		bnez    t1, 1b
+		addiu   t1, t1, -1
+
+		//PRINTSTR("\r\n======X2 pci map windows:\r\n")
+		PRINTSTR("\r\n======X1 core 4 windows:\r\n")
+		li      t1, 23
+		dli     t2, 0x900010003ff06000
+		1:
+		move	a0, t2
+		bal	hexserial64
+		nop
+		PRINTSTR(": ")
+
+		ld      a0, 0x0(t2)
+		bal	hexserial64
+		nop
+		PRINTSTR("\r\n")
+
+		daddiu  t2, t2, 8
+		bnez    t1, 1b
+		addiu   t1, t1, -1
+
+		PRINTSTR("\r\n======X1 core 5 windows:\r\n")
+		li      t1, 23
+		dli     t2, 0x900010003ff06100
+		1:
+		move	a0, t2
+		bal	hexserial64
+		nop
+		PRINTSTR(": ")
+
+		ld      a0, 0x0(t2)
+		bal	hexserial64
+		nop
+		PRINTSTR("\r\n")
+
+		daddiu  t2, t2, 8
+		bnez    t1, 1b
+		addiu   t1, t1, -1
+
+		PRINTSTR("\r\n======X1 core 6 windows:\r\n")
+		li      t1, 23
+		dli     t2, 0x900010003ff06200
+		1:
+		move	a0, t2
+		bal	hexserial64
+		nop
+		PRINTSTR(": ")
+
+		ld      a0, 0x0(t2)
+		bal	hexserial64
+		nop
+		PRINTSTR("\r\n")
+
+		daddiu  t2, t2, 8
+		bnez    t1, 1b
+		addiu   t1, t1, -1
+
+		PRINTSTR("\r\n======X1 core 7 windows:\r\n")
+		li      t1, 23
+		dli     t2, 0x900010003ff06300
+		1:
+		move	a0, t2
+		bal	hexserial64
+		nop
+		PRINTSTR(": ")
+
+		ld      a0, 0x0(t2)
+		bal	hexserial64
+		nop
+		PRINTSTR("\r\n")
+
+		daddiu  t2, t2, 8
+		bnez    t1, 1b
+		addiu   t1, t1, -1
+#endif
+
+#if 1
+		PRINTSTR("\r\n======read HT config reg:\r\n")
+		dli     t2, 0x90000efdfb000000
+
+		move	a0, t2
+		bal	hexserial64
+		nop
+		PRINTSTR(": ")
+
+		ld      a0, 0x0(t2)
+		bal	hexserial64
+		nop
+		PRINTSTR("\r\n")
+
+		daddiu	a0, t2, 0x60
+		bal	hexserial64
+		nop
+		PRINTSTR(": ")
+
+		ld      a0, 0x60(t2)
+		bal	hexserial64
+		nop
+		PRINTSTR("\r\n")
+
+		daddiu	a0, t2, 0x68
+		bal	hexserial64
+		nop
+		PRINTSTR(": ")
+
+		ld      a0, 0x68(t2)
+		bal	hexserial64
+		nop
+		PRINTSTR("\r\n")
+
+		daddiu	a0, t2, 0x70
+		bal	hexserial64
+		nop
+		PRINTSTR(": ")
+
+		ld      a0, 0x70(t2)
+		bal	hexserial64
+		nop
+		PRINTSTR("\r\n")
+#endif
+
 /***************************************/
 
 ##########################################
 //cxk
-//#include "Test_Mem_N.S"
 
-#include "machine/newtest/mydebug.S"
+#include "machine/newtest/newdebug.S"
 
 ##########################################
 
@@ -2112,8 +2184,8 @@ mc_config_out:
 		la	a0, start
 		li	a1, 0xbfc00000
 		la	a2, _edata
-		#or      a0, 0xa0000000
-		#or      a2, 0xa0000000
+		//or      a0, 0xa0000000
+		//or      a2, 0xa0000000
 		subu	t1, a2, a0
 		srl	t1, t1, 2
 
@@ -2154,14 +2226,14 @@ mc_config_out:
 
 		TTYDBG("Copy PMON to execute location done.\r\n")
 		/* zhb */
-#if 0
+#if 1
 		zhb:
 		TTYDBG("Testing...\r\n")
 		la	a0, start
 		li	a1, 0xbfc00000
 		la	a2, _edata
-		#or      a0, 0xa0000000
-		#or      a2, 0xa0000000
+		//or      a0, 0xa0000000
+		//or      a2, 0xa0000000
 		/*	subu	s6, a2, a0*/
 		/*	srl	s6, s6, 2*/
 
@@ -2201,7 +2273,7 @@ mc_config_out:
 
 
 		TTYDBG("sp=");
-	move a0, sp
+    	move a0, sp
 		bal	hexserial
 		nop
 
@@ -2224,7 +2296,7 @@ mc_config_out:
 		la  a2, stringserial
 		addu a2,a2,s0
 
-		srl	msize,20
+		//srl	msize,20
 		move	a0,msize
 
 
@@ -2248,8 +2320,6 @@ mc_config_out:
 #endif
 
 # below added to test vector-dma operation
-
-//		jalr  fft_1kp
 
 		la	v0, initmips
 		jalr	v0
@@ -2296,18 +2366,18 @@ mc_config_out:
 #else 
 #define MTC0 mtc0
 #endif
-	       	LEAF(get_mem_clk)
+LEAF(get_mem_clk)
+  
+	li t0,0xbfe00190
+        ld t1,0x0(t0)
+        dsrl t2,t1,37
+        andi t2,t2,0x0000001f
+        move v0,t2
 
-               	li t0,0xbfe00190
-               	ld t1,0x0(t0)
-               	dsrl t2,t1,37
-               	andi t2,t2,0x0000001f
-               	move v0,t2
-
-               	nop
-               	jr ra
-               	nop
-       		END(get_mem_clk)
+       nop
+       jr ra
+       nop
+END(get_mem_clk)
 
 		LEAF(CPU_TLBClear)
 		li	a3, 0			# First TLB index.
@@ -2478,26 +2548,6 @@ mc_config_out:
 		nop	
 		END(tgt_putchar)
 #endif
-		LEAF(beep_on)
-                nop
-                dli     t1,0x90000cfdfe00a080
-                lbu     t0,0(t1)
-                or      t0,0x04
-                sb      t0,0(t1)
-                nop
-                jr      ra
-                nop
-                END(beep_on)
-                LEAF(beep_off)
-                nop
-                dli     t1,0x90000cfdfe00a080
-                lbu     t0,0(t1)
-                and     t0,0xfd
-		sb      t0,0(t1)
-                nop
-                jr      ra
-                nop
-                END(beep_off)
 		/* baud rate definitions, matching include/termios.h */
 #define B0      0
 #define B50     50      
@@ -2736,6 +2786,9 @@ mc_config_out:
 
 
 #include "i2c.S"
+#ifdef AUTO_DDR_CONFIG
+#include "pmon/arch/mips/mm/detect_node_dimm.S"
+#endif
 		__main:
 		j	ra
 		nop
@@ -2937,6 +2990,7 @@ scache_init_finish:
 		bal hexserial
 		nop
 		jr t7
+        nop
 		END(hexserial64)
 
 		LEAF(godson2_cache_init)
@@ -3006,7 +3060,6 @@ cache_init_finish:
 		.end	godson2_cache_init
 
 LEAF(lock_scache)
-       //addi sp, sp, -64  
        addi sp, sp, -56  
        sd   t0, 0x00(sp)
        sd   t1, 0x08(sp)
@@ -3018,9 +3071,9 @@ LEAF(lock_scache)
        move t7, ra
 
         dli  t0, 0x900000003ff00000
-        dli  t1, 0xfffffffffff00000
+        dli  t1, 0xfffffffffff00000  //lock size:1M
         sd   t1, 0x240(t0)
-        dli  t1, 0x8000000078000000 
+        dli  t1, 0x8000000110000000  //lock start addr 
         sd   t1, 0x200(t0)
         
         dli  t0, 0x0
@@ -3028,8 +3081,8 @@ LEAF(lock_scache)
  
  1:     dli  t1, 0x0 
         dsll t3, t0, 5
-        dli  t5, 0x9800000078000000 
-        dli  t6, 0x98000000780fff80 
+        dli  t5, 0x9800000110000000 
+        dli  t6, 0x98000001100fff80 
         or   t5, t5, t3
         or   t6, t6, t3
  
@@ -3069,13 +3122,73 @@ LEAF(lock_scache)
         bne     t5, t6, 2b
         nop
         nop
-	TTYDBG("lock_scache_cycle1 \r\n")
+	TTYDBG("lock_scache_1M_0x90 cycle1 \r\n")
         daddi   t0, t0, 0x1
         bne     t0, t4, 1b
         nop
-	TTYDBG("lock_scache_cycle2 \r\n")
+	TTYDBG("lock_scache_1M_0x90 cycle2 \r\n")
         nop
 
+#if 1     //lock 0.5MB L2 cache 
+        dli  t0, 0x900000003ff00000
+        dli  t1, 0xfffffffffff80000  //lock size:0.5M
+        sd   t1, 0x248(t0)
+        dli  t1, 0x8000000110100000  //lock start addr 
+        sd   t1, 0x208(t0)
+        
+        dli  t0, 0x0
+        dli  t4, 0x4
+ 
+ 1:     dli  t1, 0x0 
+        dsll t3, t0, 5
+        dli  t5, 0x9800000110100000 
+        dli  t6, 0x980000011017ff80 
+        or   t5, t5, t3
+        or   t6, t6, t3
+ 
+ 2:     dli  t2, 0x9800000000000000
+        dsll t3, t1, 7
+        or   t2, t2, t3
+        dsll t3, t0, 5
+        or   t2, t2, t3
+ 
+        cache  0x3, 0x3(t2)
+        dli    t2, 0x1400
+        dsll   t3, t5, 28
+        dsrl   t3, t3, 45
+        dsll   t3, t3, 13
+        or     t2, t2, t3
+        mtc0   t2, CP0_TAGLO
+ 
+        dli    t2, 0x0 
+        dsll   t3, t5, 16
+        dsrl   t3, t3, 52
+        or     t2, t2, t3
+        mtc0   t2, CP0_TAGHI
+ 
+        cache   0xb, 0x3(t5)
+
+        dli    t2, 0x0
+        mtc0   t2, CP0_TAGLO
+        dsrl   t2, t2, 32
+        mtc0   t2, CP0_TAGHI
+
+        cache   0x1f, 0x3(t5)
+        cache   0x1f, 0xb(t5)
+        cache   0x1f, 0x13(t5)
+        cache   0x1f, 0x1b(t5)
+        daddi   t5, t5, 0x80
+        daddi   t1, t1, 0x1
+        bne     t5, t6, 2b
+        nop
+        nop
+	TTYDBG("lock_scache_0.5M_0x90 cycle1 \r\n")
+        daddi   t0, t0, 0x1
+        bne     t0, t4, 1b
+        nop
+	TTYDBG("lock_scache_0.5M_0x90 cycle2 \r\n")
+        nop
+#endif
        ld   t0, 0x00(sp)
        ld   t1, 0x08(sp)
        ld   t2, 0x10(sp)
@@ -3085,8 +3198,7 @@ LEAF(lock_scache)
        ld   t6, 0x30(sp)
        addi sp, sp, 56  
        jr    t7
-       // jr    ra
-        nop
+       nop
 END(lock_scache)
 
 		//lycheng
@@ -3172,111 +3284,695 @@ END(lock_scache)
 /* slave core jump to here to begin get ready for entering kernel    */
 /*********************************************************************/
 
-		.ent	slave_main
-		slave_main:
+    .ent    slave_main
+slave_main:
 
-#if 1
-	mfc0	t0, CP0_STATUS
-        li      t1, 0x00e0      # {cu3,cu2,cu1,cu0}<={0110, status_fr<=1
-        or      t0, t0, t1
-	  mtc0    t0, CP0_STATUS
-	mfc0    t0, CP0_STATUS
+#if 1       //cxk, has been done already
+//Open 64-bit address space
+    mfc0    t0, CP0_STATUS
+    li      t1, 0x00e0      # {cu3,cu2,cu1,cu0}<={0110, status_fr<=1
+    or      t0, t0, t1
+    mtc0    t0, CP0_STATUS
 
-	#lui     t1, 0x10
-	#and     t0, t0, t1      #sr 
-	lui     t1, 0x40        #bev
-	or      t0, t0, t1
-	mtc0    t0, CP0_STATUS
-	mtc0    zero, CP0_CAUSE
+    mfc0    t0, CP0_STATUS
+    lui     t1, 0x40        #bev
+    or      t0, t0, t1
+    mtc0    t0, CP0_STATUS
+    mtc0    zero, CP0_CAUSE
 #endif
 
+//cxk, not core 0, jump to slave_core
+    .set     mips64
+    mfc0    t0, $15, 1
+    .set     mips3
+    andi    t0, 0x3ff
+    andi    a1, t0, 0x3
+    bnez    a1, slave_core
+    nop
 
+//core0 of each NODE
 #ifdef NODE1_BOOT
     dli     t0, NODE1_CORE0_BUF0 #buf of cpu1
 #else
     dli     t0, NODE0_CORE0_BUF0 #buf of cpu0
 #endif
-
-myidle:
-#if 1
-    li      a0, 0x1000
+    li      a1, MAIN_CORE_PRE_TLB_INIT_OK
 1:
-    subu   a0, 1
-    bnez    a0, 1b
+    lw      a0, FN_OFF(t0)
+    bne     a1, a0, 1b
+    nop
+
+//cxk
+//serial init ok
+    bal     CPU_TLBClear
+    nop
+    bal     tlb_init
+    nop
+    bal     godson2_cache_init
+    nop
+
+    //TTYDBG("scache init\r\n")
+    .set     mips64
+    mfc0    t0, $15, 1
+    .set     mips3
+    andi    t0, 0xc
+    dsll    a1, t0, 42
+    dli     a0, 0x9800000000000000
+    or      a0, a0, a1
+    bal     scache_init_64 // whd
+    nop
+
+#if 1
+    //PRINTSTR("Jump to 9fc\r\n")
+    lui     t0, 0xdfff
+    ori     t0, t0, 0xffff
+    bal     1f
+    nop
+1:
+    and     ra, ra, t0
+    addiu   ra, ra, 16
+    jr      ra
+    nop
+#endif
+
+#if 1
+    mfc0   $4, $16
+    and    $4,0xfffffff8
+    or     $4,0x3
+    mtc0   $4,$16
+    //TTYDBG("cache enable done\r\n")
+#endif
+    .set     mips64
+    mfc0    t1, $15, 1
+    .set     mips3
+    andi    a1, t1, 0xc
+    dsll    a1, a1, 42
+    dli     t0, NODE0_CORE0_BUF0
+    or      t0, t0, a1
+#ifdef LS3B
+    andi    a1, t1, 0xc
+    dsll    a1, a1, 12
+    daddu   t0, t0, a1
+#endif
+    li      a0, NODE_SCACHE_ENABLED
+    sw      a0, SP_OFF(t0)
+    sync
+    //PRINTSTR("Slave node scache init done.\r\n")
+
+#ifdef MULTI_NODE_INIT_MEM
+//cxk
+#define  SEQ_INIT_MEM   //Concurrent init not work now.
+#ifndef  SEQ_INIT_MEM
+#define  PRINTSTR(x)
+#endif
+MEM_INIT_BEGIN:
+//init mem on order(NODE 0>1>2>3)
+    .set     mips64
+    mfc0    t0, $15, 1
+    .set     mips3
+    andi    t0, 0xc
+    dsrl    t0, t0, 2
+    dli     a0, 0x0
+    beq     t0, a0, NODE0_INIT_MEM
+    nop
+    daddu   a0, a0, 0x1
+    beq     t0, a0, NODE1_INIT_MEM
+    nop
+    daddu   a0, a0, 0x1
+    beq     t0, a0, NODE2_INIT_MEM
+    nop
+    daddu   a0, a0, 0x1
+    beq     t0, a0, NODE3_INIT_MEM
+    nop
+    b       ALL_NODE_MEM_INIT_DONE
+    nop
+
+NODE0_INIT_MEM:
+    //wait the NODE scache enabled
+    dli     t0, NODE0_CORE0_BUF0
+    li      a1, NODE_SCACHE_ENABLED
+1:
+    lw      a0, SP_OFF(t0)
+    bne     a0, a1, 1b
+    nop
+
+    PRINTSTR("NODE 0 MEMORY CONFIG BEGIN\r\n")
+    dli     msize, 0
+#ifdef  AUTO_DDR_CONFIG
+    dli     s1, 0xff100000
+#else
+    dli     s1, 0xc0c50800
+#endif
+#include "loongson3B_ddr_config.S"
+
+    dli     t0, NODE0_CORE0_BUF0
+    sw      msize, SP_OFF(t0)
+#ifdef  SEQ_INIT_MEM
+    li      a1, NODE_MEM_INIT_DONE
+    sw      a1, FN_OFF(t0)
+#endif
+    sync
+    b       ALL_NODE_MEM_INIT_DONE
+    nop
+
+
+NODE1_INIT_MEM:
+    //wait the NODE scache enabled
+    dli     t0, NODE1_CORE0_BUF0
+1:
+    li      a1, NODE_SCACHE_ENABLED
+    lw      a0, SP_OFF(t0)
+    bne     a0, a1, 1b
+    nop
+
+#ifdef  SEQ_INIT_MEM
+    dli     t0, NODE0_CORE0_BUF0
+    li      a1, NODE_MEM_INIT_DONE
+1:
+#if 1
+    dli     a2, 0x1000
+2:
+    daddiu  a2, a2, -0x1
+    bnez    a2, 2b
     nop
 #endif
     lw      a0, FN_OFF(t0)
-    beqz    a0, myidle
+    bne     a0, a1, 1b
+    nop
+#endif
+
+    PRINTSTR("NODE 1 MEMORY CONFIG BEGIN\r\n")
+    dli     msize, 0
+#ifdef  AUTO_DDR_CONFIG
+    dli     s1, 0xff320001
+#else
+    dli     s1, 0xc0c50801
+#endif
+#include "loongson3B_ddr_config.S"
+
+    dli     t0, NODE1_CORE0_BUF0
+    sw      msize, SP_OFF(t0)
+#ifdef  SEQ_INIT_MEM
+    li      a1, NODE_MEM_INIT_DONE
+    sw      a1, FN_OFF(t0)
+#endif
+    sync
+    b       ALL_NODE_MEM_INIT_DONE
+    nop
+
+NODE2_INIT_MEM:
+    //wait the NODE scache enabled
+    dli     t0, NODE2_CORE0_BUF0
+1:
+    li      a1, NODE_SCACHE_ENABLED
+    lw      a0, SP_OFF(t0)
+    bne     a0, a1, 1b
+    nop
+
+#ifdef  SEQ_INIT_MEM
+    dli     t0, NODE1_CORE0_BUF0
+    li      a1, NODE_MEM_INIT_DONE
+1:
+#if 1
+    dli     a2, 0x1000
+2:
+    daddiu  a2, a2, -0x1
+    bnez    a2, 2b
+    nop
+#endif
+    lw      a0, FN_OFF(t0)
+    bne     a0, a1, 1b
+    nop
+#endif
+
+    PRINTSTR("NODE 2 MEMORY CONFIG BEGIN\r\n")
+    dli     msize, 0
+#ifdef  AUTO_DDR_CONFIG
+    dli     s1, 0xff540002
+#else
+    dli     s1, 0xc1c30402
+#endif
+#include "loongson3B_ddr_config.S"
+
+    dli     t0, NODE2_CORE0_BUF0
+    sw      msize, SP_OFF(t0)
+#ifdef  SEQ_INIT_MEM
+    li      a1, NODE_MEM_INIT_DONE
+    sw      a1, FN_OFF(t0)
+#endif
+    sync
+    b       ALL_NODE_MEM_INIT_DONE
     nop
 
 
-#if 1 /* gx */
-
-		bal CPU_TLBClear
-		nop
-		bal     tlb_init
-		nop
-        bal     godson2_cache_init
-        nop
-
-
-#if 1
-		mfc0	t0, CP0_CONFIG
-		ori	    t0, t0, 7
-  		xori	t0, t0, 4
-		mtc0	t0, CP0_CONFIG
-#endif
-
-#if 1
-		la	t0, next
-#if 1
-	dli	t1, 0xfffff
-	and     t0, t1
-	dli	t1, 0xffffffff9fc00000
-	or	t0, t1
-#endif	
-	jr	t0
-	nop
-next:
-#endif
-
-#if 1
-        ## enable kseg0 cachablilty####
-        mfc0    t0, CP0_CONFIG
-        lui     t1, 0xffff
-        ori     t1, t1, 0xfff8
-        and     t0, t0, t1
-        ori     t0, t0, 0x3
-        mtc0    t0, CP0_CONFIG
-        ################################
-#endif
-
-#endif
-
-#if 0
-############
-        mtc0    $0, CP0_WIRED
-        mtc0    $0, CP0_PAGEMASK
-tlb_flush_all_slave:
-        lui     a0, 0x8000
-        addiu   a1, $0, 64
-#a0=KSEG0,a1 = tlbsize, v0, v1, a3 used as local registers
-        mtc0    $0, CP0_ENTRYLO0
-        mtc0    $0, CP0_ENTRYLO1
-        mfc0    v0, CP0_WIRED
-        addu    v1, $0, a0
-1:      sltu    a3, v0, a1
-        beq     a3, $0, 1f
-        nop
-        mtc0    v1, CP0_ENTRYHI
-        mtc0    v0, CP0_INDEX
-        tlbwi
-        addiu   v1, v1, 0x2000
-        beq     $0, $0, 1b
-        addiu   v0, v0, 1
+NODE3_INIT_MEM:
+    //wait the NODE scache enabled
+    dli     t0, NODE3_CORE0_BUF0
 1:
-############
+    li      a1, NODE_SCACHE_ENABLED
+    lw      a0, SP_OFF(t0)
+    bne     a0, a1, 1b
+    nop
+
+#ifdef  SEQ_INIT_MEM
+    dli     t0, NODE2_CORE0_BUF0
+    li      a1, NODE_MEM_INIT_DONE
+1:
+#if 1
+    dli     a2, 0x1000
+2:
+    daddiu  a2, a2, -0x1
+    bnez    a2, 2b
+    nop
 #endif
+    lw      a0, FN_OFF(t0)
+    bne     a0, a1, 1b
+    nop
+#endif
+
+    PRINTSTR("NODE 3 MEMORY CONFIG BEGIN\r\n")
+    dli     msize, 0
+#ifdef  AUTO_DDR_CONFIG
+    dli     s1, 0xff760003
+#else
+    dli     s1, 0xc1c30403
+#endif
+#include "loongson3B_ddr_config.S"
+
+    dli     t0, NODE3_CORE0_BUF0
+    sw      msize, SP_OFF(t0)
+#ifdef  SEQ_INIT_MEM
+    li      a1, NODE_MEM_INIT_DONE
+    sw      a1, FN_OFF(t0)
+#endif
+    sync
+    b       ALL_NODE_MEM_INIT_DONE
+    nop
+
+ALL_NODE_MEM_INIT_DONE:
+    .set     mips64
+    mfc0    t0, $15, 1
+    .set     mips3
+    andi    t0, 0xc
+#ifdef NODE1_BOOT
+    dli     a0, 4
+#else
+    dli     a0, 0
+#endif
+    beq     t0, a0, 2f
+    nop
+    //non boot core, wait all NODE mem init done, then clear its mailbox, and wait to jump to kernel
+#ifdef NODE1_BOOT
+    dli     t0, NODE1_CORE0_BUF0 #buf of cpu1
+#else
+    dli     t0, NODE0_CORE0_BUF0 #buf of cpu0
+#endif
+    li      a1, ALL_CORE0_INIT_DONE
+1:
+    lw      a0, FN_OFF(t0)
+    bne     a1, a0, 1b
+    nop
+
+    //clear self mailbox
+    .set     mips64
+    mfc0    t0, $15, 1
+    .set     mips3
+    andi    t0, t0, 0xc
+    beq     t0, 0x0, 10f
+    nop     
+    beq     t0, 0x4, 11f;
+    nop     
+    beq     t0, 0x8, 12f;
+    nop     
+    beq     t0, 0xc, 13f;
+    nop     
+    b       wait_to_jump_kernel
+    nop
+10:
+    dli     t1, NODE0_CORE0_BUF0;
+    sw      $0, FN_OFF(t1)
+    sw      $0, SP_OFF(t1)
+    sync
+    b       wait_to_jump_kernel
+    nop
+11:
+    dli     t1, NODE1_CORE0_BUF0;
+    sw      $0, FN_OFF(t1)
+    sw      $0, SP_OFF(t1)
+    sync
+    b       wait_to_jump_kernel
+    nop
+12:
+    dli     t1, NODE2_CORE0_BUF0;
+    sw      $0, FN_OFF(t1)
+    sw      $0, SP_OFF(t1)
+    sync
+    b       wait_to_jump_kernel
+    nop
+13:
+    dli     t1, NODE3_CORE0_BUF0;
+    sw      $0, FN_OFF(t1)
+    sw      $0, SP_OFF(t1)
+    sync
+    b       wait_to_jump_kernel
+    nop
+
+2:
+    //boot core, wait all core0 mem init done
+    li      a1, NODE_MEM_INIT_DONE
+
+    dli     t0, NODE0_CORE0_BUF0
+1:
+    lw      a0, FN_OFF(t0)
+    bne     a0, a1, 1b
+    nop
+
+    dli     t0, NODE1_CORE0_BUF0
+1:
+    lw      a0, FN_OFF(t0)
+    bne     a0, a1, 1b
+    nop
+
+#ifdef  DUAL_3B
+    dli     t0, NODE2_CORE0_BUF0
+1:
+    lw      a0, FN_OFF(t0)
+    bne     a0, a1, 1b
+    nop
+
+    dli     t0, NODE3_CORE0_BUF0
+1:
+    lw      a0, FN_OFF(t0)
+    bne     a0, a1, 1b
+    nop
+#endif
+    //all core0 mem init done
+    //load msize from ALL 3 NODE
+    dli     t1, 0x0
+    dli     t0, NODE0_CORE0_BUF0
+    lw      a0, SP_OFF(t0)
+    or      t1, t1, a0
+    dli     t0, NODE1_CORE0_BUF0
+    lw      a0, SP_OFF(t0)
+    or      t1, t1, a0
+#ifdef  DUAL_3B
+    dli     t0, NODE2_CORE0_BUF0
+    lw      a0, SP_OFF(t0)
+    or      t1, t1, a0
+    dli     t0, NODE3_CORE0_BUF0
+    lw      a0, SP_OFF(t0)
+    or      t1, t1, a0
+#endif
+
+    move    msize, t1
+
+    PRINTSTR("\r\nsystem msize= 0x")
+    move    a0, msize
+    bal     hexserial
+    nop
+    PRINTSTR("\r\n")
+
+    //set all core0 init done signal
+#ifdef NODE1_BOOT
+    dli     t0, NODE1_CORE0_BUF0
+#else
+    dli     t0, NODE0_CORE0_BUF0
+#endif
+    sw      $0, SP_OFF(t0)
+    li      a1, ALL_CORE0_INIT_DONE
+    sw      a1, FN_OFF(t0)
+    sync
+    b       MEM_INIT_DONE
+    nop
+#endif
+
+
+    b       wait_to_jump_kernel
+    nop
+slave_core:
+    //wait core0 of this node scache enabled
+    .set     mips64
+    mfc0    t1, $15, 1
+    .set     mips3
+    andi    a1, t1, 0xc
+    dsll    a1, a1, 42
+    dli     t0, NODE0_CORE0_BUF0
+    or      t0, t0, a1
+#ifdef LS3B
+    andi    a1, t1, 0xc
+    dsll    a1, a1, 12
+    daddu   t0, t0, a1
+#endif
+    li      a1, NODE_SCACHE_ENABLED
+1:
+    lw      a0, SP_OFF(t0)
+    bne     a1, a0, 1b
+    nop
+
+    bal     CPU_TLBClear
+    nop
+    bal     tlb_init
+    nop
+    bal     godson2_cache_init
+    nop
+
+#if 1
+//jump to 0x9fcxxxxx
+    la      t0, next
+    dli     t1, 0xfffff
+    and     t0, t1
+    dli     t1, 0xffffffff9fc00000
+    or      t0, t1
+    jr      t0
+    nop
+next:
+
+    sync
+    nop
+    nop
+    nop
+    nop
+    ## enable kseg0 cachablilty####
+    mfc0    t0, CP0_CONFIG
+    lui     t1, 0xffff
+    ori     t1, t1, 0xfff8
+    and     t0, t0, t1
+    ori     t0, t0, 0x3
+    mtc0    t0, CP0_CONFIG
+    ################################
+#endif
+
+wait_to_jump_kernel:
+
+//cxk test mem
+#ifdef  DEBUG_DDR
+#ifdef NODE1_BOOT
+    dli     t0, NODE1_CORE0_BUF0 #buf of cpu1
+#else
+    dli     t0, NODE0_CORE0_BUF0 #buf of cpu0
+#endif
+    li      a1, 0xcccc
+1:
+    lw      a0, FN_OFF(t0)
+    bne     a0, a1, 1b
+    nop
+//code for test mem using multi-core
+
+    .set mips64
+    mfc0    t2, $15, 1
+    .set mips3
+    andi    t2, 0x3ff
+//Test mem
+    //node 1 cores jump to 5f
+    and     a1, t2, 0xc
+    bnez    a1, 5f
+    nop
+    and     a1, t2, 0x3
+    dli     a2, 0x0
+    beq     a1, a2, 10f
+    nop
+    daddu   a2, a2, 0x1
+    beq     a1, a2, 1f
+    nop
+    daddu   a2, a2, 0x1
+    beq     a1, a2, 2f
+    nop
+    daddu   a2, a2, 0x1
+    beq     a1, a2, 3f
+    nop
+    b       4f
+    nop
+10:
+    b       10b
+    nop
+    dli     s1, 0x0004000080000000
+    dli     t1, 0x1010
+    bal     test_mem_1_silence
+    nop
+    b       10b
+    nop
+    b       4f
+    nop
+1:
+    dli     s1, 0x10040000a0000000
+    dli     t1, 0x1010
+    bal     test_mem_1_silence
+    nop
+    b       1b
+    nop
+    b       4f
+    nop
+2:
+    dli     s1, 0x20040000c0000000
+    dli     t1, 0x1010
+    bal     test_mem_1_silence
+    //dli     t0, 0x5aa55a5aa55aa5a5
+    //bal     simple_test_mem
+    nop
+    b       2b
+    nop
+    b       4f
+    nop
+3:
+    dli     s1, 0x30040000e0000000
+    dli     t1, 0x1010
+    bal     test_mem_1_silence
+    nop
+    b       3b
+    nop
+
+    b       4f
+    nop
+
+5:  //NODE 1 cores
+    daddiu  a1, a1, -4
+    bnez    a1, 5f
+    nop
+    and     a1, t2, 0x3
+    dli     a2, 0x0
+    beq     a1, a2, 10f
+    nop
+    daddu   a2, a2, 0x1
+    beq     a1, a2, 1f
+    nop
+    daddu   a2, a2, 0x1
+    beq     a1, a2, 2f
+    nop
+    daddu   a2, a2, 0x1
+    beq     a1, a2, 3f
+    nop
+    b       4f
+    nop
+10:
+    b       10b
+    nop
+    dli     s1, 0x4004000080000000
+    dli     t1, 0x1010
+    bal     test_mem_1_silence
+    nop
+    b       10b
+    nop
+    b       4f
+    nop
+1:
+    dli     s1, 0x50040000a0000000
+    dli     t1, 0x1010
+    bal     test_mem_1_silence
+    nop
+    b       1b
+    nop
+    b       4f
+    nop
+2:
+    dli     s1, 0x60040000c0000000
+    dli     t1, 0x1010
+    bal     test_mem_1_silence
+    //dli     t0, 0x4bb44b4bb44bb4b4
+    //bal     simple_test_mem
+    nop
+    b       2b
+    nop
+    b       4f
+    nop
+3:
+    dli     s1, 0x70040000e0000000
+    dli     t1, 0x1010
+    bal     test_mem_1_silence
+    nop
+    b       3b
+    nop
+
+    b       4f
+    nop
+
+5:  //NODE 2 cores
+    daddiu  a1, a1, -4
+    bnez    a1, 5f
+    nop
+    and     a1, t2, 0x3
+    dli     a2, 0x0
+    beq     a1, a2, 10f
+    nop
+    daddu   a2, a2, 0x1
+    beq     a1, a2, 1f
+    nop
+    daddu   a2, a2, 0x1
+    beq     a1, a2, 2f
+    nop
+    daddu   a2, a2, 0x1
+    beq     a1, a2, 3f
+    nop
+    b       4f
+    nop
+10:
+    b       10b
+    nop
+    dli     s1, 0x8004000080000000
+    dli     t1, 0x1010
+    bal     test_mem_1_silence
+    nop
+    b       10b
+    nop
+    b       4f
+    nop
+1:
+    dli     s1, 0x90040000a0000000
+    dli     t1, 0x1010
+    bal     test_mem_1_silence
+    nop
+    b       1b
+    nop
+    b       4f
+    nop
+2:
+    dli     s1, 0xa0040000c0000000
+    dli     t1, 0x1010
+    bal     test_mem_1_silence
+    //dli     t0, 0x4bb44b4bb44bb4b4
+    //bal     simple_test_mem
+    nop
+    b       2b
+    nop
+    b       4f
+    nop
+3:
+    dli     s1, 0xb0040000e0000000
+    dli     t1, 0x1010
+    bal     test_mem_1_silence
+    nop
+    b       3b
+    nop
+
+    b       4f
+    nop
+5:  //NODE 3 cores
+
+4:
+1:
+    b       1b
+    nop
+#endif
+
 
 /******************************************************************/
 /* Read Mail BOX to judge whether current core can jump to kernel */
@@ -3287,53 +3983,54 @@ t1: core mailbox base address
 t2: jump address
 t3: temp
 ************************/
-		.set 	mips64
-		mfc0	t0, $15, 1
-		.set 	mips3
+    .set    mips64
+    mfc0    t0, $15, 1
+    .set    mips3
 
-		andi	t0, 0x3ff
-		andi    t3, t0,0xc
+    andi    t0, 0x3ff
+    andi    t3, t0,0xc
 
-		beq		t3, 0x0, node00;
-		nop	 
+    beq     t3, 0x0, node00;
+    nop     
 
-		beq		t3, 0x4, node01;
-		nop	 
+    beq     t3, 0x4, node01;
+    nop     
 
-		beq		t3, 0x8, node02;
-		nop	 
+    beq     t3, 0x8, node02;
+    nop     
 
-		beq		t3, 0xc, node03;
-		nop	 
+    beq     t3, 0xc, node03;
+    nop     
 
 node00:
-        dli     t1, NODE0_CORE0_BUF0;
-		b		core_x
-		nop
+    dli     t1, NODE0_CORE0_BUF0;
+    b       core_x
+    nop
 
 node01:
-        dli     t1, NODE1_CORE0_BUF0;
-		b		core_x
-		nop
+    dli     t1, NODE1_CORE0_BUF0;
+    b       core_x
+    nop
 
 node02:
-        dli     t1, NODE2_CORE0_BUF0;
-		b		core_x
-		nop
+    dli     t1, NODE2_CORE0_BUF0;
+    b       core_x
+    nop
 
 node03:
-        dli     t1, NODE3_CORE0_BUF0;
-		b		core_x
-		nop
+    dli     t1, NODE3_CORE0_BUF0;
+    b       core_x
+    nop
 
 core_x:
-		//add cores offset of every node
-		andi	t3, t0, 0x3
-		dsll	t3, t3, 8
-		or		t1, t1, t3
+    //add cores offset of every node
+    andi    t3, t0, 0x3
+    dsll    t3, t3, 8
+    or      t1, t1, t3
+
 waitforinit:
 
-	li      a0, 0x1000000
+    li      a0, 0x1000
 idle1000:    
     addiu   a0, -1
     bnez    a0, idle1000
@@ -3343,11 +4040,10 @@ idle1000:
     beqz    t2, waitforinit
     nop
 
+    dli     t3, 0xffffffff00000000 
+    or      t2, t3
 
-    dli      t3, 0xffffffff00000000 
-    or       t2, t3
-
-    dli      t3, 0x9800000000000000 
+    dli     t3, 0x9800000000000000 
     ld      sp, SP_OFF(t1)
     or      sp, t3
     ld      gp, GP_OFF(t1)
@@ -3357,8 +4053,9 @@ idle1000:
     jalr    t2  # slave core jump to kernel, byebye
     nop
 
-	.end	slave_main
+    .end    slave_main
 
+/*********************************************/
 //*********************************************/
 //* input :
 // * output: v0
@@ -3383,182 +4080,10 @@ idle1000:
 
 		
 	jr      ra
+    nop
 
 	.end    get_nodebase
 /*********************************************/
-
-/*********************************************************************/
-	#define loongson3A3
-//#include "loongson3a_ddr3_leveling.S"
-#######################################
-	.global ddr2_config
-	.ent    ddr2_config
-	.set    noreorder
-	.set    mips3
-
-
-ddr2_config:
-#ifdef loongson3A3
-#define MODIFY_PARAM_MC0 180
-#else
-#define MODIFY_PARAM_MC0 152
-#endif
-
-	GET_DDR_TYPE
-	la      a2, ddr2_reg_data
-	beqz    a1, 1f
-	nop
-	la      a2, ddr3_reg_data
-1:
-
-	addu    a2, a2, s0
-	daddiu	v0, a0, 0x0
-######################################################
-	ld      a1, 0x0(a2)
-	sd      a1, 0x0(v0)
-
-#####Eight_bank_mode #################################
-	ld      t1, 0x8(a2)
-	dli     a1, 0xffffff00ffffffff
-	and     t1, t1, a1
-	GET_MC0_EIGHT
-	or      t1, t1, a1
-	sd      t1, 0x10(v0)
-
-######################################################
-	ld      a1, 0x10(a2)
-	sd      a1, 0x20(v0)
-	ld      a1, 0x18(a2)
-	sd      a1, 0x30(v0)
-	ld      a1, 0x20(a2)
-	sd      a1, 0x40(v0)
-
-#####COL_SIZE / ROW_SIZE #############################
-	ld      t1, 0x28(a2)
-	dli     a1, 0xffffffff00ff00ff
-	and     t1, t1, a1
-	GET_MC0_ROW
-	or      t1, t1, a1
-	GET_MC0_COL
-	or      t1, t1, a1
-	sd      t1, 0x50(v0)
-
-######################################################
-	ld      a1, 0x30(a2)
-	sd      a1, 0x60(v0)
-
-#####CS_MAP ##########################################
-	ld      t1, 0x38(a2)
-	dli     a1, 0xffffffffff00ffff
-	and     t1, t1, a1
-	GET_MC0_CS_MAP
-	or      t1, t1, a1
-	sd      t1, 0x70(v0)
-
-######################################################
-
-	li      t1, MODIFY_PARAM_MC0-8
-	daddiu	v0, a0, 0x80
-
-reg_write:
-	ld      a1, 0x40(a2)
-	sd      a1, 0x0(v0)
-
-	subu    t1, t1, 0x1
-	addiu   a2, a2, 0x8
-	bne     t1, $0, reg_write
-	daddiu   v0, v0, 0x10
-
-#if	0 //def MY_DEBUG_DDR   //debug
-    /* store the a0,ra */
-	move	t8, a0
-	move	t1, ra
-
-    PRINTSTR("\r\nChange some parameters of MC0:");
-1:
-	PRINTSTR("\r\nPlease input the register number you want to change!!!(0:jump out.): ");
-	bal	    inputaddress	#input value stored in v0
-	nop
-	move	t5, v0	#store v0 to t5
-	
-	beqz	t5, 2f	#if input 0,jump out
-	nop
-	dsll	t5, t5, 4	#t5 is the offset relative to a0
-	daddu	t5, t5, t8
-
-	PRINTSTR("\r\nPlease input the data-hex: ");
-	bal	    inputaddress	#input value stored in v0
-	nop
-	sd	    v0, 0x0(t5)	#v0 is the input value
-
-    //print the new register value
-    move    t6, t5
-    PRINTSTR("\r\nRegister 0x")
-    dsubu   t5, t5, t8
-    dsrl    t5, t5, 4
-    move    a0, t5
-    bal     hexserial
-    nop
-    PRINTSTR(": ")
-    ld      t6, 0x0(t6)
-    dsrl    a0, t6, 32
-    bal     hexserial
-    nop
-    move    a0, t6
-    bal     hexserial
-    nop
-
-	b	    1b
-	nop
-2:	
-    /* recover the a0,ra */
-	move	a0, t8
-	move	ra, t1
-#endif
-	sync
-
-############start##########
-	daddiu	v0, a0, 0x0
-	ld      a1, 0x30(v0)
-	dli     a2, 0x0000010000000000
-	or      a1, a1, a2
-	sd      a1, 0x30(v0)
-	sync
-###########################
-  //delay
-	dli     v0, 0x1000
-1:
-	bnez    v0, 1b
-	daddi   v0, v0, -1
-	nop
-
-	daddiu  v0, a0, 0x960 //wait int status 
-1:
-	ld      a1, 0x0(v0)
-	andi    a1, a1, 0x100
-	beqz    a1, 1b
-	nop
-
-	jr      ra
-	nop
-	.end    ddr2_config
-
-
-	.rdata
-	.align 5
-	.global ddr2_reg_data
-	.global ddr3_reg_data
-
-#include "loongson3B_ddr2_param.S"
-#include "ldp.S"
-//#include "loongson3a_ddr3_param.S"
-
-		.text
-		.global temperature
-		.global memsz_node1
-	temperature:		.dword	  2
-	memsz_node1:		.dword	  0
-
 
 	.global watchdog_enable
 	.ent    watchdog_enable
@@ -3567,4 +4092,45 @@ reg_write:
 watchdog_enable:
 	WatchDog_Enable
 	jr		ra
+    nop
 	.end watchdog_enable
+
+#######################################
+#include "pmon/arch/mips/mm/3B_ddr_config.S"
+
+		.text
+		.global temperature
+temperature:	.dword	  2
+
+
+    .text
+    .global ddr2_reg_data
+    .global ddr3_reg_data
+    .global n1_ddr2_reg_data
+#ifdef  ARB_LEVEL
+    .global ddr2_leveled_mark
+    .global ddr2_reg_data_leveled
+    .global n1_ddr2_reg_data_leveled
+#ifdef  DUAL_3B
+    .global n2_ddr2_reg_data_leveled
+    .global n3_ddr2_reg_data_leveled
+#endif
+#endif
+
+    .align  5
+#include "loongson3A3_ddr_param.S"  //300M ~ 400M
+#ifdef  MULTI_NODE_DDR_PARAM
+#include "loongson3A3_ddr_param_c1.S"
+#endif
+
+#ifdef  ARB_LEVEL
+#include "loongson3A3_ddr_param.lvled.S"
+#ifdef  DUAL_3B
+#include "loongson3A3_ddr_param_c1.lvled.S"
+#endif
+
+    .align  12
+ddr2_leveled_mark:
+.dword 0x0
+    .align  12
+#endif

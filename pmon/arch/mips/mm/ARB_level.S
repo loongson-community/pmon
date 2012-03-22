@@ -30,7 +30,7 @@ algrithm:
 
 //#define DEBUG_ARB_LEVEL
 //#define ARB_LEVEL_INTERVAL
-//#define  ARB_LEVEL_PAD
+//#define ARB_LEVEL_PAD
 
 #define CLEAR_HALF_CLK_SHIFT
 #define LOG2_STEP   2   //log2 of TM step interval, remember to small WINDOW_ZERO_NUM when we use larger STEP
@@ -887,13 +887,15 @@ One_Level_Caled_1:
     blt     s4, a0, ARB_level_PAD_end
     nop
 
+#define TRANS_S4_COMPEN \
+    and     t2, s4, 0xc;\
+    dsll    t2, t2, 2;  \
+    and     a0, s4, 0x3;\
+    or      t2, t2, a0; 
+
 ARB_level_PAD_start:
     //translate s4 to t2
-    and     t2, s4, 0xc
-    dsll    t2, t2, 4
-    and     a0, s4, 0x3
-    dsll    a0, a0, 2
-    or      t2, t2, a0
+    TRANS_S4_COMPEN
 
 #ifdef  PRINT_MSG
     PRINTSTR("\r\nPAD COMP value = 0x")
@@ -930,11 +932,7 @@ ARB_level_PAD_end:
 //select one pad value
     ld      s4, BS_VAL(t8)
     //translate s4 to t2
-    and     t2, s4, 0xc
-    dsll    t2, t2, 4
-    and     a0, s4, 0x3
-    dsll    a0, a0, 2
-    or      t2, t2, a0
+    TRANS_S4_COMPEN
 
 #ifdef  PRINT_MSG
     PRINTSTR("\r\nFinally Leveled PAD COMP value = 0x")
