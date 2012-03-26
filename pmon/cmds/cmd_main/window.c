@@ -807,7 +807,7 @@ int w_password(int x,int y,int w,char *caption,char * text,int buflen)
 	password_char=0;
 	if(currentid==overid)	
 	{
-		if(charin==127 || charin==7) 
+		if(charin==127 || charin== '\b') 
 		{
 			if(l)
 				text[l-1]=0;
