@@ -160,6 +160,7 @@ int bios_available;
 int usb_kbd_available;;
 int vga_available;
 int cmd_main_mutex = 0;
+int bios_mutex = 0;
 
 static int md_pipefreq = 0;
 static int md_cpufreq = 0;

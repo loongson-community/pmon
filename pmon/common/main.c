@@ -435,7 +435,7 @@ if(!run)
 		setenv("autoinstall", "/dev/fs/ext2@usb0/vmlinuxboot");
 		//setenv("rd", "/sbin/init");
 		//autoinstall("/dev/fs/iso9660@cd0/vmlinuxb");
-		autoinstall("/dev/fs/ext2@usb0/vmlinuxboot");
+		//autoinstall("/dev/fs/ext2@usb0/vmlinuxboot");
 	}
 	if (strcmp (getenv("FR"),"0") == 0) {
 		unsetenv("al");
@@ -446,7 +446,7 @@ if(!run)
 	}
 	//autoinstall("/dev/fs/iso9660@cd0/vmlinuxb");
 	//autoinstall("/dev/fs/iso9660@cd0/vmlinuxb");
-	autoinstall("/dev/fs/ext2@usb0/vmlinuxboot");
+	//autoinstall("/dev/fs/ext2@usb0/vmlinuxboot");
 
 	if(getenv("al") == NULL) /* CDROM autoload */
 	{

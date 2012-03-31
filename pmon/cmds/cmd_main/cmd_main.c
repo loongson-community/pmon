@@ -115,6 +115,8 @@ int bootdev0 = 0;  //enable bootdev0	 // Lc add
 int bootdev1 = 0;  //enable bootdev1   // Lc add
 jmp_buf jmpb;
 extern int cmd_main_mutex;
+extern int bios_available;
+extern int bios_mutex;
 
 struct _daytime daytime[6]= {
 	{"Sec",29,6,"",4,0},
@@ -1568,6 +1570,7 @@ char *av[];
                 }
                 else {
                         cmd_main_mutex = 2;
+			bios_mutex = 1;
                         main();
                         return 0;
                 }
@@ -1587,10 +1590,16 @@ char *av[];
 	while(1)
 	{
 		int esc_down = 0;
+		if(bios_mutex == 1)
+			bios_available = 0;
+		else
+			bios_available = 1;
 		deal_keyboard_input(&esc_tag, &to_command_tag, &esc_down);
 		paint_mainframe(hint);
 		if(paint_childwindow(&hint,diskdev_name,netdev_name, esc_down)==0)
 		{
+			bios_available = 0;
+			bios_mutex = 0;
 			return 0;
 		}
 		w_present();
