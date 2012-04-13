@@ -66,7 +66,12 @@ struct efi_memory_map_loongson * init_memory_map()
 
 
   //map->mem_start_addr = 0x80000000;
+#if (defined(LOONGSON_3BSERVER))
+  emap->nr_map = 8; 
+#else
   emap->nr_map = 4; 
+#endif
+
   emap->mem_freq = 300000000; //300M
   //map->memsz_high = atoi(getenv("highmemsize"));
   //map->mem_size = atoi(getenv("memsize"));
@@ -104,6 +109,55 @@ struct efi_memory_map_loongson * init_memory_map()
   }
 
 #endif
+
+#if (defined(LOONGSON_3BSERVER))
+
+  emap->map[3].mem_size = atoi(getenv("memorysize_high_n1"));
+  if ( emap->map[3].mem_size != 0 )
+  {
+	emap->map[2].node_id = 1;
+	//strcpy(emap->map[0].mem_name, "node0_low");
+	emap->map[2].mem_type = 1;
+	emap->map[2].mem_start = 0x01000000;
+	emap->map[2].mem_size = atoi(getenv("memsize"));
+
+	emap->map[3].node_id = 1;
+	//strcpy(emap->map[1].mem_name, "node0_high");
+	emap->map[3].mem_type = 2;
+	emap->map[3].mem_start = 0x90000000;
+  }
+
+  emap->map[5].mem_size = atoi(getenv("memorysize_high_n2"));
+  if ( emap->map[5].mem_size != 0 )
+  {
+	emap->map[4].node_id = 2;
+	//strcpy(emap->map[0].mem_name, "node0_low");
+	emap->map[4].mem_type = 1;
+	emap->map[4].mem_start = 0x01000000;
+	emap->map[4].mem_size = atoi(getenv("memsize"));
+
+	emap->map[5].node_id = 2;
+	//strcpy(emap->map[1].mem_name, "node0_high");
+	emap->map[5].mem_type = 2;
+	emap->map[5].mem_start = 0x90000000;
+  }
+
+  emap->map[7].mem_size = atoi(getenv("memorysize_high_n3"));
+  if ( emap->map[7].mem_size != 0 )
+  {
+	emap->map[6].node_id = 3;
+	//strcpy(emap->map[0].mem_name, "node0_low");
+	emap->map[6].mem_type = 1;
+	emap->map[6].mem_start = 0x01000000;
+	emap->map[6].mem_size = atoi(getenv("memsize"));
+
+	emap->map[7].node_id = 3;
+	//strcpy(emap->map[1].mem_name, "node0_high");
+	emap->map[7].mem_type = 2;
+	emap->map[7].mem_start = 0x90000000;
+  }
+
+#endif
 #endif
 
 
@@ -113,6 +167,10 @@ struct efi_memory_map_loongson * init_memory_map()
 #ifdef LOONGSON_3BSINGLE
   #define PRID_IMP_LOONGSON    0x6506
  enum loongson_cpu_type cputype = Loongson_3B;
+#endif
+#ifdef LOONGSON_3BSERVER
+  #define PRID_IMP_LOONGSON    0x6506
+  enum loongson_cpu_type cputype = Loongson_3B;
 #endif
 #ifdef LOONGSON_3ASINGLE
   #define PRID_IMP_LOONGSON    0x6505
@@ -131,6 +189,10 @@ struct efi_cpuinfo_loongson *init_cpu_info()
 
   c->cpu_clock_freq = atoi(getenv("cpuclock"));
 
+#ifdef LOONGSON_3BSERVER
+  c->total_node = 4; // total node means what? why it can't be 8 ? // by xqch
+  c->nr_cpus = 16;
+#endif
 #ifdef LOONGSON_3ASERVER
   c->total_node = 4;
   c->nr_cpus = 8;
@@ -157,6 +219,11 @@ struct system_loongson *init_system_loongson()
   s->ccnuma_smp = 1;
   s->sing_double_channel = 2;
 #endif
+#ifdef LOONGSON_3BSERVER
+  s->ccnuma_smp = 1;
+  s->sing_double_channel = 2; // means what?
+#endif
+#
 #ifdef LOONGSON_3BSINGLE
   s->ccnuma_smp = 1;
   s->sing_double_channel = 2;
@@ -232,6 +299,10 @@ struct board_devices *board_devices_info()
 #ifdef LOONGSON_3BSINGLE
   strcpy(bd->name,"Loongson-3B780E-1-V1.03-demo");
 #endif
+#ifdef LOONGSON_3BSERVER
+  strcpy(bd->name,"Loongson-3B780E-1-V1.03-demo");
+#endif
+#
 #ifdef LOONGSON_3ASERVER
   strcpy(bd->name,"Loongson-3A780E-2-V1.02-demo");
 #endif
