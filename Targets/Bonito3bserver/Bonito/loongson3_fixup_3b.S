@@ -119,7 +119,7 @@
 
 	TTYDBG("Fix L1xbar illegal access from core0 to core3\r\n")
     dli t2, 0x900000003ff02000
-    dli t1, 0x900000003ff02700
+    dli t1, 0x900000003ff02800
 1:
 
 ####### Unused HT0 port #########################
@@ -208,12 +208,21 @@
 1:
 
 ####### Unused HT0 port #########################
-	dli	t0, 0x00000c0000000000
+	dli	t0, 0x00002c0000000000
 	sd	t0, 0x28(t2)
-	dli	t0, 0x00000c0000000000
+	dli	t0, 0x00002c0000000000
 	sd	t0, 0x68(t2)
-	dli	t0, 0x00001c00000000f4
+	dli	t0, 0x00002c00000000f7
 	sd	t0, 0xa8(t2)
+
+/*
+	dli	t0, 0x00000c0000000000
+	sd	t0, 0x38(t2)
+	dli	t0, 0x00000c0000000000
+	sd	t0, 0x38(t2)
+	dli	t0, 0x00001c00000000f4
+	sd	t0, 0x38(t2)
+*/
 
 #if 0
 	dli	t0, 0x0000200000000000

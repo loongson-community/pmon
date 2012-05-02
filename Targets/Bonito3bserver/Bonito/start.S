@@ -250,7 +250,7 @@ uncached:
 /*
  *  Reboot vector usable from outside pmon.
  */
-	.align	8   /* bfc00200 */
+	.align	8			/* bfc00200 */
 ext_map_and_reboot:
 	bal	CPU_TLBClear
 	nop
@@ -271,13 +271,11 @@ ext_map_and_reboot:
  *  Exception vectors here for rom, before we are up and running. Catch
  *  whatever comes up before we have a fully fledged exception handler.
  */
-#if 0
 	.align	9			/* bfc00200 */
 	la	a0, v200_msg
 	bal	stringserial
 	nop
 	b	exc_common
-#endif
 
 	.align	7			/* bfc00280 */
 	la	a0, v280_msg
@@ -310,7 +308,7 @@ ext_map_and_reboot:
 	nop
 
 	/* Debug exception */
-	.align	7 /* bfc00480 */
+	.align	7		  /* bfc00480 */
 #include "exc_ejtag.S"
 #endif
 
@@ -1166,7 +1164,19 @@ gs_2f_v3_ddr2_cfg:
 #endif
 ##########################################
 
-//#include "ddr_code_dir/loongson3B_fixup.S"
+/* Fix HT connection bug between two LS3B chipses */ 
+  li  t0, 0x90000efdfb00003c;
+  lw  a0, 0x00(t0);
+  li  a1, 0x30000; 
+  or  a0, a1;
+  sw  a0, 0x00(t0);
+
+  li  t0, 0x90002efdfb00003c;
+  lw  a0, 0x00(t0);
+  li  a1, 0x30000; 
+  or  a0, a1;
+  sw  a0, 0x00(t0);
+
 #include "loongson3_fixup_3b.S"
 //#define EJTAG_TEST 
 #ifdef EJTAG_TEST
