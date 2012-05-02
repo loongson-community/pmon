@@ -380,7 +380,8 @@ MC0_DDR3_CTL_2b0 : .dword 0x0000000000000000
 MC0_DDR3_CTL_2c0 : .dword 0x0000000000000000
 //hXXXXXXX 00_00 dll_obs_reg_0_8(RW) hXXXXXXX 00_00 dll_obs_reg_0_7(RW)
 //11110100000000000011101100100111 phy_ctrl_reg_0_0(RD) 000000_00000000000000000110011101 pad_ctrl_reg_0(RW) 
-MC0_DDR3_CTL_2d0 : .dword 0xf400373300c409bd    //3A D3 demo: 003c--fail; 021c--fail; 03c0--pass
+//MC0_DDR3_CTL_2d0 : .dword 0xf400373300c409bd    //3A D3 demo: 003c--fail; 021c--fail; 03c0--pass
+MC0_DDR3_CTL_2d0 : .dword 0xf4003733021c09bd    //3A D3 demo: 003c--fail; 021c--fail; 03c0--pass
 MC0_DDR3_CTL_2e0 : .dword 0xf4003733f4003733
 MC0_DDR3_CTL_2f0 : .dword 0xf4003733f4003733
 MC0_DDR3_CTL_300 : .dword 0xf4003733f4003733
@@ -671,7 +672,8 @@ MC1_DDR3_CTL_2b0 : .dword 0x0000000000000000
 MC1_DDR3_CTL_2c0 : .dword 0x0000000000000000
 //hXXXXXXX 00_00 dll_obs_reg_0_8(RW) hXXXXXXX 00_00 dll_obs_reg_0_7(RW)
 //11110100000000000011101100100111 phy_ctrl_reg_0_0(RD) 000000_00000000000000000110011101 pad_ctrl_reg_0(RW) 
-MC1_DDR3_CTL_2d0 : .dword 0xf4003733004409bd    //3A D3 demo: 003c--fail; 021c--fail; 03c0--pass
+//MC1_DDR3_CTL_2d0 : .dword 0xf4003733004409bd    //3A D3 demo: 003c--fail; 021c--fail; 03c0--pass
+MC1_DDR3_CTL_2d0 : .dword 0xf4003733021c09bd    //3A D3 demo: 003c--fail; 021c--fail; 03c0--pass
 MC1_DDR3_CTL_2e0 : .dword 0xf4003733f4003733
 MC1_DDR3_CTL_2f0 : .dword 0xf4003733f4003733
 MC1_DDR3_CTL_300 : .dword 0xf4003733f4003733
