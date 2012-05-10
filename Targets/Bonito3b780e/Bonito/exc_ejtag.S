@@ -101,11 +101,62 @@
 //#define BIOS_ENTRY	0xa1000000      /* cmd counter */
 #define BIOS_ENTRY		0x80010000      /* cmd counter */
 
-/* below is memory accessint tyep */
-#define	LDDW			0x3
-#define	LDW				0x2
-#define	STDW			0xb
-#define	STW				0xa
+/********************************************/
+// type
+#define BYTE  0
+#define HALF  1
+#define WORD  2
+#define DWORD 3 
+// mem
+#define CP0   1
+#define MEM   0 
+// dircetion 
+#define WTOLS3    0
+#define RFROMLS3  1 
+// reserved
+//#define NULL  0
+#define TLB   0
+#define CACHE 1
+
+#define RESERVE_OFFSET  0x4
+#define TYPE_MASK       0x3
+#define MEM_MASK        0x4
+#define DIR_MASK        0x8
+#define MEM_OFFSET      0x2
+#define DIR_OFFSET      0x3
+
+#define IRET            0xf0
+
+// below is operation TYPE
+/* sd means to store a data to some address fixed which are loaded from X86 host */
+#define SD  (DWORD | MEM  << MEM_OFFSET | WTOLS3 << DIR_OFFSET)
+/* ld means to load a data to x86 host from some address which are loaded from X86 host */
+#define LD  (DWORD | MEM  << MEM_OFFSET | RFROMLS3 << DIR_OFFSET)
+/* sd means to store a data to some address fixed which are loaded from X86 host */
+#define SW  (WORD | MEM  << MEM_OFFSET  | WTOLS3 << DIR_OFFSET)
+/* lw means to load a data to x86 host from some address which are loaded from X86 host */
+#define LW  (WORD | MEM  << MEM_OFFSET  | RFROMLS3 << DIR_OFFSET)
+/* sw means to store a data to some address fixed which are loaded from X86 host */
+#define SH  (HALF | MEM  << MEM_OFFSET  | WTOLS3 << DIR_OFFSET)
+/* lh means to load a data to x86 host from some address which are loaded from X86 host */
+#define LH  (HALF | MEM  << MEM_OFFSET  | RFROMLS3 << DIR_OFFSET)
+/* sh means to store a data to some address fixed which are loaded from X86 host */
+#define SB  (BYTE | MEM  << MEM_OFFSET  | WTOLS3 << DIR_OFFSET)
+/* lb means to load a data to x86 host from some address which are loaded from X86 host */
+#define LB  (BYTE | MEM  << MEM_OFFSET  | RFROMLS3 << DIR_OFFSET)
+/* sb means to store a data to some address fixed which are loaded from X86 host */
+
+#define LDDW      SD    
+#define LDW       SW              
+#define LDH       SH              
+#define LDB       SB    
+#define STDW      LD    
+#define STW       LW         
+#define STH       LH    
+#define STB       LB    
+
+/********************************************/
+
 #define DUMPREGS		0x0f
 #define	ERET			0xf0
 
@@ -368,6 +419,7 @@ tlbdump_end:
 
 	/* if ld/lw instruction, no need ld DATAREG */
 	bge		t3,0x8, 110f
+	nop
 
 	/* t5: get data for a store or load insturction */
 	li		t0,	DATAREG
@@ -383,10 +435,20 @@ tlbdump_end:
 	nop
 	beq		t3, LDW,  1111f
 	nop
+	beq		t3, LDH,  1114f
+	nop
+	beq		t3, LDB,  1116f
+	nop
+
 	beq		t3, STDW,  1112f
 	nop
 	beq		t3, STW,  1113f
 	nop
+	beq		t3, STH,  1115f
+	nop
+	beq		t3, STB,  1117f
+	nop
+
 
  1110:
 	sd		t5, 0x0(t4)
@@ -397,6 +459,17 @@ tlbdump_end:
 	sw		t5, 0x0(t4)
 	b		113f		
 	nop
+ 1114:
+	/* why using delay slot like below fail ? */
+	sh		t5, 0x0(t4)
+	b		113f		
+	nop
+ 1116:
+	/* why using delay slot like below fail ? */
+	sb		t5, 0x0(t4)
+	b		113f		
+	nop
+
  1112:
 	ld		t5, 0x0(t4)
 ##ifdef DEBUG
@@ -413,6 +486,19 @@ tlbdump_end:
 	sw		t5, 0x0(t0)
 	b		113f
 	nop
+ 1115:
+	lh		t5, 0x0(t4)
+	li		t0, DATAREG
+	sh		t5, 0x0(t0)
+	b		113f
+	nop
+ 1117:
+	lb		t5, 0x0(t4)
+	li		t0, DATAREG
+	sb		t5, 0x0(t0)
+	b		113f
+	nop
+
 113:
 	subu	t2, t2, 0x1
 	bne		t2, $0, 14b
