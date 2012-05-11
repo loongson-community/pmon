@@ -126,15 +126,27 @@ total=0;
 buffer=heaptop+0x100000;
 #endif
 printf("net info:\n");
+
+#if defined(LOONGSON_3ASINGLE) || defined( LOONGSON_3BSINGLE)
+
+printf("RTL8111 rte0 info:\n");
+strcpy(cmd,"ifconfig rte0;ifconfig rte0 status;");
+do_cmd(cmd);
+
+#else
+
 printf("82546 em0 info:\n");
 strcpy(cmd,"ifconfig em0;ifconfig em0 status;");
 do_cmd(cmd);
 printf("82546 em1 info:\n");
 strcpy(cmd,"ifconfig em1;ifconfig em1 status;");
 do_cmd(cmd);
-printf("82559 fxp0 info:\n");
-strcpy(cmd,"ifconfig fxp0;ifconfig fxp0 status");
-do_cmd(cmd);
+//printf("82559 fxp0 info:\n");
+//strcpy(cmd,"ifconfig fxp0;ifconfig fxp0 status");
+//do_cmd(cmd);
+
+#endif
+
 printf("link speed up to 100 Mbps\n");
 #if 0
 restdout(oldwrite);
