@@ -415,6 +415,8 @@ const struct pciide_vendor_desc pciide_vendors[] = {
 
 #define	PCIIDE_CHANNEL_NAME(chan)	((chan) == 0 ? "ch 0" : "ch 1")
 
+extern struct device *sata_devs[6];
+
 /* options passed via the 'flags' config keyword */
 #define PCIIDE_OPTIONS_DMA	0x01
 
@@ -1211,6 +1213,9 @@ default_chip_map(sc, pa)
 				    sc->sc_tag, PCI_CLASS_REG));
 	pcireg_t csr;
 	int channel;
+        char tmp[16];
+        static once = 0;
+
 #if !defined(PMON)||defined(IDE_DMA)
 	int drive;
 	struct ata_drive_datas *drvp;
@@ -1309,6 +1314,22 @@ next:
 			wdcattach(&cp->wdc_channel);
 		}
 	}
+
+	//swap the names of port1 and port2 only once if both of them have satadisks	
+	 if(sata_devs[1] != NULL && sata_devs[2] != NULL && !once)
+          {
+ 
+              strcpy(tmp,  (sata_devs[1])->dv_xname);
+              strcpy( (sata_devs[1])->dv_xname, (sata_devs[2])->dv_xname);
+              strcpy( (sata_devs[2])->dv_xname, tmp);
+ 
+              once = 1;
+              sata_devs[1] = NULL;
+              sata_devs[2] = NULL;
+ 
+          }
+
+
 
 #if !defined(PMON)||defined(IDE_DMA)
 	if (sc->sc_dma_ok == 0)

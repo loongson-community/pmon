@@ -155,6 +155,14 @@ struct channel_softc_vtbl wdc_default_vtbl = {
 	wdc_default_write_raw_multi_4
 };
 
+ /*********sata flags for port0 - port5***************/
+
+  int sata_flags[6] = {0}; 
+
+ /***************************************************/
+
+
+
 u_int8_t
 wdc_default_read_reg(chp, reg)
 	struct channel_softc *chp;
@@ -679,6 +687,14 @@ wdcattach(chp)
 		aa_link.aa_channel = chp->channel;
 		aa_link.aa_openings = 1;
 		aa_link.aa_drv_data = &chp->ch_drive[i];
+
+               //set flags if port1 and port2 have satadisks
+
+		if(chp->channel == 0 && i == 1)        
+        	 	sata_flags[1] = 1;
+        	if(chp->channel == 1 && i == 0)
+                	sata_flags[2] = 1;
+ 
 		config_found(&chp->wdc->sc_dev, (void *)&aa_link, wdprint);
 	}
 

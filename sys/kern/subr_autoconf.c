@@ -310,6 +310,9 @@ config_rootsearch(fn, rootname, aux)
 
 char *msgs[3] = { "", " not configured\n", " unsupported\n" };
 
+ struct device *sata_devs[6]={NULL}; //array for pointers of sata devs
+ extern int sata_flags[6];
+
 /*
  * The given `aux' argument describes a device that has been found
  * on the given parent, but not necessarily configured.  Locate the
@@ -327,8 +330,21 @@ config_found_sm(parent, aux, print, submatch)
 {
 	void *match;
 
+	struct device *dev = NULL;
+        static int i = 1;
+
 	if ((match = config_search(submatch, parent, aux)) != NULL)
-		return (config_attach(parent, match, aux, print));
+	{
+		dev =config_attach(parent, match, aux, print);
+ 
+                if(sata_flags[i] == 1)    
+                 {
+                        sata_devs[i] = dev; //save pointer of dev when port1 and port2 have satadisks
+                        i++;
+                 }
+                 return dev;
+
+	}
 	if (print)
 		printf(msgs[(*print)(aux, parent->dv_xname)]);
 	return (NULL);
