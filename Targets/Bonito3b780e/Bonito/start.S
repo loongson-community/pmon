@@ -1595,11 +1595,6 @@ gs_2f_v3_ddr2_cfg:
 	bal hexserial
 	nop
 
-#if 1 /* TLB init */
-	    TTYDBG("Init htpcitlb...\r\n")
-#include "pcitlb.S"
-#endif
-
 	TTYDBG ("\r\nCPU clk frequency = SYSCLK x 0x")
 	andi  t0, t1, 0x1f
 	li  a0, 0x1f
