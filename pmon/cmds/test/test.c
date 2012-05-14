@@ -112,9 +112,8 @@ struct setupMenu testmenu={
 {POP_Y+8,POP_X,9,9,TYPE_CMD,"(7)harddisk:${?&#mytest 128}=[on=| _or mytest 128||off=| _andn mytest 128]test 128"},
 {POP_Y+9,POP_X,10,10,TYPE_CMD,"(8)keyboard:${?&#mytest 256}=[on=| _or mytest 256||off=| _andn mytest 256]test 256"},
 {POP_Y+10,POP_X,11,11,TYPE_CMD,"(9)serial:${?&#mytest 512}=[on=| _or mytest 512||off=| _andn mytest 512]test 512"},
-{POP_Y+11,POP_X,12,12,TYPE_CMD,"(10)parallel:${?&#mytest 1024}=[on=| _or mytest 1024||off=| _andn mytest 1024]test 1024"},
-{POP_Y+12,POP_X,13,13,TYPE_CMD,"(11)all selected=test ${#mytest}"},
-{POP_Y+13,POP_X,1,1,TYPE_CMD,"(12)quit=| _quit",0},
+{POP_Y+11,POP_X,12,12,TYPE_CMD,"(10)all selected=test ${#mytest}"},
+{POP_Y+12,POP_X,1,1,TYPE_CMD,"(11)quit=| _quit",0},
 {}
 }
 };
@@ -132,10 +131,8 @@ struct setupMenu testmenu1={
 {POP_Y+6,POP_X,7,7,TYPE_CMD,"(6)harddisk:${?&#mytest 128}=[on=| _or mytest 128||off=| _andn mytest 128]test 128"},
 {POP_Y+7,POP_X,8,8,TYPE_CMD,"(7)keyboard:${?&#mytest 256}=[on=| _or mytest 256||off=| _andn mytest 256]test 256"},
 {POP_Y+8,POP_X,9,9,TYPE_CMD,"(8)serial:${?&#mytest 512}=[on=| _or mytest 512||off=| _andn mytest 512]test 512"},
-{POP_Y+9,POP_X,10,10,TYPE_CMD,"(9)parallel:${?&#mytest 1024}=[on=| _or mytest 1024||off=| _andn mytest 1024]test 1024"},
-{POP_Y+10,POP_X,11,11,TYPE_CMD,"(10)all selected:${?&#mytest 4096}=[on=| _or mytest 4096||off=| _andn mytest 4096]test 4096"},
-//{POP_Y+10,POP_X,11,11,TYPE_CMD,"(10)all selected=test ${#mytest}"},
-{POP_Y+11,POP_X,1,1,TYPE_CMD,"(11)quit=| _quit",0},
+{POP_Y+9,POP_X,10,10,TYPE_CMD,"(9)all selected:${?&#mytest 4096}=[on=| _or mytest 4096||off=| _andn mytest 4096]test 4096"},
+{POP_Y+10,POP_X,1,1,TYPE_CMD,"(10)quit=| _quit",0},
 {}
 }
 };
