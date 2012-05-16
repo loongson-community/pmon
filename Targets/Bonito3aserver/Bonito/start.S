@@ -1192,7 +1192,6 @@ gs_2f_v3_ddr2_cfg:
 
     WatchDog_Enable;
 #include "loongson3_fixup.S"
-    WatchDog_Close;
 
 //begin :Beep on -> delay -> Beep off
        bal     beep_on
@@ -1206,6 +1205,7 @@ gs_2f_v3_ddr2_cfg:
        bal     beep_off
        nop
 //end
+    WatchDog_Close;
 
 ##########################################
 //let other cores going
