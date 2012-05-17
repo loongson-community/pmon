@@ -30,6 +30,9 @@
  * SUCH DAMAGE.
  *
  */
+
+#define STDIN ((kbd_available|usb_kbd_available)?3:0)
+
 #include <include/stdarg.h>
 void		tgt_putchar (int);
     int
@@ -66,6 +69,7 @@ tgt_printf (const char *fmt, ...)
 #include <string.h>
 #include <time.h>
 #include <stdlib.h>
+#include <include/file.h>
 
 #include <dev/ic/mc146818reg.h>
 #include <linux/io.h>
@@ -130,9 +134,6 @@ int bios_available;
 int usb_kbd_available;;
 int vga_available;
 int cmd_main_mutex = 0;
-int bios_mutex = 0;
-
-
 
 static int md_pipefreq = 0;
 static int md_cpufreq = 0;
@@ -161,6 +162,18 @@ static inline unsigned char CMOS_READ(unsigned char addr);
 static inline void CMOS_WRITE(unsigned char val, unsigned char addr);
 static void init_legacy_rtc(void);
 
+#ifdef INTERFACE_3A780E
+#define REV_ROW_LINE 560
+#define INF_ROW_LINE 576
+
+int afxIsReturnToPmon = 0;
+
+  struct FackTermDev
+  {
+      int dev;
+  };
+
+#endif
 #ifdef USE_GPIO_SERIAL
 //modified by zhanghualiang 
 //this function is for parallel port to send and received  data
@@ -361,10 +374,11 @@ unsigned long _filebase;
 
 extern unsigned long long  memorysize;
 extern unsigned long long  memorysize_high;
+#ifdef MULTI_CHIP
 extern unsigned long long  memorysize_high_n1;
 extern unsigned long long  memorysize_high_n2;
 extern unsigned long long  memorysize_high_n3;
-
+#endif
 
 extern char MipsException[], MipsExceptionEnd[];
 
@@ -422,20 +436,20 @@ initmips(unsigned int raw_memsz)
     memsz = raw_memsz & 0xff00;
     memsz = memsz >> 8;
     memsz = memsz << 29;
-    memorysize_high_n1 = memsz - (256ull << 20);
+    memorysize_high_n1 = (memsz == 0) ? 0 : (memsz - (256 << 20));
+    tgt_printf("memorysize_high_n1 0x%llx\n", memorysize_high_n1);
+#endif
+#ifdef DUAL_3B
     memsz = raw_memsz & 0xff0000;
     memsz = memsz >> 16;
     memsz = memsz << 29;
-    memorysize_high_n2 = memsz - (256ull << 20);
+    memorysize_high_n2 = (memsz == 0) ? 0 : (memsz - (256 << 20));
     memsz = raw_memsz & 0xff000000;
     memsz = memsz >> 24;
     memsz = memsz << 29;
-    memorysize_high_n3 = memsz - (256ull << 20);
-#if 1
-    tgt_printf("memorysize_high_n1 0x%llx\n", memorysize_high_n1);
+    memorysize_high_n3 = (memsz == 0) ? 0 : (memsz - (256 << 20));
     tgt_printf("memorysize_high_n2 0x%llx\n", memorysize_high_n2);
     tgt_printf("memorysize_high_n3 0x%llx\n", memorysize_high_n3);
-#endif
 #endif
 #if 0 /* whd : Disable gpu controller of MCP68 */
     //*(unsigned int *)0xbfe809e8 = 0x122380;
@@ -603,6 +617,14 @@ extern unsigned long long uma_memory_size;
 
 void tgt_devconfig()
 {
+	int ic, len;
+        int count = 0;
+        char key;
+        char copyright[9] ="REV_";
+        char bootup[] = "Booting...";
+        char *tmp_copy = NULL;
+        char tmp_date[11];
+       	char * s;
 #if NMOD_VGACON > 0
     int rc=1;
 #if NMOD_FRAMEBUFFER > 0 
@@ -718,6 +740,107 @@ void tgt_devconfig()
 		kbd_available=1;
 	}
 	//	psaux_init();
+#endif
+#ifdef INTERFACE_3A780E 
+
+	vga_available = 1;
+       	kbd_available=1;
+        bios_available = 1; //support usb_kbd in bios
+// Ask user whether to set bios menu
+        printf("Press <Del> to set BIOS,waiting for 3 seconds here..... \n");
+
+        get_update(tmp_date);
+        for (ic = 0; ic < 1; ic++){
+        	video_putchar1(2 + (len+2)*8+ic*8, 560, tmp_date[ic]);
+         }
+
+         video_set_color(0xf);
+
+//         init_win_device();
+
+         vga_available = 0;          //lwg close printf output
+
+	{
+       	struct FackTermDev *devp;
+        int fd = 0;
+        DevEntry* p;
+        Msg msg;   //==char msg
+        int sign = 0;
+
+        //get input without wait ===========   add by oldtai
+        fd = ((FILE*)stdin)->fd;
+        devp = (struct FackTermDev *)(_file[fd].data);
+        p = &DevTable[devp->dev];
+
+        for (count = 0;count < 10;count++)
+        {
+          	//get input without wait
+                scandevs();
+
+                while(!tgt_smplock());
+
+                /* 'DEL' to BIOS Interface */
+                if(p->rxq->count >= 3){
+                  if ((p->rxq->dat[p->rxq->first + p->rxq->count-3] == 0x1b)
+                          && (p->rxq->dat[p->rxq->first + p->rxq->count-2] == '[')
+                          && (p->rxq->dat[p->rxq->first + p->rxq->count-1] == 'G')) {
+                        sign = 1;
+                        p->rxq->count -= 3;
+                  }
+                  if (sign == 1) {
+                        tgt_smpunlock();
+                        break;
+                  }
+                }
+                tgt_smpunlock();
+
+                delay1(30);
+      	
+  	}
+
+        vga_available = 1;
+        video_set_color(0xf);
+
+        for (ic = 0; ic < 64; ic++)
+        {
+         	video_putchar1(2 + ic*8, REV_ROW_LINE, ' ');
+                video_putchar1(2 + ic*8, INF_ROW_LINE, ' ');
+        }
+
+        vga_available = 0;
+
+        if (count >= 10)
+        	goto run;
+        else
+                goto bios;
+
+  bios:
+
+         if(!(s = getenv("SHOW_DISPLAY")) || s[0] !='2')
+          {
+              char buf[10];
+              video_set_color(0xf);
+              video_set_color(0x8);
+              tty_flush();
+                          vga_available = 1;
+              do_cmd("main");
+              if (!afxIsReturnToPmon)
+              {
+                 vga_available = 0;
+              }
+          }
+
+run:
+        vga_available = 1;
+        bios_available = 0;//support usb_kbd in bios
+       	kbd_available = 1;
+
+        len = strlen(bootup);
+        for (ic = 0; ic < len; ic++)
+        {
+         	video_putchar1(2 + ic*8, INF_ROW_LINE,bootup[ic]);
+        }
+	}
 #endif
 	printf("devconfig done.\n");
 
@@ -889,6 +1012,13 @@ static void superio_reinit()
 	w83627_write(3,0x70,0x03);
 	w83627_write(3,0xf0,0x00);
 
+        ////w83627_PALLPort
+        w83627_write(1,0x30,0x01);
+        w83627_write(1,0x60,0x03);
+        w83627_write(1,0x61,0x78);
+        w83627_write(1,0x70,0x07);
+        w83627_write(1,0x74,0x04);
+        w83627_write(1,0xf0,0xF0);
 }
 #endif
 
@@ -1880,6 +2010,7 @@ tgt_mapenv(int (*func) __P((char *, char *)))
 		sprintf(env, "%d", memorysize_high / (1024 * 1024));
 		(*func)("highmemsize", env);
 
+#ifdef MULTI_CHIP
 		sprintf(env, "%d", memorysize_high_n1 / (1024 * 1024));
 		(*func)("memorysize_high_n1", env);
 
@@ -1888,6 +2019,8 @@ tgt_mapenv(int (*func) __P((char *, char *)))
 
 		sprintf(env, "%d", memorysize_high_n3 / (1024 * 1024));
 		(*func)("memorysize_high_n3", env);
+
+#endif
 
 		sprintf(env, "%d", md_pipefreq);
 		(*func)("cpuclock", env);
@@ -2341,7 +2474,6 @@ char *tran_month(char *c, char *i)
      return i;
  }
 
-
 int get_update(char *p)
  {
      int i=0;
@@ -2577,10 +2709,17 @@ void sb700_interrupt_fixup(void)
 	pci_write_config8(dev, 0x3c, 0x5); 
 	fixup_interrupt_printf("godson3a_sata: fix sata mode==:%d\n",pci_read_config8(dev,0x3c));
 
-#if 0
 	/*3. ide fixup*/
 	fixup_interrupt_printf("godson3a_ide_fixup: fix ide mode\n");
 	dev = _pci_make_tag(0, 0x14, 1);  
+
+        /* enable IDE DMA --Multi-Word DMA */
+        pci_write_config32(dev, 0x44, 0x20000000);
+        byte = pci_read_config8(dev, 0x54);
+        byte |= 1 << 0;
+        pci_write_config8(dev, 0x54, byte);
+
+#if 0
 	/*set IDE ultra DMA enable as master and slalve device*/
     (void) pci_write_config8(dev, 0x54, 0xf);
 	/*set ultral DAM mode 0~6  we use 6 as high speed !*/

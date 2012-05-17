@@ -250,7 +250,7 @@ uncached:
 /*
  *  Reboot vector usable from outside pmon.
  */
-	.align	8			/* bfc00200 */
+	.align	8 /* bfc00200 */
 ext_map_and_reboot:
 	bal	CPU_TLBClear
 	nop
@@ -308,7 +308,7 @@ ext_map_and_reboot:
 	nop
 
 	/* Debug exception */
-	.align	7		  /* bfc00480 */
+	.align	7 /* bfc00480 */
 #include "exc_ejtag.S"
 #endif
 
@@ -1284,10 +1284,11 @@ gs_2f_v3_ddr2_cfg:
 ##########################################
 //cxk
 #define MULTI_NODE_INIT_MEM
-#define	UDIMM_2G
+//#define	UDIMM_2G
+#define	RDIMM_2G
 
-#include "ddr_code_dir/ddr_config_define.h"
-#include "ddr_code_dir/ddr_param_define.h"
+#include "pmon/arch/mips/mm/ddr_config_define.h"
+#include "pmon/arch/mips/mm/ddr_param_define.h"
 #define DISABLE_DIMM_ECC
 #define PRINT_MSG
 //#define DEBUG_DDR
@@ -1296,6 +1297,7 @@ gs_2f_v3_ddr2_cfg:
     TTYDBG("\r\nStart Init Memory, wait a while......\r\n")
 #ifdef MULTI_NODE_INIT_MEM
 ####################################
+    TTYDBG("Use MULTI NODE Init Memory.\r\n")
     b       MEM_INIT_BEGIN
     nop
 
@@ -1303,6 +1305,7 @@ MEM_INIT_DONE:
 ####################################
 #else
 ####################################
+    TTYDBG("Use Single NODE Init Memory.\r\n")
     //wait the NODE scache enabled
     dli     t0, NODE0_CORE0_BUF0
     li      a1, NODE_SCACHE_ENABLED
@@ -1328,7 +1331,7 @@ MEM_INIT_DONE:
 #endif
 #endif
 #endif
-#include "ddr_code_dir/loongson3B_ddr_config.S"
+#include "pmon/arch/mips/mm/loongson3B_ddr_config.S"
 
 #if 0
     PRINTSTR("Skip other core:")
@@ -1350,7 +1353,7 @@ MEM_INIT_DONE:
 
     TTYDBG("NODE 1 MEMORY CONFIG BEGIN\r\n")
 #ifdef  AUTO_DDR_CONFIG
-    dli     s1, 0xff100000
+    dli     s1, 0xff320001
 #else
 #ifdef UDIMM_2G
     dli     s1, 0xc1e30401
@@ -1360,7 +1363,7 @@ MEM_INIT_DONE:
 #endif
 #endif
 #endif
-#include "ddr_code_dir/loongson3B_ddr_config.S"
+#include "pmon/arch/mips/mm/loongson3B_ddr_config.S"
 #endif
 
 #ifdef DUAL_3B
@@ -1374,7 +1377,7 @@ MEM_INIT_DONE:
 
     TTYDBG("NODE 2 MEMORY CONFIG BEGIN\r\n")
 #ifdef  AUTO_DDR_CONFIG
-    dli     s1, 0xff100000
+    dli     s1, 0xff540002
 #else
 #ifdef UDIMM_2G
     dli     s1, 0xc1e30402
@@ -1384,7 +1387,7 @@ MEM_INIT_DONE:
 #endif
 #endif
 #endif
-#include "ddr_code_dir/loongson3B_ddr_config.S"
+#include "pmon/arch/mips/mm/loongson3B_ddr_config.S"
 
     //wait the NODE scache enabled
     dli     t0, NODE3_CORE0_BUF0
@@ -1396,7 +1399,7 @@ MEM_INIT_DONE:
 
     TTYDBG("NODE 3 MEMORY CONFIG BEGIN\r\n")
 #ifdef  AUTO_DDR_CONFIG
-    dli     s1, 0xff100000
+    dli     s1, 0xff760003
 #else
 #ifdef UDIMM_2G
     dli     s1, 0xc1e30403
@@ -1406,7 +1409,7 @@ MEM_INIT_DONE:
 #endif
 #endif
 #endif
-#include "ddr_code_dir/loongson3B_ddr_config.S"
+#include "pmon/arch/mips/mm/loongson3B_ddr_config.S"
 #endif
 ####################################
 #endif
@@ -1415,7 +1418,8 @@ MEM_INIT_DONE:
 #ifdef ARB_LEVEL
     b       Mem_Init_over
     nop
-#include "ddr_code_dir/ARB_level.S"
+#define ARB_LEVEL_PAD
+#include "pmon/arch/mips/mm/ARB_level.S"
 Mem_Init_over:
 #endif
 ####################################
@@ -1424,7 +1428,7 @@ Mem_Init_over:
 #ifdef  DEBUG_DDR
     b       TM_over
     nop
-#include "ddr_code_dir/Test_Mem.S"
+#include "pmon/arch/mips/mm/Test_Mem.S"
 TM_over:
 
 #if 1
@@ -1454,30 +1458,26 @@ TM_over:
     sw      t1, FN_OFF(t0)
     nop
 
-#if 0
-    PRINTSTR("\r\nStart simple_test_mem......\r\n")
-1:
-    dli     t1, 0x0010
     dli     s1, 0x0004000080000000  //NODE 0, start from 0x80000000
-    dli     t0, 0xaaaaaaaaaaaaaaaa
-    bal     simple_test_mem
+#if 1
+    PRINTSTR("\r\ndefault s1 = 0x");
+    dsrl    a0, s1, 32
+    bal     hexserial
     nop
-    b       1b
+    PRINTSTR("__")
+    move    a0, s1
+    bal     hexserial
     nop
-#endif
-
-1:
-#if 0
-    PRINTSTR("\r\nPlease input 'abcd' to continue: ")
-10:
+    PRINTSTR("\r\nChange test param s1(0: skip)?: ")
     bal     inputaddress
     nop
-    dli     a1, 0xabcd
-    bne     a1, v0, 10b
+    beqz    v0, 1f
     nop
+    move    s1, v0
+1:
 #endif
+1:
     dli     t1, 0x0010
-    dli     s1, 0x0004000080000000  //NODE 0, start from 0x80000000
     bal     test_mem
     nop
     move    t1, v0
@@ -1488,21 +1488,11 @@ TM_over:
     move    a0, t1
     bal     hexserial
     nop
-    beqz    t1, 1b
+    beqz    t1, 2f
     nop
     PRINTSTR("  Error found!!\r\n")
-    b       1b
-    nop
-#if 1
 2:
-    b       2b
-    nop
-#endif
 
-    dli     s1, 0x0004000080000000  //NODE 0, start from 0x80000000
-    dli     t0, 0xaaaaaaaaaaaaaaaa
-    bal     simple_test_mem
-    nop
 3:
 #endif
 #########################################
@@ -2045,6 +2035,20 @@ LEAF(hexserial)
 	j	a2
 	nop
 END(hexserial)
+
+LEAF(hexserial64)
+    move t7,ra
+    move t6,a0
+    dsrl a0,32
+    bal hexserial
+    nop
+    move a0,t6
+    bal hexserial
+    nop
+    jr t7
+    nop
+END(hexserial64)
+
 //#define USE_LPC_UART # defined in pmon_cfg
 #ifdef USE_LPC_UART
 LEAF(tgt_putchar)
@@ -2323,7 +2327,11 @@ LEAF(tgt_putchar_COM1)
 END(tgt_putchar_COM1)
 
 
-#include "i2c.S"
+#include "pmon/arch/mips/mm/i2c.S"
+#ifdef AUTO_DDR_CONFIG
+#include "pmon/arch/mips/mm/detect_node_dimm.S"
+#endif
+
 __main:
 	j	ra
 	nop
@@ -2514,17 +2522,6 @@ tlb_flush_all:
         nop
 END(tlb_init)
 ###############################
-LEAF(hexserial64)
-  move t7,ra
-  move t6,a0
-  dsrl a0,32
-  bal hexserial
-  nop
-  move a0,t6
-  bal hexserial
-  nop
-  jr t7
-END(hexserial64)
 
 LEAF(godson2_cache_init)
 ####part 2####
@@ -2829,7 +2826,7 @@ NODE0_INIT_MEM:
 #endif
 #endif
 #endif
-#include "ddr_code_dir/loongson3B_ddr_config.S"
+#include "pmon/arch/mips/mm/loongson3B_ddr_config.S"
 
     dli     t0, NODE0_CORE0_BUF0
     sw      msize, SP_OFF(t0)
@@ -2870,7 +2867,7 @@ NODE1_INIT_MEM:
     PRINTSTR("NODE 1 MEMORY CONFIG BEGIN\r\n")
     dli     msize, 0
 #ifdef  AUTO_DDR_CONFIG
-    dli     s1, 0xff320000
+    dli     s1, 0xff320001
 #else
 #ifdef UDIMM_2G
     dli     s1, 0xc1e30401
@@ -2880,7 +2877,7 @@ NODE1_INIT_MEM:
 #endif
 #endif
 #endif
-#include "ddr_code_dir/loongson3B_ddr_config.S"
+#include "pmon/arch/mips/mm/loongson3B_ddr_config.S"
 
     dli     t0, NODE1_CORE0_BUF0
     sw      msize, SP_OFF(t0)
@@ -2920,7 +2917,7 @@ NODE2_INIT_MEM:
     PRINTSTR("NODE 2 MEMORY CONFIG BEGIN\r\n")
     dli     msize, 0
 #ifdef  AUTO_DDR_CONFIG
-    dli     s1, 0xff540000
+    dli     s1, 0xff540002
 #else
 #ifdef UDIMM_2G
     dli     s1, 0xc1e30402
@@ -2930,7 +2927,7 @@ NODE2_INIT_MEM:
 #endif
 #endif
 #endif
-#include "ddr_code_dir/loongson3B_ddr_config.S"
+#include "pmon/arch/mips/mm/loongson3B_ddr_config.S"
 
     dli     t0, NODE2_CORE0_BUF0
     sw      msize, SP_OFF(t0)
@@ -2971,7 +2968,7 @@ NODE3_INIT_MEM:
     PRINTSTR("NODE 3 MEMORY CONFIG BEGIN\r\n")
     dli     msize, 0
 #ifdef  AUTO_DDR_CONFIG
-    dli     s1, 0xff760000
+    dli     s1, 0xff760003
 #else
 #ifdef UDIMM_2G
     dli     s1, 0xc1e30403
@@ -2981,7 +2978,7 @@ NODE3_INIT_MEM:
 #endif
 #endif
 #endif
-#include "ddr_code_dir/loongson3B_ddr_config.S"
+#include "pmon/arch/mips/mm/loongson3B_ddr_config.S"
 
     dli     t0, NODE3_CORE0_BUF0
     sw      msize, SP_OFF(t0)
@@ -3509,7 +3506,8 @@ idle1000:
 /*********************************************/
 
 #######################################
-#include "ddr_code_dir/3B_ddr_config.S"
+//#define  MULTI_NODE_DDR_PARAM
+#include "pmon/arch/mips/mm/3B_ddr_config.S"
 
 
     .text

@@ -1,9 +1,7 @@
 	.align 12
-//NODE 0 leveled MC0 param
+//3A Node0 MC0/3B Node0 leveled param
+ddr2_reg_data_mc0_leveled:
 ddr2_reg_data_leveled:
-ddr2_RDIMM_reg_data_leveled:
-ddr3_reg_data_leveled:
-ddr3_RDIMM_reg_data_leveled:
 N0_Leveled_MC0_CTL_000 : .dword 0x0000010000000100
 //000000000000000_0 concurrentap(RW) 0000000_1 bank_split_en(RW) 0000000_0 auto_refresh_mode(RW) 0000000_0 arefresh(WR) 0000000_0 ap(RW) 0000000_1 addr_cmp_en(RW) 0000000_1 active_aging(RW) 
 N0_Leveled_MC0_CTL_010 : .dword 0x0000000100010000
@@ -293,11 +291,9 @@ N0_Leveled_MC0_CTL_b30 : .dword 0x00000c2d00000000
 //00000000000000000000110000101101 tdfi_wrlvl_resp(RW) 00000000000000000000000000000000 tdfi_wrlvl_max(RW) 
 
     .align  12
-//Node 1 leveled MC0 param
+//3A Node0 MC1/3B Node1 leveled param
+ddr2_reg_data_mc1_leveled:
 n1_ddr2_reg_data_leveled:
-n1_ddr2_RDIMM_reg_data_leveled:
-n1_ddr3_reg_data_leveled:
-n1_ddr3_RDIMM_reg_data_leveled:
 N1_Leveled_MC0_CTL_000 : .dword 0x0000010000000100
 //000000000000000_0 concurrentap(RW) 0000000_1 bank_split_en(RW) 0000000_0 auto_refresh_mode(RW) 0000000_0 arefresh(WR) 0000000_0 ap(RW) 0000000_1 addr_cmp_en(RW) 0000000_1 active_aging(RW) 
 N1_Leveled_MC0_CTL_010 : .dword 0x0000000100010000

@@ -669,7 +669,7 @@ boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
     bne     t6, a1, 88f
     nop
     GET_DIMM_TYPE
-    bnez    a1, 88f
+    bnez    a1, 4f
     nop
     ld      a1, GD_MIN(t8)
     ld      a3, GD_MAX(t8)
@@ -1578,7 +1578,7 @@ boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
     bne     t6, a1, 88f
     nop
     GET_DIMM_TYPE
-    bnez    a1, 88f
+    bnez    a1, 4f
     nop
     ld      a1, GD_MIN(t8)
     ld      a3, GD_MAX(t8)
