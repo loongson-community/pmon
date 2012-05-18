@@ -733,7 +733,7 @@ void
 dbginit (char *adr)
 {
 	unsigned long long	memsize, freq;
-	int	memfreq,clk,clk30,clk4;
+	int	memfreq,clk,clk30,clk4, clk20, clk34, mem_vco;
 	char	fs[10], *fp;
 	char	*s;
 
@@ -827,6 +827,14 @@ dbginit (char *adr)
 #else
         memfreq = 33*(clk30 + 30)/(clk4 + 3);/*to calculate memory frequency.we can find this function in loongson 3A manual,memclk*(clksel[8:5]+30)/(clksel[9]+3)*/
 #endif
+
+#ifdef LOONGSON_3BSINGLE
+         clk20 = clk & 0x07;
+         clk34 = (clk >> 3) & 0x03;
+         mem_vco = 33 * (20 + clk20 * 2 + (clk20 == 7) * 2);
+         memfreq = mem_vco / (1 << (clk34 + 1));
+#endif
+
          printf("/ Bus @ %d MHz\n",memfreq);
         }
         else
