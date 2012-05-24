@@ -481,6 +481,12 @@ int load_kernel_from_menu(Menu_Item* pItem)
 	char cmd[1025];
 	int is_root = 0;
 	int stat;
+	char *ds = NULL;
+        char *de = NULL;
+        int usbflag = 0;
+        int ret;
+        int devnum;
+
 
 	if (pItem == NULL)
 	{
@@ -525,6 +531,33 @@ int load_kernel_from_menu(Menu_Item* pItem)
 		printf("%s\n",cmd);
 #endif
 //		stat=do_cmd(cmd);
+#if 1       //deal with the bug that usb disk conflict to usb cd-rom
+
+		ds = strchr(cmd, '@');
+                if(ds)
+                {
+                        de = strstr(ds, "usb");
+                        if(de)
+                             usbflag = 1;
+
+                }
+                if(usbflag)
+                {
+                        de = strchr(ds, '/');
+                        if(de)
+                        {
+                           de--;
+                           for(devnum = 0; devnum < 4; devnum++)
+                           {
+                                stat = boot_kernel(cmd, 0, NULL, 0);
+                                if(!stat)
+                                   break;
+                                (*de)++;
+                           }
+                        }
+                }
+                else
+#endif
 		stat = boot_kernel(cmd, 0, NULL, 0);
 #ifdef MENU_DEBUG
 		printf("Load Kernel return %d\n",stat);
@@ -546,6 +579,11 @@ int load_initrd_from_menu(Menu_Item* pItem)
 	char cmd[1025];
 	int is_root = 0;
 	int stat;
+	char *ds = NULL;
+        char *de = NULL;
+        int usbflag = 0;
+        int ret;
+        int devnum;
 
 	if (pItem == NULL)
 	{
@@ -584,6 +622,33 @@ int load_initrd_from_menu(Menu_Item* pItem)
 		printf("%s\n",cmd);
 #endif
 //		stat=do_cmd(cmd);
+#if 1
+
+		 ds = strchr(cmd, '@');
+                if(ds)
+                {
+                        de = strstr(ds, "usb");
+                        if(de)
+                             usbflag = 1;
+
+                }
+                if(usbflag)
+                {
+                        de = strchr(ds, '/');
+                        if(de)
+                        {
+                           de--;
+                           for(devnum = 0; devnum < 4; devnum++)
+                           {
+                                stat = boot_initrd(cmd, 0x84000000,0);
+                                if(!stat)
+                                   break;
+                                (*de)++;
+                           }
+                        }
+                }
+                else
+#endif
 		stat = boot_initrd(cmd, 0x84000000,0);
 #ifdef MENU_DEBUG
 		printf("Load initrd return %d\n",stat);
