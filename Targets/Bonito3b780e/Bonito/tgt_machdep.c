@@ -659,12 +659,12 @@ tgt_devconfig()
     for (i = 0;i < 0x100000;i += 4)
     {
         //printf(" i = %x \n" , i);
-        *((volatile int *)(0xb0000010 + i)) = i;
+        *((volatile int *)(BONITO_PCILO_BASE_VA + i)) = i;
     }
 
     for (i = 0xffffc;i >= 0;i -= 4)
     {
-        if (*((volatile int *)(0xb0000010 + i)) != i)
+        if (*((volatile int *)(BONITO_PCILO_BASE_VA + i)) != i)
         {
             //printf(" not equal ====  %x\n" ,i);
             break;
