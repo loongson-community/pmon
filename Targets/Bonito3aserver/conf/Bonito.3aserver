@@ -45,23 +45,29 @@ select     	amd_780e
 ## VGA option ##
 option      SERVER_3A
 option		RS780E
-option          INTERFACE_3A780E
 option      USE_780E_VGA
 option      VGA_NO_ROM
 option		VGA_BASE=0xbe000000
 option      VRAM_SIZE=128
-option		VESAFB
 #option		DEBUG_EMU_VGA
 #option      CONFIG_GFXUMA
 option		AUTOLOAD
 
-#select		mod_x86emu		# X86 emulation for VGA
+#
+# GPU driver selection. Selects for video
+# Disable all options below to disable gpu driver 
+# Enable all options below to enble gpu driver 
+#
 select		mod_x86emu_int10
-select      mod_framebuffer
+select		mod_framebuffer
 select		mod_vesa
 select		mod_vgacon
-#############
+option		VESAFB
+option		INTERFACE_3A780E
 
+#
+# flash type selection. Selects flash support
+#
 select		mod_flash_amd		# AMD flash device programming
 select		mod_flash_intel		# intel flash device programming
 select		mod_flash_sst		# intel flash device programming
@@ -80,7 +86,7 @@ select		cmd_setup
 select		mod_display
 select		cmd_about		# Display info about PMON
 select		cmd_boot		# Boot wrapper
-select		cmd_mycmd
+select		cmd_mycmd		
 select		cmd_newmt
 select		cmd_cache		# Cache enabling
 #select		cmd_call		# Call a function command
@@ -114,8 +120,6 @@ select		ext2
 select		fatfs
 #select		mod_x86emu		# X86 emulation for VGA
 option 	MY40IO
-#select		mod_x86emu_int10
-#select		mod_vgacon
 option		NOPCINAMES		# Save some space for x86emu
 #option		FASTBOOT
 #select	    vt82c686        #via686a/b code

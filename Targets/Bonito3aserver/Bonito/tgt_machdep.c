@@ -34,6 +34,38 @@
 #define STDIN ((kbd_available|usb_kbd_available)?3:0)
 
 #include <include/stdarg.h>
+unsigned int mem_size = 0;
+
+#include <include/stdio.h>
+#include <include/string.h>
+#include <include/file.h>
+#include <include/termio.h>
+#include "target/sbd.h"
+
+#include "../../../pmon/cmds/cmd_main/window.h"
+#include "../../../pmon/cmds/cmd_main/cmd_main.h"
+
+// 
+#include <sys/ioccom.h>
+
+/* Generic file-descriptor ioctl's. */
+#define	FIOCLEX		 _IO('f', 1)		/* set close on exec on fd */
+#define	FIONCLEX	 _IO('f', 2)		/* remove close on exec */
+#define	FIONREAD	_IOR('f', 127, int)	/* get # bytes to read */
+#define	FIONBIO		_IOW('f', 126, int)	/* set/clear non-blocking i/o */
+#define	FIOASYNC	_IOW('f', 125, int)	/* set/clear async i/o */
+#define	FIOSETOWN	_IOW('f', 124, int)	/* set owner */
+#define	FIOGETOWN	_IOR('f', 123, int)	/* get owner */
+
+
+
+
+#define STDIN		((kbd_available|usb_kbd_available)?3:0)
+//include "sys/sys/filio.h"
+
+extern char * nvram_offs;
+
+
 void		tgt_putchar (int);
     int
 tgt_printf (const char *fmt, ...)
@@ -430,6 +462,7 @@ initmips(unsigned int raw_memsz)
     //memorysize_high = memsz > 256 ? (memsz - 256) << 20 : 0;
     memorysize = memsz > 240 ? 240 << 20 : memsz << 20;
     memorysize_high = memsz > 240 ? (((unsigned long long)memsz) - 240) << 20 : 0;
+    mem_size = memsz;
 
 #ifdef MULTI_CHIP
     memsz = raw_memsz & 0xff00;

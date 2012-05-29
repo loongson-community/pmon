@@ -987,9 +987,12 @@ int paint_childwindow(char **hint,char *diskdev_name[],char *netdev_name[],int e
 			/* Display Memory size */
 			sprintf(line, "Memory size: %dMB", mem_size);
 			w_bigtext(3,8,40,2,line);
+
+#if 0 /* below code only used for ls3a/3b/3c 780e board with rte0, other card not support
 			/* Display MAC address */
 			sprintf(line, "MACAddr0: %02x:%02x:%02x:%02x:%02x:%02x", 
 					MACAddr0[0],MACAddr0[1], MACAddr0[2],MACAddr0[3],MACAddr0[4],MACAddr0[5]);
+#endif
 			w_bigtext(3,12,40,2,line);
 			break;
 

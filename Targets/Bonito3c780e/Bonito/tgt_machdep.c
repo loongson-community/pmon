@@ -160,6 +160,7 @@ int bios_available;
 int usb_kbd_available;;
 int vga_available;
 int cmd_main_mutex = 0;
+int bios_mutex = 0;
 
 static int md_pipefreq = 0;
 static int md_cpufreq = 0;
@@ -866,13 +867,13 @@ run:
               }
 
   
+#endif
 	printf("devconfig done.\n");
 
 	sb700_interrupt_fixup();
 
 
 }
-#endif
 extern int test_icache_1(short *addr);
 extern int test_icache_2(int addr);
 extern int test_icache_3(int addr);

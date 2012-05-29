@@ -31,7 +31,7 @@
  *
  */
 #include <include/stdarg.h>
- unsigned int mem_size = 0;
+unsigned int mem_size = 0;
 
 #include <include/stdio.h>
 #include <include/string.h>

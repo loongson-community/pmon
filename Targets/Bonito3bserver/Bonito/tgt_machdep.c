@@ -34,6 +34,7 @@
 #define STDIN ((kbd_available|usb_kbd_available)?3:0)
 
 #include <include/stdarg.h>
+unsigned int mem_size = 0;
 void		tgt_putchar (int);
     int
 tgt_printf (const char *fmt, ...)
@@ -134,6 +135,7 @@ int bios_available;
 int usb_kbd_available;;
 int vga_available;
 int cmd_main_mutex = 0;
+int bios_mutex = 0;
 
 static int md_pipefreq = 0;
 static int md_cpufreq = 0;
@@ -431,6 +433,7 @@ initmips(unsigned int raw_memsz)
     //memorysize_high = memsz > 256 ? (memsz - 256) << 20 : 0;
     memorysize = memsz > 240 ? 240 << 20 : memsz << 20;
     memorysize_high = memsz > 240 ? (((unsigned long long)memsz) - 240) << 20 : 0;
+    mem_size = memsz;
 
 #ifdef MULTI_CHIP
     memsz = raw_memsz & 0xff00;
