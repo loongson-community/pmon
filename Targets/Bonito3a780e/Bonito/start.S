@@ -414,175 +414,81 @@ li	bonito,PHYS_TO_UNCACHED(BONITO_REG_BASE)
 
 loop_here:
 
+#define BOOT_COREID 		0x0       //set the boot core
+#define SCACHE_INIT_FLAG	0x123456 
+
 //Open 64-bit address space
-mfc0    t0, CP0_STATUS
-li      t1, 0x00e0      # {cu3,cu2,cu1,cu0}<={0110, status_fr<=1
-	or      t0, t0, t1
+		mfc0    t0, CP0_STATUS
+		li      t1, 0x00e0      # {cu3,cu2,cu1,cu0}<={0110, status_fr<=1
+		or      t0, t0, t1
 		mtc0    t0, CP0_STATUS
 
-
+		
 		.set 	mips64
 		mfc0	t0, $15, 1
 		.set 	mips3
 		andi	t0, 0x3ff
+		nop
+				
 		//bnez 	t0, loop_here
 		//li      a0, 0x3
 		//bne 	t0, a0, slave_main
 
-#if 1 /* clear Mail BOX */
 #define CORE0_BUF0 0x900000003ff01020
 #define CORE1_BUF0 0x900000003ff01120
 #define CORE2_BUF0 0x900000003ff01220
 #define CORE3_BUF0 0x900000003ff01320
 
+	// step 0. get core id and node id  
+
 		dli     t1, CORE0_BUF0
-		andi    t3, t0, 0x3  #local cpuid
+		andi    t3, t0, 0x3  #get core id
 		dsll    t3, 8
 		or      t1, t1, t3
 
-		andi    t4, t0, 0xc  #node id
+		andi    t4, t0, 0xc  #get node id
 		dsll    t4, 42
-		or      t1, t1, t4
-
-
-		//dsll    t0, t0, 0x8
-		//or      t1, t1, t0
+		or      t1, t1, t4   #t1 means current core mail box address 
 
 		dli     a0, 0x0
-		sd      a0, 0x0(t1)
-#endif
+		sd      a0, 0x0(t1)  
+
+	/************************************************************ 
+	 *
+	 *   step 1. check whether current core is main core  
+	 *        if current core isn't main core, init some scache first;
+	 *        if current core is main core, init left scache later.
+	 * 	  core with coreid init: 0x9800000000000000 + 0x40000 * coreid
+	 *
+	************************************************************/ 
+		andi    t3, t0, 0x3  #get core id
+		beq		t3, BOOT_COREID, scache_slave_init_over
+		nop
+		dli		a0, 0x9800000000000000
+		dsll	t3, 18
+		or      a0, a0, t3
+init_slave_cache:
+		bal     scache_init_64_fast 
+		nop
+	/************************************************************ 
+	 *
+	 *   step 2.  get mail box buffer address of current core and
+	 *	      set slave sache init over flag
+	************************************************************/ 
+        	dli     a1, SCACHE_INIT_FLAG
+        	sd      a1, 0x0(t1)
+
+scache_slave_init_over:
+		.set 	mips64
+		mfc0	t0, $15, 1
+		.set 	mips3
+		andi	t0, 0x3
+		nop
+		li      a0, BOOT_COREID
+		bne     t0, a0, slave_main
+		nop
 
 		bal	initserial
-		nop
-		bal     initserial1
-		nop
-		//#define DEBUG_LS3
-#ifdef DEBUG_LS3
-		dli     a0, 0xfff
-		and     t1, t1, a0
-		dsll    t1, t1, 10
-		1:
-		bnez    t1, 1b
-		daddi   t1, t1, -1
-
-
-		PRINTSTR("CP0_STATUS:")
-		mfc0    a0, CP0_STATUS
-		bal	    hexserial
-		nop
-		PRINTSTR("\r\n\r\n")
-
-
-		sync
-		sync
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		PRINTSTR("sync ok\r\n")
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		1:
-		bnez    t0, 1b
-		nop
-#endif
-
-// core3 to init 1MB (0-1MB)
-        li      a0, 0x3
-        bne     t0, a0, 1f
-        nop
-
-	dli a0, 0x9800000000000000
-	bal     scache_init_64_fast // whd
-	nop
-
-        dli      a0, CORE3_BUF0
-        dli      a1, 0x12345678
-        sd      a1, 0x0(a0)
-
-1:
-//	  core2 to init 1MB (1-2MB)
-          li      a0, 0x2
-          bne     t0, a0, 1f
-          nop
-
-	dli	a0, 0x9800000000040000
-	bal     scache_init_64_fast // whd
-	nop
-
-            dli      a0, CORE2_BUF0
-            dli      a1, 0x12345678
-            sd      a1, 0x0(a0)
-
-1:
-	 // core1 to init 1MB (2-3MB)
-         li      a0, 0x1
-         bne     t0, a0, 1f
-         nop
-
-	dli	a0, 0x9800000000080000
-	bal     scache_init_64_fast // whd
-	nop
-
-           dli      a0, CORE1_BUF0
-           dli      a1, 0x12345678
-           sd      a1, 0x0(a0)
-
-
-1:
-
-		li      a0, 0x0
-		bne     t0, a0, slave_main
-#bnez 	t0, slave_main
 		nop
 
 #if 0 /* Niuxie Tube */
@@ -1174,58 +1080,73 @@ gs_2f_v3_ddr2_cfg:
 		//TTYDBG("Init caches...\r\n")
 
 #if 1
-		//mfc0    a0, COP_0_PRID
-		//li      a1, 0x6301
-		//bne     a0,a1,1f
-		//nop
 		TTYDBG("godson2 caches found\r\n")
 		bal     godson2_cache_init
 		nop
-		TTYDBG("scache init node 0\r\n")
-		//bal	scache_init // smh
-       // wait core3 L2-cache init done
-                dli      a0, CORE3_BUF0
-	        dli      a1, 0x12345678
-	1:
-        	lw      t0, 0x0(a0)
-        	bne     t0, a1, 1b
-        	nop
+	
 
-        	sw      $0, 0x0(a0)
-              // wait core2 L2-cache init done
-	        dli      a0, CORE2_BUF0
-		dli      a1, 0x12345678
-	1:
-        	lw      t0, 0x0(a0)
-        	bne     t0, a1, 1b
-        	nop
+	 //step 0. get current core id and node id  
+		.set 	mips64
+		mfc0	t0, $15, 1
+		.set 	mips3
+		andi	t0, 0x3ff
+		nop
 
-        	sw      $0, 0x0(a0)
+		dli     t1, CORE0_BUF0
+		andi    t3, t0, 0x3  #get core id
+		dsll    t3, 8
+		or      t1, t1, t3
 
-		// wait core1 L2-cache init done
-        	dli      a0, CORE1_BUF0
-       		dli      a1, 0x12345678
-	1:
-        	lw      t0, 0x0(a0)
-        	bne     t0, a1, 1b
-        	nop
+		andi    t4, t0, 0xc  #get node id
+		dsll    t4, 42
+		or      t1, t1, t4   #t1 means current mail box 
 
-        	sw      $0, 0x0(a0)
-            //core 0 to init cache 1M
-           dli a0, 0x98000000000c0000
-         bal     scache_init_64_fast // whd
-        nop
+	 //step 1. check mail box of all slave core
+		li	a0, CORE0_BUF0	/*NOTICE HERE: ONLY FOR SINGLE ls3a NOW */
+		dli	a1, 0x100
+		li	t0, 0x000		// used to clear mail box of slave core
+		
+check_next_core:  
+		bne	a0, t1, check_current_core 
+		nop
+		daddu	a0, a0, a1  /* skip_current_core */
+		beq	a0, 0x900000003ff01420, wait_scache_out
+		nop
+		b		check_next_core
+		nop
+check_current_core:
+		nop
+		ld	t2, 0x0(a0)
+		bne	t2, SCACHE_INIT_FLAG, check_current_core
+		nop
+		sd	t0, 0x0(a0)
+		
+		daddu	a0, a0, a1
+		beq	a0, 0x900000003ff01420, wait_scache_out
+		nop
+		b	check_next_core
+		nop
+		
+wait_scache_out:
+        //main core to init its scache 
+		dli 	a0, 0x9800000000000000
+		dsll	t3, 10 
+		or      a0, a0, t3
+        bal     scache_init_64_fast // whd
+		nop
 
+		dli		t2, SCACHE_INIT_FLAG
+		//dli     t1, CORE0_BUF0	/* Notice here: only for single ls3a now */
+		sd		t2, 0x00(t1) // by xqch write back to 
 
-	//	dli a0, 0x9800000000000000
-	//	bal	scache_init_64 // whd
-	//	nop
 #ifdef MULTI_CHIP
 		TTYDBG("scache init node 1\r\n")
 		dli a0, 0x9800100000000000
 		bal	scache_init_64 // whd
 		nop
 #endif
+
+		TTYDBG("scache init node 0\r\n")
 #endif
 
 #if 1
@@ -1851,13 +1772,6 @@ TM_over:
 		//dsrl	msize,20
 		move	a0,msize
 
-#if 1 
-
-		dli     t0, CORE0_BUF0 #buf of cpu0
-		li      t1, 0x5a5a
-		sw      t1, 0(t0)
-		nop
-#endif
 		la	v0, initmips
 		jalr	v0
 		nop
@@ -1988,8 +1902,6 @@ TM_over:
 		beqz	a0, 2f
 		nop
 		bal	tgt_putchar
-		nop
-		bal     tgt_putchar1
 		addiu	a1, 1
 		b	1b
 		lbu	a0, 0(a1)
@@ -2083,24 +1995,6 @@ TM_over:
 		nop	
 		END(tgt_putchar)
 #endif
-		 LEAF(tgt_putchar1)
-                la      v0,GS3_UART1_BASE
-                1:
-                lbu     v1, NSREG(NS16550_LSR)(v0)
-                and     v1, LSR_TXRDY
-#       li      v1, 1
-                beqz    v1, 1b
-                nop
-
-                sb      a0, NSREG(NS16550_DATA)(v0)
-                move    v1, v0
-                la      v0, GS3_UART1_BASE
-                bne     v0, v1, 1b
-                nop
-
-                j       ra
-                nop
-                END(tgt_putchar1)
 
 		LEAF(beep_on)
 		nop
@@ -2237,33 +2131,6 @@ TM_over:
 		nop
 		END(initserial)
 #endif
- 		LEAF(initserial1)
-                li  a0, GS3_UART1_BASE
-
-                li      t1,128
-#       addiu   a2,a0,3
-                sb      t1,3(a0)
-                li      t1,0x12      # divider, highest possible baud rate
-                sb      t1,0(a0)
-                li      t1,0x0     # divider, highest possible baud rate
-                sb      t1,1(a0)
-                li      t1,3
-                sb      t1,3(a0)
-
-#srl    t1,t1,0x8
-                li      t1,0
-                sb      t1,1(a0)
-#li     t1,1      # divider, highest possible baud rate
-
-
-                li      t1,71
-                sb      t1,2(a0)
-                jr      ra
-		nop
-                END(initserial1)
-
-
-
 
 		LEAF(initserial_COM1)
 		la	v0, COM1_BASE_ADDR
@@ -2824,15 +2691,31 @@ cache_init_finish:
 
 
 #endif
+		  
+				bal 	tlb_init
+				nop
 
 #if 1 
-
-				dli     t0, CORE0_BUF0 #buf of cpu0
-				myidle:
-				lw      a0, 0(t0)
-				beqz    a0, myidle
+				/**********************************************/
+				/**** add to wait boot core scache init over **/  
+				dli     t1, CORE0_BUF0	/* Notice here: only for single ls3a now */
+				dli		t3, BOOT_COREID
+				dsll    t3, 8
+				or      t1, t1, t3
+wait_sache_allover:
 				nop
+				ld	t0, 0x00(t1)
+				dli	t2, SCACHE_INIT_FLAG
+				bne	t0, t2, wait_sache_allover
+				nop
+				/**********************************************/
 #endif
+
+/*
+slave_inter_loop1:
+	b  slave_inter_loop1;
+	nop
+*/
 
 #if 0
 				li      a0, 0x100000
@@ -2841,13 +2724,10 @@ cache_init_finish:
 				bnez    a0, myidle
 				nop
 #endif
-
 				//PRINTSTR("$$$$$$$$!!\r\n");
 
 #if 1 /* gx */
-				bal 	tlb_init
 
-				nop
 				bal     godson2_cache_init
 				nop
 
@@ -2967,6 +2847,11 @@ cache_init_finish:
 	ld      a1, A1_OFF(t0)
 
 	//PRINTSTR("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& !!\r\n");
+/*
+slave_inter_loop:
+	b  slave_inter_loop;
+	nop
+*/ //xqch
 
 	jalr    v0  #byebye 
 	nop
