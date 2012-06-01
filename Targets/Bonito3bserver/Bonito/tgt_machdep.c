@@ -2855,7 +2855,7 @@ void sb700_interrupt_fixup(void)
 	// below added to check pci/pcie interrupt line register
 	/*******************************************************/
 	// 10.1 check all pcie slot interrupt line register
-    for ( tmp == 2; tmp < 7; tmp++)
+    for ( tmp = 2; tmp < 7; tmp++)
     {
       dev = _pci_make_tag(tmp, 0x0, 0x0);
       val = pci_read_config32(dev, 0x00);
@@ -2868,7 +2868,7 @@ void sb700_interrupt_fixup(void)
     }
       
 	// 10.2 check all pci slot interrupt line register
-    for ( tmp == 0x4; tmp < 0x6; tmp++)
+    for ( tmp = 0x4; tmp < 0x6; tmp++)
     {
       dev = _pci_make_tag(0xa, dev, 0x0);
       val = pci_read_config32(dev, 0x00);
