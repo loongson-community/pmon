@@ -167,12 +167,17 @@
     dmtc0   t0, CP0_DESAVE
 	li		t0,	CONTEXTREG	     
     sd      t1, 0x08(t0)
+    dmfc0   t1, CP0_DESAVE
+	sd		t1, 0x00(t0)	// save t0
+	li		t0,	CONTEXTREG	     
     sd      t2, 0x10(t0)
     sd      t3, 0x18(t0)
     sd      t4, 0x20(t0)
     sd      t5, 0x28(t0)
     sd      t6, 0x30(t0)
     sd      t7, 0x38(t0)
+    sd      t8, 0x40(t0)
+    sd      t9, 0x48(t0)
     dmfc0   t1, CP0_STATUS
 	li		t0, EJTAG_STATUS
     sd      t1, 0x00(t0)
@@ -246,6 +251,8 @@ tlbdump_end:
     ld      t5, 0x28(t0)
     ld      t6, 0x30(t0)
     ld      t7, 0x38(t0)
+    ld      t8, 0x40(t0)
+    ld      t9, 0x48(t0)
 	#mtc0	t8, CP0_STATUS_REG
 	#ld		t8, 0x48(t0)
 	#mtc0	t8, CP0_CONFIG
@@ -523,6 +530,8 @@ tlbdump_end:
     ld      t5, 0x28(t0)
     ld      t6, 0x30(t0)
     ld      t7, 0x38(t0)
+    ld      t8, 0x40(t0)
+    ld      t9, 0x48(t0)
 	#mtc0	t8, CP0_STATUS_REG
 	#ld		t8, 0x48(t0)
 	#mtc0	t8, CP0_CONFIG
