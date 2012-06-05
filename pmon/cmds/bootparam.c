@@ -183,6 +183,8 @@ struct efi_memory_map_loongson * init_memory_map()
 struct efi_cpuinfo_loongson *init_cpu_info()
 {
   struct efi_cpuinfo_loongson *c = &g_cpuinfo_loongson;
+  u32 available_core_mask = 0;
+  u32 available = 0;
 
   c->processor_id = PRID_IMP_LOONGSON;
   c->cputype  = cputype;
@@ -204,9 +206,16 @@ struct efi_cpuinfo_loongson *init_cpu_info()
 #ifdef LOONGSON_3ASINGLE
   c->total_node = 1;
   c->nr_cpus = 4;
+  available_core_mask = (__raw_readd(0xbfe00194ull) & 0xf0000);
+  available = ((available_core_mask >> 16) & 0xf);
+  while(available)
+  {
+	c->nr_cpus -= available & 0x1;
+	available >>= 1;
+  }
 #endif
 
-  c->cpu_startup_core_id = 0;
+  c->cpu_startup_core_id = (available_core_mask >> 16) & 0xf;
 
 return c;
 }

@@ -213,6 +213,21 @@ do_mt(u_int32_t *saddr, u_int32_t *eaddr, int vflag)
 	return (err);
 }
 
+unsigned long long __raw_readd(unsigned long d)
+{
+  unsigned long long ret; 
+
+  asm volatile(
+      ".set mips3;\r\n"  
+      "lw   $2,%1;\r\n"  
+      "lw   $2,($2);\r\n"  
+      "sw   $2,%0;\r\n"  
+      ::"m"(ret), "m" (d)
+      :"$2");
+
+    return ret; 
+}
+
 unsigned long long __raw_readq(unsigned long long q)
 {
   unsigned long long ret; 
