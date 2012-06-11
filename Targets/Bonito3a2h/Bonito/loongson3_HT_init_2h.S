@@ -47,6 +47,16 @@
 
 #endif
 
+// below added for ls2h dc frame buffer
+  
+ //map 0x90000e00_00000000 --> 0x40000000
+    dli t1, 0x0000000040000000
+    sd  t1, 0x18(t0)
+    dli t1, 0xffffffffc0000000
+    sd  t1, 0x58(t0)
+    dli t1, 0x00000e00000000f7
+    sd  t1, 0x98(t0)
+
 #if 0
  //HT Space enable
  //map 0x90000e00_00000000 --> 0x90000e00_00000000
@@ -477,11 +487,12 @@ buffer_check_out:
 
 #endif
 
-	TTYDBG("Set some space in 2H HT receive space UNCACHED: 0x10000000 - 0x2000000\r\n")
+	TTYDBG("Set some space in 2H HT receive space UNCACHED: 0x00000000 - 0x2000000\r\n")
 	dli	    t2, 0x90000efdfe000000
     dli     t3, 0x80000000
     sw      t3, 0xf0(t2)
-    dli     t3, 0x0010fff0
+    //dli     t3, 0x0010fff0
+    dli     t3, 0x0000ffe0
     sw      t3, 0xf4(t2)
 
 #endif

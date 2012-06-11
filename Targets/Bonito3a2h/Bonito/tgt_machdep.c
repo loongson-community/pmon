@@ -618,7 +618,7 @@ unsigned int addr;
 	/*
 	 * Launch!
 	 */
-	_pci_conf_write(_pci_make_tag(0,0,0),0x90,0xff800000); 
+	//_pci_conf_write(_pci_make_tag(0,0,0),0x90,0xff800000); 
 	main();
 }
 
@@ -632,9 +632,14 @@ int psaux_init(void);
 extern int video_hw_init (void);
 extern int init_win_device(void);
 extern int fb_init(unsigned long,unsigned long);
+extern int dc_init();
 
+#ifdef RS780E 
 extern unsigned long long uma_memory_base;
 extern unsigned long long uma_memory_size;
+#endif
+
+#define LS2H
 
 void
 tgt_devconfig()
@@ -672,7 +677,7 @@ tgt_devconfig()
         }
     }
 
-//    printf(" ====================  frame buffer test end======================:%x \n" , test);
+    printf(" ====================  frame buffer test end======================:%x \n" , test);
 #endif
 #endif
 #endif
@@ -691,22 +696,32 @@ tgt_devconfig()
 	rc = radeon_init();
 #endif
 #if NMOD_FRAMEBUFFER > 0
-	vga_available=0;
+#if 0
 	if(!vga_dev) {
 		printf("ERROR !!! VGA device is not found\n"); 
 		rc = -1;
 	}
+#endif
 	if (rc > 0) {
+#if 0
 		fbaddress  =_pci_conf_read(vga_dev->pa.pa_tag,0x10);
 		ioaddress  =_pci_conf_read(vga_dev->pa.pa_tag,0x18);
 
 		fbaddress = fbaddress &0xffffff00; //laster 8 bit
 		ioaddress = ioaddress &0xfffffff0; //laster 4 bit
+#endif
+
+#ifdef LS2H
+		printf("begin fb_init\n");
+		fbaddress = dc_init();
+		fbaddress |= 0xc0000000; //NOTICE HERE: map to mem on ls2h
+		vga_available=1;
+#endif
 
 #if NMOD_SISFB
 		fbaddress=sisfb_init_module();
-#endif
 		printf("fbaddress 0x%x\tioaddress 0x%x\n",fbaddress, ioaddress);
+#endif
 
 #if NMOD_SMI712 > 0
 		fbaddress |= 0xb0000000;
@@ -723,16 +738,15 @@ tgt_devconfig()
                 ioaddress |= 0xb0000000;
 #endif
 
+#ifdef RS780E 
 #ifdef CONFIG_GFXUMA
 		fbaddress = 0x50000000; // virtual address mapped to the second 256M memory
 #else
 		fbaddress = uma_memory_base | BONITO_PCILO_BASE_VA;
 #endif
+#endif
 		printf("fbaddress = %08x\n", fbaddress);
-
-		printf("begin fb_init\n");
 		fb_init(fbaddress, ioaddress);
-		printf("after fb_init\n");
 
 	} else {
 		printf("vga bios init failed, rc=%d\n",rc);
@@ -1230,7 +1244,7 @@ tgt_devinit()
 }
 #endif
 
-	_pci_businit(1);	/* PCI bus initialization */
+//	_pci_businit(1);	/* PCI bus initialization */
 #if defined(VIA686B_POWERFIXUP) && (PCI_IDSEL_VIA686B != 0)
 if(getenv("noautopower"))	vt82c686_powerfixup();
 #endif
@@ -2081,10 +2095,12 @@ tgt_mapenv(int (*func) __P((char *, char *)))
 	sprintf(env, "%d",VRAM_SIZE);
 	(*func)("vramsize", env);
 
+#ifdef RS780E 
 #ifdef CONFIG_GFXUMA
 	sprintf(env, "%d",1);
 #else
 	sprintf(env, "%d",0);
+#endif
 #endif
 	(*func)("sharevram", env);
 

@@ -51,6 +51,9 @@ option      BONITO_33M
 #select     	amd_2h
 select     	loongson2h
 
+option          X800x600
+option          CONFIG_VIDEO_16BPP
+
 ## VGA option ##
 option      SERVER_3A
 #option		RS780E
@@ -66,9 +69,9 @@ option      VRAM_SIZE=128
 
 #select		mod_x86emu		# X86 emulation for VGA
 #select		mod_x86emu_int10
-#select      mod_framebuffer
+select      mod_framebuffer
 #select		mod_vesa
-#select		mod_vgacon
+select		mod_vgacon
 #############
 select		mod_flash_amd		# AMD flash device programming
 select		mod_flash_intel		# intel flash device programming

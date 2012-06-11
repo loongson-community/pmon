@@ -7,7 +7,11 @@
 #if defined(FCRSOC)||defined(BONITOEL)
 
 #if defined(LS3_HT)||defined(LS2G_HT)
+#if defined(LOONGSON_3A2H)
+#define mips_io_port_base 0xbff00000 // for keyboard connected with ls3a lpc 
+#else
 #define mips_io_port_base BONITO_PCIIO_BASE_VA
+#endif
 #else
 #define mips_io_port_base 0xbfd00000
 #endif
