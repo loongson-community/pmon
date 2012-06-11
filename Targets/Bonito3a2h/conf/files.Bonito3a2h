@@ -60,6 +60,8 @@ attach  gt at localbus
 device	lahci {[channel = -1]} :ahcibus
 attach	lahci at localbus
 
+device	lohci {[channel = -1]} :usbbus
+attach	lohci at localbus
 #
 # Media Indepedent Interface (mii)
 #

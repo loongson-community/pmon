@@ -76,6 +76,7 @@
 #include <dev/pci/pcidevs.h>
 #include <sys/device.h>
 
+#include <autoconf.h>
 #include "usb.h"
 #include "usb-ohci.h"
 
@@ -455,6 +456,149 @@ static int ohci_match(struct device *parent, void *match, void *aux)
 
 extern struct hostcontroller host_controller;
 extern struct usb_device * usb_alloc_new_device(void *hc_private);
+#ifdef LOONGSON_3A2H
+static int lohci_match(struct device *parent, void *match, void *aux)
+{
+ return 1;
+}
+static void lohci_attach(struct device *parent, struct device *self, void *aux)
+{
+	struct ohci *ohci = (struct ohci*)self;
+	struct confargs *cf = (struct confargs *)aux;
+	static int ohci_dev_index = 0;
+	int val;
+//#define  OHCI_PCI_MMBA 0x10
+//	pci_chipset_tag_t pc = pa->pa_pc;
+//	bus_space_tag_t memt = pa->pa_memt;
+//	bus_addr_t membase; 
+//	bus_addr_t memsize;
+//	int cachable;
+//#ifdef CONFIG_SM502_USB_HCD
+//	bus_addr_t membase2;
+//	bus_addr_t memsize2;
+//#endif
+	/* Or we just return false in the match function */
+	if(ohci_dev_index >= MAX_OHCI_C) {
+		printf("Exceed max controller limits\n");
+		return;
+	}
+//#ifdef USB_OHCI_NO_ROM 
+//	if(PCI_VENDOR(pa->pa_id) == 0x1033){
+//		val = pci_conf_read(ohci->sc_pc, pa->pa_tag, 0xe0);
+//		pci_conf_write(ohci->sc_pc, pa->pa_tag, 0xe0, (val & ~0x3) | 0x3);
+//		//pci_conf_write(ohci->sc_pc, pa->pa_tag, 0xe0, (val & ~0x7) | 0x4);
+//		//pci_conf_write(ohci->sc_pc, pa->pa_tag, 0xe4, (1<<5));
+//	}
+//#endif
+	usb_ohci_dev[ohci_dev_index++] = ohci;
+//#ifdef CONFIG_SM502_USB_HCD
+//	if(PCI_VENDOR(pa->pa_id) == 0x126f) {
+//		pci_mem_find(pc, pa->pa_tag, 0x14, &membase, &memsize, &cachable);
+//		sm502_reg_base = membase | 0xb0000000;
+//		printf("sm502-usb membase %x\n", membase);
+//		membase = membase + 0x40000;
+//		ohci->flags = 0x80;
+//		goto SM502_HC;
+//	}
+//#endif
+
+//#ifdef LMDEXXON
+//#define USB_MASK_WEBCAM 0x01
+//#define USB_MASK_SD		0x02
+//	if(pa->pa_device == 15 && pa->pa_function == 0) {
+//		ohci->hc.notify = ohci_device_notify;
+//		//ohci->hc.port_mask = 0x02; /*ht keyboard*/ 
+//	}
+
+//	if(pa->pa_device == 17) {
+//		unsigned char *envstr;
+
+//		/*not probe webcam and sd-reader*/
+//		ohci->hc.port_mask = USB_MASK_WEBCAM | USB_MASK_SD;
+//		if((envstr = getenv("webcam"))&&!strcmp("yes", envstr))
+//			ohci->hc.port_mask &= ~USB_MASK_WEBCAM;
+//		if((envstr = getenv("sdc"))&&!strcmp("yes",envstr))
+//			ohci->hc.port_mask &= ~USB_MASK_SD;
+//	}
+//#endif
+//#ifdef LOONGSON2F_7INCH
+
+//#define PCI_DEVICE_CS5536_ID 14
+//#define PCI_DEVICE_UPD710102_ID 9
+//#define USB_MASK_PORT0 (1 << 0)
+//#define USB_MASK_PORT3 (1 << 3)
+//    if(pa->pa_device == PCI_DEVICE_UPD710102_ID){
+//        /*not probe webcam */
+//		char * envstr;
+//        ohci->hc.port_mask = USB_MASK_PORT0;
+//        if((envstr = getenv("webcam"))&&!strcmp("yes", envstr)){
+//            ohci->hc.port_mask &= ~USB_MASK_PORT0;
+//        }
+//    }
+//    if(pa->pa_device == PCI_DEVICE_CS5536_ID){
+//        /*no probe of sd-reader as default */
+//		char *envstr;
+//        ohci->hc.port_mask = USB_MASK_PORT0;
+//        if((envstr = getenv("sdc"))&&!strcmp("yes", envstr)){
+//            ohci->hc.port_mask &= ~USB_MASK_PORT0;
+//        }
+//		ohci->hc.port_mask |= USB_MASK_PORT3; /*wifi*/
+//    }
+//#endif
+  //if(pci_mem_find(pc, pa->pa_tag, OHCI_PCI_MMBA, &membase, &memsize, &cachable)){
+  //printf("Can not find mem space for ohci\n");
+  //return;
+  //}
+//#ifdef CONFIG_SM502_USB_HCD
+//SM502_HC:
+//	if((ohci->flags & 0x80) && pci_mem_find(pa->pa_pc, pa->pa_tag, 0x10, &membase2, &memsize2, &cachable))
+//	{
+//		printf("can not locate sm501 usb mem \n");
+//		return;
+//	}
+//#endif
+  ohci->sc_sh = cf->ca_baseaddr;
+  //if(bus_space_map(memt, membase, memsize, 0, &ohci->sc_sh)){
+  //printf("Cant map mem space\n");
+  //return;
+  //}
+//#ifdef CONFIG_SM502_USB_HCD
+//	/*Can not be failed*/
+//	if(ohci->flags & 0x80)
+//		sm502_mem_init(ohci, membase2, memsize2);
+//#endif
+  //set usb_rstn bit in chip_config0 reg before access usb regs
+  *(u32*)(0xbbd00200) = *(u32*)(0xbbd00200) | (0x01 << 26);
+	usb_lowlevel_init(ohci);
+	ohci->hc.uop = &ohci_usb_op;
+	/*
+	 * Now build the device tree
+	 */
+  TAILQ_INSERT_TAIL(&host_controller, &ohci->hc, hc_list);
+#if 0
+	usb_scan_devices(ohci);
+#else
+	ohci->sc_ih = pci_intr_establish(pc, ih, IPL_BIO, hc_interrupt, ohci,
+	   self->dv_xname);
+#endif
+	ohci->rdev = usb_alloc_new_device(ohci);
+
+    /*do the enumeration of  the USB devices attached to the USB HUB(here root hub) 
+    ports.*/
+    usb_new_device(ohci->rdev);
+}
+struct cfattach lohci_ca = {
+	.ca_devsize = sizeof(struct ohci),
+	.ca_match 	= lohci_match,
+	.ca_attach 	= lohci_attach,
+};
+
+struct cfdriver lohci_cd = {
+	.cd_devs = NULL,
+	.cd_name = "ohci",
+	.cd_class = DV_DULL,
+};
+#endif
 
 
 /*===========================================================================
@@ -2833,7 +2977,9 @@ static int hc_start (ohci_t * ohci)
 	//fminterval |= ((((fminterval - 210) * 6) / 7) << 16);
 	writel (fminterval, &ohci->regs->fminterval);
 	writel (0x628, &ohci->regs->lsthresh);
-
+#ifdef LOONGSON_3A2H
+  	writel (readl(&ohci->regs->roothub.b) | 0xffff0000,  &ohci->regs->roothub.b);
+#endif
 	/* start controller operations */
 	ohci->hc_control = OHCI_CONTROL_INIT | OHCI_USB_OPER;
 	ohci->disabled = 0;
@@ -3097,6 +3243,199 @@ static void hc_release_ohci (ohci_t *ohci)
 *                  not aligned or OHCI initialization error.  
 *              0 : indicates that initialization finished successfully.
 *===========================================================================*/
+#ifdef LOONGSON_3A2H
+int usb_lowlevel_init(ohci_t *gohci)
+{
+
+	struct ohci_hcca *hcca = NULL;
+	struct ohci_device *ohci_dev = NULL;
+	td_t *gtd = NULL;
+	unsigned char *tmpbuf;
+	dbg("in usb_lowlevel_init\n");
+//#ifdef CONFIG_SM502_USB_HCD
+//	if(gohci->flags & 0x80){
+//		hcca = sm502_mem_alloc(gohci, sizeof(struct ohci_hcca));
+//		memset(hcca, 0, sizeof(*hcca));
+//	} 
+//	else 
+//#endif
+	{
+		hcca = malloc(sizeof(*gohci->hcca), M_DEVBUF, M_NOWAIT);
+		memset(hcca, 0, sizeof(*hcca));
+		//pci_sync_cache(gohci->sc_pc, (vm_offset_t)hcca, sizeof(*hcca), SYNC_W);
+	}
+	/* align the storage */
+	if ((u32)&hcca[0] & 0xff) {
+		err("HCCA not aligned!! %x\n", hcca);
+		return -1;
+	}
+//#ifdef CONFIG_SM502_USB_HCD
+//	if(gohci->flags & 0x80) 
+//	{
+//		ohci_dev = sm502_mem_alloc(gohci, sizeof *ohci_dev);
+//		memset(ohci_dev, 0, sizeof(struct ohci_device));
+//	} 
+//	else
+//#endif
+	{
+		ohci_dev = malloc(sizeof *ohci_dev, M_DEVBUF, M_NOWAIT);
+		memset(ohci_dev, 0, sizeof(struct ohci_device));
+	}
+	if ((u32)&ohci_dev->ed[0] & 31) {
+		err("EDs not aligned!!");
+		return -1;
+	}
+//#ifdef CONFIG_SM502_USB_HCD
+//	if((gohci->flags & 0x80)) 
+//	{
+//		ohci_dev->cpu_ed = ohci_dev->ed;
+//	}
+//#endif
+	else 
+	{
+	//	pci_sync_cache(gohci->sc_pc, (vm_offset_t)ohci_dev->ed, sizeof(ohci_dev->ed),SYNC_W);
+#if (defined(LS3_HT) || defined(LS2G_HT))
+		ohci_dev->cpu_ed = (ed_t *)(&ohci_dev->ed);
+#else
+        ohci_dev->cpu_ed = (ed_t *)CACHED_TO_UNCACHED(&ohci_dev->ed);
+#endif
+	}
+//#ifdef CONFIG_SM502_USB_HCD
+//	if(gohci->flags & 0x80)
+//	{
+//		gtd = sm502_mem_alloc(gohci, sizeof(td_t) * (NUM_TD+1));
+//		memset(gtd, 0, sizeof(td_t) * (NUM_TD + 1));
+//	} else 
+//#endif
+	{
+		gtd = malloc(sizeof(td_t) * (NUM_TD+1), M_DEVBUF, M_NOWAIT);
+		memset(gtd, 0, sizeof(td_t) * (NUM_TD + 1));
+		//pci_sync_cache(gohci->sc_pc, (vm_offset_t)gtd, sizeof(td_t)*(NUM_TD+1), SYNC_W);
+	}
+	if ((u32)gtd & 0x0f) {
+		err("TDs not aligned!!");
+		return -1;
+	}
+//#ifdef CONFIG_SM502_USB_HCD
+//	if(gohci->flags & 0x80)
+//	{
+//		gohci->hcca = hcca;
+//		gohci->gtd = gtd;
+//		gohci->ohci_dev = ohci_dev;
+//	} 
+//	else
+//#endif
+	{
+#if (defined(LS3_HT) || defined(LS2G_HT))
+		gohci->hcca = (struct ohci_hcca*)(hcca);
+		gohci->gtd = (td_t *)(gtd);
+#else
+        gohci->hcca = (struct ohci_hcca*)CACHED_TO_UNCACHED(hcca);
+		gohci->gtd = (td_t *)CACHED_TO_UNCACHED(gtd);
+#endif
+		gohci->ohci_dev = ohci_dev;
+	}
+//#ifdef CONFIG_SM502_USB_HCD
+//	if(gohci->flags & 0x80)
+//	{
+//		tmpbuf = sm502_mem_alloc(gohci, 512);
+//		if(tmpbuf == NULL){
+//			printf("sm502-usb: out of memory at %d\n", __LINE__);
+//			goto errout;
+//		}
+//		if((u32)tmpbuf & 0x1f)
+//			printf("Malloc return not cache line aligned\n");
+//		memset(tmpbuf, 0, 512);
+//		gohci->control_buf = (unsigned char*)tmpbuf;
+//	} 
+//	else
+//#endif
+	{
+		tmpbuf = malloc(512, M_DEVBUF, M_NOWAIT);
+		if(tmpbuf == NULL){
+			printf("No mem for control buffer\n");
+			goto errout;
+		}	
+		if((u32)tmpbuf & 0x1f)
+			printf("Malloc return not cache line aligned\n");
+		memset(tmpbuf, 0, 512);
+		//pci_sync_cache(gohci->sc_pc, (vm_offset_t)tmpbuf,  512, SYNC_W);
+#if (defined(LS3_HT) || defined(LS2G_HT))
+		gohci->control_buf = (unsigned char*)(tmpbuf);
+#else
+        gohci->control_buf = (unsigned char*)CACHED_TO_UNCACHED(tmpbuf);
+#endif
+	}
+//#ifdef CONFIG_SM502_USB_HCD
+//	if(gohci->flags & 0x80) {
+//		tmpbuf = sm502_mem_alloc(gohci, 64);
+//		if(tmpbuf == NULL){
+//			printf("sm502-usb: out of memory at %d\n", __LINE__);
+//			goto errout;
+//		}	
+//		gohci->setup = (unsigned char *)tmpbuf;
+//	} else
+//#endif
+	{
+		tmpbuf = malloc(64, M_DEVBUF, M_NOWAIT);
+		if(tmpbuf == NULL){
+			printf("No mem for setup buffer\n");
+			goto errout;
+		}	
+		if((u32)tmpbuf & 0x1f)
+			printf("Malloc return not cache line aligned\n");
+		memset(tmpbuf, 0, 64);
+		//pci_sync_cache(tmpbuf, (vm_offset_t)tmpbuf, 64, SYNC_W);
+#if (defined(LS3_HT) || defined(LS2G_HT))
+		gohci->setup = (unsigned char *)(tmpbuf);
+		dbg(" gohci->setup =%x\n", gohci->setup);
+#else
+        gohci->setup = (unsigned char *)CACHED_TO_UNCACHED(tmpbuf);
+#endif
+	}
+	gohci->disabled = 1;
+	gohci->sleeping = 0;
+	gohci->irq = -1;
+	dbg("original OHCI: regs base %x\n", gohci->sc_sh);//0xc4808000
+	//gohci->regs = (struct ohci_regs *)(gohci->sc_sh | 0x80000000);
+	gohci->regs = (struct ohci_regs *)(gohci->sc_sh);
+//#ifdef CONFIG_SM502_USB_HCD
+//	if(gohci->flags & 0x80){
+//		sm502_bufs_init(gohci);
+//	}
+//#endif
+	dbg("OHCI: regs base %x\n", gohci->regs);
+	//gohci->flags = 0;
+	gohci->slot_name = "Godson";
+//	dbg("OHCI revision: 0x%08x\n"
+//	       "  RH: a: 0x%08x b: 0x%08x\n",
+///	       readl(&gohci->regs->revision),
+//	       readl(&gohci->regs->roothub.a), readl(&gohci->regs->roothub.b));
+//gohci->regs->revision====0xffffffff
+	printf("OHCI revision: 0x%08x\n" "  RH: a: 0x%08x b: 0x%08x\n", readl(&gohci->regs->revision), 
+			readl(&gohci->regs->roothub.a), readl(&gohci->regs->roothub.b));
+	if (hc_reset (gohci) < 0)
+		goto errout;
+	/* FIXME this is a second HC reset; why?? */
+	writel (gohci->hc_control = OHCI_USB_RESET, &gohci->regs->control);
+	wait_ms (10);
+	if (hc_start (gohci) < 0)
+		goto errout;
+#ifdef	DEBUG
+	//ohci_dump (gohci, 1);
+#else
+	wait_ms(1);
+#endif
+	printf("OHCI %x initialized ok\n", gohci);
+	return 0;
+
+errout:
+	err("OHCI initialization error\n");
+	hc_release_ohci (gohci);
+	/* Initialization failed */
+	return -1;
+}
+#else
 int usb_lowlevel_init(ohci_t *gohci)
 {
 
@@ -3306,7 +3645,7 @@ errout:
 	/* Initialization failed */
 	return -1;
 }
-
+#endif
 /*===========================================================================
 *
 *FUNTION: usb_lowlevel_stop

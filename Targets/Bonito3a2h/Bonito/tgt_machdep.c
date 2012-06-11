@@ -160,6 +160,7 @@ int bios_available;
 int usb_kbd_available;;
 int vga_available;
 int cmd_main_mutex = 0;
+int bios_mutex = 0;
 
 static int md_pipefreq = 0;
 static int md_cpufreq = 0;
@@ -681,7 +682,7 @@ tgt_devconfig()
 #endif
 #endif
 #endif
-	_pci_devinit(1);	/* PCI device initialization */
+//	_pci_devinit(1);	/* PCI device initialization */
 #if (NMOD_X86EMU_INT10 > 0)||(NMOD_X86EMU >0)
 	SBD_DISPLAY("VGAI", 0);
 	rc = vga_bios_init();
@@ -1244,7 +1245,7 @@ tgt_devinit()
 }
 #endif
 
-//	_pci_businit(1);	/* PCI bus initialization */
+	_pci_businit(1);	/* PCI bus initialization */
 #if defined(VIA686B_POWERFIXUP) && (PCI_IDSEL_VIA686B != 0)
 if(getenv("noautopower"))	vt82c686_powerfixup();
 #endif

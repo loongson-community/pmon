@@ -416,7 +416,7 @@ wdattach(parent, self, aux)
 	}
  #ifdef INTERFACE_3A780E
       b_hdsize[j] = wd->sc_capacity;
-      j++
+      j++;
   #endif
 	WDCDEBUG_PRINT(("%s: atap_dmatiming_mimi=%d, atap_dmatiming_recom=%d\n",
 	    self->dv_xname, wd->sc_params.atap_dmatiming_mimi,
