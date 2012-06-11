@@ -244,7 +244,21 @@ file pmon/fs/devfs.c			(scsi | ide)
 file pmon/fs/diskfs.c			(scsi | ide)
 file pmon/fs/fatfs.c			fatfs
 file pmon/fs/ext2fs.c			ext2
-file pmon/fs/yaffsfs.c			yaffsfs
+#file pmon/fs/yaffsfs.c			yaffsfs
+
+file pmon/fs/yaffs2/yaffsfs.c           yaffsfs
+file pmon/fs/yaffs2/yaffscfg.c          yaffsfs
+file pmon/fs/yaffs2/yaffs_mtdif2.c      yaffsfs
+file pmon/fs/yaffs2/yaffs_mtdif.c       yaffsfs
+file pmon/fs/yaffs2/yaffs_nand.c        yaffsfs
+file pmon/fs/yaffs2/yaffs_checkptrw.c       yaffsfs
+file pmon/fs/yaffs2/yaffs_ecc.c             yaffsfs
+file pmon/fs/yaffs2/yaffs_guts.c            yaffsfs
+file pmon/fs/yaffs2/yaffs_packedtags2.c     yaffsfs
+file pmon/fs/yaffs2/yaffs_qsort.c           yaffsfs
+file pmon/fs/yaffs2/yaffs_tagscompat.c      yaffsfs
+file pmon/fs/yaffs2/yaffs_tagsvalidity.c    yaffsfs
+
 file pmon/loaders/loadfn.c		(mod_s3load | mod_fastload)
 file pmon/loaders/zmodem/zmdm.c		(pmon_zmodem_rz | pmon_zmodem_tz)
 file pmon/loaders/zmodem/crctab.c	(pmon_zmodem_rz | pmon_zmodem_tz)
@@ -354,6 +368,8 @@ define usbbus {}
 device usb: disk 
 attach usb at usbbus
 
+define ahcibus {}
+
 file sys/dev/usb/usb.c			  mod_usb
 file sys/dev/usb/usb_storage.c    mod_usb_storage needs-flag
 file sys/dev/usb/part.c     	  mod_usb_storage
@@ -370,6 +386,9 @@ file sys/dev/nand/nand_ids.c      nand
 file sys/dev/nand/nand_bbt.c      nand
 file sys/dev/nand/fcr-nand.c      nand
 file pmon/fs/mtd.c		  nand
+
+#file sys/dev/nand/yaf-nand/nand_util.c      nand      #lxy
+
 device loopdev
 attach loopdev at mainbus
 file    pmon/dev/loopdev.c loopdev needs-flag

@@ -17,6 +17,10 @@ void poweroff_kernel()
 	unsigned char *reg_cf9 = (unsigned char *)0xb8000cf9;
 	int i;
 
+#ifdef LOONGSON_3A2H
+	//*(volatile unsigned int *)0xffffffffbbef0014 &= (0x1 << 10) | (0x1 << 11) | (0x1 << 12) | (0x1 << 13);
+	*(volatile unsigned int *)0xffffffffbbef0014 = 0x3c00;
+#endif
 	for (i=0; i<0x10000; i++);
 	*reg_cf9 = 4;
 
@@ -62,6 +66,9 @@ void reboot_kernel()
         unsigned int *p = 0xbfe0011c;
 	int i;
 
+#ifdef LOONGSON_3A2H
+	*(volatile unsigned int *)0xffffffffbbef0030 = 1;
+#endif
 #ifdef LOONGSON_3ASERVER
 #ifdef DDR3_DIMM
         p[0] |= ((0x1 << 4) | (0x1 << 5) | (0x1 << 6) | (0x1 << 13));

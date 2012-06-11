@@ -89,7 +89,11 @@ struct efi_memory_map_loongson * init_memory_map()
   //strcpy(emap->map[1].mem_name, "node0_high");
   emap->map[1].mem_type = 2;
   emap->map[1].mem_start = 0x90000000;
+#ifdef LOONGSON_3A2H
+  emap->map[1].mem_size = 0;
+#else
   emap->map[1].mem_size = atoi(getenv("highmemsize"));
+#endif
   
 #if (defined(MULTI_CHIP)) || (defined(LOONGSON_3BSINGLE))
 
@@ -180,11 +184,13 @@ struct efi_memory_map_loongson * init_memory_map()
   #define PRID_IMP_LOONGSON    0x6505
   enum loongson_cpu_type cputype = Loongson_3A;
 #endif
+#ifdef LOONGSON_3A2H
+  #define PRID_IMP_LOONGSON    0x6505
+  enum loongson_cpu_type cputype = Loongson_3A;
+#endif
 struct efi_cpuinfo_loongson *init_cpu_info()
 {
   struct efi_cpuinfo_loongson *c = &g_cpuinfo_loongson;
-  u32 available_core_mask = 0;
-  u32 available = 0;
 
   c->processor_id = PRID_IMP_LOONGSON;
   c->cputype  = cputype;
@@ -206,16 +212,13 @@ struct efi_cpuinfo_loongson *init_cpu_info()
 #ifdef LOONGSON_3ASINGLE
   c->total_node = 1;
   c->nr_cpus = 4;
-  available_core_mask = (__raw_readd(0xbfe00194ull) & 0xf0000);
-  available = ((available_core_mask >> 16) & 0xf);
-  while(available)
-  {
-	c->nr_cpus -= available & 0x1;
-	available >>= 1;
-  }
+#endif
+#ifdef LOONGSON_3A2H
+  c->total_node = 1;
+  c->nr_cpus = 4;
 #endif
 
-  c->cpu_startup_core_id = (available_core_mask >> 16) & 0xf;
+  c->cpu_startup_core_id = 0;
 
 return c;
 }
@@ -238,6 +241,10 @@ struct system_loongson *init_system_loongson()
   s->sing_double_channel = 2;
 #endif
 #ifdef LOONGSON_3ASINGLE
+  s->ccnuma_smp = 0;
+  s->sing_double_channel = 1;
+#endif
+#ifdef LOONGSON_3A2H
   s->ccnuma_smp = 0;
   s->sing_double_channel = 1;
 #endif
@@ -303,6 +310,9 @@ struct board_devices *board_devices_info()
  struct board_devices *bd = &g_board;
  
 #ifdef LOONGSON_3ASINGLE
+  strcpy(bd->name,"Loongson-3A780E-1-V1.03-demo");
+#endif
+#ifdef LOONGSON_3A2H
   strcpy(bd->name,"Loongson-3A780E-1-V1.03-demo");
 #endif
 #ifdef LOONGSON_3BSINGLE

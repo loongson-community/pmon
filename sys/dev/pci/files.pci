@@ -134,3 +134,11 @@ device  sata
 attach  sata at atp 
 file    sys/dev/pci/sata.c           sata 
 
+device ahci {[channel = -1]} : ahcibus
+attach ahci at pci
+file   sys/dev/pci/ahci.c              ahci | lahci
+
+device  ahcisata
+attach  ahcisata at ahcibus
+file    sys/dev/pci/ahcisata.c         ahcisata needs-flag
+
