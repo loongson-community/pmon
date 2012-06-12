@@ -256,8 +256,9 @@ ifconfig (ifname, ipaddr)
 	}
 
 	close (s);
-
-delay1(2500);
+#ifdef LOONGSON_3ASERVER
+	delay1(2500);
+#endif
 	return (1);
 }
 
