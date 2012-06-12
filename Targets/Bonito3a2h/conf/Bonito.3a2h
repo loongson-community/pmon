@@ -144,7 +144,7 @@ option		NOSNOOP			# Caches are no-snooping
 #
 # HAVE options. What tgt level provide
 #
-#option		HAVE_TOD		# Time-Of-Day clock // for no LS2H on the board 
+option		HAVE_TOD		# Time-Of-Day clock // for no LS2H on the board 
 option		HAVE_NVENV		#  Platform has non-volatile env mem
 option		HAVE_LOGO		# Output splash logo
 option		USE_SUPERIO_UART

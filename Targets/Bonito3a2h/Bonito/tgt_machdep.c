@@ -1314,8 +1314,8 @@ static void delay(int j)
 void
 tgt_poweroff()
 {
-	unsigned int * pm_ctrl_reg = 0xbbef0014;
-	unsigned int * pm_statu_reg  = 0xbbef000c;
+	volatile unsigned int * pm_ctrl_reg = 0xbbef0014;
+	volatile unsigned int * pm_statu_reg = 0xbbef000c;
 
 	* pm_statu_reg = 0x100;	 // clear bit8: PWRBTN_STS
     delay1(100);
@@ -1325,7 +1325,7 @@ tgt_poweroff()
 void
 tgt_reboot(void)
 {
-	char * hard_reset_reg = 0xbbef0030;
+	volatile char * hard_reset_reg = 0xbbef0030;
 	* hard_reset_reg = ( * hard_reset_reg) | 0x01; // watch dog hardreset
 }
 #endif
@@ -1635,7 +1635,7 @@ _probe_frequencies()
 	tgt_printf("0x14 value  %x\n",tmp);
 }
 #else
-        init_legacy_rtc();
+        //init_legacy_rtc();
 #endif
 
         SBD_DISPLAY ("FREI", CHKPNT_FREQ);
@@ -1646,18 +1646,18 @@ _probe_frequencies()
          */
 aa:
         for(i = 2;  i != 0; i--) {
-                cnt = CPU_GetCOUNT();
                 timeout = 10000000;
-                while(CMOS_READ(DS_REG_CTLA) & DS_CTLA_UIP);
-                sec = CMOS_READ(DS_REG_SEC);
+                sec = (*(volatile unsigned int *)(0xbbef802c) & 0x3f0) >> 0x4;
+				while((cur = (*(volatile unsigned int *)(0xbbef802c) & 0x3f0) >> 0x4) == sec){
+				 }
+                cnt = CPU_GetCOUNT();
                 do {
+						sec = (*(volatile unsigned int *)(0xbbef802c) & 0x3f0) >> 0x4;
                         timeout--;
-                        while(CMOS_READ(DS_REG_CTLA) & DS_CTLA_UIP);
-                        cur = CMOS_READ(DS_REG_SEC);
                 } while(timeout != 0 && (cur == sec));
                 cnt = CPU_GetCOUNT() - cnt;
                 if(timeout == 0) {
-			tgt_printf("time out!\n");
+				  tgt_printf("time out!\n");
                         break;          /* Get out if clock is not running */
                 }
         }
