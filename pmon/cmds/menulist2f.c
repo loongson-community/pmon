@@ -277,14 +277,10 @@ static int show_main(int flag, const char* path)
 
 	char str_line[81];
 	char tmp[100];
-	char newpath[100];
-    	int ch;
+    int ch;
 	int not_delay = FALSE;
 	int not_erased = TRUE;
 	int selected_menu_num = 1; 
-	int devnum, ret;
-	char *ds = NULL;
-	char *de = NULL;
 
 	//if (load_list_menu(path))
 	retid = load_list_menu(path);
@@ -331,60 +327,8 @@ static int show_main(int flag, const char* path)
 			not_delay = TRUE;
 			if (strchr("\r\n", ch) != NULL)
 			{
-#if 1
-				strcpy(newpath, menu_items[selected_menu_num - 1].kernel);
-                                ds = strchr(newpath, '@');
-                                if(ds)
-                                {
-                                        de = strchr(ds, '/');
-                                        if(de)
-                                        {
-                                           *de = '\0';
-                                           strcat(newpath, "/boot/boot.cfg");
-                                           de--;
-                                           for(devnum = 0; devnum < 4; devnum++){
-
-                                                  __scr_clear();
-                                                  __set_cursor(0,0);
-                                                  printf("Now loading %s......\n", newpath);
-                                                   ret = load_list_menu(newpath);
-                                                   if(ret == 0){
-                                                          __scr_clear();
-                                                          __set_cursor(0,0);
-                                                          ret = do_cmd_boot_load(selected_menu_num - 1, 0);
-                                                          if(ret != 0){
-                                                                __scr_clear();
-                                                                __set_cursor(0,0);
-                                                                selected_menu_num = atoi(get_option_value("default")) + 1;
-                                                                break;
-                                                           }
-                                                    }
-                                                    else
-                                                    {
-                                                        __scr_clear();
-                                                        __set_cursor(0,0);
-                                                        (*de)++;
-                                                     }
-                                             }
-
-                                             printf("Can not find file:  %s\n", newpath);
-                                             printf("please press any key to continue.....");
-                                             getchar();
-                                             __scr_clear();
-                                             __set_cursor(0, 0);
-                                             draw_main(selected_menu_num, path);
-                                             draw_mid_main(selected_menu_num, path);
-
-                                         }
-                                }
-
-
-#endif
-
-#if  0
 				__set_cursor(0,0);
 				break;
-#endif
 			}
             else if (99 == ch)//'c' pressed ,back to console
             {
@@ -432,13 +376,11 @@ static int show_main(int flag, const char* path)
 			}
 		}
 	}
-#if 0
 JUST_BOOT:
 	__scr_clear();
 	__set_cursor(0,0);
 	do_cmd_boot_load(selected_menu_num - 1, 0);
 	//printf ("The selected kernel entry is wrong, try default entry from al.\n ");
-#endif
 	return 1;
 }
 
