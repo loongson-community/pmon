@@ -713,10 +713,9 @@ tgt_devconfig()
 #endif
 
 #ifdef LS2H
-		printf("begin fb_init\n");
+		printf("begin dc_init\n");
 		fbaddress = dc_init();
 		fbaddress |= 0xc0000000; //NOTICE HERE: map to mem on ls2h
-		vga_available=1;
 #endif
 
 #if NMOD_SISFB
@@ -1713,35 +1712,26 @@ tgt_gettime()
                                                                                
 #ifdef HAVE_TOD
         if(!clk_invalid) {
-                ctrlbsave = CMOS_READ(DS_REG_CTLB);
-                CMOS_WRITE(ctrlbsave | DS_CTLB_SET, DS_REG_CTLB);
+                //ctrlbsave = CMOS_READ(DS_REG_CTLB);
+				//CMOS_WRITE(ctrlbsave | DS_CTLB_SET, DS_REG_CTLB);
                                                                                
-		year = CMOS_READ(DS_REG_YEAR);
-        month = CMOS_READ(DS_REG_MONTH);
-        month = CMOS_READ(DS_REG_MONTH);
-        date = CMOS_READ(DS_REG_DATE);
-		wday = CMOS_READ(DS_REG_WDAY);
-        hour = CMOS_READ(DS_REG_HOUR);
-        min = CMOS_READ(DS_REG_MIN);
-        sec = CMOS_READ(DS_REG_SEC);
+        month =(*(volatile unsigned int *)(0xbbef802c) & 0xfc000000) >> 0x1a;
+        date = (*(volatile unsigned int *)(0xbbef802c) & 0x3e00000) >> 0x14;
+		hour = (*(volatile unsigned int *)(0xbbef802c) & 0x1f0000) >> 0x10;
+		min = (*(volatile unsigned int *)(0xbbef802c) & 0xfc00) >> 0xa;
+		sec = (*(volatile unsigned int *)(0xbbef802c) & 0x3f0) >> 0x4;
 
-		year = year%16 + year/16*10;
-		if(year < 50) year += 100;
-		month = (month%16 + month/16*10) - 1;
-		wday = wday%16 + wday/16*10;
-		date = date%16 + date/16*10;
-		hour = hour%16 + hour/16*10;
-		min = min%16 + min/16*10;
-		sec = sec%16 + sec/16*10;
+		//year = 2012;
+		year = (*(volatile unsigned int *)(0xbbef806c) & 0xfc000000) >> 0x1a;
                tm.tm_sec = sec;
                tm.tm_min = min;
                tm.tm_hour = hour;
-               tm.tm_wday = wday;
+               //tm.tm_wday = wday;
                tm.tm_mday = date;
                tm.tm_mon = month;
                tm.tm_year = year;
 
-                CMOS_WRITE(ctrlbsave & ~DS_CTLB_SET, DS_REG_CTLB);
+				//CMOS_WRITE(ctrlbsave & ~DS_CTLB_SET, DS_REG_CTLB);
                                                                                
                 tm.tm_isdst = tm.tm_gmtoff = 0;
                 t = gmmktime(&tm);
