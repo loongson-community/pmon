@@ -27,8 +27,8 @@
     #	bal	hexserial64
 	#nop
     #	PRINTSTR("\r\n")
-	li		a0,EJTAG_TLB_INDEX
-	sd		t0, 0x0(a0)
+	li		t2,EJTAG_TLB_INDEX
+	sd		t0, 0x0(t2)
 
 	tlbr
 	nop
@@ -43,8 +43,8 @@
     #	bal	hexserial64
 	#nop
     #	PRINTSTR("\r\n")
-	li		a0,EJTAG_TLB_HIGH
-	sd		t1, 0x0(a0)
+	li		t2,EJTAG_TLB_HIGH
+	sd		t1, 0x0(t2)
 
 
 	dmfc0	t1, COP_0_TLB_LO0
@@ -53,8 +53,8 @@
     #	bal	hexserial64
 	#nop
     #	PRINTSTR("\r\n")
-	li		a0,EJTAG_TLB_LO0
-	sd		t1, 0x0(a0)
+	li		t2,EJTAG_TLB_LO0
+	sd		t1, 0x0(t2)
 
 
 	dmfc0	t1, COP_0_TLB_LO1
@@ -63,8 +63,8 @@
     #	bal	hexserial64
 	#nop
     #	PRINTSTR("\r\n")
-	li		a0,EJTAG_TLB_LO1
-	sd		t1, 0x0(a0)
+	li		t2,EJTAG_TLB_LO1
+	sd		t1, 0x0(t2)
 
 	.set mips3
 
