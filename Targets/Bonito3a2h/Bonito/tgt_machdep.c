@@ -1038,7 +1038,7 @@ w83627_write(5,0x62,0);
 w83627_write(5,0x63,0x64);
 w83627_write(5,0x70,1);
 w83627_write(5,0x72,0xc);
-w83627_write(5,0xf0,0x80);
+w83627_write(5,0xf0,0xc0); //KBC clock rate: 0xc0: 16MHZ, 0x80: 12MHZ
 }
 #endif
 
@@ -1053,7 +1053,7 @@ w83627_write(5,0x62,0);
 w83627_write(5,0x63,0x64);
 w83627_write(5,0x70,1);
 w83627_write(5,0x72,0xc);
-w83627_write(5,0xf0,0x80);
+w83627_write(5,0xf0,0xc0); //KBC clock rate: 0xc0: 16MHZ, 0x80: 12MHZ
 _wrmsr(GET_MSR_ADDR(0x5140001F), 0, 0);//no keyboard emulation
 
 #ifdef USE_CS5536_UART
