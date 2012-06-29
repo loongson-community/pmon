@@ -1395,7 +1395,8 @@ int paint_childwindow(char **hint,char *diskdev_name[],char *netdev_name[],int e
 					{
 						unsetenv("usbkey");
 					}
-					w_setpage(-4);
+					//w_setpage(-4);
+					tgt_reboot();
 				}
 				if(w_button(45,14,10,"[ NO ]") || esc_down)
 				{
@@ -1408,7 +1409,8 @@ int paint_childwindow(char **hint,char *diskdev_name[],char *netdev_name[],int e
 			w_text(50,10,WA_CENTRE, "Discard Update and Reboot!");
 			if(w_button(45,12,10,"[ YES ]"))
 			{
-				w_setpage(-4);
+				//w_setpage(-4);
+				tgt_reboot();
 			}
 			if(w_button(45,14,10,"[ NO ]") || esc_down)
 			{
@@ -1531,7 +1533,7 @@ int paint_childwindow(char **hint,char *diskdev_name[],char *netdev_name[],int e
 
 		/* reboot */
 		case -4:
-			 printf("Rebooting.....");
+			 //printf("Rebooting.....");
 			 tgt_reboot();
 			 break;
 		default:
