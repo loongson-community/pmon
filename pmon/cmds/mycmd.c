@@ -1102,7 +1102,7 @@ printf("ip:%s\n",inet_ntoa(satosin(&ifr->ifr_addr)->sin_addr));
 (void) ioctl(s,SIOCGIFNETMASK, ifr);
 printf("netmask:%s\n",inet_ntoa(satosin(&ifr->ifr_addr)->sin_addr));
 (void) ioctl(s,SIOCGIFBRDADDR, ifr);
-printf("boradcast:%s\n",inet_ntoa(satosin(&ifr->ifr_addr)->sin_addr));
+printf("broadcast:%s\n",inet_ntoa(satosin(&ifr->ifr_addr)->sin_addr));
 (void) ioctl(s,SIOCGIFFLAGS,ifr);
 printf("status:%s %s\n",ifr->ifr_flags&IFF_UP?"up":"down",ifr->ifr_flags&IFF_RUNNING?"running":"stoped");
 }
