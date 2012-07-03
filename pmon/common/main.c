@@ -849,9 +849,12 @@ dbginit (char *adr)
 	printf (" / Bus @ %s MHz\n", fs);
 	*/
 	//printf ("Memory size %3d MB (%3d MB Low memory, %3d MB High memory) .\n", (memsize+memorysize_high)>>20,(memsize>>20), (memorysize_high>>20));
-	memorysize_total = ((memsize + memorysize_high) >> 20);  
+	memorysize_total = ((memsize + memorysize_high + (16 << 20)) >> 20);  
 #ifdef  MULTI_CHIP
-	memorysize_total += ((memorysize_high_n1 + (256 << 20)) >> 20);  
+	if(memorysize_high_n1 == 0)
+		memorysize_total += (memorysize_high_n1 >> 20);  
+	else
+		memorysize_total += ((memorysize_high_n1 + (256 << 20)) >> 20);  
 #endif
 #ifdef DUAL_3B
 	memorysize_total += ((memorysize_high_n2 + (256 << 20) + memorysize_high_n3 + (256 << 20)) >> 20);  
