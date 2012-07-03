@@ -106,6 +106,8 @@ select		cmd_devls		# Device list
 select		cmd_set			# As cmd_env but not req. cmd_hist
 select		cmd_testdisk
 #
+
+select          cmd_test                # test commands,test hardisk
 select		cmd_shell		# Shell commands, vers, help, eval
 
 
