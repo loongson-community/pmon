@@ -528,6 +528,7 @@ static int autoload(char *s)
 	unsigned int cnt;
 	struct termio sav;
 	int ret = -1;
+	int i;
 
 	if(s != NULL  && strlen(s) != 0) {
 		char *d = getenv ("bootdelay");
@@ -541,10 +542,15 @@ static int autoload(char *s)
 		ioctl (STDIN, CBREAK, &sav);
 		lastt = 0;
 		do {
-			delay(1000000);
+	//		delay(1000000);
 			printf ("\b\b%02d", --dly);
 			//printf (".", --dly);
-			ioctl (STDIN, FIONREAD, &cnt);
+			for(i = 0; i < 9000; i++){
+				ioctl (STDIN, FIONREAD, &cnt);
+				if(cnt)
+				      break;
+				delay(100);
+			}
 		} while (dly != 0 && cnt == 0);
 
 		if(cnt > 0 && strchr("\n\r", getchar())) {
