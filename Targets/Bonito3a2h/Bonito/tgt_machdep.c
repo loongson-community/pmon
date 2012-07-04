@@ -160,6 +160,7 @@ int bios_available;
 int usb_kbd_available;;
 int vga_available;
 int cmd_main_mutex = 0;
+int bios_mutex = 0;
 
 static int md_pipefreq = 0;
 static int md_cpufreq = 0;
@@ -681,7 +682,7 @@ tgt_devconfig()
 #endif
 #endif
 #endif
-	_pci_devinit(1);	/* PCI device initialization */
+//	_pci_devinit(1);	/* PCI device initialization */
 #if (NMOD_X86EMU_INT10 > 0)||(NMOD_X86EMU >0)
 	SBD_DISPLAY("VGAI", 0);
 	rc = vga_bios_init();
@@ -712,10 +713,9 @@ tgt_devconfig()
 #endif
 
 #ifdef LS2H
-		printf("begin fb_init\n");
+		printf("begin dc_init\n");
 		fbaddress = dc_init();
 		fbaddress |= 0xc0000000; //NOTICE HERE: map to mem on ls2h
-		vga_available=1;
 #endif
 
 #if NMOD_SISFB
@@ -1038,7 +1038,7 @@ w83627_write(5,0x62,0);
 w83627_write(5,0x63,0x64);
 w83627_write(5,0x70,1);
 w83627_write(5,0x72,0xc);
-w83627_write(5,0xf0,0x80);
+w83627_write(5,0xf0,0xc0); //KBC clock rate: 0xc0: 16MHZ, 0x80: 12MHZ
 }
 #endif
 
@@ -1053,7 +1053,7 @@ w83627_write(5,0x62,0);
 w83627_write(5,0x63,0x64);
 w83627_write(5,0x70,1);
 w83627_write(5,0x72,0xc);
-w83627_write(5,0xf0,0x80);
+w83627_write(5,0xf0,0xc0); //KBC clock rate: 0xc0: 16MHZ, 0x80: 12MHZ
 _wrmsr(GET_MSR_ADDR(0x5140001F), 0, 0);//no keyboard emulation
 
 #ifdef USE_CS5536_UART
@@ -1244,7 +1244,7 @@ tgt_devinit()
 }
 #endif
 
-//	_pci_businit(1);	/* PCI bus initialization */
+	_pci_businit(1);	/* PCI bus initialization */
 #if defined(VIA686B_POWERFIXUP) && (PCI_IDSEL_VIA686B != 0)
 if(getenv("noautopower"))	vt82c686_powerfixup();
 #endif
@@ -1313,91 +1313,19 @@ static void delay(int j)
 void
 tgt_poweroff()
 {
-	char * watch_dog_base = 0xb8000cd6;
-	char * watch_dog_config  = 0xba00a041;
-	unsigned int * watch_dog_mem = 0xbe010000;
-	unsigned char * reg_cf9 = (unsigned char *)0xb8000cf9;
+	volatile unsigned int * pm_ctrl_reg = 0xbbef0014;
+	volatile unsigned int * pm_statu_reg = 0xbbef000c;
 
-	delay(100);
-	*reg_cf9 = 4;
-
-	/* enable WatchDogTimer */
-	delay(100);
-	* watch_dog_base  = 0x69;
-	*(watch_dog_base + 1) = 0x0;
-
-	/* set WatchDogTimer base address is 0x10000 */
-	delay(100);
-	* watch_dog_base = 0x6c;
-	*(watch_dog_base + 1) = 0x0;
-
-	delay(100);
-	* watch_dog_base = 0x6d;
-	*(watch_dog_base + 1) = 0x0;
-
-	delay(100);
-	* watch_dog_base = 0x6e;
-	*(watch_dog_base + 1) = 0x1;
-
-	delay(100);
-	* watch_dog_base = 0x6f;
-	*(watch_dog_base + 1) = 0x0;
-
-	delay(100);
-	* watch_dog_config = 0xff;
-
-	/* set WatchDogTimer to starting */
-	delay(100);
-	* watch_dog_mem = 0x05;
-	delay(100);
-	*(watch_dog_mem + 1) = 0x1000;
-	delay(100);
-	* watch_dog_mem = 0x85;
-
+	* pm_statu_reg = 0x100;	 // clear bit8: PWRBTN_STS
+    delay1(100);
+	* pm_ctrl_reg = 0x3c00;  // sleep enable, and enter S5 state 
 }
-extern void watchdog_enable(void);
+
 void
 tgt_reboot(void)
 {
-	char * watch_dog_base		 = 0xb8000cd6;
-	char * watch_dog_config		 = 0xba00a041;
-	unsigned int * watch_dog_mem = 0xbe010000;
-	unsigned char * reg_cf9		 = (unsigned char *)0xb8000cf9;
-
-	delay(20000);
-	*reg_cf9 = 0;
-
-	/* enable WatchDogTimer */
-	delay(100);
-	watchdog_enable();
-
-	/* set WatchDogTimer base address is 0x10000 */
-	delay(100);
-	* watch_dog_base = 0x6c;
-	*(watch_dog_base + 1) = 0x0;
-
-	delay(100);
-	* watch_dog_base = 0x6d;
-	*(watch_dog_base + 1) = 0x0;
-
-	delay(100);
-	* watch_dog_base = 0x6e;
-	*(watch_dog_base + 1) = 0x1;
-
-	delay(100);
-	* watch_dog_base = 0x6f;
-	*(watch_dog_base + 1) = 0x0;
-
-	delay(100);
-	* watch_dog_config = 0xff;
-
-	/* set WatchDogTimer to starting */
-	delay(100);
-	* watch_dog_mem = 0x01;
-	delay(100);
-	*(watch_dog_mem + 1) = 0x01;
-	delay(100);
-	* watch_dog_mem = 0x81;
+	volatile char * hard_reset_reg = 0xbbef0030;
+	* hard_reset_reg = ( * hard_reset_reg) | 0x01; // watch dog hardreset
 }
 #endif
 
@@ -1706,7 +1634,7 @@ _probe_frequencies()
 	tgt_printf("0x14 value  %x\n",tmp);
 }
 #else
-        init_legacy_rtc();
+        //init_legacy_rtc();
 #endif
 
         SBD_DISPLAY ("FREI", CHKPNT_FREQ);
@@ -1717,18 +1645,18 @@ _probe_frequencies()
          */
 aa:
         for(i = 2;  i != 0; i--) {
-                cnt = CPU_GetCOUNT();
                 timeout = 10000000;
-                while(CMOS_READ(DS_REG_CTLA) & DS_CTLA_UIP);
-                sec = CMOS_READ(DS_REG_SEC);
+                sec = (*(volatile unsigned int *)(0xbbef802c) & 0x3f0) >> 0x4;
+				while((cur = (*(volatile unsigned int *)(0xbbef802c) & 0x3f0) >> 0x4) == sec){
+				 }
+                cnt = CPU_GetCOUNT();
                 do {
+						sec = (*(volatile unsigned int *)(0xbbef802c) & 0x3f0) >> 0x4;
                         timeout--;
-                        while(CMOS_READ(DS_REG_CTLA) & DS_CTLA_UIP);
-                        cur = CMOS_READ(DS_REG_SEC);
                 } while(timeout != 0 && (cur == sec));
                 cnt = CPU_GetCOUNT() - cnt;
                 if(timeout == 0) {
-			tgt_printf("time out!\n");
+				  tgt_printf("time out!\n");
                         break;          /* Get out if clock is not running */
                 }
         }
@@ -1784,35 +1712,26 @@ tgt_gettime()
                                                                                
 #ifdef HAVE_TOD
         if(!clk_invalid) {
-                ctrlbsave = CMOS_READ(DS_REG_CTLB);
-                CMOS_WRITE(ctrlbsave | DS_CTLB_SET, DS_REG_CTLB);
+                //ctrlbsave = CMOS_READ(DS_REG_CTLB);
+				//CMOS_WRITE(ctrlbsave | DS_CTLB_SET, DS_REG_CTLB);
                                                                                
-		year = CMOS_READ(DS_REG_YEAR);
-        month = CMOS_READ(DS_REG_MONTH);
-        month = CMOS_READ(DS_REG_MONTH);
-        date = CMOS_READ(DS_REG_DATE);
-		wday = CMOS_READ(DS_REG_WDAY);
-        hour = CMOS_READ(DS_REG_HOUR);
-        min = CMOS_READ(DS_REG_MIN);
-        sec = CMOS_READ(DS_REG_SEC);
+        month =(*(volatile unsigned int *)(0xbbef802c) & 0xfc000000) >> 0x1a;
+        date = (*(volatile unsigned int *)(0xbbef802c) & 0x3e00000) >> 0x14;
+		hour = (*(volatile unsigned int *)(0xbbef802c) & 0x1f0000) >> 0x10;
+		min = (*(volatile unsigned int *)(0xbbef802c) & 0xfc00) >> 0xa;
+		sec = (*(volatile unsigned int *)(0xbbef802c) & 0x3f0) >> 0x4;
 
-		year = year%16 + year/16*10;
-		if(year < 50) year += 100;
-		month = (month%16 + month/16*10) - 1;
-		wday = wday%16 + wday/16*10;
-		date = date%16 + date/16*10;
-		hour = hour%16 + hour/16*10;
-		min = min%16 + min/16*10;
-		sec = sec%16 + sec/16*10;
+		//year = 2012;
+		year = (*(volatile unsigned int *)(0xbbef806c) & 0xfc000000) >> 0x1a;
                tm.tm_sec = sec;
                tm.tm_min = min;
                tm.tm_hour = hour;
-               tm.tm_wday = wday;
+               //tm.tm_wday = wday;
                tm.tm_mday = date;
                tm.tm_mon = month;
                tm.tm_year = year;
 
-                CMOS_WRITE(ctrlbsave & ~DS_CTLB_SET, DS_REG_CTLB);
+				//CMOS_WRITE(ctrlbsave & ~DS_CTLB_SET, DS_REG_CTLB);
                                                                                
                 tm.tm_isdst = tm.tm_gmtoff = 0;
                 t = gmmktime(&tm);

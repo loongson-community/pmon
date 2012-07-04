@@ -512,21 +512,21 @@ buffer_check_out:
 	dli	    t2, 0x90000efdfb000060
 	li	    t0, 0xc0000000
 	sw	    t0, 0x0(t2)
-	li	    t0, 0x0080ffc0
+	li	    t0, 0x0000fff0
 	sw	    t0, 0x4(t2)
 	TTYDBG("HT RX DMA address ENABLE done 1\r\n")
 
 
 #if 1
-	li	t0, 0xc0000000
-	sw	t0, 0x8(t2)
-	li	t0, 0x00008000
-	sw	t0, 0xc(t2)
+	li	t0, 0xc0000080
+	sw	t0, 0x08(t2)
+	li	t0, 0x0000ffc0
+	sw	t0, 0x0c(t2)
 	TTYDBG("HT RX DMA address ENABLE done 2\r\n")
 
-	li	t0, 0xc0000000
+	li	t0, 0x80000000
 	sw	t0, 0x10(t2)
-	li	t0, 0x0040ffc0
+	li	t0, 0x00008000
 	sw	t0, 0x14(t2)
 	TTYDBG("HT RX DMA address ENABLE done 3\r\n")
 #endif

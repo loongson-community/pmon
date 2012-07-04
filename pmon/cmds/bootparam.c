@@ -88,12 +88,12 @@ struct efi_memory_map_loongson * init_memory_map()
   emap->map[1].node_id = 0;
   //strcpy(emap->map[1].mem_name, "node0_high");
   emap->map[1].mem_type = 2;
-  emap->map[1].mem_start = 0x90000000;
 #ifdef LOONGSON_3A2H
-  emap->map[1].mem_size = 0;
+  emap->map[1].mem_start = 0x100000000;
 #else
-  emap->map[1].mem_size = atoi(getenv("highmemsize"));
+  emap->map[1].mem_start = 0x90000000;
 #endif
+  emap->map[1].mem_size = atoi(getenv("highmemsize"));
   
 #if (defined(MULTI_CHIP)) || (defined(LOONGSON_3BSINGLE))
 

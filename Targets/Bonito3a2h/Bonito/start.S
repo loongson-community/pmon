@@ -1095,10 +1095,34 @@ gs_2f_v3_ddr2_cfg:
 
 #include "loongson3_fixup.S"
 
+##########################################
+#ifdef LS3_HT
+		WatchDog_Enable;
+//#include "loongson3_HT_init.S" // for no ls2h cpu on board
+		WatchDog_Close;
+#endif
+
+//#include "3aserver_bridge_config.S"	// for no ls2h cpu on board
+
+        bal     tgt_testchar
+        nop  
+        bnez    v0, after_ht
+        nop  
+
+
+#include "loongson3_HT_init_2h.S" // for no ls2h cpu on board
+##########################################
+after_ht:
+
+		/* enable power led */
+
+		// for no ls2h cpu on board 
+#ifdef LOONGSON_3A2H
+
 //begin :Beep on -> delay -> Beep off
 	bal	beep_on
 	nop
-	li	a0,0x1000
+	li	a0,0x800
 	1:
 	addiu	a0,-1
 	nop
@@ -1107,6 +1131,12 @@ gs_2f_v3_ddr2_cfg:
 	bal	beep_off
 	nop
 //end
+
+//		bal	 enable_lpcio_dev8  /* enable Super IO config port 2e-2h, 4e-4f */  
+//		nop
+#endif
+
+
 
 		bal CPU_TLBClear
 		nop
@@ -1278,35 +1308,6 @@ TM_over:
     nop
 
 3:
-#endif
-
-##########################################
-#ifdef LS3_HT
-		WatchDog_Enable;
-//#include "loongson3_HT_init.S" // for no ls2h cpu on board
-		WatchDog_Close;
-#endif
-
-//#include "3aserver_bridge_config.S"	// for no ls2h cpu on board
-
-        bal     tgt_testchar
-        nop  
-        bnez    v0, after_ht
-        nop  
-
-
-#include "loongson3_HT_init_2h.S" // for no ls2h cpu on board
-##########################################
-after_ht:
-
-		/* enable power led */
-
-		// for no ls2h cpu on board 
-#ifdef LS2H
-
-
-//		bal	 enable_lpcio_dev8  /* enable Super IO config port 2e-2h, 4e-4f */  
-//		nop
 #endif
 
 #if 0 //cww_X2
@@ -1783,25 +1784,41 @@ after_ht:
 #endif
 		LEAF(beep_on)
 		nop
-#if 0 // for no ls2h cpu on board
-		dli	t1,0x90000cfdfe00a080
-		lbu	t0,0(t1)
-		or	t0,0x04
-		sb	t0,0(t1)
+
+		/* enable gpio0 output */
+		//li	t1,0xbbd000c4
+		dli	t1,0x90000e001fd000c4
+		lh	t0,0(t1)
+		and	t0,0xfffe
+		sh	t0,0(t1)
+		/* set gpio0 high */
+		//li	t1,0xbbd000cc
+		dli	t1,0x90000e001fd000cc
+		lh	t0,0(t1)
+		or	t0,0x0001
+		sh	t0,0(t1)
+
 		nop
-#endif
 		jr	ra
 		nop
 		END(beep_on)
+
 		LEAF(beep_off)
 		nop
-#if 0 // for no ls2h cpu on board
-		dli	t1,0x90000cfdfe00a080
-		lbu	t0,0(t1)
-		and	t0,0xfd
-		sb	t0,0(t1)
-		nop
-#endif
+
+		/* enable gpio0 output */
+		//li	t1,0xbbd000c4
+		dli	t1,0x90000e001fd000c4
+		lh	t0,0(t1)
+		and	t0,0xfffe
+		sh	t0,0(t1)
+		/* set gpio0 low */
+		//li	t1,0xbbd000cc
+		dli	t1,0x90000e001fd000cc
+		lh	t0,0(t1)
+		and	t0,0xfffe
+		sh	t0,0(t1)
+
 		jr	ra
 		nop
 		END(beep_off)

@@ -547,7 +547,7 @@ static void
 _pci_query_dev (struct pci_device *dev, int bus, int device, int initialise)
 {
 	pcitag_t tag;
-	pcireg_t id;
+	pcireg_t id, typ;
 	pcireg_t misc;
 
 	tag = _pci_make_tag(bus, device, 0);
@@ -558,15 +558,16 @@ _pci_query_dev (struct pci_device *dev, int bus, int device, int initialise)
 		_pci_bdfprintf (bus, device, -1, "probe...");
 
 	id = _pci_conf_read(tag, PCI_ID_REG);
+	typ = _pci_conf_read(tag, PCI_CLASS_REG);
 
 	if (_pciverbose >= 2) {
 		PRINTF ("completed\n");
 	}
 
 #if defined(SERVER_3A) && defined(USE_780E_VGA)
-    if (PCI_VENDOR(id) == 0x1a03 && PCI_PRODUCT(id) == 0x2000)
+    if((PCI_ISCLASS(typ, PCI_CLASS_DISPLAY, PCI_SUBCLASS_DISPLAY_VGA)) && (PCI_VENDOR(id) != 0x1002 || PCI_PRODUCT(id) != 0x9615))
     {
-        printf("Don't use other vga in 3a server!!!!!!!!!!!!!!\n");
+        printf("Don't alloc pci mem for other vga in 3a/3b/3c 780e board during boot bios...\n");
         return;
     }
 #endif
@@ -726,7 +727,7 @@ _pci_setup_windows (struct pci_device *dev)
     for (pm = dev->bridge.memspace; pm != NULL; pm = next) {
 
 	pd = pm->device;
-	if (PCI_ISCLASS(((pd->pa.pa_class)&0xff00ffff), PCI_CLASS_DISPLAY, PCI_SUBCLASS_DISPLAY_VGA)) 
+	if (PCI_ISCLASS(pd->pa.pa_class, PCI_CLASS_DISPLAY, PCI_SUBCLASS_DISPLAY_VGA)) 
 	{
 #ifdef USE_780E_VGA
         //changed by oldtai

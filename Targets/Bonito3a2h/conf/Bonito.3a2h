@@ -36,7 +36,7 @@ option      LS3_HT              # Enable the IO cache coherent of HT
 #option      USE_LPC_UART
 #option      MULTI_CHIP
 option      ENABLE_SATA         #Enable SATA  ,when enable IDE can also use, when commended only IDE can use
-#option		INTERFACE_3A780E    # option for bios memu
+option		INTERFACE_3A780E    # option for bios memu
 
 option 		LOONGSON_3A2H
 option		BOOT_PARAM
@@ -92,10 +92,11 @@ select		cmd_about		# Display info about PMON
 select		cmd_boot		# Boot wrapper
 select		cmd_mycmd
 select		cmd_newmt
-#select		cmd_main		#windows for pmon enable, depend on 3A_INTERFACE
+select		cmd_main		#windows for pmon enable, depend on 3A_INTERFACE
 select		cmd_cache		# Cache enabling
 #select		cmd_call		# Call a function command
 select		cmd_date		# Time of day command
+select		have_tod		# Time of day clock
 select		cmd_env			# Full blown environment command set
 select		cmd_flash		# Flash programming cmds
 select		cmd_hist		# Command history
@@ -143,7 +144,7 @@ option		NOSNOOP			# Caches are no-snooping
 #
 # HAVE options. What tgt level provide
 #
-#option		HAVE_TOD		# Time-Of-Day clock // for no LS2H on the board 
+option		HAVE_TOD		# Time-Of-Day clock // for no LS2H on the board 
 option		HAVE_NVENV		#  Platform has non-volatile env mem
 option		HAVE_LOGO		# Output splash logo
 option		USE_SUPERIO_UART
@@ -226,6 +227,8 @@ select gmac
 lahci0		at localbus0 base 0xbbe30000
 ahcisata*  at lahci0 
 
+lohci0    at localbus0 base 0xbbe08000
+usb*      at lohci0
 #ide_cd* 	at pciide? channel ? drive ? flags 0x0001
 select 		iso9660
 select		ramfiles
