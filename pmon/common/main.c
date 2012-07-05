@@ -457,7 +457,7 @@ if(!run)
 		setenv("al1","/dev/fs/ext2@wd0/boot/vmlinux");
 		setenv("append","console=tty root=/dev/sda1");
 	}
-
+		setenv("append","console=tty root=/dev/sda1");
 	//autoload("/dev/fs/ext2@wd0/boot/vmlinux");
 	//autorun("g console=tty root=/dev/sda1 rw");
 //	cmd_showwindows();
