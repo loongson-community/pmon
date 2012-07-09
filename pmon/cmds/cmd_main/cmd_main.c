@@ -90,6 +90,9 @@ struct atapit devinf[2] = {
 	{-1, -1}
 };
 /***********************************/
+extern unsigned char usb_kbd_code;
+extern unsigned char kbd_code;
+
 char t_dispdev[40]; // Lc add
 char t_dispdev1[40]; // Lc add
 
@@ -1634,6 +1637,20 @@ int check_password(int page)
 	memset(password,0,sizeof(password));
 	while(1)
 	{
+#ifdef INTERFACE_3A780E
+		bios_available = 1;
+
+                        if (bios_available)
+                        {
+                                spl0();
+                                tgt_poll();
+                        }
+
+                        if (bios_available && usb_kbd_code == 0x8)
+                        {
+                                kbd_code = 0x7f;
+                        }
+#endif
 		switch(tag)
 		{
 			case 1:
