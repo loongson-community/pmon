@@ -605,17 +605,6 @@ common:
     nop
 #endif
 
-#define SHUTDOWN_CORE
-#ifdef  SHUTDOWN_CORE
-    li	  a0, 0xbfe00184
-    li	  t1, 0x0001ffff
-    sw	  t1, 0x0(a0)
-    li	  a0, 0x900010001fe00184
-    li	  t1, 0x0000ffff
-    sw	  t1, 0x0(a0)
-#endif
-
-
 
 #if 0 /* Niuxie Tube */
     li      a0,0xbff00080
@@ -3082,6 +3071,12 @@ NODE0_INIT_MEM:
 
 NODE1_INIT_MEM:
     //wait the NODE scache enabled
+    WatchDog_Enable;
+    dli     t0, NODE1_CORE0_BUF0
+
+    li      a1, NODE_SCACHE_ENABLED
+    lw      a0, SP_OFF(t0)
+    WatchDog_Close;
     dli     t0, NODE1_CORE0_BUF0
 1:
     li      a1, NODE_SCACHE_ENABLED
