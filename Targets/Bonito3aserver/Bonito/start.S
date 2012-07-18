@@ -3064,6 +3064,10 @@ NODE0_INIT_MEM:
 #endif
 #endif
 #include "loongson3_ddr2_config.S"
+/*judge the node0 whether have memory*/
+        move    a0, msize
+        beq     a0, 0x0, beep_on
+        nop
 
     dli     t0, NODE0_CORE0_BUF0
     sw      msize, SP_OFF(t0)

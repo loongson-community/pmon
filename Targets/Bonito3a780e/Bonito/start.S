@@ -1201,6 +1201,10 @@ wait_scache_out:
 #endif
 
 #include "loongson3_ddr2_config.S"
+/*judge the node0 whether have memory*/
+	move    a0, msize
+        beq     a0, 0x0, beep_on
+        nop
 
     TTYDBG("Init Memory done.\r\n")
 
