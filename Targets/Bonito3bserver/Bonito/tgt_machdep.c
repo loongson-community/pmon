@@ -797,8 +797,11 @@ void tgt_devconfig()
                 }
                 tgt_smpunlock();
 
-                delay1(30);
-      	
+                //delay1(30);
+/*If you want to Press <Del> to set BIOS open it(from 0 to 1)*/
+#if 0
+                delay1(300);
+#endif	
   	}
 
         vga_available = 1;
