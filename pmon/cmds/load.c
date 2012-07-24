@@ -109,6 +109,7 @@ nload (argc, argv)
 {
 	char path[256];
 	static char buf[2048];
+	char error_path[] = "load: not enough arguments!";
 	long ep;
 	int n;
 	extern int optind;
@@ -185,6 +186,7 @@ nload (argc, argv)
 		strcpy(path, argv[optind++]);
 	} 
 	else {
+		strcpy(path, error_path);//"load" command is not followed path
 		printf("boot what?\n");
 	}
 
