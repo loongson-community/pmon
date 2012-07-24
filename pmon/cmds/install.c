@@ -231,9 +231,9 @@ void cmd_usbinstall(void)
 static const Cmd Cmds[] =
 {
 	{"Misc"},
-	{"cdinstall", "",0,"install Linux system from CD-ROM", cmd_cdinstall, 1, 99, 0},
-	{"usbinstall", "",0,"install Linux system from USB DISK", cmd_usbinstall, 1, 99, 0},
-	{"usbcdinstall", "",0,"install Linux system from USB CD-ROM", cmd_usbcdinstall, 1, 99, 0},
+	//{"cdinstall", "",0,"install Linux system from CD-ROM", cmd_cdinstall, 1, 99, 0},
+	//{"usbinstall", "",0,"install Linux system from USB DISK", cmd_usbinstall, 1, 99, 0},
+	//{"usbcdinstall", "",0,"install Linux system from USB CD-ROM", cmd_usbcdinstall, 1, 99, 0},
 	{0, 0}
 };
 
