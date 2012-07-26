@@ -399,7 +399,7 @@ loop_here:
     mtc0    t0, CP0_STATUS
     mtc0    zero, CP0_CAUSE
 
-#define NODE1_BOOT 1
+//#define NODE1_BOOT 1
 //#define SHUTDOWN_CORE
 
 #define NODE0_CORE0_BUF0 0x900000003ff01000   

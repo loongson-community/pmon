@@ -702,7 +702,7 @@ out_bootloop:
 
 #endif
 /**************************************************/
-#define NODE1_BOOT 1
+//#define NODE1_BOOT 1
 //#define SHUTDOWN_CORE
 
 #define NODE0_CORE0_BUF0 0x900000003ff01000   
