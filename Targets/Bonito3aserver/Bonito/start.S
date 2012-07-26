@@ -515,6 +515,29 @@ common:
     sd      $0, GP_OFF(t1)
     sd      $0, A1_OFF(t1)
 
+#ifndef NODE1_BOOT /* Multi Chip test */
+    dli     a0, 0x4  
+    bne     t0, a0, 1f
+    nop  
+
+    dli     t1, NODE0_CORE0_BUF0;
+2:
+    ld      t3, GP_OFF(t1)
+    beqz    t3, 2b
+    nop  
+
+//2:
+//    ld      t3, GP_OFF(t1)
+//    bnez    t3, 2b
+//    nop  
+
+    li      t3, 0
+    sd      t3, GP_OFF(t1)
+    nop
+
+#endif
+
+1:
 #ifdef NODE1_BOOT
     dli     a0, 0x4 
 #else
@@ -522,6 +545,30 @@ common:
 #endif
     bne     t0, a0, slave_main
     nop
+
+#ifndef NODE1_BOOT /* Multi Chip test */
+    //Wait a minute
+    li      a0,0x1000
+1:
+    addiu   a0,-1
+    nop
+    bnez    a0,1b
+    nop
+
+    dli     t1, NODE0_CORE0_BUF0;
+    li      t3, 1
+    sd      t3, GP_OFF(t1)
+
+    WatchDog_Enable;
+    dli     t1, NODE0_CORE0_BUF0;
+2:
+    ld      t3, GP_OFF(t1)
+    bnez    t3, 2b
+    nop  
+    WatchDog_Close;
+
+#endif
+
 
 //#define DEBUG_LS3
 #ifdef DEBUG_LS3
