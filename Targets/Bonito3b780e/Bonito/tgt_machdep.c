@@ -818,7 +818,7 @@ tgt_devconfig()
 
                 //delay1(30);
 /*If you want to Press <Del> to set BIOS open it(from 0 to 1)*/
-#if 0
+#if 1
                 delay1(300);
 #endif
             }
