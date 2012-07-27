@@ -137,6 +137,9 @@ struct usb_device *devgone;
 
 //QYL-2008-03-07
 #define OHCI_MAX_USBDEVICES 8
+#ifdef USE_BMC
+#define OHCI_MAX_USBDEVICES 32
+#endif
 #define OHCI_MAX_ENDPOINTS_PER_DEVICE 32
 urb_priv_t ohci_urb[OHCI_MAX_USBDEVICES][OHCI_MAX_ENDPOINTS_PER_DEVICE];
 extern struct usb_device usb_dev[];
@@ -1102,11 +1105,23 @@ static int balance (ohci_t *ohci, int interval, int load)
 static void periodic_link (ohci_t *ohci, ed_t *ed)
 {
 	unsigned    i;
+#ifdef USE_BMC
+	unsigned int num;
+#endif
 		 
 	if(ohci_debug)printf("link %x branch %d [%dus.], interval %d\n",
 			ed, ed->int_branch, ed->int_load, ed->int_interval);
 
+#ifdef USE_BMC
+	if (ed->int_interval == 1) {
+                num = NUM_INTS - 22;
+        } else {
+                num = NUM_INTS;
+        }
+        for (i = ed->int_branch; i < num; i += ed->int_interval) {
+#else
 	for (i = ed->int_branch; i < NUM_INTS; i += ed->int_interval) {
+#endif
 		ed_t   **prev = &ohci->periodic [i];
 		volatile unsigned int *prev_p = &ohci->hcca->int_table [i];
 		ed_t   *here = *prev;
@@ -1276,6 +1291,11 @@ static int ep_link (ohci_t *ohci, ed_t *edi)
 	case PIPE_INTERRUPT:
 		ed->hwNextED = 0;
 		branch = balance(ohci, ed->int_interval, ed->int_load);
+#ifdef USE_BMC
+                if (ed->int_interval == 1) {
+                        branch = 1;
+                }
+#endif
 		ed->int_branch = branch;
 		periodic_link (ohci, (ed_t *)ed);
 		break;
@@ -2901,6 +2921,9 @@ static int ohci_submit_int_msg(struct usb_device *dev, unsigned long pipe, void 
 	int s;
 
 	if(ohci_debug)printf("submit int(%08x)\n", dev);
+#ifdef USE_BMC
+	delay(0x4000);
+#endif
 	s = submit_common_msg(dev, pipe, buffer, transfer_len, NULL, interval);
 	return s;
 }

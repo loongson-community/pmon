@@ -4,6 +4,7 @@
 
 static void usb_init(device_t dev)
 {
+#ifndef USE_BMC
 	u8 byte;
 	u16 word;
 	u32 dword;
@@ -65,10 +66,12 @@ static void usb_init(device_t dev)
         /*enable io/memory space*/
 	pci_write_config8(dev, 0x04, (1<<0|1<<1|1<<2)); 
 #endif
+#endif
 }
 
 static void usb_init2(device_t dev)
 {
+#ifndef USE_BMC
 	u8 byte;
 	u16 word;
 	u32 dword;
@@ -123,6 +126,6 @@ static void usb_init2(device_t dev)
         pci_write_config8(dev, 0x0c, 64 >> 2); //PCI_CACHE_LINE_SIZE
 	 /*enable io/memory space*/
         pci_write_config8(dev, 0x04, (1<<0|1<<1|1<<2));
-
+#endif
 }
 
