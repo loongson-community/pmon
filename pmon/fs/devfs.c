@@ -105,6 +105,12 @@ extern int atp_write __P((dev_t dev, void *uio, int flag));
 extern int atp_close __P((dev_t dev, int flag, int mode, void *));
 #endif
 
+#ifdef LOONGSON_3A2H
+extern int ahcisata_open __P((dev_t dev, int flags, int mode, void *));
+extern int ahcisata_read __P((dev_t dev, void *uio, int flag));
+extern int ahcisata_write __P((dev_t dev, void *uio, int flag));
+extern int ahcisata_close __P((dev_t dev, int flag, int mode, void *));
+#endif
 /*
  * Check for and add any target specific declarations from "pmon_target.h"
  */
@@ -129,7 +135,11 @@ struct devsw devswitch[] = {
 	    { "fd", fdopen, fdread, fdwrite, fdclose },
 #endif
 #if NWD > 0
-	{ "wd", wdopen, wdread, wdwrite, wdclose },
+#ifdef LOONGSON_3A2H
+		{ "wd", ahcisata_open, ahcisata_read, ahcisata_write, ahcisata_close },
+#else
+		{ "wd", wdopen, wdread, wdwrite, wdclose },
+#endif
 #endif
 #if NCD > 0
 	{ "cd", cdopen, cdread, cdwrite, cdclose },

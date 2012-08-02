@@ -85,6 +85,7 @@
 #include "ahcisata.h"
 
 struct ahci_probe_ent *probe_ent = NULL;
+extern int sata_using_flag;
 
 /* to get some global routines like printf */
 #include "etherboot.h"
@@ -208,10 +209,10 @@ static void lahci_attach(struct device * parent, struct device * self, void *aux
 	
 	linkmap = probe_ent->link_port_map;
 	printf("lahci: linkmap=%x\n",linkmap);
-	for (i = 0; i < 1; i++) {
+	for (i = 0; i < 2; i++) {
 		if (((linkmap >> i) & 0x01)) {
 			info.sata_reg_base = regbase + 0x100 + i * 0x80;
-			printf("%s: %s:%d info.sata_reg_base =  %08x\n", __FILE__,  __FUNCTION__, __LINE__, info.sata_reg_base);
+			//printf("%s: %s:%d info.sata_reg_base =  %08x\n", __FILE__,  __FUNCTION__, __LINE__, info.sata_reg_base);
 			info.flags = i;
 			info.aa_link.aa_type=0xff; //just for not match ide
 			config_found(self,(void *)&info,NULL);
@@ -354,6 +355,12 @@ static int ahci_host_init(struct ahci_probe_ent *probe_ent)
 		/*register linkup ports */
 		tmp = readl(port_mmio + PORT_SCR_STAT);
 		printf("Port %d status: 0x%x\n", i, tmp);
+    {/*set sata using flag*/
+      if((i==0)&&(tmp))
+        sata_using_flag=(sata_using_flag|0x0f);
+      if((i==1)&&(tmp))
+        sata_using_flag=(sata_using_flag|0xf0);
+    }
 		if ((tmp & 0xf) == 0x03)
 			probe_ent->link_port_map |= (0x01 << i);
 	}

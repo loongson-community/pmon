@@ -90,7 +90,7 @@
 
 #ifndef PHYSADDR
 //#define PHYSADDR(x) (((long)(x))&0x1fffffff)
-#define PHYSADDR(x) ((((long)(x))&0x1fffffff) | 0x80000000a)
+#define PHYSADDR(x) ((((long)(x))&0x1fffffff) | 0x80000000)
 #endif
 
 #define cpu_to_le32(x) (x)
@@ -102,11 +102,12 @@ block_dev_desc_t sata_dev_desc[CFG_SATA_MAX_DEVICE];
 static int curr_device = -1;
 static int lba48[32];
 static int fault_timeout;
+int sata_using_flag=0;
 
 static int ahcisata_match(struct device *, void *, void *);
 static void ahcisata_attach(struct device *, struct device *, void *);
 static int ahci_sata_initialize(u32 reg,u32 flags);
-static void ahci_set_feature(u8 port);
+static void ahci_set_feature(u8 port,u8 *sataid);
 static int ahci_port_start(u8 port);
 static int ata_scsiop_inquiry(int port);
 static void ahci_fill_cmd_slot(struct ahci_ioports *pp, u32 opts);
@@ -130,7 +131,7 @@ struct cfattach ahcisata_ca = {
 };
 
 struct cfdriver ahcisata_cd = {
-	NULL, "ahcisata", DV_DISK
+	NULL, "wd", DV_DISK
 };
 
 static __inline__ int __ilog2(unsigned int x)
@@ -429,6 +430,7 @@ int ahci_sata_initialize(u32 reg,u32 flags)
 {
 	int rc;
 	int i=flags;
+	u8* diskid;
 	ahci_sata_t *sata;
 	struct ahci_ioports *pp = &(probe_ent->port[i]);
 	volatile u8 *port_mmio = (volatile u8 *)pp->port_mmio;
@@ -463,9 +465,11 @@ int ahci_sata_initialize(u32 reg,u32 flags)
 	sata->reg_base = reg;
 
 	rc = ahci_port_start(i);
-	ahci_set_feature((u8) i);
-	ata_scsiop_inquiry(i);
 	
+	diskid=ata_scsiop_inquiry(i);
+  if(!(((hd_driveid_t*)diskid)->dma_ultra && 0xff00))
+     ahci_set_feature((u8) i,diskid);
+	  
 	curr_device = 0;
 	return rc;
 }
@@ -525,7 +529,7 @@ static void ahci_fill_cmd_slot(struct ahci_ioports *pp, u32 opts)
 	pp->cmd_slot->tbl_addr_hi = 0;
 }
 
-static void ahci_set_feature(u8 port)
+static void ahci_set_feature(u8 port,u8* sataid)
 {
 	struct ahci_ioports *pp = &(probe_ent->port[port]);
 	volatile u8 *port_mmio = (volatile u8 *)pp->port_mmio;
@@ -540,6 +544,14 @@ static void ahci_set_feature(u8 port)
 	fis[3] = SETFEATURES_XFER;
 	fis[12] = __ilog2(probe_ent->udma_mask + 1) + 0x40 - 0x01;
 
+	if(((hd_driveid_t *)sataid)->dma_ultra==0x7f)//udma6
+	fis[12]=0x46;//sector count
+      if(((hd_driveid_t *)sataid)->dma_ultra==0x3f)//udma5
+      fis[12]=0x45;//sector count
+      if(((hd_driveid_t *)sataid)->dma_ultra==0x1f)//udma4
+      fis[12]=0x44;//sector count
+      if(((hd_driveid_t *)sataid)->dma_ultra==0x0f)//udma3
+      fis[12]=0x43;//sector count
 	memcpy((unsigned char *)pp->cmd_tbl, fis, 20);
 	ahci_fill_cmd_slot(pp, cmd_fis_len);
 
@@ -688,8 +700,8 @@ static int get_ahci_device_data(u8 port, u8 *fis, int fis_len, u8 *buf,
 		printf("timeout exit!\n");
 		return -1;
 	}
-	printf("get_ahci_device_data: %d byte transferred.\n",
-			pp->cmd_slot->status);
+	//printf("get_ahci_device_data: %d byte transferred.\n",
+	//		pp->cmd_slot->status);
 
 	/* Indicates the current byte count that has transferred on device
 	 * writes(system memory to device) or 
@@ -764,8 +776,10 @@ static int ata_scsiop_inquiry(int port)
 		sata_dev_desc[port].lba48 = 1;
 		lba48[port] = 1;
 	}
+#if 0
 	dump_ataid(/*ataid[port]*/ (hd_driveid_t *)tmpid );
-	return 0;
+#endif
+	return tmpid;
 }
 
 
@@ -793,7 +807,7 @@ static int ahcisata_match(struct device *parent,
 		ahci_do_softreset(info.flags, &class, 0, 0, NULL);
 		printf("%s:%d \n", __FUNCTION__, __LINE__);
 #else
-		wdattach(parent,match, aux);
+    //wdattach(parent,match, aux);
 #endif
 		return 1;
 	}
@@ -838,8 +852,8 @@ static u32 ahci_sata_rw_cmd_ext(int dev, u32 start, u32 blkcnt, u8 *buffer, int 
 	cfis->fis_type = SATA_FIS_TYPE_REGISTER_H2D;
 	((u8 *)cfis)[1] = 0x80; /* is command */
 
-	((u8 *)cfis)[2] = (is_write) ? 0xCA
-		: 0xC8;
+	((u8 *)cfis)[2] = (is_write) ? 0x35
+		: 0x25;
 
 	cfis->lba_high_exp = (block >> 40) & 0xff;
 	cfis->lba_mid_exp = (block >> 32) & 0xff;
@@ -1044,6 +1058,14 @@ void ahci_sata_strategy(struct buf *bp)
 	
 	if(bp->b_flags & B_READ){
 		fault_timeout = 0;
+		{/*validate sata number being used*/
+      if(sata_using_flag==0xf0) 
+        priv->dev=1;
+      else if(sata_using_flag==0x0f) 
+          priv->dev=0;
+      else if(sata_using_flag==0xff)
+        priv->dev=(bp->b_dev&0x01);		  	
+		}
 		ret = ahci_sata_read(priv->dev, blkno, blkcnt, bp->b_data);
 		if(ret != blkcnt || fault_timeout)
 			bp->b_flags |= B_ERROR;
