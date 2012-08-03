@@ -98,6 +98,7 @@
 //static struct usb_device usb_dev[USB_MAX_DEVICE];
 struct usb_device usb_dev[USB_MAX_DEVICE];
 
+extern int dl_ohci_kbd(void);
 int dev_index;
 static int running;
 static int asynch_allowed;
@@ -137,8 +138,10 @@ static int isprint (unsigned char ch)
 *===========================================================================*/
 void __inline__ wait_ms(unsigned long ms)
 {
-	while(ms-->0)
+	while(ms-->0){
 		udelay(1000);
+		dl_ohci_kbd();
+	}
 }
 /***************************************************************************
  * Init USB Device
@@ -1288,7 +1291,6 @@ int usb_new_device(struct usb_device *dev)
 	}
 
 	wait_ms(10);	/* Let the SET_ADDRESS settle */
-
 	tmp = sizeof(dev->descriptor);
 
 	err = usb_get_descriptor(dev, USB_DT_DEVICE, 0, &dev->descriptor, sizeof(dev->descriptor));
@@ -1659,7 +1661,6 @@ static int hub_port_reset(struct usb_device *dev, int port,
 
 		usb_set_port_feature(dev, port + 1, USB_PORT_FEAT_RESET);
 		wait_ms(200);
-
 		if (usb_get_port_status(dev, port + 1, &portsts)<0) {
 			USB_HUB_PRINTF("get_port_status failed status %lX\n",dev->status);
 			return -1;
@@ -1682,7 +1683,7 @@ static int hub_port_reset(struct usb_device *dev, int port,
 		}
 
 		wait_ms(200);
-	}
+	}	
 
 	if (tries==MAX_TRIES) {
 		USB_HUB_PRINTF("Cannot enable port %i after %i retries, disabling port.\n", port+1, MAX_TRIES);
@@ -1740,7 +1741,6 @@ void usb_hub_port_connect_change(struct usb_device *dev, int port)
 			return;
 	}
 	wait_ms(200);
-
 	/* Reset the port */
 	if (hub_port_reset(dev, port, &portstatus) < 0) {
 		printf("cannot reset port %i!?\n", port + 1);
@@ -1749,7 +1749,6 @@ void usb_hub_port_connect_change(struct usb_device *dev, int port)
 
 	//wait_ms(200);
 	wait_ms(400);
-
 	/* Allocate a new device struct for it */
 	assert(dev->hc_private!=NULL);
 	usb=usb_alloc_new_device(dev->hc_private);

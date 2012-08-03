@@ -155,6 +155,11 @@ static void ohci_device_notify(struct usb_device *dev, int port);
 
 int usb_lowlevel_init(ohci_t *ohci);
 
+int ohci_index = 0; 
+int dl_ohci_kbd(void); // deal with usb kbd
+void delay_usb_ohci(int us);
+
+
 int ohci_debug = 0;
 
 struct usb_ops ohci_usb_op = {
@@ -314,8 +319,8 @@ unsigned long sm501_set_clock(int clksrc, unsigned long req_freq)
 	}
 
 	readl(sm502_reg_base + 0x00);
-	delay(16000);
-
+	//delay(16000);
+	delay_usb_ohci(16000);
 	return sm501_freq;
 
 }
@@ -491,6 +496,7 @@ static void lohci_attach(struct device *parent, struct device *self, void *aux)
 //	}
 //#endif
 	usb_ohci_dev[ohci_dev_index++] = ohci;
+			ohci_index++;
 //#ifdef CONFIG_SM502_USB_HCD
 //	if(PCI_VENDOR(pa->pa_id) == 0x126f) {
 //		pci_mem_find(pc, pa->pa_tag, 0x14, &membase, &memsize, &cachable);
@@ -600,6 +606,30 @@ struct cfdriver lohci_cd = {
 };
 #endif
 
+int dl_ohci_kbd(void)
+{
+        int i;
+                for(i =  0; i < ohci_index; i++)
+                {
+
+                        hc_interrupt(usb_ohci_dev[i]);
+                }
+
+
+}
+/*This founction is to deal with problem caused by usb kbd*/
+static void delay_usb_ohci(int us)
+{
+        volatile int i, k;
+
+        dl_ohci_kbd();
+        for(k = 0; k < us; k++){
+                for(i = 0; i < 50; i++);
+        }
+
+}
+
+
 
 /*===========================================================================
 *
@@ -657,6 +687,7 @@ static void ohci_attach(struct device *parent, struct device *self, void *aux)
 #endif
 	ohci->pa = *pa;
 	usb_ohci_dev[ohci_dev_index++] = ohci;
+		ohci_index++;
 #ifdef CONFIG_SM502_USB_HCD
 	if(PCI_VENDOR(pa->pa_id) == 0x126f) {
 		pci_mem_find(pc, pa->pa_tag, 0x14, &membase, &memsize, &cachable);
@@ -2678,7 +2709,8 @@ int submit_common_msg(struct usb_device *dev, unsigned long pipe, void *buffer,
 		if(!(dev->status & USB_ST_NOT_PROC)){
 			break;
 		}
-		delay(200);
+		//delay(200);
+		delay_usb_ohci(200);
 		hc_check_ohci_controller(gohci);
 	}
 
@@ -2926,7 +2958,8 @@ static int hc_reset (ohci_t *ohci)
 			return -1;
 		}
 //		udelay (500);		// changed for test liujl
-		udelay (1); 
+	//	udelay (1); 
+		delay_usb_ohci(1);
 	}
 	return 0;
 }
@@ -2989,7 +3022,8 @@ static int hc_start (ohci_t * ohci)
 		int val;	
 		val = readl(&ohci->regs->intrstatus);
 		while(val & OHCI_INTR_SF){
-			udelay(10);
+	//		udelay(10);
+			delay_usb_ohci(10);
 			readl(&ohci->regs->intrstatus);
 		}
 	}
@@ -3005,8 +3039,8 @@ static int hc_start (ohci_t * ohci)
 	mask = OHCI_INTR_RHSC | OHCI_INTR_UE | OHCI_INTR_WDH | OHCI_INTR_SO | OHCI_INTR_MIE;
 	writel (mask, &ohci->regs->intrenable);
 
-	udelay(1000);
-
+//	udelay(1000);
+	delay_usb_ohci(1000);
 #if	0
 #ifdef	OHCI_USE_NPS
 	/* required for AMD-756 and some Mac platforms */
@@ -3016,7 +3050,8 @@ static int hc_start (ohci_t * ohci)
 #endif	/* OHCI_USE_NPS */
 #endif
 	
-#define mdelay(n) do {unsigned long msec=(n); while (msec--) udelay(1000);} while(0)
+//#define mdelay(n) do {unsigned long msec=(n); while (msec--) udelay(1000);} while(0)
+#define mdelay(n) do {unsigned long msec=(n); while (msec--) delay_usb_ohci(1000);} while(0)
 	/* POTPGT delay is bits 24-31, in 2 ms units. */
 	mdelay ((roothub_a (ohci) >> 23) & 0x1fe);
 
@@ -3100,7 +3135,8 @@ static int hc_interrupt (void *hc_data)
 #endif
 		got_rhsc = 0;
 		/* abuse timeout */
-		delay(250);
+		//delay(250);
+		delay_usb_ohci(250);
 		timeout = rh_check_port_status(ohci);
 		if (timeout >= 0) {
 			/*
@@ -3808,7 +3844,8 @@ static int hc_check_ohci_controller (void *hc_data)
 #endif
 		got_rhsc = 0;
 		/* abuse timeout */
-		delay(250);
+		//delay(250);
+		delay_usb_ohci(250);
 		timeout = rh_check_port_status(ohci);
 		if (timeout >= 0) {
 			/*

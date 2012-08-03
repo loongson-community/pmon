@@ -78,6 +78,8 @@ unsigned int show_menu;
 
 extern int bios_available;
 extern int cmd_main_mutex;
+extern int ohci_index;
+extern int dl_ohci_kbd(void);
 
 jmp_buf         jmpb;		/* non-local goto jump buffer */
 char            line[LINESZ + 1];	/* input line */
@@ -931,6 +933,8 @@ static	const char      more_tiks[] = "|/-\\";
 static	const char     *more_tik;
 
 	tik_cnt -= rate;
+	if(ohci_index)
+		dl_ohci_kbd();
 	if (tik_cnt > 0) {
 		return;
 	}

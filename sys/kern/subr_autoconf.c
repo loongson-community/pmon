@@ -77,6 +77,9 @@ typedef int (*cond_predicate_t) __P((struct device *, void *));
  */
 extern short cfroots[];
 
+extern int ohci_index;
+extern int dl_ohci_kbd(void);//deal with usb keyboard
+
 #define	ROOT ((struct device *)NULL)
 
 struct matchinfo {
@@ -347,6 +350,9 @@ config_found_sm(parent, aux, print, submatch)
 	}
 	if (print)
 		printf(msgs[(*print)(aux, parent->dv_xname)]);
+
+	if(ohci_index)  
+               dl_ohci_kbd();  //deal with usb keyboard
 	return (NULL);
 }
 
@@ -446,6 +452,9 @@ if (strstr(dev->dv_xname, "wd") != NULL || strstr(dev->dv_xname, "cd") != NULL |
 	printf("%s at %s", dev->dv_xname, parent->dv_xname);
 		if (print)
 			(void) (*print)(aux, (char *)0);
+
+		if(ohci_index)
+             		  dl_ohci_kbd(); //deal with usb keyboard
 	}
 
 	/*

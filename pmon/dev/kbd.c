@@ -105,6 +105,9 @@ unsigned int esc_seq;
 unsigned int esc_code;
 extern void delay __P((int));
 
+extern int ohci_index;  
+extern int dl_ohci_kbd(); //deal with usb kbd
+                                          
 typedef void (*k_hand) (unsigned char value, char up_flag);
 typedef void (k_handfn) (unsigned char value, char up_flag);
 
@@ -164,7 +167,9 @@ static void kbd_wait(void)
 
 		if (!(status & KBD_STAT_IBF))
 			return;
-		delay(1000);
+		delay(1000);     //  don not exceed 100ms,or usb keyboard may suspend when you  press  
+		if(ohci_index)   //   deal with usb kbd
+                      dl_ohci_kbd();
 		timeout--;
 	} while (timeout);
 }
@@ -225,7 +230,9 @@ static int kbd_wait_for_input(void)
 		int retval = kbd_read_data();
 		if (retval >= 0)
 			return retval;
-		delay(1000);
+		delay(1000);    //don not exceed 100ms, or usb kbd may suspend
+		if(ohci_index)  // deal with usb kbd
+                       dl_ohci_kbd();
 	} while (--timeout);
 	return -1;
 }
