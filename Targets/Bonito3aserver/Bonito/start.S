@@ -280,7 +280,11 @@ stack = start - 0x4000		/* Place PMON stack below PMON start in RAM */
     nop
 
 #ifdef DDR3_DIMM
+#ifdef USE_780E_VGA
     GPIO_CLEAR_OUTPUT(0x1<<2);  
+#elif defined(USE_BMC)
+    GPIO_SET_OUTPUT(0x1<<2);
+#endif
 #else
     GPIOLED_SET(0xd)
 #endif

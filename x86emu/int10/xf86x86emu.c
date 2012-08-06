@@ -18,7 +18,9 @@
 static void x86emu_do_int(int num)
 {
 	Int10Current->num = num;
-printf("int10current->num=0x%x\n",num);
+#ifdef USE_780E_VGA
+	printf("int10current->num=0x%x\n",num);
+#endif
 	if (!int_handler(Int10Current)) {
 	printf("int_handler_int10current is error,system halted...\n");
 			X86EMU_halt_sys();

@@ -46,8 +46,10 @@ select     	amd_780e
 option      SERVER_3A
 option		RS780E
 option      USE_780E_VGA
+#option      USE_BMC
 option      VGA_NO_ROM
 option		VGA_BASE=0xbe000000
+#option      VGA_BASE=0xb4000000
 option      VRAM_SIZE=128
 #option		DEBUG_EMU_VGA
 #option      CONFIG_GFXUMA

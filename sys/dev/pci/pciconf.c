@@ -456,7 +456,7 @@ if(pm_io == NULL) {
 				if(PCI_ISCLASS(((pd->pa.pa_class)&0xff00ffff), PCI_CLASS_DISPLAY, PCI_SUBCLASS_DISPLAY_VGA)){
                                         if(reg==0x10){
                                                 printf("fixup video mem size\n");
-#ifdef USE_780E_VGA
+#if defined(USE_780E_VGA) || defined(USE_BMC)
                                                 if (pm->size > 0x4000000)
                                                 {
 												   // pm->size = 0x8000000;
@@ -564,7 +564,13 @@ _pci_query_dev (struct pci_device *dev, int bus, int device, int initialise)
 		PRINTF ("completed\n");
 	}
 
-#if defined(SERVER_3A) && defined(USE_780E_VGA)
+#if defined(USE_BMC)
+        if (PCI_VENDOR(id) == 0x1a03 && PCI_PRODUCT(id) == 0x2000)
+        {
+                printf("AST2050's VGA discover !!!!!!!!!!!!!!\n");
+        }
+#else
+
     if((PCI_ISCLASS(typ, PCI_CLASS_DISPLAY, PCI_SUBCLASS_DISPLAY_VGA)) && (PCI_VENDOR(id) != 0x1002 || PCI_PRODUCT(id) != 0x9615))
     {
         printf("Don't alloc pci mem for other vga in 3a/3b/3c 780e board during boot bios...\n");
@@ -732,6 +738,8 @@ _pci_setup_windows (struct pci_device *dev)
 #ifdef USE_780E_VGA
         //changed by oldtai
         if (PCI_VENDOR(pd->pa.pa_id) == 0x1002)
+#elif defined(USE_BMC)  /* USE_BMC_VGA */
+        if (PCI_VENDOR(pd->pa.pa_id) == 0x1a03)
 #endif
         {
             vga_dev = pd;

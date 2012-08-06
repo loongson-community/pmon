@@ -64,7 +64,9 @@ int int_handler(xf86Int10InfoPtr pInt)
 	if (!ret) {
 		ret = run_bios_int(num, pInt);
 		//if(num==0x10) X86EMU_trace_on();
+#ifdef USE_780E_VGA
 		printf("run_bios_int,intno=%x,ret=%x\n", num, ret);
+#endif
 	}
 
 	if (!ret) {

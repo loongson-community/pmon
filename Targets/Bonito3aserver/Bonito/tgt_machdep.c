@@ -152,8 +152,10 @@ extern const char *kbd_error_msgs[];
 
 #if (NMOD_X86EMU_INT10 == 0)&&(NMOD_X86EMU == 0)
 int vga_available=0;
-#elif defined(VGAROM_IN_BIOS)
+#elif defined(VGAROM_IN_BIOS) && defined(USE_780E_VGA)
 #include "vgarom.c"
+#elif defined(VGAROM_IN_BIOS) && defined(USE_BMC)
+#include "vgarom_bmc.c"
 #endif
 
 int tgt_i2cread(int type,unsigned char *addr,int addrlen,unsigned char reg,unsigned char* buf ,int count);
@@ -663,6 +665,7 @@ void tgt_devconfig()
 #if NMOD_FRAMEBUFFER > 0 
     unsigned long fbaddress,ioaddress;
     extern struct pci_device *vga_dev;
+#ifdef USE_780E_VGA
 #ifdef RS780E
     int test;
     int  i;
@@ -688,6 +691,7 @@ void tgt_devconfig()
 #endif
 #endif
 #endif
+#endif
 	_pci_devinit(1);	/* PCI device initialization */
 #if (NMOD_X86EMU_INT10 > 0)||(NMOD_X86EMU >0)
 	SBD_DISPLAY("VGAI", 0);
@@ -710,11 +714,15 @@ void tgt_devconfig()
 	}
 	if (rc > 0) {
 		fbaddress  =_pci_conf_read(vga_dev->pa.pa_tag,0x10);
+#ifdef USE_780E_VGA
 		ioaddress  =_pci_conf_read(vga_dev->pa.pa_tag,0x18);
-
+#elif defined(USE_BMC)
+		ioaddress  =_pci_conf_read(vga_dev->pa.pa_tag,0x14);
+#endif
 		fbaddress = fbaddress &0xffffff00; //laster 8 bit
 		ioaddress = ioaddress &0xfffffff0; //laster 4 bit
 
+#ifdef USE_780E_VGA
 #if NMOD_SISFB
 		fbaddress=sisfb_init_module();
 #endif
@@ -743,6 +751,9 @@ void tgt_devconfig()
 		fbaddress = 0x50000000; // virtual address mapped to the second 256M memory
 #else
 		fbaddress = uma_memory_base | BONITO_PCILO_BASE_VA;
+#endif
+#elif defined(USE_BMC)
+		fbaddress |= BONITO_PCILO_BASE_VA;
 #endif
 		printf("fbaddress = %08x\n", fbaddress);
 
@@ -2685,6 +2696,7 @@ void sb700_interrupt_fixup(void)
 	else
 		fixup_interrupt_printf("set pic_5 pass\n");
 
+#ifndef USE_BMC
 	/* 5. set int triggle model: level or edge */
 	dev = _pci_make_tag(0, 0x14, 0x0);
 	fixup_interrupt_printf("PIC control bit: %08x\n", pci_read_config16(dev, 0x64));
@@ -2699,6 +2711,7 @@ void sb700_interrupt_fixup(void)
 #endif
 
 	fixup_interrupt_printf("SB700 interrupt PIC set done \n");
+#endif
 
 
 
@@ -2826,12 +2839,13 @@ void sb700_interrupt_fixup(void)
 #endif
 
 	/*7. VGA fixup*/
+#ifdef USE_780E_VGA
      fixup_interrupt_printf("godson3a fixup: VGA ------> int6 \n");
      dev = _pci_make_tag(1, 0x5, 0);
      pci_write_config8(dev,0x3c,0x06);
  
      fixup_interrupt_printf("godson3a fixup: VGA ------> int6 \n");	
-
+#endif
 	/*8. pci/pcie slot fixup */
 #if 0
 	//8.1. route  00:06:00 (pcie slot) INTA->INTC# -----------------> int6
@@ -3023,6 +3037,7 @@ void sb700_interrupt_fixup(void)
 	}
 
   	// 10.5 check  VGA interrupt line register
+#ifdef USE_780E_VGA
 	dev = _pci_make_tag(0x1, 0x5, 0x0);
     val = pci_read_config32(dev, 0x00);
 	if ( val != 0xffffffff) // device on the slot
@@ -3031,6 +3046,6 @@ void sb700_interrupt_fixup(void)
 	  if ( val != 0x6)
 		fixup_interrupt_printf("01:05:00 interrupt line : Error\n");
 	}
-
+#endif
 }
 

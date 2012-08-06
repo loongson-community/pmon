@@ -17,6 +17,7 @@ static void pci_init(device_t dev)
 	byte |= 1 << 5;
 	pci_write_config8(dev, 0x40, byte);
 
+#ifdef USE_780E_VGA
 //vga pci card support   //lycheng
 	/* PCI Command: Enable IO response */
 	byte = pci_read_config8(dev, 0x04);
@@ -27,7 +28,7 @@ static void pci_init(device_t dev)
 	byte |= (1 << 3);
 	pci_write_config8(dev, 0x3e, byte);
 //end vga pci card support
-	
+#endif
 
 	/* RPR5.2 PCI-bridge upstream dual address window */
 	/* this setting is applicable if the system memory is more than 4GB,and the PCI device can support dual address access */

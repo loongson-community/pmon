@@ -886,11 +886,13 @@ void rs780_after_pci_fixup(void){
 	rs780_enable(dev);
 
 #if 1
+#ifdef USE_780E_VGA
 	/* bus0, dev1, APC. */	
 	printk_info("Bus-0, Dev-1, Fun-0.\n");
         dev = _pci_make_tag(0, 1, 0);
     rs780_internal_gfx_init(_pci_make_tag(0,0,0) , _pci_make_tag(0,1,0));
 	rs780_enable(dev);
+#endif
 
 	/* bus0, dev2,3, two GFX */
 	printk_info("Bus-0, Dev-2, Fun-0\n");

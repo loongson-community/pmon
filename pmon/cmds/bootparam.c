@@ -332,7 +332,11 @@ struct board_devices *board_devices_info()
 #endif
 #
 #ifdef LOONGSON_3ASERVER
+#ifdef USE_BMC
+  strcpy(bd->name,"Loongson-3A780E-2-BMC-V1.02-demo");
+#else
   strcpy(bd->name,"Loongson-3A780E-2-V1.02-demo");
+#endif
 #endif
 #ifdef LEMOTE_3AITX
   strcpy(bd->name,"lemote-3a-itx-a1101");

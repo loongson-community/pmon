@@ -218,7 +218,11 @@ int vga_bios_init(void)
 //#if		0
 #if     defined(RS690) || defined(RS780E)
 	{
+#ifdef USE_780E_VGA
 		pcitag_t vga_bridge = _pci_make_tag(0, 1, 0);
+#elif defined(USE_BMC)
+                pcitag_t vga_bridge = _pci_make_tag(0, 6, 0); /* BMC VGA */
+#endif
 		unsigned int val;
 
 		/* enable VGA legacy space decode */
