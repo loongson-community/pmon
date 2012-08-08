@@ -789,7 +789,7 @@ void tgt_devconfig()
 
          video_set_color(0xf);
 
-//         init_win_device();
+         init_win_device();
 
          vga_available = 0;          //lwg close printf output
 

@@ -1176,11 +1176,7 @@ int paint_childwindow(char **hint,char *diskdev_name[],char *netdev_name[],int e
 				}
 				while(diskdev_name[i])
 				  	i++;
-#ifdef LOONGSON_3ASERVER
-				dip_diskdev[0] = malloc(11);
-                                strcpy(dip_diskdev[0],"SATA DISK0"); 
-				selnum_tmp = w_window4(20, 9, 14, 1,dip_diskdev, 1);
-#endif
+
 				selnum_tmp = w_window4(20, 9, 14, 1,dip_diskdev, i);
 				selnum = (selnum_tmp & 0xff) - 1;
 				selcont = selnum;
