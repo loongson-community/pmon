@@ -447,6 +447,8 @@ li      t1, 0x00e0      # {cu3,cu2,cu1,cu0}<={0110, status_fr<=1
 
 		bal	initserial
 		nop
+		bal	initserial_uart1
+		nop
 
 		//#define DEBUG_LS3
 #ifdef DEBUG_LS3
@@ -1771,13 +1773,23 @@ TM_over:
 #	li	v1, 1
 		beqz	v1, 1b
 		nop
-
 		sb	a0, NSREG(NS16550_DATA)(v0)
 		move	v1, v0
 		la	v0, GS3_UART_BASE
 		bne	v0, v1, 1b
 		nop
-
+		la	v0,GS3_UART1_BASE 
+		1:
+		lbu	v1, NSREG(NS16550_LSR)(v0)
+		and	v1, LSR_TXRDY
+#	li	v1, 1
+		beqz	v1, 1b
+		nop
+		sb	a0, NSREG(NS16550_DATA)(v0)
+		move	v1, v0
+		la	v0, GS3_UART1_BASE
+		bne	v0, v1, 1b
+		nop
 		j	ra
 		nop	
 		END(tgt_putchar)
@@ -1937,6 +1949,41 @@ TM_over:
 		nop
 		END(initserial)
 #endif
+
+		LEAF(initserial_uart1)
+		li  a0, GS3_UART1_BASE
+
+		li	t1,128
+#	addiu	a2,a0,3
+		sb	t1,3(a0)
+#ifdef	BONITO_33M 
+		li	t1,0x12      # divider, highest possible baud rate,for 33M crystal
+#else
+#ifdef BONITO_25M 
+		li	t1,0x0e      # divider, highest possible baud rate,for 25M crystal
+#else
+#ifdef BONITO_50M 
+		li	t1,0x1b      # divider, highest possible baud rate,for 50M crystal
+#endif
+#endif
+#endif
+		sb	t1,0(a0)
+		li	t1,0x0     # divider, highest possible baud rate
+		sb	t1,1(a0)
+		li	t1,3
+		sb	t1,3(a0)
+
+#srl	t1,t1,0x8
+		li	t1,0
+		sb	t1,1(a0)
+#li	t1,1      # divider, highest possible baud rate
+
+
+		li	t1,71
+		sb	t1,2(a0)
+		jr	ra
+		nop
+		END(initserial_uart1)
 
 		LEAF(initserial_COM1)
 		la	v0, COM1_BASE_ADDR
