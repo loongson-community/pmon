@@ -997,12 +997,12 @@ initstack (ac, av, addenv)
 
 	struct boot_params *bp;
 	struct loongson_params  *lp;
-struct efi_memory_map_loongson *emap;
-struct efi_cpuinfo_loongson *ecpu;
-struct system_loongson *esys;
-struct irq_source_routing_table *eirq_source;
-struct interface_info *einter;
-struct board_devices *eboard;
+	struct efi_memory_map_loongson *emap;
+	struct efi_cpuinfo_loongson *ecpu;
+	struct system_loongson *esys;
+	struct irq_source_routing_table *eirq_source;
+	struct interface_info *einter;
+	struct board_devices *eboard;
 	
 	int param_len = 0;
  
@@ -1097,7 +1097,8 @@ printf("Shutdown:%p reset:%p\n",bp->reset_system.Shutdown,bp->reset_system.Reset
 #else
 printf("ssp:%lx line=%d\n",ssp,__LINE__);
 
-#endif	
+#endif
+	loongson_smbios_init();	
 }
 	else {
 		*vsp++ = (char *)0;

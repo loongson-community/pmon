@@ -198,6 +198,7 @@ struct efi_cpuinfo_loongson *init_cpu_info()
   c->cputype  = cputype;
 
   c->cpu_clock_freq = atoi(getenv("cpuclock"));
+  smbios_type_4_cpu_clock = c->cpu_clock_freq;
 
 #ifdef LOONGSON_3BSERVER
   c->total_node = 4; // total node means what? why it can't be 8 ? // by xqch
@@ -226,6 +227,7 @@ struct efi_cpuinfo_loongson *init_cpu_info()
   c->total_node = 1;
   c->nr_cpus = 4;
 #endif
+  smbios_type_4_cpus = c->nr_cpus;
 
   c->cpu_startup_core_id = (available_core_mask >> 16) & 0xf;
 
@@ -309,6 +311,7 @@ struct interface_info *init_interface_info()
   inter->flag = 1;
 
   strcpy(inter->description,"PMON_Version_v2.1");
+  strcpy(smbios_pmon_version, inter->description);
  
   return inter;
 }
@@ -344,6 +347,7 @@ struct board_devices *board_devices_info()
 #ifdef LEMOTE_3ANOTEBOOK
   strcpy(bd->name,"lemote-3a-notebook-a1004");
 #endif
+  strcpy(smbios_board_name, bd->name);
   bd->num_resources = 10;
  
   return bd;

@@ -177,6 +177,9 @@ file sys/kern/sys_socket.c		sys
 file sys/kern/uipc_socket.c		sys
 file sys/dev/bus_dma.c			sys
 
+#support smbios
+file pmon/common/smbios/smbios.c
+
 file pmon/cmds/boot.c			cmd_boot
 file pmon/cmds/call.c			cmd_call
 file pmon/cmds/mycmd.c			cmd_mycmd
