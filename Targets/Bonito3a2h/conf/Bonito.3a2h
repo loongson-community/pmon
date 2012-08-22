@@ -22,9 +22,9 @@ option		TARGETNAME="\"Bonito\""
 #
 option      loongson3A3
 option      DDR3_DIMM
-#option      ARB_LEVEL
-#option      AUTO_DDR_CONFIG
-option      USE_SB_I2C
+option      ARB_LEVEL
+option      AUTO_DDR_CONFIG
+option      USE_LS2H_I2C
 
 option		BONITOEL
 option      DEVBD2F

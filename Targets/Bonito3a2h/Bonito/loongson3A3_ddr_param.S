@@ -1,4 +1,4 @@
-    .align  5
+    //.align  5
 //DDR2 param
 ddr2_reg_data:
 ddr2_reg_data_mc1:

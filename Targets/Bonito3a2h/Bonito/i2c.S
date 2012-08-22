@@ -1,10 +1,65 @@
 /*************************
- * Small modified by cxk.
+ * just suport ls3a2h
 *************************/
-#define BONITO_HTIO_BASE_VA 0x90000efdfc000000
+// below added for ls3a+2h i2c
 
-#ifdef  USE_SB_I2C
-#ifndef MULTI_I2C_BUS
+#define CR_START	0x80
+#define CR_STOP		0x40
+#define CR_RD		0x20
+#define CR_WR		0x10
+#define CR_ACK		0x8
+#define CR_IACK		0x1
+#define SR_TIP		0x2
+#define SR_BUSY		0x40
+#define SR_RXACK	0x80
+#
+
+#define I2C_START 0x80
+#define I2C_STOP 0x40
+#define I2C_READ 0x20
+#define I2C_WRITE 0x10
+#define I2C_WACK 0x8
+#define I2C_IACK 0x1
+#define I2C_RUN 0x2
+#define I2C_BUSY 0x40
+#define I2C_RACK 0x80
+
+#define LS2H_I2C_BASE    0xbbe90000
+#define LS2H_I2C_PRER_LO (LS2H_I2C_BASE + 0x0)
+#define LS2H_I2C_PRER_HI (LS2H_I2C_BASE + 0x1)
+#define LS2H_I2C_CTR     (LS2H_I2C_BASE + 0x2)
+#define LS2H_I2C_TXR     (LS2H_I2C_BASE + 0x3)
+#define LS2H_I2C_RXR     (LS2H_I2C_BASE + 0x3)
+#define LS2H_I2C_CR      (LS2H_I2C_BASE + 0x4)
+#define LS2H_I2C_SR      (LS2H_I2C_BASE + 0x4)
+
+
+#define i2c_wait  \
+		li	  v0, LS2H_I2C_CR	\
+11:	\
+		lb	  v1, 0x0(v0);	\
+		li	  v1, CR_TIP  \
+		bne	  v1, 11b;	\
+		nop
+
+LEAF(i2cinit)
+		li	  v1, 0x64
+		li	  v0, LS2H_I2C_PRER_LO
+		sb	  v1, 0x0(v0);
+
+		li	  v1, 0x00
+		li	  v0, LS2H_I2C_PRER_HI
+		sb	  v1, 0x0(v0);
+
+		li	  v1, 0x80
+		li	  v0, LS2H_I2C_CTR
+		sb	  v1, 0x0(v0);
+
+        jr      ra
+        nop
+END(i2cinit)
+	  
+#if 0
 LEAF(i2cread)
 /***************
 use register:
@@ -14,159 +69,176 @@ input: a0,a1
    a0: device ID
    a1: register offset
 ***************/
-	    ori     a0, a0, 1
 
-        /* set device address */
-        dli     v0, BONITO_HTIO_BASE_VA + SMBUS_HOST_ADDRESS
-        sb      a0, 0(v0);
+		/* store device base address */
+		andi  v1, a0, 0xfe
+		li	  v0, LS2H_I2C_TXR 
+		sb	  v1, 0x0(v0);
 
-        /* store register offset */
-        dli     v0, BONITO_HTIO_BASE_VA + SMBUS_HOST_COMMAND
-        sb      a1, 0(v0);
+		/* start i2c */
+		li	  v1, CR_START|CR_WRITE;
+		li	  v0, LS2H_I2C_CR
+		sb	  v1, 0x0(v0);
 
-        /* read byte data protocol */
-        dli     v0, 0x08
-        dli     v1, BONITO_HTIO_BASE_VA + SMBUS_HOST_CONTROL
-        sb      v0, 0(v1);
+		i2c_wait;
+		
+		/* store reg offset */
+		move  v1, a1
+		li	  v0, LS2H_I2C_TXR 
+		sb	  v1, 0x0(v0);
 
-        /* make sure SMB host ready to start, important!--zfx */
-        dli     v1, BONITO_HTIO_BASE_VA + SMBUS_HOST_STATUS
-        lbu     v0, 0(v1)
-        andi    v0, v0, 0x1f
-        beqz    v0, 1f
-        nop
-        sb      v0, 0(v1)
-        lbu     v0, 0(v1)   #flush the write
-1:
-        /* start */
-        dli     v1, BONITO_HTIO_BASE_VA + SMBUS_HOST_CONTROL
-        lbu     v0, 0(v1)
-        ori     v0, v0, 0x40
-        sb      v0, 0(v1);
+  		/* stop i2c */
+		li	  v1, CR_STOP|CR_WRITE;
+		li	  v0, LS2H_I2C_CR
+		sb	  v1, 0x0(v0);
 
-        /* wait */
-        dli     v1, BONITO_HTIO_BASE_VA + SMBUS_HOST_STATUS
+		i2c_wait;
 
-1:
-#if 1
-        /* delay */
-        dli     v0, 0x100
-2:
-        bnez    v0, 2b
-        daddiu  v0, -1
-#endif
-        lbu     v0, 0(v1)
-        andi    v0, SMBUS_HOST_STATUS_BUSY
-        bnez    v0, 1b  #IDEL ?
-        nop
+		/* now choose register offset to read out */
+		ori   v1, a0, 0x1
+		li	  v0, LS2H_I2C_TXR 
+		sb	  v1, 0x0(v0);
 
-        dli     v1, BONITO_HTIO_BASE_VA + SMBUS_HOST_STATUS
-        lbu     v0, 0(v1)
-        andi    v0, v0, 0x1f
-        beqz    v0, 1f
-        nop
-        sb      v0, 0(v1)   #reset
-        lbu     v0, 0(v1)   #flush the write
-1:
+		/* start i2c */
+		li	  v1, CR_START|CR_WRITE; /* start on first addr */
+		li	  v0, LS2H_I2C_CR
+		sb	  v1, 0x0(v0);
 
-        dli     v1, BONITO_HTIO_BASE_VA + SMBUS_HOST_DATA0
-        lbu     v0, 0(v1)
+		i2c_wait;
+		
+		li	  v1, CR_READ|I2C_WACK;  /* last read not send ack */
+		li	  v0, LS2H_I2C_CR
+		sb	  v1, 0x0(v0);
 
+		i2c_wait;
+
+		li	  v0, LS2H_I2C_TXR
+		lb	  a0, 0x0(v0);   /* get data */
+
+		li	  a1, CR_STOP;   /* stop */
+		li	  v0, LS2H_I2C_CR
+		sb	  a1, 0x0(v0);
+		
+		/* wait i2c free */
+		li	  v0, LS2H_I2C_SR
+		lb	  a1, 0x0(v0);
+
+
+		li	  v0, LS2H_I2C_SR
+112:
+		lb	  a1, 0x0(v0);
+		andi  a1, a1, SR_BUSY
+		bne	  a1, 112b;
+		nop
+
+		move  v0, a0;
         jr      ra
         nop
 END(i2cread)
 #else
-/****************************************************/
-/*		support multi i2c bus mode			        */
-/****************************************************/
 LEAF(i2cread)
-/***************
-use register:
-v0, v1
-a0, a1, a2
-input: a0,a1,a2
-   a0: device ID
-   a1: register offset
-   a2: chip ID (0,1,2,3)
-***************/
-	    ori     a0, a0, 1
-		/* calculate address according chip ID */
-        dsll    a2, a2, 44
+/*
+ * use register:
+ *	v0, v1
+ *	a0, a1
+ *	input: a0,a1
+ *	   a0: device ID
+ *	   a1: register offset
+ *	   v0: return value
+ *
+ */
 
-        /* set device address */
-        dli     v0, BONITO_HTIO_BASE_VA + SMBUS_HOST_ADDRESS
-		daddu   v0, v0, a2
-        sb      a0, 0(v0);
+/*i2c_send_b*/				
+	/* load device address */
+	andi	v1, a0, 0xfe		
+	li	v0, LS2H_I2C_TXR	
+	sb	v1, 0x0(v0)		
 
-        /* store register offset */
-        dli     v0, BONITO_HTIO_BASE_VA + SMBUS_HOST_COMMAND
-		daddu   v0, v0, a2
-        sb      a1, 0(v0);
+	/* send start frame */
+	li	v1, CR_START | CR_WR	
+	li	v0, LS2H_I2C_CR		
+	sb	v1, 0x0(v0)		
 
-        /* read byte data protocol */
-        dli     v0, 0x08
-        dli     v1, BONITO_HTIO_BASE_VA + SMBUS_HOST_CONTROL
-		daddu   v1, v1, a2
-        sb      v0, 0(v1);
+	/* waite send finished */
+//	i2c_wait_tip			
+	li	v0, LS2H_I2C_SR;	
+1:						
+	lb	v1, 0x0(v0);		
+	andi	v1, v1, SR_TIP;		
+	bnez	v1, 1b;			
+	nop	
+	
+	/* load data to be send */
+	move	v1, a1			
+	li	v0, LS2H_I2C_TXR	
+	sb	v1, 0x0(v0)		
 
-        /* make sure SMB host ready to start, important!--zfx */
-        dli     v1, BONITO_HTIO_BASE_VA + SMBUS_HOST_STATUS
-		daddu   v1, v1, a2
-        lbu     v0, 0(v1)
-        andi    v0, v0, 0x1f
-        beqz    v0, 1f
-        nop
-        sb      v0, 0(v1)
-        lbu     v0, 0(v1)   #flush the write
-1:
-        /* start */
-        dli     v1, BONITO_HTIO_BASE_VA + SMBUS_HOST_CONTROL
-		daddu   v1, v1, a2
-        lbu     v0, 0(v1)
-        ori     v0, v0, 0x40
-        sb      v0, 0(v1);
+	/* send data frame */
+	li	v1, CR_WR		
+	li	v0, LS2H_I2C_CR		
+	sb	v1, 0x0(v0)		
 
-        /* wait */
-        dli     v1, BONITO_HTIO_BASE_VA + SMBUS_HOST_STATUS
-		daddu   v1, v1, a2
+	/* waite send finished */
+//	i2c_wait_tip			
+	li	v0, LS2H_I2C_SR;	
+1:						
+	lb	v1, 0x0(v0);		
+	andi	v1, v1, SR_TIP;		
+	bnez	v1, 1b;			
+	nop	
 
-1:
-#if 1
-        /* delay */
-        dli     v0, 0x100
-2:
-        bnez    v0, 2b
-        daddiu  v0, -1
-#endif
-        lbu     v0, 0(v1)
-        andi    v0, SMBUS_HOST_STATUS_BUSY
-        bnez    v0, 1b  #IDEL ?
-        nop
+/* i2c_read_b */			       
+	/* load device address */
+	ori	v1, a0, 0x1
+	li	v0, LS2H_I2C_TXR	
+	sb	v1, 0x0(v0)		
+	
+	/* send start frame */
+	li	v1, CR_START | CR_WR	
+	li	v0, LS2H_I2C_CR		
+	sb	v1, 0x0(v0)		
 
-        dli     v1, BONITO_HTIO_BASE_VA + SMBUS_HOST_STATUS
-		daddu   v1, v1, a2
-        lbu     v0, 0(v1)
-        andi    v0, v0, 0x1f
-        beqz    v0, 1f
-        nop
-        sb      v0, 0(v1)   #reset
-        lbu     v0, 0(v1)   #flush the write
-1:
+	/* waite send finished */
+//	i2c_wait_tip			
+	li	v0, LS2H_I2C_SR;	
+1:						
+	lb	v1, 0x0(v0);		
+	andi	v1, v1, SR_TIP;		
+	bnez	v1, 1b;			
+	nop	
+	
+	/* receive data to fifo */
+	li	v1, CR_RD | CR_ACK	
+	li	v0, LS2H_I2C_CR		
+	sb	v1, 0x0(v0)		
 
-        dli     v1, BONITO_HTIO_BASE_VA + SMBUS_HOST_DATA0
-		daddu   v1, v1, a2
-        lbu     v0, 0(v1)
+//	i2c_wait_tip			
+	li	v0, LS2H_I2C_SR;	
+1:						
+	lb	v1, 0x0(v0);		
+	andi	v1, v1, SR_TIP;		
+	bnez	v1, 1b;			
+	nop	
 
-        jr      ra
-        nop
+	/* read data from fifo */
+	li	v0, LS2H_I2C_RXR	
+	lb	a1, 0x0(v0)
+
+/* i2c_stop */				
+	/* free i2c bus */
+	li	v0, LS2H_I2C_CR		
+	li	v1, CR_STOP		
+	sb	v1, 0x0(v0)		
+1:					
+	li	v0, LS2H_I2C_SR		
+	lb	v1, 0x0(v0)		
+	andi	v1, v1, SR_BUSY		
+	bnez	v1, 1b			
+	nop				
+	
+	move	v0, a1
+
+	jr	ra
+	nop
 END(i2cread)
 #endif
-
-#else
-
-#ifdef  USE_GPIO_I2C
-#include "i2c_firewall.S"
-#endif
-
-#endif
-

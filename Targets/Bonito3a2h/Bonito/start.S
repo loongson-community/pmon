@@ -2087,7 +2087,7 @@ TM_over:
 		END(tgt_putchar_COM1)
 
 
-//#include "i2c.S"
+#include "i2c.S"
 #ifdef AUTO_DDR_CONFIG  // for no ls2h cpu on board, disable AUTO_DDR_CONFIG
 #include "detect_node_dimm.S"
 #endif
@@ -2688,7 +2688,8 @@ watchdog_enable:
 
     .align  5
 #ifndef ARB_LEVEL
-#include "loongson3a_ddr3_param.S"
+//#include "loongson3a_ddr3_param.S" // origin level code
+#include "loongson3A3_ddr_param.S"
 #else
 #include "loongson3A3_ddr_param.S"
 #endif

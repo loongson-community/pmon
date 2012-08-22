@@ -12,9 +12,9 @@ void i2c_stop()
 }
 
 ///////////////////////////////////////////////////o
-// below added by xqch to make i2cread like ls3a
+// below added by xqch to make ls2hi2cread like ls3a
 //unsigned char i2c_rec_s(unsigned char *addr,int addrlen,unsigned char* buf ,int count)
-unsigned char i2cread(unsigned char baseaddr, unsigned char regoff)
+unsigned char ls2hi2cread(unsigned char baseaddr, unsigned char regoff)
 {
 	
 	int i,j;
@@ -63,7 +63,7 @@ again:
 	printf("%2d: ret = %08x\n",j, ret);
 	* GS_SOC_I2C_CR  = CR_STOP;
 	* GS_SOC_I2C_SR;
-	while(*GS_SOC_I2C_SR & SR_BUSY);
+	//while(*GS_SOC_I2C_SR & SR_BUSY);
 	}
 	//ret = * GS_SOC_I2C_TXR;
 	//printf("1: ret = %08x\n", ret);
@@ -211,7 +211,7 @@ int j;
  * 0 single: ÿ?ζ?һ??
  * 1 smb block
  */
-int tgt_i2cread(int type,unsigned char *addr,int addrlen,unsigned char *buf,int count)
+int tgt_ls2hi2cread(int type,unsigned char *addr,int addrlen,unsigned char *buf,int count)
 {
 int i;
 tgt_i2cinit();
@@ -263,7 +263,7 @@ inited=1;
 #include <stdio.h>
 //#include <pmon.h>
 #if 0
-int cmd_i2cread(int ac, char *av[])
+int cmd_ls2hi2cread(int ac, char *av[])
 {
 	int i,len = 1;
 	//unsigned short addr[16]= {0xa3, 0x02, 0x04, 0x08, 0x09};
@@ -305,7 +305,7 @@ int cmd_i2cread(int ac, char *av[])
 }
 #else
 
-int cmd_i2cread(int ac, char *av[])
+int cmd_ls2hi2cread(int ac, char *av[])
 {
 	int i,len = 1;
 	//unsigned short addr[16]= {0xa3, 0x02, 0x04, 0x08, 0x09};
@@ -327,7 +327,7 @@ int cmd_i2cread(int ac, char *av[])
 	printf("regoff = %08x\n", regoff);
 
 	
-	printf("%08x\n", i2cread(slave, regoff));
+	printf("%08x\n", ls2hi2cread(slave, regoff));
 
 	return 0;		
 }
@@ -337,7 +337,7 @@ int cmd_i2cread(int ac, char *av[])
 static const Cmd Cmds[] =
 {
 	{"Misc"},
-	{"i2cread", "", NULL, "i2cread a address from ls2h chip", cmd_i2cread, 1, 5,0},
+	{"i2cread", "", NULL, "ls2hi2cread a address from ls2h chip", cmd_ls2hi2cread, 1, 5,0},
 	{0, 0}
 };
 

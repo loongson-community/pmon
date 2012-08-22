@@ -19,7 +19,7 @@
 #define GET_I2C_NODE_ID_a2  ;
 #endif
 //------------------------
-//#define DEBUG_PROBE_NODE_DIMM
+#define DEBUG_PROBE_NODE_DIMM
 
 LEAF(PROBE_NODE_DIMM)
 /*************************
@@ -53,14 +53,36 @@ LEAF(PROBE_NODE_DIMM)
     or      a0, a2
     sw      a0, 0x0(a1);
 #endif
-#if 0  //for debug, give the SPD device id directly.
+#ifdef USE_LS2H_I2C
+	bal		i2cinit
+	nop
+#endif
+#if 1  //for debug, give the SPD device id directly.
 //scan the devices and display DIMM SPD values when the first device is detected.
     PRINTSTR("\r\nDIMM SPD register dump:");
-    dli     a0, 0xa1;
+    dli     a0, 0xa3;
+    dli     a1, 0x2;
+    //GET_I2C_NODE_ID_a2
+    bal     i2cread;
+    nop;
+	move    t3, v0
+    PRINTSTR("\r\na0=0x");
+    move    a0, t3
+    bal     hexserial
+    nop
+
+    dli     a0, 0xa7;
     dli     a1, 0x2;
     GET_I2C_NODE_ID_a2
     bal     i2cread;
     nop;
+	move    t3, v0
+    PRINTSTR("\r\na0=0x");
+    move    a0, t3
+    bal     hexserial
+    nop
+
+
     dli     t3, 0x80
     bltu    v0, t3, 2f
     nop
@@ -141,8 +163,8 @@ LEAF(PROBE_NODE_DIMM)
     bgeu    a1, a0, 1f  //invalidate device id
     nop
     dsll    a1, a1, 1
-    ori     a0, a1, 0xa1
-    //li      a0,0xa5;
+    //ori     a0, a1, 0xa7 
+    li      a0, 0xa5;   // con7: MC1 slot 0
     bal     PROBE_DIMM;
     nop;
 1:
@@ -169,8 +191,8 @@ LEAF(PROBE_NODE_DIMM)
     bgeu    a1, a0, 1f  //invalidate device id
     nop
     dsll    a1, a1, 1
-    ori     a0, a1, 0xa1
-    //li      a0,0xa7;
+    //ori     a0, a1, 0xa5;
+    li      a0,0xa7;    // con8: MC1 slot 1
     bal     PROBE_DIMM;
     nop;
 1:
@@ -322,8 +344,8 @@ LEAF(PROBE_NODE_DIMM)
     bgeu    a1, a0, 1f  //invalidate device id
     nop
     dsll    a1, a1, 1
-    ori     a0, a1, 0xa1
-    //li      a0,0xa1;
+    //ori     a0, a1, 0xaf  
+    li      a0,0xaf; // con5 mc0, slot 0
     bal     PROBE_DIMM;
     nop;
 1:
@@ -350,8 +372,8 @@ LEAF(PROBE_NODE_DIMM)
     bgeu    a1, a0, 1f  //invalidate device id
     nop
     dsll    a1, a1, 1
-    ori     a0, a1, 0xa1
-    //li      a0,0xa3;
+    //ori     a0, a1, 0xa3 
+    li      a0, 0xa3;  // con 6: mc0 slot 1
     bal     PROBE_DIMM;
     nop;
 1:
@@ -569,9 +591,9 @@ LEAF(PROBE_DIMM)
 1:
     daddiu  t5, t5, -1
 #endif
-
+	//dli		a0, 0xa3
     dli     a1, 2
-    GET_I2C_NODE_ID_a2
+    //GET_I2C_NODE_ID_a2
     bal     i2cread
     nop
     //only bit[7:0] used
