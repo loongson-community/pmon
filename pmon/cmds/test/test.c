@@ -107,17 +107,18 @@ struct setupMenu testmenu={
 {POP_Y+3,POP_X,4,4,TYPE_CMD,"(3)netcard net0:${?&#mytest 4}=[on=| _or mytest 4||off=| _andn mytest 4]test 4"},
 {POP_Y+4,POP_X,5,5,TYPE_CMD,"(4)netcard net1:${?&#mytest 8}=[on=| _or mytest 8||off=| _andn mytest 8]test 8"},
 {POP_Y+5,POP_X,6,6,TYPE_CMD,"(5)netcard net2:${?&#mytest 16}=[on=| _or mytest 16||off=| _andn mytest 16]test 16"},
-{POP_Y+6,POP_X,7,7,TYPE_CMD,"(5)pci:${?&#mytest 32}=[on=| _or mytest 32||off=| _andn mytest 32]test 32"},
-{POP_Y+7,POP_X,8,8,TYPE_CMD,"(6)video:${?&#mytest 64}=[on=| _or mytest 64||off=| _andn mytest 64]test 64"},
-{POP_Y+8,POP_X,9,9,TYPE_CMD,"(7)harddisk:${?&#mytest 128}=[on=| _or mytest 128||off=| _andn mytest 128]test 128"},
-{POP_Y+9,POP_X,10,10,TYPE_CMD,"(8)keyboard:${?&#mytest 256}=[on=| _or mytest 256||off=| _andn mytest 256]test 256"},
-{POP_Y+10,POP_X,11,11,TYPE_CMD,"(9)serial:${?&#mytest 512}=[on=| _or mytest 512||off=| _andn mytest 512]test 512"},
-{POP_Y+11,POP_X,12,12,TYPE_CMD,"(10)all selected=test ${#mytest}"},
-{POP_Y+12,POP_X,1,1,TYPE_CMD,"(11)quit=| _quit",0},
+{POP_Y+6,POP_X,7,7,TYPE_CMD,"(6)pci:${?&#mytest 32}=[on=| _or mytest 32||off=| _andn mytest 32]test 32"},
+{POP_Y+7,POP_X,8,8,TYPE_CMD,"(7)video:${?&#mytest 64}=[on=| _or mytest 64||off=| _andn mytest 64]test 64"},
+{POP_Y+8,POP_X,9,9,TYPE_CMD,"(8)harddisk:${?&#mytest 128}=[on=| _or mytest 128||off=| _andn mytest 128]test 128"},
+{POP_Y+9,POP_X,10,10,TYPE_CMD,"(9)keyboard:${?&#mytest 256}=[on=| _or mytest 256||off=| _andn mytest 256]test 256"},
+{POP_Y+10,POP_X,11,11,TYPE_CMD,"(10)serial:${?&#mytest 512}=[on=| _or mytest 512||off=| _andn mytest 512]test 512"},
+{POP_Y+11,POP_X,12,12,TYPE_CMD,"(11)all selected=test ${#mytest}"},
+{POP_Y+12,POP_X,1,1,TYPE_CMD,"(12)quit=| _quit",0},
 {}
 }
 };
 
+#ifndef LOONGSON_3A2H
 struct setupMenu testmenu1={
 0,POP_W,POP_H,
 (struct setupMenuitem[])
@@ -136,7 +137,27 @@ struct setupMenu testmenu1={
 {}
 }
 };
-
+#else
+#ifdef LOONGSON_3A2H
+struct setupMenu testmenu1={
+0,POP_W,POP_H,
+(struct setupMenuitem[])
+{
+{POP_Y,POP_X,1,1,TYPE_NONE,"    board test"},
+{POP_Y+1,POP_X,2,2,TYPE_CMD,"(1)cpu:${?&#mytest 1}=[on=| _or mytest 1||off=| _andn mytest 1]test 1"},
+{POP_Y+2,POP_X,3,3,TYPE_CMD,"(2)memory:${?&#mytest 2}=[on=| _or mytest 2||off=| _andn mytest 2]test 2"},
+{POP_Y+3,POP_X,4,4,TYPE_CMD,"(3)netcard net0:${?&#mytest 4}=[on=| _or mytest 4||off=| _andn mytest 16]test 16"},
+{POP_Y+4,POP_X,5,5,TYPE_CMD,"(4)video:${?&#mytest 64}=[on=| _or mytest 64||off=| _andn mytest 64]test 64"},
+{POP_Y+5,POP_X,6,6,TYPE_CMD,"(5)harddisk:${?&#mytest 128}=[on=| _or mytest 128||off=| _andn mytest 128]test 128"},
+{POP_Y+6,POP_X,7,7,TYPE_CMD,"(6)keyboard:${?&#mytest 256}=[on=| _or mytest 256||off=| _andn mytest 256]test 256"},
+{POP_Y+7,POP_X,8,8,TYPE_CMD,"(7)serial:${?&#mytest 512}=[on=| _or mytest 512||off=| _andn mytest 512]test 512"},
+{POP_Y+8,POP_X,9,9,TYPE_CMD,"(8)all selected:${?&#mytest 4096}=[on=| _or mytest 4096||off=| _andn mytest 4096]test 4096"},
+{POP_Y+9,POP_X,1,1,TYPE_CMD,"(9)quit=| _quit",0},
+{}
+}
+};
+#endif
+#endif
 
 static int cmd_test(int ac,char **av)
 {
