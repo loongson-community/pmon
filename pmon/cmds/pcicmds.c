@@ -200,6 +200,12 @@ extern char *optarg;
 	maxbus = 255;
 	firstdev = 0;
 	maxdev = 31;
+#ifdef LOONGSON_3A2H
+	printf("----------------------------------\n");
+	printf("Warn:LS3A2H don't use this command\n");	
+	printf("----------------------------------\n");
+	return (0);
+#endif
 	while ((c = getopt (ac, av, "b:d:")) != EOF) {
 	switch (c) {
 		case 'b':
@@ -236,9 +242,9 @@ extern char *optarg;
                                 continue;
                         }
 			if (ndevs == 0) {
-				printf(">> BUS %2d <<                                                                                      \n", bus);
-				printf("Dev Fun Device description                                                                         \n");
-				printf("--------------------------                                                                         \n");
+				printf(">> BUS %2d <<\n", bus);
+				printf("Dev Fun Device description\n");
+				printf("--------------------------\n");
 			}
                         bhlc = _pci_conf_read(tag, PCI_BHLC_REG);
                         if (PCI_HDRTYPE_MULTIFN(bhlc)) {
