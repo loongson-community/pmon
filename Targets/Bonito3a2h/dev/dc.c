@@ -4,25 +4,17 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/malloc.h>
-typedef unsigned long  u32;
+typedef unsigned long u32;
 typedef unsigned short u16;
-typedef unsigned char  u8;
-typedef signed long  s32;
+typedef unsigned char u8;
+typedef signed long s32;
 typedef signed short s16;
-typedef signed char  s8;
+typedef signed char s8;
 typedef int bool;
 typedef unsigned long dma_addr_t;
 
-#define LS2H
-//#define TEST_800x600 1
-#undef TEST_800x600
-#ifdef LS2H
 #define DC_FB1 1
-#undef DC_FB0
-#else
 #define DC_FB0 1
-#undef DC_FB1
-#endif
 
 #define writeb(val, addr) (*(volatile u8*)(addr) = (val))
 #define writew(val, addr) (*(volatile u16*)(addr) = (val))
@@ -34,344 +26,341 @@ typedef unsigned long dma_addr_t;
 #define write_reg(addr,val) writel(val,addr)
 
 #if 1
-#define FB_XSIZE   800 
+#define FB_XSIZE   800
 #define FB_YSIZE   600
 #else
-#define FB_XSIZE  640 // 800 
-#define FB_YSIZE  480 // 600
+#define FB_XSIZE  640	
+#define FB_YSIZE  480
 #endif
 
-#define DIS_WIDTH  FB_XSIZE  // 640 // 800
-#define DIS_HEIGHT FB_YSIZE // 480 //  600 
+#define DIS_WIDTH  FB_XSIZE
+#define DIS_HEIGHT FB_YSIZE
 #define EXTRA_PIXEL  0
 
-// for south chip mode
 #define DC_BASE_ADDR	0xbbe51240
 #define DC_BASE_ADDR_1	0xbbe51250
 
-// for soc mode
-//#define DC_BASE_ADDR	0xbbe51240
-//#define DC_BASE_ADDR_1	0xbbe51250
-
 #define RANDOM_HEIGHT_Z 37
 
-#if 0 // for soc
-static char *ADDR_CURSOR = 0x86000000;
-static char *MEM_ptr =	  0x82000000; // frame buffer address register on ls2h mem
-#else
 static char *ADDR_CURSOR = 0xc6000000;
-static char *MEM_ptr =	  0xc2000000; // frame buffer address register on ls2h mem
-#endif
+static char *MEM_ptr = 0xc2000000;	/* frame buffer address register on ls2h mem */
 
-static int MEM_ADDR =0;
-#ifdef DC_FB1 
+static int MEM_ADDR = 0;
+#ifdef DC_FB1
 static char *MEM_ptr_1 = 0xc2000000;
-static int MEM_ADDR_1 =0;
+static int MEM_ADDR_1 = 0;
 #endif
 
-struct vga_struc{
-           float pclk;
-           int hr,hss,hse,hfl;
-	   int vr,vss,vse,vfl;
-}
-vgamode[] =
-{
-{/*"640x480_70.00"*/    28.56,  640,    664,    728,    816,    480,    481,    484,    500,    },
-{/*"640x640_60.00"*/	33.10,	640,	672,	736,	832,	640,	641,	644,	663,	},
-{/*"640x768_60.00"*/	39.69,	640,	672,	736,	832,	768,	769,	772,	795,	},
-{/*"640x800_60.00"*/	42.13,	640,	680,	744,	848,	800,	801,	804,	828,	},
-{/*"800x480_70.00"*/    35.84,  800,    832,    912,    1024,   480,    481,    484,    500,    },
-{/*"800x600_60.00"*/	38.22,	800,	832,	912,	1024,	600,	601,	604,	622,	},
-{/*"800x640_60.00"*/	40.73,	800,	832,	912,	1024,	640,	641,	644,	663,	},
-{/*"832x600_60.00"*/	40.01,	832,	864,	952,	1072,	600,	601,	604,	622,	},
-{/*"832x608_60.00"*/	40.52,	832,	864,	952,	1072,	608,	609,	612,	630,	},
-{/*"1024x480_60.00"*/	38.17,	1024,	1048,	1152,	1280,	480,	481,	484,	497,	},
-{/*"1024x600_60.00"*/	48.96,	1024,	1064,	1168,	1312,	600,	601,	604,	622,	},
-{/*"1024x640_60.00"*/	52.83,	1024,	1072,	1176,	1328,	640,	641,	644,	663,	},
-{/*"1024x768_60.00"*/	64.11,	1024,	1080,	1184,	1344,	768,	769,	772,	795,	},
-{/*"1024x768_60.00"*/	64.11,	1024,	1080,	1184,	1344,	768,	769,	772,	795,	},
-{/*"1024x768_60.00"*/	64.11,	1024,	1080,	1184,	1344,	768,	769,	772,	795,	},
-{/*"1152x764_60.00"*/   71.38,  1152,   1208,   1328,   1504,   764,    765,    768,    791,    },
-{/*"1280x800_60.00"*/   83.46,  1280,   1344,   1480,   1680,   800,    801,    804,    828,    },
-{/*"1280x1024_55.00"*/  98.60,  1280,   1352,   1488,   1696,   1024,   1025,   1028,   1057,   },
-{/*"1440x800_60.00"*/   93.80,  1440,   1512,   1664,   1888,   800,    801,    804,    828,    },
-{/*"1440x900_67.00"*/   120.28, 1440,   1528,   1680,   1920,   900,    901,    904,    935,    },
+struct vga_struc {
+	float pclk;
+	int hr, hss, hse, hfl;
+	int vr, vss, vse, vfl;
+} vgamode[] = {
+	{	28.56,	640,	664,	728,	816,	480,	481,	484,	500,	},	/*"640x480_70.00" */	
+	{	33.10,	640,	672,	736,	832,	640,	641,	644,	663,	},	/*"640x640_60.00" */	
+	{	39.69,	640,	672,	736,	832,	768,	769,	772,	795,	},	/*"640x768_60.00" */	
+	{	42.13,	640,	680,	744,	848,	800,	801,	804,	828,	},	/*"640x800_60.00" */	
+	{	35.84,	800,	832,	912,	1024,	480,	481,	484,	500,	},	/*"800x480_70.00" */	
+	{	38.22,	800,	832,	912,	1024,	600,	601,	604,	622,	},	/*"800x600_60.00" */	
+	{	40.73,	800,	832,	912,	1024,	640,	641,	644,	663,	},	/*"800x640_60.00" */	
+	{	40.01,	832,	864,	952,	1072,	600,	601,	604,	622,	},	/*"832x600_60.00" */	
+	{	40.52,	832,	864,	952,	1072,	608,	609,	612,	630,	},	/*"832x608_60.00" */	
+	{	38.17,	1024,	1048,	1152,	1280,	480,	481,	484,	497,	},	/*"1024x480_60.00" */	
+	{	48.96,	1024,	1064,	1168,	1312,	600,	601,	604,	622,	},	/*"1024x600_60.00" */	
+	{	52.83,	1024,	1072,	1176,	1328,	640,	641,	644,	663,	},	/*"1024x640_60.00" */	
+	{	64.11,	1024,	1080,	1184,	1344,	768,	769,	772,	795,	},	/*"1024x768_60.00" */	
+	{	64.11,	1024,	1080,	1184,	1344,	768,	769,	772,	795,	},	/*"1024x768_60.00" */	
+	{	64.11,	1024,	1080,	1184,	1344,	768,	769,	772,	795,	},	/*"1024x768_60.00" */	
+	{	71.38,	1152,	1208,	1328,	1504,	764,	765,	768,	791,	},	/*"1152x764_60.00" */	
+	{	83.46,	1280,	1344,	1480,	1680,	800,	801,	804,	828,	},	/*"1280x800_60.00" */	
+	{	98.60,	1280,	1352,	1488,	1696,	1024,	1025,	1028,	1057,	},	/*"1280x1024_55.00" */	
+	{	93.80,	1440,	1512,	1664,	1888,	800,	801,	804,	828,	},	/*"1440x800_60.00" */	
+	{	120.28,	1440,	1528,	1680,	1920,	900,	901,	904,	935,	},	/*"1440x900_67.00" */
 };
 
-enum{
-OF_BUF_CONFIG=0,
-OF_BUF_ADDR=0x20,
-OF_BUF_STRIDE=0x40,
-OF_BUF_ORIG=0x60,
-OF_DITHER_CONFIG=0x120,
-OF_DITHER_TABLE_LOW=0x140,
-OF_DITHER_TABLE_HIGH=0x160,
-OF_PAN_CONFIG=0x180,
-OF_PAN_TIMING=0x1a0,
-OF_HDISPLAY=0x1c0,
-OF_HSYNC=0x1e0,
-OF_VDISPLAY=0x240,
-OF_VSYNC=0x260,
-OF_DBLBUF=0x340,
+enum {
+	OF_BUF_CONFIG = 0,
+	OF_BUF_ADDR = 0x20,
+	OF_BUF_STRIDE = 0x40,
+	OF_BUF_ORIG = 0x60,
+	OF_DITHER_CONFIG = 0x120,
+	OF_DITHER_TABLE_LOW = 0x140,
+	OF_DITHER_TABLE_HIGH = 0x160,
+	OF_PAN_CONFIG = 0x180,
+	OF_PAN_TIMING = 0x1a0,
+	OF_HDISPLAY = 0x1c0,
+	OF_HSYNC = 0x1e0,
+	OF_VDISPLAY = 0x240,
+	OF_VSYNC = 0x260,
+	OF_DBLBUF = 0x340,
 };
 
 #define MYDBG printf(":%d\n",__LINE__);
 
 int caclulatefreq(float PCLK)
 {
-int pstdiv,ODF,LDF,idf,inta,intb;
-int mpd,modf,mldf,rodf;
-int out;
-float a,b,c,min;
+	int pstdiv, ODF, LDF, idf, inta, intb;
+	int mpd, modf, mldf, rodf;
+	int out;
+	float a, b, c, min;
 
-min=100;
-	for(pstdiv=1;pstdiv<32;pstdiv++)
-	for(ODF=1;ODF<=8;ODF*=2)
-	{
-		a=PCLK*pstdiv;
-		b=a*ODF;
-		LDF=((int)(b/(50*ODF)))*ODF;
-		intb=50*LDF;
-		inta=intb/ODF;
-		c=b-intb;
-		if(inta<75||inta>1800) continue;
-		if(intb<600||intb>1800) continue;
-		if(LDF<8||LDF>225) continue;
-		if(c<min) {min=c;mpd=pstdiv;modf=ODF;mldf=LDF;}
-	}
-	rodf= modf==8 ? 3 : modf==4 ? 2 : modf==2 ? 1 : 0;
-	out=(mpd<<24) + (mldf<<16) + (rodf<<5) + (5<<2) + 1;
-	printf("ODF=%d, LDF=%d, IDF=5, pstdiv=%d, prediv=1\n",rodf,mldf,mpd);
-return out;
+	min = 100;
+	for (pstdiv = 1; pstdiv < 32; pstdiv++)
+		for (ODF = 1; ODF <= 8; ODF *= 2) {
+			a = PCLK * pstdiv;
+			b = a * ODF;
+			LDF = ((int)(b / (50 * ODF))) * ODF;
+			intb = 50 * LDF;
+			inta = intb / ODF;
+			c = b - intb;
+			if (inta < 75 || inta > 1800)
+				continue;
+			if (intb < 600 || intb > 1800)
+				continue;
+			if (LDF < 8 || LDF > 225)
+				continue;
+			if (c < min) {
+				min = c;
+				mpd = pstdiv;
+				modf = ODF;
+				mldf = LDF;
+			}
+		}
+	rodf = modf == 8 ? 3 : modf == 4 ? 2 : modf == 2 ? 1 : 0;
+	out = (mpd << 24) + (mldf << 16) + (rodf << 5) + (5 << 2) + 1;
+	printf("ODF=%d, LDF=%d, IDF=5, pstdiv=%d, prediv=1\n", rodf, mldf, mpd);
+	return out;
 }
 
 int config_cursor()
 {
-  printf("framebuffer Cursor Configuration\n");
-  write_reg((0xbbe51520  +0x00),0x00020200);
-  printf("framebuffer Cursor Address\n");
-  write_reg((0xbbe51530  +0x00),ADDR_CURSOR);
-  printf("framebuffer Cursor Location\n");
-  write_reg((0xbbe51540  +0x00),0x00060122);
-  printf("framebuffer Cursor Background\n");
-  write_reg((0xbbe51550  +0x00),0x00eeeeee);
-  printf("what hell is this register for ?\n");
-  write_reg((0xbbe51560  +0x00),0x00aaaaaa);
+	printf("framebuffer Cursor Configuration\n");
+	write_reg((0xbbe51520 + 0x00), 0x00020200);
+	printf("framebuffer Cursor Address\n");
+	write_reg((0xbbe51530 + 0x00), ADDR_CURSOR);
+	printf("framebuffer Cursor Location\n");
+	write_reg((0xbbe51540 + 0x00), 0x00060122);
+	printf("framebuffer Cursor Background\n");
+	write_reg((0xbbe51550 + 0x00), 0x00eeeeee);
+	printf("what hell is this register for ?\n");
+	write_reg((0xbbe51560 + 0x00), 0x00aaaaaa);
 }
-
 
 int config_fb(unsigned long base)
 {
-int i,mode=-1;
-int j;
-unsigned int chip_reg;
+	int i, mode = -1;
+	int j;
+	unsigned int chip_reg;
 
-  for(i=0;i<sizeof(vgamode)/sizeof(struct vga_struc);i++)
-  {
-	  int out;
-	  if(vgamode[i].hr == FB_XSIZE && vgamode[i].vr == FB_YSIZE){
-		  mode=i;
-#ifdef LS2H
-		  out = caclulatefreq(vgamode[i].pclk);
-		  printf("out=%x\n",out);
-// change to refclk
-	*(volatile unsigned int*)(0xbbd00234) = 0x0;
-	*(volatile unsigned int*)(0xbbd0023c) = 0x0;
-// pll_powerdown set pstdiv
-	*(volatile unsigned int*)(0xbbd00230) = out|0x80000080;
-	*(volatile unsigned int*)(0xbbd00238) = out|0x80000080;
-// wait 10000ns
-	for(j=1;j<=300;j++)
-		chip_reg = *(volatile unsigned int*)(0xbbd00210);
-// pll_powerup unset pstdiv
-	*(volatile unsigned int*)(0xbbd00230) = out;
-	*(volatile unsigned int*)(0xbbd00238) = out;
-// wait pll_lock
-	while((*(volatile unsigned int*)(0xbbd00210))&0x00001800!=0x00001800) {}
-// change to pllclk
-	*(volatile unsigned int*)(0xbbd00234) = 0x1;
-	*(volatile unsigned int*)(0xbbd0023c) = 0x1;
-	
-#endif
-		  break;
-	  }
-  }
+	for (i = 0; i < sizeof(vgamode) / sizeof(struct vga_struc); i++) {
+		int out;
+		if (vgamode[i].hr == FB_XSIZE && vgamode[i].vr == FB_YSIZE) {
+			mode = i;
+			out = caclulatefreq(vgamode[i].pclk);
+			printf("out=%x\n", out);
+			/* change to refclk */
+			*(volatile unsigned int *)(0xbbd00234) = 0x0;
+			*(volatile unsigned int *)(0xbbd0023c) = 0x0;
+			/* pll_powerdown set pstdiv */
+			*(volatile unsigned int *)(0xbbd00230) =
+			    out | 0x80000080;
+			*(volatile unsigned int *)(0xbbd00238) =
+			    out | 0x80000080;
+			/* wait 10000ns */
+			for (j = 1; j <= 300; j++)
+				chip_reg =
+				    *(volatile unsigned int *)(0xbbd00210);
+			/* pll_powerup unset pstdiv */
+			*(volatile unsigned int *)(0xbbd00230) = out;
+			*(volatile unsigned int *)(0xbbd00238) = out;
+			/* wait pll_lock */
+			while ((*(volatile unsigned int *)(0xbbd00210)) &
+			       0x00001800 != 0x00001800) {
+			}
+			/* change to pllclk */
+			*(volatile unsigned int *)(0xbbd00234) = 0x1;
+			*(volatile unsigned int *)(0xbbd0023c) = 0x1;
+			break;
+		}
+	}
 
-  if(mode<0)
-  {
-	  printf("\n\n\nunsupported framebuffer resolution\n\n\n");
-	  return;
-  }
+	if (mode < 0) {
+		printf("\n\n\nunsupported framebuffer resolution\n\n\n");
+		return;
+	}
 
+	/* Disable the panel 0 */
+	write_reg((base + OF_BUF_CONFIG), 0x00000000);
+	/* framebuffer configuration RGB565 */
+	write_reg((base + OF_BUF_CONFIG), 0x00000003);
+	write_reg((base + OF_BUF_ADDR), MEM_ADDR);
+	write_reg(base + OF_DBLBUF, MEM_ADDR);
+	write_reg((base + OF_DITHER_CONFIG), 0x00000000);
+	write_reg((base + OF_DITHER_TABLE_LOW), 0x00000000);
+	write_reg((base + OF_DITHER_TABLE_HIGH), 0x00000000);
+	write_reg((base + OF_PAN_CONFIG), 0x80001311);
+	write_reg((base + OF_PAN_TIMING), 0x00000000);
 
-//  Disable the panel 0
-  write_reg((base+OF_BUF_CONFIG),0x00000000);
-// framebuffer configuration RGB565
-  write_reg((base+OF_BUF_CONFIG),0x00000003);
-  write_reg((base+OF_BUF_ADDR),MEM_ADDR  );
-  write_reg(base+OF_DBLBUF,MEM_ADDR );
-  write_reg((base+OF_DITHER_CONFIG),0x00000000);
-  write_reg((base+OF_DITHER_TABLE_LOW),0x00000000);
-  write_reg((base+OF_DITHER_TABLE_HIGH),0x00000000);
-  write_reg((base+OF_PAN_CONFIG),0x80001311);
-  write_reg((base+OF_PAN_TIMING),0x00000000);
-
-  write_reg((base+OF_HDISPLAY),(vgamode[mode].hfl<<16)|vgamode[mode].hr);
-  write_reg((base+OF_HSYNC),0x40000000|(vgamode[mode].hse<<16)|vgamode[mode].hss);
-  write_reg((base+OF_VDISPLAY),(vgamode[mode].vfl<<16)|vgamode[mode].vr);
-  write_reg((base+OF_VSYNC),0x40000000|(vgamode[mode].vse<<16)|vgamode[mode].vss);
+	write_reg((base + OF_HDISPLAY),
+		  (vgamode[mode].hfl << 16) | vgamode[mode].hr);
+	write_reg((base + OF_HSYNC),
+		  0x40000000 | (vgamode[mode].hse << 16) | vgamode[mode].hss);
+	write_reg((base + OF_VDISPLAY),
+		  (vgamode[mode].vfl << 16) | vgamode[mode].vr);
+	write_reg((base + OF_VSYNC),
+		  0x40000000 | (vgamode[mode].vse << 16) | vgamode[mode].vss);
 
 #if defined(CONFIG_VIDEO_32BPP)
-  write_reg((base+OF_BUF_CONFIG),0x00100104);
-  write_reg((base+OF_BUF_STRIDE),FB_XSIZE*4); //1024
+	write_reg((base + OF_BUF_CONFIG), 0x00100104);
+	write_reg((base + OF_BUF_STRIDE), FB_XSIZE * 4);
 #elif defined(CONFIG_VIDEO_16BPP)
-  write_reg((base+OF_BUF_CONFIG),0x00100103);
-  write_reg((base+OF_BUF_STRIDE),(FB_XSIZE*2+255)&~255); //1024
+	write_reg((base + OF_BUF_CONFIG), 0x00100103);
+	write_reg((base + OF_BUF_STRIDE), (FB_XSIZE * 2 + 255) & ~255);
 #elif defined(CONFIG_VIDEO_15BPP)
-  write_reg((base+OF_BUF_CONFIG),0x00100102);
-  write_reg((base+OF_BUF_STRIDE),FB_XSIZE*2); //1024
+	write_reg((base + OF_BUF_CONFIG), 0x00100102);
+	write_reg((base + OF_BUF_STRIDE), FB_XSIZE * 2);
 #elif defined(CONFIG_VIDEO_12BPP)
-  write_reg((base+OF_BUF_CONFIG),0x00100101);
-  write_reg((base+OF_BUF_STRIDE),FB_XSIZE*2); //1024
-#else  //640x480-32Bits
-  write_reg((base+OF_BUF_CONFIG),0x00100104);
-  write_reg((base+OF_BUF_STRIDE),FB_XSIZE*4); //640
-#endif //32Bits
+	write_reg((base + OF_BUF_CONFIG), 0x00100101);
+	write_reg((base + OF_BUF_STRIDE), FB_XSIZE * 2);
+#else /* 640x480-32Bits */
+	write_reg((base + OF_BUF_CONFIG), 0x00100104);
+	write_reg((base + OF_BUF_STRIDE), FB_XSIZE * 4);
+#endif /* 32Bits */
 
 }
 
 int dc_init()
 {
-   int print_count;
-   int i;
-   int PIXEL_COUNT = DIS_WIDTH * DIS_HEIGHT +  EXTRA_PIXEL; 
-   int MEM_SIZE; // = PIXEL_COUNT * 4;
-  // int MEM_SIZE = PIXEL_COUNT * 2;
-   int init_R = 0;
-   int init_G = 0;
-   int init_B = 0;
-   int j;
-   int ii=0,tmp=0;
-   int MEM_SIZE_3 = MEM_SIZE /6; 
+	int print_count;
+	int i;
+	int PIXEL_COUNT = DIS_WIDTH * DIS_HEIGHT + EXTRA_PIXEL;
+	int MEM_SIZE;
+	int init_R = 0;
+	int init_G = 0;
+	int init_B = 0;
+	int j;
+	int ii = 0, tmp = 0;
+	int MEM_SIZE_3 = MEM_SIZE / 6;
 
-    int line_length=0;
-   
-   int  print_addr;
-   int print_data;
-   printf("enter dc_init...\n");
+	int line_length = 0;
+
+	int print_addr;
+	int print_data;
+	printf("enter dc_init...\n");
 
 #if defined(CONFIG_VIDEO_32BPP)
-MEM_SIZE = PIXEL_COUNT * 4;
-line_length = FB_XSIZE * 4;
+	MEM_SIZE = PIXEL_COUNT * 4;
+	line_length = FB_XSIZE * 4;
 #elif defined(CONFIG_VIDEO_16BPP)
-MEM_SIZE = PIXEL_COUNT * 2;
-line_length = FB_XSIZE * 2;
+	MEM_SIZE = PIXEL_COUNT * 2;
+	line_length = FB_XSIZE * 2;
 #elif defined(CONFIG_VIDEO_15BPP)
-MEM_SIZE = PIXEL_COUNT * 2;
-line_length = FB_XSIZE * 2;
+	MEM_SIZE = PIXEL_COUNT * 2;
+	line_length = FB_XSIZE * 2;
 #elif defined(CONFIG_VIDEO_12BPP)
-MEM_SIZE = PIXEL_COUNT * 2;
-line_length = FB_XSIZE * 2;
+	MEM_SIZE = PIXEL_COUNT * 2;
+	line_length = FB_XSIZE * 2;
 #else
-MEM_SIZE = PIXEL_COUNT * 4;
-line_length = FB_XSIZE * 4;
+	MEM_SIZE = PIXEL_COUNT * 4;
+	line_length = FB_XSIZE * 4;
 #endif
 
 #ifdef SOC
-MEM_ADDR = (long)MEM_ptr&0x0fffffff;
+	MEM_ADDR = (long)MEM_ptr & 0x0fffffff;
 #else
-MEM_ADDR = ((long)MEM_ptr&0x0fffffff | 0x00000000);
+	MEM_ADDR = ((long)MEM_ptr & 0x0fffffff | 0x00000000);
 #endif
-
-#ifdef DC_FB1 
-#ifdef SOC
-MEM_ADDR_1 = (long)MEM_ptr_1&0x0fffffff;
-#else
-MEM_ADDR_1 = ((long)MEM_ptr_1&0x0fffffff| 0x00000000);
-#endif
-#endif
-
-if(MEM_ptr == NULL)
-{
-	printf("frame buffer memory malloc failed!\n ");
-	exit(0);
-}
- 
-for(ii=0;ii<0x1000; ii+=4)
-*(volatile unsigned int *)(ADDR_CURSOR + ii) = 0x88f31f4f;
-
-#ifdef SOC
-ADDR_CURSOR = (long)ADDR_CURSOR & 0x0fffffff;
-#else
-ADDR_CURSOR = ((long)ADDR_CURSOR & 0x0fffffff | 0x00000000);
-#endif
-
-printf("frame buffer addr: %x \n",MEM_ADDR);
-  
-#ifdef DC_FB0
-config_fb(DC_BASE_ADDR);
-#endif
-#ifdef DC_FB1 
-config_fb(DC_BASE_ADDR_1);
-#endif
-config_cursor();
-
-
-printf("display controller reg config complete!\n");
 
 #ifdef DC_FB1
-return MEM_ptr_1;
+#ifdef SOC
+	MEM_ADDR_1 = (long)MEM_ptr_1 & 0x0fffffff;
+#else
+	MEM_ADDR_1 = ((long)MEM_ptr_1 & 0x0fffffff | 0x00000000);
+#endif
 #endif
 
-return MEM_ptr;
+	if (MEM_ptr == NULL) {
+		printf("frame buffer memory malloc failed!\n ");
+		exit(0);
+	}
+
+	for (ii = 0; ii < 0x1000; ii += 4)
+		*(volatile unsigned int *)(ADDR_CURSOR + ii) = 0x88f31f4f;
+
+#ifdef SOC
+	ADDR_CURSOR = (long)ADDR_CURSOR & 0x0fffffff;
+#else
+	ADDR_CURSOR = ((long)ADDR_CURSOR & 0x0fffffff | 0x00000000);
+#endif
+
+	printf("frame buffer addr: %x \n", MEM_ADDR);
+
+#ifdef DC_FB0
+	config_fb(DC_BASE_ADDR);
+#endif
+#ifdef DC_FB1
+	config_fb(DC_BASE_ADDR_1);
+#endif
+	config_cursor();
+
+	printf("display controller reg config complete!\n");
+
+#ifdef DC_FB1
+	return MEM_ptr_1;
+#endif
+
+	return MEM_ptr;
 }
 
-static int cmd_dc_freq(int argc,char **argv)
+static int cmd_dc_freq(int argc, char **argv)
 {
 	int out;
 	long sysclk;
 	float pclk;
 	int j;
 	unsigned int chip_reg;
-	if(argc<2)return -1;
-	pclk=strtoul(argv[1],0,0);
-	if(argc>2) sysclk=strtoul(argv[2],0,0);
-	else sysclk=33333;
+	if (argc < 2)
+		return -1;
+	pclk = strtoul(argv[1], 0, 0);
+	if (argc > 2)
+		sysclk = strtoul(argv[2], 0, 0);
+	else
+		sysclk = 33333;
 	out = caclulatefreq(pclk);
-	printf("out=%x\n",out);
-// change to refclk
-	*(volatile unsigned int*)(0xbbd00234) = 0x1;
-	*(volatile unsigned int*)(0xbbd0023c) = 0x1;
-// pll_powerdown set pstdiv
-	*(volatile unsigned int*)(0xbbd00230) = out|0x80000080;
-	*(volatile unsigned int*)(0xbbd00238) = out|0x80000080;
-// wait 10000ns
-	for(j=1;j<=200;j++)
-		chip_reg = *(volatile unsigned int*)(0xbbd00210);
-// pll_powerup unset pstdiv
-	*(volatile unsigned int*)(0xbbd00230) = out;
-	*(volatile unsigned int*)(0xbbd00238) = out;
-// wait pll_lock
-	while((*(volatile unsigned int*)(0xbbd00210))&0x00001800!=0x00001800) {}
-// change to pllclk
-	*(volatile unsigned int*)(0xbbd00234) = 0x0;
-	*(volatile unsigned int*)(0xbbd0023c) = 0x0;
+	printf("out=%x\n", out);
+	/* change to refclk */
+	*(volatile unsigned int *)(0xbbd00234) = 0x1;
+	*(volatile unsigned int *)(0xbbd0023c) = 0x1;
+	/* pll_powerdown set pstdiv */
+	*(volatile unsigned int *)(0xbbd00230) = out | 0x80000080;
+	*(volatile unsigned int *)(0xbbd00238) = out | 0x80000080;
+	/* wait 10000ns */
+	for (j = 1; j <= 200; j++)
+		chip_reg = *(volatile unsigned int *)(0xbbd00210);
+	/* pll_powerup unset pstdiv */
+	*(volatile unsigned int *)(0xbbd00230) = out;
+	*(volatile unsigned int *)(0xbbd00238) = out;
+	/* wait pll_lock */
+	while ((*(volatile unsigned int *)(0xbbd00210)) & 0x00001800 !=
+	       0x00001800) {
+	}
+	/* change to pllclk */
+	*(volatile unsigned int *)(0xbbd00234) = 0x0;
+	*(volatile unsigned int *)(0xbbd0023c) = 0x0;
 
 	return 0;
 }
 
-static const Cmd Cmds[] =
-{
+static const Cmd Cmds[] = {
 	{"MyCmds"},
-	{"dc_freq"," pclk sysclk", 0, "config dc clk(khz)",cmd_dc_freq, 0, 99, CMD_REPEAT},
+	{"dc_freq", " pclk sysclk", 0, "config dc clk(khz)", cmd_dc_freq, 0, 99,
+	 CMD_REPEAT},
 	{0, 0}
 };
 
 static void init_cmd __P((void)) __attribute__ ((constructor));
 
-static void
-init_cmd()
+static void init_cmd()
 {
 	cmdlist_expand(Cmds, 1);
 }
-
