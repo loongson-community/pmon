@@ -1309,7 +1309,7 @@ unsigned long synopGMAC_linux_open(struct synopGMACNetworkAdapter *tp)
 	  such as Mac base, configuration base, phy base address(out of 32 possible phys )*/
 	//	synopGMAC_attach(synopGMACadapter->synopGMACdev,(u32) synopGMACMappedAddr + MACBASE,(u32) synopGMACMappedAddr + DMABASE, DEFAULT_PHY_BASE);
 	//synopGMAC_attach(adapter->synopGMACdev,(u64) synopGMACMappedAddr + MACBASE,(u64) synopGMACMappedAddr + DMABASE, DEFAULT_PHY_BASE,PInetdev->dev_addr);
-	
+	synopGMAC_set_mac_addr(adapter->synopGMACdev, GmacAddr0High, GmacAddr0Low, PInetdev->dev_addr);	
 	/*Lets read the version of ip in to device structure*/	
 	synopGMAC_read_version(gmacdev);
 	
@@ -2459,10 +2459,18 @@ s32  synopGMAC_init_network_interface(char* xname,u64 synopGMACMappedAddr)
 	struct ifnet* ifp;
 
 	static u8 mac_addr0[6] = DEFAULT_MAC_ADDRESS;
-	int i;
+	int i,v;
 	u16 data;
 	struct synopGMACNetworkAdapter * synopGMACadapter;
-
+	
+	char *s = getenv("ethaddr");
+	if (s) {
+		for (i = 0; i < 6; i++) {
+			gethex(&v, s, 2);
+			mac_addr0[i] = v;
+			s +=3;
+		}
+	}
 	
 	TR("Now Going to Call register_netdev to register the network interface for GMAC core\n");
 	synopGMACadapter = (struct synopGMACNetworkAdapter * )plat_alloc_memory(sizeof (struct synopGMACNetworkAdapter)); 
