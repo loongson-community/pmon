@@ -89,7 +89,7 @@ struct efi_memory_map_loongson * init_memory_map()
   //strcpy(emap->map[1].mem_name, "node0_high");
   emap->map[1].mem_type = 2;
 #ifdef LOONGSON_3A2H
-  emap->map[1].mem_start = 0x100000000;
+  emap->map[1].mem_start = 0x110000000;
 #else
   emap->map[1].mem_start = 0x90000000;
 #endif
