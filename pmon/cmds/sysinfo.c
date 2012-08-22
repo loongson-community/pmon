@@ -142,17 +142,23 @@ strcpy(cmd,"ifconfig rte0;ifconfig rte0 status;");
 do_cmd(cmd);
 
 #else
-
+#if defined LOONGSON_3ASERVER
 printf("82546 em0 info:\n");
 strcpy(cmd,"ifconfig em0;ifconfig em0 status;");
 do_cmd(cmd);
 printf("82546 em1 info:\n");
 strcpy(cmd,"ifconfig em1;ifconfig em1 status;");
 do_cmd(cmd);
+#else
+#if defined LOONGSON_3A2H
+printf("PHY syn0 info:\n");
+strcpy(cmd,"ifconfig syn0;ifconfig syn0 status");
+do_cmd(cmd);
 //printf("82559 fxp0 info:\n");
 //strcpy(cmd,"ifconfig fxp0;ifconfig fxp0 status");
 //do_cmd(cmd);
-
+#endif
+#endif
 #endif
 
 printf("link speed up to 100 Mbps\n");
