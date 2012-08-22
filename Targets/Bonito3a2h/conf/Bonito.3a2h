@@ -221,7 +221,7 @@ ide_cd* 	at pciide? channel ? drive ? flags 0x0001
 
 syn0		at localbus0
 #wd0		at localbus0
-#syn1		at localbus0
+syn1		at localbus0
 select gmac
 
 lahci0		at localbus0 base 0xbbe30000
