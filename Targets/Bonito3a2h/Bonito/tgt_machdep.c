@@ -1706,84 +1706,63 @@ tgt_cpufreq()
 time_t
 tgt_gettime()
 {
-    struct tm tm;
-        int ctrlbsave;
+    	struct tm tm;
         time_t t;
-
-        int year, month, date, hour, min, sec, wday;
+        int year, month, date, hour, min, sec;
 	/*gx 2005-01-17 */
-	//return 0;
-                                                                               
 #ifdef HAVE_TOD
         if(!clk_invalid) {
-                //ctrlbsave = CMOS_READ(DS_REG_CTLB);
-				//CMOS_WRITE(ctrlbsave | DS_CTLB_SET, DS_REG_CTLB);
-                                                                               
-        month =(*(volatile unsigned int *)(0xbbef802c) & 0xfc000000) >> 0x1a;
-        date = (*(volatile unsigned int *)(0xbbef802c) & 0x3e00000) >> 0x14;
-		hour = (*(volatile unsigned int *)(0xbbef802c) & 0x1f0000) >> 0x10;
-		min = (*(volatile unsigned int *)(0xbbef802c) & 0xfc00) >> 0xa;
-		sec = (*(volatile unsigned int *)(0xbbef802c) & 0x3f0) >> 0x4;
 
-		//year = 2012;
-		year = (*(volatile unsigned int *)(0xbbef806c) & 0xfc000000) >> 0x1a;
-               tm.tm_sec = sec;
-               tm.tm_min = min;
-               tm.tm_hour = hour;
-               //tm.tm_wday = wday;
-               tm.tm_mday = date;
-               tm.tm_mon = month;
-               tm.tm_year = year;
+		month = ((*(volatile unsigned int *)0xbbef802c) & 0xfc000000) >> 26;
+        	date = ((*(volatile unsigned int *)0xbbef802c) & 0x3e00000) >> 21;
+        	hour = ((*(volatile unsigned int *)0xbbef802c) & 0x1f0000) >> 16;
+        	min = ((*(volatile unsigned int *)0xbbef802c) & 0xfc00) >> 10;
+        	sec = ((*(volatile unsigned int *)0xbbef802c) & 0x3f0) >> 4;
+        	year = *(volatile unsigned int *)0xbbef8030; 
 
-				//CMOS_WRITE(ctrlbsave & ~DS_CTLB_SET, DS_REG_CTLB);
-                                                                               
-                tm.tm_isdst = tm.tm_gmtoff = 0;
-                t = gmmktime(&tm);
+		tm.tm_sec = sec;
+		tm.tm_min = min;
+		tm.tm_hour = hour;
+		tm.tm_mday = date;
+		tm.tm_mon = month;
+		tm.tm_year = year;
+
+		tm.tm_isdst = tm.tm_gmtoff = 0;
+        	t = gmmktime(&tm);
         }
         else 
 #endif
-		{
-                t = 957960000;  /* Wed May 10 14:00:00 2000 :-) */
+	{
+		t = 957960000;  /* Wed May 10 14:00:00 2000 :-) */
         }
         return(t);
-
 }
-
-char gpio_i2c_settime(struct tm *tm);
-                                                                               
 /*
  *  Set the current time if a TOD clock is present
  */
 void
 tgt_settime(time_t t)
 {
-    struct tm *tm;
-        int ctrlbsave;
-	//return ;
+	struct tm *tm;
+	int year, month, date, hour, min, sec;
+	unsigned int time_value;
 #ifdef HAVE_TOD
         if(!clk_invalid) {
                 tm = gmtime(&t);
-	#ifndef DEVBD2F_FIREWALL
-                ctrlbsave = CMOS_READ(DS_REG_CTLB);
-                CMOS_WRITE(ctrlbsave | DS_CTLB_SET, DS_REG_CTLB);
 
-				CMOS_WRITE((((tm->tm_year) % 100)/10*16 + ((tm->tm_year) % 100)%10), DS_REG_YEAR);
-				CMOS_WRITE((((tm->tm_mon) + 1)/10*16 + ((tm->tm_mon) + 1)%10), DS_REG_MONTH);
-				CMOS_WRITE(tm->tm_mday/10*16 + tm->tm_mday%10, DS_REG_DATE);
-                CMOS_WRITE(tm->tm_wday/10*16 + tm->tm_wday%10, DS_REG_WDAY);
-                CMOS_WRITE(tm->tm_hour/10*16 + tm->tm_hour%10, DS_REG_HOUR);
-                CMOS_WRITE(tm->tm_min/10*16 + tm->tm_min%10, DS_REG_MIN);
-                CMOS_WRITE(tm->tm_sec/10*16 + tm->tm_sec%10, DS_REG_SEC);
+		year = tm->tm_year;
+		month = tm->tm_mon;
+		date = tm->tm_mday;
+		hour = tm->tm_hour;
+		min = tm->tm_min;
+		sec = tm->tm_sec;
 
-                CMOS_WRITE(ctrlbsave & ~DS_CTLB_SET, DS_REG_CTLB);
-	#else
-		gpio_i2c_settime(tm);	
-	#endif
+		time_value = (month<<26 | date<<21 | hour<<16 | min<<10 | sec<<4);
+        	(*(volatile unsigned int *)0xbbef8024) = time_value;
+		(*(volatile unsigned int *)(0xbbef8028)) = year;
         }
 #endif
  }
-
-
 /*
  *  Print out any target specific memory information
  */
