@@ -447,7 +447,11 @@ int init_win_device(void){
 					/**************** SATA controller *****************/
 					if (hdinfo[x].b_idenum == 0) {
 						/**************** SATA0 port **************/
-						if		  (hdinfo[x].b_channel == 0 && hdinfo[x].b_drivnum == 0) {
+#ifdef LOONGSON_3A2H
+						if(1){
+#else
+						if(hdinfo[x].b_channel == 0 && hdinfo[x].b_drivnum == 0) {
+#endif
 							win_tp->win_mask |= 1 << 3;
 							win_tp->sata0.w_flag = 1;
 
