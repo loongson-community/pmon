@@ -141,6 +141,9 @@ static int serial_selftest(int channel)
 {
 	int i,j,error=0;
 	char c;
+#ifdef LOONGSON_3A2H
+	printf("Warn:No loopback device\n");
+#else
 	printf("serial test\n");
 	initserial(channel);
 	
@@ -171,6 +174,7 @@ static int serial_selftest(int channel)
 		if(c!='a'+i)error=1;
 	}
 	printf("...%s\n",error?"error":"ok");
+#endif
 	return 0;
 }
 
