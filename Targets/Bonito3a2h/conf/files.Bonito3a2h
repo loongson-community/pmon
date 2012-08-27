@@ -32,9 +32,10 @@ file    Targets/Bonito3a2h/dev/dc.c
 
 #i2c
 file	sys/dev/i2c.c
+file    Targets/Bonito3a2h/dev/eeprom.c 
 
 #GMAC
-file	sys/dev/gmac/synopGMAC_Host.c
+#file	sys/dev/gmac/synopGMAC_Host.c
 file	sys/dev/gmac/synopGMAC_Dev.c
 file	sys/dev/gmac/synopGMAC_network_interface.c
 file	sys/dev/gmac/synopGMAC_pci_bus_interface.c

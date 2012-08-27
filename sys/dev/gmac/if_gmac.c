@@ -31,7 +31,7 @@ syn_attach(parent, self, aux)
 {
 	struct device *sc = self;
 
-	synopGMAC_init_network_interface(sc->dv_xname,sc->dv_unit?0xffffffffbbe18000LL:0xffffffffbbe10000LL);
+	synopGMAC_init_network_interface(sc->dv_xname, sc);
 
 }
 

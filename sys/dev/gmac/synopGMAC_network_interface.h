@@ -17,7 +17,7 @@
 #define NET_IF_TIMEOUT (10*HZ)
 #define CHECK_TIME (HZ)
 
-s32  synopGMAC_init_network_interface(char* xname,u64 synopGMACMappedAddr);
+s32  synopGMAC_init_network_interface(char* xname, struct device *sc);
 void  synopGMAC_exit_network_interface(void);
 
 //s32 synopGMAC_linux_open(struct synopGMACNetworkAdapter *);

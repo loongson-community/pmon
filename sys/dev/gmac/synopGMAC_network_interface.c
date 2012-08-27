@@ -32,6 +32,7 @@
 #include "synopGMAC_plat.h"
 #include "synopGMAC_network_interface.h"
 #include "synopGMAC_Dev.h"
+#include "target/eeprom.h"
 
 
 //sw:	ioctl in linux 		to be fixed
@@ -1086,8 +1087,6 @@ int synopGMAC_intr_handler(struct synopGMACNetworkAdapter * tp)
 //	TR("%s:Interrupts to be handled: 0x%08x\n",__FUNCTION__,interrupt);
 
         if(interrupt & synopGMACDmaError){
-
-		u8 mac_addr[6] = DEFAULT_MAC_ADDRESS;//after soft reset, configure the MAC address to default value
 		TR("%s::Fatal Bus Error Inetrrupt Seen\n",__FUNCTION__);
 		printf("====DMA error!!!\n");
 		
@@ -1098,10 +1097,11 @@ int synopGMAC_intr_handler(struct synopGMACNetworkAdapter * tp)
 		synopGMAC_take_desc_ownership_rx(gmacdev);
 		
 		synopGMAC_init_tx_rx_desc_queue(gmacdev);
-		
-		synopGMAC_reset(gmacdev);//reset the DMA engine and the GMAC ip
-		
-		synopGMAC_set_mac_addr(gmacdev,GmacAddr0High,GmacAddr0Low, mac_addr); 
+		/* reset the DMA engine and the GMAC ip */
+		synopGMAC_reset(gmacdev);
+
+		/* after soft reset, configure the MAC address to default value */
+		synopGMAC_set_mac_addr(gmacdev,GmacAddr0High,GmacAddr0Low, tp->PInetdev->dev_addr); 
 		synopGMAC_dma_bus_mode_init(gmacdev,DmaFixedBurstEnable| DmaBurstLength8 | DmaDescriptorSkip2 );
 	 	synopGMAC_dma_control_init(gmacdev,DmaStoreAndForward);	
 		synopGMAC_init_rx_desc_base(gmacdev);
@@ -2042,18 +2042,13 @@ static int gmac_ether_ioctl(struct ifnet *ifp, unsigned long cmd, caddr_t data)
 			{	
 				error = synopGMAC_linux_open(adapter);
 			}	
-//			error = rtl8169_open(sc);
 	
 			if(error == -1){
 				return(error);
 			}	
 			ifp->if_flags |= IFF_UP;
 #ifdef __OpenBSD__
-//			arp_ifinit(&sc->arpcom, ifa);
-
-//sw: dbg. send pkg continuously
-//			while(1)
-				arp_ifinit(&(adapter->PInetdev->arpcom), ifa);
+			arp_ifinit(&(adapter->PInetdev->arpcom), ifa);
 			printf("==arp_ifinit done\n");
 #else
 			arp_ifinit(ifp, ifa);
@@ -2063,7 +2058,6 @@ static int gmac_ether_ioctl(struct ifnet *ifp, unsigned long cmd, caddr_t data)
 #endif
 
 		default:
-//		       rtl8169_open(sc);
 			synopGMAC_linux_open(adapter);
 			ifp->if_flags |= IFF_UP;
 			break;
@@ -2453,24 +2447,18 @@ return;
  *
  * \return Returns 0 on success and Error code on failure.
  */
-s32  synopGMAC_init_network_interface(char* xname,u64 synopGMACMappedAddr)
+s32  synopGMAC_init_network_interface(char* xname, struct device *sc )
 {
-//varables added by sw
 	struct ifnet* ifp;
 
-	static u8 mac_addr0[6] = DEFAULT_MAC_ADDRESS;
+	u8 mac_addr0[6];
 	int i,v;
 	u16 data;
-	struct synopGMACNetworkAdapter * synopGMACadapter;
-	
-	char *s = getenv("ethaddr");
-	if (s) {
-		for (i = 0; i < 6; i++) {
-			gethex(&v, s, 2);
-			mac_addr0[i] = v;
-			s +=3;
-		}
-	}
+	u64 synopGMACMappedAddr = sc->dv_unit?0xffffffffbbe18000LL:0xffffffffbbe10000LL;
+	unsigned int eeprom_addr = sc->dv_unit * 6;
+	struct synopGMACNetworkAdapter *synopGMACadapter;
+	ls2h_i2c1_init();
+	eeprom_read_seq(eeprom_addr, mac_addr0, 6);
 	
 	TR("Now Going to Call register_netdev to register the network interface for GMAC core\n");
 	synopGMACadapter = (struct synopGMACNetworkAdapter * )plat_alloc_memory(sizeof (struct synopGMACNetworkAdapter)); 
@@ -2494,7 +2482,10 @@ s32  synopGMAC_init_network_interface(char* xname,u64 synopGMACMappedAddr)
 		TR0("Error in Pdev-Memory Allocataion \n");
 	}
 
-	synopGMAC_attach(synopGMACadapter->synopGMACdev,(u64) synopGMACMappedAddr + MACBASE,(u64) synopGMACMappedAddr + DMABASE, DEFAULT_PHY_BASE,mac_addr0);
+	synopGMAC_attach(synopGMACadapter->synopGMACdev,
+			(u64) synopGMACMappedAddr + MACBASE,
+			(u64) synopGMACMappedAddr + DMABASE,	
+			DEFAULT_PHY_BASE, mac_addr0);
 #if SYNOP_TOP_DEBUG
 	dumpphyreg(synopGMACadapter);
 #endif
@@ -2513,6 +2504,7 @@ s32  synopGMAC_init_network_interface(char* xname,u64 synopGMACMappedAddr)
 	
 	ifp = &(synopGMACadapter->PInetdev->arpcom.ac_if);
 	ifp->if_softc = synopGMACadapter;
+	memcpy(&synopGMACadapter->PInetdev->sc_dev, sc, sizeof(struct device));
 	
 	memcpy(synopGMACadapter->PInetdev->dev_addr, mac_addr0,6);
 
@@ -2556,7 +2548,6 @@ s32  synopGMAC_init_network_interface(char* xname,u64 synopGMACMappedAddr)
 	dumpmacregg(synopGMACadapter->synopGMACdev);
 	dumpdmaregg(synopGMACadapter->synopGMACdev);
 #endif
-	mac_addr0[5]++;
 	return 0;
 }
 
