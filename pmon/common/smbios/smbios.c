@@ -26,7 +26,6 @@
 #include <stdio.h>
 #include "smbios.h"
 #include "smbios_types.h"
-#include "pmon/cmds/bootparam.h"
 
 void loongson_smbios_init(void);
 
@@ -138,16 +137,54 @@ smbios_entry_point_init(void *start,
 	ep->intermediate_checksum = -sum;
 }
 
+/* board_name information */
+static void board_info(char *board_name)
+{
+#ifdef LOONGSON_3ASINGLE
+        strcpy(board_name, "Loongson-3A780E1w-V1.03-demo");
+#endif
+#ifdef LOONGSON_3A2H
+        strcpy(board_name, "Loongson-3ALS2H-V1.00-demo");
+#endif
+#ifdef LOONGSON_3BSINGLE
+        strcpy(board_name, "Loongson-3B780E1w-V1.03-demo");
+#endif
+#ifdef LOONGSON_3BSERVER
+        strcpy(board_name, "Loongson-3B780E2w-V1.03-demo");
+#endif
+#ifdef LOONGSON_3ASERVER
+#ifdef USE_BMC
+        strcpy(board_name, "Loongson-3A780E2wBMC-V1.02-demo");
+#else
+        strcpy(board_name, "Loongson-3A780E2w-V1.02-demo");
+#endif
+#endif
+
+	return ;
+}
+
+static void prase_name(char *name, char *version)
+{
+	int i;
+	char *q;
+
+        q = strchr(name, 'V');
+        for(i = 0, q++; *(q+i) != '-'; i++)
+                version[i] = *(q+i);
+        version[i] = '\0';
+
+	return ;
+}
+
 /* Type 0 -- BIOS Information */
 static void *
 smbios_type_0_init(void *start)
 {
 	struct smbios_type_0 *p = (struct smbios_type_0 *)start;
-	struct interface_info *inter;
 	int flashsize = 0;
 	char update[11];
 	char release_date_string[11];
-	char *pmon_version[50];
+	char pmon_version[20] = "PMON V3.0";
 
     
 	p->header.type = 0;
@@ -176,8 +213,6 @@ smbios_type_0_init(void *start)
 	p->minor_release = 0;
 	p->embedded_controller_major = 0xff;
 	p->embedded_controller_minor = 0xff;
-
-	strcpy(pmon_version, smbios_pmon_version);
 
 	start += sizeof(struct smbios_type_0);
 	strcpy((char *)start, "LoongSon");
@@ -223,14 +258,12 @@ smbios_type_1_init(void *start)
 	p->sku_str = 0;
 	p->family_str = 4;
 
+	board_info(product_name);
+	prase_name(product_name, loongson_version);
+
+	uuid_generate(p->uuid);
+
 	start += sizeof(struct smbios_type_1);
-    	strcpy(product_name, smbios_board_name);
-
-        q = strchr(product_name, 'V');
-        for(i = 0, q++; *(q+i) != '-'; i++)
-                loongson_version[i] = *(q+i);
-        loongson_version[i] = '\0';
-
 	strcpy((char *)start, "LoongSon");
 	start += strlen("LoongSon") + 1;
 	strcpy((char *)start, product_name);
@@ -252,9 +285,8 @@ smbios_type_2_init(void *start)
 	struct smbios_type_2 *p = (struct smbios_type_2 *)start;
 	char board_name[50];	
 	char board_version[10];
-	char *q;
-	int i;
-    
+   	char *motherboard_serial[20];
+ 
 	p->header.type = 2;
 	p->header.length = sizeof(struct smbios_type_2);
 	p->header.handle = 0x2;
@@ -270,19 +302,13 @@ smbios_type_2_init(void *start)
 	p->board_type = 0x0a;
 	p->number_contained_object_handles = 0;
 	p->contained_object_handles = 0;
-	
 
+	board_info(board_name);
+	prase_name(board_name, board_version);
+	
 	start += sizeof(struct smbios_type_2);
-    	strcpy(board_name, smbios_board_name);
-
-       	q = strchr(board_name, 'V');
-	for(i = 0, q++; *(q+i) != '-'; i++)
-		board_version[i] = *(q+i);
-	board_version[i] = '\0';
-	
 	strcpy((char *)start, "LoongSon");
 	start += strlen("LoongSon") + 1;
-
 	strcpy((char *)start, board_name);
 	start += strlen(board_name) + 1;
 	strcpy((char *)start, board_version);
@@ -298,7 +324,6 @@ smbios_type_4_init(void *start)
 {
         struct smbios_type_4 *p = (struct smbios_type_4 *)start;
         unsigned int prid;
-	unsigned long long current_speed;
 	unsigned int cpus;
 	char cpu_version[64];
 
@@ -316,27 +341,33 @@ smbios_type_4_init(void *start)
 		".set     mips3\r\n"
 		:"=r"(prid));
 	
-        p->cpuid[0] = prid;
-        p->cpuid[1] = 0;
+        p->cpuid.ProcessorSteppingId  = (prid >> 0x8) & 0xf;
+        p->cpuid.ProcessorModel  = (prid >> 0xc) & 0xf;
+        p->cpuid.ProcessorFamily = (prid >> 0x0) & 0xf;
+        p->cpuid.ProcessorType   = (prid >> 0x4) & 0xf;
+        p->cpuid.ProcessorReserved1 =  0;
+        p->cpuid.ProcessorXModel = 0;
+        p->cpuid.ProcessorXFamily = 0;
+        p->cpuid.ProcessorReserved2 = 0;
+        p->cpuid.FeatureFlags = 0;
 
-	if(p->cpuid[0] == 0x6304){
+	if(prid == 0x6304){
 		strcpy(cpu_version, "Loongson ICT Loongson-2F CPU @ 800MHz");
 		p->max_speed = 800;
 	}
-	if(p->cpuid[0] == 0x6305){
+	if(prid == 0x6305){
 		strcpy(cpu_version, "Loongson ICT Loongson-3A CPU @ 1.0GHz");
 		p->max_speed = 1000;
 	}
-	if(p->cpuid[0] == 0x6306){
+	if(prid == 0x6306){
 		strcpy(cpu_version, "Loongson ICT Loongson-3B CPU @ 1.0GHz");
 		p->max_speed = 1000;
 	}
 
-	current_speed = smbios_type_4_cpu_clock/1000000; 
         p->version_str = 2;
         p->voltage  = 0x02;
-        p->external_clock = 33;
-        p->current_speed = current_speed;
+        p->external_clock = 25;
+        p->current_speed = atoi(getenv("cpuclock")) / 1000000;
         p->status  = 0x02;
         p->upgrade = 0x01;
         p->l1_cache_handle = 0;
@@ -345,16 +376,29 @@ smbios_type_4_init(void *start)
         p->serial_number_str = 0;
         p->assert_tag_str = 0;
         p->part_number_str = 0;
-	
-	cpus = smbios_type_4_cpus;
-	p->core_count = p->core_enable = cpus;
+
+#ifdef LOONGSON_3ASINGLE
+	p->core_count = p->core_enable = 4;
+#endif
+#ifdef LOONGSON_3ASERVER
+	p->core_count = p->core_enable = 8;
+#endif
+#ifdef LOONGSON_3BSINGLE
+	p->core_count = p->core_enable = 8;
+#endif
+#ifdef LOONGSON_3BSERVER
+	p->core_count = p->core_enable = 16;
+#endif
+#ifdef LOONGSON_3A2H
+	p->core_count = p->core_enable = 4;
+#endif
 
         p->thread_count = 0;
         p->processor_characteristics = 0x02;
         p->processor_family2 = 0x01;
-        start += sizeof(struct smbios_type_4);
 
-        strcpy((char *)start, "LoongSon");
+        start += sizeof(struct smbios_type_4);
+	strcpy((char *)start, "LoongSon");
         start += strlen("LoongSon") +  1;
         strcpy((char *)start, cpu_version);
         start += strlen(cpu_version) +  1;
@@ -376,12 +420,12 @@ smbios_type_28_init(void *start)
 	p->description = 1;
 	p->location_status = 0x63;
 	p->maximum_value = 1280;
-	p->minimum_value = 0x00;
-	p->resolution = 0x00;
-	p->tolerance = 0x00;
-	p->accuracy = 0x00;
+	p->minimum_value = 0x8000;
+	p->resolution = 0x8000;
+	p->tolerance = 0x8000;
+	p->accuracy = 0x8000;
 	p->OEM_defined =  0x00;
-	p->nominal_value = ((*(volatile unsigned int *)0xffffffffbfe00190) & ((0x1 << 96) | (0x1 << 97) | (0x1 << 98) | (0x1 << 99) | (0x1 << 100) | (0x1 << 101) |(0x1 << 102))) * 10;
+	p->nominal_value = (*(volatile unsigned char *)(0xffffffffbfe0019d) & 0x3f) * 10;
 	
 	start += sizeof(struct smbios_type_28);
 	strcpy((char *)start, "CPU Temperature");
@@ -404,60 +448,4 @@ smbios_type_127_init(void *start)
 	*((uint8_t *)start) = 0;
 	*((uint8_t *)(start + 1)) =0;
 	return start + 2;
-}
-
-
-/* Write a two-character hex representation of 'byte' to digits[].
-   Pre-condition: sizeof(digits) >= 2 */
-void
-byte_to_hex(char *digits, uint8_t byte)
-{
-	uint8_t nybbel = byte >> 4;
-
-	if (nybbel > 9)
-		digits[0] = 'a' + nybbel-10;
-	else
-		digits[0] = '0' + nybbel;
-
-	nybbel = byte & 0x0f;
-	if (nybbel > 9)
-		digits[1] = 'a' + nybbel-10;
-	else
-		digits[1] = '0' + nybbel;
-}
-
-/* Convert an array of 16 unsigned bytes to a DCE/OSF formatted UUID
-   string.
-
-   Pre-condition: sizeof(dest) >= 37 */
-void
-uuid_to_string(char *dest, uint8_t *uuid)
-{
-	int i = 0;
-	char *p = dest;
-
-	for (i = 0; i < 4; ++i) {
-		byte_to_hex(p, uuid[i]);
-		p += 2;
-	}
-	*p++ = '-';
-	for (i = 4; i < 6; ++i) {
-		byte_to_hex(p, uuid[i]);
-		p += 2;
-	}
-	*p++ = '-';
-	for (i = 6; i < 8; ++i) {
-		byte_to_hex(p, uuid[i]);
-		p += 2;
-	}
-	*p++ = '-';
-	for (i = 8; i < 10; ++i) {
-		byte_to_hex(p, uuid[i]);
-		p += 2;
-	}
-	*p++ = '-';
-	for (i = 10; i < 16; ++i) {
-		byte_to_hex(p, uuid[i]);
-		p += 2;
-	}
 }

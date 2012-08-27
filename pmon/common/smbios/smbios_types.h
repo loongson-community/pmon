@@ -115,13 +115,25 @@ struct smbios_type_3 {
 } __attribute__ ((packed));
 
 /* SMBIOS type 4 - Processor Information */
+typedef struct cpuid{
+  uint8_t  ProcessorSteppingId: 4;
+  uint8_t  ProcessorModel:     4;
+  uint8_t  ProcessorFamily:    4;
+  uint8_t  ProcessorType:      2;
+  uint8_t  ProcessorReserved1: 2;
+  uint8_t  ProcessorXModel:    4;
+  uint8_t  ProcessorXFamily:   8;
+  uint8_t  ProcessorReserved2: 4;
+  uint32_t  FeatureFlags;
+} __attribute__ ((packed));
+
 struct smbios_type_4 {
         struct smbios_structure_header header;
         uint8_t socket_designation_str;
         uint8_t processor_type;
         uint8_t processor_family;
         uint8_t manufacturer_str;
-        uint32_t cpuid[2];
+        struct cpuid cpuid;
         uint8_t version_str;
         uint8_t voltage;
         uint16_t external_clock;

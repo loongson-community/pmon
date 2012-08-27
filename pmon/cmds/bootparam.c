@@ -4,7 +4,7 @@
 
 
 struct loongson_params  g_lp = { 0 };
-struct efi_memory_map_loongson g_map = { 0 };
+struct efi_memory_map_loongson g_map = {1, 0x03, 0x11e1a300, {0, 3, 0x800f001f, 0x01, 0}};
 struct efi_cpuinfo_loongson g_cpuinfo_loongson = { 0 };
 struct system_loongson g_sysitem = { 0 };
 struct irq_source_routing_table g_irq_source = { 0 };
@@ -169,23 +169,23 @@ struct efi_memory_map_loongson * init_memory_map()
 }
 
 #ifdef LOONGSON_3BSINGLE
-  #define PRID_IMP_LOONGSON    0x6506
+  #define PRID_IMP_LOONGSON    0x6306
  enum loongson_cpu_type cputype = Loongson_3B;
 #endif
 #ifdef LOONGSON_3BSERVER
-  #define PRID_IMP_LOONGSON    0x6506
+  #define PRID_IMP_LOONGSON    0x6306
   enum loongson_cpu_type cputype = Loongson_3B;
 #endif
 #ifdef LOONGSON_3ASINGLE
-  #define PRID_IMP_LOONGSON    0x6505
+  #define PRID_IMP_LOONGSON    0x6305
   enum loongson_cpu_type cputype = Loongson_3A;
 #endif
 #ifdef LOONGSON_3ASERVER
-  #define PRID_IMP_LOONGSON    0x6505
+  #define PRID_IMP_LOONGSON    0x6305
   enum loongson_cpu_type cputype = Loongson_3A;
 #endif
 #ifdef LOONGSON_3A2H
-  #define PRID_IMP_LOONGSON    0x6505
+  #define PRID_IMP_LOONGSON    0x6305
   enum loongson_cpu_type cputype = Loongson_3A;
 #endif
 struct efi_cpuinfo_loongson *init_cpu_info()
@@ -198,7 +198,6 @@ struct efi_cpuinfo_loongson *init_cpu_info()
   c->cputype  = cputype;
 
   c->cpu_clock_freq = atoi(getenv("cpuclock"));
-  smbios_type_4_cpu_clock = c->cpu_clock_freq;
 
 #ifdef LOONGSON_3BSERVER
   c->total_node = 4; // total node means what? why it can't be 8 ? // by xqch
@@ -227,7 +226,6 @@ struct efi_cpuinfo_loongson *init_cpu_info()
   c->total_node = 1;
   c->nr_cpus = 4;
 #endif
-  smbios_type_4_cpus = c->nr_cpus;
 
   c->cpu_startup_core_id = (available_core_mask >> 16) & 0xf;
 
@@ -311,7 +309,6 @@ struct interface_info *init_interface_info()
   inter->flag = 1;
 
   strcpy(inter->description,"PMON_Version_v2.1");
-  strcpy(smbios_pmon_version, inter->description);
  
   return inter;
 }
@@ -322,23 +319,23 @@ struct board_devices *board_devices_info()
  struct board_devices *bd = &g_board;
  
 #ifdef LOONGSON_3ASINGLE
-  strcpy(bd->name,"Loongson-3A780E-1-V1.03-demo");
+  strcpy(bd->name,"Loongson-3A780E1w-V1.03-demo");
 #endif
 #ifdef LOONGSON_3A2H
-  strcpy(bd->name,"Loongson-3ALS2H-1-V1.00-demo");
+  strcpy(bd->name,"Loongson-3ALS2H-V1.00-demo");
 #endif
 #ifdef LOONGSON_3BSINGLE
-  strcpy(bd->name,"Loongson-3B780E-1-V1.03-demo");
+  strcpy(bd->name,"Loongson-3B780E1w-V1.03-demo");
 #endif
 #ifdef LOONGSON_3BSERVER
-  strcpy(bd->name,"Loongson-3B780E-1-V1.03-demo");
+  strcpy(bd->name,"Loongson-3B780E2w-V1.03-demo");
 #endif
 #
 #ifdef LOONGSON_3ASERVER
 #ifdef USE_BMC
-  strcpy(bd->name,"Loongson-3A780E-2-BMC-V1.02-demo");
+  strcpy(bd->name,"Loongson-3A780E2wBMC-V1.02-demo");
 #else
-  strcpy(bd->name,"Loongson-3A780E-2-V1.02-demo");
+  strcpy(bd->name,"Loongson-3A780E2w-V1.02-demo");
 #endif
 #endif
 #ifdef LEMOTE_3AITX
@@ -347,7 +344,6 @@ struct board_devices *board_devices_info()
 #ifdef LEMOTE_3ANOTEBOOK
   strcpy(bd->name,"lemote-3a-notebook-a1004");
 #endif
-  strcpy(smbios_board_name, bd->name);
   bd->num_resources = 10;
  
   return bd;

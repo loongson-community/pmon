@@ -874,6 +874,7 @@ dbginit (char *adr)
 #endif
 
 	printf ("\n");
+	loongson_smbios_init();	
 
 	md_clreg(NULL);
 	md_setpc(NULL, (int32_t) CLIENTPC);
@@ -1098,7 +1099,6 @@ printf("Shutdown:%p reset:%p\n",bp->reset_system.Shutdown,bp->reset_system.Reset
 printf("ssp:%lx line=%d\n",ssp,__LINE__);
 
 #endif
-	loongson_smbios_init();	
 }
 	else {
 		*vsp++ = (char *)0;

@@ -525,6 +525,8 @@ err_dma:
 
 struct net_device *mynic_em;
 static unsigned int net_device_count = 0;
+extern unsigned char smbios_uuid_e1000e_mac[6];
+
 static void
 em_attach(parent, self, aux)
 	struct device *parent, *self;
@@ -536,6 +538,8 @@ em_attach(parent, self, aux)
 	pci_intr_handle_t ih;
 	const char *intrstr = NULL;
 	struct ifnet *ifp;
+	int i;
+
 #ifdef __OpenBSD__
 	//bus_space_tag_t iot = pa->pa_iot;
 	//bus_addr_t iobase;
@@ -590,6 +594,9 @@ em_attach(parent, self, aux)
 
 	printf(": %s, address %s\n", intrstr,
 	    ether_sprintf(sc->arpcom.ac_enaddr));
+
+	for(i = 0; i < 6; i++)
+		smbios_uuid_e1000e_mac[i] = sc->arpcom.ac_enaddr[i];
 
 	/*
 	 * Attach the interface.

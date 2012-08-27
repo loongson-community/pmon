@@ -179,6 +179,7 @@ file sys/dev/bus_dma.c			sys
 
 #support smbios
 file pmon/common/smbios/smbios.c
+file pmon/common/smbios/uuid.c
 
 file pmon/cmds/boot.c			cmd_boot
 file pmon/cmds/call.c			cmd_call

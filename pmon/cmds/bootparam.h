@@ -18,11 +18,6 @@ typedef unsigned int u32;
 typedef unsigned short u16;
 typedef unsigned char u8;
 
-char smbios_pmon_version[64];
-char smbios_board_name[64];
-unsigned long long smbios_type_4_cpu_clock;
-unsigned int smbios_type_4_cpus;
-
 /*no-use for pmon*/
 struct efi_systab {
 	// efi_table_hdr_t hdr;  /*EFI header*/

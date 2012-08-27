@@ -205,8 +205,9 @@ struct cfdriver rte_cd = {
 };
 
  /* Provide Interface for BIOS Interface */
-  unsigned char MACAddr0[6] = {0};
-  unsigned char MACAddr1[6] = {0};
+unsigned char MACAddr0[6] = {0};
+unsigned char MACAddr1[6] = {0};
+extern unsigned char smbios_uuid_rtl8168_mac[6];
 
 
 #define PCI_VENDOR_ID_REALTEK       0x10ec
@@ -470,6 +471,7 @@ r8168_attach(struct device * parent, struct device * self, void *aux)
              MACAddr1[i] = tp->dev_addr[i];
          }
 
+	 smbios_uuid_rtl8168_mac[i] = tp->dev_addr[i];
          printf("%02x", tp->dev_addr[i]);
 
          if ( i == 5 )
