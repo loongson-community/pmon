@@ -47,6 +47,7 @@
 #include "target/via686b.h"
 #include "target/i8254.h"
 #include "target/isapnpreg.h"
+#include "target/ls2h.h"
 #define DEBUG_LOCORE
 
 
