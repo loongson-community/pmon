@@ -319,23 +319,23 @@ struct board_devices *board_devices_info()
  struct board_devices *bd = &g_board;
  
 #ifdef LOONGSON_3ASINGLE
-  strcpy(bd->name,"Loongson-3A780E1w-V1.03-demo");
+  strcpy(bd->name,"Loongson-3A-780E-1w-V1.03-demo");
 #endif
 #ifdef LOONGSON_3A2H
-  strcpy(bd->name,"Loongson-3ALS2H-V1.00-demo");
+  strcpy(bd->name,"Loongson-3A-2H-1w-V1.00-demo");
 #endif
 #ifdef LOONGSON_3BSINGLE
-  strcpy(bd->name,"Loongson-3B780E1w-V1.03-demo");
+  strcpy(bd->name,"Loongson-3B-780E-1w-V1.03-demo");
 #endif
 #ifdef LOONGSON_3BSERVER
-  strcpy(bd->name,"Loongson-3B780E2w-V1.03-demo");
+  strcpy(bd->name,"Loongson-3B-780E-2w-V1.03-demo");
 #endif
 #
 #ifdef LOONGSON_3ASERVER
 #ifdef USE_BMC
-  strcpy(bd->name,"Loongson-3A780E2wBMC-V1.02-demo");
+  strcpy(bd->name,"Loongson-3A-780E-2wBMC-V1.02-demo");
 #else
-  strcpy(bd->name,"Loongson-3A780E2w-V1.02-demo");
+  strcpy(bd->name,"Loongson-3A-780E-2w-V1.02-demo");
 #endif
 #endif
 #ifdef LEMOTE_3AITX
