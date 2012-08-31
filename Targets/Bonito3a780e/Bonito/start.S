@@ -1663,8 +1663,8 @@ TM_over:
 		la	a0, start
 		li	a1, 0xbfc00000
 		la	a2, _edata
-		or      a0, 0xa0000000
-		or      a2, 0xa0000000
+		//or      a0, 0xa0000000
+		//or      a2, 0xa0000000
 		subu	t1, a2, a0
 		srl	t1, t1, 2
 
