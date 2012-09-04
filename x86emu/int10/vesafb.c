@@ -44,7 +44,7 @@
 #include <mod_sisfb.h>
 //#include "bonito.h"
 
-extern struct pci_device *vga_dev;
+extern struct pci_device *vga_dev,*pcie_dev;
 
 int vesa_mode = 1;
 
@@ -507,8 +507,14 @@ int  vesafb_init(void)
 	u32 fb_address, io_address;
 	u32 tmp;
 
-	fb_address  =_pci_conf_read(vga_dev->pa.pa_tag,0x10);
-	io_address  =_pci_conf_read(vga_dev->pa.pa_tag,0x18);
+	if(vga_dev != NULL){
+		fb_address  =_pci_conf_read(vga_dev->pa.pa_tag,0x10);
+		io_address  =_pci_conf_read(vga_dev->pa.pa_tag,0x18);
+	}
+	if(pcie_dev != NULL){
+		fb_address  =_pci_conf_read(pcie_dev->pa.pa_tag,0x10);
+		io_address  =_pci_conf_read(pcie_dev->pa.pa_tag,0x18);
+	}
 	//io_vaddr = io_address | 0xbfd00000;
 	//io_vaddr = io_address | BONITO_PCIIO_BASE_VA;
 	io_vaddr = io_address | 0xb8000000;

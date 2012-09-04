@@ -114,7 +114,7 @@ struct tgt_bus_space def_bus_memt;		/* Default bus tags */
 struct pci_device *_pci_head;
 struct pci_bus *_pci_bushead;
 struct pci_intline_routing *_pci_inthead;
-struct pci_device *vga_dev;
+struct pci_device *vga_dev = NULL,*pcie_dev = NULL;
 
 
 static void
@@ -452,24 +452,15 @@ if(pm_io == NULL) {
 				pm->reg = reg;
 				pm->flags = PCI_MAPREG_MEM_TYPE_32BIT;
 				pm->size = -(PCI_MAPREG_MEM_ADDR(mask));
-				//vga 0x10 > 32M bytes
-				if(PCI_ISCLASS(((pd->pa.pa_class)&0xff00ffff), PCI_CLASS_DISPLAY, PCI_SUBCLASS_DISPLAY_VGA)){
-                                        if(reg==0x10){
-                                                printf("fixup video mem size\n");
-#if defined(USE_780E_VGA) || defined(USE_BMC)
-                                                if (pm->size > 0x4000000)
-                                                {
-												   // pm->size = 0x8000000;
-												    pm->size = VRAM_SIZE<<20;
-													printf("pm->size = %08x\n", pm->size);
-                                                }
-#else
-                                                pm->size=0x2000000;
+#ifdef USE_BMC || defined(CONFIG_GFXUMA)
+			if(PCI_ISCLASS(((pd->pa.pa_class)&0xff00ffff), PCI_CLASS_DISPLAY, PCI_SUBCLASS_DISPLAY_VGA)){
+				if(reg==0x10){
+					pm->size = VRAM_SIZE<<20;
+					printf("pm->size = %08x\n", pm->size);
+                      		}
+			}
 #endif
-                                        }
-                                }
-
-				_insertsort_window(&pd->parent->bridge.memspace, pm);
+			_insertsort_window(&pd->parent->bridge.memspace, pm);
 			}
 		}
 
@@ -564,19 +555,19 @@ _pci_query_dev (struct pci_device *dev, int bus, int device, int initialise)
 		PRINTF ("completed\n");
 	}
 
+	if((bus == 2) && (device ==0))
+	{
+		if(PCI_VENDOR(id) != 0x1002 && (PCI_PRODUCT(id) != 0x9615))
+		  printf("pcie-slot device: vendor:%x product:%x\n",PCI_VENDOR(id),PCI_PRODUCT(id)); 
+	}
+
 #if defined(USE_BMC)
         if (PCI_VENDOR(id) == 0x1a03 && PCI_PRODUCT(id) == 0x2000)
         {
                 printf("AST2050's VGA discover !!!!!!!!!!!!!!\n");
         }
-#else
-
-    if((PCI_ISCLASS(typ, PCI_CLASS_DISPLAY, PCI_SUBCLASS_DISPLAY_VGA)) && (PCI_VENDOR(id) != 0x1002 || PCI_PRODUCT(id) != 0x9615))
-    {
-        printf("Don't alloc pci mem for other vga in 3a/3b/3c 780e board during boot bios...\n");
-        return;
-    }
 #endif
+
 	if (id == 0 || id == 0xffffffff) {
 		return;
 	}
@@ -735,16 +726,26 @@ _pci_setup_windows (struct pci_device *dev)
 	pd = pm->device;
 	if (PCI_ISCLASS(pd->pa.pa_class, PCI_CLASS_DISPLAY, PCI_SUBCLASS_DISPLAY_VGA)) 
 	{
-#ifdef USE_780E_VGA
-        //changed by oldtai
-        if (PCI_VENDOR(pd->pa.pa_id) == 0x1002)
-#elif defined(USE_BMC)  /* USE_BMC_VGA */
-        if (PCI_VENDOR(pd->pa.pa_id) == 0x1a03)
-#endif
-        {
+#if defined(USE_BMC)  /* USE_BMC_VGA */
+       if (PCI_VENDOR(pd->pa.pa_id) == 0x1a03)
+		{
             vga_dev = pd;
             pd->disable=0;
         }
+#else 
+        if ((PCI_VENDOR(pd->pa.pa_id) == 0x1002) && (PCI_PRODUCT(pd->pa.pa_id) == 0x9615))
+        {
+			printf("vga_dev =:%x\n",vga_dev);
+            vga_dev = pd;
+            pd->disable=0;
+        }else{
+			printf("pcie_dev :%x vga_dev ==:%x\n",pcie_dev,vga_dev);
+	        pcie_dev = pd;
+            pd->disable=0;
+			vga_dev = NULL;
+        }
+#endif
+		printf("pcie_dev :%x vga_dev ==:%x\n",pcie_dev,vga_dev);
 	}
 #if 0
 	/*

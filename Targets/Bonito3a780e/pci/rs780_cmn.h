@@ -63,7 +63,9 @@ extern int printf (const char *fmt, ...);
 #define printk_warning(fmt, arg...)
 #define printk_notice(fmt, arg...)
 #define printk_info(fmt, arg...)
-#define printk_debug(fmt, arg...)
+//#define printk_debug(fmt, arg...)
+/*notice:the printk_debug is important for the discrete card, don`t close it*/
+#define printk_debug(fmt, arg...)   printf(fmt, ##arg)
 #define printk_spew(fmt, arg...)
 #define printk(fmt, arg...)
 #endif

@@ -15,6 +15,11 @@ struct loongson_special_attribute g_special = { 0 };
 extern void (*poweroff_pt)(void);
 extern void (*reboot_pt)(void);
 
+#ifdef RS780E
+extern unsigned char vgarom[];
+extern struct pci_device *vga_dev;
+#endif
+
 int init_boot_param(struct boot_params *bp)
 {
   
@@ -40,8 +45,13 @@ void init_smbios(struct smbios_tables *smbios)
 {
   
   smbios->vers = 0;
-  smbios->vga_bios = 0xc3f00000;
-
+#ifdef RS780E
+  if(vga_dev != NULL){
+  smbios->vga_bios = vgarom;
+ }
+#else
+  smbios->vga_bios = 0;
+#endif
   init_loongson_params(&(smbios->lp)); 
 
 }
@@ -373,6 +383,17 @@ struct loongson_special_attribute *init_special_info()
 
   strcpy(special->special_name,update);
   
+#ifdef CONFIG_GFXUMA   
+  special->resource[0].flags = 1;
+  special->resource[0].start = 0;
+  special->resource[0].end = VRAM_SIZE;
+  strcpy(special->resource[0].name,"UMAMODULE");
+#else
+  special->resource[0].flags = 0;
+  special->resource[0].start = 0;
+  special->resource[0].end = VRAM_SIZE;
+  strcpy(special->resource[0].name,"SPMODULE");
+#endif
   return special;
 }
 

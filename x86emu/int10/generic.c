@@ -186,7 +186,7 @@ static void setregs(const unsigned char *regs)
 	linux_outb(0x67, 0x3c2);
 
 }
-extern struct pci_device *vga_dev;
+extern struct pci_device *vga_dev,*pcie_dev;
 extern int vga_available;
 extern int novga;
 extern int vesa_mode;
@@ -195,14 +195,17 @@ extern struct vesamode *vesa_mode_head;
 extern unsigned long long uma_memory_size;
 unsigned long long  vbios_addr;
 //static unsigned long long * vfb_top;
+void *vbiosMem = 0;
 
 int vga_bios_init(void)
 {
 	xf86Int10InfoPtr pInt;
 	int screen;
 	void *base = 0;
-	void *vbiosMem = 0;
 	legacyVGARec vga;
+	pcitag_t vga_bridge;
+	unsigned int val;
+	
 	pInt = (xf86Int10InfoPtr) malloc(sizeof(xf86Int10InfoRec));
 	//pInt = (xf86Int10InfoPtr) calloc(1,sizeof(xf86Int10InfoRec));
 	memset(pInt, 0, sizeof(xf86Int10InfoRec));
@@ -215,16 +218,16 @@ int vga_bios_init(void)
 	pInt->scrnIndex = 0;	/* screen */
 	base = INTPriv(pInt)->base = malloc(0x100000);
     //base = INTPriv(pInt)->base = 0x80000000+memorysize-0x100000;
-//#if		0
 #if     defined(RS690) || defined(RS780E)
 	{
-#ifdef USE_780E_VGA
-		pcitag_t vga_bridge = _pci_make_tag(0, 1, 0);
-#elif defined(USE_BMC)
-                pcitag_t vga_bridge = _pci_make_tag(0, 6, 0); /* BMC VGA */
+		if(pcie_dev != NULL)
+		   vga_bridge = _pci_make_tag(0, 2, 0);
+		
+		if(vga_dev != NULL)
+		   vga_bridge = _pci_make_tag(0, 1, 0);
+#if defined(USE_BMC)
+           vga_bridge = _pci_make_tag(0, 6, 0); /* BMC VGA */
 #endif
-		unsigned int val;
-
 		/* enable VGA legacy space decode */
 		val = _pci_conf_read(vga_bridge, 0x3c);
 		val |= 1 << 19;
@@ -269,10 +272,15 @@ int vga_bios_init(void)
 		unsigned char pcisig[4];	/* signature of pci data structure */
 		unsigned char codetype;
 
-		if (vga_dev != NULL) {
-			pdev = vga_dev;
+		if (pcie_dev != NULL) {
+			pdev = pcie_dev;
 			printk
-			    ("Found VGA device: vendor=0x%04x, device=0x%04x\n",
+			    ("Found discrete graphics device: vendor=0x%04x, device=0x%04x\n",
+			     PCI_VENDOR(pdev->pa.pa_id),
+			     PCI_PRODUCT(pdev->pa.pa_id));
+		}else if(vga_dev != NULL){
+			pdev = vga_dev;
+			printk("USE inter-graphic device: vendor:%04x, device=0x:%04x\n",
 			     PCI_VENDOR(pdev->pa.pa_id),
 			     PCI_PRODUCT(pdev->pa.pa_id));
 		} else
@@ -289,13 +297,21 @@ int vga_bios_init(void)
 		romaddress &= (~1);
 		/* enable rom address decode */
 		_pci_conf_write(pdev->pa.pa_tag, 0x30, romaddress | 1);
+
+		if(pcie_dev != NULL){
+			romaddress = romaddress | 0x80000000 & 0xfffffff0;
+		}
+		if(vga_dev != NULL)
 #if defined(RADEON7000) || defined(RS690) || defined(VESAFB) || defined(RS780E)
 		{
 			extern unsigned char vgarom[];
 			unsigned char *tmp;
 			romaddress = (unsigned long)vgarom;
 			tmp = (unsigned char *)vgarom;
-//			printk("Here after vgarom romaddress:%x\n",tmp[4]);
+
+#if defined(BONITOEL) && !( defined(RADEON7000) || defined(VESAFB) || defined(RS690) || defined(RS780E))
+		romaddress |= 0x10000000;
+#endif
 			printk("vgarom romaddress:0x%x\n",romaddress);
 		}
 #endif
@@ -305,9 +321,6 @@ int vga_bios_init(void)
 			return -1;
 		}
 
-#if defined(BONITOEL) && !( defined(RADEON7000) || defined(VESAFB) || defined(RS690) || defined(RS780E))
-		romaddress |= 0x10000000;
-#endif
 
 		printk("Rom base addr: %lx\n", romaddress);
 
@@ -417,8 +430,10 @@ int vga_bios_init(void)
 #else
 		vbiosMem	= (unsigned long) (0xc0000000 + uma_memory_size  - 0x100000 );
 #endif
-		printf("video bios address: %08x\n",vbiosMem);
-        memcpy(vbiosMem, (char *)(0x00000000 | romaddress), V_BIOS_SIZE);
+		if(vga_dev != NULL){
+		  printf("video bios address: %08x\n",vbiosMem);
+		  memcpy(vbiosMem, (char *)(0x00000000 | romaddress), V_BIOS_SIZE);
+		}
 #endif
 		if (PCI_VENDOR(pdev->pa.pa_id) == 0x1002
 		    && PCI_PRODUCT(pdev->pa.pa_id) == 0x4750)

@@ -625,7 +625,7 @@ tgt_devconfig()
 	int rc=1;
 #if NMOD_FRAMEBUFFER > 0 
 	unsigned long fbaddress,ioaddress;
-	extern struct pci_device *vga_dev;
+	extern struct pci_device *vga_dev,*pcie_dev;
 #ifdef RS780E
     int test;
     int  i;
@@ -665,14 +665,21 @@ tgt_devconfig()
 #endif
 #if NMOD_FRAMEBUFFER > 0
 	vga_available=0;
+#if 0
 	if(!vga_dev) {
 		printf("ERROR !!! VGA device is not found\n"); 
 		rc = -1;
 	}
+#endif
 	if (rc > 0) {
-		fbaddress  =_pci_conf_read(vga_dev->pa.pa_tag,0x10);
-		ioaddress  =_pci_conf_read(vga_dev->pa.pa_tag,0x18);
-
+		if(vga_dev != NULL){
+			fbaddress  =_pci_conf_read(vga_dev->pa.pa_tag,0x10);
+			ioaddress  =_pci_conf_read(vga_dev->pa.pa_tag,0x18);
+		}
+		if(pcie_dev != NULL){
+			fbaddress  =_pci_conf_read(pcie_dev->pa.pa_tag,0x10);
+			ioaddress  =_pci_conf_read(pcie_dev->pa.pa_tag,0x18);
+		}
 		fbaddress = fbaddress &0xffffff00; //laster 8 bit
 		ioaddress = ioaddress &0xfffffff0; //laster 4 bit
 
