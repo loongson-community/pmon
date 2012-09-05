@@ -184,9 +184,20 @@ smbios_type_0_init(void *start)
 	int flashsize = 0;
 	char update[11];
 	char release_date_string[11];
-	char pmon_version[20] = "PMON V3.0";
+	char pmon_version[40];
+	char temp[20];
+	int i;
 
-    
+  	get_update(update);
+	strncpy(temp, update, 4);
+	strncpy(temp + 4, update + 5, 2);
+	strncpy(temp + 6, update + 8, 2);
+	for(i = 0; i < 8; i++){
+		if(temp[i] == ' ')
+			temp[i] = '0';
+	}
+	temp[8] = '\0';
+    	sprintf(pmon_version, "LoongSon-PMON-V3.0-%s", temp);
 	p->header.type = 0;
 	p->header.length = sizeof(struct smbios_type_0);
 	p->header.handle = 0;
@@ -220,7 +231,6 @@ smbios_type_0_init(void *start)
 	strcpy((char *)start, pmon_version);
 	start += strlen(pmon_version) + 1;
 	
-  	get_update(update);
 	strncpy(release_date_string, update + 5, 5);
 	strncpy(release_date_string + 6, update, 4);
 	release_date_string[2] = '/';
