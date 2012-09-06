@@ -328,7 +328,8 @@ int cmd_setmac(int ac, unsigned char *av[])
 	if (ac == 1) {
 		for (i = 0; i < 2; i++) {	
 			if (eeprom_read_seq(i * 6, buf, 6) == 6) {
-				printf("syn%d Mac address: ", i);
+				//printf("syn%d Mac address: ", i);
+				printf("eth%d Mac address: ", i);
 				for (j = 0; j < 6; j++)
 					printf("%02x%s", buf[j], (5-j)?":":" ");
 				printf("\n");
@@ -353,17 +354,18 @@ int cmd_setmac(int ac, unsigned char *av[])
 	}
 
 	if (eeprom_write_page(data_addr, buf, count) == count) {
-		printf("set syn%d  Mac address: %s\n",data_addr / 6, av[2]);
+		//printf("set syn%d  Mac address: %s\n",data_addr / 6, av[2]);
+		printf("set eth%d  Mac address: %s\n",data_addr / 6, av[2]);
 		printf("The machine should be restarted to make the mac change to take effect!!\n");
 	} else 
 		printf("eeprom write error!\n");
-
 	return 0;
-
 warning:
 	printf("Please accord to correct format.\nFor example:\n");
-	printf("\tsetmac syn1 \"00:11:22:33:44:55\"\n");
-	printf("\tThis means set syn1's Mac address 00:11:22:33:44:55\n");
+	//printf("\tsetmac syn1 \"00:11:22:33:44:55\"\n");
+	printf("\tsetmac eth1 \"00:11:22:33:44:55\"\n");
+	//printf("\tThis means set syn1's Mac address 00:11:22:33:44:55\n");
+	printf("\tThis means set eth1's Mac address 00:11:22:33:44:55\n");
 	return 0;
 }
 

@@ -152,6 +152,7 @@
 #include <pci/pcivar.h>
 #include <pci/if_fxpreg.h>
 #include <pci/if_fxpvar.h>
+#include <string.h>
 
 #endif /* __NetBSD__ || __OpenBSD__ */
 
@@ -1644,7 +1645,7 @@ int cmd_setmac(int ac, char *av[])
 	int i;
 	unsigned short val = 0, v;
 	struct nic *nic = mynic;
-	
+	char	net_type[5];
 	if(nic == NULL){
 		printf("8139 interface not initialized\n");
 		return 0;
@@ -1671,6 +1672,13 @@ int cmd_setmac(int ac, char *av[])
 	printf("\n");
 	printf("The machine should be restarted to make the mac change to take effect!!\n");
 #else
+#if     defined (LOONGSON_3ASINGLE) || defined (LOONGSON_3BSINGLE)
+	strcpy(net_type,av[1]);
+        if(strstr(net_type,"eth0")!=NULL)
+        {
+                strcpy(av[1],"rte0");
+        }
+#endif
 	if(ac != 2){
 	long long macaddr;
 	u_int8_t *paddr;
@@ -1861,7 +1869,6 @@ static const Optdesc netdmp_opts[] =
     {"<netdmp>", "IP Address"},
     {0}
 };
-
 static const Cmd Cmds[] =
 {
 	{"8139"},
@@ -1870,15 +1877,14 @@ static const Cmd Cmds[] =
 			"8139 helper", netdmp_cmd, 1, 3, 0},
 	{"ifm", "", NULL,
 		    "Set 8139 interface mode", cmd_ifm, 1, 2, 0},
-	{"setmac", "", NULL,
-		    "Set mac address into 8139 eeprom", cmd_setmac, 1, 5, 0},
-	{"readrom", "", NULL,
-			"dump rtl8139 eprom content", cmd_reprom, 1, 1,0},
-	{"writerom", "", NULL,
-			"write the whole rtl8139 eprom content", cmd_wrprom, 1, 1,0},
+	//{"setmac", "", NULL,
+		    //"Set mac address into 8139 eeprom", cmd_setmac, 1, 5, 0},
+	//{"readrom", "", NULL,
+			//"dump rtl8139 eprom content", cmd_reprom, 1, 1,0},
+	//{"writerom", "", NULL,
+			//"write the whole rtl8139 eprom content", cmd_wrprom, 1, 1,0},
 	{0, 0}
 };
-
 
 static void init_cmd __P((void)) __attribute__ ((constructor));
 

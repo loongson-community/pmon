@@ -4094,16 +4094,24 @@ static int cmd_reprom(int ac, char *av[])
 	int i;
 	int n = 0;
 	unsigned short data;	
-
+	char    net_type[5];
 	printf("dump eprom:\n");
-
+#if     defined (LOONGSON_3ASINGLE) || defined (LOONGSON_3BSINGLE)
+        strcpy(net_type,av[1]);
+        if(strstr(net_type,"eth0")!=NULL)
+        {
+                strcpy(av[1],"rte0");
+        }
+#endif
 	if (!strcmp(av[1], "rte0")){
 		n = 0; 
-		printf("Now read rte0 e2prom\n");
+		//printf("Now read rte0 e2prom\n");
+		printf("Now read eth0 e2prom\n");
 	}
 	else if (!strcmp(av[1], "rte1")){
 		n = 1; 
-		printf("Now read rte1 e2prom\n");
+		//printf("Now read rte1 e2prom\n");
+		printf("Now read eth1 e2prom\n");
 	}
 	else{
 		printf("input device Error \n");
@@ -4149,10 +4157,10 @@ static int cmd_reprom(int ac, char *av[])
 #endif
 static int cmd_wrprom(int ac, char *av[])
 {
-    int i;
+    	int i;
 	int n = 0; 
-    unsigned short data;
-
+    	unsigned short data;
+	char    net_type[5];
 static unsigned char rom[]={
 /*00000000:*/0x29,0x81,0xEC,0x10,0x68,0x81,0xEC,0x10,0x68,0x81,0x04,0x01,0x9C,0x62,0x00,0xE0,
 /*00000010:*/0x4C,0x68,0x00,0x01,0x05,0x4F,0xC3,0xFF,0x04,0x02,0xC0,0x8C,0x80,0x02,0x00,0x00,
@@ -4162,17 +4170,26 @@ static unsigned char rom[]={
 /*00000050:*/0x01,0x00,0x0f,0x00,0xB2,0x73,0x75,0xEA,0x87,0x75,0x7A,0x39,0xCA,0x98,0x00,0x00,
 /*00000060:*/0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
 /*00000070:*/0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
-
+#if     defined (LOONGSON_3ASINGLE) || defined (LOONGSON_3BSINGLE)
+        strcpy(net_type,av[1]);
+        if(strstr(net_type,"eth0")!=NULL)
+        {
+                strcpy(av[1],"rte0");
+        }
+#endif
 	if (!strcmp(av[1], "rte0")){
 		n = 0; 
-		printf("Now write rte0 e2prom\n");
+		//printf("Now write rte0 e2prom\n");
+		printf("Now write eth0 e2prom\n");
 	}
 	else if (!strcmp(av[1], "rte1")){
 		n = 1; 
-		printf("Now write rte1 e2prom\n");
+		//printf("Now write rte1 e2prom\n");
+		printf("Now write eth1 e2prom\n");
 	}
 	else{
-		printf("Error rte device\n");
+		//printf("Error rte device\n");
+		printf("Error device\n");
 		return 0;
 	}
 
@@ -4242,17 +4259,27 @@ static int cmd_setmac(int ac, char *av[])
 	int i, n;
 	unsigned short val = 0;
 	int32_t v;
-
+	char	net_type[5];
+#if     defined (LOONGSON_3ASINGLE) || defined (LOONGSON_3BSINGLE)
+        strcpy(net_type,av[1]);
+        if(strstr(net_type,"eth0")!=NULL)
+        {
+                strcpy(av[1],"rte0");
+        }
+#endif
 	if (!strcmp(av[1], "rte0")){
 		n = 0; 
-		printf("Now set rte0 MAC\n");
+		//printf("Now set rte0 MAC\n");
+		printf("Now set eth0 MAC\n");
 	}
 	else if (!strcmp(av[1], "rte1")){
 		n = 1; 
-		printf("Now set rte1 MAC\n");
+		//printf("Now set rte1 MAC\n");
+		printf("Now set eth1 MAC\n");
 	}
 	else{
-		printf("Error rte device\n");
+		//printf("Error rte device\n");
+		printf("Error device\n");
 		return 0;
 	}
 
@@ -4270,7 +4297,8 @@ static int cmd_setmac(int ac, char *av[])
 			else
 				printf(":");
 		}
-		printf("Use \"setmac rte0/1 <mac> \" to set mac address\n");
+		//printf("Use \"setmac rte0/1 <mac> \" to set mac address\n");
+		printf("Use \"setmac eth0/1 <mac> \" to set mac address\n");
 		return 0;
 	}
 	for (i = 0; i < 3; i++) {

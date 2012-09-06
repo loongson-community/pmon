@@ -75,10 +75,37 @@ ifaddr_cmd (ac, av)
     int             ac;
     char           *av[];
 {
+	char net_type[5];
+        strcpy(net_type,av[1]);
+#ifdef LOONGSON_3A2H
+        if(strstr(net_type,"eth0")!=NULL)
+        {
+                strcpy(av[1],"syn0");
+        }
+	if(strstr(net_type,"eth1")!=NULL)
+        {
+                strcpy(av[1],"syn1");
+        }
+#endif
+#if	defined (LOONGSON_3ASINGLE) || defined (LOONGSON_3BSINGLE)
+        if(strstr(net_type,"eth0")!=NULL)
+        {
+                strcpy(av[1],"rte0");
+        }
+#endif
+#if	defined (LOONGSON_3ASERVER) || defined (LOONGSON_3BSERVER)
+        if(strstr(net_type,"eth0")!=NULL)
+        {
+                strcpy(av[1],"em0");
+        }
+	if(strstr(net_type,"eth1")!=NULL)
+        {
+                strcpy(av[1],"em1");
+        }
+#endif
 	ifconfig (av[1], av[2]);
 	return 0;
 }
-
 
 static const Cmd Cmds[] =
 {

@@ -1050,13 +1050,16 @@ static const Optdesc netdmp_opts[] =
 static const Cmd Cmds[] =
 {
         {"em"},
-        {"setmac_em0", "", NULL,
+        //{"setmac_em0", "", NULL,
+        {"setmac", "", NULL,
                     "Set mac address into E1000 eeprom", cmd_setmac_em0, 1, 5, 0},
 
-        {"readrom_em0", "", NULL,
+        //{"readrom_em0", "", NULL,
+        {"readrom", "", NULL,
                         "dump E1000 eprom content", cmd_reprom_em0, 1, 2, 0},
 
-        {"writerom_em0", "", NULL,
+        //{"writerom_em0", "", NULL,
+        {"writerom", "", NULL,
                         "write E1000 eprom content", cmd_wrprom_em0, 1, 2, 0},
 	{"msqt_lan", " [100M/1000M] [mode1(waveform)/mode4(distortion)]/[chana/chanb]", NULL, "Motherboard Signal Quality Test for RTL8111", cmd_msqt_lan, 3, 3, 0},
 

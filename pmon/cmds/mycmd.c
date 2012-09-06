@@ -1083,158 +1083,186 @@ static int cmd_testnet(int argc,char **argv)
 static int del_if_rt(char *ifname);
 static int cmd_ifconfig(int argc,char **argv)
 {
-struct ifreq *ifr;
-struct in_aliasreq *ifra;
-struct in_aliasreq data;
-int s = socket (AF_INET, SOCK_DGRAM, 0);
+	struct ifreq *ifr;
+	struct in_aliasreq *ifra;
+	struct in_aliasreq data;
+	char	net_type[5];
+	int s = socket (AF_INET, SOCK_DGRAM, 0);
 	if (s < 0) {
 		perror("ifconfig: socket");
 		return -1;
 	}
-ifra=(void *)&data;
-ifr=(void *)&data;
-bzero (ifra, sizeof(*ifra));
-strcpy(ifr->ifr_name,argv[1]);
-if(argc==2)
-{
-(void) ioctl(s, SIOCGIFADDR, ifr);
-printf("ip:%s\n",inet_ntoa(satosin(&ifr->ifr_addr)->sin_addr));
-(void) ioctl(s,SIOCGIFNETMASK, ifr);
-printf("netmask:%s\n",inet_ntoa(satosin(&ifr->ifr_addr)->sin_addr));
-(void) ioctl(s,SIOCGIFBRDADDR, ifr);
-printf("broadcast:%s\n",inet_ntoa(satosin(&ifr->ifr_addr)->sin_addr));
-(void) ioctl(s,SIOCGIFFLAGS,ifr);
-printf("status:%s %s\n",ifr->ifr_flags&IFF_UP?"up":"down",ifr->ifr_flags&IFF_RUNNING?"running":"stoped");
-}
-else if(argc>=3)
-{
-char *cmds[]={"down","up","remove","stat","setmac","readrom","writerom","readphy","writephy","0x"};
-int i;
-	for(i=0;i<sizeof(cmds)/sizeof(char *);i++)
-	if(!strncmp(argv[2],cmds[i],strlen(cmds[i])))break;
-
-	switch(i)
+	ifra=(void *)&data;
+	ifr=(void *)&data;
+	bzero (ifra, sizeof(*ifra));
+	strcpy(net_type,argv[1]);
+#ifdef LOONGSON_3A2H
+        if(strstr(net_type,"eth0")!=NULL)
+        {
+                strcpy(argv[1],"syn0");
+        }
+        if(strstr(net_type,"eth1")!=NULL)
+        {
+                strcpy(argv[1],"syn1");
+        }
+#endif
+#if	defined (LOONGSON_3ASINGLE) || defined (LOONGSON_3BSINGLE)
+        if(strstr(net_type,"eth0")!=NULL)
+        {
+                strcpy(argv[1],"rte0");
+        }
+#endif
+#if	defined (LOONGSON_3ASERVER) || defined (LOONGSON_3BSERVER)
+        if(strstr(net_type,"eth0")!=NULL)
+        {
+                strcpy(argv[1],"em0");
+        }
+        if(strstr(net_type,"eth1")!=NULL)
+        {
+                strcpy(argv[1],"em1");
+        }
+#endif
+	strcpy(ifr->ifr_name,argv[1]);
+	if(argc==2)
 	{
-	case 0://down
+		(void) ioctl(s, SIOCGIFADDR, ifr);
+		printf("ip:%s\n",inet_ntoa(satosin(&ifr->ifr_addr)->sin_addr));
+		(void) ioctl(s,SIOCGIFNETMASK, ifr);
+		printf("netmask:%s\n",inet_ntoa(satosin(&ifr->ifr_addr)->sin_addr));
+		(void) ioctl(s,SIOCGIFBRDADDR, ifr);
+		printf("broadcast:%s\n",inet_ntoa(satosin(&ifr->ifr_addr)->sin_addr));
 		(void) ioctl(s,SIOCGIFFLAGS,ifr);
-		ifr->ifr_flags &=~IFF_UP;
-		(void) ioctl(s,SIOCSIFFLAGS,ifr);
-		break;
-	case 1://up
-		(void) ioctl(s,SIOCGIFFLAGS,ifr);
-		ifr->ifr_flags |=IFF_UP;
-		(void) ioctl(s,SIOCSIFFLAGS,ifr);
-		break;
-	case 2://remove
-		(void) ioctl(s,SIOCGIFFLAGS,ifr);
-		ifr->ifr_flags &=~IFF_UP;
-		(void) ioctl(s,SIOCSIFFLAGS,ifr);
-		while(ioctl(s, SIOCGIFADDR, ifra)==0)
-		{
-		(void) ioctl(s, SIOCDIFADDR, ifr);
-		}
-		del_if_rt(argv[1]);
-		break;
-	case 3: //stat
-		{
-		register struct ifnet *ifp;
-		ifp = ifunit(argv[1]);
-		if(!ifp){printf("can not find dev %s.\n",argv[1]);return -1;}
-		printf("RX packets:%d,TX packets:%d,collisions:%d\n" \
-			   "RX errors:%d,TX errors:%d\n" \
-			   "RX bytes:%d TX bytes:%d\n" ,
-		ifp->if_ipackets, 
-		ifp->if_opackets, 
-		ifp->if_collisions,
-		ifp->if_ierrors, 
-		ifp->if_oerrors,  
-		ifp->if_ibytes, 
-		ifp->if_obytes 
-		);
-		if(ifp->if_baudrate)printf("link speed up to %d Mbps\n",ifp->if_baudrate);
-		}
-		break;
-	case 4: //setmac
-	    {
-		struct ifnet *ifp;
-		ifp = ifunit(argv[1]);
-		if(ifp)
-		{
-		long arg[2]={argc-2,(long)&argv[2]};
-		ifp->if_ioctl(ifp,SIOCETHTOOL,arg);
-		}
-	    }
-		break;
-        case 5: //read eeprom
-            {
-                struct ifnet *ifp;
-                ifp = ifunit(argv[1]);
-                if(ifp)
-                {
-                long arg[2]={argc-2,(long)&argv[2]};
-                ifp->if_ioctl(ifp,SIOCRDEEPROM,arg);
-                }
-            }
-                break;
-        case 6: //write eeprom
-            {
-                struct ifnet *ifp;
-                ifp = ifunit(argv[1]);
-                if(ifp)
-                {
-                long arg[2]={argc-2,(long)&argv[2]};
-                ifp->if_ioctl(ifp,SIOCWREEPROM,arg);
-                }
-            }
-                break;
-		case 7: //readphy
-            {
-                struct ifnet *ifp;
-                ifp = ifunit(argv[1]);
-                if(ifp)
-                {
-                long arg[2]={argc-2,(long)&argv[2]};
-                ifp->if_ioctl(ifp,SIOCRDPHY,arg);
-                }
-            }
-                break;
-		case 8: //writephy
-			{
-                struct ifnet *ifp;
-                ifp = ifunit(argv[1]);
-                if(ifp)
-                {
-                long arg[2]={argc-2,(long)&argv[2]};
-                ifp->if_ioctl(ifp,SIOCWRPHY,arg);
-                }
-			}
-			break;
-		case sizeof(cmds)/sizeof(cmds[0]) -1:
-			{
-                struct ifnet *ifp;
-                ifp = ifunit(argv[1]);
-                if(ifp)
-                {
-                long arg[2]={argc-2,(long)&argv[2]};
-                ifp->if_ioctl(ifp,strtoul(argv[2],0,0),arg);
-                }
-			}
-			break;
-
-	default:
-		while(ioctl(s, SIOCGIFADDR, ifra)==0)
-		{
-		(void) ioctl(s, SIOCDIFADDR, ifr);
-		}
-		setsin (SIN(ifra->ifra_addr), AF_INET, inet_addr(argv[2]));
-		(void) ioctl(s, SIOCSIFADDR, ifra);
-		if(argc>=4)
-		 {
-		 setsin (SIN(ifra->ifra_addr), AF_INET, inet_addr(argv[3]));
-		 (void) ioctl(s,SIOCSIFNETMASK, ifra);
-		 }
-		 break;
+		printf("status:%s %s\n",ifr->ifr_flags&IFF_UP?"up":"down",ifr->ifr_flags&IFF_RUNNING?"running":"stoped");
 	}
+	else if(argc>=3)
+	{
+		char *cmds[]={"down","up","remove","stat","setmac","readrom","writerom","readphy","writephy","0x"};
+		int i;
+		for(i=0;i<sizeof(cmds)/sizeof(char *);i++)
+			if(!strncmp(argv[2],cmds[i],strlen(cmds[i])))break;
+
+		switch(i)
+		{
+			case 0://down
+				(void) ioctl(s,SIOCGIFFLAGS,ifr);
+				ifr->ifr_flags &=~IFF_UP;
+				(void) ioctl(s,SIOCSIFFLAGS,ifr);
+				break;
+			case 1://up
+				(void) ioctl(s,SIOCGIFFLAGS,ifr);
+				ifr->ifr_flags |=IFF_UP;
+				(void) ioctl(s,SIOCSIFFLAGS,ifr);
+				break;
+			case 2://remove
+				(void) ioctl(s,SIOCGIFFLAGS,ifr);
+				ifr->ifr_flags &=~IFF_UP;
+				(void) ioctl(s,SIOCSIFFLAGS,ifr);
+				while(ioctl(s, SIOCGIFADDR, ifra)==0)
+				{
+					(void) ioctl(s, SIOCDIFADDR, ifr);
+				}
+				del_if_rt(argv[1]);
+				break;
+			case 3: //stat
+				{
+					register struct ifnet *ifp;
+					ifp = ifunit(argv[1]);
+					if(!ifp){printf("can not find dev %s.\n",argv[1]);return -1;}
+					printf("RX packets:%d,TX packets:%d,collisions:%d\n" \
+			   		"RX errors:%d,TX errors:%d\n" \
+			   		"RX bytes:%d TX bytes:%d\n" ,
+					ifp->if_ipackets, 
+					ifp->if_opackets, 
+					ifp->if_collisions,
+					ifp->if_ierrors, 
+					ifp->if_oerrors,  
+					ifp->if_ibytes, 
+					ifp->if_obytes 
+					);
+					if(ifp->if_baudrate)printf("link speed up to %d Mbps\n",ifp->if_baudrate);
+				}
+				break;
+			case 4: //setmac
+	    			{
+					struct ifnet *ifp;
+					ifp = ifunit(argv[1]);
+					if(ifp)
+					{
+						long arg[2]={argc-2,(long)&argv[2]};
+						ifp->if_ioctl(ifp,SIOCETHTOOL,arg);
+					}
+	    			}
+				break;
+        		case 5: //read eeprom
+            			{
+                			struct ifnet *ifp;
+                			ifp = ifunit(argv[1]);
+                			if(ifp)
+                			{
+                				long arg[2]={argc-2,(long)&argv[2]};
+                				ifp->if_ioctl(ifp,SIOCRDEEPROM,arg);
+                			}
+            			}
+                		break;
+        		case 6: //write eeprom
+            			{
+                			struct ifnet *ifp;
+                			ifp = ifunit(argv[1]);
+                			if(ifp)
+                			{
+                				long arg[2]={argc-2,(long)&argv[2]};
+                				ifp->if_ioctl(ifp,SIOCWREEPROM,arg);
+                			}
+            			}
+                		break;
+			case 7: //readphy
+            			{
+                			struct ifnet *ifp;
+                			ifp = ifunit(argv[1]);
+                			if(ifp)
+                			{
+                				long arg[2]={argc-2,(long)&argv[2]};
+                				ifp->if_ioctl(ifp,SIOCRDPHY,arg);
+                			}
+            			}
+                		break;
+			case 8: //writephy
+				{
+                			struct ifnet *ifp;
+                			ifp = ifunit(argv[1]);
+                			if(ifp)
+                			{
+                				long arg[2]={argc-2,(long)&argv[2]};
+                				ifp->if_ioctl(ifp,SIOCWRPHY,arg);
+                			}
+				}
+				break;
+			case sizeof(cmds)/sizeof(cmds[0]) -1:
+				{
+                			struct ifnet *ifp;
+                			ifp = ifunit(argv[1]);
+                			if(ifp)
+                			{
+                				long arg[2]={argc-2,(long)&argv[2]};
+                				ifp->if_ioctl(ifp,strtoul(argv[2],0,0),arg);
+                			}
+				}
+				break;
+
+			default:
+				while(ioctl(s, SIOCGIFADDR, ifra)==0)
+				{
+					(void) ioctl(s, SIOCDIFADDR, ifr);
+				}
+				setsin (SIN(ifra->ifra_addr), AF_INET, inet_addr(argv[2]));
+				(void) ioctl(s, SIOCSIFADDR, ifra);
+				if(argc>=4)
+		 		{
+		 			setsin (SIN(ifra->ifra_addr), AF_INET, inet_addr(argv[3]));
+		 			(void) ioctl(s,SIOCSIFNETMASK, ifra);
+		 		}
+		 		break;
+		}
 }
 close(s);
 #ifdef LOONGSON_3ASERVER

@@ -58,6 +58,10 @@ extern int optind;
 	int	opt_a = 0;
 	int	opt_n = 0;
 	int	c;
+	char	net_type[16];
+	char	*eth[]={
+			"eth0", "eth1", "eth2", "eth3"
+		};
 	struct device *dev, *next_dev;
 
 	optind = 0;
@@ -81,14 +85,41 @@ extern int optind;
 
 	printf("Device name  Type\n");
 
-	for (dev  = TAILQ_FIRST(&alldevs); dev != NULL; dev = next_dev) {
+	for (dev = TAILQ_FIRST(&alldevs); dev != NULL; dev = next_dev) {
 		next_dev = TAILQ_NEXT(dev, dv_list);
 		if(!opt_a && dev->dv_class < DV_DISK) {
 			continue;
 		}
+		strcpy(net_type,&dev->dv_xname);
+#ifdef LOONGSON_3A2H
+		if(strstr(&dev->dv_xname,"syn0")!=NULL)
+		{	
+			strcpy(&dev->dv_xname,"eth0");
+		}
+		if(strstr(&dev->dv_xname,"syn1")!=NULL)
+		{	
+			strcpy(&dev->dv_xname,"eth1");
+		}
+#endif	
+#if	defined (LOONGSON_3ASINGLE) || defined (LOONGSON_3BSINGLE)
+		if(strstr(&dev->dv_xname,"rte0")!=NULL)
+		{	
+			strcpy(&dev->dv_xname,"eth0");
+		}
+#endif
+#if	defined (LOONGSON_3ASERVER) || defined (LOONGSON_3BSERVER)
+		if(strstr(&dev->dv_xname,"em0")!=NULL)
+		{	
+			strcpy(&dev->dv_xname,"eth0");
+		}
+		if(strstr(&dev->dv_xname,"em1")!=NULL)
+		{	
+			strcpy(&dev->dv_xname,"eth1");
+		} 
+#endif
 		printf("%-12s %s\n", &dev->dv_xname, devclass[dev->dv_class]);
+		strcpy(&dev->dv_xname,net_type);	
 	}
-
 	return(1);
 }
 
@@ -121,4 +152,3 @@ init_cmd()
 {
 	cmdlist_expand(Cmds, 1);
 }
-
