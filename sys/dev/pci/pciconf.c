@@ -739,10 +739,13 @@ _pci_setup_windows (struct pci_device *dev)
             vga_dev = pd;
             pd->disable=0;
         }else{
+		if (PCI_VENDOR(pd->pa.pa_id) == 0x1a03);
+		else {
 			printf("pcie_dev :%x vga_dev ==:%x\n",pcie_dev,vga_dev);
-	        pcie_dev = pd;
-            pd->disable=0;
+	        	pcie_dev = pd;
+            		pd->disable=0;
 			vga_dev = NULL;
+		}
         }
 #endif
 		printf("pcie_dev :%x vga_dev ==:%x\n",pcie_dev,vga_dev);
