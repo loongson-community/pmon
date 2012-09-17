@@ -225,8 +225,8 @@ struct setupMenu netcardmenu={
 (struct setupMenuitem[])
 {
 {POP_Y,POP_X,1,1,TYPE_CMD,"    NIC Setup"},
-{POP_Y+1,POP_X,2,2,TYPE_EDITMENU,"(1)set ip=ic=[em0||em1||fxp0] ip=172.16.21.66;;set ip=ifaddr $ic $ip"},
-{POP_Y+2,POP_X,3,3,TYPE_EDITMENU,"(2)ifconfig=ic=[em0||em1||fxp0] ip=172.16.21.66;;set ifconfig=set ifconfig $ic:$ip"},
+{POP_Y+1,POP_X,2,2,TYPE_EDITMENU,"(1)set ip=ic=[eth0||eth1] ip=172.16.21.66;;set ip=ifaddr $ic $ip"},
+{POP_Y+2,POP_X,3,3,TYPE_EDITMENU,"(2)ifconfig=ic=[eth0||eth1] ip=172.16.21.66;;set ifconfig=set ifconfig $ic:$ip"},
 {POP_Y+3,POP_X,4,4,TYPE_EDITMENU,"(3)serverip for test=ip=${#serverip};;set serverip=set serverip $ip"},
 {POP_Y+4,POP_X,5,5,TYPE_EDITMENU,"(4)clientip for test=ip=${#clientip};;set clientip=set clientip $ip"},
 {POP_Y+5,POP_X,1,1,TYPE_NONE,"(5)quit",setup_quit},
