@@ -133,8 +133,8 @@
  */ 
 #ifndef NKMEMCLUSTERS
 #ifdef PMON
-#define NKMEMCLUSTERS   (4 * 2048 * 1024 / CLBYTES)    /* wan+ */
-//#define NKMEMCLUSTERS   (2048 * 1024 / CLBYTES)      /* 0.5Mb *//* wan^ */
+#define NKMEMCLUSTERS   (32 * 2048 * 1024 / CLBYTES) /* 64M mem for net/http */
+//#define NKMEMCLUSTERS   (4 * 1024 / CLBYTES)      /* 0.5Mb *//* wan^ */
 #else
 #define NKMEMCLUSTERS   (128 * 1024 * 1024 / CLBYTES)
 #endif
