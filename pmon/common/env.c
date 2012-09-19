@@ -182,7 +182,7 @@ _setenv (name, value)
 }
 
 int
-printvar(name, value, cntp)
+printvar(name,value, cntp)
 	char *name;
 	char *value;
 	int  *cntp;
@@ -190,21 +190,48 @@ printvar(name, value, cntp)
 	const struct stdenv *ep;
 	char buf[300];
 	char *b;
-
-	if (!value) {
-		sprintf (buf, "%10s", name);
+	char net_type[15];
+	strcpy(net_type,name);
+#ifdef LOONGSON_3A2H
+	if(strstr(name,"syn0.ipaddr")!=NULL)
+	{
+                strcpy(name,"eth0.ipaddr");
 	}
-	else if(strchr (value, ' ')) {
-		sprintf (buf, "%10s = \"%s\"", name, value);
+	if(strstr(name,"syn1.ipaddr")!=NULL)
+        {
+                strcpy(name,"eth1.ipaddr");
+        }
+#endif
+#if defined (LOONGSON_3ASINGLE) || defined (LOONGSON_3BSINGLE)
+	if(strstr(name,"rte0.ipaddr")!=NULL)
+        {
+                strcpy(name,"eth0.ipaddr");
+        }
+#endif
+#if defined (LOONGSON_3ASERVER) || defined (LOONGSON_3BSERVER)
+	if(strstr(name,"em0.ipaddr")!=NULL)
+        {
+		strcpy(name,"eth0.ipaddr");
+	}	
+	if(strstr(name,"em1.ipaddr")!=NULL)
+        {
+		strcpy(name,"eth1.ipaddr");
+	}	
+#endif
+	if(!value){
+		sprintf(buf, "%10s", name);
+	}
+	else if(strchr(value, ' ')) {
+		sprintf(buf, "%10s = \"%s\"", name, value);
 	}
 	else {
-		sprintf (buf, "%10s = %-10s", name, value);
+		sprintf(buf, "%10s = %-10s", name, value);
 	}
-
 	b = buf + strlen(buf);
-	if ((ep = getstdenv (name)) && ep->values) {
+	if ((ep = getstdenv(name)) && ep->values) {
 		sprintf (b, "  [%s]", ep->values);
 	}
+	strcpy(name,net_type);
 	return(more(buf, cntp, moresz));
 }
 
@@ -240,7 +267,7 @@ do_setenv (name, value, temp)
 }
 
 char *
-getenv (name)
+getenv(name)
     const char *name;
 {
 
