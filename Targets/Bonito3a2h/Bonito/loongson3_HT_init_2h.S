@@ -1085,7 +1085,19 @@ crc_checking:
     lw      a0, 0x50(t2)
 	bal	    hexserial
     nop
-	TTYDBG("\r\n2H HT init OK\r\n")
+#endif
+
+#if 1//Set  HT channel in order for LS2H DMA
+	TTYDBG("Set HT channel in order for LS2H DMA\r\n")
+	dli	    t2, 0x90000efdfe000000
+	lw	    t0, 0x50(t2)
+	li		t1, 0x00010000
+	or		t0, t0, t1
+	sw		t0, 0x50(t2)
+	sync
+    lw      a0, 0x50(t2)
+	bal	    hexserial
+    nop
 #endif
 
 
