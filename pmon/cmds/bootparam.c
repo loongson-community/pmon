@@ -176,7 +176,7 @@ struct efi_memory_map_loongson * init_memory_map()
   #define PRID_IMP_LOONGSON    0x6306
   enum loongson_cpu_type cputype = Loongson_3B;
 #endif
-#ifdef LOONGSON_3ASINGLE
+#if  defined ( LOONGSON_3ASINGLE) || defined ( LOONGSON_3A2H)
   #define PRID_IMP_LOONGSON    0x6305
   enum loongson_cpu_type cputype = Loongson_3A;
 #endif
@@ -184,10 +184,7 @@ struct efi_memory_map_loongson * init_memory_map()
   #define PRID_IMP_LOONGSON    0x6305
   enum loongson_cpu_type cputype = Loongson_3A;
 #endif
-#ifdef LOONGSON_3A2H
-  #define PRID_IMP_LOONGSON    0x6305
-  enum loongson_cpu_type cputype = Loongson_3A;
-#endif
+
 struct efi_cpuinfo_loongson *init_cpu_info()
 {
   struct efi_cpuinfo_loongson *c = &g_cpuinfo_loongson;
@@ -211,6 +208,12 @@ struct efi_cpuinfo_loongson *init_cpu_info()
   c->total_node = 4;
   c->nr_cpus = 8;
 #endif
+
+#ifdef LOONGSON_3A2H
+  c->total_node = 1;
+  c->nr_cpus = 4;
+#endif
+
 #ifdef LOONGSON_3ASINGLE
   c->total_node = 1;
   c->nr_cpus = 4;
@@ -222,11 +225,6 @@ struct efi_cpuinfo_loongson *init_cpu_info()
         available >>= 1;
   }
 #endif
-#ifdef LOONGSON_3A2H
-  c->total_node = 1;
-  c->nr_cpus = 4;
-#endif
-
   c->cpu_startup_core_id = (available_core_mask >> 16) & 0xf;
 
 return c;
