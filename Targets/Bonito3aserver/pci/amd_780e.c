@@ -959,7 +959,7 @@ void sb700_after_pci_fixup(void){
 	usb_init(_pci_make_tag(0, 0x12, 1));
 #if  1
 	//printk_info("EHCI-USB1 init\n");
-	//usb_init2(_pci_make_tag(0, 0x12, 2));
+	usb_init2(_pci_make_tag(0, 0x12, 2));
 	printk_info("OHCI0-USB2 init\n");
 	usb_init(_pci_make_tag(0, 0x13, 0));
 	printk_info("OHCI1-USB2 init\n");

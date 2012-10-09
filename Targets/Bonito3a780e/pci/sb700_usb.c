@@ -20,6 +20,7 @@ static void usb_init(device_t dev)
 	pci_write_config8(sm_dev, 0x68, byte);
 #endif
 
+#if 0
 #if 1
 	/* RPR 5.2 Enables the USB PME Event,Enable USB resume support */
 	byte = pm_ioread(0x61);
@@ -65,6 +66,7 @@ static void usb_init(device_t dev)
         /*enable io/memory space*/
 	pci_write_config8(dev, 0x04, (1<<0|1<<1|1<<2)); 
 #endif
+#endif
 }
 
 static void usb_init2(device_t dev)
@@ -73,9 +75,7 @@ static void usb_init2(device_t dev)
 	u16 word;
 	u32 dword;
 	u8 *usb2_bar0;
-	/* dword = pci_read_config32(dev, 0xf8); */
-	/* dword |= 40; */
-	/* pci_write_config32(dev, 0xf8, dword); */
+
 #if 1 //because of disable usb, lycheng
 	usb2_bar0 = (u8 *) (pci_read_config32(dev, 0x10) & ~0xFF);
 	printk_info("usb2_bar0=%p\n", usb2_bar0);
@@ -89,10 +89,20 @@ static void usb_init2(device_t dev)
 	dword = 0x00400040;
 	WRITEL(dword, usb2_bar0 + 0xA4);
 #endif
-	/* RPR6.11 Disabling EHCI Advance Asynchronous Enhancement */
-	printk_info("Disabling EHCI Advance Asynchronous Enhancement\n");
+       /* RPR5.10 Disable EHCI MSI support */
+       printk_info("Disable EHCI MSI support\n");
+       byte = pci_read_config8(dev, 0x50);
+       byte |= (1 << 6);
+       pci_write_config8(dev, 0x50, byte);
+
+       /* EHCI Dynamic Clock gating feature */
+       dword = READL(usb2_bar0 + 0xbc);
+       dword &= ~(1 << 12);
+       WRITEL(dword, usb2_bar0 + 0xbc);
+
+
 	dword = pci_read_config32(dev, 0x50);
-	dword |= (1 << 28);
+	dword |= (1 << 7);
 	pci_write_config32(dev, 0x50, dword);
 	
 	/* RPR6.15 EHCI Async Park Mode */
@@ -101,22 +111,27 @@ static void usb_init2(device_t dev)
 	dword |= (1 << 23);
 	pci_write_config32(dev, 0x50, dword);
 
-	/* RPR5.10 Disable EHCI MSI support */
-	printk_info("Disable EHCI MSI support\n");
-	byte = pci_read_config8(dev, 0x50);
-	byte |= (1 << 6);
-	pci_write_config8(dev, 0x50, byte);
-#if 1 //because of disable usb, lycheng
+       /* RPR6.11 Disabling EHCI Advance Asynchronous Enhancement */
+       dword = pci_read_config32(dev, 0x50);
+       dword |= (1 << 3);
+       pci_write_config32(dev, 0x50, dword);
+       dword = pci_read_config32(dev, 0x50);
+       dword &= ~(1 << 28);
+       pci_write_config32(dev, 0x50, dword);
+
+       /* USB Periodic cache setting */
+       dword = pci_read_config32(dev, 0x50);
+       dword |= (1 << 8);
+       pci_write_config32(dev, 0x50, dword);
+       dword = pci_read_config32(dev, 0x50);
+       dword &= ~(1 << 27);
+       pci_write_config32(dev, 0x50, dword);
+
+#if 0 //because of disable usb, lycheng
 	/* RPR6.17 Disable the EHCI Dynamic Power Saving feature */
 	word = READL(usb2_bar0 + 0xBC);
 	word &= ~(1 << 12);
 	WRITEW(word, usb2_bar0 + 0xBC);
-#endif
-
-	/* Fixed EHCI Controller cause intermittent systerm hange */
-	byte = pci_read_config8(dev, 0x50);
-	byte |= (1 << 27);
-	pci_write_config8(dev, 0x50, byte);
 
 	/* Set a default latency timer. */
         pci_write_config8(dev, 0x0d, 0x40); //PCI_LATENCY_TIMER
@@ -129,6 +144,6 @@ static void usb_init2(device_t dev)
         pci_write_config8(dev, 0x0c, 64 >> 2); //PCI_CACHE_LINE_SIZE
 	 /*enable io/memory space*/
         pci_write_config8(dev, 0x04, (1<<0|1<<1|1<<2));
-
+#endif
 }
 
