@@ -11,6 +11,7 @@
 //#define HT_16bit
 #define HT_RECONNECT
 //#define HT_REG_TRANS
+#define HTMEM_ACC
 ######################################################
 
 #ifdef HT_32bit_TRANS //PCI CFG : TYPE 0: 
@@ -297,14 +298,22 @@ ht_next_id :
 
 #endif
 
-#if 0//Set Mem space post
-	TTYDBG("Set HT Memory space all post\r\n")
+#ifdef HTMEM_ACC//Set Mem space post
+#if 1 /* test whether this is a 3A5 */
 	dli	    t2, 0x90000efdfb000000
-	li	    t0, 0x80000010
+    lw      t0, 0x5c(t2)
+    li      t1, 0x7778888
+    bne     t0, t1, 1f
+    nop
+#endif
+	dli	    t2, 0x90000efdfb000000
+	TTYDBG("Set HT Memory space all post\r\n")
+	li	    t0, 0x80000000
 	sw	    t0, 0xd0(t2)
-	li	    t0, 0x0010fff8
+	li	    t0, 0x0000ff00
 	sw	    t0, 0xd4(t2)
 
+1:
 #endif
 
 //lycheng
