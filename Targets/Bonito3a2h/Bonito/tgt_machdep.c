@@ -1649,11 +1649,17 @@ _probe_frequencies()
          */
 aa:
         for(i = 2;  i != 0; i--) {
-                timeout = 10000000;
+                timeout = 1000;
                 sec = (*(volatile unsigned int *)(0xbbef802c) & 0x3f0) >> 0x4;
-				while((cur = (*(volatile unsigned int *)(0xbbef802c) & 0x3f0) >> 0x4) == sec){
-				 }
-                cnt = CPU_GetCOUNT();
+				while(((cur = (*(volatile unsigned int *)(0xbbef802c) & 0x3f0) >> 0x4) == sec) && (timeout != 0)){
+                        timeout--;
+				}
+                if(timeout == 0) {
+				  tgt_printf("time out!\n"); /* hardware bug */
+                        break;          /* Get out if clock is not running */
+                }
+                timeout = 10000000;
+                cnt = CPU_GetCOUNT(); /* start from next seconde */
                 do {
 						sec = (*(volatile unsigned int *)(0xbbef802c) & 0x3f0) >> 0x4;
                         timeout--;
