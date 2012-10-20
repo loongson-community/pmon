@@ -120,35 +120,25 @@ nop;
 
 /* WatchDog Close for chip MAX6369*/
 #define WatchDog_Close \
-GPIO_CLEAR_OUTPUT(0x1<<13); \
-GPIO_SET_OUTPUT(0x1<<14); \
 GPIO_CLEAR_OUTPUT(0x1<<5); \
-GPIO_SET_OUTPUT(0x1<<3|0x1<<4); \
-li v1,0x1000;\
-78:; \
-subu v1,1; \
-bnez v1,78b; \
-nop; \
-GPIO_CLEAR_OUTPUT(0x1<<14);
+GPIO_SET_OUTPUT(0x1<<3); \
+GPIO_CLEAR_OUTPUT(0x1<<4); \
+GPIO_SET_OUTPUT(0x1<<13); \
 
 /* WatchDog Enable for chip MAX6369*/
 #define WatchDog_Enable \
-GPIO_SET_OUTPUT(0x1<<14); \
+GPIO_SET_OUTPUT(0x1<<13); \
+GPIO_CLEAR_OUTPUT(0x1<<14); \
 GPIO_SET_OUTPUT(0x1<<5); \
-GPIO_CLEAR_OUTPUT(0x1<<4); \
+GPIO_SET_OUTPUT(0x1<<4); \
 GPIO_SET_OUTPUT(0x1<<3); \
+GPIO_SET_OUTPUT(0x1<<14); \
 li v1,0x100;\
 78:; \
 subu v1,1; \
 bnez v1,78b; \
 nop; \
-GPIO_CLEAR_OUTPUT(0x1<<14); \
-li v1,0x1000;\
-78:; \
-subu v1,1; \
-bnez v1,78b; \
-nop; \
-GPIO_SET_OUTPUT(0x1<<13); 
+GPIO_CLEAR_OUTPUT(0x1<<13);
 
 
 #define CONFIG_CACHE_64K_4WAY 1
@@ -237,7 +227,7 @@ stack = start - 0x4000		/* Place PMON stack below PMON start in RAM */
 	nop
 	GPIOLED_SET(0xd)
 
-	//WatchDog_Close
+	WatchDog_Close
 
 	bal	locate			/* Get current execute address */
 	nop
@@ -1147,12 +1137,15 @@ gs_2f_v3_ddr2_cfg:
 #endif    
 
 #ifdef MULTI_CHIP
+	WatchDog_Enable;	
     TTYDBG("CPU 1 READ TEST...\r\n")
     dli      t0, 0x900010003ff00040
     lw       a0, 0x0(t0)
     TTYDBG("CPU 1 READ TEST OK.\r\n")
+	WatchDog_Close;
 #endif
 #ifdef DUAL_3B
+	WatchDog_Enable;
     TTYDBG("CPU 2 READ TEST...\r\n")
     dli      t0, 0x900020003ff00040
     lw       a0, 0x0(t0)
@@ -1161,6 +1154,7 @@ gs_2f_v3_ddr2_cfg:
     dli      t0, 0x900030003ff00040
     lw       a0, 0x0(t0)
     TTYDBG("CPU 3 READ TEST OK.\r\n")
+	WatchDog_Close;
 #endif
 ##########################################
 
@@ -1177,6 +1171,7 @@ gs_2f_v3_ddr2_cfg:
   or  a0, a1;
   sw  a0, 0x00(t0);
 
+	WatchDog_Enable;
 #include "loongson3_fixup_3b.S"
 
 //begin :Beep on -> delay -> Beep off
@@ -1191,7 +1186,7 @@ gs_2f_v3_ddr2_cfg:
        bal     beep_off
        nop
 //end
-
+	WatchDog_Close;
 //#define EJTAG_TEST 
 #ifdef EJTAG_TEST
 
@@ -3198,7 +3193,7 @@ slave_core:
     la      t0, next
     dli     t1, 0xfffff
     and     t0, t1
-    dli     t1, 0xffffffff9fc00000
+    dli     t1, 0xffffffff9fc0b000
     or      t0, t1
     jr      t0
     nop
