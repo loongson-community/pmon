@@ -1,10 +1,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "bootparam.h"
-
+#include "../common/smbios/smbios.h"
 
 struct loongson_params  g_lp = { 0 };
-struct efi_memory_map_loongson g_map = {1, 0x03, 0x11e1a300, {0, 3, 0x800f001f, 0x01, 0}};
+struct efi_memory_map_loongson g_map = { 0 };
 struct efi_cpuinfo_loongson g_cpuinfo_loongson = { 0 };
 struct system_loongson g_sysitem = { 0 };
 struct irq_source_routing_table g_irq_source = { 0 };
@@ -67,9 +67,9 @@ struct efi_memory_map_loongson * init_memory_map()
 
   //map->mem_start_addr = 0x80000000;
 #if (defined(LOONGSON_3BSERVER))
-  emap->nr_map = 8; 
+  emap->nr_map = 10; 
 #else
-  emap->nr_map = 4; 
+  emap->nr_map = 6; 
 #endif
 
   emap->mem_freq = 300000000; //300M
@@ -95,70 +95,80 @@ struct efi_memory_map_loongson * init_memory_map()
 #endif
   emap->map[1].mem_size = atoi(getenv("highmemsize"));
   
+//support smbios
+  emap->map[2].node_id = 0;
+  emap->map[2].mem_type = 10;
+  emap->map[2].mem_start = SMBIOS_PHYSICAL_ADDRESS;
+ 
+  emap->map[3].node_id = 0;
+  emap->map[3].mem_type = 3;
+  emap->map[3].mem_start = SMBIOS_PHYSICAL_ADDRESS & 0x0fffffff;
+  emap->map[3].mem_size = SMBIOS_SIZE_LIMIT >> 20;
+
 #if (defined(MULTI_CHIP)) || (defined(LOONGSON_3BSINGLE))
 
-  emap->map[3].mem_size = atoi(getenv("memorysize_high_n1"));
-  if ( emap->map[3].mem_size != 0 )
+  emap->map[5].mem_size = atoi(getenv("memorysize_high_n1"));
+  if ( emap->map[5].mem_size != 0 )
   {
-	emap->map[2].node_id = 1;
+	emap->map[4].node_id = 1;
 	//strcpy(emap->map[0].mem_name, "node0_low");
-	emap->map[2].mem_type = 1;
-	emap->map[2].mem_start = 0x01000000;
-	emap->map[2].mem_size = atoi(getenv("memsize"));
+	emap->map[4].mem_type = 1;
+	emap->map[4].mem_start = 0x01000000;
+	emap->map[4].mem_size = atoi(getenv("memsize"));
 
-	emap->map[3].node_id = 1;
+	emap->map[5].node_id = 1;
 	//strcpy(emap->map[1].mem_name, "node0_high");
-	emap->map[3].mem_type = 2;
-	emap->map[3].mem_start = 0x90000000;
+	emap->map[5].mem_type = 2;
+	emap->map[5].mem_start = 0x90000000;
   }
 
 #endif
 
 #if (defined(LOONGSON_3BSERVER))
 
-  emap->map[3].mem_size = atoi(getenv("memorysize_high_n1"));
-  if ( emap->map[3].mem_size != 0 )
-  {
-	emap->map[2].node_id = 1;
-	//strcpy(emap->map[0].mem_name, "node0_low");
-	emap->map[2].mem_type = 1;
-	emap->map[2].mem_start = 0x01000000;
-	emap->map[2].mem_size = atoi(getenv("memsize"));
-
-	emap->map[3].node_id = 1;
-	//strcpy(emap->map[1].mem_name, "node0_high");
-	emap->map[3].mem_type = 2;
-	emap->map[3].mem_start = 0x90000000;
-  }
-
-  emap->map[5].mem_size = atoi(getenv("memorysize_high_n2"));
+  emap->map[5].mem_size = atoi(getenv("memorysize_high_n1"));
   if ( emap->map[5].mem_size != 0 )
   {
-	emap->map[4].node_id = 2;
+	emap->map[4].node_id = 1;
 	//strcpy(emap->map[0].mem_name, "node0_low");
 	emap->map[4].mem_type = 1;
 	emap->map[4].mem_start = 0x01000000;
 	emap->map[4].mem_size = atoi(getenv("memsize"));
 
-	emap->map[5].node_id = 2;
+	emap->map[5].node_id = 1;
 	//strcpy(emap->map[1].mem_name, "node0_high");
 	emap->map[5].mem_type = 2;
 	emap->map[5].mem_start = 0x90000000;
   }
 
-  emap->map[7].mem_size = atoi(getenv("memorysize_high_n3"));
+  emap->map[7].mem_size = atoi(getenv("memorysize_high_n2"));
   if ( emap->map[7].mem_size != 0 )
   {
-	emap->map[6].node_id = 3;
+	emap->map[6].node_id = 2;
 	//strcpy(emap->map[0].mem_name, "node0_low");
 	emap->map[6].mem_type = 1;
 	emap->map[6].mem_start = 0x01000000;
 	emap->map[6].mem_size = atoi(getenv("memsize"));
 
-	emap->map[7].node_id = 3;
+	emap->map[7].node_id = 2;
 	//strcpy(emap->map[1].mem_name, "node0_high");
 	emap->map[7].mem_type = 2;
 	emap->map[7].mem_start = 0x90000000;
+  }
+
+  emap->map[9].mem_size = atoi(getenv("memorysize_high_n3"));
+  if ( emap->map[9].mem_size != 0 )
+  {
+	emap->map[8].node_id = 3;
+	//strcpy(emap->map[0].mem_name, "node0_low");
+	emap->map[8].mem_type = 1;
+	emap->map[8].mem_start = 0x01000000;
+	emap->map[8].mem_size = atoi(getenv("memsize"));
+
+	emap->map[9].node_id = 3;
+	//strcpy(emap->map[1].mem_name, "node0_high");
+	emap->map[9].mem_type = 2;
+	emap->map[9].mem_start = 0x90000000;
   }
 
 #endif

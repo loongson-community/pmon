@@ -30,7 +30,7 @@
 /* These constants must agree with the memory map as the address and the ROMBIOS pulls 
  * the SMBIOS entry point from in the smbios_init subroutine.
  */
-#define SMBIOS_PHYSICAL_ADDRESS 0x800f0000
+#define SMBIOS_PHYSICAL_ADDRESS 0x8fffe000
 #define SMBIOS_SIZE_LIMIT 0x800
 
 extern void loongson_smbios_init(void);

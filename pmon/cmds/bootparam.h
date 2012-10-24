@@ -11,7 +11,8 @@
 #define VIDEO_ROM 7
 #define DAPTER_ROM 8 
 #define ACPI_TABLE 9
-#define MAX_MEMORY_TYPE 10
+#define SMBIOS_TABLE 10
+#define MAX_MEMORY_TYPE 11
 
 typedef unsigned long long u64;
 typedef unsigned int u32;
