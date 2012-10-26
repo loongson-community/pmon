@@ -27,6 +27,10 @@
 #include "smbios.h"
 #include "smbios_types.h"
 
+#define SPD_INFO_ADDR 0x8fffa000
+static unsigned  short smbios_table_handle = 0;
+static unsigned  short memory_array_handle = 0;
+
 void loongson_smbios_init(void);
 
 static size_t
@@ -57,21 +61,32 @@ static void *
 smbios_type_4_init(void *start);
 
 static void *
+smbios_type_16_init(void *start, int dimmnum, int maximum_capacity);
+
+static void *
+smbios_type_17_init(void *start, int slotnum);
+
+static void *
 smbios_type_28_init(void *start);
 
 static void *
 smbios_type_127_init(void *start);
 
+unsigned long long smbios_addr;
+
 void loongson_smbios_init(void){
 	write_smbios_tables((void *)SMBIOS_PHYSICAL_ADDRESS);
-
 }
+
 static size_t
 write_smbios_tables(void *start)
 {
-	unsigned cpu_num, nr_structs = 0, max_struct_size = 0;
+	unsigned int cpu_num, nr_structs = 0, max_struct_size = 0;
+	unsigned int dimmnum = 0;
+        unsigned int maximum_capacity = 0;
+        unsigned int i;
 	char *p, *q;
-
+	
 
 	p = (char *)start + sizeof(struct smbios_entry_point);
 
@@ -88,6 +103,24 @@ write_smbios_tables(void *start)
 	do_struct(smbios_type_1_init(p));
 	do_struct(smbios_type_2_init(p));
 	do_struct(smbios_type_4_init(p));
+
+#ifdef LOONGSON_3ASINGLE
+       dimmnum = 4;
+       maximum_capacity = 8 * 1024* 1024;
+#endif
+#ifdef LOONGSON_3BSINGLE
+       dimmnum = 4;
+       maximum_capacity = 8 * 1024* 1024;
+#endif 
+#ifdef LOONGSON_3ASERVER
+       dimmnum = 8;
+       maximum_capacity = 16 * 1024* 1024;
+#endif
+       do_struct(smbios_type_16_init(p, dimmnum, maximum_capacity));
+       for(i = 0; i < dimmnum; i++){
+               do_struct(smbios_type_17_init(p, i));
+       }
+	
 	do_struct(smbios_type_28_init(p));
 	do_struct(smbios_type_127_init(p));
 #undef do_struct
@@ -188,6 +221,8 @@ smbios_type_0_init(void *start)
 	char temp[20];
 	int i;
 
+	memset(p, 0, sizeof(*p));
+
   	get_update(update);
 	strncpy(temp, update, 4);
 	strncpy(temp + 4, update + 5, 2);
@@ -200,7 +235,7 @@ smbios_type_0_init(void *start)
     	sprintf(pmon_version, "LoongSon-PMON-V3.0-%s", temp);
 	p->header.type = 0;
 	p->header.length = sizeof(struct smbios_type_0);
-	p->header.handle = 0;
+	p->header.handle = smbios_table_handle++;
     
 	p->vendor_str = 1;
 	p->version_str = 2;
@@ -255,9 +290,10 @@ smbios_type_1_init(void *start)
 	char *q;
 	int i;
 
+	memset(p, 0, sizeof(*p));
 	p->header.type = 1;
 	p->header.length = sizeof(struct smbios_type_1);
-	p->header.handle = 0x1;
+	p->header.handle = smbios_table_handle++;
 
 	p->manufacturer_str = 1;
 	p->product_name_str = 2;
@@ -296,10 +332,12 @@ smbios_type_2_init(void *start)
 	char board_name[50];	
 	char board_version[10];
    	char *motherboard_serial[20];
+	
+	memset(p, 0, sizeof(*p));
  
 	p->header.type = 2;
 	p->header.length = sizeof(struct smbios_type_2);
-	p->header.handle = 0x2;
+	p->header.handle = smbios_table_handle++;
 
 	p->manufacturer_str = 1;
 	p->product_name_str = 2;
@@ -336,10 +374,11 @@ smbios_type_4_init(void *start)
         unsigned int prid;
 	unsigned int cpus;
 	char cpu_version[64];
-
+	
+	memset(p, 0, sizeof(*p));
         p->header.type = 4;
         p->header.length = sizeof(struct smbios_type_4);
-        p->header.handle = 4;
+        p->header.handle = smbios_table_handle++;
 
         p->socket_designation_str = 0;
         p->processor_type = 0x03;
@@ -380,9 +419,9 @@ smbios_type_4_init(void *start)
         p->current_speed = atoi(getenv("cpuclock")) / 1000000;
         p->status  = 0x02;
         p->upgrade = 0x01;
-        p->l1_cache_handle = 0;
-        p->l2_cache_handle = 0;
-        p->l3_cache_handle = 0;
+        p->l1_cache_handle = 0xffff;
+        p->l2_cache_handle = 0xffff;
+        p->l3_cache_handle = 0xffff;
         p->serial_number_str = 0;
         p->assert_tag_str = 0;
         p->part_number_str = 0;
@@ -416,16 +455,318 @@ smbios_type_4_init(void *start)
         *((uint8_t *)start) = 0;
         return start+1;
 }
+/*Type 16 -- Physical Memory Array*/
+static void *
+smbios_type_16_init(void *start, int dimmnum, int maximum_capacity){
 
+       struct smbios_type_16 *p = (struct smbios_type_16 *)start;
+
+       memset(p, 0, sizeof(*p));
+       
+       p->header.type = 16;
+        p->header.length = sizeof(struct smbios_type_16);
+        p->header.handle = memory_array_handle = smbios_table_handle++;
+
+       p->location = 0x03;
+       p->use     =  0x03;
+       p->error_correction = 0x02;
+       p->maximum_capacity = maximum_capacity;
+       p->memory_error_information_handle = 0xfffe;
+       p->number_of_memory_devices = dimmnum;
+       
+       start += sizeof(struct smbios_type_16);
+        *((uint8_t *)start) = 0;
+	*((uint8_t *)(start + 1)) =0;
+        return start + 2;
+}
+
+/* Type 17 Memory Device */
+unsigned char get_spd_byte(int slotnum, int offset){
+       
+       unsigned char spd_byte;
+
+       spd_byte = *(volatile unsigned char *)(SPD_INFO_ADDR + slotnum * 0x100 + offset);
+
+       return spd_byte;
+}
+
+unsigned int get_ddr_size(int slotnum, int ddrtype){
+       unsigned char offset_rank,offset_density,offset_0x08;  
+       unsigned char density,capacity,Width,BWidth,rank;  
+        int value = 0;
+       int size = 0;
+       
+       if(ddrtype == 0x8){
+               offset_rank=0x05;
+               rank = get_spd_byte(slotnum, offset_rank) & 0xf;
+               rank++;
+               
+               offset_density=0x1F;
+               if(density==0x20)  
+                  value=128;  
+                else if(density==0x40)  
+                  value=256;  
+                else if(density==0x80)  
+                  value=512;  
+                else if(density==0x01)  
+                  value=1024;  
+                else if(density==0x02)  
+                  value=2048;  
+                else if(density==0x04)  
+                   value=4096;  
+                else  
+                   value=0;  
+
+               size = rank * value;
+
+       }
+       if(ddrtype == 0xb){
+               offset_density=0x04;//Capacity   
+               capacity=get_spd_byte(slotnum, offset_density); 
+               //Capacity  is the total capacity of SDRAM   
+               //bank=density;   
+                capacity&=0x0F;//b[0:3] at 0x04  
+
+               if(capacity==1)  
+                               value=512;  
+               else if(capacity==2)  
+                               value=1024;  
+                else if(capacity==3)  
+                               value=2048;  
+               else if(capacity==4)  
+                               value=4096;  
+               else if(capacity==5)  
+                               value=8192;  
+               else if(capacity==6)  
+                               value=16384;  
+               else    
+                       value=256;
+               offset_rank=0x07;//Rank   
+               rank=get_spd_byte(slotnum, offset_rank);
+               Width=rank;  
+               Width&=0x07;//b[0:2] at 0x07   
+                rank&=0x38;//00111000 , b[3:5] at 0x07   
+                rank=rank>>3;  
+                rank++;
+
+               switch(Width)  
+                {  
+                case 0:Width=4;     break;  
+                case 1:Width=8;     break;  
+                case 2:Width=16;    break;  
+                case 3:Width=32;    break;  
+               }  
+                offset_0x08=0x08;  
+               BWidth=get_spd_byte(slotnum,offset_0x08);  
+               BWidth&=0x07;//b[0:2] at 0x08   
+                switch(BWidth)  
+                {  
+                case 0:BWidth=8;   break;  
+                case 1:BWidth=16;  break;  
+                case 2:BWidth=32;  break;  
+                case 3:BWidth=64;  break;  
+                }
+               size=(value/8)*BWidth/Width*rank;        
+       }
+       
+       
+       return size;
+}
+
+unsigned int get_ddr_speed(int slotnum, int ddrtype){
+       unsigned char cycle=0,offset=0; 
+       unsigned int speed = 0;
+
+       if(ddrtype == 0x8){
+               offset=0x09;  
+           cycle=get_spd_byte(slotnum, offset);  
+           if(cycle==0x50)  
+               speed=400;  
+           else if(cycle==0x3D)  
+               speed=533;  
+                  else if(cycle==0x30)  
+               speed=667;  
+           else if(cycle==0x25)  
+               speed=800;  
+       }  
+       
+       if(ddrtype == 0xb){
+               offset=0x0C;  
+            cycle=get_spd_byte(slotnum, offset);  
+            if(cycle==0x14)  
+                speed=800;  
+            else if(cycle==0x0F)  
+                speed=1066;  
+            else if(cycle==0x0C)  
+                speed=1333;  
+            else if(cycle==0x0A)  
+                speed=1600;
+       }
+       
+       return speed;
+       
+}
+void get_ddr_manustr(int slotnum,  char manustr[],int ddrtype){
+       unsigned char offset=0,manu=0; 
+       
+       if(ddrtype == 0x8)  
+       {  
+         offset=0x40;  
+         if((manu=get_spd_byte(slotnum, offset))==0x7F)  
+            {//bank one   
+                offset++;  
+                if((manu=get_spd_byte(slotnum, offset))==0x7F)  
+                    {//banktwo   
+                        offset++;  
+                        if((manu=get_spd_byte(slotnum, offset))==0x7F)  
+                        {//bankthree   
+                            offset++;  
+                            if((manu=get_spd_byte(slotnum, offset))==0x7F)  
+                            {//bankfour   
+                                offset++;  
+                                manu=get_spd_byte(slotnum, offset);  
+                            }  
+                        }  
+                    }  
+                }  
+  
+       }  
+       
+       if(ddrtype == 0xb){
+        offset=0x76;
+        manu=get_spd_byte(slotnum, offset);  
+       }
+       if(manu==0xAD)  
+             strcpy(manustr,"Hynix");  
+       else if(manu==0xCE)  
+             strcpy(manustr,"SamSung");  
+       else if(manu==0x0B)  
+             strcpy(manustr,"Micron");  
+       else if(manu==0x98)  
+             strcpy(manustr,"Kingston");  
+       else if(manu==0x25)  
+             strcpy(manustr,"Kingmax");  
+       else if(manu==0x4f)  
+             strcpy(manustr,"Transcend");  
+       else if(manu==0xCB)  
+             strcpy(manustr,"A-DATA Technology");  
+       else  
+             strcpy(manustr,"Unknow");  
+       
+       return 0;
+
+}
+void get_ddr_snstr(int slotnum, char snstr[], int ddrtype){
+       char i = 0, offset, tmp;
+       if(ddrtype == 0x8)
+               offset = 95;
+       if(ddrtype == 0xb)
+               offset = 122;
+       for(i = 0; i < 4; i++){
+               tmp = get_spd_byte(slotnum, i + offset);
+               snstr[i * 2] = (((tmp & 0xf0) >> 4) > 9) ? (((tmp & 0xf0) >> 4) - 0xa + 'A') : (((tmp & 0xf0) >> 4) + '0');
+               snstr[i * 2 + 1] = ((tmp & 0xf) > 9)  ? ((tmp  & 0xf) - 0xa + 'A') : ((tmp & 0xf) + '0');
+       }
+       snstr[i * 2] = '\0';
+       return 0;
+}
+void get_ddr_pnstr(int slotnum, char pnstr[], int ddrtype){
+       int i = 0, offset, tmp;
+       if(ddrtype == 0x8)
+               offset = 73;
+       if(ddrtype == 0xb)
+               offset = 128;
+       for(i = 0; i < 18; i++){
+		 pnstr[i] = get_spd_byte(slotnum, i + offset);
+	}
+        pnstr[i] = '\0';
+	if(pnstr[0] == 0)
+		strcpy(pnstr, "unknown");
+       return 0;
+}
+static void *
+smbios_type_17_init(void *start, int slotnum){
+       struct smbios_type_17 *p = (struct smbios_type_17 *)start;
+       int ddrtype = 0;
+       char dimmstr[10] = {0};
+       char  manustr[20] = {0};
+       char snstr[10] = {0};
+       char pnstr[20] = {0};
+
+        memset(p, 0, sizeof(*p));
+
+       
+        p->header.type = 17;
+        p->header.length = sizeof(struct smbios_type_17);
+        p->header.handle = smbios_table_handle++;
+       
+       p->physical_memory_array_handle = memory_array_handle;
+       p->memory_error_information_handle = 0xfffe;
+               
+       ddrtype = get_spd_byte(slotnum, 2);
+       if(ddrtype == 0xb){
+               p->data_width = (0x1 << ((get_spd_byte(slotnum, 8)) & 0x7)) * 8;
+       	       p->total_width = (((get_spd_byte(slotnum, 8)) & 0x18) >> 3) * 8 + p->data_width;	
+	}
+       else{
+               p->total_width = 64;
+               p->data_width  = 64;
+       }
+       
+       if(ddrtype == 0x8)
+               p->memory_type = 0x13;
+       if(ddrtype == 0xb)
+               p->memory_type = 0x18;
+
+       p->speed = get_ddr_speed(slotnum, ddrtype);
+       p->size  = get_ddr_size(slotnum, ddrtype);
+       p->form_factor = 0x09; /* DIMM */
+       p->device_set = 0;
+       p->device_locator_str = 1;
+       p->bank_locator_str = 2;
+
+       if(ddrtype == 0x8 || ddrtype == 0xb){
+               p->manufacturer  = 3;
+               p->serial_number = 4;
+               p->part_number   = 5;
+       }
+       
+       start += sizeof(struct smbios_type_17);
+       if(slotnum < 8)
+        sprintf(dimmstr, "DIMM %d", slotnum);
+       strcpy(start, dimmstr);
+       start += strlen(dimmstr) + 1;
+
+       strcpy(start, "BANK 0");
+       start += strlen("BANK 0") + 1;
+       
+       if(ddrtype == 0x8 || ddrtype == 0xb){
+               get_ddr_manustr(slotnum, manustr, ddrtype);
+               strcpy(start, manustr); 
+               start += strlen(manustr) + 1;
+
+               get_ddr_snstr(slotnum, snstr, ddrtype);
+               strcpy(start, snstr); 
+               start += strlen(snstr) + 1;
+
+               get_ddr_pnstr(slotnum, pnstr, ddrtype);
+               strcpy(start, pnstr); 
+               start += strlen(pnstr) + 1;
+       }
+       *((uint8_t *)start) = 0;
+        return start+1;
+
+}
 /* Type 28 -- Temperature Probe */
 static void *
 smbios_type_28_init(void *start)
 {
 	struct smbios_type_28 *p = (struct smbios_type_28 *)start;
 
+	memset(p, 0, sizeof(*p));
 	p->header.type = 28;
 	p->header.length = sizeof(struct smbios_type_28);
-	p->header.handle = 28;
+	p->header.handle = smbios_table_handle++;
     	
 	p->description = 1;
 	p->location_status = 0x63;
@@ -451,9 +792,10 @@ static void *
 smbios_type_127_init(void *start)
 {
 	struct smbios_type_127 *p = (struct smbios_type_127 *)start;
+	memset(p, 0, sizeof(*p));
 	p->header.type = 127;
 	p->header.length = sizeof(struct smbios_type_127);
-	p->header.handle = 127;
+	p->header.handle = smbios_table_handle++;
 	start += sizeof(struct smbios_type_127);
 	*((uint8_t *)start) = 0;
 	*((uint8_t *)(start + 1)) =0;

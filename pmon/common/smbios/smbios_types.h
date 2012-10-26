@@ -169,21 +169,30 @@ struct smbios_type_16 {
 
 /* SMBIOS type 17 - Memory Device 
  *   Associated with one type 19
- */
+*/
 struct smbios_type_17 {
-	struct smbios_structure_header header;
-	uint16_t physical_memory_array_handle;
-	uint16_t memory_error_information_handle;
-	uint16_t total_width;
-	uint16_t data_width;
-	uint16_t size;
-	uint8_t form_factor;
-	uint8_t device_set;
-	uint8_t device_locator_str;
-	uint8_t bank_locator_str;
-	uint8_t memory_type;
-	uint16_t type_detail;
+        struct smbios_structure_header header;
+        uint16_t physical_memory_array_handle;
+        uint16_t memory_error_information_handle;
+        uint16_t total_width;
+        uint16_t data_width;
+        uint16_t size;
+        uint8_t form_factor;
+        uint8_t device_set;
+        uint8_t device_locator_str;
+        uint8_t bank_locator_str;
+        uint8_t memory_type;
+        uint16_t type_detail;
+        uint16_t speed;
+        uint8_t manufacturer;
+        uint8_t serial_number;
+        uint8_t asset_tag;
+        uint8_t part_number;
+        uint8_t attributes;
 } __attribute__ ((packed));
+
+ 
+
 
 /* SMBIOS type 19 - Memory Array Mapped Address */
 struct smbios_type_19 {
