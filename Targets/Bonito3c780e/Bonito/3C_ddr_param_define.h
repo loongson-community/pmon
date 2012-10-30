@@ -9,13 +9,21 @@
 
 #define START_ADDR              (0x18)
 #define START_OFFSET            0
-#define INT_STATUS_ADDR         (0x960)
-#define INIT_COMPLETE_OFFSET    8
-#define RESYNC_DLL_ADDR         (0x980)
-#define RESYNC_DLL_OFFSET       16
 
 #define DRAM_INIT_ADDR          (0x160)
 #define DRAM_INIT_OFFSET        24
+#define ODT_MAP_CS_ADDR         (0x170)
+#define ADDRESS_MIRROR_ADDR     (0x168)
+#define ADDRESS_MIRROR_OFFSET   48
+
+#define MR2_DATA_0_ADDR         (0x1a0)
+#define MR2_DATA_0_OFFSET       32
+#define MR2_DATA_1_ADDR         (0x1a8)
+#define MR2_DATA_1_OFFSET       32
+#define MR2_DATA_2_ADDR         (0x1b0)
+#define MR2_DATA_2_OFFSET       32
+#define MR2_DATA_3_ADDR         (0x1b8)
+#define MR2_DATA_3_OFFSET       32
 
 #define RD_GATE_LEVEL           0x2
 #define ONE_BYTE_MASK           0xff
@@ -33,40 +41,6 @@
 #define LEVEL_RESP_0_OFFSET     56
 #define LEVEL_RESP_7_ADDR       (0x188)
 #define LEVEL_RESP_7_OFFSET     48
-
-//the old 3A/B param define
-#define CLKLVL_DELAY_2_ADDR      (0x8f0)
-#define CLKLVL_DELAY_1_ADDR      (0x8f0)
-#define CLKLVL_DELAY_0_ADDR      (0x8f0)
-#define CLKLVL_DELAY_2_OFFSET    24
-#define CLKLVL_DELAY_1_OFFSET    16
-#define CLKLVL_DELAY_0_OFFSET    8
-
-#define PAD_CTRL_REG_ADDR             (0x2d0)
-#define PAD_CTRL_COMP_OFFSET          18
-#define PAD_CTRL_COMP_MASK            (0xff)
-
-#define PAD_OUTPUT_WINDOW_8_ADDR      (0x310)
-#define PAD_OUTPUT_WINDOW_7_ADDR      (0x310)
-#define PAD_OUTPUT_WINDOW_6_ADDR      (0x300)
-#define PAD_OUTPUT_WINDOW_5_ADDR      (0x300)
-#define PAD_OUTPUT_WINDOW_4_ADDR      (0x2f0)
-#define PAD_OUTPUT_WINDOW_3_ADDR      (0x2f0)
-#define PAD_OUTPUT_WINDOW_2_ADDR      (0x2e0)
-#define PAD_OUTPUT_WINDOW_1_ADDR      (0x2e0)
-#define PAD_OUTPUT_WINDOW_0_ADDR      (0x2d0)
-#define PAD_OUTPUT_WINDOW_8_OFFSET    32
-#define PAD_OUTPUT_WINDOW_7_OFFSET    0
-#define PAD_OUTPUT_WINDOW_6_OFFSET    32
-#define PAD_OUTPUT_WINDOW_5_OFFSET    0
-#define PAD_OUTPUT_WINDOW_4_OFFSET    32
-#define PAD_OUTPUT_WINDOW_3_OFFSET    0
-#define PAD_OUTPUT_WINDOW_2_OFFSET    32
-#define PAD_OUTPUT_WINDOW_1_OFFSET    0
-#define PAD_OUTPUT_WINDOW_0_OFFSET    32
-#define PAD_OUTPUT_WINDOW_MASK     (0xffff)
-
-#define ADD_HALF_CLK_SHIFT       17
 
 #define RD_OE_EDGE_8_ADDR        (0x128)
 #define RD_OE_EDGE_7_ADDR        (0x108)
@@ -248,6 +222,8 @@
 #define WRDQ_LT_HALF_0_OFFSET      0
 #define WRDQ_LT_HALF_MASK          (0xff)
 
+#ifdef  loongson3A3
+//the old 3A/B param define
 #define WRLVL_DQ_DELAY_8_ADDR      (0x230)
 #define WRLVL_DQ_DELAY_7_ADDR      (0x230)
 #define WRLVL_DQ_DELAY_6_ADDR      (0x220)
@@ -286,7 +262,38 @@
 #define RDLVL_DQSN_DELAY_1_OFFSET    40
 #define RDLVL_DQSN_DELAY_0_OFFSET    8
 
-#ifdef  loongson3A3
+#define CLKLVL_DELAY_2_ADDR      (0x8f0)
+#define CLKLVL_DELAY_1_ADDR      (0x8f0)
+#define CLKLVL_DELAY_0_ADDR      (0x8f0)
+#define CLKLVL_DELAY_2_OFFSET    24
+#define CLKLVL_DELAY_1_OFFSET    16
+#define CLKLVL_DELAY_0_OFFSET    8
+
+#define PAD_CTRL_REG_ADDR             (0x2d0)
+#define PAD_CTRL_COMP_OFFSET          18
+#define PAD_CTRL_COMP_MASK            (0xff)
+
+#define PAD_OUTPUT_WINDOW_8_ADDR      (0x310)
+#define PAD_OUTPUT_WINDOW_7_ADDR      (0x310)
+#define PAD_OUTPUT_WINDOW_6_ADDR      (0x300)
+#define PAD_OUTPUT_WINDOW_5_ADDR      (0x300)
+#define PAD_OUTPUT_WINDOW_4_ADDR      (0x2f0)
+#define PAD_OUTPUT_WINDOW_3_ADDR      (0x2f0)
+#define PAD_OUTPUT_WINDOW_2_ADDR      (0x2e0)
+#define PAD_OUTPUT_WINDOW_1_ADDR      (0x2e0)
+#define PAD_OUTPUT_WINDOW_0_ADDR      (0x2d0)
+#define PAD_OUTPUT_WINDOW_8_OFFSET    32
+#define PAD_OUTPUT_WINDOW_7_OFFSET    0
+#define PAD_OUTPUT_WINDOW_6_OFFSET    32
+#define PAD_OUTPUT_WINDOW_5_OFFSET    0
+#define PAD_OUTPUT_WINDOW_4_OFFSET    32
+#define PAD_OUTPUT_WINDOW_3_OFFSET    0
+#define PAD_OUTPUT_WINDOW_2_OFFSET    32
+#define PAD_OUTPUT_WINDOW_1_OFFSET    0
+#define PAD_OUTPUT_WINDOW_0_OFFSET    32
+#define PAD_OUTPUT_WINDOW_MASK     (0xffff)
+
+#define ADD_HALF_CLK_SHIFT       17
 #define CLKLVL_DELAY_MASK       (0xff)
 #define RDLVL_GATE_DELAY_MASK   (0xffff)
 #define RDLVL_DELAY_MASK        (0xffff)
@@ -351,6 +358,7 @@
 #define RDLVL_DELAY_1_OFFSET    32
 #define RDLVL_DELAY_0_OFFSET    16
 #else
+//3C param
 #define CLKLVL_DELAY_MASK       (0xff)
 #define RDLVL_GATE_DELAY_MASK   (0xff)
 #define RDLVL_DELAY_MASK        (0xff)
@@ -358,66 +366,118 @@
 #define WRLVL_DELAY_MASK        (0xff)
 #define WRLVL_DQ_DELAY_MASK     (0xff)
 
-#define WRLVL_DELAY_8_ADDR      (0x840)
-#define WRLVL_DELAY_7_ADDR      (0x840)
-#define WRLVL_DELAY_6_ADDR      (0x840)
-#define WRLVL_DELAY_5_ADDR      (0x830)
-#define WRLVL_DELAY_4_ADDR      (0x830)
-#define WRLVL_DELAY_3_ADDR      (0x830)
-#define WRLVL_DELAY_2_ADDR      (0x830)
-#define WRLVL_DELAY_1_ADDR      (0x830)
-#define WRLVL_DELAY_0_ADDR      (0x830)
+#define CLKLVL_DELAY_3_ADDR      (0x018)
+#define CLKLVL_DELAY_2_ADDR      (0x018)
+#define CLKLVL_DELAY_1_ADDR      (0x018)
+#define CLKLVL_DELAY_0_ADDR      (0x018)
+#define CLKLVL_DELAY_3_OFFSET    56
+#define CLKLVL_DELAY_2_OFFSET    48
+#define CLKLVL_DELAY_1_OFFSET    40
+#define CLKLVL_DELAY_0_OFFSET    32
+
+#define RDLVL_GATE_DELAY_8_ADDR (0x138)
+#define RDLVL_GATE_DELAY_7_ADDR (0x118)
+#define RDLVL_GATE_DELAY_6_ADDR (0x0f8)
+#define RDLVL_GATE_DELAY_5_ADDR (0x0d8)
+#define RDLVL_GATE_DELAY_4_ADDR (0x0b8)
+#define RDLVL_GATE_DELAY_3_ADDR (0x098)
+#define RDLVL_GATE_DELAY_2_ADDR (0x078)
+#define RDLVL_GATE_DELAY_1_ADDR (0x058)
+#define RDLVL_GATE_DELAY_0_ADDR (0x038)
+#define RDLVL_GATE_DELAY_8_OFFSET    0
+#define RDLVL_GATE_DELAY_7_OFFSET    0
+#define RDLVL_GATE_DELAY_6_OFFSET    0
+#define RDLVL_GATE_DELAY_5_OFFSET    0
+#define RDLVL_GATE_DELAY_4_OFFSET    0
+#define RDLVL_GATE_DELAY_3_OFFSET    0
+#define RDLVL_GATE_DELAY_2_OFFSET    0
+#define RDLVL_GATE_DELAY_1_OFFSET    0
+#define RDLVL_GATE_DELAY_0_OFFSET    0
+
+#define RDLVL_DELAY_8_ADDR      (0x138)
+#define RDLVL_DELAY_7_ADDR      (0x118)
+#define RDLVL_DELAY_6_ADDR      (0x0f8)
+#define RDLVL_DELAY_5_ADDR      (0x0d8)
+#define RDLVL_DELAY_4_ADDR      (0x0b8)
+#define RDLVL_DELAY_3_ADDR      (0x098)
+#define RDLVL_DELAY_2_ADDR      (0x078)
+#define RDLVL_DELAY_1_ADDR      (0x058)
+#define RDLVL_DELAY_0_ADDR      (0x038)
+#define RDLVL_DELAY_8_OFFSET    24
+#define RDLVL_DELAY_7_OFFSET    24
+#define RDLVL_DELAY_6_OFFSET    24
+#define RDLVL_DELAY_5_OFFSET    24
+#define RDLVL_DELAY_4_OFFSET    24
+#define RDLVL_DELAY_3_OFFSET    24
+#define RDLVL_DELAY_2_OFFSET    24
+#define RDLVL_DELAY_1_OFFSET    24
+#define RDLVL_DELAY_0_OFFSET    24
+
+#define RDLVL_DQSN_DELAY_8_ADDR      (0x138)
+#define RDLVL_DQSN_DELAY_7_ADDR      (0x118)
+#define RDLVL_DQSN_DELAY_6_ADDR      (0x0f8)
+#define RDLVL_DQSN_DELAY_5_ADDR      (0x0d8)
+#define RDLVL_DQSN_DELAY_4_ADDR      (0x0b8)
+#define RDLVL_DQSN_DELAY_3_ADDR      (0x098)
+#define RDLVL_DQSN_DELAY_2_ADDR      (0x078)
+#define RDLVL_DQSN_DELAY_1_ADDR      (0x058)
+#define RDLVL_DQSN_DELAY_0_ADDR      (0x038)
+#define RDLVL_DQSN_DELAY_8_OFFSET    32
+#define RDLVL_DQSN_DELAY_7_OFFSET    32
+#define RDLVL_DQSN_DELAY_6_OFFSET    32
+#define RDLVL_DQSN_DELAY_5_OFFSET    32
+#define RDLVL_DQSN_DELAY_4_OFFSET    32
+#define RDLVL_DQSN_DELAY_3_OFFSET    32
+#define RDLVL_DQSN_DELAY_2_OFFSET    32
+#define RDLVL_DQSN_DELAY_1_OFFSET    32
+#define RDLVL_DQSN_DELAY_0_OFFSET    32
+
+#define WRLVL_DELAY_8_ADDR      (0x138)
+#define WRLVL_DELAY_7_ADDR      (0x118)
+#define WRLVL_DELAY_6_ADDR      (0x0f8)
+#define WRLVL_DELAY_5_ADDR      (0x0d8)
+#define WRLVL_DELAY_4_ADDR      (0x0b8)
+#define WRLVL_DELAY_3_ADDR      (0x098)
+#define WRLVL_DELAY_2_ADDR      (0x078)
+#define WRLVL_DELAY_1_ADDR      (0x058)
+#define WRLVL_DELAY_0_ADDR      (0x038)
 #define WRLVL_DELAY_8_OFFSET    16
-#define WRLVL_DELAY_7_OFFSET    8
-#define WRLVL_DELAY_6_OFFSET    0
-#define WRLVL_DELAY_5_OFFSET    56
-#define WRLVL_DELAY_4_OFFSET    48
-#define WRLVL_DELAY_3_OFFSET    40
-#define WRLVL_DELAY_2_OFFSET    32
-#define WRLVL_DELAY_1_OFFSET    24
+#define WRLVL_DELAY_7_OFFSET    16
+#define WRLVL_DELAY_6_OFFSET    16
+#define WRLVL_DELAY_5_OFFSET    16
+#define WRLVL_DELAY_4_OFFSET    16
+#define WRLVL_DELAY_3_OFFSET    16
+#define WRLVL_DELAY_2_OFFSET    16
+#define WRLVL_DELAY_1_OFFSET    16
 #define WRLVL_DELAY_0_OFFSET    16
 
-#define RDLVL_GATE_DELAY_8_ADDR     (0x7f0)
-#define RDLVL_GATE_DELAY_7_ADDR     (0x7f0)
-#define RDLVL_GATE_DELAY_6_ADDR     (0x7f0)
-#define RDLVL_GATE_DELAY_5_ADDR     (0x7f0)
-#define RDLVL_GATE_DELAY_4_ADDR     (0x7f0)
-#define RDLVL_GATE_DELAY_3_ADDR     (0x7f0)
-#define RDLVL_GATE_DELAY_2_ADDR     (0x7e0)
-#define RDLVL_GATE_DELAY_1_ADDR     (0x7e0)
-#define RDLVL_GATE_DELAY_0_ADDR     (0x7e0)
-#define RDLVL_GATE_DELAY_8_OFFSET    40
-#define RDLVL_GATE_DELAY_7_OFFSET    32
-#define RDLVL_GATE_DELAY_6_OFFSET    24
-#define RDLVL_GATE_DELAY_5_OFFSET    16
-#define RDLVL_GATE_DELAY_4_OFFSET    8
-#define RDLVL_GATE_DELAY_3_OFFSET    0
-#define RDLVL_GATE_DELAY_2_OFFSET    56
-#define RDLVL_GATE_DELAY_1_OFFSET    48
-#define RDLVL_GATE_DELAY_0_OFFSET    40
-
-#define RDLVL_DELAY_8_ADDR      (0x230)
-#define RDLVL_DELAY_7_ADDR      (0x230)
-#define RDLVL_DELAY_6_ADDR      (0x220)
-#define RDLVL_DELAY_5_ADDR      (0x220)
-#define RDLVL_DELAY_4_ADDR      (0x210)
-#define RDLVL_DELAY_3_ADDR      (0x210)
-#define RDLVL_DELAY_2_ADDR      (0x200)
-#define RDLVL_DELAY_1_ADDR      (0x200)
-#define RDLVL_DELAY_0_ADDR      (0x1f0)
-#define RDLVL_DELAY_8_OFFSET    40
-#define RDLVL_DELAY_7_OFFSET    8
-#define RDLVL_DELAY_6_OFFSET    40
-#define RDLVL_DELAY_5_OFFSET    8
-#define RDLVL_DELAY_4_OFFSET    40
-#define RDLVL_DELAY_3_OFFSET    8
-#define RDLVL_DELAY_2_OFFSET    40
-#define RDLVL_DELAY_1_OFFSET    8
-#define RDLVL_DELAY_0_OFFSET    40
+#define WRLVL_DQ_DELAY_8_ADDR      (0x138)
+#define WRLVL_DQ_DELAY_7_ADDR      (0x118)
+#define WRLVL_DQ_DELAY_6_ADDR      (0x0f8)
+#define WRLVL_DQ_DELAY_5_ADDR      (0x0d8)
+#define WRLVL_DQ_DELAY_4_ADDR      (0x0b8)
+#define WRLVL_DQ_DELAY_3_ADDR      (0x098)
+#define WRLVL_DQ_DELAY_2_ADDR      (0x078)
+#define WRLVL_DQ_DELAY_1_ADDR      (0x058)
+#define WRLVL_DQ_DELAY_0_ADDR      (0x038)
+#define WRLVL_DQ_DELAY_8_OFFSET    8
+#define WRLVL_DQ_DELAY_7_OFFSET    8
+#define WRLVL_DQ_DELAY_6_OFFSET    8
+#define WRLVL_DQ_DELAY_5_OFFSET    8
+#define WRLVL_DQ_DELAY_4_OFFSET    8
+#define WRLVL_DQ_DELAY_3_OFFSET    8
+#define WRLVL_DQ_DELAY_2_OFFSET    8
+#define WRLVL_DQ_DELAY_1_OFFSET    8
+#define WRLVL_DQ_DELAY_0_OFFSET    8
 #endif
 
 //------------------------
 //define for ddr configure register param location
+#define ADDR_INFO_CS_0_ADDR      (0x210)
+#define ADDR_INFO_CS_1_ADDR      (0x218)
+#define ADDR_INFO_CS_2_ADDR      (0x220)
+#define ADDR_INFO_CS_3_ADDR      (0x228)
+
 #define EIGHT_BANK_MODE_ADDR     (0x210)
 #define EIGHT_BANK_MODE_OFFSET   8
 #define COLUMN_SIZE_ADDR         (0x210)
@@ -428,12 +488,16 @@
 #define CS_MAP_OFFSET            0
 #define CS_MRS_ADDR              (0x168)
 #define CS_MRS_OFFSET            8
+#define CS_ZQ_ADDR               (0x168)
+#define CS_ZQ_OFFSET             16
+#define BANK_NUM_ADDR            (0x168)
+#define BANK_NUM_OFFSET          24
 #define REDUC_ADDR               (0x1f0)
 #define REDUC_OFFSET             18
 #define CTRL_RAW_ADDR            (0x250)
 #define CTRL_RAW_OFFSET          16 
 #define ECC_DISABLE_W_UC_ERR_ADDR   (0x250)
-#define ECC_DISABLE_W_UC_ERR_OFFSET 18  //????????
+#define ECC_DISABLE_W_UC_ERR_OFFSET 18
 //------------------------
 
 //------------------------------------

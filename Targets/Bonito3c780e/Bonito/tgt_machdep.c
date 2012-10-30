@@ -398,10 +398,11 @@ unsigned long _filebase;
 
 extern unsigned long long  memorysize;
 extern unsigned long long  memorysize_high;
+
 #ifdef MULTI_CHIP
-unsigned long long memorysize_n1;
-unsigned long long memorysize_n2;
-unsigned long long memorysize_n3;
+extern unsigned long long  memorysize_high_n1;
+extern unsigned long long  memorysize_high_n2;
+extern unsigned long long  memorysize_high_n3;
 #endif
 
 extern char MipsException[], MipsExceptionEnd[];
@@ -454,24 +455,19 @@ superio_reinit();
 	memorysize_high = memsz > 240 ? (((unsigned long long)memsz) - 240) << 20 : 0;
     mem_size = memsz;
 
-#ifdef MULTI_CHIP
     memsz = raw_memsz & 0xff00;
     memsz = memsz >> 8;
     memsz = memsz << 29;
-    memorysize_n1 = memsz;
+    memorysize_high_n1 = (memsz == 0) ? 0 : (memsz - (256 << 20));
+#ifdef MULTI_CHIP
     memsz = raw_memsz & 0xff0000;
     memsz = memsz >> 16;
     memsz = memsz << 29;
-    memorysize_n2 = memsz;
+    memorysize_high_n2 = (memsz == 0) ? 0 : (memsz - (256 << 20));
     memsz = raw_memsz & 0xff000000;
     memsz = memsz >> 24;
     memsz = memsz << 29;
-    memorysize_n3 = memsz;
-#if 1
-    tgt_printf("memorysize_n1 0x%llx\n", memorysize_n1);
-    tgt_printf("memorysize_n2 0x%llx\n", memorysize_n2);
-    tgt_printf("memorysize_n3 0x%llx\n", memorysize_n3);
-#endif
+    memorysize_high_n3 = (memsz == 0) ? 0 : (memsz - (256 << 20));
 #endif
 #if 0 /* whd : Disable gpu controller of MCP68 */
 	//*(unsigned int *)0xbfe809e8 = 0x122380;
@@ -1656,7 +1652,7 @@ static void
 _probe_frequencies()
 {
 #ifdef HAVE_TOD
-        int i, timeout, cur, sec, cnt;
+        int i, timeout, cur, sec, cnt, start, end;
 #endif
                                                                     
         SBD_DISPLAY ("FREQ", CHKPNT_FREQ);
@@ -1697,17 +1693,21 @@ _probe_frequencies()
          * cache. Second make sure synched on second update. (Pun intended!)
          */
 aa:
-        for(i = 2;  i != 0; i--) {
-                cnt = CPU_GetCOUNT();
-                timeout = 10000000;
+                start = CPU_GetCOUNT();
                 while(CMOS_READ(DS_REG_CTLA) & DS_CTLA_UIP);
                 sec = CMOS_READ(DS_REG_SEC);
+        for(i = 2;  i != 0; i--) {
+                timeout = 10000000;
                 do {
                         timeout--;
                         while(CMOS_READ(DS_REG_CTLA) & DS_CTLA_UIP);
+                        end = CPU_GetCOUNT();
                         cur = CMOS_READ(DS_REG_SEC);
                 } while(timeout != 0 && (cur == sec));
-                cnt = CPU_GetCOUNT() - cnt;
+                //cnt = CPU_GetCOUNT() - cnt;
+                cnt   = end - start;
+                start = end;
+                sec   = cur;
                 if(timeout == 0) {
 			tgt_printf("time out!\n");
                         break;          /* Get out if clock is not running */
@@ -2057,14 +2057,16 @@ tgt_mapenv(int (*func) __P((char *, char *)))
 	(*func)("highmemsize", env);
 
 #ifdef MULTI_CHIP
-	sprintf(env, "%d", memorysize_n1 / (1024 * 1024));
-	(*func)("memorysize_n1", env);
+	sprintf(env, "%d", memorysize_high_n1 / (1024 * 1024));
+	(*func)("memorysize_high_n1", env);
 
-	sprintf(env, "%d", memorysize_n2 / (1024 * 1024));
-	(*func)("memorysize_n2", env);
-	
-	sprintf(env, "%d", memorysize_n3 / (1024 * 1024));
-	(*func)("memorysize_n3", env);
+#ifdef  DUAL_3B
+	sprintf(env, "%d", memorysize_high_n2 / (1024 * 1024));
+	(*func)("memorysize_high_n2", env);
+
+	sprintf(env, "%d", memorysize_high_n3 / (1024 * 1024));
+    (*func)("memorysize_high_n3", env);
+#endif
 #endif
 
 	sprintf(env, "%d", md_pipefreq);

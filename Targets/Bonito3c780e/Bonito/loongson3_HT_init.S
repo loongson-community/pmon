@@ -7,8 +7,8 @@
 ######################################################
 #define HT_32bit_TRANS
 #define WITH_HT
-//#define HT_800M
-//#define HT_16bit
+#define HT_800M
+#define HT_16bit
 #define HT_RECONNECT
 //#define HT_REG_TRANS
 ######################################################
@@ -17,7 +17,7 @@
 	TTYDBG("32 bit PCI space translate to 64 bit HT space\r\n")
 
     dli t0, 0x900000003ff02000
-    dli t2, 0x900000003ff02700
+    dli t2, 0x900000003ff02400
 
 1:
  //map HT: PCI IO : 0x90000efd_fc000000 --> 0x18000000
@@ -28,46 +28,34 @@
     sd  t1, 0x0(t0)
     dli t1, 0xfffffffffc000000
     sd  t1, 0x40(t0)
-    dli t1, 0x00000efdfc0000f7
+    dli t1, 0x00001efdfc0000f4
     sd  t1, 0x80(t0)
 
  //HT Space enable
  //map 0x90000e00_00000000 --> 0x90000e00_00000000
-    dli t1, 0x0000080000000000
+    dli t1, 0x00000c0000000000
     sd  t1, 0x8(t0)
-    dli t1, 0xfffff80000000000
+    dli t1, 0xfffffc0000000000
     sd  t1, 0x48(t0)
-    dli t1, 0x00000e00000000f7
+    dli t1, 0x00001c00000000f4
     sd  t1, 0x88(t0)
 
  //HT: PCI HI BASE
  //map 0x90000e00_10000000 --> 0x10000000
- //map 0x90000e00_40000000 --> 0x40000000
     dli t1, 0x0000000040000000
     sd  t1, 0x18(t0)
     dli t1, 0xffffffffc0000000
     sd  t1, 0x58(t0)
-    dli t1, 0x00000e00400000f7
+    dli t1, 0x00001e00400000f4
     sd  t1, 0x98(t0)
 
-#ifdef HT_REG_TRANS
- //HT REG BASE
- //map 0x90000efd_fb000000 --> 0x1e000000
-    dli t1, 0x000000001e000000
-    sd  t1, 0x20(t0)
-    dli t1, 0xffffffffff000000
-    sd  t1, 0x60(t0)
-    dli t1, 0x00000efdfb0000f7
-    sd  t1, 0xa0(t0)
-#else
  //map 0x90000e00_00000000 --> 0x1e000000
     dli t1, 0x000000001e000000
     sd  t1, 0x20(t0)
     dli t1, 0xffffffffff000000
     sd  t1, 0x60(t0)
-    dli t1, 0x00000e00000000f7
+    dli t1, 0x00001e00000000f4
     sd  t1, 0xa0(t0)
-#endif
 
     daddiu  t0, t0, 0x100
     bne     t0, t2, 1b
@@ -75,27 +63,87 @@
 
 #endif
 
+#ifdef HT_32bit_TRANS //PCI CFG : TYPE 0: 
+	TTYDBG("32 bit PCI space translate to 64 bit HT space\r\n")
 
+    dli t0, 0x900010003ff06000
+    dli t2, 0x900010003ff06400
 
-//////////////////
-#if	0
-	TTYDBG("DEBUG......\r\n")
-	dli	t0, 0x900000003ff02000
-	dli	t1, 0x900000003ff02400
-1 :
-	ld	a0, 0(t0)
-    dsrl    a0, 32
-	bal	hexserial
-	nop
-	ld	a0, 0(t0)
-	bal	hexserial
-	nop
+1:
+ //map HT: PCI IO : 0x90000efd_fc000000 --> 0x18000000
+ //map              0x90000efd_fd000000 --> 0x19000000
+ //map HT: PCI CFG: 0x90000efd_fe000000 --> 0x1a000000
+ //map HT: PCI CFG: 0x90000efd_ff000000 --> 0x1b000000
+    dli t1, 0x0000000018000000
+    sd  t1, 0x0(t0)
+    dli t1, 0xfffffffffc000000
+    sd  t1, 0x40(t0)
+    dli t1, 0x00001efdfc0000f7
+    sd  t1, 0x80(t0)
+
+ //HT Space enable
+ //map 0x90000e00_00000000 --> 0x90000e00_00000000
+    dli t1, 0x00000c0000000000
+    sd  t1, 0x8(t0)
+    dli t1, 0xfffffc0000000000
+    sd  t1, 0x48(t0)
+    dli t1, 0x00001c00000000f7
+    sd  t1, 0x88(t0)
+
+ //HT: PCI HI BASE
+ //map 0x90000e00_10000000 --> 0x10000000
+    dli t1, 0x0000000040000000
+    sd  t1, 0x18(t0)
+    dli t1, 0xffffffffc0000000
+    sd  t1, 0x58(t0)
+    dli t1, 0x00001e00400000f7
+    sd  t1, 0x98(t0)
+
+ //map 0x90000e00_00000000 --> 0x1e000000
+    dli t1, 0x000000001e000000
+    sd  t1, 0x20(t0)
+    dli t1, 0xffffffffff000000
+    sd  t1, 0x60(t0)
+    dli t1, 0x00001e00000000f7
+    sd  t1, 0xa0(t0)
+
+    daddiu  t0, t0, 0x100
+    bne     t0, t2, 1b
+    nop
+
+#endif
+
+#if 0//debug RX
+	TTYDBG("Debug RX\r\n")
+    dli     t0, 0x90000efdfb000000
+    li      t1, 0x1
+    sw      t1, 0x54(t0)
+    lw      a0, 0x54(t0)
+
+	bal	    hexserial
+    nop
 	TTYDBG("\r\n")
-	daddiu	t0, t0, 8
-	nop
-	bne	t0, t1, 1b
-	nop
-	TTYDBG("DEBUG END......\r\n")
+
+    dli     t0, 0x90000efdfb000000
+    li      t1, 0x0
+    sw      t1, 0x54(t0)
+    lw      a0, 0x54(t0)
+
+	bal	    hexserial
+    nop
+	TTYDBG("\r\n")
+
+
+#if 1//Set HT channel priority
+	TTYDBG("Set HT Channel priority\r\n")
+	dli	    t2, 0x90000efdfb000000
+	li	    t0, 0x4f04
+	sh	    t0, 0x50(t2)
+    lw      a0, 0x50(t2)
+	bal	    hexserial
+    nop
+	TTYDBG("\r\n")
+#endif
 #endif
 
 #if 0//Print all HT registers
@@ -287,12 +335,12 @@ ht_next_id :
 
 #endif
 
-#if 0//Set Mem space post
-	TTYDBG("Set HT Memory space all post\r\n")
+#if 1//Set Mem space post
+	TTYDBG("Set HT all Memory space post to speed up\r\n")
 	dli	    t2, 0x90000efdfb000000
-	li	    t0, 0x80000010
+	li	    t0, 0x80000000
 	sw	    t0, 0xd0(t2)
-	li	    t0, 0x0010fff8
+	li	    t0, 0x0000ff00
 	sw	    t0, 0xd4(t2)
 
 #endif

@@ -28,12 +28,12 @@ option		INET
 option      LS3_HT              # Enable the IO cache coherent of HT
 #option      MCP68_IDE           # Enable the MCP68 IDE 0 channel
 #option      USE_LPC_UART
-#option      MULTI_CHIP
+option      MULTI_CHIP
 option      ENABLE_SATA         #Enable SATA  ,when enable IDE can also use, when commended only IDE can use
-option      loongson3A3
 option      LS3B
 
-#option      AUTO_DDR_CONFIG
+option      AUTO_DDR_CONFIG
+option      USE_SB_I2C
 
 #
 # Uart serial baud rate selection
@@ -42,7 +42,8 @@ option      BONITO_33M
 #option      BONITO_25M
 #option      BONITO_50M
 
-option  LOONGSON_3ASINGLE
+option  LOONGSON_3BSINGLE
+option  LOONGSON_3B1500
 option		BOOT_PARAM
 select     	amd_780e
 
@@ -181,12 +182,12 @@ pci*		at ppb? bus ?
 #gt1		at localbus? base 5
 #gt2		at localbus? base 6
 # fxp normally only used for debugging (enable/disable both)
-fxp0        at pci? dev ? function ?        # Intel 82559 Device
+#fxp0        at pci? dev ? function ?        # Intel 82559 Device
 inphy*      at mii? phy ?                   # Intel 82555 PHYs
 # rtl*        at pci? dev ? function ?
-rte*		at pci? dev ? function ?
+#rte*		at pci? dev ? function ?
 #rtk*		at pci? dev ? function ?
-#em*         at pci? dev ? function ?
+em*         at pci? dev ? function ?
 
 #### USB
 uhci*		 at pci? dev ? function ?

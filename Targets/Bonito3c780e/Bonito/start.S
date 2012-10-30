@@ -265,6 +265,12 @@ la	gp, _gp
 	/* WatchDog chip MAX6369 disable work */
 	WatchDog_Close
 
+#if 1 //SPI speed up
+    li  t0, 0xbfe00220
+    li  t1, 0x07
+    sb  t1, 0x4(t0)
+#endif
+
 	bal	locate			/* Get current execute address */
 	nop
 
@@ -426,123 +432,76 @@ li      t1, 0x00e0      # {cu3,cu2,cu1,cu0}<={0110, status_fr<=1
 		//li      a0, 0x3
 		//bne 	t0, a0, slave_main
 
-#if 1 /* clear Mail BOX */
-#define CORE0_BUF0 0x900000003ff01020
-#define CORE1_BUF0 0x900000003ff01120
-#define CORE2_BUF0 0x900000003ff01220
-#define CORE3_BUF0 0x900000003ff01320
+#define NODE0_CORE0_BUF0 0x900000003ff01000   
+#define NODE1_CORE0_BUF0 0x900010003ff05000   
+#define NODE2_CORE0_BUF0 0x900020003ff09000   
+#define NODE3_CORE0_BUF0 0x900030003ff0d000   
 
-		dli     t1, CORE0_BUF0
-		andi    t3, t0, 0x3  #local cpuid
-		dsll    t3, 8
-		or      t1, t1, t3
+#define FN_OFF 0x020
+#define SP_OFF 0x028
+#define GP_OFF 0x030
+#define A1_OFF 0x038
+/**************************************************/
 
-		andi    t4, t0, 0xc  #node id
-		dsll    t4, 42
-		or      t1, t1, t4
+/**************************************************/
+/* Clear Mail BOX of every core                   */
+/**************************************************/
+		.set 	mips64
+		mfc0	t0, $15, 1
+		.set 	mips3
+
+		andi	t0, 0x3ff
+		andi    t3, t0,0xc
+
+		beq		t3, 0x0, node0;
+		nop	 
+
+		beq		t3, 0x4, node1;
+		nop	 
+
+		beq		t3, 0x8, node2;
+		nop	 
+
+		beq		t3, 0xc, node3;
+		nop	 
+
+node0:
+        dli     t1, NODE0_CORE0_BUF0;
+		b		common;
+		nop
+
+node1:
+        dli     t1, NODE1_CORE0_BUF0;
+		b		common;
+		nop
+
+node2:
+        dli     t1, NODE2_CORE0_BUF0;
+		b		common;
+		nop
+
+node3:
+        dli     t1, NODE3_CORE0_BUF0;
+		b		common;
+		nop
+
+common:
+        andi    t3, t0, 0x3  #local cpuid
+        dsll    t3, 8
+        or      t1, t1, t3
+
+        dli     a0, 0x0
+        sd      a0,FN_OFF(t1)
 
 
-		//dsll    t0, t0, 0x8
-		//or      t1, t1, t0
-
-		dli     a0, 0x0
-		sd      a0, 0x0(t1)
+#ifdef NODE1_BOOT
+        dli     a0, 0x4 
+#else
+        dli     a0, 0x0;
 #endif
-
-		bal	initserial
-		nop
-		bal     initserial1
-		nop
-		//#define DEBUG_LS3
-#ifdef DEBUG_LS3
-		dli     a0, 0xfff
-		and     t1, t1, a0
-		dsll    t1, t1, 10
-		1:
-		bnez    t1, 1b
-		daddi   t1, t1, -1
-
-
-		PRINTSTR("CP0_STATUS:")
-		mfc0    a0, CP0_STATUS
-		bal	    hexserial
-		nop
-		PRINTSTR("\r\n\r\n")
-
-
-		sync
-		sync
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		PRINTSTR("sync ok\r\n")
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		nop
-		1:
-		bnez    t0, 1b
-		nop
-#endif
-
-		li      a0, 0x0
-		bne     t0, a0, slave_main
-#bnez 	t0, slave_main
+        bne     t0, a0, slave_main
 		nop
 
-#if 0 /* Niuxie Tube */
-		li      a0,0xbff00080
-		li      t0,0xcc
-		sb      t0,0x0(a0)
-#endif
 
 #ifdef DEBUG_LS3
 		dli     t2, 0x9800000000000000
@@ -587,19 +546,25 @@ li      t1, 0x00e0      # {cu3,cu2,cu1,cu0}<={0110, status_fr<=1
 #endif
 
 
-#if 0
-		PRINTSTR("Shut down other cores\r\n")
-		li      a0, 0xbfe00180
-		lw      a1, 0x0(a0)
-		li      t1, 0xffff1fff
-		and     a1, a1, t1
-		sw      a1, 0x0(a0)
+        bal     initserial
+        nop
+        bal     initserial1
+        nop
 
+#define SHUT_SLAVES
+#ifdef SHUT_SLAVES
+		PRINTSTR("Shut down other cores\r\n")
+		li      a0, 0xbfe001d0
+		//li      t1, 0x7777777f
+		li      t1, 0x8888888f
+		sw      t1, 0x0(a0)
+		li      t1, 0x0000000f
+		sw      t1, 0x0(a0)
+
+#else
+		PRINTSTR("NOT Shut down other cores\r\n")
 #endif
 
-		li      a0,0x900000001ff00080
-		li      t0,0x99
-		sb      t0,0x0(a0)
 
 #ifdef LS3_HT
 		b       core0_start
@@ -1027,11 +992,12 @@ gs_2f_v3_ddr2_cfg:
 	nop
 	TTYDBG ("\r\nCPU CLK SEL : ")
 	dsrl t1, t1, 32
-	andi a0, t1, 0x1f
+	andi a0, t1, 0x3f
 	bal hexserial
 	nop
 
 
+#if 0
 	TTYDBG ("\r\nCPU clk frequency = SYSCLK x 0x")
 	andi  t0, t1, 0x1f
 	li  a0, 0x1f
@@ -1055,13 +1021,17 @@ gs_2f_v3_ddr2_cfg:
 	3:        
 	nop
 	TTYDBG (" 1\r\n")
+#else
+	TTYDBG ("\r\n")
+#endif
 	2:      
 	TTYDBG ("MEM CLK SEL : ")
-	dsrl t0, t1, 5
-	andi a0, t0, 0x1f
+	dsrl t0, t1, 6
+	andi a0, t0, 0xf
 	bal hexserial
 	nop
 
+#if 0
 	TTYDBG ("\r\nDDR clk frequency = MEMCLK x 0x")
 	dsrl t0, t1, 5
 	andi    t0, t0, 0x1f
@@ -1088,22 +1058,155 @@ gs_2f_v3_ddr2_cfg:
 	3:
 	TTYDBG (" 3\r\n")
 	2:      
+#else
+	TTYDBG ("\r\n")
+#endif
 #endif    
 
-#ifdef MULTI_CHIP
-	TTYDBG("CPU 1 READ TEST...\r\n")
-	dli      t0, 0x900010003ff00040
-	lw       a0, 0x0(t0)
-	TTYDBG("CPU 1 READ TEST OK.\r\n")
+#define SOFT_CLKSEL
+#ifdef SOFT_CLKSEL
+//#define NODE_LOOPC  32 //800MHz
+#define NODE_LOOPC  40 //1.0GHz
+#define NODE_REFC   1
+#define NODE_DIV    1
+
+//#define DDR_LOOPC  15 //500MHz
+#define DDR_LOOPC  16 //533MHz
+//#define DDR_LOOPC  17 //566MHz
+//#define DDR_LOOPC  18 //600MHz
+//#define DDR_LOOPC  19 //633MHz
+#define DDR_REFC   1
+#define DDR_DIV    1
+
+//#define CORE_LOOPC  40 //1.0G
+//#define CORE_LOOPC  46 //1.15G
+#define CORE_LOOPC  48 //1.2G
+//#define CORE_LOOPC  50 //1.25G
+//#define CORE_LOOPC  52 //1.3G  OK @ 1.15, pass the stressapptest
+//#define CORE_LOOPC  54 //1.35G OK @ 1.15v but (bit 33 cause error, make 0 to 1 at stressapptest)
+//#define CORE_LOOPC  56 //1.4G
+//#define CORE_LOOPC  57 //1.425G
+//#define CORE_LOOPC  58 //1.45G
+//#define CORE_LOOPC  60 //1.5G OK @ 1.3v
+//#define CORE_LOOPC  62 //1.55G
+#define CORE_REFC   1
+#define CORE_DIV    1
+
+#define L1_LOOPC    40
+#define L1_REFC     1
+#define L1_DIV      4
+
+#define BYPASS_CORE 0x0
+#define BYPASS_NODE 0x0
+#define BYPASS_L1   0x0
+
+#define BYPASS_REFIN 0x1
+
+	TTYDBG ("Soft CLK SEL adjust begin\r\n")
+
+    li      t0, 0xbfe00194
+    lw      a0, 0x0(t0)
+    li      a1, 0x20
+    and     a0, a0, a1
+    bnez    a0, soft_mem
+    nop
+
+soft_sys:
+	TTYDBG ("CORE & NODE:")
+
+    li      t0, 0xbfe001b0
+    dli     a0, (NODE_LOOPC << 22) | (NODE_REFC  << 16) | (L1_DIV    << 10) | L1_LOOPC
+    sw      a0, 0x4(t0)
+
+    dli     a0, (CORE_DIV   << 22) | (CORE_LOOPC << 12) | (CORE_REFC <<  6) | NODE_DIV
+    sw      a0, 0x8(t0)
+
+    dli     a0, (L1_REFC    << 26) | (0x3f << 10      ) | (0x7<<  7)        | (BYPASS_REFIN << 6) | \
+                (BYPASS_CORE << 5) | (BYPASS_NODE << 4) | (BYPASS_L1  << 3) | 0x4
+    sw      a0, 0x0(t0)
+
+wait_locked_sys:
+    lw      a0, 0x0(t0)
+    li      a1, 0x00070000
+    and     a0, a1, a0
+    beqz    a0, wait_locked_sys
+    nop
+
+    lw      a0, 0x0(t0)
+    ori     a0, a0, 0x3
+    sw      a0, 0x0(t0)
+
+    bal     hexserial
+    nop
+
+soft_mem:
+    li      t0, 0xbfe00194
+    lw      a0, 0x0(t0)
+    li      a1, 0x200
+    and     a0, a0, a1
+    bnez    a0, soft_ht
+    nop
+
+	TTYDBG ("\r\nMEM        :")
+
+    li      t0, 0xbfe001c0
+    dli     a0, (DDR_DIV << 24) | (DDR_LOOPC << 14) | (DDR_REFC << 8) | (0x3 << 4) | (0x1 << 3) | 0x2
+    sw	    a0, 0x0(t0)
+wait_locked_ddr:
+    lw      a0, 0x0(t0)
+    li      a1, 0x00000040
+    and     a0, a0, a1
+    beqz    a0, wait_locked_ddr
+    nop
+
+    lw      a0, 0x0(t0)
+    ori     a0, a0, 0x1
+    sw      a0, 0x0(t0)
+
+    bal     hexserial
+    nop
+
+soft_fdcoefficient:
+    TTYDBG ("\r\nfdcoefficient  :")
+    li      t0,0xbfe001c0
+    ld      t1,0x0(t0)
+    dsrl    a0,t1,8
+    and     a0,a0,63
+
+    dsrl    a1,t1,14
+    and     a1,a1,1023
+
+    dmul    a0,a0,a1
+    dsrl    a1,t1,24
+    and     a1,a1,63
+
+    ddiv    a0,a0,a1
+    bal     hexserial
+    nop
+
+soft_ht:
+	TTYDBG ("\r\nHT         :")
+
+    li      t0, 0xbfe001b0
+    lw      a0, 0x14(t0)
+    bal     hexserial
+    nop
+
+
+soft_out:
+	TTYDBG ("\r\n")
+
 #endif
+
 ##########################################
 
 #include "loongson3_fixup.S"
 
+#if 1
 //begin :Beep on -> delay -> Beep off
 	bal	beep_on
 	nop
-	li	a0,0x1000
+	li	a0,0x100
 	1:
 	addiu	a0,-1
 	nop
@@ -1112,10 +1215,7 @@ gs_2f_v3_ddr2_cfg:
 	bal	beep_off
 	nop
 //end
-
-	//##########################################
-	//TTYDBG("NODE 0 MEMORY CONFIG BEGIN\r\n")
-	//       li      s1, 0x0
+#endif
 
 ##########################################
 //cxk
@@ -1127,15 +1227,25 @@ gs_2f_v3_ddr2_cfg:
 //#define DEBUG_DDR_PARAM
 
     dli     msize, 0
-    dli     s1, 0x83630100
+
+    TTYDBG("NODE 0 MEMORY CONFIG BEGIN\r\n")
+#ifdef  AUTO_DDR_CONFIG
+    dli     s1, 0xff100000
+#else
+    dli     s1, 0xc3e30200
+#endif
 #include "loongson3C_ddr_config.S"
 ##########################################
 
 #ifdef MULTI_CHIP
 ##########################################
-		TTYDBG("NODE 1 MEMORY CONFIG BEGIN\r\n")
-		li      s1, 0x1
-#include "loongson3_ddr2_config.S"
+	TTYDBG("NODE 1 MEMORY CONFIG BEGIN\r\n")
+#ifdef  AUTO_DDR_CONFIG
+    dli     s1, 0xff320001
+#else
+    dli     s1, 0xc3e30201
+#endif
+#include "loongson3C_ddr_config.S"
 ##########################################
 #endif
 
@@ -1172,12 +1282,19 @@ gs_2f_v3_ddr2_cfg:
 		dli a0, 0x9800000000000000
 		bal	scache_init_64 // whd
 		nop
-#ifdef MULTI_CHIP
+
 		TTYDBG("scache init node 1\r\n")
 		dli a0, 0x9800100000000000
 		bal	scache_init_64 // whd
 		nop
 #endif
+
+//#define LOCK_SCACHE
+#ifdef LOCK_SCACHE
+	    bal lock_scache
+        nop
+	    TTYDBG("cache lock done\r\n")
+	    nop
 #endif
 
 #if 1
@@ -1204,9 +1321,207 @@ gs_2f_v3_ddr2_cfg:
 		nop
 #endif
 
-		//WatchDog_Enable;
 
 ##########################################
+#if 0 /* write DDR test */
+1:
+        li      t0, 0xa0000000
+        dli     a0, 0xffffffffffffffff
+        sd      a0, 0x0(t0)
+        dli     a0, 0x00000000
+        sd      a0, 0x8(t0)
+        dli     a0, 0xffffffffffffffff
+        sd      a0, 0x10(t0)
+        dli     a0, 0x00000000
+        sd      a0, 0x18(t0)
+        dli     a0, 0xffffffffffffffff
+        sd      a0, 0x20(t0)
+        dli     a0, 0x00000000
+        sd      a0, 0x28(t0)
+        dli     a0, 0xffffffffffffffff
+        sd      a0, 0x30(t0)
+        dli     a0, 0x00000000
+        sd      a0, 0x38(t0)
+
+        b       1b
+        nop
+#endif
+#if 0 /* read DDR test */
+1:
+        li      t0, 0xa0000000
+        dli     a0, 0xffffffffffffffff
+        ld      a0, 0x0(t0)
+        dli     a0, 0x00000000
+        ld      a0, 0x8(t0)
+        dli     a0, 0xffffffffffffffff
+        ld      a0, 0x10(t0)
+        dli     a0, 0x00000000
+        ld      a0, 0x18(t0)
+        dli     a0, 0xffffffffffffffff
+        ld      a0, 0x20(t0)
+        dli     a0, 0x00000000
+        ld      a0, 0x28(t0)
+        dli     a0, 0xffffffffffffffff
+        ld      a0, 0x30(t0)
+        dli     a0, 0x00000000
+        ld      a0, 0x38(t0)
+
+        b       1b
+        nop
+#endif
+
+
+#if 1 /* write DDR test */
+1:
+        li      t0, 0xa0000000
+        dli     a0, 0x5555555555555555
+        sd      a0, 0x0(t0)
+        dli     a0, 0xaaaaaaaaaaaaaaaa
+        sd      a0, 0x8(t0)
+        dli     a0, 0x3333333333333333
+        sd      a0, 0x10(t0)
+        dli     a0, 0xcccccccccccccccc
+        sd      a0, 0x18(t0)
+        dli     a0, 0x7777777777777777
+        sd      a0, 0x20(t0)
+        dli     a0, 0x8888888888888888
+        sd      a0, 0x28(t0)
+        dli     a0, 0x1111111111111111
+        sd      a0, 0x30(t0)
+        dli     a0, 0xeeeeeeeeeeeeeeee
+        sd      a0, 0x38(t0)
+
+        //b       1b
+        nop
+
+    PRINTSTR("The uncache data is:\r\n")
+    dli     t1, 8
+    dli     t5, 0x9000000000000000
+1:
+    ld      t6, 0x0(t5)
+    move    a0, t5
+    and     a0, a0, 0xfff
+    bal     hexserial
+    nop
+    PRINTSTR(":  ")
+    dsrl    a0, t6, 32
+    bal     hexserial
+    nop
+    //PRINTSTR("  ")
+    move    a0, t6
+    bal     hexserial
+    nop
+    PRINTSTR("\r\n")
+
+    daddiu  t1, t1, -1
+    daddiu  t5, t5, 8
+    bnez    t1, 1b
+    nop
+
+    PRINTSTR("The cached  data is:\r\n")
+    dli     t1, 8
+    dli     t5, 0x9800000000000000
+1:
+    ld      t6, 0x0(t5)
+    move    a0, t5
+    and     a0, a0, 0xfff
+    bal     hexserial
+    nop
+    PRINTSTR(":  ")
+    dsrl    a0, t6, 32
+    bal     hexserial
+    nop
+    //PRINTSTR("  ")
+    move    a0, t6
+    bal     hexserial
+    nop
+    PRINTSTR("\r\n")
+
+    daddiu  t1, t1, -1
+    daddiu  t5, t5, 8
+    bnez    t1, 1b
+    nop
+
+
+    GET_MC0_MEMSIZE
+    beqz    a1, out_test
+    nop
+
+        li      t0, 0x9000100000000000
+        dli     a0, 0x5555555555555555
+        sd      a0, 0x0(t0)
+        dli     a0, 0xaaaaaaaaaaaaaaaa
+        sd      a0, 0x8(t0)
+        dli     a0, 0x3333333333333333
+        sd      a0, 0x10(t0)
+        dli     a0, 0xcccccccccccccccc
+        sd      a0, 0x18(t0)
+        dli     a0, 0x7777777777777777
+        sd      a0, 0x20(t0)
+        dli     a0, 0x8888888888888888
+        sd      a0, 0x28(t0)
+        dli     a0, 0x1111111111111111
+        sd      a0, 0x30(t0)
+        dli     a0, 0xeeeeeeeeeeeeeeee
+        sd      a0, 0x38(t0)
+
+        //b       1b
+        nop
+
+    PRINTSTR("The uncache data is:\r\n")
+    dli     t1, 8
+    dli     t5, 0x9000100000000000
+1:
+    ld      t6, 0x0(t5)
+    move    a0, t5
+    and     a0, a0, 0xfff
+    bal     hexserial
+    nop
+    PRINTSTR(":  ")
+    dsrl    a0, t6, 32
+    bal     hexserial
+    nop
+    //PRINTSTR("  ")
+    move    a0, t6
+    bal     hexserial
+    nop
+    PRINTSTR("\r\n")
+
+    daddiu  t1, t1, -1
+    daddiu  t5, t5, 8
+    bnez    t1, 1b
+    nop
+
+    PRINTSTR("The cached  data is:\r\n")
+    dli     t1, 8
+    dli     t5, 0x9800100000000000
+1:
+    ld      t6, 0x0(t5)
+    move    a0, t5
+    and     a0, a0, 0xfff
+    bal     hexserial
+    nop
+    PRINTSTR(":  ")
+    dsrl    a0, t6, 32
+    bal     hexserial
+    nop
+    //PRINTSTR("  ")
+    move    a0, t6
+    bal     hexserial
+    nop
+    PRINTSTR("\r\n")
+
+    daddiu  t1, t1, -1
+    daddiu  t5, t5, 8
+    bnez    t1, 1b
+    nop
+
+out_test:
+
+
+#endif
+
+
 #ifdef  DEBUG_DDR
         b       TM_over
         nop
@@ -1224,31 +1539,23 @@ TM_over:
 #endif
 
 #if 0
+#if 1
     PRINTSTR("\r\nStart other core test?(0xcccc: start): ")
     bal     inputaddress
     nop
     move    t1, v0
 #else
-    li      t1, 0x0000
+    li      t1, 0xcccc
 #endif
 
-1:
-    dli     t1, 0x0010
-    dli     s1, 0x0004000080000000  //NODE 0, start from 0x80000000
-    bal     test_mem
+#ifdef NODE1_BOOT
+    dli     t0, NODE1_CORE0_BUF0 #buf of cpu1
+#else
+    dli     t0, NODE0_CORE0_BUF0 #buf of cpu0
+#endif
+    sw      t1, FN_OFF(t0)
     nop
-    move    t1, v0
-    PRINTSTR("\r\n")
-    dsrl    a0, t1, 32
-    bal     hexserial
-    nop
-    move    a0, t1
-    bal     hexserial
-    nop
-    beqz    t1, 1f
-    nop
-    PRINTSTR("  Error found!!\r\n")
-1:
+#endif
 
 #if 0
     PRINTSTR("\r\nStart simple_test_mem......\r\n")
@@ -1262,6 +1569,42 @@ TM_over:
     nop
 
 #endif
+
+    //dli     s1, 0x0004000080000000  //NODE 0, start from 0x80000000
+    dli     s1, 0x0008000080000000  //NODE 0, start from 0x80000000
+#if 1
+    PRINTSTR("\r\ndefault s1 = 0x");
+    dsrl    a0, s1, 32
+    bal     hexserial
+    nop
+    PRINTSTR("__")
+    move    a0, s1
+    bal     hexserial
+    nop
+    PRINTSTR("\r\nChange test param s1(0: skip)?: ")
+    bal     inputaddress
+    nop
+    beqz    v0, 1f
+    nop
+    move    s1, v0
+1:
+#endif
+1:
+    dli     t1, 0x0010
+    bal     test_mem
+    nop
+    move    t1, v0
+    PRINTSTR("\r\n")
+    dsrl    a0, t1, 32
+    bal     hexserial
+    nop
+    move    a0, t1
+    bal     hexserial
+    nop
+    beqz    t1, 2f
+    nop
+    PRINTSTR("  Error found!!\r\n")
+2:
 
 3:
 #endif
@@ -1454,24 +1797,15 @@ TM_over:
 
 		PRINTSTR("\ncopy text section done.\r\n")
 
-		/* Clear BSS */
-		la	a0, _edata
-		la	a2, _end
-		2:	sw	zero, 0(a0)
-		bne	a2, a0, 2b
-		addu	a0, 4
-
-
-		TTYDBG("Copy PMON to execute location done.\r\n")
 		/* zhb */
-#if 0
+#if 1
 		zhb:
 		TTYDBG("Testing...\r\n")
 		la	a0, start
 		li	a1, 0xbfc00000
 		la	a2, _edata
-		or      a0, 0xa0000000
-		or      a2, 0xa0000000
+		//or      a0, 0xa0000000
+		//or      a2, 0xa0000000
 		/*	subu	s6, a2, a0*/
 		/*	srl	s6, s6, 2*/
 
@@ -1509,6 +1843,46 @@ TM_over:
 		 */
 #endif
 
+		/* Clear BSS */
+		la	a0, _edata
+		la	a2, _end
+		2:	sw	zero, 0(a0)
+		bne	a2, a0, 2b
+		addu	a0, 4
+
+
+		TTYDBG("Copy PMON to execute location done.\r\n")
+
+#ifdef SHUT_SLAVES
+		PRINTSTR("Wake up other cores\r\n")
+
+#if 1
+        /* Set clock low for a safe shift */
+        li      t0, 0xbfe001b0
+        lw      a0, 0x0(t0)
+        li      a1, 0xfffffffe
+        and     a0, a0, a1
+        sw      a0, 0x0(t0)
+
+		li      a0, 0xbfe001d0
+		//li      t1, 0xffffffff
+		li      t1, 0x8888888f
+		sw      t1, 0x0(a0)
+
+        li      t0, 0xbfe001b0
+        lw      a0, 0x0(t0)
+        ori     a0, a0, 0x1
+        sw      a0, 0x0(t0)
+#endif
+
+		li      a0, 0xbfe001d0
+		li      t1, 0xffffffff
+		sw      t1, 0x0(a0)
+#else
+		PRINTSTR("NOT Wake up other cores\r\n")
+
+#endif
+
 
 		TTYDBG("sp=");
 	move a0, sp
@@ -1526,7 +1900,6 @@ TM_over:
 #endif
 		PRINTSTR("\r\n")
 
-
 		/* pass pointer to kseg1 tgt_putchar */
 		la  a1, tgt_putchar
 		addu a1,a1,s0
@@ -1536,11 +1909,23 @@ TM_over:
 
 		move	a0,msize
 
-#if 1 
 
-		dli     t0, CORE0_BUF0 #buf of cpu0
+#ifdef NODE1_BOOT
+		dli     t0,NODE1_CORE0_BUF0  #buf of cpu0
+#else
+		dli     t0,NODE0_CORE0_BUF0  #buf of cpu0
+#endif
+
 		li      t1, 0x5a5a
-		sw      t1, 0(t0)
+		sw      t1, FN_OFF(t0)
+		nop
+
+#if 1
+
+1:
+		lw      t1, FN_OFF(t0)
+		li		t2, 0x5a5a
+		bne     t2, t1,1b
 		nop
 #endif
 		la	v0, initmips
@@ -2053,7 +2438,9 @@ TM_over:
 
 
 #include "i2c.S"
-//#include "detect_node_dimm.S"
+#ifdef AUTO_DDR_CONFIG
+#include "3C_detect_node_dimm.S"
+#endif
 
 		__main:
 		j	ra
@@ -2357,6 +2744,7 @@ cache_init_finish:
 		nop
 		.end	godson2_cache_init
 
+
 		//lycheng
 		LEAF(nbmisc_read_index_mips)
 		dli   t1, HT_CONFIG_ADDR
@@ -2475,7 +2863,6 @@ cache_init_finish:
 		.ent	slave_main
 		slave_main:
 
-#if 1
 		mfc0	t0, CP0_STATUS
 		li      t1, 0x00e0      # {cu3,cu2,cu1,cu0}<={0110, status_fr<=1
 			or      t0, t0, t1
@@ -2501,163 +2888,184 @@ cache_init_finish:
 
 #endif
 
-#if 1 
 
-				dli     t0, CORE0_BUF0 #buf of cpu0
-				myidle:
-				lw      a0, 0(t0)
-				beqz    a0, myidle
-				nop
+#ifdef NODE1_BOOT
+    dli     t0, NODE1_CORE0_BUF0 #buf of cpu1
+#else
+    dli     t0, NODE0_CORE0_BUF0 #buf of cpu0
 #endif
 
-#if 0
-				li      a0, 0x100000
-				myidle:    
-				addiu   a0, -1
-				bnez    a0, myidle
-				nop
+myidle:
+#if 1
+    li      a0, 0x1000
+1:
+    subu   a0, 1
+    bnez    a0, 1b
+    nop
 #endif
+    lw      a0, FN_OFF(t0)
+    beqz    a0, myidle
+    nop
 
 				//PRINTSTR("$$$$$$$$!!\r\n");
 
 #if 1 /* gx */
-				bal 	tlb_init
 
-				nop
-				bal     godson2_cache_init
-				nop
+		bal CPU_TLBClear
+		nop
+		bal     tlb_init
+		nop
+        bal     godson2_cache_init
+        nop
+        bal     vcache_init
+        nop
 
-				mfc0	t0, CP0_CONFIG
-				ori	    t0, t0, 7
-				xori	t0, t0, 4
-				mtc0	t0, CP0_CONFIG
 
-				la	t0, next
 #if 1
-				dli	t1, 0xfffff
-				and     t0, t1
-				dli	t1, 0xffffffff9fc00000
-				or	t0, t1
+		mfc0	t0, CP0_CONFIG
+		ori	    t0, t0, 7
+  		xori	t0, t0, 4
+		mtc0	t0, CP0_CONFIG
+#endif
+
+#if 1
+		la	t0, next
+#if 1
+	dli	t1, 0xfffff
+	and     t0, t1
+	dli	t1, 0xffffffff9fc00000
+	or	t0, t1
 #endif	
+	jr	t0
+	nop
+next:
+#endif
 
-				jr	t0
-				nop
-				next:
+#if 1
+        ## enable kseg0 cachablilty####
+        mfc0    t0, CP0_CONFIG
+        lui     t1, 0xffff
+        ori     t1, t1, 0xfff8
+        and     t0, t0, t1
+        ori     t0, t0, 0x3
+        mtc0    t0, CP0_CONFIG
+        ################################
+#endif
 
-## enable kseg0 cachablilty####
-				mfc0    t0, CP0_CONFIG
-				lui     t1, 0xffff
-				ori     t1, t1, 0xfff8
-				and     t0, t0, t1
-				ori     t0, t0, 0x3
-				mtc0    t0, CP0_CONFIG
-################################
 #endif
 
 #if 0
 ############
-	mtc0    $0, CP0_WIRED
-	mtc0    $0, CP0_PAGEMASK
-	tlb_flush_all_slave:
-	lui     a0, 0x8000
-	addiu   a1, $0, 64
+        mtc0    $0, CP0_WIRED
+        mtc0    $0, CP0_PAGEMASK
+tlb_flush_all_slave:
+        lui     a0, 0x8000
+        addiu   a1, $0, 64
 #a0=KSEG0,a1 = tlbsize, v0, v1, a3 used as local registers
-	mtc0    $0, CP0_ENTRYLO0
-	mtc0    $0, CP0_ENTRYLO1
-	mfc0    v0, CP0_WIRED
-	addu    v1, $0, a0
-	1:      sltu    a3, v0, a1
-	beq     a3, $0, 1f
-	nop
-	mtc0    v1, CP0_ENTRYHI
-	mtc0    v0, CP0_INDEX
-	tlbwi
-	addiu   v1, v1, 0x2000
-	beq     $0, $0, 1b
-	addiu   v0, v0, 1
-	1:
+        mtc0    $0, CP0_ENTRYLO0
+        mtc0    $0, CP0_ENTRYLO1
+        mfc0    v0, CP0_WIRED
+        addu    v1, $0, a0
+1:      sltu    a3, v0, a1
+        beq     a3, $0, 1f
+        nop
+        mtc0    v1, CP0_ENTRYHI
+        mtc0    v0, CP0_INDEX
+        tlbwi
+        addiu   v1, v1, 0x2000
+        beq     $0, $0, 1b
+        addiu   v0, v0, 1
+1:
 ############
 #endif
 
-	.set mips64
-	mfc0    t2, $15, 1
-	andi    t2, 0x3ff
-	.set mips3
-########
-#define FN_OFF 0x020
-#define SP_OFF 0x028
-#define GP_OFF 0x030
-#define A1_OFF 0x038
+/******************************************************************/
+/* Read Mail BOX to judge whether current core can jump to kernel */
+/******************************************************************/
+/**********************
+t0: core ID
+t1: core mailbox base address
+t2: jump address
+t3: temp
+************************/
+		.set 	mips64
+		mfc0	t0, $15, 1
+		.set 	mips3
 
-	dli     t0, 0x900000003ff01000 
-	andi    t3, t2, 0x3  #local cpuid
-	sll     t3, 8
-	or      t0, t0, t3
+		andi	t0, 0x3ff
+		andi    t3, t0,0xc
 
-	andi    t4, t2, 0xc  #node id
-	dsll     t4, 42
-	or      t0, t0, t4
+		beq		t3, 0x0, node00;
+		nop	 
 
+		beq		t3, 0x4, node01;
+		nop	 
 
-	waitforinit:   
+		beq		t3, 0x8, node02;
+		nop	 
 
-#if 0 /* gx */
-	.set mips64
-	mfc0    s1, $15, 1
-	andi    s1, 0x3ff
-	.set mips3
-	move	a0, s1
-	bal	hexserial
-	nop
-	//move	a0, v0
-	//bal	hexserial
-	//nop
-	//move	a0, s1
-	//bal	hexserial
-	//nop
-#endif	
+		beq		t3, 0xc, node03;
+		nop	 
+
+node00:
+        dli     t1, NODE0_CORE0_BUF0;
+		b		core_x
+		nop
+
+node01:
+        dli     t1, NODE1_CORE0_BUF0;
+		b		core_x
+		nop
+
+node02:
+        dli     t1, NODE2_CORE0_BUF0;
+		b		core_x
+		nop
+
+node03:
+        dli     t1, NODE3_CORE0_BUF0;
+		b		core_x
+		nop
+
+core_x:
+		//add cores offset of every node
+		andi	t3, t0, 0x3
+		dsll	t3, t3, 8
+		or		t1, t1, t3
+waitforinit:
+
 	li      a0, 0x1000000
-	idle1000:    
-	addiu   a0, -1
-	bnez    a0, idle1000
-	nop
+idle1000:    
+    addiu   a0, -1
+    bnez    a0, idle1000
+    nop
 
-	lw      v0, FN_OFF(t0)
-	beqz    v0, waitforinit
-	nop
+    lw      t2, FN_OFF(t1)
+    beqz    t2, waitforinit
+    nop
 
-#if 0 /* gx */
-	move	a0, v0
-	bal	        hexserial
-	nop
-#endif
 
-	dli      t1, 0xffffffff00000000 
-	or       v0, t1
+    dli      t3, 0xffffffff00000000 
+    or       t2, t3
 
-	dli      t1, 0x9800000000000000 
-	ld      sp, SP_OFF(t0)
-	or      sp, t1
-	ld      gp, GP_OFF(t0)
-	or      gp, t1
-	ld      a1, A1_OFF(t0)
+    dli      t3, 0x9800000000000000 
+    ld      sp, SP_OFF(t1)
+    or      sp, t3
+    ld      gp, GP_OFF(t1)
+    or      gp, t3
+    ld      a1, A1_OFF(t1)
 
-	//PRINTSTR("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& !!\r\n");
-
-	jalr    v0  #byebye 
-	nop
-
-#######
-1:
-	b   1b
-	nop
+    jalr    t2  # slave core jump to kernel, byebye
+    nop
 
 	.end	slave_main
 
-#endif
 
 #######################################
 #include "3C_ddr_config.S"
+#include "loongson3C_ddr3_leveling.S"
+
+
 
 	.global watchdog_enable
 	.ent    watchdog_enable
@@ -2666,7 +3074,7 @@ cache_init_finish:
 watchdog_enable:
 	WatchDog_Enable
 	jr		ra
-        nop
+    nop
 	.end watchdog_enable
 
 	.text
@@ -2675,9 +3083,10 @@ watchdog_enable:
 nvram_offs:
 	.dword 0x0
 	.align 12
-	.dword 0x0
 
     .rdata
     .align  5
-.global ddr3_reg_data
-#include "loongson3C_ddr_param.fpga.S"  //300M ~ 400M
+    .global ddr2_reg_data
+    .global ddr3_reg_data
+//#include "loongson3C_ddr_param.400M.S"  //300M ~ 400M
+#include "loongson3C_ddr_param.S"  //667M ~ 

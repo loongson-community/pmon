@@ -179,7 +179,11 @@ struct efi_memory_map_loongson * init_memory_map()
 }
 
 #ifdef LOONGSON_3BSINGLE
+#ifdef LOONGSON_3B1500
+  #define PRID_IMP_LOONGSON    0x6307
+#else
   #define PRID_IMP_LOONGSON    0x6306
+#endif
  enum loongson_cpu_type cputype = Loongson_3B;
 #endif
 #ifdef LOONGSON_3BSERVER
