@@ -475,11 +475,8 @@ if(!run)
 #endif
 
 #else
-    do_cmd("ifaddr em0 10.2.1.245");
-    do_cmd("load tftp://10.2.5.27/vm.3a");
-    do_cmd("g console=ttyS0,115200 root=/dev/nfs nfsroot=10.2.1.175:/home/nfsroot init=/bin/bash rw ip=10.2.1.245:10.2.1.175::255.255.0.0:3aserver:eth0:off");
-	//s = getenv ("autoboot");
-	//autorun (s);
+	s = getenv ("autoboot");
+	autorun (s);
 #endif
 }
 }
@@ -865,6 +862,11 @@ dbginit (char *adr)
 		memorysize_total += ((memorysize_high_n1 + (256 << 20)) >> 20);  
 #endif
 #ifdef DUAL_3B
+	if(memorysize_high_n2 != 0 && memorysize_high_n3 == 0)
+	memorysize_total += ((memorysize_high_n2 + (256 << 20)) >> 20);
+	else if(memorysize_high_n2 == 0 && memorysize_high_n3 != 0)
+	memorysize_total += ((memorysize_high_n3 + (256 << 20)) >> 20);
+	else if(memorysize_high_n2 !=0 && memorysize_high_n3 != 0)
 	memorysize_total += ((memorysize_high_n2 + (256 << 20) + memorysize_high_n3 + (256 << 20)) >> 20);  
 #endif
 	printf ("Memory size %3d MB .\n", memorysize_total);
