@@ -3,18 +3,9 @@
     Author: Chen Xinke
     v0.1    for LS3A3
 *******************************/
-//select level which MC--2: MC1; 1: MC0
-#define MC_SELECT 0x2
-#define DDR_MC_CONFIG_BASE      0x900000000ff00000
-
+//Used for Hard leveling--obsolete now
 #define LVL_FIRST_STEP     (0x8)
 #define LVL_SECOND_STEP    (0x1)
-#define CLKLVL_MAX_DELAY        (0x80)
-#define WRLVL_MAX_DELAY         (0x80)
-#define RDLVL_MAX_DELAY         (0x80)
-#define RDLVL_GATE_MAX_DELAY    (0x22)
-
-#define GET_ARB_LEVEL_NODE_ID   dli a1, 0x3; and a1, a1, s1;
 #define SET_CURRESP  dli  a1, 0x01; or   t3, t3, a1;
 #define CLR_CURRESP  dli  a1, 0xfffffffffffffffe; and    t3, t3, a1;
 #define GET_CURRESP  dli  a1, 0x01; and  a1, t3, a1;
@@ -27,8 +18,41 @@
 #define CLR_FIRST_LVL   dli a1, 0x7fffffffffffffff; and t4, t4, a1;
 #define GET_FIRST_LVL   dsrl a1, t4, 63;
 
-#define ARB_STORE_BASE  0x9800000000000600  //(600 ~ 800 -- 512B max, 64 registers)
-#define ARB_STACK_BASE  0x9800000000000800  //(800 ~ a00 -- 512B max, 64 registers)
+//ARB level
+//the wrlvl can work without this delay(not sure now), but the rdlvl really need it. why???
+//#define MC_RST_DELAY        (0x1000)   //work ok
+#define MC_RST_DELAY        (0x10000)   //work ok
+//#define MC_RST_DELAY        (0x40000)   //work ok
+//#define MC_RST_DELAY        (0x100000)    //work ok
+
+//old level program tested data
+//#define MC_RST_DELAY        0x4000000   //work good.
+//#define MC_RST_DELAY        0x1000000   //seems not good.
+
+//these value must be aligned to 4
+#define CLKLVL_MAX_DELAY        (0x7c)
+#define RDLVL_GATE_MAX_DELAY    (0x22)
+#define RDLVL_MAX_DELAY         (0x4c)
+#define WRLVL_MAX_DELAY         (0x5e)
+#define WRLVL_DQ_MAX_DELAY      (0x50)
+
+//#define CPU_ODT_BASE_VALUE      (0x15)
+//#define CPU_ODT_INC_VALUE       (0x22)
+#define CPU_ODT_BASE_VALUE      (0x04)
+#define CPU_ODT_INC_VALUE       (0x12)
+
+#define WRLVL_HALF_CLK_VALUE    (0x40)
+#define DQSDQ_OUT_WINDOW_VALUE      (0x3733)
+#define PHY_0_DQSDQ_INC_VALUE_80P   (0x84400)
+#define PHY_0_DQSDQ_INC_VALUE_60P   (0x30400)
+#define PHY_0_DQSDQ_INC_VALUE_40P   (0x30000)
+#define PHY_0_DQSDQ_INC_VALUE_00P   (0x00000)
+//#define  MODIFY_DQSDQ_OUT_WINDOW
+
+#define GET_ARB_LEVEL_NODE_ID   dli a1, 0x3; and a1, a1, s1;
+
+#define ARB_STORE_BASE  0x9800001000000600  //(600 ~ 800 -- 512B max, 64 registers)
+#define ARB_STACK_BASE  0x9800001000000800  //(800 ~ a00 -- 512B max, 64 registers)
 #define B0_TM_RST   (0x0)
 #define B1_TM_RST   (0x8)
 #define B2_TM_RST   (0x10)
@@ -44,3 +68,16 @@
 #define BS_LEN      (0x58)
 #define BS_VAL      (0x60)
 #define LEVEL_SEQ_BASE   (0x80)
+
+//those define use the same address as above, so they can't be used at the same time
+#define BYTE_TM_RST         (0x0)
+#define RDLVL_GATE_CFG      (0x8)
+#define RDLVL_GATE_GD_MIN   (0x10)
+#define RDLVL_GATE_GD_MAX   (0x18)
+#define RDLVL_DELAYP_GD_MIN (0x20)
+#define RDLVL_DELAYP_GD_MAX (0x28)
+#define RDLVL_DELAYN_GD_MIN (0x30)
+#define RDLVL_DELAYN_GD_MAX (0x38)
+#define RDLVL_FAIL_MARK     (0x58)
+
+#define CLKLVL_DELAY_VALUE  (0x68)

@@ -34,10 +34,10 @@ v1: output result(s7)
 
 //#define ARB_TM_DBG
 #ifdef  ARB_TM_DBG
-#define	ARB_TM_PRINTSTR(x) \
-	.rdata;98: .asciz x; .text; la a0, 98b; bal stringserial; nop
+#define ARB_TM_PRINTSTR(x) \
+    .rdata;98: .asciz x; .text; la a0, 98b; bal stringserial; nop
 #else
-#define	ARB_TM_PRINTSTR(x) ;
+#define ARB_TM_PRINTSTR(x) ;
 #endif
 
 #define  ARB_TM_FLUSH_CACHE
@@ -53,7 +53,7 @@ ARB_TM_start:
     dli     a2, MT_STACK_BASE
     GET_TM_NODE_ID_a1
     dsll    a1, a1, 44
-    daddu   a2, a2, a1
+    or      a2, a2, a1
     sd      s0, 0x0(a2)
     sd      s1, 0x8(a2)
     sd      s2, 0x10(a2)
@@ -134,7 +134,7 @@ ARB_TM_begin:
     ARB_TM_PRINTSTR("\r\n")
 #endif
 
-	ARB_TM_PRINTSTR("\r\nStart Testing Memory...\r\n")
+    ARB_TM_PRINTSTR("\r\nStart Testing Memory...\r\n")
 
 //-------------------
 //pattern Diff Burst Test
@@ -151,7 +151,7 @@ ARB_TM_begin:
     dli     t6, MT_PATTERN_BASE
     GET_TM_NODE_ID_a1
     dsll    a1, a1, 44
-    daddu   t6, t6, a1
+    or      t6, t6, a1
 
     dli     t9, 0
 10:
@@ -489,7 +489,7 @@ ARB_TM_begin:
     bltu    t1, t3, 1b
     nop
     sync
-	ARB_TM_PRINTSTR("write done. begin to read and compare...\r\n")
+    ARB_TM_PRINTSTR("write done. begin to read and compare...\r\n")
 //read memory and compare
     //set Test Base t1
     GET_TM_UP_ADDR
@@ -567,7 +567,7 @@ ARB_TM_begin:
     dli     t6, MT_PATTERN_BASE
     GET_TM_NODE_ID_a1
     dsll    a1, a1, 44
-    daddu   t6, t6, a1
+    or      t6, t6, a1
 10:
     daddiu  t9, t9, 0x1
 1:
@@ -785,7 +785,7 @@ ARB_TM_begin:
     bltu    t1, t3, 1b
     nop
     sync
-	ARB_TM_PRINTSTR("write done. begin to read and compare...\r\n")
+    ARB_TM_PRINTSTR("write done. begin to read and compare...\r\n")
 //read memory and compare
     //set Test Base t1
     GET_TM_UP_ADDR
@@ -947,34 +947,34 @@ use reg:t5, t7
     ld      t5, 0(t5)
     nop
 #ifdef  ARB_TM_DBG
-	ARB_TM_PRINTSTR("addr 0x")
-	dsrl	a0, t1, 32
-	bal	    hexserial
-	nop
-	move	a0, t1
-	bal	    hexserial
-	nop
+    ARB_TM_PRINTSTR("addr 0x")
+    dsrl    a0, t1, 32
+    bal     hexserial
+    nop
+    move    a0, t1
+    bal     hexserial
+    nop
     ARB_TM_PRINTSTR(" expected: ")
-	dsrl	a0, t0, 32
-	bal	    hexserial
-	nop
-	move	a0, t0
-	bal	    hexserial
-	nop
+    dsrl    a0, t0, 32
+    bal     hexserial
+    nop
+    move    a0, t0
+    bal     hexserial
+    nop
     ARB_TM_PRINTSTR(" read: ")
-	dsrl	a0, t4, 32
-	bal	    hexserial
-	nop
-	move	a0, t4
-	bal	    hexserial
-	nop
+    dsrl    a0, t4, 32
+    bal     hexserial
+    nop
+    move    a0, t4
+    bal     hexserial
+    nop
     ARB_TM_PRINTSTR(" reread: ")
-	dsrl	a0, t5, 32
-	bal	    hexserial
-	nop
-	move	a0, t5
-	bal	    hexserial
-	nop
+    dsrl    a0, t5, 32
+    bal     hexserial
+    nop
+    move    a0, t5
+    bal     hexserial
+    nop
 #endif
     /* if the reread value differs the first read, print mark */
     xor     a0, t4, t5

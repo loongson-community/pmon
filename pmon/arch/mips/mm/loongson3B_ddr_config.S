@@ -113,15 +113,14 @@
 /**************************
 1. check NODE memory size.
 **************************/
-1:  //MC0_ONLY
+    //MC0_ONLY
     GET_MC0_MEMSIZE
     beqz    a1, 70f
     nop
     dli     t5, 0x8
     bgt     a1, t5, 70f
     nop
-4:
-#if 0
+#if 1
     PRINTSTR("\r\ns1 = 0x")
     move    a0, s1
     bal     hexserial
@@ -141,10 +140,11 @@ t0,t2 shouldn't be changed to the end of this file.
     GET_NODE_ID_a0
     dli     t0, 0x900000003ff00000
     or      t0, t0, a0
+    //add 3B register location offset
     dsrl    a0, a0, 44
     dsll    a0, a0, 14
-    or      t0, t0, a0
-    //odd NODE chip configure address should minus 1.
+    daddu   t0, t0, a0
+    //clear odd NODE_ID to even for chip config
     GET_NODE_ID_a1
     and     a1, a1, 0xe //clear bit[0]
     dli     t2, 0x900000001fe00180
@@ -152,7 +152,6 @@ t0,t2 shouldn't be changed to the end of this file.
     or      t2, t2, a1
 
 #if 1
-	/* show system config register  */
     PRINTSTR("\r\nt2 = 0x");
     dsrl    a0, t2, 32
     bal     hexserial
@@ -187,6 +186,26 @@ t0,t2 shouldn't be changed to the end of this file.
     not     a0, a0
     and     a2, a2, a0
     sw      a2, 0x0(t2)
+#endif
+
+#ifndef  DISABLE_DIMM_ECC
+    //Enable MC read buffer for ECC Initial
+    GET_DIMM_ECC
+    beqz    a1, 8f
+    nop
+    TTYDBG("Enable MC read buffer\r\n")
+    GET_NODE_ID_a1
+    and     a1, a1, 0x1 //a1 == 0(even NODE) or 1(odd NODE)
+    dsll    a2, a1, 2   //a2 == 0(even NODE) or 4(odd NODE)
+    daddu   a1, a2, a1  //a1 == 0(even NODE) or 5(odd NODE)
+    lw      a2, 0x0(t2)
+    li      a0, 0x40    //bit[6]--MC0_read_buffer_bypass
+    sll     a0, a0, a1  //sll 0 or 5
+    not     a0, a0
+    and     a2, a2, a0
+    sw      a2, 0x0(t2)
+    sync
+8:
 #endif
 
     bal     mc_init
@@ -227,7 +246,7 @@ t0,t2 shouldn't be changed to the end of this file.
 
     //disable default pci window
     L2XBAR_DISABLE_WINDOW(0x100);
-/*Assume MC0_ONLY */
+/*MC0_ONLY */
     GET_NODE_ID_a0;
     XBAR_CONFIG_NODE_a0(0x10, \
                     0x0000000000000000, \

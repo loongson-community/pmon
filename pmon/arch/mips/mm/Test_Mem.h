@@ -3,6 +3,7 @@ Author: Chen Xinke
 Function: Macro defination for Test_Mem.S
 ********************/
 //===========================
+#ifndef TM_PATTERN
 //WalkOnes
 #define PATTERN_D8_0_0  0x0101010101010101
 #define PATTERN_D8_0_1  0x0202020202020202
@@ -57,6 +58,7 @@ Function: Macro defination for Test_Mem.S
 #define PATTERN_S8b10b  0xb5b5b5b5b5b5b5b5
 #define PATTERN_Five7   0x5555555755575555
 #define PATTERN_Zero2fd 0x00020002fffdfffd
+#endif
 
 #define MEM_TEST_BASE   0x9800000000100000
 #define UNCACHED_MEM_TEST_BASE   0x9000000000100000
@@ -79,7 +81,7 @@ Function: Macro defination for Test_Mem.S
 #ifdef  LEVEL_SPECIFIED_BYTE_LANES
 //#define LEVEL_ONE_BYTE
 #ifndef LEVEL_ONE_BYTE
-#define LEVEL_BYTES_MASK    0xffffff0000000000
+#define LEVEL_BYTES_MASK    0xff00000000000000
 #endif
 #endif
 

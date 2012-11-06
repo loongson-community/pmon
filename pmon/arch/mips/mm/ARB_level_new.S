@@ -1,0 +1,2226 @@
+/************************************
+    Function:   Access Result Based Software leveling
+    Author: Chen Xinke
+    v3.2    write level trys all possible Read setting(pop delay * gate cfg), and one success
+            means this value is ok, write level all byte slice at the same time.
+    v3.1    Write level in byte slice order, and when the two read fit(not necessarily means
+            there is no read error!), the write result is recorded.
+    v3.0    Rewrite the training method
+    v2.0    Multi Node support
+    v1.x    Single Node mode
+    v1.1    Raw code for LS3A3
+    v0.2    used for test
+    
+note: don't use s0, because it will be use at some subroutine
+
+change register: a0,a1,a2,v0,v1, t9
+
+register usage:
+s3: Level sequence pointer(slice select).
+s4: rd pop delay control(local loop control).
+s5: Leveled byte mask.
+t0: RST store bit pointer during TM process;
+    RST parse pointer during result process.
+t1: stage global variable, also used by modify_param functions.
+t2: currently used delay value.
+t3, t4: variables
+t5: delay value interval.
+t6: param to Modify_param (object select).
+t7: volatile value
+t8: ARB_STORE_BASE
+t9: level control(avoid deadloop).
+v0, v1: return value of arb_test_mem.
+algrithm: 
+
+***************************************/
+/********************************
+********************************/
+#include "ARB_level.h"
+
+//#define DEBUG_ARB_LEVEL_RD
+//#define DEBUG_ARB_LEVEL_WR
+//#define DEBUG_ARB_LEVEL_TM_DETAIL
+
+#define MODIFY_PAD_COMP
+//#define FAKE_DDR3UDIMM_WRLVL
+
+#define ADJUST_CPU_ODT  //work ok
+#define CONTROL_L2XBAR_DDR_WINDOW  //work ok
+
+//#define ALIGN_GATE_DELAY  //obsolete because we use new method
+#define USE_SMALL_GF_POP_DELAY  //work ok
+#define ADD_DELAY_AFTER_RESET_PHY   //not need any more ?
+#define CLEAR_HALF_CLK_SHIFT    //necessary
+
+//Don't change
+#define LOG2_STEP   1   //log2 of TM step interval, remember to small WINDOW_ZERO_NUM when we use larger STEP
+#define WINDOW_ZERO_NUM     0x8
+#define GATE_LOG2_STEP  1   //log2 of TM step interval for read Gate level
+#define GATE_MINUS  -6
+
+ARB_level:
+    move    t9, ra
+ARB_start:
+#ifdef  PRINT_MSG
+    PRINTSTR("\r\nNODE ID:");
+    GET_ARB_LEVEL_NODE_ID
+    move    a0, a1
+    bal     hexserial
+    nop
+#endif
+
+/*
+ *Lock Scache 9800?01000000000 ~ 9800?01000001000(4K)
+ */
+#ifdef  PRINT_MSG
+    PRINTSTR("\r\nLock Scache Node x--9800?01000000000~4K...\r\n")
+#endif
+    dli     a2, LOCK_SCACHE_CONFIG_BASE_ADDR
+#ifdef LS3B
+    GET_ARB_LEVEL_NODE_ID
+    dsll    a1, a1, 14
+    daddu   a2, a2, a1
+#endif
+    GET_ARB_LEVEL_NODE_ID
+    dsll    a1, a1, 44
+    or      a2, a2, a1
+    dli     a3, 0x8000001000000000
+    or      a3, a3, a1
+    sd      a3, 0x0(a2)
+    dli     a3, 0x0000fffffffff000
+    sd      a3, 0x40(a2)
+#ifdef  PRINT_MSG
+    PRINTSTR("Lock Scache Done.\r\n")
+#endif
+
+//save t0~t9,s1~s7
+    dli     a2, ARB_STACK_BASE
+    GET_ARB_LEVEL_NODE_ID
+    dsll    a1, a1, 44
+    daddu   a2, a2, a1
+    sd      s0, 0x0(a2)
+    sd      s1, 0x8(a2)
+    sd      s2, 0x10(a2)
+    sd      s3, 0x18(a2)
+    sd      s4, 0x20(a2)
+    sd      s5, 0x28(a2)
+    sd      s6, 0x30(a2)
+    sd      s7, 0x38(a2)
+    sd      t0, 0x40(a2)
+    sd      t1, 0x48(a2)
+    sd      t2, 0x50(a2)
+    sd      t3, 0x58(a2)
+    sd      t4, 0x60(a2)
+    sd      t5, 0x68(a2)
+    sd      t6, 0x70(a2)
+    sd      t7, 0x78(a2)
+    sd      t8, 0x80(a2)
+    sd      t9, 0x88(a2)
+
+#if 0
+    bal     arb_test_mem
+    nop
+#endif
+#ifdef  PRINT_MSG
+    PRINTSTR("\r\nStart ARB Leveling....\r\n")
+#endif
+
+ARB_level_begin:
+
+    //Get CLKLVL_DELAY_VALUE
+    bal     enable_ddr_confspace
+    nop
+
+    GET_ARB_LEVEL_NODE_ID
+    dsll    a1, a1, 44
+    dli     t8, ARB_STORE_BASE
+    or      t8, t8, a1
+    dli     t7, DDR_MC_CONFIG_BASE
+    or      t7, t7, a1
+
+    ld      a1, CLKLVL_DELAY_0_ADDR(t7)
+    dsrl    a2, a1, CLKLVL_DELAY_0_OFFSET
+    and     a2, a2, 0x7f
+    sd      a2, CLKLVL_DELAY_VALUE(t8)
+
+    bal     disable_ddr_confspace
+    nop
+
+#ifdef  DDR3_DIMM
+#ifdef  FAKE_DDR3UDIMM_WRLVL
+    GET_DIMM_TYPE
+    bnez    a1, 88f
+    nop
+    //DDR3 UDIMM
+    b       arb_wrlvl_cal_ddr3udimm
+    nop
+88:
+#endif
+#endif
+
+arb_wrlvl_start:
+#ifdef  PRINT_MSG
+    PRINTSTR("\r\nStart Write Leveling. Wait a while...")
+#endif
+#ifdef  DEBUG_ARB_LEVEL_WR
+    PRINTSTR("\r\nThe MC configuration is:\r\n")
+    bal     enable_ddr_confspace
+    nop
+
+    dli     t1, DDR_PARAM_NUM
+    dli     t7, DDR_MC_CONFIG_BASE
+    GET_ARB_LEVEL_NODE_ID
+    dsll    a1, a1, 44
+    or      t7, t7, a1
+1:
+    ld      t3, 0x0(t7)
+    dsrl    a0, t3, 32
+    bal     hexserial
+    nop
+    PRINTSTR("  ")
+    move    a0, t3
+    bal     hexserial
+    nop
+    PRINTSTR("\r\n")
+
+    daddiu  t1, t1, -1
+    daddiu  t7, t7, 16
+    bnez    t1, 1b
+    nop
+
+    bal     disable_ddr_confspace
+    nop
+#endif
+    move    t9, $0
+    dli     s3, 0xf //change all 8 byte slices
+//1. level Write DQS Delay line setting.
+    //clear store mem
+    dli     t8, ARB_STORE_BASE
+    GET_ARB_LEVEL_NODE_ID
+    dsll    a1, a1, 44
+    daddu   t8, t8, a1
+    sd      $0, 0x0(t8)
+    sd      $0, 0x8(t8)
+    sd      $0, 0x10(t8)
+    sd      $0, 0x18(t8)
+    sd      $0, 0x20(t8)
+    sd      $0, 0x28(t8)
+    sd      $0, 0x30(t8)
+    sd      $0, 0x38(t8)
+    sd      $0, 0x40(t8)
+    sd      $0, 0x48(t8)
+    sd      $0, 0x50(t8)
+    sd      $0, 0x58(t8)
+
+    //set t2 start value
+    //5 wrlvl_dqs max
+    dli     t2, WRLVL_MAX_DELAY
+
+    dli     t0, 0x1
+    dsrl    a0, t2, LOG2_STEP
+    dsll    t0, t0, a0
+
+    dli     t5, 1 << LOG2_STEP 
+    //initialize
+    move    t3, $0
+    move    t4, $0
+    not     t3, t3
+    not     t4, t4
+31:
+#ifdef  DEBUG_ARB_LEVEL_WR
+    PRINTSTR("\r\n\r\nt2 = 0x")
+    move    a0, t2
+    bal     hexserial
+    nop
+#endif
+    move    s4, $0
+    dli     t6, 0x5
+//write new delay value
+    bal     arb_modify_param
+    nop
+
+    //store t2 of current wrlvl_delay value
+    move    s5, t2
+17:
+    move    t2, $0
+18:
+    dli     t6, 0x7
+#ifdef  DEBUG_ARB_LEVEL_WR
+    PRINTSTR("\r\nModify read gate cfg: = 0x")
+    move    a0, t2
+    bal     hexserial
+    nop
+#endif
+    bal     arb_modify_param
+    nop
+
+//do Test and print test result
+#ifdef  DEBUG_ARB_LEVEL_WR
+    PRINTSTR("\r\nThe MC configuration is:\r\n")
+    bal     enable_ddr_confspace
+    nop
+
+    //dli     t1, DDR_PARAM_NUM
+    dli     t1, 0xa         //set print num
+    dli     t7, DDR_MC_CONFIG_BASE
+    GET_ARB_LEVEL_NODE_ID
+    dsll    a1, a1, 44
+    or      t7, t7, a1
+    daddu   t7, t7, 0x2d0   //set start offset
+1:
+    ld      t6, 0x0(t7)
+    dsrl    a0, t6, 32
+    bal     hexserial
+    nop
+    PRINTSTR("  ")
+    move    a0, t6
+    bal     hexserial
+    nop
+    PRINTSTR("\r\n")
+
+    daddiu  t1, t1, -1
+    daddiu  t7, t7, 16
+    bnez    t1, 1b
+    nop
+
+    bal     disable_ddr_confspace
+    nop
+#endif
+    bal     arb_test_mem
+    nop
+    //process test result, only when the entire byte is correct(0x00) clear fail mark in t3.
+    //byte 7
+    dsrl    a0, v0, 0x38
+    and     a0, a0, 0xff
+    bnez    a0, 1f
+    nop
+    //find a pass
+    dli     a0, 0xff
+    dsll    a0, a0, 0x38
+    not     a0, a0
+    and     t3, t3, a0
+1:
+    //byte 6
+    dsrl    a0, v0, 0x30
+    and     a0, a0, 0xff
+    bnez    a0, 1f
+    nop
+    //find a pass
+    dli     a0, 0xff
+    dsll    a0, a0, 0x30
+    not     a0, a0
+    and     t3, t3, a0
+1:
+    //byte 5
+    dsrl    a0, v0, 0x28
+    and     a0, a0, 0xff
+    bnez    a0, 1f
+    nop
+    //find a pass
+    dli     a0, 0xff
+    dsll    a0, a0, 0x28
+    not     a0, a0
+    and     t3, t3, a0
+1:
+    //byte 4
+    dsrl    a0, v0, 0x20
+    and     a0, a0, 0xff
+    bnez    a0, 1f
+    nop
+    //find a pass
+    dli     a0, 0xff
+    dsll    a0, a0, 0x20
+    not     a0, a0
+    and     t3, t3, a0
+1:
+    //byte 3
+    dsrl    a0, v0, 0x18
+    and     a0, a0, 0xff
+    bnez    a0, 1f
+    nop
+    //find a pass
+    dli     a0, 0xff
+    dsll    a0, a0, 0x18
+    not     a0, a0
+    and     t3, t3, a0
+1:
+    //byte 2
+    dsrl    a0, v0, 0x10
+    and     a0, a0, 0xff
+    bnez    a0, 1f
+    nop
+    //find a pass
+    dli     a0, 0xff
+    dsll    a0, a0, 0x10
+    not     a0, a0
+    and     t3, t3, a0
+1:
+    //byte 1
+    dsrl    a0, v0, 0x08
+    and     a0, a0, 0xff
+    bnez    a0, 1f
+    nop
+    //find a pass
+    dli     a0, 0xff
+    dsll    a0, a0, 0x08
+    not     a0, a0
+    and     t3, t3, a0
+1:
+    //byte 0
+    dsrl    a0, v0, 0x0
+    and     a0, a0, 0xff
+    bnez    a0, 1f
+    nop
+    //find a pass
+    dli     a0, 0xff
+    dsll    a0, a0, 0x0
+    not     a0, a0
+    and     t3, t3, a0
+1:
+#ifdef  DEBUG_ARB_LEVEL_WR
+    //record RD history in t4, normally, t4 should be 0x0 after all these trying
+    //byte 7
+    dsrl    a0, v1, 0x38
+    and     a0, a0, 0xff
+    bnez    a0, 1f
+    nop
+    //find a pass
+    dli     a0, 0xff
+    dsll    a0, a0, 0x38
+    not     a0, a0
+    and     t4, t4, a0
+1:
+    //byte 6
+    dsrl    a0, v1, 0x30
+    and     a0, a0, 0xff
+    bnez    a0, 1f
+    nop
+    //find a pass
+    dli     a0, 0xff
+    dsll    a0, a0, 0x30
+    not     a0, a0
+    and     t4, t4, a0
+1:
+    //byte 5
+    dsrl    a0, v1, 0x28
+    and     a0, a0, 0xff
+    bnez    a0, 1f
+    nop
+    //find a pass
+    dli     a0, 0xff
+    dsll    a0, a0, 0x28
+    not     a0, a0
+    and     t4, t4, a0
+1:
+    //byte 4
+    dsrl    a0, v1, 0x20
+    and     a0, a0, 0xff
+    bnez    a0, 1f
+    nop
+    //find a pass
+    dli     a0, 0xff
+    dsll    a0, a0, 0x20
+    not     a0, a0
+    and     t4, t4, a0
+1:
+    //byte 3
+    dsrl    a0, v1, 0x18
+    and     a0, a0, 0xff
+    bnez    a0, 1f
+    nop
+    //find a pass
+    dli     a0, 0xff
+    dsll    a0, a0, 0x18
+    not     a0, a0
+    and     t4, t4, a0
+1:
+    //byte 2
+    dsrl    a0, v1, 0x10
+    and     a0, a0, 0xff
+    bnez    a0, 1f
+    nop
+    //find a pass
+    dli     a0, 0xff
+    dsll    a0, a0, 0x10
+    not     a0, a0
+    and     t4, t4, a0
+1:
+    //byte 1
+    dsrl    a0, v1, 0x08
+    and     a0, a0, 0xff
+    bnez    a0, 1f
+    nop
+    //find a pass
+    dli     a0, 0xff
+    dsll    a0, a0, 0x08
+    not     a0, a0
+    and     t4, t4, a0
+1:
+    //byte 0
+    dsrl    a0, v1, 0x0
+    and     a0, a0, 0xff
+    bnez    a0, 1f
+    nop
+    //find a pass
+    dli     a0, 0xff
+    dsll    a0, a0, 0x0
+    not     a0, a0
+    and     t4, t4, a0
+1:
+#endif
+
+    //tryed all setting(0,1,2)
+    dli     a1, 0x2
+    beq     t2, a1, 22f
+    nop
+    dsll    t2, t2, 0x1
+    bnez    t2, 1f
+    nop
+    xor     t2, t2, 0x1
+1:
+    b       18b
+    nop
+22: //test another rd pop delay cfg
+    bnez    s4, 26f
+    nop
+    daddu   s4, s4, 1
+#ifdef  DEBUG_ARB_LEVEL_WR
+    PRINTSTR("\r\nAlter read pop delay.")
+#endif
+    bal     arb_modify_pop_delay_alter
+    nop
+
+    b       17b
+    nop
+
+26: //tryed all setting(combination: pop delay and rd gat cfg)
+    move    t2, s5
+
+#ifdef  DEBUG_ARB_LEVEL_WR
+    PRINTSTR("\r\nRW Diff 0x")
+    dsrl    a0, t3, 32
+    bal     hexserial
+    nop
+    move    a0, t3
+    bal     hexserial
+    nop
+    PRINTSTR("\r\nRD Diff 0x")
+    dsrl    a0, t4, 32
+    bal     hexserial
+    nop
+    move    a0, t4
+    bal     hexserial
+    nop
+#endif
+
+#ifdef  DEBUG_ARB_LEVEL_WR
+    PRINTSTR("\r\nAfter all the RD setting, t4 = 0x")
+    dsrl    a0, t4, 32
+    bal     hexserial
+    nop
+    move    a0, t4
+    bal     hexserial
+    nop
+    beqz    t4, 1f
+    nop
+    PRINTSTR("\r\nWarning!!! some byte slice can't find a correct read setting")
+1:
+#endif
+//process TM result: translate Byte error info into 1 bit info in each BX_TM_RST of every Byte.
+//64 bit BX_TM_RST work as a bit map corresponding to every param value(so the min step interval
+//is 2, or there will be not enough space to store TM RST info), the 64 bit can be only part valid(
+//step interval > 2).
+    dli     t8, ARB_STORE_BASE
+    GET_ARB_LEVEL_NODE_ID
+    dsll    a1, a1, 44
+    daddu   t8, t8, a1
+
+    dsrl    t7, t3, 56
+    and     t7, t7, 0xff
+    beqz    t7, 1f
+    nop
+    //error detected
+    ld      a0, B7_TM_RST(t8)
+    or      a0, a0, t0
+    sd      a0, B7_TM_RST(t8)
+1:
+    dsrl    t7, t3, 48 
+    and     t7, t7, 0xff
+    beqz    t7, 1f
+    nop
+    //error detected
+    ld      a0, B6_TM_RST(t8)
+    or      a0, a0, t0
+    sd      a0, B6_TM_RST(t8)
+1:
+    dsrl    t7, t3, 40
+    and     t7, t7, 0xff
+    beqz    t7, 1f
+    nop
+    //error detected
+    ld      a0, B5_TM_RST(t8)
+    or      a0, a0, t0
+    sd      a0, B5_TM_RST(t8)
+1:
+    dsrl    t7, t3, 32
+    and     t7, t7, 0xff
+    beqz    t7, 1f
+    nop
+    //error detected
+    ld      a0, B4_TM_RST(t8)
+    or      a0, a0, t0
+    sd      a0, B4_TM_RST(t8)
+1:
+    dsrl    t7, t3, 24
+    and     t7, t7, 0xff
+    beqz    t7, 1f
+    nop
+    //error detected
+    ld      a0, B3_TM_RST(t8)
+    or      a0, a0, t0
+    sd      a0, B3_TM_RST(t8)
+1:
+    dsrl    t7, t3, 16
+    and     t7, t7, 0xff
+    beqz    t7, 1f
+    nop
+    //error detected
+    ld      a0, B2_TM_RST(t8)
+    or      a0, a0, t0
+    sd      a0, B2_TM_RST(t8)
+1:
+    dsrl    t7, t3, 8
+    and     t7, t7, 0xff
+    beqz    t7, 1f
+    nop
+    //error detected
+    ld      a0, B1_TM_RST(t8)
+    or      a0, a0, t0
+    sd      a0, B1_TM_RST(t8)
+1:
+    dsrl    t7, t3, 0
+    and     t7, t7, 0xff
+    beqz    t7, 1f
+    nop
+    //error detected
+    ld      a0, B0_TM_RST(t8)
+    or      a0, a0, t0
+    sd      a0, B0_TM_RST(t8)
+1:
+    dsrl    t0, t0, 1
+
+    //check wether delay value exceed max value
+    dsubu   a2, t2, t5
+    bltz    a2, 11f //check the new delay value whether exceed limitation
+    nop
+    /** not exceed **/
+    move    t2, a2
+    b       31b
+    nop
+11: 
+
+#ifdef  DEBUG_ARB_LEVEL_WR
+    dli     t8, ARB_STORE_BASE
+    GET_ARB_LEVEL_NODE_ID
+    dsll    a1, a1, 44
+    daddu   t8, t8, a1
+    PRINTSTR("\r\nlevel result is:\r\n")
+    ld      t7, B7_TM_RST(t8)
+    dsrl    a0, t7, 32
+    bal     hexserial
+    nop
+    move    a0, t7
+    bal     hexserial
+    nop
+    PRINTSTR("\r\n")
+    ld      t7, B6_TM_RST(t8)
+    dsrl    a0, t7, 32
+    bal     hexserial
+    nop
+    move    a0, t7
+    bal     hexserial
+    nop
+    PRINTSTR("\r\n")
+    ld      t7, B5_TM_RST(t8)
+    dsrl    a0, t7, 32
+    bal     hexserial
+    nop
+    move    a0, t7
+    bal     hexserial
+    nop
+    PRINTSTR("\r\n")
+    ld      t7, B4_TM_RST(t8)
+    dsrl    a0, t7, 32
+    bal     hexserial
+    nop
+    move    a0, t7
+    bal     hexserial
+    nop
+    PRINTSTR("\r\n")
+    ld      t7, B3_TM_RST(t8)
+    dsrl    a0, t7, 32
+    bal     hexserial
+    nop
+    move    a0, t7
+    bal     hexserial
+    nop
+    PRINTSTR("\r\n")
+    ld      t7, B2_TM_RST(t8)
+    dsrl    a0, t7, 32
+    bal     hexserial
+    nop
+    move    a0, t7
+    bal     hexserial
+    nop
+    PRINTSTR("\r\n")
+    ld      t7, B1_TM_RST(t8)
+    dsrl    a0, t7, 32
+    bal     hexserial
+    nop
+    move    a0, t7
+    bal     hexserial
+    nop
+    PRINTSTR("\r\n")
+    ld      t7, B0_TM_RST(t8)
+    dsrl    a0, t7, 32
+    bal     hexserial
+    nop
+    move    a0, t7
+    bal     hexserial
+    nop
+#endif
+//calculate mid value for each byte lane
+/***********
+boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
+    t0: parse pointer
+    t1: BYTE OFFSET, and work as loop control
+    t2: parse max position
+    t3: BYTE_X_LEVEL_RST
+    t4: WINDOW_ZERO_NUM
+***********/
+    //set t2 max value for each level object
+    dli     t2, WRLVL_MAX_DELAY
+    dsrl    t2, t2, LOG2_STEP
+
+    dli     t1, 0x38    //start from byte 7
+    dli     t8, ARB_STORE_BASE
+    GET_ARB_LEVEL_NODE_ID
+    dsll    a1, a1, 44
+    daddu   t8, t8, a1
+11: //loop for 8 byte lane
+    daddu   a1, t8, t1
+    ld      t3, B0_TM_RST(a1)
+#ifdef  DEBUG_ARB_LEVEL_WR
+    PRINTSTR("\r\nt3 = 0x")
+    dsrl    a0, t3, 32
+    bal     hexserial
+    nop
+    move    a0, t3
+    bal     hexserial
+    nop
+#endif
+    move    t0, $0
+    dli     t4, WINDOW_ZERO_NUM
+12:
+    bgtu    t0, t2, 3f
+    nop
+    dsrl    t7, t3, t0
+    and     t7, t7, 0x1
+    bnez    t7, 1f
+    nop
+    //find a TM success
+    daddiu  t4, t4, -1
+    beqz    t4, 2f
+    nop
+    //continue move
+    daddiu  t0, t0, 0x1
+    b       12b
+    nop
+1:  //find a TM fail
+    dli     t4, WINDOW_ZERO_NUM
+    //continue move
+    daddiu  t0, t0, 0x1
+    b       12b
+    nop
+2:  //window found
+    //calculate the MIN boundary
+    dli     a1, WINDOW_ZERO_NUM
+    daddiu  a0, t0, 1
+    dsubu   a0, a0, a1
+    dsll    a0, a0, LOG2_STEP   //a0 = a0 * 2n
+    and     a0, a0, 0xff
+    dsll    a0, a0, t1
+    ld      a1, GD_MIN(t8)
+    or      a1, a1, a0
+    sd      a1, GD_MIN(t8)
+    //move forward to the next Fail to cal the MAX boundary
+1:
+    daddiu  t0, t0, 0x1
+    bgtu    t0, t2, 1f
+    nop
+    dsrl    t7, t3, t0
+    and     t7, t7, 0x1
+    beqz    t7, 1b  //continue move
+    nop
+1:
+    //find a TM FAIL or reach the max test value
+    daddiu  a0, t0, -1
+    dsll    a0, a0, LOG2_STEP   //a0 = a0 * 2n
+    and     a0, a0, 0xff
+    dsll    a0, a0, t1
+    ld      a1, GD_MAX(t8)
+    or      a1, a1, a0
+    sd      a1, GD_MAX(t8)
+    b       2f
+    nop
+3:  //parse to end, CAN NOT find a window
+    or      t9, t9, 0x1
+#ifdef  PRINT_MSG
+    PRINTSTR("\r\nWrlvl Error: This Byte Window not found.")
+    PRINTSTR("\r\nFailed byte is byte: ")
+    dsrl    a0, t1, 3
+    bal     hexserial
+    nop
+#endif
+2:  //continue for next byte lane
+    beqz    t1, 2f
+    nop
+    daddu   t1, t1, -0x8
+    b       11b
+    nop
+2:  //All byte lane's MIN and MAX value stored or fail to find
+    beqz    t9, 1f
+    nop
+    //some Byte lane can not find a window
+#ifdef  MODIFY_PAD_COMP
+    PRINTSTR("\r\nTry another pad compensation.\r\n")
+    bal     arb_modify_pad_comp
+    nop
+    beqz    v0, arb_wrlvl_start
+    nop
+#endif
+#ifdef  PRINT_MSG
+    PRINTSTR("\r\nWrite level failed. Write default value(0x30).\r\n")
+#endif
+    //write standard value mandatory
+    //wrlvl_delay
+    dli     a0, 0x3030303030303030
+    sd      a0, GD_MID(t8)
+    b       41f
+    nop
+1:
+#ifdef  PRINT_MSG
+    PRINTSTR("\r\nMin value: 0x")
+    ld      t7, GD_MIN(t8)
+    dsrl    a0, t7, 32
+    bal     hexserial
+    nop
+    move    a0, t7
+    bal     hexserial
+    nop
+    PRINTSTR("\r\nMax value: 0x")
+    ld      t7, GD_MAX(t8)
+    dsrl    a0, t7, 32
+    bal     hexserial
+    nop
+    move    a0, t7
+    bal     hexserial
+    nop
+#endif
+//calculate mid value for each byte lane
+    ld      a0, GD_MIN(t8)
+    ld      a1, GD_MAX(t8)
+    daddu   a0, a0, a1
+    //divide a0 by 2 every byte
+    dsrl    a0, a0, 1
+    dli     a1, 0x7f7f7f7f7f7f7f7f
+    and     a0, a0, a1
+#ifdef  DDR3_DIMM //special deal with wrlvl_dqs when use DDR3 DIMM
+    GET_DIMM_TYPE
+    bnez    a1, 4f
+    nop
+#ifndef  FAKE_DDR3UDIMM_WRLVL
+    ld      a1, GD_MIN(t8)
+    ld      a3, GD_MAX(t8)
+    //Byte 1~0
+    //refer byte 1
+    dsrl    a2, a1, 8
+    and     a2, a2, 0x7f
+    bnez    a2, 1f
+    nop
+    //min==0
+    dsrl    v0, a0, 1   //mid_value / 2
+    dli     a2, 0x7f7f
+    and     v0, v0, a2
+    dli     a2, 0xffff
+    not     a2, a2
+    and     a0, a0, a2
+    or      a0, a0, v0
+1:
+    //Byte 3~2
+    //refer byte 3
+    dsrl    a2, a1, 24
+    and     a2, a2, 0x7f
+    bnez    a2, 1f
+    nop
+    //MIN==0
+    dsrl    v0, a0, 0   //mid_value / 1
+    dli     a2, 0x7f7f0000
+    and     v0, v0, a2
+    dli     a2, 0xffff0000
+    not     a2, a2
+    and     a0, a0, a2
+    or      a0, a0, v0
+1:
+    //Byte 5~4
+    //refer byte 5
+    dsrl    a2, a3, 40
+    and     a2, a2, 0x7f
+    dli     v0, 0x58
+    blt     a2, v0, 1f
+    nop
+    //MAX reach boundary, use ((MAX+MID)/2 + MID)/2
+    daddu   v0, a3, a0
+    dsrl    v0, v0, 1
+    dli     v1, 0x7f7f00000000
+    and     v0, v0, v1
+
+    daddu   v0, v0, a0
+    dsrl    v0, v0, 1
+    dli     v1, 0x7f7f00000000
+    and     v0, v0, v1
+
+    dli     v1, 0xffff00000000
+    not     v1, v1
+    and     a0, a0, v1
+    or      a0, a0, v0
+1:
+    //Byte 7~6
+    //refer byte 7
+    dsrl    a2, a3, 56
+    and     a2, a2, 0x7f
+    dli     v0, 0x58
+    blt     a2, v0, 1f
+    nop
+    //MAX reach boundary, use (MAX+MID)/2
+    daddu   v0, a3, a0
+    dsrl    v0, v0, 1
+    dli     v1, 0x7f7f000000000000
+    and     v0, v0, v1
+    dli     v1, 0xffff000000000000
+    not     v1, v1
+    and     a0, a0, v1
+    or      a0, a0, v0
+1:
+#else
+arb_wrlvl_cal_ddr3udimm:
+    ld      a0, CLKLVL_DELAY_VALUE(t8)
+    daddu   a0, a0, 0xc    //add byte 0 start offset
+    dsll    a1, a0, 0x8
+    daddu   a0, a0, a1
+    dsll    a1, a0, 0x10
+    daddu   a0, a0, a1
+    dsll    a1, a0, 0x20
+    daddu   a0, a0, a1
+
+    dli     a1, 0x36302a2418100800
+    daddu   a0, a0, a1
+#endif
+    b       88f
+    nop
+4:
+    ld      a1, GD_MIN(t8)
+    ld      a3, GD_MAX(t8)
+    //select the MIN(byte 3, byte 4), normally the byte 4 should be the smaller.
+    dsrl    a2, a3, 32
+    dsrl    v0, a3, 24
+    ble     a2, v0, 1f
+    nop
+    move    a2, v0
+1:
+    //Add offset because of clk dll value(relevant to 0x10)
+    ld      a1, CLKLVL_DELAY_VALUE(t8)
+    dsubu   a1, a1, 0x20
+    bgez    a1, 1f
+    nop
+    move    a1, $0
+1:
+    dsubu   a2, a2, a1
+    bltz    a2, 1f
+    nop
+    //a2 should be >= 0
+
+    and     a2, a2, 0x7f
+    dsll    v0, a2, 8
+    or      a2, a2, v0  //2
+    dsll    v0, a2, 16
+    or      a2, a2, v0  //4
+    dsll    v0, a2, 32
+    or      a2, a2, v0  //8
+
+    dsubu   v0, a3, a2
+    dli     v1, 0x8080808080808080
+    and     v1, v1, v0
+    bnez    v1, 1f
+    nop
+    move    a0, v0
+    b       88f
+    nop
+1:  //abnormal: some byte is smaller than MIN(byte 3, 4)
+    //use mid/2
+    dsrl    a0, a0, 1
+    dli     a1, 0x7f7f7f7f7f7f7f7f
+    and     a0, a0, a1
+
+88:
+#endif
+    sd      a0, GD_MID(t8)
+
+#ifdef  PRINT_MSG
+    PRINTSTR("\r\nCal Mid value: 0x")
+    ld      t7, GD_MID(t8)
+    dsrl    a0, t7, 32
+    bal     hexserial
+    nop
+    move    a0, t7
+    bal     hexserial
+    nop
+#endif
+41:
+    ld      t2, GD_MID(t8)
+#ifdef DEBUG_ARB_LEVEL_WR
+    PRINTSTR("\r\nWrite param and value:\r\nt2 = 0x")
+    dsrl    a0, t2, 32
+    bal     hexserial
+    nop
+    move    a0, t2
+    bal     hexserial
+    nop
+#endif
+#include    "ARB_Write_WDQS_param.S"
+
+#ifdef DEBUG_ARB_LEVEL_WR
+    PRINTSTR("\r\nAfter write leveling. The MC configuration is:\r\n")
+
+    bal     enable_ddr_confspace
+    nop
+
+    dli     t1, DDR_PARAM_NUM
+    dli     t7, DDR_MC_CONFIG_BASE
+    GET_ARB_LEVEL_NODE_ID
+    dsll    a1, a1, 44
+    or      t7, t7, a1
+1:
+    ld      t3, 0x0(t7)
+    dsrl    a0, t3, 32
+    bal     hexserial
+    nop
+    PRINTSTR("  ")
+    move    a0, t3
+    bal     hexserial
+    nop
+    PRINTSTR("\r\n")
+
+    daddiu  t1, t1, -1
+    daddiu  t7, t7, 16
+    bnez    t1, 1b
+    nop
+
+    bal     disable_ddr_confspace
+    nop
+#endif
+
+
+//2. read_level read param cfg: include: POP delay(3 or 4), rd_gate_cfg, rd gate delay line and rdlvl_dqsP/N
+//use RW result, because we have done wr_dqs leveling, so there should not be RW errors.
+/*
+ * s3: level byte slice--global
+ * t8: ARB_STORE_BASE--global
+ * s5: slice mask--global
+ * s4: slice inner loop control--global
+ * t6: lvl sel-- stage global
+ * t2: lvl value--stage global
+ */
+#ifdef  PRINT_MSG
+    PRINTSTR("\r\n\r\nStart read leveling..")
+#endif
+
+    //s3---level byte lane
+    dli     s3, 0x7
+    //set t8
+    dli     t8, ARB_STORE_BASE
+    GET_ARB_LEVEL_NODE_ID
+    dsll    a1, a1, 44
+    daddu   t8, t8, a1
+
+//loop for 8 slice
+rdlvl_one_byte_start:
+    //one bye lane level begin
+    bltz    s3, rdlvl_end
+    nop
+    //clear store mem
+    sd      $0, 0x0(t8)
+    sd      $0, 0x8(t8)
+    sd      $0, 0x10(t8)
+    sd      $0, 0x18(t8)
+    sd      $0, 0x20(t8)
+    sd      $0, 0x28(t8)
+    sd      $0, 0x30(t8)
+    sd      $0, 0x38(t8)
+    sd      $0, 0x40(t8)
+    sd      $0, 0x48(t8)
+    sd      $0, 0x50(t8)
+    sd      $0, 0x58(t8)
+
+    //set specified byte lanes Mask
+    dli     a0, 0x8
+    dmul    a0, a0, s3 
+    dli     a1, 0xff
+    dsll    s5, a1, a0
+
+#ifdef  PRINT_MSG
+    PRINTSTR("\r\n\r\n\r\nLevel slice: 0x")
+    move    a0, s3
+    bal     hexserial
+    nop
+    PRINTSTR("\r\nWait a while...")
+#endif
+#ifdef  DEBUG_ARB_LEVEL_RD
+    PRINTSTR("\r\ns5 = 0x")
+    dsrl    a0, s5, 32
+    bal     hexserial
+    nop
+    move    a0, s5
+    bal     hexserial
+    nop
+#endif
+
+    //test the possible two RD pop delay
+    //loop twice: for each POP delay cfg(3 or 4), find a best phy_rd_gate cfg first,
+    //then calculate the range of rdlvl_delay_P/N, use the larger range as final setting.
+    move    s4, $0
+rdlvl_pop_delay_start:
+    //set default value
+    //set rdlvl_delay_P/N to default value: 0x20
+    dli     t2, 0x20
+    dli     t6, 0x3
+    bal     arb_modify_param
+    nop
+    daddu   t6, t6, 0x1
+    bal     arb_modify_param
+    nop
+    //set rdlvl_gate_delay to some bigger value to reserve some margin
+    dli     t6, 0x2
+    dli     t2, 0x10
+    bal     arb_modify_param
+    nop
+
+    //1. Coarse leveling.---adjust phy_1 read gate cfg
+    dli     t6, 0x7
+    dli     t2, 0x2
+    //decrease from bigger to small because we want to use as bigger as possible.
+rdlvl_gate_cfg_start:
+#ifdef  DEBUG_ARB_LEVEL_RD
+    PRINTSTR("\r\nModify read gate cfg: t2 = 0x")
+    move    a0, t2
+    bal     hexserial
+    nop
+#endif
+    bal     arb_modify_param
+    nop
+#ifdef  DEBUG_ARB_LEVEL_RD
+    PRINTSTR("\r\nThe MC configuration is:\r\n")
+    bal     enable_ddr_confspace
+    nop
+
+    //dli     t1, DDR_PARAM_NUM
+    dli     t1, 0xa         //set print num
+    dli     t7, DDR_MC_CONFIG_BASE
+    GET_ARB_LEVEL_NODE_ID
+    dsll    a1, a1, 44
+    or      t7, t7, a1
+    daddu   t7, t7, 0x2d0   //set start offset
+1:
+    ld      t3, 0x0(t7)
+    dsrl    a0, t3, 32
+    bal     hexserial
+    nop
+    PRINTSTR("  ")
+    move    a0, t3
+    bal     hexserial
+    nop
+    PRINTSTR("\r\n")
+
+    daddiu  t1, t1, -1
+    daddiu  t7, t7, 16
+    bnez    t1, 1b
+    nop
+
+    bal     disable_ddr_confspace
+    nop
+#endif
+
+//do Test and print test result
+    bal     arb_test_mem
+    nop
+    move    t3, v0
+    move    t4, v1
+#ifdef  DEBUG_ARB_LEVEL_RD
+    beqz    t3, 1f
+    nop
+    PRINTSTR("\r\nRW Diff 0x")
+    dsrl    a0, t3, 32
+    bal     hexserial
+    nop
+    move    a0, t3
+    bal     hexserial
+    nop
+    PRINTSTR("\r\nRD Diff 0x")
+    dsrl    a0, t4, 32
+    bal     hexserial
+    nop
+    move    a0, t4
+    bal     hexserial
+    nop
+    b       2f
+    nop
+1:
+    PRINTSTR("\r\nNo Error detected.")
+2:
+#endif
+    //Mask out this byte lane info
+    and     t3, t3, s5
+    and     t4, t4, s5
+    //Find a right cfg
+    beqz    t3, 28f
+    nop
+    beqz    t2, 22f
+    nop
+    dsrl    t2, t2, 0x1
+    b       rdlvl_gate_cfg_start
+    nop
+    
+22: //tryed all setting(0,1,2), can NOT find a right cfg, try another pop delay.
+    //write fail mark
+    dli     a1, 0x1
+    dsll    a1, a1, s4
+    ld      a0, RDLVL_FAIL_MARK(t8)
+    or      a0, a0, a1
+    sd      a0, RDLVL_FAIL_MARK(t8)
+    b       rdlvl_pop_delay_end
+    nop
+28: //no error
+    //store rd gate cfg
+    dsll    a1, s4, 3
+    dsll    a1, t2, a1
+    ld      a0, RDLVL_GATE_CFG(t8)
+    or      a0, a0, a1
+    sd      a0, RDLVL_GATE_CFG(t8)
+
+    //2. fine leveling.---adjust rdlvl_gate_delay_X
+    //clear Store space
+    sd      zero, BYTE_TM_RST(t8)
+    sd      zero, GD_MIN(t8)
+    sd      zero, GD_MAX(t8)
+    sd      zero, GD_MID(t8)
+
+    dli     t6, 0x2
+    //set t2 start value
+    dli     t2, RDLVL_GATE_MAX_DELAY
+
+    dli     t0, 0x1
+    dsrl    a0, t2, GATE_LOG2_STEP
+    dsll    t0, t0, a0
+
+    dli     t5, 1 << GATE_LOG2_STEP 
+    //initialize
+    move    t3, $0
+    move    t4, $0
+31:
+//write new delay value
+    bal     arb_modify_param
+    nop
+
+//do Test and print test result
+    bal     arb_test_mem
+    nop
+    move    t3, v0
+    move    t4, v1
+#ifdef  DEBUG_ARB_LEVEL_TM_DETAIL
+    PRINTSTR("\r\nt2 = 0x")
+    move    a0, t2
+    bal     hexserial
+    nop
+    PRINTSTR(":")
+    beqz    t3, 1f
+    nop
+    PRINTSTR("\r\nRW Diff 0x")
+    dsrl    a0, t3, 32
+    bal     hexserial
+    nop
+    move    a0, t3
+    bal     hexserial
+    nop
+    PRINTSTR("\r\nRD Diff 0x")
+    dsrl    a0, t4, 32
+    bal     hexserial
+    nop
+    move    a0, t4
+    bal     hexserial
+    nop
+    b       2f
+    nop
+1:
+    PRINTSTR("\r\nNo Error detected.")
+2:
+#endif
+    //Mask out this byte lane info
+    and     t3, t3, s5
+    and     t4, t4, s5
+#if 1
+//process TM result: translate Byte error info into 1 bit info in each BX_TM_RST of every Byte.
+//64 bit BX_TM_RST work as a bit map corresponding to every param value(so the min step interval
+//is 2, or there will be not enough space to store TM RST info), the 64 bit can be only part valid(
+//step interval > 2).
+    beqz    t3, 1f
+    nop
+    //error detected
+    ld      a0, BYTE_TM_RST(t8)
+    or      a0, a0, t0
+    sd      a0, BYTE_TM_RST(t8)
+1:
+    dsrl    t0, t0, 1
+#endif
+    //check whether delay value reach the boundary
+    dsubu   a2, t2, t5
+    bltz    a2, 11f //check the new delay value whether exceed limitation
+    nop
+    /** not exceed **/
+    move    t2, a2
+    b       31b
+    nop
+11: 
+
+#ifdef  DEBUG_ARB_LEVEL_TM_DETAIL
+    PRINTSTR("\r\nlevel result is:\r\n")
+    ld      t7, BYTE_TM_RST(t8)
+    dsrl    a0, t7, 32
+    bal     hexserial
+    nop
+    move    a0, t7
+    bal     hexserial
+    nop
+#endif
+//calculate mid value for this byte lane
+/***********
+boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
+    t0: parse pointer
+    t2: parse max position
+    t3: BYTE_X_LEVEL_RST
+    t4: WINDOW_ZERO_NUM
+***********/
+    //set t2 max value for each level object
+    dli     t2, RDLVL_GATE_MAX_DELAY
+    dsrl    t2, t2, GATE_LOG2_STEP
+
+    ld      t3, BYTE_TM_RST(t8)
+#ifdef  DEBUG_ARB_LEVEL_TM_DETAIL
+    PRINTSTR("\r\nt3 = 0x")
+    dsrl    a0, t3, 32
+    bal     hexserial
+    nop
+    move    a0, t3
+    bal     hexserial
+    nop
+#endif
+    move    t0, $0
+    dli     t4, WINDOW_ZERO_NUM + (GATE_MINUS)
+12:
+    bgtu    t0, t2, 3f
+    nop
+    dsrl    t7, t3, t0
+    and     t7, t7, 0x1
+    bnez    t7, 1f
+    nop
+    //find a TM success
+    daddiu  t4, t4, -1
+    beqz    t4, 2f
+    nop
+    //continue move
+    daddiu  t0, t0, 0x1
+    b       12b
+    nop
+1:  //find a TM fail
+    dli     t4, WINDOW_ZERO_NUM + (GATE_MINUS)
+    //continue move
+    daddiu  t0, t0, 0x1
+    b       12b
+    nop
+2:  //window found
+    //calculate the MIN boundary
+    dli     a1, WINDOW_ZERO_NUM + (GATE_MINUS)
+    daddiu  a0, t0, 1
+    dsubu   a0, a0, a1
+    dsll    a0, a0, GATE_LOG2_STEP   //a0 = a0 * 2n
+    and     a0, a0, 0xff
+    sd      a0, GD_MIN(t8)
+    //move forward to the next Fail to cal the MAX boundary
+1:
+    daddiu  t0, t0, 0x1
+    bgtu    t0, t2, 1f
+    nop
+    dsrl    t7, t3, t0
+    and     t7, t7, 0x1
+    beqz    t7, 1b  //continue move
+    nop
+1:
+    //find a TM FAIL or reach the max test value
+    daddiu  a0, t0, -1
+    dsll    a0, a0, GATE_LOG2_STEP   //a0 = a0 * 2n
+    and     a0, a0, 0xff
+    sd      a0, GD_MAX(t8)
+    b       2f
+    nop
+3:  //parse to end, CAN NOT find a window
+#ifdef  DEBUG_ARB_LEVEL_RD
+    PRINTSTR("\r\nError: RDLVL Gate delay Window not found.")
+    PRINTSTR("\r\nt3 = 0x")
+    dsrl    a0, t3, 32
+    bal     hexserial
+    nop
+    move    a0, t3
+    bal     hexserial
+    nop
+#endif
+    dli     a1, 0x1
+    dsll    a1, a1, s4
+    ld      a0, RDLVL_FAIL_MARK(t8)
+    or      a0, a0, a1
+    sd      a0, RDLVL_FAIL_MARK(t8)
+    b       rdlvl_pop_delay_end
+    nop
+2:  //this byte lane's MIN and MAX value stored
+#ifdef  DEBUG_ARB_LEVEL_RD
+    PRINTSTR("\r\nMin value: 0x")
+    ld      t7, GD_MIN(t8)
+    move    a0, t7
+    bal     hexserial
+    nop
+    PRINTSTR("\r\nMax value: 0x")
+    ld      t7, GD_MAX(t8)
+    move    a0, t7
+    bal     hexserial
+    nop
+#endif
+    //store rdlvl_gate_delay min / max
+    dsll    a2, s4, 3
+
+    ld      a1, GD_MIN(t8)
+    dsll    a1, a1, a2
+    ld      a0, RDLVL_GATE_GD_MIN(t8)
+    or      a0, a0, a1
+    sd      a0, RDLVL_GATE_GD_MIN(t8)
+
+    ld      a1, GD_MAX(t8)
+    dsll    a1, a1, a2
+    ld      a0, RDLVL_GATE_GD_MAX(t8)
+    or      a0, a0, a1
+    sd      a0, RDLVL_GATE_GD_MAX(t8)
+
+//calculate mid value for this byte lane
+    ld      a0, GD_MIN(t8)
+    ld      a1, GD_MAX(t8)
+    daddu   a0, a0, a1
+    dsrl    a0, a0, 1
+#if 1
+    //max rdlvl_gate_delay == RDLVL_GATE_MAX_DELAY, use mid value(>= 0x10) plus 0x8
+    //else use max rdlvl_gate_delay minus as much as 0x10.
+    daddu   a0, a0, 0x8
+    dli     a2, RDLVL_GATE_MAX_DELAY
+    bge     a1, a2, 8f
+    nop
+    //a1 = [0x10 , RDLVL_GATE_MAX_DELAY)
+    dli     a2, 0x10
+    dsubu   a0, a1, a2
+    bge     a1, a2, 8f
+    nop
+    //logically a1 should not < 0x10
+    //a1 = (0x0 , 0x10)
+    move    a0, $0
+8:
+#endif
+    sd      a0, GD_MID(t8)
+    move    t2, a0
+
+#ifdef  DEBUG_ARB_LEVEL_RD
+    PRINTSTR("\r\nCal Mid value: 0x")
+    ld      t7, GD_MID(t8)
+    move    a0, t7
+    bal     hexserial
+    nop
+#endif
+    bal     arb_write_param
+    nop
+
+    //3. find the rdlvl_delay_P/N range.
+    //level RD_DQSp/n delay line setting
+    //use t6 to control rdlvl_delayP or rdlvl_delayN
+    dli     t6, 0x3
+21:
+    dli     a1, 0x4
+    bgt     t6, a1, rdlvl_pop_delay_end
+    nop
+//one level begin
+    //clear Store space
+    sd      zero, BYTE_TM_RST(t8)
+    sd      zero, GD_MIN(t8)
+    sd      zero, GD_MAX(t8)
+    sd      zero, GD_MID(t8)
+
+    //set t2 start value
+    //3,4 rdlvl_dqs and rdlvl_dqsn max delay
+    dli     t2, RDLVL_MAX_DELAY
+
+    dli     t0, 0x1
+    dsrl    a0, t2, LOG2_STEP
+    dsll    t0, t0, a0
+
+    dli     t5, 1 << LOG2_STEP 
+    //initialize
+    move    t3, $0
+    move    t4, $0
+31:
+//write new delay value
+    bal     arb_modify_param
+    nop
+
+//do Test and print test result
+    bal     arb_test_mem
+    nop
+    move    t3, v0
+    move    t4, v1
+#ifdef  DEBUG_ARB_LEVEL_TM_DETAIL
+    PRINTSTR("\r\nt2 = 0x")
+    move    a0, t2
+    bal     hexserial
+    nop
+    PRINTSTR(":")
+    beqz    t3, 1f
+    nop
+    PRINTSTR("\r\nRW Diff 0x")
+    dsrl    a0, t3, 32
+    bal     hexserial
+    nop
+    move    a0, t3
+    bal     hexserial
+    nop
+    PRINTSTR("\r\nRD Diff 0x")
+    dsrl    a0, t4, 32
+    bal     hexserial
+    nop
+    move    a0, t4
+    bal     hexserial
+    nop
+    b       2f
+    nop
+1:
+    PRINTSTR("\r\nNo Error detected.")
+2:
+#endif
+    //Mask out this byte lane info
+    and     t3, t3, s5
+    and     t4, t4, s5
+#if 1
+//process TM result: translate Byte error info into 1 bit info in each BX_TM_RST of every Byte.
+//64 bit BX_TM_RST work as a bit map corresponding to every param value(so the min step interval
+//is 2, or there will be not enough space to store TM RST info), the 64 bit can be only part valid(
+//step interval > 2).
+    beqz    t3, 1f
+    nop
+    //error detected
+    ld      a0, BYTE_TM_RST(t8)
+    or      a0, a0, t0
+    sd      a0, BYTE_TM_RST(t8)
+1:
+    dsrl    t0, t0, 1
+#endif
+    //check whether delay value reach the boundary
+    dsubu   a2, t2, t5
+    bltz    a2, 11f //check the new delay value whether exceed limitation
+    nop
+    /** not exceed **/
+    move    t2, a2
+    b       31b
+    nop
+11: 
+
+#ifdef  DEBUG_ARB_LEVEL_TM_DETAIL
+    PRINTSTR("\r\nlevel result is:\r\n")
+    ld      t7, BYTE_TM_RST(t8)
+    dsrl    a0, t7, 32
+    bal     hexserial
+    nop
+    move    a0, t7
+    bal     hexserial
+    nop
+#endif
+//calculate mid value for this byte lane
+/***********
+boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
+    t0: parse pointer
+    t2: parse max position
+    t3: BYTE_X_LEVEL_RST
+    t4: WINDOW_ZERO_NUM
+***********/
+    //set t2 max value for each level object
+    dli     t2, RDLVL_MAX_DELAY
+    dsrl    t2, t2, LOG2_STEP
+
+    ld      t3, BYTE_TM_RST(t8)
+#ifdef  DEBUG_ARB_LEVEL_TM_DETAIL
+    PRINTSTR("\r\nt3 = 0x")
+    dsrl    a0, t3, 32
+    bal     hexserial
+    nop
+    move    a0, t3
+    bal     hexserial
+    nop
+#endif
+    move    t0, $0
+    dli     t4, WINDOW_ZERO_NUM
+12:
+    bgtu    t0, t2, 3f
+    nop
+    dsrl    t7, t3, t0
+    and     t7, t7, 0x1
+    bnez    t7, 1f
+    nop
+    //find a TM success
+    daddiu  t4, t4, -1
+    beqz    t4, 2f
+    nop
+    //continue move
+    daddiu  t0, t0, 0x1
+    b       12b
+    nop
+1:  //find a TM fail
+    dli     t4, WINDOW_ZERO_NUM
+    //continue move
+    daddiu  t0, t0, 0x1
+    b       12b
+    nop
+2:  //window found
+    //calculate the MIN boundary
+    dli     a1, WINDOW_ZERO_NUM
+    daddiu  a0, t0, 1
+    dsubu   a0, a0, a1
+    dsll    a0, a0, LOG2_STEP   //a0 = a0 * 2n
+    and     a0, a0, 0xff
+    sd      a0, GD_MIN(t8)
+    //move forward to the next Fail to cal the MAX boundary
+1:
+    daddiu  t0, t0, 0x1
+    bgtu    t0, t2, 1f
+    nop
+    dsrl    t7, t3, t0
+    and     t7, t7, 0x1
+    beqz    t7, 1b  //continue move
+    nop
+1:
+    //find a TM FAIL or reach the max test value
+    daddiu  a0, t0, -1
+    dsll    a0, a0, LOG2_STEP   //a0 = a0 * 2n
+    and     a0, a0, 0xff
+    sd      a0, GD_MAX(t8)
+    b       2f
+    nop
+3:  //parse to end, CAN NOT find a window
+#ifdef  DEBUG_ARB_LEVEL_RD
+    PRINTSTR("\r\nError: rdlvl_delay Byte Window not found.")
+    PRINTSTR("\r\nt3 = 0x")
+    dsrl    a0, t3, 32
+    bal     hexserial
+    nop
+    move    a0, t3
+    bal     hexserial
+    nop
+#endif
+    dli     a1, 0x1
+    dsll    a1, a1, s4
+    ld      a0, RDLVL_FAIL_MARK(t8)
+    or      a0, a0, a1
+    sd      a0, RDLVL_FAIL_MARK(t8)
+
+    b       rdlvl_pop_delay_end
+    nop
+2:  //this byte lane's MIN and MAX value stored
+#ifdef  DEBUG_ARB_LEVEL_RD
+    PRINTSTR("\r\nMin value: 0x")
+    ld      t7, GD_MIN(t8)
+    move    a0, t7
+    bal     hexserial
+    nop
+    PRINTSTR("\r\nMax value: 0x")
+    ld      t7, GD_MAX(t8)
+    move    a0, t7
+    bal     hexserial
+    nop
+#endif
+
+    //store rdlvl_delay_p/n min / max
+    dsll    a2, s4, 3
+
+    dli     a1, 0x3
+    bne     t6, a1, 1f
+    nop
+    ld      a1, GD_MIN(t8)
+    dsll    a1, a1, a2
+    ld      a0, RDLVL_DELAYP_GD_MIN(t8)
+    or      a0, a0, a1
+    sd      a0, RDLVL_DELAYP_GD_MIN(t8)
+
+    ld      a1, GD_MAX(t8)
+    dsll    a1, a1, a2
+    ld      a0, RDLVL_DELAYP_GD_MAX(t8)
+    or      a0, a0, a1
+    sd      a0, RDLVL_DELAYP_GD_MAX(t8)
+    b       2f
+    nop
+1:
+    ld      a1, GD_MIN(t8)
+    dsll    a1, a1, a2
+    ld      a0, RDLVL_DELAYN_GD_MIN(t8)
+    or      a0, a0, a1
+    sd      a0, RDLVL_DELAYN_GD_MIN(t8)
+
+    ld      a1, GD_MAX(t8)
+    dsll    a1, a1, a2
+    ld      a0, RDLVL_DELAYN_GD_MAX(t8)
+    or      a0, a0, a1
+    sd      a0, RDLVL_DELAYN_GD_MAX(t8)
+2:
+    //write 0x20 to this rdlvl_delayP/N for next loop
+    dli     t2, 0x20
+    bal     arb_modify_param
+    nop
+
+    //move to next level
+    daddiu  t6, t6, 0x1
+    b       21b
+    nop
+
+rdlvl_pop_delay_end:
+#ifdef  DEBUG_ARB_LEVEL_RD
+    PRINTSTR("\r\nThe MC configuration is:\r\n")
+    bal     enable_ddr_confspace
+    nop
+
+    //dli     t1, DDR_PARAM_NUM
+    dli     t1, 0xa         //set print num
+    dli     t7, DDR_MC_CONFIG_BASE
+    GET_ARB_LEVEL_NODE_ID
+    dsll    a1, a1, 44
+    or      t7, t7, a1
+    daddu   t7, t7, 0x2d0   //set start offset
+1:
+    ld      t3, 0x0(t7)
+    dsrl    a0, t3, 32
+    bal     hexserial
+    nop
+    PRINTSTR("  ")
+    move    a0, t3
+    bal     hexserial
+    nop
+    PRINTSTR("\r\n")
+
+    daddiu  t1, t1, -1
+    daddiu  t7, t7, 16
+    bnez    t1, 1b
+    nop
+
+    bal     disable_ddr_confspace
+    nop
+#endif
+
+    bnez    s4, 26f
+    nop
+    daddu   s4, s4, 1
+#ifdef  DEBUG_ARB_LEVEL_RD
+    PRINTSTR("\r\nalter pop delay setting.\r\n")
+#endif
+    bal     arb_modify_pop_delay_alter
+    nop
+    b       rdlvl_pop_delay_start
+    nop
+
+26: //two pop delay value has been tested.
+#ifdef  PRINT_MSG
+    PRINTSTR("\r\nRDLVL_FAIL_MARK: 0x")
+    ld      t7, RDLVL_FAIL_MARK(t8)
+    move    a0, t7
+    bal     hexserial
+    nop
+    PRINTSTR("\r\nRDLVL_GATE_CFG: 0x")
+    ld      t7, RDLVL_GATE_CFG(t8)
+    move    a0, t7
+    bal     hexserial
+    nop
+    PRINTSTR("\r\nRDLVL_GATE_GD_MIN: 0x")
+    ld      t7, RDLVL_GATE_GD_MIN(t8)
+    move    a0, t7
+    bal     hexserial
+    nop
+    PRINTSTR("\r\nRDLVL_GATE_GD_MAX: 0x")
+    ld      t7, RDLVL_GATE_GD_MAX(t8)
+    move    a0, t7
+    bal     hexserial
+    nop
+    PRINTSTR("\r\nRDLVL_DELAYP_GD_MIN: 0x")
+    ld      t7, RDLVL_DELAYP_GD_MIN(t8)
+    move    a0, t7
+    bal     hexserial
+    nop
+    PRINTSTR("\r\nRDLVL_DELAYP_GD_MAX: 0x")
+    ld      t7, RDLVL_DELAYP_GD_MAX(t8)
+    move    a0, t7
+    bal     hexserial
+    nop
+    PRINTSTR("\r\nRDLVL_DELAYN_GD_MIN: 0x")
+    ld      t7, RDLVL_DELAYN_GD_MIN(t8)
+    move    a0, t7
+    bal     hexserial
+    nop
+    PRINTSTR("\r\nRDLVL_DELAYN_GD_MAX: 0x")
+    ld      t7, RDLVL_DELAYN_GD_MAX(t8)
+    move    a0, t7
+    bal     hexserial
+    nop
+#endif
+    ld      a0, RDLVL_FAIL_MARK(t8)
+    beqz    a0, both_pop_delay_ok
+    nop
+    //at least 1 pop delay failed
+    dli     a1, 0x3
+    beq     a0, a1, both_pop_delay_fail
+    nop
+    dli     a1, 0x2
+    //a0 == 2'b10
+    beq     a0, a1, first_pop_delay_ok
+    nop
+    //a0 == 2'b01
+    b       second_pop_delay_ok
+    nop
+    
+both_pop_delay_fail:
+#ifdef  MODIFY_PAD_COMP
+    PRINTSTR("\r\nTry another pad compensation.\r\n")
+    bal     arb_modify_pad_comp
+    nop
+    beqz    v0, rdlvl_one_byte_start
+    nop
+#endif
+#ifdef  PRINT_MSG
+    PRINTSTR("\r\nERROR: This Slice level failed, write default value.")
+#endif
+//write standard value
+    //write the phy_1_gate_cfg
+    dli     t6, 0x7
+    dli     t2, 0x0
+    bal     arb_modify_param
+    nop
+    //write the rdlvl_gate_delay
+    dli     t6, 0x2
+    dli     t2, 0x14
+    bal     arb_write_param
+    nop
+    //write rdlvl_delay_p/n
+    dli     t2, 0x20
+    dli     t6, 0x3
+    bal     arb_modify_param
+    nop
+    daddu   t6, t6, 0x1
+    bal     arb_modify_param
+    nop
+    b       rdlvl_one_byte_end
+    nop
+
+both_pop_delay_ok:
+    //use test result stored in RDLVL_DELAYP/N_MIN and RDLVL_DELAYP/N_MAX to 
+    //decide use which pop delay and relative phy_1_gate_cfg
+    //t1, t3--first pop delay result
+    //t2, t4--second pop delay result
+    ld      a0, RDLVL_DELAYP_GD_MIN(t8)
+    ld      a1, RDLVL_DELAYP_GD_MAX(t8)
+    dsubu   a2, a1, a0
+    dsrl    t1, a2, 0
+    dsrl    t2, a2, 8
+    ld      a0, RDLVL_DELAYN_GD_MIN(t8)
+    ld      a1, RDLVL_DELAYN_GD_MAX(t8)
+    dsubu   a2, a1, a0
+    dsrl    t3, a2, 0
+    dsrl    t4, a2, 8
+    and     t1, t1, 0xff
+    and     t2, t2, 0xff
+    and     t3, t3, 0xff
+    and     t4, t4, 0xff
+
+    //find the min of first pop delay and second pop delay
+    //t1=MIN(RDLVL_DELAYP/N) first
+    //t2=MIN(RDLVL_DELAYP/N) second
+
+    ble     t1, t3, 1f
+    nop
+    move    t1, t3
+1:
+    ble     t2, t4, 1f
+    nop
+    move    t2, t4
+1:
+    ble     t1, t2, second_pop_delay_ok
+    nop
+    //the first cfg is better
+first_pop_delay_ok:
+#ifdef  PRINT_MSG
+    PRINTSTR("\r\nThis Slice level success, use first value.")
+#endif
+    bal     arb_modify_pop_delay_alter
+    nop
+    //write the phy_1_gate_cfg
+    dli     t6, 0x7
+    ld      a1, RDLVL_GATE_CFG(t8)
+    and     t2, a1, 0xff
+    bal     arb_modify_param
+    nop
+    //write the rdlvl_gate_delay
+    ld      a0, RDLVL_GATE_GD_MIN(t8)
+    ld      a1, RDLVL_GATE_GD_MAX(t8)
+    and     a0, a0, 0xff
+    and     a1, a1, 0xff
+    daddu   a0, a0, a1
+    dsrl    a0, a0, 1
+#if 1
+    //max rdlvl_gate_delay == RDLVL_GATE_MAX_DELAY, use mid value(>= 0x10) plus 0x8
+    //else use max rdlvl_gate_delay minus as much as 0x10.
+    daddu   a0, a0, 0x8
+    dli     a2, RDLVL_GATE_MAX_DELAY
+    bge     a1, a2, 8f
+    nop
+    //a1 = [0x10 , RDLVL_GATE_MAX_DELAY)
+    dli     a2, 0x10
+    dsubu   a0, a1, a2
+    bge     a1, a2, 8f
+    nop
+    //logically a1 should not < 0x10
+    //a1 = (0x0 , 0x10)
+    move    a0, $0
+8:
+#endif
+    sd      a0, GD_MID(t8)
+    move    t2, a0
+
+    dli     t6, 0x2
+    bal     arb_write_param
+    nop
+
+    //write rdlvl_delay_p/n
+    dli     t2, 0x20
+    dli     t6, 0x3
+    bal     arb_modify_param
+    nop
+    daddu   t6, t6, 0x1
+    bal     arb_modify_param
+    nop
+
+    b       rdlvl_one_byte_end
+    nop
+
+second_pop_delay_ok:
+#ifdef  PRINT_MSG
+    PRINTSTR("\r\nThis Slice level success, use second value.")
+#endif
+#if 0
+    //need to do nothing as all the correct cfg has been written.
+    dli     t2, 0x20
+    dli     t6, 0x3
+    bal     arb_modify_param
+    nop
+    daddu   t6, t6, 0x1
+    bal     arb_modify_param
+    nop
+#endif
+
+rdlvl_one_byte_end:
+
+#ifdef  DEBUG_ARB_LEVEL_RD
+    PRINTSTR("\r\nAfter rdlvl_one_byte test. The MC configuration is:\r\n")
+    bal     enable_ddr_confspace
+    nop
+
+    dli     t1, DDR_PARAM_NUM
+    dli     t7, DDR_MC_CONFIG_BASE
+    GET_ARB_LEVEL_NODE_ID
+    dsll    a1, a1, 44
+    or      t7, t7, a1
+1:
+    ld      t3, 0x0(t7)
+    dsrl    a0, t3, 32
+    bal     hexserial
+    nop
+    PRINTSTR("  ")
+    move    a0, t3
+    bal     hexserial
+    nop
+    PRINTSTR("\r\n")
+
+    daddiu  t1, t1, -1
+    daddiu  t7, t7, 16
+    bnez    t1, 1b
+    nop
+
+    bal     disable_ddr_confspace
+    nop
+#endif
+//level next byte slice
+    daddu   s3, s3, -1
+    b       rdlvl_one_byte_start
+    nop
+
+//rdlvl finished
+rdlvl_end:
+#ifdef  DEBUG_ARB_LEVEL_RD
+    PRINTSTR("\r\nAfter read level. The MC configuration is:\r\n")
+    bal     enable_ddr_confspace
+    nop
+
+    dli     t1, DDR_PARAM_NUM
+    dli     t7, DDR_MC_CONFIG_BASE
+    GET_ARB_LEVEL_NODE_ID
+    dsll    a1, a1, 44
+    or      t7, t7, a1
+1:
+    ld      t3, 0x0(t7)
+    dsrl    a0, t3, 32
+    bal     hexserial
+    nop
+    PRINTSTR("  ")
+    move    a0, t3
+    bal     hexserial
+    nop
+    PRINTSTR("\r\n")
+
+    daddiu  t1, t1, -1
+    daddiu  t7, t7, 16
+    bnez    t1, 1b
+    nop
+
+    bal     disable_ddr_confspace
+    nop
+#endif
+
+ARB_level_end:
+    bal     arb_test_mem
+    nop
+    beqz    v0, 2f
+    nop
+    move    t3, v0
+    move    t4, v1
+#ifdef  PRINT_MSG
+    PRINTSTR("\r\n\r\nERROR!!!: ARB Leveling Failed.\r\n")
+    PRINTSTR("\r\nRW Diff 0x")
+    dsrl    a0, t3, 32
+    bal     hexserial
+    nop
+    move    a0, t3
+    bal     hexserial
+    nop
+    PRINTSTR("\r\nRD Diff 0x")
+    dsrl    a0, t4, 32
+    bal     hexserial
+    nop
+    move    a0, t4
+    bal     hexserial
+    nop
+#endif
+#if 0
+    //level fail, delay some time and level again
+    dli     a0, 0x4000000
+1:
+    daddiu  a0, a0, -1
+    bnez    a0, 1b
+    nop
+    b       ARB_level_begin
+    nop
+#endif
+2:
+#include    "ARB_Write_Slice_8_param.S"
+
+#ifdef  PRINT_MSG
+    PRINTSTR("\r\n\r\nARB Leveling Finished.\r\n")
+#endif
+
+    //print final level result
+#ifdef  PRINT_MSG
+    PRINTSTR("After ARB level. The MC configuration is:\r\n")
+    bal     enable_ddr_confspace
+    nop
+
+    dli     t1, DDR_PARAM_NUM
+    dli     t7, DDR_MC_CONFIG_BASE
+    GET_ARB_LEVEL_NODE_ID
+    dsll    a1, a1, 44
+    or      t7, t7, a1
+1:
+    ld      t3, 0x0(t7)
+    dsrl    a0, t3, 32
+    bal     hexserial
+    nop
+    PRINTSTR("  ")
+    move    a0, t3
+    bal     hexserial
+    nop
+    PRINTSTR("\r\n")
+
+    daddiu  t1, t1, -1
+    daddiu  t7, t7, 16
+    bnez    t1, 1b
+    nop
+
+    bal     disable_ddr_confspace
+    nop
+#endif
+
+//recover t0~t9,s1~s7
+    dli     a2, ARB_STACK_BASE
+    GET_ARB_LEVEL_NODE_ID
+    dsll    a1, a1, 44
+    daddu   a2, a2, a1
+    ld      s0, 0x0(a2)
+    ld      s1, 0x8(a2)
+    ld      s2, 0x10(a2)
+    ld      s3, 0x18(a2)
+    ld      s4, 0x20(a2)
+    ld      s5, 0x28(a2)
+    ld      s6, 0x30(a2)
+    ld      s7, 0x38(a2)
+    ld      t0, 0x40(a2)
+    ld      t1, 0x48(a2)
+    ld      t2, 0x50(a2)
+    ld      t3, 0x58(a2)
+    ld      t4, 0x60(a2)
+    ld      t5, 0x68(a2)
+    ld      t6, 0x70(a2)
+    ld      t7, 0x78(a2)
+    ld      t8, 0x80(a2)
+    ld      t9, 0x88(a2)
+
+/*
+ *Unlock Scache 9800?01000000000 ~ 9800?01000001000(4K)
+ */
+#ifdef  PRINT_MSG
+    PRINTSTR("\r\nUnlock Scache Node x--9800?01000000000~4K...\r\n")
+#endif
+    dli     a2, LOCK_SCACHE_CONFIG_BASE_ADDR
+#ifdef LS3B
+    GET_ARB_LEVEL_NODE_ID
+    dsll    a1, a1, 14
+    daddu   a2, a2, a1
+#endif
+    GET_ARB_LEVEL_NODE_ID
+    dsll    a1, a1, 44
+    or      a2, a2, a1
+    sd      $0, 0x0(a2)
+    sd      $0, 0x40(a2)
+    sync
+
+    //Hit Invalidate the locked address
+    dli     a0, 0x9800001000000000
+    GET_ARB_LEVEL_NODE_ID
+    dsll    a1, a1, 44
+    or      a0, a0, a1
+    dli     a1, 0x1000
+    daddu   a2, a0, a1
+1:
+    cache   0x11, 0x0(a0)
+    cache   0x13, 0x0(a0)
+
+    daddu   a0, a0, 0x20
+    blt     a0, a2, 1b
+    nop
+
+#ifdef  PRINT_MSG
+    PRINTSTR("Unlock Scache Done.\r\n")
+#endif
+
+    move    ra, t9
+    jr      ra
+    nop
+
+//<<<<<<<<<<<<<<<<<<<<<<<
+//child function defination
+    
+#include "ARB_TM.S"
+#include "ARB_Modify_param_func.S"
+
+enable_ddr_confspace:
+/*
+ * enable DDR MC register config space
+ * use register: t7
+ */
+    dli     t7, CHIP_CONFIG_BASE_ADDR
+    GET_ARB_LEVEL_NODE_ID
+#ifdef LS3B
+    and     a1, a1, 0xe
+#endif
+    dsll    a1, a1, 44
+    or      t7, t7, a1
+    li      a2, 0x1
+    sll     a2, a2, DDR_CONFIG_DISABLE_OFFSET
+#ifdef LS3B
+    //ODD NODE sll 5
+    GET_ARB_LEVEL_NODE_ID
+    and     a1, a1, 0x1
+    beqz    a1, 1f
+    nop
+    sll     a2, a2, 5
+1:
+#endif
+    not     a2, a2
+    lw      a1, 0x0(t7)
+    and     a1, a1, a2
+    sw      a1, 0x0(t7)
+    sync
+
+    jr      ra
+    nop
+    
+disable_ddr_confspace:    
+/*
+ * disable DDR MC config reg space
+ * use register: t7
+ */
+    dli     t7, CHIP_CONFIG_BASE_ADDR
+    GET_ARB_LEVEL_NODE_ID
+#ifdef LS3B
+    and     a1, a1, 0xe
+#endif
+    dsll    a1, a1, 44
+    or      t7, t7, a1
+    li      a2, 0x1
+    sll     a2, a2, DDR_CONFIG_DISABLE_OFFSET
+#ifdef LS3B
+    //ODD NODE sll 5
+    GET_ARB_LEVEL_NODE_ID
+    and     a1, a1, 0x1
+    beqz    a1, 1f
+    nop
+    sll     a2, a2, 5
+1:
+#endif
+    lw      a1, 0x0(t7)
+    or      a1, a1, a2
+    sw      a1, 0x0(t7)
+    sync
+
+    jr      ra
+    nop
+//>>>>>>>>>>>>>>>>>>>>>

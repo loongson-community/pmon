@@ -122,16 +122,16 @@ TM_start:
     GET_TM_CORE_ID_a1
     dsll    a1, a1, 3
     daddu   a2, a2, a1
-    GET_TM_NODE_ID_a1
-    dsll    a1, a1, 44
-    daddu   a2, a2, a1
 #ifdef LS3B
     GET_TM_NODE_ID_a1
     dsll    a1, a1, 14
     daddu   a2, a2, a1
 #endif
+    GET_TM_NODE_ID_a1
+    dsll    a1, a1, 44
+    or      a2, a2, a1
     dli     a3, 0x8000000000000000
-    daddu   a3, a3, a1
+    or      a3, a3, a1
     GET_TM_START_ADDR
     daddu   a3, a3, a1
     sd      a3, 0x0(a2)
@@ -753,11 +753,6 @@ TM_start:
     bltz    t8, 10b  //detect enough errors, go to next test
     nop
 2:
-#ifdef  PRINT_LESS_ERROR
-    dli     t4, TM_MAX_RPT_ERRORS
-    bgt     s6, t4, 3f
-    nop
-#endif
     daddu   t1, t1, t2
     //check address range
     bltu    t1, t3, 1b
@@ -1113,11 +1108,6 @@ TM_start:
     bltz    t8, 10b  //detect enough errors, go to next test
     nop
 2:
-#ifdef  PRINT_LESS_ERROR
-    dli     t4, TM_MAX_RPT_ERRORS
-    bgt     s6, t4, 3f
-    nop
-#endif
     daddu   t1, t1, t2
     //check address range
     bltu    t1, t3, 1b
@@ -1301,11 +1291,6 @@ TM_start:
     bltz    t8, 10b  //detect enough errors, go to next test
     nop
 2:
-#ifdef  PRINT_LESS_ERROR
-    dli     t4, TM_MAX_RPT_ERRORS
-    bgt     s6, t4, 3f
-    nop
-#endif
     daddu   t1, t1, t2
     //check address range
     bltu    t1, t3, 1b
@@ -1366,20 +1351,39 @@ TM_end:
  *Unlock Scache 9800?00000000000 ~ 9800?00000001000(4K)
  */
     TM_PRINTSTR("\r\nUnlock Scache Node x--9800?00000000000~4K...\r\n")
+
     dli     a2, 0x900000003ff00200
     GET_TM_CORE_ID_a1
     dsll    a1, a1, 3
-    daddu   a2, a2, a1
-    GET_TM_NODE_ID_a1
-    dsll    a1, a1, 44
     daddu   a2, a2, a1
 #ifdef LS3B
     GET_TM_NODE_ID_a1
     dsll    a1, a1, 14
     daddu   a2, a2, a1
 #endif
-    dli     a3, 0x0000000000000000
-    sd      a3, 0x0(a2)
+    GET_TM_NODE_ID_a1
+    dsll    a1, a1, 44
+    or      a2, a2, a1
+    sd      $0, 0x0(a2)
+    sd      $0, 0x40(a2)
+    sync
+
+    //Hit Invalidate the locked address
+    dli     a0, 0x9800000000000000
+    GET_TM_NODE_ID_a1
+    dsll    a1, a1, 44
+    or      a0, a0, a1
+    GET_TM_START_ADDR
+    daddu   a0, a0, a1
+    dli     a1, 0x1000
+    daddu   a2, a0, a1
+1:
+    cache   0x11, 0x0(a0)
+    cache   0x13, 0x0(a0)
+
+    daddu   a0, a0, 0x20
+    blt     a0, a2, 1b
+    nop
     TM_PRINTSTR("Unlock Scache Done.\r\n")
 
     move    v0, t7

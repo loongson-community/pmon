@@ -12,7 +12,6 @@
     v3.0    Modify for 3B which is MC0_only.
             not use t3 any more
 **********************************/
-#define CONFIG_BASE 0x900000000ff00000
 
         .global ddr2_config
         .ent    ddr2_config
@@ -220,6 +219,7 @@ ddr2_config:
     dsll    a1, a1, ADDRESS_MIRROR_OFFSET
     or      a2, a2, a1
     sd      a2, ADDRESS_MIRROR_ADDR(t8)
+
     //reconfig ODT map
     //set default first
     dli     a2, 0x0804020100000000
@@ -228,6 +228,8 @@ ddr2_config:
     //v0 store cs map
     GET_MC_CS_MAP
     move    v0, a1
+#if 0   //Don't swap now, because we enable Dynamic ODT now, and
+    //use different ODT value for WR(120ohm) and non-wr purpose
     //step 1: swap open wr odt if it's a Dual Rank DIMM
     //check cs_map[3]
     dsrl    a2, v0, 3
@@ -254,6 +256,7 @@ ddr2_config:
     or      a2, a2, a1
     sd      a2, ODT_MAP_CS_ADDR(t8)
 1:
+#endif
     //step 2: open extra RD/WR ODT CS if there is 2 DIMM
     //check CS[0] and CS[2]
     dsrl    a2, v0, 2
@@ -261,44 +264,95 @@ ddr2_config:
     and     a2, a2, 0x1
     bnez    a2, 1f
     nop
-    //2 DIMM: open the first rank of the non-target DIMM
-    ld      a2, ODT_MAP_CS_ADDR(t8)
+    //2 DIMM: open the extra rank of the non-target DIMM
+//#define FINE_ODT_MAP_CFG
+//the fine ODT map configure is board dependent(the layout of the 2 DIMMs)
+#ifndef FINE_ODT_MAP_CFG
+    //open the first rank of the non-target DIMM
     dli     a1, 0x0101040401010404
+    ld      a2, ODT_MAP_CS_ADDR(t8)
     or      a2, a2, a1
     sd      a2, ODT_MAP_CS_ADDR(t8)
-1:  //1 DIMM
-#if 0
-    //if its DDR3_DIMM, enable dynamic ODT and reset ODT value
+#else
+#if 0   //for standard layout(cpu <0<1<2<3)
+    //for slot 0, use the Rank 0(it is at the out side)
+    ld      a2, ODT_MAP_CS_ADDR(t8)
+    dli     a1, 0x0101000001010000
+    or      a2, a2, a1
+    sd      a2, ODT_MAP_CS_ADDR(t8)
+    //for slot 1, check CS[3] to see slot 1(far side) is Dual Rank or Single Rank
+    dli     a1, 0x0000040400000404
+    dsrl    a2, v0, 3
+    and     a2, a2, 0x1
+    beqz    a2, 2f
+    nop
+    //Slot is Dual Rank, use the Rank 3(it is at the out side)
+    dli     a1, 0x0000080800000808
+2:
+    ld      a2, ODT_MAP_CS_ADDR(t8)
+    or      a2, a2, a1
+    sd      a2, ODT_MAP_CS_ADDR(t8)
+#endif
+#if 1    //for 3A test board MC1 layout(cpu <1<0<3<2)
+    //for slot 0, check CS[1] to see slot 0(near side) is Dual Rank or Single Rank
+    dli     a1, 0x0101000001010000
+    dsrl    a2, v0, 1
+    and     a2, a2, 0x1
+    beqz    a2, 2f
+    nop
+    //Slot is Dual Rank, use the Rank 1(it is at the out side)
+    dli     a1, 0x0202000002020000
+2:
+    ld      a2, ODT_MAP_CS_ADDR(t8)
+    or      a2, a2, a1
+    sd      a2, ODT_MAP_CS_ADDR(t8)
+
+    //for slot 1, use the Rank 2
+    dli     a1, 0x0000040400000404
+    ld      a2, ODT_MAP_CS_ADDR(t8)
+    or      a2, a2, a1
+    sd      a2, ODT_MAP_CS_ADDR(t8)
+#endif
+#endif
+    b       2f
+    nop
+
+1:  //Only 1 DIMM
+    //if it is DDR3_DIMM, Disable Dynamic ODT
     GET_SDRAM_TYPE
     dli     a2, 0x3
-    bne     a2, a1, 1f
+    bne     a2, a1, 2f
     nop
-    //DDR3 DIMM, enable RTT_wr
-    ld      a2, MR2_DATA_0_ADDR(t8)
-    dli     a1, 0x0400
-    dsll    a1, a1, MR2_DATA_0_OFFSET
-    or      a2, a2, a1
-    sd      a2, MR2_DATA_0_ADDR(t8)
+    //DDR3 DIMM, disable RTT_wr
+    ld      a1, MR2_DATA_0_ADDR(t8)
+    dli     a2, 0x3
+    dsll    a2, a2, MR2_DATA_0_OFFSET + 9
+    not     a2, a2
+    and     a1, a1, a2
+    sd      a1, MR2_DATA_0_ADDR(t8)
 
-    ld      a2, MR2_DATA_1_ADDR(t8)
-    dli     a1, 0x0400
-    dsll    a1, a1, MR2_DATA_1_OFFSET
-    or      a2, a2, a1
-    sd      a2, MR2_DATA_1_ADDR(t8)
+    ld      a1, MR2_DATA_1_ADDR(t8)
+    dli     a2, 0x3
+    dsll    a2, a2, MR2_DATA_1_OFFSET + 9
+    not     a2, a2
+    and     a1, a1, a2
+    sd      a1, MR2_DATA_1_ADDR(t8)
 
-    ld      a2, MR2_DATA_2_ADDR(t8)
-    dli     a1, 0x0400
-    dsll    a1, a1, MR2_DATA_2_OFFSET
-    or      a2, a2, a1
-    sd      a2, MR2_DATA_2_ADDR(t8)
+    ld      a1, MR2_DATA_2_ADDR(t8)
+    dli     a2, 0x3
+    dsll    a2, a2, MR2_DATA_2_OFFSET + 9
+    not     a2, a2
+    and     a1, a1, a2
+    sd      a1, MR2_DATA_2_ADDR(t8)
 
-    ld      a2, MR2_DATA_3_ADDR(t8)
-    dli     a1, 0x0400
-    dsll    a1, a1, MR2_DATA_3_OFFSET
-    or      a2, a2, a1
-    sd      a2, MR2_DATA_3_ADDR(t8)
-1:
-#endif
+    ld      a1, MR2_DATA_3_ADDR(t8)
+    dli     a2, 0x3
+    dsll    a2, a2, MR2_DATA_3_OFFSET + 9
+    not     a2, a2
+    and     a1, a1, a2
+    sd      a1, MR2_DATA_3_ADDR(t8)
+2:
+
     //set data bus width
     ld      a2, REDUC_ADDR(t8)
     dli     a1, 0xff
@@ -320,6 +374,70 @@ ddr2_config:
     or      a2, a2, a1
     sd      a2, CTRL_RAW_ADDR(t8)
 
+#define ADJUST_CLKLVL_DELAY
+#ifdef  ADJUST_CLKLVL_DELAY
+    //count Rank numeber in a0
+    move    a0, $0
+    GET_DIMM_TYPE
+    bnez    a1, 2f
+    nop
+    //UDIMM -- count Rank number
+    GET_MC_CS_MAP
+    and     a2, a1, 0x1
+    beqz    a2, 1f
+    nop
+    daddu   a0, a0, 0x1
+1:
+    dsrl    a1, a1, 1
+    and     a2, a1, 0x1
+    beqz    a2, 1f
+    nop
+    daddu   a0, a0, 0x1
+1:
+    dsrl    a1, a1, 1
+    and     a2, a1, 0x1
+    beqz    a2, 1f
+    nop
+    daddu   a0, a0, 0x1
+1:
+    dsrl    a1, a1, 1
+    and     a2, a1, 0x1
+    beqz    a2, 1f
+    nop
+    daddu   a0, a0, 0x1
+1:
+    b       8f
+    nop
+2:  //RDIMM -- count DIMM number(not Rank number)
+    GET_MC_CS_MAP
+    and     a2, a1, 0x1
+    beqz    a2, 1f
+    nop
+    daddu   a0, a0, 0x1
+1:
+    dsrl    a1, a1, 2
+    and     a2, a1, 0x1
+    beqz    a2, 1f
+    nop
+    daddu   a0, a0, 0x1
+1:
+
+8:
+    //compensate for heavier ADD/CTRL/CMD load
+    dli     a2, 0x2
+    dmul    a2, a2, a0
+
+    dsll    a1, a2, 0x8
+    or      a2, a2, a1
+    dsll    a1, a1, 0x8
+    or      a2, a2, a1
+
+    ld      a1, CLKLVL_DELAY_0_ADDR(t8)
+    dsll    a2, a2, CLKLVL_DELAY_0_OFFSET
+    daddu   a1, a1, a2
+    sd      a1, CLKLVL_DELAY_0_ADDR(t8)
+#endif
+
 #ifdef DEBUG_DDR_PARAM   //debug
 //input once, change all byte lanes parameters.
     /* store the ra */
@@ -334,8 +452,8 @@ ddr2_config:
     nop
     move    t5, v0
     PRINTSTR("\r\nPlease input the data-hex: ");
-    dli        t6, 0x00
-    bal        inputaddress
+    dli     t6, 0x00
+    bal     inputaddress
     nop
     move    a2, t5
     dli     a1, 0xffffffff
@@ -1013,8 +1131,8 @@ t5: value
     PRINTSTR("\r\nChange some parameters of MC:");
 1:
     PRINTSTR("\r\nPlease input the register number you want to change!!!(0xff:jump out.): ");
-    dli        t6, 0x00
-    bal        inputaddress
+    dli     t6, 0x00
+    bal     inputaddress
     nop
     move    t5, v0
     
@@ -1121,17 +1239,32 @@ mc_init:
 
     GET_NODE_ID_a0;
     XBAR_CONFIG_NODE_a0(0x10, \
-                    0x0000000000000000, \
-                    0xfffffffff0000000, \
-                    0x00000000000000f0)
+                    0x000000000ff00000, \
+                    0xfffffffffff00000, \
+                    0x000000000ff000f0)
     sync
     nop
     nop
     nop
     nop
 
+    TTYDBG("\r\nEnable register space of MEMORY\r\n")
+    lw      a2, 0x0(t2)
+    li      v1, 0x1
+    GET_NODE_ID_a1
+    and     a1, a1, 0x1
+    beqz    a1, 1f
+    nop
+    sll     v1, v1, 5
+1:
+    sll     v1, v1, DDR_CONFIG_DISABLE_OFFSET
+    not     v1, v1
+    and     a2, a2, v1
+    sw      a2, 0x0(t2)
+    sync
+
     GET_NODE_ID_a0;
-    dli     a1, 0x900000000ff00000
+    dli     a1, DDR_MC_CONFIG_BASE
     or      t8, a0, a1
     bal     ddr2_config
     nop
@@ -1188,14 +1321,30 @@ Fix_ddr_param:
 8:
 
     move    t2, t5
+
+    //ARB_Write_Leveled_param.S will disable DDR register space
+    //TTYDBG("\r\nEnable register space of MEMORY\r\n")
+    lw      a2, 0x0(t2)
+    li      v1, 0x1
+    GET_NODE_ID_a1
+    and     a1, a1, 0x1
+    beqz    a1, 1f
+    nop
+    sll     v1, v1, 5
+1:
+    sll     v1, v1, DDR_CONFIG_DISABLE_OFFSET
+    not     v1, v1
+    and     a2, a2, v1
+    sw      a2, 0x0(t2)
+    sync
 #endif
 #endif
 
 #if 1   //def  DEBUG_DDR_PARAM   //print registers
-    PRINTSTR("The MC param is:\r\n")
+    PRINTSTR("\r\nThe MC param is:\r\n")
     dli     t1, DDR_PARAM_NUM
     GET_NODE_ID_a0
-    dli     t5, 0x900000000ff00000
+    dli     t5, DDR_MC_CONFIG_BASE
     or      t5, t5, a0
 1:
     ld      t6, 0x0(t5)
@@ -1214,6 +1363,19 @@ Fix_ddr_param:
     nop
 #endif
 
+    TTYDBG("\r\nDisable register space of MEMORY\r\n")
+    lw      a2, 0x0(t2)
+    li      v1, 0x1
+    GET_NODE_ID_a1
+    and     a1, a1, 0x1
+    beqz    a1, 1f
+    nop
+    sll     v1, v1, 5
+1:
+    sll     v1, v1, DDR_CONFIG_DISABLE_OFFSET
+    or      a2, a2, v1
+    sw      a2, 0x0(t2)
+    sync
 //cxk
 #ifdef  ARB_LEVEL
 #ifdef  DEBUG_DDR_PARAM
@@ -1221,14 +1383,14 @@ Fix_ddr_param:
     dli     t6, 0x00
     bal     inputaddress    #input value stored in v0
     nop
-    bnez    v0, 1f
+    bnez    v0, 8f
     nop
 #endif
     //read ARB_level signal
     dla     a2, ddr2_leveled_mark
     daddu   a2, a2, s0
     ld      a2, 0x0(a2)
-    bnez    a2, 1f
+    bnez    a2, 8f
     nop
 
     //route 0x1000000000 ~ 0x1FFFFFFFFF(64G) to MC for ARB_level
@@ -1250,7 +1412,22 @@ Fix_ddr_param:
 
     bal     ARB_level
     nop
-1:
+
+    sync
+    nop
+    nop
+    nop
+    nop
+
+    L2XBAR_CLEAR_WINDOW(0x20)
+
+    sync
+    nop
+    nop
+    nop
+    nop
+
+8:
 #endif
 
 #ifndef  DISABLE_DIMM_ECC
@@ -1260,19 +1437,23 @@ Fix_ddr_param:
     nop
     TTYDBG("ECC init start(maybe take 1 minute or so)....\r\n")
 
-    TTYDBG("Enable MC read buffer\r\n")
-    GET_NODE_ID_a1
-    and     a1, a1, 0x1 //a1 == 0(even NODE) or 1(odd NODE)
-    dsll    a2, a1, 2   //a2 == 0(even NODE) or 4(odd NODE)
-    daddu   a1, a2, a1  //a1 == 0(even NODE) or 5(odd NODE)
+    //TTYDBG("Enable register space of MEMORY\r\n")
     lw      a2, 0x0(t2)
-    li      a0, 0x40    //bit[6]--MC0_read_buffer_bypass
-    sll     a0, a0, a1  //sll 0 or 5
-    not     a0, a0
-    and     a2, a2, a0
+    li      v1, 0x1
+    GET_NODE_ID_a1
+    and     a1, a1, 0x1
+    beqz    a1, 1f
+    nop
+    sll     v1, v1, 5
+1:
+    sll     v1, v1, DDR_CONFIG_DISABLE_OFFSET
+    not     v1, v1
+    and     a2, a2, v1
     sw      a2, 0x0(t2)
+    sync
 
     //set ecc_disable_w_uc_err to 1'b1
+    //TTYDBG("set ecc_disable_w_ur_err.\r\n")
     ld      a2, ECC_DISABLE_W_UC_ERR_ADDR(t8)
     dli     a1, 0xff
     dsll    a1, a1, ECC_DISABLE_W_UC_ERR_OFFSET
@@ -1283,6 +1464,7 @@ Fix_ddr_param:
     or      a2, a2, a1
     sd      a2, ECC_DISABLE_W_UC_ERR_ADDR(t8)
     //enable ECC module with ecc reporting and correcting.
+    //TTYDBG("enable ECC.\r\n")
     ld      a2, CTRL_RAW_ADDR(t8)
     dli     a1, 0xff
     dsll    a1, a1, CTRL_RAW_OFFSET
@@ -1292,6 +1474,20 @@ Fix_ddr_param:
     dsll    a1, a1, CTRL_RAW_OFFSET
     or      a2, a2, a1
     sd      a2, CTRL_RAW_ADDR(t8)
+
+    //TTYDBG("Disable register space of MEMORY\r\n")
+    lw      a2, 0x0(t2)
+    li      v1, 0x1
+    GET_NODE_ID_a1
+    and     a1, a1, 0x1
+    beqz    a1, 1f
+    nop
+    sll     v1, v1, 5
+1:
+    sll     v1, v1, DDR_CONFIG_DISABLE_OFFSET
+    or      a2, a2, v1
+    sw      a2, 0x0(t2)
+    sync
 
     //route 0x1000000000 ~ 0x1FFFFFFFFF(64G) to MC for ECC init
     sync
@@ -1316,16 +1512,15 @@ Fix_ddr_param:
     GET_MC0_MEMSIZE
     dsll    a1, a1, 29   //a1*512M
     daddu   t3, t1, a1
-    dli     a1, 0x0
 //write memory
 1:
     bgeu    t1, t3, 1f
     nop
 
-    sd      a1, 0x0(t1)
-    sd      a1, 0x8(t1)
-    sd      a1, 0x10(t1)
-    sd      a1, 0x18(t1)
+    sd      $0, 0x0(t1)
+    sd      $0, 0x8(t1)
+    sd      $0, 0x10(t1)
+    sd      $0, 0x18(t1)
     sync
     //hit write back invalidate(D-/S-cache) to memory
     cache   0x15, 0x0(t1)
@@ -1335,10 +1530,35 @@ Fix_ddr_param:
     nop
 1:
 
-#if 1
-    GET_NODE_ID_a0;
-    dli     a1, 0x900000000ff00000
-    or      t8, a0, a1
+    sync
+    nop
+    nop
+    nop
+    nop
+
+    L2XBAR_CLEAR_WINDOW(0x20)
+
+    sync
+    nop
+    nop
+    nop
+    nop
+
+    //TTYDBG("Enable register space of MEMORY\r\n")
+    lw      a2, 0x0(t2)
+    li      v1, 0x1
+    GET_NODE_ID_a1
+    and     a1, a1, 0x1
+    beqz    a1, 1f
+    nop
+    sll     v1, v1, 5
+1:
+    sll     v1, v1, DDR_CONFIG_DISABLE_OFFSET
+    not     v1, v1
+    and     a2, a2, v1
+    sw      a2, 0x0(t2)
+    sync
+
     //clear disable_w_uc_err
     ld      a2, ECC_DISABLE_W_UC_ERR_ADDR(t8)
     dli     a1, 0xff
@@ -1349,11 +1569,117 @@ Fix_ddr_param:
     dsll    a1, a1, ECC_DISABLE_W_UC_ERR_OFFSET
     or      a2, a2, a1
     sd      a2, ECC_DISABLE_W_UC_ERR_ADDR(t8)
-#endif
+
+    //TTYDBG("Disable register space of MEMORY\r\n")
+    lw      a2, 0x0(t2)
+    li      v1, 0x1
+    GET_NODE_ID_a1
+    and     a1, a1, 0x1
+    beqz    a1, 1f
+    nop
+    sll     v1, v1, 5
+1:
+    sll     v1, v1, DDR_CONFIG_DISABLE_OFFSET
+    or      a2, a2, v1
+    sw      a2, 0x0(t2)
+    sync
 
     TTYDBG("MC ECC init done.\r\n")
 4:
 #endif
+#define CLEAR_INT_STATUS
+#ifdef  CLEAR_INT_STATUS
+    //clear possible out of physical range int_status bits introduced by arb_level or ECC initialization
+    //TTYDBG("Enable register space of MEMORY\r\n")
+    lw      a2, 0x0(t2)
+    li      v1, 0x1
+    GET_NODE_ID_a1
+    and     a1, a1, 0x1
+    beqz    a1, 1f
+    nop
+    sll     v1, v1, 5
+1:
+    sll     v1, v1, DDR_CONFIG_DISABLE_OFFSET
+    not     v1, v1
+    and     a2, a2, v1
+    sw      a2, 0x0(t2)
+    sync
+
+    //set int_ack to 1
+    ld      a1, MC_INT_ACK_ADDR(t8)
+    dli     a2, 0x3
+    dsll    a2, a2, MC_INT_ACK_OFFSET
+    or      a1, a1, a2
+    sd      a1, MC_INT_ACK_ADDR(t8)
+
+    //delay some time
+    dli     a2, 0x400
+1:
+    daddiu  a2, a2, -1
+    bnez    a2, 1b
+    nop
+
+    //clear int_ack to 0
+    ld      a1, MC_INT_ACK_ADDR(t8)
+    dli     a2, 0x3
+    dsll    a2, a2, MC_INT_ACK_OFFSET
+    not     a2, a2
+    and     a1, a1, a2
+    sd      a1, MC_INT_ACK_ADDR(t8)
+
+#if 1   //print registers
+    PRINTSTR("\r\nThe MC param is:\r\n")
+    dli     t1, DDR_PARAM_NUM
+    GET_NODE_ID_a0
+    dli     t5, DDR_MC_CONFIG_BASE
+    or      t5, t5, a0
+1:
+    ld      t6, 0x0(t5)
+    dsrl    a0, t6, 32
+    bal     hexserial
+    nop
+    PRINTSTR("  ")
+    move    a0, t6
+    bal     hexserial
+    nop
+    PRINTSTR("\r\n")
+
+    daddiu  t1, t1, -1
+    daddiu  t5, t5, 16
+    bnez    t1, 1b
+    nop
+#endif
+
+    //TTYDBG("Disable register space of MEMORY\r\n")
+    lw      a2, 0x0(t2)
+    li      v1, 0x1
+    GET_NODE_ID_a1
+    and     a1, a1, 0x1
+    beqz    a1, 1f
+    nop
+    sll     v1, v1, 5
+1:
+    sll     v1, v1, DDR_CONFIG_DISABLE_OFFSET
+    or      a2, a2, v1
+    sw      a2, 0x0(t2)
+    sync
+#endif
+
+    //clear the L2 xbar window configured for mc_init
+    sync
+    nop
+    nop
+    nop
+    nop
+
+    L2XBAR_CLEAR_WINDOW(0x10)
+
+    sync
+    nop
+    nop
+    nop
+    nop
+
     move    ra, t4
     jr      ra
     nop

@@ -8,6 +8,10 @@
 #else
 #ifdef  LS3B
 #define LSMCD3_2
+#else
+#ifdef  LOONGSON_2H
+#define LSMCD3_2
+#endif
 #endif
 #endif
 
@@ -19,11 +23,17 @@
 #define DDR_PARAM_NUM   152
 #endif
 
+#define SREFRESH_ADDR           (0x30)
 #define START_ADDR              (0x30)
+#define DLLLOCKREG_ADDR         (0x10)
 #define INT_STATUS_ADDR         (0x960)
+#define MC_INT_ACK_ADDR         (0x970)
 #define RESYNC_DLL_ADDR         (0x980)
+#define SREFRESH_OFFSET         32
 #define START_OFFSET            40
+#define DLLLOCKREG_OFFSET       0
 #define INIT_COMPLETE_OFFSET    8
+#define MC_INT_ACK_OFFSET       24
 #define RESYNC_DLL_OFFSET       16
 
 #define ODT_MAP_CS_ADDR          (0x080)
@@ -80,7 +90,16 @@
 #define PHY_CTRL_0_1_OFFSET      0
 #define PHY_CTRL_0_0_OFFSET      32
 #define PHY_CTRL_0_MASK          (0xffffffff)
+#define PHY_CTRL_0_PREAMBLE_SHIFT 18
 #define ADD_HALF_CLK_SHIFT       17
+#define PHY_CTRL_0_ADDWLDLY_SHIFT 16
+#define PHY_CTRL_0_ADJ_MASK      (0xb)
+#define DQS_OUT_WINDOW_MASK      (0xff)
+#define DQS_OUT_WINDOW_SHIFT     8
+#define DQSDQ_OUT_WINDOW_MASK    (0xffff)
+#define DQSDQ_OUT_WINDOW_SHIFT   0
+#define PHY_CTRL_0_POP_DELAY_SHIFT  24
+#define PHY_CTRL_0_POP_DELAY_MASK   (0x7)
 
 #define PHY_CTRL_1_8_ADDR        (0x360)
 #define PHY_CTRL_1_7_ADDR        (0x350)
@@ -101,6 +120,15 @@
 #define PHY_CTRL_1_1_OFFSET      32
 #define PHY_CTRL_1_0_OFFSET      0 
 #define PHY_CTRL_1_MASK          (0xffffffff)
+#define PHY_CTRL_1_GATE_MASK     (0xfff)
+#define PHY_CTRL_1_RD_ODT_SHIFT  24
+#define PHY_CTRL_1_RD_ODT_MASK   (0xff)
+
+#define PHY_CTRL_2_ADDR          (0x360)
+#define PHY_CTRL_2_OFFSET        32 
+#define PHY_CTRL_2_POP_DELAY_MASK   (0xf)
+#define PHY_CTRL_2_POP_DELAY_SHIFT 13
+#define RESET_GFIFO_SHIFT          26
 
 #define WRLVL_DQ_DELAY_8_ADDR      (0x230)
 #define WRLVL_DQ_DELAY_7_ADDR      (0x230)

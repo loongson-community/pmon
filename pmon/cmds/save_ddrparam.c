@@ -121,25 +121,42 @@ static void disable_ddrconfig(u64 node_id_shift44)
     unsigned long long val; 
 
     /* Disable DDR access configure register */
+#ifndef LS3B
     val = ld(CPU_CONFIG_ADDR | node_id_shift44);
     val |= 0x100;
     sd(CPU_CONFIG_ADDR | node_id_shift44, val);
-
 #ifdef DEBUG
     printf("Disable sys config reg:0x1fe00180 = %016llx\n", ld(CPU_CONFIG_ADDR | node_id_shift44));
 #endif
+#else
+    val = ld(CPU_CONFIG_ADDR | node_id_shift44 & 0xffffefffffffffffull);
+    val |= 0x210;
+    sd(CPU_CONFIG_ADDR | node_id_shift44 & 0xffffefffffffffffull, val);
+#ifdef DEBUG
+    printf("Disable sys config reg:0x1fe00180 = %016llx\n", ld(CPU_CONFIG_ADDR | node_id_shift44 & 0xffffefffffffffffull));
+#endif
+#endif
+
 }
 
 static void enable_ddrconfig(u64 node_id_shift44)
 {
     unsigned long long val; 
 
+#ifndef LS3B
     val = ld(CPU_CONFIG_ADDR | node_id_shift44);
     val &=0xfffffffffffffeffull;
     sd(CPU_CONFIG_ADDR | node_id_shift44, val);
-
 #ifdef DEBUG
     printf("Enable sys config reg:0x1fe00180 = %016llx", ld(CPU_CONFIG_ADDR | node_id_shift44));
+#endif
+#else
+    val = ld(CPU_CONFIG_ADDR | node_id_shift44 & 0xffffefffffffffffull);
+    val &=0xfffffffffffffdefull;
+    sd(CPU_CONFIG_ADDR | node_id_shift44 & 0xffffefffffffffffull, val);
+#ifdef DEBUG
+    printf("Enable sys config reg:0x1fe00180 = %016llx", ld(CPU_CONFIG_ADDR | node_id_shift44 & 0xffffefffffffffffull));
+#endif
 #endif
 
 }
@@ -206,13 +223,13 @@ int read_ddr_param(u64 node_id_shift44, int mc_selector,  unsigned long long * b
 #ifndef LS3B
     // step 1. Change The Primest window for MC0 or MC1 register space 
     enable_ddrcfgwindow(node_id_shift44, mc_selector, buf);
+#endif
 
     //do_cmd("showwindows");
     //dump_l2xbar(1);
 
     // step 2. Enabel access to MC0 or MC1 register space 
     enable_ddrconfig(node_id_shift44);
-#endif
     // step 3. Read out ddr config register to buffer
     printf("\nNow Read out DDR parameter from DDR MC%d controler after DDR training\n", mc_selector);
     for ( i = DDR_PARAM_NUM - 1; i >= 0; i--) // NOTICE HERE: it means system has DDR_PARAM_NUM double words
@@ -226,10 +243,10 @@ int read_ddr_param(u64 node_id_shift44, int mc_selector,  unsigned long long * b
     //clear param_start
     val[3]  &=  0xfffffeffffffffff;
 
-#ifndef LS3B
     // step 4. Disabel access to MC0 or MC1 register space 
     disable_ddrconfig(node_id_shift44);
 
+#ifndef LS3B
     // step 5. Restore The Primest window for accessing system memory
     disable_ddrcfgwidow(node_id_shift44, mc_selector, buf);
 #endif
@@ -331,7 +348,7 @@ void save_ddrparam(u64 node_id_shift44, int mc0_param_store_addr, int mc1_param_
 
 }
 
-int save_board_ddrparam()
+int save_board_ddrparam(void)
 {
     unsigned long long flag;
     unsigned long long node_id;
@@ -400,7 +417,7 @@ void save_ddrparam(u64 node_id_shift44, int mc0_param_store_addr)
 
 }
 
-int save_board_ddrparam()
+int save_board_ddrparam(void)
 {
     unsigned long long flag;
     unsigned long long node_id;
