@@ -425,7 +425,7 @@ if(!run)
 {
 	run=1;
 #ifdef ARB_LEVEL
-    save_board_ddrparam();
+    //save_board_ddrparam();
 #endif
 #ifdef AUTOLOAD
 
