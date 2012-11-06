@@ -1335,12 +1335,12 @@ gs_2f_v3_ddr2_cfg:
 //cxk
 #define MULTI_NODE_INIT_MEM
 
-#include "pmon/arch/mips/mm/ddr_param_define.h"
-#include "pmon/arch/mips/mm/ddr_config_define.h"
+#include "ddr_dir/ddr_param_define.h"
+#include "ddr_dir/ddr_config_define.h"
 #define DISABLE_DIMM_ECC
 #define PRINT_MSG
 #ifndef ARB_LEVEL
-#define FIX_DDR_PARAM
+//#define FIX_DDR_PARAM
 #endif
 //#define DEBUG_DDR
 //#define DEBUG_DDR_MT
@@ -1385,7 +1385,7 @@ MEM_INIT_DONE:
 #endif
 #endif
 
-#include "loongson3_ddr2_config.S"
+#include "ddr_dir/loongson3_ddr2_config.S"
 
 #if 0
     PRINTSTR("Skip other core:")
@@ -1419,18 +1419,80 @@ MEM_INIT_DONE:
     dli     s1, 0xb0c10400b0c10405
 #endif
 #endif
-#include "loongson3_ddr2_config.S"
+#include "ddr_dir/loongson3_ddr2_config.S"
 #endif
 
 #endif
     GPIO_SET_OUTPUT(0x1<<9)
     TTYDBG("Init Memory done.\r\n")
+##########################################
 
-#ifdef ARB_LEVEL
-    b       ARB_level_over
+#ifdef  DEBUG_DDR
+#if 1
+    PRINTSTR("\r\nDo test?(0xf: skip): ")
+    bal     inputaddress
     nop
-#include "pmon/arch/mips/mm/ARB_level.S"
-ARB_level_over:
+    and     v0, v0, 0xf
+    dli     a1, 0x1
+    bgt     v0, a1, 3f
+    nop
+#endif
+
+#if 0
+#if 1
+    PRINTSTR("\r\nStart other core test?(0xcccc: start): ")
+    bal     inputaddress
+    nop
+    move    t1, v0
+#else
+    li      t1, 0xcccc
+#endif
+
+#ifdef NODE1_BOOT
+    dli     t0, NODE1_CORE0_BUF0 #buf of cpu1
+#else
+    dli     t0, NODE0_CORE0_BUF0 #buf of cpu0
+#endif
+    sw      t1, FN_OFF(t0)
+    nop
+#endif
+
+    dli     s1, 0x0004000080000000  //NODE 0, start from 0x80000000
+#if 1
+    PRINTSTR("\r\ndefault s1 = 0x");
+    dsrl    a0, s1, 32
+    bal     hexserial
+    nop
+    PRINTSTR("__")
+    move    a0, s1
+    bal     hexserial
+    nop
+    PRINTSTR("\r\nChange test param s1(0: skip)?: ")
+    bal     inputaddress
+    nop
+    beqz    v0, 1f
+    nop
+    move    s1, v0
+1:
+#endif
+1:
+    dli     t1, 0x0010
+    bal     test_mem
+    nop
+    move    t1, v0
+    PRINTSTR("\r\n")
+    dsrl    a0, t1, 32
+    bal     hexserial
+    nop
+    move    a0, t1
+    bal     hexserial
+    nop
+    beqz    t1, 2f
+    nop
+    PRINTSTR("  Error found!!\r\n")
+2:
+
+3:
 #endif
 ##########################################
 
@@ -1648,90 +1710,6 @@ ARB_level_over:
 #endif
 #endif
 ##########################################
-#ifdef  DEBUG_DDR
-    b       TM_over
-    nop
-#include "Test_Mem.S"
-TM_over:
-
-#if 1
-    PRINTSTR("\r\nDo test?(0xf: skip): ")
-    bal     inputaddress
-    nop
-    and     v0, v0, 0xf
-    dli     a1, 0x1
-    bgt     v0, a1, 3f
-    nop
-#endif
-
-#if 1
-#if 1
-    PRINTSTR("\r\nStart other core test?(0xcccc: start): ")
-    bal     inputaddress
-    nop
-    move    t1, v0
-#else
-    li      t1, 0xcccc
-#endif
-
-#ifdef NODE1_BOOT
-    dli     t0, NODE1_CORE0_BUF0 #buf of cpu1
-#else
-    dli     t0, NODE0_CORE0_BUF0 #buf of cpu0
-#endif
-    sw      t1, FN_OFF(t0)
-    nop
-#endif
-
-#if 0
-    PRINTSTR("\r\nStart simple_test_mem......\r\n")
-1:
-    dli     t1, 0x0010
-    dli     s1, 0x0004000080000000  //NODE 0, start from 0x80000000
-    dli     t0, 0xaaaaaaaaaaaaaaaa
-    bal     simple_test_mem
-    nop
-    b       1b
-    nop
-#endif
-
-    dli     s1, 0x0004000080000000  //NODE 0, start from 0x80000000
-#if 1
-    PRINTSTR("\r\ndefault s1 = 0x");
-    dsrl    a0, s1, 32
-    bal     hexserial
-    nop
-    PRINTSTR("__")
-    move    a0, s1
-    bal     hexserial
-    nop
-    PRINTSTR("\r\nChange test param s1(0: skip)?: ")
-    bal     inputaddress
-    nop
-    beqz    v0, 1f
-    nop
-    move    s1, v0
-1:
-#endif
-1:
-    dli     t1, 0x1010
-    bal     test_mem
-    nop
-    move    t1, v0
-    PRINTSTR("\r\n")
-    dsrl    a0, t1, 32
-    bal     hexserial
-    nop
-    move    a0, t1
-    bal     hexserial
-    nop
-    beqz    t1, 2f
-    nop
-    PRINTSTR("  Error found!!\r\n")
-2:
-
-3:
-#endif
 #########################################
 
 #ifdef LS3_HT
@@ -2659,7 +2637,7 @@ END(tgt_putchar_COM1)
 
 #include "i2c.S"
 #ifdef  AUTO_DDR_CONFIG
-#include "detect_node_dimm.S"
+#include "ddr_dir/detect_node_dimm.S"
 #endif
 
 __main:
@@ -3017,7 +2995,6 @@ watchdog_enable:
     jr	ra
 .end watchdog_enable
 
-#if  1 /* slave main */
 
     .ent    slave_main
 slave_main:
@@ -3166,7 +3143,7 @@ NODE0_INIT_MEM:
     dli     s1, 0xb0c10400b0c10404
 #endif
 #endif
-#include "loongson3_ddr2_config.S"
+#include "ddr_dir/loongson3_ddr2_config.S"
 /*judge the node0 whether have memory*/
         move    a0, msize
         beq     a0, 0x0, beep_on
@@ -3229,7 +3206,7 @@ NODE1_INIT_MEM:
     dli     s1, 0xb0c10400b0c10405
 #endif
 #endif
-#include "loongson3_ddr2_config.S"
+#include "ddr_dir/loongson3_ddr2_config.S"
 
     dli     t0, NODE1_CORE0_BUF0
     sw      msize, SP_OFF(t0)
@@ -3273,7 +3250,7 @@ NODE2_INIT_MEM:
 #else
     dli     s1, 0xc1c30402
 #endif
-#include "loongson3_ddr2_config.S"
+#include "ddr_dir/loongson3_ddr2_config.S"
 
     dli     t0, NODE2_CORE0_BUF0
     sw      msize, SP_OFF(t0)
@@ -3318,7 +3295,7 @@ NODE3_INIT_MEM:
 #else
     dli     s1, 0xc1c30403
 #endif
-#include "loongson3_ddr2_config.S"
+#include "ddr_dir/loongson3_ddr2_config.S"
 
     dli     t0, NODE3_CORE0_BUF0
     sw      msize, SP_OFF(t0)
@@ -3818,25 +3795,26 @@ idle1000:
 
     .end    slave_main
 
-#endif
-
+##########################################
 #ifndef DDR3_DIMM
 //#define MULTI_NODE_DDR_PARAM
 #endif
-#include "pmon/arch/mips/mm/ddr_config.S"
 
-    .text
+#include "ddr_dir/ddr_config.S"
+#ifdef ARB_LEVEL
+#ifdef DDR3_DIMM
+#include "ddr_dir/ARB_level_new.S"
+#else
+#include "ddr_dir/ARB_level.S"
+#endif
+#endif
+#ifdef  DEBUG_DDR
+#include "ddr_dir/Test_Mem.S"
+#endif
+
+    .rdata
     .global ddr2_reg_data
     .global ddr3_reg_data
-#ifdef  ARB_LEVEL
-    .global ddr2_leveled_mark
-    .global ddr2_reg_data_mc0_leveled
-    .global ddr2_reg_data_mc1_leveled
-#ifdef  MULTI_CHIP
-    .global n1_ddr2_reg_data_mc0_leveled
-    .global n1_ddr2_reg_data_mc1_leveled
-#endif
-#endif
 
     .align  5
 #include "loongson3A3_ddr_param.S"
@@ -3845,6 +3823,15 @@ idle1000:
 #endif
 
 #ifdef  ARB_LEVEL
+    .text
+    .global ddr2_leveled_mark
+    .global ddr2_reg_data_mc0_leveled
+    .global ddr2_reg_data_mc1_leveled
+#ifdef  MULTI_CHIP
+    .global n1_ddr2_reg_data_mc0_leveled
+    .global n1_ddr2_reg_data_mc1_leveled
+#endif
+
 #include "loongson3A3_ddr_param.lvled.S"
 #ifdef  MULTI_CHIP
 #include "loongson3A3_ddr_param_c1.lvled.S"
