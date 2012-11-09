@@ -137,6 +137,10 @@ static int load_menu_list()
 	int retid;
         struct device *dev, *next_dev;
         char load[256];
+	struct termio sav;
+	unsigned int dly, cnt, lastt;
+	int i;	
+	char *d = getenv("bootdelay");
         memset(load, 0, 256);
 
 	show_menu=1;
@@ -165,24 +169,50 @@ static int load_menu_list()
                 }
 
                 if (strncmp(dev->dv_xname, "usb", 3) == 0) {
-                        sprintf(load, "bl -d ide /dev/fs/ext2@%s/boot/boot.cfg", dev->dv_xname);
-                        retid = do_cmd(load);
-                        if (retid == 0) {
-                                return 1;
-                        }
-                        sprintf(load, "bl -d ide /dev/fs/fat@%s/boot/boot.cfg", dev->dv_xname);
-                        retid = do_cmd(load);
-                        if (retid == 0) {
-                                return 1;
-                        }
-                        sprintf(load, "bl -d ide /dev/fs/iso9660@%s/boot/boot.cfg", dev->dv_xname);
-                        retid = do_cmd(load);
-                        if (retid == 0) {
-                                return 1;
-                        }
-                }
-        }
 
+			if(!d || !atob (&dly, d, 10) || dly < 0 || dly > 99) {
+					dly = 5;
+				}
+				printf("\n");
+				printf("----------------------------\n");
+				printf("Found boot.cfg in USB.\n");
+				printf("Press < b > to execute boot.cfg.\n");
+				printf("Press any other key to abort.\n");
+				ioctl (STDIN, CBREAK, &sav);
+				lastt = 0;
+				do {
+					printf ("\b\b%02d", --dly);
+					for(i = 0; i < 9000; i++){
+						ioctl (STDIN, FIONREAD, &cnt);
+						if(cnt)
+				      			break;
+						delay(100);
+					}
+				} while (dly != 0 && cnt == 0);
+				if(cnt > 0 && strchr("b\r", getchar())) {
+					cnt = 0;
+				}
+				ioctl (STDIN, TCSETAF, &sav);
+				putchar ('\n');
+				if(cnt == 0){
+                        		sprintf(load, "bl -d ide /dev/fs/ext2@%s/boot/boot.cfg", dev->dv_xname);
+                        		retid = do_cmd(load);
+                        		if (retid == 0) {
+                                		return 1;
+                        		}
+                        		sprintf(load, "bl -d ide /dev/fs/fat@%s/boot/boot.cfg", dev->dv_xname);
+                        		retid = do_cmd(load);
+                        		if (retid == 0) {
+                                		return 1;
+                        		}
+                        		sprintf(load, "bl -d ide /dev/fs/iso9660@%s/boot/boot.cfg", dev->dv_xname);
+                        		retid = do_cmd(load);
+                        		if (retid == 0) {
+                                		return 1;
+                        		}
+                		}
+			}
+	}
         //try to read boot.cfg from CD-ROM disk second
         for (dev  = TAILQ_FIRST(&alldevs); dev != NULL; dev = next_dev) {
                 next_dev = TAILQ_NEXT(dev, dv_list);
@@ -191,27 +221,84 @@ static int load_menu_list()
                 }
 
                 if (strncmp(dev->dv_xname, "cd", 2) == 0) {
-                        sprintf(load, "bl -d ide /dev/fs/iso9660@%s/boot/boot.cfg", dev->dv_xname);
-                        retid = do_cmd(load);
-                        if (retid == 0) {
-                                return 1;
-                        }
+
+			if(!d || !atob (&dly, d, 10) || dly < 0 || dly > 99) {
+				dly = 5;
+			}
+			printf("\n");
+			printf("----------------------------\n");
+			printf("Found boot.cfg in CD-ROM.\n");
+			printf("Press < b > to execute boot.cfg.\n");
+			printf("Press any other key to abort.\n");
+			ioctl (STDIN, CBREAK, &sav);
+			lastt = 0;
+			do {
+				printf ("\b\b%02d", --dly);
+				for(i = 0; i < 9000; i++){
+					ioctl (STDIN, FIONREAD, &cnt);
+					if(cnt)
+				      		break;
+					delay(100);
+				}
+			} while (dly != 0 && cnt == 0);
+
+			if(cnt > 0 && strchr("b\r", getchar())) {
+				cnt = 0;
+			}
+			ioctl (STDIN, TCSETAF, &sav);
+			putchar ('\n');
+			if(cnt == 0){
+                        	sprintf(load, "bl -d ide /dev/fs/iso9660@%s/boot/boot.cfg", dev->dv_xname);
+                        	retid = do_cmd(load);
+                        	if (retid == 0) {
+                                	return 1;
+                        	}
+			}
                 }
         }
 
         //try to read boot.cfg from sata disk third
 	sprintf(path, "%s/boot/boot.cfg", rootdev);
        	if (check_config(path) == 1)
-        {
-        	sprintf(path, "bl -d ide %s/boot/boot.cfg", rootdev);
-                if (do_cmd(path) == 0)
-                {
-                   	show_menu = 0;
-                        free(path);
-                        path = NULL;
-                        return 1;
-                }
-        }
+        {	
+		if(!d || !atob (&dly, d, 10) || dly < 0 || dly > 99) {
+			dly = 5;
+		}
+		printf("\n");
+		printf("----------------------------\n");
+		printf("Found boot.cfg in Hard Disk.\n");
+		printf("Press < b > to execute boot.cfg.\n");
+		printf("Press any other key to abort.\n");
+		ioctl (STDIN, CBREAK, &sav);
+		lastt = 0;
+		do {
+			printf ("\b\b%02d", --dly);
+			for(i = 0; i < 9000; i++){
+				ioctl (STDIN, FIONREAD, &cnt);
+				if(cnt)
+				      break;
+				delay(100);
+			}
+		} while (dly != 0 && cnt == 0);
+
+		if(cnt > 0 && strchr("b\r", getchar())) {
+			cnt = 0;
+		}
+
+		ioctl (STDIN, TCSETAF, &sav);
+		putchar ('\n');
+
+		if(cnt == 0) {	
+        		sprintf(path, "bl -d ide %s/boot/boot.cfg", rootdev);
+                	if (do_cmd(path) == 0)
+                	{
+                   		show_menu = 0;
+                        	free(path);
+                        	path = NULL;
+                        	return 1;
+                	}
+        	}
+	}
 }
 
 int check_user_password()
