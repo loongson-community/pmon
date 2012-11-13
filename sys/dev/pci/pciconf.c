@@ -547,7 +547,8 @@ _pci_query_dev (struct pci_device *dev, int bus, int device, int initialise)
 
 	if (_pciverbose >= 2)
 		_pci_bdfprintf (bus, device, -1, "probe...");
-
+	
+	delay(1000);  //fix that the correct id sometimes can not read;
 	id = _pci_conf_read(tag, PCI_ID_REG);
 	typ = _pci_conf_read(tag, PCI_CLASS_REG);
 
