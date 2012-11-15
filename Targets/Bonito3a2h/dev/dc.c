@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/malloc.h>
+#include <machine/pio.h>
 typedef unsigned long u32;
 typedef unsigned short u16;
 typedef unsigned char u8;
@@ -14,7 +15,6 @@ typedef int bool;
 typedef unsigned long dma_addr_t;
 
 #define DC_FB1 1
-#define DC_FB0 1
 
 #define writeb(val, addr) (*(volatile u8*)(addr) = (val))
 #define writew(val, addr) (*(volatile u16*)(addr) = (val))
@@ -24,14 +24,6 @@ typedef unsigned long dma_addr_t;
 #define readl(addr) (*(volatile u32*)(addr))
 
 #define write_reg(addr,val) writel(val,addr)
-
-#if 1
-#define FB_XSIZE   800
-#define FB_YSIZE   600
-#else
-#define FB_XSIZE  640	
-#define FB_YSIZE  480
-#endif
 
 #define DIS_WIDTH  FB_XSIZE
 #define DIS_HEIGHT FB_YSIZE
@@ -46,10 +38,6 @@ static char *ADDR_CURSOR = 0xc6000000;
 static char *MEM_ptr = 0xc2000000;	/* frame buffer address register on ls2h mem */
 
 static int MEM_ADDR = 0;
-#ifdef DC_FB1
-static char *MEM_ptr_1 = 0xc2000000;
-static int MEM_ADDR_1 = 0;
-#endif
 
 struct vga_struc {
 	float pclk;
@@ -94,8 +82,6 @@ enum {
 	OF_VSYNC = 0x260,
 	OF_DBLBUF = 0x340,
 };
-
-#define MYDBG printf(":%d\n",__LINE__);
 
 int caclulatefreq(float PCLK)
 {
@@ -159,27 +145,39 @@ int config_fb(unsigned long base)
 			out = caclulatefreq(vgamode[i].pclk);
 			printf("out=%x\n", out);
 			/* change to refclk */
+#ifdef DC_FB0
 			*(volatile unsigned int *)(0xbbd00234) = 0x0;
+#else
 			*(volatile unsigned int *)(0xbbd0023c) = 0x0;
+#endif
 			/* pll_powerdown set pstdiv */
+#ifdef DC_FB0
 			*(volatile unsigned int *)(0xbbd00230) =
 			    out | 0x80000080;
+#else
 			*(volatile unsigned int *)(0xbbd00238) =
 			    out | 0x80000080;
+#endif
 			/* wait 10000ns */
 			for (j = 1; j <= 300; j++)
 				chip_reg =
 				    *(volatile unsigned int *)(0xbbd00210);
 			/* pll_powerup unset pstdiv */
+#ifdef DC_FB0
 			*(volatile unsigned int *)(0xbbd00230) = out;
+#else
 			*(volatile unsigned int *)(0xbbd00238) = out;
+#endif
 			/* wait pll_lock */
 			while ((*(volatile unsigned int *)(0xbbd00210)) &
 			       0x00001800 != 0x00001800) {
 			}
 			/* change to pllclk */
+#ifdef DC_FB0
 			*(volatile unsigned int *)(0xbbd00234) = 0x1;
+#else
 			*(volatile unsigned int *)(0xbbd0023c) = 0x1;
+#endif
 			break;
 		}
 	}
@@ -212,19 +210,19 @@ int config_fb(unsigned long base)
 
 #if defined(CONFIG_VIDEO_32BPP)
 	write_reg((base + OF_BUF_CONFIG), 0x00100104);
-	write_reg((base + OF_BUF_STRIDE), FB_XSIZE * 4);
+	write_reg((base + OF_BUF_STRIDE), (FB_XSIZE * 4 + 255) & ~255);
 #elif defined(CONFIG_VIDEO_16BPP)
 	write_reg((base + OF_BUF_CONFIG), 0x00100103);
 	write_reg((base + OF_BUF_STRIDE), (FB_XSIZE * 2 + 255) & ~255);
 #elif defined(CONFIG_VIDEO_15BPP)
 	write_reg((base + OF_BUF_CONFIG), 0x00100102);
-	write_reg((base + OF_BUF_STRIDE), FB_XSIZE * 2);
+	write_reg((base + OF_BUF_STRIDE), (FB_XSIZE * 2 + 255) & ~255);
 #elif defined(CONFIG_VIDEO_12BPP)
 	write_reg((base + OF_BUF_CONFIG), 0x00100101);
-	write_reg((base + OF_BUF_STRIDE), FB_XSIZE * 2);
+	write_reg((base + OF_BUF_STRIDE), (FB_XSIZE * 2 + 255) & ~255);
 #else /* 640x480-32Bits */
 	write_reg((base + OF_BUF_CONFIG), 0x00100104);
-	write_reg((base + OF_BUF_STRIDE), FB_XSIZE * 4);
+	write_reg((base + OF_BUF_STRIDE), (FB_XSIZE * 4 + 255) & ~255);
 #endif /* 32Bits */
 
 }
@@ -265,20 +263,7 @@ int dc_init()
 	line_length = FB_XSIZE * 4;
 #endif
 
-#ifdef SOC
 	MEM_ADDR = (long)MEM_ptr & 0x0fffffff;
-#else
-	MEM_ADDR = ((long)MEM_ptr & 0x0fffffff | 0x00000000);
-#endif
-
-#ifdef DC_FB1
-#ifdef SOC
-	MEM_ADDR_1 = (long)MEM_ptr_1 & 0x0fffffff;
-#else
-	MEM_ADDR_1 = ((long)MEM_ptr_1 & 0x0fffffff | 0x00000000);
-#endif
-#endif
-
 	if (MEM_ptr == NULL) {
 		printf("frame buffer memory malloc failed!\n ");
 		exit(0);
@@ -287,27 +272,22 @@ int dc_init()
 	for (ii = 0; ii < 0x1000; ii += 4)
 		*(volatile unsigned int *)(ADDR_CURSOR + ii) = 0x88f31f4f;
 
-#ifdef SOC
 	ADDR_CURSOR = (long)ADDR_CURSOR & 0x0fffffff;
-#else
-	ADDR_CURSOR = ((long)ADDR_CURSOR & 0x0fffffff | 0x00000000);
-#endif
-
 	printf("frame buffer addr: %x \n", MEM_ADDR);
+	/* Improve the DC DMA's priority */
+	outb(0xbbd80636, 0x36);
+	/* Make DVO from panel1, it's the same with VGA*/
+	outl(0xbbe51240, 0);
+	outl(0xbbe51240, 0x100200);
 
 #ifdef DC_FB0
 	config_fb(DC_BASE_ADDR);
-#endif
-#ifdef DC_FB1
+#else
 	config_fb(DC_BASE_ADDR_1);
 #endif
 	config_cursor();
 
 	printf("display controller reg config complete!\n");
-
-#ifdef DC_FB1
-	return MEM_ptr_1;
-#endif
 
 	return MEM_ptr;
 }
@@ -329,24 +309,36 @@ static int cmd_dc_freq(int argc, char **argv)
 	out = caclulatefreq(pclk);
 	printf("out=%x\n", out);
 	/* change to refclk */
+#ifdef DC_FB0
 	*(volatile unsigned int *)(0xbbd00234) = 0x1;
+#else
 	*(volatile unsigned int *)(0xbbd0023c) = 0x1;
+#endif
 	/* pll_powerdown set pstdiv */
+#ifdef DC_FB0
 	*(volatile unsigned int *)(0xbbd00230) = out | 0x80000080;
+#else
 	*(volatile unsigned int *)(0xbbd00238) = out | 0x80000080;
+#endif
 	/* wait 10000ns */
 	for (j = 1; j <= 200; j++)
 		chip_reg = *(volatile unsigned int *)(0xbbd00210);
 	/* pll_powerup unset pstdiv */
+#ifdef DC_FB0
 	*(volatile unsigned int *)(0xbbd00230) = out;
+#else
 	*(volatile unsigned int *)(0xbbd00238) = out;
+#endif
 	/* wait pll_lock */
 	while ((*(volatile unsigned int *)(0xbbd00210)) & 0x00001800 !=
 	       0x00001800) {
 	}
 	/* change to pllclk */
+#ifdef DC_FB0
 	*(volatile unsigned int *)(0xbbd00234) = 0x0;
+#else
 	*(volatile unsigned int *)(0xbbd0023c) = 0x0;
+#endif
 
 	return 0;
 }
