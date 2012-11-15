@@ -1225,7 +1225,10 @@ after_ht:
         dli     s1, 0xc1e30400c1e30404  //set use MC1 or MC0 or MC1/0 and give All DIMM infor // shuagnmian
         dli     s1, 0xc1ec0400c1ec0404  //set use MC1 or MC0 or MC1/0 and give All DIMM infor // shuagnmian
 #endif
-#include "loongson3_ddr2_config.S"
+#include "loongson3_ddr2_config.S"		
+		move	a0, msize
+		beq	a0, 0x0, beep_on
+		nop
 
 #ifdef MULTI_CHIP
 		TTYDBG("NODE 1 MEMORY CONFIG BEGIN\r\n")
