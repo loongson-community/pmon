@@ -104,6 +104,10 @@ write_smbios_tables(void *start)
 	do_struct(smbios_type_2_init(p));
 	do_struct(smbios_type_4_init(p));
 
+#ifdef LOONGSON_3A2H
+       dimmnum = 4;
+       maximum_capacity = 8 * 1024* 1024;
+#endif
 #ifdef LOONGSON_3ASINGLE
        dimmnum = 4;
        maximum_capacity = 8 * 1024* 1024;
