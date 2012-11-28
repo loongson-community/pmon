@@ -63,6 +63,10 @@ LEAF(PROBE_NODE_DIMM)
     or      a0, a0, a2
     sw      a0, 0x0(a1)
 #endif
+#ifdef USE_LS2H_I2C
+    bal     i2cinit
+    nop
+#endif
 #if 0  //for debug, give the SPD device id directly.
 //scan the devices and display DIMM SPD values when the first device is detected.
     PRINTSTR("\r\nDIMM SPD register dump:");

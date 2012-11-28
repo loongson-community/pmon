@@ -117,7 +117,7 @@
     GET_MC0_MEMSIZE
     beqz    a1, 70f
     nop
-    dli     t5, 0x8
+    dli     t5, 0x10
     bgt     a1, t5, 70f
     nop
 #if 1
@@ -275,8 +275,11 @@ t0,t2 shouldn't be changed to the end of this file.
     beq     a1, t5, 60f
     nop
     dli     t5, 0x8
-    //temp code, MEM size >= 4G, use 4G only
-    bgeu    a1, t5, 80f
+    beq     a1, t5, 80f
+    nop
+    dli     t5, 0x10
+    //temp code, MEM size >= 8G, use 8G only
+    bgeu    a1, t5, 32f
     nop
     b       70f  //error condition
     nop
@@ -335,6 +338,25 @@ t0,t2 shouldn't be changed to the end of this file.
     PRINTSTR("MC0 space open : 0x080000000 - 0x17FFFFFFF\r\n")
     b       6f
     nop
+
+32:     //ddr_8GB_MC0:
+    GET_NODE_ID_a0;
+    XBAR_CONFIG_NODE_a0(0x20, \
+                    0x0000000080000000, \
+                    0xFFFFFFFF80000000, \
+                    0x00000000000000F0)
+    XBAR_CONFIG_NODE_a0(0x28, \
+                    0x0000000100000000, \
+                    0xFFFFFFFF00000000, \
+                    0x00000001000000F0)
+    XBAR_CONFIG_NODE_a0(0x30, \
+                    0x0000000200000000, \
+                    0xFFFFFFFF80000000, \
+                    0x00000000800000F0)
+    PRINTSTR("MC0 space open : 0x080000000 - 0x27FFFFFFF\r\n")
+    b       6f
+    nop
+
 6:
     //Config other PCI space exactly as cpu windows
     L2XBAR_CONFIG_PCI_AS_CPU(0x20);

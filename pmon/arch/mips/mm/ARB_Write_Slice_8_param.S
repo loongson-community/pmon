@@ -16,7 +16,7 @@
     sync
     sync
     sync
-    //Disable L2XBAR_WINDOW(0x20)
+    //Disable L2XBAR_WINDOW
     dli     t7, L2XBAR_CONFIG_BASE_ADDR
 #ifdef LS3B
     GET_ARB_LEVEL_NODE_ID
@@ -26,7 +26,7 @@
     GET_ARB_LEVEL_NODE_ID
     dsll    a1, a1, 44
     or      t7, t7, a1
-    daddu   t7, t7, 0x20
+    daddu   t7, t7, ARB_TEMP_L2WINDOW_OFFSET
     ld      a0, 0x80(t7)
     and     a0, a0, 0xf
     sd      a0, 0x80(t7)
@@ -41,7 +41,7 @@
     dsll    a1, a1, 44
     or      t7, t7, a1
 
-#if 1
+#ifdef  ARBLVL_PUT_DRAM_SREF
     //put memory into self-refresh
     ld      a1, SREFRESH_ADDR(t7)
     dli     a2, 0x1
@@ -294,7 +294,7 @@
     beqz    a1, 1b
     nop
 
-#if 1
+#ifdef  ARBLVL_PUT_DRAM_SREF
     //pull memory out of self-refresh
     ld      a1, SREFRESH_ADDR(t7)
     dli     a2, 0x1
@@ -326,7 +326,7 @@
     sync
     sync
     sync
-    //Enable L2XBAR_WINDOW(0x20)
+    //Enable L2XBAR_WINDOW
     dli     t7, L2XBAR_CONFIG_BASE_ADDR
 #ifdef LS3B
     GET_ARB_LEVEL_NODE_ID
@@ -336,7 +336,7 @@
     GET_ARB_LEVEL_NODE_ID
     dsll    a1, a1, 44
     or      t7, t7, a1
-    daddu   t7, t7, 0x20
+    daddu   t7, t7, ARB_TEMP_L2WINDOW_OFFSET
     ld      a0, 0x80(t7)
     or      a0, a0, 0xf0
     sd      a0, 0x80(t7)

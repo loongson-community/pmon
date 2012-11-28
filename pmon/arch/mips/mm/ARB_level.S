@@ -32,14 +32,17 @@ algrithm:
 
 //#define DEBUG_ARB_LEVEL
 
-#define ADD_DELAY_AFTER_RESET_PHY   //necessary for old level method
-#define CONTROL_L2XBAR_DDR_WINDOW  //work ok
+#define ADD_DELAY_AFTER_RESET_PHY   //necessary
+#ifndef	LOONGSON_2H
 #define CLEAR_HALF_CLK_SHIFT    //necessary
+#endif
 
 //Don't change
-#define LOG2_STEP   2   //log2 of TM step interval, remember to small WINDOW_ZERO_NUM when we use larger STEP
-#define WINDOW_ZERO_NUM     0x4
-#define GATE_MINUS  -3
+#define CONTROL_L2XBAR_DDR_WINDOW  //work ok
+#define ARBLVL_PUT_DRAM_SREF
+#define LOG2_STEP   1   //log2 of TM step interval, remember to small WINDOW_ZERO_NUM when we use larger STEP
+#define WINDOW_ZERO_NUM     0x8
+#define GATE_MINUS  -4
 
 ARB_level:
     move    t9, ra
@@ -67,11 +70,11 @@ ARB_start:
     GET_ARB_LEVEL_NODE_ID
     dsll    a1, a1, 44
     or      a2, a2, a1
+    dli     a3, 0x0000fffffffff000  //set Mask first
+    sd      a3, 0x40(a2)
     dli     a3, 0x8000001000000000
     or      a3, a3, a1
     sd      a3, 0x0(a2)
-    dli     a3, 0x0000fffffffff000
-    sd      a3, 0x40(a2)
 #ifdef  PRINT_MSG
     PRINTSTR("Lock Scache Done.\r\n")
 #endif
@@ -120,10 +123,10 @@ One_ARB_level_begin:
     daddiu  t8, t8, 0x8
     dli     a0, 0x00
 #else
-    dli     a0, 0x0306050403020605
+    dli     a0, 0x0105010501050105
     sd      a0, LEVEL_SEQ_BASE(t8)
     daddiu  t8, t8, 0x8
-    dli     a0, 0x00060504
+    dli     a0, 0x00040302
 #endif
     sd      a0, LEVEL_SEQ_BASE(t8)
     daddiu  t8, t8, 0x8
@@ -177,29 +180,29 @@ One_ARB_level_begin:
     nop
 
 1:
-    //1 clk max 0x7f
-    dli     t2, 0x7c
+    //1 clk max delay
+    dli     t2, CLKLVL_MAX_DELAY
     b       10f
     nop
 2:
-    //2 rdlvl_gate max 0x22
-    dli     t2, 0x20
+    //2 rdlvl_gate max delay
+    dli     t2, RDLVL_GATE_MAX_DELAY
     b       10f
     nop
 3:
 4:
-    //3,4 rdlvl_dqs and rdlvl_dqsn max 0x48
-    dli     t2, 0x48
+    //3,4 rdlvl_dqs and rdlvl_dqsn max delay
+    dli     t2, RDLVL_MAX_DELAY
     b       10f
     nop
 5:
-    //5 wrlvl_dqs max 0x68
-    dli     t2, 0x68
+    //5 wrlvl_dqs max delay
+    dli     t2, WRLVL_MAX_DELAY
     b       10f
     nop
 6:
-    //6 wrlvl_dq max 0x48
-    dli     t2, 0x48
+    //6 wrlvl_dq max delay
+    dli     t2, WRLVL_DQ_MAX_DELAY
     b       10f
     nop
 
@@ -207,7 +210,7 @@ One_ARB_level_begin:
     dsrl    a0, t2, LOG2_STEP
     dsll    t0, t0, a0
 
-    dli     t5, 1<<LOG2_STEP 
+    dli     t5, 1 << LOG2_STEP 
     //initialize
     dli     t3, 0x0
     dli     t4, 0x0
@@ -481,29 +484,29 @@ boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
     nop
 
 1:
-    //1 clk max 0x7f
-    dli     t2, 0x7c
+    //1 clk max delay
+    dli     t2, CLKLVL_MAX_DELAY
     b       10f
     nop
 2:
-    //2 rdlvl_gate max 0x22
-    dli     t2, 0x20
+    //2 rdlvl_gate max delay
+    dli     t2, RDLVL_GATE_MAX_DELAY
     b       10f
     nop
 3:
 4:
-    //3,4 rdlvl_dqs and rdlvl_dqsn max 0x48
-    dli     t2, 0x48
+    //3,4 rdlvl_dqs and rdlvl_dqsn max delay
+    dli     t2, RDLVL_MAX_DELAY
     b       10f
     nop
 5:
-    //5 wrlvl_dqs max 0x68
-    dli     t2, 0x68
+    //5 wrlvl_dqs max delay
+    dli     t2, WRLVL_MAX_DELAY
     b       10f
     nop
 6:
-    //6 wrlvl_dq max 0x48
-    dli     t2, 0x48
+    //6 wrlvl_dq max delay
+    dli     t2, WRLVL_DQ_MAX_DELAY
     b       10f
     nop
 10:
@@ -1308,7 +1311,6 @@ One_ARB_level_end:
     nop
 
 //<<<<<<<<<<<<<<<<<<<<<
-#include "ARB_TM.S"
 
 enable_ddr_confspace:
 /*
@@ -1372,4 +1374,6 @@ disable_ddr_confspace:
 
     jr      ra
     nop
+
+#include "ARB_TM.S"
 //>>>>>>>>>>>>>>>>>>>>>

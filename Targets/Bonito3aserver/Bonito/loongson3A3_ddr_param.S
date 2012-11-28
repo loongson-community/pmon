@@ -236,7 +236,7 @@ MC0_DDR3_CTL_950 : .dword 0x0000000000000d00
 //hXXXXX 00_00 XXXX mask_int[17:0](RW) hXXXX txpdll(RW) 0000_0000 tdfi_wrlvl_en(RW)
 MC0_DDR3_CTL_960 : .dword 0x0705000000000000
 //000_00101 rdlat_adj(RW) 0000_0100 wrlat_adj(RW) 0000000_0 swlvl_start(WR) 0000000_0 swlvl_load(WR) 0000000_0 swlvl_exit(WR) 000000_000000000000000000 int_status(RD) 
-MC0_DDR3_CTL_970 : .dword 0x000000000003e825
+MC0_DDR3_CTL_970 : .dword 0x010000000003e825
 //h00000 000_0 XXXX int_ack[16:0](WR) hXXXX dll_rst_delay(RW) hXX dll_rst_adj_dly(RW)
 MC0_DDR3_CTL_980 : .dword 0x0001010001000101
 //0000000_0 zq_in_progress(RD) 0000000_1 zqcs_rotate(RW) 0000000_0 wrlvl_reg_en(RW) 0000000_0 wrlvl_en(RW) 0000000_1 resync_dll_per_aref_en(RW) 0000000_0 resync_dll(WR) 0000000_0 rdlvl_reg_en(RW) 0000000_0 rdlvl_gate_reg_en(RW) 
@@ -316,7 +316,7 @@ MC0_DDR3_RDIMM_CTL_070 : .dword 0x0000000000030c0c
 //0000_1111 max_row_reg(RD) 0000_1110 max_col_reg(RD) 0000_0000 initaref(RW) 00000000000000000000_1111 cs_map(RW) 000_01010 caslat_lin_gate(RW) 000_01010 caslat_lin(RW) 
 MC0_DDR3_RDIMM_CTL_080 : .dword 0x0804020100000000
 //0000_0001 odt_wr_map_cs3(RW) 0000_0010 odt_wr_map_cs2(RW) 0000_0100 odt_wr_map_cs1(RW) 0000_1000 odt_wr_map_cs0(RW) 0000_0001 odt_rd_map_cs3(RW) 0000_0010 odt_rd_map_cs2(RW) 0000_0100 odt_rd_map_cs1(RW) 0000_1000 odt_rd_map_cs0(RW) 
-MC0_DDR3_RDIMM_CTL_090 : .dword 0x0000090d00000000
+MC0_DDR3_RDIMM_CTL_090 : .dword 0x0000070d00000000
 //000_00000 ocd_adjust_pup_cs_0(RW) 000_00000 ocd_adjust_pdn_cs_0(RW) 0000_0101 trp(RW) 000_01011 tdal(RW) 000000000000_0000 port_cmd_error_type(RD) 0000000000000000
 MC0_DDR3_RDIMM_CTL_0a0 : .dword 0x0000001f3f140412
 //00000000000000000000000000_111111 command_age_count(RW) 00_111111 age_count(RW) 000_10100 trc(RW) 000_00110 tmrd(RW) 000_10010 tfaw(RW) 
@@ -382,16 +382,16 @@ MC0_DDR3_RDIMM_CTL_2b0 : .dword 0x0000000000000000
 MC0_DDR3_RDIMM_CTL_2c0 : .dword 0x0000000000000000
 //hXXXXXXX 00_00 dll_obs_reg_0_8(RW) hXXXXXXX 00_00 dll_obs_reg_0_7(RW)
 //11110100000000000011101100100111 phy_ctrl_reg_0_0(RD) 000000_00000000000000000110011101 pad_ctrl_reg_0(RW) 
-MC0_DDR3_RDIMM_CTL_2d0 : .dword 0xf400373303c009b5
-MC0_DDR3_RDIMM_CTL_2e0 : .dword 0xf4003733f4003733
-MC0_DDR3_RDIMM_CTL_2f0 : .dword 0xf4003733f4003733
-MC0_DDR3_RDIMM_CTL_300 : .dword 0xf4003733f4003733
-MC0_DDR3_RDIMM_CTL_310 : .dword 0xf4003733f4003733
-MC0_DDR3_RDIMM_CTL_320 : .dword 0x04c0000004c00000
-MC0_DDR3_RDIMM_CTL_330 : .dword 0x04c0000004c00000
-MC0_DDR3_RDIMM_CTL_340 : .dword 0x04c0000004c00000
-MC0_DDR3_RDIMM_CTL_350 : .dword 0x04c0000004c00000
-MC0_DDR3_RDIMM_CTL_360 : .dword 0x0000c10004c00000
+MC0_DDR3_RDIMM_CTL_2d0 : .dword 0x0400373303c009b5
+MC0_DDR3_RDIMM_CTL_2e0 : .dword 0x0400373304003733
+MC0_DDR3_RDIMM_CTL_2f0 : .dword 0x0400373304003733
+MC0_DDR3_RDIMM_CTL_300 : .dword 0x0400373304003733
+MC0_DDR3_RDIMM_CTL_310 : .dword 0x0400373304003733
+MC0_DDR3_RDIMM_CTL_320 : .dword 0x15c0000015c00000
+MC0_DDR3_RDIMM_CTL_330 : .dword 0x15c0000015c00000
+MC0_DDR3_RDIMM_CTL_340 : .dword 0x15c0000015c00000
+MC0_DDR3_RDIMM_CTL_350 : .dword 0x15c0000015c00000
+MC0_DDR3_RDIMM_CTL_360 : .dword 0x0000c10015c00000
 //00000000000000001100000000000101 phy_ctrl_reg_2(RW) 00000111110000000000001100000001 phy_ctrl_reg_1_8(RW) 
 //--------------
 MC0_DDR3_RDIMM_CTL_370 : .dword 0x0000000000000000
@@ -529,13 +529,13 @@ MC0_DDR3_RDIMM_CTL_950 : .dword 0x0000000000000d00
 //hXXXXX 00_00 XXXX mask_int[17:0](RW) hXXXX txpdll(RW) 0000_0000 tdfi_wrlvl_en(RW)
 MC0_DDR3_RDIMM_CTL_960 : .dword 0x0705000000000000
 //000_00101 rdlat_adj(RW) 0000_0100 wrlat_adj(RW) 0000000_0 swlvl_start(WR) 0000000_0 swlvl_load(WR) 0000000_0 swlvl_exit(WR) 000000_000000000000000000 int_status(RD) 
-MC0_DDR3_RDIMM_CTL_970 : .dword 0x000000000003e825
+MC0_DDR3_RDIMM_CTL_970 : .dword 0x010000000003e825
 //h00000 000_0 XXXX int_ack[16:0](WR) hXXXX dll_rst_delay(RW) hXX dll_rst_adj_dly(RW)
 MC0_DDR3_RDIMM_CTL_980 : .dword 0x0001010001000101
 //0000000_0 zq_in_progress(RD) 0000000_1 zqcs_rotate(RW) 0000000_0 wrlvl_reg_en(RW) 0000000_0 wrlvl_en(RW) 0000000_1 resync_dll_per_aref_en(RW) 0000000_0 resync_dll(WR) 0000000_0 rdlvl_reg_en(RW) 0000000_0 rdlvl_gate_reg_en(RW) 
 MC0_DDR3_RDIMM_CTL_990 : .dword 0x0606040606060600
 //00000_000 w2w_samecs_dly(RW) 00000_001 w2w_diffcs_dly(RW) 00000_010 tbst_int_interval(RW) 00000_010 r2w_samecs_dly(RW) 00000_010 r2w_diffcs_dly(RW) 00000_000 r2r_samecs_dly(RW) 00000_001 r2r_diffcs_dly(RW) 00000_000 axi_aligned_strobe_disable(RW) 
-MC0_DDR3_RDIMM_CTL_9a0 : .dword 0x07070404010a0101
+MC0_DDR3_RDIMM_CTL_9a0 : .dword 0x0707040401080101
 //00000111 tdfi_wrlvl_load(RW) 00000111 tdfi_rdlvl_load(RW) 000_00011 tckesr(RW) 000_00010 tccd(RW) 000_00000 add_odt_clk_difftype_diffcs(RW) 0000_0110 trp_ab(RW) 0000_0001 add_odt_clk_sametype_diffcs(RW) 0000_0000 add_odt_clk_difftype_samecs(RW) 
 MC0_DDR3_RDIMM_CTL_9b0 : .dword 0x02000100000a000f
 //0000_001000000000 zqinit(RD) 0000_000100000000 zqcl(RW) 000000_0000001010 tdfi_wrlvl_ww(RW) 000000_0000001111 tdfi_rdlvl_rr(RW) 
@@ -820,7 +820,7 @@ MC0_CTL_950 : .dword 0x0000000000001000
 //hXXXXX 00_00 XXXX mask_int[17:0](RW) hXXXX txpdll(RW) 0000_0000 tdfi_wrlvl_en(RW)
 MC0_CTL_960 : .dword 0x0705000000000000
 //000_00101 rdlat_adj(RW) 0000_0100 wrlat_adj(RW) 0000000_0 swlvl_start(WR) 0000000_0 swlvl_load(WR) 0000000_0 swlvl_exit(WR) 000000_000000000000000000 int_status(RD) 
-MC0_CTL_970 : .dword 0x000000000083e885
+MC0_CTL_970 : .dword 0x010000000083e885
 //h00000 000_0 XXXX int_ack[16:0](WR) hXXXX dll_rst_delay(RW) hXX dll_rst_adj_dly(RW)
 MC0_CTL_980 : .dword 0x0001010001000101
 //0000000_0 zq_in_progress(RD) 0000000_1 zqcs_rotate(RW) 0000000_0 wrlvl_reg_en(RW) 0000000_0 wrlvl_en(RW) 0000000_1 resync_dll_per_aref_en(RW) 0000000_0 resync_dll(WR) 0000000_0 rdlvl_reg_en(RW) 0000000_0 rdlvl_gate_reg_en(RW) 
@@ -1113,7 +1113,7 @@ MC1_CTL_950 : .dword 0x0000000000001000
 //hXXXXX 00_00 XXXX mask_int[17:0](RW) hXXXX txpdll(RW) 0000_0000 tdfi_wrlvl_en(RW)
 MC1_CTL_960 : .dword 0x0705000000000000
 //000_00101 rdlat_adj(RW) 0000_0100 wrlat_adj(RW) 0000000_0 swlvl_start(WR) 0000000_0 swlvl_load(WR) 0000000_0 swlvl_exit(WR) 000000_000000000000000000 int_status(RD) 
-MC1_CTL_970 : .dword 0x000000000083e885
+MC1_CTL_970 : .dword 0x010000000083e885
 //h00000 000_0 XXXX int_ack[16:0](WR) hXXXX dll_rst_delay(RW) hXX dll_rst_adj_dly(RW)
 MC1_CTL_980 : .dword 0x0001010001000101
 //0000000_0 zq_in_progress(RD) 0000000_1 zqcs_rotate(RW) 0000000_0 wrlvl_reg_en(RW) 0000000_0 wrlvl_en(RW) 0000000_1 resync_dll_per_aref_en(RW) 0000000_0 resync_dll(WR) 0000000_0 rdlvl_reg_en(RW) 0000000_0 rdlvl_gate_reg_en(RW) 
@@ -1407,7 +1407,7 @@ MC0_RDIMM_CTL_950 : .dword 0x0000000000001000
 //hXXXXX 00_00 XXXX mask_int[17:0](RW) hXXXX txpdll(RW) 0000_0000 tdfi_wrlvl_en(RW)
 MC0_RDIMM_CTL_960 : .dword 0x0604000000000000
 //000_00101 rdlat_adj(RW) 0000_0100 wrlat_adj(RW) 0000000_0 swlvl_start(WR) 0000000_0 swlvl_load(WR) 0000000_0 swlvl_exit(WR) 000000_000000000000000000 int_status(RD) 
-MC0_RDIMM_CTL_970 : .dword 0x000000000003e825
+MC0_RDIMM_CTL_970 : .dword 0x010000000003e825
 //h00000 000_0 XXXX int_ack[16:0](WR) hXXXX dll_rst_delay(RW) hXX dll_rst_adj_dly(RW)
 MC0_RDIMM_CTL_980 : .dword 0x0001010001000101
 //0000000_0 zq_in_progress(RD) 0000000_1 zqcs_rotate(RW) 0000000_0 wrlvl_reg_en(RW) 0000000_0 wrlvl_en(RW) 0000000_1 resync_dll_per_aref_en(RW) 0000000_0 resync_dll(WR) 0000000_0 rdlvl_reg_en(RW) 0000000_0 rdlvl_gate_reg_en(RW) 
@@ -1696,7 +1696,7 @@ MC1_RDIMM_CTL_950 : .dword 0x0000000000001000
 //hXXXXX 00_00 XXXX mask_int[17:0](RW) hXXXX txpdll(RW) 0000_0000 tdfi_wrlvl_en(RW)
 MC1_RDIMM_CTL_960 : .dword 0x0604000000000000
 //000_00101 rdlat_adj(RW) 0000_0100 wrlat_adj(RW) 0000000_0 swlvl_start(WR) 0000000_0 swlvl_load(WR) 0000000_0 swlvl_exit(WR) 000000_000000000000000000 int_status(RD) 
-MC1_RDIMM_CTL_970 : .dword 0x000000000083e885
+MC1_RDIMM_CTL_970 : .dword 0x010000000083e885
 //h00000 000_0 XXXX int_ack[16:0](WR) hXXXX dll_rst_delay(RW) hXX dll_rst_adj_dly(RW)
 MC1_RDIMM_CTL_980 : .dword 0x0001010001000101
 //0000000_0 zq_in_progress(RD) 0000000_1 zqcs_rotate(RW) 0000000_0 wrlvl_reg_en(RW) 0000000_0 wrlvl_en(RW) 0000000_1 resync_dll_per_aref_en(RW) 0000000_0 resync_dll(WR) 0000000_0 rdlvl_reg_en(RW) 0000000_0 rdlvl_gate_reg_en(RW) 

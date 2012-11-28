@@ -30,7 +30,7 @@ use register:
     sync
     sync
     sync
-    //Disable L2XBAR_WINDOW(0x20)
+    //Disable L2XBAR_WINDOW
     dli     t7, L2XBAR_CONFIG_BASE_ADDR
 #ifdef LS3B
     GET_ARB_LEVEL_NODE_ID
@@ -40,7 +40,7 @@ use register:
     GET_ARB_LEVEL_NODE_ID
     dsll    a1, a1, 44
     or      t7, t7, a1
-    daddu   t7, t7, 0x20
+    daddu   t7, t7, ARB_TEMP_L2WINDOW_OFFSET
     ld      a0, 0x80(t7)
     and     a0, a0, 0xf
     sd      a0, 0x80(t7)
@@ -76,7 +76,7 @@ use register:
     dsll    a1, a1, 44
     or      t7, t7, a1
 
-#if 1
+#ifdef  ARBLVL_PUT_DRAM_SREF
     //put memory into self-refresh
     ld      a1, SREFRESH_ADDR(t7)
     dli     a2, 0x1
@@ -1232,6 +1232,22 @@ use register:
     or      a1, a1, a2
     sd      a1, PHY_CTRL_1_0_ADDR(t7)
 
+#ifdef  ADJUST_CPU_ODT
+    ld      a1, PHY_CTRL_1_0_ADDR(t7)
+    dli     a2, PHY_CTRL_1_RD_ODT_MASK
+    dsll    a2, a2, PHY_CTRL_1_0_OFFSET + PHY_CTRL_1_RD_ODT_SHIFT
+    not     a2, a2
+    and     a1, a1, a2
+    dli     a3, CPU_ODT_BASE_VALUE
+    beqz    t2, 1f
+    nop
+    daddu   a3, a3, CPU_ODT_INC_VALUE
+1:
+    dsll    a2, a3, PHY_CTRL_1_0_OFFSET + PHY_CTRL_1_RD_ODT_SHIFT
+    or      a1, a1, a2
+    sd      a1, PHY_CTRL_1_0_ADDR(t7)
+#endif
+
     dli     a1, 0xf
     bne     s3, a1, 88f
     nop
@@ -1244,6 +1260,22 @@ use register:
     dsll    a2, t2, PHY_CTRL_1_1_OFFSET
     or      a1, a1, a2
     sd      a1, PHY_CTRL_1_1_ADDR(t7)
+
+#ifdef  ADJUST_CPU_ODT
+    ld      a1, PHY_CTRL_1_1_ADDR(t7)
+    dli     a2, PHY_CTRL_1_RD_ODT_MASK
+    dsll    a2, a2, PHY_CTRL_1_1_OFFSET + PHY_CTRL_1_RD_ODT_SHIFT
+    not     a2, a2
+    and     a1, a1, a2
+    dli     a3, CPU_ODT_BASE_VALUE
+    beqz    t2, 1f
+    nop
+    daddu   a3, a3, CPU_ODT_INC_VALUE
+1:
+    dsll    a2, a3, PHY_CTRL_1_1_OFFSET + PHY_CTRL_1_RD_ODT_SHIFT
+    or      a1, a1, a2
+    sd      a1, PHY_CTRL_1_1_ADDR(t7)
+#endif
 
     dli     a1, 0xf
     bne     s3, a1, 88f
@@ -1258,6 +1290,22 @@ use register:
     or      a1, a1, a2
     sd      a1, PHY_CTRL_1_2_ADDR(t7)
 
+#ifdef  ADJUST_CPU_ODT
+    ld      a1, PHY_CTRL_1_2_ADDR(t7)
+    dli     a2, PHY_CTRL_1_RD_ODT_MASK
+    dsll    a2, a2, PHY_CTRL_1_2_OFFSET + PHY_CTRL_1_RD_ODT_SHIFT
+    not     a2, a2
+    and     a1, a1, a2
+    dli     a3, CPU_ODT_BASE_VALUE
+    beqz    t2, 1f
+    nop
+    daddu   a3, a3, CPU_ODT_INC_VALUE
+1:
+    dsll    a2, a3, PHY_CTRL_1_2_OFFSET + PHY_CTRL_1_RD_ODT_SHIFT
+    or      a1, a1, a2
+    sd      a1, PHY_CTRL_1_2_ADDR(t7)
+#endif
+
     dli     a1, 0xf
     bne     s3, a1, 88f
     nop
@@ -1270,6 +1318,22 @@ use register:
     dsll    a2, t2, PHY_CTRL_1_3_OFFSET
     or      a1, a1, a2
     sd      a1, PHY_CTRL_1_3_ADDR(t7)
+
+#ifdef  ADJUST_CPU_ODT
+    ld      a1, PHY_CTRL_1_3_ADDR(t7)
+    dli     a2, PHY_CTRL_1_RD_ODT_MASK
+    dsll    a2, a2, PHY_CTRL_1_3_OFFSET + PHY_CTRL_1_RD_ODT_SHIFT
+    not     a2, a2
+    and     a1, a1, a2
+    dli     a3, CPU_ODT_BASE_VALUE
+    beqz    t2, 1f
+    nop
+    daddu   a3, a3, CPU_ODT_INC_VALUE
+1:
+    dsll    a2, a3, PHY_CTRL_1_3_OFFSET + PHY_CTRL_1_RD_ODT_SHIFT
+    or      a1, a1, a2
+    sd      a1, PHY_CTRL_1_3_ADDR(t7)
+#endif
 
     dli     a1, 0xf
     bne     s3, a1, 88f
@@ -1284,6 +1348,22 @@ use register:
     or      a1, a1, a2
     sd      a1, PHY_CTRL_1_4_ADDR(t7)
 
+#ifdef  ADJUST_CPU_ODT
+    ld      a1, PHY_CTRL_1_4_ADDR(t7)
+    dli     a2, PHY_CTRL_1_RD_ODT_MASK
+    dsll    a2, a2, PHY_CTRL_1_4_OFFSET + PHY_CTRL_1_RD_ODT_SHIFT
+    not     a2, a2
+    and     a1, a1, a2
+    dli     a3, CPU_ODT_BASE_VALUE
+    beqz    t2, 1f
+    nop
+    daddu   a3, a3, CPU_ODT_INC_VALUE
+1:
+    dsll    a2, a3, PHY_CTRL_1_4_OFFSET + PHY_CTRL_1_RD_ODT_SHIFT
+    or      a1, a1, a2
+    sd      a1, PHY_CTRL_1_4_ADDR(t7)
+#endif
+
     dli     a1, 0xf
     bne     s3, a1, 88f
     nop
@@ -1296,6 +1376,22 @@ use register:
     dsll    a2, t2, PHY_CTRL_1_5_OFFSET
     or      a1, a1, a2
     sd      a1, PHY_CTRL_1_5_ADDR(t7)
+
+#ifdef  ADJUST_CPU_ODT
+    ld      a1, PHY_CTRL_1_5_ADDR(t7)
+    dli     a2, PHY_CTRL_1_RD_ODT_MASK
+    dsll    a2, a2, PHY_CTRL_1_5_OFFSET + PHY_CTRL_1_RD_ODT_SHIFT
+    not     a2, a2
+    and     a1, a1, a2
+    dli     a3, CPU_ODT_BASE_VALUE
+    beqz    t2, 1f
+    nop
+    daddu   a3, a3, CPU_ODT_INC_VALUE
+1:
+    dsll    a2, a3, PHY_CTRL_1_5_OFFSET + PHY_CTRL_1_RD_ODT_SHIFT
+    or      a1, a1, a2
+    sd      a1, PHY_CTRL_1_5_ADDR(t7)
+#endif
 
     dli     a1, 0xf
     bne     s3, a1, 88f
@@ -1310,6 +1406,22 @@ use register:
     or      a1, a1, a2
     sd      a1, PHY_CTRL_1_6_ADDR(t7)
 
+#ifdef  ADJUST_CPU_ODT
+    ld      a1, PHY_CTRL_1_6_ADDR(t7)
+    dli     a2, PHY_CTRL_1_RD_ODT_MASK
+    dsll    a2, a2, PHY_CTRL_1_6_OFFSET + PHY_CTRL_1_RD_ODT_SHIFT
+    not     a2, a2
+    and     a1, a1, a2
+    dli     a3, CPU_ODT_BASE_VALUE
+    beqz    t2, 1f
+    nop
+    daddu   a3, a3, CPU_ODT_INC_VALUE
+1:
+    dsll    a2, a3, PHY_CTRL_1_6_OFFSET + PHY_CTRL_1_RD_ODT_SHIFT
+    or      a1, a1, a2
+    sd      a1, PHY_CTRL_1_6_ADDR(t7)
+#endif
+
     dli     a1, 0xf
     bne     s3, a1, 88f
     nop
@@ -1322,6 +1434,22 @@ use register:
     dsll    a2, t2, PHY_CTRL_1_7_OFFSET
     or      a1, a1, a2
     sd      a1, PHY_CTRL_1_7_ADDR(t7)
+
+#ifdef  ADJUST_CPU_ODT
+    ld      a1, PHY_CTRL_1_7_ADDR(t7)
+    dli     a2, PHY_CTRL_1_RD_ODT_MASK
+    dsll    a2, a2, PHY_CTRL_1_7_OFFSET + PHY_CTRL_1_RD_ODT_SHIFT
+    not     a2, a2
+    and     a1, a1, a2
+    dli     a3, CPU_ODT_BASE_VALUE
+    beqz    t2, 1f
+    nop
+    daddu   a3, a3, CPU_ODT_INC_VALUE
+1:
+    dsll    a2, a3, PHY_CTRL_1_7_OFFSET + PHY_CTRL_1_RD_ODT_SHIFT
+    or      a1, a1, a2
+    sd      a1, PHY_CTRL_1_7_ADDR(t7)
+#endif
 
     b       88f
     nop
@@ -1376,7 +1504,7 @@ use register:
     beqz    a1, 1b
     nop
 
-#if 1
+#ifdef  ARBLVL_PUT_DRAM_SREF
     //pull memory out of self-refresh
     ld      a1, SREFRESH_ADDR(t7)
     dli     a2, 0x1
@@ -1428,7 +1556,7 @@ use register:
     sync
     sync
     sync
-    //Enable L2XBAR_WINDOW(0x20)
+    //Enable L2XBAR_WINDOW
     dli     t7, L2XBAR_CONFIG_BASE_ADDR
 #ifdef LS3B
     GET_ARB_LEVEL_NODE_ID
@@ -1438,7 +1566,7 @@ use register:
     GET_ARB_LEVEL_NODE_ID
     dsll    a1, a1, 44
     or      t7, t7, a1
-    daddu   t7, t7, 0x20
+    daddu   t7, t7, ARB_TEMP_L2WINDOW_OFFSET
     ld      a0, 0x80(t7)
     or      a0, a0, 0xf0
     sd      a0, 0x80(t7)
@@ -1480,7 +1608,7 @@ use register:
     sync
     sync
     sync
-    //Disable L2XBAR_WINDOW(0x20)
+    //Disable L2XBAR_WINDOW
     dli     t7, L2XBAR_CONFIG_BASE_ADDR
 #ifdef LS3B
     GET_ARB_LEVEL_NODE_ID
@@ -1490,7 +1618,7 @@ use register:
     GET_ARB_LEVEL_NODE_ID
     dsll    a1, a1, 44
     or      t7, t7, a1
-    daddu   t7, t7, 0x20
+    daddu   t7, t7, ARB_TEMP_L2WINDOW_OFFSET
     ld      a0, 0x80(t7)
     and     a0, a0, 0xf
     sd      a0, 0x80(t7)
@@ -1526,7 +1654,7 @@ use register:
     dsll    a1, a1, 44
     or      t7, t7, a1
 
-#if 1
+#ifdef  ARBLVL_PUT_DRAM_SREF
     //put memory into self-refresh
     ld      a1, SREFRESH_ADDR(t7)
     dli     a2, 0x1
@@ -1609,23 +1737,6 @@ use register:
     or      a1, a1, a2
     sd      a1, PHY_CTRL_0_0_ADDR(t7)
 
-#ifdef  ADJUST_CPU_ODT
-    ld      a1, PHY_CTRL_1_0_ADDR(t7)
-    dli     a2, PHY_CTRL_1_RD_ODT_MASK
-    dsll    a2, a2, PHY_CTRL_1_0_OFFSET + PHY_CTRL_1_RD_ODT_SHIFT
-    not     a2, a2
-    and     a1, a1, a2
-    dli     a3, CPU_ODT_BASE_VALUE
-    dsrl    a2, a0, 2
-    beqz    a2, 1f
-    nop
-    daddu   a3, a3, CPU_ODT_INC_VALUE
-1:
-    dsll    a2, a3, PHY_CTRL_1_0_OFFSET + PHY_CTRL_1_RD_ODT_SHIFT
-    or      a1, a1, a2
-    sd      a1, PHY_CTRL_1_0_ADDR(t7)
-#endif
-
     dli     a1, 0xf
     bne     s3, a1, 88f
     nop
@@ -1648,23 +1759,6 @@ use register:
     dsll    a2, a0, PHY_CTRL_0_1_OFFSET + PHY_CTRL_0_POP_DELAY_SHIFT
     or      a1, a1, a2
     sd      a1, PHY_CTRL_0_1_ADDR(t7)
-
-#ifdef  ADJUST_CPU_ODT
-    ld      a1, PHY_CTRL_1_1_ADDR(t7)
-    dli     a2, PHY_CTRL_1_RD_ODT_MASK
-    dsll    a2, a2, PHY_CTRL_1_1_OFFSET + PHY_CTRL_1_RD_ODT_SHIFT
-    not     a2, a2
-    and     a1, a1, a2
-    dli     a3, CPU_ODT_BASE_VALUE
-    dsrl    a2, a0, 2
-    beqz    a2, 1f
-    nop
-    daddu   a3, a3, CPU_ODT_INC_VALUE
-1:
-    dsll    a2, a3, PHY_CTRL_1_1_OFFSET + PHY_CTRL_1_RD_ODT_SHIFT
-    or      a1, a1, a2
-    sd      a1, PHY_CTRL_1_1_ADDR(t7)
-#endif
 
     dli     a1, 0xf
     bne     s3, a1, 88f
@@ -1689,23 +1783,6 @@ use register:
     or      a1, a1, a2
     sd      a1, PHY_CTRL_0_2_ADDR(t7)
 
-#ifdef  ADJUST_CPU_ODT
-    ld      a1, PHY_CTRL_1_2_ADDR(t7)
-    dli     a2, PHY_CTRL_1_RD_ODT_MASK
-    dsll    a2, a2, PHY_CTRL_1_2_OFFSET + PHY_CTRL_1_RD_ODT_SHIFT
-    not     a2, a2
-    and     a1, a1, a2
-    dli     a3, CPU_ODT_BASE_VALUE
-    dsrl    a2, a0, 2
-    beqz    a2, 1f
-    nop
-    daddu   a3, a3, CPU_ODT_INC_VALUE
-1:
-    dsll    a2, a3, PHY_CTRL_1_2_OFFSET + PHY_CTRL_1_RD_ODT_SHIFT
-    or      a1, a1, a2
-    sd      a1, PHY_CTRL_1_2_ADDR(t7)
-#endif
-
     dli     a1, 0xf
     bne     s3, a1, 88f
     nop
@@ -1728,23 +1805,6 @@ use register:
     dsll    a2, a0, PHY_CTRL_0_3_OFFSET + PHY_CTRL_0_POP_DELAY_SHIFT
     or      a1, a1, a2
     sd      a1, PHY_CTRL_0_3_ADDR(t7)
-
-#ifdef  ADJUST_CPU_ODT
-    ld      a1, PHY_CTRL_1_3_ADDR(t7)
-    dli     a2, PHY_CTRL_1_RD_ODT_MASK
-    dsll    a2, a2, PHY_CTRL_1_3_OFFSET + PHY_CTRL_1_RD_ODT_SHIFT
-    not     a2, a2
-    and     a1, a1, a2
-    dli     a3, CPU_ODT_BASE_VALUE
-    dsrl    a2, a0, 2
-    beqz    a2, 1f
-    nop
-    daddu   a3, a3, CPU_ODT_INC_VALUE
-1:
-    dsll    a2, a3, PHY_CTRL_1_3_OFFSET + PHY_CTRL_1_RD_ODT_SHIFT
-    or      a1, a1, a2
-    sd      a1, PHY_CTRL_1_3_ADDR(t7)
-#endif
 
     dli     a1, 0xf
     bne     s3, a1, 88f
@@ -1769,23 +1829,6 @@ use register:
     or      a1, a1, a2
     sd      a1, PHY_CTRL_0_4_ADDR(t7)
 
-#ifdef  ADJUST_CPU_ODT
-    ld      a1, PHY_CTRL_1_4_ADDR(t7)
-    dli     a2, PHY_CTRL_1_RD_ODT_MASK
-    dsll    a2, a2, PHY_CTRL_1_4_OFFSET + PHY_CTRL_1_RD_ODT_SHIFT
-    not     a2, a2
-    and     a1, a1, a2
-    dli     a3, CPU_ODT_BASE_VALUE
-    dsrl    a2, a0, 2
-    beqz    a2, 1f
-    nop
-    daddu   a3, a3, CPU_ODT_INC_VALUE
-1:
-    dsll    a2, a3, PHY_CTRL_1_4_OFFSET + PHY_CTRL_1_RD_ODT_SHIFT
-    or      a1, a1, a2
-    sd      a1, PHY_CTRL_1_4_ADDR(t7)
-#endif
-
     dli     a1, 0xf
     bne     s3, a1, 88f
     nop
@@ -1808,23 +1851,6 @@ use register:
     dsll    a2, a0, PHY_CTRL_0_5_OFFSET + PHY_CTRL_0_POP_DELAY_SHIFT
     or      a1, a1, a2
     sd      a1, PHY_CTRL_0_5_ADDR(t7)
-
-#ifdef  ADJUST_CPU_ODT
-    ld      a1, PHY_CTRL_1_5_ADDR(t7)
-    dli     a2, PHY_CTRL_1_RD_ODT_MASK
-    dsll    a2, a2, PHY_CTRL_1_5_OFFSET + PHY_CTRL_1_RD_ODT_SHIFT
-    not     a2, a2
-    and     a1, a1, a2
-    dli     a3, CPU_ODT_BASE_VALUE
-    dsrl    a2, a0, 2
-    beqz    a2, 1f
-    nop
-    daddu   a3, a3, CPU_ODT_INC_VALUE
-1:
-    dsll    a2, a3, PHY_CTRL_1_5_OFFSET + PHY_CTRL_1_RD_ODT_SHIFT
-    or      a1, a1, a2
-    sd      a1, PHY_CTRL_1_5_ADDR(t7)
-#endif
 
     dli     a1, 0xf
     bne     s3, a1, 88f
@@ -1849,23 +1875,6 @@ use register:
     or      a1, a1, a2
     sd      a1, PHY_CTRL_0_6_ADDR(t7)
 
-#ifdef  ADJUST_CPU_ODT
-    ld      a1, PHY_CTRL_1_6_ADDR(t7)
-    dli     a2, PHY_CTRL_1_RD_ODT_MASK
-    dsll    a2, a2, PHY_CTRL_1_6_OFFSET + PHY_CTRL_1_RD_ODT_SHIFT
-    not     a2, a2
-    and     a1, a1, a2
-    dli     a3, CPU_ODT_BASE_VALUE
-    dsrl    a2, a0, 2
-    beqz    a2, 1f
-    nop
-    daddu   a3, a3, CPU_ODT_INC_VALUE
-1:
-    dsll    a2, a3, PHY_CTRL_1_6_OFFSET + PHY_CTRL_1_RD_ODT_SHIFT
-    or      a1, a1, a2
-    sd      a1, PHY_CTRL_1_6_ADDR(t7)
-#endif
-
     dli     a1, 0xf
     bne     s3, a1, 88f
     nop
@@ -1888,23 +1897,6 @@ use register:
     dsll    a2, a0, PHY_CTRL_0_7_OFFSET + PHY_CTRL_0_POP_DELAY_SHIFT
     or      a1, a1, a2
     sd      a1, PHY_CTRL_0_7_ADDR(t7)
-
-#ifdef  ADJUST_CPU_ODT
-    ld      a1, PHY_CTRL_1_7_ADDR(t7)
-    dli     a2, PHY_CTRL_1_RD_ODT_MASK
-    dsll    a2, a2, PHY_CTRL_1_7_OFFSET + PHY_CTRL_1_RD_ODT_SHIFT
-    not     a2, a2
-    and     a1, a1, a2
-    dli     a3, CPU_ODT_BASE_VALUE
-    dsrl    a2, a0, 2
-    beqz    a2, 1f
-    nop
-    daddu   a3, a3, CPU_ODT_INC_VALUE
-1:
-    dsll    a2, a3, PHY_CTRL_1_7_OFFSET + PHY_CTRL_1_RD_ODT_SHIFT
-    or      a1, a1, a2
-    sd      a1, PHY_CTRL_1_7_ADDR(t7)
-#endif
 
     b       88f
     nop
@@ -1937,7 +1929,7 @@ use register:
     beqz    a1, 1b
     nop
 
-#if 1
+#ifdef  ARBLVL_PUT_DRAM_SREF
     //pull memory out of self-refresh
     ld      a1, SREFRESH_ADDR(t7)
     dli     a2, 0x1
@@ -1989,7 +1981,7 @@ use register:
     sync
     sync
     sync
-    //Enable L2XBAR_WINDOW(0x20)
+    //Enable L2XBAR_WINDOW
     dli     t7, L2XBAR_CONFIG_BASE_ADDR
 #ifdef LS3B
     GET_ARB_LEVEL_NODE_ID
@@ -1999,7 +1991,7 @@ use register:
     GET_ARB_LEVEL_NODE_ID
     dsll    a1, a1, 44
     or      t7, t7, a1
-    daddu   t7, t7, 0x20
+    daddu   t7, t7, ARB_TEMP_L2WINDOW_OFFSET
     ld      a0, 0x80(t7)
     or      a0, a0, 0xf0
     sd      a0, 0x80(t7)
@@ -2044,7 +2036,7 @@ use register:
     sync
     sync
     sync
-    //Disable L2XBAR_WINDOW(0x20)
+    //Disable L2XBAR_WINDOW
     dli     t7, L2XBAR_CONFIG_BASE_ADDR
 #ifdef LS3B
     GET_ARB_LEVEL_NODE_ID
@@ -2054,7 +2046,7 @@ use register:
     GET_ARB_LEVEL_NODE_ID
     dsll    a1, a1, 44
     or      t7, t7, a1
-    daddu   t7, t7, 0x20
+    daddu   t7, t7, ARB_TEMP_L2WINDOW_OFFSET
     ld      a0, 0x80(t7)
     and     a0, a0, 0xf
     sd      a0, 0x80(t7)
@@ -2090,7 +2082,7 @@ use register:
     dsll    a1, a1, 44
     or      t7, t7, a1
     
-#if 1
+#ifdef  ARBLVL_PUT_DRAM_SREF
     //put memory into self-refresh
     ld      a1, SREFRESH_ADDR(t7)
     dli     a2, 0x1
@@ -2502,7 +2494,7 @@ use register:
     beqz    a1, 1b
     nop
 
-#if 1
+#ifdef  ARBLVL_PUT_DRAM_SREF
     //pull memory out of self-refresh
     ld      a1, SREFRESH_ADDR(t7)
     dli     a2, 0x1
@@ -2554,7 +2546,7 @@ use register:
     sync
     sync
     sync
-    //Enable L2XBAR_WINDOW(0x20)
+    //Enable L2XBAR_WINDOW
     dli     t7, L2XBAR_CONFIG_BASE_ADDR
 #ifdef LS3B
     GET_ARB_LEVEL_NODE_ID
@@ -2564,7 +2556,7 @@ use register:
     GET_ARB_LEVEL_NODE_ID
     dsll    a1, a1, 44
     or      t7, t7, a1
-    daddu   t7, t7, 0x20
+    daddu   t7, t7, ARB_TEMP_L2WINDOW_OFFSET
     ld      a0, 0x80(t7)
     or      a0, a0, 0xf0
     sd      a0, 0x80(t7)
@@ -2611,7 +2603,7 @@ use register:
     sync
     sync
     sync
-    //Disable L2XBAR_WINDOW(0x20)
+    //Disable L2XBAR_WINDOW
     dli     t7, L2XBAR_CONFIG_BASE_ADDR
 #ifdef LS3B
     GET_ARB_LEVEL_NODE_ID
@@ -2621,7 +2613,7 @@ use register:
     GET_ARB_LEVEL_NODE_ID
     dsll    a1, a1, 44
     or      t7, t7, a1
-    daddu   t7, t7, 0x20
+    daddu   t7, t7, ARB_TEMP_L2WINDOW_OFFSET
     ld      a0, 0x80(t7)
     and     a0, a0, 0xf
     sd      a0, 0x80(t7)
@@ -2657,7 +2649,7 @@ use register:
     dsll    a1, a1, 44
     or      t7, t7, a1
     
-#if 1
+#ifdef  ARBLVL_PUT_DRAM_SREF
     //put memory into self-refresh
     ld      a1, SREFRESH_ADDR(t7)
     dli     a2, 0x1
@@ -2767,7 +2759,7 @@ cur_pad_min:
     beqz    a1, 1b
     nop
 
-#if 1
+#ifdef  ARBLVL_PUT_DRAM_SREF
     //pull memory out of self-refresh
     ld      a1, SREFRESH_ADDR(t7)
     dli     a2, 0x1
@@ -2819,7 +2811,7 @@ cur_pad_min:
     sync
     sync
     sync
-    //Enable L2XBAR_WINDOW(0x20)
+    //Enable L2XBAR_WINDOW
     dli     t7, L2XBAR_CONFIG_BASE_ADDR
 #ifdef LS3B
     GET_ARB_LEVEL_NODE_ID
@@ -2829,7 +2821,7 @@ cur_pad_min:
     GET_ARB_LEVEL_NODE_ID
     dsll    a1, a1, 44
     or      t7, t7, a1
-    daddu   t7, t7, 0x20
+    daddu   t7, t7, ARB_TEMP_L2WINDOW_OFFSET
     ld      a0, 0x80(t7)
     or      a0, a0, 0xf0
     sd      a0, 0x80(t7)

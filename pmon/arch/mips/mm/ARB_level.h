@@ -36,10 +36,10 @@
 #define WRLVL_MAX_DELAY         (0x5e)
 #define WRLVL_DQ_MAX_DELAY      (0x50)
 
-//#define CPU_ODT_BASE_VALUE      (0x15)
-//#define CPU_ODT_INC_VALUE       (0x22)
-#define CPU_ODT_BASE_VALUE      (0x04)
-#define CPU_ODT_INC_VALUE       (0x12)
+#define CPU_ODT_BASE_VALUE      (0x15)
+#define CPU_ODT_INC_VALUE       (0x11)
+//#define CPU_ODT_BASE_VALUE      (0x04)
+//#define CPU_ODT_INC_VALUE       (0x12)
 
 #define WRLVL_HALF_CLK_VALUE    (0x40)
 #define DQSDQ_OUT_WINDOW_VALUE      (0x3733)

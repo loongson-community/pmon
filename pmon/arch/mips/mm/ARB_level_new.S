@@ -28,7 +28,7 @@ t5: delay value interval.
 t6: param to Modify_param (object select).
 t7: volatile value
 t8: ARB_STORE_BASE
-t9: level control(avoid deadloop).
+t9: save ra; (local used by wrlvl/rdlvl)
 v0, v1: return value of arb_test_mem.
 algrithm: 
 
@@ -41,22 +41,28 @@ algrithm:
 //#define DEBUG_ARB_LEVEL_WR
 //#define DEBUG_ARB_LEVEL_TM_DETAIL
 
-#define MODIFY_PAD_COMP
+//#define ARB_SKIP_WRLVL
 //#define FAKE_DDR3UDIMM_WRLVL
+//#define USE_DEFAULT_RDLVL_DELAY
 
 #define ADJUST_CPU_ODT  //work ok
-#define CONTROL_L2XBAR_DDR_WINDOW  //work ok
-
-//#define ALIGN_GATE_DELAY  //obsolete because we use new method
-#define USE_SMALL_GF_POP_DELAY  //work ok
 #define ADD_DELAY_AFTER_RESET_PHY   //not need any more ?
-#define CLEAR_HALF_CLK_SHIFT    //necessary
 
 //Don't change
+#define MODIFY_PAD_COMP
+#define CONTROL_L2XBAR_DDR_WINDOW  //work ok
+#define USE_SMALL_GF_POP_DELAY  //work ok
+#define ARBLVL_PUT_DRAM_SREF
+#ifndef	LOONGSON_2H
+#define CLEAR_HALF_CLK_SHIFT    //necessary
+#endif
+
+//#define ALIGN_GATE_DELAY  //obsolete because we use new method
+
 #define LOG2_STEP   1   //log2 of TM step interval, remember to small WINDOW_ZERO_NUM when we use larger STEP
 #define WINDOW_ZERO_NUM     0x8
 #define GATE_LOG2_STEP  1   //log2 of TM step interval for read Gate level
-#define GATE_MINUS  -6
+#define GATE_ADJUST     0
 
 ARB_level:
     move    t9, ra
@@ -84,11 +90,11 @@ ARB_start:
     GET_ARB_LEVEL_NODE_ID
     dsll    a1, a1, 44
     or      a2, a2, a1
+    dli     a3, 0x0000fffffffff000  //set Mask first
+    sd      a3, 0x40(a2)
     dli     a3, 0x8000001000000000
     or      a3, a3, a1
     sd      a3, 0x0(a2)
-    dli     a3, 0x0000fffffffff000
-    sd      a3, 0x40(a2)
 #ifdef  PRINT_MSG
     PRINTSTR("Lock Scache Done.\r\n")
 #endif
@@ -127,6 +133,8 @@ ARB_start:
 
 ARB_level_begin:
 
+#ifndef ARB_SKIP_WRLVL
+//prepare for wrlvl
     //Get CLKLVL_DELAY_VALUE
     bal     enable_ddr_confspace
     nop
@@ -191,7 +199,6 @@ arb_wrlvl_start:
     bal     disable_ddr_confspace
     nop
 #endif
-    move    t9, $0
     dli     s3, 0xf //change all 8 byte slices
 //1. level Write DQS Delay line setting.
     //clear store mem
@@ -702,6 +709,8 @@ boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
     dli     t2, WRLVL_MAX_DELAY
     dsrl    t2, t2, LOG2_STEP
 
+    move    t9, $0
+
     dli     t1, 0x38    //start from byte 7
     dli     t8, ARB_STORE_BASE
     GET_ARB_LEVEL_NODE_ID
@@ -835,7 +844,8 @@ boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
     dsrl    a0, a0, 1
     dli     a1, 0x7f7f7f7f7f7f7f7f
     and     a0, a0, a1
-#ifdef  DDR3_DIMM //special deal with wrlvl_dqs when use DDR3 DIMM
+#ifdef  DDR3_DIMM //special deal with wrlvl_dqs
+    //DDR3 DIMM
     GET_DIMM_TYPE
     bnez    a1, 4f
     nop
@@ -876,7 +886,7 @@ boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
     //refer byte 5
     dsrl    a2, a3, 40
     and     a2, a2, 0x7f
-    dli     v0, 0x58
+    dli     v0, (WRLVL_MAX_DELAY - 0x4)
     blt     a2, v0, 1f
     nop
     //MAX reach boundary, use ((MAX+MID)/2 + MID)/2
@@ -899,7 +909,7 @@ boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
     //refer byte 7
     dsrl    a2, a3, 56
     and     a2, a2, 0x7f
-    dli     v0, 0x58
+    dli     v0, (WRLVL_MAX_DELAY - 0x4)
     blt     a2, v0, 1f
     nop
     //MAX reach boundary, use (MAX+MID)/2
@@ -973,6 +983,66 @@ arb_wrlvl_cal_ddr3udimm:
     and     a0, a0, a1
 
 88:
+#else
+    //DDR2 DIMM
+    ld      a1, GD_MIN(t8)
+    ld      a3, GD_MAX(t8)
+    //Refer to Byte 0
+    dsrl    a2, a1, 0
+    and     a2, a2, 0x7f
+    beqz    a2, 2f
+    nop
+    //MIN != 0
+    dsrl    a2, a3, 0
+    and     a2, a2, 0x7f
+    dli     v0, (WRLVL_MAX_DELAY - 0x4)
+    blt     a2, v0, 1f
+    nop
+    //MAX reach boundary
+    //MIN not reach boundary, MAX reach boundary, use (MAX+MID)/2
+    daddu   v0, a3, a0
+    dsrl    v0, v0, 1
+    dli     v1, 0x7f7f7f7f7f7f7f7f
+    and     v0, v0, v1
+
+    daddu   v0, v0, a0
+    dsrl    v0, v0, 1
+    dli     v1, 0x7f7f7f7f7f7f7f7f
+    and     v0, v0, v1
+
+    dli     v1, 0xffffffffffffffff
+    not     v1, v1
+    and     a0, a0, v1
+    or      a0, a0, v0
+
+    b       88f
+    nop
+1:
+    //MAX not reach boundary
+    //MIN && MAX neither reach boundary, use mid_value
+    b       88f
+    nop
+2:
+    //MIN == 0
+    dsrl    a2, a3, 0
+    and     a2, a2, 0x7f
+    dli     v0, (WRLVL_MAX_DELAY - 0x4)
+    blt     a2, v0, 1f
+    nop
+    //MAX reach boundary
+    //MIN && MAX both reach boundary, use mid_value / 2
+    b       88f
+    nop
+1:
+    //MIN reach boundary, MAX not reach boundary
+    dsrl    v0, a0, 1   //mid_value / 2
+    dli     a2, 0x7f7f7f7f7f7f7f7f
+    and     v0, v0, a2
+    dli     a2, 0xffffffffffffffff
+    not     a2, a2
+    and     a0, a0, a2
+    or      a0, a0, v0
+88:
 #endif
     sd      a0, GD_MID(t8)
 
@@ -1029,7 +1099,7 @@ arb_wrlvl_cal_ddr3udimm:
     bal     disable_ddr_confspace
     nop
 #endif
-
+#endif
 
 //2. read_level read param cfg: include: POP delay(3 or 4), rd_gate_cfg, rd gate delay line and rdlvl_dqsP/N
 //use RW result, because we have done wr_dqs leveling, so there should not be RW errors.
@@ -1040,6 +1110,7 @@ arb_wrlvl_cal_ddr3udimm:
  * s4: slice inner loop control--global
  * t6: lvl sel-- stage global
  * t2: lvl value--stage global
+ * t9: gate lvl value control--stage global
  */
 #ifdef  PRINT_MSG
     PRINTSTR("\r\n\r\nStart read leveling..")
@@ -1096,7 +1167,7 @@ rdlvl_one_byte_start:
 #endif
 
     //test the possible two RD pop delay
-    //loop twice: for each POP delay cfg(3 or 4), find a best phy_rd_gate cfg first,
+    //loop twice: for each POP delay cfg(3 or 4), find a best gate cfg(include phy_gate_cfg and rdlvl_gate_delay) first,
     //then calculate the range of rdlvl_delay_P/N, use the larger range as final setting.
     move    s4, $0
 rdlvl_pop_delay_start:
@@ -1109,23 +1180,20 @@ rdlvl_pop_delay_start:
     daddu   t6, t6, 0x1
     bal     arb_modify_param
     nop
-    //set rdlvl_gate_delay to some bigger value to reserve some margin
-    dli     t6, 0x2
-    dli     t2, 0x10
-    bal     arb_modify_param
-    nop
 
-    //1. Coarse leveling.---adjust phy_1 read gate cfg
-    dli     t6, 0x7
-    dli     t2, 0x2
+    //leveling phy_1 read gate cfg and rdlvl_gate_delay
+    //out loop. Coarse leveling.---adjust phy_1 read gate cfg
+    dli     t9, 0x2
     //decrease from bigger to small because we want to use as bigger as possible.
 rdlvl_gate_cfg_start:
+    move    t2, t9
 #ifdef  DEBUG_ARB_LEVEL_RD
     PRINTSTR("\r\nModify read gate cfg: t2 = 0x")
     move    a0, t2
     bal     hexserial
     nop
 #endif
+    dli     t6, 0x7
     bal     arb_modify_param
     nop
 #ifdef  DEBUG_ARB_LEVEL_RD
@@ -1159,65 +1227,8 @@ rdlvl_gate_cfg_start:
     bal     disable_ddr_confspace
     nop
 #endif
+    //inner loop. fine leveling.---adjust rdlvl_gate_delay_X
 
-//do Test and print test result
-    bal     arb_test_mem
-    nop
-    move    t3, v0
-    move    t4, v1
-#ifdef  DEBUG_ARB_LEVEL_RD
-    beqz    t3, 1f
-    nop
-    PRINTSTR("\r\nRW Diff 0x")
-    dsrl    a0, t3, 32
-    bal     hexserial
-    nop
-    move    a0, t3
-    bal     hexserial
-    nop
-    PRINTSTR("\r\nRD Diff 0x")
-    dsrl    a0, t4, 32
-    bal     hexserial
-    nop
-    move    a0, t4
-    bal     hexserial
-    nop
-    b       2f
-    nop
-1:
-    PRINTSTR("\r\nNo Error detected.")
-2:
-#endif
-    //Mask out this byte lane info
-    and     t3, t3, s5
-    and     t4, t4, s5
-    //Find a right cfg
-    beqz    t3, 28f
-    nop
-    beqz    t2, 22f
-    nop
-    dsrl    t2, t2, 0x1
-    b       rdlvl_gate_cfg_start
-    nop
-    
-22: //tryed all setting(0,1,2), can NOT find a right cfg, try another pop delay.
-    //write fail mark
-    dli     a1, 0x1
-    dsll    a1, a1, s4
-    ld      a0, RDLVL_FAIL_MARK(t8)
-    or      a0, a0, a1
-    sd      a0, RDLVL_FAIL_MARK(t8)
-    b       rdlvl_pop_delay_end
-    nop
-28: //no error
-    //store rd gate cfg
-    dsll    a1, s4, 3
-    dsll    a1, t2, a1
-    ld      a0, RDLVL_GATE_CFG(t8)
-    or      a0, a0, a1
-    sd      a0, RDLVL_GATE_CFG(t8)
-
-    //2. fine leveling.---adjust rdlvl_gate_delay_X
     //clear Store space
     sd      zero, BYTE_TM_RST(t8)
     sd      zero, GD_MIN(t8)
@@ -1334,7 +1345,7 @@ boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
     nop
 #endif
     move    t0, $0
-    dli     t4, WINDOW_ZERO_NUM + (GATE_MINUS)
+    dli     t4, WINDOW_ZERO_NUM + (GATE_ADJUST)
 12:
     bgtu    t0, t2, 3f
     nop
@@ -1351,14 +1362,14 @@ boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
     b       12b
     nop
 1:  //find a TM fail
-    dli     t4, WINDOW_ZERO_NUM + (GATE_MINUS)
+    dli     t4, WINDOW_ZERO_NUM + (GATE_ADJUST)
     //continue move
     daddiu  t0, t0, 0x1
     b       12b
     nop
 2:  //window found
     //calculate the MIN boundary
-    dli     a1, WINDOW_ZERO_NUM + (GATE_MINUS)
+    dli     a1, WINDOW_ZERO_NUM + (GATE_ADJUST)
     daddiu  a0, t0, 1
     dsubu   a0, a0, a1
     dsll    a0, a0, GATE_LOG2_STEP   //a0 = a0 * 2n
@@ -1392,14 +1403,32 @@ boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
     bal     hexserial
     nop
 #endif
+    beqz    t9, rdlvl_gate_cfg_fail
+    nop
+    dsrl    t9, t9, 0x1
+    b       rdlvl_gate_cfg_start
+    nop
+
+rdlvl_gate_cfg_fail:    //tryed all setting(0,1), can NOT find a right cfg, try another pop delay.
+    //write fail mark
     dli     a1, 0x1
     dsll    a1, a1, s4
     ld      a0, RDLVL_FAIL_MARK(t8)
     or      a0, a0, a1
     sd      a0, RDLVL_FAIL_MARK(t8)
+
     b       rdlvl_pop_delay_end
     nop
-2:  //this byte lane's MIN and MAX value stored
+
+2:  //find this byte lane's window
+    //Find a right cfg
+    //store rd gate cfg
+    dsll    a1, s4, 3
+    dsll    a1, t9, a1
+    ld      a0, RDLVL_GATE_CFG(t8)
+    or      a0, a0, a1
+    sd      a0, RDLVL_GATE_CFG(t8)
+
 #ifdef  DEBUG_ARB_LEVEL_RD
     PRINTSTR("\r\nMin value: 0x")
     ld      t7, GD_MIN(t8)
@@ -1433,19 +1462,19 @@ boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
     daddu   a0, a0, a1
     dsrl    a0, a0, 1
 #if 1
-    //max rdlvl_gate_delay == RDLVL_GATE_MAX_DELAY, use mid value(>= 0x10) plus 0x8
-    //else use max rdlvl_gate_delay minus as much as 0x10.
-    daddu   a0, a0, 0x8
+    //max rdlvl_gate_delay == RDLVL_GATE_MAX_DELAY, use (mid + max) / 2 
+    //else if mid value < 8 use 0, else use mid value
     dli     a2, RDLVL_GATE_MAX_DELAY
-    bge     a1, a2, 8f
+    blt     a1, a2, 1f
     nop
-    //a1 = [0x10 , RDLVL_GATE_MAX_DELAY)
-    dli     a2, 0x10
-    dsubu   a0, a1, a2
-    bge     a1, a2, 8f
+    daddu   a0, a0, a1
+    dsrl    a0, a0, 1
+    b       8f
     nop
-    //logically a1 should not < 0x10
-    //a1 = (0x0 , 0x10)
+1:
+    dli     a2, 0x8
+    bge     a0, a2, 8f
+    nop
     move    a0, $0
 8:
 #endif
@@ -1899,19 +1928,19 @@ first_pop_delay_ok:
     daddu   a0, a0, a1
     dsrl    a0, a0, 1
 #if 1
-    //max rdlvl_gate_delay == RDLVL_GATE_MAX_DELAY, use mid value(>= 0x10) plus 0x8
-    //else use max rdlvl_gate_delay minus as much as 0x10.
-    daddu   a0, a0, 0x8
+    //max rdlvl_gate_delay == RDLVL_GATE_MAX_DELAY, use (mid + max) / 2 
+    //else if mid value < 8 use 0, else use mid value
     dli     a2, RDLVL_GATE_MAX_DELAY
-    bge     a1, a2, 8f
+    blt     a1, a2, 1f
     nop
-    //a1 = [0x10 , RDLVL_GATE_MAX_DELAY)
-    dli     a2, 0x10
-    dsubu   a0, a1, a2
-    bge     a1, a2, 8f
+    daddu   a0, a0, a1
+    dsrl    a0, a0, 1
+    b       8f
     nop
-    //logically a1 should not < 0x10
-    //a1 = (0x0 , 0x10)
+1:
+    dli     a2, 0x8
+    bge     a0, a2, 8f
+    nop
     move    a0, $0
 8:
 #endif
@@ -1924,10 +1953,28 @@ first_pop_delay_ok:
 
     //write rdlvl_delay_p/n
     dli     t2, 0x20
+#ifndef USE_DEFAULT_RDLVL_DELAY
+    ld      a0, RDLVL_DELAYP_GD_MIN(t8)
+    ld      a1, RDLVL_DELAYP_GD_MAX(t8)
+    and     a0, a0, 0xff
+    and     a1, a1, 0xff
+    daddu   a0, a0, a1
+    dsrl    a0, a0, 1
+    move    t2, a0
+#endif
     dli     t6, 0x3
     bal     arb_modify_param
     nop
     daddu   t6, t6, 0x1
+#ifndef USE_DEFAULT_RDLVL_DELAY
+    ld      a0, RDLVL_DELAYN_GD_MIN(t8)
+    ld      a1, RDLVL_DELAYN_GD_MAX(t8)
+    and     a0, a0, 0xff
+    and     a1, a1, 0xff
+    daddu   a0, a0, a1
+    dsrl    a0, a0, 1
+    move    t2, a0
+#endif
     bal     arb_modify_param
     nop
 
@@ -1937,6 +1984,36 @@ first_pop_delay_ok:
 second_pop_delay_ok:
 #ifdef  PRINT_MSG
     PRINTSTR("\r\nThis Slice level success, use second value.")
+#endif
+#ifndef USE_DEFAULT_RDLVL_DELAY
+    //write rdlvl_delay_p/n
+    ld      a0, RDLVL_DELAYP_GD_MIN(t8)
+    ld      a1, RDLVL_DELAYP_GD_MAX(t8)
+    dsrl    a0, a0, 0x8
+    dsrl    a1, a1, 0x8
+    and     a0, a0, 0xff
+    and     a1, a1, 0xff
+    daddu   a0, a0, a1
+    dsrl    a0, a0, 1
+    move    t2, a0
+
+    dli     t6, 0x3
+    bal     arb_modify_param
+    nop
+    daddu   t6, t6, 0x1
+
+    ld      a0, RDLVL_DELAYN_GD_MIN(t8)
+    ld      a1, RDLVL_DELAYN_GD_MAX(t8)
+    dsrl    a0, a0, 0x8
+    dsrl    a1, a1, 0x8
+    and     a0, a0, 0xff
+    and     a1, a1, 0xff
+    daddu   a0, a0, a1
+    dsrl    a0, a0, 1
+    move    t2, a0
+
+    bal     arb_modify_param
+    nop
 #endif
 #if 0
     //need to do nothing as all the correct cfg has been written.
@@ -2157,9 +2234,6 @@ ARB_level_end:
 
 //<<<<<<<<<<<<<<<<<<<<<<<
 //child function defination
-    
-#include "ARB_TM.S"
-#include "ARB_Modify_param_func.S"
 
 enable_ddr_confspace:
 /*
@@ -2223,4 +2297,7 @@ disable_ddr_confspace:
 
     jr      ra
     nop
+    
+#include "ARB_Modify_param_func.S"
+#include "ARB_TM.S"
 //>>>>>>>>>>>>>>>>>>>>>

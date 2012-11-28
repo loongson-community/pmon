@@ -48,7 +48,7 @@ input param:
     sync
     sync
     sync
-    //Disable L2XBAR_WINDOW(0x20)
+    //Disable L2XBAR_WINDOW
     dli     t7, L2XBAR_CONFIG_BASE_ADDR
 #ifdef LS3B
     GET_ARB_LEVEL_NODE_ID
@@ -58,7 +58,7 @@ input param:
     GET_ARB_LEVEL_NODE_ID
     dsll    a1, a1, 44
     or      t7, t7, a1
-    daddu   t7, t7, 0x20
+    daddu   t7, t7, ARB_TEMP_L2WINDOW_OFFSET
     ld      a0, 0x80(t7)
     and     a0, a0, 0xf
     sd      a0, 0x80(t7)
@@ -73,7 +73,7 @@ input param:
     dsll    a1, a1, 44
     or      t7, t7, a1
     
-#if 1
+#ifdef  ARBLVL_PUT_DRAM_SREF
     //put memory into self-refresh
     ld      a1, SREFRESH_ADDR(t7)
     dli     a2, 0x1
@@ -607,7 +607,7 @@ input param:
 #ifdef  CLEAR_HALF_CLK_SHIFT
     //reset phy_ctrl_reg_0[17]--add_half_clk_shift
     //byte_8
-    dli     a1, 0x40
+    dli     a1, WRLVL_HALF_CLK_VALUE
 #ifdef  DDR3_DIMM
     dsrl    a2, t2, 0x20
 #else
@@ -633,7 +633,7 @@ input param:
     sd      a1, PHY_CTRL_0_8_ADDR(t7)
 52:
     //byte_7
-    dli     a1, 0x40
+    dli     a1, WRLVL_HALF_CLK_VALUE
     dsrl    a2, t2, 0x38
     and     a2, a2, 0x7f
     blt     a2, a1, 51f
@@ -655,7 +655,7 @@ input param:
     sd      a1, PHY_CTRL_0_7_ADDR(t7)
 52:
     //byte_6
-    dli     a1, 0x40
+    dli     a1, WRLVL_HALF_CLK_VALUE
     dsrl    a2, t2, 0x30
     and     a2, a2, 0x7f
     blt     a2, a1, 51f
@@ -677,7 +677,7 @@ input param:
     sd      a1, PHY_CTRL_0_6_ADDR(t7)
 52:
     //byte_5
-    dli     a1, 0x40
+    dli     a1, WRLVL_HALF_CLK_VALUE
     dsrl    a2, t2, 0x28
     and     a2, a2, 0x7f
     blt     a2, a1, 51f
@@ -699,7 +699,7 @@ input param:
     sd      a1, PHY_CTRL_0_5_ADDR(t7)
 52:
     //byte_4
-    dli     a1, 0x40
+    dli     a1, WRLVL_HALF_CLK_VALUE
     dsrl    a2, t2, 0x20
     and     a2, a2, 0x7f
     blt     a2, a1, 51f
@@ -721,7 +721,7 @@ input param:
     sd      a1, PHY_CTRL_0_4_ADDR(t7)
 52:
     //byte_3
-    dli     a1, 0x40
+    dli     a1, WRLVL_HALF_CLK_VALUE
     dsrl    a2, t2, 0x18
     and     a2, a2, 0x7f
     blt     a2, a1, 51f
@@ -743,7 +743,7 @@ input param:
     sd      a1, PHY_CTRL_0_3_ADDR(t7)
 52:
     //byte_2
-    dli     a1, 0x40
+    dli     a1, WRLVL_HALF_CLK_VALUE
     dsrl    a2, t2, 0x10
     and     a2, a2, 0x7f
     blt     a2, a1, 51f
@@ -765,7 +765,7 @@ input param:
     sd      a1, PHY_CTRL_0_2_ADDR(t7)
 52:
     //byte_1
-    dli     a1, 0x40
+    dli     a1, WRLVL_HALF_CLK_VALUE
     dsrl    a2, t2, 0x8
     and     a2, a2, 0x7f
     blt     a2, a1, 51f
@@ -787,7 +787,7 @@ input param:
     sd      a1, PHY_CTRL_0_1_ADDR(t7)
 52:
     //byte_0
-    dli     a1, 0x40
+    dli     a1, WRLVL_HALF_CLK_VALUE
     dsrl    a2, t2, 0x0
     and     a2, a2, 0x7f
     blt     a2, a1, 51f
@@ -1158,7 +1158,7 @@ input param:
     beqz    a1, 1b
     nop
 
-#if 1
+#ifdef  ARBLVL_PUT_DRAM_SREF
     //pull memory out of self-refresh
     ld      a1, SREFRESH_ADDR(t7)
     dli     a2, 0x1
@@ -1190,7 +1190,7 @@ input param:
     sync
     sync
     sync
-    //Enable L2XBAR_WINDOW(0x20)
+    //Enable L2XBAR_WINDOW
     dli     t7, L2XBAR_CONFIG_BASE_ADDR
 #ifdef LS3B
     GET_ARB_LEVEL_NODE_ID
@@ -1200,7 +1200,7 @@ input param:
     GET_ARB_LEVEL_NODE_ID
     dsll    a1, a1, 44
     or      t7, t7, a1
-    daddu   t7, t7, 0x20
+    daddu   t7, t7, ARB_TEMP_L2WINDOW_OFFSET
     ld      a0, 0x80(t7)
     or      a0, a0, 0xf0
     sd      a0, 0x80(t7)

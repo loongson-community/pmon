@@ -130,13 +130,13 @@ TM_start:
     GET_TM_NODE_ID_a1
     dsll    a1, a1, 44
     or      a2, a2, a1
+    dli     a3, 0x0000fffffffff000
+    sd      a3, 0x40(a2)
     dli     a3, 0x8000000000000000
     or      a3, a3, a1
     GET_TM_START_ADDR
     daddu   a3, a3, a1
     sd      a3, 0x0(a2)
-    dli     a3, 0x0000fffffffff000
-    sd      a3, 0x40(a2)
 #if 0
     move    a0, a2
     bal     hexserial

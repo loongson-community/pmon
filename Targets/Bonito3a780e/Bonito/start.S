@@ -1194,13 +1194,12 @@ wait_scache_out:
 #include "ddr_dir/ddr_param_define.h"
 #include "ddr_dir/ddr_config_define.h"
 #define DISABLE_DIMM_ECC
-#define PRINT_MSG
 #ifndef ARB_LEVEL
 //#define FIX_DDR_PARAM
 #endif
+#define PRINT_MSG
 //#define DEBUG_DDR
 //#define DEBUG_DDR_PARAM
-//#define DEBUG_DDR_MT
 
     TTYDBG("\r\nStart Init Memory, wait a while......\r\n")
 ####################################
@@ -1288,7 +1287,7 @@ wait_scache_out:
     nop
     PRINTSTR("  Error found!!\r\n")
 2:
-#if 1
+#if 0
     b       1b
     nop
 #endif

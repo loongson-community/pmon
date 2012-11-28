@@ -1371,14 +1371,14 @@ Fix_ddr_param:
     nop
     nop
     GET_NODE_ID_a0;
-    XBAR_CONFIG_NODE_a0(0x20, \
+    XBAR_CONFIG_NODE_a0(ARB_TEMP_L2WINDOW_OFFSET, \
                     0x0000001000000000, \
                     0xFFFFFFF000000000, \
                     0x00000000000000F0)
     beqz    t3, 2f
     nop
     GET_NODE_ID_a0;
-    XBAR_CONFIG_NODE_a0(0x20, \
+    XBAR_CONFIG_NODE_a0(ARB_TEMP_L2WINDOW_OFFSET, \
                     0x0000001000000000, \
                     0xFFFFFFF000000000, \
                     0x00000000000000F1)
@@ -1398,7 +1398,7 @@ Fix_ddr_param:
     nop
     nop
 
-    L2XBAR_CLEAR_WINDOW(0x20)
+    L2XBAR_CLEAR_WINDOW(ARB_TEMP_L2WINDOW_OFFSET)
 
     sync
     nop
@@ -1461,14 +1461,14 @@ Fix_ddr_param:
     nop
     nop
     GET_NODE_ID_a0;
-    XBAR_CONFIG_NODE_a0(0x20, \
+    XBAR_CONFIG_NODE_a0(ARB_TEMP_L2WINDOW_OFFSET, \
                     0x0000001000000000, \
                     0xFFFFFFF000000000, \
                     0x00000000000000F0)
     beqz    t3, 1f
     nop
     GET_NODE_ID_a0;
-    XBAR_CONFIG_NODE_a0(0x20, \
+    XBAR_CONFIG_NODE_a0(ARB_TEMP_L2WINDOW_OFFSET, \
                     0x0000001000000000, \
                     0xFFFFFFF000000000, \
                     0x00000000000000F1)
@@ -1514,7 +1514,7 @@ Fix_ddr_param:
     nop
     nop
 
-    L2XBAR_CLEAR_WINDOW(0x20)
+    L2XBAR_CLEAR_WINDOW(ARB_TEMP_L2WINDOW_OFFSET)
 
     sync
     nop
@@ -1585,7 +1585,7 @@ Fix_ddr_param:
     and     a1, a1, a2
     sd      a1, MC_INT_ACK_ADDR(t8)
 
-#if 1   //print registers
+#if 0   //print registers
     PRINTSTR("\r\nThe MC param is:\r\n")
     dli     t1, DDR_PARAM_NUM
     GET_NODE_ID_a0
