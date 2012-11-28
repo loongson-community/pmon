@@ -1289,15 +1289,15 @@ gs_2f_v3_ddr2_cfg:
     sw      a0, SP_OFF(t0)
     sync
 #endif
-    
+
 ##########################################
 //cxk
 #define MULTI_NODE_INIT_MEM
 //#define	UDIMM_2G
 #define	RDIMM_2G
 
-#include "pmon/arch/mips/mm/ddr_config_define.h"
-#include "pmon/arch/mips/mm/ddr_param_define.h"
+#include "ddr_dir/ddr_config_define.h"
+#include "ddr_dir/ddr_param_define.h"
 #define DISABLE_DIMM_ECC
 #define PRINT_MSG
 //#define DEBUG_DDR
@@ -1340,7 +1340,7 @@ MEM_INIT_DONE:
 #endif
 #endif
 #endif
-#include "pmon/arch/mips/mm/loongson3B_ddr_config.S"
+#include "ddr_dir/loongson3B_ddr_config.S"
 
 #if 0
     PRINTSTR("Skip other core:")
@@ -1372,7 +1372,7 @@ MEM_INIT_DONE:
 #endif
 #endif
 #endif
-#include "pmon/arch/mips/mm/loongson3B_ddr_config.S"
+#include "ddr_dir/loongson3B_ddr_config.S"
 #endif
 
 #ifdef DUAL_3B
@@ -1396,7 +1396,7 @@ MEM_INIT_DONE:
 #endif
 #endif
 #endif
-#include "pmon/arch/mips/mm/loongson3B_ddr_config.S"
+#include "ddr_dir/loongson3B_ddr_config.S"
 
     //wait the NODE scache enabled
     dli     t0, NODE3_CORE0_BUF0
@@ -1418,28 +1418,15 @@ MEM_INIT_DONE:
 #endif
 #endif
 #endif
-#include "pmon/arch/mips/mm/loongson3B_ddr_config.S"
+#include "ddr_dir/loongson3B_ddr_config.S"
 #endif
 ####################################
 #endif
     TTYDBG("Init Memory done.\r\n")
-
-#ifdef ARB_LEVEL
-    b       Mem_Init_over
-    nop
-#define ARB_LEVEL_PAD
-#include "pmon/arch/mips/mm/ARB_level.S"
-Mem_Init_over:
-#endif
 ####################################
 
 ####################################
 #ifdef  DEBUG_DDR
-    b       TM_over
-    nop
-#include "pmon/arch/mips/mm/Test_Mem.S"
-TM_over:
-
 #if 1
     PRINTSTR("\r\nDo test?(0xf: skip): ")
     bal     inputaddress
@@ -1450,7 +1437,7 @@ TM_over:
     nop
 #endif
 
-#if 1
+#if 0
     PRINTSTR("\r\nStart other core test?(0xcccc: start): ")
     bal     inputaddress
     nop
@@ -1839,7 +1826,7 @@ zhb:
     la  a2, stringserial
 	addu a2,a2,s0
 
-//	srl	msize,20
+    //srl	msize,20
 	move	a0,msize
 	
 #ifdef NODE1_BOOT
@@ -1847,23 +1834,22 @@ zhb:
 #else
     dli     t0,NODE0_CORE0_BUF0  #buf of cpu0
 #endif
-
-    li      t1, 0x5a5a
+    li      t1, SYSTEM_INIT_OK
     sw      t1, FN_OFF(t0)
-    sync
     nop
 
 #if 1
+
 1:
     lw      t1, FN_OFF(t0)
-    li        t2, 0x5a5a
-    bne     t2, t1,1b
+    li      t2, SYSTEM_INIT_OK
+    bne     t2, t1, 1b
     nop
 #endif
+    la      v0, initmips
+    jalr    v0
+    nop
 
-	la	v0, initmips
-	jalr	v0
-	nop
 stuck:
 #ifdef DEBUG_LOCORE
 	TTYDBG("Dumping GT64240 setup.\r\n")
@@ -2358,9 +2344,9 @@ LEAF(tgt_putchar_COM1)
 END(tgt_putchar_COM1)
 
 
-#include "pmon/arch/mips/mm/i2c.S"
+#include "ddr_dir/i2c.S"
 #ifdef AUTO_DDR_CONFIG
-#include "pmon/arch/mips/mm/detect_node_dimm.S"
+#include "ddr_dir/detect_node_dimm.S"
 #endif
 
 __main:
@@ -2767,7 +2753,7 @@ slave_main:
     dsll    a1, t0, 42
     dli     a0, 0x9800000000000000
     or      a0, a0, a1
-    bal     scache_init_64 // whd
+    bal     scache_init_64
     nop
 
 #if 1
@@ -2857,7 +2843,7 @@ NODE0_INIT_MEM:
 #endif
 #endif
 #endif
-#include "pmon/arch/mips/mm/loongson3B_ddr_config.S"
+#include "ddr_dir/loongson3B_ddr_config.S"
 
     dli     t0, NODE0_CORE0_BUF0
     sw      msize, SP_OFF(t0)
@@ -2868,7 +2854,6 @@ NODE0_INIT_MEM:
     sync
     b       ALL_NODE_MEM_INIT_DONE
     nop
-
 
 NODE1_INIT_MEM:
     //wait the NODE scache enabled
@@ -2908,7 +2893,7 @@ NODE1_INIT_MEM:
 #endif
 #endif
 #endif
-#include "pmon/arch/mips/mm/loongson3B_ddr_config.S"
+#include "ddr_dir/loongson3B_ddr_config.S"
 
     dli     t0, NODE1_CORE0_BUF0
     sw      msize, SP_OFF(t0)
@@ -2920,6 +2905,7 @@ NODE1_INIT_MEM:
     b       ALL_NODE_MEM_INIT_DONE
     nop
 
+#ifdef  DUAL_3B
 NODE2_INIT_MEM:
     //wait the NODE scache enabled
     dli     t0, NODE2_CORE0_BUF0
@@ -2958,7 +2944,7 @@ NODE2_INIT_MEM:
 #endif
 #endif
 #endif
-#include "pmon/arch/mips/mm/loongson3B_ddr_config.S"
+#include "ddr_dir/loongson3B_ddr_config.S"
 
     dli     t0, NODE2_CORE0_BUF0
     sw      msize, SP_OFF(t0)
@@ -2969,7 +2955,6 @@ NODE2_INIT_MEM:
     sync
     b       ALL_NODE_MEM_INIT_DONE
     nop
-
 
 NODE3_INIT_MEM:
     //wait the NODE scache enabled
@@ -3009,7 +2994,7 @@ NODE3_INIT_MEM:
 #endif
 #endif
 #endif
-#include "pmon/arch/mips/mm/loongson3B_ddr_config.S"
+#include "ddr_dir/loongson3B_ddr_config.S"
 
     dli     t0, NODE3_CORE0_BUF0
     sw      msize, SP_OFF(t0)
@@ -3020,6 +3005,7 @@ NODE3_INIT_MEM:
     sync
     b       ALL_NODE_MEM_INIT_DONE
     nop
+#endif
 
 ALL_NODE_MEM_INIT_DONE:
     .set     mips64
@@ -3099,11 +3085,13 @@ ALL_NODE_MEM_INIT_DONE:
     bne     a0, a1, 1b
     nop
 
+#ifdef MULTI_CHIP
     dli     t0, NODE1_CORE0_BUF0
 1:
     lw      a0, FN_OFF(t0)
     bne     a0, a1, 1b
     nop
+#endif
 
 #ifdef  DUAL_3B
     dli     t0, NODE2_CORE0_BUF0
@@ -3124,9 +3112,11 @@ ALL_NODE_MEM_INIT_DONE:
     dli     t0, NODE0_CORE0_BUF0
     lw      a0, SP_OFF(t0)
     or      t1, t1, a0
+#ifdef MULTI_CHIP
     dli     t0, NODE1_CORE0_BUF0
     lw      a0, SP_OFF(t0)
     or      t1, t1, a0
+#endif
 #ifdef  DUAL_3B
     dli     t0, NODE2_CORE0_BUF0
     lw      a0, SP_OFF(t0)
@@ -3193,7 +3183,7 @@ slave_core:
     la      t0, next
     dli     t1, 0xfffff
     and     t0, t1
-    dli     t1, 0xffffffff9fc0b000
+    dli     t1, 0xffffffff9fc00000
     or      t0, t1
     jr      t0
     nop
@@ -3217,7 +3207,7 @@ next:
 wait_to_jump_kernel:
 
 //cxk test mem
-#ifdef  DEBUG_DDR
+#ifdef  DEBUG_DDR_MT
 #ifdef NODE1_BOOT
     dli     t0, NODE1_CORE0_BUF0 #buf of cpu1
 #else
@@ -3538,14 +3528,27 @@ idle1000:
 
 #######################################
 //#define  MULTI_NODE_DDR_PARAM
-#include "pmon/arch/mips/mm/3B_ddr_config.S"
+#include "ddr_dir/3B_ddr_config.S"
+#ifdef ARB_LEVEL
+#include "ddr_dir/ARB_level_new.S"
+#endif
+#ifdef DEBUG_DDR
+#include "ddr_dir/Test_Mem.S"
+#endif
 
-
-    .text
+    .rdata
     .global ddr2_reg_data
     .global ddr3_reg_data
     .global n1_ddr2_reg_data
+
+    .align  5
+#include "loongson3A3_ddr_param.S"
+#ifdef  MULTI_NODE_DDR_PARAM
+#include "loongson3A3_ddr_param_c1.S"
+#endif
+
 #ifdef  ARB_LEVEL
+    .text
     .global ddr2_leveled_mark
     .global ddr2_reg_data_leveled
     .global n1_ddr2_reg_data_leveled
@@ -3553,15 +3556,7 @@ idle1000:
     .global n2_ddr2_reg_data_leveled
     .global n3_ddr2_reg_data_leveled
 #endif
-#endif
 
-    .align  5
-#include "loongson3A3_ddr_param.S"  //300M ~ 400M
-#ifdef  MULTI_NODE_DDR_PARAM
-#include "loongson3A3_ddr_param_c1.S"
-#endif
-
-#ifdef  ARB_LEVEL
 #include "loongson3A3_ddr_param.lvled.S"
 #ifdef  DUAL_3B
 #include "loongson3A3_ddr_param_c1.lvled.S"
@@ -3571,4 +3566,8 @@ idle1000:
 ddr2_leveled_mark:
 .dword 0x0
     .align  12
+#else
+#ifdef FIX_DDR_PARAM
+#include "loongson3A3_ddr_param.fix.S"
+#endif
 #endif
