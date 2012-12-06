@@ -1730,7 +1730,7 @@ tgt_gettime()
 		tm.tm_min = min;
 		tm.tm_hour = hour;
 		tm.tm_mday = date;
-		tm.tm_mon = month;
+		tm.tm_mon = (month-1);
 		tm.tm_year = year;
 
 		tm.tm_isdst = tm.tm_gmtoff = 0;
@@ -1763,7 +1763,7 @@ tgt_settime(time_t t)
 		min = tm->tm_min;
 		sec = tm->tm_sec;
 
-		time_value = (month<<26 | date<<21 | hour<<16 | min<<10 | sec<<4);
+		time_value = ((month+1)<<26 | date<<21 | hour<<16 | min<<10 | sec<<4);
         	(*(volatile unsigned int *)0xbbef8024) = time_value;
 		(*(volatile unsigned int *)(0xbbef8028)) = year;
         }
