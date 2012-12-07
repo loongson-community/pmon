@@ -44,6 +44,8 @@ option      BONITO_33M
 
 option  LOONGSON_3BSINGLE
 option  LOONGSON_3B1500
+
+option  LS3B_SPI_BOOT
 option		BOOT_PARAM
 select     	amd_780e
 
@@ -77,6 +79,7 @@ option		INTERFACE_3A780E
 select		mod_flash_amd		# AMD flash device programming
 select		mod_flash_intel		# intel flash device programming
 select		mod_flash_sst		# intel flash device programming
+select		mod_flash_spi		# intel flash device programming
 select		mod_debugger		# Debugging module
 select		mod_symbols		# Symbol table handling
 select		mod_s3load		# Srecord loading

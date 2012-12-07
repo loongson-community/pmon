@@ -147,7 +147,9 @@ int fl_verify_device __P((void *, void *, int, int));
 extern struct fl_device fl_known_dev[];
 extern struct fl_functions fl_func_amd;
 extern struct fl_functions fl_func_int;
+
 extern struct fl_functions fl_func_sst;
+extern struct fl_functions fl_func_spi;
 extern struct fl_functions fl_func_st;
 extern struct fl_functions fl_func_winbond;
 #endif

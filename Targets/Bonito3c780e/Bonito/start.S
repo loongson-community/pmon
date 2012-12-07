@@ -267,6 +267,7 @@ la	gp, _gp
 
 #if 1 //SPI speed up
     li  t0, 0xbfe00220
+    //li  t1, 0x03
     li  t1, 0x07
     sb  t1, 0x4(t0)
 #endif
@@ -1078,9 +1079,9 @@ gs_2f_v3_ddr2_cfg:
 #define DDR_REFC   1
 #define DDR_DIV    1
 
-//#define CORE_LOOPC  40 //1.0G
+#define CORE_LOOPC  40 //1.0G
 //#define CORE_LOOPC  46 //1.15G
-#define CORE_LOOPC  48 //1.2G
+//#define CORE_LOOPC  48 //1.2G
 //#define CORE_LOOPC  50 //1.25G
 //#define CORE_LOOPC  52 //1.3G  OK @ 1.15, pass the stressapptest
 //#define CORE_LOOPC  54 //1.35G OK @ 1.15v but (bit 33 cause error, make 0 to 1 at stressapptest)

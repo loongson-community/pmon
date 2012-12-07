@@ -193,7 +193,7 @@ file pmon/cmds/newmt/newmt.c	cmd_newmt
 file pmon/cmds/setup.c			cmd_setup & mod_display
 file pmon/cmds/display.c		mod_display needs-flag
 file pmon/cmds/test/test.c			cmd_test & mod_display
-file pmon/cmds/cmd_spi.c        cmd_test_spi
+#file pmon/cmds/cmd_spi.c        cmd_test_spi
 file pmon/cmds/cmdtable.c 
 file pmon/cmds/debuggercmds.c		mod_debugger
 file pmon/cmds/devls.c 			(sys & cmd_devls)
@@ -328,6 +328,7 @@ file pmon/dev/flashdev.c		(flash | mod_flash_amd | mod_flash_intel | mod_flash_s
 file pmon/dev/flash_amd.c		mod_flash_amd
 file pmon/dev/flash_int.c		mod_flash_intel
 file pmon/dev/flash_sst.c		mod_flash_sst
+file pmon/dev/flash_spi.c		mod_flash_sst
 file pmon/dev/flash_st.c		mod_flash_st
 file pmon/dev/flash_winbond.c	mod_flash_winbond
 file pmon/dev/fl_nvram.c		flash_based_nvram

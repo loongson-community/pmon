@@ -74,6 +74,9 @@ static quad_t widedata;
 #define TYPE_AMD 0x5a5a0001
 #define TYPE_SST 0x5a5a0002
 #define TYPE_ST 0x5a5a0003
+
+#define SPI_TYPE_SST  0xbf
+
 #define ConvAddr1(A) (2*A+!(A&0x1))  /* Convert a word mode command to byte mode command :
                                            Word Mode Command    Byte Mode Command
                                                 0x555      ->     0xAAA
@@ -96,6 +99,9 @@ static __inline void fl_mydetect(struct fl_map *map)
 		outb((map->fl_map_base + AMD_CMDOFFS2), 0x55);
 		outb((map->fl_map_base + AMD_CMDOFFS1), FL_AUTOSEL);
         if(inb(map->fl_map_base)!=oldc){map->fl_type=TYPE_AMD;return;}
+#ifdef LS3B_SPI_BOOT 
+		if(loongson_spi_readid() == SPI_TYPE_SST) return; // by xqch to add spi support, add code here
+#endif
 	    else {map->fl_type=0;printf("unknow flash type\n");	}
 }
 
@@ -181,7 +187,6 @@ fl_autoselect(struct fl_map *map)
 static __inline void
 fl_reset(struct fl_map *map)
 {
-
 	switch(map->fl_map_bus) {
 	case FL_BUS_8:
 		if(!map->fl_type)fl_mydetect(map);
@@ -260,6 +265,7 @@ fl_devident(void *base, struct fl_map **m)
 	if(!tgt_flashwrite_enable()) {
 		return((struct fl_device *)NULL);
 	}
+
 	map = fl_find_map(base);
 
 	if(map != NULL) {
@@ -267,9 +273,14 @@ fl_devident(void *base, struct fl_map **m)
 
 		switch(map->fl_map_bus) {
 		case FL_BUS_8:
+
+#ifndef LS3B_SPI_BOOT 
 			mfgid = inb(map->fl_map_base);
 			chipid = inb(map->fl_map_base+1);
-
+#else
+			mfgid = loongson_spi_readid();
+			chipid = loongson_spi_readchipid();
+#endif
 			if(chipid == mfgid) { /* intel 16 bit flash mem */
 				chipid = inb(map->fl_map_base+3);
 			}
@@ -307,13 +318,14 @@ fl_devident(void *base, struct fl_map **m)
 				return(dev);	/* GOT IT! */
 			}
 		}
-                printf("Mfg %2x, Id %2x\n", mfgid, chipid);
+		printf("Mfg %2x, Id %2x\n", mfgid, chipid);
 	}
 	
 	tgt_flashwrite_disable();
 	outb((map->fl_map_base), 0xf0);
 	outb((map->fl_map_base), 0x90);
 	outb((map->fl_map_base), 0x00);
+
 	return((struct fl_device *)NULL);
 }
 
@@ -410,6 +422,7 @@ fl_erase_device(void *base, int size, int verbose)
 			}
 
 			if((*dev->functions->erase_sector)(map, dev, boffs) != 0) {
+
 				printf("\nError: Failed to enter erase mode\n");
 				(*dev->functions->erase_suspend)(map, dev);
 				(*dev->functions->reset)(map, dev);

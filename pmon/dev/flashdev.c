@@ -154,6 +154,10 @@ struct fl_device fl_known_dev[] = {
 	8192*__KB, 64*__KB,  NULL, &fl_func_sst },
 	{ "ST29F040",	0x20, 0xe2, FL_PROTO_SST, FL_CAP_DE,
 	512*__KB, 64*__KB,  NULL, &fl_func_sst },
+	{ "SST25WF080",	0xbf, 0x05, FL_PROTO_SST, FL_CAP_DE,
+	1024*__KB, 4*__KB,  NULL, &fl_func_spi },//xqch
+	{ "SST25VF080",	0xbf, 0x8e, FL_PROTO_SST, FL_CAP_DE,
+	1024*__KB, 4*__KB,  NULL, &fl_func_spi },//xqch
 #endif
 #if NMOD_FLASH_WINBOND > 0
 	{ "W29C040",	0xda, 0x46, FL_PROTO_WINBOND, FL_CAP_DE,
