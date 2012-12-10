@@ -36,7 +36,14 @@ static void read_node(uint8_t *node)
 {
 	int i;
 	for(i = 0; i < 6; i++){
-#if defined(LOONGSON_3ASINGLE) || defined(LOONGSON_3BSINGLE)
+#if defined(LOONGSON_3BSINGLE)
+#if defined(LOONGSON_3B1500)
+	node[i + 10] = smbios_uuid_e1000e_mac[i];
+#else
+	node[i + 10] = smbios_uuid_rtl8168_mac[i];
+#endif
+#endif
+#if defined(LOONGSON_3ASINGLE)
                 node[i + 10] = smbios_uuid_rtl8168_mac[i];
 #endif
 #if defined(LOONGSON_3ASERVER) || defined(LOONGSON_3BSERVER)

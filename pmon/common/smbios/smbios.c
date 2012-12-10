@@ -184,7 +184,11 @@ static void board_info(char *board_name)
         strcpy(board_name, "Loongson-3A-2H-1w-V1.00-demo");
 #endif
 #ifdef LOONGSON_3BSINGLE
+#ifdef LOONGSON_3B1500
+        strcpy(board_name, "Loongson-3B-780E-1w-V0.9-demo");
+#else
         strcpy(board_name, "Loongson-3B-780E-1w-V1.03-demo");
+#endif
 #endif
 #ifdef LOONGSON_3BSERVER
         strcpy(board_name, "Loongson-3B-780E-2w-V1.03-demo");
@@ -415,6 +419,10 @@ smbios_type_4_init(void *start)
 	if(prid == 0x6306){
 		strcpy(cpu_version, "Loongson ICT Loongson-3B CPU @ 1.0GHz");
 		p->max_speed = 1000;
+	}
+	if(prid == 0x6307){
+		strcpy(cpu_version, "Loongson ICT Loongson-3B CPU @ 1.5GHz");
+		p->max_speed = 1500;
 	}
 
         p->version_str = 2;

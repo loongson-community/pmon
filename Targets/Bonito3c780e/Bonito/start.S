@@ -1753,6 +1753,8 @@ TM_over:
 ##########################################
 
 		bootnow:
+		bal spd_info_store
+                nop;
 		TTYDBG("Copy PMON to execute location...\r\n")
 #ifdef DEBUG_LOCORE
 		TTYDBG("  start = 0x")
@@ -2045,6 +2047,68 @@ TM_over:
 		jr	ra
 		nop
 		END(CPU_TLBInit)
+
+                LEAF(spd_info_store)
+                 move    t8,ra
+
+                 TTYDBG("\r\n spd_info_store begain.\r\n")
+
+                 dli    t5, 0xffffffff8fffa000;
+
+                 dli    t7, 0xa1;
+                 dli    t6, 0xa9;        
+
+         4:
+                 move    a0, t7
+                 dli     a1, 0x2;
+                 //GET_I2C_NODE_ID_a2
+                 bal     i2cread;
+                 nop;
+
+                 dli     t3, 0x80
+                 bltu    v0, t3, 2f
+                 nop;
+                 move    t3, t5;
+                 daddiu  t3, 0x100;
+                 move    t4, t5;
+        1:
+                 sb      zero,0(t4);
+                 daddiu  t4, 0x1;
+                 bltu    t4, t3, 1b
+                 nop;
+
+                         b       3f
+                  nop;
+
+        2:
+                move    t4, t5;
+                dli     t0, 0x0; //used as counter
+        1:
+                move    a0, t7;
+                move    a1, t0;
+                //GET_I2C_NODE_ID_a2
+                 bal     i2cread;
+                 nop;
+
+                sb      v0, 0(t4);
+
+                dli     a1, 0x100
+                daddiu  t4, 0x1;
+                daddiu  t0, 0x1;
+                bne     t0, a1, 1b;
+                nop
+        3:
+                daddiu  t5, 0x100;
+                daddiu  t7, 0x2;
+
+                bltu    t7, t6, 4b
+                nop
+
+                TTYDBG("\r\n spd_info_store done.\r\n")
+
+                 jr      t8
+                 nop
+                 END(spd_info_store)
 
 		LEAF(stringserial)
 		move	a2, ra
