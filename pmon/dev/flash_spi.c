@@ -210,8 +210,27 @@ fl_erase_sector_spi(map, dev, offset)
 	struct fl_device *dev;
 	int offset;
 {
-	spi_erase(offset, BLKSIZE);
-	
+#if 1
+	spi_erase(offset, dev->fl_secsize * map->fl_map_chips);
+#else
+	int i, j, ret;
+	char tmp;
+	int n = dev->fl_secsize * map->fl_map_chips;
+
+	enable_spi_cs();
+	gpio_cs_init();
+	spi_init0();
+
+	DEBUG_PRINTF("Enable erase at %08x, size %d \n", offset, n);
+	loongson_disabel_writeprotection();
+
+	if (FLASH_SIZE > n)
+	  loongson_spi_erase(offset, n);
+	else {
+	  printf("WARNING:Erase size larger than 1M, Full chip will be erased!\n");
+	  loongson_chip_erase();
+	}
+#endif
 	return 0;
 }
 
@@ -227,12 +246,23 @@ fl_program_spi(map, dev, pa, pd)
 {
 	int i;
 
+#if 1
 #ifdef PROGRAM_AAI_MODE
-	spi_program(pd,pa,1, 1); // not fast programm mode
+	spi_program(pd,pa,1, 1); // in fast programm mode
 #else
 	spi_program(pd,pa,1, 0); // not fast programm mode
 #endif
+#else
+	int fast = 1;
 
+	if (fast)
+	  loongson_spi_aai_write(pa, pd, 1);
+	else
+	  loongson_spi_write(pa, pd, 1);
+
+	DEBUG_PRINTF("Programm over!\n");
+
+#endif
 	return(0);
 }
 
@@ -279,8 +309,6 @@ fl_reset_spi(map, dev)
 	struct fl_map *map;
 	struct fl_device *dev;
 {
-
-		//DEBUG_PRINTF("%s: %d\n", __FILE__, __LINE__);
         return(0);
 }
 
@@ -298,10 +326,7 @@ fl_isbusy_spi(map, dev, what, offset, erase)
 {
 	int busy;
 
-//	busy = spi_wait();
-
 	return 0;
-//	return(busy);
 }
 
 /*
@@ -354,7 +379,7 @@ void disable_spi_cs(void)
 {
 
 #ifndef LS3B
-	delay(100);
+	delay(6);
 	*(volatile unsigned int *) (GPIO_CTRL_REG) =  (~GPIO_CPU_CS_ENABLE) & (*(volatile unsigned int *) (GPIO_CTRL_REG));
 #else
 	volatile unsigned char * base = SPI_REG_BASE + CHIPERASELECOFFCHIPERASET;
@@ -371,7 +396,7 @@ void enable_spi_cs(void)
 {
 #ifndef LS3B
 	*(volatile unsigned int *) (GPIO_CTRL_REG) =  (GPIO_CPU_CS_ENABLE) | (*(volatile unsigned int *) (GPIO_CTRL_REG));
-	delay(100);
+	delay(6);
 #else
 	volatile unsigned char * base = SPI_REG_BASE + CHIPERASELECOFFCHIPERASET;
 	unsigned char  val = 0;
@@ -399,7 +424,7 @@ void gpio_cs_init (void)
 	*(volatile unsigned int *) (GPIO_CTRL_REG) =  (~GPIO_CS_BIT) & (*(volatile unsigned int *) (GPIO_CTRL_REG));
 
 #endif
-	delay(100);
+	delay(6);
 }
 
 /*
@@ -413,7 +438,7 @@ inline void set_cs (int bit)
 	volatile unsigned char * base = SPI_REG_BASE + CSCTLOFFCHIPERASET;
 	unsigned char  val = 0;
 
-	/////delay(100);
+	//delay(6);
 
 	val = *(base);
 	if (!bit)
@@ -435,7 +460,7 @@ inline void set_cs (int bit)
 
 	*(base) = val;
 #endif
-	delay(100);
+	delay(6);
 }
 
 static unsigned char get_spi (int idx)
@@ -471,7 +496,7 @@ static inline unsigned char flash_read_data (void)
 	CHIPERASET_SPI (FCR_SPDR, 0x00);
 	while (GET_SPI (FCR_SPSR) & 0x01)
 	{
-		//delay(100); // by xqch
+		//delay(6); // by xqch
 		/* do nothing */
 	}
 
@@ -579,10 +604,10 @@ int spi_wait (void)
 	while ((ret & 1))	/* wait WIP */
 	{
 		set_cs (0);
-		//delay(100);
+		//delay(6);
 		flash_writeb_cmd (RDSR);
 		ret = flash_read_data (); /* Are you sure bit0 means busy or FREE? */
-		//delay(100);
+		//delay(6);
 		set_cs (1);
 	}
 	return ((ret&1) == 1 ? SPI_BUSY: SPI_FREE) ;
@@ -599,26 +624,24 @@ int loongson_spi_write(int offset, void *buffer, size_t n)
 	for(i=0;i<n;i++)
 	{
 
-		if ( (i & 0x1fff) == 0x0 )
-		  printf("<");
-
-		if (buf[i] == 0xff )
-		  printf("Program 0xff to %08x\n", pos + i);
+		if ( (j & 0x3fff) == 0x0 )
+		  printf(".");
 
 		set_cs (0);
-		//delay(100);
+		delay(6);
 		flash_writeb_cmd (WREN);
-		//delay(100);
+		delay(6);
 		set_cs (1);
+		delay(6);
 
 		set_cs (0);
-		//delay(100);
+		delay(6);
 		flash_writeb_cmd(0x2);
 		flash_writeb_cmd (((pos+i) >> 16) & 0xff);
 		flash_writeb_cmd (((pos+i) & 0x00ff00 )>> 8);
 		flash_writeb_cmd ((pos+i) & 0xff);
 		flash_writeb_cmd (buf[i]);
-		//delay(100);
+		delay(6);
 		set_cs (1);
 
 		ret = spi_wait();
@@ -641,15 +664,12 @@ int loongson_spi_aai_write(int offset, void *buffer, size_t n)
 	unsigned char val_back;
 
 
-	//gpio_cs_init();
-	//spi_init0();
-
 	i = j = 0x0;
 	set_cs (0);
 	flash_writeb_cmd (WREN);
 	set_cs (1);
 
-	delay(100);
+	delay(6);
 	set_cs (0);
 	flash_writeb_cmd(AAI_WRITE); // byte programm enable
 	flash_writeb_cmd(((pos) >> 16) & 0xff);
@@ -664,7 +684,7 @@ int loongson_spi_aai_write(int offset, void *buffer, size_t n)
 	while(j< ((n & 0x1) ? n+1:n))
 	{
 
-		if ( (j & 0x1fff) == 0x0 )
+		if ( (j & 0x3fff) == 0x0 )
 		  printf(".");
 		flash_writeb_cmd(AAI_WRITE); // byte programm enable
 		flash_writeb_cmd(buf[j++]);
@@ -691,13 +711,13 @@ loongson_disabel_writeprotection(void)
 	set_cs (0);
 	flash_writeb_cmd(WREN);
 	set_cs (1);
-	delay(200);
+	delay(6);
 
 #else
 	set_cs (0);
 	flash_writeb_cmd (EWSR);
 	set_cs (1);
-	delay(200);
+	delay(6);
 #endif
 
 	set_cs (0);
@@ -706,14 +726,14 @@ loongson_disabel_writeprotection(void)
 	//flash_writeb_cmd (0);
 	set_cs (1);
 
-	delay(200);
-	//spi_wait();
-	delay(200);
+	delay(6);
+	spi_wait();
+	delay(6);
 
 	set_cs (0);
 	flash_writeb_cmd(WREN);
 	set_cs (1);
-	delay(200);
+	delay(6);
 }
 
 loongson_enabel_writeprotection(void)
@@ -722,25 +742,16 @@ loongson_enabel_writeprotection(void)
 	set_cs (0);
 	flash_writeb_cmd(WREN);
 	set_cs (1);
-	delay(200);
+	delay(6);
 
-#if 0
-	set_cs (0);
-	flash_writeb_cmd (EWSR);
-	set_cs (1);
-	delay(200);
-#endif
-
-	//delay(1);
 	set_cs (0);
 	flash_writeb_cmd (WRSR);
 	flash_writeb_cmd (0x1c);
-	//flash_writeb_cmd (0x1c);
 	set_cs (1);
 
-	delay(200);
+	delay(6);
 	spi_wait();
-	delay(200);
+	delay(6);
 
 	set_cs (0); 
 	flash_writeb_cmd(WRDI);
@@ -779,9 +790,9 @@ int spi_erase(int offset, size_t n)
 		break;
 	  }
 	if (i == n)
-	  printf("Erasy verify ok!\n");
+	  DEBUG_PRINTF("Erasy verify ok!\n");
 	else {
-	  printf("Erasy verify fail!\n");
+	  DEBUG_PRINTF("Erasy verify fail!\n");
 	  return -1;
 	}
 
@@ -999,6 +1010,7 @@ int spi_program(unsigned int base,unsigned int offset,unsigned long len, int fas
 	gpio_cs_init();
 	spi_init0();
 
+#if 0
 	DEBUG_PRINTF("Enable erase at %08x, size %d \n", offset, n);
 	loongson_disabel_writeprotection();
 
@@ -1017,11 +1029,12 @@ int spi_program(unsigned int base,unsigned int offset,unsigned long len, int fas
 		break;
 	  }
 	if (i == n)
-	  printf("Erasy verify ok!\n");
+	  DEBUG_PRINTF("Erasy verify ok!\n");
 	else {
 	  printf("Erasy verify fail!\n");
 	  return -1;
 	}
+#endif
 
 	loongson_disabel_writeprotection();
 
@@ -1030,7 +1043,8 @@ int spi_program(unsigned int base,unsigned int offset,unsigned long len, int fas
 	else
 	  loongson_spi_write(offset, base, len);
 
-	printf("Programm over!\n");
+	//printf("Programm over!\n");
+	DEBUG_PRINTF("Programm over!\n");
 
 	loongson_enabel_writeprotection();
 
@@ -1043,9 +1057,10 @@ int spi_program(unsigned int base,unsigned int offset,unsigned long len, int fas
 	  }
 
 	if (i == len)
-	  printf("Program Verify ok!\n");
+	  DEBUG_PRINTF("Program Verify ok!\n");
+	  //printf("Program Verify ok!\n");
 	else
-	  printf("Program Verify fail!\n");
+	  DEBUG_PRINTF("Program Verify fail!\n");
 
 	disable_spi_cs();
 	return 0;
@@ -1112,7 +1127,7 @@ cmd_erase(ac, av)
 
 	if ( ac != 3)
 	{
-		DEBUG_PRINTF("Usage: spierase [offset] [length]\n");
+		printf("Usage: spierase [offset] [length]\n");
 		return;
 	}
 	offset = strtoul(av[1],0,0);
@@ -1138,7 +1153,7 @@ cmd_program(ac, av)
 
 	if ( ac <= 3)
 	{
-		DEBUG_PRINTF("Usage: spiprogram [src] [offset] [length] [fast=1]\n");
+		printf("Usage: spiprogram [src] [offset] [length] [fast=1]\n");
 		return;
 	}
 
@@ -1146,12 +1161,13 @@ cmd_program(ac, av)
 	base = strtoul(av[1],0,0);
 	offset = strtoul(av[2],0,0);
 	length = strtoul(av[3],0,0);
+
 	mode = 0x1; //default fast write
 
 	if ( ac > 4)
 	  mode = strtoul(av[4],0,0);
 
-	spi_erase(offset, length);
+	//spi_erase(offset, length);
 	spi_program(base,offset,length, mode);
 
 	DEBUG_PRINTF("Programm done\n");
@@ -1174,7 +1190,7 @@ int cmd_read(argc, argv)
 	buf =strtoul(argv[2],0,0);
 	len =strtoul(argv[3],0,0);
 
-	DEBUG_PRINTF("spiread [offset] [buf] [len]: Read %d bytes from spi to %08x flash offset %08x ....\n", len, (unsigned long)buf,offset);
+	printf("Usage: spiread [offset] [buf] [len]\n", len, (unsigned long)buf,offset);
 	spi_read(offset, buf, len);
 
 //	for ( i = 0; i < 10; i++)

@@ -1297,10 +1297,10 @@ static void delay(int j)
 void
 tgt_poweroff()
 {
-	char * watch_dog_base = 0xb8000cd6;
-	char * watch_dog_config  = 0xba00a041;
+	volatile unsigned char * watch_dog_base = 0xb8000cd6;
+	volatile unsigned char * watch_dog_config  = 0xba00a041;
 	unsigned int * watch_dog_mem = 0xbe010000;
-	unsigned char * reg_cf9 = (unsigned char *)0xb8000cf9;
+	volatile unsigned char * reg_cf9 = (unsigned char *)0xb8000cf9;
 
 	delay(100);
 	*reg_cf9 = 4;
@@ -1343,17 +1343,51 @@ extern void watchdog_enable(void);
 void
 tgt_reboot(void)
 {
-	char * watch_dog_base		 = 0xb8000cd6;
-	char * watch_dog_config		 = 0xba00a041;
-	unsigned int * watch_dog_mem = 0xbe010000;
-	unsigned char * reg_cf9		 = (unsigned char *)0xb8000cf9;
+	volatile unsigned char * watch_dog_base		 = 0xb8000cd6;
+	volatile unsigned char * watch_dog_config		 = 0xba00a041;
+	volatile unsigned int * watch_dog_mem = 0xbe010000;
+	volatile unsigned char * reg_cf9		 = (volatile unsigned char *)0xb8000cf9;
+
+#if 1
+	*watch_dog_base = 0x69;
+	delay(100);
+	*(watch_dog_base + 1) = 0x0;
+
+	delay(100);
+	* watch_dog_base = 0x6c;
+	*(watch_dog_base + 1) = 0x0;
+
+	delay(100);
+	*watch_dog_base = 0x6d;
+	*(watch_dog_base + 1) = 0x0;
+
+	delay(100);
+	*watch_dog_base = 0x6e;
+	*(watch_dog_base + 1) = 0x0;
+
+	delay(100);
+	*watch_dog_base = 0x6f;
+	*(watch_dog_base + 1) = 0x0;
+
+	delay(100);
+	*watch_dog_config = 0xff;
+	delay(100);
+
+	delay(100);
+	* (watch_dog_mem+0x04) = 0x15;
+	delay(100);
+	* watch_dog_mem = 0x01;
+	delay(100);
+	* watch_dog_mem = 0x81;
+	delay(100);
+#else
 
 	delay(20000);
 	*reg_cf9 = 0;
 
 	/* enable WatchDogTimer */
 	delay(100);
-	watchdog_enable();
+	//watchdog_enable();
 
 	/* set WatchDogTimer base address is 0x10000 */
 	delay(100);
@@ -1382,6 +1416,9 @@ tgt_reboot(void)
 	*(watch_dog_mem + 1) = 0x01;
 	delay(100);
 	* watch_dog_mem = 0x81;
+
+#endif
+	printf("Watch Dog reboot done!\n");
 }
 #endif
 
@@ -1915,20 +1952,24 @@ tgt_flashmap()
 void
 tgt_flashwrite_disable()
 {
+#if 0
 	//loongson_enabel_writeprotection();
 	disable_spi_cs();
 	return(1);
+#endif
 }
 
 int
 tgt_flashwrite_enable()
 {
+#if 0
 	enable_spi_cs();
 	gpio_cs_init();
 	spi_init0();
 
 	//printf("Enable erase at first ..... \n");
 	loongson_disabel_writeprotection();
+#endif
 
 	return(1);
 }
@@ -1960,7 +2001,7 @@ tgt_flashprogram(void *p, int size, void *s, int endian)
 	}
 	fl_verify_device(p, s, size, TRUE);
 #else
-	//spi_erase(0, size);
+	spi_erase(0, size);
 	spi_program(s, 0 ,size, 1);
 
 	printf("Programm done\n");
@@ -2169,17 +2210,24 @@ tgt_unsetenv(char *name)
                         cksum(nvrambuf, NVRAM_SIZE, 1);
 #ifdef NVRAM_IN_FLASH
 #if 0
-                        if(fl_erase_device(nvram, NVRAM_SECSIZE, FALSE)) {
+                       if(fl_erase_device(nvram, NVRAM_SECSIZE, FALSE)) {
                                 status = -1;
 				break;
                         }
-#endif
-						//spi_erase(((unsigned long)(&nvram_offs)-0x80010000), NVRAM_SECSIZE);
+
+                        if(fl_program_device(nvram, nvramsecbuf, NVRAM_SECSIZE, FALSE)) {
+                                status = -1;
+				break;
+                        }
+
+#else
+						spi_erase(((unsigned long)(&nvram_offs)-0x80010000), NVRAM_SECSIZE);
 						if(spi_program(nvramsecbuf,((unsigned long)(&nvram_offs)-0x80010000), NVRAM_SECSIZE, 0)){
                         //if(fl_program_device(nvram, nvramsecbuf, NVRAM_SECSIZE, FALSE)) {
                                 status = -1;
 				break;
                         }
+#endif
 #else
 			nvram_put(nvram);
 #endif
@@ -2251,18 +2299,24 @@ tgt_setenv(char *name, char *value)
 #ifdef NVRAM_IN_FLASH
 #if 0
                 if(fl_erase_device(nvram, NVRAM_SECSIZE, FALSE)) {
-			printf("Error! Nvram erase failed!\n");
-			free(nvramsecbuf);
-                        return(-1);
+				  printf("Error! Nvram erase failed!\n");
+				  free(nvramsecbuf);
+				  return(-1);
                 }
-#endif
-        //        if(fl_program_device(nvram, nvramsecbuf, NVRAM_SECSIZE, FALSE)) {
-		//spi_erase(((unsigned long)(&nvram_offs)-0x80010000), NVRAM_SECSIZE);
+				if(fl_program_device(nvram, nvramsecbuf, NVRAM_SECSIZE, FALSE)) {
+				  printf("Error! Nvram init failed!\n");
+				  free(nvramsecbuf);
+				  status = -1;
+				}
+
+#else
+		spi_erase(((unsigned long)(&nvram_offs)-0x80010000), NVRAM_SECSIZE);
 		if(spi_program(nvramsecbuf,((unsigned long)(&nvram_offs)-0x80010000), NVRAM_SECSIZE, 0)){
 			printf("Error! Nvram init failed!\n");
 			free(nvramsecbuf);
                         return(-1);
                 }
+#endif
 #else
 		nvram_put(nvramsecbuf);
 #endif
@@ -2348,18 +2402,25 @@ tgt_setenv(char *name, char *value)
 	bcopy(hwethadr, &nvramsecbuf[ETHER_OFFS], 6);
 #ifdef NVRAM_IN_FLASH
 #if 0
-        if(fl_erase_device(nvram, NVRAM_SECSIZE, FALSE)) {
+	if(fl_erase_device(nvram, NVRAM_SECSIZE, FALSE)) {
 		printf("Error! Nvram erase failed!\n");
 		free(nvramsecbuf);
                 return(0);
         }
-#endif
-		//spi_erase(((unsigned long)(&nvram_offs)-0x80010000), NVRAM_SECSIZE);
+        if(fl_program_device(nvram, nvramsecbuf, NVRAM_SECSIZE, FALSE)) {
+		printf("Error! Nvram program failed!\n");
+		free(nvramsecbuf);
+                return(0);
+        }
+
+#else
+		spi_erase(((unsigned long)(&nvram_offs)-0x80010000), NVRAM_SECSIZE);
 		if(spi_program(nvramsecbuf,((unsigned long)(&nvram_offs)-0x80010000), NVRAM_SECSIZE, 0)){
 		printf("Error! Nvram program failed!\n");
 		free(nvramsecbuf);
                 return(0);
         }
+#endif
 #else
 	nvram_put(nvramsecbuf);
 #endif
