@@ -1744,102 +1744,219 @@ wait_init_done2:
 #endif
 
 dll_gate_0_add:
-//	PRINTSTR("\r\n Slice 0 0to1 add")
+//	PRINTSTR("\r\n slice 0 add")
     dli     t1, 0x038
     or      t1, t1, t8
     ld      a0, 0x0(t1)
     daddu    a0, a0, 0x1
-    dli     t4, 0xffffffffffffff7f
-    and     a0, a0, t4
+    dli     t2, 0xffffffffffffff7f
+    and     a0, a0, t2
     sd      a0, 0x0(t1)
+    dli     t4, 0x7f
+    and     a0, a0, t4
+    bne     a0, t4, 1f
+    nop
+    /* rd_oe_begin and rd_oe_end add 1 */
+    dli     t1, 0x028
+    or      t1, t1, t8
+    ld      a0, 0x0(t1)
+    dli     t2, 0x0101000000000000
+    daddu   a0, a0, t2
+    sd      a0, 0x0(t1)
+//	PRINTSTR("\r\n slice 0 oe add")
+1:
     b       glvl_resp_1_set1
     dli     a2, 0x1 
 dll_gate_1_add:
-//	PRINTSTR("\r\n Slice 1 0to1 add")
+//	PRINTSTR("\r\n slice 1 add")
     dli     t1, 0x058
     or      t1, t1, t8
     ld      a0, 0x0(t1)
     daddu    a0, a0, 0x1
-    dli     t4, 0xffffffffffffff7f
-    and     a0, a0, t4
+    dli     t2, 0xffffffffffffff7f
+    and     a0, a0, t2
     sd      a0, 0x0(t1)
+    dli     t4, 0x7f
+    and     a0, a0, t4
+    bne     a0, t4, 1f
+    nop
+    /* rd_oe_begin and rd_oe_end add 1 */
+    dli     t1, 0x048
+    or      t1, t1, t8
+    ld      a0, 0x0(t1)
+    dli     t2, 0x0101000000000000
+    daddu   a0, a0, t2
+    sd      a0, 0x0(t1)
+//	PRINTSTR("\r\n slice 1 oe add")
+1:
     b       glvl_resp_2_set1
     dli     a2, 0x1
 dll_gate_2_add:
-//	PRINTSTR("\r\n Slice 2 0to1 add")
+//	PRINTSTR("\r\n slice 2 add")
     dli     t1, 0x078
     or      t1, t1, t8
     ld      a0, 0x0(t1)
     daddu    a0, a0, 0x1
-    dli     t4, 0xffffffffffffff7f
-    and     a0, a0, t4
+    dli     t2, 0xffffffffffffff7f
+    and     a0, a0, t2
     sd      a0, 0x0(t1)
+    dli     t4, 0x7f
+    and     a0, a0, t4
+    bne     a0, t4, 1f
+    nop
+    /* rd_oe_begin and rd_oe_end add 1 */
+    dli     t1, 0x068
+    or      t1, t1, t8
+    ld      a0, 0x0(t1)
+    dli     t2, 0x0101000000000000
+    daddu   a0, a0, t2
+    sd      a0, 0x0(t1)
+//	PRINTSTR("\r\n slice 2 oe add")
+1:
     b       glvl_resp_3_set1
     dli     a2, 0x1
 dll_gate_3_add:
-//	PRINTSTR("\r\n Slice 3 0to1 add")
+//	PRINTSTR("\r\n slice 3 add")
     dli     t1, 0x098
     or      t1, t1, t8
     ld      a0, 0x0(t1)
     daddu    a0, a0, 0x1
-    dli     t4, 0xffffffffffffff7f
-    and     a0, a0, t4
+    dli     t2, 0xffffffffffffff7f
+    and     a0, a0, t2
     sd      a0, 0x0(t1)
+    dli     t4, 0x7f
+    and     a0, a0, t4
+    bne     a0, t4, 1f
+    nop
+    /* rd_oe_begin and rd_oe_end add 1 */
+    dli     t1, 0x088
+    or      t1, t1, t8
+    ld      a0, 0x0(t1)
+    dli     t2, 0x0101000000000000
+    daddu   a0, a0, t2
+    sd      a0, 0x0(t1)
+//	PRINTSTR("\r\n slice 3 oe add")
+1:
     b       glvl_resp_4_set1
     dli     a2, 0x1
 dll_gate_4_add:
-//	PRINTSTR("\r\n Slice 4 0to1 add")
+//	PRINTSTR("\r\n slice 4 add")
     dli     t1, 0x0b8
     or      t1, t1, t8
     ld      a0, 0x0(t1)
     daddu    a0, a0, 0x1
-    dli     t4, 0xffffffffffffff7f
-    and     a0, a0, t4
+    dli     t2, 0xffffffffffffff7f
+    and     a0, a0, t2
     sd      a0, 0x0(t1)
+    dli     t4, 0x7f
+    and     a0, a0, t4
+    bne     a0, t4, 1f
+    nop
+    /* rd_oe_begin and rd_oe_end add 1 */
+    dli     t1, 0x0a8
+    or      t1, t1, t8
+    ld      a0, 0x0(t1)
+    dli     t2, 0x0101000000000000
+    daddu   a0, a0, t2
+    sd      a0, 0x0(t1)
+//	PRINTSTR("\r\n slice 4 oe add")
+1:
     b       glvl_resp_5_set1
     dli     a2, 0x1
 dll_gate_5_add:
-//	PRINTSTR("\r\n Slice 5 0to1 add")
+//	PRINTSTR("\r\n slice 5 add")
     dli     t1, 0x0d8
     or      t1, t1, t8
     ld      a0, 0x0(t1)
     daddu    a0, a0, 0x1
-    dli     t4, 0xffffffffffffff7f
-    and     a0, a0, t4
+    dli     t2, 0xffffffffffffff7f
+    and     a0, a0, t2
     sd      a0, 0x0(t1)
+    dli     t4, 0x7f
+    and     a0, a0, t4
+    bne     a0, t4, 1f
+    nop
+    /* rd_oe_begin and rd_oe_end add 1 */
+    dli     t1, 0x0c8
+    or      t1, t1, t8
+    ld      a0, 0x0(t1)
+    dli     t2, 0x0101000000000000
+    daddu   a0, a0, t2
+    sd      a0, 0x0(t1)
+//	PRINTSTR("\r\n slice 5 oe add")
+1:
     b       glvl_resp_6_set1
     dli     a2, 0x1
 dll_gate_6_add:
-//	PRINTSTR("\r\n Slice 6 0to1 add")
+//	PRINTSTR("\r\n slice 6 add")
     dli     t1, 0x0f8
     or      t1, t1, t8
     ld      a0, 0x0(t1)
     daddu    a0, a0, 0x1
-    dli     t4, 0xffffffffffffff7f
-    and     a0, a0, t4
+    dli     t2, 0xffffffffffffff7f
+    and     a0, a0, t2
     sd      a0, 0x0(t1)
+    dli     t4, 0x7f
+    and     a0, a0, t4
+    bne     a0, t4, 1f
+    nop
+    /* rd_oe_begin and rd_oe_end add 1 */
+    dli     t1, 0x0e8
+    or      t1, t1, t8
+    ld      a0, 0x0(t1)
+    dli     t2, 0x0101000000000000
+    daddu   a0, a0, t2
+    sd      a0, 0x0(t1)
+//	PRINTSTR("\r\n slice 6 oe add")
+1:
     b       glvl_resp_7_set1
     dli     a2, 0x1
 dll_gate_7_add:
-//	PRINTSTR("\r\n Slice 7 0to1 add")
+//	PRINTSTR("\r\n slice 7 add")
     dli     t1, 0x118
     or      t1, t1, t8
     ld      a0, 0x0(t1)
     daddu    a0, a0, 0x1
-    dli     t4, 0xffffffffffffff7f
-    and     a0, a0, t4
+    dli     t2, 0xffffffffffffff7f
+    and     a0, a0, t2
     sd      a0, 0x0(t1)
+    dli     t4, 0x7f
+    and     a0, a0, t4
+    bne     a0, t4, 1f
+    nop
+    /* rd_oe_begin and rd_oe_end add 1 */
+    dli     t1, 0x108
+    or      t1, t1, t8
+    ld      a0, 0x0(t1)
+    dli     t2, 0x0101000000000000
+    daddu   a0, a0, t2
+    sd      a0, 0x0(t1)
+//	PRINTSTR("\r\n slice 7 oe add")
+1:
     b       glvl_resp_8_set1
     dli     a2, 0x1
 dll_gate_8_add:
-//	PRINTSTR("\r\n Slice 8 0to1 add")
+//	PRINTSTR("\r\n slice 8 add")
     dli     t1, 0x138
     or      t1, t1, t8
     ld      a0, 0x0(t1)
     daddu    a0, a0, 0x1
-    dli     t4, 0xffffffffffffff7f
-    and     a0, a0, t4
+    dli     t2, 0xffffffffffffff7f
+    and     a0, a0, t2
     sd      a0, 0x0(t1)
+    dli     t4, 0x7f
+    and     a0, a0, t4
+    bne     a0, t4, 1f
+    nop
+    /* rd_oe_begin and rd_oe_end add 1 */
+    dli     t1, 0x128
+    or      t1, t1, t8
+    ld      a0, 0x0(t1)
+    dli     t2, 0x0101000000000000
+    daddu   a0, a0, t2
+    sd      a0, 0x0(t1)
+//	PRINTSTR("\r\n slice 8 oe add")
+1:
     b       glvl_req_set
     dli     a2, 0x1
 

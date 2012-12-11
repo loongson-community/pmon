@@ -43,7 +43,7 @@
     PRINTSTR("\r\n")
 #endif
 
-#ifdef  AUTO_DDR_CONFIG     //hot fix for board misconnection--temp code
+#if 0   //def  AUTO_DDR_CONFIG     //hot fix for board misconnection--temp code
     GET_ROW_SIZE
     dli     a0, 0x2
     bne     a1, a0, 1f
@@ -127,7 +127,7 @@ t0,t2 shouldn't be changed to the end of this file.
     //add 3B register location offset
     dsrl    a0, a0, 44
     dsll    a0, a0, 14
-    or      t0, t0, a0
+    daddu   t0, t0, a0
     //clear odd NODE_ID to even for chip config
     dli     a1, 0x1
     dsll    a1, a1, 44
@@ -147,24 +147,18 @@ t0,t2 shouldn't be changed to the end of this file.
     PRINTSTR("\r\n")
 #endif
 
-#if 0 // AdonWang disable cpu buffered read
-/* !!!!!!!!!!!!! IMPORTANT !!!!!!!!!!!! */
-    PRINTSTR("Disable cpu buffered read\r\n")
-    lw      a1, 0x0(t2)
-    li      a0, 0xfffffdff
-    and     a1, a1, a0
-    sw      a1, 0x0(t2)
-#endif
-
-#if 0 // AdonWang disable ddr3 readbuff
-/*      May Affect the Performance     */
-//This seems better for the spec2000
-//if we enable ECC, this bit will be reset in mc_init
-    PRINTSTR("Disable read buffer\r\n")
-    lw      a1, 0x4(t2)
-    li      a0, 0x18
-    or      a1, a1, a0
-    sw      a1, 0x4(t2)
+#if 0   //necessary
+    TTYDBG("Disable DDR buffer cpu\r\n")
+    GET_NODE_ID_a1
+    and     a1, a1, 0x1 //a1 == 0(even NODE) or 1(odd NODE)
+    dsll    a2, a1, 2   //a2 == 0(even NODE) or 4(odd NODE)
+    daddu   a1, a2, a1  //a1 == 0(even NODE) or 5(odd NODE)
+    lw      a2, 0x0(t2)
+    li      a0, 0x20    //bit[5]--MC0 DDR buffer cpu
+    sll     a0, a0, a1  //sll 0 or 5
+    not     a0, a0
+    and     a2, a2, a0
+    sw      a2, 0x0(t2)
 #endif
 
     bal     mc_init
@@ -233,8 +227,11 @@ t0,t2 shouldn't be changed to the end of this file.
     beq     a1, t5, 8f
     nop
     dli     t5, 0x10
-    //temp code, MEM size >= 4G, use 4G only
-    bgeu    a1, t5, 10f
+    beq     a1, t5, 10f
+    nop
+    dli     t5, 0x20
+    //temp code, MEM size >= 16G, use 16G only
+    bgeu    a1, t5, 20f
     nop
     b       89f  //error condition
     nop
@@ -308,12 +305,38 @@ t0,t2 shouldn't be changed to the end of this file.
     PRINTSTR("MC0 space open : 0x080000000 - 0x27FFFFFFF\r\n")
     b       81f
     nop
+20:     //ddr_16GB_MC0:
+    GET_NODE_ID_a0;
+    XBAR_CONFIG_NODE_a0(0x20, \
+                    0x0000000080000000, \
+                    0xFFFFFFFF80000000, \
+                    0x00000000000000F0)
+    XBAR_CONFIG_NODE_a0(0x28, \
+                    0x0000000100000000, \
+                    0xFFFFFFFF00000000, \
+                    0x00000001000000F0)
+    XBAR_CONFIG_NODE_a0(0x30, \
+                    0x0000000200000000, \
+                    0xFFFFFFFF00000000, \
+                    0x00000002000000F0)
+    XBAR_CONFIG_NODE_a0(0x38, \
+                    0x0000000300000000, \
+                    0xFFFFFFFF00000000, \
+                    0x00000003000000F0)
+    XBAR_CONFIG_NODE_a0(0x18, \
+                    0x0000000400000000, \
+                    0xFFFFFFFF80000000, \
+                    0x00000000800000F0)
+    PRINTSTR("MC0 space open : 0x080000000 - 0x47FFFFFFF\r\n")
+    b       81f
+    nop
 81:
     //Config other PCI space exactly as cpu windows
     L2XBAR_CONFIG_PCI_AS_CPU(0x20);
     L2XBAR_CONFIG_PCI_AS_CPU(0x28);
     L2XBAR_CONFIG_PCI_AS_CPU(0x30);
     L2XBAR_CONFIG_PCI_AS_CPU(0x38);
+    L2XBAR_CONFIG_PCI_AS_CPU(0x18);
     PRINTSTR("Full PCI space opened as cpu.\r\n")
     b       1f
     nop

@@ -791,7 +791,7 @@ DDR2:
     dsll    t5, t5, DIMM_MEMSIZE_OFFSET
     or      s1, s1, t5
 //DDR2 probe finished
-    b       end
+    b       probe_dimm_end
     nop
 
 DDR3:  //DDR3 SDRAM
@@ -971,7 +971,10 @@ DDR3:  //DDR3 SDRAM
     dsll    t5, t5, DIMM_MEMSIZE_OFFSET
     or      s1, s1, t5
 
-//probe DIMM Address Mirroring
+    GET_DIMM_TYPE
+    bnez    a1, 1f
+    nop
+//DDR3 UDIMM -- probe DIMM Address Mirroring
     dli     a1, 63
     GET_I2C_NODE_ID_a2
     bal     i2cread
@@ -981,9 +984,9 @@ DDR3:  //DDR3 SDRAM
     move    t5, v0
     dsll    t5, t5, ADDR_MIRROR_OFFSET 
     or      s1, s1, t5
-
+1:
 //DDR3 probe finished
-    b       end
+    b       probe_dimm_end
     nop
 
 ERROR_TYPE:
@@ -992,7 +995,7 @@ ERROR_TYPE:
     dsll    t5, t5, SDRAM_TYPE_OFFSET
     not     t5, t5
     and     s1, s1, t5
-end:
+probe_dimm_end:
     jr      t7
     nop
 END(PROBE_DIMM)

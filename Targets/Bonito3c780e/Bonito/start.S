@@ -267,7 +267,6 @@ la	gp, _gp
 
 #if 1 //SPI speed up
     li  t0, 0xbfe00220
-    //li  t1, 0x03
     li  t1, 0x07
     sb  t1, 0x4(t0)
 #endif
@@ -1079,7 +1078,8 @@ gs_2f_v3_ddr2_cfg:
 #define DDR_REFC   1
 #define DDR_DIV    1
 
-#define CORE_LOOPC  40 //1.0G
+#define CORE_LOOPC  32 //0.8G
+//#define CORE_LOOPC  40 //1.0G
 //#define CORE_LOOPC  46 //1.15G
 //#define CORE_LOOPC  48 //1.2G
 //#define CORE_LOOPC  50 //1.25G
@@ -1218,38 +1218,6 @@ soft_out:
 //end
 #endif
 
-##########################################
-//cxk
-#include "3C_ddr_config_define.h"
-#include "3C_ddr_param_define.h"
-#define DISABLE_DIMM_ECC
-#define PRINT_MSG
-//#define DEBUG_DDR
-//#define DEBUG_DDR_PARAM
-
-    dli     msize, 0
-
-    TTYDBG("NODE 0 MEMORY CONFIG BEGIN\r\n")
-#ifdef  AUTO_DDR_CONFIG
-    dli     s1, 0xff100000
-#else
-    dli     s1, 0xc3e30200
-#endif
-#include "loongson3C_ddr_config.S"
-##########################################
-
-#ifdef MULTI_CHIP
-##########################################
-	TTYDBG("NODE 1 MEMORY CONFIG BEGIN\r\n")
-#ifdef  AUTO_DDR_CONFIG
-    dli     s1, 0xff320001
-#else
-    dli     s1, 0xc3e30201
-#endif
-#include "loongson3C_ddr_config.S"
-##########################################
-#endif
-
 		bal CPU_TLBClear
 		nop
 		/*
@@ -1279,7 +1247,6 @@ soft_out:
         bal     vcache_init
         nop
 		TTYDBG("scache init node 0\r\n")
-		//bal	scache_init // smh
 		dli a0, 0x9800000000000000
 		bal	scache_init_64 // whd
 		nop
@@ -1288,14 +1255,6 @@ soft_out:
 		dli a0, 0x9800100000000000
 		bal	scache_init_64 // whd
 		nop
-#endif
-
-//#define LOCK_SCACHE
-#ifdef LOCK_SCACHE
-	    bal lock_scache
-        nop
-	    TTYDBG("cache lock done\r\n")
-	    nop
 #endif
 
 #if 1
@@ -1322,6 +1281,36 @@ soft_out:
 		nop
 #endif
 
+##########################################
+//cxk
+#include "3C_ddr_config_define.h"
+#include "3C_ddr_param_define.h"
+#define DISABLE_DIMM_ECC
+#define PRINT_MSG
+//#define DEBUG_DDR
+//#define DEBUG_DDR_PARAM
+
+    dli     msize, 0
+
+    TTYDBG("NODE 0 MEMORY CONFIG BEGIN\r\n")
+#ifdef  AUTO_DDR_CONFIG
+    dli     s1, 0xff100000
+#else
+    dli     s1, 0xc3e30200
+#endif
+#include "loongson3C_ddr_config.S"
+##########################################
+
+#ifdef MULTI_CHIP
+	TTYDBG("NODE 1 MEMORY CONFIG BEGIN\r\n")
+#ifdef  AUTO_DDR_CONFIG
+    dli     s1, 0xff320001
+#else
+    dli     s1, 0xc3e30201
+#endif
+#include "loongson3C_ddr_config.S"
+#endif
+##########################################
 
 ##########################################
 #if 0 /* write DDR test */
@@ -1519,15 +1508,10 @@ soft_out:
 
 out_test:
 
-
 #endif
 
 
 #ifdef  DEBUG_DDR
-        b       TM_over
-        nop
-#include "Test_Mem.S"
-TM_over:
 
 #if 1
     PRINTSTR("\r\nDo test?(0xf: skip): ")
@@ -1610,6 +1594,15 @@ TM_over:
 3:
 #endif
 #########################################
+
+#define LOCK_SCACHE
+#ifdef LOCK_SCACHE
+	    bal lock_scache
+        nop
+	    TTYDBG("cache lock done\r\n")
+	    nop
+#endif
+
 
 ##########################################
 #ifdef LS3_HT
@@ -2809,6 +2802,78 @@ cache_init_finish:
 		nop
 		.end	godson2_cache_init
 
+LEAF(lock_scache)
+       addi sp, sp, -56  
+       sd   t0, 0x00(sp)
+       sd   t1, 0x08(sp)
+       sd   t2, 0x10(sp)
+       sd   t3, 0x18(sp)
+       sd   t4, 0x20(sp)
+       sd   t5, 0x28(sp)
+       sd   t6, 0x30(sp)
+       move t7, ra
+
+#if 1
+	dli  t1, 0xffffffffffffffff
+	dli  t0, 0x900010003ff06000
+    sd   t1, 0xc0(t0)
+    sd   t1, 0xc8(t0)
+    sd   t1, 0xd0(t0)
+    sd   t1, 0xd8(t0)
+    sd   t1, 0xe0(t0)
+    sd   t1, 0xe8(t0)
+    sd   t1, 0xf0(t0)
+    sd   t1, 0xf8(t0)
+
+	dli  t0, 0x900000003ff02000
+    sd   t1, 0xc0(t0)
+    sd   t1, 0xc8(t0)
+    sd   t1, 0xd0(t0)
+    sd   t1, 0xd8(t0)
+    sd   t1, 0xe0(t0)
+    sd   t1, 0xe8(t0)
+    sd   t1, 0xf0(t0)
+    sd   t1, 0xf8(t0)
+#endif
+
+#if 1
+	dli  t0, 0x900010003ff04000
+	dli  t1, 0xffffffffffe00000
+	sd   t1, 0x240(t0)
+	dli  t1, 0x8000100090000000 
+	sd   t1, 0x200(t0)
+#if 1   //0.5M   
+	dli  t0, 0x900010003ff04000
+	dli  t1, 0xfffffffffff00000
+	sd   t1, 0x248(t0)
+	dli  t1, 0x8000100090200000 
+	sd   t1, 0x208(t0)
+#endif
+
+	dli  t0, 0x900000003ff00000
+	dli  t1, 0xffffffffffe00000
+	sd   t1, 0x240(t0)
+	dli  t1, 0x8000000090000000 
+	sd   t1, 0x200(t0)
+#if 1   //0.5M 
+	dli  t0, 0x900000003ff00000
+	dli  t1, 0xfffffffffff00000
+	sd   t1, 0x248(t0)
+	dli  t1, 0x8000000090200000 
+	sd   t1, 0x208(t0)
+#endif
+#endif
+       ld   t0, 0x00(sp)
+       ld   t1, 0x08(sp)
+       ld   t2, 0x10(sp)
+       ld   t3, 0x18(sp)
+       ld   t4, 0x20(sp)
+       ld   t5, 0x28(sp)
+       ld   t6, 0x30(sp)
+       addi sp, sp, 56  
+       jr    t7
+       nop
+END(lock_scache)
 
 		//lycheng
 		LEAF(nbmisc_read_index_mips)
@@ -3129,6 +3194,9 @@ idle1000:
 #######################################
 #include "3C_ddr_config.S"
 #include "loongson3C_ddr3_leveling.S"
+#ifdef  DEBUG_DDR
+#include "Test_Mem.S"
+#endif
 
 
 
@@ -3155,3 +3223,4 @@ nvram_offs:
     .global ddr3_reg_data
 //#include "loongson3C_ddr_param.400M.S"  //300M ~ 400M
 #include "loongson3C_ddr_param.S"  //667M ~ 
+//#include "loongson3C_ddr_param.533M.S"  //~ 533M

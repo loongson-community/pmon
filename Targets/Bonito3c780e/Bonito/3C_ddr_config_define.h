@@ -83,7 +83,9 @@ s1: [ 3: 3]: MC1_ONLY
 #define L2XBAR_CONFIG_BASE_ADDR 0x900000003ff00000
 #define CHIP_CONFIG_ADDR        0x900000001fe00180
 #define CHIP_CONFIG_BASE_ADDR   0x900000001fe00180
-#define	DDR_CONFIG_DISABLE_OFFSET	4
+#define DDR_CONFIG_DISABLE_OFFSET   4
+#define	MC_INIT_TEMP_L2WINDOW_OFFSET    0x20
+
 #define GET_NODE_ID_a0  dli a0, 0x00000003; and a0, s1, a0; dsll a0, 44;
 #define GET_NODE_ID_a1  dli a1, 0x00000003; and a1, s1, a1;
 #define GET_MC_SEL_BITS dli a1, 0x0000000c; and a1, s1, a1; dsrl a1, a1, 2;
@@ -100,9 +102,9 @@ s1: [ 3: 3]: MC1_ONLY
                         sd      v1, 0x80(v0);
 #define L2XBAR_CLEAR_WINDOW(OFFSET) \
                         daddiu  v0, t0, OFFSET;       \
+                        sd      $0, 0x80(v0);         \
                         sd      $0, 0x00(v0);         \
-                        sd      $0, 0x40(v0);         \
-                        sd      $0, 0x80(v0);
+                        sd      $0, 0x40(v0);
 #define L2XBAR_CONFIG_INTERLEAVE(OFFSET, BASE, MASK, MMAP) \
                         daddiu  v0, t0, OFFSET;       \
                         ld      v1, 0x00(v0);         \
@@ -136,8 +138,7 @@ s1: [ 3: 3]: MC1_ONLY
                         sd      v1, 0x0(v0);
 #define L2XBAR_DISABLE_WINDOW(OFFSET) \
                         daddiu  v0, t0, OFFSET;       \
-                        dli     v1, 0x0;              \
-                        sd      v1, 0x80(v0);
+                        sd      $0, 0x80(v0);
 #define L2XBAR_ENABLE_WINDOW(OFFSET) \
                         daddiu  v0, t0, OFFSET;       \
                         ld      v1, 0x80(v0);         \

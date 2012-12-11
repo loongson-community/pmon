@@ -174,9 +174,9 @@ ddr2_config:
     nop
 
     //rewrite eight_bank_mode
-    //rewrite pm_bank_diff_0
+    //rewrite pm_bank_diff_0 and pm_bank
     ld      a2, EIGHT_BANK_MODE_ADDR(t8)
-    dli     a1, 0xff
+    dli     a1, 0x3
     dsll    a1, a1, EIGHT_BANK_MODE_OFFSET
     not     a1, a1
     and     a2, a2, a1
@@ -187,7 +187,7 @@ ddr2_config:
     sd      a2, EIGHT_BANK_MODE_ADDR(t8)
     //rewrite pm_bank
     ld      a2, BANK_NUM_ADDR(t8)
-    dli     a1, 0xff
+    dli     a1, 0x7
     dsll    a1, a1, BANK_NUM_OFFSET
     not     a1, a1
     and     a2, a2, a1
@@ -199,40 +199,103 @@ ddr2_config:
     or      a2, a2, a1
     sd      a2, BANK_NUM_ADDR(t8)
 
-    //rewrite column_size and addr_pins
-    ld      a2, ADDR_PINS_ADDR(t8)
-    dli     a1, 0xff
-    dsll    a1, a1, ADDR_PINS_OFFSET
+#ifndef MC_MULTI_CHANNEL
+    //rewrite pm_addr_win
+    ld      a2, ADDR_WIN_BANK_NUM_ADDR(t8)
+    dli     a1, 0x3
+    dsll    a1, a1, ADDR_WIN_BANK_NUM_OFFSET
+    not     a1, a1
+    and     a2, a2, a1
+    dli     v0, 0x2
+    GET_EIGHT_BANK
+    or      a1, v0, a1
+    dsll    a1, a1, ADDR_WIN_BANK_NUM_OFFSET
+    or      a2, a2, a1
+    sd      a2, ADDR_WIN_BANK_NUM_ADDR(t8)
+#endif
+
+    //rewrite row_diff and column_diff
+    ld      a2, ROW_DIFF_ADDR(t8)
+    dli     a1, 0x7
+    dsll    a1, a1, ROW_DIFF_OFFSET
     not     a1, a1
     and     a2, a2, a1
     GET_ROW_SIZE
-    dsll    a1, a1, ADDR_PINS_OFFSET
+    dsll    a1, a1, ROW_DIFF_OFFSET
     or      a2, a2, a1
-    sd      a2, ADDR_PINS_ADDR(t8)
+    sd      a2, ROW_DIFF_ADDR(t8)
 
-    ld      a2, COLUMN_SIZE_ADDR(t8)
-    dli     a1, 0xff
-    dsll    a1, a1, COLUMN_SIZE_OFFSET
+    ld      a2, COLUMN_DIFF_ADDR(t8)
+    dli     a1, 0x7
+    dsll    a1, a1, COLUMN_DIFF_OFFSET
     not     a1, a1
     and     a2, a2, a1
     GET_COL_SIZE
     daddu   a1, a1, 0x4
-    dsll    a1, a1, COLUMN_SIZE_OFFSET
+    dsll    a1, a1, COLUMN_DIFF_OFFSET
     or      a2, a2, a1
-    sd      a2, COLUMN_SIZE_ADDR(t8)
-    //rewrite cs_map cs_mrs and cs_zq
-    ld      a2, CS_MAP_ADDR(t8)
-    dli     a1, 0xff
-    dsll    a1, a1, CS_MAP_OFFSET
+    sd      a2, COLUMN_DIFF_ADDR(t8)
+
+    //rewrite cs_diff
+    ld      a2, CS_DIFF_ADDR(t8)
+    dli     a1, 0x3
+    dsll    a1, a1, CS_DIFF_OFFSET
     not     a1, a1
     and     a2, a2, a1
+    //count cs num to a3
     GET_MC_CS_MAP
-    dsll    a1, a1, CS_MAP_OFFSET
+    and     a0, a1, 0x1
+    move    a3, a0
+    dsrl    a1, a1, 1
+    and     a0, a1, 0x1
+    daddu   a3, a3, a0
+    dsrl    a1, a1, 1
+    and     a0, a1, 0x1
+    daddu   a3, a3, a0
+    dsrl    a1, a1, 1
+    and     a0, a1, 0x1
+    daddu   a3, a3, a0
+
+    move    a1, $0
+    //dli   a0, 0x2
+    daddu   a0, $0, 0x1
+    daddu   a0, a0, 0x1
+    bgt     a3, a0, 1f  //4 or 3 ranks
+    nop
+    daddu   a1, a1, 0x1
+    beq     a3, a0, 1f  //2 ranks
+    nop
+    daddu   a1, a1, 0x1 //1 or 0 rank
+1:
+    dsll    a1, a1, CS_DIFF_OFFSET
     or      a2, a2, a1
-    sd      a2, CS_MAP_ADDR(t8)
+    sd      a2, CS_DIFF_ADDR(t8)
+
+    and     a0, a3, 0x1
+    beqz    a0, 1f
+    nop
+    //if there are 1 or 3 ranks, disable cs_place
+    ld      a2, CS_PLACE_ADDR(t8)
+    dli     a1, 0x1
+    dsll    a1, a1, CS_PLACE_OFFSET
+    not     a1, a1
+    and     a2, a2, a1
+    sd      a2, CS_PLACE_ADDR(t8)
+1:
+    //rewrite cs_enable cs_mrs and cs_zq
+    ld      a2, CS_ENABLE_ADDR(t8)
+    dli     a1, 0xf
+    dsll    a1, a1, CS_ENABLE_OFFSET
+    not     a1, a1
+    and     a2, a2, a1
+    //GET_MC_CS_MAP
+    dli     a1, 0xf
+    dsll    a1, a1, CS_ENABLE_OFFSET
+    or      a2, a2, a1
+    sd      a2, CS_ENABLE_ADDR(t8)
 
     ld      a2, CS_MRS_ADDR(t8)
-    dli     a1, 0xff
+    dli     a1, 0xf
     dsll    a1, a1, CS_MRS_OFFSET
     not     a1, a1
     and     a2, a2, a1
@@ -242,7 +305,7 @@ ddr2_config:
     sd      a2, CS_MRS_ADDR(t8)
 
     ld      a2, CS_ZQ_ADDR(t8)
-    dli     a1, 0xff
+    dli     a1, 0xf
     dsll    a1, a1, CS_ZQ_OFFSET
     not     a1, a1
     and     a2, a2, a1
@@ -250,9 +313,41 @@ ddr2_config:
     dsll    a1, a1, CS_ZQ_OFFSET
     or      a2, a2, a1
     sd      a2, CS_ZQ_ADDR(t8)
+
+    //reconfigure pm_cs_map
+    ld      a2, CS_MAP_ADDR(t8)
+    dli     a1, 0xff
+    dsll    a1, a1, CS_MAP_OFFSET
+    not     a1, a1
+    and     a2, a2, a1
+
+    //a0: logic cs; a3: pm_cs_map; v0: temp; v1: DDR_CS pin;
+    move    a0, $0
+    move    a3, $0
+    move    v1, $0
+    GET_MC_CS_MAP
+2:
+    and     v0, a1, 0x1
+    beqz    v0, 1f
+    nop
+    dsll    v0, a0, 1   //v0 = a0 * 2
+    dsll    v0, v1, v0
+    or      a3, a3, v0
+    daddu   a0, a0, 0x1
+1:
+    daddu   v1, v1, 0x1
+    dsrl    a1, a1, 1
+    dli     v0, 0x4
+    blt     v1, v0, 2b
+    nop
+
+    dsll    a3, a3, CS_MAP_OFFSET
+    or      a2, a2, a3
+    sd      a2, CS_MAP_ADDR(t8)
+
     //reconfig address_mirroring
     ld      a2, ADDRESS_MIRROR_ADDR(t8)
-    dli     a1, 0xff
+    dli     a1, 0xf
     dsll    a1, a1, ADDRESS_MIRROR_OFFSET
     not     a1, a1
     and     a2, a2, a1
@@ -352,25 +447,56 @@ ddr2_config:
 1:
 #endif
     //set data bus width
-    ld      a2, REDUC_ADDR(t8)
-    dli     a1, 0xff
-    dsll    a1, a1, REDUC_OFFSET
+    ld      a2, DATA_WIDTH_32_ADDR(t8)
+    dli     a1, 0x1
+    dsll    a1, a1, DATA_WIDTH_32_OFFSET
     not     a1, a1
     and     a2, a2, a1
     GET_DIMM_WIDTH
-    dsll    a1, a1, REDUC_OFFSET
+    dsll    a1, a1, DATA_WIDTH_32_OFFSET
     or      a2, a2, a1
-    sd      a2, REDUC_ADDR(t8)
-    //disable ECC module here for ARB_level, ECC will be enabled later
-    ld      a2, CTRL_RAW_ADDR(t8)
-    dli     a1, 0xf
-    dsll    a1, a1, CTRL_RAW_OFFSET
+    sd      a2, DATA_WIDTH_32_ADDR(t8)
+#ifndef MC_MULTI_CHANNEL
+    //rewrite multi_channel mode
+    ld      a2, MC_MULTI_CHANNEL_ADDR(t8)
+    dli     a1, 0x1
+    dsll    a1, a1, MC_MULTI_CHANNEL_OFFSET
     not     a1, a1
     and     a2, a2, a1
-    dli     a1, 0x0
-    dsll    a1, a1, CTRL_RAW_OFFSET
+    GET_DIMM_WIDTH
+    dsll    a1, a1, MC_MULTI_CHANNEL_OFFSET
     or      a2, a2, a1
-    sd      a2, CTRL_RAW_ADDR(t8)
+    sd      a2, MC_MULTI_CHANNEL_ADDR(t8)
+#endif
+#ifndef MC_MULTI_CHANNEL
+    //rewrite pm_addr_win(data width)
+    ld      a2, ADDR_WIN_DATA_WIDTH_ADDR(t8)
+    dli     a1, 0x3
+    dsll    a1, a1, ADDR_WIN_DATA_WIDTH_OFFSET
+    not     a1, a1
+    and     a2, a2, a1
+    dli     v0, 0x3
+    GET_DIMM_WIDTH
+    xor     a1, v0, a1
+    dsll    a1, a1, ADDR_WIN_DATA_WIDTH_OFFSET
+    or      a2, a2, a1
+    sd      a2, ADDR_WIN_DATA_WIDTH_ADDR(t8)
+#endif
+    //disable ECC module here for leveling, ECC will be enabled later
+    ld      a2, ECC_ENABLE_ADDR(t8)
+    dli     a1, 0x7
+    dsll    a1, a1, ECC_ENABLE_OFFSET
+    not     a1, a1
+    and     a2, a2, a1
+#ifndef DISABLE_DIMM_ECC
+    GET_DIMM_ECC
+    beqz    a1, 1f
+    nop
+    dsll    a1, a1, ECC_ENABLE_OFFSET
+    or      a2, a2, a1
+1:
+#endif
+    sd      a2, ECC_ENABLE_ADDR(t8)
 
     //reconfigure CS_1/2/3 addr info as CS_0
     ld      a2, ADDR_INFO_CS_0_ADDR(t8)
@@ -392,8 +518,8 @@ ddr2_config:
     nop
     move    t5, v0
     PRINTSTR("\r\nPlease input the data-hex: ");
-    dli        t6, 0x00
-    bal        inputaddress
+    dli     t6, 0x00
+    bal     inputaddress
     nop
     move    a2, t5
     dli     a1, 0xffffffff
@@ -1840,61 +1966,6 @@ mc_init:
     bal     ddr2_config
     nop
 
-#ifndef ARB_LEVEL
-#ifdef FIX_DDR_PARAM
-#define CLEAR_HALF_CLK_SHIFT
-#define GET_ARB_LEVEL_NODE_ID   dli a1, 0x3; and a1, a1, s1;
-    //save t2
-    move    t5, t2
-
-    GET_NODE_ID_a1
-    dli     a0, 0x0
-    beq     a0, a1, 10f
-    nop
-    daddu   a0, a0, 0x1
-    beq     a0, a1, 1f
-    nop
-    daddu   a0, a0, 0x1
-    beq     a0, a1, 2f
-    nop
-    daddu   a0, a0, 0x1
-    beq     a0, a1, 3f
-    nop
-    b       8f
-    nop
-10:
-    dla     t1, N0_fix_ddr_reg_data
-    b       4f
-    nop
-1:
-    dla     t1, N1_fix_ddr_reg_data
-    b       4f
-    nop
-2:
-    dla     t1, N2_fix_ddr_reg_data
-    b       4f
-    nop
-3:
-    dla     t1, N3_fix_ddr_reg_data
-    b       4f
-    nop
-4:
-    daddu   t1, t1, s0
-    dli     t6, 0x2
-Fix_ddr_param:
-    ld      t2, 0x0(t1)
-#include "ARB_Write_Leveled_param.S"
-    daddu   t6, t6, 0x1
-    daddu   t1, t1, 0x8
-    dli     a1, 0x7
-    blt     t6, a1, Fix_ddr_param
-    nop
-8:
-
-    move    t2, t5
-#endif
-#endif
-
 #if 1   //def  DEBUG_DDR_PARAM   //print registers
     PRINTSTR("The MC param is:\r\n")
     dli     t1, DDR_PARAM_NUM
@@ -2041,7 +2112,7 @@ Fix_ddr_param:
     sll     v1, v1, DDR_CONFIG_DISABLE_OFFSET
     or      a2, a2, v1
     sw      a2, 0x0(t2)
-
+    sync
 //cxk
 #ifdef  ARB_LEVEL
     sync
@@ -2051,7 +2122,7 @@ Fix_ddr_param:
     nop
     //route 0x1000000000 ~ 0x1FFFFFFFFF(64G) to MC for ARB_level
     GET_NODE_ID_a0;
-    XBAR_CONFIG_NODE_a0(0x20, \
+    XBAR_CONFIG_NODE_a0(MC_INIT_TEMP_L2WINDOW_OFFSET, \
                     0x0000001000000000, \
                     0xFFFFFFF000000000, \
                     0x00000000000000F0)
@@ -2088,109 +2159,6 @@ Fix_ddr_param:
     nop
     TTYDBG("ECC init start(maybe take 1 minute or so)....\r\n")
 
-    TTYDBG("Enable MC read buffer\r\n")
-    GET_NODE_ID_a1
-    and     a1, a1, 0x1 //a1 == 0(even NODE) or 1(odd NODE)
-    dsll    a2, a1, 2   //a2 == 0(even NODE) or 4(odd NODE)
-    daddu   a1, a2, a1  //a1 == 0(even NODE) or 5(odd NODE)
-    lw      a2, 0x0(t2)
-    li      a0, 0x40    //bit[6]--MC0_read_buffer_bypass
-    sll     a0, a0, a1  //sll 0 or 5
-    not     a0, a0
-    and     a2, a2, a0
-    sw      a2, 0x0(t2)
-
-    //PRINTSTR("\r\nEnable register space of MEMORY\r\n")
-    lw      a2, 0x0(t2)
-    li      v1, 0x1
-    GET_NODE_ID_a1
-    and     a1, a1, 0x1
-    beqz    a1, 1f
-    nop
-    sll     v1, v1, 5
-1:
-    sll     v1, v1, DDR_CONFIG_DISABLE_OFFSET
-    not     v1, v1
-    and     a2, a2, v1
-    sw      a2, 0x0(t2)
-
-    //set ecc_disable_w_uc_err to 1'b1
-    ld      a2, ECC_DISABLE_W_UC_ERR_ADDR(t8)
-    dli     a1, 0xff
-    dsll    a1, a1, ECC_DISABLE_W_UC_ERR_OFFSET
-    not     a1, a1
-    and     a2, a2, a1
-    dli     a1, 0x01
-    dsll    a1, a1, ECC_DISABLE_W_UC_ERR_OFFSET
-    or      a2, a2, a1
-    sd      a2, ECC_DISABLE_W_UC_ERR_ADDR(t8)
-    //enable ECC module with ecc reporting and correcting.
-    ld      a2, CTRL_RAW_ADDR(t8)
-    dli     a1, 0xff
-    dsll    a1, a1, CTRL_RAW_OFFSET
-    not     a1, a1
-    and     a2, a2, a1
-    dli     a1, 0x03
-    dsll    a1, a1, CTRL_RAW_OFFSET
-    or      a2, a2, a1
-    sd      a2, CTRL_RAW_ADDR(t8)
-
-    //PRINTSTR("\r\nDisable register space of MEMORY\r\n")
-    lw      a2, 0x0(t2)
-    li      v1, 0x1
-    GET_NODE_ID_a1
-    and     a1, a1, 0x1
-    beqz    a1, 1f
-    nop
-    sll     v1, v1, 5
-1:
-    sll     v1, v1, DDR_CONFIG_DISABLE_OFFSET
-    or      a2, a2, v1
-    sw      a2, 0x0(t2)
-
-    //route 0x1000000000 ~ 0x1FFFFFFFFF(64G) to MC for ECC init
-    sync
-    nop
-    nop
-    nop
-    nop
-    GET_NODE_ID_a0;
-    XBAR_CONFIG_NODE_a0(0x20, \
-                    0x0000001000000000, \
-                    0xFFFFFFF000000000, \
-                    0x00000000000000F0)
-    sync
-    nop
-    nop
-    nop
-    nop
-//init mem to all 0
-    dli     t1, 0x9800001000000000
-    GET_NODE_ID_a0
-    or      t1, t1, a0
-    GET_MC0_MEMSIZE
-    dsll    a1, a1, 29   //a1*512M
-    daddu   t3, t1, a1
-    dli     a1, 0x0
-//write memory
-1:
-    bgeu    t1, t3, 1f
-    nop
-
-    sd      a1, 0x0(t1)
-    sd      a1, 0x8(t1)
-    sd      a1, 0x10(t1)
-    sd      a1, 0x18(t1)
-    sync
-    //hit write back invalidate(D-/S-cache) to memory
-    cache   0x15, 0x0(t1)
-    cache   0x17, 0x0(t1)
-    daddu   t1, t1, 0x20
-    b       1b
-    nop
-1:
-
-#if 1
     //PRINTSTR("\r\nEnable register space of MEMORY\r\n")
     lw      a2, 0x0(t2)
     li      v1, 0x1
@@ -2208,16 +2176,25 @@ Fix_ddr_param:
     GET_NODE_ID_a0;
     dli     t8, DDR_MC_CONFIG_BASE
     or      t8, t8, a0
-    //clear disable_w_uc_err
-    ld      a2, ECC_DISABLE_W_UC_ERR_ADDR(t8)
-    dli     a1, 0xff
-    dsll    a1, a1, ECC_DISABLE_W_UC_ERR_OFFSET
+
+    //disable ECC interrupt
+    ld      a2, ECC_INT_ENABLE_ADDR(t8)
+    dli     a1, 0x3
+    dsll    a1, a1, ECC_INT_ENABLE_OFFSET 
+    not     a1, a2
+    and     a2, a2, a1
+    sd      a2, ECC_INT_ENABLE_ADDR(t8)
+
+    //enable ECC function but without reporting error
+    ld      a2, ECC_ENABLE_ADDR(t8)
+    dli     a1, 0x7
+    dsll    a1, a1, ECC_ENABLE_OFFSET
     not     a1, a1
     and     a2, a2, a1
-    dli     a1, 0x00
-    dsll    a1, a1, ECC_DISABLE_W_UC_ERR_OFFSET
+    dli     a1, 0x1
+    dsll    a1, a1, ECC_ENABLE_OFFSET
     or      a2, a2, a1
-    sd      a2, ECC_DISABLE_W_UC_ERR_ADDR(t8)
+    sd      a2, ECC_ENABLE_ADDR(t8)
 
     //PRINTSTR("\r\nDisable register space of MEMORY\r\n")
     lw      a2, 0x0(t2)
@@ -2231,10 +2208,170 @@ Fix_ddr_param:
     sll     v1, v1, DDR_CONFIG_DISABLE_OFFSET
     or      a2, a2, v1
     sw      a2, 0x0(t2)
-#endif
+    sync
+
+    //route 0x1000000000 ~ 0x1FFFFFFFFF(64G) to MC for ECC init
+    sync
+    nop
+    nop
+    nop
+    nop
+    GET_NODE_ID_a0;
+    XBAR_CONFIG_NODE_a0(MC_INIT_TEMP_L2WINDOW_OFFSET, \
+                    0x0000001000000000, \
+                    0xFFFFFFF000000000, \
+                    0x00000000000000F0)
+    sync
+    nop
+    nop
+    nop
+    nop
+//init mem to all 0
+    dli     t1, 0x9800001000000000
+    GET_NODE_ID_a0
+    or      t1, t1, a0
+    GET_MC0_MEMSIZE
+    dsll    a1, a1, 29   //a1*512M
+    daddu   t3, t1, a1
+//write memory
+1:
+    bgeu    t1, t3, 1f
+    nop
+
+    sd      $0, 0x0(t1)
+    sd      $0, 0x8(t1)
+    sd      $0, 0x10(t1)
+    sd      $0, 0x18(t1)
+    sync
+    //hit write back invalidate(D-/S-cache) to memory
+    cache   0x15, 0x0(t1)
+    cache   0x17, 0x0(t1)
+    daddu   t1, t1, 0x20
+    b       1b
+    nop
+1:
+
+    sync
+    nop
+    nop
+    nop
+    nop
+
+    L2XBAR_CLEAR_WINDOW(MC_INIT_TEMP_L2WINDOW_OFFSET)
+
+    sync
+    nop
+    nop
+    nop
+    nop
+
+    //PRINTSTR("\r\nEnable register space of MEMORY\r\n")
+    lw      a2, 0x0(t2)
+    li      v1, 0x1
+    GET_NODE_ID_a1
+    and     a1, a1, 0x1
+    beqz    a1, 1f
+    nop
+    sll     v1, v1, 5
+1:
+    sll     v1, v1, DDR_CONFIG_DISABLE_OFFSET
+    not     v1, v1
+    and     a2, a2, v1
+    sw      a2, 0x0(t2)
+
+    //enable ECC function with reporting error
+    ld      a2, ECC_ENABLE_ADDR(t8)
+    dli     a1, 0x7
+    dsll    a1, a1, ECC_ENABLE_OFFSET
+    not     a1, a1
+    and     a2, a2, a1
+    dli     a1, 0x7
+    dsll    a1, a1, ECC_ENABLE_OFFSET
+    or      a2, a2, a1
+    sd      a2, ECC_ENABLE_ADDR(t8)
+
+    //enable ECC interrupt
+    ld      a2, ECC_INT_ENABLE_ADDR(t8)
+    dli     a1, 0x3
+    dsll    a1, a1, ECC_INT_ENABLE_OFFSET 
+    or      a2, a2, a1
+    sd      a2, ECC_INT_ENABLE_ADDR(t8)
+
+    //PRINTSTR("\r\nDisable register space of MEMORY\r\n")
+    lw      a2, 0x0(t2)
+    li      v1, 0x1
+    GET_NODE_ID_a1
+    and     a1, a1, 0x1
+    beqz    a1, 1f
+    nop
+    sll     v1, v1, 5
+1:
+    sll     v1, v1, DDR_CONFIG_DISABLE_OFFSET
+    or      a2, a2, v1
+    sw      a2, 0x0(t2)
+    sync
 
     TTYDBG("MC ECC init done.\r\n")
 4:
+#endif
+#define CLEAR_INT_STATUS
+#ifdef  CLEAR_INT_STATUS
+    //TTYDBG("Enable register space of MEMORY\r\n")
+    lw      a2, 0x0(t2)
+    li      v1, 0x1
+    GET_NODE_ID_a1
+    and     a1, a1, 0x1
+    beqz    a1, 1f
+    nop
+    sll     v1, v1, 5
+1:
+    sll     v1, v1, DDR_CONFIG_DISABLE_OFFSET
+    not     v1, v1
+    and     a2, a2, v1
+    sw      a2, 0x0(t2)
+    sync
+
+#if 1   //def  DEBUG_DDR_PARAM   //print registers
+    PRINTSTR("The MC param after leveling is:\r\n")
+    dli     t1, DDR_PARAM_NUM
+    GET_NODE_ID_a0
+    dli     t5, DDR_MC_CONFIG_BASE
+    or      t5, t5, a0
+1:
+    ld      t6, 0x0(t5)
+    move    a0, t5
+    and     a0, a0, 0xfff
+    bal     hexserial
+    nop
+    PRINTSTR(":  ")
+    dsrl    a0, t6, 32
+    bal     hexserial
+    nop
+    //PRINTSTR("  ")
+    move    a0, t6
+    bal     hexserial
+    nop
+    PRINTSTR("\r\n")
+
+    daddiu  t1, t1, -1
+    daddiu  t5, t5, 8
+    bnez    t1, 1b
+    nop
+#endif
+
+    //TTYDBG("Disable register space of MEMORY\r\n")
+    lw      a2, 0x0(t2)
+    li      v1, 0x1
+    GET_NODE_ID_a1
+    and     a1, a1, 0x1
+    beqz    a1, 1f
+    nop
+    sll     v1, v1, 5
+1:
+    sll     v1, v1, DDR_CONFIG_DISABLE_OFFSET
+    or      a2, a2, v1
+    sw      a2, 0x0(t2)
+    sync
 #endif
     move    ra, t7
     jr      ra
