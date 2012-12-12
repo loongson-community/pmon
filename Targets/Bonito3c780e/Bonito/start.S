@@ -1207,7 +1207,7 @@ soft_out:
 //begin :Beep on -> delay -> Beep off
 	bal	beep_on
 	nop
-	li	a0,0x100
+	li	a0,0x1000
 	1:
 	addiu	a0,-1
 	nop
@@ -1299,6 +1299,22 @@ soft_out:
     dli     s1, 0xc3e30200
 #endif
 #include "loongson3C_ddr_config.S"
+
+	beqz  s1,  node0_no_mem
+	nop
+	b	  node0_has_mem
+	nop
+		 	
+node0_no_mem:
+		
+	bal	beep_on
+	nop
+	1:
+	b	1b
+	nop
+
+node0_has_mem:
+
 ##########################################
 
 #ifdef MULTI_CHIP

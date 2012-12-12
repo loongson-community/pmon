@@ -1112,7 +1112,7 @@ static int cmd_ifconfig(int argc,char **argv)
                 strcpy(argv[1],"rte0");
         }
 #endif
-#if	defined (LOONGSON_3ASERVER) || defined (LOONGSON_3BSERVER)
+#if	defined (LOONGSON_3ASERVER) || defined (LOONGSON_3BSERVER)|| defined (LOONGSON_3B1500)
         if(strstr(net_type,"eth0")!=NULL)
         {
                 strcpy(argv[1],"em0");

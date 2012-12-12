@@ -739,6 +739,8 @@ dbginit (char *adr)
 {
 	unsigned long long	memsize, freq;
 	int	memfreq,clk,clk30,clk4, clk20, clk34, mem_vco;
+	unsigned short div_refc, div_loopc, div_out;
+
 	char	fs[10], *fp;
 	char	*s;
 
@@ -834,12 +836,25 @@ dbginit (char *adr)
 #endif
 
 #ifdef LOONGSON_3BSINGLE
+#ifndef LOONGSON_3B1500
          clk20 = clk & 0x07;
          clk34 = (clk >> 3) & 0x03;
          mem_vco = 33 * (20 + clk20 * 2 + (clk20 == 7) * 2);
          memfreq = mem_vco / (1 << (clk34 + 1));
+#else
+	  if ((clk & 0x8) == 0x0){ /* set ddr frequency by software */
+		  div_refc = ((*(volatile unsigned int *)(0xbfe001c0)) >> 8) & 0x3f; 
+		  div_loopc = ((*(volatile unsigned int *)(0xbfe001c0)) >> 14 ) & 0x3ff; 
+		  div_out = ((*(volatile unsigned int *)(0xbfe001c0)) >> 24) & 0x3f; 
+          memfreq = ((33 / div_refc) * div_loopc) / div_out;
+	  } else { /* set ddr frequency by hareware */
+         clk20 = clk & 0x07;
+         clk34 = (clk >> 3) & 0x03;
+         mem_vco = 33 * (20 + clk20 * 2 + (clk20 == 7) * 2);
+         memfreq = mem_vco / (1 << (clk34 + 1));
+	  }
 #endif
-
+#endif
          printf("/ Bus @ %d MHz\n",memfreq);
         }
         else

@@ -418,6 +418,8 @@ void movinv1(int iter, ulong p1, ulong p2);
 pcireg_t _pci_allocate_io(struct pci_device *dev, vm_size_t size);
 static void superio_reinit();
 
+extern unsigned long long	       memorysize_total;
+
 void
 initmips(unsigned long long raw_memsz)
 {
@@ -469,6 +471,7 @@ superio_reinit();
     memsz = memsz << 29;
     memorysize_high_n3 = (memsz == 0) ? 0 : (memsz - (256 << 20));
 #endif
+	memorysize_total =  ((memorysize  +  memorysize_high)  >> 20) + 16;
 #if 0 /* whd : Disable gpu controller of MCP68 */
 	//*(unsigned int *)0xbfe809e8 = 0x122380;
 	//*(unsigned int *)0xbfe809e8 = 0x2280;
