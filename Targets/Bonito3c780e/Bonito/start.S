@@ -1078,8 +1078,8 @@ gs_2f_v3_ddr2_cfg:
 #define DDR_REFC   1
 #define DDR_DIV    1
 
-#define CORE_LOOPC  32 //0.8G
-//#define CORE_LOOPC  40 //1.0G
+//#define CORE_LOOPC  32 //0.8G
+#define CORE_LOOPC  40 //1.0G
 //#define CORE_LOOPC  46 //1.15G
 //#define CORE_LOOPC  48 //1.2G
 //#define CORE_LOOPC  50 //1.25G
