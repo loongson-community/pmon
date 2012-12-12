@@ -345,6 +345,29 @@ ddr2_config:
     or      a2, a2, a3
     sd      a2, CS_MAP_ADDR(t8)
 
+    //rewrite lvl_cs
+    ld      a2, LEVEL_CS_ADDR(t8)
+    dli     a1, 0xf
+    dsll    a1, a1, LEVEL_CS_OFFSET
+    not     a1, a1
+    and     a2, a2, a1
+    GET_MC_CS_MAP
+    beqz    a1, 4f
+    nop
+    daddu   v1, $0, 0x1
+1:
+    and     v0, a1, v1
+    bnez    v0, 2f
+    nop
+    dsll    v1, v1, 1
+    b       1b
+    nop
+2:
+    dsll    v1, v1, LEVEL_CS_OFFSET
+    or      a2, a2, v1
+    sd      a2, LEVEL_CS_ADDR(t8)
+4:
+
     //reconfig address_mirroring
     ld      a2, ADDRESS_MIRROR_ADDR(t8)
     dli     a1, 0xf
@@ -2314,7 +2337,7 @@ mc_init:
     TTYDBG("MC ECC init done.\r\n")
 4:
 #endif
-#define CLEAR_INT_STATUS
+//#define CLEAR_INT_STATUS
 #ifdef  CLEAR_INT_STATUS
     //TTYDBG("Enable register space of MEMORY\r\n")
     lw      a2, 0x0(t2)
