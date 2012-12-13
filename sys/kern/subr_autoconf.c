@@ -335,14 +335,18 @@ config_found_sm(parent, aux, print, submatch)
 
 	struct device *dev = NULL;
         static int i = 1;
+	char tmp[10] = {0};
+	int len = 0 ;
 
 	if ((match = config_search(submatch, parent, aux)) != NULL)
 	{
 		dev =config_attach(parent, match, aux, print);
- 
-                if(sata_flags[i] == 1)    
+ 		
+		strcpy(tmp,parent->dv_xname);
+		len = strlen(tmp);
+                if((sata_flags[i] == 1) && (len) && (tmp[len -1] == '0'))    
                  {
-                        sata_devs[i] = dev; //save pointer of dev when port1 and port2 have satadisks
+                        sata_devs[i] = dev; //save pointer of dev when port1 and port2 have satadisks controlled by pciide0
                         i++;
                  }
                  return dev;
