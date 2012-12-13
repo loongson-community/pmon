@@ -1070,13 +1070,15 @@ gs_2f_v3_ddr2_cfg:
 #define NODE_REFC   1
 #define NODE_DIV    1
 
-//#define DDR_LOOPC  15 //500MHz
-#define DDR_LOOPC  16 //533MHz
-//#define DDR_LOOPC  17 //566MHz
-//#define DDR_LOOPC  18 //600MHz
-//#define DDR_LOOPC  19 //633MHz
+//#define DDR_LOOPC  24 //400MHz
+//#define DDR_LOOPC  28 //466MHz
+//#define DDR_LOOPC  30 //500MHz
+#define DDR_LOOPC  32 //533MHz
+//#define DDR_LOOPC  34 //566MHz
+//#define DDR_LOOPC  36 //600MHz
+//#define DDR_LOOPC  38 //633MHz
 #define DDR_REFC   1
-#define DDR_DIV    1
+#define DDR_DIV    2
 
 //#define CORE_LOOPC  32 //0.8G
 #define CORE_LOOPC  40 //1.0G
@@ -1611,7 +1613,7 @@ out_test:
 #endif
 #########################################
 
-#define LOCK_SCACHE
+//#define LOCK_SCACHE
 #ifdef LOCK_SCACHE
 	    bal lock_scache
         nop
@@ -2858,7 +2860,7 @@ LEAF(lock_scache)
 	sd   t1, 0x240(t0)
 	dli  t1, 0x8000100090000000 
 	sd   t1, 0x200(t0)
-#if 1   //0.5M   
+#if 0   //1M   
 	dli  t0, 0x900010003ff04000
 	dli  t1, 0xfffffffffff00000
 	sd   t1, 0x248(t0)
@@ -2871,7 +2873,7 @@ LEAF(lock_scache)
 	sd   t1, 0x240(t0)
 	dli  t1, 0x8000000090000000 
 	sd   t1, 0x200(t0)
-#if 1   //0.5M 
+#if 0   //1M 
 	dli  t0, 0x900000003ff00000
 	dli  t1, 0xfffffffffff00000
 	sd   t1, 0x248(t0)
