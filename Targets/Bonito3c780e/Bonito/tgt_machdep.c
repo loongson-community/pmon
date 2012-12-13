@@ -471,7 +471,7 @@ superio_reinit();
     memsz = memsz << 29;
     memorysize_high_n3 = (memsz == 0) ? 0 : (memsz - (256 << 20));
 #endif
-	memorysize_total =  ((memorysize  +  memorysize_high)  >> 20) + 16;
+	memorysize_total =  ((memorysize  +  memorysize_high + memsz)  >> 20) + 16;
 #if 0 /* whd : Disable gpu controller of MCP68 */
 	//*(unsigned int *)0xbfe809e8 = 0x122380;
 	//*(unsigned int *)0xbfe809e8 = 0x2280;
