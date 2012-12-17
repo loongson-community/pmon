@@ -335,12 +335,12 @@ ht_next_id :
 
 #endif
 
-#if 1//Set Mem space post
+#if 1//Set Mem space post // to fix usb sometimes fail bug
 	TTYDBG("Set HT all Memory space post to speed up\r\n")
 	dli	    t2, 0x90000efdfb000000
-	li	    t0, 0x80000000
+	li	    t0, 0x80000040
 	sw	    t0, 0xd0(t2)
-	li	    t0, 0x0000ff00
+	li	    t0, 0x0040fff8
 	sw	    t0, 0xd4(t2)
 
 #endif
