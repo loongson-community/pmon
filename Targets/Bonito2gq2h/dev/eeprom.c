@@ -1,5 +1,5 @@
  /*
-  * This file is for AT24C64 eeprom.
+  * This file is for AT24C16 eeprom.
   * Author: liushaozong
   */
 #include <pmon.h>
@@ -7,7 +7,7 @@
 #include "target/ls2h.h"
 #include "target/eeprom.h"
 
-#define	AT24C64_ADDR	0xa0
+#define	AT24C16_ADDR	0xa0
 static void ls2h_i2c_stop()
 {
 again:
@@ -26,21 +26,12 @@ void ls2h_i2c1_init()
 
 static int i2c_send_addr(int data_addr)
 {
-	unsigned char ee_dev_addr = AT24C64_ADDR;
-	int i = (data_addr >> 8) & 0x1f;
+	unsigned char ee_dev_addr = AT24C16_ADDR;
+	int i = (data_addr >> 8) & 0x7;
 
+	ee_dev_addr |= (i << 1);
 	write_reg_byte(LS2H_I2C1_TXR_REG, ee_dev_addr);
 	write_reg_byte(LS2H_I2C1_CR_REG, (CR_START | CR_WRITE));
-	while (read_reg_byte(LS2H_I2C1_SR_REG) & SR_TIP) ;
-
-	if (read_reg_byte(LS2H_I2C1_SR_REG) & SR_NOACK) {
-		printf("%s:%d  eeprom has no ack\n", __func__, __LINE__);
-		ls2h_i2c_stop();
-		return 0;
-	}
-
-	write_reg_byte(LS2H_I2C1_TXR_REG, (i & 0xff));
-	write_reg_byte(LS2H_I2C1_CR_REG, CR_WRITE);
 	while (read_reg_byte(LS2H_I2C1_SR_REG) & SR_TIP) ;
 
 	if (read_reg_byte(LS2H_I2C1_SR_REG) & SR_NOACK) {
@@ -141,7 +132,7 @@ int eeprom_write_page(int data_addr, unsigned char *buf, int count)
   **/
 int eeprom_read_cur(unsigned char *buf)
 {
-	unsigned char ee_dev_addr = AT24C64_ADDR | 0x1;
+	unsigned char ee_dev_addr = AT24C16_ADDR | 0x1;
   
 	write_reg_byte(LS2H_I2C1_TXR_REG, ee_dev_addr);
 	write_reg_byte(LS2H_I2C1_CR_REG, (CR_START | CR_WRITE));
@@ -206,7 +197,7 @@ int eeprom_read_rand(int data_addr, unsigned char *buf)
 static int i2c_read_seq_cur(unsigned char *buf, int count)
 {
 	int i;
-	unsigned char ee_dev_addr = AT24C64_ADDR |  0x1;
+	unsigned char ee_dev_addr = AT24C16_ADDR |  0x1;
 
 	write_reg_byte(LS2H_I2C1_TXR_REG, ee_dev_addr);
 	write_reg_byte(LS2H_I2C1_CR_REG, (CR_START | CR_WRITE));
@@ -328,7 +319,6 @@ int cmd_setmac(int ac, unsigned char *av[])
 	if (ac == 1) {
 		for (i = 0; i < 2; i++) {	
 			if (eeprom_read_seq(i * 6, buf, 6) == 6) {
-				//printf("syn%d Mac address: ", i);
 				printf("eth%d Mac address: ", i);
 				for (j = 0; j < 6; j++)
 					printf("%02x%s", buf[j], (5-j)?":":" ");
@@ -354,7 +344,6 @@ int cmd_setmac(int ac, unsigned char *av[])
 	}
 
 	if (eeprom_write_page(data_addr, buf, count) == count) {
-		//printf("set syn%d  Mac address: %s\n",data_addr / 6, av[2]);
 		printf("set eth%d  Mac address: %s\n",data_addr / 6, av[2]);
 		printf("The machine should be restarted to make the mac change to take effect!!\n");
 	} else 
@@ -362,9 +351,7 @@ int cmd_setmac(int ac, unsigned char *av[])
 	return 0;
 warning:
 	printf("Please accord to correct format.\nFor example:\n");
-	//printf("\tsetmac syn1 \"00:11:22:33:44:55\"\n");
 	printf("\tsetmac eth1 \"00:11:22:33:44:55\"\n");
-	//printf("\tThis means set syn1's Mac address 00:11:22:33:44:55\n");
 	printf("\tThis means set eth1's Mac address 00:11:22:33:44:55\n");
 	return 0;
 }
