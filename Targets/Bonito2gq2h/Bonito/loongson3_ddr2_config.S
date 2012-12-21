@@ -23,7 +23,7 @@
 0. s1 reset code
 **************************/
 //set use which MC: 01-MC0; 10-MC1; 00-MC0&MC1
-#if 0
+#ifdef DEBUG_DDR_PARAM
     PRINTSTR("Please input DDR SELLECT :\r\n[ 8]:MC1_ONLY\r\n[ 4]:MC0_ONLY\r\n");
     dli     t6, 0x00
     bal     inputaddress    #input value stored in v0
@@ -278,6 +278,22 @@ t0,t2 shouldn't be changed to the end of this file.
     nop
 
     dli     t3, 0x0
+#ifndef  DISABLE_DIMM_ECC
+    //Enable MC read buffer for ECC Initial
+    GET_DIMM_ECC
+    beqz    a1, 8f
+    nop
+    TTYDBG("Enable MC read buffer\r\n")
+    lw      a1, 0x4(t2)
+    li      a0, 0x8
+    sll     a0, a0, t3
+    not     a0, a0
+    and     a1, a1, a0
+    sw      a1, 0x4(t2)
+    sync
+8:
+#endif
+
     bal     mc_init
     nop
     PRINTSTR("\r\nMC0 Config DONE\r\n")
@@ -289,6 +305,21 @@ t0,t2 shouldn't be changed to the end of this file.
     nop
 
     dli     t3, 0x1
+#ifndef  DISABLE_DIMM_ECC
+    //Enable MC read buffer for ECC Initial
+    GET_DIMM_ECC
+    beqz    a1, 8f
+    nop
+    TTYDBG("Enable MC read buffer\r\n")
+    lw      a1, 0x4(t2)
+    li      a0, 0x8
+    sll     a0, a0, t3
+    not     a0, a0
+    and     a1, a1, a0
+    sw      a1, 0x4(t2)
+    sync
+8:
+#endif
     bal     mc_init
     nop
     TTYDBG("\r\nMC1 Config DONE\r\n")
@@ -347,30 +378,6 @@ t0,t2 shouldn't be changed to the end of this file.
     nop
     nop
     nop
-#if 0
-    PRINTSTR("\r\nt0=0x");
-    dsrl    a0, t0, 32
-    bal     hexserial
-    nop
-    move    a0, t0
-    bal     hexserial
-    nop
-
-    PRINTSTR("\r\nSkip Clear L2 window?(1: skip;)\r\n");
-    dli     t6, 0x00
-    bal     inputaddress    #input value stored in v0
-    nop
-    bnez    v0, 1f
-    nop
-    //not work ok!!!
-    //L2XBAR_CLEAR_WINDOW(0x10) //this two window can NOT be cleared! ????
-    //L2XBAR_CLEAR_WINDOW(0x18) //this two window can NOT be cleared! ????
-    //L2XBAR_CLEAR_WINDOW(0x20)
-    //L2XBAR_CLEAR_WINDOW(0x28)
-    //L2XBAR_CLEAR_WINDOW(0x30)
-    //L2XBAR_CLEAR_WINDOW(0x38)
-1:
-#endif
 #ifndef NO_INTERLEAVE
     //clear L2 window(introduced by ARB_LEVEL or ECC initialize)
     L2XBAR_DISABLE_WINDOW(0x20);

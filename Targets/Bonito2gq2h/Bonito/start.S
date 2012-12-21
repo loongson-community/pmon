@@ -353,6 +353,9 @@ la	gp, _gp
 	mfc0	a0, COP_0_EXC_PC
 	bal	hexserial
 	nop
+1:
+	b 1b
+	nop
 #ifndef ROM_EXCEPTION
 	PRINTSTR("\r\nDERR0=")
 	cfc0	a0, COP_0_DERR_0
@@ -363,7 +366,7 @@ la	gp, _gp
 	bal	hexserial
 	nop
 #else
-	1:
+1:
 	b 1b
 	nop
 #endif
@@ -1203,21 +1206,6 @@ after_ht:
 		nop
 #endif
 
-//##########################################
-//DDR config start
-//cxk
-#include "ddr_param_define.h"
-#include "ddr_config_define.h"
-#define DISABLE_DIMM_ECC
-//#define FIX_DDR_PARAM
-#define PRINT_MSG
-//#define DEBUG_DDR
-//#define DEBUG_DDR_PARAM
-
-        dli     msize, 0
-
-        TTYDBG("NODE 0 MEMORY CONFIG BEGIN\r\n")
-//!!!!important--s1 must be correctly set
 /// belwo only for ls2gq
 ###Set DDR frequency ### 
 #if 1 
@@ -1246,45 +1234,41 @@ after_ht:
         li  a0, 0x00000008
         or  a1, a1, a0
         sw  a1, 0x0(t2)
-
-
 #endif
-
 /// above only for ls2gq
 
+//##########################################
+//DDR config start
+//cxk
+####################################
+#include "ddr_dir/ddr_param_define.h"
+#include "ddr_dir/ddr_config_define.h"
+#define DISABLE_DIMM_ECC
+#ifndef ARB_LEVEL
+//#define FIX_DDR_PARAM
+#endif
+#define PRINT_MSG
+//#define DEBUG_DDR
+//#define DEBUG_DDR_PARAM
+
+    TTYDBG("\r\nStart Init Memory, wait a while......\r\n")
+####################################
+    dli     msize, 0
+
+//!!!!important--s1 must be correctly set
+
+    TTYDBG("NODE 0 MEMORY CONFIG BEGIN\r\n")
 
 #ifdef  AUTO_DDR_CONFIG
-        dli     s1, 0x32100000  //set use MC1 or MC0 or MC1/0 and give All device id
+    dli     s1, 0xf2f10000
 #else
-        dli     s1, 0xc1e10200c1e10204  //set use MC1 or MC0 or MC1/0 and give All DIMM infor // danmian
-        dli     s1, 0xc1e30400c1e30404  //set use MC1 or MC0 or MC1/0 and give All DIMM infor // shuagnmian
-        dli     s1, 0xc1ec0400c1ec0404  //set use MC1 or MC0 or MC1/0 and give All DIMM infor // shuagnmian
-#endif
-#include "loongson3_ddr2_config.S"
-
-#ifdef MULTI_CHIP
-		TTYDBG("NODE 1 MEMORY CONFIG BEGIN\r\n")
-#ifdef  AUTO_DDR_CONFIG
-        dli     s1, 0x76540001  //set use MC1 or MC0 or MC1/0 and give All device id
-#else
-        dli     s1, 0xc1e10200c1e10201  //set use MC1 or MC0 or MC1/0 and give All DIMM infor
-#endif
-#include "loongson3_ddr2_config.S"
+    dli     s1, 0xc1ec0400c1e30400  // use MC0
 #endif
 
-#ifdef ARB_LEVEL
-        b       ARB_level_over
-        nop
-#include "ARB_level.S"
-ARB_level_over:
-#endif
+#include "loongson3_ddr2_config.S"
+    TTYDBG("Init Memory done.\r\n")
 ##########################################
 #ifdef  DEBUG_DDR
-    b       TM_over
-    nop
-#include "Test_Mem.S"
-TM_over:
-
 #if 1
     PRINTSTR("\r\nDo test?(0xf: skip): ")
     bal     inputaddress
@@ -1314,21 +1298,26 @@ TM_over:
     nop
 #endif
 
-#if 0
-    PRINTSTR("\r\nStart simple_test_mem......\r\n")
-1:
-    dli     t1, 0x0010
     dli     s1, 0x0010000080000000  //NODE 0, start from 0x80000000
-    dli     t0, 0xaaaaaaaaaaaaaaaa
-    bal     simple_test_mem
+#if 1
+    PRINTSTR("\r\ndefault s1 = 0x");
+    dsrl    a0, s1, 32
+    bal     hexserial
     nop
-    b       1b
+    PRINTSTR("__")
+    move    a0, s1
+    bal     hexserial
     nop
+    PRINTSTR("\r\nChange test param s1(0: skip)?: ")
+    bal     inputaddress
+    nop
+    beqz    v0, 1f
+    nop
+    move    s1, v0
+1:
 #endif
-
 1:
     dli     t1, 0x0010
-    dli     s1, 0x0010000080000000  //NODE 0, start from 0x80000000
     bal     test_mem
     nop
     move    t1, v0
@@ -1339,11 +1328,14 @@ TM_over:
     move    a0, t1
     bal     hexserial
     nop
-    beqz    t1, 3f
+    beqz    t1, 2f
     nop
     PRINTSTR("  Error found!!\r\n")
+2:
+#if 0
     b       1b
     nop
+#endif
 
 3:
 #endif
@@ -2124,9 +2116,10 @@ TM_over:
 
 
 #include "i2c.S"
-#ifdef AUTO_DDR_CONFIG  // for no ls2h cpu on board, disable AUTO_DDR_CONFIG
-#include "detect_node_dimm.S"
+#ifdef  AUTO_DDR_CONFIG
+#include "ddr_dir/detect_node_dimm.S"
 #endif
+
 		__main:
 		j	ra
 		nop
@@ -2696,6 +2689,19 @@ cache_init_finish:
 
 #endif
 
+#######################################
+#include "ddr_dir/ddr_config.S"
+#ifdef ARB_LEVEL
+#ifdef DDR3_DIMM
+#include "ddr_dir/ARB_level_new.S"
+#else
+#include "ddr_dir/ARB_level.S"
+#endif
+#endif
+#ifdef  DEBUG_DDR
+#include "ddr_dir/Test_Mem.S"
+#endif
+
 	.global watchdog_enable
 	.ent    watchdog_enable
 	.set    noreorder
@@ -2707,51 +2713,40 @@ watchdog_enable:
 	.end watchdog_enable
 
 #######################################
-#include "ddr_config.S"
-
-    .text
-    .global ddr2_reg_data
-    .global ddr3_reg_data
-#ifdef  ARB_LEVEL
-    .global ddr2_leveled_mark
-    .global ddr2_reg_data_mc0_leveled
-    .global ddr2_reg_data_mc1_leveled
-#ifdef  MULTI_CHIP
-    .global n1_ddr2_reg_data_mc0_leveled
-    .global n1_ddr2_reg_data_mc1_leveled
-#endif
-#endif
-
-    .align  5
-#ifndef ARB_LEVEL
-//#include "loongson3a_ddr3_param.S" // origin level code
-#include "loongson3A3_ddr_param.S"
-#else
-#include "loongson3A3_ddr_param.S"
-#endif
-#ifdef  MULTI_NODE_DDR_PARAM
-#include "loongson3A3_ddr_param_c1.S"
-#endif
-
-#ifdef  ARB_LEVEL
-#include "loongson3A3_ddr_param.lvled.S"
-#ifdef  MULTI_CHIP
-#include "loongson3A3_ddr_param_c1.lvled.S"
-#endif
-
-    .align  12
-ddr2_leveled_mark:    .dword 0x0
-    .align  12
-#else
-#ifdef FIX_DDR_PARAM
-#include "loongson3A3_ddr_param.fix.S"
-#endif
-#endif
-
 	.text
 	.global  nvram_offs
 	.align 12
 nvram_offs:
 	.dword 0x0
 	.align 12
-	.dword 0x0
+
+#######################################
+
+    .rdata
+    .global ddr2_reg_data
+    .global ddr3_reg_data
+
+    .align  5
+#ifndef ARB_LEVEL
+#include "loongson3a_ddr3_param.S"
+#else
+#include "loongson3A3_ddr_param.S"
+#endif
+
+#ifdef  ARB_LEVEL
+    .text
+    .global ddr2_leveled_mark
+    .global ddr2_reg_data_mc0_leveled
+    .global ddr2_reg_data_mc1_leveled
+
+    .align  12
+ddr2_leveled_mark:
+.dword 0x0
+    .align  12
+
+#include "loongson3A3_ddr_param.lvled.S"
+#else
+#ifdef FIX_DDR_PARAM
+#include "loongson3A3_ddr_param.fix.S"
+#endif
+#endif
