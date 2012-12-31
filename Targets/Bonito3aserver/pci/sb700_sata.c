@@ -187,12 +187,12 @@ static void sata_init(device_t dev)
 
 	/* RPR7.6.3 SATA GEN II PHY port setting for port [0~5]. */
 	printk_info("sata gen II PHY port setting for port\n");
-	pci_write_config16(dev, 0xA0, 0xA09A);
-	pci_write_config16(dev, 0xA2, 0xA09A);
-	pci_write_config16(dev, 0xA4, 0xA07A);
-	pci_write_config16(dev, 0xA6, 0xA07A);
-	pci_write_config16(dev, 0xA8, 0xA07A);
-	pci_write_config16(dev, 0xAA, 0xA07A);
+	pci_write_config16(dev, 0xA0, 0xA098);
+	pci_write_config16(dev, 0xA2, 0xA098);
+	pci_write_config16(dev, 0xA4, 0xA078);
+	pci_write_config16(dev, 0xA6, 0xA078);
+	pci_write_config16(dev, 0xA8, 0xA078);
+	pci_write_config16(dev, 0xAA, 0xA078);
 
 	/* Enable the I/O, MM, BusMaster access for SATA */
 	printk_info("Enable the I/O, MM, BusMaster access for SATA\n");
