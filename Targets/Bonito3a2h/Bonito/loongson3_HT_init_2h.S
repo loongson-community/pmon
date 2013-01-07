@@ -152,6 +152,93 @@ up_here:
 	TTYDBG("\r\n")
 #endif
 
+// xqch
+#if 1	// below added to fix ls2gq2h HT connection fail bugs 
+    dli     t0, 0x90000efdfb000000
+    lw      a0, 0x44(t0)
+	andi	a0, 0x100
+	beqz	a0, check_b12_0
+	nop
+	b		reset_htbus_0
+	nop
+check_b12_0:
+    lw      a0, 0x48(t0)
+	andi	a0, 0x1000
+	beqz	a0, config_over_0
+	nop
+	b		reset_htbus_0
+	nop
+config_over_0:
+    //lw      a0, 0x3c(t0)
+    //dli     t0, 0x90000efdfe000000
+	//li		a0, 0x01
+	//sw		a0, 0x3c(t0)
+	b		fix2gq2h_over_0
+	nop
+reset_htbus_0:
+
+#if 1
+	TTYDBG("RESET HT bus\r\n")
+	dli	    t2, 0x90000efdfb000000
+    dli     t3, 0x00000000
+    sw      t3, 0x3c(t2)
+    dli     t3, 0x00400000
+    sw      t3, 0x3c(t2)
+#endif
+
+#if 1//wait until HT link down
+    TTYDBG("Waiting HyperTransport bus to be down.")
+    dli     t0, 0x90000efdfb000000
+	li	    t1, 0x1f
+1:
+    lw      a0, 0x44(t0)
+	#bal	hexserial
+    nop
+	beqz	t1,2f
+	TTYDBG(">")
+	addi	t1, t1, -1
+	b	    3f
+    nop
+2:
+	TTYDBG("\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b=")
+	li	    t1, 0x1f
+
+3:
+    lw      a0, 0x44(t0)
+	li	    a1, 0x20
+	and	    a0, a0, a1
+
+    bnez	a0,	1b
+	nop
+
+	TTYDBG("\r\n")
+    lw      a0, 0x44(t0)
+	bal	    hexserial
+    nop
+	TTYDBG("\r\n")
+#endif
+
+	li		a0, 0xfffffeff
+	lw		a1, 0x44(t0)
+	and		a0, a0, a1
+	sw		a0, 0x44(t0)
+
+	li		a0, 0xffffefff
+	lw		a1, 0x48(t0)
+	and		a0, a0, a1
+	sw		a0, 0x48(t0)
+
+    dli     t3, 0x00000000
+    sw      t3, 0x3c(t0)
+
+    b       up_here
+    nop
+
+	
+fix2gq2h_over_0:
+
+#endif
+
 /////////////////////
 #if 1 //FIX 3A rx buffer problem
 	TTYDBG("FIX 3A rx buffer problem\r\n")
@@ -172,12 +259,13 @@ up_here:
     bal     hexserial
     nop
 
-    dli     a0, 0x10000000
+    dli     a0, 0x1000
 1:
     daddi   a0, a0, -1
     bnez    a0, 1b
     nop
 
+	dli	    t2, 0x90000efdfe000100
     lw      a0, 0x0(t2)
     nop
 
@@ -516,7 +604,6 @@ buffer_check_out:
 	sw	    t0, 0x4(t2)
 	TTYDBG("HT RX DMA address ENABLE done 1\r\n")
 
-
 #if 1
 	li	t0, 0xc0000080
 	sw	t0, 0x08(t2)
@@ -542,10 +629,7 @@ buffer_check_out:
 
 #endif
 
-
-
 #endif
-
 
 
 #if 1//SET 2H DMA write POST
@@ -645,6 +729,7 @@ buffer_check_out:
 #endif
 
 	
+wait_up:
 
 #if 1//wait until HT link up
     TTYDBG("Waiting HyperTransport bus to be up.")
@@ -678,6 +763,95 @@ buffer_check_out:
 	TTYDBG("\r\n")
 #endif
 
+// xqch
+#if 1	// below added to fix ls2gq2h HT connection fail bugs 
+    dli     t0, 0x90000efdfb000000
+    lw      a0, 0x44(t0)
+	andi	a0, 0x100
+	beqz	a0, check_b12
+	nop
+	b		reset_htbus
+	nop
+check_b12:
+    lw      a0, 0x48(t0)
+	andi	a0, 0x1000
+	beqz	a0, config_over
+	nop
+	b		reset_htbus
+	nop
+config_over:
+    //lw      a0, 0x3c(t0)
+	b		fix2gq2h_over
+	nop
+reset_htbus:
+
+#if 1
+	TTYDBG("RESET HT bus\r\n")
+	dli	    t2, 0x90000efdfb000000
+    dli     t3, 0x00000000
+    sw      t3, 0x3c(t2)
+    dli     t3, 0x00400000
+    sw      t3, 0x3c(t2)
+#endif
+
+#if 1//wait until HT link down
+    TTYDBG("Waiting HyperTransport bus to be down.")
+    dli     t0, 0x90000efdfb000000
+	li	    t1, 0x1f
+1:
+    lw      a0, 0x44(t0)
+	#bal	hexserial
+    nop
+	beqz	t1,2f
+	TTYDBG(">")
+	addi	t1, t1, -1
+	b	    3f
+    nop
+2:
+	TTYDBG("\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b=")
+	li	    t1, 0x1f
+
+3:
+    lw      a0, 0x44(t0)
+	li	    a1, 0x20
+	and	    a0, a0, a1
+
+    bnez	a0,	1b
+	nop
+
+	TTYDBG("\r\n")
+    lw      a0, 0x44(t0)
+	bal	    hexserial
+    nop
+	TTYDBG("\r\n")
+#endif
+
+	li		a0, 0xfffffeff
+	lw		a1, 0x44(t0)
+	and		a0, a0, a1
+	sw		a0, 0x44(t0)
+
+	li		a0, 0xffffefff
+	lw		a1, 0x48(t0)
+	and		a0, a0, a1
+	sw		a0, 0x48(t0)
+
+    dli     t3, 0x00000000
+    sw      t3, 0x3c(t0)
+
+#if 0 //RESET forever
+    b       up_here
+    nop
+#endif
+	b		wait_up
+	nop
+
+	
+fix2gq2h_over:
+
+#endif
+
+
 /////////////////////
 #if 1 //FIX 3A rx buffer problem
 	TTYDBG("FIX 3A rx buffer problem\r\n")
@@ -698,12 +872,13 @@ buffer_check_out:
     bal     hexserial
     nop
 
-    dli     a0, 0x10000000
+    dli     a0, 0x1000
 1:
     daddi   a0, a0, -1
     bnez    a0, 1b
     nop
 
+	dli	    t2, 0x90000efdfe000100
     lw      a0, 0x0(t2)
     nop
 
@@ -1007,7 +1182,6 @@ buffer_check_out1:
 #endif
 #endif
 
-
 #if 1//Check if CRC error bit set and reset it
 #define RESET_CRC
 crc_checking:
@@ -1086,7 +1260,6 @@ crc_checking:
 	bal	    hexserial
     nop
 #endif
-
 #if 1//Set  HT channel in order for LS2H DMA
 	TTYDBG("Set HT channel in order for LS2H DMA\r\n")
 	dli	    t2, 0x90000efdfe000000
@@ -1126,3 +1299,6 @@ crc_checking:
 	// support 1000M phy
 	li	t1, 0x800f0000; li t2, 0xbbd0020c; sw t1, 0x00(t2); 
 
+    dli     t0, 0x90000efdfe000000
+	li		a0, 0x01
+	sw		a0, 0x30(t0)
