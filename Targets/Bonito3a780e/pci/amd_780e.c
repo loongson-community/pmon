@@ -188,6 +188,22 @@ static void rs780_por_htiu_index_init(device_t nb_dev)
 	set_htiu_enable_bits(nb_dev, 0x23, 0xFFFFFFF, 1<<28);
 
 	set_htiu_enable_bits(nb_dev, 0x1E, 0xFFFFFFFF, 0xFFFFFFFF);
+
+/* here we set lower of top of dram2 to 0x0 and enabled*/
+	printk_info("before lower tom2 is %x, upper tom2 %x\n",
+			htiu_read_indexN(nb_dev, 0x30),
+			htiu_read_indexN(nb_dev, 0x31));
+
+	htiu_write_indexN(nb_dev, 0x30, 0x01);
+	htiu_write_indexN(nb_dev, 0x31, 0x80);
+
+
+/* here we set upper of top of dram2 to 0x0 and enabled, so the top
+ * of dram 2 is 0x80 0000 0000 = 512GB*/
+	printk_info("lower tom2 is %x, upper tom2 %x\n",
+			htiu_read_indexN(nb_dev, 0x30),
+			htiu_read_indexN(nb_dev, 0x31));
+
 	
 	printk_info("exit rs780_por_htiu_index_init\n");
 }
