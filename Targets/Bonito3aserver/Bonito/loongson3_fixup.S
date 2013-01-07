@@ -122,7 +122,7 @@
 
 #if 1//config L1 xbar cpu port
     dli t2, 0x900000003ff02000
-    dli t1, 0x900000003ff02800
+    dli t1, 0x900000003ff02700
 	TTYDBG("Fix L1xbar illegal access at NODE 0\r\n")
 1:
 
@@ -173,7 +173,7 @@
 
 #ifdef  MULTI_CHIP 
     dli t2, 0x900010003ff02000
-    dli t1, 0x900010003ff02800
+    dli t1, 0x900010003ff02700
 	TTYDBG("Fix L1xbar illegal access at NODE 1\r\n")
 1:
 

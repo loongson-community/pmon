@@ -17,7 +17,7 @@
 	TTYDBG("32 bit PCI space translate to 64 bit HT space\r\n")
 
     dli t0, 0x900000003ff02000
-    dli t2, 0x900000003ff02800
+    dli t2, 0x900000003ff02700
 
 1:
 #if 1
@@ -82,6 +82,20 @@
     daddiu  t0, t0, 0x100
     bne     t0, t2, 1b
     nop
+
+ // for dma up to 128GB,extract bit37~38 move it to bit44~bit45
+ // and route int Node1 by HT0
+	dli	t0,	0x900000003ff02700
+	dli	t1,	0x0000002000000000
+	sd	t1,	0x00(t0)
+	dli	t1,	0xffffffe000000000
+	sd	t1,	0x40(t0)
+	dli	t1,	0x00001000000000a6
+	sd	t1,	0x80(t0)
+
+
+
+
 
 #else
 /******************************************/
