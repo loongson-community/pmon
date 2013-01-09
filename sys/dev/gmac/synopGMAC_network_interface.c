@@ -80,9 +80,6 @@ u64 regbase = 0xffffffffbbe10000;	// this is of no use in this driver! liyifu on
 char mac_addr[6] = {0x00,0x55,0x7B,0xB5,0x7D,0xF7};
 
 void dumppkghd(struct ether_header *eh,int tp);
-int set_lpmode(synopGMACdevice * gmacdev);
-int set_phyled(synopGMACdevice * gmacdev);
-
 unsigned int rx_test_count = 0;
 unsigned int tx_normal_test_count = 0;
 unsigned int tx_abnormal_test_count = 0;
@@ -1331,10 +1328,6 @@ unsigned long synopGMAC_linux_open(struct synopGMACNetworkAdapter *tp)
 	gmacdev->ClockDivMdc = synopGMAC_get_mdc_clk_div(gmacdev);
 
 //	dumpphyreg(synopGMACadapter->synopGMACdev);
-	
-//	set_lpmode(gmacdev);
-//	set_phyled(gmacdev);
-
 
 #if SYNOP_TOP_DEBUG
 	printf("check phy init status = 0x%x\n",status);
@@ -2290,11 +2283,6 @@ int set_lpmode(synopGMACdevice * gmacdev)
 }
 
 
-int set_phyled(synopGMACdevice * gmacdev)
-{
-	synopGMAC_write_phy_reg(gmacdev->MacBase,1,0x1c, 0xb842);
-}
-
 void memory_test()
 {
 	int dma_addr;
@@ -2447,6 +2435,25 @@ return;
  *
  * \return Returns 0 on success and Error code on failure.
  */
+
+void set_phyled(struct synopGMACNetworkAdapter *synopGMACadapter)
+{
+        u16 data;
+        s32 status = -ESYNOPGMACNOERR;
+        struct synopGMACNetworkAdapter *adapter = synopGMACadapter;
+        synopGMACdevice * gmacdev;
+        adapter = synopGMACadapter;
+        gmacdev = (synopGMACdevice *)adapter->synopGMACdev;
+
+	synopGMAC_write_phy_reg(gmacdev->MacBase,gmacdev->PhyBase,0x1f, 0x0007);
+        synopGMAC_write_phy_reg(gmacdev->MacBase,gmacdev->PhyBase,0x1e, 0x002c);
+        synopGMAC_write_phy_reg(gmacdev->MacBase,gmacdev->PhyBase,0x1a, 0x10);
+        synopGMAC_write_phy_reg(gmacdev->MacBase,gmacdev->PhyBase,0x1c, 0x420);
+        synopGMAC_write_phy_reg(gmacdev->MacBase,gmacdev->PhyBase,0x1f, 0x0);
+
+	printf("Set phy led end\n");
+}
+
 s32  synopGMAC_init_network_interface(char* xname, struct device *sc )
 {
 	struct ifnet* ifp;
@@ -2542,7 +2549,9 @@ s32  synopGMAC_init_network_interface(char* xname, struct device *sc )
 	dumpdesc(synopGMACadapter->synopGMACdev);
 #endif
 #endif
-	
+#ifdef LOONGSON_2GQ2H
+	set_phyled(synopGMACadapter);
+#endif
 #if 0
 	dumpphyregg(synopGMACadapter->synopGMACdev);
 	dumpmacregg(synopGMACadapter->synopGMACdev);

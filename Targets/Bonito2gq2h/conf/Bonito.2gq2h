@@ -40,6 +40,7 @@ option		INTERFACE_3A780E    # option for bios memu
 
 option		LOONGSON_3ASINGLE
 option 		LOONGSON_3A2H
+option		LOONGSON_2GQ2H
 option		BOOT_PARAM
 
 #
