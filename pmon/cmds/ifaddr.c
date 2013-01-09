@@ -103,6 +103,16 @@ ifaddr_cmd (ac, av)
                 strcpy(av[1],"em1");
         }
 #endif
+#ifdef LOONGSON_2GQ2H
+        if(strstr(net_type,"eth0")!=NULL)
+        {
+                strcpy(av[1],"syn0");
+        }
+	if(strstr(net_type,"eth1")!=NULL)
+        {
+                strcpy(av[1],"syn1");
+        }
+#endif
 	ifconfig (av[1], av[2]);
 	return 0;
 }

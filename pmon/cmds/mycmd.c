@@ -1122,6 +1122,16 @@ static int cmd_ifconfig(int argc,char **argv)
                 strcpy(argv[1],"em1");
         }
 #endif
+#ifdef LOONGSON_2GQ2H
+        if(strstr(net_type,"eth0")!=NULL)
+        {
+                strcpy(argv[1],"syn0");
+        }
+        if(strstr(net_type,"eth1")!=NULL)
+        {
+                strcpy(argv[1],"syn1");
+        }
+#endif
 	strcpy(ifr->ifr_name,argv[1]);
 	if(argc==2)
 	{
