@@ -370,6 +370,9 @@ struct board_devices *board_devices_info()
 #ifdef LEMOTE_3ANOTEBOOK
   strcpy(bd->name,"lemote-3a-notebook-a1004");
 #endif
+#ifdef LOONGSON_2GQ2H
+	strcpy(bd->name,"LOONGSON-2GQ-2H");
+#endif
   bd->num_resources = 10;
  
   return bd;
