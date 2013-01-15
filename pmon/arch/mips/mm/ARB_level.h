@@ -29,12 +29,18 @@
 //#define MC_RST_DELAY        0x4000000   //work good.
 //#define MC_RST_DELAY        0x1000000   //seems not good.
 
-//these value must be aligned to 4
+#define LOG2_STEP   1   //log2 of TM step interval, remember to small WINDOW_ZERO_NUM when we use larger STEP
+#define WINDOW_ZERO_NUM     0x8
+#define GATE_LOG2_STEP  1   //log2 of TM step interval for read Gate level
+#define GATE_ADJUST     0
+
+//these value must be aligned to 4 or 2 according to LOG2_STEP/GATE_LOG2_STEP
 #define CLKLVL_MAX_DELAY        (0x7c)
 #define RDLVL_GATE_MAX_DELAY    (0x22)
 #define RDLVL_MAX_DELAY         (0x4c)
-#define WRLVL_MAX_DELAY         (0x5e)
+#define WRLVL_MAX_DELAY         (0x7e)
 #define WRLVL_DQ_MAX_DELAY      (0x50)
+#define WRLVL_DELAY_MINUS_VALUE (0x40)
 
 #define CPU_ODT_BASE_VALUE      (0x15)
 #define CPU_ODT_INC_VALUE       (0x11)

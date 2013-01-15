@@ -42,7 +42,6 @@ algrithm:
 //#define DEBUG_ARB_LEVEL_TM_DETAIL
 
 //#define ARB_SKIP_WRLVL
-//#define FAKE_DDR3UDIMM_WRLVL
 //#define USE_DEFAULT_RDLVL_DELAY
 
 #define ADJUST_CPU_ODT  //work ok
@@ -58,11 +57,6 @@ algrithm:
 #endif
 
 //#define ALIGN_GATE_DELAY  //obsolete because we use new method
-
-#define LOG2_STEP   1   //log2 of TM step interval, remember to small WINDOW_ZERO_NUM when we use larger STEP
-#define WINDOW_ZERO_NUM     0x8
-#define GATE_LOG2_STEP  1   //log2 of TM step interval for read Gate level
-#define GATE_ADJUST     0
 
 ARB_level:
     move    t9, ra
@@ -154,18 +148,6 @@ ARB_level_begin:
     bal     disable_ddr_confspace
     nop
 
-#ifdef  DDR3_DIMM
-#ifdef  FAKE_DDR3UDIMM_WRLVL
-    GET_DIMM_TYPE
-    bnez    a1, 88f
-    nop
-    //DDR3 UDIMM
-    b       arb_wrlvl_cal_ddr3udimm
-    nop
-88:
-#endif
-#endif
-
 arb_wrlvl_start:
 #ifdef  PRINT_MSG
     PRINTSTR("\r\nStart Write Leveling. Wait a while...")
@@ -200,6 +182,13 @@ arb_wrlvl_start:
     nop
 #endif
     dli     s3, 0xf //change all 8 byte slices
+
+    //small wrlvl dq delay value temporary
+    dli     t6, 0x6
+    dli     t2, 0x0e
+    bal     arb_modify_param
+    nop
+
 //1. level Write DQS Delay line setting.
     //clear store mem
     dli     t8, ARB_STORE_BASE
@@ -844,12 +833,86 @@ boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
     dsrl    a0, a0, 1
     dli     a1, 0x7f7f7f7f7f7f7f7f
     and     a0, a0, a1
-#ifdef  DDR3_DIMM //special deal with wrlvl_dqs
-    //DDR3 DIMM
+    //special deal with wrlvl_dqs
+#ifdef  DDR3_DIMM
     GET_DIMM_TYPE
     bnez    a1, 4f
     nop
-#ifndef  FAKE_DDR3UDIMM_WRLVL
+    //DDR3 UDIMM
+#if 1
+    ld      a1, GD_MIN(t8)
+    ld      a3, GD_MAX(t8)
+    //select the MIN of MAX(byte 1, byte 0), normally the byte 0 should be the smaller.
+    dsrl    a2, a3, 0
+    dsrl    v0, a3, 8
+    and     a2, a2, 0x7f
+    and     v0, v0, 0x7f
+    ble     a2, v0, 1f
+    nop
+    move    a2, v0
+1:
+    //select the MIN(byte 0 MIN, WRLVL_DELAY_MINUS_VALUE), normally the byte 0 MIN should be the bigger.
+    dli     v0, WRLVL_DELAY_MINUS_VALUE
+    ble     a2, v0, 1f
+    nop
+    move    a2, v0
+1:
+    //shift byte 0 value to 8 bytes of a2
+    dsll    v0, a2, 0x8
+    daddu   a2, a2, v0
+    dsll    v0, a2, 0x10
+    daddu   a2, a2, v0
+    dsll    v0, a2, 0x20
+    daddu   a2, a2, v0
+#if 1
+    //if the max value >= 0x70, compensate it(check slice 4~7 should be enough).
+    //set compensate value to a0
+    dli     a0, 0x4
+    dli     v1, 0x7070707070707070
+    and     v0, v1, a3
+    xor     v0, v0, v1
+
+    dsrl    v1, v0, 56
+    and     v1, v1, 0xff
+    bnez    v1, 1f
+    nop
+    dsll    v1, a0, 56
+    daddu   a3, a3, v1
+1:
+    dsrl    v1, v0, 48
+    and     v1, v1, 0xff
+    bnez    v1, 1f
+    nop
+    dsll    v1, a0, 48
+    daddu   a3, a3, v1
+1:
+    dsrl    v1, v0, 40
+    and     v1, v1, 0xff
+    bnez    v1, 1f
+    nop
+    dsll    v1, a0, 40
+    daddu   a3, a3, v1
+1:
+    dsrl    v1, v0, 32
+    and     v1, v1, 0xff
+    bnez    v1, 1f
+    nop
+    dsll    v1, a0, 32
+    daddu   a3, a3, v1
+1:
+#endif
+    
+    dsubu   a0, a3, a2
+    //make sure no byte needs carry bit
+    dli     v1, 0x8080808080808080
+    and     v1, v1, a0
+    bnez    v1, 1f
+    nop
+    b       88f
+    nop
+1:  //abnormal: some byte is smaller than minus, use traditional process
+#endif
+#if 1
     ld      a1, GD_MIN(t8)
     ld      a3, GD_MAX(t8)
     //Byte 1~0
@@ -922,28 +985,17 @@ boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
     and     a0, a0, v1
     or      a0, a0, v0
 1:
-#else
-arb_wrlvl_cal_ddr3udimm:
-    ld      a0, CLKLVL_DELAY_VALUE(t8)
-    daddu   a0, a0, 0xc    //add byte 0 start offset
-    dsll    a1, a0, 0x8
-    daddu   a0, a0, a1
-    dsll    a1, a0, 0x10
-    daddu   a0, a0, a1
-    dsll    a1, a0, 0x20
-    daddu   a0, a0, a1
-
-    dli     a1, 0x36302a2418100800
-    daddu   a0, a0, a1
 #endif
     b       88f
     nop
-4:
+4:  //DDR3 RDIMM
     ld      a1, GD_MIN(t8)
     ld      a3, GD_MAX(t8)
     //select the MIN(byte 3, byte 4), normally the byte 4 should be the smaller.
     dsrl    a2, a3, 32
     dsrl    v0, a3, 24
+    and     a2, a2, 0xff
+    and     v0, v0, 0xff
     ble     a2, v0, 1f
     nop
     move    a2, v0
@@ -1068,6 +1120,12 @@ arb_wrlvl_cal_ddr3udimm:
     nop
 #endif
 #include    "ARB_Write_WDQS_param.S"
+
+    //recover wrlvl dq delay value
+    dli     t6, 0x6
+    dli     t2, 0x20
+    bal     arb_modify_param
+    nop
 
 #ifdef DEBUG_ARB_LEVEL_WR
     PRINTSTR("\r\nAfter write leveling. The MC configuration is:\r\n")
@@ -2118,7 +2176,7 @@ ARB_level_end:
     bal     hexserial
     nop
 #endif
-#if 0
+#if 0   //seems can not help
     //level fail, delay some time and level again
     dli     a0, 0x4000000
 1:
@@ -2128,6 +2186,9 @@ ARB_level_end:
     b       ARB_level_begin
     nop
 #endif
+    //not     t7, $0
+    b       arb_level_fail
+    nop
 2:
 #include    "ARB_Write_Slice_8_param.S"
 
@@ -2165,6 +2226,9 @@ ARB_level_end:
     bal     disable_ddr_confspace
     nop
 #endif
+    //move    t7, $0
+
+arb_level_fail:
 
 //recover t0~t9,s1~s7
     dli     a2, ARB_STACK_BASE

@@ -11,7 +11,7 @@ function:
     Modify specified one byte slice param
 input param:
     t6: 1 ~ 7, param to be changed
-    now only support: 2, 3, 4, 5, 7
+    now only support: 2, 3, 4, 5, 6, 7
     s3: 0 ~ 7---byte slice to be changed
         0xf ----change all 8 slices
     t2: target value
@@ -1191,6 +1191,135 @@ use register:
     b       88f
     nop
 6:
+    dli     a1, 0x0
+    beq     s3, a1, 60f
+    nop
+    daddiu  a1, a1, 0x1
+    beq     s3, a1, 61f
+    nop
+    daddiu  a1, a1, 0x1
+    beq     s3, a1, 62f
+    nop
+    daddiu  a1, a1, 0x1
+    beq     s3, a1, 63f
+    nop
+    daddiu  a1, a1, 0x1
+    beq     s3, a1, 64f
+    nop
+    daddiu  a1, a1, 0x1
+    beq     s3, a1, 65f
+    nop
+    daddiu  a1, a1, 0x1
+    beq     s3, a1, 66f
+    nop
+    daddiu  a1, a1, 0x1
+    beq     s3, a1, 67f
+    nop
+    dli     a1, 0xf
+    bne     s3, a1, 88f
+    nop
+
+60:
+    ld      a1, WRLVL_DQ_DELAY_0_ADDR(t7)
+    dli     a2, WRLVL_DQ_DELAY_MASK
+    dsll    a2, a2, WRLVL_DQ_DELAY_0_OFFSET
+    not     a2, a2
+    and     a1, a1, a2
+    dsll    a2, t2, WRLVL_DQ_DELAY_0_OFFSET
+    or      a1, a1, a2
+    sd      a1, WRLVL_DQ_DELAY_0_ADDR(t7)
+
+    dli     a1, 0xf
+    bne     s3, a1, 88f
+    nop
+61:
+    ld      a1, WRLVL_DQ_DELAY_1_ADDR(t7)
+    dli     a2, WRLVL_DQ_DELAY_MASK
+    dsll    a2, a2, WRLVL_DQ_DELAY_1_OFFSET
+    not     a2, a2
+    and     a1, a1, a2
+    dsll    a2, t2, WRLVL_DQ_DELAY_1_OFFSET
+    or      a1, a1, a2
+    sd      a1, WRLVL_DQ_DELAY_1_ADDR(t7)
+
+    dli     a1, 0xf
+    bne     s3, a1, 88f
+    nop
+62:
+    ld      a1, WRLVL_DQ_DELAY_2_ADDR(t7)
+    dli     a2, WRLVL_DQ_DELAY_MASK
+    dsll    a2, a2, WRLVL_DQ_DELAY_2_OFFSET
+    not     a2, a2
+    and     a1, a1, a2
+    dsll    a2, t2, WRLVL_DQ_DELAY_2_OFFSET
+    or      a1, a1, a2
+    sd      a1, WRLVL_DQ_DELAY_2_ADDR(t7)
+
+    dli     a1, 0xf
+    bne     s3, a1, 88f
+    nop
+63:
+    ld      a1, WRLVL_DQ_DELAY_3_ADDR(t7)
+    dli     a2, WRLVL_DQ_DELAY_MASK
+    dsll    a2, a2, WRLVL_DQ_DELAY_3_OFFSET
+    not     a2, a2
+    and     a1, a1, a2
+    dsll    a2, t2, WRLVL_DQ_DELAY_3_OFFSET
+    or      a1, a1, a2
+    sd      a1, WRLVL_DQ_DELAY_3_ADDR(t7)
+
+    dli     a1, 0xf
+    bne     s3, a1, 88f
+    nop
+64:
+    ld      a1, WRLVL_DQ_DELAY_4_ADDR(t7)
+    dli     a2, WRLVL_DQ_DELAY_MASK
+    dsll    a2, a2, WRLVL_DQ_DELAY_4_OFFSET
+    not     a2, a2
+    and     a1, a1, a2
+    dsll    a2, t2, WRLVL_DQ_DELAY_4_OFFSET
+    or      a1, a1, a2
+    sd      a1, WRLVL_DQ_DELAY_4_ADDR(t7)
+
+    dli     a1, 0xf
+    bne     s3, a1, 88f
+    nop
+65:
+    ld      a1, WRLVL_DQ_DELAY_5_ADDR(t7)
+    dli     a2, WRLVL_DQ_DELAY_MASK
+    dsll    a2, a2, WRLVL_DQ_DELAY_5_OFFSET
+    not     a2, a2
+    and     a1, a1, a2
+    dsll    a2, t2, WRLVL_DQ_DELAY_5_OFFSET
+    or      a1, a1, a2
+    sd      a1, WRLVL_DQ_DELAY_5_ADDR(t7)
+
+    dli     a1, 0xf
+    bne     s3, a1, 88f
+    nop
+66:
+    ld      a1, WRLVL_DQ_DELAY_6_ADDR(t7)
+    dli     a2, WRLVL_DQ_DELAY_MASK
+    dsll    a2, a2, WRLVL_DQ_DELAY_6_OFFSET
+    not     a2, a2
+    and     a1, a1, a2
+    dsll    a2, t2, WRLVL_DQ_DELAY_6_OFFSET
+    or      a1, a1, a2
+    sd      a1, WRLVL_DQ_DELAY_6_ADDR(t7)
+
+    dli     a1, 0xf
+    bne     s3, a1, 88f
+    nop
+67:
+    ld      a1, WRLVL_DQ_DELAY_7_ADDR(t7)
+    dli     a2, WRLVL_DQ_DELAY_MASK
+    dsll    a2, a2, WRLVL_DQ_DELAY_7_OFFSET
+    not     a2, a2
+    and     a1, a1, a2
+    dsll    a2, t2, WRLVL_DQ_DELAY_7_OFFSET
+    or      a1, a1, a2
+    sd      a1, WRLVL_DQ_DELAY_7_ADDR(t7)
+
     b       88f
     nop
 7:
