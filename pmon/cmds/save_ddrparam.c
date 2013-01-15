@@ -81,32 +81,30 @@ u64 __raw_writeq_sp(u64 addr, u64 val)
 #define ld  __raw_readq_sp
 
 extern char _start;
-extern char ddr2_leveled_mark;
 
 #ifdef LOONGSON_2H
-extern char ddr2_reg_data_leveled;
+extern char c0_mc0_level_info;
 #endif
 #ifdef loongson3A3
-extern char ddr2_reg_data_mc0_leveled, ddr2_reg_data_mc1_leveled;
+extern char c0_mc0_level_info, c0_mc1_level_info;
 #ifdef MULTI_CHIP
-extern char n1_ddr2_reg_data_mc0_leveled, n1_ddr2_reg_data_mc1_leveled;
+extern char c1_mc0_level_info, c1_mc1_level_info;
 #endif
 #endif
 #ifdef LS3B
-extern char ddr2_reg_data_leveled;
+extern char c0_mc0_level_info;
 #ifdef MULTI_CHIP
-extern char n1_ddr2_reg_data_leveled;
+extern char c0_mc1_level_info;
 #endif
 #ifdef DUAL_3B
-extern char n2_ddr2_reg_data_leveled;
-extern char n3_ddr2_reg_data_leveled;
+extern char c1_mc0_level_info;
+extern char c1_mc1_level_info;
 #endif
 #endif
 
 //#define DEBUG
 #ifdef DEBUG
 extern int do_cmd(char *);
-extern void dump_l2xbar(int node);
 #endif
 
 #define LSMCD3_2
@@ -128,7 +126,7 @@ void enable_ddrconfig(u64 node_id_shift44)
 {
     unsigned long long val;
 
-#ifdef  loongson3A3
+#ifdef loongson3A3
     val = ld(CPU_CONFIG_ADDR | node_id_shift44);
     val &=0xfffffffffffffeffull;
     sd(CPU_CONFIG_ADDR | node_id_shift44, val);
@@ -217,9 +215,6 @@ void enable_ddrcfgwindow(u64 node_id_shift44, int mc_selector, unsigned long lon
 
     printf("Now save L2X bar windows\n");
     printf("buf[0] = %llx, buf[1] = %llx, buf[2] = %llx\n", buf[0], buf[1], buf[2]);
-
-    printf("Now dump L2X bar windows\n");
-    dump_l2xbar(1);
 #endif
 }
 
@@ -283,52 +278,26 @@ int read_ddr_param(u64 node_id_shift44, int mc_selector,  unsigned long long * b
     return 0;
 }
 
-#ifdef loongson3A3
-
-void save_ddrparam(u64 node_id_shift44, int mc0_param_store_addr, int mc1_param_store_addr)
+void save_ddrparam(u64 node_id_shift44, u64 *ddr_param_buf, int param_store_addr, int mc_selector)
 {
-
-    unsigned long long ddr_param_buf[DDR_PARAM_NUM + 1];
-    unsigned long long tmp1, tmp2, tmp3, tmp4;
-
 #ifdef DEBUG
-    int   i;
-    unsigned long long tmp;
+    int i;
+    u64 tmp;
 #endif
 
 #ifdef DEBUG
     printf("\nnode_id_shift44=0x%016llx\n", node_id_shift44);
 #endif
-    // step 1. Read out DDR controler register values and save them in buffers
+    // step 1.1 Read out DDR controler register from MC and save them in buffer
+    read_ddr_param(node_id_shift44, mc_selector, &ddr_param_buf[5]);
 
-    //according to L2 window route manner to decide NODE MC enable state.
-    //according to high memory route manner to decide NODE MC enable state.
-    tmp1 = ld((CPU_L2XBAR_CONFIG_ADDR | node_id_shift44) + 0xa0);
-    tmp2 = ld((CPU_L2XBAR_CONFIG_ADDR | node_id_shift44) + 0xa8);
-    tmp3 = ld((CPU_L2XBAR_CONFIG_ADDR | node_id_shift44) + 0xb0);
-    tmp4 = ld((CPU_L2XBAR_CONFIG_ADDR | node_id_shift44) + 0xb8);
-#ifdef DEBUG
-    printf("tmp1=0x%016llx\n", tmp1);
-    printf("tmp2=0x%016llx\n", tmp2);
-#endif
-    //note, only check the last 4-bit is not ok!
-    tmp1 &= 0xff;
-    tmp2 &= 0xff;
-    tmp3 &= 0xff;
-    tmp4 &= 0xff;
-    if ((tmp1 == 0xf0) || (tmp2 == 0xf0) || (tmp3 == 0xf0) || (tmp4 == 0xf0))
-    {
-        // step 1.1 Read out DDR controler register from MC0 and save them in buffer0
-        read_ddr_param(node_id_shift44, MC0, ddr_param_buf);
-
-        //ddr_param_buf[DDR_PARAM_NUM] = 0x0;
-        // step 1.2 Program buffers of MC0 register into FLASH
-        tgt_flashprogram((int *)(0xbfc00000+(mc0_param_store_addr -(int)&_start)), DDR_PARAM_NUM*8, ddr_param_buf,TRUE);
+    // step 1.2 Program buffers of MC0 register into FLASH
+    tgt_flashprogram((int *)(0xbfc00000+(param_store_addr -(int)&_start)), (DDR_PARAM_NUM + 5) * 8, ddr_param_buf, TRUE);
 
 #ifdef DEBUG
-    for(i = 0; i< DDR_PARAM_NUM; i++)
+    for(i = 0; i < DDR_PARAM_NUM + 5; i++)
     {
-        tmp =  ld(0x900000001fc00000 + mc0_param_store_addr - (int)&_start + i * 8);
+        tmp =  ld(0x900000001fc00000 + param_store_addr - (int)&_start + i * 8);
         if(ddr_param_buf[i] != tmp)
         {
             printf("\nMiscompare:i=%d, val=%016llx", i, tmp);
@@ -337,110 +306,195 @@ void save_ddrparam(u64 node_id_shift44, int mc0_param_store_addr, int mc1_param_
             printf("\nSame:i=%d, val=%016llx", i, tmp);
     }
 #endif
-    }
-
-    if ((tmp1 == 0xf1) || (tmp2 == 0xf1) || (tmp3 == 0xf1) || (tmp4 == 0xf1))
-    {
-        // step 2.2 Read out DDR controler register from MC1 and save them in buffer1
-        read_ddr_param(node_id_shift44, MC1, ddr_param_buf);
-
-        // step 2.2 Program buffers of MC1 register into FLASH
-        tgt_flashprogram((int *)(0xbfc00000+(mc1_param_store_addr -(int)&_start)), DDR_PARAM_NUM*8, ddr_param_buf,TRUE);
-
-#ifdef DEBUG
-    for(i = 0; i< DDR_PARAM_NUM; i++)
-    {
-        tmp =  ld(0x900000001fc00000 + mc1_param_store_addr - (int)&_start + i * 8);
-        if(ddr_param_buf[i] != tmp)
-        {
-            printf("\nMiscompare:i=%d, val=%016llx", i, tmp);
-        }
-        else
-            printf("\nSame:i=%d, val=%016llx", i, tmp);
-    }
-#endif
-    }
 }
 
+#define DIMM_INFO_ADDR  0x9800000090000000
+
+#ifdef loongson3A3
 int save_board_ddrparam(void)
 {
     unsigned long long flag;
     unsigned long long node_id;
-    if(ld(0x900000001fc00000 + (int) &ddr2_leveled_mark - (int)&_start) == 0)
-    {
+    unsigned long long ddr_param_buf[DDR_PARAM_NUM + 6];
+    if(ld(DIMM_INFO_ADDR) == 0x2013011014413291){
+        printf("Token is correct!\n");
+        flag    = ld(DIMM_INFO_ADDR + 0x8);
+        printf("flag is 0x%016llx\n", flag);
         node_id = 0;
-        save_ddrparam(node_id << 44, (int)&ddr2_reg_data_mc0_leveled, (int)&ddr2_reg_data_mc1_leveled);
+        //MC0
+        if((flag >> 32) & 0x1){
+            printf("Store MC info of Node %d MC 0\n", node_id);
+            ddr_param_buf[0] = (((flag >> 40) & 0x1f) << 32) | 0x1;
+            ddr_param_buf[1] = ld(DIMM_INFO_ADDR + 0x10);
+            ddr_param_buf[2] = ld(DIMM_INFO_ADDR + 0x18);
+            ddr_param_buf[3] = ld(DIMM_INFO_ADDR + 0x20);
+            ddr_param_buf[4] = ld(DIMM_INFO_ADDR + 0x28);
+#ifdef DEBUG
+            printf("mc level info is 0x%016llx\n", ddr_param_buf[0]);
+            printf("dimm info is 0x%016llx\n", ddr_param_buf[1]);
+            printf("dimm info is 0x%016llx\n", ddr_param_buf[2]);
+            printf("dimm info is 0x%016llx\n", ddr_param_buf[3]);
+            printf("dimm info is 0x%016llx\n", ddr_param_buf[4]);
+#endif
+            save_ddrparam(node_id << 44, &ddr_param_buf, (int)&c0_mc0_level_info, 0);
+        }
+        //MC1
+        if((flag >> 33) & 0x1){
+            printf("Store MC info of Node %d MC 1\n", node_id);
+            ddr_param_buf[0] = (((flag >> 40) & 0x1f) << 32) | 0x1;
+            ddr_param_buf[1] = ld(DIMM_INFO_ADDR + 0x30);
+            ddr_param_buf[2] = ld(DIMM_INFO_ADDR + 0x38);
+            ddr_param_buf[3] = ld(DIMM_INFO_ADDR + 0x40);
+            ddr_param_buf[4] = ld(DIMM_INFO_ADDR + 0x48);
+#ifdef DEBUG
+            printf("mc level info is 0x%016llx\n", ddr_param_buf[0]);
+            printf("dimm info is 0x%016llx\n", ddr_param_buf[1]);
+            printf("dimm info is 0x%016llx\n", ddr_param_buf[2]);
+            printf("dimm info is 0x%016llx\n", ddr_param_buf[3]);
+            printf("dimm info is 0x%016llx\n", ddr_param_buf[4]);
+#endif
+            save_ddrparam(node_id << 44, &ddr_param_buf, (int)&c0_mc1_level_info, 1);
+        }
 #ifdef MULTI_CHIP
         node_id = 1;
-        save_ddrparam(node_id << 44, (int)&n1_ddr2_reg_data_mc0_leveled, (int)&n1_ddr2_reg_data_mc1_leveled);
+        //MC0
+        if((flag >> 34) & 0x1){
+            printf("Store MC info of Node %d MC 0\n", node_id);
+            ddr_param_buf[0] = (((flag >> 48) & 0x1f) << 32) | 0x1;
+            ddr_param_buf[1] = ld(DIMM_INFO_ADDR + 0x50);
+            ddr_param_buf[2] = ld(DIMM_INFO_ADDR + 0x58);
+            ddr_param_buf[3] = ld(DIMM_INFO_ADDR + 0x60);
+            ddr_param_buf[4] = ld(DIMM_INFO_ADDR + 0x68);
+#ifdef DEBUG
+            printf("mc level info is 0x%016llx\n", ddr_param_buf[0]);
+            printf("dimm info is 0x%016llx\n", ddr_param_buf[1]);
+            printf("dimm info is 0x%016llx\n", ddr_param_buf[2]);
+            printf("dimm info is 0x%016llx\n", ddr_param_buf[3]);
+            printf("dimm info is 0x%016llx\n", ddr_param_buf[4]);
 #endif
-        flag = 0x1;
-        tgt_flashprogram((int *)(0xbfc00000 + ((int)&ddr2_leveled_mark - (int)&_start)), 8, &flag, TRUE);
+            save_ddrparam(node_id << 44, &ddr_param_buf, (int)&c1_mc0_level_info, 0);
+        }
+        //MC1
+        if((flag >> 35) & 0x1){
+            printf("Store MC info of Node %d MC 1\n", node_id);
+            ddr_param_buf[0] = (((flag >> 48) & 0x1f) << 32) | 0x1;
+            ddr_param_buf[1] = ld(DIMM_INFO_ADDR + 0x70);
+            ddr_param_buf[2] = ld(DIMM_INFO_ADDR + 0x78);
+            ddr_param_buf[3] = ld(DIMM_INFO_ADDR + 0x80);
+            ddr_param_buf[4] = ld(DIMM_INFO_ADDR + 0x88);
+#ifdef DEBUG
+            printf("mc level info is 0x%016llx\n", ddr_param_buf[0]);
+            printf("dimm info is 0x%016llx\n", ddr_param_buf[1]);
+            printf("dimm info is 0x%016llx\n", ddr_param_buf[2]);
+            printf("dimm info is 0x%016llx\n", ddr_param_buf[3]);
+            printf("dimm info is 0x%016llx\n", ddr_param_buf[4]);
+#endif
+            save_ddrparam(node_id << 44, &ddr_param_buf, (int)&c1_mc1_level_info, 1);
+        }
+#endif
+        return(1);
     }
-    return(1);
+    else{
+        printf("Token is broken! Date is 0x%016llx\n", ld(DIMM_INFO_ADDR));
+        return(0);
+    }
 }
 #else
 //for LS3B/LOONGSON_2H
 
-void save_ddrparam(u64 node_id_shift44, int mc0_param_store_addr)
-{
-
-    unsigned long long ddr_param_buf[DDR_PARAM_NUM + 1];
-
-#ifdef DEBUG
-    int   i;
-    unsigned long long tmp;
-#endif
-
-#ifdef DEBUG
-    printf("\nnode_id_shift44=0x%016llx\n", node_id_shift44);
-#endif
-
-    // step 1.1 Read out DDR controler register from MC0 and save them in buffer0
-    read_ddr_param(node_id_shift44, MC0, ddr_param_buf);
-
-    //ddr_param_buf[DDR_PARAM_NUM] = 0x0;
-    // step 1.2 Program buffers of MC0 register into FLASH
-    tgt_flashprogram((int *)(0xbfc00000+(mc0_param_store_addr -(int)&_start)), DDR_PARAM_NUM*8, ddr_param_buf,TRUE);
-
-#ifdef DEBUG
-    for(i = 0; i< DDR_PARAM_NUM; i++)
-    {
-        tmp =  ld(0x900000001fc00000 + mc0_param_store_addr - (int)&_start + i * 8);
-        if(ddr_param_buf[i] != tmp)
-        {
-            printf("\nMiscompare:i=%d, val=%016llx", i, tmp);
-        }
-        else
-            printf("\nSame:i=%d, val=%016llx", i, tmp);
-    }
-#endif
-}
-
 int save_board_ddrparam(void)
 {
     unsigned long long flag;
     unsigned long long node_id;
-    if(ld(0x900000001fc00000 + (int) &ddr2_leveled_mark - (int)&_start) == 0)
-    {
+    unsigned long long ddr_param_buf[DDR_PARAM_NUM + 6];
+    if(ld(DIMM_INFO_ADDR) == 0x2013011014413291){
+        printf("Token is correct!\n");
+        flag    = ld(DIMM_INFO_ADDR + 0x8);
+        printf("flag is 0x%016llx\n", flag);
+        //MC0
         node_id = 0;
-        save_ddrparam(node_id << 44, (int)&ddr2_reg_data_leveled);
+        if((flag >> 32) & 0x1){
+            printf("Store MC info of Node %d\n", node_id);
+            ddr_param_buf[0] = (((flag >> 40) & 0x1f) << 32) | 0x1;
+            ddr_param_buf[1] = ld(DIMM_INFO_ADDR + 0x10);
+            ddr_param_buf[2] = ld(DIMM_INFO_ADDR + 0x18);
+            ddr_param_buf[3] = ld(DIMM_INFO_ADDR + 0x20);
+            ddr_param_buf[4] = ld(DIMM_INFO_ADDR + 0x28);
+#ifdef DEBUG
+            printf("mc level info is 0x%016llx\n", ddr_param_buf[0]);
+            printf("dimm info is 0x%016llx\n", ddr_param_buf[1]);
+            printf("dimm info is 0x%016llx\n", ddr_param_buf[2]);
+            printf("dimm info is 0x%016llx\n", ddr_param_buf[3]);
+            printf("dimm info is 0x%016llx\n", ddr_param_buf[4]);
+#endif
+            save_ddrparam(node_id << 44, &ddr_param_buf, (int)&c0_mc0_level_info, 0);
+        }
 #ifdef LS3B
 #ifdef MULTI_CHIP
+        //MC1
         node_id = 1;
-        save_ddrparam(node_id << 44, (int)&n1_ddr2_reg_data_leveled);
+        if((flag >> 33) & 0x1){
+            printf("Store MC info of Node %d\n", node_id);
+            ddr_param_buf[0] = (((flag >> 40) & 0x1f) << 32) | 0x1;
+            ddr_param_buf[1] = ld(DIMM_INFO_ADDR + 0x30);
+            ddr_param_buf[2] = ld(DIMM_INFO_ADDR + 0x38);
+            ddr_param_buf[3] = ld(DIMM_INFO_ADDR + 0x40);
+            ddr_param_buf[4] = ld(DIMM_INFO_ADDR + 0x48);
+#ifdef DEBUG
+            printf("mc level info is 0x%016llx\n", ddr_param_buf[0]);
+            printf("dimm info is 0x%016llx\n", ddr_param_buf[1]);
+            printf("dimm info is 0x%016llx\n", ddr_param_buf[2]);
+            printf("dimm info is 0x%016llx\n", ddr_param_buf[3]);
+            printf("dimm info is 0x%016llx\n", ddr_param_buf[4]);
+#endif
+            save_ddrparam(node_id << 44, &ddr_param_buf, (int)&c0_mc1_level_info, 0);
+        }
 #endif
 #ifdef DUAL_3B
+        //MC0
         node_id = 2;
-        save_ddrparam(node_id << 44, (int)&n2_ddr2_reg_data_leveled);
+        if((flag >> 34) & 0x1){
+            printf("Store MC info of Node %d\n", node_id);
+            ddr_param_buf[0] = (((flag >> 48) & 0x1f) << 32) | 0x1;
+            ddr_param_buf[1] = ld(DIMM_INFO_ADDR + 0x50);
+            ddr_param_buf[2] = ld(DIMM_INFO_ADDR + 0x58);
+            ddr_param_buf[3] = ld(DIMM_INFO_ADDR + 0x60);
+            ddr_param_buf[4] = ld(DIMM_INFO_ADDR + 0x68);
+#ifdef DEBUG
+            printf("mc level info is 0x%016llx\n", ddr_param_buf[0]);
+            printf("dimm info is 0x%016llx\n", ddr_param_buf[1]);
+            printf("dimm info is 0x%016llx\n", ddr_param_buf[2]);
+            printf("dimm info is 0x%016llx\n", ddr_param_buf[3]);
+            printf("dimm info is 0x%016llx\n", ddr_param_buf[4]);
+#endif
+            save_ddrparam(node_id << 44, &ddr_param_buf, (int)&c1_mc0_level_info, 0);
+        }
+        //MC1
         node_id = 3;
-        save_ddrparam(node_id << 44, (int)&n3_ddr2_reg_data_leveled);
+        if((flag >> 35) & 0x1){
+            printf("Store MC info of Node %d\n", node_id);
+            ddr_param_buf[0] = (((flag >> 48) & 0x1f) << 32) | 0x1;
+            ddr_param_buf[1] = ld(DIMM_INFO_ADDR + 0x70);
+            ddr_param_buf[2] = ld(DIMM_INFO_ADDR + 0x78);
+            ddr_param_buf[3] = ld(DIMM_INFO_ADDR + 0x80);
+            ddr_param_buf[4] = ld(DIMM_INFO_ADDR + 0x88);
+#ifdef DEBUG
+            printf("mc level info is 0x%016llx\n", ddr_param_buf[0]);
+            printf("dimm info is 0x%016llx\n", ddr_param_buf[1]);
+            printf("dimm info is 0x%016llx\n", ddr_param_buf[2]);
+            printf("dimm info is 0x%016llx\n", ddr_param_buf[3]);
+            printf("dimm info is 0x%016llx\n", ddr_param_buf[4]);
+#endif
+            save_ddrparam(node_id << 44, &ddr_param_buf, (int)&c1_mc1_level_info, 0);
+        }
 #endif
 #endif
-        flag = 0x1;
-        tgt_flashprogram((int *)(0xbfc00000 + ((int)&ddr2_leveled_mark - (int)&_start)), 8, &flag, TRUE);
+        return(1);
     }
-    return(1);
+    else{
+        printf("Token is broken! Date is 0x%016llx\n", ld(DIMM_INFO_ADDR));
+        return(0);
+    }
 }
 
 #endif
@@ -480,9 +534,47 @@ int cmd_clear_level_mark(ac, av)
     char *av[];
 {
     unsigned long long flag;
-    printf("clear level mark\n");
     flag = 0x0;
-    tgt_flashprogram((int *)(0xbfc00000 + ((int)&ddr2_leveled_mark - (int)&_start)), 8, &flag, TRUE);
+    if(ac == 1){
+        //printf("ac = %d, av[0] == %s\n", ac, av[0]);
+        //clear all 4 MC level mark
+        printf("Clear all MC level mark!\n");
+        tgt_flashprogram((int *)(0xbfc00000 + ((int)&c0_mc0_level_info - (int)&_start)), 8, &flag, TRUE);
+#ifndef LOONGSON_2H
+        tgt_flashprogram((int *)(0xbfc00000 + ((int)&c0_mc1_level_info - (int)&_start)), 8, &flag, TRUE);
+#endif
+#if ((loongson3A3 && MULTI_CHIP) || (LS3B && DUAL_3B))
+        tgt_flashprogram((int *)(0xbfc00000 + ((int)&c1_mc0_level_info - (int)&_start)), 8, &flag, TRUE);
+        tgt_flashprogram((int *)(0xbfc00000 + ((int)&c1_mc1_level_info - (int)&_start)), 8, &flag, TRUE);
+#endif
+    }
+    else{
+        //clear the user specified MC level mark
+        //printf("ac = %d, av[0] == %s, av[1] == %s\n", ac, av[0], av[1]);
+        if(atoi(av[1]) == 0){
+            printf("Clear MC 0 level mark!\n");
+            tgt_flashprogram((int *)(0xbfc00000 + ((int)&c0_mc0_level_info - (int)&_start)), 8, &flag, TRUE);
+        }
+#ifndef LOONGSON_2H
+        else if(atoi(av[1]) == 1){
+            printf("Clear MC 1 level mark!\n");
+            tgt_flashprogram((int *)(0xbfc00000 + ((int)&c0_mc1_level_info - (int)&_start)), 8, &flag, TRUE);
+        }
+#endif
+#if ((loongson3A3 && MULTI_CHIP) || (LS3B && DUAL_3B))
+        else if(atoi(av[1]) == 2){
+            printf("Clear MC 2 level mark!\n");
+            tgt_flashprogram((int *)(0xbfc00000 + ((int)&c1_mc0_level_info - (int)&_start)), 8, &flag, TRUE);
+        }
+        else if(atoi(av[1]) == 3){
+            printf("Clear MC 3 level mark!\n");
+            tgt_flashprogram((int *)(0xbfc00000 + ((int)&c1_mc1_level_info - (int)&_start)), 8, &flag, TRUE);
+        }
+#endif
+        else{
+            printf("Unknown MC indentifier!!!");
+        }
+    }
     return(1);
 };
 #else
@@ -497,7 +589,7 @@ int cmd_clear_level_mark(ac, av)
 static const Cmd Cmd_clear_level_mark[] =
 {
     {"Misc"},
-    {"clear_level_mark",    "", 0, "clear leveled mark", cmd_clear_level_mark, 1, 99, 0},
+    {"clear_level_mark", "[mc id]", 0, "clear leveled mark", cmd_clear_level_mark, 1, 99, 0},
     {0, 0}
 };
 /*
@@ -506,7 +598,7 @@ static const Cmd Cmd_clear_level_mark[] =
  *  ==========================
  */
 
-static const Cmd Cmds[] =
+static const Cmd Cmd_save_ddrparam[] =
 {
     {"Misc"},
     {"save_ddrparam",    "", 0, "Save MC parameters into FALSH", cmd_save_ddrparam, 1, 99, 0},
@@ -518,6 +610,6 @@ static void init_cmd __P((void)) __attribute__ ((constructor));
 void
 init_cmd()
 {
-    cmdlist_expand(Cmds, 1);
+    cmdlist_expand(Cmd_save_ddrparam, 1);
     cmdlist_expand(Cmd_clear_level_mark, 1);
 }

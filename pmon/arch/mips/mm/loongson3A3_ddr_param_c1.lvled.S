@@ -1,5 +1,16 @@
+//DO NOT modify the content of this file!
+
 	.align 12
 //3A Node1 MC0/3B Node2 leveled param
+c1_mc0_level_info:
+//leveled_mark and ddr frequency clksel
+.dword  0x0
+c1_mc0_dimm0_info: 
+.dword  0xffffffffffffffff
+.dword  0xffffffffffffffff
+c1_mc0_dimm1_info:
+.dword  0xffffffffffffffff
+.dword  0xffffffffffffffff
 n1_ddr2_reg_data_mc0_leveled:
 n2_ddr2_reg_data_leveled:
 N2_Leveled_MC0_CTL_000 : .dword 0x0000010000000100
@@ -292,6 +303,15 @@ N2_Leveled_MC0_CTL_b30 : .dword 0x00000c2d00000000
 
 	.align 12
 //3A Node1 MC1/3B Node2 leveled param
+c1_mc1_level_info:
+//leveled_mark and ddr frequency clksel
+.dword  0x0
+c1_mc1_dimm0_info: 
+.dword  0xffffffffffffffff
+.dword  0xffffffffffffffff
+c1_mc1_dimm1_info:
+.dword  0xffffffffffffffff
+.dword  0xffffffffffffffff
 n1_ddr2_reg_data_mc1_leveled:
 n3_ddr2_reg_data_leveled:
 N3_Leveled_MC0_CTL_000 : .dword 0x0000010000000100

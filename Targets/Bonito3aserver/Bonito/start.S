@@ -657,19 +657,8 @@ common:
 #endif
 
 
-#if 0 /* Niuxie Tube */
-    li      a0,0xbff00080
-    li      t0,0xcc
-    sb      t0,0x0(a0)
-#endif
-
-#ifdef DEBUG_LS3
-#else
     bal	initserial
     nop
-    //bal	initserial_uart
-    //nop
-#endif
 
 #ifdef DEBUG_LS3
     dli     t2, 0x9800000000000000
@@ -1335,12 +1324,20 @@ gs_2f_v3_ddr2_cfg:
 //cxk
 #define MULTI_NODE_INIT_MEM
 
-#include "ddr_dir/ddr_param_define.h"
 #include "ddr_dir/ddr_config_define.h"
+#include "ddr_dir/ddr_param_define.h"
 #define DISABLE_DIMM_ECC
 #define PRINT_MSG
 #ifndef ARB_LEVEL
 //#define FIX_DDR_PARAM
+#endif
+#ifdef  ARB_LEVEL
+#define AUTO_ARB_LEVEL
+#endif
+#ifdef  AUTO_ARB_LEVEL
+#define CHECK_ARB_LEVEL_FREQ
+#define CHECK_ARB_LEVEL_DIMM
+//#define DEBUG_AUTO_ARB_LEVEL
 #endif
 //#define DEBUG_DDR
 //#define DEBUG_DDR_MT
@@ -1365,7 +1362,8 @@ MEM_INIT_DONE:
     bne     a0, a1, 1b
     nop
 
-    dli     msize, 0
+    move    msize, $0
+    move    s3, $0
 
 //!!!!important--s1 must be correctly set
 
@@ -1425,6 +1423,10 @@ MEM_INIT_DONE:
 #endif
     GPIO_SET_OUTPUT(0x1<<9)
     TTYDBG("Init Memory done.\r\n")
+/*judge the node0 whether have memory*/
+    and     a0, msize, 0xff
+    beqz    a0, beep_on
+    nop
 ##########################################
 
 #ifdef  DEBUG_DDR
@@ -1491,12 +1493,21 @@ MEM_INIT_DONE:
     nop
     PRINTSTR("  Error found!!\r\n")
 2:
+#if 0
+    b       1b
+    nop
+#endif
 
 3:
 #endif
 ##########################################
 
-#if 1 //cww_X2
+#ifdef  AUTO_ARB_LEVEL
+#include "ddr_dir/store_auto_arb_level_info.S"
+#endif
+
+#########################################
+#if 0 //cww_X2
 //dump L1-L2-HT config windows
     PRINTSTR("\r\n======X1 core0 map windows:\r\n")
     li      t1, 23
@@ -3051,7 +3062,7 @@ slave_main:
     dsll    a1, t0, 42
     dli     a0, 0x9800000000000000
     or      a0, a0, a1
-    bal     scache_init_64 // whd
+    bal     scache_init_64
     nop
 
 #if 1
@@ -3110,12 +3121,14 @@ MEM_INIT_BEGIN:
     daddu   a0, a0, 0x1
     beq     t0, a0, NODE1_INIT_MEM
     nop
+#ifdef  DUAL_3B
     daddu   a0, a0, 0x1
     beq     t0, a0, NODE2_INIT_MEM
     nop
     daddu   a0, a0, 0x1
     beq     t0, a0, NODE3_INIT_MEM
     nop
+#endif
     b       ALL_NODE_MEM_INIT_DONE
     nop
 
@@ -3129,7 +3142,8 @@ NODE0_INIT_MEM:
     nop
 
     PRINTSTR("NODE 0 MEMORY CONFIG BEGIN\r\n")
-    dli     msize, 0
+    move    msize, $0
+    move    s3, $0
 #ifdef DDR3_DIMM
 #ifdef  AUTO_DDR_CONFIG
     dli     s1, 0x32100000
@@ -3144,13 +3158,10 @@ NODE0_INIT_MEM:
 #endif
 #endif
 #include "ddr_dir/loongson3_ddr2_config.S"
-/*judge the node0 whether have memory*/
-        move    a0, msize
-        beq     a0, 0x0, beep_on
-        nop
 
     dli     t0, NODE0_CORE0_BUF0
     sw      msize, SP_OFF(t0)
+    sd      s3, GP_OFF(t0)
 #ifdef  SEQ_INIT_MEM
     li      a1, NODE_MEM_INIT_DONE
     sw      a1, FN_OFF(t0)
@@ -3159,15 +3170,8 @@ NODE0_INIT_MEM:
     b       ALL_NODE_MEM_INIT_DONE
     nop
 
-
 NODE1_INIT_MEM:
     //wait the NODE scache enabled
-    WatchDog_Enable;
-    dli     t0, NODE1_CORE0_BUF0
-
-    li      a1, NODE_SCACHE_ENABLED
-    lw      a0, SP_OFF(t0)
-    WatchDog_Close;
     dli     t0, NODE1_CORE0_BUF0
 1:
     li      a1, NODE_SCACHE_ENABLED
@@ -3192,7 +3196,8 @@ NODE1_INIT_MEM:
 #endif
 
     PRINTSTR("NODE 1 MEMORY CONFIG BEGIN\r\n")
-    dli     msize, 0
+    move    msize, $0
+    move    s3, $0
 #ifdef DDR3_DIMM
 #ifdef  AUTO_DDR_CONFIG
     dli     s1, 0x76540001
@@ -3210,6 +3215,7 @@ NODE1_INIT_MEM:
 
     dli     t0, NODE1_CORE0_BUF0
     sw      msize, SP_OFF(t0)
+    sd      s3, GP_OFF(t0)
 #ifdef  SEQ_INIT_MEM
     li      a1, NODE_MEM_INIT_DONE
     sw      a1, FN_OFF(t0)
@@ -3218,6 +3224,7 @@ NODE1_INIT_MEM:
     b       ALL_NODE_MEM_INIT_DONE
     nop
 
+#ifdef  DUAL_3B
 NODE2_INIT_MEM:
     //wait the NODE scache enabled
     dli     t0, NODE2_CORE0_BUF0
@@ -3244,7 +3251,8 @@ NODE2_INIT_MEM:
 #endif
 
     PRINTSTR("NODE 2 MEMORY CONFIG BEGIN\r\n")
-    dli     msize, 0
+    move    msize, $0
+    move    s3, $0
 #ifdef  AUTO_DDR_CONFIG
     dli     s1, 0xff540002
 #else
@@ -3254,6 +3262,7 @@ NODE2_INIT_MEM:
 
     dli     t0, NODE2_CORE0_BUF0
     sw      msize, SP_OFF(t0)
+    sd      s3, GP_OFF(t0)
 #ifdef  SEQ_INIT_MEM
     li      a1, NODE_MEM_INIT_DONE
     sw      a1, FN_OFF(t0)
@@ -3261,7 +3270,6 @@ NODE2_INIT_MEM:
     sync
     b       ALL_NODE_MEM_INIT_DONE
     nop
-
 
 NODE3_INIT_MEM:
     //wait the NODE scache enabled
@@ -3289,7 +3297,8 @@ NODE3_INIT_MEM:
 #endif
 
     PRINTSTR("NODE 3 MEMORY CONFIG BEGIN\r\n")
-    dli     msize, 0
+    move    msize, $0
+    move    s3, $0
 #ifdef  AUTO_DDR_CONFIG
     dli     s1, 0xff760003
 #else
@@ -3299,6 +3308,7 @@ NODE3_INIT_MEM:
 
     dli     t0, NODE3_CORE0_BUF0
     sw      msize, SP_OFF(t0)
+    sd      s3, GP_OFF(t0)
 #ifdef  SEQ_INIT_MEM
     li      a1, NODE_MEM_INIT_DONE
     sw      a1, FN_OFF(t0)
@@ -3306,6 +3316,7 @@ NODE3_INIT_MEM:
     sync
     b       ALL_NODE_MEM_INIT_DONE
     nop
+#endif
 
 ALL_NODE_MEM_INIT_DONE:
     .set     mips64
@@ -3350,6 +3361,7 @@ ALL_NODE_MEM_INIT_DONE:
     dli     t1, NODE0_CORE0_BUF0;
     sw      $0, FN_OFF(t1)
     sw      $0, SP_OFF(t1)
+    sd      $0, GP_OFF(t1)
     sync
     b       wait_to_jump_kernel
     nop
@@ -3357,6 +3369,7 @@ ALL_NODE_MEM_INIT_DONE:
     dli     t1, NODE1_CORE0_BUF0;
     sw      $0, FN_OFF(t1)
     sw      $0, SP_OFF(t1)
+    sd      $0, GP_OFF(t1)
     sync
     b       wait_to_jump_kernel
     nop
@@ -3364,6 +3377,7 @@ ALL_NODE_MEM_INIT_DONE:
     dli     t1, NODE2_CORE0_BUF0;
     sw      $0, FN_OFF(t1)
     sw      $0, SP_OFF(t1)
+    sd      $0, GP_OFF(t1)
     sync
     b       wait_to_jump_kernel
     nop
@@ -3371,6 +3385,7 @@ ALL_NODE_MEM_INIT_DONE:
     dli     t1, NODE3_CORE0_BUF0;
     sw      $0, FN_OFF(t1)
     sw      $0, SP_OFF(t1)
+    sd      $0, GP_OFF(t1)
     sync
     b       wait_to_jump_kernel
     nop
@@ -3407,29 +3422,43 @@ ALL_NODE_MEM_INIT_DONE:
     nop
 #endif
     //all core0 mem init done
-    //load msize from ALL NODEs
-    dli     t1, 0x0
+    //load msize and s3 from ALL 3 NODEs
+    move    msize, $0
+    move    s3, $0
     dli     t0, NODE0_CORE0_BUF0
     lw      a0, SP_OFF(t0)
-    or      t1, t1, a0
+    or      msize, msize, a0
+    ld      a0, GP_OFF(t0)
+    or      s3, s3, a0
 #ifdef  MULTI_CHIP
     dli     t0, NODE1_CORE0_BUF0
     lw      a0, SP_OFF(t0)
-    or      t1, t1, a0
+    or      msize, msize, a0
+    ld      a0, GP_OFF(t0)
+    or      s3, s3, a0
 #endif
 #ifdef  DUAL_3B
     dli     t0, NODE2_CORE0_BUF0
     lw      a0, SP_OFF(t0)
-    or      t1, t1, a0
+    or      msize, msize, a0
+    ld      a0, GP_OFF(t0)
+    or      s3, s3, a0
     dli     t0, NODE3_CORE0_BUF0
     lw      a0, SP_OFF(t0)
-    or      t1, t1, a0
+    or      msize, msize, a0
+    ld      a0, GP_OFF(t0)
+    or      s3, s3, a0
 #endif
 
-    move    msize, t1
-
-    PRINTSTR("\r\nsystem msize= 0x")
+    PRINTSTR("\r\nsystem msize = 0x")
     move    a0, msize
+    bal     hexserial
+    nop
+    PRINTSTR("\r\nsystem s3 = 0x")
+    dsrl    a0, s3, 32
+    bal     hexserial
+    nop
+    move    a0, s3
     bal     hexserial
     nop
     PRINTSTR("\r\n")
@@ -3441,6 +3470,7 @@ ALL_NODE_MEM_INIT_DONE:
     dli     t0, NODE0_CORE0_BUF0
 #endif
     sw      $0, SP_OFF(t0)
+    sd      $0, GP_OFF(t0)
     li      a1, ALL_CORE0_INIT_DONE
     sw      a1, FN_OFF(t0)
     sync
@@ -3824,23 +3854,18 @@ idle1000:
 
 #ifdef  ARB_LEVEL
     .text
-    .global ddr2_leveled_mark
-    .global ddr2_reg_data_mc0_leveled
-    .global ddr2_reg_data_mc1_leveled
+    .global c0_mc0_level_info 
+    .global c0_mc1_level_info 
 #ifdef  MULTI_CHIP
-    .global n1_ddr2_reg_data_mc0_leveled
-    .global n1_ddr2_reg_data_mc1_leveled
+    .global c1_mc0_level_info 
+    .global c1_mc1_level_info 
 #endif
 
-#include "loongson3A3_ddr_param.lvled.S"
+#include "ddr_dir/loongson3A3_ddr_param.lvled.S"
 #ifdef  MULTI_CHIP
-#include "loongson3A3_ddr_param_c1.lvled.S"
+#include "ddr_dir/loongson3A3_ddr_param_c1.lvled.S"
 #endif
 
-    .align  12
-ddr2_leveled_mark:
-.dword 0x0
-    .align  12
 #else
 #ifdef FIX_DDR_PARAM
 #include "loongson3A3_ddr_param.fix.S"

@@ -181,7 +181,7 @@ nop
 #define tmpsize		s1
 #define msize		s2
 #define bonito		s4
-#define dbg			s5	//NOTICE : s2 used to as temperature
+#define dbg			s5	//NOTICE : s5 used to as temperature
 #define sdCfg		s6
 
 #define CP0_CONFIG $16
@@ -253,41 +253,6 @@ stack = start - 0x4000		/* Place PMON stack below PMON start in RAM */
 
 
 /////////////////////////////////////////////////////////////
-
-#if 0
-		.set 	mips64
-		mfc0	t0, $15, 1
-		.set 	mips3
-
-		andi	t0, 0x3ff
-
-		li		t1, 0x0
-1:
-		//bne		t0, t1, 1b ;
-		b	  1b;
-		nop	 
-
-
-#if 0
-	li	t1,0xaff00040
-	li	t2,0x2
-    sd  t2,0x0(t1)
-	sync
-	nop
-	nop
-	nop
-
-#endif
-	li	t1,0xaff00060
-	li	t2,0x2
-    sd  t2,0x0(t1)
-	sync
-	nop
-	nop
-	nop
-1:
-#endif
-
 /* NOTE!! Not more that 16 instructions here!!! Right now it's FULL! */
 mtc0	zero, COP_0_STATUS_REG
 mtc0	zero, COP_0_CAUSE_REG
@@ -314,7 +279,7 @@ la	gp, _gp
 	 *  Reboot vector usable from outside pmon.
 	 */
 	.align	8
-	ext_map_and_reboot:
+ext_map_and_reboot:
 	bal	CPU_TLBClear
 	nop
 
@@ -383,6 +348,14 @@ la	gp, _gp
 #endif
 	
 exc_common:
+    .set     mips64
+    mfc0    t0, $15, 1
+    .set     mips3
+    PRINTSTR("\r\nNODE ID=")
+    move    a0, t0
+    bal    hexserial
+    nop
+
 	PRINTSTR("\r\nCAUSE=")
 	mfc0	a0, COP_0_CAUSE_REG
 	bal	hexserial
@@ -467,8 +440,7 @@ exc_common:
 	mtc0    zero,COP_0_CAUSE_REG
 	.set noreorder
 
-li	bonito,PHYS_TO_UNCACHED(BONITO_REG_BASE)
-	lpc_write_test:
+    li	bonito,PHYS_TO_UNCACHED(BONITO_REG_BASE)
 
 loop_here:
 
@@ -498,7 +470,6 @@ loop_here:
     sd  a0,0x0(t0)
 
 #endif
-
 
 #if 0
 	.set 	mips64
@@ -598,7 +569,8 @@ core7_loop:
 #endif
 out_bootloop:
 #endif
-#if 1
+
+#if 0
 	li	t1,0xaff00000
 	li	t2,0x2
     sd  t2,0x0(t1)
@@ -770,8 +742,10 @@ common:
         dsll    t3, 8
         or      t1, t1, t3
 
-        dli     a0, 0x0
-        sd      a0,FN_OFF(t1)
+    sd      $0, FN_OFF(t1)
+    sd      $0, SP_OFF(t1)
+    sd      $0, GP_OFF(t1)
+    sd      $0, A1_OFF(t1)
 
 /*******************************************************/
 // below test added for multi-core inst fetching
@@ -784,6 +758,7 @@ common:
 /*******************************************************/
 // above test added for multi-core inst fetching
 /*******************************************************/
+
 #ifdef NODE1_BOOT
         dli     a0, 0x4 
 #else
@@ -1073,19 +1048,6 @@ common:
 		nop
 #endif
 
-
-#if 0 /* Niuxie Tube */
-		li      a0,0xbff00080
-		li      t0,0xcc
-		sb      t0,0x0(a0)
-#endif
-
-#ifdef DEBUG_LS3
-#else
-		bal	initserial
-		nop
-#endif
-
 #if 0
 		dli	t2, 0x900000003ff00000
 		dli	t1, 0x900000003ff08000
@@ -1139,19 +1101,10 @@ common:
 		1:
 		b       1b
 		nop
-
 #endif
 
-
-#if 0
-		PRINTSTR("Shut down other cores\r\n")
-		li      a0, 0xbfe00180
-		lw      a1, 0x0(a0)
-		li      t1, 0xffff1fff
-		and     a1, a1, t1
-		sw      a1, 0x0(a0)
-
-#endif
+		bal	initserial
+		nop
 
 		li      a0,0x900000001ff00080
 		li      t0,0x99
@@ -1526,7 +1479,7 @@ common:
 	   GPIOLED_SET(7)
 	 */
 
-	core0_start:
+core0_start:
 	PRINTSTR("\r\nPMON2000 MIPS Initializing. Standby...\r\n")
 	/*
 	   PRINTSTR("ERRORPC=")
@@ -1696,12 +1649,11 @@ gs_2f_v3_ddr2_cfg:
 
 #endif
 ##########################################
-		WatchDog_Enable;
-
 #ifdef LS3_HT
+		WatchDog_Enable;
 #include "loongson3_HT_init.S"
-#endif
 		WatchDog_Close;
+#endif
 
 		PRINTSTR("\r\n======This is cww's world:1\r\n")
 #include "3aserver_bridge_config.S"
@@ -1798,6 +1750,14 @@ gs_2f_v3_ddr2_cfg:
 #include "ddr_dir/ddr_param_define.h"
 #define DISABLE_DIMM_ECC
 #define PRINT_MSG
+#ifdef  ARB_LEVEL
+#define AUTO_ARB_LEVEL
+#endif
+#ifdef  AUTO_ARB_LEVEL
+#define CHECK_ARB_LEVEL_FREQ
+#define CHECK_ARB_LEVEL_DIMM
+//#define DEBUG_AUTO_ARB_LEVEL
+#endif
 //#define DEBUG_DDR
 //#define DEBUG_DDR_PARAM
 
@@ -1821,7 +1781,8 @@ MEM_INIT_DONE:
     bne     a0, a1, 1b
     nop
 
-    dli     msize, 0
+    move    msize, $0
+    move    s3, $0
 
 //!!!!important--s1 must be correctly set
 //bit[3:2]: not used any more
@@ -1964,11 +1925,20 @@ MEM_INIT_DONE:
     nop
     PRINTSTR("  Error found!!\r\n")
 2:
+#if 0
+    b       1b
+    nop
+#endif
 
 3:
 #endif
 #########################################
 
+#ifdef  AUTO_ARB_LEVEL
+#include "ddr_dir/store_auto_arb_level_info.S"
+#endif
+
+#########################################
 #ifdef TEMPERATURE
 	TTYDBG("Save system temperature:(* ") // save  temp
     la      a1,temperature
@@ -1992,7 +1962,7 @@ MEM_INIT_DONE:
 
 ##########################################
 
-#if 1 //cww_X2
+#if 0 //cww_X2
 		PRINTSTR("\r\n======X1 core0 map windows:\r\n")
 		li      t1, 23
 		dli     t2, 0x900000003ff02000
@@ -2214,53 +2184,7 @@ MEM_INIT_DONE:
 		bne	a2, a0, 2b
 		addu	a0, 4
 
-
 		TTYDBG("Copy PMON to execute location done.\r\n")
-		/* zhb */
-#if 1
-		zhb:
-		TTYDBG("Testing...\r\n")
-		la	a0, start
-		li	a1, 0xbfc00000
-		la	a2, _edata
-		//or      a0, 0xa0000000
-		//or      a2, 0xa0000000
-		/*	subu	s6, a2, a0*/
-		/*	srl	s6, s6, 2*/
-
-		move	t0, a0
-		move	t1, a1
-		move	t2, a2
-		/* copy text section */
-
-		1:	lw	t4, 0(t1)
-		nop
-		lw	t5, 0(t0)
-		addu	t0, 4
-		addu	t1, 4
-		beq	t4, t5, 2f
-		nop
-		move	a0, t0
-		subu	a0, 4
-		bal	hexserial
-		nop
-		TTYDBG	(" ")
-		move	a0, t4
-		bal	hexserial
-		nop
-		TTYDBG	(" ")
-		move	a0, t5
-		bal	hexserial
-		nop
-		TTYDBG	("\r\n")
-		2:	bne	t2, t0, 1b
-		nop
-		TTYDBG	("test ok!\r\n")
-		/*
-		   3:	beqz	zero, 3b
-		   nop
-		 */
-#endif
 
 
 		TTYDBG("sp=");
@@ -3490,7 +3414,8 @@ NODE0_INIT_MEM:
     nop
 
     PRINTSTR("NODE 0 MEMORY CONFIG BEGIN\r\n")
-    dli     msize, 0
+    move    msize, $0
+    move    s3, $0
 #ifdef  AUTO_DDR_CONFIG
     dli     s1, 0xff100000
 #else
@@ -3500,6 +3425,7 @@ NODE0_INIT_MEM:
 
     dli     t0, NODE0_CORE0_BUF0
     sw      msize, SP_OFF(t0)
+    sd      s3, GP_OFF(t0)
 #ifdef  SEQ_INIT_MEM
     li      a1, NODE_MEM_INIT_DONE
     sw      a1, FN_OFF(t0)
@@ -3534,7 +3460,8 @@ NODE1_INIT_MEM:
 #endif
 
     PRINTSTR("NODE 1 MEMORY CONFIG BEGIN\r\n")
-    dli     msize, 0
+    move    msize, $0
+    move    s3, $0
 #ifdef  AUTO_DDR_CONFIG
     dli     s1, 0xff320001
 #else
@@ -3544,6 +3471,7 @@ NODE1_INIT_MEM:
 
     dli     t0, NODE1_CORE0_BUF0
     sw      msize, SP_OFF(t0)
+    sd      s3, GP_OFF(t0)
 #ifdef  SEQ_INIT_MEM
     li      a1, NODE_MEM_INIT_DONE
     sw      a1, FN_OFF(t0)
@@ -3579,7 +3507,8 @@ NODE2_INIT_MEM:
 #endif
 
     PRINTSTR("NODE 2 MEMORY CONFIG BEGIN\r\n")
-    dli     msize, 0
+    move    msize, $0
+    move    s3, $0
 #ifdef  AUTO_DDR_CONFIG
     dli     s1, 0xff540002
 #else
@@ -3589,6 +3518,7 @@ NODE2_INIT_MEM:
 
     dli     t0, NODE2_CORE0_BUF0
     sw      msize, SP_OFF(t0)
+    sd      s3, GP_OFF(t0)
 #ifdef  SEQ_INIT_MEM
     li      a1, NODE_MEM_INIT_DONE
     sw      a1, FN_OFF(t0)
@@ -3623,7 +3553,8 @@ NODE3_INIT_MEM:
 #endif
 
     PRINTSTR("NODE 3 MEMORY CONFIG BEGIN\r\n")
-    dli     msize, 0
+    move    msize, $0
+    move    s3, $0
 #ifdef  AUTO_DDR_CONFIG
     dli     s1, 0xff760003
 #else
@@ -3633,6 +3564,7 @@ NODE3_INIT_MEM:
 
     dli     t0, NODE3_CORE0_BUF0
     sw      msize, SP_OFF(t0)
+    sd      s3, GP_OFF(t0)
 #ifdef  SEQ_INIT_MEM
     li      a1, NODE_MEM_INIT_DONE
     sw      a1, FN_OFF(t0)
@@ -3685,6 +3617,7 @@ ALL_NODE_MEM_INIT_DONE:
     dli     t1, NODE0_CORE0_BUF0;
     sw      $0, FN_OFF(t1)
     sw      $0, SP_OFF(t1)
+    sd      $0, GP_OFF(t1)
     sync
     b       wait_to_jump_kernel
     nop
@@ -3692,6 +3625,7 @@ ALL_NODE_MEM_INIT_DONE:
     dli     t1, NODE1_CORE0_BUF0;
     sw      $0, FN_OFF(t1)
     sw      $0, SP_OFF(t1)
+    sd      $0, GP_OFF(t1)
     sync
     b       wait_to_jump_kernel
     nop
@@ -3699,6 +3633,7 @@ ALL_NODE_MEM_INIT_DONE:
     dli     t1, NODE2_CORE0_BUF0;
     sw      $0, FN_OFF(t1)
     sw      $0, SP_OFF(t1)
+    sd      $0, GP_OFF(t1)
     sync
     b       wait_to_jump_kernel
     nop
@@ -3706,6 +3641,7 @@ ALL_NODE_MEM_INIT_DONE:
     dli     t1, NODE3_CORE0_BUF0;
     sw      $0, FN_OFF(t1)
     sw      $0, SP_OFF(t1)
+    sd      $0, GP_OFF(t1)
     sync
     b       wait_to_jump_kernel
     nop
@@ -3720,7 +3656,7 @@ ALL_NODE_MEM_INIT_DONE:
     bne     a0, a1, 1b
     nop
 
-#ifdef MULTI_CHIP
+#ifdef  MULTI_CHIP
     dli     t0, NODE1_CORE0_BUF0
 1:
     lw      a0, FN_OFF(t0)
@@ -3742,29 +3678,43 @@ ALL_NODE_MEM_INIT_DONE:
     nop
 #endif
     //all core0 mem init done
-    //load msize from ALL 3 NODE
-    dli     t1, 0x0
+    //load msize and s3 from ALL 3 NODEs
+    move    msize, $0
+    move    s3, $0
     dli     t0, NODE0_CORE0_BUF0
     lw      a0, SP_OFF(t0)
-    or      t1, t1, a0
-#ifdef MULTI_CHIP
+    or      msize, msize, a0
+    ld      a0, GP_OFF(t0)
+    or      s3, s3, a0
+#ifdef  MULTI_CHIP
     dli     t0, NODE1_CORE0_BUF0
     lw      a0, SP_OFF(t0)
-    or      t1, t1, a0
+    or      msize, msize, a0
+    ld      a0, GP_OFF(t0)
+    or      s3, s3, a0
 #endif
 #ifdef  DUAL_3B
     dli     t0, NODE2_CORE0_BUF0
     lw      a0, SP_OFF(t0)
-    or      t1, t1, a0
+    or      msize, msize, a0
+    ld      a0, GP_OFF(t0)
+    or      s3, s3, a0
     dli     t0, NODE3_CORE0_BUF0
     lw      a0, SP_OFF(t0)
-    or      t1, t1, a0
+    or      msize, msize, a0
+    ld      a0, GP_OFF(t0)
+    or      s3, s3, a0
 #endif
 
-    move    msize, t1
-
-    PRINTSTR("\r\nsystem msize= 0x")
+    PRINTSTR("\r\nsystem msize = 0x")
     move    a0, msize
+    bal     hexserial
+    nop
+    PRINTSTR("\r\nsystem s3 = 0x")
+    dsrl    a0, s3, 32
+    bal     hexserial
+    nop
+    move    a0, s3
     bal     hexserial
     nop
     PRINTSTR("\r\n")
@@ -3776,6 +3726,7 @@ ALL_NODE_MEM_INIT_DONE:
     dli     t0, NODE0_CORE0_BUF0
 #endif
     sw      $0, SP_OFF(t0)
+    sd      $0, GP_OFF(t0)
     li      a1, ALL_CORE0_INIT_DONE
     sw      a1, FN_OFF(t0)
     sync
@@ -3842,7 +3793,7 @@ next:
 wait_to_jump_kernel:
 
 //cxk test mem
-#ifdef  DEBUG_DDR_MT
+#ifdef DEBUG_DDR_MT
 #ifdef NODE1_BOOT
     dli     t0, NODE1_CORE0_BUF0 #buf of cpu1
 #else
@@ -4199,23 +4150,18 @@ temperature:	.dword	  2
 
 #ifdef  ARB_LEVEL
     .text
-    .global ddr2_leveled_mark
-    .global ddr2_reg_data_leveled
-    .global n1_ddr2_reg_data_leveled
+    .global c0_mc0_level_info 
+    .global c0_mc1_level_info 
 #ifdef  DUAL_3B
-    .global n2_ddr2_reg_data_leveled
-    .global n3_ddr2_reg_data_leveled
+    .global c1_mc0_level_info 
+    .global c1_mc1_level_info 
 #endif
 
-#include "loongson3A3_ddr_param.lvled.S"
+#include "ddr_dir/loongson3A3_ddr_param.lvled.S"
 #ifdef  DUAL_3B
-#include "loongson3A3_ddr_param_c1.lvled.S"
+#include "ddr_dir/loongson3A3_ddr_param_c1.lvled.S"
 #endif
 
-    .align  12
-ddr2_leveled_mark:
-.dword 0x0
-    .align  12
 #else
 #ifdef FIX_DDR_PARAM
 #include "loongson3A3_ddr_param.fix.S"

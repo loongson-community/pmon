@@ -23,7 +23,7 @@
 0. s1 reset code
 **************************/
 //set use which MC: 01-MC0; 10-MC1; 00-MC0&MC1
-#if 0
+#ifdef DEBUG_DDR_PARAM
     PRINTSTR("Please input DDR SELLECT :\r\n[ 8]:MC1_ONLY\r\n[ 4]:MC0_ONLY\r\n");
     dli     t6, 0x00
     bal     inputaddress    #input value stored in v0
@@ -34,6 +34,46 @@
     not     t6, t6
     and     s1, s1, t6
     or      s1, s1, v0
+#endif
+
+#ifdef  AUTO_ARB_LEVEL
+//store memory system info into s3(include frequency and dimm i2c addr)
+#ifdef  CHECK_ARB_LEVEL_FREQ
+    dli     t0, CHIP_SAMPLE_BASE_ADDR
+    GET_NODE_ID_a0
+    or      t0, t0, a0
+    ld      a0, 0x0(t0)
+    dsrl    a0, a0, DDR_CLKSEL_OFFSET
+    and     a0, a0, DDR_CLKSEL_MASK
+    dsll    a0, a0, 40
+    GET_NODE_ID_a1
+    dsll    a1, a1, 3
+    dsll    a0, a0, a1
+    or      s3, s3, a0
+#endif
+
+#ifdef  CHECK_ARB_LEVEL_DIMM
+    //store dimm i2c addr info to s3
+    dsrl    a2, s1, 16
+    dli     a1, 0xffff
+    and     a2, a2, a1
+    GET_NODE_ID_a1
+    dsll    a1, a1, 4
+    dsll    a2, a2, a1
+    or      s3, s3, a2
+#endif
+
+#ifdef  DEBUG_AUTO_ARB_LEVEL
+    PRINTSTR("\r\ns3 = 0x");
+    dsrl    a0, s3, 32
+    bal     hexserial
+    nop
+    PRINTSTR("__")
+    move    a0, s3
+    bal     hexserial
+    nop
+    PRINTSTR("\r\n")
+#endif
 #endif
 
 #ifdef  AUTO_DDR_CONFIG
@@ -163,13 +203,13 @@
 
 //make sure s1[3:2] is correctly set.
     GET_MC_SEL_BITS
-    dli     t5, 3
-    bne     a1, t5, 1f
+    dli     a2, 3
+    bne     a1, a2, 1f
     nop
 //s1[3:2]=0b'11, clear to 0b'00
-    dli     t5, 0xc
-    not     t5, t5
-    and     s1, s1, t5
+    dli     a2, 0xc
+    not     a2, a2
+    and     s1, s1, a2
 1:
 /**************************
 1. 1. check NODE memory size.
@@ -261,7 +301,7 @@ t0,t2 shouldn't be changed to the end of this file.
 #if 1 // AdonWang disable ddr3 readbuff
 /*      May Affect the Performance     */
 //This seems better for the spec2000
-//if we enable ECC, this bit will be reset in mc_init
+//if we enable ECC, this bit will be reset
     PRINTSTR("Disable read buffer\r\n")
     lw      a1, 0x4(t2)
     li      a0, 0x18
@@ -278,6 +318,27 @@ t0,t2 shouldn't be changed to the end of this file.
     nop
 
     dli     t3, 0x0
+#ifndef  DISABLE_DIMM_ECC
+    //Enable MC read buffer for ECC Initial
+    GET_DIMM_ECC
+    beqz    a1, 8f
+    nop
+    TTYDBG("Enable MC read buffer\r\n")
+    lw      a1, 0x4(t2)
+    li      a0, 0x8
+    sll     a0, a0, t3
+    not     a0, a0
+    and     a1, a1, a0
+    sw      a1, 0x4(t2)
+    sync
+8:
+#endif
+
+#ifdef  AUTO_ARB_LEVEL
+    bal     SET_AUTO_ARB_LEVEL_MARK
+    nop
+#endif
+
     bal     mc_init
     nop
     PRINTSTR("\r\nMC0 Config DONE\r\n")
@@ -289,6 +350,27 @@ t0,t2 shouldn't be changed to the end of this file.
     nop
 
     dli     t3, 0x1
+#ifndef  DISABLE_DIMM_ECC
+    //Enable MC read buffer for ECC Initial
+    GET_DIMM_ECC
+    beqz    a1, 8f
+    nop
+    TTYDBG("Enable MC read buffer\r\n")
+    lw      a1, 0x4(t2)
+    li      a0, 0x8
+    sll     a0, a0, t3
+    not     a0, a0
+    and     a1, a1, a0
+    sw      a1, 0x4(t2)
+    sync
+8:
+#endif
+
+#ifdef  AUTO_ARB_LEVEL
+    bal     SET_AUTO_ARB_LEVEL_MARK
+    nop
+#endif
+
     bal     mc_init
     nop
     TTYDBG("\r\nMC1 Config DONE\r\n")
@@ -347,36 +429,13 @@ t0,t2 shouldn't be changed to the end of this file.
     nop
     nop
     nop
-#if 0
-    PRINTSTR("\r\nt0=0x");
-    dsrl    a0, t0, 32
-    bal     hexserial
-    nop
-    move    a0, t0
-    bal     hexserial
-    nop
-
-    PRINTSTR("\r\nSkip Clear L2 window?(1: skip;)\r\n");
-    dli     t6, 0x00
-    bal     inputaddress    #input value stored in v0
-    nop
-    bnez    v0, 1f
-    nop
-    //not work ok!!!
-    //L2XBAR_CLEAR_WINDOW(0x10) //this two window can NOT be cleared! ????
-    //L2XBAR_CLEAR_WINDOW(0x18) //this two window can NOT be cleared! ????
-    //L2XBAR_CLEAR_WINDOW(0x20)
-    //L2XBAR_CLEAR_WINDOW(0x28)
-    //L2XBAR_CLEAR_WINDOW(0x30)
-    //L2XBAR_CLEAR_WINDOW(0x38)
-1:
-#endif
 #ifndef NO_INTERLEAVE
     //clear L2 window(introduced by ARB_LEVEL or ECC initialize)
     L2XBAR_DISABLE_WINDOW(0x20);
 #endif
     //disable default pci window
     L2XBAR_DISABLE_WINDOW(0x100);
+
     GET_MC_SEL_BITS
     beqz    a1, 1f
     nop

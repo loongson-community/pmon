@@ -9,12 +9,12 @@
       [31: 8] MC0 DIMM info
 *************************/
 //------------------------
-#define GET_MC1_SLOT1_ID dli a1, 0xf0000000; and a1, t1, a1; dsrl a1, a1, 28;
-#define GET_MC1_SLOT0_ID dli a1, 0x0f000000; and a1, t1, a1; dsrl a1, a1, 24;
-#define GET_MC0_SLOT1_ID dli a1, 0x00f00000; and a1, t1, a1; dsrl a1, a1, 20;
-#define GET_MC0_SLOT0_ID dli a1, 0x000f0000; and a1, t1, a1; dsrl a1, a1, 16;
+#define GET_MC1_SLOT1_ID dsrl a1, t1, 28; and a1, a1, 0xf;
+#define GET_MC1_SLOT0_ID dsrl a1, t1, 24; and a1, a1, 0xf;
+#define GET_MC0_SLOT1_ID dsrl a1, t1, 20; and a1, a1, 0xf;
+#define GET_MC0_SLOT0_ID dsrl a1, t1, 16; and a1, a1, 0xf;
 #ifdef  MULTI_I2C_BUS
-#define GET_I2C_NODE_ID_a2   dli a2, 0x30; and a2, t1, a2; dsrl a2, a2, 4;
+#define GET_I2C_NODE_ID_a2 dsrl a2, t1, 4; and a2, a2, 0x3;
 #else
 #define GET_I2C_NODE_ID_a2  ;
 #endif
@@ -1003,3 +1003,265 @@ probe_dimm_end:
     jr      t7
     nop
 END(PROBE_DIMM)
+
+
+LEAF(READ_DIMM_IDENTIFIER)
+/********************
+input:
+    a0: bit[3:0] i2c addr
+    a2: i2c bus node id
+output:
+    t4/t5: dimm indentifier
+use: a0~a2, v0, v1, t8
+********************/
+    move    t8, ra
+
+    not     t4, $0
+    not     t5, $0
+    dli     a1, 0x8
+    bgeu    a0, a1, 8f
+    nop
+    move    t4, $0
+    move    t5, $0
+    dsll    a0, a0, 1
+    ori     a0, a0, 0xa1
+    //test no meaning
+    dli     a1, 0
+    bal     i2cread
+    nop
+#ifdef  DDR3_DIMM
+    dli     a1, 2
+    bal     i2cread
+    nop
+    and     v0, v0, 0xff
+    dli     a1, 0x0b
+    beq     v0, a1, 1f
+    nop
+    not     t4, $0
+    not     t5, $0
+    b       8f
+    nop
+1:
+    //read manufater JEDEC ID
+    dli     a1, 117
+    bal     i2cread
+    nop
+    and     v0, v0, 0xff
+    or      t4, t4, v0
+    dsll    t4, t4, 8
+    daddu   a1, a1, 1
+    bal     i2cread
+    nop
+    and     v0, v0, 0xff
+    or      t4, t4, v0
+    //read other info
+    daddu   a1, a1, 1
+    bal     i2cread
+    nop
+    and     v0, v0, 0xff
+    or      t5, t5, v0
+    dsll    t5, t5, 8
+    daddu   a1, a1, 1
+    bal     i2cread
+    nop
+    and     v0, v0, 0xff
+    or      t5, t5, v0
+    dsll    t5, t5, 8
+    daddu   a1, a1, 1
+    bal     i2cread
+    nop
+    and     v0, v0, 0xff
+    or      t5, t5, v0
+    dsll    t5, t5, 8
+    daddu   a1, a1, 1
+    bal     i2cread
+    nop
+    and     v0, v0, 0xff
+    or      t5, t5, v0
+    dsll    t5, t5, 8
+    daddu   a1, a1, 1
+    bal     i2cread
+    nop
+    and     v0, v0, 0xff
+    or      t5, t5, v0
+    dsll    t5, t5, 8
+    daddu   a1, a1, 1
+    bal     i2cread
+    nop
+    and     v0, v0, 0xff
+    or      t5, t5, v0
+    dsll    t5, t5, 8
+    daddu   a1, a1, 1
+    bal     i2cread
+    nop
+    and     v0, v0, 0xff
+    or      t5, t5, v0
+    dsll    t5, t5, 8
+#else   //DDR2
+    dli     a1, 2
+    bal     i2cread
+    nop
+    and     v0, v0, 0xff
+    dli     a1, 0x08
+    beq     v0, a1, 1f
+    nop
+    not     t4, $0
+    not     t5, $0
+    b       8f
+    nop
+1:
+    //read manufater JEDEC ID
+    dli     a1, 64
+    bal     i2cread
+    nop
+    and     v0, v0, 0xff
+    or      t4, t4, v0
+    dsll    t4, t4, 8
+    daddu   a1, a1, 1
+    bal     i2cread
+    nop
+    and     v0, v0, 0xff
+    or      t4, t4, v0
+    dsll    t4, t4, 8
+    dli     a1, 64
+    bal     i2cread
+    nop
+    and     v0, v0, 0xff
+    or      t4, t4, v0
+    dsll    t4, t4, 8
+    daddu   a1, a1, 1
+    bal     i2cread
+    nop
+    and     v0, v0, 0xff
+    or      t4, t4, v0
+    dsll    t4, t4, 8
+    dli     a1, 64
+    bal     i2cread
+    nop
+    and     v0, v0, 0xff
+    or      t4, t4, v0
+    dsll    t4, t4, 8
+    daddu   a1, a1, 1
+    bal     i2cread
+    nop
+    and     v0, v0, 0xff
+    or      t4, t4, v0
+    dsll    t4, t4, 8
+    dli     a1, 64
+    bal     i2cread
+    nop
+    and     v0, v0, 0xff
+    or      t4, t4, v0
+    dsll    t4, t4, 8
+    daddu   a1, a1, 1
+    bal     i2cread
+    nop
+    and     v0, v0, 0xff
+    or      t4, t4, v0
+    //read other info
+    daddu   a1, a1, 1
+    bal     i2cread
+    nop
+    and     v0, v0, 0xff
+    or      t5, t5, v0
+    dsll    t5, t5, 8
+    daddu   a1, a1, 1
+    bal     i2cread
+    nop
+    and     v0, v0, 0xff
+    or      t5, t5, v0
+    dsll    t5, t5, 8
+    daddu   a1, a1, 1
+    bal     i2cread
+    nop
+    and     v0, v0, 0xff
+    or      t5, t5, v0
+    dsll    t5, t5, 8
+    daddu   a1, a1, 1
+    bal     i2cread
+    nop
+    and     v0, v0, 0xff
+    or      t5, t5, v0
+    dsll    t5, t5, 8
+    daddu   a1, a1, 1
+    bal     i2cread
+    nop
+    and     v0, v0, 0xff
+    or      t5, t5, v0
+    dsll    t5, t5, 8
+    daddu   a1, a1, 1
+    bal     i2cread
+    nop
+    and     v0, v0, 0xff
+    or      t5, t5, v0
+    dsll    t5, t5, 8
+    daddu   a1, a1, 1
+    bal     i2cread
+    nop
+    and     v0, v0, 0xff
+    or      t5, t5, v0
+    dsll    t5, t5, 8
+#endif
+8:
+
+    jr      t8
+    nop
+END(READ_DIMM_IDENTIFIER)
+
+#ifdef  MULTI_I2C_BUS
+#define GET_I2C_NODE_ID_a2_1 dsrl a2, s1, 4; and a2, a2, 0x3;
+#else
+#define GET_I2C_NODE_ID_a2_1  ;
+#endif
+
+LEAF(CHECK_DIMM_CHANGE)
+/**********************
+    check whether the 2 DIMMs are changed
+input:
+    s1: NODE_ID, I2C node ID
+    t1: MC slot I2C addr
+    t7: mc_level_info address
+output:
+    v0: return value
+register usage:
+    t9: save ra
+    t8: by child READ_DIMM_IDENTIFIER
+    t4/t5: dimm info
+**********************/
+
+    move    t9, ra
+
+    //check slot 0 DIMM
+    and     a0, t1, 0xf
+    GET_I2C_NODE_ID_a2_1
+    bal     READ_DIMM_IDENTIFIER
+    nop
+    ld      a1, 0x8(t7)
+    bne     t4, a1, do_arb_level
+    nop
+    ld      a1, 0x10(t7)
+    bne     t5, a1, do_arb_level
+    nop
+    //check slot 1 DIMM
+    dsrl    a0, t1, 4
+    and     a0, a0, 0xf
+    GET_I2C_NODE_ID_a2_1
+    bal     READ_DIMM_IDENTIFIER
+    nop
+    ld      a1, 0x18(t7)
+    bne     t4, a1, do_arb_level
+    nop
+    ld      a1, 0x20(t7)
+    bne     t5, a1, do_arb_level
+    nop
+
+//do_not_arb_level:
+    move    v0, $0
+    jr      t9
+    nop
+
+do_arb_level:
+    or      v0, $0, 0x1
+    jr      t9
+    nop
+END(CHECK_DIMM_CHANGE)

@@ -36,6 +36,46 @@
     or      s1, s1, v0
 #endif
 
+#ifdef  AUTO_ARB_LEVEL
+//store memory system info into s3(include frequency and dimm i2c addr)
+#ifdef  CHECK_ARB_LEVEL_FREQ
+    dli     t0, CHIP_SAMPLE_BASE_ADDR
+    GET_NODE_ID_a0
+    or      t0, t0, a0
+    ld      a0, 0x0(t0)
+    dsrl    a0, a0, DDR_CLKSEL_OFFSET
+    and     a0, a0, DDR_CLKSEL_MASK
+    dsll    a0, a0, 40
+    GET_NODE_ID_a1
+    dsll    a1, a1, 3
+    dsll    a0, a0, a1
+    or      s3, s3, a0
+#endif
+
+#ifdef  CHECK_ARB_LEVEL_DIMM
+    //store dimm i2c addr info to s3
+    dsrl    a2, s1, 16
+    dli     a1, 0xffff
+    and     a2, a2, a1
+    GET_NODE_ID_a1
+    dsll    a1, a1, 4
+    dsll    a2, a2, a1
+    or      s3, s3, a2
+#endif
+
+#ifdef  DEBUG_AUTO_ARB_LEVEL
+    PRINTSTR("\r\ns3 = 0x");
+    dsrl    a0, s3, 32
+    bal     hexserial
+    nop
+    PRINTSTR("__")
+    move    a0, s3
+    bal     hexserial
+    nop
+    PRINTSTR("\r\n")
+#endif
+#endif
+
 #ifdef  AUTO_DDR_CONFIG
     bal     PROBE_NODE_DIMM
     nop
@@ -163,13 +203,13 @@
 
 //make sure s1[3:2] is correctly set.
     GET_MC_SEL_BITS
-    dli     t5, 3
-    bne     a1, t5, 1f
+    dli     a2, 3
+    bne     a1, a2, 1f
     nop
 //s1[3:2]=0b'11, clear to 0b'00
-    dli     t5, 0xc
-    not     t5, t5
-    and     s1, s1, t5
+    dli     a2, 0xc
+    not     a2, a2
+    and     s1, s1, a2
 1:
 /**************************
 1. 1. check NODE memory size.
@@ -261,7 +301,7 @@ t0,t2 shouldn't be changed to the end of this file.
 #if 1 // AdonWang disable ddr3 readbuff
 /*      May Affect the Performance     */
 //This seems better for the spec2000
-//if we enable ECC, this bit will be reset in mc_init
+//if we enable ECC, this bit will be reset
     PRINTSTR("Disable read buffer\r\n")
     lw      a1, 0x4(t2)
     li      a0, 0x18
@@ -294,6 +334,11 @@ t0,t2 shouldn't be changed to the end of this file.
 8:
 #endif
 
+#ifdef  AUTO_ARB_LEVEL
+    bal     SET_AUTO_ARB_LEVEL_MARK
+    nop
+#endif
+
     bal     mc_init
     nop
     PRINTSTR("\r\nMC0 Config DONE\r\n")
@@ -320,6 +365,12 @@ t0,t2 shouldn't be changed to the end of this file.
     sync
 8:
 #endif
+
+#ifdef  AUTO_ARB_LEVEL
+    bal     SET_AUTO_ARB_LEVEL_MARK
+    nop
+#endif
+
     bal     mc_init
     nop
     TTYDBG("\r\nMC1 Config DONE\r\n")
@@ -384,6 +435,7 @@ t0,t2 shouldn't be changed to the end of this file.
 #endif
     //disable default pci window
     L2XBAR_DISABLE_WINDOW(0x100);
+
     GET_MC_SEL_BITS
     beqz    a1, 1f
     nop

@@ -1091,12 +1091,6 @@ gs_2f_v3_ddr2_cfg:
 	2:      
 #endif    
 
-#ifdef MULTI_CHIP
-	TTYDBG("CPU 1 READ TEST...\r\n")
-	dli      t0, 0x900010003ff00040
-	lw       a0, 0x0(t0)
-	TTYDBG("CPU 1 READ TEST OK.\r\n")
-#endif
 ##########################################
 
 #include "loongson3_fixup.S"
@@ -1174,12 +1168,6 @@ after_ht:
 		dli a0, 0x9800000000000000
 		bal	scache_init_64 // whd
 		nop
-#ifdef MULTI_CHIP
-		TTYDBG("scache init node 1\r\n")
-		dli a0, 0x9800100000000000
-		bal	scache_init_64 // whd
-		nop
-#endif
 #endif
 
 #if 1
@@ -1244,17 +1232,25 @@ after_ht:
 #include "ddr_dir/ddr_param_define.h"
 #include "ddr_dir/ddr_config_define.h"
 #define DISABLE_DIMM_ECC
+#define PRINT_MSG
 #ifndef ARB_LEVEL
 //#define FIX_DDR_PARAM
 #endif
-#define PRINT_MSG
+#ifdef  ARB_LEVEL
+#define AUTO_ARB_LEVEL
+#endif
+#ifdef  AUTO_ARB_LEVEL
+//#define CHECK_ARB_LEVEL_FREQ
+#define CHECK_ARB_LEVEL_DIMM
+//#define DEBUG_AUTO_ARB_LEVEL
+#endif
 //#define DEBUG_DDR
 //#define DEBUG_DDR_PARAM
 
     TTYDBG("\r\nStart Init Memory, wait a while......\r\n")
 ####################################
-    dli     msize, 0
-
+    move    msize, $0
+    move    s3, $0
 //!!!!important--s1 must be correctly set
 
     TTYDBG("NODE 0 MEMORY CONFIG BEGIN\r\n")
@@ -1266,6 +1262,7 @@ after_ht:
 #endif
 
 #include "loongson3_ddr2_config.S"
+
     TTYDBG("Init Memory done.\r\n")
 ##########################################
 #ifdef  DEBUG_DDR
@@ -1339,6 +1336,11 @@ after_ht:
 
 3:
 #endif
+
+#ifdef  AUTO_ARB_LEVEL
+#include "ddr_dir/store_auto_arb_level_info.S"
+#endif
+#########################################
 
 #if 0 //cww_X2
 		w83627write(0x8,0x30,0x1)
@@ -1470,8 +1472,6 @@ after_ht:
 		la	a0, start
 		li	a1, 0xbfc00000
 		la	a2, _edata
-		#or      a0, 0xa0000000
-		#or      a2, 0xa0000000
 		subu	t1, a2, a0
 		srl	t1, t1, 2
 
@@ -1509,52 +1509,6 @@ after_ht:
 
 
 		TTYDBG("Copy PMON to execute location done.\r\n")
-		/* zhb */
-#if 0
-		zhb:
-		TTYDBG("Testing...\r\n")
-		la	a0, start
-		li	a1, 0xbfc00000
-		la	a2, _edata
-		or      a0, 0xa0000000
-		or      a2, 0xa0000000
-		/*	subu	s6, a2, a0*/
-		/*	srl	s6, s6, 2*/
-
-		move	t0, a0
-		move	t1, a1
-		move	t2, a2
-		/* copy text section */
-
-		1:	lw	t4, 0(t1)
-		nop
-		lw	t5, 0(t0)
-		addu	t0, 4
-		addu	t1, 4
-		beq	t4, t5, 2f
-		nop
-		move	a0, t0
-		subu	a0, 4
-		bal	hexserial
-		nop
-		TTYDBG	(" ")
-		move	a0, t4
-		bal	hexserial
-		nop
-		TTYDBG	(" ")
-		move	a0, t5
-		bal	hexserial
-		nop
-		TTYDBG	("\r\n")
-		2:	bne	t2, t0, 1b
-		nop
-		TTYDBG	("test ok!\r\n")
-		/*
-		   3:	beqz	zero, 3b
-		   nop
-		 */
-#endif
-
 
 		TTYDBG("sp=");
 	move a0, sp
@@ -2689,6 +2643,16 @@ cache_init_finish:
 
 #endif
 
+	.global watchdog_enable
+	.ent    watchdog_enable
+	.set    noreorder
+	.set    mips3
+watchdog_enable:
+	WatchDog_Enable
+	jr		ra
+    nop
+	.end watchdog_enable
+
 #######################################
 #include "ddr_dir/ddr_config.S"
 #ifdef ARB_LEVEL
@@ -2701,26 +2665,6 @@ cache_init_finish:
 #ifdef  DEBUG_DDR
 #include "ddr_dir/Test_Mem.S"
 #endif
-
-	.global watchdog_enable
-	.ent    watchdog_enable
-	.set    noreorder
-	.set    mips3
-watchdog_enable:
-	WatchDog_Enable
-	jr		ra
-    nop
-	.end watchdog_enable
-
-#######################################
-	.text
-	.global  nvram_offs
-	.align 12
-nvram_offs:
-	.dword 0x0
-	.align 12
-
-#######################################
 
     .rdata
     .global ddr2_reg_data
@@ -2735,18 +2679,19 @@ nvram_offs:
 
 #ifdef  ARB_LEVEL
     .text
-    .global ddr2_leveled_mark
-    .global ddr2_reg_data_mc0_leveled
-    .global ddr2_reg_data_mc1_leveled
+    .global c0_mc0_level_info 
+    .global c0_mc1_level_info 
 
-    .align  12
-ddr2_leveled_mark:
-.dword 0x0
-    .align  12
-
-#include "loongson3A3_ddr_param.lvled.S"
+#include "ddr_dir/loongson3A3_ddr_param.lvled.S"
 #else
 #ifdef FIX_DDR_PARAM
 #include "loongson3A3_ddr_param.fix.S"
 #endif
 #endif
+
+	.text
+	.global  nvram_offs
+	.align 12
+nvram_offs:
+	.dword 0x0
+	.align 12

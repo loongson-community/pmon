@@ -20,40 +20,26 @@
 ddr2_config:
 #ifdef  ARB_LEVEL
     //if use leveled ddr param, the param location is fixed
-    dla     a2, ddr2_leveled_mark
-    daddu   a2, a2, s0
-    ld      a2, 0x0(a2)
-    beqz    a2, 5f
+    bnez    t7, 5f
     nop
     dla     a2, ddr2_reg_data_leveled
+    move    v0, $0
+    GET_NODE_ID_a1
+    beq     a1, v0, 4f
+    nop
+    dla     a2, n1_ddr2_reg_data_leveled
+    daddu   v0, v0, 0x1
+    beq     a1, v0, 4f
+    nop
 #ifdef  DUAL_3B
-    GET_NODE_ID_a1
-    dli     v0, 0x1
-    beq     a1, v0, 1f
-    nop
-    daddiu  v0, v0, 0x1
-    beq     a1, v0, 2f
-    nop
-    daddiu  v0, v0, 0x1
-    beq     a1, v0, 3f
-    nop
-    b       4f
-    nop
-1:
-    dla     a2, n1_ddr2_reg_data_leveled
-    b       4f
-    nop
-2:
     dla     a2, n2_ddr2_reg_data_leveled
-    b       4f
+    daddu   v0, v0, 0x1
+    beq     a1, v0, 4f
     nop
-3:
     dla     a2, n3_ddr2_reg_data_leveled
-#else
-    GET_NODE_ID_a1
-    beqz    a1, 4f
+    daddu   v0, v0, 0x1
+    beq     a1, v0, 4f
     nop
-    dla     a2, n1_ddr2_reg_data_leveled
 #endif
     b       4f
     nop
@@ -1224,6 +1210,8 @@ ddr2_config_end:
 
 //subroutine: mc_init
 //input: t3--MC select, 0--MC0; 1--MC1  --obselete
+//       t7--do arb level, 0--not level; 1--do level;
+
         .global mc_init
         .ent    mc_init
         .set    noreorder
@@ -1386,11 +1374,8 @@ Fix_ddr_param:
     bnez    v0, 8f
     nop
 #endif
-    //read ARB_level signal
-    dla     a2, ddr2_leveled_mark
-    daddu   a2, a2, s0
-    ld      a2, 0x0(a2)
-    bnez    a2, 8f
+    //read ARB_level
+    beqz    t7, 8f
     nop
 
     //route 0x1000000000 ~ 0x1FFFFFFFFF(64G) to MC for ARB_level
@@ -1680,7 +1665,174 @@ Fix_ddr_param:
     nop
     nop
 
-    move    ra, t4
-    jr      ra
+    jr      t4
     nop
     .end    mc_init
+
+#ifdef  CHECK_ARB_LEVEL_FREQ
+LEAF(CHECK_DDR_FREQ_CHANGE)
+/*********************
+check whether the chip ddr clksel is changed
+input:
+    s3:
+    [44:40] chip 0 ddr clksel
+    [52:48] chip 1 ddr clksel
+    t7: mc level info addr
+output:
+    v0: 0--not changed; !0--changed
+*********************/
+    ld      a0, 0x0(t7)
+    dsrl    a0, a0, 32
+    and     a0, a0, DDR_CLKSEL_MASK
+    dsrl    a2, s3, 40
+    GET_NODE_ID_a1
+    dsrl    a1, a1, 1
+    dsll    a1, a1, 3
+    dsrl    a2, a2, a1
+    and     a2, a2, DDR_CLKSEL_MASK
+    xor     v0, a0, a2
+
+    jr      ra
+    nop
+END(CHECK_DDR_FREQ_CHANGE)
+#endif
+
+LEAF(SET_AUTO_ARB_LEVEL_MARK)
+    move    t6, ra
+
+//set t7 to mc level info address
+//if define CHECK_ARB_LEVEL_DIMM, set t1 at the same time for CHECK_DIMM_CHANGE
+    dla     t7, c0_mc0_level_info
+#ifdef  CHECK_ARB_LEVEL_DIMM
+    move    t1, s3
+#endif
+    move    v0, $0
+    GET_NODE_ID_a1
+    beq     a1, v0, 4f
+    nop
+#ifdef  MULTI_CHIP
+    dla     t7, c0_mc1_level_info
+#ifdef  CHECK_ARB_LEVEL_DIMM
+    dsrl    t1, s3, 8
+#endif
+    daddu   v0, v0, 0x1
+    beq     a1, v0, 4f
+    nop
+#endif
+#ifdef  DUAL_3B
+    dla     t7, c1_mc0_level_info
+#ifdef  CHECK_ARB_LEVEL_DIMM
+    dsrl    t1, s3, 16
+#endif
+    daddu   v0, v0, 0x1
+    beq     a1, v0, 4f
+    nop
+    dla     t7, c1_mc1_level_info
+#ifdef  CHECK_ARB_LEVEL_DIMM
+    dsrl    t1, s3, 24
+#endif
+    daddu   v0, v0, 0x1
+    beq     a1, v0, 4f
+    nop
+#endif
+4:
+    daddu   t7, t7, s0
+#ifdef  DEBUG_AUTO_ARB_LEVEL
+    PRINTSTR("\r\nstored level info addr is 0x")
+    dsrl    a0, t7, 32
+    bal     hexserial
+    nop
+    move    a0, t7
+    bal     hexserial
+    nop
+    PRINTSTR("\r\nsaved dimm infor is 0x")
+    ld      t8, 0x0(t7)
+    dsrl    a0, t8, 32
+    bal     hexserial
+    nop
+    move    a0, t8
+    bal     hexserial
+    nop
+    PRINTSTR("\r\n")
+    ld      t8, 0x8(t7)
+    dsrl    a0, t8, 32
+    bal     hexserial
+    nop
+    move    a0, t8
+    bal     hexserial
+    nop
+    PRINTSTR("\r\n")
+    ld      t8, 0x10(t7)
+    dsrl    a0, t8, 32
+    bal     hexserial
+    nop
+    move    a0, t8
+    bal     hexserial
+    nop
+    PRINTSTR("\r\n")
+    ld      t8, 0x18(t7)
+    dsrl    a0, t8, 32
+    bal     hexserial
+    nop
+    move    a0, t8
+    bal     hexserial
+    nop
+    PRINTSTR("\r\n")
+    ld      t8, 0x20(t7)
+    dsrl    a0, t8, 32
+    bal     hexserial
+    nop
+    move    a0, t8
+    bal     hexserial
+    nop
+    PRINTSTR("\r\n")
+#endif
+    //check level mark(first boot or first populate DIMM)
+    ld      v0, 0x0(t7)
+    and     v0, v0, 0x1
+    beqz    v0, 1f 
+    nop
+    PRINTSTR("\r\nThis MC has been leveled.");
+
+#ifdef  CHECK_ARB_LEVEL_FREQ
+    bal     CHECK_DDR_FREQ_CHANGE
+    nop
+    bnez    v0, 1f
+    nop
+    PRINTSTR("\r\nThis MC frequency has not been changed.");
+#endif
+
+#ifdef  CHECK_ARB_LEVEL_DIMM
+    bal     CHECK_DIMM_CHANGE
+    nop
+    bnez    v0, 1f
+    nop
+    PRINTSTR("\r\nThis MC DIMMs have not been changed.");
+#endif
+    //set no arb level mark
+    move    t7, $0
+    b       2f
+    nop
+1:
+    //set do arb level mark
+    or      t7, $0, 0x1
+    or      v0, $0, 0x1
+    dsll    a2, v0, 32
+    GET_NODE_ID_a1
+    dsll    a2, a2, a1
+    or      s3, s3, a2
+2:
+#ifdef  DEBUG_AUTO_ARB_LEVEL
+    PRINTSTR("\r\ns3 = 0x");
+    dsrl    a0, s3, 32
+    bal     hexserial
+    nop
+    PRINTSTR("__")
+    move    a0, s3
+    bal     hexserial
+    nop
+    PRINTSTR("\r\n")
+#endif
+    jr      t6
+    nop
+END(SET_AUTO_ARB_LEVEL_MARK)
