@@ -371,7 +371,7 @@ struct board_devices *board_devices_info()
   strcpy(bd->name,"lemote-3a-notebook-a1004");
 #endif
 #ifdef LOONGSON_2GQ2H
-	strcpy(bd->name,"LOONGSON-2GQ-2H");
+	strcpy(bd->name,"Loongson-2GQ-2H-1w-V0.1-demo");
 #endif
   bd->num_resources = 10;
  
