@@ -2492,19 +2492,19 @@ static const Optdesc netdmp_opts[] =
     {"<netdmp>", "IP Address"},
     {0}
 };
-
 static const Cmd Cmds[] =
 {
         {"fxp"},
+#if 0
         {"setmac_fxp", "", NULL,
                     "Set mac address into E100 eeprom", cmd_setmac_fxp0, 1, 5, 0},
         {"readrom_fxp", "", NULL,
                         "dump E100 eprom content", cmd_reprom_fxp0, 1, 2, 0},
         {"writerom_fxp", "", NULL,
                         "write E100 eprom content", cmd_wrprom_fxp0, 1, 2, 0},
+#endif
         {0, 0}
 };
-
 
 static void init_cmd __P((void)) __attribute__ ((constructor));
 

@@ -526,11 +526,13 @@ static const Cmd Cmds[] =
 {
 	{"Misc"},
 	{"showwindows",	"", 0, "Show all windows configuration for 3A", cmd_showwindows, 1, 99, 0},
+#if 0
 	{"wtest",	"", 0, "write meory test", cmd_wtest, 1, 99, 0},
 	{"rtest",	"", 0, "read meory test", cmd_rtest, 1, 99, 0},
 	{"wrtest",	"", 0, "write/read meory test", cmd_wrtest, 1, 99, 0},
 	{"wrtestb",	"", 0, "write/read meory test", cmd_wrtest_B1, 1, 99, 0},
 	{"wrtestsys1",	"", 0, "write/read meory test", cmd_wrtest_sys1, 1, 99, 0},
+#endif
 	{0, 0}
 };
 

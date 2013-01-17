@@ -310,7 +310,7 @@ return 0;
 static const Cmd Cmds[] =
 {
 	{"MyCmds"},
-	{"test","val",0,"hardware test",cmd_test,0,99,CMD_REPEAT},
+	//{"test","val",0,"hardware test",cmd_test,0,99,CMD_REPEAT},
 	{"functest","",0,"function test",cmd_functest,0,99,CMD_REPEAT},
 	{"serial","val",0,"hardware test",cmd_serial,0,99,CMD_REPEAT},
 	{0,0}

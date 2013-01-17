@@ -1785,9 +1785,9 @@ static const Cmd Cmds[] =
 	{"m4",	"addr [data]", 0, "modify address world", modify, 0, 99, CMD_REPEAT},
 	{"m8",	"addr [data]", 0, "modify address double word",modify, 0, 99, CMD_REPEAT},
 	{"setvga","[0|1]",0,"set vga_available",setvga,0,99,CMD_REPEAT},
-	{"setkbd","[0|1]",0,"set kbd_available",setkbd,0,99,CMD_REPEAT},
-	{"setinput","[0|1]",0,"set input_from_both",setinput,0,99,CMD_REPEAT},
-	{"setoutput","[0|1]",0,"set output_to_both",setinput,0,99,CMD_REPEAT},
+//	{"setkbd","[0|1]",0,"set kbd_available",setkbd,0,99,CMD_REPEAT},
+//	{"setinput","[0|1]",0,"set input_from_both",setinput,0,99,CMD_REPEAT},
+//	{"setoutput","[0|1]",0,"set output_to_both",setinput,0,99,CMD_REPEAT},
 #if NMOD_VGACON
 	{"initkbd","",0,"kbd_initialize",initkbd,0,99,CMD_REPEAT},
 #endif
