@@ -950,36 +950,59 @@ struct partition {
     unsigned int nr_sects;      /* nr of sectors in partition */
 } __attribute__((packed));
 
-
+extern char wd_name[512];
 static int fdisk(int argc,char **argv)
 {
-int j,n,type_counts;
-struct partition *p0;
-FILE *fp;
-char device[0x40];
-int buf[0x10];
-	if(strncmp(argv[1],"/dev/",5)) sprintf(device,"/dev/disk/%s",argv[1]);
-	else strcpy(device,diskname);
-sprintf(device,"/dev/disk/%s",(argc==1)?"wd0":argv[1]);
-type_counts=sizeof(known_parttype)/sizeof(struct parttype);
-fp=fopen(device,"rb");
-if(!fp)return -1;
-fseek(fp,446,0);
-fread(buf,0x40,1,fp);
-fclose(fp);
+	int j,n,type_counts;
+	struct partition *p0;
+	FILE *fp;
+	char device[0x40];
+	int buf[0x10];
+	int len;
 
-printf("Device Boot %-16s%-16s%-16sId System\n","Start","End","Sectors");
-for(n=0,p0=(void *)buf;n<4;n++,p0++)
-{
-if(!p0->sys_ind)continue;
+	if(strncmp(argv[1],"/dev/",5)) 
+		sprintf(device,"/dev/disk/%s",argv[1]);
+	else 
+		strcpy(device,diskname);
+	sprintf(device,"/dev/disk/%s",(argc==1)?"wd0":argv[1]);
+	type_counts=sizeof(known_parttype)/sizeof(struct parttype);
+	fp=fopen(device,"rb");
+	if(!fp)
+		return -1;
+	fseek(fp,446,0);
+	fread(buf,0x40,1,fp);
+	fclose(fp);
 
-for(j=0;j<type_counts;j++)
-if(known_parttype[j].type==p0->sys_ind)break;
+	printf("Device Name");
+	len = strlen(wd_name);
+	len -= 11;
+	while(len){
+		printf(" ");
+		len--;
+	}
+	printf(" ");
+	printf("Device Boot %-16s%-16s%-16sId System\n","Start","End","Sectors");
+	for(n=0,p0=(void *)buf;n<4;n++,p0++)
+	{
+		if(!p0->sys_ind)
+			continue;
 
-printf("%-6d %-4c %-16d%-16d%-16d%x %s\n",n,(p0->boot_ind==0x80)?'*':' ',p0->start_sect,p0->start_sect+p0->nr_sects,p0->nr_sects,\
-p0->sys_ind,j<type_counts?known_parttype[j].name:"unknown");
-}
-return 0;
+		for(j=0;j<type_counts;j++)
+			if(known_parttype[j].type==p0->sys_ind)
+				break;
+
+		printf("%s", wd_name);
+		len = strlen(wd_name);
+		len -= 11;
+		while(len){
+			printf(" ");
+			len--;
+		}
+		printf(" ");
+		printf("%-6d %-4c %-16d%-16d%-16d%x %s\n",n,(p0->boot_ind==0x80)?'*':' ',p0->start_sect,p0->start_sect+p0->nr_sects,p0->nr_sects,\
+		p0->sys_ind,j<type_counts?known_parttype[j].name:"unknown");
+	}
+	return 0;
 }
 #include <sys/netinet/in.h>
 #include <sys/netinet/in_var.h>

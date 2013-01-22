@@ -318,6 +318,8 @@ wdprobe(parent, match_, aux)
 	return 1;
 }
 
+char wd_name[512];
+
 void
 wdattach(parent, self, aux)
 	struct device *parent, *self;
@@ -366,7 +368,7 @@ wdattach(parent, self, aux)
  #endif
 
 	printf(": <%s>\n", buf);
-
+	strcpy(wd_name, buf);
 	wdc_probe_caps(wd->drvp, &wd->sc_params);
 	wdc_print_caps(wd->drvp);
 
