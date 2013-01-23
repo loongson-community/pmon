@@ -401,6 +401,8 @@ struct loongson_special_attribute *init_special_info()
   special->resource[0].end = VRAM_SIZE;
   strcpy(special->resource[0].name,"SPMODULE");
 #endif
+
+  special->resource[0].flags |= DMA64_SUPPORT;
   return special;
 }
 
