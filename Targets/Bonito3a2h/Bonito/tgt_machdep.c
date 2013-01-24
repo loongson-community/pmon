@@ -1043,6 +1043,14 @@ w83627_write(5,0x63,0x64);
 w83627_write(5,0x70,1);
 w83627_write(5,0x72,0xc);
 w83627_write(5,0xf0,0xc0); //KBC clock rate: 0xc0: 16MHZ, 0x80: 12MHZ
+
+/* add support for fan speed controler */
+#define HM_OFF 0x0290
+w83627_write(0xb,0x60,HM_OFF >> 0x8); // set HM base address @0xbff00290
+w83627_write(0xb,0x61,HM_OFF & 0xff);
+/* enable HM  */
+w83627_write(0xb,0x30,0x1);
+
 }
 #endif
 
@@ -1607,7 +1615,7 @@ static void
 _probe_frequencies()
 {
 #ifdef HAVE_TOD
-        int i, timeout, cur, sec, cnt;
+        int i, timeout, cur, sec, cnt, tenthsec, tenthcur;
 #endif
                                                                     
         SBD_DISPLAY ("FREQ", CHKPNT_FREQ);
@@ -1649,9 +1657,9 @@ _probe_frequencies()
          */
 aa:
         for(i = 2;  i != 0; i--) {
-                timeout = 1000;
-                sec = (*(volatile unsigned int *)(0xbbef802c) & 0x3f0) >> 0x4;
-				while(((cur = (*(volatile unsigned int *)(0xbbef802c) & 0x3f0) >> 0x4) == sec) && (timeout != 0)){
+                timeout = 10000000; /* assume max frequency 1G */
+                tenthsec = (*(volatile unsigned int *)(0xbbef802c) & 0xf);
+				while(((tenthcur = (*(volatile unsigned int *)(0xbbef802c) & 0xf) ) == tenthsec) && (timeout != 0)){
                         timeout--;
 				}
                 if(timeout == 0) {
@@ -1659,11 +1667,12 @@ aa:
                         break;          /* Get out if clock is not running */
                 }
                 timeout = 10000000;
-                cnt = CPU_GetCOUNT(); /* start from next seconde */
+                cnt = CPU_GetCOUNT(); /* start from next 0.1 seconde */
+				tenthcur = (*(volatile unsigned int *)(0xbbef802c) & 0xf);
                 do {
-						sec = (*(volatile unsigned int *)(0xbbef802c) & 0x3f0) >> 0x4;
+						tenthsec = (*(volatile unsigned int *)(0xbbef802c) & 0xf);
                         timeout--;
-                } while(timeout != 0 && (cur == sec));
+                } while(timeout != 0 && (tenthcur == tenthsec));
                 cnt = CPU_GetCOUNT() - cnt;
                 if(timeout == 0) {
 				  tgt_printf("time out!\n");
@@ -1675,7 +1684,7 @@ aa:
 	 */
 	if (timeout != 0) {
 		clk_invalid = 0;
-		md_pipefreq = cnt / 10000;
+		md_pipefreq = cnt / 1000;
 		md_pipefreq *= 20000;
 		/* we have no simple way to read multiplier value
 		 */

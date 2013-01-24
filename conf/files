@@ -415,3 +415,4 @@ file pmon/cmds/install.c
 file pmon/cmds/save_ddrparam.c
 file pmon/cmds/showwindows.c	
 file pmon/cmds/interface.c	 amd_780e
+file pmon/cmds/w83527_fan.c
