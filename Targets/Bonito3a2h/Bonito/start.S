@@ -249,12 +249,12 @@ start:
 stack = start - 0x4000		/* Place PMON stack below PMON start in RAM */
 
 /* NOTE!! Not more that 16 instructions here!!! Right now it's FULL! */
-mtc0	zero, COP_0_STATUS_REG
-mtc0	zero, COP_0_CAUSE_REG
-li	t0, SR_BOOT_EXC_VEC	/* Exception to Boostrap Location */
-mtc0	t0, COP_0_STATUS_REG
-la	sp, stack
-la	gp, _gp
+    mtc0	zero, COP_0_STATUS_REG
+    mtc0	zero, COP_0_CAUSE_REG
+    li	t0, SR_BOOT_EXC_VEC	/* Exception to Boostrap Location */
+    mtc0	t0, COP_0_STATUS_REG
+    la	sp, stack
+    la	gp, _gp
 
 //	bal	uncached		/* Switch to uncached address space */
 	nop
@@ -275,7 +275,7 @@ la	gp, _gp
 	 *  Reboot vector usable from outside pmon.
 	 */
 	.align	8
-	ext_map_and_reboot:
+ext_map_and_reboot:
 	bal	CPU_TLBClear
 	nop
 
@@ -337,6 +337,13 @@ la	gp, _gp
 #endif
 
 	exc_common:
+	.set 	mips64
+	mfc0	t0, $15, 1
+	.set 	mips3
+	PRINTSTR("\r\nCPU ID=")
+	move	a0, t0
+	bal	hexserial
+	nop
 	PRINTSTR("\r\nCAUSE=")
 	mfc0	a0, COP_0_CAUSE_REG
 	bal	hexserial
@@ -402,52 +409,53 @@ la	gp, _gp
 	subu	s0,ra,s0
 	and	s0,0xffff0000
 
-	li	t0,SR_BOOT_EXC_VEC
+	li	    t0,SR_BOOT_EXC_VEC
 	mtc0	t0,COP_0_STATUS_REG
 	mtc0    zero,COP_0_CAUSE_REG
 	.set noreorder
 
-li	bonito,PHYS_TO_UNCACHED(BONITO_REG_BASE)
-	lpc_write_test:
-
-loop_here:
+    li	bonito,PHYS_TO_UNCACHED(BONITO_REG_BASE)
 
 //Open 64-bit address space
-mfc0    t0, CP0_STATUS
-li      t1, 0x00e0      # {cu3,cu2,cu1,cu0}<={0110, status_fr<=1
+    mfc0    t0, CP0_STATUS
+    li      t1, 0x00e0
 	or      t0, t0, t1
-		mtc0    t0, CP0_STATUS
+	mtc0    t0, CP0_STATUS
 
 
 		.set 	mips64
 		mfc0	t0, $15, 1
 		.set 	mips3
 		andi	t0, 0x3ff
-		//bnez 	t0, loop_here
-		//li      a0, 0x3
-		//bne 	t0, a0, slave_main
 
 #if 1 /* clear Mail BOX */
 #define CORE0_BUF0 0x900000003ff01020
 #define CORE1_BUF0 0x900000003ff01120
 #define CORE2_BUF0 0x900000003ff01220
 #define CORE3_BUF0 0x900000003ff01320
+#define FN_OFF 0x020
+#define SP_OFF 0x028
+#define GP_OFF 0x030
+#define A1_OFF 0x038
+#define SYSTEM_INIT_OK  0x5a5a
 
 		dli     t1, CORE0_BUF0
-		andi    t3, t0, 0x3  #local cpuid
+		andi    t3, t0, 0x3  //local cpuid
 		dsll    t3, 8
 		or      t1, t1, t3
 
-		andi    t4, t0, 0xc  #node id
+		andi    t4, t0, 0xc  //node id
 		dsll    t4, 42
 		or      t1, t1, t4
 
-		//dsll    t0, t0, 0x8
-		//or      t1, t1, t0
-
-		dli     a0, 0x0
-		sd      a0, 0x0(t1)
+		sd      $0, 0x0(t1)
+		sd      $0, 0x8(t1)
+		sd      $0, 0x10(t1)
+		sd      $0, 0x18(t1)
 #endif
+		li      a0, 0x0
+		bne     t0, a0, slave_main
+		nop
 
 		bal	initserial
 		nop
@@ -532,17 +540,6 @@ li      t1, 0x00e0      # {cu3,cu2,cu1,cu0}<={0110, status_fr<=1
 		1:
 		bnez    t0, 1b
 		nop
-#endif
-
-		li      a0, 0x0
-		bne     t0, a0, slave_main
-#bnez 	t0, slave_main
-		nop
-
-#if 0 /* Niuxie Tube */
-		li      a0,0xbff00080
-		li      t0,0xcc
-		sb      t0,0x0(a0)
 #endif
 
 #ifdef DEBUG_LS3
@@ -1091,12 +1088,6 @@ gs_2f_v3_ddr2_cfg:
 	2:      
 #endif    
 
-#ifdef MULTI_CHIP
-	TTYDBG("CPU 1 READ TEST...\r\n")
-	dli      t0, 0x900010003ff00040
-	lw       a0, 0x0(t0)
-	TTYDBG("CPU 1 READ TEST OK.\r\n")
-#endif
 ##########################################
 
 #include "loongson3_fixup.S"
@@ -1170,21 +1161,14 @@ after_ht:
 		bal     godson2_cache_init
 		nop
 		TTYDBG("scache init node 0\r\n")
-		//bal	scache_init // smh
 		dli a0, 0x9800000000000000
 		bal	scache_init_64 // whd
 		nop
-#ifdef MULTI_CHIP
-		TTYDBG("scache init node 1\r\n")
-		dli a0, 0x9800100000000000
-		bal	scache_init_64 // whd
-		nop
-#endif
 #endif
 
 #if 1
 		PRINTSTR("Jump to 9fc\r\n")
-		lui     t0, 0xdfff ####################### go to 9fc
+		lui     t0, 0xdfff
 		ori     t0, t0, 0xffff
 		bal     1f
 		nop
@@ -1203,7 +1187,13 @@ after_ht:
 		mtc0   $4,$16
 
 		TTYDBG("cache enable done\r\n")
-		nop
+#endif
+
+#if 1 
+	    dli     t0, CORE0_BUF0 #buf of cpu0
+        li      a1, SYSTEM_INIT_OK
+	    sw      a1, 0x0(t0)
+	    nop
 #endif
 
 //##########################################
@@ -1261,25 +1251,6 @@ after_ht:
     and     v0, v0, 0xf
     dli     a1, 0x1
     bgt     v0, a1, 3f
-    nop
-#endif
-
-#if 0
-#if 1
-    PRINTSTR("\r\nStart other core test?(0xcccc: start): ")
-    bal     inputaddress
-    nop
-    move    t1, v0
-#else
-    li      t1, 0xcccc
-#endif
-
-#ifdef NODE1_BOOT
-    dli     t0, NODE1_CORE0_BUF0 #buf of cpu1
-#else
-    dli     t0, NODE0_CORE0_BUF0 #buf of cpu0
-#endif
-    sw      t1, FN_OFF(t0)
     nop
 #endif
 
@@ -1502,21 +1473,13 @@ after_ht:
 		TTYDBG("Copy PMON to execute location done.\r\n")
 
 		TTYDBG("sp=");
-	move a0, sp
+	    move a0, sp
 		bal	hexserial
 		nop
+		PRINTSTR("\r\n")
 
 		li	a0, 4096*1024
 		sw	a0, CpuTertiaryCacheSize /* Set L3 cache size */
-
-#if 0
-		mfc0   a0,COP_0_CONFIG
-		and    a0,a0,0xfffffff8
-		or     a0,a0,0x3
-		mtc0   a0,COP_0_CONFIG
-#endif
-		PRINTSTR("\r\n")
-
 
 		/* pass pointer to kseg1 tgt_putchar */
 		la  a1, tgt_putchar
@@ -1525,15 +1488,7 @@ after_ht:
 		la  a2, stringserial
 		addu a2,a2,s0
 
-		//dsrl	msize,20
 		move	a0,msize
-
-#if 1 
-		dli     t0, CORE0_BUF0 #buf of cpu0
-		li      t1, 0x5a5a
-		sw      t1, 0(t0)
-		nop
-#endif
 		la	v0, initmips
 		jalr	v0
 		nop
@@ -2516,202 +2471,151 @@ cache_init_finish:
 		END(enable_lpcio_dev8)
 #endif
 
-
-#if  1 /* slave main */
-
-		.ent	slave_main
-		slave_main:
-
+    .ent	slave_main
+slave_main:
 #if 1
-		mfc0	t0, CP0_STATUS
-		li      t1, 0x00e0      # {cu3,cu2,cu1,cu0}<={0110, status_fr<=1
-			or      t0, t0, t1
+    mfc0	t0, CP0_STATUS
+    li      t1, 0x00e0  //set {UX,SX,KX} to 3'b111
+    or      t0, t0, t1
+    mtc0    t0, CP0_STATUS
 
-				mtc0    t0, CP0_STATUS
+    mfc0    t0, CP0_STATUS
+    lui     t1, 0x40    //set bev to 1'b1
+    or      t0, t0, t1
+    mtc0    t0, CP0_STATUS
 
-				mfc0    t0, CP0_STATUS
-#lui     t1, 0x10
-#and     t0, t0, t1      #sr 
-				lui     t1, 0x40        #bev
-				or      t0, t0, t1
-				mtc0    t0, CP0_STATUS
-				mtc0    zero, CP0_CAUSE
-
-#PRINTSTR("CP0_STATUS:")
-#mfc0    a0, CP0_STATUS
-#bal	    hexserial
-#nop
-#PRINTSTR("\r\n\r\n")
-
-#PRINTSTR("hello world!!\r\n");
-
-
+    mtc0    zero, CP0_CAUSE
 #endif
 
-#if 1 
+    bal     tlb_init
+    nop
 
-				dli     t0, CORE0_BUF0 #buf of cpu0
-				myidle:
-				lw      a0, 0(t0)
-				beqz    a0, myidle
-				nop
-#endif
+    bal     godson2_cache_init
+    nop
 
 #if 0
-				li      a0, 0x100000
-				myidle:    
-				addiu   a0, -1
-				bnez    a0, myidle
-				nop
+//the dead loop core will cause exception no matter before or after the tlb_init!
+//and the id of slave core doesn't matter
+//why???
+    .set mips64
+    mfc0    t2, $15, 1
+    andi    t2, 0x3ff
+    .set mips3
+    dli     t0, 0x2
+    bne     t2, t0, 2f
+    nop
+1:
+    b       1b
+    nop
+2:
 #endif
 
-				//PRINTSTR("$$$$$$$$!!\r\n");
-
-#if 1 /* gx */
-				bal 	tlb_init
-
-				nop
-				bal     godson2_cache_init
-				nop
-
-				mfc0	t0, CP0_CONFIG
-				ori	    t0, t0, 7
-				xori	t0, t0, 4
-				mtc0	t0, CP0_CONFIG
-
-				la	t0, next
+//wait core0 init done
+    dli     t0, CORE0_BUF0 #buf of cpu0
+    li      a1, SYSTEM_INIT_OK
+1:
 #if 1
-				dli	t1, 0xfffff
-				and     t0, t1
-				dli	t1, 0xffffffff9fc00000
-				or	t0, t1
-#endif	
+    li      a0, 0x10000
+2:
+    addiu   a0, -1
+    bnez    a0, 2b
+    nop
+#endif
+    lw      a0, 0x0(t0)
+    bne     a1, a0, 1b
+    nop
 
-				jr	t0
-				nop
-				next:
-
-## enable kseg0 cachablilty####
-				mfc0    t0, CP0_CONFIG
-				lui     t1, 0xffff
-				ori     t1, t1, 0xfff8
-				and     t0, t0, t1
-				ori     t0, t0, 0x3
-				mtc0    t0, CP0_CONFIG
-################################
+#if 1
+#if 1
+/***********************
+    Important!!!
+    this code CAN NOT be removed.
+***********************/
+    mfc0	t0, CP0_CONFIG
+    ori	    t0, t0, 7
+    xori	t0, t0, 4
+    mtc0	t0, CP0_CONFIG
 #endif
 
-#if 0
-############
-	mtc0    $0, CP0_WIRED
-	mtc0    $0, CP0_PAGEMASK
-	tlb_flush_all_slave:
-	lui     a0, 0x8000
-	addiu   a1, $0, 64
-#a0=KSEG0,a1 = tlbsize, v0, v1, a3 used as local registers
-	mtc0    $0, CP0_ENTRYLO0
-	mtc0    $0, CP0_ENTRYLO1
-	mfc0    v0, CP0_WIRED
-	addu    v1, $0, a0
-	1:      sltu    a3, v0, a1
-	beq     a3, $0, 1f
-	nop
-	mtc0    v1, CP0_ENTRYHI
-	mtc0    v0, CP0_INDEX
-	tlbwi
-	addiu   v1, v1, 0x2000
-	beq     $0, $0, 1b
-	addiu   v0, v0, 1
-	1:
-############
+//jump to 0x9fcxxxxx
+    lui     t0, 0xdfff
+    ori     t0, t0, 0xffff
+    bal     1f
+    nop
+1:
+    and     ra, ra, t0
+    addiu   ra, ra, 16
+    jr      ra
+    nop
+
+    sync
+    nop
+    nop
+    nop
+    nop
+    ## enable kseg0 cachablilty####
+    mfc0    t0, CP0_CONFIG
+    lui     t1, 0xffff
+    ori     t1, t1, 0xfff8
+    and     t0, t0, t1
+    ori     t0, t0, 0x3
+    mtc0    t0, CP0_CONFIG
+    ################################
 #endif
 
-	.set mips64
-	mfc0    t2, $15, 1
-	andi    t2, 0x3ff
-	.set mips3
-########
-#define FN_OFF 0x020
-#define SP_OFF 0x028
-#define GP_OFF 0x030
-#define A1_OFF 0x038
+    .set mips64
+    mfc0    t2, $15, 1
+    andi    t2, 0x3ff
+    .set mips3
 
-	dli     t0, 0x900000003ff01000 
-	andi    t3, t2, 0x3  #local cpuid
-	sll     t3, 8
-	or      t0, t0, t3
+    dli     t0, 0x900000003ff01000 
+    andi    t3, t2, 0x3  #local core id
+    sll     t3, 8
+    or      t0, t0, t3
 
-	andi    t4, t2, 0xc  #node id
-	dsll     t4, 42
-	or      t0, t0, t4
+    andi    t4, t2, 0xc  #node id
+    dsll    t4, 42
+    or      t0, t0, t4
 
+waitforinit:   
+    li      a0, 0x10000
+idle1000:    
+    addiu   a0, -1
+    bnez    a0, idle1000
+    nop
 
-	waitforinit:   
+    lw      v0, FN_OFF(t0)
+    beqz    v0, waitforinit
+    nop
 
-#if 0 /* gx */
-	.set mips64
-	mfc0    s1, $15, 1
-	andi    s1, 0x3ff
-	.set mips3
-	move	a0, s1
-	bal	hexserial
-	nop
-	//move	a0, v0
-	//bal	hexserial
-	//nop
-	//move	a0, s1
-	//bal	hexserial
-	//nop
-#endif	
-	li      a0, 0x1000000
-	idle1000:    
-	addiu   a0, -1
-	bnez    a0, idle1000
-	nop
+    dli     t1, 0xffffffff00000000 
+    or      v0, t1
 
-	lw      v0, FN_OFF(t0)
-	beqz    v0, waitforinit
-	nop
+    dli     t1, 0x9800000000000000 
+    ld      sp, SP_OFF(t0)
+    or      sp, t1
+    ld      gp, GP_OFF(t0)
+    or      gp, t1
+    ld      a1, A1_OFF(t0)
 
-#if 0 /* gx */
-	move	a0, v0
-	bal	        hexserial
-	nop
-#endif
-
-	dli      t1, 0xffffffff00000000 
-	or       v0, t1
-
-	dli      t1, 0x9800000000000000 
-	ld      sp, SP_OFF(t0)
-	or      sp, t1
-	ld      gp, GP_OFF(t0)
-	or      gp, t1
-	ld      a1, A1_OFF(t0)
-
-	//PRINTSTR("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& !!\r\n");
-
-	jalr    v0  #byebye 
-	nop
-
+    jalr    v0  #byebye 
+    nop
 #######
 1:
-	b   1b
-	nop
-
-	.end	slave_main
-
-#endif
-
-	.global watchdog_enable
-	.ent    watchdog_enable
-	.set    noreorder
-	.set    mips3
-watchdog_enable:
-	WatchDog_Enable
-	jr		ra
+    b   1b
     nop
-	.end watchdog_enable
+    .end	slave_main
+
+
+    .global watchdog_enable
+    .ent    watchdog_enable
+    .set    noreorder
+    .set    mips3
+watchdog_enable:
+    WatchDog_Enable
+    jr		ra
+    nop
+    .end watchdog_enable
 
 #######################################
 #include "ddr_dir/ddr_config.S"
@@ -2745,9 +2649,9 @@ watchdog_enable:
 #endif
 #endif
 
-	.text
-	.global  nvram_offs
-	.align 12
+    .text
+    .global  nvram_offs
+    .align 12
 nvram_offs:
-	.dword 0x0
-	.align 12
+    .dword 0x0
+    .align 12
