@@ -1,6 +1,6 @@
 //store whether save ddr param info to memory
 //at least 512MB memory and DIMM_INFO_ADDR has been routed to memory
-#define DIMM_INFO_ADDR  0x9800000090000000
+#define DIMM_INFO_ADDR  0x980000000fff0000
 #define DIMM_INFO_TOKEN 0x2013011014413291
 /***************
 store info organize:

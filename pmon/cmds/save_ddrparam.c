@@ -308,7 +308,7 @@ void save_ddrparam(u64 node_id_shift44, u64 *ddr_param_buf, int param_store_addr
 #endif
 }
 
-#define DIMM_INFO_ADDR  0x9800000090000000
+#define DIMM_INFO_ADDR  0x980000000fff0000
 
 #ifdef loongson3A3
 int save_board_ddrparam(void)
