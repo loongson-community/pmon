@@ -187,6 +187,7 @@ brgphy*          at mii? phy ?                   # Broadcom PHYs
 rtl*        at pci? dev ? function ?
 rtk*		 at pci? dev ? function ?
 em*        at pci? dev ? function ?
+igb*       at pci? dev ? function ?             #Intel 82576
 #added by wxy
 bnx*            at pci? dev ? function ?                       # BCM5709S
 

@@ -154,6 +154,7 @@ __END_DECLS
 
 #define htole16(x) (x)
 #define htole32(x) (x)
+#define htole64(x) (x)
 #define letoh16(x) (x)
 #define letoh32(x) (x)
 

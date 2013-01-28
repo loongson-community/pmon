@@ -44,6 +44,9 @@ device em: ether, ifnet, ifmedia, mii
 attach em at pci
 file   sys/dev/pci/e1000e/if_em.c          em
 
+device igb: ether, ifnet, ifmedia, mii
+attach igb at pci
+file   sys/dev/pci/igb/if_igb.c          igb
 
 # Ethernet driver for wx-based boards
 device	wx: ether, ifnet, ifmedia, mii, mii_phy

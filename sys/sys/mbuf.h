@@ -81,6 +81,7 @@ struct	pkthdr {
 	struct	ifnet *rcvif;		/* rcv interface */
 	int	len;			/* total packet length */
 	void	*tdbi;			/* pointer to struct tdb_ident */
+	unsigned short  csum_flags;     /* checksum flags */
 					/* XXX - pull in ip_ipsp.h */ 
 };
 
@@ -154,6 +155,13 @@ struct mbuf {
 #define	MT_IFADDR	13	/* interface address */
 #define	MT_CONTROL	14	/* extra-data protocol message */
 #define	MT_OOBDATA	15	/* expedited data  */
+
+#define                M_IPV4_CSUM_IN_OK   0x0008  /* IPv4 checksum verified */
+#define                M_IPV4_CSUM_IN_BAD  0x0010  /* IPv4 checksum bad */
+#define                M_TCP_CSUM_IN_OK    0x0020  /* TCP/IPv4 checksum verified */
+#define                M_TCP_CSUM_IN_BAD   0x0040  /* TCP/IPv4 checksum bad */
+#define                M_UDP_CSUM_IN_OK    0x0080  /* UDP/IPv4 checksum verified */
+#define                M_UDP_CSUM_IN_BAD   0x0100  /* UDP/IPv4 checksum bad */
 
 /* flags to m_get/MGET */
 #define	M_DONTWAIT	M_NOWAIT

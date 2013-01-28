@@ -51,6 +51,7 @@ struct ether_addr {
 #define	ETHER_ADDR_LEN	6
 
 #define ETHER_CRC_LEN  4       /* Ethernet CRC length                  */
+#define ETHER_MIN_LEN 64
 #define ETHER_ALIGN            2       /* driver adjust for IP hdr alignment */
 //wan+
 #define ETHER_TYPE_LEN 2       /* Ethernet type field length_______*/
@@ -131,6 +132,7 @@ struct	arpcom {
 	char	 ac__pad[2];			/* pad for some machines */
 	LIST_HEAD(, ether_multi) ac_multiaddrs;	/* list of ether multicast addrs */
 	int	 ac_multicnt;			/* length of ac_multiaddrs list */
+	int      ac_multirangecnt;
 };
 
 struct llinfo_arp {
