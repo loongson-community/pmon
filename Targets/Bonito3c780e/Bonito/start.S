@@ -1201,6 +1201,19 @@ soft_out:
 
 #endif
 
+#if 1
+    TTYDBG ("\r\nMC RESET\r\n")
+    li      t0, 0xbfe00180
+    lw      a2, 0x0(t0)
+    li      v1, 0x1080
+    not     v1, v1
+    and     a2, a2, v1
+    sw      a2, 0x0(t0)
+    not     v1, v1
+    or      a2, a2, v1
+    sw      a2, 0x0(t0)
+#endif
+
 ##########################################
 
 #include "loongson3_fixup.S"
