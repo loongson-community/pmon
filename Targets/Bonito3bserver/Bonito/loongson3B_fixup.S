@@ -292,6 +292,14 @@
     sd  $0, 0x90(t2)
 #endif
 #endif
+//  adjust the scache index selection to HT1's window for dma40
+	dli t0, 0x900010003ff04400
+	dli t1, 0x2
+	sd t1, 0x00(t0)
+
+	dli t0, 0x900000003ff00400
+	dli t1, 0x2
+	sd t1, 0x00(t0)
 
     nop
     nop

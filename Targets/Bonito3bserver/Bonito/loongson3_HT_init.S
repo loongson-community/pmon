@@ -114,6 +114,48 @@
 #endif
 
 
+	dli t0, 0x900010003ff06700
+	dli t1, 0x0000002000000000
+	sd t1, 0x00(t0)
+	dli t1, 0xffffffe000000c00
+	sd t1, 0x40(t0)
+	dli t1, 0x00001000000000a0
+	sd t1, 0x80(t0)
+
+	dli t1, 0x0000002000000400
+	sd t1, 0x08(t0)
+	dli t1, 0xffffffe000000c00
+	sd t1, 0x48(t0)
+	dli t1, 0x00001000000004a1
+	sd t1, 0x88(t0)
+
+	dli t1, 0x0000002000000800
+	sd t1, 0x10(t0)
+	dli t1, 0xffffffe000000c00
+	sd t1, 0x50(t0)
+	dli t1, 0x00001000000008a2
+	sd t1, 0x90(t0)
+
+	dli t1, 0x0000002000000c00
+	sd t1, 0x18(t0)
+	dli t1, 0xffffffe000000c00
+	sd t1, 0x58(t0)
+	dli t1, 0x0000100000000ca3
+	sd t1, 0x98(t0)
+
+	dli t1, 0x0000004000000000
+	sd t1, 0x20(t0)
+	dli t1, 0xffffffe000000c00
+	sd t1, 0x60(t0)
+	dli t1, 0x00002000000000a4
+	sd t1, 0xa0(t0)
+
+	dli t1, 0x0000006000000000
+	sd t1, 0x28(t0)
+	dli t1, 0xffffffe000000c00
+	sd t1, 0x68(t0)
+	dli t1, 0x00003000000000a4
+	sd t1, 0xa8(t0)
 
 //////////////////
 #if	0
