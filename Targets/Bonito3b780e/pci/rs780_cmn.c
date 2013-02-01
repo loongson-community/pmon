@@ -364,6 +364,15 @@ void htiu_write_index(device_t nb_dev, u32 index, u32 data)
 	nb_write_index((nb_dev), NBHTIU_INDEX, ((index) | 0x100), (data));
 }
 
+u32 htiu_read_indexN(device_t nb_dev, u32 index)
+{
+	return nb_read_index((nb_dev), 0x94, (index));
+}
+
+void htiu_write_indexN(device_t nb_dev, u32 index, u32 data)
+{
+	nb_write_index((nb_dev), 0x94, ((index) | 0x100), (data));
+}
 u32 nbmc_read_index(device_t nb_dev, u32 index)
 {
 	return nb_read_index((nb_dev), NBMC_INDEX, (index));
