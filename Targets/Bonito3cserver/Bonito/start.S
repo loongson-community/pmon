@@ -1198,18 +1198,6 @@ soft_ht:
 
 soft_out:
 	TTYDBG ("\r\n")
-#if 1
-    TTYDBG ("\r\nCPU 0 MC RESET\r\n")
-    li      t0, 0xbfe00180
-    lw      a2, 0x0(t0)
-    li      v1, 0x1080
-    not     v1, v1
-    and     a2, a2, v1
-    sw      a2, 0x0(t0)
-    not     v1, v1
-    or      a2, a2, v1
-    sw      a2, 0x0(t0)
-#endif
 
 
 
@@ -1299,18 +1287,6 @@ soft_ht_cpu1:
 soft_out_cpu1:
 	TTYDBG ("\r\n")
 
-#if 1
-    TTYDBG ("\r\nCPU 1 MC RESET\r\n")
-    li      t0, 0x900020001fe00180
-    lw      a2, 0x0(t0)
-    li      v1, 0x1080
-    not     v1, v1
-    and     a2, a2, v1
-    sw      a2, 0x0(t0)
-    not     v1, v1
-    or      a2, a2, v1
-    sw      a2, 0x0(t0)
-#endif
 #endif
 
 #if 1
@@ -1354,6 +1330,33 @@ soft_out_cpu1:
 //#include "loongson3_fixup.S"
 #include "loongson3_fixup_3b.S"
 
+#if 1
+    TTYDBG ("\r\nCPU 0 MC RESET\r\n")
+    li      t0, 0xbfe00180
+    lw      a2, 0x0(t0)
+    li      v1, 0x1080
+    not     v1, v1
+    and     a2, a2, v1
+    sw      a2, 0x0(t0)
+    not     v1, v1
+    or      a2, a2, v1
+    sw      a2, 0x0(t0)
+#endif
+
+#ifdef DUAL_3B
+#if 1
+    TTYDBG ("\r\nCPU 1 MC RESET\r\n")
+    li      t0, 0x900020001fe00180
+    lw      a2, 0x0(t0)
+    li      v1, 0x1080
+    not     v1, v1
+    and     a2, a2, v1
+    sw      a2, 0x0(t0)
+    not     v1, v1
+    or      a2, a2, v1
+    sw      a2, 0x0(t0)
+#endif
+#endif
 #if 1
 //begin :Beep on -> delay -> Beep off
 	bal	beep_on
