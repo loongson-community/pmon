@@ -174,14 +174,32 @@ smbios_entry_point_init(void *start,
 	ep->intermediate_checksum = -sum;
 }
 
+static inline int cpu_probe_release(void)
+{
+       unsigned long cputype_flag = 0;
+        __asm__ volatile ( "dli     $2, 0x90000efdfb000000\r\n"
+                " lw      %0, 0x5c($2)\r\n"
+                ".set     mips3\r\n"
+                :"=r"(cputype_flag)::"$2");
+        if(cputype_flag == 0x7778888) //test whether this is a 3A5 
+               return 1;
+        else
+               return 0;
+}
 /* board_name information */
 static void board_info(char *board_name)
 {
 #ifdef LOONGSON_3ASINGLE
-        strcpy(board_name, "Loongson-3A-780E-1w-V1.03-demo");
+	if(cpu_probe_release())
+        	strcpy(board_name, "Loongson-3A5-780E-1w-V1.03-demo");
+	else
+        	strcpy(board_name, "Loongson-3A-780E-1w-V1.03-demo");
 #endif
 #ifdef LOONGSON_3A2H
-        strcpy(board_name, "Loongson-3A-2H-1w-V1.00-demo");
+	if(cpu_probe_release())
+        	strcpy(board_name, "Loongson-3A5-2H-1w-V1.00-demo");
+	else
+        	strcpy(board_name, "Loongson-3A-2H-1w-V1.00-demo");
 #endif
 #ifdef LOONGSON_3BSINGLE
 #ifdef LOONGSON_3B1500
@@ -195,9 +213,15 @@ static void board_info(char *board_name)
 #endif
 #ifdef LOONGSON_3ASERVER
 #ifdef USE_BMC
-        strcpy(board_name, "Loongson-3A-780E-2wBMC-V1.02-demo");
+	if(cpu_probe_release())
+        	strcpy(board_name, "Loongson-3A5-780E-2wBMC-V1.02-demo");
+	else
+        	strcpy(board_name, "Loongson-3A-780E-2wBMC-V1.02-demo");
 #else
-        strcpy(board_name, "Loongson-3A-780E-2w-V1.02-demo");
+	if(cpu_probe_release())
+        	strcpy(board_name, "Loongson-3A5-780E-2w-V1.02-demo");
+	else
+        	strcpy(board_name, "Loongson-3A-780E-2w-V1.02-demo");
 #endif
 #endif
 
@@ -413,7 +437,10 @@ smbios_type_4_init(void *start)
 		p->max_speed = 800;
 	}
 	if(prid == 0x6305){
-		strcpy(cpu_version, "Loongson ICT Loongson-3A CPU @ 1.0GHz");
+		if(cpu_probe_release())
+			strcpy(cpu_version, "Loongson ICT Loongson-3A5 CPU @ 1.0GHz");
+		else
+			strcpy(cpu_version, "Loongson ICT Loongson-3A CPU @ 1.0GHz");
 		p->max_speed = 1000;
 	}
 	if(prid == 0x6306){
