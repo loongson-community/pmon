@@ -106,14 +106,6 @@
 1:
 
 ####### Unused HT0 port #########################
-#if 0
-	dli	t0, 0x0000200000000000
-	sd	t0, 0x28(t2)
-	dli	t0, 0x0000200000000000
-	sd	t0, 0x68(t2)
-	dli	t0, 0x00002000000000f7
-	sd	t0, 0xa8(t2)
-#endif
 
 	dli	t0, 0x00000c0000000000
 	sd	t0, 0x30(t2)
@@ -141,14 +133,6 @@
 	dli	t0, 0x00000c00000000f7
 	sd	t0, 0xa8(t2)
 
-#if 0
-	dli	t0, 0x0000200000000000
-	sd	t0, 0x30(t2)
-	dli	t0, 0x0000200000000000
-	sd	t0, 0x70(t2)
-	dli	t0, 0x00002000000000f7
-	sd	t0, 0xb0(t2)
-#endif
 
     daddiu  t2, t2, 0x100
     bne     t2, t1, 1b
@@ -167,19 +151,10 @@
 ####### Unused HT0 port #########################
 	dli	t0, 0x00002c0000000000
 	sd	t0, 0x28(t2)
-	dli	t0, 0xfffffc0000000000
+	dli	t0, 0x00003c0000000000
 	sd	t0, 0x68(t2)
 	dli	t0, 0x00003c00000000f4
 	sd	t0, 0xa8(t2)
-
-#if 0
-	dli	t0, 0x0000200000000000
-	sd	t0, 0x30(t2)
-	dli	t0, 0x0000200000000000
-	sd	t0, 0x70(t2)
-	dli	t0, 0x00002000000000f7
-	sd	t0, 0xb0(t2)
-#endif
 
     daddiu  t2, t2, 0x100
     bne     t2, t1, 1b
@@ -197,24 +172,6 @@
 	sd	t0, 0x68(t2)
 	dli	t0, 0x00002c00000000f7
 	sd	t0, 0xa8(t2)
-
-/*
-	dli	t0, 0x00000c0000000000
-	sd	t0, 0x38(t2)
-	dli	t0, 0x00000c0000000000
-	sd	t0, 0x38(t2)
-	dli	t0, 0x00001c00000000f4
-	sd	t0, 0x38(t2)
-*/
-
-#if 0
-	dli	t0, 0x0000200000000000
-	sd	t0, 0x30(t2)
-	dli	t0, 0x0000200000000000
-	sd	t0, 0x70(t2)
-	dli	t0, 0x00002000000000f7
-	sd	t0, 0xb0(t2)
-#endif
 
     daddiu  t2, t2, 0x100
     bne     t2, t1, 1b
