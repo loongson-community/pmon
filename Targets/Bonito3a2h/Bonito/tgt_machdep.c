@@ -652,7 +652,8 @@ tgt_devconfig()
 	         char bootup[] = "Booting...";
 	         char *tmp_copy = NULL;
 	         char tmp_date[11];
-			 char * s;
+		char * s;
+		unsigned int cnt;
 #if NMOD_VGACON > 0
 	int rc=1;
 #if NMOD_FRAMEBUFFER > 0 
@@ -795,50 +796,15 @@ tgt_devconfig()
 			init_win_device();
 
 	        vga_available = 0;          //lwg close printf output
-	
 
-	{ 
-			struct FackTermDev *devp;
-            int fd = 0;
-            DevEntry* p;
-            Msg msg;   //==char msg
-			int sign = 0;
-
-            //get input without wait ===========   add by oldtai
-            fd = ((FILE*)stdin)->fd;
-            devp = (struct FackTermDev *)(_file[fd].data);
-            p = &DevTable[devp->dev];
-
-            for (count = 0;count < 10;count++)
-            {
-                //get input without wait
-                scandevs();
-
-                while(!tgt_smplock());
-
-		/* 'DEL' to BIOS Interface */
-		if(p->rxq->count >= 3){
-		  if ((p->rxq->dat[p->rxq->first + p->rxq->count-3] == 0x1b)
-			  && (p->rxq->dat[p->rxq->first + p->rxq->count-2] == '[')
-			  && (p->rxq->dat[p->rxq->first + p->rxq->count-1] == 'G')) {
-			sign = 1;
-			p->rxq->count -= 3;
-		  }
-		  if (sign == 1) {
-                        tgt_smpunlock();
-			break;
-		  }
+		for(count = 0;count < 100;count ++)
+		{
+			ioctl(STDIN, FIONREAD, &cnt);
+			if(cnt > 0 && strchr("[G\r",getchar()))
+				break;
+			delay1(30);
 		}
-                tgt_smpunlock();
-
-                //delay1(30);
-/*If you want to Press <Del> to set BIOS open it(from 0 to 1)*/
-#if 1
-                delay1(300);
-#endif
-            }
-  }
-
+	
               vga_available = 1;
               video_set_color(0xf);
   		
@@ -850,7 +816,7 @@ tgt_devconfig()
 
              vga_available = 0;
  
-              if (count >= 10)
+              if (count >= 100)
                   goto run;
               else
                   goto bios;
