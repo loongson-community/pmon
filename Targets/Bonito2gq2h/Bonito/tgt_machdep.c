@@ -642,6 +642,9 @@ extern unsigned long long uma_memory_size;
 
 #define LS2H
 
+#define u64 unsigned long long
+extern u64 __raw__readq(u64 q);
+
 void
 tgt_devconfig()
 {
@@ -652,7 +655,9 @@ tgt_devconfig()
 	         char bootup[] = "Booting...";
 	         char *tmp_copy = NULL;
 	         char tmp_date[11];
-			 char * s;
+		char * s;
+		u64 val;
+		u64 add;
 #if NMOD_VGACON > 0
 	int rc=1;
 #if NMOD_FRAMEBUFFER > 0 
@@ -712,7 +717,19 @@ tgt_devconfig()
 		ioaddress = ioaddress &0xfffffff0; //laster 4 bit
 #endif
 
-#ifdef LS2H
+#ifdef LS2H	
+		add = 0x90000e000c000000;
+		printf("wait for ls2h init ddr..\n");
+		for (count = 0;count < 11;count++)
+		{
+			val = __raw__readq(add);
+			val = val & 0xff;
+			if(val == 0x55)
+			{
+				break;
+			}
+			delay1(6000);
+		}
 		printf("begin dc_init\n");
 		fbaddress = dc_init();
 		fbaddress |= 0xc0000000; //NOTICE HERE: map to mem on ls2h
