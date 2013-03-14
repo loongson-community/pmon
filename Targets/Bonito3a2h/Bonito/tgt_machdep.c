@@ -1692,7 +1692,6 @@ tgt_gettime()
         int year, month, date, hour, min, sec;
 	/*gx 2005-01-17 */
 #ifdef HAVE_TOD
-        if(!clk_invalid) {
 
 		month = ((*(volatile unsigned int *)0xbbef802c) & 0xfc000000) >> 26;
         	date = ((*(volatile unsigned int *)0xbbef802c) & 0x3e00000) >> 21;
@@ -1710,12 +1709,7 @@ tgt_gettime()
 
 		tm.tm_isdst = tm.tm_gmtoff = 0;
         	t = gmmktime(&tm);
-        }
-        else 
 #endif
-	{
-		t = 957960000;  /* Wed May 10 14:00:00 2000 :-) */
-        }
         return(t);
 }
 /*
@@ -1728,7 +1722,6 @@ tgt_settime(time_t t)
 	int year, month, date, hour, min, sec;
 	unsigned int time_value;
 #ifdef HAVE_TOD
-        if(!clk_invalid) {
                 tm = gmtime(&t);
 
 		year = tm->tm_year;
@@ -1741,9 +1734,8 @@ tgt_settime(time_t t)
 		time_value = ((month+1)<<26 | date<<21 | hour<<16 | min<<10 | sec<<4);
         	(*(volatile unsigned int *)0xbbef8024) = time_value;
 		(*(volatile unsigned int *)(0xbbef8028)) = year;
-        }
 #endif
- }
+}
 /*
  *  Print out any target specific memory information
  */
