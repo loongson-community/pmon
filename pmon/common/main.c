@@ -387,7 +387,7 @@ main()
 	char prompt[32];
 
 #ifdef ARB_LEVEL
-    save_board_ddrparam();
+    save_board_ddrparam(0);
 #endif
 
         if(cmd_main_mutex == 2)

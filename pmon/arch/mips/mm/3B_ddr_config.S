@@ -11,6 +11,9 @@
             1: MC1
     v3.0    Modify for 3B which is MC0_only.
             not use t3 any more
+        t7(option ARB_LEVEL): do arb level
+            0: no, use stored leveled param
+            1: yes, use default param
 **********************************/
 
         .global ddr2_config
@@ -159,6 +162,11 @@ ddr2_config:
     bnez    t1, 1b
     nop
 
+#ifdef  ARB_LEVEL
+    //if use leveled ddr param, don't re-write these param any more
+    beqz    t7, 88f
+    nop
+#endif
     //rewrite eight_bank_mode
     ld      a2, EIGHT_BANK_MODE_ADDR(t8)
     dli     a1, 0xff
@@ -215,7 +223,7 @@ ddr2_config:
     GET_MC_CS_MAP
     move    v0, a1
 #if 0   //Don't swap now, because we enable Dynamic ODT now, and
-    //use different ODT value for WR(120ohm) and non-wr purpose
+    //use different ODT value for WR and non-wr purpose
     //step 1: swap open wr odt if it's a Dual Rank DIMM
     //check cs_map[3]
     dsrl    a2, v0, 3
@@ -410,7 +418,7 @@ ddr2_config:
 
 8:
     //compensate for heavier ADD/CTRL/CMD load
-    dli     a2, 0x2
+    dli     a2, 0x4
     dmul    a2, a2, a0
 
     dsll    a1, a2, 0x8
@@ -423,6 +431,7 @@ ddr2_config:
     daddu   a1, a1, a2
     sd      a1, CLKLVL_DELAY_0_ADDR(t8)
 #endif
+88:
 
 #ifdef DEBUG_DDR_PARAM   //debug
 //input once, change all byte lanes parameters.
@@ -1209,8 +1218,8 @@ ddr2_config_end:
 
 
 //subroutine: mc_init
-//input: t3--MC select, 0--MC0; 1--MC1  --obselete
-//       t7--do arb level, 0--not level; 1--do level;
+//input: t3--MC select, 0--MC0; 1--MC1  -- obsolete
+//       t7(option ARB_LEVEL)--do arb level, 0--not level; 1--do level;
 
         .global mc_init
         .ent    mc_init

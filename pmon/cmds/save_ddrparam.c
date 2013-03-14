@@ -198,7 +198,7 @@ void enable_ddrcfgwindow(u64 node_id_shift44, int mc_selector, unsigned long lon
     //use window 0 which is used to route 0x1fc00000 addr space, not used here.
 {
 
-    printf("Now enable ddr config windows \n");
+    //printf("Now enable ddr config windows.\n");
 #ifdef DEBUG
     printf("origin :: 0x00: %016llx  0x40: %016llx 0x80:  %016llx\n", ld((CPU_L2XBAR_CONFIG_ADDR | node_id_shift44)), ld((CPU_L2XBAR_CONFIG_ADDR | node_id_shift44) + 0x40), ld((CPU_L2XBAR_CONFIG_ADDR | node_id_shift44) + 0x80));
 #endif
@@ -221,6 +221,7 @@ void enable_ddrcfgwindow(u64 node_id_shift44, int mc_selector, unsigned long lon
 //restore origin configure
 void disable_ddrcfgwidow(u64 node_id_shift44, int mc_selector, unsigned long long * buf)
 {
+    //printf("Now disable ddr config windows.\n");
 #ifdef DEBUG
     printf("Now retore L2X bar windows\n");
     printf("buf[0] = %llx, buf[1] = %llx, buf[2] = %llx\n", buf[0], buf[1], buf[2]);
@@ -254,7 +255,7 @@ int read_ddr_param(u64 node_id_shift44, int mc_selector,  unsigned long long * b
     enable_ddrconfig(node_id_shift44);
 
     // step 3. Read out ddr config register to buffer
-    printf("\nNow Read out DDR parameter from DDR MC%d controler after DDR training\n", mc_selector);
+    printf("Now Read out DDR parameter from DDR MC%d controler after DDR training\n", mc_selector);
     for ( i = DDR_PARAM_NUM - 1; i >= 0; i--) // NOTICE HERE: it means system has DDR_PARAM_NUM double words
     {
         val[i] =  ld((MC_CONFIG_ADDR | node_id_shift44) + (0x10 * i));
@@ -274,7 +275,7 @@ int read_ddr_param(u64 node_id_shift44, int mc_selector,  unsigned long long * b
     disable_ddrcfgwidow(node_id_shift44, mc_selector, buf);
 #endif
 
-    printf("Read out DDR MC%d config Done.\n", mc_selector);
+    //printf("Read out DDR MC%d config Done.\n", mc_selector);
     return 0;
 }
 
@@ -311,18 +312,18 @@ void save_ddrparam(u64 node_id_shift44, u64 *ddr_param_buf, int param_store_addr
 #define DIMM_INFO_ADDR  0x980000000fff0000
 
 #ifdef loongson3A3
-int save_board_ddrparam(void)
+int save_board_ddrparam(int mandatory)
 {
     unsigned long long flag;
     unsigned long long node_id;
     unsigned long long ddr_param_buf[DDR_PARAM_NUM + 6];
-    if(ld(DIMM_INFO_ADDR) == 0x2013011014413291){
+    if( (ld(DIMM_INFO_ADDR) == 0x2013011014413291) || mandatory ){
         printf("Token is correct!\n");
         flag    = ld(DIMM_INFO_ADDR + 0x8);
         printf("flag is 0x%016llx\n", flag);
         node_id = 0;
         //MC0
-        if((flag >> 32) & 0x1){
+        if( ((flag >> 32) & 0x1) || mandatory ){
             printf("Store MC info of Node %d MC 0\n", node_id);
             ddr_param_buf[0] = (((flag >> 40) & 0x1f) << 32) | 0x1;
             ddr_param_buf[1] = ld(DIMM_INFO_ADDR + 0x10);
@@ -339,7 +340,7 @@ int save_board_ddrparam(void)
             save_ddrparam(node_id << 44, &ddr_param_buf, (int)&c0_mc0_level_info, 0);
         }
         //MC1
-        if((flag >> 33) & 0x1){
+        if( ((flag >> 33) & 0x1) || mandatory ){
             printf("Store MC info of Node %d MC 1\n", node_id);
             ddr_param_buf[0] = (((flag >> 40) & 0x1f) << 32) | 0x1;
             ddr_param_buf[1] = ld(DIMM_INFO_ADDR + 0x30);
@@ -358,7 +359,7 @@ int save_board_ddrparam(void)
 #ifdef MULTI_CHIP
         node_id = 1;
         //MC0
-        if((flag >> 34) & 0x1){
+        if( ((flag >> 34) & 0x1) || mandatory ){
             printf("Store MC info of Node %d MC 0\n", node_id);
             ddr_param_buf[0] = (((flag >> 48) & 0x1f) << 32) | 0x1;
             ddr_param_buf[1] = ld(DIMM_INFO_ADDR + 0x50);
@@ -375,7 +376,7 @@ int save_board_ddrparam(void)
             save_ddrparam(node_id << 44, &ddr_param_buf, (int)&c1_mc0_level_info, 0);
         }
         //MC1
-        if((flag >> 35) & 0x1){
+        if( ((flag >> 35) & 0x1) || mandatory ){
             printf("Store MC info of Node %d MC 1\n", node_id);
             ddr_param_buf[0] = (((flag >> 48) & 0x1f) << 32) | 0x1;
             ddr_param_buf[1] = ld(DIMM_INFO_ADDR + 0x70);
@@ -402,18 +403,18 @@ int save_board_ddrparam(void)
 #else
 //for LS3B/LOONGSON_2H
 
-int save_board_ddrparam(void)
+int save_board_ddrparam(int mandatory)
 {
     unsigned long long flag;
     unsigned long long node_id;
     unsigned long long ddr_param_buf[DDR_PARAM_NUM + 6];
-    if(ld(DIMM_INFO_ADDR) == 0x2013011014413291){
+    if( (ld(DIMM_INFO_ADDR) == 0x2013011014413291) || mandatory ){
         printf("Token is correct!\n");
         flag    = ld(DIMM_INFO_ADDR + 0x8);
         printf("flag is 0x%016llx\n", flag);
         //MC0
         node_id = 0;
-        if((flag >> 32) & 0x1){
+        if( ((flag >> 32) & 0x1) || mandatory ){
             printf("Store MC info of Node %d\n", node_id);
             ddr_param_buf[0] = (((flag >> 40) & 0x1f) << 32) | 0x1;
             ddr_param_buf[1] = ld(DIMM_INFO_ADDR + 0x10);
@@ -433,7 +434,7 @@ int save_board_ddrparam(void)
 #ifdef MULTI_CHIP
         //MC1
         node_id = 1;
-        if((flag >> 33) & 0x1){
+        if( ((flag >> 33) & 0x1) || mandatory ){
             printf("Store MC info of Node %d\n", node_id);
             ddr_param_buf[0] = (((flag >> 40) & 0x1f) << 32) | 0x1;
             ddr_param_buf[1] = ld(DIMM_INFO_ADDR + 0x30);
@@ -453,7 +454,7 @@ int save_board_ddrparam(void)
 #ifdef DUAL_3B
         //MC0
         node_id = 2;
-        if((flag >> 34) & 0x1){
+        if( ((flag >> 34) & 0x1) || mandatory ){
             printf("Store MC info of Node %d\n", node_id);
             ddr_param_buf[0] = (((flag >> 48) & 0x1f) << 32) | 0x1;
             ddr_param_buf[1] = ld(DIMM_INFO_ADDR + 0x50);
@@ -471,7 +472,7 @@ int save_board_ddrparam(void)
         }
         //MC1
         node_id = 3;
-        if((flag >> 35) & 0x1){
+        if( ((flag >> 35) & 0x1) || mandatory ){
             printf("Store MC info of Node %d\n", node_id);
             ddr_param_buf[0] = (((flag >> 48) & 0x1f) << 32) | 0x1;
             ddr_param_buf[1] = ld(DIMM_INFO_ADDR + 0x70);
@@ -504,7 +505,7 @@ int cmd_save_ddrparam(ac, av)
     char *av[];
 {
     printf("start save_ddrparam\n");
-    if(save_board_ddrparam() == 1)
+    if(save_board_ddrparam(1) == 1)
     {
         printf("save_ddrparam done\n");
         return(1);
