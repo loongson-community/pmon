@@ -1624,8 +1624,8 @@ _probe_frequencies()
 aa:
         for(i = 2;  i != 0; i--) {
                 timeout = 10000000; /* assume max frequency 1G */
-                tenthsec = (*(volatile unsigned int *)(0xbbef802c) & 0xf);
-				while(((tenthcur = (*(volatile unsigned int *)(0xbbef802c) & 0xf) ) == tenthsec) && (timeout != 0)){
+                tenthsec = (*(volatile unsigned int *)(0xbbef802c) & 0x3f0) >> 0x4;
+				while(((tenthcur = (*(volatile unsigned int *)(0xbbef802c) & 0x3f0) >> 0x4 ) == tenthsec) && (timeout != 0)){
                         timeout--;
 				}
                 if(timeout == 0) {
@@ -1634,9 +1634,9 @@ aa:
                 }
                 timeout = 10000000;
                 cnt = CPU_GetCOUNT(); /* start from next 0.1 seconde */
-				tenthcur = (*(volatile unsigned int *)(0xbbef802c) & 0xf);
+				tenthcur = (*(volatile unsigned int *)(0xbbef802c) & 0x3f0) >> 0x4;
                 do {
-						tenthsec = (*(volatile unsigned int *)(0xbbef802c) & 0xf);
+						tenthsec = (*(volatile unsigned int *)(0xbbef802c) & 0x3f0) >> 0x4;
                         timeout--;
                 } while(timeout != 0 && (tenthcur == tenthsec));
                 cnt = CPU_GetCOUNT() - cnt;
@@ -1650,7 +1650,7 @@ aa:
 	 */
 	if (timeout != 0) {
 		clk_invalid = 0;
-		md_pipefreq = cnt / 1000;
+		md_pipefreq = cnt / 10000;
 		md_pipefreq *= 20000;
 		/* we have no simple way to read multiplier value
 		 */
