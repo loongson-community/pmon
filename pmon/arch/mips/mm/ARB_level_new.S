@@ -41,16 +41,17 @@ algrithm:
 //#define DEBUG_ARB_LEVEL_WR
 //#define DEBUG_ARB_LEVEL_TM_DETAIL
 
-//#define ARB_SKIP_WRLVL
+//#define USE_DEFAULT_WRLVL_VALUE   //currently only affect at DDR3 mode
 //#define USE_DEFAULT_RDLVL_DELAY
 
+//#define ARB_SKIP_WRLVL
 #define ADJUST_CPU_ODT  //work ok
 #define ADD_DELAY_AFTER_RESET_PHY   //not need any more ?
 
 //Don't change
 #define MODIFY_PAD_COMP
 #define CONTROL_L2XBAR_DDR_WINDOW  //work ok
-#define USE_SMALL_GF_POP_DELAY  //work ok
+#define USE_BIG_GF_POP_DELAY  //work ok
 #define ARBLVL_PUT_DRAM_SREF
 #ifndef	LOONGSON_2H
 #define CLEAR_HALF_CLK_SHIFT    //necessary
@@ -128,6 +129,11 @@ ARB_start:
 ARB_level_begin:
 
 #ifndef ARB_SKIP_WRLVL
+
+#ifdef  PRINT_MSG
+    PRINTSTR("\r\nStart Write Leveling. Wait a while...")
+#endif
+
 //prepare for wrlvl
     //Get CLKLVL_DELAY_VALUE
     bal     enable_ddr_confspace
@@ -148,10 +154,19 @@ ARB_level_begin:
     bal     disable_ddr_confspace
     nop
 
-arb_wrlvl_start:
-#ifdef  PRINT_MSG
-    PRINTSTR("\r\nStart Write Leveling. Wait a while...")
+#ifdef  DDR3_DIMM
+#ifdef  USE_DEFAULT_WRLVL_VALUE
+    GET_DIMM_TYPE
+    bnez    a1, 88f
+    nop
+    //DDR3 UDIMM
+    b       arb_wrlvl_default_value
+    nop
+88:
 #endif
+#endif
+
+arb_wrlvl_start:
 #ifdef  DEBUG_ARB_LEVEL_WR
     PRINTSTR("\r\nThe MC configuration is:\r\n")
     bal     enable_ddr_confspace
@@ -185,7 +200,7 @@ arb_wrlvl_start:
 
     //small wrlvl dq delay value temporary
     dli     t6, 0x6
-    dli     t2, 0x0e
+    dli     t2, 0x18
     bal     arb_modify_param
     nop
 
@@ -798,13 +813,17 @@ boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
     nop
 #endif
 #ifdef  PRINT_MSG
-    PRINTSTR("\r\nWrite level failed. Write default value(0x30).\r\n")
+    PRINTSTR("\r\nWrite level failed. Write default value.\r\n")
 #endif
     //write standard value mandatory
     //wrlvl_delay
+#ifdef  DDR3_DIMM
+    dli     a0, 0x48423c362a262220
+#else
     dli     a0, 0x3030303030303030
+#endif
     sd      a0, GD_MID(t8)
-    b       41f
+    b       arb_wrlvl_value_caled
     nop
 1:
 #ifdef  PRINT_MSG
@@ -825,6 +844,7 @@ boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
     bal     hexserial
     nop
 #endif
+
 //calculate mid value for each byte lane
     ld      a0, GD_MIN(t8)
     ld      a1, GD_MAX(t8)
@@ -839,7 +859,37 @@ boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
     bnez    a1, 4f
     nop
     //DDR3 UDIMM
+    //As some slices will reach the test boundary, select one of the speculate method
 #if 1
+//for DDR3 Unbuffered UDIMM
+//use MAX - (0x40 or the Min Max value) as the Slice 0 standard value, and
+//other slices use (slice 0 + default offset relative to slice 0)
+    ld      a1, GD_MIN(t8)
+    ld      a3, GD_MAX(t8)
+
+    and     a3, a3, 0x7f
+    and     a2, a3, 0x7f
+    //select the MIN(byte 0 MIN, WRLVL_DELAY_MINUS_VALUE), normally the byte 0 MIN should be the bigger.
+    dli     v0, WRLVL_DELAY_MINUS_VALUE
+    ble     a2, v0, 1f
+    nop
+    move    a2, v0
+1:
+    dsubu   a2, a3, a2
+    
+    //shift byte 0 value to 8 bytes of a2
+    dsll    v0, a2, 0x8
+    daddu   a2, a2, v0
+    dsll    v0, a2, 0x10
+    daddu   a2, a2, v0
+    dsll    v0, a2, 0x20
+    daddu   a2, a2, v0
+
+    dli     a0, WRLVL_DDR3_UDIMM_DEFAULT_OFFSET
+    daddu   a0, a0, a2
+#endif
+#if 0
+//use MAX - (0x40 or the Min Max value) adjustment algorithm
     ld      a1, GD_MIN(t8)
     ld      a3, GD_MAX(t8)
     //select the MIN of MAX(byte 1, byte 0), normally the byte 0 should be the smaller.
@@ -864,8 +914,107 @@ boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
     daddu   a2, a2, v0
     dsll    v0, a2, 0x20
     daddu   a2, a2, v0
-#if 1
-    //if the max value >= 0x70, compensate it(check slice 4~7 should be enough).
+    //If some slices'max value >= 0x70(caused by logic design boundary), we should compensate some value for them.
+    //check slice 2~7 should be enough
+    //note: the if 0 code bellow ONLY check slice 4~7 now.
+#if 0
+    //NOT need any more, because we set the max test value of wrlvl_dly to 0x70
+    //For slice Max value > 0x70(which is abnormal), Mask it to 0x70 for uniformed compensation
+    dli     a1, 0xf
+    dli     v0, 0x70
+
+    dsrl    v1, a3, 56
+    and     v1, v1, 0xff
+    ble     v1, v0, 1f
+    nop
+    //slice 7 > 0x70
+    dsll    v1, a1, 56
+    not     v1, v1
+    and     a3, a3, v1
+1:
+    dsrl    v1, a3, 48
+    and     v1, v1, 0xff
+    ble     v1, v0, 1f
+    nop
+    //slice 6 > 0x70
+    dsll    v1, a1, 48
+    not     v1, v1
+    and     a3, a3, v1
+1:
+    dsrl    v1, a3, 40
+    and     v1, v1, 0xff
+    ble     v1, v0, 1f
+    nop
+    //slice 5 > 0x70
+    dsll    v1, a1, 40
+    not     v1, v1
+    and     a3, a3, v1
+1:
+    dsrl    v1, a3, 32
+    and     v1, v1, 0xff
+    ble     v1, v0, 1f
+    nop
+    //slice 4 > 0x70
+    dsll    v1, a1, 32
+    not     v1, v1
+    and     a3, a3, v1
+1:
+#endif
+
+    //select one from the different compensating policies bellow
+#if 0
+    //if the max value of slice N && slice N+1 >= 0x70, compensate slice N+1(check slice 5~7 should be enough).
+    //set compensate value to a1
+    //assume compensate slice 5~7 first, if either condition is failed, then clear it
+    dli     v0, 0x4
+    dsll    a1, v0, 40
+    daddu   v0, v0, 0x4
+    dsll    v1, v0, 48
+    or      a1, a1, v1
+    daddu   v0, v0, 0x4
+    dsll    v1, v0, 56
+    or      a1, a1, v1
+
+    dli     v1, 0x70
+    dsrl    v0, a3, 32
+    and     v0, v0, 0xff
+    bge     v0, v1, 1f
+    nop
+    //slice 4 < 0x70, clear slice 5
+    dli     v0, 0xff
+    dsll    v0, v0, 40
+    not     v0, v0
+    and     a1, a1, v0
+1:
+    dsrl    v0, a3, 40
+    and     v0, v0, 0xff
+    bge     v0, v1, 1f
+    nop
+    //slice 5 < 0x70, clear slice 5 and slice 6
+    dli     v0, 0xff
+    dsll    v0, v0, 40
+    not     v0, v0
+    and     a1, a1, v0
+    //the least slice always 0, so we can do this
+    dsll    v0, v0, 8
+    and     a1, a1, v0
+1:
+    dsrl    v0, a3, 48
+    and     v0, v0, 0xff
+    bge     v0, v1, 1f
+    nop
+    //slice 6 < 0x70, clear slice 6 and slice 7
+    dli     v0, 0xff
+    dsll    v0, v0, 48
+    not     v0, v0
+    and     a1, a1, v0
+    dsll    v0, v0, 8
+    and     a1, a1, v0
+1:
+    daddu   a3, a3, a1
+#endif
+#if 0
+    //if the max value >= 0x70, compensate all a fix value(check slice 4~7 should be enough).
     //set compensate value to a0
     dli     a0, 0x4
     dli     v1, 0x7070707070707070
@@ -876,6 +1025,7 @@ boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
     and     v1, v1, 0xff
     bnez    v1, 1f
     nop
+    //slice 7 >= 0x70
     dsll    v1, a0, 56
     daddu   a3, a3, v1
 1:
@@ -883,6 +1033,7 @@ boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
     and     v1, v1, 0xff
     bnez    v1, 1f
     nop
+    //slice 6 >= 0x70
     dsll    v1, a0, 48
     daddu   a3, a3, v1
 1:
@@ -890,6 +1041,7 @@ boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
     and     v1, v1, 0xff
     bnez    v1, 1f
     nop
+    //slice 5 >= 0x70
     dsll    v1, a0, 40
     daddu   a3, a3, v1
 1:
@@ -897,9 +1049,72 @@ boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
     and     v1, v1, 0xff
     bnez    v1, 1f
     nop
+    //slice 4 >= 0x70
     dsll    v1, a0, 32
     daddu   a3, a3, v1
 1:
+#endif
+#if 1
+    //if one of the max value >= 0x70, compensate it and the upper slices(the slice upper, the compensate value bigger)
+    //check start from slice 2
+    //set compensate value to a1 first, like 0x100c080400000000, if the max >= 0x70 slice not start from slice 2, dsll a1.
+    dli     v0, 0x4
+    dsll    a1, v0, 16
+    daddu   v0, v0, 0x6
+    dsll    v1, v0, 24
+    or      a1, a1, v1
+    daddu   v0, v0, 0x6
+    dsll    v1, v0, 32
+    or      a1, a1, v1
+    daddu   v0, v0, 0x6
+    dsll    v1, v0, 40
+    or      a1, a1, v1
+    daddu   v0, v0, 0x6
+    dsll    v1, v0, 48
+    or      a1, a1, v1
+    daddu   v0, v0, 0x6
+    dsll    v1, v0, 56
+    or      a1, a1, v1
+
+    dli     v1, 0x70
+    dsrl    v0, a3, 16
+    and     v0, v0, 0xff
+    bge     v0, v1, 1f
+    nop
+    //slice 2 < 0x70
+    dsll    a1, a1, 0x8
+    dsrl    v0, a3, 24
+    and     v0, v0, 0xff
+    bge     v0, v1, 1f
+    nop
+    //slice 3 < 0x70
+    dsll    a1, a1, 0x8
+    dsrl    v0, a3, 32
+    and     v0, v0, 0xff
+    bge     v0, v1, 1f
+    nop
+    //slice 4 < 0x70
+    dsll    a1, a1, 0x8
+    dsrl    v0, a3, 40
+    and     v0, v0, 0xff
+    bge     v0, v1, 1f
+    nop
+    //slice 5 < 0x70
+    dsll    a1, a1, 0x8
+    dsrl    v0, a3, 48
+    and     v0, v0, 0xff
+    bge     v0, v1, 1f
+    nop
+    //slice 6 < 0x70
+    dsll    a1, a1, 0x8
+    dsrl    v0, a3, 56
+    and     v0, v0, 0xff
+    bge     v0, v1, 1f
+    nop
+    //slice 7 < 0x70
+    dsll    a1, a1, 0x8
+1:
+    daddu   a3, a3, a1
 #endif
     
     dsubu   a0, a3, a2
@@ -912,7 +1127,8 @@ boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
     nop
 1:  //abnormal: some byte is smaller than minus, use traditional process
 #endif
-#if 1
+#if 0
+    //cal byte01/byte23/byte45/byte67 use different algorithm --- obsolete now!
     ld      a1, GD_MIN(t8)
     ld      a3, GD_MAX(t8)
     //Byte 1~0
@@ -1098,6 +1314,27 @@ boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
 #endif
     sd      a0, GD_MID(t8)
 
+#ifdef  USE_DEFAULT_WRLVL_VALUE
+    b       arb_wrlvl_value_caled
+    nop
+
+arb_wrlvl_default_value:
+    //get clk_dll value
+    ld      a2, CLKLVL_DELAY_VALUE(t8)
+    //shift byte 0 value to 8 bytes of a2
+    dsll    v0, a2, 0x8
+    daddu   a2, a2, v0
+    dsll    v0, a2, 0x10
+    daddu   a2, a2, v0
+    dsll    v0, a2, 0x20
+    daddu   a2, a2, v0
+    //load different value under different freq and DIMM number
+    //currently, all use the same default value
+    dli     a0, WRLVL_DDR3_UDIMM_DEFAULT_VALUE
+    daddu   a0, a0, a2
+    sd      a0, GD_MID(t8)
+#endif
+
 #ifdef  PRINT_MSG
     PRINTSTR("\r\nCal Mid value: 0x")
     ld      t7, GD_MID(t8)
@@ -1108,7 +1345,7 @@ boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
     bal     hexserial
     nop
 #endif
-41:
+arb_wrlvl_value_caled:
     ld      t2, GD_MID(t8)
 #ifdef DEBUG_ARB_LEVEL_WR
     PRINTSTR("\r\nWrite param and value:\r\nt2 = 0x")
@@ -1123,7 +1360,7 @@ boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
 
     //recover wrlvl dq delay value
     dli     t6, 0x6
-    dli     t2, 0x20
+    dli     t2, WRLVL_DQ_DEFAULT_DLY
     bal     arb_modify_param
     nop
 
@@ -1963,6 +2200,16 @@ both_pop_delay_ok:
     nop
     move    t2, t4
 1:
+#ifdef  DDR3_DIMM
+    //for slice 4~7
+    //dli     a0, 0x4
+    //blt     s3, a0, 1f
+    //nop
+    
+    //give the second cfg(4) priority, if the difference <= 8, use second_pop_delay
+    dsubu   t1, t1, 0x8
+1:
+#endif
     ble     t1, t2, second_pop_delay_ok
     nop
     //the first cfg is better

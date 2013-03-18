@@ -75,49 +75,49 @@
     sd      a1, PHY_CTRL_2_ADDR(t7)
 
 #if 1
-#ifdef  USE_SMALL_GF_POP_DELAY
+#ifdef  USE_BIG_GF_POP_DELAY
     //adjust Gather FIFO pop delay: if all 8 slices read pop delay
-    //use 3, then adjust Gather FIFO pop delay to 5(instead of 6).
-    dli     a2, 0x3
+    //use 4, then adjust Gather FIFO pop delay to 7(instead of 6).
+    dli     a2, 0x4
     ld      a1, PHY_CTRL_0_7_ADDR(t7)
     dsrl    a1, a1, PHY_CTRL_0_7_OFFSET + PHY_CTRL_0_POP_DELAY_SHIFT
     and     a1, a1, PHY_CTRL_0_POP_DELAY_MASK
-    bgt     a1, a2, 1f
+    blt     a1, a2, 1f
     nop
     ld      a1, PHY_CTRL_0_6_ADDR(t7)
     dsrl    a1, a1, PHY_CTRL_0_6_OFFSET + PHY_CTRL_0_POP_DELAY_SHIFT
     and     a1, a1, PHY_CTRL_0_POP_DELAY_MASK
-    bgt     a1, a2, 1f
+    blt     a1, a2, 1f
     nop
     ld      a1, PHY_CTRL_0_5_ADDR(t7)
     dsrl    a1, a1, PHY_CTRL_0_5_OFFSET + PHY_CTRL_0_POP_DELAY_SHIFT
     and     a1, a1, PHY_CTRL_0_POP_DELAY_MASK
-    bgt     a1, a2, 1f
+    blt     a1, a2, 1f
     nop
     ld      a1, PHY_CTRL_0_4_ADDR(t7)
     dsrl    a1, a1, PHY_CTRL_0_4_OFFSET + PHY_CTRL_0_POP_DELAY_SHIFT
     and     a1, a1, PHY_CTRL_0_POP_DELAY_MASK
-    bgt     a1, a2, 1f
+    blt     a1, a2, 1f
     nop
     ld      a1, PHY_CTRL_0_3_ADDR(t7)
     dsrl    a1, a1, PHY_CTRL_0_3_OFFSET + PHY_CTRL_0_POP_DELAY_SHIFT
     and     a1, a1, PHY_CTRL_0_POP_DELAY_MASK
-    bgt     a1, a2, 1f
+    blt     a1, a2, 1f
     nop
     ld      a1, PHY_CTRL_0_2_ADDR(t7)
     dsrl    a1, a1, PHY_CTRL_0_2_OFFSET + PHY_CTRL_0_POP_DELAY_SHIFT
     and     a1, a1, PHY_CTRL_0_POP_DELAY_MASK
-    bgt     a1, a2, 1f
+    blt     a1, a2, 1f
     nop
     ld      a1, PHY_CTRL_0_1_ADDR(t7)
     dsrl    a1, a1, PHY_CTRL_0_1_OFFSET + PHY_CTRL_0_POP_DELAY_SHIFT
     and     a1, a1, PHY_CTRL_0_POP_DELAY_MASK
-    bgt     a1, a2, 1f
+    blt     a1, a2, 1f
     nop
     ld      a1, PHY_CTRL_0_0_ADDR(t7)
     dsrl    a1, a1, PHY_CTRL_0_0_OFFSET + PHY_CTRL_0_POP_DELAY_SHIFT
     and     a1, a1, PHY_CTRL_0_POP_DELAY_MASK
-    bgt     a1, a2, 1f
+    blt     a1, a2, 1f
     nop
 
     //change Gather FIFO pop delay
@@ -126,7 +126,7 @@
     dsll    a2, a2, PHY_CTRL_2_OFFSET + PHY_CTRL_2_POP_DELAY_SHIFT
     not     a2, a2
     and     a1, a1, a2
-    dli     a2, 0x5
+    dli     a2, 0x7
     dsll    a2, a2, PHY_CTRL_2_OFFSET + PHY_CTRL_2_POP_DELAY_SHIFT
     or      a1, a1, a2
     sd      a1, PHY_CTRL_2_ADDR(t7)

@@ -210,8 +210,11 @@ ddr2_config:
     //v0 store cs map
     GET_MC_CS_MAP
     move    v0, a1
-#if 0   //Don't swap now, because we enable Dynamic ODT now, and
+#if 1
+    //Don't swap now, because we enable Dynamic ODT now, and
     //use different ODT value for WR and non-wr purpose
+    //the above is obsoleted
+    //DO NOT use dynamic ODT now, because it seems no good.
     //step 1: swap open wr odt if it's a Dual Rank DIMM
     //check cs_map[3]
     dsrl    a2, v0, 3

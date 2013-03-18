@@ -20,6 +20,7 @@
 
 //ARB level
 //the wrlvl can work without this delay(not sure now), but the rdlvl really need it. why???
+//the current delay value should be enough
 //#define MC_RST_DELAY        (0x1000)   //work ok
 #define MC_RST_DELAY        (0x10000)   //work ok
 //#define MC_RST_DELAY        (0x40000)   //work ok
@@ -38,9 +39,13 @@
 #define CLKLVL_MAX_DELAY        (0x7c)
 #define RDLVL_GATE_MAX_DELAY    (0x22)
 #define RDLVL_MAX_DELAY         (0x4c)
-#define WRLVL_MAX_DELAY         (0x7e)
+#define WRLVL_MAX_DELAY         (0x68)
 #define WRLVL_DQ_MAX_DELAY      (0x50)
 #define WRLVL_DELAY_MINUS_VALUE (0x40)
+#define WRLVL_DQ_DEFAULT_DLY    (0x20)
+#define WRLVL_DDR3_UDIMM_DEFAULT_VALUE (0x342e282418140e0c)   //for DDR3 UDIMM
+//#define WRLVL_DDR3_UDIMM_DEFAULT_VALUE (0x100c0400100c0400)     //for DDR3 SODIMM 1R-x8
+#define WRLVL_DDR3_UDIMM_DEFAULT_OFFSET (0x28221c180c060200)   //for DDR3 UDIMM
 
 #define CPU_ODT_BASE_VALUE      (0x15)
 #define CPU_ODT_INC_VALUE       (0x11)

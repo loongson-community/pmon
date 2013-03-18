@@ -11,7 +11,8 @@ note: don't use s0, because it will be use at some subroutine
 use register: a0,a1,a2,v0,v1, t9
 
 register usage:
-s3: Level sequence pointer.
+s3: slice select.
+s5: Level sequence pointer.
 t0: RST store bit pointer during TM process;
     RST parse pointer during result process.
 t1: 
@@ -118,7 +119,7 @@ One_ARB_level_begin:
     sd      a0, LEVEL_SEQ_BASE(t8)
     //set level sequence--byte 0 mark the end
 #ifdef  DDR3_DIMM
-    dli     a0, 0x0000000000000205
+    dli     a0, 0x0000020502050205
     sd      a0, LEVEL_SEQ_BASE(t8)
     daddiu  t8, t8, 0x8
     dli     a0, 0x00
@@ -133,7 +134,8 @@ One_ARB_level_begin:
     dli     a0, 0
     sd      a0, LEVEL_SEQ_BASE(t8)
 
-    dli     s3, 0x0
+    dli     s3, 0xf //change all 8 byte slices
+    move    s5, $0
 
 21:
 //one level begin
@@ -141,7 +143,7 @@ One_ARB_level_begin:
     GET_ARB_LEVEL_NODE_ID
     dsll    a1, a1, 44
     daddu   t8, t8, a1
-    daddu   a0, t8, s3
+    daddu   a0, t8, s5
     lb      a1, LEVEL_SEQ_BASE(a0)
     move    t6, a1
     beqz    t6, One_ARB_level_end
@@ -234,7 +236,8 @@ One_ARB_level_begin:
     sd      a0, 0x50(t8)
 31:
 //write new delay value
-#include "ARB_Modify_param.S"
+    bal     arb_modify_param
+    nop
 
 //do Test and print test result
     bal     arb_test_mem
@@ -710,13 +713,15 @@ boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
 #endif
 2:
 #endif
-#ifdef  DDR3_DIMM //special deal with wrlvl_dqs when use DDR3 DIMM
+#ifdef  DDR3_DIMM
+    //special deal with wrlvl_dqs when use DDR3 DIMM
     dli     a1, 0x5
     bne     t6, a1, 88f
     nop
     GET_DIMM_TYPE
     bnez    a1, 4f
     nop
+#if 1
     ld      a1, GD_MIN(t8)
     ld      a3, GD_MAX(t8)
     //Byte 1~0
@@ -789,6 +794,7 @@ boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
     and     a0, a0, v1
     or      a0, a0, v0
 1:
+#endif
     b       88f
     nop
 4:
@@ -1178,8 +1184,9 @@ One_Level_Caled:
 #endif
 #include    "ARB_Write_Leveled_param.S"
 #endif
+
     //move to next level
-    daddiu  s3, s3, 0x1
+    daddiu  s5, s5, 0x1
     b       21b
     nop
 
@@ -1375,5 +1382,6 @@ disable_ddr_confspace:
     jr      ra
     nop
 
+#include "ARB_Modify_param_func.S"
 #include "ARB_TM.S"
 //>>>>>>>>>>>>>>>>>>>>>
