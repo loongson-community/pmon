@@ -1203,7 +1203,9 @@ wait_scache_out:
 #endif
 #ifdef  AUTO_ARB_LEVEL
 #define CHECK_ARB_LEVEL_FREQ
+#ifdef  AUTO_DDR_CONFIG
 #define CHECK_ARB_LEVEL_DIMM
+#endif
 //#define DEBUG_AUTO_ARB_LEVEL
 #endif
 //#define DEBUG_DDR
@@ -2895,11 +2897,7 @@ slave_inter_loop:
 #######################################
 #include "ddr_dir/ddr_config.S"
 #ifdef ARB_LEVEL
-#ifdef DDR3_DIMM
 #include "ddr_dir/ARB_level_new.S"
-#else
-#include "ddr_dir/ARB_level.S"
-#endif
 #endif
 #ifdef  DEBUG_DDR
 #include "ddr_dir/Test_Mem.S"

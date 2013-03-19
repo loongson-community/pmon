@@ -214,6 +214,7 @@ ddr2_config:
     or      a2, a2, a1
     sd      a2, ADDRESS_MIRROR_ADDR(t8)
 
+#if 1
     //reconfig ODT map
     //set default first
     dli     a2, 0x0804020100000000
@@ -349,6 +350,7 @@ ddr2_config:
     and     a1, a1, a2
     sd      a1, MR2_DATA_3_ADDR(t8)
 2:
+#endif
 
     //set data bus width
     ld      a2, REDUC_ADDR(t8)
