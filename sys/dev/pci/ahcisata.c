@@ -696,8 +696,7 @@ static int get_ahci_device_data(u8 port, u8 *fis, int fis_len, u8 *buf,
 	 */
 	writel_with_flush(1, port_mmio + PORT_CMD_ISSUE);
 	
-	if (waiting_for_cmd_completed(port_mmio + PORT_CMD_ISSUE, 150, 0x1)) {
-		printf("timeout exit!\n");
+	if (waiting_for_cmd_completed(port_mmio + PORT_CMD_ISSUE, 800, 0x1)) {
 		return -1;
 	}
 	//printf("get_ahci_device_data: %d byte transferred.\n",
