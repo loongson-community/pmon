@@ -4,6 +4,26 @@
 #include <dev/ata/wdvar.h>
 #include <dev/ata/atareg.h>
 #include <machine/param.h>
+
+#define device_unref(x)
+extern void (*__msgbox)(int yy,int xx,int height,int width,char *msg);
+
+#ifdef LOONGSON_3A2H
+typedef struct ahci_sata_softc {
+        /* General disk infos */
+        struct device sc_dev;
+        int dev;
+        int bs, count;
+        int lba48;
+}ahci_sata_softc;
+
+struct cfdriver ahcisata_cd;
+
+#define ahci_sata_lookup(dev)   \
+        (struct ahci_sata_softc *)device_lookup(&ahcisata_cd, minor(dev))
+
+#else
+
 struct wd_softc {
 	/* General disk infos */
 	struct device sc_dev;
@@ -40,8 +60,70 @@ struct wd_softc {
 };
 extern struct cfdriver wd_cd;
 #define wdlookup(unit) (struct wd_softc *)device_lookup(&wd_cd, (unit))
-#define device_unref(x)
-extern void (*__msgbox)(int yy,int xx,int height,int width,char *msg);
+#endif
+
+#ifdef LOONGSON_3A2H
+int hdtest()
+{
+struct ahci_sata_softc *wd;
+char str[20];
+FILE *fp;
+char fname[0x40];
+unsigned char buf[512];
+unsigned char buf1[512];
+int i,j;
+int found=0;
+int errors;
+printf("begin harddisk test\n");
+//---register test--
+for(i=0;i<2;i++)
+ {
+	wd = ahci_sata_lookup(i);
+	if(!wd)continue;
+	found++;
+	printf("wd%d ",i);
+	device_unref(wd);    
+//-----read write test-----
+	printf("start harddisk read write test\n");
+	sprintf(fname,"/dev/disk/wd%d",i);
+	fp=fopen(fname,"r+");
+	fseek(fp,1024,SEEK_SET);
+	fread(buf,512,1,fp);
+	fclose(fp);
+
+	memset(buf1,0x5a,512);
+	fp=fopen(fname,"r+");
+	fseek(fp,1024,SEEK_SET);
+	fwrite(buf1,512,1,fp);
+	fclose(fp);
+
+	fp=fopen(fname,"r+");
+	fseek(fp,1024,SEEK_SET);
+	fread(buf1,512,1,fp);
+	fclose(fp);
+
+	fp=fopen(fname,"r+");
+	fseek(fp,1024,SEEK_SET);
+	fwrite(buf,512,1,fp);
+	fclose(fp);
+	
+	errors=0;
+	for(j=0;j<512;j++)
+	if(buf1[j]!=0x5a)
+	{
+		printf("read write test error,write 0x5a read %x\n",buf1[j]);
+		errors++;
+	}
+	if(!errors)printf("harddisk read write test ok\n");
+
+
+ }
+if(!found) printf("can not found harddisk\n");
+	gets(str);
+return 0;
+}
+
+#else
 
 int hdtest()
 {
@@ -62,7 +144,7 @@ for(i=0;i<4;i++)
 	wd = wdlookup(i);
 	if(!wd)continue;
 	found++;
-	printf("hd%d ",found);
+	printf("hd%d ",i);
 //-----get hd info---	
 	if ((wd->sc_flags & WDF_LBA) != 0) {
 		wd->sc_capacity =
@@ -86,6 +168,7 @@ for(i=0;i<4;i++)
 		    wd->sc_params.atap_sectors,
 		    wd->sc_capacity);
 	}
+
 	device_unref(wd);    
 //-----read write test-----
 printf("start harddisk read write test\n");
@@ -126,6 +209,7 @@ if(!found) printf("can not found harddisk\n");
 	gets(str);
 return 0;
 }
+#endif
 
 extern char *devclass[];
 #define TEST_SIZE 512*16
