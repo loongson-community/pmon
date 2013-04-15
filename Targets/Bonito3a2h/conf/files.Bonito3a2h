@@ -46,6 +46,8 @@ device	syn: ether, ifnet
 attach	syn at localbus
 file	sys/dev/gmac/if_gmac.c gmac
 
+#program 2h
+file    Targets/Bonito3a2h/dev/program_2h.c
 
 #device	wd
 #wd*		at localbus
