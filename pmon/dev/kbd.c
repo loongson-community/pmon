@@ -616,7 +616,7 @@ void handle_scancode(unsigned char scancode, int down)
 		   key_map = key_maps[2];
 		}
 		if(capslock==1 && shift_state==1)
-		   key_map = key_maps[0];
+		   key_map = key_maps[1];
 		if (key_map != NULL) {
 			keysym = key_map[keycode];
 			type = KTYP(keysym);
