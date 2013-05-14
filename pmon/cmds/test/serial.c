@@ -141,7 +141,7 @@ static int serial_selftest(int channel)
 {
 	int i,j,error=0;
 	char c;
-#ifdef LOONGSON_3A2H
+#if (defined LOONGSON_3A2H) || (defined LOONGSON_3C2H)
 	printf("Warn:No loopback device\n");
 #else
 	printf("serial test\n");

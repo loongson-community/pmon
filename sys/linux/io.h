@@ -9,6 +9,8 @@
 #if defined(LS3_HT)||defined(LS2G_HT)
 #if defined(LOONGSON_3A2H)
 #define mips_io_port_base 0xbff00000 // for keyboard connected with ls3a lpc 
+#elif defined(LOONGSON_3C2H)
+#define mips_io_port_base 0xbbf00000 // for keyboard connected with ls3c lpc 
 #else
 #define mips_io_port_base BONITO_PCIIO_BASE_VA
 #endif

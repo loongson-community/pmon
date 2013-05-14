@@ -463,7 +463,7 @@ static int ohci_match(struct device *parent, void *match, void *aux)
 
 extern struct hostcontroller host_controller;
 extern struct usb_device *usb_alloc_new_device(void *hc_private);
-#ifdef LOONGSON_3A2H
+#if (defined LOONGSON_3A2H) || (defined LOONGSON_3C2H)
 static int lohci_match(struct device *parent, void *match, void *aux)
 {
 	return 1;
@@ -3013,7 +3013,7 @@ static int hc_start(ohci_t * ohci)
 	fminterval |= ((((fminterval - 210) * 6) / 7) << 16);
 	writel(fminterval, &ohci->regs->fminterval);
 	writel(0x628, &ohci->regs->lsthresh);
-#ifdef LOONGSON_3A2H
+#if (defined LOONGSON_3A2H) || (defined LOONGSON_3C2H)
 	writel(readl(&ohci->regs->roothub.b) | 0xffff0000,
 	       &ohci->regs->roothub.b);
 #endif
@@ -3288,7 +3288,7 @@ static void hc_release_ohci(ohci_t * ohci)
 *                  not aligned or OHCI initialization error.  
 *              0 : indicates that initialization finished successfully.
 *===========================================================================*/
-#ifdef LOONGSON_3A2H
+#if (defined LOONGSON_3A2H) || (defined LOONGSON_3C2H)
 int usb_lowlevel_init(ohci_t * gohci)
 {
 
@@ -3632,7 +3632,7 @@ void usb_ohci_stop_one(ohci_t * ohci)
 	writel(OHCI_HCR, &ohci->regs->cmdstatus);
 	(void)readl(&ohci->regs->cmdstatus);
 
-#ifdef LOONGSON_3A2H
+#if (defined LOONGSON_3A2H) || (defined LOONGSON_3C2H)
 	cmd = readl(&ohci->regs->control);
 	cmd &= (~0x7);
 	writel(cmd, ohci->regs->control);

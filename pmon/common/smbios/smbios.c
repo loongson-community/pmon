@@ -195,12 +195,19 @@ static void board_info(char *board_name)
 	else
         	strcpy(board_name, "Loongson-3A-780E-1w-V1.03-demo");
 #endif
+
 #ifdef LOONGSON_3A2H
 	if(cpu_probe_release())
-        	strcpy(board_name, "Loongson-3A5-2H-1w-V1.00-demo");
-	else
         	strcpy(board_name, "Loongson-3A-2H-1w-V1.00-demo");
+	else
+        	strcpy(board_name, "Loongson-3A5-2H-1w-V1.00-demo");
 #endif
+
+#ifdef LOONGSON_3C2H
+        	strcpy(board_name, "Loongson-3C-2H-1w-V1.00-demo");
+#endif
+
+
 #ifdef LOONGSON_3BSINGLE
 #ifdef LOONGSON_3B1500
         strcpy(board_name, "Loongson-3B-780E-1w-V0.9-demo");
@@ -479,6 +486,9 @@ smbios_type_4_init(void *start)
 #endif
 #ifdef LOONGSON_3A2H
 	p->core_count = p->core_enable = 4;
+#endif
+#ifdef LOONGSON_3C2H
+	p->core_count = p->core_enable = 8;
 #endif
 
         p->thread_count = 0;

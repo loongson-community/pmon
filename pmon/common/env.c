@@ -190,7 +190,7 @@ printvar(name,value, cntp)
 	const struct stdenv *ep;
 	char buf[300];
 	char *b;
-#ifdef LOONGSON_3A2H
+#if (defined LOONGSON_3A2H) || (defined LOONGSON_3C2H)
 	if(strstr(name,"syn0.ipaddr")!=NULL)
 	{
                 strcpy(name,"eth0.ipaddr");

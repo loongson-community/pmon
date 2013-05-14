@@ -98,13 +98,14 @@ struct efi_memory_map_loongson * init_memory_map()
   emap->map[1].node_id = 0;
   //strcpy(emap->map[1].mem_name, "node0_high");
   emap->map[1].mem_type = 2;
-#ifdef LOONGSON_3A2H
+#if (defined LOONGSON_3A2H) || (defined LOONGSON_3C2H)
   emap->map[1].mem_start = 0x110000000;
 #else
   emap->map[1].mem_start = 0x90000000;
 #endif
   emap->map[1].mem_size = atoi(getenv("highmemsize"));
   
+
 //support smbios
   emap->map[2].node_id = 0;
   emap->map[2].mem_type = 10;
@@ -230,7 +231,8 @@ struct efi_cpuinfo_loongson *init_cpu_info()
 #endif
 #ifdef LOONGSON_3BSINGLE
   c->total_node = 4;
-  c->nr_cpus = 8;
+  //c->nr_cpus = 8;
+  c->nr_cpus = 7;
 #endif
 
 #ifdef LOONGSON_3A2H
@@ -352,11 +354,15 @@ struct board_devices *board_devices_info()
 #else
         strcpy(bd->name, "Loongson-3B-780E-1w-V1.03-demo");
 #endif
+#ifdef LOONGSON_3C2H
+        strcpy(bd->name, "Loongson-3C-2H-1w-V0.1-demo");
 #endif
+#endif
+
 #ifdef LOONGSON_3BSERVER
   strcpy(bd->name,"Loongson-3B-780E-2w-V1.03-demo");
 #endif
-#
+
 #ifdef LOONGSON_3ASERVER
 #ifdef USE_BMC
   strcpy(bd->name,"Loongson-3A-780E-2wBMC-V1.02-demo");

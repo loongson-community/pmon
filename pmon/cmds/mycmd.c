@@ -1119,7 +1119,7 @@ static int cmd_ifconfig(int argc,char **argv)
 	ifr=(void *)&data;
 	bzero (ifra, sizeof(*ifra));
 	strcpy(net_type,argv[1]);
-#ifdef LOONGSON_3A2H
+#if (defined LOONGSON_3A2H) || (defined LOONGSON_3C2H)
         if(strstr(net_type,"eth0")!=NULL)
         {
                 strcpy(argv[1],"syn0");

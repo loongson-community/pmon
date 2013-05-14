@@ -166,7 +166,7 @@ printf("82546 em1 info:\n");
 strcpy(cmd,"ifconfig em1;ifconfig em1 status;");
 do_cmd(cmd);
 #else
-#if defined LOONGSON_3A2H
+#if (defined LOONGSON_3A2H) || (defined LOONGSON_3C2H)
 printf("PHY syn0 info:\n");
 strcpy(cmd,"ifconfig syn0;ifconfig syn0 status");
 do_cmd(cmd);

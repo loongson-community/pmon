@@ -19,7 +19,7 @@
 #define GET_I2C_NODE_ID_a2  ;
 #endif
 //------------------------
-//#define DEBUG_PROBE_NODE_DIMM
+#define DEBUG_PROBE_NODE_DIMM
 
 LEAF(PROBE_NODE_DIMM)
 /*************************
@@ -67,14 +67,75 @@ LEAF(PROBE_NODE_DIMM)
     bal     i2cinit
     nop
 #endif
-#if 0  //for debug, give the SPD device id directly.
+#if 1  //for debug, give the SPD device id directly.
 //scan the devices and display DIMM SPD values when the first device is detected.
     PRINTSTR("\r\nDIMM SPD register dump:");
     dli     a0, 0xa1;
     dli     a1, 0x2;
+    dli     v0, 0x0;
     GET_I2C_NODE_ID_a2
     bal     i2cread;
     nop;
+    move    t3, v0
+    PRINTSTR("\r\n0xa1=0x");
+    move    a0, t3
+    bal     hexserial
+    nop
+    PRINTSTR("\r\n");
+
+	dli     a0, 0xa1;
+    dli     a1, 0x2;
+    dli     v0, 0x0;
+    GET_I2C_NODE_ID_a2
+    bal     i2cread;
+    nop;
+    move    t3, v0
+    PRINTSTR("\r\n0xa1=0x");
+    move    a0, t3
+    bal     hexserial
+    nop
+    PRINTSTR("\r\n");
+
+    dli     a0, 0xa3;
+    dli     a1, 0x2;
+    dli     v0, 0x0;
+    GET_I2C_NODE_ID_a2
+    bal     i2cread;
+    nop;
+    move    t3, v0
+    PRINTSTR("\r\n0xa3=0x");
+    move    a0, t3
+    bal     hexserial
+    nop
+    PRINTSTR("\r\n");
+
+    dli     a0, 0xa5;
+    dli     a1, 0x2;
+    dli     v0, 0x0;
+    GET_I2C_NODE_ID_a2
+    bal     i2cread;
+    nop;
+    move    t3, v0
+    PRINTSTR("\r\n0xa5=0x");
+    move    a0, t3
+    bal     hexserial
+    nop
+    PRINTSTR("\r\n");
+
+    dli     a0, 0xa7;
+    dli     a1, 0x2;
+    dli     v0, 0x0;
+    GET_I2C_NODE_ID_a2
+    bal     i2cread;
+    nop;
+    move    t3, v0
+    PRINTSTR("\r\n0xa7=0x");
+    move    a0, t3
+    bal     hexserial
+    nop
+    PRINTSTR("\r\n");
+ 
+
     dli     t3, 0x80
     bltu    v0, t3, 2f
     nop
@@ -94,7 +155,8 @@ LEAF(PROBE_NODE_DIMM)
     dli     t3, 0x80
     bltu    v0, t3, 2f
     nop
-    dli     a0, 0xa7;
+    dli     a0, 0xa7; // by xqch
+    dli     a0, 0xa5; // by xqch
     dli     a1, 0x2;
     GET_I2C_NODE_ID_a2
     bal     i2cread;
@@ -102,7 +164,8 @@ LEAF(PROBE_NODE_DIMM)
     dli     t3, 0x80
     bltu    v0, t3, 2f
     nop
-    b       3f
+    //b       3f
+    b       2f;	  // by xqch
     nop
 2:
     move    t3, a0

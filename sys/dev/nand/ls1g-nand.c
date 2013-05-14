@@ -1407,9 +1407,9 @@ void ls1g_soc_nand_init(int argc,char **argv)/*cmd addr(L,page num) timing op_nu
 //	add_mtd_device(ls1g_soc_mtd,0,0,"total");
 
 #if 1
-	add_mtd_device(ls1g_soc_mtd,0,0x00e00000,"kernel");
-	add_mtd_device(ls1g_soc_mtd,0x00e00000,0x06700000,"os");
-	add_mtd_device(ls1g_soc_mtd,0x07500000,0x00b00000,"data");
+	add_mtd_device(ls1g_soc_mtd,0,0x01000000,"kernel");
+	add_mtd_device(ls1g_soc_mtd,0x01000000,0x07000000,"os");
+//	add_mtd_device(ls1g_soc_mtd,0x07500000,0x00b00000,"data");
 #else
 	add_mtd_device(ls1g_soc_mtd,0,0x00700000,"kernel");
 	add_mtd_device(ls1g_soc_mtd,0x00700000,0x06e00000,"os");

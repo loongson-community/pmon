@@ -91,7 +91,7 @@ extern int optind;
 			continue;
 		}
 		strcpy(net_type,&dev->dv_xname);
-#ifdef LOONGSON_3A2H
+#if (defined LOONGSON_3A2H) || (defined LOONGSON_3C2H)
 		if(strstr(&dev->dv_xname,"syn0")!=NULL)
 		{	
 			strcpy(&dev->dv_xname,"eth0");

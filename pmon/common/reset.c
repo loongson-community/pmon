@@ -17,7 +17,7 @@ void poweroff_kernel()
 	unsigned char *reg_cf9 = (unsigned char *)0xb8000cf9;
 	int i;
 
-#ifdef LOONGSON_3A2H
+#if (defined LOONGSON_3A2H) || (defined LOONGSON_3C2H)
 	//*(volatile unsigned int *)0xffffffffbbef0014 &= (0x1 << 10) | (0x1 << 11) | (0x1 << 12) | (0x1 << 13);
 	volatile unsigned int * pm_ctrl_reg = 0xffffffffbbef0014;
 	volatile unsigned int * pm_statu_reg = 0xffffffffbbef000c;
@@ -72,7 +72,7 @@ void reboot_kernel()
 	volatile   unsigned int *p = 0xbfe0011c;
 	int i;
 
-#ifdef LOONGSON_3A2H
+#if (defined LOONGSON_3A2H) || (defined LOONGSON_3C2H)
 	volatile char * hard_reset_reg = 0xffffffffbbef0030;
 	* hard_reset_reg = ( * hard_reset_reg) | 0x01; // watch dog hardreset
 #endif

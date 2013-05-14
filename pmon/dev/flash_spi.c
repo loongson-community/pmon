@@ -107,7 +107,7 @@ __attribute__ ((section ("text")));
 #define BYTE_WRITE		0x02  /* Byte Program Enable */
 #define AAI_WRITE		0xad  /* Byte Program Enable */
 
-//#ifdef LS3B
+//#ifdef LS3B_SPI_BOOT
 #define BE4K			0x20  /* 4K Byte block Rrase, Sector Erase */
 #define BE4KSIZE		0x1000  /* 4K Byte block Rrase, Sector Erase */
 #define BE32K			0x52  /* 32K Byte block Rrase, Sector Erase */
@@ -134,7 +134,7 @@ __attribute__ ((section ("text")));
 #define VOID_ADDR      0x00
 #define VOID_CMD       0x00
 
-#ifdef LS3B
+#ifdef LS3B_SPI_BOOT
 #define SPI_REG_BASE	0xbfe00220		/* 3B */
 #else
 #define SPI_REG_BASE	0xbfe001f0		/* 3A */
@@ -378,7 +378,7 @@ spi_write_protect_lock(void)
 void disable_spi_cs(void)
 {
 
-#ifndef LS3B
+#ifndef LS3B_SPI_BOOT
 	delay(6);
 	*(volatile unsigned int *) (GPIO_CTRL_REG) =  (~GPIO_CPU_CS_ENABLE) & (*(volatile unsigned int *) (GPIO_CTRL_REG));
 #else
@@ -394,7 +394,7 @@ void disable_spi_cs(void)
 
 void enable_spi_cs(void)
 {
-#ifndef LS3B
+#ifndef LS3B_SPI_BOOT
 	*(volatile unsigned int *) (GPIO_CTRL_REG) =  (GPIO_CPU_CS_ENABLE) | (*(volatile unsigned int *) (GPIO_CTRL_REG));
 	delay(6);
 #else
@@ -410,7 +410,7 @@ void enable_spi_cs(void)
 
 void gpio_cs_init (void)
 {
-#ifdef LS3B
+#ifdef LS3B_SPI_BOOT
 	volatile unsigned char * base = SPI_REG_BASE + CHIPERASELECOFFCHIPERASET;
 	unsigned char  val = 0;
 	
@@ -433,7 +433,7 @@ void gpio_cs_init (void)
 
 inline void set_cs (int bit)
 {
-#ifdef LS3B
+#ifdef LS3B_SPI_BOOT
 #define CSCTLOFFCHIPERASET  0x5
 	volatile unsigned char * base = SPI_REG_BASE + CSCTLOFFCHIPERASET;
 	unsigned char  val = 0;

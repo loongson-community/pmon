@@ -200,7 +200,7 @@ extern char *optarg;
 	maxbus = 255;
 	firstdev = 0;
 	maxdev = 31;
-#ifdef LOONGSON_3A2H
+#if (defined LOONGSON_3A2H) || (defined LOONGSON_3C2H)
 	printf("----------------------------------\n");
 	printf("Warn:LS3A2H don't use this command\n");	
 	printf("----------------------------------\n");

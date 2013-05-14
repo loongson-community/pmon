@@ -138,7 +138,7 @@ struct setupMenu testmenu1={
 }
 };
 #else
-#ifdef LOONGSON_3A2H
+#if (defined LOONGSON_3A2H) || (defined LOONGSON_3C2H)
 struct setupMenu testmenu1={
 0,POP_W,POP_H,
 (struct setupMenuitem[])

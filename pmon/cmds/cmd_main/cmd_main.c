@@ -447,7 +447,7 @@ int init_win_device(void){
 					/**************** SATA controller *****************/
 					if (hdinfo[x].b_idenum == 0) {
 						/**************** SATA0 port **************/
-#ifdef LOONGSON_3A2H
+#if (defined LOONGSON_3A2H) || (defined LOONGSON_3C2H)
 						if(1){
 #else
 						if(hdinfo[x].b_channel == 0 && hdinfo[x].b_drivnum == 0) {

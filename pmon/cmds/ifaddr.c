@@ -77,7 +77,7 @@ ifaddr_cmd (ac, av)
 {
 	char net_type[5];
         strcpy(net_type,av[1]);
-#ifdef LOONGSON_3A2H
+#if (defined LOONGSON_3A2H) || (defined LOONGSON_3C2H)
         if(strstr(net_type,"eth0")!=NULL)
         {
                 strcpy(av[1],"syn0");
