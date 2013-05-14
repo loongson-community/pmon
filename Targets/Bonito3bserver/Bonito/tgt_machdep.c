@@ -2538,6 +2538,8 @@ IRQ0, 2, 8, 13 are reserved
 #define fixup_interrupt_printf(format, args...)	 __asm__ __volatile__("sync")
 #endif
 
+#define MULTY_FUNCTION (0x1 << 7)
+
 void sb700_interrupt_fixup(void)
 {
 	unsigned char * pic_index = 0xb8000c00 + SMBUS_IO_BASE; 
@@ -2823,6 +2825,9 @@ void sb700_interrupt_fixup(void)
 	  if ( val != 0xffffffff)
 		pci_write_config8(dev, 0x3c, 0x05);
 
+	  val = pci_read_config8(dev, 0x0e); // judge whether multi-function card
+
+          if ( val & MULTY_FUNCTION) {	
 	  dev = _pci_make_tag(4, 0x0, 0x01);
 	  val = pci_read_config32(dev, 0x00);
 	  if ( val != 0xffffffff)
@@ -2837,6 +2842,7 @@ void sb700_interrupt_fixup(void)
 	  val = pci_read_config32(dev, 0x00);
 	  if ( val != 0xffffffff)
 		pci_write_config8(dev, 0x3c, 0x05);
+	  }
 
 	// 8.3.1 route  00:03:00 (pcie_slot(middle)) INTA->INTA# -----------------> int5 
 	// 8.3.2 route  00:03:01 (pcie_slot(middle)) INTB->INTB# -----------------> int5 
@@ -2848,6 +2854,9 @@ void sb700_interrupt_fixup(void)
 	  if ( val != 0xffffffff)
 		pci_write_config8(dev, 0x3c, 0x05);
 
+	  val = pci_read_config8(dev, 0x0e);
+
+          if ( val & MULTY_FUNCTION) {
 	  dev = _pci_make_tag(3, 0x0, 0x01);
 	  val = pci_read_config32(dev, 0x00);
 	  if ( val != 0xffffffff)
@@ -2862,7 +2871,7 @@ void sb700_interrupt_fixup(void)
 	  val = pci_read_config32(dev, 0x00);
 	  if ( val != 0xffffffff)
 		pci_write_config8(dev, 0x3c, 0x05);
-
+	  }
 
 	// 8.4.1 route  00:02:00 (pcie_slot(left)) INTA->INTC# -----------------> int6 
 	// 8.4.2 route  00:02:01 (pcie_slot(left)) INTB->INTD# -----------------> int5 
@@ -2873,7 +2882,10 @@ void sb700_interrupt_fixup(void)
 	  val = pci_read_config32(dev, 0x00);
 	  if ( val != 0xffffffff)
 		pci_write_config8(dev, 0x3c, 0x06);
+	
+	  val = pci_read_config8(dev, 0x0e);
 
+          if ( val & MULTY_FUNCTION) {
 	  dev = _pci_make_tag(2, 0x0, 0x01);
 	  val = pci_read_config32(dev, 0x00);
 	  if ( val != 0xffffffff)
@@ -2888,7 +2900,7 @@ void sb700_interrupt_fixup(void)
 	  val = pci_read_config32(dev, 0x00);
 	  if ( val != 0xffffffff)
 		pci_write_config8(dev, 0x3c, 0x05);
-
+	  }
 
 	// 9. route 07:0x:0x  (pci slot: con30 and con19)
 	// NOTICE here: now assume dev 2, dev3 and dev 4 are all enable on x16 pcie slot, but 
@@ -2911,7 +2923,10 @@ void sb700_interrupt_fixup(void)
 		val = pci_read_config32(dev, 0x00);
 		if ( val != 0xffffffff) // device on the slot
 		  pci_write_config8(dev, 0x3c, 0x5);
+		
+		val = pci_read_config8(dev, 0x0e);
 
+		if ( val & MULTY_FUNCTION) {
 		dev = _pci_make_tag(busnum, 0x5, 0x1);
 		val = pci_read_config32(dev, 0x00);
 		if ( val != 0xffffffff) // device on the slot
@@ -2926,6 +2941,7 @@ void sb700_interrupt_fixup(void)
 		val = pci_read_config32(dev, 0x00);
 		if ( val != 0xffffffff) // device on the slot
 		  pci_write_config8(dev, 0x3c, 0x5);
+		}
 
 	// 9.2.1  route 07:06:00 (con45 with add_22) INTA->PCI_INTB --> INTF# ---------------------> int5
 	// 9.2.2  route 07:06:01 (con45 with add_22) INTB->PCI_INTC --> INTG# ---------------------> int3
@@ -2936,6 +2952,9 @@ void sb700_interrupt_fixup(void)
 		if ( val != 0xffffffff) // device on the slot
 		  pci_write_config8(dev, 0x3c, 0x05);
 
+		val = pci_read_config8(dev, 0x0e);
+
+		if ( val & MULTY_FUNCTION) {
 		dev = _pci_make_tag(busnum, 0x6, 0x1);
 		val = pci_read_config32(dev, 0x00);
 		if ( val != 0xffffffff) // device on the slot
@@ -2950,7 +2969,7 @@ void sb700_interrupt_fixup(void)
 		val = pci_read_config32(dev, 0x00);
 		if ( val != 0xffffffff) // device on the slot
 		  pci_write_config8(dev, 0x3c, 0x05);
-
+		}
 	}
 
 
