@@ -432,10 +432,39 @@ li      t1, 0x00e0      # {cu3,cu2,cu1,cu0}<={0110, status_fr<=1
 		//li      a0, 0x3
 		//bne 	t0, a0, slave_main
 
+#if 1 /* clear Mail BOX */
+#define CORE0_BUF0 0x900000003ff01020
+#define CORE1_BUF0 0x900000003ff01120
+#define CORE2_BUF0 0x900000003ff01220
+#define CORE3_BUF0 0x900000003ff01320
+#define FN_OFF 0x020
+#define SP_OFF 0x028
+#define GP_OFF 0x030
+#define A1_OFF 0x038
+#define SYSTEM_INIT_OK  0x5a5a
+
+		dli     t1, CORE0_BUF0
+		andi    t3, t0, 0x3  //local cpuid
+		dsll    t3, 8
+		or      t1, t1, t3
+
+		andi    t4, t0, 0xc  //node id
+		dsll    t4, 42
+		or      t1, t1, t4
+
+		sd      $0, 0x0(t1)
+		sd      $0, 0x8(t1)
+		sd      $0, 0x10(t1)
+		sd      $0, 0x18(t1)
+#endif
+		li      a0, 0x0
+	//	bne     t0, a0, slave_main // by xqc
 #define NODE0_CORE0_BUF0 0x900000003ff01000   
 #define NODE1_CORE0_BUF0 0x900010003ff05000   
 #define NODE2_CORE0_BUF0 0x900020003ff09000   
 #define NODE3_CORE0_BUF0 0x900030003ff0d000   
+
+#define NODE0_CORE1_BUF0 0x900000003ff01100
 
 #define FN_OFF 0x020
 #define SP_OFF 0x028
@@ -494,6 +523,8 @@ common:
         sd      a0,FN_OFF(t1)
 
 
+//#define NODE1_BOOT
+
 #ifdef NODE1_BOOT
         dli     a0, 0x4 
 #else
@@ -551,7 +582,7 @@ common:
         bal     initserial1
         nop
 
-#define SHUT_SLAVES
+//#define SHUT_SLAVES
 #ifdef SHUT_SLAVES
 		PRINTSTR("Shut down other cores\r\n")
 		li      a0, 0xbfe001d0
@@ -1295,6 +1326,14 @@ soft_out:
 		TTYDBG("cache enable done\r\n")
 		nop
 #endif
+#if 1 
+	    //dli     t0, CORE1_BUF0 #buf of cpu0 core1
+	    dli     t0, CORE0_BUF0 #buf of cpu0 core0
+        li      a1, SYSTEM_INIT_OK
+	    sw      a1, 0x0(t0)
+	    nop
+#endif
+
 
 ##########################################
 //cxk
@@ -1935,26 +1974,6 @@ out_test:
 		addu a2,a2,s0
 
 		move	a0,msize
-
-
-#ifdef NODE1_BOOT
-		dli     t0,NODE1_CORE0_BUF0  #buf of cpu0
-#else
-		dli     t0,NODE0_CORE0_BUF0  #buf of cpu0
-#endif
-
-		li      t1, 0x5a5a
-		sw      t1, FN_OFF(t0)
-		nop
-
-#if 1
-
-1:
-		lw      t1, FN_OFF(t0)
-		li		t2, 0x5a5a
-		bne     t2, t1,1b
-		nop
-#endif
 		la	v0, initmips
 		jalr	v0
 		nop
@@ -3026,17 +3045,16 @@ END(lock_scache)
 
 		mfc0	t0, CP0_STATUS
 		li      t1, 0x00e0      # {cu3,cu2,cu1,cu0}<={0110, status_fr<=1
-			or      t0, t0, t1
+		or      t0, t0, t1
 
-				mtc0    t0, CP0_STATUS
-
-				mfc0    t0, CP0_STATUS
-#lui     t1, 0x10
-#and     t0, t0, t1      #sr 
-				lui     t1, 0x40        #bev
-				or      t0, t0, t1
-				mtc0    t0, CP0_STATUS
-				mtc0    zero, CP0_CAUSE
+		mtc0    t0, CP0_STATUS
+		mfc0    t0, CP0_STATUS
+		#lui     t1, 0x10
+		#and     t0, t0, t1      #sr 
+		lui     t1, 0x40        #bev
+		or      t0, t0, t1
+		mtc0    t0, CP0_STATUS
+		mtc0    zero, CP0_CAUSE
 
 #PRINTSTR("CP0_STATUS:")
 #mfc0    a0, CP0_STATUS
