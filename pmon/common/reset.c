@@ -69,7 +69,7 @@ void poweroff_kernel()
 
 void reboot_kernel()
 {
-        unsigned int *p = 0xbfe0011c;
+	volatile   unsigned int *p = 0xbfe0011c;
 	int i;
 
 #ifdef LOONGSON_3A2H
@@ -94,7 +94,18 @@ void reboot_kernel()
         p[0] &= ~(0x1 << 14);
         p[1] &= ~(0x1 << 14);
 #endif
-#else
+#elif  LOONGSON_3B1500
+		 /*3b1500(aka 3c780e) board does not use watch dog for reset, it 
+		  * just use reset chip connected to gpio10*/ 
+	
+        p[0] &= ~(0x1 << 10);
+        p[1] &= ~(0x1 << 10);
+
+	for (i=0; i<0x10000; i++);
+
+        p[0] |= (0x1 << 10);
+        p[1] &= ~(0x1 << 10);
+#else 
         p[0] &= ~(0x1 << 13);
         p[1] &= ~(0x1 << 13);
 
@@ -118,6 +129,7 @@ void reboot_kernel()
         p[0] |= (0x1 << 13);
         p[1] &= ~(0x1 << 13);
 #endif
+
 }
 
 void (*poweroff_pt)(void) = poweroff_kernel;
