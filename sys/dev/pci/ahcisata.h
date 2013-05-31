@@ -21,15 +21,13 @@
 #ifndef __AHCISATA_H__
 #define __AHCISATA_H__
 
-#define SATA_HC_MAX_NUM		4 /* Max host controller numbers */
-#define SATA_HC_MAX_CMD		16 /* Max command queue depth per host controller */
-#define SATA_HC_MAX_PORT	16 /* Max port number per host controller */
-#define PCI_IO_BASE  		0xbbe30000
-//#define PCI_IO_BASE  		0xbfd00000
+#define SATA_HC_MAX_NUM		4	/* Max host controller numbers */
+#define SATA_HC_MAX_CMD		16	/* Max command queue depth per host controller */
+#define SATA_HC_MAX_PORT	16	/* Max port number per host controller */
 /* HStatus register
 */
-#define HSTATUS_ONOFF			0x80000000 /* Online/offline status */
-#define HSTATUS_FORCE_OFFLINE		0x40000000 /* In process going offline */
+#define HSTATUS_ONOFF			0x80000000	/* Online/offline status */
+#define HSTATUS_FORCE_OFFLINE		0x40000000	/* In process going offline */
 #define HSTATUS_BIST_ERR		0x20000000
 
 /* Fatal error */
@@ -57,10 +55,10 @@
 
 /* HControl register
 */
-#define HCONTROL_ONOFF			0x80000000 /* Online or offline request */
-#define HCONTROL_FORCE_OFFLINE		0x40000000 /* Force offline request */
-#define HCONTROL_HDR_SNOOP		0x00000400 /* Command header snoop */
-#define HCONTROL_PMP_ATTACHED		0x00000200 /* Port multiplier attached */
+#define HCONTROL_ONOFF			0x80000000	/* Online or offline request */
+#define HCONTROL_FORCE_OFFLINE		0x40000000	/* Force offline request */
+#define HCONTROL_HDR_SNOOP		0x00000400	/* Command header snoop */
+#define HCONTROL_PMP_ATTACHED		0x00000200	/* Port multiplier attached */
 
 /* Interrupt enable */
 #define HCONTROL_FATAL_ERR		0x00000020
@@ -131,19 +129,19 @@
 * Command Header Entry
 */
 typedef struct cmd_hdr_entry {
-	u8  		CommandFISLen:5;
-        u8     	        AtapiPioFIS:1;
-        u8              ReadWrite:1;
-        u8              PreFetchAble:1;
-        u8              Reset:1;
-        u8              Bist:1;
-        u8              ClearBusy:1;
-        u8              Reserved0       :1;
-        u8              PortMultiplier:4;
-	u16		prdtl;		
-	u32 		prdbc;		/* physical region descriptor byte count */
-	u32 		ctba;		/* Command Table Descriptor Base Address, 128 bytes aligned */
-	u32 		ctba_u;		/* Upper CTBA */
+	u8 CommandFISLen:5;
+	u8 AtapiPioFIS:1;
+	u8 ReadWrite:1;
+	u8 PreFetchAble:1;
+	u8 Reset:1;
+	u8 Bist:1;
+	u8 ClearBusy:1;
+	u8 Reserved0:1;
+	u8 PortMultiplier:4;
+	u16 prdtl;
+	u32 prdbc;		/* physical region descriptor byte count */
+	u32 ctba;		/* Command Table Descriptor Base Address, 128 bytes aligned */
+	u32 ctba_u;		/* Upper CTBA */
 } __attribute__ ((packed)) cmd_hdr_entry_t;
 
 #define SATA_HC_CMD_HDR_ENTRY_SIZE	sizeof(struct cmd_hdr_entry)
@@ -160,24 +158,24 @@ typedef struct cmd_hdr_entry {
 
 /* attribute
 */
-#define CMD_HDR_ATTR_RES	0x00000800 /* Reserved bit, should be 1 */
-#define CMD_HDR_ATTR_VBIST	0x00000400 /* Vendor BIST */
-#define CMD_HDR_ATTR_SNOOP	0x00000200 /* Snoop enable for all descriptor */
-#define CMD_HDR_ATTR_FPDMA	0x00000100 /* FPDMA queued command */
-#define CMD_HDR_ATTR_RESET	0x00000080 /* Reset - a SRST or device reset */
-#define CMD_HDR_ATTR_BIST	0x00000040 /* BIST - require the host to enter BIST mode */
-#define CMD_HDR_ATTR_ATAPI	0x00000020 /* ATAPI command */
-#define CMD_HDR_ATTR_TAG	0x0000001f /* TAG mask */
+#define CMD_HDR_ATTR_RES	0x00000800	/* Reserved bit, should be 1 */
+#define CMD_HDR_ATTR_VBIST	0x00000400	/* Vendor BIST */
+#define CMD_HDR_ATTR_SNOOP	0x00000200	/* Snoop enable for all descriptor */
+#define CMD_HDR_ATTR_FPDMA	0x00000100	/* FPDMA queued command */
+#define CMD_HDR_ATTR_RESET	0x00000080	/* Reset - a SRST or device reset */
+#define CMD_HDR_ATTR_BIST	0x00000040	/* BIST - require the host to enter BIST mode */
+#define CMD_HDR_ATTR_ATAPI	0x00000020	/* ATAPI command */
+#define CMD_HDR_ATTR_TAG	0x0000001f	/* TAG mask */
 
 /* command type
 */
 enum cmd_type {
 	CMD_VENDOR_BIST,
 	CMD_BIST,
-	CMD_RESET,	/* SRST or device reset */
+	CMD_RESET,		/* SRST or device reset */
 	CMD_ATAPI,
 	CMD_NCQ,
-	CMD_ATA,	/* None of all above */
+	CMD_ATA,		/* None of all above */
 };
 
 /*
@@ -188,16 +186,16 @@ typedef struct cmd_hdr_tbl {
 } __attribute__ ((packed)) cmd_hdr_tbl_t;
 
 #define SATA_HC_CMD_HDR_TBL_SIZE	sizeof(struct cmd_hdr_tbl)
-#define SATA_HC_CMD_HDR_TBL_ALIGN	1024	
+#define SATA_HC_CMD_HDR_TBL_ALIGN	1024
 
 /*
 * PRD entry - Physical Region Descriptor entry
 */
 typedef struct prd_entry {
-	u32 dba;	/* Data base address, 4 bytes aligned */
+	u32 dba;		/* Data base address, 4 bytes aligned */
 	u32 dba_u;
 	u32 reserved;
-	u32 dbc;	/* Indirect PRD flags, snoop and data word count */
+	u32 dbc;		/* Indirect PRD flags, snoop and data word count */
 } __attribute__ ((packed)) prd_entry_t;
 
 #define SATA_HC_CMD_DESC_PRD_SIZE	sizeof(struct prd_entry)
@@ -208,9 +206,9 @@ typedef struct prd_entry {
 
 /* dbc
 */
-#define PRD_ENTRY_EXT		0x80000000 /* extension flag or called indirect descriptor flag */
-#define PRD_ENTRY_DATA_SNOOP	0x00400000 /* Snoop enable for all data associated with the PRD entry */
-#define PRD_ENTRY_LEN_MASK	0x003fffff /* Data word count */
+#define PRD_ENTRY_EXT		0x80000000	/* extension flag or called indirect descriptor flag */
+#define PRD_ENTRY_DATA_SNOOP	0x00400000	/* Snoop enable for all data associated with the PRD entry */
+#define PRD_ENTRY_LEN_MASK	0x003fffff	/* Data word count */
 
 #define PRD_ENTRY_MAX_XFER_SZ	0x10000
 
@@ -222,8 +220,8 @@ typedef struct prd_entry {
  * will be setup as an indirect descriptor, pointing to it's next (contigious)
  * PRD entries#16.
  */
-#define SATA_HC_MAX_PRD		63 /* Max PRD entry numbers per command */
-#define SATA_HC_MAX_PRD_DIRECT	16 /* Direct PRDT entries */
+#define SATA_HC_MAX_PRD		63	/* Max PRD entry numbers per command */
+#define SATA_HC_MAX_PRD_DIRECT	16	/* Direct PRDT entries */
 #define SATA_HC_MAX_PRD_USABLE	(SATA_HC_MAX_PRD - 1)
 #define SATA_HC_MAX_XFER_LEN	0x4000000
 
@@ -239,7 +237,7 @@ typedef struct cmd_desc {
 } __attribute__ ((packed)) cmd_desc_t;
 
 #define SATA_HC_CMD_DESC_SIZE		sizeof(struct cmd_desc)
-#define SATA_HC_CMD_DESC_ALIGN		128	
+#define SATA_HC_CMD_DESC_ALIGN		128
 
 /*
 * CFIS - Command FIS, which is H2D register FIS, the struct defination
@@ -247,9 +245,9 @@ typedef struct cmd_desc {
 */
 typedef struct cfis {
 	u8 fis_type;		//1
-	u8 pm_port_c:4;		
+	u8 pm_port_c:4;
 	u8 FG_Reserved:3;	//2
-	u8 FIS_Flag:1;		
+	u8 FIS_Flag:1;
 	u8 command;		//3
 	u8 features;		//4
 	u8 lba_low;		//5
@@ -267,89 +265,84 @@ typedef struct cfis {
 	u8 res2[4];		//17~20
 } __attribute__ ((packed)) cfis_t;
 
-typedef struct _DmaSetupFIS
-{
-	u8	FIS_Type;
-	u8	FIS_Flag;
-	u16	Reserved0;
-	u32	DmaBufferIdentifierL;
-	u32	DmaBufferIdentifierH;
-	u32	Reserved1;
-	u32	DmaBufferOffset;
-	u32	DmaTransferCount;
-	u32	Reserved2;
-} T_DmaSetupFIS,*P_DmaSetupFIS;
+typedef struct _DmaSetupFIS {
+	u8 FIS_Type;
+	u8 FIS_Flag;
+	u16 Reserved0;
+	u32 DmaBufferIdentifierL;
+	u32 DmaBufferIdentifierH;
+	u32 Reserved1;
+	u32 DmaBufferOffset;
+	u32 DmaTransferCount;
+	u32 Reserved2;
+} T_DmaSetupFIS, *P_DmaSetupFIS;
 //===========================================================================
-typedef struct _PioSetupFIS
-{
-	u8	FIS_Type;
-	u8	FIS_Flag;
-	u8	Status;
-	u8	Error;
-	u8	P1x3;
-	u8	P1x4;
-	u8	P1x5;
-	u8	P1x6;
-	u8	P1x3Exp;
-	u8	P1x4Exp;
-	u8	P1x5Exp;
-	u8	Reserved0;
-	u8	P1x2;
-	u8	P1x2Exp;
-	u8	Reserved1;
-	u8	E_Status;
-	u16	TransferCount;
-	u16	Reserved2;
-} T_PioSetupFIS,*P_PioSetupFIS;
+typedef struct _PioSetupFIS {
+	u8 FIS_Type;
+	u8 FIS_Flag;
+	u8 Status;
+	u8 Error;
+	u8 P1x3;
+	u8 P1x4;
+	u8 P1x5;
+	u8 P1x6;
+	u8 P1x3Exp;
+	u8 P1x4Exp;
+	u8 P1x5Exp;
+	u8 Reserved0;
+	u8 P1x2;
+	u8 P1x2Exp;
+	u8 Reserved1;
+	u8 E_Status;
+	u16 TransferCount;
+	u16 Reserved2;
+} T_PioSetupFIS, *P_PioSetupFIS;
 //===========================================================================
-typedef struct _Device2Host
-{
-	u8	FIS_Type;
-	u8	FIS_Flag;
-	u8	Status;
-	u8	Error;
-	u8	P1x3;
-	u8	P1x4;
-	u8	P1x5;
-	u8	P1x6;
-	u8	P1x3Exp;
-	u8	P1x4Exp;
-	u8	P1x5Exp;
-	u8	Reserved0;
-	u8	P1x2;
-	u8	P1x2Exp;
-	u16	Reserved1;
-	u32	Reserved2;
-}T_Device2Host,*P_Device2Host;
+typedef struct _Device2Host {
+	u8 FIS_Type;
+	u8 FIS_Flag;
+	u8 Status;
+	u8 Error;
+	u8 P1x3;
+	u8 P1x4;
+	u8 P1x5;
+	u8 P1x6;
+	u8 P1x3Exp;
+	u8 P1x4Exp;
+	u8 P1x5Exp;
+	u8 Reserved0;
+	u8 P1x2;
+	u8 P1x2Exp;
+	u16 Reserved1;
+	u32 Reserved2;
+} T_Device2Host, *P_Device2Host;
 //===========================================================================
-typedef struct _SetDeviceBitsFIS
-{
-	u8	FIS_Type;
-	u8	PortMultiplier:4;
-	u8	FG_Interrupt:4;
-	u8	Status;
-	u8	Error;
-	u32	CompleteMap;
-}T_SetDeviceBitsFIS,*P_SetDeviceBitsFIS;
+typedef struct _SetDeviceBitsFIS {
+	u8 FIS_Type;
+	u8 PortMultiplier:4;
+	u8 FG_Interrupt:4;
+	u8 Status;
+	u8 Error;
+	u32 CompleteMap;
+} T_SetDeviceBitsFIS, *P_SetDeviceBitsFIS;
 //===========================================================================
-typedef struct _ReceiveFIS
-{
-	T_DmaSetupFIS	DmaSetupFIS;		//  28 bytes
-	u32	Reserved0;		//   4 bytes
-	T_PioSetupFIS	PioSetupFIS;		//  20 bytes
-	u32	Reserved1[3];		//  12 bytes
-	T_Device2Host	Device2HostFIS;		//  20bytes
-	u32	Reserved2;		//   4 bytes
+typedef struct _ReceiveFIS {
+	T_DmaSetupFIS DmaSetupFIS;	//  28 bytes
+	u32 Reserved0;		//   4 bytes
+	T_PioSetupFIS PioSetupFIS;	//  20 bytes
+	u32 Reserved1[3];	//  12 bytes
+	T_Device2Host Device2HostFIS;	//  20bytes
+	u32 Reserved2;		//   4 bytes
 	T_SetDeviceBitsFIS SetDeviceBitsFIS;	//   8 bytes
-	u8	Reserved3[32];		//  32 bytes
+	u8 Reserved3[32];	//  32 bytes
 } __attribute__ ((packed)) T_ReceiveFIS;
 /*
  * SATA device driver info
  */
 typedef struct ahci_sata_info {
-	struct ata_atapi_attach aa_link; //just for not match id
-	u32	sata_reg_base;
-	u32	flags;
+	struct ata_atapi_attach aa_link;	//just for not match id
+	u32 sata_reg_base;
+	u32 flags;
 } ahci_sata_info_t;
 
 #define FLAGS_DMA	0x00000000
@@ -359,32 +352,47 @@ typedef struct ahci_sata_info {
  * SATA device driver struct
  */
 typedef struct ahci_sata {
-	struct wdc_softc	sc_wdcdev;	/* common wdc definitions */
+	struct wdc_softc sc_wdcdev;	/* common wdc definitions */
 	struct channel_softc *wdc_chanarray[1];
-	struct channel_softc wdc_channel; /* generic part */
-	char		name[12];
-	u32		reg_base;		/* the base address of controller register */
-	void		*cmd_hdr_tbl_offset;	/* alloc address of command header table */
-	cmd_hdr_tbl_t	*cmd_hdr;		/* aligned address of command header table */
-	void		*cmd_desc_offset;	/* alloc address of command descriptor */
-	cmd_desc_t	*cmd_desc;		/* aligned address of command descriptor */
-	void 		*receive_fis_offset;
-	T_ReceiveFIS	*receive_fis;		
-	int		link;			/* PHY link status */
+	struct channel_softc wdc_channel;	/* generic part */
+	char name[12];
+	u32 reg_base;		/* the base address of controller register */
+	void *cmd_hdr_tbl_offset;	/* alloc address of command header table */
+	cmd_hdr_tbl_t *cmd_hdr;	/* aligned address of command header table */
+	void *cmd_desc_offset;	/* alloc address of command descriptor */
+	cmd_desc_t *cmd_desc;	/* aligned address of command descriptor */
+	void *receive_fis_offset;
+	T_ReceiveFIS *receive_fis;
+	int link;		/* PHY link status */
 	/* device attribute */
-	int		ata_device_type;	/* device type */
-	int		lba48;
-	int		queue_depth;		/* Max NCQ queue depth */
-	u16		pio;
-	u16		mwdma;
-	u16		udma;
-	int		wcache;
-	int		flush;
-	int		flush_ext;
+	int ata_device_type;	/* device type */
+	int lba48;
+	int queue_depth;	/* Max NCQ queue depth */
+	u16 pio;
+	u16 mwdma;
+	u16 udma;
+	int wcache;
+	int flush;
+	int flush_ext;
 } ahci_sata_t;
+
+typedef struct ahci_sata_softc {
+	struct device sc_dev;	/* General device infos */
+	int port_no;		/* port number */
+	int bs;
+	int count;
+	int lba48;
+} ahci_sata_softc;
 
 #define READ_CMD	0
 #define WRITE_CMD	1
 
+#define ahci_sata_lookup(cd, dev)	\
+	(struct ahci_sata_softc *)device_lookup(&cd, minor(dev))
 
+extern int ahci_sata_initialize(u32 reg, u32 flags);
+extern void ahci_sata_strategy(struct buf *bp, struct ahci_sata_softc *priv);
+extern int ahci_kick_engine(int port, int force_restart);
+extern int cd_prepare(int port_no, int flag);
+extern int cd_test_unit_ready(int port_no);
 #endif /* __8620_H__ */

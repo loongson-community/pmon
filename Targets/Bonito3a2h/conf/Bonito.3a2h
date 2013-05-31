@@ -225,7 +225,8 @@ syn1		at localbus0
 select gmac
 
 lahci0		at localbus0 base 0xbbe30000
-ahcisata*  at lahci0 
+ahci_sd*	at lahci0 
+ahci_cdrom*	at lahci0 
 
 lohci0    at localbus0 base 0xbbe08000
 usb*      at lohci0

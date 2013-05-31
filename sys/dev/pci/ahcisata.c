@@ -18,7 +18,6 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
  * MA 02111-1307 USA
  */
-#define DEBUG_RX
 #include "bpfilter.h"
 #include <sys/param.h>
 #include <sys/systm.h>
@@ -36,16 +35,11 @@
 #include <sys/errno.h>
 #include <sys/device.h>
 
-
-#if defined(__OpenBSD__)
-#endif
-
 #include <vm/vm.h>
 
 #include <machine/cpu.h>
 #include <machine/bus.h>
 #include <machine/intr.h>
-
 
 #include <dev/pci/pcivar.h>
 #include <dev/pci/pcireg.h>
@@ -57,11 +51,10 @@
 
 #include <sys/sockio.h>
 
-
-#include <vm/vm.h>              /* for vtophys */
-#include <vm/vm_param.h>        /* for vtophys */
-#include <vm/pmap.h>            /* for vtophys */
-#include <machine/clock.h>      /* for DELAY */
+#include <vm/vm.h>		/* for vtophys */
+#include <vm/vm_param.h>	/* for vtophys */
+#include <vm/pmap.h>		/* for vtophys */
+#include <machine/clock.h>	/* for DELAY */
 
 #include <pci/pcivar.h>
 
@@ -88,66 +81,54 @@
 #include "ahci.h"
 #include "ata.h"
 
+#ifdef AHCI_DEBUG
+#define ahci_debug(fmt, args...) printf("%s<%d>: "fmt, __func__,	\
+		__LINE__, ##args)
+#else
+#define ahci_debug(fmt, arg...)
+#endif
+
+#undef PHYSADDR
 #ifndef PHYSADDR
-//#define PHYSADDR(x) (((long)(x))&0x1fffffff)
 #define PHYSADDR(x) ((((long)(x))&0x1fffffff) | 0x80000000)
 #endif
 
 #define cpu_to_le32(x) (x)
 #define CFG_SATA_MAX_DEVICE 2
-#define ahci_sata_lookup(dev)	\
-	(struct ahci_sata_softc *)device_lookup(&ahcisata_cd, minor(dev))
 block_dev_desc_t sata_dev_desc[CFG_SATA_MAX_DEVICE];
 
-static int curr_device = -1;
+static int curr_port = -1;
 static int lba48[32];
 static int fault_timeout;
-int sata_using_flag=0;
+int sata_using_flag = 0;
 
-static int ahcisata_match(struct device *, void *, void *);
-static void ahcisata_attach(struct device *, struct device *, void *);
-static int ahci_sata_initialize(u32 reg,u32 flags);
-static void ahci_set_feature(u8 port,u8 *sataid);
+static void ahci_set_feature(u8 port, u8 * sataid);
 static int ahci_port_start(u8 port);
 static int ata_scsiop_inquiry(int port);
+static int atapi_device_reset(int port);
 static void ahci_fill_cmd_slot(struct ahci_ioports *pp, u32 opts);
 
 extern unsigned long strtoul(char *nptr, char **endptr, int base);
 extern int strcmp(char *s1, char *s2);
 
-ulong ahci_sata_read(int dev, unsigned long blknr, lbaint_t blkcnt, void *buffer);
-ulong ahci_sata_write(int dev, unsigned long blknr, lbaint_t blkcnt, void *buffer);
-
-typedef struct ahci_sata_softc {
-	/* General disk infos */
-	struct device sc_dev;
-	int dev;
-	int bs, count;
-	int lba48;
-}ahci_sata_softc;
-
-struct cfattach ahcisata_ca = {
-	sizeof(ahci_sata_softc), ahcisata_match, ahcisata_attach,
-};
-
-struct cfdriver ahcisata_cd = {
-	NULL, "wd", DV_DISK
-};
+ulong ahci_sata_read(int dev, unsigned long blknr, lbaint_t blkcnt,
+		     void *buffer);
+ulong ahci_sata_write(int dev, unsigned long blknr, lbaint_t blkcnt,
+		      void *buffer);
 
 static __inline__ int __ilog2(unsigned int x)
 {
 	int lz;
 
-	asm volatile (
-			".set\tnoreorder\n\t"
-			".set\tnoat\n\t"
-			".set\tmips32\n\t"
-			"clz\t%0,%1\n\t"
-			".set\tmips0\n\t"
-			".set\tat\n\t"
-			".set\treorder"
-			: "=r" (lz)
-			: "r" (x));
+	asm volatile (".set\tnoreorder\n\t"
+		      ".set\tnoat\n\t"
+		      ".set\tmips32\n\t"
+		      "clz\t%0,%1\n\t"
+		      ".set\tmips0\n\t"
+		      ".set\tat\n\t"
+		      ".set\treorder"
+		      :"=r" (lz)
+		      :"r"(x));
 
 	return 31 - lz;
 }
@@ -157,7 +138,7 @@ static void ahci_start_engine(int port)
 	struct ahci_ioports *pp = &(probe_ent->port[port]);
 	volatile u8 *port_mmio = (volatile u8 *)pp->port_mmio;
 	u32 tmp;
-		
+
 	/* start DMA */
 	tmp = readl(port_mmio + PORT_CMD);
 	tmp |= PORT_CMD_START;
@@ -192,11 +173,8 @@ u32 ata_wait_register(void *reg, u32 mask, u32 val,
 
 	tmp = readl(reg);
 
-		printf("%s:%d: read reg:%08x: %08lx timeout_msec = %08x\n", __FUNCTION__, __LINE__,(u32)reg, tmp, timeout_msec);
-	for (i = 0; ((val = readl(reg)) & mask) && i < timeout_msec; i+=interval)
-	{
-		//printf("%s:%d \n", __FUNCTION__, __LINE__);
-		printf("%s:%d: read reg:%08x: %08x, will sleep %08x\n", __FUNCTION__, __LINE__, reg, val, interval);
+	for (i = 0; ((val = readl(reg)) & mask) && i < timeout_msec;
+	     i += interval) {
 		msleep(interval);
 	}
 
@@ -213,21 +191,25 @@ static int ahci_stop_engine(int port)
 	tmp = readl(port_mmio + PORT_CMD);
 
 	/* check if the HBA is idle */
-	if((tmp & (PORT_CMD_START | PORT_CMD_LIST_ON)) == 0)
+	if ((tmp & (PORT_CMD_START | PORT_CMD_LIST_ON)) == 0)
 		return 0;
 
+	/* setting HBA to idle */
+	tmp &= ~PORT_CMD_START;
 	writel_with_flush(tmp, port_mmio + PORT_CMD);
 
 	tmp = ata_wait_register((void *)(port_mmio + PORT_CMD),
-			PORT_CMD_LIST_ON, PORT_CMD_LIST_ON, 1, 500);
+				PORT_CMD_LIST_ON, PORT_CMD_LIST_ON, 1, 500);
 
-	if(tmp & PORT_CMD_LIST_ON)
+	if (tmp & PORT_CMD_LIST_ON) {
+		printf("Cannot stop engine\n");
 		return -EIO;
+	}
 
 	return 0;
 }
 
-static int ahci_kick_engine(int port, int force_restart)
+int ahci_kick_engine(int port, int force_restart)
 {
 	struct ahci_ioports *pp = &(probe_ent->port[port]);
 	volatile u8 *port_mmio = (volatile u8 *)pp->port_mmio;
@@ -244,18 +226,18 @@ static int ahci_kick_engine(int port, int force_restart)
 	rc = ahci_stop_engine(port);
 	if (rc)
 		goto out_restart;
-	/* need to do CLO? */
+
+	busy = status & (ATA_BUSY | ATA_DRQ);
 	if (!busy) {
 		rc = 0;
 		goto out_restart;
 	}
 
-#if 0
-	if (!(hpriv->cap & HOST_CAP_CLO)) {
+	if (!(probe_ent->cap & HOST_CAP_CLO)) {
 		rc = -EOPNOTSUPP;
 		goto out_restart;
 	}
-#endif
+
 	/* perform CLO */
 	tmp = readl(port_mmio + PORT_CMD);
 	tmp |= PORT_CMD_CLO;
@@ -264,20 +246,22 @@ static int ahci_kick_engine(int port, int force_restart)
 	rc = 0;
 	tmp = ata_wait_register((void *)(port_mmio + PORT_CMD),
 				PORT_CMD_CLO, PORT_CMD_CLO, 1, 500);
-	if (tmp & PORT_CMD_CLO)
+	if (tmp & PORT_CMD_CLO) {
+		printf("Cannot set PORT_CMD_CLO\n");
 		rc = -EIO;
+	}
 
 	/* restart engine */
- out_restart:
+out_restart:
 	ahci_start_engine(port);
 	return rc;
 }
 
-static void ata_reset_fis_init(u8 pmp, int is_cmd, u8 *fis, int set)
+static void ata_reset_fis_init(u8 pmp, int is_cmd, u8 * fis, int set)
 {
 	fis[0] = 0x27;
 	fis[1] = pmp & 0xf;
-	if(is_cmd)
+	if (is_cmd)
 		fis[1] |= (1 << 7);
 
 	fis[2] = 0;
@@ -293,9 +277,9 @@ static void ata_reset_fis_init(u8 pmp, int is_cmd, u8 *fis, int set)
 	fis[12] = 0;
 	fis[13] = 0;
 	fis[14] = 0;
-	if(set == 1)
+	if (set == 1)
 		fis[15] |= ATA_SRST;
-	else 
+	else
 		fis[15] &= ~ATA_SRST;
 	fis[16] = 0;
 	fis[17] = 0;
@@ -304,7 +288,7 @@ static void ata_reset_fis_init(u8 pmp, int is_cmd, u8 *fis, int set)
 }
 
 static int ahci_exec_polled_cmd(int port, int pmp, int is_cmd, u16 flags,
-		unsigned long timeout_msec, int set)
+				unsigned long timeout_msec, int set)
 {
 	const u32 cmd_fis_len = 5;	/* five dwords */
 	struct ahci_ioports *pp = &(probe_ent->port[port]);
@@ -312,55 +296,52 @@ static int ahci_exec_polled_cmd(int port, int pmp, int is_cmd, u16 flags,
 	u32 tmp;
 	u8 fis[20];
 
-	//u8 *fis = (u8 *)pp->cmd_tbl;
 	ata_reset_fis_init(pmp, is_cmd, fis, set);
 	memcpy((unsigned char *)pp->cmd_tbl, fis, 20);
 	ahci_fill_cmd_slot(pp, cmd_fis_len | flags | (pmp << 12));
 
-	////CPU_IOFlushDCache(pp->cmd_slot, 32, SYNC_W); /*32~256*/
-	////CPU_IOFlushDCache(pp->cmd_tbl, 0x60, SYNC_W);
-	//CPU_IOFlushDCache(pp->rx_fis,AHCI_RX_FIS_SZ,SYNC_R);
+#if 0
+	CPU_IOFlushDCache(pp->cmd_slot, 32, SYNC_W);	/*32~256 */
+	CPU_IOFlushDCache(pp->cmd_tbl, 0x60, SYNC_W);
+	CPU_IOFlushDCache(pp->rx_fis, AHCI_RX_FIS_SZ, SYNC_R);
+#endif
 	/*issue & wait */
 	writel_with_flush(1, port_mmio + PORT_CMD_ISSUE);
 
-	printf("%s:%d \n", __FUNCTION__, __LINE__);
-	if(timeout_msec){
-		printf("%s:%d timeout_msec = %08lx \n", __FUNCTION__, __LINE__, timeout_msec);
-		tmp = ata_wait_register((void *)(port_mmio + PORT_CMD_ISSUE), 0x1, 0x1, 1, timeout_msec);
-		printf("%s:%d \n", __FUNCTION__, __LINE__);
-		if(tmp & 0x1){
+	if (timeout_msec) {
+		tmp = ata_wait_register((void *)(port_mmio + PORT_CMD_ISSUE),
+					0x1, 0x1, 1, timeout_msec);
+		if (tmp & 0x1) {
 			ahci_kick_engine(port, 1);
+			printf("softereset issue failed\n");
 			return -EBUSY;
 		}
-	} else
+	} else {
 		readl(port_mmio + PORT_CMD_ISSUE);
+	}
 
 	return 0;
 }
-#if 0
+
 static int ahci_check_ready(int port)
 {
 	struct ahci_ioports *pp = &(probe_ent->port[port]);
 	volatile u8 *port_mmio = (volatile u8 *)pp->port_mmio;
 	u8 status = readl(port_mmio + PORT_TFDATA) & 0xFF;
 
-	if(!(status & ATA_BUSY))
+	if (!(status & ATA_BUSY))
 		return 1;
 
 	/* 0xff indicates either no device or device not ready */
-	if(status == 0xff)
+	if (status == 0xff)
 		return -ENODEV;
 
 	return 0;
 }
-#endif
 
-int ahci_do_softreset(int port, unsigned int *class,
-			     int pmp, unsigned long deadline,
-			     int (*check_ready)(int port))
+int ahci_do_softreset(int port, int pmp, unsigned long deadline)
 {
 	const char *reason = NULL;
-	//unsigned long msecs;  // Why here msecs hasn't been initialized ?
 	unsigned long msecs = 0x200;
 	struct ahci_ioports *pp = &(probe_ent->port[port]);
 	volatile u8 *port_mmio = (volatile u8 *)pp->port_mmio;
@@ -368,115 +349,98 @@ int ahci_do_softreset(int port, unsigned int *class,
 
 	/* prepare for SRST (AHCI-1.1 10.4.1) */
 
-	printf("%s:%d: port_mmio = %08x\n", __FUNCTION__, __LINE__, (unsigned)port_mmio);
-
 	rc = ahci_kick_engine(port, 1);
 	if (rc && rc != -EOPNOTSUPP)
 		printf("failed to reset engine (errno=%d)\n", rc);
 
-	//ata_tf_init(link->device, &tf);
-
-	/* issue the first D2H Register FIS */
-	//tf.ctl |= ATA_SRST;
-	printf("%s:%d msec = %08lx \n", __FUNCTION__, __LINE__, msecs);
-	if (ahci_exec_polled_cmd(port, pmp, 0,
-			AHCI_CMD_RESET | AHCI_CMD_CLR_BUSY, msecs, 1)) {
-			printf("%s:%d msec = %08lx \n", __FUNCTION__, __LINE__, msecs);
-			//printf("%s:%d \n", __FUNCTION__, __LINE__);
+	/* issue the first H2D Register FIS */
+	if (ahci_exec_polled_cmd(port, pmp, 0, AHCI_CMD_RESET
+				 | AHCI_CMD_CLR_BUSY, msecs, 1)) {
+		printf("1st FIS failed\n");
 		rc = -EIO;
 		reason = "1st FIS failed";
 		goto fail;
 	}
-	printf("%s:%d msec = %08lx \n", __FUNCTION__, __LINE__, msecs);
 
 	/* spec says at least 5us, but be generous and sleep for 1ms */
-	/* fix me */
 	msleep(1);
 
-	/* issue the second D2H Register FIS */
-	//tf.ctl &= ~ATA_SRST;
-	printf("%s:%d msec = %08lx \n", __FUNCTION__, __LINE__, msecs);
-	ahci_exec_polled_cmd(port, pmp, 0, 0, 0, 0);
-#if 0
-	/* wait for link to become ready */
-	rc = ata_wait_after_reset(link, deadline, check_ready);
+	/* issue the second H2D Register FIS */
+	ahci_exec_polled_cmd(port, pmp, 0, 0, msecs, 0);
+
+	rc = 0;
+	while (msecs-- && !rc) {
+		rc = ahci_check_ready(port);
+	}
+
 	/* link occupied, -ENODEV too is an error */
-	if (rc) {
-		reason = "device not ready";
+	if (rc == -ENODEV) {
+		reason = "no device";
 		goto fail;
 	}
-#endif
-	/* fix me*/
-	ssleep(1);
-	*class = readl(port_mmio + PORT_SIG);
+	if (rc == 0) {
+		reason = "not ready";
+		goto fail;
+	}
 
-	if(*class == 0xeb140000)
-		pp->is_atapi = 1;
-	else
-		pp->is_atapi = 0;
-	printf("EXIT, class=%u\t is_atapi = %d\n", *class, pp->is_atapi);
 	return 0;
 
- fail:
+fail:
 	printf("softreset failed (%s)\n", reason);
-	return rc;
+	return 1;
 }
 
-
-//hd_driveid_t *ataid[AHCI_MAX_PORTS];
-
-
-int ahci_sata_initialize(u32 reg,u32 flags)
+int ahci_sata_initialize(u32 reg, u32 port_no)
 {
 	int rc;
-	int i=flags;
-	u8* diskid;
+	int i = port_no;
+	u8 *diskid;
 	ahci_sata_t *sata;
 	struct ahci_ioports *pp = &(probe_ent->port[i]);
 	volatile u8 *port_mmio = (volatile u8 *)pp->port_mmio;
 
-
-	printf("Port %d: SIG=0x%x\n", i, readl(port_mmio + PORT_SIG));
-	if(i < 0 || i > (CFG_SATA_MAX_DEVICE -1))
-	{
+	if (i < 0 || i > (CFG_SATA_MAX_DEVICE - 1)) {
 		printf("The sata index %d is out of ranges\n", i);
 		return -1;
-	} 
+	}
 	memset(&sata_dev_desc[i], 0, sizeof(struct block_dev_desc));
 	sata_dev_desc[i].if_type = IF_TYPE_SATA;
 	sata_dev_desc[i].dev = i;
 	sata_dev_desc[i].part_type = PART_TYPE_UNKNOWN;
-	sata_dev_desc[i].type = DEV_TYPE_HARDDISK;
+
+	if (pp->is_atapi) {
+		sata_dev_desc[i].type = DEV_TYPE_CDROM;
+		sata_dev_desc[i].blksz = 2048;	/* CD-ROM block size is 2048 */
+	} else {
+		sata_dev_desc[i].type = DEV_TYPE_HARDDISK;
+		sata_dev_desc[i].blksz = ATA_SECT_SIZE;
+	}
+
 	sata_dev_desc[i].lba = 0;
-	sata_dev_desc[i].blksz = 512;
 	sata_dev_desc[i].block_read = ahci_sata_read;
 	sata_dev_desc[i].block_write = ahci_sata_write;
 
-	sata = (ahci_sata_t *)malloc(sizeof(ahci_sata_t), M_DEVBUF, M_NOWAIT);
-	if(!sata)
-	{
+	sata = (ahci_sata_t *) malloc(sizeof(ahci_sata_t), M_DEVBUF, M_NOWAIT);
+	if (!sata) {
 		printf("alloc the sata device struct failed\n");
 		return -1;
 	}
 	memset((void *)sata, 0, sizeof(ahci_sata_t));
 	sata_dev_desc[i].priv = (void *)sata;
 	sprintf(sata->name, "SATA%d", i);
-	
+
 	sata->reg_base = reg;
 
 	rc = ahci_port_start(i);
-	
-	diskid=ata_scsiop_inquiry(i);
-  if(!(((hd_driveid_t*)diskid)->dma_ultra && 0xff00))
-     ahci_set_feature((u8) i,diskid);
-	  
-	curr_device = 0;
+	diskid = ata_scsiop_inquiry(i);
+	if (!diskid)
+		ahci_set_feature((u8) i, diskid);
+	curr_port = i;
 	return rc;
 }
 
-static int waiting_for_cmd_completed(volatile u8 *offset,
-		int timeout_msec,
-		u32 sign)
+static int waiting_for_cmd_completed(volatile u8 * offset,
+				     int timeout_msec, u32 sign)
 {
 	int i;
 	u32 status;
@@ -486,9 +450,6 @@ static int waiting_for_cmd_completed(volatile u8 *offset,
 
 	return (i < timeout_msec) ? 0 : -1;
 }
-
-
-
 
 #define MAX_DATA_BYTE_COUNT  (4*1024*1024)
 
@@ -507,12 +468,13 @@ static int ahci_fill_sg(u8 port, unsigned char *buf, int buf_len)
 
 	for (i = 0; i < sg_count; i++) {
 		ahci_sg->addr =
-			cpu_to_le32(PHYSADDR((u32) buf + i * MAX_DATA_BYTE_COUNT));
+		    cpu_to_le32(PHYSADDR((u32) buf + i * MAX_DATA_BYTE_COUNT));
 		ahci_sg->addr_hi = 0;
 		ahci_sg->flags_size = cpu_to_le32(0x3fffff &
-				(buf_len < MAX_DATA_BYTE_COUNT
-				 ? (buf_len - 1)
-				 : (MAX_DATA_BYTE_COUNT - 1)));
+						  (buf_len < MAX_DATA_BYTE_COUNT
+						   ? (buf_len - 1)
+						   : (MAX_DATA_BYTE_COUNT -
+						      1)));
 		ahci_sg++;
 		buf_len -= MAX_DATA_BYTE_COUNT;
 	}
@@ -520,19 +482,20 @@ static int ahci_fill_sg(u8 port, unsigned char *buf, int buf_len)
 	return sg_count;
 }
 
-
 static void ahci_fill_cmd_slot(struct ahci_ioports *pp, u32 opts)
 {
 	pp->cmd_slot->opts = cpu_to_le32(opts);
 	pp->cmd_slot->status = 0;
-	pp->cmd_slot->tbl_addr = cpu_to_le32(PHYSADDR(pp->cmd_tbl & 0xffffffff));
+	pp->cmd_slot->tbl_addr = cpu_to_le32(PHYSADDR(pp->cmd_tbl
+						      & 0xffffffff));
 	pp->cmd_slot->tbl_addr_hi = 0;
 }
 
-static void ahci_set_feature(u8 port,u8* sataid)
+static void ahci_set_feature(u8 port, u8 * sataid)
 {
 	struct ahci_ioports *pp = &(probe_ent->port[port]);
 	volatile u8 *port_mmio = (volatile u8 *)pp->port_mmio;
+	u32 dma_cap = ((hd_driveid_t *) sataid)->dma_ultra & 0xff;
 	u32 cmd_fis_len = 5;	/* five dwords */
 	u8 fis[20];
 
@@ -544,47 +507,43 @@ static void ahci_set_feature(u8 port,u8* sataid)
 	fis[3] = SETFEATURES_XFER;
 	fis[12] = __ilog2(probe_ent->udma_mask + 1) + 0x40 - 0x01;
 
-	if(((hd_driveid_t *)sataid)->dma_ultra==0x7f)//udma6
-	fis[12]=0x46;//sector count
-      if(((hd_driveid_t *)sataid)->dma_ultra==0x3f)//udma5
-      fis[12]=0x45;//sector count
-      if(((hd_driveid_t *)sataid)->dma_ultra==0x1f)//udma4
-      fis[12]=0x44;//sector count
-      if(((hd_driveid_t *)sataid)->dma_ultra==0x0f)//udma3
-      fis[12]=0x43;//sector count
+	if (dma_cap == ATA_UDMA6)
+		fis[12] = XFER_UDMA_6;
+	if (dma_cap == ATA_UDMA5)
+		fis[12] = XFER_UDMA_5;
+	if (dma_cap == ATA_UDMA4)
+		fis[12] = XFER_UDMA_4;
+	if (dma_cap == ATA_UDMA3)
+		fis[12] = XFER_UDMA_3;
+
+	ahci_debug("fis[12] = %d\n", fis[12]);
+
 	memcpy((unsigned char *)pp->cmd_tbl, fis, 20);
 	ahci_fill_cmd_slot(pp, cmd_fis_len);
 
-	////CPU_IOFlushDCache(pp->cmd_slot, 32, SYNC_W); /*32~256*/
-	////CPU_IOFlushDCache(pp->cmd_tbl, 0x60, SYNC_W);
-	////CPU_IOFlushDCache(pp->rx_fis,AHCI_RX_FIS_SZ,SYNC_R);
+#if 0
+	CPU_IOFlushDCache(pp->cmd_slot, 32, SYNC_W);	/*32~256 */
+	CPU_IOFlushDCache(pp->cmd_tbl, 0x60, SYNC_W);
+	CPU_IOFlushDCache(pp->rx_fis, AHCI_RX_FIS_SZ, SYNC_R);
+#endif
 
 	writel_with_flush(1, port_mmio + PORT_CMD_ISSUE);
 	readl(port_mmio + PORT_CMD_ISSUE);
 
-	if (waiting_for_cmd_completed(port_mmio + PORT_CMD_ISSUE, 150, 0x1)) {
+	if (waiting_for_cmd_completed(port_mmio + PORT_CMD_ISSUE, 300, 0x1)) {
 		printf("set feature error!\n");
 	}
 }
 
-
 static int ahci_port_start(u8 port)
-	/* [31:0]CI
-	 * This field is bit significant. Each bit corresponds to a command
-	 * slot, where bit 0 corresponds to command slot 0. This field is 
-	 * set by the software to indicate to the Port that a command has
-	 * been built in system memory for a command slot and may be sent
-	 * to the device.
-	 */
 {
 	struct ahci_ioports *pp = &(probe_ent->port[port]);
 	volatile u8 *port_mmio = (volatile u8 *)pp->port_mmio;
 	u32 port_status;
 	u32 mem;
 
-	printf("Enter start port: %d\n", port);
 	port_status = readl(port_mmio + PORT_SCR_STAT);
-	printf("Port %d status: %x\n", port, port_status);
+	ahci_debug("Port %d, status: %x\n", port, port_status);
 	if ((port_status & 0xf) != 0x03) {
 		printf("No Link on this port!\n");
 		return -1;
@@ -624,36 +583,28 @@ static int ahci_port_start(u8 port)
 	mem += AHCI_CMD_TBL_HDR;
 	pp->cmd_tbl_sg = (struct ahci_sg *)mem;
 
-	writel_with_flush(PHYSADDR((u32) pp->cmd_slot), port_mmio + PORT_LST_ADDR);
+	writel_with_flush(PHYSADDR((u32) pp->cmd_slot),
+			  port_mmio + PORT_LST_ADDR);
 
 	writel_with_flush(PHYSADDR(pp->rx_fis), port_mmio + PORT_FIS_ADDR);
 
 	writel_with_flush(PORT_CMD_ICC_ACTIVE | PORT_CMD_FIS_RX |
-			PORT_CMD_POWER_ON | PORT_CMD_SPIN_UP |
-			PORT_CMD_START, port_mmio + PORT_CMD);
+			  PORT_CMD_POWER_ON | PORT_CMD_SPIN_UP |
+			  PORT_CMD_START, port_mmio + PORT_CMD);
 
 	printf("Exit start port %d\n", port);
 
 	return 0;
 }
 
-static int get_ahci_device_data(u8 port, u8 *fis, int fis_len, u8 *buf,
-		int buf_len, u8 *cdb,int is_write)
+static int get_ahci_device_data(u8 port, u8 * fis, int fis_len, u8 * buf,
+				int buf_len, u8 * cdb, int is_write)
 {
-
 	struct ahci_ioports *pp = &(probe_ent->port[port]);
 	volatile u8 *port_mmio = (volatile u8 *)pp->port_mmio;
 	u32 opts;
 	u32 port_status;
-	/* [31:0]CI
-	 * This field is bit significant. Each bit corresponds to a command
-	 * slot, where bit 0 corresponds to command slot 0. This field is 
-	 * set by the software to indicate to the Port that a command has
-	 * been built in system memory for a command slot and may be sent
-	 * to the device.
-	 */
 	int sg_count;
-
 
 	if (port > probe_ent->n_ports) {
 		printf("Invaild port number %d\n", port);
@@ -668,24 +619,27 @@ static int get_ahci_device_data(u8 port, u8 *fis, int fis_len, u8 *buf,
 
 	memcpy((unsigned char *)pp->cmd_tbl, fis, fis_len);
 
-	if(cdb != NULL)
-	{
+	if (cdb != NULL) {
 		memset((unsigned char *)pp->cmd_tbl + AHCI_CMD_TBL_CDB, 0, 32);
-		memcpy((unsigned char *)pp->cmd_tbl + AHCI_CMD_TBL_CDB, cdb, ATAPI_COMMAND_LEN);
+		memcpy((unsigned char *)pp->cmd_tbl + AHCI_CMD_TBL_CDB, cdb,
+		       ATAPI_COMMAND_LEN);
 	}
+
 	sg_count = ahci_fill_sg(port, buf, buf_len);
 	opts = (fis_len >> 2) | (sg_count << 16);
-	if(cdb != NULL)
-	{
+
+	if (cdb != NULL) {
 		opts |= AHCI_CMD_ATAPI | AHCI_CMD_PREFETCH;
 	}
 	ahci_fill_cmd_slot(pp, opts);
 
-	//CPU_IOFlushDCache(pp->cmd_slot, 32, SYNC_W); /*32~256*/
-	//CPU_IOFlushDCache(pp->cmd_tbl, 0x60, SYNC_W);
-	//CPU_IOFlushDCache(pp->cmd_tbl_sg, sg_count*16 , SYNC_W);
-	//CPU_IOFlushDCache(pp->rx_fis,AHCI_RX_FIS_SZ,SYNC_R);
-	//CPU_IOFlushDCache(buf,buf_len,is_write?SYNC_W:SYNC_R);
+#if 0
+	CPU_IOFlushDCache(pp->cmd_slot, 32, SYNC_W);	/*32~256 */
+	CPU_IOFlushDCache(pp->cmd_tbl, 0x60, SYNC_W);
+	CPU_IOFlushDCache(pp->cmd_tbl_sg, sg_count * 16, SYNC_W);
+	CPU_IOFlushDCache(pp->rx_fis, AHCI_RX_FIS_SZ, SYNC_R);
+	CPU_IOFlushDCache(buf, buf_len, is_write ? SYNC_W : SYNC_R);
+#endif
 
 	/* [31:0]CI
 	 * This field is bit significant. Each bit corresponds to a command
@@ -695,12 +649,14 @@ static int get_ahci_device_data(u8 port, u8 *fis, int fis_len, u8 *buf,
 	 * to the device.
 	 */
 	writel_with_flush(1, port_mmio + PORT_CMD_ISSUE);
-	
-	if (waiting_for_cmd_completed(port_mmio + PORT_CMD_ISSUE, 800, 0x1)) {
+	if (waiting_for_cmd_completed(port_mmio + PORT_CMD_ISSUE, 2000, 0x1)) {
+		printf("%s <line%d>: timeout exit! %d bytes transferred."
+		       " tfd: 0x%08x\n", __func__, __LINE__,
+		       pp->cmd_slot->status, readl(port_mmio + PORT_TFDATA));
 		return -1;
 	}
-	//printf("get_ahci_device_data: %d byte transferred.\n",
-	//		pp->cmd_slot->status);
+
+	ahci_debug("%d byte transferred.\n", pp->cmd_slot->status);
 
 	/* Indicates the current byte count that has transferred on device
 	 * writes(system memory to device) or 
@@ -709,8 +665,21 @@ static int get_ahci_device_data(u8 port, u8 *fis, int fis_len, u8 *buf,
 	return pp->cmd_slot->status;
 }
 
-static void dump_ataid(hd_driveid_t *ataid)
+static void dump_ataid(hd_driveid_t * ataid)
 {
+	int i;
+	unsigned short *id = (unsigned short *)ataid;
+
+	for (i = 0; i < 128; i++) {
+		if (!(i % 8))
+			printf("\n%03d:", i);
+		printf(" %04x", id[i]);
+	}
+	printf("\n");
+
+	printf("(00)ataid->config = 0x%x\n", ataid->config);
+	printf("(01)ataid->cyls = 0x%x\n", ataid->cyls);
+	printf("(02)ataid->reserved2 = 0x%x\n", ataid->reserved2);
 	printf("(49)ataid->capability = 0x%x\n", ataid->capability);
 	printf("(53)ataid->field_valid =0x%x\n", ataid->field_valid);
 	printf("(63)ataid->dma_mword = 0x%x\n", ataid->dma_mword);
@@ -728,7 +697,7 @@ static void dump_ataid(hd_driveid_t *ataid)
 	printf("(93)ataid->hw_config = 0x%x\n", ataid->hw_config);
 }
 
-static u64 sata_id_n_sectors(u16 *id)
+static u64 sata_id_n_sectors(u16 * id)
 {
 	if (ata_id_has_lba(id)) {
 		if (ata_id_has_lba48(id))
@@ -739,6 +708,7 @@ static u64 sata_id_n_sectors(u16 *id)
 		return 0;
 	}
 }
+
 /*
  * SCSI INQUIRY command operation.
  */
@@ -746,113 +716,76 @@ static int ata_scsiop_inquiry(int port)
 {
 	u8 fis[20];
 	u8 *tmpid;
-	
+	int cmd, rc;
+	struct ahci_ioports *pp = &(probe_ent->port[port]);
+	volatile u8 *port_mmio = (volatile u8 *)pp->port_mmio;
+
 	memset(fis, 0, 20);
 	/* Construct the FIS */
 	fis[0] = 0x27;		/* Host to device FIS. */
 	fis[1] = 1 << 7;	/* Command FIS. */
-	fis[2] = ATA_CMD_IDENT;	/* Command byte. */
+	if (pp->is_atapi) {
+		fis[2] = ATAPI_CMD_IDENT;	/* Command byte. */
+		cmd = readl(port_mmio + PORT_CMD);
+		cmd |= PORT_CMD_ATAPI;
+		writel_with_flush(cmd, port_mmio + PORT_CMD);
+	} else {
+		fis[2] = ATA_CMD_IDENT;	/* Command byte. */
+	}
 
 	/* Read id from sata */
-	if (!(tmpid = malloc(sizeof(hd_driveid_t), M_DEVBUF, M_NOWAIT)) ){
+	if (!(tmpid = malloc(sizeof(hd_driveid_t), M_DEVBUF, M_NOWAIT))) {
 		printf("malloc in ata_scsiop_inquiry failed.\n");
-		return -ENOMEM;
+		return NULL;
 	}
 
-	if (!get_ahci_device_data(port, (u8 *) & fis, 20,
-			tmpid, sizeof(hd_driveid_t), NULL, 0)) {
+	rc = get_ahci_device_data(port, (u8 *) & fis, 20,
+				  tmpid, sizeof(hd_driveid_t), NULL, 0);
+	if (rc == -1) {
 		printf("scsi_ahci: SCSI inquiry command failure.\n");
-		return -EIO;
+		return NULL;
 	}
-#if 0
-	if (ataid[port])
-		free(ataid[port], M_DEVBUF);
-	ataid[port] = (hd_driveid_t *) tmpid;
-#endif
-	sata_dev_desc[port].lba = sata_id_n_sectors((u16 *)tmpid);
-	if(ata_id_has_lba48((u16 *)tmpid))
-	{
+
+	sata_dev_desc[port].lba = sata_id_n_sectors((u16 *) tmpid);
+	if (ata_id_has_lba48((u16 *) tmpid)) {
 		sata_dev_desc[port].lba48 = 1;
 		lba48[port] = 1;
 	}
-#if 0
-	dump_ataid(/*ataid[port]*/ (hd_driveid_t *)tmpid );
+#ifdef AHCI_DEBUG
+	dump_ataid((hd_driveid_t *) tmpid);
 #endif
 	return tmpid;
 }
 
-
-
-static int ahcisata_match(struct device *parent,
-			void *match,
-			void *aux
-			)
+static void make_read_command_packet(u8 * pc, int sector, int nframes)
 {
-	ahci_sata_info_t info;
-	int err, class;
-	
-	info = *(ahci_sata_info_t *)aux;
-	
-	printf("%s:%d:Origin info.regbase = %08x\n", __FUNCTION__, __LINE__, info.sata_reg_base);
-	//info.sata_reg_base = 0xbbe30000;
-	printf("%s:%d:Now info.regbase = %08x\n", __FUNCTION__, __LINE__, info.sata_reg_base);
-	//err = ahci_sata_initialize(info.sata_reg_base, info.flags);
-	err = ahci_sata_initialize(info.sata_reg_base, info.flags);
-	if(err)
-		return 0;
-	else{
-#if 0
-		printf("%s:%d \n", __FUNCTION__, __LINE__);
-		ahci_do_softreset(info.flags, &class, 0, 0, NULL);
-		printf("%s:%d \n", __FUNCTION__, __LINE__);
-#else
-    //wdattach(parent,match, aux);
-#endif
-		return 1;
-	}
-}
-
-
-static void ahcisata_attach(struct device *parent,
-			struct device *self,
-			void *aux
-			)
-{
-	printf("%s:%d \n", __FUNCTION__, __LINE__);
-	return ;
-}
-
-static void make_read_command_packet(u8 *pc, int nframes, int sector)
-{
-	pc[0] = GPCMD_READ_10; 
-	pc[7] = (nframes >> 8) & 0xff;	//How many blocks 
-	pc[8] = nframes & 0xff;
-	pc[2] = (sector >> 24) & 0xff;	//Block start address 
-	pc[3] = (sector >> 16) & 0xff; 
+	pc[0] = GPCMD_READ_10;
+	pc[2] = (sector >> 24) & 0xff;	/* Block start address */
+	pc[3] = (sector >> 16) & 0xff;
 	pc[4] = (sector >> 8) & 0xff;
 	pc[5] = (sector >> 0) & 0xff;
+	pc[7] = (nframes >> 8) & 0xff;	/* Blocks */
+	pc[8] = nframes & 0xff;
 }
 
-static u32 ahci_sata_rw_cmd_ext(int dev, u32 start, u32 blkcnt, u8 *buffer, int is_write)
+static u32 ahci_sata_rw_cmd_ext(int port_no, u32 start, u32 blkcnt, u8 * buffer,
+				int is_write)
 {
-	//ahci_sata_t *sata = (ahci_sata_t *)sata_dev_desc[dev].priv;
-	struct ahci_ioports *pp = &(probe_ent->port[dev]);
-	//volatile u8 *port_mmio = (volatile u8 *)pp->port_mmio;
+	struct ahci_ioports *pp = &(probe_ent->port[port_no]);
 	struct sata_fis_h2d h2d;
 	struct cfis *cfis;
 	u64 block;
 	u8 *pc;
 
-	block = (u64)start;
+	block = (u64) start;
 	cfis = (struct cfis *)&h2d;
 
 	memset((void *)cfis, 0, sizeof(struct cfis));
 
 	cfis->fis_type = SATA_FIS_TYPE_REGISTER_H2D;
-	((u8 *)cfis)[1] = 0x80; /* is command */
+	((u8 *) cfis)[1] = 0x80;	/* is command */
 
-	((u8 *)cfis)[2] = (is_write) ? 0x35
-		: 0x25;
+	cfis->command = (is_write) ? ATA_CMD_WRITE_EXT : ATA_CMD_READ_EXT;
 
 	cfis->lba_high_exp = (block >> 40) & 0xff;
 	cfis->lba_mid_exp = (block >> 32) & 0xff;
@@ -865,57 +798,59 @@ static u32 ahci_sata_rw_cmd_ext(int dev, u32 start, u32 blkcnt, u8 *buffer, int 
 	cfis->sector_count = blkcnt & 0xff;
 
 	pc = NULL;
-	if(pp->is_atapi)
-	{
-		pc = (u8 *)malloc(ATAPI_COMMAND_LEN, M_DEVBUF, M_NOWAIT);
-		if(pc == NULL)
-		{
+	if (pp->is_atapi) {
+		pc = (u8 *) malloc(ATAPI_COMMAND_LEN, M_DEVBUF, M_NOWAIT);
+		if (pc == NULL) {
 			printf("%s:%d malloc failed.\n", __FILE__, __LINE__);
 			return -1;
 		}
 		memset(pc, 0, ATAPI_COMMAND_LEN);
-		make_read_command_packet(pc, block, blkcnt);	
+		make_read_command_packet(pc, block, blkcnt);
 	}
 
-	//atp_sata_exec_cmd(sata, cfis, CMD_ATA, 0, buffer, ATA_SECT_SIZE * blkcnt);
-	get_ahci_device_data(dev, (u8 *)cfis, sizeof(struct cfis), buffer, ATA_SECT_SIZE * blkcnt, pc, is_write);
+	get_ahci_device_data(port_no, (u8 *) cfis, sizeof(struct cfis), buffer,
+			     sata_dev_desc[port_no].blksz * blkcnt, pc,
+			     is_write);
 	return blkcnt;
 }
 
-static u32 ata_low_level_rw_lba48(int dev, u32 blknr, u32 blkcnt, void *buffer, int is_write)
+static u32 ata_low_level_rw_lba48(int port_no, u32 blknr, u32 blkcnt,
+				  void *buffer, int is_write)
 {
 	u32 start, blks;
 	u8 *addr;
 	int max_blks;
+	u32 blk_sz;
 
 	start = blknr;
 	blks = blkcnt;
-	addr = (u8 *)buffer;
+	addr = (u8 *) buffer;
+	blk_sz = sata_dev_desc[port_no].blksz;
 
 	max_blks = ATA_MAX_SECTORS_LBA48;
 	do {
-		if (blks > max_blks)
-		{
-			ahci_sata_rw_cmd_ext(dev, start, max_blks, addr, is_write);
+		if (blks > max_blks) {
+			ahci_sata_rw_cmd_ext(port_no, start, max_blks, addr,
+					     is_write);
 			start += max_blks;
 			blks -= max_blks;
-			addr += ATA_SECT_SIZE * max_blks;
-		} else
-		{
-			ahci_sata_rw_cmd_ext(dev, start, blks, addr, is_write);
+			addr += blk_sz * max_blks;
+		} else {
+			ahci_sata_rw_cmd_ext(port_no, start, blks, addr,
+					     is_write);
 			start += blks;
 			blks = 0;
-			addr += ATA_SECT_SIZE * blks;
+			addr += blk_sz * blks;
 		}
 	} while (blks != 0);
 
 	return blkcnt;
 }
 
-static u32 ahci_sata_rw_cmd(int dev, u32 start, u32 blkcnt, u8 *buffer, int is_write)
+static u32 ahci_sata_rw_cmd(int port_no, u32 start, u32 blkcnt, u8 * buffer,
+			    int is_write)
 {
-	//ahci_sata_t *sata = (ahci_sata_t *)sata_dev_desc[dev].priv;
-	struct ahci_ioports *pp = &(probe_ent->port[dev]);
+	struct ahci_ioports *pp = &(probe_ent->port[port_no]);
 	struct sata_fis_h2d h2d;
 	struct cfis *cfis;
 	u8 *pc;
@@ -923,61 +858,69 @@ static u32 ahci_sata_rw_cmd(int dev, u32 start, u32 blkcnt, u8 *buffer, int is_w
 
 	block = start;
 	cfis = (struct cfis *)&h2d;
-
 	memset((void *)cfis, 0, sizeof(struct cfis));
-
 	cfis->fis_type = SATA_FIS_TYPE_REGISTER_H2D;
-	((u8 *)cfis)[1] = 1 << 7; /* is command */
-	cfis->command = (is_write) ? 0xca: 0xc8;
+	cfis->FIS_Flag = 1;	/* is command */
+
+	if (pp->is_atapi) {
+		cfis->command = ATA_CMD_PACKET;
+		cfis->features = ATAPI_PKT_DMA;
+	} else {
+		cfis->command = (is_write) ? ATA_CMD_WRITE : ATA_CMD_READ;
+	}
+
 	cfis->device = 0xe0;
 
 	cfis->device |= (block >> 24) & 0xf;
 	cfis->lba_high = (block >> 16) & 0xff;
 	cfis->lba_mid = (block >> 8) & 0xff;
 	cfis->lba_low = block & 0xff;
-	cfis->sector_count = (u8)(blkcnt & 0xff);
+	cfis->sector_count = (u8) (blkcnt & 0xff);
 
-	if(pp->is_atapi)
-	{
-		pc = (u8 *)malloc(ATAPI_COMMAND_LEN, M_DEVBUF, M_NOWAIT);
-		if(pc == NULL)
-		{
+	if (pp->is_atapi) {
+		pc = (u8 *) malloc(ATAPI_COMMAND_LEN, M_DEVBUF, M_NOWAIT);
+		if (pc == NULL) {
 			printf("%s:%d malloc failed.\n", __FILE__, __LINE__);
 			return -1;
 		}
 		memset(pc, 0, ATAPI_COMMAND_LEN);
-		make_read_command_packet(pc, block, blkcnt);	
+		make_read_command_packet(pc, block, blkcnt);
 	}
+	ahci_debug("block = 0x%x, blkcnt = 0x%x blksz = %d \n", block, blkcnt,
+		   sata_dev_desc[port_no].blksz);
+	get_ahci_device_data(port_no, (u8 *) cfis, sizeof(struct cfis), buffer,
+			     sata_dev_desc[port_no].blksz * blkcnt, pc,
+			     is_write);
 
-	//atp_sata_exec_cmd(sata, cfis, CMD_ATA, 0, buffer, ATA_SECT_SIZE * blkcnt);
-	get_ahci_device_data(dev, (u8 *)cfis, sizeof(struct cfis), buffer, ATA_SECT_SIZE * blkcnt, pc, is_write);
 	return blkcnt;
 }
 
-static u32 ata_low_level_rw_lba28(int dev, u32 blknr, u32 blkcnt, void *buffer, int is_write)
+static u32 ata_low_level_rw_lba28(int port_no, u32 blknr, u32 blkcnt,
+				  void *buffer, int is_write)
 {
 	u32 start, blks;
 	u8 *addr;
 	int max_blks;
+	u32 blk_sz;
 
+	blk_sz = sata_dev_desc[port_no].blksz;
 	start = blknr;
 	blks = blkcnt;
-	addr = (u8 *)buffer;
+	addr = (u8 *) buffer;
 
 	max_blks = ATA_MAX_SECTORS;
 	do {
-		if (blks > max_blks)
-		{
-			ahci_sata_rw_cmd(dev, start, max_blks, addr, is_write);
+		if (blks > max_blks) {
+			ahci_sata_rw_cmd(port_no, start, max_blks, addr,
+					 is_write);
 			start += max_blks;
 			blks -= max_blks;
-			addr += ATA_SECT_SIZE * max_blks;
-		} else
-		{
-			ahci_sata_rw_cmd(dev, start, blks, addr, is_write);
+			addr += blk_sz * max_blks;
+		} else {
+			ahci_sata_rw_cmd(port_no, start, blks, addr, is_write);
 			start += blks;
 			blks = 0;
-			addr += ATA_SECT_SIZE * blks;
+			addr += blk_sz * blks;
 		}
 	} while (blks != 0);
 
@@ -987,31 +930,35 @@ static u32 ata_low_level_rw_lba28(int dev, u32 blknr, u32 blkcnt, void *buffer, 
 /*
  * SATA interface between low level driver and command layer
  * */
-ulong ahci_sata_read(int dev, 
-		unsigned long blknr, 
-		lbaint_t blkcnt, 
-		void *buffer)
+ulong ahci_sata_read(int port_no, unsigned long blknr, lbaint_t blkcnt,
+		     void *buffer)
 {
 	u32 rc;
-	if(lba48[dev]){
-		rc = ata_low_level_rw_lba48(dev, blknr, blkcnt, buffer, READ_CMD);		
+
+	if (lba48[port_no]) {
+		rc = ata_low_level_rw_lba48(port_no, blknr, blkcnt, buffer,
+					    READ_CMD);
 	} else {
-		rc = ata_low_level_rw_lba28(dev, blknr, blkcnt, buffer, READ_CMD);
+		rc = ata_low_level_rw_lba28(port_no, blknr, blkcnt, buffer,
+					    READ_CMD);
 	}
+
 	return rc;
 }
 
-ulong ahci_sata_write(int dev, 
-		unsigned long blknr, 
-		lbaint_t blkcnt, 
-		void *buffer)
+ulong ahci_sata_write(int port_no, unsigned long blknr, lbaint_t blkcnt,
+		      void *buffer)
 {
 	u32 rc;
-	if(lba48[dev]){
-		rc = ata_low_level_rw_lba48(dev, blknr, blkcnt, buffer, WRITE_CMD);		
+
+	if (lba48[port_no]) {
+		rc = ata_low_level_rw_lba48(port_no, blknr, blkcnt, buffer,
+					    WRITE_CMD);
 	} else {
-		rc = ata_low_level_rw_lba28(dev, blknr, blkcnt, buffer, WRITE_CMD);
+		rc = ata_low_level_rw_lba28(port_no, blknr, blkcnt, buffer,
+					    WRITE_CMD);
 	}
+
 	return rc;
 }
 
@@ -1029,52 +976,39 @@ ulong ahci_sata_write(int dev,
 #undef _KERNEL_
 #include <errno.h>
 
-
-void ahci_sata_strategy(struct buf *bp)
+void ahci_sata_strategy(struct buf *bp, struct ahci_sata_softc *priv)
 {
-	struct ahci_sata_softc *priv;
 	unsigned int blkno, blkcnt;
 	int ret;
 
-	priv = ahci_sata_lookup(bp->b_dev);
 	blkno = bp->b_blkno;
-	
-	blkno = blkno / (priv->bs/DEV_BSIZE);
+
+	blkno = blkno / (priv->bs / DEV_BSIZE);
 	blkcnt = howmany(bp->b_bcount, priv->bs);
 
 	/* Valid request ? */
-	if(bp->b_blkno < 0 ||
-			(bp->b_bcount % priv->bs) != 0 ||
-			(bp->b_bcount / priv->bs) >= (1 << NBBY)) {
+	if (bp->b_blkno < 0 ||
+	    (bp->b_bcount % priv->bs) != 0 ||
+	    (bp->b_bcount / priv->bs) >= (1 << NBBY)) {
 		bp->b_error = EINVAL;
 		printf("Invalid request\n");
 		goto bad;
 	}
 
 	/* If it's a null transfer, return immediately. */
-	if(bp->b_bcount == 0)
+	if (bp->b_bcount == 0)
 		goto done;
-	
-	if(bp->b_flags & B_READ){
+
+	if (bp->b_flags & B_READ) {
 		fault_timeout = 0;
-		{/*validate sata number being used*/
-      if(sata_using_flag==0xf0) 
-        priv->dev=1;
-      else if(sata_using_flag==0x0f) 
-          priv->dev=0;
-      else if(sata_using_flag==0xff)
-        priv->dev=(bp->b_dev&0x01);		  	
-		}
-		ret = ahci_sata_read(priv->dev, blkno, blkcnt, bp->b_data);
-		if(ret != blkcnt || fault_timeout)
+		ret = ahci_sata_read(priv->port_no, blkno, blkcnt, bp->b_data);
+		if (ret != blkcnt || fault_timeout)
 			bp->b_flags |= B_ERROR;
 		dotik(30000, 0);
-	}
-	else
-	{
+	} else {
 		fault_timeout = 0;
-		ret = ahci_sata_write(priv->dev, blkno, blkcnt, bp->b_data);
-		if(ret != blkcnt || fault_timeout)
+		ret = ahci_sata_write(priv->port_no, blkno, blkcnt, bp->b_data);
+		if (ret != blkcnt || fault_timeout)
 			bp->b_flags |= B_ERROR;
 		dotik(30000, 0);
 	}
@@ -1086,190 +1020,233 @@ bad:
 	biodone(bp);
 }
 
-int ahcisata_open(
-		dev_t dev,
-		int flag, int fmt,
-		struct proc *p)
+/*@flag 0: unload the media, 1: load the media 
+ */
+int cd_prepare(int port_no, int flag)
 {
-	//char sata_cmd[0x200];
-	//char *sata_env;
-	struct ahci_sata_softc *priv;
-	priv=ahci_sata_lookup(dev);
-	if(!priv)return -1;
-	priv->bs=ATA_SECT_SIZE;
-	priv->count=-1;
-	return 0;
+	struct ahci_ioports *pp;
+	volatile u8 *port_mmio;
+	struct cfis *cfis;
+	u8 *pc;
+	u32 cfis_len, opts;
+
+	pp = &(probe_ent->port[port_no]);
+	port_mmio = (volatile u8 *)pp->port_mmio;
+
+	cfis = (unsigned char *)pp->cmd_tbl;
+	cfis_len = sizeof(struct cfis);
+	memset((void *)cfis, 0, sizeof(struct cfis));
+	cfis->fis_type = SATA_FIS_TYPE_REGISTER_H2D;
+	cfis->FIS_Flag = 1;
+	cfis->command = ATA_CMD_PACKET;
+	cfis->features = ATAPI_PKT_DMA;
+
+	pc = (u8 *) pp->cmd_tbl + AHCI_CMD_TBL_CDB;
+	memset(pc, 0, ATAPI_COMMAND_LEN);
+	pc[0] = GPCMD_START_STOP_UNIT;
+	pc[4] = 0x2 + flag;
+
+	opts = (cfis_len >> 2) | AHCI_CMD_ATAPI | AHCI_CMD_PREFETCH;
+	ahci_fill_cmd_slot(pp, opts);
+	writel_with_flush(1, port_mmio + PORT_CMD_ISSUE);
+
+	if (waiting_for_cmd_completed(port_mmio + PORT_CMD_ISSUE, 200, 0x1)) {
+		ahci_debug("timeout! %d bytes transferred. tfd: 0x%08x\n",
+			   pp->cmd_slot->status,
+			   readl(port_mmio + PORT_TFDATA));
+		return -1;
+	}
+
+	return pp->cmd_slot->status;
 }
 
-
-	int
-ahcisata_close( dev_t dev,
-		int flag, int fmt,
-		struct proc *p)
+int cd_test_unit_ready(int port_no)
 {
-	return 0;
+	struct ahci_ioports *pp;
+	volatile u8 *port_mmio;
+	struct cfis *cfis;
+	u8 *pc;
+	u32 cfis_len, opts;
+
+	pp = &(probe_ent->port[port_no]);
+	port_mmio = (volatile u8 *)pp->port_mmio;
+
+	cfis = (unsigned char *)pp->cmd_tbl;
+	cfis_len = sizeof(struct cfis);
+	memset((void *)cfis, 0, sizeof(struct cfis));
+	cfis->fis_type = SATA_FIS_TYPE_REGISTER_H2D;
+	cfis->FIS_Flag = 1;
+	cfis->command = ATA_CMD_PACKET;
+	cfis->features = ATAPI_PKT_DMA;
+
+	pc = (u8 *) pp->cmd_tbl + AHCI_CMD_TBL_CDB;
+	memset(pc, 0, ATAPI_COMMAND_LEN);
+	pc[0] = GPCMD_TEST_UNIT_READY;
+
+	opts = (cfis_len >> 2) | AHCI_CMD_ATAPI | AHCI_CMD_PREFETCH;
+	ahci_fill_cmd_slot(pp, opts);
+	writel_with_flush(1, port_mmio + PORT_CMD_ISSUE);
+
+	if (waiting_for_cmd_completed(port_mmio + PORT_CMD_ISSUE, 600, 0x1)) {
+		ahci_debug("timeout! %d bytes transferred. tfd: 0x%08x\n",
+			   pp->cmd_slot->status,
+			   readl(port_mmio + PORT_TFDATA));
+		return -1;
+	}
+
+	return pp->cmd_slot->status;
 }
 
-int
-ahcisata_read(
-		dev_t dev,
-		struct uio *uio,
-		int flags)
-{
-	return physio(ahci_sata_strategy, NULL, dev, B_READ, minphys, uio);
-}
-
-int
-ahcisata_write(
-		dev_t dev,
-		struct uio *uio,
-		int flags)
-{
-	return (physio(ahci_sata_strategy, NULL, dev, B_WRITE, minphys, uio));
-}
 /******************** satafs end *********************/
 
 int cmd_sata_ahci(int argc, char *argv[])
 {
 	int rc = 0;
-	int i=0;
+	int i = 0;
 	switch (argc) {
-		case 0:
-		case 1:
-			printf("Hello Sata!!!\n");
-			return 1;
-		case 2:
-			if (strncmp(argv[1],"inf", 3) == 0) {
-				int i;
-				printf("\n");
-				for (i = 0; i < CFG_SATA_MAX_DEVICE; ++i) {
-					if (sata_dev_desc[i].type == DEV_TYPE_UNKNOWN)
-					{
-						printf("sata_dev_desc[%d].type = %d\n",i,sata_dev_desc[i].type);
-						continue;
-					}
-					printf ("SATA device %d:\n", i);
+	case 0:
+	case 1:
+		printf("Hello Sata!!!\n");
+		return 1;
+	case 2:
+		if (strncmp(argv[1], "inf", 3) == 0) {
+			int i;
+			printf("\n");
+			for (i = 0; i < CFG_SATA_MAX_DEVICE; ++i) {
+				if (sata_dev_desc[i].type == DEV_TYPE_UNKNOWN) {
+					printf("sata_dev_desc[%d].type = %d\n",
+					       i, sata_dev_desc[i].type);
+					continue;
 				}
-				return 0;
-			} else if (strncmp(argv[1],"dev", 3) == 0) {
-				if ((curr_device < 0) || (curr_device >= CFG_SATA_MAX_DEVICE)) {
-					printf("dev-curr_device=%d\n",curr_device);
-					printf("no SATA devices available\n");
-					return 1;
-				}
-				printf("SATA device %d:\n", curr_device);
-				return 0;
-			} else if (strncmp(argv[1],"part",4) == 0) {
-				int dev, ok;
-
-				for (ok = 0, dev = 0; dev < CFG_SATA_MAX_DEVICE; ++dev) {
-					if (sata_dev_desc[dev].part_type != PART_TYPE_UNKNOWN) {
-						++ok;
-					}
-				}
-				if (!ok) {
-					printf("\nno SATA devices available\n");
-					rc ++;
-				}
-				return rc;
+				printf("SATA device %d:\n", i);
 			}
-			return 1;
-		case 3:
-			if (strncmp(argv[1], "dev", 3) == 0) {
-				int dev = (int)strtoul(argv[2], NULL, 10);
-
-				printf("SATA device %d:\n", dev);
-				if (dev >= CFG_SATA_MAX_DEVICE) {
-					printf ("unknown device\n");
-					return 1;
-				}
-
-				if (sata_dev_desc[dev].type == DEV_TYPE_UNKNOWN)
-					return 1;
-
-				curr_device = dev;
-
-				printf("... is now current device\n");
-
-				return 0;
-			} else if (strncmp(argv[1], "part", 4) == 0) {
-				int dev = (int)strtoul(argv[2], NULL, 10);
-
-				if (sata_dev_desc[dev].part_type != PART_TYPE_UNKNOWN) {
-				} else {
-					printf("\nSATA device %d not available\n", dev);
-					rc = 1;
-				}
-				return rc;
+			return 0;
+		} else if (strncmp(argv[1], "dev", 3) == 0) {
+			if ((curr_port < 0)
+			    || (curr_port >= CFG_SATA_MAX_DEVICE)) {
+				printf("dev-curr_port=%d\n", curr_port);
+				printf("no SATA devices available\n");
+				return 1;
 			}
-			return 1;
+			printf("SATA device %d:\n", curr_port);
+			return 0;
+		} else if (strncmp(argv[1], "part", 4) == 0) {
+			int dev, ok;
 
-		default: /* at least 4 args */
-			if (strcmp(argv[1], "read") == 0) {
+			for (ok = 0, dev = 0; dev < CFG_SATA_MAX_DEVICE; ++dev) {
+				if (sata_dev_desc[dev].part_type !=
+				    PART_TYPE_UNKNOWN) {
+					++ok;
+				}
+			}
+			if (!ok) {
+				printf("\nno SATA devices available\n");
+				rc++;
+			}
+			return rc;
+		}
+		return 1;
+	case 3:
+		if (strncmp(argv[1], "dev", 3) == 0) {
+			int dev = (int)strtoul(argv[2], NULL, 10);
+
+			printf("SATA device %d:\n", dev);
+			if (dev >= CFG_SATA_MAX_DEVICE) {
+				printf("unknown device\n");
+				return 1;
+			}
+
+			if (sata_dev_desc[dev].type == DEV_TYPE_UNKNOWN)
+				return 1;
+
+			curr_port = dev;
+
+			printf("... is now current device\n");
+
+			return 0;
+		} else if (strncmp(argv[1], "part", 4) == 0) {
+			int dev = (int)strtoul(argv[2], NULL, 10);
+
+			if (sata_dev_desc[dev].part_type != PART_TYPE_UNKNOWN) {
+			} else {
+				printf("\nSATA device %d not available\n", dev);
+				rc = 1;
+			}
+			return rc;
+		}
+		return 1;
+
+	default:		/* at least 4 args */
+		if (strcmp(argv[1], "read") == 0) {
+			ulong addr = strtoul(argv[2], NULL, 16);
+			ulong cnt = strtoul(argv[4], NULL, 16);
+			ulong n;
+			lbaint_t blk = strtoul(argv[3], NULL, 16);
+
+			printf
+			    ("\nSATA read: device %d block # %ld, count %ld ... ",
+			     curr_port, blk, cnt);
+
+			n = ahci_sata_read(curr_port, blk, cnt, (u32 *) addr);
+			printf("the buffer address is 0x%x\n", addr);
+			for (i = 0; i < n * ATA_SECT_SIZE;) {
+				printf("%8x", *((u32 *) addr + i));
+				i++;
+				if (i % 8 == 0)
+					printf("\n");
+
+			}
+
+			/* flush cache after read */
+#if 0
+			flush_cache(addr, cnt * sata_dev_desc[curr_port].blksz);
+#endif
+
+			printf("n = %d,cnt = %d\n", n, cnt);
+			printf("%ld blocks read: %s\n", n,
+			       (n == cnt) ? "OK" : "ERROR");
+			return (n == cnt) ? 0 : 1;
+		} else {
+			if (strcmp(argv[1], "write") == 0) {
 				ulong addr = strtoul(argv[2], NULL, 16);
 				ulong cnt = strtoul(argv[4], NULL, 16);
 				ulong n;
-				lbaint_t blk = strtoul(argv[3], NULL, 16);
-
-				printf("\nSATA read: device %d block # %ld, count %ld ... ",
-						curr_device, blk, cnt);
-
-				n = ahci_sata_read(curr_device, blk, cnt, (u32 *)addr);
-				printf("the buffer address is 0x%x\n",addr);
-				for(i=0;i<n*ATA_SECT_SIZE;)
-				{
-					printf("%8x",*((u32 *)addr+i));
-					i++;
-					if(i%8==0)
-						printf("\n");
-
-				}
-
-				/* flush cache after read */
-				//flush_cache(addr, cnt * sata_dev_desc[curr_device].blksz); // by xqch for ls3a+2h mode
-
-				printf("n = %d,cnt = %d\n",n,cnt);
-				printf("%ld blocks read: %s\n", n, (n==cnt) ? "OK" : "ERROR");
-				return (n == cnt) ? 0 : 1;
-			} else if (strcmp(argv[1], "write") == 0) {
-				ulong addr = strtoul(argv[2], NULL, 16);
-				ulong cnt = strtoul(argv[4], NULL, 16);
-				ulong n;
 
 				lbaint_t blk = strtoul(argv[3], NULL, 16);
 
-				printf("\nSATA write: device %d block # %ld, count %ld ... ",
-						curr_device, blk, cnt);
+				printf("\nSATA write: device %d block # %ld,"
+				       "count %ld ... ", curr_port, blk, cnt);
 
-				n = ahci_sata_write(curr_device, blk, cnt, (u32 *)addr);
+				n = ahci_sata_write(curr_port, blk, cnt,
+						    (u32 *) addr);
 
 				printf("%ld blocks written: %s\n",
-						n, (n == cnt) ? "OK" : "ERROR");
+				       n, (n == cnt) ? "OK" : "ERROR");
 				return (n == cnt) ? 0 : 1;
 			} else {
 				rc = 1;
 			}
+		}
 
-			return rc;
+		return rc;
 	}
 }
+
 /*
  *  *  Command table registration
  *   *  ==========================
  *    */
 
-static const Cmd Cmds[] =
-{
+static const Cmd Cmds[] = {
 	{"ahcisata"},
-	{"ahcisata", "[info device part read write]", 0, "ahci sata read write", cmd_sata_ahci, 1, 99, 0},
+	{"ahcisata", "[info device part read write]", 0, "ahci sata read write",
+	 cmd_sata_ahci, 1, 99, 0},
 	{0, 0}
 };
 
 static void init_cmd __P((void)) __attribute__ ((constructor));
 
-	void
-init_cmd()
+void init_cmd()
 {
 	cmdlist_expand(Cmds, 1);
 }
-

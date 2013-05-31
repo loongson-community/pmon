@@ -106,10 +106,14 @@ extern int atp_close __P((dev_t dev, int flag, int mode, void *));
 #endif
 
 #ifdef LOONGSON_3A2H
-extern int ahcisata_open __P((dev_t dev, int flags, int mode, void *));
-extern int ahcisata_read __P((dev_t dev, void *uio, int flag));
-extern int ahcisata_write __P((dev_t dev, void *uio, int flag));
-extern int ahcisata_close __P((dev_t dev, int flag, int mode, void *));
+extern int ahci_sd_open __P((dev_t dev,int flag, int fmt,struct proc *p));
+extern int ahci_sd_close __P((dev_t dev,int flag, int fmt,struct proc *p));
+extern int ahci_sd_read __P((dev_t dev,struct uio *uio,int flags));
+extern int ahci_sd_write __P((dev_t dev,struct uio *uio,int flags));
+extern int ahci_cdrom_open __P((dev_t dev,int flag, int fmt,struct proc *p));
+extern int ahci_cdrom_close __P((dev_t dev,int flag, int fmt,struct proc *p));
+extern int ahci_cdrom_read __P((dev_t dev,struct uio *uio,int flags));
+extern int ahci_cdrom_write __P((dev_t dev,struct uio *uio,int flags));
 #endif
 /*
  * Check for and add any target specific declarations from "pmon_target.h"
@@ -132,19 +136,21 @@ struct devsw devswitch[] = {
 	{ "sd", sdopen, sdread, sdwrite, sdclose },
 #endif
 #if NFD > 0
-	    { "fd", fdopen, fdread, fdwrite, fdclose },
+	{ "fd", fdopen, fdread, fdwrite, fdclose },
 #endif
 #if NWD > 0
 #ifdef LOONGSON_3A2H
-		{ "wd", ahcisata_open, ahcisata_read, ahcisata_write, ahcisata_close },
+	{ "wd", ahci_sd_open, ahci_sd_read, ahci_sd_write, ahci_sd_close },
 #else
-		{ "wd", wdopen, wdread, wdwrite, wdclose },
+	{ "wd", wdopen, wdread, wdwrite, wdclose },
 #endif
 #endif
 #if NCD > 0
 	{ "cd", cdopen, cdread, cdwrite, cdclose },
 #endif
-#if NIDE_CD > 0
+#ifdef LOONGSON_3A2H
+	{ "cd", ahci_cdrom_open, ahci_cdrom_read, ahci_cdrom_write, ahci_cdrom_close },
+#elif NIDE_CD > 0
 	{ "cd", ide_cdopen, ide_cdread, ide_cdwrite, ide_cdclose},
 #endif
 #if NMOD_USB_STORAGE > 0
