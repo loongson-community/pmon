@@ -16,6 +16,14 @@
 #define ADDRESS_MIRROR_ADDR     (0x168)
 #define ADDRESS_MIRROR_OFFSET   48
 
+#define CMD_TIMING              (0x160)
+#define CMD_TIMING_OFFSET       8
+#define TRDDATA                 (0x1c0)
+#define TRDDATA_OFFSET          0
+#define TPHY_WRLAT              (0x1d0)
+#define TPHY_WRLAT_OFFSET       32
+
+
 #define MR2_DATA_0_ADDR         (0x1a0)
 #define MR2_DATA_0_OFFSET       32
 #define MR2_DATA_1_ADDR         (0x1a8)

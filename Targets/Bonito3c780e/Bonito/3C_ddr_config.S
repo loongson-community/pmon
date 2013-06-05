@@ -173,6 +173,35 @@ ddr2_config:
     bnez    t1, 1b
     nop
 
+    //for UDIMM 4cs,open 2T mode
+    GET_DIMM_TYPE
+    bnez    a1, 1f
+    nop
+    //UDIMM
+    GET_MC_CS_MAP
+    dli     a2, 0xf
+    bne     a1, a2, 1f
+    nop
+    //add cmd_timing ,trddata and tphy_wrlat by one
+    ld      a2, CMD_TIMING(t8)
+    dli     a1, 0x1
+    dsll    a1, a1, CMD_TIMING_OFFSET
+    daddu   a2, a2, a1
+    sd      a2, CMD_TIMING(t8)
+
+    ld      a2, TRDDATA(t8)
+    dli     a1, 0x1
+    dsll    a1, a1, TRDDATA_OFFSET
+    daddu   a2, a2, a1
+    sd      a2, TRDDATA(t8)
+
+    ld      a2, TPHY_WRLAT(t8)
+    dli     a1, 0x1
+    dsll    a1, a1, TPHY_WRLAT_OFFSET
+    daddu   a2, a2, a1
+    sd      a2, TPHY_WRLAT(t8)
+
+1:
     //rewrite eight_bank_mode
     //rewrite pm_bank_diff_0 and pm_bank
     ld      a2, EIGHT_BANK_MODE_ADDR(t8)
