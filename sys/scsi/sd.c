@@ -139,9 +139,14 @@ const struct scsi_inquiry_pattern sd_patterns[] = {
 	 "",         "",                 ""},
 };
 
+#ifndef PMON
 #define sdlock(softc)   disk_lock(&(softc)->sc_dk)
 #define sdunlock(softc) disk_unlock(&(softc)->sc_dk)
-#define sdlookup(unit) (struct sd_softc *)disk_lookup(&sd_cd, (unit))
+#else
+#define sdlock(softc)	(0)
+#define sdunlock(softc)
+#endif
+#define sdlookup(unit) (struct sd_softc *)device_lookup(&sd_cd, (unit))
 
 int
 sdmatch(struct device *parent, void *match, void *aux)

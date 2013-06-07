@@ -551,7 +551,7 @@ _pci_query_dev (struct pci_device *dev, int bus, int device, int initialise)
 #ifdef CONFIG_LSI_9260
 	if ((bus == 2 && device == 0) ||(bus == 3 && device == 0) ||
 			(bus == 4 && device == 0))
-			delay(1600000);
+			delay(2000000);
 #endif
 	delay(1000);  //fix that the correct id sometimes can not read;
 	id = _pci_conf_read(tag, PCI_ID_REG);
