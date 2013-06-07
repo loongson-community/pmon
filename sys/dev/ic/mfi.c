@@ -844,7 +844,47 @@ mfi_poll(struct mfi_ccb *ccb)
 int
 mfi_intr(void *arg)
 {
-	return 0;  /* No interruput now. */
+	struct mfi_softc	*sc = arg;
+	struct mfi_prod_cons	*pcq;
+	struct mfi_ccb		*ccb;
+	uint32_t		producer, consumer, ctx;
+	int			claimed = 0;
+
+	if (!mfi_my_intr(sc))
+		return (0);
+
+	pcq = MFIMEM_KVA(sc->sc_pcq);
+	producer = pcq->mpc_producer;
+	consumer = pcq->mpc_consumer;
+
+	DNPRINTF(MFI_D_INTR, "%s: mfi_intr %#x %#x\n", DEVNAME(sc), sc, pcq);
+
+	while (consumer != producer) {
+		DNPRINTF(MFI_D_INTR, "%s: mfi_intr pi %#x ci %#x\n",
+		    DEVNAME(sc), producer, consumer);
+
+		ctx = pcq->mpc_reply_q[consumer];
+		pcq->mpc_reply_q[consumer] = MFI_INVALID_CTX;
+		if (ctx == MFI_INVALID_CTX)
+			printf("%s: invalid context, p: %d c: %d\n",
+			    DEVNAME(sc), producer, consumer);
+		else {
+			/* XXX remove from queue and call scsi_done */
+			ccb = &sc->sc_ccb[ctx];
+			DNPRINTF(MFI_D_INTR, "%s: mfi_intr context %#x\n",
+			    DEVNAME(sc), ctx);
+			mfi_done(ccb);
+
+			claimed = 1;
+		}
+		consumer++;
+		if (consumer == (sc->sc_max_cmds + 1))
+			consumer = 0;
+	}
+
+	pcq->mpc_consumer = consumer;
+
+	return (claimed);
 }
 
 int
@@ -1096,21 +1136,7 @@ mfi_scsi_cmd(struct scsi_xfer *xs)
 	mfi_start(sc, ccb);
 
 	DNPRINTF(MFI_D_DMA, "%s: mfi_scsi_cmd queued %d\n", DEVNAME(sc),
-	    ccb->ccb_dmamap->dm_nsegs);
-
-	delay(23000);//wan+
-	/*
-	 * Delay some time to wait the hardware
-	 * return a status, then running the next command.
-	 */
-	delay(17000);
-
-	/*
-	 * Maintain the structure of ccb.
-	 * After transfer, must release the ccb space,
-	 * and clear the buf flags BUSY bit.
-	 */
-	scsi_done(xs);//wan+
+		ccb->ccb_dmamap->dm_nsegs);
 	return;
 
 stuffup:
@@ -2021,6 +2047,7 @@ mfi_start(struct mfi_softc *sc, struct mfi_ccb *ccb)
 	    BUS_DMASYNC_PREREAD | BUS_DMASYNC_PREWRITE);
 
 	mfi_post(sc, ccb);
+	delay(200);
 }
 
 void

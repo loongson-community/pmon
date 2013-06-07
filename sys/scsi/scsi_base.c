@@ -199,7 +199,7 @@ scsi_plug_probe(void *xsc, void *xp)
 	int target = p->target, lun = p->lun;
 
 //	pool_put(&scsi_plug_pool, p);//wan-
-	free(p, M_TEMP);//wan^
+	free(p, M_TEMP);
 
 	if (target == -1 && lun == -1)
 		scsi_probe_bus(sc);

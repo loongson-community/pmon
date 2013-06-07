@@ -49,7 +49,6 @@ struct mfi_mem {
 struct mfi_prod_cons {
 	uint32_t		mpc_producer;
 	uint32_t		mpc_consumer;
-//	uint32_t		mpc_reply_q[1008]; /* wan^  compensate for 1 extra reply per spec */
 	uint32_t		mpc_reply_q[1]; /* compensate for 1 extra reply per spec */
 };
 
