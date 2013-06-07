@@ -532,8 +532,8 @@ u8 PcieTrainPort(device_t nb_dev, device_t dev, u32 port)
 	}
 
 	while (count--) {
-		delay(40);
-		delay(2);
+		/* 5.7.5.21 step 2, delay 200us */
+		udelay(300);
 		lc_state = nbpcie_p_read_index(dev, 0xa5);	/* lc_state */
 		printk_debug("PcieLinkTraining port=%x:lc current state=%x\n",
 			     port, lc_state);
@@ -572,8 +572,15 @@ u8 PcieTrainPort(device_t nb_dev, device_t dev, u32 port)
 			count = 0;
 			break;
 		case 0x10:
-                        printk_info("PcieTrainPort reg\n");
+			printk_info("PcieTrainPort reg\n");
+
+			/*
+			 * If access the pci_e express configure reg, should be
+			 * enable the bar3 before, and close it when access done.
+			 */
+			enable_pcie_bar3(nb_dev);
 			reg = pci_ext_read_config16(nb_dev, dev,PCIE_VC0_RESOURCE_STATUS);
+			disable_pcie_bar3(nb_dev);
 			printk_info("PcieTrainPort reg=0x%x\n", reg);
 #if 0
 			reg =

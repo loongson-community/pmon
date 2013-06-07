@@ -391,6 +391,24 @@ void rs780_gpp_sb_init(device_t nb_dev, device_t dev, u32 port)
 	case 7:
 	case 9:
 	case 10:
+		/*
+		* 5.5.2.5.12 Enable the GPP training bit.
+		*
+		* 3A_server mainboard used one port gpp x4.
+		*
+		* Note: When I only enable bit 21, the lc_state after four bit is 0x8,
+		* but if all enabled, the lc_state is 0x10. I don't know why.
+		* Do you guys know?
+		*/
+		set_nbmisc_enable_bits(nb_dev, 0x8, 0x1 << 21 | 0x1 << 22 | 0x1 << 23 |
+				0x1 << 24, 0x0 << 21 | 0x0 << 22 | 0x0 << 23 | 0x0 << 24);
+
+		/* 5.6.1.5.18 Enable GPP configureation D training bit. */
+		set_nbmisc_enable_bits(nb_dev, 0x8, 0x1 << 25 | 0x1 << 26, 0x0 << 25 |
+				0x0 << 26);
+		set_nbmisc_enable_bits(nb_dev, 0x2d, 0x1 << 4 | 0x1 << 5, 0x0 << 4 |
+				0x0 << 5);
+
 		/* 5.10.8.5. Blocks DMA traffic during C3 state */
 		printk_info("Blocks DMA traffic during C3 state\n");
 		set_pcie_enable_bits(dev, 0x10, 1 << 0, 0 << 0);

@@ -1061,6 +1061,10 @@ void rs780_gfx_init(device_t nb_dev, device_t dev, u32 port)
 		printk_info("rs780_gfx_init step2.\n");
 
 		printk_info("device = %x\n", dev_ind);
+
+		/* 5.4.1.2 Enable the GFX training bit */
+		set_nbmisc_enable_bits(nb_dev, 0x8, 0x1 << 4 | 0x1 << 5, 0x0 << 4 | 0x0 << 5);
+
 		dual_port_configuration(nb_dev, dev);
 		break;
 	default:
