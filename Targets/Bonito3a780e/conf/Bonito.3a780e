@@ -208,6 +208,12 @@ pciide* 	at pci ? dev ? function ? flags 0x0000
 #### IDE hard drives
 wd*		at pciide? channel ? drive ? flags 0x0000
 
+### LSI MegaRAID SAS RAID controllers
+mfi*	at pci?
+scsibus*	at mfi?
+sd*		at scsibus? target ? lun ?
+option	CONFIG_LSI_9260			# for LSI_9260-8i(2108) RAID card support
+
 #### Pseudo devices
 pseudo-device	loop	1	# network loopback
 
@@ -240,3 +246,6 @@ select tcp
 select inet
 select tftpd
 #select e100
+
+# SCSI RAID disk drive support
+select scsi_sd
