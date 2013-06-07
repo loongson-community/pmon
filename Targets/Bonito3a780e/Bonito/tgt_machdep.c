@@ -2569,7 +2569,7 @@ void sb700_interrupt_fixup(void)
   
 	/*1. usb interrupt map smbus reg:0XBE  map usbint1map usbint3map(ohci use) to PCI_INTC#
 	map usbint2map usbint4map(ehci use) to PCI_INTC# */
-	pci_write_config16(dev, 0xbe, ((2<<0)|(2 << 3)|(2 << 8)|(2 << 11)) );
+	pci_write_config16(dev, 0xbe, ((3<<0)|(3 << 3)|(3 << 8)|(3 << 11)) );
 	val = pci_read_config16(dev, 0xbe);
 	fixup_interrupt_printf(" set smbus reg (0xbe) :%x (usb intr map)\n", val);
 
@@ -2615,19 +2615,19 @@ void sb700_interrupt_fixup(void)
 	else
 		fixup_interrupt_printf("set pic_3 pass\n");
 
-	/* INTC -->IRQ6 USB */
 	/* INTC -->IRQ6 PCIex8 dev2 */
 	*(pic_index) =  0x2;
-	*(pic_data) =  0x6;
-	if (*(pic_data) !=  0x6)
+	*(pic_data) =  0x5;
+	if (*(pic_data) !=  0x5)
 		fixup_interrupt_printf("set pic fail: read back %d,should be 0x6\n", *(pic_data));
 	else
 		fixup_interrupt_printf("set pic_6 pass\n");
 
-	/* bus7: INTD -->IRQ5  RTL8169DL */
+	/* INTD -->IRQ6 USB */
+	/* bus7: INTD -->IRQ6  RTL8169DL */
 	*(pic_index) =  0x3;
-	*(pic_data) =  0x5;
-	if (*(pic_data) !=  0x5)
+	*(pic_data) =  0x6;
+	if (*(pic_data) !=  0x6)
 		fixup_interrupt_printf("set pic fail: read back %d,should be 0x5\n", *(pic_data));
 	else
 		fixup_interrupt_printf("set pic_5 pass\n");
@@ -2692,16 +2692,7 @@ void sb700_interrupt_fixup(void)
 	  dev = _pci_make_tag(7, 0x0, funnum);
 	  val = pci_read_config32(dev, 0x00);
 	  if ( val != 0xffffffff) // device on the slot
-		pci_write_config8(dev, 0x3c, 0x05);
-	}
-
-	fixup_interrupt_printf("SB700 device  route rte0: int5 \n");
-	for( funnum = 0; funnum < 8; funnum++)
-	{
-	  dev = _pci_make_tag(8, 0x0, funnum);
-	  val = pci_read_config32(dev, 0x00);
-	  if ( val != 0xffffffff) // device on the slot
-		pci_write_config8(dev, 0x3c, 0x05);
+		pci_write_config8(dev, 0x3c, 0x06);
 	}
 
 		//2.fixup sata int line
@@ -2723,7 +2714,7 @@ void sb700_interrupt_fixup(void)
 	fixup_interrupt_printf("-----------------tset sata------------------\n");
 	val = pci_read_config32(dev, 0x40);
 	fixup_interrupt_printf("sata pci_config 0x40 (%x)\n", val);
-	pci_write_config8(dev, 0x3c, 0x4); 
+	pci_write_config8(dev, 0x3c, 0x4);
 	fixup_interrupt_printf("godson3a_sata: fix sata mode==:%d\n",pci_read_config8(dev,0x3c));
 
 	/*3. ide fixup*/
@@ -2797,11 +2788,11 @@ void sb700_interrupt_fixup(void)
 	fixup_interrupt_printf("godson3a fixup: HDA ------> int5 \n");
 
 	/*7. VGA fixup*/
-     fixup_interrupt_printf("godson3a fixup: VGA ------> int6 \n");
+     fixup_interrupt_printf("godson3a fixup: VGA ------> int5 \n");
      dev = _pci_make_tag(1, 0x5, 0);
-     pci_write_config8(dev,0x3c,0x06);
+     pci_write_config8(dev,0x3c,0x05);
  
-     fixup_interrupt_printf("godson3a fixup: VGA ------> int6 \n");	
+     fixup_interrupt_printf("godson3a fixup: VGA ------> int5 \n");
 
 	/*8. pci/pcie slot fixup */ 
 	// Notice: assume neighboure irq line will be used for multi-function pci/pcie device
@@ -2919,7 +2910,7 @@ void sb700_interrupt_fixup(void)
 	  if ( val != 0xffffffff) // device on the slot
 		pci_write_config8(dev, 0x3c, 0x03);
 	  }
-	// 8.5.1 route  00:02:00 (pciex8 slot) INTA->INTC# -----------------> int6 
+	// 8.5.1 route  00:02:00 (pciex8 slot) INTA->INTC# -----------------> int5
 	// 8.5.2 route  00:02:01 (pciex8 slot) INTB->INTD# -----------------> int5 
 	// 8.5.3 route  00:02:02 (pciex8 slot) INTC->INTE# -----------------> int5 
 	// 8.5.4 route  00:02:03 (pciex8 slot) INTD->INTF# -----------------> int3 
@@ -2927,7 +2918,7 @@ void sb700_interrupt_fixup(void)
 	  dev = _pci_make_tag(2, 0x0, 0x0);
 	  val = pci_read_config32(dev, 0x00);
 	  if ( val != 0xffffffff) // device on the slot
-		pci_write_config8(dev, 0x3c, 0x06);
+		pci_write_config8(dev, 0x3c, 0x05);
 
 	  val = pci_read_config8(dev, 0x0e);
 
