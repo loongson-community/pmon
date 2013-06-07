@@ -52,26 +52,22 @@
 #include <sys/conf.h>
 #include <sys/lock.h>
 #include <sys/disk.h>
-//#include <sys/reboot.h>//wan-
+#include <sys/reboot.h>
 #include <sys/dkio.h>
 #include <sys/proc.h>
 #include <sys/vnode.h>
-//#include <sys/workq.h>//wan-
+#include <sys/workq.h>
 //#include <uvm/uvm_extern.h>//wan-
 
 #include <sys/socket.h>
 #include <sys/socketvar.h>
+#include <sys/libkern.h>
 
 #include <net/if.h>
 
 //#include <dev/rndvar.h>//wan-
 #include <dev/cons.h>
 
-#define TRUE    1
-#define FALSE   0
-int boothowto;//wan+
-//wan+ from sys/sys/reboot.h
-#define RB_ASKNAME  0x0001  /* ask for file name to reboot from */
 //wan+ reboot.h
 //wan+ from sys/arch/loongson/loongson/autoconf.c
 struct nam2blk nam2blk[] = {
@@ -82,44 +78,12 @@ struct nam2blk nam2blk[] = {
 	{ "vnd",    2 },
 	{ NULL,     -1 }
 	};
-//wan+ autoconf.c
-//wan+ from sys/kern/vfs_bio.c
-/*
- * Wait for operations on the buffer to complete.
- * When they do, extract and return the I/O's error value.
- */
-int
-biowait(struct buf *bp)
-{
-int s;
-	//KASSERT(!(bp->b_flags & B_ASYNC));//wan-
-	s = splbio();
-	while (!ISSET(bp->b_flags, B_DONE))
-		tsleep(bp, PRIBIO + 1, "biowait", 0);
-	splx(s);
-	/* check for interruption of I/O (e.g. via NFS), then errors. */
-	if (ISSET(bp->b_flags, B_EINTR)) {
-		CLR(bp->b_flags, B_EINTR);
-	return (EINTR);
-	}
-	if (ISSET(bp->b_flags, B_ERROR))
-		return (bp->b_error ? bp->b_error : EIO);
-	else
-		return (0);
-}
-//wan+ vfs_bio.c
-//wan+ from sys/conf/swapgeneric.c
-dev_t   rootdev = NODEV;
-dev_t   dumpdev = NODEV;
-struct  swdevt swdevt[] = {
-    { NODEV, 0, NULL }, /* to be filled in */
-    { NODEV, 0, NULL }
-};
 //wan+ swapgeneric.c
 /*
  * A global list of all disks attached to the system.  May grow or
  * shrink over time.
  */
+struct consdev *cn_tab;
 struct	disklist_head disklist;	/* TAILQ_HEAD */
 int	disk_count;		/* number of drives in global disklist */
 int	disk_change;		/* set if a disk has been attached/detached
@@ -129,6 +93,7 @@ int	disk_change;		/* set if a disk has been attached/detached
 
 /* softraid callback, do not use! */
 void (*softraid_disk_attach)(struct disk *, int);
+struct device *parsedisk(char *, int, int, dev_t *);
 
 char *disk_readlabel(struct disklabel *, dev_t, char *, size_t);
 void disk_attach_callback(void *, void *);
@@ -419,6 +384,34 @@ checkdisklabel(void *rlp, struct disklabel *lp,
 	lp->d_checksum = 0;
 	lp->d_checksum = dkcksum(lp);
 	return (0);
+}
+
+/*
+ * Wait for operations on the buffer to complete.
+ * When they do, extract and return the I/O's error value.
+ */
+int
+biowait(struct buf *bp)
+{
+	int s;
+
+	KASSERT(!(bp->b_flags & B_ASYNC));
+
+	s = splbio();
+	while (!ISSET(bp->b_flags, B_DONE))
+		tsleep(bp, PRIBIO + 1, "biowait", 0);
+	splx(s);
+
+	/* check for interruption of I/O (e.g. via NFS), then errors. */
+	if (ISSET(bp->b_flags, B_EINTR)) {
+		CLR(bp->b_flags, B_EINTR);
+		return (EINTR);
+	}
+
+	if (ISSET(bp->b_flags, B_ERROR))
+		return (bp->b_error ? bp->b_error : EIO);
+	else
+		return (0);
 }
 
 /*
@@ -860,14 +853,18 @@ disk_attach(struct device *dv, struct disk *diskp)
 	 */
 	diskp->dk_label = malloc(sizeof(struct disklabel), M_DEVBUF,
 	    M_NOWAIT|M_ZERO);
-	bzero(diskp->dk_label, sizeof(struct disklabel));//wan+ Fix
 	if (diskp->dk_label == NULL)
 		panic("disk_attach: can't allocate storage for disklabel");
 
 	/*
 	 * Set the attached timestamp.
 	 */
-//	microuptime(&diskp->dk_attachtime);//wan-
+	microuptime(&diskp->dk_attachtime);
+
+	/*
+	 * Init the disklist
+	 */
+	disk_init();
 
 	/*
 	 * Link into the disklist.
@@ -887,34 +884,11 @@ disk_attach(struct device *dv, struct disk *diskp)
 			diskp->dk_devno =
 			    MAKEDISKDEV(majdev, dv->dv_unit, RAW_PART);
 	}
-	if (diskp->dk_devno != NODEV)
-		disk_attach_callback((void *)(long)(diskp->dk_devno), NULL);//wan^
 //		workq_add_task(NULL, 0, disk_attach_callback,
 //		    (void *)(long)(diskp->dk_devno), NULL);//wan-
 
 	if (softraid_disk_attach)
 		softraid_disk_attach(diskp, 1);
-}
-
-void
-disk_attach_callback(void *arg1, void *arg2)
-{
-	char errbuf[100];
-	struct disklabel dl;
-	struct disk *dk;
-	dev_t dev = (dev_t)(long)arg1;
-
-	/* Locate disk associated with device no. */
-	TAILQ_FOREACH(dk, &disklist, dk_link) {
-		if (dk->dk_devno == dev)
-			break;
-	}
-	if (dk == NULL || (dk->dk_flags & (DKF_OPENED | DKF_NOLABELREAD)))
-		return;
-
-	/* Read disklabel. */
-	disk_readlabel(&dl, dev, errbuf, sizeof(errbuf));
-	dk->dk_flags |= DKF_OPENED;
 }
 
 /*
@@ -953,12 +927,10 @@ disk_busy(struct disk *diskp)
 	 * XXX We'd like to use something as accurate as microtime(),
 	 * but that doesn't depend on the system TOD clock.
 	 */
-#if 0 /*wan+*/
-	mtx_enter(&diskp->dk_mtx);
+//	mtx_enter(&diskp->dk_mtx);
 	if (diskp->dk_busy++ == 0)
 		microuptime(&diskp->dk_timestamp);
-	mtx_leave(&diskp->dk_mtx);
-#endif
+//	mtx_leave(&diskp->dk_mtx);
 }
 
 /*
@@ -975,7 +947,7 @@ disk_unbusy(struct disk *diskp, long bcount, int read)
 	if (diskp->dk_busy-- == 0)
 		printf("disk_unbusy: %s: dk_busy < 0\n", diskp->dk_name);
 
-//	microuptime(&dv_time);//wan-
+	microuptime(&dv_time);
 
 	timersub(&dv_time, &diskp->dk_timestamp, &diff_time);
 	timeradd(&diskp->dk_time, &diff_time, &diskp->dk_time);
@@ -1014,6 +986,7 @@ disk_unlock(struct disk *dk)
 //	rw_exit(&dk->dk_lock);//wan-
 }
 
+#if 0
 int
 dk_mountroot(void)
 {
@@ -1070,6 +1043,7 @@ dk_mountroot(void)
 	}
 	return (*mountrootfn)();
 }
+#endif
 
 struct device *
 getdisk(char *str, int len, int defpart, dev_t *devp)
@@ -1129,6 +1103,74 @@ parsedisk(char *str, int len, int defpart, dev_t *devp)
 	return (dv);
 }
 
+/* cn's fun form to OpenBSD/sys/dev/cons.c */
+int
+cngetc(void)
+{
+
+	if (cn_tab == NULL)
+		return (0);
+	return ((*cn_tab->cn_getc)(cn_tab->cn_dev));
+}
+
+void
+cnpollc(int on)
+{
+	static int refcount = 0;
+
+	if (cn_tab == NULL)
+		return;
+	if (!on)
+		--refcount;
+	if (refcount == 0)
+		(*cn_tab->cn_pollc)(cn_tab->cn_dev, on);
+	if (on)
+		++refcount;
+}
+
+int
+getsn(char *cp, int size)
+{
+	int len = 0, c;
+	char *lp = cp;
+
+	while (1) {
+		c = cngetc();
+		switch (c) {
+		case '\n':
+		case '\r':
+			printf("\n");
+			*lp++ = '\0';
+			return (len);
+		case '\b':
+		case '\177':
+			if (len) {
+				printf("\b \b");
+				--lp;
+				--len;
+			}
+			break;
+		case 'u' & 037:
+			while (len) {
+				printf("\b \b");
+				--lp;
+				--len;
+			}
+			break;
+		case '\t':
+			c = ' ';
+		default:
+			if (len + 1 >= size || c < ' ') {
+				printf("\007");
+				break;
+			}
+			printf("%c", c);
+			++len;
+			*lp++ = c;
+		}
+	}
+}
+
 void
 setroot(struct device *bootdv, int part, int exitflags)
 {
@@ -1159,9 +1201,9 @@ setroot(struct device *bootdv, int part, int exitflags)
 			}
 			printf(": ");
 			s = splhigh();
-//			cnpollc(TRUE);//wan-
-//			len = getsn(buf, sizeof(buf));//wan-
-//			cnpollc(FALSE);//wan-
+			cnpollc(TRUE);
+			len = getsn(buf, sizeof(buf));
+			cnpollc(FALSE);
 			splx(s);
 //			if (strcmp(buf, "exit") == 0)//wan-
 //				boot(exitflags);//wan-
@@ -1196,9 +1238,9 @@ setroot(struct device *bootdv, int part, int exitflags)
 				    rootdv->dv_class == DV_DISK ? "b" : "");
 			printf(": ");
 			s = splhigh();
-//			cnpollc(TRUE);//wan-
-//			len = getsn(buf, sizeof(buf));//wan-
-//			cnpollc(FALSE);//wan-
+			cnpollc(TRUE);
+			len = getsn(buf, sizeof(buf));
+			cnpollc(FALSE);
 			splx(s);
 //			if (strcmp(buf, "exit") == 0)
 //				boot(exitflags);//wan-
@@ -1289,7 +1331,6 @@ gotswap:
 		return;
 #endif
 	case DV_DISK:
-		mountroot = dk_mountroot;
 		part = DISKPART(rootdev);
 		break;
 	default:
@@ -1360,6 +1401,7 @@ findblkname(int maj)
 	return (NULL);
 }
 
+#if 0
 char *
 disk_readlabel(struct disklabel *dl, dev_t dev, char *errbuf, size_t errsize)
 {
@@ -1403,6 +1445,7 @@ done:
 #endif//wan+ T
 	return (NULL);
 }
+#endif
 
 int
 disk_map(char *path, char *mappath, int size, int flags)

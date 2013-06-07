@@ -73,6 +73,21 @@ struct bufq {
 	int          bufq_type;
 	const struct bufq_impl	*bufq_impl;
 };
+
+int		 bufq_init(struct bufq *, int);
+int		 bufq_switch(struct bufq *, int);
+void		 bufq_destroy(struct bufq *);
+
+void		 bufq_queue(struct bufq *, struct buf *);
+struct buf	*bufq_dequeue(struct bufq *);
+void		 bufq_requeue(struct bufq *, struct buf *);
+int		 bufq_peek(struct bufq *);
+void		 bufq_drain(struct bufq *);
+
+void		 bufq_done(struct bufq *, struct buf *);
+void		 bufq_quiesce(void);
+void		 bufq_restart(void);
+
 /* disksort */
 struct bufq_disksort {
     struct buf   *bqd_actf;
@@ -118,6 +133,7 @@ extern struct bio_ops {
 struct buf {
 	LIST_ENTRY(buf) b_hash;		/* Hash chain. */
 	LIST_ENTRY(buf) b_vnbufs;	/* Buffer's associated vnode. */
+	LIST_ENTRY(buf) b_list;		/* All allocated buffers. */
 	TAILQ_ENTRY(buf) b_freelist;	/* Free list position if not active. */
 	TAILQ_ENTRY(buf) b_synclist;	/* List of diry buffers to be written out */
 	long b_synctime;		/* Time this buffer should be flushed */
@@ -133,6 +149,10 @@ struct buf {
 		caddr_t	b_addr;		/* Memory, superblocks, indirect etc. */
 	} b_un;
 	void	*b_saveaddr;		/* Original b_addr for physio. */
+	TAILQ_ENTRY(buf) b_valist;	/* LRU of va to reuse */
+
+	union bufq_data b_bufq;
+	struct bufq		*b_bq;		/* What bufq this buf is on */
 	daddr_t	b_lblkno;		/* Logical block number. */
 	daddr_t	b_blkno;		/* Underlying physical block number. */
 					/* Function to call upon completion. */
@@ -145,9 +165,6 @@ struct buf {
 	int	b_validoff;		/* Offset in buffer of valid region. */
 	int	b_validend;		/* Offset of end of valid region. */
  	struct	workhead b_dep;		/* List of filesystem dependencies. */
-
-	union	bufq_data b_bufq;//wan+
-	struct	bufq	*b_bq;		/* What bufq this buf is on *///wan+
 };
 
 /*
@@ -193,7 +210,9 @@ struct buf {
 #define	B_WRITE		0x00000000	/* Write buffer (pseudo flag). */
 #define	B_WRITEINPROG	0x01000000	/* Write in progress. */
 #define	B_XXX		0x02000000	/* Debugging flag. */
-#define	B_VFLUSH	0x04000000	/* Buffer is being synced. */
+#define B_DEFERRED	0x04000000  /* Skipped over for cleaning */
+#define B_RELEASED	0x20000000	/* free this buffer after its kvm */
+#define B_NOTMAPPED	0x40000000	/* BUSY, but not necessarily mapped */
 
 /*
  * This structure describes a clustered I/O.  It is stored in the b_saveaddr
@@ -229,8 +248,25 @@ int	bufpages;		/* Number of memory pages in the buffer pool. */
 int	nswbuf;			/* Number of swap I/O buffer headers. */
 #if !defined(UVM)
 struct	buf *swbuf;		/* Swap I/O buffer headers. */
-struct	buf bswlist;		/* Head of swap I/O buffer headers free list. */
 #endif
+
+static __inline void
+buf_start(struct buf *bp)
+{
+	if (bioops.io_start)
+		(*bioops.io_start)(bp);
+}
+
+static __inline void
+buf_deallocate(struct buf *bp)
+{
+	if (bioops.io_deallocate)
+		(*bioops.io_deallocate)(bp);
+}
+
+void	buf_acquire __P((struct buf *));
+void	buf_acquire_unmapped __P((struct buf *));
+void	buf_map __P((struct buf *));
 
 __BEGIN_DECLS
 void	allocbuf __P((struct buf *, int));
@@ -262,7 +298,7 @@ void	minphys __P((struct buf *bp));
 int	physio __P((void (*strategy)(struct buf *), struct buf *bp, dev_t dev,
 		    int flags, void (*minphys)(struct buf *), struct uio *uio));
 void  brelvp __P((struct buf *));
-void  reassignbuf __P((struct buf *, struct vnode *));
+void  reassignbuf __P((struct buf *));
 void  bgetvp __P((struct vnode *, struct buf *));
 __END_DECLS
 #endif

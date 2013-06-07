@@ -236,6 +236,7 @@ scsibusattach(struct device *parent, struct device *self, void *aux)//wan: paren
 #endif
 
 	scsi_probe_bus(sb);//wan: sb has initialized above
+	printf("SCSIBUS initialized ok\n");
 }
 
 int
@@ -1114,6 +1115,7 @@ scsi_probedev(struct scsibus_softc *scsi, int target, int lun)//wan: scsi=sb in 
 	    SCSI_IGNORE_NOT_READY | SCSI_IGNORE_MEDIA_CHANGE);
 
 	config_attach((struct device *)scsi, cf, &sa, scsibusprint);//wan: note problem in sd->sd_attach()!!!
+	printf("SCSIBUS initialized ok\n");
 
 	return (0);
 

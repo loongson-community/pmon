@@ -60,6 +60,9 @@ struct buf;
 struct disklabel;
 struct cpu_disklabel;
 
+#define TRUE		1
+#define FALSE		0
+
 struct disk {
 	TAILQ_ENTRY(disk) dk_link;	/* link in global disklist */
 	struct lock     dk_lock;        /* disk lock */
@@ -88,9 +91,7 @@ struct disk {
 	u_int64_t   dk_wxfer;   /* total number of write transfers *///wan+
 	u_int64_t   dk_rbytes;  /* total bytes read *///wan+
 	u_int64_t   dk_wbytes;  /* total bytes written *///wan+
-	u_int64_t	dk_xfer;	/* total number of transfers */
 	u_int64_t	dk_seek;	/* total independent seek operations */
-	u_int64_t	dk_bytes;	/* total bytes transfered */
 	struct timeval	dk_attachtime;	/* time disk was attached */
 	struct timeval	dk_timestamp;	/* timestamp of last unbusy */
 	struct timeval	dk_time;	/* total time spent busy */
@@ -153,8 +154,8 @@ struct disksort_stats {
 TAILQ_HEAD(disklist_head, disk);	/* the disklist is a TAILQ */
 
 #ifdef _KERNEL
-extern	struct disklist_head disklist;	/* list of disks attached to system wan+ */
 extern	int disk_count;			/* number of disks in global disklist */
+extern	int disk_change;		/* disk attache/detached */
 
 void	disk_init __P((void));
 int     disk_construct __P((struct disk *, char *));

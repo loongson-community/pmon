@@ -79,4 +79,12 @@ struct dk_cache {
 #define DIOCSCACHE	_IOW('d', 118, struct dk_cache) /* set cache enabled */
 //wan+ end
 
+struct dk_diskmap {
+	char		*device;
+	int		fd;
+	int		flags;
+};
+
+#define	DIOCMAP		_IOWR('d', 119, struct dk_diskmap)
+
 #endif /* _SYS_DKIO_H_ */

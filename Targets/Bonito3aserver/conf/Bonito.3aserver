@@ -175,6 +175,7 @@ pci*		at ppb? bus ?
 #scsibus*	at siop?
 #sd*		at scsibus? target ? lun ? 
 #cd*		at scsibus? target ? lun ? 
+option	CONFIG_LSI_9260		# for LSI_9260-8i(2108) RAID card support
 
 #### Networking Devices
 #gt0		at localbus? base 4
@@ -248,3 +249,5 @@ select tcp
 select inet
 select tftpd
 #select e100
+# SCSI RAID disk drive support
+select scsi_sd

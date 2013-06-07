@@ -82,6 +82,7 @@ static const struct mfi_pci_subtype mfi_gen2_subtypes[] = {
 	{ 0x1f191028,	"Dell PERC H700" },
 	{ 0x1f1a1028,	"Dell PERC H800 Proto Adapter" },
 	{ 0x1f1b1028,	"Dell PERC H800" },
+	{ 0x92611000,	"SAS 9260-8i"},
 	{ 0x0,		"" }
 };
 
@@ -211,4 +212,5 @@ mfi_pci_attach(struct device *parent, struct device *self, void *aux)
 		sc->sc_ih = NULL;
 		bus_space_unmap(sc->sc_iot, sc->sc_ioh, size);
 	}
+	printf("RAID controller initialized ok\n");
 }

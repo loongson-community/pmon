@@ -147,16 +147,18 @@ struct disklabel {
 	 * is the offset of sector 0 on cylinder N relative to sector 0
 	 * on cylinder N-1.
 	 */
-	u_int16_t d_bstarth;	/* start of useable region (high part) *///wan+
-	u_int16_t d_bendh;		/* size of useable region (high part) *///wan+
-	u_int32_t d_bstart;		/* start of useable region *///wan+
-	u_int32_t d_bend;		/* end of useable region *///wan+
 	u_int16_t d_rpm;		/* rotational speed */
 	u_int16_t d_interleave;		/* hardware sector interleave */
 	u_int16_t d_trackskew;		/* sector 0 skew, per track */
 	u_int16_t d_cylskew;		/* sector 0 skew, per cylinder */
 	u_int32_t d_headswitch;		/* head switch time, usec */
 	u_int32_t d_trkseek;		/* track-to-track seek, usec */
+
+			/* hardware characteristics: */
+	u_int16_t d_bstarth;		/* start of useable region (high part) */
+	u_int16_t d_bendh;		/* size of useable region (high part) */
+	u_int32_t d_bstart;		/* start of useable region */
+	u_int32_t d_bend;		/* end of useable region */
 	u_int32_t d_flags;		/* generic flags */
 #define NDDATA 5
 	u_int32_t d_drivedata[NDDATA];	/* drive-type specific information */
@@ -174,9 +176,9 @@ struct disklabel {
 	struct	partition {		/* the partition table */
 		u_int32_t p_size;	/* number of sectors in partition */
 		u_int32_t p_offset;	/* starting sector */
+		u_int16_t p_offseth;	/* starting sector (high part) */
+		u_int16_t p_sizeh;	/* number of sector (high part) */
 		u_int32_t p_fsize;	/* filesystem basic fragment size */
-		u_int16_t p_offseth;	/* starting sector (high part) *///wan+
-		u_int16_t p_sizeh;	/* number of sectors (high part) *///wan+
 		u_int8_t p_fstype;	/* filesystem type, see below */
 		u_int8_t p_fragblock;	/* encoded filesystem frag/block *///wan+
 		u_int8_t p_frag;	/* filesystem fragments per block */
@@ -215,7 +217,6 @@ struct	__partitionv0 {	/* the partition table */
 #endif /* _LOCORE */
 
 //wan+ if
-	typedef int64_t daddr64_t;//wan+
 #define DISKLABELV1_FFS_FRAGBLOCK(fsize, frag) \
     ((fsize) * (frag) == 0 ? 0 : \
     (((ffs((fsize) * (frag)) - 13) << 3) | (ffs(frag))))
@@ -327,9 +328,7 @@ static char *dktypenames[] = {
 #define	FS_ADFS		16		/* Acorn Disk Filing System */
 #define FS_EXT2FS	17		/* ext2fs */
 #define FS_CCD		18		/* ccd component */
-#define FS_RAID     19      /* RAIDframe wan+ */
 #define FS_NTFS     20      /* Windows/NT file system wan+ */
-#define FS_UDF      21      /* UDF (DVD) filesystem wan+ */
 
 #ifdef DKTYPENAMES
 static char *fstypenames[] = {

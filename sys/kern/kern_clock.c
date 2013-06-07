@@ -110,6 +110,8 @@ static int tickfixcnt;			/* accumulated fractional error */
 
 
 volatile struct	timeval time;
+volatile time_t time_uptime;
+volatile struct timeval mono_time;
 
 /*
  * Initialize clock frequencies and start both clocks running.
@@ -227,6 +229,8 @@ hardclock(frame)
 #endif
 
 	BUMPTIME(&time, delta);
+	BUMPTIME(&mono_time, delta);
+	time_uptime = mono_time.tv_sec;
 
 	/*
 	 * Process callouts at a very low cpu priority, so we don't keep the
@@ -393,3 +397,11 @@ hzto(tv)
 	return (ticks);
 }
 
+void
+microuptime(struct timeval *tvp)
+{
+	struct timeval tv;
+
+	microtime(&tv);
+	timersub(&tv, &boottime, tvp);
+}

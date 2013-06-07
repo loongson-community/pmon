@@ -69,6 +69,13 @@ struct proc {
 #define SNOTKERN 2		/* running outside net kernel */
 #define SRUN	3		/* running inside net kernel */
 
+struct sleep_state {
+	int sls_s;
+	int sls_catch;
+	int sls_do_sleep;
+	int sls_sig;
+};
+
 void init_proc __P((void));
 void wakeup __P((void *));
 int  tsleep __P((void *chan, int pri, char *wmesg, int timo));

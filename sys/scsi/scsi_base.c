@@ -435,6 +435,10 @@ scsi_ioh_runqueue(struct scsi_iopool *iopl)
 				break;
 			}
 
+			/*
+			 * handler=scsi_xsh_ioh
+			 * when runing read command
+			 */
 			ioh->handler(ioh->cookie, io);
 		}
 	//} while (!scsi_sem_leave(&iopl, &iopl->running));//wan-
@@ -622,7 +626,7 @@ scsi_xsh_ioh(void *cookie, void *io)
 		return;
 	}
 
-	xsh->handler(xs);
+	xsh->handler(xs); /* xsh->handler=sdstart */
 }
 
 /*
@@ -671,6 +675,7 @@ scsi_xs_get(struct scsi_link *link, int flags)
 		io = m.io;
 	}
 
+	/*command entry point */
 	return (scsi_xs_io(link, io, flags));
 }
 
@@ -1451,7 +1456,7 @@ scsi_xs_sync(struct scsi_xfer *xs)
 
 	do {
 //		xs->cookie = &cookie;//wan-
-
+		/* do command */
 		scsi_xs_exec(xs);
 
 //		mtx_enter(&cookie);//wan-

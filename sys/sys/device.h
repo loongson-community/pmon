@@ -200,6 +200,7 @@ extern struct evcntlist allevents;	/* list of all event counters */
 
 extern int autoconf_verbose;
 
+int findblkmajor __P((struct device *dv));
 void config_init __P((void));
 void config_edit __P((void));
 void *config_search __P((cfmatch_t, struct device *, void *));

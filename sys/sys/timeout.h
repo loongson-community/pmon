@@ -85,11 +85,12 @@ void timeout_add(struct timeout *, int);
 void timeout_add_tv(struct timeout *, const struct timeval *);
 void timeout_add_ts(struct timeout *, const struct timespec *);
 void timeout_add_bt(struct timeout *, const struct bintime *);
+void timeout_add_bt(struct timeout *, const struct bintime *);
 void timeout_add_sec(struct timeout *, int);
 void timeout_add_msec(struct timeout *, int);
 void timeout_add_usec(struct timeout *, int);
 void timeout_add_nsec(struct timeout *, int);
-int timeout_del(struct timeout *);
+void timeout_del(struct timeout *);
 
 void timeout_startup(void);
 

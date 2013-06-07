@@ -68,10 +68,10 @@ struct sd_softc {
 		u_long	cyls;		/* number of cylinders */
 		u_long	sectors;	/* number of sectors/track */
 		u_long	secsize;	/* number of bytes/sector */
-		int64_t	disksize;	/* total number sectors */
+		daddr64_t	disksize;	/* total number sectors */
 	} params;
 	void *sc_sdhook;		/* our shutdown hook */
-//	struct timeout sc_timeout;//wan-
+	struct timeout sc_timeout;
 
 	struct scsi_xshandler sc_xsh;
 };

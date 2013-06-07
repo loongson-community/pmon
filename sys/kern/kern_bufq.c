@@ -267,7 +267,7 @@ bufq_restart(void)
 	SLIST_FOREACH(bq, &bufqs, bufq_entries) {
 //		mtx_enter(&bq->bufq_mtx);//wan-
 		bq->bufq_stop = 0;
-//		wakeup(&bq->bufq_stop);//wan-
+		wakeup(&bq->bufq_stop);
 //		mtx_leave(&bq->bufq_mtx);//wan-
 	}
 	bufqs_stop = 0;

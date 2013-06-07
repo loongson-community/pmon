@@ -50,11 +50,11 @@
 #include <sys/types.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-//#include <sys/timeout.h>//wan-
+#include <sys/timeout.h>
 #include <sys/file.h>
 #include <sys/stat.h>
 #include <sys/ioctl.h>
-//#include <sys/mtio.h>//wan-
+#include <sys/mtio.h>
 //#include <sys/mutex.h>//wan-
 #include <sys/buf.h>
 #include <sys/uio.h>
@@ -76,46 +76,20 @@
 //#include <ufs/ffs/fs.h>		//wan-	/* for BBSIZE and SBSIZE */
 
 #include <sys/vnode.h>
+#include <sys/systm.h>
 
-//wan+ if
-/* structure for MTIOCTOP - mag tape op command */
-struct mtop {
-    short	mt_op;		/* operations defined below */
-    int		mt_count;	/* how many of them */
-};
-/* operations */
-#define MTWEOF      0   /* write an end-of-file record */
-#define MTFSF       1   /* forward space file */
-#define MTBSF       2   /* backward space file */
-#define MTFSR       3   /* forward space record */
-#define MTBSR       4   /* backward space record */
-#define MTREW       5   /* rewind */
-#define MTOFFL      6   /* rewind and put the drive offline */
-#define MTNOP       7   /* no operation, sets status only */
-#define MTRETEN     8   /* retension */
-#define MTERASE     9   /* erase entire tape */
-#define MTEOM       10  /* forward to end of media */
-#define MTNBSF      11  /* backward space to beginning of file */
-#define MTCACHE     12  /* enable controller cache */
-#define MTNOCACHE   13  /* disable controller cache */
-#define MTSETBSIZ   14  /* set block size; 0 for variable */
-#define MTSETDNSTY  15  /* set density code for current mode */
-/* mag tape io control commands */
-#define MTIOCTOP     _IOW('m', 1, struct mtop)	/* do a mag tape op */
-#define MTIOCGET     _IOR('m', 2, struct mtget)	/* get tape status */
-#define MTIOCIEOT    _IO('m', 3)         /* ignore EOT error */
-#define MTIOCEEOT    _IO('m', 4)         /* enable EOT error */
-
+#define readdisklabel(x1, x2, x3, x4)  0
+#define	SDPART(dev)		RAW_PART
 #define BBSIZE      8192
 #define SBSIZE      8192
-//wan+ end
-int sdopen(dev_t dev, int flag, int fmt, struct proc *p);//wan+
-void disk_attach(struct device *dv, struct disk *diskp);//wan+
 
 int	sdmatch(struct device *, void *, void *);
 void	sdattach(struct device *, struct device *, void *);
-int	sdactivate(struct device *, int);
-int	sddetach(struct device *, int);
+
+#ifndef PMON
+int	sdactivate __P((struct device *, int));
+int	sddetach __P((struct device *, int));
+#endif
 
 void	sdminphys(struct buf *);
 int	sdgetdisklabel(dev_t, struct sd_softc *, struct disklabel *, int);
@@ -130,6 +104,8 @@ void	viscpy(u_char *, u_char *, int);
 int	sd_ioctl_inquiry(struct sd_softc *, struct dk_inquiry *);
 int	sd_ioctl_cache(struct sd_softc *, long, struct dk_cache *);
 
+int sdopen(dev_t, int, int, struct proc *);
+
 void	sd_cmd_rw6(struct scsi_xfer *, int, daddr64_t, u_int);
 void	sd_cmd_rw10(struct scsi_xfer *, int, daddr64_t, u_int);
 void	sd_cmd_rw12(struct scsi_xfer *, int, daddr64_t, u_int);
@@ -139,7 +115,9 @@ void	sd_buf_done(struct scsi_xfer *);
 
 struct cfattach sd_ca = {
 	sizeof(struct sd_softc), sdmatch, sdattach,
+#ifndef PMON
 	sddetach, sdactivate
+#endif
 };
 
 struct cfdriver sd_cd = {
@@ -296,71 +274,8 @@ sdattach(struct device *parent, struct device *self, void *aux)//wan: parent=scs
 		    sc->sc_dev.dv_xname);
 
 	/* Attach disk. */
-	disk_init();//wan+ Fix
 	disk_attach(&sc->sc_dev, &sc->sc_dk);//wan:note problem here!
-}
-
-int
-sdactivate(struct device *self, int act)
-{
-	struct sd_softc *sc = (struct sd_softc *)self;
-	int rv = 0;
-
-	switch (act) {
-	case DVACT_ACTIVATE:
-		break;
-	case DVACT_SUSPEND:
-		/*
-		 * Stop the disk.  Stopping the disk should flush the
-		 * cache, but we are paranoid so we flush the cache
-		 * first.
-		 */
-		if ((sc->flags & SDF_DIRTY) != 0)
-			sd_flush(sc, SCSI_AUTOCONF);
-		scsi_start(sc->sc_link, SSS_STOP,
-		    SCSI_IGNORE_ILLEGAL_REQUEST | SCSI_AUTOCONF);
-		break;
-	case DVACT_RESUME:
-		scsi_start(sc->sc_link, SSS_START,
-		    SCSI_IGNORE_ILLEGAL_REQUEST | SCSI_AUTOCONF);
-		break;
-	case DVACT_DEACTIVATE:
-		sc->flags |= SDF_DYING;
-		scsi_xsh_del(&sc->sc_xsh);
-		break;
-	}
-	return (rv);
-}
-
-int
-sddetach(struct device *self, int flags)
-{
-#if 0 /*wan+*/
-	struct sd_softc *sc = (struct sd_softc *)self;
-	int bmaj, cmaj, mn;
-
-	bufq_drain(&sc->sc_bufq);
-
-	/* Locate the lowest minor number to be detached. */
-	mn = DISKMINOR(self->dv_unit, 0);
-
-	for (bmaj = 0; bmaj < nblkdev; bmaj++)
-		if (bdevsw[bmaj].d_open == sdopen)
-			vdevgone(bmaj, mn, mn + MAXPARTITIONS - 1, VBLK);
-	for (cmaj = 0; cmaj < nchrdev; cmaj++)
-		if (cdevsw[cmaj].d_open == sdopen)
-			vdevgone(cmaj, mn, mn + MAXPARTITIONS - 1, VCHR);
-
-	/* Get rid of the shutdown hook. */
-	if (sc->sc_sdhook != NULL)
-		shutdownhook_disestablish(sc->sc_sdhook);
-
-	/* Detach disk. */
-	bufq_destroy(&sc->sc_bufq);
-	disk_detach(&sc->sc_dk);
-#endif
-
-	return (0);
+	printf("Virtual disk initialized ok\n");
 }
 
 /*
@@ -375,7 +290,7 @@ sdopen(dev_t dev, int flag, int fmt, struct proc *p)
 
 	unit = DISKUNIT(dev);//wan: unit=0
 //	part = DISKPART(dev);//wan-: part=0
-	part = RAW_PART;//wan^
+	part = SDPART(dev);
 
 	rawopen = (part == RAW_PART) && (fmt == S_IFCHR);
 
@@ -554,7 +469,7 @@ sdclose(dev_t dev, int flag, int fmt, struct proc *p)
 			sc->sc_link->flags &= ~SDEV_EJECTING;
 		}
 
-//		timeout_del(&sc->sc_timeout);//wan-
+		timeout_del(&sc->sc_timeout);
 		scsi_xsh_del(&sc->sc_xsh);
 	}
 
@@ -767,7 +682,9 @@ sdstart(struct scsi_xfer *xs)
 	xs->bp = bp;
 
 	/* Instrumentation. */
-//	disk_busy(&sc->sc_dk);//wan-: useless
+#ifndef PMON
+	disk_busy(&sc->sc_dk);
+#endif
 
 	/* Mark disk as dirty. */
 	if (!read)
@@ -797,12 +714,14 @@ sd_buf_done(struct scsi_xfer *xs)
 
 	case XS_NO_CCB:
 		/* The adapter is busy, requeue the buf and try it later. */
-//		disk_unbusy(&sc->sc_dk, bp->b_bcount - xs->resid,
-//		    bp->b_flags & B_READ);//wan-
+#ifndef PMON
+		disk_unbusy(&sc->sc_dk, bp->b_bcount - xs->resid,
+		    bp->b_flags & B_READ);
+#endif
 		bufq_requeue(&sc->sc_bufq, bp);
 		scsi_xs_put(xs);
 		SET(sc->flags, SDF_WAITING);
-//		timeout_add(&sc->sc_timeout, 1);//wan-
+		timeout_add(&sc->sc_timeout, 1);
 		return;
 
 	case XS_SENSE:
@@ -842,8 +761,10 @@ retry:
 		break;
 	}
 
-//	disk_unbusy(&sc->sc_dk, bp->b_bcount - xs->resid,
-//	    bp->b_flags & B_READ);//wan-
+#ifndef PMON
+	disk_unbusy(&sc->sc_dk, bp->b_bcount - xs->resid,
+	    bp->b_flags & B_READ);
+#endif
 
 	s = splbio();
 	biodone(bp);
@@ -980,13 +901,6 @@ sdioctl(dev_t dev, u_long cmd, caddr_t addr, int flag, struct proc *p)
 
 		error = setdisklabel(sc->sc_dk.dk_label,
 		    (struct disklabel *)addr, /*sd->sc_dk.dk_openmask : */0);
-		if (error == 0) {
-			if (cmd == DIOCWDINFO)
-//				error = writedisklabel(DISKLABELDEV(dev),
-//				    sdstrategy, sc->sc_dk.dk_label);//wan-
-				printf("wan: Maybe there's something wrong!!\n");//wan+
-		}
-
 		sc->flags &= ~SDF_LABELLING;
 		sdunlock(sc);
 		goto exit;
@@ -1044,6 +958,8 @@ sdioctl(dev_t dev, u_long cmd, caddr_t addr, int flag, struct proc *p)
 			goto exit;
 		}
 		error = scsi_do_ioctl(sc->sc_link, cmd, addr, flag);
+		error = ENOTTY;
+		goto exit;
 	}
 
  exit:
@@ -1211,8 +1127,8 @@ sdgetdisklabel(dev_t dev, struct sd_softc *sc, struct disklabel *lp,
 	/*
 	 * Call the generic disklabel extraction routine
 	 */
-//	return readdisklabel(DISKLABELDEV(dev), sdstrategy, lp, spoofonly);
-	return;//wan^
+	return readdisklabel(DISKLABELDEV(dev), sdstrategy, lp, spoofonly);
+//	return;
 }
 
 
@@ -1233,7 +1149,7 @@ sd_shutdown(void *arg)
 	 * There should be no outstanding IO at this point, but lets stop
 	 * it just in case.
 	 */
-//	timeout_del(&sc->sc_timeout);//wan-
+	timeout_del(&sc->sc_timeout);
 	scsi_xsh_del(&sc->sc_xsh);
 }
 

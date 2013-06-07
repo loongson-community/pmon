@@ -64,6 +64,7 @@
 #endif
 
 int sysloglevel;
+int boothowto;
 
 extern void kmeminit __P((void));
 extern void vminit __P((void));

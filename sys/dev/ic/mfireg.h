@@ -60,6 +60,7 @@
 #define MFI_STATE_FAULT				0xf0000000
 #define MFI_STATE_MAXSGL_MASK			0x00ff0000
 #define MFI_STATE_MAXCMD_MASK			0x0000ffff
+#define MFI_STATE_MESSAGE_PINDING		0x90000000
 
 /* command reset register */
 #define MFI_INIT_ABORT				0x00000000

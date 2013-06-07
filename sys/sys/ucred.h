@@ -39,7 +39,6 @@
 #ifndef _SYS_UCRED_H_
 #define	_SYS_UCRED_H_
 
-#if 0				/* XXX THIS IS A PLACEHOLDER XXX */
 /*
  * Credentials.
  */
@@ -53,6 +52,7 @@ struct ucred {
 #define NOCRED ((struct ucred *)-1)	/* no credential available */
 #define FSCRED ((struct ucred *)-2)	/* filesystem credential */
 
+#if 0				/* XXX THIS IS A PLACEHOLDER XXX */
 #ifdef _KERNEL
 #define	crhold(cr)	(cr)->cr_ref++
 
@@ -61,6 +61,8 @@ struct ucred	*crdup __P((struct ucred *cr));
 void		crfree __P((struct ucred *cr));
 struct ucred	*crget __P((void));
 #endif /* _KERNEL */
+#define NOCRED ((struct ucred *)(-1)); /* no credential available */
+#define FSCRED ((struct ucred *)(-2)); /* filesystem credential */
 #endif
 int		suser __P((struct ucred *cred, u_short *acflag));
 #endif /* !_SYS_UCRED_H_ */

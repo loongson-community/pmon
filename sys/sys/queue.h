@@ -86,6 +86,11 @@
  * For details on the use of these macros, see the queue(3) manual page.
  */
 
+#if defined(QUEUE_MACRO_DEBUG) || (defined(_KERNEL) && defined(DIAGNOSTIC))
+#define _Q_INVALIDATE(a) (a) = ((void *)-1)
+#else
+#define _Q_INVALIDATE(a)
+#endif
 /*
  * Singly-linked List definitions.
  */

@@ -50,6 +50,7 @@ struct proc;
 struct tty;
 struct uio;
 struct vnode;
+#include <sys/systm.h>
 
 /*
  * Types for d_type
@@ -57,6 +58,12 @@ struct vnode;
 #define	D_TAPE	1
 #define	D_DISK	2
 #define	D_TTY	3
+
+/*
+ * Flags for d_flags
+ */
+#define D_KQFILTER	0x0001	 /* has kqfilter entry */
+#define D_CLONE		0x0002	 /* clone upon open */
 
 #ifdef _KERNEL
 
@@ -66,6 +73,7 @@ struct vnode;
 #define	dev_type_ioctl(n) \
 	int n __P((dev_t, u_long, caddr_t, int, struct proc *))
 
+#define	dev_type_psize(n)	int n __P((dev_t))
 #define	dev_decl(n,t)	__CONCAT(dev_type_,t)(__CONCAT(n,t))
 #define	dev_init(c,n,t) \
 	((c) > 0 ? __CONCAT(n,t) : (__CONCAT(dev_type_,t)((*))) enxio)
@@ -113,9 +121,9 @@ extern struct bdevsw bdevsw[];
 	dev_decl(n,ioctl); dev_decl(n,dump); dev_decl(n,size)
 
 #define	bdev_disk_init(c,n) { \
-	dev_init(c,n,open), dev_init(c,n,close), \
-	dev_init(c,n,strategy), dev_init(c,n,ioctl), \
-	dev_init(c,n,dump), dev_size_init(c,n), D_DISK }
+	(dev_type_open((*))) dev_init(c,n,open),  (dev_type_close((*)))dev_init(c,n,close), \
+	(dev_type_strategy((*)))dev_init(c,n,strategy), (dev_type_ioctl((*)))dev_init(c,n,ioctl), \
+	(dev_type_dump((*)))dev_init(c,n,dump),(dev_type_psize((*))) dev_size_init(c,n), D_DISK }
 
 #define	bdev_tape_init(c,n) { \
 	dev_init(c,n,open), dev_init(c,n,close), \
@@ -154,9 +162,12 @@ struct cdevsw {
 	int	(*d_stop)	__P((struct tty *tp, int rw));
 	struct tty *
 		(*d_tty)	__P((dev_t dev));
-	int	(*d_select)	__P((dev_t dev, int which, struct proc *p));
+	int (*d_poll)	__P((dev_t dev, int events, struct proc *p));
 	int	(*d_mmap)	__P((dev_t, int, int));
 	int	d_type;
+	int	(*d_select)	__P((dev_t dev, int which, struct proc *p));
+	int d_flags;
+//	int (*d_kqfilter)	__P((dev_t dev, struct knode *kn));
 };
 
 #ifdef _KERNEL

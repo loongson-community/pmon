@@ -170,6 +170,10 @@ struct _ps_strings {
  *	Convert addresses to pages and vice versa.
  *	No rounding is used.
  */
+#ifdef PAGE_SHIFT
+#undef PAGE_SHIFT
+#endif
+#define	PAGE_SHIFT	14	/* bits to shift for pages */
 #ifdef _KERNEL
 #define	atop(x)		(((unsigned long)(x)) >> PAGE_SHIFT)
 #define	ptoa(x)		((vaddr_t)((x) << PAGE_SHIFT))

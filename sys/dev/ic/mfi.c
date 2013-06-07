@@ -53,15 +53,6 @@ uint32_t	mfi_debug = 0
 //wan+ if
 extern int cold;
 extern size_t strlcpy(char *dst, const *src, size_t siz);
-static inline void
-bus_space_barrier(bus_space_tag_t t, bus_space_handle_t h, bus_size_t offset,
-    bus_size_t length, int flags)
-{
-	 __asm__ __volatile__ ("sync" ::: "memory");
-}
-#define BUS_SPACE_BARRIER_READ  0x01        /* force read barrier */
-#define BUS_SPACE_BARRIER_WRITE 0x02        /* force write barrier */
-//wan end
 
 struct cfdriver mfi_cd = {
 	NULL, "mfi", DV_DULL
@@ -160,6 +151,24 @@ static const struct mfi_iop_ops mfi_iop_gen2 = {
 #define mfi_my_intr(_s)		((_s)->sc_iop->mio_intr(_s))
 #define mfi_post(_s, _c)	((_s)->sc_iop->mio_post((_s), (_c)))
 
+void symprintf(void)
+{
+	static int i = 0;
+	char sym[3] = {'|', '/', '-'};
+
+	if (i == 3)
+	{
+		printf("\\");
+		printf("\b");
+		i = 0;
+		return;
+	}
+
+	printf("%c", sym[i]);
+	printf("\b");
+	i++;
+}
+
 void *
 mfi_get_ccb(void *cookie)
 {
@@ -217,6 +226,7 @@ mfi_init_ccb(struct mfi_softc *sc)
 	if(sc->sc_ccb == NULL)
 		printf("Error: Can't malloc memory ! \n");
 
+	bzero(sc->sc_ccb, sizeof(struct mfi_ccb) * sc->sc_max_cmds);
 	for (i = 0; i < sc->sc_max_cmds; i++) {
 		ccb = &sc->sc_ccb[i];
 
@@ -290,8 +300,6 @@ mfi_write(struct mfi_softc *sc, bus_size_t r, uint32_t v)
 	DNPRINTF(MFI_D_RW, "%s: mw 0x%x 0x%08x", DEVNAME(sc), r, v);
 
 	bus_space_write_4(sc->sc_iot, sc->sc_ioh, r, v);
-	bus_space_barrier(sc->sc_iot, sc->sc_ioh, r, 4,
-	    BUS_SPACE_BARRIER_WRITE);
 }
 
 struct mfi_mem *
@@ -375,11 +383,9 @@ mfi_transition_firmware(struct mfi_softc *sc)
 	DNPRINTF(MFI_D_CMD, "%s: mfi_transition_firmware: %#x\n", DEVNAME(sc),
 	    fw_state);
 
-	printf("\nLSI SAS RAID Booting");//wan+
+	printf("%s: waiting for firmware to become ready\n", DEVNAME(sc));
+	printf("%s: please wait a moment", DEVNAME(sc));
 	while (fw_state != MFI_STATE_READY) {
-		DNPRINTF(MFI_D_MISC,
-		    "%s: waiting for firmware to become ready\n",
-		    DEVNAME(sc));
 		cur_state = fw_state;
 		switch (fw_state) {
 		case MFI_STATE_FAULT:
@@ -388,10 +394,6 @@ mfi_transition_firmware(struct mfi_softc *sc)
 		case MFI_STATE_WAIT_HANDSHAKE:
 			mfi_write(sc, MFI_IDB, MFI_INIT_CLEAR_HANDSHAKE);
 			max_wait = 2;
-			break;
-		case MFI_STATE_BOOT_MESSAGE_PENDING://wan+
-			mfi_write(sc, MFI_IDB, MFI_INIT_HOTPLUG);
-			max_wait = 20;
 			break;
 		case MFI_STATE_OPERATIONAL:
 			mfi_write(sc, MFI_IDB, MFI_INIT_READY);
@@ -402,10 +404,14 @@ mfi_transition_firmware(struct mfi_softc *sc)
 			max_wait = 2;
 			break;
 		case MFI_STATE_FW_INIT:
-		case MFI_STATE_FW_INIT_2://wan+
 		case MFI_STATE_DEVICE_SCAN:
 		case MFI_STATE_FLUSH_CACHE:
+			max_wait = 60;
+			break;
+		/* write hotlug message */
+		case MFI_STATE_MESSAGE_PINDING:
 			max_wait = 20;
+			mfi_write(sc, MFI_IDB, MFI_INIT_HOTPLUG);
 			break;
 		default:
 			printf("%s: unknown firmware state %d\n",
@@ -413,8 +419,7 @@ mfi_transition_firmware(struct mfi_softc *sc)
 			return (1);
 		}
 		for (i = 0; i < (max_wait * 10); i++) {
-			if((i+1) % 0x10 == 0)//wan+
-				printf(".");
+			symprintf();
 			fw_state = mfi_fw_state(sc) & MFI_STATE_MASK;
 			if (fw_state == cur_state)
 				DELAY(100000);
@@ -428,7 +433,7 @@ mfi_transition_firmware(struct mfi_softc *sc)
 		}
 	}
 
-	printf("\n");//wan+
+	printf("\n%s: firmware ready in state %8x\n", DEVNAME(sc), fw_state);
 	return (0);
 }
 
@@ -465,6 +470,7 @@ mfi_initialize_firmware(struct mfi_softc *sc)
 	    qinfo->miq_rq_entries, qinfo->miq_rq_addr_lo,
 	    qinfo->miq_pi_addr_lo, qinfo->miq_ci_addr_lo);
 
+	sc->sc_iop->mio_intr_ena(sc); /* disable intr before fire cmd */
 	if (mfi_poll(ccb)) {
 		printf("%s: mfi_initialize_firmware failed\n", DEVNAME(sc));
 		return (1);
@@ -651,6 +657,7 @@ mfi_attach(struct mfi_softc *sc, enum mfi_iop iop)
 	uint32_t		status, frames;
 	int			i;
 
+	/* switch the dev class */
 	switch (iop) {
 	case MFI_IOP_XSCALE:
 		sc->sc_iop = &mfi_iop_xscale;
@@ -666,11 +673,15 @@ mfi_attach(struct mfi_softc *sc, enum mfi_iop iop)
 	}
 
 	DNPRINTF(MFI_D_MISC, "%s: mfi_attach\n", DEVNAME(sc));
+	printf("%s: switch device done...\n", DEVNAME(sc));
 
+	/* get some dev status */
 	if (mfi_transition_firmware(sc))
 		return (1);
 
 	SLIST_INIT(&sc->sc_ccb_freeq);//wan: sc->sc_ccb_freeq is important !
+
+	/*io option fun entry point. */
 	scsi_iopool_init(&sc->sc_iopool, sc, mfi_get_ccb, mfi_put_ccb);
 
 	status = mfi_fw_state(sc);
@@ -718,6 +729,11 @@ mfi_attach(struct mfi_softc *sc, enum mfi_iop iop)
 		goto noinit;
 	}
 
+#ifdef CONFIG_LSI_9260
+	/* try send get info cmd before init FW */
+	mfi_mgmt(sc, MR_DCMD_CTRL_GET_INFO, MFI_DATA_IN,
+		sizeof(sc->sc_info), &sc->sc_info, NULL);
+#endif
 	/* kickstart firmware with all addresses and pointers */
 	if (mfi_initialize_firmware(sc)) {
 		printf("%s: could not initialize firmware\n", DEVNAME(sc));
@@ -800,6 +816,9 @@ mfi_poll(struct mfi_ccb *ccb)
 
 	while (hdr->mfh_cmd_status == 0xff) {
 		delay(1000);
+		bus_dmamap_sync(sc->sc_dmat, MFIMEM_MAP(sc->sc_frames),
+				ccb->ccb_pframe_offset, sc->sc_frames_size,
+				BUS_DMASYNC_PREREAD | BUS_DMASYNC_PREWRITE);
 		if (to++ > 5000) /* XXX 5 seconds busywait sucks */
 			break;
 	}
@@ -825,48 +844,7 @@ mfi_poll(struct mfi_ccb *ccb)
 int
 mfi_intr(void *arg)
 {
-	struct mfi_softc	*sc = arg;
-	struct mfi_prod_cons	*pcq;
-	struct mfi_ccb		*ccb;
-	uint32_t		producer, consumer, ctx;
-	int			claimed = 0;
-
-	if (!mfi_my_intr(sc))
-		return (0);
-	return (0);//wan+
-
-	pcq = MFIMEM_KVA(sc->sc_pcq);
-	producer = pcq->mpc_producer;
-	consumer = pcq->mpc_consumer;
-
-	DNPRINTF(MFI_D_INTR, "%s: mfi_intr %#x %#x\n", DEVNAME(sc), sc, pcq);
-
-	while (consumer != producer) {
-		DNPRINTF(MFI_D_INTR, "%s: mfi_intr pi %#x ci %#x\n",
-		    DEVNAME(sc), producer, consumer);
-
-		ctx = pcq->mpc_reply_q[consumer];
-		pcq->mpc_reply_q[consumer] = MFI_INVALID_CTX;
-		if (ctx == MFI_INVALID_CTX)
-			printf("%s: invalid context, p: %d c: %d\n",
-			    DEVNAME(sc), producer, consumer);
-		else {
-			/* XXX remove from queue and call scsi_done */
-			ccb = &sc->sc_ccb[ctx];
-			DNPRINTF(MFI_D_INTR, "%s: mfi_intr context %#x\n",
-			    DEVNAME(sc), ctx);
-			mfi_done(ccb);
-
-			claimed = 1;
-		}
-		consumer++;
-		if (consumer == (sc->sc_max_cmds + 1))
-			consumer = 0;
-	}
-
-	pcq->mpc_consumer = consumer;
-
-	return (claimed);
+	return 0;  /* No interruput now. */
 }
 
 int
@@ -1015,6 +993,7 @@ mfi_scsi_ld(struct mfi_ccb *ccb, struct scsi_xfer *xs)
 	return (0);
 }
 
+/*  xs->sc_link->adapter->cmd entry point. */
 void
 mfi_scsi_cmd(struct scsi_xfer *xs)
 {
@@ -1120,6 +1099,17 @@ mfi_scsi_cmd(struct scsi_xfer *xs)
 	    ccb->ccb_dmamap->dm_nsegs);
 
 	delay(23000);//wan+
+	/*
+	 * Delay some time to wait the hardware
+	 * return a status, then running the next command.
+	 */
+	delay(17000);
+
+	/*
+	 * Maintain the structure of ccb.
+	 * After transfer, must release the ccb space,
+	 * and clear the buf flags BUSY bit.
+	 */
 	scsi_done(xs);//wan+
 	return;
 
@@ -1158,6 +1148,8 @@ mfi_create_sgl(struct mfi_ccb *ccb, int flags)
 	hdr = &ccb->ccb_frame->mfr_header;
 	sgl = ccb->ccb_sgl;
 	sgd = ccb->ccb_dmamap->dm_segs;
+
+	/* for DMA do something (maybe init some vaild segment addr) */
 	for (i = 0; i < ccb->ccb_dmamap->dm_nsegs; i++) {
 		sgl->sg32[i].addr = htole32(sgd[i].ds_addr);
 		sgl->sg32[i].len = htole32(sgd[i].ds_len);
@@ -1165,6 +1157,7 @@ mfi_create_sgl(struct mfi_ccb *ccb, int flags)
 		    DEVNAME(sc), sgl->sg32[i].addr, sgl->sg32[i].len);
 	}
 
+	/* read & write */
 	if (ccb->ccb_direction == MFI_DATA_IN) {
 		hdr->mfh_flags |= MFI_FRAME_DIR_READ;
 		bus_dmamap_sync(sc->sc_dmat, ccb->ccb_dmamap, 0,

@@ -131,6 +131,96 @@ struct timezone {
 		}							\
 	} while (0)
 
+/* Time expressed as seconds and fractions of a second + operations on it. */
+struct bintime {
+	time_t	sec;
+	uint64_t frac;
+};
+
+static __inline void
+bintime_addx(struct bintime *bt, uint64_t x)
+{
+	uint64_t u;
+
+	u = bt->frac;
+	bt->frac += x;
+	if (u > bt->frac)
+		bt->sec++;
+}
+
+static __inline void
+bintime_add(struct bintime *bt, struct bintime *bt2)
+{
+	uint64_t u;
+
+	u = bt->frac;
+	bt->frac += bt2->frac;
+	if (u > bt->frac)
+		bt->sec++;
+	bt->sec += bt2->sec;
+}
+
+static __inline void
+bintime_sub(struct bintime *bt, struct bintime *bt2)
+{
+	uint64_t u;
+
+	u = bt->frac;
+	bt->frac -= bt2->frac;
+	if (u < bt->frac)
+		bt->sec--;
+	bt->sec -= bt2->sec;
+}
+
+/*-
+ * Background information:
+ *
+ * When converting between timestamps on parallel timescales of differing
+ * resolutions it is historical and scientific practice to round down rather
+ * than doing 4/5 rounding.
+ *
+ *   The date changes at midnight, not at noon.
+ *
+ *   Even at 15:59:59.999999999 it's not four'o'clock.
+ *
+ *   time_second ticks after N.999999999 not after N.4999999999
+ */
+
+static __inline void
+bintime2timespec(struct bintime *bt, struct timespec *ts)
+{
+
+	ts->tv_sec = bt->sec;
+	ts->tv_nsec = (long)(((uint64_t)1000000000 * (uint32_t)(bt->frac >> 32)) >> 32);
+}
+
+static __inline void
+timespec2bintime(struct timespec *ts, struct bintime *bt)
+{
+
+	bt->sec = ts->tv_sec;
+	/* 18446744073 = int(2^64 / 1000000000) */
+	bt->frac = (uint64_t)ts->tv_nsec * (uint64_t)18446744073ULL;
+}
+
+static __inline void
+bintime2timeval(struct bintime *bt, struct timeval *tv)
+{
+
+	tv->tv_sec = bt->sec;
+	tv->tv_usec = (long)(((uint64_t)1000000 * (uint32_t)(bt->frac >> 32)) >> 32);
+}
+
+static __inline void
+timeval2bintime(struct timeval *tv, struct bintime *bt)
+{
+
+	bt->sec = (time_t)tv->tv_sec;
+	/* 18446744073709 = int(2^64 / 1000000) */
+	bt->frac = (uint64_t)tv->tv_usec * (uint64_t)18446744073709ULL;
+}
+void microuptime(struct timeval *);
+
 /*
  * Names of the interval timers, and structure
  * defining a timer setting.
@@ -163,6 +253,7 @@ struct clockinfo {
 #define TIMER_ABSTIME	0x1	/* absolute timer */
 
 #if defined(_KERNEL) || defined(_STANDALONE)
+extern volatile time_t time_uptime; /* Seconds since reboot. */
 int	itimerfix __P((struct timeval *tv));
 int	itimerdecr __P((struct itimerval *itp, int usec));
 void	microtime __P((struct timeval *tv));

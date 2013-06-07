@@ -242,7 +242,22 @@ bus_space_write_raw_multi(4,32,2)
 #define	bus_space_write_raw_multi_8 \
     !!! bus_space_write_raw_multi_8 not implemented !!!
 
-
+/*
+ * Bus read/write barrier methods
+ * void bus_space_barrier(bus_space_tag_t tag,
+ *		bus_space_handle_t bsh, bus_size_t offset,
+ *		bus_size_t len, int flags);
+ */
+#define BUS_SPACE_BARRIER_WRITE 0x02	/* foece write barrier */
+#define BUS_SPACE_BARRIER_READ 0x01		/* force read barrier */
+static inline void
+bus_space_barrier(bus_space_tag_t t, bus_space_handle_t h,
+		bus_size_t o, bus_size_t l, int f)
+{
+	__asm__ __volatile__ ("sync" ::: "memory");
+}
+#define bus_space_barrier(t, h, o, l, f)	\
+		((void)((void)(t), (void)(h), (void)(o), (void)(l),(void)(f)))
 #define	BUS_DMA_WAITOK		0x00
 #define	BUS_DMA_NOWAIT		0x01
 #define	BUS_DMA_ALLOCNOW	0x02

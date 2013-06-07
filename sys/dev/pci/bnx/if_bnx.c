@@ -61,12 +61,14 @@ __FBSDID("$FreeBSD: src/sys/dev/bce/if_bce.c,v 1.3 2006/04/13 14:12:26 ru Exp $"
 
 #define BUS_SPACE_BARRIER_READ  0x01	/* force read barrier */
 #define BUS_SPACE_BARRIER_WRITE 0x02	/* force write barrier */
+#if 0
 static inline void
 bus_space_barrier(bus_space_tag_t t, bus_space_handle_t h, bus_size_t offset,
 		bus_size_t length, int flags)
 {
 	__asm__ __volatile__ ("sync" ::: "memory");
 }
+#endif
 
 struct bnx_firmware {
 	char *filename;

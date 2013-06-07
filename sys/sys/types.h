@@ -50,6 +50,10 @@
 #include <machine/ansi.h>
 #include <machine/endian.h>
 
+/* LONGLONG */
+typedef	long long		__int64_t;
+/* LONGLONG */
+typedef	unsigned long long	__uint64_t;
 #if !defined(_POSIX_SOURCE) && !defined(_XOPEN_SOURCE)
 typedef	unsigned char	u_char;
 typedef	unsigned short	u_short;
@@ -68,6 +72,7 @@ typedef	quad_t *	qaddr_t;
 
 typedef	char *		caddr_t;	/* core address */
 typedef	int64_t		daddr_t;	/* disk address */
+typedef	__int64_t	daddr64_t;	/* 64-bit disk address */
 typedef	int32_t		dev_t;		/* device number */
 typedef	u_int32_t	fixpt_t;	/* fixed point number */
 typedef	u_int32_t	gid_t;		/* group id */
