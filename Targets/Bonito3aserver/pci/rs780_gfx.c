@@ -1143,6 +1143,11 @@ void rs780_gfx_3_init(device_t nb_dev, device_t dev, u32 port)
 	if (0)			/* A12 */
 		set_pcie_enable_bits(dev, 0x02, 1 << 11, 1 << 11);
 
+	pcie_commoncoreinit(nb_dev, dev);
+	pcie_commonportinit(nb_dev, dev);
+	pcie_initgen2(nb_dev, dev);
+	pcie_gen2workaround(nb_dev, dev);
+
 	/* Single-port/Dual-port configureation. */
 	switch (cfg->gfx_dual_slot) {
 	case 0:
