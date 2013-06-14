@@ -1673,6 +1673,13 @@ out_test:
 	    nop
 #endif
 
+#define START_MMX_LVX
+#ifdef START_MMX_LVX
+	bal start_mmx_lvx
+	nop
+	TTYDBG("start MMX and LVX done\r\n")
+	nop
+#endif
 
 ##########################################
 #ifdef LS3_HT
@@ -2924,6 +2931,53 @@ LEAF(lock_scache)
        jr    t7
        nop
 END(lock_scache)
+
+LEAF(start_mmx_lvx)
+	addi sp, sp, -56  
+	sd   t0, 0x00(sp)
+	sd   t1, 0x08(sp)
+	sd   t2, 0x10(sp)
+	sd   t3, 0x18(sp)
+	sd   t4, 0x20(sp)
+	sd   t5, 0x28(sp)
+	sd   t6, 0x30(sp)
+	move t7, ra
+
+#if 1
+	dli  t1, 0xffffffffffffffff
+	dli  t0, 0x900010003ff06000
+	sd   t1, 0xc0(t0)
+	sd   t1, 0xc8(t0)
+	sd   t1, 0xd0(t0)
+	sd   t1, 0xd8(t0)
+	sd   t1, 0xe0(t0)
+	sd   t1, 0xe8(t0)
+	sd   t1, 0xf0(t0)
+	sd   t1, 0xf8(t0)
+	
+	dli  t0, 0x900000003ff02000
+	sd   t1, 0xc0(t0)
+	sd   t1, 0xc8(t0)
+	sd   t1, 0xd0(t0)
+	sd   t1, 0xd8(t0)
+	sd   t1, 0xe0(t0)
+	sd   t1, 0xe8(t0)
+	sd   t1, 0xf0(t0)
+	sd   t1, 0xf8(t0)
+#endif
+
+	ld   t0, 0x00(sp)
+	ld   t1, 0x08(sp)
+	ld   t2, 0x10(sp)
+	ld   t3, 0x18(sp)
+	ld   t4, 0x20(sp)
+	ld   t5, 0x28(sp)
+	ld   t6, 0x30(sp)
+	addi sp, sp, 56  
+	jr    t7
+	nop
+END(start_mmx_lvx)
+
 
 		//lycheng
 		LEAF(nbmisc_read_index_mips)
