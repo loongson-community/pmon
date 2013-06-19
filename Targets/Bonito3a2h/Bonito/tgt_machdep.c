@@ -644,12 +644,14 @@ extern unsigned long long uma_memory_size;
 
 #define u64 unsigned long long
 extern u64 __raw__readq(u64 q);
+extern u64 __raw__writeq(u64 addr, u64 val);
+u64 ver_val;
 
 void
 tgt_devconfig()
 {
 		int ic, len;
-		int count = 0;
+		int count, i;
 		char key;
 		char copyright[9] ="REV_";
 		char bootup[] = "Booting...";
@@ -729,6 +731,11 @@ tgt_devconfig()
 				break;
 			}
 			delay1(6000);
+		}
+		for(i=0,count=(200/8)+1;count>0;count--,i+=8)
+		{
+			ver_val = __raw__readq(0x90000e0008000000+i);
+			__raw__writeq(0x9800000008000000+i, ver_val);
 		}
 		printf("begin dc_init\n");
 		fbaddress = dc_init();

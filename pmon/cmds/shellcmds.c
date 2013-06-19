@@ -154,8 +154,12 @@ extern int optind;
 		return(-1);
 	}
 
-	printf ("PMON: %s\n", vers);
-
+#ifdef LOONGSON_3A2H    
+        printf ("3A PMON: %s\n", vers);
+        printf ("2H PMON: PMON2000 1.0 %s\n", (volatile unsigned char *)0xa8000000);
+#else
+        printf ("PMON: %s\n", vers);
+#endif
 	if(aflag) {
 		tgt_cmd_vers();
 	}
