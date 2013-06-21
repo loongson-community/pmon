@@ -10,11 +10,11 @@
 		nop
 
 LEAF(i2cinit)
-		li	  v1, 0x64
+		li	  v1, 0x2c
 		li	  v0, LS2H_I2C0_PRER_LO_REG
 		sb	  v1, 0x0(v0)
 
-		li	  v1, 0x00
+		li	  v1, 0x01
 		li	  v0, LS2H_I2C0_PRER_HI_REG
 		sb	  v1, 0x0(v0)
 

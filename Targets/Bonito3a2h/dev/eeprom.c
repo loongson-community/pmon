@@ -19,8 +19,8 @@ again:
 void ls2h_i2c1_init()
 {
 	write_reg_byte(LS2H_I2C1_CTR_REG, 0x0);
-	write_reg_byte(LS2H_I2C1_PRER_LO_REG, 0xc8);
-	write_reg_byte(LS2H_I2C1_PRER_HI_REG, 0x0);
+	write_reg_byte(LS2H_I2C1_PRER_LO_REG, 0x2c);
+	write_reg_byte(LS2H_I2C1_PRER_HI_REG, 0x1);
 	write_reg_byte(LS2H_I2C1_CTR_REG, 0x80);
 }
 
