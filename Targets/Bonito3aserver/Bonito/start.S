@@ -1236,6 +1236,36 @@ gs_2f_v3_ddr2_cfg:
 //end
     WatchDog_Close;
 
+#ifdef MULTI_CHIP
+    //this code must be put after fixup.S where the Node 1 L2Xbar is configured for 0x1xxxxxxx access
+    WatchDog_Enable;
+
+    TTYDBG("\r\nRead CPU 1 sys info...")
+    TTYDBG ("\r\n0x900010001fe00190  : ")
+    dli     t2, 0x900010001fe00190
+    ld      t1, 0x0(t2)
+    dsrl    a0, t1, 32
+    bal     hexserial
+    nop
+    move    a0, t1
+    bal     hexserial
+    nop
+    TTYDBG ("\r\nCPU CLK SEL : ")
+    dsrl    t1, t1, 32
+    andi    a0, t1, 0x1f
+    bal     hexserial
+    nop
+
+    TTYDBG ("\r\nMEM CLK SEL : ")
+    dsrl    t0, t1, 5
+    andi    a0, t0, 0x1f
+    bal     hexserial
+    nop
+    TTYDBG ("\r\n")
+
+    WatchDog_Close;
+#endif
+
 ##########################################
 //let other cores going
 #ifdef NODE1_BOOT
@@ -1326,7 +1356,7 @@ gs_2f_v3_ddr2_cfg:
 
 #include "ddr_dir/ddr_config_define.h"
 #include "ddr_dir/ddr_param_define.h"
-#define DISABLE_DIMM_ECC
+//#define DISABLE_DIMM_ECC
 #define PRINT_MSG
 #ifndef ARB_LEVEL
 //#define FIX_DDR_PARAM
