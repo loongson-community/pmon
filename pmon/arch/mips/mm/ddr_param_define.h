@@ -34,6 +34,7 @@
 #define DLLLOCKREG_OFFSET       0
 #define INIT_COMPLETE_OFFSET    8
 #define MC_INT_ACK_OFFSET       24
+#define MC_INT_ACK_CLEAR_VALUE  0x3fcff
 #define RESYNC_DLL_OFFSET       16
 
 #define ODT_MAP_CS_ADDR          (0x080)

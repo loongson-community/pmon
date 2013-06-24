@@ -343,6 +343,21 @@ t0,t2 shouldn't be changed to the end of this file.
 
     bal     mc_init
     nop
+
+#ifndef  DISABLE_DIMM_ECC
+    //Disable MC read buffer after ECC Initial
+    GET_DIMM_ECC
+    beqz    a1, 8f
+    nop
+    TTYDBG("Disable MC read buffer\r\n")
+    lw      a1, 0x4(t2)
+    li      a0, 0x8
+    sll     a0, a0, t3
+    or      a1, a1, a0
+    sw      a1, 0x4(t2)
+    sync
+8:
+#endif
     PRINTSTR("\r\nMC0 Config DONE\r\n")
 //-------------------------------------
 //config MC1 if not define MC0_ONLY
@@ -352,6 +367,15 @@ t0,t2 shouldn't be changed to the end of this file.
     nop
 
     dli     t3, 0x1
+
+    //shift MC1 DIMM info to low 32bit of s1
+    dsrl    t5, s1, 32
+    dli     a1, 0xffff0000
+    and     t5, t5, a1
+    dli     a1, 0xffffffff0000ffff
+    and     s1, s1, a1
+    or      s1, s1, t5
+
 #ifndef  DISABLE_DIMM_ECC
     //Enable MC read buffer for ECC Initial
     GET_DIMM_ECC
@@ -375,6 +399,21 @@ t0,t2 shouldn't be changed to the end of this file.
 
     bal     mc_init
     nop
+
+#ifndef  DISABLE_DIMM_ECC
+    //Disable MC read buffer after ECC Initial
+    GET_DIMM_ECC
+    beqz    a1, 8f
+    nop
+    TTYDBG("Disable MC read buffer\r\n")
+    lw      a1, 0x4(t2)
+    li      a0, 0x8
+    sll     a0, a0, t3
+    or      a1, a1, a0
+    sw      a1, 0x4(t2)
+    sync
+8:
+#endif
     TTYDBG("\r\nMC1 Config DONE\r\n")
 //-------------------------------------
 12:
@@ -538,13 +577,19 @@ t0,t2 shouldn't be changed to the end of this file.
                     0xFFFFFFFFF0000000, \
                     0x00000000000000F0)
     PRINTSTR("DDR space open : 0x00000000 - 0x0FFFFFFF\r\n")
+    GET_NODE_ID_a0;
+    XBAR_CONFIG_NODE_a0(0x18, \
+                    0x000000002FF00000, \
+                    0xFFFFFFFFFFF00000, \
+                    0x000000000FF000F1)
+    PRINTSTR("MC1 space open : 0x2FF00000 - 0x2FFFFFFF for MC configure space\r\n")
 
 2:
     //Config PCI windows
     L2XBAR_CONFIG_PCI_AS_CPU(0x10);
-    L2XBAR_CONFIG_PCI_AS_CPU(0x18);
+    //L2XBAR_CONFIG_PCI_AS_CPU(0x18);
     L2XBAR_CONFIG_PCI_BASE_0to8(0x110);
-    L2XBAR_CONFIG_PCI_BASE_0to8(0x118);
+    //L2XBAR_CONFIG_PCI_BASE_0to8(0x118);
     PRINTSTR("PCI space open: 0x80000000 - 0x8FFFFFFF\r\n")
 
 //config high memory windows
@@ -924,8 +969,10 @@ t0,t2 shouldn't be changed to the end of this file.
     PRINTSTR("MC1 space open : 0x80000000 - 0xFFFFFFFF\r\n")
     L2XBAR_RECONFIG_TO_MC1(0x10)
     L2XBAR_RECONFIG_TO_MC1(0x110)
+    L2XBAR_RECONFIG_TO_MC0(0x18)
     PRINTSTR("The opened CPU 0x00000000~0x0FFFFFFF Window is reassigned to MC1\r\n")
     PRINTSTR("The opened PCI 0x80000000~0x8FFFFFFF Window is reassigned to MC1\r\n")
+    PRINTSTR("The opened CPU 0x2FF00000~0x2FFFFFFF Window is reassigned to MC0\r\n")
     PRINTSTR("DDR space open : 0x080000000 - 0x13FFFFFFF\r\n")
     b       2f
     nop

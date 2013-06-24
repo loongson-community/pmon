@@ -1342,7 +1342,8 @@ Fix_ddr_param:
 #endif
 #endif
 
-#if 1   //def  DEBUG_DDR_PARAM   //print registers
+#ifdef  PRINT_MSG
+    //print MC registers
     PRINTSTR("\r\nThe MC param is:\r\n")
     dli     t1, DDR_PARAM_NUM
     GET_NODE_ID_a0
@@ -1510,10 +1511,10 @@ Fix_ddr_param:
     or      t1, t1, a0
     GET_MC0_MEMSIZE
     dsll    a1, a1, 29   //a1*512M
-    daddu   t3, t1, a1
+    daddu   t5, t1, a1
 //write memory
 1:
-    bgeu    t1, t3, 1f
+    bgeu    t1, t5, 1f
     nop
 
     sd      $0, 0x0(t1)
@@ -1588,7 +1589,6 @@ Fix_ddr_param:
 #endif
 #define CLEAR_INT_STATUS
 #ifdef  CLEAR_INT_STATUS
-    //clear possible out of physical range int_status bits introduced by arb_level or ECC initialization
     //TTYDBG("Enable register space of MEMORY\r\n")
     lw      a2, 0x0(t2)
     li      v1, 0x1
@@ -1604,9 +1604,11 @@ Fix_ddr_param:
     sw      a2, 0x0(t2)
     sync
 
+    //clear possible out of physical range/ecc error and other info int_status bits
+    //introduced by arb_level or ECC initialization
     //set int_ack to 1
     ld      a1, MC_INT_ACK_ADDR(t8)
-    dli     a2, 0x3
+    dli     a2, MC_INT_ACK_CLEAR_VALUE
     dsll    a2, a2, MC_INT_ACK_OFFSET
     or      a1, a1, a2
     sd      a1, MC_INT_ACK_ADDR(t8)
@@ -1620,13 +1622,14 @@ Fix_ddr_param:
 
     //clear int_ack to 0
     ld      a1, MC_INT_ACK_ADDR(t8)
-    dli     a2, 0x3
+    dli     a2, MC_INT_ACK_CLEAR_VALUE
     dsll    a2, a2, MC_INT_ACK_OFFSET
     not     a2, a2
     and     a1, a1, a2
     sd      a1, MC_INT_ACK_ADDR(t8)
 
-#if 0   //print registers
+#ifdef  PRINT_MSG
+    //print MC registers
     PRINTSTR("\r\nThe MC param is:\r\n")
     dli     t1, DDR_PARAM_NUM
     GET_NODE_ID_a0
@@ -1649,7 +1652,7 @@ Fix_ddr_param:
     nop
 #endif
 
-    //TTYDBG("Disable register space of MEMORY\r\n")
+    //TTYDBG("\r\nDisable register space of MEMORY\r\n")
     lw      a2, 0x0(t2)
     li      v1, 0x1
     GET_NODE_ID_a1

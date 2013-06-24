@@ -144,6 +144,12 @@ s1: [ 3: 3]: MC1_ONLY
                         ld      v1, 0x80(v0);         \
                         or      v1, v1, MMAP;         \
                         sd      v1, 0x80(v0);
+//special used, not general, you must guarantee the original MMAP is 0xxxxF1.
+#define L2XBAR_RECONFIG_TO_MC0(OFFSET) \
+                        daddiu  v0, t0, OFFSET;       \
+                        ld      v1, 0x80(v0);         \
+                        xor     v1, v1, 0x1;          \
+                        sd      v1, 0x80(v0);
 #define L2XBAR_RECONFIG_TO_MC1(OFFSET) \
                         daddiu  v0, t0, OFFSET;       \
                         ld      v1, 0x80(v0);         \

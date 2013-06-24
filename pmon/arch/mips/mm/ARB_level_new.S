@@ -917,102 +917,8 @@ boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
     //If some slices'max value >= 0x70(caused by logic design boundary), we should compensate some value for them.
     //check slice 2~7 should be enough
     //note: the if 0 code bellow ONLY check slice 4~7 now.
-#if 0
-    //NOT need any more, because we set the max test value of wrlvl_dly to 0x70
-    //For slice Max value > 0x70(which is abnormal), Mask it to 0x70 for uniformed compensation
-    dli     a1, 0xf
-    dli     v0, 0x70
-
-    dsrl    v1, a3, 56
-    and     v1, v1, 0xff
-    ble     v1, v0, 1f
-    nop
-    //slice 7 > 0x70
-    dsll    v1, a1, 56
-    not     v1, v1
-    and     a3, a3, v1
-1:
-    dsrl    v1, a3, 48
-    and     v1, v1, 0xff
-    ble     v1, v0, 1f
-    nop
-    //slice 6 > 0x70
-    dsll    v1, a1, 48
-    not     v1, v1
-    and     a3, a3, v1
-1:
-    dsrl    v1, a3, 40
-    and     v1, v1, 0xff
-    ble     v1, v0, 1f
-    nop
-    //slice 5 > 0x70
-    dsll    v1, a1, 40
-    not     v1, v1
-    and     a3, a3, v1
-1:
-    dsrl    v1, a3, 32
-    and     v1, v1, 0xff
-    ble     v1, v0, 1f
-    nop
-    //slice 4 > 0x70
-    dsll    v1, a1, 32
-    not     v1, v1
-    and     a3, a3, v1
-1:
-#endif
 
     //select one from the different compensating policies bellow
-#if 0
-    //if the max value of slice N && slice N+1 >= 0x70, compensate slice N+1(check slice 5~7 should be enough).
-    //set compensate value to a1
-    //assume compensate slice 5~7 first, if either condition is failed, then clear it
-    dli     v0, 0x4
-    dsll    a1, v0, 40
-    daddu   v0, v0, 0x4
-    dsll    v1, v0, 48
-    or      a1, a1, v1
-    daddu   v0, v0, 0x4
-    dsll    v1, v0, 56
-    or      a1, a1, v1
-
-    dli     v1, 0x70
-    dsrl    v0, a3, 32
-    and     v0, v0, 0xff
-    bge     v0, v1, 1f
-    nop
-    //slice 4 < 0x70, clear slice 5
-    dli     v0, 0xff
-    dsll    v0, v0, 40
-    not     v0, v0
-    and     a1, a1, v0
-1:
-    dsrl    v0, a3, 40
-    and     v0, v0, 0xff
-    bge     v0, v1, 1f
-    nop
-    //slice 5 < 0x70, clear slice 5 and slice 6
-    dli     v0, 0xff
-    dsll    v0, v0, 40
-    not     v0, v0
-    and     a1, a1, v0
-    //the least slice always 0, so we can do this
-    dsll    v0, v0, 8
-    and     a1, a1, v0
-1:
-    dsrl    v0, a3, 48
-    and     v0, v0, 0xff
-    bge     v0, v1, 1f
-    nop
-    //slice 6 < 0x70, clear slice 6 and slice 7
-    dli     v0, 0xff
-    dsll    v0, v0, 48
-    not     v0, v0
-    and     a1, a1, v0
-    dsll    v0, v0, 8
-    and     a1, a1, v0
-1:
-    daddu   a3, a3, a1
-#endif
 #if 0
     //if the max value >= 0x70, compensate all a fix value(check slice 4~7 should be enough).
     //set compensate value to a0
@@ -1126,81 +1032,6 @@ boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
     b       88f
     nop
 1:  //abnormal: some byte is smaller than minus, use traditional process
-#endif
-#if 0
-    //cal byte01/byte23/byte45/byte67 use different algorithm --- obsolete now!
-    ld      a1, GD_MIN(t8)
-    ld      a3, GD_MAX(t8)
-    //Byte 1~0
-    //refer byte 1
-    dsrl    a2, a1, 8
-    and     a2, a2, 0x7f
-    bnez    a2, 1f
-    nop
-    //min==0
-    dsrl    v0, a0, 1   //mid_value / 2
-    dli     a2, 0x7f7f
-    and     v0, v0, a2
-    dli     a2, 0xffff
-    not     a2, a2
-    and     a0, a0, a2
-    or      a0, a0, v0
-1:
-    //Byte 3~2
-    //refer byte 3
-    dsrl    a2, a1, 24
-    and     a2, a2, 0x7f
-    bnez    a2, 1f
-    nop
-    //MIN==0
-    dsrl    v0, a0, 0   //mid_value / 1
-    dli     a2, 0x7f7f0000
-    and     v0, v0, a2
-    dli     a2, 0xffff0000
-    not     a2, a2
-    and     a0, a0, a2
-    or      a0, a0, v0
-1:
-    //Byte 5~4
-    //refer byte 5
-    dsrl    a2, a3, 40
-    and     a2, a2, 0x7f
-    dli     v0, (WRLVL_MAX_DELAY - 0x4)
-    blt     a2, v0, 1f
-    nop
-    //MAX reach boundary, use ((MAX+MID)/2 + MID)/2
-    daddu   v0, a3, a0
-    dsrl    v0, v0, 1
-    dli     v1, 0x7f7f00000000
-    and     v0, v0, v1
-
-    daddu   v0, v0, a0
-    dsrl    v0, v0, 1
-    dli     v1, 0x7f7f00000000
-    and     v0, v0, v1
-
-    dli     v1, 0xffff00000000
-    not     v1, v1
-    and     a0, a0, v1
-    or      a0, a0, v0
-1:
-    //Byte 7~6
-    //refer byte 7
-    dsrl    a2, a3, 56
-    and     a2, a2, 0x7f
-    dli     v0, (WRLVL_MAX_DELAY - 0x4)
-    blt     a2, v0, 1f
-    nop
-    //MAX reach boundary, use (MAX+MID)/2
-    daddu   v0, a3, a0
-    dsrl    v0, v0, 1
-    dli     v1, 0x7f7f000000000000
-    and     v0, v0, v1
-    dli     v1, 0xffff000000000000
-    not     v1, v1
-    and     a0, a0, v1
-    or      a0, a0, v0
-1:
 #endif
     b       88f
     nop
@@ -1758,7 +1589,7 @@ rdlvl_gate_cfg_fail:    //tryed all setting(0,1), can NOT find a right cfg, try 
     dsrl    a0, a0, 1
 #if 1
     //max rdlvl_gate_delay == RDLVL_GATE_MAX_DELAY, use (mid + max) / 2 
-    //else if mid value < 8 use 0, else use mid value
+    //else use max value - 0x10
     dli     a2, RDLVL_GATE_MAX_DELAY
     blt     a1, a2, 1f
     nop
@@ -1767,8 +1598,9 @@ rdlvl_gate_cfg_fail:    //tryed all setting(0,1), can NOT find a right cfg, try 
     b       8f
     nop
 1:
-    dli     a2, 0x8
-    bge     a0, a2, 8f
+    dli     a2, 0x10
+    dsubu   a0, a1, a2
+    bge     a0, $0, 8f
     nop
     move    a0, $0
 8:
@@ -2234,7 +2066,7 @@ first_pop_delay_ok:
     dsrl    a0, a0, 1
 #if 1
     //max rdlvl_gate_delay == RDLVL_GATE_MAX_DELAY, use (mid + max) / 2 
-    //else if mid value < 8 use 0, else use mid value
+    //else use max value - 0x10
     dli     a2, RDLVL_GATE_MAX_DELAY
     blt     a1, a2, 1f
     nop
@@ -2243,8 +2075,9 @@ first_pop_delay_ok:
     b       8f
     nop
 1:
-    dli     a2, 0x8
-    bge     a0, a2, 8f
+    dli     a2, 0x10
+    dsubu   a0, a1, a2
+    bge     a0, $0, 8f
     nop
     move    a0, $0
 8:
@@ -2399,6 +2232,38 @@ rdlvl_end:
     nop
 #endif
 
+#include    "ARB_Write_Slice_8_param.S"
+    //print final level result
+#ifdef  PRINT_MSG
+    PRINTSTR("After ARB level. The MC configuration is:\r\n")
+    bal     enable_ddr_confspace
+    nop
+
+    dli     t1, DDR_PARAM_NUM
+    dli     t7, DDR_MC_CONFIG_BASE
+    GET_ARB_LEVEL_NODE_ID
+    dsll    a1, a1, 44
+    or      t7, t7, a1
+1:
+    ld      t3, 0x0(t7)
+    dsrl    a0, t3, 32
+    bal     hexserial
+    nop
+    PRINTSTR("  ")
+    move    a0, t3
+    bal     hexserial
+    nop
+    PRINTSTR("\r\n")
+
+    daddiu  t1, t1, -1
+    daddiu  t7, t7, 16
+    bnez    t1, 1b
+    nop
+
+    bal     disable_ddr_confspace
+    nop
+#endif
+
 ARB_level_end:
     bal     arb_test_mem
     nop
@@ -2437,42 +2302,10 @@ ARB_level_end:
     b       arb_level_fail
     nop
 2:
-#include    "ARB_Write_Slice_8_param.S"
-
 #ifdef  PRINT_MSG
     PRINTSTR("\r\n\r\nARB Leveling Finished.\r\n")
 #endif
 
-    //print final level result
-#ifdef  PRINT_MSG
-    PRINTSTR("After ARB level. The MC configuration is:\r\n")
-    bal     enable_ddr_confspace
-    nop
-
-    dli     t1, DDR_PARAM_NUM
-    dli     t7, DDR_MC_CONFIG_BASE
-    GET_ARB_LEVEL_NODE_ID
-    dsll    a1, a1, 44
-    or      t7, t7, a1
-1:
-    ld      t3, 0x0(t7)
-    dsrl    a0, t3, 32
-    bal     hexserial
-    nop
-    PRINTSTR("  ")
-    move    a0, t3
-    bal     hexserial
-    nop
-    PRINTSTR("\r\n")
-
-    daddiu  t1, t1, -1
-    daddiu  t7, t7, 16
-    bnez    t1, 1b
-    nop
-
-    bal     disable_ddr_confspace
-    nop
-#endif
     //move    t7, $0
 
 arb_level_fail:

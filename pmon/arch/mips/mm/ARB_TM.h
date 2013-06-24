@@ -40,6 +40,24 @@ Function: Macro defination for Test_Mem.S
 #define PATTERN_D8_3_5  0x0001000000010000
 #define PATTERN_D8_3_6  0x0000010000000100
 #define PATTERN_D8_3_7  0x0000000100000001
+//Inverse
+#define PATTERN_D8_4_0  0xaaaaaaaaaaaaaaaa
+#define PATTERN_D8_4_1  0x5555555555555555
+#define PATTERN_D8_4_2  0x0000000800000008
+#define PATTERN_D8_4_3  0xfffffff7fffffff7
+#define PATTERN_D8_4_4  0x5aa5a55a5aa5a55a
+#define PATTERN_D8_4_5  0xa55a5aa5a55a5aa5
+#define PATTERN_D8_4_6  0xb5b5b5b5b5b5b5b5
+#define PATTERN_D8_4_7  0x4a4a4a4a4a4a4a4a
+//Random
+#define PATTERN_D8_5_0  0x0000000000000000
+#define PATTERN_D8_5_1  0xffffffffffffffff
+#define PATTERN_D8_5_2  0x55555555aaaaaaaa
+#define PATTERN_D8_5_3  0x00000000ffffffff
+#define PATTERN_D8_5_4  0x1616161616161616
+#define PATTERN_D8_5_5  0xb5b5b5b5b5b5b5b5
+#define PATTERN_D8_5_6  0x5555555755575555
+#define PATTERN_D8_5_7  0x00020002fffdfffd
 
 #define PATTERN_DB_0_0  0xaaaaaaaaaaaaaaaa
 #define PATTERN_DB_0_1  0x5555555555555555
@@ -63,12 +81,8 @@ Function: Macro defination for Test_Mem.S
 #endif
 
 #define ARB_TM_BASE     0x9800001000000000
-//#define MEM_TEST_BASE   0x9800001000200000
-//#define UNCACHED_MEM_TEST_BASE   0x9000001000200000
 #define MT_PATTERN_BASE 0x9800001000000000  //(0 ~ 400 -- 0 ~ 1K)
 #define MT_STACK_BASE   0x9800001000000400  //(400 ~ 600 -- 512Byte max, 64 registers)
-//#define MT_CODE_BASE    0x9800001000000600  //(600 ~ 4000 -- 1.5K ~ 16K, 14.5K max)
-//#define MT_MSG_BASE     0x9800001000004000  //(4000 ~ 10000 -- 16K ~ 64K, 48K max)
 
 #define GET_TM_NODE_ID_a1 GET_ARB_LEVEL_NODE_ID 
 

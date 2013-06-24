@@ -259,6 +259,25 @@ t0,t2 shouldn't be changed to the end of this file.
 
     bal     mc_init
     nop
+
+#ifndef  DISABLE_DIMM_ECC
+    //Disable MC read buffer after ECC Initial
+    GET_DIMM_ECC
+    beqz    a1, 8f
+    nop
+    TTYDBG("Disable MC read buffer\r\n")
+    GET_NODE_ID_a1
+    and     a1, a1, 0x1 //a1 == 0(even NODE) or 1(odd NODE)
+    dsll    a2, a1, 2   //a2 == 0(even NODE) or 4(odd NODE)
+    daddu   a1, a2, a1  //a1 == 0(even NODE) or 5(odd NODE)
+    lw      a2, 0x0(t2)
+    li      a0, 0x40    //bit[6]--MC0_read_buffer_bypass
+    sll     a0, a0, a1  //sll 0 or 5
+    or      a2, a2, a0
+    sw      a2, 0x0(t2)
+    sync
+8:
+#endif
     PRINTSTR("\r\nMC0 Config DONE\r\n")
 /*****************************
  3. set msize for this NODE
