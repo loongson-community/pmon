@@ -115,10 +115,10 @@
 **************************/
 1:  //MC0_ONLY
     GET_MC0_MEMSIZE
-    beqz    a1, 70f
+    beqz    a1, 89f
     nop
-    dli     t5, 0x8
-    bgt     a1, t5, 70f
+    dli     t5, 0x40
+    bgt     a1, t5, 89f
     nop
 4:
 #if 0
@@ -209,11 +209,8 @@ t0,t2 shouldn't be changed to the end of this file.
 #endif
 /*******************************
  4. config L2 X-bar
-    code procedure: first, MC*_ONLY bits in s1 decides whether this MC is
-    used,then according to MC*_MEMSIZE bits in s1 decide memory size and how
-    the L2 X-bar windows will be configured.
-    note: currently,when use only 1 MC,support memory size: 512M, 1G, 2G, 3G, 4G;
-      when use MC0&MC1 both, only support 1G, 2G or 4G Memory size of each Controller.
+    according to MC0_MEMSIZE bits in s1 decide memory size
+    note: currently, only support memory size: 512M, 1G, 2G, 3G, 4G, 8G;
 *******************************/
     sync
     nop
@@ -223,7 +220,7 @@ t0,t2 shouldn't be changed to the end of this file.
 
     //disable default pci window
     L2XBAR_DISABLE_WINDOW(0x100);
-/*Assume MC0_ONLY */
+/*MC0_ONLY */
     GET_NODE_ID_a0;
     XBAR_CONFIG_NODE_a0(0x10, \
                     0x0000000000000000, \
@@ -236,83 +233,128 @@ t0,t2 shouldn't be changed to the end of this file.
     PRINTSTR("PCI space open: 0x80000000 - 0x8FFFFFFF\r\n")
 
 //config high memory windows
-//use MC only, currently only support 512M, 1G, 2G, 3G, 4G
-/* Assume MC0_ONLY */
+/*MC0_ONLY */
     GET_MC0_MEMSIZE
     dli     t5, 0x1
-    beq     a1, t5, 10f
+    beq     a1, t5, 1f
     nop
     dli     t5, 0x2
-    beq     a1, t5, 20f
+    beq     a1, t5, 2f
     nop
     dli     t5, 0x4
-    beq     a1, t5, 40f
+    beq     a1, t5, 4f
     nop
     dli     t5, 0x6
-    beq     a1, t5, 60f
+    beq     a1, t5, 6f
     nop
     dli     t5, 0x8
-    //temp code, MEM size >= 4G, use 4G only
-    bgeu    a1, t5, 80f
+    beq     a1, t5, 8f
     nop
-    b       70f  //error condition
+    dli     t5, 0x10
+    beq     a1, t5, 10f
     nop
-10:     //ddr_512MB_MC0:
+    dli     t5, 0x20
+    //temp code, MEM size >= 16G, use 16G only
+    bgeu    a1, t5, 20f
+    nop
+    b       89f  //error condition
+    nop
+1:     //ddr_512MB_MC0:
     GET_NODE_ID_a0;
     XBAR_CONFIG_NODE_a0(0x20, \
                     0x0000000080000000, \
                     0xFFFFFFFFE0000000, \
                     0x00000000000000F0)
     PRINTSTR("MC0 space open : 0x80000000 - 0x9FFFFFFF\r\n")
-    b       6f
+    b       81f
     nop
-20:     //ddr_1GB_MC:
+2:     //ddr_1GB_MC:
     GET_NODE_ID_a0;
     XBAR_CONFIG_NODE_a0(0x20, \
                     0x0000000080000000, \
                     0xFFFFFFFFC0000000, \
                     0x00000000000000F0)
     PRINTSTR("MC0 space open : 0x80000000 - 0xBFFFFFFF\r\n")
-    b       6f
+    b       81f
     nop
-40:     //ddr_2GB_MC0:
+4:     //ddr_2GB_MC0:
     GET_NODE_ID_a0;
     XBAR_CONFIG_NODE_a0(0x20, \
                     0x0000000080000000, \
                     0xFFFFFFFF80000000, \
                     0x00000000000000F0)
     PRINTSTR("MC0 space open : 0x80000000 - 0xFFFFFFFF\r\n")
-    b       6f
+    b       81f
     nop
-60:     //ddr_3GB_MC0:
+6:     //ddr_3GB_MC0:
     GET_NODE_ID_a0;
     XBAR_CONFIG_NODE_a0(0x20, \
                     0x0000000080000000, \
                     0xFFFFFFFF80000000, \
                     0x00000000000000F0)
-    GET_NODE_ID_a0;
     XBAR_CONFIG_NODE_a0(0x28, \
                     0x0000000100000000, \
                     0xFFFFFFFFC0000000, \
                     0x00000000800000F0)
     PRINTSTR("MC0 space open : 0x080000000 - 0x13FFFFFFF\r\n")
-    b       6f
+    b       81f
     nop
-80:     //ddr_4GB_MC0:
+8:     //ddr_4GB_MC0:
     GET_NODE_ID_a0;
     XBAR_CONFIG_NODE_a0(0x20, \
                     0x0000000080000000, \
                     0xFFFFFFFF80000000, \
                     0x00000000000000F0)
-    GET_NODE_ID_a0;
     XBAR_CONFIG_NODE_a0(0x28, \
                     0x0000000100000000, \
                     0xFFFFFFFF80000000, \
                     0x00000000800000F0)
     PRINTSTR("MC0 space open : 0x080000000 - 0x17FFFFFFF\r\n")
-    b       6f
+    b       81f
     nop
-6:
+10:     //ddr_8GB_MC0:
+    GET_NODE_ID_a0;
+    XBAR_CONFIG_NODE_a0(0x20, \
+                    0x0000000080000000, \
+                    0xFFFFFFFF80000000, \
+                    0x00000000000000F0)
+    XBAR_CONFIG_NODE_a0(0x28, \
+                    0x0000000100000000, \
+                    0xFFFFFFFF00000000, \
+                    0x00000001000000F0)
+    XBAR_CONFIG_NODE_a0(0x30, \
+                    0x0000000200000000, \
+                    0xFFFFFFFF80000000, \
+                    0x00000000800000F0)
+    PRINTSTR("MC0 space open : 0x080000000 - 0x27FFFFFFF\r\n")
+    b       81f
+    nop
+20:     //ddr_16GB_MC0:
+    GET_NODE_ID_a0;
+    XBAR_CONFIG_NODE_a0(0x20, \
+                    0x0000000080000000, \
+                    0xFFFFFFFF80000000, \
+                    0x00000000000000F0)
+    XBAR_CONFIG_NODE_a0(0x28, \
+                    0x0000000100000000, \
+                    0xFFFFFFFF00000000, \
+                    0x00000001000000F0)
+    XBAR_CONFIG_NODE_a0(0x30, \
+                    0x0000000200000000, \
+                    0xFFFFFFFF00000000, \
+                    0x00000002000000F0)
+    XBAR_CONFIG_NODE_a0(0x38, \
+                    0x0000000300000000, \
+                    0xFFFFFFFF00000000, \
+                    0x00000003000000F0)
+    XBAR_CONFIG_NODE_a0(0x18, \
+                    0x0000000400000000, \
+                    0xFFFFFFFF80000000, \
+                    0x00000000800000F0)
+    PRINTSTR("MC0 space open : 0x080000000 - 0x47FFFFFFF\r\n")
+    b       81f
+    nop
+81:
     //Config other PCI space exactly as cpu windows
     L2XBAR_CONFIG_PCI_AS_CPU(0x20);
     L2XBAR_CONFIG_PCI_AS_CPU(0x28);
@@ -320,7 +362,7 @@ t0,t2 shouldn't be changed to the end of this file.
     b       1f
     nop
 
-70: //error: memory size not in support range
+89: //error: memory size not in support range
     PRINTSTR("The MEMSIZE is not supported, the L2-Xbar will not be configured!!!\r\n")
     PRINTSTR("-------------------------------------------\r\n")
 #if 0
