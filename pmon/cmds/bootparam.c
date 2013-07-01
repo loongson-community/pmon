@@ -231,8 +231,7 @@ struct efi_cpuinfo_loongson *init_cpu_info()
 #endif
 #ifdef LOONGSON_3BSINGLE
   c->total_node = 4;
-  //c->nr_cpus = 8;
-  c->nr_cpus = 7;
+  c->nr_cpus = 8;
 #endif
 
 #ifdef LOONGSON_3A2H
