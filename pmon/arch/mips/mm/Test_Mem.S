@@ -118,7 +118,7 @@ TM_start:
  *4 core use corresponding lock window
  */
     TM_PRINTSTR("\r\nLock Scache Node x--9800?00?00000000~4K...\r\n")
-    dli     a2, 0x900000003ff00200
+    dli     a2, LOCK_SCACHE_CONFIG_BASE_ADDR
     GET_TM_CORE_ID_a1
     dsll    a1, a1, 3
     daddu   a2, a2, a1
@@ -265,7 +265,7 @@ TM_start:
 	TM_PRINTSTR("Stuck Testing done!\r\n")
 3:
 #endif
-#if 0
+#if 1
 	TM_PRINTSTR("Uncached Address Stuck Testing...\r\n")
 //debug fatal errors
 //write memory
@@ -1352,7 +1352,7 @@ TM_end:
  */
     TM_PRINTSTR("\r\nUnlock Scache Node x--9800?00000000000~4K...\r\n")
 
-    dli     a2, 0x900000003ff00200
+    dli     a2, LOCK_SCACHE_CONFIG_BASE_ADDR
     GET_TM_CORE_ID_a1
     dsll    a1, a1, 3
     daddu   a2, a2, a1

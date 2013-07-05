@@ -19,11 +19,11 @@ MC0_DDR3_CTL_020 : .dword 0x0100010000000000
 //0000000_1 priority_en(RW) 0000000_0 power_down(RW) 0000000_1 placement_en(RW) 0000000_0 odt_add_turn_clk_en(RD) 0000000_0 no_cmd_init(RW) 0000000_0 intrptwritea(RW) 0000000_0 intrptreada(RW) 0000000_0 intrptapburst(RW) 
 MC0_DDR3_CTL_030 : .dword 0x0001000001000000
 //0000000_1 swap_port_rw_same_en(RW) 0000000_1 swap_en(RW) 0000000_0 start(RW) 0000000_0 srefresh(RW+) 0000000_1 rw_same_en(RW) 0000000_0 reg_dimm_enable(RW) 0000000_0 reduc(RW) 0000000_0 pwrup_srefresh_exit(RW) 
-MC0_DDR3_CTL_040 : .dword 0x0002010200000101
+MC0_DDR3_CTL_040 : .dword 0x0002010100000101
 //000000_00 rtt_0(RD) 000000_11 ctrl_raw(RW) 000000_01 axi0_w_priority(RW) 000000_01 axi0_r_priority(RW) 0000000_0 write_modereg(WR) 0000000_1 writeinterp(RW) 0000000_1 tref_enable(RW) 0000000_1 tras_lockout(RW) 
 MC0_DDR3_CTL_050 : .dword 0x0700000004060100
 //00000_000 q_fullness(RW) 00000_000 port_data_error_type(RD) 000_00000 out_of_range_type(RD) 00000_000 max_cs_reg(RD) 00000_100 column_size(RW) 0000_0101 caslat(RW) 00000_010 addr_pins(RW) 00000000
-MC0_DDR3_CTL_060 : .dword 0x0a05050705050003
+MC0_DDR3_CTL_060 : .dword 0x0a05050805050003
 //0000_1010 aprebit(RW) 0000_0101 wrlat(RW) 0000_0100 twtr(RW) 000_00110 twr_int(RW) 00000_011 trtp(RW) 00000_100 trrd(RW) 0000000000000_011 tcke(RW) 
 MC0_DDR3_CTL_070 : .dword 0x0000000000030c0c
 //0000_1111 max_row_reg(RD) 0000_1110 max_col_reg(RD) 0000_0000 initaref(RW) 00000000000000000000_1111 cs_map(RW) 000_01010 caslat_lin_gate(RW) 000_01010 caslat_lin(RW) 
@@ -41,11 +41,13 @@ MC0_DDR3_CTL_0e0 : .dword 0x0000000000000000
 MC0_DDR3_CTL_0f0 : .dword 0x0000000000000000
 //Bit 21:16 dll_lock(RD)
 MC0_DDR3_CTL_100 : .dword 0x0000000000000000
+//MC0_DDR3_CTL_110 : .dword 0x00000000000005e0  #200M+
 MC0_DDR3_CTL_110 : .dword 0x0000000000000900     #300M+
 //MC0_DDR3_CTL_110 : .dword 0x0000000000000c00	#400M+
 //0_000000000000000 emrs2_data_1(RW) 0_000000000000000 emrs2_data_0(RW) 000000000000000000_00110000101101 tref(RW) 
 MC0_DDR3_CTL_120 : .dword 0x001c000000000000
 //0000000000011100 axi0_en_size_lt_width_instr(RW) hXXXX 0_000000000000000 emrs2_data_3(RW) 0_000000000000000 emrs2_data_2(RW) 
+//MC0_DDR3_CTL_130 : .dword 0x36800003020000c8	#200M+
 MC0_DDR3_CTL_130 : .dword 0x52100003020000c8 	#300M--400M
 //MC0_DDR3_CTL_130 : .dword 0x6d800004020010b	#400M--533M
 //0110110101010110 tras_max(RW) 0000000000000011 tpdex(RW) 0000001000000000 tdll(RW) 0000000000000000 tcpd(RW) 
@@ -66,7 +68,7 @@ MC0_DDR3_CTL_1a0 : .dword 0x0000000000000000
 MC0_DDR3_CTL_1b0 : .dword 0x0000000000000007
 //0000000000000000000000000000000000000000000000000000000000000_000 cke_delay(RW) 
 MC0_DDR3_CTL_1c0 : .dword 0x0000000000000000
-MC0_DDR3_CTL_1d0 : .dword 0x0200070000000001
+MC0_DDR3_CTL_1d0 : .dword 0x02000b0000000001
 //0000_0010 tdfi_phy_wrlat_base(RW) 0000_0000 tdfi_phy_wrlat(RD) 000_00111 tdfi_phy_rdlat(RW) 0000_0100 tdfi_ctrlupd_min(RD) 000000000000_0000 dram_clk_disable(RW) 0000000_1 odt_alt_en(RW) 0000000_1 drive_dq_dqs(RW) 
 MC0_DDR3_CTL_1e0 : .dword 0x0000000000000200
 //00_00000000000000 tdfi_phyupd_type0(RD) 00_00000000000000 tdfi_phyupd_resp(RD) 00_00000000000000 tdfi_ctrlupd_max(RD) 000_00000 tdfi_rddata_en_base(RW) 000_00000 tdfi_rddata_en(RD) 
@@ -93,7 +95,7 @@ MC0_DDR3_CTL_2b0 : .dword 0x0000000000000000
 MC0_DDR3_CTL_2c0 : .dword 0x0000000000000000
 //hXXXXXXX 00_00 dll_obs_reg_0_8(RW) hXXXXXXX 00_00 dll_obs_reg_0_7(RW)
 //11110100000000000011101100100111 phy_ctrl_reg_0_0(RD) 000000_00000000000000000110011101 pad_ctrl_reg_0(RW) 
-MC0_DDR3_CTL_2d0 : .dword 0x04003733003c09b5
+MC0_DDR3_CTL_2d0 : .dword 0x04003733021c09b5
 MC0_DDR3_CTL_2e0 : .dword 0x0400373304003733
 MC0_DDR3_CTL_2f0 : .dword 0x0400373304003733
 MC0_DDR3_CTL_300 : .dword 0x0400373304003733
@@ -180,7 +182,7 @@ MC0_DDR3_CTL_770 : .dword 0x0101010202020203
 //0000_0001 axi2_priority2_relative_priority(RW) 0000_0001 axi2_priority1_relative_priority(RW) 0000_0001 axi2_priority0_relative_priority(RW) 0000_0010 axi1_priority3_relative_priority(RW) 0000_0010 axi1_priority2_relative_priority(RW) 0000_0010 axi1_priority1_relative_priority(RW) 0000_0010 axi1_priority0_relative_priority(RW) 0000_0011 axi0_priority3_relative_priority(RW) 
 MC0_DDR3_CTL_780 : .dword 0x0102020400060c01
 //0000_0001 tdfi_dram_clk_enable(RW) 0000_0010 tdfi_ctrl_delay(RW) 0000_0010 rdlvl_gate_dq_zero_count(RW) 0000_0100 rdlvl_dq_zero_count(RW) 0000_0000 lowpower_refresh_enable(RW) 0000_0110 dram_class(RW) 0000_1100 burst_on_fly_bit(RW) 0000_0001 axi2_priority3_relative_priority(RW) 
-MC0_DDR3_CTL_790 : .dword 0x2819000003000f0f
+MC0_DDR3_CTL_790 : .dword 0x2819000000000f0f
 //00_101000 wlmrd(RW) 00_011001 wldqsen(RW) 000_00000 lowpower_control(RW) 000_00000 lowpower_auto_enable(RW) 0000_1111 zqcs_chip(RD) 0000_0000 wrr_param_value_err(RD) 0000_0011 tdfi_wrlvl_dll(RW) 0000_0011 tdfi_rdlvl_dll(RW) 
 MC0_DDR3_CTL_7a0 : .dword 0x00000000000000ff
 //_00000000 swlvl_resp_6(RW) _00000000 swlvl_resp_5(RW) _00000000 swlvl_resp_4 _00000000 swlvl_resp_3(RW) _00000000 swlvl_resp_2(RW) _00000000 swlvl_resp_1(RW) _00000000 swlvl_resp_0(RW) _00000000 dfi_wrlvl_max_delay(RW)
@@ -224,7 +226,7 @@ MC0_DDR3_CTL_8d0 : .dword 0x0000030d40000000
 //h00_XXXXXXXX cke_inactive(RW) 000000_000000000000000000 wrlvl_status(RD)
 MC0_DDR3_CTL_8e0 : .dword 0x0000000023c34600
 //h00000000_XXXXXXXX trst_pwron(RW)
-MC0_DDR3_CTL_8f0 : .dword 0x0000000010101080
+MC0_DDR3_CTL_8f0 : .dword 0x0000000020202080
 //hXXXXXXX 000_0 XXXXXXXX dll_ctrl_reg_2(RW) 
 MC0_DDR3_CTL_900 : .dword 0x0000000000000000
 //h000000 00_00 X XXXXXXXX rdlvl_error_status(RW)
@@ -234,19 +236,19 @@ MC0_DDR3_CTL_920 : .dword 0x0000000000000000
 //h00000000000000_XX rdlvl_gate_resp_mask[71:64](RW)
 MC0_DDR3_CTL_930 : .dword 0x0000000000000000
 //hXXXXXXXX XXXXXXXX rdlvl_resp_mask[63:0](RW)
-MC0_DDR3_CTL_940 : .dword 0xff06060000060600
+MC0_DDR3_CTL_940 : .dword 0xff07070000060600
 //0000_0000 tdfi_rdlvl_en(RW) 00000_000 w2r_samecs_delay(RW) 00000_000 w2r_diffcs_delay(RW) 00000_000 lvl_status(RD) 0000000_0 rdlvl_edge(RW) 0000_0000 cksrx(RW) 0000_0000 cksre(RW) _00000000 rdlvl_resp_mask[71:64](RW)
 MC0_DDR3_CTL_950 : .dword 0x0000000000000d00
 //hXXXXX 00_00 XXXX mask_int[17:0](RW) hXXXX txpdll(RW) 0000_0000 tdfi_wrlvl_en(RW)
 MC0_DDR3_CTL_960 : .dword 0x0705000000000000
 //000_00101 rdlat_adj(RW) 0000_0100 wrlat_adj(RW) 0000000_0 swlvl_start(WR) 0000000_0 swlvl_load(WR) 0000000_0 swlvl_exit(WR) 000000_000000000000000000 int_status(RD) 
 MC0_DDR3_CTL_970 : .dword 0x010000000003e825
-//h00000 000_0 XXXX int_ack[16:0](WR) hXXXX dll_rst_delay(RW) hXX dll_rst_adj_dly(RW)
+//h00000 000_0 concurrentap_wr_only XXXX int_ack[16:0](WR) hXXXX dll_rst_delay(RW) hXX dll_rst_adj_dly(RW)
 MC0_DDR3_CTL_980 : .dword 0x0001010001000101
 //0000000_0 zq_in_progress(RD) 0000000_1 zqcs_rotate(RW) 0000000_0 wrlvl_reg_en(RW) 0000000_0 wrlvl_en(RW) 0000000_1 resync_dll_per_aref_en(RW) 0000000_0 resync_dll(WR) 0000000_0 rdlvl_reg_en(RW) 0000000_0 rdlvl_gate_reg_en(RW) 
-MC0_DDR3_CTL_990 : .dword 0x0606040606060600
+MC0_DDR3_CTL_990 : .dword 0x0707040707070700
 //00000_000 w2w_samecs_dly(RW) 00000_001 w2w_diffcs_dly(RW) 00000_010 tbst_int_interval(RW) 00000_010 r2w_samecs_dly(RW) 00000_010 r2w_diffcs_dly(RW) 00000_000 r2r_samecs_dly(RW) 00000_001 r2r_diffcs_dly(RW) 00000_000 axi_aligned_strobe_disable(RW) 
-MC0_DDR3_CTL_9a0 : .dword 0x0707040401080101
+MC0_DDR3_CTL_9a0 : .dword 0x0707040804070404
 //00000111 tdfi_wrlvl_load(RW) 00000111 tdfi_rdlvl_load(RW) 000_00011 tckesr(RW) 000_00010 tccd(RW) 000_00000 add_odt_clk_difftype_diffcs(RW) 0000_0110 trp_ab(RW) 0000_0001 add_odt_clk_sametype_diffcs(RW) 0000_0000 add_odt_clk_difftype_samecs(RW) 
 MC0_DDR3_CTL_9b0 : .dword 0x02000100000a000f
 //0000_001000000000 zqinit(RW) 0000_000100000000 zqcl(RW) 000000_0000001010 tdfi_wrlvl_ww(RW) 000000_0000001111 tdfi_rdlvl_rr(RW) 
@@ -312,11 +314,11 @@ MC0_DDR3_RDIMM_CTL_020 : .dword 0x0100010000000000
 //0000000_1 priority_en(RW) 0000000_0 power_down(RW) 0000000_1 placement_en(RW) 0000000_0 odt_add_turn_clk_en(RD) 0000000_0 no_cmd_init(RW) 0000000_0 intrptwritea(RW) 0000000_0 intrptreada(RW) 0000000_0 intrptapburst(RW) 
 MC0_DDR3_RDIMM_CTL_030 : .dword 0x0001000001010000
 //0000000_1 swap_port_rw_same_en(RW) 0000000_1 swap_en(RW) 0000000_0 start(RW) 0000000_0 srefresh(RW+) 0000000_1 rw_same_en(RW) 0000000_0 reg_dimm_enable(RW) 0000000_0 reduc(RW) 0000000_0 pwrup_srefresh_exit(RW) 
-MC0_DDR3_RDIMM_CTL_040 : .dword 0x0002010200000101
+MC0_DDR3_RDIMM_CTL_040 : .dword 0x0002010100000101
 //000000_00 rtt_0(RD) 000000_11 ctrl_raw(RW) 000000_01 axi0_w_priority(RW) 000000_01 axi0_r_priority(RW) 0000000_0 write_modereg(WR) 0000000_1 writeinterp(RW) 0000000_1 tref_enable(RW) 0000000_1 tras_lockout(RW) 
 MC0_DDR3_RDIMM_CTL_050 : .dword 0x0700000004060100
 //00000_000 q_fullness(RW) 00000_000 port_data_error_type(RD) 000_00000 out_of_range_type(RD) 00000_000 max_cs_reg(RD) 00000_100 column_size(RW) 0000_0101 caslat(RW) 00000_010 addr_pins(RW) 00000000
-MC0_DDR3_RDIMM_CTL_060 : .dword 0x0a05050705050003
+MC0_DDR3_RDIMM_CTL_060 : .dword 0x0a05050805050003
 //0000_1010 aprebit(RW) 0000_0101 wrlat(RW) 0000_0100 twtr(RW) 000_00110 twr_int(RW) 00000_011 trtp(RW) 00000_100 trrd(RW) 0000000000000_011 tcke(RW) 
 MC0_DDR3_RDIMM_CTL_070 : .dword 0x0000000000030c0c
 //0000_1111 max_row_reg(RD) 0000_1110 max_col_reg(RD) 0000_0000 initaref(RW) 00000000000000000000_1111 cs_map(RW) 000_01010 caslat_lin_gate(RW) 000_01010 caslat_lin(RW) 
@@ -334,11 +336,13 @@ MC0_DDR3_RDIMM_CTL_0e0 : .dword 0x0000000000000000
 MC0_DDR3_RDIMM_CTL_0f0 : .dword 0x0000000000000000
 //Bit 21:16 dll_lock(RD)
 MC0_DDR3_RDIMM_CTL_100 : .dword 0x0000000000000000
+//MC0_DDR3_RDIMM_CTL_110 : .dword 0x00000000000005e0  #200M+
 MC0_DDR3_RDIMM_CTL_110 : .dword 0x0000000000000900     #300M+
 //MC0_DDR3_RDIMM_CTL_110 : .dword 0x0000000000000c00	#400M+
 //0_000000000000000 emrs2_data_1(RW) 0_000000000000000 emrs2_data_0(RW) 000000000000000000_00110000101101 tref(RW) 
 MC0_DDR3_RDIMM_CTL_120 : .dword 0x001c000000000000
 //0000000000011100 axi0_en_size_lt_width_instr(RW) hXXXX 0_000000000000000 emrs2_data_3(RW) 0_000000000000000 emrs2_data_2(RW) 
+//MC0_DDR3_RDIMM_CTL_130 : .dword 0x36800003020000c8	#200M+
 MC0_DDR3_RDIMM_CTL_130 : .dword 0x52100003020000c8 	#300M--400M
 //MC0_DDR3_RDIMM_CTL_130 : .dword 0x6d800004020010b	#400M--533M
 //0110110101010110 tras_max(RW) 0000000000000011 tpdex(RW) 0000001000000000 tdll(RW) 0000000000000000 tcpd(RW) 
@@ -359,7 +363,7 @@ MC0_DDR3_RDIMM_CTL_1a0 : .dword 0x0000000000000000
 MC0_DDR3_RDIMM_CTL_1b0 : .dword 0x0000000000000007
 //0000000000000000000000000000000000000000000000000000000000000_000 cke_delay(RW) 
 MC0_DDR3_RDIMM_CTL_1c0 : .dword 0x0000000000000000
-MC0_DDR3_RDIMM_CTL_1d0 : .dword 0x0200070000000001
+MC0_DDR3_RDIMM_CTL_1d0 : .dword 0x02000b0000000001
 //0000_0010 tdfi_phy_wrlat_base(RW) 0000_0000 tdfi_phy_wrlat(RD) 000_00111 tdfi_phy_rdlat(RW) 0000_0100 tdfi_ctrlupd_min(RD) 000000000000_0000 dram_clk_disable(RW) 0000000_1 odt_alt_en(RW) 0000000_1 drive_dq_dqs(RW) 
 MC0_DDR3_RDIMM_CTL_1e0 : .dword 0x0000000000000200
 //00_00000000000000 tdfi_phyupd_type0(RD) 00_00000000000000 tdfi_phyupd_resp(RD) 00_00000000000000 tdfi_ctrlupd_max(RD) 000_00000 tdfi_rddata_en_base(RW) 000_00000 tdfi_rddata_en(RD) 
@@ -473,7 +477,7 @@ MC0_DDR3_RDIMM_CTL_770 : .dword 0x0101010202020203
 //0000_0001 axi2_priority2_relative_priority(RW) 0000_0001 axi2_priority1_relative_priority(RW) 0000_0001 axi2_priority0_relative_priority(RW) 0000_0010 axi1_priority3_relative_priority(RW) 0000_0010 axi1_priority2_relative_priority(RW) 0000_0010 axi1_priority1_relative_priority(RW) 0000_0010 axi1_priority0_relative_priority(RW) 0000_0011 axi0_priority3_relative_priority(RW) 
 MC0_DDR3_RDIMM_CTL_780 : .dword 0x0102020400060c01
 //0000_0001 tdfi_dram_clk_enable(RW) 0000_0010 tdfi_ctrl_delay(RW) 0000_0010 rdlvl_gate_dq_zero_count(RW) 0000_0100 rdlvl_dq_zero_count(RW) 0000_0000 lowpower_refresh_enable(RW) 0000_0110 dram_class(RW) 0000_1100 burst_on_fly_bit(RW) 0000_0001 axi2_priority3_relative_priority(RW) 
-MC0_DDR3_RDIMM_CTL_790 : .dword 0x2819000003000f0f
+MC0_DDR3_RDIMM_CTL_790 : .dword 0x2819000000000f0f
 //00_101000 wlmrd(RW) 00_011001 wldqsen(RW) 000_00000 lowpower_control(RW) 000_00000 lowpower_auto_enable(RW) 0000_1111 zqcs_chip(RD) 0000_0000 wrr_param_value_err(RD) 0000_0011 tdfi_wrlvl_dll(RW) 0000_0011 tdfi_rdlvl_dll(RW) 
 MC0_DDR3_RDIMM_CTL_7a0 : .dword 0x00000000000000ff
 //_00000000 swlvl_resp_6(RW) _00000000 swlvl_resp_5(RW) _00000000 swlvl_resp_4 _00000000 swlvl_resp_3(RW) _00000000 swlvl_resp_2(RW) _00000000 swlvl_resp_1(RW) _00000000 swlvl_resp_0(RW) _00000000 dfi_wrlvl_max_delay(RW)
@@ -527,7 +531,7 @@ MC0_DDR3_RDIMM_CTL_920 : .dword 0x0000000000000000
 //h00000000000000_XX rdlvl_gate_resp_mask[71:64](RW)
 MC0_DDR3_RDIMM_CTL_930 : .dword 0x0000000000000000
 //hXXXXXXXX XXXXXXXX rdlvl_resp_mask[63:0](RW)
-MC0_DDR3_RDIMM_CTL_940 : .dword 0xff06060000060600
+MC0_DDR3_RDIMM_CTL_940 : .dword 0xff07070000060600
 //0000_0000 tdfi_rdlvl_en(RW) 00000_000 w2r_samecs_delay(RW) 00000_000 w2r_diffcs_delay(RW) 00000_000 lvl_status(RD) 0000000_0 rdlvl_edge(RW) 0000_0000 cksrx(RW) 0000_0000 cksre(RW) _00000000 rdlvl_resp_mask[71:64](RW)
 MC0_DDR3_RDIMM_CTL_950 : .dword 0x0000000000000d00
 //hXXXXX 00_00 XXXX mask_int[17:0](RW) hXXXX txpdll(RW) 0000_0000 tdfi_wrlvl_en(RW)
@@ -537,9 +541,9 @@ MC0_DDR3_RDIMM_CTL_970 : .dword 0x010000000003e825
 //h00000 000_0 XXXX int_ack[16:0](WR) hXXXX dll_rst_delay(RW) hXX dll_rst_adj_dly(RW)
 MC0_DDR3_RDIMM_CTL_980 : .dword 0x0001010001000101
 //0000000_0 zq_in_progress(RD) 0000000_1 zqcs_rotate(RW) 0000000_0 wrlvl_reg_en(RW) 0000000_0 wrlvl_en(RW) 0000000_1 resync_dll_per_aref_en(RW) 0000000_0 resync_dll(WR) 0000000_0 rdlvl_reg_en(RW) 0000000_0 rdlvl_gate_reg_en(RW) 
-MC0_DDR3_RDIMM_CTL_990 : .dword 0x0606040606060600
+MC0_DDR3_RDIMM_CTL_990 : .dword 0x0707040707070700
 //00000_000 w2w_samecs_dly(RW) 00000_001 w2w_diffcs_dly(RW) 00000_010 tbst_int_interval(RW) 00000_010 r2w_samecs_dly(RW) 00000_010 r2w_diffcs_dly(RW) 00000_000 r2r_samecs_dly(RW) 00000_001 r2r_diffcs_dly(RW) 00000_000 axi_aligned_strobe_disable(RW) 
-MC0_DDR3_RDIMM_CTL_9a0 : .dword 0x0707040401080101
+MC0_DDR3_RDIMM_CTL_9a0 : .dword 0x0707040804070404
 //00000111 tdfi_wrlvl_load(RW) 00000111 tdfi_rdlvl_load(RW) 000_00011 tckesr(RW) 000_00010 tccd(RW) 000_00000 add_odt_clk_difftype_diffcs(RW) 0000_0110 trp_ab(RW) 0000_0001 add_odt_clk_sametype_diffcs(RW) 0000_0000 add_odt_clk_difftype_samecs(RW) 
 MC0_DDR3_RDIMM_CTL_9b0 : .dword 0x02000100000a000f
 //0000_001000000000 zqinit(RD) 0000_000100000000 zqcl(RW) 000000_0000001010 tdfi_wrlvl_ww(RW) 000000_0000001111 tdfi_rdlvl_rr(RW) 

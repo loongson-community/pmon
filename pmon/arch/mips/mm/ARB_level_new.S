@@ -39,10 +39,10 @@ algrithm:
 
 //#define DEBUG_ARB_LEVEL_RD
 //#define DEBUG_ARB_LEVEL_WR
-//#define DEBUG_ARB_LEVEL_TM_DETAIL
+//#define DEBUG_ARB_LEVEL_RD_DETAIL
+//#define DEBUG_ARB_LEVEL_WR_DETAIL
 
 //#define USE_DEFAULT_WRLVL_VALUE   //currently only affect at DDR3 mode
-//#define USE_DEFAULT_RDLVL_DELAY
 
 //#define ARB_SKIP_WRLVL
 #define ADJUST_CPU_ODT  //work ok
@@ -53,8 +53,11 @@ algrithm:
 #define CONTROL_L2XBAR_DDR_WINDOW  //work ok
 #define USE_BIG_GF_POP_DELAY  //work ok
 #define ARBLVL_PUT_DRAM_SREF
-#ifndef	LOONGSON_2H
+#ifdef  LS2HMC
+//#define USE_DEFAULT_RDLVL_DELAY
+#else
 #define CLEAR_HALF_CLK_SHIFT    //necessary
+//#define USE_DEFAULT_RDLVL_DELAY
 #endif
 
 //#define ALIGN_GATE_DELAY  //obsolete because we use new method
@@ -167,7 +170,7 @@ ARB_level_begin:
 #endif
 
 arb_wrlvl_start:
-#ifdef  DEBUG_ARB_LEVEL_WR
+#ifdef  DEBUG_ARB_LEVEL_WR_DETAIL
     PRINTSTR("\r\nThe MC configuration is:\r\n")
     bal     enable_ddr_confspace
     nop
@@ -238,7 +241,7 @@ arb_wrlvl_start:
     not     t3, t3
     not     t4, t4
 31:
-#ifdef  DEBUG_ARB_LEVEL_WR
+#ifdef  DEBUG_ARB_LEVEL_WR_DETAIL
     PRINTSTR("\r\n\r\nt2 = 0x")
     move    a0, t2
     bal     hexserial
@@ -256,7 +259,7 @@ arb_wrlvl_start:
     move    t2, $0
 18:
     dli     t6, 0x7
-#ifdef  DEBUG_ARB_LEVEL_WR
+#ifdef  DEBUG_ARB_LEVEL_WR_DETAIL
     PRINTSTR("\r\nModify read gate cfg: = 0x")
     move    a0, t2
     bal     hexserial
@@ -266,7 +269,7 @@ arb_wrlvl_start:
     nop
 
 //do Test and print test result
-#ifdef  DEBUG_ARB_LEVEL_WR
+#ifdef  DEBUG_ARB_LEVEL_WR_DETAIL
     PRINTSTR("\r\nThe MC configuration is:\r\n")
     bal     enable_ddr_confspace
     nop
@@ -388,7 +391,7 @@ arb_wrlvl_start:
     not     a0, a0
     and     t3, t3, a0
 1:
-#ifdef  DEBUG_ARB_LEVEL_WR
+#ifdef  DEBUG_ARB_LEVEL_WR_DETAIL
     //record RD history in t4, normally, t4 should be 0x0 after all these trying
     //byte 7
     dsrl    a0, v1, 0x38
@@ -495,7 +498,7 @@ arb_wrlvl_start:
     bnez    s4, 26f
     nop
     daddu   s4, s4, 1
-#ifdef  DEBUG_ARB_LEVEL_WR
+#ifdef  DEBUG_ARB_LEVEL_WR_DETAIL
     PRINTSTR("\r\nAlter read pop delay.")
 #endif
     bal     arb_modify_pop_delay_alter
@@ -507,7 +510,7 @@ arb_wrlvl_start:
 26: //tryed all setting(combination: pop delay and rd gat cfg)
     move    t2, s5
 
-#ifdef  DEBUG_ARB_LEVEL_WR
+#ifdef  DEBUG_ARB_LEVEL_WR_DETAIL
     PRINTSTR("\r\nRW Diff 0x")
     dsrl    a0, t3, 32
     bal     hexserial
@@ -524,7 +527,7 @@ arb_wrlvl_start:
     nop
 #endif
 
-#ifdef  DEBUG_ARB_LEVEL_WR
+#ifdef  DEBUG_ARB_LEVEL_WR_DETAIL
     PRINTSTR("\r\nAfter all the RD setting, t4 = 0x")
     dsrl    a0, t4, 32
     bal     hexserial
@@ -716,6 +719,11 @@ boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
     move    t9, $0
 
     dli     t1, 0x38    //start from byte 7
+    GET_DIMM_WIDTH
+    beqz    a1, 1f
+    nop
+    dli     t1, 0x18    //start from byte 3
+1:
     dli     t8, ARB_STORE_BASE
     GET_ARB_LEVEL_NODE_ID
     dsll    a1, a1, 44
@@ -1038,7 +1046,8 @@ boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
 4:  //DDR3 RDIMM
     ld      a1, GD_MIN(t8)
     ld      a3, GD_MAX(t8)
-    //select the MIN(byte 3, byte 4), normally the byte 4 should be the smaller.
+    //select the MIN(byte 3, byte 4, byte 5), normally the byte 4 should be the smaller.
+    //find the MIN of byte 3 and byte 4
     dsrl    a2, a3, 32
     dsrl    v0, a3, 24
     and     a2, a2, 0xff
@@ -1047,7 +1056,14 @@ boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
     nop
     move    a2, v0
 1:
-    //Add offset because of clk dll value(relevant to 0x10)
+    //find the MIN of a2 and byte 5
+    dsrl    v0, a3, 40
+    and     v0, v0, 0xff
+    ble     a2, v0, 1f
+    nop
+    move    a2, v0
+1:
+    //Add offset because of clk dll value(relevant to 0x20)
     ld      a1, CLKLVL_DELAY_VALUE(t8)
     dsubu   a1, a1, 0x20
     bgez    a1, 1f
@@ -1244,6 +1260,11 @@ arb_wrlvl_value_caled:
 
     //s3---level byte lane
     dli     s3, 0x7
+    GET_DIMM_WIDTH
+    beqz    a1, 1f
+    nop
+    dli     s3, 0x3
+1:
     //set t8
     dli     t8, ARB_STORE_BASE
     GET_ARB_LEVEL_NODE_ID
@@ -1383,7 +1404,7 @@ rdlvl_gate_cfg_start:
     nop
     move    t3, v0
     move    t4, v1
-#ifdef  DEBUG_ARB_LEVEL_TM_DETAIL
+#ifdef  DEBUG_ARB_LEVEL_RD_DETAIL
     PRINTSTR("\r\nt2 = 0x")
     move    a0, t2
     bal     hexserial
@@ -1438,7 +1459,7 @@ rdlvl_gate_cfg_start:
     nop
 11: 
 
-#ifdef  DEBUG_ARB_LEVEL_TM_DETAIL
+#ifdef  DEBUG_ARB_LEVEL_RD_DETAIL
     PRINTSTR("\r\nlevel result is:\r\n")
     ld      t7, BYTE_TM_RST(t8)
     dsrl    a0, t7, 32
@@ -1461,7 +1482,7 @@ boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
     dsrl    t2, t2, GATE_LOG2_STEP
 
     ld      t3, BYTE_TM_RST(t8)
-#ifdef  DEBUG_ARB_LEVEL_TM_DETAIL
+#ifdef  DEBUG_ARB_LEVEL_RD_DETAIL
     PRINTSTR("\r\nt3 = 0x")
     dsrl    a0, t3, 32
     bal     hexserial
@@ -1655,7 +1676,7 @@ rdlvl_gate_cfg_fail:    //tryed all setting(0,1), can NOT find a right cfg, try 
     nop
     move    t3, v0
     move    t4, v1
-#ifdef  DEBUG_ARB_LEVEL_TM_DETAIL
+#ifdef  DEBUG_ARB_LEVEL_RD_DETAIL
     PRINTSTR("\r\nt2 = 0x")
     move    a0, t2
     bal     hexserial
@@ -1710,7 +1731,7 @@ rdlvl_gate_cfg_fail:    //tryed all setting(0,1), can NOT find a right cfg, try 
     nop
 11: 
 
-#ifdef  DEBUG_ARB_LEVEL_TM_DETAIL
+#ifdef  DEBUG_ARB_LEVEL_RD_DETAIL
     PRINTSTR("\r\nlevel result is:\r\n")
     ld      t7, BYTE_TM_RST(t8)
     dsrl    a0, t7, 32
@@ -1733,7 +1754,7 @@ boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
     dsrl    t2, t2, LOG2_STEP
 
     ld      t3, BYTE_TM_RST(t8)
-#ifdef  DEBUG_ARB_LEVEL_TM_DETAIL
+#ifdef  DEBUG_ARB_LEVEL_RD_DETAIL
     PRINTSTR("\r\nt3 = 0x")
     dsrl    a0, t3, 32
     bal     hexserial

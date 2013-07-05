@@ -136,451 +136,14 @@ ARB_TM_begin:
 
     ARB_TM_PRINTSTR("\r\nStart Testing Memory...\r\n")
 
-//-------------------
-//pattern Diff Burst Test
-/*****************
-* loop control
-* t9:
-* 1~16: Just0,Just1 set
-* 17~32%16  Justb5, Just4a
-* 33~48%32  JustA, Just5
-*******************/
 #if 1
     //initialization
-    //set Test Pattern Base t6
+    dli     t9, 0
+    //set Test Pattern Base t6 and write content
     dli     t6, MT_PATTERN_BASE
     GET_TM_NODE_ID_a1
     dsll    a1, a1, 44
     or      t6, t6, a1
-
-    dli     t9, 0
-10:
-    daddiu  t9, t9, 0x1
-1:
-    dli     t4, 16
-#ifndef REDUCED_MEM_TEST
-    bgtu    t9, t4, 1f  //normal code
-#else
-    bgtu    t9, t4, 3f  //reduced test
-#endif
-    nop
-    ARB_TM_PRINTSTR("\r\nPattern DB_0 Test-----\r\n")
-    //address interval
-    dli     t2, ADDR_INTERVAL
-    //set Test Base t1 and Test Limit t3
-    GET_TM_UP_ADDR
-    GET_TM_MSIZE
-    dsubu   t1, t3, a1
-
-    dli     t4, 0
-    dli     t0, PATTERN_DB_0_0
-    not     t5, t0
-    b       2f
-    nop
-1:  
-    dli     t4, 32
-    bgtu    t9, t4, 1f
-    nop
-    ARB_TM_PRINTSTR("\r\nPattern DB_1 Test-----\r\n")
-    //address interval
-    dli     t2, ADDR_INTERVAL
-    //set Test Base t1 and Test Limit t3
-    GET_TM_UP_ADDR
-    GET_TM_MSIZE
-    dsubu   t1, t3, a1
-
-    dli     t4, 16
-    dli     t0, PATTERN_DB_1_0
-    not     t5, t0
-    b       2f
-    nop
-1:  
-    dli     t4, 48
-    bgtu    t9, t4, 1f
-    nop
-    ARB_TM_PRINTSTR("\r\nPattern DB_2 Test-----\r\n")
-    //address interval
-    dli     t2, ADDR_INTERVAL
-    //set Test Base t1 and Test Limit t3
-    GET_TM_UP_ADDR
-    GET_TM_MSIZE
-    dsubu   t1, t3, a1
-
-    dli     t4, 32
-    dli     t0, PATTERN_DB_2_0
-    not     t5, t0
-    b       2f
-    nop
-1:  
-    dli     t4, 64
-    bgtu    t9, t4, 1f
-    nop
-    ARB_TM_PRINTSTR("\r\nPattern DB_3 Test-----\r\n")
-    //address interval
-    dli     t2, ADDR_INTERVAL
-    //set Test Base t1 and Test Limit t3
-    GET_TM_UP_ADDR
-    GET_TM_MSIZE
-    dsubu   t1, t3, a1
-
-    dli     t4, 48
-    dli     t0, PATTERN_DB_3_0
-    not     t5, t0
-    b       2f
-    nop
-1:
-    // t9 > 64 (all the burst inverse Pattern test done)
-    b       3f  //go to the end of diff burst test
-    nop
-2:
-    daddiu  t4, 1
-    bgtu    t9, t4, 1f
-    nop
-    //t9%16 == 1
-#ifdef  ARB_TM_DBG
-    ARB_TM_PRINTSTR("Test address range: 0x")
-    dsrl    a0, t1, 32
-    bal     hexserial
-    nop
-    move    a0, t1
-    bal     hexserial
-    nop
-    ARB_TM_PRINTSTR("~0x")
-    dsrl    a0, t3, 32
-    bal     hexserial
-    nop
-    move    a0, t3
-    bal     hexserial
-    nop
-    ARB_TM_PRINTSTR("  @@  address interval: 0x")
-    move    a0, t2
-    bal     hexserial
-    nop
-    ARB_TM_PRINTSTR("\r\n")
-#endif
-    ARB_TM_PRINTSTR("Pattern 0000 ....\r\n")
-    sd      t0, 0x0(t6)
-    sd      t0, 0x8(t6)
-    sd      t0, 0x10(t6)
-    sd      t0, 0x18(t6)
-    b       2f
-    nop
-1:
-    daddiu  t4, 1
-    bgtu    t9, t4, 1f
-    nop
-    //t9%16 == 2
-    ARB_TM_PRINTSTR("Pattern 0001 ....\r\n")
-    sd      t0, 0x0(t6)
-    sd      t0, 0x8(t6)
-    sd      t0, 0x10(t6)
-    sd      t5, 0x18(t6)
-    b       2f
-    nop
-1:
-    daddiu  t4, 1
-    bgtu    t9, t4, 1f
-    nop
-    //t9%16 == 3
-    ARB_TM_PRINTSTR("Pattern 0010 ....\r\n")
-    sd      t0, 0x0(t6)
-    sd      t0, 0x8(t6)
-    sd      t5, 0x10(t6)
-    sd      t0, 0x18(t6)
-    b       2f
-    nop
-1:
-    daddiu  t4, 1
-    bgtu    t9, t4, 1f
-    nop
-    //t9%16 == 4
-    ARB_TM_PRINTSTR("Pattern 0011 ....\r\n")
-    sd      t0, 0x0(t6)
-    sd      t0, 0x8(t6)
-    sd      t5, 0x10(t6)
-    sd      t5, 0x18(t6)
-    b       2f
-    nop
-1:
-    daddiu  t4, 1
-    bgtu    t9, t4, 1f
-    nop
-    //t9%16 == 5
-    ARB_TM_PRINTSTR("Pattern 0100 ....\r\n")
-    sd      t0, 0x0(t6)
-    sd      t5, 0x8(t6)
-    sd      t0, 0x10(t6)
-    sd      t0, 0x18(t6)
-    b       2f
-    nop
-1:
-    daddiu  t4, 1
-    bgtu    t9, t4, 1f
-    nop
-    //t9%16 == 6
-    ARB_TM_PRINTSTR("Pattern 0101 ....\r\n")
-    sd      t0, 0x0(t6)
-    sd      t5, 0x8(t6)
-    sd      t0, 0x10(t6)
-    sd      t5, 0x18(t6)
-    b       2f
-    nop
-1:
-    daddiu  t4, 1
-    bgtu    t9, t4, 1f
-    nop
-    //t9%16 == 7
-    ARB_TM_PRINTSTR("Pattern 0110 ....\r\n")
-    sd      t0, 0x0(t6)
-    sd      t5, 0x8(t6)
-    sd      t5, 0x10(t6)
-    sd      t0, 0x18(t6)
-    b       2f
-    nop
-1:
-    daddiu  t4, 1
-    bgtu    t9, t4, 1f
-    nop
-    //t9%16 == 8
-    ARB_TM_PRINTSTR("Pattern 0111 ....\r\n")
-    sd      t0, 0x0(t6)
-    sd      t5, 0x8(t6)
-    sd      t5, 0x10(t6)
-    sd      t5, 0x18(t6)
-    b       2f
-    nop
-1:
-    daddiu  t4, 1
-    bgtu    t9, t4, 1f
-    nop
-    //t9%16 == 9
-    ARB_TM_PRINTSTR("Pattern 1000 ....\r\n")
-    sd      t5, 0x0(t6)
-    sd      t0, 0x8(t6)
-    sd      t0, 0x10(t6)
-    sd      t0, 0x18(t6)
-    b       2f
-    nop
-1:
-    daddiu  t4, 1
-    bgtu    t9, t4, 1f
-    nop
-    //t9%16 == 10
-    ARB_TM_PRINTSTR("Pattern 1001 ....\r\n")
-    sd      t5, 0x0(t6)
-    sd      t0, 0x8(t6)
-    sd      t0, 0x10(t6)
-    sd      t5, 0x18(t6)
-    b       2f
-    nop
-1:
-    daddiu  t4, 1
-    bgtu    t9, t4, 1f
-    nop
-    //t9%16 == 11
-    ARB_TM_PRINTSTR("Pattern 1010 ....\r\n")
-    sd      t5, 0x0(t6)
-    sd      t0, 0x8(t6)
-    sd      t5, 0x10(t6)
-    sd      t0, 0x18(t6)
-    b       2f
-    nop
-1:
-    daddiu  t4, 1
-    bgtu    t9, t4, 1f
-    nop
-    //t9%16 == 12
-    ARB_TM_PRINTSTR("Pattern 1011 ....\r\n")
-    sd      t5, 0x0(t6)
-    sd      t0, 0x8(t6)
-    sd      t5, 0x10(t6)
-    sd      t5, 0x18(t6)
-    b       2f
-    nop
-1:
-    daddiu  t4, 1
-    bgtu    t9, t4, 1f
-    nop
-    //t9%16 == 13
-    ARB_TM_PRINTSTR("Pattern 1100 ....\r\n")
-    sd      t5, 0x0(t6)
-    sd      t5, 0x8(t6)
-    sd      t0, 0x10(t6)
-    sd      t0, 0x18(t6)
-    b       2f
-    nop
-1:
-    daddiu  t4, 1
-    bgtu    t9, t4, 1f
-    nop
-    //t9%16 == 14
-    ARB_TM_PRINTSTR("Pattern 1101 ....\r\n")
-    sd      t5, 0x0(t6)
-    sd      t5, 0x8(t6)
-    sd      t0, 0x10(t6)
-    sd      t5, 0x18(t6)
-    b       2f
-    nop
-1:
-    daddiu  t4, 1
-    bgtu    t9, t4, 1f
-    nop
-    //t9%16 == 15
-    ARB_TM_PRINTSTR("Pattern 1110 ....\r\n")
-    sd      t5, 0x0(t6)
-    sd      t5, 0x8(t6)
-    sd      t5, 0x10(t6)
-    sd      t0, 0x18(t6)
-    b       2f
-    nop
-1:
-    daddiu  t4, 1
-    bgtu    t9, t4, 1f
-    nop
-    //t9%16 == 16
-    ARB_TM_PRINTSTR("Pattern 1111 ....\r\n")
-    sd      t5, 0x0(t6)
-    sd      t5, 0x8(t6)
-    sd      t5, 0x10(t6)
-    sd      t5, 0x18(t6)
-    b       2f
-    nop
-2:
-    dli     t8, TM_MAX_ERRORS
-//write memory
-    ld      a0, 0x0(t6)
-    ld      a1, 0x8(t6)
-    ld      a2, 0x10(t6)
-    ld      a3, 0x18(t6)
-1:
-    sd      a0, 0x0(t1)
-    sd      a1, 0x8(t1)
-    sd      a2, 0x10(t1)
-    sd      a3, 0x18(t1)
-    sync
-#ifdef  ARB_TM_FLUSH_CACHE
-    //hit write back invalidate(D-/S-cache) to memory
-    cache   0x15, 0x0(t1)
-    cache   0x17, 0x0(t1)
-#endif
-#if 0
-//wrong
-    //hit write back(D-/S-cache) to memory
-    cache   0x19, 0x0(t1)
-    cache   0x19, 0x8(t1)
-    cache   0x19, 0x10(t1)
-    cache   0x19, 0x18(t1)
-    cache   0x1b, 0x0(t1)
-    cache   0x1b, 0x8(t1)
-    cache   0x1b, 0x10(t1)
-    cache   0x1b, 0x18(t1)
-    //hit invalidate(D-/S-cache)
-    cache   0x11, 0x0(t1)
-    cache   0x11, 0x8(t1)
-    cache   0x11, 0x10(t1)
-    cache   0x11, 0x18(t1)
-    cache   0x13, 0x0(t1)
-    cache   0x13, 0x8(t1)
-    cache   0x13, 0x10(t1)
-    cache   0x13, 0x18(t1)
-    sync
-#endif
-    daddu   t1, t1, t2
-    bltu    t1, t3, 1b
-    nop
-    sync
-    ARB_TM_PRINTSTR("write done. begin to read and compare...\r\n")
-//read memory and compare
-    //set Test Base t1
-    GET_TM_UP_ADDR
-    GET_TM_MSIZE
-    dsubu   t1, t3, a1
-1:
-    ld      t0, 0x0(t6)
-    ld      t4, 0x0(t1)
-    beq     t4, t0, 2f
-    nop
-    //error detected!!! print address,expected data,read data and reread data
-    bal     arb_hexserial64
-    nop
-#ifdef  ARB_TM_DBG
-    bltz    t8, 10b  //detect enough errors, go to next test
-    nop
-#endif
-2:
-    ld      t0, 0x8(t6)
-    ld      t4, 0x8(t1)
-    beq     t4, t0, 2f
-    nop
-    //error detected!!! print address,expected data,read data and reread data
-    daddiu  t1, t1, 0x8 //the arb_hexserial64 will use t1 directly
-    bal     arb_hexserial64
-    nop
-    daddiu  t1, t1, -0x8
-#ifdef  ARB_TM_DBG
-    bltz    t8, 10b  //detect enough errors, go to next test
-    nop
-#endif
-2:
-    ld      t0, 0x10(t6)
-    ld      t4, 0x10(t1)
-    beq     t4, t0, 2f
-    nop
-    //error detected!!! print address,expected data,read data and reread data
-    daddiu  t1, t1, 0x10 //the arb_hexserial64 will use t1 directly
-    bal     arb_hexserial64
-    nop
-    daddiu  t1, t1, -0x10
-#ifdef  ARB_TM_DBG
-    bltz    t8, 10b  //detect enough errors, go to next test
-    nop
-#endif
-2:
-    ld      t0, 0x18(t6)
-    ld      t4, 0x18(t1)
-    beq     t4, t0, 2f
-    nop
-    //error detected!!! print address,expected data,read data and reread data
-    daddiu  t1, t1, 0x18 //the arb_hexserial64 will use t1 directly
-    bal     arb_hexserial64
-    nop
-    daddiu  t1, t1, -0x18
-#ifdef  ARB_TM_DBG
-    bltz    t8, 10b  //detect enough errors, go to next test
-    nop
-#endif
-2:
-    daddu   t1, t1, t2
-    //check address range
-    bltu    t1, t3, 1b
-    nop
-    ARB_TM_PRINTSTR("Pattern Testing done.\r\n")
-    b       10b
-    nop
-3:
-#endif
-
-#if 1
-    //initialization
-    dli     t9, 0
-    //set Test Pattern Base t6
-    dli     t6, MT_PATTERN_BASE
-    GET_TM_NODE_ID_a1
-    dsll    a1, a1, 44
-    or      t6, t6, a1
-10:
-    daddiu  t9, t9, 0x1
-1:
-    dli     t4, 1
-    bgtu    t9, t4, 1f  //normal code
-    nop
-    ARB_TM_PRINTSTR("\r\nPattern WalkOnes Test...\r\n")
-    //address interval
-    dli     t2, ADDR_INTERVAL
-    //set Test Base t1 and Test Limit t3
-    GET_TM_UP_ADDR
-    GET_TM_MSIZE
-    dsubu   t1, t3, a1
 
     dli     t4, PATTERN_D8_0_0
     sd      t4, 0x0(t6)
@@ -598,20 +161,8 @@ ARB_TM_begin:
     sd      t4, 0x30(t6)
     dli     t4, PATTERN_D8_0_7
     sd      t4, 0x38(t6)
-    b       2f
-    nop
-1:  
-    dli     t4, 2
-    bgtu    t9, t4, 1f
-    nop
-    ARB_TM_PRINTSTR("\r\nPattern WalkInvOnes Test...\r\n")
-    //address interval
-    dli     t2, ADDR_INTERVAL
-    //set Test Base t1 and Test Limit t3
-    GET_TM_UP_ADDR
-    GET_TM_MSIZE
-    dsubu   t1, t3, a1
 
+    daddu   t6, t6, 0x40
     dli     t4, PATTERN_D8_1_0
     sd      t4, 0x0(t6)
     dli     t4, PATTERN_D8_1_1
@@ -628,20 +179,8 @@ ARB_TM_begin:
     sd      t4, 0x30(t6)
     dli     t4, PATTERN_D8_1_7
     sd      t4, 0x38(t6)
-    b       2f
-    nop
-1:  
-    dli     t4, 3
-    bgtu    t9, t4, 1f
-    nop
-    ARB_TM_PRINTSTR("\r\nPattern WalkZeros Test...\r\n")
-    //address interval
-    dli     t2, ADDR_INTERVAL
-    //set Test Base t1 and Test Limit t3
-    GET_TM_UP_ADDR
-    GET_TM_MSIZE
-    dsubu   t1, t3, a1
     
+    daddu   t6, t6, 0x40
     dli     t4, PATTERN_D8_2_0
     sd      t4, 0x0(t6)
     dli     t4, PATTERN_D8_2_1
@@ -658,20 +197,8 @@ ARB_TM_begin:
     sd      t4, 0x30(t6)
     dli     t4, PATTERN_D8_2_7
     sd      t4, 0x38(t6)
-    b       2f
-    nop
-1:  
-    dli     t4, 4
-    bgtu    t9, t4, 1f
-    nop
-    ARB_TM_PRINTSTR("\r\nPattern WalkSingleOnes Test...\r\n")
-    //address interval
-    dli     t2, ADDR_INTERVAL
-    //set Test Base t1 and Test Limit t3
-    GET_TM_UP_ADDR
-    GET_TM_MSIZE
-    dsubu   t1, t3, a1
     
+    daddu   t6, t6, 0x40
     dli     t4, PATTERN_D8_3_0
     sd      t4, 0x0(t6)
     dli     t4, PATTERN_D8_3_1
@@ -688,10 +215,161 @@ ARB_TM_begin:
     sd      t4, 0x30(t6)
     dli     t4, PATTERN_D8_3_7
     sd      t4, 0x38(t6)
+
+    daddu   t6, t6, 0x40
+    dli     t4, PATTERN_D8_4_0
+    sd      t4, 0x0(t6)
+    dli     t4, PATTERN_D8_4_1
+    sd      t4, 0x8(t6)
+    dli     t4, PATTERN_D8_4_2
+    sd      t4, 0x10(t6)
+    dli     t4, PATTERN_D8_4_3
+    sd      t4, 0x18(t6)
+    dli     t4, PATTERN_D8_4_4
+    sd      t4, 0x20(t6)
+    dli     t4, PATTERN_D8_4_5
+    sd      t4, 0x28(t6)
+    dli     t4, PATTERN_D8_4_6
+    sd      t4, 0x30(t6)
+    dli     t4, PATTERN_D8_4_7
+    sd      t4, 0x38(t6)
+
+    daddu   t6, t6, 0x40
+    dli     t4, PATTERN_D8_5_0
+    sd      t4, 0x0(t6)
+    dli     t4, PATTERN_D8_5_1
+    sd      t4, 0x8(t6)
+    dli     t4, PATTERN_D8_5_2
+    sd      t4, 0x10(t6)
+    dli     t4, PATTERN_D8_5_3
+    sd      t4, 0x18(t6)
+    dli     t4, PATTERN_D8_5_4
+    sd      t4, 0x20(t6)
+    dli     t4, PATTERN_D8_5_5
+    sd      t4, 0x28(t6)
+    dli     t4, PATTERN_D8_5_6
+    sd      t4, 0x30(t6)
+    dli     t4, PATTERN_D8_5_7
+    sd      t4, 0x38(t6)
+
+10:
+    daddiu  t9, t9, 0x1
+
+    dli     t4, 1
+    bgtu    t9, t4, 1f  //normal code
+    nop
+    ARB_TM_PRINTSTR("\r\nPattern WalkOnes Test...\r\n")
+    //set load content t6 start addr
+    dli     t6, MT_PATTERN_BASE
+    GET_TM_NODE_ID_a1
+    dsll    a1, a1, 44
+    or      t6, t6, a1
+    //address interval
+    dli     t2, ADDR_INTERVAL
+    //set Test Base t1 and Test Limit t3
+    GET_TM_UP_ADDR
+    GET_TM_MSIZE
+    dsubu   t1, t3, a1
+
+    b       2f
+    nop
+1:  
+    dli     t4, 2
+    bgtu    t9, t4, 1f
+    nop
+    ARB_TM_PRINTSTR("\r\nPattern WalkInvOnes Test...\r\n")
+    //set load content t6 start addr
+    dli     t6, MT_PATTERN_BASE
+    GET_TM_NODE_ID_a1
+    dsll    a1, a1, 44
+    or      t6, t6, a1
+    daddu   t6, t6, 0x40
+    //address interval
+    dli     t2, ADDR_INTERVAL
+    //set Test Base t1 and Test Limit t3
+    GET_TM_UP_ADDR
+    GET_TM_MSIZE
+    dsubu   t1, t3, a1
+    b       2f
+    nop
+1:  
+    dli     t4, 3
+    bgtu    t9, t4, 1f
+    nop
+    ARB_TM_PRINTSTR("\r\nPattern WalkZeros Test...\r\n")
+    //set load content t6 start addr
+    dli     t6, MT_PATTERN_BASE
+    GET_TM_NODE_ID_a1
+    dsll    a1, a1, 44
+    or      t6, t6, a1
+    daddu   t6, t6, 0x80
+    //address interval
+    dli     t2, ADDR_INTERVAL
+    //set Test Base t1 and Test Limit t3
+    GET_TM_UP_ADDR
+    GET_TM_MSIZE
+    dsubu   t1, t3, a1
+    b       2f
+    nop
+1:  
+    dli     t4, 4
+    bgtu    t9, t4, 1f
+    nop
+    ARB_TM_PRINTSTR("\r\nPattern WalkSingleOnes Test...\r\n")
+    //set load content t6 start addr
+    dli     t6, MT_PATTERN_BASE
+    GET_TM_NODE_ID_a1
+    dsll    a1, a1, 44
+    or      t6, t6, a1
+    daddu   t6, t6, 0xc0
+    //address interval
+    dli     t2, ADDR_INTERVAL
+    //set Test Base t1 and Test Limit t3
+    GET_TM_UP_ADDR
+    GET_TM_MSIZE
+    dsubu   t1, t3, a1
+    b       2f
+    nop
+1:  
+    dli     t4, 5
+    bgtu    t9, t4, 1f
+    nop
+    ARB_TM_PRINTSTR("\r\nPattern Inverse Test...\r\n")
+    //set load content t6 start addr
+    dli     t6, MT_PATTERN_BASE
+    GET_TM_NODE_ID_a1
+    dsll    a1, a1, 44
+    or      t6, t6, a1
+    daddu   t6, t6, 0x100
+    //address interval
+    dli     t2, ADDR_INTERVAL
+    //set Test Base t1 and Test Limit t3
+    GET_TM_UP_ADDR
+    GET_TM_MSIZE
+    dsubu   t1, t3, a1
     b       2f
     nop
 1:
-    // t9 > 4 (all the burst inverse Pattern test done)
+    dli     t4, 6
+    bgtu    t9, t4, 1f
+    nop
+    ARB_TM_PRINTSTR("\r\nPattern Random Test...\r\n")
+    //set load content t6 start addr
+    dli     t6, MT_PATTERN_BASE
+    GET_TM_NODE_ID_a1
+    dsll    a1, a1, 44
+    or      t6, t6, a1
+    daddu   t6, t6, 0x140
+    //address interval
+    dli     t2, ADDR_INTERVAL
+    //set Test Base t1 and Test Limit t3
+    GET_TM_UP_ADDR
+    GET_TM_MSIZE
+    dsubu   t1, t3, a1
+    b       2f
+    nop
+1:
+    //(all the burst inverse Pattern test done)
     b       3f  //go to the end of diff burst test
     nop
 2:
@@ -735,7 +413,6 @@ ARB_TM_begin:
     sd      v1, 0x28(t1)
     sd      t4, 0x30(t1)
     sd      t5, 0x38(t1)
-    sync
 #ifdef  ARB_TM_FLUSH_CACHE
     //hit write back invalidate(D-/S-cache) to memory
     cache   0x15, 0x0(t1)
@@ -747,38 +424,14 @@ ARB_TM_begin:
 //note: if we use hit write back + hit invalidate, then rd error occur. why???
     //hit write back(D-/S-cache) to memory
     cache   0x19, 0x0(t1)
-    cache   0x19, 0x8(t1)
-    cache   0x19, 0x10(t1)
-    cache   0x19, 0x18(t1)
     cache   0x19, 0x20(t1)
-    cache   0x19, 0x28(t1)
-    cache   0x19, 0x30(t1)
-    cache   0x19, 0x38(t1)
     cache   0x1b, 0x0(t1)
-    cache   0x1b, 0x8(t1)
-    cache   0x1b, 0x10(t1)
-    cache   0x1b, 0x18(t1)
     cache   0x1b, 0x20(t1)
-    cache   0x1b, 0x28(t1)
-    cache   0x1b, 0x30(t1)
-    cache   0x1b, 0x38(t1)
     //hit invalidate(D-/S-cache)
     cache   0x11, 0x0(t1)
-    cache   0x11, 0x8(t1)
-    cache   0x11, 0x10(t1)
-    cache   0x11, 0x18(t1)
     cache   0x11, 0x20(t1)
-    cache   0x11, 0x28(t1)
-    cache   0x11, 0x30(t1)
-    cache   0x11, 0x38(t1)
     cache   0x13, 0x0(t1)
-    cache   0x13, 0x8(t1)
-    cache   0x13, 0x10(t1)
-    cache   0x13, 0x18(t1)
     cache   0x13, 0x20(t1)
-    cache   0x13, 0x28(t1)
-    cache   0x13, 0x30(t1)
-    cache   0x13, 0x38(t1)
     sync
 #endif
     daddu   t1, t1, t2

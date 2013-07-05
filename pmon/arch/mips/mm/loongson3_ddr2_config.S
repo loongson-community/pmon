@@ -587,8 +587,10 @@ t0,t2 shouldn't be changed to the end of this file.
 2:
     //Config PCI windows
     L2XBAR_CONFIG_PCI_AS_CPU(0x10);
-    //L2XBAR_CONFIG_PCI_AS_CPU(0x18);
     L2XBAR_CONFIG_PCI_BASE_0to8(0x110);
+    //CPU window 0x18 is special reserved for accessing MC1 configure space
+    //Do NOT copy it to PCI window.
+    //L2XBAR_CONFIG_PCI_AS_CPU(0x18);
     //L2XBAR_CONFIG_PCI_BASE_0to8(0x118);
     PRINTSTR("PCI space open: 0x80000000 - 0x8FFFFFFF\r\n")
 
@@ -954,25 +956,25 @@ t0,t2 shouldn't be changed to the end of this file.
     b       2f
     nop
 24:     //MC1_SIZE_2G
-//3G space: MC1: 8~ff; MC0: 10~13f
+//3G space: MC0: 8~bf; MC1: c~13f
     GET_NODE_ID_a0;
     XBAR_CONFIG_NODE_a0(0x20, \
-                    0x0000000100000000, \
+                    0x0000000080000000, \
                     0xFFFFFFFFC0000000, \
                     0x00000000000000F0)
-    PRINTSTR("MC0 space open : 0x100000000 - 0x13FFFFFFF\r\n")
+    PRINTSTR("MC0 space open : 0x80000000 - 0xBFFFFFFF\r\n")
     GET_NODE_ID_a0;
     XBAR_CONFIG_NODE_a0(0x28, \
-                    0x0000000080000000, \
-                    0xFFFFFFFF80000000, \
+                    0x00000000C0000000, \
+                    0xFFFFFFFFC0000000, \
                     0x00000000000000F1)
-    PRINTSTR("MC1 space open : 0x80000000 - 0xFFFFFFFF\r\n")
-    L2XBAR_RECONFIG_TO_MC1(0x10)
-    L2XBAR_RECONFIG_TO_MC1(0x110)
-    L2XBAR_RECONFIG_TO_MC0(0x18)
-    PRINTSTR("The opened CPU 0x00000000~0x0FFFFFFF Window is reassigned to MC1\r\n")
-    PRINTSTR("The opened PCI 0x80000000~0x8FFFFFFF Window is reassigned to MC1\r\n")
-    PRINTSTR("The opened CPU 0x2FF00000~0x2FFFFFFF Window is reassigned to MC0\r\n")
+    PRINTSTR("MC1 space open : 0xC0000000 - 0xFFFFFFFF\r\n")
+    GET_NODE_ID_a0;
+    XBAR_CONFIG_NODE_a0(0x30, \
+                    0x0000000100000000, \
+                    0xFFFFFFFFC0000000, \
+                    0x00000000000000F1)
+    PRINTSTR("MC1 space open : 0x100000000 - 0x13FFFFFFF\r\n")
     PRINTSTR("DDR space open : 0x080000000 - 0x13FFFFFFF\r\n")
     b       2f
     nop

@@ -34,7 +34,7 @@ algrithm:
 //#define DEBUG_ARB_LEVEL
 
 #define ADD_DELAY_AFTER_RESET_PHY   //necessary
-#ifndef	LOONGSON_2H
+#ifndef	LS2HMC
 #define CLEAR_HALF_CLK_SHIFT    //necessary
 #endif
 

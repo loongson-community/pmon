@@ -9,7 +9,7 @@
 #ifdef  LS3B
 #define LSMCD3_2
 #else
-#ifdef  LOONGSON_2H
+#ifdef  LS2HMC
 #define LSMCD3_2
 #endif
 #endif
@@ -36,6 +36,15 @@
 #define MC_INT_ACK_OFFSET       24
 #define MC_INT_ACK_CLEAR_VALUE  0x3fcff
 #define RESYNC_DLL_OFFSET       16
+
+#define PWRUP_SREFRESH_EXIT_ADDR    (0x30)
+#define PWRUP_SREFRESH_EXIT_OFFSET  0
+#define TRST_PWRON_ADDR         (0x8e0)
+#define TRST_PWRON_OFFSET       0
+#define TRST_PWRON_MASK         0xffffffff
+#define TCKE_INACTIVE_ADDR      (0x8d0)
+#define TCKE_INACTIVE_OFFSET    24
+#define TCKE_INACTIVE_MASK      0xffffffff
 
 #define ODT_MAP_CS_ADDR          (0x080)
 #define ADDRESS_MIRROR_ADDR      (0x760)
