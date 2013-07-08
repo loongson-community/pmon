@@ -10,18 +10,17 @@ extern void (*__msgbox)(int yy,int xx,int height,int width,char *msg);
 
 #ifdef LOONGSON_3A2H
 typedef struct ahci_sata_softc {
-        /* General disk infos */
-        struct device sc_dev;
-        int dev;
-        int bs, count;
-        int lba48;
-}ahci_sata_softc;
+	struct device sc_dev;	/* General device infos */
+	int port_no;		/* port number */
+	int bs;
+	int count;
+	int lba48;
+} ahci_sata_softc;
 
-struct cfdriver ahcisata_cd;
+extern struct cfdriver ahci_sd_cd;
 
-#define ahci_sata_lookup(dev)   \
-        (struct ahci_sata_softc *)device_lookup(&ahcisata_cd, minor(dev))
-
+#define ahci_sata_lookup(cd, dev)	\
+	(struct ahci_sata_softc *)device_lookup(&cd, minor(dev))
 #else
 
 struct wd_softc {
@@ -78,7 +77,7 @@ printf("begin harddisk test\n");
 //---register test--
 for(i=0;i<2;i++)
  {
-	wd = ahci_sata_lookup(i);
+	wd = ahci_sata_lookup(ahci_sd_cd, i);
 	if(!wd)continue;
 	found++;
 	printf("wd%d ",i);
