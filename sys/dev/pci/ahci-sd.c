@@ -28,9 +28,6 @@
 
 #include <machine/bus.h>
 
-#include <dev/ata/atavar.h>
-#include <dev/ic/wdcvar.h>
-
 #include "ahcisata.h"
 #include "ahci.h"
 #include "ata.h"
@@ -44,13 +41,13 @@
 
 static int ahci_sd_match(struct device *parent, void *match, void *aux)
 {
-	ahci_sata_info_t info;
+	ahci_sata_info_t *info;
 	struct ahci_ioports *pp;
 	volatile u8 *port_mmio;
-	int rc, err;
+	int rc;
 
-	info = *(ahci_sata_info_t *) aux;
-	pp = &(probe_ent->port[info.flags]);
+	info = (ahci_sata_info_t *)aux;
+	pp = &(probe_ent->port[info->flags]);
 	port_mmio = (volatile u8 *)pp->port_mmio;
 
 	rc = readl(port_mmio + PORT_SIG) >> 16;
@@ -58,34 +55,32 @@ static int ahci_sd_match(struct device *parent, void *match, void *aux)
 		return 0;
 	} else {
 		pp->is_atapi = 0;
-		err = ahci_sata_initialize(info.sata_reg_base, info.flags);
-		if (err)
-			return 0;
-		else {
-			err = ahci_do_softreset(info.flags, 0, 0);
-			if (err)
-				return 0;
-			else
-				return 1;
-		}
+		return 1;
 	}
 }
 
 static void ahci_sd_attach(struct device *parent,
 			   struct device *self, void *aux)
 {
+	int err;
 	struct ahci_sata_softc *sd_soft = (struct ahci_sata_softc *)self;
 	ahci_sata_info_t *info = (ahci_sata_info_t *) aux;
 
 	sd_soft->port_no = info->flags;
 	sd_soft->bs = ATA_SECT_SIZE;
 	sd_soft->count = -1;
-	sd_debug("%s device: %p, devno:%d, portno:%d\n", self->dv_xname,
-		 self, self->dv_unit, sd_soft->port_no);
+
+	err = ahci_sata_initialize(info->sata_reg_base, info->flags, sd_soft);
+	if (!err)
+		ahci_do_softreset(info->flags, 0, 0);
+	
+	sd_debug("%s device: %p, devno:%d, portno:%d, name:%s\n",
+			self->dv_xname, self, self->dv_unit,
+			sd_soft->port_no, sd_soft->name);
 }
 
 struct cfattach ahci_sd_ca = {
-	sizeof(ahci_sata_softc), ahci_sd_match, ahci_sd_attach,
+	sizeof(struct ahci_sata_softc), ahci_sd_match, ahci_sd_attach,
 };
 
 struct cfdriver ahci_sd_cd = {

@@ -21,6 +21,11 @@
 #ifndef __AHCISATA_H__
 #define __AHCISATA_H__
 
+#include <sys/device.h>
+#include <sys/linux/types.h>
+#include <dev/ata/atavar.h>
+#include <dev/ic/wdcvar.h>
+
 #define SATA_HC_MAX_NUM		4	/* Max host controller numbers */
 #define SATA_HC_MAX_CMD		16	/* Max command queue depth per host controller */
 #define SATA_HC_MAX_PORT	16	/* Max port number per host controller */
@@ -376,13 +381,15 @@ typedef struct ahci_sata {
 	int flush_ext;
 } ahci_sata_t;
 
-typedef struct ahci_sata_softc {
+struct ahci_sata_softc {
 	struct device sc_dev;	/* General device infos */
 	int port_no;		/* port number */
 	int bs;
+	struct ataparams *sc_params; /* drive characteistics found */
+	u8 name[256];
 	int count;
 	int lba48;
-} ahci_sata_softc;
+};
 
 #define READ_CMD	0
 #define WRITE_CMD	1
@@ -390,7 +397,8 @@ typedef struct ahci_sata_softc {
 #define ahci_sata_lookup(cd, dev)	\
 	(struct ahci_sata_softc *)device_lookup(&cd, minor(dev))
 
-extern int ahci_sata_initialize(u32 reg, u32 flags);
+extern struct ahci_sata_softc *ahci_find_byname(struct cfdriver cd, u8 *device_name);
+extern int ahci_sata_initialize(u32 reg, u32 port_no, struct ahci_sata_softc *sf);
 extern void ahci_sata_strategy(struct buf *bp, struct ahci_sata_softc *priv);
 extern int ahci_kick_engine(int port, int force_restart);
 extern int cd_prepare(int port_no, int flag);

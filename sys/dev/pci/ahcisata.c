@@ -67,10 +67,8 @@
 #include <machine/intr.h>
 #include <machine/bus.h>
 
-#include <dev/ata/atavar.h>
 #include <dev/ata/atareg.h>
 #include <dev/ic/wdcreg.h>
-#include <dev/ic/wdcvar.h>
 
 #include <linux/libata.h>
 #include <fis.h>
@@ -390,7 +388,54 @@ fail:
 	return 1;
 }
 
-int ahci_sata_initialize(u32 reg, u32 port_no)
+struct ahci_sata_softc *ahci_find_byname(struct cfdriver cd, u8 *device_name)
+{
+	int len, unite;
+	len = strlen(device_name);
+	unite = device_name[len - 1] - '0';
+
+	return ahci_sata_lookup(cd, unite);
+}
+
+void read_atap_model(char *name, struct ataparams *sc_params)
+{
+	u8 buf[41];
+	u8 *s, *p;
+	u8 c;
+	int i, blank = 0;
+
+	if (!name || !sc_params)
+		return;
+
+	for (s = sc_params->atap_model, i = 0, p = buf;
+			i < sizeof(sc_params->atap_model); i++) {
+		c = *s++;
+		*(p + 1) = c;
+
+		c = *s++;
+		*p = c;
+
+		p += 2;
+		i++;
+	}
+
+	for (i = 0; i < 41; i++) {
+		if (buf[i] == ' ') {
+			if (blank) {
+				buf[i - 1] = '\0';
+				break;
+			} else {
+				blank = 1;
+			}
+		} else {
+			blank = 0;
+		}
+	}
+
+	strcpy(name, buf);
+}
+
+int ahci_sata_initialize(u32 reg, u32 port_no, struct ahci_sata_softc *sf)
 {
 	int rc;
 	int i = port_no;
@@ -433,8 +478,13 @@ int ahci_sata_initialize(u32 reg, u32 port_no)
 
 	rc = ahci_port_start(i);
 	diskid = ata_scsiop_inquiry(i);
-	if (!diskid)
+	sf->sc_params = (struct ataparams *)diskid;
+
+	read_atap_model(sf->name, sf->sc_params);
+
+	if (diskid)
 		ahci_set_feature((u8) i, diskid);
+
 	curr_port = i;
 	return rc;
 }

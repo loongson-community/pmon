@@ -64,10 +64,8 @@
 #include <machine/intr.h>
 #include <machine/bus.h>
 
-#include <dev/ata/atavar.h>
 #include <dev/ata/atareg.h>
 #include <dev/ic/wdcreg.h>
-#include <dev/ic/wdcvar.h>
 
 #include <linux/libata.h>
 #include <fis.h>
@@ -77,9 +75,6 @@
 #include "ahcisata.h"
 
 struct ahci_probe_ent *probe_ent = NULL;
-
-/* to get some global routines like printf */
-#include "etherboot.h"
 
 static int ahci_host_init(struct ahci_probe_ent *probe_ent);
 static int ahci_init_one(u32 regbase);

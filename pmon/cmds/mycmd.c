@@ -37,6 +37,12 @@ void route_init();
 #if NGZIP > 0
 #include <gzipfs.h>
 #endif /* NGZIP */
+
+#ifdef LOONGSON_3A2H
+#include <dev/pci/ahcisata.h>
+extern struct cfdriver ahci_sd_cd;
+#endif
+
 int cmd_mycfg __P((int, char *[]));
 extern char  *heaptop;
 void * memcpy(void *s1, const void *s2, size_t n);
@@ -956,9 +962,12 @@ static int fdisk(int argc,char **argv)
 	int j,n,type_counts;
 	struct partition *p0;
 	FILE *fp;
-	char device[0x40];
+	char device[0x40], *dev_name;
 	int buf[0x10];
 	int len;
+#ifdef LOONGSON_3A2H
+	struct ahci_sata_softc *ahci_sd;
+#endif
 
 	if(strncmp(argv[1],"/dev/",5)) 
 		sprintf(device,"/dev/disk/%s",argv[1]);
@@ -973,8 +982,15 @@ static int fdisk(int argc,char **argv)
 	fread(buf,0x40,1,fp);
 	fclose(fp);
 
+#ifdef LOONGSON_3A2H
+	ahci_sd = ahci_find_byname(ahci_sd_cd, device);
+	dev_name = ahci_sd->name;
+#else
+	dev_name = wd_name;
+#endif
+
 	printf("Device Name");
-	len = strlen(wd_name);
+	len = strlen(dev_name);
 	len -= 11;
 	while(len){
 		printf(" ");
@@ -991,8 +1007,8 @@ static int fdisk(int argc,char **argv)
 			if(known_parttype[j].type==p0->sys_ind)
 				break;
 
-		printf("%s", wd_name);
-		len = strlen(wd_name);
+		printf("%s", dev_name);
+		len = strlen(dev_name);
 		len -= 11;
 		while(len){
 			printf(" ");
