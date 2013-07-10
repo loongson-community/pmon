@@ -461,9 +461,7 @@ superio_reinit();
     memsz = memsz >> 8;
     memsz = memsz << 29;
     memorysize_high_n1 = (memsz == 0) ? 0 : (memsz - (256 << 20));
-    memorysize_high_n2 = (memsz == 0) ? 0 : (memsz - (256 << 20));
-    memorysize_high_n3 = (memsz == 0) ? 0 : (memsz - (256 << 20));
-#if 0
+#if 1
 //#ifdef MULTI_CHIP
     memsz = raw_memsz & 0xff0000;
     memsz = memsz >> 16;

@@ -116,19 +116,19 @@
 	//add dma40 mapping for node2
 	dli t0, 0x900010003ff06700
 	dli t1, 0x0000004000000000
-	sd t1, 0x00(t0)
-	dli t1, 0xffffffe000000000
-	sd t1, 0x40(t0)
-	dli t1, 0x00002000000000a4
-	sd t1, 0x80(t0)
-
-	//add dma40 mapping for node3
-	dli t1, 0x0000006000000000
 	sd t1, 0x08(t0)
 	dli t1, 0xffffffe000000000
 	sd t1, 0x48(t0)
-	dli t1, 0x00003000000000a4
+	dli t1, 0x00002000000000a4
 	sd t1, 0x88(t0)
+
+	//add dma40 mapping for node3
+	dli t1, 0x0000006000000000
+	sd t1, 0x10(t0)
+	dli t1, 0xffffffe000000000
+	sd t1, 0x50(t0)
+	dli t1, 0x00003000000000a4
+	sd t1, 0x90(t0)
 
 #if 0//debug RX
 	TTYDBG("Debug RX\r\n")
@@ -335,7 +335,6 @@ ht_next_id :
 	sw	    t0, 0x4(t2)
 	TTYDBG("HT RX DMA address ENABLE done 1\r\n")
 
-
 	li	t0, 0xc0100000
 	sw	t0, 0x8(t2)
 	li	t0, 0x2000e000
@@ -347,7 +346,6 @@ ht_next_id :
 	li	t0, 0x00008000
 	sw	t0, 0x14(t2)
 	TTYDBG("HT RX DMA address ENABLE done 3\r\n")
-
 #endif
 
 #if 1//Set Mem space post

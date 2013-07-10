@@ -553,16 +553,15 @@ common:
 
 //#define SHUT_SLAVES
 #ifdef SHUT_SLAVES
-		PRINTSTR("Shut down other cores\r\n")
-		li      a0, 0xbfe001d0
-		//li      t1, 0x7777777f
-		li      t1, 0x8888888f
-		sw      t1, 0x0(a0)
-		li      t1, 0x0000000f
-		sw      t1, 0x0(a0)
+	PRINTSTR("Shut down other cores\r\n")
+	li      a0, 0xbfe001d0
+	li      t1, 0x8888888f
+	sw      t1, 0x0(a0)
+	li      t1, 0x0000000f
+	sw      t1, 0x0(a0)
 
 #else
-		PRINTSTR("NOT Shut down other cores\r\n")
+	PRINTSTR("NOT Shut down other cores\r\n")
 #endif
 
 
@@ -1081,9 +1080,9 @@ gs_2f_v3_ddr2_cfg:
 #define DDR_DIV    2
 
 //#define CORE_LOOPC  32 //0.8G
-#define CORE_LOOPC  40 //1.0G
+//#define CORE_LOOPC  40 //1.0G
 //#define CORE_LOOPC  46 //1.15G
-//#define CORE_LOOPC  48 //1.2G
+#define CORE_LOOPC  48 //1.2G
 //#define CORE_LOOPC  50 //1.25G
 //#define CORE_LOOPC  52 //1.3G  OK @ 1.15, pass the stressapptest
 //#define CORE_LOOPC  54 //1.35G OK @ 1.15v but (bit 33 cause error, make 0 to 1 at stressapptest)
@@ -1329,6 +1328,17 @@ soft_out_cpu1:
 
 //#include "loongson3_fixup.S"
 #include "loongson3_fixup_3b.S"
+
+#ifdef SHUT_SLAVES
+	dli      a0, 0x900020001fe001d0
+	li      t1, 0x88888888
+	sw      t1, 0x0(a0)
+	li      t1, 0x00000000
+	sw      t1, 0x0(a0)
+
+#else
+	PRINTSTR("NOT Shut down other cores\r\n")
+#endif
 
 #if 1
     TTYDBG ("\r\nCPU 0 MC RESET\r\n")
@@ -2064,9 +2074,8 @@ out_test:
 		TTYDBG("Copy PMON to execute location done.\r\n")
 
 #ifdef SHUT_SLAVES
-		PRINTSTR("Wake up other cores\r\n")
+	PRINTSTR("Wake up other cores\r\n")
 
-#if 1
         /* Set clock low for a safe shift */
         li      t0, 0xbfe001b0
         lw      a0, 0x0(t0)
@@ -2074,22 +2083,40 @@ out_test:
         and     a0, a0, a1
         sw      a0, 0x0(t0)
 
-		li      a0, 0xbfe001d0
-		//li      t1, 0xffffffff
-		li      t1, 0x8888888f
-		sw      t1, 0x0(a0)
+	li      a0, 0xbfe001d0
+	li      t1, 0x8888888f
+	sw      t1, 0x0(a0)
 
         li      t0, 0xbfe001b0
         lw      a0, 0x0(t0)
         ori     a0, a0, 0x1
         sw      a0, 0x0(t0)
-#endif
 
-		li      a0, 0xbfe001d0
-		li      t1, 0xffffffff
-		sw      t1, 0x0(a0)
+	li      a0, 0xbfe001d0
+	li      t1, 0xffffffff
+	sw      t1, 0x0(a0)
+
+        /* Set clock low for a safe shift */
+        dli      t0, 0x900020001fe001b0
+        lw      a0, 0x0(t0)
+        li      a1, 0xfffffffe
+        and     a0, a0, a1
+        sw      a0, 0x0(t0)
+
+	dli      a0, 0x900020001fe001d0
+	li      t1, 0x88888888
+	sw      t1, 0x0(a0)
+
+        dli      t0, 0x900020001fe001b0
+        lw      a0, 0x0(t0)
+        ori     a0, a0, 0x1
+        sw      a0, 0x0(t0)
+
+	li      a0, 0x900020001fe001d0
+	li      t1, 0xffffffff
+	sw      t1, 0x0(a0)
 #else
-		PRINTSTR("NOT Wake up other cores\r\n")
+	PRINTSTR("NOT Wake up other cores\r\n")
 
 #endif
 
