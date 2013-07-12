@@ -9,6 +9,29 @@
 [31:24]: Node 3 memorysize
 
  s1: new map
+not affected by AUTO_DDR_CONFIG
+|[ 7: 6]|                    | 2'b0    | RESERVED          |
+|[ 5: 4]| SB NODE ID         |         |                   |
+|[ 3: 2]| CONTROLLER_SELECT  | 2'b00   | USE BOTH          |
+|       |                    | 2'b01   | MC0_ONLY          |
+|       |                    | 2'b10   | MC1_ONLY          |
+|[ 1: 0]| NODE ID            |         |                   |
+------------------------------------------------------------
+ when use AUTO_DDR_CONFIG
+
+|[63:32]|                    | 32'b0   | RESERVED          |
+|[31:28]|                    | 4'bx    | MC1_SLOT1 I2C ADDR|
+|[27:24]|                    | 4'bx    | MC1_SLOT0 I2C ADDR|
+|[23:20]|                    | 4'bx    | MC0_SLOT1 I2C ADDR|
+|[19:16]|                    | 4'bx    | MC0_SLOT0 I2C ADDR|
+|[15: 8]|                    | 8'b0    | RESERVED          |
+value:
+4'1xxx: there is no DIMM populated
+4'0xxx: there is DIMM populated
+
+SLOT1: the slot connected to DDR2_SCSn3/2
+SLOT0: the slot connected to DDR2_SCSn1/0
+when don't use AUTO_DDR_CONFIG, set these info manually
 ------------------------------------------------------------
 not affected by PROBE_DIMM
 |[46:40]| MC1_MEMSIZE        | 7'b0000 | 0M                |
@@ -22,14 +45,6 @@ not affected by PROBE_DIMM
 |       |                    | 7'b0011 | 1.5G              |
 |       |                    | 7'hX    | X*512M            | 
 |       |                    | max     | 127*512M          | 
-------------------------------------------------------------
-not affected by AUTO_DDR_CONFIG
-|[ 7: 6]|                    | 2'b0    | RESERVED          |
-|[ 5: 4]| SB NODE ID         |         |                   |
-|[ 3: 2]| CONTROLLER_SELECT  | 2'b00   | USE BOTH          |
-|       |                    | 2'b01   | MC0_ONLY          |
-|       |                    | 2'b10   | MC1_ONLY          |
-|[ 1: 0]| NODE ID            |         |                   |
 ------------------------------------------------------------
 DIMM infor:
 |[31:30]| SDRAM_TYPE         | 2'b00   | NO_DIMM           |
@@ -48,8 +63,10 @@ DIMM infor:
 |       |                    | 1'b0    | STANDARD          |
 |[21:20]| SDRAM_COL_SIZE     | MC_COL  | 12 - COL_SIZE     |
 |[19:16]| MC_CS_MAP          |         |                   |
+|[15:15]| SDRAM_WIDTH        | 1'b1    | x16               |
+|       |                    | 1'b0    | x8                |
 ------------------------------------------------------------
-|[63:48]| MC1--like s1[31:16] for MC0
+|[63:47]| MC1--like s1[31:16] for MC0
 temparary used in PROBE_DIMM
 |[38:32]| DIMM_MEMSIZE       | 7'b0000 | 0M                |
 |       |                    | 7'b0001 | 512M              |
@@ -57,14 +74,6 @@ temparary used in PROBE_DIMM
 |       |                    | 7'b0011 | 1.5G              |
 |       |                    | 7'hX    | X*512M            | 
 ***********************************************************/
-/******************************************
-s1: [ 3: 3]: MC1_ONLY
-    [ 2: 2]: MC0_ONLY
-    [ 1: 0]: NODE ID
-    10: MC1_ONLY
-    01: MC0_ONLY
-    00: USE MC0&MC1
-******************************************/
 #ifndef LOONGSON3_DDR2_CONFIG
 #define LOONGSON3_DDR2_CONFIG
 #######################################################
@@ -85,10 +94,10 @@ s1: [ 3: 3]: MC1_ONLY
 #define CHIP_CONFIG_ADDR        0x900000001fe00180
 #define CHIP_CONFIG_BASE_ADDR   0x900000001fe00180
 #define CHIP_SAMPLE_BASE_ADDR   0x900000001fe00190
-#define	DDR_CLKSEL_OFFSET	        37
-#define	DDR_CLKSEL_MASK	            0x1F
-#define	DDR_CONFIG_DISABLE_OFFSET	8
-#define	ARB_TEMP_L2WINDOW_OFFSET	0x20
+#define DDR_CLKSEL_OFFSET           37
+#define DDR_CLKSEL_MASK             0x1F
+#define DDR_CONFIG_DISABLE_OFFSET   8
+#define ARB_TEMP_L2WINDOW_OFFSET    0x20
 #else
 #ifdef  LS3B
 #define LOCK_SCACHE_CONFIG_BASE_ADDR 0x900000003ff00200
@@ -97,10 +106,10 @@ s1: [ 3: 3]: MC1_ONLY
 #define CHIP_CONFIG_ADDR        0x900000001fe00180
 #define CHIP_CONFIG_BASE_ADDR   0x900000001fe00180
 #define CHIP_SAMPLE_BASE_ADDR   0x900000001fe00190
-#define	DDR_CLKSEL_OFFSET	        37
-#define	DDR_CLKSEL_MASK	            0x1F
-#define	DDR_CONFIG_DISABLE_OFFSET	4
-#define	ARB_TEMP_L2WINDOW_OFFSET	0x20
+#define DDR_CLKSEL_OFFSET           37
+#define DDR_CLKSEL_MASK             0x1F
+#define DDR_CONFIG_DISABLE_OFFSET   4
+#define ARB_TEMP_L2WINDOW_OFFSET    0x20
 #else
 #ifdef  LS2HMC
 #define LOCK_SCACHE_CONFIG_BASE_ADDR 0x900000001fd84200
@@ -109,10 +118,10 @@ s1: [ 3: 3]: MC1_ONLY
 #define CHIP_CONFIG_ADDR        0x900000001fd00200
 #define CHIP_CONFIG_BASE_ADDR   0x900000001fd00200
 #define CHIP_SAMPLE_BASE_ADDR   0x900000001fd00210
-#define	DDR_CLKSEL_OFFSET	        23
-#define	DDR_CLKSEL_MASK	            0x07
-#define	DDR_CONFIG_DISABLE_OFFSET	13
-#define	ARB_TEMP_L2WINDOW_OFFSET	0x38
+#define DDR_CLKSEL_OFFSET           23
+#define DDR_CLKSEL_MASK             0x07
+#define DDR_CONFIG_DISABLE_OFFSET   13
+#define ARB_TEMP_L2WINDOW_OFFSET    0x38
 #endif
 #endif
 #endif
@@ -192,6 +201,7 @@ s1: [ 3: 3]: MC1_ONLY
 #define ADDR_MIRROR_OFFSET  22
 #define COL_SIZE_OFFSET     20
 #define MC_CS_MAP_OFFSET    16
+#define SDRAM_WIDTH_OFFSET  15
 #define MC_CS_MAP_MASK      (0xf)
 #define MC1_MEMSIZE_OFFSET  40
 #define MC0_MEMSIZE_OFFSET  8
@@ -204,6 +214,11 @@ dli     a1, 0x3;\
 dsll    a1, a1, SDRAM_TYPE_OFFSET;\
 and     a1, s1, a1;\
 dsrl    a1, a1, SDRAM_TYPE_OFFSET;
+#define GET_SDRAM_WIDTH      \
+dli     a1, 0x1;\
+dsll    a1, a1, SDRAM_WIDTH_OFFSET;\
+and     a1, s1, a1;\
+dsrl    a1, a1, SDRAM_WIDTH_OFFSET;
 #define GET_DIMM_ECC       \
 dli     a1, 0x1;\
 dsll    a1, a1, DIMM_ECC_OFFSET;\

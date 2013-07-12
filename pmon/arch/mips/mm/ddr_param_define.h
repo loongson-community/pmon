@@ -45,6 +45,15 @@
 #define TCKE_INACTIVE_ADDR      (0x8d0)
 #define TCKE_INACTIVE_OFFSET    24
 #define TCKE_INACTIVE_MASK      0xffffffff
+#define TFAW_ADDR               (0x0a0)
+#define TFAW_OFFSET             0
+#define TFAW_MASK               0x3f
+#define TRFC_ADDR               (0x0c0)
+#define TRFC_OFFSET             40
+#define TRFC_MASK               0xff
+#define TXSNR_ADDR              (0x140)
+#define TXSNR_OFFSET            0
+#define TXSNR_MASK              0xffff
 
 #define ODT_MAP_CS_ADDR          (0x080)
 #define ADDRESS_MIRROR_ADDR      (0x760)

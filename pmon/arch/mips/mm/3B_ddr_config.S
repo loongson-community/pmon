@@ -167,6 +167,148 @@ ddr2_config:
     beqz    t7, 88f
     nop
 #endif
+#if 1
+    //rewrite some Timing paramters according to SDRAM density and page size
+    //here assuming the upper runing frequency is 400MHz, if not, please don't use this code and set the default paramters correspondingly
+
+    //rewrite tFAW according to page size
+    //assuming default for 2KB
+    GET_SDRAM_WIDTH
+    bnez    a1, 8f
+    nop
+    ld      a2, TFAW_ADDR(t8)
+    dli     a1, TFAW_MASK
+    dsll    a1, a1, TFAW_OFFSET
+    not     a1, a1
+    and     a2, a2, a1
+    dli     v1, 0xc //DDR3
+    GET_SDRAM_TYPE
+    dli     v0, 0x3
+    beq     v0, a1, 2f
+    nop
+    dli     v1, 0xf //DDR2
+2:
+    move    a1, v1
+    dsll    a1, a1, TFAW_OFFSET
+    or      a2, a2, a1
+    sd      a2, TFAW_ADDR(t8)
+8:
+
+    //rewrite tRFC and txsnr according to SDRAM density
+    //figure out SDRAM density first: 1: 512Mb, 2: 1Gb, 4: 2Gb, 8: 4Gb(x16 only)
+    //count Rank number
+    GET_MC_CS_MAP
+    and     v1, a1, 0x1
+    dsrl    a1, a1, 1
+    and     v0, a1, 0x1
+    daddu   v1, v1, v0
+    dsrl    a1, a1, 1
+    and     v0, a1, 0x1
+    daddu   v1, v1, v0
+    dsrl    a1, a1, 1
+    and     v0, a1, 0x1
+    daddu   v1, v1, v0
+
+    GET_MC0_MEMSIZE
+    //get one rank capacity
+    divu    v1, a1, v1
+    //trick used here is for x8 SDRAM, SDRAM density is equal to Module density in net value, for x16, just double it
+    GET_SDRAM_WIDTH
+    dsll    v1, v1, a1
+
+    GET_SDRAM_TYPE
+    dli     v0, 0x3
+    beq     v0, a1, 2f
+    nop
+    //DDR2
+    dli     a1, 0x1
+    beq     a1, v1, D2_density_512Mb
+    nop
+    dsll    a1, a1, 1
+    beq     a1, v1, D2_density_1Gb
+    nop
+    dsll    a1, a1, 1
+    beq     a1, v1, D2_density_2Gb
+    nop
+    dsll    a1, a1, 1
+    beq     a1, v1, D2_density_4Gb
+    nop
+    //unexpect condition, make no change to default parameter
+    //256Mb or larger than 4Gb
+    b       8f
+    nop
+D2_density_512Mb:
+    dli     v1, 0x2a
+    b       4f
+    nop
+D2_density_1Gb:
+    dli     v1, 0x33
+    b       4f
+    nop
+D2_density_2Gb:
+    dli     v1, 0x4e
+    b       4f
+    nop
+D2_density_4Gb:
+    dli     v1, 0x83
+    b       4f
+    nop
+2:
+    //DDR3
+    dli     a1, 0x1
+    beq     a1, v1, D3_density_512Mb
+    nop
+    dsll    a1, a1, 1
+    beq     a1, v1, D3_density_1Gb
+    nop
+    dsll    a1, a1, 1
+    beq     a1, v1, D3_density_2Gb
+    nop
+    dsll    a1, a1, 1
+    beq     a1, v1, D3_density_4Gb
+    nop
+    //unexpect condition, make no change to default parameter
+    //larger than 4Gb
+    b       8f
+    nop
+D3_density_512Mb:
+    dli     v1, 0x24
+    b       4f
+    nop
+D3_density_1Gb:
+    dli     v1, 0x2c
+    b       4f
+    nop
+D3_density_2Gb:
+    dli     v1, 0x40
+    b       4f
+    nop
+D3_density_4Gb:
+    dli     v1, 0x78
+    b       4f
+    nop
+4:
+    ld      a2, TRFC_ADDR(t8)
+    dli     a1, 0xff
+    dsll    a1, a1, TRFC_OFFSET
+    not     a1, a1
+    and     a2, a2, a1
+    move    a1, v1
+    dsll    a1, a1, TRFC_OFFSET
+    or      a2, a2, a1
+    sd      a2, TRFC_ADDR(t8)
+
+    ld      a2, TXSNR_ADDR(t8)
+    dli     a1, 0xffff
+    dsll    a1, a1, TXSNR_OFFSET
+    not     a1, a1
+    and     a2, a2, a1
+    daddu   a1, v1, 0x4
+    dsll    a1, a1, TXSNR_OFFSET
+    or      a2, a2, a1
+    sd      a2, TXSNR_ADDR(t8)
+8:
+#endif
     //rewrite eight_bank_mode
     ld      a2, EIGHT_BANK_MODE_ADDR(t8)
     dli     a1, 0xff

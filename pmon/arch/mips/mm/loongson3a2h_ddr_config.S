@@ -1,5 +1,5 @@
 /**********************************
-    loongson3_ddr2_config.S
+    loongson3a2h_ddr_config.S
         used to set up ddr controllers MC0 and MC1
         and set up the memory space on L2 Xbar
     input: s1--MC1 & MC0 DIMM info and Node ID
@@ -16,6 +16,7 @@
             new code:
             1. according to Memsize config open space
             2. config interleave bits
+    v1.8    Modify L2 Xbar config for used with 2H
 ************************************/
 
 #######################################################
@@ -341,6 +342,21 @@ t0,t2 shouldn't be changed to the end of this file.
 
     bal     mc_init
     nop
+
+#ifndef  DISABLE_DIMM_ECC
+    //Disable MC read buffer after ECC Initial
+    GET_DIMM_ECC
+    beqz    a1, 8f
+    nop
+    TTYDBG("Disable MC read buffer\r\n")
+    lw      a1, 0x4(t2)
+    li      a0, 0x8
+    sll     a0, a0, t3
+    or      a1, a1, a0
+    sw      a1, 0x4(t2)
+    sync
+8:
+#endif
     PRINTSTR("\r\nMC0 Config DONE\r\n")
 //-------------------------------------
 //config MC1 if not define MC0_ONLY
@@ -350,6 +366,15 @@ t0,t2 shouldn't be changed to the end of this file.
     nop
 
     dli     t3, 0x1
+
+    //shift MC1 DIMM info to low 32bit of s1
+    dsrl    t5, s1, 32
+    dli     a1, 0xffff8000
+    and     t5, t5, a1
+    dli     a1, 0xffffffff8000ffff
+    and     s1, s1, a1
+    or      s1, s1, t5
+
 #ifndef  DISABLE_DIMM_ECC
     //Enable MC read buffer for ECC Initial
     GET_DIMM_ECC
@@ -373,6 +398,21 @@ t0,t2 shouldn't be changed to the end of this file.
 
     bal     mc_init
     nop
+
+#ifndef  DISABLE_DIMM_ECC
+    //Disable MC read buffer after ECC Initial
+    GET_DIMM_ECC
+    beqz    a1, 8f
+    nop
+    TTYDBG("Disable MC read buffer\r\n")
+    lw      a1, 0x4(t2)
+    li      a0, 0x8
+    sll     a0, a0, t3
+    or      a1, a1, a0
+    sw      a1, 0x4(t2)
+    sync
+8:
+#endif
     TTYDBG("\r\nMC1 Config DONE\r\n")
 //-------------------------------------
 12:

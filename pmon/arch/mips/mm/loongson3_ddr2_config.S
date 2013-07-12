@@ -370,9 +370,9 @@ t0,t2 shouldn't be changed to the end of this file.
 
     //shift MC1 DIMM info to low 32bit of s1
     dsrl    t5, s1, 32
-    dli     a1, 0xffff0000
+    dli     a1, 0xffff8000
     and     t5, t5, a1
-    dli     a1, 0xffffffff0000ffff
+    dli     a1, 0xffffffff8000ffff
     and     s1, s1, a1
     or      s1, s1, t5
 

@@ -19,7 +19,7 @@
 #define GET_I2C_NODE_ID_a2  ;
 #endif
 //------------------------
-#define DEBUG_PROBE_NODE_DIMM
+//#define DEBUG_PROBE_NODE_DIMM
 
 LEAF(PROBE_NODE_DIMM)
 /*************************
@@ -67,105 +67,42 @@ LEAF(PROBE_NODE_DIMM)
     bal     i2cinit
     nop
 #endif
-#if 1  //for debug, give the SPD device id directly.
+#if 0  //for debug, give the SPD device id directly.
 //scan the devices and display DIMM SPD values when the first device is detected.
     PRINTSTR("\r\nDIMM SPD register dump:");
     dli     a0, 0xa1;
     dli     a1, 0x2;
-    dli     v0, 0x0;
     GET_I2C_NODE_ID_a2
     bal     i2cread;
     nop;
-    move    t3, v0
-    PRINTSTR("\r\n0xa1=0x");
-    move    a0, t3
-    bal     hexserial
+    dli     t3, 0x80
+    bltu    v0, t3, 2f
     nop
-    PRINTSTR("\r\n");
-
-	dli     a0, 0xa1;
-    dli     a1, 0x2;
-    dli     v0, 0x0;
-    GET_I2C_NODE_ID_a2
-    bal     i2cread;
-    nop;
-    move    t3, v0
-    PRINTSTR("\r\n0xa1=0x");
-    move    a0, t3
-    bal     hexserial
-    nop
-    PRINTSTR("\r\n");
-
     dli     a0, 0xa3;
     dli     a1, 0x2;
-    dli     v0, 0x0;
     GET_I2C_NODE_ID_a2
     bal     i2cread;
     nop;
-    move    t3, v0
-    PRINTSTR("\r\n0xa3=0x");
-    move    a0, t3
-    bal     hexserial
+    dli     t3, 0x80
+    bltu    v0, t3, 2f
     nop
-    PRINTSTR("\r\n");
-
     dli     a0, 0xa5;
     dli     a1, 0x2;
-    dli     v0, 0x0;
     GET_I2C_NODE_ID_a2
     bal     i2cread;
     nop;
-    move    t3, v0
-    PRINTSTR("\r\n0xa5=0x");
-    move    a0, t3
-    bal     hexserial
+    dli     t3, 0x80
+    bltu    v0, t3, 2f
     nop
-    PRINTSTR("\r\n");
-
     dli     a0, 0xa7;
     dli     a1, 0x2;
-    dli     v0, 0x0;
-    GET_I2C_NODE_ID_a2
-    bal     i2cread;
-    nop;
-    move    t3, v0
-    PRINTSTR("\r\n0xa7=0x");
-    move    a0, t3
-    bal     hexserial
-    nop
-    PRINTSTR("\r\n");
- 
-
-    dli     t3, 0x80
-    bltu    v0, t3, 2f
-    nop
-    dli     a0, 0xa3;
-    dli     a1, 0x2;
     GET_I2C_NODE_ID_a2
     bal     i2cread;
     nop;
     dli     t3, 0x80
     bltu    v0, t3, 2f
     nop
-    dli     a0, 0xa5;
-    dli     a1, 0x2;
-    GET_I2C_NODE_ID_a2
-    bal     i2cread;
-    nop;
-    dli     t3, 0x80
-    bltu    v0, t3, 2f
-    nop
-    dli     a0, 0xa7; // by xqch
-    dli     a0, 0xa5; // by xqch
-    dli     a1, 0x2;
-    GET_I2C_NODE_ID_a2
-    bal     i2cread;
-    nop;
-    dli     t3, 0x80
-    bltu    v0, t3, 2f
-    nop
-    //b       3f
-    b       2f;	  // by xqch
+    b       3f
     nop
 2:
     move    t3, a0
@@ -219,7 +156,6 @@ LEAF(PROBE_NODE_DIMM)
     nop
     dsll    a1, a1, 1
     ori     a0, a1, 0xa1
-    //li      a0,0xa5;
     bal     PROBE_DIMM;
     nop;
 1:
@@ -247,7 +183,6 @@ LEAF(PROBE_NODE_DIMM)
     nop
     dsll    a1, a1, 1
     ori     a0, a1, 0xa1
-    //li      a0,0xa7;
     bal     PROBE_DIMM;
     nop;
 1:
@@ -278,7 +213,7 @@ LEAF(PROBE_NODE_DIMM)
     //both slot 0 and 1 has DIMM
     //step 1: compare the two DIMM type infor, if they differs, display errors
     xor     a1, t3, t4
-    dli     a0, 0xfff00000
+    dli     a0, 0xfff08000
     and     a1, a1, a0
     bnez    a1, 9f
     nop
@@ -314,7 +249,7 @@ LEAF(PROBE_NODE_DIMM)
     or      s1, s1, t6
     b       3f
     nop
-9:      //two slot have different type DIMM, give ERROR message and use slot 0 only
+9:  //two slot have different type DIMM, give ERROR message and use slot 0 only
     PRINTSTR("MC0 has two different DIMM, please use same DIMM!!\r\n")
     PRINTSTR("Currently system will use only slot 0!!\r\n")
     b       2f
@@ -353,7 +288,7 @@ LEAF(PROBE_NODE_DIMM)
     PRINTSTR("\r\nNO DIMM in MC1 slot.\r\n");
     b       11f
     nop
-3:    //move MC1 DIMM info to t0 high 32 bit
+3:  //move MC1 DIMM info to t0 high 32 bit
     dli     a0, 0xffffffff
     and     s1, s1, a0
     dsll    a1, s1, 32
@@ -400,7 +335,6 @@ LEAF(PROBE_NODE_DIMM)
     nop
     dsll    a1, a1, 1
     ori     a0, a1, 0xa1
-    //li      a0,0xa1;
     bal     PROBE_DIMM;
     nop;
 1:
@@ -428,7 +362,6 @@ LEAF(PROBE_NODE_DIMM)
     nop
     dsll    a1, a1, 1
     ori     a0, a1, 0xa1
-    //li      a0,0xa3;
     bal     PROBE_DIMM;
     nop;
 1:
@@ -459,7 +392,7 @@ LEAF(PROBE_NODE_DIMM)
     //both slot 0 and 1 has DIMM
     //step 1: compare the two DIMM type infor, if they differs, display errors
     xor     a1, t3, t4
-    dli     a0, 0xfff00000
+    dli     a0, 0xfff08000
     and     a1, a1, a0
     bnez    a1, 9f
     nop
@@ -735,6 +668,18 @@ DDR2:
     dsrl    t5, t5, 1
     dsll    t5, t5, DIMM_ECC_OFFSET
     or      s1, s1, t5
+//probe SDRAM_WIDTH
+    dli     a1, 13
+    GET_I2C_NODE_ID_a2
+    bal     i2cread
+    nop
+    //only bit[7:0] used
+    andi    v0, v0, 0xff
+    //only check bit 4(here assuming x8 or x16 only)
+    dsrl    t5, v0, 4
+    and     t5, t5, 0x1
+    dsll    t5, t5, SDRAM_WIDTH_OFFSET
+    or      s1, s1, t5
 //probe SDRAM_ROW_SIZE
     dli     a1, 3
     GET_I2C_NODE_ID_a2
@@ -917,6 +862,18 @@ DDR3:  //DDR3 SDRAM
     andi    t5, v0, 0x8
     dsrl    t5, t5, 3
     dsll    t5, t5, DIMM_ECC_OFFSET
+    or      s1, s1, t5
+//probe SDRAM_WIDTH
+    dli     a1, 7
+    GET_I2C_NODE_ID_a2
+    bal     i2cread
+    nop
+    //only bit[2:0] used
+    andi    v0, v0, 0x7
+    //only check bit 1(here assuming x8 or x16 only)
+    dsrl    t5, v0, 1
+    and     t5, t5, 0x1
+    dsll    t5, t5, SDRAM_WIDTH_OFFSET
     or      s1, s1, t5
 //probe SDRAM_ROW_SIZE & SDRAM_COL_SIZE
     dli     a1, 5
