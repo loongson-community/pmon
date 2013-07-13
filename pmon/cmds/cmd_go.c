@@ -172,6 +172,12 @@ extern char	*optarg;
 		strcat(clientcmd, getenv("ethaddr"));
 	}
 
+	if(getenv("mtdparts"))
+	{
+		strcat(clientcmd, " mtdparts=");
+		strcat(clientcmd, getenv("mtdparts"));
+	}
+
 	if (!sflag) {
 		md_adjstack(NULL, tgt_clienttos ());
 	}
