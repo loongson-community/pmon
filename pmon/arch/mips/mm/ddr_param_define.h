@@ -23,6 +23,7 @@
 #define DDR_PARAM_NUM   152
 #endif
 
+#define TRFC_MARGIN             0x8
 #define SREFRESH_ADDR           (0x30)
 #define START_ADDR              (0x30)
 #define DLLLOCKREG_ADDR         (0x10)

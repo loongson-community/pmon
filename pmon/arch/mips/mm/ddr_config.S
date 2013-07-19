@@ -169,12 +169,12 @@ ddr2_config:
     dsll    a1, a1, TFAW_OFFSET
     not     a1, a1
     and     a2, a2, a1
-    dli     v1, 0xc //DDR3
+    dli     v1, 0xc + 2 //DDR3
     GET_SDRAM_TYPE
     dli     v0, 0x3
     beq     v0, a1, 2f
     nop
-    dli     v1, 0xf //DDR2
+    dli     v1, 0xf + 2 //DDR2
 2:
     move    a1, v1
     dsll    a1, a1, TFAW_OFFSET
@@ -230,19 +230,19 @@ ddr2_config:
     b       8f
     nop
 D2_density_512Mb:
-    dli     v1, 0x2a
+    dli     v1, 0x2a + TRFC_MARGIN
     b       4f
     nop
 D2_density_1Gb:
-    dli     v1, 0x33
+    dli     v1, 0x33 + TRFC_MARGIN
     b       4f
     nop
 D2_density_2Gb:
-    dli     v1, 0x4e
+    dli     v1, 0x4e + TRFC_MARGIN
     b       4f
     nop
 D2_density_4Gb:
-    dli     v1, 0x83
+    dli     v1, 0x83 + TRFC_MARGIN
     b       4f
     nop
 2:
@@ -264,19 +264,19 @@ D2_density_4Gb:
     b       8f
     nop
 D3_density_512Mb:
-    dli     v1, 0x24
+    dli     v1, 0x24 + TRFC_MARGIN
     b       4f
     nop
 D3_density_1Gb:
-    dli     v1, 0x2c
+    dli     v1, 0x2c + TRFC_MARGIN
     b       4f
     nop
 D3_density_2Gb:
-    dli     v1, 0x40
+    dli     v1, 0x40 + TRFC_MARGIN
     b       4f
     nop
 D3_density_4Gb:
-    dli     v1, 0x78
+    dli     v1, 0x78 + TRFC_MARGIN
     b       4f
     nop
 4:
