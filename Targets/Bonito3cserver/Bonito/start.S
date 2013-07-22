@@ -1487,102 +1487,14 @@ node0_no_mem:
 
 node0_has_mem:
 
-##########################################
-
-#ifdef MULTI_CHIP
-	TTYDBG("NODE 1 MEMORY CONFIG BEGIN\r\n")
-#ifdef  AUTO_DDR_CONFIG
-    dli     s1, 0xff320001
-#else
-    dli     s1, 0xc3e30201
-#endif
-#include "loongson3C_ddr_config.S"
-#endif
-
-//#ifdef DUAL_3B
-#if 1
-    //wait the NODE scache enabled
-    TTYDBG("NODE 2 MEMORY CONFIG BEGIN\r\n")
-#ifdef  AUTO_DDR_CONFIG
-    dli     s1, 0xff540002
-#else
-#ifdef UDIMM_2G
-    dli     s1, 0xc1e30402
-#else 
-#ifdef RDIMM_2G
-    dli     s1, 0xf0e50802
-#endif
-#endif
-#endif
-#include "loongson3C_ddr_config.S"
-
-    TTYDBG("NODE 3 MEMORY CONFIG BEGIN\r\n")
-#ifdef  AUTO_DDR_CONFIG
-    dli     s1, 0xff760003
-#else
-#ifdef UDIMM_2G
-    dli     s1, 0xc1e30403
-#else 
-#ifdef RDIMM_2G
-    dli     s1, 0xf0e50803
-#endif
-#endif
-#endif
-#include "loongson3C_ddr_config.S"
-#endif
-
-##########################################
-
-##########################################
-#if 0 /* write DDR test */
-1:
-        li      t0, 0xa0000000
-        dli     a0, 0xffffffffffffffff
-        sd      a0, 0x0(t0)
-        dli     a0, 0x00000000
-        sd      a0, 0x8(t0)
-        dli     a0, 0xffffffffffffffff
-        sd      a0, 0x10(t0)
-        dli     a0, 0x00000000
-        sd      a0, 0x18(t0)
-        dli     a0, 0xffffffffffffffff
-        sd      a0, 0x20(t0)
-        dli     a0, 0x00000000
-        sd      a0, 0x28(t0)
-        dli     a0, 0xffffffffffffffff
-        sd      a0, 0x30(t0)
-        dli     a0, 0x00000000
-        sd      a0, 0x38(t0)
-
-        b       1b
-        nop
-#endif
-#if 0 /* read DDR test */
-1:
-        li      t0, 0xa0000000
-        dli     a0, 0xffffffffffffffff
-        ld      a0, 0x0(t0)
-        dli     a0, 0x00000000
-        ld      a0, 0x8(t0)
-        dli     a0, 0xffffffffffffffff
-        ld      a0, 0x10(t0)
-        dli     a0, 0x00000000
-        ld      a0, 0x18(t0)
-        dli     a0, 0xffffffffffffffff
-        ld      a0, 0x20(t0)
-        dli     a0, 0x00000000
-        ld      a0, 0x28(t0)
-        dli     a0, 0xffffffffffffffff
-        ld      a0, 0x30(t0)
-        dli     a0, 0x00000000
-        ld      a0, 0x38(t0)
-
-        b       1b
-        nop
-#endif
 
 
 #if 1 /* write DDR test */
+
+    GET_MC0_MEMSIZE
+    beqz    a1, 2f
+    nop
+
 1:
         li      t0, 0xa0000000
         dli     a0, 0x5555555555555555
@@ -1653,31 +1565,47 @@ node0_has_mem:
     bnez    t1, 1b
     nop
 
+2:
+
+#endif
+##########################################
+
+#ifdef MULTI_CHIP
+	TTYDBG("NODE 1 MEMORY CONFIG BEGIN\r\n")
+#ifdef  AUTO_DDR_CONFIG
+    dli     s1, 0xff320001
+#else
+    dli     s1, 0xc3e30201
+#endif
+#include "loongson3C_ddr_config.S"
+
+
+#if 1 /* write DDR test */
 
     GET_MC0_MEMSIZE
-    beqz    a1, out_test
+    beqz    a1, 2f
     nop
 
-        li      t0, 0x9000100000000000
-        dli     a0, 0x5555555555555555
-        sd      a0, 0x0(t0)
-        dli     a0, 0xaaaaaaaaaaaaaaaa
-        sd      a0, 0x8(t0)
-        dli     a0, 0x3333333333333333
-        sd      a0, 0x10(t0)
-        dli     a0, 0xcccccccccccccccc
-        sd      a0, 0x18(t0)
-        dli     a0, 0x7777777777777777
-        sd      a0, 0x20(t0)
-        dli     a0, 0x8888888888888888
-        sd      a0, 0x28(t0)
-        dli     a0, 0x1111111111111111
-        sd      a0, 0x30(t0)
-        dli     a0, 0xeeeeeeeeeeeeeeee
-        sd      a0, 0x38(t0)
+    li      t0, 0x9000100000000000
+    dli     a0, 0x5555555555555555
+    sd      a0, 0x0(t0)
+    dli     a0, 0xaaaaaaaaaaaaaaaa
+    sd      a0, 0x8(t0)
+    dli     a0, 0x3333333333333333
+    sd      a0, 0x10(t0)
+    dli     a0, 0xcccccccccccccccc
+    sd      a0, 0x18(t0)
+    dli     a0, 0x7777777777777777
+    sd      a0, 0x20(t0)
+    dli     a0, 0x8888888888888888
+    sd      a0, 0x28(t0)
+    dli     a0, 0x1111111111111111
+    sd      a0, 0x30(t0)
+    dli     a0, 0xeeeeeeeeeeeeeeee
+    sd      a0, 0x38(t0)
 
-        //b       1b
-        nop
+    //b       1b
+    nop
 
     PRINTSTR("The uncache data is:\r\n")
     dli     t1, 8
@@ -1727,8 +1655,250 @@ node0_has_mem:
     bnez    t1, 1b
     nop
 
-out_test:
 
+2:
+#endif
+#endif
+
+//#ifdef DUAL_3B
+#if 1
+    //wait the NODE scache enabled
+    TTYDBG("NODE 2 MEMORY CONFIG BEGIN\r\n")
+#ifdef  AUTO_DDR_CONFIG
+    dli     s1, 0xff540002
+#else
+#ifdef UDIMM_2G
+    dli     s1, 0xc1e30402
+#else 
+#ifdef RDIMM_2G
+    dli     s1, 0xf0e50802
+#endif
+#endif
+#endif
+#include "loongson3C_ddr_config.S"
+
+#if 1 /* write DDR test */
+
+    GET_MC0_MEMSIZE
+    beqz    a1, 2f
+    nop
+
+    li      t0, 0x9000200000000000
+    dli     a0, 0x5555555555555555
+    sd      a0, 0x0(t0)
+    dli     a0, 0xaaaaaaaaaaaaaaaa
+    sd      a0, 0x8(t0)
+    dli     a0, 0x3333333333333333
+    sd      a0, 0x10(t0)
+    dli     a0, 0xcccccccccccccccc
+    sd      a0, 0x18(t0)
+    dli     a0, 0x7777777777777777
+    sd      a0, 0x20(t0)
+    dli     a0, 0x8888888888888888
+    sd      a0, 0x28(t0)
+    dli     a0, 0x1111111111111111
+    sd      a0, 0x30(t0)
+    dli     a0, 0xeeeeeeeeeeeeeeee
+    sd      a0, 0x38(t0)
+
+    //b       1b
+    nop
+
+    PRINTSTR("The uncache data is:\r\n")
+    dli     t1, 8
+    dli     t5, 0x9000200000000000
+1:
+    ld      t6, 0x0(t5)
+    move    a0, t5
+    and     a0, a0, 0xfff
+    bal     hexserial
+    nop
+    PRINTSTR(":  ")
+    dsrl    a0, t6, 32
+    bal     hexserial
+    nop
+    //PRINTSTR("  ")
+    move    a0, t6
+    bal     hexserial
+    nop
+    PRINTSTR("\r\n")
+
+    daddiu  t1, t1, -1
+    daddiu  t5, t5, 8
+    bnez    t1, 1b
+    nop
+
+    PRINTSTR("The cached  data is:\r\n")
+    dli     t1, 8
+    dli     t5, 0x9800200000000000
+1:
+    ld      t6, 0x0(t5)
+    move    a0, t5
+    and     a0, a0, 0xfff
+    bal     hexserial
+    nop
+    PRINTSTR(":  ")
+    dsrl    a0, t6, 32
+    bal     hexserial
+    nop
+    //PRINTSTR("  ")
+    move    a0, t6
+    bal     hexserial
+    nop
+    PRINTSTR("\r\n")
+
+    daddiu  t1, t1, -1
+    daddiu  t5, t5, 8
+    bnez    t1, 1b
+    nop
+
+
+2:
+#endif
+
+
+    TTYDBG("NODE 3 MEMORY CONFIG BEGIN\r\n")
+#ifdef  AUTO_DDR_CONFIG
+    dli     s1, 0xff760003
+#else
+#ifdef UDIMM_2G
+    dli     s1, 0xc1e30403
+#else 
+#ifdef RDIMM_2G
+    dli     s1, 0xf0e50803
+#endif
+#endif
+#endif
+#include "loongson3C_ddr_config.S"
+
+#if 1 /* write DDR test */
+
+    GET_MC0_MEMSIZE
+    beqz    a1, 2f
+    nop
+
+    li      t0, 0x9000300000000000
+    dli     a0, 0x5555555555555555
+    sd      a0, 0x0(t0)
+    dli     a0, 0xaaaaaaaaaaaaaaaa
+    sd      a0, 0x8(t0)
+    dli     a0, 0x3333333333333333
+    sd      a0, 0x10(t0)
+    dli     a0, 0xcccccccccccccccc
+    sd      a0, 0x18(t0)
+    dli     a0, 0x7777777777777777
+    sd      a0, 0x20(t0)
+    dli     a0, 0x8888888888888888
+    sd      a0, 0x28(t0)
+    dli     a0, 0x1111111111111111
+    sd      a0, 0x30(t0)
+    dli     a0, 0xeeeeeeeeeeeeeeee
+    sd      a0, 0x38(t0)
+
+    //b       1b
+    nop
+
+    PRINTSTR("The uncache data is:\r\n")
+    dli     t1, 8
+    dli     t5, 0x9000300000000000
+1:
+    ld      t6, 0x0(t5)
+    move    a0, t5
+    and     a0, a0, 0xfff
+    bal     hexserial
+    nop
+    PRINTSTR(":  ")
+    dsrl    a0, t6, 32
+    bal     hexserial
+    nop
+    //PRINTSTR("  ")
+    move    a0, t6
+    bal     hexserial
+    nop
+    PRINTSTR("\r\n")
+
+    daddiu  t1, t1, -1
+    daddiu  t5, t5, 8
+    bnez    t1, 1b
+    nop
+
+    PRINTSTR("The cached  data is:\r\n")
+    dli     t1, 8
+    dli     t5, 0x9800300000000000
+1:
+    ld      t6, 0x0(t5)
+    move    a0, t5
+    and     a0, a0, 0xfff
+    bal     hexserial
+    nop
+    PRINTSTR(":  ")
+    dsrl    a0, t6, 32
+    bal     hexserial
+    nop
+    //PRINTSTR("  ")
+    move    a0, t6
+    bal     hexserial
+    nop
+    PRINTSTR("\r\n")
+
+    daddiu  t1, t1, -1
+    daddiu  t5, t5, 8
+    bnez    t1, 1b
+    nop
+
+
+2:
+#endif
+#endif
+
+##########################################
+
+##########################################
+#if 0 /* write DDR test */
+1:
+        li      t0, 0xa0000000
+        dli     a0, 0xffffffffffffffff
+        sd      a0, 0x0(t0)
+        dli     a0, 0x00000000
+        sd      a0, 0x8(t0)
+        dli     a0, 0xffffffffffffffff
+        sd      a0, 0x10(t0)
+        dli     a0, 0x00000000
+        sd      a0, 0x18(t0)
+        dli     a0, 0xffffffffffffffff
+        sd      a0, 0x20(t0)
+        dli     a0, 0x00000000
+        sd      a0, 0x28(t0)
+        dli     a0, 0xffffffffffffffff
+        sd      a0, 0x30(t0)
+        dli     a0, 0x00000000
+        sd      a0, 0x38(t0)
+
+        b       1b
+        nop
+#endif
+#if 0 /* read DDR test */
+1:
+        li      t0, 0xa0000000
+        dli     a0, 0xffffffffffffffff
+        ld      a0, 0x0(t0)
+        dli     a0, 0x00000000
+        ld      a0, 0x8(t0)
+        dli     a0, 0xffffffffffffffff
+        ld      a0, 0x10(t0)
+        dli     a0, 0x00000000
+        ld      a0, 0x18(t0)
+        dli     a0, 0xffffffffffffffff
+        ld      a0, 0x20(t0)
+        dli     a0, 0x00000000
+        ld      a0, 0x28(t0)
+        dli     a0, 0xffffffffffffffff
+        ld      a0, 0x30(t0)
+        dli     a0, 0x00000000
+        ld      a0, 0x38(t0)
+
+        b       1b
+        nop
 #endif
 
 
