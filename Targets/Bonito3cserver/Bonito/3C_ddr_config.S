@@ -418,7 +418,7 @@ ddr2_config:
     nop
     //slot 0 is a DR DIMM
     ld      a2, ODT_MAP_CS_ADDR(t8)
-    dli     a1, 0xff00ffffffffffff
+    dli     a1, 0xff00ffff00000000
     and     a2, a2, a1
     dli     a1, 0x0012000000000000
     or      a2, a2, a1

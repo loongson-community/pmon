@@ -439,7 +439,7 @@ MC0_DDR3_RDIMM_CTRL_0x018: .dword 0x5252525216600000
 //_00000000 pm_dll_ck_3 _00000000 pm_dll_ck_2 _00000000 pm_dll_ck_1 _00000000 pm_dll_ck_0 _00000000 pm_dll_increment _00000000 pm_dll_start_point _0000000_0 pm_dll_bypass _0000000_0 pm_init_start
 MC0_DDR3_RDIMM_CTRL_0x020: .dword 0x0202000001000000
 //0000_0000 pm_dq_oe_end_0 0000_0000 pm_dq_oe_begin_0 000000_00 pm_dq_stop_edge_0 000000_00 pm_dq_start_edge_0 0000000_0 pm_rddata_delay_0 0000000_0 pm_rddqs_lt_half_0 0000000_0 pm_wrdqs_lt_half_0 0000000_0 pm_wrdq_lt_half_0
-MC0_DDR3_RDIMM_CTRL_0x028: .dword 0x0101000002010101
+MC0_DDR3_RDIMM_CTRL_0x028: .dword 0x0101000002010301
 //0000_0000 pm_rd_oe_end_0 0000_0000 pm_rd_oe_begin_0 000000_00 pm_rd_stop_edge_0 000000_00 pm_rd_start_edge_0 0000_0000 pm_dqs_oe_end_0 0000_0000 pm_dqs_oe_begin_0 000000_00 pm_dqs_stop_edge_0 000000_00 pm_dqs_start_edge_0
 MC0_DDR3_RDIMM_CTRL_0x030: .dword 0x0000000001000202
 //hXXXXXX (RD) 0000000_0 pm_wrdq_clkdelay_0 0000_0000 pm_odt_oe_end_0 0000_0000 pm_odt_oe_begin_0 000000_00 pm_odt_stop_edge_0 000000_00 pm_odt_start_edge_0
@@ -447,7 +447,7 @@ MC0_DDR3_RDIMM_CTRL_0x038: .dword 0x0000002020056500
 //hXXXXXX (RD) _00000000 pm_dll_rddqs_n_0 _00000000 pm_dll_rddqs_p_0 _00000000 pm_dll_wrdqs_0 _00000000 pm_dll_wrdata_0 _00000000 pm_dll_gate_0
 MC0_DDR3_RDIMM_CTRL_0x040: .dword 0x0202000001000000
 //0000_0000 pm_dq_oe_end_1 0000_0000 pm_dq_oe_begin_1 000000_00 pm_dq_stop_edge_1 000000_00 pm_dq_start_edge_1 0000000_0 pm_rddata_delay_1 0000000_0 pm_rddqs_lt_half_1 0000000_0 pm_wrdqs_lt_half_1 0000000_0 pm_wrdq_lt_half_1
-MC0_DDR3_RDIMM_CTRL_0x048: .dword 0x0101000002010101
+MC0_DDR3_RDIMM_CTRL_0x048: .dword 0x0101000002010301
 //0000_0000 pm_rd_oe_end_1 0000_0000 pm_rd_oe_begin_1 000000_00 pm_rd_stop_edge_1 000000_00 pm_rd_start_edge_1 0000_0000 pm_dqs_oe_end_1 0000_0000 pm_dqs_oe_begin_1 000000_00 pm_dqs_stop_edge_1 000000_00 pm_dqs_start_edge_1
 MC0_DDR3_RDIMM_CTRL_0x050: .dword 0x0000000001000202
 //hXXXXXX (RD) 0000000_0 pm_wrdq_clkdelay_1 0000_0000 pm_odt_oe_end_1 0000_0000 pm_odt_oe_begin_1 000000_00 pm_odt_stop_edge_1 000000_00 pm_odt_start_edge_1
@@ -455,7 +455,7 @@ MC0_DDR3_RDIMM_CTRL_0x058: .dword 0x0000002020056500
 //hXXXXXX (RD) _00000000 pm_dll_rddqs_n_1 _00000000 pm_dll_rddqs_p_1 _00000000 pm_dll_wrdqs_1 _00000000 pm_dll_wrdata_1 _00000000 pm_dll_gate_1
 MC0_DDR3_RDIMM_CTRL_0x060: .dword 0x0202000001000000
 //0000_0000 pm_dq_oe_end_2 0000_0000 pm_dq_oe_begin_2 000000_00 pm_dq_stop_edge_2 000000_00 pm_dq_start_edge_2 0000000_0 pm_rddata_delay_2 0000000_0 pm_rddqs_lt_half_2 0000000_0 pm_wrdqs_lt_half_2 0000000_0 pm_wrdq_lt_half_2
-MC0_DDR3_RDIMM_CTRL_0x068: .dword 0x0101000002010101
+MC0_DDR3_RDIMM_CTRL_0x068: .dword 0x0101000002010301
 //0000_0000 pm_rd_oe_end_2 0000_0000 pm_rd_oe_begin_2 000000_00 pm_rd_stop_edge_2 000000_00 pm_rd_start_edge_2 0000_0000 pm_dqs_oe_end_2 0000_0000 pm_dqs_oe_begin_2 000000_00 pm_dqs_stop_edge_2 000000_00 pm_dqs_start_edge_2
 MC0_DDR3_RDIMM_CTRL_0x070: .dword 0x0000000001000202
 //hXXXXXX (RD) 0000000_0 pm_wrdq_clkdelay_2 0000_0000 pm_odt_oe_end_2 0000_0000 pm_odt_oe_begin_2 000000_00 pm_odt_stop_edge_2 000000_00 pm_odt_start_edge_2
@@ -463,7 +463,7 @@ MC0_DDR3_RDIMM_CTRL_0x078: .dword 0x0000002020056500
 //hXXXXXX (RD) _00000000 pm_dll_rddqs_n_2 _00000000 pm_dll_rddqs_p_2 _00000000 pm_dll_wrdqs_2 _00000000 pm_dll_wrdata_2 _00000000 pm_dll_gate_2
 MC0_DDR3_RDIMM_CTRL_0x080: .dword 0x0202000001000000
 //0000_0000 pm_dq_oe_end_3 0000_0000 pm_dq_oe_begin_3 000000_00 pm_dq_stop_edge_3 000000_00 pm_dq_start_edge_3 0000000_0 pm_rddata_delay_3 0000000_0 pm_rddqs_lt_half_3 0000000_0 pm_wrdqs_lt_half_3 0000000_0 pm_wrdq_lt_half_3
-MC0_DDR3_RDIMM_CTRL_0x088: .dword 0x0101000002010101
+MC0_DDR3_RDIMM_CTRL_0x088: .dword 0x0101000002010301
 //0000_0000 pm_rd_oe_end_3 0000_0000 pm_rd_oe_begin_3 000000_00 pm_rd_stop_edge_3 000000_00 pm_rd_start_edge_3 0000_0000 pm_dqs_oe_end_3 0000_0000 pm_dqs_oe_begin_3 000000_00 pm_dqs_stop_edge_3 000000_00 pm_dqs_start_edge_3
 MC0_DDR3_RDIMM_CTRL_0x090: .dword 0x0000000001000202
 //hXXXXXX (RD) 0000000_0 pm_wrdq_clkdelay_3 0000_0000 pm_odt_oe_end_3 0000_0000 pm_odt_oe_begin_3 000000_00 pm_odt_stop_edge_3 000000_00 pm_odt_start_edge_3
@@ -471,7 +471,7 @@ MC0_DDR3_RDIMM_CTRL_0x098: .dword 0x0000002020056500
 //hXXXXXX (RD) _00000000 pm_dll_rddqs_n_3 _00000000 pm_dll_rddqs_p_3 _00000000 pm_dll_wrdqs_3 _00000000 pm_dll_wrdata_3 _00000000 pm_dll_gate_3
 MC0_DDR3_RDIMM_CTRL_0x0a0: .dword 0x0202000001000000
 //0000_0000 pm_dq_oe_end_4 0000_0000 pm_dq_oe_begin_4 000000_00 pm_dq_stop_edge_4 000000_00 pm_dq_start_edge_4 0000000_0 pm_rddata_delay_4 0000000_0 pm_rddqs_lt_half_4 0000000_0 pm_wrdqs_lt_half_4 0000000_0 pm_wrdq_lt_half_4
-MC0_DDR3_RDIMM_CTRL_0x0a8: .dword 0x0101000002010101
+MC0_DDR3_RDIMM_CTRL_0x0a8: .dword 0x0101000002010301
 //0000_0000 pm_rd_oe_end_4 0000_0000 pm_rd_oe_begin_4 000000_00 pm_rd_stop_edge_4 000000_00 pm_rd_start_edge_4 0000_0000 pm_dqs_oe_end_4 0000_0000 pm_dqs_oe_begin_4 000000_00 pm_dqs_stop_edge_4 000000_00 pm_dqs_start_edge_4
 MC0_DDR3_RDIMM_CTRL_0x0b0: .dword 0x0000000001000202
 //hXXXXXX (RD) 0000000_0 pm_wrdq_clkdelay_4 0000_0000 pm_odt_oe_end_4 0000_0000 pm_odt_oe_begin_4 000000_00 pm_odt_stop_edge_4 000000_00 pm_odt_start_edge_4
@@ -479,7 +479,7 @@ MC0_DDR3_RDIMM_CTRL_0x0b8: .dword 0x0000002020056500
 //hXXXXXX (RD) _00000000 pm_dll_rddqs_n_4 _00000000 pm_dll_rddqs_p_4 _00000000 pm_dll_wrdqs_4 _00000000 pm_dll_wrdata_4 _00000000 pm_dll_gate_4
 MC0_DDR3_RDIMM_CTRL_0x0c0: .dword 0x0202000001000000
 //0000_0000 pm_dq_oe_end_5 0000_0000 pm_dq_oe_begin_5 000000_00 pm_dq_stop_edge_5 000000_00 pm_dq_start_edge_5 0000000_0 pm_rddata_delay_5 0000000_0 pm_rddqs_lt_half_5 0000000_0 pm_wrdqs_lt_half_5 0000000_0 pm_wrdq_lt_half_5
-MC0_DDR3_RDIMM_CTRL_0x0c8: .dword 0x0101000002010101
+MC0_DDR3_RDIMM_CTRL_0x0c8: .dword 0x0101000002010301
 //0000_0000 pm_rd_oe_end_5 0000_0000 pm_rd_oe_begin_5 000000_00 pm_rd_stop_edge_5 000000_00 pm_rd_start_edge_5 0000_0000 pm_dqs_oe_end_5 0000_0000 pm_dqs_oe_begin_5 000000_00 pm_dqs_stop_edge_5 000000_00 pm_dqs_start_edge_5
 MC0_DDR3_RDIMM_CTRL_0x0d0: .dword 0x0000000001000202
 //hXXXXXX (RD) 0000000_0 pm_wrdq_clkdelay_5 0000_0000 pm_odt_oe_end_5 0000_0000 pm_odt_oe_begin_5 000000_00 pm_odt_stop_edge_5 000000_00 pm_odt_start_edge_5
@@ -487,7 +487,7 @@ MC0_DDR3_RDIMM_CTRL_0x0d8: .dword 0x0000002020056500
 //hXXXXXX (RD) _00000000 pm_dll_rddqs_n_5 _00000000 pm_dll_rddqs_p_5 _00000000 pm_dll_wrdqs_5 _00000000 pm_dll_wrdata_5 _00000000 pm_dll_gate_5
 MC0_DDR3_RDIMM_CTRL_0x0e0: .dword 0x0202000001000000
 //0000_0000 pm_dq_oe_end_6 0000_0000 pm_dq_oe_begin_6 000000_00 pm_dq_stop_edge_6 000000_00 pm_dq_start_edge_6 0000000_0 pm_rddata_delay_6 0000000_0 pm_rddqs_lt_half_6 0000000_0 pm_wrdqs_lt_half_6 0000000_0 pm_wrdq_lt_half_6
-MC0_DDR3_RDIMM_CTRL_0x0e8: .dword 0x0101000002010101
+MC0_DDR3_RDIMM_CTRL_0x0e8: .dword 0x0101000002010301
 //0000_0000 pm_rd_oe_end_6 0000_0000 pm_rd_oe_begin_6 000000_00 pm_rd_stop_edge_6 000000_00 pm_rd_start_edge_6 0000_0000 pm_dqs_oe_end_6 0000_0000 pm_dqs_oe_begin_6 000000_00 pm_dqs_stop_edge_6 000000_00 pm_dqs_start_edge_6
 MC0_DDR3_RDIMM_CTRL_0x0f0: .dword 0x0000000001000202
 //hXXXXXX (RD) 0000000_0 pm_wrdq_clkdelay_6 0000_0000 pm_odt_oe_end_6 0000_0000 pm_odt_oe_begin_6 000000_00 pm_odt_stop_edge_6 000000_00 pm_odt_start_edge_6
@@ -495,7 +495,7 @@ MC0_DDR3_RDIMM_CTRL_0x0f8: .dword 0x0000002020056500
 //hXXXXXX (RD) _00000000 pm_dll_rddqs_n_6 _00000000 pm_dll_rddqs_p_6 _00000000 pm_dll_wrdqs_6 _00000000 pm_dll_wrdata_6 _00000000 pm_dll_gate_6
 MC0_DDR3_RDIMM_CTRL_0x100: .dword 0x0202000001000000
 //0000_0000 pm_dq_oe_end_7 0000_0000 pm_dq_oe_begin_7 000000_00 pm_dq_stop_edge_7 000000_00 pm_dq_start_edge_7 0000000_0 pm_rddata_delay_7 0000000_0 pm_rddqs_lt_half_7 0000000_0 pm_wrdqs_lt_half_7 0000000_0 pm_wrdq_lt_half_7
-MC0_DDR3_RDIMM_CTRL_0x108: .dword 0x0101000002010101
+MC0_DDR3_RDIMM_CTRL_0x108: .dword 0x0101000002010301
 //0000_0000 pm_rd_oe_end_7 0000_0000 pm_rd_oe_begin_7 000000_00 pm_rd_stop_edge_7 000000_00 pm_rd_start_edge_7 0000_0000 pm_dqs_oe_end_7 0000_0000 pm_dqs_oe_begin_7 000000_00 pm_dqs_stop_edge_7 000000_00 pm_dqs_start_edge_7
 MC0_DDR3_RDIMM_CTRL_0x110: .dword 0x0000000001000202
 //hXXXXXX (RD) 0000000_0 pm_wrdq_clkdelay_7 0000_0000 pm_odt_oe_end_7 0000_0000 pm_odt_oe_begin_7 000000_00 pm_odt_stop_edge_7 000000_00 pm_odt_start_edge_7
@@ -503,7 +503,7 @@ MC0_DDR3_RDIMM_CTRL_0x118: .dword 0x0000002020056500
 //hXXXXXX (RD) _00000000 pm_dll_rddqs_n_7 _00000000 pm_dll_rddqs_p_7 _00000000 pm_dll_wrdqs_7 _00000000 pm_dll_wrdata_7 _00000000 pm_dll_gate_7
 MC0_DDR3_RDIMM_CTRL_0x120: .dword 0x0202000001000000
 //0000_0000 pm_dq_oe_end_8 0000_0000 pm_dq_oe_begin_8 000000_00 pm_dq_stop_edge_8 000000_00 pm_dq_start_edge_8 0000000_0 pm_rddata_delay_8 0000000_0 pm_rddqs_lt_half_8 0000000_0 pm_wrdqs_lt_half_8 0000000_0 pm_wrdq_lt_half_8
-MC0_DDR3_RDIMM_CTRL_0x128: .dword 0x0101000002010101
+MC0_DDR3_RDIMM_CTRL_0x128: .dword 0x0101000002010301
 //0000_0000 pm_rd_oe_end_8 0000_0000 pm_rd_oe_begin_8 000000_00 pm_rd_stop_edge_8 000000_00 pm_rd_start_edge_8 0000_0000 pm_dqs_oe_end_8 0000_0000 pm_dqs_oe_begin_8 000000_00 pm_dqs_stop_edge_8 000000_00 pm_dqs_start_edge_8
 MC0_DDR3_RDIMM_CTRL_0x130: .dword 0x0000000002010000
 //hXXXXXX (RD) 0000000_0 pm_wrdq_clkdelay_8 0000_0000 pm_odt_oe_end_8 0000_0000 pm_odt_oe_begin_8 000000_00 pm_odt_stop_edge_8 000000_00 pm_odt_start_edge_8
