@@ -1414,6 +1414,26 @@ soft_out_cpu1:
 		dli a0, 0x9800000000000000
 		bal	scache_init_64 // whd
 		nop
+#if 1
+		PRINTSTR("Jump to 9fc\r\n")
+		lui     t0, 0xdfff ####################### go to 9fc
+		ori     t0, t0, 0xffff
+		bal     1f
+		nop
+		1:
+		and     ra, ra, t0
+		addiu   ra, ra, 16
+		jr      ra
+		nop
+
+		mfc0   $4, $16
+		and    $4,0xfffffff8
+		or     $4,0x3
+		mtc0   $4,$16
+
+		TTYDBG("cache enable done\r\n")
+		nop
+#endif
 
 		TTYDBG("scache init node 1\r\n")
 		dli a0, 0x9800100000000000
@@ -1432,29 +1452,6 @@ soft_out_cpu1:
 
 #endif
 
-#if 1
-		PRINTSTR("Jump to 9fc\r\n")
-		lui     t0, 0xdfff ####################### go to 9fc
-		ori     t0, t0, 0xffff
-		bal     1f
-		nop
-		1:
-		and     ra, ra, t0
-		addiu   ra, ra, 16
-		jr      ra
-		nop
-
-#endif
-
-#if 1
-		mfc0   $4, $16
-		and    $4,0xfffffff8
-		or     $4,0x3
-		mtc0   $4,$16
-
-		TTYDBG("cache enable done\r\n")
-		nop
-#endif
 
 ##########################################
 //cxk
@@ -1985,7 +1982,8 @@ out_test:
 		TTYDBG("\r\n")
 #endif
 		la	a0, start
-		li	a1, 0xbfc00000
+		//li	a1, 0xbfc00000
+		li	a1, 0x9fc00000
 		la	a2, _edata
 		//or      a0, 0xa0000000
 		//or      a2, 0xa0000000
@@ -2018,11 +2016,12 @@ out_test:
 		PRINTSTR("\ncopy text section done.\r\n")
 
 		/* zhb */
-#if 1
+#if 0
 		zhb:
 		TTYDBG("Testing...\r\n")
 		la	a0, start
-		li	a1, 0xbfc00000
+		//li	a1, 0xbfc00000
+		li	a1, 0x9fc00000
 		la	a2, _edata
 		//or      a0, 0xa0000000
 		//or      a2, 0xa0000000
