@@ -1988,13 +1988,51 @@ node0_has_mem:
 
 //#define LOCK_SCACHE
 #ifdef LOCK_SCACHE
-	    bal lock_scache
-        nop
-	    TTYDBG("cache lock done\r\n")
-	    nop
+	bal lock_scache
+	nop
+	TTYDBG("cache lock done\r\n")
+	nop
 #endif
+	dli  t1, 0xffffffffffffffff
+	dli  t0, 0x900010003ff06000
+	sd   t1, 0xc0(t0)
+	sd   t1, 0xc8(t0)
+	sd   t1, 0xd0(t0)
+	sd   t1, 0xd8(t0)
+	sd   t1, 0xe0(t0)
+	sd   t1, 0xe8(t0)
+	sd   t1, 0xf0(t0)
+	sd   t1, 0xf8(t0)
 
+	dli  t0, 0x900000003ff02000
+	sd   t1, 0xc0(t0)
+	sd   t1, 0xc8(t0)
+	sd   t1, 0xd0(t0)
+	sd   t1, 0xd8(t0)
+	sd   t1, 0xe0(t0)
+	sd   t1, 0xe8(t0)
+	sd   t1, 0xf0(t0)
+	sd   t1, 0xf8(t0)
 
+	dli  t0, 0x900020003ff0a000
+	sd   t1, 0xc0(t0)
+	sd   t1, 0xc8(t0)
+	sd   t1, 0xd0(t0)
+	sd   t1, 0xd8(t0)
+	sd   t1, 0xe0(t0)
+	sd   t1, 0xe8(t0)
+	sd   t1, 0xf0(t0)
+	sd   t1, 0xf8(t0)
+
+	dli  t0, 0x900030003ff0e000
+	sd   t1, 0xc0(t0)
+	sd   t1, 0xc8(t0)
+	sd   t1, 0xd0(t0)
+	sd   t1, 0xd8(t0)
+	sd   t1, 0xe0(t0)
+	sd   t1, 0xe8(t0)
+	sd   t1, 0xf0(t0)
+	sd   t1, 0xf8(t0)
 ##########################################
 #ifdef LS3_HT
 #include "loongson3_HT_init.S"
@@ -3224,28 +3262,6 @@ LEAF(lock_scache)
        sd   t6, 0x30(sp)
        move t7, ra
 
-#if 1
-	dli  t1, 0xffffffffffffffff
-	dli  t0, 0x900010003ff06000
-    sd   t1, 0xc0(t0)
-    sd   t1, 0xc8(t0)
-    sd   t1, 0xd0(t0)
-    sd   t1, 0xd8(t0)
-    sd   t1, 0xe0(t0)
-    sd   t1, 0xe8(t0)
-    sd   t1, 0xf0(t0)
-    sd   t1, 0xf8(t0)
-
-	dli  t0, 0x900000003ff02000
-    sd   t1, 0xc0(t0)
-    sd   t1, 0xc8(t0)
-    sd   t1, 0xd0(t0)
-    sd   t1, 0xd8(t0)
-    sd   t1, 0xe0(t0)
-    sd   t1, 0xe8(t0)
-    sd   t1, 0xf0(t0)
-    sd   t1, 0xf8(t0)
-#endif
 
 #if 1
 	dli  t0, 0x900010003ff04000
