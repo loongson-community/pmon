@@ -392,7 +392,7 @@ ddr2_config:
     sd      a2, ADDRESS_MIRROR_ADDR(t8)
     //reconfig ODT map
     //set default first
-    dli     a2, 0x8421050000000501
+    dli     a2, 0x8421060000000601
     sd      a2, ODT_MAP_CS_ADDR(t8)
 
     //v0 store cs map
