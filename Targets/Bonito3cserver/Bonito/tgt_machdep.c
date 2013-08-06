@@ -725,11 +725,14 @@ tgt_devconfig()
                 ioaddress |= 0xb0000000;
 #endif
 
+#if 0
 #ifdef CONFIG_GFXUMA
 		fbaddress = 0x50000000; // virtual address mapped to the second 256M memory
 #else
 		fbaddress = uma_memory_base | BONITO_PCILO_BASE_VA;
 #endif
+#endif
+		fbaddress |= 0x80000000;
 		printf("fbaddress = %08x\n", fbaddress);
 
 		printf("begin fb_init\n");
