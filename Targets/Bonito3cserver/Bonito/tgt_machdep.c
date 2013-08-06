@@ -1344,90 +1344,11 @@ extern void watchdog_enable(void);
 void
 tgt_reboot(void)
 {
-#if 0
-	char * watch_dog_base		 = 0xb8000cd6;
-	char * watch_dog_config		 = 0xba00a041;
-	unsigned int * watch_dog_mem = 0xbe010000;
-	unsigned char * reg_cf9		 = (unsigned char *)0xb8000cf9;
+	char *watch_dog_base = (char *)0xb8000cd6;
 
-	delay(20000);
-	*reg_cf9 = 0;
-
-	/* enable WatchDogTimer */
-	delay(100);
-	watchdog_enable();
-
-	/* set WatchDogTimer base address is 0x10000 */
-	delay(100);
-	* watch_dog_base = 0x6c;
-	*(watch_dog_base + 1) = 0x0;
-
-	delay(100);
-	* watch_dog_base = 0x6d;
-	*(watch_dog_base + 1) = 0x0;
-
-	delay(100);
-	* watch_dog_base = 0x6e;
-	*(watch_dog_base + 1) = 0x1;
-
-	delay(100);
-	* watch_dog_base = 0x6f;
-	*(watch_dog_base + 1) = 0x0;
-
-	delay(100);
-	* watch_dog_config = 0xff;
-
-	/* set WatchDogTimer to starting */
-	delay(100);
-	* watch_dog_mem = 0x01;
-	delay(100);
-	*(watch_dog_mem + 1) = 0x01;
-	delay(100);
-	* watch_dog_mem = 0x81;
-#else
-	char * watch_dog_base = 0xb8000cd6;
-	char * watch_dog_config  = 0xba00a041;
-	unsigned int * watch_dog_mem = 0xbe010000;
-	unsigned char * reg_cf9 = (unsigned char *)0xb8000cf9;
-
-	delay(100);
-	*reg_cf9 = 4;
-
-	/* enable WatchDogTimer */
-	delay(100);
-	* watch_dog_base  = 0x69;
-	*(watch_dog_base + 1) = 0x0;
-
-	/* set WatchDogTimer base address is 0x10000 */
-	delay(100);
-	* watch_dog_base = 0x6c;
-	*(watch_dog_base + 1) = 0x0;
-
-	delay(100);
-	* watch_dog_base = 0x6d;
-	*(watch_dog_base + 1) = 0x0;
-
-	delay(100);
-	* watch_dog_base = 0x6e;
-	*(watch_dog_base + 1) = 0x1;
-
-	delay(100);
-	* watch_dog_base = 0x6f;
-	*(watch_dog_base + 1) = 0x0;
-
-	delay(100);
-	* watch_dog_config = 0xff;
-
-	/* set WatchDogTimer to starting */
-	delay(100);
-	* watch_dog_mem = 0x05;
-	delay(100);
-	*(watch_dog_mem + 1) = 0x1000;
-	delay(100);
-	* watch_dog_mem = 0x81;
-
-#endif
-
+	/* use the FullRst to realize reboot  */
+	*watch_dog_base = 0x85;
+	*(watch_dog_base + 1) = 0x0e;
 }
 #endif
 

@@ -72,6 +72,14 @@ void reboot_kernel()
 	volatile   unsigned int *p = 0xbfe0011c;
 	int i;
 
+#ifdef FULL_RST
+	unsigned char * watch_dog_base = (unsigned char *)0xb8000cd6;
+
+	/* use the FullRst to realize reboot */
+	*watch_dog_base  = 0x85;
+	*(watch_dog_base + 1) = 0x0e;
+#else
+
 #if (defined LOONGSON_3A2H) || (defined LOONGSON_3C2H)
 	volatile char * hard_reset_reg = 0xffffffffbbef0030;
 	* hard_reset_reg = ( * hard_reset_reg) | 0x01; // watch dog hardreset
@@ -128,6 +136,7 @@ void reboot_kernel()
 
         p[0] |= (0x1 << 13);
         p[1] &= ~(0x1 << 13);
+#endif
 #endif
 
 }

@@ -62,6 +62,8 @@ option      VRAM_SIZE=128
 #option		DEBUG_EMU_VGA
 #option      CONFIG_GFXUMA
 
+option		FULL_RST    #use sb700 FullRst
+
 #
 # GPU driver selection. Selects for video
 # Disable all options below to disable gpu driver 
