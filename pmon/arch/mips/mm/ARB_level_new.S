@@ -1063,18 +1063,12 @@ boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
     nop
     move    a2, v0
 1:
-    //Add offset because of clk dll value(relevant to 0x20)
-    ld      a1, CLKLVL_DELAY_VALUE(t8)
-    dsubu   a1, a1, 0x20
-    bgez    a1, 1f
+    //select the MIN(byte 3,4,5 MIN, WRLVL_DELAY_MINUS_VALUE), normally the byte 4 MIN should be closer to 0x40
+    dli     v0, WRLVL_DELAY_MINUS_VALUE
+    ble     a2, v0, 1f
     nop
-    move    a1, $0
+    move    a2, v0
 1:
-    dsubu   a2, a2, a1
-    bltz    a2, 1f
-    nop
-    //a2 should be >= 0
-
     and     a2, a2, 0x7f
     dsll    v0, a2, 8
     or      a2, a2, v0  //2

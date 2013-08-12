@@ -1263,7 +1263,33 @@ wait_scache_out:
     nop
 #endif
 
-    dli     s1, 0x0008000080000000  //NODE 0, start from 0x80000000
+#if 0
+#define LOOP_TIME   0x100000
+    PRINTSTR("\r\nPlease input test addr:")
+    bal     inputaddress
+    nop
+    move    t1, v0
+    PRINTSTR("\r\nPlease input write content:")
+    bal     inputaddress
+    nop
+    move    t0, v0
+
+    dli     t9, LOOP_TIME
+1:
+    dsubu   t9, t9, 1
+
+    sd      t0, 0x0(t1)
+    sd      t0, 0x8(t1)
+    sd      t0, 0x10(t1)
+    sd      t0, 0x18(t1)
+    cache   0x15, 0x0(t1)
+    cache   0x17, 0x0(t1)
+
+    bnez    t9, 1b
+    nop
+#endif
+
+    dli     s1, 0x0010000080000000  //NODE 0, start from 0x80000000
 #if 1
     PRINTSTR("\r\ndefault s1 = 0x");
     dsrl    a0, s1, 32
@@ -1310,7 +1336,7 @@ wait_scache_out:
 #endif
 #########################################
 
-#if 0 //cww_X2
+#if 1 //cww_X2
 //dump L1-L2-HT config windows
     PRINTSTR("\r\n======X1 core0 map windows:\r\n")
     li      t1, 23
@@ -2927,11 +2953,7 @@ nvram_offs:
     .global ddr3_reg_data
 
     .align  5
-#ifndef ARB_LEVEL
-#include "loongson3a_ddr3_param.S"
-#else
 #include "loongson3A3_ddr_param.S"
-#endif
 
 #ifdef  ARB_LEVEL
     .text
