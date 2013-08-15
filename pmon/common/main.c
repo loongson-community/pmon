@@ -826,50 +826,48 @@ dbginit (char *adr)
 	
 
  	clk = get_mem_clk();
-        if(clk != 0x1f)
-        {
-         clk30 = clk & 0x0f;
-         clk4 = (clk >> 4) & 0x01;
-#ifdef LOONGSON_3ASERVER
-        memfreq = 25*(clk30 + 30)/(clk4 + 3);/*to calculate memory frequency.we can find this function in loongson 3A manual,memclk*(clksel[8:5]+30)/(clksel[9]+3)*/
+#if defined(LOONGSON_3BSINGLE) || defined (LOONGSON_3BSERVER)
+	 /*for 3c/3b1500 ddr control*/ 
+        if(clk != 0xf)
+	{
+#ifndef LOONGSON_3B1500
+		clk20 = clk & 0x07;
+		clk34 = (clk >> 3) & 0x03;
+		mem_vco = 100 * (20 + clk20 * 2 + (clk20 == 7) * 2) / 3;
+		memfreq = mem_vco / (1 << (clk34 + 1));
 #else
-        memfreq = 100*(clk30 + 30)/(clk4 + 3)/3;/*to calculate memory frequency.we can find this function in loongson 3A manual,memclk*(clksel[8:5]+30)/(clksel[9]+3)*/
+		if ((clk & 0x8) == 0x0) { /* set ddr frequency by software */
+			div_refc = ((*(volatile unsigned int *)(0xbfe001c0)) >> 8) & 0x3f; 
+			div_loopc = ((*(volatile unsigned int *)(0xbfe001c0)) >> 14 ) & 0x3ff; 
+			div_out = ((*(volatile unsigned int *)(0xbfe001c0)) >> 24) & 0x3f; 
+			memfreq = ((100 / div_refc) * div_loopc) / div_out / 3;
+		} else { /* set ddr frequency by hareware */
+			clk20 = clk & 0x07;
+			clk34 = (clk >> 3) & 0x03;
+			mem_vco = 100 * (20 + clk20 * 2 + (clk20 == 7) * 2) / 3;
+			memfreq = mem_vco / (1 << (clk34 + 1));
+		}
+		printf("/ Bus @ %d MHz\n",memfreq);
+	}
+        else
+		printf("/ Bus @ 33 MHz\n");
+#endif
+#else  /*for 3a/3b ddr controller */ 
+        if(clk != 0x1f)
+	{
+		clk30 = clk & 0x0f;
+		clk4 = (clk >> 4) & 0x01;
+#ifdef LOONGSON_3ASERVER
+		memfreq = 25*(clk30 + 30)/(clk4 + 3);/*to calculate memory frequency.we can find this function in loongson 3A manual,memclk*(clksel[8:5]+30)/(clksel[9]+3)*/
+#else
+		memfreq = 100*(clk30 + 30)/(clk4 + 3)/3;/*to calculate memory frequency.we can find this function in loongson 3A manual,memclk*(clksel[8:5]+30)/(clksel[9]+3)*/
 #endif
 
-#ifdef LOONGSON_3BSINGLE
-#ifndef LOONGSON_3B1500
-         clk20 = clk & 0x07;
-         clk34 = (clk >> 3) & 0x03;
-         mem_vco = 100 * (20 + clk20 * 2 + (clk20 == 7) * 2) / 3;
-         memfreq = mem_vco / (1 << (clk34 + 1));
-#else
-	  if ((clk & 0x8) == 0x0){ /* set ddr frequency by software */
-		  div_refc = ((*(volatile unsigned int *)(0xbfe001c0)) >> 8) & 0x3f; 
-		  div_loopc = ((*(volatile unsigned int *)(0xbfe001c0)) >> 14 ) & 0x3ff; 
-		  div_out = ((*(volatile unsigned int *)(0xbfe001c0)) >> 24) & 0x3f; 
-          memfreq = ((100 / div_refc) * div_loopc) / div_out / 3;
-	  } else { /* set ddr frequency by hareware */
-         clk20 = clk & 0x07;
-         clk34 = (clk >> 3) & 0x03;
-         mem_vco = 100 * (20 + clk20 * 2 + (clk20 == 7) * 2) / 3;
-         memfreq = mem_vco / (1 << (clk34 + 1));
-	  }
-#endif
-#endif
-         printf("/ Bus @ %d MHz\n",memfreq);
-        }
+		printf("/ Bus @ %d MHz\n",memfreq);
+	}
         else
-         printf("/ Bus @ 33 MHz\n");
-	/*freq = tgt_cpufreq ();
-	sprintf(fs, "%d", freq);
-	fp = fs + strlen(fs) - 6;
-	fp[3] = '\0';
-	fp[2] = fp[1];
-	fp[1] = fp[0];
-	fp[0] = '.';
-	printf (" / Bus @ %s MHz\n", fs);
-	*/
-	//printf ("Memory size %3d MB (%3d MB Low memory, %3d MB High memory) .\n", (memsize+memorysize_high)>>20,(memsize>>20), (memorysize_high>>20));
+		printf("/ Bus @ 33 MHz\n");
+#endif
 	memorysize_total = ((memsize + memorysize_high + (16 << 20)) >> 20);  
 #ifdef  MULTI_CHIP
 	if(memorysize_high_n1 == 0)

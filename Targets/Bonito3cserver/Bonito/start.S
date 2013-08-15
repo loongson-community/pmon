@@ -1070,9 +1070,9 @@ gs_2f_v3_ddr2_cfg:
 #define NODE_DIV    1
 
 //#define DDR_LOOPC  24 //400MHz
-#define DDR_LOOPC  28 //466MHz
+//#define DDR_LOOPC  28 //466MHz
 //#define DDR_LOOPC  30 //500MHz
-//#define DDR_LOOPC  32 //533MHz
+#define DDR_LOOPC  32 //533MHz
 //#define DDR_LOOPC  34 //566MHz
 //#define DDR_LOOPC  36 //600MHz
 //#define DDR_LOOPC  38 //633MHz
@@ -1082,7 +1082,8 @@ gs_2f_v3_ddr2_cfg:
 //#define CORE_LOOPC  32 //0.8G
 //#define CORE_LOOPC  40 //1.0G
 //#define CORE_LOOPC  46 //1.15G
-#define CORE_LOOPC  48 //1.2G
+//#define CORE_LOOPC  48 //1.2G
+#define CORE_LOOPC  44 //1.1G
 //#define CORE_LOOPC  50 //1.25G
 //#define CORE_LOOPC  52 //1.3G  OK @ 1.15, pass the stressapptest
 //#define CORE_LOOPC  54 //1.35G OK @ 1.15v but (bit 33 cause error, make 0 to 1 at stressapptest)
@@ -2416,18 +2417,18 @@ node0_has_mem:
 #else 
 #define MTC0 mtc0
 #endif
-  LEAF(get_mem_clk)
+		LEAF(get_mem_clk)
 
-               li t0,0xbfe00190
-               ld t1,0x0(t0)
-                        dsrl t2,t1,37
-               andi t2,t2,0x0000001f
-               move v0,t2
+		li t0,0xbfe00190
+		ld t1,0x0(t0)
+		dsrl t2,t1,38
+		andi t2,t2,0x0000000f
+		move v0,t2
 
-                       nop
-                       jr ra
-                       nop
-       END(get_mem_clk)
+		nop
+		jr ra
+		nop
+		END(get_mem_clk)
 
 		LEAF(CPU_TLBClear)
 		li	a3, 0			# First TLB index.
