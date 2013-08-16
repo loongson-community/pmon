@@ -435,7 +435,7 @@ MC0_DDR3_RDIMM_CTRL_0x008: .dword 0x0000000000000000
 //XXXX pm_dll_value_4(RD) XXXX pm_dll_value_3 (RD) XXXX pm_dll_value_2(RD) XXXX pm_dll_value_1(RD)
 MC0_DDR3_RDIMM_CTRL_0x010: .dword 0x0000000000000000
 //XXXX pm_dll_value_8(RD) XXXX pm_dll_value_7 (RD) XXXX pm_dll_value_6(RD) XXXX pm_dll_value_5(RD)
-MC0_DDR3_RDIMM_CTRL_0x018: .dword 0x5252525216600000
+MC0_DDR3_RDIMM_CTRL_0x018: .dword 0x3030303016600000
 //_00000000 pm_dll_ck_3 _00000000 pm_dll_ck_2 _00000000 pm_dll_ck_1 _00000000 pm_dll_ck_0 _00000000 pm_dll_increment _00000000 pm_dll_start_point _0000000_0 pm_dll_bypass _0000000_0 pm_init_start
 MC0_DDR3_RDIMM_CTRL_0x020: .dword 0x0202000001000000
 //0000_0000 pm_dq_oe_end_0 0000_0000 pm_dq_oe_begin_0 000000_00 pm_dq_stop_edge_0 000000_00 pm_dq_start_edge_0 0000000_0 pm_rddata_delay_0 0000000_0 pm_rddqs_lt_half_0 0000000_0 pm_wrdqs_lt_half_0 0000000_0 pm_wrdq_lt_half_0
