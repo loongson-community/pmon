@@ -173,6 +173,33 @@ ddr2_config:
     bnez    t1, 1b
     nop
 
+#if 1 //only add for 3C2W 4x(SCS 2GB 1RANK) RDIMM at 533MHz
+    GET_MC_CS_MAP
+    dli     a2, 0x1
+    bne     a1, a2, 1f //not singal 1RANK dimm
+    nop
+    GET_DIMM_TYPE
+    beqz    a1, 1f //not RDIMM
+    nop
+    GET_MC0_MEMSIZE
+    dli     a2, 0x4
+    bne     a1, a2, 1f //not 2GB
+    nop
+
+    li      a2, 0xbfe001c0
+    lw      a1, 0x0(a2)
+    srl     a1, a1, 14
+    li      a2, 0x3ff
+    and     a1, a1, a2
+    li      a2, 0x20
+    bne     a1, a2, 1f //not 533MHz
+    nop
+    dli     a1, 0x3030303016600000
+    sd      a1, 0x18(t8)
+
+1:
+#endif
+
     //rewrite eight_bank_mode
     //rewrite pm_bank_diff_0 and pm_bank
     ld      a2, EIGHT_BANK_MODE_ADDR(t8)
