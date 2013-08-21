@@ -18,7 +18,7 @@
 	TTYDBG("32 bit PCI space translate to 64 bit HT space\r\n")
 
     dli t0, 0x900000003ff02000
-    dli t2, 0x900000003ff02800
+    dli t2, 0x900000003ff02400
 
 1:
  //map HT: PCI IO : 0x90000efd_fc000000 --> 0x18000000
@@ -62,6 +62,45 @@
     bne     t0, t2, 1b
     nop
 
+    dli t0, 0x900000003ff02700
+
+ //map HT: PCI IO : 0x90000efd_fc000000 --> 0x18000000
+ //map              0x90000efd_fd000000 --> 0x19000000
+ //map HT: PCI CFG: 0x90000efd_fe000000 --> 0x1a000000
+ //map HT: PCI CFG: 0x90000efd_ff000000 --> 0x1b000000
+    dli t1, 0x0000000018000000
+    sd  t1, 0x0(t0)
+    dli t1, 0xfffffffffc000000
+    sd  t1, 0x40(t0)
+    dli t1, 0x00001efdfc0000f4
+    sd  t1, 0x80(t0)
+
+ //HT Space enable
+ //map 0x90000e00_00000000 --> 0x90000e00_00000000
+    dli t1, 0x00000c0000000000
+    sd  t1, 0x8(t0)
+    dli t1, 0xfffffc0000000000
+    sd  t1, 0x48(t0)
+    dli t1, 0x00001c00000000f4
+    sd  t1, 0x88(t0)
+
+ //HT: PCI HI BASE
+ //map 0x90000e00_10000000 --> 0x10000000
+    dli t1, 0x0000000040000000
+    sd  t1, 0x18(t0)
+    dli t1, 0xffffffffc0000000
+    sd  t1, 0x58(t0)
+    dli t1, 0x00001e00400000f4
+    sd  t1, 0x98(t0)
+
+ //map 0x90000e00_00000000 --> 0x1e000000
+    dli t1, 0x000000001e000000
+    sd  t1, 0x20(t0)
+    dli t1, 0xffffffffff000000
+    sd  t1, 0x60(t0)
+    dli t1, 0x00001e00000000f4
+    sd  t1, 0xa0(t0)
+    
 #endif
 
 #ifdef HT_32bit_TRANS //PCI CFG : TYPE 0: 
