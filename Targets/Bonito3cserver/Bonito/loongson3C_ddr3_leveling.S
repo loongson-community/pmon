@@ -847,6 +847,9 @@ rdimm_wrdq_clkdelay_set_3210:
     dli     t2, 0x0
     or      t1, t1, t8
 rdimm_wrdq_clkdelay_set_loop_3210:
+    dli     t1, 0x90
+    or      t1, t1, t8
+1:
     daddu   t2, t2, 0x1
     bgt     t2, t0, rdimm_wrdq_lt_half_test_4567
     nop
@@ -861,7 +864,7 @@ rdimm_wrdq_clkdelay_set0_3210:
     dli     t4, 0xffffff00ffffffff
     and     a0, a0, t4
     sd      a0, 0x0(t1)
-    b       rdimm_wrdq_clkdelay_set_loop_3210
+    b       1b
     nop
     
 rdimm_wrdq_clkdelay_set1_3210:
@@ -870,7 +873,7 @@ rdimm_wrdq_clkdelay_set1_3210:
     dli     t4, 0x0000000100000000
     or      a0, a0, t4
     sd      a0, 0x0(t1)
-    b       rdimm_wrdq_clkdelay_set_loop_3210
+    b       1b
     nop
 
 
