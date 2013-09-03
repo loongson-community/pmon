@@ -78,6 +78,8 @@ lvl_ready_sampling:
 
 /* t3 is used to indicate whether all slice got 0 */
     dli     t3, 0x0
+    dli     a1, 0x0
+    dli     s6, 0x0
 lvl_req_set:
     dli     t1, 0x180
     or      t1, t1, t8
@@ -94,7 +96,6 @@ lvl_req_set:
 #endif
 
 /* 6. check whether this leveling request done */
-    dli     s6, 0x1
 lvl_done_sampling:
     dli     t1, 0x180
     or      t1, t1, t8
@@ -102,21 +103,21 @@ lvl_done_sampling:
     dli     t4, 0x00ff000000000000
     and     a0, a0, t4
     dsrl    a0, a0, 48
-    bne     a0, s6, lvl_done_sampling
+    beqz    a0, lvl_done_sampling
     nop
 
 #ifdef LVL_DEBUG
     PRINTSTR("\r\nwrite leveling done\r\n")
 #endif
 
-    beq     t3, s6, lvl_resp_set
+    bnez    t3, lvl_resp_set
     nop 
 
 /* 7. check each slice response to adjust the dll */
 
 /* 7.1 ensure all slice got a 0 first */
 /* a2 is used to indicate whether any slice got an 1 */
-    dli     s6, 0x1
+//    dli     s6, 0x1
 lvl_resp_0_set0:
     dli     s7, 0x0
     dli     t1, 0x180
@@ -217,8 +218,142 @@ lvl_resp_8_set0:
     nop
 
 1:
-    beq     s7, s6, lvl_req_set
+    bnez    s7, lvl_req_set
     nop
+
+#if 1
+/* filter the 0 to 1 glitch, which will cause the reboot error*/
+additional_lvl_req:
+    blt     s6, 5, dll_wrdqs0_add
+    nop
+    blt     s6, 10, dll_wrdqs1_add
+    nop
+    blt     s6, 15, dll_wrdqs2_add
+    nop
+    blt     s6, 20, dll_wrdqs3_add
+    nop
+    blt     s6, 25, dll_wrdqs4_add
+    nop
+    blt     s6, 30, dll_wrdqs5_add
+    nop
+    blt     s6, 35, dll_wrdqs6_add
+    nop
+    blt     s6, 40, dll_wrdqs7_add
+    nop
+    //ECC
+    dli     t1, 0x250
+    or      t1, t1, t8
+    lb      a0, 0x2(t1)
+    beqz    a0, 11f
+    nop
+    blt     s6, 45, dll_wrdqs8_add
+    nop
+11:
+    b       1f
+    nop
+
+dll_wrdqs0_add:
+    daddu   s6, s6, 0x1
+    ld      a0, 0x38(t8)
+    dli     t4, 0x010000
+    daddu   a0, a0, t4
+    dli     t4, 0xffffffffff7fffff
+    and     a0, a0, t4
+    sd      a0, 0x38(t8)
+    b       lvl_req_set //make additional 5 times lvl_req
+    nop
+
+dll_wrdqs1_add:
+    daddu   s6, s6, 0x1
+    ld      a0, 0x58(t8)
+    dli     t4, 0x010000
+    daddu   a0, a0, t4
+    dli     t4, 0xffffffffff7fffff
+    and     a0, a0, t4
+    sd      a0, 0x58(t8)
+    b       lvl_req_set //make additional 5 times lvl_req
+    nop
+
+dll_wrdqs2_add:
+    daddu   s6, s6, 0x1
+    ld      a0, 0x78(t8)
+    dli     t4, 0x010000
+    daddu   a0, a0, t4
+    dli     t4, 0xffffffffff7fffff
+    and     a0, a0, t4
+    sd      a0, 0x78(t8)
+    b       lvl_req_set //make additional 5 times lvl_req
+    nop
+
+dll_wrdqs3_add:
+    daddu   s6, s6, 0x1
+    ld      a0, 0x98(t8)
+    dli     t4, 0x010000
+    daddu   a0, a0, t4
+    dli     t4, 0xffffffffff7fffff
+    and     a0, a0, t4
+    sd      a0, 0x98(t8)
+    b       lvl_req_set //make additional 5 times lvl_req
+    nop
+
+dll_wrdqs4_add:
+    daddu   s6, s6, 0x1
+    ld      a0, 0xb8(t8)
+    dli     t4, 0x010000
+    daddu   a0, a0, t4
+    dli     t4, 0xffffffffff7fffff
+    and     a0, a0, t4
+    sd      a0, 0xb8(t8)
+    b       lvl_req_set //make additional 5 times lvl_req
+    nop
+
+dll_wrdqs5_add:
+    daddu   s6, s6, 0x1
+    ld      a0, 0xd8(t8)
+    dli     t4, 0x010000
+    daddu   a0, a0, t4
+    dli     t4, 0xffffffffff7fffff
+    and     a0, a0, t4
+    sd      a0, 0xd8(t8)
+    b       lvl_req_set //make additional 5 times lvl_req
+    nop
+
+dll_wrdqs6_add:
+    daddu   s6, s6, 0x1
+    ld      a0, 0xf8(t8)
+    dli     t4, 0x010000
+    daddu   a0, a0, t4
+    dli     t4, 0xffffffffff7fffff
+    and     a0, a0, t4
+    sd      a0, 0xf8(t8)
+    b       lvl_req_set //make additional 5 times lvl_req
+    nop
+
+dll_wrdqs7_add:
+    daddu   s6, s6, 0x1
+    ld      a0, 0x118(t8)
+    dli     t4, 0x010000
+    daddu   a0, a0, t4
+    dli     t4, 0xffffffffff7fffff
+    and     a0, a0, t4
+    sd      a0, 0x118(t8)
+    b       lvl_req_set //make additional 5 times lvl_req
+    nop
+
+dll_wrdqs8_add:
+    daddu   s6, s6, 0x1
+    ld      a0, 0x138(t8)
+    dli     t4, 0x010000
+    daddu   a0, a0, t4
+    dli     t4, 0xffffffffff7fffff
+    and     a0, a0, t4
+    sd      a0, 0x138(t8)
+    b       lvl_req_set //make additional 5 times lvl_req
+    nop
+
+1:
+#endif
+
     dli     t3, 0x1
     b       lvl_req_set
     nop
