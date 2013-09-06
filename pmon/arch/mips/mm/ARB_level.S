@@ -34,7 +34,7 @@ algrithm:
 //#define DEBUG_ARB_LEVEL
 
 #define ADD_DELAY_AFTER_RESET_PHY   //necessary
-#ifndef	LS2HMC
+#ifndef LS2HMC
 #define CLEAR_HALF_CLK_SHIFT    //necessary
 #endif
 
@@ -124,10 +124,10 @@ One_ARB_level_begin:
     daddiu  t8, t8, 0x8
     dli     a0, 0x00
 #else
-    dli     a0, 0x0105010501050105
+    dli     a0, 0x04030204030205
     sd      a0, LEVEL_SEQ_BASE(t8)
     daddiu  t8, t8, 0x8
-    dli     a0, 0x00040302
+    dli     a0, 0x0000
 #endif
     sd      a0, LEVEL_SEQ_BASE(t8)
     daddiu  t8, t8, 0x8
@@ -697,7 +697,7 @@ boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
     dli     a2, 0x2
     bne     t6, a2, 2f
     nop
-#if 0
+#if 1
     //rdlvl gate use (max + mid value) / 2.
     ld      a1, GD_MAX(t8)
     daddu   a0, a0, a1
@@ -713,157 +713,7 @@ boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
 #endif
 2:
 #endif
-#ifdef  DDR3_DIMM
-    //special deal with wrlvl_dqs when use DDR3 DIMM
-    dli     a1, 0x5
-    bne     t6, a1, 88f
-    nop
-    GET_DIMM_TYPE
-    bnez    a1, 4f
-    nop
-#if 1
-    ld      a1, GD_MIN(t8)
-    ld      a3, GD_MAX(t8)
-    //Byte 1~0
-    //refer byte 1
-    dsrl    a2, a1, 8
-    and     a2, a2, 0x7f
-    bnez    a2, 1f
-    nop
-    //min==0
-    dsrl    v0, a0, 1   //mid_value / 2
-    dli     a2, 0x7f7f
-    and     v0, v0, a2
-    dli     a2, 0xffff
-    not     a2, a2
-    and     a0, a0, a2
-    or      a0, a0, v0
-1:
-    //Byte 3~2
-    //refer byte 3
-    dsrl    a2, a1, 24
-    and     a2, a2, 0x7f
-    bnez    a2, 1f
-    nop
-    //MIN==0
-    dsrl    v0, a0, 0   //mid_value / 1
-    dli     a2, 0x7f7f0000
-    and     v0, v0, a2
-    dli     a2, 0xffff0000
-    not     a2, a2
-    and     a0, a0, a2
-    or      a0, a0, v0
-1:
-    //Byte 5~4
-    //refer byte 5
-    dsrl    a2, a3, 40
-    and     a2, a2, 0x7f
-    dli     v0, 0x58
-    blt     a2, v0, 1f
-    nop
-    //MAX reach boundary, use ((MAX+MID)/2 + MID)/2
-    daddu   v0, a3, a0
-    dsrl    v0, v0, 1
-    dli     v1, 0x7f7f00000000
-    and     v0, v0, v1
-
-    daddu   v0, v0, a0
-    dsrl    v0, v0, 1
-    dli     v1, 0x7f7f00000000
-    and     v0, v0, v1
-
-    dli     v1, 0xffff00000000
-    not     v1, v1
-    and     a0, a0, v1
-    or      a0, a0, v0
-1:
-    //Byte 7~6
-    //refer byte 7
-    dsrl    a2, a3, 56
-    and     a2, a2, 0x7f
-    dli     v0, 0x58
-    blt     a2, v0, 1f
-    nop
-    //MAX reach boundary, use (MAX+MID)/2
-    daddu   v0, a3, a0
-    dsrl    v0, v0, 1
-    dli     v1, 0x7f7f000000000000
-    and     v0, v0, v1
-    dli     v1, 0xffff000000000000
-    not     v1, v1
-    and     a0, a0, v1
-    or      a0, a0, v0
-1:
-#endif
-    b       88f
-    nop
-4:
-    ld      a1, GD_MIN(t8)
-    ld      a3, GD_MAX(t8)
-    //Byte 1~0
-    //refer byte 0 MIN
-    dsrl    a2, a1, 0
-    and     a2, a2, 0x7f
-    bnez    a2, 1f
-    nop
-    //min==0
-    dsrl    v0, a0, 0   //mid_value / 1
-    dli     a2, 0x7f7f
-    and     v0, v0, a2
-    dli     a2, 0xffff
-    not     a2, a2
-    and     a0, a0, a2
-    or      a0, a0, v0
-1:
-    //Byte 3~2
-    //refer byte 2 MIN
-    dsrl    a2, a1, 16
-    and     a2, a2, 0x7f
-    bnez    a2, 1f
-    nop
-    //MIN==0
-    dsrl    v0, a0, 1   //mid_value / 2
-    dli     a2, 0x7f7f0000
-    and     v0, v0, a2
-    dli     a2, 0xffff0000
-    not     a2, a2
-    and     a0, a0, a2
-    or      a0, a0, v0
-1:
-    //Byte 5~4
-    //refer byte 5 MIN
-    dsrl    a2, a1, 40
-    and     a2, a2, 0x7f
-    bnez    a2, 1f
-    nop
-    //MIN==0
-    dsrl    v0, a0, 1   //mid_value / 2
-    dli     a2, 0x7f7f00000000
-    and     v0, v0, a2
-    dli     a2, 0xffff00000000
-    not     a2, a2
-    and     a0, a0, a2
-    or      a0, a0, v0
-1:
-    //Byte 7~6
-    //refer byte 7 MIN
-    dsrl    a2, a1, 56
-    and     a2, a2, 0x7f
-    bnez    a2, 1f
-    nop
-    //MIN==0
-    dsrl    v0, a0, 0   //mid_value / 1
-    dli     a2, 0x7f7f000000000000
-    and     v0, v0, a2
-    dli     a2, 0xffff000000000000
-    not     a2, a2
-    and     a0, a0, a2
-    or      a0, a0, v0
-1:
-
-88:
-#endif
-#if 0
+#if 0  //special deal with wrlvl_dq
     //add some offset for wrlvl_dq
     dli     a1, 0x6
     bne     t6, a1, 2f

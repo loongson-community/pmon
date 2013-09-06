@@ -88,9 +88,8 @@ Function: Macro defination for Test_Mem.S
 #define REDUCED_MEM_TEST
 #define MACRO_SCALE     3
 
-#define TM_MAX_RPT_ERRORS    0x10
-#define TM_MAX_ERRORS  0x10
-//#define   PRINT_LESS_ERROR
+#define PRINT_LESS_ERROR
+#define TM_MAX_RPT_ERRORS    0x20
 //===========================
 //for simple_test_mem
 #define TMF_PWRLOOP   0x10

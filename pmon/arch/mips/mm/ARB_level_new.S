@@ -37,10 +37,12 @@ algrithm:
 ********************************/
 #include "ARB_level.h"
 
-//#define DEBUG_ARB_LEVEL_RD
 //#define DEBUG_ARB_LEVEL_WR
-//#define DEBUG_ARB_LEVEL_RD_DETAIL
+//#define DEBUG_ARB_LEVEL_WR_TM
 //#define DEBUG_ARB_LEVEL_WR_DETAIL
+//#define DEBUG_ARB_LEVEL_RD
+//#define DEBUG_ARB_LEVEL_RD_TM
+//#define DEBUG_ARB_LEVEL_RD_DETAIL
 
 //#define USE_DEFAULT_WRLVL_VALUE   //currently only affect at DDR3 mode
 
@@ -241,7 +243,7 @@ arb_wrlvl_start:
     not     t3, t3
     not     t4, t4
 31:
-#ifdef  DEBUG_ARB_LEVEL_WR_DETAIL
+#ifdef  DEBUG_ARB_LEVEL_WR
     PRINTSTR("\r\n\r\nt2 = 0x")
     move    a0, t2
     bal     hexserial
@@ -391,7 +393,7 @@ arb_wrlvl_start:
     not     a0, a0
     and     t3, t3, a0
 1:
-#ifdef  DEBUG_ARB_LEVEL_WR_DETAIL
+#ifdef  DEBUG_ARB_LEVEL_WR
     //record RD history in t4, normally, t4 should be 0x0 after all these trying
     //byte 7
     dsrl    a0, v1, 0x38
@@ -510,7 +512,7 @@ arb_wrlvl_start:
 26: //tryed all setting(combination: pop delay and rd gat cfg)
     move    t2, s5
 
-#ifdef  DEBUG_ARB_LEVEL_WR_DETAIL
+#ifdef  DEBUG_ARB_LEVEL_WR_TM
     PRINTSTR("\r\nRW Diff 0x")
     dsrl    a0, t3, 32
     bal     hexserial
@@ -518,16 +520,9 @@ arb_wrlvl_start:
     move    a0, t3
     bal     hexserial
     nop
-    PRINTSTR("\r\nRD Diff 0x")
-    dsrl    a0, t4, 32
-    bal     hexserial
-    nop
-    move    a0, t4
-    bal     hexserial
-    nop
 #endif
 
-#ifdef  DEBUG_ARB_LEVEL_WR_DETAIL
+#ifdef  DEBUG_ARB_LEVEL_WR
     PRINTSTR("\r\nAfter all the RD setting, t4 = 0x")
     dsrl    a0, t4, 32
     bal     hexserial
@@ -633,7 +628,7 @@ arb_wrlvl_start:
     nop
 11: 
 
-#ifdef  DEBUG_ARB_LEVEL_WR
+#ifdef  DEBUG_ARB_LEVEL_WR_TM
     dli     t8, ARB_STORE_BASE
     GET_ARB_LEVEL_NODE_ID
     dsll    a1, a1, 44
@@ -717,17 +712,39 @@ boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
     dsrl    t2, t2, LOG2_STEP
 
     move    t9, $0
+    dli     t8, ARB_STORE_BASE
+    GET_ARB_LEVEL_NODE_ID
+    dsll    a1, a1, 44
+    daddu   t8, t8, a1
 
     dli     t1, 0x38    //start from byte 7
     GET_DIMM_WIDTH
     beqz    a1, 1f
     nop
+    //for 32 bit data width, add high 32 bits result to low 32 bits
+    ld      a1, B4_TM_RST(t8)
+    ld      a2, B0_TM_RST(t8)
+    or      a1, a1, a2
+    sd      a2, B0_TM_RST(t8)
+
+    ld      a1, B5_TM_RST(t8)
+    ld      a2, B1_TM_RST(t8)
+    or      a1, a1, a2
+    sd      a2, B1_TM_RST(t8)
+
+    ld      a1, B6_TM_RST(t8)
+    ld      a2, B2_TM_RST(t8)
+    or      a1, a1, a2
+    sd      a2, B2_TM_RST(t8)
+
+    ld      a1, B7_TM_RST(t8)
+    ld      a2, B3_TM_RST(t8)
+    or      a1, a1, a2
+    sd      a2, B3_TM_RST(t8)
+
     dli     t1, 0x18    //start from byte 3
 1:
-    dli     t8, ARB_STORE_BASE
-    GET_ARB_LEVEL_NODE_ID
-    dsll    a1, a1, 44
-    daddu   t8, t8, a1
+
 11: //loop for 8 byte lane
     daddu   a1, t8, t1
     ld      t3, B0_TM_RST(a1)
@@ -1144,13 +1161,21 @@ boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
     nop
 1:
     //MIN reach boundary, MAX not reach boundary
-    dsrl    v0, a0, 1   //mid_value / 2
+#if 0   //mid_value / 2
+    dsrl    v0, a0, 1
     dli     a2, 0x7f7f7f7f7f7f7f7f
     and     v0, v0, a2
     dli     a2, 0xffffffffffffffff
     not     a2, a2
     and     a0, a0, a2
     or      a0, a0, v0
+#endif
+#if 1    //use max_value - offset
+    dli     a2, 0x3030303030303030
+    dsubu   a0, a3, a2
+    dli     a2, 0x7f7f7f7f7f7f7f7f
+    and     a0, a0, a2
+#endif
 88:
 #endif
     sd      a0, GD_MID(t8)
@@ -1290,6 +1315,14 @@ rdlvl_one_byte_start:
     dli     a1, 0xff
     dsll    s5, a1, a0
 
+    GET_DIMM_WIDTH
+    beqz    a1, 1f
+    nop
+    //for reduc setting, set mask to high
+    dsll    a1, s5, 32
+    or      s5, s5, a1
+1:
+
 #ifdef  PRINT_MSG
     PRINTSTR("\r\n\r\n\r\nLevel slice: 0x")
     move    a0, s3
@@ -1337,7 +1370,7 @@ rdlvl_gate_cfg_start:
     dli     t6, 0x7
     bal     arb_modify_param
     nop
-#ifdef  DEBUG_ARB_LEVEL_RD
+#ifdef  DEBUG_ARB_LEVEL_RD_DETAIL
     PRINTSTR("\r\nThe MC configuration is:\r\n")
     bal     enable_ddr_confspace
     nop
@@ -1398,7 +1431,7 @@ rdlvl_gate_cfg_start:
     nop
     move    t3, v0
     move    t4, v1
-#ifdef  DEBUG_ARB_LEVEL_RD_DETAIL
+#ifdef  DEBUG_ARB_LEVEL_RD_TM
     PRINTSTR("\r\nt2 = 0x")
     move    a0, t2
     bal     hexserial
@@ -1453,7 +1486,7 @@ rdlvl_gate_cfg_start:
     nop
 11: 
 
-#ifdef  DEBUG_ARB_LEVEL_RD_DETAIL
+#ifdef  DEBUG_ARB_LEVEL_RD_TM
     PRINTSTR("\r\nlevel result is:\r\n")
     ld      t7, BYTE_TM_RST(t8)
     dsrl    a0, t7, 32
@@ -1670,7 +1703,7 @@ rdlvl_gate_cfg_fail:    //tryed all setting(0,1), can NOT find a right cfg, try 
     nop
     move    t3, v0
     move    t4, v1
-#ifdef  DEBUG_ARB_LEVEL_RD_DETAIL
+#ifdef  DEBUG_ARB_LEVEL_RD_TM
     PRINTSTR("\r\nt2 = 0x")
     move    a0, t2
     bal     hexserial
@@ -1725,7 +1758,7 @@ rdlvl_gate_cfg_fail:    //tryed all setting(0,1), can NOT find a right cfg, try 
     nop
 11: 
 
-#ifdef  DEBUG_ARB_LEVEL_RD_DETAIL
+#ifdef  DEBUG_ARB_LEVEL_RD_TM
     PRINTSTR("\r\nlevel result is:\r\n")
     ld      t7, BYTE_TM_RST(t8)
     dsrl    a0, t7, 32
@@ -1881,7 +1914,7 @@ boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
     nop
 
 rdlvl_pop_delay_end:
-#ifdef  DEBUG_ARB_LEVEL_RD
+#ifdef  DEBUG_ARB_LEVEL_RD_DETAIL
     PRINTSTR("\r\nThe MC configuration is:\r\n")
     bal     enable_ddr_confspace
     nop
@@ -2181,7 +2214,7 @@ second_pop_delay_ok:
 
 rdlvl_one_byte_end:
 
-#ifdef  DEBUG_ARB_LEVEL_RD
+#ifdef  DEBUG_ARB_LEVEL_RD_DETAIL
     PRINTSTR("\r\nAfter rdlvl_one_byte test. The MC configuration is:\r\n")
     bal     enable_ddr_confspace
     nop
@@ -2217,7 +2250,7 @@ rdlvl_one_byte_end:
 
 //rdlvl finished
 rdlvl_end:
-#ifdef  DEBUG_ARB_LEVEL_RD
+#ifdef  DEBUG_ARB_LEVEL_RD_DETAIL
     PRINTSTR("\r\nAfter read level. The MC configuration is:\r\n")
     bal     enable_ddr_confspace
     nop

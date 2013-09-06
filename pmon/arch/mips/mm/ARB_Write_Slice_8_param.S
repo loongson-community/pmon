@@ -76,9 +76,13 @@
 
 #if 1
 #ifdef  USE_BIG_GF_POP_DELAY
-    //adjust Gather FIFO pop delay: if all 8 slices read pop delay
+    //adjust Gather FIFO pop delay: if all 8(4 at reduc mode) slices read pop delay
     //use 4, then adjust Gather FIFO pop delay to 7(instead of 6).
     dli     a2, 0x4
+    GET_DIMM_WIDTH
+    bnez    a1, 2f
+    nop
+
     ld      a1, PHY_CTRL_0_7_ADDR(t7)
     dsrl    a1, a1, PHY_CTRL_0_7_OFFSET + PHY_CTRL_0_POP_DELAY_SHIFT
     and     a1, a1, PHY_CTRL_0_POP_DELAY_MASK
@@ -99,6 +103,7 @@
     and     a1, a1, PHY_CTRL_0_POP_DELAY_MASK
     blt     a1, a2, 1f
     nop
+2:
     ld      a1, PHY_CTRL_0_3_ADDR(t7)
     dsrl    a1, a1, PHY_CTRL_0_3_OFFSET + PHY_CTRL_0_POP_DELAY_SHIFT
     and     a1, a1, PHY_CTRL_0_POP_DELAY_MASK

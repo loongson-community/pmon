@@ -202,7 +202,7 @@ TM_start:
     dli     a1, 0x100000    //t3-=1M  because Test Base start from Base Window + 1M
     dsubu   t3, t3, a1
 #ifdef   PRINT_LESS_ERROR
-    dli     t8, TM_MAX_ERRORS
+    dli     t8, TM_MAX_RPT_ERRORS
 #endif
 #ifdef  TM_DBG
     GET_DISPRINT_BIT
@@ -278,7 +278,7 @@ TM_start:
     GET_TM_START_ADDR
     daddu   t1, t1, a1
 #ifdef   PRINT_LESS_ERROR
-    dli     t8, 32  //max print errors 32 
+    dli     t8, TM_MAX_RPT_ERRORS
 #endif
     dli     t3, 128  //loop counter
 1:	
@@ -682,7 +682,7 @@ TM_start:
     b       2f
     nop
 2:
-    dli     t8, TM_MAX_ERRORS
+    dli     t8, TM_MAX_RPT_ERRORS
 //write memory
     ld      a0, 0x0(t6)
     ld      a1, 0x8(t6)
@@ -955,7 +955,7 @@ TM_start:
     b       3f  //go to the end of diff burst test
     nop
 2:
-    dli     t8, TM_MAX_ERRORS
+    dli     t8, TM_MAX_RPT_ERRORS
 #ifdef  TM_DBG
     GET_DISPRINT_BIT
     bnez    a1, 88f
@@ -1220,7 +1220,7 @@ TM_start:
     b       3f  //go to the end of this loop
     nop
 2:
-    dli     t8, TM_MAX_ERRORS
+    dli     t8, TM_MAX_RPT_ERRORS
     //set Test Base t1
     dli     t1, MEM_TEST_BASE
     GET_TM_NODE_ID_a1
@@ -1566,7 +1566,7 @@ test_mem_1:
     GET_TM_MSIZE
     daddu   t3, t1, a1
 
-    dli     t8, TM_MAX_ERRORS
+    dli     t8, TM_MAX_RPT_ERRORS
     dli     t0, PATTERN_DB_0_0
 //write memory
     move    a0, t0
@@ -1730,7 +1730,7 @@ test_mem_1_silence:
     GET_TM_MSIZE
     daddu   t3, t1, a1
 
-    dli     t8, TM_MAX_ERRORS
+    dli     t8, TM_MAX_RPT_ERRORS
     dli     t0, PATTERN_DB_0_0
 //write memory
     move    a0, t0

@@ -19,7 +19,7 @@ store info organize:
     sd      s3, 0x8(t0)
 
 #ifdef  CHECK_ARB_LEVEL_DIMM
-    PRINTSTR("\r\nstore DIMM info of MC0\r\n")
+    PRINTSTR("\r\nstore DIMM info of NODE0\r\n")
     dsrl    s1, s3, 32
     //deal N0 MC0
     and     a0, s1, 0x1
@@ -65,7 +65,7 @@ store info organize:
     sd      t5, 0x48(t0)
 1:
 #if ((loongson3A3 && MULTI_CHIP) || (LS3B && DUAL_3B))
-    PRINTSTR("\r\nstore DIMM info of MC1\r\n")
+    PRINTSTR("\r\nstore DIMM info of NODE1\r\n")
     //deal N1 MC0
     dsrl    s1, s1, 1
     and     a0, s1, 0x1

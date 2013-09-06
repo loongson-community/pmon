@@ -507,7 +507,7 @@ D3_density_4Gb:
     or      a2, a2, a1
     sd      a2, CTRL_RAW_ADDR(t8)
 
-#define ADJUST_CLKLVL_DELAY
+//#define ADJUST_CLKLVL_DELAY
 #ifdef  ADJUST_CLKLVL_DELAY
     //count Rank numeber in a0
     move    a0, $0

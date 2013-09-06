@@ -464,15 +464,14 @@ t0,t2 shouldn't be changed to the end of this file.
     note: currently,when use only 1 MC,support memory size: 512M, 1G, 2G, 3G, 4G;
       when use MC0&MC1 both, only support 1G, 2G or 4G Memory size of each Controller.
 *******************************/
+//#define NO_INTERLEAVE
+
     sync
     nop
     nop
     nop
     nop
-#ifndef NO_INTERLEAVE
-    //clear L2 window(introduced by ARB_LEVEL or ECC initialize)
-    L2XBAR_DISABLE_WINDOW(0x20);
-#endif
+
     //disable default pci window
     L2XBAR_DISABLE_WINDOW(0x100);
 
@@ -503,7 +502,6 @@ t0,t2 shouldn't be changed to the end of this file.
     bne     t5, a1, 1f
     nop
 #ifdef INTERLEAVE_27
-    PRINTSTR("DDR Interleave using Bit 27\r\n")
     GET_NODE_ID_a0;
     XBAR_CONFIG_NODE_a0(0x10, \
                     0x0000000000000000, \
@@ -513,9 +511,45 @@ t0,t2 shouldn't be changed to the end of this file.
                     0x0000000008000000, \
                     0xFFFFFFFFF8000000, \
                     0x00000000000000F1)
+    PRINTSTR("DDR Interleave using Bit 27\r\n")
+#else
+#ifdef INTERLEAVE_19
+    GET_NODE_ID_a0;
+    XBAR_CONFIG_NODE_a0(0x10, \
+                    0x0000000000000000, \
+                    0xFFFFFFFFF0080000, \
+                    0x00000000000000F0)
+    XBAR_CONFIG_NODE_a0(0x18, \
+                    0x0000000000080000, \
+                    0xFFFFFFFFF0080000, \
+                    0x00000000000000F1)
+    PRINTSTR("DDR Interleave using Bit 19\r\n")
+#else
+#ifdef INTERLEAVE_16
+    GET_NODE_ID_a0;
+    XBAR_CONFIG_NODE_a0(0x10, \
+                    0x0000000000000000, \
+                    0xFFFFFFFFF0010000, \
+                    0x00000000000000F0)
+    XBAR_CONFIG_NODE_a0(0x18, \
+                    0x0000000000010000, \
+                    0xFFFFFFFFF0010000, \
+                    0x00000000000000F1)
+    PRINTSTR("DDR Interleave using Bit 16\r\n")
+#else
+#ifdef INTERLEAVE_14
+    GET_NODE_ID_a0;
+    XBAR_CONFIG_NODE_a0(0x10, \
+                    0x0000000000000000, \
+                    0xFFFFFFFFF0004000, \
+                    0x00000000000000F0)
+    XBAR_CONFIG_NODE_a0(0x18, \
+                    0x0000000000004000, \
+                    0xFFFFFFFFF0004000, \
+                    0x00000000000000F1)
+    PRINTSTR("DDR Interleave using Bit 14\r\n")
 #else
 #ifdef INTERLEAVE_13
-    PRINTSTR("DDR Interleave using Bit 13\r\n")
     GET_NODE_ID_a0;
     XBAR_CONFIG_NODE_a0(0x10, \
                     0x0000000000000000, \
@@ -525,9 +559,8 @@ t0,t2 shouldn't be changed to the end of this file.
                     0x0000000000002000, \
                     0xFFFFFFFFF0002000, \
                     0x00000000000000F1)
-#else
-#ifdef INTERLEAVE_12
-    PRINTSTR("DDR Interleave using Bit 12\r\n")
+    PRINTSTR("DDR Interleave using Bit 13\r\n")
+#else   //default INTERLEAVE_12
     GET_NODE_ID_a0;
     XBAR_CONFIG_NODE_a0(0x10, \
                     0x0000000000000000, \
@@ -537,30 +570,8 @@ t0,t2 shouldn't be changed to the end of this file.
                     0x0000000000001000, \
                     0xFFFFFFFFF0001000, \
                     0x00000000000000F1)
-#else
-#ifdef INTERLEAVE_11
-    PRINTSTR("DDR Interleave using Bit 11\r\n")
-    GET_NODE_ID_a0;
-    XBAR_CONFIG_NODE_a0(0x10, \
-                    0x0000000000000000, \
-                    0xFFFFFFFFF0000800, \
-                    0x00000000000000F0)
-    XBAR_CONFIG_NODE_a0(0x18, \
-                    0x0000000000000800, \
-                    0xFFFFFFFFF0000800, \
-                    0x00000000000000F1)
-#else   //default INTERLEAVE_10
-    PRINTSTR("DDR Interleave using Bit 10\r\n")
-    GET_NODE_ID_a0;
-    XBAR_CONFIG_NODE_a0(0x10, \
-                    0x0000000000000000, \
-                    0xFFFFFFFFF0000400, \
-                    0x00000000000000F0)
-    XBAR_CONFIG_NODE_a0(0x18, \
-                    0x0000000000000400, \
-                    0xFFFFFFFFF0000400, \
-                    0x00000000000000F1)
-
+    PRINTSTR("DDR Interleave using Bit 12\r\n")
+#endif
 #endif
 #endif
 #endif
@@ -581,9 +592,11 @@ t0,t2 shouldn't be changed to the end of this file.
 2:
     //Config PCI windows
     L2XBAR_CONFIG_PCI_AS_CPU(0x10);
-    L2XBAR_CONFIG_PCI_AS_CPU(0x18);
     L2XBAR_CONFIG_PCI_BASE_0to8(0x110);
+#ifndef NO_INTERLEAVE
+    L2XBAR_CONFIG_PCI_AS_CPU(0x18);
     L2XBAR_CONFIG_PCI_BASE_0to8(0x118);
+#endif
     PRINTSTR("PCI space open: 0x80000000 - 0x8FFFFFFF\r\n")
 
 //config high memory windows
@@ -690,7 +703,6 @@ t0,t2 shouldn't be changed to the end of this file.
     bne     t5, a1, 3f
     nop
 
-/* ONLY 1GB, 2GB and 4G has INTERLEAVE mode now */
 #if 0 // by xqch comment to support ls3a2h swiotlb
     //universal set
     GET_NODE_ID_a0;
@@ -719,6 +731,7 @@ t0,t2 shouldn't be changed to the end of this file.
     sd      a2, 0x38(t0)
     PRINTSTR("DDR all space open\r\n")
 #else
+/* ONLY 1GB, 2GB and 4G has INTERLEAVE mode now */
     dli     t5, 0x2
     beq     a1, t5, 20f
     nop
@@ -816,6 +829,63 @@ t0,t2 shouldn't be changed to the end of this file.
                 0x00000000080000F1)
     PRINTSTR("DDR Interleave using Bit 27\r\n")
 #else
+#ifdef INTERLEAVE_19
+    L2XBAR_CONFIG_INTERLEAVE(0x20, \
+                0x0000000000000000, \
+                0x0000000000080000, \
+                0x00000000000000F0)
+    L2XBAR_CONFIG_INTERLEAVE(0x28, \
+                0x0000000000080000, \
+                0x0000000000080000, \
+                0x00000000000000F1)
+    L2XBAR_CONFIG_INTERLEAVE(0x30, \
+                0x0000000000000000, \
+                0x0000000000080000, \
+                0x00000000000800F0)
+    L2XBAR_CONFIG_INTERLEAVE(0x38, \
+                0x0000000000080000, \
+                0x0000000000080000, \
+                0x00000000000800F1)
+    PRINTSTR("DDR Interleave using Bit 19\r\n")
+#else
+#ifdef INTERLEAVE_16
+    L2XBAR_CONFIG_INTERLEAVE(0x20, \
+                0x0000000000000000, \
+                0x0000000000010000, \
+                0x00000000000000F0)
+    L2XBAR_CONFIG_INTERLEAVE(0x28, \
+                0x0000000000010000, \
+                0x0000000000010000, \
+                0x00000000000000F1)
+    L2XBAR_CONFIG_INTERLEAVE(0x30, \
+                0x0000000000000000, \
+                0x0000000000010000, \
+                0x00000000000100F0)
+    L2XBAR_CONFIG_INTERLEAVE(0x38, \
+                0x0000000000010000, \
+                0x0000000000010000, \
+                0x00000000000100F1)
+    PRINTSTR("DDR Interleave using Bit 16\r\n")
+#else
+#ifdef INTERLEAVE_14
+    L2XBAR_CONFIG_INTERLEAVE(0x20, \
+                0x0000000000000000, \
+                0x0000000000004000, \
+                0x00000000000000F0)
+    L2XBAR_CONFIG_INTERLEAVE(0x28, \
+                0x0000000000004000, \
+                0x0000000000004000, \
+                0x00000000000000F1)
+    L2XBAR_CONFIG_INTERLEAVE(0x30, \
+                0x0000000000000000, \
+                0x0000000000004000, \
+                0x00000000000040F0)
+    L2XBAR_CONFIG_INTERLEAVE(0x38, \
+                0x0000000000004000, \
+                0x0000000000004000, \
+                0x00000000000040F1)
+    PRINTSTR("DDR Interleave using Bit 14\r\n")
+#else
 #ifdef INTERLEAVE_13
     L2XBAR_CONFIG_INTERLEAVE(0x20, \
                 0x0000000000000000, \
@@ -834,8 +904,7 @@ t0,t2 shouldn't be changed to the end of this file.
                 0x0000000000002000, \
                 0x00000000000020F1)
     PRINTSTR("DDR Interleave using Bit 13\r\n")
-#else
-#ifdef INTERLEAVE_12
+#else   //default use INTERLEAVE_12
     L2XBAR_CONFIG_INTERLEAVE(0x20, \
                 0x0000000000000000, \
                 0x0000000000001000, \
@@ -853,43 +922,7 @@ t0,t2 shouldn't be changed to the end of this file.
                 0x0000000000001000, \
                 0x00000000000010F1)
     PRINTSTR("DDR Interleave using Bit 12\r\n")
-#else
-#ifdef INTERLEAVE_11
-    L2XBAR_CONFIG_INTERLEAVE(0x20, \
-                0x0000000000000000, \
-                0x0000000000000800, \
-                0x00000000000000F0)
-    L2XBAR_CONFIG_INTERLEAVE(0x28, \
-                0x0000000000000800, \
-                0x0000000000000800, \
-                0x00000000000000F1)
-    L2XBAR_CONFIG_INTERLEAVE(0x30, \
-                0x0000000000000000, \
-                0x0000000000000800, \
-                0x00000000000008F0)
-    L2XBAR_CONFIG_INTERLEAVE(0x38, \
-                0x0000000000000800, \
-                0x0000000000000800, \
-                0x00000000000008F1)
-    PRINTSTR("DDR Interleave using Bit 11\r\n")
-#else   //default use INTERLEAVE_10
-    L2XBAR_CONFIG_INTERLEAVE(0x20, \
-                0x0000000000000000, \
-                0x0000000000000400, \
-                0x00000000000000F0)
-    L2XBAR_CONFIG_INTERLEAVE(0x28, \
-                0x0000000000000400, \
-                0x0000000000000400, \
-                0x00000000000000F1)
-    L2XBAR_CONFIG_INTERLEAVE(0x30, \
-                0x0000000000000000, \
-                0x0000000000000400, \
-                0x00000000000004F0)
-    L2XBAR_CONFIG_INTERLEAVE(0x38, \
-                0x0000000000000400, \
-                0x0000000000000400, \
-                0x00000000000004F1)
-    PRINTSTR("DDR Interleave using Bit 10\r\n")
+#endif
 #endif
 #endif
 #endif
