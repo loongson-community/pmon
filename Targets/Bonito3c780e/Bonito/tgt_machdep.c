@@ -472,6 +472,23 @@ superio_reinit();
     memorysize_high_n3 = (memsz == 0) ? 0 : (memsz - (256 << 20));
 #endif
 	memorysize_total =  ((memorysize  +  memorysize_high + memsz)  >> 20) + 16;
+//cm: cm: calculate the correct Memory Size in BIOS SETUP
+#ifdef  MULTI_CHIP
+	if(memorysize_high_n1 == 0)
+	    memorysize_total += (memorysize_high_n1 >> 20);
+	else
+	    memorysize_total += ((memorysize_high_n1 + (256 << 20)) >> 20);
+#endif
+#ifdef DUAL_3B
+	if(memorysize_high_n2 != 0 && memorysize_high_n3 == 0)
+	    memorysize_total += ((memorysize_high_n2 + (256 << 20)) >> 20);
+	else if(memorysize_high_n2 == 0 && memorysize_high_n3 != 0)
+	    memorysize_total += ((memorysize_high_n3 + (256 << 20)) >> 20);
+	else if(memorysize_high_n2 !=0 && memorysize_high_n3 != 0)
+	    memorysize_total += ((memorysize_high_n2 + (256 << 20) + memorysize_high_n3 + (256 << 20)) >> 20);
+#endif
+//cm: end
+
 #if 0 /* whd : Disable gpu controller of MCP68 */
 	//*(unsigned int *)0xbfe809e8 = 0x122380;
 	//*(unsigned int *)0xbfe809e8 = 0x2280;
