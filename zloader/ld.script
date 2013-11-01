@@ -1,6 +1,4 @@
 
-
-
 OUTPUT_FORMAT("elf32-littlemips", "elf32-tradbigmips",
               "elf32-littlemips")
 OUTPUT_ARCH(mips)
