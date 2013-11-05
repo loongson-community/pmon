@@ -472,7 +472,7 @@ superio_reinit();
     memorysize_high_n3 = (memsz == 0) ? 0 : (memsz - (256 << 20));
 #endif
 	memorysize_total =  ((memorysize  +  memorysize_high + memsz)  >> 20) + 16;
-//cm: cm: calculate the correct Memory Size in BIOS SETUP
+//cm: calculate the correct Memory Size in BIOS SETUP
 #ifdef  MULTI_CHIP
 	if(memorysize_high_n1 == 0)
 	    memorysize_total += (memorysize_high_n1 >> 20);
@@ -2176,8 +2176,8 @@ tgt_unsetenv(char *name)
                         }
 
 #else
-						spi_erase(((unsigned long)(&nvram_offs)-0x80010000), NVRAM_SECSIZE);
-						if(spi_program(nvramsecbuf,((unsigned long)(&nvram_offs)-0x80010000), NVRAM_SECSIZE, 0)){
+						spi_erase(((unsigned long)(&nvram_offs)-0x80010000) & ~(NVRAM_SECSIZE - 1), NVRAM_SECSIZE);
+						if(spi_program(nvramsecbuf,((unsigned long)(&nvram_offs)-0x80010000) & ~(NVRAM_SECSIZE - 1), NVRAM_SECSIZE, 0)){
                         //if(fl_program_device(nvram, nvramsecbuf, NVRAM_SECSIZE, FALSE)) {
                                 status = -1;
 				break;
@@ -2265,8 +2265,8 @@ tgt_setenv(char *name, char *value)
 				}
 
 #else
-		spi_erase(((unsigned long)(&nvram_offs)-0x80010000), NVRAM_SECSIZE);
-		if(spi_program(nvramsecbuf,((unsigned long)(&nvram_offs)-0x80010000), NVRAM_SECSIZE, 0)){
+		spi_erase(((unsigned long)(&nvram_offs)-0x80010000) & ~(NVRAM_SECSIZE - 1), NVRAM_SECSIZE);
+		if(spi_program(nvramsecbuf,((unsigned long)(&nvram_offs)-0x80010000) & ~(NVRAM_SECSIZE - 1), NVRAM_SECSIZE, 0)){
 			printf("Error! Nvram init failed!\n");
 			free(nvramsecbuf);
                         return(-1);
@@ -2369,8 +2369,8 @@ tgt_setenv(char *name, char *value)
         }
 
 #else
-		spi_erase(((unsigned long)(&nvram_offs)-0x80010000), NVRAM_SECSIZE);
-		if(spi_program(nvramsecbuf,((unsigned long)(&nvram_offs)-0x80010000), NVRAM_SECSIZE, 0)){
+		spi_erase(((unsigned long)(&nvram_offs)-0x80010000) & ~(NVRAM_SECSIZE - 1), NVRAM_SECSIZE);
+		if(spi_program(nvramsecbuf,((unsigned long)(&nvram_offs)-0x80010000) & ~(NVRAM_SECSIZE - 1), NVRAM_SECSIZE, 0)){
 		printf("Error! Nvram program failed!\n");
 		free(nvramsecbuf);
                 return(0);

@@ -497,22 +497,31 @@ int fl_program(void *fl_base, void *data_base, int data_size, int verbose)
 		count = min(nvram_size-offs,left);
 		 
 
-        memcpy(nvramsecbuf, nvram, nvram_size);
+        memcpy(nvramsecbuf, nvram, nvram_size);		
+		nvrambuf = nvramsecbuf + offs;
+		memcpy(nvrambuf,data_base,count);
+#ifdef NVRAM_IN_FLASH
+#if 0		
         if(fl_erase_device(nvram, nvram_size, verbose)) {
 		printf("Error! Nvram erase failed!\n");
 		free(nvramsecbuf);
                 return(0);
         }
-	    
-		nvrambuf = nvramsecbuf + offs;
-
-		memcpy(nvrambuf,data_base,count);
         
 		if(fl_program_device(nvram, nvramsecbuf, nvram_size, verbose)) {
 		printf("Error! Nvram program failed!\n");
 		free(nvramsecbuf);
                 return(0);
         }
+#else
+        spi_erase( (unsigned long)(nvram)- tgt_flashmap()->fl_map_base, nvram_size);
+		if( spi_program(nvramsecbuf, (unsigned long)(nvram)- tgt_flashmap()->fl_map_base, nvram_size, 0) ) { 
+		     printf("Error! Nvram program failed!\n");
+		     free(nvramsecbuf);
+		     return(0);
+		}
+#endif
+#endif
 
 		data_base += count;
 		nvram += nvram_size;
