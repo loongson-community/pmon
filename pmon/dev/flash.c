@@ -501,8 +501,8 @@ int fl_program(void *fl_base, void *data_base, int data_size, int verbose)
 		nvrambuf = nvramsecbuf + offs;
 		memcpy(nvrambuf,data_base,count);
 #ifdef NVRAM_IN_FLASH
-#if 0		
-        if(fl_erase_device(nvram, nvram_size, verbose)) {
+#ifndef LS3B_SPI_BOOT        
+		if(fl_erase_device(nvram, nvram_size, verbose)) {
 		printf("Error! Nvram erase failed!\n");
 		free(nvramsecbuf);
                 return(0);
