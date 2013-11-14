@@ -1546,11 +1546,6 @@ void synopGMAC_init_rx_desc_base(synopGMACdevice *gmacdev)
 {
 	u32 tmp_addr = 0;
 	tmp_addr = (u32)(gmacdev->RxDescDma);
-	tmp_addr &= 0x0fffffff;
-	//tmp_addr |= 0x40000000;
-	tmp_addr |= 0x80000000;
-TR("gmacdev->rxdescDma:%x\n", (u32)gmacdev->RxDescDma );
-TR("tmp_addr %x\n", tmp_addr);
 
 //	synopGMACWriteReg(gmacdev->DmaBase,DmaRxBaseAddr,(u32)gmacdev->RxDescDma );
 	synopGMACWriteReg(gmacdev->DmaBase,DmaRxBaseAddr,(u32)tmp_addr);
@@ -1568,8 +1563,6 @@ void synopGMAC_init_tx_desc_base(synopGMACdevice *gmacdev)
 {	
 	u32 tmp_addr = 0;
 	tmp_addr = (u32)(gmacdev->TxDescDma);
-	tmp_addr &= 0x0fffffff;
-	tmp_addr |= 0x80000000;
 	
 //	synopGMACWriteReg(gmacdev->DmaBase,DmaTxBaseAddr,(u32)gmacdev->TxDescDma);
 	synopGMACWriteReg(gmacdev->DmaBase,DmaTxBaseAddr,(u32)tmp_addr);

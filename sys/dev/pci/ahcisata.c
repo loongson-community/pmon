@@ -88,7 +88,7 @@
 
 #undef PHYSADDR
 #ifndef PHYSADDR
-#define PHYSADDR(x) ((((long)(x))&0x1fffffff) | 0x80000000)
+#define PHYSADDR(x) (((long)(x))&0x1fffffff)
 #endif
 
 #define cpu_to_le32(x) (x)

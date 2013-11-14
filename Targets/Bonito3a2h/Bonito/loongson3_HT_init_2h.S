@@ -1273,24 +1273,43 @@ crc_checking:
     nop
 #endif
 
+#define set_L2_win(mas_i, win_i, base, mask, mmap) \
+	li	t0, 0xbbd80000 ;\
+	addiu	t0, t0, mas_i*0x100 ;\
+	addiu	t0, t0, win_i*0x8 ;\
+	dli	t1, base ;\
+	sd	t1, 0x0(t0) ;\
+	dli	t1, mask ;\
+	sd	t1, 0x40(t0) ;\
+	dli	t1, mmap ;\
+	sd	t1, 0x80(t0)
 
-	//### map usb/sata's 0xffffffff8xxxxxxxx to 0x00000008xxxxxxx
-	li	t2, 0xbbd80100
+        ## disable window before changing
+#define set_L1_mas6(win_i, base, mask, mmap) \
+	li	t0, 0xbbd82600 ;\
+	addiu	t0, t0, win_i*0x8 ;\
+	sd	$0, 0x80(t0) ;\
+	dli	t1, base ;\
+	sd	t1, 0x0(t0) ;\
+	dli	t1, mask ;\
+	sd	t1, 0x40(t0) ;\
+	dli	t1, mmap ;\
+	sd	t1, 0x80(t0)
 
-	li	t1, 0x80000000; sw t1, 0x010(t2)  // base2
-	li	t1, 0xffffffff; sw t1, 0x014(t2)  // base2
-	li	t1, 0x00000000; sw t1, 0x018(t2)  // base3
-	li	t1, 0x00000000; sw t1, 0x01c(t2)  // base3
+#### IODMA 4G ####
+	set_L2_win(1, 0, 0x0000000000000000, 0xffffffffc0000000, 0x00000010800000f3) # 0~1G
+	set_L2_win(1, 1, 0x0000000040000000, 0xffffffffc0000000, 0x00000020800000f3) # 1~2G
+	set_L2_win(1, 2, 0x0000000080000000, 0xffffffffc0000000, 0x00000030800000f3) # 2~3G
+	set_L2_win(1, 3, 0x00000000c0000000, 0xffffffffc0000000, 0x00000040800000f3) # 3~4G
+	set_L2_win(1, 4, 0xffffffff80000000, 0xffffffffc0000000, 0x00000030800000f3) # 2~3G 
+	set_L2_win(1, 5, 0xffffffffc0000000, 0xffffffffc0000000, 0x00000040800000f3) # 3~4G
 
-	li	t1, 0x80000000; sw t1, 0x050(t2)  // mask2
-	li	t1, 0xffffffff; sw t1, 0x054(t2)  // mask2
-	li	t1, 0x00000000; sw t1, 0x058(t2)  // mask3
-	li	t1, 0x00000000; sw t1, 0x05c(t2)  // mask3
-
-	li	t1, 0x800000f3; sw t1, 0x090(t2)  // mmap2
-	li	t1, 0x00000000; sw t1, 0x094(t2)  // mmap2
-	li	t1, 0x000000f0; sw t1, 0x098(t2)  // mmap3
-	li	t1, 0x00000000; sw t1, 0x09c(t2)  // mmap3
+	set_L1_mas6(5, 0x0000000000000000, 0x0000000000000000, 0x00000000000000f0) # others, all to L2$
+	set_L1_mas6(0, 0x0000001080000000, 0xfffffffff0000000, 0x00000000000000f6)
+	set_L1_mas6(1, 0x0000001080000000, 0xffffffffc0000000, 0x00000001000000f6)
+	set_L1_mas6(2, 0x0000002080000000, 0xffffffffc0000000, 0x00000001400000f6)
+	set_L1_mas6(3, 0x0000003080000000, 0xffffffffc0000000, 0x00000001800000f6)
+	set_L1_mas6(4, 0x0000004080000000, 0xffffffffc0000000, 0x00000001c00000f6)
 
 	// set ls3a-2h dma cached coherence by hardware
 //	li	t2, 0x90001EFDFB0000F0; li t1, 0x0; sw t1, 0x00(t2);

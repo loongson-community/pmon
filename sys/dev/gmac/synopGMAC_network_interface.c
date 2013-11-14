@@ -462,7 +462,7 @@ s32 synopGMAC_setup_tx_desc_queue(synopGMACdevice * gmacdev,u32 no_of_desc, u32 
 	gmacdev->TxDescDma  = (unsigned long)UNCACHED_TO_PHYS((unsigned long)bf1);
 	
  		gmacdev->TxDescDma &= 0x0fffffff;
-		gmacdev->TxDescDma |= 0x80000000;
+		gmacdev->TxDescDma |= 0x00000000;
 
 	//gmacdev->TxDesc     =  bf1;
 
@@ -548,7 +548,7 @@ s32 synopGMAC_setup_rx_desc_queue(synopGMACdevice * gmacdev,u32 no_of_desc, u32 
 	//gmacdev->RxDescDma  = (unsigned long)vtophys((unsigned long)bf1);
 	gmacdev->RxDescDma  = (unsigned long)UNCACHED_TO_PHYS((unsigned long)bf1);
 	//gmacdev->RxDesc     = bf1;
-	gmacdev->RxDescDma |= 0x80000000;
+	gmacdev->RxDescDma |= 0x00000000;
 
 	//	gmacdev->RxDescDma   = (dma_addr_t) first_desc;
 
@@ -960,7 +960,7 @@ void synop_handle_received_data(struct synopGMACNetworkAdapter* tp)
 			}
 
 			dma_addr1  = (unsigned long)CACHED_TO_PHYS((unsigned long)(data1));
-			dma_addr1 |= 0x80000000;
+			dma_addr1 |= 0x00000000;
 			desc_index = synopGMAC_set_rx_qptr(gmacdev,dma_addr1, RX_BUF_SIZE, (u32)data1,0,0,0);
 
 			if(desc_index < 0){
@@ -1172,7 +1172,7 @@ int synopGMAC_intr_handler(struct synopGMACNetworkAdapter * tp)
 			
 			//dma_addr = (u32)skb;
 			dma_addr  = (unsigned long)UNCACHED_TO_PHYS((unsigned long)(skb));
-			dma_addr |= 0x80000000;
+			dma_addr |= 0x00000000;
 			status = synopGMAC_set_rx_qptr(gmacdev,dma_addr,RX_BUF_SIZE, (u32)skb,0,0,0);
 				//pci_sync_cache(0, (vm_offset_t)skb, len, SYNC_W);
 				//printf("==rx sync cache\n");
@@ -1402,7 +1402,7 @@ unsigned long synopGMAC_linux_open(struct synopGMACNetworkAdapter *tp)
 		dma_addr  = (unsigned long)UNCACHED_TO_PHYS((unsigned long)(skb1));
 
  		dma_addr &= 0x0fffffff;
-		dma_addr |= 0x80000000;
+		dma_addr |= 0x00000000;
 
 //		TR("rx_buf_PTR:%x, skb1:%x, dma_addr%x\n",skb, skb1, dma_addr);
 
@@ -1674,7 +1674,7 @@ s32 synopGMAC_linux_xmit_frames(struct ifnet* ifp)
 				dma_addr  = (unsigned long)UNCACHED_TO_PHYS((unsigned long)(bf2));
 				
  				dma_addr &= 0x0fffffff;
-				dma_addr |= 0x80000000;
+				dma_addr |= 0x00000000;
 
 				//		status = synopGMAC_set_tx_qptr(gmacdev, dma_addr, TX_BUF_SIZE, bf1,0,0,0,offload_needed);
 				
@@ -2300,7 +2300,7 @@ while(1){
 	dma_addr  = (unsigned long)UNCACHED_TO_PHYS((unsigned long)(skb));
 	
  		dma_addr &= 0x0fffffff;
-		dma_addr |= 0x80000000;
+		dma_addr |= 0x00000000;
 
 	printf("==free addr: %x   size:1536B \n",skb);
 	plat_free_memory(skb);

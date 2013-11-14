@@ -102,6 +102,7 @@
 #define min_t(type,x,y) ({ type __x = (x); type __y = (y); __x < __y ? __x: __y; })
 
 #undef DEBUG
+/* #define DEBUG */
 #ifdef DEBUG
 #define dbg(format, arg...) printf("DEBUG: " format "\n", ## arg)
 #else
@@ -1282,7 +1283,7 @@ static int ep_unlink(ohci_t * ohci, ed_t * ed)
 #endif
 			{
 #if (defined(LS3_HT) || defined(LS2G_HT))
-				((ed_t *) (*((u32 *) & ed->hwNextED)))->ed_prev
+				((ed_t *) PHYS_TO_CACHED(*((u32 *) & ed->hwNextED)))->ed_prev
 				    = ed->ed_prev;
 #else
 				((ed_t *)
@@ -1318,7 +1319,7 @@ static int ep_unlink(ohci_t * ohci, ed_t * ed)
 #endif
 			{
 #if (defined(LS3_HT) || defined(LS2G_HT))
-				((ed_t *) (ed->hwNextED))->ed_prev =
+				((ed_t *) PHYS_TO_CACHED(ed->hwNextED))->ed_prev =
 				    ed->ed_prev;
 #else
 				((ed_t *)
@@ -1515,7 +1516,7 @@ static void td_fill(ohci_t * ohci, unsigned int info,
 	{
 #if (defined(LS3_HT) || defined(LS2G_HT))
 		td = urb_priv->td[index] =
-		    (td_t *) ((urb_priv->ed->hwTailP) & ~0xf);
+		    (td_t *) (PHYS_TO_CACHED(urb_priv->ed->hwTailP) & ~0xf);
 #else
 		td = urb_priv->td[index] =
 		    (td_t *) (CACHED_TO_UNCACHED(urb_priv->ed->hwTailP) & ~0xf);
@@ -1555,7 +1556,7 @@ static void td_fill(ohci_t * ohci, unsigned int info,
 	} else
 		td->hwBE = 0;
 
-#if 0
+#ifdef DEBUG
 	printf("td_fill: td=%x\n", td);
 	printf("hwINFO =%x, hwCBP=%x, hwNextTD=%x, hwBE=%x\n",
 	       td->hwINFO, td->hwCBP, td->hwNextTD, td->hwBE);
@@ -3115,7 +3116,7 @@ static int hc_interrupt(void *hc_data)
 #endif
 		{
 #if (defined(LS3_HT) || defined(LS2G_HT))
-			td = (td_t *) (ohci->hcca->done_head);
+			td = (td_t *) PHYS_TO_CACHED(ohci->hcca->done_head);
 #else
 			td = (td_t *) CACHED_TO_UNCACHED(ohci->hcca->done_head);
 #endif
@@ -3186,7 +3187,7 @@ static int hc_interrupt(void *hc_data)
 #endif
 			{
 #if (defined(LS3_HT) || defined(LS2G_HT))
-				td = (td_t *) (ohci->hcca->done_head & ~0x1f);
+				td = (td_t *) PHYS_TO_CACHED(ohci->hcca->done_head & ~0x1f);
 #else
 				td = (td_t *) CACHED_TO_UNCACHED(ohci->
 								 hcca->done_head
@@ -3736,7 +3737,7 @@ static int hc_check_ohci_controller(void *hc_data)
 #endif
 		{
 #if (defined(LS3_HT) || defined(LS2G_HT))
-			td = (td_t *) (ohci->hcca->done_head);
+			td = (td_t *) PHYS_TO_CACHED(ohci->hcca->done_head);
 #else
 			td = (td_t *) CACHED_TO_UNCACHED(ohci->hcca->done_head);
 #endif
@@ -3806,7 +3807,7 @@ static int hc_check_ohci_controller(void *hc_data)
 #endif
 			{
 #if (defined(LS3_HT) || defined(LS2G_HT))
-				td = (td_t *) (ohci->hcca->done_head & ~0x1f);
+				td = (td_t *) PHYS_TO_CACHED(ohci->hcca->done_head & ~0x1f);
 #else
 				td = (td_t *) CACHED_TO_UNCACHED(ohci->
 								 hcca->done_head

@@ -164,7 +164,7 @@ _pci_hwinit(initialise, iot, memt)
 	bus_dmamap_tag._dmamap_offs = 0;
 
 /*set pci base0 address and window size*/
-	pci_local_mem_pci_base = 0x80000000;
+	pci_local_mem_pci_base = 0x0;
 #ifdef LS3_HT
 #else
 	BONITO_PCIBASE0 = 0x80000000;
