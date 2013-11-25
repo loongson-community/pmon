@@ -848,10 +848,10 @@ dbginit (char *adr)
 			memfreq = mem_vco / (1 << (clk34 + 1));
 		}
 		printf("/ Bus @ %d MHz\n",memfreq);
+#endif
 	}
         else
 		printf("/ Bus @ 33 MHz\n");
-#endif
 #else  /*for 3a/3b ddr controller */ 
         if(clk != 0x1f)
 	{
