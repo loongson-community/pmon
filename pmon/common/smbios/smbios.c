@@ -120,6 +120,10 @@ write_smbios_tables(void *start)
        dimmnum = 8;
        maximum_capacity = 16 * 1024* 1024;
 #endif
+#ifdef LOONGSON_3BSERVER
+       dimmnum = 8;
+       maximum_capacity = 64 * 1024 * 1024;
+#endif
        do_struct(smbios_type_16_init(p, dimmnum, maximum_capacity));
        for(i = 0; i < dimmnum; i++){
                do_struct(smbios_type_17_init(p, i));
@@ -825,8 +829,12 @@ smbios_type_28_init(void *start)
 	p->tolerance = 0x8000;
 	p->accuracy = 0x8000;
 	p->OEM_defined =  0x00;
-	//3A: p->nominal_value = (*(volatile unsigned char *)(0xffffffffbfe0019d) & 0x7f) * 10; here is 3B cpu nominal temerature
-	p->nominal_value = (*(volatile unsigned char *)(0xffffffffbfe0019d) - 100) * 10;
+
+#if (defined LOONGSON_3A2H) || (defined LOONGSON_3ASINGLE) || (defined LOONGSON_3ASERVER)
+        p->nominal_value = (*(volatile unsigned char *)(0xffffffffbfe0019d) & 0x7f) * 10;
+#elif defined LOONGSON_3B1500 
+        p->nominal_value = (*(volatile unsigned char *)(0xffffffffbfe0019d) - 100) * 10;
+#endif
 
 	start += sizeof(struct smbios_type_28);
 	strcpy((char *)start, "CPU Temperature");
