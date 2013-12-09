@@ -93,11 +93,7 @@ static int cpuinfo(){
         if(clk != 0x1f) {
 		clk30 = clk & 0x0f;
 		clk4 = (clk >> 4) & 0x01;
-#ifdef LOONGSON_3ASERVER
-		memfreq = 25*(clk30 + 30)/(clk4 + 3);/*to calculate memory frequency.we can find this function in loongson 3A manual,memclk*(clksel[8:5]+30)/(clksel[9]+3)*/
-#else
 		memfreq = 100*(clk30 + 30)/(clk4 + 3)/3;/*to calculate memory frequency.we can find this function in loongson 3A manual,memclk*(clksel[8:5]+30)/(clksel[9]+3)*/
-#endif
 
 		printf("/ Bus @ %d MHz\n",memfreq);
 	}
