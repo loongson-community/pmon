@@ -3079,7 +3079,7 @@ struct efi_memory_map_loongson * init_memory_map()
 {
 	struct efi_memory_map_loongson *emap = &g_map;
 	int i = 0;
-	unsigned long size = memorysize_high;
+	unsigned long long size = memorysize_high;
 
 #define EMAP_ENTRY(entry, node, type, start, size) \
 	emap->map[(entry)].node_id = (node), \
