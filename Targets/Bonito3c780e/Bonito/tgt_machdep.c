@@ -3162,3 +3162,43 @@ void sb700_interrupt_fixup(void)
 
 }
 
+extern struct efi_memory_map_loongson g_map;
+extern unsigned long long memorysize;
+extern unsigned long long memorysize_high;
+extern unsigned long long memorysize_high_n1;
+
+#include "../../../pmon/cmds/bootparam.h"
+struct efi_memory_map_loongson * init_memory_map()
+{
+	struct efi_memory_map_loongson *emap = &g_map;
+	int i = 0;
+	unsigned long size = memorysize_high;
+
+#define EMAP_ENTRY(entry, node, type, start, size) \
+	emap->map[(entry)].node_id = (node), \
+	emap->map[(entry)].mem_type = (type), \
+	emap->map[(entry)].mem_start = (start), \
+	emap->map[(entry)].mem_size = (size), \
+	(entry)++
+
+	EMAP_ENTRY(i, 0, 1, 0x00200000, 0x0ee);
+	if(size < 0x6f000000)
+		EMAP_ENTRY(i, 0, 2, 0x90000000, size >> 20);
+	/*we waste 16MB here, because 780e TOM is 0xff0000000*/
+	else if (size > 0x70000000) {
+		EMAP_ENTRY(i, 0, 2, 0x90000000, 0x6f0);
+		EMAP_ENTRY(i, 0, 2, 0x100000000, (size - 0x70000000) >> 20);
+	} else
+		EMAP_ENTRY(i, 0, 2, 0x90000000, 0x6f0);
+
+	if(memorysize_high_n1) {
+		EMAP_ENTRY(i, 1, 1, 0x100000000000L, 0x100);
+		EMAP_ENTRY(i, 1, 2, 0x100000000000L + 0x90000000, memorysize_high_n1 >> 20);
+	}
+
+
+	emap->vers = 1;
+	emap->nr_map = i;
+	return emap;
+#undef	EMAP_ENTRY
+}

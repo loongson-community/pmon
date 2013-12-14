@@ -70,124 +70,124 @@ void init_loongson_params(struct loongson_params *lp)
 }
 
 
-struct efi_memory_map_loongson * init_memory_map()
-{
-  struct efi_memory_map_loongson *emap = &g_map;
+/*struct efi_memory_map_loongson * init_memory_map()*/
+/*{*/
+  /*struct efi_memory_map_loongson *emap = &g_map;*/
 
 
-  //map->mem_start_addr = 0x80000000;
-#if (defined(LOONGSON_3BSERVER))
-  emap->nr_map = 10; 
-#else
-  emap->nr_map = 6; 
-#endif
+  /*//map->mem_start_addr = 0x80000000;*/
+/*#if (defined(LOONGSON_3BSERVER))*/
+  /*emap->nr_map = 10; */
+/*#else*/
+  /*emap->nr_map = 6; */
+/*#endif*/
 
-  emap->mem_freq = 300000000; //300M
-  //map->memsz_high = atoi(getenv("highmemsize"));
-  //map->mem_size = atoi(getenv("memsize"));
-  //map->memsz_reserved = 16;
+  /*emap->mem_freq = 300000000; //300M*/
+  /*//map->memsz_high = atoi(getenv("highmemsize"));*/
+  /*//map->mem_size = atoi(getenv("memsize"));*/
+  /*//map->memsz_reserved = 16;*/
 
-#if 1
+/*#if 1*/
  
-  emap->map[0].node_id = 0;
-  //strcpy(emap->map[0].mem_name, "node0_low");
-  emap->map[0].mem_type = 1;
-  emap->map[0].mem_start = 0x01000000;
-  emap->map[0].mem_size = atoi(getenv("memsize"));
+  /*emap->map[0].node_id = 0;*/
+  /*//strcpy(emap->map[0].mem_name, "node0_low");*/
+  /*emap->map[0].mem_type = 1;*/
+  /*emap->map[0].mem_start = 0x01000000;*/
+  /*emap->map[0].mem_size = atoi(getenv("memsize"));*/
 
-  emap->map[1].node_id = 0;
-  //strcpy(emap->map[1].mem_name, "node0_high");
-  emap->map[1].mem_type = 2;
-#if (defined LOONGSON_3A2H) || (defined LOONGSON_3C2H)
-  emap->map[1].mem_start = 0x110000000;
-#else
-  emap->map[1].mem_start = 0x90000000;
-#endif
-  emap->map[1].mem_size = atoi(getenv("highmemsize"));
+  /*emap->map[1].node_id = 0;*/
+  /*//strcpy(emap->map[1].mem_name, "node0_high");*/
+  /*emap->map[1].mem_type = 2;*/
+/*#if (defined LOONGSON_3A2H) || (defined LOONGSON_3C2H)*/
+  /*emap->map[1].mem_start = 0x110000000;*/
+/*#else*/
+  /*emap->map[1].mem_start = 0x90000000;*/
+/*#endif*/
+  /*emap->map[1].mem_size = atoi(getenv("highmemsize"));*/
   
 
-//support smbios
-  emap->map[2].node_id = 0;
-  emap->map[2].mem_type = 10;
-  emap->map[2].mem_start = SMBIOS_PHYSICAL_ADDRESS;
+/*//support smbios*/
+  /*emap->map[2].node_id = 0;*/
+  /*emap->map[2].mem_type = 10;*/
+  /*emap->map[2].mem_start = SMBIOS_PHYSICAL_ADDRESS;*/
  
-  emap->map[3].node_id = 0;
-  emap->map[3].mem_type = 3;
-  emap->map[3].mem_start = SMBIOS_PHYSICAL_ADDRESS & 0x0fffffff;
-  emap->map[3].mem_size = SMBIOS_SIZE_LIMIT >> 20;
+  /*emap->map[3].node_id = 0;*/
+  /*emap->map[3].mem_type = 3;*/
+  /*emap->map[3].mem_start = SMBIOS_PHYSICAL_ADDRESS & 0x0fffffff;*/
+  /*emap->map[3].mem_size = SMBIOS_SIZE_LIMIT >> 20;*/
 
-#if (defined(MULTI_CHIP)) || (defined(LOONGSON_3BSINGLE))
+/*#if (defined(MULTI_CHIP)) || (defined(LOONGSON_3BSINGLE))*/
 
-  emap->map[5].mem_size = atoi(getenv("memorysize_high_n1"));
-  if ( emap->map[5].mem_size != 0 )
-  {
-	emap->map[4].node_id = 1;
-	//strcpy(emap->map[0].mem_name, "node0_low");
-	emap->map[4].mem_type = 1;
-	emap->map[4].mem_start = 0x01000000;
-	emap->map[4].mem_size = atoi(getenv("memsize"));
+  /*emap->map[5].mem_size = atoi(getenv("memorysize_high_n1"));*/
+  /*if ( emap->map[5].mem_size != 0 )*/
+  /*{*/
+	/*emap->map[4].node_id = 1;*/
+	/*//strcpy(emap->map[0].mem_name, "node0_low");*/
+	/*emap->map[4].mem_type = 1;*/
+	/*emap->map[4].mem_start = 0x01000000;*/
+	/*emap->map[4].mem_size = atoi(getenv("memsize"));*/
 
-	emap->map[5].node_id = 1;
-	//strcpy(emap->map[1].mem_name, "node0_high");
-	emap->map[5].mem_type = 2;
-	emap->map[5].mem_start = 0x90000000;
-  }
+	/*emap->map[5].node_id = 1;*/
+	/*//strcpy(emap->map[1].mem_name, "node0_high");*/
+	/*emap->map[5].mem_type = 2;*/
+	/*emap->map[5].mem_start = 0x90000000;*/
+  /*}*/
 
-#endif
+/*#endif*/
 
-#if (defined(LOONGSON_3BSERVER))
+/*#if (defined(LOONGSON_3BSERVER))*/
 
-  emap->map[5].mem_size = atoi(getenv("memorysize_high_n1"));
-  if ( emap->map[5].mem_size != 0 )
-  {
-	emap->map[4].node_id = 1;
-	//strcpy(emap->map[0].mem_name, "node0_low");
-	emap->map[4].mem_type = 1;
-	emap->map[4].mem_start = 0x01000000;
-	emap->map[4].mem_size = atoi(getenv("memsize"));
+  /*emap->map[5].mem_size = atoi(getenv("memorysize_high_n1"));*/
+  /*if ( emap->map[5].mem_size != 0 )*/
+  /*{*/
+	/*emap->map[4].node_id = 1;*/
+	/*//strcpy(emap->map[0].mem_name, "node0_low");*/
+	/*emap->map[4].mem_type = 1;*/
+	/*emap->map[4].mem_start = 0x01000000;*/
+	/*emap->map[4].mem_size = atoi(getenv("memsize"));*/
 
-	emap->map[5].node_id = 1;
-	//strcpy(emap->map[1].mem_name, "node0_high");
-	emap->map[5].mem_type = 2;
-	emap->map[5].mem_start = 0x90000000;
-  }
+	/*emap->map[5].node_id = 1;*/
+	/*//strcpy(emap->map[1].mem_name, "node0_high");*/
+	/*emap->map[5].mem_type = 2;*/
+	/*emap->map[5].mem_start = 0x90000000;*/
+  /*}*/
 
-  emap->map[7].mem_size = atoi(getenv("memorysize_high_n2"));
-  if ( emap->map[7].mem_size != 0 )
-  {
-	emap->map[6].node_id = 2;
-	//strcpy(emap->map[0].mem_name, "node0_low");
-	emap->map[6].mem_type = 1;
-	emap->map[6].mem_start = 0x01000000;
-	emap->map[6].mem_size = atoi(getenv("memsize"));
+  /*emap->map[7].mem_size = atoi(getenv("memorysize_high_n2"));*/
+  /*if ( emap->map[7].mem_size != 0 )*/
+  /*{*/
+	/*emap->map[6].node_id = 2;*/
+	/*//strcpy(emap->map[0].mem_name, "node0_low");*/
+	/*emap->map[6].mem_type = 1;*/
+	/*emap->map[6].mem_start = 0x01000000;*/
+	/*emap->map[6].mem_size = atoi(getenv("memsize"));*/
 
-	emap->map[7].node_id = 2;
-	//strcpy(emap->map[1].mem_name, "node0_high");
-	emap->map[7].mem_type = 2;
-	emap->map[7].mem_start = 0x90000000;
-  }
+	/*emap->map[7].node_id = 2;*/
+	/*//strcpy(emap->map[1].mem_name, "node0_high");*/
+	/*emap->map[7].mem_type = 2;*/
+	/*emap->map[7].mem_start = 0x90000000;*/
+  /*}*/
 
-  emap->map[9].mem_size = atoi(getenv("memorysize_high_n3"));
-  if ( emap->map[9].mem_size != 0 )
-  {
-	emap->map[8].node_id = 3;
-	//strcpy(emap->map[0].mem_name, "node0_low");
-	emap->map[8].mem_type = 1;
-	emap->map[8].mem_start = 0x01000000;
-	emap->map[8].mem_size = atoi(getenv("memsize"));
+  /*emap->map[9].mem_size = atoi(getenv("memorysize_high_n3"));*/
+  /*if ( emap->map[9].mem_size != 0 )*/
+  /*{*/
+	/*emap->map[8].node_id = 3;*/
+	/*//strcpy(emap->map[0].mem_name, "node0_low");*/
+	/*emap->map[8].mem_type = 1;*/
+	/*emap->map[8].mem_start = 0x01000000;*/
+	/*emap->map[8].mem_size = atoi(getenv("memsize"));*/
 
-	emap->map[9].node_id = 3;
-	//strcpy(emap->map[1].mem_name, "node0_high");
-	emap->map[9].mem_type = 2;
-	emap->map[9].mem_start = 0x90000000;
-  }
+	/*emap->map[9].node_id = 3;*/
+	/*//strcpy(emap->map[1].mem_name, "node0_high");*/
+	/*emap->map[9].mem_type = 2;*/
+	/*emap->map[9].mem_start = 0x90000000;*/
+  /*}*/
 
-#endif
-#endif
+/*#endif*/
+/*#endif*/
 
 
-  return emap;
-}
+  /*return emap;*/
+/*}*/
 
 #ifdef LOONGSON_3BSINGLE
 #ifdef LOONGSON_3B1500
@@ -213,8 +213,8 @@ struct efi_memory_map_loongson * init_memory_map()
 struct efi_cpuinfo_loongson *init_cpu_info()
 {
   struct efi_cpuinfo_loongson *c = &g_cpuinfo_loongson;
-  u32 available_core_mask = 0;
-  u32 available = 0;
+  unsigned int available_core_mask = 0;
+  unsigned int available = 0;
 
   c->processor_id = PRID_IMP_LOONGSON;
   c->cputype  = cputype;

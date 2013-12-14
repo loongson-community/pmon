@@ -15,38 +15,34 @@
 #define SMBIOS_TABLE 10
 #define MAX_MEMORY_TYPE 11
 
-typedef unsigned long long u64;
-typedef unsigned int u32;
-typedef unsigned short u16;
-typedef unsigned char u8;
 
 /*no-use for pmon*/
 struct efi_systab {
 	// efi_table_hdr_t hdr;  /*EFI header*/
-	u64 fw_vendor;     /* physical addr of CHAR16 vendor string */
-	u64 fw_revision;   /*vesion of  efi*/
-	u64 con_in_handle; /*control handle of input*/
-	u64 con_in;   /*control input,support for inputing in kernel*/
-	u64 con_out_handle;  /*control handle of input*/
-	u64 con_out; /*control input,support for inputing in kernel*/
-	u64 stderr_handle; /*standed error  handle*/
+	unsigned long long fw_vendor;     /* physical addr of CHAR16 vendor string */
+	unsigned long long fw_revision;   /*vesion of  efi*/
+	unsigned long long con_in_handle; /*control handle of input*/
+	unsigned long long con_in;   /*control input,support for inputing in kernel*/
+	unsigned long long con_out_handle;  /*control handle of input*/
+	unsigned long long con_out; /*control input,support for inputing in kernel*/
+	unsigned long long stderr_handle; /*standed error  handle*/
 	// unsigned long stderr; /*standed error */
 	// efi_runtime_services_t runtime; /*runtime service */
-	u64 boottime; /*boottime */
-	u32 nr_tables; /*table id*/
-	u64 tables;  /*all tables `entry */
+	unsigned long long boottime; /*boottime */
+	unsigned int nr_tables; /*table id*/
+	unsigned long long tables;  /*all tables `entry */
 };
 
 #define BOOT_MEM_MAP_MAX 128
  struct efi_memory_map_loongson{
-  u16 vers;/*version of efi_memory_map*/
-  u32 nr_map; /*number of memory_maps*/
-  u32 mem_freq;/*memory frequence*/
+  unsigned short vers;/*version of efi_memory_map*/
+  unsigned int nr_map; /*number of memory_maps*/
+  unsigned int mem_freq;/*memory frequence*/
   struct mem_map{
-	u32 node_id;/*recorde the node_id*/	
-	u32 mem_type;/*recorde the memory type*/	
-	u64 mem_start;/*memory map start address*/
-	u32 mem_size; /*for each memory_map size,not the total size*/
+	unsigned int node_id;/*recorde the node_id*/
+	unsigned int mem_type;/*recorde the memory type*/
+	unsigned long long mem_start;/*memory map start address*/
+	unsigned int mem_size; /*for each memory_map size,not the total size*/
   }map[BOOT_MEM_MAP_MAX];
 }__attribute__((packed));
 
@@ -59,55 +55,55 @@ struct efi_cpuinfo_loongson {
 	/*
 	 * Capability and feature descriptor structure for MIPS CPU
 	 */
-	u16 vers; /*version of efi_cpuinfo_loongson*/
-	u32        processor_id;//6505, 6506-3b prid
+	unsigned short vers; /*version of efi_cpuinfo_loongson*/
+	unsigned int        processor_id;//6505, 6506-3b prid
 	enum loongson_cpu_type  cputype;//3a-3b
-	u32         total_node;   /* physical core number */
+	unsigned int         total_node;   /* physical core number */
 
-	u32         cpu_startup_core_id; /* Core id: */
-	u32  cpu_clock_freq; //cpu_clock 
-	u32 nr_cpus;
+	unsigned int         cpu_startup_core_id; /* Core id: */
+	unsigned int  cpu_clock_freq; //cpu_clock
+	unsigned int nr_cpus;
 }__attribute__((packed));
 
 
 struct system_loongson{
-	u16 vers;/*version of system_loongson*/
-	u32 ccnuma_smp; // 0:no numa; 1: has numa
-	u32 sing_double_channel;//1:single; 2:double
-}__attribute__((packd));
+	unsigned short vers;/*version of system_loongson*/
+	unsigned int ccnuma_smp; // 0:no numa; 1: has numa
+	unsigned int sing_double_channel;//1:single; 2:double
+}__attribute__((packed));
 
 struct irq_source_routing_table {
 
-	u16 vers;
-	u16 size;
-	u16 bus,devfn; 
-	u32 vendor,device, PIC_type;   //conform use HT or PCI to route to CPU-PIC
+	unsigned short vers;
+	unsigned short size;
+	unsigned short bus,devfn;
+	unsigned int vendor,device, PIC_type;   //conform use HT or PCI to route to CPU-PIC
 
-	u64 ht_int_bit;   //3a: 1<<24; 3b:1<<16
-	u64 ht_enable;   //irqs used in this PIC.eg:3a-0x0000d17a
-	u32   node_id;  // node id, 0x0 —0, 0x1—1; 0x10—2；0x11—3；0x100—4
+	unsigned long long ht_int_bit;   //3a: 1<<24; 3b:1<<16
+	unsigned long long ht_enable;   //irqs used in this PIC.eg:3a-0x0000d17a
+	unsigned int   node_id;  // node id, 0x0 —0, 0x1—1; 0x10—2；0x11—3；0x100—4
 
-	u64  pci_mem_start_addr;
-	u64  pci_mem_end_addr;
-	u64  pci_io_start_addr;
-	u64  pci_io_end_addr;
-	u64  pci_config_addr;
+	unsigned long long  pci_mem_start_addr;
+	unsigned long long  pci_mem_end_addr;
+	unsigned long long  pci_io_start_addr;
+	unsigned long long  pci_io_end_addr;
+	unsigned long long  pci_config_addr;
 
 }__attribute__((packed));
 
 
 struct interface_info{
-	u16 vers; /*version of the specificition*/
-	u16 size; /**/
-	u8 flag;/**/
+	unsigned short vers; /*version of the specificition*/
+	unsigned short size; /**/
+	unsigned char flag;/**/
 	char description[64]; /**/
-}__attribute__((pached));
+}__attribute__((packed));
 
 
 #define MAX_RESOUCR_NUMBER 128
 struct resource_loongson {
-  u64 start; /*resource start address*/
-  u64 end; /*resource end address*/
+  unsigned long long start; /*resource start address*/
+  unsigned long long end; /*resource end address*/
   char name[64];
   unsigned int flags;
 };
@@ -116,31 +112,31 @@ struct archdev_data {}; /*arch specific additions*/
 
 struct board_devices{
   char name[64]; /*hold the device name*/
-  u32 num_resources; /*number of device_resource*/
+  unsigned int num_resources; /*number of device_resource*/
   struct resource_loongson resource[MAX_RESOUCR_NUMBER]; /*for each device`s resource*/
   /*arch specific additions*/
   struct archdev_data archdata; 
 };
 
 struct loongson_special_attribute{
-	u16 vers; /*version of this special*/
+	unsigned short vers; /*version of this special*/
 	char special_name[64]; /*special_atribute_name*/
 	unsigned int loongson_special_type; /*tyoe of special device*/
     struct resource_loongson resource[MAX_RESOUCR_NUMBER];/*special_vlaue resource*/
 };
 
 struct loongson_params{
-	u64	memory_offset;/*efi_memory_map_loongson struct offset*/ 
-	u64 cpu_offset;  /*efi_cpuinfo_loongson struct offset*/
-	u64 system_offset;  /*system_info struct offset*/
-	u64 irq_offset;  /*irq_source_routing_table struct offset*/
-	u64 interface_offset;  /*interface_info struct offset*/
-	u64 special_offset;  /*loongson_special_attribute struct offset*/
-	u64 boarddev_table_offset;  /*board_device offset*/
+	unsigned long long	memory_offset;/*efi_memory_map_loongson struct offset*/
+	unsigned long long cpu_offset;  /*efi_cpuinfo_loongson struct offset*/
+	unsigned long long system_offset;  /*system_info struct offset*/
+	unsigned long long irq_offset;  /*irq_source_routing_table struct offset*/
+	unsigned long long interface_offset;  /*interface_info struct offset*/
+	unsigned long long special_offset;  /*loongson_special_attribute struct offset*/
+	unsigned long long boarddev_table_offset;  /*board_device offset*/
 };
 
 struct smbios_tables {
-	u16 vers; /*version of smbios*/
+	unsigned short vers; /*version of smbios*/
 	unsigned long long vga_bios;/*vga_bios address*/
 	struct loongson_params lp;
 };
