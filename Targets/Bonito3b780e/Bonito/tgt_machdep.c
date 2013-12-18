@@ -778,6 +778,7 @@ tgt_devconfig()
 	
 //#endif
 	         get_update(tmp_date);
+		 len = strlen(tmp_date);
 	         for (ic = 0; ic < 1; ic++){
 	             video_putchar1(2 + (len+2)*8+ic*8, 560, tmp_date[ic]);
 			  }

@@ -745,6 +745,7 @@ tgt_devconfig()
 	
 //#endif
 	         get_update(tmp_date);
+		 len = strlen(tmp_date);
 	         for (ic = 0; ic < 1; ic++){
 	             video_putchar1(2 + (len+2)*8+ic*8, 560, tmp_date[ic]);
 			  }
@@ -1969,7 +1970,7 @@ tgt_mapenv(int (*func) __P((char *, char *)))
     nvram = (char *)(tgt_flashmap())->fl_map_base;
 	printf("nvram=%08x\n",(unsigned int)nvram);
 	if(fl_devident(nvram, NULL) == 0 ||
-           cksum(nvram + ((unsigned long)(&nvram_offs)-0x80010000), NVRAM_SIZE, 0) != 0) {
+           cksum(nvram + ((unsigned long)(&nvram_offs)-0x8f010000), NVRAM_SIZE, 0) != 0) {
 #else
     nvram = (char *)malloc(512);
 	nvram_get(nvram);
@@ -1979,7 +1980,7 @@ tgt_mapenv(int (*func) __P((char *, char *)))
                 nvram_invalid = 1;
         }
         else {
-				nvram += ((unsigned long)(&nvram_offs)-0x80010000);
+				nvram += ((unsigned long)(&nvram_offs)-0x8f010000);
                 ep = nvram+2;;
 
                 while(*ep != 0) {
@@ -2066,14 +2067,14 @@ tgt_unsetenv(char *name)
         nvram = (char *)(tgt_flashmap())->fl_map_base;
 
 	/* Map. Deal with an entire sector even if we only use part of it */
-        nvram += ((unsigned long)(&nvram_offs)-0x80010000) & ~(NVRAM_SECSIZE - 1);
+        nvram += ((unsigned long)(&nvram_offs)-0x8f010000) & ~(NVRAM_SECSIZE - 1);
 	nvramsecbuf = (char *)malloc(NVRAM_SECSIZE);
 	if(nvramsecbuf == 0) {
 		printf("Warning! Unable to malloc nvrambuffer!\n");
 		return(-1);
 	}
         memcpy(nvramsecbuf, nvram, NVRAM_SECSIZE);
-	nvrambuf = nvramsecbuf + (((unsigned long)(&nvram_offs)-0x80010000) & (NVRAM_SECSIZE - 1));
+	nvrambuf = nvramsecbuf + (((unsigned long)(&nvram_offs)-0x8f010000) & (NVRAM_SECSIZE - 1));
 #else
         nvramsecbuf = nvrambuf = nvram = (char *)malloc(512);
 	nvram_get(nvram);
@@ -2158,7 +2159,7 @@ tgt_setenv(char *name, char *value)
         nvram = (char *)(tgt_flashmap())->fl_map_base;
 
 	/* Deal with an entire sector even if we only use part of it */
-        nvram += ((unsigned long)(&nvram_offs)-0x80010000) & ~(NVRAM_SECSIZE - 1);
+        nvram += ((unsigned long)(&nvram_offs)-0x8f010000) & ~(NVRAM_SECSIZE - 1);
 #endif
 
         /* If NVRAM is found to be uninitialized, reinit it. */
@@ -2171,7 +2172,7 @@ tgt_setenv(char *name, char *value)
 #ifdef NVRAM_IN_FLASH
 		memcpy(nvramsecbuf, nvram, NVRAM_SECSIZE);
 #endif
-		nvrambuf = nvramsecbuf + (((unsigned long)(&nvram_offs)-0x80010000) & (NVRAM_SECSIZE - 1));
+		nvrambuf = nvramsecbuf + (((unsigned long)(&nvram_offs)-0x8f010000) & (NVRAM_SECSIZE - 1));
                 memset(nvrambuf, -1, NVRAM_SIZE);
                 nvrambuf[2] = '\0';
                 nvrambuf[3] = '\0';
@@ -2209,7 +2210,7 @@ tgt_setenv(char *name, char *value)
 #else
         memcpy(nvramsecbuf, nvram, NVRAM_SECSIZE);
 #endif
-	nvrambuf = nvramsecbuf + (((unsigned long)(&nvram_offs)-0x80010000) & (NVRAM_SECSIZE - 1));
+	nvrambuf = nvramsecbuf + (((unsigned long)(&nvram_offs)-0x8f010000) & (NVRAM_SECSIZE - 1));
 	/* Etheraddr is special case to save space */
 	if (strcmp("ethaddr", name) == 0) {
 		char *s = value;

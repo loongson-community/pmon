@@ -166,7 +166,7 @@ nop
 #define HT_REMOTE_NODE  0x900010003ff01000
 
 /*BOOTCORE_ID at [0, 3]*/
-#define	BOOTCORE_ID 0
+#define	BOOTCORE_ID 1
 
 #define Index_Store_Tag_I			0x08
 #define Index_Store_Tag_D			0x09

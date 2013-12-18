@@ -650,16 +650,16 @@ u64 ver_val;
 void
 tgt_devconfig()
 {
-		int ic, len;
-		int count, i;
-		char key;
-		char copyright[9] ="REV_";
-		char bootup[] = "Booting...";
-		char *tmp_copy = NULL;
-		char tmp_date[11];
-		char * s;
-		unsigned int cnt;
-		u64 add, val;
+	int ic, len;
+	int count, i;
+	char key;
+	char copyright[9] ="REV_";
+	char bootup[] = "Booting...";
+	char *tmp_copy = NULL;
+	char tmp_date[11];
+	char * s;
+	unsigned int cnt;
+	u64 add, val;
 #if NMOD_VGACON > 0
 	int rc=1;
 #if NMOD_FRAMEBUFFER > 0 
@@ -667,29 +667,29 @@ tgt_devconfig()
 	extern struct pci_device *vga_dev;
 #ifdef RS780E // for no ls2h cpu on board
 
-    int test;
-    int  i;
-//    printf(" ====================  frame buffer test begin======================:%x \n" , test);
-    for (i = 0;i < 0x100000;i += 4)
-    {
-        //printf(" i = %x \n" , i);
-        *((volatile int *)(BONITO_PCILO_BASE_VA + i)) = i;
-    }
+	int test;
+	int  i;
+	//    printf(" ====================  frame buffer test begin======================:%x \n" , test);
+	for (i = 0;i < 0x100000;i += 4)
+	{
+		//printf(" i = %x \n" , i);
+		*((volatile int *)(BONITO_PCILO_BASE_VA + i)) = i;
+	}
 
-    for (i = 0xffffc;i >= 0;i -= 4)
-    {
-        if (*((volatile int *)(BONITO_PCILO_BASE_VA + i)) != i)
-        {
-            //printf(" not equal ====  %x\n" ,i);
-            break;
-        }
-    }
+	for (i = 0xffffc;i >= 0;i -= 4)
+	{
+		if (*((volatile int *)(BONITO_PCILO_BASE_VA + i)) != i)
+		{
+			//printf(" not equal ====  %x\n" ,i);
+			break;
+		}
+	}
 
-    printf(" ====================  frame buffer test end======================:%x \n" , test);
+	printf(" ====================  frame buffer test end======================:%x \n" , test);
 #endif
 #endif
 #endif
-//	_pci_devinit(1);	/* PCI device initialization */
+	//	_pci_devinit(1);	/* PCI device initialization */
 #if (NMOD_X86EMU_INT10 > 0)||(NMOD_X86EMU >0)
 	SBD_DISPLAY("VGAI", 0);
 	rc = vga_bios_init();
@@ -751,15 +751,15 @@ tgt_devconfig()
 		fbaddress |= 0xb0000000;
 		//ioaddress |= 0xbfd00000;
 		ioaddress |= BONITO_PCIIO_BASE_VA;
-        smi712_init((unsigned char *)fbaddress,(unsigned char *)ioaddress);
+		smi712_init((unsigned char *)fbaddress,(unsigned char *)ioaddress);
 #endif
 
 #if NMOD_SMI502 > 0
-        rc = video_hw_init ();
-                fbaddress  =_pci_conf_read(vga_dev->pa.pa_tag,0x10);
-                ioaddress  =_pci_conf_read(vga_dev->pa.pa_tag,0x14);
-                fbaddress |= 0xb0000000;
-                ioaddress |= 0xb0000000;
+		rc = video_hw_init ();
+		fbaddress  =_pci_conf_read(vga_dev->pa.pa_tag,0x10);
+		ioaddress  =_pci_conf_read(vga_dev->pa.pa_tag,0x14);
+		fbaddress |= 0xb0000000;
+		ioaddress |= 0xb0000000;
 #endif
 
 #ifdef RS780E 
@@ -778,101 +778,102 @@ tgt_devconfig()
 #endif
 
 #if (NMOD_FRAMEBUFFER > 0) || (NMOD_VGACON > 0 )
-    if (rc > 0)
-	 if(!getenv("novga")) vga_available=1;
-	 else vga_available=0;
+	if (rc > 0)
+		if(!getenv("novga")) vga_available=1;
+		else vga_available=0;
 #endif
-    config_init();
-    configure();
-//key_board init
-//#if ((NMOD_VGACON >0) &&(PCI_IDSEL_VIA686B !=0)|| (PCI_IDSEL_CS5536 !=0))
+	config_init();
+	configure();
+	//key_board init
+	//#if ((NMOD_VGACON >0) &&(PCI_IDSEL_VIA686B !=0)|| (PCI_IDSEL_CS5536 !=0))
 #if NMOD_VGACON >0
 	if(getenv("nokbd")) rc=1;
 	else {
 		superio_reinit();
-        rc=kbd_initialize();
-    }
+		rc=kbd_initialize();
+	}
 	printf("%s\n",kbd_error_msgs[rc]);
 	if(!rc){ 
 		kbd_available=1;
 	}
-//	psaux_init();
+	//	psaux_init();
 #endif
 
 #ifdef INTERFACE_3A780E 
-	
+
+	vga_available = 1;
+	kbd_available=1;
+	bios_available = 1; //support usb_kbd in bios
+	// Ask user whether to set bios menu
+	//#if 1
+	printf("Press <Del> to set BIOS,waiting for 3 seconds here..... \n");
+
+	//#endif
+	get_update(tmp_date);
+	len = strlen(tmp_date);
+	for (ic = 0; ic < 1; ic++){
+		video_putchar1(2 + (len+2)*8+ic*8, 560, tmp_date[ic]);
+	}
+
+	video_set_color(0xf);
+
+	init_win_device();
+
+	vga_available = 0;          //lwg close printf output
+
+	for(count = 0;count < 100;count ++)
+	{
+		ioctl(STDIN, FIONREAD, &cnt);
+		if(cnt > 0 && strchr("[G\r",getchar()))
+			break;
+		delay1(30);
+	}
+
+	vga_available = 1;
+	video_set_color(0xf);
+
+	for (ic = 0; ic < 64; ic++)
+	{
+		video_putchar1(2 + ic*8, REV_ROW_LINE, ' ');
+		video_putchar1(2 + ic*8, INF_ROW_LINE, ' ');
+	}
+
+	vga_available = 0;
+
+	if (count >= 100)
+		goto run;
+	else
+		goto bios;
+
+bios:
+
+
+	if(!(s = getenv("SHOW_DISPLAY")) || s[0] !='2')
+	{
+		char buf[10];
+		video_set_color(0xf);
+		video_set_color(0x8);
+		tty_flush();
 		vga_available = 1;
-		kbd_available=1;
-	    bios_available = 1; //support usb_kbd in bios
-	  // Ask user whether to set bios menu
-//#if 1 
-	         printf("Press <Del> to set BIOS,waiting for 3 seconds here..... \n");
-	
-//#endif
-	         get_update(tmp_date);
-	         for (ic = 0; ic < 1; ic++){
-	             video_putchar1(2 + (len+2)*8+ic*8, 560, tmp_date[ic]);
-			  }
-  
-			 video_set_color(0xf);
-
-			init_win_device();
-
-	        vga_available = 0;          //lwg close printf output
-
-		for(count = 0;count < 100;count ++)
+		do_cmd("main");
+		if (!afxIsReturnToPmon)
 		{
-			ioctl(STDIN, FIONREAD, &cnt);
-			if(cnt > 0 && strchr("[G\r",getchar()))
-				break;
-			delay1(30);
+			vga_available = 0;
 		}
-	
-              vga_available = 1;
-              video_set_color(0xf);
-  		
-              for (ic = 0; ic < 64; ic++)
-              {
-                  video_putchar1(2 + ic*8, REV_ROW_LINE, ' ');
-                  video_putchar1(2 + ic*8, INF_ROW_LINE, ' ');
-              }
+	}
 
-             vga_available = 0;
- 
-              if (count >= 100)
-                  goto run;
-              else
-                  goto bios;
-
-  bios:
-
-      
-         if(!(s = getenv("SHOW_DISPLAY")) || s[0] !='2')
-          {
-              char buf[10];
-              video_set_color(0xf);
-              video_set_color(0x8);
-              tty_flush();
-			  vga_available = 1;
-              do_cmd("main");
-              if (!afxIsReturnToPmon)
-              {
-                 vga_available = 0;
-              }
-          }
-      
 run:
-	  	vga_available = 1;
-		bios_available = 0;//support usb_kbd in bios
-       kbd_available = 1;
+	vga_available = 1;
+	bios_available = 0;//support usb_kbd in bios
+	kbd_available = 1;
 
-			  len = strlen(bootup);
-              for (ic = 0; ic < len; ic++)
-              {
-                  video_putchar1(2 + ic*8, INF_ROW_LINE,bootup[ic]);
-              }
+	len = strlen(bootup);
+	for (ic = 0; ic < len; ic++)
+	{
+		video_putchar1(2 + ic*8, INF_ROW_LINE,bootup[ic]);
+	}
 
-  
+
 	printf("devconfig done.\n");
 
 #endif
@@ -1915,7 +1916,7 @@ tgt_mapenv(int (*func) __P((char *, char *)))
     nvram = (char *)(tgt_flashmap())->fl_map_base;
 	printf("nvram=%08x\n",(unsigned int)nvram);
 	if(fl_devident(nvram, NULL) == 0 ||
-           cksum(nvram + ((unsigned long)(&nvram_offs)-0x80010000), NVRAM_SIZE, 0) != 0) {
+           cksum(nvram + ((unsigned long)(&nvram_offs)-0x8f010000), NVRAM_SIZE, 0) != 0) {
 #else
     nvram = (char *)malloc(512);
 	nvram_get(nvram);
@@ -1925,7 +1926,7 @@ tgt_mapenv(int (*func) __P((char *, char *)))
                 nvram_invalid = 1;
         }
         else {
-				nvram += ((unsigned long)(&nvram_offs)-0x80010000);
+				nvram += ((unsigned long)(&nvram_offs)-0x8f010000);
                 ep = nvram+2;;
 
                 while(*ep != 0) {
@@ -2025,14 +2026,14 @@ tgt_unsetenv(char *name)
         nvram = (char *)(tgt_flashmap())->fl_map_base;
 
 	/* Map. Deal with an entire sector even if we only use part of it */
-        nvram += ((unsigned long)(&nvram_offs)-0x80010000) & ~(NVRAM_SECSIZE - 1);
+        nvram += ((unsigned long)(&nvram_offs)-0x8f010000) & ~(NVRAM_SECSIZE - 1);
 	nvramsecbuf = (char *)malloc(NVRAM_SECSIZE);
 	if(nvramsecbuf == 0) {
 		printf("Warning! Unable to malloc nvrambuffer!\n");
 		return(-1);
 	}
         memcpy(nvramsecbuf, nvram, NVRAM_SECSIZE);
-	nvrambuf = nvramsecbuf + (((unsigned long)(&nvram_offs)-0x80010000) & (NVRAM_SECSIZE - 1));
+	nvrambuf = nvramsecbuf + (((unsigned long)(&nvram_offs)-0x8f010000) & (NVRAM_SECSIZE - 1));
 #else
         nvramsecbuf = nvrambuf = nvram = (char *)malloc(512);
 	nvram_get(nvram);
@@ -2117,7 +2118,7 @@ tgt_setenv(char *name, char *value)
         nvram = (char *)(tgt_flashmap())->fl_map_base;
 
 	/* Deal with an entire sector even if we only use part of it */
-        nvram += ((unsigned long)(&nvram_offs)-0x80010000) & ~(NVRAM_SECSIZE - 1);
+        nvram += ((unsigned long)(&nvram_offs)-0x8f010000) & ~(NVRAM_SECSIZE - 1);
 #endif
 
         /* If NVRAM is found to be uninitialized, reinit it. */
@@ -2130,7 +2131,7 @@ tgt_setenv(char *name, char *value)
 #ifdef NVRAM_IN_FLASH
 		memcpy(nvramsecbuf, nvram, NVRAM_SECSIZE);
 #endif
-		nvrambuf = nvramsecbuf + (((unsigned long)(&nvram_offs)-0x80010000) & (NVRAM_SECSIZE - 1));
+		nvrambuf = nvramsecbuf + (((unsigned long)(&nvram_offs)-0x8f010000) & (NVRAM_SECSIZE - 1));
                 memset(nvrambuf, -1, NVRAM_SIZE);
                 nvrambuf[2] = '\0';
                 nvrambuf[3] = '\0';
@@ -2168,7 +2169,7 @@ tgt_setenv(char *name, char *value)
 #else
         memcpy(nvramsecbuf, nvram, NVRAM_SECSIZE);
 #endif
-	nvrambuf = nvramsecbuf + (((unsigned long)(&nvram_offs)-0x80010000) & (NVRAM_SECSIZE - 1));
+	nvrambuf = nvramsecbuf + (((unsigned long)(&nvram_offs)-0x8f010000) & (NVRAM_SECSIZE - 1));
 	/* Etheraddr is special case to save space */
 	if (strcmp("ethaddr", name) == 0) {
 		char *s = value;

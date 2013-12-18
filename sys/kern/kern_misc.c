@@ -347,7 +347,8 @@ kmem_malloc (map, size, canwait)
 	}
 
 	size = (size + PGOFSET) & ~PGOFSET;
-	if (kmem_offs + size > VM_KMEM_SIZE) {
+	//reserved 16MB for upper pmon code (@0x8f00 0000 ~ 0x8fff ffff)
+	if (kmem_offs + size > VM_KMEM_SIZE - 0x01000000) {
 		log (LOG_DEBUG, "kmem_malloc: request for %d bytes fails\n", size);
 		return 0;
 	}

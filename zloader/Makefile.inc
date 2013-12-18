@@ -21,8 +21,8 @@ CC :=${CC} -EL
 OUT_FORMAT="elf32-littlemips"
 endif
 
-GZROMSTARTADDR?=0xffffffff81000000
-ROMSTARTADDR?=0xffffffff80010000
+GZROMSTARTADDR?=0xffffffff8f900000
+ROMSTARTADDR?=0xffffffff8f010000
 RAMSTARTADDR?=0xffffffff88000000
 export CROSS_COMPILE
 export CC += ${MYCC}  -mno-abicalls -fno-pic

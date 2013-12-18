@@ -94,8 +94,8 @@ void init_heaptop()
 {
 #ifndef OLDSBRK
 		if (memorysize >= 0x4000000) {
-			allocp1 = 0x82000000;
-			heaptop = 0x83000000;
+			allocp1 = 0x8f400000;
+			heaptop = 0x8f800000;
 		} else 
 #endif
     heaptop = (unsigned int)(end + 65536)<CLIENTPC?CLIENTPC:(end + 65536);
