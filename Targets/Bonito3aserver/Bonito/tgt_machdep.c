@@ -44,6 +44,7 @@ unsigned int mem_size = 0;
 
 #include "../../../pmon/cmds/cmd_main/window.h"
 #include "../../../pmon/cmds/cmd_main/cmd_main.h"
+#include "../../../pmon/common/smbios/smbios.h"
 
 // 
 #include <sys/ioccom.h>
@@ -3087,19 +3088,23 @@ struct efi_memory_map_loongson * init_memory_map()
 	emap->map[(entry)].mem_size = (size), \
 	(entry)++
 
-	EMAP_ENTRY(i, 0, 1, 0x00200000, 0x0ee);
+ 	EMAP_ENTRY(i, 0, SYSTEM_RAM_LOW, 0x00200000, 0x0ee);
+ 	 /* for entry with mem_size < 1M, we set bit31 to 1 to indicate
+ 	  * that the unit in mem_size is Byte not MBype*/
+ 	EMAP_ENTRY(i, 0, SMBIOS_TABLE, (SMBIOS_PHYSICAL_ADDRESS & 0x0fffffff),
+ 			(SMBIOS_SIZE_LIMIT|0x80000000));
 	if(size < 0x6f000000)
-		EMAP_ENTRY(i, 0, 2, 0x90000000, size >> 20);
+		EMAP_ENTRY(i, 0, SYSTEM_RAM_HIGH, 0x90000000, size >> 20);
 	/*we waste 16MB here, because 780e TOM is 0xff0000000*/
 	else if (size > 0x70000000) {
-		EMAP_ENTRY(i, 0, 2, 0x90000000, 0x6f0);
-		EMAP_ENTRY(i, 0, 2, 0x100000000, (size - 0x70000000) >> 20);
+ 		EMAP_ENTRY(i, 0, SYSTEM_RAM_HIGH, 0x90000000, 0x6f0);
+ 		EMAP_ENTRY(i, 0, SYSTEM_RAM_HIGH, 0x100000000, (size - 0x70000000) >> 20);
 	} else
-		EMAP_ENTRY(i, 0, 2, 0x90000000, 0x6f0);
+ 		EMAP_ENTRY(i, 0, SYSTEM_RAM_HIGH, 0x90000000, 0x6f0);
 
 	if(memorysize_high_n1) {
-		EMAP_ENTRY(i, 1, 1, 0x100000000000L, 0x100);
-		EMAP_ENTRY(i, 1, 2, 0x100000000000L + 0x90000000, memorysize_high_n1 >> 20);
+ 		EMAP_ENTRY(i, 1, SYSTEM_RAM_LOW, 0x100000000000L, 0x100);
+ 		EMAP_ENTRY(i, 1, SYSTEM_RAM_HIGH, 0x100000000000L + 0x90000000, memorysize_high_n1 >> 20);
 	}
 
 
