@@ -10,6 +10,7 @@ typedef signed int __s32;
 typedef signed short __s16;
 
 #define le16_to_cpu(x) (x)
+#define le32_to_cpu(x) (x)
 #define	BLOCK_1KB 1024
 #define	EXT2_NDIR_BLOCKS		12
 #define	EXT2_IND_BLOCK			EXT2_NDIR_BLOCKS
@@ -69,7 +70,7 @@ struct ext2_super_block {
 	 * the incompatible feature set is that if there is a bit set
 	 * in the incompatible feature set that the kernel doesn't
 	 * know about, it should refuse to mount the filesystem.
-	 * 
+	 *
 	 * e2fsck's requirements are more strict; if it doesn't know
 	 * about a feature in either the compatible or incompatible
 	 * feature set, it must abort and not try to meddle with
@@ -185,9 +186,9 @@ struct ext2_dir_entry_2 {
 };
 
 typedef struct ext2_dir_entry_2 ext2_dirent;
-/* 
+/*
  * ext4 related, imported from u-boot
- * */ 
+ * */
 
 #define EXT4_EXTENTS_FL		0x00080000 /* Inode uses extents */
 #define EXT4_EXT_MAGIC			0xf30a
@@ -229,7 +230,7 @@ struct ext4_extent_idx {
 };
 
 /* Each block (leaves and indexes), even inode-stored has header. */
-struct ext4_extent_header {
+struct ext4_extent_hdr {
 	__u16	eh_magic;	/* probably will support different formats */
 	__u16	eh_entries;	/* number of valid entries */
 	__u16	eh_max;		/* capacity of store in entries */
@@ -237,70 +238,4 @@ struct ext4_extent_header {
 	__u32	eh_generation;	/* generation of the tree */
 };
 
-struct ext_filesystem {
-	/* Total Sector of partition */
-	uint64_t total_sect;
-	/* Block size  of partition */
-	uint32_t blksz;
-	/* Inode size of partition */
-	uint32_t inodesz;
-	/* Sectors per Block */
-	uint32_t sect_perblk;
-	/* Group Descriptor Block Number */
-	uint32_t gdtable_blkno;
-	/* Total block groups of partition */
-	uint32_t no_blkgrp;
-	/* No of blocks required for bgdtable */
-	uint32_t no_blk_pergdt;
-	/* Superblock */
-	struct ext2_sblock *sb;
-	/* Block group descritpor table */
-	struct ext2_block_group *bgd;
-	char *gdtable;
-
-	/* Block Bitmap Related */
-	unsigned char **blk_bmaps;
-	long int curr_blkno;
-	uint16_t first_pass_bbmap;
-
-	/* Inode Bitmap Related */
-	unsigned char **inode_bmaps;
-	int curr_inode_no;
-	uint16_t first_pass_ibmap;
-
-	/* Journal Related */
-
-	/* Block Device Descriptor */
-	/*block_dev_desc_t *dev_desc;*/
-};
-
-extern struct ext2_data *ext4fs_root;
-extern struct ext2fs_node *ext4fs_file;
-
-#if defined(CONFIG_EXT4_WRITE)
-extern struct ext2_inode *g_parent_inode;
-extern int gd_index;
-extern int gindex;
-
-int ext4fs_init(void);
-void ext4fs_deinit(void);
-int ext4fs_filename_check(char *filename);
-int ext4fs_write(const char *fname, unsigned char *buffer,
-				unsigned long sizebytes);
-#endif
-
-struct ext_filesystem *get_fs(void);
-int ext4fs_open(const char *filename);
-int ext4fs_read(char *buf, unsigned len);
-int ext4fs_mount(unsigned part_length);
-void ext4fs_close(void);
-int ext4fs_ls(const char *dirname);
-/*void ext4fs_free_node(struct ext2fs_node *node, struct ext2fs_node *currroot);*/
-/*int ext4fs_devread(lbaint_t sector, int byte_offset, int byte_len, char *buf);*/
-/*void ext4fs_set_blk_dev(block_dev_desc_t *rbdd, disk_partition_t *info);*/
-long int read_allocated_block(struct ext2_inode *inode, int fileblock);
-/*int ext4fs_probe(block_dev_desc_t *fs_dev_desc,*/
-		 /*disk_partition_t *fs_partition);*/
-int ext4_read_file(const char *filename, void *buf, int offset, int len);
-int ext4_read_superblock(char *buffer);
 #endif
