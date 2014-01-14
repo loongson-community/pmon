@@ -1275,8 +1275,8 @@ crc_checking:
 
 #define set_L2_win(mas_i, win_i, base, mask, mmap) \
 	li	t0, 0xbbd80000 ;\
-	addiu	t0, t0, mas_i*0x100 ;\
-	addiu	t0, t0, win_i*0x8 ;\
+	daddiu	t0, t0, mas_i*0x100 ;\
+	daddiu	t0, t0, win_i*0x8 ;\
 	dli	t1, base ;\
 	sd	t1, 0x0(t0) ;\
 	dli	t1, mask ;\
@@ -1287,7 +1287,7 @@ crc_checking:
         ## disable window before changing
 #define set_L1_mas6(win_i, base, mask, mmap) \
 	li	t0, 0xbbd82600 ;\
-	addiu	t0, t0, win_i*0x8 ;\
+	daddiu	t0, t0, win_i*0x8 ;\
 	sd	$0, 0x80(t0) ;\
 	dli	t1, base ;\
 	sd	t1, 0x0(t0) ;\
@@ -1303,6 +1303,14 @@ crc_checking:
 	set_L2_win(1, 3, 0x00000000c0000000, 0xffffffffc0000000, 0x00000040800000f3) # 3~4G
 	set_L2_win(1, 4, 0xffffffff80000000, 0xffffffffc0000000, 0x00000030800000f3) # 2~3G 
 	set_L2_win(1, 5, 0xffffffffc0000000, 0xffffffffc0000000, 0x00000040800000f3) # 3~4G
+
+	#PCIE window
+	set_L2_win(4, 0, 0x0000000000000000, 0xffffffffc0000000, 0x00000010800000f3) # 0~1G
+	set_L2_win(4, 1, 0x0000000040000000, 0xffffffffc0000000, 0x00000020800000f3) # 1~2G
+	set_L2_win(4, 2, 0x0000000080000000, 0xffffffffc0000000, 0x00000030800000f3) # 2~3G
+	set_L2_win(4, 3, 0x00000000c0000000, 0xffffffffc0000000, 0x00000040800000f3) # 3~4G
+	set_L2_win(4, 4, 0xffffffff80000000, 0xffffffffc0000000, 0x00000030800000f3) # 2~3G
+	set_L2_win(4, 5, 0xffffffffc0000000, 0xffffffffc0000000, 0x00000040800000f3) # 3~4G
 
 	set_L1_mas6(5, 0x0000000000000000, 0x0000000000000000, 0x00000000000000f0) # others, all to L2$
 	set_L1_mas6(0, 0x0000001080000000, 0xfffffffff0000000, 0x00000000000000f6)
