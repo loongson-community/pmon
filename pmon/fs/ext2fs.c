@@ -119,8 +119,10 @@ static int read_super_block(int fd, int index)
 	if(devio_read(fd, diskbuf, 16 * SECTOR_SIZE) != 16 * SECTOR_SIZE)
 		printf("Read the super block error!\n");
 
-	err = 0;
 	ext2_sb = (struct ext2_super_block *)(diskbuf + 1024);
+
+	if(ext2_sb->s_magic == EXT3_SUPER_MAGIC)
+		err = 0;
 out:
 	if(!err) {
 #ifdef DEBUG_IDE
