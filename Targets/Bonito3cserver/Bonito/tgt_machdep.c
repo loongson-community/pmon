@@ -3122,11 +3122,11 @@ struct efi_memory_map_loongson * init_memory_map()
 	}
 	if(memorysize_high_n2) {
 		EMAP_ENTRY(i, 2, SYSTEM_RAM_LOW, 0x000000000000L, 0x100);
-		EMAP_ENTRY(i, 2, SYSTEM_RAM_HIGH, 0x000000000000L + 0x90000000, memorysize_high_n1 >> 20);
+		EMAP_ENTRY(i, 2, SYSTEM_RAM_HIGH, 0x000000000000L + 0x90000000, memorysize_high_n2 >> 20);
 	}
 	if(memorysize_high_n3) {
 		EMAP_ENTRY(i, 3, SYSTEM_RAM_LOW, 0x000000000000L, 0x100);
-		EMAP_ENTRY(i, 3, SYSTEM_RAM_HIGH, 0x000000000000L + 0x90000000, memorysize_high_n1 >> 20);
+		EMAP_ENTRY(i, 3, SYSTEM_RAM_HIGH, 0x000000000000L + 0x90000000, memorysize_high_n3 >> 20);
 	}
 
 	emap->vers = 1;
