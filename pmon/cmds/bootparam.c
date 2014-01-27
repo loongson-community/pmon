@@ -321,7 +321,11 @@ struct irq_source_routing_table *init_irq_source()
 
 	irq_info->pci_mem_start_addr = 0x40000000ul;
 	irq_info->pci_mem_end_addr = 0x7ffffffful;
-
+#if (defined RS780E)
+	irq_info->dma_mask_bits= 64;
+#else
+	irq_info->dma_mask_bits = 32;
+#endif
 	return irq_info;
 }
 

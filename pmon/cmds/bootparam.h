@@ -88,6 +88,7 @@ struct irq_source_routing_table {
 	unsigned long long  pci_io_start_addr;
 	unsigned long long  pci_io_end_addr;
 	unsigned long long  pci_config_addr;
+	unsigned int dma_mask_bits;
 
 }__attribute__((packed));
 
