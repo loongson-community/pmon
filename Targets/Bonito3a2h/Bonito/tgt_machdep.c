@@ -2848,3 +2848,37 @@ void sb700_interrupt_fixup(void)
 
 }
 
+extern struct efi_memory_map_loongson g_map;
+extern unsigned long long memorysize;
+extern unsigned long long memorysize_high;
+
+#include "../../../pmon/cmds/bootparam.h"
+#include "../../../pmon/common/smbios/smbios.h"
+struct efi_memory_map_loongson * init_memory_map()
+{
+	struct efi_memory_map_loongson *emap = &g_map;
+	int i = 0;
+	unsigned long long size = memorysize_high;
+
+#define EMAP_ENTRY(entry, node, type, start, size) \
+	emap->map[(entry)].node_id = (node), \
+	emap->map[(entry)].mem_type = (type), \
+	emap->map[(entry)].mem_start = (start), \
+	emap->map[(entry)].mem_size = (size), \
+	(entry)++
+
+	EMAP_ENTRY(i, 0, SYSTEM_RAM_LOW, 0x00200000, 0x0ee);
+
+	/* for entry with mem_size < 1M, we set bit31 to 1 to indicate
+	 * that the unit in mem_size is Byte not MBype */
+	EMAP_ENTRY(i, 0, SMBIOS_TABLE, (SMBIOS_PHYSICAL_ADDRESS & 0x0fffffff),
+			(SMBIOS_SIZE_LIMIT | 0x80000000));
+
+	EMAP_ENTRY(i, 0, SYSTEM_RAM_HIGH, 0x110000000, size >> 20);
+
+	emap->vers = 1;
+	emap->nr_map = i;
+
+	return emap;
+#undef	EMAP_ENTRY
+}
