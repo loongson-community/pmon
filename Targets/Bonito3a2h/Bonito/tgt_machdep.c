@@ -109,6 +109,7 @@ tgt_printf (const char *fmt, ...)
 #include "dev/pflash_tgt.h"
 
 #include "include/bonito.h"
+#include "include/ls2h.h"
 #include <pmon/dev/gt64240reg.h>
 #include <pmon/dev/ns16550.h>
 #include "target/firewall.h"
@@ -1389,26 +1390,32 @@ tgt_logo()
 
 static void init_legacy_rtc(void)
 {
-		int year, month, date, hour, min, sec;
-        CMOS_WRITE(DS_CTLA_DV1, DS_REG_CTLA);
-        CMOS_WRITE(DS_CTLB_24 | DS_CTLB_DM | DS_CTLB_SET, DS_REG_CTLB);
-        CMOS_WRITE(0, DS_REG_CTLC);
-        CMOS_WRITE(0, DS_REG_CTLD);
-        year = CMOS_READ(DS_REG_YEAR);
-        month = CMOS_READ(DS_REG_MONTH);
-        date = CMOS_READ(DS_REG_DATE);
-        hour = CMOS_READ(DS_REG_HOUR);
-        min = CMOS_READ(DS_REG_MIN);
-        sec = CMOS_READ(DS_REG_SEC);
-		year = year%16 + year/16*10;
-		month = month%16 + month/16*10;
-		date = date%16 + date/16*10;
-		hour = hour%16 + hour/16*10;
-		min = min%16 + min/16*10;
-		sec = sec%16 + sec/16*10;
-        CMOS_WRITE(DS_CTLB_24 | DS_CTLB_DM, DS_REG_CTLB);
-		tgt_printf("RTC: %02d-%02d-%02d %02d:%02d:%02d\n", year, month, date, hour, min, sec);
+	int year, month, date, hour, min, sec, val;
 
+	val = (1 << 13) | (1 << 11) | (1 << 8);
+	outl(LS2H_RTC_CTRL_REG, val);
+
+	outl(LS2H_TOY_TRIM_REG, 0);
+	outl(LS2H_RTC_TRIM_REG, 0);
+
+	year	= inl(LS2H_TOY_READ1_REG);
+	val	= inl(LS2H_TOY_READ0_REG);
+	month	= ((val >> 26) & 0x3f) - 1;
+	date	= (val >> 21) & 0x1f;
+	hour	= (val >> 16) & 0x1f;
+	min	= (val >> 10) & 0x3f;
+	sec	= (val >> 4) & 0x3f;
+
+	if ((month < 1 || month > 12)
+		|| (date < 1 || date > 31)
+		|| (hour > 23) || (min > 59)
+		|| (sec > 59)) {
+		tgt_printf("RTC time invalid, reset to epoch.\n");
+		/* 2000-01-01 00:00:00 */
+		val = (2 << 26) | (1 << 21);
+		outl(LS2H_TOY_WRITE1_REG, 0x7d0);
+		outl(LS2H_TOY_WRITE0_REG, val);
+	}
 }
 
 int word_addr;
@@ -1605,39 +1612,17 @@ static void
 _probe_frequencies()
 {
 #ifdef HAVE_TOD
-        int i, timeout, cur, sec, cnt, tenthsec, tenthcur;
+        int i, timeout, cur, sec, cnt;
 #endif
                                                                     
         SBD_DISPLAY ("FREQ", CHKPNT_FREQ);
 
-#if 0
-        md_pipefreq = 300000000;        /* Defaults */
-        md_cpufreq  = 66000000;
-#else
-        md_pipefreq = 900000000;        /* NB FPGA*/
+        md_pipefreq = 800000000;        /* NB FPGA*/
         md_cpufreq  =  60000000;
-#endif
 
         clk_invalid = 1;
 #ifdef HAVE_TOD
-#ifdef DEVBD2F_FIREWALL 
-{
-	extern void __main();
-	char tmp;
-	char i2caddr[]={0xde};
-	tgt_i2cread(I2C_SINGLE,i2caddr,2,0x3f,&tmp,1);
-	/*
-	 * bit0:Battery is run out ,please replace the rtc battery
-	 * bit4:Rtc oscillator is no operating,please reset the machine
-	 */
-	tgt_printf("0x3f value  %x\n",tmp);
 	init_legacy_rtc();
-	tgt_i2cread(I2C_SINGLE,i2caddr,2,0x14,&tmp,1);
-	tgt_printf("0x14 value  %x\n",tmp);
-}
-#else
-        //init_legacy_rtc();
-#endif
 
         SBD_DISPLAY ("FREI", CHKPNT_FREQ);
 
@@ -1645,30 +1630,25 @@ _probe_frequencies()
          * Do the next twice for two reasons. First make sure we run from
          * cache. Second make sure synched on second update. (Pun intended!)
          */
-aa:
-        for(i = 2;  i != 0; i--) {
-                timeout = 10000000; /* assume max frequency 1G */
-                tenthsec = (*(volatile unsigned int *)(0xbbef802c) & 0x3f0) >> 0x4;
-				while(((tenthcur = (*(volatile unsigned int *)(0xbbef802c) & 0x3f0) >> 0x4 ) == tenthsec) && (timeout != 0)){
-                        timeout--;
-				}
-                if(timeout == 0) {
-				  tgt_printf("time out!\n"); /* hardware bug */
-                        break;          /* Get out if clock is not running */
-                }
-                timeout = 10000000;
-                cnt = CPU_GetCOUNT(); /* start from next 0.1 seconde */
-				tenthcur = (*(volatile unsigned int *)(0xbbef802c) & 0x3f0) >> 0x4;
-                do {
-						tenthsec = (*(volatile unsigned int *)(0xbbef802c) & 0x3f0) >> 0x4;
-                        timeout--;
-                } while(timeout != 0 && (tenthcur == tenthsec));
-                cnt = CPU_GetCOUNT() - cnt;
-                if(timeout == 0) {
-				  tgt_printf("time out!\n");
-                        break;          /* Get out if clock is not running */
-                }
-        }
+	for (i = 2; i != 0; i--) {
+		timeout = 10000000;
+		sec = (inl(LS2H_TOY_READ0_REG) >> 4) & 0x3f;
+		do {
+			cur = ((inl(LS2H_TOY_READ0_REG) >> 4) & 0x3f);
+		} while (cur == sec);
+
+		cnt = CPU_GetCOUNT();
+		do {
+			timeout--;
+			sec = (inl(LS2H_TOY_READ0_REG) >> 4) & 0x3f;
+		} while (timeout != 0 && (cur == sec));
+		cnt = CPU_GetCOUNT() - cnt;
+		if (timeout == 0) {
+			tgt_printf("time out!\n");
+			break;	/* Get out if clock is not running */
+		}
+	}
+
 	/*
 	 *  Calculate the external bus clock frequency.
 	 */
@@ -1680,7 +1660,7 @@ aa:
 		 */
 		md_cpufreq = 66000000;
 	}
-         tgt_printf("cpu fre %u\n",md_pipefreq);
+         tgt_printf("cpu freq %u\n",md_pipefreq);
 #endif /* HAVE_TOD */
 }
 
@@ -1717,22 +1697,22 @@ tgt_gettime()
 	/*gx 2005-01-17 */
 #ifdef HAVE_TOD
 
-		month = ((*(volatile unsigned int *)0xbbef802c) & 0xfc000000) >> 26;
-        	date = ((*(volatile unsigned int *)0xbbef802c) & 0x3e00000) >> 21;
-        	hour = ((*(volatile unsigned int *)0xbbef802c) & 0x1f0000) >> 16;
-        	min = ((*(volatile unsigned int *)0xbbef802c) & 0xfc00) >> 10;
-        	sec = ((*(volatile unsigned int *)0xbbef802c) & 0x3f0) >> 4;
-        	year = *(volatile unsigned int *)0xbbef8030; 
+	month	= (inl(LS2H_TOY_READ0_REG) & 0xfc000000) >> 26;
+	date	= (inl(LS2H_TOY_READ0_REG) & 0x3e00000) >> 21;
+	hour	= (inl(LS2H_TOY_READ0_REG) & 0x1f0000) >> 16;
+	min	= (inl(LS2H_TOY_READ0_REG) & 0xfc00) >> 10;
+	sec	= (inl(LS2H_TOY_READ0_REG) & 0x3f0) >> 4;
+	year	= inl(LS2H_TOY_READ1_REG);
 
-		tm.tm_sec = sec;
-		tm.tm_min = min;
-		tm.tm_hour = hour;
-		tm.tm_mday = date;
-		tm.tm_mon = (month-1);
-		tm.tm_year = year;
+	tm.tm_sec	= sec;
+	tm.tm_min	= min;
+	tm.tm_hour	= hour;
+	tm.tm_mday	= date;
+	tm.tm_mon	= month - 1;
+	tm.tm_year	= year;
 
-		tm.tm_isdst = tm.tm_gmtoff = 0;
-        	t = gmmktime(&tm);
+	tm.tm_isdst = tm.tm_gmtoff = 0;
+	t = gmmktime(&tm);
 #endif
         return(t);
 }
@@ -1746,18 +1726,18 @@ tgt_settime(time_t t)
 	int year, month, date, hour, min, sec;
 	unsigned int time_value;
 #ifdef HAVE_TOD
-                tm = gmtime(&t);
+        tm = gmtime(&t);
 
-		year = tm->tm_year;
-		month = tm->tm_mon;
-		date = tm->tm_mday;
-		hour = tm->tm_hour;
-		min = tm->tm_min;
-		sec = tm->tm_sec;
+	year = tm->tm_year;
+	month = tm->tm_mon;
+	date = tm->tm_mday;
+	hour = tm->tm_hour;
+	min = tm->tm_min;
+	sec = tm->tm_sec;
 
-		time_value = ((month+1)<<26 | date<<21 | hour<<16 | min<<10 | sec<<4);
-        	(*(volatile unsigned int *)0xbbef8024) = time_value;
-		(*(volatile unsigned int *)(0xbbef8028)) = year;
+	time_value = ((month + 1)<<26 | date<<21 | hour<<16 | min<<10 | sec<<4);
+	outl(LS2H_TOY_WRITE0_REG, time_value);
+	outl(LS2H_TOY_WRITE1_REG, year);
 #endif
 }
 /*
