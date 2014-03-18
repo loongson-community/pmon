@@ -44,7 +44,7 @@ cmd_load_2h(int ac,char *av[])
 	char load[256], boottype[256];
 	volatile unsigned int *mailbox;
 	long size;
-	mailbox = (volatile unsigned int *)0xbbd80120;	
+	mailbox = (volatile unsigned int *)0xbbd80130;	
 	memset(load,0,256);
 	memset(boottype,0,256);
 	strcpy(boottype,av[1]);	
