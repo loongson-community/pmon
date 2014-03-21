@@ -965,9 +965,6 @@ static int fdisk(int argc,char **argv)
 	char device[0x40], *dev_name;
 	int buf[0x10];
 	int len;
-#ifdef LOONGSON_3A2H
-	struct ahci_sata_softc *ahci_sd;
-#endif
 
 	if(strncmp(argv[1],"/dev/",5)) 
 		sprintf(device,"/dev/disk/%s",argv[1]);
@@ -982,20 +979,18 @@ static int fdisk(int argc,char **argv)
 	fread(buf,0x40,1,fp);
 	fclose(fp);
 
-#ifdef LOONGSON_3A2H
-	ahci_sd = ahci_find_byname(ahci_sd_cd, device);
-	dev_name = ahci_sd->name;
-#else
-	dev_name = wd_name;
-#endif
-
+	dev_name = (argc==1)?"wd0":argv[1];
 	printf("Device Name");
+
 	len = strlen(dev_name);
-	len -= 11;
-	while(len){
-		printf(" ");
-		len--;
+	if (len > 11) {
+		len -= 11;
+		while(len > 0){
+			printf(" ");
+			len--;
+		}
 	}
+
 	printf(" ");
 	printf("Device Boot %-16s%-16s%-16sId System\n","Start","End","Sectors");
 	for(n=0,p0=(void *)buf;n<4;n++,p0++)
@@ -1009,11 +1004,14 @@ static int fdisk(int argc,char **argv)
 
 		printf("%s", dev_name);
 		len = strlen(dev_name);
-		len -= 11;
-		while(len){
-			printf(" ");
-			len--;
+		if (len < 11) {
+			len = 11 - len;
+			while (len > 0) {
+				printf(" ");
+				len--;
+			}
 		}
+
 		printf(" ");
 		printf("%-6d %-4c %-16d%-16d%-16d%x %s\n",n,(p0->boot_ind==0x80)?'*':' ',p0->start_sect,p0->start_sect+p0->nr_sects,p0->nr_sects,\
 		p0->sys_ind,j<type_counts?known_parttype[j].name:"unknown");
