@@ -2457,6 +2457,7 @@ void set_phyled(struct synopGMACNetworkAdapter *synopGMACadapter)
 s32  synopGMAC_init_network_interface(char* xname, struct device *sc )
 {
 	struct ifnet* ifp;
+	extern unsigned char smbios_uuid_mac[6];
 
 	u8 mac_addr0[6];
 	int i,v;
@@ -2466,7 +2467,7 @@ s32  synopGMAC_init_network_interface(char* xname, struct device *sc )
 	struct synopGMACNetworkAdapter *synopGMACadapter;
 	ls2h_i2c1_init();
 	eeprom_read_seq(eeprom_addr, mac_addr0, 6);
-	
+	memcpy(smbios_uuid_mac, mac_addr0, 6);
 	TR("Now Going to Call register_netdev to register the network interface for GMAC core\n");
 	synopGMACadapter = (struct synopGMACNetworkAdapter * )plat_alloc_memory(sizeof (struct synopGMACNetworkAdapter)); 
 //sw:	should i put sync_cache here?

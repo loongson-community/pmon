@@ -31,6 +31,7 @@
 
 unsigned char smbios_uuid_rtl8168_mac[6];
 unsigned char smbios_uuid_e1000e_mac[6];
+unsigned char smbios_uuid_mac[6];
 
 static void read_node(uint8_t *node)
 {
@@ -38,9 +39,9 @@ static void read_node(uint8_t *node)
 	for(i = 0; i < 6; i++){
 #if defined(LOONGSON_3BSINGLE)
 #if defined(LOONGSON_3B1500)
-	node[i + 10] = smbios_uuid_e1000e_mac[i];
+		node[i + 10] = smbios_uuid_e1000e_mac[i];
 #else
-	node[i + 10] = smbios_uuid_rtl8168_mac[i];
+		node[i + 10] = smbios_uuid_rtl8168_mac[i];
 #endif
 #endif
 #if defined(LOONGSON_3ASINGLE)
@@ -48,6 +49,9 @@ static void read_node(uint8_t *node)
 #endif
 #if defined(LOONGSON_3ASERVER) || defined(LOONGSON_3BSERVER)
                 node[i + 10] = smbios_uuid_e1000e_mac[i];
+#endif
+#ifdef LOONGSON_3A2H
+		node[i + 10] = smbios_uuid_mac[i];
 #endif
 	}
 	node[0] |= 0x01;
