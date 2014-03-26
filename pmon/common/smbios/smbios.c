@@ -202,9 +202,9 @@ static void board_info(char *board_name)
 
 #ifdef LOONGSON_3A2H
 	if(cpu_probe_release())
-        	strcpy(board_name, "Loongson-3A-2H-1w-V1.00-demo");
+        	strcpy(board_name, "Loongson-3A-2H-1w-V0.4-demo");
 	else
-        	strcpy(board_name, "Loongson-3A5-2H-1w-V1.00-demo");
+        	strcpy(board_name, "Loongson-3A5-2H-1w-V0.4-demo");
 #endif
 
 #ifdef LOONGSON_3C2H
@@ -275,7 +275,7 @@ smbios_type_0_init(void *start)
 			temp[i] = '0';
 	}
 	temp[8] = '\0';
-    	sprintf(pmon_version, "LoongSon-PMON-V3.0-%s", temp);
+    	sprintf(pmon_version, "Loongson-PMON-V3.2-%s", temp);
 	p->header.type = 0;
 	p->header.length = sizeof(struct smbios_type_0);
 	p->header.handle = smbios_table_handle++;
@@ -304,8 +304,8 @@ smbios_type_0_init(void *start)
 	p->embedded_controller_minor = 0xff;
 
 	start += sizeof(struct smbios_type_0);
-	strcpy((char *)start, "LoongSon");
-	start += strlen("LoongSon") + 1;
+	strcpy((char *)start, "Loongson");
+	start += strlen("Loongson") + 1;
 	strcpy((char *)start, pmon_version);
 	start += strlen(pmon_version) + 1;
 	
@@ -328,7 +328,7 @@ smbios_type_1_init(void *start)
 {
 	struct smbios_type_1 *p = (struct smbios_type_1 *)start;
 	char product_name[50];
-	char *board_family = "LoongSon3";
+	char *board_family = "Loongson3";
 	char loongson_version[10];
 	char *q;
 	int i;
@@ -353,8 +353,8 @@ smbios_type_1_init(void *start)
 	uuid_generate(p->uuid);
 
 	start += sizeof(struct smbios_type_1);
-	strcpy((char *)start, "LoongSon");
-	start += strlen("LoongSon") + 1;
+	strcpy((char *)start, "Loongson");
+	start += strlen("Loongson") + 1;
 	strcpy((char *)start, product_name);
 	start += strlen(product_name) + 1;
 	strcpy((char *)start, loongson_version);
@@ -398,8 +398,8 @@ smbios_type_2_init(void *start)
 	prase_name(board_name, board_version);
 	
 	start += sizeof(struct smbios_type_2);
-	strcpy((char *)start, "LoongSon");
-	start += strlen("LoongSon") + 1;
+	strcpy((char *)start, "Loongson");
+	start += strlen("Loongson") + 1;
 	strcpy((char *)start, board_name);
 	start += strlen(board_name) + 1;
 	strcpy((char *)start, board_version);
@@ -500,8 +500,8 @@ smbios_type_4_init(void *start)
         p->processor_family2 = 0x01;
 
         start += sizeof(struct smbios_type_4);
-	strcpy((char *)start, "LoongSon");
-        start += strlen("LoongSon") +  1;
+	strcpy((char *)start, "Loongson");
+        start += strlen("Loongson") +  1;
         strcpy((char *)start, cpu_version);
         start += strlen(cpu_version) +  1;
 

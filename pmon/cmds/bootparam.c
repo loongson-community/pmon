@@ -341,7 +341,7 @@ struct interface_info *init_interface_info()
   inter->size = flashsize/0x400;
   inter->flag = 1;
 
-  strcpy(inter->description,"PMON_Version_v2.1");
+  strcpy(inter->description,"Loongson-PMON-V3.2.0");
  
   return inter;
 }
@@ -355,7 +355,7 @@ struct board_devices *board_devices_info()
   strcpy(bd->name,"Loongson-3A-780E-1w-V1.03-demo");
 #endif
 #ifdef LOONGSON_3A2H
-  strcpy(bd->name,"Loongson-3A-2H-1w-V1.00-demo");
+  strcpy(bd->name,"Loongson-3A-2H-1w-V0.4-demo");
 #endif
 #ifdef LOONGSON_3BSINGLE
 #ifdef LOONGSON_3B1500
