@@ -38,6 +38,9 @@
 
 #include <pmon.h>
 
+static int rtest(unsigned long long start, unsigned long long end, unsigned long long step);
+static int wtest(unsigned long long start, unsigned long long end, unsigned long long step);
+static int wrtest(unsigned long long start, unsigned long long end, unsigned long long step);
 /*
  *  Show all windows.
  */
@@ -45,7 +48,6 @@
 
 // test : master
 int
-
 cmd_showwindows(ac, av)
 	int ac;
 	char *av[];
@@ -184,8 +186,10 @@ cmd_wrtest_B1(ac, av)
 }
 
 
-
 #define u64 unsigned long long 
+extern u64 __raw__readq(u64 addr);
+extern u64 __raw__writeq(u64 addr, u64 val);
+#if 0
 u64 __raw__readq(u64 q)
 {
   u64 ret;
@@ -218,6 +222,7 @@ u64 __raw__writeq(u64 addr, u64 val)
 
 	return ret;
 }
+#endif
 
 
 static void dump_l1xbar(int node)
@@ -512,8 +517,8 @@ static int rtest(unsigned long long start, unsigned long long end, unsigned long
 static int wrtest(unsigned long long start, unsigned long long end, unsigned long long step)
 {
 	wtest(start, end, step);
-    rtest(start, end, step);
-	
+	rtest(start, end, step);
+
 }
 
 /*

@@ -2028,59 +2028,12 @@ static void e1000_release_hw_control(struct e1000_adapter *adapter)
 }
 
 /**
- * @e1000_alloc_ring - allocate memory for a ring structure
- **/
-#if 0 //zxj deleted
-static int e1000_alloc_ring_dma(struct e1000_adapter *adapter,
-				struct e1000_ring *ring)
-{
-	struct pci_dev *pdev = adapter->pdev;
-
-	ring->desc = dma_alloc_coherent(&pdev->dev, ring->size, &ring->dma,
-					GFP_KERNEL);
-	if (!ring->desc)
-		return -ENOMEM;
-
-	return 0;
-}
-#endif
-/**
  * e1000e_setup_tx_resources - allocate Tx resources (Descriptors)
  * @adapter: board private structure
  *
  * Return 0 on success, negative on failure
  **/
 int e1000e_setup_tx_resources(struct e1000_adapter *adapter)
-#if 0 //zxj modified
-{
-	struct e1000_ring *tx_ring = adapter->tx_ring;
-	int err = -ENOMEM, size;
-
-	size = sizeof(struct e1000_buffer) * tx_ring->count;
-	tx_ring->buffer_info = vmalloc(size);
-	if (!tx_ring->buffer_info)
-		goto err;
-	memset(tx_ring->buffer_info, 0, size);
-
-	/* round up to nearest 4K */
-	tx_ring->size = tx_ring->count * sizeof(struct e1000_tx_desc);
-	tx_ring->size = ALIGN_E1000E(tx_ring->size, 4096);
-
-	err = e1000_alloc_ring_dma(adapter, tx_ring);
-	if (err)
-		goto err;
-
-	tx_ring->next_to_use = 0;
-	tx_ring->next_to_clean = 0;
-	spin_lock_init(&adapter->tx_queue_lock);
-
-	return 0;
-err:
-	vfree(tx_ring->buffer_info);
-	e_err("Unable to allocate memory for the transmit descriptor ring\n");
-	return err;
-}
-#else
 {
 	//struct e1000_desc_ring *txdr = &adapter->tx_ring;
 	struct e1000_ring *txdr = adapter->tx_ring; // zxj
@@ -2111,71 +2064,14 @@ err:
 
 	return 0;
 }
-#endif
-#if 0 //zxj
 /**
  * e1000e_setup_rx_resources - allocate Rx resources (Descriptors)
  * @adapter: board private structure
  *
  * Returns 0 on success, negative on failure
  **/
+
 int e1000e_setup_rx_resources(struct e1000_adapter *adapter)
-{
-	struct e1000_ring *rx_ring = adapter->rx_ring;
-	struct e1000_buffer *buffer_info;
-	int i, size, desc_len, err = -ENOMEM;
-
-	size = sizeof(struct e1000_buffer) * rx_ring->count;
-	rx_ring->buffer_info = vmalloc(size);
-	if (!rx_ring->buffer_info)
-		goto err;
-	memset(rx_ring->buffer_info, 0, size);
-
-	for (i = 0; i < rx_ring->count; i++) {
-		buffer_info = &rx_ring->buffer_info[i];
-		buffer_info->ps_pages = kcalloc(PS_PAGE_BUFFERS,
-						sizeof(struct e1000_ps_page),
-						GFP_KERNEL);
-		if (!buffer_info->ps_pages)
-			goto err_pages;
-	}
-
-	desc_len = sizeof(union e1000_rx_desc_packet_split);
-
-	/* Round up to nearest 4K */
-	rx_ring->size = rx_ring->count * desc_len;
-	rx_ring->size = ALIGN_E1000E(rx_ring->size, 4096);
-
-	err = e1000_alloc_ring_dma(adapter, rx_ring);
-	if (err)
-		goto err_pages;
-
-	rx_ring->next_to_clean = 0;
-	rx_ring->next_to_use = 0;
-	rx_ring->rx_skb_top = NULL;
-
-	return 0;
-
-err_pages:
-	for (i = 0; i < rx_ring->count; i++) {
-		buffer_info = &rx_ring->buffer_info[i];
-		kfree(buffer_info->ps_pages);
-	}
-err:
-	vfree(rx_ring->buffer_info);
-	e_err("Unable to allocate memory for the transmit descriptor ring\n");
-	return err;
-}
-#else
-/**
- * e1000e_setup_rx_resources - allocate Rx resources (Descriptors)
- * @adapter: board private structure
- *
- * Returns 0 on success, negative on failure
- **/
-
-static int
-e1000e_setup_rx_resources(struct e1000_adapter *adapter)
 {
 	//struct e1000_desc_ring *rxdr = &adapter->rx_ring;
 	struct e1000_ring *rxdr = adapter->rx_ring; //zxj
@@ -2208,7 +2104,6 @@ e1000e_setup_rx_resources(struct e1000_adapter *adapter)
 	return 0;
 }
 
-#endif
 
 /**
  * e1000_clean_tx_ring - Free Tx Buffers

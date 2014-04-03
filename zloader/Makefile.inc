@@ -1,6 +1,6 @@
 ifndef PMONCC
 CC=$(CROSS_COMPILE)gcc 
-CROSS_COMPILE ?= mips-elf-
+CROSS_COMPILE ?= mipsel-linux-
 else
 CC=${PMONCC}
 endif

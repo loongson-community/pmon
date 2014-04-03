@@ -46,34 +46,36 @@ int cmd_save_ddrparam __P((int, char *[]));
 
 u64 __raw_readq_sp(u64 q)
 {
-    u64 ret;
+	u64 ret;
 
-    asm volatile(
-        ".set mips3;\r\n"
-        "move    $8,%1;\r\n"
-        "ld    %0,0($8);\r\n"
-        :"=r"(ret)
-        :"r" (q)
-        :"$8");
+	asm volatile(
+			".set mips3;\r\n"
+			"ld    $8,%1;\r\n"
+			"ld    $8,0($8);\r\n"
+			"sd    $8,%0;\r\n"
+			:"=m"(ret)
+			:"m" (q)
+			:"$8");
 
-    return ret;
+	return ret;
 }
-
 u64 __raw_writeq_sp(u64 addr, u64 val)
 {
-    u64 ret;
+	u64 ret;
 
-    asm volatile(
-        ".set mips3;\r\n"
-        "move    $8,%1;\r\n"
-        "move    $9,%2;\r\n"
-        "sd    $9,0($8);\r\n"
-        "ld    %0,0($8);\r\n"
-        :"=r"(ret)
-        :"r" (addr), "r" (val)
-        :"$8", "$9");
+	asm volatile(
+			".set mips3;\r\n"
+			"ld    $8,%1;\r\n"
+			"move    $9,%2;\r\n"
+			"sd    $9,0($8);\r\n"
+			"ld    $8,0($8);\r\n"
+			"sd    $8,%0;\r\n"
+			:"=m"(ret)
+			:"m" (addr), "r" (val)
+			:"$8", "$9");
 
-    return ret;
+	return ret;
+
 }
 
 

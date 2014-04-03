@@ -1,12 +1,12 @@
 
-OUTPUT_FORMAT("elf32-littlemips", "elf32-tradbigmips",
-              "elf32-littlemips")
+OUTPUT_FORMAT("elf32-tradlittlemips", "elf32-tradbigmips",
+              "elf32-tradlittlemips")
 OUTPUT_ARCH(mips)
 ENTRY(_start)
 SECTIONS
 {
 
-  . = 0xffffffff81000000;
+  . = 0xffffffff8f900000;
   .text :
   {
     _ftext = . ;

@@ -532,7 +532,7 @@ int dl_ohci_kbd(void)
 }
 
 /*This founction is to deal with problem caused by usb kbd*/
-static void delay_usb_ohci(int us)
+void delay_usb_ohci(int us)
 {
 	volatile int i, k;
 

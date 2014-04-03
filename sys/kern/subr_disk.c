@@ -98,6 +98,8 @@ struct device *parsedisk(char *, int, int, dev_t *);
 char *disk_readlabel(struct disklabel *, dev_t, char *, size_t);
 void disk_attach_callback(void *, void *);
 
+char * findblkname(int maj);
+struct device * parsedisk(char *str, int len, int defpart, dev_t *devp);
 /*
  * Seek sort for disks.  We depend on the driver which calls us using b_resid
  * as the current cylinder number.

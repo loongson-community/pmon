@@ -39,17 +39,17 @@
 #define INFO_W  80
 extern void delay1(int);
 extern void (*__cprint)(int y, int x,int width,char color, const char *text);
-static int pause()
+static int lpause()
 {
-char cmd[20];
-struct termio tbuf;
-printf("\n");
-__cprint(INFO_Y,0,INFO_W,0x70,"press enter to continue");
-ioctl (STDIN, SETNCNE, &tbuf);
-gets(cmd);
-ioctl (STDIN, TCSETAW, &tbuf);
-__cprint(INFO_Y,0,INFO_W,0x7,0);
-return 0;
+	char cmd[20];
+	struct termio tbuf;
+	printf("\n");
+	__cprint(INFO_Y,0,INFO_W,0x70,"press enter to continue");
+	ioctl (STDIN, SETNCNE, &tbuf);
+	gets(cmd);
+	ioctl (STDIN, TCSETAW, &tbuf);
+	__cprint(INFO_Y,0,INFO_W,0x7,0);
+	return 0;
 }
 
 static int printticks(int n,int d)
@@ -135,7 +135,7 @@ for(i=0;i<31;i++)
 			disktest();
 			break;
 	}
-	if(ac==2)	pause();
+	if(ac==2)	lpause();
 }
 
 

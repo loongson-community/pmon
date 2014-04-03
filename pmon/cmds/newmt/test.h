@@ -155,7 +155,7 @@ void find_ticks(void);
 void print_err(ulong *adr, ulong good, ulong bad, ulong xor);
 void print_ecc_err(ulong page, ulong offset, int corrected, 
 	unsigned short syndrome, int channel);
-void mem_size(void);
+void get_mem_size(void);
 void adj_mem(void);
 ulong getval(int x, int y, int result_shift);
 int get_key(void);

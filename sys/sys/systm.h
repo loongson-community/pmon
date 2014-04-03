@@ -110,6 +110,7 @@ extern struct sysent {		/* system call table */
 } sysent[];
 #if 1
 #define	SCARG(p,k) ((typeof((p)->k.datum))(int)((p)->k.regt))
+#define	SCARGL(p,k) ((p)->k.regt)
 #else
 #define	SCARG(p,k) ((sizeof(typeof((p)->k.datum)) != 4  ? (typeof((p)->k.datum))((p)->k.regt) : \
 				(typeof((p)->k.datum))((u_int32_t)((p)->k.regt))))

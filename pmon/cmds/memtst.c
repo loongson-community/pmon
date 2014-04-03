@@ -44,6 +44,9 @@
 int cmd_memtst __P((int, char *[]));
 int cmd_spacescan __P((int, char *[]));
 static int do_mt __P((u_int32_t *, u_int32_t *, int));
+#define u64 unsigned long long
+extern u64 __raw__readq(u64 addr);
+extern u64 __raw__writeq(u64 addr, u64 val);
 
 const Optdesc         mt_opts[] = {
 	{"-c", "continuous test"},
@@ -213,49 +216,6 @@ do_mt(u_int32_t *saddr, u_int32_t *eaddr, int vflag)
 	return (err);
 }
 
-unsigned long long __raw_readd(unsigned long d)
-{
-  unsigned long long ret; 
-
-  asm volatile(
-      ".set mips3;\r\n"  
-      "lw   $2,%1;\r\n"  
-      "lw   $2,($2);\r\n"  
-      "sw   $2,%0;\r\n"  
-      ::"m"(ret), "m" (d)
-      :"$2");
-
-    return ret; 
-}
-
-unsigned long long __raw_readq(unsigned long long q)
-{
-  unsigned long long ret; 
-
-  asm volatile(
-      ".set mips3;\r\n"  
-      "ld   $2,%1;\r\n"  
-      "ld   $2,($2);\r\n"  
-      "sd   $2,%0;\r\n"  
-      ::"m"(ret), "m" (q)
-      :"$2");
-
-    return ret; 
-}
-
-void __raw_writeq(unsigned long long addr, unsigned long long val)
-{
-
-  asm volatile(
-      ".set mips3;\r\n"  
-      "ld   $2,%1;\r\n"  
-      "ld   $3,%0;\r\n"  
-      "sd   $3,($2);\r\n"  
-      ::"m"(val), "m" (addr)
-      :"$2","$3");
-
-}
-
 static unsigned long long
 strtoull(const char *nptr,char **endptr,int base);
 
@@ -300,7 +260,7 @@ cmd_spacescan(int ac, char **av)
             printf("\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\scanning 0x%llx",address_bottom);
         //if(address_bottom % 0x1000== 0)
             ////printf("%c",'\'+1);
-        data = __raw_readq(address_bottom);
+        data = __raw__readq(address_bottom);
         address_bottom = address_bottom + 0x100;
     }
     printf("\n");

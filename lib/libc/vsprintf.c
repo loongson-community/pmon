@@ -36,6 +36,20 @@
 #include <ctype.h>
 
 #include <pmon.h>
+#ifdef FLOATINGPT
+static void dtoa (char *, double, int, int, int);
+static int __attribute__((__noinline__)) ap2double(char *buf,char type,int width, int trunc, va_list ap)
+{
+	double dbl;
+
+#ifndef NEWFP
+	//	EP ex;
+#endif
+	dbl = va_arg(ap, double);
+	dtoa (buf, dbl, type, width, trunc);
+	trunc = 0;
+}
+#endif
 
 /*
  *  int vsprintf(d,s,ap)
@@ -47,13 +61,6 @@ vsprintf (char *d, const char *s, va_list ap)
 	char *p, *dst, tmp[40];
 	unsigned int n;
 	int fmt, trunc, haddot, width, base, longlong;
-#ifdef FLOATINGPT
-	double dbl;
-
-#ifndef NEWFP
-//	EP ex;
-#endif
-#endif
 
 	dst = d;
 	for (; *s;) {
@@ -148,10 +155,7 @@ vsprintf (char *d, const char *s, va_list ap)
 				}
 #ifdef FLOATINGPT
 				else if (strchr ("eEfgG", *s)) {
-static void dtoa (char *, double, int, int, int);
-					dbl = va_arg(ap, double);
-					dtoa (d, dbl, *s, width, trunc);
-					trunc = 0;
+					ap2double(d, *s, width, trunc, ap);
 				}
 #endif
 			}

@@ -107,7 +107,7 @@ void mkcomment __P((char *, char *, long));
 int dispchist __P((int, int));
 
 long	inst, cur_loc;
-static char *searching = "searching..  ";
+char	*searching = "Searching.. ";
 
 const char         * const *regname;	/* pointer to either regs_sw or regs_hw */
 

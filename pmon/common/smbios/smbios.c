@@ -181,7 +181,9 @@ smbios_entry_point_init(void *start,
 static inline int cpu_probe_release(void)
 {
        unsigned long cputype_flag = 0;
-        __asm__ volatile ( "dli     $2, 0x90000efdfb000000\r\n"
+        __asm__ volatile (
+                ".set     mips3\r\n"
+		"dli     $2, 0x90000efdfb000000\r\n"
                 " lw      %0, 0x5c($2)\r\n"
                 ".set     mips3\r\n"
                 :"=r"(cputype_flag)::"$2");

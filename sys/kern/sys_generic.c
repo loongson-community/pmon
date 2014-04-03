@@ -556,7 +556,7 @@ sys_select(p, v, retval)
 
 	if (SCARG(uap, nd) > p->p_fd->fd_nfiles) {
 		/* forgiving; slightly wrong */
-		SCARG(uap, nd) = p->p_fd->fd_nfiles;
+		SCARGL(uap, nd) = p->p_fd->fd_nfiles;
 	}
 	ni = howmany(SCARG(uap, nd), NFDBITS) * sizeof(fd_mask);
 	if (SCARG(uap, nd) > FD_SETSIZE) {
@@ -830,7 +830,7 @@ sys_poll(p, v, retval)
 
 	/* XXX constrain; This may not match standards */
 	if (SCARG(uap, nfds) > p->p_fd->fd_nfiles)
-		SCARG(uap, nfds) = p->p_fd->fd_nfiles;
+		SCARGL(uap, nfds) = p->p_fd->fd_nfiles;
 	sz = sizeof(struct pollfd) * SCARG(uap, nfds);
 	
 	/* optimize for the default case, of a small nfds value */

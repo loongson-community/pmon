@@ -149,7 +149,7 @@ static int hit_entry(unsigned long long basic, int index, unsigned long long std
 #define PASS  0x1
 #define FAIL  0x0
 
-static int hit_window(unsigned long long base, unsigned long long std[][], int cnt)
+static int hit_window(unsigned long long base, unsigned long long std[][3], int cnt)
 {
 	int i, ret, record;
 	int expected_table[]={0x1,0x3,0x7,0xf,0x1f,0x3f,0x7f,0xff};
@@ -170,7 +170,7 @@ static int hit_window(unsigned long long base, unsigned long long std[][], int c
 	return (record == expected_table[cnt-1] ? HIT: MISS);
 }
 
-static void check_l1xbar(u64 std[][], int cnt)
+static void check_l1xbar(u64 std[][3], int cnt)
 {
 	u64 base = 0x900000003ff02000ull ;
 	int i,ret;
@@ -189,7 +189,7 @@ static void check_l1xbar(u64 std[][], int cnt)
 	return PASS;
 }
 
-static int check_l2xbar(u64 std[][], int cnt)
+static int check_l2xbar(u64 std[][3], int cnt)
 {
 	u64 base = 0x900000003ff00000ull ;
 	int ret;

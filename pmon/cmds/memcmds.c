@@ -59,7 +59,6 @@ int	cmd_fill __P((int, char *[]));
 int	cmd_copy __P((int, char *[])); 
 int	cmd_compare __P((int, char *[])); 
 
-static char           *searching = "searching..  ";
 char           *badhexsym = "%s: neither hex value nor symbol\n";
 
 static __inline void

@@ -12,13 +12,25 @@ struct interface_info g_interface = { 0 };
 struct interface_info g_board = { 0 };
 struct loongson_special_attribute g_special = { 0 };
 
-extern void (*poweroff_pt)(void);
-extern void (*reboot_pt)(void);
+extern void poweroff_kernel(void);
+extern void reboot_kernel(void);
 
 #ifdef RS780E
 extern unsigned char vgarom[];
 extern struct pci_device *vga_dev;
 #endif
+
+struct board_devices *board_devices_info();
+struct interface_info *init_interface_info();
+struct irq_source_routing_table *init_irq_source();
+struct system_loongson *init_system_loongson();
+struct efi_cpuinfo_loongson *init_cpu_info();
+struct efi_memory_map_loongson * init_memory_map();
+void init_loongson_params(struct loongson_params *lp);
+void init_smbios(struct smbios_tables *smbios);
+void init_efi(struct efi *efi);
+struct loongson_special_attribute *init_special_info();
+void init_reset_system(struct efi_reset_system_t *reset);
 
 int init_boot_param(struct boot_params *bp)
 {
@@ -37,8 +49,8 @@ void init_efi(struct efi *efi)
 
 void init_reset_system(struct efi_reset_system_t *reset)
 {
-  reset->Shutdown = poweroff_pt;
-  reset->ResetWarm = reboot_pt;
+  reset->Shutdown = &poweroff_kernel;
+  reset->ResetWarm = &reboot_kernel;
 }
 
 void init_smbios(struct smbios_tables *smbios)
@@ -189,6 +201,8 @@ void init_loongson_params(struct loongson_params *lp)
   /*return emap;*/
 /*}*/
 
+#define readl(addr)             ((*(volatile unsigned int *)((long)(addr))))
+
 #ifdef LOONGSON_3BSINGLE
 #ifdef LOONGSON_3B1500
   #define PRID_IMP_LOONGSON    0x6307
@@ -242,7 +256,7 @@ struct efi_cpuinfo_loongson *init_cpu_info()
 #ifdef LOONGSON_3ASINGLE
   c->total_node = 1;
   c->nr_cpus = 4;
-  available_core_mask = (__raw_readd(0xbfe00194ull) & 0xf0000);
+  available_core_mask = (readl((void *)0xbfe00194ull) & 0xf0000);
   available = ((available_core_mask >> 16) & 0xf);
   while(available)
   {

@@ -873,13 +873,13 @@ dbginit (char *adr)
 #endif
 #ifdef DUAL_3B
 	if(memorysize_high_n2 != 0 && memorysize_high_n3 == 0)
-	memorysize_total += ((memorysize_high_n2 + (256 << 20)) >> 20);
+		memorysize_total += ((memorysize_high_n2 + (256 << 20)) >> 20);
 	else if(memorysize_high_n2 == 0 && memorysize_high_n3 != 0)
-	memorysize_total += ((memorysize_high_n3 + (256 << 20)) >> 20);
+		memorysize_total += ((memorysize_high_n3 + (256 << 20)) >> 20);
 	else if(memorysize_high_n2 !=0 && memorysize_high_n3 != 0)
-	memorysize_total += ((memorysize_high_n2 + (256 << 20) + memorysize_high_n3 + (256 << 20)) >> 20);  
+		memorysize_total += ((memorysize_high_n2 + (256 << 20) + memorysize_high_n3 + (256 << 20)) >> 20);
 #endif
-	printf ("Memory size %3d MB .\n", memorysize_total);
+	printf ("Memory size %lld MB .\n", memorysize_total);
 	tgt_memprint();
 #if defined(SMP)
 	tgt_smpstartup();
@@ -1016,9 +1016,9 @@ initstack (ac, av, addenv)
 	struct irq_source_routing_table *eirq_source;
 	struct interface_info *einter;
 	struct board_devices *eboard;
-	
+
 	int param_len = 0;
- 
+
 	/*
 	 *  Calculate the amount of stack space needed to build args.
 	 */
@@ -1030,10 +1030,10 @@ initstack (ac, av, addenv)
 		ec = 0;
 	}
 #ifdef BOOT_PARAM
-      param_len = stringlen;
-	  param_len = ( param_len + 7 ) & ~7;
-      stringlen = 0x0;
- #endif
+	param_len = stringlen;
+	param_len = ( param_len + 7 ) & ~7;
+	stringlen = 0x0;
+#endif
 	for (i = 0; i < ac; i++) {
 		stringlen += strlen(av[i]) + 1;
 	}
@@ -1091,27 +1091,22 @@ initstack (ac, av, addenv)
 		}
 		envbuild (vsp, ssp);
 #ifdef BOOT_PARAM
-	bp = (struct boot_params *) ssp;
-	lp = &(bp->efi.smbios.lp);
-        emap = (struct efi_memory_map_loongson *)((unsigned long long)lp+lp->memory_offset);
+		bp = (struct boot_params *) ssp;
+		lp = &(bp->efi.smbios.lp);
+		emap = (struct efi_memory_map_loongson *)((unsigned long long)lp+lp->memory_offset);
 		ecpu = (struct efi_cpuinfo_loongson *)((unsigned long long)lp + lp->cpu_offset);
 		esys = (struct system_loongson *)((unsigned long long)lp+lp->system_offset);
 		eirq_source = (struct irq_source_routing_table *)((unsigned long long)lp+lp->irq_offset);
 		eboard = (struct board_devices *)((unsigned long long)lp+lp->boarddev_table_offset);
 
-printf("board_name:%s ---%p %d\n",&(eboard->name),eboard->name,eboard->num_resources);
-printf("Shutdown:%p reset:%p\n",bp->reset_system.Shutdown,bp->reset_system.ResetWarm);
+		printf("board_name:%s ---%p %d\n",&(eboard->name),eboard->name,eboard->num_resources);
+		printf("Shutdown:%p reset:%p\n",bp->reset_system.Shutdown,bp->reset_system.ResetWarm);
 
-//printf("nr_maps::%d,mem_freq:%d,\nlow--id:%d name:%d,mem_start:%x,mem_size:%d \nhigh--id:%d name:%d,mem_start:%x,mem_size:%d\n",emap->nr_map,emap->mem_freq,emap->map[0].node_id,emap->map[0].mem_type,emap->map[0].mem_start,emap->map[0].mem_size,emap->map[1].node_id,emap->map[1].mem_type,emap->map[1].mem_start,emap->map[1].mem_size);
-
-//printf("mem:%ld, highmem:%ld cpu_clock:%ld cputye:%d,nr_cpus:%d,ccnuma_smp:%d,sing_double_channel:%d\n",emap->mem_size,emap->memsz_high,ecpu->cpu_clock_freq,ecpu->cputype,ecpu->nr_cpus,esys->ccnuma_smp,esys->sing_double_channel);
-
-//printf("bp:%p,irq_source:%p,offset:%ld ht_int_bit%x,ht_enable:%x\npci-start:%x,pci-end:%x\n",lp,eirq_source,lp->irq_offset,eirq_source->ht_int_bit,eirq_source->ht_enable,eirq_source->pci_mem_start_addr,eirq_source->pci_mem_end_addr);  
 #else
-printf("ssp:%lx line=%d\n",ssp,__LINE__);
+		printf("ssp:%lx line=%d\n",ssp,__LINE__);
 
 #endif
-}
+	}
 	else {
 		*vsp++ = (char *)0;
 	}

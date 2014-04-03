@@ -576,7 +576,7 @@ inline int dist(int a1,int a2,int b1,int b2)//called by next fun
 		return a1-b2;
 }
 
-static void w_window2(int x,int y,int w,int h,char *text) // button
+void w_window2(int x,int y,int w,int h,char *text) // button
 {
 	int oldcolor=w_color.titlecolor;
 	currentid++;

@@ -333,6 +333,7 @@ time_t		tgt_gettime (void);
 void		tgt_logo (void);
 void		tgt_machprint (void);
 void		tgt_machreset (void);
+void		tgt_poweroff (void);
 void		tgt_mapenv (int (*) __P((char *, char *)));
 void		tgt_memprint (void);
 void		tgt_netinit (void);

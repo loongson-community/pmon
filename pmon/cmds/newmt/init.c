@@ -67,14 +67,14 @@ static void display_init(void)
         serial_echo_print("[0m");
 }
 
-static void mem_size(void)
+void get_mem_size(void)
 {
 	int i, n;
 	/* Build the memory map for testing */
 
-		v->pmap[0].start = (LOW_TEST_ADR + 4095) >> 12;
-		v->pmap[0].end = HIGH_TEST_ADR >> 12;
-		v->test_pages = v->pmap[0].end - v->pmap[0].start;
+	v->pmap[0].start = (LOW_TEST_ADR + 4095) >> 12;
+	v->pmap[0].end = HIGH_TEST_ADR >> 12;
+	v->test_pages = v->pmap[0].end - v->pmap[0].start;
 
 	v->msegs = 1;
 	cprint(LINE_INFO, COL_MMAP, "LinuxBIOS");
@@ -93,9 +93,9 @@ void init(void)
 	/* Setup the display */
 	display_init();
 
-	mem_size();
+	get_mem_size();
 	autotest=0;
-    v->plim_lower=LOW_TEST_ADR>>12;
+	v->plim_lower=LOW_TEST_ADR>>12;
 	v->plim_upper=HIGH_TEST_ADR>>12;
 	v->msegs=1;
 	v->test = 0;
@@ -205,10 +205,10 @@ unsigned long page_of(void *addr)
 /* Find cache-able memory size */
 static void cacheable(void)
 {
-ulong cached;
-cached=(HIGH_TEST_ADR-LOW_TEST_ADR)>>12;
-aprint(LINE_INFO, COL_CACHE_TOP, cached);
- dprint(LINE_CPU+1, 12, CpuPrimaryInstCacheSize, 3, 0);
- dprint(LINE_CPU+2, 12, CpuPrimaryDataCacheSize, 3, 0);
+	ulong cached;
+	cached=(HIGH_TEST_ADR-LOW_TEST_ADR)>>12;
+	aprint(LINE_INFO, COL_CACHE_TOP, cached);
+	dprint(LINE_CPU+1, 12, CpuPrimaryInstCacheSize, 3, 0);
+	dprint(LINE_CPU+2, 12, CpuPrimaryDataCacheSize, 3, 0);
 }
 

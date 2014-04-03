@@ -218,40 +218,16 @@ void get_config()
 					memsz_mode = SZ_MODE_BIOS;
 					wait_keyup();
 					restart();
-/*
-					mem_size();
-					v->test = 0;
-					v->pass = 0;
-					v->total_ticks = 0;
-					bail++;
-					sflag++;
-*/
 					break;
 				case 3:
 					memsz_mode = SZ_MODE_BIOS_RES;
 					wait_keyup();
 					restart();
-/*
-					mem_size();
-					v->test = 0;
-					v->pass = 0;
-					v->total_ticks = 0;
-					bail++;
-					sflag++;
-*/
 					break;
 				case 4:
 					memsz_mode = SZ_MODE_PROBE;
 					wait_keyup();
 					restart();
-/*
-					mem_size();
-					v->test = 0;
-					v->pass = 0;
-					v->total_ticks = 0;
-					bail++;
-					sflag++;
-*/
 					break;
 				case 11:
 				case 57:

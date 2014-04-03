@@ -24,8 +24,6 @@
 
 static void * dispmem __P((char *, void *, int));
 
-char           *searching = "searching..  ";
-
 char           *badhexsym = "%s: neither hex value nor symbol\n";
 
 static __inline void era_line __P((char *));

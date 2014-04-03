@@ -646,15 +646,21 @@ fl_verify_device(void *fl_base, void *data_base, int data_size, int verbose)
 		fl_last = fl_base;
 		switch(map->fl_map_bus) {
 		case FL_BUS_8:
-			ok = (*((u_char *)fl_base)++ == *((u_char *)data_base)++);
+			ok = (*((u_char *)fl_base) == *((u_char *)data_base));
+			fl_base++;
+			data_base++;
 			break;
 
 		case FL_BUS_16:
-			ok = (*((u_short *)fl_base)++ == *((u_short *)data_base)++);
+			ok = (*((u_short *)fl_base) == *((u_short *)data_base));
+			fl_base += 2;
+			data_base += 2;
 			break;
 
 		case FL_BUS_32:
-			ok = (*((u_int *)fl_base)++ == *((u_int *)data_base)++);
+			ok = (*((u_int *)fl_base) == *((u_int *)data_base));
+			fl_base += 4;
+			data_base += 4;
 			break;
 
 		case FL_BUS_64:
@@ -682,7 +688,7 @@ fl_verify_device(void *fl_base, void *data_base, int data_size, int verbose)
 			if(str[0]=='y'||str[0]=='Y')
 			{
 				tgt_flashwrite_enable();
-                fl_write_protect_unlock(map, dev, 0);/* Disable write protection of SST49LF040B/SST49LF008A */
+				fl_write_protect_unlock(map, dev, 0);/* Disable write protection of SST49LF040B/SST49LF008A */
 				printf("Erasing all FLASH blocks. ");
 				(*dev->functions->erase_chip)(map, dev);
 				delay(1000);
@@ -701,7 +707,7 @@ fl_verify_device(void *fl_base, void *data_base, int data_size, int verbose)
 				}
 				(*dev->functions->reset)(map, dev);
 				tgt_flashwrite_disable();
-                fl_write_protect_lock(map, dev, 0);/* Enable write protection of SST49LF040B/SST49LF008A */
+				fl_write_protect_lock(map, dev, 0);/* Enable write protection of SST49LF040B/SST49LF008A */
 			}
 		   }
 			break;

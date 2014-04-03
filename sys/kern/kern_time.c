@@ -469,7 +469,7 @@ sys_setitimer(p, v, retval)
 	if (itvp && (error = copyin((void *)itvp, (void *)&aitv,
 	    sizeof(struct itimerval))))
 		return (error);
-	if ((SCARG(uap, itv) = SCARG(uap, oitv)) &&
+	if ((SCARGL(uap, itv) = SCARG(uap, oitv)) &&
 	    (error = sys_getitimer(p, uap, retval)))
 		return (error);
 	if (itvp == 0)

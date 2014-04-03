@@ -59,6 +59,11 @@ short memsz_mode = SZ_MODE_BIOS;
 struct cpu_ident cpu_id;
 static void compute_segments(int win);
 
+static int window = 0;
+static struct pmap windows[] =
+{
+	{ 0, 0}
+};
 #include "fb.h"
 #include "config.c"
 #include "patn.c"
@@ -70,86 +75,6 @@ static void compute_segments(int win);
 #include "init.c"
 
 
-
-
-
-
-struct tseq tseq[] = {
-	{0, 5, 3, 0, 0,    "[Address test, walking ones, no cache]"},
-	{1, 6, 3, 2, 0,    "[Address test, own address]           "},
-	{1, 0, 3, 14, 0,   "[Moving inversions, ones & zeros]     "},
-	{1, 1, 2, 80, 0,   "[Moving inversions, 8 bit pattern]    "},
-	{1, 10, 60, 300, 0,"[Moving inversions, random pattern]   "},
-	{1, 7, 64, 66, 0,  "[Block move, 64 moves]                "},
-	{1, 2, 2, 320, 0,  "[Moving inversions, 32 bit pattern]   "},
-	{1, 9, 40, 120, 0, "[Random number sequence]              "},
-	{1, 3, 4, 240, 0,  "[Modulo 20, ones & zeros]             "},
-	{1, 8, 1, 2, 0,    "[Bit fade test, 90 min, 2 patterns]   "},
-	{0, 0, 0, 0, 0, NULL}
-};
-
-void restart()
-{
-    int i;
-    volatile char *pp;
-
-    /* clear variables */
-    firsttime = 0;
-    v->test = 0;
-    v->pass = 0;
-    v->msg_line = 0;
-    v->ecount = 0;
-    v->ecc_ecount = 0;
-#if (NMOD_X86EMU_INT10 > 0)||(NMOD_X86EMU > 0)
-        /* Clear the screen */
-        for(i=0, pp=(char *)(SCREEN_ADR+0); i<80*24; i++, pp+=2) {
-                *pp = ' ';
-        }
-#elif NMOD_FRAMEBUFFER >0
-	video_cls();
-#endif
-		returncode=1;
-		longjmp(jmpb_mt,1);
-}
-
-static int window = 0;
-static struct pmap windows[] = 
-{
-{ 0, 0}
-};
-
-/* Compute the total number of ticks per pass */
-void find_ticks(void)
-{
-	int i, j, chunks;
-
-	v->pptr = 0;
-
-	/* Compute the number of SPINSZ memory segments in one pass */
-	chunks = 0;
-	for(j = 0; j < sizeof(windows)/sizeof(windows[0]); j++) {
-		compute_segments(j);
-		for(i = 0; i < segs; i++) {
-			unsigned long len;
-			len = v->map[i].end - v->map[i].start;
-			chunks += (len + SPINSZ -1)/SPINSZ;
-		}
-	}
-	compute_segments(window);
-	window = 0;
-	for (v->pass_ticks=0, i=0; i<DEFTESTS != NULL; i++) {
-
-		/* Test to see if this test is selected for execution */
-		if (v->testsel >= 0) {
-			if (i != v->testsel) {
-				continue;
-			}
-                }
-		v->pass_ticks += find_ticks_for_test(chunks, i);
-	}
-}
-
-#if 1
 static int find_ticks_for_test(unsigned long chunks, int test)
 {
 	int ticks;
@@ -245,7 +170,80 @@ static void compute_segments(int win)
 		}
 	}
 }
+
+
+
+
+struct tseq tseq[] = {
+	{0, 5, 3, 0, 0,    "[Address test, walking ones, no cache]"},
+	{1, 6, 3, 2, 0,    "[Address test, own address]           "},
+	{1, 0, 3, 14, 0,   "[Moving inversions, ones & zeros]     "},
+	{1, 1, 2, 80, 0,   "[Moving inversions, 8 bit pattern]    "},
+	{1, 10, 60, 300, 0,"[Moving inversions, random pattern]   "},
+	{1, 7, 64, 66, 0,  "[Block move, 64 moves]                "},
+	{1, 2, 2, 320, 0,  "[Moving inversions, 32 bit pattern]   "},
+	{1, 9, 40, 120, 0, "[Random number sequence]              "},
+	{1, 3, 4, 240, 0,  "[Modulo 20, ones & zeros]             "},
+	{1, 8, 1, 2, 0,    "[Bit fade test, 90 min, 2 patterns]   "},
+	{0, 0, 0, 0, 0, NULL}
+};
+
+void restart()
+{
+    int i;
+    volatile char *pp;
+
+    /* clear variables */
+    firsttime = 0;
+    v->test = 0;
+    v->pass = 0;
+    v->msg_line = 0;
+    v->ecount = 0;
+    v->ecc_ecount = 0;
+#if (NMOD_X86EMU_INT10 > 0)||(NMOD_X86EMU > 0)
+        /* Clear the screen */
+        for(i=0, pp=(char *)(SCREEN_ADR+0); i<80*24; i++, pp+=2) {
+                *pp = ' ';
+        }
+#elif NMOD_FRAMEBUFFER >0
+	video_cls();
 #endif
+		returncode=1;
+		longjmp(jmpb_mt,1);
+}
+
+
+/* Compute the total number of ticks per pass */
+void find_ticks(void)
+{
+	int i, j, chunks;
+
+	v->pptr = 0;
+
+	/* Compute the number of SPINSZ memory segments in one pass */
+	chunks = 0;
+	for(j = 0; j < sizeof(windows)/sizeof(windows[0]); j++) {
+		compute_segments(j);
+		for(i = 0; i < segs; i++) {
+			unsigned long len;
+			len = v->map[i].end - v->map[i].start;
+			chunks += (len + SPINSZ -1)/SPINSZ;
+		}
+	}
+	compute_segments(window);
+	window = 0;
+	for (v->pass_ticks=0, i=0; i<DEFTESTS != NULL; i++) {
+
+		/* Test to see if this test is selected for execution */
+		if (v->testsel >= 0) {
+			if (i != v->testsel) {
+				continue;
+			}
+                }
+		v->pass_ticks += find_ticks_for_test(chunks, i);
+	}
+}
+
 void set_cache(int val);
 static int newmt()
 {

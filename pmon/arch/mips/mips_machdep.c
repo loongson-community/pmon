@@ -75,7 +75,8 @@ void clearbss(void)
 	rdata = (u_int64_t *)CACHED_TO_UNCACHED(edata);
 	rdata = (u_int64_t *)edata;
 	while((int)rdata & (sizeof(*rdata) - 1)) {
-		*((char *)rdata)++ = 0;
+		*((char *)rdata) = 0;
+		rdata = (char *)rdata + 1;
 	}
 	count = (end - edata) / sizeof(*rdata);
 	while(count--) {
@@ -242,25 +243,21 @@ delay(microseconds)
 	int microseconds;
 {
 	int total, start ,start1;
-#if 1
 	start = CPU_GetCOUNT();
 	start1 = CPU_GetCOUNT();
 	if(start!=start1)
 	{
-	total = microseconds * clkperusec;
-	while(total > (CPU_GetCOUNT() - start));
+		total = microseconds * clkperusec;
+		while(total > (CPU_GetCOUNT() - start));
 	}
 	else
-	 for(start1=0;start1<microseconds;start1++)
-	 *(volatile char *)0xbfc00000;
-#else
-	total = microseconds * 200;
-	loopNinstr(total);
-#endif
+		for(start1=0;start1<microseconds;start1++)
+			*(volatile char *)0xbfc00000;
 }
 
 extern void idle();
-void delay1(int microseconds){
+void delay1(int microseconds)
+{
 	int total, start;
 	start = CPU_GetCOUNT();
 	total = microseconds * clkperusec*1000;

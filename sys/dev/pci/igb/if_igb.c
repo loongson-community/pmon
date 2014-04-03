@@ -463,8 +463,8 @@ static int em_ioctl(struct ifnet *ifp, u_long command, caddr_t data)
 		break;
 
 	case SIOCSIFFLAGS:
-		IOCTL_DEBUGOUT("ioctl rcv'd: SIOCSIFFLAGS
-				(Set Interface Flags)");
+		IOCTL_DEBUGOUT("ioctl rcv'd: SIOCSIFFLAGS"
+				"(Set Interface Flags)");
 		if (ifp->if_flags & IFF_UP) {
 			if (ifp->if_flags & IFF_RUNNING)
 				error = ENETRESET;
@@ -480,14 +480,14 @@ static int em_ioctl(struct ifnet *ifp, u_long command, caddr_t data)
 	case SIOCSIFMEDIA:
 		/* Check SOL/IDER usage */
 		if (em_check_phy_reset_block(&sc->hw)) {
-			printf("%s: Media change is blocked due
-				to SOL/IDER session.\n",
+			printf("%s: Media change is blocked due"
+				"to SOL/IDER session.\n",
 				sc->sc_dv.dv_xname);
 			break;
 		}
 	case SIOCGIFMEDIA:
-		IOCTL_DEBUGOUT("ioctl rcv'd: SIOCxIFMEDIA
-			(Get/Set Interface Media)");
+		IOCTL_DEBUGOUT("ioctl rcv'd: SIOCxIFMEDIA"
+			"(Get/Set Interface Media)");
 		error = ifmedia_ioctl(ifp, ifr, &sc->media, command);
 		break;
 	case SIOCETHTOOL:

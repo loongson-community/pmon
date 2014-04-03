@@ -31,17 +31,17 @@
 extern unsigned long long memorysize_total;
 extern void delay1(int);
 extern void (*__cprint)(int y, int x,int width,char color, const char *text);
-static int pause()
+static int lpause()
 {
-char cmd[20];
-struct termio tbuf;
-printf("\n");
-__cprint(INFO_Y,0,INFO_W,0x70,"press enter to continue");
-ioctl (STDIN, SETNCNE, &tbuf);
-gets(cmd);
-ioctl (STDIN, TCSETAW, &tbuf);
-__cprint(INFO_Y,0,INFO_W,0x7,0);
-return 0;
+	char cmd[20];
+	struct termio tbuf;
+	printf("\n");
+	__cprint(INFO_Y,0,INFO_W,0x70,"press enter to continue");
+	ioctl (STDIN, SETNCNE, &tbuf);
+	gets(cmd);
+	ioctl (STDIN, TCSETAW, &tbuf);
+	__cprint(INFO_Y,0,INFO_W,0x7,0);
+	return 0;
 }
 
 
@@ -192,7 +192,7 @@ else if(!strcmp(av[1],"cpu")) cpuinfo();
 else if(!strcmp(av[1],"mem")) meminfo();
 else if(!strcmp(av[1],"uart")) uartinfo();
 else if(!strcmp(av[1],"net")) netinfo();
-			pause();
+			lpause();
 }
 
 static struct setupMenu testmenu={

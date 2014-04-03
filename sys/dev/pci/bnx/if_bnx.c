@@ -452,9 +452,6 @@ bnx_read_firmware(struct bnx_softc *sc, int idx)
 {
 	struct bnx_firmware *bfw = &bnx_firmwares[idx];
 	struct bnx_firmware_header *hdr = bfw->fw;
-//	u_char *p, *q;//wan-
-	size_t size;
-	int error;
 
 	if (hdr != NULL)
 		return (0);
@@ -704,9 +701,6 @@ bnx_read_rv2p(struct bnx_softc *sc, int idx)
 {
 	struct bnx_rv2p *rv2p = &bnx_rv2ps[idx];
 	struct bnx_rv2p_header *hdr = rv2p->fw;
-//	u_char *p, *q;//wan-
-	size_t size;
-	int error;
 
 	if (hdr != NULL)
 		return (0);
@@ -2826,18 +2820,10 @@ bnx_dma_alloc(struct bnx_softc *sc)
 void
 bnx_release_resources(struct bnx_softc *sc)
 {
-	struct pci_attach_args	*pa = &(sc->bnx_pa);
-//	printf("***wxy***%s\n", __func__);
 
 	DBPRINT(sc, BNX_VERBOSE_RESET, "Entering %s()\n", __FUNCTION__);
 
 	bnx_dma_free(sc);
-
-	//wxy
-#if 0
-	if (sc->bnx_intrhand != NULL)
-		pci_intr_disestablish(pa->pa_pc, sc->bnx_intrhand);
-#endif
 
 	if (sc->bnx_size)
 		bus_space_unmap(sc->bnx_btag, sc->bnx_bhandle, sc->bnx_size);
@@ -3958,7 +3944,7 @@ bnx_alloc_pkts(void *xsc, void *arg)
 stopping:
 	bus_dmamap_destroy(sc->bnx_dmatag, pkt->pkt_dmamap);
 put:
-//	pool_put(bnx_tx_pool, pkt);//wan-
+	free(pkt, M_DEVBUF);
 }
 
 /****************************************************************************/
