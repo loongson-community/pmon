@@ -29,7 +29,6 @@ void route_init();
 
 #include <pflash.h>
 
-#define rm9000_tlb_hazard(...)
 #define CONFIG_PAGE_SIZE_64KB
 #include "mipsregs.h"
 #include "gzip.h"

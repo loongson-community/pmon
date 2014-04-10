@@ -26,7 +26,6 @@
 #include <dev/pci/pcivar.h>
 #include <dev/pci/pcidevs.h>
 
-#define rm9000_tlb_hazard(...)
 #define CONFIG_PAGE_SIZE_64KB
 #define SERIAL_CONSOLE_DEFAULT 0
 
@@ -34,8 +33,10 @@ extern char *heaptop;
 int returncode=0;
 struct termio sav;
 extern unsigned long long memorysize;
-#define LOW_TEST_ADR    ((unsigned int)heaptop)      /* Final adrs for test code */
-#define HIGH_TEST_ADR   (0x80000000+memorysize)      /* Relocation base address */
+/*#define LOW_TEST_ADR    ((unsigned int)heaptop)      [> Final adrs for test code <]*/
+/*#define HIGH_TEST_ADR   (0x80000000+memorysize)      [> Relocation base address <]*/
+#define LOW_TEST_ADR	(0x80000000)
+#define	HIGH_TEST_ADR	(0x80000000 + memorysize)
 #include "test.h"
 #define DEFTESTS 9
 jmp_buf         jmpb_mt;	
@@ -48,7 +49,7 @@ int nticks;
 int ecount=0;
 
 char firsttime = 0;
-static autotest=0;
+static autotest = 0;
 
 struct vars variables = {};
 struct vars * const v = &variables;
@@ -117,55 +118,10 @@ static void compute_segments(int win)
 		if (end >= wend) {
 			end = wend;
 		}
-#if 0
-		cprint(LINE_SCROLL+(2*i), 0, " (");
-		hprint(LINE_SCROLL+(2*i), 2, start);
-		cprint(LINE_SCROLL+(2*i), 10, ", ");
-		hprint(LINE_SCROLL+(2*i), 12, end);
-		cprint(LINE_SCROLL+(2*i), 20, ") ");
-
-		cprint(LINE_SCROLL+(2*i), 22, "r(");
-		hprint(LINE_SCROLL+(2*i), 24, wstart);
-		cprint(LINE_SCROLL+(2*i), 32, ", ");
-		hprint(LINE_SCROLL+(2*i), 34, wend);
-		cprint(LINE_SCROLL+(2*i), 42, ") ");
-
-		cprint(LINE_SCROLL+(2*i), 44, "p(");
-		hprint(LINE_SCROLL+(2*i), 46, v->plim_lower);
-		cprint(LINE_SCROLL+(2*i), 54, ", ");
-		hprint(LINE_SCROLL+(2*i), 56, v->plim_upper);
-		cprint(LINE_SCROLL+(2*i), 64, ") ");
-
-		cprint(LINE_SCROLL+(2*i+1),  0, "w(");
-		hprint(LINE_SCROLL+(2*i+1),  2, windows[win].start);
-		cprint(LINE_SCROLL+(2*i+1), 10, ", ");
-		hprint(LINE_SCROLL+(2*i+1), 12, windows[win].end);
-		cprint(LINE_SCROLL+(2*i+1), 20, ") ");
-
-		cprint(LINE_SCROLL+(2*i+1), 22, "m(");
-		hprint(LINE_SCROLL+(2*i+1), 24, v->pmap[i].start);
-		cprint(LINE_SCROLL+(2*i+1), 32, ", ");
-		hprint(LINE_SCROLL+(2*i+1), 34, v->pmap[i].end);
-		cprint(LINE_SCROLL+(2*i+1), 42, ") ");
-
-		cprint(LINE_SCROLL+(2*i+1), 44, "i=");
-		hprint(LINE_SCROLL+(2*i+1), 46, i);
-		
-		cprint(LINE_SCROLL+(2*i+2), 0, 
-			"                                        "
-			"                                        ");
-		cprint(LINE_SCROLL+(2*i+3), 0, 
-			"                                        "
-			"                                        ");
-#endif
 		if ((start < end) && (start < wend) && (end > wstart)) {
 			v->map[segs].pbase_addr = start;
 			v->map[segs].start = mapping(start);
 			v->map[segs].end = emapping(end);
-#if 0
-			cprint(LINE_SCROLL+(2*i+1), 54, " segs: ");
-			hprint(LINE_SCROLL+(2*i+1), 61, segs);
-#endif
 			segs++;
 		}
 	}
@@ -190,26 +146,26 @@ struct tseq tseq[] = {
 
 void restart()
 {
-    int i;
-    volatile char *pp;
+	int i;
+	volatile char *pp;
 
-    /* clear variables */
-    firsttime = 0;
-    v->test = 0;
-    v->pass = 0;
-    v->msg_line = 0;
-    v->ecount = 0;
-    v->ecc_ecount = 0;
+	/* clear variables */
+	firsttime = 0;
+	v->test = 0;
+	v->pass = 0;
+	v->msg_line = 0;
+	v->ecount = 0;
+	v->ecc_ecount = 0;
 #if (NMOD_X86EMU_INT10 > 0)||(NMOD_X86EMU > 0)
-        /* Clear the screen */
-        for(i=0, pp=(char *)(SCREEN_ADR+0); i<80*24; i++, pp+=2) {
-                *pp = ' ';
-        }
+	/* Clear the screen */
+	for(i = 0, pp=(char *)(SCREEN_ADR+0); i < 80*24; i++, pp += 2) {
+		*pp = ' ';
+	}
 #elif NMOD_FRAMEBUFFER >0
 	video_cls();
 #endif
-		returncode=1;
-		longjmp(jmpb_mt,1);
+	returncode = 1;
+	longjmp(jmpb_mt,1);
 }
 
 
@@ -239,7 +195,7 @@ void find_ticks(void)
 			if (i != v->testsel) {
 				continue;
 			}
-                }
+		}
 		v->pass_ticks += find_ticks_for_test(chunks, i);
 	}
 }
@@ -255,211 +211,221 @@ static int newmt()
 #if NMOD_FRAMEBUFFER > 0 
 	video_cls();
 #endif
- 	if(setjmp(jmpb_mt)&&(returncode==2)){
-    	volatile char *pp;
+	if(setjmp(jmpb_mt) && (returncode == 2)) {
+		volatile char *pp;
 		ioctl (STDIN, TCSETAF, &sav);
-		    firsttime = 0;
-    		v->test = 0;
-    		v->pass = 0;
-    		v->msg_line = 0;
-   		    v->ecount = 0;
-    		v->ecc_ecount = 0;
-			autotest=0;
-			firsttime=0;
-        /* Clear the screen */
+		firsttime = 0;
+		v->test = 0;
+		v->pass = 0;
+		v->msg_line = 0;
+		v->ecount = 0;
+		v->ecc_ecount = 0;
+		autotest = 0;
+		firsttime = 0;
+		/* Clear the screen */
 #if NMOD_FRAMEBUFFER > 0
 		video_cls();
 #else
-        for(i=0, pp=(char *)(SCREEN_ADR+0); i<80*25; i++, pp+=2) {
-                *pp = ' ';pp[1]=7;
-        }
+		for(i=0, pp=(char *)(SCREEN_ADR+0); i<80*25; i++, pp+=2) {
+			*pp = ' ';pp[1]=7;
+		}
 #endif
-        serial_echo_print("[H[2J");   /* Clear Screen */
+		serial_echo_print("[H[2J");   /* Clear Screen */
 		return 0;
-	    }
-
-		ioctl (STDIN, CBREAK, &sav);
-while(1)
-{
-		window=0;
-	/* If first time, initialize test */
-		windows[0].start =LOW_TEST_ADR>>12;
-		windows[0].end= HIGH_TEST_ADR>>12;
-		if(!firsttime){init();firsttime++;}
-
-	/* Find the memory areas I am going to test */
-	compute_segments(window);
-	if (segs == 0) {
-		goto skip_window;
-	}
-	/* Now map in the window... */
-	if (map_page(v->map[0].pbase_addr) < 0) {
-		goto skip_window;
 	}
 
-	/* Update display of memory segments being tested */
-	lo = page_of(v->map[0].start);
-	hi = page_of(v->map[segs -1].end);
-	aprint(LINE_RANGE, COL_MID+9, lo-0x80000);
-	cprint(LINE_RANGE, COL_MID+14, " - ");
-	aprint(LINE_RANGE, COL_MID+17, hi-0x80000);
-	aprint(LINE_RANGE, COL_MID+23, v->selected_pages);
-	cprint(LINE_RANGE, COL_MID+28, 
-		((ulong)&_start == LOW_TEST_ADR)?"          ":" Relocated");
+	ioctl (STDIN, CBREAK, &sav);
+	while(1)
+	{
+		window = 0;
+		/* If first time, initialize test */
+		windows[0].start = LOW_TEST_ADR>>12;
+		windows[0].end = HIGH_TEST_ADR>>12;
+		if(!firsttime) {
+			init();
+			firsttime++;
+		}
+
+		/* Find the memory areas I am going to test */
+		compute_segments(window);
+		if (segs == 0) {
+			goto skip_window;
+		}
+		/* Now map in the window... */
+		if (map_page(v->map[0].pbase_addr) < 0) {
+			goto skip_window;
+		}
+
+		/* Update display of memory segments being tested */
+		lo = page_of(v->map[0].start);
+		hi = page_of(v->map[segs -1].end);
+		aprint(LINE_RANGE, COL_MID+9, lo-0x80000);
+		cprint(LINE_RANGE, COL_MID+14, " - ");
+		aprint(LINE_RANGE, COL_MID+17, hi-0x80000);
+		aprint(LINE_RANGE, COL_MID+23, v->selected_pages);
+		cprint(LINE_RANGE, COL_MID+28,
+				((ulong)&_start == LOW_TEST_ADR)?"          ":" Relocated");
 
 		while(!autotest) {
-			cnt=check_input();
-			if(cnt>='0' && cnt<='9'){v->testsel=(cnt-'0')%9;break;}
-			if(cnt=='a'){autotest=1;v->test=0;v->pass=0;}
+			cnt = check_input();
+			if(cnt>='0' && cnt<='9') {
+				v->testsel=(cnt-'0')%9;
+				break;
+			}
+			if(cnt=='a') {
+				autotest=1;
+				v->test=0;
+				v->pass=0;
+			}
 		}
 
 
-	/* Now setup the test parameters based on the current test number */
-	/* Figure out the next test to run */
-	if (v->testsel >= 0) {
-		v->test = v->testsel;
-	}
-	dprint(LINE_TST, COL_MID+6, v->test, 2, 1);
-	cprint(LINE_TST, COL_MID+9, tseq[v->test].msg);
-	set_cache(tseq[v->test].cache);
-
-	/* Compute the number of SPINSZ memory segments */
-	chunks = 0;
-	for(i = 0; i < segs; i++) {
-		unsigned long len;
-		len = v->map[i].end - v->map[i].start;
-		chunks += (len + SPINSZ -1)/SPINSZ;
-	}
-
-	test_ticks = find_ticks_for_test(chunks, v->test);
-	nticks = 0;
-	v->tptr = 0;
-	cprint(1, COL_MID+8, "                                         ");
-	switch(tseq[v->test].pat) {
-
-	/* Now do the testing according to the selected pattern */
-	case 0:	/* Moving inversions, all ones and zeros */
-		p1 = 0;
-		p2 = ~p1;
-		movinv1(tseq[v->test].iter,p1,p2);
-		BAILOUT;
-	
-		/* Switch patterns */
-		p2 = p1;
-		p1 = ~p2;
-		movinv1(tseq[v->test].iter,p1,p2);
-		BAILOUT;
-		break;
-		
-	case 1: /* Moving inversions, 8 bit wide walking ones and zeros. */
-		p0 = 0x80;
-		for (i=0; i<8; i++, p0=p0>>1) {
-			p1 = p0 | (p0<<8) | (p0<<16) | (p0<<24);
-			p2 = ~p1;
-			movinv1(tseq[v->test].iter,p1,p2);
-			BAILOUT;
-	
-			/* Switch patterns */
-			p2 = p1;
-			p1 = ~p2;
-			movinv1(tseq[v->test].iter,p1,p2);
-			BAILOUT
+		/* Now setup the test parameters based on the current test number */
+		/* Figure out the next test to run */
+		if (v->testsel >= 0) {
+			v->test = v->testsel;
 		}
-		break;
+		dprint(LINE_TST, COL_MID+6, v->test, 2, 1);
+		cprint(LINE_TST, COL_MID+9, tseq[v->test].msg);
+		set_cache(tseq[v->test].cache);
 
-	case 2: /* Moving inversions, 32 bit shifting pattern, very long */
-		for (i=0, p1=1; p1; p1=p1<<1, i++) {
-			movinv32(tseq[v->test].iter,p1, 1, 0x80000000, 0, i);
-			BAILOUT
-			movinv32(tseq[v->test].iter,~p1, 0xfffffffe,
-				0x7fffffff, 1, i);
-			BAILOUT
+		/* Compute the number of SPINSZ memory segments */
+		chunks = 0;
+		for(i = 0; i < segs; i++) {
+			unsigned long len;
+			len = v->map[i].end - v->map[i].start;
+			chunks += (len + SPINSZ -1)/SPINSZ;
 		}
-		break;
 
-	case 3: /* Modulo X check, all ones and zeros */
-		p1=0;
-		for (i=0; i<MOD_SZ; i++) {
-			p2 = ~p1;
-			modtst(i, tseq[v->test].iter, p1, p2);
-			BAILOUT
+		test_ticks = find_ticks_for_test(chunks, v->test);
+		nticks = 0;
+		v->tptr = 0;
+		cprint(1, COL_MID+8, "                                         ");
+		switch(tseq[v->test].pat) {
 
-			/* Switch patterns */
-			p2 = p1;
-			p1 = ~p2;
-			modtst(i, tseq[v->test].iter, p1,p2);
-			BAILOUT
-		}
-		break;
-
-	case 4: /* Modulo X check, 8 bit pattern */
-		p0 = 0x80;
-		for (j=0; j<8; j++, p0=p0>>1) {
-			p1 = p0 | (p0<<8) | (p0<<16) | (p0<<24);
-			for (i=0; i<MOD_SZ; i++) {
+			/* Now do the testing according to the selected pattern */
+			case 0:	/* Moving inversions, all ones and zeros */
+				p1 = 0;
 				p2 = ~p1;
-				modtst(i, tseq[v->test].iter, p1, p2);
-				BAILOUT
+				movinv1(tseq[v->test].iter,p1,p2);
+				BAILOUT;
 
 				/* Switch patterns */
 				p2 = p1;
 				p1 = ~p2;
-				modtst(i, tseq[v->test].iter, p1, p2);
-				BAILOUT
-			}
-		}
-		break;
-	case 5: /* Address test, walking ones */
-		addr_tst1();
-		BAILOUT;
-		break;
+				movinv1(tseq[v->test].iter,p1,p2);
+				BAILOUT;
+				break;
 
-	case 6: /* Address test, own address */
-		addr_tst2();
-		BAILOUT;
-		break;
+			case 1: /* Moving inversions, 8 bit wide walking ones and zeros. */
+				p0 = 0x80;
+				for (i=0; i<8; i++, p0=p0>>1) {
+					p1 = p0 | (p0<<8) | (p0<<16) | (p0<<24);
+					p2 = ~p1;
+					movinv1(tseq[v->test].iter,p1,p2);
+					BAILOUT;
 
-	case 7: /* Block move test */
-		block_move(tseq[v->test].iter);
-		BAILOUT;
-		break;
-	case 8: /* Bit fade test */
-		if (window == 0 ) {
-			bit_fade();
+					/* Switch patterns */
+					p2 = p1;
+					p1 = ~p2;
+					movinv1(tseq[v->test].iter,p1,p2);
+					BAILOUT
+				}
+				break;
+
+			case 2: /* Moving inversions, 32 bit shifting pattern, very long */
+				for (i=0, p1=1; p1; p1=p1<<1, i++) {
+					movinv32(tseq[v->test].iter,p1, 1, 0x80000000, 0, i);
+					BAILOUT
+						movinv32(tseq[v->test].iter,~p1, 0xfffffffe,
+								0x7fffffff, 1, i);
+					BAILOUT
+				}
+				break;
+
+			case 3: /* Modulo X check, all ones and zeros */
+				p1=0;
+				for (i=0; i<MOD_SZ; i++) {
+					p2 = ~p1;
+					modtst(i, tseq[v->test].iter, p1, p2);
+					BAILOUT
+
+						/* Switch patterns */
+						p2 = p1;
+					p1 = ~p2;
+					modtst(i, tseq[v->test].iter, p1,p2);
+					BAILOUT
+				}
+				break;
+
+			case 4: /* Modulo X check, 8 bit pattern */
+				p0 = 0x80;
+				for (j=0; j<8; j++, p0=p0>>1) {
+					p1 = p0 | (p0<<8) | (p0<<16) | (p0<<24);
+					for (i=0; i<MOD_SZ; i++) {
+						p2 = ~p1;
+						modtst(i, tseq[v->test].iter, p1, p2);
+						BAILOUT
+
+							/* Switch patterns */
+							p2 = p1;
+						p1 = ~p2;
+						modtst(i, tseq[v->test].iter, p1, p2);
+						BAILOUT
+					}
+				}
+				break;
+			case 5: /* Address test, walking ones */
+				addr_tst1();
+				BAILOUT;
+				break;
+
+			case 6: /* Address test, own address */
+				addr_tst2();
+				BAILOUT;
+				break;
+
+			case 7: /* Block move test */
+				block_move(tseq[v->test].iter);
+				BAILOUT;
+				break;
+			case 8: /* Bit fade test */
+				if (window == 0 ) {
+					bit_fade();
+				}
+				BAILOUT;
+				break;
+			case 9: /* Random Data Sequence */
+				for (i=0; i < tseq[v->test].iter; i++) {
+					movinvr();
+					BAILOUT;
+				}
+				break;
+			case 10: /* Random Data */
+				for (i=0; i < tseq[v->test].iter; i++) {
+					p1 = Rand();
+					p2 = ~p1;
+					movinv1(2,p1,p2);
+					BAILOUT;
+				}
+				break;
 		}
-		BAILOUT;
-		break;
-	case 9: /* Random Data Sequence */
-		for (i=0; i < tseq[v->test].iter; i++) {
-			movinvr();
-			BAILOUT;
+skip_window:
+		if (bail) {
+			goto bail_test;
 		}
-		break;
-	case 10: /* Random Data */
-		for (i=0; i < tseq[v->test].iter; i++) {
-			p1 = Rand();
-			p2 = ~p1;
-			movinv1(2,p1,p2);
-			BAILOUT;
+		/* Rever to the default mapping and enable the cache */
+		paging_off();
+		set_cache(1);
+		window++;
+		if (window >= sizeof(windows)/sizeof(windows[0])) {
+			window = 0;
 		}
-		break;
-	}
- skip_window:
-	if (bail) {
-		goto bail_test;
-	}
-	/* Rever to the default mapping and enable the cache */
-	paging_off();
-	set_cache(1);
-	window++;
-	if (window >= sizeof(windows)/sizeof(windows[0])) {
-		window = 0;
-	}
-	/* We finished the test so clear the pattern */
-	cprint(LINE_PAT, COL_PAT, "            ");
-	skip_test:
+		/* We finished the test so clear the pattern */
+		cprint(LINE_PAT, COL_PAT, "            ");
+skip_test:
 		v->test++;
-	bail_test:
+bail_test:
 
 		paging_off();
 		set_cache(1);
@@ -474,10 +440,10 @@ while(1)
 			v->total_ticks = 0;
 			v->pptr = 0;
 			cprint(0, COL_MID+8,
-				"                                         ");
+					"                                         ");
 		}
-	
-}
+
+	}
 	return 0;
 }
 

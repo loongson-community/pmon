@@ -835,42 +835,34 @@ do {									\
  */
 static inline void tlb_probe(void)
 {
-	rm9000_tlb_hazard();
 	__asm__ __volatile__(
 		".set noreorder\n\t"
 		"tlbp\n\t"
 		".set reorder");
-	rm9000_tlb_hazard();
 }
 
 static inline void tlb_read(void)
 {
-	rm9000_tlb_hazard();
 	__asm__ __volatile__(
 		".set noreorder\n\t"
 		"tlbr\n\t"
 		".set reorder");
-	rm9000_tlb_hazard();
 }
 
 static inline void tlb_write_indexed(void)
 {
-	rm9000_tlb_hazard();
 	__asm__ __volatile__(
 		".set noreorder\n\t"
 		"tlbwi\n\t"
 		".set reorder");
-	rm9000_tlb_hazard();
 }
 
 static inline void tlb_write_random(void)
 {
-	rm9000_tlb_hazard();
 	__asm__ __volatile__(
 		".set noreorder\n\t"
 		"tlbwr\n\t"
 		".set reorder");
-	rm9000_tlb_hazard();
 }
 
 /*
