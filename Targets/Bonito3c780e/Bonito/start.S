@@ -670,7 +670,7 @@ node0_has_mem:
 	beqz    a1, out_test
 	nop
 
-        li      t0, 0x9000100000000000
+        dli     t0, 0x9000100000000000
         dli     a0, 0x5555555555555555
         sd      a0, 0x0(t0)
         dli     a0, 0xaaaaaaaaaaaaaaaa

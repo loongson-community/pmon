@@ -20,6 +20,8 @@
 #define OUTW(b,addr) (*(volatile unsigned short *) (addr) = (b))
 #define OUTL(b,addr) (*(volatile unsigned int *) (addr) = (b))
 
+static u8 get_sb700_revision(void);
+
 void rs780_por_pcicfg_init(device_t nb_tag)
 {
 	printk_info("enter rs780_por_pcicfg_init\n");
@@ -540,25 +542,29 @@ void sb700_por_init(void)
 	sb700_pmio_por_init();
 }
 
-void sb700_early_setup(void){
+void sb700_early_setup(void)
+{
 	sb700_por_init();
 }
 
-int optimize_link_incoherent_ht(void){
+int optimize_link_incoherent_ht(void)
+{
 
 	return 0;
 }
 
-void soft_reset(void){
+void soft_reset(void)
+{
 
 }
 
-void rs780_before_pci_fixup(void){
+void rs780_before_pci_fixup(void)
+{
 
 }
 
 /* Get SB ASIC Revision.*/
-static u8 get_sb700_revision()
+static u8 get_sb700_revision(void)
 {
 	device_t dev;
 	//dev = pci_locate_device(PCI_ID(0x1002, 0x4385), 0);
