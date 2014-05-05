@@ -1106,7 +1106,7 @@ common:
 		bal	initserial
 		nop
 
-		li      a0,0x900000001ff00080
+		dli     a0,0x900000001ff00080
 		li      t0,0x99
 		sb      t0,0x0(a0)
 
@@ -4085,34 +4085,7 @@ idle1000:
 
     .end    slave_main
 
-/*********************************************/
-//*********************************************/
-//* input :
-// * output: v0
-// * used:t0, origin value from cp0
-// * used:t1, tmp
-// * used:t2, tmp
-// * function: get smp base address from current core id
-// ********************************************/
 
-	.global get_nodebase
-	.ent    get_nodebase
-	.set    noreorder
-	.set    mips3
-	
-		.set 	mips64
-		mfc0	t0, $15, 1
-		.set 	mips3
-		andi	t0, 0x3ff
-
-		andi	t1,t0,0xc
-		andi	t2,t0,0x3
-
-		
-	jr      ra
-    nop
-
-	.end    get_nodebase
 /*********************************************/
 
 	.global watchdog_enable

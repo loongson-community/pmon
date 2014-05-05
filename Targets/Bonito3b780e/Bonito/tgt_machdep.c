@@ -41,6 +41,7 @@
 
 #include "../../../pmon/cmds/cmd_main/window.h"
 #include "../../../pmon/cmds/cmd_main/cmd_main.h"
+#include "../../../pmon/common/smbios/smbios.h"
 
 // 
 #include <sys/ioccom.h>
@@ -1248,55 +1249,6 @@ if(getenv("noautopower"))	vt82c686_powerfixup();
 }
 
 
-#ifdef DEVBD2F_CS5536
-void
-tgt_reboot()
-{
-	unsigned long hi, lo;
-	
-	/* reset the cs5536 whole chip */
-	_rdmsr(0xe0000014, &hi, &lo);
-	lo |= 0x00000001;
-	_wrmsr(0xe0000014, hi, lo);
-
-	while(1);
-}
-
-void
-tgt_poweroff()
-{
-	unsigned long val;
-	unsigned long tag;
-	unsigned long base;
-
-	tag = _pci_make_tag(0, 14, 0);
-	base = _pci_conf_read(tag, 0x14);
-	//base |= 0xbfd00000;
-	base |= BONITO_PCIIO_BASE_VA;
-	base &= ~3;
-
-	/* make cs5536 gpio13 output enable */
-	val = *(volatile unsigned long *)(base + 0x04);
-	val = ( val & ~(1 << (16 + 13)) ) | (1 << 13) ;
-	*(volatile unsigned long *)(base + 0x04) = val;
-	
-	/* make cs5536 gpio13 output low level voltage. */
-	val = *(volatile unsigned long *)(base + 0x00);
-	val = (val | (1 << (16 + 13))) & ~(1 << 13);
-	*(volatile unsigned long *)(base + 0x00) = val;
-
-	while(1);
-}
-#else
-static void delay(int j)
-{
-	volatile int i, k;
-
-	for(k = 0; k < j; k++)
-		for(i = 0; i < 1000; i++);
-
-}
-
 void
 tgt_poweroff()
 {
@@ -1386,7 +1338,6 @@ tgt_reboot(void)
 	delay(100);
 	* watch_dog_mem = 0x81;
 }
-#endif
 
 /*
  *  This function makes inital HW setup for debugger and
@@ -3111,3 +3062,45 @@ void sb700_interrupt_fixup(void)
 
 }
 
+extern struct efi_memory_map_loongson g_map;
+extern unsigned long long memorysize;
+extern unsigned long long memorysize_high;
+extern unsigned long long memorysize_high_n1;
+
+#include "../../../pmon/cmds/bootparam.h"
+struct efi_memory_map_loongson * init_memory_map()
+{
+	struct efi_memory_map_loongson *emap = &g_map;
+	int i = 0;
+	unsigned long long size = memorysize_high;
+
+#define EMAP_ENTRY(entry, node, type, start, size) \
+	emap->map[(entry)].node_id = (node), \
+	emap->map[(entry)].mem_type = (type), \
+	emap->map[(entry)].mem_start = (start), \
+	emap->map[(entry)].mem_size = (size), \
+	(entry)++
+
+	EMAP_ENTRY(i, 0, SYSTEM_RAM_LOW, 0x00200000, 0x0ee);
+	/* for entry with mem_size < 1M, we set bit31 to 1 to indicate
+	 * that the unit in mem_size is Byte not MBype*/
+	EMAP_ENTRY(i, 0, SMBIOS_TABLE, (SMBIOS_PHYSICAL_ADDRESS & 0x0fffffff),
+			(SMBIOS_SIZE_LIMIT|0x80000000));
+	if(size < 0x6f000000)
+		EMAP_ENTRY(i, 0, SYSTEM_RAM_HIGH, 0x90000000, size >> 20);
+	/*we waste 16MB here, because 780e TOM is 0xff0000000*/
+	else if (size > 0x70000000) {
+		EMAP_ENTRY(i, 0, SYSTEM_RAM_HIGH, 0x90000000, 0x6f0);
+		EMAP_ENTRY(i, 0, SYSTEM_RAM_HIGH, 0x100000000, (size - 0x70000000) >> 20);
+	} else
+		EMAP_ENTRY(i, 0, SYSTEM_RAM_HIGH, 0x90000000, 0x6f0); if(memorysize_high_n1) {
+		EMAP_ENTRY(i, 1, SYSTEM_RAM_LOW, 0x000000000000L, 0x100);
+		EMAP_ENTRY(i, 1, SYSTEM_RAM_HIGH, 0x000000000000L + 0x90000000, memorysize_high_n1 >> 20);
+	}
+
+
+	emap->vers = 1;
+	emap->nr_map = i;
+	return emap;
+#undef	EMAP_ENTRY
+}
