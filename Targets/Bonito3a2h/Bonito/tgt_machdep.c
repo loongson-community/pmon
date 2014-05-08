@@ -1416,14 +1416,15 @@ static void init_legacy_rtc(void)
 	min	= (val >> 10) & 0x3f;
 	sec	= (val >> 4) & 0x3f;
 
-	if ((month < 1 || month > 12)
+	if ((year < 0 || year > 138) 
+		|| (month < 1 || month > 12)
 		|| (date < 1 || date > 31)
 		|| (hour > 23) || (min > 59)
 		|| (sec > 59)) {
 		tgt_printf("RTC time invalid, reset to epoch.\n");
 		/* 2000-01-01 00:00:00 */
 		val = (2 << 26) | (1 << 21);
-		outl(LS2H_TOY_WRITE1_REG, 0x7d0);
+		outl(LS2H_TOY_WRITE1_REG, 0x64);
 		outl(LS2H_TOY_WRITE0_REG, val);
 	}
 }
