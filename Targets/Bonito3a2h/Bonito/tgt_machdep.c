@@ -108,8 +108,9 @@ tgt_printf (const char *fmt, ...)
 #include "pflash.h"
 #include "dev/pflash_tgt.h"
 
-#include "include/bonito.h"
-#include "include/ls2h.h"
+#include "target/bonito.h"
+#include "target/ls2h.h"
+#include "target/board.h"
 #include <pmon/dev/gt64240reg.h>
 #include <pmon/dev/ns16550.h>
 #include "target/firewall.h"
@@ -162,6 +163,8 @@ int usb_kbd_available;;
 int vga_available;
 int cmd_main_mutex = 0;
 int bios_mutex = 0;
+/* Board Version Number */
+unsigned int board_ver_num;
 
 static int md_pipefreq = 0;
 static int md_cpufreq = 0;
@@ -543,6 +546,11 @@ asm(\
 	
 	printf("BEV in SR set to zero.\n");
 
+	if (board_ver_num == LS3A2H_BOARD_2_2)
+		printf("3A2H Board Version is 2.2.\n");
+	else
+		printf("3A2H Board Version is 2.1 or 2.0.\n");
+
 	
 
 #if PCI_IDSEL_VIA686B
@@ -690,6 +698,8 @@ tgt_devconfig()
 #endif
 #endif
 #endif
+	outl(LS2H_GPIO_CFG_REG, 0xf << 24);
+	board_ver_num = (inl(LS2H_GPIO_IN_REG) >> 8) & 0xf;
 	//	_pci_devinit(1);	/* PCI device initialization */
 #if (NMOD_X86EMU_INT10 > 0)||(NMOD_X86EMU >0)
 	SBD_DISPLAY("VGAI", 0);

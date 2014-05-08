@@ -5,6 +5,7 @@
 
 /* CHIP CONFIG regs */
 #define LS2H_CHIP_CFG_REG_BASE				(LS2H_IO_REG_BASE + 0x00d00000)
+#define LS2H_MSI_PORT_REG				(LS2H_CHIP_CFG_REG_BASE + 0x0)
 
 #define LS2H_INT_REG_BASE				(LS2H_CHIP_CFG_REG_BASE + 0x0040)
 
@@ -15,6 +16,11 @@
 #define LS2H_INT_POL0_REG				(LS2H_CHIP_CFG_REG_BASE + 0x0050)
 #define LS2H_INT_EDGE0_REG				(LS2H_CHIP_CFG_REG_BASE + 0x0054)
 
+#define LS2H_GPIO_CFG_REG				(LS2H_CHIP_CFG_REG_BASE + 0x00c0)
+#define LS2H_GPIO_OUT_EN_REG				(LS2H_CHIP_CFG_REG_BASE + 0x00c4)
+#define LS2H_GPIO_IN_REG				(LS2H_CHIP_CFG_REG_BASE + 0x00c8)
+#define LS2H_GPIO_OUT_REG				(LS2H_CHIP_CFG_REG_BASE + 0x00cc)
+
 #define LS2H_DMA_ORDER_REG				(LS2H_CHIP_CFG_REG_BASE + 0x0100)
 #define LS2H_CHIP_CFG0_REG				(LS2H_CHIP_CFG_REG_BASE + 0x0200)
 #define LS2H_CHIP_CFG1_REG				(LS2H_CHIP_CFG_REG_BASE + 0x0204)
@@ -24,15 +30,29 @@
 #define LS2H_CHIP_SAMP1_REG				(LS2H_CHIP_CFG_REG_BASE + 0x0214)
 #define LS2H_CHIP_SAMP2_REG				(LS2H_CHIP_CFG_REG_BASE + 0x0218)
 #define LS2H_CHIP_SAMP3_REG				(LS2H_CHIP_CFG_REG_BASE + 0x021c)
+#define LS2H_CHIP_SAMP4_REG				(LS2H_CHIP_CFG_REG_BASE + 0x00d8)
+#define LS2H_CHIP_SAMP5_REG				(LS2H_CHIP_CFG_REG_BASE + 0x00e8)
+
+#define LS2H_CLK_CTRL0_REG				(LS2H_CHIP_CFG_REG_BASE + 0x0220)
+#define LS2H_CLK_CTRL1_REG				(LS2H_CHIP_CFG_REG_BASE + 0x0224)
+#define LS2H_CLK_CTRL2_REG				(LS2H_CHIP_CFG_REG_BASE + 0x0228)
+#define LS2H_CLK_CTRL3_REG				(LS2H_CHIP_CFG_REG_BASE + 0x022c)
+
 #define LS2H_PIXCLK0_CTRL0_REG				(LS2H_CHIP_CFG_REG_BASE + 0x0230)
 #define LS2H_PIXCLK0_CTRL1_REG				(LS2H_CHIP_CFG_REG_BASE + 0x0234)
 #define LS2H_PIXCLK1_CTRL0_REG				(LS2H_CHIP_CFG_REG_BASE + 0x0238)
 #define LS2H_PIXCLK1_CTRL1_REG				(LS2H_CHIP_CFG_REG_BASE + 0x023c)
 
+#define LS2H_CLOCK_CTRL0_REG                            (LS2H_CHIP_CFG_REG_BASE + 0x0220)
+#define LS2H_CLOCK_CTRL1_REG                            (LS2H_CHIP_CFG_REG_BASE + 0x0224)
+#define LS2H_CLOCK_CTRL2_REG                            (LS2H_CHIP_CFG_REG_BASE + 0x0228)
+#define LS2H_CLOCK_CTRL3_REG                            (LS2H_CHIP_CFG_REG_BASE + 0x022c)
+
 #define LS2H_WIN_CFG_BASE				(LS2H_CHIP_CFG_REG_BASE + 0x80000)
 #define LS2H_M4_WIN0_BASE_REG				(LS2H_WIN_CFG_BASE + 0x0400)
 #define LS2H_M4_WIN0_MASK_REG				(LS2H_WIN_CFG_BASE + 0x0440)
 #define LS2H_M4_WIN0_MMAP_REG				(LS2H_WIN_CFG_BASE + 0x0480)
+#define LS2H_QOS_CFG6_REG				(LS2H_WIN_CFG_BASE + 0x0630)
 
 /* USB regs */
 #define LS2H_EHCI_REG_BASE				(LS2H_IO_REG_BASE + 0x00e00000)
@@ -187,11 +207,6 @@
 #define LS2H_LPC_CFG2_REG				(LS2H_LPC_REG_BASE + 0x8)
 #define LS2H_LPC_CFG3_REG				(LS2H_LPC_REG_BASE + 0xc)
 
-/* REG ACCESS*/
-#define read_reg_word(reg_addr_phy)				(*(volatile unsigned int *)(reg_addr_phy))
-#define write_reg_word(reg_addr_phy,val)			*(volatile unsigned int *)(reg_addr_phy) = val
-#define read_reg_byte(reg_addr_phy)				(*(volatile unsigned char *)(reg_addr_phy))
-#define write_reg_byte(reg_addr_phy,val)			*(volatile unsigned char *)(reg_addr_phy) = val
 
 #define LS2H_PCIE_MAX_PORTNUM       3
 #define LS2H_PCIE_PORT0             0

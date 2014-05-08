@@ -2465,8 +2465,8 @@ s32  synopGMAC_init_network_interface(char* xname, struct device *sc )
 	u64 synopGMACMappedAddr = sc->dv_unit?0xffffffffbbe18000LL:0xffffffffbbe10000LL;
 	unsigned int eeprom_addr = sc->dv_unit * 6;
 	struct synopGMACNetworkAdapter *synopGMACadapter;
-	ls2h_i2c1_init();
-	eeprom_read_seq(eeprom_addr, mac_addr0, 6);
+	i2c_init();
+	mac_read(eeprom_addr, mac_addr0, 6);
 	memcpy(smbios_uuid_mac, mac_addr0, 6);
 	TR("Now Going to Call register_netdev to register the network interface for GMAC core\n");
 	synopGMACadapter = (struct synopGMACNetworkAdapter * )plat_alloc_memory(sizeof (struct synopGMACNetworkAdapter)); 
