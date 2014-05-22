@@ -1,46 +1,9 @@
 #include "sb700.h"
 #include "rs780_cmn.h"
 
-#if 0
-#define writeb(val, addr) (*(volatile u8*)(addr) = (val))
-#define writew(val, addr) (*(volatile u16*)(addr) = (val))
-#define writel(val, addr) (*(volatile u32*)(addr) = (val))
-#define readb(addr) (*(volatile u8*)(addr))
-#define readw(addr) (*(volatile u16*)(addr))
-#define readl(addr) (*(volatile u32*)(addr))
-#endif
-
 extern struct southbridge_ati_sb700_config conf_info;
 
 
-#ifndef 1
-static sata_drive_detect(int portnum, u32 iobar)
-{
-	u8 byte, byte2;
-	int i = 0;
-	OUTB(0xA0 + 0x10 * (portnum % 2), iobar + 0x6);
-	while (byte = INB(iobar + 0x6), byte2 = INB(iobar + 0x7),
-		(byte != (0xA0 + 0x10 * (portnum % 2))) ||
-		((byte2 & 0x88) != 0)) {
-		printk_spew("0x6=%x, 0x7=%x\n", byte, byte2);
-		if (byte != (0xA0 + 0x10 * (portnum % 2))) {
-			/* This will happen at the first iteration of this loop
-			 * if the first SATA port is unpopulated and the
-			 * second SATA port is poulated.
-			 */
-			printk_debug("drive no longer selected after %d ms, "
-				"retrying init\n", i * 10);
-			return 1;
-		} else
-			printk_spew("drive detection not yet completed, "
-				"waiting...\n");
-	        udelay(10000);
-		i++;
-	}
-	printk_spew("drive detection done after %d ms\n", i * 10);
-	return 0;
-}
-#endif
 
 static void sata_init(device_t dev)
 {
@@ -260,31 +223,5 @@ static void sata_init(device_t dev)
 	}
 #endif
 
-#ifdef 1
-	/* Below is CIM InitSataLateFar */
-	/* Enable interrupts from the HBA  */
-	printk_info("Enable interrupts from the HBA\n");
-	byte = READB(sata_bar5 + 0x4);
-	byte |= 1 << 1;
-	WRITEB(byte, (sata_bar5 + 0x4));
-	/* Clear error status */
-	printk_info("Clear error status\n");
-	WRITEL(0xFFFFFFFF, (sata_bar5 + 0x130));
-	WRITEL(0xFFFFFFFF, (sata_bar5 + 0x1b0));
-	WRITEL(0xFFFFFFFF, (sata_bar5 + 0x230));
-	WRITEL(0xFFFFFFFF, (sata_bar5 + 0x2b0));
-	WRITEL(0xFFFFFFFF, (sata_bar5 + 0x330));
-	WRITEL(0xFFFFFFFF, (sata_bar5 + 0x3b0));
-#endif
-
-	/* Clear SATA status,Firstly we get the AcpiGpe0BlkAddr */
-	/* ????? why CIM does not set the AcpiGpe0BlkAddr , but use it??? */
-
-	/* word = 0x0000; */
-	/* word = pm_ioread(0x28); */
-	/* byte = pm_ioread(0x29); */
-	/* word |= byte<<8; */
-	/* printk_debug("AcpiGpe0Blk addr = %x\n", word); */
-	/* writel(0x80000000 , word); */
 }
 

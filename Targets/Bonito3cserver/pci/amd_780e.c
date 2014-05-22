@@ -20,6 +20,8 @@
 #define OUTW(b,addr) (*(volatile unsigned short *) (addr) = (b))
 #define OUTL(b,addr) (*(volatile unsigned int *) (addr) = (b))
 
+static u8 get_sb700_revision(void);
+
 void rs780_por_pcicfg_init(device_t nb_tag)
 {
 	printk_info("enter rs780_por_pcicfg_init\n");

@@ -506,7 +506,7 @@ wait_locked_sys_cpu1:
 	nop
 
 soft_mem_cpu1:
-	li      t0, 0x900020001fe00194
+	dli      t0, 0x900020001fe00194
 	lw      a0, 0x0(t0)
 	li      a1, 0x200
 	and     a0, a0, a1
@@ -515,7 +515,7 @@ soft_mem_cpu1:
 
 	TTYDBG ("\r\nMEM        :")
 
-	li      t0, 0x900020001fe001c0
+	dli      t0, 0x900020001fe001c0
 	dli     a0, (DDR_DIV << 24) | (DDR_LOOPC << 14) | (DDR_REFC << 8) | (0x3 << 4) | (0x1 << 3) | 0x2
 	sw	    a0, 0x0(t0)
 wait_locked_ddr_cpu1:
@@ -534,7 +534,7 @@ wait_locked_ddr_cpu1:
 
 soft_fdcoefficient_cpu1:
 	TTYDBG ("\r\nfdcoefficient  :")
-	li      t0,0x900020001fe001c0
+	dli      t0,0x900020001fe001c0
 	ld      t1,0x0(t0)
 	dsrl    a0,t1,8
 	and     a0,a0,63
@@ -553,7 +553,7 @@ soft_fdcoefficient_cpu1:
 soft_ht_cpu1:
 	TTYDBG ("\r\nHT         :")
 
-	li      t0, 0x900020001fe001b0
+	dli      t0, 0x900020001fe001b0
 	lw      a0, 0x14(t0)
 	bal     hexserial
 	nop
@@ -580,13 +580,13 @@ soft_out_cpu1:
 ########################################
 
 /* Fix HT connection bug between two LS3B chipses */ 
-	li  t0, 0x90000efdfb000108;
+	dli  t0, 0x90000efdfb000108;
 	lw  a0, 0x00(t0);
 	li  a1, 0xc0000000; 
 	or  a0, a1;
 	sw  a0, 0x00(t0);
 
-	li  t0, 0x90002efdfb000108;
+	dli  t0, 0x90002efdfb000108;
 	lw  a0, 0x00(t0);
 	li  a1, 0xc0000000; 
 	or  a0, a1;
@@ -619,7 +619,7 @@ soft_out_cpu1:
 
 #ifdef DUAL_3B
 	TTYDBG ("\r\nCPU 1 MC RESET\r\n")
-	li      t0, 0x900020001fe00180
+	dli      t0, 0x900020001fe00180
 	lw      a2, 0x0(t0)
 	li      v1, 0x1080
 	not     v1, v1
@@ -826,7 +826,7 @@ node0_has_mem:
 	beqz    a1, 2f
 	nop
 
-	li      t0, 0x9000100000000000
+	dli      t0, 0x9000100000000000
 	dli     a0, 0x5555555555555555
 	sd      a0, 0x0(t0)
 	dli     a0, 0xaaaaaaaaaaaaaaaa
@@ -909,7 +909,7 @@ node0_has_mem:
 	beqz    a1, 2f
 	nop
 
-	li      t0, 0x9000200000000000
+	dli     t0, 0x9000200000000000
 	dli     a0, 0x5555555555555555
 	sd      a0, 0x0(t0)
 	dli     a0, 0xaaaaaaaaaaaaaaaa
@@ -993,7 +993,7 @@ node0_has_mem:
 	beqz    a1, 2f
 	nop
 
-	li      t0, 0x9000300000000000
+	dli     t0, 0x9000300000000000
 	dli     a0, 0x5555555555555555
 	sd      a0, 0x0(t0)
 	dli     a0, 0xaaaaaaaaaaaaaaaa
@@ -1070,7 +1070,7 @@ node0_has_mem:
 	nop
 	and     v0, v0, 0xf
 	dli     a1, 0x1
-	bgt     v0, a1, 3f
+	bgt     v0, a1, 2f
 	nop
 
 
@@ -2289,6 +2289,8 @@ LEAF(lock_scache)
 	sd   t1, 0x248(t0)
 	dli  t1, 0x8000000090200000 
 	sd   t1, 0x208(t0)
+	jr	 ra
+	nop
 #endif
 #endif
 END(lock_scache)

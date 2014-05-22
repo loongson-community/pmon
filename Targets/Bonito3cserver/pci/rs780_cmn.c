@@ -532,8 +532,8 @@ u8 PcieTrainPort(device_t nb_dev, device_t dev, u32 port)
 	}
 
 	while (count--) {
-		delay(40);
-		delay(2);
+		/* 5.7.5.21 step 2, delay 200us */
+		udelay(300);
 		lc_state = nbpcie_p_read_index(dev, 0xa5);	/* lc_state */
 		printk_debug("PcieLinkTraining port=%x:lc current state=%x\n",
 			     port, lc_state);

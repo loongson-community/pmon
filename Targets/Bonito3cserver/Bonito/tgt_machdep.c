@@ -67,20 +67,20 @@ void	tgt_putchar (int);
 int
 tgt_printf (const char *fmt, ...)
 {
-    int  n;
-    char buf[1024];
+	int  n;
+	char buf[1024];
 	char *p=buf;
 	char c;
 	va_list     ap;
 	va_start(ap, fmt);
-    n = vsprintf (buf, fmt, ap);
-    va_end(ap);
+	n = vsprintf (buf, fmt, ap);
+	va_end(ap);
 	while((c=*p++))
 	{ 
-	 if(c=='\n')tgt_putchar('\r');
-	 tgt_putchar(c);
+		if(c=='\n')tgt_putchar('\r');
+		tgt_putchar(c);
 	}
-    return (n);
+	return (n);
 }
 
 #if 1
@@ -195,6 +195,8 @@ static void init_legacy_rtc(void);
 #ifdef INTERFACE_3A780E
 #define REV_ROW_LINE 560
 #define INF_ROW_LINE 576
+
+struct efi_memory_map_loongson * init_memory_map(void);
 
 int afxIsReturnToPmon = 0;
 
@@ -367,16 +369,12 @@ ppns16550 (int op, struct DevEntry *dev, unsigned long param, int data)
 ConfigEntry	ConfigTable[] =
 {
 #ifdef HAVE_NB_SERIAL
-	#ifdef DEVBD2F_FIREWALL
-	 { (char *)LS2F_COMA_ADDR, 0, ns16550, 256, CONS_BAUD, NS16550HZ/2 },
-	#else
     #ifdef USE_LPC_UART
 	 { (char *)COM3_BASE_ADDR, 0, ns16550, 256, CONS_BAUD, NS16550HZ },
     #else
 	 //{ (char *)0xbfe001e0, 0, ns16550, 256, CONS_BAUD, NS16550HZ },
 	 { (char *)GS3_UART_BASE, 0, ns16550, 256, CONS_BAUD, NS16550HZ },
     #endif
-	#endif
 #elif defined(USE_SM502_UART0)
 	{ (char *)0xb6030000, 0, ns16550, 256, CONS_BAUD, NS16550HZ/2 },
 #elif defined(USE_GPIO_SERIAL)
@@ -390,9 +388,6 @@ ConfigEntry	ConfigTable[] =
 	#else
 	{ (char *)1, 0, vgaterm, 256, CONS_BAUD, NS16550HZ },
 	#endif
-#endif
-#ifdef DEVBD2F_FIREWALL
-	 { (char *)LS2F_COMB_ADDR, 0, ns16550, 256, CONS_BAUD, NS16550HZ/2 ,1},
 #endif
 	{ 0 }
 };
@@ -426,95 +421,37 @@ initmips(unsigned long long raw_memsz)
 {
 	int i;
 	int* io_addr;
-    unsigned long long memsz;
-tgt_fpuenable();
-#ifdef DEVBD2F_SM502
-{
-/*set lio bus to 16 bit*/
-volatile int *p=0xbfe00108;
-*p=((*p)&~(0x1f<<8))|(0x8<<8) |(1<<13);
-}
-#endif
-/*enable float*/
-tgt_fpuenable();
-//CPU_TLBClear();
+	unsigned long long memsz;
+	tgt_fpuenable();
 
-#if PCI_IDSEL_CS5536 != 0
-superio_reinit();
-#endif
-    memsz = raw_memsz & 0xff;
-    memsz = memsz << 29;
-    memsz = memsz - 0x1000000;
-    memsz = memsz >> 20;
+	memsz = raw_memsz & 0xff;
+	memsz = memsz << 29;
+	memsz = memsz - 0x1000000;
+	memsz = memsz >> 20;
 	/*
 	 *	Set up memory address decoders to map entire memory.
 	 *	But first move away bootrom map to high memory.
 	 */
-#if 0
-	GT_WRITE(BOOTCS_LOW_DECODE_ADDRESS, BOOT_BASE >> 20);
-	GT_WRITE(BOOTCS_HIGH_DECODE_ADDRESS, (BOOT_BASE - 1 + BOOT_SIZE) >> 20);
-#endif
 	memorysize = memsz > 240 ? 240 << 20 : memsz << 20;
 	memorysize_high = memsz > 240 ? (((unsigned long long)memsz) - 240) << 20 : 0;
-    mem_size = memsz;
+	mem_size = memsz;
 
-    memsz = raw_memsz & 0xff00;
-    memsz = memsz >> 8;
-    memsz = memsz << 29;
-    memorysize_high_n1 = (memsz == 0) ? 0 : (memsz - (256 << 20));
+	memsz = raw_memsz & 0xff00;
+	memsz = memsz >> 8;
+	memsz = memsz << 29;
+	memorysize_high_n1 = (memsz == 0) ? 0 : (memsz - (256 << 20));
 #if 1
-//#ifdef MULTI_CHIP
-    memsz = raw_memsz & 0xff0000;
-    memsz = memsz >> 16;
-    memsz = memsz << 29;
-    memorysize_high_n2 = (memsz == 0) ? 0 : (memsz - (256 << 20));
-    memsz = raw_memsz & 0xff000000;
-    memsz = memsz >> 24;
-    memsz = memsz << 29;
-    memorysize_high_n3 = (memsz == 0) ? 0 : (memsz - (256 << 20));
+	//#ifdef MULTI_CHIP
+	memsz = raw_memsz & 0xff0000;
+	memsz = memsz >> 16;
+	memsz = memsz << 29;
+	memorysize_high_n2 = (memsz == 0) ? 0 : (memsz - (256 << 20));
+	memsz = raw_memsz & 0xff000000;
+	memsz = memsz >> 24;
+	memsz = memsz << 29;
+	memorysize_high_n3 = (memsz == 0) ? 0 : (memsz - (256 << 20));
 #endif
 	memorysize_total =  ((memorysize  +  memorysize_high + memsz)  >> 20) + 16;
-#if 0 /* whd : Disable gpu controller of MCP68 */
-	//*(unsigned int *)0xbfe809e8 = 0x122380;
-	//*(unsigned int *)0xbfe809e8 = 0x2280;
-	*(unsigned int *)0xba0009e8 = 0x2280;
-#endif
-
-#if 0 /* whd : Enable IDE controller of MCP68 */
-	*(unsigned int *)0xbfe83050 = (*(unsigned int *)0xbfe83050) | 0x2;
-
-#endif
-
-#if 0
-asm(\
-"	 sd %1,0x18(%0);;\n" \
-"	 sd %2,0x28(%0);;\n" \
-"	 sd %3,0x20(%0);;\n" \
-	 ::"r"(0xffffffffbff00000ULL),"r"(memorysize),"r"(memorysize_high),"r"(0x20000000)
-	 :"$2"
-   );
-#endif
-
-#if 0
-	{
-	  int start = 0x80000000;
-	  int end = 0x80000000 + 16384;
-
-	  while (start < end) {
-	    __asm__ volatile (" cache 1,0(%0)\r\n"
-		              " cache 1,1(%0)\r\n"
-		              " cache 1,2(%0)\r\n"
-		              " cache 1,3(%0)\r\n"
-		              " cache 0,0(%0)\r\n"::"r"(start));
-	    start += 32;
-	  }
-
-	  __asm__ volatile ( " mfc0 $2,$16\r\n"
-	                   " and  $2, $2, 0xfffffff8\r\n"
-			   " or   $2, $2, 2\r\n"
-			   " mtc0 $2, $16\r\n" :::"$2");
-	}
-#endif
 
 	/*
 	 *  Probe clock frequencys so delays will work properly.
@@ -540,82 +477,11 @@ asm(\
 	CPU_SetSR(0, SR_BOOT_EXC_VEC);
 #endif
 	SBD_DISPLAY("BEV0",0);
-	
+
 	printf("BEV in SR set to zero.\n");
 
-	
 
-#if PCI_IDSEL_VIA686B
-if(getenv("powermg"))
-{
-pcitag_t mytag;
-unsigned char data;
-unsigned int addr;
-	mytag=_pci_make_tag(0,PCI_IDSEL_VIA686B,4);
-	data=_pci_conf_readn(mytag,0x41,1);
-	_pci_conf_writen(mytag,0x41,data|0x80,1);
-	addr=_pci_allocate_io(_pci_head,256);
-	printf("power management addr=%x\n",addr);
-	_pci_conf_writen(mytag,0x48,addr|1,4);
-}
-#endif
 
-#if 0//HT BUS DEBUG whd
-	printf("HT-PCI header scan:\n");
-	io_addr = 0xbfe84000;
-	for(i=0 ;i < 16;i++)
-	{
-		printf("io_addr : 0x%8X = 0x%8X\n",io_addr, *io_addr);
-		io_addr = io_addr + 1;
-	}
-
-	//printf("BUS 9 scan:\n");
-	//io_addr = 0xbe090000;
-	//for(i=0 ;i < 16;i++)
-	//{
-	//	printf("io_addr : 0x%X = 0x%X\n",io_addr, *io_addr);
-	//	io_addr = io_addr + (1<<9);
-	//}
-
-	printf("PCI bus header scan:\n");
-	io_addr = 0xbe014800;
-	for(i=0 ;i < 16;i++)
-	{
-		printf("io_addr : 0x%8X = 0x%8X\n",io_addr, *io_addr);
-		io_addr = io_addr + 1;
-	}
-
-	//printf("write network IO space test\n");
-	//io_addr = 0xba00ffc0;
-	//for(i=0 ;i < 16;i++)
-	//{
-	//	printf("io_addr : 0x%X = 0x%X\n",io_addr, *io_addr);
-	//	io_addr = io_addr + 1;
-	//}
-
-	//io_addr = 0xba00ffc0;
-	//i = *io_addr;
-	//	printf("io_addr : 0x%X = 0x%X\n",io_addr, i);
-
-	//i = i | 0x1000000;
-	//*io_addr = i;
-	//	printf("io_addr : 0x%X = 0x%X\n",io_addr, *io_addr);
-	//
-	//printf("HT-SATA header scan:\n");
-	//io_addr = 0xbfe84800;
-	//for(i=0 ;i < 64;i++)
-	//{
-	//	printf("io_addr : 0x%8X = 0x%8X\n",io_addr, *io_addr);
-	//	io_addr = io_addr + 1;
-    //}
-	//printf("HT Register\n");
-	//io_addr = 0xbb000050;
-	//for(i=0 ;i < 1;i++)
-	//{
-	//	printf("io_addr : 0x%X = 0x%X\n",io_addr, *io_addr);
-	//	io_addr = io_addr + 1;
-	//}
-#endif
 
 	/*
 	 * Launch!
@@ -641,14 +507,14 @@ extern unsigned long long uma_memory_size;
 void
 tgt_devconfig()
 {
-			 int ic, len;
-	         int count = 0;
-	         char key;
-	         char copyright[9] ="REV_";
-	         char bootup[] = "Booting...";
-	         char *tmp_copy = NULL;
-	         char tmp_date[11];
-			 char * s;
+	int ic, len;
+	int count = 0;
+	char key;
+	char copyright[9] ="REV_";
+	char bootup[] = "Booting...";
+	char *tmp_copy = NULL;
+	char tmp_date[11];
+	char * s;
 #if NMOD_VGACON > 0
 	int rc=1;
 #if NMOD_FRAMEBUFFER > 0 
@@ -656,25 +522,25 @@ tgt_devconfig()
 	extern struct pci_device *vga_dev;
 #ifdef USE_780E_VGA
 #ifdef RS780E
-    int test;
-    int  i;
-//    printf(" ====================  frame buffer test begin======================:%x \n" , test);
-    for (i = 0;i < 0x100000;i += 4)
-    {
-        //printf(" i = %x \n" , i);
-        *((volatile int *)(BONITO_PCILO_BASE_VA + i)) = i;
-    }
+	int test;
+	int  i;
+	//    printf(" ====================  frame buffer test begin======================:%x \n" , test);
+	for (i = 0;i < 0x100000;i += 4)
+	{
+		//printf(" i = %x \n" , i);
+		*((volatile int *)(BONITO_PCILO_BASE_VA + i)) = i;
+	}
 
-    for (i = 0xffffc;i >= 0;i -= 4)
-    {
-        if (*((volatile int *)(BONITO_PCILO_BASE_VA + i)) != i)
-        {
-            printf(" not equal ====  %x\n" ,i);
-            break;
-        }
-    }
+	for (i = 0xffffc;i >= 0;i -= 4)
+	{
+		if (*((volatile int *)(BONITO_PCILO_BASE_VA + i)) != i)
+		{
+			printf(" not equal ====  %x\n" ,i);
+			break;
+		}
+	}
 
-    printf(" ====================  frame buffer test end======================:%x \n" , test);
+	printf(" ====================  frame buffer test end======================:%x \n" , test);
 #endif
 #endif
 #endif
@@ -706,25 +572,6 @@ tgt_devconfig()
 		fbaddress = fbaddress &0xffffff00; //laster 8 bit
 		ioaddress = ioaddress &0xfffffff0; //laster 4 bit
 
-#if NMOD_SISFB
-		fbaddress=sisfb_init_module();
-#endif
-		printf("fbaddress 0x%x\tioaddress 0x%x\n",fbaddress, ioaddress);
-
-#if NMOD_SMI712 > 0
-		fbaddress |= 0xb0000000;
-		//ioaddress |= 0xbfd00000;
-		ioaddress |= BONITO_PCIIO_BASE_VA;
-        smi712_init((unsigned char *)fbaddress,(unsigned char *)ioaddress);
-#endif
-
-#if NMOD_SMI502 > 0
-        rc = video_hw_init ();
-                fbaddress  =_pci_conf_read(vga_dev->pa.pa_tag,0x10);
-                ioaddress  =_pci_conf_read(vga_dev->pa.pa_tag,0x14);
-                fbaddress |= 0xb0000000;
-                ioaddress |= 0xb0000000;
-#endif
 
 #if 0
 #ifdef CONFIG_GFXUMA
@@ -746,137 +593,137 @@ tgt_devconfig()
 #endif
 
 #if (NMOD_FRAMEBUFFER > 0) || (NMOD_VGACON > 0 )
-    if (rc > 0)
-	 if(!getenv("novga")) vga_available=1;
-	 else vga_available=0;
+	if (rc > 0)
+		if(!getenv("novga")) vga_available=1;
+		else vga_available=0;
 #endif
-    config_init();
-    configure();
-//key_board init
-//#if ((NMOD_VGACON >0) &&(PCI_IDSEL_VIA686B !=0)|| (PCI_IDSEL_CS5536 !=0))
+	config_init();
+	configure();
+	//key_board init
+	//#if ((NMOD_VGACON >0) &&(PCI_IDSEL_VIA686B !=0)|| (PCI_IDSEL_CS5536 !=0))
 #if NMOD_VGACON >0
 	if(getenv("nokbd")) rc=1;
 	else {
 		superio_reinit();
-        rc=kbd_initialize();
-    }
+		rc=kbd_initialize();
+	}
 	printf("%s\n",kbd_error_msgs[rc]);
 	if(!rc){ 
 		kbd_available=1;
 	}
-//	psaux_init();
+	//	psaux_init();
 #endif
 
 #ifdef INTERFACE_3A780E 
-	
-		vga_available = 1;
-		kbd_available=1;
-	    bios_available = 1; //support usb_kbd in bios
-	  // Ask user whether to set bios menu
-//#if 1 
-	         printf("Press <Del> to set BIOS,waiting for 3 seconds here..... \n");
-	
-//#endif
-	         get_update(tmp_date);
-		 len = strlen(tmp_date);
-	         for (ic = 0; ic < 1; ic++){
-	             video_putchar1(2 + (len+2)*8+ic*8, 560, tmp_date[ic]);
-			  }
-  
-			 video_set_color(0xf);
 
-			init_win_device();
+	vga_available = 1;
+	kbd_available=1;
+	bios_available = 1; //support usb_kbd in bios
+	// Ask user whether to set bios menu
+	//#if 1
+	printf("Press <Del> to set BIOS,waiting for 3 seconds here..... \n");
 
-	        vga_available = 0;          //lwg close printf output
-	
+	//#endif
+	get_update(tmp_date);
+	len = strlen(tmp_date);
+	for (ic = 0; ic < 1; ic++){
+		video_putchar1(2 + (len+2)*8+ic*8, 560, tmp_date[ic]);
+	}
+
+	video_set_color(0xf);
+
+	init_win_device();
+
+	vga_available = 0;          //lwg close printf output
+
 
 	{ 
-			struct FackTermDev *devp;
-            int fd = 0;
-            DevEntry* p;
-            Msg msg;   //==char msg
-			int sign = 0;
+		struct FackTermDev *devp;
+		int fd = 0;
+		DevEntry* p;
+		Msg msg;   //==char msg
+		int sign = 0;
 
-            //get input without wait ===========   add by oldtai
-            fd = ((FILE*)stdin)->fd;
-            devp = (struct FackTermDev *)(_file[fd].data);
-            p = &DevTable[devp->dev];
+		//get input without wait ===========   add by oldtai
+		fd = ((FILE*)stdin)->fd;
+		devp = (struct FackTermDev *)(_file[fd].data);
+		p = &DevTable[devp->dev];
 
-            for (count = 0;count < 10;count++)
-            {
-                //get input without wait
-                scandevs();
+		for (count = 0;count < 10;count++)
+		{
+			//get input without wait
+			scandevs();
 
-                while(!tgt_smplock());
+			while(!tgt_smplock());
 
-		/* 'DEL' to BIOS Interface */
-		if(p->rxq->count >= 3){
-		  if ((p->rxq->dat[p->rxq->first + p->rxq->count-3] == 0x1b)
-			  && (p->rxq->dat[p->rxq->first + p->rxq->count-2] == '[')
-			  && (p->rxq->dat[p->rxq->first + p->rxq->count-1] == 'G')) {
-			sign = 1;
-			p->rxq->count -= 3;
-		  }
-		  if (sign == 1) {
-                        tgt_smpunlock();
-			break;
-		  }
-		}
-                tgt_smpunlock();
+			/* 'DEL' to BIOS Interface */
+			if(p->rxq->count >= 3){
+				if ((p->rxq->dat[p->rxq->first + p->rxq->count-3] == 0x1b)
+						&& (p->rxq->dat[p->rxq->first + p->rxq->count-2] == '[')
+						&& (p->rxq->dat[p->rxq->first + p->rxq->count-1] == 'G')) {
+					sign = 1;
+					p->rxq->count -= 3;
+				}
+				if (sign == 1) {
+					tgt_smpunlock();
+					break;
+				}
+			}
+			tgt_smpunlock();
 
-                //delay1(30);
-/*If you want to Press <Del> to set BIOS open it(from 0 to 1)*/
+			//delay1(30);
+			/*If you want to Press <Del> to set BIOS open it(from 0 to 1)*/
 #if 1
-                delay1(300);
+			delay1(300);
 #endif
-            }
-  }
+		}
+	}
 
-              vga_available = 1;
-              video_set_color(0xf);
-  		
-              for (ic = 0; ic < 64; ic++)
-              {
-                  video_putchar1(2 + ic*8, REV_ROW_LINE, ' ');
-                  video_putchar1(2 + ic*8, INF_ROW_LINE, ' ');
-              }
+	vga_available = 1;
+	video_set_color(0xf);
 
-             vga_available = 0;
- 
-              if (count >= 10)
-                  goto run;
-              else
-                  goto bios;
+	for (ic = 0; ic < 64; ic++)
+	{
+		video_putchar1(2 + ic*8, REV_ROW_LINE, ' ');
+		video_putchar1(2 + ic*8, INF_ROW_LINE, ' ');
+	}
 
-  bios:
+	vga_available = 0;
 
-      
-         if(!(s = getenv("SHOW_DISPLAY")) || s[0] !='2')
-          {
-              char buf[10];
-              video_set_color(0xf);
-              video_set_color(0x8);
-              tty_flush();
-			  vga_available = 1;
-              do_cmd("main");
-              if (!afxIsReturnToPmon)
-              {
-                 vga_available = 0;
-              }
-          }
-      
+	if (count >= 10)
+		goto run;
+	else
+		goto bios;
+
+bios:
+
+
+	if(!(s = getenv("SHOW_DISPLAY")) || s[0] !='2')
+	{
+		char buf[10];
+		video_set_color(0xf);
+		video_set_color(0x8);
+		tty_flush();
+		vga_available = 1;
+		do_cmd("main");
+		if (!afxIsReturnToPmon)
+		{
+			vga_available = 0;
+		}
+	}
+
 run:
-	  	vga_available = 1;
-		bios_available = 0;//support usb_kbd in bios
-       kbd_available = 1;
+	vga_available = 1;
+	bios_available = 0;//support usb_kbd in bios
+	kbd_available = 1;
 
-			  len = strlen(bootup);
-              for (ic = 0; ic < len; ic++)
-              {
-                  video_putchar1(2 + ic*8, INF_ROW_LINE,bootup[ic]);
-              }
+	len = strlen(bootup);
+	for (ic = 0; ic < len; ic++)
+	{
+		video_putchar1(2 + ic*8, INF_ROW_LINE,bootup[ic]);
+	}
 
-  
+
 #endif
 	printf("devconfig done.\n");
 
@@ -897,282 +744,119 @@ extern void cs5536_pci_fixup(void);
 #if PCI_IDSEL_SB700 != 0
 static int w83627_read(int dev,int addr)
 {
-int data;
-#if 0
-/*enter*/
-outb(0xbfd0002e,0x87);
-outb(0xbfd0002e,0x87);
-/*select logic dev reg */
-outb(0xbfd0002e,0x7);
-outb(0xbfd0002f,dev);
-/*access reg */
-outb(0xbfd0002e,addr);
-data=inb(0xbfd0002f);
-/*exit*/
-outb(0xbfd0002e,0xaa);
-outb(0xbfd0002e,0xaa);
-#endif
-/*enter*/
-outb(BONITO_PCIIO_BASE_VA + 0x002e,0x87);
-outb(BONITO_PCIIO_BASE_VA + 0x002e,0x87);
-/*select logic dev reg */
-outb(BONITO_PCIIO_BASE_VA + 0x002e,0x7);
-outb(BONITO_PCIIO_BASE_VA + 0x002f,dev);
-/*access reg */
-outb(BONITO_PCIIO_BASE_VA + 0x002e,addr);
-data=inb(BONITO_PCIIO_BASE_VA + 0x002f);
-/*exit*/
-outb(BONITO_PCIIO_BASE_VA + 0x002e,0xaa);
-outb(BONITO_PCIIO_BASE_VA + 0x002e,0xaa);
-return data;
+	int data;
+	/*enter*/
+	outb(BONITO_PCIIO_BASE_VA + 0x002e,0x87);
+	outb(BONITO_PCIIO_BASE_VA + 0x002e,0x87);
+	/*select logic dev reg */
+	outb(BONITO_PCIIO_BASE_VA + 0x002e,0x7);
+	outb(BONITO_PCIIO_BASE_VA + 0x002f,dev);
+	/*access reg */
+	outb(BONITO_PCIIO_BASE_VA + 0x002e,addr);
+	data=inb(BONITO_PCIIO_BASE_VA + 0x002f);
+	/*exit*/
+	outb(BONITO_PCIIO_BASE_VA + 0x002e,0xaa);
+	outb(BONITO_PCIIO_BASE_VA + 0x002e,0xaa);
+	return data;
 }
 
 static void w83627_write(int dev,int addr,int data)
 {
-#if 0
-/*enter*/
-outb(0xbfd0002e,0x87);
-outb(0xbfd0002e,0x87);
-/*select logic dev reg */
-outb(0xbfd0002e,0x7);
-outb(0xbfd0002f,dev);
-/*access reg */
-outb(0xbfd0002e,addr);
-outb(0xbfd0002f,data);
-/*exit*/
-outb(0xbfd0002e,0xaa);
-outb(0xbfd0002e,0xaa);
-#endif
-/*enter*/
-outb(BONITO_PCIIO_BASE_VA + 0x002e,0x87);
-outb(BONITO_PCIIO_BASE_VA + 0x002e,0x87);
-/*select logic dev reg */
-outb(BONITO_PCIIO_BASE_VA + 0x002e,0x7);
-outb(BONITO_PCIIO_BASE_VA + 0x002f,dev);
-/*access reg */
-outb(BONITO_PCIIO_BASE_VA + 0x002e,addr);
-outb(BONITO_PCIIO_BASE_VA + 0x002f,data);
-/*exit*/
-outb(BONITO_PCIIO_BASE_VA + 0x002e,0xaa);
-outb(BONITO_PCIIO_BASE_VA + 0x002e,0xaa);
-}
-#endif
-
-#if PCI_IDSEL_CS5536 != 0
-static int w83627_read(int dev,int addr)
-{
-int data;
-#if 0
-/*enter*/
-outb(0xbfd0002e,0x87);
-outb(0xbfd0002e,0x87);
-/*select logic dev reg */
-outb(0xbfd0002e,0x7);
-outb(0xbfd0002f,dev);
-/*access reg */
-outb(0xbfd0002e,addr);
-data=inb(0xbfd0002f);
-/*exit*/
-outb(0xbfd0002e,0xaa);
-outb(0xbfd0002e,0xaa);
-#endif
-/*enter*/
-outb(BONITO_PCIIO_BASE_VA + 0x002e,0x87);
-outb(BONITO_PCIIO_BASE_VA + 0x002e,0x87);
-/*select logic dev reg */
-outb(BONITO_PCIIO_BASE_VA + 0x002e,0x7);
-outb(BONITO_PCIIO_BASE_VA + 0x002f,dev);
-/*access reg */
-outb(BONITO_PCIIO_BASE_VA + 0x002e,addr);
-data=inb(BONITO_PCIIO_BASE_VA + 0x002f);
-/*exit*/
-outb(BONITO_PCIIO_BASE_VA + 0x002e,0xaa);
-outb(BONITO_PCIIO_BASE_VA + 0x002e,0xaa);
-return data;
+	/*enter*/
+	outb(BONITO_PCIIO_BASE_VA + 0x002e,0x87);
+	outb(BONITO_PCIIO_BASE_VA + 0x002e,0x87);
+	/*select logic dev reg */
+	outb(BONITO_PCIIO_BASE_VA + 0x002e,0x7);
+	outb(BONITO_PCIIO_BASE_VA + 0x002f,dev);
+	/*access reg */
+	outb(BONITO_PCIIO_BASE_VA + 0x002e,addr);
+	outb(BONITO_PCIIO_BASE_VA + 0x002f,data);
+	/*exit*/
+	outb(BONITO_PCIIO_BASE_VA + 0x002e,0xaa);
+	outb(BONITO_PCIIO_BASE_VA + 0x002e,0xaa);
 }
 
-static void w83627_write(int dev,int addr,int data)
-{
-#if 0
-/*enter*/
-outb(0xbfd0002e,0x87);
-outb(0xbfd0002e,0x87);
-/*select logic dev reg */
-outb(0xbfd0002e,0x7);
-outb(0xbfd0002f,dev);
-/*access reg */
-outb(0xbfd0002e,addr);
-outb(0xbfd0002f,data);
-/*exit*/
-outb(0xbfd0002e,0xaa);
-outb(0xbfd0002e,0xaa);
-#endif
-/*enter*/
-outb(BONITO_PCIIO_BASE_VA + 0x002e,0x87);
-outb(BONITO_PCIIO_BASE_VA + 0x002e,0x87);
-/*select logic dev reg */
-outb(BONITO_PCIIO_BASE_VA + 0x002e,0x7);
-outb(BONITO_PCIIO_BASE_VA + 0x002f,dev);
-/*access reg */
-outb(BONITO_PCIIO_BASE_VA + 0x002e,addr);
-outb(BONITO_PCIIO_BASE_VA + 0x002f,data);
-/*exit*/
-outb(BONITO_PCIIO_BASE_VA + 0x002e,0xaa);
-outb(BONITO_PCIIO_BASE_VA + 0x002e,0xaa);
-}
-#endif
-#if PCI_IDSEL_SB700 != 0
 static void superio_reinit()
 {
-w83627_write(0,0x24,0xc1);
-w83627_write(5,0x30,1);
-w83627_write(5,0x60,0);
-w83627_write(5,0x61,0x60);
-w83627_write(5,0x62,0);
-w83627_write(5,0x63,0x64);
-w83627_write(5,0x70,1);
-w83627_write(5,0x72,0xc);
-w83627_write(5,0xf0,0x80);
+	w83627_write(0,0x24,0xc1);
+	w83627_write(5,0x30,1);
+	w83627_write(5,0x60,0);
+	w83627_write(5,0x61,0x60);
+	w83627_write(5,0x62,0);
+	w83627_write(5,0x63,0x64);
+	w83627_write(5,0x70,1);
+	w83627_write(5,0x72,0xc);
+	w83627_write(5,0xf0,0x80);
 }
 #endif
 
-#if PCI_IDSEL_CS5536 != 0
-static void superio_reinit()
-{
-w83627_write(0,0x24,0xc1);
-w83627_write(5,0x30,1);
-w83627_write(5,0x60,0);
-w83627_write(5,0x61,0x60);
-w83627_write(5,0x62,0);
-w83627_write(5,0x63,0x64);
-w83627_write(5,0x70,1);
-w83627_write(5,0x72,0xc);
-w83627_write(5,0xf0,0x80);
-_wrmsr(GET_MSR_ADDR(0x5140001F), 0, 0);//no keyboard emulation
-
-#ifdef USE_CS5536_UART
-//w83627_UART1
-w83627_write(2,0x30,0x01);
-w83627_write(2,0x60,0x03);
-w83627_write(2,0x61,0xe8);
-w83627_write(2,0x70,0x04);
-w83627_write(2,0xf0,0x00);
-
-//w83627_UART2
-w83627_write(3,0x30,0x01);
-w83627_write(3,0x60,0x02);
-w83627_write(3,0x61,0xe8);
-w83627_write(3,0x70,0x03);
-w83627_write(3,0xf0,0x00);
-#else
-//w83627_UART1
-w83627_write(2,0x30,0x01);
-w83627_write(2,0x60,0x03);
-w83627_write(2,0x61,0xf8);
-w83627_write(2,0x70,0x04);
-w83627_write(2,0xf0,0x00);
-
-//w83627_UART2
-w83627_write(3,0x30,0x01);
-w83627_write(3,0x60,0x02);
-w83627_write(3,0x61,0xf8);
-w83627_write(3,0x70,0x03);
-w83627_write(3,0xf0,0x00);
-#endif
-
-////w83627_PALLPort
-w83627_write(1,0x30,0x01);
-w83627_write(1,0x60,0x03);
-w83627_write(1,0x61,0x78);
-w83627_write(1,0x70,0x07);
-w83627_write(1,0x74,0x04);
-w83627_write(1,0xf0,0xF0); 
-ConfigTable[0].flag=1;//reinit serial
-}
-#endif
 
 void
 tgt_devinit()
 {
 	int value;
 
-#if  (PCI_IDSEL_VIA686B != 0)
-	SBD_DISPLAY("686I",0);
-	
-	vt82c686_init();
-#endif
-
-#if  (PCI_IDSEL_CS5536 != 0)
-	SBD_DISPLAY("5536",0);
-	cs5536_init();
-#endif
 
 	printf("rs780_early_setup\n");
-        rs780_early_setup();
+	rs780_early_setup();
 
-        printf("sb700_early_setup\n");
-        sb700_early_setup();
-        printf("rs780_before_pci_fixup\n");
-        rs780_before_pci_fixup();
-        printf("sb700_before_pci_fixup\n");
-        sb700_before_pci_fixup();
-        printf("rs780_enable\n");
-        //vga test
-        //rs780_enable(_pci_make_tag(0, 0, 0));
-        //rs780_enable(_pci_make_tag(0, 1, 0));
-        rs780_after_pci_fixup(); //name dug
-        printf("sb700_enable\n");
-        sb700_enable();
+	printf("sb700_early_setup\n");
+	sb700_early_setup();
+	printf("rs780_before_pci_fixup\n");
+	rs780_before_pci_fixup();
+	printf("sb700_before_pci_fixup\n");
+	sb700_before_pci_fixup();
+	printf("rs780_enable\n");
+	//vga test
+	//rs780_enable(_pci_make_tag(0, 0, 0));
+	//rs780_enable(_pci_make_tag(0, 1, 0));
+	rs780_after_pci_fixup(); //name dug
+	printf("sb700_enable\n");
+	sb700_enable();
 
-#if 1
-        printf("!!!!! disable bus0 device pcie bridges\n");
-        //disable bus0 device 3 pci bridges (dev2 to dev7, dev9-dev10)
-        //dev 2 and dev3 should not be open otherwise the vga could not work
-        //==by oldtai
-     //   set_nbmisc_enable_bits(_pci_make_tag(0,0,0), 0x0c,(1<<2|1<<3|1<<4|1<<5|1<<6|1<<7|1<<16|1<<17),
-      //                  (0<<2|0<<3|0<<4|1<<5|0<<6|0<<7|0<<16|0<<17));
+	printf("!!!!! disable bus0 device pcie bridges\n");
+	//disable bus0 device 3 pci bridges (dev2 to dev7, dev9-dev10)
+	//dev 2 and dev3 should not be open otherwise the vga could not work
+	//==by oldtai
+	//   set_nbmisc_enable_bits(_pci_make_tag(0,0,0), 0x0c,(1<<2|1<<3|1<<4|1<<5|1<<6|1<<7|1<<16|1<<17),
+	//                  (0<<2|0<<3|0<<4|1<<5|0<<6|0<<7|0<<16|0<<17));
 
-	  set_nbmisc_enable_bits(_pci_make_tag(0,0,0), 0x0c,(1<<2|1<<3|1<<5|1<<6|1<<7|1<<17),
+	set_nbmisc_enable_bits(_pci_make_tag(0,0,0), 0x0c,(1<<2|1<<3|1<<5|1<<6|1<<7|1<<17),
 			(0<<2|0<<3|1<<5|1<<6|1<<7|0<<17));
-#endif
 
 #ifndef USE_780E_VGA 
-        printf("disable internal graphics\n");
-        //disable internal graphics
-        set_nbcfg_enable_bits_8(_pci_make_tag(0,0,0), 0x7c, 1, 1);
+	printf("disable internal graphics\n");
+	//disable internal graphics
+	set_nbcfg_enable_bits_8(_pci_make_tag(0,0,0), 0x7c, 1, 1);
 #endif
 
-#if 1
-        //SBD_DISPLAY("disable OHCI and EHCI controller",0);
-        //disable OHCI and EHCI controller
-        printf("disable OHCI and EHCI controller\n");
-        _pci_conf_write8(_pci_make_tag(0,0x14, 0), 0x68, 0x0);
-#endif
+	//SBD_DISPLAY("disable OHCI and EHCI controller",0);
+	//disable OHCI and EHCI controller
+	printf("disable OHCI and EHCI controller\n");
+	_pci_conf_write8(_pci_make_tag(0,0x14, 0), 0x68, 0x0);
 
-#if 1
-        /* usb enable,68h
-        1<<0:usb1 ohci0 enable
-        1<<1:usb1 ohci1 enable
-        1<<2:usb1 ehci enable
-        1<<3:reserved
-        1<<4:usb2 ohci0 enable
-        1<<5:usb2 ohci1 enable
-        1<<6:usb2 ehci enable
-        1<<7:usb3 ohci enable  */
-        printf("enable OHCI controller\n");
-       _pci_conf_write8(_pci_make_tag(0,0x14, 0), 0x68, (1<<0)|(1<<1)|(1<<4)|(1<<5)|(1<<7));
-      	//  _pci_conf_write8(_pci_make_tag(0,0x14, 0), 0x68, (1<<0));
-#endif
+	/* usb enable,68h
+	   1<<0:usb1 ohci0 enable
+	   1<<1:usb1 ohci1 enable
+	   1<<2:usb1 ehci enable
+	   1<<3:reserved
+	   1<<4:usb2 ohci0 enable
+	   1<<5:usb2 ohci1 enable
+	   1<<6:usb2 ehci enable
+	   1<<7:usb3 ohci enable  */
+	printf("enable OHCI controller\n");
+	_pci_conf_write8(_pci_make_tag(0,0x14, 0), 0x68, (1<<0)|(1<<1)|(1<<4)|(1<<5)|(1<<7));
+	//  _pci_conf_write8(_pci_make_tag(0,0x14, 0), 0x68, (1<<0));
 
 
 #ifndef ENABLE_SATA 
 
-        //SBD_DISPLAY("disable data",0);
-        //disable sata
-        printf("disable sata\n");
-        value = _pci_conf_read32(_pci_make_tag(0, 0x14, 0), 0xac);
-        value &= ~(1 << 8);
-        _pci_conf_write32(_pci_make_tag(0, 0x14, 0), 0xac, value);
+	//SBD_DISPLAY("disable data",0);
+	//disable sata
+	printf("disable sata\n");
+	value = _pci_conf_read32(_pci_make_tag(0, 0x14, 0), 0xac);
+	value &= ~(1 << 8);
+	_pci_conf_write32(_pci_make_tag(0, 0x14, 0), 0xac, value);
 #endif
 
 
@@ -1191,114 +875,16 @@ tgt_devinit()
 	else {
 		CpuExternalCacheOn = 1;
 	}
-	
-#if 1
-    CPU_ConfigCache();
-#else
-{       
-#define CTYPE_HAS_L2  0x100	
-	CpuPrimaryInstCacheSize = 64<<10;
-	CpuPrimaryInstCacheLSize = 32;
-	CpuPrimaryInstSetSize = (64<<10)/32/4;
-	CpuPrimaryDataCacheSize = 64<<10;
-	CpuPrimaryDataCacheLSize = 32;;
-	CpuPrimaryDataSetSize =  (64<<10)/32/4;
-	//CpuCacheAliasMask ;
-	CpuSecondaryCacheSize = ((1024*4)<<10);
-	CpuTertiaryCacheSize = 0;
-	CpuNWayCache = 4;
-	CpuCacheType = CTYPE_HAS_L2 ;		/* R4K, R5K, RM7K */
-	//CpuConfigRegister;
-	//CpuStatusRegister;
-	//CpuExternalCacheOn;	/* R5K, RM7K */
-	//CpuOnboardCacheOn;	/* RM7K */
 
-	//printf("whd:2\n");
-	//CPU_FlushCache();
-	//printf("whd:3\n");
-	asm volatile("mfc0 $4, $16\n"
-            "and    $4,0xfffffff8\n"
-            "or     $4,0x3\n"
-            "mtc0   $4,$16\n":::"a0");
-
-	//printf("whd:4\n");
-#if 0
-	unsigned long config1, config2, lsize, linesz, sets, ways; 
-	asm(".word 0x40028001\n":"=r"(config2));
-	if ((lsize = ((config2 >> 4) & 15)))
-          linesz = 2 << lsize;
-        else
-          linesz = lsize;
-
-        sets = 64 << ((config2 >> 8) & 15);
-        ways = 1 + ((config2  ) & 15);
-
-        CPUSecondaryCacheSize = sets * ways * linesz;
-#endif
-}
-#endif
+	CPU_ConfigCache();
 
 	_pci_businit(1);	/* PCI bus initialization */
-#if defined(VIA686B_POWERFIXUP) && (PCI_IDSEL_VIA686B != 0)
-if(getenv("noautopower"))	vt82c686_powerfixup();
-#endif
 
-#if  (PCI_IDSEL_CS5536 != 0)
-	cs5536_pci_fixup();
-#endif
 	printf("sb700_after_pci_fixup\n");
-        sb700_after_pci_fixup(); // maybe interrupt route can be placed here
+	sb700_after_pci_fixup(); // maybe interrupt route can be placed here
 }
 
 
-#ifdef DEVBD2F_CS5536
-void
-tgt_reboot()
-{
-	unsigned long hi, lo;
-	
-	/* reset the cs5536 whole chip */
-	_rdmsr(0xe0000014, &hi, &lo);
-	lo |= 0x00000001;
-	_wrmsr(0xe0000014, hi, lo);
-
-	while(1);
-}
-
-void
-tgt_poweroff()
-{
-	unsigned long val;
-	unsigned long tag;
-	unsigned long base;
-
-	tag = _pci_make_tag(0, 14, 0);
-	base = _pci_conf_read(tag, 0x14);
-	//base |= 0xbfd00000;
-	base |= BONITO_PCIIO_BASE_VA;
-	base &= ~3;
-
-	/* make cs5536 gpio13 output enable */
-	val = *(volatile unsigned long *)(base + 0x04);
-	val = ( val & ~(1 << (16 + 13)) ) | (1 << 13) ;
-	*(volatile unsigned long *)(base + 0x04) = val;
-	
-	/* make cs5536 gpio13 output low level voltage. */
-	val = *(volatile unsigned long *)(base + 0x00);
-	val = (val | (1 << (16 + 13))) & ~(1 << 13);
-	*(volatile unsigned long *)(base + 0x00) = val;
-
-	while(1);
-}
-#else
-static void delay(int j)
-{
-	volatile int i, k;
-
-	for(k = 0; k < j; k++)
-		for(i = 0; i < 1000; i++);
-
-}
 
 void
 tgt_poweroff()
@@ -1345,7 +931,7 @@ tgt_poweroff()
 	* watch_dog_mem = 0x85;
 
 }
-extern void watchdog_enable(void);
+
 void
 tgt_reboot(void)
 {
@@ -1355,7 +941,6 @@ tgt_reboot(void)
 	*watch_dog_base = 0x85;
 	*(watch_dog_base + 1) = 0x0e;
 }
-#endif
 
 /*
  *  This function makes inital HW setup for debugger and
@@ -1384,21 +969,6 @@ tgt_cmd_vers()
 void
 tgt_logo()
 {
-#if 0
-    printf("\n");
-    printf("[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[\n");
-    printf("[[[            [[[[   [[[[[[[[[[   [[[[            [[[[   [[[[[[[  [[\n");
-    printf("[[   [[[[[[[[   [[[    [[[[[[[[    [[[   [[[[[[[[   [[[    [[[[[[  [[\n");
-    printf("[[  [[[[[[[[[[  [[[  [  [[[[[[  [  [[[  [[[[[[[[[[  [[[  [  [[[[[  [[\n");
-    printf("[[  [[[[[[[[[[  [[[  [[  [[[[  [[  [[[  [[[[[[[[[[  [[[  [[  [[[[  [[\n");
-    printf("[[   [[[[[[[[   [[[  [[[  [[  [[[  [[[  [[[[[[[[[[  [[[  [[[  [[[  [[\n");
-    printf("[[             [[[[  [[[[    [[[[  [[[  [[[[[[[[[[  [[[  [[[[  [[  [[\n");
-    printf("[[  [[[[[[[[[[[[[[[  [[[[[  [[[[[  [[[  [[[[[[[[[[  [[[  [[[[[  [  [[\n");
-    printf("[[  [[[[[[[[[[[[[[[  [[[[[[[[[[[[  [[[  [[[[[[[[[[  [[[  [[[[[[    [[\n");
-    printf("[[  [[[[[[[[[[[[[[[  [[[[[[[[[[[[  [[[   [[[[[[[[   [[[  [[[[[[[   [[\n");
-    printf("[[  [[[[[[[[[[[[[[[  [[[[[[[[[[[[  [[[[            [[[[  [[[[[[[[  [[\n");
-    printf("[[[[[[[2009 Loongson][[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[\n"); 
-#endif
 
     printf("\n");
     printf("[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[\n");
@@ -1442,91 +1012,9 @@ int word_addr;
 static inline unsigned char CMOS_READ(unsigned char addr)
 {
         unsigned char val;
-        unsigned char tmp1,tmp2;
-	volatile int tmp;
 	
-#if defined(DEVBD2F_VIA)||defined(DEVBD2F_CS5536)||defined(DEVBD2F_EVA)
 	linux_outb_p(addr, 0x70);
         val = linux_inb_p(0x71);
-#elif defined(DEVBD2F_SM502)
-
-	pcitag_t tag;
-	unsigned char value;
-	char i2caddr[]={(unsigned char)0x64};
-	if(addr >= 0x0a)
-		return 0;
-	switch(addr)
-	{
-		case 0:
-			break;
-		case 2:
-			addr = 1;
-			break;
-		case 4:
-			addr = 2;
-			break;
-		case 6:
-			addr = 3;
-			break;
-		case 7:
-			addr = 4;
-			break;
-		case 8:
-			addr = 5;
-			break;
-		case 9:
-			addr = 6;
-			break;
-		
-	}
-		
-	tgt_i2cread(I2C_SINGLE,i2caddr,1,0xe<<4,&value,1);
-		value = value|0x20;
-	tgt_i2cwrite(I2C_SINGLE,i2caddr,1,0xe<<4,&value,1);
-	tgt_i2cread(I2C_SINGLE,i2caddr,1,addr<<4,&val,1);
-	tmp1 = ((val>>4)&0x0f)*10;
-	tmp2  = val&0x0f;
-	val = tmp1 + tmp2;
-	
-#elif defined(DEVBD2F_FIREWALL)
-	char i2caddr[]={0xde,0};
-	if(addr >= 0x0a)
-		return 0;
-	switch(addr)
-	{
-		case 0:
-			addr= 0x30;
-			break;
-		case 2:
-			addr = 0x31;
-			break;
-		case 4:
-			addr = 0x32;
-			break;
-		case 6:
-			addr = 0x36;
-			break;
-		case 7:
-			addr = 0x33;
-			break;
-		case 8:
-			addr = 0x34;
-			break;
-		case 9:
-			addr = 0x35;
-			break;
-		
-	}
-#ifndef GPIO_I2C
-	//atp8620_i2c_read(0xde,addr,&tmp,1);
-#else	
-	tgt_i2cread(I2C_SINGLE,i2caddr,2,addr,&tmp,1);
-#endif
-	if(addr == 0x32)
-		tmp = tmp&0x7f;
-	val = ((tmp>>4)&0x0f)*10;
-	val = val + (tmp&0x0f);
-#endif
 
         return val;
 }
@@ -1535,96 +1023,9 @@ static inline void CMOS_WRITE(unsigned char val, unsigned char addr)
 {
 
 	char a;
-#if defined(DEVBD2F_VIA)||defined(DEVBD2F_CS5536)||defined(DEVBD2F_EVA)
 	linux_outb_p(addr, 0x70);
         linux_outb_p(val, 0x71);
 
-#elif defined(DEVBD2F_SM502)
-  
-  	unsigned char tmp1,tmp2;
-	volatile int tmp;
-	char i2caddr[]={(unsigned char)0x64};
-	tmp1 = (val/10)<<4;
-	tmp2  = (val%10);
-	val = tmp1|tmp2;
-	if(addr >=0x0a)
-		return 0;
-	switch(addr)
-	{
-		case 0:
-			break;
-		case 2:
-			addr = 1;
-			break;
-		case 4:
-			addr = 2;
-			break;
-		case 6:
-			addr = 3;
-			break;
-		case 7:
-			addr = 4;
-			break;
-		case 8:
-			addr = 5;
-			break;
-		case 9:
-			addr = 6;
-			break;
-		
-	}
-	{
-		unsigned char value;
-	
-		tgt_i2cread(I2C_SINGLE,i2caddr,1,0xe<<4,&value,1);
-		value = value|0x20;
-		tgt_i2cwrite(I2C_SINGLE,i2caddr,1,0xe<<4,&value,1);
-		tgt_i2cwrite(I2C_SINGLE,i2caddr,1,addr<<4,&val,1);
-	}
-
-#elif defined(DEVBD2F_FIREWALL)
-	unsigned char tmp;
-	char i2caddr[]={0xde,0,0};
-	if(addr >= 0x0a)
-		return 0;
-	switch(addr)
-	{
-		case 0:
-			addr= 0x30;
-			break;
-		case 2:
-			addr = 0x31;
-			break;
-		case 4:
-			addr = 0x32;
-			break;
-		case 6:
-			addr = 0x36;
-			break;
-		case 7:
-			addr = 0x33;
-			break;
-		case 8:
-			addr = 0x34;
-			break;
-		case 9:
-			addr = 0x35;
-			break;
-		
-	}
-	
-	tmp = (val/10)<<4;
-	val = tmp|(val%10);
-#ifndef GPIO_I2C
-	atp8620_i2c_write(0xde,addr,&val,1);
-#else	
-	a = 2;
-	tgt_i2cwrite(I2C_SINGLE,i2caddr,2,0x3f,&a,1);
-	a = 6;
-	tgt_i2cwrite(I2C_SINGLE,i2caddr,2,0x3f,&a,1);
-	tgt_i2cwrite(I2C_SINGLE,i2caddr,2,addr,&tmp,1);
-#endif
-#endif
 }
 
 static void
@@ -1636,34 +1037,12 @@ _probe_frequencies()
                                                                     
         SBD_DISPLAY ("FREQ", CHKPNT_FREQ);
 
-#if 0
-        md_pipefreq = 300000000;        /* Defaults */
-        md_cpufreq  = 66000000;
-#else
         md_pipefreq = 660000000;        /* NB FPGA*/
         md_cpufreq  =  60000000;
-#endif
 
         clk_invalid = 1;
 #ifdef HAVE_TOD
-#ifdef DEVBD2F_FIREWALL 
-{
-	extern void __main();
-	char tmp;
-	char i2caddr[]={0xde};
-	tgt_i2cread(I2C_SINGLE,i2caddr,2,0x3f,&tmp,1);
-	/*
-	 * bit0:Battery is run out ,please replace the rtc battery
-	 * bit4:Rtc oscillator is no operating,please reset the machine
-	 */
-	tgt_printf("0x3f value  %x\n",tmp);
-	init_legacy_rtc();
-	tgt_i2cread(I2C_SINGLE,i2caddr,2,0x14,&tmp,1);
-	tgt_printf("0x14 value  %x\n",tmp);
-}
-#else
         init_legacy_rtc();
-#endif
 
         SBD_DISPLAY ("FREI", CHKPNT_FREQ);
 
@@ -1730,27 +1109,25 @@ tgt_cpufreq()
 time_t
 tgt_gettime()
 {
-    struct tm tm;
-        int ctrlbsave;
-        time_t t;
+	struct tm tm;
+	int ctrlbsave;
+	time_t t;
 
-        int year, month, date, hour, min, sec, wday;
-	/*gx 2005-01-17 */
-	//return 0;
-                                                                               
+	int year, month, date, hour, min, sec, wday;
+
 #ifdef HAVE_TOD
-        if(!clk_invalid) {
-                ctrlbsave = CMOS_READ(DS_REG_CTLB);
-                CMOS_WRITE(ctrlbsave | DS_CTLB_SET, DS_REG_CTLB);
-                                                                               
+	if(!clk_invalid) {
+		ctrlbsave = CMOS_READ(DS_REG_CTLB);
+		CMOS_WRITE(ctrlbsave | DS_CTLB_SET, DS_REG_CTLB);
+
 		year = CMOS_READ(DS_REG_YEAR);
-        month = CMOS_READ(DS_REG_MONTH);
-        month = CMOS_READ(DS_REG_MONTH);
-        date = CMOS_READ(DS_REG_DATE);
+		month = CMOS_READ(DS_REG_MONTH);
+		month = CMOS_READ(DS_REG_MONTH);
+		date = CMOS_READ(DS_REG_DATE);
 		wday = CMOS_READ(DS_REG_WDAY);
-        hour = CMOS_READ(DS_REG_HOUR);
-        min = CMOS_READ(DS_REG_MIN);
-        sec = CMOS_READ(DS_REG_SEC);
+		hour = CMOS_READ(DS_REG_HOUR);
+		min = CMOS_READ(DS_REG_MIN);
+		sec = CMOS_READ(DS_REG_SEC);
 
 		year = year%16 + year/16*10;
 		if(year < 50) year += 100;
@@ -1760,25 +1137,25 @@ tgt_gettime()
 		hour = hour%16 + hour/16*10;
 		min = min%16 + min/16*10;
 		sec = sec%16 + sec/16*10;
-               tm.tm_sec = sec;
-               tm.tm_min = min;
-               tm.tm_hour = hour;
-               tm.tm_wday = wday;
-               tm.tm_mday = date;
-               tm.tm_mon = month;
-               tm.tm_year = year;
+		tm.tm_sec = sec;
+		tm.tm_min = min;
+		tm.tm_hour = hour;
+		tm.tm_wday = wday;
+		tm.tm_mday = date;
+		tm.tm_mon = month;
+		tm.tm_year = year;
 
-                CMOS_WRITE(ctrlbsave & ~DS_CTLB_SET, DS_REG_CTLB);
-                                                                               
-                tm.tm_isdst = tm.tm_gmtoff = 0;
-                t = gmmktime(&tm);
-        }
-        else 
+		CMOS_WRITE(ctrlbsave & ~DS_CTLB_SET, DS_REG_CTLB);
+
+		tm.tm_isdst = tm.tm_gmtoff = 0;
+		t = gmmktime(&tm);
+	}
+	else
 #endif
-		{
-                t = 957960000;  /* Wed May 10 14:00:00 2000 :-) */
-        }
-        return(t);
+	{
+		t = 957960000;  /* Wed May 10 14:00:00 2000 :-) */
+	}
+	return(t);
 
 }
 
@@ -1796,7 +1173,6 @@ tgt_settime(time_t t)
 #ifdef HAVE_TOD
         if(!clk_invalid) {
                 tm = gmtime(&t);
-	#ifndef DEVBD2F_FIREWALL
                 ctrlbsave = CMOS_READ(DS_REG_CTLB);
                 CMOS_WRITE(ctrlbsave | DS_CTLB_SET, DS_REG_CTLB);
 
@@ -1809,9 +1185,6 @@ tgt_settime(time_t t)
                 CMOS_WRITE(tm->tm_sec/10*16 + tm->tm_sec%10, DS_REG_SEC);
 
                 CMOS_WRITE(ctrlbsave & ~DS_CTLB_SET, DS_REG_CTLB);
-	#else
-		gpio_i2c_settime(tm);	
-	#endif
         }
 #endif
  }
@@ -1852,13 +1225,6 @@ register_t
 tgt_clienttos()
 {
 	return((register_t)(int)PHYS_TO_CACHED(memorysize & ~7) - 64);
-/*
-#if LS3_HT
-	return((register_t)(int)PHYS_TO_CACHED(memorysize & ~7) - 64);
-#else    
-	return((register_t)(int)PHYS_TO_UNCACHED(memorysize & ~7) - 64);
-#endif    
-*/
 }
 
 #ifdef HAVE_FLASH
@@ -2442,13 +1808,12 @@ tgt_netpoll()
 #else
 extern void longjmp(label_t *, int);
 void gsignal(label_t *jb, int sig);
-void
-gsignal(label_t *jb, int sig)
+void gsignal(label_t *jb, int sig)
 {
 	if(jb != NULL) {
 		longjmp(jb, 1);
 	}
-};
+}
 
 int	netopen (const char *, int);
 int	netread (int, void *, int);
@@ -2479,80 +1844,71 @@ void tgt_netpoll()	{};
 #define MS_READ		4
 #include "mycmd.c"
 
-#ifdef DEVBD2F_FIREWALL
-#include "i2c-sm502.c"
-#elif defined(DEVBD2F_SM502)
-#include "i2c-sm502.c"
-
-#elif (PCI_IDSEL_CS5536 != 0)
-#include "i2c-cs5536.c"
-#else
 #include "i2c-via.c"
-#endif
 
 char *tran_month(char *c, char *i)
- {
-     switch (*c++){
-     case  'J':
-         if(*c++ == 'a')     /* Jan */
-             i = "01";
-         else if(*c++ == 'n')    /* June */
-             i = "06";
-         else                /* July */
-             i = "07";
-         break;
-     case  'F':              /* Feb */
-         i = "02";
-         break;
-     case  'M':
-         c++;
-         if(*c++ == 'r')     /* Mar */
-             i = "03";
-         else                /* May */
-             i = "05";
-         break;
-     case  'A':
-         if(*c++ == 'p')     /* Apr */
-             i = "04";
-         else                /* Aug */
-             i = "08";
-         break;
-	 case  'S':              /* Sept */
-         i = "09";
-         break;
-     case  'O':              /* Oct */
-         i = "10";
-         break;
-     case  'N':              /* Nov */
-         i = "11";
-         break;
-     case  'D':              /* Dec */
-         i = "12";
-         break;
-     default :
-         i = NULL;
-     }
+{
+	switch (*c++){
+		case  'J':
+			if(*c++ == 'a')     /* Jan */
+				i = "01";
+			else if(*c++ == 'n')    /* June */
+				i = "06";
+			else                /* July */
+				i = "07";
+			break;
+		case  'F':              /* Feb */
+			i = "02";
+			break;
+		case  'M':
+			c++;
+			if(*c++ == 'r')     /* Mar */
+				i = "03";
+			else                /* May */
+				i = "05";
+			break;
+		case  'A':
+			if(*c++ == 'p')     /* Apr */
+				i = "04";
+			else                /* Aug */
+				i = "08";
+			break;
+		case  'S':              /* Sept */
+			i = "09";
+			break;
+		case  'O':              /* Oct */
+			i = "10";
+			break;
+		case  'N':              /* Nov */
+			i = "11";
+			break;
+		case  'D':              /* Dec */
+			i = "12";
+			break;
+		default :
+			i = NULL;
+	}
 
-     return i;
- }
+	return i;
+}
 
 
 int get_update(char *p)
- {
-     int i=0;
-     char *t,*mp,m[3];
+{
+	int i=0;
+	char *t,*mp,m[3];
 
-     t  = strstr(vers, ":");
-     strncpy(p, t+26, 4);     /* year */
-     p[4] = '-';
-     mp = tran_month(t+6, m);    /* month */
-     strncpy(p+5,mp,2);
-     p[7]='-';
-     strncpy(p+8, t+10, 2);   /* day */
-     p[10] = '\0';
+	t  = strstr(vers, ":");
+	strncpy(p, t+26, 4);     /* year */
+	p[4] = '-';
+	mp = tran_month(t+6, m);    /* month */
+	strncpy(p+5,mp,2);
+	p[7]='-';
+	strncpy(p+8, t+10, 2);   /* day */
+	p[10] = '\0';
 
-     return 0;
- }
+	return 0;
+}
 
 
 /********************************************
@@ -2589,7 +1945,7 @@ IRQ0, 2, 8, 13 are reserved
 #define SMBUS_IO_BASE	  0x0000  //ynn
 #define PCI_BRADGE_TOTAL  0x0001  //ynn
 
-//#define DEBUG_FIXINTERRUPT
+#define DEBUG_FIXINTERRUPT
 #ifdef DEBUG_FIXINTERRUPT
 #define fixup_interrupt_printf(format, args...) printf(format, ##args)
 #else
@@ -2615,16 +1971,16 @@ void sb700_interrupt_fixup(void)
 
 	/* Set SATA and PATA Controller to combined mode
 	 * Port0-Port3 is SATA mode, Port4-Port5 is IDE mode */
-  	dev = _pci_make_tag(0, 0x14, 0x0);
-  
+	dev = _pci_make_tag(0, 0x14, 0x0);
+
 	/*1. usb interrupt map smbus reg:0XBE  map usbint1map usbint3map(ohci use) to PCI_INTC#
-	map usbint2map usbint4map(ehci use) to PCI_INTC# */
+	  map usbint2map usbint4map(ehci use) to PCI_INTC# */
 	pci_write_config16(dev, 0xbe, ((2<<0)|(2 << 3)|(2 << 8)|(2 << 11)) );
 	val = pci_read_config16(dev, 0xbe);
 	fixup_interrupt_printf(" set smbus reg (0xbe) :%x (usb intr map)\n", val);
 
 	/*2. sata interrupt map smbus reg:0Xaf map sataintmap to PCI_INTH#*/
-    pci_write_config8(dev, 0xaf,  0x1c);
+	pci_write_config8(dev, 0xaf,  0x1c);
 	byte = pci_read_config8(dev, 0xaf);
 	fixup_interrupt_printf(" set smbus reg (0xaf) :%x (sata intr map)\n", byte);
 
@@ -2638,14 +1994,14 @@ void sb700_interrupt_fixup(void)
 	pci_write_config8(dev, 0xad,  byte);
 
 	/* Map the HDA interrupt to INTE */
-    byte = pci_read_config8(dev, 0x63);
+	byte = pci_read_config8(dev, 0x63);
 	byte &= 0xf8;
-    pci_write_config8(dev, 0x63, byte|0x4);
-	
-    /* Set GPIO42, GPIO43, GPIO44, GPIO46 as HD function */
-    pci_write_config16(dev, 0xf8, 0x0);
-    //pci_write_config16(dev, 0xfc, 0x2<<0 | 0x2 << 2 | 0x2 << 4 | 0x2 << 6);
-    pci_write_config16(dev, 0xfc, 0x2 << 0);
+	pci_write_config8(dev, 0x63, byte|0x4);
+
+	/* Set GPIO42, GPIO43, GPIO44, GPIO46 as HD function */
+	pci_write_config16(dev, 0xf8, 0x0);
+	//pci_write_config16(dev, 0xfc, 0x2<<0 | 0x2 << 2 | 0x2 << 4 | 0x2 << 6);
+	pci_write_config16(dev, 0xfc, 0x2 << 0);
 #endif
 
 	//Begin to set SB700 interrupt PIC
@@ -2681,22 +2037,22 @@ void sb700_interrupt_fixup(void)
 		fixup_interrupt_printf("set pic fail: read back %d,should be 0x5\n", *(pic_data));
 	else
 		fixup_interrupt_printf("set pic_5 pass\n");
-	
+
 	/* INTE -->IRQ5 PCI_slot(left) */
-      *(pic_index) =  0x9;
-      *(pic_data) =  0x5;
-      if (*(pic_data) !=  0x5)
-          fixup_interrupt_printf("set pic fail: read back %d,should be 0x5\n", *(pic_data));
-      else
-          fixup_interrupt_printf("set pic_5 pass\n");
-	
+	*(pic_index) =  0x9;
+	*(pic_data) =  0x5;
+	if (*(pic_data) !=  0x5)
+		fixup_interrupt_printf("set pic fail: read back %d,should be 0x5\n", *(pic_data));
+	else
+		fixup_interrupt_printf("set pic_5 pass\n");
+
 	/* bus 10: dev 4: INTF -->IRQ5 PCI_slot(right) */
-     *(pic_index) =  0xa;
-     *(pic_data) =  0x5;
-     if (*(pic_data) !=  0x5)
-         fixup_interrupt_printf("set pic fail: read back %d,should be 0x5\n", *(pic_data));
-     else
-         fixup_interrupt_printf("set pic_a pass\n");
+	*(pic_index) =  0xa;
+	*(pic_data) =  0x5;
+	if (*(pic_data) !=  0x5)
+		fixup_interrupt_printf("set pic fail: read back %d,should be 0x5\n", *(pic_data));
+	else
+		fixup_interrupt_printf("set pic_a pass\n");
 
 #if 1
 	/* bus 7: dev 5: func 2: INTG -->IRQ3 PCI(right) */
@@ -2743,38 +2099,38 @@ void sb700_interrupt_fixup(void)
 
 	for( funnum = 0; funnum < 8; funnum++)
 	{
-	  dev = _pci_make_tag(5, 0x0, funnum);
-	  val = pci_read_config32(dev, 0x00);
-	  if ( val != 0xffffffff) // device on the slot
-		pci_write_config8(dev, 0x3c, 0x05);
+		dev = _pci_make_tag(5, 0x0, funnum);
+		val = pci_read_config32(dev, 0x00);
+		if ( val != 0xffffffff) // device on the slot
+			pci_write_config8(dev, 0x3c, 0x05);
 	}
 
 	/* NIC 82574 on board (right) bus6 dev0 fun0 */
 	fixup_interrupt_printf("SB700 device  route em1: int6 \n");
 	for( funnum = 0; funnum < 8; funnum++)
 	{
-	  dev = _pci_make_tag(6, 0x0, funnum);
-	  val = pci_read_config32(dev, 0x00);
-	  if ( val != 0xffffffff) // device on the slot
-		pci_write_config8(dev, 0x3c, 0x06);
+		dev = _pci_make_tag(6, 0x0, funnum);
+		val = pci_read_config32(dev, 0x00);
+		if ( val != 0xffffffff) // device on the slot
+			pci_write_config8(dev, 0x3c, 0x06);
 	}
 
-		//2.fixup sata int line 
-	 fixup_interrupt_printf("\n godson3a_sata_fixup: sata ---------------> int5 \n"); /* Lc: use irq num 5, after shoud be 4*/
+	//2.fixup sata int line
+	fixup_interrupt_printf("\n godson3a_sata_fixup: sata ---------------> int5 \n"); /* Lc: use irq num 5, after shoud be 4*/
 
-   	/*2.1. enable the subcalss code register for setting sata controller mode*/
+	/*2.1. enable the subcalss code register for setting sata controller mode*/
 	dev = _pci_make_tag(0, 0x11, 0x0);
-    val = pci_read_config8(dev, 0x40);
-    (void) pci_write_config8(dev, 0x40, (val | 0x01) );
+	val = pci_read_config8(dev, 0x40);
+	(void) pci_write_config8(dev, 0x40, (val | 0x01) );
 
-   	/*2.2. set sata controller act as AHCI mode
-   	 *	 sata controller support IDE mode, AHCI mode, Raid mode*/
-   	(void) pci_write_config8(dev, 0x09, 0x01);
+	/*2.2. set sata controller act as AHCI mode
+	 *	 sata controller support IDE mode, AHCI mode, Raid mode*/
+	(void) pci_write_config8(dev, 0x09, 0x01);
 	(void) pci_write_config8(dev, 0x0a, 0x06);
 
 	/*2.3. disable the subcalss code register*/
-    val = pci_read_config8(dev, 0x40);
-    (void) pci_write_config8(dev, 0x40, val & (~0x01));
+	val = pci_read_config8(dev, 0x40);
+	(void) pci_write_config8(dev, 0x40, val & (~0x01));
 	fixup_interrupt_printf("-----------------tset sata------------------\n");
 	val = pci_read_config32(dev, 0x40);
 	fixup_interrupt_printf("sata pci_config 0x40 (%x)\n", val);
@@ -2785,16 +2141,16 @@ void sb700_interrupt_fixup(void)
 	/*3. ide fixup*/
 	fixup_interrupt_printf("godson3a_ide_fixup: fix ide mode\n");
 	dev = _pci_make_tag(0, 0x14, 1); 
-       
-        /* enable IDE DMA --Multi-Word DMA */
-        pci_write_config32(dev, 0x44, 0x20000000);
-        byte = pci_read_config8(dev, 0x54);
-        byte |= 1 << 0;
-        pci_write_config8(dev, 0x54, byte);
+
+	/* enable IDE DMA --Multi-Word DMA */
+	pci_write_config32(dev, 0x44, 0x20000000);
+	byte = pci_read_config8(dev, 0x54);
+	byte |= 1 << 0;
+	pci_write_config8(dev, 0x54, byte);
 
 #if 0 
 	/*set IDE ultra DMA enable as master and slalve device*/
-    (void) pci_write_config8(dev, 0x54, 0xf);
+	(void) pci_write_config8(dev, 0x54, 0xf);
 	/*set ultral DAM mode 0~6  we use 6 as high speed !*/
 	(void) pci_write_config16(dev, 0x56, (0x6 << 0)|(0x6 << 4)|(0x6 << 8)|(0x6 << 12));
 	fixup_interrupt_printf("godson3a_ide_fixup: fix ide mode\n");
@@ -2823,45 +2179,45 @@ void sb700_interrupt_fixup(void)
 	dev = _pci_make_tag(0, 0x14, 5); //USB controller
 	pci_write_config8(dev, 0x3c, 0x6);
 	fixup_interrupt_printf("godson3a fixup: usb ------> int6 \n");
-	
+
 #if 0
 	/*5. lpc fixup*/
 	dev = _pci_make_tag(0, 0x14, 3);
 	fixup_interrupt_printf("godson3a fixup: lpc ------> int6 \n");
-    val = pci_read_config8(dev, 0x46);
-    fixup_interrupt_printf("Fixup: lpc: 0x46 value is 0x%x\n",val);
-    pci_write_config8(dev, 0x46, val|(0x3 << 6));
-    val = pci_read_config8(dev, 0x46);
-    fixup_interrupt_printf("Fixup: lpc: 0x47 value is 0x%x\n",val);
+	val = pci_read_config8(dev, 0x46);
+	fixup_interrupt_printf("Fixup: lpc: 0x46 value is 0x%x\n",val);
+	pci_write_config8(dev, 0x46, val|(0x3 << 6));
+	val = pci_read_config8(dev, 0x46);
+	fixup_interrupt_printf("Fixup: lpc: 0x47 value is 0x%x\n",val);
 
-    val = pci_read_config8(dev, 0x47);
-    fixup_interrupt_printf("Fixup: lpc: 0x47 value is 0x%x\n",val);
-    pci_write_config8(dev, 0x47, val|0xff);
-    val = pci_read_config8(dev, 0x47);
-    fixup_interrupt_printf("Fixup: lpc: 0x47 value is 0x%x\n",val);
+	val = pci_read_config8(dev, 0x47);
+	fixup_interrupt_printf("Fixup: lpc: 0x47 value is 0x%x\n",val);
+	pci_write_config8(dev, 0x47, val|0xff);
+	val = pci_read_config8(dev, 0x47);
+	fixup_interrupt_printf("Fixup: lpc: 0x47 value is 0x%x\n",val);
 
-    val = pci_read_config8(dev, 0x48);
-    fixup_interrupt_printf("Fixup: lpc: 0x48 value is 0x%x\n",val);
-    pci_write_config8(dev, 0x48, val|0xff);
-    val = pci_read_config8(dev, 0x48);
-    fixup_interrupt_printf("Fixup: lpc: 0x48 value is 0x%x\n",val);
+	val = pci_read_config8(dev, 0x48);
+	fixup_interrupt_printf("Fixup: lpc: 0x48 value is 0x%x\n",val);
+	pci_write_config8(dev, 0x48, val|0xff);
+	val = pci_read_config8(dev, 0x48);
+	fixup_interrupt_printf("Fixup: lpc: 0x48 value is 0x%x\n",val);
 #endif
-	
+
 #if 0
 	/*6. hda fixup*/
 	fixup_interrupt_printf("godson3a fixup: HDA ------> int5 \n");
 	dev = _pci_make_tag(0, 0x14, 2);
-    pci_write_config8(dev,0x3c,0x05);
+	pci_write_config8(dev,0x3c,0x05);
 
 	fixup_interrupt_printf("godson3a fixup: HDA ------> int5 \n");
 #endif
 
 	/*7. VGA fixup*/
-     fixup_interrupt_printf("godson3a fixup: VGA ------> int6 \n");
-     dev = _pci_make_tag(1, 0x5, 0);
-     pci_write_config8(dev,0x3c,0x06);
- 
-     fixup_interrupt_printf("godson3a fixup: VGA ------> int6 \n");	
+	fixup_interrupt_printf("godson3a fixup: VGA ------> int6 \n");
+	dev = _pci_make_tag(1, 0x5, 0);
+	pci_write_config8(dev,0x3c,0x06);
+
+	fixup_interrupt_printf("godson3a fixup: VGA ------> int6 \n");
 
 	/*8. pci/pcie slot fixup */
 #if 0
@@ -2870,7 +2226,7 @@ void sb700_interrupt_fixup(void)
 	dev = _pci_make_tag(6, 0x0, 0x0); //added to fixup pci bridge card
 	val = pci_read_config32(dev, 0x00);
 	if ( val != 0xffffffff) // device on the slot
-	  pci_write_config8(dev, 0x3c, 0x03);
+		pci_write_config8(dev, 0x3c, 0x03);
 #endif
 
 	// 8.2.1 route  00:04:00 (pcie_slot(right)) INTA->INTB# -----------------> int5 
@@ -2878,91 +2234,91 @@ void sb700_interrupt_fixup(void)
 	// 8.2.3 route  00:04:02 (pcie_slot(right)) INTC->INTD# -----------------> int5 
 	// 8.2.4 route  00:04:03 (pcie_slot(right)) INTD->INTE# -----------------> int5 
 	// First check if any device in the slot ( return -1 means no device, else there is device ) 
-	  dev = _pci_make_tag(4, 0x0, 0x00);
-	  val = pci_read_config32(dev, 0x00);
-	  if ( val != 0xffffffff)
+	dev = _pci_make_tag(4, 0x0, 0x00);
+	val = pci_read_config32(dev, 0x00);
+	if ( val != 0xffffffff)
 		pci_write_config8(dev, 0x3c, 0x05);
 
-	  val = pci_read_config8(dev, 0x0e); //judge whether multi-function card
+	val = pci_read_config8(dev, 0x0e); //judge whether multi-function card
 
-          if ( val & MULTY_FUNCTION) {
-	  dev = _pci_make_tag(4, 0x0, 0x01);
-	  val = pci_read_config32(dev, 0x00);
-	  if ( val != 0xffffffff)
-		pci_write_config8(dev, 0x3c, 0x06);
+	if ( val & MULTY_FUNCTION) {
+		dev = _pci_make_tag(4, 0x0, 0x01);
+		val = pci_read_config32(dev, 0x00);
+		if ( val != 0xffffffff)
+			pci_write_config8(dev, 0x3c, 0x06);
 
-	  dev = _pci_make_tag(4, 0x0, 0x02);
-	  val = pci_read_config32(dev, 0x00);
-	  if ( val != 0xffffffff)
-		pci_write_config8(dev, 0x3c, 0x05);
+		dev = _pci_make_tag(4, 0x0, 0x02);
+		val = pci_read_config32(dev, 0x00);
+		if ( val != 0xffffffff)
+			pci_write_config8(dev, 0x3c, 0x05);
 
-	  dev = _pci_make_tag(4, 0x0, 0x03);
-	  val = pci_read_config32(dev, 0x00);
-	  if ( val != 0xffffffff)
-		pci_write_config8(dev, 0x3c, 0x05);
-	  }
+		dev = _pci_make_tag(4, 0x0, 0x03);
+		val = pci_read_config32(dev, 0x00);
+		if ( val != 0xffffffff)
+			pci_write_config8(dev, 0x3c, 0x05);
+	}
 	// 8.3.1 route  00:03:00 (pcie_slot(middle)) INTA->INTA# -----------------> int5 
 	// 8.3.2 route  00:03:01 (pcie_slot(middle)) INTB->INTB# -----------------> int5 
 	// 8.3.3 route  00:03:02 (pcie_slot(middle)) INTC->INTC# -----------------> int6 
 	// 8.3.4 route  00:03:03 (pcie_slot(middle)) INTD->INTD# -----------------> int5 
 	// First check if any device in the slot ( return -1 means no device, else there is device ) 
-	  dev = _pci_make_tag(3, 0x0, 0x00);
-	  val = pci_read_config32(dev, 0x00);
-	  if ( val != 0xffffffff)
+	dev = _pci_make_tag(3, 0x0, 0x00);
+	val = pci_read_config32(dev, 0x00);
+	if ( val != 0xffffffff)
 		pci_write_config8(dev, 0x3c, 0x05);
 
-	  val = pci_read_config8(dev, 0x0e);
+	val = pci_read_config8(dev, 0x0e);
 
-          if ( val & MULTY_FUNCTION) {
-	  dev = _pci_make_tag(3, 0x0, 0x01);
-	  val = pci_read_config32(dev, 0x00);
-	  if ( val != 0xffffffff)
-		pci_write_config8(dev, 0x3c, 0x05);
+	if ( val & MULTY_FUNCTION) {
+		dev = _pci_make_tag(3, 0x0, 0x01);
+		val = pci_read_config32(dev, 0x00);
+		if ( val != 0xffffffff)
+			pci_write_config8(dev, 0x3c, 0x05);
 
-	  dev = _pci_make_tag(3, 0x0, 0x02);
-	  val = pci_read_config32(dev, 0x00);
-	  if ( val != 0xffffffff)
-		pci_write_config8(dev, 0x3c, 0x06);
+		dev = _pci_make_tag(3, 0x0, 0x02);
+		val = pci_read_config32(dev, 0x00);
+		if ( val != 0xffffffff)
+			pci_write_config8(dev, 0x3c, 0x06);
 
-	  dev = _pci_make_tag(3, 0x0, 0x03);
-	  val = pci_read_config32(dev, 0x00);
-	  if ( val != 0xffffffff)
-		pci_write_config8(dev, 0x3c, 0x05);
-	  }
+		dev = _pci_make_tag(3, 0x0, 0x03);
+		val = pci_read_config32(dev, 0x00);
+		if ( val != 0xffffffff)
+			pci_write_config8(dev, 0x3c, 0x05);
+	}
 
 	// 8.4.1 route  00:02:00 (pcie_slot(left)) INTA->INTC# -----------------> int6 
 	// 8.4.2 route  00:02:01 (pcie_slot(left)) INTB->INTD# -----------------> int5 
 	// 8.4.3 route  00:02:02 (pcie_slot(left)) INTC->INTE# -----------------> int5 
 	// 8.4.4 route  00:02:03 (pcie_slot(left)) INTD->INTF# -----------------> int5 
 	// First check if any device in the slot ( return -1 means no device, else there is device ) 
-	  dev = _pci_make_tag(2, 0x0, 0x00);
-	  val = pci_read_config32(dev, 0x00);
-	  if ( val != 0xffffffff)
+	dev = _pci_make_tag(2, 0x0, 0x00);
+	val = pci_read_config32(dev, 0x00);
+	if ( val != 0xffffffff)
 		pci_write_config8(dev, 0x3c, 0x06);
 
-	  val = pci_read_config8(dev, 0x0e);
+	val = pci_read_config8(dev, 0x0e);
 
-          if ( val & MULTY_FUNCTION) {
-	  dev = _pci_make_tag(2, 0x0, 0x01);
-	  val = pci_read_config32(dev, 0x00);
-	  if ( val != 0xffffffff)
-		pci_write_config8(dev, 0x3c, 0x05);
+	if ( val & MULTY_FUNCTION) {
+		dev = _pci_make_tag(2, 0x0, 0x01);
+		val = pci_read_config32(dev, 0x00);
+		if ( val != 0xffffffff)
+			pci_write_config8(dev, 0x3c, 0x05);
 
-	  dev = _pci_make_tag(2, 0x0, 0x02);
-	  val = pci_read_config32(dev, 0x00);
-	  if ( val != 0xffffffff)
-		pci_write_config8(dev, 0x3c, 0x05);
+		dev = _pci_make_tag(2, 0x0, 0x02);
+		val = pci_read_config32(dev, 0x00);
+		if ( val != 0xffffffff)
+			pci_write_config8(dev, 0x3c, 0x05);
 
-	  dev = _pci_make_tag(2, 0x0, 0x03);
-	  val = pci_read_config32(dev, 0x00);
-	  if ( val != 0xffffffff)
-		pci_write_config8(dev, 0x3c, 0x05);
-	  }
+		dev = _pci_make_tag(2, 0x0, 0x03);
+		val = pci_read_config32(dev, 0x00);
+		if ( val != 0xffffffff)
+			pci_write_config8(dev, 0x3c, 0x05);
+	}
 
 	// 9. route 07:0x:0x  (pci slot: con30 and con19)
 	// NOTICE here: now assume dev 2, dev3 and dev 4 are all enable on x16 pcie slot, but 
 	// in fact only one dev need to be enable. If only one device is enable, all code in this function
-   // need to be update (that means bus number should minus 2, and interrupt need to be routed again),
+	// need to be update (that means bus number should minus 2, and interrupt need to be routed again),
 	// But at this moment, don't care this "bug".
 
 	// At most "PCI_BRADGE_TOTAL"  pci bridge is support before bus "origin_busnum" is scaned, 
@@ -2971,61 +2327,61 @@ void sb700_interrupt_fixup(void)
 	origin_busnum = 7;
 	for ( busnum = origin_busnum; busnum <= PCI_BRADGE_TOTAL + origin_busnum ; busnum++)
 	{
-	  
-	// 9.1.1  route 07:05:00 (con38 with add_21) INTA->PCI_INTA --> INTE# ---------------------> int5
-	// 9.1.2  route 07:05:01 (con38 with add_21) INTB->PCI_INTB --> INTF# ---------------------> int5
-	// 9.1.3  route 07:05:02 (con38 with add_21) INTC->PCI_INTC --> INTG# ---------------------> int3
-	// 9.1.4  route 07:05:03 (con38 with add_21) INTD->PCI_INTD --> INTH# ---------------------> int5
+
+		// 9.1.1  route 07:05:00 (con38 with add_21) INTA->PCI_INTA --> INTE# ---------------------> int5
+		// 9.1.2  route 07:05:01 (con38 with add_21) INTB->PCI_INTB --> INTF# ---------------------> int5
+		// 9.1.3  route 07:05:02 (con38 with add_21) INTC->PCI_INTC --> INTG# ---------------------> int3
+		// 9.1.4  route 07:05:03 (con38 with add_21) INTD->PCI_INTD --> INTH# ---------------------> int5
 		dev = _pci_make_tag(busnum, 0x5, 0x0);
 		val = pci_read_config32(dev, 0x00);
 		if ( val != 0xffffffff) // device on the slot
-		  pci_write_config8(dev, 0x3c, 0x5);
+			pci_write_config8(dev, 0x3c, 0x5);
 
 		val = pci_read_config8(dev, 0x0e);
 
 		if ( val & MULTY_FUNCTION) {
-		dev = _pci_make_tag(busnum, 0x5, 0x1);
-		val = pci_read_config32(dev, 0x00);
-		if ( val != 0xffffffff) // device on the slot
-		  pci_write_config8(dev, 0x3c, 0x5);
+			dev = _pci_make_tag(busnum, 0x5, 0x1);
+			val = pci_read_config32(dev, 0x00);
+			if ( val != 0xffffffff) // device on the slot
+				pci_write_config8(dev, 0x3c, 0x5);
 
-		dev = _pci_make_tag(busnum, 0x5, 0x2);
-		val = pci_read_config32(dev, 0x00);
-		if ( val != 0xffffffff) // device on the slot
-		  pci_write_config8(dev, 0x3c, 0x3);
+			dev = _pci_make_tag(busnum, 0x5, 0x2);
+			val = pci_read_config32(dev, 0x00);
+			if ( val != 0xffffffff) // device on the slot
+				pci_write_config8(dev, 0x3c, 0x3);
 
-		dev = _pci_make_tag(busnum, 0x5, 0x3);
-		val = pci_read_config32(dev, 0x00);
-		if ( val != 0xffffffff) // device on the slot
-		  pci_write_config8(dev, 0x3c, 0x5);
+			dev = _pci_make_tag(busnum, 0x5, 0x3);
+			val = pci_read_config32(dev, 0x00);
+			if ( val != 0xffffffff) // device on the slot
+				pci_write_config8(dev, 0x3c, 0x5);
 		}
 
-	// 9.2.1  route 07:06:00 (con45 with add_22) INTA->PCI_INTB --> INTF# ---------------------> int5
-	// 9.2.2  route 07:06:01 (con45 with add_22) INTB->PCI_INTC --> INTG# ---------------------> int3
-	// 9.2.3  route 07:06:02 (con45 with add_22) INTC->PCI_INTD --> INTH# ---------------------> int5
-	// 9.2.4  route 07:06:03 (con45 with add_22) INTD->PCI_INTA --> INTE# ---------------------> int5
+		// 9.2.1  route 07:06:00 (con45 with add_22) INTA->PCI_INTB --> INTF# ---------------------> int5
+		// 9.2.2  route 07:06:01 (con45 with add_22) INTB->PCI_INTC --> INTG# ---------------------> int3
+		// 9.2.3  route 07:06:02 (con45 with add_22) INTC->PCI_INTD --> INTH# ---------------------> int5
+		// 9.2.4  route 07:06:03 (con45 with add_22) INTD->PCI_INTA --> INTE# ---------------------> int5
 		dev = _pci_make_tag(busnum, 0x6, 0x0);
 		val = pci_read_config32(dev, 0x00);
 		if ( val != 0xffffffff) // device on the slot
-		  pci_write_config8(dev, 0x3c, 0x05);
+			pci_write_config8(dev, 0x3c, 0x05);
 
 		val = pci_read_config8(dev, 0x0e);
 
 		if ( val & MULTY_FUNCTION) {
-		dev = _pci_make_tag(busnum, 0x6, 0x1);
-		val = pci_read_config32(dev, 0x00);
-		if ( val != 0xffffffff) // device on the slot
-		  pci_write_config8(dev, 0x3c, 0x03);
+			dev = _pci_make_tag(busnum, 0x6, 0x1);
+			val = pci_read_config32(dev, 0x00);
+			if ( val != 0xffffffff) // device on the slot
+				pci_write_config8(dev, 0x3c, 0x03);
 
-		dev = _pci_make_tag(busnum, 0x6, 0x2);
-		val = pci_read_config32(dev, 0x00);
-		if ( val != 0xffffffff) // device on the slot
-		  pci_write_config8(dev, 0x3c, 0x05);
+			dev = _pci_make_tag(busnum, 0x6, 0x2);
+			val = pci_read_config32(dev, 0x00);
+			if ( val != 0xffffffff) // device on the slot
+				pci_write_config8(dev, 0x3c, 0x05);
 
-		dev = _pci_make_tag(busnum, 0x6, 0x3);
-		val = pci_read_config32(dev, 0x00);
-		if ( val != 0xffffffff) // device on the slot
-		  pci_write_config8(dev, 0x3c, 0x05);
+			dev = _pci_make_tag(busnum, 0x6, 0x3);
+			val = pci_read_config32(dev, 0x00);
+			if ( val != 0xffffffff) // device on the slot
+				pci_write_config8(dev, 0x3c, 0x05);
 		}
 
 	}
@@ -3034,49 +2390,49 @@ void sb700_interrupt_fixup(void)
 	// below added to check pci/pcie interrupt line register
 	/*******************************************************/
 	// 10.1 check all pcie slot interrupt line register
-    for ( tmp = 2; tmp < 7; tmp++)
-    {
-      dev = _pci_make_tag(tmp, 0x0, 0x0);
-      val = pci_read_config32(dev, 0x00);
-      if ( val != 0xffffffff) // device on the slot
-      {
-        val = pci_read_config8(dev, 0x3c);
-        if ( val != 0x3)
-          fixup_interrupt_printf("%02x:00:00 interrupt line : Error\n",tmp );
-      }
-    }
-      
-	// 10.2 check all pci slot interrupt line register
-    for ( tmp = 0x4; tmp < 0x6; tmp++)
-    {
-      dev = _pci_make_tag(0xa, tmp, 0x0);
-      val = pci_read_config32(dev, 0x00);
-      if ( val != 0xffffffff) // device on the slot
-      {
-        val = pci_read_config8(dev, 0x3c);
-        if ( val != 0x3)
-          fixup_interrupt_printf("0a:%02x:00 interrupt line : Error\n",tmp );
-      }
-    }
-	
-	// 10.4 check RTE/CON30 interrupt line register
-	dev = _pci_make_tag(0x7, 0x0, 0x0);
-    val = pci_read_config32(dev, 0x00);
-	if ( val != 0xffffffff) // device on the slot
-    {
-	  val = pci_read_config8(dev, 0x3c);
-	  if ( val != 0x5)
-		fixup_interrupt_printf("07:00:00 interrupt line : Error\n");
+	for ( tmp = 2; tmp < 7; tmp++)
+	{
+		dev = _pci_make_tag(tmp, 0x0, 0x0);
+		val = pci_read_config32(dev, 0x00);
+		if ( val != 0xffffffff) // device on the slot
+		{
+			val = pci_read_config8(dev, 0x3c);
+			if ( val != 0x3)
+				fixup_interrupt_printf("%02x:00:00 interrupt line : Error\n",tmp );
+		}
 	}
 
-  	// 10.5 check  VGA interrupt line register
-	dev = _pci_make_tag(0x1, 0x5, 0x0);
-    val = pci_read_config32(dev, 0x00);
+	// 10.2 check all pci slot interrupt line register
+	for ( tmp = 0x4; tmp < 0x6; tmp++)
+	{
+		dev = _pci_make_tag(0xa, tmp, 0x0);
+		val = pci_read_config32(dev, 0x00);
+		if ( val != 0xffffffff) // device on the slot
+		{
+			val = pci_read_config8(dev, 0x3c);
+			if ( val != 0x3)
+				fixup_interrupt_printf("0a:%02x:00 interrupt line : Error\n",tmp );
+		}
+	}
+
+	// 10.4 check RTE/CON30 interrupt line register
+	dev = _pci_make_tag(0x7, 0x0, 0x0);
+	val = pci_read_config32(dev, 0x00);
 	if ( val != 0xffffffff) // device on the slot
-    {
-	  val = pci_read_config8(dev, 0x3c);
-	  if ( val != 0x6)
-		fixup_interrupt_printf("01:05:00 interrupt line : Error\n");
+	{
+		val = pci_read_config8(dev, 0x3c);
+		if ( val != 0x5)
+			fixup_interrupt_printf("07:00:00 interrupt line : Error\n");
+	}
+
+	// 10.5 check  VGA interrupt line register
+	dev = _pci_make_tag(0x1, 0x5, 0x0);
+	val = pci_read_config32(dev, 0x00);
+	if ( val != 0xffffffff) // device on the slot
+	{
+		val = pci_read_config8(dev, 0x3c);
+		if ( val != 0x6)
+			fixup_interrupt_printf("01:05:00 interrupt line : Error\n");
 	}
 
 }
