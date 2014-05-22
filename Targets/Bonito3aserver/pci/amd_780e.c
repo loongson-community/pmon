@@ -20,6 +20,15 @@
 #define OUTW(b,addr) (*(volatile unsigned short *) (addr) = (b))
 #define OUTL(b,addr) (*(volatile unsigned int *) (addr) = (b))
 
+/* Get SB ASIC Revision.*/
+static u8 get_sb700_revision()
+{
+	device_t dev;
+	//dev = pci_locate_device(PCI_ID(0x1002, 0x4385), 0);
+	dev = _pci_make_tag(0, 20, 0);
+	return pci_read_config8(dev, 0x08);
+}
+
 void rs780_por_pcicfg_init(device_t nb_tag)
 {
 	printk_info("enter rs780_por_pcicfg_init\n");
@@ -557,16 +566,6 @@ void rs780_before_pci_fixup(void){
 
 }
 
-/* Get SB ASIC Revision.*/
-static u8 get_sb700_revision()
-{
-	device_t dev;
-	//dev = pci_locate_device(PCI_ID(0x1002, 0x4385), 0);
-	dev = _pci_make_tag(0, 20, 0);
-	return pci_read_config8(dev, 0x08);
-}
-
-
 /*
 * Compliant with CIM_48's sbPciCfg.
 * Add any south bridge setting.
@@ -620,7 +619,7 @@ static void sb700_pci_cfg()
 	byte = pci_read_config8(dev, 0x78);
 	byte &= 0xfd;
 	pci_write_config8(dev, 0x78, byte);
-#ifdef 1
+#if 0
 	printk_info("enable hpet clock source\n");
 	/* HPET clocksource, BDF: 0-14-0 */
 	dev = _pci_make_tag(0, 14, 0);

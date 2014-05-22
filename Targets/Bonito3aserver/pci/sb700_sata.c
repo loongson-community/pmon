@@ -1,19 +1,9 @@
 #include "sb700.h"
 #include "rs780_cmn.h"
 
-#if 0
-#define writeb(val, addr) (*(volatile u8*)(addr) = (val))
-#define writew(val, addr) (*(volatile u16*)(addr) = (val))
-#define writel(val, addr) (*(volatile u32*)(addr) = (val))
-#define readb(addr) (*(volatile u8*)(addr))
-#define readw(addr) (*(volatile u16*)(addr))
-#define readl(addr) (*(volatile u32*)(addr))
-#endif
-
 extern struct southbridge_ati_sb700_config conf_info;
 
-
-#ifndef 1
+#if 0
 static sata_drive_detect(int portnum, u32 iobar)
 {
 	u8 byte, byte2;
@@ -260,7 +250,7 @@ static void sata_init(device_t dev)
 	}
 #endif
 
-#ifdef 1
+#if 0
 	/* Below is CIM InitSataLateFar */
 	/* Enable interrupts from the HBA  */
 	printk_info("Enable interrupts from the HBA\n");

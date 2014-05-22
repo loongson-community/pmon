@@ -27,7 +27,7 @@
     nop
     nop
     nop
-
+	.set mips3
 #if 0
 #set XBAR to route all the DMA request to Scache0
 /* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -61,13 +61,13 @@
 
 #ifdef MULTI_CHIP
 /* Fix HT connection bug between two LS3A chipses */ 
-  li  t0, 0x90000cfdfb00003c;
+  dli  t0, 0x90000cfdfb00003c;
   lw  a0, 0x00(t0);
   li  a1, 0x30000; 
   or  a0, a1;
   sw  a0, 0x00(t0);
 
-  li  t0, 0x90001cfdfb00003c;
+  dli  t0, 0x90001cfdfb00003c;
   lw  a0, 0x00(t0);
   li  a1, 0x30000; 
   or  a0, a1;

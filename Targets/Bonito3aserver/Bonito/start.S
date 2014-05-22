@@ -259,6 +259,7 @@ locate:
 	or	t1, t2, t1
 
 	bal	scache_init_64_fast
+	nop
 	dli	t2, NODE0_CORE0_BUF0
 
 	or	t1, t2, t1
