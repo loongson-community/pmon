@@ -595,7 +595,7 @@ ext_map_and_reboot:
 
 #endif
 
-		li      a0,0x900000001ff00080
+		dli      a0,0x900000001ff00080
 		li      t0,0x99
 		sb      t0,0x0(a0)
 

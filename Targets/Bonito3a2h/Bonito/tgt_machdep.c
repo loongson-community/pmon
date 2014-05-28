@@ -1274,55 +1274,6 @@ if(getenv("noautopower"))	vt82c686_powerfixup();
 }
 
 
-#ifdef DEVBD2F_CS5536
-void
-tgt_reboot()
-{
-	unsigned long hi, lo;
-	
-	/* reset the cs5536 whole chip */
-	_rdmsr(0xe0000014, &hi, &lo);
-	lo |= 0x00000001;
-	_wrmsr(0xe0000014, hi, lo);
-
-	while(1);
-}
-
-void
-tgt_poweroff()
-{
-	unsigned long val;
-	unsigned long tag;
-	unsigned long base;
-
-	tag = _pci_make_tag(0, 14, 0);
-	base = _pci_conf_read(tag, 0x14);
-	//base |= 0xbfd00000;
-	base |= BONITO_PCIIO_BASE_VA;
-	base &= ~3;
-
-	/* make cs5536 gpio13 output enable */
-	val = *(volatile unsigned long *)(base + 0x04);
-	val = ( val & ~(1 << (16 + 13)) ) | (1 << 13) ;
-	*(volatile unsigned long *)(base + 0x04) = val;
-	
-	/* make cs5536 gpio13 output low level voltage. */
-	val = *(volatile unsigned long *)(base + 0x00);
-	val = (val | (1 << (16 + 13))) & ~(1 << 13);
-	*(volatile unsigned long *)(base + 0x00) = val;
-
-	while(1);
-}
-#else
-static void delay(int j)
-{
-	volatile int i, k;
-
-	for(k = 0; k < j; k++)
-		for(i = 0; i < 1000; i++);
-
-}
-
 void
 tgt_poweroff()
 {
@@ -1340,7 +1291,7 @@ tgt_reboot(void)
 	volatile char * hard_reset_reg = 0xbbef0030;
 	* hard_reset_reg = ( * hard_reset_reg) | 0x01; // watch dog hardreset
 }
-#endif
+
 
 /*
  *  This function makes inital HW setup for debugger and
