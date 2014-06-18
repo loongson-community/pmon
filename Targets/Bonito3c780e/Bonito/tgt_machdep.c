@@ -2587,7 +2587,7 @@ IRQ0, 2, 8, 13 are reserved
 #define SMBUS_IO_BASE	  0x0000  //ynn
 #define PCI_BRADGE_TOTAL  0x0001  //ynn
 
-//#define DEBUG_FIXINTERRUPT
+#define DEBUG_FIXINTERRUPT
 #ifdef DEBUG_FIXINTERRUPT
 #define fixup_interrupt_printf(format, args...) printf(format, ##args)
 #else
