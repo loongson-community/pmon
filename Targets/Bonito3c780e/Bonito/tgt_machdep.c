@@ -419,7 +419,7 @@ void movinv1(int iter, ulong p1, ulong p2);
 pcireg_t _pci_allocate_io(struct pci_device *dev, vm_size_t size);
 static void superio_reinit();
 
-extern unsigned long long	       memorysize_total;
+//extern unsigned long long	       memorysize_total;
 
 void
 initmips(unsigned long long raw_memsz)
@@ -427,68 +427,23 @@ initmips(unsigned long long raw_memsz)
 	int i;
 	int* io_addr;
     unsigned long long memsz;
-tgt_fpuenable();
+	tgt_fpuenable();
 #ifdef DEVBD2F_SM502
 {
-/*set lio bus to 16 bit*/
-volatile int *p=0xbfe00108;
-*p=((*p)&~(0x1f<<8))|(0x8<<8) |(1<<13);
+	/*set lio bus to 16 bit*/
+	volatile int *p=0xbfe00108;
+	*p=((*p)&~(0x1f<<8))|(0x8<<8) |(1<<13);
 }
 #endif
-/*enable float*/
-tgt_fpuenable();
-//CPU_TLBClear();
+	/*enable float*/
+	tgt_fpuenable();
+	//CPU_TLBClear();
 
 #if PCI_IDSEL_CS5536 != 0
-superio_reinit();
+	superio_reinit();
 #endif
-    memsz = raw_memsz & 0xff;
-    memsz = memsz << 29;
-    memsz = memsz - 0x1000000;
-    memsz = memsz >> 20;
-	/*
-	 *	Set up memory address decoders to map entire memory.
-	 *	But first move away bootrom map to high memory.
-	 */
-#if 0
-	GT_WRITE(BOOTCS_LOW_DECODE_ADDRESS, BOOT_BASE >> 20);
-	GT_WRITE(BOOTCS_HIGH_DECODE_ADDRESS, (BOOT_BASE - 1 + BOOT_SIZE) >> 20);
-#endif
-	memorysize = memsz > 240 ? 240 << 20 : memsz << 20;
-	memorysize_high = memsz > 240 ? (((unsigned long long)memsz) - 240) << 20 : 0;
-    mem_size = memsz;
 
-    memsz = raw_memsz & 0xff00;
-    memsz = memsz >> 8;
-    memsz = memsz << 29;
-    memorysize_high_n1 = (memsz == 0) ? 0 : (memsz - (256 << 20));
-#ifdef MULTI_CHIP
-    memsz = raw_memsz & 0xff0000;
-    memsz = memsz >> 16;
-    memsz = memsz << 29;
-    memorysize_high_n2 = (memsz == 0) ? 0 : (memsz - (256 << 20));
-    memsz = raw_memsz & 0xff000000;
-    memsz = memsz >> 24;
-    memsz = memsz << 29;
-    memorysize_high_n3 = (memsz == 0) ? 0 : (memsz - (256 << 20));
-#endif
-	memorysize_total =  ((memorysize  +  memorysize_high + memsz)  >> 20) + 16;
-//cm: calculate the correct Memory Size in BIOS SETUP
-#ifdef  MULTI_CHIP
-	if(memorysize_high_n1 == 0)
-	    memorysize_total += (memorysize_high_n1 >> 20);
-	else
-	    memorysize_total += ((memorysize_high_n1 + (256 << 20)) >> 20);
-#endif
-#ifdef DUAL_3B
-	if(memorysize_high_n2 != 0 && memorysize_high_n3 == 0)
-	    memorysize_total += ((memorysize_high_n2 + (256 << 20)) >> 20);
-	else if(memorysize_high_n2 == 0 && memorysize_high_n3 != 0)
-	    memorysize_total += ((memorysize_high_n3 + (256 << 20)) >> 20);
-	else if(memorysize_high_n2 !=0 && memorysize_high_n3 != 0)
-	    memorysize_total += ((memorysize_high_n2 + (256 << 20) + memorysize_high_n3 + (256 << 20)) >> 20);
-#endif
-//cm: end
+	get_memorysize(raw_memsz);
 
 #if 0 /* whd : Disable gpu controller of MCP68 */
 	//*(unsigned int *)0xbfe809e8 = 0x122380;

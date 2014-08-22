@@ -992,7 +992,7 @@ int paint_childwindow(char **hint,char *diskdev_name[],char *netdev_name[],int e
 			sprintf(line,"CPU Type: %s @ %d MHz",md_cpuname(),tgt_pipefreq()/1000000);
 			w_text(3,7,WA_LEFT,line);
 			/* Display Memory size */
-			sprintf(line, "Memory size: %dMB", memorysize_total);
+			sprintf(line, "Memory size: %lldMB", memorysize_total);
 			w_bigtext(3,8,40,2,line);
 
 #if LOONGSON_3ASINGLE /* below code only used for ls3a/3b/3c 780e board with rte0, other card not support

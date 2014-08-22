@@ -422,57 +422,24 @@ initmips(unsigned int raw_memsz)
 	int i;
 	int* io_addr;
     unsigned long long memsz;
-tgt_fpuenable();
+	tgt_fpuenable();
 #ifdef DEVBD2F_SM502
 {
-/*set lio bus to 16 bit*/
-volatile int *p=0xbfe00108;
-*p=((*p)&~(0x1f<<8))|(0x8<<8) |(1<<13);
+	/*set lio bus to 16 bit*/
+	volatile int *p=0xbfe00108;
+	*p=((*p)&~(0x1f<<8))|(0x8<<8) |(1<<13);
 }
 #endif
-/*enable float*/
-tgt_fpuenable();
-//CPU_TLBClear();
+	/*enable float*/
+	tgt_fpuenable();
+	//CPU_TLBClear();
 
 #if PCI_IDSEL_CS5536 != 0
-superio_reinit();
+	superio_reinit();
 #endif
-    memsz = raw_memsz & 0xff;
-    memsz = memsz << 29;
-    memsz = memsz - 0x1000000;
-    memsz = memsz >> 20;
-	/*
-	 *	Set up memory address decoders to map entire memory.
-	 *	But first move away bootrom map to high memory.
-	 */
-#if 0
-	GT_WRITE(BOOTCS_LOW_DECODE_ADDRESS, BOOT_BASE >> 20);
-	GT_WRITE(BOOTCS_HIGH_DECODE_ADDRESS, (BOOT_BASE - 1 + BOOT_SIZE) >> 20);
-#endif
-	//memorysize = memsz > 256 ? 256 << 20 : memsz << 20;
-	//memorysize_high = memsz > 256 ? (memsz - 256) << 20 : 0;
-	memorysize = memsz > 240 ? 240 << 20 : memsz << 20;
-	memorysize_high = memsz > 240 ? (((unsigned long long)memsz) - 240) << 20 : 0;
-    mem_size = memsz;
-#ifdef MULTI_CHIP
-    memsz = raw_memsz & 0xff00;
-    memsz = memsz >> 8;
-    memsz = memsz << 29;
-    memorysize_high_n1 = (memsz == 0) ? 0 : (memsz - (256 << 20));
-    tgt_printf("memorysize_high_n1 0x%llx\n", memorysize_high_n1);
-#endif
-#ifdef DUAL_3B
-    memsz = raw_memsz & 0xff0000;
-    memsz = memsz >> 16;
-    memsz = memsz << 29;
-    memorysize_high_n2 = (memsz == 0) ? 0 : (memsz - (256 << 20));
-    memsz = raw_memsz & 0xff000000;
-    memsz = memsz >> 24;
-    memsz = memsz << 29;
-    memorysize_high_n3 = (memsz == 0) ? 0 : (memsz - (256 << 20));
-    tgt_printf("memorysize_high_n2 0x%llx\n", memorysize_high_n2);
-    tgt_printf("memorysize_high_n3 0x%llx\n", memorysize_high_n3);
-#endif
+
+	get_memorysize(raw_memsz);
+
 #if 0 /* whd : Disable gpu controller of MCP68 */
 	//*(unsigned int *)0xbfe809e8 = 0x122380;
 	//*(unsigned int *)0xbfe809e8 = 0x2280;

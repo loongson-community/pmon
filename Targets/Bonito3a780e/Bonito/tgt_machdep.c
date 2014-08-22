@@ -218,6 +218,10 @@ unsigned long _filebase;
 
 extern unsigned long long  memorysize;
 extern unsigned long long  memorysize_high;
+extern unsigned long long  memorysize_high_n1;
+extern unsigned long long  memorysize_high_n2;
+extern unsigned long long  memorysize_high_n3;
+extern unsigned long long  memorysize_total;
 
 extern char MipsException[], MipsExceptionEnd[];
 
@@ -225,6 +229,7 @@ unsigned char hwethadr[6];
 
 void initmips(unsigned long long  raw_memsz);
 
+//extern void get_memorysize(unsigned long long raw_memsz);
 void addr_tst1(void);
 void addr_tst2(void);
 void movinv1(int iter, ulong p1, ulong p2);
@@ -237,20 +242,10 @@ initmips(unsigned long long raw_memsz)
 {
 	int i;
 	int* io_addr;
-	unsigned long long memsz;
 	tgt_fpuenable();
 
-	memsz = raw_memsz & 0xff;
-	memsz = memsz << 29;
-	memsz = memsz - 0x1000000;
-	memsz = memsz >> 20;
-	/*
-	 *	Set up memory address decoders to map entire memory.
-	 *	But first move away bootrom map to high memory.
-	 */
-	memorysize = memsz > 240 ? 240 << 20 : memsz << 20;
-	memorysize_high = memsz > 240 ? (((unsigned long long)memsz) - 240) << 20 : 0;
-	mem_size = memsz;
+	get_memorysize(raw_memsz);
+
 	/*
 	 *  Probe clock frequencys so delays will work properly.
 	 */

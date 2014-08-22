@@ -424,35 +424,7 @@ initmips(unsigned long long raw_memsz)
 	unsigned long long memsz;
 	tgt_fpuenable();
 
-	memsz = raw_memsz & 0xff;
-	memsz = memsz << 29;
-	memsz = memsz - 0x1000000;
-	memsz = memsz >> 20;
-	/*
-	 *	Set up memory address decoders to map entire memory.
-	 *	But first move away bootrom map to high memory.
-	 */
-	memorysize = memsz > 240 ? 240 << 20 : memsz << 20;
-	memorysize_high = memsz > 240 ? (((unsigned long long)memsz) - 240) << 20 : 0;
-	mem_size = memsz;
-
-	memsz = raw_memsz & 0xff00;
-	memsz = memsz >> 8;
-	memsz = memsz << 29;
-	memorysize_high_n1 = (memsz == 0) ? 0 : (memsz - (256 << 20));
-#if 1
-	//#ifdef MULTI_CHIP
-	memsz = raw_memsz & 0xff0000;
-	memsz = memsz >> 16;
-	memsz = memsz << 29;
-	memorysize_high_n2 = (memsz == 0) ? 0 : (memsz - (256 << 20));
-	memsz = raw_memsz & 0xff000000;
-	memsz = memsz >> 24;
-	memsz = memsz << 29;
-	memorysize_high_n3 = (memsz == 0) ? 0 : (memsz - (256 << 20));
-#endif
-	memorysize_total =  ((memorysize  +  memorysize_high + memsz)  >> 20) + 16;
-
+	get_memorysize(raw_memsz);
 	/*
 	 *  Probe clock frequencys so delays will work properly.
 	 */

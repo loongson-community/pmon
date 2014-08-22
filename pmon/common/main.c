@@ -89,8 +89,10 @@ register_t	initial_sr;
 unsigned long long             memorysize = 0;
 unsigned long long             memorysize_high = 0;
 unsigned long long             memorysize_high_n1 = 0;
+#ifdef MULTI_CHIP
 unsigned long long             memorysize_high_n2 = 0;
 unsigned long long             memorysize_high_n3 = 0;
+#endif
 unsigned long long	       memorysize_total = 0;
 
 char            prnbuf[LINESZ + 8];	/* commonly used print buffer */
@@ -866,6 +868,7 @@ dbginit (char *adr)
         else
 		printf("/ Bus @ 33 MHz\n");
 #endif
+	/*
 	memorysize_total = ((memsize + memorysize_high + (16 << 20)) >> 20);
 #ifdef  MULTI_CHIP
 	if(memorysize_high_n1 == 0)
@@ -881,7 +884,10 @@ dbginit (char *adr)
 	else if(memorysize_high_n2 !=0 && memorysize_high_n3 != 0)
 		memorysize_total += ((memorysize_high_n2 + (256 << 20) + memorysize_high_n3 + (256 << 20)) >> 20);
 #endif
+*/
+
 	printf ("Memory size %lld MB .\n", memorysize_total);
+
 	tgt_memprint();
 #if defined(SMP)
 	tgt_smpstartup();
@@ -1115,4 +1121,45 @@ initstack (ac, av, addenv)
 	 * Finally set the link register to catch returning programs.
 	 */
 	md_setlr(NULL, (register_t)_exit);
+}
+
+void get_memorysize(unsigned long long raw_memsz) {
+	unsigned long long memsz,mem_size;
+	memsz = raw_memsz & 0xff;
+	memsz = memsz << 29;
+	memsz = memsz - 0x1000000;
+	memsz = memsz >> 20;
+	/*
+	 *	Set up memory address decoders to map entire memory.
+	 *	But first move away bootrom map to high memory.
+	 */
+	memorysize = memsz > 240 ? 240 << 20 : memsz << 20;
+	memorysize_high = memsz > 240 ? (((unsigned long long)memsz) - 240) << 20 : 0;
+	mem_size = memsz;
+
+	memsz = raw_memsz & 0xff00;
+    memsz = memsz >> 8;
+    memsz = memsz << 29;
+    memorysize_high_n1 = (memsz == 0) ? 0 : (memsz - (256 << 20));
+
+#ifdef MULTI_CHIP
+    memsz = raw_memsz & 0xff0000;
+    memsz = memsz >> 16;
+    memsz = memsz << 29;
+    memorysize_high_n2 = (memsz == 0) ? 0 : (memsz - (256 << 20));
+
+	memsz = raw_memsz & 0xff000000;
+    memsz = memsz >> 24;
+    memsz = memsz << 29;
+    memorysize_high_n3 = (memsz == 0) ? 0 : (memsz - (256 << 20));
+#endif
+	memorysize_total =  ((memorysize  +  memorysize_high)  >> 20) + 16;
+	if(memorysize_high_n1 != 0)
+	    memorysize_total += ((memorysize_high_n1 + (256 << 20)) >> 20);
+#ifdef MULTI_CHIP
+	if(memorysize_high_n2 != 0)
+		memorysize_total += ((memorysize_high_n2 + (256 << 20)) >> 20);
+	if(memorysize_high_n3 != 0)
+	    memorysize_total += ((memorysize_high_n3 + (256 << 20)) >> 20);
+#endif
 }

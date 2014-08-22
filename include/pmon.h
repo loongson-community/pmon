@@ -206,6 +206,7 @@ int		do_cmd __P((char *));
 int		no_cmd __P((int, char *[]));
 void		closelst __P((int));
 void		console_state(int);
+void 	get_memorysize(unsigned long long);
 
 extern unsigned long long      memorysize;
 extern int	repeating_cmd;
