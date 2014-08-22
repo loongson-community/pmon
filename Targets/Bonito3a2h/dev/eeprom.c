@@ -334,7 +334,7 @@ int cmd_eeprom_write(int ac, unsigned char *av[])
 
 int cmd_setmac(int ac, unsigned char *av[])
 {
-	int i, j, v, count, data_addr, param;
+	int i, j, v, count, data_addr, param = 0;
 	unsigned char *s = NULL;
 	unsigned char buf[32];
 	u32 base = (board_ver_num == LS3A2H_BOARD_OLD) ?
