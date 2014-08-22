@@ -619,7 +619,6 @@ tgt_devconfig()
 	         char copyright[9] ="REV_";
 	         char bootup[] = "Booting...";
 	         char *tmp_copy = NULL;
-	         char tmp_date[11];
 			 char * s;
 #if NMOD_VGACON > 0
 	int rc=1;
@@ -740,15 +739,7 @@ tgt_devconfig()
 		kbd_available=1;
 	    bios_available = 1; //support usb_kbd in bios
 	  // Ask user whether to set bios menu
-//#if 1 
 	         printf("Press <Del> to set BIOS,waiting for 3 seconds here..... \n");
-	
-//#endif
-	         get_update(tmp_date);
-		 len = strlen(tmp_date);
-	         for (ic = 0; ic < 1; ic++){
-	             video_putchar1(2 + (len+2)*8+ic*8, 560, tmp_date[ic]);
-			  }
   
 			 video_set_color(0xf);
 
