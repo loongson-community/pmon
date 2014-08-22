@@ -1,0 +1,7 @@
+TARGET=Bonito2g5536
+TARGETEL=Bonito.2g5536
+export START=start_2g5536.o
+MEMSIZE=128
+ZLOADER_OPTIONS=-mips3
+
+include Makefile.inc

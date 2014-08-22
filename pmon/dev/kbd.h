@@ -9,10 +9,18 @@
 #define KBD_STAT_GTO 		0x40	/* General receive/xmit timeout */
 #define KBD_STAT_PERR 		0x80	/* Parity error */
 
-#ifdef  FCRSOC
+#if	defined(FCRSOC)
+
 #define KBD_STATUS_REG		(0xbf004044-0xbfd00000)	/* Status register (R) */
 #define KBD_CNTL_REG		(0xbf004044-0xbfd00000)	/* Controller command register (W) */
 #define KBD_DATA_REG		(0xbf004040-0xbfd00000)	/* Keyboard data register (R/W) */
+
+#elif	defined(LOONGSON_2G5536)
+
+#define KBD_STATUS_REG          (0xbfe001d4 - 0xbfd00000)       /* Status register (R) */
+#define KBD_CNTL_REG            (0xbfe001d4 - 0xbfd00000)       /* Controller command register (W) */
+#define KBD_DATA_REG            (0xbfe001d0 - 0xbfd00000)       /* Keyboard data register (R/W) */
+
 #else
 #define KBD_STATUS_REG		0x64	/* Status register (R) */
 #define KBD_CNTL_REG		0x64	/* Controller command register (W) */

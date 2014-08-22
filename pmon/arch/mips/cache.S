@@ -254,7 +254,7 @@ LEAF(CPU_ConfigCache)
 #----Loongson1 ------------------------------
 ConfLoongson1:
    #....... wait to fill
-    
+
 	li	t2, CTYPE_DIR			# default direct mapped cache
 	b	ConfResult
 	nop
@@ -267,7 +267,11 @@ ConfLoongson2:
     nop 
 
     li  t1, REV_GODSON3A              #REV_GODSON3A REV num: 5 
-    beq t5,t1, ConfGodson3A 
+#ifdef LOONGSON_2G5536
+    beq t5,t1, ConfGodson2G
+#else
+    beq t5,t1, ConfGodson3A
+#endif
     nop
 
     #b out                             # added for test ConfGodson3A
@@ -333,7 +337,7 @@ ConfGodson2F:
     and v0,0x03
     mtc0    v0,COP_0_CONFIG
 
-    li	t2, CTYPE_4WAY    
+    li	t2, CTYPE_4WAY
 
     mfc0    v0,COP_0_CONFIG
 	sw	v0, CpuConfigRegister
@@ -573,10 +577,15 @@ Conf7KL2:
 	li	t7, 0				# L3 cache disabled
 
 
+#ifdef LOONGSON_2G5536
+ConfGodson2G:
+        or      t2, CTYPE_HAS_L2                # L2 is on chip
+        li	t6, 512*1024
+#endif
 /*****************************************************************************
  * Get here with t2 = Cache type(Ways), t4 = L1 I size, t5 = L1 D size.
  * t6 = secondary size, t7 = tertiary size.
- * 
+ *
  *****************************************************************************/
 ConfResult:
 	mfc0 v0, COP_0_CONFIG		# Get configuration register
@@ -932,7 +941,7 @@ LEAF(CPU_FlushDCache)
 	li      t6, (MIPS_GODSON1<<8)
 	beq     t5,t6,3f
 	nop
-	li      t6, (MIPS_GODSON3<<8)  
+	li      t6, (MIPS_GODSON3<<8)
 	bne     t5,t6,non_godson2_1
 	nop
 3:
@@ -1161,7 +1170,7 @@ LEAF(CPU_HitInvalidateDCache)
 	bgez	v0, 2f
 	addu	a1, -1
 
-	cache	HitInvalidate_D, 16(a0)		# direct mapped, do 16 byte 
+	cache	HitInvalidate_D, 16(a0)		# direct mapped, do 16 byte
 	cache	HitInvalidate_D, 48(a0)		# line size.
 	cache	HitInvalidate_D, 80(a0)
 	cache	HitInvalidate_D, 112(a0)

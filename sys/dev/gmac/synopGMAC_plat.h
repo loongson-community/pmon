@@ -82,7 +82,11 @@ typedef unsigned long dma_addr_t;
 */
 
 //sw: nothing to display
-#define TR0(fmt, args...)   printf(fmt, ##args) 		
+#ifdef	LOONGSON_2G5536
+#define TR0(fmt, args...) 		
+#else
+#define TR0(fmt, args...)   printf(fmt, ##args)	
+#endif
 #define TR(fmt, args...)
 
 //typedef int bool;
@@ -134,7 +138,7 @@ void   plat_delay(u32);
 /**
  * The Low level function to read register contents from Hardware.
  * 
- * @param[in] pointer to the base of register map  
+ * @param[in] pointer to the base of register map
  * @param[in] Offset from the base
  * \return  Returns the register contents 
  */

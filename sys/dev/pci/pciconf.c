@@ -171,7 +171,7 @@ _pci_query_dev_func (struct pci_device *dev, pcitag_t tag, int initialise)
 	struct pci_device *pd;
 	unsigned int x;
 	int bus, device, function;
-    
+
 	class = _pci_conf_read(tag, PCI_CLASS_REG);
 	id = _pci_conf_read(tag, PCI_ID_REG);
 
@@ -187,7 +187,7 @@ _pci_query_dev_func (struct pci_device *dev, pcitag_t tag, int initialise)
 		PRINTF ("pci: can't alloc memory for device\n");
 		return;
 	}
-        
+
 	_pci_break_tag (tag, &bus, &device, &function);
 
 	pd->pa.pa_bus = bus;
@@ -226,7 +226,7 @@ _pci_query_dev_func (struct pci_device *dev, pcitag_t tag, int initialise)
 	}
 #endif
 	pd->stat = stat;
-    
+
 	/* do all devices support fast back-to-back */
 	if ((stat & PCI_STATUS_BACKTOBACK_SUPPORT) == 0) {
 		pb->fast_b2b = 0;		/* no, sorry */
@@ -308,7 +308,7 @@ _pci_query_dev_func (struct pci_device *dev, pcitag_t tag, int initialise)
 			PRINTF ("pci: can't alloc memory for new pci bus\n");
 			return;
 		}
-        
+
 		pd->bridge.secbus->max_lat = 255;
 		pd->bridge.secbus->fast_b2b = 1;
 		pd->bridge.secbus->prefetch = 1;
@@ -363,7 +363,7 @@ if(pm_io == NULL) {
 		for(pm = pd->bridge.memspace; pm != NULL; pm = pm->next) {
 			pm_mem->size += pm->size;
 		}
-        
+
 		/* Round to minimum granularity requierd for a bridge */
 		pm_io->size = _pci_roundup(pm_io->size, 0x1000);
 		pm_mem->size = _pci_roundup(pm_mem->size, 0x100000);
@@ -416,7 +416,7 @@ if(pm_io == NULL) {
 					PRINTF ("pci: can't alloc memory for pci memory window\n");
 					return;
 				}
-            
+
 				pm->device = pd;
 				pm->reg = reg;
 				pm->flags = PCI_MAPREG_TYPE_IO;
@@ -526,7 +526,7 @@ _pci_device_insert(parent, device)
     if(pd == NULL) {
         parent->bridge.child = device;
     } else {
-    
+
         for(; pd->next != NULL; pd = pd->next)
             ;;
 
@@ -547,7 +547,13 @@ _pci_query_dev (struct pci_device *dev, int bus, int device, int initialise)
 
 	if (_pciverbose >= 2)
 		_pci_bdfprintf (bus, device, -1, "probe...");
-	
+#ifdef LOONGSON_2G5536
+	id = _pci_conf_read(tag, PCI_ID_REG);
+
+	if (_pciverbose >= 2) {
+		PRINTF ("completed\n");
+	}
+#else
 #ifdef CONFIG_LSI_9260
 	if ((bus == 2 && device == 0) ||(bus == 3 && device == 0) ||
 			(bus == 4 && device == 0))
@@ -564,7 +570,7 @@ _pci_query_dev (struct pci_device *dev, int bus, int device, int initialise)
 	if((bus == 2) && (device ==0))
 	{
 		if(PCI_VENDOR(id) != 0x1002 && (PCI_PRODUCT(id) != 0x9615))
-		  printf("pcie-slot device: vendor:%x product:%x\n",PCI_VENDOR(id),PCI_PRODUCT(id)); 
+		  printf("pcie-slot device: vendor:%x product:%x\n",PCI_VENDOR(id),PCI_PRODUCT(id));
 	}
 
 #if defined(USE_BMC)
@@ -573,7 +579,7 @@ _pci_query_dev (struct pci_device *dev, int bus, int device, int initialise)
                 printf("AST2050's VGA discover !!!!!!!!!!!!!!\n");
         }
 #endif
-
+#endif
 	if (id == 0 || id == 0xffffffff) {
 		return;
 	}
@@ -695,7 +701,7 @@ _pci_setup_windows (struct pci_device *dev)
 
 #if 0
             _pci_tagprintf (pd->pa.pa_tag, 
-                            "not enough PCI mem space (%d requested)\n", 
+                            "not enough PCI mem space (%d requested)\n",
                             pm->size);
 #endif
             //continue;
@@ -724,13 +730,20 @@ _pci_setup_windows (struct pci_device *dev)
             _pci_conf_write(pd->pa.pa_tag, pm->reg, base);
         }
     }
-    
-    /* Program expansion rom address base after normal memory base, 
+
+    /* Program expansion rom address base after normal memory base,
        to keep DEC ethernet chip happy */
     for (pm = dev->bridge.memspace; pm != NULL; pm = next) {
 
 	pd = pm->device;
-	if (PCI_ISCLASS(pd->pa.pa_class, PCI_CLASS_DISPLAY, PCI_SUBCLASS_DISPLAY_VGA)) 
+#ifdef LOONGSON_2G5536
+	if (PCI_ISCLASS(((pd->pa.pa_class)&0xff00ffff), PCI_CLASS_DISPLAY, PCI_SUBCLASS_DISPLAY_VGA))
+	{
+		vga_dev = pd;
+		pd->disable=0;
+	}
+#else
+	if (PCI_ISCLASS(pd->pa.pa_class, PCI_CLASS_DISPLAY, PCI_SUBCLASS_DISPLAY_VGA))
 	{
 #if defined(USE_BMC)  /* USE_BMC_VGA */
        if (PCI_VENDOR(pd->pa.pa_id) == 0x1a03)
@@ -738,7 +751,7 @@ _pci_setup_windows (struct pci_device *dev)
             vga_dev = pd;
             pd->disable=0;
         }
-#else 
+#else
         if ((PCI_VENDOR(pd->pa.pa_id) == 0x1002) && (PCI_PRODUCT(pd->pa.pa_id) == 0x9615))
         {
 			printf("vga_dev =:%x\n",vga_dev);
@@ -756,6 +769,7 @@ _pci_setup_windows (struct pci_device *dev)
 #endif
 		printf("pcie_dev :%x vga_dev ==:%x\n",pcie_dev,vga_dev);
 	}
+#endif
 #if 0
 	/*
 	 * If this is the first VGA card we find, set the BIOS rom
@@ -791,7 +805,7 @@ _pci_setup_windows (struct pci_device *dev)
         pm->address = _pci_allocate_io (dev, pm->size);
         if (pm->address == -1) {
             _pci_tagprintf (pd->pa.pa_tag, 
-                            "not enough PCI io space (%d requested)\n", 
+                            "not enough PCI io space (%d requested)\n",
                             pm->size);
             pfree(pm);
             continue;
@@ -997,6 +1011,7 @@ tgt_putchar('2');
 		if (init < 1)
 			return;
 	}
+	SBD_DISPLAY ("PCID", 0);
 	if(monarch_mode) {
 		int i;
 		struct pci_device *pb;
@@ -1084,7 +1099,7 @@ _setup_pcibuses(int initialise)
 		if (initialise) {
 			/* convert largest minimum grant time to cycle count */
 /*XXX 66/33 Mhz */	max_ltim = pb->min_gnt * 33 / 4;
-        
+
 			/* now see how much bandwidth is left to distribute */
 			if (pb->bandwidth <= 0) {
 				if (_pciverbose) {
@@ -1106,7 +1121,7 @@ _setup_pcibuses(int initialise)
 			/* most devices don't implement bottom three bits */
 			def_ltim = (def_ltim + 7) & ~7;
 			max_ltim = (max_ltim + 7) & ~7;
-        
+
 			pb->def_ltim = MIN (def_ltim, 255);
 			pb->max_ltim = MIN (MAX (max_ltim, def_ltim), 255);
 		}

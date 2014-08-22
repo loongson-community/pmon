@@ -34,7 +34,7 @@
  */ 
 
 #include <stdio.h>
-#include <string.h> 
+#include <string.h>
 #include <machine/pio.h>
 #include <pmon.h>
 #include <termio.h>
@@ -389,7 +389,7 @@ main()
 #ifdef ARB_LEVEL
     save_board_ddrparam(0);
 #endif
-
+#ifndef	LOONGSON_2G5536
         if(cmd_main_mutex == 2)
                 ;
         else {
@@ -402,7 +402,7 @@ main()
                         bios_available = 0;
                 }
         }
-
+#endif
 	if (setjmp(jmpb)) {
 		/* Bailing out, restore */
 		closelst(0);
@@ -501,11 +501,12 @@ if(!run)
 		}
 #endif
 
+#ifndef	LOONGSON_2G5536
                 if(cmd_main_mutex == 2) {
                         cmd_main_mutex = 1;
                         printf(" break!\r\n");
                 }
-
+#endif
 		printf("%s", prompt);
 #if NCMD_HIST > 0
 		get_cmd(line);
@@ -795,7 +796,7 @@ dbginit (char *adr)
 #ifdef HAVE_LOGO
 	tgt_logo();
 #else
-	printf ("\n * PMON2000 Professional *"); 
+	printf ("\n * PMON2000 Professional *");
 #endif
 	printf ("\nConfiguration [%s,%s", TARGETNAME,
 			BYTE_ORDER == BIG_ENDIAN ? "EB" : "EL");
@@ -827,7 +828,7 @@ dbginit (char *adr)
 
  	clk = get_mem_clk();
 #if defined(LOONGSON_3BSINGLE) || defined (LOONGSON_3BSERVER)
-	 /*for 3c/3b1500 ddr control*/ 
+	 /*for 3c/3b1500 ddr control*/
         if(clk != 0xf)
 	{
 #ifndef LOONGSON_3B1500
@@ -837,9 +838,9 @@ dbginit (char *adr)
 		memfreq = mem_vco / (1 << (clk34 + 1));
 #else
 		if ((clk & 0x8) == 0x0) { /* set ddr frequency by software */
-			div_refc = ((*(volatile unsigned int *)(0xbfe001c0)) >> 8) & 0x3f; 
-			div_loopc = ((*(volatile unsigned int *)(0xbfe001c0)) >> 14 ) & 0x3ff; 
-			div_out = ((*(volatile unsigned int *)(0xbfe001c0)) >> 24) & 0x3f; 
+			div_refc = ((*(volatile unsigned int *)(0xbfe001c0)) >> 8) & 0x3f;
+			div_loopc = ((*(volatile unsigned int *)(0xbfe001c0)) >> 14 ) & 0x3ff;
+			div_out = ((*(volatile unsigned int *)(0xbfe001c0)) >> 24) & 0x3f;
 			memfreq = ((100 / div_refc) * div_loopc) / div_out / 3;
 		} else { /* set ddr frequency by hareware */
 			clk20 = clk & 0x07;
@@ -852,7 +853,7 @@ dbginit (char *adr)
 	}
         else
 		printf("/ Bus @ 33 MHz\n");
-#else  /*for 3a/3b ddr controller */ 
+#else  /*for 3a/3b ddr controller */
         if(clk != 0x1f)
 	{
 		clk30 = clk & 0x0f;
@@ -864,12 +865,12 @@ dbginit (char *adr)
         else
 		printf("/ Bus @ 33 MHz\n");
 #endif
-	memorysize_total = ((memsize + memorysize_high + (16 << 20)) >> 20);  
+	memorysize_total = ((memsize + memorysize_high + (16 << 20)) >> 20);
 #ifdef  MULTI_CHIP
 	if(memorysize_high_n1 == 0)
-		memorysize_total += (memorysize_high_n1 >> 20);  
+		memorysize_total += (memorysize_high_n1 >> 20);
 	else
-		memorysize_total += ((memorysize_high_n1 + (256 << 20)) >> 20);  
+		memorysize_total += ((memorysize_high_n1 + (256 << 20)) >> 20);
 #endif
 #ifdef DUAL_3B
 	if(memorysize_high_n2 != 0 && memorysize_high_n3 == 0)
@@ -886,8 +887,9 @@ dbginit (char *adr)
 #endif
 
 	printf ("\n");
+#ifndef	LOONGSON_2G5536
 	loongson_smbios_init();	
-
+#endif
 	md_clreg(NULL);
 	md_setpc(NULL, (int32_t) CLIENTPC);
 	md_setsp(NULL, tgt_clienttos ());

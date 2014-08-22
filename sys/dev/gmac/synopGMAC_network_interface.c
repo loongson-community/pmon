@@ -32,7 +32,9 @@
 #include "synopGMAC_plat.h"
 #include "synopGMAC_network_interface.h"
 #include "synopGMAC_Dev.h"
+#ifndef	LOONGSON_2G5536
 #include "target/eeprom.h"
+#endif
 
 
 //sw:	ioctl in linux 		to be fixed
@@ -75,7 +77,11 @@ u32 synop_pci_using_dac = 0;
 #define MAC_ADDR {0x00, 0x55, 0x7B, 0xB5, 0x7D, 0xF7}	//sw: may be it should be F7 7D B5 7B 55 00
 
 //u32 regbase = 0xbfe10000;	//sw:	for debug only
+#ifdef	LOONGSON_2G5536
+u64 regbase = 0x90000d0000000000;	// this is of no use in this driver! liyifu on 2010-01-12
+#else
 u64 regbase = 0xffffffffbbe10000;	// this is of no use in this driver! liyifu on 2010-01-12
+#endif
 //char mac_addr[6] = {0xF7,0x7D,0xB5,0x7B,0x55,0x00};
 char mac_addr[6] = {0x00,0x55,0x7B,0xB5,0x7D,0xF7};
 
@@ -97,7 +103,7 @@ u32 synopGMAC_wakeup_filter_config0[] = {
 					0x00000000,	// For Filter2 CRC is not computed may be it is 0x0000
 					0x5F5F5F5F,     // For Filter3 CRC is based on 0,1,2,3,4,6,8,9,10,11,12,14,16,17,18,19,20,22,24,25,26,27,28,30 bytes from offset
 					0x09000000,     // Filter 0,1,2 are disabled, Filter3 is enabled and filtering applies to only multicast packets
-					0x1C000000,     // Filter 0,1,2 (no significance), filter 3 offset is 28 bytes from start of Destination MAC address 
+					0x1C000000,     // Filter 0,1,2 (no significance), filter 3 offset is 28 bytes from start of Destination MAC address
 					0x00000000,     // No significance of CRC for Filter0 and Filter1
 					0xBDCC0000      // No significance of CRC for Filter2, Filter3 CRC is 0xBDCC
 					};
@@ -107,7 +113,7 @@ u32 synopGMAC_wakeup_filter_config1[] = {
 					0x7A7A7A7A,	// For Filter2 CRC is based on 1,3,4,5,6,9,11,12,13,14,17,19,20,21,25,27,28,29,30 bytes from offset
 					0x00000000,     // For Filter3 CRC is not computed may be it is 0x0000
 					0x00010000,     // Filter 0,1,3 are disabled, Filter2 is enabled and filtering applies to only unicast packets
-					0x00100000,     // Filter 0,1,3 (no significance), filter 2 offset is 16 bytes from start of Destination MAC address 
+					0x00100000,     // Filter 0,1,3 (no significance), filter 2 offset is 16 bytes from start of Destination MAC address
 					0x00000000,     // No significance of CRC for Filter0 and Filter1
 					0x0000A0FE      // No significance of CRC for Filter3, Filter2 CRC is 0xA0FE
 					};
@@ -117,13 +123,13 @@ u32 synopGMAC_wakeup_filter_config2[] = {
 					0x00000000,	// For Filter2 CRC is not computed may be it is 0x0000
 					0x00000000,     // For Filter3 CRC is not computed may be it is 0x0000
 					0x00000100,     // Filter 0,2,3 are disabled, Filter 1 is enabled and filtering applies to only unicast packets
-					0x0000DF00,     // Filter 0,2,3 (no significance), filter 1 offset is 223 bytes from start of Destination MAC address 
+					0x0000DF00,     // Filter 0,2,3 (no significance), filter 1 offset is 223 bytes from start of Destination MAC address
 					0xDB9E0000,     // No significance of CRC for Filter0, Filter1 CRC is 0xDB9E
-					0x00000000      // No significance of CRC for Filter2 and Filter3 
+					0x00000000      // No significance of CRC for Filter2 and Filter3
 					};
 
 /*
-The synopGMAC_wakeup_filter_config3[] is a sample configuration for wake up filter. 
+The synopGMAC_wakeup_filter_config3[] is a sample configuration for wake up filter.
 Filter1 is used here
 Filter1 offset is programmed to 50 (0x32)
 Filter1 mask is set to 0x000000FF, indicating First 8 bytes are used by the filter
@@ -138,17 +144,17 @@ u32 synopGMAC_wakeup_filter_config3[] = {
 					0x00000000,	// For Filter2 CRC is not computed may be it is 0x0000
 					0x00000000,     // For Filter3 CRC is not computed may be it is 0x0000
 					0x00000100,     // Filter 0,2,3 are disabled, Filter 1 is enabled and filtering applies to only unicast packets
-					0x00003200,     // Filter 0,2,3 (no significance), filter 1 offset is 50 bytes from start of Destination MAC address 
-					0x7eED0000,     // No significance of CRC for Filter0, Filter1 CRC is 0x7EED, 
-					0x00000000      // No significance of CRC for Filter2 and Filter3 
+					0x00003200,     // Filter 0,2,3 (no significance), filter 1 offset is 50 bytes from start of Destination MAC address
+					0x7eED0000,     // No significance of CRC for Filter0, Filter1 CRC is 0x7EED,
+					0x00000000      // No significance of CRC for Filter2 and Filter3
 					};
 /**
  * Function used to detect the cable plugging and unplugging.
  * This function gets scheduled once in every second and polls
- * the PHY register for network cable plug/unplug. Once the 
+ * the PHY register for network cable plug/unplug. Once the
  * connection is back the GMAC device is configured as per
  * new Duplex mode and Speed of the connection.
- * @param[in] u32 type but is not used currently. 
+ * @param[in] u32 type but is not used currently.
  * \return returns void.
  * \note This function is tightly coupled with Linux 2.6.xx.
  * \callgraph
@@ -216,7 +222,11 @@ void dumpphyregg(synopGMACdevice *gmacdev)
 	int i;
 	u16 data;
 	for(i=0;i<=31;i++){
+#ifdef	LOONGSON_2G5536
+		synopGMAC_read_phy_reg(gmacdev->MacBase,gmacdev->PhyBase,i,data);
+#else
 		synopGMAC_read_phy_reg(gmacdev->MacBase,gmacdev->PhyBase,i,&data);
+#endif
 		printf("PHY REG 0x%x  value:%x",i,data);
 	}
 	printf("\n");
@@ -245,6 +255,61 @@ void dumpmacregg(synopGMACdevice *gmacdev)
 
 }
 
+#ifdef	LOONGSON_2G5536
+static int rtl8211_config_init(synopGMACdevice *gmacdev)
+{
+	int retval, err;
+	u16 data;
+
+	/* Unmask events we are interested in.  */
+	/*
+	data = ~(MII_BCM54XX_INT_DUPLEX |
+		MII_BCM54XX_INT_SPEED |
+		MII_BCM54XX_INT_LINK);
+		*/
+
+	synopGMAC_read_phy_reg(gmacdev->MacBase,gmacdev->PhyBase,0x10,&data);
+	data = data | 0x10;
+	err = synopGMAC_write_phy_reg(gmacdev->MacBase,gmacdev->PhyBase,0x10,data);
+	synopGMAC_read_phy_reg(gmacdev->MacBase,gmacdev->PhyBase,0x00,&data);
+	data = data | 0x8000;
+	err = synopGMAC_write_phy_reg(gmacdev->MacBase,gmacdev->PhyBase,0x00,data);
+
+	synopGMAC_read_phy_reg(gmacdev->MacBase,gmacdev->PhyBase,0x14,&data);
+	data = data | 0x82;
+	err = synopGMAC_write_phy_reg(gmacdev->MacBase,gmacdev->PhyBase,0x14,data);
+	synopGMAC_read_phy_reg(gmacdev->MacBase,gmacdev->PhyBase,0x00,&data);
+	data = data | 0x8000;
+	err = synopGMAC_write_phy_reg(gmacdev->MacBase,gmacdev->PhyBase,0x00,data);
+#if SYNOP_PHY_LOOPBACK
+	synopGMAC_read_phy_reg(gmacdev->MacBase,gmacdev->PhyBase,0x14,&data);
+	data = data | 0x70;
+	data = data & 0xffdf;
+	err = synopGMAC_write_phy_reg(gmacdev->MacBase,gmacdev->PhyBase,0x14,data);
+	data = 0x8000;
+	err = synopGMAC_write_phy_reg(gmacdev->MacBase,gmacdev->PhyBase,0x00,data);
+	data = 0x5140;
+	err = synopGMAC_write_phy_reg(gmacdev->MacBase,gmacdev->PhyBase,0x00,data);
+#endif
+
+	/*	fix up the errors while the cables between the two Gbit network is two-pair(1,2,3,6) not four,
+	 *	according to the downshift feature.
+	 */
+	synopGMAC_read_phy_reg(gmacdev->MacBase,gmacdev->PhyBase,0x14,&data);
+	data &= 0xfffff1ff;
+	data |= 0x100;
+	err = synopGMAC_write_phy_reg(gmacdev->MacBase,gmacdev->PhyBase,0x14,data);
+	synopGMAC_read_phy_reg(gmacdev->MacBase,gmacdev->PhyBase,0x00,&data);
+	data = data | 0x8000;
+	err = synopGMAC_write_phy_reg(gmacdev->MacBase,gmacdev->PhyBase,0x00,data);
+	synopGMAC_read_phy_reg(gmacdev->MacBase,gmacdev->PhyBase,0x14,&data);
+	printf("phy reg 0x14:0x%x============\n", data);	
+
+	if (err < 0)
+		return err;
+	return 0;
+}
+#else
   static int rtl8211_config_init(synopGMACdevice *gmacdev)
   {
           int retval, err;
@@ -252,31 +317,31 @@ void dumpmacregg(synopGMACdevice *gmacdev)
           
           data = 0x6400;
           //data = 0x0;
-  
+
           err = synopGMAC_write_phy_reg((u64 *)gmacdev->MacBase,gmacdev->PhyBase,0x12,data);
-                  
+
   #if SYNOP_PHY_FORCELINK
   //sw: set manual master/slave
-          
+
           printf("phy force link master\n");
                   
   //sw: set-an slave      
           err = synopGMAC_read_phy_reg((u64 *)gmacdev->MacBase,gmacdev->PhyBase,0x9, &data);
           data = data | 0x1c00;
           err = synopGMAC_write_phy_reg((u64 *)gmacdev->MacBase,gmacdev->PhyBase,0x9,data);
- 
+
   //sw: set-an 10m
           err = synopGMAC_read_phy_reg((u64 *)gmacdev->MacBase,gmacdev->PhyBase,0x4, &data);
           data = data & 0xfe7f;
           err = synopGMAC_write_phy_reg((u64 *)gmacdev->MacBase,gmacdev->PhyBase,0x4,data);
-  
+
   //sw: set line-mdi mode 
           err = synopGMAC_read_phy_reg((u64 *)gmacdev->MacBase,gmacdev->PhyBase,0x10, &data);
           data = data & 0xff9f;
           data = data | 0x20;
           err = synopGMAC_write_phy_reg((u64 *)gmacdev->MacBase,gmacdev->PhyBase,0x10,data);
-  
-  //sw: restart an        
+
+  //sw: restart an
   /*
  5         err = synopGMAC_read_phy_reg(0x5,1,0x0, &data,0);
  166         data = data | 0x0200;
@@ -286,10 +351,10 @@ void dumpmacregg(synopGMACdevice *gmacdev)
           err = synopGMAC_read_phy_reg((u64 *)gmacdev->MacBase,gmacdev->PhyBase,0x0, &data);
           data = data | 0x8000;
           err = synopGMAC_write_phy_reg((u64 *)gmacdev->MacBase,gmacdev->PhyBase,0x0,data);
-  
+
   #endif
-  
-  
+
+
   #if SYNOP_PHY_LOOPBACK
           data = 0x5140;
           err = synopGMAC_write_phy_reg((u64 *)gmacdev->MacBase,gmacdev->PhyBase,0x00,data );
@@ -298,7 +363,7 @@ void dumpmacregg(synopGMACdevice *gmacdev)
                   return err;
           return 0;
   }
-
+#endif
 #if UNUSED
 static int bcm54xx_ack_interrupt(synopGMACdevice *gmacdev)
 {
@@ -338,7 +403,7 @@ if((data & Mii_phy_status_link_up) == 0){
   	gmacdev->LinkState = 0;
 	gmacdev->DuplexMode = 0;
 	gmacdev->Speed = 0;
-	gmacdev->LoopBackMode = 0; 
+	gmacdev->LoopBackMode = 0;
 
 }
 else{
@@ -460,10 +525,11 @@ s32 synopGMAC_setup_tx_desc_queue(synopGMACdevice * gmacdev,u32 no_of_desc, u32 
 	bf1  = (DmaDesc *)CACHED_TO_UNCACHED((unsigned long)(gmacdev->TxDesc));	
 	//gmacdev->TxDescDma  = (unsigned long)vtophys((unsigned long)bf1);
 	gmacdev->TxDescDma  = (unsigned long)UNCACHED_TO_PHYS((unsigned long)bf1);
+#ifndef	LOONGSON_2G5536
 	
  		gmacdev->TxDescDma &= 0x0fffffff;
 		gmacdev->TxDescDma |= 0x00000000;
-
+#endif
 	//gmacdev->TxDesc     =  bf1;
 
 	TR("\n===Tx first_desc: %x\n",gmacdev->TxDesc);
@@ -492,7 +558,7 @@ s32 synopGMAC_setup_tx_desc_queue(synopGMACdevice * gmacdev,u32 no_of_desc, u32 
 	gmacdev->TxBusy = 0;
 	gmacdev->TxNextDesc = gmacdev->TxDesc;
 	gmacdev->TxBusyDesc = gmacdev->TxDesc;
-	gmacdev->BusyTxDesc  = 0; 
+	gmacdev->BusyTxDesc  = 0;
 
 	return -ESYNOPGMACNOERR;
 }
@@ -548,8 +614,9 @@ s32 synopGMAC_setup_rx_desc_queue(synopGMACdevice * gmacdev,u32 no_of_desc, u32 
 	//gmacdev->RxDescDma  = (unsigned long)vtophys((unsigned long)bf1);
 	gmacdev->RxDescDma  = (unsigned long)UNCACHED_TO_PHYS((unsigned long)bf1);
 	//gmacdev->RxDesc     = bf1;
+#ifndef	LOONGSON_2G5536
 	gmacdev->RxDescDma |= 0x00000000;
-
+#endif
 	//	gmacdev->RxDescDma   = (dma_addr_t) first_desc;
 
 	for(i =0; i < gmacdev -> RxDescCount; i++){
@@ -564,7 +631,7 @@ s32 synopGMAC_setup_rx_desc_queue(synopGMACdevice * gmacdev,u32 no_of_desc, u32 
 	gmacdev->RxNextDesc = gmacdev->RxDesc;
 	gmacdev->RxBusyDesc = gmacdev->RxDesc;
 
-	gmacdev->BusyRxDesc   = 0; 
+	gmacdev->BusyRxDesc   = 0;
 
 	return -ESYNOPGMACNOERR;
 }
@@ -730,7 +797,7 @@ return;
 
 /**
  * Function to handle housekeeping after a packet is transmitted over the wire.
- * After the transmission of a packet DMA generates corresponding interrupt 
+ * After the transmission of a packet DMA generates corresponding interrupt
  * (if it is enabled). It takes care of returning the sk_buff to the linux
  * kernel, updating the networking statistics and tracking the descriptors.
  * @param[in] pointer to net_device structure. 
@@ -960,7 +1027,9 @@ void synop_handle_received_data(struct synopGMACNetworkAdapter* tp)
 			}
 
 			dma_addr1  = (unsigned long)CACHED_TO_PHYS((unsigned long)(data1));
+#ifndef	LOONGSON_2G5536
 			dma_addr1 |= 0x00000000;
+#endif
 			desc_index = synopGMAC_set_rx_qptr(gmacdev,dma_addr1, RX_BUF_SIZE, (u32)data1,0,0,0);
 
 			if(desc_index < 0){
@@ -989,7 +1058,7 @@ void synop_handle_received_data(struct synopGMACNetworkAdapter* tp)
 
 //irqreturn_t synopGMAC_intr_handler(s32 intr_num, void * dev_id, struct pt_regs *regs)
 int synopGMAC_intr_handler(struct synopGMACNetworkAdapter * tp)
-{       
+{
 	/*Kernels passes the netdev structure in the dev_id. So grab it*/
 //        struct net_device *netdev;
         struct synopGMACNetworkAdapter *adapter;
@@ -1075,7 +1144,7 @@ int synopGMAC_intr_handler(struct synopGMACNetworkAdapter * tp)
 			}
 		}
 	}
-	/*Now lets handle the DMA interrupts*/  
+	/*Now lets handle the DMA interrupts*/
         interrupt = synopGMAC_get_interrupt_type(gmacdev);
 //sw
 	if(interrupt == 0)	
@@ -1084,6 +1153,10 @@ int synopGMAC_intr_handler(struct synopGMACNetworkAdapter * tp)
 //	TR("%s:Interrupts to be handled: 0x%08x\n",__FUNCTION__,interrupt);
 
         if(interrupt & synopGMACDmaError){
+#ifdef	LOONGSON_2G5536
+		u8 mac_addr[6] = DEFAULT_MAC_ADDRESS;//after soft reset, configure the MAC address to default value
+		mac_addr[5] += atoi(getenv("synmac"));
+#endif
 		TR("%s::Fatal Bus Error Inetrrupt Seen\n",__FUNCTION__);
 		printf("====DMA error!!!\n");
 		
@@ -1098,7 +1171,11 @@ int synopGMAC_intr_handler(struct synopGMACNetworkAdapter * tp)
 		synopGMAC_reset(gmacdev);
 
 		/* after soft reset, configure the MAC address to default value */
-		synopGMAC_set_mac_addr(gmacdev,GmacAddr0High,GmacAddr0Low, tp->PInetdev->dev_addr); 
+#ifdef	LOONGSON_2G5536
+		synopGMAC_set_mac_addr(gmacdev,GmacAddr0High,GmacAddr0Low, mac_addr);
+#else
+		synopGMAC_set_mac_addr(gmacdev,GmacAddr0High,GmacAddr0Low, tp->PInetdev->dev_addr);
+#endif
 		synopGMAC_dma_bus_mode_init(gmacdev,DmaFixedBurstEnable| DmaBurstLength8 | DmaDescriptorSkip2 );
 	 	synopGMAC_dma_control_init(gmacdev,DmaStoreAndForward);	
 		synopGMAC_init_rx_desc_base(gmacdev);
@@ -1172,7 +1249,9 @@ int synopGMAC_intr_handler(struct synopGMACNetworkAdapter * tp)
 			
 			//dma_addr = (u32)skb;
 			dma_addr  = (unsigned long)UNCACHED_TO_PHYS((unsigned long)(skb));
+#ifndef	LOONGSON_2G5536
 			dma_addr |= 0x00000000;
+#endif
 			status = synopGMAC_set_rx_qptr(gmacdev,dma_addr,RX_BUF_SIZE, (u32)skb,0,0,0);
 				//pci_sync_cache(0, (vm_offset_t)skb, len, SYNC_W);
 				//printf("==rx sync cache\n");
@@ -1214,7 +1293,9 @@ int synopGMAC_intr_handler(struct synopGMACNetworkAdapter * tp)
 		tx_abnormal_test_count += 1;
 		printf("Tx: %d abnormal packets!\n",tx_abnormal_test_count);
 #endif
+#ifndef	LOONGSON_2G5536
 		printf("%s::Abnormal Tx Interrupt Seen\n",__FUNCTION__);
+#endif
 //		dumpreg(regbase);
 		#if 1
 	       if(GMAC_Power_down == 0){	// If Mac is not in powerdown
@@ -1296,21 +1377,26 @@ unsigned long synopGMAC_linux_open(struct synopGMACNetworkAdapter *tp)
 	/*Now platform dependent initialization.*/
 
 	/*Lets reset the IP*/
-	TR("0xbfe10040:%x\n",synopGMACReadReg(0xffffffffbfe10040,0)); 
-	TR("0xbfe18040:%x\n",synopGMACReadReg(0xffffffffbfe18040,0)); 
+#ifdef	LOONGSON_2G5536
+	synopGMAC_reset(gmacdev);
+#else
+	TR("0xbfe10040:%x\n",synopGMACReadReg(0xffffffffbfe10040,0));
+	TR("0xbfe18040:%x\n",synopGMACReadReg(0xffffffffbfe18040,0));
 //	synopGMAC_reset(gmacdev);
-	TR("0xbfe10040:%x\n",synopGMACReadReg(0xffffffffbfe10040,0)); 
-	TR("0xbfe18040:%x\n",synopGMACReadReg(0xffffffffbfe18040,0)); 
-	
+	TR("0xbfe10040:%x\n",synopGMACReadReg(0xffffffffbfe10040,0));
+	TR("0xbfe18040:%x\n",synopGMACReadReg(0xffffffffbfe18040,0));
+#endif	
 	/*Attach the device to MAC struct This will configure all the required base addresses
 	  such as Mac base, configuration base, phy base address(out of 32 possible phys )*/
 	//	synopGMAC_attach(synopGMACadapter->synopGMACdev,(u32) synopGMACMappedAddr + MACBASE,(u32) synopGMACMappedAddr + DMABASE, DEFAULT_PHY_BASE);
 	//synopGMAC_attach(adapter->synopGMACdev,(u64) synopGMACMappedAddr + MACBASE,(u64) synopGMACMappedAddr + DMABASE, DEFAULT_PHY_BASE,PInetdev->dev_addr);
-	synopGMAC_set_mac_addr(adapter->synopGMACdev, GmacAddr0High, GmacAddr0Low, PInetdev->dev_addr);	
+#ifndef	LOONGSON_2G5536
+	synopGMAC_set_mac_addr(adapter->synopGMACdev, GmacAddr0High, GmacAddr0Low, PInetdev->dev_addr);
+#endif
 	/*Lets read the version of ip in to device structure*/	
 	synopGMAC_read_version(gmacdev);
 	
-	synopGMAC_get_mac_addr(adapter->synopGMACdev,GmacAddr0High,GmacAddr0Low, PInetdev->dev_addr); 
+	synopGMAC_get_mac_addr(adapter->synopGMACdev,GmacAddr0High,GmacAddr0Low, PInetdev->dev_addr);
 
 	/*Now set the broadcast address*/	
 /*	sw
@@ -1335,7 +1421,9 @@ unsigned long synopGMAC_linux_open(struct synopGMACNetworkAdapter *tp)
 
 
 	
+#ifndef	LOONGSON_2G5536
 	TR("linux_open------------------------dbg 0\n");
+#endif
 	/*Set up the tx and rx descriptor queue/ring*/
 //sw
 	synopGMAC_setup_tx_desc_queue(gmacdev,TRANSMIT_DESC_SIZE, RINGMODE);
@@ -1367,7 +1455,7 @@ unsigned long synopGMAC_linux_open(struct synopGMACNetworkAdapter *tp)
 #ifdef ENH_DESC_8W
 	synopGMAC_dma_bus_mode_init(gmacdev, DmaBurstLength32 | DmaDescriptorSkip2 | DmaDescriptor8Words ); //pbl32 incr with rxthreshold 128 and Desc is 8 Words
 #else
-	synopGMAC_dma_bus_mode_init(gmacdev, DmaBurstLength4 | DmaDescriptorSkip1 );                      //pbl4 incr with rxthreshold 128 
+	synopGMAC_dma_bus_mode_init(gmacdev, DmaBurstLength4 | DmaDescriptorSkip1 );                      //pbl4 incr with rxthreshold 128
 #endif
 	
 	synopGMAC_dma_control_init(gmacdev,DmaStoreAndForward |DmaTxSecondFrame|DmaRxThreshCtrl128 );	
@@ -1401,9 +1489,10 @@ unsigned long synopGMAC_linux_open(struct synopGMACNetworkAdapter *tp)
 		//dma_addr  = (unsigned long)vtophys((unsigned long)(skb1));
 		dma_addr  = (unsigned long)UNCACHED_TO_PHYS((unsigned long)(skb1));
 
+#ifndef	LOONGSON_2G5536
  		dma_addr &= 0x0fffffff;
 		dma_addr |= 0x00000000;
-
+#endif
 //		TR("rx_buf_PTR:%x, skb1:%x, dma_addr%x\n",skb, skb1, dma_addr);
 
 
@@ -1459,9 +1548,9 @@ unsigned long synopGMAC_linux_open(struct synopGMACNetworkAdapter *tp)
 	//dumpphyreg();
 #endif
 
-#if SYNOP_PHY_LOOPBACK 
+#if SYNOP_PHY_LOOPBACK
 {	
-		gmacdev->LinkState = LINKUP; 
+		gmacdev->LinkState = LINKUP;
 		gmacdev->DuplexMode = FULLDUPLEX;
 	        gmacdev->Speed      =   SPEED1000;
 }
@@ -1604,6 +1693,15 @@ s32 synopGMAC_linux_xmit_frames(struct ifnet* ifp)
 #if SYNOP_TX_DEBUG
 	printf("xmit: TxBusy = %d\tTxNext = %d\n",gmacdev->TxBusy,gmacdev->TxNext);
 #endif
+#ifdef	LOONGSON_2G5536
+	if(((gmacdev->LinkState) & Mii_phy_status_link_up) != Mii_phy_status_link_up){
+		while(ifp->if_snd.ifq_head != NULL){
+			IF_DEQUEUE(&ifp->if_snd, skb);
+			m_freem(skb);
+		}
+		return;
+	}
+#endif
 		
 		while(ifp->if_snd.ifq_head != NULL){
 			if(!synopGMAC_is_desc_owned_by_dma(gmacdev->TxNextDesc))
@@ -1667,14 +1765,20 @@ s32 synopGMAC_linux_xmit_frames(struct ifnet* ifp)
 #endif
 
 
+#ifdef	LOONGSON_2G5536
+				m_freem(skb);
+#else
 				plat_free_memory(skb);
+#endif
 
 				bf2  = (u32)CACHED_TO_UNCACHED((unsigned long)bf1);	
 				//dma_addr  = (unsigned long)vtophys((unsigned long)(bf2));
 				dma_addr  = (unsigned long)UNCACHED_TO_PHYS((unsigned long)(bf2));
 				
+#ifndef	LOONGSON_2G5536
  				dma_addr &= 0x0fffffff;
 				dma_addr |= 0x00000000;
+#endif
 
 				//		status = synopGMAC_set_tx_qptr(gmacdev, dma_addr, TX_BUF_SIZE, bf1,0,0,0,offload_needed);
 				
@@ -1696,9 +1800,18 @@ s32 synopGMAC_linux_xmit_frames(struct ifnet* ifp)
 					return -EBUSY;
 				}
 			}
+#ifdef	LOONGSON_2G5536
+			else{
+#endif
 #if SYNOP_TX_DEBUG
+#ifndef	LOONGSON_2G5536
 			else
+#endif
 				printf("===%x: next txDesc belongs to DMA don't set it\n",gmacdev->TxNextDesc);
+#endif
+#ifdef	LOONGSON_2G5536
+				return;
+			}
 #endif
 		}
 	
@@ -1723,10 +1836,10 @@ s32 synopGMAC_linux_xmit_frames(struct ifnet* ifp)
 
 /**
  * Function provides the network interface statistics.
- * Function is registered to linux get_stats() function. This function is 
+ * Function is registered to linux get_stats() function. This function is
  * called whenever ifconfig (in Linux) asks for networkig statistics
  * (for example "ifconfig eth0").
- * @param[in] pointer to net_device structure. 
+ * @param[in] pointer to net_device structure.
  * \return Returns pointer to net_device_stats structure.
  * \callgraph
  */
@@ -1738,7 +1851,7 @@ return( &(((struct synopGMACNetworkAdapter *)(tp))->synopGMACNetStats) );
 
 /**
  * Function to set multicast and promiscous mode.
- * @param[in] pointer to net_device structure. 
+ * @param[in] pointer to net_device structure.
  * \return returns void.
  */
 
@@ -1753,8 +1866,8 @@ return;
 
 /**
  * Function to set ethernet address of the NIC.
- * @param[in] pointer to net_device structure. 
- * @param[in] pointer to an address structure. 
+ * @param[in] pointer to net_device structure.
+ * @param[in] pointer to an address structure.
  * \return Returns 0 on success Errorcode on failure.
  */
 
@@ -1777,8 +1890,8 @@ if(gmacdev == NULL)
 if(!is_valid_ether_addr(addr->sa_data))
 	return -EADDRNOTAVAIL;
 
-synopGMAC_set_mac_addr(gmacdev,GmacAddr0High,GmacAddr0Low, addr->sa_data); 
-synopGMAC_get_mac_addr(synopGMACadapter->synopGMACdev,GmacAddr0High,GmacAddr0Low, netdev->dev_addr); 
+synopGMAC_set_mac_addr(gmacdev,GmacAddr0High,GmacAddr0Low, addr->sa_data);
+synopGMAC_get_mac_addr(synopGMACadapter->synopGMACdev,GmacAddr0High,GmacAddr0Low, netdev->dev_addr);
 
 TR("%s called \n",__FUNCTION__);
 return 0;
@@ -1789,7 +1902,7 @@ return 0;
 
 /**
  * Function to change the Maximum Transfer Unit.
- * @param[in] pointer to net_device structure. 
+ * @param[in] pointer to net_device structure.
  * @param[in] New value for maximum frame size.
  * \return Returns 0 on success Errorcode on failure.
  */
@@ -1809,9 +1922,9 @@ return 0;
  * This function is mainly for debugging purpose.
  * This provides hooks for Register read write, Retrieve descriptor status
  * and Retreiving Device structure information.
- * @param[in] pointer to net_device structure. 
+ * @param[in] pointer to net_device structure.
  * @param[in] pointer to ifreq structure.
- * @param[in] ioctl command. 
+ * @param[in] ioctl command.
  * \return Returns 0 on success Error code on failure.
  */
 
@@ -1992,7 +2105,7 @@ void dumppkghd(struct ether_header *eh,int tp)
 s32 synopGMAC_dummy_reset(struct ifnet *ifp)
 {
 	
-	struct synopGMACNetworkAdapter * adapter; 
+	struct synopGMACNetworkAdapter * adapter;
 	synopGMACdevice	* gmacdev;
 	
 	adapter = (struct synopGMACNetworkAdapter *)ifp->if_softc;
@@ -2094,7 +2207,7 @@ static int gmac_ether_ioctl(struct ifnet *ifp, unsigned long cmd, caddr_t data)
 */
 	default:
 		printf("===ioctl default\n");
-		dumpreg(regbase); 
+		dumpreg(regbase);
 		error = EINVAL;
 	}
 
@@ -2299,8 +2412,10 @@ while(1){
 	//dma_addr  = (unsigned long)vtophys((unsigned long)(skb));
 	dma_addr  = (unsigned long)UNCACHED_TO_PHYS((unsigned long)(skb));
 	
+#ifndef	LOONGSON_2G5536
  		dma_addr &= 0x0fffffff;
 		dma_addr |= 0x00000000;
+#endif
 
 	printf("==free addr: %x   size:1536B \n",skb);
 	plat_free_memory(skb);
@@ -2407,6 +2522,20 @@ void setup_tx_desc(synopGMACdevice * gmacdev)
 }
 #endif
 
+#ifdef	LOONGSON_2G5536
+void parseenv(int index, u8 * buf)
+{
+   int i;
+   char * buffer = (char *)0xbfcff000;
+
+   if(index == 0)
+       for(i = 0; i < 6; i++)
+           buf[i] = buffer[ETHER_OFFS+i];
+   else if(index==1)
+       for(i=0;i<6;i++)
+           buf[i] = buffer[ETHER1_OFFS+i];
+}
+#endif
 
 /**
  * Function to handle a Tx Hang.
@@ -2454,6 +2583,25 @@ void set_phyled(struct synopGMACNetworkAdapter *synopGMACadapter)
 	printf("Set phy led end\n");
 }
 
+#ifdef	LOONGSON_2G5536
+s32  synopGMAC_init_network_interface(char* xname,u64 synopGMACMappedAddr)
+{
+//varables added by sw
+	struct ifnet* ifp;
+
+	static u8 mac_addr0[6] = DEFAULT_MAC_ADDRESS;
+	int i;
+	u16 data;
+	struct synopGMACNetworkAdapter * synopGMACadapter;
+
+  static int syn_num;
+    {
+	    if(0x90000c0000000000LL == synopGMACMappedAddr)
+	    parseenv(0,mac_addr0);
+	    else
+	    parseenv(1,mac_addr0);
+    }
+#else
 s32  synopGMAC_init_network_interface(char* xname, struct device *sc )
 {
 	struct ifnet* ifp;
@@ -2465,11 +2613,13 @@ s32  synopGMAC_init_network_interface(char* xname, struct device *sc )
 	u64 synopGMACMappedAddr = sc->dv_unit?0xffffffffbbe18000LL:0xffffffffbbe10000LL;
 	unsigned int eeprom_addr = sc->dv_unit * 6;
 	struct synopGMACNetworkAdapter *synopGMACadapter;
-	i2c_init();
-	mac_read(eeprom_addr, mac_addr0, 6);
+	
+	//lxf i2c_init();
+	// lxf mac_read(eeprom_addr, mac_addr0, 6);
 	memcpy(smbios_uuid_mac, mac_addr0, 6);
+#endif
 	TR("Now Going to Call register_netdev to register the network interface for GMAC core\n");
-	synopGMACadapter = (struct synopGMACNetworkAdapter * )plat_alloc_memory(sizeof (struct synopGMACNetworkAdapter)); 
+	synopGMACadapter = (struct synopGMACNetworkAdapter * )plat_alloc_memory(sizeof (struct synopGMACNetworkAdapter));
 //sw:	should i put sync_cache here?
 	memset((char *)synopGMACadapter ,0, sizeof (struct synopGMACNetworkAdapter));
 
@@ -2498,22 +2648,28 @@ s32  synopGMAC_init_network_interface(char* xname, struct device *sc )
 	dumpphyreg(synopGMACadapter);
 #endif
 
+#ifndef	LOONGSON_2G5536
 	TR("0xbfe10040:%x\n",synopGMACReadReg(0xffffffffbfe10040,0));
+#endif
 	init_phy(synopGMACadapter->synopGMACdev);
 //	testphyreg(synopGMACadapter->synopGMACdev);
+#ifndef	LOONGSON_2G5536
 	TR("0xbfe10040:%x\n",synopGMACReadReg(0xffffffffbfe10040,0));
+#endif	
 	synopGMAC_reset(synopGMACadapter->synopGMACdev);
+#ifndef	LOONGSON_2G5536
 	synopGMAC_attach(synopGMACadapter->synopGMACdev,(u64) synopGMACMappedAddr + MACBASE,(u64) synopGMACMappedAddr + DMABASE, DEFAULT_PHY_BASE,mac_addr0);
-
 	TR("0xbfe10040:%x\n",synopGMACReadReg(0xffffffffbfe10040,0));
 //	synopGMAC_attach(synopGMACadapter->synopGMACdev,(u64) synopGMACMappedAddr + MACBASE,(u64) synopGMACMappedAddr + DMABASE, DEFAULT_PHY_BASE,mac_addr0);
 
 	TR("0xbfe10040:%x\n",synopGMACReadReg(0xffffffffbfe10040,0));
+#endif
 	
 	ifp = &(synopGMACadapter->PInetdev->arpcom.ac_if);
 	ifp->if_softc = synopGMACadapter;
+#ifndef	LOONGSON_2G5536
 	memcpy(&synopGMACadapter->PInetdev->sc_dev, sc, sizeof(struct device));
-	
+#endif	
 	memcpy(synopGMACadapter->PInetdev->dev_addr, mac_addr0,6);
 
 
@@ -2538,7 +2694,7 @@ s32  synopGMAC_init_network_interface(char* xname, struct device *sc )
 
 	/*Now start the network interface*/
 	TR("\nNow Registering the netdevice\n");
-	//synopGMAC_linux_open(synopGMACadapter); 
+	//synopGMAC_linux_open(synopGMACadapter);
 	if_attach(ifp);
 	ether_ifattach(ifp);
 	ifp->if_flags = ifp->if_flags | IFF_RUNNING;
@@ -2558,13 +2714,16 @@ s32  synopGMAC_init_network_interface(char* xname, struct device *sc )
 	dumpmacregg(synopGMACadapter->synopGMACdev);
 	dumpdmaregg(synopGMACadapter->synopGMACdev);
 #endif
+#ifdef	LOONGSON_2G5536
+	mac_addr0[5]++;
+#endif
 	return 0;
 }
 
 
 /**
  * Function to initialize the Linux network interface.
- * Linux dependent Network interface is setup here. This provides 
+ * Linux dependent Network interface is setup here. This provides
  * an example to handle the network dependent functionality.
  * \return Returns 0 on success and Error code on failure.
  */

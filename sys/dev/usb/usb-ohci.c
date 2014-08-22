@@ -421,7 +421,7 @@ void *sm502_phystov(struct ohci *ohci, bus_addr_t phys)
 *
 *FUNTION: ohci_match
 *
-*DESCRIPTION: This function is used to check whether the interface attched to 
+*DESCRIPTION: This function is used to check whether the interface attched to
 *             the PCI bus is a USB OHCI controller.
 *
 *PARAMETERS:
@@ -434,7 +434,7 @@ void *sm502_phystov(struct ohci *ohci, bus_addr_t phys)
 *              0 : haven't found USB OHCI controller.
 *                   
 *Note:     This function is not called by system so clearly or directly, but it
-*          is sure that this function is called at the right time by system,and 
+*          is sure that this function is called at the right time by system,and
 *          the proper parameters will be passed in, so don't worry~~
 *===========================================================================*/
 static int ohci_match(struct device *parent, void *match, void *aux)
@@ -503,7 +503,7 @@ static void lohci_attach(struct device *parent, struct device *self, void *aux)
 #endif
 	ohci->rdev = usb_alloc_new_device(ohci);
 
-	/*do the enumeration of  the USB devices attached to the USB HUB(here root hub) 
+	/*do the enumeration of  the USB devices attached to the USB HUB(here root hub)
 	   ports. */
 	usb_new_device(ohci->rdev);
 }
@@ -548,10 +548,10 @@ void delay_usb_ohci(int us)
 *FUNTION: ohci_attach
 *
 *DESCRIPTION: This function is used to do the attachment of the USB OHCI controller,
-*             for USB OHCI controller is  accessed through PCI bus, so here it 
-*             needs do some initializations such as mapping between CPU address 
-*             and PCI address?? configuring the OHCI registers??enumerating the 
-*             USB devices attached to the USB HUB ports.In fact,this function 
+*             for USB OHCI controller is  accessed through PCI bus, so here it
+*             needs do some initializations such as mapping between CPU address
+*             and PCI address?? configuring the OHCI registers??enumerating the
+*             USB devices attached to the USB HUB ports.In fact,this function
 *             does the most of initial works by calling other related functions.
 *
 *PARAMETERS:
@@ -559,12 +559,12 @@ void delay_usb_ohci(int us)
 *          [IN] self: pointer used to be cast to struct ohci*,so as to do the
 *                     the things such as accessing OHCI registers.
 *          [IN] aux:  pointer used to be cast to struct pci_attach_args*, so as
-*                     to be used to do the PCI configuration for USB OHCI controller 
+*                     to be used to do the PCI configuration for USB OHCI controller
 *
 *RETURN VALUE: None
 *                   
 *Note:     This function is not called by system so clearly or directly, but it
-*          is sure that this function is called at the right time by system,and 
+*          is sure that this function is called at the right time by system,and
 *          the proper parameters will be passed in, so don't worry~~
 *===========================================================================*/
 static void ohci_attach(struct device *parent, struct device *self, void *aux)
@@ -618,7 +618,7 @@ static void ohci_attach(struct device *parent, struct device *self, void *aux)
 #define USB_MASK_SD		0x02
 	if (pa->pa_device == 15 && pa->pa_function == 0) {
 		ohci->hc.notify = ohci_device_notify;
-		//ohci->hc.port_mask = 0x02; /*ht keyboard*/ 
+		//ohci->hc.port_mask = 0x02; /*ht keyboard*/
 	}
 
 	if (pa->pa_device == 17) {
@@ -700,7 +700,7 @@ SM502_HC:
 #endif
 	ohci->rdev = usb_alloc_new_device(ohci);
 
-	/*do the enumeration of  the USB devices attached to the USB HUB(here root hub) 
+	/*do the enumeration of  the USB devices attached to the USB HUB(here root hub)
 	   ports. */
 	usb_new_device(ohci->rdev);
 
@@ -749,7 +749,7 @@ td_submit_job(struct usb_device *dev, unsigned long pipe, void *buffer,
 *
 *FUNTION: urb_free_priv
 *
-*DESCRIPTION: This function is used to free HCD-private data associated with 
+*DESCRIPTION: This function is used to free HCD-private data associated with
 *             this URB.
 *
 *PARAMETERS:
@@ -798,7 +798,7 @@ static void urb_free_priv(urb_priv_t * urb)
 *                       the transfer type is setup of control transfer.
 *          [IN] interval: not used here.
 *RETURN VALUE: -1 : indicates that something wrong happened during submiting job.
-*               0 : function works ok.     
+*               0 : function works ok.
 *===========================================================================*/
 int sohci_submit_job(struct usb_device *dev, unsigned long pipe, void *buffer,
 		     int transfer_len, struct devrequest *setup, int interval)
@@ -931,13 +931,13 @@ static int sohci_get_current_frame_number(struct usb_device *usb_dev)
 *
 *PARAMETERS:
 *          [IN] speed: indicates the usb transfer speed(USB_SPEED_LOW&USB_SPEED_FULL).
-*          [IN] is_input:  indicates that whether the transfer direction is input. 
+*          [IN] is_input:  indicates that whether the transfer direction is input.
 *          [IN] isoc : indicates that whether it is a isochronous transfer.
 *          [IN] bytecount: indicates number of bytes to be transfered.
 *
 *RETURN VALUE: -1 : indicates the bogus device speed
 *              other case,return the bits time calculated.
-*                   
+*
 *===========================================================================*/
 long usb_calc_bus_time(int speed, int is_input, int isoc, int bytecount)
 {
@@ -988,7 +988,7 @@ long usb_calc_bus_time(int speed, int is_input, int isoc, int bytecount)
 *           [IN] load: The bit time the TD needs.
 *
 *RETURN VALUE: value indicates the branch index.
-*                   
+*
 *===========================================================================*/
 static int balance(ohci_t * ohci, int interval, int load)
 {
@@ -1027,11 +1027,11 @@ static int balance(ohci_t * ohci, int interval, int load)
 *PARAMETERS:
 *          [IN] ohci: a pointer to the struct ohci which stores useful information
 *                     of the USB OHCI controller.
-*          [IN] ed :  a pointer to the stuctr ed which contains informaiton 
-*                     about ed. 
+*          [IN] ed :  a pointer to the stuctr ed which contains informaiton
+*                     about ed.
 *
 *RETURN VALUE: none.
-*                   
+*
 *===========================================================================*/
 static void periodic_link(ohci_t * ohci, ed_t * ed)
 {
@@ -1090,17 +1090,17 @@ static void periodic_link(ohci_t * ohci, ed_t * ed)
 *
 *FUNTION: periodic_unlink
 *
-*DESCRIPTION: This function is used to scan the periodic table to find and 
+*DESCRIPTION: This function is used to scan the periodic table to find and
 *             unlink this ED.
 *
 *PARAMETERS:
 *          [IN] ohci: a pointer to the struct ohci which stores useful information
 *                     of the USB OHCI controller.
-*          [IN] edi:  a pointer to the stuctr ed which contains informaiton 
-*                     about ED. 
+*          [IN] edi:  a pointer to the stuctr ed which contains informaiton
+*                     about ED.
 *
 *RETURN VALUE: none.
-*                   
+*
 *===========================================================================*/
 static void periodic_unlink(ohci_t * ohci, ed_t * ed)
 {
@@ -1134,7 +1134,7 @@ static void periodic_unlink(ohci_t * ohci, ed_t * ed)
 *
 *FUNTION: ep_link
 *
-*DESCRIPTION: This function is used to link an ed(endpoint descriptor) to one 
+*DESCRIPTION: This function is used to link an ed(endpoint descriptor) to one
 *             of the HC chains.
 *
 *PARAMETERS:
@@ -1240,18 +1240,18 @@ static int ep_link(ohci_t * ohci, ed_t * edi)
 *FUNTION: ep_unlink
 *
 *DESCRIPTION: This function is used to unlink an ed from one of the HC chains.
-*             Just the link to the ed is unlinked.The link from the ed still 
+*             Just the link to the ed is unlinked.The link from the ed still
 *             points to the another opeartional ed or NULL,so the HC can eventually
 *             finish the processing of the unlinked ed.
 *
 *PARAMETERS:
 *          [IN] ohci: a pointer to the struct ohci which stores useful information
 *                     of the USB OHCI controller.
-*          [IN] edi:  a pointer to the stuctr ed which contains informaiton 
-*                     about ED. 
+*          [IN] edi:  a pointer to the stuctr ed which contains informaiton
+*                     about ED.
 *
 *RETURN VALUE: always returns zero.
-*                   
+*
 *===========================================================================*/
 static int ep_unlink(ohci_t * ohci, ed_t * ed)
 {
@@ -1364,22 +1364,22 @@ static int find_index(struct ohci_device *ohci_dev, unsigned long pipe)
 *
 *FUNTION: ep_add_ed
 *
-*DESCRIPTION: This function is used to add/reinit an endpoint.This should be 
-*             done once at the usb_set_configuration command,but the USB stack 
-*             is a little bit stateless, so we do it at every transaction.If 
-*             the state of the ed is ED_NEW,then a dummy td is added and the 
-*             state is changed to ED_UNLINK,in all other cases the state is 
+*DESCRIPTION: This function is used to add/reinit an endpoint.This should be
+*             done once at the usb_set_configuration command,but the USB stack
+*             is a little bit stateless, so we do it at every transaction.If
+*             the state of the ed is ED_NEW,then a dummy td is added and the
+*             state is changed to ED_UNLINK,in all other cases the state is
 *             left unchanged.The ed info fields are setted anyway even though
 *             most of them should not be changed.
 *
 *PARAMETERS:
-*          [IN] usb_dev: a pointer to the struct usb_device which contains useful 
+*          [IN] usb_dev: a pointer to the struct usb_device which contains useful
 *                        information of the relevant usb device.
 *          [IN] pipe:  describe the property of a pipe,more details about it,
-*                      please see the usb.h. 
+*                      please see the usb.h.
 *
 *RETURN VALUE: a pointer to struct ed.
-*                   
+*
 *===========================================================================*/
 static ed_t *ep_add_ed(struct usb_device *usb_dev, unsigned long pipe)
 {
@@ -1467,7 +1467,7 @@ static ed_t *ep_add_ed(struct usb_device *usb_dev, unsigned long pipe)
 *          [OUT] retbuf: an all-purpose pointer to the returned data if exist.
 *
 *RETURN VALUE: none.
-*                   
+*
 *===========================================================================*/
 static void td_fill(ohci_t * ohci, unsigned int info,
 		    void *data, int len,
@@ -1585,7 +1585,7 @@ static void td_fill(ohci_t * ohci, unsigned int info,
 *PARAMETERS:
 *          [IN] dev:  a pointer to the USB device the TDs belongs to.
 *          [IN] pipe:  describe the property of a pipe,more details about it,
-*                      please see the usb.h. 
+*                      please see the usb.h.
 *          [IN] buffer:an all-purpose pointer to the data that would be transfered
 *                      through USB channel.
 *          [IN] transfer_len: the length of data to be transfered.
@@ -1595,7 +1595,7 @@ static void td_fill(ohci_t * ohci, unsigned int info,
 *          [IN] interval: not used here.
 *
 *RETURN VALUE: none.
-*                   
+*
 *===========================================================================*/
 static void td_submit_job(struct usb_device *dev, unsigned long pipe, void
 			  *buffer, int transfer_len, struct devrequest *setup,
@@ -1732,11 +1732,11 @@ static void td_submit_job(struct usb_device *dev, unsigned long pipe, void
 *             the urb.
 *
 *PARAMETERS:
-*          [IN] td:  a pointer to the stuct td which contains informaiton 
-*                     about TD. 
+*          [IN] td:  a pointer to the stuct td which contains informaiton
+*                     about TD.
 *
 *RETURN VALUE: none.
-*                   
+*
 *===========================================================================*/
 static void dl_transfer_length(td_t * td)
 {
@@ -1888,9 +1888,9 @@ static void dl_transfer_length(td_t * td)
 *          [IN] ohci: a pointer to the struct ohci which stores useful information
 *                     of the USB OHCI controller.
 *
-*RETURN VALUE: a pointer to the struct td,which is the head of the td done-list 
+*RETURN VALUE: a pointer to the struct td,which is the head of the td done-list
 *              chain.
-*                   
+*
 *===========================================================================*/
 static td_t *dl_reverse_done_list(ohci_t * ohci)
 {
@@ -1982,12 +1982,12 @@ static td_t *dl_reverse_done_list(ohci_t * ohci)
 *PARAMETERS:
 *          [IN] ohci: a pointer to the struct ohci which stores useful information
 *                     of the USB OHCI controller.
-*          [IN] td_list: a pointer to the struct td,which is the head of the td done-list 
+*          [IN] td_list: a pointer to the struct td,which is the head of the td done-list
 *                        chain.
 *
 *RETURN VALUE: zero :it is ok.
 *              not zero:something wrong.
-*                   
+*
 *===========================================================================*/
 static int dl_done_list(ohci_t * ohci, td_t * td_list)
 {
@@ -2301,12 +2301,12 @@ static unsigned char root_hub_str_index1[] = {
 *             hub,checking whether a device disconnected just now.
 *
 *PARAMETERS:
-*          [IN] controller: a pointer to the struct ohci which stores useful 
+*          [IN] controller: a pointer to the struct ohci which stores useful
 *                           information of the USB OHCI controller.
 *
 *RETURN VALUE: zero :nothing happened.
 *              > zero:some device disconnected.
-*                   
+*
 *===========================================================================*/
 int rh_check_port_status(ohci_t * controller)
 {
@@ -2340,8 +2340,8 @@ int rh_check_port_status(ohci_t * controller)
 *          [IN] dev:  a pointer to the USB device( here root hub,a special USB
 *                     device) the message belongs to.
 *          [IN] pipe:  describe the property of a pipe,more details about it,
-*                      please see the usb.h. 
-*          [IN] buffer:an all-purpose pointer to the data that would be returned 
+*                      please see the usb.h.
+*          [IN] buffer:an all-purpose pointer to the data that would be returned
 *                      from virtual root hub.
 *          [IN] transfer_len: the length of data to be transfered.
 *          [IN] cmd: an pointer to the struct devrequest *,which is used when
@@ -2349,7 +2349,7 @@ int rh_check_port_status(ohci_t * controller)
 *
 *RETURN VALUE: zero :indicates that root hub has not implemented PIPE_INTERRUPT.
 *              not zero:indicates the status of this transfer.
-*                   
+* 
 *===========================================================================*/
 static int ohci_submit_rh_msg(struct usb_device *dev, unsigned long pipe,
 			      void *buffer, int transfer_len,
@@ -2600,7 +2600,7 @@ static int ohci_submit_rh_msg(struct usb_device *dev, unsigned long pipe,
 *                        points to the buffer which stores information of ohci.
 *
 *RETURN VALUE: none
-*                   
+*
 *===========================================================================*/
 void reset_controller(void *hc_data)
 {
@@ -2630,10 +2630,10 @@ void reset_controller(void *hc_data)
 *              -1: indicates that pipesize is zero or sohci_submit_job failed.
 *
 *note:      unlike ohci_submit_rh_msg(),this function would access the real
-*           OHCI controller hardware,so it needs to wait to check whether hardware 
+*           OHCI controller hardware,so it needs to wait to check whether hardware
 *           has fininshed transfering TDs in limited timeouts by calling hc_check_
 *           ohci_controller().
-*                   
+*
 *===========================================================================*/
 int submit_common_msg(struct usb_device *dev, unsigned long pipe, void *buffer,
 		      int transfer_len, struct devrequest *setup, int interval)
@@ -2808,12 +2808,12 @@ int submit_common_msg(struct usb_device *dev, unsigned long pipe, void *buffer,
 *          [IN] dev:  a pointer to the USB device the message belongs to.
 *          [IN] pipe:  describe the property of a pipe,more details about it,
 *                      please see the usb.h. 
-*          [IN] buffer:an all-purpose pointer to the data that would be returned 
+*          [IN] buffer:an all-purpose pointer to the data that would be returned
 *                      through usb channel.
 *          [IN] transfer_len: the length of data to be transfered.
 *
 *RETURN VALUE: same as the value returned from submit_common_msg().
-*                   
+*
 *===========================================================================*/
 static int ohci_submit_bulk_msg(struct usb_device *dev, unsigned long pipe,
 				void *buffer, int transfer_len)
@@ -2842,7 +2842,7 @@ static int ohci_submit_bulk_msg(struct usb_device *dev, unsigned long pipe,
 *          [IN] dev:  a pointer to the USB device the message belongs to.
 *          [IN] pipe:  describe the property of a pipe,more details about it,
 *                      please see the usb.h. 
-*          [IN] buffer:an all-purpose pointer to the data that would be returned 
+*          [IN] buffer:an all-purpose pointer to the data that would be returned
 *                      through usb channel.
 *          [IN] transfer_len: the length of data to be transfered.
 *          [IN] setup: an pointer to the struct devrequest *,which is used when
@@ -2850,7 +2850,7 @@ static int ohci_submit_bulk_msg(struct usb_device *dev, unsigned long pipe,
 *
 *RETURN VALUE: same as the value returned from submit_common_msg()or ohci_
 *              _submit_rh_msg().
-*                   
+*
 *===========================================================================*/
 static int ohci_submit_control_msg(struct usb_device *dev, unsigned long pipe,
 				   void *buffer, int transfer_len,
@@ -2884,20 +2884,20 @@ static int ohci_submit_control_msg(struct usb_device *dev, unsigned long pipe,
 *
 *FUNTION: ohci_submit_int_msg
 *
-*DESCRIPTION: This function is used to submit a interrupt message to OHCI 
+*DESCRIPTION: This function is used to submit a interrupt message to OHCI
 *             controller. This is a submit routine called from usb.c.
 *
 *PARAMETERS:
 *          [IN] dev:  a pointer to the USB device the message belongs to.
 *          [IN] pipe:  describe the property of a pipe,more details about it,
 *                      please see the usb.h. 
-*          [IN] buffer:an all-purpose pointer to the data that would be returned 
+*          [IN] buffer:an all-purpose pointer to the data that would be returned
 *                      through usb channel.
 *          [IN] transfer_len: the length of data to be transfered.
 *          [IN] interval: not used here.
 *
 *RETURN VALUE: same as the value returned from submit_common_msg().
-*                   
+*
 *===========================================================================*/
 static int ohci_submit_int_msg(struct usb_device *dev, unsigned long pipe,
 			       void *buffer, int transfer_len, int interval)
@@ -2924,11 +2924,11 @@ static int ohci_submit_int_msg(struct usb_device *dev, unsigned long pipe,
 *DESCRIPTION: This function is used to reset the HC and BUS.
 *
 *PARAMETERS:
-*          [IN] ohci: a pointer to the struct ohci which stores useful 
+*          [IN] ohci: a pointer to the struct ohci which stores useful
 *                     information of the USB OHCI controller.
 *
 *RETURN VALUE: -1: indicates that USB HC TakeOver failed or USB HC reset time out.
-*              0 : normal return. 
+*              0 : normal return.
 *
 *===========================================================================*/
 static int hc_reset(ohci_t * ohci)
@@ -2979,10 +2979,10 @@ static int hc_reset(ohci_t * ohci)
 *             operational ,enable interrupts and connect the virtual root hub.
 *
 *PARAMETERS:
-*          [IN] ohci: a pointer to the struct ohci which stores useful 
+*          [IN] ohci: a pointer to the struct ohci which stores useful
 *                     information of the USB OHCI controller.
 *
-*RETURN VALUE: always returns 0.     
+*RETURN VALUE: always returns 0.
 *===========================================================================*/
 static int hc_start(ohci_t * ohci)
 {
@@ -3084,7 +3084,7 @@ static int hc_start(ohci_t * ohci)
 *RETURN VALUE: 0 :   indicates that no TDs has been transfered.
 *              stat: indicates that PIPE_INTERRUPT TDs has been transfered and be
 *                    dealed with.*
-*                   
+*
 *===========================================================================*/
 static int hc_interrupt(void *hc_data)
 {
@@ -3262,10 +3262,10 @@ static int hc_interrupt(void *hc_data)
 *DESCRIPTION: This function is used to De-allocate all resources.
 *
 *PARAMETERS:
-*          [IN] ohci: a pointer to the struct ohci which stores useful 
+*          [IN] ohci: a pointer to the struct ohci which stores useful
 *                     information of the USB OHCI controller.
 *
-*RETURN VALUE: none.     
+*RETURN VALUE: none.
 *===========================================================================*/
 static void hc_release_ohci(ohci_t * ohci)
 {
@@ -3282,7 +3282,7 @@ static void hc_release_ohci(ohci_t * ohci)
 *DESCRIPTION: This is the low level initialization routine,called from usb.c.
 *
 *PARAMETERS:
-*          [IN] ghci: a pointer to the struct ohci which stores useful 
+*          [IN] ghci: a pointer to the struct ohci which stores useful
 *                     information of the USB OHCI controller.
 *
 *RETURN VALUE: -1: indicates that HCCA not aligned or EDs not aligned or TDs
@@ -3419,7 +3419,9 @@ int usb_lowlevel_init(ohci_t * gohci)
 	{
 		hcca = malloc(sizeof(*gohci->hcca), M_DEVBUF, M_NOWAIT);
 		memset(hcca, 0, sizeof(*hcca));
-		//pci_sync_cache(gohci->sc_pc, (vm_offset_t)hcca, sizeof(*hcca), SYNC_W);
+#ifdef LOONGSON_2G5536
+		pci_sync_cache(gohci->sc_pc, (vm_offset_t)hcca, sizeof(*hcca), SYNC_W);
+#endif
 	}
 
 	/* align the storage */
@@ -3447,7 +3449,9 @@ int usb_lowlevel_init(ohci_t * gohci)
 	}
 #endif
 	else {
-		//      pci_sync_cache(gohci->sc_pc, (vm_offset_t)ohci_dev->ed, sizeof(ohci_dev->ed),SYNC_W);
+#ifdef LOONGSON_2G5536
+		      pci_sync_cache(gohci->sc_pc, (vm_offset_t)ohci_dev->ed, sizeof(ohci_dev->ed),SYNC_W);
+#endif
 #if (defined(LS3_HT) || defined(LS2G_HT))
 		ohci_dev->cpu_ed = (ed_t *) (&ohci_dev->ed);
 #else
@@ -3464,7 +3468,9 @@ int usb_lowlevel_init(ohci_t * gohci)
 	{
 		gtd = malloc(sizeof(td_t) * (NUM_TD + 1), M_DEVBUF, M_NOWAIT);
 		memset(gtd, 0, sizeof(td_t) * (NUM_TD + 1));
-		//pci_sync_cache(gohci->sc_pc, (vm_offset_t)gtd, sizeof(td_t)*(NUM_TD+1), SYNC_W);
+#ifdef LOONGSON_2G5536
+		pci_sync_cache(gohci->sc_pc, (vm_offset_t)gtd, sizeof(td_t)*(NUM_TD+1), SYNC_W);
+#endif
 	}
 
 	if ((u32) gtd & 0x0f) {
@@ -3511,7 +3517,9 @@ int usb_lowlevel_init(ohci_t * gohci)
 		if ((u32) tmpbuf & 0x1f)
 			printf("Malloc return not cache line aligned\n");
 		memset(tmpbuf, 0, 512);
-		//pci_sync_cache(gohci->sc_pc, (vm_offset_t)tmpbuf,  512, SYNC_W);
+#ifdef LOONGSON_2G5536
+		pci_sync_cache(gohci->sc_pc, (vm_offset_t)tmpbuf,  512, SYNC_W);
+#endif
 #if (defined(LS3_HT) || defined(LS2G_HT))
 		gohci->control_buf = (unsigned char *)(tmpbuf);
 #else
@@ -3539,7 +3547,9 @@ int usb_lowlevel_init(ohci_t * gohci)
 		if ((u32) tmpbuf & 0x1f)
 			printf("Malloc return not cache line aligned\n");
 		memset(tmpbuf, 0, 64);
-		//pci_sync_cache(tmpbuf, (vm_offset_t)tmpbuf, 64, SYNC_W);
+#ifdef LOONGSON_2G5536
+		pci_sync_cache(tmpbuf, (vm_offset_t)tmpbuf, 64, SYNC_W);
+#endif
 #if (defined(LS3_HT) || defined(LS2G_HT))
 		gohci->setup = (unsigned char *)(tmpbuf);
 		dbg(" gohci->setup =%x\n", gohci->setup);
@@ -3606,7 +3616,7 @@ errout:
 *DESCRIPTION: This function is used to reset OHCI controller.
 *
 *PARAMETERS:
-*          [IN] ohci: a pointer to the struct ohci which stores useful 
+*          [IN] ohci: a pointer to the struct ohci which stores useful
 *                     information of the USB OHCI controller.
 *
 *RETURN VALUE: always return 0
@@ -3711,7 +3721,7 @@ static void init_cmd()
 *RETURN VALUE: 0 :   indicates that no TDs has been transfered.
 *              stat: indicates that PIPE_INTERRUPT TDs has been transfered and be
 *                    dealed with.
-*                   
+*
 *===========================================================================*/
 static int hc_check_ohci_controller(void *hc_data)
 {

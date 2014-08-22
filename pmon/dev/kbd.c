@@ -107,7 +107,7 @@ extern void delay __P((int));
 
 extern int ohci_index;  
 extern int dl_ohci_kbd(); //deal with usb kbd
-                                          
+
 typedef void (*k_hand) (unsigned char value, char up_flag);
 typedef void (k_handfn) (unsigned char value, char up_flag);
 
@@ -167,7 +167,7 @@ static void kbd_wait(void)
 
 		if (!(status & KBD_STAT_IBF))
 			return;
-		delay(1000);     //  don not exceed 100ms,or usb keyboard may suspend when you  press  
+		delay(1000);     //  don not exceed 100ms,or usb keyboard may suspend when you  press
 		if(ohci_index)   //   deal with usb kbd
                       dl_ohci_kbd();
 		timeout--;
@@ -300,6 +300,15 @@ int kbd_initialize(void)
 	status = kb3310_test();
 	if(status != 0){
 		printf("Waring!! You should burn the flash rom first for kbd initial.\n");
+	}
+#endif
+
+#ifdef LS2GPLUS_KBD
+
+	{
+		unsigned int pll = 300;
+		*(unsigned char *)(0xbfe001d8) = (unsigned char)(pll & 0xff);
+		*(unsigned char *)(0xbfe001d9) = (unsigned char)(pll >> 8);
 	}
 #endif
 
@@ -533,14 +542,14 @@ static unsigned char handle_kbd_event(void)
 		unsigned char scancode;
 
 		scancode = kbd_read_input();
-		/* Error bytes must be ignored to make the 
+		/* Error bytes must be ignored to make the
 		   Synaptics touchpads compaq use work */
 #if 1
 		/* Ignore error bytes */
 		if (!(status & (KBD_STAT_GTO | KBD_STAT_PERR)))
 #endif
 		{
-			if (status & KBD_STAT_MOUSE_OBF) 
+			if (status & KBD_STAT_MOUSE_OBF)
 				handle_mouse_event(scancode);
 			else
 				handle_keyboard_event(scancode);

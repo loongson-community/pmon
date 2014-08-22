@@ -17,7 +17,11 @@
 #define NET_IF_TIMEOUT (10*HZ)
 #define CHECK_TIME (HZ)
 
+#ifdef	LOONGSON_2G5536
+s32  synopGMAC_init_network_interface(char* xname,u64 synopGMACMappedAddr);
+#else
 s32  synopGMAC_init_network_interface(char* xname, struct device *sc);
+#endif
 void  synopGMAC_exit_network_interface(void);
 
 //s32 synopGMAC_linux_open(struct synopGMACNetworkAdapter *);

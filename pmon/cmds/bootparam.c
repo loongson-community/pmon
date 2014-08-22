@@ -223,6 +223,10 @@ void init_loongson_params(struct loongson_params *lp)
   #define PRID_IMP_LOONGSON    0x6305
   enum loongson_cpu_type cputype = Loongson_3A;
 #endif
+#ifdef LOONGSON_2G5536
+  #define PRID_IMP_LOONGSON    0x6305
+  enum loongson_cpu_type cputype = Loongson_2G;
+#endif
 
 struct efi_cpuinfo_loongson *init_cpu_info()
 {
@@ -268,7 +272,7 @@ struct efi_cpuinfo_loongson *init_cpu_info()
 
 return c;
 }
- 
+
 struct system_loongson *init_system_loongson()
 {
  struct system_loongson *s = &g_sysitem;
@@ -313,7 +317,7 @@ struct irq_source_routing_table *init_irq_source()
 	
 	irq_info->PIC_type = HT;
 
- 
+
 #ifdef LOONGSON_3BSINGLE
 	irq_info->ht_int_bit = 1<<16;
 #else
@@ -345,7 +349,7 @@ struct irq_source_routing_table *init_irq_source()
 
 struct interface_info *init_interface_info()
 {
-  
+
  struct interface_info *inter = &g_interface;
  int flashsize;
 
@@ -356,15 +360,15 @@ struct interface_info *init_interface_info()
   inter->flag = 1;
 
   strcpy(inter->description,"Loongson-PMON-V3.2.0");
- 
+
   return inter;
 }
 
 struct board_devices *board_devices_info()
 {
-  
+
  struct board_devices *bd = &g_board;
- 
+
 #ifdef LOONGSON_3ASINGLE
   strcpy(bd->name,"Loongson-3A-780E-1w-V1.03-demo");
 #endif
@@ -403,23 +407,23 @@ struct board_devices *board_devices_info()
 	strcpy(bd->name,"Loongson-2GQ-2H-1w-V0.1-demo");
 #endif
   bd->num_resources = 10;
- 
+
   return bd;
 }
 
 
 struct loongson_special_attribute *init_special_info()
 {
-  
+
   struct loongson_special_attribute  *special = &g_special;
   char update[11];
-  
+
   get_update(update);
 
 
   strcpy(special->special_name,update);
-  
-#ifdef CONFIG_GFXUMA   
+#ifndef	LOONGSON_2G5536
+#ifdef CONFIG_GFXUMA
   special->resource[0].flags = 1;
   special->resource[0].start = 0;
   special->resource[0].end = VRAM_SIZE;
@@ -430,7 +434,7 @@ struct loongson_special_attribute *init_special_info()
   special->resource[0].end = VRAM_SIZE;
   strcpy(special->resource[0].name,"SPMODULE");
 #endif
-
+#endif
   special->resource[0].flags |= DMA64_SUPPORT;
   return special;
 }

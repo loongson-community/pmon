@@ -48,7 +48,7 @@ struct efi_systab {
 
 enum loongson_cpu_type
 {
-	Loongson_2F,Loongson_2E, Loongson_3A, Loongson_3B,Loongson_1A,Loongson_1B
+	Loongson_2F,Loongson_2E, Loongson_3A, Loongson_3B,Loongson_1A,Loongson_1B,Loongson_2G,
 };
 
 struct efi_cpuinfo_loongson {

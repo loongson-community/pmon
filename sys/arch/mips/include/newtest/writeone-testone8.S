@@ -9,7 +9,9 @@
 #define I_LOAD  ld
 #define I_WIDTH 8
 #define errorall t5
-	
+#ifdef	LOONGSON_2G5536
+.set	at
+#endif
 	nop
 	TTYDBG("Testing memory now\r\n")
 	move errorall,zero

@@ -184,7 +184,7 @@ chwrite (DevEntry *p, char ch)
 }
 /* yh
  * */
-int dummy; 
+int dummy;
 void
 scandevs ()
 {
@@ -268,9 +268,10 @@ scandevs ()
 #endif
 #if NMOD_VGACON >0
 #if NMOD_USB_KBD >0
-//	if (usb_kbd_available) //before use
-//		usb_kbd_poll();  //before use
-
+#ifdef LOONGSON_2G5536
+	if (usb_kbd_available) //before use
+		usb_kbd_poll();  //before use
+#endif
 #ifdef INTERFACE_3A780E
 if (usb_kbd_available)
     {

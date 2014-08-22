@@ -10,8 +10,9 @@
 #include "synopGMAC_plat.h"
 #include "synopGMAC_pci_bus_interface.h"
 #include "synopGMAC_Dev.h"
-
+#ifndef	LOONGSON_2G5536
 #define ENH_DESC
+#endif
 //#define ENH_DESC_8W
 
 
