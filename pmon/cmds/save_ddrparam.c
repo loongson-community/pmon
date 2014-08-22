@@ -40,47 +40,12 @@
 
 int cmd_save_ddrparam __P((int, char *[]));
 
+
 #ifdef ARB_LEVEL
 
 #define u64 unsigned long long
-
-u64 __raw_readq_sp(u64 q)
-{
-	u64 ret;
-
-	asm volatile(
-			".set mips3;\r\n"
-			"ld    $8,%1;\r\n"
-			"ld    $8,0($8);\r\n"
-			"sd    $8,%0;\r\n"
-			:"=m"(ret)
-			:"m" (q)
-			:"$8");
-
-	return ret;
-}
-u64 __raw_writeq_sp(u64 addr, u64 val)
-{
-	u64 ret;
-
-	asm volatile(
-			".set mips3;\r\n"
-			"ld    $8,%1;\r\n"
-			"move    $9,%2;\r\n"
-			"sd    $9,0($8);\r\n"
-			"ld    $8,0($8);\r\n"
-			"sd    $8,%0;\r\n"
-			:"=m"(ret)
-			:"m" (addr), "r" (val)
-			:"$8", "$9");
-
-	return ret;
-
-}
-
-
-#define sd  __raw_writeq_sp
-#define ld  __raw_readq_sp
+extern u64 __raw__readq(u64 addr);
+extern u64 __raw__writeq(u64 addr, u64 val);
 
 extern char _start;
 
@@ -129,31 +94,31 @@ void enable_ddrconfig(u64 node_id_shift44)
     unsigned long long val;
 
 #ifdef loongson3A3
-    val = ld(CPU_CONFIG_ADDR | node_id_shift44);
+    val = __raw__readq(CPU_CONFIG_ADDR | node_id_shift44);
     val &=0xfffffffffffffeffull;
-    sd(CPU_CONFIG_ADDR | node_id_shift44, val);
+    __raw__writeq(CPU_CONFIG_ADDR | node_id_shift44, val);
 #ifdef DEBUG
-    printf("Enable sys config reg = %016llx", ld(CPU_CONFIG_ADDR | node_id_shift44));
+    printf("Enable sys config reg = %016llx", __raw__readq(CPU_CONFIG_ADDR | node_id_shift44));
 #endif
     return;
 #endif
 
 #ifdef LS3B
-    val = ld(CPU_CONFIG_ADDR | node_id_shift44 & 0xffffefffffffffffull);
+    val = __raw__readq(CPU_CONFIG_ADDR | node_id_shift44 & 0xffffefffffffffffull);
     val &=0xfffffffffffffdefull;
-    sd(CPU_CONFIG_ADDR | node_id_shift44 & 0xffffefffffffffffull, val);
+    __raw__writeq(CPU_CONFIG_ADDR | node_id_shift44 & 0xffffefffffffffffull, val);
 #ifdef DEBUG
-    printf("Enable sys config reg = %016llx", ld(CPU_CONFIG_ADDR | node_id_shift44 & 0xffffefffffffffffull));
+    printf("Enable sys config reg = %016llx", __raw__readq(CPU_CONFIG_ADDR | node_id_shift44 & 0xffffefffffffffffull));
 #endif
     return;
 #endif
 
 #ifdef  LOONGSON_2H
-    val = ld(CPU_CONFIG_ADDR | node_id_shift44);
+    val = __raw__readq(CPU_CONFIG_ADDR | node_id_shift44);
     val &=0xffffffffffffdfffull;
-    sd(CPU_CONFIG_ADDR | node_id_shift44, val);
+    __raw__writeq(CPU_CONFIG_ADDR | node_id_shift44, val);
 #ifdef DEBUG
-    printf("Enable sys config reg = %016llx", ld(CPU_CONFIG_ADDR | node_id_shift44 & 0xffffefffffffffffull));
+    printf("Enable sys config reg = %016llx", __raw__readq(CPU_CONFIG_ADDR | node_id_shift44 & 0xffffefffffffffffull));
 #endif
     return;
 #endif
@@ -165,30 +130,30 @@ void disable_ddrconfig(u64 node_id_shift44)
 
     /* Disable DDR access configure register */
 #ifdef loongson3A3
-    val = ld(CPU_CONFIG_ADDR | node_id_shift44);
+    val = __raw__readq(CPU_CONFIG_ADDR | node_id_shift44);
     val |= 0x100;
-    sd(CPU_CONFIG_ADDR | node_id_shift44, val);
+    __raw__writeq(CPU_CONFIG_ADDR | node_id_shift44, val);
 #ifdef DEBUG
-    printf("Disable sys config reg = %016llx\n", ld(CPU_CONFIG_ADDR | node_id_shift44));
+    printf("Disable sys config reg = %016llx\n", __raw__readq(CPU_CONFIG_ADDR | node_id_shift44));
 #endif
     return;
 #endif
 #ifdef LS3B
-    val = ld(CPU_CONFIG_ADDR | node_id_shift44 & 0xffffefffffffffffull);
+    val = __raw__readq(CPU_CONFIG_ADDR | node_id_shift44 & 0xffffefffffffffffull);
     val |= 0x210;
-    sd(CPU_CONFIG_ADDR | node_id_shift44 & 0xffffefffffffffffull, val);
+    __raw__writeq(CPU_CONFIG_ADDR | node_id_shift44 & 0xffffefffffffffffull, val);
 #ifdef DEBUG
-    printf("Disable sys config reg = %016llx\n", ld(CPU_CONFIG_ADDR | node_id_shift44 & 0xffffefffffffffffull));
+    printf("Disable sys config reg = %016llx\n", __raw__readq(CPU_CONFIG_ADDR | node_id_shift44 & 0xffffefffffffffffull));
 #endif
     return;
 #endif
 
 #ifdef  LOONGSON_2H
-    val = ld(CPU_CONFIG_ADDR | node_id_shift44);
+    val = __raw__readq(CPU_CONFIG_ADDR | node_id_shift44);
     val |= 0x2000ull;
-    sd(CPU_CONFIG_ADDR | node_id_shift44, val);
+    __raw__writeq(CPU_CONFIG_ADDR | node_id_shift44, val);
 #ifdef DEBUG
-    printf("Disable sys config reg = %016llx\n", ld(CPU_CONFIG_ADDR | node_id_shift44));
+    printf("Disable sys config reg = %016llx\n", __raw__readq(CPU_CONFIG_ADDR | node_id_shift44));
 #endif
     return;
 #endif
@@ -202,18 +167,18 @@ void enable_ddrcfgwindow(u64 node_id_shift44, int mc_selector, unsigned long lon
 
     //printf("Now enable ddr config windows.\n");
 #ifdef DEBUG
-    printf("origin :: 0x00: %016llx  0x40: %016llx 0x80:  %016llx\n", ld((CPU_L2XBAR_CONFIG_ADDR | node_id_shift44)), ld((CPU_L2XBAR_CONFIG_ADDR | node_id_shift44) + 0x40), ld((CPU_L2XBAR_CONFIG_ADDR | node_id_shift44) + 0x80));
+    printf("origin :: 0x00: %016llx  0x40: %016llx 0x80:  %016llx\n", __raw__readq((CPU_L2XBAR_CONFIG_ADDR | node_id_shift44)), __raw__readq((CPU_L2XBAR_CONFIG_ADDR | node_id_shift44) + 0x40), __raw__readq((CPU_L2XBAR_CONFIG_ADDR | node_id_shift44) + 0x80));
 #endif
-    buf[0] =  ld((CPU_L2XBAR_CONFIG_ADDR | node_id_shift44));
-    buf[1] =  ld((CPU_L2XBAR_CONFIG_ADDR | node_id_shift44) + 0x40);
-    buf[2] =  ld((CPU_L2XBAR_CONFIG_ADDR | node_id_shift44) + 0x80);
+    buf[0] =  __raw__readq((CPU_L2XBAR_CONFIG_ADDR | node_id_shift44));
+    buf[1] =  __raw__readq((CPU_L2XBAR_CONFIG_ADDR | node_id_shift44) + 0x40);
+    buf[2] =  __raw__readq((CPU_L2XBAR_CONFIG_ADDR | node_id_shift44) + 0x80);
 
-    sd((CPU_L2XBAR_CONFIG_ADDR | node_id_shift44), (0x000000000ff00000ull | node_id_shift44));
-    sd((CPU_L2XBAR_CONFIG_ADDR | node_id_shift44) + 0x40, 0xfffffffffff00000ull);
-    sd((CPU_L2XBAR_CONFIG_ADDR | node_id_shift44) + 0x80, 0x000000000ff000f0ull | mc_selector);
+    __raw__writeq((CPU_L2XBAR_CONFIG_ADDR | node_id_shift44), (0x000000000ff00000ull + node_id_shift44));
+    __raw__writeq((CPU_L2XBAR_CONFIG_ADDR | node_id_shift44) + 0x40, 0xfffffffffff00000ull);
+    __raw__writeq((CPU_L2XBAR_CONFIG_ADDR | node_id_shift44) + 0x80, (0x000000000ff000f0ull + mc_selector));
 
 #ifdef DEBUG
-    printf("new  :: 0x00: %016llx  0x40: %016llx 0x80:  %016llx\n", ld((CPU_L2XBAR_CONFIG_ADDR | node_id_shift44)), ld((CPU_L2XBAR_CONFIG_ADDR | node_id_shift44) + 0x40), ld((CPU_L2XBAR_CONFIG_ADDR | node_id_shift44) + 0x80));
+    printf("new  :: 0x00: %016llx  0x40: %016llx 0x80:  %016llx\n", __raw__readq((CPU_L2XBAR_CONFIG_ADDR | node_id_shift44)), __raw__readq((CPU_L2XBAR_CONFIG_ADDR | node_id_shift44) + 0x40), __raw__readq((CPU_L2XBAR_CONFIG_ADDR | node_id_shift44) + 0x80));
 
     printf("Now save L2X bar windows\n");
     printf("buf[0] = %llx, buf[1] = %llx, buf[2] = %llx\n", buf[0], buf[1], buf[2]);
@@ -229,12 +194,12 @@ void disable_ddrcfgwidow(u64 node_id_shift44, int mc_selector, unsigned long lon
     printf("buf[0] = %llx, buf[1] = %llx, buf[2] = %llx\n", buf[0], buf[1], buf[2]);
 #endif
 
-    sd((CPU_L2XBAR_CONFIG_ADDR | node_id_shift44) + 0x00, buf[0] );
-    sd((CPU_L2XBAR_CONFIG_ADDR | node_id_shift44) + 0x40, buf[1] );
-    sd((CPU_L2XBAR_CONFIG_ADDR | node_id_shift44) + 0x80, buf[2] );
+    __raw__writeq((CPU_L2XBAR_CONFIG_ADDR | node_id_shift44) + 0x00, buf[0] );
+    __raw__writeq((CPU_L2XBAR_CONFIG_ADDR | node_id_shift44) + 0x40, buf[1] );
+    __raw__writeq((CPU_L2XBAR_CONFIG_ADDR | node_id_shift44) + 0x80, buf[2] );
 
 #ifdef DEBUG
-    printf("new  :: 0x00: %016llx  0x40: %016llx 0x80:  %016llx\n", ld((CPU_L2XBAR_CONFIG_ADDR | node_id_shift44)), ld((CPU_L2XBAR_CONFIG_ADDR | node_id_shift44) + 0x40), ld((CPU_L2XBAR_CONFIG_ADDR | node_id_shift44) + 0x80));
+    printf("new  :: 0x00: %016llx  0x40: %016llx 0x80:  %016llx\n", __raw__readq((CPU_L2XBAR_CONFIG_ADDR | node_id_shift44)), __raw__readq((CPU_L2XBAR_CONFIG_ADDR | node_id_shift44) + 0x40), __raw__readq((CPU_L2XBAR_CONFIG_ADDR | node_id_shift44) + 0x80));
 #endif
 }
 #endif
@@ -260,14 +225,14 @@ int read_ddr_param(u64 node_id_shift44, int mc_selector,  unsigned long long * b
     printf("Now Read out DDR parameter from DDR MC%d controler after DDR training\n", mc_selector);
     for ( i = DDR_PARAM_NUM - 1; i >= 0; i--) // NOTICE HERE: it means system has DDR_PARAM_NUM double words
     {
-        val[i] =  ld((MC_CONFIG_ADDR | node_id_shift44) + (0x10 * i));
+        val[i] =  __raw__readq((MC_CONFIG_ADDR | node_id_shift44) + (0x10 * i));
 
 #ifdef DEBUG
         printf("< CFGREG >:val[%03d]  = %016llx \n", i, val[i]);
 #endif
     }
     //clear param_start
-    val[3]  &=  0xfffffeffffffffff;
+    val[3]  &=  0xfffffeffffffffffull;
 
     // step 4. Disabel access to MC0 or MC1 register space
     disable_ddrconfig(node_id_shift44);
@@ -300,7 +265,7 @@ void save_ddrparam(u64 node_id_shift44, u64 *ddr_param_buf, int param_store_addr
 #ifdef DEBUG
     for(i = 0; i < DDR_PARAM_NUM + 5; i++)
     {
-        tmp =  ld(0x900000001fc00000 + param_store_addr - (int)&_start + i * 8);
+        tmp =  __raw__readq(0x900000001fc00000ull + param_store_addr - (int)&_start + i * 8);
         if(ddr_param_buf[i] != tmp)
         {
             printf("\nMiscompare:i=%d, val=%016llx", i, tmp);
@@ -311,7 +276,7 @@ void save_ddrparam(u64 node_id_shift44, u64 *ddr_param_buf, int param_store_addr
 #endif
 }
 
-#define DIMM_INFO_ADDR  0x980000000fff0000
+#define DIMM_INFO_ADDR  0x980000000fff0000ull
 
 #ifdef loongson3A3
 int save_board_ddrparam(int mandatory)
@@ -319,19 +284,19 @@ int save_board_ddrparam(int mandatory)
     unsigned long long flag;
     unsigned long long node_id;
     unsigned long long ddr_param_buf[DDR_PARAM_NUM + 6];
-    if( (ld(DIMM_INFO_ADDR) == 0x2013011014413291) || mandatory ){
+    if( (__raw__readq(DIMM_INFO_ADDR) == 0x2013011014413291ull) || mandatory ){
         printf("Token is correct!\n");
-        flag    = ld(DIMM_INFO_ADDR + 0x8);
+        flag    = __raw__readq(DIMM_INFO_ADDR + 0x8);
         printf("flag is 0x%016llx\n", flag);
         node_id = 0;
         //MC0
         if( ((flag >> 32) & 0x1) || mandatory ){
-            printf("Store MC info of Node %d MC 0\n", node_id);
+            printf("Store MC info of Node %lld MC 0\n", node_id);
             ddr_param_buf[0] = (((flag >> 40) & 0x1f) << 32) | 0x1;
-            ddr_param_buf[1] = ld(DIMM_INFO_ADDR + 0x10);
-            ddr_param_buf[2] = ld(DIMM_INFO_ADDR + 0x18);
-            ddr_param_buf[3] = ld(DIMM_INFO_ADDR + 0x20);
-            ddr_param_buf[4] = ld(DIMM_INFO_ADDR + 0x28);
+            ddr_param_buf[1] = __raw__readq(DIMM_INFO_ADDR + 0x10);
+            ddr_param_buf[2] = __raw__readq(DIMM_INFO_ADDR + 0x18);
+            ddr_param_buf[3] = __raw__readq(DIMM_INFO_ADDR + 0x20);
+            ddr_param_buf[4] = __raw__readq(DIMM_INFO_ADDR + 0x28);
 #ifdef DEBUG
             printf("mc level info is 0x%016llx\n", ddr_param_buf[0]);
             printf("dimm info is 0x%016llx\n", ddr_param_buf[1]);
@@ -343,12 +308,12 @@ int save_board_ddrparam(int mandatory)
         }
         //MC1
         if( ((flag >> 33) & 0x1) || mandatory ){
-            printf("Store MC info of Node %d MC 1\n", node_id);
+            printf("Store MC info of Node %lld MC 1\n", node_id);
             ddr_param_buf[0] = (((flag >> 40) & 0x1f) << 32) | 0x1;
-            ddr_param_buf[1] = ld(DIMM_INFO_ADDR + 0x30);
-            ddr_param_buf[2] = ld(DIMM_INFO_ADDR + 0x38);
-            ddr_param_buf[3] = ld(DIMM_INFO_ADDR + 0x40);
-            ddr_param_buf[4] = ld(DIMM_INFO_ADDR + 0x48);
+            ddr_param_buf[1] = __raw__readq(DIMM_INFO_ADDR + 0x30);
+            ddr_param_buf[2] = __raw__readq(DIMM_INFO_ADDR + 0x38);
+            ddr_param_buf[3] = __raw__readq(DIMM_INFO_ADDR + 0x40);
+            ddr_param_buf[4] = __raw__readq(DIMM_INFO_ADDR + 0x48);
 #ifdef DEBUG
             printf("mc level info is 0x%016llx\n", ddr_param_buf[0]);
             printf("dimm info is 0x%016llx\n", ddr_param_buf[1]);
@@ -362,12 +327,12 @@ int save_board_ddrparam(int mandatory)
         node_id = 1;
         //MC0
         if( ((flag >> 34) & 0x1) || mandatory ){
-            printf("Store MC info of Node %d MC 0\n", node_id);
+            printf("Store MC info of Node %lld MC 0\n", node_id);
             ddr_param_buf[0] = (((flag >> 48) & 0x1f) << 32) | 0x1;
-            ddr_param_buf[1] = ld(DIMM_INFO_ADDR + 0x50);
-            ddr_param_buf[2] = ld(DIMM_INFO_ADDR + 0x58);
-            ddr_param_buf[3] = ld(DIMM_INFO_ADDR + 0x60);
-            ddr_param_buf[4] = ld(DIMM_INFO_ADDR + 0x68);
+            ddr_param_buf[1] = __raw__readq(DIMM_INFO_ADDR + 0x50);
+            ddr_param_buf[2] = __raw__readq(DIMM_INFO_ADDR + 0x58);
+            ddr_param_buf[3] = __raw__readq(DIMM_INFO_ADDR + 0x60);
+            ddr_param_buf[4] = __raw__readq(DIMM_INFO_ADDR + 0x68);
 #ifdef DEBUG
             printf("mc level info is 0x%016llx\n", ddr_param_buf[0]);
             printf("dimm info is 0x%016llx\n", ddr_param_buf[1]);
@@ -379,12 +344,12 @@ int save_board_ddrparam(int mandatory)
         }
         //MC1
         if( ((flag >> 35) & 0x1) || mandatory ){
-            printf("Store MC info of Node %d MC 1\n", node_id);
+            printf("Store MC info of Node %lld MC 1\n", node_id);
             ddr_param_buf[0] = (((flag >> 48) & 0x1f) << 32) | 0x1;
-            ddr_param_buf[1] = ld(DIMM_INFO_ADDR + 0x70);
-            ddr_param_buf[2] = ld(DIMM_INFO_ADDR + 0x78);
-            ddr_param_buf[3] = ld(DIMM_INFO_ADDR + 0x80);
-            ddr_param_buf[4] = ld(DIMM_INFO_ADDR + 0x88);
+            ddr_param_buf[1] = __raw__readq(DIMM_INFO_ADDR + 0x70);
+            ddr_param_buf[2] = __raw__readq(DIMM_INFO_ADDR + 0x78);
+            ddr_param_buf[3] = __raw__readq(DIMM_INFO_ADDR + 0x80);
+            ddr_param_buf[4] = __raw__readq(DIMM_INFO_ADDR + 0x88);
 #ifdef DEBUG
             printf("mc level info is 0x%016llx\n", ddr_param_buf[0]);
             printf("dimm info is 0x%016llx\n", ddr_param_buf[1]);
@@ -398,7 +363,7 @@ int save_board_ddrparam(int mandatory)
         return(1);
     }
     else{
-        printf("Token is broken! Date is 0x%016llx\n", ld(DIMM_INFO_ADDR));
+        printf("Token is broken! Date is 0x%016llx\n", __raw__readq(DIMM_INFO_ADDR));
         return(0);
     }
 }
@@ -410,19 +375,19 @@ int save_board_ddrparam(int mandatory)
     unsigned long long flag;
     unsigned long long node_id;
     unsigned long long ddr_param_buf[DDR_PARAM_NUM + 6];
-    if( (ld(DIMM_INFO_ADDR) == 0x2013011014413291) || mandatory ){
+    if( (__raw__readq(DIMM_INFO_ADDR) == 0x2013011014413291) || mandatory ){
         printf("Token is correct!\n");
-        flag    = ld(DIMM_INFO_ADDR + 0x8);
+        flag    = __raw__readq(DIMM_INFO_ADDR + 0x8);
         printf("flag is 0x%016llx\n", flag);
         //MC0
         node_id = 0;
         if( ((flag >> 32) & 0x1) || mandatory ){
             printf("Store MC info of Node %d\n", node_id);
             ddr_param_buf[0] = (((flag >> 40) & 0x1f) << 32) | 0x1;
-            ddr_param_buf[1] = ld(DIMM_INFO_ADDR + 0x10);
-            ddr_param_buf[2] = ld(DIMM_INFO_ADDR + 0x18);
-            ddr_param_buf[3] = ld(DIMM_INFO_ADDR + 0x20);
-            ddr_param_buf[4] = ld(DIMM_INFO_ADDR + 0x28);
+            ddr_param_buf[1] = __raw__readq(DIMM_INFO_ADDR + 0x10);
+            ddr_param_buf[2] = __raw__readq(DIMM_INFO_ADDR + 0x18);
+            ddr_param_buf[3] = __raw__readq(DIMM_INFO_ADDR + 0x20);
+            ddr_param_buf[4] = __raw__readq(DIMM_INFO_ADDR + 0x28);
 #ifdef DEBUG
             printf("mc level info is 0x%016llx\n", ddr_param_buf[0]);
             printf("dimm info is 0x%016llx\n", ddr_param_buf[1]);
@@ -439,10 +404,10 @@ int save_board_ddrparam(int mandatory)
         if( ((flag >> 33) & 0x1) || mandatory ){
             printf("Store MC info of Node %d\n", node_id);
             ddr_param_buf[0] = (((flag >> 40) & 0x1f) << 32) | 0x1;
-            ddr_param_buf[1] = ld(DIMM_INFO_ADDR + 0x30);
-            ddr_param_buf[2] = ld(DIMM_INFO_ADDR + 0x38);
-            ddr_param_buf[3] = ld(DIMM_INFO_ADDR + 0x40);
-            ddr_param_buf[4] = ld(DIMM_INFO_ADDR + 0x48);
+            ddr_param_buf[1] = __raw__readq(DIMM_INFO_ADDR + 0x30);
+            ddr_param_buf[2] = __raw__readq(DIMM_INFO_ADDR + 0x38);
+            ddr_param_buf[3] = __raw__readq(DIMM_INFO_ADDR + 0x40);
+            ddr_param_buf[4] = __raw__readq(DIMM_INFO_ADDR + 0x48);
 #ifdef DEBUG
             printf("mc level info is 0x%016llx\n", ddr_param_buf[0]);
             printf("dimm info is 0x%016llx\n", ddr_param_buf[1]);
@@ -459,10 +424,10 @@ int save_board_ddrparam(int mandatory)
         if( ((flag >> 34) & 0x1) || mandatory ){
             printf("Store MC info of Node %d\n", node_id);
             ddr_param_buf[0] = (((flag >> 48) & 0x1f) << 32) | 0x1;
-            ddr_param_buf[1] = ld(DIMM_INFO_ADDR + 0x50);
-            ddr_param_buf[2] = ld(DIMM_INFO_ADDR + 0x58);
-            ddr_param_buf[3] = ld(DIMM_INFO_ADDR + 0x60);
-            ddr_param_buf[4] = ld(DIMM_INFO_ADDR + 0x68);
+            ddr_param_buf[1] = __raw__readq(DIMM_INFO_ADDR + 0x50);
+            ddr_param_buf[2] = __raw__readq(DIMM_INFO_ADDR + 0x58);
+            ddr_param_buf[3] = __raw__readq(DIMM_INFO_ADDR + 0x60);
+            ddr_param_buf[4] = __raw__readq(DIMM_INFO_ADDR + 0x68);
 #ifdef DEBUG
             printf("mc level info is 0x%016llx\n", ddr_param_buf[0]);
             printf("dimm info is 0x%016llx\n", ddr_param_buf[1]);
@@ -477,10 +442,10 @@ int save_board_ddrparam(int mandatory)
         if( ((flag >> 35) & 0x1) || mandatory ){
             printf("Store MC info of Node %d\n", node_id);
             ddr_param_buf[0] = (((flag >> 48) & 0x1f) << 32) | 0x1;
-            ddr_param_buf[1] = ld(DIMM_INFO_ADDR + 0x70);
-            ddr_param_buf[2] = ld(DIMM_INFO_ADDR + 0x78);
-            ddr_param_buf[3] = ld(DIMM_INFO_ADDR + 0x80);
-            ddr_param_buf[4] = ld(DIMM_INFO_ADDR + 0x88);
+            ddr_param_buf[1] = __raw__readq(DIMM_INFO_ADDR + 0x70);
+            ddr_param_buf[2] = __raw__readq(DIMM_INFO_ADDR + 0x78);
+            ddr_param_buf[3] = __raw__readq(DIMM_INFO_ADDR + 0x80);
+            ddr_param_buf[4] = __raw__readq(DIMM_INFO_ADDR + 0x88);
 #ifdef DEBUG
             printf("mc level info is 0x%016llx\n", ddr_param_buf[0]);
             printf("dimm info is 0x%016llx\n", ddr_param_buf[1]);
@@ -495,7 +460,7 @@ int save_board_ddrparam(int mandatory)
         return(1);
     }
     else{
-        printf("Token is broken! Date is 0x%016llx\n", ld(DIMM_INFO_ADDR));
+        printf("Token is broken! Date is 0x%016llx\n", __raw__readq(DIMM_INFO_ADDR));
         return(0);
     }
 }
