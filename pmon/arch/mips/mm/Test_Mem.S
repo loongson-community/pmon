@@ -1841,7 +1841,7 @@ use reg:t5, t7
     move    t7, ra
     xor     a0, t0, t4
     or      s6, s6, a0
-#ifdef  TM_DBG
+#ifdef  PRINT_LESS_ERROR
     daddiu  t8, t8, -0x1
 #endif
     /* reread the wrong bytes */
@@ -1920,7 +1920,7 @@ use reg:t5, t7
     move    t7, ra
     xor     a0, t0, t4
     or      s6, s6, a0
-#ifdef  TM_DBG
+#ifdef  PRINT_LESS_ERROR
     daddiu  t8, t8, -0x1
 #endif
     /* reread the wrong bytes */

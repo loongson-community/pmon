@@ -39,11 +39,11 @@ algrithm:
 
 //#define DEBUG_ARB_LEVEL_WR
 //#define DEBUG_ARB_LEVEL_WR_TM
-//#define DEBUG_ARB_LEVEL_WR_DETAIL
+//#define DEBUG_ARB_LEVEL_WR_CFG
 //#define DEBUG_ARB_LEVEL_RD
 //#define DEBUG_ARB_LEVEL_RD_TM
-//#define DEBUG_ARB_LEVEL_RD_DETAIL
-
+//#define DEBUG_ARB_LEVEL_RD_CFG
+  
 //#define USE_DEFAULT_WRLVL_VALUE   //currently only affect at DDR3 mode
 
 //#define ARB_SKIP_WRLVL
@@ -56,6 +56,7 @@ algrithm:
 #define USE_BIG_GF_POP_DELAY  //work ok
 #define ARBLVL_PUT_DRAM_SREF
 #ifdef  LS2HMC
+//#define CLEAR_HALF_CLK_SHIFT    //for 2H3~1 don't define it 
 //#define USE_DEFAULT_RDLVL_DELAY
 #else
 #define CLEAR_HALF_CLK_SHIFT    //necessary
@@ -172,7 +173,7 @@ ARB_level_begin:
 #endif
 
 arb_wrlvl_start:
-#ifdef  DEBUG_ARB_LEVEL_WR_DETAIL
+#ifdef  DEBUG_ARB_LEVEL_WR_CFG
     PRINTSTR("\r\nThe MC configuration is:\r\n")
     bal     enable_ddr_confspace
     nop
@@ -183,12 +184,12 @@ arb_wrlvl_start:
     dsll    a1, a1, 44
     or      t7, t7, a1
 1:
-    ld      t3, 0x0(t7)
-    dsrl    a0, t3, 32
+    ld      t8, 0x0(t7)
+    dsrl    a0, t8, 32
     bal     hexserial
     nop
     PRINTSTR("  ")
-    move    a0, t3
+    move    a0, t8
     bal     hexserial
     nop
     PRINTSTR("\r\n")
@@ -203,9 +204,14 @@ arb_wrlvl_start:
 #endif
     dli     s3, 0xf //change all 8 byte slices
 
+    //set rdlvl gate delay value
+    dli     t6, 0x2
+    dli     t2, RDLVL_GATE_INIT_DELAY
+    bal     arb_modify_param
+    nop
     //small wrlvl dq delay value temporary
     dli     t6, 0x6
-    dli     t2, 0x18
+    dli     t2, WRLVL_DQ_SMALL_DLY
     bal     arb_modify_param
     nop
 
@@ -228,22 +234,22 @@ arb_wrlvl_start:
     sd      $0, 0x50(t8)
     sd      $0, 0x58(t8)
 
+    //set test interval
+    dli     t5, 1 << LOG2_STEP 
     //set t2 start value
-    //5 wrlvl_dqs max
     dli     t2, WRLVL_MAX_DELAY
 
     dli     t0, 0x1
     dsrl    a0, t2, LOG2_STEP
     dsll    t0, t0, a0
 
-    dli     t5, 1 << LOG2_STEP 
-    //initialize
+wrlvl_test_one_delay:
     move    t3, $0
     move    t4, $0
     not     t3, t3
     not     t4, t4
-31:
-#ifdef  DEBUG_ARB_LEVEL_WR
+
+#ifdef  DEBUG_ARB_LEVEL_WR_TM
     PRINTSTR("\r\n\r\nt2 = 0x")
     move    a0, t2
     bal     hexserial
@@ -254,6 +260,36 @@ arb_wrlvl_start:
 //write new delay value
     bal     arb_modify_param
     nop
+#ifdef  DEBUG_ARB_LEVEL_WR_CFG
+    PRINTSTR("\r\nThe wrlvl_delay configuration is:\r\n")
+    bal     enable_ddr_confspace
+    nop
+
+    dli     t1, 0x3         //set print num
+    dli     t7, DDR_MC_CONFIG_BASE
+    GET_ARB_LEVEL_NODE_ID
+    dsll    a1, a1, 44
+    or      t7, t7, a1
+    daddu   t7, t7, 0xaf0   //set start offset
+1:
+    ld      t8, 0x0(t7)
+    dsrl    a0, t8, 32
+    bal     hexserial
+    nop
+    PRINTSTR("  ")
+    move    a0, t8
+    bal     hexserial
+    nop
+    PRINTSTR("\r\n")
+
+    daddiu  t1, t1, -1
+    daddiu  t7, t7, 16
+    bnez    t1, 1b
+    nop
+
+    bal     disable_ddr_confspace
+    nop
+#endif
 
     //store t2 of current wrlvl_delay value
     move    s5, t2
@@ -261,7 +297,7 @@ arb_wrlvl_start:
     move    t2, $0
 18:
     dli     t6, 0x7
-#ifdef  DEBUG_ARB_LEVEL_WR_DETAIL
+#ifdef  DEBUG_ARB_LEVEL_WR_CFG
     PRINTSTR("\r\nModify read gate cfg: = 0x")
     move    a0, t2
     bal     hexserial
@@ -271,12 +307,11 @@ arb_wrlvl_start:
     nop
 
 //do Test and print test result
-#ifdef  DEBUG_ARB_LEVEL_WR_DETAIL
-    PRINTSTR("\r\nThe MC configuration is:\r\n")
+#ifdef  DEBUG_ARB_LEVEL_WR_CFG
+    PRINTSTR("\r\nThe phy_ctrl_0 configuration is:\r\n")
     bal     enable_ddr_confspace
     nop
 
-    //dli     t1, DDR_PARAM_NUM
     dli     t1, 0xa         //set print num
     dli     t7, DDR_MC_CONFIG_BASE
     GET_ARB_LEVEL_NODE_ID
@@ -284,12 +319,12 @@ arb_wrlvl_start:
     or      t7, t7, a1
     daddu   t7, t7, 0x2d0   //set start offset
 1:
-    ld      t6, 0x0(t7)
-    dsrl    a0, t6, 32
+    ld      t8, 0x0(t7)
+    dsrl    a0, t8, 32
     bal     hexserial
     nop
     PRINTSTR("  ")
-    move    a0, t6
+    move    a0, t8
     bal     hexserial
     nop
     PRINTSTR("\r\n")
@@ -304,6 +339,29 @@ arb_wrlvl_start:
 #endif
     bal     arb_test_mem
     nop
+#ifdef  DEBUG_ARB_LEVEL_WR_TM
+    move    t7, v0
+    move    t8, v1
+
+    PRINTSTR("\r\nRW Diff 0x")
+    dsrl    a0, t7, 32
+    bal     hexserial
+    nop
+    move    a0, t7
+    bal     hexserial
+    nop
+
+    PRINTSTR("\r\nRD Diff 0x")
+    dsrl    a0, t8, 32
+    bal     hexserial
+    nop
+    move    a0, t8
+    bal     hexserial
+    nop
+
+    move    v0, t7
+    move    v1, t8
+#endif
     //process test result, only when the entire byte is correct(0x00) clear fail mark in t3.
     //byte 7
     dsrl    a0, v0, 0x38
@@ -393,7 +451,7 @@ arb_wrlvl_start:
     not     a0, a0
     and     t3, t3, a0
 1:
-#ifdef  DEBUG_ARB_LEVEL_WR
+#ifdef  DEBUG_ARB_LEVEL_WR_TM
     //record RD history in t4, normally, t4 should be 0x0 after all these trying
     //byte 7
     dsrl    a0, v1, 0x38
@@ -500,7 +558,7 @@ arb_wrlvl_start:
     bnez    s4, 26f
     nop
     daddu   s4, s4, 1
-#ifdef  DEBUG_ARB_LEVEL_WR_DETAIL
+#ifdef  DEBUG_ARB_LEVEL_WR_CFG
     PRINTSTR("\r\nAlter read pop delay.")
 #endif
     bal     arb_modify_pop_delay_alter
@@ -513,17 +571,15 @@ arb_wrlvl_start:
     move    t2, s5
 
 #ifdef  DEBUG_ARB_LEVEL_WR_TM
-    PRINTSTR("\r\nRW Diff 0x")
+    PRINTSTR("\r\nAfter tried all the RD setting:\r\nRW Diff 0x")
     dsrl    a0, t3, 32
     bal     hexserial
     nop
     move    a0, t3
     bal     hexserial
     nop
-#endif
 
-#ifdef  DEBUG_ARB_LEVEL_WR
-    PRINTSTR("\r\nAfter all the RD setting, t4 = 0x")
+    PRINTSTR("\r\nRD Diff 0x")
     dsrl    a0, t4, 32
     bal     hexserial
     nop
@@ -535,6 +591,7 @@ arb_wrlvl_start:
     PRINTSTR("\r\nWarning!!! some byte slice can't find a correct read setting")
 1:
 #endif
+
 //process TM result: translate Byte error info into 1 bit info in each BX_TM_RST of every Byte.
 //64 bit BX_TM_RST work as a bit map corresponding to every param value(so the min step interval
 //is 2, or there will be not enough space to store TM RST info), the 64 bit can be only part valid(
@@ -624,11 +681,11 @@ arb_wrlvl_start:
     nop
     /** not exceed **/
     move    t2, a2
-    b       31b
+    b       wrlvl_test_one_delay
     nop
 11: 
 
-#ifdef  DEBUG_ARB_LEVEL_WR_TM
+#ifdef  DEBUG_ARB_LEVEL_WR
     dli     t8, ARB_STORE_BASE
     GET_ARB_LEVEL_NODE_ID
     dsll    a1, a1, 44
@@ -725,29 +782,29 @@ boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
     ld      a1, B4_TM_RST(t8)
     ld      a2, B0_TM_RST(t8)
     or      a1, a1, a2
-    sd      a2, B0_TM_RST(t8)
+    sd      a1, B0_TM_RST(t8)
 
     ld      a1, B5_TM_RST(t8)
     ld      a2, B1_TM_RST(t8)
     or      a1, a1, a2
-    sd      a2, B1_TM_RST(t8)
+    sd      a1, B1_TM_RST(t8)
 
     ld      a1, B6_TM_RST(t8)
     ld      a2, B2_TM_RST(t8)
     or      a1, a1, a2
-    sd      a2, B2_TM_RST(t8)
+    sd      a1, B2_TM_RST(t8)
 
     ld      a1, B7_TM_RST(t8)
     ld      a2, B3_TM_RST(t8)
     or      a1, a1, a2
-    sd      a2, B3_TM_RST(t8)
+    sd      a1, B3_TM_RST(t8)
 
     dli     t1, 0x18    //start from byte 3
 1:
 
-11: //loop for 8 byte lane
-    daddu   a1, t8, t1
-    ld      t3, B0_TM_RST(a1)
+11: //loop for all byte lanes
+    daddu   t7, t8, t1
+    ld      t3, B0_TM_RST(t7)
 #ifdef  DEBUG_ARB_LEVEL_WR
     PRINTSTR("\r\nt3 = 0x")
     dsrl    a0, t3, 32
@@ -842,11 +899,7 @@ boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
 #endif
     //write standard value mandatory
     //wrlvl_delay
-#ifdef  DDR3_DIMM
-    dli     a0, 0x48423c362a262220
-#else
-    dli     a0, 0x3030303030303030
-#endif
+    dli     a0, WRLVL_DEFAULT_VALUE
     sd      a0, GD_MID(t8)
     b       arb_wrlvl_value_caled
     nop
@@ -885,7 +938,6 @@ boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
     nop
     //DDR3 UDIMM
     //As some slices will reach the test boundary, select one of the speculate method
-#if 1
 //for DDR3 Unbuffered UDIMM
 //use MAX - (0x40 or the Min Max value) as the Slice 0 standard value, and
 //other slices use (slice 0 + default offset relative to slice 0)
@@ -912,154 +964,9 @@ boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
 
     dli     a0, WRLVL_DDR3_UDIMM_DEFAULT_OFFSET
     daddu   a0, a0, a2
-#endif
-#if 0
-//use MAX - (0x40 or the Min Max value) adjustment algorithm
-    ld      a1, GD_MIN(t8)
-    ld      a3, GD_MAX(t8)
-    //select the MIN of MAX(byte 1, byte 0), normally the byte 0 should be the smaller.
-    dsrl    a2, a3, 0
-    dsrl    v0, a3, 8
-    and     a2, a2, 0x7f
-    and     v0, v0, 0x7f
-    ble     a2, v0, 1f
-    nop
-    move    a2, v0
-1:
-    //select the MIN(byte 0 MIN, WRLVL_DELAY_MINUS_VALUE), normally the byte 0 MIN should be the bigger.
-    dli     v0, WRLVL_DELAY_MINUS_VALUE
-    ble     a2, v0, 1f
-    nop
-    move    a2, v0
-1:
-    //shift byte 0 value to 8 bytes of a2
-    dsll    v0, a2, 0x8
-    daddu   a2, a2, v0
-    dsll    v0, a2, 0x10
-    daddu   a2, a2, v0
-    dsll    v0, a2, 0x20
-    daddu   a2, a2, v0
-    //If some slices'max value >= 0x70(caused by logic design boundary), we should compensate some value for them.
-    //check slice 2~7 should be enough
-    //note: the if 0 code bellow ONLY check slice 4~7 now.
-
-    //select one from the different compensating policies bellow
-#if 0
-    //if the max value >= 0x70, compensate all a fix value(check slice 4~7 should be enough).
-    //set compensate value to a0
-    dli     a0, 0x4
-    dli     v1, 0x7070707070707070
-    and     v0, v1, a3
-    xor     v0, v0, v1
-
-    dsrl    v1, v0, 56
-    and     v1, v1, 0xff
-    bnez    v1, 1f
-    nop
-    //slice 7 >= 0x70
-    dsll    v1, a0, 56
-    daddu   a3, a3, v1
-1:
-    dsrl    v1, v0, 48
-    and     v1, v1, 0xff
-    bnez    v1, 1f
-    nop
-    //slice 6 >= 0x70
-    dsll    v1, a0, 48
-    daddu   a3, a3, v1
-1:
-    dsrl    v1, v0, 40
-    and     v1, v1, 0xff
-    bnez    v1, 1f
-    nop
-    //slice 5 >= 0x70
-    dsll    v1, a0, 40
-    daddu   a3, a3, v1
-1:
-    dsrl    v1, v0, 32
-    and     v1, v1, 0xff
-    bnez    v1, 1f
-    nop
-    //slice 4 >= 0x70
-    dsll    v1, a0, 32
-    daddu   a3, a3, v1
-1:
-#endif
-#if 1
-    //if one of the max value >= 0x70, compensate it and the upper slices(the slice upper, the compensate value bigger)
-    //check start from slice 2
-    //set compensate value to a1 first, like 0x100c080400000000, if the max >= 0x70 slice not start from slice 2, dsll a1.
-    dli     v0, 0x4
-    dsll    a1, v0, 16
-    daddu   v0, v0, 0x6
-    dsll    v1, v0, 24
-    or      a1, a1, v1
-    daddu   v0, v0, 0x6
-    dsll    v1, v0, 32
-    or      a1, a1, v1
-    daddu   v0, v0, 0x6
-    dsll    v1, v0, 40
-    or      a1, a1, v1
-    daddu   v0, v0, 0x6
-    dsll    v1, v0, 48
-    or      a1, a1, v1
-    daddu   v0, v0, 0x6
-    dsll    v1, v0, 56
-    or      a1, a1, v1
-
-    dli     v1, 0x70
-    dsrl    v0, a3, 16
-    and     v0, v0, 0xff
-    bge     v0, v1, 1f
-    nop
-    //slice 2 < 0x70
-    dsll    a1, a1, 0x8
-    dsrl    v0, a3, 24
-    and     v0, v0, 0xff
-    bge     v0, v1, 1f
-    nop
-    //slice 3 < 0x70
-    dsll    a1, a1, 0x8
-    dsrl    v0, a3, 32
-    and     v0, v0, 0xff
-    bge     v0, v1, 1f
-    nop
-    //slice 4 < 0x70
-    dsll    a1, a1, 0x8
-    dsrl    v0, a3, 40
-    and     v0, v0, 0xff
-    bge     v0, v1, 1f
-    nop
-    //slice 5 < 0x70
-    dsll    a1, a1, 0x8
-    dsrl    v0, a3, 48
-    and     v0, v0, 0xff
-    bge     v0, v1, 1f
-    nop
-    //slice 6 < 0x70
-    dsll    a1, a1, 0x8
-    dsrl    v0, a3, 56
-    and     v0, v0, 0xff
-    bge     v0, v1, 1f
-    nop
-    //slice 7 < 0x70
-    dsll    a1, a1, 0x8
-1:
-    daddu   a3, a3, a1
-#endif
-    
-    dsubu   a0, a3, a2
-    //make sure no byte needs carry bit
-    dli     v1, 0x8080808080808080
-    and     v1, v1, a0
-    bnez    v1, 1f
-    nop
     b       88f
     nop
-1:  //abnormal: some byte is smaller than minus, use traditional process
-#endif
-    b       88f
-    nop
+
 4:  //DDR3 RDIMM
     ld      a1, GD_MIN(t8)
     ld      a3, GD_MAX(t8)
@@ -1179,6 +1086,16 @@ boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
 88:
 #endif
     sd      a0, GD_MID(t8)
+#ifdef  PRINT_MSG
+    PRINTSTR("\r\nCal Mid value: 0x")
+    ld      t7, GD_MID(t8)
+    dsrl    a0, t7, 32
+    bal     hexserial
+    nop
+    move    a0, t7
+    bal     hexserial
+    nop
+#endif
 
 #ifdef  USE_DEFAULT_WRLVL_VALUE
     b       arb_wrlvl_value_caled
@@ -1201,16 +1118,6 @@ arb_wrlvl_default_value:
     sd      a0, GD_MID(t8)
 #endif
 
-#ifdef  PRINT_MSG
-    PRINTSTR("\r\nCal Mid value: 0x")
-    ld      t7, GD_MID(t8)
-    dsrl    a0, t7, 32
-    bal     hexserial
-    nop
-    move    a0, t7
-    bal     hexserial
-    nop
-#endif
 arb_wrlvl_value_caled:
     ld      t2, GD_MID(t8)
 #ifdef DEBUG_ARB_LEVEL_WR
@@ -1222,7 +1129,9 @@ arb_wrlvl_value_caled:
     bal     hexserial
     nop
 #endif
-#include    "ARB_Write_WDQS_param.S"
+    dli     t6, 0x5
+    bal     arb_write_param
+    nop
 
     //recover wrlvl dq delay value
     dli     t6, 0x6
@@ -1345,13 +1254,12 @@ rdlvl_one_byte_start:
     //then calculate the range of rdlvl_delay_P/N, use the larger range as final setting.
     move    s4, $0
 rdlvl_pop_delay_start:
-    //set default value
-    //set rdlvl_delay_P/N to default value: 0x20
-    dli     t2, 0x20
+    //set rdlvl_delay_P/N to default value
+    dli     t2, RDLVL_DEFAULT_DELAY
     dli     t6, 0x3
     bal     arb_modify_param
     nop
-    daddu   t6, t6, 0x1
+    dli     t6, 0x4
     bal     arb_modify_param
     nop
 
@@ -1361,7 +1269,7 @@ rdlvl_pop_delay_start:
     //decrease from bigger to small because we want to use as bigger as possible.
 rdlvl_gate_cfg_start:
     move    t2, t9
-#ifdef  DEBUG_ARB_LEVEL_RD
+#ifdef  DEBUG_ARB_LEVEL_RD_CFG
     PRINTSTR("\r\nModify read gate cfg: t2 = 0x")
     move    a0, t2
     bal     hexserial
@@ -1370,7 +1278,7 @@ rdlvl_gate_cfg_start:
     dli     t6, 0x7
     bal     arb_modify_param
     nop
-#ifdef  DEBUG_ARB_LEVEL_RD_DETAIL
+#ifdef  DEBUG_ARB_LEVEL_RD_CFG
     PRINTSTR("\r\nThe MC configuration is:\r\n")
     bal     enable_ddr_confspace
     nop
@@ -1409,6 +1317,7 @@ rdlvl_gate_cfg_start:
     sd      zero, GD_MAX(t8)
     sd      zero, GD_MID(t8)
 
+    //initialize
     dli     t6, 0x2
     //set t2 start value
     dli     t2, RDLVL_GATE_MAX_DELAY
@@ -1418,9 +1327,6 @@ rdlvl_gate_cfg_start:
     dsll    t0, t0, a0
 
     dli     t5, 1 << GATE_LOG2_STEP 
-    //initialize
-    move    t3, $0
-    move    t4, $0
 31:
 //write new delay value
     bal     arb_modify_param
@@ -1459,10 +1365,9 @@ rdlvl_gate_cfg_start:
     PRINTSTR("\r\nNo Error detected.")
 2:
 #endif
-    //Mask out this byte lane info
+    //Mask out other byte lanes info
     and     t3, t3, s5
     and     t4, t4, s5
-#if 1
 //process TM result: translate Byte error info into 1 bit info in each BX_TM_RST of every Byte.
 //64 bit BX_TM_RST work as a bit map corresponding to every param value(so the min step interval
 //is 2, or there will be not enough space to store TM RST info), the 64 bit can be only part valid(
@@ -1475,7 +1380,7 @@ rdlvl_gate_cfg_start:
     sd      a0, BYTE_TM_RST(t8)
 1:
     dsrl    t0, t0, 1
-#endif
+
     //check whether delay value reach the boundary
     dsubu   a2, t2, t5
     bltz    a2, 11f //check the new delay value whether exceed limitation
@@ -1498,18 +1403,18 @@ rdlvl_gate_cfg_start:
 #endif
 //calculate mid value for this byte lane
 /***********
-boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
+boundary sign: contain at least RDLVL_WINDOW_ZERO_NUM consecutive 0(TM success)
     t0: parse pointer
     t2: parse max position
     t3: BYTE_X_LEVEL_RST
-    t4: WINDOW_ZERO_NUM
+    t4: RDLVL_WINDOW_ZERO_NUM
 ***********/
     //set t2 max value for each level object
     dli     t2, RDLVL_GATE_MAX_DELAY
     dsrl    t2, t2, GATE_LOG2_STEP
 
     ld      t3, BYTE_TM_RST(t8)
-#ifdef  DEBUG_ARB_LEVEL_RD_DETAIL
+#ifdef  DEBUG_ARB_LEVEL_RD_TM
     PRINTSTR("\r\nt3 = 0x")
     dsrl    a0, t3, 32
     bal     hexserial
@@ -1519,7 +1424,7 @@ boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
     nop
 #endif
     move    t0, $0
-    dli     t4, WINDOW_ZERO_NUM + (GATE_ADJUST)
+    dli     t4, RDLVL_WINDOW_ZERO_NUM + (GATE_ADJUST)
 12:
     bgtu    t0, t2, 3f
     nop
@@ -1536,14 +1441,14 @@ boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
     b       12b
     nop
 1:  //find a TM fail
-    dli     t4, WINDOW_ZERO_NUM + (GATE_ADJUST)
+    dli     t4, RDLVL_WINDOW_ZERO_NUM + (GATE_ADJUST)
     //continue move
     daddiu  t0, t0, 0x1
     b       12b
     nop
 2:  //window found
     //calculate the MIN boundary
-    dli     a1, WINDOW_ZERO_NUM + (GATE_ADJUST)
+    dli     a1, RDLVL_WINDOW_ZERO_NUM + (GATE_ADJUST)
     daddiu  a0, t0, 1
     dsubu   a0, a0, a1
     dsll    a0, a0, GATE_LOG2_STEP   //a0 = a0 * 2n
@@ -1663,7 +1568,7 @@ rdlvl_gate_cfg_fail:    //tryed all setting(0,1), can NOT find a right cfg, try 
     bal     hexserial
     nop
 #endif
-    bal     arb_write_param
+    bal     arb_modify_param
     nop
 
     //3. find the rdlvl_delay_P/N range.
@@ -1682,17 +1587,13 @@ rdlvl_gate_cfg_fail:    //tryed all setting(0,1), can NOT find a right cfg, try 
     sd      zero, GD_MID(t8)
 
     //set t2 start value
-    //3,4 rdlvl_dqs and rdlvl_dqsn max delay
     dli     t2, RDLVL_MAX_DELAY
 
     dli     t0, 0x1
-    dsrl    a0, t2, LOG2_STEP
+    dsrl    a0, t2, RDLVL_LOG2_STEP
     dsll    t0, t0, a0
 
-    dli     t5, 1 << LOG2_STEP 
-    //initialize
-    move    t3, $0
-    move    t4, $0
+    dli     t5, 1 << RDLVL_LOG2_STEP 
 31:
 //write new delay value
     bal     arb_modify_param
@@ -1734,7 +1635,6 @@ rdlvl_gate_cfg_fail:    //tryed all setting(0,1), can NOT find a right cfg, try 
     //Mask out this byte lane info
     and     t3, t3, s5
     and     t4, t4, s5
-#if 1
 //process TM result: translate Byte error info into 1 bit info in each BX_TM_RST of every Byte.
 //64 bit BX_TM_RST work as a bit map corresponding to every param value(so the min step interval
 //is 2, or there will be not enough space to store TM RST info), the 64 bit can be only part valid(
@@ -1747,7 +1647,7 @@ rdlvl_gate_cfg_fail:    //tryed all setting(0,1), can NOT find a right cfg, try 
     sd      a0, BYTE_TM_RST(t8)
 1:
     dsrl    t0, t0, 1
-#endif
+
     //check whether delay value reach the boundary
     dsubu   a2, t2, t5
     bltz    a2, 11f //check the new delay value whether exceed limitation
@@ -1770,18 +1670,18 @@ rdlvl_gate_cfg_fail:    //tryed all setting(0,1), can NOT find a right cfg, try 
 #endif
 //calculate mid value for this byte lane
 /***********
-boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
+boundary sign: contain at least RDLVL_WINDOW_ZERO_NUM consecutive 0(TM success)
     t0: parse pointer
     t2: parse max position
     t3: BYTE_X_LEVEL_RST
-    t4: WINDOW_ZERO_NUM
+    t4: RDLVL_WINDOW_ZERO_NUM
 ***********/
     //set t2 max value for each level object
     dli     t2, RDLVL_MAX_DELAY
-    dsrl    t2, t2, LOG2_STEP
+    dsrl    t2, t2, RDLVL_LOG2_STEP
 
     ld      t3, BYTE_TM_RST(t8)
-#ifdef  DEBUG_ARB_LEVEL_RD_DETAIL
+#ifdef  DEBUG_ARB_LEVEL_RD_TM
     PRINTSTR("\r\nt3 = 0x")
     dsrl    a0, t3, 32
     bal     hexserial
@@ -1791,7 +1691,7 @@ boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
     nop
 #endif
     move    t0, $0
-    dli     t4, WINDOW_ZERO_NUM
+    dli     t4, RDLVL_WINDOW_ZERO_NUM
 12:
     bgtu    t0, t2, 3f
     nop
@@ -1808,17 +1708,17 @@ boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
     b       12b
     nop
 1:  //find a TM fail
-    dli     t4, WINDOW_ZERO_NUM
+    dli     t4, RDLVL_WINDOW_ZERO_NUM
     //continue move
     daddiu  t0, t0, 0x1
     b       12b
     nop
 2:  //window found
     //calculate the MIN boundary
-    dli     a1, WINDOW_ZERO_NUM
+    dli     a1, RDLVL_WINDOW_ZERO_NUM
     daddiu  a0, t0, 1
     dsubu   a0, a0, a1
-    dsll    a0, a0, LOG2_STEP   //a0 = a0 * 2n
+    dsll    a0, a0, RDLVL_LOG2_STEP   //a0 = a0 * 2n
     and     a0, a0, 0xff
     sd      a0, GD_MIN(t8)
     //move forward to the next Fail to cal the MAX boundary
@@ -1833,7 +1733,7 @@ boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
 1:
     //find a TM FAIL or reach the max test value
     daddiu  a0, t0, -1
-    dsll    a0, a0, LOG2_STEP   //a0 = a0 * 2n
+    dsll    a0, a0, RDLVL_LOG2_STEP   //a0 = a0 * 2n
     and     a0, a0, 0xff
     sd      a0, GD_MAX(t8)
     b       2f
@@ -1903,8 +1803,8 @@ boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
     or      a0, a0, a1
     sd      a0, RDLVL_DELAYN_GD_MAX(t8)
 2:
-    //write 0x20 to this rdlvl_delayP/N for next loop
-    dli     t2, 0x20
+    //write default value to this rdlvl_delayP/N for next loop
+    dli     t2, RDLVL_DEFAULT_DELAY
     bal     arb_modify_param
     nop
 
@@ -1914,7 +1814,7 @@ boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
     nop
 
 rdlvl_pop_delay_end:
-#ifdef  DEBUG_ARB_LEVEL_RD_DETAIL
+#ifdef  DEBUG_ARB_LEVEL_RD_CFG
     PRINTSTR("\r\nThe MC configuration is:\r\n")
     bal     enable_ddr_confspace
     nop
@@ -2029,16 +1929,16 @@ both_pop_delay_fail:
 //write standard value
     //write the phy_1_gate_cfg
     dli     t6, 0x7
-    dli     t2, 0x0
+    dli     t2, 0x1
     bal     arb_modify_param
     nop
     //write the rdlvl_gate_delay
     dli     t6, 0x2
-    dli     t2, 0x14
-    bal     arb_write_param
+    dli     t2, 0x19
+    bal     arb_modify_param
     nop
     //write rdlvl_delay_p/n
-    dli     t2, 0x20
+    dli     t2, RDLVL_DEFAULT_DELAY
     dli     t6, 0x3
     bal     arb_modify_param
     nop
@@ -2134,11 +2034,11 @@ first_pop_delay_ok:
     move    t2, a0
 
     dli     t6, 0x2
-    bal     arb_write_param
+    bal     arb_modify_param
     nop
 
     //write rdlvl_delay_p/n
-    dli     t2, 0x20
+    dli     t2, RDLVL_DEFAULT_DELAY
 #ifndef USE_DEFAULT_RDLVL_DELAY
     ld      a0, RDLVL_DELAYP_GD_MIN(t8)
     ld      a1, RDLVL_DELAYP_GD_MAX(t8)
@@ -2203,7 +2103,7 @@ second_pop_delay_ok:
 #endif
 #if 0
     //need to do nothing as all the correct cfg has been written.
-    dli     t2, 0x20
+    dli     t2, RDLVL_DEFAULT_DELAY
     dli     t6, 0x3
     bal     arb_modify_param
     nop
@@ -2214,7 +2114,7 @@ second_pop_delay_ok:
 
 rdlvl_one_byte_end:
 
-#ifdef  DEBUG_ARB_LEVEL_RD_DETAIL
+#ifdef  DEBUG_ARB_LEVEL_RD_CFG
     PRINTSTR("\r\nAfter rdlvl_one_byte test. The MC configuration is:\r\n")
     bal     enable_ddr_confspace
     nop
@@ -2250,7 +2150,7 @@ rdlvl_one_byte_end:
 
 //rdlvl finished
 rdlvl_end:
-#ifdef  DEBUG_ARB_LEVEL_RD_DETAIL
+#ifdef  DEBUG_ARB_LEVEL_RD_CFG
     PRINTSTR("\r\nAfter read level. The MC configuration is:\r\n")
     bal     enable_ddr_confspace
     nop
@@ -2280,10 +2180,12 @@ rdlvl_end:
     nop
 #endif
 
+
 #include    "ARB_Write_Slice_8_param.S"
+
     //print final level result
 #ifdef  PRINT_MSG
-    PRINTSTR("After ARB level. The MC configuration is:\r\n")
+    PRINTSTR("\r\nAfter ARB level. The MC configuration is:\r\n")
     bal     enable_ddr_confspace
     nop
 
@@ -2491,5 +2393,6 @@ disable_ddr_confspace:
     nop
     
 #include "ARB_Modify_param_func.S"
+#include "ARB_Write_param_func.S"
 #include "ARB_TM.S"
 //>>>>>>>>>>>>>>>>>>>>>

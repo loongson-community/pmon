@@ -30,6 +30,7 @@
     ld      a0, 0x80(t7)
     and     a0, a0, 0xf
     sd      a0, 0x80(t7)
+    sync
 #endif
 
     //PRINTSTR("\r\nEnable DDR MC config space.");
@@ -299,6 +300,21 @@
     beqz    a1, 1b
     nop
 
+    //resync DLL
+    //delay some time
+    dli     a2, 0x400
+1:
+    daddiu  a2, a2, -1
+    bnez    a2, 1b
+    nop
+    //PRINTSTR("\r\nResync DLL.")
+    dli     a2, 0x1
+    dsll    a2, a2, MC_RESYNC_DLL_OFFSET
+    ld      a1, MC_RESYNC_DLL_ADDR(t7)
+    or      a1, a1, a2
+    sd      a1, MC_RESYNC_DLL_ADDR(t7)
+    sync
+
 #ifdef  ARBLVL_PUT_DRAM_SREF
     //pull memory out of self-refresh
     ld      a1, SREFRESH_ADDR(t7)
@@ -345,6 +361,7 @@
     ld      a0, 0x80(t7)
     or      a0, a0, 0xf0
     sd      a0, 0x80(t7)
+    sync
 #endif
 
 #ifdef  ADD_DELAY_AFTER_RESET_PHY

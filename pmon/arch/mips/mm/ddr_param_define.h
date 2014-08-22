@@ -24,8 +24,8 @@
 #endif
 
 #define TRFC_MARGIN             0x8
-#define RESYNC_DLL_ADDR         (0x980)
-#define RESYNC_DLL_OFFSET       16
+#define MC_RESYNC_DLL_ADDR      (0x980)
+#define MC_RESYNC_DLL_OFFSET    16
 #define SREFRESH_ADDR           (0x30)
 #define SREFRESH_OFFSET         32
 #define START_ADDR              (0x30)
