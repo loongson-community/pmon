@@ -415,7 +415,6 @@ void movinv1(int iter, ulong p1, ulong p2);
 pcireg_t _pci_allocate_io(struct pci_device *dev, vm_size_t size);
 static void superio_reinit();
 
-extern unsigned long long	       memorysize_total;
 void
 initmips(unsigned long long raw_memsz)
 {
@@ -2403,9 +2402,11 @@ void sb700_interrupt_fixup(void)
 extern struct efi_memory_map_loongson g_map;
 extern unsigned long long memorysize;
 extern unsigned long long memorysize_high;
+#ifdef MULTI_CHIP
 extern unsigned long long memorysize_high_n1;
 extern unsigned long long memorysize_high_n2;
 extern unsigned long long memorysize_high_n3;
+#endif
 
 #include "../../../pmon/cmds/bootparam.h"
 struct efi_memory_map_loongson * init_memory_map()

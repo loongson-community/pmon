@@ -401,12 +401,13 @@ ConfigEntry	ConfigTable[] =
 
 unsigned long _filebase;
 
+
 extern unsigned long long  memorysize;
 extern unsigned long long  memorysize_high;
 #ifdef MULTI_CHIP
-unsigned long long memorysize_n1;
-unsigned long long memorysize_n2;
-unsigned long long memorysize_n3;
+extern unsigned long long memorysize_high_n1;
+extern unsigned long long memorysize_high_n2;
+extern unsigned long long memorysize_high_n3;
 #endif
 
 extern char MipsException[], MipsExceptionEnd[];
@@ -1886,14 +1887,14 @@ tgt_mapenv(int (*func) __P((char *, char *)))
 	(*func)("highmemsize", env);
 
 #ifdef MULTI_CHIP
-	sprintf(env, "%d", memorysize_n1 / (1024 * 1024));
-	(*func)("memorysize_n1", env);
+	sprintf(env, "%d", memorysize_high_n1 / (1024 * 1024));
+	(*func)("memorysize_high_n1", env);
 
-	sprintf(env, "%d", memorysize_n2 / (1024 * 1024));
-	(*func)("memorysize_n2", env);
+	sprintf(env, "%d", memorysize_high_n2 / (1024 * 1024));
+	(*func)("memorysize_high_n2", env);
 	
-	sprintf(env, "%d", memorysize_n3 / (1024 * 1024));
-	(*func)("memorysize_n3", env);
+	sprintf(env, "%d", memorysize_high_n3 / (1024 * 1024));
+	(*func)("memorysize_high_n3", env);
 #endif
 
 	sprintf(env, "%d", md_pipefreq);

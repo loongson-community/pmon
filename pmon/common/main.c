@@ -88,8 +88,8 @@ struct termio	consterm;	/* console terminal mode */
 register_t	initial_sr;
 unsigned long long             memorysize = 0;
 unsigned long long             memorysize_high = 0;
-unsigned long long             memorysize_high_n1 = 0;
 #ifdef MULTI_CHIP
+unsigned long long             memorysize_high_n1 = 0;
 unsigned long long             memorysize_high_n2 = 0;
 unsigned long long             memorysize_high_n3 = 0;
 #endif
@@ -1125,6 +1125,7 @@ initstack (ac, av, addenv)
 
 void get_memorysize(unsigned long long raw_memsz) {
 	unsigned long long memsz,mem_size;
+//	tgt_printf("raw_memsz: 0x%llx\n", raw_memsz);
 	memsz = raw_memsz & 0xff;
 	memsz = memsz << 29;
 	memsz = memsz - 0x1000000;
@@ -1137,12 +1138,12 @@ void get_memorysize(unsigned long long raw_memsz) {
 	memorysize_high = memsz > 240 ? (((unsigned long long)memsz) - 240) << 20 : 0;
 	mem_size = memsz;
 
+#ifdef MULTI_CHIP
 	memsz = raw_memsz & 0xff00;
     memsz = memsz >> 8;
     memsz = memsz << 29;
     memorysize_high_n1 = (memsz == 0) ? 0 : (memsz - (256 << 20));
 
-#ifdef MULTI_CHIP
     memsz = raw_memsz & 0xff0000;
     memsz = memsz >> 16;
     memsz = memsz << 29;
@@ -1154,12 +1155,20 @@ void get_memorysize(unsigned long long raw_memsz) {
     memorysize_high_n3 = (memsz == 0) ? 0 : (memsz - (256 << 20));
 #endif
 	memorysize_total =  ((memorysize  +  memorysize_high)  >> 20) + 16;
+#ifdef MULTI_CHIP
 	if(memorysize_high_n1 != 0)
 	    memorysize_total += ((memorysize_high_n1 + (256 << 20)) >> 20);
-#ifdef MULTI_CHIP
 	if(memorysize_high_n2 != 0)
 		memorysize_total += ((memorysize_high_n2 + (256 << 20)) >> 20);
 	if(memorysize_high_n3 != 0)
 	    memorysize_total += ((memorysize_high_n3 + (256 << 20)) >> 20);
 #endif
+	/*
+	tgt_printf("memorysize_high: 0x%llx\n", memorysize_high);
+#ifdef MULTI_CHIP
+	tgt_printf("memorysize_high_n1: 0x%llx\n", memorysize_high_n1);
+	tgt_printf("memorysize_high_n2: 0x%llx\n", memorysize_high_n2);
+	tgt_printf("memorysize_high_n3: 0x%llx\n", memorysize_high_n3);
+#endif
+*/
 }

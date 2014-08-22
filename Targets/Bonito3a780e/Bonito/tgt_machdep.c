@@ -218,10 +218,12 @@ unsigned long _filebase;
 
 extern unsigned long long  memorysize;
 extern unsigned long long  memorysize_high;
+#ifdef MULTI_CHIP
 extern unsigned long long  memorysize_high_n1;
 extern unsigned long long  memorysize_high_n2;
 extern unsigned long long  memorysize_high_n3;
-extern unsigned long long  memorysize_total;
+#endif
+//extern unsigned long long  memorysize_total;
 
 extern char MipsException[], MipsExceptionEnd[];
 
