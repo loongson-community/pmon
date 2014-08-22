@@ -60,7 +60,8 @@ void init_smbios(struct smbios_tables *smbios)
 #ifdef RS780E
   if(vga_dev != NULL){
   smbios->vga_bios = vgarom;
- }
+ }else
+  smbios->vga_bios = 0;
 #else
   smbios->vga_bios = 0;
 #endif
