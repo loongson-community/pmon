@@ -431,8 +431,11 @@ struct loongson_special_attribute *init_special_info()
 
   struct loongson_special_attribute  *special = &g_special;
   char update[11];
+  
+#ifdef	LOONGSON_2G5536
+  memset(update,0,11);
+#endif
   get_update(update);
-
 
   strcpy(special->special_name,update);
 #ifndef	LOONGSON_2G5536
