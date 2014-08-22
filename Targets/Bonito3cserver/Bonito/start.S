@@ -268,7 +268,7 @@ locate:
         bal     initserial1
         nop
 
-//#define SHUT_SLAVES
+#define SHUT_SLAVES
 #ifdef SHUT_SLAVES
 	PRINTSTR("Shut down other cores\r\n")
 	li      a0, 0xbfe001d0
@@ -276,6 +276,9 @@ locate:
 	sll	a1, 2
 	li      t1, 0xf
 	sll	a1, t1, a1
+	li	t1, 0x88888888
+	or	t1, a1, t1
+	sw      t1, 0x0(a0)
 	li      t1, 0x00000000
 	or	t1, a1, t1
 	sw      t1, 0x0(a0)
@@ -664,18 +667,6 @@ soft_out_cpu1:
 	bal	scache_init_64 
 	nop
 
-	#jump to cached kseg0 address
-	PRINTSTR("Jump to 9fc\r\n")
-	lui     t0, 0xdfff 
-	ori     t0, t0, 0xffff
-	bal     1f
-	nop
-1:
-	and     ra, ra, t0
-	addiu   ra, ra, 16
-	jr      ra
-	nop
-
 	TTYDBG("scache init node 1\r\n")
 	dli a0, 0x9800100000000000
 	bal	scache_init_64
@@ -697,8 +688,17 @@ soft_out_cpu1:
 	mtc0	t6, CP0_CONFIG
 
 
-
-
+	#jump to cached kseg0 address
+	PRINTSTR("Jump to 9fc\r\n")
+	lui     t0, 0xdfff 
+	ori     t0, t0, 0xffff
+	bal     1f
+	nop
+1:
+	and     ra, ra, t0
+	addiu   ra, ra, 16
+	jr      ra
+	nop
 
 //cxk
 #include "3C_ddr_config_define.h"
@@ -1339,18 +1339,48 @@ bootnow:
 	PRINTSTR("Wake up other cores\r\n")
 
         /* Set clock low for a safe shift */
+        li      t0, 0xbfe001b0
+        lw      a0, 0x0(t0)
+        li      a1, 0xfffffffe
+        and     a0, a0, a1
+        sw      a0, 0x0(t0)
 
+	li      t0, 0xbfe001d0
+	li	a1, BOOTCORE_ID
+	sll	a1, 2
+	li	t1, 0xf
+	sll	a1, t1, a1
+	li      t1, 0x88888888
+	or	t1, a1, t1
+	sw      t1, 0x0(t0)
 
-	li      a0, 0xbfe001d0
-	li      t1, 0xffffffff
-	sw      t1, 0x0(a0)
+        li      t0, 0xbfe001b0
+        lw      a0, 0x0(t0)
+        ori     a0, a0, 0x1
+        sw      a0, 0x0(t0)
 
-        /* Set clock low for a safe shift */
+	li      t0, 0xbfe001d0
+	li      a1, 0xffffffff
+	sw      a1, 0x0(t0)
 
+	dli	t0, 0x900020001fe001b0
+        lw      a0, 0x0(t0)
+        li      a1, 0xfffffffe
+        and     a0, a0, a1
+        sw      a0, 0x0(t0)
 
-	li      a0, 0x900020001fe001d0
-	li      t1, 0xffffffff
-	sw      t1, 0x0(a0)
+	dli	t0, 0x900020001fe001d0
+	li      t1, 0x88888888
+	sw      t1, 0x0(t0)
+
+	dli	t0, 0x900020001fe001b0
+        lw      a0, 0x0(t0)
+	ori	a0, a0, 0x1
+        sw      a0, 0x0(t0)
+
+	dli	t0, 0x900020001fe001d0
+	li      a1, 0xffffffff
+	sw      a1, 0x0(t0)
 #else
 	PRINTSTR("NOT Wake up other cores\r\n")
 
