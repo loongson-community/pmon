@@ -744,7 +744,7 @@ out_test:
 	nop
 	and     v0, v0, 0xf
 	dli     a1, 0x1
-	bgt     v0, a1, 3f
+	bgt     v0, a1, 2f
 	nop
 
 
@@ -1926,6 +1926,8 @@ LEAF(lock_scache)
 	dli  t1, 0x8000000090200000 
 	sd   t1, 0x208(t0)
 #endif
+	jr   ra
+	nop
 #endif
 END(lock_scache)
 
