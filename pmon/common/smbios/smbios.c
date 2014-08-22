@@ -108,6 +108,10 @@ write_smbios_tables(void *start)
        dimmnum = 4;
        maximum_capacity = 8 * 1024* 1024;
 #endif
+#ifdef LOONGSON_2G5536
+       dimmnum = 0;
+       maximum_capacity = 0;
+#endif
 #ifdef LOONGSON_3ASINGLE
        dimmnum = 4;
        maximum_capacity = 8 * 1024* 1024;
@@ -211,6 +215,10 @@ static void board_info(char *board_name)
 
 #ifdef LOONGSON_3C2H
         	strcpy(board_name, "Loongson-3C-2H-1w-V1.00-demo");
+#endif
+
+#ifdef LOONGSON_2G5536
+        	strcpy(board_name, "Loongson-2G-CS5536-1w-V0.1-demo");
 #endif
 
 
@@ -330,7 +338,11 @@ smbios_type_1_init(void *start)
 {
 	struct smbios_type_1 *p = (struct smbios_type_1 *)start;
 	char product_name[50];
+#ifdef LOONGSON_2G5536
+	char *board_family = "Loongson2";
+#else
 	char *board_family = "Loongson3";
+#endif
 	char loongson_version[10];
 	char *q;
 	int i;
@@ -450,11 +462,16 @@ smbios_type_4_init(void *start)
 		p->max_speed = 800;
 	}
 	if(prid == 0x6305){
+#ifdef LOONGSON_2G5536
+		strcpy(cpu_version, "Loongson ICT Loongson-2G CPU @ 800MHz");
+		p->max_speed = 800;
+#else
 		if(cpu_probe_release())
 			strcpy(cpu_version, "Loongson ICT Loongson-3A5 CPU @ 1.0GHz");
 		else
 			strcpy(cpu_version, "Loongson ICT Loongson-3A CPU @ 1.0GHz");
 		p->max_speed = 1000;
+#endif
 	}
 	if(prid == 0x6306){
 		strcpy(cpu_version, "Loongson ICT Loongson-3B CPU @ 1.0GHz");
@@ -496,7 +513,9 @@ smbios_type_4_init(void *start)
 #ifdef LOONGSON_3C2H
 	p->core_count = p->core_enable = 8;
 #endif
-
+#ifdef LOONGSON_2G5536
+	p->core_count = p->core_enable = 1;
+#endif
         p->thread_count = 0;
         p->processor_characteristics = 0x02;
         p->processor_family2 = 0x01;
@@ -836,6 +855,8 @@ smbios_type_28_init(void *start)
         p->nominal_value = (*(volatile unsigned char *)(0xffffffffbfe0019d) & 0x7f) * 10;
 #elif defined LOONGSON_3B1500 
         p->nominal_value = (*(volatile unsigned char *)(0xffffffffbfe0019d) - 100) * 10;
+#elif defined(LOONGSON_2G5536)
+        p->nominal_value = (*(volatile unsigned char *)(0xffffffffbfe0019c) & 0x7f) * 10;
 #endif
 
 	start += sizeof(struct smbios_type_28);

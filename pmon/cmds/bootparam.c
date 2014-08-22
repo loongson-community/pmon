@@ -303,6 +303,10 @@ struct system_loongson *init_system_loongson()
   s->ccnuma_smp = 0;
   s->sing_double_channel = 1;
 #endif
+#ifdef LOONGSON_2G5536
+  s->ccnuma_smp = 0;
+  s->sing_double_channel = 1;
+#endif
 
   return s;
 }
@@ -414,7 +418,7 @@ struct board_devices *board_devices_info()
 	strcpy(bd->name,"Loongson-2GQ-2H-1w-V0.1-demo");
 #endif
 #ifdef LOONGSON_2G5536
-	strcpy(bd->name, "Loongson-2G-CS5536-V0.1-demo");
+	strcpy(bd->name, "Loongson-2G-CS5536-1w-V0.1-demo");
 #endif
   bd->num_resources = 10;
 
@@ -427,7 +431,6 @@ struct loongson_special_attribute *init_special_info()
 
   struct loongson_special_attribute  *special = &g_special;
   char update[11];
-
   get_update(update);
 
 

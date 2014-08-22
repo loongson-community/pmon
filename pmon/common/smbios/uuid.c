@@ -53,6 +53,9 @@ static void read_node(uint8_t *node)
 #ifdef LOONGSON_3A2H
 		node[i + 10] = smbios_uuid_mac[i];
 #endif
+#ifdef LOONGSON_2G5536
+		node[i + 10] = smbios_uuid_mac[i];
+#endif
 	}
 	node[0] |= 0x01;
 }

@@ -888,9 +888,7 @@ dbginit (char *adr)
 #endif
 
 	printf ("\n");
-#ifndef	LOONGSON_2G5536
 	loongson_smbios_init();	
-#endif
 	md_clreg(NULL);
 	md_setpc(NULL, (int32_t) CLIENTPC);
 	md_setsp(NULL, tgt_clienttos ());

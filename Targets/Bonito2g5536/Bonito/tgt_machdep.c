@@ -1498,6 +1498,8 @@ struct efi_memory_map_loongson * init_memory_map()
 
 	/* for entry with mem_size < 1M, we set bit31 to 1 to indicate
 	 * that the unit in mem_size is Byte not MBype */
+	EMAP_ENTRY(i, 0, SMBIOS_TABLE, (SMBIOS_PHYSICAL_ADDRESS & 0x0fffffff),
+			(SMBIOS_SIZE_LIMIT | 0x80000000));
 
 	EMAP_ENTRY(i, 0, SYSTEM_RAM_HIGH, 0x90000000, size >> 20);
 
