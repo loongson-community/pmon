@@ -267,11 +267,7 @@ ConfLoongson2:
     nop 
 
     li  t1, REV_GODSON3A              #REV_GODSON3A REV num: 5 
-#ifdef LOONGSON_2G5536
-    beq t5,t1, ConfGodson2G
-#else
     beq t5,t1, ConfGodson3A
-#endif
     nop
 
     #b out                             # added for test ConfGodson3A
@@ -428,7 +424,12 @@ ConfGodson3A:
 
 
     li	t2, CTYPE_4WAY		  # Assume four way cache
+#ifdef LOONGSON_2G5536
+        or      t2, CTYPE_HAS_L2      # L2 is on chip
+	li	t6, 0x100000          # Secondary size 1M.
+#else
 	li	t6, 0x400000          # Secondary size 4M.
+#endif
 	li	t7, 0				  # Tertiary size 0.
 
     mfc0    v0,COP_0_CONFIG
@@ -577,11 +578,6 @@ Conf7KL2:
 	li	t7, 0				# L3 cache disabled
 
 
-#ifdef LOONGSON_2G5536
-ConfGodson2G:
-        or      t2, CTYPE_HAS_L2                # L2 is on chip
-        li	t6, 512*1024
-#endif
 /*****************************************************************************
  * Get here with t2 = Cache type(Ways), t4 = L1 I size, t5 = L1 D size.
  * t6 = secondary size, t7 = tertiary size.
