@@ -349,7 +349,7 @@ TM_start:
     nop
     TM_PRINTSTR("\r\nPattern DB_0 Test-----\r\n")
     //address interval
-    dli     t2, 0x20
+    dli     t2, 0x100
     //set Test Base t1 and Test Limit t3
     dli     t1, MEM_TEST_BASE
     GET_TM_NODE_ID_a1
@@ -437,7 +437,7 @@ TM_start:
     nop
     TM_PRINTSTR("\r\nPattern DB_3 Test-----\r\n")
     //address interval
-    dli     t2, 0x200
+    dli     t2, 0x20
     //set Test Base t1 and Test Limit t3
     dli     t1, MEM_TEST_BASE
     GET_TM_NODE_ID_a1
@@ -784,7 +784,7 @@ TM_start:
     nop
     TM_PRINTSTR("\r\nPattern WalkOnes Test...\r\n")
     //address interval
-    dli     t2, 0x100
+    dli     t2, 0x40
     //set Test Base t1 and Test Limit t3
     dli     t1, MEM_TEST_BASE
     GET_TM_NODE_ID_a1
@@ -827,7 +827,7 @@ TM_start:
     nop
     TM_PRINTSTR("\r\nPattern WalkInvOnes Test...\r\n")
     //address interval
-    dli     t2, 0x80
+    dli     t2, 0x40
     //set Test Base t1 and Test Limit t3
     dli     t1, MEM_TEST_BASE
     GET_TM_NODE_ID_a1

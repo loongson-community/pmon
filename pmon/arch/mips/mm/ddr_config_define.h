@@ -81,12 +81,7 @@ temparary used in PROBE_DIMM
 //note: NO_INTERLEAVE has highest priority. and define interleave_X mode doesn't
 //guarantee mem will be at interleave mode unless MC0 and MC1 have the same special memsize
 //#define NO_INTERLEAVE
-//#define INTERLEAVE_27
-//#define INTERLEAVE_19
-#define INTERLEAVE_16
-//#define INTERLEAVE_14
-//#define INTERLEAVE_13
-//#define INTERLEAVE_12
+#define MC_INTERLEAVE_OFFSET 20 //only work when NO_INTERLEAVE is not defined.(32 or above is not tested!!)
 #######################################################
 #ifdef  loongson3A3
 #define LOCK_SCACHE_CONFIG_BASE_ADDR 0x900000003ff00200
