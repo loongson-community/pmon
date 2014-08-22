@@ -1709,17 +1709,24 @@ Fix_ddr_param:
     sw      a1, 0x0(t2)
     sync
 
-    //clear possible out of physical range/ecc error and other info int_status bits
-    //introduced by arb_level or ECC initialization
+    //set int_mask to mask out unrelated mc_int
+    ld      a1, MC_INT_MASK_ADDR(t8)
+    dli     a2, MC_INT_MASK_VALUE
+    dsll    a2, a2, MC_INT_MASK_OFFSET
+    or      a1, a1, a2
+    sd      a1, MC_INT_MASK_ADDR(t8)
+
+    //clear all int status info
     //set int_ack to 1
     ld      a1, MC_INT_ACK_ADDR(t8)
     dli     a2, MC_INT_ACK_CLEAR_VALUE
     dsll    a2, a2, MC_INT_ACK_OFFSET
     or      a1, a1, a2
     sd      a1, MC_INT_ACK_ADDR(t8)
+    sync
 
     //delay some time
-    dli     a2, 0x400
+    dli     a2, 0x40
 1:
     daddiu  a2, a2, -1
     bnez    a2, 1b
@@ -1732,6 +1739,7 @@ Fix_ddr_param:
     not     a2, a2
     and     a1, a1, a2
     sd      a1, MC_INT_ACK_ADDR(t8)
+    sync
 
 #ifdef  PRINT_MSG
     //print MC registers

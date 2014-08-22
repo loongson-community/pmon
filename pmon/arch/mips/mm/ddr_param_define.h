@@ -24,19 +24,23 @@
 #endif
 
 #define TRFC_MARGIN             0x8
-#define SREFRESH_ADDR           (0x30)
-#define START_ADDR              (0x30)
-#define DLLLOCKREG_ADDR         (0x10)
-#define INT_STATUS_ADDR         (0x960)
-#define MC_INT_ACK_ADDR         (0x970)
 #define RESYNC_DLL_ADDR         (0x980)
+#define RESYNC_DLL_OFFSET       16
+#define SREFRESH_ADDR           (0x30)
 #define SREFRESH_OFFSET         32
+#define START_ADDR              (0x30)
 #define START_OFFSET            40
+#define DLLLOCKREG_ADDR         (0x10)
 #define DLLLOCKREG_OFFSET       0
 #define INIT_COMPLETE_OFFSET    8
+#define MC_INT_STATUS_ADDR      (0x960)
+#define MC_INT_STATUS_OFFSET    0
+#define MC_INT_ACK_ADDR         (0x970)
 #define MC_INT_ACK_OFFSET       24
-#define MC_INT_ACK_CLEAR_VALUE  0x3fcff
-#define RESYNC_DLL_OFFSET       16
+#define MC_INT_ACK_CLEAR_VALUE  0x3ffff
+#define MC_INT_MASK_ADDR        (0x950)
+#define MC_INT_MASK_OFFSET      24
+#define MC_INT_MASK_VALUE       0x3ffcf
 
 #define PWRUP_SREFRESH_EXIT_ADDR    (0x30)
 #define PWRUP_SREFRESH_EXIT_OFFSET  0

@@ -1597,7 +1597,7 @@ use register:
 
 #if 0
     PRINTSTR("\r\nBefore set param_start to 1, INT_STATUS =0x")
-    ld      a0, INT_STATUS_ADDR(t7)
+    ld      a0, MC_INT_STATUS_ADDR(t7)
     bal     hexserial
     nop
     PRINTSTR("\r\nDLLLOCKREG =0x")
@@ -1616,7 +1616,7 @@ use register:
 
 #if 0
     PRINTSTR("\r\nAfter set param_start to 1, INT_STATUS =0x")
-    ld      a0, INT_STATUS_ADDR(t7)
+    ld      a0, MC_INT_STATUS_ADDR(t7)
     bal     hexserial
     nop
     PRINTSTR("\r\nDLLLOCKREG =0x")
