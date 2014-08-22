@@ -62,9 +62,7 @@ typedef unsigned int uint32;
 #ifdef DEVBD2F_FIREWALL
 static int serialbase[]={0xbe000000,0xbe000020};
 #else
-//static int serialbase[]={0xbfd003f8,0xbfd002f8,0xbff003f8};
 #ifdef RS780E
-//static int serialbase[]={0xbfe0001e0,0xbfe0001e8,0xbfe0001e0};
 static int serialbase[]={GS3_UART0_BASE, GS3_UART1_BASE, GS3_UART0_BASE};
 #else
 static int serialbase[]={BONITO_PCIIO_BASE_VA+0x03f8,BONITO_PCIIO_BASE_VA+0x2f8,0xbff003f8};

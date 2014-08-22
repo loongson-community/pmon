@@ -8,7 +8,7 @@
 
 #if defined(LS3_HT)||defined(LS2G_HT)
 #if defined(LOONGSON_3A2H)
-#define mips_io_port_base 0xbff00000 // for keyboard connected with ls3a lpc 
+#define mips_io_port_base 0xbff00000
 #elif defined(LOONGSON_3C2H)
 #define mips_io_port_base 0xbbf00000 // for keyboard connected with ls3c lpc 
 #else
@@ -51,7 +51,7 @@ static inline unsigned int linux_inl(unsigned long port)
 
 #define linux_outb(val,port)\
 do {\
-*(volatile unsigned char *)(mips_io_port_base + (port)) = (val);  \
+	*(volatile unsigned char *)(mips_io_port_base + (port)) = (val);  \
 } while(0)
 
 #define linux_outw(val,port)							\

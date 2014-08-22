@@ -1,5 +1,6 @@
 #include <linux/types.h>
-
+#include <pio.h>
+extern unsigned int superio_base;
 #define KBD_STAT_OBF 		0x01	/* Keyboard output buffer full */
 #define KBD_STAT_IBF 		0x02	/* Keyboard input buffer full */
 #define KBD_STAT_SELFTEST	0x04	/* Self test successful */
@@ -26,10 +27,18 @@
 #define KBD_CNTL_REG		0x64	/* Controller command register (W) */
 #define KBD_DATA_REG		0x60	/* Keyboard data register (R/W) */
 #endif
+
+#ifdef LOONGSON_3A2H	//in 3A2H, superio mount 3A or 2H depend on the board version
+#define kbd_read_input() inb(superio_base + KBD_DATA_REG)
+#define kbd_read_status() inb(superio_base + KBD_STATUS_REG)
+#define kbd_write_output(val) outb(superio_base + KBD_DATA_REG,val)
+#define kbd_write_command(val) outb(superio_base + KBD_CNTL_REG, val)
+#else
 #define kbd_read_input() linux_inb(KBD_DATA_REG)
 #define kbd_read_status() linux_inb(KBD_STATUS_REG)
 #define kbd_write_output(val) linux_outb(val, KBD_DATA_REG)
 #define kbd_write_command(val) linux_outb(val, KBD_CNTL_REG)
+#endif
 
 #define MAX_DIACR	256
 

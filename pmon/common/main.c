@@ -92,6 +92,7 @@ unsigned long long             memorysize_high_n1 = 0;
 unsigned long long             memorysize_high_n2 = 0;
 unsigned long long             memorysize_high_n3 = 0;
 unsigned long long	       memorysize_total = 0;
+
 char            prnbuf[LINESZ + 8];	/* commonly used print buffer */
 
 int             repeating_cmd;

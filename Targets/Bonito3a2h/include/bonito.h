@@ -30,12 +30,12 @@ extern char           *heaptop;
 /* static char * const _bonito = PA_TO_KVA1(BONITO_BASE); */
 /*#define BONITO(x)	*(volatile unsigned long *)(PHYS_TO_UNCACHED(BONITO_REG_BASE)+(x))*/
 #define BONITO(x)	*(volatile unsigned long *)(0xbfe00000+(x))
+
 #endif /* __ASSEMBLER__ */
 
 #define RTC_INDEX_REG 0x70
 #define RTC_DATA_REG 0x71
 #define RTC_NVRAM_BASE		0x0e
-
 
 #define GS3_UART0_BASE 0xbfe001e0
 #define GS3_UART1_BASE 0xbfe001e8
@@ -137,8 +137,8 @@ extern char           *heaptop;
 //#define BONITO_PCIHI_TOP		(BONITO_PCIHI_BASE+BONITO_PCIHI_SIZE-1)
 //#define BONITO_PCIIO_BASE		0x1fd00000
 //#define BONITO_PCIIO_BASE_VA		0xbfd00000
-#define BONITO_PCIIO_BASE		0x1ff00000
-#define BONITO_PCIIO_BASE_VA    0xbff00000
+#define BONITO_PCIIO_BASE 		0x1ff00000
+#define BONITO_PCIIO_BASE_VA	0xbff00000
 #define BONITO_PCIIO_SIZE		0x02000000
 #else
 #define BONITO_PCILO2_BASE		0x18000000
@@ -146,7 +146,7 @@ extern char           *heaptop;
 #define BONITO_PCIHI_SIZE		0x20000000
 #define BONITO_PCIHI_TOP		(BONITO_PCIHI_BASE+BONITO_PCIHI_SIZE-1)
 #define BONITO_PCIIO_BASE		0x1fd00000
-#define BONITO_PCIIO_BASE_VA		0xbfd00000
+#define BONITO_PCIIO_BASE_VA	0xbfd00000
 #define BONITO_PCIIO_SIZE		0x00010000
 #endif
 #define BONITO_PCIIO_TOP		(BONITO_PCIIO_BASE+BONITO_PCIIO_SIZE-1)

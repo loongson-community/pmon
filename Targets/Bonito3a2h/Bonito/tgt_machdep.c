@@ -165,6 +165,7 @@ int cmd_main_mutex = 0;
 int bios_mutex = 0;
 /* Board Version Number */
 unsigned int board_ver_num;
+unsigned int superio_base;
 
 static int md_pipefreq = 0;
 static int md_cpufreq = 0;
@@ -427,6 +428,7 @@ initmips(unsigned long long raw_memsz)
 	int i;
 	int* io_addr;
     unsigned long long memsz;
+
 tgt_fpuenable();
 #ifdef DEVBD2F_SM502
 {
@@ -700,6 +702,12 @@ tgt_devconfig()
 #endif
 	outl(LS2H_GPIO_CFG_REG, 0xf << 24);
 	board_ver_num = (inl(LS2H_GPIO_IN_REG) >> 8) & 0xf;
+	if(board_ver_num == LS3A2H_BOARD_2_2) {				// new 3A2H Board: lpc interface mount on 2H, old board lpc mount on 3A
+		superio_base = 0xbbf00000;
+	} else if(board_ver_num == LS3A2H_BOARD_OLD) {
+		superio_base = 0xbff00000;
+	}
+
 	//	_pci_devinit(1);	/* PCI device initialization */
 #if (NMOD_X86EMU_INT10 > 0)||(NMOD_X86EMU >0)
 	SBD_DISPLAY("VGAI", 0);
@@ -924,18 +932,18 @@ outb(0xbfd0002e,0xaa);
 outb(0xbfd0002e,0xaa);
 #endif
 /*enter*/
-outb(BONITO_PCIIO_BASE_VA + 0x002e,0x87);
-outb(BONITO_PCIIO_BASE_VA + 0x002e,0x87);
-/*select logic dev reg */
-outb(BONITO_PCIIO_BASE_VA + 0x002e,0x7);
-outb(BONITO_PCIIO_BASE_VA + 0x002f,dev);
-/*access reg */
-outb(BONITO_PCIIO_BASE_VA + 0x002e,addr);
-data=inb(BONITO_PCIIO_BASE_VA + 0x002f);
-/*exit*/
-outb(BONITO_PCIIO_BASE_VA + 0x002e,0xaa);
-outb(BONITO_PCIIO_BASE_VA + 0x002e,0xaa);
-return data;
+	outb(superio_base + 0x002e,0x87);
+	outb(superio_base + 0x002e,0x87);
+	/*select logic dev reg */
+	outb(superio_base + 0x002e,0x7);
+	outb(superio_base + 0x002f,dev);
+	/*access reg */
+	outb(superio_base + 0x002e,addr);
+	data=inb(superio_base + 0x002f);
+	/*exit*/
+	outb(superio_base + 0x002e,0xaa);
+	outb(superio_base + 0x002e,0xaa);
+    return data;
 }
 
 static void w83627_write(int dev,int addr,int data)
@@ -955,17 +963,18 @@ outb(0xbfd0002e,0xaa);
 outb(0xbfd0002e,0xaa);
 #endif
 /*enter*/
-outb(BONITO_PCIIO_BASE_VA + 0x002e,0x87);
-outb(BONITO_PCIIO_BASE_VA + 0x002e,0x87);
-/*select logic dev reg */
-outb(BONITO_PCIIO_BASE_VA + 0x002e,0x7);
-outb(BONITO_PCIIO_BASE_VA + 0x002f,dev);
-/*access reg */
-outb(BONITO_PCIIO_BASE_VA + 0x002e,addr);
-outb(BONITO_PCIIO_BASE_VA + 0x002f,data);
-/*exit*/
-outb(BONITO_PCIIO_BASE_VA + 0x002e,0xaa);
-outb(BONITO_PCIIO_BASE_VA + 0x002e,0xaa);
+	outb(superio_base + 0x002e,0x87);
+	outb(superio_base + 0x002e,0x87);
+	/*select logic dev reg */
+	outb(superio_base + 0x002e,0x7);
+	outb(superio_base + 0x002f,dev);
+	/*access reg */
+	outb(superio_base + 0x002e,addr);
+	outb(superio_base + 0x002f,data);
+	/*exit*/
+	outb(superio_base + 0x002e,0xaa);
+	outb(superio_base + 0x002e,0xaa);
+
 }
 #endif
 
@@ -988,18 +997,18 @@ outb(0xbfd0002e,0xaa);
 outb(0xbfd0002e,0xaa);
 #endif
 /*enter*/
-outb(BONITO_PCIIO_BASE_VA + 0x002e,0x87);
-outb(BONITO_PCIIO_BASE_VA + 0x002e,0x87);
-/*select logic dev reg */
-outb(BONITO_PCIIO_BASE_VA + 0x002e,0x7);
-outb(BONITO_PCIIO_BASE_VA + 0x002f,dev);
-/*access reg */
-outb(BONITO_PCIIO_BASE_VA + 0x002e,addr);
-data=inb(BONITO_PCIIO_BASE_VA + 0x002f);
-/*exit*/
-outb(BONITO_PCIIO_BASE_VA + 0x002e,0xaa);
-outb(BONITO_PCIIO_BASE_VA + 0x002e,0xaa);
-return data;
+	outb(BONITO_PCIIO_BASE_VA + 0x002e,0x87);
+    outb(BONITO_PCIIO_BASE_VA + 0x002e,0x87);
+    /*select logic dev reg */
+    outb(BONITO_PCIIO_BASE_VA + 0x002e,0x7);
+    outb(BONITO_PCIIO_BASE_VA + 0x002f,dev);
+    /*access reg */
+    outb(BONITO_PCIIO_BASE_VA + 0x002e,addr);
+    data=inb(BONITO_PCIIO_BASE_VA + 0x002f);
+    /*exit*/
+    outb(BONITO_PCIIO_BASE_VA + 0x002e,0xaa);
+    outb(BONITO_PCIIO_BASE_VA + 0x002e,0xaa);
+    return data;
 }
 
 static void w83627_write(int dev,int addr,int data)
@@ -1019,17 +1028,17 @@ outb(0xbfd0002e,0xaa);
 outb(0xbfd0002e,0xaa);
 #endif
 /*enter*/
-outb(BONITO_PCIIO_BASE_VA + 0x002e,0x87);
-outb(BONITO_PCIIO_BASE_VA + 0x002e,0x87);
-/*select logic dev reg */
-outb(BONITO_PCIIO_BASE_VA + 0x002e,0x7);
-outb(BONITO_PCIIO_BASE_VA + 0x002f,dev);
-/*access reg */
-outb(BONITO_PCIIO_BASE_VA + 0x002e,addr);
-outb(BONITO_PCIIO_BASE_VA + 0x002f,data);
-/*exit*/
-outb(BONITO_PCIIO_BASE_VA + 0x002e,0xaa);
-outb(BONITO_PCIIO_BASE_VA + 0x002e,0xaa);
+    outb(BONITO_PCIIO_BASE_VA + 0x002e,0x87);
+    outb(BONITO_PCIIO_BASE_VA + 0x002e,0x87);
+    /*select logic dev reg */
+    outb(BONITO_PCIIO_BASE_VA + 0x002e,0x7);
+    outb(BONITO_PCIIO_BASE_VA + 0x002f,dev);
+    /*access reg */
+    outb(BONITO_PCIIO_BASE_VA + 0x002e,addr);
+    outb(BONITO_PCIIO_BASE_VA + 0x002f,data);
+    /*exit*/
+    outb(BONITO_PCIIO_BASE_VA + 0x002e,0xaa);
+    outb(BONITO_PCIIO_BASE_VA + 0x002e,0xaa);
 }
 #endif
 #if PCI_IDSEL_SB700 != 0
