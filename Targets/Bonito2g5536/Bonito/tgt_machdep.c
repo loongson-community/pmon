@@ -1494,16 +1494,14 @@ struct efi_memory_map_loongson * init_memory_map()
 	emap->map[(entry)].mem_size = (size), \
 	(entry)++
 
-	EMAP_ENTRY(i, 0, SYSTEM_RAM_LOW, 0x00200000, 0x0ee);
+	EMAP_ENTRY(i, 0, SYSTEM_RAM_LOW, 0x00100000, 0x0ff);
 
 	/* for entry with mem_size < 1M, we set bit31 to 1 to indicate
 	 * that the unit in mem_size is Byte not MBype */
-	EMAP_ENTRY(i, 0, SMBIOS_TABLE, (SMBIOS_PHYSICAL_ADDRESS & 0x0fffffff),
-			(SMBIOS_SIZE_LIMIT | 0x80000000));
 
-	EMAP_ENTRY(i, 0, SYSTEM_RAM_HIGH, 0x110000000, size >> 20);
+	EMAP_ENTRY(i, 0, SYSTEM_RAM_HIGH, 0x90000000, size >> 20);
 
-	emap->vers = 1;
+	emap->vers = 0;
 	emap->nr_map = i;
 
 	return emap;

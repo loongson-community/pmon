@@ -268,6 +268,11 @@ struct efi_cpuinfo_loongson *init_cpu_info()
         available >>= 1;
   }
 #endif
+
+#ifdef LOONGSON_2G5536
+	c->total_node = 1;
+	c->nr_cpus = 1;
+#endif
   c->cpu_startup_core_id = (available_core_mask >> 16) & 0xf;
 
 return c;
@@ -331,8 +336,10 @@ struct irq_source_routing_table *init_irq_source()
 	irq_info->node_id = 0;
 #endif
 
-#if (defined LOONGSON_3BSINGLE) || (defined LOONGSON_3BSERVER)
+#if defined(LOONGSON_3BSINGLE) || defined(LOONGSON_3BSERVER)
 	irq_info->pci_io_start_addr = 0x00001efdfc000000;
+#elif defined(LOONGSON_2G5536)
+	irq_info->pci_io_start_addr = 0xffffffffbfd00000;
 #else
 	irq_info->pci_io_start_addr = 0x00000efdfc000000;
 #endif
@@ -406,6 +413,9 @@ struct board_devices *board_devices_info()
 #ifdef LOONGSON_2GQ2H
 	strcpy(bd->name,"Loongson-2GQ-2H-1w-V0.1-demo");
 #endif
+#ifdef LOONGSON_2G5536
+	strcpy(bd->name, "Loongson-2G-CS5536-V0.1-demo");
+#endif
   bd->num_resources = 10;
 
   return bd;
@@ -435,7 +445,10 @@ struct loongson_special_attribute *init_special_info()
   strcpy(special->resource[0].name,"SPMODULE");
 #endif
 #endif
+#ifdef LOONGSON_2G5536
+  special->resource[0].flags &= ~DMA64_SUPPORT;
+#else
   special->resource[0].flags |= DMA64_SUPPORT;
+#endif
   return special;
 }
-
