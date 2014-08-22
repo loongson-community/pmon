@@ -910,8 +910,12 @@ static int usb_request_sense(ccb *srb,struct us_data *ss)
 
 static int usb_test_unit_ready(ccb *srb,struct us_data *ss)
 {
+#ifdef LOONGSON_2G5536
+	//fixup the pioneer DVD-ROM match bug
+	int retries = 30;
+#else
 	int retries = 10;
-
+#endif
 	do {
 		memset(&srb->cmd[0],0,12);
 		srb->cmd[0]=SCSI_TST_U_RDY;
@@ -961,8 +965,6 @@ static int usb_read_10(ccb *srb,struct us_data *ss, unsigned long start, unsigne
 	USB_STOR_PRINTF("read10: start %lx blocks %x\n",start,blocks);
 	return ss->transport(srb,ss);
 }
-
-
 #define USB_MAX_READ_BLK 16
 
 extern int ohci_debug;
@@ -1020,6 +1022,15 @@ usb_stor_read(int device, unsigned long blknr, unsigned long blkcnt, unsigned lo
 retry_it:
 		//if(smallblks==USB_MAX_READ_BLK)
 		//	usb_show_progress();
+
+#ifdef LOONGSON_2G5536
+		//fixup pioneer DVD-ROM sleep bug
+		if(usb_test_unit_ready(srb,(struct us_data *)dev->privptr)) {
+			printf("Device NOT ready\n   Request Sense returned %02X %02X %02X\n",
+					srb->sense_buf[2],srb->sense_buf[12],srb->sense_buf[13]);
+			return 0;
+		}
+#endif
 		srb->datalen=usb_dev_desc[device].blksz * smallblks;
 		srb->pdata=(unsigned char *)buf_addr;
 		s = splimp();
