@@ -105,17 +105,17 @@ static int cpuinfo(){
 
 
 static int meminfo(){
-printf("mem info:\n");
-	printf ("Memory size %3d MB .\n",memorysize_total);
+	printf("mem info:\n");
+	printf ("Memory size %lld MB .\n",memorysize_total);
 return 0;
 }
 
 static int uartinfo()
 {
-printf("uart info:\n");
-printf("serial max baud 115200\n");
+	printf("uart info:\n");
+	printf("serial max baud 115200\n");
 //	__msgbox(MSG_Y,MSG_X,MSG_H,MSG_W,menu[item].arg);
-return 0;
+	return 0;
 }
 
 static int (*oldwrite)(int fd,char *buf,int len)=0;
