@@ -22,10 +22,10 @@ option		TARGETNAME="\"Bonito\""
 # Platform options
 #
 option		BONITOEL	
-option      DEVBD2E
+option		DEVBD2E
 option		MIPS
 option		INET
-option  LOONGSON_2G5536
+option		LOONGSON_2G5536
 option		BOOT_PARAM
 
 select		mod_flash_amd		# AMD flash device programming
@@ -79,26 +79,26 @@ select		ext2
 select		fatfs
 select		ramfiles
 select		mod_x86emu		# X86 emulation for VGA
-option 	MY40IO
+option		MY40IO
 #select		mod_x86emu_int10
 option		MY61IO
-option          VGA_BASE=0xb0000000
+option		VGA_BASE=0xb0000000
 select		mod_vgacon
-#select      sis315e
-#option      SIS315E
-option     VGA_NO_ROM       # display card has no rom
-#select 		mod_sisfb
+#select		sis315e
+#option		SIS315E
+option		VGA_NO_ROM		# display card has no rom
+#select 	mod_sisfb
 option		NOPCINAMES		# Save some space for x86emu
 #option		FASTBOOT
-#select	    vt82c686        #via686a/b code
+#select		vt82c686		#via686a/b code
 
 #select		mod_framebuffer
 #select		mod_smi712		# X86 emulation for VGA
 #option		SMI712
 #option		X800x600
 #option		X1024x768
-#option 		CONFIG_VIDEO_16BPP
-#option 		CONFIG_VIDEO_8BPP_INDEX
+#option 	CONFIG_VIDEO_16BPP
+#option 	CONFIG_VIDEO_8BPP_INDEX
 
 #
 # Functional options.
@@ -112,7 +112,7 @@ option		HAVE_TOD		# Time-Of-Day clock
 option		HAVE_NVENV		#  Platform has non-volatile env mem
 #option		HAVE_LOGO		# Output splash logo
 option		USE_SUPERIO_UART
-option      VESAFB
+option		VESAFB
 #option		USE_LEGACY_RTC
 #option		GODSONEV2A
 #option		LINUX_PC
@@ -124,15 +124,15 @@ option		AUTOLOAD
 #option		CONFIG_PCI0_HUGE_MEM	
 #option		CONFIG_PCI0_GAINT_MEM	
 option		CONFIG_CACHE_64K_4WAY
-option 	    NVRAM_IN_FLASH	
-option 	    spi_mod	
+option		NVRAM_IN_FLASH	
+option		spi_mod	
 
 #
 #  Now the Machine specification
 #
-mainbus0        at root
+mainbus0	at root
 localbus0	at mainbus0
-#fd0         at mainbus0
+#fd0		at mainbus0
 pcibr0		at mainbus0
 #pcibr1		at mainbus0
 pci*		at pcibr?
@@ -144,11 +144,11 @@ uhci*		 at pci? dev ? function ?
 ohci*		 at pci? dev ? function ?
 usb*		 at usbbus ?
 
-select      mod_usb
-select  	mod_usb_storage
-select      mod_usb_uhci
-select 	 	mod_usb_ohci
-select      mod_usb_kbd
+select		mod_usb
+select		mod_usb_storage
+select		mod_usb_uhci
+select		mod_usb_ohci
+select		mod_usb_kbd
 
 #### SCSI support
 #siop*		at pci? dev ? function ?	# Symbios/NCR 53c...
@@ -161,21 +161,21 @@ select      mod_usb_kbd
 #gt1		at localbus? base 5
 #gt2		at localbus? base 6
 # fxp normally only used for debugging (enable/disable both)
-#fxp*            at pci? dev ? function ?        # Intel 82559 Device
-#inphy*          at mii? phy ?                   # Intel 82555 PHYs
-rtl*        at pci? dev ? function ?
-#rtk*        at pci? dev ? function ?
-#em*        at pci? dev ? function ?
-#uhci*		 at pci? dev ? function ?
-#ohci0		 at pci? dev ? function ?
-#usb*		 at usbbus ? 
-#ohci1		 at pci? dev ? function ?
+#fxp*		at pci? dev ? function ?        # Intel 82559 Device
+#inphy*		at mii? phy ?                   # Intel 82555 PHYs
+rtl*		at pci? dev ? function ?
+#rtk*		at pci? dev ? function ?
+#em*		at pci? dev ? function ?
+#uhci*		at pci? dev ? function ?
+#ohci0		at pci? dev ? function ?
+#usb*		at usbbus ? 
+#ohci1		at pci? dev ? function ?
 
-#select      mod_usb
-#select  	mod_usb_storage
-#select      mod_usb_uhci
-#select 	 	mod_usb_ohci
-#select      mod_usb_kbd
+#select		mod_usb
+#select		mod_usb_storage
+#select		mod_usb_uhci
+#select		mod_usb_ohci
+#select		mod_usb_kbd
 
 
 #### IDE controllers
@@ -187,19 +187,19 @@ pciide* 	at pci ? dev ? function ? flags 0x0000
 #### IDE hard drives
 wd0		at pciide? channel ? drive ? flags 0x0000
 
-#cmdide*     at pci ? dev ? function ? flags 0x0000
-#wd*     at cmdide? channel ? drive ? flags 0x0000
+#cmdide*	at pci ? dev ? function ? flags 0x0000
+#wd*		at cmdide? channel ? drive ? flags 0x0000
 
 #### Pseudo devices
 pseudo-device	loop	1	# network loopback
 
 syn0		at localbus0
 syn1		at localbus0
-select gmac
+select		gmac
 
 ide_cd* 	at pciide? channel ? drive ? flags 0x0001
-select 		iso9660
-option IDECD 
+select		iso9660
+option		IDECD 
 #select cmd_testfire
 #option HAVE_NB_SERIAL
 #option USE_ENVMAC
@@ -224,3 +224,5 @@ option TEST_CS5536_USE_OTG
 #option TEST_USB_HOST
 option CONFIG_SLOW_PCI_FOR_BROKENDEV
 
+select http
+select tcp
