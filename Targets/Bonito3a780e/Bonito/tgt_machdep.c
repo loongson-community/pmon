@@ -1776,16 +1776,16 @@ void sb700_interrupt_fixup(void)
 
 	/* Set SATA and PATA Controller to combined mode
 	 * Port0-Port3 is SATA mode, Port4-Port5 is IDE mode */
-	dev = _pci_make_tag(0, 0x14, 0x0);
-
+  	dev = _pci_make_tag(0, 0x14, 0x0);
+  
 	/*1. usb interrupt map smbus reg:0XBE  map usbint1map usbint3map(ohci use) to PCI_INTC#
-	  map usbint2map usbint4map(ehci use) to PCI_INTC# */
+	map usbint2map usbint4map(ehci use) to PCI_INTC# */
 	pci_write_config16(dev, 0xbe, ((2<<0)|(2 << 3)|(2 << 8)|(2 << 11)) );
 	val = pci_read_config16(dev, 0xbe);
 	fixup_interrupt_printf(" set smbus reg (0xbe) :%x (usb intr map)\n", val);
 
 	/*2. sata interrupt map smbus reg:0Xaf map sataintmap to PCI_INTH#*/
-	pci_write_config8(dev, 0xaf,  0x1c);
+    pci_write_config8(dev, 0xaf,  0x1c);
 	byte = pci_read_config8(dev, 0xaf);
 	fixup_interrupt_printf(" set smbus reg (0xaf) :%x (sata intr map)\n", byte);
 
@@ -1798,14 +1798,14 @@ void sb700_interrupt_fixup(void)
 	pci_write_config8(dev, 0xad,  byte);
 
 	/* Map the HDA interrupt to INTE */
-	byte = pci_read_config8(dev, 0x63);
+    byte = pci_read_config8(dev, 0x63);
 	byte &= 0xf8;
-	pci_write_config8(dev, 0x63, byte|0x4);
-
-	/* Set GPIO42, GPIO43, GPIO44, GPIO46 as HD function */
-	pci_write_config16(dev, 0xf8, 0x0);
-	//pci_write_config16(dev, 0xfc, 0x2<<0 | 0x2 << 2 | 0x2 << 4 | 0x2 << 6);
-	pci_write_config16(dev, 0xfc, 0x2 << 0);
+    pci_write_config8(dev, 0x63, byte|0x4);
+	
+    /* Set GPIO42, GPIO43, GPIO44, GPIO46 as HD function */
+    pci_write_config16(dev, 0xf8, 0x0);
+    //pci_write_config16(dev, 0xfc, 0x2<<0 | 0x2 << 2 | 0x2 << 4 | 0x2 << 6);
+    pci_write_config16(dev, 0xfc, 0x2 << 0);
 
 
 	//Begin to set SB700 interrupt PIC
@@ -1842,22 +1842,22 @@ void sb700_interrupt_fixup(void)
 		fixup_interrupt_printf("set pic fail: read back %d,should be 0x5\n", *(pic_data));
 	else
 		fixup_interrupt_printf("set pic_5 pass\n");
-
+	
 	/* INTE -->IRQ5 HDA */
-	*(pic_index) =  0x9;
-	*(pic_data) =  0x5;
-	if (*(pic_data) !=  0x5)
-		fixup_interrupt_printf("set pic fail: read back %d,should be 0x5\n", *(pic_data));
-	else
-		fixup_interrupt_printf("set pic_5 pass\n");
-
+      *(pic_index) =  0x9;
+      *(pic_data) =  0x5;
+      if (*(pic_data) !=  0x5)
+          fixup_interrupt_printf("set pic fail: read back %d,should be 0x5\n", *(pic_data));
+      else
+          fixup_interrupt_printf("set pic_5 pass\n");
+	
 	/* bus 10: dev 4: INTF -->IRQ3 PCI(left) */
-	*(pic_index) =  0xa;
-	*(pic_data) =  0x3;
-	if (*(pic_data) !=  0x3)
-		fixup_interrupt_printf("set pic fail: read back %d,should be 0x3\n", *(pic_data));
-	else
-		fixup_interrupt_printf("set pic_a pass\n");
+     *(pic_index) =  0xa;
+     *(pic_data) =  0x3;
+     if (*(pic_data) !=  0x3)
+         fixup_interrupt_printf("set pic fail: read back %d,should be 0x3\n", *(pic_data));
+     else
+         fixup_interrupt_printf("set pic_a pass\n");
 
 	/* bus 10: dev 5:INTG -->IRQ3 PCI(right) */
 	*(pic_index) =  0xb;
@@ -1900,29 +1900,37 @@ void sb700_interrupt_fixup(void)
 	fixup_interrupt_printf("SB700 device  route rte0: int5 \n");
 	for( funnum = 0; funnum < 8; funnum++)
 	{
-		dev = _pci_make_tag(7, 0x0, funnum);
-		val = pci_read_config32(dev, 0x00);
-		if ( val != 0xffffffff) // device on the slot
-			pci_write_config8(dev, 0x3c, 0x05);
+	  dev = _pci_make_tag(7, 0x0, funnum);
+	  val = pci_read_config32(dev, 0x00);
+	  if ( val != 0xffffffff) // device on the slot
+		pci_write_config8(dev, 0x3c, 0x05);
 	}
 
+	fixup_interrupt_printf("SB700 device  route rte0: int5 \n");
+	for( funnum = 0; funnum < 8; funnum++)
+	{
+	  dev = _pci_make_tag(8, 0x0, funnum);
+	  val = pci_read_config32(dev, 0x00);
+	  if ( val != 0xffffffff) // device on the slot
+		pci_write_config8(dev, 0x3c, 0x05);
+	}
 
-	//2.fixup sata int line
-	fixup_interrupt_printf("\n godson3a_sata_fixup: sata ---------------> int4 \n");
+		//2.fixup sata int line
+	 fixup_interrupt_printf("\n godson3a_sata_fixup: sata ---------------> int4 \n");
 
-	/*2.1. enable the subcalss code register for setting sata controller mode*/
+   	/*2.1. enable the subcalss code register for setting sata controller mode*/
 	dev = _pci_make_tag(0, 0x11, 0x0);
-	val = pci_read_config8(dev, 0x40);
-	(void) pci_write_config8(dev, 0x40, (val | 0x01) );
+    val = pci_read_config8(dev, 0x40);
+    (void) pci_write_config8(dev, 0x40, (val | 0x01) );
 
-	/*2.2. set sata controller act as AHCI mode
-	 *	 sata controller support IDE mode, AHCI mode, Raid mode*/
-	(void) pci_write_config8(dev, 0x09, 0x01);
+   	/*2.2. set sata controller act as AHCI mode
+   	 *	 sata controller support IDE mode, AHCI mode, Raid mode*/
+   	(void) pci_write_config8(dev, 0x09, 0x01);
 	(void) pci_write_config8(dev, 0x0a, 0x06);
 
 	/*2.3. disable the subcalss code register*/
-	val = pci_read_config8(dev, 0x40);
-	(void) pci_write_config8(dev, 0x40, val & (~0x01));
+    val = pci_read_config8(dev, 0x40);
+    (void) pci_write_config8(dev, 0x40, val & (~0x01));
 	fixup_interrupt_printf("-----------------tset sata------------------\n");
 	val = pci_read_config32(dev, 0x40);
 	fixup_interrupt_printf("sata pci_config 0x40 (%x)\n", val);
@@ -1932,7 +1940,7 @@ void sb700_interrupt_fixup(void)
 	/*3. ide fixup*/
 	fixup_interrupt_printf("godson3a_ide_fixup: fix ide mode\n");
 	dev = _pci_make_tag(0, 0x14, 1);  
-
+	
 	/* enable IDE DMA --Multi-Word DMA */
 	pci_write_config32(dev, 0x44, 0x20000000);
 	byte = pci_read_config8(dev, 0x54);
@@ -1970,41 +1978,41 @@ void sb700_interrupt_fixup(void)
 	dev = _pci_make_tag(0, 0x14, 5);
 	pci_write_config8(dev, 0x3c, 0x6);
 	fixup_interrupt_printf("godson3a fixup: usb ------> int6 \n");
-
+	
 	/*5. lpc fixup*/
 	dev = _pci_make_tag(0, 0x14, 3);
 	fixup_interrupt_printf("godson3a fixup: lpc ------> int6 \n");
-	val = pci_read_config8(dev, 0x46);
-	fixup_interrupt_printf("Fixup: lpc: 0x46 value is 0x%x\n",val);
-	pci_write_config8(dev, 0x46, val|(0x3 << 6));
-	val = pci_read_config8(dev, 0x46);
-	fixup_interrupt_printf("Fixup: lpc: 0x47 value is 0x%x\n",val);
+    val = pci_read_config8(dev, 0x46);
+    fixup_interrupt_printf("Fixup: lpc: 0x46 value is 0x%x\n",val);
+    pci_write_config8(dev, 0x46, val|(0x3 << 6));
+    val = pci_read_config8(dev, 0x46);
+    fixup_interrupt_printf("Fixup: lpc: 0x47 value is 0x%x\n",val);
 
-	val = pci_read_config8(dev, 0x47);
-	fixup_interrupt_printf("Fixup: lpc: 0x47 value is 0x%x\n",val);
-	pci_write_config8(dev, 0x47, val|0xff);
-	val = pci_read_config8(dev, 0x47);
-	fixup_interrupt_printf("Fixup: lpc: 0x47 value is 0x%x\n",val);
+    val = pci_read_config8(dev, 0x47);
+    fixup_interrupt_printf("Fixup: lpc: 0x47 value is 0x%x\n",val);
+    pci_write_config8(dev, 0x47, val|0xff);
+    val = pci_read_config8(dev, 0x47);
+    fixup_interrupt_printf("Fixup: lpc: 0x47 value is 0x%x\n",val);
 
-	val = pci_read_config8(dev, 0x48);
-	fixup_interrupt_printf("Fixup: lpc: 0x48 value is 0x%x\n",val);
-	pci_write_config8(dev, 0x48, val|0xff);
-	val = pci_read_config8(dev, 0x48);
-	fixup_interrupt_printf("Fixup: lpc: 0x48 value is 0x%x\n",val);
-
+    val = pci_read_config8(dev, 0x48);
+    fixup_interrupt_printf("Fixup: lpc: 0x48 value is 0x%x\n",val);
+    pci_write_config8(dev, 0x48, val|0xff);
+    val = pci_read_config8(dev, 0x48);
+    fixup_interrupt_printf("Fixup: lpc: 0x48 value is 0x%x\n",val);
+	
 	/*6. hda fixup*/
 	fixup_interrupt_printf("godson3a fixup: HDA ------> int5 \n");
 	dev = _pci_make_tag(0, 0x14, 2);
-	pci_write_config8(dev,0x3c,0x05);
+    pci_write_config8(dev,0x3c,0x05);
 
 	fixup_interrupt_printf("godson3a fixup: HDA ------> int5 \n");
 
 	/*7. VGA fixup*/
-	fixup_interrupt_printf("godson3a fixup: VGA ------> int5 \n");
-	dev = _pci_make_tag(1, 0x5, 0);
-	pci_write_config8(dev,0x3c,0x05);
-
-	fixup_interrupt_printf("godson3a fixup: VGA ------> int5 \n");
+     fixup_interrupt_printf("godson3a fixup: VGA ------> int6 \n");
+     dev = _pci_make_tag(1, 0x5, 0);
+     pci_write_config8(dev,0x3c,0x06);
+ 
+     fixup_interrupt_printf("godson3a fixup: VGA ------> int6 \n");	
 
 	/*8. pci/pcie slot fixup */ 
 	// Notice: assume neighboure irq line will be used for multi-function pci/pcie device
@@ -2014,142 +2022,145 @@ void sb700_interrupt_fixup(void)
 	//8.1.3 route  00:06:02 (pcie slot) INTC->INTE# -----------------> int5
 	//8.1.4 route  00:06:03 (pcie slot) INTD->INTF# -----------------> int3
 	// First check if any device in the slot ( return -1 means no device, else there is device ) 
-	dev = _pci_make_tag(6, 0x0, 0x0); //added to fixup pci bridge card
-	val = pci_read_config32(dev, 0x00);
-	if ( val != 0xffffffff) // device on the slot
+	  dev = _pci_make_tag(6, 0x0, 0x0); //added to fixup pci bridge card
+	  val = pci_read_config32(dev, 0x00);
+	  if ( val != 0xffffffff) // device on the slot
 		pci_write_config8(dev, 0x3c, 0x06);
 
-	val = pci_read_config8(dev, 0x0e); //judge whether multi-function card
+	  val = pci_read_config8(dev, 0x0e); //judge whether multi-function card
 
-	if ( val & MULTY_FUNCTION) {
-		dev = _pci_make_tag(6, 0x0, 0x1); //added to fixup pci bridge card
-		val = pci_read_config32(dev, 0x00);
-		if ( val != 0xffffffff) // device on the slot
-			pci_write_config8(dev, 0x3c, 0x05);
+          if ( val & MULTY_FUNCTION) {
+	  dev = _pci_make_tag(6, 0x0, 0x1); //added to fixup pci bridge card
+	  val = pci_read_config32(dev, 0x00);
+	  if ( val != 0xffffffff) // device on the slot
+		pci_write_config8(dev, 0x3c, 0x05);
 
-		dev = _pci_make_tag(6, 0x0, 0x2); //added to fixup pci bridge card
-		val = pci_read_config32(dev, 0x00);
-		if ( val != 0xffffffff) // device on the slot
-			pci_write_config8(dev, 0x3c, 0x05);
+	  dev = _pci_make_tag(6, 0x0, 0x2); //added to fixup pci bridge card
+	  val = pci_read_config32(dev, 0x00);
+	  if ( val != 0xffffffff) // device on the slot
+		pci_write_config8(dev, 0x3c, 0x05);
 
-		dev = _pci_make_tag(6, 0x0, 0x3); //added to fixup pci bridge card
-		val = pci_read_config32(dev, 0x00);
-		if ( val != 0xffffffff) // device on the slot
-			pci_write_config8(dev, 0x3c, 0x03);
-	}
+	  dev = _pci_make_tag(6, 0x0, 0x3); //added to fixup pci bridge card
+	  val = pci_read_config32(dev, 0x00);
+	  if ( val != 0xffffffff) // device on the slot
+		pci_write_config8(dev, 0x3c, 0x03);
+	  }
 
 	// 8.2.1 route  00:05:00 (pcie slot) INTA->INTB# -----------------> int3 
 	// 8.2.2 route  00:05:01 (pcie slot) INTB->INTC# -----------------> int6 
 	// 8.2.3 route  00:05:02 (pcie slot) INTC->INTD# -----------------> int5 
 	// 8.2.4 route  00:05:03 (pcie slot) INTD->INTE# -----------------> int5 
 	// First check if any device in the slot ( return -1 means no device, else there is device ) 
-	dev = _pci_make_tag(5, 0x0, 0x00);
-	val = pci_read_config32(dev, 0x00);
-	if ( val != 0xffffffff) // device on the slot
+	  dev = _pci_make_tag(5, 0x0, 0x00);
+	  val = pci_read_config32(dev, 0x00);
+	  if ( val != 0xffffffff) // device on the slot
 		pci_write_config8(dev, 0x3c, 0x03);
 
-	val = pci_read_config8(dev, 0x0e);
+	  val = pci_read_config8(dev, 0x0e);
 
-	if ( val & MULTY_FUNCTION) {
-		dev = _pci_make_tag(5, 0x0, 0x01);
-		val = pci_read_config32(dev, 0x00);
-		if ( val != 0xffffffff) // device on the slot
-			pci_write_config8(dev, 0x3c, 0x06);
+          if ( val & MULTY_FUNCTION) {
+	  dev = _pci_make_tag(5, 0x0, 0x01);
+	  val = pci_read_config32(dev, 0x00);
+	  if ( val != 0xffffffff) // device on the slot
+		pci_write_config8(dev, 0x3c, 0x06);
 
-		dev = _pci_make_tag(5, 0x0, 0x02);
-		val = pci_read_config32(dev, 0x00);
-		if ( val != 0xffffffff) // device on the slot
-			pci_write_config8(dev, 0x3c, 0x05);
+	  dev = _pci_make_tag(5, 0x0, 0x02);
+	  val = pci_read_config32(dev, 0x00);
+	  if ( val != 0xffffffff) // device on the slot
+		pci_write_config8(dev, 0x3c, 0x05);
 
-		dev = _pci_make_tag(5, 0x0, 0x03);
-		val = pci_read_config32(dev, 0x00);
-		if ( val != 0xffffffff) // device on the slot
-			pci_write_config8(dev, 0x3c, 0x05);
-	}
+	  dev = _pci_make_tag(5, 0x0, 0x03);
+	  val = pci_read_config32(dev, 0x00);
+	  if ( val != 0xffffffff) // device on the slot
+		pci_write_config8(dev, 0x3c, 0x05);
+	  }
+
 	// 8.3.1 route  00:04:00 (pcie slot) INTA->INTA# -----------------> int3 
 	// 8.3.2 route  00:04:01 (pcie slot) INTB->INTB# -----------------> int3 
 	// 8.3.3 route  00:04:02 (pcie slot) INTC->INTC# -----------------> int6 
 	// 8.3.4 route  00:04:03 (pcie slot) INTD->INTD# -----------------> int5 
 	// First check if any device in the slot ( return -1 means no device, else there is device ) 
-	dev = _pci_make_tag(4, 0x0, 0x0 );
-	val = pci_read_config32(dev, 0x00);
-	if ( val != 0xffffffff) // device on the slot
+	  dev = _pci_make_tag(4, 0x0, 0x0 );
+	  val = pci_read_config32(dev, 0x00);
+	  if ( val != 0xffffffff) // device on the slot
 		pci_write_config8(dev, 0x3c, 0x03);
 
-	val = pci_read_config8(dev, 0x0e);
 
-	if ( val & MULTY_FUNCTION) {
-		dev = _pci_make_tag(4, 0x0, 0x1 );
-		val = pci_read_config32(dev, 0x00);
-		if ( val != 0xffffffff) // device on the slot
-			pci_write_config8(dev, 0x3c, 0x03);
+	  val = pci_read_config8(dev, 0x0e);
 
-		dev = _pci_make_tag(4, 0x0, 0x2 );
-		val = pci_read_config32(dev, 0x00);
-		if ( val != 0xffffffff) // device on the slot
-			pci_write_config8(dev, 0x3c, 0x06);
+          if ( val & MULTY_FUNCTION) {
+	  dev = _pci_make_tag(4, 0x0, 0x1 );
+	  val = pci_read_config32(dev, 0x00);
+	  if ( val != 0xffffffff) // device on the slot
+		pci_write_config8(dev, 0x3c, 0x03);
 
-		dev = _pci_make_tag(4, 0x0, 0x3 );
-		val = pci_read_config32(dev, 0x00);
-		if ( val != 0xffffffff) // device on the slot
-			pci_write_config8(dev, 0x3c, 0x05);
-	}
+	  dev = _pci_make_tag(4, 0x0, 0x2 );
+	  val = pci_read_config32(dev, 0x00);
+	  if ( val != 0xffffffff) // device on the slot
+		pci_write_config8(dev, 0x3c, 0x06);
+
+	  dev = _pci_make_tag(4, 0x0, 0x3 );
+	  val = pci_read_config32(dev, 0x00);
+	  if ( val != 0xffffffff) // device on the slot
+		pci_write_config8(dev, 0x3c, 0x05);
+	  }
 	// 8.4.1 route  00:03:00 (pcie slot) INTA->INTD# -----------------> int5 
 	// 8.4.2 route  00:03:01 (pcie slot) INTB->INTE# -----------------> int5 
 	// 8.4.3 route  00:03:02 (pcie slot) INTC->INTF# -----------------> int3 
 	// 8.4.4 route  00:03:03 (pcie slot) INTD->INTG# -----------------> int3 
 	// First check if any device in the slot ( return -1 means no device, else there is device ) 
-	dev = _pci_make_tag(3, 0x0, 0x0);
-	val = pci_read_config32(dev, 0x00);
-	if ( val != 0xffffffff) // device on the slot
+	  dev = _pci_make_tag(3, 0x0, 0x0);
+	  val = pci_read_config32(dev, 0x00);
+	  if ( val != 0xffffffff) // device on the slot
 		pci_write_config8(dev, 0x3c, 0x05);
 
-	val = pci_read_config8(dev, 0x0e);
+	  val = pci_read_config8(dev, 0x0e);
 
-	if ( val & MULTY_FUNCTION) {
-		dev = _pci_make_tag(3, 0x0, 0x1);
-		val = pci_read_config32(dev, 0x00);
-		if ( val != 0xffffffff) // device on the slot
-			pci_write_config8(dev, 0x3c, 0x05);
+          if ( val & MULTY_FUNCTION) {
+	  dev = _pci_make_tag(3, 0x0, 0x1);
+	  val = pci_read_config32(dev, 0x00);
+	  if ( val != 0xffffffff) // device on the slot
+		pci_write_config8(dev, 0x3c, 0x05);
 
-		dev = _pci_make_tag(3, 0x0, 0x2);
-		val = pci_read_config32(dev, 0x00);
-		if ( val != 0xffffffff) // device on the slot
-			pci_write_config8(dev, 0x3c, 0x03);
+	  dev = _pci_make_tag(3, 0x0, 0x2);
+	  val = pci_read_config32(dev, 0x00);
+	  if ( val != 0xffffffff) // device on the slot
+		pci_write_config8(dev, 0x3c, 0x03);
 
-		dev = _pci_make_tag(3, 0x0, 0x3);
-		val = pci_read_config32(dev, 0x00);
-		if ( val != 0xffffffff) // device on the slot
-			pci_write_config8(dev, 0x3c, 0x03);
-	}
-	// 8.5.1 route  00:02:00 (pciex8 slot) INTA->INTC# -----------------> int5
+	  dev = _pci_make_tag(3, 0x0, 0x3);
+	  val = pci_read_config32(dev, 0x00);
+	  if ( val != 0xffffffff) // device on the slot
+		pci_write_config8(dev, 0x3c, 0x03);
+	  }
+
+	// 8.5.1 route  00:02:00 (pciex8 slot) INTA->INTC# -----------------> int6 
 	// 8.5.2 route  00:02:01 (pciex8 slot) INTB->INTD# -----------------> int5 
 	// 8.5.3 route  00:02:02 (pciex8 slot) INTC->INTE# -----------------> int5 
 	// 8.5.4 route  00:02:03 (pciex8 slot) INTD->INTF# -----------------> int3 
 	// First check if any device in the slot ( return -1 means no device, else there is device ) 
-	dev = _pci_make_tag(2, 0x0, 0x0);
-	val = pci_read_config32(dev, 0x00);
-	if ( val != 0xffffffff) // device on the slot
+	  dev = _pci_make_tag(2, 0x0, 0x0);
+	  val = pci_read_config32(dev, 0x00);
+	  if ( val != 0xffffffff) // device on the slot
+		pci_write_config8(dev, 0x3c, 0x06);
+	
+	  val = pci_read_config8(dev, 0x0e);
+
+          if ( val & MULTY_FUNCTION) {
+	  dev = _pci_make_tag(2, 0x0, 0x1);
+	  val = pci_read_config32(dev, 0x00);
+	  if ( val != 0xffffffff) // device on the slot
 		pci_write_config8(dev, 0x3c, 0x05);
 
-	val = pci_read_config8(dev, 0x0e);
+	  dev = _pci_make_tag(2, 0x0, 0x2);
+	  val = pci_read_config32(dev, 0x00);
+	  if ( val != 0xffffffff) // device on the slot
+		pci_write_config8(dev, 0x3c, 0x05);
 
-	if ( val & MULTY_FUNCTION) {
-		dev = _pci_make_tag(2, 0x0, 0x1);
-		val = pci_read_config32(dev, 0x00);
-		if ( val != 0xffffffff) // device on the slot
-			pci_write_config8(dev, 0x3c, 0x05);
-
-		dev = _pci_make_tag(2, 0x0, 0x2);
-		val = pci_read_config32(dev, 0x00);
-		if ( val != 0xffffffff) // device on the slot
-			pci_write_config8(dev, 0x3c, 0x05);
-
-		dev = _pci_make_tag(2, 0x0, 0x3);
-		val = pci_read_config32(dev, 0x00);
-		if ( val != 0xffffffff) // device on the slot
-			pci_write_config8(dev, 0x3c, 0x03);
-	}
+	  dev = _pci_make_tag(2, 0x0, 0x3);
+	  val = pci_read_config32(dev, 0x00);
+	  if ( val != 0xffffffff) // device on the slot
+		pci_write_config8(dev, 0x3c, 0x03);
+	  }
 
 	// 9. route 00:0a:00  (pci slot: con20 and con19)
 	// NOTICE here: now assume dev 2, dev3 and dev 4 are all enable on x16 pcie slot, but 
@@ -2204,20 +2215,20 @@ void sb700_interrupt_fixup(void)
 		val = pci_read_config8(dev, 0x0e);
 
 		if ( val & MULTY_FUNCTION) {
-			dev = _pci_make_tag(busnum, 0x4, 0x01);
-			val = pci_read_config32(dev, 0x00);
-			if ( val != 0xffffffff) // device on the slot
-				pci_write_config8(dev, 0x3c, 0x03);// 0x14 means set interrupt pin to be 1, use interrupt line 0x3
+		dev = _pci_make_tag(busnum, 0x4, 0x01);
+		val = pci_read_config32(dev, 0x00);
+		if ( val != 0xffffffff) // device on the slot
+		  pci_write_config8(dev, 0x3c, 0x03);// 0x14 means set interrupt pin to be 1, use interrupt line 0x3
 
-			dev = _pci_make_tag(busnum, 0x4, 0x2);
-			val = pci_read_config32(dev, 0x00);
-			if ( val != 0xffffffff) // device on the slot
-				pci_write_config8(dev, 0x3c, 0x04);// 0x14 means set interrupt pin to be 1, use interrupt line 0x3
+		dev = _pci_make_tag(busnum, 0x4, 0x2);
+		val = pci_read_config32(dev, 0x00);
+		if ( val != 0xffffffff) // device on the slot
+		  pci_write_config8(dev, 0x3c, 0x04);// 0x14 means set interrupt pin to be 1, use interrupt line 0x3
 
-			dev = _pci_make_tag(busnum, 0x4, 0x03);
-			val = pci_read_config32(dev, 0x00);
-			if ( val != 0xffffffff) // device on the slot
-				pci_write_config8(dev, 0x3c, 0x05);// 0x14 means set interrupt pin to be 1, use interrupt line 0x3
+		dev = _pci_make_tag(busnum, 0x4, 0x03);
+		val = pci_read_config32(dev, 0x00);
+		if ( val != 0xffffffff) // device on the slot
+		  pci_write_config8(dev, 0x3c, 0x05);// 0x14 means set interrupt pin to be 1, use interrupt line 0x3
 		}
 	}
 
@@ -2226,49 +2237,49 @@ void sb700_interrupt_fixup(void)
 	// below added to check pci/pcie interrupt line register
 	/*******************************************************/
 	// 10.1 check all pcie slot interrupt line register, here interrupt number of multi-func dev not checked
-	for ( tmp = 2; tmp < 7; tmp++)
-	{
-		dev = _pci_make_tag(tmp, 0x0, 0x0);
-		val = pci_read_config32(dev, 0x00);
-		if ( val != 0xffffffff) // device on the slot
-		{
-			val = pci_read_config8(dev, 0x3c);
-			if ( val != 0x3)
-				fixup_interrupt_printf("%02x:00:00 interrupt line : Error\n",tmp);
-		}
-	}
-
+    for ( tmp = 2; tmp < 7; tmp++)
+    {
+      dev = _pci_make_tag(tmp, 0x0, 0x0);
+      val = pci_read_config32(dev, 0x00);
+      if ( val != 0xffffffff) // device on the slot
+      {
+        val = pci_read_config8(dev, 0x3c);
+        if ( val != 0x3)
+          fixup_interrupt_printf("%02x:00:00 interrupt line : Error\n", tmp);
+      }
+    }
+      
 	// 10.2 check all pci slot interrupt line register
-	for ( tmp = 0x4; tmp < 0x6; tmp++)
-	{
-		dev = _pci_make_tag(0xa, tmp, 0x0);
-		val = pci_read_config32(dev, 0x00);
-		if ( val != 0xffffffff) // device on the slot
-		{
-			val = pci_read_config8(dev, 0x3c);
-			if ( val != 0x3)
-				fixup_interrupt_printf("0a:%02x:00 interrupt line : Error\n",tmp);
-		}
-	}
-
+    for ( tmp = 0x4; tmp < 0x6; tmp++)
+    {
+      dev = _pci_make_tag(0xa, tmp, 0x0);
+      val = pci_read_config32(dev, 0x00);
+      if ( val != 0xffffffff) // device on the slot
+      {
+        val = pci_read_config8(dev, 0x3c);
+        if ( val != 0x3)
+          fixup_interrupt_printf("0a:%02x:00 interrupt line : Error\n", tmp);
+      }
+    }
+	
 	// 10.4 check RTE/CON30 interrupt line register
 	dev = _pci_make_tag(0x7, 0x0, 0x0);
-	val = pci_read_config32(dev, 0x00);
+    val = pci_read_config32(dev, 0x00);
 	if ( val != 0xffffffff) // device on the slot
-	{
-		val = pci_read_config8(dev, 0x3c);
-		if ( val != 0x5)
-			fixup_interrupt_printf("07:00:00 interrupt line : Error\n");
+    {
+	  val = pci_read_config8(dev, 0x3c);
+	  if ( val != 0x5)
+		fixup_interrupt_printf("07:00:00 interrupt line : Error\n");
 	}
 
 	// 10.5 check  VGA interrupt line register
 	dev = _pci_make_tag(0x1, 0x5, 0x0);
-	val = pci_read_config32(dev, 0x00);
+    val = pci_read_config32(dev, 0x00);
 	if ( val != 0xffffffff) // device on the slot
-	{
-		val = pci_read_config8(dev, 0x3c);
-		if ( val != 0x6)
-			fixup_interrupt_printf("01:05:00 interrupt line : Error\n");
+    {
+	  val = pci_read_config8(dev, 0x3c);
+	  if ( val != 0x6)
+		fixup_interrupt_printf("01:05:00 interrupt line : Error\n");
 	}
 
 }
