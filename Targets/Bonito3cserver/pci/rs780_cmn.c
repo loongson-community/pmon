@@ -572,8 +572,15 @@ u8 PcieTrainPort(device_t nb_dev, device_t dev, u32 port)
 			count = 0;
 			break;
 		case 0x10:
-                        printk_info("PcieTrainPort reg\n");
+			printk_info("PcieTrainPort reg\n");
+
+			/*
+			 * If access the pci_e express configure reg, should be
+			 * enable the bar3 before, and close it when access done.
+			 */
+			enable_pcie_bar3(nb_dev);
 			reg = pci_ext_read_config16(nb_dev, dev,PCIE_VC0_RESOURCE_STATUS);
+			disable_pcie_bar3(nb_dev);
 			printk_info("PcieTrainPort reg=0x%x\n", reg);
 #if 0
 			reg =

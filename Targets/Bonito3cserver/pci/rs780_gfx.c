@@ -1060,6 +1060,10 @@ void rs780_gfx_init(device_t nb_dev, device_t dev, u32 port)
 		printk_info("rs780_gfx_init step2.\n");
 
 		printk_info("device = %x\n", dev_ind);
+
+		/* 5.4.1.2 Enable the GFX training bit */
+		set_nbmisc_enable_bits(nb_dev, 0x8, 0x1 << 4 | 0x1 << 5, 0x0 << 4 | 0x0 << 5);
+
 		dual_port_configuration(nb_dev, dev);
 		break;
 	default:
@@ -1145,6 +1149,7 @@ void rs780_gfx_3_init(device_t nb_dev, device_t dev, u32 port)
 	pcie_commoncoreinit(nb_dev, dev);
 	pcie_commonportinit(nb_dev, dev);
 	pcie_initgen2(nb_dev, dev);
+	pcie_gen2workaround(nb_dev, dev);
 
 	/* Single-port/Dual-port configureation. */
 	switch (cfg->gfx_dual_slot) {
