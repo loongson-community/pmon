@@ -33,7 +33,7 @@ option      ENABLE_SATA         #Enable SATA  ,when enable IDE can also use, whe
 option      LS3B
 
 option		BOOTCORE_ID=1
-option		RESERVED_COREMASK=0xff11
+option		RESERVED_COREMASK=0xff01
 
 option      AUTO_DDR_CONFIG
 option      USE_SB_I2C
