@@ -1322,6 +1322,8 @@ int paint_childwindow(char **hint,char *diskdev_name[],char *netdev_name[],int e
 				afxIsReturnToPmon = 1;
 				w_enterconsole();
 #ifdef LOONGSON_2G5536
+				loongson2g_BE_callRealMode(0xc000, 0x0003,
+						LOONGSON_2G5536_VGA_REG, LOONGSON_2G5536_VGA_SREG);
 #else
 				video_cls();
 #endif

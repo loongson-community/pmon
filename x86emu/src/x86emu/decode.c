@@ -94,18 +94,18 @@ void X86EMU_exec(void)
 	M.x86.intr = 0;
 	DB(x86emu_end_instr();)
 
-    for (;;) {
+	for (;;) {
 DB(		if (CHECK_IP_FETCH())
 		  x86emu_check_ip_access();)
 		/* If debugging, save the IP and CS values. */
 		SAVE_IP_CS(M.x86.R_CS, M.x86.R_IP);
 		INC_DECODED_INST_LEN(1);
 		if (M.x86.intr) {
-		      if (M.x86.intr & INTR_HALTED) {
+			if (M.x86.intr & INTR_HALTED) {
 DB(				printf("halted\n");
 				X86EMU_trace_regs();)
 				return;
-            }
+            		}
 			if (((M.x86.intr & INTR_SYNCH) && (M.x86.intno == 0 || M.x86.intno == 2)) ||
 				!ACCESS_FLAG(F_IF)) {
 				x86emu_intr_handle();
@@ -114,22 +114,23 @@ DB(				printf("halted\n");
 		op1 = (*sys_rdb)(((u32)M.x86.R_CS << 4) + (M.x86.R_IP++));
 		(*x86emu_optab[op1])(op1);
 #ifdef DEBUG_EMU_VGA
-	{ 
-	 char c;
-	 if(tgt_testchar()){
-	 printf("press d to show debug info,x to exit,others to continue\n");
-	 c=tgt_getchar();
-	 if(c=='d')X86EMU_trace_on(); 
-	 if(c=='x'){M.x86.debug &= ~DEBUG_EXIT;return;}
-
-	 }
-	}
+		char c;
+		if(tgt_testchar()){
+			printf("press d to show debug info,x to exit,others to continue\n");
+			c = tgt_getchar();
+			if(c =='d')
+				X86EMU_trace_on(); 
+			if(c =='x'){
+				M.x86.debug &= ~DEBUG_EXIT;
+				return;
+			}
+		}
 #endif
 		if (M.x86.debug & DEBUG_EXIT) {
-		    M.x86.debug &= ~DEBUG_EXIT;
-		    return;
+			M.x86.debug &= ~DEBUG_EXIT;
+			return;
 		}
-    }
+	}
 }
 
 /****************************************************************************

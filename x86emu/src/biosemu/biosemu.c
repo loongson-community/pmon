@@ -41,6 +41,8 @@
 #include <linux/types.h>
 #include "biosemui.h"
 
+#include "include/x86emui.h"
+
 /*------------------------- Global Variables ------------------------------*/
 
 BE_sysEnv           _BE_env;
@@ -301,6 +303,22 @@ void  BE_callRealMode(
     sregs->gs = M.x86.R_GS;
  //   UnlockLegacyVGA();
 }
+
+#ifdef LOONGSON_2G5536
+void  loongson2g_BE_callRealMode(
+    uint seg,
+    uint off,
+    RMREGS *regs,
+    RMSREGS *sregs)
+{
+	printf("rcs:0x%x, rip:0x%x, rss:0x%x, rsp:0x%x \n", M.x86.R_CS, M.x86.R_IP, M.x86.R_SS, M.x86.R_SP);
+	printf("seg:0x%x, off:0x%x, SEG:0x%x, OFF:0x%x \n", (u16)seg, (u16)off, SEG(M.mem_size - 1), OFF(M.mem_size - 1));
+	M.x86.R_CS = (u16)seg;
+	M.x86.R_IP = (u16)off;
+	M.x86.R_SP = OFF(M.mem_size - 1);
+	X86EMU_exec();
+}
+#endif
 
 /****************************************************************************
 PARAMETERS:

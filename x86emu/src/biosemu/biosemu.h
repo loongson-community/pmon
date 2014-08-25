@@ -67,19 +67,15 @@ BIOSImageLen    - Length of the BIOS image
 LowMem          - Copy of key low memory areas
 ****************************************************************************/
 
-#ifndef uchar
-#define uchar unsigned char
-#endif
-
 typedef struct {
     struct pci_device *pciInfo;
     void            *BIOSImage;
     ulong           BIOSImageLen;
-    uchar           LowMem[1536];
-    uchar           save_msr;
-    uchar           save_pos102;
-    uchar           save_vse;
-    uchar           save_46e8;
+    unsigned char           LowMem[1536];
+    unsigned char           save_msr;
+    unsigned char           save_pos102;
+    unsigned char           save_vse;
+    unsigned char           save_46e8;
     } BE_VGAInfo;
 
 /****************************************************************************
@@ -120,10 +116,10 @@ struct _PMWORDREGS {
     };
 
 struct _PMBYTEREGS {
-    uchar   al, ah; ushort ax_hi;
-    uchar   bl, bh; ushort bx_hi;
-    uchar   cl, ch; ushort cx_hi;
-    uchar   dl, dh; ushort dx_hi;
+    unsigned char   al, ah; ushort ax_hi;
+    unsigned char   bl, bh; ushort bx_hi;
+    unsigned char   cl, ch; ushort cx_hi;
+    unsigned char   dl, dh; ushort dx_hi;
     };
 
 typedef union {

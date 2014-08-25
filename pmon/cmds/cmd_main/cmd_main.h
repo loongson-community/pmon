@@ -13,6 +13,14 @@
 #define NEXT_PAGE(x) (x+1>=npages?0:x+1)
 #define PREV_PAGE(x) (x==0?npages-1:x-1)
 
+#ifdef LOONGSON_2G5536
+#include "../../../x86emu/src/biosemu/biosemui.h"
+RMREGS	*vga_reg;
+RMSREGS	*vga_sreg;
+#define LOONGSON_2G5536_VGA_REG		vga_reg
+#define LOONGSON_2G5536_VGA_SREG	vga_sreg
+#endif
+
 struct _daytime
 {
 	char *name;

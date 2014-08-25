@@ -375,10 +375,10 @@ void X86API wrb(
 {
 DB(	if (DEBUG_MEM_TRACE())
 		printf("%#08x 1 <- %#x\n", addr, val);)
-    if (addr > M.mem_size - 1) {
+	if (addr > M.mem_size - 1) {
 		DB(printf("mem_write: address %#lx out of range!\n", addr);)
 		HALT_SYS();
-		}
+	}
 	*(u8*)(M.mem_base + addr) = val;
 }
 

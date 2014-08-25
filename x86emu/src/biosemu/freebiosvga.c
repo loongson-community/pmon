@@ -21,6 +21,10 @@ static	BE_VGAInfo       VGAInfo[1] = {{0}};
 static	RMREGS          regs;
 static  RMSREGS         sregs;
 
+#ifdef LOONGSON_2G5536
+extern RMREGS	*vga_reg;
+extern RMSREGS	*vga_sreg;
+#endif
 extern struct pci_device *vga_dev;
 
 //int vga_available = 0;
@@ -65,10 +69,10 @@ int vga_bios_init(void)
 #endif
         
 #ifdef VGAROM_IN_BIOS
-                 {
-                  extern unsigned char vgarom[];
-		  romaddress=vgarom;
-       		}
+		{
+			extern unsigned char vgarom[];
+			romaddress = vgarom;
+		}
 #endif
 		printf("Rom mapped to %lx\n",romaddress);
 #ifdef LOONGSON_2G5536
@@ -128,7 +132,7 @@ int vga_bios_init(void)
 		  memcpy(VGAInfo[0].BIOSImage,(char*)(0xa0000000|romaddress),romsize);
 #endif
 
-    		BE_init(debugFlags,65536,&VGAInfo[0]);
+    		BE_init(debugFlags, 65536, &VGAInfo[0]);
 
     		regs.h.ah = pdev->pa.pa_bus;
     		regs.h.al = (pdev->pa.pa_device<<3)|(pdev->pa.pa_function&0x7);
@@ -137,7 +141,11 @@ int vga_bios_init(void)
 #ifdef DEBUG_EMU_VGA
 		//X86EMU_trace_on();
 #endif
-        	BE_callRealMode(0xC000,0x0003,&regs,&sregs);
+#ifdef LOONGSON_2G5536
+		vga_reg = &regs;
+		vga_sreg= &sregs;
+#endif
+        	BE_callRealMode(0xc000, 0x0003, &regs, &sregs);
 #if 0
 {
     RMREGS in;
@@ -148,15 +156,15 @@ BE_int86(0x10,&in,&out);
 #endif
 
 		//BE_exit();
-		pci_read_config_dword(pdev,0x30,(int*)&romaddress);
+		pci_read_config_dword(pdev, 0x30, (int*)&romaddress);
 		/* disable rom address decode */
-		pci_write_config_dword(pdev,0x30,romaddress & ~1);
+		pci_write_config_dword(pdev, 0x30, romaddress & ~1);
 
 		printf("vgabios_init: Emulation done\n");
 		vga_available = 1;
-	return 1;
+		return 1;
 
-	} else{ 
+	} else { 
 		printf("No VGA PCI device available\n");
 		return -1;
 	}
