@@ -226,3 +226,6 @@ option CONFIG_SLOW_PCI_FOR_BROKENDEV
 
 select http
 select tcp
+
+select cmd_main
+option INTERFACE_3A780E

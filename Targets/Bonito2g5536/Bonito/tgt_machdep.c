@@ -35,20 +35,21 @@ void		tgt_putchar (int);
 int
 tgt_printf (const char *fmt, ...)
 {
-    int  n;
-    char buf[1024];
+	int  n;
+	char buf[1024];
 	char *p=buf;
 	char c;
 	va_list     ap;
 	va_start(ap, fmt);
-    n = vsprintf (buf, fmt, ap);
-    va_end(ap);
+	n = vsprintf (buf, fmt, ap);
+	va_end(ap);
 	while((c=*p++))
 	{ 
-	 if(c=='\n')tgt_putchar('\r');
-	 tgt_putchar(c);
+		if(c=='\n')
+			tgt_putchar('\r');
+		tgt_putchar(c);
 	}
-    return (n);
+	return (n);
 }
 
 #if 1
@@ -155,6 +156,7 @@ static inline unsigned char CMOS_READ(unsigned char addr);
 static inline void CMOS_WRITE(unsigned char val, unsigned char addr);
 static void init_legacy_rtc(void);
 
+int afxIsReturnToPmon = 0;
 
 ConfigEntry	ConfigTable[] =
 {
@@ -177,6 +179,7 @@ unsigned long _filebase;
 
 extern unsigned long long memorysize;
 extern unsigned long long memorysize_high;
+extern unsigned long long memorysize_total;
 
 extern char MipsException[], MipsExceptionEnd[];
 
@@ -195,12 +198,12 @@ static void superio_reinit();
 void
 initmips(unsigned int memsz)
 {
-unsigned int hi;
-tgt_fpuenable();
-tgt_printf("memsz %d\n",memsz);
-/*enable float*/
-tgt_fpuenable();
-//CPU_TLBClear();
+	unsigned int hi;
+	tgt_fpuenable();
+	tgt_printf("memsz %d\n",memsz);
+	/* enable float */
+	tgt_fpuenable();
+//	CPU_TLBClear();
 
 	/*
 	 *	Set up memory address decoders to map entire memory.
@@ -208,6 +211,7 @@ tgt_fpuenable();
 	 */
 	memorysize = memsz > 256 ? 256 << 20 : memsz << 20;
 	memorysize_high = memsz > 256 ? (memsz - 256) << 20 : 0;
+	memorysize_total = (( memorysize + memorysize_high ) >> 20);
 
 
 	/*
@@ -302,21 +306,21 @@ tgt_devconfig()
 #if NMOD_SMI712 > 0
 		fbaddress |= 0xb0000000;
 		ioaddress |= 0xbfd00000;
-        smi712_init((unsigned char *)fbaddress,(unsigned char *)ioaddress);
+		smi712_init((unsigned char *)fbaddress,(unsigned char *)ioaddress);
 #endif
 
 #if NMOD_SMI502 > 0
-        rc = video_hw_init ();
-                fbaddress  =_pci_conf_read(vga_dev->pa.pa_tag,0x10);
-                ioaddress  =_pci_conf_read(vga_dev->pa.pa_tag,0x14);
-                fbaddress |= 0xb0000000;
-                ioaddress |= 0xb0000000;
+		rc = video_hw_init ();
+		fbaddress  =_pci_conf_read(vga_dev->pa.pa_tag,0x10);
+		ioaddress  =_pci_conf_read(vga_dev->pa.pa_tag,0x14);
+		fbaddress |= 0xb0000000;
+		ioaddress |= 0xb0000000;
 #endif
 #if defined(VESAFB)
-        vesafb_init();
+		vesafb_init();
 #endif 
 #ifdef SIS315E
-        sis315e_init();
+		sis315e_init();
 #endif
 		printf("begin fb_init\n");
 		fb_init(fbaddress, ioaddress);
@@ -328,16 +332,20 @@ tgt_devconfig()
 #endif
 
 #if (NMOD_FRAMEBUFFER > 0) || (NMOD_VGACON > 0 )
-    if (rc > 0)
-	 if(!getenv("novga")) vga_available=1;
-	 else vga_available=0;
+	if (rc > 0)
+		if(!getenv("novga"))
+			vga_available=1;
+		else
+			vga_available=0;
 #endif
-    config_init();
-    configure();
+	config_init();
+	configure();
 #if 1
 #if ((NMOD_VGACON >0) &&((PCI_IDSEL_VIA686B !=0)|| (PCI_IDSEL_CS5536 !=0)))
-	if(getenv("nokbd")) rc=1;
-	else rc=kbd_initialize();
+	if(getenv("nokbd"))
+		rc=1;
+	else
+		rc=kbd_initialize();
 	printf("%s\n",kbd_error_msgs[rc]);
 	if(!rc){ 
 		kbd_available=1;
@@ -345,7 +353,8 @@ tgt_devconfig()
 	psaux_init();
 #endif
 #endif
-   printf("devconfig done.\n");
+	init_win_device();
+	printf("devconfig done.\n");
 }
 
 extern int test_icache_1(short *addr);
@@ -903,12 +912,12 @@ tgt_mapenv(int (*func) __P((char *, char *)))
          */
 	printf("in envinit\n");
 #ifdef NVRAM_IN_FLASH
-    nvram = (char *)(tgt_flashmap())->fl_map_base;
+	nvram = (char *)(tgt_flashmap())->fl_map_base;
 	printf("nvram=%08x\n",(unsigned int)nvram);
 	if(fl_devident(nvram, NULL) == 0 ||
            cksum(nvram + NVRAM_OFFS, NVRAM_SIZE, 0) != 0) {
 #else
-    nvram = (char *)malloc(512);
+	nvram = (char *)malloc(512);
 	nvram_get(nvram);
 	if(cksum(nvram, NVRAM_SIZE, 0) != 0) {
 #endif
@@ -1253,7 +1262,7 @@ tgt_setenv(char *name, char *value) {
         cksum(nvrambuf, NVRAM_SIZE, 1);
 #ifdef NVRAM_IN_FLASH
 	bcopy(&activecom,&nvrambuf[ACTIVECOM_OFFS], 1);
-    bcopy(&em_enable,&nvrambuf[MASTER_BRIDGE_OFFS], 1);
+	bcopy(&em_enable,&nvrambuf[MASTER_BRIDGE_OFFS], 1);
 #endif 
 	bcopy(hwethadr, &nvramsecbuf[ETHER_OFFS], 6);
 	bcopy(hwethadr1, &nvramsecbuf[ETHER1_OFFS], 6);
@@ -1476,8 +1485,6 @@ int get_update(char *p)
  }
 
 extern struct efi_memory_map_loongson g_map;
-extern unsigned long long memorysize;
-extern unsigned long long memorysize_high;
 
 #include "../../../pmon/cmds/bootparam.h"
 #include "../../../pmon/common/smbios/smbios.h"

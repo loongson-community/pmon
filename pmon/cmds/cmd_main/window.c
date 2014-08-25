@@ -187,7 +187,11 @@ static void w_cls()
 			video_cls();
 		memset(finalbuf,0x01,sizeof(foreground));
 #else
-		for (i = 0; i < VIDEO_HEIGHT*VIDEO_WIDTH; i += 8)
+#if defined(LOONGSON_2G5536)
+		for (i = 0; i < VIDEO_HEIGHT*VIDEO_WIDTH*2; i += 8)
+#else
+		for (i = 0; i < VIDEO_HEIGHT*VIDEO_WIDTH*; i += 8)
+#endif
 			*((long long *)(vgabh+i))=(long long)(0x0f000f000f000f00<<32)+0x0f000f000f000f00;
 #endif
 	}

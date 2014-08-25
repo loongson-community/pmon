@@ -447,7 +447,7 @@ int init_win_device(void){
 					/**************** SATA controller *****************/
 					if (hdinfo[x].b_idenum == 0) {
 						/**************** SATA0 port **************/
-#if (defined LOONGSON_3A2H) || (defined LOONGSON_3C2H)
+#if defined(LOONGSON_3A2H) || defined(LOONGSON_3C2H) || defined(LOONGSON_2G5536)
 						if(1){
 #else
 						if(hdinfo[x].b_channel == 0 && hdinfo[x].b_drivnum == 0) {
@@ -1311,10 +1311,16 @@ int paint_childwindow(char **hint,char *diskdev_name[],char *netdev_name[],int e
 			}
 			if (w_button(3, 6, 20, "[  Return to PMON  ]"))
 			{
+#ifdef LOONGSON_2G5536
+#else
 				video_cls();
+#endif
 				afxIsReturnToPmon = 1;
 				w_enterconsole();
+#ifdef LOONGSON_2G5536
+#else
 				video_cls();
+#endif
 				tty_flush();
 				cmd_main_mutex = 1;
 				return 0;

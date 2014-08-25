@@ -11,20 +11,27 @@
 #define VIDEO_FONT_WIDTH	8
 #define VIDEO_FONT_HEIGHT	16
 
-#ifdef CENTERM
+#if defined(CENTERM)
 /* Vga:1024x768 */
 #define VIDEO_WIDTH		128
-#define VIDEO_HEIGHT	48
+#define VIDEO_HEIGHT		48
 
-#define REV_ROW_LINE	736
-#define INF_ROW_LINE	752 
+#define REV_ROW_LINE		736
+#define INF_ROW_LINE		752 
+#elif defined(LOONGSON_2G5536)
+/* Vga:800*600 */
+#define VIDEO_WIDTH             80
+#define VIDEO_HEIGHT		25
+
+#define REV_ROW_LINE		560
+#define INF_ROW_LINE		576
 #else
 /* Vga:800*600 */
 #define VIDEO_WIDTH		100
-#define VIDEO_HEIGHT	37
+#define VIDEO_HEIGHT		37
 
-#define REV_ROW_LINE	560
-#define INF_ROW_LINE	576
+#define REV_ROW_LINE		560
+#define INF_ROW_LINE		576
 #endif
 
 /* Vertical line compart position */
