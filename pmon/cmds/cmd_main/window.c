@@ -190,7 +190,7 @@ static void w_cls()
 #if defined(LOONGSON_2G5536)
 		for (i = 0; i < VIDEO_HEIGHT*VIDEO_WIDTH*2; i += 8)
 #else
-		for (i = 0; i < VIDEO_HEIGHT*VIDEO_WIDTH*; i += 8)
+		for (i = 0; i < VIDEO_HEIGHT*VIDEO_WIDTH; i += 8)
 #endif
 			*((long long *)(vgabh+i))=(long long)(0x0f000f000f000f00<<32)+0x0f000f000f000f00;
 #endif
@@ -336,7 +336,10 @@ static void w_background(void)
 
 }
 
-int charin=0,cn=0;
+int charin=0, cn=0;
+#if defined(LOONGSON_2G5536)
+int date_index = 0;
+#endif
 char *chgconcolor[]={"\e[0;37;44m","\e[0;7m"};
 void w_present(void)
 {
@@ -466,6 +469,9 @@ void w_present1(int x0,int y0,int w0,int h0)
 		case '[C':
 		case '[D':
 			overid=nextid[(cn&255)-'A'];
+#if defined(LOONGSON_2G5536)
+			date_index = 0;
+#endif
 			break;
 		/* The function key don't implement */
 		case '[G':  //Delete Key
@@ -666,8 +672,16 @@ int w_input(int x,int y,int w,char *caption,char * text,int buflen)
 		}
 		else if(charin>=32 && l<buflen-1)
 		{
+#if defined(LOONGSON_2G5536)
+			if(date_index < buflen - 1)
+                        {
+                                text[date_index++] = charin;
+                                text[date_index] = '\0';
+                        }
+#else
 			text[l]=charin;
 			text[l+1]=0;
+#endif
 		}
 	}
 	return currentid==enterid;
