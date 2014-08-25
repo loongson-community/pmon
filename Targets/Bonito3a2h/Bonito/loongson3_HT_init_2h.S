@@ -1277,6 +1277,7 @@ crc_checking:
 	li	t0, 0xbbd80000 ;\
 	daddiu	t0, t0, mas_i*0x100 ;\
 	daddiu	t0, t0, win_i*0x8 ;\
+	sd	$0, 0x80(t0) ;\
 	dli	t1, base ;\
 	sd	t1, 0x0(t0) ;\
 	dli	t1, mask ;\
@@ -1312,12 +1313,16 @@ crc_checking:
 	set_L2_win(4, 4, 0xffffffff80000000, 0xffffffffc0000000, 0x00000030800000f3) # 2~3G
 	set_L2_win(4, 5, 0xffffffffc0000000, 0xffffffffc0000000, 0x00000040800000f3) # 3~4G
 
-	set_L1_mas6(5, 0x0000000000000000, 0x0000000000000000, 0x00000000000000f0) # others, all to L2$
+	set_L1_mas6(6, 0x0000000000000000, 0x0000000000000000, 0x00000000000000f0) # others, all to L2$
 	set_L1_mas6(0, 0x0000001080000000, 0xfffffffff0000000, 0x00000000000000f6)
 	set_L1_mas6(1, 0x0000001080000000, 0xffffffffc0000000, 0x00000001000000f6)
 	set_L1_mas6(2, 0x0000002080000000, 0xffffffffc0000000, 0x00000001400000f6)
 	set_L1_mas6(3, 0x0000003080000000, 0xffffffffc0000000, 0x00000001800000f6)
 	set_L1_mas6(4, 0x0000004080000000, 0xffffffffc0000000, 0x00000001c00000f6)
+	set_L1_mas6(5, 0x000000f080000000, 0xffffffffff000000, 0x000000fdf80000f6) # to ht int
+
+	set_L2_win(0, 6, 0x0000000018000000, 0xfffffffff8000000, 0x0000000018000081) # copy of sb win
+	set_L2_win(0, 4, 0x0000000019000000, 0xffffffffff000000, 0x000000f080000083) # to ht int(l1)
 
 	// set ls3a-2h dma cached coherence by hardware
 //	li	t2, 0x90001EFDFB0000F0; li t1, 0x0; sw t1, 0x00(t2);
