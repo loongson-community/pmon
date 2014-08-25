@@ -90,7 +90,7 @@ int vga_bios_init(void)
 
 			ppcidata = readw(romaddress + 0x18);
 #ifdef LOONGSON_2G5536
-			pci_sync_cache(pcisig,romaddress + ppcidata,4, SYNC_W);
+			pci_sync_cache(pcisig,romaddress + ppcidata,0x20, SYNC_W);
 #endif
 			printf("PCI data structure at offset %x\n",ppcidata);
 			pcisig[0] = readb(romaddress + ppcidata);
