@@ -1019,6 +1019,9 @@ usb_stor_read(int device, unsigned long blknr, unsigned long blkcnt, unsigned lo
 		} else {
 			smallblks=(unsigned short) blks;
 		}
+#ifdef LOONGSON_2G5536
+		s = splimp();
+#endif
 retry_it:
 		//if(smallblks==USB_MAX_READ_BLK)
 		//	usb_show_progress();
@@ -1033,7 +1036,9 @@ retry_it:
 #endif
 		srb->datalen=usb_dev_desc[device].blksz * smallblks;
 		srb->pdata=(unsigned char *)buf_addr;
+#ifndef LOONGSON_2G5536
 		s = splimp();
+#endif
 		if(usb_read_10(srb,(struct us_data *)dev->privptr, start, smallblks)) {
 			//USB_STOR_PRINTF("Read ERROR\n");
 			printf("Read ERROR\n");
