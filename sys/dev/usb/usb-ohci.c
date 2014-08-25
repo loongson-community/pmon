@@ -3123,6 +3123,7 @@ static int hc_interrupt(void *hc_data)
 		}
 	} else {
 		ints = readl(&regs->intrstatus);
+		ints &= ~OHCI_INTR_WDH;
 		if (ints == ~0ul)
 			return 0;
 		if (ints == 0)
@@ -3807,7 +3808,7 @@ static int hc_check_ohci_controller(void *hc_data)
 	}
 
 	if (ints & OHCI_INTR_WDH) {
-
+/*
 		if (td == NULL) {
 #ifdef CONFIG_SM502_USB_HCD
 			if (ohci->flags & 0x80) {
@@ -3827,7 +3828,7 @@ static int hc_check_ohci_controller(void *hc_data)
 #endif
 			}
 		}
-
+*/
 		if ((td != NULL) && (td->ed != NULL)) {	//&&(td->ed->type != PIPE_INTERRUPT)))
 			writel(OHCI_INTR_WDH, &regs->intrdisable);
 			p_dev = td->usb_dev;
