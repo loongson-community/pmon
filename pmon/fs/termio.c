@@ -268,33 +268,32 @@ scandevs ()
 #endif
 #if NMOD_VGACON >0
 #if NMOD_USB_KBD >0
-#ifdef LOONGSON_2G5536
+#if defined(LOONGSON_2G5536)
 	if (usb_kbd_available) //before use
 		usb_kbd_poll();  //before use
-#endif
-#ifdef INTERFACE_3A780E
-if (usb_kbd_available)
-    {
-     if (bios_available) /* fix some usb_kbd problems in bios window */
-     {
-       spl0();
-       tgt_poll();
-     }
+#elif defined(INTERFACE_3A780E)
+	if (usb_kbd_available)
+	{
+		if(bios_available) /* fix some usb_kbd problems in bios window */
+		{
+			spl0();
+			tgt_poll();
+		}
 
-     usb_kbd_poll();
+		usb_kbd_poll();
 
-     if (bios_available && usb_kbd_code == 0x8)  /* fix backspace bug in bios window */
-     {
-       kbd_code = 0x7f;
-      return ;
-     }
-   }
+		if(bios_available && usb_kbd_code == 0x8)  /* fix backspace bug in bios window */
+		{
+			kbd_code = 0x7f;
+			return ;
+		}
+	}
 #endif
 
-#endif
+#endif	/* NMOD_USB_KBD */
 	if (kbd_available)
 		kbd_poll();
-#endif
+#endif	/* NMOD_VGACON */
 }
 
 /** ioctl(fd,op,argp) perform control operation on fd */
