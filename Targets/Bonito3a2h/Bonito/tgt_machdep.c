@@ -718,7 +718,7 @@ tgt_devconfig()
 			{
 				break;
 			}
-			delay1(6000);
+			delay(6000);
 		}
 		for(i=0,count=(200/8)+1;count>0;count--,i+=8)
 		{
@@ -806,7 +806,7 @@ tgt_devconfig()
 		ioctl(STDIN, FIONREAD, &cnt);
 		if(cnt > 0 && strchr("[G\r",getchar()))
 			break;
-		delay1(30);
+		delay(30);
 	}
 
 	vga_available = 1;
@@ -1251,7 +1251,7 @@ tgt_poweroff()
 	volatile unsigned int * pm_statu_reg = 0xbbef000c;
 
 	* pm_statu_reg = 0x100;	 // clear bit8: PWRBTN_STS
-    delay1(100);
+	delay(100);
 	* pm_ctrl_reg = 0x3c00;  // sleep enable, and enter S5 state 
 }
 
