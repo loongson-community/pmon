@@ -38,7 +38,7 @@ then
 fi
 
 touch version
-v=`cat version` u=${USER-root} d=`pwd` h=`hostname` t=`date`
+v=`cat version` u=${USER-root} d=`pwd` h=`hostname` t=`env LANG=en_US.UTF-8 date`
 id=`basename ${d}`
 git=`git log -1|head -n 3|perl -e 'local $/;$a=<>;$a=~s/\n/ /g;print $a;'`
 ost="PMON2000"
