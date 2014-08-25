@@ -3176,6 +3176,7 @@ static int hc_interrupt(void *hc_data)
 
 		writel(OHCI_INTR_WDH, &regs->intrdisable);
 
+/*
 		if (td == NULL) {
 #ifdef CONFIG_SM502_USB_HCD
 			if (ohci->flags & 0x80) {
@@ -3195,6 +3196,7 @@ static int hc_interrupt(void *hc_data)
 #endif
 			}
 		}
+*/
 
 		if (td == NULL) {
 			printf("Bad td in donehead\n");
