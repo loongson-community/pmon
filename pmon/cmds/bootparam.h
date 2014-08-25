@@ -60,7 +60,8 @@ struct efi_cpuinfo_loongson {
 	enum loongson_cpu_type  cputype;//3a-3b
 	unsigned int         total_node;   /* physical core number */
 
-	unsigned int         cpu_startup_core_id; /* Core id: */
+	unsigned short cpu_startup_core_id; /* Core id: */
+	unsigned short reserved_cores_mask; /* Core id: */
 	unsigned int  cpu_clock_freq; //cpu_clock
 	unsigned int nr_cpus;
 }__attribute__((packed));

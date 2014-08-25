@@ -274,7 +274,14 @@ struct efi_cpuinfo_loongson *init_cpu_info()
 	c->total_node = 1;
 	c->nr_cpus = 1;
 #endif
-  c->cpu_startup_core_id = (available_core_mask >> 16) & 0xf;
+#ifdef	BOOTCORE_ID
+	c->cpu_startup_core_id = BOOTCORE_ID;
+	c->reserved_cores_mask = RESERVED_COREMASK;
+#else
+	c->cpu_startup_core_id = 0;
+	c->reserved_cores_mask = 0;
+#endif
+
 
 return c;
 }

@@ -33,6 +33,9 @@ option      LS3B
 option      DUAL_3B
 option      MULTI_CHIP
 
+option		BOOTCORE_ID=0
+option		RESERVED_COREMASK=0xff00
+
 option      AUTO_DDR_CONFIG
 option      USE_SB_I2C
 
