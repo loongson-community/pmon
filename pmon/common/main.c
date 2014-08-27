@@ -390,22 +390,20 @@ main()
 	char prompt[32];
 
 #ifdef ARB_LEVEL
-    save_board_ddrparam(0);
+	save_board_ddrparam(0);
 #endif
-#ifndef	LOONGSON_2G5536
-        if(cmd_main_mutex == 2)
-                ;
-        else {
-                unsigned char *bootmenu_envstr;
-                if((bootmenu_envstr = getenv("ShowBootMenu")) && (strcmp("no",bootmenu_envstr) == 0))
-                        ;
-                else {
-                        bios_available = 1;//support usb_kbd in bios
-                        load_menu_list();
-                        bios_available = 0;
-                }
-        }
-#endif
+	if(cmd_main_mutex == 2)
+		;
+	else {
+		unsigned char *bootmenu_envstr;
+		if((bootmenu_envstr = getenv("ShowBootMenu")) && (strcmp("no",bootmenu_envstr) == 0))
+			;
+		else {
+			bios_available = 1;//support usb_kbd in bios
+			load_menu_list();
+			bios_available = 0;
+		}
+	}
 	if (setjmp(jmpb)) {
 		/* Bailing out, restore */
 		closelst(0);
@@ -423,67 +421,67 @@ main()
 	rm_bpts();
 #endif
 
-{
-static int run=0;
-char *s;
-int ret = -1;
-char buf[LINESZ];
-if(!run)
-{
-	run=1;
+	{
+		static int run=0;
+		char *s;
+		int ret = -1;
+		char buf[LINESZ];
+		if(!run)
+		{
+			run=1;
 #ifdef AUTOLOAD
 
-	if(getenv("FR") == NULL)
-	{
-		setenv("FR","0");
-		setenv("installdelay", "5");
-		//setenv("autoinstall", "/dev/fs/iso9660@cd0/vmlinuxb");
-		setenv("autoinstall", "/dev/fs/ext2@usb0/vmlinuxboot");
-		//setenv("rd", "/sbin/init");
-		//autoinstall("/dev/fs/iso9660@cd0/vmlinuxb");
-		//autoinstall("/dev/fs/ext2@usb0/vmlinuxboot");
-	}
-	if (strcmp (getenv("FR"),"0") == 0) {
-		unsetenv("al");
-		unsetenv("al1");
-		unsetenv("append");
-		printf("==WARN: First Run\n==WARN: Setup the default boot configure\n");
-		setenv("FR", "1");
-	}
-	//autoinstall("/dev/fs/iso9660@cd0/vmlinuxb");
-	//autoinstall("/dev/fs/iso9660@cd0/vmlinuxb");
-	//autoinstall("/dev/fs/ext2@usb0/vmlinuxboot");
+			if(getenv("FR") == NULL)
+			{
+				setenv("FR","0");
+				setenv("installdelay", "5");
+				//setenv("autoinstall", "/dev/fs/iso9660@cd0/vmlinuxb");
+				setenv("autoinstall", "/dev/fs/ext2@usb0/vmlinuxboot");
+				//setenv("rd", "/sbin/init");
+				//autoinstall("/dev/fs/iso9660@cd0/vmlinuxb");
+				//autoinstall("/dev/fs/ext2@usb0/vmlinuxboot");
+			}
+			if (strcmp (getenv("FR"),"0") == 0) {
+				unsetenv("al");
+				unsetenv("al1");
+				unsetenv("append");
+				printf("==WARN: First Run\n==WARN: Setup the default boot configure\n");
+				setenv("FR", "1");
+			}
+			//autoinstall("/dev/fs/iso9660@cd0/vmlinuxb");
+			//autoinstall("/dev/fs/iso9660@cd0/vmlinuxb");
+			//autoinstall("/dev/fs/ext2@usb0/vmlinuxboot");
 
-	if(getenv("al") == NULL) /* CDROM autoload */
-	{
-		setenv("al","/dev/fs/iso9600@cd0/boot/vmlinux");
-		setenv("append","console=tty root=/dev/sda1");
-	}
-	if (getenv("al1") == NULL) { /* HARDDISK autoload */
-		setenv("al1","/dev/fs/ext2@wd0/boot/vmlinux");
-		setenv("append","console=tty root=/dev/sda1");
-	}
+			if(getenv("al") == NULL) /* CDROM autoload */
+			{
+				setenv("al","/dev/fs/iso9600@cd0/boot/vmlinux");
+				setenv("append","console=tty root=/dev/sda1");
+			}
+			if (getenv("al1") == NULL) { /* HARDDISK autoload */
+				setenv("al1","/dev/fs/ext2@wd0/boot/vmlinux");
+				setenv("append","console=tty root=/dev/sda1");
+			}
 
-	//autoload("/dev/fs/ext2@wd0/boot/vmlinux");
-	//autorun("g console=tty root=/dev/sda1 rw");
-//	cmd_showwindows();
-	//do_cmd("load /dev/fs/ext2@wd0/boot/vmlinux"); 
-	//do_cmd("g console=tty root=/dev/sda1"); 
+			//autoload("/dev/fs/ext2@wd0/boot/vmlinux");
+			//autorun("g console=tty root=/dev/sda1 rw");
+			//cmd_showwindows();
+			//do_cmd("load /dev/fs/ext2@wd0/boot/vmlinux"); 
+			//do_cmd("g console=tty root=/dev/sda1"); 
 #if 1
-	s = getenv ("al1");
-	ret = autoload (s);
-	if (ret == 1) {
-		s = getenv("al");
-		ret = autoload (s);
-	}
+			s = getenv ("al1");
+			ret = autoload (s);
+			if (ret == 1) {
+				s = getenv("al");
+				ret = autoload (s);
+			}
 #endif
 
 #else
-	s = getenv ("autoboot");
-	autorun (s);
+			s = getenv ("autoboot");
+			autorun (s);
 #endif
-}
-}
+		}
+	}
 
 	while(1) {
 #if 0
