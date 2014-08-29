@@ -169,7 +169,7 @@ static void kbd_wait(void)
 			return;
 		delay(1000);     //  don not exceed 100ms,or usb keyboard may suspend when you  press
 		if(ohci_index)   //   deal with usb kbd
-                      dl_ohci_kbd();
+			dl_ohci_kbd();
 		timeout--;
 	} while (timeout);
 }
@@ -240,6 +240,12 @@ static int kbd_wait_for_input(void)
 static void kbd_write_output_w(int data)
 {
 	kbd_wait();
+#ifdef LOONGSON_2G5536
+	/* loongson 2g+5536 PS2 kbd Laps Lock key needs delay when pressed,
+	 * otherwise the PS2 kbd cann't be used.
+	 */
+	delay(1000);
+#endif
 	kbd_write_output(data);
 }
 
@@ -428,7 +434,7 @@ int kbd_translate(unsigned char scancode, unsigned char *keycode)
 	/* control Num Lock */
 	if (scancode == 0x45){
 		numlock = ~numlock;
-		kbd_write_output_w(0xed);
+		kbd_write_output_w(KBD_CMD_SET_LEDS);
 		if (numlock) {
 			led_ps |= 0x02;
 			kbd_write_output_w(led_ps);
@@ -438,12 +444,19 @@ int kbd_translate(unsigned char scancode, unsigned char *keycode)
 		}
 		return 0;
 	}
+	/* control Caps Lock */
 	if(scancode == 0x3a){
 		if(capslock == 0)
 			capslock = 1;
 		else
 			capslock = 0;
-		kbd_write_output_w(0xed);
+		kbd_write_output_w(KBD_CMD_SET_LEDS);
+#ifdef LOONGSON_2G5536
+		/* PS/2 kbd needs delay between write operations */
+		while (kbd_read_status() & KBD_STAT_IBF)
+			delay(10);
+		delay(300);
+#endif
 		if (capslock){
 			led_ps |= 0x04;
 			kbd_write_output_w(led_ps);
