@@ -59,6 +59,9 @@
 #define TXSNR_ADDR              (0x140)
 #define TXSNR_OFFSET            0
 #define TXSNR_MASK              0xffff
+#define TREF_ADDR               (0x110)
+#define TREF_OFFSET             0
+#define TREF_MASK               0x3fff
 
 #define ODT_MAP_CS_ADDR          (0x080)
 #define ADDRESS_MIRROR_ADDR      (0x760)
@@ -72,6 +75,8 @@
 #define CLKLVL_DELAY_0_OFFSET    8
 
 #define PAD_CTRL_REG_ADDR             (0x2d0)
+#define PAD_CTRL_CLK_OFFSET           7
+#define PAD_CTRL_CLK_MASK             (0x3)
 #define PAD_CTRL_COMP_OFFSET          18
 #define PAD_CTRL_COMP_MASK            (0xff)
 
@@ -266,6 +271,15 @@
 #define RDLVL_DELAY_1_OFFSET    32
 #define RDLVL_DELAY_0_OFFSET    16
 #else
+#define MR2_DATA_0_ADDR         (0x110)
+#define MR2_DATA_0_OFFSET       32
+#define MR2_DATA_1_ADDR         (0x110)
+#define MR2_DATA_1_OFFSET       48
+#define MR2_DATA_2_ADDR         (0x120)
+#define MR2_DATA_2_OFFSET       0
+#define MR2_DATA_3_ADDR         (0x120)
+#define MR2_DATA_3_OFFSET       16
+
 #define CLKLVL_DELAY_MASK       (0xff)
 #define RDLVL_GATE_DELAY_MASK   (0xff)
 #define RDLVL_DELAY_MASK        (0xff)

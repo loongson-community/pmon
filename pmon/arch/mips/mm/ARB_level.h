@@ -8,9 +8,16 @@
 #define WRLVL_DQ_SMALL_DLY      (0x18)
 #define WRLVL_DQ_DEFAULT_DLY    (0x1c)
 #ifdef  DDR3_SODIMM
-#define WRLVL_DDR3_UDIMM_DEFAULT_OFFSET (0x100c0400100c0400)    //for DDR3 SODIMM 1R-x8
+//#define WRLVL_DDR3_UDIMM_DEFAULT_OFFSET (0x100c0400100c0400)    //for DDR3 SODIMM 1R-x8
+#define WRLVL_DDR3_UDIMM_DEFAULT_OFFSET (0x16160e0e08080000)    //for SCS DDR3 SODIMM 1R-x8
+#else
+#ifdef  DDR3_SMT
+#define WRLVL_DDR3_UDIMM_DEFAULT_OFFSET (0x12120c0c06060000)  //for DDR3 SMT    300M
+//#define WRLVL_DDR3_UDIMM_DEFAULT_OFFSET (0x212116160b0b0000)  //for DDR3 SMT    330M
+//#define WRLVL_DDR3_UDIMM_DEFAULT_OFFSET (0x242418180c0c0000)  //for DDR3 SMT    400M
 #else
 #define WRLVL_DDR3_UDIMM_DEFAULT_OFFSET (0x322a241e120c0600)    //for DDR3 UDIMM
+#endif
 #endif
 //using when wrlvl fail
 #ifdef  DDR3_DIMM
@@ -20,9 +27,11 @@
 #endif
 //for skip wrlvl use
 #define WRLVL_DDR3_UDIMM_DEFAULT_VALUE  (0x5e5a545044403a34)    //for DDR3 UDIMM
+//#define WRLVL_DDR3_UDIMM_DEFAULT_VALUE  (0x181812120c0c0606)    //for DDR3 SMT-771
 
 #define RDLVL_GATE_INIT_DELAY   (0x0)
 #define RDLVL_DEFAULT_DELAY     (0x20)
+#define CLKLVL_DEFAULT_VALUE    (0x20)
 
 //for wrlvl
 #define LOG2_STEP   1   //log2 of TM step interval, remember to small WINDOW_ZERO_NUM when we use larger STEP

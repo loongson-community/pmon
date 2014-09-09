@@ -1,5 +1,5 @@
 /**********************************
-    loongson3a2h_ddr_config.S
+    loongson3_ddr2_config.S
         used to set up ddr controllers MC0 and MC1
         and set up the memory space on L2 Xbar
     input: s1--MC1 & MC0 DIMM info and Node ID
@@ -16,28 +16,16 @@
             new code:
             1. according to Memsize config open space
             2. config interleave bits
-    v1.6    Xia Qichao: Modify L2 Xbar config for used with 2H
-    v2.0    Chen Xinke: Add support for 8GB per MC, and fix some configure bugs.
+    v1.6    Modify L2 Xbar address window configuration to new pmon-kernel interface.
+            (default use NO_INTERLEAVE)
+    v1.8    Modify supported Interleave bit. Add Interleave support when each MC uses 1GB or 2GB.
+    v2.0    Add support for 8GB per MC.
 ************************************/
 
 #######################################################
 /**************************
 0. s1 reset code
 **************************/
-//set use which MC: 01-MC0; 10-MC1; 00-MC0&MC1
-#ifdef DEBUG_DDR_PARAM
-    PRINTSTR("Please input DDR SELLECT :\r\n[ 8]:MC1_ONLY\r\n[ 4]:MC0_ONLY\r\n");
-    dli     t6, 0x00
-    bal     inputaddress    #input value stored in v0
-    nop
-    dli     t6, 0xc
-    and     v0, v0, t6
-    dli     t6, 0xc
-    not     t6, t6
-    and     s1, s1, t6
-    or      s1, s1, v0
-#endif
-
 #ifdef  AUTO_ARB_LEVEL
 //store memory system info into s3(include frequency and dimm i2c addr)
 #ifdef  CHECK_ARB_LEVEL_FREQ
@@ -286,8 +274,8 @@ t2: chip configuration register location
 t0,t2 shouldn't be changed to the end of this file.
 **********************/
     GET_NODE_ID_a0
-    dli     t2, 0x900000001fe00180
-    dli     t0, 0x900000003ff00000
+    dli     t2, CHIP_CONFIG_BASE_ADDR 
+    dli     t0, L2XBAR_CONFIG_BASE_ADDR
     or      t2, t2, a0
     or      t0, t0, a0
 
@@ -311,14 +299,8 @@ t0,t2 shouldn't be changed to the end of this file.
     sw      a1, 0x4(t2)
 #endif
 
-//init MC1 will damage MC0 s1 info
-//config MC0 if not define MC1_ONLY
+//config MC0
 //-------------------------------------
-10:
-    GET_MC1_ONLY
-    bnez    a1, 11f
-    nop
-
     dli     t3, 0x0
 #ifndef  DISABLE_DIMM_ECC
     //Enable MC read buffer for ECC Initial
@@ -359,64 +341,7 @@ t0,t2 shouldn't be changed to the end of this file.
 8:
 #endif
     PRINTSTR("\r\nMC0 Config DONE\r\n")
-//-------------------------------------
-//config MC1 if not define MC0_ONLY
-11:
-    GET_MC0_ONLY
-    bnez    a1, 12f
-    nop
-
-    dli     t3, 0x1
-
-    //shift MC1 DIMM info to low 32bit of s1
-    dsrl    t5, s1, 32
-    dli     a1, 0xffff8000
-    and     t5, t5, a1
-    dli     a1, 0xffffffff8000ffff
-    and     s1, s1, a1
-    or      s1, s1, t5
-
-#ifndef  DISABLE_DIMM_ECC
-    //Enable MC read buffer for ECC Initial
-    GET_DIMM_ECC
-    beqz    a1, 8f
-    nop
-    TTYDBG("Enable MC read buffer\r\n")
-    lw      a1, 0x4(t2)
-    li      a0, 0x8
-    sll     a0, a0, t3
-    not     a0, a0
-    and     a1, a1, a0
-    sw      a1, 0x4(t2)
-    sync
-8:
-#endif
-
-#ifdef  AUTO_ARB_LEVEL
-    bal     SET_AUTO_ARB_LEVEL_MARK
-    nop
-#endif
-
-    bal     mc_init
-    nop
-
-#ifndef  DISABLE_DIMM_ECC
-    //Disable MC read buffer after ECC Initial
-    GET_DIMM_ECC
-    beqz    a1, 8f
-    nop
-    TTYDBG("Disable MC read buffer\r\n")
-    lw      a1, 0x4(t2)
-    li      a0, 0x8
-    sll     a0, a0, t3
-    or      a1, a1, a0
-    sw      a1, 0x4(t2)
-    sync
-8:
-#endif
-    TTYDBG("\r\nMC1 Config DONE\r\n")
-//-------------------------------------
-12:
+#if 0
 /*******************************
  3. config L2 X-bar
     code procedure: first, MC*_ONLY bits in s1 decides whether this MC is
@@ -461,14 +386,11 @@ t0,t2 shouldn't be changed to the end of this file.
     GET_MC1_MEMSIZE
     bne     t5, a1, 1f
     nop
-    //ONLY 1GB, 2GB and 4GB each MC support interleave mode.
+    //ONLY 1GB or 2GB each MC support interleave mode.
     dli     a1, 0x2
     beq     t5, a1, 3f
     nop
     dli     a1, 0x4
-    beq     t5, a1, 3f
-    nop
-    dli     a1, 0x8
     beq     t5, a1, 3f
     nop
     b       1f
@@ -483,7 +405,7 @@ t0,t2 shouldn't be changed to the end of this file.
                     0x0000000000000000 | (1 << MC_INTERLEAVE_OFFSET), \
                     0xFFFFFFFFF0000000 | (1 << MC_INTERLEAVE_OFFSET), \
                     0x00000000000000F1)
-    PRINTSTR("DDR low address space Interleave mode enabled.\r\n")
+    PRINTSTR("DDR Interleave space open : 0x00000000 - 0x0FFFFFFF\r\n")
     b       2f
     nop
 #endif
@@ -495,6 +417,14 @@ t0,t2 shouldn't be changed to the end of this file.
                     0xFFFFFFFFF0000000, \
                     0x00000000000000F0)
     PRINTSTR("DDR space open : 0x00000000 - 0x0FFFFFFF\r\n")
+#if 0
+    GET_NODE_ID_a0;
+    XBAR_CONFIG_NODE_a0(0x18, \
+                    0x000000002FF00000, \
+                    0xFFFFFFFFFFF00000, \
+                    0x000000000FF000F1)
+    PRINTSTR("MC1 space open : 0x2FF00000 - 0x2FFFFFFF for MC configure space\r\n")
+#endif
 
 2:
     //Config PCI windows
@@ -549,77 +479,90 @@ t0,t2 shouldn't be changed to the end of this file.
 1:     //ddr_512MB_MC0:
     GET_NODE_ID_a0;
     XBAR_CONFIG_NODE_a0(0x20, \
-                    0x0000000100000000, \
+                    0x0000000080000000, \
                     0xFFFFFFFFE0000000, \
                     0x00000000000000F0)
-    PRINTSTR("MC0 pace open : 0x100000000 - 0x11FFFFFFF\r\n")
+    PRINTSTR("MC0 space open : 0x80000000 - 0x9FFFFFFF\r\n")
     b       81f
     nop
 2:     //ddr_1GB_MC:
     GET_NODE_ID_a0;
     XBAR_CONFIG_NODE_a0(0x20, \
-                    0x0000000100000000, \
+                    0x0000000080000000, \
                     0xFFFFFFFFC0000000, \
                     0x00000000000000F0)
-    PRINTSTR("MC0 space open : 0x100000000 - 0x13FFFFFFF\r\n")
+    PRINTSTR("MC0 space open : 0x80000000 - 0xBFFFFFFF\r\n")
     b       81f
     nop
 3:     //ddr_2GB_MC0:
     GET_NODE_ID_a0;
     XBAR_CONFIG_NODE_a0(0x20, \
-                    0x0000000100000000, \
+                    0x0000000080000000, \
                     0xFFFFFFFF80000000, \
                     0x00000000000000F0)
-    PRINTSTR("MC0 space open : 0x100000000 - 0x17FFFFFFF\r\n")
+    PRINTSTR("MC0 space open : 0x80000000 - 0xFFFFFFFF\r\n")
     b       81f
     nop
 4:     //ddr_3GB_MC0:
     GET_NODE_ID_a0;
     XBAR_CONFIG_NODE_a0(0x20, \
-                    0x0000000100000000, \
+                    0x0000000080000000, \
                     0xFFFFFFFF80000000, \
                     0x00000000000000F0)
     GET_NODE_ID_a0;
     XBAR_CONFIG_NODE_a0(0x28, \
-                    0x0000000180000000, \
+                    0x0000000100000000, \
                     0xFFFFFFFFC0000000, \
                     0x00000000800000F0)
-    PRINTSTR("MC0 space open : 0x100000000 - 0x1BFFFFFFF\r\n")
+    PRINTSTR("MC0 space open : 0x080000000 - 0x13FFFFFFF\r\n")
     b       81f
     nop
 5:     //ddr_4GB_MC0:
     GET_NODE_ID_a0;
     XBAR_CONFIG_NODE_a0(0x20, \
-                    0x0000000100000000, \
-                    0xFFFFFFFF00000000, \
+                    0x0000000080000000, \
+                    0xFFFFFFFF80000000, \
                     0x00000000000000F0)
-    PRINTSTR("MC0 space open : 0x100000000 - 0x1FFFFFFFF\r\n")
+    GET_NODE_ID_a0;
+    XBAR_CONFIG_NODE_a0(0x28, \
+                    0x0000000100000000, \
+                    0xFFFFFFFF80000000, \
+                    0x00000000800000F0)
+    PRINTSTR("MC0 space open : 0x080000000 - 0x17FFFFFFF\r\n")
     b       81f
     nop
 6:     //ddr_6GB_MC0:
     GET_NODE_ID_a0;
     XBAR_CONFIG_NODE_a0(0x20, \
-                    0x0000000100000000, \
-                    0xFFFFFFFF00000000, \
+                    0x0000000080000000, \
+                    0xFFFFFFFF80000000, \
                     0x00000000000000F0)
     XBAR_CONFIG_NODE_a0(0x28, \
-                    0x0000000200000000, \
+                    0x0000000100000000, \
+                    0xFFFFFFFF80000000, \
+                    0x00000000800000F0)
+    XBAR_CONFIG_NODE_a0(0x30, \
+                    0x0000000180000000, \
                     0xFFFFFFFF80000000, \
                     0x00000001000000F0)
-    PRINTSTR("MC0 space open : 0x100000000 - 0x27FFFFFFF\r\n")
+    PRINTSTR("MC0 space open : 0x080000000 - 0x1FFFFFFFF\r\n")
     b       81f
     nop
 7:     //ddr_8GB_MC0:
     GET_NODE_ID_a0;
     XBAR_CONFIG_NODE_a0(0x20, \
-                    0x0000000100000000, \
-                    0xFFFFFFFF00000000, \
+                    0x0000000080000000, \
+                    0xFFFFFFFF80000000, \
                     0x00000000000000F0)
     XBAR_CONFIG_NODE_a0(0x28, \
-                    0x0000000200000000, \
+                    0x0000000100000000, \
                     0xFFFFFFFF00000000, \
                     0x00000001000000F0)
-    PRINTSTR("MC0 space open : 0x100000000 - 0x2FFFFFFFF\r\n")
+    XBAR_CONFIG_NODE_a0(0x30, \
+                    0x0000000200000000, \
+                    0xFFFFFFFF80000000, \
+                    0x00000000800000F0)
+    PRINTSTR("MC0 space open : 0x080000000 - 0x27FFFFFFF\r\n")
     b       81f
     nop
 81:
@@ -629,6 +572,7 @@ t0,t2 shouldn't be changed to the end of this file.
 /* MC1_ONLY */
     L2XBAR_RECONFIG_TO_MC1(0x20)
     L2XBAR_RECONFIG_TO_MC1(0x28)
+    L2XBAR_RECONFIG_TO_MC1(0x30)
     PRINTSTR("The opened MC0 Window is reassigned to MC1\r\n")
     b       81f
     nop
@@ -641,7 +585,7 @@ t0,t2 shouldn't be changed to the end of this file.
     GET_MC1_MEMSIZE
     bne     t5, a1, 85f
     nop
-#if 0 // by xqch comment to support ls3a2h swiotlb
+#if 0
     //universal set, address start from memsize
     GET_NODE_ID_a0;
     //config mask  
@@ -669,79 +613,55 @@ t0,t2 shouldn't be changed to the end of this file.
     sd      a2, 0x38(t0)
     PRINTSTR("DDR all space open\r\n")
 #else
-/* ONLY 1GB, 2GB and 4G has INTERLEAVE mode now */
+/* ONLY 1GB, 2GB has INTERLEAVE mode now */
     dli     t5, 0x2
     beq     a1, t5, 1f
     nop
     dli     t5, 0x4
     beq     a1, t5, 2f
     nop
-    dli     t5, 0x8
-    beq     a1, t5, 3f
-    nop
     b       85f
     nop
 1:     //1G in each MC
     GET_NODE_ID_a0;
     XBAR_CONFIG_NODE_a0(0x20, \
-                0x0000000100000000, \
+                0x0000000080000000, \
                 0xFFFFFFFFC0000000, \
                 0x0000000000000000)
     XBAR_CONFIG_NODE_a0(0x28, \
-                0x0000000100000000, \
+                0x0000000080000000, \
                 0xFFFFFFFFC0000000, \
                 0x0000000000000000)
     XBAR_CONFIG_NODE_a0(0x30, \
-                0x0000000140000000, \
+                0x00000000C0000000, \
                 0xFFFFFFFFC0000000, \
                 0x0000000000000000)
     XBAR_CONFIG_NODE_a0(0x38, \
-                0x0000000140000000, \
+                0x00000000C0000000, \
                 0xFFFFFFFFC0000000, \
                 0x0000000000000000)
-    PRINTSTR("DDR space open : 0x100000000 - 0x17FFFFFFF\r\n")
+    PRINTSTR("DDR space open : 0x80000000 - 0xFFFFFFFF\r\n")
     b       86f
     nop
 2:     //2G in each MC
     GET_NODE_ID_a0;
     XBAR_CONFIG_NODE_a0(0x20, \
-                0x0000000100000000, \
+                0x0000000080000000, \
                 0xFFFFFFFF80000000, \
                 0x0000000000000000)
     XBAR_CONFIG_NODE_a0(0x28, \
-                0x0000000100000000, \
+                0x0000000080000000, \
                 0xFFFFFFFF80000000, \
                 0x0000000000000000)
     XBAR_CONFIG_NODE_a0(0x30, \
-                0x0000000180000000, \
+                0x0000000100000000, \
                 0xFFFFFFFF80000000, \
                 0x0000000000000000)
     XBAR_CONFIG_NODE_a0(0x38, \
-                0x0000000180000000, \
+                0x0000000100000000, \
                 0xFFFFFFFF80000000, \
                 0x0000000000000000)
-    PRINTSTR("DDR space open : 0x100000000 - 0x1FFFFFFFF\r\n")
-    b       86f
-    nop
-3:     //4G in each MC
-    GET_NODE_ID_a0;
-    XBAR_CONFIG_NODE_a0(0x20, \
-                0x0000000100000000, \
-                0xFFFFFFFF00000000, \
-                0x0000000000000000)
-    XBAR_CONFIG_NODE_a0(0x28, \
-                0x0000000100000000, \
-                0xFFFFFFFF00000000, \
-                0x0000000000000000)
-    XBAR_CONFIG_NODE_a0(0x30, \
-                0x0000000200000000, \
-                0xFFFFFFFF00000000, \
-                0x0000000000000000)
-    XBAR_CONFIG_NODE_a0(0x38, \
-                0x0000000200000000, \
-                0xFFFFFFFF00000000, \
-                0x0000000000000000)
-    PRINTSTR("DDR space open : 0x100000000 - 0x2FFFFFFFF\r\n")
+    PRINTSTR("DDR space open : 0x080000000 - 0x17FFFFFFF\r\n")
     b       86f
     nop
 86:
@@ -763,7 +683,7 @@ t0,t2 shouldn't be changed to the end of this file.
                 0x0000000000000000 | (1 << MC_INTERLEAVE_OFFSET), \
                 0x0000000000000000 | (1 << MC_INTERLEAVE_OFFSET), \
                 0x00000000000000F1 | (1 << MC_INTERLEAVE_OFFSET))
-    PRINTSTR("DDR high address space Interleave mode enabled.\r\n")
+    PRINTSTR("DDR Interleave space open : 0x080000000 - 0x17FFFFFFF\r\n")
     b       81f
     nop
 #endif
@@ -799,39 +719,41 @@ t0,t2 shouldn't be changed to the end of this file.
     b       89f
     nop
 1:     //MC1_SIZE_1G
+//2G space: MC0: 8~bf; MC1: c~ff
     GET_NODE_ID_a0;
     XBAR_CONFIG_NODE_a0(0x20, \
-                    0x0000000100000000, \
+                    0x0000000080000000, \
                     0xFFFFFFFFC0000000, \
                     0x00000000000000F0)
-    PRINTSTR("MC0 space open : 0x100000000 - 0x13FFFFFFF\r\n")
+    PRINTSTR("MC0 space open : 0x80000000 - 0xBFFFFFFF\r\n")
     GET_NODE_ID_a0;
     XBAR_CONFIG_NODE_a0(0x28, \
-                    0x0000000140000000, \
+                    0x00000000C0000000, \
                     0xFFFFFFFFC0000000, \
                     0x00000000000000F1)
-    PRINTSTR("MC1 space open : 0x140000000 - 0x17FFFFFFF\r\n")
-    PRINTSTR("DDR space open : 0x100000000 - 0x17FFFFFFF\r\n")
+    PRINTSTR("MC1 space open : 0xC0000000 - 0xFFFFFFFF\r\n")
+    PRINTSTR("DDR space open : 0x80000000 - 0xFFFFFFFF\r\n")
     b       81f
     nop
 2:     //MC1_SIZE_2G
+//3G space: MC0: 8~bf; MC1: c~13f
     GET_NODE_ID_a0;
     XBAR_CONFIG_NODE_a0(0x20, \
-                    0x0000000100000000, \
-                    0xFFFFFFFF80000000, \
-                    0x00000000000000F1)
-    PRINTSTR("MC1 space open : 0x100000000 - 0x17FFFFFFF\r\n")
-    GET_NODE_ID_a0;
-    XBAR_CONFIG_NODE_a0(0x28, \
-                    0x0000000180000000, \
+                    0x0000000080000000, \
                     0xFFFFFFFFC0000000, \
                     0x00000000000000F0)
-    PRINTSTR("MC0 space open : 0x180000000 - 0x1BFFFFFFF\r\n")
-    PRINTSTR("DDR space open : 0x100000000 - 0x1BFFFFFFF\r\n")
-    L2XBAR_RECONFIG_TO_MC1(0x10)
-    L2XBAR_RECONFIG_TO_MC1(0x110)
-    PRINTSTR("The opened CPU 0x00000000~0x0FFFFFFF Window is reassigned to MC1\r\n")
-    PRINTSTR("The opened PCI 0x80000000~0x8FFFFFFF Window is reassigned to MC1\r\n")
+    PRINTSTR("MC0 space open : 0x80000000 - 0xBFFFFFFF\r\n")
+    GET_NODE_ID_a0;
+    XBAR_CONFIG_NODE_a0(0x28, \
+                    0x00000000C0000000, \
+                    0xFFFFFFFFC0000000, \
+                    0x00000000000000F1)
+    XBAR_CONFIG_NODE_a0(0x30, \
+                    0x0000000100000000, \
+                    0xFFFFFFFFC0000000, \
+                    0x00000000400000F1)
+    PRINTSTR("MC1 space open : 0x0C0000000 - 0x13FFFFFFF\r\n")
+    PRINTSTR("DDR space open : 0x080000000 - 0x13FFFFFFF\r\n")
     b       81f
     nop
 
@@ -853,79 +775,75 @@ t0,t2 shouldn't be changed to the end of this file.
     b       89f
     nop
 1:     //MC1_SIZE_1G
+//3G space: MC0: 08~0f; MC1: 10~13
     GET_NODE_ID_a0;
     XBAR_CONFIG_NODE_a0(0x20, \
-                    0x0000000100000000, \
+                    0x0000000080000000, \
                     0xFFFFFFFF80000000, \
                     0x00000000000000F0)
-    PRINTSTR("MC0 space open : 0x100000000 - 0x17FFFFFFF\r\n")
+    PRINTSTR("MC0 space open : 0x80000000 - 0xFFFFFFFF\r\n")
     GET_NODE_ID_a0;
     XBAR_CONFIG_NODE_a0(0x28, \
-                    0x0000000180000000, \
+                    0x0000000100000000, \
                     0xFFFFFFFFC0000000, \
                     0x00000000000000F1)
-    PRINTSTR("MC1 space open : 0x180000000 - 0x1BFFFFFFF\r\n")
-    PRINTSTR("DDR space open : 0x100000000 - 0x1BFFFFFFF\r\n")
+    PRINTSTR("MC1 space open : 0x100000000 - 0x13FFFFFFF\r\n")
+    PRINTSTR("DDR space open : 0x080000000 - 0x13FFFFFFF\r\n")
     b       81f
     nop
 2:     //MC1_SIZE_2G
+//4G space: MC0: 08~0f; MC1: 10~17
     GET_NODE_ID_a0;
     XBAR_CONFIG_NODE_a0(0x20, \
-                    0x0000000100000000, \
+                    0x0000000080000000, \
                     0xFFFFFFFF80000000, \
                     0x00000000000000F0)
-    PRINTSTR("MC0 space open : 0x100000000 - 0x17FFFFFFF\r\n")
+    PRINTSTR("MC0 space open : 0x80000000 - 0xFFFFFFFF\r\n")
     GET_NODE_ID_a0;
     XBAR_CONFIG_NODE_a0(0x28, \
-                    0x0000000180000000, \
+                    0x0000000100000000, \
                     0xFFFFFFFF80000000, \
                     0x00000000000000F1)
-    PRINTSTR("MC1 space open : 0x180000000 - 0x1FFFFFFFF\r\n")
-    PRINTSTR("DDR space open : 0x100000000 - 0x1FFFFFFFF\r\n")
+    PRINTSTR("MC1 space open : 0x100000000 - 0x17FFFFFFF\r\n")
+    PRINTSTR("DDR space open : 0x080000000 - 0x17FFFFFFF\r\n")
     b       81f
     nop
 3:     //MC1_SIZE_4G
+//6G space: MC0: 08~0f; MC1: 10~1F
     GET_NODE_ID_a0;
     XBAR_CONFIG_NODE_a0(0x20, \
-                    0x0000000100000000, \
-                    0xFFFFFFF180000000, \
+                    0x0000000080000000, \
+                    0xFFFFFFFF80000000, \
                     0x00000000000000F0)
-    PRINTSTR("MC0 space open : 0x100000000 - 0x17FFFFFFF\r\n")
+    PRINTSTR("MC0 space open : 0x80000000 - 0xFFFFFFFF\r\n")
     GET_NODE_ID_a0;
     XBAR_CONFIG_NODE_a0(0x28, \
-                    0x0000000180000000, \
-                    0xFFFFFFFF80000000, \
-                    0x00000000000000F1)
-    XBAR_CONFIG_NODE_a0(0x30, \
-                    0x0000000200000000, \
-                    0xFFFFFFFF80000000, \
-                    0x00000000800000F1)
-    PRINTSTR("MC1 space open : 0x180000000 - 0x27FFFFFFF\r\n")
-    PRINTSTR("DDR space open : 0x100000000 - 0x27FFFFFFF\r\n")
-    b       81f
-    nop
-4:     //MC1_SIZE_8G
-    GET_NODE_ID_a0;
-    XBAR_CONFIG_NODE_a0(0x20, \
                     0x0000000100000000, \
                     0xFFFFFFFF00000000, \
                     0x00000000000000F1)
+    PRINTSTR("MC1 space open : 0x100000000 - 0x1FFFFFFFF\r\n")
+    PRINTSTR("DDR space open : 0x080000000 - 0x1FFFFFFFF\r\n")
+    b       81f
+    nop
+4:     //MC1_SIZE_8G
+//10G space: MC0: 08~0f; MC1: 10~2F
+    GET_NODE_ID_a0;
+    XBAR_CONFIG_NODE_a0(0x20, \
+                    0x0000000080000000, \
+                    0xFFFFFFFF80000000, \
+                    0x00000000000000F0)
+    PRINTSTR("MC0 space open : 0x80000000 - 0xFFFFFFFF\r\n")
+    GET_NODE_ID_a0;
     XBAR_CONFIG_NODE_a0(0x28, \
+                    0x0000000100000000, \
+                    0xFFFFFFFF00000000, \
+                    0x00000000000000F1)
+    XBAR_CONFIG_NODE_a0(0x30, \
                     0x0000000200000000, \
                     0xFFFFFFFF00000000, \
                     0x00000001000000F1)
     PRINTSTR("MC1 space open : 0x100000000 - 0x2FFFFFFFF\r\n")
-    GET_NODE_ID_a0;
-    XBAR_CONFIG_NODE_a0(0x30, \
-                    0x0000000300000000, \
-                    0xFFFFFFFF80000000, \
-                    0x00000000000000F0)
-    PRINTSTR("MC0 space open : 0x300000000 - 0x37FFFFFFF\r\n")
-    PRINTSTR("DDR space open : 0x100000000 - 0x37FFFFFFF\r\n")
-    L2XBAR_RECONFIG_TO_MC1(0x10)
-    L2XBAR_RECONFIG_TO_MC1(0x110)
-    PRINTSTR("The opened CPU 0x00000000~0x0FFFFFFF Window is reassigned to MC1\r\n")
-    PRINTSTR("The opened PCI 0x80000000~0x8FFFFFFF Window is reassigned to MC1\r\n")
+    PRINTSTR("DDR space open : 0x080000000 - 0x2FFFFFFFF\r\n")
     b       81f
     nop
 
@@ -944,38 +862,51 @@ t0,t2 shouldn't be changed to the end of this file.
     b       89f
     nop
 1:     //MC1_SIZE_2G
+//6G space: MC0: 08~0f, 10~17; MC1: 18~1F
     GET_NODE_ID_a0;
     XBAR_CONFIG_NODE_a0(0x20, \
-                    0x0000000100000000, \
-                    0xFFFFFFF100000000, \
+                    0x0000000080000000, \
+                    0xFFFFFFFF80000000, \
                     0x00000000000000F0)
+    XBAR_CONFIG_NODE_a0(0x28, \
+                    0x0000000100000000, \
+                    0xFFFFFFFF80000000, \
+                    0x00000000800000F0)
+    PRINTSTR("MC0 space open : 0x080000000 - 0x17FFFFFFF\r\n")
+    GET_NODE_ID_a0;
+    XBAR_CONFIG_NODE_a0(0x30, \
+                    0x0000000180000000, \
+                    0xFFFFFFFF80000000, \
+                    0x00000000000000F1)
+    PRINTSTR("MC1 space open : 0x180000000 - 0x1FFFFFFFF\r\n")
+    PRINTSTR("DDR space open : 0x080000000 - 0x1FFFFFFFF\r\n")
+    b       81f
+    nop
+2:     //MC1_SIZE_4G
+//8G space: MC0: 08~0f, 20~27; MC1: 10~1f
+    GET_NODE_ID_a0;
+    XBAR_CONFIG_NODE_a0(0x20, \
+                    0x0000000080000000, \
+                    0xFFFFFFFF80000000, \
+                    0x00000000000000F0)
+    PRINTSTR("MC0 space open : 0x80000000 - 0xFFFFFFFF\r\n")
+    GET_NODE_ID_a0;
+    XBAR_CONFIG_NODE_a0(0x28, \
+                    0x0000000100000000, \
+                    0xFFFFFFFF00000000, \
+                    0x00000000000000F1)
     PRINTSTR("MC1 space open : 0x100000000 - 0x1FFFFFFFF\r\n")
     GET_NODE_ID_a0;
     XBAR_CONFIG_NODE_a0(0x30, \
                     0x0000000200000000, \
                     0xFFFFFFFF80000000, \
-                    0x00000000000000F1)
-    PRINTSTR("MC1 space open : 0x200000000 - 0x27FFFFFFF\r\n")
-    PRINTSTR("DDR space open : 0x100000000 - 0x27FFFFFFF\r\n")
-    b       81f
-    nop
-2:     //MC1_SIZE_4G
-    GET_NODE_ID_a0;
-    XBAR_CONFIG_NODE_a0(0x20, \
-                    0x0000000100000000, \
-                    0xFFFFFFFF00000000, \
-                    0x00000000000000F0)
-    PRINTSTR("MC0 space open : 0x100000000 - 0x1FFFFFFFF\r\n")
-    GET_NODE_ID_a0;
-    XBAR_CONFIG_NODE_a0(0x28, \
-                    0x0000000200000000, \
-                    0xFFFFFFFF00000000, \
-                    0x00000000000000F1)
-    PRINTSTR("MC1 space open : 0x200000000 - 0x2FFFFFFFF\r\n")
-    PRINTSTR("DDR space open : 0x100000000 - 0x2FFFFFFFF\r\n")
+                    0x00000000800000F0)
+    PRINTSTR("MC0 space open : 0x200000000 - 0x27FFFFFFF\r\n")
+    PRINTSTR("DDR space open : 0x080000000 - 0x27FFFFFFF\r\n")
     b       81f
     nop
 3:     //MC1_SIZE_8G
+//12G space: MC0: 10~1f; MC1: 08~0f, 20~37  note: here configure MC1 first
     GET_NODE_ID_a0;
     XBAR_CONFIG_NODE_a0(0x20, \
                     0x0000000100000000, \
@@ -984,11 +915,25 @@ t0,t2 shouldn't be changed to the end of this file.
     PRINTSTR("MC0 space open : 0x100000000 - 0x1FFFFFFFF\r\n")
     GET_NODE_ID_a0;
     XBAR_CONFIG_NODE_a0(0x28, \
-                    0x0000000200000000, \
-                    0xFFFFFFFE00000000, \
+                    0x0000000080000000, \
+                    0xFFFFFFFF80000000, \
                     0x00000000000000F1)
-    PRINTSTR("MC1 space open : 0x200000000 - 0x3FFFFFFFF\r\n")
-    PRINTSTR("DDR space open : 0x100000000 - 0x3FFFFFFFF\r\n")
+    PRINTSTR("MC1 space open : 0x080000000 - 0x0FFFFFFFF\r\n")
+    GET_NODE_ID_a0;
+    XBAR_CONFIG_NODE_a0(0x30, \
+                    0x0000000200000000, \
+                    0xFFFFFFFF00000000, \
+                    0x00000001000000F1)
+    XBAR_CONFIG_NODE_a0(0x38, \
+                    0x0000000300000000, \
+                    0xFFFFFFFF80000000, \
+                    0x00000000800000F1)
+    PRINTSTR("MC1 space open : 0x200000000 - 0x37FFFFFFF\r\n")
+    PRINTSTR("DDR space open : 0x080000000 - 0x37FFFFFFF\r\n")
+    L2XBAR_RECONFIG_TO_MC1(0x10)
+    L2XBAR_RECONFIG_TO_MC1(0x110)
+    PRINTSTR("The opened CPU 0x00000000~0x0FFFFFFF Window is reassigned to MC1\r\n")
+    PRINTSTR("The opened PCI 0x80000000~0x8FFFFFFF Window is reassigned to MC1\r\n")
     b       81f
     nop
 
@@ -1007,67 +952,82 @@ t0,t2 shouldn't be changed to the end of this file.
     b       89f
     nop
 1:     //MC1_SIZE_2G
+//10G space: MC1: 08~0f; MC0: 10~2f
     GET_NODE_ID_a0;
     XBAR_CONFIG_NODE_a0(0x20, \
+                    0x0000000080000000, \
+                    0xFFFFFFFF80000000, \
+                    0x00000000000000F1)
+    PRINTSTR("MC1 space open : 0x080000000 - 0x0FFFFFFFF\r\n")
+    GET_NODE_ID_a0;
+    XBAR_CONFIG_NODE_a0(0x28, \
                     0x0000000100000000, \
                     0xFFFFFFFF00000000, \
                     0x00000000000000F0)
-    XBAR_CONFIG_NODE_a0(0x28, \
+    XBAR_CONFIG_NODE_a0(0x30, \
                     0x0000000200000000, \
                     0xFFFFFFFF00000000, \
                     0x00000001000000F0)
     PRINTSTR("MC0 space open : 0x100000000 - 0x2FFFFFFFF\r\n")
-    GET_NODE_ID_a0;
-    XBAR_CONFIG_NODE_a0(0x30, \
-                    0x0000000300000000, \
-                    0xFFFFFFFF80000000, \
-                    0x00000000000000F1)
-    PRINTSTR("MC1 space open : 0x300000000 - 0x37FFFFFFF\r\n")
-    PRINTSTR("DDR space open : 0x100000000 - 0x37FFFFFFF\r\n")
+    PRINTSTR("DDR space open : 0x080000000 - 0x2FFFFFFFF\r\n")
+    L2XBAR_RECONFIG_TO_MC1(0x10)
+    L2XBAR_RECONFIG_TO_MC1(0x110)
+    PRINTSTR("The opened CPU 0x00000000~0x0FFFFFFF Window is reassigned to MC1\r\n")
+    PRINTSTR("The opened PCI 0x80000000~0x8FFFFFFF Window is reassigned to MC1\r\n")
     b       81f
     nop
 2:     //MC1_SIZE_4G
+//12G space: MC0: 08~0f, 20~2f, 30~37; MC1: 10~1f
     GET_NODE_ID_a0;
     XBAR_CONFIG_NODE_a0(0x20, \
+                    0x0000000080000000, \
+                    0xFFFFFFFF80000000, \
+                    0x00000000000000F0)
+    PRINTSTR("MC0 space open : 0x080000000 - 0x0FFFFFFFF\r\n")
+    GET_NODE_ID_a0;
+    XBAR_CONFIG_NODE_a0(0x28, \
                     0x0000000100000000, \
                     0xFFFFFFFF00000000, \
-                    0x00000000000000F0)
-    XBAR_CONFIG_NODE_a0(0x28, \
+                    0x00000000000000F1)
+    PRINTSTR("MC1 space open : 0x100000000 - 0x1FFFFFFFF\r\n")
+    GET_NODE_ID_a0;
+    XBAR_CONFIG_NODE_a0(0x30, \
                     0x0000000200000000, \
                     0xFFFFFFFF00000000, \
                     0x00000001000000F0)
-    PRINTSTR("MC0 space open : 0x100000000 - 0x2FFFFFFFF\r\n")
-    GET_NODE_ID_a0;
-    XBAR_CONFIG_NODE_a0(0x30, \
+    XBAR_CONFIG_NODE_a0(0x38, \
                     0x0000000300000000, \
-                    0xFFFFFFFF00000000, \
-                    0x00000000000000F1)
-    PRINTSTR("MC1 space open : 0x300000000 - 0x3FFFFFFFF\r\n")
-    PRINTSTR("DDR space open : 0x100000000 - 0x3FFFFFFFF\r\n")
+                    0xFFFFFFFF80000000, \
+                    0x00000000800000F0)
+    PRINTSTR("MC0 space open : 0x200000000 - 0x37FFFFFFF\r\n")
+    PRINTSTR("DDR space open : 0x080000000 - 0x37FFFFFFF\r\n")
     b       81f
     nop
 3:     //MC1_SIZE_8G
+//16G space: MC0: 08~0f, 10~1f, 40~4f; MC1: 20~3f
     GET_NODE_ID_a0;
     XBAR_CONFIG_NODE_a0(0x20, \
-                    0x0000000100000000, \
-                    0xFFFFFFFF00000000, \
+                    0x0000000080000000, \
+                    0xFFFFFFFF80000000, \
                     0x00000000000000F0)
     XBAR_CONFIG_NODE_a0(0x28, \
-                    0x0000000200000000, \
+                    0x0000000100000000, \
                     0xFFFFFFFF00000000, \
                     0x00000001000000F0)
-    PRINTSTR("MC0 space open : 0x100000000 - 0x2FFFFFFFF\r\n")
+    PRINTSTR("MC0 space open : 0x080000000 - 0x1FFFFFFFF\r\n")
     GET_NODE_ID_a0;
     XBAR_CONFIG_NODE_a0(0x30, \
-                    0x0000000300000000, \
-                    0xFFFFFFFF00000000, \
+                    0x0000000200000000, \
+                    0xFFFFFFFE00000000, \
                     0x00000000000000F1)
+    PRINTSTR("MC1 space open : 0x200000000 - 0x3FFFFFFFF\r\n")
+    GET_NODE_ID_a0;
     XBAR_CONFIG_NODE_a0(0x38, \
                     0x0000000400000000, \
-                    0xFFFFFFFF00000000, \
-                    0x00000001000000F1)
-    PRINTSTR("MC1 space open : 0x300000000 - 0x4FFFFFFFF\r\n")
-    PRINTSTR("DDR space open : 0x100000000 - 0x4FFFFFFFF\r\n")
+                    0xFFFFFFFF80000000, \
+                    0x00000000800000F0)
+    PRINTSTR("MC0 space open : 0x400000000 - 0x47FFFFFFF\r\n")
+    PRINTSTR("DDR space open : 0x080000000 - 0x47FFFFFFF\r\n")
     b       81f
     nop
 
@@ -1078,6 +1038,7 @@ t0,t2 shouldn't be changed to the end of this file.
     L2XBAR_CONFIG_PCI_AS_CPU(0x30);
     L2XBAR_CONFIG_PCI_AS_CPU(0x38);
     PRINTSTR("Full PCI space opened as cpu.\r\n")
+#endif
 
 /*****************************
  4. set msize for this NODE(if the memsize is supported)

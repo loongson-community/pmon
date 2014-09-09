@@ -155,6 +155,19 @@ ddr2_config:
     beqz    t7, 88f
     nop
 #endif
+#ifdef  SDRAM_HIGH_TEMPERATURE
+    //rewrite tref, half the tref
+    ld      a2, TREF_ADDR(t8)
+    dli     a1, TREF_MASK
+    dsrl    v0, a2, TREF_OFFSET
+    and     v0, v0, a1
+    dsll    a1, a1, TREF_OFFSET
+    not     a1, a1
+    and     a2, a2, a1
+    dsll    a1, v0, TREF_OFFSET
+    or      a2, a2, a1
+    sd      a2, TREF_ADDR(t8)
+#endif
 #if 1
     //rewrite some Timing paramters according to SDRAM density and page size
     //here assuming the upper runing frequency is 400MHz, if not, please don't use this code and set the default paramters correspondingly
@@ -351,7 +364,11 @@ D3_density_4Gb:
 #if 1
     //reconfig ODT map
     //set default first
+#ifdef  DDR3_DIMM
     dli     a2, 0x0804020100000000
+#else
+    dli     a2, 0x0804020108040201
+#endif
     sd      a2, ODT_MAP_CS_ADDR(t8)
 
     //v0 store cs map

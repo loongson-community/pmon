@@ -118,6 +118,18 @@ temparary used in PROBE_DIMM
 #define DDR_CLKSEL_MASK             0x07
 #define DDR_CONFIG_DISABLE_OFFSET   13
 #define ARB_TEMP_L2WINDOW_OFFSET    0x38
+#else //default current set as loosong3A3
+#define LOCK_SCACHE_CONFIG_BASE_ADDR 0x900000003ff00200
+#define L1XBAR_CONFIG_BASE_ADDR 0x900000003ff02000
+#define L2XBAR_CONFIG_BASE_ADDR 0x900000003ff00000
+#define CHIP_CONFIG_ADDR        0x900000001fe00180
+#define CHIP_CONFIG_BASE_ADDR   0x900000001fe00180
+#define CHIP_SAMPLE_BASE_ADDR   0x900000001fe00190
+#define DDR_CLKSEL_OFFSET           37
+#define DDR_CLKSEL_MASK             0x1F
+#define DDR_CONFIG_DISABLE_OFFSET   8
+#define ARB_TEMP_L2WINDOW_OFFSET    0x20
+#define NO_L2XBAR_CONFIGURE
 #endif
 #endif
 #endif
@@ -127,6 +139,10 @@ temparary used in PROBE_DIMM
 #define GET_MC_SEL_BITS dli a1, 0x0000000c; and a1, s1, a1; dsrl a1, a1, 2;
 #define GET_MC0_ONLY    dli a1, 0x00000004; and a1, s1, a1;
 #define GET_MC1_ONLY    dli a1, 0x00000008; and a1, s1, a1;
+#ifdef  NO_L2XBAR_CONFIGURE
+#define XBAR_CONFIG_NODE_a0(OFFSET, BASE, MASK, MMAP) ;
+#define L2XBAR_CLEAR_WINDOW(OFFSET) ;
+#else
 #define XBAR_CONFIG_NODE_a0(OFFSET, BASE, MASK, MMAP) \
                         daddiu  v0, t0, OFFSET;       \
                         dli     v1, BASE;             \
@@ -186,6 +202,7 @@ temparary used in PROBE_DIMM
                         ld      v1, 0x80(v0);         \
                         ori     v1, v1, 0x80;         \
                         sd      v1, 0x80(v0);
+#endif
 //------------------------
 //defination for s1
 #define SDRAM_TYPE_OFFSET   30

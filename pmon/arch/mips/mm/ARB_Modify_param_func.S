@@ -11,7 +11,7 @@ function:
     Modify specified one byte slice param
 input param:
     t6: 1 ~ 7, param to be changed
-    now only support: 2, 3, 4, 5, 6, 7
+    now only support: 1, 2, 3, 4, 5, 6, 7
     s3: 0 ~ 7---byte slice to be changed
         0xf ----change all 8 slices
     t2: target value
@@ -140,6 +140,33 @@ use register:
     b       88f
     nop
 1:
+    ld      a1, CLKLVL_DELAY_2_ADDR(t7)
+    dli     a2, CLKLVL_DELAY_MASK
+    dsll    a2, a2, CLKLVL_DELAY_2_OFFSET
+    not     a2, a2
+    and     a1, a1, a2
+    dsll    a2, t2, CLKLVL_DELAY_2_OFFSET
+    or      a1, a1, a2
+    sd      a1, CLKLVL_DELAY_2_ADDR(t7)
+
+    ld      a1, CLKLVL_DELAY_1_ADDR(t7)
+    dli     a2, CLKLVL_DELAY_MASK
+    dsll    a2, a2, CLKLVL_DELAY_1_OFFSET
+    not     a2, a2
+    and     a1, a1, a2
+    dsll    a2, t2, CLKLVL_DELAY_1_OFFSET
+    or      a1, a1, a2
+    sd      a1, CLKLVL_DELAY_1_ADDR(t7)
+
+    ld      a1, CLKLVL_DELAY_0_ADDR(t7)
+    dli     a2, CLKLVL_DELAY_MASK
+    dsll    a2, a2, CLKLVL_DELAY_0_OFFSET
+    not     a2, a2
+    and     a1, a1, a2
+    dsll    a2, t2, CLKLVL_DELAY_0_OFFSET
+    or      a1, a1, a2
+    sd      a1, CLKLVL_DELAY_0_ADDR(t7)
+
     b       88f
     nop
 2:
