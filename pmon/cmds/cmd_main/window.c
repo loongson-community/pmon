@@ -337,9 +337,7 @@ static void w_background(void)
 }
 
 int charin=0, cn=0;
-#if defined(LOONGSON_2G5536)
 int date_index = 0;
-#endif
 char *chgconcolor[]={"\e[0;37;44m","\e[0;7m"};
 void w_present(void)
 {
@@ -469,9 +467,7 @@ void w_present1(int x0,int y0,int w0,int h0)
 		case '[C':
 		case '[D':
 			overid=nextid[(cn&255)-'A'];
-#if defined(LOONGSON_2G5536)
 			date_index = 0;
-#endif
 			break;
 		/* The function key don't implement */
 		case '[G':  //Delete Key
@@ -660,31 +656,19 @@ int w_switch(int x,int y,char *caption,int *base,int mask)
 }
 int w_input(int x,int y,int w,char *caption,char * text,int buflen)
 {
-	int l=strlen(text);
-	w_text(x,y,WA_RIGHT,caption);
-	w_window2(x,y,w,1,((w>l)?text:text+l-w));
-	if(currentid==overid)	
-	{
-		if(charin==127 || charin=='\b')
-		{
-			if(l)
-				text[l-1]=0;
-		}
-		else if(charin>=32 && l<buflen-1)
-		{
-#if defined(LOONGSON_2G5536)
-			if(date_index < buflen - 1)
-                        {
-                                text[date_index++] = charin;
-                                text[date_index] = '\0';
-                        }
-#else
-			text[l]=charin;
-			text[l+1]=0;
-#endif
+	int l = strlen(text);
+	w_text(x, y, WA_RIGHT, caption);
+	w_window2(x, y, w, 1, ((w > l) ? text : text + l - w));
+	if(currentid == overid)	{
+		if (charin == 127 || charin == '\b') {
+			if (date_index)
+				text[--date_index] = '\0';
+		} else if (charin >= 32 && date_index < buflen-1) {
+			text[date_index++] = charin;
+			text[date_index] = '\0';
 		}
 	}
-	return currentid==enterid;
+	return currentid == enterid;
 }
 
 int w_input1(int x,int y,int w,char *caption,char * text,int buflen)

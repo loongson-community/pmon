@@ -148,10 +148,7 @@ win_dp win_tp;
 char *diskdev_name[10]={0};
 char *netdev_name[10]={0};
 extern int init_win_device(void);
-
-#if defined(LOONGSON_2G5536)
 extern int date_index;
-#endif
 
 static void run(char *cmd)
 {
@@ -1452,18 +1449,12 @@ int paint_childwindow(char **hint,char *diskdev_name[],char *netdev_name[],int e
 
 			for(i=0;i<6;i++)
 			{
-#if defined(LOONGSON_2G5536)
 				if(w_input(daytime[i].x+8,daytime[i].y,6,daytime[i].name,daytime[i].buf,daytime[i].buflen))
-#else
-				if(w_input1(daytime[i].x+8,daytime[i].y,6,daytime[i].name,daytime[i].buf,daytime[i].buflen))
-#endif
 				{
-#if defined(LOONGSON_2G5536)
 					sprintf(line,"date %04s%02s%02s%02s%02s.%02s", daytime[5].buf, daytime[4].buf,
 							daytime[3].buf, daytime[2].buf, daytime[1].buf, daytime[0].buf);
 					run(line);
 					date_index = 0;
-#endif
 					w_setfocusid(w_getfocusid()-1);
 				}
 				if(w_focused())
