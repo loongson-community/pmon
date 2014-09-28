@@ -457,13 +457,13 @@ static void rs780_internal_gfx_enable(device_t nb , device_t dev)
 	set_nbmc_enable_bits(nb_dev, 0x08, 1<<10, 0);
 	/* The last item in AsynchMclkTaskFileIndex. Why? */
 
-	/* Change the freq. to 400 MHz. by wanghonghu */
+	/* Change the freq. to 333 MHz. by wanghonghu */
 	/* MC_MPLL_CONTROL2. */
-	nbmc_write_index(nb_dev, 0x07, 0x40000018);
+	nbmc_write_index(nb_dev, 0x07, 0x40004498);
 	/* MC_MPLL_DIV_CONTROL. */
-	nbmc_write_index(nb_dev, 0x0b, 0x00000018);
+	nbmc_write_index(nb_dev, 0x0b, 0x00004498);
 	/* MC_MPLL_FREQ_CONTROL. */
-	set_nbmc_enable_bits(nb_dev, 0x09, 3<<12|15<<16|15<<8, 0<<12|6<<16|0<<8);
+	set_nbmc_enable_bits(nb_dev, 0x09, 3<<12|15<<16|15<<8, 2<<12|4<<16|2<<8);
 
 	/* MC_MPLL_CONTROL3. For PM. */
 	set_nbmc_enable_bits(nb_dev, 0x08, 0xff<<13, 1<<13|1<<18);
