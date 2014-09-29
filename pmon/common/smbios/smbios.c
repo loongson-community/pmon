@@ -201,16 +201,16 @@ static void board_info(char *board_name)
 {
 #ifdef LOONGSON_3ASINGLE
 	if(cpu_probe_release())
-        	strcpy(board_name, "Loongson-3A5-780E-1w-V1.03-demo");
+        	strcpy(board_name, "Loongson-3A5-780E-1w-V1.1-demo");
 	else
-        	strcpy(board_name, "Loongson-3A-780E-1w-V1.03-demo");
+        	strcpy(board_name, "Loongson-3A-780E-1w-V1.1-demo");
 #endif
 
 #ifdef LOONGSON_3A2H
 	if(cpu_probe_release())
-        	strcpy(board_name, "Loongson-3A-2H-1w-V0.4-demo");
+        	strcpy(board_name, "Loongson-3A-2H-1w-V0.5-demo");
 	else
-        	strcpy(board_name, "Loongson-3A5-2H-1w-V0.4-demo");
+        	strcpy(board_name, "Loongson-3A5-2H-1w-V0.5-demo");
 #endif
 
 #ifdef LOONGSON_3C2H
@@ -224,25 +224,25 @@ static void board_info(char *board_name)
 
 #ifdef LOONGSON_3BSINGLE
 #ifdef LOONGSON_3B1500
-        strcpy(board_name, "Loongson-3B-780E-1w-V0.9-demo");
+        strcpy(board_name, "Loongson-3B-780E-1w-V0.4-demo");
 #else
         strcpy(board_name, "Loongson-3B-780E-1w-V1.03-demo");
 #endif
 #endif
 #ifdef LOONGSON_3BSERVER
-        strcpy(board_name, "Loongson-3B-780E-2w-V1.03-demo");
+        strcpy(board_name, "Loongson-3B-780E-2w-V0.2-demo");
 #endif
 #ifdef LOONGSON_3ASERVER
 #ifdef USE_BMC
 	if(cpu_probe_release())
-        	strcpy(board_name, "Loongson-3A5-780E-2wBMC-V1.02-demo");
+        	strcpy(board_name, "Loongson-3A5-780E-2wBMC-V1.1-demo");
 	else
-        	strcpy(board_name, "Loongson-3A-780E-2wBMC-V1.02-demo");
+        	strcpy(board_name, "Loongson-3A-780E-2wBMC-V1.1-demo");
 #else
 	if(cpu_probe_release())
-        	strcpy(board_name, "Loongson-3A5-780E-2w-V1.02-demo");
+        	strcpy(board_name, "Loongson-3A5-780E-2w-V1.1-demo");
 	else
-        	strcpy(board_name, "Loongson-3A-780E-2w-V1.02-demo");
+        	strcpy(board_name, "Loongson-3A-780E-2w-V1.1-demo");
 #endif
 #endif
 
