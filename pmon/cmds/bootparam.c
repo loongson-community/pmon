@@ -378,7 +378,7 @@ struct interface_info *init_interface_info()
   inter->size = flashsize/0x400;
   inter->flag = 1;
 
-  strcpy(inter->description,"Loongson-PMON-V3.2.0");
+  strcpy(inter->description,"Loongson-PMON-V3.3.0");
 
   return inter;
 }
@@ -389,14 +389,14 @@ struct board_devices *board_devices_info()
  struct board_devices *bd = &g_board;
 
 #ifdef LOONGSON_3ASINGLE
-  strcpy(bd->name,"Loongson-3A-780E-1w-V1.03-demo");
+  strcpy(bd->name,"Loongson-3A-780E-1w-V1.10-demo");
 #endif
 #ifdef LOONGSON_3A2H
-  strcpy(bd->name,"Loongson-3A-2H-1w-V0.4-demo");
+  strcpy(bd->name,"Loongson-3A-2H-1w-V0.5-demo");
 #endif
 #ifdef LOONGSON_3BSINGLE
 #ifdef LOONGSON_3B1500
-        strcpy(bd->name, "Loongson-3B-780E-1w-V0.9-demo");
+        strcpy(bd->name, "Loongson-3B-780E-1w-V0.4-demo");
 #else
         strcpy(bd->name, "Loongson-3B-780E-1w-V1.03-demo");
 #endif
@@ -406,14 +406,14 @@ struct board_devices *board_devices_info()
 #endif
 
 #ifdef LOONGSON_3BSERVER
-  strcpy(bd->name,"Loongson-3B-780E-2w-V1.03-demo");
+  strcpy(bd->name,"Loongson-3B-780E-2w-V0.2-demo");
 #endif
 
 #ifdef LOONGSON_3ASERVER
 #ifdef USE_BMC
-  strcpy(bd->name,"Loongson-3A-780E-2wBMC-V1.02-demo");
+  strcpy(bd->name,"Loongson-3A-780E-2wBMC-V1.10-demo");
 #else
-  strcpy(bd->name,"Loongson-3A-780E-2w-V1.02-demo");
+  strcpy(bd->name,"Loongson-3A-780E-2w-V1.10-demo");
 #endif
 #endif
 #ifdef LEMOTE_3AITX

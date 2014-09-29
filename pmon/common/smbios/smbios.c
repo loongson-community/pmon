@@ -285,7 +285,7 @@ smbios_type_0_init(void *start)
 			temp[i] = '0';
 	}
 	temp[8] = '\0';
-    	sprintf(pmon_version, "Loongson-PMON-V3.2-%s", temp);
+    	sprintf(pmon_version, "Loongson-PMON-V3.3-%s", temp);
 	p->header.type = 0;
 	p->header.length = sizeof(struct smbios_type_0);
 	p->header.handle = smbios_table_handle++;

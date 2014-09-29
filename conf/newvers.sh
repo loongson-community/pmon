@@ -42,7 +42,7 @@ v=`cat version` u=${USER-root} d=`pwd` h=`hostname` t=`env LANG=en_US.UTF-8 date
 id=`basename ${d}`
 git=`git log -1|head -n 3|perl -e 'local $/;$a=<>;$a=~s/\n/ /g;print $a;'`
 ost="PMON2000"
-osr="3.2"
+osr="3.3"
 
 cat >vers.c <<eof
 char ostype[] = "${ost}";
