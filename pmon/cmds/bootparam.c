@@ -392,7 +392,7 @@ struct board_devices *board_devices_info()
   strcpy(bd->name,"Loongson-3A-780E-1w-V1.10-demo");
 #endif
 #ifdef LOONGSON_3A2H
-  strcpy(bd->name,"Loongson-3A-2H-1w-V0.5-demo");
+  strcpy(bd->name,"Loongson-3A-2H-1w-V0.6-demo");
 #endif
 #ifdef LOONGSON_3BSINGLE
 #ifdef LOONGSON_3B1500

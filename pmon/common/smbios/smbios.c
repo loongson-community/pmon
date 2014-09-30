@@ -208,9 +208,9 @@ static void board_info(char *board_name)
 
 #ifdef LOONGSON_3A2H
 	if(cpu_probe_release())
-        	strcpy(board_name, "Loongson-3A-2H-1w-V0.5-demo");
+        	strcpy(board_name, "Loongson-3A-2H-1w-V0.6-demo");
 	else
-        	strcpy(board_name, "Loongson-3A5-2H-1w-V0.5-demo");
+        	strcpy(board_name, "Loongson-3A5-2H-1w-V0.6-demo");
 #endif
 
 #ifdef LOONGSON_3C2H
