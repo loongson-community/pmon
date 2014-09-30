@@ -9,6 +9,7 @@
 //#define HT_800M
 #define HT_RECONNECT
 //#define HT_REG_TRANS
+#define UMA_VRAM_MODE
 ######################################################
 
 #ifdef HT_32bit_TRANS //PCI CFG : TYPE 0: 
@@ -1313,6 +1314,16 @@ crc_checking:
 	set_L2_win(4, 4, 0xffffffff80000000, 0xffffffffc0000000, 0x00000030800000f3) # 2~3G
 	set_L2_win(4, 5, 0xffffffffc0000000, 0xffffffffc0000000, 0x00000040800000f3) # 3~4G
 
+#ifdef UMA_VRAM_MODE
+       set_L1_mas6(7, 0x0000000000000000, 0x0000000000000000, 0x00000000000000f0) # others, all to L2$
+       set_L1_mas6(0, 0x0000001080000000, 0xfffffffff0000000, 0x00000000000000f6)
+       set_L1_mas6(1, 0x0000001080000000, 0xffffffffc0000000, 0x00000001000000f6)
+       set_L1_mas6(2, 0x0000002080000000, 0xffffffffc0000000, 0x00000001400000f6)
+       set_L1_mas6(3, 0x0000003080000000, 0xffffffffc0000000, 0x00000001800000f6)
+       set_L1_mas6(4, 0x0000004080000000, 0xffffffffc0000000, 0x00000001c00000f6)
+       set_L1_mas6(5, 0x000000f080000000, 0xffffffffff000000, 0x000000fdf80000f6) # to ht int
+       set_L1_mas6(6, 0x0000000040000000, 0xffffffffc0000000, 0x00000000000000f0) # gpu dma 0x4... -> 0x0...
+#else
 	set_L1_mas6(6, 0x0000000000000000, 0x0000000000000000, 0x00000000000000f0) # others, all to L2$
 	set_L1_mas6(0, 0x0000001080000000, 0xfffffffff0000000, 0x00000000000000f6)
 	set_L1_mas6(1, 0x0000001080000000, 0xffffffffc0000000, 0x00000001000000f6)
@@ -1320,9 +1331,20 @@ crc_checking:
 	set_L1_mas6(3, 0x0000003080000000, 0xffffffffc0000000, 0x00000001800000f6)
 	set_L1_mas6(4, 0x0000004080000000, 0xffffffffc0000000, 0x00000001c00000f6)
 	set_L1_mas6(5, 0x000000f080000000, 0xffffffffff000000, 0x000000fdf80000f6) # to ht int
+#endif
 
 	set_L2_win(0, 6, 0x0000000018000000, 0xfffffffff8000000, 0x0000000018000081) # copy of sb win
 	set_L2_win(0, 4, 0x0000000019000000, 0xffffffffff000000, 0x000000f080000083) # to ht int(l1)
+
+#ifdef UMA_VRAM_MODE
+       #GPU window
+       set_L2_win(2, 0, 0x0000000040000000, 0xffffffffc0000000, 0x0000001080000003) # 1~2G -> iodma -> 3a
+       set_L2_win(2, 1, 0x0000000040000000, 0xffffffffc0000008, 0x00000010800000f3) # 1~2G -> iodma -> 3a
+       //set_L2_win(2, 2, 0x0000000000000000, 0xffffffffc0000000, 0x00000000400000f3) # 0~1G -> iodma -> L2$ 0x40000000 -> ddr 256M
+       set_L2_win(2, 2, 0x0000000000000000, 0xffffffffc0000000, 0x00000000000000f0) # 0~1G to ddr
+
+       //set_L2_win(2, 0, 0x0000000000000000, 0xffffffffc0000000, 0x00000000400000f3) # 0~1G -> iodma -> L2$
+#endif
 
 	// set ls3a-2h dma cached coherence by hardware
 //	li	t2, 0x90001EFDFB0000F0; li t1, 0x0; sw t1, 0x00(t2);

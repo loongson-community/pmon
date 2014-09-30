@@ -2779,7 +2779,13 @@ struct efi_memory_map_loongson * init_memory_map()
 	emap->map[(entry)].mem_size = (size), \
 	(entry)++
 
+#ifndef UMA_VIDEO_RAM
 	EMAP_ENTRY(i, 0, SYSTEM_RAM_LOW, 0x00200000, 0x0ee);
+#else
+	/*add UMA_VIDEO_RAM area to reserved 0x60 MB memory for GPU */
+	EMAP_ENTRY(i, 0, SYSTEM_RAM_LOW, 0x00200000, 0x0ee - 0x60);
+	EMAP_ENTRY(i, 0, UMA_VIDEO_RAM, (0xee - 0x60 + 2) << 20, 0x60);
+#endif
 
 	/* for entry with mem_size < 1M, we set bit31 to 1 to indicate
 	 * that the unit in mem_size is Byte not MBype */

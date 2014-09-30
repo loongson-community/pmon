@@ -13,7 +13,8 @@
 #define DAPTER_ROM 8 
 #define ACPI_TABLE 9
 #define SMBIOS_TABLE 10
-#define MAX_MEMORY_TYPE 11
+#define UMA_VIDEO_RAM 11
+#define MAX_MEMORY_TYPE 12
 
 
 /*no-use for pmon*/
