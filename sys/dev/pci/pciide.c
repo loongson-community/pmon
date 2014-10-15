@@ -1315,7 +1315,8 @@ next:
 		}
 	}
 
-	//swap the names of port1 and port2 only once if both of them have satadisks	
+	//swap the names of port1 and port2 only once if both of them have satadisks	//bug here
+#if 0
 	 if(sata_devs[1] != NULL && sata_devs[2] != NULL && !once)
           {
  
@@ -1328,6 +1329,7 @@ next:
               sata_devs[2] = NULL;
  
           }
+#endif
 
 
 
