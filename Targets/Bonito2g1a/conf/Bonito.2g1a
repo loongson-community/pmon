@@ -26,6 +26,7 @@ option		DEVBD2E
 option		MIPS
 option		INET
 option		LOONGSON_2G1A
+option      ENABLE_SATA         #Enable SATA  ,when enable IDE can also use, when commended only IDE can use
 option		BOOT_PARAM
 
 select		mod_flash_amd		# AMD flash device programming
@@ -188,19 +189,24 @@ pciide* 	at pci ? dev ? function ? flags 0x0000
 #sata*		at atp?
 
 #### IDE hard drives
-wd0		at pciide? channel ? drive ? flags 0x0000
+#wd0		at pciide? channel ? drive ? flags 0x0000
 
 #cmdide*	at pci ? dev ? function ? flags 0x0000
-#wd*		at cmdide? channel ? drive ? flags 0x0000
+wd*		at pciide? channel ? drive ? flags 0x0000
+#sata disk and cd rom
+lahci0		at localbus0 base 0xb2e30000
+ahci_sd*	at lahci0 
+ahci_cdrom*	at lahci0 
 
 #### Pseudo devices
 pseudo-device	loop	1	# network loopback
+ide_cd* 	at pciide? channel ? drive ? flags 0x0001
 
 syn0		at localbus0
 syn1		at localbus0
 select		gmac
 
-ide_cd* 	at pciide? channel ? drive ? flags 0x0001
+#ide_cd* 	at pciide? channel ? drive ? flags 0x0001
 select		iso9660
 option		IDECD 
 #select cmd_testfire

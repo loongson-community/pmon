@@ -93,10 +93,7 @@ tgt_printf (const char *fmt, ...)
 #include "mod_smi712.h"
 #include "mod_smi502.h"
 #include "mod_sisfb.h"
-#if (NMOD_X86EMU_INT10 > 0)||(NMOD_X86EMU >0)
-extern int vga_bios_init(void);
-#endif
-extern int radeon_init(void);
+#include "include/ls1a.h"
 extern int kbd_initialize(void);
 extern int write_at_cursor(char val);
 extern const char *kbd_error_msgs[];
@@ -334,109 +331,23 @@ tgt_devinit()
 	_pci_businit(1);	/* PCI bus initialization */
 
 }
-
+#define LS2G_GPIO_EN	0xbfe0011c
+#define LS2G_GPIO_DATA	0xbfe00120
 void tgt_reboot()
 {
-	unsigned long hi, lo;
-#if 0 
-	*(volatile unsigned long*)0xbfe00120= (*(volatile unsigned long*)0xbfe00120) &(~0x1);
-	*(volatile unsigned long*)0xbfe0011c= (*(volatile unsigned long*)0xbfe0011c) &(~0x1);
-	hi=1000;
-	while(hi--);
-	*(volatile unsigned long*)0xbfe0011c= ((*(volatile unsigned long*)0xbfe0011c) &(~0x1))|0x1;
-	hi=1000;
-	while(hi--);
+	*((volatile unsigned int *)LS2G_GPIO_EN)	&= ~(1<<4);//set gpio4 is output
+	*((volatile unsigned int *)LS2G_GPIO_DATA) 	&= ~(1<<4);//set gpio4 to 0 
 	
-	__asm__ ("jr %0\n"::"r"(0xbfc00000));
-	 
-#else
-	/* reset the cs5536 whole chip */
-	//_rdmsr(0xe0000014, &hi, &lo);
-	lo |= 0x00000001;
-	//_wrmsr(0xe0000014, hi, lo);
-	
-#endif
 	while(1);
 }
 
 void tgt_poweroff()
 {
-	unsigned long val; 
-	unsigned long tag; 
-	unsigned long base;
-				 
-	tag = _pci_make_tag(0, 14, 0);
-	base = _pci_conf_read(tag, 0x14);
-	base |= 0xbfd00000;
-	base &= ~3;
-						  
-	/* make cs5536 gpio13 output enable */
-	val = *(volatile unsigned long *)(base + 0x04);
-	val = ( val & ~(1 << (16 + 13)) ) | (1 << 13) ;
-	*(volatile unsigned long *)(base + 0x04) = val; 
-	
-	/* make cs5536 gpio13 output low level voltage. */
-	val = *(volatile unsigned long *)(base + 0x00);
-	val = (val | (1 << (16 + 13))) & ~(1 << 13); 
-	*(volatile unsigned long *)(base + 0x00) = val; 
-												   
+	*((volatile unsigned int *)LS1A_PM1_EN_REG) 	= 0X0;//clear wakeup enable bit 
+	*((volatile unsigned int *)LS1A_GPE0_EN_REG) 	= 0X0;//clear wakeup enable bit
+	*((volatile unsigned int *)LS1A_PM1_CNT_REG) 	|= (0x7<<10)|(0x1<<13);//set 1a to s5 mode
     while(1);
 }
-
-#if 0
-#ifdef DEVBD2F_CS5536
-void
-tgt_reboot()
-{
-#ifdef DEVBD2F_CS5536_WY810
-	_wrmsr(GET_MSR_ADDR(0x51400017), 0, 1);
-#else
-	unsigned long hi, lo;
-
-	/* reset the cs5536 whole chip */
-	_rdmsr(0xe0000014, &hi, &lo);
-	lo |= 0x00000001;
-	_wrmsr(0xe0000014, hi, lo);
-#endif
-
-	while(1);
-}
-
-void
-tgt_poweroff()
-{
-	unsigned long val;
-	unsigned long tag;
-	unsigned long base;
-
-	tag = _pci_make_tag(0, 14, 0);
-	base = _pci_conf_read(tag, 0x14);
-	base |= 0xbfd00000;
-	base &= ~3;
-
-	/* make cs5536 gpio13 output enable */
-	val = *(volatile unsigned long *)(base + 0x04);
-	val = ( val & ~(1 << (16 + 13)) ) | (1 << 13) ;
-	*(volatile unsigned long *)(base + 0x04) = val;
-	
-	/* make cs5536 gpio13 output low level voltage. */
-	val = *(volatile unsigned long *)(base + 0x00);
-	val = (val | (1 << (16 + 13))) & ~(1 << 13);
-	*(volatile unsigned long *)(base + 0x00) = val;
-
-	while(1);
-}
-#else
-void
-tgt_poweroff()
-{
-	volatile int *p=0xbfe0011c;
-	p[1]&=~1;
-	p[0]&=~1;
-	p[0]|=1;
-}
-#endif
-#endif
 
 /*
  *  This function makes inital HW setup for debugger and

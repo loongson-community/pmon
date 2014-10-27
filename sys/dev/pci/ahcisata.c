@@ -88,7 +88,11 @@
 
 #undef PHYSADDR
 #ifndef PHYSADDR
+#ifdef LOONGSON_2G1A
+#define PHYSADDR(x) (((long)(x)) - 0x74000000)//1a dma access address
+#else
 #define PHYSADDR(x) (((long)(x))&0x1fffffff)
+#endif
 #endif
 
 #define cpu_to_le32(x) (x)
@@ -298,7 +302,7 @@ static int ahci_exec_polled_cmd(int port, int pmp, int is_cmd, u16 flags,
 	memcpy((unsigned char *)pp->cmd_tbl, fis, 20);
 	ahci_fill_cmd_slot(pp, cmd_fis_len | flags | (pmp << 12));
 
-#if 0
+#ifdef LOONGSON_2G1A
 	CPU_IOFlushDCache(pp->cmd_slot, 32, SYNC_W);	/*32~256 */
 	CPU_IOFlushDCache(pp->cmd_tbl, 0x60, SYNC_W);
 	CPU_IOFlushDCache(pp->rx_fis, AHCI_RX_FIS_SZ, SYNC_R);
@@ -571,7 +575,7 @@ static void ahci_set_feature(u8 port, u8 * sataid)
 	memcpy((unsigned char *)pp->cmd_tbl, fis, 20);
 	ahci_fill_cmd_slot(pp, cmd_fis_len);
 
-#if 0
+#ifdef LOONGSON_2G1A
 	CPU_IOFlushDCache(pp->cmd_slot, 32, SYNC_W);	/*32~256 */
 	CPU_IOFlushDCache(pp->cmd_tbl, 0x60, SYNC_W);
 	CPU_IOFlushDCache(pp->rx_fis, AHCI_RX_FIS_SZ, SYNC_R);
@@ -683,7 +687,7 @@ static int get_ahci_device_data(u8 port, u8 * fis, int fis_len, u8 * buf,
 	}
 	ahci_fill_cmd_slot(pp, opts);
 
-#if 0
+#ifdef LOONGSON_2G1A
 	CPU_IOFlushDCache(pp->cmd_slot, 32, SYNC_W);	/*32~256 */
 	CPU_IOFlushDCache(pp->cmd_tbl, 0x60, SYNC_W);
 	CPU_IOFlushDCache(pp->cmd_tbl_sg, sg_count * 16, SYNC_W);
@@ -926,7 +930,6 @@ static u32 ahci_sata_rw_cmd(int port_no, u32 start, u32 blkcnt, u8 * buffer,
 	cfis->lba_mid = (block >> 8) & 0xff;
 	cfis->lba_low = block & 0xff;
 	cfis->sector_count = (u8) (blkcnt & 0xff);
-
 	if (pp->is_atapi) {
 		pc = (u8 *) malloc(ATAPI_COMMAND_LEN, M_DEVBUF, M_NOWAIT);
 		if (pc == NULL) {
@@ -952,7 +955,6 @@ static u32 ata_low_level_rw_lba28(int port_no, u32 blknr, u32 blkcnt,
 	u8 *addr;
 	int max_blks;
 	u32 blk_sz;
-
 	blk_sz = sata_dev_desc[port_no].blksz;
 	start = blknr;
 	blks = blkcnt;

@@ -2213,7 +2213,7 @@ LEAF(init_south_bridge)
 	PRINTSTR("setup 1a gpio\r\n");
 	NORTHBRIDGE_INIT(0xb2e78030,0x8f8b)//config pll control reg ddr_dll = 10,cpu_dll = 4
 	NORTHBRIDGE_INIT(0xb2d010c0,0x00000000) //1a_gpio_cfg0   normal mode// SUMH for 1A2
-	NORTHBRIDGE_INIT(0xb2d010c4,0x00000000) //1a_gpio_cfg1   normal mode// SUMH for 1A2
+	NORTHBRIDGE_INIT(0xb2d010c4,0x10000000) //1a_gpio_cfg1   normal mode// SUMH for 1A2 ,gpio60 for reset
 	NORTHBRIDGE_INIT(0xb2d010c8,0x00000000) //1a_gpio_cfg2   normal mode// SUMH for 1A2
 	NORTHBRIDGE_INIT(0xb2d00420,0x0a000000) //1f_gpio_cfg2   // SUMH for 1A2 support nand gmac1 unspport LPC
 	PRINTSTR("setup 1a done\r\n");
