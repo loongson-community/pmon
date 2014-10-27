@@ -424,7 +424,7 @@ ConfGodson3A:
 
 
     li	t2, CTYPE_4WAY		  # Assume four way cache
-#ifdef LOONGSON_2G5536
+#if	defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A)
         or      t2, CTYPE_HAS_L2      # L2 is on chip
 	li	t6, 0x100000          # Secondary size 1M.
 #else

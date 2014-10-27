@@ -82,7 +82,7 @@ typedef unsigned long dma_addr_t;
 */
 
 //sw: nothing to display
-#ifdef	LOONGSON_2G5536
+#if	defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A)
 #define TR0(fmt, args...) 		
 #else
 #define TR0(fmt, args...)   printf(fmt, ##args)	

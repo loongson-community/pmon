@@ -388,7 +388,7 @@ int
 main()
 {
 	char prompt[32];
-
+#if 0 // lxf add
 #ifdef ARB_LEVEL
 	save_board_ddrparam(0);
 #endif
@@ -482,7 +482,7 @@ main()
 #endif
 		}
 	}
-
+#endif
 	while(1) {
 #if 0
 		while(1){char c;int i;
@@ -763,26 +763,26 @@ dbginit (char *adr)
 #endif
 
 	SBD_DISPLAY ("SBDD", CHKPNT_SBDD);
-	tgt_devinit();
+	//lxf modify tgt_devinit();
 
 #ifdef INET
 	SBD_DISPLAY ("NETI", CHKPNT_NETI);
-	init_net (1);
+	//lxf modify init_net (1);
 #endif
 
 #if NCMD_HIST > 0
 	SBD_DISPLAY ("HSTI", CHKPNT_HSTI);
-	histinit ();
+	//lxf modify histinit ();
 #endif
 
 #if NMOD_SYMBOLS > 0
 	SBD_DISPLAY ("SYMI", CHKPNT_SYMI);
-	syminit ();
+	//lxf modify syminit ();
 #endif
 
 #ifdef DEMO
 	SBD_DISPLAY ("DEMO", CHKPNT_DEMO);
-	demoinit ();
+	//lxf modify demoinit ();
 #endif
 
 	SBD_DISPLAY ("SBDE", CHKPNT_SBDE);
@@ -817,7 +817,7 @@ dbginit (char *adr)
 
 	tgt_machprint();
 
-	freq = tgt_pipefreq ();
+	//lxf modify freq = tgt_pipefreq ();
 	sprintf(fs, "%d", freq);
 	fp = fs + strlen(fs) - 6;
 	fp[3] = '\0';

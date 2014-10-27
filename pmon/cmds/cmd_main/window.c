@@ -187,7 +187,7 @@ static void w_cls()
 			video_cls();
 		memset(finalbuf,0x01,sizeof(foreground));
 #else
-#if defined(LOONGSON_2G5536)
+#if	defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A)
 		for (i = 0; i < VIDEO_HEIGHT*VIDEO_WIDTH*2; i += 8)
 #else
 		for (i = 0; i < VIDEO_HEIGHT*VIDEO_WIDTH; i += 8)

@@ -32,7 +32,7 @@
 #include "synopGMAC_plat.h"
 #include "synopGMAC_network_interface.h"
 #include "synopGMAC_Dev.h"
-#ifndef	LOONGSON_2G5536
+#if	(!defined(LOONGSON_2G5536))&&(!defined(LOONGSON_2G1A))
 #include "target/eeprom.h"
 #endif
 
@@ -77,7 +77,7 @@ u32 synop_pci_using_dac = 0;
 #define MAC_ADDR {0x00, 0x55, 0x7B, 0xB5, 0x7D, 0xF7}	//sw: may be it should be F7 7D B5 7B 55 00
 
 //u32 regbase = 0xbfe10000;	//sw:	for debug only
-#ifdef	LOONGSON_2G5536
+#if	defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A)
 u64 regbase = 0x90000d0000000000;	// this is of no use in this driver! liyifu on 2010-01-12
 #else
 u64 regbase = 0xffffffffbbe10000;	// this is of no use in this driver! liyifu on 2010-01-12
@@ -222,7 +222,7 @@ void dumpphyregg(synopGMACdevice *gmacdev)
 	int i;
 	u16 data;
 	for(i=0;i<=31;i++){
-#ifdef	LOONGSON_2G5536
+#if	defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A)
 		synopGMAC_read_phy_reg(gmacdev->MacBase,gmacdev->PhyBase,i,data);
 #else
 		synopGMAC_read_phy_reg(gmacdev->MacBase,gmacdev->PhyBase,i,&data);
@@ -255,7 +255,7 @@ void dumpmacregg(synopGMACdevice *gmacdev)
 
 }
 
-#ifdef	LOONGSON_2G5536
+#if	defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A)
 static int rtl8211_config_init(synopGMACdevice *gmacdev)
 {
 	int retval, err;
@@ -525,7 +525,7 @@ s32 synopGMAC_setup_tx_desc_queue(synopGMACdevice * gmacdev,u32 no_of_desc, u32 
 	bf1  = (DmaDesc *)CACHED_TO_UNCACHED((unsigned long)(gmacdev->TxDesc));	
 	//gmacdev->TxDescDma  = (unsigned long)vtophys((unsigned long)bf1);
 	gmacdev->TxDescDma  = (unsigned long)UNCACHED_TO_PHYS((unsigned long)bf1);
-#ifndef	LOONGSON_2G5536
+#if	(!defined(LOONGSON_2G5536))&&(!defined(LOONGSON_2G1A))
 	
  		gmacdev->TxDescDma &= 0x0fffffff;
 		gmacdev->TxDescDma |= 0x00000000;
@@ -614,7 +614,7 @@ s32 synopGMAC_setup_rx_desc_queue(synopGMACdevice * gmacdev,u32 no_of_desc, u32 
 	//gmacdev->RxDescDma  = (unsigned long)vtophys((unsigned long)bf1);
 	gmacdev->RxDescDma  = (unsigned long)UNCACHED_TO_PHYS((unsigned long)bf1);
 	//gmacdev->RxDesc     = bf1;
-#ifndef	LOONGSON_2G5536
+#if	(!defined(LOONGSON_2G5536))&&(!defined(LOONGSON_2G1A))
 	gmacdev->RxDescDma |= 0x00000000;
 #endif
 	//	gmacdev->RxDescDma   = (dma_addr_t) first_desc;
@@ -1027,7 +1027,7 @@ void synop_handle_received_data(struct synopGMACNetworkAdapter* tp)
 			}
 
 			dma_addr1  = (unsigned long)CACHED_TO_PHYS((unsigned long)(data1));
-#ifndef	LOONGSON_2G5536
+#if	(!defined(LOONGSON_2G5536))&&(!defined(LOONGSON_2G1A))
 			dma_addr1 |= 0x00000000;
 #endif
 			desc_index = synopGMAC_set_rx_qptr(gmacdev,dma_addr1, RX_BUF_SIZE, (u32)data1,0,0,0);
@@ -1153,7 +1153,7 @@ int synopGMAC_intr_handler(struct synopGMACNetworkAdapter * tp)
 //	TR("%s:Interrupts to be handled: 0x%08x\n",__FUNCTION__,interrupt);
 
         if(interrupt & synopGMACDmaError){
-#ifdef	LOONGSON_2G5536
+#if	defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A)
 		u8 mac_addr[6] = DEFAULT_MAC_ADDRESS;//after soft reset, configure the MAC address to default value
 		mac_addr[5] += atoi(getenv("synmac"));
 #endif
@@ -1171,7 +1171,7 @@ int synopGMAC_intr_handler(struct synopGMACNetworkAdapter * tp)
 		synopGMAC_reset(gmacdev);
 
 		/* after soft reset, configure the MAC address to default value */
-#ifdef	LOONGSON_2G5536
+#if	defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A)
 		synopGMAC_set_mac_addr(gmacdev,GmacAddr0High,GmacAddr0Low, mac_addr);
 #else
 		synopGMAC_set_mac_addr(gmacdev,GmacAddr0High,GmacAddr0Low, tp->PInetdev->dev_addr);
@@ -1249,7 +1249,7 @@ int synopGMAC_intr_handler(struct synopGMACNetworkAdapter * tp)
 			
 			//dma_addr = (u32)skb;
 			dma_addr  = (unsigned long)UNCACHED_TO_PHYS((unsigned long)(skb));
-#ifndef	LOONGSON_2G5536
+#if	(!defined(LOONGSON_2G5536))&&(!defined(LOONGSON_2G1A))
 			dma_addr |= 0x00000000;
 #endif
 			status = synopGMAC_set_rx_qptr(gmacdev,dma_addr,RX_BUF_SIZE, (u32)skb,0,0,0);
@@ -1293,7 +1293,7 @@ int synopGMAC_intr_handler(struct synopGMACNetworkAdapter * tp)
 		tx_abnormal_test_count += 1;
 		printf("Tx: %d abnormal packets!\n",tx_abnormal_test_count);
 #endif
-#ifndef	LOONGSON_2G5536
+#if	(!defined(LOONGSON_2G5536))&&(!defined(LOONGSON_2G1A))
 		printf("%s::Abnormal Tx Interrupt Seen\n",__FUNCTION__);
 #endif
 //		dumpreg(regbase);
@@ -1377,7 +1377,7 @@ unsigned long synopGMAC_linux_open(struct synopGMACNetworkAdapter *tp)
 	/*Now platform dependent initialization.*/
 
 	/*Lets reset the IP*/
-#ifdef	LOONGSON_2G5536
+#if	defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A)
 	synopGMAC_reset(gmacdev);
 #else
 	TR("0xbfe10040:%x\n",synopGMACReadReg(0xffffffffbfe10040,0));
@@ -1390,7 +1390,7 @@ unsigned long synopGMAC_linux_open(struct synopGMACNetworkAdapter *tp)
 	  such as Mac base, configuration base, phy base address(out of 32 possible phys )*/
 	//	synopGMAC_attach(synopGMACadapter->synopGMACdev,(u32) synopGMACMappedAddr + MACBASE,(u32) synopGMACMappedAddr + DMABASE, DEFAULT_PHY_BASE);
 	//synopGMAC_attach(adapter->synopGMACdev,(u64) synopGMACMappedAddr + MACBASE,(u64) synopGMACMappedAddr + DMABASE, DEFAULT_PHY_BASE,PInetdev->dev_addr);
-#ifndef	LOONGSON_2G5536
+#if	(!defined(LOONGSON_2G5536))&&(!defined(LOONGSON_2G1A))
 	synopGMAC_set_mac_addr(adapter->synopGMACdev, GmacAddr0High, GmacAddr0Low, PInetdev->dev_addr);
 #endif
 	/*Lets read the version of ip in to device structure*/	
@@ -1420,8 +1420,8 @@ unsigned long synopGMAC_linux_open(struct synopGMACNetworkAdapter *tp)
 #endif
 
 
-	
-#ifndef	LOONGSON_2G5536
+
+#if	(!defined(LOONGSON_2G5536))&&(!defined(LOONGSON_2G1A))
 	TR("linux_open------------------------dbg 0\n");
 #endif
 	/*Set up the tx and rx descriptor queue/ring*/
@@ -1489,7 +1489,7 @@ unsigned long synopGMAC_linux_open(struct synopGMACNetworkAdapter *tp)
 		//dma_addr  = (unsigned long)vtophys((unsigned long)(skb1));
 		dma_addr  = (unsigned long)UNCACHED_TO_PHYS((unsigned long)(skb1));
 
-#ifndef	LOONGSON_2G5536
+#if	(!defined(LOONGSON_2G5536))&&(!defined(LOONGSON_2G1A))
  		dma_addr &= 0x0fffffff;
 		dma_addr |= 0x00000000;
 #endif
@@ -1693,7 +1693,7 @@ s32 synopGMAC_linux_xmit_frames(struct ifnet* ifp)
 #if SYNOP_TX_DEBUG
 	printf("xmit: TxBusy = %d\tTxNext = %d\n",gmacdev->TxBusy,gmacdev->TxNext);
 #endif
-#ifdef	LOONGSON_2G5536
+#if	defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A)
 	if(((gmacdev->LinkState) & Mii_phy_status_link_up) != Mii_phy_status_link_up){
 		while(ifp->if_snd.ifq_head != NULL){
 			IF_DEQUEUE(&ifp->if_snd, skb);
@@ -1765,7 +1765,7 @@ s32 synopGMAC_linux_xmit_frames(struct ifnet* ifp)
 #endif
 
 
-#ifdef	LOONGSON_2G5536
+#if	defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A)
 				m_freem(skb);
 #else
 				plat_free_memory(skb);
@@ -1774,8 +1774,8 @@ s32 synopGMAC_linux_xmit_frames(struct ifnet* ifp)
 				bf2  = (u32)CACHED_TO_UNCACHED((unsigned long)bf1);	
 				//dma_addr  = (unsigned long)vtophys((unsigned long)(bf2));
 				dma_addr  = (unsigned long)UNCACHED_TO_PHYS((unsigned long)(bf2));
-				
-#ifndef	LOONGSON_2G5536
+
+#if	(!defined(LOONGSON_2G5536))&&(!defined(LOONGSON_2G1A))
  				dma_addr &= 0x0fffffff;
 				dma_addr |= 0x00000000;
 #endif
@@ -1800,16 +1800,16 @@ s32 synopGMAC_linux_xmit_frames(struct ifnet* ifp)
 					return -EBUSY;
 				}
 			}
-#ifdef	LOONGSON_2G5536
+#if	defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A)
 			else{
 #endif
 #if SYNOP_TX_DEBUG
-#ifndef	LOONGSON_2G5536
+#if	(!defined(LOONGSON_2G5536))&&(!defined(LOONGSON_2G1A))
 			else
 #endif
 				printf("===%x: next txDesc belongs to DMA don't set it\n",gmacdev->TxNextDesc);
 #endif
-#ifdef	LOONGSON_2G5536
+#if	defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A)
 				return;
 			}
 #endif
@@ -2411,8 +2411,8 @@ while(1){
 //	skb = (u32)CACHED_TO_UNCACHED((unsigned long)(skb));	
 	//dma_addr  = (unsigned long)vtophys((unsigned long)(skb));
 	dma_addr  = (unsigned long)UNCACHED_TO_PHYS((unsigned long)(skb));
-	
-#ifndef	LOONGSON_2G5536
+
+#if	(!defined(LOONGSON_2G5536))&&(!defined(LOONGSON_2G1A))
  		dma_addr &= 0x0fffffff;
 		dma_addr |= 0x00000000;
 #endif
@@ -2522,7 +2522,7 @@ void setup_tx_desc(synopGMACdevice * gmacdev)
 }
 #endif
 
-#ifdef	LOONGSON_2G5536
+#if	defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A)
 void parseenv(int index, u8 * buf)
 {
    int i;
@@ -2583,7 +2583,7 @@ void set_phyled(struct synopGMACNetworkAdapter *synopGMACadapter)
 	printf("Set phy led end\n");
 }
 
-#ifdef	LOONGSON_2G5536
+#if	defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A)
 s32  synopGMAC_init_network_interface(char* xname,u64 synopGMACMappedAddr)
 {
 //varables added by sw
@@ -2648,16 +2648,16 @@ s32  synopGMAC_init_network_interface(char* xname, struct device *sc )
 	dumpphyreg(synopGMACadapter);
 #endif
 
-#ifndef	LOONGSON_2G5536
+#if	(!defined(LOONGSON_2G5536))&&(!defined(LOONGSON_2G1A))
 	TR("0xbfe10040:%x\n",synopGMACReadReg(0xffffffffbfe10040,0));
 #endif
 	init_phy(synopGMACadapter->synopGMACdev);
 //	testphyreg(synopGMACadapter->synopGMACdev);
-#ifndef	LOONGSON_2G5536
+#if	(!defined(LOONGSON_2G5536))&&(!defined(LOONGSON_2G1A))
 	TR("0xbfe10040:%x\n",synopGMACReadReg(0xffffffffbfe10040,0));
 #endif	
 	synopGMAC_reset(synopGMACadapter->synopGMACdev);
-#ifndef	LOONGSON_2G5536
+#if	(!defined(LOONGSON_2G5536))&&(!defined(LOONGSON_2G1A))
 	synopGMAC_attach(synopGMACadapter->synopGMACdev,(u64) synopGMACMappedAddr + MACBASE,(u64) synopGMACMappedAddr + DMABASE, DEFAULT_PHY_BASE,mac_addr0);
 	TR("0xbfe10040:%x\n",synopGMACReadReg(0xffffffffbfe10040,0));
 //	synopGMAC_attach(synopGMACadapter->synopGMACdev,(u64) synopGMACMappedAddr + MACBASE,(u64) synopGMACMappedAddr + DMABASE, DEFAULT_PHY_BASE,mac_addr0);
@@ -2667,7 +2667,7 @@ s32  synopGMAC_init_network_interface(char* xname, struct device *sc )
 	
 	ifp = &(synopGMACadapter->PInetdev->arpcom.ac_if);
 	ifp->if_softc = synopGMACadapter;
-#ifndef	LOONGSON_2G5536
+#if	(!defined(LOONGSON_2G5536))&&(!defined(LOONGSON_2G1A))
 	memcpy(&synopGMACadapter->PInetdev->sc_dev, sc, sizeof(struct device));
 #endif	
 	memcpy(synopGMACadapter->PInetdev->dev_addr, mac_addr0,6);
@@ -2714,7 +2714,7 @@ s32  synopGMAC_init_network_interface(char* xname, struct device *sc )
 	dumpmacregg(synopGMACadapter->synopGMACdev);
 	dumpdmaregg(synopGMACadapter->synopGMACdev);
 #endif
-#ifdef	LOONGSON_2G5536
+#if	defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A)
 	mac_addr0[5]++;
 #endif
 	return 0;

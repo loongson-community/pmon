@@ -30,7 +30,7 @@ syn_attach(parent, self, aux)
 	void *aux;
 {
 	struct device *sc = self;
-#ifdef LOONGSON_2G5536
+#if	defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A)
 synopGMAC_init_network_interface(sc->dv_xname,sc->dv_unit?0x90000d0000000000LL:0x90000c0000000000LL);
 #else
 	synopGMAC_init_network_interface(sc->dv_xname, sc);

@@ -240,7 +240,7 @@ static int kbd_wait_for_input(void)
 static void kbd_write_output_w(int data)
 {
 	kbd_wait();
-#ifdef LOONGSON_2G5536
+#if	defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A)
 	/* loongson 2g+5536 PS2 kbd Laps Lock key needs delay when pressed,
 	 * otherwise the PS2 kbd cann't be used.
 	 */
@@ -451,7 +451,7 @@ int kbd_translate(unsigned char scancode, unsigned char *keycode)
 		else
 			capslock = 0;
 		kbd_write_output_w(KBD_CMD_SET_LEDS);
-#ifdef LOONGSON_2G5536
+#if	defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A)
 		/* PS/2 kbd needs delay between write operations */
 		while (kbd_read_status() & KBD_STAT_IBF)
 			delay(10);

@@ -1033,7 +1033,7 @@ s32 synopGMAC_mac_init(synopGMACdevice * gmacdev)
 		synopGMAC_pad_crc_strip_disable(gmacdev);
 		synopGMAC_back_off_limit(gmacdev,GmacBackoffLimit0);
 		synopGMAC_deferral_check_disable(gmacdev);
-#ifndef LOONGSON_2G5536
+#if	(!defined(LOONGSON_2G5536))&&(!defined(LOONGSON_2G1A))
 		
 		synopGMAC_tx_enable(gmacdev);	//according to Tang Dan's commitment
 		synopGMAC_rx_enable(gmacdev);
@@ -1067,7 +1067,7 @@ s32 synopGMAC_mac_init(synopGMACdevice * gmacdev)
 		synopGMAC_unicast_pause_frame_detect_disable(gmacdev);
 		synopGMAC_rx_flow_control_enable(gmacdev);
 		synopGMAC_tx_flow_control_enable(gmacdev);
-#ifdef LOONGSON_2G5536
+#if	defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A)
 		synopGMAC_tx_enable(gmacdev);	//according to Tang Dan's commitment
 		synopGMAC_rx_enable(gmacdev);
 #endif
@@ -1187,7 +1187,7 @@ s32 synopGMAC_check_phy_init (synopGMACdevice * gmacdev)
 	
 
 
-#ifdef LOONGSON_2G5536
+#if	defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A)
 	gmacdev->DuplexMode = FULLDUPLEX;
 #else
 	gmacdev->DuplexMode = (data & Mii_phy_status_full_duplex)  ? FULLDUPLEX: HALFDUPLEX ;
@@ -1467,13 +1467,13 @@ void synopGMAC_tx_desc_init_ring(DmaDesc *desc, bool last_ring_desc)
 	desc->length = 0; 
 	#else
 	desc->length = last_ring_desc? TxDescEndOfRing : 0;
-#ifndef LOONGSON_2G5536
+#if	(!defined(LOONGSON_2G5536))&&(!defined(LOONGSON_2G1A))
 	desc->status = 0;
 #endif
 	#endif
 //sw	
 	//desc->status = 0;
-#ifdef LOONGSON_2G5536
+#if	defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A)
 	desc->status = 0;
 #endif
 
@@ -1558,7 +1558,7 @@ s32 synopGMAC_init_tx_rx_desc_queue(synopGMACdevice *gmacdev)
   */
 void synopGMAC_init_rx_desc_base(synopGMACdevice *gmacdev)
 {
-#ifdef LOONGSON_2G5536
+#if	defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A)
 	synopGMACWriteReg(gmacdev->DmaBase,DmaRxBaseAddr,(u32)gmacdev->RxDescDma );
 #else
 	u32 tmp_addr = 0;
@@ -1579,7 +1579,7 @@ void synopGMAC_init_rx_desc_base(synopGMACdevice *gmacdev)
   */
 void synopGMAC_init_tx_desc_base(synopGMACdevice *gmacdev)
 {	
-#ifdef LOONGSON_2G5536
+#if	defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A)
 	synopGMACWriteReg(gmacdev->DmaBase,DmaTxBaseAddr,(u32)gmacdev->TxDescDma);
 #else
 	u32 tmp_addr = 0;

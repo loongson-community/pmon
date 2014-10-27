@@ -224,7 +224,7 @@ void init_loongson_params(struct loongson_params *lp)
   #define PRID_IMP_LOONGSON    0x6305
   enum loongson_cpu_type cputype = Loongson_3A;
 #endif
-#ifdef LOONGSON_2G5536
+#if defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A)
   #define PRID_IMP_LOONGSON    0x6305
   enum loongson_cpu_type cputype = Loongson_2G;
 #endif
@@ -270,7 +270,7 @@ struct efi_cpuinfo_loongson *init_cpu_info()
   }
 #endif
 
-#ifdef LOONGSON_2G5536
+#if defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A)
 	c->total_node = 1;
 	c->nr_cpus = 1;
 #endif
@@ -311,7 +311,7 @@ struct system_loongson *init_system_loongson()
   s->ccnuma_smp = 0;
   s->sing_double_channel = 1;
 #endif
-#ifdef LOONGSON_2G5536
+#if defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A)
   s->ccnuma_smp = 0;
   s->sing_double_channel = 1;
 #endif
@@ -351,6 +351,8 @@ struct irq_source_routing_table *init_irq_source()
 #if defined(LOONGSON_3BSINGLE) || defined(LOONGSON_3BSERVER)
 	irq_info->pci_io_start_addr = 0x00001efdfc000000;
 #elif defined(LOONGSON_2G5536)
+	irq_info->pci_io_start_addr = 0xffffffffbfd00000;
+#elif defined(LOONGSON_2G1A)
 	irq_info->pci_io_start_addr = 0xffffffffbfd00000;
 #else
 	irq_info->pci_io_start_addr = 0x00000efdfc000000;
@@ -428,6 +430,9 @@ struct board_devices *board_devices_info()
 #ifdef LOONGSON_2G5536
 	strcpy(bd->name, "Loongson-2G-CS5536-1w-V0.1-demo");
 #endif
+#ifdef LOONGSON_2G1A
+	strcpy(bd->name, "Loongson-2G-1A-1w-V0.1-demo");
+#endif
   bd->num_resources = 10;
 
   return bd;
@@ -440,13 +445,13 @@ struct loongson_special_attribute *init_special_info()
   struct loongson_special_attribute  *special = &g_special;
   char update[11];
   
-#ifdef	LOONGSON_2G5536
+#if	defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A)
   memset(update,0,11);
 #endif
   get_update(update);
 
   strcpy(special->special_name,update);
-#ifndef	LOONGSON_2G5536
+#if	(!defined(LOONGSON_2G5536))&&(!defined(LOONGSON_2G1A))
 #ifdef CONFIG_GFXUMA
   special->resource[0].flags = 1;
   special->resource[0].start = 0;
