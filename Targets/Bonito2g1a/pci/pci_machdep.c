@@ -135,9 +135,9 @@ _pci_hwinit(initialise, iot, memt)
 	pb->nextpcimemaddr = 0x0c000000; 
 	pd->pa.pa_memt->bus_base = 0xb0000000;
 	BONITO_PCIMAP =
-	    BONITO_PCIMAP_WIN(0, PCI_MEM_SPACE_PCI_BASE+0x00000000) |	
-	    BONITO_PCIMAP_WIN(1, PCI_MEM_SPACE_PCI_BASE+0x04000000) |
-	    BONITO_PCIMAP_WIN(2, PCI_MEM_SPACE_PCI_BASE+0x08000000) |
+	    BONITO_PCIMAP_WIN(0, PCI_MEM_SPACE_PCI_BASE+0x10000000) |	
+	    BONITO_PCIMAP_WIN(1, PCI_MEM_SPACE_PCI_BASE+0x40000000) |
+	    BONITO_PCIMAP_WIN(2, PCI_MEM_SPACE_PCI_BASE+0x44000000) |
 	    BONITO_PCIMAP_PCIMAP_2;
 	}
 	SBD_DISPLAY ("HW-4", 0);
@@ -156,7 +156,6 @@ _pci_hwinit(initialise, iot, memt)
 	SBD_DISPLAY ("HW-5", 0);
 	
 	bus_dmamap_tag._dmamap_offs = 0;
-
 /*set pci base0 address and window size*/
 	pci_local_mem_pci_base = 0x80000000;
 	BONITO_PCIBASE0 = 0x80000000;

@@ -212,18 +212,18 @@ option		IDECD
 option FOR_GXEMUL
 select fatfs
 option FLOATINGPT
-option PCI_IDSEL_CS5536=14
+#option PCI_IDSEL_CS5536=14
 #option COM3_BASE_ADDR=0xbfe001e0   ?????
 #option WDC_NORESET
-select cs5536
-option DEVBD2F_CS5536
-option DEVBD2F_CS5536_WY810
+#select cs5536
+#option DEVBD2F_CS5536
+#option DEVBD2F_CS5536_WY810
 select gzip
 option INPUT_FROM_BOTH
 option OUTPUT_TO_BOTH
 option KBD_CHECK_FAST
 option LS2GPLUS_KBD
-option TEST_CS5536_USE_OTG
+#option TEST_CS5536_USE_OTG
 #option TEST_USB_HOST
 option CONFIG_SLOW_PCI_FOR_BROKENDEV
 

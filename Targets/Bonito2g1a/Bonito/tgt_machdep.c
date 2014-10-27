@@ -93,9 +93,6 @@ tgt_printf (const char *fmt, ...)
 #include "mod_smi712.h"
 #include "mod_smi502.h"
 #include "mod_sisfb.h"
-#if PCI_IDSEL_CS5536 != 0
-#include <include/cs5536.h>
-#endif
 #if (NMOD_X86EMU_INT10 > 0)||(NMOD_X86EMU >0)
 extern int vga_bios_init(void);
 #endif
@@ -118,8 +115,6 @@ int vga_available=0;
 #include "vgarom.c"
 #endif
 
-int tgt_i2cread(int type,unsigned char *addr,int addrlen,unsigned char reg,unsigned char* buf ,int count);
-int tgt_i2cwrite(int type,unsigned char *addr,int addrlen,unsigned char reg,unsigned char* buf ,int count);
 extern struct trapframe DBGREG;
 extern void *memset(void *, int, size_t);
 
@@ -273,7 +268,7 @@ tgt_devconfig()
 	unsigned long fbaddress;
 #endif
 #endif
-//lxf modify 	_pci_devinit(1);	/* PCI device initialization */
+	_pci_devinit(1);	/* PCI device initialization */
 #if NMOD_FRAMEBUFFER > 0
 	vga_available=0;
 	fbaddress = dc_init();
@@ -313,22 +308,11 @@ extern int test_icache_3(int addr);
 extern void godson1_cache_flush(void);
 #define tgt_putchar_uc(x) (*(void (*)(char)) (((long)tgt_putchar)|0x20000000)) (x)
 
-extern void cs5536_gpio_init(void);
 extern void test_gpio_function(void);
-extern void cs5536_pci_fixup(void);
-
-
 
 void
 tgt_devinit()
 {
-
-#if  (PCI_IDSEL_CS5536 != 0)
-	SBD_DISPLAY("5536",0);
-	//lxf modify cs5536_init();
-#endif
-
-
 	/*
 	 *  Gather info about and configure caches.
 	 */
@@ -347,11 +331,8 @@ tgt_devinit()
 	
     	CPU_ConfigCache();
 
-//lxf modify	_pci_businit(1);	/* PCI bus initialization */
+	_pci_businit(1);	/* PCI bus initialization */
 
-#if  (PCI_IDSEL_CS5536 != 0)
-	//lxf modify cs5536_pci_fixup();
-#endif
 }
 
 void tgt_reboot()
@@ -370,9 +351,9 @@ void tgt_reboot()
 	 
 #else
 	/* reset the cs5536 whole chip */
-	_rdmsr(0xe0000014, &hi, &lo);
+	//_rdmsr(0xe0000014, &hi, &lo);
 	lo |= 0x00000001;
-	_wrmsr(0xe0000014, hi, lo);
+	//_wrmsr(0xe0000014, hi, lo);
 	
 #endif
 	while(1);
@@ -1364,10 +1345,6 @@ void tgt_netpoll()	{};
 #define MS_COPY		2
 #define MS_WRITE	3
 #define MS_READ		4
-#include "mycmd.c"
-
-#include "i2c-cs5536.c"
-
 
 char *tran_month(char *c, char *i)
  {
