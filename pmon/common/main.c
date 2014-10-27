@@ -384,11 +384,34 @@ void __gccmain(void)
 {
 }
 
+static void test_1a_led(void)
+{//led:gpio56,57,58
+	unsigned int *gpiocfg1 = (volatile unsigned int *)0xb2d010c4;//gpio632~gpio63 1:gpio   0:normal 
+	unsigned int *gpiooe1 = (volatile unsigned int *)0xb2d010d4;//gpio632~gpio63  1:input  0:output
+	unsigned int *gpiooutput1 = (volatile unsigned int *)0xb2d010f4;//gpio632~gpio63  1:high  0:low
+	int i,j;
+
+	*gpiocfg1 |= ((1<<24)|(1<<26)); 
+	//*gpiocfg1 |= ((1<<24)|(1<<25)|(1<<26)); 
+	*gpiooe1 &= (~((1<<24)|(1<<26)));
+	//*gpiooe1 &= (~((1<<24)|(1<<25)|(1<<26)));
+	//while(1){
+	//	i = 0x5000000;
+	//	j = 0x5000000;
+	//	*gpiooutput1 |= ((1<<24)|(1<<25)|(1<<26));
+	//	while(i--);
+		*gpiooutput1 &= (~((1<<24)|(1<<26)));
+		//*gpiooutput1 &= (~((1<<24)|(1<<25)|(1<<26)));
+	//	while(j--);
+		//printf("~~~~~~~~~~~~~~~~~~~~~~~~~ gpio test for 1a \n");
+	//}
+}
+
 int
 main()
 {
 	char prompt[32];
-#if 0 // lxf add
+	int i;
 #ifdef ARB_LEVEL
 	save_board_ddrparam(0);
 #endif
@@ -482,7 +505,8 @@ main()
 #endif
 		}
 	}
-#endif
+
+//#endif	
 	while(1) {
 #if 0
 		while(1){char c;int i;
@@ -508,6 +532,7 @@ main()
                         printf(" break!\r\n");
                 }
 #endif
+		
 		printf("%s", prompt);
 #if NCMD_HIST > 0
 		get_cmd(line);
@@ -763,26 +788,26 @@ dbginit (char *adr)
 #endif
 
 	SBD_DISPLAY ("SBDD", CHKPNT_SBDD);
-	//lxf modify tgt_devinit();
+	tgt_devinit();
 
 #ifdef INET
 	SBD_DISPLAY ("NETI", CHKPNT_NETI);
-	//lxf modify init_net (1);
+	init_net (1);
 #endif
 
 #if NCMD_HIST > 0
 	SBD_DISPLAY ("HSTI", CHKPNT_HSTI);
-	//lxf modify histinit ();
+	histinit ();
 #endif
 
 #if NMOD_SYMBOLS > 0
 	SBD_DISPLAY ("SYMI", CHKPNT_SYMI);
-	//lxf modify syminit ();
+	syminit ();
 #endif
 
 #ifdef DEMO
 	SBD_DISPLAY ("DEMO", CHKPNT_DEMO);
-	//lxf modify demoinit ();
+	demoinit ();
 #endif
 
 	SBD_DISPLAY ("SBDE", CHKPNT_SBDE);
@@ -817,7 +842,7 @@ dbginit (char *adr)
 
 	tgt_machprint();
 
-	//lxf modify freq = tgt_pipefreq ();
+	freq = tgt_pipefreq ();
 	sprintf(fs, "%d", freq);
 	fp = fs + strlen(fs) - 6;
 	fp[3] = '\0';

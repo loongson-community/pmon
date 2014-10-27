@@ -309,6 +309,13 @@ int kbd_initialize(void)
 	}
 #endif
 
+#ifdef LOONGSON_2G1A
+	{
+		unsigned int pll = 300;
+		*(unsigned char *)(PS2_BASE+PS2_DLL) = (unsigned char)(pll & 0xff);
+		*(unsigned char *)(PS2_BASE+PS2_DLH) = (unsigned char)(pll >> 8);
+	}
+#else
 #ifdef LS2GPLUS_KBD
 
 	{
@@ -317,7 +324,7 @@ int kbd_initialize(void)
 		*(unsigned char *)(0xbfe001d9) = (unsigned char)(pll >> 8);
 	}
 #endif
-
+#endif
 	/* Flush the buffer */
 	kbd_clear_input();
 

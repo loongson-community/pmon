@@ -16,7 +16,20 @@ extern unsigned int superio_base;
 #define KBD_CNTL_REG		(0xbf004044-0xbfd00000)	/* Controller command register (W) */
 #define KBD_DATA_REG		(0xbf004040-0xbfd00000)	/* Keyboard data register (R/W) */
 
-#elif	defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A)
+#elif defined(LOONGSON_2G5536)
+
+#define KBD_STATUS_REG          (0xbfe001d4 - 0xbfd00000)       /* Status register (R) */
+#define KBD_CNTL_REG            (0xbfe001d4 - 0xbfd00000)       /* Controller command register (W) */
+#define KBD_DATA_REG            (0xbfe001d0 - 0xbfd00000)       /* Keyboard data register (R/W) */
+#elif defined(LOONGSON_2G1A)
+
+#define KBD_STATUS_REG          0xb2e60010      /* Status register (R) */
+#define KBD_CNTL_REG            0xb2e60010      /* Controller command register (W) */
+#define KBD_DATA_REG            0xb2e60000 	/* Keyboard data register (R/W) */
+
+#define PS2_BASE 0xb2e60000
+#define PS2_DLL 0x20
+#define PS2_DLH 0x24
 
 #define KBD_STATUS_REG          (0xbfe001d4 - 0xbfd00000)       /* Status register (R) */
 #define KBD_CNTL_REG            (0xbfe001d4 - 0xbfd00000)       /* Controller command register (W) */

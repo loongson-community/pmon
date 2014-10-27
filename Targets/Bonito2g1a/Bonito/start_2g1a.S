@@ -428,6 +428,10 @@ locate:
 	subu	s0,ra,s0
 	and	s0,0xffff0000
 
+
+reset2:  GPIO_RESET_DELAY(0,0x40000) //set pci_rest to 0 200ms
+reset3:  GPIO_RESET_DELAY(1,0x100)  //set pci_reset to 1 100ms
+
         mfc0    t0, CP0_STATUS
         li     t1, 0x64000000|SR_KX|SR_SX|SR_UX|SR_BOOT_EXC_VEC      # {cu3,cu2,cu1,cu0}<={0110, status_fr<=1,0xe0 to enable 64bit space
         or      t0, t0, t1

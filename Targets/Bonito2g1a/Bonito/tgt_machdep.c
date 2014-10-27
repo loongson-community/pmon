@@ -82,6 +82,7 @@ tgt_printf (const char *fmt, ...)
 #include <pmon/dev/gt64240reg.h>
 #include <pmon/dev/ns16550.h>
 #include "target/firewall.h"
+#include "target/ls1a.h"
 
 #include <pmon.h>
 
@@ -169,7 +170,7 @@ ConfigEntry	ConfigTable[] =
 	#endif
 #endif
 #if PCI_IDSEL_CS5536 != 0
-	 { (char *)COM2_BASE_ADDR, 0, ns16550, 256, CONS_BAUD, NS16550HZ }, 
+	//lxf mofify  { (char *)COM2_BASE_ADDR, 0, ns16550, 256, CONS_BAUD, NS16550HZ }, 
 #endif
 	{ 0 }
 };
@@ -194,7 +195,6 @@ void movinv1(int iter, ulong p1, ulong p2);
 
 pcireg_t _pci_allocate_io(struct pci_device *dev, vm_size_t size);
 static void superio_reinit();
-
 void
 initmips(unsigned int memsz)
 {
@@ -217,14 +217,13 @@ initmips(unsigned int memsz)
 	/*
 	 *  Probe clock frequencys so delays will work properly.
 	 */
-	//lxf modify tgt_cpufreq();
+	tgt_cpufreq();
 	SBD_DISPLAY("DONE",0);
 	/*
 	 *  Init PMON and debug
 	 */
 	cpuinfotab[0] = &DBGREG;
 	dbginit(NULL);
-
 	/*
 	 *  Set up exception vectors.
 	 */
@@ -274,17 +273,18 @@ tgt_devconfig()
 	extern struct pci_device *vga_dev;
 #endif
 #endif
-	_pci_devinit(1);	/* PCI device initialization */
+//lxf modify	_pci_devinit(1);	/* PCI device initialization */
 #if (NMOD_X86EMU_INT10 > 0)||(NMOD_X86EMU >0)
 	SBD_DISPLAY("VGAI", 0);
-	rc = vga_bios_init();
+	// lxf modify rc = vga_bios_init();
 #else
 	rc = 1;
 #endif
 #if (NMOD_X86EMU_INT10 == 0 && defined(RADEON7000))
 	SBD_DISPLAY("VGAI", 0);
-	rc = radeon_init();
+	// lxf mdofify rc = radeon_init();
 #endif
+	rc = -1;//lxf add
 #if NMOD_FRAMEBUFFER > 0
 	vga_available=0;
 	if(!vga_dev) {
@@ -342,6 +342,7 @@ tgt_devconfig()
 	configure();
 #if 1
 #if ((NMOD_VGACON >0) &&((PCI_IDSEL_VIA686B !=0)|| (PCI_IDSEL_CS5536 !=0)))
+		kbd_available=0;//lxf addd
 	if(getenv("nokbd"))
 		rc=1;
 	else
@@ -353,7 +354,7 @@ tgt_devconfig()
 	psaux_init();
 #endif
 #endif
-	init_win_device();
+	// lxf modify init_win_device();
 	printf("devconfig done.\n");
 }
 
@@ -375,7 +376,7 @@ tgt_devinit()
 
 #if  (PCI_IDSEL_CS5536 != 0)
 	SBD_DISPLAY("5536",0);
-	cs5536_init();
+	//lxf modify cs5536_init();
 #endif
 
 
@@ -397,10 +398,10 @@ tgt_devinit()
 	
     	CPU_ConfigCache();
 
-	_pci_businit(1);	/* PCI bus initialization */
+//lxf modify	_pci_businit(1);	/* PCI bus initialization */
 
 #if  (PCI_IDSEL_CS5536 != 0)
-	cs5536_pci_fixup();
+	//lxf modify cs5536_pci_fixup();
 #endif
 }
 
@@ -553,32 +554,39 @@ tgt_logo()
 
 static void init_legacy_rtc(void)
 {
-        int year, month, date, hour, min, sec;
-        CMOS_WRITE(DS_CTLA_DV1, DS_REG_CTLA);
-        CMOS_WRITE(DS_CTLB_24 | DS_CTLB_DM | DS_CTLB_SET, DS_REG_CTLB);
-        CMOS_WRITE(0, DS_REG_CTLC);
-        CMOS_WRITE(0, DS_REG_CTLD);
-        year = CMOS_READ(DS_REG_YEAR);
-        month = CMOS_READ(DS_REG_MONTH);
-        date = CMOS_READ(DS_REG_DATE);
-        hour = CMOS_READ(DS_REG_HOUR);
-        min = CMOS_READ(DS_REG_MIN);
-        sec = CMOS_READ(DS_REG_SEC);
-        if( (year > 99) || (month < 1 || month > 12) ||
-                (date < 1 || date > 31) || (hour > 23) || (min > 59) ||
-                (sec > 59) ){
-                
-                tgt_printf("RTC time invalid, reset to epoch.\n");
-                CMOS_WRITE(3, DS_REG_YEAR);
-                CMOS_WRITE(1, DS_REG_MONTH);
-                CMOS_WRITE(1, DS_REG_DATE);
-                CMOS_WRITE(0, DS_REG_HOUR);
-                CMOS_WRITE(0, DS_REG_MIN);
-                CMOS_WRITE(0, DS_REG_SEC);
-        }
 
-        CMOS_WRITE(DS_CTLB_24 | DS_CTLB_DM, DS_REG_CTLB);
-                                                                               
+	int year, month, date, hour, min, sec, val,test;
+	int year1,year2;
+	
+	val = (1 << 13) | (1 << 11) | (1 << 8);
+	outl(LS1A_RTC_CTRL_REG, val);
+
+	outl(LS1A_TOY_TRIM_REG, 0);
+	outl(LS1A_RTC_TRIM_REG, 0);
+	
+	year	= inl(LS1A_TOY_READ1_REG);
+		tgt_printf("~~~~~~~~~rtc test :%d.\n",year);
+	year	= inl(LS1A_TOY_READ1_REG);//lxf add must be read twice ,why?
+		tgt_printf("~~~~~~~~~rtc test :%d.\n",year);
+	val	= inl(LS1A_TOY_READ0_REG);
+	month	= ((val >> 26) & 0x3f) - 1;
+	date	= (val >> 21) & 0x1f;
+	hour	= (val >> 16) & 0x1f;
+	min	= (val >> 10) & 0x3f;
+	sec	= (val >> 4) & 0x3f;
+
+		tgt_printf("RTC test ~~~~~~~~~~~~:year:%d,month:%d,date :%d,hour:%d,min:%d,sec:%d\n",year,month,date,hour,min,sec);
+	if ((year < 0 || year > 138) 
+		|| (month < 1 || month > 12)
+		|| (date < 1 || date > 31)
+		|| (hour > 23) || (min > 59)
+		|| (sec > 59)) {
+		tgt_printf("RTC time invalid, reset to epoch.\n");
+		/* 2000-01-01 00:00:00 */
+		val = (2 << 26) | (1 << 21);
+		outl(LS1A_TOY_WRITE1_REG, 0x64);
+		outl(LS1A_TOY_WRITE0_REG, val);
+	}
 	//printf("RTC: %02d-%02d-%02d %02d:%02d:%02d\n",
 	//    year, month, date, hour, min, sec);
 }
@@ -637,15 +645,13 @@ aa:
         for(i = 2;  i != 0; i--) {
                 cnt = CPU_GetCOUNT();
                 timeout = 10000000;
-                while(CMOS_READ(DS_REG_CTLA) & DS_CTLA_UIP);
-                                                                               
-                sec = CMOS_READ(DS_REG_SEC);
+
+		sec = ((inl(LS1A_TOY_READ0_REG) >> 4) & 0x3f);
                                                                                
                 do {
                         timeout--;
 			
-                        while(CMOS_READ(DS_REG_CTLA) & DS_CTLA_UIP);
-                        cur = CMOS_READ(DS_REG_SEC);
+                        cur = ((inl(LS1A_TOY_READ0_REG) >> 4) & 0x3f);
                 } while(timeout != 0 && ((cur == sec)||(cur !=((sec+1)%60))) && (CPU_GetCOUNT() - cnt<0x30000000));
                 cnt = CPU_GetCOUNT() - cnt;
                 if(timeout == 0) {
@@ -698,31 +704,24 @@ time_t
 tgt_gettime()
 {
         struct tm tm;
-        int ctrlbsave;
+        int val;
         time_t t;
-
-	/*gx 2005-01-17 */
-	//return 0;
                                                                                
 #ifdef HAVE_TOD
-        if(!clk_invalid) {
-                ctrlbsave = CMOS_READ(DS_REG_CTLB);
-                CMOS_WRITE(ctrlbsave | DS_CTLB_SET, DS_REG_CTLB);
-                                                                               
-                tm.tm_sec = CMOS_READ(DS_REG_SEC);
-                tm.tm_min = CMOS_READ(DS_REG_MIN);
-                tm.tm_hour = CMOS_READ(DS_REG_HOUR);
-                tm.tm_wday = CMOS_READ(DS_REG_WDAY);
-                tm.tm_mday = CMOS_READ(DS_REG_DATE);
-                tm.tm_mon = CMOS_READ(DS_REG_MONTH) - 1;
-                tm.tm_year = CMOS_READ(DS_REG_YEAR);
-                if(tm.tm_year < 50)tm.tm_year += 100;
-                                                                               
-                CMOS_WRITE(ctrlbsave & ~DS_CTLB_SET, DS_REG_CTLB);
-                                                                               
-                tm.tm_isdst = tm.tm_gmtoff = 0;
-                t = gmmktime(&tm);
-        }
+	if(!clk_invalid) {
+		val = inl(LS1A_TOY_READ0_REG);
+		tm.tm_sec  = (val >> 4) & 0x3f;
+		tm.tm_min  = (val >> 10) & 0x3f;
+		tm.tm_hour = (val >> 16) & 0x1f;
+		tm.tm_mday = (val >> 21) & 0x1f;
+		tm.tm_mon  = ((val >> 26) & 0x3f) - 1;
+		tm.tm_year = inl(LS1A_TOY_READ1_REG); 
+		if(tm.tm_year < 50)
+			tm.tm_year += 100;
+
+		tm.tm_isdst = tm.tm_gmtoff = 0;
+		t = gmmktime(&tm);
+	}
         else 
 #endif
 		{
@@ -739,26 +738,27 @@ void
 tgt_settime(time_t t)
 {
         struct tm *tm;
-        int ctrlbsave;
+        //int ctrlbsave;
+	int year, month, date, hour, min, sec;
+	unsigned int time_value;
 
 	//return ;
                                                                                
 #ifdef HAVE_TOD
-        if(!clk_invalid) {
-                tm = gmtime(&t);
-                ctrlbsave = CMOS_READ(DS_REG_CTLB);
-                CMOS_WRITE(ctrlbsave | DS_CTLB_SET, DS_REG_CTLB);
-                                                                               
-                CMOS_WRITE(tm->tm_year % 100, DS_REG_YEAR);
-                CMOS_WRITE(tm->tm_mon + 1, DS_REG_MONTH);
-                CMOS_WRITE(tm->tm_mday, DS_REG_DATE);
-                CMOS_WRITE(tm->tm_wday, DS_REG_WDAY);
-                CMOS_WRITE(tm->tm_hour, DS_REG_HOUR);
-                CMOS_WRITE(tm->tm_min, DS_REG_MIN);
-                CMOS_WRITE(tm->tm_sec, DS_REG_SEC);
-                                                                               
-                CMOS_WRITE(ctrlbsave & ~DS_CTLB_SET, DS_REG_CTLB);
-        }
+	if(!clk_invalid) {
+		tm = gmtime(&t);
+
+		year = tm->tm_year;
+		month = tm->tm_mon;
+		date = tm->tm_mday;
+		hour = tm->tm_hour;
+		min = tm->tm_min;
+		sec = tm->tm_sec;
+
+		time_value = ((month + 1)<<26 | date<<21 | hour<<16 | min<<10 | sec<<4);
+		outl(LS1A_TOY_WRITE0_REG, time_value);
+		outl(LS1A_TOY_WRITE1_REG, year);
+	}
 #endif
 }
 
