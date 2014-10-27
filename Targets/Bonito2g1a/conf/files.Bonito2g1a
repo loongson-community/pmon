@@ -7,7 +7,7 @@ file	Targets/Bonito2g1a/pci/pci_machdep.c
 file	Targets/Bonito2g1a/Bonito/tgt_machdep.c 
 file	Targets/Bonito2g1a/pci/cs5536_io.c cs5536
 file	Targets/Bonito2g1a/pci/cs5536_vsm.c cs5536
-
+file	Targets/Bonito2g1a/dev/dc.c 
 
 define  localbus { [base = -1 ] }
 device  localbus

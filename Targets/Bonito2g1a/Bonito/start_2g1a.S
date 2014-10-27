@@ -865,7 +865,13 @@ PRINTSTR("init ls2g xbar config  done\r\n")
 	bal init_south_bridge
 	nop
 PRINTSTR("init ls2g south bridge done\r\n")
+	
+	bal ddr2_config_1A
+	nop
+PRINTSTR("init ddr2 config for 1a  done\r\n")
 
+SOUTHBRIDGE_INIT(0xb2d00190,0x1c2000f2) //change back  ddrcofig ->GPU/DC
+	
 	bnez s0,1f
 	nop
 	li a0,128
@@ -1334,7 +1340,7 @@ END(hexserial)
 __main:
 	j	ra
 	nop
-
+#include "ddr2_configs_for_1a.S"
 
 	.rdata
 transmit_pat_msg:
@@ -2562,7 +2568,7 @@ LEAF(init_south_bridge)
 	NORTHBRIDGE_INIT(0xb2d0110c,0x000001c5) //1a_pci_pxarb_config   // SUMH for 1A2//lxf add
 
 	PRINTSTR("setup 1a gpio\r\n");
-	NORTHBRIDGE_INIT(0xb2e78030,0x888b)//config pll control reg
+	NORTHBRIDGE_INIT(0xb2e78030,0x8f8b)//config pll control reg ddr_dll = 10,cpu_dll = 4
 	NORTHBRIDGE_INIT(0xb2d010c0,0x00000000) //1a_gpio_cfg0   normal mode// SUMH for 1A2
 	NORTHBRIDGE_INIT(0xb2d010c4,0x00000000) //1a_gpio_cfg1   normal mode// SUMH for 1A2
 	NORTHBRIDGE_INIT(0xb2d010c8,0x00000000) //1a_gpio_cfg2   normal mode// SUMH for 1A2

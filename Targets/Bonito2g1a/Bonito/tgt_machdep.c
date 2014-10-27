@@ -262,6 +262,7 @@ extern void	vt82c686_init(void);
 int psaux_init(void);
 extern int video_hw_init (void);
 
+int dc_init();
 extern int fb_init(unsigned long,unsigned long);
 void
 tgt_devconfig()
@@ -269,70 +270,20 @@ tgt_devconfig()
 #if NMOD_VGACON > 0
 	int rc=0;
 #if NMOD_FRAMEBUFFER > 0 
-	unsigned long fbaddress,ioaddress;
-	extern struct pci_device *vga_dev;
+	unsigned long fbaddress;
 #endif
 #endif
-//lxf modify	_pci_devinit(1);	/* PCI device initialization */
-#if (NMOD_X86EMU_INT10 > 0)||(NMOD_X86EMU >0)
-	SBD_DISPLAY("VGAI", 0);
-	// lxf modify rc = vga_bios_init();
-#else
-	rc = 1;
-#endif
-#if (NMOD_X86EMU_INT10 == 0 && defined(RADEON7000))
-	SBD_DISPLAY("VGAI", 0);
-	// lxf mdofify rc = radeon_init();
-#endif
-	rc = -1;//lxf add
+//lxf modify 	_pci_devinit(1);	/* PCI device initialization */
 #if NMOD_FRAMEBUFFER > 0
 	vga_available=0;
-	if(!vga_dev) {
-		printf("ERROR !!! VGA device is not found\n"); 
-		rc = -1;
-	}
-	if (rc > 0) {
-		fbaddress  =_pci_conf_read(vga_dev->pa.pa_tag,0x10);
-		ioaddress  =_pci_conf_read(vga_dev->pa.pa_tag,0x18);
-
-		fbaddress = fbaddress &0xffffff00; //laster 8 bit
-		ioaddress = ioaddress &0xfffffff0; //laster 4 bit
-
-#if NMOD_SISFB
-		fbaddress=sisfb_init_module();
+	fbaddress = dc_init();
+	printf("begin fb_init\n");
+	printf("fbaddress :0x%x\n",fbaddress);
+	fbaddress |= 0xb4000000;
+	fb_init(fbaddress, 0);
+	printf("after fb_init\n");
 #endif
-		printf("fbaddress 0x%x\tioaddress 0x%x\n",fbaddress, ioaddress);
-
-#if NMOD_SMI712 > 0
-		fbaddress |= 0xb0000000;
-		ioaddress |= 0xbfd00000;
-		smi712_init((unsigned char *)fbaddress,(unsigned char *)ioaddress);
-#endif
-
-#if NMOD_SMI502 > 0
-		rc = video_hw_init ();
-		fbaddress  =_pci_conf_read(vga_dev->pa.pa_tag,0x10);
-		ioaddress  =_pci_conf_read(vga_dev->pa.pa_tag,0x14);
-		fbaddress |= 0xb0000000;
-		ioaddress |= 0xb0000000;
-#endif
-#if defined(VESAFB)
-		vesafb_init();
-#endif 
-#ifdef SIS315E
-		sis315e_init();
-#endif
-		printf("begin fb_init\n");
-		fb_init(fbaddress, ioaddress);
-		printf("after fb_init\n");
-
-	} else {
-		printf("vga bios init failed, rc=%d\n",rc);
-	}
-#endif
-
 #if (NMOD_FRAMEBUFFER > 0) || (NMOD_VGACON > 0 )
-	if (rc > 0)
 		if(!getenv("novga"))
 			vga_available=1;
 		else
@@ -340,9 +291,7 @@ tgt_devconfig()
 #endif
 	config_init();
 	configure();
-#if 1
-#if ((NMOD_VGACON >0) &&((PCI_IDSEL_VIA686B !=0)|| (PCI_IDSEL_CS5536 !=0)))
-		kbd_available=0;//lxf addd
+#if (NMOD_VGACON >0)
 	if(getenv("nokbd"))
 		rc=1;
 	else
@@ -352,9 +301,9 @@ tgt_devconfig()
 		kbd_available=1;
 	}
 	psaux_init();
+
 #endif
-#endif
-	// lxf modify init_win_device();
+	//init_win_device();
 	printf("devconfig done.\n");
 }
 

@@ -82,7 +82,7 @@ select		mod_x86emu		# X86 emulation for VGA
 option		MY40IO
 #select		mod_x86emu_int10
 option		MY61IO
-option		VGA_BASE=0xb0000000
+option		VGA_BASE=0xb4000000
 select		mod_vgacon
 #select		sis315e
 #option		SIS315E
@@ -92,12 +92,15 @@ option		NOPCINAMES		# Save some space for x86emu
 #option		FASTBOOT
 #select		vt82c686		#via686a/b code
 
-#select		mod_framebuffer
+select		mod_framebuffer
 #select		mod_smi712		# X86 emulation for VGA
 #option		SMI712
-#option		X800x600
+#option          APB_CLK=36000000
+#option          APB_CLK=25000000
+option          APB_CLK=12000000
+option		X800x600
 #option		X1024x768
-#option 	CONFIG_VIDEO_16BPP
+option 	CONFIG_VIDEO_16BPP
 #option 	CONFIG_VIDEO_8BPP_INDEX
 
 #
