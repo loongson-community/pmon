@@ -36,6 +36,10 @@
 #include "target/eeprom.h"
 #endif
 
+#if defined(LOONGSON_2G1A)
+#include "target/ls1a.h"
+#endif
+
 
 //sw:	ioctl in linux 		to be fixed
 #define SIOCDEVPRIVATE	0x89f0
@@ -505,30 +509,46 @@ s32 synopGMAC_setup_tx_desc_queue(synopGMACdevice * gmacdev,u32 no_of_desc, u32 
 
 	DmaDesc *first_desc = NULL;
 	//DmaDesc *second_desc = NULL;
-	//dma_addr_t dma_addr;
+	dma_addr_t dma_addr;
 	gmacdev->TxDescCount = 0;
 
 	TR("Total size of memory required for Tx Descriptors in Ring Mode = 0x%08x\n",((sizeof(DmaDesc) * no_of_desc)));
 	//	first_desc = plat_alloc_consistent_dmaable_memory (pcidev, sizeof(DmaDesc) * no_of_desc,&dma_addr);
-	first_desc = (DmaDesc *)plat_alloc_memory(sizeof(DmaDesc) * no_of_desc+15);	//sw: 128 aligned
+#if defined(LOONGSON_2G5536) ||defined(LOONGSON_2G1A)
+	if (gmacdev->MacBase == LS1A_GMAC0_REG_BASE + MACBASE)
+		first_desc = (DmaDesc *)plat_alloc_consistent_dmaable_memory (sizeof(DmaDesc) * no_of_desc, &dma_addr);
+	else
+		first_desc = (DmaDesc *)plat_alloc_memory(sizeof(DmaDesc) * no_of_desc+15);	//sw: 128 aligned
+#else
+	first_desc = (DmaDesc *)plat_alloc_memory(sizeof(DmaDesc) * no_of_desc+15);
+#endif
 	if(first_desc == NULL){
 		TR("Error in Tx Descriptors memory allocation\n");
 		return -ESYNOPGMACNOMEM;
 	}
-	first_desc = ((u32)first_desc) & ~15;
+#if defined(LOONGSON_2G1A)
+	if (gmacdev->MacBase != LS1A_GMAC0_REG_BASE + MACBASE)
+#endif
+		first_desc = ((u32)first_desc) & ~15;
 
 
 	//	memset((u32)first_desc,0, sizeof(DmaDesc) * no_of_desc);
 	gmacdev->TxDescCount = no_of_desc;
 	gmacdev->TxDesc      = first_desc;
 
-	bf1  = (DmaDesc *)CACHED_TO_UNCACHED((unsigned long)(gmacdev->TxDesc));	
-	//gmacdev->TxDescDma  = (unsigned long)vtophys((unsigned long)bf1);
+#if defined(LOONGSON_2G5536) || defined(LOONGSON_2G1A)
+	if (gmacdev->MacBase == LS1A_GMAC0_REG_BASE + MACBASE) {
+		gmacdev->TxDescDma  = dma_addr;
+	} else {
+		bf1  = (DmaDesc *)CACHED_TO_UNCACHED((unsigned long)(gmacdev->TxDesc));	
+		//gmacdev->TxDescDma  = (unsigned long)vtophys((unsigned long)bf1);
+		gmacdev->TxDescDma  = (unsigned long)UNCACHED_TO_PHYS((unsigned long)bf1);
+	}
+#else
+	bf1  = (DmaDesc *)CACHED_TO_UNCACHED((unsigned long)(gmacdev->TxDesc));
 	gmacdev->TxDescDma  = (unsigned long)UNCACHED_TO_PHYS((unsigned long)bf1);
-#if	(!defined(LOONGSON_2G5536))&&(!defined(LOONGSON_2G1A))
-	
- 		gmacdev->TxDescDma &= 0x0fffffff;
-		gmacdev->TxDescDma |= 0x00000000;
+	gmacdev->TxDescDma &= 0x0fffffff;
+	gmacdev->TxDescDma |= 0x00000000;
 #endif
 	//gmacdev->TxDesc     =  bf1;
 
@@ -593,33 +613,47 @@ s32 synopGMAC_setup_rx_desc_queue(synopGMACdevice * gmacdev,u32 no_of_desc, u32 
 	DmaDesc * bf1;
 	DmaDesc *first_desc = NULL;
 	//DmaDesc *second_desc = NULL;
-	//dma_addr_t dma_addr;
+	dma_addr_t dma_addr;
 	gmacdev->RxDescCount = 0;
 
 	TR("total size of memory required for Rx Descriptors in Ring Mode = 0x%08x\n",((sizeof(DmaDesc) * no_of_desc)));
-	//	first_desc = plat_alloc_consistent_dmaable_memory (pcidev, sizeof(DmaDesc) * no_of_desc, &dma_addr);
-	first_desc = plat_alloc_memory (sizeof(DmaDesc) * no_of_desc+15);		//sw: 2word aligned
+#if defined(LOONGSON_2G5536) || defined(LOONGSON_2G1A)
+	if (gmacdev->MacBase == LS1A_GMAC0_REG_BASE + MACBASE)
+		first_desc = (DmaDesc *)plat_alloc_consistent_dmaable_memory (sizeof(DmaDesc) * no_of_desc, &dma_addr);
+	else
+		first_desc = (DmaDesc *)plat_alloc_memory (sizeof(DmaDesc) * no_of_desc+15);//sw: 2word aligned
+#else
+	first_desc = (DmaDesc *)plat_alloc_memory (sizeof(DmaDesc) * no_of_desc+15);
+#endif
 	if(first_desc == NULL){
 		TR("Error in Rx Descriptor Memory allocation in Ring mode\n");
 		return -ESYNOPGMACNOMEM;
 	}
-	first_desc = (DmaDesc *)((u32)first_desc & ~15);
+#if defined(LOONGSON_2G1A)
+	if (gmacdev->MacBase != LS1A_GMAC0_REG_BASE + MACBASE)
+#endif
+		first_desc = (DmaDesc *)((u32)first_desc & ~15);
 
 
 	gmacdev->RxDescCount = no_of_desc;
 	gmacdev->RxDesc      = first_desc;
 	//	gmacdev->RxDescDma   = dma_addr;
 
+#if defined(LOONGSON_2G5536) || defined(LOONGSON_2G1A)
+	if (gmacdev->MacBase == LS1A_GMAC0_REG_BASE + MACBASE) {
+		gmacdev->RxDescDma   = dma_addr;
+	} else {
+		bf1  = (DmaDesc *)CACHED_TO_UNCACHED((unsigned long)(gmacdev->RxDesc));
+		gmacdev->RxDescDma  = (unsigned long)UNCACHED_TO_PHYS((unsigned long)bf1);
+	}
+#else
 	bf1  = (DmaDesc *)CACHED_TO_UNCACHED((unsigned long)(gmacdev->RxDesc));	
-	//gmacdev->RxDescDma  = (unsigned long)vtophys((unsigned long)bf1);
 	gmacdev->RxDescDma  = (unsigned long)UNCACHED_TO_PHYS((unsigned long)bf1);
-	//gmacdev->RxDesc     = bf1;
-#if	(!defined(LOONGSON_2G5536))&&(!defined(LOONGSON_2G1A))
 	gmacdev->RxDescDma |= 0x00000000;
 #endif
 	//	gmacdev->RxDescDma   = (dma_addr_t) first_desc;
 
-	for(i =0; i < gmacdev -> RxDescCount; i++){
+	for(i = 0; i < gmacdev -> RxDescCount; i++){
 		synopGMAC_rx_desc_init_ring(gmacdev->RxDesc + i, i == gmacdev->RxDescCount-1);
 #if SYNOP_TOP_DEBUG
 		TR("%02d %08x \n",i, (unsigned int)(gmacdev->RxDesc + i));
@@ -974,6 +1008,11 @@ void synop_handle_received_data(struct synopGMACNetworkAdapter* tp)
 				;
 #endif
 
+#if defined(LOONGSON_2G1A)
+				if (gmacdev->MacBase == LS1A_GMAC0_REG_BASE + MACBASE) {
+					dma_addr1 =  plat_dma_map_single(gmacdev,data1,RX_BUF_SIZE,SYNC_R);
+				}
+#endif
 				len =  synopGMAC_get_rx_desc_frame_length(status) - 4; //Not interested in Ethernet CRC bytes
 				bcopy((char *)data1, mtod(skb, char *), len); 
 
@@ -1015,6 +1054,10 @@ void synop_handle_received_data(struct synopGMACNetworkAdapter* tp)
 
 				ether_input(ifp, eh, skb);
 				memset((u32)data1,0,RX_BUF_SIZE);
+#if defined(LOONGSON_2G1A)
+				if (gmacdev->MacBase == LS1A_GMAC0_REG_BASE + MACBASE)
+					pci_sync_cache(NULL, (vm_offset_t)data1, RX_BUF_SIZE, SYNC_W);
+#endif
 				adapter->synopGMACNetStats.rx_packets++;
 				adapter->synopGMACNetStats.rx_bytes += len;
 			}
@@ -1026,8 +1069,12 @@ void synop_handle_received_data(struct synopGMACNetworkAdapter* tp)
 				adapter->synopGMACNetStats.rx_length_errors += synopGMAC_is_rx_frame_length_errors(status);
 			}
 
+#if defined(LOONGSON_2G5536) || defined(LOONGSON_2G1A)
+			if (gmacdev->MacBase != LS1A_GMAC0_REG_BASE + MACBASE) {
+				dma_addr1  = (unsigned long)CACHED_TO_PHYS((unsigned long)(data1));
+			}
+#else
 			dma_addr1  = (unsigned long)CACHED_TO_PHYS((unsigned long)(data1));
-#if	(!defined(LOONGSON_2G5536))&&(!defined(LOONGSON_2G1A))
 			dma_addr1 |= 0x00000000;
 #endif
 			desc_index = synopGMAC_set_rx_qptr(gmacdev,dma_addr1, RX_BUF_SIZE, (u32)data1,0,0,0);
@@ -1095,11 +1142,11 @@ int synopGMAC_intr_handler(struct synopGMACNetworkAdapter * tp)
 	if(dma_status_reg == 0)
 		return 0;
 
-	//if(dma_status_reg & 0x04)	//sw: dbg
-	//	printf("Tx Desc Unavailable! 0x%x \n",dma_status_reg);
-	
-	if(dma_status_reg == 0x660004)	//sw: dbg
-		return 0;
+#if defined(LOONGSON_2G1A)
+	if (gmacdev->MacBase != LS1A_GMAC0_REG_BASE + MACBASE)
+#endif	
+		if(dma_status_reg == 0x660004)	//sw: dbg
+			return 0;
 	
 //sw: check phy status	
 //	synopGMAC_linux_cable_unplug_function(tp);
@@ -1246,10 +1293,14 @@ int synopGMAC_intr_handler(struct synopGMACNetworkAdapter * tp)
 				break;
 //				return -ESYNOPGMACNOMEM;
 			}
-			
-			//dma_addr = (u32)skb;
+
+#if defined(LOONGSON_2G1A) || defined(LOONGSON_2G5536)
+			if (gmacdev->MacBase == LS1A_GMAC0_REG_BASE + MACBASE)
+				dma_addr = plat_dma_map_single(gmacdev,skb,RX_BUF_SIZE,SYNC_R);
+			else
+				dma_addr  = (unsigned long)UNCACHED_TO_PHYS((unsigned long)(skb));
+#else
 			dma_addr  = (unsigned long)UNCACHED_TO_PHYS((unsigned long)(skb));
-#if	(!defined(LOONGSON_2G5536))&&(!defined(LOONGSON_2G1A))
 			dma_addr |= 0x00000000;
 #endif
 			status = synopGMAC_set_rx_qptr(gmacdev,dma_addr,RX_BUF_SIZE, (u32)skb,0,0,0);
@@ -1298,8 +1349,8 @@ int synopGMAC_intr_handler(struct synopGMACNetworkAdapter * tp)
 #endif
 //		dumpreg(regbase);
 		#if 1
-	       if(GMAC_Power_down == 0){	// If Mac is not in powerdown
-                synop_handle_transmit_over(adapter);
+		if(GMAC_Power_down == 0){	// If Mac is not in powerdown
+			synop_handle_transmit_over(adapter);
 		}
 		#endif
 	}
@@ -1314,13 +1365,13 @@ int synopGMAC_intr_handler(struct synopGMACNetworkAdapter * tp)
 		TR("%s::Transmitter stopped sending the packets\n",__FUNCTION__);
 		printf("%s::Transmitter stopped sending the packets\n",__FUNCTION__);
 		#if 1
-	       if(GMAC_Power_down == 0){	// If Mac is not in powerdown
-		synopGMAC_disable_dma_tx(gmacdev);
-                synopGMAC_take_desc_ownership_tx(gmacdev);
-		
-		synopGMAC_enable_dma_tx(gmacdev);
-//		netif_wake_queue(netdev);
-		TR("%s::Transmission Resumed\n",__FUNCTION__);
+		if(GMAC_Power_down == 0){	// If Mac is not in powerdown
+			synopGMAC_disable_dma_tx(gmacdev);
+			synopGMAC_take_desc_ownership_tx(gmacdev);
+
+			synopGMAC_enable_dma_tx(gmacdev);
+//			netif_wake_queue(netdev);
+			TR("%s::Transmission Resumed\n",__FUNCTION__);
 		}
 		#endif
 	}
@@ -1388,9 +1439,10 @@ unsigned long synopGMAC_linux_open(struct synopGMACNetworkAdapter *tp)
 #endif	
 	/*Attach the device to MAC struct This will configure all the required base addresses
 	  such as Mac base, configuration base, phy base address(out of 32 possible phys )*/
-	//	synopGMAC_attach(synopGMACadapter->synopGMACdev,(u32) synopGMACMappedAddr + MACBASE,(u32) synopGMACMappedAddr + DMABASE, DEFAULT_PHY_BASE);
-	//synopGMAC_attach(adapter->synopGMACdev,(u64) synopGMACMappedAddr + MACBASE,(u64) synopGMACMappedAddr + DMABASE, DEFAULT_PHY_BASE,PInetdev->dev_addr);
-#if	(!defined(LOONGSON_2G5536))&&(!defined(LOONGSON_2G1A))
+#if     defined(LOONGSON_2G5536) || defined(LOONGSON_2G1A)
+	if (gmacdev->MacBase == LS1A_GMAC0_REG_BASE + MACBASE)
+		synopGMAC_set_mac_addr(gmacdev,GmacAddr0High,GmacAddr0Low, PInetdev->dev_addr);
+#else
 	synopGMAC_set_mac_addr(adapter->synopGMACdev, GmacAddr0High, GmacAddr0Low, PInetdev->dev_addr);
 #endif
 	/*Lets read the version of ip in to device structure*/	
@@ -1484,23 +1536,25 @@ unsigned long synopGMAC_linux_open(struct synopGMACNetworkAdapter *tp)
 			break;
 //			return -ESYNOPGMACNOMEM;
 		}
-		
+#if defined(LOONGSON_2G5536) || defined(LOONGSON_2G1A)
+		if (gmacdev->MacBase == LS1A_GMAC0_REG_BASE + MACBASE) {
+			dma_addr = plat_dma_map_single(gmacdev,skb,RX_BUF_SIZE,SYNC_R);
+		} else {
+			skb1 = (u32)CACHED_TO_UNCACHED((unsigned long)(skb));
+			dma_addr  = (unsigned long)UNCACHED_TO_PHYS((unsigned long)(skb1));
+		}
+#else		
 		skb1 = (u32)CACHED_TO_UNCACHED((unsigned long)(skb));	
-		//dma_addr  = (unsigned long)vtophys((unsigned long)(skb1));
 		dma_addr  = (unsigned long)UNCACHED_TO_PHYS((unsigned long)(skb1));
-
-#if	(!defined(LOONGSON_2G5536))&&(!defined(LOONGSON_2G1A))
- 		dma_addr &= 0x0fffffff;
+		dma_addr &= 0x0fffffff;
 		dma_addr |= 0x00000000;
 #endif
 //		TR("rx_buf_PTR:%x, skb1:%x, dma_addr%x\n",skb, skb1, dma_addr);
 
 
-//		dbgdesc = gmacdev->RxNextDesc + 12;	
-		//status = synopGMAC_set_rx_qptr_init(gmacdev,dma_addr,RX_BUF_SIZE, (u32)skb,0,0,0);
 		status = synopGMAC_set_rx_qptr(gmacdev,dma_addr,RX_BUF_SIZE, (u32)skb,0,0,0);
-				//pci_sync_cache(0, (vm_offset_t)skb, len, SYNC_W);
-				//printf("==rx sync cache\n");
+		//pci_sync_cache(0, (vm_offset_t)skb, len, SYNC_W);
+		//printf("==rx sync cache\n");
 		//status = 0;
 		
 		if(status < 0)
@@ -1550,17 +1604,17 @@ unsigned long synopGMAC_linux_open(struct synopGMACNetworkAdapter *tp)
 
 #if SYNOP_PHY_LOOPBACK
 {	
-		gmacdev->LinkState = LINKUP;
-		gmacdev->DuplexMode = FULLDUPLEX;
-	        gmacdev->Speed      =   SPEED1000;
+	gmacdev->LinkState = LINKUP;
+	gmacdev->DuplexMode = FULLDUPLEX;
+	gmacdev->Speed      =   SPEED1000;
 }
 #endif
         plat_delay(DEFAULT_LOOP_VARIABLE);
 	synopGMAC_check_phy_init(gmacdev);
 	synopGMAC_mac_init(gmacdev);
 	
-		PInetdev->sc_ih = pci_intr_establish(0, 0, IPL_NET, synopGMAC_intr_handler, adapter, 0);
-		TR("register poll interrupt: gmac 0\n");
+	PInetdev->sc_ih = pci_intr_establish(0, 0, IPL_NET, synopGMAC_intr_handler, adapter, 0);
+	TR("register poll interrupt: gmac 0\n");
 
 	return retval;
 
@@ -1703,19 +1757,22 @@ s32 synopGMAC_linux_xmit_frames(struct ifnet* ifp)
 	}
 #endif
 		
-		while(ifp->if_snd.ifq_head != NULL){
-			if(!synopGMAC_is_desc_owned_by_dma(gmacdev->TxNextDesc))
-			{
+	while(ifp->if_snd.ifq_head != NULL){
+		if(!synopGMAC_is_desc_owned_by_dma(gmacdev->TxNextDesc))
+		{
 
-				bf1 = (u32)plat_alloc_memory(TX_BUF_SIZE);
-				if(bf1 == 0)
-				{
+			bf1 = (u32)plat_alloc_memory(TX_BUF_SIZE);
+			if(bf1 == 0)
+			{
 #if SYNOP_TX_DEBUG
-					printf("===error in alloc bf1\n");	
+				printf("===error in alloc bf1\n");	
 #endif
-					return -1;
-				}
+				return -1;
+			}
 #ifdef FIX_CACHE_ADDR_UNALIGNED /*fixed by tangyt 2011-03-20*/
+#if defined(LOONGSON_2G1A)
+			if (gmacdev->MacBase != LS1A_GMAC0_REG_BASE + MACBASE)
+#endif
 				while(bf1 & 0x10)
 				{
 					plat_free_memory((void *)(bf1));	
@@ -1729,100 +1786,112 @@ s32 synopGMAC_linux_xmit_frames(struct ifnet* ifp)
 					}
 				}
 #endif
-				memset((char *)bf1,0,TX_BUF_SIZE);
+			memset((char *)bf1,0,TX_BUF_SIZE);
 
-				IF_DEQUEUE(&ifp->if_snd, skb);
+			IF_DEQUEUE(&ifp->if_snd, skb);
 
-				/*Now we have skb ready and OS invoked this function. Lets make our DMA know about this*/
-
-
-
-				len = skb->m_pkthdr.len;
+			/*Now we have skb ready and OS invoked this function. Lets make our DMA know about this*/
 
 
-				//sw: i don't know weather it's right
-				m_copydata(skb, 0, len,(char *)bf1);
 
+			len = skb->m_pkthdr.len;
+
+
+			//sw: i don't know weather it's right
+			m_copydata(skb, 0, len,(char *)bf1);
+
+#if defined(LOONGSON_2G1A)
+			if (gmacdev->MacBase == LS1A_GMAC0_REG_BASE + MACBASE) {
+				dma_addr = plat_dma_map_single(gmacdev,bf1,len,SYNC_W);
+			}
+#endif
 				/*
 				   if(len < 64)
 				   len = 64;
 				 */
 
 #if SYNOP_TX_DEBUG
-				printf("==tx pkg len: %d",len);
+			printf("==tx pkg len: %d",len);
 #endif
-				//sw: dbg
+			//sw: dbg
+#if defined(LOONGSON_2G1A)
+			if (gmacdev->MacBase != LS1A_GMAC0_REG_BASE + MACBASE)
+#endif
 				eh = mtod(skb, struct ether_header *);
 #if SYNOP_TX_DEBUG
-				dumppkghd(eh,0);
+			dumppkghd(eh,0);
 
-				for(i = 0;i < len;i++)
-				{
-					ptr = (u32)bf1;
-					printf(" %02x",*(ptr+i));
-				}
-				printf("\n");
+			for(i = 0;i < len;i++)
+			{
+				ptr = (u32)bf1;
+				printf(" %02x",*(ptr+i));
+			}
+			printf("\n");
 #endif
 
 
 #if	defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A)
-				m_freem(skb);
+			m_freem(skb);
 #else
-				plat_free_memory(skb);
+			plat_free_memory(skb);
 #endif
 
-				bf2  = (u32)CACHED_TO_UNCACHED((unsigned long)bf1);	
-				//dma_addr  = (unsigned long)vtophys((unsigned long)(bf2));
+#if defined(LOONGSON_2G5536) || defined(LOONGSON_2G1A)
+			if (gmacdev->MacBase != LS1A_GMAC0_REG_BASE + MACBASE) {
+				bf2  = (u32)CACHED_TO_UNCACHED((unsigned long)bf1);
 				dma_addr  = (unsigned long)UNCACHED_TO_PHYS((unsigned long)(bf2));
-
-#if	(!defined(LOONGSON_2G5536))&&(!defined(LOONGSON_2G1A))
- 				dma_addr &= 0x0fffffff;
-				dma_addr |= 0x00000000;
+			}
+#else
+			bf2  = (u32)CACHED_TO_UNCACHED((unsigned long)bf1);	
+				//dma_addr  = (unsigned long)vtophys((unsigned long)(bf2));
+			dma_addr  = (unsigned long)UNCACHED_TO_PHYS((unsigned long)(bf2));
+ 			dma_addr &= 0x0fffffff;
+			dma_addr |= 0x00000000;
 #endif
 
-				//		status = synopGMAC_set_tx_qptr(gmacdev, dma_addr, TX_BUF_SIZE, bf1,0,0,0,offload_needed);
+			//status = synopGMAC_set_tx_qptr(gmacdev, dma_addr, TX_BUF_SIZE, bf1,0,0,0,offload_needed);
 				
-				status = synopGMAC_set_tx_qptr(gmacdev, dma_addr, len, bf1,0,0,0,offload_needed,&index,dpr);
+			status = synopGMAC_set_tx_qptr(gmacdev, dma_addr, len, bf1,0,0,0,offload_needed,&index,dpr);
 //				printf("synopGMAC_set_tx_qptr: index = %d, dma_addr = %08x, len = %02x, buf1 = %08x\n", index, dma_addr, len, bf1);
-				//printf("===%x: next txDesc belongs to DMA don't set it\n",gmacdev->TxNextDesc);
-//				dumpdesc(gmacdev);	// by xqch to dump all desc
-//				dumpreg(regbase); //by xqch to dumpall dma reg
+			//printf("===%x: next txDesc belongs to DMA don't set it\n",gmacdev->TxNextDesc);
+//			dumpdesc(gmacdev);	// by xqch to dump all desc
+//			dumpreg(regbase); //by xqch to dumpall dma reg
 #if SYNOP_TX_DEBUG
-				printf("status = %d \n",status);
+			printf("status = %d \n",status);
 #endif
 
 
-				if(status < 0){
+			if(status < 0){
 #if SYNOP_TX_DEBUG
-					TR("%s No More Free Tx Descriptors\n",__FUNCTION__);
+				TR("%s No More Free Tx Descriptors\n",__FUNCTION__);
 #endif
-					//			dev_kfree_skb (skb); //with this, system used to freeze.. ??
-					return -EBUSY;
-				}
+				//dev_kfree_skb (skb); //with this, system used to freeze.. ??
+				return -EBUSY;
 			}
+		}
 #if	defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A)
-			else{
+		else{
 #endif
 #if SYNOP_TX_DEBUG
 #if	(!defined(LOONGSON_2G5536))&&(!defined(LOONGSON_2G1A))
-			else
+		else
 #endif
-				printf("===%x: next txDesc belongs to DMA don't set it\n",gmacdev->TxNextDesc);
+			printf("===%x: next txDesc belongs to DMA don't set it\n",gmacdev->TxNextDesc);
 #endif
 #if	defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A)
-				return;
-			}
-#endif
+			return;
 		}
+#endif
+	}
 	
 //		ls2h_flush_cache2();
 	/*Now force the DMA to start transmission*/	
 #if SYNOP_TX_DEBUG
-		{
-			u32 data;
-			data = synopGMACReadReg(gmacdev->DmaBase, 0x48);
-			printf("TX DMA DESC ADDR = 0x%x\n",data);
-		}
+	{
+		u32 data;
+		data = synopGMACReadReg(gmacdev->DmaBase, 0x48);
+		printf("TX DMA DESC ADDR = 0x%x\n",data);
+	}
 #endif
 		/*
 	synopGMAC_tx_enable(gmacdev);
@@ -1845,8 +1914,8 @@ s32 synopGMAC_linux_xmit_frames(struct ifnet* ifp)
  */
 struct net_device_stats *  synopGMAC_linux_get_stats(struct synopGMACNetworkAdapter *tp)
 {
-TR("%s called \n",__FUNCTION__);
-return( &(((struct synopGMACNetworkAdapter *)(tp))->synopGMACNetStats) );
+	TR("%s called \n",__FUNCTION__);
+	return( &(((struct synopGMACNetworkAdapter *)(tp))->synopGMACNetStats) );
 }
 
 /**
@@ -1955,18 +2024,47 @@ void set_phy_manu(synopGMACdevice * gmacdev)
 }
 #endif
 
+#if defined(LOONGSON_2G1A)
+static int rtl88e1111_config_init(synopGMACdevice *gmacdev)
+{
+	int retval, err;
+	u16 data;
 
+	synopGMAC_read_phy_reg(gmacdev->MacBase,gmacdev->PhyBase,0x14,&data);
+	data = data | 0x82;
+	err = synopGMAC_write_phy_reg(gmacdev->MacBase,gmacdev->PhyBase,0x14,data);
+	synopGMAC_read_phy_reg(gmacdev->MacBase,gmacdev->PhyBase,0x00,&data);
+	data = data | 0x8000;
+	err = synopGMAC_write_phy_reg(gmacdev->MacBase,gmacdev->PhyBase,0x00,data);
+
+	if (err < 0)
+		return err;
+	return 0;
+}
+#endif
+
+#if defined(LOONGSON_2G1A)
+int init_phy(synopGMACdevice *gmacdev)
+#else
 int init_phy(struct synopGMACdevice *gmacdev)
+#endif
 {
 	int retval;
-	
-	//retval = bcm54xx_config_init(gmacdev);
-
-	retval = rtl8211_config_init(gmacdev);
-//	synopGMAC_phy_loopback(gmacdev, SYNOP_PHY_LOOPBACK);
-	//if(retval != 0)
+#if defined(LOONGSON_2G1A) || defined(LOONGSON_2G5536)
+	u16 data;
+	if (gmacdev->MacBase == LS1A_GMAC0_REG_BASE + MACBASE) {
+		synopGMAC_read_phy_reg(gmacdev->MacBase,gmacdev->PhyBase,2,&data);
+		if(data == 0x141)
+			rtl88e1111_config_init(gmacdev);
+		return 0;
+	} else {
+		retval = rtl8211_config_init(gmacdev);
 		return retval;
-//	return 0;
+	}
+#else
+	retval = rtl8211_config_init(gmacdev);
+	return retval;
+#endif
 }
 
 
@@ -2594,13 +2692,13 @@ s32  synopGMAC_init_network_interface(char* xname,u64 synopGMACMappedAddr)
 	u16 data;
 	struct synopGMACNetworkAdapter * synopGMACadapter;
 
-  static int syn_num;
-    {
-	    if(0x90000c0000000000LL == synopGMACMappedAddr)
-	    parseenv(0,mac_addr0);
-	    else
-	    parseenv(1,mac_addr0);
-    }
+	static int syn_num;
+
+	if(0x90000c0000000000LL == synopGMACMappedAddr)
+		parseenv(0,mac_addr0);
+	else
+		parseenv(1,mac_addr0);
+
 #else
 s32  synopGMAC_init_network_interface(char* xname, struct device *sc )
 {

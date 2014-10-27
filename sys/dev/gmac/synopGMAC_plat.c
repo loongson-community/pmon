@@ -18,6 +18,19 @@
   * @param[in] bytes in bytes to allocate
   */
 
+
+#if defined(LOONGSON_2G1A)
+dma_addr_t __attribute__((weak)) gmac_dmamap(unsigned long va,size_t size)
+{
+	unsigned long dma_adr;
+	if(va >= 0x84000000 && va <= 0x8fffffff)
+		dma_adr = va - 0x74000000;
+	else
+		printf("error!!! the address is out of the rang that 1F can map ,you can change the pci_map\n");
+	return dma_adr;
+}
+#endif
+
 void *plat_alloc_memory(u32 bytes) 
 {
 	return (void*)malloc((size_t)bytes, M_DEVBUF, M_DONTWAIT);
@@ -28,6 +41,19 @@ void *plat_alloc_memory(u32 bytes)
   * In linux Kernel, it depends on pci dev structure
   * @param[in] bytes in bytes to allocate
   */
+
+#if defined(LOONGSON_2G1A)
+void *plat_alloc_consistent_dmaable_memory(u32 size, u32 *addr)
+{
+	void *buf;
+	buf = (void*)malloc((size_t)size, M_DEVBUF, M_DONTWAIT);
+	CPU_IOFlushDCache( buf,size, SYNC_W);
+
+	*addr =gmac_dmamap(buf,size);
+	buf = (unsigned char *)CACHED_TO_UNCACHED(buf);
+	return buf;
+}
+#endif
 
 //sw to-be clean
 /*
@@ -64,6 +90,15 @@ void plat_free_memory(void *buffer)
 	return ;
 }
 
+#if defined(LOONGSON_2G1A)
+dma_addr_t plat_dma_map_single(void *hwdev, void *ptr,
+				size_t size, int direction)
+{
+	unsigned long addr = (unsigned long) ptr;
+	CPU_IOFlushDCache(addr,size, direction);
+	return gmac_dmamap(addr,size);
+}
+#endif
 
 /**
   * This is a wrapper function for platform dependent delay 

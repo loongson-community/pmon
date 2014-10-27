@@ -7,7 +7,9 @@
 
 
 #include "synopGMAC_plat.h"
-
+#if defined(LOONGSON_2G1A)
+#include "target/ls1a.h"
+#endif
 
 static int
 syn_match(parent, match, aux)
@@ -31,7 +33,10 @@ syn_attach(parent, self, aux)
 {
 	struct device *sc = self;
 #if	defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A)
-synopGMAC_init_network_interface(sc->dv_xname,sc->dv_unit?0x90000d0000000000LL:0x90000c0000000000LL);
+	if (sc->dv_unit != 2)
+		synopGMAC_init_network_interface(sc->dv_xname,sc->dv_unit?0x90000d0000000000LL:0x90000c0000000000LL);
+	if (sc->dv_unit == 2)
+		synopGMAC_init_network_interface(sc->dv_xname, LS1A_GMAC0_REG_BASE);
 #else
 	synopGMAC_init_network_interface(sc->dv_xname, sc);
 #endif

@@ -10,6 +10,9 @@
  * Synopsys                 01/Aug/2007                              Created
  */
 #include "synopGMAC_Dev.h"
+#if defined(LOONGSON_2G1A)
+#include "target/ls1a.h"
+#endif
 
 /**
   * Function to set the MDC clock for mdio transactiona
@@ -55,31 +58,32 @@ u32 synopGMAC_get_mdc_clk_div(synopGMACdevice *gmacdev)
   */
 s32 synopGMAC_read_phy_reg(u64 RegBase,u32 PhyBase, u32 RegOffset, u16 * data )
 {
-u32 addr;
-u32 loop_variable;
-addr = ((PhyBase << GmiiDevShift) & GmiiDevMask) | ((RegOffset << GmiiRegShift) & GmiiRegMask) | GmiiCsrClk3;	//sw: add GmiiCsrClk 
-addr = addr | GmiiBusy ; //Gmii busy bit
+	u32 addr;
+	u32 loop_variable;
+	addr = ((PhyBase << GmiiDevShift) & GmiiDevMask) | ((RegOffset << GmiiRegShift) & GmiiRegMask) | GmiiCsrClk3;
+	//sw: add GmiiCsrClk
+	addr = addr | GmiiBusy ; //Gmii busy bit
 
-synopGMACWriteReg(RegBase,GmacGmiiAddr,addr); //write the address from where the data to be read in GmiiGmiiAddr register of synopGMAC ip
+	synopGMACWriteReg(RegBase,GmacGmiiAddr,addr); //write the address from where the data to be read in GmiiGmiiAddr register of synopGMAC ip
 
-        for(loop_variable = 0; loop_variable < DEFAULT_LOOP_VARIABLE; loop_variable++){ //Wait till the busy bit gets cleared with in a certain amount of time
-                if (!(synopGMACReadReg(RegBase,GmacGmiiAddr) & GmiiBusy)){
-               		 break;
-                }
-        plat_delay(DEFAULT_DELAY_VARIABLE);
-        }
-        if(loop_variable < DEFAULT_LOOP_VARIABLE)
-               * data = (u16)(synopGMACReadReg(RegBase,GmacGmiiData) & 0xFFFF);
-        else{
-        TR("Error::: PHY not responding Busy bit didnot get cleared !!!!!!\n");
-	return -ESYNOPGMACPHYERR;
-        }
+	for(loop_variable = 0; loop_variable < DEFAULT_LOOP_VARIABLE; loop_variable++){ //Wait till the busy bit gets cleared with in a certain amount of time
+		if (!(synopGMACReadReg(RegBase,GmacGmiiAddr) & GmiiBusy)){
+			 break;
+		}
+		plat_delay(DEFAULT_DELAY_VARIABLE);
+	}
+	if(loop_variable < DEFAULT_LOOP_VARIABLE)
+		* data = (u16)(synopGMACReadReg(RegBase,GmacGmiiData) & 0xFFFF);
+	else{
+		TR("Error::: PHY not responding Busy bit didnot get cleared !!!!!!\n");
+		return -ESYNOPGMACPHYERR;
+	}
 //sw	
 #if SYNOP_REG_DEBUG
 	printf("read phy reg: addr = 0x%016x\tdata = 0x%x\n",RegOffset + Regbase, data);
 #endif
 
-return -ESYNOPGMACNOERR;
+	return -ESYNOPGMACNOERR;
 }
 
 /**
@@ -93,30 +97,29 @@ return -ESYNOPGMACNOERR;
   */
 s32 synopGMAC_write_phy_reg(u64 RegBase, u32 PhyBase, u32 RegOffset, u16 data)
 {
-u32 addr;
-u32 loop_variable;
+	u32 addr;
+	u32 loop_variable;
 
-synopGMACWriteReg(RegBase,GmacGmiiData,data); // write the data in to GmacGmiiData register of synopGMAC ip
+	synopGMACWriteReg(RegBase,GmacGmiiData,data); // write the data in to GmacGmiiData register of synopGMAC ip
 
-addr = ((PhyBase << GmiiDevShift) & GmiiDevMask) | ((RegOffset << GmiiRegShift) & GmiiRegMask) | GmiiWrite | GmiiCsrClk3;	//sw: add GmiiCsrclk
+	addr = ((PhyBase << GmiiDevShift) & GmiiDevMask) | ((RegOffset << GmiiRegShift) & GmiiRegMask) | GmiiWrite | GmiiCsrClk3;	//sw: add GmiiCsrclk
 
-addr = addr | GmiiBusy ; //set Gmii clk to 20-35 Mhz and Gmii busy bit
- 
-synopGMACWriteReg(RegBase,GmacGmiiAddr,addr);
-        for(loop_variable = 0; loop_variable < DEFAULT_LOOP_VARIABLE; loop_variable++){
-                if (!(synopGMACReadReg(RegBase,GmacGmiiAddr) & GmiiBusy)){
-                	break;
-                }
-        plat_delay(DEFAULT_DELAY_VARIABLE);
-        }
+	addr = addr | GmiiBusy ; //set Gmii clk to 20-35 Mhz and Gmii busy bit
 
-        if(loop_variable < DEFAULT_LOOP_VARIABLE){
-	return -ESYNOPGMACNOERR;
+	synopGMACWriteReg(RegBase,GmacGmiiAddr,addr);
+	for(loop_variable = 0; loop_variable < DEFAULT_LOOP_VARIABLE; loop_variable++){
+		if (!(synopGMACReadReg(RegBase,GmacGmiiAddr) & GmiiBusy)){
+			break;
+		}
+		plat_delay(DEFAULT_DELAY_VARIABLE);
 	}
-        else{
-        TR("Error::: PHY not responding Busy bit didnot get cleared !!!!!!\n");
-	return -ESYNOPGMACPHYERR;
-        }
+
+	if(loop_variable < DEFAULT_LOOP_VARIABLE){
+		return -ESYNOPGMACNOERR;
+	} else {
+		TR("Error::: PHY not responding Busy bit didnot get cleared !!!!!!\n");
+		return -ESYNOPGMACPHYERR;
+	}
 #if SYNOP_REG_DEBUG
 	printf("write phy reg: offset = 0x%x\tdata = 0x%x",RegOffset,data);
 #endif
@@ -134,16 +137,16 @@ synopGMACWriteReg(RegBase,GmacGmiiAddr,addr);
 #if UNUSED
 s32 synopGMAC_phy_loopback(synopGMACdevice *gmacdev, bool loopback)
 {
-s32 status = -ESYNOPGMACNOERR;
-u16 *temp;
+	s32 status = -ESYNOPGMACNOERR;
+	u16 *temp;
 	status = synopGMAC_read_phy_reg(gmacdev->MacBase, gmacdev->PhyBase, PHY_CONTROL_REG,temp);
-if(loopback)
-	*temp |= 0x4000;
-else
-	*temp = *temp;
+	if(loopback)
+		*temp |= 0x4000;
+	else
+		*temp = *temp;
 
 	status = synopGMAC_write_phy_reg(gmacdev->MacBase, gmacdev->PhyBase, PHY_CONTROL_REG, *temp);
-return status;
+	return status;
 }
 
 #endif
@@ -1399,7 +1402,14 @@ s32 synopGMAC_attach (synopGMACdevice * gmacdev, u64 macBase, u64 dmaBase, u32 p
 	/*Populate the mac and dma base addresses*/
 	gmacdev->MacBase = macBase;
 	gmacdev->DmaBase = dmaBase;
+#if defined(LOONGSON_2G5536) || defined(LOONGSON_2G1A)
+	if (macBase == LS1A_GMAC0_REG_BASE + MACBASE)
+		gmacdev->PhyBase = 1;
+	else
+		gmacdev->PhyBase = phyBase;
+#else
 	gmacdev->PhyBase = phyBase;
+#endif
 
 	/* Program/flash in the station/IP's Mac address */
 	synopGMAC_set_mac_addr(gmacdev,GmacAddr0High,GmacAddr0Low, mac_addr);
