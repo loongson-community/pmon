@@ -26,7 +26,7 @@ option		DEVBD2E
 option		MIPS
 option		INET
 option		LOONGSON_2G1A
-option		ENABLE_SATA         #Enable SATA  ,when enable IDE can also use, when commended only IDE can use
+option      ENABLE_SATA         #Enable SATA  ,when enable IDE can also use, when commended only IDE can use
 option		BOOT_PARAM
 
 select		mod_flash_amd		# AMD flash device programming
@@ -175,6 +175,13 @@ rtl*		at pci? dev ? function ?
 #usb*		at usbbus ? 
 #ohci1		at pci? dev ? function ?
 
+#select		mod_usb
+#select		mod_usb_storage
+#select		mod_usb_uhci
+#select		mod_usb_ohci
+#select		mod_usb_kbd
+
+
 #### IDE controllers
 pciide* 	at pci ? dev ? function ? flags 0x0000
 #atp*           at pci? dev ? function ?  #sata atp8620
@@ -197,7 +204,6 @@ ide_cd* 	at pciide? channel ? drive ? flags 0x0001
 
 syn0		at localbus0
 syn1		at localbus0
-syn2		at localbus0
 select		gmac
 
 #ide_cd* 	at pciide? channel ? drive ? flags 0x0001

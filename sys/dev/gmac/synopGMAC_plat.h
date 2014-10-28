@@ -23,13 +23,6 @@
 */
 
 #include "GMAC_Pmon.h"
-
-#if defined(LOONGSON_2G1A)
-#include "target/ls1a.h"
-#define MACBASE 0x0000
-#define DMABASE 0x1000
-#endif
-
 //#include "synopGMAC_Host.h"
 
 //sw:	copy the type define into here
@@ -152,17 +145,12 @@ void   plat_delay(u32);
 static u32  synopGMACReadReg(u64 RegBase, u32 RegOffset)
 {
 
-	u64 addr;
-	u32 data;
+  u64 addr;
+  u32 data;
 
-	addr = RegBase + (u64)RegOffset;
-#if defined(LOONGSON_2G1A)
-	if (RegBase == LS1A_GMAC0_REG_BASE + MACBASE || RegBase == LS1A_GMAC0_REG_BASE + DMABASE)
-		data = *(volatile u32 *)addr;
-	else
-#endif
+		  addr = RegBase + (u64)RegOffset;
 
-		__asm __volatile(
+	__asm __volatile(
 			".set\tnoreorder\n\t"
 			".set\tmips3\n\t"
 			"ld $8,%1\n\t"
@@ -175,9 +163,9 @@ static u32  synopGMACReadReg(u64 RegBase, u32 RegOffset)
 			:"memory","$8","$9"
 			);
 #if SYNOP_REG_DEBUG
-	TR("%s RegBase = 0x%08x RegOffset = 0x%08x RegData = 0x%08x\n", __FUNCTION__, (u32)RegBase, RegOffset, data );
+  TR("%s RegBase = 0x%08x RegOffset = 0x%08x RegData = 0x%08x\n", __FUNCTION__, (u32)RegBase, RegOffset, data );
 #endif
-	return data;
+  return data;
 
 }
 
@@ -192,20 +180,15 @@ static u32  synopGMACReadReg(u64 RegBase, u32 RegOffset)
 static void synopGMACWriteReg(u64 RegBase, u32 RegOffset, u32 RegData )
 {
 
-	u64 addr;
+  u64 addr;
 
-	addr = RegBase + (u64)RegOffset;
+		  addr = RegBase + (u64)RegOffset;
 #if SYNOP_REG_DEBUG
-	TR("%s RegBase = 0x%08x RegOffset = 0x%08x RegData = 0x%08x\n", __FUNCTION__,(u32) RegBase, RegOffset, RegData);
+  TR("%s RegBase = 0x%08x RegOffset = 0x%08x RegData = 0x%08x\n", __FUNCTION__,(u32) RegBase, RegOffset, RegData );
 #endif
-	//writel(RegData,(void *)addr);
-	//printf("GMAC addr = 0x%lx \n",addr);
-#if defined(LOONGSON_2G1A)
-	if (RegBase == LS1A_GMAC0_REG_BASE + MACBASE || RegBase == LS1A_GMAC0_REG_BASE + DMABASE)
-		*(volatile u32 *)addr = RegData;
-	else
-#endif
-		__asm __volatile(
+  //writel(RegData,(void *)addr);
+  //printf("GMAC addr = 0x%lx \n",addr);
+	__asm __volatile(
 			".set\tnoreorder\n\t"
 			".set\tmips3\n\t"
 			"lw $9,%0\n\t"
@@ -215,7 +198,7 @@ static void synopGMACWriteReg(u64 RegBase, u32 RegOffset, u32 RegData )
 			:"m"(RegData),"m"(addr)
 			:"memory","$8","$9"
 			);
-	return;
+  return;
 }
 
 /**
