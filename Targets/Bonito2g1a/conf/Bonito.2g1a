@@ -144,9 +144,10 @@ ppb*		at pci? dev ? function ?	# PCI-PCI bridges
 pci*		at ppb? bus ?
 
 #### USB
-uhci*		 at pci? dev ? function ?
-ohci*		 at pci? dev ? function ?
-usb*		 at usbbus ?
+uhci*		at pci? dev ? function ?
+lohci0		at localbus0 base 0xb2e08000	#OHCI
+usb*		at lohci0
+
 
 select		mod_usb
 select		mod_usb_storage
@@ -170,10 +171,7 @@ select		mod_usb_kbd
 rtl*		at pci? dev ? function ?
 #rtk*		at pci? dev ? function ?
 #em*		at pci? dev ? function ?
-#uhci*		at pci? dev ? function ?
-#ohci0		at pci? dev ? function ?
-#usb*		at usbbus ? 
-#ohci1		at pci? dev ? function ?
+
 
 #### IDE controllers
 pciide* 	at pci ? dev ? function ? flags 0x0000

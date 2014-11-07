@@ -976,8 +976,13 @@ static	const char      more_tiks[] = "|/-\\";
 static	const char     *more_tik;
 
 	tik_cnt -= rate;
+#ifndef LOONGSON_2G1A
+	/* if 2g1a deal with ohci kbd, 
+ 	 * the speed of online programming flash pmon will be slow 
+ 	 */
 	if(ohci_index)
 		dl_ohci_kbd();
+#endif
 	if (tik_cnt > 0) {
 		return;
 	}

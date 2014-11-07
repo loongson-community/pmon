@@ -14,6 +14,10 @@ device  localbus
 attach  localbus at mainbus
 file    Targets/Bonito2g1a/dev/localbus.c		localbus
 
+#OHCI
+device  lohci {[channel = -1]} :usbbus
+attach  lohci at localbus
+
 #GMAC
 file	sys/dev/gmac/synopGMAC_Host.c
 file	sys/dev/gmac/synopGMAC_Dev.c

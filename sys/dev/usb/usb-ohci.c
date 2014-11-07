@@ -79,6 +79,10 @@
 #include "usb.h"
 #include "usb-ohci.h"
 
+#if defined(LOONGSON_2G1A)
+#include "target/ls1a.h"
+#endif
+
 #define OHCI_USE_NPS		/* force NoPowerSwitching mode */
 #define OHCI_VERBOSE_DEBUG	0	/* not always helpful */
 
@@ -122,11 +126,16 @@
 #undef readl
 #undef writel
 
+#ifdef LOONGSON_2G1A
+#define readl(addr) *addr
+#define writel(val, addr) *addr = (val)
+#else
 #define readl(addr) *(volatile u32*)((addr >= 0x40000000) ? ((u32)(addr)) | 0x80000000:((u32)(addr)) | 0xa0000000)
 #define writel(val, addr) *(volatile u32*)((((u32)(addr))>= 0x40000000) ? ((u32)(addr)) | 0x80000000:((u32)(addr)) | 0xa0000000) = (val)
+#endif
 
 #define MAX_OHCI_C 4		/*In most case it is enough */
-//#define MAX_OHCI_C 8   /* Changed for RS690 */
+//#define MAX_OHCI_C 8		/* Changed for RS690 */
 ohci_t *usb_ohci_dev[MAX_OHCI_C];
 /* RHSC flag */
 int got_rhsc;
@@ -190,6 +199,12 @@ static int hc_interrupt(void *);
 static int hc_check_ohci_controller(void *);
 void arouse_usb_int_pipe(ohci_t *);
 u_int32_t check_device_sequence(ohci_t * pohci);
+
+
+#ifdef LOONGSON_2G1A
+#define vtophys_2g1a(p)			((u32)PHYS_TO_CACHED(UNCACHED_TO_PHYS(p)) - 0x74000000)
+#endif
+
 
 #ifdef CONFIG_SM502_USB_HCD
 /* panel clock */
@@ -464,7 +479,7 @@ static int ohci_match(struct device *parent, void *match, void *aux)
 
 extern struct hostcontroller host_controller;
 extern struct usb_device *usb_alloc_new_device(void *hc_private);
-#if (defined LOONGSON_3A2H) || (defined LOONGSON_3C2H)
+#if (defined LOONGSON_3A2H) || (defined LOONGSON_3C2H) || (defined LOONGSON_2G1A)
 static int lohci_match(struct device *parent, void *match, void *aux)
 {
 	return 1;
@@ -487,8 +502,13 @@ static void lohci_attach(struct device *parent, struct device *self, void *aux)
 	ohci_index++;
 	ohci->sc_sh = cf->ca_baseaddr;
 
+#if defined(LOONGSON_2G1A)
+	/*set usb_rstn bit in LPC register0 before access usb regs */
+	*(u32 *) (LS1A_LPC_REG_BASE + 0x0204) = *(u32 *) (LS1A_LPC_REG_BASE + 0x0204) | (0x01 << 30);
+#else
 	/*set usb_rstn bit in chip_config0 reg before access usb regs */
 	*(u32 *) (0xbbd00200) = *(u32 *) (0xbbd00200) | (0x01 << 26);
+#endif
 	usb_lowlevel_init(ohci);
 	ohci->hc.uop = &ohci_usb_op;
 	/*
@@ -1079,7 +1099,11 @@ static void periodic_link(ohci_t * ohci, ed_t * ed)
 			else
 #endif
 			{
-				*prev_p = vtophys(ed);
+#ifdef LOONGSON_2G1A
+				*prev_p = (volatile unsigned int)vtophys_2g1a(ed);
+#else
+				*prev_p = (volatile unsigned int)vtophys(ed);
+#endif
 			}
 		}
 		ohci->load[i] += ed->int_load;
@@ -1164,8 +1188,13 @@ static int ep_link(ohci_t * ohci, ed_t * edi)
 			} else
 #endif
 			{
+#ifdef LOONGSON_2G1A
+				writel(vtophys_2g1a(ed),
+				       &ohci->regs->ed_controlhead);
+#else
 				writel(vtophys(ed),
 				       &ohci->regs->ed_controlhead);
+#endif
 			}
 		} else {
 #ifdef CONFIG_SM502_USB_HCD
@@ -1175,8 +1204,13 @@ static int ep_link(ohci_t * ohci, ed_t * edi)
 			} else
 #endif
 			{
+#ifdef LOONGSON_2G1A
+				ohci->ed_controltail->hwNextED =
+				    m32_swap(vtophys_2g1a(ed));
+#else
 				ohci->ed_controltail->hwNextED =
 				    m32_swap(vtophys(ed));
+#endif
 			}
 		}
 		ed->ed_prev = ohci->ed_controltail;
@@ -1198,8 +1232,13 @@ static int ep_link(ohci_t * ohci, ed_t * edi)
 			} else
 #endif
 			{
+#ifdef LOONGSON_2G1A
+				writel((long)vtophys_2g1a(ed),
+				       &ohci->regs->ed_bulkhead);
+#else
 				writel((long)vtophys(ed),
 				       &ohci->regs->ed_bulkhead);
+#endif
 			}
 		} else {
 #ifdef CONFIG_SM502_USB_HCD
@@ -1209,7 +1248,11 @@ static int ep_link(ohci_t * ohci, ed_t * edi)
 			} else
 #endif
 			{
+#ifdef LOONGSON_2G1A
+				ohci->ed_bulktail->hwNextED = vtophys_2g1a(ed);
+#else
 				ohci->ed_bulktail->hwNextED = vtophys(ed);
+#endif
 			}
 		}
 		ed->ed_prev = ohci->ed_bulktail;
@@ -1419,7 +1462,11 @@ static ed_t *ep_add_ed(struct usb_device *usb_dev, unsigned long pipe)
 		} else
 #endif
 		{
+#ifdef LOONGSON_2G1A
+			ed->hwTailP = vtophys_2g1a(td);
+#else
 			ed->hwTailP = vtophys(td);
+#endif
 		}
 
 		ed->hwHeadP = ed->hwTailP;
@@ -1517,6 +1564,9 @@ static void td_fill(ohci_t * ohci, unsigned int info,
 #if (defined(LS3_HT) || defined(LS2G_HT))
 		td = urb_priv->td[index] =
 		    (td_t *) (PHYS_TO_CACHED(urb_priv->ed->hwTailP) & ~0xf);
+#elif defined(LOONGSON_2G1A)
+		td = urb_priv->td[index] =
+		    (td_t *) (CACHED_TO_UNCACHED(urb_priv->ed->hwTailP + 0x74000000) & ~0xf);
 #else
 		td = urb_priv->td[index] =
 		    (td_t *) (CACHED_TO_UNCACHED(urb_priv->ed->hwTailP) & ~0xf);
@@ -1543,7 +1593,13 @@ static void td_fill(ohci_t * ohci, unsigned int info,
 			td->hwCBP = sm502_vtophys(ohci, data);
 		else
 #endif
+		{
+#ifdef LOONGSON_2G1A
+			td->hwCBP = vtophys_2g1a(data);
+#else
 			td->hwCBP = vtophys(data);
+#endif
+		}
 	}
 
 	if (data) {
@@ -1552,7 +1608,13 @@ static void td_fill(ohci_t * ohci, unsigned int info,
 			td->hwBE = sm502_vtophys(ohci, data + len - 1);
 		else
 #endif
+		{
+#ifdef LOONGSON_2G1A
+			td->hwBE = vtophys_2g1a(data + len - 1);
+#else
 			td->hwBE = vtophys(data + len - 1);
+#endif
+		}
 	} else
 		td->hwBE = 0;
 
@@ -1568,7 +1630,11 @@ static void td_fill(ohci_t * ohci, unsigned int info,
 	else
 #endif
 	{
+#ifdef LOONGSON_2G1A
+		td->hwNextTD = vtophys_2g1a(m32_swap(td_pt));
+#else
 		td->hwNextTD = vtophys(m32_swap(td_pt));
+#endif
 	}
 	td->hwPSW[0] = ((u32) data & 0x0FFF) | 0xE000;
 	/* append to queue */
@@ -1759,6 +1825,11 @@ static void dl_transfer_length(td_t * td)
 	{
 #if (defined(LS3_HT) || defined(LS2G_HT))
 		tdCBP = PHYS_TO_CACHED(m32_swap(td->hwCBP));
+#elif defined(LOONGSON_2G1A)
+		if (td->hwCBP == 0)
+			tdCBP = PHYS_TO_UNCACHED((u32)(td->hwCBP));
+		else
+			tdCBP = CACHED_TO_UNCACHED((u32)td->hwCBP + 0x74000000);
 #else
 		tdCBP = PHYS_TO_UNCACHED(m32_swap(td->hwCBP));
 #endif
@@ -1795,6 +1866,10 @@ static void dl_transfer_length(td_t * td)
 					length =
 					    PHYS_TO_CACHED(tdBE) - (td->data) +
 					    1;
+#elif defined(LOONGSON_2G1A)
+					length =
+					    CACHED_TO_UNCACHED(tdBE + 0x74000000) -
+					    CACHED_TO_UNCACHED(td->data) + 1;
 #else
 					length =
 					    PHYS_TO_UNCACHED(tdBE) -
@@ -1920,6 +1995,9 @@ static td_t *dl_reverse_done_list(ohci_t * ohci)
 #if (defined(LS3_HT) || defined(LS2G_HT))
 			td_list =
 			    (td_t *) PHYS_TO_CACHED(td_list_hc & 0x1fffffff);
+#elif defined(LOONGSON_2G1A)
+			td_list = 
+			    (td_t *) CACHED_TO_UNCACHED((u32)td_list_hc + 0x74000000);
 #else
 			td_list =
 			    (td_t *) PHYS_TO_UNCACHED(td_list_hc & 0x1fffffff);
@@ -3004,7 +3082,11 @@ static int hc_start(ohci_t * ohci)
 	else
 #endif
 	{
+#ifdef LOONGSON_2G1A
+		writel((u32) (vtophys_2g1a(ohci->hcca)), &ohci->regs->hcca);
+#else
 		writel((u32) (vtophys(ohci->hcca)), &ohci->regs->hcca);	/* a reset clears this */
+#endif
 	}
 
 	printf("early period(0x%x)\n", readl(&ohci->regs->ed_periodcurrent));
@@ -3014,7 +3096,7 @@ static int hc_start(ohci_t * ohci)
 	fminterval |= ((((fminterval - 210) * 6) / 7) << 16);
 	writel(fminterval, &ohci->regs->fminterval);
 	writel(0x628, &ohci->regs->lsthresh);
-#if (defined LOONGSON_3A2H) || (defined LOONGSON_3C2H)
+#if (defined LOONGSON_3A2H) || (defined LOONGSON_3C2H) || (defined LOONGSON_2G1A)
 	writel(readl(&ohci->regs->roothub.b) | 0xffff0000,
 	       &ohci->regs->roothub.b);
 #endif
@@ -3117,6 +3199,8 @@ static int hc_interrupt(void *hc_data)
 		{
 #if (defined(LS3_HT) || defined(LS2G_HT))
 			td = (td_t *) PHYS_TO_CACHED(ohci->hcca->done_head);
+#elif defined(LOONGSON_2G1A)
+			td = (td_t *) CACHED_TO_UNCACHED(ohci->hcca->done_head + 0x74000000);
 #else
 			td = (td_t *) CACHED_TO_UNCACHED(ohci->hcca->done_head);
 #endif
@@ -3422,7 +3506,7 @@ int usb_lowlevel_init(ohci_t * gohci)
 	{
 		hcca = malloc(sizeof(*gohci->hcca), M_DEVBUF, M_NOWAIT);
 		memset(hcca, 0, sizeof(*hcca));
-#ifdef LOONGSON_2G5536
+#if defined (LOONGSON_2G5536) || defined (LOONGSON_2G1A)
 		pci_sync_cache(gohci->sc_pc, (vm_offset_t)hcca, sizeof(*hcca), SYNC_W);
 #endif
 	}
@@ -3452,8 +3536,8 @@ int usb_lowlevel_init(ohci_t * gohci)
 	}
 #endif
 	else {
-#ifdef LOONGSON_2G5536
-		      pci_sync_cache(gohci->sc_pc, (vm_offset_t)ohci_dev->ed, sizeof(ohci_dev->ed),SYNC_W);
+#if defined (LOONGSON_2G5536) || defined (LOONGSON_2G1A)
+		pci_sync_cache(gohci->sc_pc, (vm_offset_t)ohci_dev->ed, sizeof(ohci_dev->ed),SYNC_W);
 #endif
 #if (defined(LS3_HT) || defined(LS2G_HT))
 		ohci_dev->cpu_ed = (ed_t *) (&ohci_dev->ed);
@@ -3471,7 +3555,7 @@ int usb_lowlevel_init(ohci_t * gohci)
 	{
 		gtd = malloc(sizeof(td_t) * (NUM_TD + 1), M_DEVBUF, M_NOWAIT);
 		memset(gtd, 0, sizeof(td_t) * (NUM_TD + 1));
-#ifdef LOONGSON_2G5536
+#if defined (LOONGSON_2G5536) || defined (LOONGSON_2G1A)
 		pci_sync_cache(gohci->sc_pc, (vm_offset_t)gtd, sizeof(td_t)*(NUM_TD+1), SYNC_W);
 #endif
 	}
@@ -3520,7 +3604,7 @@ int usb_lowlevel_init(ohci_t * gohci)
 		if ((u32) tmpbuf & 0x1f)
 			printf("Malloc return not cache line aligned\n");
 		memset(tmpbuf, 0, 512);
-#ifdef LOONGSON_2G5536
+#if defined (LOONGSON_2G5536) || defined (LOONGSON_2G1A)
 		pci_sync_cache(gohci->sc_pc, (vm_offset_t)tmpbuf,  512, SYNC_W);
 #endif
 #if (defined(LS3_HT) || defined(LS2G_HT))
@@ -3550,7 +3634,7 @@ int usb_lowlevel_init(ohci_t * gohci)
 		if ((u32) tmpbuf & 0x1f)
 			printf("Malloc return not cache line aligned\n");
 		memset(tmpbuf, 0, 64);
-#ifdef LOONGSON_2G5536
+#if defined (LOONGSON_2G5536) || defined (LOONGSON_2G1A)
 		pci_sync_cache(tmpbuf, (vm_offset_t)tmpbuf, 64, SYNC_W);
 #endif
 #if (defined(LS3_HT) || defined(LS2G_HT))
@@ -3751,6 +3835,8 @@ static int hc_check_ohci_controller(void *hc_data)
 		{
 #if (defined(LS3_HT) || defined(LS2G_HT))
 			td = (td_t *) PHYS_TO_CACHED(ohci->hcca->done_head);
+#elif defined(LOONGSON_2G1A)
+			td = (td_t *) CACHED_TO_UNCACHED(ohci->hcca->done_head + 0x74000000);
 #else
 			td = (td_t *) CACHED_TO_UNCACHED(ohci->hcca->done_head);
 #endif
