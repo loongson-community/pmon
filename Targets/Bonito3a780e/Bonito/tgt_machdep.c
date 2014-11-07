@@ -1084,7 +1084,8 @@ tgt_machprint()
 register_t
 tgt_clienttos()
 {
-	return((register_t)(int)PHYS_TO_CACHED(memorysize & ~7) - 64);
+	extern char start[];
+	return(register_t)(int)PHYS_TO_CACHED(start - 64);
 }
 
 #ifdef HAVE_FLASH
