@@ -268,7 +268,7 @@ locate:
         bal     initserial1
         nop
 
-#define SHUT_SLAVES
+//#define SHUT_SLAVES
 #ifdef SHUT_SLAVES
 	PRINTSTR("Shut down other cores\r\n")
 	li      a0, 0xbfe001d0
