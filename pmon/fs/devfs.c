@@ -224,7 +224,11 @@ physio(strategy, bp, dev, flags, minphys, uio)
 {
 	int error = 0;
 	struct buf lbp;
+#if defined(LOONGSON_2G1A) || defined(LOONGSON_2G5536)
+	int s = 0;
+#else
 	int s;
+#endif
 
 	if(bp == NULL) {
 		memset((void *)&lbp, 0, sizeof(struct buf));
