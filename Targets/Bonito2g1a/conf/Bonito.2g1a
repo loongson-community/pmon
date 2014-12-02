@@ -230,3 +230,5 @@ select tcp
 
 select cmd_main
 option INTERFACE_3A780E
+
+option CONFIG_VIDEO_SW_CURSOR
