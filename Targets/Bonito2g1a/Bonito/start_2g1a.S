@@ -741,7 +741,6 @@ reginit:			/* local name */
 	 */
 	 
 
-//lxf moxify	bal 	superio_init
 	nop
 	bal	initserial
 	nop
@@ -871,7 +870,11 @@ PRINTSTR("init ls2g south bridge done\r\n")
 PRINTSTR("init ddr2 config for 1a  done\r\n")
 
 SOUTHBRIDGE_INIT(0xb2d00190,0x1c2000f2) //change back  ddrcofig ->GPU/DC
-	
+
+	nop
+	bal	initserial_1a
+	nop
+
 	bnez s0,1f
 	nop
 	li a0,128
@@ -1715,17 +1718,6 @@ LEAF(initserial)
 		bal  1f
 		nop
 
-        la      v0, COM2_BASE_ADDR
-		li		a0,(3686400 /2 / 16)/CONS_BAUD
-		nop
-		bal  1f
-		nop
-
-        la      v0, COM3_BASE_ADDR
-		li		a0,(3686400 /2 / 16)/CONS_BAUD
-		nop
-		bal  1f
-		nop
 		jr AT
 		nop
 1:
@@ -1747,6 +1739,31 @@ LEAF(initserial)
         nop
 		.set at
 END(initserial)
+
+LEAF(initserial_1a)
+	.set noat
+	move AT,ra
+	la	v0, COM0_1A_BASE_ADDR
+	li	v1, FIFO_ENABLE|FIFO_RCV_RST|FIFO_XMT_RST|FIFO_TRIGGER_4
+	sb	v1, NSREG(NS16550_FIFO_1A)(v0)
+	li	v1, CFCR_DLAB
+	sb	v1, NSREG(NS16550_CFCR_1A)(v0)
+	li	v1, ((APB_CLK*10)/(2*16*CONS_BAUD))
+	sb	v1, NSREG(NS16550_DATA_1A)(v0)
+	srl	v1, 8
+	sb	v1, NSREG(NS16550_IER_1A)(v0)
+	li	v1, CFCR_8BITS
+	sb	v1, NSREG(NS16550_CFCR_1A)(v0)
+	li	v1, MCR_DTR|MCR_RTS
+	sb	v1, NSREG(NS16550_MCR_1A)(v0)
+	li	v1, 0x0
+	sb	v1, NSREG(NS16550_IER_1A)(v0)
+	li	v1, 0x0
+	sb	v1, NSREG(NS16550_IER_1A)(v0)
+	j	ra
+	nop
+	.set at
+END(initserial_1a)
 
 LEAF(_w83627_write)
 	li	v0,0xbfd0002e
@@ -1785,12 +1802,7 @@ LEAF(tgt_putchar)
     la  v0, COM1_BASE_ADDR
     bal 1f
     nop
-    la  v0, COM2_BASE_ADDR
-    bal 1f
-    nop
-    la  v0, COM3_BASE_ADDR
-    bal 1f
-    nop
+
     jr AT
     nop
   
@@ -2208,7 +2220,7 @@ LEAF(init_south_bridge)
 	NORTHBRIDGE_INIT(0xb2d01144,0x7fffffff) //1a_pci_hit1_hi
 	NORTHBRIDGE_INIT(0xb2d01150,0xf0000004) //1a_pci_hit2_lo MEM space 256MB//1G->0xc0000004 256M->0xf0000004
 	NORTHBRIDGE_INIT(0xb2d01154,0xffffffff) //1a_pci_hit2_hi
-	NORTHBRIDGE_INIT(0xb2d0110c,0x000001c5) //1a_pci_pxarb_config   // SUMH for 1A2//lxf add
+	NORTHBRIDGE_INIT(0xb2d0110c,0x000001c5) //1a_pci_pxarb_config   // SUMH for 1A2
 
 	PRINTSTR("setup 1a gpio\r\n");
 	NORTHBRIDGE_INIT(0xb2e78030,0x8f8b)//config pll control reg ddr_dll = 10,cpu_dll = 4
@@ -2343,7 +2355,7 @@ will set on pci_machdep.c
 
 	PRINTSTR("other fixup\r\n");
 
-#include "loongson3_fixup.S"//maybe can delete lxf test
+#include "loongson3_fixup.S"
 	PRINTSTR("setup done\r\n");
 
 	j	a3

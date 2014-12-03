@@ -68,6 +68,37 @@ nsinit (volatile ns16550dev *dp)
 	return 0;
 }
 
+#ifdef LOONGSON_2G1A
+static int
+nsinit_1a (volatile ns16550dev_1a *dp)
+{
+#ifdef USE_NS16550_FIFO
+	unsigned int x;
+	static int nsfifo;
+	
+	/* force access to id reg */
+	outb(&dp->cfcr,0);
+	outb(&dp->iir, 0);
+	if ((inb(&dp->iir) & 0x38) != 0) {
+		return 1;
+	}
+	
+	/* in case it really is a 16550, enable the fifos */
+	outb(&dp->fifo, FIFO_ENABLE);
+	for(x = 0; x < 1000000; x++);
+	outb(&dp->fifo, FIFO_ENABLE | FIFO_RCV_RST | FIFO_XMT_RST | FIFO_TRIGGER_1);
+	for(x = 0; x < 1000000; x++);
+
+	if ((inb(&dp->iir) & IIR_FIFO_MASK) == IIR_FIFO_MASK)
+		nsfifo = 1;
+	else {
+		dp->fifo = 0;
+	}
+#endif /* NS16650_FIFO */
+	return 0;
+}
+#endif
+
 static int
 nsprogram (volatile ns16550dev *dp, unsigned long freq, int baudrate)
 {
@@ -105,6 +136,44 @@ static int rates[] = {
 	return 0;
 }
 
+#ifdef LOONGSON_2G1A
+static int
+nsprogram_1a (volatile ns16550dev_1a *dp, unsigned long freq, int baudrate)
+{
+static int rates[] = {
+	50, 75, 110, 134, 150, 200, 300, 600, 1200, 1800, 2400,
+	4800, 9600, 19200, 38400, 57600, 115200, 0 };
+
+	unsigned short brtc;
+	int timeout, *p;
+
+	/* wait for Tx fifo to completely drain */
+	timeout = 1000000;
+	while (!(inb(&dp->lsr) & LSR_TSRE)) {
+		if (--timeout == 0)
+			break;
+	}
+
+	baudrate = getbaudval (baudrate);
+	for (p = rates; *p; p++)
+		if (*p == baudrate)
+			break;
+	if (*p == 0)
+		return 1;
+#ifndef USE_SM502_UART0
+	brtc = (freq) / (16*(baudrate));
+#else
+	brtc = (96000000)/(16*(19450));
+#endif
+	outb(&dp->cfcr, CFCR_DLAB);
+	outb(&dp->data, brtc & 0xff);
+	outb(&dp->ier, brtc >> 8);
+	outb(&dp->cfcr, CFCR_8BITS);
+	outb(&dp->mcr, MCR_IENABLE/* | MCR_DTR | MCR_RTS*/);
+	outb(&dp->ier, 0);
+	return 0;
+}
+#endif
 
 int
 ns16550 (int op, struct DevEntry *dev, unsigned long param, int data)
@@ -153,3 +222,51 @@ ns16550 (int op, struct DevEntry *dev, unsigned long param, int data)
 	}
 	return 0;
 }
+
+#ifdef LOONGSON_2G1A
+int ns16550_1a (int op, struct DevEntry *dev, unsigned long param, int data)
+{
+	volatile ns16550dev_1a *dp;
+
+	dp = (ns16550dev_1a *) dev->sio;
+	if(dp == -1)return (op == OP_RXRDY) ? 0 : 1;
+
+	switch (op) {
+		case OP_INIT:
+			return nsinit_1a (dp);
+		case OP_XBAUD:
+		case OP_BAUD:
+			return nsprogram_1a (dp, dev->freq, data);
+
+		case OP_TXRDY:
+#ifdef NOMSG_ON_SERIAL
+			return 1;
+#endif
+			return (inb(&dp->lsr) & LSR_TXRDY);
+
+		case OP_TX:
+#ifdef NOMSG_ON_SERIAL
+			return 0;
+#endif
+			outb(&dp->data, data);
+			break;
+
+		case OP_RXRDY:
+#ifdef NOMSG_ON_SERIAL
+			return 0;
+#endif
+			return (inb(&dp->lsr) & LSR_RXRDY);
+
+		case OP_RX:
+			return inb(&dp->data) & 0xff;
+
+		case OP_RXSTOP:
+			if (data)
+				outb(&dp->mcr, inb(&dp->mcr) & ~MCR_RTS);
+			else
+				outb(&dp->mcr, inb(&dp->mcr) | MCR_RTS);
+			break;
+	}
+	return 0;
+}
+#endif

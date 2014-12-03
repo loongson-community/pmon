@@ -161,9 +161,7 @@ ConfigEntry	ConfigTable[] =
 	{ (char *)1, 0, vgaterm, 256, CONS_BAUD, NS16550HZ },
 	#endif
 #endif
-#if PCI_IDSEL_CS5536 != 0
-	//lxf mofify  { (char *)COM2_BASE_ADDR, 0, ns16550, 256, CONS_BAUD, NS16550HZ }, 
-#endif
+	{ (char *)COM0_1A_BASE_ADDR, 0, ns16550_1a, 256, CONS_BAUD, NS16550HZ },
 	{ 0 }
 };
 unsigned char activecom = 0x3;

@@ -37,12 +37,8 @@ extern char           *heaptop;
 #define RTC_NVRAM_BASE		0x0e
 
 
-#define COM1_BASE_ADDR	0xbfe001e0
-#define COM2_BASE_ADDR	0xbfd002f8
-#define COM3_BASE_ADDR	0xbfd003f8
-#ifndef COM3_BASE_ADDR
-#define COM3_BASE_ADDR	0xbff003f8
-#endif
+#define COM1_BASE_ADDR		0xbfe001e0
+#define	COM0_1A_BASE_ADDR	0xb2e40000
 //#define	NS16550HZ	1843200
 #define	NS16550HZ	3686400
 /*********************************************************************/
