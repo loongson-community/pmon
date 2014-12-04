@@ -24,20 +24,6 @@ ddr2_config:
     bnez    t7, 1f
     nop
     dla     a2, ddr2_reg_data_mc0_leveled
-    beqz    t3, 21f
-    nop
-    dla     a2, ddr2_reg_data_mc1_leveled
-21:
-#ifdef  MULTI_CHIP
-    GET_NODE_ID_a1
-    beqz    a1, 21f
-    nop
-    dla     a2, n1_ddr2_reg_data_mc0_leveled
-    beqz    t3, 21f
-    nop
-    dla     a2, n1_ddr2_reg_data_mc1_leveled
-21:
-#endif
     b       4f
     nop
 1:
@@ -65,16 +51,6 @@ ddr2_config:
     nop
     dla     a2, ddr2_reg_data_mc1
 21:
-#ifdef  MULTI_NODE_DDR_PARAM
-    GET_NODE_ID_a1
-    beqz    a1, 4f
-    nop
-    dla     a2, n1_ddr2_reg_data
-    beqz    t3, 21f
-    nop
-    dla     a2, n1_ddr2_reg_data_mc1
-21:
-#endif
     b       4f
     nop
 1:  //RDIMM
@@ -83,16 +59,6 @@ ddr2_config:
     nop
     dla     a2, ddr2_RDIMM_reg_data_mc1
 21:
-#ifdef  MULTI_NODE_DDR_PARAM
-    GET_NODE_ID_a1
-    beqz    a1, 4f
-    nop
-    dla     a2, n1_ddr2_RDIMM_reg_data
-    beqz    t3, 21f
-    nop
-    dla     a2, n1_ddr2_RDIMM_reg_data_mc1
-21:
-#endif
     b       4f
     nop
 3:  //DDR3
@@ -105,16 +71,6 @@ ddr2_config:
     nop
     dla     a2, ddr3_reg_data_mc1
 21:
-#ifdef  MULTI_NODE_DDR_PARAM
-    GET_NODE_ID_a1
-    beqz    a1, 4f
-    nop
-    dla     a2, n1_ddr3_reg_data
-    beqz    t3, 21f
-    nop
-    dla     a2, n1_ddr3_reg_data_mc1
-21:
-#endif
     b       4f
     nop
 1:  //RDIMM
@@ -123,16 +79,6 @@ ddr2_config:
     nop
     dla     a2, ddr3_RDIMM_reg_data_mc1
 21:
-#ifdef  MULTI_NODE_DDR_PARAM
-    GET_NODE_ID_a1
-    beqz    a1, 4f
-    nop
-    dla     a2, n1_ddr3_RDIMM_reg_data
-    beqz    t3, 21f
-    nop
-    dla     a2, n1_ddr3_RDIMM_reg_data_mc1
-21:
-#endif
     b       4f
     nop
 4:
@@ -1383,26 +1329,6 @@ mc_init:
     nop
     nop
 
-    GET_NODE_ID_a0;
-    XBAR_CONFIG_NODE_a0(0x10, \
-                    0x000000000ff00000, \
-                    0xfffffffffff00000, \
-                    0x000000000ff000f0)
-    beqz    t3, 1f
-    nop
-    GET_NODE_ID_a0;
-    XBAR_CONFIG_NODE_a0(0x10, \
-                    0x000000000ff00000, \
-                    0xfffffffffff00000, \
-                    0x000000000ff000f1)
-1:
-
-    sync
-    nop
-    nop
-    nop
-    nop
-
     TTYDBG("\r\nEnable register space of MEMORY\r\n")
     lw      a1, 0x0(t2)
     li      a2, 0x1
@@ -1782,21 +1708,6 @@ Fix_ddr_param:
     or      a1, a1, a2
     sw      a1,0x0(t2)
 #endif
-
-    //clear the L2 xbar window configured for mc_init
-    sync
-    nop
-    nop
-    nop
-    nop
-
-    L2XBAR_CLEAR_WINDOW(0x10)
-
-    sync
-    nop
-    nop
-    nop
-    nop
 
     jr      t4
     nop

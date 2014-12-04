@@ -170,9 +170,9 @@ unsigned long _filebase;
 
 extern unsigned long long memorysize;
 extern unsigned long long memorysize_high;
-extern unsigned long long memorysize_total;
 
 extern char MipsException[], MipsExceptionEnd[];
+//extern void get_memorysize(unsigned long long raw_memsz);
 
 unsigned char hwethadr[6];
 unsigned char hwethadr1[6];
@@ -191,18 +191,9 @@ initmips(unsigned int memsz)
 	unsigned int hi;
 	tgt_fpuenable();
 	tgt_printf("memsz %d\n",memsz);
-	/* enable float */
 	tgt_fpuenable();
-//	CPU_TLBClear();
 
-	/*
-	 *	Set up memory address decoders to map entire memory.
-	 *	But first move away bootrom map to high memory.
-	 */
-	memorysize = memsz > 256 ? 256 << 20 : memsz << 20;
-	memorysize_high = memsz > 256 ? (memsz - 256) << 20 : 0;
-	memorysize_total = (( memorysize + memorysize_high ) >> 20);
-
+	get_memorysize(memsz);
 
 	/*
 	 *  Probe clock frequencys so delays will work properly.

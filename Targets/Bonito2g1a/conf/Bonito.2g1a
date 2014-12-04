@@ -29,6 +29,10 @@ option		LOONGSON_2G1A
 option		ENABLE_SATA         #Enable SATA  ,when enable IDE can also use, when commended only IDE can use
 option		BOOT_PARAM
 
+#option		AUTO_DDR_CONFIG
+option		USE_SB_I2C
+#option		ARB_LEVEL
+
 select		mod_flash_amd		# AMD flash device programming
 select		mod_flash_intel		# intel flash device programming
 select		mod_flash_sst		# intel flash device programming

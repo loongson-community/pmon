@@ -1,6 +1,6 @@
 TARGET=Bonito2g1a
 TARGETEL=Bonito.2g1a
-export START=start_2g1a.o
+export START=start.o
 MEMSIZE=128
 ZLOADER_OPTIONS=-mips3
 

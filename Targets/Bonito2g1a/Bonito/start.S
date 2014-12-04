@@ -1,4 +1,4 @@
-/*	$Id: start.S,v 1.1.1.1 2006/09/14 01:59:08 root Exp $ */
+/*	$Id: start.S,v 1.3 2004/05/17 10:39:22 wlin Exp $ */
 
 /*
  * Copyright (c) 2001 Opsycon AB  (www.opsycon.se)
@@ -40,34 +40,98 @@
 #include <cpu.h>
 #include <pte.h>
 
+
 #include "pmon/dev/ns16550.h"
+/* #include "target/i82371eb.h"  */
 #include "target/prid.h"
 #include "target/sbd.h"
 #include "target/bonito.h"
-#include "target/via686b.h"
+#include "target/cs5536.h"
+#include "target/cs5536_pci.h"
 #include "target/i8254.h"
+/* #include "target/pc97307.h" */
 #include "target/isapnpreg.h"
+#define USE_CS5536_UART1
+#define USE_CS5536_UART2
 #define DEBUG_LOCORE
-
-
-
+#undef	DEBUG_DIMM_SPD
 #ifdef DEBUG_LOCORE
 #define	TTYDBG(x) \
 	.rdata;98: .asciz x; .text; la a0, 98b; bal stringserial; nop
 #else
 #define TTYDBG(x)
 #endif
-
 #define	PRINTSTR(x) \
 	.rdata;98: .asciz x; .text; la a0, 98b; bal stringserial; nop
 
-#ifdef DEVBD2F_SM502
-#define GPIOLED_DIR  0xe
+#define GPIOLED_DIR  0x1
+#if 0 
+#define GPIO_RESET_DELAY(x,y) \
+li v0,0xbfe0011c; \
+lw v1,4(v0); \
+or v1,0x1; \
+xor v1,GPIOLED_DIR; \
+sw v1,4(v0); \
+lw v1,0(v0); \
+and v1,~(0x1); \
+or v1,x;\
+sw v1,0(v0);\
+li v1,y ;\
+78: \
+bnez v1,78b;\
+subu v1,1;\
+nop;
 #else
-#define GPIOLED_DIR  0xf
+#define GPIO_RESET_DELAY(x,y) \
+li v0,0xbfe0011c; \
+lw v1,0(v0); \
+and v1,~(0x1); \
+or v1,x;\
+sw v1,0(v0);\
+lw v1,4(v0); \
+or v1,0x1; \
+xor v1,GPIOLED_DIR; \
+sw v1,4(v0); \
+li v1,y ;\
+78: \
+bnez v1,78b;\
+subu v1,1;\
+nop;
 #endif
-
-#ifndef USE_GPIO_SERIAL
+#define	GPIOLED_DIR1 0x6
+#if 0 
+#define GPIO_RESET_DELAY1(x,y) \
+li v0,0xbfe0011c; \
+lw v1,4(v0); \
+or v1,0x6; \
+xor v1,GPIOLED_DIR1; \
+sw v1,4(v0); \
+lw v1,0(v0); \
+and v1,~(0x6); \
+or v1,x;\
+sw v1,0(v0);\
+li v1,y ;\
+78: \
+bnez v1,78b;\
+subu v1,1;\
+nop;
+#else
+#define GPIO_RESET_DELAY1(x,y) \
+li v0,0xbfe0011c; \
+lw v1,0(v0); \
+and v1,~(0x6); \
+or v1,x;\
+sw v1,0(v0);\
+lw v1,4(v0); \
+or v1,0x6; \
+xor v1,GPIOLED_DIR1; \
+sw v1,4(v0); \
+li v1,y ;\
+78: \
+bnez v1,78b;\
+subu v1,1;\
+nop;
+#endif
 #define GPIOLED_SET(x) \
 li v0,0xbfe0011c; \
 lw v1,4(v0); \
@@ -81,22 +145,54 @@ li v1,0x1000;\
 subu v1,1;\
 bnez v1,78b;\
 nop;
-#else
-#define GPIOLED_SET(x) 
-#endif
 
+#define CONFIG_CACHE_64K_4WAY 1 
 
-#define CONFIG_CACHE_64K_4WAY 1
 
 #define tmpsize		s1
 #define msize		s2
+#define sdShape		s3
 #define bonito		s4
-#define dbg			s5
+#define dbg		s5
 #define sdCfg		s6
 
+/*
+ * Coprocessor 0 register names
+ */
+#define CP0_INDEX $0
+#define CP0_RANDOM $1
+#define CP0_ENTRYLO0 $2
+#define CP0_ENTRYLO1 $3
+#define CP0_CONF $3
+#define CP0_CONTEXT $4
+#define CP0_PAGEMASK $5
+#define CP0_WIRED $6
+#define CP0_INFO $7
+#define CP0_BADVADDR $8
+#define CP0_COUNT $9
+#define CP0_ENTRYHI $10
+#define CP0_COMPARE $11
+#define CP0_STATUS $12
+#define CP0_CAUSE $13
+#define CP0_EPC $14
+#define CP0_PRID $15
 #define CP0_CONFIG $16
-#define CP0_TAGLO  $28
-#define CP0_TAGHI  $29
+#define CP0_LLADDR $17
+#define CP0_WATCHLO $18
+#define CP0_WATCHHI $19
+#define CP0_XCONTEXT $20
+#define CP0_FRAMEMASK $21
+#define CP0_DIAGNOSTIC $22
+#define CP0_PERFORMANCE $25
+#define CP0_ECC $26
+#define CP0_CACHEERR $27
+#define CP0_TAGLO $28
+#define CP0_TAGHI $29
+#define CP0_ERROREPC $30
+
+#define CP0_DEBUG  $23
+#define CP0_DEPC   $24
+#define CP0_DESAVE $31
 
 #define	DDR100 0x1d441091 
 /* 
@@ -104,7 +200,13 @@ nop;
 #define	DDR266 0x0410435e
 #define DDR300 0x041453df
 
-#define DDR_DQ 0xbff00030             /*  zgj  */
+#define PCI_IDSEL_1A    9
+
+#define NORTHBRIDGE_INIT(r,v) \
+	li      t0,r;\
+	li      t1,v;\
+	sw      t1,0x0(t0);
+#define SOUTHBRIDGE_INIT(r,v) NORTHBRIDGE_INIT(r,v)
 
 /*
  *   Register usage:
@@ -112,7 +214,7 @@ nop;
  *	s0	link versus load offset, used to relocate absolute adresses.
  *	s1	free
  *	s2	memory size.
- *	s3	free.
+ *	s3	sdShape.
  *	s4	Bonito base address.
  *	s5	dbg.
  *	s6	sdCfg.
@@ -130,18 +232,22 @@ start:
 	.globl	stack
 stack = start - 0x4000		/* Place PMON stack below PMON start in RAM */
 
+	/* init processor state at first*/
 /* NOTE!! Not more that 16 instructions here!!! Right now it's FULL! */
-	mtc0	zero, COP_0_STATUS_REG
+	mtc0	zero, COP_0_STATUS_REG //cuckoo
 	mtc0	zero, COP_0_CAUSE_REG
 	li	t0, SR_BOOT_EXC_VEC	/* Exception to Boostrap Location */
-	mtc0	t0, COP_0_STATUS_REG
+	mtc0	t0, COP_0_STATUS_REG //cuckoo
+#if	0
 	la	sp, stack
 	la	gp, _gp
-	GPIOLED_SET(1)
+#else
+        bal     initregs
+        nop
+#endif
 
 //	bal	uncached		/* Switch to uncached address space */
 	nop
-	GPIOLED_SET(2)
 
 	bal	locate			/* Get current execute address */
 	nop
@@ -150,7 +256,6 @@ uncached:
 	or	ra, UNCACHED_MEMORY_ADDR
 	j	ra
 	nop
-
 /*
  *  Reboot vector usable from outside pmon.
  */
@@ -176,12 +281,14 @@ ext_map_and_reboot:
  *  whatever comes up before we have a fully fledged exception handler.
  */
 	.align	9			/* bfc00200 */
+	move	k0, ra		#save ra
 	la	a0, v200_msg
 	bal	stringserial
 	nop
 	b	exc_common
 
 	.align	7			/* bfc00280 */
+	move	k0, ra	#save ra
 	la	a0, v280_msg
 	bal	stringserial
 	nop
@@ -197,17 +304,21 @@ ext_map_and_reboot:
 
 /* General exception */
 	.align	7			/* bfc00380 */
+	move	k0, ra		#save ra
 	la	a0, v380_msg
 	bal	stringserial
 	nop
 	b	exc_common
 	
 	.align	8			/* bfc00400 */
+	move	k0, ra		#save ra
 	la	a0, v400_msg
 	bal	stringserial
 	nop
 
-
+/* Debug exception */
+	.align	7
+	#include "exc_ejtag.S"
 	
 exc_common:
 	PRINTSTR("\r\nCAUSE=")
@@ -226,7 +337,9 @@ exc_common:
 	mfc0	a0, COP_0_EXC_PC
 	bal	hexserial
 	nop
-#ifndef ROM_EXCEPTION
+1:
+    b   1b
+    nop
 	PRINTSTR("\r\nDERR0=")
 	cfc0	a0, COP_0_DERR_0
 	bal	hexserial
@@ -235,11 +348,6 @@ exc_common:
 	cfc0	a0, COP_0_DERR_1
 	bal	hexserial
 	nop
-#else
-1:
-	b 1b
-	nop
-#endif
 
 //	b	ext_map_and_reboot
 	nop
@@ -262,23 +370,75 @@ exc_common:
 	.word nullfunction
 	.word nullfunction
 
+initregs:
+        ## init registers
+        move    $1, $0
+        move    $2, $0
+        move    $3, $0
+        move    $4, $0
+        move    $5, $0
+        move    $6, $0
+        move    $7, $0
+        move    $8, $0
+        move    $9, $0
+        move    $10, $0
+        move    $11, $0
+        move    $12, $0
+        move    $13, $0
+        move    $14, $0
+        move    $15, $0
+        move    $16, $0
+        move    $17, $0
+        move    $18, $0
+        move    $19, $0
+        move    $20, $0
+        move    $21, $0
+        move    $22, $0
+        move    $23, $0
+        move    $24, $0
+        move    $25, $0
+        move    $26, $0
+        move    $27, $0
+        move    $28, $0
+        move    $29, $0
+        move    $30, $0
+        #move    $31, $0 // ra
+
+	/* now begin initial float CP1 register */
+        ## float point
+
+        mfc0    t0, CP0_STATUS
+        li     t1, 0x64000000|SR_KX|SR_SX|SR_UX|SR_BOOT_EXC_VEC      # {cu3,cu2,cu1,cu0}<={0110, status_fr<=1,0xe0 to enable 64bit space
+        or      t0, t0, t1
+        mtc0    t0, CP0_STATUS
+	la       sp, stack
+	la       gp, _gp
+        jr       ra
+        nop
 
 /*
  *  We get here from executing a bal to get the PC value of the current execute
  *  location into ra. Check to see if we run from ROM or if this is ramloaded.
  */
 locate:
+
 	la	s0,start
 	subu	s0,ra,s0
 	and	s0,0xffff0000
-	GPIOLED_SET(3)
 
-	li	t0,SR_BOOT_EXC_VEC
-	mtc0	t0,COP_0_STATUS_REG
+
+reset2:  GPIO_RESET_DELAY(0,0x40000) //set pci_rest to 0 200ms
+reset3:  GPIO_RESET_DELAY(1,0x100)  //set pci_reset to 1 100ms
+
+        mfc0    t0, CP0_STATUS
+        li     t1, 0x64000000|SR_KX|SR_SX|SR_UX|SR_BOOT_EXC_VEC      # {cu3,cu2,cu1,cu0}<={0110, status_fr<=1,0xe0 to enable 64bit space
+        or      t0, t0, t1
+        mtc0    t0, CP0_STATUS
         mtc0    zero,COP_0_CAUSE_REG
-	.set noreorder
+	.set noreorder /* ? what it means? tell compiler not reorder these instruction*/
 
  	li	bonito,PHYS_TO_UNCACHED(BONITO_REG_BASE)
+
 
 #define MOD_MASK	0x00000003
 #define MOD_B		0x00000000 /* byte "modifier" */
@@ -326,44 +486,10 @@ locate:
 #define BONITO_RMW(r,c,s) RMW_INIT(MOD_W,BONITO_BASE+(r),~(c),s)
 	
 #define CFGADDR(idsel,function,reg) ((1<<(11+(idsel)))+((function)<<8)+(reg))
-#define _ISABWR_INIT(mod,function,isabreg,val) \
-	WR_INIT(MOD_W,BONITO_BASE+BONITO_PCIMAP_CFG,CFGADDR(PCI_IDSEL_VIA686B,function,isabreg)>>16) ; \
-        RD_INIT(MOD_W,BONITO_BASE+BONITO_PCIMAP_CFG) ; \
-	WR_INIT(mod,PCI_CFG_SPACE+(CFGADDR(PCI_IDSEL_VIA686B,function,isabreg)&0xffff),val)
-	
-#define _ISABRD_INIT(mod,function,isabreg) \
-	WR_INIT(MOD_W,BONITO_BASE+BONITO_PCIMAP_CFG,CFGADDR(PCI_IDSEL_VIA686B,function,isabreg)>>16) ; \
-        RD_INIT(MOD_W,BONITO_BASE+BONITO_PCIMAP_CFG) ; \
-	RD_INIT(mod,PCI_CFG_SPACE+(CFGADDR(PCI_IDSEL_VIA686B,function,isabreg)&0xffff))
-
-
-#define _ISAWR_INIT(isareg,val) \
-	WR_INIT(MOD_B,PCI_IO_SPACE+(isareg),val)
-	
-#define _ISARD_INIT(isareg) \
-	RD_INIT(MOD_B,PCI_IO_SPACE+(isareg))
-	
-
-#define ISABBWR_INIT(function,isabreg,val) \
-	_ISABWR_INIT(MOD_B,function,(isabreg),val)
-#define ISABHWR_INIT(function,isabreg,val) \
-	_ISABWR_INIT(MOD_H,function,(isabreg),val)
-#define ISABWWR_INIT(function,isabreg,val) \
-	_ISABWR_INIT(MOD_W,function,isabreg,val)
-#define ISAWR_INIT(isareg,val) \
-	_ISAWR_INIT(isareg,val)
-#define ISARD_INIT(isareg) \
-	_ISARD_INIT(isareg)
-	GPIOLED_SET(4)
 
 	bal	1f	
 	nop
 
-	/* bonito endianess */
-	BONITO_BIC(BONITO_BONPONCFG,BONITO_BONPONCFG_CPUBIGEND)
-	BONITO_BIC(BONITO_BONGENCFG,BONITO_BONGENCFG_BYTESWAP|BONITO_BONGENCFG_MSTRBYTESWAP)
-	BONITO_BIS(BONITO_BONPONCFG, BONITO_BONPONCFG_IS_ARBITER)
-	
         /*
          * In certain situations it is possible for the Bonito ASIC
          * to come up with the PCI registers uninitialised, so do them here
@@ -377,54 +503,27 @@ locate:
 #define PCI_COMMAND_MASTER_ENABLE	0x00000004
 #define PCI_COMMAND_STATUS_REG		0x04
 #define PCI_MAP_IO			0X00000001
+#define	PCI_DEV_I82371			17
 #define PCI_CFG_SPACE			BONITO_PCICFG_BASE
 
         BONITO_INIT(BONITO_PCICLASS,(PCI_CLASS_BRIDGE << PCI_CLASS_SHIFT) | (PCI_SUBCLASS_BRIDGE_HOST << PCI_SUBCLASS_SHIFT))
 	BONITO_INIT(BONITO_PCICMD, BONITO_PCICMD_PERR_CLR|BONITO_PCICMD_SERR_CLR|BONITO_PCICMD_MABORT_CLR|BONITO_PCICMD_MTABORT_CLR|BONITO_PCICMD_TABORT_CLR|BONITO_PCICMD_MPERR_CLR)
-	//BONITO_INIT(BONITO_PCILTIMER, 0)
-	BONITO_INIT(BONITO_PCILTIMER, 255)
+	BONITO_INIT(BONITO_PCILTIMER, 0)
 	BONITO_INIT(BONITO_PCIBASE0, 0)
 	BONITO_INIT(BONITO_PCIBASE1, 0)
 	BONITO_INIT(BONITO_PCIBASE2, 0)
 	BONITO_INIT(BONITO_PCIEXPRBASE, 0)
 	BONITO_INIT(BONITO_PCIINT, 0)
-
+   
         BONITO_INIT(0x150,0x8000000c)
-	BONITO_INIT(0x154,0xffffffff)
-
+        BONITO_INIT(0x154,0xffffffff)
+	
 	BONITO_BIS(BONITO_PCICMD, BONITO_PCICMD_PERRRESPEN)
 	
 	BONITO_BIS(BONITO_PCICMD, PCI_COMMAND_IO_ENABLE|PCI_COMMAND_MEM_ENABLE|PCI_COMMAND_MASTER_ENABLE)
 	
-    BONITO_BIC(BONITO_BONGENCFG, 0x80)  #陆没?鹿iobc
-
-	#BONITO_BIS(BONITO_BONGENCFG, BONITO_BONGENCFG_BUSERREN)
-
-	/* Set debug mode */
-	BONITO_BIS(BONITO_BONGENCFG, BONITO_BONGENCFG_DEBUGMODE)
-
-    /******** added to init southbridge*/
-	
-#if  (PCI_IDSEL_VIA686B != 0)
-	/* Set the SMB base address */
-	ISABWWR_INIT(4, SMBUS_IO_BASE_ADDR, SMBUS_IO_BASE_VALUE | 0x1)
-	/* enable the host controller */
-	ISABHWR_INIT(4, SMBUS_HOST_CONFIG_ADDR, SMBUS_HOST_CONFIG_ENABLE_BIT)
-	/* enable the SMB IO ports */
-	ISABBWR_INIT(4, PCI_COMMAND_STATUS_REG, PCI_COMMAND_IO_ENABLE)
-	
-/* 15us ISA bus refresh clock */
-#define ISAREFRESH (PT_CRYSTAL/(1000000/15))
-	ISARD_INIT(CTC_PORT+PT_CONTROL)
-	
-	/* program i8254 ISA refresh counter */
-	ISAWR_INIT(CTC_PORT+PT_CONTROL,PTCW_SC(PT_REFRESH)|PTCW_16B|PTCW_MODE(MODE_RG))
-	ISAWR_INIT(CTC_PORT+PT_REFRESH, ISAREFRESH & 0xff)
-	ISAWR_INIT(CTC_PORT+PT_REFRESH, ISAREFRESH >> 8)
-#endif
                                                                         
 	EXIT_INIT(0)
-
 
 #define	Init_Op	0
 #define	Init_A0	4
@@ -437,7 +536,6 @@ reginit:			/* local name */
 	lw	t3, Init_Op(a0)
 	lw	t0, Init_A0(a0)
 	and	t4,t3,OP_MASK
-	
 	
 	/* 
 	 * EXIT(STATUS) 
@@ -634,21 +732,101 @@ reginit:			/* local name */
 	nop
 .done:	
 
-	GPIOLED_SET(5)
-	bal 	superio_init
-	nop
-	
-	GPIOLED_SET(6)
 	bal	initserial
 	nop
-	GPIOLED_SET(7)
-	
+
+//Read sys_clk_sel
+#if 0
+	TTYDBG ("\r\n0xbfe00180  : ")
+        li   t2,0xbfe00180
+        ld   t1, 0x0(t2)
+        dsrl a0, t1, 32
+        bal hexserial
+        nop
+        move    a0, t1
+        bal hexserial
+        nop
+	TTYDBG ("\r\n0xbfe00190  : ")
+        li  t2,0xbfe00190
+        ld  t1, 0x0(t2)
+        dsrl a0, t1, 32
+        bal hexserial
+        nop
+        move    a0, t1
+        bal hexserial
+        nop
+    TTYDBG ("\r\nCPU CLK SEL : ")
+        dsrl t1, t1, 32
+        andi a0, t1, 0x1f
+        bal hexserial
+        nop
+
+
+    TTYDBG ("\r\nCPU clk frequency = SYSCLK x 0x")
+        andi  t0, t1, 0x1f
+        li  a0, 0x1f
+        bne t0, a0, 1f
+        nop
+        TTYDBG ("1\r\n")
+        b   2f
+        nop
+1:
+        andi    t0, t1, 0x1f
+        andi    a0, t0, 0xf
+        addi    a0, a0, 0x1e
+        bal     hexserial
+        nop
+        TTYDBG (" / ")
+        srl     a0, t0, 4
+        beqz    a0, 3f
+        nop
+        TTYDBG (" 2\r\n")
+        b       2f
+3:        
+        nop
+        TTYDBG (" 1\r\n")
+2:      
+    TTYDBG ("MEM CLK SEL : ")
+        dsrl t0, t1, 5
+        andi a0, t0, 0x1f
+        bal hexserial
+        nop
+
+    TTYDBG ("\r\nDDR clk frequency = MEMCLK x 0x")
+        dsrl t0, t1, 5
+        andi    t0, t0, 0x1f
+        li  a0, 0x1f
+        bne t0, a0, 1f
+        nop
+        TTYDBG ("1\r\n")
+        b   2f
+        nop
+1:
+        dsrl t0, t1, 5
+        andi t0, t0, 0x1f
+        andi    a0, t0, 0xf
+        addi    a0, a0, 0x1e
+        bal     hexserial
+        nop
+        TTYDBG (" / ")
+        srl     a0, t0, 4
+        beqz    a0, 3f
+        nop
+        TTYDBG (" 4\r\n")
+        b       2f
+        nop
+3:
+        TTYDBG (" 3\r\n")
+2:      
+#endif    
+
 	PRINTSTR("\r\nPMON2000 MIPS Initializing. Standby...\r\n")
+
+#if 0
 	PRINTSTR("ERRORPC=")
 	mfc0	a0, COP_0_ERROR_PC
 	bal	hexserial
 	nop
-	GPIOLED_SET(8)
 
 	PRINTSTR(" CONFIG=")
 	mfc0	a0, COP_0_CONFIG
@@ -661,239 +839,180 @@ reginit:			/* local name */
 	bal	hexserial
 	nop
 	PRINTSTR("\r\n")
+#endif
+
+.set mips3
+	bal init_ls2g_xbar_config
+	nop
+PRINTSTR("init ls2g xbar config  done\r\n")
+
+	bal init_south_bridge
+	nop
+PRINTSTR("init ls2g south bridge done\r\n")
+	
+	bal ddr2_config_1A
+	nop
+PRINTSTR("init ddr2 config for 1a  done\r\n")
+
+SOUTHBRIDGE_INIT(0xb2d00190,0x1c2000f2) //change back  ddrcofig ->GPU/DC
+
+	nop
+	bal	initserial_1a
+	nop
 
 	bnez s0,1f
 	nop
-	GPIOLED_SET(11) //notice gpio also used to power off.
 	li a0,128
 	la v0,initmips
 	jr v0
 	nop
 1:
 
-	/* 
-	 * Now determine DRAM configuration and size by
-	 * reading the I2C EEROM on the DIMMS
-	 */
-
-##############################################
-
-/* 
- * now, we just write ddr2 parameters directly. 
- * we should use i2c for memory auto detecting. 
- */
-gs_2f_v3_ddr2_cfg:
-	GPIOLED_SET(9)
-
-	TTYDBG	("\r\nenable register space of MEMORY\r\n")
-        li  t2,0xbfe00180
-        ld  a1,0x0(t2)
-	and a1,a1,0x6ff 
-        #or  a1,a1,0x100
-        sd  a1,0x0(t2)
-    ###enable the reg space###
-
-	PRINTSTR("DDR2 config begin_whd\r\n")
-	b	ddr2_config
-	nop
-ddr2_config_done:
-	PRINTSTR("DDR2 config end\r\n")
-
-
-#if 1 /* read ddr2 registers */
-        li	t0, 0xaffffe00
-        
-not_locked:
-        ld	t1, 0x10(t0)
-        andi    t1, 0x01
-        beqz    t1, not_locked
-        nop
-
-        PRINTSTR("DDR2 DLL locked\r\n")
-        
-        ld	t1, 0xf0(t0)
-        move    a0, t1
-        bal     hexserial
-        nop
-
-#endif
-        
-    ###disable the reg space###
-#if 1
-	TTYDBG	("\r\ndisable register space of MEMORY\r\n")
-        li  t2,0xbfe00180
-        lw  a1,0x0(t2)
-        or  a1,a1,0x700 //disable ddr config space and no 写结束时是否允许数据未到内存 , no 写结束时是否允许数据未到内存
-		xor a1,0x600
-        sw  a1,0x0(t2)
-#endif    
-
-
-##########################################
-
-	
-skipdimm:
-	GPIOLED_SET(10)
-	PRINTSTR("Init SDRAM Done!\r\n");
-	GPIOLED_SET(11)
-
-		bal CPU_TLBClear
-		nop
-
-
-
-/*
- *  Reset and initialize caches to a known state.
- */
-#define IndexStoreTagI	0x08
-#define IndexStoreTagD	0x09
-#define IndexStoreTagS	0x0b
-#define IndexStoreTagT	0x0a
-#define FillI		0x14
-
-/*
- *  RM7000 config register bits.
- */
-#define CF_7_SE         (1 << 3)        /* Secondary cache enable */
-#define CF_7_SC         (1 << 31)       /* Secondary cache not present */
-#define CF_7_TE         (1 << 12)       /* Tertiary cache enable */
-#define CF_7_TC         (1 << 17)       /* Tertiary cache not present */
-#define CF_7_TS         (3 << 20)       /* Tertiary cache size */
-#define CF_7_TS_AL      20              /* Shift to align */
-#define NOP8 nop;nop;nop;nop;nop;nop;nop;nop
-do_caches:
-	TTYDBG("Sizing caches...\r\n");
-
-	mfc0	t3, COP_0_CONFIG	/* t3 = original config */
-	and	t3, 0xffffeff0		/* Make sure coherency is OK */
-
-	and	t3, ~(CF_7_TE|CF_7_SE|CF_7_TC|CF_7_SC)  /* disable L2/L3 cache */
-	mtc0    t3, COP_0_CONFIG
-
-	li	t2, 4096
-
-	srl	t1, t3, 9
-	and	t1, 7
-	sllv	s3, t2, t1		/* s3 = I cache size */
-
-#ifdef CONFIG_CACHE_64K_4WAY 
-        sll     s3,2
-#endif
-
-	and	t1, t3, 0x20
-	srl	t1, t1, 1
-	addu	s4, t1, 16		/* s4 = I cache line size */
-
-	srl	t1, t3, 6
-	and	t1, 7
-	sllv	s5, t2, t1		/* s5 = D cache size */
-
-#ifdef CONFIG_CACHE_64K_4WAY
-        sll     s5,2
-#endif
-
-	and	t1, t3, 0x10
-	addu	s6, t1, 16		/* s6 = D cache line size */
-	TTYDBG("Init caches...\r\n")
-
-	li	s7, 0                   /* no L2 cache */
-	li	s8, 0                   /* no L3 cache */
-
 #if 0
-        mfc0    a0, COP_0_PRID
-        li      a1, 0x6301
-        bne     a0,a1,1f
-        nop
-#endif
+        //CUCKOO PCI ARBITOR config
+        li t2,0xbfe00168
+        lw a1,0x0(t2)
+        ori a1,a1,0x2
+        sw a1,0x0(t2)
+#endif 
+
+#if 1 //by_css
 	TTYDBG("godson2 caches found\r\n")
         bal     godson2_cache_init
         nop
+	TTYDBG("scache init\r\n") 
+        bal	scache_init // smh
+        nop
+#endif
 
-	/* close L2 cache */
-	li      a0, 0xbfe00164
-        sw      zero, 0(a0);
-
-        mfc0   a0,COP_0_CONFIG
-        and    a0,a0,~((1<<12) | 3)
-	or     a0,a0,2
+        mfc0   a0,COP_0_CONFIG     /* enable kseg0 cachability */
+#if 1
+        and    a0,a0,0xfffffff8
+        or     a0,a0,0x3           // ENABLE
+#else
+        and    a0,a0,0xfffffff8
+        or     a0,a0,0x2           // DISABLE
+#endif
         mtc0   a0,COP_0_CONFIG
 
-#ifdef DEBUG_LOCORE
-	TTYDBG("Init caches done, cfg = ")
-	mfc0	a0, COP_0_CONFIG
-	bal	hexserial
-	nop
-	TTYDBG("\r\n\r\n")
+#if 1 /* jmp to 0x9fc... */
+        lui     t0, 0xdfff ####################### go to 9fc
+        //lui     t0, 0xffff                   // don't go to...
+        ori     t0, t0, 0xffff
+        bal     1f
+        nop     
+1:
+        and     ra, ra, t0
+        addiu   ra, ra, 16
+        jr      ra      
+        nop 
 #endif
 
-/* zhb */
-#if 0
-/*	li	t0, 0		*/
-/*	li	t1, 0x90000	*/
-/*1:	addiu	t0, 1		*/
-/*	bne	t0, t1, 1b	*/
+	/* cxk */
+####################################
+#include "ddr_dir/ddr_param_define.h"
+#include "ddr_dir/ddr_config_define.h"
+#define DISABLE_DIMM_ECC
+#define PRINT_MSG
+#ifndef ARB_LEVEL
+//#define FIX_DDR_PARAM
+#endif
+#ifdef  ARB_LEVEL
+#define AUTO_ARB_LEVEL
+#endif
+#ifdef  AUTO_ARB_LEVEL
+#define CHECK_ARB_LEVEL_FREQ
+#ifdef  AUTO_DDR_CONFIG
+#define CHECK_ARB_LEVEL_DIMM
+#endif
+//#define DEBUG_AUTO_ARB_LEVEL
+#endif
+//#define DEBUG_DDR
+//#define DEBUG_DDR_PARAM
+
+	TTYDBG("\r\nStart Init Memory, wait a while......\r\n")
+####################################
+	move    msize, $0
+	move    s3, $0
+	//!!!!important--s1 must be correctly set
+
+	TTYDBG("NODE 0 MEMORY CONFIG BEGIN\r\n")
+
+#ifdef  AUTO_DDR_CONFIG
+	dli     s1, 0xff1f0004
+#else
+	dli     s1, 0x82a40104  //MC0 only
+#endif
+#include "ddr_dir/loongson2G_ddr2_config.S"
+
+	TTYDBG("Init Memory done.\r\n")
+##########################################
+#ifdef  DEBUG_DDR
+	PRINTSTR("\r\nDo test?(0xf: skip): ")
+	bal     inputaddress
+	nop
+	and     v0, v0, 0xf
+	dli     a1, 0x1
+	bgt     v0, a1, 3f
 	nop
 
-	TTYDBG("Testing memory...\r\n")
-	
-	li	t7, 10
-tmem:
-	li	t0, 0xa0000000+1*1024*1024
-	li	t1, 0xa0000000
-	li	t2, 0xffffffff
+	dli     s1, 0x0008000080000000  //NODE 0, start from 0x80000000
+	PRINTSTR("\r\ndefault s1 = 0x");
+	dsrl    a0, s1, 32
+	bal     hexserial
+	nop
+	PRINTSTR("__")
+	move    a0, s1
+	bal     hexserial
+	nop
+	PRINTSTR("\r\nChange test param s1(0: skip)?: ")
+	bal     inputaddress
+	nop
+	beqz    v0, 1f
+	nop
+	move    s1, v0
 1:
-	sw	t2, 0(t1)
-	lw	t3, 0(t1)
-	bne	t3, t2, 1f
+	dli     t1, 0x0010
+	bal     test_mem
 	nop
-	not	t2
-	sw	t2, 0(t1)
-	lw	t3, 0(t1)
-	bne	t3, t2, 1f
+	move    t1, v0
+	PRINTSTR("\r\n")
+	dsrl    a0, t1, 32
+	bal     hexserial
 	nop
-	not	t2
-	subu	t2, 1
-	addu	t1, 4
-	beq	t1, t0, 2f
+	move    a0, t1
+	bal     hexserial
 	nop
-	and	t4, t1, 0x000fffff
-	bnez	t4, skipdot
-	li	a0, '.'
-	bal	tgt_putchar
+	beqz    t1, 2f
 	nop
-skipdot:
-	b	1b
-	nop
-1:
-	TTYDBG("Memory test failed at ");
-	move	a0,	t1
-	bal	hexserial
-	nop
-	TTYDBG("\r\nWrite=");
-	move	a0, t2
-	bal	hexserial
-	nop
-	TTYDBG("\r\nRead=");
-	move	a0, t3
-	bal	hexserial
-	nop
-1:
-	b	1b
-	nop
+	PRINTSTR("  Error found!!\r\n")
 2:
-	TTYDBG("Testing ok...\r\n");
-	sub	t7,1
-	beqz	t7, 1f
-	nop
-	b	tmem
-	nop
-1:	
-	b	1b
-	nop
+
+3:
 #endif
-#include "machine/newtest/mydebug.S"
+##########################################
+
+#ifdef  AUTO_ARB_LEVEL
+#include "ddr_dir/store_auto_arb_level_info.S"
+#endif
+#########################################
+#ifdef WITH_HT
+#include "ht.S"
+#endif
+
+##########################################
+
+#include "machine/newtest/newdebug.S"
+
+##########################################
 bootnow:
+
+//#define GODSON3_SIM
+#ifdef GODSON3_SIM
+	TTYDBG("bypass Copy PMON to execute location...\r\n")
+#else
 	TTYDBG("Copy PMON to execute location...\r\n")
+//#define DEBUG_LOCORE
 #ifdef DEBUG_LOCORE
 	TTYDBG("  start = 0x")
 	la	a0, start
@@ -904,12 +1023,19 @@ bootnow:
 	bal	hexserial
 	nop
 	TTYDBG("\r\n")
+#if	1
+	TTYDBG("TEST _EDATA...\r\n");
+	la	a0, _edata;
+	bal hexserial;
+	nop;
 #endif
+#endif
+
 	la	a0, start
 	li	a1, 0xbfc00000
 	la	a2, _edata
-        or      a0, 0xa0000000
-        or      a2, 0xa0000000
+        //SMH or      a0, 0xa0000000	//by_css
+        //SMH or      a2, 0xa0000000
 	subu	t1, a2, a0
 	srl	t1, t1, 2
 
@@ -928,9 +1054,15 @@ bootnow:
 	li	a0,'\r'
 	bal 	tgt_putchar
 	nop
+
+
 2:	lw	t3, 0(t1)
 	nop
 	sw	t3, 0(t0)
+
+
+3:
+
 	addu	t0, 4
 	addu	t1, 4
 	bne	t2, t0, 1b
@@ -938,6 +1070,7 @@ bootnow:
 
 	PRINTSTR("\ncopy text section done.\r\n")
 	
+
 	/* Clear BSS */
 	la	a0, _edata
 	la	a2, _end
@@ -947,81 +1080,76 @@ bootnow:
 
 
 	TTYDBG("Copy PMON to execute location done.\r\n")
-/* zhb */
+
+#endif /* sim bypass copy */
+/* cxk */
 #if 0
-zhb:
-	TTYDBG("Testing...\r\n")
-	la	a0, start
-	li	a1, 0xbfc00000
-	la	a2, _edata
-        or      a0, 0xa0000000
-        or      a2, 0xa0000000
-/*	subu	s6, a2, a0*/
-/*	srl	s6, s6, 2*/
+	TTYDBG("Debug Testing...\r\n")
+	la  	a0, start
+	li	    a1, 0xbfc00000
+	la  	a2, _edata
+    //or      a0, 0xa0000000
+    //or      a2, 0xa0000000
 
 	move	t0, a0
 	move	t1, a1
 	move	t2, a2
 	/* copy text section */
 	
-1:	lw	t4, 0(t1)
+    #addu	t0, 64  
+	#addu	t1, 64 
+    li      t3, 128  //loop counter
+
+1:	
+    lw	    t4, 0(t1)
 	nop
-	lw	t5, 0(t0)
-	addu	t0, 4
-	addu	t1, 4
-	beq	t4, t5, 2f
+	lw	    t5, 0(t0)
 	nop
+    
+	TTYDBG	("\r\n")
 	move	a0, t0
-	subu	a0, 4
-	bal	hexserial
+	bal	    hexserial
 	nop
 	TTYDBG	(" ")
 	move	a0, t4
-	bal	hexserial
+	bal	    hexserial
 	nop
 	TTYDBG	(" ")
 	move	a0, t5
-	bal	hexserial
+	bal	    hexserial
 	nop
-	TTYDBG	("\r\n")
-2:	bne	t2, t0, 1b
-	nop
-	TTYDBG	("test ok!\r\n")
-/*
-3:	beqz	zero, 3b
-	nop
-*/
-#endif
-
-	
-
-	TTYDBG("sp=");
-	move a0, sp
-	bal	hexserial
-	nop
-
-	li	a0, 4096*1024
-	sw	a0, CpuTertiaryCacheSize /* Set L3 cache size */
-
+	beq	    t4, t5, 2f
+    nop
+    /* reread the wrong byte*/
+    TTYDBG  (" ")
+    lw      t4, 0(t0)
+    nop
+    move    a0, t4
+    bal     hexserial
+    nop
+    /* if the reread value differs the first read, print mark */
+    beq     t4, t5, 2f
+    nop
+    TTYDBG  ("  DDD")
+2:	
+	addu	t0, 4
+	addu	t1, 4
+    subu    t3, 1
 #if 0
-        mfc0   a0,COP_0_CONFIG
-        and    a0,a0,0xfffffff8
-        or     a0,a0,0x3
-        mtc0   a0,COP_0_CONFIG
+    li      v0, 0xff
+3:
+    daddi   v0, -1
+    bnez    v0, 3b
+    nop
 #endif
-	PRINTSTR("\r\n")
+    bnez 	t3, 1b
+	nop
+	TTYDBG	("\r\nDebug Testing done!\r\n")
+#endif
+/*******************/
 
-
-    /* pass pointer to kseg1 tgt_putchar */
-    la  a1, tgt_putchar
-	addu a1,a1,s0
-
-    la  a2, stringserial
-	addu a2,a2,s0
-
-	srl	msize,20
 	move	a0,msize
-	
+
 	la	v0, initmips
 	jalr	v0
 	nop
@@ -1058,14 +1186,24 @@ stuck:
 	b	stuck
 	nop
 #endif
-/*
- *  Clear the TLB. Normally called from start.S.
- */
+
 #if __mips64
 #define MTC0 dmtc0
 #else 
 #define MTC0 mtc0
 #endif
+LEAF(get_mem_clk)
+  
+	li t0,0xbfe00190
+        ld t1,0x0(t0)
+        dsrl t2,t1,37
+        andi t2,t2,0x0000001f
+        move v0,t2
+
+	nop
+	jr ra
+	nop
+END(get_mem_clk)
 LEAF(CPU_TLBClear)
 	li	a3, 0			# First TLB index.
 
@@ -1126,14 +1264,13 @@ LEAF(CPU_TLBInit)
 	nop
 END(CPU_TLBInit)
 
+/*
+ * Simple character printing routine used before full initialization
+ */
+
 LEAF(stringserial)
 	move	a2, ra
-#ifdef ROM_EXCEPTION
-	li a1,0x3ec00000
-	addu	a1, a0, a1
-#else
 	addu	a1, a0, s0
-#endif
 	lbu	a0, 0(a1)
 1:
 	beqz	a0, 2f
@@ -1147,7 +1284,6 @@ LEAF(stringserial)
 	j	a2
 	nop
 END(stringserial)
-
 LEAF(outstring)
 	move	a2, ra
 	move	a1, a0
@@ -1164,7 +1300,6 @@ LEAF(outstring)
 	j	a2
 	nop
 END(outstring)
-
 LEAF(hexserial)
 	move	a2, ra
 	move	a1, a0
@@ -1173,12 +1308,8 @@ LEAF(hexserial)
 	rol	a0, a1, 4
 	move	a1, a0
 	and	a0, 0xf
-#ifdef ROM_EXCEPTION
-	la	v0, (hexchar+0x3ec00000)
-#else
 	la	v0, hexchar
 	addu	v0, s0
-#endif
 	addu	v0, a0
 	bal	tgt_putchar
 	lbu	a0, 0(v0)
@@ -1190,166 +1321,302 @@ LEAF(hexserial)
 	nop
 END(hexserial)
 
-LEAF(tgt_putchar)
-	.set noat
-	move AT,ra
-#if  ((PCI_IDSEL_VIA686B != 0)&& !defined(HAVE_NB_SERIAL))
-	la	v0, COM1_BASE_ADDR
-	bal 1f
-	nop
-#endif
-
-#ifdef HAVE_NB_SERIAL
-	la	v0, COM3_BASE_ADDR
-	bal 1f
-	nop
-#endif
-
-#ifdef USE_GPIO_SERIAL
-//function tgt_putchar modified by zhanghualiang  4nd version
-//in case the serial is down,we use PCIO_LED 
-//to send message. we use only two of the four led lights.
-
-#define MEMPUTCHARDELAY  14      //added by zhanghualiang
-#define ROMPUTCDELAY      5 //added end	
-#define HANDDELAY        5    
-//added code for light led start	
-//first rol 17 send then send, v1 data(bit1),t1 clock(bit0),t8 send dat
-//set led all lighted
-	
-	li	v0, 2			//put 2
-	li  	v1, 0xbfe0011c	      		   
-	sw 	v0, 0(v1)                        
-	move 	v1, ra				//4rd code begin
-	srl     v1, v1, 28
-	and 	v1, v1, 1
-	xor 	v1, v1, 1
-	sll	v1, v1, MEMPUTCHARDELAY
-	addu	v1, v1, ROMPUTCDELAY
-1427:
-	addu  	v1, v1, -1
-	bgez	v1, 1427b
-	nop				//put 2 end
-	
-	li	v0, 3			//put 3
-	li  	v1, 0xbfe0011c	      		   
-	sw 	v0, 0(v1)                        
-	move 	v1, ra				//4rd code begin
-	srl     v1, v1, 28
-	and 	v1, v1, 1
-	xor 	v1, v1, 1
-	sll	v1, v1, MEMPUTCHARDELAY
-	addu	v1, v1, HANDDELAY
-1441:
-	addu  	v1, v1, -1
-	bgez	v1, 1441b
-	nop				//put 3 end
-	
-
-	li	v0, 1			//put 1
-	li  	v1, 0xbfe0011c	      		   
-	sw 	v0, 0(v1)                        
-	move 	v1, ra				//4rd code begin
-	srl     v1, v1, 28
-	and 	v1, v1, 1
-	xor 	v1, v1, 1
-	sll	v1, v1, MEMPUTCHARDELAY
-	addu	v1, v1, HANDDELAY
-1456:
-	addu  	v1, v1, -1
-	bgez	v1, 1456b
-	nop				//put 1 end
-	
-	
-	li	v0, 0			//put 0 to just wave
-	li  	v1, 0xbfe0011c	      		   
-	sw 	v0, 0(v1)                        
-	li      v1, ROMPUTCDELAY
-1466:	
-	addu	v1, v1, -1
-	bgez	v1, 1466b
-	nop
 
 
-       
-	and	a0, a0, 0xff
-	li	v0, 0x8			//time loop flag  
-1421:
-	and	v1, a0, 1               //v1 fetch a0 low bit 1
-	srl	a0, a0, 1		//
-	sll	v1, v1, 1		
-1431:
-	sll     a0, a0, 4                //4th edit
-	or 	a0, a0, v1
-	li  	v1, 0xbfe0011c	      		  //light on 
-	sw 	a0, 0(v1)                        //put data at clk = 0 
-	move 	v1, ra				//3rd code begin
-	srl     v1, v1, 28
-	and 	v1, v1, 1
-	xor 	v1, v1, 1
-	sll	v1, v1, MEMPUTCHARDELAY
-	addu	v1, v1, ROMPUTCDELAY
-1435:
-	addu  	v1, v1, -1
-	bgez	v1, 1435b
-	nop				//3rd code end
-
-#if 0
-	li 	v1, PUTCDELAY
-1439:
-	addu    v1, v1, -1
-	bgez	v1, 1439b
-	nop	
-#endif
-
-	addu    a0, a0, 1
-	li      v1, 0xbfe0011c                    //light on
-        sw      a0, 0(v1)               //maintain data at clk = 1  
-	
-	move 	v1, ra				//3rd code begin
-	srl     v1, v1, 28
-	and 	v1, v1, 1
-	xor 	v1, v1, 1
-	sll	v1, v1, MEMPUTCHARDELAY
-	addu	v1, v1, ROMPUTCDELAY
-1462:
-	addu  	v1, v1, -1
-	bgez	v1, 1462b
-	nop				//3rd code end
-
-	
-
-	
-	addu    a0, a0, -1
-	li      v1, 0xbfe0011c                    //light on
-        sw      a0, 0(v1)               //maintain data at clk =0  
-	nop
-
-#if  0
-        li      v1, PUTCDELAY
-1448:
-	addu 	v1, v1, -1
-	bgez	v1, 1448b
-	nop   
-#endif
-	srl	a0, a0, 4
-	addu 	v0, v0, -1
-	bnez 	v0, 1421b        	//loop 8
-	nop
-#endif
-	jr AT
-	nop
-1:
-	lbu	v1, NSREG(NS16550_LSR)(v0)
-	and	v1, LSR_TXRDY
-	beqz	v1, 1b
-	nop
-
-	sb	a0, NSREG(NS16550_DATA)(v0)
+__main:
 	j	ra
-	nop	
-	.set at
-END(tgt_putchar)
+	nop
+#include "ddr2_configs_for_1a.S"
+
+	.rdata
+transmit_pat_msg:
+	.asciz	"\r\nInvalid transmit pattern.  Must be DDDD or DDxDDx\r\n"
+v200_msg:
+	.asciz	"\r\nPANIC! Unexpected TLB refill exception!\r\n"
+v280_msg:
+	.asciz	"\r\nPANIC! Unexpected XTLB refill exception!\r\n"
+v380_msg:
+	.asciz	"\r\nPANIC! Unexpected General exception!\r\n"
+v400_msg:
+	.asciz	"\r\nPANIC! Unexpected Interrupt exception!\r\n"
+hexchar:
+	.ascii	"0123456789abcdef"
+
+	.text
+	.align	2
+
+#define Index_Store_Tag_D			0x09
+#define Index_Invalidate_I			0x00
+#define Index_Writeback_Inv_D			0x01
+//!!!!!!!!!SMH#define Index_Store_Tag_S			0x09 
+#define Index_Writeback_Inv_S			0x01//delete scache  
+
+#define Index_Store_Tag_S			0x0B 
+
+LEAF(nullfunction)
+	jr ra
+	nop
+END(nullfunction)
+
+#define CP0_ECC  $26
+LEAF(scache_init)
+#        daddi   sp, sp, 0xfff8
+#        sd      ra, 0(sp)
+	move	t7, ra
+#if 0 /* gx 2G */  //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! SMH
+        .word 0x40028001 #mfc0    v0,c0_config1
+        and     v0, 0xf 
+        beqz    v0, 1f  
+        nop     
+        jr      ra      
+        nop     
+1:
+#endif
+
+        lui     a0, 0x8000
+        #lui     a2, 0x0002      #512k/4way
+        lui     a2, 0x0004      #1M/4way
+scache_init_4way:
+#a0=0x80000000, a2=scache_size
+#a3, v0 and v1 used as local registers
+        li      t0, 0x22
+        mtc0    t0, CP0_ECC
+        mtc0    $0, CP0_TAGHI
+        mtc0    $0, CP0_TAGLO
+        addu    v0, $0, a0
+        addu    v1, a0, a2
+1:      slt     a3, v0, v1
+        beq     a3, $0, 1f
+        nop
+        cache   Index_Store_Tag_S, 0x0(v0)
+        cache   Index_Store_Tag_S, 0x1(v0)
+        cache   Index_Store_Tag_S, 0x2(v0)
+        cache   Index_Store_Tag_S, 0x3(v0)
+        beq     $0, $0, 1b
+        addiu   v0, v0, 0x20
+1:
+scache_init_finish:
+	TTYDBG	("\r\nscache init ok\r\n")
+        jr      t7
+	nop
+scache_init_panic:
+	TTYDBG	("\r\nscache init panic\r\n")
+1:      b       1b
+        nop
+END(scache_init)
+###############################
+LEAF(hexserial64)
+  move t7,ra
+  move a1,a0
+  dsrl a0,32
+  bal hexserial
+  nop
+  move a0,a1
+  bal hexserial
+  nop
+  jr t7
+  nop
+END(hexserial64)
+
+LEAF(smh_flush_dcache)
+	li	a0, 0x80000000
+	li	a1, (1<<14)
+        addu    v0, $0, a0
+        addu    v1, a0, a1
+1:      slt     a3, v0, v1
+        beq     a3, $0, 1f
+        nop
+        cache   0x01, 0x0(v0)   // Index_Writeback_Inv_D
+        cache   0x01, 0x1(v0)
+        cache   0x01, 0x2(v0)
+        cache   0x01, 0x3(v0)
+        beq     $0, $0, 1b
+        addiu   v0, v0, 0x20
+	jr	ra
+	nop
+END(smh_flush_dcache)
+
+LEAF(godson2_cache_init)
+####part 2####
+cache_detect_4way:
+        mfc0    t4, CP0_CONFIG
+        andi    t5, t4, 0x0e00
+        srl     t5, t5, 9
+        andi    t6, t4, 0x01c0
+        srl     t6, t6, 6
+        addiu   t6, t6, 10      #4way
+        addiu   t5, t5, 10      #4way
+        addiu   t4, $0, 1
+        sllv    t6, t4, t6
+        sllv    t5, t4, t5
+        addiu   t7, $0, 4
+####part 3####
+        lui     a0, 0x8000
+        #addu    a1, $0, t5
+        #addu    a2, $0, t6
+        li      a1, (1<<14) #64k/4way
+        li      a2, (1<<14)
+cache_init_d4way:
+#a0=0x80000000, a1=icache_size, a2=dcache_size
+#a3, v0 and v1 used as local registers
+        mtc0    $0, CP0_TAGHI
+        li      t0, 0x22
+        mtc0    t0, CP0_ECC
+        addu    v0, $0, a0
+        addu    v1, a0, a2
+1:      slt     a3, v0, v1
+        beq     a3, $0, 1f
+        nop
+        mtc0    $0, CP0_TAGLO
+        cache   Index_Store_Tag_D, 0x0(v0)
+        cache   Index_Store_Tag_D, 0x1(v0)
+        cache   Index_Store_Tag_D, 0x2(v0)
+        cache   Index_Store_Tag_D, 0x3(v0)
+        beq     $0, $0, 1b
+        addiu   v0, v0, 0x20
+1:
+cache_flush_i4way:
+        addu    v0, $0, a0
+        addu    v1, a0, a1
+        mtc0    $0, CP0_TAGLO
+        mtc0    $0, CP0_TAGHI
+        mtc0    $0, CP0_ECC
+1:      slt     a3, v0, v1
+        beq     a3, $0, 1f
+        nop
+        cache   0x08, 0x0(v0)/*Index_Store_Tag_I*/
+        cache   0x08, 0x1(v0)/*Index_Store_Tag_I*/
+        cache   0x08, 0x2(v0)/*Index_Store_Tag_I*/
+        cache   0x08, 0x3(v0)/*Index_Store_Tag_I*/
+        beq     $0, $0, 1b
+        addiu   v0, v0, 0x20
+1:
+cache_init_finish:
+	//TTYDBG	("\r\ncache init ok\r\n")
+
+        jr      ra
+        nop
+cache_init_panic:
+	TTYDBG	("\r\ncache init panic\r\n")
+1:      b       1b
+        nop
+	.end	godson2_cache_init
+
+/********************************************************************************
+ *										*
+ *	      			      CS5536					*
+ *										*
+ ********************************************************************************/
+#define PCICONF_WRITEB(dev,func,reg,data) \
+	li      a0,CFGADDR(dev,func,reg); \
+	li      a1,PHYS_TO_UNCACHED(PCI_CFG_SPACE); \
+	and     a2,a0,0xffff; \
+	or      a1,a2; \
+	srl     a0,16; \
+	li      a2,BONITO_BASE+BONITO_PCIMAP_CFG; \
+	sw      a0,BONITO_PCIMAP_CFG(bonito); \
+	lw      zero,BONITO_PCIMAP_CFG(bonito); \
+	or      a0,zero,data; \
+	sb      a0,(a1);
+
+#define PCICONF_WRITEW(dev,func,reg,data) \
+        li      a0,CFGADDR(dev,func,reg); \
+	li      a1,PHYS_TO_UNCACHED(PCI_CFG_SPACE); \
+	and     a2,a0,0xffff; \
+	or      a1,a2; \
+	srl     a0,16; \
+	li      a2,BONITO_BASE+BONITO_PCIMAP_CFG; \
+    	sw      a0,BONITO_PCIMAP_CFG(bonito); \
+    	lw      zero,BONITO_PCIMAP_CFG(bonito); \
+    	or	a0,zero,data; \
+	sw      a0,(a1);
+
+#define	PCICONF_READW(dev, func, reg) \
+	li	a0, CFGADDR(dev, func, reg); \
+	li	a1, PHYS_TO_UNCACHED(PCI_CFG_SPACE); \
+	and	a2, a0, 0xffff; \
+	or	a1, a2; \
+	srl	a0, 16; \
+	li	a2, BONITO_BASE+BONITO_PCIMAP_CFG; \
+	sw	a0, BONITO_PCIMAP_CFG(bonito); \
+	lw	zero, BONITO_PCIMAP_CFG(bonito); \
+	lw	a0, (a1);
+
+	
+
+/* 
+ * gpio bit setting
+ */
+#define	GPIO_HI_BIT(bit, reg) \
+	lui	v1, 0xbfd0; \
+	ori	v1, reg;    \
+	lw	v0, 0(v1);  \
+	li	a0, 0x0001; \
+	sll	a0, bit;    \
+	or	v0, a0;     \
+	sll	a0, 16;     \
+	not	a0;         \
+	and	v0, a0;     \
+	sw	v0, 0(v1);
+	
+#define	GPIO_LO_BIT(bit, reg) \
+	lui	v1, 0xbfd0; \
+	ori	v1, reg;    \
+	lw	v0, 0(v1);  \
+	li	a0, 0x0001; \
+	sll	a0, (bit + 16); \
+	or	v0, a0;     \
+	srl	a0, 16;     \
+	not	a0;         \
+	and	v0, a0;     \
+	sw	v0, 0(v1);
+
+/*
+ * io space byte access
+ */
+#define	IO_READ_BYTE(reg) \
+	lui	v1, 0xbfd0; \
+	ori	v1, reg;    \
+	lbu	v0, 0(v1);
+
+#define	IO_WRITE_BYTE(reg) \
+	lui	v1, 0xbfd0; \
+	ori	v1, reg;    \
+	sb	v0, 0(v1);
+
+#define	IO_READ_DWORD(reg) \
+	lui	v1, 0xbfd0; \
+	ori	v1, reg;    \
+	lw	v0, 0(v1);
+
+#define	IO_WRITE_DWORD(reg) \
+	lui	v1, 0xbfd0; \
+	ori	v1, reg;    \
+	sw	v0, 0(v1);
+
+/**********************************************************************/
+
+#define	HW_POWER_OFF_TIME	0x18000		// Hardware power off delay time is 3s
+#define	UART1_TX	8
+#define	UART1_RX	9
+#define	UART2_TX	4
+#define	UART2_RX	3
+#define	I8259_IRQ	12
+#define	MIDE_IRQ	2
+#define	GPIO_5		5
+#define	SMB_CLK		14
+#define	SMB_DATA	15
+#define	PWR_BUT		(28 - 16)	// WE USE HIGH GPIO BANK FOR 28
+
+/*
+ * you should change the LBAR if you want to match the pciscan dispatched address.
+ */
+#define	DIVIL_BASE_ADDR		0xB000
+#define	SMB_BASE_ADDR		(DIVIL_BASE_ADDR | 0x320)
+#define	GPIO_BASE_ADDR		(DIVIL_BASE_ADDR | 0x000)
+#define	MFGPT_BASE_ADDR		(DIVIL_BASE_ADDR | 0x280)
+#define	PMS_BASE_ADDR		(DIVIL_BASE_ADDR | 0x200)
+#define	ACPI_BASE_ADDR		(DIVIL_BASE_ADDR | 0x2c0)
 
 /* baud rate definitions, matching include/termios.h */
 #define B0      0
@@ -1371,717 +1638,500 @@ END(tgt_putchar)
 #define B57600  57600
 #define B115200 115200
 
+LEAF(get_userenv)
+#ifdef NVRAM_IN_FLASH
+    li a1,(0xbfc00000+NVRAM_OFFS+3)
+    add a1,a0
+    addu a0,a1,-3
+    move v1,zero
+	1:  
+    lbu v0,(a1)
+    sll v1,8
+    or v1,v0
+    bne a0,a1,1b
+    addu a1,-1
+#else
+    li a1,RTC_NVRAM_BASE+3
+    add a1,a0
+	addu a0,a1,-3
+	move v1,zero
+	1:
+	sb a1,(PHYS_TO_UNCACHED(PCI_IO_SPACE+RTC_INDEX_REG))
+	lbu v0,(PHYS_TO_UNCACHED(PCI_IO_SPACE+RTC_DATA_REG))
+	sll v1,v1,8
+	or v1,v0
+	bne a1,a0,1b
+	addiu a1,-1
+#endif
+	move v0,v1
+	jr ra
+	nop
+END(get_userenv)
+
 LEAF(initserial)
+		.set noat
+		move AT,ra
+
+        la      v0, COM1_BASE_ADDR
+		li		a0,(33300000/ 16)/CONS_BAUD
+		nop
+		bal  1f
+		nop
+
+		jr AT
+		nop
+1:
+        li      v1, FIFO_ENABLE|FIFO_RCV_RST|FIFO_XMT_RST|FIFO_TRIGGER_4
+        sb      v1, NSREG(NS16550_FIFO)(v0)
+        li      v1, CFCR_DLAB                  #DLAB
+        sb      v1, NSREG(NS16550_CFCR)(v0)
+        sb      a0, NSREG(NS16550_DATA)(v0)
+        srl     a0, 8
+        sb      a0, NSREG(NS16550_IER)(v0)     #set BRDH
+        li      v1, CFCR_8BITS                 #8bit
+        sb      v1, NSREG(NS16550_CFCR)(v0)
+        li      v1, MCR_DTR|MCR_RTS
+        sb      v1, NSREG(NS16550_MCR)(v0)
+        li      v1, 0x0
+        sb      v1, NSREG(NS16550_IER)(v0)
+
+        j       ra
+        nop
+		.set at
+END(initserial)
+
+LEAF(initserial_1a)
 	.set noat
 	move AT,ra
-#if  (PCI_IDSEL_VIA686B != 0)
-	la	v0, COM1_BASE_ADDR
- 	la	a0, NS16550HZ/2/(16*CONS_BAUD)
-	bal 1f
-	nop
-#endif
-
-#ifdef HAVE_NB_SERIAL
-	la	v0, COM3_BASE_ADDR
- 	li	a0, NS16550HZ/(16*CONS_BAUD)
-	bal 1f
-	nop
-#endif
-
-#ifdef USE_GPIO_SERIAL
-	li 	v0, 0xbfe0011c         //init led light
-	lw 	v1, 4(v0) 
-	or 	v1, 0xf
-	xor 	v1,0x3
-	sw 	v1, 4(v0)
-#endif
-	jr AT
-	nop
-1:
+	la	v0, COM0_1A_BASE_ADDR
 	li	v1, FIFO_ENABLE|FIFO_RCV_RST|FIFO_XMT_RST|FIFO_TRIGGER_4
-	sb	v1, NSREG(NS16550_FIFO)(v0)
+	sb	v1, NSREG(NS16550_FIFO_1A)(v0)
 	li	v1, CFCR_DLAB
-	sb	v1, NSREG(NS16550_CFCR)(v0)
-	sb	a0, NSREG(NS16550_DATA)(v0)
-	srl	a0, 8
-	sb	a0, NSREG(NS16550_IER)(v0)
+	sb	v1, NSREG(NS16550_CFCR_1A)(v0)
+	li	v1, ((APB_CLK*10)/(2*16*CONS_BAUD))
+	sb	v1, NSREG(NS16550_DATA_1A)(v0)
+	srl	v1, 8
+	sb	v1, NSREG(NS16550_IER_1A)(v0)
 	li	v1, CFCR_8BITS
-	sb	v1, NSREG(NS16550_CFCR)(v0)
-//	li	v1, MCR_DTR|MCR_RTS
+	sb	v1, NSREG(NS16550_CFCR_1A)(v0)
+	li	v1, MCR_DTR|MCR_RTS
+	sb	v1, NSREG(NS16550_MCR_1A)(v0)
 	li	v1, 0x0
-	sb	v1, NSREG(NS16550_MCR)(v0)
+	sb	v1, NSREG(NS16550_IER_1A)(v0)
 	li	v1, 0x0
-	sb	v1, NSREG(NS16550_IER)(v0)
+	sb	v1, NSREG(NS16550_IER_1A)(v0)
 	j	ra
 	nop
 	.set at
-END(initserial)
+END(initserial_1a)
 
-
-#include "i2c.S"
-__main:
-	j	ra
+LEAF(_w83627_write)
+	li	v0,0xbfd0002e
+	li	v1,0xbfd0002f
+	li	t0,0x87
+	sb	t0,0(v0)
+	nop
+	sb	t0,0(v0)
+	nop
+	li	t0,0x7
+	sb	t0,0(v0)
+	nop
+	move 	t0,a0
+	sb	t0,0(v1)
+	nop
+	move	t0,a1
+	sb	t0,0(v0)
+	nop
+	move 	t0,a2
+	sb	t0,0(v1)
+	nop
+	li	t0,0xaa
+	sb	t0,0(v0)
+	nop
+	sb	t0,0(v0)
 	nop
 
-
-	.rdata
-transmit_pat_msg:
-	.asciz	"\r\nInvalid transmit pattern.  Must be DDDD or DDxDDx\r\n"
-v200_msg:
-	.asciz	"\r\nPANIC! Unexpected TLB refill exception!\r\n"
-v280_msg:
-	.asciz	"\r\nPANIC! Unexpected XTLB refill exception!\r\n"
-v380_msg:
-	.asciz	"\r\nPANIC! Unexpected General exception!\r\n"
-v400_msg:
-	.asciz	"\r\nPANIC! Unexpected Interrupt exception!\r\n"
-hexchar:
-	.ascii	"0123456789abcdef"
-
-	.text
-	.align	2
-/*
- *   I2C Functions used in early startup code to get SPD info from
- *   SDRAM modules. This code must be entirely PIC and RAM independent.
- */
-
-/* Delay macro */
-#define	DELAY(count)	\
-	li v0, count;	\
-99:			\
-	bnz	vo, 99b;\
-	addiu	v0, -1
-
-
-#define I2C_INT_ENABLE	0x80
-#define I2C_ENABLE	0x40
-#define I2C_ACK		0x04
-#define I2C_INT_FLAG	0x08
-#define I2C_STOP_BIT	0x10
-#define I2C_START_BIT	0x20
-
-#define	I2C_AMOD_RD	0x01
-
-#define	BUS_ERROR				0x00
-#define	START_CONDITION_TRA			0x08
-#define	RSTART_CONDITION_TRA			0x10
-#define	ADDR_AND_WRITE_BIT_TRA_ACK_REC		0x18
-#define	ADDR_AND_READ_BIT_TRA_ACK_REC		0x40
-#define	SLAVE_REC_WRITE_DATA_ACK_TRA		0x28
-#define	MAS_REC_READ_DATA_ACK_NOT_TRA		0x58
-
-#define Index_Store_Tag_D			0x09
-#define Index_Invalidate_I			0x00
-#define Index_Writeback_Inv_D			0x01
-#define Index_Store_Tag_S			0x0b
-#define Index_Writeback_Inv_S			0x03
-
-LEAF(nullfunction)
-	jr ra
-	nop
-END(nullfunction)
-
-LEAF(godson2_cache_init)
-####part 2####
-cache_detect_2way:
-	mfc0	t4, CP0_CONFIG
-	andi	t5, t4, 0x0e00
-	srl	t5, t5, 9
-	andi	t6, t4, 0x01c0
-	srl	t6, t6, 6
-	addiu	t6, t6, 12
-	addiu	t5, t5, 12
-	addiu	t4, $0, 1
-	sllv	t6, t4, t6
-	srl	t6,2
-	sllv	t5, t4, t5
-	srl	t5,2
-	addiu	t7, $0, 2
-####part 3####
-	lui	a0, 0x8000
-	addu	a1, $0, t5
-	addu	a2, $0, t6
-cache_init_d2way:
-#a0=0x80000000, a1=icache_size, a2=dcache_size
-#a3, v0 and v1 used as local registers
-	mtc0	$0, CP0_TAGHI
-	addu	v0, $0, a0
-	addu	v1, a0, a2
-1:	slt	a3, v0, v1
-	beq	a3, $0, 1f
-	nop
-	mtc0	$0, CP0_TAGLO
-	cache	Index_Store_Tag_D, 0x0(v0)
-	mtc0	$0, CP0_TAGLO
-	cache	Index_Store_Tag_D, 0x1(v0)
-	mtc0	$0, CP0_TAGLO
-	cache   Index_Store_Tag_D, 0x2(v0)
-	mtc0	$0, CP0_TAGLO
-	cache   Index_Store_Tag_D, 0x3(v0)
-	beq	$0, $0, 1b
-	addiu	v0, v0, 0x20
-
-#if 1
-1:
-cache_init_l24way:
-        mtc0    $0, CP0_TAGHI
-        addu    v0, $0, a0
-        addu    v1, a0, 128*1024
-1:      slt     a3, v0, v1
-        beq     a3, $0, 1f
-        nop
-        mtc0    $0, CP0_TAGLO
-        cache   Index_Store_Tag_S, 0x0(v0)
-        mtc0    $0, CP0_TAGLO
-        cache   Index_Store_Tag_S, 0x1(v0)
-        mtc0    $0, CP0_TAGLO
-        cache   Index_Store_Tag_S, 0x2(v0)
-        mtc0    $0, CP0_TAGLO
-        cache   Index_Store_Tag_S, 0x3(v0)
-        beq     $0, $0, 1b
-        addiu   v0, v0, 0x20
-
-
-1:
-cache_flush_4way:
-	addu	v0, $0, a0
-	addu	v1, a0, 128*1024
-1:	slt	a3, v0, v1
-	beq	a3, $0, 1f
-	nop
-	cache	Index_Writeback_Inv_S, 0x0(v0)
-	cache	Index_Writeback_Inv_S, 0x1(v0)
-	cache	Index_Writeback_Inv_S, 0x2(v0)
-	cache	Index_Writeback_Inv_S, 0x3(v0)
-	beq	$0, $0, 1b
-	addiu	v0, v0, 0x20
-# endif
-
-1:
-cache_flush_i2way:
-	addu	v0, $0, a0
-	addu	v1, a0, a1
-1:	slt	a3, v0, v1
-	beq	a3, $0, 1f
-	nop
-	cache	Index_Invalidate_I, 0x0(v0)
-#	cache	Index_Invalidate_I, 0x1(v0)
-#	cache	Index_Invalidate_I, 0x2(v0)
-#	cache	Index_Invalidate_I, 0x3(v0)
-	beq	$0, $0, 1b
-	addiu	v0, v0, 0x20
-1:
-cache_flush_d2way:
-	addu	v0, $0, a0
-	addu	v1, a0, a2
-1:	slt	a3, v0, v1
-	beq	a3, $0, 1f
-	nop
-	cache	Index_Writeback_Inv_D, 0x0(v0)
-	cache	Index_Writeback_Inv_D, 0x1(v0)
-	cache	Index_Writeback_Inv_D, 0x2(v0)
-	cache	Index_Writeback_Inv_D, 0x3(v0)
-	beq	$0, $0, 1b
-	addiu	v0, v0, 0x20
-1:
-cache_init_finish:
-	nop
 	jr	ra
 	nop
+	
+END(_w83627_write)
 
-cache_init_panic:
-	TTYDBG("cache init panic\r\n");
-1:	b	1b
-	nop
-	.end	godson2_cache_init
-
-#define PCICONF_WRITEB(dev,func,reg,data) \
-	li      a0,CFGADDR(dev,func,reg); \
-	li      a1,PHYS_TO_UNCACHED(PCI_CFG_SPACE); \
-        and     a2,a0,0xffff; \
-	or      a1,a2; \
-	srl     a0,16; \
-	li      a2,BONITO_BASE+BONITO_PCIMAP_CFG; \
-    	sw      a0,BONITO_PCIMAP_CFG(bonito); \
-    	lw      zero,BONITO_PCIMAP_CFG(bonito); \
-    	or	a0,zero,data; \
-	sb      a0,(a1);
-
-#define PCICONF_WRITEW(dev,func,reg,data) \
-	li      a0,CFGADDR(dev,func,reg); \
-	li      a1,PHYS_TO_UNCACHED(PCI_CFG_SPACE); \
-        and     a2,a0,0xffff; \
-	or      a1,a2; \
-	srl     a0,16; \
-	li      a2,BONITO_BASE+BONITO_PCIMAP_CFG; \
-    	sw      a0,BONITO_PCIMAP_CFG(bonito); \
-    	lw      zero,BONITO_PCIMAP_CFG(bonito); \
-    	or	a0,zero,data; \
-	sw      a0,(a1);
-#define PCICONF_ORB(dev,func,reg,data) \
-	li      a0,CFGADDR(dev,func,reg); \
-        li      a1,PHYS_TO_UNCACHED(PCI_CFG_SPACE); \
-        and     a2,a0,0xffff; \
-        or      a1,a2; \
-        srl     a0,16; \
-        li      a2,BONITO_BASE+BONITO_PCIMAP_CFG; \
-        sw      a0,BONITO_PCIMAP_CFG(bonito); \
-        lw      zero,BONITO_PCIMAP_CFG(bonito); \
-    	lbu	a2,(a1); \
-    	ori	a2,data; \
-        sw      a0,BONITO_PCIMAP_CFG(bonito); \
-        lw      zero,BONITO_PCIMAP_CFG(bonito); \
-    	sb	a2,(a1);
-#define SUPERIO_WR(idx,data) \
-        li 	v0,BONITO_PCIIO_BASE_VA+0x3f0; \
-        or      v1,zero,idx; \
-        sb      v1,(v0); \
-        or 	v1,zero,data; \
-        sb      v1,1(v0);
-
-#define E2_EPP 2
-#define E2_S1 (1<<2)
-#define E2_S2 (1<<3)
-#define E2_FLOPPY (1<<4)
-    
-LEAF(superio_init)
-#if (PCI_IDSEL_VIA686B != 0)
-	PCICONF_WRITEW(PCI_IDSEL_VIA686B,0,4,7);
-	/*positive decode*/
-	PCICONF_ORB(PCI_IDSEL_VIA686B,0,0x81,0x80);
-	PCICONF_WRITEB(PCI_IDSEL_VIA686B,0,0x83,0x80|0x1| 0x8);
-	PCICONF_WRITEB(PCI_IDSEL_VIA686B,0,0x85,3);
-	/* enable RTC/PS2/KBC */
-	PCICONF_WRITEB(PCI_IDSEL_VIA686B,0,0x5A,7);
-
-	SUPERIO_WR(0xe2,E2_S2|E2_S1|E2_EPP|E2_FLOPPY) /*enable serial and floppy */
-	SUPERIO_WR(0xe3,0x3f0>>2) /*floppy base address*/
-	SUPERIO_WR(0xe6,0x378>>2) /*parallel port*/
-	SUPERIO_WR(0xe7,0x3f8>>2) /*set serial port1 base addr 0x3f8*/
-	SUPERIO_WR(0xe8,0x2f8>>2) /*set serial port2 base addr 0x2f8*/
-	SUPERIO_WR(0xee,0xc0) /* both ports on high speed*/
-
-	PCICONF_WRITEB(PCI_IDSEL_VIA686B,0,0x85,1)
-#endif
-	jr ra
-	nop
-END(superio_init)
-
-#######################################
-#define REG_ADDRESS 0x0
-#define CONFIG_BASE 0xaffffe00
-    
-
-        .global ddr2_config
-        .set    noreorder
-        .set    mips3
-ddr2_config:
-    la      t0, ddr2_reg_data
-#ifdef __MYDEBUG__
-	bal tgt_testchar
-	nop
-	beqz v0,1f
-	nop
-	bal tgt_getchar
-	nop
-	bal tgt_getchar
-	nop
-	li v1,'X'
-	bne v0,v1,1f
-	nop
-
-	PRINTSTR("use backup data for ddr cfg\r\n");
-    la      t0, ddr2_reg_data1
-1:
-#endif
-    addu    t0, t0, s0
-    li      t1, 0x1d
-    li      t2, CONFIG_BASE
-
-reg_write:
-    ld      a1, 0x0(t0)
-    sd      a1, REG_ADDRESS(t2)
-    subu    t1, t1, 0x1
-    addiu     t0, t0, 0x8
-    bne     t1, $0, reg_write
-    addiu     t2, t2, 0x10
-//----------------
-#if 1
-#include "i2ccfgddr.S"
-#else
-	li	msize,0x10000000
-#endif
-//----------------
-
-#ifdef __MYDEBUG__
-	bal tgt_testchar
-	nop
-	beqz v0,2f
-	nop
-	bal tgt_getchar
-	nop
-	bal tgt_getchar
-	nop
-	li v1,'Y'
-	bne v0,v1,2f
-	nop
-1:
-	PRINTSTR("press x to begin debug,then Q to quit\r\n");
-	nop
-	bal tgt_getchar
-	nop
-	li v1,'x'
-	bne v0,v1,1b
-	nop
-
-	bal mydebug_main
-    nop	
-2:
-#endif
-    
-    ############start##########
-	//PRINTSTR("start\n\r");
-    li      t2, CONFIG_BASE
-    la		t0,DDR2_CTL_start_DATA_LO
-    #la		t0,ddr2_start_reg
-    addu    	t0, t0, s0
-    ld      a1, 0x0(t0)
-    sd      a1, 0x30(t2)
-
-	b ddr2_config_done
-	nop
-
-    jr      ra
+LEAF(tgt_putchar)
+	.set noat
+    move AT,ra
+    la  v0, COM1_BASE_ADDR
+    bal 1f
     nop
 
+    jr AT
+    nop
+  
+1:
+    lbu v1, NSREG(NS16550_LSR)(v0)
+    and v1, LSR_TXRDY
+    beqz    v1, 1b
+    nop
+						 
+    sb  a0, NSREG(NS16550_DATA)(v0)
+    j   ra
+    nop
+	.set at
+END(tgt_putchar)
+
+.text
+
+
+/************************************************************************
+ *									*
+ *				SMB					*	
+ *									*
+ ************************************************************************/
+#define	SMBUS_WAIT \
+	li	a2, 1000; \
+1: \
+	li	a3, 0x100; \
+2: \
+	bnez	a3, 2b;    \
+	addiu	a3, -1;	   \
+	lui	a0, 0xbfd0;\
+	ori	a0, (SMB_BASE_ADDR | SMB_STS); \
+	lbu	a1, 0(a0); \
+	andi	a1, SMB_STS_SDAST;  \
+	li	a3, 0x0;   \
+	bnez	a1, 3f;    \
+	nop;		   \
+	lbu	a1, 0(a0); \
+	andi	a1, (SMB_STS_BER | SMB_STS_NEGACK); \
+	li	a3, 0x01;  \
+	bnez	a1, 3f;    \
+	nop;		   \
+	addiu	a2, -1;    \
+	bnez	a2, 1b;    \
+	nop;               \
+	li	a3, 0x01;  \
+3: \
+	nop;
+	
 
 /*
-.单个CS的情况
-控制器设成 75ohm (rtt_pad_termination)
-DIMM设成   150 ohm (rtt_0), 并且写的odt_wr_map_cs0 设为 1
-                            读的 odt_rd_map_cs0 设为 0
- 
-2.多个CS的情况
-控制器设成 150ohm
-DIMM 设成  75 ohm, 写的 odt_wr_map_cs0 设为 0x02, odt_wr_map_cs1 设为 0x01
-                   读的 odt_rd_map_cs0 设为 0x02, odt_rd_map_cs1 设为 0x01
+ * a0 : slave address, 0xa0 for spd
+ * a1 : slave device register index
+ * v0 : the returned register value.
+ */
+
+LEAF(i2cread)
+	andi	a0, 0xfe;
+	move	t2, a0;
+	move	t3, a1;
+	
+	/* start condition */
+	IO_READ_BYTE(SMB_BASE_ADDR | SMB_CTRL1);
+	ori	v0, SMB_CTRL1_START;
+	IO_WRITE_BYTE(SMB_BASE_ADDR | SMB_CTRL1);
+	IO_READ_BYTE(SMB_BASE_ADDR | SMB_STS);
+	andi	v0, SMB_STS_BER;
+	bnez	v0, i2cerr;
+	nop;
+	SMBUS_WAIT;
+	bnez	a3, i2cerr;
+	nop;
+	
+	/* send slave address */
+	move	v0, t2;
+	IO_WRITE_BYTE(SMB_BASE_ADDR | SMB_SDA);
+	IO_READ_BYTE(SMB_BASE_ADDR | SMB_STS);
+	andi	v0, (SMB_STS_BER | SMB_STS_NEGACK);
+	bnez	v0, i2cerr;
+	nop;
+	SMBUS_WAIT;
+	bnez	a3, i2cerr;
+	nop;
+		
+	/* acknowledge smbus */
+	IO_READ_BYTE(SMB_BASE_ADDR | SMB_CTRL1);
+	ori	v0, (SMB_CTRL1_ACK);
+	IO_WRITE_BYTE(SMB_BASE_ADDR | SMB_CTRL1);
+	
+	/* send command */
+	move	v0, t3;
+	IO_WRITE_BYTE(SMB_BASE_ADDR | SMB_SDA);
+	IO_READ_BYTE(SMB_BASE_ADDR | SMB_STS);
+	andi	v0, (SMB_STS_BER | SMB_STS_NEGACK);
+	bnez	v0, i2cerr;
+	nop;
+	SMBUS_WAIT;
+	bnez	a3, i2cerr;
+	nop;
+		
+	/* start condition again */
+	IO_READ_BYTE(SMB_BASE_ADDR | SMB_CTRL1);
+	ori	v0, SMB_CTRL1_START;
+	IO_WRITE_BYTE(SMB_BASE_ADDR | SMB_CTRL1);
+	IO_READ_BYTE(SMB_BASE_ADDR | SMB_STS);
+	andi	v0, SMB_STS_BER;
+	bnez	v0, i2cerr;
+	nop;
+	SMBUS_WAIT;
+	bnez	a3, i2cerr;
+	nop;
+	
+	/* send salve address again */
+	move	v0, t2;
+	ori	v0, 0x01;
+	IO_WRITE_BYTE(SMB_BASE_ADDR | SMB_SDA);
+	IO_READ_BYTE(SMB_BASE_ADDR | SMB_STS);
+	andi	v0, (SMB_STS_BER | SMB_STS_NEGACK);
+	bnez	v0, i2cerr;
+	nop;
+	SMBUS_WAIT;
+	bnez	a3, i2cerr;
+	nop;
+		
+	/* stop condition */
+	li	v0, SMB_CTRL1_STOP;
+	IO_WRITE_BYTE(SMB_BASE_ADDR | SMB_CTRL1);
+	SMBUS_WAIT;
+	bnez	a3, i2cerr;
+	nop;
+	
+	/* read data */
+	IO_READ_BYTE(SMB_BASE_ADDR | SMB_SDA);
+	b 1f;
+	nop;
+
+i2cerr :
+	nop;
+	li	v0, 0x02;
+	IO_WRITE_BYTE(SMB_BASE_ADDR | SMB_CTRL1);
+	li  v0, 0x10;	
+	IO_WRITE_BYTE(SMB_BASE_ADDR | SMB_STS);
+1:
+	jr	ra;
+	nop;
+END(i2cread)
+
+LEAF(init_south_bridge)
+.set at
+	move a3,ra	//save ra
+	/* first config north bridge*/
+	li      t0, CFGADDR(PCI_IDSEL_1A,0,0)
+	srl     t0, 16
+	sw      t0, PHYS_TO_UNCACHED(BONITO_BASE+BONITO_PCIMAP_CFG)
+	PRINTSTR("setup ls2g pci controller window\r\n");
+	NORTHBRIDGE_INIT(0xbfe00004,0x7)        //command
+	NORTHBRIDGE_INIT(0xbfe00010,0x80000000) //bar0 pci bus space 2G-4G
+	NORTHBRIDGE_INIT(0xbfe00014,0x00000000) //bar1
+	NORTHBRIDGE_INIT(0xbfe00018,0x800000)   //bar2 pci bus space 8M-16M maybe can delete
+	NORTHBRIDGE_INIT(0xbfe0001c,0x0)        //bar3
+	NORTHBRIDGE_INIT(0xbfe00110,0x11404)    //pci_map 0~128M 0x40000000~0x47ffffff     010001 010000 000100
+	NORTHBRIDGE_INIT(0xbfe00150,0x8000000c) //pci_hit0_lo 2G
+	NORTHBRIDGE_INIT(0xbfe00154,0xffffffff) //pci_hit0_hi
+	NORTHBRIDGE_INIT(0xbfe00158,0xff80000c) //pci_hit1_lo 8M
+	NORTHBRIDGE_INIT(0xbfe0015c,0xffffffff) //pci_hit1_hi
+	NORTHBRIDGE_INIT(0xbfe00160,0x00000006) //pci_hit2_lo
+	NORTHBRIDGE_INIT(0xbfe00164,0x00000000) //pci_hit2_hi
+	NORTHBRIDGE_INIT(0xbfe00168,0xfe01c5)   //pxarb_config
+	PRINTSTR("setup 1a south controller window\r\n");
+	/*then config south bridge*/
+	PCICONF_WRITEB(PCI_IDSEL_1A,0,0x04,7)           //pci_command
+	PCICONF_WRITEW(PCI_IDSEL_1A,0,0x10,0xffffffff)  //base address reg0 
+	PCICONF_WRITEW(PCI_IDSEL_1A,0,0x18,0xffffffff)  //base address reg2 
+	PCICONF_WRITEW(PCI_IDSEL_1A,0,0x20,0xffffffff)  //base address reg4 
+	PCICONF_WRITEW(PCI_IDSEL_1A,0,0x4c,0x82000001)  //reg isr_4ch
+
+	PCICONF_WRITEW(PCI_IDSEL_1A,0,0x10,0x10200000)  //base address reg0 GPU/DC 2M
+	PCICONF_WRITEW(PCI_IDSEL_1A,0,0x18,0x12000000)  //base address reg2 AXI MUX SLAVE 16M
+	PCICONF_WRITEW(PCI_IDSEL_1A,0,0x20,0x40000000)  //base address reg4 MEM
+	PRINTSTR("setup 1a south controller window done\r\n");
+
+	NORTHBRIDGE_INIT(0xb2d001a0,0x000000f0)
+	/*make pci's GPU/DC space map to ddr's config space,then change back*/
+	NORTHBRIDGE_INIT(0xb2d00190,0x0fe000f0)
+	NORTHBRIDGE_INIT(0xb2d0110c,0x1)        //?????1f_pci_oxarb_config
+	NORTHBRIDGE_INIT(0xb2d01114,0x238a1)    //1a_pci_map 1a pci mem map to 2g ddr 1a 0x10000000-0x18000000 -> pci addr 0x84xxxxxx-0x8cxxxxxx
+	/******************************************************************
+	0x18000000~0x1bffffff->0x8c000000~0x8fffffff (100011)
+	0x14000000~0x17ffffff->0x88000000~0x8bffffff (100010)
+	0x10000000~0x13ffffff->0x84000000~0x87ffffff (100001)
+
+	******************************************************************/
+	NORTHBRIDGE_INIT(0xb2d01130,0xffe00004) //1a_pci_hit0_lo 2MB gpu/dc space
+	NORTHBRIDGE_INIT(0xb2d01134,0x7fffffff) //1a_pci_hit0_hi
+	NORTHBRIDGE_INIT(0xb2d01140,0xff000004) //1a_pci_hit1_lo 16MB axi slave space
+	NORTHBRIDGE_INIT(0xb2d01144,0x7fffffff) //1a_pci_hit1_hi
+	NORTHBRIDGE_INIT(0xb2d01150,0xf0000004) //1a_pci_hit2_lo MEM space 256MB//1G->0xc0000004 256M->0xf0000004
+	NORTHBRIDGE_INIT(0xb2d01154,0xffffffff) //1a_pci_hit2_hi
+	NORTHBRIDGE_INIT(0xb2d0110c,0x000001c5) //1a_pci_pxarb_config   // SUMH for 1A2
+
+	PRINTSTR("setup 1a gpio\r\n");
+	NORTHBRIDGE_INIT(0xb2e78030,0x8f8b)//config pll control reg ddr_dll = 10,cpu_dll = 4
+	NORTHBRIDGE_INIT(0xb2d010c0,0x00000000) //1a_gpio_cfg0   normal mode// SUMH for 1A2
+	NORTHBRIDGE_INIT(0xb2d010c4,0x10000000) //1a_gpio_cfg1   normal mode// SUMH for 1A2 ,gpio60 for reset
+	NORTHBRIDGE_INIT(0xb2d010c8,0x00000000) //1a_gpio_cfg2   normal mode// SUMH for 1A2
+	NORTHBRIDGE_INIT(0xb2d00420,0x0a000000) //1f_gpio_cfg2   // SUMH for 1A2 support nand gmac1 unspport LPC
+	PRINTSTR("setup 1a done\r\n");
+
+	j       a3
+	nop
+.set noat
+END(init_south_bridge)
+
+LEAF(init_ls2g_xbar_config)
+
+	move a3,ra//save ra
+
+TTYDBG("2G plus GMAC Address Config\r\n")
+/*
+gmac1: 0x0c0000000000
+gmac2: 0x0d0000000000
+gmac dma 0-> ddr 0
 */
 
-//57:56=RTT_0 0/75/150/50ohm ODT
-#ifndef DDR2_CTL_04_DATA_HI_VAL
-#define DDR2_CTL_04_DATA_HI_VAL 0x01000202
+/*
+gmac1: 0x1e000000
+gmac0: 0x1f000000
+*/
+//chengguipeng for display l1 xbar win5 ht0 0x00000000,1e000000->0x00000100,00000000 size 8k
+	dli     t0, 0x900000003ff02000 # set ht0 since implicit routing has been disabled
+	dli     t1, 0x000000001e000000 # ht0 base
+	sd      t1, 0x28(t0) # win5
+	dli     t1, 0xffffffffffffe000 # ht0 mask
+	sd      t1, 0x68(t0) # win5
+	dli     t1, 0x00000100000000f6 # ht0 mmap
+	sd      t1, 0xa8(t0) # win5
+
+//l1 xbar win3 ht0 0x00000000,1f000000->0x0000000,00000000 size 8k
+	dli     t0, 0x900000003ff02000 # set ht0 since implicit routing has been disabled
+	dli     t1, 0x000000001f000000 # ht0 base
+	sd      t1, 0x18(t0) # win3
+	dli     t1, 0xffffffffffffe000 # ht0 mask
+	sd      t1, 0x58(t0) # win3
+	dli     t1, 0x00000000000000f6 # ht0 mmap
+	sd      t1, 0x98(t0) # win3
+
+//l1 xbar win6 ht0 0x00000c00,00000000->0x00000000,00000000 size 8k
+	dli     t0, 0x900000003ff02000 # set ht0 since implicit routing has been disabled
+	dli     t1, 0x00000c0000000000 # ht0 base
+	sd      t1, 0x30(t0) # win6
+	dli     t1, 0xfffffeffffffe000 # ht0 mask
+	sd      t1, 0x70(t0) # win6
+	dli     t1, 0x00000000000000f6 # ht0 mmap
+	sd      t1, 0xb0(t0) # win6
+
+//l1 xbar gmac win 0x00000000,00000000->0x00000000,00000000 size 4GB
+	#setup gmac DMA address window
+	dli     t0, 0x900000003ff02600 # set gamc master address window
+	dli     t1, 0x0000000000000000 # gmac0 base
+	sd      t1, 0x00(t0) # win6
+	dli     t1, 0xffffffff00000000 # gmac0 mask
+	sd      t1, 0x40(t0) # win6
+	dli     t1, 0x00000000000000f0 # gmac0 mmap
+	sd      t1, 0x80(t0) # win6
+
+	PRINTSTR("setup bigpci\r\n");
+
+/*big pci window: cpu 1G->PCI 1G*/
+	//l2 xbar win4 pci 0x00000000,40000000 ->0x00000000,40000000 1GB
+	dli     t0, 0x900000003ff00000 # set ht0 since implicit routing has been disabled
+	dli     t1, 0x0000000040000000 # cpu win4 base
+	sd      t1, 0x20(t0) # win4
+	dli     t1, 0xffffffffc0000000 # cpu win4 mask
+	sd      t1, 0x60(t0) # win4
+	dli     t1, 0x0000000040000082 # cpu win4 mmap
+	sd      t1, 0xa0(t0) # win4
+
+
+/*pci window*/
+	PRINTSTR("setup pci\r\n");
+
+/*setup bootrom cached*/
+//l2 xbar win2 lpc boot 0x00000000,1fc00000->0x00000000,1fc00000 size 1MB
+	dli     t1, 0x000000001fc00000 # lpc boot base
+	sd      t1, 0x10(t0) # win2
+	dli     t1, 0xfffffffffff00000 # lpc boot mask
+	sd      t1, 0x50(t0) # win2
+	dli     t1, 0x000000001fc000f2 # lpc mmap
+	sd      t1, 0x90(t0) # win2
+
+/*set other pci space uncached */
+	dli     t1, 0x0000000010000082 # l2 xbar win1 mmap
+	sd      t1, 0x88(t0) # win1
+
+	PRINTSTR("setup memory\r\n");
+/*memory*/
+/*
+cpu 0-256M -> ddr 0
+*/
+//l2 xbar win0 ddr window 0x00000000,00000000->0x00000000,00000000 size 256MB
+	dli     t1, 0x0000000000000000 # ddr base
+	sd      t1, 0x0(t0) # win0
+	dli     t1, 0xfffffffff0000000 # ddr mask
+	sd      t1, 0x40(t0) # win0
+	dli     t1, 0x00000000000000f0 # ddr mmap
+	sd      t1, 0x80(t0) # win0
+
+/*
+cpu 2G-4G -> ddr 0
+*/
+//l2 xbar win3 ddr window 0x00000000,80000000->0x00000000,00000000 size 2GB
+	dli     t1, 0x0000000080000000 # ddr base
+	sd      t1, 0x18(t0) # win3
+	dli     t1, 0xffffffff80000000 # ddr mask
+	sd      t1, 0x58(t0) # win3
+	dli     t1, 0x00000000000000f0 # ddr mmap
+	sd      t1, 0x98(t0) # win3
+
+/*dma map*/
+/*
+pci 2G -> ddr 0
+will set on pci_machdep.c
+*/
+//l2 xbar pci win0 0x00000000,80000000->0x00000000,00000000 size 2GB
+	dli     t1, 0x0000000080000000 # pci win0 base
+	sd      t1, 0x100(t0) # win6
+	dli     t1, 0xffffffff80000000 # pci win0 mask
+	sd      t1, 0x140(t0) # win6
+	dli     t1, 0x00000000000000f0 # pci win0 mmap
+	sd      t1, 0x180(t0) # win6
+
+	PRINTSTR("other fixup\r\n");
+
+#include "loongson3_fixup.S"
+	PRINTSTR("setup done\r\n");
+
+	j	a3
+	nop
+END(init_ls2g_xbar_config)
+
+	.set at
+#ifdef  AUTO_DDR_CONFIG
+#include "ddr_dir/detect_node_dimm.S"
 #endif
 
-//26:24=14-COLUMN_SIZE 10:8=15-ADDR_PINS 1:0=RTT_PAD_TERMINATION CPU ODT
-#ifndef DDR2_CTL_05_DATA_LO_VAL
-#ifdef DEVBD2F_SM502
-#define DDR2_CTL_05_DATA_LO_VAL 0x04050202
+#######################################
+#include "ddr_dir/2G_ddr_config.S"
+#ifdef ARB_LEVEL
+#include "ddr_dir/ARB_level_new.S"
+#endif
+#ifdef  DEBUG_DDR
+#include "ddr_dir/Test_Mem.S"
+#endif
+
+    .rdata
+    .global ddr2_reg_data
+    .global ddr3_reg_data
+
+    .align  5
+#include "loongson2G_ddr_param.S"
+
+#ifdef  ARB_LEVEL
+    .text
+    .global c0_mc0_level_info 
+    .global c0_mc1_level_info 
+
+#include "ddr_dir/loongson3A3_ddr_param.lvled.S"
 #else
-#define DDR2_CTL_05_DATA_LO_VAL 0x04050102
+#ifdef FIX_DDR_PARAM
+#include "loongson3A3_ddr_param.fix.S"
 #endif
 #endif
-
-//19:16=CS_MAP
-#ifndef DDR2_CTL_07_DATA_LO_VAL
-#ifdef DEVBD2F_SM502
-#define DDR2_CTL_07_DATA_LO_VAL	0x00030a0b 
-#else
-#define DDR2_CTL_07_DATA_LO_VAL 0x000f0a0b 
-#endif
-#endif
-
-//27:24=ODT_RD_MAP_CS3 19:16=ODT_RD_MAP_CS2 11:8=ODT_RD_MAP_CS1 3:0=ODT_RD_MAP_CS0
-#ifndef DDR2_CTL_08_DATA_LO_VAL
-#ifdef DEVBD2F_SM502
-#define DDR2_CTL_08_DATA_LO_VAL 0x00000102
-#else
-#define DDR2_CTL_08_DATA_LO_VAL 0x0f0f0f0f
-#endif
-#endif
-
-//27:24=ODT_WR_MAP_CS3 19:16=ODT_WR_MAP_CS2 11:8=ODT_WR_MAP_CS1 3:0=ODT_WR_MAP_CS0
-#ifndef DDR2_CTL_08_DATA_HI_VAL
-#ifdef DEVBD2F_SM502
-#define DDR2_CTL_08_DATA_HI_VAL 0x00000000
-#else
-#define DDR2_CTL_08_DATA_HI_VAL 0x0f0f0f0f
-#endif
-#endif
-
-//62:56=DLL_DQS_DELAY_2 54:48=DLL_DQS_DELAY_1  46:40=DLL_DQS_DELAY_0 37:32=COMMAND_AGE_COUNT 
-#ifndef DDR2_CTL_10_DATA_HI_VAL
-#ifdef DEVBD2F_VIA
-#define DDR2_CTL_10_DATA_HI_VAL 0x2323234e
-#else
-#define DDR2_CTL_10_DATA_HI_VAL 0x1515153f
-#endif
-#endif
-
-//30:24=DLL_DQS_DELAY_6 22:16=DLL_DQS_DELAY_5 14:8=DLL_DQS_DELAY_4 6:0=DLL_DQS_DELAY_3
-#ifndef DDR2_CTL_11_DATA_LO_VAL
-#ifdef DEVBD2F_VIA
-#define DDR2_CTL_11_DATA_LO_VAL 0x23232323
-#else
-#define DDR2_CTL_11_DATA_LO_VAL 0x15151515
-#endif
-#endif
-
-//62:56=WR_DQS_SHIFT 54:48=DQS_OUT_SHIFT 46:40=DLL_DQS_DELAY_8 38:32=DLL_DQS_DELAY_7
-#ifndef DDR2_CTL_11_DATA_HI_VAL
-#ifdef DEVBD2F_VIA
-#define DDR2_CTL_11_DATA_HI_VAL 0x6e8e2323
-#else
-#define DDR2_CTL_11_DATA_HI_VAL 0x5f7f1515
-#endif
-#endif
-
-//0:0=UB_DIMM unbuffered dimm
-#ifndef DDR2_CTL_28_DATA_LO_VAL
-#ifdef DEVBD2F_SM502
-#define DDR2_CTL_28_DATA_LO_VAL 0x00000000
-#else
-#define DDR2_CTL_28_DATA_LO_VAL 0x00000001
-#endif
-#endif
-
-
-	.text
-	.align 5
-	.global ddr2_reg_data;
-ddr2_reg_data:
-//0000000_0 arefresh 0000000_1 ap 0000000_1 addr_cmp_en 0000000_1 active_aging
-DDR2_CTL_00_DATA_LO:	.word 0x00000101
-// 0000000_1 ddrii_sdram_mode 0000000_1 concurrentap 0000000_1 bank_split_en 0000000_0 auto_refresh_mode 
-DDR2_CTL_00_DATA_HI:	.word 0x01000100 #no_concurrentap
-//DDR2_CTL_00_DATA_HI:	.word 0x01010100
-//0000000_0 ecc_disable_w_uc_err 0000000_1 dqs_n_en 0000000_0 dll_bypass_mode 0000000_0 dlllockreg
-//DDR2_CTL_01_DATA_LO:	.word 0x00010100 #dll_by_pass
-DDR2_CTL_01_DATA_LO:	.word 0x00010000
-//0000000_0 fwc 0000000_0 fast_write 0000000_0 enable_quick_srefresh 0000000_0 eight_bank_mode 
-DDR2_CTL_01_DATA_HI:	.word 0x00010000
-//0000000_0 no_cmd_init 0000000_0 intrptwritea 0000000_0 intrptreada 0000000_0 intrptapburst
-DDR2_CTL_02_DATA_LO:	.word 0x00000000
-//0000000_1 priority_en 0000000_0 power_down 0000000_1 placement_en 0000000_1 odt_add_turn_clk_en 
-DDR2_CTL_02_DATA_HI:	.word 0x01000101
-//0000000_1 rw_same_en 0000000_0 reg_dimm_enable 0000000_0 reduc 0000000_0 pwrup_srefresh_exit
-DDR2_CTL_03_DATA_LO:	.word 0x01000000
-//0000000_1 swap_port_rw_same_en 0000000_1 swap_en 0000000_0 start 0000000_0 srefresh 
-DDR2_CTL_03_DATA_HI:	.word 0x01010000
-//0000000_0 write_modereg 0000000_1 writeinterp 0000000_1 tref_enable 0000000_1 tras_lockout
-DDR2_CTL_04_DATA_LO:	.word 0x00010101
-//000000_01 rtt_0 000000_00 ctrl_raw 000000_10 axi0_w_priority 000000_10 axi0_r_priority 
-//000000_01 rtt_0 000000_00 ctrl_raw 000000_10 axi0_w_priority 000000_10 axi0_r_priority 
-DDR2_CTL_04_DATA_HI:	.word DDR2_CTL_04_DATA_HI_VAL
-//00000_100 column_size 00000_101 caslat 00000_010 addr_pins 000000_10 rtt_pad_termination
-DDR2_CTL_05_DATA_LO:	.word DDR2_CTL_05_DATA_LO_VAL
-//00000_000 q_fullness 00000_000 port_data_error_type 00000_000 out_of_range_type 00000_000 max_cs_reg 
-DDR2_CTL_05_DATA_HI:	.word 0x00000000
-//00000_010 trtp 00000_010 trrd 00000_010 temrs 00000_011 tcke
-DDR2_CTL_06_DATA_LO:	.word 0x03050203 #800
-//0000_1010 aprebit 00000_100 wrlat 00000_010 twtr 00000_100 twr_int 
-DDR2_CTL_06_DATA_HI:	.word 0x0a040306 #800
-//0000_0000 ecc_c_id 0000_1111 cs_map 0000_0111 caslat_lin_gate 0000_1010 caslat_lin
-DDR2_CTL_07_DATA_LO:	.word DDR2_CTL_07_DATA_LO_VAL
-//0000_0000 max_row_reg 0000_0000 max_col_reg 0000_0010 initaref 0000_0000 ecc_u_id 
-DDR2_CTL_07_DATA_HI:	.word 0x00000400
-//0000_0001 odt_rd_map_cs3 0000_0010 odt_rd_map_cs2 0000_0100 odt_rd_map_cs1 0000_1000 odt_rd_map_cs0
-DDR2_CTL_08_DATA_LO:	.word DDR2_CTL_08_DATA_LO_VAL
-//0000_0001 odt_wr_map_cs3 0000_0010 odt_wr_map_cs2 0000_0100 odt_wr_map_cs1 0000_1000 odt_wr_map_cs0 
-DDR2_CTL_08_DATA_HI:	.word DDR2_CTL_08_DATA_HI_VAL
-//0000_0000 port_data_error_id 0000_0000 port_cmd_error_type 0000_0000 port_cmd_error_id 0000_0000 out_of_range_source_id
-DDR2_CTL_09_DATA_LO:	.word 0x00000000
-//000_00000 ocd_adjust_pup_cs_0 000_00000 ocd_adjust_pdn_cs_0 0000_0100 trp 0000_1000 tdal 
-DDR2_CTL_09_DATA_HI:	.word 0x0000060c #800
-//00_111111 age_count 000_01111 trc 000_00010 tmrd 000_00000 tfaw
-DDR2_CTL_10_DATA_LO:	.word 0x3f1a021b #250M
-//62:56=dll_dqs_delay_2 54:48=dll_dqs_delay_1 46:40=dll_dqs_delay_0 37:32=command_age_count 
-DDR2_CTL_10_DATA_HI:	.word DDR2_CTL_10_DATA_HI_VAL
-//0_0011101 dll_dqs_delay_6 0_0011101 dll_dqs_delay_5 0_0011101 dll_dqs_delay_4 0_0011101 dll_dqs_delay_3
-DDR2_CTL_11_DATA_LO:	.word DDR2_CTL_11_DATA_LO_VAL
-//0_1011111 wr_dqs_shift 0_1111111 dqs_out_shift 0_0011101 dll_dqs_delay_8 0_0011101 dll_dqs_delay_7 
-DDR2_CTL_11_DATA_HI:	.word DDR2_CTL_11_DATA_HI_VAL
-//00001011 tras_min 00000000 out_of_range_length 00000000 ecc_u_synd 00000000 ecc_c_synd
-DDR2_CTL_12_DATA_LO:	.word 0x15000000 #800
-//0000000_000101010 dll_dqs_delay_bypass_0 00011100 trfc 00000100 trcd_int 
-DDR2_CTL_12_DATA_HI:	.word 0x002a3c05 #250M
-//0000000_000101010 dll_dqs_delay_bypass_2 0000000_000101010 dll_dqs_delay_bypass_1
-DDR2_CTL_13_DATA_LO:	.word 0x002a002a 
-//0000000_000101010 dll_dqs_delay_bypass_4 0000000_000101010 dll_dqs_delay_bypass_3 
-DDR2_CTL_13_DATA_HI:	.word 0x002a002a
-//0000000_000101010 dll_dqs_delay_bypass_6 0000000_000101010 dll_dqs_delay_bypass_5
-DDR2_CTL_14_DATA_LO:	.word 0x002a002a
-//0000000_000101010 dll_dqs_delay_bypass_8 0000000_000101010 dll_dqs_delay_bypass_7 
-DDR2_CTL_14_DATA_HI:	.word 0x002a002a
-//0000000_000000000 dll_lock 0000000_000100100 dll_increment
-DDR2_CTL_15_DATA_LO:	.word 0x00000004
-//0000000_010110100 dqs_out_shift_bypass 0000000_010000111 dll_start_point 
-DDR2_CTL_15_DATA_HI:	.word 0x00b40020
-//000000_0000000000 int_ack 0000000_010000111 wr_dqs_shift_bypass
-DDR2_CTL_16_DATA_LO:	.word 0x00000087
-//00000_00000000000 int_status 00000_00000000000 int_mask 
-DDR2_CTL_16_DATA_HI:	.word 0x000007ff #no_interrupt
-//0_000000000000000 emrs1_data 00_00100000011011 tref
-DDR2_CTL_17_DATA_LO:	.word 0x0004101b #800
-//0_000000000000000 emrs2_data_1 0_000000000000000 emrs2_data_0 
-DDR2_CTL_17_DATA_HI:	.word 0x00000000
-//0_000000000000000 emrs2_data_3 0_000000000000000 emrs2_data_2
-DDR2_CTL_18_DATA_LO:	.word 0x00000000
-//0000000000011100 axi0_en_size_lt_width_instr 0_000000000000000 emrs3_data 
-DDR2_CTL_18_DATA_HI:	.word 0x001c0000
-//0000000011001000 tdll 0000000001101011 tcpd
-DDR2_CTL_19_DATA_LO:	.word 0x00c8006b
-//0100100011100001 tras_max 0000000000000010 tpdex 
-DDR2_CTL_19_DATA_HI:	.word 0x68e10002 #800
-//0000000011001000 txsr 0000000000011111 txsnr
-DDR2_CTL_20_DATA_LO:	.word 0x00c8002f #800
-//0000000000000000 xor_check_bits 0000000000000000 version 
-DDR2_CTL_20_DATA_HI:	.word 0x00000000
- //000000000000000000110110 tinit
-DDR2_CTL_21_DATA_LO:	.word 0x00030d40 #real
- //000_0000000000000000000000000000000000000 ecc_c_addr 
-DDR2_CTL_21_DATA_HI:	.word 0x00000000
-//000000000000000000000000000_0000000000000000000000000000000000000 ecc_u_addr
-DDR2_CTL_22_DATA_LO:	.word 0x00000000
-DDR2_CTL_22_DATA_HI:	.word 0x00000000
-//000000000000000000000000000_0000000000000000000000000000000000000 out_of_range_addr
-DDR2_CTL_23_DATA_LO:	.word 0x00000000
-DDR2_CTL_23_DATA_HI:	.word 0x00000000
-//000000000000000000000000000_0000000000000000000000000000000000000 port_cmd_error_addr
-DDR2_CTL_24_DATA_LO:	.word 0x00000000
-DDR2_CTL_24_DATA_HI:	.word 0x00000000
-//0000000000000000000000000000000000000000000000000000000000000000 ecc_c_data
-DDR2_CTL_25_DATA_LO:	.word 0x00000000
-DDR2_CTL_25_DATA_HI:	.word 0x00000000
-//0000000000000000000000000000000000000000000000000000000000000000 ecc_u_data
-DDR2_CTL_26_DATA_LO:	.word 0x00000000
-DDR2_CTL_26_DATA_HI:	.word 0x00000000
-//0000000000000000000000000000000000000000000000000000000000000000 
-DDR2_CTL_27_DATA_LO:	.word 0x00000000
-DDR2_CTL_27_DATA_HI:	.word 0x00000000
-//0000000000000000000000000000000000000000000000000000000000000000
-DDR2_CTL_28_DATA_LO:	.word DDR2_CTL_28_DATA_LO_VAL
-DDR2_CTL_28_DATA_HI:	.word 0x00000000
-//0000000_1 rw_same_en 0000000_0 reg_dimm_enable 0000000_0 reduc 0000000_0 pwrup_srefresh_exit
-DDR2_CTL_start_DATA_LO: .word 0x01000000
-//0000000_1 swap_port_rw_same_en 0000000_1 swap_en 0000000_0 start 0000000_0 srefresh
-DDR2_CTL_start_DATA_HI: .word 0x01010100
-
-	.rdata
-	.align 5
-	.global ddr2_reg_data1;
-ddr2_reg_data1:
-//0000000_0 arefresh 0000000_1 ap 0000000_1 addr_cmp_en 0000000_1 active_aging
-DDR2_CTL_00_DATA_LO_1:	.word 0x00000101
-// 0000000_1 ddrii_sdram_mode 0000000_1 concurrentap 0000000_1 bank_split_en 0000000_0 auto_refresh_mode 
-DDR2_CTL_00_DATA_HI_1:	.word 0x01000100 #no_concurrentap
-//DDR2_CTL_00_DATA_HI_1:	.word 0x01010100
-//0000000_0 ecc_disable_w_uc_err 0000000_1 dqs_n_en 0000000_0 dll_bypass_mode 0000000_0 dlllockreg
-//DDR2_CTL_01_DATA_LO_1:	.word 0x00010100 #dll_by_pass
-DDR2_CTL_01_DATA_LO_1:	.word 0x00010000
-//0000000_0 fwc 0000000_0 fast_write 0000000_0 enable_quick_srefresh 0000000_0 eight_bank_mode 
-DDR2_CTL_01_DATA_HI_1:	.word 0x00010000
-//0000000_0 no_cmd_init 0000000_0 intrptwritea 0000000_0 intrptreada 0000000_0 intrptapburst
-DDR2_CTL_02_DATA_LO_1:	.word 0x00000000
-//0000000_1 priority_en 0000000_0 power_down 0000000_1 placement_en 0000000_1 odt_add_turn_clk_en 
-DDR2_CTL_02_DATA_HI_1:	.word 0x01000101
-//0000000_1 rw_same_en 0000000_0 reg_dimm_enable 0000000_0 reduc 0000000_0 pwrup_srefresh_exit
-DDR2_CTL_03_DATA_LO_1:	.word 0x01000000
-//0000000_1 swap_port_rw_same_en 0000000_1 swap_en 0000000_0 start 0000000_0 srefresh 
-DDR2_CTL_03_DATA_HI_1:	.word 0x01010000
-//0000000_0 write_modereg 0000000_1 writeinterp 0000000_1 tref_enable 0000000_1 tras_lockout
-DDR2_CTL_04_DATA_LO_1:	.word 0x00010101
-//000000_01 rtt_0 000000_00 ctrl_raw 000000_10 axi0_w_priority 000000_10 axi0_r_priority 
-DDR2_CTL_04_DATA_HI_1:	.word DDR2_CTL_04_DATA_HI_VAL
-//00000_100 column_size 00000_101 caslat 00000_010 addr_pins 000000_10 rtt_pad_termination
-DDR2_CTL_05_DATA_LO_1:	.word DDR2_CTL_05_DATA_LO_VAL
-//00000_000 q_fullness 00000_000 port_data_error_type 00000_000 out_of_range_type 00000_000 max_cs_reg 
-DDR2_CTL_05_DATA_HI_1:	.word 0x00000000
-//00000_010 trtp 00000_010 trrd 00000_010 temrs 00000_011 tcke
-DDR2_CTL_06_DATA_LO_1:	.word 0x03050203 #800
-//0000_1010 aprebit 00000_100 wrlat 00000_010 twtr 00000_100 twr_int 
-DDR2_CTL_06_DATA_HI_1:	.word 0x0a040306 #800
-//0000_0000 ecc_c_id 0000_1111 cs_map 0000_0111 caslat_lin_gate 0000_1010 caslat_lin
-DDR2_CTL_07_DATA_LO_1:	.word DDR2_CTL_07_DATA_LO_VAL
-//0000_0000 max_row_reg 0000_0000 max_col_reg 0000_0010 initaref 0000_0000 ecc_u_id 
-DDR2_CTL_07_DATA_HI_1:	.word 0x00000400 #800
-//0000_0001 odt_rd_map_cs3 0000_0010 odt_rd_map_cs2 0000_0100 odt_rd_map_cs1 0000_1000 odt_rd_map_cs0
-DDR2_CTL_08_DATA_LO_1:	.word DDR2_CTL_08_DATA_LO_VAL
-//0000_0001 odt_wr_map_cs3 0000_0010 odt_wr_map_cs2 0000_0100 odt_wr_map_cs1 0000_1000 odt_wr_map_cs0 
-DDR2_CTL_08_DATA_HI_1:	.word DDR2_CTL_08_DATA_HI_VAL
-//0000_0000 port_data_error_id 0000_0000 port_cmd_error_type 0000_0000 port_cmd_error_id 0000_0000 out_of_range_source_id
-DDR2_CTL_09_DATA_LO_1:	.word 0x00000000
-//000_00000 ocd_adjust_pup_cs_0 000_00000 ocd_adjust_pdn_cs_0 0000_0100 trp 0000_1000 tdal 
-DDR2_CTL_09_DATA_HI_1:	.word 0x0000060c #800
-//00_111111 age_count 000_01111 trc 000_00010 tmrd 000_00000 tfaw
-DDR2_CTL_10_DATA_LO_1:	.word 0x3f1a021b #250M
-//0_0011101 dll_dqs_delay_2 0_0011101 dll_dqs_delay_1 0_0011101 dll_dqs_delay_0 00_111111 command_age_count 
-DDR2_CTL_10_DATA_HI_1:	.word DDR2_CTL_10_DATA_HI_VAL
-//0_0011101 dll_dqs_delay_6 0_0011101 dll_dqs_delay_5 0_0011101 dll_dqs_delay_4 0_0011101 dll_dqs_delay_3
-DDR2_CTL_11_DATA_LO_1:	.word DDR2_CTL_11_DATA_LO_VAL
-//0_1011111 wr_dqs_shift 0_1111111 dqs_out_shift 0_0011101 dll_dqs_delay_8 0_0011101 dll_dqs_delay_7 
-DDR2_CTL_11_DATA_HI_1:	.word DDR2_CTL_11_DATA_HI_VAL
-//00001011 tras_min 00000000 out_of_range_length 00000000 ecc_u_synd 00000000 ecc_c_synd
-DDR2_CTL_12_DATA_LO_1:	.word 0x15000000 #800
-//0000000_000101010 dll_dqs_delay_bypass_0 00011100 trfc 00000100 trcd_int 
-DDR2_CTL_12_DATA_HI_1:	.word 0x002a3c05 #250M
-//0000000_000101010 dll_dqs_delay_bypass_2 0000000_000101010 dll_dqs_delay_bypass_1
-DDR2_CTL_13_DATA_LO_1:	.word 0x002a002a 
-//0000000_000101010 dll_dqs_delay_bypass_4 0000000_000101010 dll_dqs_delay_bypass_3 
-DDR2_CTL_13_DATA_HI_1:	.word 0x002a002a
-//0000000_000101010 dll_dqs_delay_bypass_6 0000000_000101010 dll_dqs_delay_bypass_5
-DDR2_CTL_14_DATA_LO_1:	.word 0x002a002a
-//0000000_000101010 dll_dqs_delay_bypass_8 0000000_000101010 dll_dqs_delay_bypass_7 
-DDR2_CTL_14_DATA_HI_1:	.word 0x002a002a
-//0000000_000000000 dll_lock 0000000_000100100 dll_increment
-DDR2_CTL_15_DATA_LO_1:	.word 0x00000004
-//0000000_010110100 dqs_out_shift_bypass 0000000_010000111 dll_start_point 
-DDR2_CTL_15_DATA_HI_1:	.word 0x00b40020
-//000000_0000000000 int_ack 0000000_010000111 wr_dqs_shift_bypass
-DDR2_CTL_16_DATA_LO_1:	.word 0x00000087
-//00000_00000000000 int_status 00000_00000000000 int_mask 
-DDR2_CTL_16_DATA_HI_1:	.word 0x000007ff #no_interrupt
-//0_000000000000000 emrs1_data 00_00100000011011 tref
-DDR2_CTL_17_DATA_LO_1:	.word 0x0004101b #800
-//0_000000000000000 emrs2_data_1 0_000000000000000 emrs2_data_0 
-DDR2_CTL_17_DATA_HI_1:	.word 0x00000000
-//0_000000000000000 emrs2_data_3 0_000000000000000 emrs2_data_2
-DDR2_CTL_18_DATA_LO_1:	.word 0x00000000
-//0000000000011100 axi0_en_size_lt_width_instr 0_000000000000000 emrs3_data 
-DDR2_CTL_18_DATA_HI_1:	.word 0x001c0000
-//0000000011001000 tdll 0000000001101011 tcpd
-DDR2_CTL_19_DATA_LO_1:	.word 0x00c8006b
-//0100100011100001 tras_max 0000000000000010 tpdex 
-DDR2_CTL_19_DATA_HI_1:	.word 0x68e10002 #800
-//0000000011001000 txsr 0000000000011111 txsnr
-DDR2_CTL_20_DATA_LO_1:	.word 0x00c8002f #800
-//0000000000000000 xor_check_bits 0000000000000000 version 
-DDR2_CTL_20_DATA_HI_1:	.word 0x00000000
- //000000000000000000110110 tinit
-DDR2_CTL_21_DATA_LO_1:	.word 0x00030d40 #real
- //000_0000000000000000000000000000000000000 ecc_c_addr 
-DDR2_CTL_21_DATA_HI_1:	.word 0x00000000
-//000000000000000000000000000_0000000000000000000000000000000000000 ecc_u_addr
-DDR2_CTL_22_DATA_LO_1:	.word 0x00000000
-DDR2_CTL_22_DATA_HI_1:	.word 0x00000000
-//000000000000000000000000000_0000000000000000000000000000000000000 out_of_range_addr
-DDR2_CTL_23_DATA_LO_1:	.word 0x00000000
-DDR2_CTL_23_DATA_HI_1:	.word 0x00000000
-//000000000000000000000000000_0000000000000000000000000000000000000 port_cmd_error_addr
-DDR2_CTL_24_DATA_LO_1:	.word 0x00000000
-DDR2_CTL_24_DATA_HI_1:	.word 0x00000000
-//0000000000000000000000000000000000000000000000000000000000000000 ecc_c_data
-DDR2_CTL_25_DATA_LO_1:	.word 0x00000000
-DDR2_CTL_25_DATA_HI_1:	.word 0x00000000
-//0000000000000000000000000000000000000000000000000000000000000000 ecc_u_data
-DDR2_CTL_26_DATA_LO_1:	.word 0x00000000
-DDR2_CTL_26_DATA_HI_1:	.word 0x00000000
-//0000000000000000000000000000000000000000000000000000000000000000 
-DDR2_CTL_27_DATA_LO_1:	.word 0x00000000
-DDR2_CTL_27_DATA_HI_1:	.word 0x00000000
-//0000000000000000000000000000000000000000000000000000000000000000
-DDR2_CTL_28_DATA_LO_1:	.word DDR2_CTL_28_DATA_LO_VAL
-DDR2_CTL_28_DATA_HI_1:	.word 0x00000000
-//0000000_1 rw_same_en 0000000_0 reg_dimm_enable 0000000_0 reduc 0000000_0 pwrup_srefresh_exit
-DDR2_CTL_start_DATA_LO_1: .word 0x01000000
-//0000000_1 swap_port_rw_same_en 0000000_1 swap_en 0000000_0 start 0000000_0 srefresh
-DDR2_CTL_start_DATA_HI_1: .word 0x01010100
