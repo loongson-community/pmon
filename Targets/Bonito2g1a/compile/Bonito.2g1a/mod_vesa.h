@@ -1,2 +1,0 @@
-#define	NMOD_VESA	0
-#define	NMOD_FRAMEBUFFER	0
