@@ -101,8 +101,8 @@ select		mod_framebuffer
 #select		mod_smi712		# X86 emulation for VGA
 #option		SMI712
 #option          APB_CLK=36000000
-#option          APB_CLK=25000000
-option          APB_CLK=12000000
+option          APB_CLK=25000000
+#option          APB_CLK=12000000
 option		X800x600
 #option		X1024x768
 option 	CONFIG_VIDEO_16BPP

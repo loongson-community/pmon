@@ -27,7 +27,7 @@ typedef unsigned long dma_addr_t;
 #define EXTRA_PIXEL  0
 #define DC_BASE_ADDR 0xb0301240
 #define DC_BASE_ADDR_1 0xb0301250
-
+#define GPUPLL_IN_25M_OUT_150M 0x1218
 #define RANDOM_HEIGHT_Z 37
 
 static char *ADDR_CURSOR = 0xb6000000;
@@ -139,7 +139,7 @@ int i,mode=-1;
 		  out = caclulatefreq(APB_CLK/1000,vgamode[i].pclk);
 		  printf("out=%x\n",out);
    /*inner gpu dc logic fifo pll ctrl,must large then outclk*/
-   *(volatile int *)0xb2d00414 = out+1;
+   *(volatile int *)0xb2d00414 = GPUPLL_IN_25M_OUT_150M;
    /*output pix1 clock  pll ctrl*/
   // *(volatile int *)0xb2d00410 = out;
    /*output pix2 clock pll ctrl */

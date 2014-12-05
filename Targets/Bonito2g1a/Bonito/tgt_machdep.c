@@ -395,9 +395,6 @@ static void init_legacy_rtc(void)
 	outl(LS1A_RTC_TRIM_REG, 0);
 	
 	year	= inl(LS1A_TOY_READ1_REG);
-		tgt_printf("~~~~~~~~~rtc test :%d.\n",year);
-	year	= inl(LS1A_TOY_READ1_REG);//lxf add must be read twice ,why?
-		tgt_printf("~~~~~~~~~rtc test :%d.\n",year);
 	val	= inl(LS1A_TOY_READ0_REG);
 	month	= ((val >> 26) & 0x3f) - 1;
 	date	= (val >> 21) & 0x1f;
@@ -405,7 +402,6 @@ static void init_legacy_rtc(void)
 	min	= (val >> 10) & 0x3f;
 	sec	= (val >> 4) & 0x3f;
 
-		tgt_printf("RTC test ~~~~~~~~~~~~:year:%d,month:%d,date :%d,hour:%d,min:%d,sec:%d\n",year,month,date,hour,min,sec);
 	if ((year < 0 || year > 138) 
 		|| (month < 1 || month > 12)
 		|| (date < 1 || date > 31)
@@ -417,8 +413,8 @@ static void init_legacy_rtc(void)
 		outl(LS1A_TOY_WRITE1_REG, 0x64);
 		outl(LS1A_TOY_WRITE0_REG, val);
 	}
-	//printf("RTC: %02d-%02d-%02d %02d:%02d:%02d\n",
-	//    year, month, date, hour, min, sec);
+	tgt_printf("RTC: %02d-%02d-%02d %02d:%02d:%02d\n",
+	    year, month, date, hour, min, sec);
 }
 
 int word_addr;
