@@ -42,17 +42,14 @@
 
 
 #include "pmon/dev/ns16550.h"
-/* #include "target/i82371eb.h"  */
 #include "target/prid.h"
 #include "target/sbd.h"
 #include "target/bonito.h"
-#include "target/cs5536.h"
-#include "target/cs5536_pci.h"
 #include "target/i8254.h"
-/* #include "target/pc97307.h" */
+
+#include "target/ls1a.h"
+
 #include "target/isapnpreg.h"
-#define USE_CS5536_UART1
-#define USE_CS5536_UART2
 #define DEBUG_LOCORE
 #undef	DEBUG_DIMM_SPD
 #ifdef DEBUG_LOCORE
@@ -755,14 +752,14 @@ reginit:			/* local name */
         move    a0, t1
         bal hexserial
         nop
-    TTYDBG ("\r\nCPU CLK SEL : ")
+	TTYDBG ("\r\nCPU CLK SEL : ")
         dsrl t1, t1, 32
         andi a0, t1, 0x1f
         bal hexserial
         nop
 
 
-    TTYDBG ("\r\nCPU clk frequency = SYSCLK x 0x")
+	TTYDBG ("\r\nCPU clk frequency = SYSCLK x 0x")
         andi  t0, t1, 0x1f
         li  a0, 0x1f
         bne t0, a0, 1f
@@ -939,9 +936,9 @@ SOUTHBRIDGE_INIT(0xb2d00190,0x1c2000f2) //change back  ddrcofig ->GPU/DC
 	TTYDBG("NODE 0 MEMORY CONFIG BEGIN\r\n")
 
 #ifdef  AUTO_DDR_CONFIG
-	dli     s1, 0xff1f0004
+	dli     s1, 0xff100004
 #else
-	dli     s1, 0x82a40104  //MC0 only
+	dli     s1, 0x82a48104  //MC0 only
 #endif
 #include "ddr_dir/loongson2G_ddr2_config.S"
 
@@ -996,9 +993,7 @@ SOUTHBRIDGE_INIT(0xb2d00190,0x1c2000f2) //change back  ddrcofig ->GPU/DC
 #include "ddr_dir/store_auto_arb_level_info.S"
 #endif
 #########################################
-#ifdef WITH_HT
-#include "ht.S"
-#endif
+
 
 ##########################################
 
@@ -1504,7 +1499,7 @@ cache_init_panic:
 
 /********************************************************************************
  *										*
- *	      			      CS5536					*
+ *	      			      PCI OPTION				*
  *										*
  ********************************************************************************/
 #define PCICONF_WRITEB(dev,func,reg,data) \
@@ -1819,97 +1814,6 @@ END(tgt_putchar)
  * v0 : the returned register value.
  */
 
-LEAF(i2cread)
-	andi	a0, 0xfe;
-	move	t2, a0;
-	move	t3, a1;
-	
-	/* start condition */
-	IO_READ_BYTE(SMB_BASE_ADDR | SMB_CTRL1);
-	ori	v0, SMB_CTRL1_START;
-	IO_WRITE_BYTE(SMB_BASE_ADDR | SMB_CTRL1);
-	IO_READ_BYTE(SMB_BASE_ADDR | SMB_STS);
-	andi	v0, SMB_STS_BER;
-	bnez	v0, i2cerr;
-	nop;
-	SMBUS_WAIT;
-	bnez	a3, i2cerr;
-	nop;
-	
-	/* send slave address */
-	move	v0, t2;
-	IO_WRITE_BYTE(SMB_BASE_ADDR | SMB_SDA);
-	IO_READ_BYTE(SMB_BASE_ADDR | SMB_STS);
-	andi	v0, (SMB_STS_BER | SMB_STS_NEGACK);
-	bnez	v0, i2cerr;
-	nop;
-	SMBUS_WAIT;
-	bnez	a3, i2cerr;
-	nop;
-		
-	/* acknowledge smbus */
-	IO_READ_BYTE(SMB_BASE_ADDR | SMB_CTRL1);
-	ori	v0, (SMB_CTRL1_ACK);
-	IO_WRITE_BYTE(SMB_BASE_ADDR | SMB_CTRL1);
-	
-	/* send command */
-	move	v0, t3;
-	IO_WRITE_BYTE(SMB_BASE_ADDR | SMB_SDA);
-	IO_READ_BYTE(SMB_BASE_ADDR | SMB_STS);
-	andi	v0, (SMB_STS_BER | SMB_STS_NEGACK);
-	bnez	v0, i2cerr;
-	nop;
-	SMBUS_WAIT;
-	bnez	a3, i2cerr;
-	nop;
-		
-	/* start condition again */
-	IO_READ_BYTE(SMB_BASE_ADDR | SMB_CTRL1);
-	ori	v0, SMB_CTRL1_START;
-	IO_WRITE_BYTE(SMB_BASE_ADDR | SMB_CTRL1);
-	IO_READ_BYTE(SMB_BASE_ADDR | SMB_STS);
-	andi	v0, SMB_STS_BER;
-	bnez	v0, i2cerr;
-	nop;
-	SMBUS_WAIT;
-	bnez	a3, i2cerr;
-	nop;
-	
-	/* send salve address again */
-	move	v0, t2;
-	ori	v0, 0x01;
-	IO_WRITE_BYTE(SMB_BASE_ADDR | SMB_SDA);
-	IO_READ_BYTE(SMB_BASE_ADDR | SMB_STS);
-	andi	v0, (SMB_STS_BER | SMB_STS_NEGACK);
-	bnez	v0, i2cerr;
-	nop;
-	SMBUS_WAIT;
-	bnez	a3, i2cerr;
-	nop;
-		
-	/* stop condition */
-	li	v0, SMB_CTRL1_STOP;
-	IO_WRITE_BYTE(SMB_BASE_ADDR | SMB_CTRL1);
-	SMBUS_WAIT;
-	bnez	a3, i2cerr;
-	nop;
-	
-	/* read data */
-	IO_READ_BYTE(SMB_BASE_ADDR | SMB_SDA);
-	b 1f;
-	nop;
-
-i2cerr :
-	nop;
-	li	v0, 0x02;
-	IO_WRITE_BYTE(SMB_BASE_ADDR | SMB_CTRL1);
-	li  v0, 0x10;	
-	IO_WRITE_BYTE(SMB_BASE_ADDR | SMB_STS);
-1:
-	jr	ra;
-	nop;
-END(i2cread)
-
 LEAF(init_south_bridge)
 .set at
 	move a3,ra	//save ra
@@ -2104,6 +2008,8 @@ will set on pci_machdep.c
 END(init_ls2g_xbar_config)
 
 	.set at
+
+#include "i2c.S"
 #ifdef  AUTO_DDR_CONFIG
 #include "ddr_dir/detect_node_dimm.S"
 #endif

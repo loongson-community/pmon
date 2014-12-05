@@ -63,7 +63,7 @@ LEAF(PROBE_NODE_DIMM)
     or      a0, a0, a2
     sw      a0, 0x0(a1)
 #endif
-#ifdef USE_LS2H_I2C
+#if defined(USE_LS2H_I2C) || defined(USE_LS1A_I2C)
     bal     i2cinit
     nop
 #endif

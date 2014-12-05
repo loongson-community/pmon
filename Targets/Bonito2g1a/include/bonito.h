@@ -32,46 +32,39 @@ extern char           *heaptop;
 #define BONITO(x)	*(volatile unsigned long *)(0xbfe00000+(x))
 #endif /* __ASSEMBLER__ */
 
-#define RTC_INDEX_REG 0x70
-#define RTC_DATA_REG 0x71
+#define RTC_INDEX_REG		0x70
+#define RTC_DATA_REG		0x71
 #define RTC_NVRAM_BASE		0x0e
 
 
 #define COM1_BASE_ADDR		0xbfe001e0
 #define	COM0_1A_BASE_ADDR	0xb2e40000
-//#define	NS16550HZ	1843200
-#define	NS16550HZ	3686400
+#define	NS16550HZ		3686400
 /*********************************************************************/
 /*nvram define                                                       */
 /*********************************************************************/
 #ifdef NVRAM_IN_FLASH
-#	define	NVRAM_SIZE		492    /*modified by tangyt*/
-#	define	NVRAM_SECSIZE		506
-#   define  ACTIVECOM_OFFS      492 /*added by tangyt*/
-#   define  MASTER_BRIDGE_OFFS      493 /*added by tangyt*/
+#define	NVRAM_SIZE		492	/*modified by tangyt*/
+#define	NVRAM_SECSIZE		506
+#define	ACTIVECOM_OFFS		492	/*added by tangyt*/
+#define	MASTER_BRIDGE_OFFS      493	/*added by tangyt*/
 
 #ifdef	SST008A
-#	define	NVRAM_OFFS		0x000ff000
+#define	NVRAM_OFFS		0x000ff000
 #else
-#	define	NVRAM_OFFS		0x0007f000
+#define	NVRAM_OFFS		0x0007f000
 #endif
 
-#	define ETHER_OFFS		494	/* Ethernet address base */
-#	define ETHER1_OFFS		500	/* Ethernet address base */
+#define ETHER_OFFS		494	/* Ethernet address base */
+#define ETHER1_OFFS		500	/* Ethernet address base */
 #else	/* Use clock ram, 256 bytes only */
-#	define NVRAM_SIZE		114
-#	define NVRAM_SECSIZE		NVRAM_SIZE	/* Helper */
-#	define NVRAM_OFFS		0
-#	define ETHER_OFFS		108 	/* Ethernet address base */
-#   define ETHER1_OFFS      114
+#define NVRAM_SIZE		114
+#define NVRAM_SECSIZE		NVRAM_SIZE	/* Helper */
+#define NVRAM_OFFS		0
+#define ETHER_OFFS		108	/* Ethernet address base */
+#define ETHER1_OFFS		114
 #endif
 
-
-#define	TEST_CS5536_USE_EHCI
-#define	TEST_CS5536_USE_UDC
-//#define	TEST_CS5536_USE_OTG
-//#define	TEST_USB_HOST
-//#define	TEST_USB_DEVICE
 
 /*********************************************************************/
 /*PCI map	                                                     */
@@ -125,7 +118,7 @@ extern char           *heaptop;
 #define BONITO_DEV_SIZE 		0x00100000
 #define BONITO_DEV_TOP			(BONITO_DEV_BASE+BONITO_DEV_SIZE-1)
 #define BONITO_PCILO_BASE		0x10000000
-#define BONITO_PCILO_BASE_VA    0xb0000000
+#define BONITO_PCILO_BASE_VA		0xb0000000
 #define BONITO_PCILO_SIZE		0x0c000000
 #define BONITO_PCILO_TOP		(BONITO_PCILO_BASE+BONITO_PCILO_SIZE-1)
 #define BONITO_PCILO0_BASE		0x10000000
@@ -242,7 +235,7 @@ extern char           *heaptop;
 /* 4. PCI address map control */
 
 #define BONITO_PCIMAP			BONITO(BONITO_REGBASE + 0x10)
-#define BONITO_PCIMEMBASECFG	BONITO(BONITO_REGBASE + 0x14)
+#define BONITO_PCIMEMBASECFG		BONITO(BONITO_REGBASE + 0x14)
 #define BONITO_PCIMAP_CFG		BONITO(BONITO_REGBASE + 0x18)
 
 /* 5. ICU & GPIO regs */

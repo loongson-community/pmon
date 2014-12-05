@@ -1,64 +1,126 @@
+#define i2c_wait  \
+		li	  v0, LS1A_I2C0_CR_REG;	\
+11:;	\
+		lb	  v1, 0x0(v0);	\
+		li	  v1, CR_TIP;  \
+		bne	  v1, 11b;	\
+		nop
+
+LEAF(i2cinit)
+		li	  v1, 0x2c
+		li	  v0, LS1A_I2C0_PRER_LO_REG
+		sb	  v1, 0x0(v0)
+
+		li	  v1, 0x03
+		li	  v0, LS1A_I2C0_PRER_HI_REG
+		sb	  v1, 0x0(v0)
+
+		li	  v1, 0x80
+		li	  v0, LS1A_I2C0_CTR_REG
+		sb	  v1, 0x0(v0)
+
+		jr      ra
+		nop
+END(i2cinit)
+	  
 LEAF(i2cread)
-	addu a0,a0,1
-        /* set device address */
-        li  v0, 0xbfd00000 + SMBUS_HOST_ADDRESS
+/*
+ * use register:
+ *	v0, v1
+ *	a0, a1
+ *	input: a0,a1
+ *	a0: device ID
+ *	a1: register offset
+ *	v0: return value
+ *
+ */
 
-        sb  a0, 0(v0);
+/*i2c_send_b*/				
+/* load device address */
+	andi	v1, a0, 0xfe		
+	li	v0, LS1A_I2C0_TXR_REG	
+	sb	v1, 0x0(v0)		
 
-        /* store register offset */
-        li  v0, 0xbfd00000 + SMBUS_HOST_COMMAND
-        sb  a1, 0(v0);
+	/* send start frame */
+	li	v1, CR_START | CR_WRITE	
+	li	v0, LS1A_I2C0_CR_REG		
+	sb	v1, 0x0(v0)		
 
-        /* read byte data protocol */
-        li  v0, 0x08
-        li  v1, 0xbfd00000 + SMBUS_HOST_CONTROL
-        sb  v0, 0(v1);
+/* waite send finished */
+	li	v0, LS1A_I2C0_SR_REG	
+1:						
+	lb	v1, 0x0(v0)		
+	andi	v1, v1, SR_TIP		
+	bnez	v1, 1b			
+	nop	
+	
+/* load data to be send */
+	move	v1, a1			
+	li	v0, LS1A_I2C0_TXR_REG	
+	sb	v1, 0x0(v0)		
 
-        /* make sure SMB host ready to start, important!--zfx */
-        li  v1, 0xbfd00000 + SMBUS_HOST_STATUS
-        lbu v0, 0(v1)
-        andi v0,v0, 0x1f
-        beqz  v0,1f
-        nop
-        sb  v0, 0(v1)
-        lbu v0, 0(v1)   #flush the write
-1:
+/* send data frame */
+	li	v1, CR_WRITE		
+	li	v0, LS1A_I2C0_CR_REG		
+	sb	v1, 0x0(v0)		
 
-        /* start */
-        li  v1, 0xbfd00000 + SMBUS_HOST_CONTROL
-        lbu v0, 0(v1)
-        ori v0, v0, 0x40
-        sb  v0, 0(v1);
+/* waite send finished */
+	li	v0, LS1A_I2C0_SR_REG	
+1:						
+	lb	v1, 0x0(v0)		
+	andi	v1, v1, SR_TIP		
+	bnez	v1, 1b			
+	nop	
 
-        /* wait */
-        li  v1, 0xbfd00000 + SMBUS_HOST_STATUS
-1:
+/* i2c_read_b */			       
+/* load device address */
+	ori	v1, a0, 0x1
+	li	v0, LS1A_I2C0_TXR_REG	
+	sb	v1, 0x0(v0)		
+	
+/* send start frame */
+	li	v1, CR_START | CR_WRITE	
+	li	v0, LS1A_I2C0_CR_REG		
+	sb	v1, 0x0(v0)		
 
-#if 0
-        /* delay */
-        li a0, 0x1000
-2:
-        bnez    a0,2b
-        addiu   a0, -1
-#endif
+/* waite send finished */
+	li	v0, LS1A_I2C0_SR_REG	
+1:						
+	lb	v1, 0x0(v0)		
+	andi	v1, v1, SR_TIP		
+	bnez	v1, 1b			
+	nop	
+	
+/* receive data to fifo */
+	li	v1, CR_READ | CR_ACK	
+	li	v0, LS1A_I2C0_CR_REG		
+	sb	v1, 0x0(v0)		
 
-        lbu  v0, 0(v1)
-        andi v0, SMBUS_HOST_STATUS_BUSY
-        bnez  v0, 1b  #IDEL ?
-        nop
+	li	v0, LS1A_I2C0_SR_REG	
+1:						
+	lb	v1, 0x0(v0)		
+	andi	v1, v1, SR_TIP		
+	bnez	v1, 1b			
+	nop	
 
-        li  v1, 0xbfd00000 + SMBUS_HOST_STATUS
-        lbu v0, 0(v1)
-        andi v0,v0, 0x1f
-        beqz  v0,1f
-        nop
-        sb  v0, 0(v1)   #reset
-        lbu v0, 0(v1)   #flush the write
-1:
+/* read data from fifo */
+	li	v0, LS1A_I2C0_RXR_REG	
+	lb	a1, 0x0(v0)
 
-        li  v1, 0xbfd00000 + SMBUS_HOST_DATA0
-        lbu  v0, 0(v1)
+/* i2c_stop */				
+/* free i2c bus */
+	li	v0, LS1A_I2C0_CR_REG		
+	li	v1, CR_STOP		
+	sb	v1, 0x0(v0)		
+1:					
+	li	v0, LS1A_I2C0_SR_REG		
+	lb	v1, 0x0(v0)		
+	andi	v1, v1, SR_BUSY		
+	bnez	v1, 1b			
+	nop				
+	
+	move	v0, a1
 
-        jr      ra
-        nop
+	jr	ra
+	nop
 END(i2cread)
