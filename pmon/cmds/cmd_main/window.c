@@ -187,7 +187,7 @@ static void w_cls()
 			video_cls();
 		memset(finalbuf,0x01,sizeof(foreground));
 #else
-#if	defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A)
+#ifdef LOONGSON_2G5536
 		for (i = 0; i < VIDEO_HEIGHT*VIDEO_WIDTH*2; i += 8)
 #else
 		for (i = 0; i < VIDEO_HEIGHT*VIDEO_WIDTH; i += 8)
@@ -351,6 +351,9 @@ void w_present1(int x0,int y0,int w0,int h0)
 
 	int cnt;
 	int i,j,x,y;
+#ifdef LOONGSON_2G1A
+	struct termio tbuf;
+#endif
 
 	if(theme&2)
 		rpro=1024;
@@ -485,7 +488,13 @@ void w_present1(int x0,int y0,int w0,int h0)
 	{
 		do
 		{
+#ifdef LOONGSON_2G1A
+		ioctl (STDIN, SETNCNE, &tbuf);
+#endif
 			cn=(cn<<8)+(c=getchar());
+#ifdef LOONGSON_2G1A
+		ioctl (STDIN, TCSETAW, &tbuf);
+#endif
 		}while(c=='[');
 #if NMOD_FRAMEBUFFER
 		if(w_config.setcursor)set_cursor_fb(0,0);

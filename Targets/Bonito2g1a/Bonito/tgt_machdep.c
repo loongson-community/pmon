@@ -284,7 +284,7 @@ tgt_devconfig()
 	psaux_init();
 
 #endif
-	//init_win_device();
+	init_win_device();
 	printf("devconfig done.\n");
 }
 
