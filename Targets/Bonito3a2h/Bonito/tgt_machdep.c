@@ -761,6 +761,16 @@ tgt_devconfig()
 #endif
 
 #ifdef LS2H
+
+	volatile unsigned int *mailbox = 0xbbd80130;	
+	mailbox[0] = 0x40000;
+	mailbox[2] = 0;
+	mailbox[3] = 0x1;	
+	while(mailbox[2]==0);
+	mailbox[3] = 0;
+	mailbox[2] = 0;
+	
+
 		add = 0x90000e000c000000;
 		printf("wait for ls2h init ddr..\n");
 		for (count = 0;count < 11;count++)
