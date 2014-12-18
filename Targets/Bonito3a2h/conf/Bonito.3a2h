@@ -23,7 +23,7 @@ option		LS3A2H_STR
 option      loongson3A3
 option      DDR3_DIMM
 option      ARB_LEVEL
-option      AUTO_DDR_CONFIG
+#option      AUTO_DDR_CONFIG
 option      USE_LS2H_I2C
 
 option		BONITOEL
@@ -78,8 +78,8 @@ select      mod_framebuffer
 select		mod_vesa
 select		mod_vgacon
 #############
-select		mod_flash_amd		# AMD flash device programming
-select		mod_flash_intel		# intel flash device programming
+#select		mod_flash_amd		# AMD flash device programming
+#select		mod_flash_intel		# intel flash device programming
 select		mod_flash_sst		# intel flash device programming
 select		mod_debugger		# Debugging module
 select		mod_symbols		# Symbol table handling
@@ -90,13 +90,13 @@ select		mod_elfload		# ELF loading
 #
 # Command selection. Selects pmon commands
 #
-select		cmd_newmt
+#select		cmd_newmt
 select		cmd_setup
 select		mod_display
 select		cmd_about		# Display info about PMON
 select		cmd_boot		# Boot wrapper
 select		cmd_mycmd
-select		cmd_newmt
+#select		cmd_newmt
 select		cmd_main		#windows for pmon enable, depend on 3A_INTERFACE
 select		cmd_cache		# Cache enabling
 #select		cmd_call		# Call a function command
