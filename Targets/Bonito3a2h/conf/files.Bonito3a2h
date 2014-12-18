@@ -23,9 +23,10 @@ attach  localbus at mainbus
 file    Targets/Bonito3a2h/dev/localbus.c		localbus
 
 #nand
-file    sys/dev/nand/ls1g-nand.c		nand needs-flag
+#file    sys/dev/nand/ls1g-nand.c		nand needs-flag
 file    Targets/Bonito3a2h/dev/nand_ops.c nand needs-flag
 file    Targets/Bonito3a2h/dev/nand_myops.c nand needs-flag
+file	sys/dev/nand/ls2h-nand.c nand
 
 #dc
 file    Targets/Bonito3a2h/dev/dc.c 

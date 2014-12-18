@@ -63,3 +63,11 @@ void hexserial __P((int));
  */
 #define CLIENTPC 0x80100000
 #define SETCLIENTPC "80100000"
+#include "nand.h"
+#if NNAND
+extern int mtd_rescan(char *,char *);
+#define TGT_DEFENV  {"mtdparts","nand-flash:10M@0(kernel)ro,-(rootfs)",0,&mtd_rescan},   \
+                    {"bootdelay","3",0,0}
+#else
+#define TGT_DEFENV  {"bootdelay","3",0,0}
+#endif

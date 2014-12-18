@@ -604,6 +604,7 @@ unsigned int addr;
 	 * Launch!
 	 */
 	//_pci_conf_write(_pci_make_tag(0,0,0),0x90,0xff800000); 
+	ls2h_nand_init(0x1bee0000,0x1bd00100,0x1bee0040);
 	main();
 }
 
