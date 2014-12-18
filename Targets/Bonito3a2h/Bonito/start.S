@@ -1244,9 +1244,9 @@ gs_2f_v3_ddr2_cfg:
 
 //#include "3aserver_bridge_config.S"	// for no ls2h cpu on board
 
-        bal     tgt_testchar
-        nop  
-        bnez    v0, after_ht
+//        bal     tgt_testchar
+//        nop  
+//        bnez    v0, after_ht
         nop  
 
 
@@ -1381,6 +1381,7 @@ after_ht:
         dli     s1, 0xc1e10200c1e10204  //set use MC1 or MC0 or MC1/0 and give All DIMM infor // danmian
         dli     s1, 0xc1e30400c1e30404  //set use MC1 or MC0 or MC1/0 and give All DIMM infor // shuagnmian
         dli     s1, 0xc1ec0400c1ec0404  //set use MC1 or MC0 or MC1/0 and give All DIMM infor // shuagnmian
+        dli     s1, 0xc0a10408c0a10408  //dian mian 2GB
 #endif
 #include "ddr_dir/loongson3_ddr2_config.S"
 
@@ -1565,8 +1566,10 @@ after_ht:
 ##########################################
 
 		bootnow:
+#ifdef AUTO_DDR_CONFIG  // for no ls2h cpu on board, disable AUTO_DDR_CONFIG
 		bal spd_info_store
 		nop
+#endif
 		
 		TTYDBG("Copy PMON to execute location...\r\n")
 #ifdef DEBUG_LOCORE
@@ -1928,6 +1931,7 @@ after_ht:
 		END(tgt_putchar)
 #endif
 		LEAF(beep_on)
+		jr ra
 		nop
 
 		/* enable gpio0 output */
@@ -1949,6 +1953,7 @@ after_ht:
 		END(beep_on)
 
 		LEAF(beep_off)
+		jr ra
 		nop
 
 		/* enable gpio0 output */
