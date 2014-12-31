@@ -623,6 +623,7 @@ static void
 	term_open(3, "/dev/tty1", 0, 0); /* kbdin */
 	term_open(4, "/dev/tty1", 0, 0); /* vgaout */
 	term_open(5, "/dev/tty2", 0, 0); /* vgaout */
+	term_open(6, "/dev/tty3", 0, 0); /* vgaout */
 }
 
 #ifdef INTERFACE_3A780E

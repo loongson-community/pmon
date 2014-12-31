@@ -1,0 +1,7 @@
+TARGET=Bonito3a780e
+TARGETEL=ls3a
+export START=start_firewall.o
+MEMSIZE=128
+ZLOADER_OPTIONS=-mips3
+
+include Makefile.inc
