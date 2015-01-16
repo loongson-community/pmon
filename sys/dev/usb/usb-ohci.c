@@ -200,12 +200,6 @@ static int hc_check_ohci_controller(void *);
 void arouse_usb_int_pipe(ohci_t *);
 u_int32_t check_device_sequence(ohci_t * pohci);
 
-
-#ifdef LOONGSON_2G1A
-#define vtophys_2g1a(p)			((u32)PHYS_TO_CACHED(UNCACHED_TO_PHYS(p)) - 0x74000000)
-#endif
-
-
 #ifdef CONFIG_SM502_USB_HCD
 /* panel clock */
 #define SM501_CLOCK_P2XCLK      (24)
@@ -1099,11 +1093,7 @@ static void periodic_link(ohci_t * ohci, ed_t * ed)
 			else
 #endif
 			{
-#ifdef LOONGSON_2G1A
-				*prev_p = (volatile unsigned int)vtophys_2g1a(ed);
-#else
 				*prev_p = (volatile unsigned int)vtophys(ed);
-#endif
 			}
 		}
 		ohci->load[i] += ed->int_load;
@@ -1188,13 +1178,8 @@ static int ep_link(ohci_t * ohci, ed_t * edi)
 			} else
 #endif
 			{
-#ifdef LOONGSON_2G1A
-				writel(vtophys_2g1a(ed),
-				       &ohci->regs->ed_controlhead);
-#else
 				writel(vtophys(ed),
 				       &ohci->regs->ed_controlhead);
-#endif
 			}
 		} else {
 #ifdef CONFIG_SM502_USB_HCD
@@ -1204,13 +1189,8 @@ static int ep_link(ohci_t * ohci, ed_t * edi)
 			} else
 #endif
 			{
-#ifdef LOONGSON_2G1A
-				ohci->ed_controltail->hwNextED =
-				    m32_swap(vtophys_2g1a(ed));
-#else
 				ohci->ed_controltail->hwNextED =
 				    m32_swap(vtophys(ed));
-#endif
 			}
 		}
 		ed->ed_prev = ohci->ed_controltail;
@@ -1232,13 +1212,8 @@ static int ep_link(ohci_t * ohci, ed_t * edi)
 			} else
 #endif
 			{
-#ifdef LOONGSON_2G1A
-				writel((long)vtophys_2g1a(ed),
-				       &ohci->regs->ed_bulkhead);
-#else
 				writel((long)vtophys(ed),
 				       &ohci->regs->ed_bulkhead);
-#endif
 			}
 		} else {
 #ifdef CONFIG_SM502_USB_HCD
@@ -1248,11 +1223,7 @@ static int ep_link(ohci_t * ohci, ed_t * edi)
 			} else
 #endif
 			{
-#ifdef LOONGSON_2G1A
-				ohci->ed_bulktail->hwNextED = vtophys_2g1a(ed);
-#else
 				ohci->ed_bulktail->hwNextED = vtophys(ed);
-#endif
 			}
 		}
 		ed->ed_prev = ohci->ed_bulktail;
@@ -1462,11 +1433,7 @@ static ed_t *ep_add_ed(struct usb_device *usb_dev, unsigned long pipe)
 		} else
 #endif
 		{
-#ifdef LOONGSON_2G1A
-			ed->hwTailP = vtophys_2g1a(td);
-#else
 			ed->hwTailP = vtophys(td);
-#endif
 		}
 
 		ed->hwHeadP = ed->hwTailP;
@@ -1564,9 +1531,6 @@ static void td_fill(ohci_t * ohci, unsigned int info,
 #if (defined(LS3_HT) || defined(LS2G_HT))
 		td = urb_priv->td[index] =
 		    (td_t *) (PHYS_TO_CACHED(urb_priv->ed->hwTailP) & ~0xf);
-#elif defined(LOONGSON_2G1A)
-		td = urb_priv->td[index] =
-		    (td_t *) (CACHED_TO_UNCACHED(urb_priv->ed->hwTailP + 0x74000000) & ~0xf);
 #else
 		td = urb_priv->td[index] =
 		    (td_t *) (CACHED_TO_UNCACHED(urb_priv->ed->hwTailP) & ~0xf);
@@ -1594,11 +1558,7 @@ static void td_fill(ohci_t * ohci, unsigned int info,
 		else
 #endif
 		{
-#ifdef LOONGSON_2G1A
-			td->hwCBP = vtophys_2g1a(data);
-#else
 			td->hwCBP = vtophys(data);
-#endif
 		}
 	}
 
@@ -1609,11 +1569,7 @@ static void td_fill(ohci_t * ohci, unsigned int info,
 		else
 #endif
 		{
-#ifdef LOONGSON_2G1A
-			td->hwBE = vtophys_2g1a(data + len - 1);
-#else
 			td->hwBE = vtophys(data + len - 1);
-#endif
 		}
 	} else
 		td->hwBE = 0;
@@ -1630,11 +1586,7 @@ static void td_fill(ohci_t * ohci, unsigned int info,
 	else
 #endif
 	{
-#ifdef LOONGSON_2G1A
-		td->hwNextTD = vtophys_2g1a(m32_swap(td_pt));
-#else
 		td->hwNextTD = vtophys(m32_swap(td_pt));
-#endif
 	}
 	td->hwPSW[0] = ((u32) data & 0x0FFF) | 0xE000;
 	/* append to queue */
@@ -1829,7 +1781,7 @@ static void dl_transfer_length(td_t * td)
 		if (td->hwCBP == 0)
 			tdCBP = PHYS_TO_UNCACHED((u32)(td->hwCBP));
 		else
-			tdCBP = CACHED_TO_UNCACHED((u32)td->hwCBP + 0x74000000);
+			tdCBP = CACHED_TO_UNCACHED((u32)td->hwCBP );
 #else
 		tdCBP = PHYS_TO_UNCACHED(m32_swap(td->hwCBP));
 #endif
@@ -1868,7 +1820,7 @@ static void dl_transfer_length(td_t * td)
 					    1;
 #elif defined(LOONGSON_2G1A)
 					length =
-					    CACHED_TO_UNCACHED(tdBE + 0x74000000) -
+					    CACHED_TO_UNCACHED(tdBE) -
 					    CACHED_TO_UNCACHED(td->data) + 1;
 #else
 					length =
@@ -1997,7 +1949,7 @@ static td_t *dl_reverse_done_list(ohci_t * ohci)
 			    (td_t *) PHYS_TO_CACHED(td_list_hc & 0x1fffffff);
 #elif defined(LOONGSON_2G1A)
 			td_list = 
-			    (td_t *) CACHED_TO_UNCACHED((u32)td_list_hc + 0x74000000);
+			    (td_t *) CACHED_TO_UNCACHED((u32)td_list_hc);
 #else
 			td_list =
 			    (td_t *) PHYS_TO_UNCACHED(td_list_hc & 0x1fffffff);
@@ -3082,11 +3034,7 @@ static int hc_start(ohci_t * ohci)
 	else
 #endif
 	{
-#ifdef LOONGSON_2G1A
-		writel((u32) (vtophys_2g1a(ohci->hcca)), &ohci->regs->hcca);
-#else
 		writel((u32) (vtophys(ohci->hcca)), &ohci->regs->hcca);	/* a reset clears this */
-#endif
 	}
 
 	printf("early period(0x%x)\n", readl(&ohci->regs->ed_periodcurrent));
@@ -3199,8 +3147,6 @@ static int hc_interrupt(void *hc_data)
 		{
 #if (defined(LS3_HT) || defined(LS2G_HT))
 			td = (td_t *) PHYS_TO_CACHED(ohci->hcca->done_head);
-#elif defined(LOONGSON_2G1A)
-			td = (td_t *) CACHED_TO_UNCACHED(ohci->hcca->done_head + 0x74000000);
 #else
 			td = (td_t *) CACHED_TO_UNCACHED(ohci->hcca->done_head);
 #endif
@@ -3835,8 +3781,6 @@ static int hc_check_ohci_controller(void *hc_data)
 		{
 #if (defined(LS3_HT) || defined(LS2G_HT))
 			td = (td_t *) PHYS_TO_CACHED(ohci->hcca->done_head);
-#elif defined(LOONGSON_2G1A)
-			td = (td_t *) CACHED_TO_UNCACHED(ohci->hcca->done_head + 0x74000000);
 #else
 			td = (td_t *) CACHED_TO_UNCACHED(ohci->hcca->done_head);
 #endif

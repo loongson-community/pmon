@@ -464,7 +464,7 @@ struct loongson_special_attribute *init_special_info()
   strcpy(special->resource[0].name,"SPMODULE");
 #endif
 #endif
-#ifdef LOONGSON_2G5536
+#if defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A)
   special->resource[0].flags &= ~DMA64_SUPPORT;
 #else
   special->resource[0].flags |= DMA64_SUPPORT;

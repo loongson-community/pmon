@@ -22,12 +22,7 @@
 #if defined(LOONGSON_2G1A)
 dma_addr_t __attribute__((weak)) gmac_dmamap(unsigned long va,size_t size)
 {
-	unsigned long dma_adr;
-	if(va >= 0x84000000 && va <= 0x8fffffff)
-		dma_adr = va - 0x74000000;
-	else
-		printf("error!!! the address is out of the rang that 1F can map ,you can change the pci_map\n");
-	return dma_adr;
+	return va;
 }
 #endif
 

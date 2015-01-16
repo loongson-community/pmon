@@ -89,7 +89,7 @@
 #undef PHYSADDR
 #ifndef PHYSADDR
 #ifdef LOONGSON_2G1A
-#define PHYSADDR(x) (((long)(x)) - 0x74000000)//1a dma access address
+#define PHYSADDR(x) ((long)(x))//1a dma access address
 #else
 #define PHYSADDR(x) (((long)(x))&0x1fffffff)
 #endif
