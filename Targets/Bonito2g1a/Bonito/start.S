@@ -1857,7 +1857,7 @@ LEAF(init_south_bridge)
 	NORTHBRIDGE_INIT(0xb2d01134,0x7fffffff) //1a_pci_hit0_hi
 	NORTHBRIDGE_INIT(0xb2d01140,0xff000004) //1a_pci_hit1_lo 16MB axi slave space
 	NORTHBRIDGE_INIT(0xb2d01144,0x7fffffff) //1a_pci_hit1_hi
-	NORTHBRIDGE_INIT(0xb2d01150,0xf0000004) //1a_pci_hit2_lo MEM space 256MB//1G->0xc0000004 256M->0xf0000004
+	NORTHBRIDGE_INIT(0xb2d01150,0xfc000004) //1a_pci_hit2_lo MEM space 64MB//1G->0xc0000004 256M->0xf0000004
 	NORTHBRIDGE_INIT(0xb2d01154,0xffffffff) //1a_pci_hit2_hi
 	NORTHBRIDGE_INIT(0xb2d0110c,0x000001c5) //1a_pci_pxarb_config   // SUMH for 1A2
 	PRINTSTR("setup 1a pci dma window\r\n");
@@ -1877,7 +1877,7 @@ LEAF(init_south_bridge)
 	NORTHBRIDGE_INIT(0xb2d003ac,0x00000000) //1a_pci_pxarb_config   // SUMH for 1A2
 
 	PRINTSTR("setup 1a gpio\r\n");
-	NORTHBRIDGE_INIT(0xb2e78030,0x8b8b)//config pll control reg ddr_dll = 6,cpu_dll = 4 
+	NORTHBRIDGE_INIT(0xb2e78030,0x8a8b)//config pll control reg ddr_dll = 5,cpu_dll = 4 
 	NORTHBRIDGE_INIT(0xb2d010c0,0x00000000) //1a_gpio_cfg0   normal mode// SUMH for 1A2
 	NORTHBRIDGE_INIT(0xb2d010c4,0x10000000) //1a_gpio_cfg1   normal mode// SUMH for 1A2 ,gpio60 for reset
 	NORTHBRIDGE_INIT(0xb2d010c4,0x10000000) //1a_gpio_cfg1   normal mode// SUMH for 1A2 ,gpio60 for reset
