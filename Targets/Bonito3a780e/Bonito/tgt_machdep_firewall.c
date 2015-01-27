@@ -218,6 +218,10 @@ ConfigEntry	ConfigTable[] =
 	{ (char *)1, 0, vgaterm, 256, CONS_BAUD, NS16550HZ },
 #endif
 #endif
+#ifdef USE_SUPERIO_UART
+	 { (char *)-1, 0, ns16550, 256, CONS_BAUD, NS16550HZ/2 ,0}, 
+	 { (char *)-1, 0, ns16550, 256, CONS_BAUD, NS16550HZ/2 ,0}, 
+#endif
 	{ 0 }
 };
 
@@ -660,13 +664,15 @@ tgt_devinit()
 #ifdef USE_SUPERIO_UART
 	superio_reinit();
 	{int i;
-		for(i=0;ConfigTable[i].devinfo;i++)
+	 int j;
+	 int uart[] = { 0xb80002f8, 0xb80003f8 };
+
+		for(i=0,j=0;ConfigTable[i].devinfo;i++)
 		{
 			if(ConfigTable[i].devinfo==-1)
 			{
-				DevTable[i].sio=0xb80003f8;
+				DevTable[i].sio=uart[j++];
 				ns16550(OP_BAUD, &DevTable[i], NULL, CONS_BAUD);
-				break;
 			}
 		}
 	}
@@ -746,10 +752,13 @@ tgt_poweroff()
 extern void watchdog_enable(void);
 void tgt_reboot(void)
 {
-	char * watch_dog_base		 = 0xb8000cd6;
-	char * watch_dog_config		 = 0xba00a041;
-	unsigned int * watch_dog_mem = 0xbe010000;
-	unsigned char * reg_cf9		 = (unsigned char *)0xb8000cf9;
+	volatile char * watch_dog_base		 = 0xb8000cd6;
+	volatile char * watch_dog_config		 = 0xba00a041;
+	volatile unsigned int * watch_dog_mem = 0xbe010000;
+	volatile unsigned char * reg_cf9		 = (unsigned char *)0xb8000cf9;
+
+	watch_dog_base[0] = 0x85;	
+	watch_dog_base[1] = 0xe;	
 
 	delay(20000);
 	*reg_cf9 = 0;
