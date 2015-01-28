@@ -1703,7 +1703,7 @@ LEAF(initserial_1a)
 	sb	v1, NSREG(NS16550_FIFO_1A)(v0)
 	li	v1, CFCR_DLAB
 	sb	v1, NSREG(NS16550_CFCR_1A)(v0)
-	li	v1, ((APB_CLK*10)/(2*16*CONS_BAUD))
+	li	v1, ((APB_CLK*5)/(2*16*CONS_BAUD))
 	sb	v1, NSREG(NS16550_DATA_1A)(v0)
 	srl	v1, 8
 	sb	v1, NSREG(NS16550_IER_1A)(v0)
