@@ -266,3 +266,146 @@ cmd_spacescan(int ac, char **av)
     printf("\n");
 }
 
+
+#if 0
+
+#if __mips == 3 || __mips == 64
+#define LADDIU "addiu"
+#else
+#define LADDIU "daddiu"
+#endif
+
+/*direct load store test*/
+static int scan()
+{
+	void *p;
+	for(p=0xffffffff90000000;p<0xffffffffa0000000;p=p+4)
+	{
+		if((((long)p)&0xffff)==0) printf("%x\n", p);
+		*(volatile int *)p;
+	}
+
+}
+
+/*load store on guess test*/
+
+static int guess(unsigned long addr, unsigned long end, int step)
+{
+	while(addr<end)
+	{
+		printf("%x\n", addr);
+		asm volatile(
+				".set push;\n"
+				".set noreorder;\n"
+				".set mips64;\n"
+				"1:lw %1,(%2);\n"
+				"beqzl  %1,1f;\n"
+				"nop;\n"
+				LADDIU " %0,4;\n"
+				"andi %1, %0, 0xffff;\n"
+				"beqz %1,2f;\n"
+				"nop;\n"
+				"b 1b;\n"
+				"nop;\n"
+				"1:lw %1,(%0);\n"
+				"b 1b;\n"
+				"nop;\n"
+				"2:\n"
+				".set pop;\n"
+				:"=r"(addr):"r"(0),"r"(0xffffffffa0000000),"0"(addr)
+			    );
+	}
+}
+
+
+/*inst fetch on guess test*/
+
+static int guess1(unsigned long addr, unsigned long end)
+{
+	while(addr<end)
+	{
+		printf("%x\n", addr);
+		asm volatile(
+				".set push;\n"
+				".set noreorder;\n"
+				".set mips64;\n"
+				"1:lw %1,(%2);\n"
+				"beqzl  %1,1f;\n"
+				"nop;\n"
+				LADDIU " %0,4;\n"
+				"andi %1, %0, 0xffff;\n"
+				"beqz %1,2f;\n"
+				"nop;\n"
+				"b 1b;\n"
+				"nop;\n"
+				"1:jr %0;\n"
+				"nop;\n"
+				"2:\n"
+				".set pop;\n"
+				:"=r"(addr):"r"(0),"r"(0xffffffffa0000000),"0"(addr)
+			    );
+	}
+}
+
+
+static int cmd_mscan(int ac, char **av)
+{
+	int gflag, err;
+	unsigned long long saddr, eaddr;
+	saddr = 0xffffffff80000000;
+	eaddr = 0xffffffffbfffffff;
+
+	if(*(volatile int *)0xffffffffa0000000 == 0)
+	*(volatile int *)0xffffffffa0000000 = 0x25;
+
+	optind = 0;
+	while((c = getopt(ac, av, "cv")) != EOF) {
+		switch(c) {
+		case 'g':
+			gflag = 1;
+			break;
+		case 'G':
+			gflag = 2;
+			break;
+		case 'l':
+			gflag = 0;
+			break;
+		case 's':
+			step = strtoul(optarg, 0, 0);
+			break;
+		default:
+			return(-1);
+		}
+	}
+
+	if(optind < ac) {
+		saddr = strtoull(av[optind++], 0, 0);
+		if(optind < ac) {
+			eaddr = strtoull(av[optind++], 0, 0);
+		}
+	}
+
+	saddr = saddr & ~0x3;
+	eaddr &= ~0x3;
+
+	if(eaddr < saddr) {
+		printf("end address less that start address!\n");
+		return(-1);
+	}
+
+	switch(gflag)
+	{
+	 case 1:
+	guess1(0xffffffffb0000000, 0xffffffffc0000000);
+	guess1(0xffffffff90000000, 0xffffffffa0000000);
+		guess(); break;
+	 case 2:
+		guess(); break;
+	 case 0:
+//	scan();
+		guess(); break;
+	}
+
+	return 0;
+}
+#endif
