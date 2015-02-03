@@ -301,7 +301,7 @@ struct system_loongson *init_system_loongson()
 #
 #ifdef LOONGSON_3BSINGLE
   s->ccnuma_smp = 1;
-  s->sing_double_channel = 2;
+  s->sing_double_channel = 1;
 #endif
 #ifdef LOONGSON_3ASINGLE
   s->ccnuma_smp = 0;
