@@ -259,8 +259,16 @@ locate:
 	dli	t2, NODE0_CORE0_BUF0
 	or	t1, t2, t1
 
-	dli     a0, BOOTCORE_ID
-	bne     t0, a0, slave_main
+	li	a0, DUMMY_3B7
+	li	k0, 0x5a5a5a5a
+	sw	k0, 0(a0)
+	lw	a0, 0(a0)
+	subu	a0, a0, k0
+	dli     k0, BOOTCORE_ID
+	.set	mips64
+	movn	k0, zero, a0
+	.set	mips3
+	bne     t0, k0, slave_main
 	nop
 
         bal     initserial
@@ -268,11 +276,12 @@ locate:
         bal     initserial1
         nop
 
-//#define SHUT_SLAVES
-#ifdef SHUT_SLAVES
+	bnez	k0, 1f	
+	nop
 	PRINTSTR("Shut down other cores\r\n")
 	li      a0, 0xbfe001d0
-	li	a1, BOOTCORE_ID
+//	li	a1, BOOTCORE_ID
+	move	a1, k0
 	sll	a1, 2
 	li      t1, 0xf
 	sll	a1, t1, a1
@@ -282,10 +291,8 @@ locate:
 	li      t1, 0x00000000
 	or	t1, a1, t1
 	sw      t1, 0x0(a0)
-
-#else
+1:
 	PRINTSTR("NOT Shut down other cores\r\n")
-#endif
 
 
 bsp_start:
@@ -381,6 +388,34 @@ gs_2f_v3_ddr2_cfg:
 
 #define BYPASS_REFIN 0x1
 
+//#define CHANGE_VOLT 
+#ifdef	CHANGE_VOLT
+#define CORE_1150MV	(0X4a << 2)
+#define CORE_1200MV	(0X42 << 2)
+#define CORE_1250MV	(0X3a << 2)
+#define CORE_1300MV	(0X32 << 2)
+#define CORE_1350MV	(0X2a << 2)
+#define CORE_1400MV	(0X22 << 2)
+#define CORE_1450MV	(0X1a << 2)
+#define CORE_VOLT	CORE_1150MV
+
+	TTYDBG ("Change core volt to ")
+	li	a0, CORE_VOLT
+	bal	hexserial
+	nop
+	li	t0, 0xbfe00100
+	li	a0, CORE_VOLT
+	sw	a0, 28(t0)
+	li	a1, 0xfc03	/*use gpio 2~7 */
+	lw	a2, 32(t0)
+	and	a2, a2, a1
+	sw	a2, 32(t0)
+
+	li	a0, 0xffffffff	/*wait for long enough */
+	beqz	a0, 1f
+	addiu	a0, -1
+1:
+#endif
 	TTYDBG ("Soft CLK SEL adjust begin\r\n")
 
 	li      t0, 0xbfe00194
@@ -394,6 +429,10 @@ soft_sys:
 	TTYDBG ("CORE & NODE:")
 
 	li      t0, 0xbfe001b0
+
+	dli	a0, (0x7 << 19)		// power down pll for 3b6 and 3b7 only
+	sw	a0, 0x0(t0)
+
 	dli     a0, (NODE_LOOPC << 22) | (NODE_REFC  << 16) | (L1_DIV    << 10) | L1_LOOPC
 	sw      a0, 0x4(t0)
 
@@ -564,6 +603,7 @@ soft_out:
 #define PRINT_MSG
 //#define DEBUG_DDR
 //#define DEBUG_DDR_PARAM
+#define DDR_DLL_BYPASS
 
 	dli     msize, 0
 
@@ -995,7 +1035,8 @@ bootnow:
 
 	TTYDBG("Copy PMON to execute location done.\r\n")
 
-#ifdef SHUT_SLAVES
+	bnez	k0, 1f
+	nop
 	PRINTSTR("Wake up other cores\r\n")
 
         /* Set clock low for a safe shift */
@@ -1006,7 +1047,8 @@ bootnow:
         sw      a0, 0x0(t0)
 
 	li      a0, 0xbfe001d0
-	li	a1, BOOTCORE_ID
+	//li	a1, BOOTCORE_ID
+	move	a1, k0
 	sll	a1, 2
 	li	t1, 0xf
 	sll	a1, t1, a1
@@ -1022,10 +1064,8 @@ bootnow:
 	li      a0, 0xbfe001d0
 	li      t1, 0xffffffff
 	sw      t1, 0x0(a0)
-#else
+1:
 	PRINTSTR("NOT Wake up other cores\r\n")
-
-#endif
 
 
 	TTYDBG("sp=");

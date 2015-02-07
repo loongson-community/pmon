@@ -1633,6 +1633,12 @@ dll_gate_0_add0:
     and     a0, a0, t4
     bne     a0, t4, 1f
     nop
+    //set dll_gate to 0
+    ld      a0, 0x0(t1)
+    dli     t2, 0xffffffffffffff00
+    and     a0, a0, t2
+    sd      a0, 0x0(t1)
+    
     /* rd_oe_begin and rd_oe_end add 1 */
     dli     t1, 0x028
     or      t1, t1, t8
@@ -1668,6 +1674,12 @@ dll_gate_1_add0:
     and     a0, a0, t4
     bne     a0, t4, 1f
     nop
+    //set dll_gate to 0
+    ld      a0, 0x0(t1)
+    dli     t2, 0xffffffffffffff00
+    and     a0, a0, t2
+    sd      a0, 0x0(t1)
+    
     /* rd_oe_begin and rd_oe_end add 1 */
     dli     t1, 0x048
     or      t1, t1, t8
@@ -1703,6 +1715,12 @@ dll_gate_2_add0:
     and     a0, a0, t4
     bne     a0, t4, 1f
     nop
+    //set dll_gate to 0
+    ld      a0, 0x0(t1)
+    dli     t2, 0xffffffffffffff00
+    and     a0, a0, t2
+    sd      a0, 0x0(t1)
+    
     /* rd_oe_begin and rd_oe_end add 1 */
     dli     t1, 0x068
     or      t1, t1, t8
@@ -1738,6 +1756,12 @@ dll_gate_3_add0:
     and     a0, a0, t4
     bne     a0, t4, 1f
     nop
+    //set dll_gate to 0
+    ld      a0, 0x0(t1)
+    dli     t2, 0xffffffffffffff00
+    and     a0, a0, t2
+    sd      a0, 0x0(t1)
+    
     /* rd_oe_begin and rd_oe_end add 1 */
     dli     t1, 0x088
     or      t1, t1, t8
@@ -1773,6 +1797,12 @@ dll_gate_4_add0:
     and     a0, a0, t4
     bne     a0, t4, 1f
     nop
+    //set dll_gate to 0
+    ld      a0, 0x0(t1)
+    dli     t2, 0xffffffffffffff00
+    and     a0, a0, t2
+    sd      a0, 0x0(t1)
+    
     /* rd_oe_begin and rd_oe_end add 1 */
     dli     t1, 0x0a8
     or      t1, t1, t8
@@ -1808,6 +1838,12 @@ dll_gate_5_add0:
     and     a0, a0, t4
     bne     a0, t4, 1f
     nop
+    //set dll_gate to 0
+    ld      a0, 0x0(t1)
+    dli     t2, 0xffffffffffffff00
+    and     a0, a0, t2
+    sd      a0, 0x0(t1)
+    
     /* rd_oe_begin and rd_oe_end add 1 */
     dli     t1, 0x0c8
     or      t1, t1, t8
@@ -1843,6 +1879,12 @@ dll_gate_6_add0:
     and     a0, a0, t4
     bne     a0, t4, 1f
     nop
+    //set dll_gate to 0
+    ld      a0, 0x0(t1)
+    dli     t2, 0xffffffffffffff00
+    and     a0, a0, t2
+    sd      a0, 0x0(t1)
+    
     /* rd_oe_begin and rd_oe_end add 1 */
     dli     t1, 0x0e8
     or      t1, t1, t8
@@ -1878,6 +1920,12 @@ dll_gate_7_add0:
     and     a0, a0, t4
     bne     a0, t4, 1f
     nop
+    //set dll_gate to 0
+    ld      a0, 0x0(t1)
+    dli     t2, 0xffffffffffffff00
+    and     a0, a0, t2
+    sd      a0, 0x0(t1)
+    
     /* rd_oe_begin and rd_oe_end add 1 */
     dli     t1, 0x108
     or      t1, t1, t8
@@ -1913,6 +1961,12 @@ dll_gate_8_add0:
     and     a0, a0, t4
     bne     a0, t4, 1f
     nop
+    //set dll_gate to 0
+    ld      a0, 0x0(t1)
+    dli     t2, 0xffffffffffffff00
+    and     a0, a0, t2
+    sd      a0, 0x0(t1)
+    
     /* rd_oe_begin and rd_oe_end add 1 */
     dli     t1, 0x128
     or      t1, t1, t8
@@ -2268,6 +2322,12 @@ dll_gate_0_add:
     and     a0, a0, t4
     bne     a0, t4, 1f
     nop
+    //set dll_gate to 0
+    ld      a0, 0x0(t1)
+    dli     t2, 0xffffffffffffff00
+    and     a0, a0, t2
+    sd      a0, 0x0(t1)
+    
     /* rd_oe_begin and rd_oe_end add 1 */
     dli     t1, 0x028
     or      t1, t1, t8
@@ -2304,6 +2364,12 @@ dll_gate_1_add:
     and     a0, a0, t4
     bne     a0, t4, 1f
     nop
+    //set dll_gate to 0
+    ld      a0, 0x0(t1)
+    dli     t2, 0xffffffffffffff00
+    and     a0, a0, t2
+    sd      a0, 0x0(t1)
+    
     /* rd_oe_begin and rd_oe_end add 1 */
     dli     t1, 0x048
     or      t1, t1, t8
@@ -2339,6 +2405,12 @@ dll_gate_2_add:
     and     a0, a0, t4
     bne     a0, t4, 1f
     nop
+    //set dll_gate to 0
+    ld      a0, 0x0(t1)
+    dli     t2, 0xffffffffffffff00
+    and     a0, a0, t2
+    sd      a0, 0x0(t1)
+    
     /* rd_oe_begin and rd_oe_end add 1 */
     dli     t1, 0x068
     or      t1, t1, t8
@@ -2374,6 +2446,12 @@ dll_gate_3_add:
     and     a0, a0, t4
     bne     a0, t4, 1f
     nop
+    //set dll_gate to 0
+    ld      a0, 0x0(t1)
+    dli     t2, 0xffffffffffffff00
+    and     a0, a0, t2
+    sd      a0, 0x0(t1)
+    
     /* rd_oe_begin and rd_oe_end add 1 */
     dli     t1, 0x088
     or      t1, t1, t8
@@ -2409,6 +2487,12 @@ dll_gate_4_add:
     and     a0, a0, t4
     bne     a0, t4, 1f
     nop
+    //set dll_gate to 0
+    ld      a0, 0x0(t1)
+    dli     t2, 0xffffffffffffff00
+    and     a0, a0, t2
+    sd      a0, 0x0(t1)
+    
     /* rd_oe_begin and rd_oe_end add 1 */
     dli     t1, 0x0a8
     or      t1, t1, t8
@@ -2444,6 +2528,12 @@ dll_gate_5_add:
     and     a0, a0, t4
     bne     a0, t4, 1f
     nop
+    //set dll_gate to 0
+    ld      a0, 0x0(t1)
+    dli     t2, 0xffffffffffffff00
+    and     a0, a0, t2
+    sd      a0, 0x0(t1)
+    
     /* rd_oe_begin and rd_oe_end add 1 */
     dli     t1, 0x0c8
     or      t1, t1, t8
@@ -2479,6 +2569,12 @@ dll_gate_6_add:
     and     a0, a0, t4
     bne     a0, t4, 1f
     nop
+    //set dll_gate to 0
+    ld      a0, 0x0(t1)
+    dli     t2, 0xffffffffffffff00
+    and     a0, a0, t2
+    sd      a0, 0x0(t1)
+    
     /* rd_oe_begin and rd_oe_end add 1 */
     dli     t1, 0x0e8
     or      t1, t1, t8
@@ -2514,6 +2610,12 @@ dll_gate_7_add:
     and     a0, a0, t4
     bne     a0, t4, 1f
     nop
+    //set dll_gate to 0
+    ld      a0, 0x0(t1)
+    dli     t2, 0xffffffffffffff00
+    and     a0, a0, t2
+    sd      a0, 0x0(t1)
+    
     /* rd_oe_begin and rd_oe_end add 1 */
     dli     t1, 0x108
     or      t1, t1, t8
@@ -2549,6 +2651,12 @@ dll_gate_8_add:
     and     a0, a0, t4
     bne     a0, t4, 1f
     nop
+    //set dll_gate to 0
+    ld      a0, 0x0(t1)
+    dli     t2, 0xffffffffffffff00
+    and     a0, a0, t2
+    sd      a0, 0x0(t1)
+    
     /* rd_oe_begin and rd_oe_end add 1 */
     dli     t1, 0x128
     or      t1, t1, t8
@@ -3107,6 +3215,59 @@ wait_init_done3:
     beqz    a0, wait_init_done3
     nop
 
+#ifdef DDR_DLL_BYPASS //bypass dll_gate and dll_rddqs_p/n
+	dli     t1, 0x0
+	or      t1, t1, t8
+	ld      a1, 0x0(t1)
+    dli     t4, 0x0000ffff00000000
+	and     a1, a1, t4 
+	dsrl    a1, a1, 32 // dll_value store in a1
+
+/* identify wheather there is ecc slice */
+    dli     t1, 0x250
+    or      t1, t1, t8
+    lb      a0, 0x2(t1)
+    beqz    a0, 1f
+    nop
+	dli     t3, 0x9 //loop times
+	b       2f
+	nop
+
+1:  
+    dli     t3, 0x8 //loop times
+
+2:  
+
+    dli     t1, 0x38
+    or      t1, t1, t8
+3:	
+	//set dll_gate
+    lb      a0, 0x0(t1)
+	dmulou  a0, a1, a0
+	dsrl    a0, a0, 0x7
+	ori     a0, a0, 0x80
+	sb      a0, 0x0(t1)
+
+	//set dll_rddqs_p
+    lb      a0, 0x3(t1)
+	dmulou  a0, a1, a0
+	dsrl    a0, a0, 0x7
+	ori     a0, a0, 0x80
+	sb      a0, 0x3(t1)
+
+	//set dll_rddqs_n
+    lb      a0, 0x4(t1)
+	dmulou  a0, a1, a0
+	dsrl    a0, a0, 0x7
+	ori     a0, a0, 0x80
+	sb      a0, 0x4(t1)
+
+	subu    t3, t3, 0x1
+	daddu   t1, t1, 0x20
+	bnez    t3, 3b
+    nop
+
+#endif
 
 100:
 

@@ -283,6 +283,7 @@ struct efi_cpuinfo_loongson *init_cpu_info()
 #ifdef	BOOTCORE_ID
 	c->cpu_startup_core_id = BOOTCORE_ID;
 	c->reserved_cores_mask = RESERVED_COREMASK;
+	board_info_fixup(c);
 #else
 	c->cpu_startup_core_id = 0;
 	c->reserved_cores_mask = 0;
@@ -476,4 +477,9 @@ struct loongson_special_attribute *init_special_info()
   special->resource[0].flags |= DMA64_SUPPORT;
 #endif
   return special;
+}
+
+void __attribute__((weak)) board_info_fixup(struct efi_cpuinfo_loongson *c)
+{
+
 }

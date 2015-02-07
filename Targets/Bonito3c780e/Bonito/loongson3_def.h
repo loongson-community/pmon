@@ -187,3 +187,4 @@ nop
 #define NODE_SCACHE_ENABLED         0x6666
 #define SYSTEM_INIT_OK              0x5a5a
 
+#define DUMMY_3B7		0xbfe001a8 //this reg is writable on 3b5 , not on 3b7

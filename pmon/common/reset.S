@@ -24,8 +24,10 @@ poweroff_kernel:
 	li	t1, 0xfffffffe
 	and	t0, t1, t0
 	mtc0	t0, CP0_STATUS
-	j	tgt_poweroff
+	jal	tgt_poweroff
 	lui	sp, 0x8ffc
+1:	b	1b
+	nop
 	.end	poweroff_kernel
 
 	.global reboot_kernel
@@ -35,8 +37,10 @@ reboot_kernel:
 	li	t1, 0xfffffffe
 	and	t0, t1, t0
 	mtc0	t0, CP0_STATUS
-	j	tgt_reboot
+	jal	tgt_reboot
 	lui	sp, 0x8ffc
+1:	b	1b
+	nop
 	.end	reboot_kernel
 
 	/* asm trick following o32 abi */
