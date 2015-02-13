@@ -42,7 +42,7 @@ DO_C99_MATH = false
 
 ifeq ($(strip $(DO_C99_MATH)),true)
 EXTRA_CFLAGS += -DDO_C99_MATH
-SRCS+= e_acos.c e_acosh.c e_asin.c e_atan2.c e_atanh.c e_cosh.c\
+SRCS+=   gunzip.c rbtree.c ctype.c cfun.c lzo1x_decompress.c div64.c e_acos.c e_acosh.c e_asin.c e_atan2.c e_atanh.c e_cosh.c\
          e_exp.c e_fmod.c e_gamma.c e_gamma_r.c e_hypot.c e_j0.c\
          e_j1.c e_jn.c e_lgamma.c e_lgamma_r.c e_log.c e_log10.c\
          e_pow.c e_remainder.c e_rem_pio2.c e_scalb.c e_sinh.c\
@@ -59,7 +59,7 @@ SRCS+= e_acos.c e_acosh.c e_asin.c e_atan2.c e_atanh.c e_cosh.c\
          w_sqrt.c ceilfloor.c fpmacros.c frexpldexp.c logb.c rndint.c\
          scalb.c sign.c
 else
-SRCS+=   w_acos.c w_asin.c s_atan.c w_atan2.c s_ceil.c s_cos.c \
+SRCS+=   gunzip.c rbtree.c ctype.c cfun.c lzo1x_decompress.c div64.c w_acos.c w_asin.c s_atan.c w_atan2.c s_ceil.c s_cos.c \
 	 w_cosh.c w_exp.c s_expm1.c s_fabs.c s_floor.c w_fmod.c \
 	 s_frexp.c w_log.c w_log10.c s_modf.c w_pow.c s_sin.c \
 	 w_sinh.c w_sqrt.c s_tan.c s_tanh.c s_scalbn.c s_copysign.c \

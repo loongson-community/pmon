@@ -263,6 +263,43 @@ file pmon/fs/yaffs2/yaffs_packedtags2.c     yaffsfs
 file pmon/fs/yaffs2/yaffs_qsort.c           yaffsfs
 file pmon/fs/yaffs2/yaffs_tagscompat.c      yaffsfs
 file pmon/fs/yaffs2/yaffs_tagsvalidity.c    yaffsfs
+file pmon/fs/yaffsfs.c			yaffsfs
+
+file pmon/fs/ubi/mtdcore.c                ubi
+file pmon/fs/ubi/build.c                ubi
+file pmon/fs/ubi/debug2.c               ubi
+file pmon/fs/ubi/eba.c          ubi
+file pmon/fs/ubi/misc2.c                ubi
+file pmon/fs/ubi/vmt.c          ubi
+file pmon/fs/ubi/wl.c           ubi
+file pmon/fs/ubi/crc32.c                ubi
+file pmon/fs/ubi/io2.c          ubi
+file pmon/fs/ubi/scan2.c                ubi
+file pmon/fs/ubi/upd.c          ubi
+file pmon/fs/ubi/vtbl.c         ubi
+file pmon/fs/ubi/kapi.c                ubi
+
+file pmon/fs/ubifs/budget.c                 ubifs
+file pmon/fs/ubifs/crca.c                   ubifs
+file pmon/fs/ubifs/debug.c                  ubifs
+file pmon/fs/ubifs/io.c                     ubifs
+file pmon/fs/ubifs/log.c                    ubifs
+file pmon/fs/ubifs/lprops.c                 ubifs
+file pmon/fs/ubifs/lpt.c                    ubifs
+file pmon/fs/ubifs/lpt_commit.c             ubifs
+file pmon/fs/ubifs/master.c                 ubifs
+file pmon/fs/ubifs/orphan.c                 ubifs
+file pmon/fs/ubifs/recovery.c               ubifs
+file pmon/fs/ubifs/replay.c                 ubifs
+file pmon/fs/ubifs/sb.c                     ubifs
+file pmon/fs/ubifs/scan.c                   ubifs
+file pmon/fs/ubifs/super.c                  ubifs
+file pmon/fs/ubifs/tnc.c                    ubifs
+file pmon/fs/ubifs/tnc_misc.c               ubifs
+file pmon/fs/ubifs/ubifs.c                  ubifs
+
+
+
 
 file pmon/loaders/loadfn.c		(mod_s3load | mod_fastload)
 file pmon/loaders/zmodem/zmdm.c		(pmon_zmodem_rz | pmon_zmodem_tz)
