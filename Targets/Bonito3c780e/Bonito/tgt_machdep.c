@@ -1226,7 +1226,7 @@ tgt_poweroff()
 {
 	volatile unsigned char * watch_dog_base = 0xb8000cd6;
 	volatile unsigned char * watch_dog_config  = 0xba00a041;
-	unsigned int * watch_dog_mem = 0xbe010000;
+	volatile unsigned int * watch_dog_mem = 0xbe010000;
 	volatile unsigned char * reg_cf9 = (unsigned char *)0xb8000cf9;
 
 	delay(100);
@@ -2537,9 +2537,9 @@ IRQ0, 2, 8, 13 are reserved
 
 void sb700_interrupt_fixup(void)
 {
-	unsigned char * pic_index = 0xb8000c00 + SMBUS_IO_BASE; 
-	unsigned char * pic_data =  0xb8000c01 + SMBUS_IO_BASE;
-	unsigned short * intr_contrl =  0xb80004d0 + SMBUS_IO_BASE;
+	volatile unsigned char * pic_index = 0xb8000c00 + SMBUS_IO_BASE;
+	volatile unsigned char * pic_data =  0xb8000c01 + SMBUS_IO_BASE;
+	volatile unsigned short * intr_contrl =  0xb80004d0 + SMBUS_IO_BASE;
 	unsigned short busnum, funnum;
 	unsigned short origin_busnum;
 
