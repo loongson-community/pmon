@@ -1323,7 +1323,7 @@ struct efi_memory_map_loongson * init_memory_map()
 	emap->map[(entry)].mem_size = (size), \
 	(entry)++
 
-	EMAP_ENTRY(i, 0, SYSTEM_RAM_LOW, 0x00100000, 0x0ff);
+	EMAP_ENTRY(i, 0, SYSTEM_RAM_LOW, 0x00200000, 0x0ee);
 
 	/* for entry with mem_size < 1M, we set bit31 to 1 to indicate
 	 * that the unit in mem_size is Byte not MBype */
