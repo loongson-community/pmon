@@ -1781,7 +1781,7 @@ register_t
 tgt_clienttos()
 {
 	extern char start[];
-	return(register_t)(int)PHYS_TO_CACHED(start - 64);
+        return ((register_t)(int)(start) & ~7 - 64);
 }
 
 #ifdef HAVE_FLASH

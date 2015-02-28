@@ -224,7 +224,7 @@ static void board_info(char *board_name)
 
 #ifdef LOONGSON_3BSINGLE
 #ifdef LOONGSON_3B1500
-        strcpy(board_name, "Loongson-3B-780E-1w-V0.4-demo");
+        strcpy(board_name, "Loongson-3B-780E-1w-V0.5-demo");
 #else
         strcpy(board_name, "Loongson-3B-780E-1w-V1.03-demo");
 #endif
