@@ -192,6 +192,7 @@ pci*		at ppb? bus ?
 #rtk*		at pci? dev ? function ?
 em*         at pci? dev ? function ?
 igb*         at pci? dev ? function ?
+select igb1
 
 #### USB
 #uhci*		 at pci? dev ? function ?
