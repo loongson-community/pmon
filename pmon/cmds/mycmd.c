@@ -1821,7 +1821,7 @@ static const Cmd Cmds[] =
 	{"testst","n",0,"",cmd_testst,0,99,CMD_REPEAT},
 #endif
 #endif
-	{"ifconfig","ifname",0,"ifconig fx0 [up|down|remove|stat|setmac|readrom|setrom|addr [netmask]",cmd_ifconfig,2,99,CMD_REPEAT},
+	{"ifconfig","ifname",0,"ifconig fx0 [up|down|remove|stat|setmac|readrom|writerom|addr [netmask]",cmd_ifconfig,2,99,CMD_REPEAT},
 	{"ifup","ifname",0,"ifup fxp0",cmd_ifup,2,99,CMD_REPEAT},
 	{"ifdown","ifname",0,"ifdown fxp0",cmd_ifdown,2,99,CMD_REPEAT},
 	{"rtlist","",0,"rtlist",cmd_rtlist,0,99,CMD_REPEAT},
