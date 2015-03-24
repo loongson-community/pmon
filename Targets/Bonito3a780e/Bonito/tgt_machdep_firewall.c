@@ -1873,7 +1873,7 @@ static void pci_fix_device_interrpt(struct pci_device *pd, int bus0dev)
 			if(!irqroute[irq])
 			{
 			  printf("nomap for busdev %d pin %d irqpin %d\n", bus0dev ,pin ,irq);
-				irqroute[irq] = 3;
+				irqroute[irq] = 10;
 				*pic_index =  irq;
 				*pic_data = irqroute[irq];
 			}
@@ -1902,6 +1902,17 @@ void sb700_interrupt_fixup1(void)
 	volatile unsigned char * pic_data =  0xb8000c01 + SMBUS_IO_BASE;
 	//c00,c01
 	char tmpirq = 8;
+
+	irqroute[0] = 5;
+	irqroute[1] = 6;
+	irqroute[2] = 7;
+	irqroute[3] = 9;
+
+	for(i=0;i<4;i++)
+	{
+		* pic_index = i;
+		* pic_data = irqroute[i];
+        }
 
 	for(i=0;i<16;i++)
 	{
