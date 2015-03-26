@@ -337,6 +337,7 @@ int cmd_setmac(int ac, unsigned char *av[])
 	int i, j, v, count, data_addr, param = 0;
 	unsigned char *s = NULL;
 	unsigned char buf[32];
+	char * addr;;
 	u32 base = (board_ver_num == LS3A2H_BOARD_OLD) ?
 		LS2H_I2C1_REG_BASE : LS2H_I2C0_REG_BASE;
 
@@ -354,10 +355,24 @@ int cmd_setmac(int ac, unsigned char *av[])
 	if (param == 1) {
 		for (i = 0; i < 2; i++) {	
 			if (eeprom_read_seq(base, i * 6, buf, 6) == 6) {
-				printf("eth%d Mac address: ", i);
-				for (j = 0; j < 6; j++)
-					printf("%02x%s", buf[j], (5-j)?":":" ");
-				printf("\n");
+				if (!is_valid_ether_addr_linux(buf)){
+					printf("eth%d Mac is invalid, now get a new mac\n", i);
+					addr = generate_mac_val(buf);
+					if (eeprom_write_page(base, (i * 6), buf, 6) == 6) {
+						printf("set eth%d  Mac address: ",i);
+						for (v = 0;v < 6;v++)
+							printf("%2x%s",*(addr + v) & 0xff,(5-v)?":":" ");
+						printf("\n");
+						printf("The machine should be restarted to make the mac change to take effect!!\n");
+						} else
+							printf("eeprom write error!\n");
+					printf("you can set it by youself\n");
+				} else {
+					printf("eth%d Mac address: ", i);
+					for (j = 0; j < 6; j++)
+						printf("%02x%s", buf[j], (5-j)?":":" ");
+					printf("\n");
+				}
 			} else {
 				printf("eeprom write error!\n");
 				return 0;

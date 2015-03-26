@@ -33,6 +33,7 @@ file    Targets/Bonito3a2h/dev/dc.c
 #i2c
 file	sys/dev/i2c.c
 file    Targets/Bonito3a2h/dev/eeprom.c 
+file    Targets/Bonito3a2h/dev/generate_mac_val.c
 
 #GMAC
 #file	sys/dev/gmac/synopGMAC_Host.c
