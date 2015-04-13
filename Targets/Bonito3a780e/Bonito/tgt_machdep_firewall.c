@@ -127,6 +127,9 @@ extern int kbd_initialize(void);
 extern int write_at_cursor(char val);
 extern const char *kbd_error_msgs[];
 #include "flash.h"
+#ifdef LVDS
+#include "lvds_reg.h"
+#endif
 #if (NMOD_FLASH_AMD + NMOD_FLASH_INTEL + NMOD_FLASH_SST) == 0
 #ifdef HAVE_FLASH
 #undef HAVE_FLASH
@@ -250,6 +253,32 @@ void movinv1(int iter, ulong p1, ulong p2);
 pcireg_t _pci_allocate_io(struct pci_device *dev, vm_size_t size);
 static void superio_reinit();
 
+#ifdef LVDS
+void lvds_reg_init()
+{
+    int i = 0; 
+    unsigned long ioaddress;
+    extern struct pci_device *vga_dev,*pcie_dev;
+
+    ioaddress = _pci_conf_read(vga_dev->pa.pa_tag, 0x18);
+    ioaddress = ioaddress & 0xfffffff0; //laster 4 bit
+    ioaddress |= ioaddress | 0xc0000000;
+    printf("ioaddress:%x for LVDS patch\n ", ioaddress);
+//printf("----------------------------in-------------%s-------------------\n",__func__);
+
+
+    while (lvds_reg[i].reg) {
+        *(volatile unsigned int *) (ioaddress +
+                        lvds_reg[i].reg * 4) = 
+            lvds_reg[i].val;
+        delay(1000);
+	printf("address:0x%x,val:0x%x\n",ioaddress +lvds_reg[i].reg * 4,lvds_reg[i].val);
+        i++; 
+    }    
+//printf("-------------------------------------------out---------%s---------------------\n",__func__);
+}
+#endif
+
 void
 initmips(unsigned long long raw_memsz)
 {
@@ -355,6 +384,9 @@ void tgt_devconfig(void)
 	SBD_DISPLAY("VESA", 0);
 	if(rc > 0)
 		vesafb_init();
+#endif
+#ifdef LVDS
+    lvds_reg_init(); 
 #endif
 #if (NMOD_X86EMU_INT10 == 0 && defined(RADEON7000))
 	SBD_DISPLAY("VGAI", 0);
@@ -1873,7 +1905,7 @@ static void pci_fix_device_interrpt(struct pci_device *pd, int bus0dev)
 			if(!irqroute[irq])
 			{
 			  printf("nomap for busdev %d pin %d irqpin %d\n", bus0dev ,pin ,irq);
-				irqroute[irq] = 10;
+				irqroute[irq] = 3;
 				*pic_index =  irq;
 				*pic_data = irqroute[irq];
 			}
@@ -1902,17 +1934,6 @@ void sb700_interrupt_fixup1(void)
 	volatile unsigned char * pic_data =  0xb8000c01 + SMBUS_IO_BASE;
 	//c00,c01
 	char tmpirq = 8;
-
-	irqroute[0] = 5;
-	irqroute[1] = 6;
-	irqroute[2] = 7;
-	irqroute[3] = 9;
-
-	for(i=0;i<4;i++)
-	{
-		* pic_index = i;
-		* pic_data = irqroute[i];
-        }
 
 	for(i=0;i<16;i++)
 	{
