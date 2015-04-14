@@ -262,6 +262,14 @@ struct pci_device {
 
 extern struct pci_device *_pci_head;
 extern struct pci_bus *_pci_bushead;
+#ifdef LOONGSON_3A2H
+extern struct pci_device *_pci_head1;
+extern struct pci_bus *_pci_bushead1;
+extern struct pci_device *_pci_head2;
+extern struct pci_bus *_pci_bushead2;
+extern struct pci_device *_pci_head3;
+extern struct pci_bus *_pci_bushead3;
+#endif
 extern struct pci_intline_routing *_pci_inthead;
 extern int InitInterruptRouting(void);
 

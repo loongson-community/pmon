@@ -493,6 +493,8 @@ asm(\
 	/*
 	 *  Probe clock frequencys so delays will work properly.
 	 */
+	delay(0x200000);
+	ls2h_pcibios_init();
 	tgt_cpufreq();
 	SBD_DISPLAY("DONE",0);
 	/*
@@ -677,7 +679,7 @@ tgt_devconfig()
 		superio_base = 0xbff00000;
 	}
 
-	//	_pci_devinit(1);	/* PCI device initialization */
+		_pci_devinit(1);	/* PCI device initialization */
 #if (NMOD_X86EMU_INT10 > 0)||(NMOD_X86EMU >0)
 	SBD_DISPLAY("VGAI", 0);
 	rc = vga_bios_init();
@@ -1226,6 +1228,7 @@ tgt_devinit()
 #endif
 }
 #endif
+
 
 	_pci_businit(1);	/* PCI bus initialization */
 #if defined(VIA686B_POWERFIXUP) && (PCI_IDSEL_VIA686B != 0)

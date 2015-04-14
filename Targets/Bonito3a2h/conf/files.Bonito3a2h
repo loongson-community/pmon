@@ -7,7 +7,7 @@ file	Targets/Bonito3a2h/pci/pci_machdep.c
 file	Targets/Bonito3a2h/Bonito/tgt_machdep.c
 file	Targets/Bonito3a2h/pci/cs5536_io.c cs5536
 file	Targets/Bonito3a2h/pci/cs5536_vsm.c cs5536
-file    Targets/Bonito3a2h/pci/rs780_cmn.c  loongson2h
+file    Targets/Bonito3a2h/pci/ls2h_pci.c  loongson2h
 #file    Targets/Bonito3a2h/pci/amd_2h.c  amd_2h
 #file    Targets/Bonito3a2h/pci/sb700.c  amd_2h
 #file    Targets/Bonito3a2h/pci/sb700_ide.c  amd_2h

@@ -200,7 +200,7 @@ extern char *optarg;
 	maxbus = 255;
 	firstdev = 0;
 	maxdev = 31;
-#if (defined LOONGSON_3A2H) || (defined LOONGSON_3C2H)
+#ifdef LOONGSON_3C2H
 	printf("----------------------------------\n");
 	printf("Warn:LS3A2H don't use this command\n");	
 	printf("----------------------------------\n");
@@ -232,7 +232,22 @@ extern char *optarg;
 			return (-1);
 		}
 	}
-
+#ifdef LOONGSON_3A2H
+	if (is_x4_mode()) {
+		printf("Is x4 mode!\n");
+		maxbus = 1;
+	} else if (ac == 2) {
+		bus = 2 * atoi(av[1]);
+		if (bus >= 0 && bus < 7)
+			maxbus = bus + 1;
+		else {
+			bus = 0;
+			maxbus = 7;
+			printf("THE PORT ONLY 0 ~ 3\n");
+		}
+	} else
+		maxbus = 7;
+#endif
         for (; bus <= maxbus; bus++) {
                 ndevs = 0;
                 for(dev = firstdev; dev <= maxdev; dev++) {
@@ -282,9 +297,11 @@ pci_query_bar(tag, index)
 	if( old_bar & 0x1 ){
 		//printf("0x%08x:0x%08x i/o @0x%08x, %d bytes\n", old_bar, bar, old_bar & 0xfffffffc, (~(bar&0xfffffffc))+1);
 		printf("0x%08x:0x%08x i/o @0x%08x, %d bytes                                              \n", old_bar, bar, old_bar & 0xfffffffc, (((bar&0xfffffffc)^((bar&0xfffffffc)-1))+1)>>1);
+#ifndef LOONGSON_3A2H
 	}else if(old_bar & 0x4){
 		printf("64-bit mem\n");
 		skipnext = 1;
+#endif
 	}else {
 		//printf("0x%08x:0x%08x mem @0x%08x, %d bytes\n", old_bar, bar, old_bar & 0xfffffff0, (~(bar&0xfffffff0))+1);
 		printf("0x%08x:0x%08x mem @0x%08x, %d bytes                                              \n", old_bar, bar, old_bar & 0xfffffff0, (((bar&0xfffffff0)^((bar&0xfffffff0)-1))+1)>>1);
