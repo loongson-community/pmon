@@ -412,7 +412,6 @@ void tgt_devconfig(void)
 #ifdef CONFIG_GFXUMA
 		fbaddress = 0x50000000; // virtual address mapped to the second 256M memory
 #else
-		fbaddress = uma_memory_base | BONITO_PCILO_BASE_VA;
 		fbaddress |= uma_memory_base | BONITO_PCILO_BASE_VA;
 #endif
 		printf("fbaddress = %08x\n", fbaddress);
