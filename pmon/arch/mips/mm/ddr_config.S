@@ -328,7 +328,11 @@ mc_init:
     nop
     nop
 //init mem to all 0
+#ifdef FASTECC2
+    dli     t1, 0xb800001000000000
+#else
     dli     t1, 0x9800001000000000
+#endif
     GET_NODE_ID_a0
     or      t1, t1, a0
     GET_MC0_MEMSIZE
@@ -337,21 +341,106 @@ mc_init:
     GET_MC1_MEMSIZE
 1:
     dsll    a1, a1, 29   //a1*512M
+#if defined(FASTECC) || defined(FASTECC1) || defined(FASTECC2)
+    li a1,0x10000000
+#endif
+
     daddu   t5, t1, a1
 //write memory
 1:
     bgeu    t1, t5, 1f
     nop
 
+#ifdef FASTECC2
     sd      $0, 0x0(t1)
     sd      $0, 0x8(t1)
     sd      $0, 0x10(t1)
     sd      $0, 0x18(t1)
+
+    sd      $0, 0x20(t1)
+    sd      $0, 0x28(t1)
+    sd      $0, 0x30(t1)
+    sd      $0, 0x38(t1)
+
+    sd      $0, 0x40(t1)
+    sd      $0, 0x48(t1)
+    sd      $0, 0x50(t1)
+    sd      $0, 0x58(t1)
+
+    sd      $0, 0x60(t1)
+    sd      $0, 0x68(t1)
+    sd      $0, 0x70(t1)
+    sd      $0, 0x78(t1)
+
+    sd      $0, 0x80(t1)
+    sd      $0, 0x88(t1)
+    sd      $0, 0x90(t1)
+    sd      $0, 0x98(t1)
+
+    sd      $0, 0xa0(t1)
+    sd      $0, 0xa8(t1)
+    sd      $0, 0xb0(t1)
+    sd      $0, 0xb8(t1)
+
+    sd      $0, 0xc0(t1)
+    sd      $0, 0xc8(t1)
+    sd      $0, 0xd0(t1)
+    sd      $0, 0xd8(t1)
+
+    sd      $0, 0xe0(t1)
+    sd      $0, 0xe8(t1)
+    sd      $0, 0xf0(t1)
+    sd      $0, 0xf8(t1)
+#else
+
+    sd      $0, 0x0(t1)
+
+    sd      $0, 0x20(t1)
+
+    sd      $0, 0x40(t1)
+
+    sd      $0, 0x60(t1)
+
+    sd      $0, 0x80(t1)
+
+    sd      $0, 0xa0(t1)
+
+    sd      $0, 0xc0(t1)
+
+    sd      $0, 0xe0(t1)
+#endif
+
+
     sync
+
+#ifndef FASTECC2
     //hit write back invalidate(D-/S-cache) to memory
-    cache   0x15, 0x0(t1)
+#    cache   0x15, 0x0(t1)
     cache   0x17, 0x0(t1)
-    daddu   t1, t1, 0x20
+
+#    cache   0x15, 0x20(t1)
+    cache   0x17, 0x20(t1)
+
+#    cache   0x15, 0x40(t1)
+    cache   0x17, 0x40(t1)
+
+#    cache   0x15, 0x60(t1)
+    cache   0x17, 0x60(t1)
+
+#    cache   0x15, 0x80(t1)
+    cache   0x17, 0x80(t1)
+
+#    cache   0x15, 0xa0(t1)
+    cache   0x17, 0xa0(t1)
+
+#    cache   0x15, 0xc0(t1)
+    cache   0x17, 0xc0(t1)
+
+#    cache   0x15, 0xe0(t1)
+    cache   0x17, 0xe0(t1)
+#endif
+
+    daddu   t1, t1, 0x100
     b       1b
     nop
 1:
@@ -369,7 +458,7 @@ mc_init:
     nop
     nop
     nop
-
+#if ! (defined(FASTECC)|| defined(FASTECC1)||defined(FASTECC2))
     //TTYDBG("Enable register space of MEMORY\r\n")
     bal     enable_mc_conf_space
     nop
@@ -392,6 +481,7 @@ mc_init:
     TTYDBG("Disable MC read buffer\r\n")
     bal     disable_mc_read_buffer
     nop
+#endif
 
     TTYDBG("MC ECC init done.\r\n")
 4:

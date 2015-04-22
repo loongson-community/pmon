@@ -63,6 +63,7 @@ unsigned int mem_size = 0;
 
 #define STDIN		((kbd_available|usb_kbd_available)?3:0)
 //include "sys/sys/filio.h"
+#include "loongson3_def.h"
 
 extern char * nvram_offs;
 
@@ -428,6 +429,9 @@ void movinv1(int iter, ulong p1, ulong p2);
 
 pcireg_t _pci_allocate_io(struct pci_device *dev, vm_size_t size);
 static void euperio_reinit();
+int init_ecc();
+volatile int init_ecc_finished;
+int main();
 
     void
 initmips(unsigned int raw_memsz)
@@ -451,6 +455,10 @@ initmips(unsigned int raw_memsz)
     superio_reinit();
 #endif
     get_memorysize(raw_memsz);
+ 
+#if defined(FASTECC1)||defined(FASTECC2)
+    asm volatile(".set mips64;dli $2,0x900000003ff01000;sw %0,0x20($2);sw %0,0x28($2);lw %0,0x20($2);.set mips0;"::"r"(init_ecc):"$2");
+#endif
 
 #if 0 /* whd : Disable gpu controller of MCP68 */
     //*(unsigned int *)0xbfe809e8 = 0x122380;
@@ -599,6 +607,12 @@ initmips(unsigned int raw_memsz)
      * Launch!
      */
     _pci_conf_write(_pci_make_tag(0,0,0),0x90,0xff800000); 
+#ifdef FASTECC
+    init_ecc();
+#endif
+#if defined(FASTECC) || defined(FASTECC1) || defined(FASTECC2)
+    init_ecc_end();
+#endif
     main();
 }
 
@@ -3013,4 +3027,262 @@ struct efi_memory_map_loongson * init_memory_map()
 	emap->nr_map = i;
 	return emap;
 #undef	EMAP_ENTRY
+}
+
+static inline unsigned int readl_addr64(unsigned long long addr)
+{
+unsigned long long a = addr;
+unsigned int ret;
+asm volatile( ".set mips64;ld $2,%1;lw %0,($2);.set mips0;\n":"=r"(ret):"m"(a):"$2")
+;
+return ret;
+}
+
+
+static inline void writel_addr64(unsigned long long addr, int v)
+{
+unsigned long long a = addr;
+asm volatile( ".set mips64;ld $2,%1;sw %0,($2);.set mips0;\n"::"r"(v),"m"(a):"$2")
+;
+}
+
+static inline unsigned long long readq_addr64(unsigned long long addr)
+{
+unsigned long long a = addr;
+unsigned long long ret;
+asm volatile( ".set mips64;ld $2,%0;ld $3,($2);sd $3,%1;.set mips0;\n"::"m"(a),"m"(ret):"$2","$3","memory")
+;
+return ret;
+}
+
+
+static inline void writeq_addr64(unsigned long long addr, unsigned long long v)
+{
+unsigned long long a = addr;
+asm volatile( ".set mips64;ld $2,%0; ld $3,%1;sd $3,($2);.set mips0;\n"::"m"(a),"m"(v):"$2","$3","memory")
+;
+}
+
+#define ECC_DISABLE_W_UC_ERR_ADDR   (0x10)
+#define CTRL_RAW_ADDR            (0x40)
+#define ECC_DISABLE_W_UC_ERR_OFFSET 24
+#define CTRL_RAW_OFFSET         48 
+#define DDR_CONFIG_DISABLE_OFFSET   8
+
+
+static int ddr_ecc_werr(int cpu, int en)
+{
+	unsigned long long cpucfg = 0x900000001fe00180ULL+((unsigned long long)cpu<<44);
+	unsigned long long ddrcfg = 0x900000000ff00000ULL+((unsigned long long)cpu<<44);
+	unsigned long long data8;
+	/*enable ddr cfg space*/
+	writel_addr64(cpucfg, readl_addr64(cpucfg)& ~(1<<DDR_CONFIG_DISABLE_OFFSET));
+
+	data8 = readq_addr64(ddrcfg+ECC_DISABLE_W_UC_ERR_ADDR);
+	data8 = (data8&~(0xffULL<<ECC_DISABLE_W_UC_ERR_OFFSET));
+	if(!en) data8 |= (1ULL<<ECC_DISABLE_W_UC_ERR_OFFSET);
+
+	writeq_addr64(ddrcfg+ECC_DISABLE_W_UC_ERR_ADDR,data8);
+
+        if(en)
+	{
+	data8 = readq_addr64(ddrcfg+CTRL_RAW_ADDR);
+	data8 = (data8&~(0xffULL<<CTRL_RAW_OFFSET))|(3ULL<<CTRL_RAW_OFFSET);
+
+	writeq_addr64(ddrcfg+CTRL_RAW_ADDR, data8);
+        }
+	/*disable ddr cfg space*/
+	writel_addr64(cpucfg, readl_addr64(cpucfg)|(1<<DDR_CONFIG_DISABLE_OFFSET));
+	return 0;
+}
+
+int init_ecc_one(int cpu, unsigned long long size)
+{
+	unsigned long long start, end, next;
+
+	//ddr_ecc_werr(cpu, 1);
+
+#ifdef  FASTECC2
+	start = 0xb800000090000000ULL+ ((unsigned long long)cpu<<44);
+#else
+	start = 0x9800000090000000ULL+ ((unsigned long long)cpu<<44);
+#endif
+	end = start + size;
+	for(;start<end;)
+	{
+	next=start+0x40000000;
+	if(next>end) next=end;
+
+#ifdef FASTECC
+	printf("0x%llx 0x%llx\n",start, next);
+#endif
+	asm volatile( 
+			".set mips64;"
+			"ld $2,%0;"
+			"ld $3,%1;"
+			"1:\n"
+#ifndef FASTECC2
+			"sd $0,($2);"
+			"sd $0,0x20($2);"
+			"sd $0,0x40($2);"
+			"sd $0,0x60($2);"
+			"sd $0,0x80($2);"
+			"sd $0,0xa0($2);"
+			"sd $0,0xc0($2);"
+			"sd $0,0xe0($2);"
+#else
+			"sd $0,($2);"
+			"sd $0,8($2);"
+			"sd $0,0x10($2);"
+			"sd $0,0x18($2);"
+
+			"sd $0,0x20($2);"
+			"sd $0,0x28($2);"
+			"sd $0,0x30($2);"
+			"sd $0,0x38($2);"
+
+			"sd $0,0x40($2);"
+			"sd $0,0x48($2);"
+			"sd $0,0x50($2);"
+			"sd $0,0x58($2);"
+
+			"sd $0,0x60($2);"
+			"sd $0,0x68($2);"
+			"sd $0,0x70($2);"
+			"sd $0,0x78($2);"
+
+			"sd $0,0x80($2);"
+			"sd $0,0x88($2);"
+			"sd $0,0x90($2);"
+			"sd $0,0x98($2);"
+
+			"sd $0,0xa0($2);"
+			"sd $0,0xa8($2);"
+			"sd $0,0xb0($2);"
+			"sd $0,0xb8($2);"
+
+			"sd $0,0xc0($2);"
+			"sd $0,0xc8($2);"
+			"sd $0,0xd0($2);"
+			"sd $0,0xd8($2);"
+
+			"sd $0,0xe0($2);"
+			"sd $0,0xe8($2);"
+			"sd $0,0xf0($2);"
+			"sd $0,0xf8($2);"
+#endif
+			"daddiu $2,0x100;"
+			"bne $2,$3,1b;"
+			"nop;"
+			".set mips0;\n"
+			::"m"(start),"m"(next):"$2","$3"
+				);
+		start=next;
+          }
+
+#ifndef  FASTECC2
+
+asm volatile(
+"	li $2, 0x80000000;\n"
+"	li $3, 0x400000;\n"
+"       addu  $3,$2;\n"
+"10:\n"
+"	cache	3, 0x00($2);\n"
+"	cache	3, 0x01($2);\n"
+"	cache	3, 0x02($2);\n"
+"	cache	3, 0x03($2);\n"
+"	cache	3, 0x20($2);\n"
+"	cache	3, 0x21($2);\n"
+"	cache	3, 0x22($2);\n"
+"	cache	3, 0x23($2);\n"
+"	cache	3, 0x40($2);\n"
+"	cache	3, 0x41($2);\n"
+"	cache	3, 0x42($2);\n"
+"	cache	3, 0x43($2);\n"
+"	cache	3, 0x60($2);\n"
+"	cache	3, 0x61($2);\n"
+"	cache	3, 0x62($2);\n"
+"	cache	3, 0x63($2);\n"
+"	addu	$2, 0x80;\n"
+"	bne	    $2,$3, 10b;\n"
+"	nop;\n"
+"sync;"
+:::"$2","$3");
+
+asm volatile(
+".set mips64;\n"
+"       dli $2, 0x9800100000000000;\n"
+"	li $3, 0x400000;\n"
+"   daddu  $3,$2;\n"
+"10:\n"
+"	cache	3, 0x00($2);\n"
+"	cache	3, 0x01($2);\n"
+"	cache	3, 0x02($2);\n"
+"	cache	3, 0x03($2);\n"
+"	cache	3, 0x20($2);\n"
+"	cache	3, 0x21($2);\n"
+"	cache	3, 0x22($2);\n"
+"	cache	3, 0x23($2);\n"
+"	cache	3, 0x40($2);\n"
+"	cache	3, 0x41($2);\n"
+"	cache	3, 0x42($2);\n"
+"	cache	3, 0x43($2);\n"
+"	cache	3, 0x60($2);\n"
+"	cache	3, 0x61($2);\n"
+"	cache	3, 0x62($2);\n"
+"	cache	3, 0x63($2);\n"
+"	daddiu	$2, 0x80;\n"
+"	bne	    $2,$3, 10b;\n"
+"	nop;\n"
+"sync;"
+".set mips0;\n"
+:::"$2","$3");
+#endif
+
+
+	//ddr_ecc_werr(cpu, 0);
+
+
+
+}
+/*
+make cfg  all tgt=rom CROSS_COMPILE=/opt/gcc-4.4-gnu/bin/mipsel-linux- DEBUG='-g -Wa,-mfix-ls2f-kernel'
+*/
+int init_ecc()
+{
+#ifdef FASTECC
+	printf("init ecc, wait a little\n");
+#endif
+
+	if(memorysize_high)
+	{
+		init_ecc_one(0,memorysize_high);
+	}
+
+	if(memorysize_high_n1)
+	{
+		init_ecc_one(1, memorysize_high_n1);
+	}
+
+	init_ecc_finished = 1;
+asm(".set nofix_ls2f_kernel");
+return 0;
+}
+
+asm(".set fix_ls2f_kernel");
+
+init_ecc_end()
+{
+	while(!init_ecc_finished);
+
+	if(memorysize_high)
+	{
+		ddr_ecc_werr(0, 0);
+	}
+
+	if(memorysize_high_n1)
+	{
+		ddr_ecc_werr(1, 0);
+	}
+
 }

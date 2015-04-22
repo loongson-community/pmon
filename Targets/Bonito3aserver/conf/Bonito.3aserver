@@ -253,3 +253,4 @@ select tftpd
 #select e100
 # SCSI RAID disk drive support
 select scsi_sd
+option FASTECC2

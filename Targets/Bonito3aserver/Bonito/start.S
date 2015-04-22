@@ -243,6 +243,11 @@ locate:
 	or      t0, t0, t1
 	mtc0    t0, CP0_STATUS
 
+#if 0//def FASTECC1
+        bal clear_mailbox
+	nop
+#endif
+
 	/* here we get l2 cache initialized */
 	.set mips64
 	mfc0	t0, $15, 1
@@ -1783,6 +1788,42 @@ wait_to_jump_kernel:
 
 	bal	clear_mailbox
 	nop
+#if defined(FASTECC1) || defined(FASTECC2)
+/*core4 init ecc mem*/
+	li	v1, 1
+	bne t0, v1, waitforinit
+        nop
+	dli     v0, NODE0_CORE0_BUF0
+	dli	v1, BOOTCORE_ID
+	dsll    v1, 8
+	or      v0, v0, v1
+	lui t4, 0x8f00
+	lui t3, 0xff00
+1:
+	lw	v1, FN_OFF(v0)
+	and t5,t3,v1
+	bne t5, t4, 1b
+	nop
+	lw	t5, SP_OFF(v0)
+        bne t5,v1, 1b
+        nop
+	li sp, 0x80010000
+	jalr v1
+	nop
+	.set mips64
+	mfc0	t0, $15, 1
+	.set mips3
+	andi	t0, t0, 0x3ff
+	andi	t1, t0, 0x3
+	dsll	t1, 8
+	andi	t2, t0, 0xc
+	dsll	t2, 42
+	or	t1, t2, t1
+	dli	t2, NODE0_CORE0_BUF0
+	or	t1, t1, t2
+#endif
+
+
 waitforinit:
 
 	li      a0, 0x1000
