@@ -175,8 +175,8 @@ pcibr2		at mainbus0 #For the port1 device register
 pcibr4		at mainbus0 #For the port2 device register
 pcibr6		at mainbus0 #For the port3 device register
 pci*		at pcibr?
-#ppb*		at pci? dev ? function ?	# PCI-PCI bridges
-#pci*		at ppb? bus ?
+ppb*		at pci? dev ? function ?	# PCI-PCI bridges
+pci*		at ppb? bus ?
 
 
 #### SCSI support
@@ -192,6 +192,7 @@ pci*		at pcibr?
 # fxp normally only used for debugging (enable/disable both)
 #fxp0        at pci? dev ? function ?        # Intel 82559 Device
 #inphy*      at mii? phy ?                   # Intel 82555 PHYs
+igb*		at pci? dev ? function ?	# Intel 82576
 # rtl*        at pci? dev ? function ?
 #rte*		at pci? dev ? function ?
 #rtk*		at pci? dev ? function ?

@@ -294,6 +294,7 @@ _dmamap_load_mbuf(t, map, m0, flags)
 	paddr_t lastaddr;
 	int seg, error, first;
 	struct mbuf *m;
+	char *tmp;
 
 	/*
 	 * Make sure that on error condition we return "no valid mappings."
@@ -312,6 +313,13 @@ _dmamap_load_mbuf(t, map, m0, flags)
 	seg = 0;
 	error = 0;
 	for (m = m0; m != NULL && error == 0; m = m->m_next) {
+#ifdef LOONGSON_3A2H
+		if ((unsigned int )m->m_data & 0xf) {
+			tmp = (char *)(m->m_data - (((unsigned int )m->m_data) & 0xf));
+			memcpy(tmp,m->m_data,m->m_len);
+			m->m_data = tmp;
+		}
+#endif
 		error = _dmamap_load_buffer(t, map, m->m_data, m->m_len,
 		    NULL, flags, &lastaddr, &seg, first);
 		first = 0;
