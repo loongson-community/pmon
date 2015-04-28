@@ -365,15 +365,8 @@ gs_2f_v3_ddr2_cfg:
 #define NODE_REFC   1
 #define NODE_DIV    1
 
-//#define DDR_LOOPC	 48//200MHz
-//#define DDR_LOOPC	 72//300MHz
-//#define DDR_LOOPC  96 //400MHz
-//#define DDR_LOOPC  28 //466MHz
-#define DDR_LOOPC  60 //500MHz
-//#define DDR_LOOPC  64 //533MHz
-//#define DDR_LOOPC  34 //566MHz
-//#define DDR_LOOPC  36 //600MHz
-//#define DDR_LOOPC  38 //633MHz
+#define DDR_LOOPC  80 //667Mhz
+//#define DDR_LOOPC  60 //500MHz
 #define DDR_REFC   1
 #define DDR_DIV    4
 
