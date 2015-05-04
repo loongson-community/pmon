@@ -561,19 +561,15 @@ MEM_INIT_DONE:
 ##########################################
 
 #ifdef  DEBUG_DDR
-#if 1
 	PRINTSTR("\r\nDo test?(0xf: skip): ")
 	bal     inputaddress
 	nop
 	and     v0, v0, 0xf
 	dli     a1, 0x1
-	bgt     v0, a1, 3f
+	bgt     v0, a1, 2f
 	nop
-#endif
-
 
 	dli     s1, 0x0004000080000000  //NODE 0, start from 0x80000000
-#if 1
 	PRINTSTR("\r\ndefault s1 = 0x");
 	dsrl    a0, s1, 32
 	bal     hexserial
@@ -588,8 +584,6 @@ MEM_INIT_DONE:
 	beqz    v0, 1f
 	nop
 	move    s1, v0
-1:
-#endif
 1:
 	dli     t1, 0x0010
 	bal     test_mem
@@ -606,12 +600,7 @@ MEM_INIT_DONE:
 	nop
 	PRINTSTR("  Error found!!\r\n")
 2:
-#if 0
-	b       1b
-	nop
-#endif
 
-3:
 #endif
 ##########################################
 

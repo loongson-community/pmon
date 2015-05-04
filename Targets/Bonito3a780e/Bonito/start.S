@@ -527,10 +527,8 @@ wait_l2_ok:
 	nop
 	and     v0, v0, 0xf
 	dli     a1, 0x1
-	bgt     v0, a1, 3f
+	bgt     v0, a1, 2f
 	nop
-
-
 
 	dli     s1, 0x0010000080000000  //NODE 0, start from 0x80000000
 	PRINTSTR("\r\ndefault s1 = 0x");
