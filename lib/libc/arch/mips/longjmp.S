@@ -88,3 +88,9 @@ LEAF(longjmp)
 	move v0,a1 #li	v0, 1			# longjmp return
 END(longjmp)
 
+LEAF(longjmp1)
+	li	v0, 1			# longjmp return
+	b longjmp
+	nop
+END(longjmp1)
+

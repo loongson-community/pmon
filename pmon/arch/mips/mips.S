@@ -42,7 +42,7 @@
 #include <regnum.h>
 #include <cpu.h>
 
-#if __mips < 3
+#if __mips < 3 || __mips == 32
 #define STORE   sw      /* 32 bit mode regsave instruction */
 #define LOAD    lw      /* 32 bit mode regload instruction */
 #define	FSTORE	swc1	/* 32 bit mode float register store */
@@ -64,6 +64,14 @@
 #endif
 #define	NOP8	nop;nop;nop;nop;nop;nop;nop;nop
 
+#define ST0_CU0			0x10000000
+#define CLI                                             \
+		mfc0	t0,COP_0_STATUS_REG;                  \
+		li	t1,ST0_CU0|0x1f;                \
+		or	t0,t1;                          \
+		xori	t0,0x1f;                        \
+		mtc0	t0,COP_0_STATUS_REG
+
 	.set	noreorder
 
 	.data
@@ -77,6 +85,10 @@ retvalue:
 	.word	0
 	.globl	go_return_jump
 	.common go_return_jump, 12*8
+
+	.global	irqdepth
+irqdepth:
+	.word	0
 
 /*
  *  Exception trampoline copied down to RAM after initialization.
@@ -124,11 +136,12 @@ LEAF(_go)
 	mtc0	t1, COP_0_ICR
 
 1:
-	LOAD	v0, PC * RSIZE(k0)
 	LOAD	v1, CAUSE * RSIZE(k0)
+	mtc0	v1, COP_0_CAUSE_REG
+_go1:
+	LOAD	v0, PC * RSIZE(k0)
 	MTC0	v0, COP_0_EXC_PC
 	LOAD	v0, SR * RSIZE(k0)
-	mtc0	v1, COP_0_CAUSE_REG
 	or	v0, SR_EXL		/* Keep Exeption level status */
 	mtc0	v0, COP_0_STATUS_REG
 
@@ -164,18 +177,24 @@ exp_out:
 	LOAD	s7, S7 * RSIZE(k0)
 	LOAD	t8, T8 * RSIZE(k0)
 	LOAD	t9, T9 * RSIZE(k0)
-	LOAD	k1, K1 * RSIZE(k0)
 	LOAD	gp, GP * RSIZE(k0)
 	LOAD	sp, SP * RSIZE(k0)
 	LOAD	s8, S8 * RSIZE(k0)
 	LOAD	ra, RA * RSIZE(k0)
-	LOAD	k0, K0 * RSIZE(k0)
 
 	.set	at
 	.set push
 	.set mips3
 	eret
 	.set pop
+_go2:
+	la	k0, irqdepth
+	lw	k1, (k0)
+	addiu	k1,-1
+	sw	k1, (k0)
+	move k0, gp
+	j _go1
+	nop
 END(_go)
 
 /*
@@ -185,7 +204,7 @@ END(_go)
 LEAF(_exit)
 	sw	v0, retvalue
 	la	a0, go_return_jump
-	jal	longjmp
+	jal	longjmp1
 	nop
 END(_exit)
 
@@ -196,7 +215,24 @@ END(_exit)
  */
 LEAF(exception_handler)
 	.set	noat
+	mfc0	k1, COP_0_CAUSE_REG
+	andi 	k1, k1, 0x7c		#
+	bnez	k1, 1f
+	nop
+
+	la	k0, irqdepth   /*irqdepth++*/ 
+	lw	k1, (k0)
+	addiu	k1,1
+	sw	k1, (k0)
+
+	subu	k0, sp, (ERRPC+1)*RSIZE
+	STORE	sp, SP * RSIZE(k0)
+	b 2f
+	nop
+1:
 	la	k0, start - 1024
+	STORE	sp, SP * RSIZE(k0)
+2:
 
 	STORE	AT, AST * RSIZE(k0)
 	STORE	v0, V0 * RSIZE(k0)
@@ -223,9 +259,7 @@ LEAF(exception_handler)
 	STORE	s7, S7 * RSIZE(k0)
 	STORE	t8, T8 * RSIZE(k0)
 	STORE	t9, T9 * RSIZE(k0)
-	STORE	k1, K1 * RSIZE(k0)
 	STORE	gp, GP * RSIZE(k0)
-	STORE	sp, SP * RSIZE(k0)
 	STORE	s8, S8 * RSIZE(k0)
 	STORE	ra, RA * RSIZE(k0)
 
@@ -268,13 +302,28 @@ LEAF(exception_handler)
 	STORE	v1, MULLO * RSIZE(k0)
 
 	mfc0	a0, COP_0_STATUS_REG
-	mfc0	v1, COP_0_CAUSE_REG
 	STORE	a0, SR * RSIZE(k0)
-	MFC0	v0, COP_0_BAD_VADDR
-	STORE	v1, CAUSE * RSIZE(k0)
+	
 	MFC0	v1, COP_0_EXC_PC
-	STORE	v0, BADVADDR * RSIZE(k0)
 	STORE	v1, PC * RSIZE(k0)
+
+	CLI
+
+	mfc0	v1, COP_0_CAUSE_REG
+	STORE	v1, CAUSE * RSIZE(k0)
+
+	andi 	k1, v1, 0x7c		#
+	bnez	k1, 1f
+	nop
+	move	gp, k0
+	addu	sp, k0, -64		/* Get a new stack */
+	la	ra, _go2
+	j	plat_irq_dispatch
+	move	a0, k0
+1:
+
+	MFC0	v0, COP_0_BAD_VADDR
+	STORE	v0, BADVADDR * RSIZE(k0)
 
 	MFC0	v0, COP_0_TLB_CONTEXT
 	MFC0	v1, COP_0_TLB_XCONTEXT
@@ -314,7 +363,7 @@ LEAF(exception_handler)
 1:
 	addu	sp, k0, -64		/* Get a new stack */
 
-	and     t0, a0, ~(SR_COP_1_BIT | SR_EXL | SR_KSU_MASK | SR_INT_ENAB)
+	and     t0, a0, ~(SR_EXL | SR_KSU_MASK | SR_INT_ENAB)
 	mtc0	t0, COP_0_STATUS_REG
 	NOP8
 	la	gp, _gp
