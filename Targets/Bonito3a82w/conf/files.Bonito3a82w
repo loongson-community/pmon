@@ -14,6 +14,7 @@ file    Targets/Bonito3a82w/pci/sb700_ide.c  amd_780e
 file    Targets/Bonito3a82w/pci/sb700_lpc.c  amd_780e
 file    Targets/Bonito3a82w/pci/sb700_sata.c  amd_780e
 file    Targets/Bonito3a82w/pci/sb700_usb.c  amd_780e
+file	Targets/Bonito3a82w/dev/irq.c	timer_irq needs-flag
 
 define  localbus { [base = -1 ] }
 device  localbus
