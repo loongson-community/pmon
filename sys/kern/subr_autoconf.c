@@ -414,6 +414,10 @@ config_attach(parent, match, aux, print)
 	} else {
 		cf = match;
 		dev = config_make_softc(parent, cf);
+#ifdef LOONGSON_3A2H
+		if ((strcmp(dev->dv_xname,"pcibr2") == 0) && is_x4_mode())
+			return NULL;
+#endif
 	}
 
 	cd = cf->cf_driver;
