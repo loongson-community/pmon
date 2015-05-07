@@ -25,21 +25,6 @@
 	dli	t0, 0x00002000000000f7
 	sd	t0, 0xb0(t2)
 
-	dli	t0, 0x000000fdfe000000
-	sd	t0, 0x38(t2)
-	dli	t0, 0x000000fffe000000
-	sd	t0, 0x78(t2)
-	dli	t0, 0x000000fdfe0000f7
-	sd	t0, 0xb8(t2)
-
-####### address space to other nodes ############
-	dli	t0, 0x0000200000000000
-	sd	t0, 0x30(t2)
-	dli	t0, 0x0000200000000000
-	sd	t0, 0x70(t2)
-	dli	t0, 0x00002000000000f7
-	sd	t0, 0xb0(t2)
-
 	dli	t0, 0x0000100000000000
 	sd	t0, 0x38(t2)
 	dli	t0, 0x0000300000000000
@@ -50,8 +35,6 @@
 	daddiu  t2, t2, 0x100
 	bne     t2, t1, 1b
 	nop
-
-
 
 	TTYDBG("Fix L2xbar in NODE 0\r\n")
 	//order cann't be changed.
@@ -66,7 +49,6 @@
 	dli	t0, 0x000000001fc00000
 	sd	t0, 0x0(t2)
 
-############ 0x10000000 Set to not allow Cache access #######
 	dli	t0, 0x0000000010000000
 	sd	t0, 0x08(t2)
 	dli	t0, 0xfffffffff0000000

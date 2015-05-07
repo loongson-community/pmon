@@ -217,23 +217,10 @@
 	bal	hexserial
 	nop
 
-#define set_L2_win(mas_i, win_i, base, mask, mmap) \
-	li	t0, 0xbbd80000 ;\
+#define set_Xbar_win(xbarbase, mas_i, win_i, base, mask, mmap) \
+	li	t0, xbarbase ;\
 	daddiu	t0, t0, mas_i*0x100 ;\
 	daddiu	t0, t0, win_i*0x8 ;\
-	sd	$0, 0x80(t0) ;\
-	dli	t1, base ;\
-	sd	t1, 0x0(t0) ;\
-	dli	t1, mask ;\
-	sd	t1, 0x40(t0) ;\
-	dli	t1, mmap ;\
-	sd	t1, 0x80(t0)
-
-        ## disable window before changing
-#define set_L1_mas6(win_i, base, mask, mmap) \
-	li	t0, 0xbbd82600 ;\
-	daddiu	t0, t0, win_i*0x8 ;\
-	sd	$0, 0x80(t0) ;\
 	dli	t1, base ;\
 	sd	t1, 0x0(t0) ;\
 	dli	t1, mask ;\
@@ -242,51 +229,51 @@
 	sd	t1, 0x80(t0)
 
 #### IODMA 4G ####
-	set_L2_win(1, 0, 0x0000000000000000, 0xffffffffc0000000, 0x00000010800000f3) # 0~1G
-	set_L2_win(1, 1, 0x0000000040000000, 0xffffffffc0000000, 0x00000020800000f3) # 1~2G
-	set_L2_win(1, 2, 0x0000000080000000, 0xffffffffc0000000, 0x00000030800000f3) # 2~3G
-	set_L2_win(1, 3, 0x00000000c0000000, 0xffffffffc0000000, 0x00000040800000f3) # 3~4G
-	set_L2_win(1, 4, 0xffffffff80000000, 0xffffffffc0000000, 0x00000030800000f3) # 2~3G 
-	set_L2_win(1, 5, 0xffffffffc0000000, 0xffffffffc0000000, 0x00000040800000f3) # 3~4G
+	set_Xbar_win(0xbbd80000, 1, 0, 0x0000000000000000, 0xffffffffc0000000, 0x00000010800000f3) # 0~1G
+	set_Xbar_win(0xbbd80000, 1, 1, 0x0000000040000000, 0xffffffffc0000000, 0x00000020800000f3) # 1~2G
+	set_Xbar_win(0xbbd80000, 1, 2, 0x0000000080000000, 0xffffffffc0000000, 0x00000030800000f3) # 2~3G
+	set_Xbar_win(0xbbd80000, 1, 3, 0x00000000c0000000, 0xffffffffc0000000, 0x00000040800000f3) # 3~4G
+	set_Xbar_win(0xbbd80000, 1, 4, 0xffffffff80000000, 0xffffffffc0000000, 0x00000030800000f3) # 2~3G 
+	set_Xbar_win(0xbbd80000, 1, 5, 0xffffffffc0000000, 0xffffffffc0000000, 0x00000040800000f3) # 3~4G
 
-	#PCIE window
-	set_L2_win(4, 0, 0x0000000000000000, 0xffffffffc0000000, 0x00000010800000f3) # 0~1G
-	set_L2_win(4, 1, 0x0000000040000000, 0xffffffffc0000000, 0x00000020800000f3) # 1~2G
-	set_L2_win(4, 2, 0x0000000080000000, 0xffffffffc0000000, 0x00000030800000f3) # 2~3G
-	set_L2_win(4, 3, 0x00000000c0000000, 0xffffffffc0000000, 0x00000040800000f3) # 3~4G
-	set_L2_win(4, 4, 0xffffffff80000000, 0xffffffffc0000000, 0x00000030800000f3) # 2~3G
-	set_L2_win(4, 5, 0xffffffffc0000000, 0xffffffffc0000000, 0x00000040800000f3) # 3~4G
+#PCIE window
+	set_Xbar_win(0xbbd80000, 4, 0, 0x0000000000000000, 0xffffffffc0000000, 0x00000010800000f3) # 0~1G
+	set_Xbar_win(0xbbd80000, 4, 1, 0x0000000040000000, 0xffffffffc0000000, 0x00000020800000f3) # 1~2G
+	set_Xbar_win(0xbbd80000, 4, 2, 0x0000000080000000, 0xffffffffc0000000, 0x00000030800000f3) # 2~3G
+	set_Xbar_win(0xbbd80000, 4, 3, 0x00000000c0000000, 0xffffffffc0000000, 0x00000040800000f3) # 3~4G
+	set_Xbar_win(0xbbd80000, 4, 4, 0xffffffff80000000, 0xffffffffc0000000, 0x00000030800000f3) # 2~3G
+	set_Xbar_win(0xbbd80000, 4, 5, 0xffffffffc0000000, 0xffffffffc0000000, 0x00000040800000f3) # 3~4G
 
 #ifdef UMA_VRAM_MODE
-       set_L1_mas6(7, 0x0000000000000000, 0x0000000000000000, 0x00000000000000f0) # others, all to L2$
-       set_L1_mas6(0, 0x0000001080000000, 0xfffffffff0000000, 0x00000000000000f6)
-       set_L1_mas6(1, 0x0000001080000000, 0xffffffffc0000000, 0x00000001000000f6)
-       set_L1_mas6(2, 0x0000002080000000, 0xffffffffc0000000, 0x00000001400000f6)
-       set_L1_mas6(3, 0x0000003080000000, 0xffffffffc0000000, 0x00000001800000f6)
-       set_L1_mas6(4, 0x0000004080000000, 0xffffffffc0000000, 0x00000001c00000f6)
-       set_L1_mas6(5, 0x000000f080000000, 0xffffffffff000000, 0x000000fdf80000f6) # to ht int
-       set_L1_mas6(6, 0x0000000040000000, 0xffffffffc0000000, 0x00000000000000f0) # gpu dma 0x4... -> 0x0...
+	set_Xbar_win(0xbbd82000, 6, 7, 0x0000000000000000, 0x0000000000000000, 0x00000000000000f0) # others, all to L2$
+	set_Xbar_win(0xbbd82000, 6, 0, 0x0000001080000000, 0xfffffffff0000000, 0x00000000000000f6)
+	set_Xbar_win(0xbbd82000, 6, 1, 0x0000001080000000, 0xffffffffc0000000, 0x00000001000000f6)
+	set_Xbar_win(0xbbd82000, 6, 2, 0x0000002080000000, 0xffffffffc0000000, 0x00000001400000f6)
+	set_Xbar_win(0xbbd82000, 6, 3, 0x0000003080000000, 0xffffffffc0000000, 0x00000001800000f6)
+	set_Xbar_win(0xbbd82000, 6, 4, 0x0000004080000000, 0xffffffffc0000000, 0x00000001c00000f6)
+	set_Xbar_win(0xbbd82000, 6, 5, 0x000000f080000000, 0xffffffffff000000, 0x000000fdf80000f6) # to ht int
+	set_Xbar_win(0xbbd82000, 6, 6, 0x0000000040000000, 0xffffffffc0000000, 0x00000000000000f0) # gpu dma 0x4... -> 0x0...
 #else
-	set_L1_mas6(6, 0x0000000000000000, 0x0000000000000000, 0x00000000000000f0) # others, all to L2$
-	set_L1_mas6(0, 0x0000001080000000, 0xfffffffff0000000, 0x00000000000000f6)
-	set_L1_mas6(1, 0x0000001080000000, 0xffffffffc0000000, 0x00000001000000f6)
-	set_L1_mas6(2, 0x0000002080000000, 0xffffffffc0000000, 0x00000001400000f6)
-	set_L1_mas6(3, 0x0000003080000000, 0xffffffffc0000000, 0x00000001800000f6)
-	set_L1_mas6(4, 0x0000004080000000, 0xffffffffc0000000, 0x00000001c00000f6)
-	set_L1_mas6(5, 0x000000f080000000, 0xffffffffff000000, 0x000000fdf80000f6) # to ht int
+	set_Xbar_win(0xbbd82000, 6, 6, 0x0000000000000000, 0x0000000000000000, 0x00000000000000f0) # others, all to L2$
+	set_Xbar_win(0xbbd82000, 6, 0, 0x0000001080000000, 0xfffffffff0000000, 0x00000000000000f6)
+	set_Xbar_win(0xbbd82000, 6, 1, 0x0000001080000000, 0xffffffffc0000000, 0x00000001000000f6)
+	set_Xbar_win(0xbbd82000, 6, 2, 0x0000002080000000, 0xffffffffc0000000, 0x00000001400000f6)
+	set_Xbar_win(0xbbd82000, 6, 3, 0x0000003080000000, 0xffffffffc0000000, 0x00000001800000f6)
+	set_Xbar_win(0xbbd82000, 6, 4, 0x0000004080000000, 0xffffffffc0000000, 0x00000001c00000f6)
+	set_Xbar_win(0xbbd82000, 6, 5, 0x000000f080000000, 0xffffffffff000000, 0x000000fdf80000f6) # to ht int
 #endif
 
-	set_L2_win(0, 6, 0x0000000018000000, 0xfffffffff8000000, 0x0000000018000081) # copy of sb win
-	set_L2_win(0, 4, 0x0000000019000000, 0xffffffffff000000, 0x000000f080000083) # to ht int(l1)
+	set_Xbar_win(0xbbd80000, 0, 6, 0x0000000018000000, 0xfffffffff8000000, 0x0000000018000081) # copy of sb win
+	set_Xbar_win(0xbbd80000, 0, 4, 0x0000000019000000, 0xffffffffff000000, 0x000000f080000083) # to ht int(l1)
 
 #ifdef UMA_VRAM_MODE
-       #GPU window
-       set_L2_win(2, 0, 0x0000000040000000, 0xffffffffc0000000, 0x0000001080000003) # 1~2G -> iodma -> 3a
-       set_L2_win(2, 1, 0x0000000040000000, 0xffffffffc0000008, 0x00000010800000f3) # 1~2G -> iodma -> 3a
-       //set_L2_win(2, 2, 0x0000000000000000, 0xffffffffc0000000, 0x00000000400000f3) # 0~1G -> iodma -> L2$ 0x40000000 -> ddr 256M
-       set_L2_win(2, 2, 0x0000000000000000, 0xffffffffc0000000, 0x00000000000000f0) # 0~1G to ddr
+#GPU window
+	set_Xbar_win(0xbbd80000, 2, 0, 0x0000000040000000, 0xffffffffc0000000, 0x0000001080000003) # 1~2G -> iodma -> 3a
+	set_Xbar_win(0xbbd80000, 2, 1, 0x0000000040000000, 0xffffffffc0000008, 0x00000010800000f3) # 1~2G -> iodma -> 3a
+	//set_Xbar_win(0xbbd80000, 2, 2, 0x0000000000000000, 0xffffffffc0000000, 0x00000000400000f3) # 0~1G -> iodma -> L2$ 0x40000000 -> ddr 256M
+	set_Xbar_win(0xbbd80000, 2, 2, 0x0000000000000000, 0xffffffffc0000000, 0x00000000000000f0) # 0~1G to ddr
 
-       //set_L2_win(2, 0, 0x0000000000000000, 0xffffffffc0000000, 0x00000000400000f3) # 0~1G -> iodma -> L2$
+	//set_Xbar_win(0xbbd80000, 2, 0, 0x0000000000000000, 0xffffffffc0000000, 0x00000000400000f3) # 0~1G -> iodma -> L2$
 #endif
 
 	// set ls3a-2h dma cached coherence by hardware

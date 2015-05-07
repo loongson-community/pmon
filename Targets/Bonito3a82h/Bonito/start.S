@@ -81,7 +81,8 @@ stack = start - 0x4000		/* Place PMON stack below PMON start in RAM */
 	mtc0	t0, $16, 6
 
 	mfc0	t0, $22
-	lui	t1, 0x8000
+	//lui	t1, 0x8000
+	lui	t1, 0x0000
 	or	t0, t1, t0
 	mtc0	t0, $22
 	.set	mips0
