@@ -142,7 +142,7 @@ MC0_DDR3_CTRL_0x1d8: .dword 0x0d04080408060404
 //_00000000 pm_tXPDLL _00000000 pm_tXP 000_00000 pm_tWR 0000_0000 pm_tRTP 0000_0000 pm_tRL 0000_0000 pm_tWL 0000_0000 pm_tCCD 0000_0000 pm_tWTR
 MC0_DDR3_CTRL_0x1e0: .dword 0x0503000000000000
 //00_000000 pm_tW2R_diffcs_dly 00_000000 pm_tW2W_diffcs_adj_dly 00_000000 pm_tR2P_sameba_adj_dly 00_000000 pm_tW2P_sameba_adj_dly 00_000000 pm_tR2R_sameba_adj_dly 00_000000 pm_tR2W_sameba_adj_dly 00_000000 pm_tW2R_sameba_adj_dly 00_000000 pm_tW2W_sameba_adj_dly
-MC0_DDR3_CTRL_0x1e8: .dword 0x0309000000000000
+MC0_DDR3_CTRL_0x1e8: .dword 0x0309000000000002
 //00_000000 pm_tR2R_diffcs_adj_dly 00_000000 pm_tR2W_diffcs_dly 00_000000 pm_tR2P_samecs_dly 00_000000 pm_tW2P_samecs_dly 00_000000 pm_tR2R_samecs_adj_dly 00_000000 pm_tR2W_samecs_adj_dly 00_000000 pm_tW2R_samecs_adj_dly 00_000000 pm_tW2W_samecs_adj_dly
 MC0_DDR3_CTRL_0x1f0: .dword 0x000801e4ff000101
 //0000_0000 pm_power_up _00000000 pm_age_step _00000000 pm_tCPDED _00000000 pm_cs_map _00000000 pm_bs_config 00000_000 pm_channel_32 pm_channel_16 pm_nc 0000_0000 pm_pr_r2w 0000000_0 pm_placement_en
