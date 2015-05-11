@@ -360,35 +360,18 @@ gs_2f_v3_ddr2_cfg:
 
 #define SOFT_CLKSEL
 #ifdef SOFT_CLKSEL
-//#define NODE_LOOPC  32 //800MHz
-#define NODE_LOOPC  40 //1.0GHz
-#define NODE_REFC   1
-#define NODE_DIV    1
 
-#define DDR_LOOPC  80 //667Mhz
+//#define DDR_LOOPC  80 //667Mhz
+#define DDR_LOOPC  72 //600
 //#define DDR_LOOPC  60 //500MHz
 #define DDR_REFC   1
 #define DDR_DIV    4
 
-//#define CORE_LOOPC  32 //0.8G
-//#define CORE_LOOPC  40 //1.0G
-//#define CORE_LOOPC  46 //1.15G
-//#define CORE_LOOPC  48 //1.2G
-#define	CORE_LOOPC  44 //1.1g
-//#define CORE_LOOPC  50 //1.25G
-//#define CORE_LOOPC  52 //1.3G  OK @ 1.15, pass the stressapptest
-//#define CORE_LOOPC  54 //1.35G OK @ 1.15v but (bit 33 cause error, make 0 to 1 at stressapptest)
-//#define CORE_LOOPC  56 //1.4G
-//#define CORE_LOOPC  57 //1.425G
-//#define CORE_LOOPC  58 //1.45G
-//#define CORE_LOOPC  60 //1.5G OK @ 1.3v
-//#define CORE_LOOPC  62 //1.55G
-#define CORE_REFC   1
-#define CORE_DIV    1
-
-#define L1_LOOPC    72//900
-//#define L1_LOOPC    64//800
+// L1_* define both CPU and Node freq simutanleously
+//#define L1_LOOPC    72//900
+#define L1_LOOPC    64//800
 //#define L1_LOOPC    48//600
+//#define L1_LOOPC    40//500
 #define L1_DIV      2
 
 #define BYPASS_CORE 0x0
@@ -515,21 +498,21 @@ soft_out:
 	sw      a2, 0x0(t0)
 
 ##########################################
-#include "loongson3_HT_init.S"
+
+
 
 #include "loongson3_fixup.S"
 
-       bal     beep_on
-       nop
-       li      a0,0x1000
-       1:
-       addiu   a0,-1
-       nop
-       bnez    a0,1b
-       nop
-       bal     beep_off
-       nop
+	bal     beep_on
+	nop
+	li      a0, 0x09000000
+1:
+	bnez    a0, 1b
+	addiu   a0, a0, -1
+	bal     beep_off
+	nop
 
+#include "loongson3_HT_init.S"
 ##########################################
 
 
@@ -674,56 +657,47 @@ soft_out:
 
 ##########################################
 #ifdef  DEBUG_DDR
-#if 1
-    PRINTSTR("\r\nDo test?(0xf: skip): ")
-    bal     inputaddress
-    nop
-    and     v0, v0, 0xf
-    dli     a1, 0x1
-    bgt     v0, a1, 3f
-    nop
-#endif
+	PRINTSTR("\r\nDo test?(0xf: skip): ")
+	bal     inputaddress
+	nop
+	and     v0, v0, 0xf
+	dli     a1, 0x1
+	bgt     v0, a1, 2f
+	nop
 
-    dli     s1, 0x0010000100000000
-#if 1
-    PRINTSTR("\r\ndefault s1 = 0x");
-    dsrl    a0, s1, 32
-    bal     hexserial
-    nop
-    PRINTSTR("__")
-    move    a0, s1
-    bal     hexserial
-    nop
-    PRINTSTR("\r\nChange test param s1(0: skip)?: ")
-    bal     inputaddress
-    nop
-    beqz    v0, 1f
-    nop
-    move    s1, v0
+	dli     s1, 0x0010000100000000
+	PRINTSTR("\r\ndefault s1 = 0x");
+	dsrl    a0, s1, 32
+	bal     hexserial
+	nop
+	PRINTSTR("__")
+	move    a0, s1
+	bal     hexserial
+	nop
+	PRINTSTR("\r\nChange test param s1(0: skip)?: ")
+	bal     inputaddress
+	nop
+	beqz    v0, 1f
+	nop
+	move    s1, v0
 1:
-#endif
-1:
-    dli     t1, 0x0010
-    bal     test_mem
-    nop
-    move    t1, v0
-    PRINTSTR("\r\n")
-    dsrl    a0, t1, 32
-    bal     hexserial
-    nop
-    move    a0, t1
-    bal     hexserial
-    nop
-    beqz    t1, 2f
-    nop
-    PRINTSTR("  Error found!!\r\n")
+	dli     t1, 0x0010
+	bal     test_mem
+	nop
+	move    t1, v0
+	PRINTSTR("\r\n")
+	dsrl    a0, t1, 32
+	bal     hexserial
+	nop
+	move    a0, t1
+	bal     hexserial
+	nop
+	beqz    t1, 2f
+	nop
+	PRINTSTR("  Error found!!\r\n")
+	
+
 2:
-#if 0
-    b       1b
-    nop
-#endif
-
-3:
 #endif
 
 #ifdef  AUTO_ARB_LEVEL
@@ -740,16 +714,13 @@ soft_out:
 ##########################################
 
 
-#ifdef LS3_HT
-//#include "loongson3_HT_init.S"
-#endif
 
-#include "3aserver_bridge_config.S"
+#include "780e_bridge_config.S"
 ##########################################
 	PRINTSTR("\r\n======X1 core0 map windows:\r\n")
 	li      t1, 23
 	dli     t2, 0x900000003ff02000
-	1:
+1:
 	move	a0, t2
 	bal	hexserial64
 	nop
@@ -767,7 +738,7 @@ soft_out:
 	PRINTSTR("\r\n======X1 ht map windows:\r\n")
 	li      t1, 23
 	dli     t2, 0x900000003ff02700
-	1:
+1:
 	move	a0, t2
 	bal	hexserial64
 	nop
@@ -785,7 +756,7 @@ soft_out:
 	PRINTSTR("\r\n======X2 cpu map windows:\r\n")
 	li      t1, 23
 	dli     t2, 0x900000003ff00000
-	1:
+1:
 	move	a0, t2
 	bal	hexserial64
 	nop
@@ -1225,7 +1196,7 @@ END(beep_off)
 
 
 LEAF(initserial)
-	li  a0, GS3_UART_BASE
+	li	a0, GS3_UART_BASE
 
  	li	t1,128
  	sb	t1,3(a0)
