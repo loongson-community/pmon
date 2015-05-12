@@ -2857,3 +2857,35 @@ void print_mem_freq(void)
 		printf("sw selected! mem@ %dMhz\n", (mem_sw_freq_mul() * mem_ref_clock)/mem_sw_freq_div());
 	
 }
+
+extern struct interface_info g_board;
+struct board_devices *board_devices_info()
+{
+
+	struct board_devices *bd = &g_board;
+
+	strcpy(bd->name,"Loongson-3A2000-2H-1w-V0.7-demo");
+	bd->num_resources = 10;
+
+	return bd;
+}
+
+void  print_cpu_info()
+{
+	int cycles1, cycles2;
+	int bogo;
+	int loops = 1 << 18;
+	int freq = tgt_pipefreq() / 1000000;
+
+	printf("Copyright 2000-2002, Opsycon AB, Sweden.\n");
+	printf("Copyright 2005, ICT CAS.\n");
+	printf("CPU %s ", md_cpuname());
+
+	cycles1 = (int)read_c0_count();
+	__loop_delay(loops);
+	cycles2 = (int)read_c0_count();
+
+	bogo = freq * loops / (cycles2 - cycles1);
+
+	printf("BogoMIPS: %d\n", bogo);
+}
