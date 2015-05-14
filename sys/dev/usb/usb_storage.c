@@ -915,7 +915,7 @@ static int usb_test_unit_ready(ccb *srb,struct us_data *ss)
 	//fixup the pioneer DVD-ROM match bug
 	int retries = 30;
 #else
-	int retries = 10;
+	int retries = 100;
 #endif
 	do {
 		memset(&srb->cmd[0],0,12);
