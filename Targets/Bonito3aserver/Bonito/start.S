@@ -630,7 +630,7 @@ MEM_INIT_DONE:
 
 ##########################################
 
-#if 1 //cww_X2
+#if 0 //cww_X2
 //dump L1-L2-HT config windows
 	PRINTSTR("\r\n======X1 core0 map windows:\r\n")
 	li      t1, 23
