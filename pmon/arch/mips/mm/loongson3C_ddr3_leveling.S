@@ -78,7 +78,9 @@ write_leveling:
     dli     t1, 0x250
     or      t1, t1, t8
     lb      a0, 0x2(t1)
-    beqz    a0, 1f
+    dli     t1, 0x1
+    and     a0, a0, t1
+    bne     a0, t1, 1f //when rd_after_write enabled, the 9th device may don't need leveling
     nop
     daddu   t0, t0, 0x1
 1:
@@ -250,7 +252,9 @@ lvl_resp_8_set0:
     dli     t1, 0x250
     or      t1, t1, t8
     lb      a0, 0x2(t1)
-    beqz    a0, 1f
+    dli     t1, 0x1
+    and     a0, a0, t1
+    bne     a0, t1, 1f //when rd_after_write enabled, the 9th device may don't need leveling
     nop
 
     dli     t1, 0x188
@@ -290,7 +294,9 @@ additional_lvl_req:
     dli     t1, 0x250
     or      t1, t1, t8
     lb      a0, 0x2(t1)
-    beqz    a0, 11f
+    dli     t1, 0x1
+    and     a0, a0, t1
+    bne     a0, t1, 11f
     nop
     blt     s6, 45, dll_wrdqs8_add
     nop
@@ -490,7 +496,9 @@ lvl_resp_8_set1:
     dli     t1, 0x250
     or      t1, t1, t8
     lb      a0, 0x2(t1)
-    beqz    a0, 1f
+    dli     t1, 0x1
+    and     a0, a0, t1
+    bne     a0, t1, 1f //when rd_after_write enabled, the 9th device may don't need leveling
     nop
     dli     t1, 0x188
     or      t1, t1, t8
@@ -551,7 +559,9 @@ wrdqs_adjust:
     dli     t1, 0x250
     or      t1, t1, t8
     lb      a0, 0x2(t1)
-    beqz    a0, 1f
+    dli     t1, 0x1
+    and     a0, a0, t1
+    bne     a0, t1, 1f //when rd_after_write enabled, the 9th device may don't need leveling
     nop
     daddu   t0, t0, 0x1
 1:
@@ -608,7 +618,9 @@ wrdqs_set_3a:
     dli     t1, 0x250
     or      t1, t1, t8
     lb      a0, 0x2(t1)
-    beqz    a0, 1f
+    dli     t1, 0x1
+    and     a0, a0, t1
+    bne     a0, t1, 1f //when rd_after_write enabled, the 9th device may don't need leveling
     nop
     daddu   t0, t0, 0x1
 1:
@@ -695,7 +707,9 @@ wrdqs_set_5a:
     dli     t1, 0x250
     or      t1, t1, t8
     lb      a0, 0x2(t1)
-    beqz    a0, 1f
+    dli     t1, 0x1
+    and     a0, a0, t1
+    bne     a0, t1, 1f //when rd_after_write enabled, the 9th device may don't need leveling
     nop
     daddu   t0, t0, 0x1
 1:
@@ -749,7 +763,9 @@ wrdqs_lt_half_set:
     dli     t1, 0x250
     or      t1, t1, t8
     lb      a0, 0x2(t1)
-    beqz    a0, 1f
+    dli     t1, 0x1
+    and     a0, a0, t1
+    bne     a0, t1, 1f //when rd_after_write enabled, the 9th device may don't need leveling
     nop
     daddu   t0, t0, 0x1
 1:
@@ -795,7 +811,9 @@ wrdq_lt_half_set:
     dli     t1, 0x250
     or      t1, t1, t8
     lb      a0, 0x2(t1)
-    beqz    a0, 1f
+    dli     t1, 0x1
+    and     a0, a0, t1
+    bne     a0, t1, 1f //when rd_after_write enabled, the 9th device may don't need leveling
     nop
     daddu   t0, t0, 0x1
 1:
@@ -851,7 +869,9 @@ wrdq_lt_half_test:
     dli     t1, 0x250
     or      t1, t1, t8
     lb      a0, 0x2(t1)
-    beqz    a0, 1f
+    dli     t1, 0x1
+    and     a0, a0, t1
+    bne     a0, t1, 1f //when rd_after_write enabled, the 9th device may don't need leveling
     nop
     daddu   t0, t0, 0x1
 1:
@@ -943,8 +963,10 @@ rdimm_wrdq_lt_half_test:
     dli     t1, 0x250
     or      t1, t1, t8
     lb      a0, 0x2(t1)
+    dli     t1, 0x1
+    and     a0, a0, t1
 //    dli     t2, 0x0
-    beqz    a0, rdimm_wrdq_lt_half_test_3210
+    bne     a0, t1, rdimm_wrdq_lt_half_test_3210
     nop
 
 rdimm_wrdq_lt_half_test_83:
@@ -992,7 +1014,9 @@ rdimm_record_slice_num_83210:
     dli     t1, 0x250
     or      t1, t1, t8
     lb      a0, 0x2(t1)
-    beqz    a0, rdimm_wrdq_clkdelay_set_3210
+    dli     t1, 0x1
+    and     a0, a0, t1
+    bne     a0, t1, rdimm_wrdq_clkdelay_set_3210
     nop
 rdimm_wrdq_clkdelay_set_8:
     li      t0, 0x4
@@ -1117,7 +1141,9 @@ slice_8_wrdq_lt_half_test:
     dli     t1, 0x250
     or      t1, t1, t8
     lb      a0, 0x2(t1)
-    beqz    a0, slice_3_wrdq_lt_half_test
+    dli     t1, 0x1
+    and     a0, a0, t1
+    bne     a0, t1, slice_3_wrdq_lt_half_test
     nop
     dli     t1, 0x120
     or      t1, t1, t8
@@ -1447,7 +1473,9 @@ gate_leveling:
     dli     t1, 0x250
     or      t1, t1, t8
     lb      a0, 0x2(t1)
-    beqz    a0, 1f
+    dli     t1, 0x1
+    and     a0, a0, t1
+    bne     a0, t1, 1f //when rd_after_write enabled, the 9th device may don't need leveling
     nop
     daddu   t0, t0, 0x1
 1:
@@ -1594,7 +1622,9 @@ glvl_resp_8_set0:
     dli     t1, 0x250
     or      t1, t1, t8
     lb      a0, 0x2(t1)
-    beqz    a0, 1f
+    dli     t1, 0x1
+    and     a0, a0, t1
+    bne     a0, t1, 1f //when rd_after_write enabled, the 9th device may don't need leveling
     nop
     dli     t1, 0x188
     or      t1, t1, t8
@@ -2306,7 +2336,9 @@ glvl_resp_8_set1:
     dli     t1, 0x250
     or      t1, t1, t8
     lb      a0, 0x2(t1)
-    beqz    a0, 1f
+    dli     t1, 0x1
+    and     a0, a0, t1
+    bne     a0, t1, 1f //when rd_after_write enabled, the 9th device may don't need leveling
     nop
     dli     t1, 0x188
     or      t1, t1, t8
@@ -2381,7 +2413,9 @@ wait_init_done0:
     dli     t1, 0x250
     or      t1, t1, t8
     lb      a0, 0x2(t1)
-    beqz    a0, 1f
+    dli     t1, 0x1
+    and     a0, a0, t1
+    bne     a0, t1, 1f //when rd_after_write enabled, the 9th device may don't need leveling
     nop
     daddu   t0, t0, 0x1
 1:
@@ -2466,7 +2500,9 @@ dll_gate_set:
     dli     t1, 0x250
     or      t1, t1, t8
     lb      a0, 0x2(t1)
-    beqz    a0, 1f
+    dli     t1, 0x1
+    and     a0, a0, t1
+    bne     a0, t1, 1f //when rd_after_write enabled, the 9th device may don't need leveling
     nop
     daddu   t0, t0, 0x1
 1:
@@ -3414,7 +3450,9 @@ glvl_resp_check_8:
     dli     t1, 0x250
     or      t1, t1, t8
     lb      a0, 0x2(t1)
-    beqz    a0, 3f
+    dli     t1, 0x1
+    and     a0, a0, t1
+    bne     a0, t1, 3f //when rd_after_write enabled, the 9th device may don't need leveling
     nop
 
     dli     t4, 0x1c00000000000000
@@ -3667,7 +3705,9 @@ wait_init_done3:
     dli     t1, 0x250
     or      t1, t1, t8
     lb      a0, 0x2(t1)
-    beqz    a0, 1f
+    dli     t1, 0x1
+    and     a0, a0, t1
+    bne     a0, t1, 1f //when rd_after_write enabled, the 9th device may don't need leveling
     nop
     dli     t3, 0x9 //loop times
     b       2f
