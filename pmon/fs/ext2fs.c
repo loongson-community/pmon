@@ -38,6 +38,7 @@ extern off_t devio_lseek(int , off_t , int);
 
 static int ext2_read_file(int , void *, size_t , size_t , struct ext2_inode *);
 static int ReadFromIndexBlock(int , __u32 , __u32 , __u8 ** , size_t *, size_t * , __u32 *);
+static int ReadFromIndexBlock2(int fd,__u32 start_index,__u32 end_index,__u8 **start,	size_t *size,size_t *position,__u32 *d_addr_start);
 static inline ext2_dirent *ext2_next_entry(ext2_dirent *);
 static int ext2_entrycmp(char *, void *, int );
 static int ext2_get_inode(int , unsigned long , struct ext2_inode ** );
@@ -136,6 +137,9 @@ out:
 			err = -1;
 		}
 
+		if(ext2_sb->s_rev_level==0) //old version
+		sb_ext2_inode_size = 128;
+		else
 		sb_ext2_inode_size = ext2_sb->s_inode_size;
 		sb_inodes_per_grp = ext2_sb->s_inodes_per_group;
 		sb_block_size = BLOCK_1KB << ext2_sb->s_log_block_size;
@@ -320,7 +324,7 @@ static int ext2_load_linux(int fd,int index, const unsigned char *path)
 				printf("%s%s",s,((de->file_type)&2)?"/ ":" ");
 
 			if (!ext2_entrycmp(directoryname, de->name, de->name_len)) {
-				if(de->file_type == EXT2_FT_REG_FILE) {
+				if(de->file_type == EXT2_FT_REG_FILE || de->file_type == EXT2_FT_UNKNOWN) {
 					if (ext2_get_inode(fd, de->inode, &the_inode)) {
 						printf("load EXT2_ROOT_INO error");
 						free(bh);
@@ -531,10 +535,11 @@ int ext2_read(int fd, void *read_start,size_t size)
 {
 	int real_size;
 
-	memset(read_start, 0, size);
 	if((_file[fd].posn + size) > the_inode->i_size) {
 		size = the_inode->i_size - _file[fd].posn;
 	}
+
+	memset(read_start, 0, size);
 
 	real_size = ext2_read_file(fd, read_start, size, _file[fd].posn, the_inode);
 	if((_file[fd].posn + real_size) > the_inode->i_size) {
@@ -851,7 +856,96 @@ static int ext2_read_file0(int fd, void *read_start, size_t size, size_t pos,
 			return (int)size;
 		}
 	}
-	printf("I can't read so big files,give me a email!\n");
+	//triple
+
+	addr_start=&(inode->i_block[14]);
+	devio_lseek(fd,(off_t)*addr_start*sb_block_size+START_PARTION,0);
+	re=devio_read(fd,buff,sb_block_size);
+	if(re!=sb_block_size)
+	{
+		printf("Read the iblock[13] error!\n");
+		free((char*)buff);	/* spark add */
+		return 0;
+	}
+	d_addr_start=(__u32 *)buff;
+	index_buff=(__u8 *)malloc(sb_block_size);
+	if(!index_buff)
+	{
+		printf("Can't alloc memory!\n");
+		return 0;
+	}
+
+		start_block=(position/sb_block_size-12-sb_block_size/4-sb_block_size/4*sb_block_size/4)/(sb_block_size/4*sb_block_size/4);
+	for(i=start_block;i<sb_block_size/4-1;i++)
+	{	
+		devio_lseek(fd,(off_t)*(d_addr_start+i)*sb_block_size+START_PARTION,0);
+		re=devio_read(fd,index_buff,sb_block_size);
+		if(re!=sb_block_size)
+		{
+			printf("Can't read index block!\n");
+			return 0;
+		}
+		addr_start=(__u32 *)index_buff;
+		start_block=(position/sb_block_size-12-sb_block_size/4-sb_block_size/4*sb_block_size/4-sb_block_size/4*sb_block_size/4*i)/(sb_block_size/4);
+		re=ReadFromIndexBlock2(fd,start_block,sb_block_size/4-1,&start,&read_size,&position,addr_start);
+		if(re)
+		{
+			printf("Can't read the double index block!\n");
+			free((char*)buff);
+			free((char*)index_buff);	/* spark add */
+			return 0;
+		}
+		if(!read_size) {
+			free((char*)buff);		/* spark add */
+			free((char*)index_buff);
+			return (int)size;
+		}
+	}
+	return 0;
+}
+
+static int ReadFromIndexBlock2(int fd,__u32 start_index,__u32 end_index,__u8 **start,	size_t *size,size_t *position,__u32 *d_addr_start)
+{
+//addr_start is a array
+//start_block1 is arrys's index
+	__u32 start_block;
+	__u32 *addr_start;
+	__u8 *index_buff;
+	int i, re;
+
+	if(start_index>end_index)
+		return 0;
+
+	index_buff=(__u8 *)malloc(sb_block_size);
+	if(!index_buff)
+	{
+		printf("Can't alloc memory!\n");
+		return 0;
+	}
+
+	for(i=start_index;i<end_index;i++)
+	{	
+		devio_lseek(fd,(off_t)*(d_addr_start+i)*sb_block_size+START_PARTION,0);
+		re=devio_read(fd,index_buff,sb_block_size);
+		if(re!=sb_block_size)
+		{
+			printf("Can't read index block!\n");
+			return 0;
+		}
+		addr_start=(__u32 *)index_buff;
+		start_block= (*position/sb_block_size-12)%(sb_block_size/4);
+		re=ReadFromIndexBlock(fd,start_block,sb_block_size/4-1,start,size,position,addr_start);
+		if(re)
+		{
+			printf("Can't read the double index block!\n");
+			free((char*)index_buff);	/* spark add */
+			return 0;
+		}
+		if(!*size) {
+			free((char*)index_buff);
+			return 0;
+		}
+	}
 	return 0;
 }
 
