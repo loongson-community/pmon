@@ -12,6 +12,68 @@
 ddr3_leveling:
  
 	  move s5,ra
+
+#define CHANGE_RD_OE
+#ifdef CHANGE_RD_OE
+
+#for 3a8, different frequency will use different rd_oe_start/stop
+#frequency 500M, rd_oe_begin/end 0x03030202
+#frequency 600M, rd_oe_begin/end 0x03030000
+	li      t1, 0xbfe001c0
+    lw      a1, 0x0(t1)
+    dsrl    t1, a1, 14 //DDR_LOOPC
+    and     t1, t1, 0x3ff
+    dsrl    a1, a1, 24 //DDR_DIV
+    and     a1, a1, 0x3f
+
+    //DDR_DIV: 4 or 8
+    dli     t4, 0x4
+    beq     a1, t4, 1f
+    nop
+    dsrl    t1, t1, 1
+1:
+    dsrl    t1, t1, 2 
+
+    dli     t4, 15
+    bgt     t1, t4, 3f
+    nop
+
+    //<= 500M, add rd_oe_start/stop by 0x2 and sub tPHY_RDDATA by 0x1
+/* identify wheather there is ecc slice */
+    li      t0, 0x8
+    dli     t1, 0x250
+    or      t1, t1, t8
+    lb      a0, 0x2(t1)
+    dli     t1, 0x1
+    and     a0, a0, t1
+    bne     a0, t1, 1f //when rd_after_write enabled, the 9th device may don't need leveling
+    nop
+    daddu   t0, t0, 0x1
+
+1:
+
+    dli     t1, 0x28
+    or      t1, t1, t8
+
+2:
+    ld      a0, 0x0(t1)
+    dli     t4, 0x020200000000
+    daddu   a0, a0, t4
+    sd      a0, 0x0(t1)
+    daddu   t1, t1, 0x20
+    dsubu   t0, t0, 0x1
+    bnez    t0, 2b
+    nop
+
+    ld      a0, 0x1c0(t8)
+    dsubu   a0, a0, 0x1
+    sd      a0, 0x1c0(t8)
+
+    //> 500M
+3:
+
+
+#endif
 #only the gate dll is bypassed at the beginning of leveling
 #while other dlls' bypass is set at the end of leveling
 #ifdef DDR_DLL_BYPASS
@@ -3754,6 +3816,45 @@ wait_init_done3:
     bnez    t3, 3b
     nop
 
+#endif
+
+#ifdef CHANGE_RD_OE
+//when rd_oe_start/stop is set to 0x2, the rddqs_lt_half should be reversed
+//because the rd_oe_start/stop only changed in this file, and all the rd_oe_start/stop change at the same time, here we only consider the rd_oe_start/stop of slice0
+    lh      a0, 0x2c(t8)
+    dli     t4, 0x0202
+    bne     t4, a0, 3f
+    nop
+
+/* identify wheather there is ecc slice */
+    li      t0, 0x8
+    dli     t1, 0x250
+    or      t1, t1, t8
+    lb      a0, 0x2(t1)
+    dli     t1, 0x1
+    and     a0, a0, t1
+    bne     a0, t1, 1f //when rd_after_write enabled, the 9th device may don't need leveling
+    nop
+    daddu   t0, t0, 0x1
+
+1:
+
+    dli     t1, 0x20
+    or      t1, t1, t8
+
+2:  
+    lb      a0, 0x2(t1)
+    xori    a0, 0x1
+    sb      a0, 0x2(t1)
+    daddu   t1, t1, 0x20
+    dsubu   t0, t0, 0x1
+    bnez    t0, 2b
+    nop
+
+3:
+    
+   
+    
 #endif
 
 100:
