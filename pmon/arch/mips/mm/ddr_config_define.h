@@ -92,7 +92,11 @@ temparary used in PROBE_DIMM
 #define CHIP_SAMPLE_BASE_ADDR   0x900000001fe00190
 #define DDR_CLKSEL_OFFSET           37
 #define DDR_CLKSEL_MASK             0x1F
+#ifdef  LSMC_2
+#define DDR_CONFIG_DISABLE_OFFSET   4
+#else
 #define DDR_CONFIG_DISABLE_OFFSET   8
+#endif
 #define ARB_TEMP_L2WINDOW_OFFSET    0x20
 #else
 #ifdef  LS3B

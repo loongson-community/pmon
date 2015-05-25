@@ -15,6 +15,8 @@
 #endif
 #endif
 
+#define MAX_ROW_SIZE            15
+
 #define DDR_MC_CONFIG_BASE      0x900000000ff00000
 #define MC_CONFIG_REG_BASE_ADDR 0x900000000ff00000
 #ifdef  LSMCD3_2
