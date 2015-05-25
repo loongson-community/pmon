@@ -2797,3 +2797,63 @@ struct efi_memory_map_loongson * init_memory_map()
 	return emap;
 #undef	EMAP_ENTRY
 }
+
+#define HW_CONFIG 0xbfe00180
+#define HW_SAMPLE 0xbfe00190
+#define HT_MEM_PLL 0xbfe001c0
+
+static inline int mem_is_hw_bypassed()
+{
+	int32_t hw_sample = readl(HW_SAMPLE + 0x4);
+	return ((hw_sample >> 5) & 0x1f) == 0x1f;
+}
+
+static inline int mem_is_sw_setup()
+{
+	int32_t hw_sample = readl(HW_SAMPLE + 0x4);
+	return ((hw_sample >> 5) & 0x1f) == 0x0f; 
+
+}
+
+static inline int mem_hw_freq_mul()
+{
+	int32_t hw_mul = (readl(HW_SAMPLE + 0x4) >> 5) & 0xf;
+
+	return hw_mul + 30;
+}
+
+static inline int mem_hw_freq_div()
+{
+	int32_t hw_div = (readl(HW_SAMPLE + 0x4) >> 9) & 0x1;
+
+	return hw_div + 3;
+}
+
+static inline int mem_sw_freq_mul()
+{
+	int32_t sw_mul = (readl(HT_MEM_PLL) >> 14) & 0x3ff;
+
+	return sw_mul;
+}
+
+static inline int mem_sw_freq_div()
+{
+	int32_t sw_div = (readl(HT_MEM_PLL) >> 24) & 0x3f;
+
+	return sw_div;
+}
+
+void print_mem_freq(void) 
+{
+	int mem_ref_clock = 33; /* int Mhz */
+
+	if ( mem_is_hw_bypassed()) { 
+		printf("hw bypassed! mem@ %dMhz\n", mem_ref_clock);
+		return;
+	}
+	if (!mem_is_sw_setup()) 
+		printf("hw selected! mem@ %dMhz\n", (mem_hw_freq_mul() * mem_ref_clock)/mem_hw_freq_div());
+	else
+		printf("sw selected! mem@ %dMhz\n", (mem_sw_freq_mul() * mem_ref_clock)/mem_sw_freq_div());
+	
+}
