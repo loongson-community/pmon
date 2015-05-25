@@ -391,7 +391,7 @@ struct interface_info *init_interface_info()
   return inter;
 }
 
-struct board_devices *board_devices_info()
+struct board_devices * __attribute__((weak)) board_devices_info()
 {
 
  struct board_devices *bd = &g_board;

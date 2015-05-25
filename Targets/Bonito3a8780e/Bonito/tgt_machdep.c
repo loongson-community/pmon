@@ -2303,3 +2303,15 @@ void print_mem_freq(void)
 		printf("sw selected! mem@ %dMhz\n", (mem_sw_freq_mul() * mem_ref_clock)/mem_sw_freq_div());
 	
 }
+
+extern struct interface_info g_board;
+struct board_devices *board_devices_info()
+{
+
+	struct board_devices *bd = &g_board;
+
+	strcpy(bd->name,"Loongson-3A2000-780E-1w-V1.10-demo");
+	bd->num_resources = 10;
+
+	return bd;
+}
