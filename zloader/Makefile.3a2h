@@ -2,6 +2,6 @@ TARGET=Bonito3a2h
 TARGETEL=Bonito
 START=start.o
 MEMSIZE=128
-ZLOADER_OPTIONS=-mips3
+ZLOADER_OPTIONS=-mips3 -D LS3A2H_STR
 
 include Makefile.inc

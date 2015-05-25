@@ -16,7 +16,7 @@ makeoptions	ENDIAN=EL		# Little endian version.
 #
 option		SYSTYPE="\"Bonito\""
 option		TARGETNAME="\"Bonito\""
-
+option		LS3A2H_STR
 #
 # Platform options
 #

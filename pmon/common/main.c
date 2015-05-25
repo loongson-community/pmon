@@ -789,7 +789,9 @@ dbginit (char *adr)
 
 	SBD_DISPLAY ("SBDD", CHKPNT_SBDD);
 	tgt_devinit();
-
+#ifdef LS3A2H_STR
+	check_str();
+#endif
 #ifdef INET
 	SBD_DISPLAY ("NETI", CHKPNT_NETI);
 	init_net (1);

@@ -2797,3 +2797,91 @@ struct efi_memory_map_loongson * init_memory_map()
 	return emap;
 #undef	EMAP_ENTRY
 }
+
+#ifdef LS3A2H_STR
+#define STR_STORE_BASE 0x8faaa000
+
+uint64_t cmos_read64(unsigned long addr)
+{
+       unsigned char bytes[8];
+       int i;
+
+       for (i = 0; i < 8; i++)
+       		bytes[i] = *((unsigned char *)(STR_STORE_BASE + addr + i));
+
+       return *(uint64_t *) bytes;
+}
+
+void cmos_write64(uint64_t data, unsigned long addr)
+{
+       int i;
+       unsigned char *bytes = (unsigned char *) &data;
+
+       for (i = 0; i < 8; i++)
+       		 *((unsigned char *)(STR_STORE_BASE + addr + i)) = bytes[i];
+}
+
+void check_str()
+{
+	uint64_t str_ra,str_flag;
+	long long str_sp;
+	unsigned int sp_h,sp_l; 
+
+	outl(LS2H_GPIO_CFG_REG, 0xf << 24);
+	board_ver_num = (inl(LS2H_GPIO_IN_REG) >> 8) & 0xf;
+	if(board_ver_num == LS3A2H_BOARD_2_2) {	// new 3A2H Board: lpc interface mount on 2H, old board lpc mount on 3A
+		superio_base = 0xbbf00000;
+	} else if(board_ver_num == LS3A2H_BOARD_OLD) {
+		superio_base = 0xbff00000;
+	}
+	w83627_write(0xa,0xe4,0x1<<4);//set superio for s3 mode
+
+	str_ra = cmos_read64(0x40);
+	str_sp = cmos_read64(0x48);
+	str_flag = cmos_read64(0x50);
+	sp_h = str_sp >> 32;
+	sp_l = str_sp;
+	printf("SP=%llx, RA=%llx\n", str_sp, str_ra);
+	printf("str_flag=%llx\n", str_flag);
+	if ((str_sp < 0x9800000000000000) || (str_ra < 0xffffffff80000000)
+			|| (str_flag != 0x5a5a5a5a5a5a5a5a)) {
+		*(uint64_t *)(STR_STORE_BASE + 0x50) = 0x0; //clean str flag
+		return;
+	}
+
+	*((unsigned int *)0xbbd00044) = 0;	
+	*((unsigned int *)0xbbd0005c) = 0;	
+	*((unsigned int *)0xbbd00074) = 0;	
+	*((unsigned int *)0xbbd0008c) = 0;	
+	*((unsigned int *)0xbbd000a4) = 0;	
+
+	superio_reinit();
+
+	printf("Start status S3....\n");
+	cmos_write64(0x0, 0x40);
+	cmos_write64(0x0, 0x48);
+	cmos_write64(0x0, 0x50);
+
+	CPU_TLBClear();
+	tlb_init();
+	CPU_FlushCache();
+	/*delay 3s to wait 2h pcie phy init done*/
+	delay(3000000);
+
+	__asm__ __volatile__(
+			".set	noat			\n"
+			".set	mips64			\n"
+			"move	$t0, %0			\n"
+			"move	$t1, %1			\n"
+			"dli	$t2, 0x00000000ffffffff	\n"
+			"and	$t1,$t2			\n"
+			"dsll	$t0,32			\n"
+			"or	$sp, $t0,$t1		\n"
+			"jr	%2			\n"
+			"nop				\n"
+			".set	at			\n"
+			: /* No outputs */
+			:"r"(sp_h), "r"(sp_l),"r"(str_ra)
+			);
+}
+#endif

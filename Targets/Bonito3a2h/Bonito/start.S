@@ -174,6 +174,22 @@ sb		v1,		0(v0); \
 nop; \
 nop 
 
+#ifdef LS3A2H_STR
+/* str need */
+#define STR_XBAR_CONFIG_NODE_a0(OFFSET, BASE, MASK, MMAP) \
+                        daddi   v0, t0, OFFSET;       \
+                        dli     t1, BASE;             \
+                        or      t1, t1, a0;           \
+                        sd      t1, 0x00(v0);         \
+                        dli     t1, MASK;             \
+                        sd      t1, 0x40(v0);         \
+                        dli     t1, MMAP;             \
+                        sd      t1, 0x80(v0);        \
+                                           nop
+
+
+#endif
+
 #define CONFIG_CACHE_64K_4WAY 1
 
 #define tmpsize		s1
@@ -331,8 +347,135 @@ ext_map_and_reboot:
 	b	exc_common
 	nop
 
+#ifdef LS3A2H_STR
+/* 
+ * 3A2H STR config start 
+ */
+
+	.align  8           /* suspend addr: bfc00500 */
+	.set 	mips64
+	/* Enable DDR control register */
+
+	dli	t0, 0x900000000faaa040
+	sd	a0, 0x0(t0) //store ra
+
+	dli	t1, 0x900000000faaa048
+	sd	a1, 0x0(t1) //store sp
+
+	dli	t2, 0x900000000faaa050
+	dli	t0, 0x5a5a5a5a5a5a5a5a
+	sd	t0, 0x0(t2) //store str flag
+
+	lui	t0, 0xbfe0
+	lw	t1, 0x0180(t0)
+	nop
+	li	t2, ~(0x1 << 8)
+	and	t1, t1, t2
+	sw	t1, 0x0180(t0)
+	sync
+
+	/* set MC0 Enter refresh mode */
+	li	a0,0x0
+	dli	t0, 0x900000003ff00000
+	STR_XBAR_CONFIG_NODE_a0(0x10, \
+		0x0000000000000000, \
+		0xfffffffff0000000, \
+		0x00000000000000f0)
+
+	dli	a0, 0x900000000ff00000
+	ld	t1, 0x30(a0)
+	dli	t3, (0x1 << 32)
+	or	t1, t1, t3
+	sd	t1, 0x30(a0)
+	sync
+
+	/* set MC1 Enter refresh mode */
+	li	a0,0x0
+	dli	t0, 0x900000003ff00000
+	STR_XBAR_CONFIG_NODE_a0(0x10, \
+		0x0000000000000000, \
+		0xfffffffff0000000, \
+		0x00000000000000f1)
+
+	dli	a0, 0x900000000ff00000
+	ld	t1, 0x30(a0)
+	dli	t3, (0x1 << 32)
+	or	t1, t1, t3
+	sd	t1, 0x30(a0)
+	sync
+
+	//enfo ec: I want to come into str,please keep RESET# hight
+again:
+	//PRINTSTR("\r\nWrite EC GPIO41 start... ")
+	lui	t1, 0xbbf0
+	li	t6, 0x100000
+1:
+	lb	t2, 0x66(t1)
+	li	t3, 2
+	and	t2, t2, t3
+	subu	t6,0x1
+	beqz	t6,again
+	nop
+	bnez	t2, 1b
+	nop
+	li	t2, 0x4e
+	sb	t2, 0x66(t1)
+	sync
+	nop
+	nop
+	nop
+	li	t6, 0x100000
+2:
+	lb	t2, 0x66(t1)
+	li	t3, 2
+	and	t2, t2, t3
+	subu	t6,0x1
+	beqz	t6,2b
+	nop
+	bnez	t2, 2b
+	nop
+	li	t2, 0xff
+	sb	t2, 0x62(t1)
+	sync
+	nop
+
+	/* start of set ACPI reg on 2H */
+	li	t0, 0xbbef0000
+
+	/* set key,usb wakeup of reg GPE0_EN */
+	lw	t1, 0x2c(t0)
+	li	t3, (0x1 << 8)|(0x3f<<10)
+	or	t1, t1, t3
+	sw	t1, 0x2c(t0)
+
+	/* clear 0-15 of reg GPE0_STS */
+	lw	t1, 0x28(t0)
+	li	t3, 0x0000ffff
+	sw	t3, 0x28(t0)
+
+	/* clear 0-15 of reg PM1_STS */
+	lw	t1, 0x0c(t0)
+	li	t3, 0x0000ffff
+	sw	t3, 0x0c(t0)
+
+	/* set reg PM1_CNT to get into S3*/
+	lw	t1, 0x14(t0)
+	li	t3, 0x00003400
+	sw	t3, 0x14(t0)
+
+/* end of set ACPI reg on 2H */
+ 
+1:
+	b  1b
+	nop
+ 
+	.set 	mips3
+//////////////////////////////////////////
+
+#else
 	/* Debug exception */
 	.align  7           /* bfc00480 */
+#endif
 	#include "exc_ejtag.S"
 #endif
 

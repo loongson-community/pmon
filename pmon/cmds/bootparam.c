@@ -2,6 +2,9 @@
 #include <stdio.h>
 #include "bootparam.h"
 #include "../common/smbios/smbios.h"
+#ifdef LS3A2H_STR
+#define LS3A2H_STR_FUNC_ADDR 0xffffffffbfc00500
+#endif
 
 struct loongson_params  g_lp = { 0 };
 struct efi_memory_map_loongson g_map = { 0 };
@@ -51,6 +54,9 @@ void init_reset_system(struct efi_reset_system_t *reset)
 {
   reset->Shutdown = &poweroff_kernel;
   reset->ResetWarm = &reboot_kernel;
+#ifdef LS3A2H_STR
+  reset->ResetCold = LS3A2H_STR_FUNC_ADDR;
+#endif
 }
 
 void init_smbios(struct smbios_tables *smbios)

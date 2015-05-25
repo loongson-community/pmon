@@ -98,14 +98,29 @@ void initmips(unsigned long long msize,unsigned long long dmsize, unsigned long 
     long *edata=(void *)$myedata;
     long *end=(void *)$myend;
     int *p;
+
 	int debug=(msize==0);
+#ifdef LS3A2H_STR
+    long long str_ra,str_flag,str_sp;
+    str_ra = *((long long*)0xafaaa040);
+    str_sp = *((long long*)0xafaaa048);
+    str_flag = *((long long*)0xafaaa050);
+#endif 
 //	CPU_TLBClear();
     stringserial("Uncompressing Bios");
     if(!debug||dctrl&1)enable_cache();
-	while(1)
-	{
-    if(run_unzip(biosdata,$mystart)>=0)break;
-	}
+	
+#ifdef LS3A2H_STR
+    if ((str_sp < 0x9800000000000000) || (str_ra < 0xffffffff80000000)
+		    || (str_flag != 0x5a5a5a5a5a5a5a5a)) {
+#endif
+	    while(1)
+	    {
+		    if(run_unzip(biosdata,$mystart)>=0)break;
+	    }
+#ifdef LS3A2H_STR
+    }
+#endif	
     stringserial("OK,Booting Bios\\r\\n");
     for(p=edata;p<=end;p++)
     {
