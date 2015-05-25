@@ -766,8 +766,7 @@ autoinstall(char *s)
 void
 dbginit (char *adr)
 {
-	unsigned long long	memsize, freq;
-	char	fs[10], *fp;
+	unsigned long long	memsize;
 	char	*s;
 
 /*	splhigh();*/
@@ -840,17 +839,8 @@ dbginit (char *adr)
 	printf ("Supported filesystems [%s]\n", getFSString());
 	printf ("This software may be redistributed under the BSD copyright.\n");
 
-	tgt_machprint();
-
-	freq = tgt_pipefreq ();
-	sprintf(fs, "%d", freq);
-	fp = fs + strlen(fs) - 6;
-	fp[3] = '\0';
-	fp[2] = fp[1];
-	fp[1] = fp[0];
-	fp[0] = '.';
-	printf (" %s MHz", fs);
 		
+	print_cpu_info();
 	print_mem_freq();
 
 	printf ("Memory size %lld MB .\n", memorysize_total);
@@ -1187,3 +1177,46 @@ void __attribute__((weak)) print_mem_freq(void)
 		printf("/ Bus @ 33 MHz\n");
 #endif
 }
+
+void __attribute__((weak)) print_cpu_info(void)
+{
+	int  freq;
+	char fs[10], *fp;
+
+	tgt_machprint();
+
+	freq = tgt_pipefreq ();
+	sprintf(fs, "%d", freq);
+	fp = fs + strlen(fs) - 6;
+	fp[3] = '\0';
+	fp[2] = fp[1];
+	fp[1] = fp[0];
+	fp[0] = '.';
+	printf (" %s MHz", fs);
+}
+
+inline uint32_t read_c0_count()
+{
+	uint32_t ret;
+	__asm__ __volatile__(
+	"		.set mips64r2			\n"
+	"		rdhwr	%0, $2			\n"
+	"		.set mips0			\n"
+	: "=r"(ret));
+	
+	return ret;
+}
+
+
+inline void __loop_delay(unsigned int loops)
+{
+	__asm__ __volatile__(
+	"		.set noreorder			\n"
+	"		.align 3			\n"
+	"1:		bnez	%0, 1b			\n"
+	"		addiu	%0, -1			\n"
+	"		.set reorder			\n"
+	: "=r"(loops)
+	: "0"(loops));
+}
+

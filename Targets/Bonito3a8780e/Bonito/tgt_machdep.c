@@ -991,7 +991,7 @@ tgt_machprint()
 {
 	printf("Copyright 2000-2002, Opsycon AB, Sweden.\n");
 	printf("Copyright 2005, ICT CAS.\n");
-	printf("CPU %s @", md_cpuname());
+	printf("CPU %s ", md_cpuname());
 } 
 
 /*
@@ -2292,7 +2292,6 @@ void print_mem_freq(void)
 {
 	int mem_ref_clock = 33; /* int Mhz */
 
-	printf("\n");
 	if ( mem_is_hw_bypassed()) { 
 		printf("hw bypassed! mem@ %dMhz\n", mem_ref_clock);
 		return;
@@ -2314,4 +2313,24 @@ struct board_devices *board_devices_info()
 	bd->num_resources = 10;
 
 	return bd;
+}
+
+void  print_cpu_info()
+{
+	int cycles1, cycles2;
+	int bogo;
+	int loops = 1 << 18;
+	int freq = tgt_pipefreq() / 1000000;
+
+	printf("Copyright 2000-2002, Opsycon AB, Sweden.\n");
+	printf("Copyright 2005, ICT CAS.\n");
+	printf("CPU %s ", md_cpuname());
+
+	cycles1 = (int)read_c0_count();
+	__loop_delay(loops);
+	cycles2 = (int)read_c0_count();
+
+	bogo = freq * loops / (cycles2 - cycles1);
+
+	printf("BogoMIPS: %d\n", bogo);
 }
