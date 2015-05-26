@@ -545,8 +545,8 @@ after_ht:
 #endif
 //#define DEBUG_AUTO_ARB_LEVEL
 #endif
-#define DEBUG_DDR
-#define DEBUG_DDR_PARAM
+//#define DEBUG_DDR
+//#define DEBUG_DDR_PARAM
 
 	TTYDBG("\r\nStart Init Memory, wait a while......\r\n")
 ####################################
