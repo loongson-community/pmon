@@ -4,6 +4,14 @@
 */
 
 	sync
+ 
+/* open L2 Xbar interleave for Scache	
+	dli     t1, 0x900000003ff00400
+	lw      a0, 0(t1)
+	ori     a0, 0x10
+	sw      a0, 0(t1)
+*/
+	
 
 	dli	t2, 0x900000003ff02000
 	dli	t1, 0x900000003ff02800
