@@ -2835,6 +2835,8 @@ void check_str()
 		superio_base = 0xbff00000;
 	}
 	w83627_write(0xa,0xe4,0x1<<4);//set superio for s3 mode
+	w83627_write(0xa,0xe0,(0x1<<6)|(0x1<<5)|0x1);//set superio to support wakeup by ps2 keyboard and mouse
+	w83627_write(0xa,0xe6,0x1<<7);
 
 	str_ra = cmos_read64(0x40);
 	str_sp = cmos_read64(0x48);
@@ -2856,6 +2858,9 @@ void check_str()
 	*((unsigned int *)0xbbd000a4) = 0;	
 
 	superio_reinit();
+	w83627_write(0xa,0xe4,0x1<<4);//set superio for s3 mode
+	w83627_write(0xa,0xe0,(0x1<<6)|(0x1<<5)|0x1);//set superio to support wakeup by ps2 keyboard and mouse
+	w83627_write(0xa,0xe6,0x1<<7);
 
 	printf("Start status S3....\n");
 	cmos_write64(0x0, 0x40);
