@@ -1177,10 +1177,10 @@ int usb_storage_probe(struct usb_device *dev, unsigned int ifnum,struct us_data 
 		  ss->ep_in, ss->ep_out, ss->ep_int);
 
 	/* Do some basic sanity checks, and bail if we find a problem */
-	if (usb_set_interface(dev, iface->bInterfaceNumber, 0) ||
+	if (/*usb_set_interface(dev, iface->bInterfaceNumber, 0) ||*/
 	    !ss->ep_in || !ss->ep_out ||
 	    (ss->protocol == US_PR_CBI && ss->ep_int == 0)) {
-		USB_STOR_PRINTF("Problems with device\n");
+		printf("Problems with device\n");
 		return 0;
 	}
 	/* set class specific stuff */
