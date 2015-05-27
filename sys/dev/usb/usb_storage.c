@@ -1001,6 +1001,8 @@ usb_stor_read(int device, unsigned long blknr, unsigned long blkcnt, unsigned lo
 			break;
 	}
 
+	if(blknr > usb_dev_desc[device].lba) return 0;
+
 	usb_disable_asynch(1); /* asynch transfer not allowed */
 	srb->lun=usb_dev_desc[device].lun;
 	buf_addr=(unsigned long)buffer;
