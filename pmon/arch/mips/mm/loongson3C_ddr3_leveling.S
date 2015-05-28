@@ -13,8 +13,8 @@ ddr3_leveling:
  
 	  move s5,ra
 
-#define CHANGE_RD_OE
-#ifdef CHANGE_RD_OE
+#define PM_DPD_FRE// change parameters depend on frequency
+#ifdef PM_DPD_FRE
 
 #for 3a8, different frequency will use different rd_oe_start/stop
 #frequency 500M, rd_oe_begin/end 0x03030202
@@ -38,7 +38,13 @@ ddr3_leveling:
     bgt     t1, t4, 3f
     nop
 
-    //<= 500M, add rd_oe_start/stop by 0x2 and sub tPHY_RDDATA by 0x1
+
+    //<= 500M, for udimm, add rd_oe_start/stop by 0x2 and sub tPHY_RDDATA by 0x1
+    //         for rdimm, only sub tPHY_RDDATA by 0x1
+    GET_DIMM_TYPE
+    bnez    a1, 4f //RDIMM
+    nop
+
 /* identify wheather there is ecc slice */
     li      t0, 0x8
     dli     t1, 0x250
@@ -65,6 +71,7 @@ ddr3_leveling:
     bnez    t0, 2b
     nop
 
+4: //FOR RDIMM
     ld      a0, 0x1c0(t8)
     dsubu   a0, a0, 0x1
     sd      a0, 0x1c0(t8)
@@ -3818,7 +3825,7 @@ wait_init_done3:
 
 #endif
 
-#ifdef CHANGE_RD_OE
+#ifdef PM_DPD_FRE
 //when rd_oe_start/stop is set to 0x2, the rddqs_lt_half should be reversed
 //because the rd_oe_start/stop only changed in this file, and all the rd_oe_start/stop change at the same time, here we only consider the rd_oe_start/stop of slice0
     lh      a0, 0x2c(t8)
