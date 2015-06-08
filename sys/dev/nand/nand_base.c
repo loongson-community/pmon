@@ -37,10 +37,12 @@
 #include <linux/errno.h>
 //#include <linux/sched.h>
 //#include <linux/slab.h>
+#include <linux/bitops.h>
 #include <linux/types.h>
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/nand.h>
 #include <linux/mtd/nand_ecc.h>
+#include <linux/mtd/nand_bch.h>
 #include <linux/mtd/compatmac.h>
 //#include <linux/interrupt.h>
 //#include <linux/bitops.h>
@@ -2330,6 +2332,7 @@ int nand_scan(struct mtd_info *mtd, int maxchips)
 	int i, busw, nand_maf_id;
 	struct nand_chip *chip = mtd->priv;
 	struct nand_flash_dev *type;
+	struct nand_ecc_ctrl *ecc = &chip->ecc;
 
 	/* Many callers got this wrong, so check for it for a while... */
 #if 0
@@ -2376,7 +2379,7 @@ int nand_scan(struct mtd_info *mtd, int maxchips)
 	/*
 	 * If no default placement scheme is given, select an appropriate one
 	 */
-	if (!chip->ecc.layout) {
+	if (!ecc->layout && (ecc->mode != NAND_ECC_SOFT_BCH)) {
 		switch (mtd->oobsize) {
 		case 8:
 			chip->ecc.layout = &nand_oob_8;
@@ -2443,6 +2446,41 @@ int nand_scan(struct mtd_info *mtd, int maxchips)
 		chip->ecc.write_oob = nand_write_oob_std;
 		chip->ecc.size = 256;
 		chip->ecc.bytes = 3;
+		break;
+
+	case NAND_ECC_SOFT_BCH:
+		if (!mtd_nand_has_bch()) {
+			printf("nand_bh not enabled\n");
+			BUG();
+		}
+		ecc->calculate = nand_bch_calculate_ecc;
+		ecc->correct = nand_bch_correct_data;
+		ecc->read_page = nand_read_page_swecc;
+		//ecc->read_subpage = nand_read_subpage;
+		ecc->write_page = nand_write_page_swecc;
+		//ecc->read_page_raw = nand_read_page_raw;
+		//ecc->write_page_raw = nand_write_page_raw;
+		ecc->read_oob = nand_read_oob_std;
+		ecc->write_oob = nand_write_oob_std;
+		/*
+		 * Board driver should supply ecc.size and ecc.strength values
+		 * to select how many bits are correctable. Otherwise, default
+		 * to 4 bits for large page devices.
+		 */
+		if (!ecc->size && (mtd->oobsize >= 64)) {
+			ecc->size = 512;
+			ecc->strength = 4;
+		}
+
+		/* See nand_bch_init() for details. */
+		ecc->bytes = DIV_ROUND_UP(
+				ecc->strength * fls(8 * ecc->size), 8);
+		ecc->priv = nand_bch_init(mtd, ecc->size, ecc->bytes,
+					       &ecc->layout);
+		if (!ecc->priv) {
+			printf("BCH ECC initialization failed!\n");
+			BUG();
+		}
 		break;
 
 	case NAND_ECC_NONE:
@@ -2527,6 +2565,9 @@ int nand_scan(struct mtd_info *mtd, int maxchips)
 void nand_release(struct mtd_info *mtd)
 {
 	struct nand_chip *chip = mtd->priv;
+
+	if (chip->ecc.mode == NAND_ECC_SOFT_BCH)
+		nand_bch_free((struct nand_bch_control *)chip->ecc.priv);
 
 #ifdef CONFIG_MTD_PARTITIONS
 	/* Deregister partitions */

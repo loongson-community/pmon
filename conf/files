@@ -438,6 +438,7 @@ file sys/dev/usb/usbnet.c	 usbnet needs-flag
 
 #file sys/dev/nand/yaf-nand/nand_util.c      nand      #lxy
 
+file sys/dev/nand/nand_bch.c	  nand_bch needs-flag
 device loopdev
 attach loopdev at mainbus
 file    pmon/dev/loopdev.c loopdev needs-flag

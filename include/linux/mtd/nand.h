@@ -115,6 +115,7 @@ typedef enum {
 	NAND_ECC_SOFT,
 	NAND_ECC_HW,
 	NAND_ECC_HW_SYNDROME,
+	NAND_ECC_SOFT_BCH,
 } nand_ecc_modes_t;
 
 /*
@@ -239,9 +240,11 @@ struct nand_ecc_ctrl {
 	int			size;
 	int			bytes;
 	int			total;
+	int strength;
 	int			prepad;
 	int			postpad;
 	struct nand_ecclayout	*layout;
+	void *priv;
 	void			(*hwctl)(struct mtd_info *mtd, int mode);
 	int			(*calculate)(struct mtd_info *mtd,
 					     const uint8_t *dat,
