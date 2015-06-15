@@ -53,6 +53,7 @@
 #include <sys/malloc.h>
 #include <machine/bus.h>
 #include <include/pmon_target.h>
+#include <stdbool.h>
 
 #include "pcivar.h"
 #include "pcireg.h"
@@ -84,6 +85,10 @@ pcireg_t _pci_allocate_mem __P((struct pci_device *, vm_size_t));
 pcireg_t _pci_allocate_io __P((struct pci_device *, vm_size_t));
 static void _setup_pcibuses(int );
 static void _pci_bus_insert(struct pci_bus *);
+
+#ifdef PCIE_GRAPHIC_CARD
+bool is_pcie_vga_card();
+#endif
 
 #ifndef MIN
 #define MIN(a,b)	((a) < (b) ? (a) : (b))
@@ -880,6 +885,28 @@ _pci_setup_windows (struct pci_device *dev)
         }
     }
 }
+
+#ifdef PCIE_GRAPHIC_CARD
+bool is_pcie_vga_card()
+{
+	int ret = 0;
+	/*
+	tag = _pci_make_tag(bus, dev, fun);
+	value = _pci_conf_read(tag, reg);
+	*/
+	pcitag_t tag;
+	unsigned int value;
+	tag = _pci_make_tag(1, 0, 0);
+	value = _pci_conf_read(tag, 0x08);
+
+	// printf("((((((((((((((( Class_Code=0X%02X))))))))))))))))\n", PCI_CLASS_CODE(value));
+	if( (PCI_CLASS_CODE(value) == 0x03) ) // Display Controllers
+		ret = 1;
+	printf("Is independent_vga_card=%s\n", ( (ret)? "Yes" : "No") );
+
+	return ret;
+}
+#endif
 
 /*
  * Calculate interrupt routing for a device

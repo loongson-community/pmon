@@ -287,7 +287,11 @@ CARD8 x_inb(CARD16 port)
 		stack_trace(Int10Current);
 #endif				/* __NOT_YET__ */
 	} else {
+#ifdef PCIE_GRAPHIC_CARD
+		val = pci_linux_inb(port);
+#else
 		val = linux_inb(port);
+#endif
 		if (port == 0x61) {
 			static int sw = 0;
 			delay(5);
@@ -313,7 +317,11 @@ CARD16 x_inw(CARD16 port)
 		 *      TODO: need complete!
 		 */
 	} else {
+#ifdef PCIE_GRAPHIC_CARD
+		val = pci_linux_inw(port);
+#else
 		val = linux_inw(port);
+#endif
 	}
 #ifdef PRINT_PORT
 	  printf(" inw(%#x) = %4.4x\n", port, val);
@@ -358,11 +366,19 @@ void x_outw(CARD16 port, CARD16 val)
 		printf("outw (%#x, %4.4x)\n", port, val);
 #endif
 #ifndef VGA_LYNX_0712
+#ifdef PCIE_GRAPHIC_CARD
+	pci_linux_outw(val, port);
+#else
 	linux_outw(val, port);
+#endif
 #else
 	if (port == 0xd9c7) {
 	} else {
+#ifdef PCIE_GRAPHIC_CARD
+		pci_linux_outw(val, port);
+#else
 		linux_outw(val, port);
+#endif
 	}
 #endif
 }
@@ -374,7 +390,11 @@ CARD32 x_inl(CARD16 port)
 #if !defined(_PC) && !defined(_PC_PCI)
 	if (!pciCfg1in(port, &val, PCI_DWORD))
 #endif
+#ifdef PCIE_GRAPHIC_CARD
+		val = pci_linux_inl(port);
+#else
 		val = linux_inl(port);
+#endif
 
 #ifdef PRINT_PORT
 	if (port != 0xcf8 && port != 0xcfc)
@@ -393,7 +413,11 @@ void x_outl(CARD16 port, CARD32 val)
 #if !defined(_PC) && !defined(_PC_PCI)
 	if (!pciCfg1out(port, val, PCI_DWORD))
 #endif
+#ifdef PCIE_GRAPHIC_CARD
+		pci_linux_outl(val, port);
+#else
 		linux_outl(val, port);
+#endif
 }
 
 CARD8 Mem_rb(int addr)
@@ -549,6 +573,16 @@ CARD8 bios_checksum(CARD8 * start, int size)
  */
 void LockLegacyVGA(int screenIndex, legacyVGAPtr vga)
 {
+#ifdef PCIE_GRAPHIC_CARD
+	vga->save_msr = pci_linux_inb(0x3CC);
+	vga->save_vse = pci_linux_inb(0x3C3);
+	vga->save_46e8 = pci_linux_inb(0x46e8);
+	vga->save_pos102 = pci_linux_inb(0x102);
+	pci_linux_outb(~(CARD8) 0x03 & vga->save_msr, 0x3C2);
+	pci_linux_outb(~(CARD8) 0x01 & vga->save_vse, 0x3C3);
+	pci_linux_outb(~(CARD8) 0x08 & vga->save_46e8, 0x4e68);
+	pci_linux_outb(~(CARD8) 0x01 & vga->save_pos102, 0x102);
+#else
 	vga->save_msr = linux_inb(0x3CC);
 	vga->save_vse = linux_inb(0x3C3);
 	vga->save_46e8 = linux_inb(0x46e8);
@@ -557,12 +591,20 @@ void LockLegacyVGA(int screenIndex, legacyVGAPtr vga)
 	linux_outb(~(CARD8) 0x01 & vga->save_vse, 0x3C3);
 	linux_outb(~(CARD8) 0x08 & vga->save_46e8, 0x4e68);
 	linux_outb(~(CARD8) 0x01 & vga->save_pos102, 0x102);
+#endif
 }
 
 void UnlockLegacyVGA(int screenIndex, legacyVGAPtr vga)
 {
+#ifdef PCIE_GRAPHIC_CARD
+	pci_linux_outb(vga->save_pos102, 0x102);
+	pci_linux_outb(vga->save_46e8, 0x46e8);
+	pci_linux_outb(vga->save_vse, 0x3C3);
+	pci_linux_outb(vga->save_msr, 0x3C2);
+#else
 	linux_outb(vga->save_pos102, 0x102);
 	linux_outb(vga->save_46e8, 0x46e8);
 	linux_outb(vga->save_vse, 0x3C3);
 	linux_outb(vga->save_msr, 0x3C2);
+#endif
 }

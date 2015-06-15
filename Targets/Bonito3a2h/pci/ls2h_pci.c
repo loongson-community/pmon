@@ -1,5 +1,6 @@
 #include <linux/types.h>
 #include <types.h>
+#include <stdbool.h>
 #include "Targets/Bonito3a2h/include/bonito.h"
 #include "ls2h.h"
 #include "ls2h_int.h"
@@ -42,6 +43,9 @@
 
 #define CKSEG1ADDR(x) (x|0xa0000000)
 
+#ifdef PCIE_GRAPHIC_CARD
+extern bool is_pcie_vga_card();
+#endif
 typedef u_int32_t pcireg_t;		/* configuration space register XXX */
 typedef unsigned long device_t;
 
@@ -457,7 +461,11 @@ int ls2h_pcibios_init(void)
 
 	ls2h_pcie_port_init(0);
 
+#ifdef PCIE_GRAPHIC_CARD
+	if ( is_x4_mode() || is_pcie_vga_card() )
+#else
 	if (is_x4_mode())
+#endif
 	{
 		tgt_printf(" x4 mode\n");
 		return 0;

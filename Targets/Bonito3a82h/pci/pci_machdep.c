@@ -36,6 +36,7 @@
 #include <sys/systm.h>
 
 #include <sys/malloc.h>
+#include <stdbool.h>
 
 #include <dev/pci/pcivar.h>
 #include <dev/pci/pcireg.h>
@@ -46,6 +47,10 @@
 #include "include/bonito.h"
 
 #include <pmon.h>
+
+#ifdef PCIE_GRAPHIC_CARD
+extern bool is_pcie_vga_card();
+#endif
 
 extern void *pmalloc __P((size_t ));
 #if  (PCI_IDSEL_CS5536 != 0)
@@ -97,7 +102,11 @@ _pci_hwinit(initialise, iot, memt)
 	/*
 	 * PCI Bus 0
 	 */
+#ifdef PCIE_GRAPHIC_CARD
+	if ( is_x4_mode() || is_pcie_vga_card() )
+#else
 	if (is_x4_mode())
+#endif
 		k = 1;
 	else
 		k = 4;
@@ -131,13 +140,27 @@ _pci_hwinit(initialise, iot, memt)
 			_pci_head->next->next->next = pd;
 		}
 	#ifdef LS3_HT /* whd */
+
 		if (i == 0) {
-			pb->minpcimemaddr  = 0x10000000;
-			pb->nextpcimemaddr = 0x12000000;
-			pb->minpciioaddr   = 0x18100000;
-			pb->nextpciioaddr  = 0x18110000;
-			pb->pci_mem_base   = 0x10000000;
-			pb->pci_io_base    = 0x18100000;
+#ifdef PCIE_GRAPHIC_CARD
+			if( is_pcie_vga_card() ) {
+				pb->minpcimemaddr  = BONITO_PCILO0_BASE; // 0x4000_0000
+				pb->nextpcimemaddr = BONITO_PCILO0_BASE+BONITO_PCILO_SIZE; // 0x4000_0000 + 0x4000_0000
+				pb->minpciioaddr   = PCI_IO_SPACE_BASE+0x0004000;
+				pb->nextpciioaddr  = PCI_IO_SPACE_BASE+ BONITO_PCIIO_SIZE; // 0 + 0x0200_0000
+				pb->pci_mem_base   = BONITO_PCILO_BASE_VA;
+				pb->pci_io_base    = BONITO_PCIIO_BASE_VA;
+			} else {
+#endif
+				pb->minpcimemaddr  = 0x10000000;
+				pb->nextpcimemaddr = 0x12000000;
+				pb->minpciioaddr   = 0x18100000;
+				pb->nextpciioaddr  = 0x18110000;
+				pb->pci_mem_base   = 0x10000000;
+				pb->pci_io_base    = 0x18100000;
+#ifdef PCIE_GRAPHIC_CARD
+			}
+#endif
 		} else if (i == 1){
 			pb->minpcimemaddr  = 0x12000000;
 			pb->nextpcimemaddr = 0x14000000;
@@ -195,6 +218,7 @@ _pci_hwinit(initialise, iot, memt)
 		pb->prefetch = 1;
 		pb->bandwidth = 4000000;
 		pb->ndev = 1;
+
 		if (i == 0)
 			_pci_bushead = pb;
 		else if (i == 1)
@@ -215,7 +239,11 @@ _pci_hwinit(initialise, iot, memt)
 		BONITO_PCIBASE0 = 0x80000000;
 #endif
 	}
+#ifdef PCIE_GRAPHIC_CARD
+	if ( is_x4_mode() || is_pcie_vga_card() )
+#else
 	if (is_x4_mode())
+#endif
 		return(1);
 	else
 		return(7);

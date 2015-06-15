@@ -41,6 +41,8 @@ option		INTERFACE_3A780E    # option for bios memu
 option 		LOONGSON_3A2H
 option		BOOT_PARAM
 
+option 		PCIE_GRAPHIC_CARD
+
 #
 # Uart serial baud rate selection
 #
@@ -61,7 +63,8 @@ option      DHCP_3A780E
 #option     DHCP_3ASERVER
 option      USE_780E_VGA
 option      VGA_NO_ROM
-option		VGA_BASE=0xbe000000
+#option		VGA_BASE=0xbe000000
+option		VGA_BASE=0xc0000000 #mj
 option      VRAM_SIZE=128
 #option		VESAFB
 #option		DEBUG_EMU_VGA
@@ -69,8 +72,10 @@ option      VRAM_SIZE=128
 
 #select		mod_x86emu		# X86 emulation for VGA
 #select		mod_x86emu_int10
+select		mod_x86emu_int10
 select      mod_framebuffer
 #select		mod_vesa
+select		mod_vesa
 select		mod_vgacon
 #############
 select		mod_flash_amd		# AMD flash device programming

@@ -99,7 +99,7 @@ static int int15_handler(xf86Int10InfoPtr pInt)
 		printf("----M.x86.R.Ax:%x---------int15(0x%x) called witch CX(0x%x).\n", M.x86.R_AX,M.x86.R_BL, M.x86.R_CX);
 #endif
 
-#if    defined(RS690) || defined(RS780E)
+#if    defined(RS690) || defined(RS780E) || defined(PCIE_GRAPHIC_CARD)
 		{
 			switch(M.x86.R_BL) {
 				case 0x00 :		// get panel ID
@@ -335,14 +335,28 @@ static int int42_handler(xf86Int10InfoPtr pInt)
 			MEM_WB(pInt, 0x0484, (25 - 1));
 
 			/* Programme the mode */
+#ifdef PCIE_GRAPHIC_CARD
+			pci_linux_outb(cgamode & 0x37, ioport + 4);	/* Turn off screen */
+#else
 			linux_outb(cgamode & 0x37, ioport + 4);	/* Turn off screen */
+#endif
 			for (i = 0; i < 0x10; i++) {
 				tmp = MEM_RB(pInt, regvals + i);
+#ifdef PCIE_GRAPHIC_CARD
+				pci_linux_outb(i, ioport);
+				pci_linux_outb(tmp, ioport + 1);
+#else
 				linux_outb(i, ioport);
 				linux_outb(tmp, ioport + 1);
+#endif
 			}
+#ifdef PCIE_GRAPHIC_CARD
+			pci_linux_outb(cgacolour, ioport + 5);	/* Select colour mode */
+			pci_linux_outb(cgamode, ioport + 4);	/* Turn on screen */
+#else
 			linux_outb(cgacolour, ioport + 5);	/* Select colour mode */
 			linux_outb(cgamode, ioport + 4);	/* Turn on screen */
+#endif
 		}
 		break;
 
@@ -358,10 +372,17 @@ static int int42_handler(xf86Int10InfoPtr pInt)
 			MEM_WB(pInt, 0x0460, X86_CL);
 			MEM_WB(pInt, 0x0461, X86_CH);
 
+#ifdef PCIE_GRAPHIC_CARD
+			pci_linux_outb(0x0A, ioport);
+			pci_linux_outb(X86_CH, ioport + 1);
+			pci_linux_outb(0x0B, ioport);
+			pci_linux_outb(X86_CL, ioport + 1);
+#else
 			linux_outb(0x0A, ioport);
 			linux_outb(X86_CH, ioport + 1);
 			linux_outb(0x0B, ioport);
 			linux_outb(X86_CL, ioport + 1);
+#endif
 		}
 		break;
 
@@ -385,10 +406,17 @@ static int int42_handler(xf86Int10InfoPtr pInt)
 			offset += MEM_RW(pInt, 0x044E) << 1;
 
 			ioport = MEM_RW(pInt, 0x0463);
+#ifdef PCIE_GRAPHIC_CARD
+			pci_linux_outb(0x0E, ioport);
+			pci_linux_outb(offset >> 8, ioport + 1);
+			pci_linux_outb(0x0F, ioport);
+			pci_linux_outb(offset & 0xFF, ioport + 1);
+#else
 			linux_outb(0x0E, ioport);
 			linux_outb(offset >> 8, ioport + 1);
 			linux_outb(0x0F, ioport);
 			linux_outb(offset & 0xFF, ioport + 1);
+#endif
 		}
 		break;
 
@@ -445,10 +473,17 @@ static int int42_handler(xf86Int10InfoPtr pInt)
 			start <<= 1;
 
 			/* Update start address */
+#ifdef PCIE_GRAPHIC_CARD
+			pci_linux_outb(0x0C, ioport);
+			pci_linux_outb(start >> 8, ioport + 1);
+			pci_linux_outb(0x0D, ioport);
+			pci_linux_outb(start & 0xFF, ioport + 1);
+#else
 			linux_outb(0x0C, ioport);
 			linux_outb(start >> 8, ioport + 1);
 			linux_outb(0x0D, ioport);
 			linux_outb(start & 0xFF, ioport + 1);
+#endif
 
 			/* Switch cursor position */
 			y = MEM_RB(pInt, (X86_AL << 1) + 0x0450);
@@ -456,10 +491,17 @@ static int int42_handler(xf86Int10InfoPtr pInt)
 			start += (y * MEM_RW(pInt, 0x044A)) + x;
 
 			/* Update cursor position */
+#ifdef PCIE_GRAPHIC_CARD
+			pci_linux_outb(0x0E, ioport);
+			pci_linux_outb(start >> 8, ioport + 1);
+			pci_linux_outb(0x0F, ioport);
+			pci_linux_outb(start & 0xFF, ioport + 1);
+#else
 			linux_outb(0x0E, ioport);
 			linux_outb(start >> 8, ioport + 1);
 			linux_outb(0x0F, ioport);
 			linux_outb(start & 0xFF, ioport + 1);
+#endif
 		}
 		break;
 
@@ -595,7 +637,11 @@ static int int42_handler(xf86Int10InfoPtr pInt)
 			}
 
 			MEM_WB(pInt, 0x0466, cgacolour);
+#ifdef PCIE_GRAPHIC_CARD
+			pci_linux_outb(cgacolour, ioport);
+#else
 			linux_outb(cgacolour, ioport);
+#endif
 		}
 		break;
 

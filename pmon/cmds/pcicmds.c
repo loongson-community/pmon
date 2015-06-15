@@ -48,6 +48,7 @@
 #else
 #include <sys/ioctl.h>
 #endif
+#include <stdbool.h>
 
 #include <machine/cpu.h>
 #include <machine/bus.h>
@@ -60,6 +61,9 @@
 /*
  * Prototypes
  */
+#ifdef PCIE_GRAPHIC_CARD
+extern bool is_pcie_vga_card();
+#endif
 static int pci_query_dev (pcireg_t tag);
 static int pci_query_bar (pcireg_t tag, pcireg_t index);
 
@@ -233,7 +237,11 @@ extern char *optarg;
 		}
 	}
 #ifdef LOONGSON_3A2H
+#ifdef PCIE_GRAPHIC_CARD
+	if (is_x4_mode() || is_pcie_vga_card()) {
+#else
 	if (is_x4_mode()) {
+#endif
 		printf("Is x4 mode!\n");
 		maxbus = 1;
 	} else if (ac == 2) {

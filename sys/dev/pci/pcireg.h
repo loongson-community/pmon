@@ -58,6 +58,13 @@ typedef u_int16_t pci_product_id_t;
 #define	PCI_PRODUCT(id) \
 	    (((id) >> PCI_PRODUCT_SHIFT) & PCI_PRODUCT_MASK)
 
+#ifdef PCIE_GRAPHIC_CARD
+#define PCI_CLASS_CODE_SHIFT           24
+#define PCI_CLASS_CODE_MASK            0xff
+#define PCI_CLASS_CODE(cl) \
+        (((cl) >> PCI_CLASS_CODE_SHIFT) & PCI_CLASS_CODE_MASK)
+#endif
+
 /*
  * Command and status register.
  */

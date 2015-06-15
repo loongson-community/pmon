@@ -46,6 +46,8 @@ option		INTERFACE_3A780E    # option for bios memu
 option 		LOONGSON_3A2H
 option		BOOT_PARAM
 
+option 		PCIE_GRAPHIC_CARD
+
 #
 # Uart serial baud rate selection
 #
@@ -74,8 +76,10 @@ option      VRAM_SIZE=128
 
 #select		mod_x86emu		# X86 emulation for VGA
 #select		mod_x86emu_int10
+select		mod_x86emu_int10
 select      mod_framebuffer
 #select		mod_vesa
+select		mod_vesa
 select		mod_vgacon
 #############
 select		mod_flash_amd		# AMD flash device programming
@@ -180,8 +184,8 @@ pcibr2		at mainbus0 #For the port1 device register
 pcibr4		at mainbus0 #For the port2 device register
 pcibr6		at mainbus0 #For the port3 device register
 pci*		at pcibr?
-#ppb*		at pci? dev ? function ?	# PCI-PCI bridges
-#pci*		at ppb? bus ?
+ppb*		at pci? dev ? function ?	# PCI-PCI bridges
+pci*		at ppb? bus ?
 
 
 #### SCSI support
@@ -197,6 +201,7 @@ pci*		at pcibr?
 # fxp normally only used for debugging (enable/disable both)
 #fxp0        at pci? dev ? function ?        # Intel 82559 Device
 #inphy*      at mii? phy ?                   # Intel 82555 PHYs
+igb*		at pci? dev ? function ?	# Intel 82576
 # rtl*        at pci? dev ? function ?
 #rte*		at pci? dev ? function ?
 #rtk*		at pci? dev ? function ?

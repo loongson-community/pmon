@@ -88,56 +88,110 @@ static unsigned char regs[60] = {
 
 static void outseq(int index, unsigned char val)
 {
+#ifdef PCIE_GRAPHIC_CARD
+	pci_linux_outb(index, 0x3c4);
+	pci_linux_outb(val, 0x3c5);
+#else
 	linux_outb(index, 0x3c4);
 	linux_outb(val, 0x3c5);
+#endif
 }
 static unsigned char inseq(unsigned char index)
 {
+#ifdef PCIE_GRAPHIC_CARD
+	pci_linux_outb(index, 0x3c4);
+	return pci_linux_inb(0x3c5);
+#else
 	linux_outb(index, 0x3c4);
 	return linux_inb(0x3c5);
+#endif
 }
 
 static void outcrtc(int index, unsigned char val)
 {
+#ifdef PCIE_GRAPHIC_CARD
+	pci_linux_outb(index, 0x3d4);
+	pci_linux_outb(val, 0x3d5);
+#else
 	linux_outb(index, 0x3d4);
 	linux_outb(val, 0x3d5);
+#endif
 }
 
 static unsigned char incrtc(int index)
 {
+#ifdef PCIE_GRAPHIC_CARD
+	pci_linux_outb(index, 0x3d4);
+	return pci_linux_inb(0x3d5);
+#else
 	linux_outb(index, 0x3d4);
 	return linux_inb(0x3d5);
+#endif
 }
 
 static void outgra(int index, unsigned char val)
 {
+#ifdef PCIE_GRAPHIC_CARD
+	pci_linux_outb(index, 0x3ce);
+	pci_linux_outb(val, 0x3cf);
+#else
 	linux_outb(index, 0x3ce);
 	linux_outb(val, 0x3cf);
+#endif
 }
 
 static unsigned char ingra(int index)
 {
+#ifdef PCIE_GRAPHIC_CARD
+	pci_linux_outb(index, 0x3ce);
+	return pci_linux_inb(0x3cf);
+#else
 	linux_outb(index, 0x3ce);
 	return linux_inb(0x3cf);
+#endif
 }
 
 static void outatt(int index, unsigned char val)
 {
+#ifdef PCIE_GRAPHIC_CARD
+	pci_linux_inb(0x3da);
+#else
 	linux_inb(0x3da);
+#endif
 	vgadelay();
+#ifdef PCIE_GRAPHIC_CARD
+	pci_linux_outb(index, 0x3c0);
+#else
 	linux_outb(index, 0x3c0);
+#endif
 	vgadelay();
+#ifdef PCIE_GRAPHIC_CARD
+	pci_linux_outb(val, 0x3c0);
+#else
 	linux_outb(val, 0x3c0);
+#endif
 	vgadelay();
 }
 
 static unsigned char inatt(int index)
 {
+#ifdef PCIE_GRAPHIC_CARD
+	pci_linux_inb(0x3da);
+#else
 	linux_inb(0x3da);
+#endif
 	vgadelay();
+#ifdef PCIE_GRAPHIC_CARD
+	pci_linux_outb(index, 0x3c0);
+#else
 	linux_outb(index, 0x3c0);
+#endif
 	vgadelay();
+#ifdef PCIE_GRAPHIC_CARD
+	return pci_linux_inb(0x3c1);
+#else
 	return linux_inb(0x3c1);
+#endif
 }
 
 static void setregs(const unsigned char *regs)
@@ -146,7 +200,11 @@ static void setregs(const unsigned char *regs)
 	unsigned char val;
 
 	// misc	
+#ifdef PCIE_GRAPHIC_CARD
+	pci_linux_outb(regs[MIS], 0x3c2);
+#else
 	linux_outb(regs[MIS], 0x3c2);
+#endif
 
 	// seq
 	outseq(0x0, 0x1);
@@ -177,13 +235,25 @@ static void setregs(const unsigned char *regs)
 		outatt(i, regs[ATT + i]);
 	}
 	outseq(0x01, regs[SEQ + 1] & 0xDF);
+#ifdef PCIE_GRAPHIC_CARD
+	pci_linux_inb(0x3da);
+#else
 	linux_inb(0x3da);
+#endif
 	vgadelay();
+#ifdef PCIE_GRAPHIC_CARD
+	pci_linux_outb(0x20, 0x3c0);
+#else
 	linux_outb(0x20, 0x3c0);
+#endif
 
 	// misc readback
 	vgadelay();
+#ifdef PCIE_GRAPHIC_CARD
+	pci_linux_outb(0x67, 0x3c2);
+#else
 	linux_outb(0x67, 0x3c2);
+#endif
 
 }
 extern struct pci_device *vga_dev,*pcie_dev;
@@ -217,9 +287,16 @@ int vga_bios_init(void)
 	memset(pInt->private, 0, sizeof(genericInt10Priv));
 	pInt->scrnIndex = 0;	/* screen */
 	base = INTPriv(pInt)->base = malloc(0x100000);
+#ifdef PCIE_GRAPHIC_CARD
+	INTPriv(pInt)->base = base;
+#endif
     //base = INTPriv(pInt)->base = 0x80000000+memorysize-0x100000;
-#if     defined(RS690) || defined(RS780E)
+#if defined(RS690) || defined(RS780E) || defined(PCIE_GRAPHIC_CARD)
 	{
+#ifdef PCIE_GRAPHIC_CARD
+               if(pcie_dev != NULL)
+                  vga_bridge = _pci_make_tag(1, 0, 0);
+#else
 		if(pcie_dev != NULL)
 		   vga_bridge = _pci_make_tag(0, 2, 0);
 		
@@ -227,6 +304,8 @@ int vga_bios_init(void)
 		   vga_bridge = _pci_make_tag(0, 1, 0);
 #if defined(USE_BMC)
            vga_bridge = _pci_make_tag(0, 6, 0); /* BMC VGA */
+#endif
+
 #endif
 		/* enable VGA legacy space decode */
 		val = _pci_conf_read(vga_bridge, 0x3c);
@@ -299,7 +378,11 @@ int vga_bios_init(void)
 		_pci_conf_write(pdev->pa.pa_tag, 0x30, romaddress | 1);
 
 		if(pcie_dev != NULL){
+#ifdef PCIE_GRAPHIC_CARD
+			romaddress = (romaddress | 0xc0000000) & 0xfffffff0;
+#else
 			romaddress = romaddress | 0x80000000 & 0xfffffff0;
+#endif
 		}
 		if(vga_dev != NULL)
 #if defined(RADEON7000) || defined(RS690) || defined(VESAFB) || defined(RS780E)

@@ -584,6 +584,15 @@ buffer_check_out:
     dli     t3, 0x0000ffe0
     sw      t3, 0xf4(t2)
 
+#ifdef PCIE_GRAPHIC_CARD
+    // for pcie graphic card
+    TTYDBG("Set some space in 2H HT receive space UNCACHED: 0x0000000000~0x7fffffffff\r\n")
+    dli     t2, 0x90000efdfe000000
+    dli     t3, 0x80000000
+    sw      t3, 0xf8(t2)
+    dli     t3, 0x5000f000
+    sw      t3, 0xfc(t2)
+#endif
 #endif
 
 #if 1//Enable 2H DMA cached address
@@ -1321,7 +1330,12 @@ crc_checking:
        set_L1_mas6(2, 0x0000002080000000, 0xffffffffc0000000, 0x00000001400000f6)
        set_L1_mas6(3, 0x0000003080000000, 0xffffffffc0000000, 0x00000001800000f6)
        set_L1_mas6(4, 0x0000004080000000, 0xffffffffc0000000, 0x00000001c00000f6)
+#ifdef PCIE_GRAPHIC_CARD
+       // pcie graphic card
+       set_L1_mas6(5, 0x0000005000000000, 0xffffffffc0000000, 0x00000000400000f0) # others, all to L2$ // mj
+#else
        set_L1_mas6(5, 0x000000f080000000, 0xffffffffff000000, 0x000000fdf80000f6) # to ht int
+#endif
        set_L1_mas6(6, 0x0000000040000000, 0xffffffffc0000000, 0x00000000000000f0) # gpu dma 0x4... -> 0x0...
 #else
 	set_L1_mas6(6, 0x0000000000000000, 0x0000000000000000, 0x00000000000000f0) # others, all to L2$

@@ -54,6 +54,7 @@
 #include <machine/limits.h>
 /* Extra stuff from Matthias Drochner <drochner@zelux6.zel.kfa-juelich.de> */
 #include <sys/queue.h>
+#include <stdbool.h>
 
 /* Bleh!  Need device_register proto */
 #if defined(__alpha__) || defined(hp300)
@@ -395,6 +396,9 @@ number(ep, n)
 /*
  * Attach a found device.  Allocates memory for device variables.
  */
+#ifdef PCIE_GRAPHIC_CARD
+extern bool is_pcie_vga_card();
+#endif
 struct device *
 config_attach(parent, match, aux, print)
 	register struct device *parent;
@@ -415,7 +419,11 @@ config_attach(parent, match, aux, print)
 		cf = match;
 		dev = config_make_softc(parent, cf);
 #ifdef LOONGSON_3A2H
+#ifdef PCIE_GRAPHIC_CARD
+		if ((strcmp(dev->dv_xname,"pcibr2") == 0) && (is_x4_mode() || is_pcie_vga_card()) )
+#else
 		if ((strcmp(dev->dv_xname,"pcibr2") == 0) && is_x4_mode())
+#endif
 			return NULL;
 #endif
 	}

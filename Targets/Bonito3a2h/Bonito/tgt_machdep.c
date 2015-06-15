@@ -37,6 +37,7 @@
 #include <include/string.h>
 #include <include/file.h>
 #include <include/termio.h>
+#include <stdbool.h>
 #include "target/sbd.h"
 
 #include "../../../pmon/cmds/cmd_main/window.h"
@@ -628,6 +629,9 @@ extern unsigned long long uma_memory_size;
 extern u64 __raw__readq(u64 q);
 extern u64 __raw__writeq(u64 addr, u64 val);
 u64 ver_val;
+#ifdef PCIE_GRAPHIC_CARD
+extern bool is_pcie_vga_card();
+#endif
 
 void
 tgt_devconfig()
@@ -681,8 +685,53 @@ tgt_devconfig()
 
 		_pci_devinit(1);	/* PCI device initialization */
 #if (NMOD_X86EMU_INT10 > 0)||(NMOD_X86EMU >0)
+#ifdef PCIE_GRAPHIC_CARD
+	if ( is_pcie_vga_card() ) {
+		SBD_DISPLAY("VGAI", 0);
+
+		// map 0x90000e50_00000000 --> 0x40000000
+		// 2h pci mem used
+		// 3a: 0x9000_0e50_0000_0000 ~ 0x9000_0e50_3fff_ffff
+		// 2h: 0x4000_0000 ~ 7fff_ffff
+		asm (".set mips3; \
+			dli $2, 0x900000003ff02000; \
+			dli $4, 0x900000003ff02700; \
+			1: \
+			dli $3, 0x000000001b000000 ; \
+			sd  $3, 0x0($2); \
+			dli $3, 0xffffffffff000000; \
+			sd  $3, 0x40($2); \
+			dli $3, 0x00000e001f0000f7; \
+			sd  $3, 0x80($2); \
+			dli $3, 0x0000000018000000; \
+			sd  $3, 0x08($2); \
+			dli $3, 0xffffffffff000000; \
+			sd  $3, 0x48($2); \
+			dli $3, 0x00000e00180000f7; \
+			sd  $3, 0x88($2); \
+			dli $3, 0x0000000010000000; \
+			sd  $3, 0x10($2); \
+			dli $3, 0xfffffffff8000000; \
+			sd  $3, 0x50($2); \
+			dli $3, 0x00000e00100000f7; \
+			sd  $3, 0x90($2); \
+			dli $3, 0x0000000040000000; \
+			sd  $3, 0x18($2); \
+			dli $3, 0xffffffffc0000000; \
+			sd  $3, 0x58($2); \
+			dli $3, 0x00000e50000000f7; \
+			sd  $3, 0x98($2); \
+			daddiu  $2, $2, 0x100 ; \
+			bne     $2, $4, 1b; \
+			nop; .set mips0" :::"$2", "$3", "$4");
+
+		rc = vga_bios_init();
+		printf("rc=%d\n", rc);
+	}
+#else
 	SBD_DISPLAY("VGAI", 0);
 	rc = vga_bios_init();
+#endif
 #endif
 #if defined(VESAFB)
 	SBD_DISPLAY("VESA", 0);
@@ -758,6 +807,12 @@ tgt_devconfig()
 #else
 		fbaddress = uma_memory_base | BONITO_PCILO_BASE_VA;
 #endif
+#endif
+
+#ifdef PCIE_GRAPHIC_CARD
+		if ( is_pcie_vga_card() ) {
+			fbaddress = 0xc0000000;
+		}
 #endif
 		printf("fbaddress = %08x\n", fbaddress);
 		fb_init(fbaddress, ioaddress);
@@ -875,6 +930,9 @@ extern void godson1_cache_flush(void);
 extern void cs5536_gpio_init(void);
 extern void test_gpio_function(void);
 extern void cs5536_pci_fixup(void);
+#ifdef PCIE_GRAPHIC_CARD
+extern int ls2h_pcibios_init(void);
+#endif
 
 #if PCI_IDSEL_SB700 != 0
 static int w83627_read(int dev,int addr)
