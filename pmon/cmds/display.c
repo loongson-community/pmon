@@ -303,6 +303,27 @@ static void cprintS(int y, int x,int width,char color, const char *text)
   if(l<width)for(i=0;i<width-l;i++)fwrite(&c,1,1,stdout);
 }
 
+static void cprintall(int y, int x,int width,char color, const char *text)
+{
+int saved_vga_available = vga_available;
+
+ vga_available = 0;
+
+ cprintS(y, x, width, color, text);
+
+ vga_available = saved_vga_available;
+#if NMOD_VGACON
+ {
+#if NMOD_FRAMEBUFFER
+ cprintfb(y, x, width, color, text);
+#else
+ cprint(y, x, width, color, text);
+#endif
+ }
+#endif
+
+}
+
 static void popupS(int y, int x,int height,int width)
 {
 	 fprintf(stdout,"\e[0m\e[2J");
