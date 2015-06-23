@@ -347,6 +347,7 @@ void tgt_devconfig(void)
 	char *tmp_copy = NULL;
 	char tmp_date[11];
 	char * s;
+        int saved_vga_available;
 #if NMOD_VGACON > 0
 	int rc=1;
 #if NMOD_FRAMEBUFFER > 0 
@@ -427,8 +428,8 @@ void tgt_devconfig(void)
 
 #if (NMOD_FRAMEBUFFER > 0) || (NMOD_VGACON > 0 )
 	if (rc > 0)
-		if(!getenv("novga")) vga_available=1;
-		else vga_available=0;
+		if(!getenv("novga")) saved_vga_available = vga_available=1;
+		else saved_vga_available = vga_available=0;
 #endif
 	config_init();
 	configure();
@@ -559,6 +560,7 @@ run:
 
 
 #endif
+	vga_available = saved_vga_available;
 	printf("devconfig done.\n");
 
 	sb700_interrupt_fixup();
