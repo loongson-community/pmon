@@ -1772,6 +1772,7 @@ static char irqbus0[] =
   [7] = 3,
   [9] = 1,
   [10] = 2,
+  [20] = 9, //inte
 }; 
 
 char irqroute[16];
@@ -1779,7 +1780,7 @@ char irqroute[16];
 char val4d0;
 char val4d1;
 
-static void pci_fix_device_interrpt(struct pci_device *pd, int bus0dev)
+static void pci_fix_device_interrpt(struct pci_device *pd, int bus0tag)
 {
 	pcitag_t tag;
 	int irq;
@@ -1790,7 +1791,7 @@ static void pci_fix_device_interrpt(struct pci_device *pd, int bus0dev)
 	if(pd->bridge.child)
 	{
 		for(pd = pd->bridge.child; pd; pd = pd->next) {
-			pci_fix_device_interrpt(pd, bus0dev);
+			pci_fix_device_interrpt(pd, bus0tag);
 		}
 	}
 	else
@@ -1801,6 +1802,8 @@ static void pci_fix_device_interrpt(struct pci_device *pd, int bus0dev)
 
 		if((pin=((icr>>8)&0xff)))
 		{
+			int bus0, bus0dev, bus0func;
+			_pci_break_tag(bus0tag, &bus0, &bus0dev, &bus0func);
 			irq = (irqbus0[bus0dev]+pin-1);
 			if(!irqroute[irq])
 			{
@@ -1846,10 +1849,9 @@ void sb700_interrupt_fixup1(void)
 	printf("_pci_head=%p,child=%p,next=%p\n",_pci_head,_pci_head->bridge.child, _pci_head->next);
 	for(i = 0, pd = _pci_head->bridge.child; pd; i++, pd = pd->next) {
 		tag = pd->pa.pa_tag;
-		_pci_break_tag(tag, &bus, &dev, &func);
 		if(pd->bridge.child)
 		{
-			pci_fix_device_interrpt(pd,dev);			
+			pci_fix_device_interrpt(pd,tag);			
 		}
 	}
 
