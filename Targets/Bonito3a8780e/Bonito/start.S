@@ -560,6 +560,7 @@ soft_out:
 #endif
 //#define DEBUG_AUTO_ARB_LEVEL
 #endif
+#define  DDR_ADDR_PIN_15
 //#define DEBUG_DDR
 //#define DEBUG_DDR_PARAM
 

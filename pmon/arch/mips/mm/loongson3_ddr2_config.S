@@ -181,51 +181,61 @@
 #endif
 
 #ifndef LSMCD3_2
+#ifdef  DDR_ADDR_PIN_15
 //hot fix for lack of address pin A15 when use LSMC. For example RS780E R1.03
     //check MC1 first
-    dsrl    t1, s1, 32
+    move    t1, s1  //store s1
+    dsrl    s1, s1, 32
+    GET_SDRAM_TYPE
+    beqz    a1, 1f
+    nop
     GET_ROW_SIZE
     bnez    a1, 1f  //row size diff not 0, do nothing
     nop
-    dli     t2, 0xff00
-    and     t2, t1, t2      //t2 store memsize
-
+    //set row_size diff to 1
     dli     a1, 1
     dsll    a1, a1, ROW_SIZE_OFFSET
-    or      t1, t1, a1
-    dsrl    t2, t2, 1       //half memsize
-    //use reduced(if needed) memsize
+    or      s1, s1, a1
+    //half memsize
+    dli     t2, 0xff00
+    and     t2, s1, t2      //t2 store memsize
+    dsrl    t2, t2, 1
     dli     a1, 0xffff00ff
-    and     t1, t1, a1
-    or      t1, t1, t2
-    //use modified infor for MC1
-    dli     a1, 0xffffffff
     and     s1, s1, a1
-    dsll    t1, t1, 32
-    or      s1, s1, t1
+    or      s1, s1, t2
 1:
+    //reconstruct s1
+    dli     a1, 0xffffffff
+    and     t1, t1, a1
+    dsll    s1, s1, 32
+    or      s1, s1, t1
+
     //check MC0
-    dli     a1, 0xffffffff
-    and     t1, s1, a1
+    move    t1, s1
+    dsll    s1, s1, 32
+    dsrl    s1, s1, 32
+    GET_SDRAM_TYPE
+    beqz    a1, 1f
+    nop
     GET_ROW_SIZE
     bnez    a1, 1f  //row size diff not 0, do nothing
     nop
-    dli     t2, 0xff00
-    and     t2, t1, t2      //t2 store memsize
-
+    //set row_size diff to 1
     dli     a1, 1
     dsll    a1, a1, ROW_SIZE_OFFSET
-    or      t1, t1, a1
-    dsrl    t2, t2, 1       //half memsize
-    //use reduced(if needed) memsize
+    or      s1, s1, a1
+    //half memsize
+    dli     t2, 0xff00
+    and     t2, s1, t2      //t2 store memsize
+    dsrl    t2, t2, 1
     dli     a1, 0xffff00ff
-    and     t1, t1, a1
-    or      t1, t1, t2
-    //use modified infor for MC0
-    dli     a1, 0xffffffff00000000
     and     s1, s1, a1
-    or      s1, s1, t1
+    or      s1, s1, t2
 1:
+    //reconstruct s1
+    dli     a1, 0xffffffff00000000
+    and     t1, t1, a1
+    or      s1, s1, t1
 #if 1
     /* show value of s1 */
     PRINTSTR("\r\nnew s1 = 0x");
@@ -237,6 +247,7 @@
     bal     hexserial
     nop
     PRINTSTR("\r\n")
+#endif
 #endif
 #endif
 
