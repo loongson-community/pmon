@@ -887,7 +887,7 @@ int cmd_setmac_em0(int ac, char *av[])
 {
         int i;
 		int n=0;
-        unsigned short v;
+        unsigned int v;
         struct net_device *nic = mynic_em ;
         struct e1000_adapter *adapter = (struct e1000_adapter *) (mynic_em->priv);
 
