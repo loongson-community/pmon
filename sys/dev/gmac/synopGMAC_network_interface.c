@@ -2300,6 +2300,69 @@ static int gmac_ether_ioctl(struct ifnet *ifp, unsigned long cmd, caddr_t data)
                 }
                 break;
 */
+	   case SIOCWRPHY:
+       case SIOCWREEPROM:
+                {
+                long *p=data;
+		int ac;
+		char **av;
+		int i;
+		int phybase;
+		unsigned data;
+		synopGMACdevice * gmacdev;
+		ac = p[0];
+		av = p[1];
+		gmacdev = (synopGMACdevice *)adapter->synopGMACdev;
+		phybase = gmacdev->PhyBase;
+	if(ac>1)
+	{
+	 //offset:data,data
+	 int i;
+	 int offset;
+	 int data;
+	 for(i=1;i<ac;i++)
+	 {
+	 	char *p=av[i];
+		char *nextp;
+	 	int offset=strtoul(p,&nextp,0);
+		while(*nextp && nextp!=p)
+		{
+		p=++nextp;
+		data=strtoul(p,&nextp,0);
+		if(nextp==p)break;
+		 synopGMAC_write_phy_reg(gmacdev->MacBase,phybase,offset, data);
+		}
+	 }
+	}
+		}
+                break;
+	   case	SIOCRDPHY:
+       case SIOCRDEEPROM:
+                {
+                long *p=data;
+		int ac;
+		char **av;
+                //myRTL = sc;
+                //cmd_reprom(p[0],p[1]);
+		int i;
+		int phybase;
+		unsigned data;
+		synopGMACdevice * gmacdev;
+		ac = p[0];
+		av = p[1];
+		gmacdev = (synopGMACdevice *)adapter->synopGMACdev;
+		if(ac<2)phybase = gmacdev->PhyBase;
+		else phybase = strtoul(av[1],0,0);
+		for(i=0;i<32;i++)
+		{
+		data = 0;
+		 synopGMAC_read_phy_reg(gmacdev->MacBase,phybase,i, &data);
+		if((i&0xf)==0)printf("\n%02x: ",i);
+		printf("%04x ",data);
+		}
+		printf("\n");
+                }
+                break;
 	default:
 		printf("===ioctl default\n");
 		dumpreg(regbase);

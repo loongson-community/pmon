@@ -94,7 +94,7 @@ typedef unsigned long dma_addr_t;
 #else
 #define TR0(fmt, args...)   printf(fmt, ##args)	
 #endif
-#define TR(fmt, args...)
+#define TR(fmt, args...)   printf(fmt, ##args)	
 
 //typedef int bool;
 enum synopGMAC_boolean
