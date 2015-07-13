@@ -238,6 +238,12 @@ stack = start - 0x4000		/* Place PMON stack below PMON start in RAM */
 	or	t0, 0x100 
 	xori	t0, 0x100
 	mtc0	t0, $16, 6
+
+	/* 2g5 compatible modification for 2g3 */
+	mfc0    t0, $22
+	lui     t1, 0x8000
+	or      t0, t1, t0
+	mtc0    t0, $22
 	.set	pop
 
 	mtc0	zero, COP_0_STATUS_REG
