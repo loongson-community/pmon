@@ -8,7 +8,8 @@ inputaddress:
 	  li a0,16
 	  bal Inputhex
 	  nop
-	  jr t9
+      move  ra, t9
+      jr    ra
 	  nop
 
 LEAF(Inputhex)
@@ -68,7 +69,8 @@ LEAF(Inputhex)
 	li v1,0
 3:
 	move v0,a2
-	jr a3
+    move    ra, a3
+    jr  ra
 	nop
 4:
 	dsrl a2,4

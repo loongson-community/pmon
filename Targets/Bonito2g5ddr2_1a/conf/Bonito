@@ -1,0 +1,4 @@
+include "Targets/Bonito3u/conf/Bonito.3uv2"
+#include "Targets/Bonito2fdev/conf/Bonito.2fdev.via"
+#include "Targets/Bonito2fdev/conf/Bonito.2fdev.sm502"
+#include "Targets/Bonito2fdev/conf/Bonito.2feva"
