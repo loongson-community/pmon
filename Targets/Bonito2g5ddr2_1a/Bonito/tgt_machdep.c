@@ -324,8 +324,8 @@ tgt_devinit()
 #define LS2G_GPIO_DATA	0xbfe00120
 void tgt_reboot()
 {
-	*((volatile unsigned int *)LS2G_GPIO_EN)	&= ~(1<<4);//set gpio4 is output
-	*((volatile unsigned int *)LS2G_GPIO_DATA) 	&= ~(1<<4);//set gpio4 to 0 
+	*((volatile unsigned int *)LS2G_GPIO_EN)	&= ~(1<<3);//set gpio3 is output
+	*((volatile unsigned int *)LS2G_GPIO_DATA) 	&= ~(1<<3);//set gpio3 to 0 
 	
 	while(1);
 }
@@ -335,7 +335,7 @@ void tgt_poweroff()
 	*((volatile unsigned int *)LS1A_PM1_EN_REG) 	= 0X0;//clear wakeup enable bit 
 	*((volatile unsigned int *)LS1A_GPE0_EN_REG) 	= 0X0;//clear wakeup enable bit
 	*((volatile unsigned int *)LS1A_PM1_CNT_REG) 	|= (0x7<<10)|(0x1<<13);//set 1a to s5 mode
-    while(1);
+	while(1);
 }
 
 /*
