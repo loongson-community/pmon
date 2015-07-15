@@ -49,6 +49,27 @@
 #include "target/isapnpreg.h"
 
 #include "loongson3firewall_def.h"
+
+
+#ifdef USE_GPIO_AS_PCIRESET
+#define GPIOLED_DIR 0x2
+#define GPIO_PCIRESET(x) \
+li v0,0xbfe0011c; \
+lw v1,4(v0); \
+or v1,0xffff; \
+xor v1,GPIOLED_DIR; \
+sw v1,4(v0); \
+li v1,x;\
+sw v1,0(v0);\
+li v1,0x1000;\
+78: \
+subu v1,1;\
+bnez v1,78b;\
+nop;
+#else
+#define GPIO_PCIRESET(x) 
+#endif
+
 /*
  *   Register usage:
  *
@@ -221,6 +242,13 @@ locate:
 	la	s0, start
 	subu	s0, ra, s0
 	and	s0, 0xffff0000
+
+	GPIO_PCIRESET(2)
+	GPIO_PCIRESET(2)
+	GPIO_PCIRESET(2)
+	GPIO_PCIRESET(0)
+	GPIO_PCIRESET(0)
+	GPIO_PCIRESET(0)
 
 	li	t0,SR_BOOT_EXC_VEC
 	mtc0	t0,COP_0_STATUS_REG
@@ -512,6 +540,9 @@ wait_l2_ok:
 #else
 	//dli     s1, 0xc1ec0400c1e30400  // use MC0
         dli     s1,0xc9e3040000000000
+#ifdef DDR_S1
+	dli	s1, DDR_S1
+#endif
 #endif
 
 #include "ddr_dir/loongson3_ddr2_config.S"

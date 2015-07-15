@@ -259,3 +259,4 @@ select tftpd
 select scsi_sd
 option PCI_BIGMEM_ADDRESS=0x70000000
 option PCIVERBOSE=5
+option USE_GPIO_AS_PCIRESET
