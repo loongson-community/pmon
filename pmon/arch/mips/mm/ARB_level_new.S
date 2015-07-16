@@ -939,33 +939,73 @@ boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
     bnez    a1, 4f
     nop
     //DDR3 UDIMM
-    //As some slices will reach the test boundary, select one of the speculate method
-//for DDR3 Unbuffered UDIMM
-//use MAX - (0x40 or the Min Max value) as the Slice 0 standard value, and
-//other slices use (slice 0 + default offset relative to slice 0)
+    //if we find the lower limit(MIN > 0), then we use (MIN + compensation_value) as the final result.
+    //else, if we find the upper limit(MAX < param upper limit), then we use (MAX - compensation_value)
+    //as the final result. else(MAX reach param upper limit), we use byte0 as reference, we
+    //use (MAX_byte0 - compensation_value + manual_specific_offset).
+    move    t4, $0
+    dli     t7, 7   //slice control
+arb_level_wrlvl_ddr3_cal_begin:
+    dsll    a0, t7, 3
+
     ld      a1, GD_MIN(t8)
     ld      a3, GD_MAX(t8)
-
+    dsrl    a1, a1, a0
+    dsrl    a3, a3, a0
+    and     a1, a1, 0x7f
     and     a3, a3, 0x7f
-    and     a2, a3, 0x7f
-    //select the MIN(byte 0 MIN, WRLVL_DELAY_MINUS_VALUE), normally the byte 0 MIN should be the bigger.
-    dli     v0, WRLVL_DELAY_MINUS_VALUE
-    ble     a2, v0, 1f
-    nop
-    move    a2, v0
-1:
-    dsubu   a2, a3, a2
-    
-    //shift byte 0 value to 8 bytes of a2
-    dsll    v0, a2, 0x8
-    daddu   a2, a2, v0
-    dsll    v0, a2, 0x10
-    daddu   a2, a2, v0
-    dsll    v0, a2, 0x20
-    daddu   a2, a2, v0
 
-    dli     a0, WRLVL_DDR3_UDIMM_DEFAULT_OFFSET
-    daddu   a0, a0, a2
+    beqz    a1, 2f
+    nop
+    //MIN > 0, use min + defined offset
+    dli     v0, WRLVL_DELAY_MINUS_VALUE
+    daddu   a3, a1, v0
+    b       arb_level_ddr3_cal_end
+    nop
+2:  //MIN == 0
+    dli     v0, WRLVL_DELAY_PARAM_UP_LIMIT
+    bge     a3, v0, 3f
+    nop
+    //MAX < upper limit, use MAX - defined offset
+    dli     v0, WRLVL_DELAY_MINUS_VALUE
+    bge     a3, v0, 1f
+    nop
+    move    v0, a3
+1:
+    dsubu   a3, a3, v0
+    b       arb_level_ddr3_cal_end
+    nop
+3:
+    //MAX >= upper limit
+    //use byte 0 as reference
+    ld      a1, GD_MAX(t8)
+    and     a1, a1, 0x7f
+    dli     v0, WRLVL_DELAY_MINUS_VALUE
+    bge     a1, v0, 1f
+    nop
+    move    v0, a1
+1:
+    dsubu   a1, a1, v0
+    dli     v0, WRLVL_DDR3_UDIMM_DEFAULT_OFFSET
+    dsrl    v0, v0, a0
+    and     v0, v0, 0x7f
+    daddu   a3, a1, v0
+
+arb_level_ddr3_cal_end:
+    //check the calculated result whether exceed the max value
+    dli     v0, WRLVL_DELAY_PARAM_UP_LIMIT
+    ble     a3, v0, 1f
+    nop
+    move    a3, v0
+1:
+    dsll    a3, a3, a0
+    or      t4, t4, a3
+
+    daddu   t7, t7, -1
+    bge     t7, $0, arb_level_wrlvl_ddr3_cal_begin
+    nop
+
+    move    a0, t4
     b       88f
     nop
 
