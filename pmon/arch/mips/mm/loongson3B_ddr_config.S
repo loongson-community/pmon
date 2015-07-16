@@ -26,25 +26,7 @@
 0. s1 reset code
 **************************/
 #ifdef  AUTO_ARB_LEVEL
-//store memory system info into s3(include frequency and dimm i2c addr)
-#ifdef  CHECK_ARB_LEVEL_FREQ
-    //note: for ODD node id use EVEN node id for chip sample addr
-    dli     t0, CHIP_SAMPLE_BASE_ADDR
-    GET_NODE_ID_a1
-    and     a1, a1, 0x2
-    dsll    a0, a1, 44
-    or      t0, t0, a0
-    ld      a0, 0x0(t0)
-    dsrl    a0, a0, DDR_CLKSEL_OFFSET
-    and     a0, a0, DDR_CLKSEL_MASK
-    dsll    a0, a0, 40
-    GET_NODE_ID_a1
-    dsrl    a1, a1, 1
-    dsll    a1, a1, 3
-    dsll    a0, a0, a1
-    or      s3, s3, a0
-#endif
-
+//store memory system info into s3(dimm i2c addr)
 #ifdef  CHECK_ARB_LEVEL_DIMM
     //store dimm i2c addr info to s3
     dsrl    a2, s1, 16
@@ -220,36 +202,8 @@ t0,t2 shouldn't be changed to the end of this file.
 
 #if 1   //necessary
     TTYDBG("Disable DDR buffer cpu\r\n")
-    GET_NODE_ID_a1
-    and     a1, a1, 0x1 //a1 == 0(even NODE) or 1(odd NODE)
-    dsll    a2, a1, 2   //a2 == 0(even NODE) or 4(odd NODE)
-    daddu   a1, a2, a1  //a1 == 0(even NODE) or 5(odd NODE)
-    lw      a2, 0x0(t2)
-    li      a0, 0x20    //bit[5]--MC0 DDR buffer cpu
-    sll     a0, a0, a1  //sll 0 or 5
-    not     a0, a0
-    and     a2, a2, a0
-    sw      a2, 0x0(t2)
-#endif
-
-#ifndef  DISABLE_DIMM_ECC
-    //Enable MC read buffer for ECC Initial
-    GET_DIMM_ECC
-    beqz    a1, 8f
+    bal     disable_mc_read_buffer
     nop
-    TTYDBG("Enable MC read buffer\r\n")
-    GET_NODE_ID_a1
-    and     a1, a1, 0x1 //a1 == 0(even NODE) or 1(odd NODE)
-    dsll    a2, a1, 2   //a2 == 0(even NODE) or 4(odd NODE)
-    daddu   a1, a2, a1  //a1 == 0(even NODE) or 5(odd NODE)
-    lw      a2, 0x0(t2)
-    li      a0, 0x40    //bit[6]--MC0_read_buffer_bypass
-    sll     a0, a0, a1  //sll 0 or 5
-    not     a0, a0
-    and     a2, a2, a0
-    sw      a2, 0x0(t2)
-    sync
-8:
 #endif
 
 #ifdef  AUTO_ARB_LEVEL
@@ -260,24 +214,6 @@ t0,t2 shouldn't be changed to the end of this file.
     bal     mc_init
     nop
 
-#ifndef  DISABLE_DIMM_ECC
-    //Disable MC read buffer after ECC Initial
-    GET_DIMM_ECC
-    beqz    a1, 8f
-    nop
-    TTYDBG("Disable MC read buffer\r\n")
-    GET_NODE_ID_a1
-    and     a1, a1, 0x1 //a1 == 0(even NODE) or 1(odd NODE)
-    dsll    a2, a1, 2   //a2 == 0(even NODE) or 4(odd NODE)
-    daddu   a1, a2, a1  //a1 == 0(even NODE) or 5(odd NODE)
-    lw      a2, 0x0(t2)
-    li      a0, 0x40    //bit[6]--MC0_read_buffer_bypass
-    sll     a0, a0, a1  //sll 0 or 5
-    or      a2, a2, a0
-    sw      a2, 0x0(t2)
-    sync
-8:
-#endif
     PRINTSTR("\r\nMC0 Config DONE\r\n")
 /*****************************
  3. set msize for this NODE

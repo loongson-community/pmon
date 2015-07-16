@@ -27,21 +27,7 @@
 0. s1 reset code
 **************************/
 #ifdef  AUTO_ARB_LEVEL
-//store memory system info into s3(include frequency and dimm i2c addr)
-#ifdef  CHECK_ARB_LEVEL_FREQ
-    dli     t0, CHIP_SAMPLE_BASE_ADDR
-    GET_NODE_ID_a0
-    or      t0, t0, a0
-    ld      a0, 0x0(t0)
-    dsrl    a0, a0, DDR_CLKSEL_OFFSET
-    and     a0, a0, DDR_CLKSEL_MASK
-    dsll    a0, a0, 40
-    GET_NODE_ID_a1
-    dsll    a1, a1, 3
-    dsll    a0, a0, a1
-    or      s3, s3, a0
-#endif
-
+//store memory system info into s3(dimm i2c addr)
 #ifdef  CHECK_ARB_LEVEL_DIMM
     //store dimm i2c addr info to s3
     dsrl    a2, s1, 16
@@ -214,25 +200,8 @@ t0,t2 shouldn't be changed to the end of this file.
     or      t2, t2, a0
     or      t0, t0, a0
 
-//init MC1 will damage MC0 s1 info
-//config MC0 if not define MC1_ONLY
-//-------------------------------------
+//config MC0
     dli     t3, 0x0
-#ifndef  DISABLE_DIMM_ECC
-    //Enable MC read buffer for ECC Initial
-    GET_DIMM_ECC
-    beqz    a1, 8f
-    nop
-    TTYDBG("Enable MC read buffer\r\n")
-    lw      a1, 0x4(t2)
-    li      a0, 0x8
-    sll     a0, a0, t3
-    not     a0, a0
-    and     a1, a1, a0
-    sw      a1, 0x4(t2)
-    sync
-8:
-#endif
 
 #ifdef  AUTO_ARB_LEVEL
     bal     SET_AUTO_ARB_LEVEL_MARK
@@ -242,20 +211,6 @@ t0,t2 shouldn't be changed to the end of this file.
     bal     mc_init
     nop
 
-#ifndef  DISABLE_DIMM_ECC
-    //Disable MC read buffer after ECC Initial
-    GET_DIMM_ECC
-    beqz    a1, 8f
-    nop
-    TTYDBG("Disable MC read buffer\r\n")
-    lw      a1, 0x4(t2)
-    li      a0, 0x8
-    sll     a0, a0, t3
-    or      a1, a1, a0
-    sw      a1, 0x4(t2)
-    sync
-8:
-#endif
     PRINTSTR("\r\nMC0 Config DONE\r\n")
 /*****************************
  3. set msize for this NODE(if the memsize is supported)

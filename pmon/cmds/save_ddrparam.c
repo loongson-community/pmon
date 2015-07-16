@@ -257,13 +257,13 @@ void save_ddrparam(u64 node_id_shift44, u64 *ddr_param_buf, int param_store_addr
     printf("\nnode_id_shift44=0x%016llx\n", node_id_shift44);
 #endif
     // step 1.1 Read out DDR controler register from MC and save them in buffer
-    read_ddr_param(node_id_shift44, mc_selector, &ddr_param_buf[5]);
+    read_ddr_param(node_id_shift44, mc_selector, &ddr_param_buf[6]);
 
     // step 1.2 Program buffers of MC0 register into FLASH
-    tgt_flashprogram((int *)(0xbfc00000+(param_store_addr -(int)&_start)), (DDR_PARAM_NUM + 5) * 8, ddr_param_buf, TRUE);
+    tgt_flashprogram((int *)(0xbfc00000+(param_store_addr -(int)&_start)), (DDR_PARAM_NUM + 6) * 8, ddr_param_buf, TRUE);
 
 #ifdef DEBUG
-    for(i = 0; i < DDR_PARAM_NUM + 5; i++)
+    for(i = 0; i < DDR_PARAM_NUM + 6; i++)
     {
         tmp =  __raw__readq(0x900000001fc00000ull + param_store_addr - (int)&_start + i * 8);
         if(ddr_param_buf[i] != tmp)
@@ -292,34 +292,38 @@ int save_board_ddrparam(int mandatory)
         //MC0
         if( ((flag >> 32) & 0x1) || mandatory ){
             printf("Store MC info of Node %lld MC 0\n", node_id);
-            ddr_param_buf[0] = (((flag >> 40) & 0x1f) << 32) | 0x1;
+            ddr_param_buf[0] = 0x1;
             ddr_param_buf[1] = __raw__readq(DIMM_INFO_ADDR + 0x10);
             ddr_param_buf[2] = __raw__readq(DIMM_INFO_ADDR + 0x18);
             ddr_param_buf[3] = __raw__readq(DIMM_INFO_ADDR + 0x20);
             ddr_param_buf[4] = __raw__readq(DIMM_INFO_ADDR + 0x28);
+            ddr_param_buf[5] = __raw__readq(DIMM_INFO_ADDR + 0x90);
 #ifdef DEBUG
             printf("mc level info is 0x%016llx\n", ddr_param_buf[0]);
-            printf("dimm info is 0x%016llx\n", ddr_param_buf[1]);
-            printf("dimm info is 0x%016llx\n", ddr_param_buf[2]);
-            printf("dimm info is 0x%016llx\n", ddr_param_buf[3]);
-            printf("dimm info is 0x%016llx\n", ddr_param_buf[4]);
+            printf("dimm 0 info is 0x%016llx\n", ddr_param_buf[1]);
+            printf("dimm 0 info is 0x%016llx\n", ddr_param_buf[2]);
+            printf("dimm 1 info is 0x%016llx\n", ddr_param_buf[3]);
+            printf("dimm 1 info is 0x%016llx\n", ddr_param_buf[4]);
+            printf("clksel info is 0x%016llx\n", ddr_param_buf[5]);
 #endif
             save_ddrparam(node_id << 44, &ddr_param_buf, (int)&c0_mc0_level_info, 0);
         }
         //MC1
         if( ((flag >> 33) & 0x1) || mandatory ){
             printf("Store MC info of Node %lld MC 1\n", node_id);
-            ddr_param_buf[0] = (((flag >> 40) & 0x1f) << 32) | 0x1;
+            ddr_param_buf[0] = 0x1;
             ddr_param_buf[1] = __raw__readq(DIMM_INFO_ADDR + 0x30);
             ddr_param_buf[2] = __raw__readq(DIMM_INFO_ADDR + 0x38);
             ddr_param_buf[3] = __raw__readq(DIMM_INFO_ADDR + 0x40);
             ddr_param_buf[4] = __raw__readq(DIMM_INFO_ADDR + 0x48);
+            ddr_param_buf[5] = __raw__readq(DIMM_INFO_ADDR + 0x98);
 #ifdef DEBUG
             printf("mc level info is 0x%016llx\n", ddr_param_buf[0]);
-            printf("dimm info is 0x%016llx\n", ddr_param_buf[1]);
-            printf("dimm info is 0x%016llx\n", ddr_param_buf[2]);
-            printf("dimm info is 0x%016llx\n", ddr_param_buf[3]);
-            printf("dimm info is 0x%016llx\n", ddr_param_buf[4]);
+            printf("dimm 0 info is 0x%016llx\n", ddr_param_buf[1]);
+            printf("dimm 0 info is 0x%016llx\n", ddr_param_buf[2]);
+            printf("dimm 1 info is 0x%016llx\n", ddr_param_buf[3]);
+            printf("dimm 1 info is 0x%016llx\n", ddr_param_buf[4]);
+            printf("clksel info is 0x%016llx\n", ddr_param_buf[5]);
 #endif
             save_ddrparam(node_id << 44, &ddr_param_buf, (int)&c0_mc1_level_info, 1);
         }
@@ -328,34 +332,38 @@ int save_board_ddrparam(int mandatory)
         //MC0
         if( ((flag >> 34) & 0x1) || mandatory ){
             printf("Store MC info of Node %lld MC 0\n", node_id);
-            ddr_param_buf[0] = (((flag >> 48) & 0x1f) << 32) | 0x1;
+            ddr_param_buf[0] = 0x1;
             ddr_param_buf[1] = __raw__readq(DIMM_INFO_ADDR + 0x50);
             ddr_param_buf[2] = __raw__readq(DIMM_INFO_ADDR + 0x58);
             ddr_param_buf[3] = __raw__readq(DIMM_INFO_ADDR + 0x60);
             ddr_param_buf[4] = __raw__readq(DIMM_INFO_ADDR + 0x68);
+            ddr_param_buf[5] = __raw__readq(DIMM_INFO_ADDR + 0xa0);
 #ifdef DEBUG
             printf("mc level info is 0x%016llx\n", ddr_param_buf[0]);
-            printf("dimm info is 0x%016llx\n", ddr_param_buf[1]);
-            printf("dimm info is 0x%016llx\n", ddr_param_buf[2]);
-            printf("dimm info is 0x%016llx\n", ddr_param_buf[3]);
-            printf("dimm info is 0x%016llx\n", ddr_param_buf[4]);
+            printf("dimm 0 info is 0x%016llx\n", ddr_param_buf[1]);
+            printf("dimm 0 info is 0x%016llx\n", ddr_param_buf[2]);
+            printf("dimm 1 info is 0x%016llx\n", ddr_param_buf[3]);
+            printf("dimm 1 info is 0x%016llx\n", ddr_param_buf[4]);
+            printf("clksel info is 0x%016llx\n", ddr_param_buf[5]);
 #endif
             save_ddrparam(node_id << 44, &ddr_param_buf, (int)&c1_mc0_level_info, 0);
         }
         //MC1
         if( ((flag >> 35) & 0x1) || mandatory ){
             printf("Store MC info of Node %lld MC 1\n", node_id);
-            ddr_param_buf[0] = (((flag >> 48) & 0x1f) << 32) | 0x1;
+            ddr_param_buf[0] = 0x1;
             ddr_param_buf[1] = __raw__readq(DIMM_INFO_ADDR + 0x70);
             ddr_param_buf[2] = __raw__readq(DIMM_INFO_ADDR + 0x78);
             ddr_param_buf[3] = __raw__readq(DIMM_INFO_ADDR + 0x80);
             ddr_param_buf[4] = __raw__readq(DIMM_INFO_ADDR + 0x88);
+            ddr_param_buf[5] = __raw__readq(DIMM_INFO_ADDR + 0xa8);
 #ifdef DEBUG
             printf("mc level info is 0x%016llx\n", ddr_param_buf[0]);
-            printf("dimm info is 0x%016llx\n", ddr_param_buf[1]);
-            printf("dimm info is 0x%016llx\n", ddr_param_buf[2]);
-            printf("dimm info is 0x%016llx\n", ddr_param_buf[3]);
-            printf("dimm info is 0x%016llx\n", ddr_param_buf[4]);
+            printf("dimm 0 info is 0x%016llx\n", ddr_param_buf[1]);
+            printf("dimm 0 info is 0x%016llx\n", ddr_param_buf[2]);
+            printf("dimm 1 info is 0x%016llx\n", ddr_param_buf[3]);
+            printf("dimm 1 info is 0x%016llx\n", ddr_param_buf[4]);
+            printf("clksel info is 0x%016llx\n", ddr_param_buf[5]);
 #endif
             save_ddrparam(node_id << 44, &ddr_param_buf, (int)&c1_mc1_level_info, 1);
         }
@@ -383,17 +391,19 @@ int save_board_ddrparam(int mandatory)
         node_id = 0;
         if( ((flag >> 32) & 0x1) || mandatory ){
             printf("Store MC info of Node %d\n", node_id);
-            ddr_param_buf[0] = (((flag >> 40) & 0x1f) << 32) | 0x1;
+            ddr_param_buf[0] = 0x1;
             ddr_param_buf[1] = __raw__readq(DIMM_INFO_ADDR + 0x10);
             ddr_param_buf[2] = __raw__readq(DIMM_INFO_ADDR + 0x18);
             ddr_param_buf[3] = __raw__readq(DIMM_INFO_ADDR + 0x20);
             ddr_param_buf[4] = __raw__readq(DIMM_INFO_ADDR + 0x28);
+            ddr_param_buf[5] = __raw__readq(DIMM_INFO_ADDR + 0x90);
 #ifdef DEBUG
             printf("mc level info is 0x%016llx\n", ddr_param_buf[0]);
-            printf("dimm info is 0x%016llx\n", ddr_param_buf[1]);
-            printf("dimm info is 0x%016llx\n", ddr_param_buf[2]);
-            printf("dimm info is 0x%016llx\n", ddr_param_buf[3]);
-            printf("dimm info is 0x%016llx\n", ddr_param_buf[4]);
+            printf("dimm 0 info is 0x%016llx\n", ddr_param_buf[1]);
+            printf("dimm 0 info is 0x%016llx\n", ddr_param_buf[2]);
+            printf("dimm 1 info is 0x%016llx\n", ddr_param_buf[3]);
+            printf("dimm 1 info is 0x%016llx\n", ddr_param_buf[4]);
+            printf("clksel info is 0x%016llx\n", ddr_param_buf[5]);
 #endif
             save_ddrparam(node_id << 44, &ddr_param_buf, (int)&c0_mc0_level_info, 0);
         }
@@ -403,17 +413,19 @@ int save_board_ddrparam(int mandatory)
         node_id = 1;
         if( ((flag >> 33) & 0x1) || mandatory ){
             printf("Store MC info of Node %d\n", node_id);
-            ddr_param_buf[0] = (((flag >> 40) & 0x1f) << 32) | 0x1;
+            ddr_param_buf[0] = 0x1;
             ddr_param_buf[1] = __raw__readq(DIMM_INFO_ADDR + 0x30);
             ddr_param_buf[2] = __raw__readq(DIMM_INFO_ADDR + 0x38);
             ddr_param_buf[3] = __raw__readq(DIMM_INFO_ADDR + 0x40);
             ddr_param_buf[4] = __raw__readq(DIMM_INFO_ADDR + 0x48);
+            ddr_param_buf[5] = __raw__readq(DIMM_INFO_ADDR + 0x98);
 #ifdef DEBUG
             printf("mc level info is 0x%016llx\n", ddr_param_buf[0]);
-            printf("dimm info is 0x%016llx\n", ddr_param_buf[1]);
-            printf("dimm info is 0x%016llx\n", ddr_param_buf[2]);
-            printf("dimm info is 0x%016llx\n", ddr_param_buf[3]);
-            printf("dimm info is 0x%016llx\n", ddr_param_buf[4]);
+            printf("dimm 0 info is 0x%016llx\n", ddr_param_buf[1]);
+            printf("dimm 0 info is 0x%016llx\n", ddr_param_buf[2]);
+            printf("dimm 1 info is 0x%016llx\n", ddr_param_buf[3]);
+            printf("dimm 1 info is 0x%016llx\n", ddr_param_buf[4]);
+            printf("clksel info is 0x%016llx\n", ddr_param_buf[5]);
 #endif
             save_ddrparam(node_id << 44, &ddr_param_buf, (int)&c0_mc1_level_info, 0);
         }
@@ -423,17 +435,19 @@ int save_board_ddrparam(int mandatory)
         node_id = 2;
         if( ((flag >> 34) & 0x1) || mandatory ){
             printf("Store MC info of Node %d\n", node_id);
-            ddr_param_buf[0] = (((flag >> 48) & 0x1f) << 32) | 0x1;
+            ddr_param_buf[0] = 0x1;
             ddr_param_buf[1] = __raw__readq(DIMM_INFO_ADDR + 0x50);
             ddr_param_buf[2] = __raw__readq(DIMM_INFO_ADDR + 0x58);
             ddr_param_buf[3] = __raw__readq(DIMM_INFO_ADDR + 0x60);
             ddr_param_buf[4] = __raw__readq(DIMM_INFO_ADDR + 0x68);
+            ddr_param_buf[5] = __raw__readq(DIMM_INFO_ADDR + 0xa0);
 #ifdef DEBUG
             printf("mc level info is 0x%016llx\n", ddr_param_buf[0]);
-            printf("dimm info is 0x%016llx\n", ddr_param_buf[1]);
-            printf("dimm info is 0x%016llx\n", ddr_param_buf[2]);
-            printf("dimm info is 0x%016llx\n", ddr_param_buf[3]);
-            printf("dimm info is 0x%016llx\n", ddr_param_buf[4]);
+            printf("dimm 0 info is 0x%016llx\n", ddr_param_buf[1]);
+            printf("dimm 0 info is 0x%016llx\n", ddr_param_buf[2]);
+            printf("dimm 1 info is 0x%016llx\n", ddr_param_buf[3]);
+            printf("dimm 1 info is 0x%016llx\n", ddr_param_buf[4]);
+            printf("clksel info is 0x%016llx\n", ddr_param_buf[5]);
 #endif
             save_ddrparam(node_id << 44, &ddr_param_buf, (int)&c1_mc0_level_info, 0);
         }
@@ -441,17 +455,19 @@ int save_board_ddrparam(int mandatory)
         node_id = 3;
         if( ((flag >> 35) & 0x1) || mandatory ){
             printf("Store MC info of Node %d\n", node_id);
-            ddr_param_buf[0] = (((flag >> 48) & 0x1f) << 32) | 0x1;
+            ddr_param_buf[0] = 0x1;
             ddr_param_buf[1] = __raw__readq(DIMM_INFO_ADDR + 0x70);
             ddr_param_buf[2] = __raw__readq(DIMM_INFO_ADDR + 0x78);
             ddr_param_buf[3] = __raw__readq(DIMM_INFO_ADDR + 0x80);
             ddr_param_buf[4] = __raw__readq(DIMM_INFO_ADDR + 0x88);
+            ddr_param_buf[5] = __raw__readq(DIMM_INFO_ADDR + 0xa8);
 #ifdef DEBUG
             printf("mc level info is 0x%016llx\n", ddr_param_buf[0]);
-            printf("dimm info is 0x%016llx\n", ddr_param_buf[1]);
-            printf("dimm info is 0x%016llx\n", ddr_param_buf[2]);
-            printf("dimm info is 0x%016llx\n", ddr_param_buf[3]);
-            printf("dimm info is 0x%016llx\n", ddr_param_buf[4]);
+            printf("dimm 0 info is 0x%016llx\n", ddr_param_buf[1]);
+            printf("dimm 0 info is 0x%016llx\n", ddr_param_buf[2]);
+            printf("dimm 1 info is 0x%016llx\n", ddr_param_buf[3]);
+            printf("dimm 1 info is 0x%016llx\n", ddr_param_buf[4]);
+            printf("clksel info is 0x%016llx\n", ddr_param_buf[5]);
 #endif
             save_ddrparam(node_id << 44, &ddr_param_buf, (int)&c1_mc1_level_info, 0);
         }

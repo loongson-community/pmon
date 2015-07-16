@@ -11,6 +11,8 @@ c1_mc0_dimm0_info:
 c1_mc0_dimm1_info:
 .dword  0xffffffffffffffff
 .dword  0xffffffffffffffff
+c1_mc0_ddr_clksel:
+.dword  0xffffffffffffffff
 n1_ddr2_reg_data_mc0_leveled:
 n2_ddr2_reg_data_leveled:
 N2_Leveled_MC0_CTL_000 : .dword 0x0000010000000100
@@ -311,6 +313,8 @@ c1_mc1_dimm0_info:
 .dword  0xffffffffffffffff
 c1_mc1_dimm1_info:
 .dword  0xffffffffffffffff
+.dword  0xffffffffffffffff
+c1_mc1_ddr_clksel:
 .dword  0xffffffffffffffff
 n1_ddr2_reg_data_mc1_leveled:
 n3_ddr2_reg_data_leveled:

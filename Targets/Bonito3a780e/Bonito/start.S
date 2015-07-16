@@ -391,7 +391,28 @@ gs_2f_v3_ddr2_cfg:
 	WatchDog_Close;
 
 ##########################################
+//configure DDR freq by software
+#if 1
+    li      t5, 0x17
+#if 0
+    PRINTSTR("Please input DDR frequency SELLECT[4:0](default: 0x1e;0x1f: skip software setting):\r\n");
+    dli     t6, 0x00
+    bal     inputaddress #input value stored in v0
+    nop
+    dli     t6, 0x1f
+    and     v0, v0, t6
+    beq     v0, t6, 88f
+    nop
+    move    t5, v0
+#endif
 
+    TTYDBG  ("\r\nSet DDR frequency by software\r\n")
+    move    a2, $0
+    bal     config_mc_frequency
+    nop
+
+88:
+#endif
 
 	PRINTSTR("Init TLB...\r\n")
 	bal     tlb_init
@@ -484,7 +505,7 @@ wait_l2_ok:
 #define DISABLE_DIMM_ECC
 #define PRINT_MSG
 #ifndef ARB_LEVEL
-	//#define FIX_DDR_PARAM
+//#define FIX_DDR_PARAM
 #endif
 #ifdef  ARB_LEVEL
 #define AUTO_ARB_LEVEL
@@ -494,10 +515,10 @@ wait_l2_ok:
 #ifdef  AUTO_DDR_CONFIG
 #define CHECK_ARB_LEVEL_DIMM
 #endif
-	//#define DEBUG_AUTO_ARB_LEVEL
+//#define DEBUG_AUTO_ARB_LEVEL
 #endif
-	//#define DEBUG_DDR
-	//#define DEBUG_DDR_PARAM
+//#define DEBUG_DDR
+//#define DEBUG_DDR_PARAM
 
 	TTYDBG("\r\nStart Init Memory, wait a while......\r\n")
 ####################################
@@ -527,7 +548,7 @@ wait_l2_ok:
 	nop
 	and     v0, v0, 0xf
 	dli     a1, 0x1
-	bgt     v0, a1, 2f
+	bgt     v0, a1, 3f
 	nop
 
 	dli     s1, 0x0010000080000000  //NODE 0, start from 0x80000000
@@ -562,6 +583,7 @@ wait_l2_ok:
 	PRINTSTR("  Error found!!\r\n")
 2:
 
+3:
 #endif
 ##########################################
 

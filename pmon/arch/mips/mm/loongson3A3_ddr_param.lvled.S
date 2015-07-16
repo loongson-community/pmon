@@ -11,6 +11,8 @@ c0_mc0_dimm0_info:
 c0_mc0_dimm1_info:
 .dword  0xffffffffffffffff
 .dword  0xffffffffffffffff
+c0_mc0_ddr_clksel:
+.dword  0xffffffffffffffff
 ddr2_reg_data_mc0_leveled:
 ddr2_reg_data_leveled:
 N0_Leveled_MC0_CTL_000 : .dword 0x0000010000000100
@@ -311,6 +313,8 @@ c0_mc1_dimm0_info:
 .dword  0xffffffffffffffff
 c0_mc1_dimm1_info:
 .dword  0xffffffffffffffff
+.dword  0xffffffffffffffff
+c0_mc1_ddr_clksel:
 .dword  0xffffffffffffffff
 ddr2_reg_data_mc1_leveled:
 n1_ddr2_reg_data_leveled:

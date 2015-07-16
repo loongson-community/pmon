@@ -56,7 +56,8 @@ DIMM infor:
 |       |                    | 1'b0    | Unbuffered DIMM   |
 |[27:27]| DIMM_WIDTH         | 1'b1    | REDUC--32bits     |
 |       |                    | 1'b0    | NORMAL--64 bits   |
-|[26:24]| SDRAM_ROW_SIZE     | MC_ROW  | 15 - ROW_SIZE     |
+|[26:24]| SDRAM_ROW_SIZE     | MC_ROW  | 15 - ROW_SIZE(for lsmcd3)  |
+|                                        16 - ROW_SIZE(for lsmc)    |
 |[23:23]| SDRAM_EIGHT_BANK   | 1'b0    | FOUR  BANKS       |
 |       |                    | 1'b1    | EIGHT BANKS       |
 |[22:22]| ADDR_MIRROR        | 1'b1    | ADDR MIRROR       |
@@ -90,8 +91,12 @@ temparary used in PROBE_DIMM
 #define CHIP_CONFIG_ADDR        0x900000001fe00180
 #define CHIP_CONFIG_BASE_ADDR   0x900000001fe00180
 #define CHIP_SAMPLE_BASE_ADDR   0x900000001fe00190
+#define DDR_CLKSEL_EN_OFFSET        3
 #define DDR_CLKSEL_OFFSET           37
 #define DDR_CLKSEL_MASK             0x1F
+#define DDR_CLKSEL_WIDTH            5
+#define DDR_CLKSEL_SOFT_OFFSET      24
+#define DDR_CLKSEL_SOFT_MASK        0x1F
 #ifdef  LSMC_2
 #define DDR_CONFIG_DISABLE_OFFSET   4
 #else
@@ -106,8 +111,12 @@ temparary used in PROBE_DIMM
 #define CHIP_CONFIG_ADDR        0x900000001fe00180
 #define CHIP_CONFIG_BASE_ADDR   0x900000001fe00180
 #define CHIP_SAMPLE_BASE_ADDR   0x900000001fe00190
+#define DDR_CLKSEL_EN_OFFSET        3
 #define DDR_CLKSEL_OFFSET           37
 #define DDR_CLKSEL_MASK             0x1F
+#define DDR_CLKSEL_WIDTH            5
+#define DDR_CLKSEL_SOFT_OFFSET      40
+#define DDR_CLKSEL_SOFT_MASK        0x1F
 #define DDR_CONFIG_DISABLE_OFFSET   4
 #define ARB_TEMP_L2WINDOW_OFFSET    0x20
 #else
@@ -118,8 +127,13 @@ temparary used in PROBE_DIMM
 #define CHIP_CONFIG_ADDR        0x900000001fd00200
 #define CHIP_CONFIG_BASE_ADDR   0x900000001fd00200
 #define CHIP_SAMPLE_BASE_ADDR   0x900000001fd00210
+#define LS2H_CLOCK_CTRL0_ADDR   0x900000001fd00220
+#define DDR_CLKSEL_EN_OFFSET        25
 #define DDR_CLKSEL_OFFSET           23
-#define DDR_CLKSEL_MASK             0x07
+#define DDR_CLKSEL_MASK             0x3
+#define DDR_CLKSEL_WIDTH            2
+#define DDR_CLKSEL_SOFT_OFFSET      16
+#define DDR_CLKSEL_SOFT_MASK        0xfffa
 #define DDR_CONFIG_DISABLE_OFFSET   13
 #define ARB_TEMP_L2WINDOW_OFFSET    0x38
 #else //default current set as loosong3A3
@@ -129,8 +143,12 @@ temparary used in PROBE_DIMM
 #define CHIP_CONFIG_ADDR        0x900000001fe00180
 #define CHIP_CONFIG_BASE_ADDR   0x900000001fe00180
 #define CHIP_SAMPLE_BASE_ADDR   0x900000001fe00190
+#define DDR_CLKSEL_EN_OFFSET        3
 #define DDR_CLKSEL_OFFSET           37
 #define DDR_CLKSEL_MASK             0x1F
+#define DDR_CLKSEL_WIDTH            5
+#define DDR_CLKSEL_SOFT_OFFSET      24
+#define DDR_CLKSEL_SOFT_MASK        0x1F
 #define DDR_CONFIG_DISABLE_OFFSET   8
 #define ARB_TEMP_L2WINDOW_OFFSET    0x20
 #define NO_L2XBAR_CONFIGURE
