@@ -43,44 +43,6 @@
     PRINTSTR("\r\n")
 #endif
 
-#if 0   //def  AUTO_DDR_CONFIG     //hot fix for board misconnection--temp code
-    GET_ROW_SIZE
-    dli     a0, 0x2
-    bne     a1, a0, 1f
-    nop
-    //a1 == 2, row num is 14, decrease one(!!!a1+1), half the density
-    daddu   a1, a1, 0x1
-    dli     a0, 0x7
-    dsll    a0, a0, ROW_SIZE_OFFSET
-    not     a0, a0
-    and     s1, s1, a0
-    dsll    a1, a1, ROW_SIZE_OFFSET
-    or      s1, s1, a1
-
-    //half the density
-    GET_MC0_MEMSIZE
-    dsrl    a1, a1, 0x1
-    dli     a0, MC_MEMSIZE_MASK
-    dsll    a0, a0, MC0_MEMSIZE_OFFSET
-    not     a0, a0
-    and     s1, s1, a0
-    dsll    a1, a1, MC0_MEMSIZE_OFFSET
-    or      s1, s1, a1
-1:
-#if 1
-    /* show value of s1 */
-    PRINTSTR("\r\nnew s1 = 0x");
-    dsrl    a0, s1, 32
-    bal     hexserial
-    nop
-    PRINTSTR("__")
-    move    a0, s1
-    bal     hexserial
-    nop
-    PRINTSTR("\r\n")
-#endif
-#endif
-
 #ifdef DEBUG_DDR_PARAM
     PRINTSTR("\r\nChange s1?:\r\n");
     dli     t6, 0x00
@@ -147,19 +109,6 @@ t0,t2 shouldn't be changed to the end of this file.
     PRINTSTR("\r\n")
 #endif
 
-#if 0   //necessary
-    TTYDBG("Disable DDR buffer cpu\r\n")
-    GET_NODE_ID_a1
-    and     a1, a1, 0x1 //a1 == 0(even NODE) or 1(odd NODE)
-    dsll    a2, a1, 2   //a2 == 0(even NODE) or 4(odd NODE)
-    daddu   a1, a2, a1  //a1 == 0(even NODE) or 5(odd NODE)
-    lw      a2, 0x0(t2)
-    li      a0, 0x20    //bit[5]--MC0 DDR buffer cpu
-    sll     a0, a0, a1  //sll 0 or 5
-    not     a0, a0
-    and     a2, a2, a0
-    sw      a2, 0x0(t2)
-#endif
 
     bal     mc_init
     nop
@@ -185,7 +134,7 @@ t0,t2 shouldn't be changed to the end of this file.
 #endif
 /*******************************
  4. config L2 X-bar
-    according to MC0_MEMSIZE bits in s1 decide memory size 
+    according to MC0_MEMSIZE bits in s1 decide memory size
     note: currently, only support memory size: 512M, 1G, 2G, 3G, 4G, 8G;
 *******************************/
     sync
@@ -238,96 +187,95 @@ t0,t2 shouldn't be changed to the end of this file.
 1:     //ddr_512MB_MC0:
     GET_NODE_ID_a0;
     XBAR_CONFIG_NODE_a0(0x20, \
-                    0x0000000080000000, \
+                    0x0000000100000000, \
                     0xFFFFFFFFE0000000, \
                     0x00000000000000F0)
-    PRINTSTR("MC0 space open : 0x80000000 - 0x9FFFFFFF\r\n")
+    PRINTSTR("MC0 space open : 0x100000000 - 0x11FFFFFFF\r\n")
     b       81f
     nop
 2:     //ddr_1GB_MC:
     GET_NODE_ID_a0;
     XBAR_CONFIG_NODE_a0(0x20, \
-                    0x0000000080000000, \
+                    0x0000000100000000, \
                     0xFFFFFFFFC0000000, \
                     0x00000000000000F0)
-    PRINTSTR("MC0 space open : 0x80000000 - 0xBFFFFFFF\r\n")
+    PRINTSTR("MC0 space open : 0x100000000 - 0x13FFFFFFF\r\n")
     b       81f
     nop
 4:     //ddr_2GB_MC0:
     GET_NODE_ID_a0;
     XBAR_CONFIG_NODE_a0(0x20, \
-                    0x0000000080000000, \
+                    0x0000000100000000, \
                     0xFFFFFFFF80000000, \
                     0x00000000000000F0)
-    PRINTSTR("MC0 space open : 0x80000000 - 0xFFFFFFFF\r\n")
+    PRINTSTR("MC0 space open : 0x100000000 - 0x17FFFFFFF\r\n")
     b       81f
     nop
 6:     //ddr_3GB_MC0:
     GET_NODE_ID_a0;
     XBAR_CONFIG_NODE_a0(0x20, \
-                    0x0000000080000000, \
+                    0x0000000100000000, \
                     0xFFFFFFFF80000000, \
                     0x00000000000000F0)
     XBAR_CONFIG_NODE_a0(0x28, \
-                    0x0000000100000000, \
+                    0x0000000180000000, \
                     0xFFFFFFFFC0000000, \
                     0x00000000800000F0)
-    PRINTSTR("MC0 space open : 0x080000000 - 0x13FFFFFFF\r\n")
+    PRINTSTR("MC0 space open : 0x100000000 - 0x1BFFFFFFF\r\n")
     b       81f
     nop
 8:     //ddr_4GB_MC0:
     GET_NODE_ID_a0;
     XBAR_CONFIG_NODE_a0(0x20, \
-                    0x0000000080000000, \
+                    0x0000000100000000, \
                     0xFFFFFFFF80000000, \
                     0x00000000000000F0)
     XBAR_CONFIG_NODE_a0(0x28, \
-                    0x0000000100000000, \
+                    0x0000000180000000, \
                     0xFFFFFFFF80000000, \
                     0x00000000800000F0)
-    PRINTSTR("MC0 space open : 0x080000000 - 0x17FFFFFFF\r\n")
+    PRINTSTR("MC0 space open : 0x100000000 - 0x1FFFFFFFF\r\n")
     b       81f
     nop
 10:     //ddr_8GB_MC0:
     GET_NODE_ID_a0;
     XBAR_CONFIG_NODE_a0(0x20, \
-                    0x0000000080000000, \
-                    0xFFFFFFFF80000000, \
-                    0x00000000000000F0)
-    XBAR_CONFIG_NODE_a0(0x28, \
                     0x0000000100000000, \
                     0xFFFFFFFF00000000, \
-                    0x00000001000000F0)
-    XBAR_CONFIG_NODE_a0(0x30, \
+                    0x00000000000000F0)
+    PRINTSTR("MC0 space open : 0x100000000 - 0x1FFFFFFFF\r\n")
+    XBAR_CONFIG_NODE_a0(0x28, \
                     0x0000000200000000, \
-                    0xFFFFFFFF80000000, \
-                    0x00000000800000F0)
-    PRINTSTR("MC0 space open : 0x080000000 - 0x27FFFFFFF\r\n")
+                    0xFFFFFFFF00000000, \
+                    0x00000001000000F0)
+    PRINTSTR("MC0 space open : 0x200000000 - 0x2FFFFFFFF\r\n")
+ 
     b       81f
     nop
 20:     //ddr_16GB_MC0:
     GET_NODE_ID_a0;
     XBAR_CONFIG_NODE_a0(0x20, \
-                    0x0000000080000000, \
-                    0xFFFFFFFF80000000, \
-                    0x00000000000000F0)
-    XBAR_CONFIG_NODE_a0(0x28, \
                     0x0000000100000000, \
                     0xFFFFFFFF00000000, \
-                    0x00000001000000F0)
-    XBAR_CONFIG_NODE_a0(0x30, \
+                    0x00000000000000F0)
+    PRINTSTR("MC0 space open : 0x100000000 - 0x1FFFFFFFF\r\n")
+    XBAR_CONFIG_NODE_a0(0x28, \
                     0x0000000200000000, \
                     0xFFFFFFFF00000000, \
-                    0x00000002000000F0)
-    XBAR_CONFIG_NODE_a0(0x38, \
+                    0x00000001000000F0)
+    PRINTSTR("MC0 space open : 0x200000000 - 0x2FFFFFFFF\r\n")
+     XBAR_CONFIG_NODE_a0(0x30, \
                     0x0000000300000000, \
                     0xFFFFFFFF00000000, \
-                    0x00000003000000F0)
-    XBAR_CONFIG_NODE_a0(0x18, \
+                    0x00000002000000F0)
+    PRINTSTR("MC0 space open : 0x300000000 - 0x3FFFFFFFF\r\n")
+    XBAR_CONFIG_NODE_a0(0x38, \
                     0x0000000400000000, \
-                    0xFFFFFFFF80000000, \
-                    0x00000000800000F0)
-    PRINTSTR("MC0 space open : 0x080000000 - 0x47FFFFFFF\r\n")
+                    0xFFFFFFFF00000000, \
+                    0x00000003000000F0)
+    PRINTSTR("MC0 space open : 0x400000000 - 0x4FFFFFFFF\r\n")
+ 
+   PRINTSTR("MC0 space open : 0x100000000 - 0x4FFFFFFFF\r\n")
     b       81f
     nop
 81:

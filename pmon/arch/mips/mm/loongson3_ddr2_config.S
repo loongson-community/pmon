@@ -282,10 +282,8 @@ t0,t2 shouldn't be changed to the end of this file.
 #if 1 // AdonWang disable cpu buffered read
 /* !!!!!!!!!!!!! IMPORTANT !!!!!!!!!!!! */
     PRINTSTR("Disable cpu buffered read\r\n")
-    lw      a1, 0x0(t2)
-    li      a0, 0xfffffdff
-    and     a1, a1, a0
-    sw      a1, 0x0(t2)
+    bal     disable_cpu_buffer_read
+    nop
 #endif
 
 #if 1 // AdonWang disable ddr3 readbuff

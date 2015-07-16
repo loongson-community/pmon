@@ -43,63 +43,7 @@
     PRINTSTR("\r\n")
 #endif
 
-#if 0   //def  AUTO_DDR_CONFIG
-//for DDR3 RDIMM, if it has 2 rank, use only 1. temp code for 3A MC
-    //check MC0
-    dli     a1, 0xffffffff
-    and     t1, s1, a1
-    dli     a1, 0xd0000000
-    and     a1, t1, a1
-    dli     a0, 0xd0000000
-    bne     a1, a0, 1f      //not DDR3 RDIMM, do nothing
-    nop
-    dli     t2, 0xff00
-    and     t2, t1, t2      //t2 store memsize
-
-    dli     a1, 0x30000     //check slot 0 CS_MAP
-    and     a1, t1, a1
-    dli     a0, 0x30000
-    bne     a1, a0, 2f      //not 2 rank
-    nop
-    //slot 0 has 2 rank DIMM
-    dli     a1, 0xfffdffff
-    and     t1, t1, a1      //clear cs 1
-    dsrl    t2, t2, 1       //half memsize
-2:
-    dli     a1, 0xc0000     //check slot 1 CS_MAP
-    and     a1, t1, a1
-    dli     a0, 0xc0000
-    bne     a1, a0, 2f      //not 2 rank
-    nop
-    //slot 1 has 2 rank DIMM
-    dli     a1, 0xfff7ffff
-    and     t1, t1, a1      //clear cs 3
-    dsrl    t2, t2, 1       //half memsize
-2:
-    //use reduced(if needed) memsize
-    dli     a1, 0xffff00ff
-    and     t1, t1, a1
-    or      t1, t1, t2
-    //use modified infor for MC0
-    dli     a1, 0xffffffff00000000
-    and     s1, s1, a1
-    or      s1, s1, t1
-#if 1
-    /* show value of s1 */
-    PRINTSTR("\r\nnew s1 = 0x");
-    dsrl    a0, s1, 32
-    bal     hexserial
-    nop
-    PRINTSTR("__")
-    move    a0, s1
-    bal     hexserial
-    nop
-    PRINTSTR("\r\n")
-#endif
-1:
-#endif
-
-#if 0 //def DEBUG_DDR_PARAM
+#ifdef DEBUG_DDR_PARAM
     PRINTSTR("\r\nChange s1?:\r\n");
     dli     t6, 0x00
     bal     inputaddress    #input value stored in v0
@@ -112,15 +56,15 @@
 
 /**************************
 1. check NODE memory size.
+  -------max size 64GB now
 **************************/
-1:  //MC0_ONLY
+    //MC0_ONLY
     GET_MC0_MEMSIZE
     beqz    a1, 89f
     nop
     dli     t5, 0x40
     bgt     a1, t5, 89f
     nop
-4:
 #if 0
     PRINTSTR("\r\ns1 = 0x")
     move    a0, s1
@@ -145,7 +89,7 @@ t0,t2 shouldn't be changed to the end of this file.
     //add 3B register location offset
     dsrl    a0, a0, 44
     dsll    a0, a0, 14
-    or      t0, t0, a0
+    daddu   t0, t0, a0
     //clear odd NODE_ID to even for chip config
     dli     a1, 0x1
     dsll    a1, a1, 44
@@ -165,25 +109,6 @@ t0,t2 shouldn't be changed to the end of this file.
     PRINTSTR("\r\n")
 #endif
 
-#if 0 // AdonWang disable cpu buffered read
-/* !!!!!!!!!!!!! IMPORTANT !!!!!!!!!!!! */
-    PRINTSTR("Disable cpu buffered read\r\n")
-    lw      a1, 0x0(t2)
-    li      a0, 0xfffffdff
-    and     a1, a1, a0
-    sw      a1, 0x0(t2)
-#endif
-
-#if 0 // AdonWang disable ddr3 readbuff
-/*      May Affect the Performance     */
-//This seems better for the spec2000
-//if we enable ECC, this bit will be reset in mc_init
-    PRINTSTR("Disable read buffer\r\n")
-    lw      a1, 0x4(t2)
-    li      a0, 0x18
-    or      a1, a1, a0
-    sw      a1, 0x4(t2)
-#endif
 
     bal     mc_init
     nop
@@ -358,6 +283,9 @@ t0,t2 shouldn't be changed to the end of this file.
     //Config other PCI space exactly as cpu windows
     L2XBAR_CONFIG_PCI_AS_CPU(0x20);
     L2XBAR_CONFIG_PCI_AS_CPU(0x28);
+    L2XBAR_CONFIG_PCI_AS_CPU(0x30);
+    L2XBAR_CONFIG_PCI_AS_CPU(0x38);
+    L2XBAR_CONFIG_PCI_AS_CPU(0x18);
     PRINTSTR("Full PCI space opened as cpu.\r\n")
     b       1f
     nop

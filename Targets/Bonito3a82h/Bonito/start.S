@@ -1289,7 +1289,7 @@ watchdog_enable:
     nop
     .end watchdog_enable
 #######################################
-#include "ddr_dir/lsmc_ddr_config.S"
+#include "ddr_dir/ls3A8_ddr_config.S"
 #ifdef DDR3_DIMM
 #include "ddr_dir/loongson3C_ddr3_leveling.S"
 #endif

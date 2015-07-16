@@ -543,6 +543,16 @@ pre-condition::
     nop
 END(disable_mc_read_buffer)
 
+LEAF(disable_cpu_buffer_read)
+    lw      a1, 0x0(t2)
+    li      a0, 0xfffffdff
+    and     a1, a1, a0
+    sw      a1, 0x0(t2)
+
+    jr      ra
+    nop
+END(disable_cpu_buffer_read)
+
 #ifdef  CHECK_ARB_LEVEL_FREQ
 LEAF(GET_DDR_FREQ_CONFIG)
 /*********************
@@ -795,4 +805,7 @@ LEAF(config_mc_frequency)
     sll     a0, a0, 3
     or      a1, a1, a0
     sw      a1, 0x0(t2)
+
+    jr      ra
+    nop
 END(config_mc_frequency)

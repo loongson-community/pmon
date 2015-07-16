@@ -1,3 +1,5 @@
+//Warning: NOT finished yet, don't use it.
+
 /* whd: loongson3C_ddr3_leveling.S
    2012.9.1
    first written by Leping from pfunc.s

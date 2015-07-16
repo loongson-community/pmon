@@ -550,9 +550,6 @@ soft_out:
 #define DDR_DLL_BYPASS
 #define DISABLE_DIMM_ECC
 #define PRINT_MSG
-#ifndef ARB_LEVEL
-//#define FIX_DDR_PARAM
-#endif
 #ifdef  ARB_LEVEL
 #define AUTO_ARB_LEVEL
 #endif
@@ -1580,7 +1577,7 @@ idle1000:
 
 
 #######################################
-#include "ddr_dir/lsmc_ddr_config.S"
+#include "ddr_dir/ls3A8_ddr_config.S"
 #ifdef DDR3_DIMM
 #include "ddr_dir/loongson3C_ddr3_leveling.S"
 #endif

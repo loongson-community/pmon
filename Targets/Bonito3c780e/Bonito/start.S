@@ -553,9 +553,13 @@ soft_out:
 
 
 
+//##########################################
+//DDR config start
 //cxk
-#include "3C_ddr_config_define.h"
-#include "3C_ddr_param_define.h"
+####################################
+#include "ddr_dir/lsmc_ddr_param_define.h"
+#include "ddr_dir/ddr_config_define.h"
+#define DDR_DLL_BYPASS
 #define DISABLE_DIMM_ECC
 #define PRINT_MSG
 //#define DEBUG_DDR
@@ -569,7 +573,7 @@ soft_out:
 #else
 	dli     s1, 0xc3e30200
 #endif
-#include "loongson3C_ddr_config.S"
+#include "ddr_dir/loongson3B5_ddr_config.S"
 
 	beqz  s1,  node0_no_mem
 	nop
@@ -595,7 +599,7 @@ node0_has_mem:
 #else
 	dli     s1, 0xc3e30201
 #endif
-#include "loongson3C_ddr_config.S"
+#include "ddr_dir/loongson3B5_ddr_config.S"
 #endif
 ##########################################
 
@@ -1578,7 +1582,7 @@ END(tgt_putchar_COM1)
 
 #include "i2c.S"
 #ifdef AUTO_DDR_CONFIG
-#include "3C_detect_node_dimm.S"
+#include "ddr_dir/detect_node_dimm_all.S"
 #endif
 
 __main:
@@ -2018,10 +2022,10 @@ idle1000:
 
 
 #######################################
-#include "3C_ddr_config.S"
+#include "ddr_dir/ls3B5_ddr_config.S"
 #include "loongson3C_ddr3_leveling.S"
 #ifdef  DEBUG_DDR
-#include "Test_Mem.S"
+#include "ddr_dir/Test_Mem.S"
 #endif
 
 

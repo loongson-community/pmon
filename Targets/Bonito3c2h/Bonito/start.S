@@ -673,7 +673,7 @@ common:
 
 #endif
 
-		li      a0,0x900000001ff00080
+		dli     a0,0x900000001ff00080
 		li      t0,0x99
 		sb      t0,0x0(a0)
 
@@ -1433,10 +1433,13 @@ after_ht:
 	    nop
 #endif
 
-##########################################
+//##########################################
+//DDR config start
 //cxk
-#include "3C_ddr_config_define.h"
-#include "3C_ddr_param_define.h"
+####################################
+#include "ddr_dir/lsmc_ddr_param_define.h"
+#include "ddr_dir/ddr_config_define.h"
+#define DDR_DLL_BYPASS
 #define DISABLE_DIMM_ECC
 #define PRINT_MSG
 //#define DEBUG_DDR
@@ -1452,7 +1455,7 @@ after_ht:
     #dli     s1, 0xc1ec0400c1e30400
     dli     s1, 0xc1e30400
 #endif
-#include "loongson3C_ddr_config.S"
+#include "ddr_dir/loongson3B52H_ddr_config.S"
 
 	beqz  s1,  node0_no_mem
 	nop
@@ -1478,7 +1481,7 @@ node0_has_mem:
 #else
     dli     s1, 0xc3e30201
 #endif
-#include "loongson3C_ddr_config.S"
+#include "ddr_dir/loongson3B52H_ddr_config.S"
 #endif
 ##########################################
 
@@ -1886,9 +1889,6 @@ out_test:
 		nop
 		PRINTSTR("\r\n")
 #endif
-
-//#include "loongson3_showwindows.S"
-
 ##########################################
 
 #include "machine/newtest/newdebug.S"
@@ -2613,8 +2613,7 @@ out_test:
 
 #include "i2c.S"
 #ifdef AUTO_DDR_CONFIG  // for no ls2h cpu on board, disable AUTO_DDR_CONFIG
-//#include "ddr_dir/detect_node_dimm.S"
-#include "3C_detect_node_dimm.S"
+#include "ddr_dir/detect_node_dimm_all.S"
 #endif
 
 		__main:
@@ -3234,10 +3233,10 @@ idle1000:
 
 
 #######################################
-#include "3C_ddr_config.S"
+#include "ddr_dir/ls3B5_ddr_config.S"
 #include "loongson3C_ddr3_leveling.S"
 #ifdef  DEBUG_DDR
-#include "Test_Mem.S"
+#include "ddr_dir/Test_Mem.S"
 #endif
 
 
