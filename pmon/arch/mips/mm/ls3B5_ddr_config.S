@@ -250,7 +250,12 @@ mc_init:
 
 8:
 #else
-#ifdef	DDR3_DIMM   //hard leveling
+#ifndef DISABLE_HARD_LEVELING
+    dli     a2, 0x3
+    GET_SDRAM_TYPE
+    bne     a1, a2, 88f
+    nop
+    //DDR3 SDRAM, do hard leveling
     PRINTSTR("Start Hard Leveling...\r\n")
     TTYDBG("\r\nEnable register space of MEMORY\r\n")
     bal     enable_mc_conf_space
@@ -354,6 +359,7 @@ mc_init:
     //TTYDBG("Disable register space of MEMORY\r\n")
     bal     disable_mc_conf_space
     nop
+88:
 #endif
 #endif
 
