@@ -166,7 +166,7 @@ mc_init:
     dla     a2, n1_ddr3_RDIMM_reg_data_mc1
 #endif
 4:
-
+    move    t3, $0
     bal     ddr2_config
     nop
 

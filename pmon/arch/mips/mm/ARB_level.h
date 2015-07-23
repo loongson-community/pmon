@@ -5,6 +5,7 @@
 *******************************/
 //these define can be adjusted
 #define WRLVL_DELAY_MINUS_VALUE (0x40)
+#define WRLVL_DELAY_ADD_VALUE   (0x38)
 #define WRLVL_DQ_SMALL_DLY      (0x18)
 #define WRLVL_DQ_DEFAULT_DLY    (0x1c)
 #ifdef  DDR3_SODIMM

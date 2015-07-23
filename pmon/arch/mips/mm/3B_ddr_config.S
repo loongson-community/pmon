@@ -7,6 +7,7 @@
     t7(option ARB_LEVEL)--do arb level, 0--not level; 1--do level;
 **********************************/
 #define ADJUST_CLKLVL_DELAY
+#define TRFC_MARGIN             0x4
 #include "lsmcd3_config_param.S"
 
         .global mc_init
@@ -165,7 +166,7 @@ mc_init:
     dla     a2, n1_ddr3_RDIMM_reg_data_mc1
 #endif
 4:
-
+    move    t3, $0
     bal     ddr2_config
     nop
 

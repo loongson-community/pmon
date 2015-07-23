@@ -958,7 +958,7 @@ arb_level_wrlvl_ddr3_cal_begin:
     beqz    a1, 2f
     nop
     //MIN > 0, use min + defined offset
-    dli     v0, WRLVL_DELAY_MINUS_VALUE
+    dli     v0, WRLVL_DELAY_ADD_VALUE
     daddu   a3, a1, v0
     b       arb_level_ddr3_cal_end
     nop
