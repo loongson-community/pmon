@@ -429,7 +429,7 @@ mc_init:
     nop
     nop
 //init mem to all 0
-    dli     t1, 0x9800001000000000
+    dli     t1, 0xb800001000000000
     GET_NODE_ID_a0
     or      t1, t1, a0
     GET_MC0_MEMSIZE
@@ -448,11 +448,11 @@ mc_init:
     sd      $0, 0x8(t1)
     sd      $0, 0x10(t1)
     sd      $0, 0x18(t1)
-    sync
-    //hit write back invalidate(D-/S-cache) to memory
-    cache   0x15, 0x0(t1)
-    cache   0x17, 0x0(t1)
-    daddu   t1, t1, 0x20
+    sd      $0, 0x20(t1)
+    sd      $0, 0x28(t1)
+    sd      $0, 0x30(t1)
+    sd      $0, 0x38(t1)
+    daddu   t1, t1, 0x40
     b       1b
     nop
 1:
