@@ -259,8 +259,16 @@ locate:
 	dli	t2, NODE0_CORE0_BUF0
 	or	t1, t2, t1
 
-	dli     a0, BOOTCORE_ID
-	bne     t0, a0, slave_main
+	li	a0, DUMMY_3B7
+	li	k0, 0x5a5a5a5a
+	sw	k0, 0(a0)
+	lw	a0, 0(a0)
+	subu	a0, a0, k0
+	dli     k0, BOOTCORE_ID
+	.set	mips64
+	movn	k0, zero, a0
+	.set	mips3
+	bne     t0, k0, slave_main
 	nop
 
         bal     initserial
@@ -268,11 +276,12 @@ locate:
         bal     initserial1
         nop
 
-//#define SHUT_SLAVES
-#ifdef SHUT_SLAVES
+	bnez	k0, 1f	
+	nop
 	PRINTSTR("Shut down other cores\r\n")
 	li      a0, 0xbfe001d0
-	li	a1, BOOTCORE_ID
+//	li	a1, BOOTCORE_ID
+	move	a1, k0
 	sll	a1, 2
 	li      t1, 0xf
 	sll	a1, t1, a1
@@ -282,10 +291,8 @@ locate:
 	li      t1, 0x00000000
 	or	t1, a1, t1
 	sw      t1, 0x0(a0)
-
-#else
+1:
 	PRINTSTR("NOT Shut down other cores\r\n")
-#endif
 
 
 bsp_start:
@@ -394,6 +401,10 @@ soft_sys:
 	TTYDBG ("CORE & NODE:")
 
 	li      t0, 0xbfe001b0
+
+	dli	a0, (0x7 << 19)		// power down pll for 3b6 and 3b7 only
+	sw	a0, 0x0(t0)
+
 	dli     a0, (NODE_LOOPC << 22) | (NODE_REFC  << 16) | (L1_DIV    << 10) | L1_LOOPC
 	sw      a0, 0x4(t0)
 
@@ -484,6 +495,8 @@ soft_out:
 
 	TTYDBG ("CORE & NODE:\r\n")
 	dli     t0, 0x900020001fe001b0
+	dli	a0, (0x7 << 19)		// power down pll for 3b6 and 3b7 only
+	sw	a0, 0x0(t0)
 	dli     a0, (NODE_LOOPC << 22) | (NODE_REFC  << 16) | (L1_DIV    << 10) | L1_LOOPC
 	sw      a0, 0x4(t0)
 
@@ -598,16 +611,14 @@ soft_out_cpu1:
 
 #include "loongson3_fixup_3b.S"
 
-#ifdef SHUT_SLAVES
-	dli      a0, 0x900020001fe001d0
+	bnez	k1, 1f
+	dli     a0, 0x900020001fe001d0
 	li      t1, 0x88888888
 	sw      t1, 0x0(a0)
 	li      t1, 0x00000000
 	sw      t1, 0x0(a0)
-
-#else
+1:
 	PRINTSTR("NOT Shut down other cores\r\n")
-#endif
 
 	TTYDBG ("\r\nCPU 0 MC RESET\r\n")
 	li      t0, 0xbfe00180
@@ -707,7 +718,7 @@ soft_out_cpu1:
 #include "ddr_dir/lsmc_ddr_param_define.h"
 #include "ddr_dir/ddr_config_define.h"
 #define DDR_DLL_BYPASS
-#define DISABLE_DIMM_ECC
+//#define DISABLE_DIMM_ECC
 #define PRINT_MSG
 //#define DEBUG_DDR
 //#define DEBUG_DDR_PARAM
@@ -1339,7 +1350,8 @@ bootnow:
 
 	TTYDBG("Copy PMON to execute location done.\r\n")
 
-#ifdef SHUT_SLAVES
+	bnez	k0, 1f
+	nop
 	PRINTSTR("Wake up other cores\r\n")
 
         /* Set clock low for a safe shift */
@@ -1349,23 +1361,24 @@ bootnow:
         and     a0, a0, a1
         sw      a0, 0x0(t0)
 
-	li      t0, 0xbfe001d0
-	li	a1, BOOTCORE_ID
+	li      a0, 0xbfe001d0
+	//li	a1, BOOTCORE_ID
+	move	a1, k0
 	sll	a1, 2
 	li	t1, 0xf
 	sll	a1, t1, a1
 	li      t1, 0x88888888
 	or	t1, a1, t1
-	sw      t1, 0x0(t0)
+	sw      t1, 0x0(a0)
 
         li      t0, 0xbfe001b0
         lw      a0, 0x0(t0)
         ori     a0, a0, 0x1
         sw      a0, 0x0(t0)
 
-	li      t0, 0xbfe001d0
-	li      a1, 0xffffffff
-	sw      a1, 0x0(t0)
+	li      a0, 0xbfe001d0
+	li      t1, 0xffffffff
+	sw      t1, 0x0(a0)
 
 	dli	t0, 0x900020001fe001b0
         lw      a0, 0x0(t0)
@@ -1385,10 +1398,9 @@ bootnow:
 	dli	t0, 0x900020001fe001d0
 	li      a1, 0xffffffff
 	sw      a1, 0x0(t0)
-#else
+1:
 	PRINTSTR("NOT Wake up other cores\r\n")
 
-#endif
 
 
 	TTYDBG("sp=");

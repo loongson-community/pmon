@@ -2454,3 +2454,23 @@ struct efi_memory_map_loongson * init_memory_map()
 	return emap;
 #undef	EMAP_ENTRY
 }
+
+static int is_3b7()
+{
+	int ret;
+	int val = 0x5a5a5a5a;
+	int addr = 0xbfe001a8;
+	writel(val, (void *)addr);
+	if ((ret = readl((void *)addr)) != val)
+		return 1;
+	else
+		return 0;
+}
+
+void board_info_fixup(struct efi_cpuinfo_loongson * c)
+{
+	if (is_3b7()) {
+		c->cpu_startup_core_id = 0;
+		c->reserved_cores_mask = 0x0000;
+	}
+}
