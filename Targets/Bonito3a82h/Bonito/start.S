@@ -398,6 +398,8 @@ soft_sys:
 	TTYDBG ("CORE & NODE:")
 
 	li      t0, 0xbfe001b0
+	li	t1, (0x1 << 19)		//power down pll L1 first 
+	sd	t1, 0x0(t0)
 	dli	t1, (L1_LOOPC << 32) | (L1_DIV << 42) | (0x3 << 10) | (0x1 << 7)
 	sd	t1, 0(t0)
 	ori	t1, PLL_L1_ENA
