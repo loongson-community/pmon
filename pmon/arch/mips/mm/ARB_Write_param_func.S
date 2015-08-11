@@ -93,7 +93,7 @@ use register: t7
     GET_ARB_LEVEL_NODE_ID
     dsll    a1, a1, 44
     or      t7, t7, a1
-    
+
 #ifdef  ARBLVL_PUT_DRAM_SREF
     //put memory into self-refresh
     ld      a1, SREFRESH_ADDR(t7)
@@ -110,7 +110,7 @@ use register: t7
     bnez    a2, 1b
     nop
 #endif
-    
+
     //clear param_start
     //PRINTSTR("\r\nClear param_start.")
     dli     a2, 0xff
@@ -1073,7 +1073,7 @@ use register: t7
     bnez    a2, 1b
     nop
 #endif
-    
+
     //PRINTSTR("\r\nDisable DDR MC config space.\r\n")
     dli     t7, CHIP_CONFIG_BASE_ADDR
     GET_ARB_LEVEL_NODE_ID

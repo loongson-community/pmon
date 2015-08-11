@@ -10,7 +10,7 @@
     v1.x    Single Node mode
     v1.1    Raw code for LS3A3
     v0.2    used for test
-    
+
 note: don't use s0, because it will be use at some subroutine
 
 change register: a0,a1,a2,v0,v1, t9
@@ -30,7 +30,7 @@ t7: volatile value
 t8: ARB_STORE_BASE
 t9: save ra; (local used by wrlvl/rdlvl)
 v0, v1: return value of arb_test_mem.
-algrithm: 
+algrithm:
 
 ***************************************/
 /********************************
@@ -43,7 +43,7 @@ algrithm:
 //#define DEBUG_ARB_LEVEL_RD
 //#define DEBUG_ARB_LEVEL_RD_TM
 //#define DEBUG_ARB_LEVEL_RD_CFG
-  
+
 //#define CLOCK_LEVEL
 
 //#define USE_DEFAULT_WRLVL_VALUE   //currently only affect at DDR3 mode
@@ -58,7 +58,7 @@ algrithm:
 #define USE_BIG_GF_POP_DELAY  //work ok
 #define ARBLVL_PUT_DRAM_SREF
 #ifdef  LS2HMC
-//#define CLEAR_HALF_CLK_SHIFT    //for 2H3~1 don't define it 
+//#define CLEAR_HALF_CLK_SHIFT    //for 2H3~1 don't define it
 //#define USE_DEFAULT_RDLVL_DELAY
 #else
 #define CLEAR_HALF_CLK_SHIFT    //necessary
@@ -237,7 +237,7 @@ arb_wrlvl_start:
     sd      $0, 0x58(t8)
 
     //set test interval
-    dli     t5, 1 << LOG2_STEP 
+    dli     t5, 1 << LOG2_STEP
     //set t2 start value
     dli     t2, WRLVL_MAX_DELAY
 
@@ -612,7 +612,7 @@ wrlvl_test_one_delay:
     or      a0, a0, t0
     sd      a0, B7_TM_RST(t8)
 1:
-    dsrl    t7, t3, 48 
+    dsrl    t7, t3, 48
     and     t7, t7, 0xff
     beqz    t7, 1f
     nop
@@ -685,7 +685,7 @@ wrlvl_test_one_delay:
     move    t2, a2
     b       wrlvl_test_one_delay
     nop
-11: 
+11:
 
 #ifdef  DEBUG_ARB_LEVEL_WR
     dli     t8, ARB_STORE_BASE
@@ -963,7 +963,7 @@ arb_level_wrlvl_ddr3_cal_begin:
     b       arb_level_ddr3_cal_end
     nop
 2:  //MIN == 0
-    dli     v0, WRLVL_DELAY_PARAM_UP_LIMIT
+    dli     v0, WRLVL_DELAY_LEVEL_UP_LIMIT
     bge     a3, v0, 3f
     nop
     //MAX < upper limit, use MAX - defined offset
@@ -994,6 +994,14 @@ arb_level_wrlvl_ddr3_cal_begin:
 arb_level_ddr3_cal_end:
     //check the calculated result whether exceed the max value
     dli     v0, WRLVL_DELAY_PARAM_UP_LIMIT
+#ifndef USE_SPECIAL_WRLVL_DQ_DELAY
+    dli     v1, WRLVL_DQ_DEFAULT_DLY
+#else
+    dli     v1, WRLVL_DQ_SPECIAL_DLY
+    dsrl    v1, v1, a0
+    and     v1, v1, 0x7f
+#endif
+    dsubu   v0, v0, v1
     ble     a3, v0, 1f
     nop
     move    a3, v0
@@ -1177,9 +1185,15 @@ arb_wrlvl_value_caled:
 
     //recover wrlvl dq delay value
     dli     t6, 0x6
+#ifndef USE_SPECIAL_WRLVL_DQ_DELAY
     dli     t2, WRLVL_DQ_DEFAULT_DLY
     bal     arb_modify_param
     nop
+#else
+    dli     t2, WRLVL_DQ_SPECIAL_DLY
+    bal     arb_write_param
+    nop
+#endif
 
 #ifdef DEBUG_ARB_LEVEL_WR
     PRINTSTR("\r\nAfter write leveling. The MC configuration is:\r\n")
@@ -1262,7 +1276,7 @@ rdlvl_one_byte_start:
 
     //set specified byte lanes Mask
     dli     a0, 0x8
-    dmul    a0, a0, s3 
+    dmul    a0, a0, s3
     dli     a1, 0xff
     dsll    s5, a1, a0
 
@@ -1368,7 +1382,7 @@ rdlvl_gate_cfg_start:
     dsrl    a0, t2, GATE_LOG2_STEP
     dsll    t0, t0, a0
 
-    dli     t5, 1 << GATE_LOG2_STEP 
+    dli     t5, 1 << GATE_LOG2_STEP
 31:
 //write new delay value
     bal     arb_modify_param
@@ -1431,7 +1445,7 @@ rdlvl_gate_cfg_start:
     move    t2, a2
     b       31b
     nop
-11: 
+11:
 
 #ifdef  DEBUG_ARB_LEVEL_RD_TM
     PRINTSTR("\r\nlevel result is:\r\n")
@@ -1583,7 +1597,7 @@ rdlvl_gate_cfg_fail:    //tryed all setting(0,1), can NOT find a right cfg, try 
     daddu   a0, a0, a1
     dsrl    a0, a0, 1
 #if 1
-    //max rdlvl_gate_delay == RDLVL_GATE_MAX_DELAY, use (mid + max) / 2 
+    //max rdlvl_gate_delay == RDLVL_GATE_MAX_DELAY, use (mid + max) / 2
     //else use max value - 0x10
     dli     a2, RDLVL_GATE_MAX_DELAY
     blt     a1, a2, 1f
@@ -1635,7 +1649,7 @@ rdlvl_gate_cfg_fail:    //tryed all setting(0,1), can NOT find a right cfg, try 
     dsrl    a0, t2, RDLVL_LOG2_STEP
     dsll    t0, t0, a0
 
-    dli     t5, 1 << RDLVL_LOG2_STEP 
+    dli     t5, 1 << RDLVL_LOG2_STEP
 31:
 //write new delay value
     bal     arb_modify_param
@@ -1698,7 +1712,7 @@ rdlvl_gate_cfg_fail:    //tryed all setting(0,1), can NOT find a right cfg, try 
     move    t2, a2
     b       31b
     nop
-11: 
+11:
 
 #ifdef  DEBUG_ARB_LEVEL_RD_TM
     PRINTSTR("\r\nlevel result is:\r\n")
@@ -1956,7 +1970,7 @@ rdlvl_pop_delay_end:
     //a0 == 2'b01
     b       second_pop_delay_ok
     nop
-    
+
 both_pop_delay_fail:
 #ifdef  MODIFY_PAD_COMP
     PRINTSTR("\r\nTry another pad compensation.\r\n")
@@ -1991,7 +2005,7 @@ both_pop_delay_fail:
     nop
 
 both_pop_delay_ok:
-    //use test result stored in RDLVL_DELAYP/N_MIN and RDLVL_DELAYP/N_MAX to 
+    //use test result stored in RDLVL_DELAYP/N_MIN and RDLVL_DELAYP/N_MAX to
     //decide use which pop delay and relative phy_1_gate_cfg
     //t1, t3--first pop delay result
     //t2, t4--second pop delay result
@@ -2027,7 +2041,7 @@ both_pop_delay_ok:
     //dli     a0, 0x4
     //blt     s3, a0, 1f
     //nop
-    
+
     //give the second cfg(4) priority, if the difference <= 8, use second_pop_delay
     dsubu   t1, t1, 0x8
 1:
@@ -2055,7 +2069,7 @@ first_pop_delay_ok:
     daddu   a0, a0, a1
     dsrl    a0, a0, 1
 #if 1
-    //max rdlvl_gate_delay == RDLVL_GATE_MAX_DELAY, use (mid + max) / 2 
+    //max rdlvl_gate_delay == RDLVL_GATE_MAX_DELAY, use (mid + max) / 2
     //else use max value - 0x10
     dli     a2, RDLVL_GATE_MAX_DELAY
     blt     a1, a2, 1f
@@ -2285,7 +2299,7 @@ arb_clklvl_start:
     sd      $0, 0x58(t8)
 
     //set test interval
-    dli     t5, 1 << LOG2_STEP 
+    dli     t5, 1 << LOG2_STEP
     //set t2 start value
     move    t2, $0
     dli     s4, CLKLVL_MAX_DELAY
@@ -2572,7 +2586,7 @@ clklvl_test_one_delay:
     or      a0, a0, t0
     sd      a0, B7_TM_RST(t8)
 1:
-    dsrl    t7, t3, 48 
+    dsrl    t7, t3, 48
     and     t7, t7, 0xff
     beqz    t7, 1f
     nop
@@ -2646,7 +2660,7 @@ clklvl_test_one_delay:
     move    t2, a2
     b       clklvl_test_one_delay
     nop
-11: 
+11:
 
 #ifdef  DEBUG_ARB_LEVEL_CLK
     dli     t8, ARB_STORE_BASE
@@ -3100,8 +3114,8 @@ enable_ddr_confspace:
 
     jr      ra
     nop
-    
-disable_ddr_confspace:    
+
+disable_ddr_confspace:
 /*
  * disable DDR MC config reg space
  * use register: t7
@@ -3131,7 +3145,7 @@ disable_ddr_confspace:
 
     jr      ra
     nop
-    
+
 #include "ARB_Modify_param_func.S"
 #include "ARB_Write_param_func.S"
 #include "ARB_TM.S"

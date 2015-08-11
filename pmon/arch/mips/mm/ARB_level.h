@@ -44,7 +44,8 @@
 #define WRLVL_HALF_CLK_VALUE    (0x40)
 #define WRLVL_3QUARTER_CLK_VALUE    (0x60)
 #define WRLVL_ONE_CLK_VALUE     (0x80)
-#define WRLVL_DELAY_PARAM_UP_LIMIT  (0x80 - WRLVL_DQ_SMALL_DLY - (1 << LOG2_STEP))
+#define WRLVL_DELAY_LEVEL_UP_LIMIT  (0x80 - WRLVL_DQ_SMALL_DLY - (1 << LOG2_STEP))
+#define WRLVL_DELAY_PARAM_UP_LIMIT  (0x80 - 1)
 
 //for rdlvl
 #define GATE_LOG2_STEP  1   //log2 of TM step interval for read Gate level

@@ -136,6 +136,7 @@ temparary used in PROBE_DIMM
 #define DDR_CLKSEL_SOFT_MASK        0xfffa
 #define DDR_CONFIG_DISABLE_OFFSET   13
 #define ARB_TEMP_L2WINDOW_OFFSET    0x38
+#define NO_L2XBAR_CONFIGURE
 #else //default current set as loosong3A3
 #define LOCK_SCACHE_CONFIG_BASE_ADDR 0x900000003ff00200
 #define L1XBAR_CONFIG_BASE_ADDR 0x900000003ff02000
@@ -151,7 +152,6 @@ temparary used in PROBE_DIMM
 #define DDR_CLKSEL_SOFT_MASK        0x1F
 #define DDR_CONFIG_DISABLE_OFFSET   8
 #define ARB_TEMP_L2WINDOW_OFFSET    0x20
-#define NO_L2XBAR_CONFIGURE
 #endif
 #endif
 #endif
