@@ -973,19 +973,6 @@ stuck:
 #else 
 #define MTC0 mtc0
 #endif
-LEAF(get_mem_clk)
-  
-	li t0,0xbfe00190
-        ld t1,0x0(t0)
-        dsrl t2,t1,37
-        andi t2,t2,0x0000001f
-        move v0,t2
-
-	nop
-	jr ra
-	nop
-END(get_mem_clk)
-
 LEAF(CPU_TLBClear)
 	li	a3, 0			# First TLB index.
 
@@ -1839,6 +1826,10 @@ idle1000:
 #######################################
 #include "ddr_dir/ddr_config.S"
 #ifdef ARB_LEVEL
+//#define USE_SPECIAL_WRLVL_DQ_DELAY
+#ifdef  USE_SPECIAL_WRLVL_DQ_DELAY
+#define WRLVL_DQ_SPECIAL_DLY 0x1c1a1c1c1a1c1c1a //specific the wrlvl_dq_delay for each byte lane
+#endif
 #include "ddr_dir/ARB_level_new.S"
 #endif
 #ifdef  DEBUG_DDR

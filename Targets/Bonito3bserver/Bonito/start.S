@@ -646,7 +646,7 @@ common:
 
 #endif
 
-        li      a0,0x900000001ff00080
+        dli     a0,0x900000001ff00080
         li      t0,0x99
         sb      t0,0x0(a0)
 
@@ -1171,13 +1171,13 @@ gs_2f_v3_ddr2_cfg:
 ##########################################
 
 /* Fix HT connection bug between two LS3B chipses */ 
-  li  t0, 0x90000efdfb00003c;
+  dli t0, 0x90000efdfb00003c;
   lw  a0, 0x00(t0);
   li  a1, 0x30000; 
   or  a0, a1;
   sw  a0, 0x00(t0);
 
-  li  t0, 0x90002efdfb00003c;
+  dli t0, 0x90002efdfb00003c;
   lw  a0, 0x00(t0);
   li  a1, 0x30000; 
   or  a0, a1;
@@ -1880,21 +1880,6 @@ stuck:
 #else 
 #define MTC0 mtc0
 #endif
-
-LEAF(get_mem_clk)
-
-  
-	li t0,0xbfe00190
-        ld t1,0x0(t0)
-        dsrl t2,t1,37
-        andi t2,t2,0x0000001f
-        move v0,t2
-
-       nop
-       jr ra
-       nop
-END(get_mem_clk)
-
 
 LEAF(CPU_TLBClear)
 	li	a3, 0			# First TLB index.

@@ -104,6 +104,10 @@ mc_init:
     or      t5, t5, a0
 1:
     ld      t6, 0x0(t5)
+    and     a0, t5, 0xfff
+    bal     hexserial
+    nop
+    PRINTSTR(":  ")
     dsrl    a0, t6, 32
     bal     hexserial
     nop
@@ -352,7 +356,7 @@ mc_init:
     sd      a1, MC_INT_ACK_ADDR(t8)
     sync
 
-#ifdef  PRINT_MSG
+#if 0   //def  PRINT_MSG
     //print MC registers
     PRINTSTR("\r\nThe MC param is:\r\n")
     dli     t1, DDR_PARAM_NUM
@@ -361,6 +365,10 @@ mc_init:
     or      t5, t5, a0
 1:
     ld      t6, 0x0(t5)
+    and     a0, t5, 0xfff
+    bal     hexserial
+    nop
+    PRINTSTR(":  ")
     dsrl    a0, t6, 32
     bal     hexserial
     nop

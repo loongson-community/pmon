@@ -178,6 +178,10 @@ mc_init:
     or      t5, t5, a0
 1:
     ld      t6, 0x0(t5)
+    and     a0, t5, 0xfff
+    bal     hexserial
+    nop
+    PRINTSTR(":  ")
     dsrl    a0, t6, 32
     bal     hexserial
     nop
@@ -207,6 +211,7 @@ mc_init:
     bnez    v0, 8f
     nop
 #endif
+    //read ARB_level
     beqz    t7, 8f
     nop
 
@@ -429,7 +434,7 @@ mc_init:
     sd      a1, MC_INT_ACK_ADDR(t8)
     sync
 
-#ifdef  PRINT_MSG
+#if 0   //def  PRINT_MSG
     //print MC registers
     PRINTSTR("\r\nThe MC param is:\r\n")
     dli     t1, DDR_PARAM_NUM
@@ -438,6 +443,10 @@ mc_init:
     or      t5, t5, a0
 1:
     ld      t6, 0x0(t5)
+    and     a0, t5, 0xfff
+    bal     hexserial
+    nop
+    PRINTSTR(":  ")
     dsrl    a0, t6, 32
     bal     hexserial
     nop
@@ -552,6 +561,46 @@ LEAF(disable_cpu_buffer_read)
     jr      ra
     nop
 END(disable_cpu_buffer_read)
+
+LEAF(get_mem_clk)
+/*********************
+input(reserved now):
+    a1: node id(currently fix a1 to 0x0)
+output:
+    v0: current ddr freq setting
+*********************/
+    move    a1, $0
+    dsll    a1, a1, 44
+
+    dli     a2, CHIP_CONFIG_BASE_ADDR
+    or      a2, a2, a1
+    ld      a0, 0x0(a2)
+    dsrl    a0, a0, DDR_CLKSEL_EN_OFFSET
+    and     v0, a0, 0x1
+
+    bnez    v0, 1f
+    nop
+    //hard configure
+    dli     a2, CHIP_SAMPLE_BASE_ADDR
+    or      a2, a2, a1
+    ld      a0, 0x0(a2)
+    dsrl    a0, a0, DDR_CLKSEL_OFFSET
+    and     a0, a0, DDR_CLKSEL_MASK
+    b       2f
+    nop
+1:
+    //soft configure
+    dli     a2, CHIP_CONFIG_BASE_ADDR
+    or      a2, a2, a1
+    ld      a0, 0x0(a2)
+    dsrl    a0, a0, DDR_CLKSEL_SOFT_OFFSET
+    and     a0, a0, DDR_CLKSEL_SOFT_MASK
+2:
+    move    v0, a0
+
+    jr      ra
+    nop
+END(get_mem_clk)
 
 #ifdef  CHECK_ARB_LEVEL_FREQ
 LEAF(GET_DDR_FREQ_CONFIG)

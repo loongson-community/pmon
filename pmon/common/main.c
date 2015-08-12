@@ -1164,7 +1164,7 @@ void __attribute__((weak)) print_mem_freq(void)
 	}
         else
 		printf("/ Bus @ 33 MHz\n");
-#else  /*for 3a/3b ddr controller */
+#else  /*for 3a ddr controller */
         if(clk != 0x1f)
 	{
 		clk30 = clk & 0x0f;

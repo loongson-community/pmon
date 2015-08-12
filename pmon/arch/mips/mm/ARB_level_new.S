@@ -2950,6 +2950,10 @@ arb_clklvl_value_caled:
     or      t7, t7, a1
 1:
     ld      t3, 0x0(t7)
+    and     a0, t7, 0xfff
+    bal     hexserial
+    nop
+    PRINTSTR(":  ")
     dsrl    a0, t3, 32
     bal     hexserial
     nop
