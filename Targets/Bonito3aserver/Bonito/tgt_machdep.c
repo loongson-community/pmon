@@ -1149,8 +1149,8 @@ tgt_devinit()
 	   1<<5:usb2 ohci1 enable
 	   1<<6:usb2 ehci enable
 	   1<<7:usb3 ohci enable  */
-	tgt_printf("enable OHCI controller\n");
-	_pci_conf_write8(_pci_make_tag(0,0x14, 0), 0x68, (1<<0)|(1<<1)|(1<<4)|(1<<5)|(1<<7));
+	printf("enable OHCI controller\n");
+	_pci_conf_write8(_pci_make_tag(0,0x14, 0), 0x68, (1<<0)|(1<<1)|(1<<2)|(1<<4)|(1<<5)|(1<<6)|(1<<7));
 	//  _pci_conf_write8(_pci_make_tag(0,0x14, 0), 0x68, (1<<0));
 #endif
 

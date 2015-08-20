@@ -8,16 +8,12 @@
 /** MAP virtual address: 0xc0000000~ 0xffffffff to physical address:  0x40000000~ 0x7fffffff for PCI-MEM  **/
 /***********************************************************************************************************/
 
-	li	t0, 0x40000000
+	li	t0, 0x20000000
 
 	.set mips64
 	dmfc0	t1, COP_0_TLB_PG_MASK, 1
 	or	t1, t1, t0
 	dmtc0	t1, COP_0_TLB_PG_MASK, 1
-
-	dmfc0	t0, COP_0_CONFIG, 3
-	ori	t0, t0, 0x80
-	dmtc0	t0, COP_0_CONFIG, 3
 	.set mips3
 
 	li	t0, 0x01ffe000

@@ -74,31 +74,35 @@ static void usb_init2(device_t dev)
 	u8 byte;
 	u16 word;
 	u32 dword;
-	u8 *usb2_bar0;
+	u8 *usb2_bar0_pci;
+	u8 *usb2_bar0_addr;
+
 
 #if 1 //because of disable usb, lycheng
-	usb2_bar0 = (u8 *) (pci_read_config32(dev, 0x10) & ~0xFF);
-	printk_info("usb2_bar0=%p\n", usb2_bar0);
+	usb2_bar0_pci = (u8 *) (pci_read_config32(dev, 0x10) & ~0xFF);
+
+	usb2_bar0_addr = (u8 *)((usb2_bar0_pci - 0x40000000) + 0xc0000000);
+	printk_info("usb2_bar0_pci=%p\n", usb2_bar0_addr);
 
 	/* RPR5.4 Enables the USB PHY auto calibration resister to match 45ohm resistence */
 	dword = 0x00020F00;
-	WRITEL(dword, usb2_bar0 + 0xC0);
+	WRITEL(dword, usb2_bar0_addr + 0xC0);
 
 	/* RPR5.5 Sets In/OUT FIFO threshold for best performance */
 	//dword = 0x00200040;
 	dword = 0x00400040;
-	WRITEL(dword, usb2_bar0 + 0xA4);
+	WRITEL(dword, usb2_bar0_addr + 0xA4);
 #endif
+       byte = pci_read_config8(dev, 0x50);
        /* RPR5.10 Disable EHCI MSI support */
        printk_info("Disable EHCI MSI support\n");
-       byte = pci_read_config8(dev, 0x50);
        byte |= (1 << 6);
        pci_write_config8(dev, 0x50, byte);
 
        /* EHCI Dynamic Clock gating feature */
-       dword = READL(usb2_bar0 + 0xbc);
+       dword = READL(usb2_bar0_addr + 0xbc);
        dword &= ~(1 << 12);
-       WRITEL(dword, usb2_bar0 + 0xbc);
+       WRITEL(dword, usb2_bar0_addr + 0xbc);
 
 
 	dword = pci_read_config32(dev, 0x50);
@@ -127,11 +131,11 @@ static void usb_init2(device_t dev)
        dword &= ~(1 << 27);
        pci_write_config32(dev, 0x50, dword);
 
-#if 0 //because of disable usb, lycheng
+#if 1 //because of disable usb, lycheng
 	/* RPR6.17 Disable the EHCI Dynamic Power Saving feature */
-	word = READL(usb2_bar0 + 0xBC);
+	word = READL(usb2_bar0_addr + 0xBC);
 	word &= ~(1 << 12);
-	WRITEW(word, usb2_bar0 + 0xBC);
+	WRITEW(word, usb2_bar0_addr + 0xBC);
 
 	/* Set a default latency timer. */
         pci_write_config8(dev, 0x0d, 0x40); //PCI_LATENCY_TIMER
