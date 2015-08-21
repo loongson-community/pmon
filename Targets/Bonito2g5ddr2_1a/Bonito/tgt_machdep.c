@@ -221,7 +221,8 @@ initmips(unsigned int memsz)
 	
 	printf("BEV in SR set to zero.\n");
 
-	
+	ls2g1a_soc_nand_init();
+
 #if 0
 	printf(" bus             device              irq_number     is:\n");  //zxj added for irq
    	for(hi=0;hi<16;hi++)

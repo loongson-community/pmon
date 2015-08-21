@@ -14,6 +14,9 @@ device  localbus
 attach  localbus at mainbus
 file    Targets/Bonito2g5ddr2_1a/dev/localbus.c		localbus
 
+#nand
+file	sys/dev/nand/ls2g1a-nand.c		nand needs-flag
+
 #OHCI
 device  lohci {[channel = -1]} :usbbus
 attach  lohci at localbus

@@ -203,26 +203,29 @@ select		gmac
 #ide_cd* 	at pciide? channel ? drive ? flags 0x0001
 select		iso9660
 option		IDECD 
-#select cmd_testfire
-#option HAVE_NB_SERIAL
-#option USE_ENVMAC
-#option LOOKLIKE_PC
-#select cmd_lwdhcp
-#select cmd_bootp
-option FOR_GXEMUL
-select fatfs
-option FLOATINGPT
-#option WDC_NORESET
-select gzip
-option INPUT_FROM_BOTH
-option OUTPUT_TO_BOTH
-option KBD_CHECK_FAST
-option LS2GPLUS_KBD
-#option TEST_USB_HOST
-option CONFIG_SLOW_PCI_FOR_BROKENDEV
+#select		cmd_testfire
+#option 	HAVE_NB_SERIAL
+#option 	USE_ENVMAC
+#option 	LOOKLIKE_PC
+#select 	cmd_lwdhcp
+#select 	cmd_bootp
+option		FOR_GXEMUL
+select		fatfs
+option		FLOATINGPT
+#option		WDC_NORESET
+select		gzip
+option		INPUT_FROM_BOTH
+option		OUTPUT_TO_BOTH
+option		KBD_CHECK_FAST
+option		LS2GPLUS_KBD
+#option		TEST_USB_HOST
+option		CONFIG_SLOW_PCI_FOR_BROKENDEV
 
-select http
-select tcp
+select		http
+select		tcp
+
+select		nand
+select		yaffsfs
 
 select cmd_main
 option INTERFACE_3A780E
