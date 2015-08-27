@@ -238,7 +238,7 @@ void rs780_early_setup(void)
 }
 
 
-#define SMBUS_IO_BASE 0x1000  //ynn
+#define SMBUS_IO_BASE SMBUS_IO_BASE_VALUE  //ynn
 
 /* sbDevicesPorInitTable */
 void sb700_devices_por_init(void)

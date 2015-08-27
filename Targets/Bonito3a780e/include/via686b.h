@@ -18,7 +18,11 @@
 
 /*** CONFIG REGISTERS AND VALUES */
 #define SMBUS_IO_BASE_ADDR  0x90  
+#ifdef __ASSEMBLER__
 #define SMBUS_IO_BASE_VALUE	0xeee1
+#else
+#define SMBUS_IO_BASE_VALUE	0x0ee0
+#endif
 
 #define SMBUS_HOST_CONFIG_ADDR  0xd2
 #define SMBUS_HOST_CONFIG_ENABLE_BIT 0x1

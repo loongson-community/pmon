@@ -28,6 +28,7 @@
  *	RS785G: 0x9710 - just works, not much tested
  */
 #include "rs780.h"
+#include "target/via686b.h"
 
 /* Trust the original resource allocation. Don't do it again. */
 #undef DONT_TRUST_RESOURCE_ALLOCATION
