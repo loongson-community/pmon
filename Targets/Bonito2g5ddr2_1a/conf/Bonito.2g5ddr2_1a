@@ -217,7 +217,6 @@ select		gzip
 option		INPUT_FROM_BOTH
 option		OUTPUT_TO_BOTH
 option		KBD_CHECK_FAST
-option		LS2GPLUS_KBD
 #option		TEST_USB_HOST
 option		CONFIG_SLOW_PCI_FOR_BROKENDEV
 

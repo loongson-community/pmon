@@ -1,6 +1,6 @@
 # $Id: Bonito,v 1.1.1.1 2006/09/14 01:59:09 root Exp $ # #	GENERIC configuration for Galileo EV64240 # #  This file is supposed to be included by target file after #  endian has been defined.
 #
-machine         Bonito2g1a        mips    # CPU Architecture, Platform
+machine         Bonito2g5ddr3_1a        mips    # CPU Architecture, Platform
 config          pmon 
 option          VGAROM_IN_BIOS
 
@@ -26,10 +26,12 @@ option		DEVBD2E
 option		MIPS
 option		INET
 option		LOONGSON_2G1A
+option		LOONGSON_2G5_1A_DDR3
 option		ENABLE_SATA         #Enable SATA  ,when enable IDE can also use, when commended only IDE can use
 option		BOOT_PARAM
 
-option		AUTO_DDR_CONFIG
+#option		AUTO_DDR_CONFIG
+option		LSMC_2
 option		USE_LS1A_I2C
 #option		ARB_LEVEL
 
@@ -216,6 +218,7 @@ select gzip
 option INPUT_FROM_BOTH
 option OUTPUT_TO_BOTH
 option KBD_CHECK_FAST
+option LS2GPLUS_KBD
 #option TEST_USB_HOST
 option CONFIG_SLOW_PCI_FOR_BROKENDEV
 
