@@ -58,6 +58,7 @@
 
 
 
+#define writel(val, addr) (*(volatile u32*)(addr) = (val))
 #define STDIN		((kbd_available|usb_kbd_available)?3:0)
 //include "sys/sys/filio.h"
 
