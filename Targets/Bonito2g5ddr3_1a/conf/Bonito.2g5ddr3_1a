@@ -44,7 +44,8 @@ select		mod_s3load		# Srecord loading
 #select		mod_fastload		# LSI Fastload
 select		mod_elfload		# ELF loading
 
-option		SST008A
+#option		SST008A			# LPC flash
+option		SST25VF032B		# SPI flash
 #
 # Command selection. Selects pmon commands
 #

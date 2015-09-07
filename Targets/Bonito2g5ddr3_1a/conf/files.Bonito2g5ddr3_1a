@@ -16,6 +16,9 @@ file    Targets/Bonito2g5ddr3_1a/dev/localbus.c		localbus
 device  lohci {[channel = -1]} :usbbus
 attach  lohci at localbus
 
+#SPI
+file	Targets/Bonito2g5ddr3_1a/dev/spi_w.c
+
 #GMAC
 file	sys/dev/gmac/synopGMAC_Host.c
 file	sys/dev/gmac/synopGMAC_Dev.c

@@ -47,8 +47,10 @@
  *  boot device.
  */
 
-#ifdef	SST008A
+#if defined	SST008A
 #define	FLASH_SIZE_BYTE	0x100000
+#elif defined	SST25VF032B
+#define FLASH_SIZE_BYTE 0x100000
 #else
 #define	FLASH_SIZE_BYTE	0x80000
 #endif

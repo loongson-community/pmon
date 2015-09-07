@@ -275,10 +275,17 @@ nload (argc, argv)
 		extern long dl_maxaddr;
 		if (flags & WFLAG)
 			bootbigend = !bootbigend;
+#ifdef SST25VF032B
+		tgt_flashprogram_update_rom ((void *)flashaddr,
+				dl_maxaddr - dl_minaddr,
+				(void *)heaptop,
+				bootbigend);
+#else
 		tgt_flashprogram ((void *)flashaddr, 	   	/* address */
 				dl_maxaddr - dl_minaddr, 	/* size */
 				(void *)heaptop,		/* load */
 				bootbigend);
+#endif
 	}
 #endif
 	return EXIT_SUCCESS;

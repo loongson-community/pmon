@@ -2636,15 +2636,15 @@ void setup_tx_desc(synopGMACdevice * gmacdev)
 #if	defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A)
 void parseenv(int index, u8 * buf)
 {
-   int i;
-   char * buffer = (char *)0xbfcff000;
+	int i;
+	char * buffer = (char *)0xbfc00000 + NVRAM_OFFS;
 
-   if(index == 0)
-       for(i = 0; i < 6; i++)
-           buf[i] = buffer[ETHER_OFFS+i];
-   else if(index==1)
-       for(i=0;i<6;i++)
-           buf[i] = buffer[ETHER1_OFFS+i];
+	if(index == 0)
+		for(i = 0; i < 6; i++)
+			buf[i] = buffer[ETHER_OFFS + i];
+	else if(index == 1)
+		for(i = 0; i < 6; i++)
+			buf[i] = buffer[ETHER1_OFFS + i];
 }
 #endif
 

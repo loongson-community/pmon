@@ -683,6 +683,18 @@ tgt_flashprogram(void *p, int size, void *s, int endian)
 	}
 	fl_verify_device(p, s, size, TRUE);
 }
+
+tgt_flashprogram_update_rom(void *p, int size, void *s, int endian)
+{
+	printf("Programming flash %x:%x into %x\n", s, size, p);
+	if (spi_fl_erase_device(p, size, TRUE)) {
+		printf("Erase failed!\n");
+	}
+	if (spi_fl_program_device(p, s, size, TRUE)) {
+		printf("Programming failed!\n");
+	}
+	spi_fl_verify_device(p, s, size, TRUE);
+}
 #endif /* PFLASH */
 
 /*
@@ -740,7 +752,7 @@ tgt_mapenv(int (*func) __P((char *, char *)))
 #ifdef NVRAM_IN_FLASH
 	nvram = (char *)(tgt_flashmap())->fl_map_base;
 	printf("nvram=%08x\n",(unsigned int)nvram);
-	if(fl_devident(nvram, NULL) == 0 ||
+	if(spi_fl_devident(nvram, NULL) == 0 ||
 		cksum(nvram + NVRAM_OFFS, NVRAM_SIZE, 0) != 0) {
 #else
 	nvram = (char *)malloc(512);
@@ -892,12 +904,12 @@ tgt_unsetenv(char *name)
                         }
                         cksum(nvrambuf, NVRAM_SIZE, 1);
 #ifdef NVRAM_IN_FLASH
-                        if(fl_erase_device(nvram, NVRAM_SECSIZE, FALSE)) {
+			if(spi_fl_erase_device(nvram, NVRAM_SECSIZE, FALSE)) {
 				status = -1;
 				break;
                         }
 
-			if(fl_program_device(nvram, nvramsecbuf, NVRAM_SECSIZE, FALSE)) {
+			if(spi_fl_program_device(nvram, nvramsecbuf, NVRAM_SECSIZE, FALSE)) {
 				status = -1;
 				break;
 			}
@@ -969,12 +981,12 @@ tgt_setenv(char *name, char *value) {
                 cksum((void *)nvrambuf, NVRAM_SIZE, 1);
 		printf("Warning! NVRAM checksum fail. Reset!\n");
 #ifdef NVRAM_IN_FLASH
-		if(fl_erase_device(nvram, NVRAM_SECSIZE, FALSE)) {
+		if(spi_fl_erase_device(nvram, NVRAM_SECSIZE, FALSE)) {
 			printf("Error! Nvram erase failed!\n");
 			free(nvramsecbuf);
 			return(-1);
                 }
-		if(fl_program_device(nvram, nvramsecbuf, NVRAM_SECSIZE, FALSE)) {
+		if(spi_fl_program_device(nvram, nvramsecbuf, NVRAM_SECSIZE, FALSE)) {
 			printf("Error! Nvram init failed!\n");
 			free(nvramsecbuf);
                         return(-1);
@@ -1002,7 +1014,8 @@ tgt_setenv(char *name, char *value) {
 #endif
 	nvrambuf = nvramsecbuf + (NVRAM_OFFS & (NVRAM_SECSIZE - 1));
 	/* Etheraddr is special case to save space */
-#if 1  /*added by tangyt*/
+
+	/*added by tangyt*/
 	if (strcmp("activecom",name)==0)
 	{
 		activecom=strtoul(value,0,0);
@@ -1022,8 +1035,6 @@ tgt_setenv(char *name, char *value) {
 			}
 		} else
 
-
-#endif
 			if (strcmp("ethaddr", name) == 0) {
 				char *s = value;
 				int i;
@@ -1089,12 +1100,12 @@ tgt_setenv(char *name, char *value) {
 	bcopy(hwethadr, &nvramsecbuf[ETHER_OFFS], 6);
 	bcopy(hwethadr1, &nvramsecbuf[ETHER1_OFFS], 6);
 #ifdef NVRAM_IN_FLASH
-	if(fl_erase_device(nvram, NVRAM_SECSIZE, FALSE)) {
+	if(spi_fl_erase_device(nvram, NVRAM_SECSIZE, FALSE)) {
 		printf("Error! Nvram erase failed!\n");
 		free(nvramsecbuf);
                	return(0);
 	}
-	if(fl_program_device(nvram, nvramsecbuf, NVRAM_SECSIZE, FALSE)) {
+	if(spi_fl_program_device(nvram, nvramsecbuf, NVRAM_SECSIZE, FALSE)) {
 		printf("Error! Nvram program failed!\n");
 		free(nvramsecbuf);
 		return(0);
