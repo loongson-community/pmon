@@ -3153,7 +3153,9 @@ static int hc_interrupt(void *hc_data)
 		}
 	} else {
 		ints = readl(&regs->intrstatus);
+#ifdef  LOONGSON_3A2H
 		ints &= ~OHCI_INTR_WDH;
+#endif
 		if (ints == ~0ul)
 			return 0;
 		if (ints == 0)
@@ -3207,7 +3209,7 @@ static int hc_interrupt(void *hc_data)
 
 		writel(OHCI_INTR_WDH, &regs->intrdisable);
 
-/*
+#ifndef  LOONGSON_3A2H
 		if (td == NULL) {
 #ifdef CONFIG_SM502_USB_HCD
 			if (ohci->flags & 0x80) {
@@ -3227,7 +3229,7 @@ static int hc_interrupt(void *hc_data)
 #endif
 			}
 		}
-*/
+#endif
 
 		if (td == NULL) {
 			printf("Bad td in donehead\n");
