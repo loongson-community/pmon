@@ -46,7 +46,7 @@ algrithm:
 
 //#define CLOCK_LEVEL
 
-//#define USE_DEFAULT_WRLVL_VALUE   //currently only affect at DDR3 mode
+//#define USE_WRLVL_CLK_OFFSET_VALUE
 
 //#define ARB_SKIP_WRLVL
 #define ADJUST_CPU_ODT  //work ok
@@ -143,7 +143,6 @@ ARB_level_begin:
 #endif
 
 //prepare for wrlvl
-    //Get CLKLVL_DELAY_VALUE
     bal     enable_ddr_confspace
     nop
 
@@ -154,24 +153,72 @@ ARB_level_begin:
     dli     t7, DDR_MC_CONFIG_BASE
     or      t7, t7, a1
 
+    //Get CLKLVL_DELAY_VALUE
     ld      a1, CLKLVL_DELAY_0_ADDR(t7)
     dsrl    a2, a1, CLKLVL_DELAY_0_OFFSET
     and     a2, a2, 0x7f
     sd      a2, CLKLVL_DELAY_VALUE(t8)
 
+    //get the current wrlvl_dq_dly value
+    move    a3, $0
+    dli     a2, WRLVL_DQ_DELAY_MASK
+
+    ld      a1, WRLVL_DQ_DELAY_0_ADDR(t7)
+    dsrl    a1, a1, WRLVL_DQ_DELAY_0_OFFSET
+    and     a1, a1, a2
+    dsll    a1, a1, 0
+    or      a3, a1, a3
+
+    ld      a1, WRLVL_DQ_DELAY_1_ADDR(t7)
+    dsrl    a1, a1, WRLVL_DQ_DELAY_1_OFFSET
+    and     a1, a1, a2
+    dsll    a1, a1, 8
+    or      a3, a1, a3
+
+    ld      a1, WRLVL_DQ_DELAY_2_ADDR(t7)
+    dsrl    a1, a1, WRLVL_DQ_DELAY_2_OFFSET
+    and     a1, a1, a2
+    dsll    a1, a1, 16
+    or      a3, a1, a3
+
+    ld      a1, WRLVL_DQ_DELAY_3_ADDR(t7)
+    dsrl    a1, a1, WRLVL_DQ_DELAY_3_OFFSET
+    and     a1, a1, a2
+    dsll    a1, a1, 24
+    or      a3, a1, a3
+
+    ld      a1, WRLVL_DQ_DELAY_4_ADDR(t7)
+    dsrl    a1, a1, WRLVL_DQ_DELAY_4_OFFSET
+    and     a1, a1, a2
+    dsll    a1, a1, 32
+    or      a3, a1, a3
+
+    ld      a1, WRLVL_DQ_DELAY_5_ADDR(t7)
+    dsrl    a1, a1, WRLVL_DQ_DELAY_5_OFFSET
+    and     a1, a1, a2
+    dsll    a1, a1, 40
+    or      a3, a1, a3
+
+    ld      a1, WRLVL_DQ_DELAY_6_ADDR(t7)
+    dsrl    a1, a1, WRLVL_DQ_DELAY_6_OFFSET
+    and     a1, a1, a2
+    dsll    a1, a1, 48
+    or      a3, a1, a3
+
+    ld      a1, WRLVL_DQ_DELAY_7_ADDR(t7)
+    dsrl    a1, a1, WRLVL_DQ_DELAY_7_OFFSET
+    and     a1, a1, a2
+    dsll    a1, a1, 56
+    or      a3, a1, a3
+
+    sd      a3, WRLVL_DQ_VALUE_ADDR(t8)
+
     bal     disable_ddr_confspace
     nop
 
-#ifdef  DDR3_DIMM
-#ifdef  USE_DEFAULT_WRLVL_VALUE
-    GET_DIMM_TYPE
-    bnez    a1, 88f
-    nop
-    //DDR3 UDIMM
+#ifdef  USE_WRLVL_CLK_OFFSET_VALUE
     b       arb_wrlvl_default_value
     nop
-88:
-#endif
 #endif
 
 arb_wrlvl_start:
@@ -206,16 +253,20 @@ arb_wrlvl_start:
 #endif
     dli     s3, 0xf //change all 8 byte slices
 
+#ifndef KEEP_GATE_INIT_DLY_FIXED
     //set rdlvl gate delay value
     dli     t6, 0x2
     dli     t2, RDLVL_GATE_INIT_DELAY
     bal     arb_modify_param
     nop
+#endif
+#ifndef KEEP_DQ_DLY_FIXED
     //small wrlvl dq delay value temporary
     dli     t6, 0x6
     dli     t2, WRLVL_DQ_SMALL_DLY
     bal     arb_modify_param
     nop
+#endif
 
 //1. level Write DQS Delay line setting.
     //clear store mem
@@ -925,20 +976,17 @@ boundary sign: contain at least WINDOW_ZERO_NUM consecutive 0(TM success)
     nop
 #endif
 
-//calculate mid value for each byte lane
-    ld      a0, GD_MIN(t8)
-    ld      a1, GD_MAX(t8)
-    daddu   a0, a0, a1
-    //divide a0 by 2 every byte
-    dsrl    a0, a0, 1
-    dli     a1, 0x7f7f7f7f7f7f7f7f
-    and     a0, a0, a1
-    //special deal with wrlvl_dqs
-#ifdef  DDR3_DIMM
+//calculate final value for each byte lane
+#if 1   //def  DDR3_DIMM
+    dli     a0, 0x2
+    GET_SDRAM_TYPE
+    beq     a0, a1, 2f
+    nop
     GET_DIMM_TYPE
     bnez    a1, 4f
     nop
-    //DDR3 UDIMM
+2:
+    //DDR3 UDIMM/DDR2 DIMM
     //if we find the lower limit(MIN > 0), then we use (MIN + compensation_value) as the final result.
     //else, if we find the upper limit(MAX < param upper limit), then we use (MAX - compensation_value)
     //as the final result. else(MAX reach param upper limit), we use byte0 as reference, we
@@ -957,13 +1005,40 @@ arb_level_wrlvl_ddr3_cal_begin:
 
     beqz    a1, 2f
     nop
-    //MIN > 0, use min + defined offset
+    //MIN > 0
+    dli     v0, WRLVL_DELAY_LEVEL_UP_LIMIT
+#ifndef KEEP_DQ_DLY_FIXED
+    dli     v1, WRLVL_DQ_SMALL_DLY
+#else
+    ld      v1, WRLVL_DQ_VALUE_ADDR(t8)
+    dsrl    v1, v1, a0
+    and     v1, v1, 0x7f
+#endif
+    dsubu   v0, v0, v1
+    bge     a3, v0, 3f
+    nop
+    //MAX < upper limit, use (MAX + MIN)/2
+    daddu   a3, a3, a1
+    dsrl    a3, a3, 1
+    b       arb_level_ddr3_cal_end
+    nop
+3:
+    //MAX >= upper limit, use min + defined offset
     dli     v0, WRLVL_DELAY_ADD_VALUE
     daddu   a3, a1, v0
     b       arb_level_ddr3_cal_end
     nop
+
 2:  //MIN == 0
     dli     v0, WRLVL_DELAY_LEVEL_UP_LIMIT
+#ifndef KEEP_DQ_DLY_FIXED
+    dli     v1, WRLVL_DQ_SMALL_DLY
+#else
+    ld      v1, WRLVL_DQ_VALUE_ADDR(t8)
+    dsrl    v1, v1, a0
+    and     v1, v1, 0x7f
+#endif
+    dsubu   v0, v0, v1
     bge     a3, v0, 3f
     nop
     //MAX < upper limit, use MAX - defined offset
@@ -977,6 +1052,7 @@ arb_level_wrlvl_ddr3_cal_begin:
     nop
 3:
     //MAX >= upper limit
+#ifdef  DDR3_DIMM
     //use byte 0 as reference
     ld      a1, GD_MAX(t8)
     and     a1, a1, 0x7f
@@ -990,10 +1066,18 @@ arb_level_wrlvl_ddr3_cal_begin:
     dsrl    v0, v0, a0
     and     v0, v0, 0x7f
     daddu   a3, a1, v0
+#else
+    //for DDR2, use default value
+    dli     v0, WRLVL_DEFAULT_VALUE
+    dsrl    v0, v0, a0
+    and     a3, v0, 0x7f
+#endif
 
 arb_level_ddr3_cal_end:
     //check the calculated result whether exceed the max value
+    //max value <= min(0x80-DQ_DLY, 0x60)
     dli     v0, WRLVL_DELAY_PARAM_UP_LIMIT
+#ifndef KEEP_DQ_DLY_FIXED
 #ifndef USE_SPECIAL_WRLVL_DQ_DELAY
     dli     v1, WRLVL_DQ_DEFAULT_DLY
 #else
@@ -1001,11 +1085,48 @@ arb_level_ddr3_cal_end:
     dsrl    v1, v1, a0
     and     v1, v1, 0x7f
 #endif
+#else
+    ld      v1, WRLVL_DQ_VALUE_ADDR(t8)
+    dsrl    v1, v1, a0
+    and     v1, v1, 0x7f
+#endif
     dsubu   v0, v0, v1
+    //get min(0x80-DQ_DLY, 0x60)
+    dli     v1, WRLVL_3QUARTER_CLK_VALUE
+    ble     v0, v1, 1f
+    nop
+    move    v0, v1
+1:
+    //get min(v0, a3)
     ble     a3, v0, 1f
     nop
     move    a3, v0
 1:
+#if 0
+    //check whether the value is near 0x40
+    dli     v0, 0x40
+    ble     a3, v0, 1f
+    nop
+    //a3 > 0x40
+    dsubu   v0, a3, v0
+    dli     v1, 0x8
+    bgt     v0, v1, 2f
+    nop
+    dli     a3, 0x48
+2:  //abs(delta) > 0x8
+    b       8f
+    nop
+1:  //a3 < 0x40
+    dsubu   v0, v0, a3
+    dli     v1, 0x8
+    bgt     v0, v1, 2f
+    nop
+    dli     a3, 0x38
+2:  //abs(delta) > 0x8
+    b       8f
+    nop
+8:
+#endif
     dsll    a3, a3, a0
     or      t4, t4, a3
 
@@ -1067,6 +1188,7 @@ arb_level_ddr3_cal_end:
 
 88:
 #else
+#if 0
     //DDR2 DIMM
     ld      a1, GD_MIN(t8)
     ld      a3, GD_MAX(t8)
@@ -1135,6 +1257,7 @@ arb_level_ddr3_cal_end:
 #endif
 88:
 #endif
+#endif
     sd      a0, GD_MID(t8)
 #ifdef  PRINT_MSG
     PRINTSTR("\r\nCal Mid value: 0x")
@@ -1147,7 +1270,7 @@ arb_level_ddr3_cal_end:
     nop
 #endif
 
-#ifdef  USE_DEFAULT_WRLVL_VALUE
+#ifdef  USE_WRLVL_CLK_OFFSET_VALUE
     b       arb_wrlvl_value_caled
     nop
 
@@ -1163,7 +1286,7 @@ arb_wrlvl_default_value:
     daddu   a2, a2, v0
     //load different value under different freq and DIMM number
     //currently, all use the same default value
-    dli     a0, WRLVL_DDR3_UDIMM_DEFAULT_VALUE
+    dli     a0, WRLVL_CLK_OFFSET_VALUE
     daddu   a0, a0, a2
     sd      a0, GD_MID(t8)
 #endif
@@ -1183,6 +1306,7 @@ arb_wrlvl_value_caled:
     bal     arb_write_param
     nop
 
+#ifndef KEEP_DQ_DLY_FIXED
     //recover wrlvl dq delay value
     dli     t6, 0x6
 #ifndef USE_SPECIAL_WRLVL_DQ_DELAY
@@ -1193,6 +1317,7 @@ arb_wrlvl_value_caled:
     dli     t2, WRLVL_DQ_SPECIAL_DLY
     bal     arb_write_param
     nop
+#endif
 #endif
 
 #ifdef DEBUG_ARB_LEVEL_WR
@@ -1447,7 +1572,7 @@ rdlvl_gate_cfg_start:
     nop
 11:
 
-#ifdef  DEBUG_ARB_LEVEL_RD_TM
+#ifdef  DEBUG_ARB_LEVEL_RD
     PRINTSTR("\r\nlevel result is:\r\n")
     ld      t7, BYTE_TM_RST(t8)
     dsrl    a0, t7, 32

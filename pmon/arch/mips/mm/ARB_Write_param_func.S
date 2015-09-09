@@ -558,183 +558,303 @@ use register: t7
     sd      a1, WRLVL_DELAY_0_ADDR(t7)
 
 #ifdef  CLEAR_HALF_CLK_SHIFT
-    //reset phy_ctrl_reg_0[17:16]--add_half_clk_shift
-    //byte_7
-    dli     a1, WRLVL_HALF_CLK_VALUE
-    dsrl    a2, t2, 0x38
-    and     a2, a2, 0x7f
-    blt     a2, a1, 51f
+    dli     a0, 7
+arb_write_level_param_wrdqs:
+    dsll    a1, a0, 3
+    dsrl    a3, t2, a1
+    and     a3, a3, 0x7f
+    //set phy_ctrl_reg_0[19:16][15:8]--one clk delay and add half clk delay and dqs_out_enable_window.
+    dli     a2, WRLVL_1QUARTER_CLK_VALUE
+    bge     a3, a2, 10f
     nop
-    //set add_half_clk_shift
+    //WRLVL_1QUARTER_CLK_VALUE > wrlvl_delay
+    dli     a1, PHY_0_DQSDQ_INC_VALUE_00P
+    dli     a2, DQSDQ_OUT_WINDOW_VALUE
+    daddu   a3, a1, a2
+    b       18f
+    nop
+10:
+    //a3 >= WRLVL_1QUARTER_CLK_VALUE
+    dli     a2, WRLVL_HALF_CLK_VALUE
+    bge     a3, a2, 11f
+    nop
+    //WRLVL_HALF_CLK_VALUE > wrlvl_delay >= WRLVL_1QUARTER_CLK_VALUE 
+    dli     a1, PHY_0_DQSDQ_INC_VALUE_20P
+    dli     a2, DQSDQ_OUT_WINDOW_VALUE
+    daddu   a3, a1, a2
+    b       18f
+    nop
+11:
+    //a3 >= WRLVL_HALF_CLK_VALUE
+    dli     a2, WRLVL_3QUARTER_CLK_VALUE
+    bge     a3, a2, 12f
+    nop
+    //WRLVL_3QUARTER_CLK_VALUE > wrlvl_delay >= WRLVL_HALF_CLK_VALUE
+    dli     a1, PHY_0_DQSDQ_INC_VALUE_40P
+    dli     a2, DQSDQ_OUT_WINDOW_VALUE
+    daddu   a3, a1, a2
+    b       18f
+    nop
+12:
+    //a3 >= WRLVL_3QUARTER_CLK_VALUE
+    dli     a2, WRLVL_ONE_CLK_VALUE
+    bge     a3, a2, 13f
+    nop
+    //WRLVL_ONE_CLK_VALUE > wrlvl_delay >= WRLVL_3QUARTER_CLK_VALUE
+    dli     a1, PHY_0_DQSDQ_INC_VALUE_60P
+    dli     a2, DQSDQ_OUT_WINDOW_VALUE
+    daddu   a3, a1, a2
+    b       18f
+    nop
+13:
+    //a3 >= WRLVL_ONE_CLK_VALUE
+    //wrlvl_delay >= WRLVL_ONE_CLK_VALUE
+    dli     a1, PHY_0_DQSDQ_INC_VALUE_80P
+    dli     a2, DQSDQ_OUT_WINDOW_VALUE
+    daddu   a3, a1, a2
+    b       18f
+    nop
+18:
+
+    dli     a1, 7
+    beq     a0, a1, 57f
+    nop
+    dsubu   a1, a1, 1
+    beq     a0, a1, 56f
+    nop
+    dsubu   a1, a1, 1
+    beq     a0, a1, 55f
+    nop
+    dsubu   a1, a1, 1
+    beq     a0, a1, 54f
+    nop
+    dsubu   a1, a1, 1
+    beq     a0, a1, 53f
+    nop
+    dsubu   a1, a1, 1
+    beq     a0, a1, 52f
+    nop
+    dsubu   a1, a1, 1
+    beq     a0, a1, 51f
+    nop
+    dsubu   a1, a1, 1
+    beq     a0, a1, 50f
+    nop
+    b       58f
+    nop
+
+57:
+    //modify phy_ctrl_reg_0[19:16]
     ld      a1, PHY_CTRL_0_7_ADDR(t7)
-    dli     a2, 0x3
+    dli     a2, PHY_CTRL_0_ADJ_MASK
+    dsll    a2, a2, PHY_CTRL_0_7_OFFSET + PHY_CTRL_0_ADDWLDLY_SHIFT
+    not     a2, a2
+    and     a1, a1, a2
+    dsrl    a2, a3, 16
     dsll    a2, a2, PHY_CTRL_0_7_OFFSET + PHY_CTRL_0_ADDWLDLY_SHIFT
     or      a1, a1, a2
     sd      a1, PHY_CTRL_0_7_ADDR(t7)
-    b       52f
-    nop
-51: //clear add_half_clk_shift
+
+#ifdef  MODIFY_DQSDQ_OUT_WINDOW
+    //modify phy_ctrl_reg_0[15: 8]
     ld      a1, PHY_CTRL_0_7_ADDR(t7)
-    dli     a2, 0x3
-    dsll    a2, a2, PHY_CTRL_0_7_OFFSET + PHY_CTRL_0_ADDWLDLY_SHIFT
+    dli     a2, DQSDQ_OUT_WINDOW_MASK
+    dsll    a2, a2, PHY_CTRL_0_7_OFFSET + DQSDQ_OUT_WINDOW_SHIFT
     not     a2, a2
     and     a1, a1, a2
+    and     a2, a3, DQSDQ_OUT_WINDOW_MASK
+    dsll    a2, a2, PHY_CTRL_0_7_OFFSET + DQSDQ_OUT_WINDOW_SHIFT
+    or      a1, a1, a2
     sd      a1, PHY_CTRL_0_7_ADDR(t7)
-52:
-    //byte_6
-    dli     a1, WRLVL_HALF_CLK_VALUE
-    dsrl    a2, t2, 0x30
-    and     a2, a2, 0x7f
-    blt     a2, a1, 51f
+#endif
+    b       58f
     nop
-    //set add_half_clk_shift
+56:
+    //modify phy_ctrl_reg_0[19:16]
     ld      a1, PHY_CTRL_0_6_ADDR(t7)
-    dli     a2, 0x3
-    dsll    a2, a2, PHY_CTRL_0_6_OFFSET + PHY_CTRL_0_ADDWLDLY_SHIFT
-    or      a1, a1, a2
-    sd      a1, PHY_CTRL_0_6_ADDR(t7)
-    b       52f
-    nop
-51: //clear add_half_clk_shift
-    ld      a1, PHY_CTRL_0_6_ADDR(t7)
-    dli     a2, 0x3
+    dli     a2, PHY_CTRL_0_ADJ_MASK
     dsll    a2, a2, PHY_CTRL_0_6_OFFSET + PHY_CTRL_0_ADDWLDLY_SHIFT
     not     a2, a2
     and     a1, a1, a2
+    dsrl    a2, a3, 16
+    dsll    a2, a2, PHY_CTRL_0_6_OFFSET + PHY_CTRL_0_ADDWLDLY_SHIFT
+    or      a1, a1, a2
     sd      a1, PHY_CTRL_0_6_ADDR(t7)
-52:
-    //byte_5
-    dli     a1, WRLVL_HALF_CLK_VALUE
-    dsrl    a2, t2, 0x28
-    and     a2, a2, 0x7f
-    blt     a2, a1, 51f
+
+#ifdef  MODIFY_DQSDQ_OUT_WINDOW
+    //modify phy_ctrl_reg_0[15: 8]
+    ld      a1, PHY_CTRL_0_6_ADDR(t7)
+    dli     a2, DQSDQ_OUT_WINDOW_MASK
+    dsll    a2, a2, PHY_CTRL_0_6_OFFSET + DQSDQ_OUT_WINDOW_SHIFT
+    not     a2, a2
+    and     a1, a1, a2
+    and     a2, a3, DQSDQ_OUT_WINDOW_MASK
+    dsll    a2, a2, PHY_CTRL_0_6_OFFSET + DQSDQ_OUT_WINDOW_SHIFT
+    or      a1, a1, a2
+    sd      a1, PHY_CTRL_0_6_ADDR(t7)
+#endif
+    b       58f
     nop
-    //set add_half_clk_shift
+55:
+    //modify phy_ctrl_reg_0[19:16]
     ld      a1, PHY_CTRL_0_5_ADDR(t7)
-    dli     a2, 0x3
+    dli     a2, PHY_CTRL_0_ADJ_MASK
+    dsll    a2, a2, PHY_CTRL_0_5_OFFSET + PHY_CTRL_0_ADDWLDLY_SHIFT
+    not     a2, a2
+    and     a1, a1, a2
+    dsrl    a2, a3, 16
     dsll    a2, a2, PHY_CTRL_0_5_OFFSET + PHY_CTRL_0_ADDWLDLY_SHIFT
     or      a1, a1, a2
     sd      a1, PHY_CTRL_0_5_ADDR(t7)
-    b       52f
-    nop
-51: //clear add_half_clk_shift
+
+#ifdef  MODIFY_DQSDQ_OUT_WINDOW
+    //modify phy_ctrl_reg_0[15: 8]
     ld      a1, PHY_CTRL_0_5_ADDR(t7)
-    dli     a2, 0x3
-    dsll    a2, a2, PHY_CTRL_0_5_OFFSET + PHY_CTRL_0_ADDWLDLY_SHIFT
+    dli     a2, DQSDQ_OUT_WINDOW_MASK
+    dsll    a2, a2, PHY_CTRL_0_5_OFFSET + DQSDQ_OUT_WINDOW_SHIFT
     not     a2, a2
     and     a1, a1, a2
+    and     a2, a3, DQSDQ_OUT_WINDOW_MASK
+    dsll    a2, a2, PHY_CTRL_0_5_OFFSET + DQSDQ_OUT_WINDOW_SHIFT
+    or      a1, a1, a2
     sd      a1, PHY_CTRL_0_5_ADDR(t7)
-52:
-    //byte_4
-    dli     a1, WRLVL_HALF_CLK_VALUE
-    dsrl    a2, t2, 0x20
-    and     a2, a2, 0x7f
-    blt     a2, a1, 51f
+#endif
+    b       58f
     nop
-    //set add_half_clk_shift
+54:
+    //modify phy_ctrl_reg_0[19:16]
     ld      a1, PHY_CTRL_0_4_ADDR(t7)
-    dli     a2, 0x3
-    dsll    a2, a2, PHY_CTRL_0_4_OFFSET + PHY_CTRL_0_ADDWLDLY_SHIFT
-    or      a1, a1, a2
-    sd      a1, PHY_CTRL_0_4_ADDR(t7)
-    b       52f
-    nop
-51: //clear add_half_clk_shift
-    ld      a1, PHY_CTRL_0_4_ADDR(t7)
-    dli     a2, 0x3
+    dli     a2, PHY_CTRL_0_ADJ_MASK
     dsll    a2, a2, PHY_CTRL_0_4_OFFSET + PHY_CTRL_0_ADDWLDLY_SHIFT
     not     a2, a2
     and     a1, a1, a2
+    dsrl    a2, a3, 16
+    dsll    a2, a2, PHY_CTRL_0_4_OFFSET + PHY_CTRL_0_ADDWLDLY_SHIFT
+    or      a1, a1, a2
     sd      a1, PHY_CTRL_0_4_ADDR(t7)
-52:
-    //byte_3
-    dli     a1, WRLVL_HALF_CLK_VALUE
-    dsrl    a2, t2, 0x18
-    and     a2, a2, 0x7f
-    blt     a2, a1, 51f
+
+#ifdef  MODIFY_DQSDQ_OUT_WINDOW
+    //modify phy_ctrl_reg_0[15: 8]
+    ld      a1, PHY_CTRL_0_4_ADDR(t7)
+    dli     a2, DQSDQ_OUT_WINDOW_MASK
+    dsll    a2, a2, PHY_CTRL_0_4_OFFSET + DQSDQ_OUT_WINDOW_SHIFT
+    not     a2, a2
+    and     a1, a1, a2
+    and     a2, a3, DQSDQ_OUT_WINDOW_MASK
+    dsll    a2, a2, PHY_CTRL_0_4_OFFSET + DQSDQ_OUT_WINDOW_SHIFT
+    or      a1, a1, a2
+    sd      a1, PHY_CTRL_0_4_ADDR(t7)
+#endif
+    b       58f
     nop
-    //set add_half_clk_shift
+53:
+    //modify phy_ctrl_reg_0[19:16]
     ld      a1, PHY_CTRL_0_3_ADDR(t7)
-    dli     a2, 0x3
+    dli     a2, PHY_CTRL_0_ADJ_MASK
+    dsll    a2, a2, PHY_CTRL_0_3_OFFSET + PHY_CTRL_0_ADDWLDLY_SHIFT
+    not     a2, a2
+    and     a1, a1, a2
+    dsrl    a2, a3, 16
     dsll    a2, a2, PHY_CTRL_0_3_OFFSET + PHY_CTRL_0_ADDWLDLY_SHIFT
     or      a1, a1, a2
     sd      a1, PHY_CTRL_0_3_ADDR(t7)
-    b       52f
-    nop
-51: //clear add_half_clk_shift
+
+#ifdef  MODIFY_DQSDQ_OUT_WINDOW
+    //modify phy_ctrl_reg_0[15: 8]
     ld      a1, PHY_CTRL_0_3_ADDR(t7)
-    dli     a2, 0x3
-    dsll    a2, a2, PHY_CTRL_0_3_OFFSET + PHY_CTRL_0_ADDWLDLY_SHIFT
+    dli     a2, DQSDQ_OUT_WINDOW_MASK
+    dsll    a2, a2, PHY_CTRL_0_3_OFFSET + DQSDQ_OUT_WINDOW_SHIFT
     not     a2, a2
     and     a1, a1, a2
+    and     a2, a3, DQSDQ_OUT_WINDOW_MASK
+    dsll    a2, a2, PHY_CTRL_0_3_OFFSET + DQSDQ_OUT_WINDOW_SHIFT
+    or      a1, a1, a2
     sd      a1, PHY_CTRL_0_3_ADDR(t7)
+#endif
+    b       58f
+    nop
 52:
-    //byte_2
-    dli     a1, WRLVL_HALF_CLK_VALUE
-    dsrl    a2, t2, 0x10
-    and     a2, a2, 0x7f
-    blt     a2, a1, 51f
-    nop
-    //set add_half_clk_shift
+    //modify phy_ctrl_reg_0[19:16]
     ld      a1, PHY_CTRL_0_2_ADDR(t7)
-    dli     a2, 0x3
-    dsll    a2, a2, PHY_CTRL_0_2_OFFSET + PHY_CTRL_0_ADDWLDLY_SHIFT
-    or      a1, a1, a2
-    sd      a1, PHY_CTRL_0_2_ADDR(t7)
-    b       52f
-    nop
-51: //clear add_half_clk_shift
-    ld      a1, PHY_CTRL_0_2_ADDR(t7)
-    dli     a2, 0x3
+    dli     a2, PHY_CTRL_0_ADJ_MASK
     dsll    a2, a2, PHY_CTRL_0_2_OFFSET + PHY_CTRL_0_ADDWLDLY_SHIFT
     not     a2, a2
     and     a1, a1, a2
+    dsrl    a2, a3, 16
+    dsll    a2, a2, PHY_CTRL_0_2_OFFSET + PHY_CTRL_0_ADDWLDLY_SHIFT
+    or      a1, a1, a2
     sd      a1, PHY_CTRL_0_2_ADDR(t7)
-52:
-    //byte_1
-    dli     a1, WRLVL_HALF_CLK_VALUE
-    dsrl    a2, t2, 0x8
-    and     a2, a2, 0x7f
-    blt     a2, a1, 51f
-    nop
-    //set add_half_clk_shift
-    ld      a1, PHY_CTRL_0_1_ADDR(t7)
-    dli     a2, 0x3
-    dsll    a2, a2, PHY_CTRL_0_1_OFFSET + PHY_CTRL_0_ADDWLDLY_SHIFT
+
+#ifdef  MODIFY_DQSDQ_OUT_WINDOW
+    //modify phy_ctrl_reg_0[15: 8]
+    ld      a1, PHY_CTRL_0_2_ADDR(t7)
+    dli     a2, DQSDQ_OUT_WINDOW_MASK
+    dsll    a2, a2, PHY_CTRL_0_2_OFFSET + DQSDQ_OUT_WINDOW_SHIFT
+    not     a2, a2
+    and     a1, a1, a2
+    and     a2, a3, DQSDQ_OUT_WINDOW_MASK
+    dsll    a2, a2, PHY_CTRL_0_2_OFFSET + DQSDQ_OUT_WINDOW_SHIFT
     or      a1, a1, a2
-    sd      a1, PHY_CTRL_0_1_ADDR(t7)
-    b       52f
+    sd      a1, PHY_CTRL_0_2_ADDR(t7)
+#endif
+    b       58f
     nop
-51: //clear add_half_clk_shift
+51:
+    //modify phy_ctrl_reg_0[19:16]
     ld      a1, PHY_CTRL_0_1_ADDR(t7)
-    dli     a2, 0x3
+    dli     a2, PHY_CTRL_0_ADJ_MASK
     dsll    a2, a2, PHY_CTRL_0_1_OFFSET + PHY_CTRL_0_ADDWLDLY_SHIFT
     not     a2, a2
     and     a1, a1, a2
-    sd      a1, PHY_CTRL_0_1_ADDR(t7)
-52:
-    //byte_0
-    dli     a1, WRLVL_HALF_CLK_VALUE
-    dsrl    a2, t2, 0x0
-    and     a2, a2, 0x7f
-    blt     a2, a1, 51f
-    nop
-    //set add_half_clk_shift
-    ld      a1, PHY_CTRL_0_0_ADDR(t7)
-    dli     a2, 0x3
-    dsll    a2, a2, PHY_CTRL_0_0_OFFSET + PHY_CTRL_0_ADDWLDLY_SHIFT
+    dsrl    a2, a3, 16
+    dsll    a2, a2, PHY_CTRL_0_1_OFFSET + PHY_CTRL_0_ADDWLDLY_SHIFT
     or      a1, a1, a2
-    sd      a1, PHY_CTRL_0_0_ADDR(t7)
-    b       52f
+    sd      a1, PHY_CTRL_0_1_ADDR(t7)
+
+#ifdef  MODIFY_DQSDQ_OUT_WINDOW
+    //modify phy_ctrl_reg_0[15: 8]
+    ld      a1, PHY_CTRL_0_1_ADDR(t7)
+    dli     a2, DQSDQ_OUT_WINDOW_MASK
+    dsll    a2, a2, PHY_CTRL_0_1_OFFSET + DQSDQ_OUT_WINDOW_SHIFT
+    not     a2, a2
+    and     a1, a1, a2
+    and     a2, a3, DQSDQ_OUT_WINDOW_MASK
+    dsll    a2, a2, PHY_CTRL_0_1_OFFSET + DQSDQ_OUT_WINDOW_SHIFT
+    or      a1, a1, a2
+    sd      a1, PHY_CTRL_0_1_ADDR(t7)
+#endif
+    b       58f
     nop
-51: //clear add_half_clk_shift
+50:
+    //modify phy_ctrl_reg_0[19:16]
     ld      a1, PHY_CTRL_0_0_ADDR(t7)
-    dli     a2, 0x3
+    dli     a2, PHY_CTRL_0_ADJ_MASK
     dsll    a2, a2, PHY_CTRL_0_0_OFFSET + PHY_CTRL_0_ADDWLDLY_SHIFT
     not     a2, a2
     and     a1, a1, a2
+    dsrl    a2, a3, 16
+    dsll    a2, a2, PHY_CTRL_0_0_OFFSET + PHY_CTRL_0_ADDWLDLY_SHIFT
+    or      a1, a1, a2
     sd      a1, PHY_CTRL_0_0_ADDR(t7)
-52:
+
+#ifdef  MODIFY_DQSDQ_OUT_WINDOW
+    //modify phy_ctrl_reg_0[15: 8]
+    ld      a1, PHY_CTRL_0_0_ADDR(t7)
+    dli     a2, DQSDQ_OUT_WINDOW_MASK
+    dsll    a2, a2, PHY_CTRL_0_0_OFFSET + DQSDQ_OUT_WINDOW_SHIFT
+    not     a2, a2
+    and     a1, a1, a2
+    and     a2, a3, DQSDQ_OUT_WINDOW_MASK
+    dsll    a2, a2, PHY_CTRL_0_0_OFFSET + DQSDQ_OUT_WINDOW_SHIFT
+    or      a1, a1, a2
+    sd      a1, PHY_CTRL_0_0_ADDR(t7)
+#endif
+    b       58f
+    nop
+58:
+    dsubu   a0, a0, 1
+    bge     a0, $0, arb_write_level_param_wrdqs
+    nop
 #endif
 
     b       40f

@@ -1,7 +1,7 @@
 /**********************************
     Author: chenxinke
     Date:   20150707
-    v1.0 support ~3A3
+    v1.0 support 2G
     subroutine: mc_init
     input:
     t7(option ARB_LEVEL)--do arb level, 0--not level; 1--do level;

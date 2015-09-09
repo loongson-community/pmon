@@ -567,6 +567,60 @@ use register:
     b       88f
     nop
 5:
+#ifdef  CLEAR_HALF_CLK_SHIFT
+    //set phy_ctrl_reg_0[19:16][15:8]--one clk delay and add half clk delay and dqs_out_enable_window.
+    dli     a2, WRLVL_1QUARTER_CLK_VALUE
+    bge     t2, a2, 10f
+    nop
+    //WRLVL_1QUARTER_CLK_VALUE > wrlvl_delay
+    dli     a1, PHY_0_DQSDQ_INC_VALUE_00P
+    dli     a2, DQSDQ_OUT_WINDOW_VALUE
+    daddu   a3, a1, a2
+    b       18f
+    nop
+10:
+    //t2 >= WRLVL_1QUARTER_CLK_VALUE
+    dli     a2, WRLVL_HALF_CLK_VALUE
+    bge     t2, a2, 11f
+    nop
+    //WRLVL_HALF_CLK_VALUE > wrlvl_delay >= WRLVL_1QUARTER_CLK_VALUE 
+    dli     a1, PHY_0_DQSDQ_INC_VALUE_20P
+    dli     a2, DQSDQ_OUT_WINDOW_VALUE
+    daddu   a3, a1, a2
+    b       18f
+    nop
+11:
+    //t2 >= WRLVL_HALF_CLK_VALUE
+    dli     a2, WRLVL_3QUARTER_CLK_VALUE
+    bge     t2, a2, 12f
+    nop
+    //WRLVL_3QUARTER_CLK_VALUE > wrlvl_delay >= WRLVL_HALF_CLK_VALUE
+    dli     a1, PHY_0_DQSDQ_INC_VALUE_40P
+    dli     a2, DQSDQ_OUT_WINDOW_VALUE
+    daddu   a3, a1, a2
+    b       18f
+    nop
+12:
+    //t2 >= WRLVL_3QUARTER_CLK_VALUE
+    dli     a2, WRLVL_ONE_CLK_VALUE
+    bge     t2, a2, 13f
+    nop
+    //WRLVL_ONE_CLK_VALUE > wrlvl_delay >= WRLVL_3QUARTER_CLK_VALUE
+    dli     a1, PHY_0_DQSDQ_INC_VALUE_60P
+    dli     a2, DQSDQ_OUT_WINDOW_VALUE
+    daddu   a3, a1, a2
+    b       18f
+    nop
+13:
+    //t2 >= WRLVL_ONE_CLK_VALUE
+    //wrlvl_delay >= WRLVL_ONE_CLK_VALUE
+    dli     a1, PHY_0_DQSDQ_INC_VALUE_80P
+    dli     a2, DQSDQ_OUT_WINDOW_VALUE
+    daddu   a3, a1, a2
+    b       18f
+    nop
+18:
+#endif
     dli     a1, 0x0
     beq     s3, a1, 50f
     nop
@@ -606,47 +660,6 @@ use register:
     sd      a1, WRLVL_DELAY_0_ADDR(t7)
 
 #ifdef  CLEAR_HALF_CLK_SHIFT
-    //modify phy_ctrl_reg_0[19:16][15:8]--one clk delay and add half clk delay and dqs_out_enable_window.
-    dli     a2, WRLVL_HALF_CLK_VALUE
-    bge     t2, a2, 11f
-    nop
-    //wrlvl_delay < WRLVL_HALF_CLK_VALUE
-    dli     a1, PHY_0_DQSDQ_INC_VALUE_00P
-    dli     a2, DQSDQ_OUT_WINDOW_VALUE
-    daddu   a3, a1, a2
-    b       18f
-    nop
-11:
-    //t2 >= WRLVL_HALF_CLK_VALUE
-    dli     a2, WRLVL_3QUARTER_CLK_VALUE
-    bge     t2, a2, 12f
-    nop
-    //WRLVL_3QUARTER_CLK_VALUE > wrlvl_delay >= WRLVL_HALF_CLK_VALUE
-    dli     a1, PHY_0_DQSDQ_INC_VALUE_40P
-    dli     a2, DQSDQ_OUT_WINDOW_VALUE
-    daddu   a3, a1, a2
-    b       18f
-    nop
-12:
-    //t2 >= WRLVL_3QUARTER_CLK_VALUE
-    dli     a2, WRLVL_ONE_CLK_VALUE
-    bge     t2, a2, 13f
-    nop
-    //WRLVL_ONE_CLK_VALUE > wrlvl_delay >= WRLVL_3QUARTER_CLK_VALUE
-    dli     a1, PHY_0_DQSDQ_INC_VALUE_60P
-    dli     a2, DQSDQ_OUT_WINDOW_VALUE
-    daddu   a3, a1, a2
-    b       18f
-    nop
-13:
-    //t2 >= WRLVL_ONE_CLK_VALUE
-    //wrlvl_delay >= WRLVL_ONE_CLK_VALUE
-    dli     a1, PHY_0_DQSDQ_INC_VALUE_80P
-    dli     a2, DQSDQ_OUT_WINDOW_VALUE
-    daddu   a3, a1, a2
-    b       18f
-    nop
-18:
     //modify phy_ctrl_reg_0[19:16][15:8]
     ld      a1, PHY_CTRL_0_0_ADDR(t7)
     dli     a2, PHY_CTRL_0_ADJ_MASK
@@ -684,47 +697,6 @@ use register:
     sd      a1, WRLVL_DELAY_1_ADDR(t7)
 
 #ifdef  CLEAR_HALF_CLK_SHIFT
-    //modify phy_ctrl_reg_0[19:16][15:8]--one clk delay and add half clk delay and dqs_out_enable_window.
-    dli     a2, WRLVL_HALF_CLK_VALUE
-    bge     t2, a2, 11f
-    nop
-    //wrlvl_delay < WRLVL_HALF_CLK_VALUE
-    dli     a1, PHY_0_DQSDQ_INC_VALUE_00P
-    dli     a2, DQSDQ_OUT_WINDOW_VALUE
-    daddu   a3, a1, a2
-    b       18f
-    nop
-11:
-    //t2 >= WRLVL_HALF_CLK_VALUE
-    dli     a2, WRLVL_3QUARTER_CLK_VALUE
-    bge     t2, a2, 12f
-    nop
-    //WRLVL_3QUARTER_CLK_VALUE > wrlvl_delay >= WRLVL_HALF_CLK_VALUE
-    dli     a1, PHY_0_DQSDQ_INC_VALUE_40P
-    dli     a2, DQSDQ_OUT_WINDOW_VALUE
-    daddu   a3, a1, a2
-    b       18f
-    nop
-12:
-    //t2 >= WRLVL_3QUARTER_CLK_VALUE
-    dli     a2, WRLVL_ONE_CLK_VALUE
-    bge     t2, a2, 13f
-    nop
-    //WRLVL_ONE_CLK_VALUE > wrlvl_delay >= WRLVL_3QUARTER_CLK_VALUE
-    dli     a1, PHY_0_DQSDQ_INC_VALUE_60P
-    dli     a2, DQSDQ_OUT_WINDOW_VALUE
-    daddu   a3, a1, a2
-    b       18f
-    nop
-13:
-    //t2 >= WRLVL_ONE_CLK_VALUE
-    //wrlvl_delay >= WRLVL_ONE_CLK_VALUE
-    dli     a1, PHY_0_DQSDQ_INC_VALUE_80P
-    dli     a2, DQSDQ_OUT_WINDOW_VALUE
-    daddu   a3, a1, a2
-    b       18f
-    nop
-18:
     //modify phy_ctrl_reg_0[19:16][15:8]
     ld      a1, PHY_CTRL_0_1_ADDR(t7)
     dli     a2, PHY_CTRL_0_ADJ_MASK
@@ -762,47 +734,6 @@ use register:
     sd      a1, WRLVL_DELAY_2_ADDR(t7)
 
 #ifdef  CLEAR_HALF_CLK_SHIFT
-    //modify phy_ctrl_reg_0[19:16][15:8]--one clk delay and add half clk delay and dqs_out_enable_window.
-    dli     a2, WRLVL_HALF_CLK_VALUE
-    bge     t2, a2, 11f
-    nop
-    //wrlvl_delay < WRLVL_HALF_CLK_VALUE
-    dli     a1, PHY_0_DQSDQ_INC_VALUE_00P
-    dli     a2, DQSDQ_OUT_WINDOW_VALUE
-    daddu   a3, a1, a2
-    b       18f
-    nop
-11:
-    //t2 >= WRLVL_HALF_CLK_VALUE
-    dli     a2, WRLVL_3QUARTER_CLK_VALUE
-    bge     t2, a2, 12f
-    nop
-    //WRLVL_3QUARTER_CLK_VALUE > wrlvl_delay >= WRLVL_HALF_CLK_VALUE
-    dli     a1, PHY_0_DQSDQ_INC_VALUE_40P
-    dli     a2, DQSDQ_OUT_WINDOW_VALUE
-    daddu   a3, a1, a2
-    b       18f
-    nop
-12:
-    //t2 >= WRLVL_3QUARTER_CLK_VALUE
-    dli     a2, WRLVL_ONE_CLK_VALUE
-    bge     t2, a2, 13f
-    nop
-    //WRLVL_ONE_CLK_VALUE > wrlvl_delay >= WRLVL_3QUARTER_CLK_VALUE
-    dli     a1, PHY_0_DQSDQ_INC_VALUE_60P
-    dli     a2, DQSDQ_OUT_WINDOW_VALUE
-    daddu   a3, a1, a2
-    b       18f
-    nop
-13:
-    //t2 >= WRLVL_ONE_CLK_VALUE
-    //wrlvl_delay >= WRLVL_ONE_CLK_VALUE
-    dli     a1, PHY_0_DQSDQ_INC_VALUE_80P
-    dli     a2, DQSDQ_OUT_WINDOW_VALUE
-    daddu   a3, a1, a2
-    b       18f
-    nop
-18:
     //modify phy_ctrl_reg_0[19:16][15:8]
     ld      a1, PHY_CTRL_0_2_ADDR(t7)
     dli     a2, PHY_CTRL_0_ADJ_MASK
@@ -840,47 +771,6 @@ use register:
     sd      a1, WRLVL_DELAY_3_ADDR(t7)
 
 #ifdef  CLEAR_HALF_CLK_SHIFT
-    //modify phy_ctrl_reg_0[19:16][15:8]--one clk delay and add half clk delay and dqs_out_enable_window.
-    dli     a2, WRLVL_HALF_CLK_VALUE
-    bge     t2, a2, 11f
-    nop
-    //wrlvl_delay < WRLVL_HALF_CLK_VALUE
-    dli     a1, PHY_0_DQSDQ_INC_VALUE_00P
-    dli     a2, DQSDQ_OUT_WINDOW_VALUE
-    daddu   a3, a1, a2
-    b       18f
-    nop
-11:
-    //t2 >= WRLVL_HALF_CLK_VALUE
-    dli     a2, WRLVL_3QUARTER_CLK_VALUE
-    bge     t2, a2, 12f
-    nop
-    //WRLVL_3QUARTER_CLK_VALUE > wrlvl_delay >= WRLVL_HALF_CLK_VALUE
-    dli     a1, PHY_0_DQSDQ_INC_VALUE_40P
-    dli     a2, DQSDQ_OUT_WINDOW_VALUE
-    daddu   a3, a1, a2
-    b       18f
-    nop
-12:
-    //t2 >= WRLVL_3QUARTER_CLK_VALUE
-    dli     a2, WRLVL_ONE_CLK_VALUE
-    bge     t2, a2, 13f
-    nop
-    //WRLVL_ONE_CLK_VALUE > wrlvl_delay >= WRLVL_3QUARTER_CLK_VALUE
-    dli     a1, PHY_0_DQSDQ_INC_VALUE_60P
-    dli     a2, DQSDQ_OUT_WINDOW_VALUE
-    daddu   a3, a1, a2
-    b       18f
-    nop
-13:
-    //t2 >= WRLVL_ONE_CLK_VALUE
-    //wrlvl_delay >= WRLVL_ONE_CLK_VALUE
-    dli     a1, PHY_0_DQSDQ_INC_VALUE_80P
-    dli     a2, DQSDQ_OUT_WINDOW_VALUE
-    daddu   a3, a1, a2
-    b       18f
-    nop
-18:
     //modify phy_ctrl_reg_0[19:16][15:8]
     ld      a1, PHY_CTRL_0_3_ADDR(t7)
     dli     a2, PHY_CTRL_0_ADJ_MASK
@@ -918,47 +808,6 @@ use register:
     sd      a1, WRLVL_DELAY_4_ADDR(t7)
 
 #ifdef  CLEAR_HALF_CLK_SHIFT
-    //modify phy_ctrl_reg_0[19:16][15:8]--one clk delay and add half clk delay and dqs_out_enable_window.
-    dli     a2, WRLVL_HALF_CLK_VALUE
-    bge     t2, a2, 11f
-    nop
-    //wrlvl_delay < WRLVL_HALF_CLK_VALUE
-    dli     a1, PHY_0_DQSDQ_INC_VALUE_00P
-    dli     a2, DQSDQ_OUT_WINDOW_VALUE
-    daddu   a3, a1, a2
-    b       18f
-    nop
-11:
-    //t2 >= WRLVL_HALF_CLK_VALUE
-    dli     a2, WRLVL_3QUARTER_CLK_VALUE
-    bge     t2, a2, 12f
-    nop
-    //WRLVL_3QUARTER_CLK_VALUE > wrlvl_delay >= WRLVL_HALF_CLK_VALUE
-    dli     a1, PHY_0_DQSDQ_INC_VALUE_40P
-    dli     a2, DQSDQ_OUT_WINDOW_VALUE
-    daddu   a3, a1, a2
-    b       18f
-    nop
-12:
-    //t2 >= WRLVL_3QUARTER_CLK_VALUE
-    dli     a2, WRLVL_ONE_CLK_VALUE
-    bge     t2, a2, 13f
-    nop
-    //WRLVL_ONE_CLK_VALUE > wrlvl_delay >= WRLVL_3QUARTER_CLK_VALUE
-    dli     a1, PHY_0_DQSDQ_INC_VALUE_60P
-    dli     a2, DQSDQ_OUT_WINDOW_VALUE
-    daddu   a3, a1, a2
-    b       18f
-    nop
-13:
-    //t2 >= WRLVL_ONE_CLK_VALUE
-    //wrlvl_delay >= WRLVL_ONE_CLK_VALUE
-    dli     a1, PHY_0_DQSDQ_INC_VALUE_80P
-    dli     a2, DQSDQ_OUT_WINDOW_VALUE
-    daddu   a3, a1, a2
-    b       18f
-    nop
-18:
     //modify phy_ctrl_reg_0[19:16][15:8]
     ld      a1, PHY_CTRL_0_4_ADDR(t7)
     dli     a2, PHY_CTRL_0_ADJ_MASK
@@ -996,47 +845,6 @@ use register:
     sd      a1, WRLVL_DELAY_5_ADDR(t7)
 
 #ifdef  CLEAR_HALF_CLK_SHIFT
-    //modify phy_ctrl_reg_0[19:16][15:8]--one clk delay and add half clk delay and dqs_out_enable_window.
-    dli     a2, WRLVL_HALF_CLK_VALUE
-    bge     t2, a2, 11f
-    nop
-    //wrlvl_delay < WRLVL_HALF_CLK_VALUE
-    dli     a1, PHY_0_DQSDQ_INC_VALUE_00P
-    dli     a2, DQSDQ_OUT_WINDOW_VALUE
-    daddu   a3, a1, a2
-    b       18f
-    nop
-11:
-    //t2 >= WRLVL_HALF_CLK_VALUE
-    dli     a2, WRLVL_3QUARTER_CLK_VALUE
-    bge     t2, a2, 12f
-    nop
-    //WRLVL_3QUARTER_CLK_VALUE > wrlvl_delay >= WRLVL_HALF_CLK_VALUE
-    dli     a1, PHY_0_DQSDQ_INC_VALUE_40P
-    dli     a2, DQSDQ_OUT_WINDOW_VALUE
-    daddu   a3, a1, a2
-    b       18f
-    nop
-12:
-    //t2 >= WRLVL_3QUARTER_CLK_VALUE
-    dli     a2, WRLVL_ONE_CLK_VALUE
-    bge     t2, a2, 13f
-    nop
-    //WRLVL_ONE_CLK_VALUE > wrlvl_delay >= WRLVL_3QUARTER_CLK_VALUE
-    dli     a1, PHY_0_DQSDQ_INC_VALUE_60P
-    dli     a2, DQSDQ_OUT_WINDOW_VALUE
-    daddu   a3, a1, a2
-    b       18f
-    nop
-13:
-    //t2 >= WRLVL_ONE_CLK_VALUE
-    //wrlvl_delay >= WRLVL_ONE_CLK_VALUE
-    dli     a1, PHY_0_DQSDQ_INC_VALUE_80P
-    dli     a2, DQSDQ_OUT_WINDOW_VALUE
-    daddu   a3, a1, a2
-    b       18f
-    nop
-18:
     //modify phy_ctrl_reg_0[19:16][15:8]
     ld      a1, PHY_CTRL_0_5_ADDR(t7)
     dli     a2, PHY_CTRL_0_ADJ_MASK
@@ -1074,47 +882,6 @@ use register:
     sd      a1, WRLVL_DELAY_6_ADDR(t7)
 
 #ifdef  CLEAR_HALF_CLK_SHIFT
-    //modify phy_ctrl_reg_0[19:16][15:8]--one clk delay and add half clk delay and dqs_out_enable_window.
-    dli     a2, WRLVL_HALF_CLK_VALUE
-    bge     t2, a2, 11f
-    nop
-    //wrlvl_delay < WRLVL_HALF_CLK_VALUE
-    dli     a1, PHY_0_DQSDQ_INC_VALUE_00P
-    dli     a2, DQSDQ_OUT_WINDOW_VALUE
-    daddu   a3, a1, a2
-    b       18f
-    nop
-11:
-    //t2 >= WRLVL_HALF_CLK_VALUE
-    dli     a2, WRLVL_3QUARTER_CLK_VALUE
-    bge     t2, a2, 12f
-    nop
-    //WRLVL_3QUARTER_CLK_VALUE > wrlvl_delay >= WRLVL_HALF_CLK_VALUE
-    dli     a1, PHY_0_DQSDQ_INC_VALUE_40P
-    dli     a2, DQSDQ_OUT_WINDOW_VALUE
-    daddu   a3, a1, a2
-    b       18f
-    nop
-12:
-    //t2 >= WRLVL_3QUARTER_CLK_VALUE
-    dli     a2, WRLVL_ONE_CLK_VALUE
-    bge     t2, a2, 13f
-    nop
-    //WRLVL_ONE_CLK_VALUE > wrlvl_delay >= WRLVL_3QUARTER_CLK_VALUE
-    dli     a1, PHY_0_DQSDQ_INC_VALUE_60P
-    dli     a2, DQSDQ_OUT_WINDOW_VALUE
-    daddu   a3, a1, a2
-    b       18f
-    nop
-13:
-    //t2 >= WRLVL_ONE_CLK_VALUE
-    //wrlvl_delay >= WRLVL_ONE_CLK_VALUE
-    dli     a1, PHY_0_DQSDQ_INC_VALUE_80P
-    dli     a2, DQSDQ_OUT_WINDOW_VALUE
-    daddu   a3, a1, a2
-    b       18f
-    nop
-18:
     //modify phy_ctrl_reg_0[19:16][15:8]
     ld      a1, PHY_CTRL_0_6_ADDR(t7)
     dli     a2, PHY_CTRL_0_ADJ_MASK
@@ -1152,47 +919,6 @@ use register:
     sd      a1, WRLVL_DELAY_7_ADDR(t7)
 
 #ifdef  CLEAR_HALF_CLK_SHIFT
-    //modify phy_ctrl_reg_0[19:16][15:8]--one clk delay and add half clk delay and dqs_out_enable_window.
-    dli     a2, WRLVL_HALF_CLK_VALUE
-    bge     t2, a2, 11f
-    nop
-    //wrlvl_delay < WRLVL_HALF_CLK_VALUE
-    dli     a1, PHY_0_DQSDQ_INC_VALUE_00P
-    dli     a2, DQSDQ_OUT_WINDOW_VALUE
-    daddu   a3, a1, a2
-    b       18f
-    nop
-11:
-    //t2 >= WRLVL_HALF_CLK_VALUE
-    dli     a2, WRLVL_3QUARTER_CLK_VALUE
-    bge     t2, a2, 12f
-    nop
-    //WRLVL_3QUARTER_CLK_VALUE > wrlvl_delay >= WRLVL_HALF_CLK_VALUE
-    dli     a1, PHY_0_DQSDQ_INC_VALUE_40P
-    dli     a2, DQSDQ_OUT_WINDOW_VALUE
-    daddu   a3, a1, a2
-    b       18f
-    nop
-12:
-    //t2 >= WRLVL_3QUARTER_CLK_VALUE
-    dli     a2, WRLVL_ONE_CLK_VALUE
-    bge     t2, a2, 13f
-    nop
-    //WRLVL_ONE_CLK_VALUE > wrlvl_delay >= WRLVL_3QUARTER_CLK_VALUE
-    dli     a1, PHY_0_DQSDQ_INC_VALUE_60P
-    dli     a2, DQSDQ_OUT_WINDOW_VALUE
-    daddu   a3, a1, a2
-    b       18f
-    nop
-13:
-    //t2 >= WRLVL_ONE_CLK_VALUE
-    //wrlvl_delay >= WRLVL_ONE_CLK_VALUE
-    dli     a1, PHY_0_DQSDQ_INC_VALUE_80P
-    dli     a2, DQSDQ_OUT_WINDOW_VALUE
-    daddu   a3, a1, a2
-    b       18f
-    nop
-18:
     //modify phy_ctrl_reg_0[19:16][15:8]
     ld      a1, PHY_CTRL_0_7_ADDR(t7)
     dli     a2, PHY_CTRL_0_ADJ_MASK

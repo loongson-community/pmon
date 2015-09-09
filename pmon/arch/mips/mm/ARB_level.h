@@ -27,8 +27,8 @@
 #define WRLVL_DEFAULT_VALUE     (0x2020202020202020)
 #endif
 //for skip wrlvl use
-#define WRLVL_DDR3_UDIMM_DEFAULT_VALUE  (0x5e5a545044403a34)    //for DDR3 UDIMM
-//#define WRLVL_DDR3_UDIMM_DEFAULT_VALUE  (0x181812120c0c0606)    //for DDR3 SMT-771
+#define WRLVL_CLK_OFFSET_VALUE  (0x5e5a545044403a34)    //for DDR3 UDIMM
+//#define WRLVL_CLK_OFFSET_VALUE  (0x181812120c0c0606)    //for DDR3 SMT-771
 
 #define RDLVL_GATE_INIT_DELAY   (0x0)
 #define RDLVL_DEFAULT_DELAY     (0x20)
@@ -41,10 +41,11 @@
 #define CLKLVL_MAX_DELAY        (0x7c)
 #define WRLVL_MAX_DELAY         (0x68)
 #define WRLVL_DQ_MAX_DELAY      (0x50)
-#define WRLVL_HALF_CLK_VALUE    (0x40)
+#define WRLVL_1QUARTER_CLK_VALUE    (0x20)
+#define WRLVL_HALF_CLK_VALUE        (0x40)
 #define WRLVL_3QUARTER_CLK_VALUE    (0x60)
-#define WRLVL_ONE_CLK_VALUE     (0x80)
-#define WRLVL_DELAY_LEVEL_UP_LIMIT  (0x80 - WRLVL_DQ_SMALL_DLY - (1 << LOG2_STEP))
+#define WRLVL_ONE_CLK_VALUE         (0x80)
+#define WRLVL_DELAY_LEVEL_UP_LIMIT  (0x80 - (1 << LOG2_STEP))
 #define WRLVL_DELAY_PARAM_UP_LIMIT  (0x80 - 1)
 
 //for rdlvl
@@ -60,11 +61,12 @@
 //#define CPU_ODT_BASE_VALUE      (0x04)
 //#define CPU_ODT_INC_VALUE       (0x12)
 
-//#define  MODIFY_DQSDQ_OUT_WINDOW
-#define DQSDQ_OUT_WINDOW_VALUE      (0x3733)
+//#define MODIFY_DQSDQ_OUT_WINDOW
+#define DQSDQ_OUT_WINDOW_VALUE      (0x03733)
 #define PHY_0_DQSDQ_INC_VALUE_80P   (0x84400)
 #define PHY_0_DQSDQ_INC_VALUE_60P   (0x30400)
 #define PHY_0_DQSDQ_INC_VALUE_40P   (0x30000)
+#define PHY_0_DQSDQ_INC_VALUE_20P   (0x00000)
 #define PHY_0_DQSDQ_INC_VALUE_00P   (0x00000)
 
 //the wrlvl can work without this delay(not sure now), but the rdlvl really need it. why???
@@ -107,3 +109,4 @@
 #define RDLVL_FAIL_MARK     (0x58)
 
 #define CLKLVL_DELAY_VALUE  (0x68)
+#define WRLVL_DQ_VALUE_ADDR (0x70)

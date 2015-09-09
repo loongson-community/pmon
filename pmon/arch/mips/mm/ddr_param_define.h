@@ -124,7 +124,7 @@
 #define PHY_CTRL_0_PREAMBLE_SHIFT 18
 #define ADD_HALF_CLK_SHIFT       17
 #define PHY_CTRL_0_ADDWLDLY_SHIFT 16
-#define PHY_CTRL_0_ADJ_MASK      (0xb)
+#define PHY_CTRL_0_ADJ_MASK      (0xf)
 #define DQS_OUT_WINDOW_MASK      (0xff)
 #define DQS_OUT_WINDOW_SHIFT     8
 #define DQSDQ_OUT_WINDOW_MASK    (0xffff)
