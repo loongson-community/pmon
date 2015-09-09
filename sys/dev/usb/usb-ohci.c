@@ -3737,6 +3737,10 @@ void usb_ohci_stop_one(ohci_t * ohci)
 	cmd = readl(&ohci->regs->control);
 	cmd &= (~0x7);
 	writel(cmd, ohci->regs->control);
+#else
+	cmd = readl(&ohci->regs->control);
+	cmd &= OHCI_CTRL_RWC;
+	writel(cmd, ohci->regs->control);
 #endif
 #if !defined (LOONGSON_2K)
 	cmd = pci_conf_read(ohci->sc_pc, ohci->pa.pa_tag, 0x04);
