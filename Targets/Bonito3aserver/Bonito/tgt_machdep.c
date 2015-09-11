@@ -1961,6 +1961,9 @@ tgt_mapenv(int (*func) __P((char *, char *)))
 				hwethadr[2], hwethadr[3], hwethadr[4], hwethadr[5]);
 		(*func)("ethaddr", env);
 
+		if(nvram[NOMSG_OFFS]==0x5a)
+		(*func)("NOMSG_ON_SERIAL","1");
+
 #ifndef NVRAM_IN_FLASH
 		free(nvram);
 #endif
@@ -2229,6 +2232,10 @@ tgt_mapenv(int (*func) __P((char *, char *)))
 			cksum(nvrambuf, NVRAM_SIZE, 1);
 
 			bcopy(hwethadr, &nvramsecbuf[ETHER_OFFS], 6);
+
+			if (strcmp("NOMSG_ON_SERIAL", name) == 0) {
+			nvram[NOMSG_OFFS]=(value[0]=='0')?0xff:0x5a;
+			}
 #ifdef NVRAM_IN_FLASH
 			if(fl_erase_device(nvram, NVRAM_SECSIZE, FALSE)) {
 				printf("Error! Nvram erase failed!\n");
