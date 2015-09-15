@@ -611,7 +611,7 @@ soft_out_cpu1:
 
 #include "loongson3_fixup_3b.S"
 
-	bnez	k1, 1f
+	bnez	k0, 1f
 	dli     a0, 0x900020001fe001d0
 	li      t1, 0x88888888
 	sw      t1, 0x0(a0)
