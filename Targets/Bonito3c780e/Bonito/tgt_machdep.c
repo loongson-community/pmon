@@ -1063,6 +1063,10 @@ tgt_devinit()
 {
 	int value;
 
+	/*enable net switch*/
+	*(volatile int *)0xbfe00120 &=~0x780;
+	*(volatile int *)0xbfe0011c &=~0x780;
+
 #if  (PCI_IDSEL_VIA686B != 0)
 	SBD_DISPLAY("686I",0);
 	
