@@ -158,9 +158,26 @@ static int load_menu_list()
 
        	rootdev = getenv("bootdev");
         if (rootdev == NULL)
-        {
-        	rootdev = "/dev/fs/ext2@wd0";
-       	}
+	{
+		int wd,sd;
+		wd = sd = 0;
+		for (dev  = TAILQ_FIRST(&alldevs); dev != NULL; dev = next_dev) {
+			next_dev = TAILQ_NEXT(dev, dv_list);
+			if(dev->dv_class < DV_DISK) {
+				continue;
+			}
+
+			if (strncmp(dev->dv_xname, "wd", 2) == 0) {
+				wd = 1;
+			}
+			else if (strncmp(dev->dv_xname, "sd", 2) == 0) {
+				sd = 1;
+			}
+		}
+
+		if (sd) rootdev = "/dev/fs/ext2@sd0";
+		else rootdev = "/dev/fs/ext2@wd0";
+	}
 
        //try to read boot.cfg from USB disk first
         for (dev  = TAILQ_FIRST(&alldevs); dev != NULL; dev = next_dev) {
