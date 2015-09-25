@@ -1304,6 +1304,7 @@ void tgt_poweroff()
 void tgt_reboot(void)
 {
 	watchdog_enable();
+	while(1);
 }
 
 
