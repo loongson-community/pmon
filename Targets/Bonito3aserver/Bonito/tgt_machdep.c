@@ -1304,6 +1304,9 @@ void tgt_poweroff()
 void tgt_reboot(void)
 {
 	watchdog_enable();
+	delay(1000000);
+	*(volatile char *)0xb8000cd6=0x85;
+	*(volatile char *)0xb8000cd7=0xe;
 	while(1);
 }
 
@@ -1914,10 +1917,10 @@ tgt_mapenv(int (*func) __P((char *, char *)))
 	 *  Check integrity of the NVRAM env area. If not in order
 	 *  initialize it to empty.
 	 */
-	printf("in envinit\n");
+	tgt_printf("in envinit\n");
 #ifdef NVRAM_IN_FLASH
 	nvram = (char *)(tgt_flashmap())->fl_map_base;
-	printf("nvram=%08x\n",(unsigned int)nvram);
+	tgt_printf("nvram=%08x\n",(unsigned int)nvram);
 	if(fl_devident(nvram, NULL) == 0 ||
 			cksum(nvram + NVRAM_OFFS, NVRAM_SIZE, 0) != 0) {
 #else
@@ -1925,7 +1928,7 @@ tgt_mapenv(int (*func) __P((char *, char *)))
 		nvram_get(nvram);
 		if(cksum(nvram, NVRAM_SIZE, 0) != 0) {
 #endif
-			printf("NVRAM is invalid!\n");
+			tgt_printf("NVRAM is invalid!\n");
 			nvram_invalid = 1;
 		}
 		else {
@@ -1951,7 +1954,7 @@ tgt_mapenv(int (*func) __P((char *, char *)))
 			}
 		}
 
-		printf("NVRAM@%x\n",(u_int32_t)nvram);
+		tgt_printf("NVRAM@%x\n",(u_int32_t)nvram);
 
 		/*
 		 *  Ethernet address for Galileo ethernet is stored in the last
@@ -1963,7 +1966,11 @@ tgt_mapenv(int (*func) __P((char *, char *)))
 		(*func)("ethaddr", env);
 
 		if(nvram[NOMSG_OFFS]==0x5a)
+		{
+		extern int nomsg_on_serial;
 		(*func)("NOMSG_ON_SERIAL","1");
+		nomsg_on_serial=1;
+		}
 
 #ifndef NVRAM_IN_FLASH
 		free(nvram);
@@ -2182,6 +2189,9 @@ tgt_mapenv(int (*func) __P((char *, char *)))
 					hwethadr[i] = v;
 					s += 3;         /* Don't get to fancy here :-) */
 				} 
+			}
+			else if (strcmp("NOMSG_ON_SERIAL", name) == 0) {
+			nvramsecbuf[NOMSG_OFFS]=(value[0]=='0')?0xff:0x5a;
 			} else {
 				ep = nvrambuf+2;
 				if(*ep != '\0') {
@@ -2234,9 +2244,6 @@ tgt_mapenv(int (*func) __P((char *, char *)))
 
 			bcopy(hwethadr, &nvramsecbuf[ETHER_OFFS], 6);
 
-			if (strcmp("NOMSG_ON_SERIAL", name) == 0) {
-			nvram[NOMSG_OFFS]=(value[0]=='0')?0xff:0x5a;
-			}
 #ifdef NVRAM_IN_FLASH
 			if(fl_erase_device(nvram, NVRAM_SECSIZE, FALSE)) {
 				printf("Error! Nvram erase failed!\n");

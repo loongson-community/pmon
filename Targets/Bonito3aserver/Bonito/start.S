@@ -1115,10 +1115,10 @@ END(tgt_putchar)
 #else
 
 LEAF(tgt_putchar)
-	li v0,0xbfc00000+NOMSG_OFFS
+	li v0,0xbfc00000+NVRAM_OFFS+NOMSG_OFFS
 	lb v0,(v0)
 	li v1,0x5a
-	bne v0, v1, 2f
+	beq v0, v1, 2f
 	nop
 	la	v0,GS3_UART_BASE 
 1:

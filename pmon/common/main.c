@@ -818,7 +818,10 @@ dbginit (char *adr)
 
 	SBD_DISPLAY ("ENVI", CHKPNT_ENVI);
 	envinit ();
-	if(getenv("NOMSG_ON_SERIAL")) nomsg_on_serial=1;
+	{
+	char *s = getenv("NOMSG_ON_SERIAL");
+	if(s && s[0]!='0') nomsg_on_serial=1;
+	}
 
 #if defined(SMP)
 	/* Turn on caches unless opted out */
