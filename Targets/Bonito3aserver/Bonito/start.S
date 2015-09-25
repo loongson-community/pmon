@@ -97,31 +97,12 @@ stack = start - 0x4000		/* Place PMON stack below PMON start in RAM */
 	bal	locate			/* Get current execute address */
 	nop
 
-	/*
-	 *  Reboot vector usable from outside pmon.
-	 */
-	.align	8
-ext_map_and_reboot:
-	bal	CPU_TLBClear
-	nop
-
-	li	a0, 0xc0000000
-	li	a1, 0x40000000
-	bal	CPU_TLBInit
-	nop
-	la	v0, tgt_reboot
-	la	v1, start
-	subu	v0, v1
-	lui	v1, 0xffc0
-	daddu	v0, v1
-	jr	v0
-	nop
 
 	/*
 	 *  Exception vectors here for rom, before we are up and running. Catch
 	 *  whatever comes up before we have a fully fledged exception handler.
 	 */
-	.align	9			/* bfc00200 */
+	.org	0x200			/* bfc00200 */
 	la	a0, v200_msg
 	bal	stringserial
 	nop
@@ -143,6 +124,13 @@ ext_map_and_reboot:
 
 	/* General exception */
 	.align	7			/* bfc00380 */
+	li	a0,0x10000000 /*test from 0xbfcxxxxx or 0xff20xxxx */
+	and	a0,ra
+	bnez	a0,1f
+	la	a0,_start
+	li	s0,0xbfc00000
+	subu	s0,a0
+1:
 	la	a0, v380_msg
 	bal	stringserial
 	nop
@@ -188,16 +176,6 @@ exc_common:
 	mfc0	a0, COP_0_BAD_VADDR
 	bal	hexserial
 	nop
-#ifndef ROM_EXCEPTION
-	PRINTSTR("\r\nDERR0=")
-	mfc0	a0, COP_0_DERR_0
-	bal	hexserial
-	nop
-	PRINTSTR("\r\nDERR1=")
-	mfc0	a0, COP_0_DERR_1
-	bal	hexserial
-	nop
-#endif
 1:
 	b 1b
 	nop
@@ -1060,12 +1038,7 @@ END(spd_info_store)
 
 LEAF(stringserial)
 	move	a2, ra
-#ifdef ROM_EXCEPTION
-	li a1,0x3ec00000
-	daddu	a1, a0, a1
-#else
 	daddu	a1, a0, s0
-#endif
 	lbu	a0, 0(a1)
 1:
 	beqz	a0, 2f
@@ -1105,12 +1078,8 @@ LEAF(hexserial)
 	rol	a0, a1, 4
 	move	a1, a0
 	and	a0, 0xf
-#ifdef ROM_EXCEPTION
-	la	v0, (hexchar+0x3ec00000)
-#else
 	la	v0, hexchar
 	daddu	v0, s0
-#endif
 	daddu	v0, a0
 	bal	tgt_putchar
 	lbu	a0, 0(v0)
