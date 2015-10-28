@@ -115,7 +115,7 @@ option		NOSNOOP			# Caches are no-snooping
 #
 option		HAVE_TOD		# Time-Of-Day clock
 option		HAVE_NVENV		#  Platform has non-volatile env mem
-#option		HAVE_LOGO		# Output splash logo
+option		HAVE_LOGO		# Output splash logo
 option		USE_SUPERIO_UART
 option		VESAFB
 #option		USE_LEGACY_RTC
