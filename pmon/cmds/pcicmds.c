@@ -58,6 +58,11 @@
 #include <dev/pci/pcivar.h>
 #include <dev/pci/pcidevs.h>
 
+#ifdef LOONGSON_2G1A
+#define	DEVNUM_1A	9
+#define	PCIID_1A	0x104a
+#endif
+
 /*
  * Prototypes
  */
@@ -303,16 +308,18 @@ pci_query_bar(tag, index)
 	_pci_conf_write(tag, index, 0xffffffff);
 	bar = _pci_conf_read(tag, index);
 	if( old_bar & 0x1 ){
-		//printf("0x%08x:0x%08x i/o @0x%08x, %d bytes\n", old_bar, bar, old_bar & 0xfffffffc, (~(bar&0xfffffffc))+1);
-		printf("0x%08x:0x%08x i/o @0x%08x, %d bytes                                              \n", old_bar, bar, old_bar & 0xfffffffc, (((bar&0xfffffffc)^((bar&0xfffffffc)-1))+1)>>1);
+		printf("0x%08x:0x%08x i/o @0x%08x, %d bytes\n",
+				old_bar, bar, old_bar & 0xfffffffc,
+						(((bar & 0xfffffffc)^((bar & 0xfffffffc) - 1)) + 1) >> 1);
 #ifndef LOONGSON_3A2H
 	}else if(old_bar & 0x4){
 		printf("64-bit mem\n");
 		skipnext = 1;
 #endif
 	}else {
-		//printf("0x%08x:0x%08x mem @0x%08x, %d bytes\n", old_bar, bar, old_bar & 0xfffffff0, (~(bar&0xfffffff0))+1);
-		printf("0x%08x:0x%08x mem @0x%08x, %d bytes                                              \n", old_bar, bar, old_bar & 0xfffffff0, (((bar&0xfffffff0)^((bar&0xfffffff0)-1))+1)>>1);
+		printf("0x%08x:0x%08x mem @0x%08x, %d bytes\n",
+				old_bar, bar, old_bar & 0xfffffff0,
+						(((bar & 0xfffffff0)^((bar & 0xfffffff0) - 1)) + 1) >> 1);
 
 	}
 
@@ -336,6 +343,12 @@ pci_query_dev(tag)
         _pci_break_tag (tag, NULL, &dev, &func);
         _pci_devinfo(id, class, NULL, devinfo);
         printf("%3d %3d %s\n", dev, func, devinfo);
+
+#ifdef LOONGSON_2G1A
+	/* if pci device is 1a, skip the pci_query_bar */
+	if(dev == DEVNUM_1A && id == PCIID_1A)
+		return 0;
+#endif
 	
 	for(i = 0x10; i <= 0x24; i +=4) {
 		if(pci_query_bar(tag, i)) i += 4;
