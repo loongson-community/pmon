@@ -115,8 +115,13 @@ md_cpuname()
 		cputype = CPU_5;
 		return("RM52x0");
 	case MIPS_GODSON3:
-		cputype = CPU_GOD3; // ?????????????
+		cputype = CPU_GOD3;
+	/* 2G1A's core and 3A's core are the same, 0x6305 */
+#ifdef LOONGSON_2G1A
+		return("GODSON2");
+#else
 		return("GODSON3");
+#endif
 	case MIPS_GODSON1:
 		cputype=CPU_GOD1;
 #ifdef CPU_NAME
