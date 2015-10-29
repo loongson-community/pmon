@@ -47,6 +47,11 @@ static int lpause()
 
 extern void (*__msgbox)(int yy,int xx,int height,int width,char *msg);
 static int cpuinfo(){
+
+#ifdef LOONGSON_2G1A
+#define MEM_BASE_CLK_2G 25
+	int clk567, clk89;
+#endif
 	int	memsize, freq;
 	char	fs[10], *fp;
 	char	*s;
@@ -89,11 +94,31 @@ static int cpuinfo(){
 	}
         else
 		printf("/ Bus @ 33 MHz\n");
+#elif defined(LOONGSON_2G1A)
+	/* to calculate memory frequency.
+	 * we can find this function in loongson 2G manual,
+	 * memclk * (clksel[7:5] * 2 + 20 + clksel[7:5] == 7 ? 2 : 0)/((clksel[9:8] + 1) * 2)
+	 */
+        if(clk != 0x1f)
+	{
+		clk567 = clk & 0x07;
+		clk89 = (clk >> 3) & 0x3;
+		memfreq = MEM_BASE_CLK_2G *(clk567 * 2 + 20 + (clk567 == 7 ? 2 : 0))/(2 * (clk89 + 1));
+
+		printf("/ Bus @ %d MHz\n", memfreq);
+	}
+        else
+		printf("/ Bus @ %d MHz\n", MEM_BASE_CLK_2G);
+
 #else  /*for 3a/3b ddr controller */ 
         if(clk != 0x1f) {
 		clk30 = clk & 0x0f;
 		clk4 = (clk >> 4) & 0x01;
-		memfreq = 100*(clk30 + 30)/(clk4 + 3)/3;/*to calculate memory frequency.we can find this function in loongson 3A manual,memclk*(clksel[8:5]+30)/(clksel[9]+3)*/
+		/* to calculate memory frequency.
+		 * we can find this function in loongson 3A manual,
+		 * memclk * (clksel[8:5] + 30)/(clksel[9] + 3)
+		 */
+		memfreq = 100*(clk30 + 30)/(clk4 + 3)/3;
 
 		printf("/ Bus @ %d MHz\n",memfreq);
 	}
@@ -107,7 +132,7 @@ static int cpuinfo(){
 static int meminfo(){
 	printf("mem info:\n");
 	printf ("Memory size %lld MB .\n",memorysize_total);
-return 0;
+	return 0;
 }
 
 static int uartinfo()
