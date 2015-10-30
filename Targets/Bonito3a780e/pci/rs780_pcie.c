@@ -84,15 +84,18 @@ static void PciePowerOffGppPorts(device_t nb_dev, device_t dev, u32 port)
 			   PCIE_GFX_COMPLIANCE))) {
 	}
 	/* step 3 Power Down Control for Southbridge */
-	printk_info("Power Down Control for Southbridge\n");
-	reg = nbpcie_p_read_index(dev, 0xa2);
+	if (port != 8)
+		return;
 
+	reg = nbpcie_p_read_index(dev, 0xa2);
 	switch ((reg >> 4) & 0x7) {	/* get bit 4-6, LC_LINK_WIDTH_RD */
 	case 1:
-		nbpcie_ind_write_index(nb_dev, 0x65, 0x0e0e);
+		set_pcie_enable_bits(nb_dev, 0x65 | PCIE_CORE_INDEX_GPPSB,
+							 0x0f0f, 0x0e0e);
 		break;
 	case 2:
-		nbpcie_ind_write_index(nb_dev, 0x65, 0x0c0c);
+		set_pcie_enable_bits(nb_dev, 0x65 | PCIE_CORE_INDEX_GPPSB,
+							 0x0f0f, 0x0c0c);
 		break;
 	default:
 		break;
@@ -247,6 +250,25 @@ void disable_pcie_bar3(device_t nb_dev)
 	set_nbcfg_enable_bits(nb_dev, 0x7C, 1 << 30, 0 << 30);	/* Disable writes to the BAR3. */
 }
 
+static void gpp_auto_gen2_speed_change(device_t nb_dev, device_t dev) 
+{
+	u32 reg;
+	reg = pci_read_config32(dev, 0x88);
+	reg &= 0xfffffff0;
+	reg |= 0x4;
+	pci_write_config32(dev, 0x88, reg);
+
+	set_nbmisc_enable_bits(nb_dev, 0x34, 1 << 31, 1 << 31);
+
+	set_pcie_enable_bits(dev, 0xa4, 1 << 0, 1 << 0);
+
+	set_pcie_enable_bits(dev, 0xc0, 1 << 15, 0 << 15);
+
+	set_pcie_enable_bits(dev, 0xa4, 1 << 29, 1 << 29);
+
+	set_pcie_enable_bits(dev, 0xa2, 1 << 13, 0 << 13);
+}
+
 /*****************************************
 * Compliant with CIM_33's PCIEGPPInit
 * nb_dev:
@@ -261,6 +283,7 @@ void rs780_gpp_sb_init(device_t nb_dev, device_t dev, u32 port)
 	u8 reg8;
 	u16 reg16;
 	device_t sb_dev;
+	u32 reg32;
 	//add for rs780
 	u32 gfx_gpp_sb_sel;
 
@@ -379,7 +402,7 @@ void rs780_gpp_sb_init(device_t nb_dev, device_t dev, u32 port)
 		tmp |= 1 << 3;
 		nbmisc_write_index(nb_dev, 0x67, tmp);
 	}
-
+	gpp_auto_gen2_speed_change(nb_dev, dev);
 	/* step 5: dynamic slave CPL buffer allocation. Disable it, otherwise linux hangs. Why? */
 	/* set_pcie_enable_bits(nb_dev, 0x20 | gfx_gpp_sb_sel, 1 << 11, 1 << 11); */
 	/* step 5a: Training for GPP devices */
@@ -404,7 +427,6 @@ void rs780_gpp_sb_init(device_t nb_dev, device_t dev, u32 port)
 			PcieReleasePortTraining(nb_dev, dev, port);
 			if (!(AtiPcieCfg.Config & PCIE_GPP_COMPLIANCE)) {
 				u8 res = PcieTrainPort(nb_dev, dev, port);
-				printk_debug("PcieTrainPort port=0x%x result=%d\n", port, res);
 				if (res) {
 					AtiPcieCfg.PortDetect |= 1 << port;
 				}
@@ -414,6 +436,7 @@ void rs780_gpp_sb_init(device_t nb_dev, device_t dev, u32 port)
 	case 8:		/* SB */
 		break;
 	}
+
 	PciePowerOffGppPorts(nb_dev, dev, port);
 	/* step 5b: GFX devices in a GPP slot */
 #if 0

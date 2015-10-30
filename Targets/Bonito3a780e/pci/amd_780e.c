@@ -864,7 +864,7 @@ void rs780_enable(device_t dev)
 
 void rs780_after_pci_fixup(void){
  	device_t dev;
-	
+	u32 reg32;
 	/* bus0, dev0, fun0; */	
         dev = _pci_make_tag(0, 0, 0);
 	rs780_enable(dev);
@@ -873,7 +873,7 @@ void rs780_after_pci_fixup(void){
 	/* bus0, dev1, APC. */	
 	printk_info("Bus-0, Dev-1, Fun-0.\n");
         dev = _pci_make_tag(0, 1, 0);
-    rs780_internal_gfx_init(_pci_make_tag(0,0,0) , _pci_make_tag(0,1,0));
+    	rs780_internal_gfx_init(_pci_make_tag(0,0,0) , _pci_make_tag(0,1,0));
 	rs780_enable(dev);
 
 	/* bus0, dev2,3, two GFX */
@@ -883,7 +883,7 @@ void rs780_after_pci_fixup(void){
 	printk_info("Bus-0, Dev-3, Fun-0\n");
         dev = _pci_make_tag(0, 3, 0);
 	set_nbmisc_enable_bits(_pci_make_tag(0, 0, 0), 0x0c, 1 << 3,0 << 3);
-	rs780_gfx_3_init(_pci_make_tag(0, 0, 0), dev, 3);
+	rs780_gfx_3_init(_pci_make_tag(0, 0, 0), dev, 3); 
 
 	/* bus0, dev4-7, four GPPSB */	
 	printk_info("Bus-0, Dev-4, Fun-0\n");
@@ -892,24 +892,28 @@ void rs780_after_pci_fixup(void){
 	printk_info("Bus-0, Dev-5, Fun-0\n");
         dev = _pci_make_tag(0, 5, 0);
 	rs780_enable(dev);
+
 	printk_info("Bus-0, Dev-6, Fun-0\n");
         dev = _pci_make_tag(0, 6, 0);
 	rs780_enable(dev);
 	printk_info("Bus-0, Dev-7, Fun-0\n");
         dev = _pci_make_tag(0, 7, 0);
 	rs780_enable(dev);
-	
+
 	/* bus 0, dev 9,10, GPP */
 	printk_info("Bus-0, Dev-9, Fun-0\n");
         dev = _pci_make_tag(0, 9, 0);
 	rs780_enable(dev);
+
 	printk_info("Bus-0, Dev-10, Fun-0\n");
         dev = _pci_make_tag(0, 10, 0);
 	rs780_enable(dev);
+
 	/* bus0, dev8, SB */
 	printk_info("Bus-0, Dev-8, Fun-0\n");
         dev = _pci_make_tag(0, 8, 0);
 	rs780_enable(dev);
+
 #endif	
 }
 

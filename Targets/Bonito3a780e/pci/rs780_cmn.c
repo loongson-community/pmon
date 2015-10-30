@@ -532,8 +532,8 @@ u8 PcieTrainPort(device_t nb_dev, device_t dev, u32 port)
 	}
 
 	while (count--) {
-		/* 5.7.5.21 step 2, delay 200us */
-		udelay(300);
+		udelay(40000);
+		udelay(2000);
 		lc_state = nbpcie_p_read_index(dev, 0xa5);	/* lc_state */
 		printk_debug("PcieLinkTraining port=%x:lc current state=%x\n",
 			     port, lc_state);
@@ -559,9 +559,8 @@ u8 PcieTrainPort(device_t nb_dev, device_t dev, u32 port)
 			lane_mask = (0xFF << (current_link_width - 2) * 2) & 0xFF;
 			reg = nbpcie_ind_read_index(nb_dev, 0x65 | gfx_gpp_sb_sel);
 			reg |= lane_mask << 8 | lane_mask;
-			reg = 0xE0E0; /* TODO: See the comments in rs780_pcie.c, at about line 145. */
 			nbpcie_ind_write_index(nb_dev, 0x65 | gfx_gpp_sb_sel, reg);
-			printk_debug("link_width=%x, lane_mask=%x",
+			printf("link_width=%x, lane_mask=%x",
 				     current_link_width, lane_mask);
 			set_pcie_reset();
 			delay(1);
@@ -572,21 +571,16 @@ u8 PcieTrainPort(device_t nb_dev, device_t dev, u32 port)
 			count = 0;
 			break;
 		case 0x10:
-			printk_info("PcieTrainPort reg\n");
-
-			/*
-			 * If access the pci_e express configure reg, should be
-			 * enable the bar3 before, and close it when access done.
-			 */
+          		//printf("PcieTrainPort reg\n");
 			enable_pcie_bar3(nb_dev);
 			reg = pci_ext_read_config16(nb_dev, dev,PCIE_VC0_RESOURCE_STATUS);
 			disable_pcie_bar3(nb_dev);
-			printk_info("PcieTrainPort reg=0x%x\n", reg);
+			//printf("PcieTrainPort reg16 = 0x%x\n", reg);
 #if 0
 			reg =
 			    pci_ext_read_config32(nb_dev, dev,
 						  PCIE_VC0_RESOURCE_STATUS);
-			printk_debug("PcieTrainPort reg=0x%x\n", reg);
+			printf("PcieTrainPort reg32 = 0x%x\n", reg);
 #endif
 			/* check bit1 */
 			if (reg & VC_NEGOTIATION_PENDING) {	/* bit1=1 means the link needs to be re-trained. */
