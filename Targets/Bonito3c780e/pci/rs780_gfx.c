@@ -436,7 +436,7 @@ static void rs780_internal_gfx_enable(device_t nb , device_t dev)
     set_nbmc_enable_bits(nb_dev , 0xe , 0xfffffff , 0xffff000 | uma_memory_top >> 20);
     nbmc_write_index(nb_dev, 0x11, uma_memory_base);
  //   pci_write_config32(nb_dev,0x90,0x90000000);
-	nbmc_write_index(nb_dev, 0x10, ((uma_memory_top - 1) & 0xff000000 ) | (uma_memory_base >> 16) & 0xffff);
+	nbmc_write_index(nb_dev, 0x10, ((uma_memory_top - 1) & 0xff000000 ) | ((uma_memory_base >> 16) & 0xffff));
 #if 0
     printf("config UMA!!!!!!!!!!!!!!!!!!!!!!!!!!!!1\n");
     printf("mc : %d  ============value: %x\n" , 0xd , nbmc_read_index(nb_dev,0xd));
@@ -561,7 +561,7 @@ static void rs780_internal_gfx_enable(device_t nb , device_t dev)
     set_nbmc_enable_bits(nb_dev , 0xe , 0xfffffff , 0x0aaaa000 | (uma_memory_top >> 20));
     nbmc_write_index(nb_dev, 0x11, uma_memory_base);
  //   pci_write_config32(nb_dev,0x90,0x90000000);
-	nbmc_write_index(nb_dev, 0x10, ((uma_memory_top - 1) & 0xff000000 ) | (uma_memory_base >> 16) & 0xffff);
+	nbmc_write_index(nb_dev, 0x10, ((uma_memory_top - 1) & 0xff000000 ) | ((uma_memory_base >> 16) & 0xffff));
 #if 0
     printf("config SP only!!!!!!!!!!!!!!!!!!!!!!!!!!!!1\n");
     printf("mc : %d  ============value: %x\n" , 0xd , nbmc_read_index(nb_dev,0xd));
@@ -642,6 +642,26 @@ static void pcie_initgen2(device_t nb_dev, device_t dev)
 	pci_write_config8(dev, 0x3d, 0x1);
 }
 
+/*5.9.13 Autonomous GEN2(speed 5GT/s ) Speed Change */
+static void auto_gen2_speed_change(device_t nb_dev, device_t dev)
+{
+	u32 reg;
+	reg = pci_read_config32(dev, 0x88);
+	reg &= 0xfffffff0;
+	reg |= 0x2;
+	pci_write_config32(dev, 0x88, reg);
+
+	set_nbmisc_enable_bits(nb_dev, 0x34, 1 << 5, 1 << 5);
+	set_nbmisc_enable_bits(nb_dev, 0x22, 1 << 5, 1 << 5);
+
+	set_pcie_enable_bits(dev, 0xa4, 1 << 0, 1 << 0);
+
+	set_pcie_enable_bits(dev, 0xc0, 1 << 15, 0 << 15);
+
+	set_pcie_enable_bits(dev, 0xa4, 1 << 29, 1 << 29);
+
+	set_pcie_enable_bits(dev, 0xa2, 1 << 13, 0 << 13);
+}
 static void pcie_gen2workaround(device_t nb_dev, device_t dev)
 {
 	u32 reg;
@@ -747,15 +767,15 @@ static void dual_port_configuration(device_t nb_dev, device_t dev)
 	set_nbmisc_enable_bits(nb_dev, 0x08, 0xF << 8, 0x5 << 8);
 	set_nbmisc_enable_bits(nb_dev, 0x36, 1 << 31, 0 << 31);
 
+	auto_gen2_speed_change(nb_dev, dev);
 	/* Training for Device 2 */
 	/* Releases hold training for GFX port 0 (device 2) */
 	PcieReleasePortTraining(nb_dev, dev, dev_ind);
 	/* PCIE Link Training Sequence */
 	result = PcieTrainPort(nb_dev, dev, dev_ind);
-
 	/* step 16: Power Down Control for Device 2 */
 	/* step 16.a Link Training was NOT successful */
-	if (!result) {
+	if (!result) { 
 		/* Powers down all lanes for port A */
 		/* nbpcie_ind_write_index(nb_dev, 0x65, 0x0f0f); */
 		/* Note: I have to disable the slot where there isnt a device,
@@ -769,15 +789,26 @@ static void dual_port_configuration(device_t nb_dev, device_t dev)
 		printk_debug("GFX LC_LINK_WIDTH = 0x%x.\n", width);
 		switch (width) {
 		case 1:
-		case 2:
+		case 2: /* x1 and x2 */
 			nbpcie_ind_write_index(nb_dev, 0x65,
 					       cfg->gfx_lane_reversal ? 0x0707 : 0x0e0e);
 			break;
-		case 4:
+		case 3: /* x4 */
+			printk_debug("gfx link width is 4\n");
+			reg32 = nbpcie_ind_read_index(nb_dev, 0x65);
+			reg32 = reg32 & 0xf0f0 ;
 			nbpcie_ind_write_index(nb_dev, 0x65,
-					       cfg->gfx_lane_reversal ? 0x0303 : 0x0c0c);
+				cfg->gfx_lane_reversal
+				? 0x0303 | reg32 : 0x0c0c | reg32);
+			reg32 = nbpcie_ind_read_index(nb_dev, 0x65);
+			break;
+		case 4: /* x8 */
+			nbpcie_ind_write_index(nb_dev, 0x65,
+					       cfg->gfx_lane_reversal
+						   ? 0x0000 : 0x0000);
 			break;
 		}
+		delay(2000);
 	}
 }
 
@@ -1172,7 +1203,10 @@ void rs780_gfx_3_init(device_t nb_dev, device_t dev, u32 port)
 	/* step 18.a Link Training was NOT successful */
 	if (!result) {
 		/* Powers down all lanes for port B and PLL1 */
-		nbpcie_ind_write_index(nb_dev, 0x65, 0xccf0f0);
+		reg32 = nbpcie_ind_read_index(nb_dev, 0x65) & 0x0f0f;
+		nbpcie_ind_write_index(nb_dev, 0x65, 
+				cfg->gfx_lane_reversal
+				? 0x0000 | reg32 : 0xf0f0 | reg32);
 	} else {		/* step 18.b Link Training was successful */
 
 		reg32 = nbpcie_p_read_index(dev, 0xa2);
@@ -1180,13 +1214,22 @@ void rs780_gfx_3_init(device_t nb_dev, device_t dev, u32 port)
 		printk_debug("GFX LC_LINK_WIDTH = 0x%x.\n", width);
 		switch (width) {
 		case 1:
-		case 2:
+		case 2: /* x1 and x2 */
+			reg32 = nbpcie_ind_read_index(nb_dev, 0x65) & 0x0f0f;
 			nbpcie_ind_write_index(nb_dev, 0x65,
-					       cfg->gfx_lane_reversal ? 0x7070 : 0xe0e0);
+				cfg->gfx_lane_reversal
+				? 0x7070 | reg32 : 0xe0e0 | reg32);
 			break;
-		case 4:
+		case 3: /* x4 */
+			reg32 = nbpcie_ind_read_index(nb_dev, 0x65) & 0x0f0f;
 			nbpcie_ind_write_index(nb_dev, 0x65,
-					       cfg->gfx_lane_reversal ? 0x3030 : 0x0f0f);
+				cfg->gfx_lane_reversal
+				? 0x3030 | reg32 : 0xc0c0 | reg32);
+		case 4: /* x8 */
+			reg32 = nbpcie_ind_read_index(nb_dev, 0x65) & 0x0f0f;
+			nbpcie_ind_write_index(nb_dev, 0x65,
+				cfg->gfx_lane_reversal
+				? 0x0000 | reg32 : 0x0000 | reg32);
 			break;
 		}
 	}
