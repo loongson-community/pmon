@@ -462,6 +462,30 @@ struct vesamode *vesa_mode_head = vesamode;
 
 static u32 io_vaddr;
 
+int cacluate_vesamode(int start)
+{
+	int x,y,depth,mode;
+	int i;
+	x=800;
+	y=600;
+	depth=16;
+	mode=-1;
+#ifdef FB_XSIZE
+	x=FB_XSIZE;
+#endif
+
+#ifdef FB_YSIZE
+	y=FB_YSIZE;
+#endif
+	for(i=start;i<sizeof(vesamode)/sizeof(vesamode[0]);i++)
+		if(x==vesamode[i].width && y==vesamode[i].height && depth==vesamode[i].bpp && vesamode[i].mode>0x107)
+		{
+			mode = i;
+			break;
+		}
+	return mode;
+}
+
 
 void tlbmap(u32 viraddr, u32 phyaddr, u32 size)
 {

@@ -272,6 +272,8 @@ unsigned long long  vbios_addr;
 //static unsigned long long * vfb_top;
 void *vbiosMem = 0;
 
+int cacluate_vesamode();
+
 int vga_bios_init(void)
 {
 	xf86Int10InfoPtr pInt;
@@ -645,15 +647,17 @@ int vga_bios_init(void)
 	pInt->BIOSseg = V_BIOS >> 4;
 	pInt->num = 0x10;
 	{
+		{
 		char *mode;
 		mode = getenv("vesa_mode");
 		if (mode != 0)
 			vesa_mode = strtol(mode, 0, 0);
 		else
-			vesa_mode = 0x00;
+			vesa_mode = cacluate_vesamode(0);
+		}
 	}
 
-	for(vesa_mode = 0; vesa_mode <= 24; vesa_mode++){
+	for(; vesa_mode>=0 ; vesa_mode = cacluate_vesamode(vesa_mode)){
 		printk("\n\nvesa_mode : 0x%x\n", vesa_mode);
 		pInt->ax = 0x4f02;
 	//	pInt->bx = 0x4114;
