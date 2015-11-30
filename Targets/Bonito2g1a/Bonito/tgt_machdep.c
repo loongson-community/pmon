@@ -332,6 +332,7 @@ void tgt_reboot()
 
 void tgt_poweroff()
 {
+	*((volatile unsigned int *)LS1A_PM1_STS_REG) 	= 0Xffff;//clear wakeup enable bit
 	*((volatile unsigned int *)LS1A_PM1_EN_REG) 	= 0X0;//clear wakeup enable bit 
 	*((volatile unsigned int *)LS1A_GPE0_EN_REG) 	= 0X0;//clear wakeup enable bit
 	*((volatile unsigned int *)LS1A_PM1_CNT_REG) 	|= (0x7<<10)|(0x1<<13);//set 1a to s5 mode
