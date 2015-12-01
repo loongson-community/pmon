@@ -7,6 +7,7 @@
 ######################################################
 #define HT_32bit_TRANS
 //#define HT_800M
+#define HT_400M
 #define HT_RECONNECT
 //#define HT_REG_TRANS
 #define UMA_VRAM_MODE
@@ -660,28 +661,42 @@ buffer_check_out:
 
 #ifdef HT_RECONNECT
 
-#ifdef HT_800M//Set HT bridge to be 800Mhz
+#if	defined(HT_800M)//Set HT bridge to be 800Mhz
 	TTYDBG("Setting HyperTransport Controller to be 800Mhz\r\n")
 	dli	    t2, 0x90000efdfb000000
-	#li	    t0, 0x2 //Frequency: 400 Mhz
 	li	    t0, 0x5 //Frequency: 800 Mhz
 	sb	    t0, 0x49(t2)
-    lw      a0, 0x48(t2)
+	lw      a0, 0x48(t2)
 	bal	    hexserial
-    nop
+	nop
 	TTYDBG("\r\n")
-#endif
 
-
-#ifdef HT_800M //Write Southbridge to 800Mhz
 	TTYDBG("Setting HyperTransport Southbridge to be 800M\r\n")
-    dli	    t2, 0x90000efdfe000000
-	#li	    t0, 0x2 //Frequency : 400Mhz
+	dli	    t2, 0x90000efdfe000000
 	li	    t0, 0x5 //Frequency: 800 Mhz
 	sb	    t0, 0x49(t2)
-    lw      a0, 0x48(t2)
+	lw      a0, 0x48(t2)
 	bal	    hexserial
-    nop
+	nop
+	TTYDBG("\r\n")
+
+#elif defined(HT_400M)//Set HT bridge to be 400Mhz
+	TTYDBG("Setting HyperTransport Controller to be 400Mhz\r\n")
+	dli	    t2, 0x90000efdfb000000
+	li	    t0, 0x2 //Frequency: 400 Mhz
+	sb	    t0, 0x49(t2)
+	lw	    a0, 0x48(t2)
+	bal	    hexserial
+	nop
+	TTYDBG("\r\n")
+
+	TTYDBG("Setting HyperTransport Southbridge to be 400M\r\n")
+	dli	    t2, 0x90000efdfe000000
+	li	    t0, 0x2 //Frequency : 400Mhz
+	sb	    t0, 0x49(t2)
+	lw     	    a0, 0x48(t2)
+	bal	    hexserial
+	nop
 	TTYDBG("\r\n")
 #endif
 
