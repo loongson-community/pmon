@@ -873,7 +873,7 @@ _pci_query_dev (struct pci_device *dev, int bus, int device, int initialise)
 			(bus == 4 && device == 0))
 	{
 	int retry =0;
-	while ((id == 0 || id == 0xffffffff) && retry<100)
+	while ((id == 0 || id == 0xffffffff) && retry<2000)
 	{
 		delay(1000);
 		id = _pci_conf_read(tag, PCI_ID_REG);
