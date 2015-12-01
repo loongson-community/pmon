@@ -3,8 +3,7 @@
 #else 
 typedef int size_t;
 extern void tgt_putchar(char c);
-void stringserial(char *msg);
-#define tgt_puts stringserial
+int tgt_puts(char *str);
 #endif
 #include "pmon.bin.c"
 

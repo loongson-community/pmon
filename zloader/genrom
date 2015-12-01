@@ -4,14 +4,14 @@ open(F,qq(objdump -x $ARGV[0]|));
 while(<F>)
 {
 chomp;
-if(/([0-9a-f]+).+_edata/){
+if(/([0-9a-f]+).+\s_edata/){
    $myedata=qq(0x$1);
  }
 
-if(/([0-9a-f]+).+_end$/){
+if(/([0-9a-f]+).+\s_end$/){
    $myend=qq(0x$1);
  }
-if(/([0-9a-f]+).+initmips$/){
+if(/([0-9a-f]+).+\sinitmips$/){
    $myinitmips=qq(0x$1);
  }
 if(/([0-9a-f]+).+\s_start$/){
@@ -19,7 +19,6 @@ if(/([0-9a-f]+).+\s_start$/){
  }
 }
 printf(<< "END"
-void stringserial(char *msg);
 void realinitmips(unsigned long long msize);
 void enable_cache()
 {
@@ -107,7 +106,7 @@ void initmips(unsigned long long msize,unsigned long long dmsize, unsigned long 
     str_flag = *((long long*)0xafaaa050);
 #endif 
 //	CPU_TLBClear();
-    stringserial("Uncompressing Bios");
+    tgt_puts("Uncompressing Bios");
     if(!debug||dctrl&1)enable_cache();
 	
 #ifdef LS3A2H_STR
@@ -121,7 +120,7 @@ void initmips(unsigned long long msize,unsigned long long dmsize, unsigned long 
 #ifdef LS3A2H_STR
     }
 #endif	
-    stringserial("OK,Booting Bios\\r\\n");
+    tgt_puts("OK,Booting Bios\\r\\n");
     for(p=edata;p<=end;p++)
     {
         *p=0;
@@ -148,6 +147,12 @@ void realinitmips(unsigned long long msize)
           : "r" (msize)
           : "\$29", "\$2","\$4");
 
+}
+int tgt_puts(char *str)
+{
+	while(*str)
+	tgt_putchar(*str++);
+	return 0;
 }
 END
 );
