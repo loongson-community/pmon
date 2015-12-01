@@ -397,6 +397,7 @@ ConfigEntry	ConfigTable[] =
 #ifdef DEVBD2F_FIREWALL
 	 { (char *)LS2F_COMB_ADDR, 0, ns16550, 256, CONS_BAUD, NS16550HZ/2 ,1},
 #endif
+	 { (char *)-1, 0, ns16550, 256, CONS_BAUD, NS16550HZ/2 ,0}, 
 	{ 0 }
 };
 
@@ -686,6 +687,24 @@ tgt_devconfig()
 	}
 
 		_pci_devinit(1);	/* PCI device initialization */
+
+#if 1//def USE_SUPERIO_UART
+	superio_reinit();
+	{int i;
+	 int j;
+	 int uart[] = { 0xbbf003f8, 0xbbf002f8 };
+
+		for(i=0,j=0;ConfigTable[i].devinfo;i++)
+		{
+			if(ConfigTable[i].devinfo==-1)
+			{
+				DevTable[i].sio=uart[j++];
+				ns16550(OP_BAUD, &DevTable[i], NULL, CONS_BAUD);
+			}
+		}
+	}
+#endif
+
 #if (NMOD_X86EMU_INT10 > 0)||(NMOD_X86EMU >0)
 #ifdef PCIE_GRAPHIC_CARD
 	if ( is_pcie_vga_card() ) {
@@ -1077,6 +1096,8 @@ outb(0xbfd0002e,0xaa);
 #if PCI_IDSEL_SB700 != 0
 static void superio_reinit()
 {
+/*set global  multifuntion pin reg 0x2c low 2bit to 3 for 83627dhg to enable uart2*/
+w83627_write(0,0x2c,0xe3);
 w83627_write(0,0x24,0xc1);
 w83627_write(5,0x30,1);
 w83627_write(5,0x60,0);
@@ -1093,6 +1114,20 @@ w83627_write(0xb,0x60,HM_OFF >> 0x8); // set HM base address @0xbff00290
 w83627_write(0xb,0x61,HM_OFF & 0xff);
 /* enable HM  */
 w83627_write(0xb,0x30,0x1);
+
+//w83627_UART1
+w83627_write(2,0x30,0x01);
+w83627_write(2,0x60,0x03);
+w83627_write(2,0x61,0xf8);
+w83627_write(2,0x70,0x01);
+w83627_write(2,0xf0,0x00);
+
+//w83627_UART2
+w83627_write(3,0x30,0x01);
+w83627_write(3,0x60,0x02);
+w83627_write(3,0x61,0xf8);
+w83627_write(3,0x70,0x01);
+w83627_write(3,0xf0,0x00);
 
 }
 #endif
