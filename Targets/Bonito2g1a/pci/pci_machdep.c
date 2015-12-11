@@ -190,7 +190,7 @@ asm(".set mips3;dli $2,0x900000003ff00100;li $3,0x800000;sd $3,0x08($2);dli $3,0
 also make default pci device not cpu itselt,this will make two cpu accesses to pci has about 5 pci clocks inteval for broken device like sundance net adaptor,
 otherwise maybe only one pci clock inteval.
 */
-	*(volatile int *)0xbfe00168=0x00fe0115; 
+	*(volatile int *)0xbfe00168=0x00fe01c5; 
 #else
 	*(volatile int *)0xbfe00168=0x00fe0105;
 #endif
