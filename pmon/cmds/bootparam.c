@@ -387,7 +387,11 @@ struct interface_info *init_interface_info()
   inter->size = flashsize/0x400;
   inter->flag = 1;
 
+#ifdef LOONGSON_3A2H
+  strcpy(inter->description,"Loongson-PMON-V3.3.1");
+#else
   strcpy(inter->description,"Loongson-PMON-V3.3.0");
+#endif
 
   return inter;
 }
