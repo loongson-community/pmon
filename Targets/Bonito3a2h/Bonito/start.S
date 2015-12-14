@@ -1378,7 +1378,7 @@ after_ht:
         dli     s1, 0xc1e30400c1e30404  //set use MC1 or MC0 or MC1/0 and give All DIMM infor // shuagnmian
         dli     s1, 0xc1ec0400c1ec0404  //set use MC1 or MC0 or MC1/0 and give All DIMM infor // shuagnmian
 #endif
-#include "ddr_dir/loongson3a2h_ddr_config.S"
+#include "ddr_dir/loongson3_ddr2_config.S"
 
     TTYDBG("Init Memory done.\r\n")
 
