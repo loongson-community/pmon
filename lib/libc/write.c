@@ -37,7 +37,7 @@ int
 write (int fd, const void *buf, size_t n)
 {
 	if ((fd < OPEN_MAX) && _file[fd].valid ) {
-		if (_file[fd].fs->write)
+		if ( (_file[fd].fs) && (_file[fd].fs->write) )
 			return (((_file[fd]).fs->write) (fd, buf, n));
 		else
 			return (-1);
