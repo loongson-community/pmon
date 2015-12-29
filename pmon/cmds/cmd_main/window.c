@@ -351,7 +351,7 @@ void w_present1(int x0,int y0,int w0,int h0)
 
 	int cnt;
 	int i,j,x,y;
-#ifdef LOONGSON_2G1A
+#if defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A)
 	struct termio tbuf;
 #endif
 
@@ -488,11 +488,11 @@ void w_present1(int x0,int y0,int w0,int h0)
 	{
 		do
 		{
-#ifdef LOONGSON_2G1A
+#if defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A)
 		ioctl (STDIN, SETNCNE, &tbuf);
 #endif
 			cn=(cn<<8)+(c=getchar());
-#ifdef LOONGSON_2G1A
+#if defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A)
 		ioctl (STDIN, TCSETAW, &tbuf);
 #endif
 		}while(c=='[');

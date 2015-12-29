@@ -79,7 +79,7 @@
 #include "usb.h"
 #include "usb-ohci.h"
 
-#if defined(LOONGSON_2G1A)
+#if defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A)
 #include "target/ls1a.h"
 #endif
 
@@ -126,7 +126,7 @@
 #undef readl
 #undef writel
 
-#ifdef LOONGSON_2G1A
+#if defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A)
 #define readl(addr) *addr
 #define writel(val, addr) *addr = (val)
 #else
@@ -473,7 +473,8 @@ static int ohci_match(struct device *parent, void *match, void *aux)
 
 extern struct hostcontroller host_controller;
 extern struct usb_device *usb_alloc_new_device(void *hc_private);
-#if (defined LOONGSON_3A2H) || (defined LOONGSON_3C2H) || (defined LOONGSON_2G1A)
+#if (defined LOONGSON_3A2H) || (defined LOONGSON_3C2H) \
+		|| (defined LOONGSON_2G1A) || (defined LOONGSON_2F1A)
 static int lohci_match(struct device *parent, void *match, void *aux)
 {
 	return 1;
@@ -496,7 +497,7 @@ static void lohci_attach(struct device *parent, struct device *self, void *aux)
 	ohci_index++;
 	ohci->sc_sh = cf->ca_baseaddr;
 
-#if defined(LOONGSON_2G1A)
+#if defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A)
 	/*set usb_rstn bit in LPC register0 before access usb regs */
 	*(u32 *) (LS1A_LPC_REG_BASE + 0x0204) = *(u32 *) (LS1A_LPC_REG_BASE + 0x0204) | (0x01 << 30);
 #else
@@ -1777,7 +1778,7 @@ static void dl_transfer_length(td_t * td)
 	{
 #if (defined(LS3_HT) || defined(LS2G_HT))
 		tdCBP = PHYS_TO_CACHED(m32_swap(td->hwCBP));
-#elif defined(LOONGSON_2G1A)
+#elif defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A)
 		if (td->hwCBP == 0)
 			tdCBP = PHYS_TO_UNCACHED((u32)(td->hwCBP));
 		else
@@ -1818,7 +1819,7 @@ static void dl_transfer_length(td_t * td)
 					length =
 					    PHYS_TO_CACHED(tdBE) - (td->data) +
 					    1;
-#elif defined(LOONGSON_2G1A)
+#elif defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A)
 					length =
 					    CACHED_TO_UNCACHED(tdBE) -
 					    CACHED_TO_UNCACHED(td->data) + 1;
@@ -1947,7 +1948,7 @@ static td_t *dl_reverse_done_list(ohci_t * ohci)
 #if (defined(LS3_HT) || defined(LS2G_HT))
 			td_list =
 			    (td_t *) PHYS_TO_CACHED(td_list_hc & 0x1fffffff);
-#elif defined(LOONGSON_2G1A)
+#elif defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A)
 			td_list = 
 			    (td_t *) CACHED_TO_UNCACHED((u32)td_list_hc);
 #else
@@ -3044,7 +3045,8 @@ static int hc_start(ohci_t * ohci)
 	fminterval |= ((((fminterval - 210) * 6) / 7) << 16);
 	writel(fminterval, &ohci->regs->fminterval);
 	writel(0x628, &ohci->regs->lsthresh);
-#if (defined LOONGSON_3A2H) || (defined LOONGSON_3C2H) || (defined LOONGSON_2G1A)
+#if (defined LOONGSON_3A2H) || (defined LOONGSON_3C2H) \
+		|| (defined LOONGSON_2G1A) || (defined LOONGSON_2F1A)
 	writel(readl(&ohci->regs->roothub.b) | 0xffff0000,
 	       &ohci->regs->roothub.b);
 #endif
@@ -3454,7 +3456,7 @@ int usb_lowlevel_init(ohci_t * gohci)
 	{
 		hcca = malloc(sizeof(*gohci->hcca), M_DEVBUF, M_NOWAIT);
 		memset(hcca, 0, sizeof(*hcca));
-#if defined (LOONGSON_2G5536) || defined (LOONGSON_2G1A)
+#if defined (LOONGSON_2G5536) || defined (LOONGSON_2G1A) || defined (LOONGSON_2F1A)
 		pci_sync_cache(gohci->sc_pc, (vm_offset_t)hcca, sizeof(*hcca), SYNC_W);
 #endif
 	}
@@ -3484,7 +3486,7 @@ int usb_lowlevel_init(ohci_t * gohci)
 	}
 #endif
 	else {
-#if defined (LOONGSON_2G5536) || defined (LOONGSON_2G1A)
+#if defined (LOONGSON_2G5536) || defined (LOONGSON_2G1A) || defined (LOONGSON_2F1A)
 		pci_sync_cache(gohci->sc_pc, (vm_offset_t)ohci_dev->ed, sizeof(ohci_dev->ed),SYNC_W);
 #endif
 #if (defined(LS3_HT) || defined(LS2G_HT))
@@ -3503,7 +3505,7 @@ int usb_lowlevel_init(ohci_t * gohci)
 	{
 		gtd = malloc(sizeof(td_t) * (NUM_TD + 1), M_DEVBUF, M_NOWAIT);
 		memset(gtd, 0, sizeof(td_t) * (NUM_TD + 1));
-#if defined (LOONGSON_2G5536) || defined (LOONGSON_2G1A)
+#if defined (LOONGSON_2G5536) || defined (LOONGSON_2G1A) || defined (LOONGSON_2F1A)
 		pci_sync_cache(gohci->sc_pc, (vm_offset_t)gtd, sizeof(td_t)*(NUM_TD+1), SYNC_W);
 #endif
 	}
@@ -3552,7 +3554,7 @@ int usb_lowlevel_init(ohci_t * gohci)
 		if ((u32) tmpbuf & 0x1f)
 			printf("Malloc return not cache line aligned\n");
 		memset(tmpbuf, 0, 512);
-#if defined (LOONGSON_2G5536) || defined (LOONGSON_2G1A)
+#if defined (LOONGSON_2G5536) || defined (LOONGSON_2G1A) || defined (LOONGSON_2F1A)
 		pci_sync_cache(gohci->sc_pc, (vm_offset_t)tmpbuf,  512, SYNC_W);
 #endif
 #if (defined(LS3_HT) || defined(LS2G_HT))
@@ -3582,7 +3584,7 @@ int usb_lowlevel_init(ohci_t * gohci)
 		if ((u32) tmpbuf & 0x1f)
 			printf("Malloc return not cache line aligned\n");
 		memset(tmpbuf, 0, 64);
-#if defined (LOONGSON_2G5536) || defined (LOONGSON_2G1A)
+#if defined (LOONGSON_2G5536) || defined (LOONGSON_2G1A) || defined (LOONGSON_2F1A)
 		pci_sync_cache(tmpbuf, (vm_offset_t)tmpbuf, 64, SYNC_W);
 #endif
 #if (defined(LS3_HT) || defined(LS2G_HT))

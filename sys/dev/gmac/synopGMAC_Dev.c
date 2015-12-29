@@ -10,7 +10,7 @@
  * Synopsys                 01/Aug/2007                              Created
  */
 #include "synopGMAC_Dev.h"
-#if defined(LOONGSON_2G1A)
+#if defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A)
 #include "target/ls1a.h"
 #endif
 
@@ -1036,7 +1036,7 @@ s32 synopGMAC_mac_init(synopGMACdevice * gmacdev)
 		synopGMAC_pad_crc_strip_disable(gmacdev);
 		synopGMAC_back_off_limit(gmacdev,GmacBackoffLimit0);
 		synopGMAC_deferral_check_disable(gmacdev);
-#if	(!defined(LOONGSON_2G5536))&&(!defined(LOONGSON_2G1A))
+#if	(!defined(LOONGSON_2G5536))&&(!defined(LOONGSON_2G1A)) && (!defined(LOONGSON_2F1A))
 		
 		synopGMAC_tx_enable(gmacdev);	//according to Tang Dan's commitment
 		synopGMAC_rx_enable(gmacdev);
@@ -1070,7 +1070,7 @@ s32 synopGMAC_mac_init(synopGMACdevice * gmacdev)
 		synopGMAC_unicast_pause_frame_detect_disable(gmacdev);
 		synopGMAC_rx_flow_control_enable(gmacdev);
 		synopGMAC_tx_flow_control_enable(gmacdev);
-#if	defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A)
+#if	defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A)
 		synopGMAC_tx_enable(gmacdev);	//according to Tang Dan's commitment
 		synopGMAC_rx_enable(gmacdev);
 #endif
@@ -1190,7 +1190,7 @@ s32 synopGMAC_check_phy_init (synopGMACdevice * gmacdev)
 	
 
 
-#if	defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A)
+#if	defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A)
 	gmacdev->DuplexMode = FULLDUPLEX;
 #else
 	gmacdev->DuplexMode = (data & Mii_phy_status_full_duplex)  ? FULLDUPLEX: HALFDUPLEX ;
@@ -1398,11 +1398,11 @@ s32 synopGMAC_get_mac_addr(synopGMACdevice *gmacdev, u32 MacHigh, u32 MacLow, u8
 s32 synopGMAC_attach (synopGMACdevice * gmacdev, u64 macBase, u64 dmaBase, u32 phyBase,u8 *mac_addr)
 {
 	/*Make sure the Device data strucure is cleared before we proceed further*/
-	memset((void *) gmacdev,0,sizeof(synopGMACdevice));
+	memset((void *) gmacdev, 0, sizeof(synopGMACdevice));
 	/*Populate the mac and dma base addresses*/
 	gmacdev->MacBase = macBase;
 	gmacdev->DmaBase = dmaBase;
-#if defined(LOONGSON_2G1A)
+#if defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A)
 	if (macBase == LS1A_GMAC0_REG_BASE + MACBASE)
 		gmacdev->PhyBase = 1;
 	else
@@ -1412,7 +1412,7 @@ s32 synopGMAC_attach (synopGMACdevice * gmacdev, u64 macBase, u64 dmaBase, u32 p
 #endif
 
 	/* Program/flash in the station/IP's Mac address */
-	synopGMAC_set_mac_addr(gmacdev,GmacAddr0High,GmacAddr0Low, mac_addr);
+	synopGMAC_set_mac_addr(gmacdev, GmacAddr0High, GmacAddr0Low, mac_addr);
 
 	return 0;	
 }
@@ -1477,13 +1477,13 @@ void synopGMAC_tx_desc_init_ring(DmaDesc *desc, bool last_ring_desc)
 	desc->length = 0; 
 	#else
 	desc->length = last_ring_desc? TxDescEndOfRing : 0;
-#if	(!defined(LOONGSON_2G5536))&&(!defined(LOONGSON_2G1A))
+#if	(!defined(LOONGSON_2G5536))&&(!defined(LOONGSON_2G1A)) && (!defined(LOONGSON_2F1A))
 	desc->status = 0;
 #endif
 	#endif
 //sw	
 	//desc->status = 0;
-#if	defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A)
+#if	defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A)
 	desc->status = 0;
 #endif
 
@@ -1568,7 +1568,7 @@ s32 synopGMAC_init_tx_rx_desc_queue(synopGMACdevice *gmacdev)
   */
 void synopGMAC_init_rx_desc_base(synopGMACdevice *gmacdev)
 {
-#if	defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A)
+#if	defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A)
 	synopGMACWriteReg(gmacdev->DmaBase,DmaRxBaseAddr,(u32)gmacdev->RxDescDma );
 #else
 	u32 tmp_addr = 0;
@@ -1589,7 +1589,7 @@ void synopGMAC_init_rx_desc_base(synopGMACdevice *gmacdev)
   */
 void synopGMAC_init_tx_desc_base(synopGMACdevice *gmacdev)
 {	
-#if	defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A)
+#if	defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A)
 	synopGMACWriteReg(gmacdev->DmaBase,DmaTxBaseAddr,(u32)gmacdev->TxDescDma);
 #else
 	u32 tmp_addr = 0;

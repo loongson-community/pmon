@@ -88,7 +88,7 @@
 
 #undef PHYSADDR
 #ifndef PHYSADDR
-#ifdef LOONGSON_2G1A
+#if defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A)
 #define PHYSADDR(x) ((long)(x))//1a dma access address
 #else
 #define PHYSADDR(x) (((long)(x))&0x1fffffff)
@@ -117,6 +117,22 @@ ulong ahci_sata_read(int dev, unsigned long blknr, lbaint_t blkcnt,
 		     void *buffer);
 ulong ahci_sata_write(int dev, unsigned long blknr, lbaint_t blkcnt,
 		      void *buffer);
+
+#if defined(LOONGSON_2F1A)
+static __inline__ int __ilog2_2f(unsigned int x) 
+{
+	int i, lz;
+
+	for (i = 0; x; i++)
+		x = x/2;
+	/* 2F instruction set don't include the clz
+	 * So replace clz instruction with C code
+	 */
+	lz = 31 - (--i);
+
+	return 31 - lz;
+}
+#endif
 
 static __inline__ int __ilog2(unsigned int x)
 {
@@ -302,7 +318,7 @@ static int ahci_exec_polled_cmd(int port, int pmp, int is_cmd, u16 flags,
 	memcpy((unsigned char *)pp->cmd_tbl, fis, 20);
 	ahci_fill_cmd_slot(pp, cmd_fis_len | flags | (pmp << 12));
 
-#ifdef LOONGSON_2G1A
+#if defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A)
 	CPU_IOFlushDCache(pp->cmd_slot, 32, SYNC_W);	/*32~256 */
 	CPU_IOFlushDCache(pp->cmd_tbl, 0x60, SYNC_W);
 	CPU_IOFlushDCache(pp->rx_fis, AHCI_RX_FIS_SZ, SYNC_R);
@@ -559,7 +575,11 @@ static void ahci_set_feature(u8 port, u8 * sataid)
 	fis[1] = 1 << 7;
 	fis[2] = ATA_CMD_SETF;
 	fis[3] = SETFEATURES_XFER;
+#if defined(LOONGSON_2F1A)
+	fis[12] = __ilog2_2f(probe_ent->udma_mask + 1) + 0x40 - 0x01;
+#else
 	fis[12] = __ilog2(probe_ent->udma_mask + 1) + 0x40 - 0x01;
+#endif
 
 	if (dma_cap == ATA_UDMA6)
 		fis[12] = XFER_UDMA_6;
@@ -575,7 +595,7 @@ static void ahci_set_feature(u8 port, u8 * sataid)
 	memcpy((unsigned char *)pp->cmd_tbl, fis, 20);
 	ahci_fill_cmd_slot(pp, cmd_fis_len);
 
-#ifdef LOONGSON_2G1A
+#if defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A)
 	CPU_IOFlushDCache(pp->cmd_slot, 32, SYNC_W);	/*32~256 */
 	CPU_IOFlushDCache(pp->cmd_tbl, 0x60, SYNC_W);
 	CPU_IOFlushDCache(pp->rx_fis, AHCI_RX_FIS_SZ, SYNC_R);
@@ -687,7 +707,7 @@ static int get_ahci_device_data(u8 port, u8 * fis, int fis_len, u8 * buf,
 	}
 	ahci_fill_cmd_slot(pp, opts);
 
-#ifdef LOONGSON_2G1A
+#if defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A)
 	CPU_IOFlushDCache(pp->cmd_slot, 32, SYNC_W);	/*32~256 */
 	CPU_IOFlushDCache(pp->cmd_tbl, 0x60, SYNC_W);
 	CPU_IOFlushDCache(pp->cmd_tbl_sg, sg_count * 16, SYNC_W);

@@ -105,7 +105,7 @@ extern int atp_write __P((dev_t dev, void *uio, int flag));
 extern int atp_close __P((dev_t dev, int flag, int mode, void *));
 #endif
 
-#if (defined LOONGSON_3A2H) || (defined LOONGSON_3C2H||defined LOONGSON_2G1A)
+#if (defined LOONGSON_3A2H) || (defined LOONGSON_3C2H||defined LOONGSON_2G1A || defined LOONGSON_2F1A)
 extern int ahci_sd_open __P((dev_t dev,int flag, int fmt,struct proc *p));
 extern int ahci_sd_close __P((dev_t dev,int flag, int fmt,struct proc *p));
 extern int ahci_sd_read __P((dev_t dev,struct uio *uio,int flags));
@@ -139,7 +139,7 @@ struct devsw devswitch[] = {
 	{ "fd", fdopen, fdread, fdwrite, fdclose },
 #endif
 #if NWD > 0
-#if (defined LOONGSON_3A2H) || (defined LOONGSON_3C2H||defined LOONGSON_2G1A)
+#if (defined LOONGSON_3A2H) || (defined LOONGSON_3C2H||defined LOONGSON_2G1A || defined LOONGSON_2F1A)
 	{ "wd", ahci_sd_open, ahci_sd_read, ahci_sd_write, ahci_sd_close },
 #else
 	{ "wd", wdopen, wdread, wdwrite, wdclose },
@@ -148,7 +148,7 @@ struct devsw devswitch[] = {
 #if NCD > 0
 	{ "cd", cdopen, cdread, cdwrite, cdclose },
 #endif
-#if (defined LOONGSON_3A2H) || (defined LOONGSON_3C2H||defined LOONGSON_2G1A)
+#if (defined LOONGSON_3A2H) || (defined LOONGSON_3C2H||defined LOONGSON_2G1A || defined LOONGSON_2F1A)
 	{ "cd", ahci_cdrom_open, ahci_cdrom_read, ahci_cdrom_write, ahci_cdrom_close },
 #elif NIDE_CD > 0
 	{ "cd", ide_cdopen, ide_cdread, ide_cdwrite, ide_cdclose},
@@ -224,7 +224,7 @@ physio(strategy, bp, dev, flags, minphys, uio)
 {
 	int error = 0;
 	struct buf lbp;
-#if defined(LOONGSON_2G1A) || defined(LOONGSON_2G5536)
+#if defined(LOONGSON_2G1A) || defined(LOONGSON_2G5536) || defined(LOONGSON_2F1A)
 	int s = 0;
 #else
 	int s;

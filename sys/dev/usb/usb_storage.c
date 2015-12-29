@@ -910,7 +910,8 @@ static int usb_request_sense(ccb *srb,struct us_data *ss)
 
 static int usb_test_unit_ready(ccb *srb,struct us_data *ss)
 {
-#if (defined(LOONGSON_2G5536) || defined(LOONGSON_3A2H) || defined(LOONGSON_2G1A))
+#if (defined(LOONGSON_2G5536) || defined(LOONGSON_3A2H) \
+		|| defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A))
 	//fixup the pioneer DVD-ROM match bug
 	int retries = 30;
 #else
@@ -1019,14 +1020,16 @@ usb_stor_read(int device, unsigned long blknr, unsigned long blkcnt, unsigned lo
 		} else {
 			smallblks=(unsigned short) blks;
 		}
-#if (defined(LOONGSON_2G5536) || defined(LOONGSON_3A2H) || defined(LOONGSON_2G1A))
+#if (defined(LOONGSON_2G5536) || defined(LOONGSON_3A2H) \
+		|| defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A))
 		s = splimp();
 #endif
 retry_it:
 		//if(smallblks==USB_MAX_READ_BLK)
 		//	usb_show_progress();
 
-#if (defined(LOONGSON_2G5536) || defined(LOONGSON_3A2H) || defined(LOONGSON_2G1A))
+#if (defined(LOONGSON_2G5536) || defined(LOONGSON_3A2H) \
+		|| defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A))
 		//fixup pioneer DVD-ROM sleep bug
 		if(usb_test_unit_ready(srb,(struct us_data *)dev->privptr)) {
 			printf("Device NOT ready\n   Request Sense returned %02X %02X %02X\n",
@@ -1036,7 +1039,8 @@ retry_it:
 #endif
 		srb->datalen=usb_dev_desc[device].blksz * smallblks;
 		srb->pdata=(unsigned char *)buf_addr;
-#if (!(defined(LOONGSON_2G5536) || defined(LOONGSON_3A2H) || defined(LOONGSON_2G1A)))
+#if (!(defined(LOONGSON_2G5536) || defined(LOONGSON_3A2H) \
+		|| defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A)))
 		s = splimp();
 #endif
 		if(usb_read_10(srb,(struct us_data *)dev->privptr, start, smallblks)) {

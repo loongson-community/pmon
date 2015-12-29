@@ -43,11 +43,12 @@ typedef unsigned long dma_addr_t;
 */
 
 /*SynopGMAC can support up to 32 phys*/
-#if	defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A)
-#define DEFAULT_PHY_BASE PHY16		//We use First Phy
+#if	defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A)
+#define DEFAULT_PHY_BASE PHY16
 #else
 #define DEFAULT_PHY_BASE PHY0		//We use First Phy
 #endif
+
 #define MACBASE 0x0000			// The Mac Base address offset is 0x0000
 #define DMABASE 0x1000			// Dma base address starts with an offset 0x1000
 
@@ -99,7 +100,7 @@ In addition to this whenever extended status bit is set (RX DESC0 bit 0), RX DES
 */
 
 #define MODULO_INTERRUPT   1 // if it is set to 1, interrupt is available for all the descriptors or else interrupt is available only for
-#if	(!defined(LOONGSON_2G5536))&&(!defined(LOONGSON_2G1A))
+#if	(!defined(LOONGSON_2G5536))&&(!defined(LOONGSON_2G1A)) && (!defined(LOONGSON_2F1A))
 #define ENH_DESC
 #endif
 			     // descriptor whose index%MODULO_INTERRUPT is zero

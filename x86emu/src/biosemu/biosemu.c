@@ -304,7 +304,7 @@ void  BE_callRealMode(
  //   UnlockLegacyVGA();
 }
 
-#if	defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A)
+#if	defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A)
 void  loongson2g_BE_callRealMode(
     uint seg,
     uint off,

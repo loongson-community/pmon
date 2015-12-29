@@ -202,17 +202,16 @@ LEAF(CPU_ConfigCache)
         j       t0
 	nop
 1:
-#endif 
-
+#endif
 	mfc0	v1, COP_0_PRID			# read processor ID register
-    sw	v1, CpuProcessorId		# save PRID register
-    
-    and t4,v1, 0x0000ff00       # t4: PRI num, 0x6300
-    and t5,v1, 0x000000ff       # t5: REV num, 0x03 or 0x05
+	sw	v1, CpuProcessorId		# save PRID register
+
+	and	t4, v1, 0x0000ff00		# t4: PRI num, 0x6300
+	and	t5, v1, 0x000000ff		# t5: REV num, 0x03 or 0x05
 
 	mfc0	v0, COP_0_CONFIG		# Get configuration register
 
-    li	t1, (MIPS_R4600 << 8)		# N way L1 caches only.
+	li	t1, (MIPS_R4600 << 8)		# N way L1 caches only.
 	beq	t4, t1, ConfResult		# R4K 2 way, no L2 control	
 	nop
 
@@ -220,15 +219,15 @@ LEAF(CPU_ConfigCache)
 	beq	t4, t1, ConfResult		# R4K 2 way, No L2 control
 	nop
 
-	li	t1, (MIPS_LOONGSON1<<8)	# LOONGSON1 4 way, GODSON1
+	li	t1, (MIPS_LOONGSON1<<8)		# LOONGSON1 4 way, GODSON1
 	li	t2, CTYPE_4WAY
 	beq	t4, t1, ConfLoongson1 
-    nop
+	nop
 
-	li	t1, (MIPS_LOONGSON2<<8)	# LOONGSON2 4 way,REV_GODSON2F,REV_GODSON3A
+	li	t1, (MIPS_LOONGSON2<<8)		# LOONGSON2 4 way,REV_GODSON2F,REV_GODSON3A
 	li	t2, CTYPE_4WAY
 	beq	t4, t1, ConfLoongson2 
-    nop
+	nop
 
 	li	t1, (MIPS_R5000 << 8)
 	beq	t4, t1, Conf5K			# R5K 2 way, check L2
@@ -245,7 +244,7 @@ LEAF(CPU_ConfigCache)
 	li	t1, (MIPS_E9000 << 8)
 	beq	t4, t1, Conf7K
 	nop
-						        # R4000PC/R4400PC or unknown.
+						# R4000PC/R4400PC or unknown.
 	li	t2, CTYPE_DIR			# default direct mapped cache
 	b	ConfResult
 	nop
@@ -253,7 +252,7 @@ LEAF(CPU_ConfigCache)
 
 #----Loongson1 ------------------------------
 ConfLoongson1:
-   #....... wait to fill
+#....... wait to fill
 
 	li	t2, CTYPE_DIR			# default direct mapped cache
 	b	ConfResult
@@ -262,94 +261,94 @@ ConfLoongson1:
 #----Loongson2 ------------------------------
 ConfLoongson2:
 
-    li  t1, REV_GODSON2F              #REV_GODSON2F REV num: 3 
-    beq t5,t1, ConfGodson2F 
-    nop 
+	li	t1, REV_GODSON2F		# REV_GODSON2F REV num: 3 
+	beq	t5, t1, ConfGodson2F 
+	nop 
 
-    li  t1, REV_GODSON3A              #REV_GODSON3A REV num: 5 
-    beq t5,t1, ConfGodson3A
-    nop
+	li	t1, REV_GODSON3A		# REV_GODSON3A REV num: 5 
+	beq	t5, t1, ConfGodson3A
+	nop
 
-    #b out                             # added for test ConfGodson3A
-    b ConfGodson3A
-    nop
+	#b out					# added for test ConfGodson3A
+	b	ConfGodson3A
+	nop
 
 ConfGodson2F:
 
-    /* check for L1 ICache and L1 DCache
-    and t0, v0, 0x1<<5      # IB
-	srl	t0, t0, 5			# Get I cache line size .
-    li  t1,16
-    sll  t2,t1,t0           # t2: ICache Line Size
-	sw	t2, CpuPrimaryInstCacheLSize	
+/* check for L1 ICache and L1 DCache */
+	and	t0, v0, 0x1<<5		# IB
+	srl	t0, t0, 5		# Get I cache line size .
+	li	t1, 16
+	sll	t2, t1, t0		# t2: ICache Line Size
+	sw	t2, CpuPrimaryInstCacheLSize
 
-    and t0, v0, 0x7<<9      # IC
-	srl	t0, t0, 9			# Get I cache size.
-    li  t1,4096
-    sll  t3,t1,t0           # t3: ICache Line Size
-	sw	t3, CpuPrimaryInstCacheSize	
+	and	t0, v0, 0x7<<9		# IC
+	srl	t0, t0, 9		# Get I cache size.
+	li	t1, 4096
+	sll	t3, t1, t0		# t3: ICache Size
+	sw	t3, CpuPrimaryInstCacheSize
 
-    divu  t3,t3,t2
-    srl   t3,2              # 4-way ICache
-    sw    t3,CpuPrimaryInstSetSize	
+	divu	t3, t3, t2
+	srl	t3, 2			# 4-way ICache
+	sw	t3, CpuPrimaryInstSetSize
 
-    and t0, v0, 0x1<<4      # DB
-	srl	t0, t0, 4			# Get D cache line size .
-    li  t1,16
-    sll  t2,t1,t0           # t2: DCache Line Size
-	sw	t2, CpuPrimarytDataCacheLSize	
+	and	t0, v0, 0x1<<4		# DB
+	srl	t0, t0, 4		# Get D cache line size .
+	li	t1, 16
+	sll	t2, t1,t0		# t2: DCache Line Size
+	sw	t2, CpuPrimaryDataCacheLSize	
 
-    and t0, v0, 0x7<<6      # DC
-	srl	t0, t0, 6			# Get D cache size.
-    li  t1,4096
-    sll  t3,t1,t0           # t3: ICache Line Size
-	sw	t3, CpuPrimaryDatatCacheLSize	
+	and	t0, v0, 0x7<<6		# DC
+	srl	t0, t0, 6		# Get D cache size.
+	li	t1, 4096
+	sll	t3, t1, t0		# t3: DCache Size
+	sw	t3, CpuPrimaryDataCacheSize	
 
-    divu  t3,t3,t2
-    srl   t3,2              # 4-way DCache
-    sw    t3,CpuPrimaryDataSetSize	
+	divu	t3, t3, t2
+	srl	t3, 2			# 4-way DCache
+	sw	t3, CpuPrimaryDataSetSize	
 
-    li	t6, 512*1024
-    li  t7,0
+	li	t6, 512*1024
+	li	t7, 0
 
-    #or	v0,CF_7_SE
-    or	v0,0x07
-    and v0,0x02
-    mtc0    v0,COP_0_CONFIG
+	or	v0, 0x07
+	and	v0, 0x02
+	mtc0    v0, COP_0_CONFIG
 
 /* Flush on chip L2 */
         li      a0, 0x80000000
         li      a1, 0x80080000			# size = 512k
 10:
-    cache   IndexWBInvalidate_S, 0(a0)
-    cache   IndexWBInvalidate_S, 1(a0)
-    cache   IndexWBInvalidate_S, 2(a0)
-    cache   IndexWBInvalidate_S, 3(a0)
-    addu    a0, 32
-    bne     a0, a1, 10b
-    nop
+	cache   IndexWBInvalidate_S, 0(a0)
+	cache   IndexWBInvalidate_S, 1(a0)
+	cache   IndexWBInvalidate_S, 2(a0)
+	cache   IndexWBInvalidate_S, 3(a0)
+	addu    a0, 32
+	bne     a0, a1, 10b
+	nop
 
-    or	v0,0x07
-    and v0,0x03
-    mtc0    v0,COP_0_CONFIG
+	or	v0, 0x07
+	and	v0, 0x03
+	mtc0    v0, COP_0_CONFIG
 
-    li	t2, CTYPE_4WAY
+	li	t2, CTYPE_4WAY
+	or	t2, CTYPE_HAS_L2		#mtf add, 2F has L2
 
-    mfc0    v0,COP_0_CONFIG
+	mfc0    v0, COP_0_CONFIG
 	sw	v0, CpuConfigRegister
 	mfc0	t3, COP_0_STATUS_REG
 	sw	t3, CpuStatusRegister
 	sw	t2, CpuCacheType		# Save cache attributes
 	and	t2, CTYPE_WAYMASK		# isolate number of sets.
 	sw	t2, CpuNWayCache
-	srl	t2, 1				    # get div shift for set size.
+	srl	t2, 1				#get div shift for set size.
 
 	sw	t6, CpuSecondaryCacheSize
 	sw	t7, CpuTertiaryCacheSize
 
-	lw    t4, CpuPrimaryInstCacheLSize
-	addu  t1, t4, -1			# Use icache for alias mask
-	srl	t1, t2  				# Some cpus have different
+	lw	t4, CpuPrimaryInstCacheLSize
+	addu	t1, t4, -1			# Use icache for alias mask
+	srl	t1, t2  			# Some cpus have different
 	and	t1, ~(4096 - 1)			# i and d cache sizes...
 	sw	t1, CpuCacheAliasMask
 
@@ -357,85 +356,85 @@ ConfGodson2F:
 	nop
 
 ConfGodson3A:
-    .set mips64
-    mfc0	v0, COP_0_CONFIG,1		# Get configuration register
-    .set mips3
+	.set mips64
+	mfc0	v0, COP_0_CONFIG,1		# Get configuration register
+	.set mips3
 
-    and t0, v0, 0x7<<16     # IA
+	and	t0, v0, 0x7<<16			# IA
 	srl	t0, t0, 16			# Get I cache association.
-    addu  t0,t0,1           # t0: IA + 1
+	addu	t0, t0, 1			# t0: IA + 1
 
-    and	t1, v0, 0x7<<19     # IL
+	and	t1, v0, 0x7<<19			# IL
 	srl	t1, t1, 19			# Get I cache line size.
-    beqz  t1, 1f
-    nop
-    addu  t1,t1,1           # t1: IL + 1
-    li  t2, 0x1
-    sll t3,t2,t1
-    b 2f
-    nop
+	beqz	t1, 1f
+	nop
+	addu	t1, t1, 1				# t1: IL + 1
+	li	t2, 0x1
+	sll	t3, t2, t1
+	b	2f
+	nop
 1:
-    li t3, 0x0
+	li	t3, 0x0
 2:
 	sw	t3, CpuPrimaryInstCacheLSize	
 
-	and	t3, v0, 0x7<<22     # IS
-	srl	t3, t3, 22          # Get I cache line size.
-    addu t3,t3,6            # t3: IS + 6
-    addu t3,t3,t1
+	and	t3, v0, 0x7<<22			# IS
+	srl	t3, t3, 22			# Get I cache line size.
+	addu	t3, t3, 6			# t3: IS + 6
+	addu	t3, t3, t1
 	sll	t4, t0, t3			# t4 = Initial I size.
-    sw  t4, CpuPrimaryInstCacheSize	
+	sw	t4, CpuPrimaryInstCacheSize
 
-    addu t1,t1,2            # 4 ways cache
-    srl t4, t4, t1
-    #divu  t4,t4,t0
-    sw  t4, CpuPrimaryInstSetSize	
+	addu	t1, t1, 2			# 4 ways cache
+	srl	t4, t4, t1
+	#divu	t4, t4, t0
+	sw	t4, CpuPrimaryInstSetSize	
 
 
-    and t0, v0, 0x7<<7      # DA
-	srl	t0, t0, 7           # Get D cache association.
-    addu  t0,t0,1           # t0: DA + 1
+	and	t0, v0, 0x7<<7			# DA
+	srl	t0, t0, 7			# Get D cache association.
+	addu	t0, t0, 1			# t0: DA + 1
 
-    and	t1, v0, 0x7<<10     # DL
+	and	t1, v0, 0x7<<10			# DL
 	srl	t1, t1, 10			# Get I cache line size.
-    beqz  t1, 1f
-    nop
-    addu  t1,t1,1           # t1: DL + 1
-    li  t2, 0x1
-    sll t3,t2,t1
-    b 2f
-    nop
+	beqz	t1, 1f
+	nop
+	addu	t1, t1, 1			# t1: DL + 1
+	li	t2, 0x1
+	sll	t3, t2, t1
+	b	2f
+	nop
 1:
-    li t3, 0x0
+	li	t3, 0x0
 2:
 	sw	t3, CpuPrimaryDataCacheLSize
 
-	and	t3, v0, 0x7<<13     # DS
-	srl	t3, t3, 13          # Get D cache line size.
-    addu t3,t3,6            # t3: DS + 6
-    addu t3,t3,t1
+	and	t3, v0, 0x7<<13			# DS
+	srl	t3, t3, 13			# Get D cache line size.
+	addu	t3, t3, 6			# t3: DS + 6
+	addu	t3, t3, t1
 	sll	t5, t0, t3			# t5 = Initial D set size.
-    sw t5,  CpuPrimaryDataCacheSize
+	sw t5,  CpuPrimaryDataCacheSize
 
-    addu t1,t1,2            # 4 ways cache
-    srl t5, t5, t1
-    #divu t5,t5,t0
-    sw  t5,CpuPrimaryDataSetSize	
+	addu	t1, t1, 2			# 4 ways cache
+	srl	t5, t5, t1
+	#divu	t5, t5, t0
+	sw	t5, CpuPrimaryDataSetSize	
 
 
-    li	t2, CTYPE_4WAY		  # Assume four way cache
+	li	t2, CTYPE_4WAY			# Assume four way cache
 #if	defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A)
-        or      t2, CTYPE_HAS_L2      # L2 is on chip
-	li	t6, 0x100000          # Secondary size 1M.
+        or      t2, CTYPE_HAS_L2		# L2 is on chip
+	li	t6, 0x100000			# Secondary size 1M.
 #else
-	li	t6, 0x400000          # Secondary size 4M.
+	li	t6, 0x400000			# Secondary size 4M.
 #endif
-	li	t7, 0				  # Tertiary size 0.
+	li	t7, 0				# Tertiary size 0.
 
-    mfc0    v0,COP_0_CONFIG
-    and  v0,0xfff8
-    or   v0,0x03
-    mtc0    v0,COP_0_CONFIG
+	mfc0    v0, COP_0_CONFIG
+	and	v0, 0xfff8
+	or	v0, 0x03
+	mtc0	v0, COP_0_CONFIG
 
 	sw	v0, CpuConfigRegister
 	mfc0	t3, COP_0_STATUS_REG
@@ -443,42 +442,42 @@ ConfGodson3A:
 	sw	t2, CpuCacheType		# Save cache attributes
 	and	t2, CTYPE_WAYMASK		# isolate number of sets.
 	sw	t2, CpuNWayCache
-	srl	t2, 1				    # get div shift for set size.
+	srl	t2, 1				# get div shift for set size.
 
 	sw	t6, CpuSecondaryCacheSize
 	sw	t7, CpuTertiaryCacheSize
 
-	lw    t4, CpuPrimaryInstCacheLSize
-	addu  t1, t4, -1			# Use icache for alias mask
-	srl	t1, t2  				# Some cpus have different
+	lw	t4, CpuPrimaryInstCacheLSize
+	addu	t1, t4, -1			# Use icache for alias mask
+	srl	t1, t2  			# Some cpus have different
 	and	t1, ~(4096 - 1)			# i and d cache sizes...
 	sw	t1, CpuCacheAliasMask
 
 #if 0
-    mfc0    v0,COP_0_CONFIG
-    and     v0,0xfff8
-    or      v0,0x2
-    mtc0    v0,COP_0_CONFIG
+	mfc0    v0, COP_0_CONFIG
+	and     v0, 0xfff8
+	or      v0, 0x2
+	mtc0    v0, COP_0_CONFIG
 
-    /* Flush on chip L2 */
-   li      a0, 0x80000000
-   li      a1, 0x80400000			# size = 4M
+/* Flush on chip L2 */
+	li      a0, 0x80000000
+	li      a1, 0x80400000			# size = 4M
 10:
-   cache   IndexWBInvalidate_S, 0(a0)
-   cache   IndexWBInvalidate_S, 1(a0)
-   cache   IndexWBInvalidate_S, 2(a0)
-   cache   IndexWBInvalidate_S, 3(a0)
-   addu    a0, 32
-   bne     a0, a1, 10b
-   nop
+	cache   IndexWBInvalidate_S, 0(a0)
+	cache   IndexWBInvalidate_S, 1(a0)
+	cache   IndexWBInvalidate_S, 2(a0)
+	cache   IndexWBInvalidate_S, 3(a0)
+	addu    a0, 32
+	bne     a0, a1, 10b
+	nop
 
 #endif
-   #b	ConfResult
+	#b	ConfResult
 
-   j ra
-   b	out
-  
-   nop
+	j 	ra
+	b	out
+
+	nop
 
 #---- R5K ------------------------------
 Conf5K:					# R5000 type, check for L2 cache
@@ -544,11 +543,11 @@ Conf7K:					# RM7000, check for L2 and L3 cache
 Conf7KL2:
 	and	t1, v0, CF_7_SC			# check for L2 cache
 	bnez	t1, ConfResult
-	li	t6, 0				    # No L2?
+	li	t6, 0				# No L2?
 
 	or	t2, CTYPE_HAS_L2		# L2 is on chip
-	lw	t3, CpuOnboardCacheOn   # Check if disabled
-	bnez	t3, ConfResult		# No, use it
+	lw	t3, CpuOnboardCacheOn		# Check if disabled
+	bnez	t3, ConfResult			# No, use it
 	li	t6, 256*1024			# size = 256k
 
 #ifdef CACHE2FLUSH_ON_CONFIG
@@ -643,15 +642,15 @@ LEAF(CPU_FlushCache)
 	.set	noreorder
 	mfc0	t1, COP_0_PRID			# read processor ID register
 
-	li		t0, 0x6305				#godson3a prid
+	li	t0, 0x6305				#godson3a prid
 	beq	t0, t1, for_godson3a
 	nop
 
-	li		t0, 0x6303				#godson2f prid
+	li	t0, 0x6303				#godson2f prid
 	beq	t0, t1, for_godson2f
 	nop
 
-	li		t0, 0x6302				#godson2e prid
+	li	t0, 0x6302				#godson2e prid
 	bne	t0, t1, not_godson2e
 	nop
 
@@ -680,6 +679,19 @@ for_godson3a:
 	
 # godson2e
 for_godson2f:
+	li	t3, CACHED_MEMORY_ADDR
+	lw	t4, CpuSecondaryCacheSize
+10:
+	cache	IndexWBInvalidate_S, 0(t3)
+	cache	IndexWBInvalidate_S, 1(t3)
+	cache	IndexWBInvalidate_S, 2(t3)
+	cache	IndexWBInvalidate_S, 3(t3)
+	subu	t4, 32				# Fixed cache line size.
+	bgtz	t4, 10b
+	addu	t3, 32
+	b	99f
+	nop
+
 for_godson2g:
 	.word   0x40028001 #mfc0    v0,c0_config1
 	and     v0, 0xf
@@ -689,7 +701,7 @@ for_godson2g:
 	//dli	t3, 0x9800000000000000    // start address of window on physical memory, cached
 	dli	t3, 0x9000000000000000
 	//dli	t3, 0xffffffff80000000    // unmapped cached (kseg0) 
-      lw	t4, CpuSecondaryCacheSize
+	lw	t4, CpuSecondaryCacheSize
 10:
 	cache	IndexWBInvalidate_S, 0(t3)
 	cache	IndexWBInvalidate_S, 1(t3)

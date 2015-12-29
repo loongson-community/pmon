@@ -60,7 +60,7 @@ typedef struct {
     nsreg(scr);		/* scratch register (R/W) */
 } ns16550dev;
 
-#ifdef LOONGSON_2G1A
+#if defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A)
 #define        nsreg_1a(x)     unsigned int  x
 typedef struct {
 	nsreg_1a(data);
@@ -123,7 +123,7 @@ extern int ns16550 __P((int, struct DevEntry *, unsigned long, int));
 #define	NS16550_MSR	6	
 #define	NS16550_SCR	7
 
-#ifdef LOONGSON_2G1A
+#if defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A)
 #define	NS16550_DATA_1A		(0 << 2)
 #define	NS16550_IER_1A		(1 << 2)
 #define	NS16550_IIR_1A		(2 << 2)

@@ -13,7 +13,7 @@
 #define NEXT_PAGE(x) (x+1>=npages?0:x+1)
 #define PREV_PAGE(x) (x==0?npages-1:x-1)
 
-#if	defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A)
+#if	defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A)
 #include "../../../x86emu/src/biosemu/biosemui.h"
 RMREGS	*vga_reg;
 RMSREGS	*vga_sreg;

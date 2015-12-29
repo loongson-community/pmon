@@ -1599,7 +1599,7 @@ int fb_init (unsigned long fbbase,unsigned long iobase)
 {
 	unsigned char color8;
 
-    int i,j;
+	int i,j;
 	pGD = &GD;
 #if defined(VGA_NOTEBOOK_V1)
 	pGD->winSizeX  = 1280;

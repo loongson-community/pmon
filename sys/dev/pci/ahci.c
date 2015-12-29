@@ -73,7 +73,7 @@
 #include <pmon.h>
 #include "ahci.h"
 #include "ahcisata.h"
-#ifdef LOONGSON_2G1A
+#if defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A)
 #include "include/ls1a.h"
 #endif
 struct ahci_probe_ent *probe_ent = NULL;
@@ -170,7 +170,7 @@ static void lahci_attach(struct device *parent, struct device *self, void *aux)
 	int i;
 	u32 linkmap;
 	ahci_sata_info_t info;
-#ifdef LOONGSON_2G1A
+#if defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A)
 	*(volatile int *)LS1A_SATA_CLK_REG  = 0x38682650; //100MHZ
 #endif
 	regbase = (bus_space_handle_t) cf->ca_baseaddr;;

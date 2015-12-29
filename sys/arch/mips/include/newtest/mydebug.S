@@ -790,7 +790,7 @@ func_f:
 
 	  SDRCFG_INPUT("0:no;1:yes\r\nDIMM_slot0 have memory?",29,1);
 	  SDRCFG_INPUT( \
-	  "2'b00£ºDIMM1: 1; DIMM0:1\r\n2'b01£ºDIMM1: 1; DIMM0:2\r\n2'b10£ºDIMM1: 2; DIMM0:1\r\n2'b11£ºDIMM1: 2; DIMM0:2\r\nDIMM0/DIMM1 MOUDLE nums?" \
+	  "2'b00??DIMM1: 1; DIMM0:1\r\n2'b01??DIMM1: 1; DIMM0:2\r\n2'b10??DIMM1: 2; DIMM0:1\r\n2'b11??DIMM1: 2; DIMM0:2\r\nDIMM0/DIMM1 MOUDLE nums?" \
 	  ,27,2);
 	  SDRCFG_INPUT("0:sequence 1:interleave\r\ninterleave?",26,1);
 
@@ -811,7 +811,7 @@ func_f:
 		,7,2);
 
 	  SDRCFG_INPUT(\
-		"1'b0   5 cycles(DDR100)\r\n1'b1   7 cycles(DDR266¡¢DDR333)\r\nTRAS:time from ACTIVE to PRECHARGE?" \
+		"1'b0   5 cycles(DDR100)\r\n1'b1   7 cycles(DDR266??DDR333)\r\nTRAS:time from ACTIVE to PRECHARGE?" \
 		,6,1);
 
 	  SDRCFG_INPUT(\
@@ -819,11 +819,11 @@ func_f:
 		,4,2);
 
 	  SDRCFG_INPUT(\
-		"1'b0   2 cycles(DDR100)\r\n1'b1   3 cycles(DDR266¡¢DDR333)\r\nTWR:time from last write data to PRECHARGE?" \
+		"1'b0   2 cycles(DDR100)\r\n1'b1   3 cycles(DDR266??DDR333)\r\nTWR:time from last write data to PRECHARGE?" \
 		,3,1);
 
 	  SDRCFG_INPUT(\
-		"1'b0   2 cycles(DDR100)\r\n1'b1   3 cycles(DDR266¡¢DDR333)\r\nTRP:PRECHARGE time counter?" \
+		"1'b0   2 cycles(DDR100)\r\n1'b1   3 cycles(DDR266??DDR333)\r\nTRP:PRECHARGE time counter?" \
 		,2,1);
 
 	  SDRCFG_INPUT(\

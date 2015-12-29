@@ -1,0 +1,7 @@
+TARGET=Bonito2f1a
+TARGETEL=Bonito.2f1a
+export START=start.o
+MEMSIZE=128
+ZLOADER_OPTIONS=-mips3
+
+include Makefile.inc

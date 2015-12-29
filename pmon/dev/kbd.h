@@ -22,7 +22,7 @@ extern unsigned int superio_base;
 #define KBD_CNTL_REG            (0xbfe001d4 - 0xbfd00000)       /* Controller command register (W) */
 #define KBD_DATA_REG            (0xbfe001d0 - 0xbfd00000)       /* Keyboard data register (R/W) */
 
-#elif defined(LOONGSON_2G1A) && (!defined(LOONGSON_2G5_1A_DDR3))
+#elif (defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A)) && (!defined(LOONGSON_2G5_1A_DDR3))
 
 #define KBD_STATUS_REG          0xb2e60010      /* Status register (R) */
 #define KBD_CNTL_REG            0xb2e60010      /* Controller command register (W) */
@@ -44,7 +44,7 @@ extern unsigned int superio_base;
 #define kbd_write_output(val)	outb(superio_base + KBD_DATA_REG,val)
 #define kbd_write_command(val)	outb(superio_base + KBD_CNTL_REG, val)
 
-#elif defined(LOONGSON_2G1A) && (!defined(LOONGSON_2G5_1A_DDR3))
+#elif (defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A)) && (!defined(LOONGSON_2G5_1A_DDR3))
 #define kbd_read_input() 	inb(KBD_DATA_REG)
 #define kbd_read_status() 	inb(KBD_STATUS_REG)
 #define kbd_write_output(val) 	outb(KBD_DATA_REG,val)

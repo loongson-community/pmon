@@ -268,7 +268,7 @@ scandevs ()
 #endif
 #if NMOD_VGACON >0
 #if NMOD_USB_KBD >0
-#if defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A)
+#if defined(LOONGSON_2G5536) || defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A)
 	if (usb_kbd_available) //before use
 		usb_kbd_poll();  //before use
 #elif defined(INTERFACE_3A780E)

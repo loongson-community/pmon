@@ -68,7 +68,7 @@ nsinit (volatile ns16550dev *dp)
 	return 0;
 }
 
-#ifdef LOONGSON_2G1A
+#if defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A)
 static int
 nsinit_1a (volatile ns16550dev_1a *dp)
 {
@@ -136,7 +136,7 @@ static int rates[] = {
 	return 0;
 }
 
-#ifdef LOONGSON_2G1A
+#if defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A)
 static int
 nsprogram_1a (volatile ns16550dev_1a *dp, unsigned long freq, int baudrate)
 {
@@ -223,7 +223,7 @@ ns16550 (int op, struct DevEntry *dev, unsigned long param, int data)
 	return 0;
 }
 
-#ifdef LOONGSON_2G1A
+#if defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A)
 int ns16550_1a (int op, struct DevEntry *dev, unsigned long param, int data)
 {
 	volatile ns16550dev_1a *dp;

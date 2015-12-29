@@ -58,7 +58,7 @@
 #include <dev/pci/pcivar.h>
 #include <dev/pci/pcidevs.h>
 
-#ifdef LOONGSON_2G1A
+#if defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A)
 #define	DEVNUM_1A	9
 #define	PCIID_1A	0x104a
 #endif
@@ -344,7 +344,7 @@ pci_query_dev(tag)
         _pci_devinfo(id, class, NULL, devinfo);
         printf("%3d %3d %s\n", dev, func, devinfo);
 
-#ifdef LOONGSON_2G1A
+#if defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A)
 	/* if pci device is 1a, skip the pci_query_bar */
 	if(dev == DEVNUM_1A && id == PCIID_1A)
 		return 0;

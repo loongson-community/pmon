@@ -24,7 +24,7 @@
 
 #include "GMAC_Pmon.h"
 
-#if defined(LOONGSON_2G1A)
+#if defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A)
 #include "target/ls1a.h"
 #define MACBASE 0x0000
 #define DMABASE 0x1000
@@ -89,7 +89,7 @@ typedef unsigned long dma_addr_t;
 */
 
 //sw: nothing to display
-#if	defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A)
+#if	defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A)
 #define TR0(fmt, args...) 		
 #else
 #define TR0(fmt, args...)   printf(fmt, ##args)	
@@ -156,12 +156,16 @@ static u32  synopGMACReadReg(u64 RegBase, u32 RegOffset)
 	u32 data;
 
 	addr = RegBase + (u64)RegOffset;
-#if defined(LOONGSON_2G1A)
-	if (RegBase == LS1A_GMAC0_REG_BASE + MACBASE || RegBase == LS1A_GMAC0_REG_BASE + DMABASE)
+	switch(RegBase) {
+#if defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A)
+	case LS1A_GMAC0_REG_BASE + MACBASE:
+	case LS1A_GMAC0_REG_BASE + DMABASE:
+	case LS1A_GMAC1_REG_BASE + MACBASE:
+	case LS1A_GMAC1_REG_BASE + DMABASE:
 		data = *(volatile u32 *)addr;
-	else
+		break;
 #endif
-
+	default:
 		__asm __volatile(
 			".set\tnoreorder\n\t"
 			".set\tmips3\n\t"
@@ -174,6 +178,8 @@ static u32  synopGMACReadReg(u64 RegBase, u32 RegOffset)
 			:"m"(addr)
 			:"memory","$8","$9"
 			);
+		break;
+	}
 #if SYNOP_REG_DEBUG
 	TR("%s RegBase = 0x%08x RegOffset = 0x%08x RegData = 0x%08x\n", __FUNCTION__, (u32)RegBase, RegOffset, data );
 #endif
@@ -196,15 +202,19 @@ static void synopGMACWriteReg(u64 RegBase, u32 RegOffset, u32 RegData )
 
 	addr = RegBase + (u64)RegOffset;
 #if SYNOP_REG_DEBUG
-	TR("%s RegBase = 0x%08x RegOffset = 0x%08x RegData = 0x%08x\n", __FUNCTION__,(u32) RegBase, RegOffset, RegData);
+	TR("%s RegBase = 0x%08x RegOffset = 0x%08x RegData = 0x%08x\n", 
+				__FUNCTION__,(u32) RegBase, RegOffset, RegData);
 #endif
-	//writel(RegData,(void *)addr);
-	//printf("GMAC addr = 0x%lx \n",addr);
-#if defined(LOONGSON_2G1A)
-	if (RegBase == LS1A_GMAC0_REG_BASE + MACBASE || RegBase == LS1A_GMAC0_REG_BASE + DMABASE)
+	switch(RegBase) {
+#if defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A)
+	case LS1A_GMAC0_REG_BASE + MACBASE:
+	case LS1A_GMAC0_REG_BASE + DMABASE:
+	case LS1A_GMAC1_REG_BASE + MACBASE:
+	case LS1A_GMAC1_REG_BASE + DMABASE:
 		*(volatile u32 *)addr = RegData;
-	else
+		break;
 #endif
+	default:
 		__asm __volatile(
 			".set\tnoreorder\n\t"
 			".set\tmips3\n\t"
@@ -215,6 +225,8 @@ static void synopGMACWriteReg(u64 RegBase, u32 RegOffset, u32 RegData )
 			:"m"(RegData),"m"(addr)
 			:"memory","$8","$9"
 			);
+		break;
+	}
 	return;
 }
 

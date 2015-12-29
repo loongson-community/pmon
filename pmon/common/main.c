@@ -1134,7 +1134,7 @@ void get_memorysize(unsigned long long raw_memsz) {
 void __attribute__((weak)) print_mem_freq(void)
 {
 
-#ifdef LOONGSON_2G1A
+#if defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A)
 #define MEM_BASE_CLK_2G	25
 	int clk567, clk89;
 #endif
@@ -1169,7 +1169,7 @@ void __attribute__((weak)) print_mem_freq(void)
 	}
         else
 		printf("/ Bus @ 33 MHz\n");
-#elif defined(LOONGSON_2G1A)
+#elif defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A)
 	/* to calculate memory frequency.
 	 * we can find this function in loongson 2G manual,
 	 * memclk * (clksel[7:5] * 2 + 20 + clksel[7:5] == 7 ? 2 : 0)/((clksel[9:8] + 1) * 2)

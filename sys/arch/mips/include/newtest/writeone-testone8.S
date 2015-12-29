@@ -9,7 +9,7 @@
 #define I_LOAD  ld
 #define I_WIDTH 8
 #define errorall t5
-#if	defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A)
+#if	defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A)
 .set	at
 #endif
 	nop

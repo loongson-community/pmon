@@ -560,7 +560,7 @@ _pci_query_dev (struct pci_device *dev, int bus, int device, int initialise)
 
 	if (_pciverbose >= 2)
 		_pci_bdfprintf (bus, device, -1, "probe...");
-#if defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A)
+#if defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A)
 	id = _pci_conf_read(tag, PCI_ID_REG);
 
 	if (_pciverbose >= 2) {
@@ -1115,7 +1115,7 @@ static void
 _pci_scan_dev(struct pci_device *dev, int bus, int device, int initialise)
 {
 	for(; device < 32; device++) {
-#ifdef LOONGSON_2G1A
+#if defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A)
 		if(device == 9){//the 1a can not enumerate,it is not a common and standard pci device
 			continue;
 		}
