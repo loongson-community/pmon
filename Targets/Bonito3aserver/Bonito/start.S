@@ -48,7 +48,8 @@
 #include "target/i8254.h"
 #include "target/isapnpreg.h"
 
-#include "loongson3_def.h"
+//#include "loongson3_def.h"
+#include "loongson3server_def.h"
 /*
  *   Register usage:
  *
