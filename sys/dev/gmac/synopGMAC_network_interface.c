@@ -2800,3 +2800,34 @@ MODULE_DESCRIPTION("SYNOPSYS GMAC DRIVER Network INTERFACE");
 
 EXPORT_SYMBOL(synopGMAC_init_pci_bus_interface);
 */
+
+void gmac_stop(void)
+{
+	register struct ifnet *ifp0,*ifp1;
+	struct synopGMACNetworkAdapter *adapter0,*adapter1;
+	synopGMACdevice *gmacdev0,*gmacdev1;
+
+	ifp0 = ifunit("syn0");
+	ifp1 = ifunit("syn1");
+
+	if(ifp0 != 0){ 
+		adapter0 = (struct synopGMACNetworkAdapter *)ifp0->if_softc;
+		gmacdev0 = (synopGMACdevice *)adapter0->synopGMACdev;
+
+		synopGMAC_disable_dma_tx(gmacdev0);
+		synopGMAC_tx_disable(gmacdev0);
+		synopGMAC_disable_dma_rx(gmacdev0);
+		synopGMAC_rx_disable(gmacdev0);
+	}   
+
+	if(ifp1 != 0){ 
+		adapter1 = ifp1->if_softc;
+		gmacdev1 = (synopGMACdevice *)adapter1->synopGMACdev;
+
+		synopGMAC_disable_dma_tx(gmacdev1);
+		synopGMAC_tx_disable(gmacdev1);
+		synopGMAC_disable_dma_rx(gmacdev1);
+		synopGMAC_rx_disable(gmacdev1);
+	}   
+}
+

@@ -552,13 +552,11 @@ void synopGMAC_rx_enable(synopGMACdevice * gmacdev)
   * @param[in] pointer to synopGMACdevice.
   * \return returns void.
   */
-#if UNUSED
 void synopGMAC_rx_disable(synopGMACdevice * gmacdev)
 {
 	synopGMACClearBits(gmacdev->MacBase, GmacConfig, GmacRx);
 	return;
 }
-#endif
 /**
   * Enable the transmission of frames on GMII/MII.
   * @param[in] pointer to synopGMACdevice.
@@ -575,13 +573,11 @@ void synopGMAC_tx_enable(synopGMACdevice * gmacdev)
   * @param[in] pointer to synopGMACdevice.
   * \return returns void.
   */
-#if UNUSED
 void synopGMAC_tx_disable(synopGMACdevice * gmacdev)
 {
 	synopGMACClearBits(gmacdev->MacBase, GmacConfig, GmacTx);
 	return;
 }
-#endif
 
 
 /*Receive frame filter configuration functions*/

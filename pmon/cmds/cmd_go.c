@@ -176,6 +176,9 @@ extern char	*optarg;
 #if NMOD_USB_OHCI !=0
 	usb_ohci_stop();
 #endif
+#ifdef LOONGSON_3A2H
+	gmac_stop();
+#endif
 #if NMOD_DEBUGGER > 0
 	if (setjmp (go_return_jump) == 0) {	
 		goclient ();
