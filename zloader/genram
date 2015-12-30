@@ -91,22 +91,22 @@ void initmips(unsigned int msize,struct callvectors *cv)
     int *end=(void *)$myend;
     int *p;
     cvs=cv;
-    stringserial("Uncompressing Bios");
+    tgt_puts("Uncompressing Bios");
     run_unzip(biosdata,$mystart);
-    stringserial("OK,Booting Bios\\r\\n");
+    tgt_puts("OK,Booting Bios\\r\\n");
     for(p=edata;p<=end;p++)
     {
         *p=0;
     }
 	memset($mystart-0x1000,0,0x1000);//$mystart-0x1000 for frame(registers),memset for pretty
 //	cv->cacheflush();
-	stringserial("flush_cache...");
+	tgt_puts("flush_cache...");
 #ifdef NOCACHE2
 	flush_cache();
 #else
 	flush_cache2();
 #endif
-	stringserial("done,boot now\\r\\n");
+	tgt_puts("done,boot now\\r\\n");
     realinitmips(msize);
 }
 
@@ -130,11 +130,10 @@ void tgt_putchar(char c)
 cvs->printf("%%c",c);
 #endif
 }
-void stringserial(char *str)
+int tgt_puts(char *str)
 {
-#ifndef NOMSG
-cvs->printf("%%s",str);
-#endif
+	while(*str)
+		tgt_putchar(*str++);
 }
 END
 );
