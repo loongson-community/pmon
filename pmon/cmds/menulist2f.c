@@ -148,7 +148,7 @@ static int draw_top_copyright(void)
 
 static int draw_mid_main(int sel, const char *path)
 {
-	int i;
+	int i, j;
 	char str_line[81];
 	char tmp[100];
 	int selected = sel ;	
@@ -193,7 +193,7 @@ static int draw_mid_main(int sel, const char *path)
 	__cprint(mid_height++,0,0,COLOR,str_line);;
 	
 	/* print menu title */
-    for (i = 0; i < frame_height - 3; i++)
+    for (i = 0,j=(selected<9)?0:selected-9+1; i < frame_height - 3; i++)
 	{
 		memset(tmp, 0, sizeof(tmp));
 		memset(str_line, ' ', sizeof(str_line));
@@ -205,18 +205,18 @@ static int draw_mid_main(int sel, const char *path)
 		
 		str_line[79] = '\0';
 		str_line[0] = (char)179;
-		if (i < menus_num && i < 9 )
+		if (j + i < menus_num && i < 9 )
 		{
 			#if 1
-			if (selected == (i + 1))
+			if (selected == (j + i + 1))
 			{
 			
-				sprintf(tmp, "%s %d %s","->", i + 1, menu_items[i].title);
+				sprintf(tmp, "%s %d %s","->", j + i + 1, menu_items[j+i].title);
 			}
 			else
 			{
 			
-				sprintf(tmp, "%s %d %s","  " ,i + 1, menu_items[i].title);
+				sprintf(tmp, "%s %d %s","  " ,j + i + 1, menu_items[j+i].title);
 			}
 			#endif
 			
