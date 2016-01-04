@@ -169,7 +169,7 @@ mc_init:
     bal     ddr2_config
     nop
 
-#ifdef  PRINT_MSG
+#ifdef  PRINT_MSG1
     //print MC registers
     PRINTSTR("\r\nThe MC param is:\r\n")
     dli     t1, DDR_PARAM_NUM
@@ -524,7 +524,7 @@ mc_init:
     sd      a1, MC_INT_ACK_ADDR(t8)
     sync
 
-#if 0   //def  PRINT_MSG
+#ifdef  PRINT_MSG1
     //print MC registers
     PRINTSTR("\r\nThe MC param is:\r\n")
     dli     t1, DDR_PARAM_NUM
