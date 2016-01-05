@@ -1304,7 +1304,7 @@ void tgt_poweroff()
 void tgt_reboot(void)
 {
 	watchdog_enable();
-	delay(1000000);
+	//delay(1000000);
 	*(volatile char *)0xb8000cd6=0x85;
 	*(volatile char *)0xb8000cd7=0xe;
 	while(1);
