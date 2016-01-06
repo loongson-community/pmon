@@ -418,7 +418,7 @@ mfi_transition_firmware(struct mfi_softc *sc)
 			    DEVNAME(sc), fw_state);
 			return (1);
 		}
-		for (i = 0; i < (max_wait * 10); i++) {
+		for (i = 0; i < (max_wait * 100); i++) {
 			symprintf();
 			fw_state = mfi_fw_state(sc) & MFI_STATE_MASK;
 			if (fw_state == cur_state)
