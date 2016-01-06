@@ -443,6 +443,7 @@ gs_2f_v3_ddr2_cfg:
 	 * t3 nr of cores, aka 8 for 3aserver
 	 * t4 mailbox base refering to t2
 	 */
+	WatchDog_Enable;
 	.set     mips64
 	mfc0    t0, $15, 1
 	.set     mips3
@@ -482,6 +483,7 @@ wait_l2_ok:
 	sw	t6, FN_OFF(t4)
 	
 
+	WatchDog_Close;
 	PRINTSTR("scache init done\r\n")
 
 	## enable kseg0 cachablilty####
