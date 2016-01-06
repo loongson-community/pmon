@@ -561,9 +561,68 @@ soft_out:
 
         bal     vcache_init
         nop
+	la	a0, slave_main
+	bal	hexserial
+	nop
+
+	la	a0, slave_main_end
+	bal	hexserial
+	nop
+
+	la	a0, slave_main
+	la	a2, slave_main_end
+
+	daddi	a0,a0, -0x500
+	daddi	a2,a2,  0x500
+
+	li	a1, 0x0fffe0
+	and	a0,a0,a1
+	and	a2,a2,a1
+
+	dli	a1, 0x9800000000000000
+	or	a0, a0,a1
+	or	a2, a2,a1
+	daddi	a2, a2, 0x20
+
+	bal	scache_init_mini
+	nop
+
+#define SYSTEM_INIT_SCACHE 0x12345
+
+	dli     t0, NODE0_CORE0_BUF0  #buf of cpu0 we need bootcore_id
+	dli	t3, BOOTCORE_ID
+	dsll    t3, 8
+	or      t0, t0, t3
+	li      t1, SYSTEM_INIT_OK
+	sw      t1, FN_OFF(t0)
+
+
 	TTYDBG("scache init node 0\r\n")
-	dli a0, 0x9800000000000000
-	bal	scache_init_64 
+	la	a2, slave_main
+	daddi	a2, a2, -0x500
+
+	li	a1, 0x0fffe0
+	and	a2, a2, a1
+
+	dli	a0, 0x9800000000000000
+	or	a2, a2,a0
+	bal	scache_init_mini
+	nop
+
+	la	a0, slave_main_end
+	daddi	a0, a0, 0x500
+
+	li	a1, 0x0fffe0
+	and	a0,a0,a1
+	and	a2,a2,a1
+
+	dli	a1, 0x9800000000000000
+	or	a0, a0,a1
+	daddi	a0, a0, 0x20
+
+	dli	a2, 0x9800000000100000
+
+	bal	scache_init_mini
 	nop
 
 	TTYDBG("scache init node 1\r\n")
@@ -1682,6 +1741,30 @@ END(nullfunction)
   phys addr [0:1] to select which way, this function expect para a0 is a 
   0x40000-aligned xphys address
 */
+LEAF(scache_init_mini)
+	move	t7, ra
+
+	#dli	a2, 0x00100000   #4M/4way
+	li      a1, 0x22
+	mtc0    a1, CP0_ECC
+	mtc0    zero, CP0_TAGHI
+	mtc0    zero, CP0_TAGLO
+	move	v0, a0
+	#daddu   v1, a2
+	move    v1, a2
+1:      
+	cache   Index_Store_Tag_S, 0x0(v0)
+	cache   Index_Store_Tag_S, 0x1(v0)
+	cache   Index_Store_Tag_S, 0x2(v0)
+	cache   Index_Store_Tag_S, 0x3(v0)
+	daddiu   v0, v0, 0x20
+	bne     v0, v1, 1b
+	nop
+
+	jr      ra
+	nop
+END(scache_init_mini)
+
 LEAF(scache_init_64)
 	move	t7, ra
 
@@ -2059,6 +2142,7 @@ idle1000:
 	nop
 
 	.end    slave_main
+slave_main_end:
 
 
 #######################################
