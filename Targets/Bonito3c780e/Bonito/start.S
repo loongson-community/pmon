@@ -345,28 +345,42 @@ gs_2f_v3_ddr2_cfg:
 
 	TTYDBG ("\r\n")
 
+#ifdef BONITO_33M
+#define AXI_CLK 33333333
+#elif defined(BONITO_25M)
+#define AXI_CLK 25000000
+#else
+#define AXI_CLK 33333333
+#endif
+
 #define SOFT_CLKSEL
 #ifdef SOFT_CLKSEL
+//#define NODE_LOOPC  25 //800MHz
 //#define NODE_LOOPC  32 //800MHz
-#define NODE_LOOPC  40 //1.0GHz
+//#define NODE_LOOPC  40 //1.0GHz
 #define NODE_REFC   1
 #define NODE_DIV    1
+#define NODE_LOOPC  800000000/10*NODE_DIV/(AXI_CLK/10)
 
 //#define DDR_LOOPC  24 //400MHz
 //#define DDR_LOOPC  28 //466MHz
 //#define DDR_LOOPC  30 //500MHz
-#define DDR_LOOPC  32 //533MHz
+//#define DDR_LOOPC  32 //533MHz
 //#define DDR_LOOPC  34 //566MHz
 //#define DDR_LOOPC  36 //600MHz
 //#define DDR_LOOPC  38 //633MHz
 #define DDR_REFC   1
 #define DDR_DIV    2
+#define DDR_LOOPC  333333333/10*DDR_DIV/(AXI_CLK/10)
 
+
+//#define	CORE_LOOPC  25 //800
+//#define	CORE_LOOPC  33 //1.1g
 //#define CORE_LOOPC  32 //0.8G
 //#define CORE_LOOPC  40 //1.0G
 //#define CORE_LOOPC  46 //1.15G
 //#define CORE_LOOPC  48 //1.2G
-#define	CORE_LOOPC  44 //1.1g
+//#define	CORE_LOOPC  44 //1.1g
 //#define CORE_LOOPC  50 //1.25G
 //#define CORE_LOOPC  52 //1.3G  OK @ 1.15, pass the stressapptest
 //#define CORE_LOOPC  54 //1.35G OK @ 1.15v but (bit 33 cause error, make 0 to 1 at stressapptest)
@@ -377,6 +391,7 @@ gs_2f_v3_ddr2_cfg:
 //#define CORE_LOOPC  62 //1.55G
 #define CORE_REFC   1
 #define CORE_DIV    1
+#define	CORE_LOOPC  800000000/10*CORE_DIV/(AXI_CLK/10) //500
 
 #define L1_LOOPC    40
 #define L1_REFC     1
@@ -658,7 +673,7 @@ soft_out:
 #include "ddr_dir/lsmc_ddr_param_define.h"
 #include "ddr_dir/ddr_config_define.h"
 #define DDR_DLL_BYPASS
-//#define DISABLE_DIMM_ECC
+#define DISABLE_DIMM_ECC
 #define PRINT_MSG
 //#define DEBUG_DDR
 //#define DEBUG_DDR_PARAM
