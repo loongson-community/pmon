@@ -104,6 +104,10 @@ stack = start - 0x4000		/* Place PMON stack below PMON start in RAM */
 	 *  whatever comes up before we have a fully fledged exception handler.
 	 */
 	.org	0x200			/* bfc00200 */
+        li v0, 0xbfe0011c
+        li v1, 0x38
+        sw v1, (v0)
+        sw zero, 4(v0)
 	la	a0, v200_msg
 	bal	stringserial
 	nop
@@ -125,6 +129,10 @@ stack = start - 0x4000		/* Place PMON stack below PMON start in RAM */
 
 	/* General exception */
 	.align	7			/* bfc00380 */
+        li v0, 0xbfe0011c
+        li v1, 0x38
+        sw v1, (v0)
+        sw zero, 4(v0)
 	li	a0,0x10000000 /*test from 0xbfcxxxxx or 0xff20xxxx */
 	and	a0,ra
 	bnez	a0,1f
