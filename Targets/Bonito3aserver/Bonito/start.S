@@ -1964,10 +1964,30 @@ ALL_NODE_MEM_INIT_DONE:
 	li      a1, NODE_MEM_INIT_DONE
 
 	dli     t0, NODE1_CORE0_BUF0
+
+/*timeout 13s*/
+        mfc0    v0, COP_0_COUNT
+        li a2,800000000/2
+        li a3,10
 1:
 	lw      a0, FN_OFF(t0)
-	bne     a0, a1, 1b
+	beq     a0, a1, 1f
 	nop
+        mfc0    v1, COP_0_COUNT
+        subu v1, v0
+        sltu v1, a2
+        bnez v1, 1b
+        nop
+        mfc0    v0, COP_0_COUNT
+        addiu a3,-1
+	bnez  a3, 1b
+	nop
+        WatchDog_Enable	
+        li a3, 10
+	b 1b
+	nop
+1:
+        WatchDog_Close
 
 	/* all core0 mem init done
 	* load msize and s3 from ALL 3 NODEs
