@@ -83,17 +83,6 @@ stack = start - 0x4000		/* Place PMON stack below PMON start in RAM */
 	la	gp, _gp
 
 
-#ifdef DDR3_DIMM
-#ifdef USE_780E_VGA
-	GPIO_CLEAR_OUTPUT(0x1<<2);  
-#elif defined(USE_BMC)
-	GPIO_SET_OUTPUT(0x1<<2);
-#endif
-#else
-	GPIOLED_SET(0xd)
-#endif
-
-	WatchDog_Close
 
 	bal	locate			/* Get current execute address */
 	nop
@@ -277,6 +266,18 @@ locate:
 	dli     a0, BOOTCORE_ID
 	bne     t0, a0, slave_main
 	nop
+
+#ifdef DDR3_DIMM
+#ifdef USE_780E_VGA
+	GPIO_CLEAR_OUTPUT(0x1<<2);  
+#elif defined(USE_BMC)
+	GPIO_SET_OUTPUT(0x1<<2);
+#endif
+#else
+	GPIOLED_SET(0xd)
+#endif
+
+	WatchDog_Close
 
 	bal	initserial
 	nop
