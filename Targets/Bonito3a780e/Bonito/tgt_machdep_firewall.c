@@ -141,7 +141,11 @@ extern const char *kbd_error_msgs[];
 #if (NMOD_X86EMU_INT10 == 0)&&(NMOD_X86EMU == 0)
 int vga_available=0;
 #elif defined(VGAROM_IN_BIOS)
+#ifdef LVDS
+#include "vgarom-lvds.c"
+#else
 #include "vgarom.c"
+#endif
 #endif
 
 int tgt_i2cread(int type,unsigned char *addr,int addrlen,unsigned char reg,unsigned char* buf ,int count);
