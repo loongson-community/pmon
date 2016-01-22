@@ -440,12 +440,15 @@ void tgt_devconfig(void)
 	    extern struct cfdriver wd_cd;
 	    int i;
 	    cd = &wd_cd;
-	    dv0 = (struct device *)(cd->cd_devs[0]);
-	    dv1 = (struct device *)(cd->cd_devs[1]);
-	    if(!dv0 && dv1)
+	    if(cd->cd_ndevs)
 	    {
-		    printf("no cfcard, so rename %s to wd0\n", dv1->dv_xname);
-		    strcpy(dv1->dv_xname,"wd0");
+		    dv0 = (struct device *)(cd->cd_devs[0]);
+		    dv1 = (struct device *)(cd->cd_devs[1]);
+		    if(!dv0 && dv1)
+		    {
+			    printf("no cfcard, so rename %s to wd0\n", dv1->dv_xname);
+			    strcpy(dv1->dv_xname,"wd0");
+		    }
 	    }
     }
 #if NMOD_VGACON >0
