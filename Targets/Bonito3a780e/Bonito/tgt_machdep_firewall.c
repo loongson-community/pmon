@@ -228,6 +228,18 @@ ConfigEntry	ConfigTable[] =
 #ifdef USE_SUPERIO_UART
 	 { (char *)-1, 0, ns16550, 256, CONS_BAUD, NS16550HZ/2 ,0}, 
 	 { (char *)-1, 0, ns16550, 256, CONS_BAUD, NS16550HZ/2 ,0}, 
+#ifdef SUPERIO_UART3_IRQPORT
+	 { (char *)-1, 0, ns16550, 256, CONS_BAUD, NS16550HZ/2 ,0}, 
+#endif
+#ifdef SUPERIO_UART4_IRQPORT
+	 { (char *)-1, 0, ns16550, 256, CONS_BAUD, NS16550HZ/2 ,0}, 
+#endif
+#ifdef SUPERIO_UART5_IRQPORT
+	 { (char *)-1, 0, ns16550, 256, CONS_BAUD, NS16550HZ/2 ,0}, 
+#endif
+#ifdef SUPERIO_UART6_IRQPORT
+	 { (char *)-1, 0, ns16550, 256, CONS_BAUD, NS16550HZ/2 ,0}, 
+#endif
 #endif
 	{ 0 }
 };
@@ -609,6 +621,16 @@ static void w83627_write(int dev,int addr,int data)
 	outb(BONITO_PCIIO_BASE_VA + 0x002e,0xaa);
 	outb(BONITO_PCIIO_BASE_VA + 0x002e,0xaa);
 }
+
+#ifdef USE_SUPERIO_UART
+#ifndef SUPERIO_UART1_IRQPORT
+#define SUPERIO_UART1_IRQPORT 0x0103f8
+#endif
+
+#ifndef SUPERIO_UART2_IRQPORT
+#define SUPERIO_UART2_IRQPORT 0x0102f8
+#endif
+
 static void superio_reinit()
 {
 /*set global  multifuntion pin reg 0x2c low 2bit to 3 for 83627dhg to enable uart2*/
@@ -624,16 +646,16 @@ w83627_write(5,0x72,0xc);
 w83627_write(5,0xf0,0x80);
 //w83627_UART1
 w83627_write(2,0x30,0x01);
-w83627_write(2,0x60,0x03);
-w83627_write(2,0x61,0xf8);
-w83627_write(2,0x70,0x01);
+w83627_write(2,0x60,(SUPERIO_UART1_IRQPORT>>8)&0xff);
+w83627_write(2,0x61,SUPERIO_UART1_IRQPORT&0xff);
+w83627_write(2,0x70,(SUPERIO_UART1_IRQPORT>>16)&0xff);
 w83627_write(2,0xf0,0x00);
 
 //w83627_UART2
 w83627_write(3,0x30,0x01);
-w83627_write(3,0x60,0x02);
-w83627_write(3,0x61,0xf8);
-w83627_write(3,0x70,0x01);
+w83627_write(3,0x60,(SUPERIO_UART2_IRQPORT>>8)&0xff);
+w83627_write(3,0x61,SUPERIO_UART2_IRQPORT&0xff);
+w83627_write(3,0x70,(SUPERIO_UART2_IRQPORT>>16)&0xff);
 w83627_write(3,0xf0,0x00);
 ////w83627_PALLPort
 w83627_write(1,0x30,0x01);
@@ -643,6 +665,7 @@ w83627_write(1,0x70,0x01);
 w83627_write(1,0x74,0x04);
 w83627_write(1,0xf0,0xF0); 
 }
+#endif
 #endif
 
 
@@ -704,10 +727,23 @@ tgt_devinit()
 #ifdef USE_SUPERIO_UART
 	superio_reinit();
 	{int i;
-	 int j;
-	 int uart[] = { 0xb80002f8, 0xb80003f8 };
+		int j;
+		int uart[] = {0xb8000000 + (SUPERIO_UART1_IRQPORT&0xffff), 0xb8000000 + (SUPERIO_UART2_IRQPORT&0xffff) 
+#ifdef SUPERIO_UART3_IRQPORT
+			, 0xb8000000 + (SUPERIO_UART3_IRQPORT&0xffff)
+#endif
+#ifdef SUPERIO_UART4_IRQPORT
+			, 0xb8000000 + (SUPERIO_UART4_IRQPORT&0xffff)
+#endif
+#ifdef SUPERIO_UART5_IRQPORT
+			, 0xb8000000 + (SUPERIO_UART5_IRQPORT&0xffff)
+#endif
+#ifdef SUPERIO_UART6_IRQPORT
+			, 0xb8000000 + (SUPERIO_UART6_IRQPORT&0xffff)
+#endif
+		};
 
-		for(i=0,j=0;ConfigTable[i].devinfo;i++)
+		for(i=0,j=0;ConfigTable[i].devinfo && j<sizeof(uart)/sizeof(uart[0]);i++)
 		{
 			if(ConfigTable[i].devinfo==-1)
 			{

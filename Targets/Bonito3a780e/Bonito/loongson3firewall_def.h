@@ -82,6 +82,13 @@ GPIO_SET_OUTPUT(0x2030);
 GPIO_CLEAR_OUTPUT(0x0020); \
 GPIO_SET_OUTPUT(0x2050); \
 
+#ifdef NODOG
+#undef WatchDog_Enable
+#undef WatchDog_Close
+
+#define WatchDog_Enable
+#define WatchDog_Close
+#endif
 
 #define w83627write(x,y,z) \
 li		v0,		0xb800002e; \

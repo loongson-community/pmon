@@ -79,7 +79,7 @@ extern int vga_available;
 extern int kbd_available;
 extern int usb_kbd_available;
 
-#define DEV_MAX		8
+#define DEV_MAX		16
 #define STDIN		((kbd_available|usb_kbd_available)?3:0)
 #define STDOUT		(vga_available?4:1)
 #define STDERR		(vga_available?4:2)

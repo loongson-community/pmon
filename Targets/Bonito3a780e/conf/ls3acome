@@ -129,6 +129,7 @@ select		ext2
 select		fatfs
 #select		mod_x86emu		# X86 emulation for VGA
 option 	MY40IO
+option		MY61IO
 option		NOPCINAMES		# Save some space for x86emu
 #option		FASTBOOT
 #select	    vt82c686        #via686a/b code
@@ -146,7 +147,7 @@ option      LVDS            # NEC single channel
 option		HAVE_TOD		# Time-Of-Day clock
 option		HAVE_NVENV		#  Platform has non-volatile env mem
 option		HAVE_LOGO		# Output splash logo
-#option		USE_SUPERIO_UART
+option		USE_SUPERIO_UART
 #option		USE_LEGACY_RTC
 #option		GODSONEV2A
 #option		LINUX_PC
@@ -258,6 +259,14 @@ select tftpd
 # SCSI RAID disk drive support
 select scsi_sd
 option PCI_BIGMEM_ADDRESS=0x70000000
-option PCIVERBOSE=5
+#option PCIVERBOSE=5
 #option USE_GPIO_AS_PCIRESET
 option		X1024x768
+#option ROM_EXCEPTION
+option SUPERIO_UART1_IRQPORT=0x070220
+option SUPERIO_UART2_IRQPORT=0x070228
+option SUPERIO_UART3_IRQPORT=0x03f8
+option SUPERIO_UART4_IRQPORT=0x02f8
+option SUPERIO_UART5_IRQPORT=0x03e8
+option SUPERIO_UART6_IRQPORT=0x02e8
+option NODOG
