@@ -97,6 +97,9 @@ stack = start - 0x4000		/* Place PMON stack below PMON start in RAM */
         li v1, 0x38
         sw v1, (v0)
         sw zero, 4(v0)
+	la	a0,_start
+	li	s0,0xbfc00000
+	subu	s0,a0
 	la	a0, v200_msg
 	bal	stringserial
 	nop
@@ -122,13 +125,9 @@ stack = start - 0x4000		/* Place PMON stack below PMON start in RAM */
         li v1, 0x38
         sw v1, (v0)
         sw zero, 4(v0)
-	li	a0,0x10000000 /*test from 0xbfcxxxxx or 0xff20xxxx */
-	and	a0,ra
-	bnez	a0,1f
 	la	a0,_start
 	li	s0,0xbfc00000
 	subu	s0,a0
-1:
 	la	a0, v380_msg
 	bal	stringserial
 	nop
