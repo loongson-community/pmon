@@ -134,6 +134,10 @@ ext_map_and_reboot:
 	 *  whatever comes up before we have a fully fledged exception handler.
 	 */
 	.align	9			/* bfc00200 */
+	move 	k1, ra
+	la	a0,_start
+	li	s0,0xbfc00000
+	subu	s0,a0
 	la	a0, v200_msg
 	bal	stringserial
 	nop
@@ -155,6 +159,10 @@ ext_map_and_reboot:
 
 	/* General exception */
 	.align	7			/* bfc00380 */
+        move    k1, ra
+	la	a0,_start
+	li	s0,0xbfc00000
+	subu	s0,a0
 	la	a0, v380_msg
 	bal	stringserial
 	nop
@@ -198,6 +206,10 @@ exc_common:
 	nop
 	PRINTSTR("\r\nBADADDR=")
 	mfc0	a0, COP_0_BAD_VADDR
+	bal	hexserial
+	nop
+	PRINTSTR("\r\nra=")
+	move a0, k1
 	bal	hexserial
 	nop
 #ifndef ROM_EXCEPTION
@@ -1112,12 +1124,7 @@ END(spd_info_store)
 
 LEAF(stringserial)
 	move	a2, ra
-#ifdef ROM_EXCEPTION
-	li a1,0x3ec00000
-	daddu	a1, a0, a1
-#else
 	daddu	a1, a0, s0
-#endif
 	lbu	a0, 0(a1)
 1:
 	beqz	a0, 2f
@@ -1157,12 +1164,8 @@ LEAF(hexserial)
 	rol	a0, a1, 4
 	move	a1, a0
 	and	a0, 0xf
-#ifdef ROM_EXCEPTION
-	la	v0, (hexchar+0x3ec00000)
-#else
 	la	v0, hexchar
 	daddu	v0, s0
-#endif
 	daddu	v0, a0
 	bal	tgt_putchar
 	lbu	a0, 0(v0)
@@ -1198,22 +1201,24 @@ END(tgt_putchar)
 #else
 
 LEAF(tgt_putchar)
+.set push
+.set noat
+	move AT, ra
 	la	v0,GS3_UART_BASE 
+	bal 1f
+	nop
+	jr AT
+	nop
 1:
 	lbu	v1, NSREG(NS16550_LSR)(v0)
 	and	v1, LSR_TXRDY
 #	li	v1, 1
 	beqz	v1, 1b
 	nop
-
 	sb	a0, NSREG(NS16550_DATA)(v0)
-	move	v1, v0
-	la	v0, GS3_UART_BASE
-	bne	v0, v1, 1b
-	nop
-
 	j	ra
 	nop	
+.set pop
 END(tgt_putchar)
 #endif
 
