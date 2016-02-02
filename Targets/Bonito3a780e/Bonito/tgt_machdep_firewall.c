@@ -471,7 +471,9 @@ void tgt_devconfig(void)
 	if(getenv("nokbd"))
 		rc=1;
 	else {
+#ifdef USE_SUPERIO_UART
 		superio_reinit();
+#endif
 		rc=kbd_initialize();
 	}
 	printf("%s\n",kbd_error_msgs[rc]);
