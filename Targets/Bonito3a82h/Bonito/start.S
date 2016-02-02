@@ -80,6 +80,11 @@ stack = start - 0x4000		/* Place PMON stack below PMON start in RAM */
 	xori	t0, 0x100
 	mtc0	t0, $16, 6
 
+        /* no sw combine */
+        mfc0    t0, $16,  6
+        ori     t0, 0x200
+        mtc0    t0, $16,  6
+
 	mfc0	t0, $22
 	//lui	t1, 0x8000
 	lui	t1, 0x0000
