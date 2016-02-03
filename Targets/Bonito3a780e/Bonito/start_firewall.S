@@ -431,6 +431,28 @@ gs_2f_v3_ddr2_cfg:
 	WatchDog_Close;
 
 ##########################################
+//configure DDR freq by software
+#if 1
+    li      t5, 0x17
+#if 0
+    PRINTSTR("Please input DDR frequency SELLECT[4:0](default: 0x1e;0x1f: skip software setting):\r\n");
+    dli     t6, 0x00
+    bal     inputaddress #input value stored in v0
+    nop
+    dli     t6, 0x1f
+    and     v0, v0, t6
+    beq     v0, t6, 88f
+    nop
+    move    t5, v0
+#endif
+
+    TTYDBG  ("\r\nSet DDR frequency by software\r\n")
+    move    a2, $0
+    bal     config_mc_frequency
+    nop
+
+88:
+#endif
 
 
 	PRINTSTR("Init TLB...\r\n")
@@ -549,9 +571,43 @@ wait_l2_ok:
 
 #ifdef  AUTO_DDR_CONFIG
 	dli     s1, 0x32100000
+#elif 0
+	//dli     s1, 0xc1e30400c1e30400
+    //set MC1 dimm infor
+    dli     a0, ( MC_SDRAM_TYPE_DDR3    /* sdram type: DDR3/DDR2 */ \
+                | MC_DIMM_ECC_NO        /* dimm ECC: YES/NO */ \
+                | MC_DIMM_BUF_REG_NO    /* dimm buffer register: YES/NO, for RDIMM use YES, all else use NO*/ \
+                | MC_DIMM_WIDTH_64      /* memory data width: 64/32 */ \
+                | MC_SDRAM_ROW_14       /* sdram row address number: 15~11 */ \
+                | MC_SDRAM_COL_10       /* sdram column address number: 12~9 */ \
+                | MC_SDRAM_BANK_8       /* sdram bank number: 8/4 */ \
+                | MC_ADDR_MIRROR_YES    /* for standard DDR3 UDIMM, use YES else use NO */ \
+                | MC_SDRAM_WIDTH_X8     /* SDRAM device data width: 8/16 */ \
+                | MC_USE_CS_0_1         /* the CS pins the sdram connected on(split by '_', from small to big) */ \
+                | MC_MEMSIZE_(4)        /* MC memory size, unit: 512MB */ \
+                )
+    dsll    s1, a0, 32
+    //set MC0 dimm infor
+    dli     a0, ( MC_SDRAM_TYPE_DDR3    /* sdram type: DDR3/DDR2 */ \
+                | MC_DIMM_ECC_NO        /* dimm ECC: YES/NO */ \
+                | MC_DIMM_BUF_REG_NO    /* dimm buffer register: YES/NO, for RDIMM use YES, all else use NO*/ \
+                | MC_DIMM_WIDTH_64      /* memory data width: 64/32 */ \
+                | MC_SDRAM_ROW_14       /* sdram row address number: 15~11 */ \
+                | MC_SDRAM_COL_10       /* sdram column address number: 12~9 */ \
+                | MC_SDRAM_BANK_8       /* sdram bank number: 8/4 */ \
+                | MC_ADDR_MIRROR_YES    /* for standard DDR3 UDIMM, use YES, else use NO */ \
+                | MC_SDRAM_WIDTH_X8     /* SDRAM device data width: 8/16 */ \
+                | MC_USE_CS_0_1         /* the CS pins the sdram connected on(split by '_', from small to big) */ \
+                | MC_MEMSIZE_(4)        /* MC memory size, unit: 512MB */ \
+                )
+    or      s1, s1, a0
+    //set used MC and NODE ID
+    or      s1, s1, USE_MC_0            /* used memory controller: _0/_1/_0_1 */
+    or      s1, s1, MC_NODE_ID_0        /* node ID: 0/1/2/3 */
 #else
 	//dli     s1, 0xc1ec0400c1e30400  // use MC0
-        dli     s1,0xc9e3040000000000
+        //dli     s1,0xc9e3040000000000
+        dli     s1,0xc0a10400c0a10400
 #ifdef DDR_S1
 	dli	s1, DDR_S1
 #endif
@@ -608,6 +664,7 @@ wait_l2_ok:
 	PRINTSTR("  Error found!!\r\n")
 2:
 
+3:
 #endif
 ##########################################
 
@@ -1846,6 +1903,12 @@ idle1000:
 #######################################
 #include "ddr_dir/ddr_config.S"
 #ifdef ARB_LEVEL
+//#define KEEP_GATE_INIT_DLY_FIXED
+//#define KEEP_DQ_DLY_FIXED
+//#define USE_SPECIAL_WRLVL_DQ_DELAY
+#ifdef  USE_SPECIAL_WRLVL_DQ_DELAY
+#define WRLVL_DQ_SPECIAL_DLY 0x1c1a1c1c1a1c1c1a //specific the wrlvl_dq_delay for each byte lane
+#endif
 #include "ddr_dir/ARB_level_new.S"
 #endif
 #ifdef  DEBUG_DDR
