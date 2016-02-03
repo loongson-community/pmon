@@ -144,7 +144,7 @@ write_smbios_tables(void *start)
 	smbios_entry_point_init(
 		start, max_struct_size,
 		(p - (char *)start) - sizeof(struct smbios_entry_point),
-		SMBIOS_PHYSICAL_ADDRESS + sizeof(struct smbios_entry_point),
+		(SMBIOS_PHYSICAL_ADDRESS&0x7fffffff) + sizeof(struct smbios_entry_point),
 		nr_structs);
 
 	return (size_t)((char *)p - (char *)start);
