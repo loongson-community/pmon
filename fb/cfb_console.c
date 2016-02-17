@@ -742,9 +742,9 @@ void video_drawsline(char *str, int rows, int cols)
 				video_putchar(xx * VIDEO_FONT_WIDTH, (yy-1) * VIDEO_FONT_HEIGHT, str[pos + xx]);
 		}
 	}
-	
-	memcpyl (str, &str[cols], (rows - 1) *cols >> 2);
-	memsetl (&str[(rows - 1) * cols], cols >> 2, CONSOLE_BG_COL);
+
+	memcpy (str, &str[cols], (rows - 1) *cols);
+	memset (&str[(rows - 1) * cols],CONSOLE_BG_COL,cols);
 }
 
 #endif
@@ -894,6 +894,8 @@ void sisfb_copyarea(int sx,int sy,int dx,int dy,int width,int height);
 
 #elif X800x600
 	memsetl (CONSOLE_ROW_LAST - CONSOLE_ROW_SIZE/2, CONSOLE_ROW_SIZE >> 2, CONSOLE_BG_COL);
+#elif X1368x768
+	memsetl (CONSOLE_ROW_LAST, CONSOLE_ROW_SIZE >> 2, CONSOLE_BG_COL);
 #else
 	memsetl (CONSOLE_ROW_LAST - CONSOLE_ROW_SIZE/2, CONSOLE_ROW_SIZE >> 2, CONSOLE_BG_COL);
 #endif
@@ -1459,6 +1461,8 @@ char console_buffer[2][37][101]={32};
 char console_buffer[2][49][129]={32};//128*48->1024x768
 #elif defined(X1280x1024)
 char console_buffer[2][65][161]={32};//128*48->1024x768
+#elif defined(X1368x768)
+char console_buffer[2][49][172]={32};//128*48->1024x768
 #elif defined(X320x240)
 char console_buffer[2][16][41]={32};//40*15->320x240
 #else
@@ -1620,6 +1624,9 @@ int fb_init (unsigned long fbbase,unsigned long iobase)
 #elif defined(X1280x1024)
         pGD->winSizeX  = 1280;
         pGD->winSizeY  = 1024;
+#elif defined(X1368x768)
+        pGD->winSizeX  = 1368;
+        pGD->winSizeY  = 768;
 #elif defined(X800x480)
         pGD->winSizeX  = 800;
         pGD->winSizeY  = 480;
