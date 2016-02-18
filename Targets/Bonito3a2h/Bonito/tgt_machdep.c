@@ -1392,7 +1392,7 @@ static void init_legacy_rtc(void)
 
 	year	= inl(LS2H_TOY_READ1_REG);
 	val	= inl(LS2H_TOY_READ0_REG);
-	month	= ((val >> 26) & 0x3f) - 1;
+	month	= ((val >> 26) & 0x3f);
 	date	= (val >> 21) & 0x1f;
 	hour	= (val >> 16) & 0x1f;
 	min	= (val >> 10) & 0x3f;
