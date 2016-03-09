@@ -90,6 +90,7 @@ ddr3_leveling:
     dli     t4, 0x0000ffff00000000
     and     a1, a1, t4 
     dsrl    a1, a1, 32 // dll_value store in a1
+    daddu   a1, a1, 2
 
     //set dll_ck0
     dli     t1, 0x18
@@ -782,7 +783,7 @@ wrdqs_set_5a:
     nop
     daddu   t0, t0, 0x1
 1:
-    dli     a2, 0x15
+    dli     a2, 0x20
     dli     t1, 0x018
     or      t1, t1, t8
 dll_wrdata_set:
@@ -799,7 +800,7 @@ dll_wrdata_set:
 
 /* add 0x60 when wrdqs is smaller than 0x20 */
 dll_wrdata_add60:
-    daddu   a1, a1, 0x6b
+    daddu   a1, a1, 0x60
     dsll    a1, a1, 8
     dli     t4, 0xffffffffffff00ff
     and     a0, a0, t4
@@ -813,7 +814,7 @@ dll_wrdata_add60:
 
 /* sub 0x20 when wrdqs is bigger than 0x20 */
 dll_wrdata_sub20:
-    dsubu    a1, a1, 0x15
+    dsubu    a1, a1, 0x20
     dsll    a1, a1, 8
     dli     t4, 0xffffffffffff00ff
     and     a0, a0, t4
@@ -1092,7 +1093,7 @@ rdimm_wrdq_clkdelay_set_8:
     dli     t1, 0x130
     or      t1, t1, t8
     dli     t2, 0x0
-    daddu   t2, t2, 0x1
+//    daddu   t2, t2, 0x1
     ld      a0, 0x0(t1)
     blt     t2, t3, rdimm_wrdq_clkdelay_set0_8
     nop
@@ -1103,6 +1104,8 @@ rdimm_wrdq_clkdelay_set0_8:
     dli     t4, 0xffffff00ffffffff
     and     a0, a0, t4
     sd      a0, 0x0(t1)
+    dli     t1, 0xb0 //here set 0xb0 because it will sub 0x20 later
+    or      t1, t1, t8
     b       rdimm_wrdq_clkdelay_set_loop_3210
     nop
     
@@ -1112,6 +1115,8 @@ rdimm_wrdq_clkdelay_set1_8:
     dli     t4, 0x0000000100000000
     or      a0, a0, t4
     sd      a0, 0x0(t1)
+    dli     t1, 0xb0 //here set 0xb0 because it will sub 0x20 later
+    or      t1, t1, t8
     b       rdimm_wrdq_clkdelay_set_loop_3210
     nop
 
@@ -1121,8 +1126,6 @@ rdimm_wrdq_clkdelay_set_3210:
     dli     t2, 0x0
     or      t1, t1, t8
 rdimm_wrdq_clkdelay_set_loop_3210:
-    dli     t1, 0x90
-    or      t1, t1, t8
 1:
     daddu   t2, t2, 0x1
     bgt     t2, t0, rdimm_wrdq_lt_half_test_4567
@@ -1777,6 +1780,7 @@ dll_gate_0_add0:
     daddu   a0, a0, 0x1
 #ifdef DDR_DLL_BYPASS
     lw      t2, 0x4(t8) //get dll_value
+    daddu   t2, t2, 0x2
     dli     t4, 0x7f
     and     a0, a0, t4
     blt     a0, t2, 2f //use blt because the dll_value may change
@@ -1838,6 +1842,7 @@ dll_gate_1_add0:
     daddu    a0, a0, 0x1
 #ifdef DDR_DLL_BYPASS
     lw      t2, 0x4(t8) //get dll_value
+    daddu   t2, t2, 0x2
     dli     t4, 0x7f
     and     a0, a0, t4
     blt     a0, t2, 2f //use blt because the dll_value may change
@@ -1899,6 +1904,7 @@ dll_gate_2_add0:
     daddu    a0, a0, 0x1
 #ifdef DDR_DLL_BYPASS
     lw      t2, 0x4(t8) //get dll_value
+    daddu   t2, t2, 0x2
     dli     t4, 0x7f
     and     a0, a0, t4
     blt     a0, t2, 2f //use blt because the dll_value may change
@@ -1961,6 +1967,7 @@ dll_gate_3_add0:
     daddu    a0, a0, 0x1
 #ifdef DDR_DLL_BYPASS
     lw      t2, 0x4(t8) //get dll_value
+    daddu   t2, t2, 0x2
     dli     t4, 0x7f
     and     a0, a0, t4
     blt     a0, t2, 2f //use blt because the dll_value may change
@@ -2023,6 +2030,7 @@ dll_gate_4_add0:
     daddu    a0, a0, 0x1
 #ifdef DDR_DLL_BYPASS
     lw      t2, 0x4(t8) //get dll_value
+    daddu   t2, t2, 0x2
     dli     t4, 0x7f
     and     a0, a0, t4
     blt     a0, t2, 2f //use blt because the dll_value may change
@@ -2085,6 +2093,7 @@ dll_gate_5_add0:
     daddu    a0, a0, 0x1
 #ifdef DDR_DLL_BYPASS
     lw      t2, 0x4(t8) //get dll_value
+    daddu   t2, t2, 0x2
     dli     t4, 0x7f
     and     a0, a0, t4
     blt     a0, t2, 2f //use blt because the dll_value may change
@@ -2147,6 +2156,7 @@ dll_gate_6_add0:
     daddu    a0, a0, 0x1
 #ifdef DDR_DLL_BYPASS
     lw      t2, 0x4(t8) //get dll_value
+    daddu   t2, t2, 0x2
     dli     t4, 0x7f
     and     a0, a0, t4
     blt     a0, t2, 2f //use blt because the dll_value may change
@@ -2209,6 +2219,7 @@ dll_gate_7_add0:
     daddu    a0, a0, 0x1
 #ifdef DDR_DLL_BYPASS
     lw      t2, 0x4(t8) //get dll_value
+    daddu   t2, t2, 0x2
     dli     t4, 0x7f
     and     a0, a0, t4
     blt     a0, t2, 2f //use blt because the dll_value may change
@@ -2271,6 +2282,7 @@ dll_gate_8_add0:
     daddu    a0, a0, 0x1
 #ifdef DDR_DLL_BYPASS
     lw      t2, 0x4(t8) //get dll_value
+    daddu   t2, t2, 0x2
     dli     t4, 0x7f
     and     a0, a0, t4
     blt     a0, t2, 2f //use blt because the dll_value may change
@@ -2577,8 +2589,11 @@ dll_gate_set:
 1:
 #ifdef DDR_DLL_BYPASS
     lw      a2, 0x4(t8) //dll_value_ck
+    daddu   a2, a2, 0x2
     dsrl    a2, a2, 0x2
     ori     a2, a2, 0x80 //set high bit
+    dli     t4, 0x00000000000000ff
+    and     a2, a2, t4
 #else
     dli     a2, 0x20
 #endif
@@ -2674,6 +2689,7 @@ dll_gate_0_add:
     daddu    a0, a0, 0x1
 #ifdef DDR_DLL_BYPASS
     lw      t2, 0x4(t8) //get dll_value
+    daddu   t2, t2, 0x2
     dli     t4, 0x7f
     and     a0, a0, t4
     blt     a0, t2, 2f //use blt because the dll_value may change
@@ -2736,6 +2752,7 @@ dll_gate_1_add:
     daddu    a0, a0, 0x1
 #ifdef DDR_DLL_BYPASS
     lw      t2, 0x4(t8) //get dll_value
+    daddu   t2, t2, 0x2
     dli     t4, 0x7f
     and     a0, a0, t4
     blt     a0, t2, 2f //use blt because the dll_value may change
@@ -2798,6 +2815,7 @@ dll_gate_2_add:
     daddu    a0, a0, 0x1
 #ifdef DDR_DLL_BYPASS
     lw      t2, 0x4(t8) //get dll_value
+    daddu   t2, t2, 0x2
     dli     t4, 0x7f
     and     a0, a0, t4
     blt     a0, t2, 2f //use blt because the dll_value may change
@@ -2860,6 +2878,7 @@ dll_gate_3_add:
     daddu    a0, a0, 0x1
 #ifdef DDR_DLL_BYPASS
     lw      t2, 0x4(t8) //get dll_value
+    daddu   t2, t2, 0x2
     dli     t4, 0x7f
     and     a0, a0, t4
     blt     a0, t2, 2f //use blt because the dll_value may change
@@ -2922,6 +2941,7 @@ dll_gate_4_add:
     daddu    a0, a0, 0x1
 #ifdef DDR_DLL_BYPASS
     lw      t2, 0x4(t8) //get dll_value
+    daddu   t2, t2, 0x2
     dli     t4, 0x7f
     and     a0, a0, t4
     blt     a0, t2, 2f //use blt because the dll_value may change
@@ -2984,6 +3004,7 @@ dll_gate_5_add:
     daddu    a0, a0, 0x1
 #ifdef DDR_DLL_BYPASS
     lw      t2, 0x4(t8) //get dll_value
+    daddu   t2, t2, 0x2
     dli     t4, 0x7f
     and     a0, a0, t4
     blt     a0, t2, 2f //use blt because the dll_value may change
@@ -3046,6 +3067,7 @@ dll_gate_6_add:
     daddu    a0, a0, 0x1
 #ifdef DDR_DLL_BYPASS
     lw      t2, 0x4(t8) //get dll_value
+    daddu   t2, t2, 0x2
     dli     t4, 0x7f
     and     a0, a0, t4
     blt     a0, t2, 2f //use blt because the dll_value may change
@@ -3108,6 +3130,7 @@ dll_gate_7_add:
     daddu    a0, a0, 0x1
 #ifdef DDR_DLL_BYPASS
     lw      t2, 0x4(t8) //get dll_value
+    daddu   t2, t2, 0x2
     dli     t4, 0x7f
     and     a0, a0, t4
     blt     a0, t2, 2f //use blt because the dll_value may change
@@ -3170,6 +3193,7 @@ dll_gate_8_add:
     daddu    a0, a0, 0x1
 #ifdef DDR_DLL_BYPASS
     lw      t2, 0x4(t8) //get dll_value
+    daddu   t2, t2, 0x2
     dli     t4, 0x7f
     and     a0, a0, t4
     blt     a0, t2, 2f //use blt because the dll_value may change
@@ -3769,6 +3793,7 @@ wait_init_done3:
     dli     t4, 0x0000ffff00000000
     and     a1, a1, t4 
     dsrl    a1, a1, 32 // dll_value store in a1
+    daddu   a1, a1, 0x2
     
 /* identify wheather there is ecc slice */
     dli     t1, 0x250
