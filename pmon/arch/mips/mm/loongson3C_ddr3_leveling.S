@@ -38,12 +38,17 @@ ddr3_leveling:
     bgt     t1, t4, 3f
     nop
 
-
     //<= 500M, for udimm, add rd_oe_start/stop by 0x2 and sub tPHY_RDDATA by 0x1
     //         for rdimm, only sub tPHY_RDDATA by 0x1
     GET_DIMM_TYPE
     bnez    a1, 4f //RDIMM
     nop
+
+    //temp code for Kinston 2G UDIMM, at 400MHz, only sub tPHY_RDDATA by 0x1
+    dli     t4, 12
+    beq     t1, t4, 4f
+    nop
+
 
 /* identify wheather there is ecc slice */
     li      t0, 0x8
