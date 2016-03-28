@@ -287,7 +287,7 @@ void	console_cursor (int state);
 #define CONSOLE_ROW_SIZE	(VIDEO_FONT_HEIGHT * VIDEO_LINE_LEN)
 #define CONSOLE_ROW_FIRST	(video_console_address)
 #define CONSOLE_ROW_SECOND	(video_console_address + CONSOLE_ROW_SIZE)
-#define CONSOLE_ROW_LAST	(video_console_address + CONSOLE_SIZE - CONSOLE_ROW_SIZE)
+#define CONSOLE_ROW_LAST	(video_console_address + VIDEO_LOGO_HEIGHT*VIDEO_LINE_LEN + (CONSOLE_ROWS-1)*CONSOLE_ROW_SIZE)
 //#define CONSOLE_SIZE		(CONSOLE_ROW_SIZE * CONSOLE_ROWS)
 #ifdef CONFIG_VIDEO_LOGO
 #define CONSOLE_SIZE		(VIDEO_COLS * (VIDEO_ROWS - VIDEO_LOGO_HEIGHT) * VIDEO_PIXEL_SIZE)
@@ -898,12 +898,10 @@ void sisfb_copyarea(int sx,int sy,int dx,int dy,int width,int height);
 
 #endif
 
-#elif X800x600
-	memsetl (CONSOLE_ROW_LAST - CONSOLE_ROW_SIZE/2, CONSOLE_ROW_SIZE >> 2, CONSOLE_BG_COL);
 #elif X1368x768
 	memsetl (CONSOLE_ROW_LAST, CONSOLE_ROW_SIZE >> 2, CONSOLE_BG_COL);
 #else
-	memsetl (CONSOLE_ROW_LAST - CONSOLE_ROW_SIZE/2, CONSOLE_ROW_SIZE >> 2, CONSOLE_BG_COL);
+	memsetl (CONSOLE_ROW_LAST, CONSOLE_ROW_SIZE >> 2, CONSOLE_BG_COL);
 #endif
 }
 
