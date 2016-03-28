@@ -138,6 +138,9 @@ int config_fb(unsigned long base)
 	int j;
 	unsigned int chip_reg;
 
+	//this line code make the HD DVI display normally.
+	*(volatile unsigned int *)(0xbbd0020c) |= (0x7 << 12);
+
 	for (i = 0; i < sizeof(vgamode) / sizeof(struct vga_struc); i++) {
 		int out;
 		if (vgamode[i].hr == FB_XSIZE && vgamode[i].vr == FB_YSIZE) {
