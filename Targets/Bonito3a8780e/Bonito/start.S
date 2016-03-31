@@ -556,7 +556,7 @@ soft_out:
 ####################################
 #include "ddr_dir/lsmc_ddr_param_define.h"
 #include "ddr_dir/ddr_config_define.h"
-#define DDR_DLL_BYPASS
+//#define DDR_DLL_BYPASS
 #define DISABLE_DIMM_ECC
 #define PRINT_MSG
 #ifdef  ARB_LEVEL
