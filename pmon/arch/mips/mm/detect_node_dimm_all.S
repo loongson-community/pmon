@@ -35,6 +35,7 @@ LEAF(PROBE_NODE_DIMM)
     t8: store ra
 
     child must reserve: t0, t1, t3, t8, s1
+    i2cread must reserve: a0, t0, t1, t3, t5, t7, t8, s1
 *************************/
     move    t8, ra
     
@@ -539,7 +540,7 @@ t7: store ra
 
 +++child must reserve: t7.
 
-    child must reserve: a0, t0, t1, t3, t7, t8, s1
+    child must reserve: a0, t0, t1, t3, t5, t7, t8, s1
 *************************/
 #if 0   //debug code, used in PROBE_DIMM, after read i2c, print v0
     //debug----------
