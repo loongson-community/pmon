@@ -6,8 +6,8 @@ ATTENTION: NO 16BIT mode when using HT1
 
 */
 #define HT0_RECONNECT
-//#define INTERCONNECTION_HT1
-#define INTERCONNECTION_X_HT1
+//#define INTERCONNECTION_HT1 //USE HT1.0 on Ring
+#define INTERCONNECTION_X_HT1 //USE HT1.0 on X
 #define X_HT1_800M
 #define USE_HT_RESET //Only in HT3 mode
 #define RESET_AGAIN_WHEN_FAIL

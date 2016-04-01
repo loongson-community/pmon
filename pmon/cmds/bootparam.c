@@ -230,6 +230,10 @@ void init_loongson_params(struct loongson_params *lp)
   #define PRID_IMP_LOONGSON    0x6305
   enum loongson_cpu_type cputype = Loongson_3A;
 #endif
+#ifdef LOONGSON_3A84W
+  #define PRID_IMP_LOONGSON    0x146308
+  enum loongson_cpu_type cputype = Loongson_3A;
+#endif
 #if defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A)
   #define PRID_IMP_LOONGSON    0x6305
   enum loongson_cpu_type cputype = Loongson_2G;
@@ -261,6 +265,11 @@ struct efi_cpuinfo_loongson *init_cpu_info()
 #ifdef LOONGSON_3BSINGLE
   c->total_node = 4;
   c->nr_cpus = 8;
+#endif
+
+#ifdef LOONGSON_3A84W
+  c->total_node = 4;
+  c->nr_cpus    = 16;
 #endif
 
 #ifdef LOONGSON_3A2H
@@ -308,6 +317,10 @@ struct system_loongson *init_system_loongson()
 #ifdef LOONGSON_3BSERVER
   s->ccnuma_smp = 1;
   s->sing_double_channel = 2; // means what?
+#endif
+#ifdef LOONGSON_3A84W
+  s->ccnuma_smp = 1;
+  s->sing_double_channel = 4; // means what?
 #endif
 #
 #ifdef LOONGSON_3BSINGLE
@@ -426,6 +439,10 @@ struct board_devices * __attribute__((weak)) board_devices_info()
 
 #ifdef LOONGSON_3BSERVER
   strcpy(bd->name,"Loongson-3B-780E-2w-V0.2-demo");
+#endif
+
+#ifdef LOONGSON_3A84W
+  strcpy(bd->name,"Loongson-3A2000-780E-4w-V0.1-demo");
 #endif
 
 #ifdef LOONGSON_3ASERVER

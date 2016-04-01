@@ -1120,14 +1120,12 @@ void get_memorysize(unsigned long long raw_memsz) {
 	if(memorysize_high_n3 != 0)
 	    memorysize_total += ((memorysize_high_n3 + (256 << 20)) >> 20);
 #endif
-	/*
 	tgt_printf("memorysize_high: 0x%llx\n", memorysize_high);
 #ifdef MULTI_CHIP
 	tgt_printf("memorysize_high_n1: 0x%llx\n", memorysize_high_n1);
 	tgt_printf("memorysize_high_n2: 0x%llx\n", memorysize_high_n2);
 	tgt_printf("memorysize_high_n3: 0x%llx\n", memorysize_high_n3);
 #endif
-*/
 }
 
 /* default mem freq print, overrided by board print_mem_freq() */

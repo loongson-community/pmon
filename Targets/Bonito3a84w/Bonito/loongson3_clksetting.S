@@ -10,13 +10,11 @@ ATTENTION:
 
 #ifdef SOFT_CLKSEL
 
-//#define DDR_LOOPC	 48//200MHz
-//#define DDR_LOOPC	 72//300MHz
-//#define DDR_LOOPC  96 //400MHz
-//#define DDR_LOOPC  28 //466MHz
+//#define DDR_LOOPC  48 //400MHz
+//#define DDR_LOOPC  56 //466MHz
 //#define DDR_LOOPC  60 //500MHz
 #define DDR_LOOPC  64 //533MHz
-//#define DDR_LOOPC  34 //566MHz
+//#define DDR_LOOPC  68 //566MHz
 //#define DDR_LOOPC  72 //600MHz
 //#define DDR_LOOPC  76 //633MHz
 //#define DDR_LOOPC  80 //667MHz
@@ -24,10 +22,11 @@ ATTENTION:
 #define DDR_DIV    4
 
 // L1_* define both CPU and Node freq simutanleously
-#define L1_LOOPC    80//1000@25MHz
-//#define L1_LOOPC    64//800@25MHz
+//#define L1_LOOPC    80//1000@25MHz
+#define L1_LOOPC    64//800@25MHz
 //#define L1_LOOPC    49//808@33MHz
 //#define L1_LOOPC    48//600
+//#define L1_LOOPC    40//500
 #define L1_DIV      2
 
 #define BYPASS_CORE 0x0

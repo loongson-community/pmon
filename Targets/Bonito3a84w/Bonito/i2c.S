@@ -165,7 +165,7 @@ END(i2cread)
 #else
 
 #ifdef  USE_GPIO_I2C
-#include "i2c_firewall.S"
+#include "i2c_gpio.S"
 #endif
 
 #endif

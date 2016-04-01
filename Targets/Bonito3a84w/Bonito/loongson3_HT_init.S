@@ -105,24 +105,33 @@
 	sd	t1,	0x80(t0)
 #endif
 
+//#define DEBUG_HTBUS
+#ifdef DEBUG_HTBUS
+	dli	t2, 0x90000efdfb000000
+	li	a0, 0x00000001
+	sw	a0, 0x54(t2)
+	sync
+	//li	a0, 0x00000000
+	//sw	a0, 0x54(t2)
+#endif
+	
 
 #if 0//Print all HT registers
 	TTYDBG("Print all HT registers\r\n")
-	dli	    t2, 0x90000efdfb000000
-    dli     t3, 0x90000efdfb000180
+	dli	t2, 0x90000efdfb000000
+    	dli     t3, 0x90000efdfb000180
 1:
-    lw      a0, 0x00(t2)
+    	lw      a0, 0x00(t2)
 	bal	    hexserial
-    nop
+    	nop
 	TTYDBG("\r\n")
 
-    daddi   t2, t2, 0x4
-    bne     t2, t3, 1b
-    nop
+    	daddi   t2, t2, 0x4
+    	bne     t2, t3, 1b
+    	nop
 #endif
 
 
-#ifdef WITH_HT
 #if 1//wait until HT link up
     TTYDBG("Waiting HyperTransport bus to be up.")
 	dli	t0, 0x90000efdfb000000
@@ -326,6 +335,7 @@ ht_next_id :
 #endif
 
 
+#ifdef HT_RECONNECT
 #ifdef HT_16bit//Set HT bridge to be 16-bit width
 	TTYDBG("Setting HyperTransport Controller to be 16-bit width\r\n")
 	dli	t2, 0x90000efdfb000000
@@ -409,11 +419,11 @@ ht_next_id :
 	TTYDBG("\r\n")
 
 #endif
+#endif
 
 #endif
 
 
-#ifdef WITH_HT
 
 #if 0//SET RX SPACE UNCACHE
 	TTYDBG("HT RX DMA SET to UNCACHE\r\n")
@@ -864,4 +874,3 @@ crc_checking:
 #endif
 
 
-#endif

@@ -404,7 +404,9 @@ gs_2f_v3_ddr2_cfg:
 #include "loongson3_clksetting.S"
 
 
+//#include "loongson3_HT_init.S"
 
+#if 1
        bal     beep_on
        nop
        li      a0,0x10000000
@@ -415,6 +417,7 @@ gs_2f_v3_ddr2_cfg:
        nop
        bal     beep_off
        nop
+#endif
 
 ##########################################
 
@@ -487,6 +490,7 @@ no_reboot:
 #endif
 //#define DEBUG_DDR
 //#define DEBUG_DDR_PARAM
+//#define DEBUG_DDR_NODE
 
     TTYDBG("\r\nStart Init Memory, wait a while......\r\n")
 ####################################
@@ -494,12 +498,25 @@ no_reboot:
     move    s3, $0
 //!!!!important--s1 must be correctly set
 
+#if DEBUG_DDR_NODE
+    PRINTSTR("\r\ntest node0?(0xf: skip): ")
+    bal     inputaddress
+    nop
+    and     v0, v0, 0xf
+    dli     a1, 0x1
+    bgt     v0, a1, 330f
+    nop
+#endif
+
     TTYDBG("NODE 0 MEMORY CONFIG BEGIN\r\n")
 
 #ifdef  AUTO_DDR_CONFIG
-    dli     s1, 0x32100000  //set use MC1 or MC0 or MC1/0 and give All device id
+    dli     s1, 0xf1f00000  //set use MC1 or MC0 or MC1/0 and give All device id
 #else
-	dli     s1, 0xc2e30400c2e30404
+	//dli     s1, 0xc2e30400c2e30404
+    	//dli     s1, 0xc1c30400c1c30404  // use MC0
+    	//dli     s1, 0xc1a10400c1a10404  // use MC0, 2G SCS UDIMM
+    	dli     s1, 0xf0a31000f0a31000  // use both, 8G SCS RDIMM
 #endif
 //#include "ddr_dir/loongson3_ddr2_config.S"
 #include "ddr_dir/loongson3A2000_ddr2_config.S"
@@ -570,13 +587,28 @@ no_reboot:
 	bnez    t1, 1b
 	nop
 
+330:
+#if 1
+
+#if DEBUG_DDR_NODE
+    PRINTSTR("\r\ntest node1?(0xf: skip): ")
+    bal     inputaddress
+    nop
+    and     v0, v0, 0xf
+    dli     a1, 0x1
+    bgt     v0, a1, 330f
+    nop
+#endif
+
 #if 1 //NODE1
     TTYDBG("NODE 1 MEMORY CONFIG BEGIN\r\n")
 
 #ifdef  AUTO_DDR_CONFIG
-    dli     s1, 0x76540001  //set use MC1 or MC0 or MC1/0 and give All device id
+    	dli     s1, 0xf3f20001  //set use MC1 or MC0 or MC1/0 and give All device id
 #else
-	dli     s1, 0xc2e30400c2e30405
+	//dli     s1, 0xc2e30400c2e30405
+    	//dli     s1, 0xc1a10400c1a10405  // use MC0, 2G SCS UDIMM
+    	dli     s1, 0xf0a31001f0a31001  // use both, 8G SCS RDIMM
 #endif
 //#include "ddr_dir/loongson3_ddr2_config.S"
 #include "ddr_dir/loongson3A2000_ddr2_config.S"
@@ -656,13 +688,45 @@ no_reboot:
 11:
 #endif
 
+	PRINTSTR("\r\n======X2 cpu map windows:\r\n")
+	li      t1, 23
+	dli     t2, 0x900010003ff00000
+	1:
+	move	a0, t2
+	bal	hexserial64
+	nop
+	PRINTSTR(": ")
+
+	ld      a0, 0x0(t2)
+	bal	hexserial64
+	nop
+	PRINTSTR("\r\n")
+
+	daddiu  t2, t2, 8
+	bnez    t1, 1b
+	addiu   t1, t1, -1
+
+
+330:
+#if DEBUG_DDR_NODE
+    PRINTSTR("\r\ntest node2?(0xf: skip): ")
+    bal     inputaddress
+    nop
+    and     v0, v0, 0xf
+    dli     a1, 0x1
+    bgt     v0, a1, 330f
+    nop
+#endif
+
 #if 1 //NODE2 //TODO
-    TTYDBG("NODE 2 MEMORY CONFIG BEGIN\r\n")
+    	TTYDBG("NODE 2 MEMORY CONFIG BEGIN\r\n")
 
 #ifdef  AUTO_DDR_CONFIG
-    dli     s1, 0xba980002  //set use MC1 or MC0 or MC1/0 and give All device id
+    	dli     s1, 0xf5f40002  //set use MC1 or MC0 or MC1/0 and give All device id
 #else
-	dli     s1, 0xc2e30400c2e30405
+	//dli     s1, 0xc2e30400c2e30405
+    	//dli     s1, 0xc1a10400c1a10406  // use MC0, 2G SCS UDIMM
+    	dli     s1, 0xf0a31002f0a31002  // use both, 8G SCS RDIMM
 #endif
 //#include "ddr_dir/loongson3_ddr2_config.S"
 #include "ddr_dir/loongson3A2000_ddr2_config.S"
@@ -742,13 +806,26 @@ no_reboot:
 11:
 #endif
 
+330:
+
+#if DEBUG_DDR_NODE
+    PRINTSTR("\r\ntest node3?(0xf: skip): ")
+    bal     inputaddress
+    nop
+    and     v0, v0, 0xf
+    dli     a1, 0x1
+    bgt     v0, a1, 330f
+    nop
+#endif
 #if 1 //NODE3
-    TTYDBG("NODE 3 MEMORY CONFIG BEGIN\r\n")
+    	TTYDBG("NODE 3 MEMORY CONFIG BEGIN\r\n")
 
 #ifdef  AUTO_DDR_CONFIG
-    dli     s1, 0xfedc0003  //set use MC1 or MC0 or MC1/0 and give All device id
+    	dli     s1, 0xf7f60003  //set use MC1 or MC0 or MC1/0 and give All device id
 #else
-	dli     s1, 0xc2e30400c2e30405
+	//dli     s1, 0xc2e30400c2e30405
+    	//dli     s1, 0xc1a10400c1a10407  // use MC0, 2G SCS UDIMM
+    	dli     s1, 0xf0a31003f0a31003  // use both, 8G SCS RDIMM
 #endif
 //#include "ddr_dir/loongson3_ddr2_config.S"
 #include "ddr_dir/loongson3A2000_ddr2_config.S"
@@ -826,6 +903,9 @@ no_reboot:
 	nop
 
 11:
+#endif
+
+330:
 #endif
 
 
@@ -1033,7 +1113,7 @@ no_reboot:
 ##########################################
 
 bootnow:
-	bal	spd_info_store
+	//bal	spd_info_store
 	nop
 	TTYDBG("Copy PMON to execute location...\r\n")
 #ifdef DEBUG_LOCORE

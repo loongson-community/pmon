@@ -25,8 +25,9 @@ option      LSMC_2
 #option      ARB_LEVEL       #use software MC leveling
 option      DDR3_DIMM       #board use DDR3 memory, use: USE_SB_I2C, else use USE_GPIO_I2C and MULTI_I2C_BUS
 
-option      AUTO_DDR_CONFIG #use DIMM SPD auto detect DIMM
-option      USE_SB_I2C
+#option      AUTO_DDR_CONFIG #use DIMM SPD auto detect DIMM
+#option      USE_SB_I2C
+option      USE_GPIO_I2C
 
 option		BONITOEL	
 option      DEVBD2F
@@ -40,12 +41,12 @@ option      LS3_HT              # Enable the IO cache coherent of HT
 option      MULTI_CHIP
 option      ENABLE_SATA         #Enable SATA  ,when enable IDE can also use, when commended only IDE can use
 option		BOOTCORE_ID=0
-option		RESERVED_COREMASK=0xff00
+option		RESERVED_COREMASK=0x0000
 option		SHUTDOWN_MASK=0x0000
 
 option      BONITO_33M
 option		BOOT_PARAM
-option	    LOONGSON_3ASERVER
+option	    LOONGSON_3A84W
 select     	amd_780e
 
 ## VGA option ##

@@ -100,6 +100,7 @@
 #endif
 
 
+#if 0
 #ifndef LSMCD3_2
 //hot fix for lack of address pin A15 when use LSMC. For example RS780E R1.03
     //check MC1 first
@@ -157,6 +158,7 @@
     bal     hexserial
     nop
     PRINTSTR("\r\n")
+#endif
 #endif
 #endif
 
@@ -793,6 +795,7 @@ t0,t2 shouldn't be changed to the end of this file.
     b       81f
     nop
 4:     //ddr_3GB_MC0:
+    GET_NODE_ID_a0;
     XBAR_CONFIG_NODE_a0(0x20, \
                     0x0000000080000000, \
                     0xFFFFFFFF80000000, \
@@ -847,6 +850,7 @@ t0,t2 shouldn't be changed to the end of this file.
     b       81f
     nop
 7:     //ddr_8GB_MC0:
+    GET_NODE_ID_a0;
     XBAR_CONFIG_NODE_a0(0x20, \
                     0x0000000080000000, \
                     0xFFFFFFFF80000000, \

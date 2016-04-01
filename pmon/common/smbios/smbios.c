@@ -124,6 +124,10 @@ write_smbios_tables(void *start)
        dimmnum = 8;
        maximum_capacity = 16 * 1024* 1024;
 #endif
+#ifdef LOONGSON_3A84W
+       dimmnum = 8;
+       maximum_capacity = 64 * 1024* 1024;
+#endif
 #ifdef LOONGSON_3BSERVER
        dimmnum = 8;
        maximum_capacity = 64 * 1024 * 1024;
