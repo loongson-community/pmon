@@ -170,7 +170,7 @@ mc_init:
     bal     ddr2_config
     nop
 
-#if 1   //def  DEBUG_DDR_PARAM   //print registers
+#ifdef  PRINT_DDR_LEVELING   //print registers
     PRINTSTR("The MC param is:\r\n")
     dli     t1, DDR_PARAM_NUM
     GET_NODE_ID_a0
@@ -285,7 +285,7 @@ mc_init:
     or      t2, t2, a0
     or      t0, t0, a0
 
-#if 1   //def  DEBUG_DDR_PARAM   //print registers
+#ifdef  PRINT_DDR_LEVELING   //print registers
     PRINTSTR("The MC param after leveling is:\r\n")
     dli     t1, DDR_PARAM_NUM
     GET_NODE_ID_a0

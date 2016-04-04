@@ -307,9 +307,20 @@ wait_to_be_killed:
 	nop
 1:
 	dli     a0, BOOTCORE_ID
-	bne     t0, a0, slave_main
+	beq	t0, a0, boot_entry
 	nop
 
+#ifdef MULTI_NODE_INIT_MEM
+	li	a0, 0x3
+	and	a0, t0, a0
+	beqz	a0, MEM_INIT_BEGIN
+	nop
+#endif
+
+	b	slave_main
+	nop
+
+boot_entry:
         bal     initserial
         nop
         bal     initserial1
@@ -409,7 +420,7 @@ gs_2f_v3_ddr2_cfg:
 #if 1
        bal     beep_on
        nop
-       li      a0,0x10000000
+       li      a0,0x1000000
        1:
        addiu   a0,-1
        nop
@@ -491,8 +502,16 @@ no_reboot:
 //#define DEBUG_DDR
 //#define DEBUG_DDR_PARAM
 //#define DEBUG_DDR_NODE
+//#define PRINT_DDR_LEVELING
 
     TTYDBG("\r\nStart Init Memory, wait a while......\r\n")
+#ifdef MULTI_NODE_INIT_MEM
+####################################
+    b       MEM_INIT_BEGIN
+    nop
+
+MEM_INIT_DONE:
+#else
 ####################################
     move    msize, $0
     move    s3, $0
@@ -508,10 +527,10 @@ no_reboot:
     nop
 #endif
 
-    TTYDBG("NODE 0 MEMORY CONFIG BEGIN\r\n")
+    	TTYDBG("NODE 0 MEMORY CONFIG BEGIN\r\n")
 
 #ifdef  AUTO_DDR_CONFIG
-    dli     s1, 0xf1f00000  //set use MC1 or MC0 or MC1/0 and give All device id
+    	dli     s1, 0xf1f00000  //set use MC1 or MC0 or MC1/0 and give All device id
 #else
 	//dli     s1, 0xc2e30400c2e30404
     	//dli     s1, 0xc1c30400c1c30404  // use MC0
@@ -601,7 +620,7 @@ no_reboot:
 #endif
 
 #if 1 //NODE1
-    TTYDBG("NODE 1 MEMORY CONFIG BEGIN\r\n")
+    	TTYDBG("NODE 1 MEMORY CONFIG BEGIN\r\n")
 
 #ifdef  AUTO_DDR_CONFIG
     	dli     s1, 0xf3f20001  //set use MC1 or MC0 or MC1/0 and give All device id
@@ -688,6 +707,7 @@ no_reboot:
 11:
 #endif
 
+#if 0
 	PRINTSTR("\r\n======X2 cpu map windows:\r\n")
 	li      t1, 23
 	dli     t2, 0x900010003ff00000
@@ -705,7 +725,7 @@ no_reboot:
 	daddiu  t2, t2, 8
 	bnez    t1, 1b
 	addiu   t1, t1, -1
-
+#endif
 
 330:
 #if DEBUG_DDR_NODE
@@ -906,6 +926,7 @@ no_reboot:
 #endif
 
 330:
+#endif
 #endif
 
 
@@ -1115,6 +1136,29 @@ no_reboot:
 bootnow:
 	//bal	spd_info_store
 	nop
+
+//#define CORE0_WAIT_ALL_OK
+#ifdef CORE0_WAIT_ALL_OK //wait if all other core0 is cleared
+	dli	t0, NODE3_CORE0_BUF0
+1:
+	lw	a0, FN_OFF(t0)
+	bnez	a0, 1b
+	nop
+2:
+	dli	t0, NODE2_CORE0_BUF0
+1:
+	lw	a0, FN_OFF(t0)
+	bnez	a0, 1b
+	nop
+5:
+	dli	t0, NODE1_CORE0_BUF0
+1:
+	lw	a0, FN_OFF(t0)
+	bnez	a0, 1b
+	nop
+#endif
+
+
 	TTYDBG("Copy PMON to execute location...\r\n")
 #ifdef DEBUG_LOCORE
 	TTYDBG("  start = 0x")
@@ -2130,6 +2174,9 @@ watchdog_enable:
 nvram_offs:
 	.dword 0x0
 	.align 12
+#ifdef MULTI_NODE_INIT_MEM
+#include "loongson3_ddr_init_4core.S"
+#endif
 
 #######################################
 

@@ -86,6 +86,18 @@
     nop
 #endif
 
+#ifdef MULTI_NODE_INIT_MEM
+//set next free
+    dli     t0, NODE0_CORE0_BUF0
+    dli	    a0, 0x3
+    and     a0, a0, s1
+    dsll    a0, 44
+    or      t0, a0, t0
+    li      a1, NODE_SCACHE_ENABLED
+    sw      a1, SP_OFF(t0)
+
+#endif
+
 #ifdef  PRINT_MSG
     /* show value of s1 */
     PRINTSTR("\r\n\r\ns1 = 0x");

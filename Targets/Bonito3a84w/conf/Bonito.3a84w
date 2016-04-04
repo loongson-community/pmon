@@ -25,7 +25,8 @@ option      LSMC_2
 #option      ARB_LEVEL       #use software MC leveling
 option      DDR3_DIMM       #board use DDR3 memory, use: USE_SB_I2C, else use USE_GPIO_I2C and MULTI_I2C_BUS
 
-#option      AUTO_DDR_CONFIG #use DIMM SPD auto detect DIMM
+#option      MULTI_NODE_INIT_MEM
+option      AUTO_DDR_CONFIG #use DIMM SPD auto detect DIMM
 #option      USE_SB_I2C
 option      USE_GPIO_I2C
 

@@ -1517,7 +1517,7 @@ dll_wrdqs_8_add2:
 
 gate_leveling:
     PRINTSTR("\r\nwrite leveling finish and gate leveling begin\r\n")
-#if 1   //def  DEBUG_DDR_PARAM   //print registers
+#ifdef  PRINT_DDR_LEVELING   //print registers
     PRINTSTR("\r\nThe MC param after write leveling is:\r\n")
     dli     t1, DDR_PARAM_NUM
     GET_NODE_ID_a0
@@ -1716,7 +1716,7 @@ glvl_resp_8_set0:
     beq     s7, s6, glvl_req_set
     nop
 #endif
-#if 0   //def  DEBUG_DDR_PARAM   //print registers
+#ifdef  PRINT_DDR_LEVELING   //print registers
     PRINTSTR("\r\nThe MC param after gate leveling 1 to 0 is:\r\n")
     dli     t1, DDR_PARAM_NUM
     GET_NODE_ID_a0
@@ -2438,7 +2438,7 @@ glvl_resp_8_set1:
 1:
     beq     s7, s6, glvl_req_set
     nop
-#if 1   //def  DEBUG_DDR_PARAM   //print registers
+#ifdef  PRINT_DDR_LEVELING   //print registers
     PRINTSTR("\r\nThe MC param after gate leveling 0 to 1 is:\r\n")
     dli     t1, DDR_PARAM_NUM
     GET_NODE_ID_a0
