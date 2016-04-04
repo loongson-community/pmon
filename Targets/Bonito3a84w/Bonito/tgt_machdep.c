@@ -1289,7 +1289,10 @@ void tgt_poweroff()
 }
 void tgt_reboot(void)
 {
-	watchdog_enable();
+	//set the WDT feed time and enable the WDT.
+	*(volatile unsigned int *)0xbfe00120 &= ~((1 << 2) | (1 << 3) | (1 << 4) | (1 << 11));
+	*(volatile unsigned int *)0xbfe0011c &= ~((1 << 2) | (1 << 4));
+	*(volatile unsigned int *)0xbfe0011c |= ((1 << 3) | (1 << 11));
 }
 
 

@@ -102,7 +102,24 @@ stack = start - 0x4000		/* Place PMON stack below PMON start in RAM */
 
 
 
-	WatchDog_Close
+	/*WatchDog_Close*/
+	li  t0, 0xbfe0011c
+	li  t2, ~(1 << 11)
+	lw  t1, 0x4(t0)
+	and t1, t2
+	sw  t1, 0x4(t0)
+	lw  t1, 0x0(t0)
+	and t1, t2
+	sw  t1, 0x0(t0)
+
+	/*enable rs780e vGA*/
+	li  t2, ~(1 << 14)
+	lw  t1, 0x4(t0)
+	and t1, t2
+	sw  t1, 0x4(t0)
+	lw  t1, 0x0(t0)
+	and t1, t2
+	sw  t1, 0x0(t0)
 
 	/* spi speedup */
 	li  t0, 0xbfe00220
