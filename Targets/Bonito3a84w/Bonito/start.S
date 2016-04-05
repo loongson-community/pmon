@@ -759,7 +759,7 @@ MEM_INIT_DONE:
     	TTYDBG("NODE 2 MEMORY CONFIG BEGIN\r\n")
 
 #ifdef  AUTO_DDR_CONFIG
-    	dli     s1, 0xf5f40002  //set use MC1 or MC0 or MC1/0 and give All device id
+	dli     s1, 0xf7f60002  //set use MC1 or MC0 or MC1/0 and give All device id
 #else
 	//dli     s1, 0xc2e30400c2e30405
     	//dli     s1, 0xc1a10400c1a10406  // use MC0, 2G SCS UDIMM
@@ -858,7 +858,7 @@ MEM_INIT_DONE:
     	TTYDBG("NODE 3 MEMORY CONFIG BEGIN\r\n")
 
 #ifdef  AUTO_DDR_CONFIG
-    	dli     s1, 0xf7f60003  //set use MC1 or MC0 or MC1/0 and give All device id
+	dli     s1, 0xf5f40003  //set use MC1 or MC0 or MC1/0 and give All device id
 #else
 	//dli     s1, 0xc2e30400c2e30405
     	//dli     s1, 0xc1a10400c1a10407  // use MC0, 2G SCS UDIMM
