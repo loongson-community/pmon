@@ -942,18 +942,6 @@ stuck:
 #else 
 #define MTC0 mtc0
 #endif
-LEAF(get_mem_clk)
-  
-	li t0,0xbfe00190
-        ld t1,0x0(t0)
-        dsrl t2,t1,38
-        andi t2,t2,0x0000001f
-        move v0,t2
-
-	nop
-	jr ra
-	nop
-END(get_mem_clk)
 
 LEAF(CPU_TLBClear)
 	li	a3, 0			# First TLB index.

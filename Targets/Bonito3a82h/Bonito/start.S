@@ -886,17 +886,6 @@ LEAF(clear_mailbox)
 	jr	ra
 	sd	zero, A1_OFF(t1)
 END(clear_mailbox)
-
-LEAF(get_mem_clk)
-
-	li	t0, 0xbfe00190
-	ld	t1, 0x0(t0)
-	dsrl	t2, t1, 37
-	andi	t2, t2, 0x0000001f
-	jr ra
-	move	v0, t2
-END(get_mem_clk)
-
 		
 LEAF(spd_info_store)
 	 move    t8,ra

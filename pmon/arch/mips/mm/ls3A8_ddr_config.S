@@ -567,3 +567,18 @@ LEAF(disable_cpu_buffer_read)
     jr      ra
     nop
 END(disable_cpu_buffer_read)
+
+LEAF(get_mem_clk)
+/*********************
+    v0: current ddr freq setting
+*********************/
+    li t0,0xbfe00190
+    ld t1,0x0(t0)
+    dsrl t2,t1,37
+    andi t2,t2,0x0000001f
+    move v0,t2
+
+    nop
+    jr ra
+    nop
+END(get_mem_clk)
