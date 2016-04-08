@@ -726,6 +726,10 @@ tgt_devinit()
 	_pci_conf_write32(_pci_make_tag(0, 0x14, 0), 0xac, value);
 #endif
 
+	/*enable smbus use gpio*/
+	value = _pci_conf_read32(_pci_make_tag(0,0x14, 0), 0xd0);
+	_pci_conf_write32(_pci_make_tag(0,0x14, 0), 0xd0, value | (1<<(16+6)));
+
 #ifdef USE_SUPERIO_UART
 	superio_reinit();
 	{int i;
