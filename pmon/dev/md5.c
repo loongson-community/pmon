@@ -20,7 +20,8 @@
 
 /* See RFC 1321 for a description of the MD5 algorithm.
  */
-
+#include <pmon.h>
+#include <sys/fcntl.h>
 #include "md5.h"
 #ifndef TEST
 //# include <shared.h>
@@ -334,6 +335,34 @@ md5_password (const char *key, char *crypted, int check)
 }
 #endif
 
+int cmd_md5sum(int argc,char **argv)
+{
+int fd;
+int ret;
+char buf[512];
+unsigned char *p;
+int i;
+if(argc<2) return -1;
+ md5_init();
+ fd=open(argv[1],O_RDONLY);
+ while(1)
+ {
+ ret = read(fd,buf,512);
+ if(ret <= 0 ) break; 
+ md5_update (buf, ret);
+ }
+
+ close(fd);
+ 
+ p= md5_final ();
+ for(i=0;i<16;i++)
+ printf("%02x",p[i]);
+ printf("\n");
+
+
+	return 0;
+}
+
 #ifdef TEST
 static char *
 md5 (const char *input) 
@@ -393,3 +422,19 @@ main (void)
 #endif
 
 #endif
+static const Cmd Cmds[] =
+{
+	{"MyCmds"},
+	{"md5sum","file",0,"md5sum file",cmd_md5sum,2,2,CMD_REPEAT},
+	{0, 0}
+};
+
+
+static void init_cmd __P((void)) __attribute__ ((constructor));
+
+static void
+init_cmd()
+{
+	cmdlist_expand(Cmds, 1);
+}
+
