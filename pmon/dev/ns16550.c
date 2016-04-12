@@ -42,6 +42,8 @@ extern int getbaudval __P((int));
 static int
 nsinit (volatile ns16550dev *dp)
 {
+	int ret;
+	unsigned char d,oldd;
 #ifdef USE_NS16550_FIFO
 	unsigned int x;
 	static int nsfifo;
@@ -65,7 +67,15 @@ nsinit (volatile ns16550dev *dp)
 		dp->fifo = 0;
 	}
 #endif /* NS16650_FIFO */
-	return 0;
+	ret = 0;
+	oldd = d = inb(&dp->cfcr);
+	d ^= CFCR_DLAB;
+	outb(&dp->cfcr, d);
+	if(inb(&dp->cfcr) != d) ret = -1;
+	outb(&dp->cfcr, oldd);
+	if(inb(&dp->cfcr) != oldd) ret = -1;
+
+	return ret;
 }
 
 #if defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A)
@@ -102,6 +112,7 @@ nsinit_1a (volatile ns16550dev_1a *dp)
 static int
 nsprogram (volatile ns16550dev *dp, unsigned long freq, int baudrate)
 {
+int ret = 0;
 static int rates[] = {
 	50, 75, 110, 134, 150, 200, 300, 600, 1200, 1800, 2400,
 	4800, 9600, 19200, 38400, 57600, 115200, 0 };
@@ -130,10 +141,11 @@ static int rates[] = {
 	outb(&dp->cfcr, CFCR_DLAB);
 	outb(&dp->data, brtc & 0xff);
 	outb(&dp->ier, brtc >> 8);
+	if(((((short)inb(&dp->ier))<<8) | inb(&dp->data)) != brtc) ret = -1;
 	outb(&dp->cfcr, CFCR_8BITS);
 	outb(&dp->mcr, MCR_IENABLE/* | MCR_DTR | MCR_RTS*/);
 	outb(&dp->ier, 0);
-	return 0;
+	return ret;
 }
 
 #if defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A)
@@ -181,17 +193,22 @@ int
 ns16550 (int op, struct DevEntry *dev, unsigned long param, int data)
 {
 	volatile ns16550dev *dp;
+	int ret;
 
 	dp = (ns16550dev *) dev->sio;
 	if(dp==-1)return (op == OP_RXRDY)?0:1;
 
 	switch (op) {
 		case OP_INIT:
-			return nsinit (dp);
+			ret =nsinit (dp);
+			if(ret < 0) dev->sio = -1;
+			return ret;
 
 		case OP_XBAUD:
 		case OP_BAUD:
-			return nsprogram (dp, dev->freq, data);
+			ret = nsprogram (dp, dev->freq, data);
+			if(ret < 0) dev->sio = -1;
+			return ret;
 
 		case OP_TXRDY:
 		#ifdef NOMSG_ON_SERIAL
