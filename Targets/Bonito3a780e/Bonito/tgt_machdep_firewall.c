@@ -637,7 +637,12 @@ static void superio_reinit()
 {
 /*set global  multifuntion pin reg 0x2c low 2bit to 3 for 83627dhg to enable uart2*/
 w83627_write(0,0x2c,0xe3);
+#ifdef SUPERIO_CLOCK_24M
+//bit6=0 , clk=24M //dbg-yg 
+w83627_write(0,0x24,0x81);
+#else
 w83627_write(0,0x24,0xc1);
+#endif
 w83627_write(5,0x30,1);
 w83627_write(5,0x60,0);
 w83627_write(5,0x61,0x60);
