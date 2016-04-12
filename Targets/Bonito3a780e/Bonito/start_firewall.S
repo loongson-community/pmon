@@ -1117,6 +1117,7 @@ LEAF(CPU_TLBInit)
 	nop
 END(CPU_TLBInit)
 
+#ifdef AUTO_DDR_CONFIG
 LEAF(spd_info_store)
 	move    t8,ra
 
@@ -1178,6 +1179,7 @@ LEAF(spd_info_store)
 	 jr      t8
 	 nop
 END(spd_info_store)
+#endif
 
 LEAF(stringserial)
 	move	a2, ra
