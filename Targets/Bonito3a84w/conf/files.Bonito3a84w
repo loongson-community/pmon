@@ -19,6 +19,7 @@ define  localbus { [base = -1 ] }
 device  localbus
 attach  localbus at mainbus
 file    Targets/Bonito2fdev/dev/localbus.c		localbus
+file    Targets/Bonito3a84w/dev/generate_mac_val.c
 
 
 # Ethernet driver for Discovery ethernet

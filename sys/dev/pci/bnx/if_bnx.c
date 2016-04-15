@@ -59,6 +59,15 @@ __FBSDID("$FreeBSD: src/sys/dev/bce/if_bce.c,v 1.3 2006/04/13 14:12:26 ru Exp $"
 #include <machine/bus.h>
 #include "bnxfw.h"
 
+#ifdef LOONGSON_3A84W
+#include  "bnx_data.h"
+#define BNX_NVRAM_WRITE_SUPPORT
+#undef	BNX_FLASH_DEBUG
+
+#define BNX0_MAC_ADDR 0x136
+#define BNX1_MAC_ADDR 0x18a
+#endif
+
 #define BUS_SPACE_BARRIER_READ  0x01	/* force read barrier */
 #define BUS_SPACE_BARRIER_WRITE 0x02	/* force write barrier */
 #if 0
@@ -922,6 +931,36 @@ bnx_attachhook(void *xsc)
 		return;
 	}
 
+#ifdef LOONGSON_3A84W
+	unsigned char  m_buf[12];
+	int i;
+#ifdef BNX_FLASH_DEBUG
+	//read the flash 8 bytes.
+	bnx_nvram_read(sc, 0x0, m_buf, 8);
+	for (i = 0;i < 8;i++)
+		printf("%x ",*(m_buf+i));
+	printf("\n");
+#endif
+	bnx_nvram_read(sc, 0x0, m_buf, 8);
+	for (i = 0;i < 8;i++)
+		if(*(m_buf+i) == 0xff)
+			continue;
+		else
+			break;
+	if (i == 8) {
+		/*If the firmware is NULL,write the bnx data in the firmware.Every times write max num is 0x100.*/
+		//bnx_nvram_write(sc, eeprom->offset, data_buf, eeprom->len);
+		for(i = 0;i < 0x20000;i += 0x100)
+			bnx_nvram_write(sc, i, bnx_buf + i, 0x100);
+	}
+#ifdef BNX_FLASH_DEBUG
+	//read the flash 8 bytes.
+	bnx_nvram_read(sc, 0x0, m_buf, 8);
+	for (i = 0;i < 8;i++)
+	printf("%x ",*(m_buf+i));
+	printf("\n");
+#endif
+#endif
 	/* Reset the controller. */
 	if (bnx_reset(sc, BNX_DRV_MSG_CODE_RESET))
 		goto bnx_attach_fail;
@@ -932,7 +971,6 @@ bnx_attachhook(void *xsc)
 		    sc->bnx_dev.dv_xname);
 		goto bnx_attach_fail;
 	}
-
 	/* Perform NVRAM test. */
 	if (bnx_nvram_test(sc)) {
 		printf("%s: NVRAM test failed!\n",
@@ -5240,7 +5278,44 @@ bnx_start(struct ifnet *ifp)
 bnx_start_exit:
 	return;
 }
+#ifdef LOONGSON_3A84W
+static int bnx_set_mac(struct bnx_softc *sc, int ac, char *av[])
+{
+	int i;
+	int32_t v;
+	unsigned char m_buf[6];
 
+	if (ac != 2) {
+		printf("%s MAC ADDRESS \n",sc->bnx_dev.dv_xname);
+		if(strncmp("bnx0", sc->bnx_dev.dv_xname, 4)) {
+			bnx_nvram_read(sc, BNX1_MAC_ADDR, m_buf, 6);
+			printf("%s\n", ether_sprintf(m_buf));
+		} else {
+			bnx_nvram_read(sc, BNX0_MAC_ADDR, m_buf, 6);
+			printf("%s\n", ether_sprintf(m_buf));
+		}
+		printf("Use \"ifconfig bnx0/1 setmac <mac> \"to set mac\n");
+		return 0;
+	}
+	//the mac must have enough value.
+	if ((strlen(av[1]) / 3) == 5) {
+		for (i = 0; i < 6; i++) {
+			gethex(&v, av[1], 2);
+			m_buf[i] = v ;
+			av[1] += 3;
+		}
+		if(strncmp("bnx0", sc->bnx_dev.dv_xname, 4)) {
+			bnx_nvram_write(sc, BNX1_MAC_ADDR, m_buf, 0x6);
+		} else {
+			bnx_nvram_write(sc, BNX0_MAC_ADDR, m_buf, 0x6);
+		}
+		printf("Reboot to make the mac change to take effect!!\n");
+	} else
+		printf("MAC is error!\n");
+
+	return 0;
+}
+#endif
 /****************************************************************************/
 /* Handles any IOCTL calls from the operating system.                       */
 /*                                                                          */
@@ -5262,6 +5337,25 @@ bnx_ioctl(struct ifnet *ifp, u_long command, caddr_t data)
 	switch (command) {
 	case SIOCSIFADDR://wan: implemented when "ifaddr bnx [IP]"
 		ifp->if_flags |= IFF_UP;
+
+#ifdef LOONGSON_3A84W
+		//Set the MAC address,otherwise the MAC will similar with others.
+		unsigned char m_buf[6];
+		char i;
+		bnx_nvram_read(sc, BNX0_MAC_ADDR, m_buf, 6);
+		for (i = 0;i < 6;i++)
+			if(m_buf[i] == bnx_buf[BNX0_MAC_ADDR + i])
+				continue;
+			else
+				break;
+		if (i == 6) {
+			generate_mac_val(m_buf);
+			bnx_nvram_write(sc, BNX0_MAC_ADDR, m_buf, 6);
+			generate_mac_val(m_buf);
+			bnx_nvram_write(sc, BNX1_MAC_ADDR, m_buf, 6);
+		}
+#endif
+
 		if (!(ifp->if_flags & IFF_RUNNING))
 			bnx_init(sc);
 #ifdef INET
@@ -5269,7 +5363,15 @@ bnx_ioctl(struct ifnet *ifp, u_long command, caddr_t data)
 			arp_ifinit(&sc->arpcom, ifa);
 #endif /* INET */
 		break;
-
+#ifdef LOONGSON_3A84W
+	case SIOCETHTOOL:
+		/* set mac */
+		{
+			long *p = (long *)data;
+			bnx_set_mac(sc, p[0], (void *)p[1]);
+		}
+		break;
+#endif
 	case SIOCSIFFLAGS:
 		if (ifp->if_flags & IFF_UP) {
 			if (ifp->if_flags & IFF_RUNNING)
