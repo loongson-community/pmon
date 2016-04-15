@@ -343,25 +343,6 @@ boot_entry:
         bal     initserial1
         nop
 
-//#define SHUT_SLAVES
-#ifdef SHUT_SLAVES
-	PRINTSTR("Shut down other cores\r\n")
-	li      a0, 0xbfe001d0
-	li	a1, BOOTCORE_ID
-	sll	a1, 2
-	li      t1, 0xf
-	sll	a1, t1, a1
-	li	t1, 0x88888888
-	or	t1, a1, t1
-	sw      t1, 0x0(a0)
-	li      t1, 0x00000000
-	or	t1, a1, t1
-	sw      t1, 0x0(a0)
-
-#else
-	PRINTSTR("NOT Shut down other cores\r\n")
-#endif
-
 
 bsp_start:
 	PRINTSTR("\r\nPMON2000 MIPS Initializing. Standby...\r\n")
@@ -421,6 +402,25 @@ gs_2f_v3_ddr2_cfg:
 ##########################################
 
 #include "loongson3_fixup.S"
+
+//#define SHUT_SLAVES
+#ifdef SHUT_SLAVES
+	PRINTSTR("Shut down other cores\r\n")
+	li      a0, 0xbfe001d0
+	li	a1, BOOTCORE_ID
+	sll	a1, 2
+	li      t1, 0xf
+	sll	a1, t1, a1
+	li	t1, 0x88888888
+	or	t1, a1, t1
+	sw      t1, 0x0(a0)
+	li      t1, 0x00000000
+	or	t1, a1, t1
+	sw      t1, 0x0(a0)
+
+#else
+	PRINTSTR("NOT Shut down other cores\r\n")
+#endif
 
 	dli	s1, 0x0000100000000000
 #include "loongson3_clksetting.S"
