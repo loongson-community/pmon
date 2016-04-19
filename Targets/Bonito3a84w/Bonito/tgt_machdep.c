@@ -2540,8 +2540,8 @@ void sb700_interrupt_fixup(void)
 	fixup_interrupt_printf("SB700 interrupt PIC set begin,  \n");
 	/* bus4: INTA -->IRQ5 PCIE_slot(right) */
 	*(pic_index) =  0x0;
-	*(pic_data) =  0x5;
-	if (*(pic_data) !=  0x5)
+	*(pic_data) =  0x4;
+	if (*(pic_data) !=  0x4)
 		fixup_interrupt_printf("set pic fail: read back %d,should be 0x5\n", *(pic_data));
 	else
 		fixup_interrupt_printf("set pic_5 pass\n");
@@ -2772,7 +2772,7 @@ void sb700_interrupt_fixup(void)
 	dev = _pci_make_tag(4, 0x0, 0x00);
 	val = pci_read_config32(dev, 0x00);
 	if ( val != 0xffffffff)
-		pci_write_config8(dev, 0x3c, 0x05);
+		pci_write_config8(dev, 0x3c, 0x04);
 
 	val = pci_read_config8(dev, 0x0e); //judge whether multi-function card
 
@@ -2780,7 +2780,7 @@ void sb700_interrupt_fixup(void)
 		dev = _pci_make_tag(4, 0x0, 0x01);
 		val = pci_read_config32(dev, 0x00);
 		if ( val != 0xffffffff)
-			pci_write_config8(dev, 0x3c, 0x06);
+			pci_write_config8(dev, 0x3c, 0x05);
 
 		dev = _pci_make_tag(4, 0x0, 0x02);
 		val = pci_read_config32(dev, 0x00);
