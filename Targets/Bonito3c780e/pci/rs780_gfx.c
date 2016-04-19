@@ -652,7 +652,8 @@ static void auto_gen2_speed_change(device_t nb_dev, device_t dev)
 	pci_write_config32(dev, 0x88, reg);
 
 	set_nbmisc_enable_bits(nb_dev, 0x34, 1 << 5, 1 << 5);
-	set_nbmisc_enable_bits(nb_dev, 0x22, 1 << 5, 1 << 5);
+	//set_nbmisc_enable_bits(nb_dev, 0x22, 1 << 5, 1 << 5);
+	set_nbmisc_enable_bits(nb_dev, 0x22, 1 << 6, 1 << 6);
 
 	set_pcie_enable_bits(dev, 0xa4, 1 << 0, 1 << 0);
 
@@ -1177,6 +1178,7 @@ void rs780_gfx_3_init(device_t nb_dev, device_t dev, u32 port)
 	/* Single-port/Dual-port configureation. */
 	switch (cfg->gfx_dual_slot) {
 	case 0:
+	auto_gen2_speed_change(nb_dev, dev);
 		/* step 1, lane reversal (only need if CMOS option is enabled) */
 		if (cfg->gfx_lane_reversal) {
 			set_nbmisc_enable_bits(nb_dev, 0x33, 1 << 2, 1 << 2);
@@ -1194,6 +1196,7 @@ void rs780_gfx_3_init(device_t nb_dev, device_t dev, u32 port)
 
 		break;
 	case 1:
+	auto_gen2_speed_change(nb_dev, dev);
 	/* Releases hold training for GFX port 0 (device 3) */
 	PcieReleasePortTraining(nb_dev, dev, 3);
 	/* PCIE Link Training Sequence */
