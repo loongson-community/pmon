@@ -20,6 +20,7 @@ device  localbus
 attach  localbus at mainbus
 file    Targets/Bonito2fdev/dev/localbus.c		localbus
 file    Targets/Bonito3a84w/dev/generate_mac_val.c
+file    Targets/Bonito3a84w/dev/i2c.c
 
 
 # Ethernet driver for Discovery ethernet

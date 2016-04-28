@@ -177,6 +177,7 @@ static int clk_invalid = 0;
 static int nvram_invalid = 0;
 static int cksum(void *p, size_t s, int set);
 static void _probe_frequencies(void);
+extern void w83795_config(void);
 
 #ifndef NVRAM_IN_FLASH
 void nvram_get(char *);
@@ -598,7 +599,10 @@ initmips(unsigned int raw_memsz)
     /*
      * Launch!
      */
-    _pci_conf_write(_pci_make_tag(0,0,0),0x90,0xff800000); 
+    _pci_conf_write(_pci_make_tag(0,0,0),0x90,0xff800000);
+
+    w83795_config();
+
     main();
 }
 
@@ -1418,7 +1422,6 @@ static inline unsigned char CMOS_READ(unsigned char addr)
 			break;
 
 	}
-
 	tgt_i2cread(I2C_SINGLE,i2caddr,1,0xe<<4,&value,1);
 	value = value|0x20;
 	tgt_i2cwrite(I2C_SINGLE,i2caddr,1,0xe<<4,&value,1);
