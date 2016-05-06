@@ -111,22 +111,37 @@ static int cpuinfo(){
 		printf("/ Bus @ %d MHz\n", MEM_BASE_CLK_2G);
 
 #else  /*for 3a/3b ddr controller */ 
-        if(clk != 0x1f) {
-		clk30 = clk & 0x0f;
-		clk4 = (clk >> 4) & 0x01;
-		/* to calculate memory frequency.
-		 * we can find this function in loongson 3A manual,
-		 * memclk * (clksel[8:5] + 30)/(clksel[9] + 3)
-		 */
-		memfreq = 100*(clk30 + 30)/(clk4 + 3)/3;
+	if(clk != 0x1f) {
+		if ((*(volatile unsigned char*)0xbfe00187) == 0x37) {
+			if ((clk & 0xf) == 0xf) { /* set ddr frequency by software */
+				div_loopc = ((*(volatile unsigned int *)(0xbfe001c0)) >> 14 ) & 0x3ff;
+				div_out = ((*(volatile unsigned int *)(0xbfe001c0)) >> 24) & 0x3f;
+				memfreq = (100 * div_loopc) / div_out / 3;
+			} else { /* set ddr frequency by hareware */
+				clk30 = clk & 0x0f;
+				clk4 = (clk >> 4) & 0x01;
+				/* to calculate memory frequency.
+				 * we can find this function in loongson 3A manual,
+				 * memclk * (clksel[8:5] + 30)/(clksel[9] + 3)
+				 */
+				memfreq = 100*(clk30 + 30)/(clk4 + 3)/3;
+			}
+			}else{
+				clk30 = clk & 0x0f;
+				clk4 = (clk >> 4) & 0x01;
+				/* to calculate memory frequency.
+				 * we can find this function in loongson 3A manual,
+				 * memclk * (clksel[8:5] + 30)/(clksel[9] + 3)
+				 */
+				memfreq = 100*(clk30 + 30)/(clk4 + 3)/3;
+			}
 
-		printf("/ Bus @ %d MHz\n",memfreq);
-	}
-        else
-		printf("/ Bus @ 33 MHz\n");
+				printf("/ Bus @ %d MHz\n",memfreq);
+			}else
+				printf("/ Bus @ 33 MHz\n");
 #endif
- 
-}
+
+		}
 
 
 static int meminfo(){
