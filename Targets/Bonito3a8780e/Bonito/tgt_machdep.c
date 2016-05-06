@@ -2246,6 +2246,39 @@ struct efi_memory_map_loongson * init_memory_map()
 #define HW_CONFIG 0xbfe00180
 #define HW_SAMPLE 0xbfe00190
 #define HT_MEM_PLL 0xbfe001c0
+static int get_mem_freq(void)
+{
+	int memfreq,clk,clk30,clk4, clk20, clk34, mem_vco;
+	unsigned short div_refc, div_loopc, div_out;
+
+	clk = get_mem_clk();
+	if ((*(volatile unsigned char*)0xbfe00187) == 0x37) {
+		if ((clk & 0xf) == 0xf) { /* set ddr frequency by software */
+			div_loopc = ((*(volatile unsigned int *)(0xbfe001c0)) >> 14 ) & 0x3ff;
+			div_out = ((*(volatile unsigned int *)(0xbfe001c0)) >> 24) & 0x3f;
+			memfreq = (100 * div_loopc) / div_out / 3;
+		} else { /* set ddr frequency by hareware */
+			clk30 = clk & 0x0f;
+			clk4 = (clk >> 4) & 0x01;
+			/* to calculate memory frequency.
+			 * we can find this function in loongson 3A manual,
+			 * memclk * (clksel[8:5] + 30)/(clksel[9] + 3)
+			 */
+			memfreq = 100*(clk30 + 30)/(clk4 + 3)/3;
+		}
+	} else {
+		clk30 = clk & 0x0f;
+		clk4 = (clk >> 4) & 0x01;
+		/* to calculate memory frequency.
+		 * we can find this function in loongson 3A manual,
+		 * memclk * (clksel[8:5] + 30)/(clksel[9] + 3)
+		 */
+		memfreq = 100*(clk30 + 30)/(clk4 + 3)/3;
+	}
+
+	return memfreq;
+
+}
 
 static inline int mem_is_hw_bypassed()
 {
@@ -2299,7 +2332,7 @@ void print_mem_freq(void)
 	if (!mem_is_sw_setup()) 
 		printf("hw selected! mem@ %dMhz\n", (mem_hw_freq_mul() * mem_ref_clock)/mem_hw_freq_div());
 	else
-		printf("sw selected! mem@ %dMhz\n", (mem_sw_freq_mul() * mem_ref_clock)/mem_sw_freq_div());
+		printf("sw selected! mem@ %dMhz\n", get_mem_freq());
 	
 }
 
@@ -2320,7 +2353,9 @@ void  print_cpu_info()
 	int cycles1, cycles2;
 	int bogo;
 	int loops = 1 << 18;
-	int freq = tgt_pipefreq() / 1000000;
+	char fs[10], *fp;
+	//int freq = tgt_pipefreq() / 1000000;
+	int freq = tgt_pipefreq();
 
 	printf("Copyright 2000-2002, Opsycon AB, Sweden.\n");
 	printf("Copyright 2005, ICT CAS.\n");
@@ -2330,7 +2365,14 @@ void  print_cpu_info()
 	__loop_delay(loops);
 	cycles2 = (int)read_c0_count();
 
-	bogo = freq * loops / (cycles2 - cycles1);
+	bogo = (freq/1000000) * loops / (cycles2 - cycles1);
 
-	printf("BogoMIPS: %d\n", bogo);
+	sprintf(fs, "%d", freq);
+	fp = fs + strlen(fs) - 6;
+	fp[3] = '\0';
+	fp[2] = fp[1];
+	fp[1] = fp[0];
+	fp[0] = '.';
+
+	printf("\nBogoMIPS: %d @ %s MHz\n", bogo,fs);
 }
