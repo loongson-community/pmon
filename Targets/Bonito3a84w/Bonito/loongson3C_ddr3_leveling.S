@@ -2527,11 +2527,11 @@ rddqs_lt_half:
     dsrl    a1, a1, 8  //get dll_wrdata
     daddu   a0, a0, a1
     and     a0, a0, t6
-    bgeu    a0, a3, rddqs_lt_half_set1//because the rd gate edge is 0x2
+    bgeu    a0, a3, rddqs_lt_half_set0//because the rd gate edge is 0x2
     nop
-    bltu    a0, a2, rddqs_lt_half_set1
+    bltu    a0, a2, rddqs_lt_half_set0
     nop
-    b       rddqs_lt_half_set0
+    b       rddqs_lt_half_set1
     nop
 rddqs_lt_half_set0:
     dsubu   t2, t1, 0x18
