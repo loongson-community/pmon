@@ -42,6 +42,10 @@
 #include <flash.h>
 #include <dev/pflash_tgt.h>
 
+#ifdef LOONGSON_3A84W
+#include <Targets/Bonito3a84w/dev/spi_w.c>
+#endif
+
 extern void delay __P((int));
 
 #ifndef PFLASH_MAX_TIMEOUT
@@ -250,13 +254,17 @@ fl_find_map(void *base)
 	}
 	return((struct fl_map *)NULL);
 }
-		
 /*
  *  Try to figure out what kind of flash there is on given address.
  */
 struct fl_device *
 fl_devident(void *base, struct fl_map **m)
 {
+#ifdef LOONGSON_3A84W
+	if (selected_lpc_spi()) {
+		return spi_fl_devident(base,m);
+	} else {
+#endif
 	struct fl_device *dev;
 	struct fl_map *map;
 	char mfgid, chipid;
@@ -327,6 +335,9 @@ fl_devident(void *base, struct fl_map **m)
 	outb((map->fl_map_base), 0x00);
 
 	return((struct fl_device *)NULL);
+#ifdef LOONGSON_3A84W
+	}
+#endif
 }
 
 
@@ -337,6 +348,11 @@ fl_devident(void *base, struct fl_map **m)
 int
 fl_erase_device(void *base, int size, int verbose)
 {
+#ifdef LOONGSON_3A84W
+	if (selected_lpc_spi()) {
+		return  spi_fl_erase_device(base, size, verbose);
+	} else {
+#endif
 	struct fl_map *map;
 	struct fl_device *dev;
 	int mask, ok, block;
@@ -469,6 +485,9 @@ fl_erase_device(void *base, int size, int verbose)
 	tgt_flashwrite_disable();
     fl_write_protect_lock(map, dev, 0);/* Enable write protection of SST49LF040B/SST49LF008A */
 	return(ok);
+#ifdef LOONGSON_3A84W
+	}
+#endif
 }
 
 
@@ -534,13 +553,17 @@ int fl_program(void *fl_base, void *data_base, int data_size, int verbose)
 
 
 
-
 /*
  *  Program a flash device. Assumed that the area is erased already.
  */
 int
 fl_program_device(void *fl_base, void *data_base, int data_size, int verbose)
 {
+#ifdef LOONGSON_3A84W
+	if (selected_lpc_spi()) {
+		return spi_fl_program_device(fl_base, data_base, data_size, verbose);
+	} else {
+#endif
 	struct fl_map *map;
 	struct fl_device *dev;
 	int ok;
@@ -611,6 +634,9 @@ fl_program_device(void *fl_base, void *data_base, int data_size, int verbose)
 	tgt_flashwrite_disable();
     fl_write_protect_lock(map, dev, 0);/* Enable write protection of SST49LF040B/SST49LF008A */
 	return(ok);
+#ifdef LOONGSON_3A84W
+	}
+#endif
 }
 
 /*
