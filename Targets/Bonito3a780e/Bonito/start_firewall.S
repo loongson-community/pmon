@@ -433,7 +433,7 @@ gs_2f_v3_ddr2_cfg:
 ##########################################
 //configure DDR freq by software
 #if 1
-    li      t5, 0x17
+    li      t5, (300/25*3-30)
 #if 0
     PRINTSTR("Please input DDR frequency SELLECT[4:0](default: 0x1e;0x1f: skip software setting):\r\n");
     dli     t6, 0x00
