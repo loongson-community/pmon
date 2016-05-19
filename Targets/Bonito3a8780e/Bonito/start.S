@@ -587,7 +587,8 @@ soft_out:
 #ifdef  AUTO_DDR_CONFIG
     dli     s1, 0x32100000  //set use MC1 or MC0 or MC1/0 and give All device id
 #else
-	dli     s1, 0xc2e30400c2e30404
+	//dli     s1, 0xc2e30400c2e30404
+	dli     s1, 0xc1a18404
 #endif
 #include "ddr_dir/loongson3_ddr2_config.S"
 
@@ -850,8 +851,10 @@ soft_out:
 ##########################################
 
 bootnow:
+#ifdef AUTO_DDR_CONFIG
 	bal	spd_info_store
 	nop
+#endif
 	TTYDBG("Copy PMON to execute location...\r\n")
 #ifdef DEBUG_LOCORE
 	TTYDBG("  start = 0x")
