@@ -1930,6 +1930,30 @@ static char irqbus0[] =
   [20] = 9, //inte
 }; 
 
+/*pci int route on develop board:
+adxx: devno = xx - 16
+ad19: inte
+ad20: intf
+*/
+static int bus0dev20[16] = {
+[0] = 10,
+[1] = 11,
+[2] = 12,
+[3] = 9,
+[4] = 10,
+[5] = 11,
+[6] = 12,
+[7] = 9,
+[8] = 10,
+[9] = 11,
+[10] = 12,
+[11] = 9,
+[12] = 10,
+[13] = 11,
+[14] = 12,
+[15] = 9,
+};
+
 char irqroute[16];
 
 char val4d0;
@@ -1959,7 +1983,10 @@ static void pci_fix_device_interrpt(struct pci_device *pd, int bus0tag)
 		{
 			int bus0, bus0dev, bus0func;
 			_pci_break_tag(bus0tag, &bus0, &bus0dev, &bus0func);
-			irq = (irqbus0[bus0dev]+pin-1);
+                        if(bus0dev == 20)
+                           irq = (bus0dev20[dev]+pin-1);
+			else
+                           irq = (irqbus0[bus0dev]+pin-1);
 			if(!irqroute[irq])
 			{
 			  printf("nomap for busdev %d pin %d irqpin %d\n", bus0dev ,pin ,irq);
