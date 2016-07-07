@@ -307,7 +307,7 @@ lbuff=(long)(_lbuff+DEV_BSIZE-1)&~(DEV_BSIZE-1);
 	devstat->offs = 0;
 	devstat->base = 0;
 	devstat->maptab = 0;
-	devstat->end = 0x10000000000;
+	devstat->end = 0x7fffffffffffffff;
 
 	/* Check for any subsize specification */
 	if (*name == '@') {
