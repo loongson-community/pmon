@@ -131,6 +131,9 @@ open(filename, mode)
 			if (strncmp (dname, "/dev/", 5) == 0) {
 				dname += 5;
 				//printf("tname:%s   dname:%s\n",tname,dname);
+				/* change command from /dev/fat/disk or /dev/fat/ram
+		 		* TO /dev/fs/fat or /dev/fs/ram */
+				fat_support(fnamelen, dname);
 				i = __try_open(tname, mode, dname, lu, 0); 
 				free(fname);
 				return i;
