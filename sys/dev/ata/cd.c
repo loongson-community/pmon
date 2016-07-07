@@ -756,12 +756,29 @@ int ide_test_unit_ready(struct ide_cd_softc *cd)
 	return 0;
 }
 
-int	ide_cdwrite_intr(struct ide_cd_softc *cd, struct packet_cmd *pc)
+
+int     ide_cdwrite_intr(struct ide_cd_softc *cd, struct packet_cmd *pc)
 {
 	(void)cd;
 
 	pc->error = 1;
 	printf("ide writer not implemented\n");
-	
-	return -1;		
+
+	return -1;    
 }
+#define MAX_IDE_CDS 4
+int ide_cd_index = 0;
+struct ide_cd_softc *mycd[MAX_IDE_CDS];
+
+int is_ide_cd_ready(int ide_cd_index)
+{
+	int i;
+	for (i = 0;i <=5; i++)
+		if(( ide_test_unit_ready(mycd[ide_cd_index])) == 0)
+			return 1;
+
+	return 0;
+
+}
+
+

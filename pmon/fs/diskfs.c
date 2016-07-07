@@ -53,6 +53,120 @@ static int diskfs_read (int, void *, size_t);
 static int diskfs_write (int, const void *, size_t);
 static off_t diskfs_lseek (int, off_t, int);
 
+int filename_path_transform(char *fname,char *tname)
+{
+	char buff[20];
+	char *p, *p1;
+	char dev[20];
+	char id;
+	DeviceDisk* pdev;
+    char filepath[100];
+    int part_no;
+    DiskPartitionTable *ppart;
+    int part_index ;
+
+    fs_info("fname:%s tname:%s\n",fname,tname);
+
+    p = strchr(fname,',');
+    id = *(p+1);
+
+    fs_info("id:%c\n",id);
+
+    p = fname;
+    if (*p != '(')
+    {
+        return -1;
+    }
+
+
+    p1 = strchr(fname,')');
+    if (p1 == NULL)
+    {
+        return -1;
+    }
+
+	p1 += 1;
+	if (*p1 != '\0' && *p1 != '/')
+	{
+		return -1;
+	}
+
+    memset(dev, 0, sizeof(dev));
+    strncpy(dev, fname+1, 19);
+    p = strchr(dev,',');
+    if (p == NULL)
+    {
+        return -1;
+    }
+    *p = '\0';
+    p +=1;
+	while (*p != '\0' && (*p == ' ' || *p == '\t'))
+	{
+		p++;
+	}    
+    part_no = id - 0x30;
+    
+    p = strchr(fname,'/');
+    p +=1;
+
+    sprintf(filepath,"%s",p);
+    memset(buff, 0, sizeof(buff));    
+
+    
+	pdev = FindDevice(dev); 
+
+    if(NULL==pdev){
+        printf("Find device failed NULL==pdev.\n");
+        return -1;
+
+    }
+    //sprintf(buff, "%s%c", dev, 'a' + atoi(id));
+    if(FS_TYPE_ISO9660 == pdev->dev_fstype){
+        sprintf(buff, "%s", dev);
+    }else{
+        //sprintf(buff, "%s%c", dev, 'a' + atoi(&id));
+        sprintf(buff, "%s%c", dev, 'a' + (id - '0'));
+    }
+
+    //part_index = atoi(&id);
+    part_index = id - '0';
+
+    fs_info("pdev->dev_fstype:0x%x buff:%s filepath:%s part_index:%d\n",
+        pdev->dev_fstype, buff, filepath, part_index);
+    
+    if (FS_TYPE_ISO9660 == pdev->dev_fstype){
+       // "/dev/fs/iso9660@buff/...."
+       sprintf(tname,"/dev/fs/iso9660@%s/%s",buff,filepath);
+       return 0;    
+    }
+
+    if (FS_TYPE_FAT == pdev->dev_fstype){
+        sprintf(tname,"/dev/fs/fat@%s/%s",buff,filepath);
+        return 0;
+    }
+    if (FS_TYPE_EXT2 == pdev->dev_fstype){
+        sprintf(tname,"/dev/fs/ext2@%s/%s",buff,filepath);
+        return 0;
+    } 
+    
+    if (FS_TYPE_COMPOUND == pdev->dev_fstype){
+        ppart = pdev->part[part_index];
+        if (FS_TYPE_UNKNOWN == ppart->part_fstype){
+            printf("filename_path_transfrom unknown fs type for the given partition.\n");
+            return -1;
+        }
+        if (FS_TYPE_FAT == ppart->part_fstype){
+            sprintf(tname,"/dev/fs/fat@%s/%s",buff,filepath);
+            return 0;
+        }
+        if (FS_TYPE_EXT2 == ppart->part_fstype){
+            sprintf(tname,"/dev/fs/ext2@%s/%s",buff,filepath);
+            return 0;
+        }           
+    }
+    fs_info("tname:%s",tname);
+    return -1;
+}
 /*
  * Supported paths:
  *	/dev/fs/msdos@wd0/bsd

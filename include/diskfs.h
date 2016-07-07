@@ -36,6 +36,21 @@
 #define __DISKFS_H__
 
 #include <sys/queue.h>
+#define FS_TYPE_EXT2  0x0
+#define FS_TYPE_SWAP  0x1
+#define FS_TYPE_FAT   0x2
+#define FS_TYPE_ISO9660 0x3
+#define FS_TYPE_NTFS 0x4
+#define FS_TYPE_BSD 0x5
+#define FS_TYPE_COMPOUND 0xFE
+#define FS_TYPE_UNKNOWN 0xFF 
+
+//#define FS_SHOW_INFO
+#ifdef FS_SHOW_INFO
+#define fs_info(format, arg...) printf("FS_INFO: " format "\n", ## arg)
+#else
+#define fs_info(format, arg...) do {} while(0)
+#endif
 
 typedef struct DiskFileSystem {
 	char *fsname;
@@ -47,13 +62,44 @@ typedef struct DiskFileSystem {
 	int (*ioctl) __P((int , unsigned long , ...));
 	SLIST_ENTRY(DiskFileSystem)	i_next;
 } DiskFileSystem;
-
+#if 0
 typedef struct DiskFile {
 	char *devname;
 	DiskFileSystem *dfs;
 } DiskFile;
-
+#endif
 
 int diskfs_init(DiskFileSystem *fs);
+
+typedef struct DiskPartitionTable { 
+	struct DiskPartitionTable* Next;
+	struct DiskPartitionTable* logical;
+	unsigned char bootflag;
+	unsigned char tag;
+	unsigned char id;
+	unsigned int sec_begin;
+	unsigned int size;
+	unsigned int sec_end;
+	unsigned int part_fstype;
+	DiskFileSystem* fs;
+}DiskPartitionTable;
+
+
+#define MAX_PARTS 8
+typedef struct DeviceDisk {
+	struct DeviceDisk* Next;
+	char device_name[20];
+	unsigned int dev_fstype;
+//	DiskPartitionTable* part;
+	DiskPartitionTable* part[MAX_PARTS];
+}DeviceDisk;
+typedef struct DiskFile {
+	char *devname;
+	DiskFileSystem *dfs;
+	DiskPartitionTable* part;
+	int part_index;
+} DiskFile;
+
+
 
 #endif /* __DISKFS_H__ */

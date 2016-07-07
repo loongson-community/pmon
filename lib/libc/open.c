@@ -69,8 +69,9 @@ open(filename, mode)
 {
 	char 	*fname;
 	char    *dname;
-	int     lu, i;
+	int     lu, i,j;
 	int 	fnamelen;
+	char    tname[100];
 	
 	fnamelen = strlen(filename);
 	fname = (char *)malloc(fnamelen+2+1);/* +2 used to change path from fs/fat to fat/disk */
@@ -118,10 +119,28 @@ open(filename, mode)
 	{
 		i = __try_open(dname, mode, "net", lu, 0);
 	}
-    else if(strpat(dname, "nfs://*"))
-    {
-        i = __try_open(dname, mode, "net", lu, 0);
-    }
+    	else if(strpat(dname, "nfs://*"))
+    	{
+        	i = __try_open(dname, mode, "net", lu, 0);
+    	}
+    	else if(*dname == '(')
+    	{
+		j = filename_path_transform(dname,tname);    
+		if (j == 0){ 
+			dname = tname;
+			if (strncmp (dname, "/dev/", 5) == 0) {
+				dname += 5;
+				//printf("tname:%s   dname:%s\n",tname,dname);
+				i = __try_open(tname, mode, dname, lu, 0); 
+				free(fname);
+				return i;
+			}   
+		}else {
+			return -1; 
+		}   
+
+
+    	}
 	else {
 		i = __try_open(fname, mode, dname, lu, 0);
 	}

@@ -543,6 +543,7 @@ main()
 		do_cmd(line);
 		console_state(1);
 	}
+	DeviceRelease();
 	return(0);
 }
 
@@ -759,7 +760,7 @@ autoinstall(char *s)
   return ret;
 }
 
-
+extern void get_ec_version(void);
 /*
  *  PMON2000 entrypoint. Called after initial setup.
  */
@@ -855,6 +856,7 @@ dbginit (char *adr)
 	md_clreg(NULL);
 	md_setpc(NULL, (int32_t) CLIENTPC);
 	md_setsp(NULL, tgt_clienttos ());
+	DevicesInit();
 }
 
 /*

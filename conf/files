@@ -248,6 +248,7 @@ file pmon/fs/devfs.c			(scsi | ide)
 file pmon/fs/diskfs.c			(scsi | ide)
 file pmon/fs/fatfs.c			fatfs
 file pmon/fs/ext2fs.c			ext2
+file pmon/fs/dev_part.c
 #file pmon/fs/yaffsfs.c			yaffsfs
 
 file pmon/fs/yaffs2/yaffsfs.c           yaffsfs
