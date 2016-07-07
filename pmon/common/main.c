@@ -174,12 +174,27 @@ static int load_menu_list()
                         if (retid == 0) {
                                 return 1;
                         }
+                        sprintf(load, "bl -d ide /dev/fs/ext2@%s/boot.cfg", dev->dv_xname);
+                        retid = do_cmd(load);
+                        if (retid == 0) {
+                                return 1;
+                        }
                         sprintf(load, "bl -d ide /dev/fs/fat@%s/boot/boot.cfg", dev->dv_xname);
                         retid = do_cmd(load);
                         if (retid == 0) {
                                 return 1;
                         }
+                        sprintf(load, "bl -d ide /dev/fs/fat@%s/boot.cfg", dev->dv_xname);
+                        retid = do_cmd(load);
+                        if (retid == 0) {
+                                return 1;
+                        }
                         sprintf(load, "bl -d ide /dev/fs/iso9660@%s/boot/boot.cfg", dev->dv_xname);
+                        retid = do_cmd(load);
+                        if (retid == 0) {
+                                return 1;
+                        }
+                        sprintf(load, "bl -d ide /dev/fs/iso9660@%s/boot.cfg", dev->dv_xname);
                         retid = do_cmd(load);
                         if (retid == 0) {
                                 return 1;
@@ -200,22 +215,43 @@ static int load_menu_list()
                         if (retid == 0) {
                                 return 1;
                         }
+                        sprintf(load, "bl -d ide /dev/fs/iso9660@%s/boot.cfg", dev->dv_xname);
+                        retid = do_cmd(load);
+                        if (retid == 0) {
+                                return 1;
+                        }
                 }
         }
 
         //try to read boot.cfg from sata disk third
 	sprintf(path, "%s/boot/boot.cfg", rootdev);
-       	if (check_config(path) == 1)
-        {
-        	sprintf(path, "bl -d ide %s/boot/boot.cfg", rootdev);
-                if (do_cmd(path) == 0)
-                {
-                   	show_menu = 0;
-                        free(path);
-                        path = NULL;
-                        return 1;
-                }
-        }
+	if (check_config(path) == 1)
+	{
+		sprintf(path, "bl -d ide %s/boot/boot.cfg", rootdev);
+		if (do_cmd(path) == 0)
+		{
+			show_menu = 0;
+			free(path);
+			path = NULL;
+			return 1;
+		}
+		
+	}else{
+
+			sprintf(path, "%s/boot.cfg", rootdev);
+			if (check_config(path) == 1)
+			{
+				sprintf(path, "bl -d ide %s/boot.cfg", rootdev);
+				if (do_cmd(path) == 0)
+				{
+					show_menu = 0;
+					free(path);
+					path = NULL;
+					return 1;
+				}
+			}
+	}
+        
 }
 
 int check_user_password()
