@@ -644,7 +644,7 @@ __wdstart(wd, bp)
 	else
 		wd->sc_wdc_bio.flags = ATA_POLL;
 #ifdef IDE_DMA
-        if(wd->sc_multi == 0x10)
+        //if(wd->sc_multi == 0x10)
                 wd->sc_wdc_bio.flags = ATA_POLL;
 #endif
 	if (wd->sc_flags & WDF_LBA)
