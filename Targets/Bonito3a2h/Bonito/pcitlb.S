@@ -5,7 +5,8 @@
 
 /***********************************************************************************************************/
 /**************************************** MAP KSEG2 ********************************************************/
-/** MAP virtual address: 0xc0000000~ 0xffffffff to physical address:  0x40000000~ 0x7fffffff for PCI-MEM  **/
+/** MAP virtual address: 0xc0000000~ 0xdfffffff to physical address:  0x40000000~ 0x5fffffff for PCI-MEM  **/
+/** MAP virtual address: 0xe0000000~ 0xffffffff to physical address:  0x60000000~ 0x7fffffff for PCI-MEM  **/
 /***********************************************************************************************************/
 
 	li	t0, 0x40000000
@@ -60,9 +61,49 @@
 	nop
 	tlbwi                             # random++
 
+	addiu	t1,t0,-16
+	bgez	t1, 1b
+	addiu	t0, t0, -1
+	
+	li	t0, 16
+
+	li	t3,  0xe0000000   # entry_hi
+	#dli	t4, (0x00000e0020000000 >> 6)|0x17   # entry_lo, uncached, valid, dirty, global
+	#li	t4, 0x0e004000
+
+	li	t4, 0x00002000
+	#li	t4, 0x0efdf000
+
+	.set mips64
+	dsll	t4, t4, 10
+	.set mips3
+	ori	t4, t4, 0x17
+
+	li	t5, (0x1000000>>6)            # 16M stride
+	li	t6, 0x2000000             # VPN2 32M stride
+
+	.set mips64
+1:
+	dmtc0	t3, COP_0_TLB_HI
+	daddu	t3, t3, t6
+
+	dmtc0	t4, COP_0_TLB_LO0
+	daddu	t4, t4, t5
+	dmtc0	t4, COP_0_TLB_LO1
+	daddu	t4, t4, t5
+
+	.set mips3
+
+	mtc0	t0, COP_0_TLB_INDEX           # 16MB page
+	nop
+	nop
+	nop
+	nop
+	nop
+	tlbwi                             # random++
+
 	bgez	t0, 1b
 	addiu	t0, t0, -1
-
 
 	li	t0, 32
 	mtc0	t0, COP_0_TLB_WIRED    # 16MB page

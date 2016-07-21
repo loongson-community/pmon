@@ -49,16 +49,24 @@
 
 #endif
 
-// below added for ls2h dc frame buffer
-  
- //map 0x90000e00_00000000 --> 0x40000000
+// below added for ls2h pcie device mem1 space
+ //map 0x90000e50_00000000 --> 0x40000000
     dli t1, 0x0000000040000000
     sd  t1, 0x18(t0)
     dli t1, 0xffffffffc0000000
     sd  t1, 0x58(t0)
-    dli t1, 0x00000e00000000f7
+    dli t1, 0x00000e50000000f7
     sd  t1, 0x98(t0)
 
+// below added for ls2h dc frame buffer
+ //map 0x90000e00_00000000 --> 0x20000000
+
+    dli t1, 0x0000000020000000
+    sd  t1, 0x20(t0)
+    dli t1, 0xfffffffff0000000
+    sd  t1, 0x60(t0)
+    dli t1, 0x00000e00000000f7
+    sd  t1, 0xa0(t0)
 #if 0
  //HT Space enable
  //map 0x90000e00_00000000 --> 0x90000e00_00000000

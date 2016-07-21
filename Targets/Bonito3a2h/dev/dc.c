@@ -34,8 +34,8 @@ typedef unsigned long dma_addr_t;
 
 #define RANDOM_HEIGHT_Z 37
 
-static char *ADDR_CURSOR = 0xc6000000;
-static char *MEM_ptr = 0xc2000000;	/* frame buffer address register on ls2h mem */
+static char *ADDR_CURSOR = 0xe6000000;
+static char *MEM_ptr = 0xe2000000;	/* frame buffer address register on ls2h mem */
 
 static int MEM_ADDR = 0;
 
