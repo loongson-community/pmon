@@ -409,6 +409,12 @@ static const int video_font_draw_table32[16][4] = {
 	    { 0x00ffffff, 0x00ffffff, 0x00ffffff, 0x00000000 },
 	    { 0x00ffffff, 0x00ffffff, 0x00ffffff, 0x00ffffff } };
 
+extern unsigned short ScreenLineLength;
+extern unsigned short ScreenWidth;
+extern unsigned short ScreenHeight;
+extern unsigned short ScreenDepth;
+
+
 
 int gunzip(void *, int, unsigned char *, unsigned long *);
 static void memsetl (int *p, int c, int v);
@@ -1641,8 +1647,8 @@ int fb_init (unsigned long fbbase,unsigned long iobase)
 #define FB_YSIZE 600 
 #endif
 
-        pGD->winSizeX  = FB_XSIZE;
-        pGD->winSizeY  = FB_YSIZE;
+        pGD->winSizeX  = ScreenLineLength/((ScreenDepth+1)/8);
+        pGD->winSizeY  = ScreenHeight;
 #endif
 
 #if   defined(CONFIG_VIDEO_1BPP)

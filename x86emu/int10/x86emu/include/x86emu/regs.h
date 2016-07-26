@@ -35,15 +35,16 @@
 * Description:  Header file for x86 register definitions.
 *
 ****************************************************************************/
-/* $XFree86: xc/extras/x86emu/include/x86emu/regs.h,v 1.3 2001/10/28 03:32:25 tsi Exp $ */
 
 #ifndef __X86EMU_REGS_H
 #define __X86EMU_REGS_H
 
+//#include <X11/Xfuncproto.h>
+
 /*---------------------- Macros and type definitions ----------------------*/
 
-#ifndef __mips__
-#pragma pack(1)
+#ifdef PACK
+#pragma PACK
 #endif
 
 /*
@@ -65,57 +66,66 @@
 
 typedef struct {
     u32 e_reg;
-	} I32_reg_t;
+} I32_reg_t;
 
 typedef struct {
-	u16 filler0, x_reg;
-	} I16_reg_t;
+    u16 filler0, x_reg;
+} I16_reg_t;
 
 typedef struct {
-	u8 filler0, filler1, h_reg, l_reg;
-	} I8_reg_t;
+    u8 filler0, filler1, h_reg, l_reg;
+} I8_reg_t;
 
-#else /* !__BIG_ENDIAN__ */
+#else                           /* !__BIG_ENDIAN__ */
 
 typedef struct {
     u32 e_reg;
-	} I32_reg_t;
+} I32_reg_t;
 
 typedef struct {
-	u16 x_reg;
-	} I16_reg_t;
+    u16 x_reg;
+} I16_reg_t;
 
 typedef struct {
-	u8 l_reg, h_reg;
-	} I8_reg_t;
+    u8 l_reg, h_reg;
+} I8_reg_t;
 
-#endif /* BIG_ENDIAN */
+#endif                          /* BIG_ENDIAN */
 
 typedef union {
-	I32_reg_t   I32_reg;
-	I16_reg_t   I16_reg;
-	I8_reg_t    I8_reg;
-	} i386_general_register;
+    I32_reg_t I32_reg;
+    I16_reg_t I16_reg;
+    I8_reg_t I8_reg;
+} i386_general_register;
 
 struct i386_general_regs {
-	i386_general_register A, B, C, D;
-	};
+    i386_general_register A, B, C, D;
+};
 
 typedef struct i386_general_regs Gen_reg_t;
 
 struct i386_special_regs {
-	i386_general_register SP, BP, SI, DI, IP;
-	u32 FLAGS;
-	};
+    i386_general_register SP, BP, SI, DI, IP;
+    u32 FLAGS;
+};
 
 /*  
  * Segment registers here represent the 16 bit quantities
  * CS, DS, ES, SS.
  */
 
+#if defined(__sun) && defined(CS) /* avoid conflicts with Solaris sys/regset.h */
+# undef CS
+# undef DS
+# undef SS
+# undef ES
+# undef FS
+# undef GS
+#endif
+
 struct i386_segment_regs {
     u16 CS, DS, SS, ES, FS, GS;
-	};
+};
 
 /* 8 bit registers */
 #define R_AH  gen.A.I8_reg.h_reg
@@ -259,9 +269,9 @@ struct i386_segment_regs {
 #define  INTR_HALTED          0x4
 
 typedef struct {
-    struct i386_general_regs    gen;
-    struct i386_special_regs    spc;
-    struct i386_segment_regs    seg;
+    struct i386_general_regs gen;
+    struct i386_special_regs spc;
+    struct i386_segment_regs seg;
     /*
      * MODE contains information on:
      *  REPE prefix             2 bits  repe,repne
@@ -274,21 +284,21 @@ typedef struct {
      *  Extern interrupt        1 bits
      *  Halted                  1 bits
      */
-    u32                         mode;
-    volatile int                intr;   /* mask of pending interrupts */
-	int                         debug;
-#ifdef DEBUG_EMU_VGA
-	int                         check;
-    u16                         saved_ip;
-    u16                         saved_cs;
-    int                         enc_pos;
-    int                         enc_str_pos;
-    char                        decode_buf[32]; /* encoded byte stream  */
-    char                        decoded_buf[256]; /* disassembled strings */
+    u32 mode;
+    volatile int intr;          /* mask of pending interrupts */
+    int debug;
+#ifdef DEBUG
+    int check;
+    u16 saved_ip;
+    u16 saved_cs;
+    int enc_pos;
+    int enc_str_pos;
+    char decode_buf[32];        /* encoded byte stream  */
+    char decoded_buf[256];      /* disassembled strings */
 #endif
-    u8                          intno;
-    u8                          __pad[3];
-	} X86EMU_regs;
+    u8 intno;
+    u8 __pad[3];
+} X86EMU_regs;
 
 /****************************************************************************
 REMARKS:
@@ -301,20 +311,20 @@ private			- private data pointer
 x86			- X86 registers
 ****************************************************************************/
 typedef struct {
-	unsigned long	mem_base;
-	unsigned long	mem_size;
-	void*        	private;
-	X86EMU_regs		x86;
-	} X86EMU_sysEnv;
+    unsigned long mem_base;
+    unsigned long mem_size;
+    void *private;
+    X86EMU_regs x86;
+} X86EMU_sysEnv;
 
-#ifndef __mips__
-#pragma pack()
+#ifdef END_PACK
+#pragma END_PACK
 #endif
 
 /*----------------------------- Global Variables --------------------------*/
 
 #ifdef  __cplusplus
-extern "C" {            			/* Use "C" linkage when in C++ mode */
+extern "C" {                    /* Use "C" linkage when in C++ mode */
 #endif
 
 /* Global emulator machine state.
@@ -322,19 +332,20 @@ extern "C" {            			/* Use "C" linkage when in C++ mode */
  * We keep it global to avoid pointer dereferences in the code for speed.
  */
 
-extern    X86EMU_sysEnv	_X86EMU_env;
+    extern X86EMU_sysEnv _X86EMU_env;
 #define   M             _X86EMU_env
-		
+
 /*-------------------------- Function Prototypes --------------------------*/
 
 /* Function to log information at runtime */
+/*
+    void printk(const char *fmt, ...)
+        _X_ATTRIBUTE_PRINTF(1, 2);
+*/
 
-#ifndef printk
-void	printk(const char *fmt, ...);
-#endif
+#define printk printf
 
 #ifdef  __cplusplus
-}                       			/* End of "C" linkage for C++   	*/
+}                               /* End of "C" linkage for C++           */
 #endif
-
-#endif /* __X86EMU_REGS_H */
+#endif                          /* __X86EMU_REGS_H */

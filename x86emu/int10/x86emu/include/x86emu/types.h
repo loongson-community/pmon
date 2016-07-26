@@ -36,12 +36,10 @@
 *
 ****************************************************************************/
 
-/* $XFree86: xc/extras/x86emu/include/x86emu/types.h,v 1.4 2000/09/26 15:56:44 tsi Exp $ */
-
 #ifndef __X86EMU_TYPES_H
 #define __X86EMU_TYPES_H
 
-#ifndef IN_MODULE
+#ifndef NO_SYS_HEADERS
 #include <sys/types.h>
 #endif
 
@@ -62,33 +60,21 @@
 
 /*---------------------- Macros and type definitions ----------------------*/
 
-/* Currently only for Linux/32bit */
-#if defined(__GNUC__) && !defined(NO_LONG_LONG)
-//#ifdef BONITOEL
-#if __mips < 3
-#	undef __HAS_LONG_LONG__
-#else
-#	define __HAS_LONG_LONG__
-#endif
-#endif
+#include <stdint.h>
 
-typedef unsigned char 		u8;
-typedef unsigned short 		u16;
-typedef unsigned int 		u32;
-#ifdef __HAS_LONG_LONG__
-typedef unsigned long long 	u64;
-#endif
+typedef uint8_t u8;
+typedef uint16_t u16;
+typedef uint32_t u32;
+typedef uint64_t u64;
 
-typedef char 				s8;
-typedef short 				s16;
-typedef int 				s32;
-#ifdef __HAS_LONG_LONG__
-typedef long long 			s64;
-#endif
+typedef int8_t s8;
+typedef int16_t s16;
+typedef int32_t s32;
+typedef int64_t s64;
 
-typedef unsigned int			uint;
-typedef int 				sint;
+typedef unsigned int uint;
+typedef int sint;
 
 typedef u16 X86EMU_pioAddr;
 
-#endif	/* __X86EMU_TYPES_H */
+#endif                          /* __X86EMU_TYPES_H */

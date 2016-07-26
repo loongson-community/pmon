@@ -86,6 +86,11 @@ static unsigned char regs[60] = {
 	0x67,			/* MISC_OUT  */
 };
 
+unsigned short ScreenLineLength;
+unsigned short ScreenWidth;
+unsigned short ScreenHeight;
+unsigned short ScreenDepth;
+
 static void outseq(int index, unsigned char val)
 {
 #ifdef PCIE_GRAPHIC_CARD
@@ -584,6 +589,25 @@ int vga_bios_init(void)
 		if (pInt->ax != 0x004f){
 			printk("set vesa mode failed,ax=%x mode(0x%x)\n", pInt->ax, pInt->bx);
 		}else{
+			pInt->ax = 0x4f01;	/* get mode information */
+			pInt->cx = (USE_LINEAR_FRAMEBUFFER | vesa_mode_head[vesa_mode].mode);
+			pInt->di = 0;
+			pInt->es = 0;
+			xf86ExecX86int10(pInt);
+			if (pInt->ax != 0x004f)
+				printk("get vesa mode info failed,ax=%x\n", pInt->ax);
+				
+			ScreenLineLength = MEM_RW(pInt, pInt->di + 16);
+			printk("linelength=%d\n", ScreenLineLength);
+			ScreenWidth = MEM_RW(pInt, pInt->di + 18);
+			printk("width=%d\n", ScreenWidth);
+			ScreenHeight = MEM_RW(pInt, pInt->di + 20);
+			printk("height=%d\n", ScreenHeight);
+			ScreenDepth = MEM_RB(pInt, pInt->di + 25);
+			printk("depth=%d\n", ScreenDepth);
+			printk("pages=0x%x\n", MEM_RB(pInt, pInt->di + 29));
+			printk("base=0x%x\n", MEM_RL(pInt, pInt->di + 40));
+
 			break;
 		}
 	}
