@@ -24,6 +24,7 @@ LEAF(_i2c_sleep)
 	
 1:	nop
 	subu 	a0,1
+	sync
 	bnez	a0,1b
 	nop
 	

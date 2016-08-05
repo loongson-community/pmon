@@ -1000,6 +1000,12 @@ static void superio_reinit()
 {
 	w83627_write(0,0x24,0xc1);
 
+	//POWER LED.w83572  25 pin ussled mode is low, 48 pin pled mode is high.
+	w83627_write(8,0x30,0x01);
+	w83627_write(8,0xf5,0x1f);
+	w83627_write(0,0x2d,0x01);
+	w83627_write(9,0xf3,0x49);
+
 	w83627_write(5,0x30,1);
 	w83627_write(5,0x60,0);
 	w83627_write(5,0x61,0x60);
@@ -2811,7 +2817,7 @@ void sb700_interrupt_fixup(void)
 		dev = _pci_make_tag(3, 0x0, 0x01);
 		val = pci_read_config32(dev, 0x00);
 		if ( val != 0xffffffff)
-			pci_write_config8(dev, 0x3c, 0x05);
+			pci_write_config8(dev, 0x3c, 0x04);
 
 		dev = _pci_make_tag(3, 0x0, 0x02);
 		val = pci_read_config32(dev, 0x00);
