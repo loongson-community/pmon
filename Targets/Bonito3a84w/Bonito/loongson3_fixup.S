@@ -25,6 +25,8 @@ ATTENTION: NO 16BIT mode when using HT1
 #define RESET_AGAIN_WHEN_FAIL
 #define ENABLE_RDinterleave
 
+#define RREQUEST_RANDOM_SC
+#define RREQUEST_RANDOM_HT
 
 #if 1 //Fix L2XBAR
 	TTYDBG("Fix L2xbar in NODE 1\r\n")
@@ -71,6 +73,22 @@ ATTENTION: NO 16BIT mode when using HT1
 
 #endif
 
+#ifdef RREQUEST_RANDOM_SC //Fix the Scache LL/SC random latency
+	TTYDBG("Fix the Scache LL/SC random latency\r\n")
+	li	t0, 0x42110001
+	dli	t2, 0x900000003ff00000
+	sw	t0, 0x410(t2)
+	dli	t2, 0x900010003ff00000
+	//li	t0, 0x42110001
+	sw	t0, 0x410(t2)
+	dli	t2, 0x900020003ff00000
+	//li	t0, 0x42110001
+	sw	t0, 0x410(t2)
+	dli	t2, 0x900030003ff00000
+	//li	t0, 0x42110001
+	sw	t0, 0x410(t2)
+#endif
+
 #if 1 //Check if HT1 is OK
 	TTYDBG("Check if HT1 is OK\r\n")
 	dli	t2, 0x90000ffdfe000000
@@ -108,6 +126,36 @@ ATTENTION: NO 16BIT mode when using HT1
 	sw	a1, 0x0(a0)
 #endif
 
+#ifdef RREQUEST_RANDOM_HT //Fix HT LL/SC random latency
+	TTYDBG("Fix HT LL/SC random latency\r\n")
+	li	a0, 0x00060000
+
+	dli	t2, 0x90000cfdfb000000
+	sw	a0, 0x11c(t2)
+	dli	t2, 0x90000dfdfb000000
+	sw	a0, 0x11c(t2)
+	dli	t2, 0x90001cfdfb000000
+	sw	a0, 0x11c(t2)
+	dli	t2, 0x90001dfdfb000000
+	sw	a0, 0x11c(t2)
+	dli	t2, 0x90002cfdfb000000
+	sw	a0, 0x11c(t2)
+	dli	t2, 0x90002dfdfb000000
+	sw	a0, 0x11c(t2)
+	dli	t2, 0x90003cfdfb000000
+	sw	a0, 0x11c(t2)
+	dli	t2, 0x90003dfdfb000000
+	sw	a0, 0x11c(t2)
+
+	dli	t2, 0x90000ffdfb000000
+	sw	a0, 0x11c(t2)
+	dli	t2, 0x90001ffdfb000000
+	sw	a0, 0x11c(t2)
+	dli	t2, 0x90002ffdfb000000
+	sw	a0, 0x11c(t2)
+	dli	t2, 0x90003ffdfb000000
+	sw	a0, 0x11c(t2)
+#endif
 
 #ifdef ENABLE_X
 	TTYDBG("Begin to enable X routing\r\n")
@@ -2223,6 +2271,13 @@ reset_ht3:
 	dli	t0, 0x00000c00000000f7
 	sd	t0, 0xb0(t2)
 #else
+	dli	t0, 0x000000fdf8000000
+	sd	t0, 0x28(t2)
+	dli	t0, 0x000000ffff000000
+	sd	t0, 0x68(t2)
+	dli	t0, 0x000000fdf80000f0
+	sd	t0, 0xa8(t2)
+
 	dli	t0, 0x00000c0000000000
 	sd	t0, 0x30(t2)
 	dli	t0, 0x0000fd0000000000
@@ -2264,6 +2319,14 @@ reset_ht3:
 	dli	t0, 0x00001c00000000f7
 	sd	t0, 0xb0(t2)
 #else
+	dli	t0, 0x000000fdf8000000
+	sd	t0, 0x28(t2)
+	dli	t0, 0x000000ffff000000
+	sd	t0, 0x68(t2)
+	dli	t0, 0x000000fdf80000f0
+	sd	t0, 0xa8(t2)
+
+
 	dli	t0, 0x0000100000000000
 	sd	t0, 0x38(t2)
 	dli	t0, 0x0000300000000000
@@ -2298,6 +2361,13 @@ reset_ht3:
 	dli	t0, 0x00002c00000000f7
 	sd	t0, 0xb0(t2)
 #else
+	dli	t0, 0x000000fdf8000000
+	sd	t0, 0x28(t2)
+	dli	t0, 0x000000ffff000000
+	sd	t0, 0x68(t2)
+	dli	t0, 0x000000fdf80000f0
+	sd	t0, 0xa8(t2)
+
 	dli	t0, 0x0000200000000000
 	sd	t0, 0x38(t2)
 	dli	t0, 0x0000300000000000
@@ -2332,6 +2402,13 @@ reset_ht3:
 	dli	t0, 0x00003c00000000f7
 	sd	t0, 0xb0(t2)
 #else
+	dli	t0, 0x000000fdf8000000
+	sd	t0, 0x28(t2)
+	dli	t0, 0x000000ffff000000
+	sd	t0, 0x68(t2)
+	dli	t0, 0x000000fdf80000f0
+	sd	t0, 0xa8(t2)
+
 	dli	t0, 0x0000300000000000
 	sd	t0, 0x38(t2)
 	dli	t0, 0x0000300000000000
