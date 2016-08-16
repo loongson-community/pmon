@@ -175,6 +175,8 @@ static int rates[] = {
 }
 #endif
 
+int nomsg_on_serial;
+
 int
 ns16550 (int op, struct DevEntry *dev, unsigned long param, int data)
 {
@@ -194,12 +196,16 @@ ns16550 (int op, struct DevEntry *dev, unsigned long param, int data)
 		case OP_TXRDY:
 		#ifdef NOMSG_ON_SERIAL
 		return 1;
+		#else
+		if(nomsg_on_serial) return 1;
 		#endif
 			return (inb(&dp->lsr) & LSR_TXRDY);
 
 		case OP_TX:
 		#ifdef NOMSG_ON_SERIAL
 		return 0;
+		#else
+		if(nomsg_on_serial) return 0;
 		#endif
 			outb(&dp->data, data);
 			break;
@@ -207,6 +213,8 @@ ns16550 (int op, struct DevEntry *dev, unsigned long param, int data)
 		case OP_RXRDY:
 		#ifdef NOMSG_ON_SERIAL
 		return 0;
+		#else
+		if(nomsg_on_serial) return 0;
 		#endif
 			return (inb(&dp->lsr) & LSR_RXRDY);
 
@@ -241,12 +249,16 @@ int ns16550_1a (int op, struct DevEntry *dev, unsigned long param, int data)
 		case OP_TXRDY:
 #ifdef NOMSG_ON_SERIAL
 			return 1;
+#else
+		if(nomsg_on_serial) return 1;
 #endif
 			return (inb(&dp->lsr) & LSR_TXRDY);
 
 		case OP_TX:
 #ifdef NOMSG_ON_SERIAL
 			return 0;
+#else
+		if(nomsg_on_serial) return 0;
 #endif
 			outb(&dp->data, data);
 			break;
@@ -254,6 +266,8 @@ int ns16550_1a (int op, struct DevEntry *dev, unsigned long param, int data)
 		case OP_RXRDY:
 #ifdef NOMSG_ON_SERIAL
 			return 0;
+#else
+		if(nomsg_on_serial) return 0;
 #endif
 			return (inb(&dp->lsr) & LSR_RXRDY);
 

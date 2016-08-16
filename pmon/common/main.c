@@ -800,6 +800,7 @@ autoinstall(char *s)
 }
 
 extern void get_ec_version(void);
+extern int nomsg_on_serial;
 /*
  *  PMON2000 entrypoint. Called after initial setup.
  */
@@ -817,6 +818,7 @@ dbginit (char *adr)
 
 	SBD_DISPLAY ("ENVI", CHKPNT_ENVI);
 	envinit ();
+	if(getenv("NOMSG_ON_SERIAL")) nomsg_on_serial=1;
 
 #if defined(SMP)
 	/* Turn on caches unless opted out */
