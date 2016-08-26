@@ -1975,7 +1975,7 @@ void set_phy_manu(synopGMACdevice * gmacdev)
 }
 #endif
 
-#if defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A)
+#if defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A) || (defined(LOONGSON_3A2H) && defined(LOONGSON_3A8))
 static int rtl88e1111_config_init(synopGMACdevice *gmacdev)
 {
 	int retval, err;
@@ -1994,7 +1994,7 @@ static int rtl88e1111_config_init(synopGMACdevice *gmacdev)
 }
 #endif
 
-#if defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A)
+#if defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A) || (defined(LOONGSON_3A2H) && defined(LOONGSON_3A8))
 int init_phy(synopGMACdevice *gmacdev)
 #else
 int init_phy(struct synopGMACdevice *gmacdev)
@@ -2013,6 +2013,9 @@ int init_phy(struct synopGMACdevice *gmacdev)
 		retval = rtl8211_config_init(gmacdev);
 		return retval;
 	}
+#elif (defined(LOONGSON_3A2H) && defined(LOONGSON_3A8))
+	rtl88e1111_config_init(gmacdev);
+	return 0;
 #else
 	retval = rtl8211_config_init(gmacdev);
 	return retval;

@@ -30,6 +30,9 @@ file    Targets/Bonito3a82h/dev/nand_myops.c nand needs-flag
 #dc
 file    Targets/Bonito3a82h/dev/dc.c 
 
+file    Targets/Bonito3a82h/dev/signal_test.c
+
+file    Targets/Bonito3a82h/dev/pwm_fan.c
 #i2c
 file	sys/dev/i2c.c
 file    Targets/Bonito3a82h/dev/eeprom.c 

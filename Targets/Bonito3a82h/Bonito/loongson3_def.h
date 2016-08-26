@@ -60,22 +60,25 @@ sw		v1,		4(v0); \
 nop; \
 nop;
 
+/*for 3a2000_2h refer board*/
 /* WatchDog Close for chip MAX6369*/
 #define WatchDog_Close \
-li		v0,		0xbbef0000;\
-li		v1,		0x00;\
-sw		v1,		0x30(v0);\
+GPIO_CLEAR_OUTPUT(0x1<<5); \
+GPIO_SET_OUTPUT(0x1<<3|0x1<<4); \
+GPIO_CLEAR_OUTPUT(0x1<<13); \
 
-
-/* WatchDog Enable for LS2H chip */
+/* WatchDog Enable for chip MAX6369*/
 #define WatchDog_Enable \
-li		v0,		0xbbef0000;\
-li		v1,		0x02;\
-sw		v1,		0x30(v0);\
-li		v1,		0x1fffffff;\
-sw		v1,		0x38(v0);\
-li		v1,		0x01;\
-sw		v1,		0x34(v0);\
+GPIO_SET_OUTPUT(0x1<<14); \
+GPIO_SET_OUTPUT(0x1<<5); \
+GPIO_CLEAR_OUTPUT(0x1<<4); \
+GPIO_SET_OUTPUT(0x1<<3); \
+GPIO_CLEAR_OUTPUT(0x1<<14); \
+li v1,0x100;\
+78:; \
+subu v1,1; \
+bnez v1,78b; \
+nop; \
 
 
 #define CONFIG_CACHE_64K_4WAY 1

@@ -410,6 +410,24 @@ static void en_ref_clock(void)
 		 | LS2H_CLK_CTRL3_BIT_PEREF_EN(3));
 	ls2h_writel(data, LS2H_CLK_CTRL3_REG);
 }
+static void ls2h_pcie_reset(void) 
+{ 
+unsigned int data; 
+
+	delay(100); 
+        /* 2H PCIE sleep */ 
+	data = ls2h_readw(LS2H_CHIP_CFG1_REG); 
+	data |= (1 << 18); 
+        ls2h_writew(data, LS2H_CHIP_CFG1_REG); 
+	
+	delay(100); 
+        /* 2H PCIE wakeup */ 
+	data = ls2h_readw(LS2H_CHIP_CFG1_REG); 
+	data &= ~(1 << 18); 
+        data |= (1 << 17); 
+	ls2h_writew(data, LS2H_CHIP_CFG1_REG); 
+	delay(100); 
+}
 
 static int is_rc_mode(void)
 {
@@ -455,12 +473,11 @@ int ls2h_pcibios_init(void)
 {
 	tgt_printf("arch_initcall:pcibios_init\n");
 	en_ref_clock();
-
+	ls2h_pcie_reset();
 	if (!is_rc_mode())
 		return 0;
 
 	ls2h_pcie_port_init(0);
-
 #ifdef PCIE_GRAPHIC_CARD
 	if ( is_x4_mode() || is_pcie_vga_card() )
 #else

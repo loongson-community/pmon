@@ -295,10 +295,13 @@ initmips(unsigned long long raw_memsz)
 	/*
 	 *  Probe clock frequencys so delays will work properly.
 	 */
-	delay(0x200000);
-	delay(0x200000);
-	delay(0x200000);
+	for (i = 0;i < 3;i++)
+	{
+		delay(0x200000);
+		delay(0x200000);
+	}
 	ls2h_pcibios_init();
+
 	tgt_cpufreq();
 	SBD_DISPLAY("DONE",0);
 	/*
@@ -332,6 +335,7 @@ initmips(unsigned long long raw_memsz)
 	 * Launch!
 	 */
 	//_pci_conf_write(_pci_make_tag(0,0,0),0x90,0xff800000); 
+
 	main();
 }
 
@@ -379,13 +383,16 @@ tgt_devconfig()
 #endif
 #endif
 	outl(LS2H_GPIO_CFG_REG, 0xf << 24);
+#if 1
+	board_ver_num = LS3A2H_BOARD_2_2;
+#else
 	board_ver_num = (inl(LS2H_GPIO_IN_REG) >> 8) & 0xf;
+#endif
 	if(board_ver_num == LS3A2H_BOARD_2_2) {				// new 3A2H Board: lpc interface mount on 2H, old board lpc mount on 3A
 		superio_base = 0xbbf00000;
 	} else if(board_ver_num == LS3A2H_BOARD_OLD) {
 		superio_base = 0xbff00000;
 	}
-
 	_pci_devinit(1);	/* PCI device initialization */
 #if (NMOD_X86EMU_INT10 > 0)||(NMOD_X86EMU >0)
 #ifdef PCIE_GRAPHIC_CARD
@@ -608,6 +615,8 @@ extern void cs5536_pci_fixup(void);
 #ifdef PCIE_GRAPHIC_CARD
 extern int ls2h_pcibios_init(void);
 #endif
+extern int ls2h_pcibios_init(void);
+extern int gmac_w18(void);
 
 
 
@@ -652,8 +661,16 @@ tgt_poweroff()
 void
 tgt_reboot(void)
 {
-	volatile char * hard_reset_reg = 0xbbef0030;
+	unsigned int GPIO_DATA_REG = 0xbfe0011c;
+	unsigned int GPIO_EN_REG = 0xbfe00120;
+
+#define ls_readl(x) (* (volatile unsigned int*)(x))	
+	ls_readl(GPIO_DATA_REG) &= (~0x38);
+	ls_readl(GPIO_EN_REG) &= (~(1 << 13));
+	ls_readl(GPIO_DATA_REG) |= (1 << 13);
+/*	volatile char * hard_reset_reg = 0xbbef0030;
 	* hard_reset_reg = ( * hard_reset_reg) | 0x01; // watch dog hardreset
+*/
 }
 
 
@@ -1569,9 +1586,7 @@ struct efi_memory_map_loongson * init_memory_map()
 #ifndef UMA_VIDEO_RAM
 	EMAP_ENTRY(i, 0, SYSTEM_RAM_LOW, 0x00200000, 0x0ee);
 #else
-	/*add UMA_VIDEO_RAM area to reserved 0x60 MB memory for GPU */
-	EMAP_ENTRY(i, 0, SYSTEM_RAM_LOW, 0x00200000, 0x0ee - 0x60);
-	EMAP_ENTRY(i, 0, UMA_VIDEO_RAM, (0xee - 0x60 + 2) << 20, 0x60);
+	EMAP_ENTRY(i, 0, SYSTEM_RAM_LOW, 0x00200000, 0x0ee);
 #endif
 
 	/* for entry with mem_size < 1M, we set bit31 to 1 to indicate
@@ -1579,7 +1594,13 @@ struct efi_memory_map_loongson * init_memory_map()
 	EMAP_ENTRY(i, 0, SMBIOS_TABLE, (SMBIOS_PHYSICAL_ADDRESS & 0x0fffffff),
 			(SMBIOS_SIZE_LIMIT | 0x80000000));
 
+#ifndef UMA_VIDEO_RAM
 	EMAP_ENTRY(i, 0, SYSTEM_RAM_HIGH, 0x110000000, size >> 20);
+#else
+	/*add UMA_VIDEO_RAM area to reserved 0x100 MB memory for GPU vram*/
+	EMAP_ENTRY(i, 0, UMA_VIDEO_RAM, 0x110000000, 0x100);
+	EMAP_ENTRY(i, 0, SYSTEM_RAM_HIGH, 0x120000000, (size >> 20) - 0x100);
+#endif
 
 	emap->vers = 1;
 	emap->nr_map = i;

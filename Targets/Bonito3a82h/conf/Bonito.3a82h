@@ -44,9 +44,10 @@ option		SHUTDOWN_MASK=0x0000
 option		INTERFACE_3A780E    # option for bios memu
 
 option 		LOONGSON_3A2H
+option 		LOONGSON_3A8
 option		BOOT_PARAM
 
-option 		PCIE_GRAPHIC_CARD
+#option 		PCIE_GRAPHIC_CARD
 
 #
 # Uart serial baud rate selection
@@ -182,7 +183,7 @@ pcibr0		at mainbus0
 #pcibr1		at mainbus0
 pcibr2		at mainbus0 #For the port1 device register
 pcibr4		at mainbus0 #For the port2 device register
-pcibr6		at mainbus0 #For the port3 device register
+#pcibr6		at mainbus0 #For the port3 device register
 pci*		at pcibr?
 ppb*		at pci? dev ? function ?	# PCI-PCI bridges
 pci*		at ppb? bus ?

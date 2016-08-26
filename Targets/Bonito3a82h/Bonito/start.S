@@ -104,6 +104,11 @@ stack = start - 0x4000		/* Place PMON stack below PMON start in RAM */
 	/* WatchDog chip MAX6369 disable work */
 	WatchDog_Close
 
+	/* spi speedup */
+	li  t0, 0xbfe00220
+	li  t1, 0x07
+	sb  t1, 0x4(t0)
+
 	bal	locate			/* Get current execute address */
 	nop
 
@@ -360,9 +365,9 @@ gs_2f_v3_ddr2_cfg:
 //#define DDR_LOOPC  48 //400MHz
 //#define DDR_LOOPC  28 //466MHz
 //#define DDR_LOOPC  60 //500MHz
-//#define DDR_LOOPC  32 //533MHz
+#define DDR_LOOPC  64 //533MHz
 //#define DDR_LOOPC  34 //566MHz
-#define DDR_LOOPC  72 //600MHz
+//#define DDR_LOOPC  72 //600MHz
 //#define DDR_LOOPC  38 //633MHz
 #define DDR_REFC   1
 //#define DDR_DIV    8
@@ -564,9 +569,9 @@ after_ht:
 	TTYDBG("NODE 0 MEMORY CONFIG BEGIN\r\n")
 
 #ifdef  AUTO_DDR_CONFIG
-        dli     s1, 0x32170000  //set use MC1 or MC0 or MC1/0 and give All device id
+        dli     s1, 0x36170000  //set use MC1 or MC0 or MC1/0 and give All device id
 #else
-	dli     s1, 0xc3e30200c3e30204
+	dli     s1, 0xc2e30400c2e30400
 #endif
 #include "ddr_dir/loongson3a2h_ddr_config.S"
 
@@ -574,7 +579,7 @@ after_ht:
 
 /*judge the node0 whether have memory*/
 	and     a0, msize, 0xff
-	//beqz    a0, beep_on
+	beqz    a0, beep_on
 	nop
 
 /* test memory */
@@ -1287,7 +1292,7 @@ watchdog_enable:
 #######################################
 #include "ddr_dir/ls3A8_ddr_config.S"
 #ifdef DDR3_DIMM
-#include "ddr_dir/loongson3C_ddr3_leveling.S"
+#include "loongson3C_ddr3_leveling.S"
 #endif
 #ifdef ARB_LEVEL
 #include "ddr_dir/ARB_level_new.S"

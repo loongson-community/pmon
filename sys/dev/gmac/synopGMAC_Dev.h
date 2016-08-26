@@ -43,7 +43,7 @@ typedef unsigned long dma_addr_t;
 */
 
 /*SynopGMAC can support up to 32 phys*/
-#if	defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A)
+#if	defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A) || (defined(LOONGSON_3A2H) && defined(LOONGSON_3A8))
 #define DEFAULT_PHY_BASE PHY16
 #else
 #define DEFAULT_PHY_BASE PHY0		//We use First Phy
