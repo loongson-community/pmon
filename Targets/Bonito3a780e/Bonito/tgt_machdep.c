@@ -2312,10 +2312,10 @@ struct efi_memory_map_loongson * init_memory_map()
  		EMAP_ENTRY(i, 0, SYSTEM_RAM_HIGH, 0x90000000, size >> 20);
 	/*we waste 16MB here, because 780e TOM is 0xff0000000*/
 	else if (size > 0x70000000) {
- 		EMAP_ENTRY(i, 0, SYSTEM_RAM_HIGH, 0x90000000, 0x6e0);
+ 		EMAP_ENTRY(i, 0, SYSTEM_RAM_HIGH, 0x90000000, 0x6d0);
  		EMAP_ENTRY(i, 0, SYSTEM_RAM_HIGH, 0x100000000, (size - 0x70000000) >> 20);
 	} else
- 		EMAP_ENTRY(i, 0, SYSTEM_RAM_HIGH, 0x90000000, 0x6e0);
+ 		EMAP_ENTRY(i, 0, SYSTEM_RAM_HIGH, 0x90000000, 0x6d0);
 
 
 
