@@ -1321,7 +1321,7 @@ END(initserial)
 #else
 LEAF(initserial)
 	li  a0, GS3_UART_BASE
-
+1:
  	li	t1, 128
 	sb	t1, 3(a0)
 #ifdef BONITO_33M 
@@ -1349,6 +1349,12 @@ LEAF(initserial)
 
  	li	t1,71
  	sb	t1,2(a0)
+
+	move	a1,a0
+	li	a0,GS3_UART1_BASE
+	bne	a0,a1,1b
+	nop
+
 	jr	ra
 	nop
 END(initserial)
