@@ -618,6 +618,14 @@ reset_ht0:
 	dli	t0, 0x00002000000000f7
 	sd	t0, 0xb0(t2)
 
+	dli	t0, 0x00000fdf80000000
+	sd	t0, 0x38(t2)
+	dli	t0, 0x00000ffff0000000
+	sd	t0, 0x78(t2)
+	dli	t0, 0x00000fdf800000f0
+	sd	t0, 0xb8(t2)
+
+
 #ifndef MULTI_CHIP
 ####### address space to other nodes ############
 	dli	t0, 0x0000200000000000
@@ -660,6 +668,14 @@ reset_ht0:
 	sd	t0, 0x70(t2)
 	dli	t0, 0x00002000000000f7
 	sd	t0, 0xb0(t2)
+
+	dli	t0, 0x00000fdf80000000
+	sd	t0, 0x38(t2)
+	dli	t0, 0x00000ffff0000000
+	sd	t0, 0x78(t2)
+	dli	t0, 0x00000fdf800000f0
+	sd	t0, 0xb8(t2)
+
 
 	daddiu  t2, t2, 0x100
 	bne     t2, t1, 1b
