@@ -358,6 +358,17 @@ mc_init:
 2:    
 #endif
 
+#if 0 //temp add for 3a3000-2h 8G RDIMM, use 32bit channel
+    GET_NODE_ID_a0;
+    dli     a1, DDR_MC_CONFIG_BASE
+    or      t8, a0, a1
+
+    dli     a1, 0x000801e4ff050101
+    sd      a1, 0x1f0(t8)
+    dli     a1, 0x0008010e01010006
+    sd      a1, 0x210(t8)
+#endif
+
     //TTYDBG("Disable register space of MEMORY\r\n")
     bal     disable_mc_conf_space
     nop

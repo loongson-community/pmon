@@ -1927,7 +1927,7 @@ wait_dram_init:
     bnez    v0, 1b
     nop  
 
-#if 0
+#if 1
     /* store the ra */
     move    t1, ra
 

@@ -82,7 +82,7 @@
     PRINTSTR("\r\n")
 #endif
 
-#ifdef  AUTO_DDR_CONFIG
+#ifdef LSMCD3_2
 //for DDR3 RDIMM, if it has 2 rank, use only 1. temp code for 3A MC
     //check MC1 first
     dsrl    t1, s1, 32
@@ -163,6 +163,7 @@
     dli     a1, 0xffffffff00000000
     and     s1, s1, a1
     or      s1, s1, t1
+1:
 #if 1
     /* show value of s1 */
     PRINTSTR("\r\nnew s1 = 0x");
@@ -175,9 +176,78 @@
     nop
     PRINTSTR("\r\n")
 #endif
-1:
 #endif
 
+#ifndef LSMCD3_2
+#ifdef  DDR_ADDR_PIN_15
+//hot fix for lack of address pin A15 when use LSMC. For example RS780E R1.03
+    //check MC1 first
+    move    t1, s1  //store s1
+    dsrl    s1, s1, 32
+    GET_SDRAM_TYPE
+    beqz    a1, 1f
+    nop
+    GET_ROW_SIZE
+    bnez    a1, 1f  //row size diff not 0, do nothing
+    nop
+    //set row_size diff to 1
+    dli     a1, 1
+    dsll    a1, a1, ROW_SIZE_OFFSET
+    or      s1, s1, a1
+    //half memsize
+    dli     t2, 0xff00
+    and     t2, s1, t2      //t2 store memsize
+    dsrl    t2, t2, 2
+    dli     a1, 0xffff00ff
+    and     s1, s1, a1
+    or      s1, s1, t2
+1:
+    //reconstruct s1
+    dli     a1, 0xffffffff
+    and     t1, t1, a1
+    dsll    s1, s1, 32
+    or      s1, s1, t1
+
+    //check MC0
+    move    t1, s1
+    dsll    s1, s1, 32
+    dsrl    s1, s1, 32
+    GET_SDRAM_TYPE
+    beqz    a1, 1f
+    nop
+    GET_ROW_SIZE
+    bnez    a1, 1f  //row size diff not 0, do nothing
+    nop
+    //set row_size diff to 1
+    dli     a1, 1
+    dsll    a1, a1, ROW_SIZE_OFFSET
+    or      s1, s1, a1
+    //half memsize
+    dli     t2, 0xff00
+    and     t2, s1, t2      //t2 store memsize
+    dsrl    t2, t2, 2
+    dli     a1, 0xffff00ff
+    and     s1, s1, a1
+    or      s1, s1, t2
+1:
+    //reconstruct s1
+    dli     a1, 0xffffffff00000000
+    and     t1, t1, a1
+    or      s1, s1, t1
+#if 1
+    /* show value of s1 */
+    PRINTSTR("\r\nnew s1 = 0x");
+    dsrl    a0, s1, 32
+    bal     hexserial
+    nop
+    PRINTSTR("__")
+    move    a0, s1
+    bal     hexserial
+    nop
+    PRINTSTR("\r\n")
+#endif
+#endif
+#endif
 #ifdef DEBUG_DDR_PARAM
     PRINTSTR("\r\nChange s1?:\r\n");
     dli     t6, 0x00

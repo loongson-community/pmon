@@ -186,7 +186,7 @@ TM_start:
 
 	TM_PRINTSTR("\r\nStart Testing Memory...\r\n")
 
-#if 1
+#if 0
     //Test whether the addr_pins,column_size,bank,rank param right.
 	TM_PRINTSTR("\r\nAddress Stuck Testing all space...\r\n")
     //set t1 to Test Base
@@ -265,7 +265,7 @@ TM_start:
 	TM_PRINTSTR("Stuck Testing done!\r\n")
 3:
 #endif
-#if 1
+#if 0
 	TM_PRINTSTR("Uncached Address Stuck Testing...\r\n")
 //debug fatal errors
 //write memory
@@ -320,7 +320,7 @@ TM_start:
 #endif
 //-------------------
 //pattern Diff Burst Test
-#if 1
+#if 0
     //initialization
     dli     t9, 0
     //set Test Pattern Base t6

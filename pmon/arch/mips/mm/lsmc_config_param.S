@@ -71,6 +71,12 @@ ddr2_config:
     dsll    a1, a1, EIGHT_BANK_MODE_OFFSET
     or      a2, a2, a1
     sd      a2, EIGHT_BANK_MODE_ADDR(t8)
+
+    //for version 3, pm_bank not used, changed to cs_resync
+    lw      a2, 0x0(t8)
+    dli     a1, 0x3
+    beq     a2, a1, 1f
+    nop
     //rewrite pm_bank
     ld      a2, BANK_NUM_ADDR(t8)
     dli     a1, 0x7
@@ -99,6 +105,8 @@ ddr2_config:
     or      a2, a2, a1
     sd      a2, ADDR_WIN_BANK_NUM_ADDR(t8)
 #endif
+
+1:
 
     //rewrite row_diff and column_diff
     ld      a2, ROW_DIFF_ADDR(t8)
@@ -199,6 +207,23 @@ ddr2_config:
     dsll    a1, a1, CS_ZQ_OFFSET
     or      a2, a2, a1
     sd      a2, CS_ZQ_ADDR(t8)
+
+    //for version 3, pm_bank not used, changed to cs_resync
+    lw      a2, 0x0(t8)
+    dli     a1, 0x3
+    bne     a2, a1, 1f
+    nop
+    ld      a2, BANK_NUM_ADDR(t8)
+    dli     a1, 0xf
+    dsll    a1, a1, BANK_NUM_OFFSET
+    not     a1, a1
+    and     a2, a2, a1
+    GET_MC_CS_MAP
+    dsll    a1, a1, BANK_NUM_OFFSET
+    or      a2, a2, a1
+    sd      a2, BANK_NUM_ADDR(t8)
+
+1:
 
     //reconfigure pm_cs_map
     ld      a2, CS_MAP_ADDR(t8)
@@ -1797,7 +1822,7 @@ wait_dram_init:
     bnez    v0, 1b
     nop  
 
-#if 0
+#if 1
     /* store the ra */
     move    t1, ra
 
