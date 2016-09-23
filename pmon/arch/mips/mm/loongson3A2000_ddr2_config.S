@@ -117,7 +117,12 @@
 //hot fix for lack of address pin A15 when use LSMC. For example RS780E R1.03
     //check MC1 first
     dsrl    t1, s1, 32
+    //save s1
+    move    t2, s1
+    dsrl    s1, s1, 32
     GET_ROW_SIZE
+    //restore s1
+    move    s1, t2
     bnez    a1, 1f  //row size diff not 0, do nothing
     nop
     dli     t2, 0xff00
