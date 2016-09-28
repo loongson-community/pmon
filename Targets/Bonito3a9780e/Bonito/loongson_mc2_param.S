@@ -122,28 +122,28 @@ MC0_DDR3_CTRL_0x190: .dword 0x0000000000000000
 //_00000000_00000000 pm_cmd_a 00000_000 pm_cmd_ba 00000_000 pm_cmd_cmd 0000_0000 pm_cmd_cs 0000000_0 pm_status_cmd(RD) 0000000_0 pm_cmd_req(WR) 0000000_0 pm_command
 MC0_DDR3_CTRL_0x198: .dword 0x0000000000000000
 //00000000 00000000 0000_0000 pm_status_sref(RD) 0000_0000 pm_srefresh_req 0000000_0 pm_pre_all_done(RD) 0000000_0 pm_pre_all_req(WR) 0000000_0 pm_mrs_done(RD) 0000000_0 pm_mrs_req(WR)
-MC0_DDR3_CTRL_0x1a0: .dword 0x0000001800060d70
+MC0_DDR3_CTRL_0x1a0: .dword 0x0000001000060d40
 //_00000000_00000000 pm_mr_3_cs_0 _00000000_00000000 pm_mr_2_cs_0 _00000000_00000000 pm_mr_1_cs_0 _00000000_00000000 pm_mr_0_cs_0
-MC0_DDR3_CTRL_0x1a8: .dword 0x0000001800060d70
+MC0_DDR3_CTRL_0x1a8: .dword 0x0000001000060d40
 //_00000000_00000000 pm_mr_3_cs_1 _00000000_00000000 pm_mr_2_cs_1 _00000000_00000000 pm_mr_1_cs_1 _00000000_00000000 pm_mr_0_cs_1
-MC0_DDR3_CTRL_0x1b0: .dword 0x0000001800060d70
+MC0_DDR3_CTRL_0x1b0: .dword 0x0000001000060d40
 //_00000000_00000000 pm_mr_3_cs_2 _00000000_00000000 pm_mr_2_cs_2 _00000000_00000000 pm_mr_1_cs_2 _00000000_00000000 pm_mr_0_cs_2
-MC0_DDR3_CTRL_0x1b8: .dword 0x0000001800060d70
+MC0_DDR3_CTRL_0x1b8: .dword 0x0000001000060d40
 //_00000000_00000000 pm_mr_3_cs_3 _00000000_00000000 pm_mr_2_cs_3 _00000000_00000000 pm_mr_1_cs_3 _00000000_00000000 pm_mr_0_cs_3
-MC0_DDR3_CTRL_0x1c0: .dword 0x3030c80c03042009
+MC0_DDR3_CTRL_0x1c0: .dword 0x3030c80b03042006
 //_00000000 pm_tRESET _00000000 pm_tCKE _00000000 pm_tXPR _00000000 pm_tMOD _00000000 pm_tZQCL _00000000 pm_tZQ_CMD _00000000 pm_tWLDQSEN 000_00000 pm_tRDDATA
-MC0_DDR3_CTRL_0x1c8: .dword 0x11070b0b155c4080
+MC0_DDR3_CTRL_0x1c8: .dword 0x11040b0b1a5c4080
 //00_000000 pm_tFAW 0000_0000 pm_tRRD 0000_0000 pm_tRCD _00000000 pm_tRP _00000000 pm_tREF _00000000 pm_tRFC _00000000 pm_tZQCS _00000000 pm_tZQperiod
-MC0_DDR3_CTRL_0x1d0: .dword 0x0a020d0502000019
+MC0_DDR3_CTRL_0x1d0: .dword 0x0a020d0402000018
 //0000_0000 pm_tODTL _00000000 pm_tXSRD 0000_0000 pm_tPHY_RDLAT 000_00000 pm_tPHY_WRLAT 000000_00_00000000_00000000 pm_tRAS_max 00_000000 pm_tRAS_min
 //MC0_DDR3_CTRL_0x1d8: .dword 0x14050c060b080806
-MC0_DDR3_CTRL_0x1d8: .dword 0x14050c0607070406
+MC0_DDR3_CTRL_0x1d8: .dword 0x14050c0408070405
 //_00000000 pm_tXPDLL _00000000 pm_tXP 000_00000 pm_tWR 0000_0000 pm_tRTP 0000_0000 pm_tRL 0000_0000 pm_tWL 0000_0000 pm_tCCD 0000_0000 pm_tWTR
 //MC0_DDR3_CTRL_0x1e0: .dword 0x0a0a0a0a0a0a0a0a
-MC0_DDR3_CTRL_0x1e0: .dword 0x0503000000010000
+MC0_DDR3_CTRL_0x1e0: .dword 0x0503000000000000
 //00_000000 pm_tW2R_diffcs_dly 00_000000 pm_tW2W_diffcs_adj_dly 00_000000 pm_tR2P_sameba_adj_dly 00_000000 pm_tW2P_sameba_adj_dly 00_000000 pm_tR2R_sameba_adj_dly 00_000000 pm_tR2W_sameba_adj_dly 00_000000 pm_tW2R_sameba_adj_dly 00_000000 pm_tW2W_sameba_adj_dly
 //MC0_DDR3_CTRL_0x1e8: .dword 0x0a0a0a0a0a0a0a0a
-MC0_DDR3_CTRL_0x1e8: .dword 0x030a000000040000
+MC0_DDR3_CTRL_0x1e8: .dword 0x030a000000010000
 //00_000000 pm_tR2R_diffcs_adj_dly 00_000000 pm_tR2W_diffcs_dly 00_000000 pm_tR2P_samecs_dly 00_000000 pm_tW2P_samecs_dly 00_000000 pm_tR2R_samecs_adj_dly 00_000000 pm_tR2W_samecs_adj_dly 00_000000 pm_tW2R_samecs_adj_dly 00_000000 pm_tW2W_samecs_adj_dly
 MC0_DDR3_CTRL_0x1f0: .dword 0x000801e4ff000101
 //0000_0000 pm_power_up _00000000 pm_age_step _00000000 pm_tCPDED _00000000 pm_cs_map _00000000 pm_bs_config 00000_000 pm_channel_32 pm_channel_16 pm_nc 0000_0000 pm_pr_r2w 0000000_0 pm_placement_en
@@ -259,7 +259,7 @@ MC0_DDR3_RDIMM_CTRL_0x018: .dword 0x3030303016100000
 //_00000000 pm_dll_ck_3 _00000000 pm_dll_ck_2 _00000000 pm_dll_ck_1 _00000000 pm_dll_ck_0 _00000000 pm_dll_increment _00000000 pm_dll_start_point _0000000_0 pm_dll_bypass _0000000_0 pm_init_start
 MC0_DDR3_RDIMM_CTRL_0x020: .dword 0x0201000201000000
 //0000_0000 pm_dq_oe_end_0 0000_0000 pm_dq_oe_begin_0 000000_00 pm_dq_stop_edge_0 000000_00 pm_dq_start_edge_0 0000000_0 pm_rddata_delay_0 0000000_0 pm_rddqs_lt_half_0 0000000_0 pm_wrdqs_lt_half_0 0000000_0 pm_wrdq_lt_half_0
-MC0_DDR3_RDIMM_CTRL_0x028: .dword 0x0303000002010100
+MC0_DDR3_RDIMM_CTRL_0x028: .dword 0x0303020202010100
 //0000_0000 pm_rd_oe_end_0 0000_0000 pm_rd_oe_begin_0 000000_00 pm_rd_stop_edge_0 000000_00 pm_rd_start_edge_0 0000_0000 pm_dqs_oe_end_0 0000_0000 pm_dqs_oe_begin_0 000000_00 pm_dqs_stop_edge_0 000000_00 pm_dqs_start_edge_0
 MC0_DDR3_RDIMM_CTRL_0x030: .dword 0x0000000003020202
 //hXXXXXX (RD) 0000000_0 pm_wrdq_clkdelay_0 0000_0000 pm_odt_oe_end_0 0000_0000 pm_odt_oe_begin_0 000000_00 pm_odt_stop_edge_0 000000_00 pm_odt_start_edge_0
@@ -267,7 +267,7 @@ MC0_DDR3_RDIMM_CTRL_0x038: .dword 0x0000002020056500
 //hXXXXXX (RD) _00000000 pm_dll_rddqs_n_0 _00000000 pm_dll_rddqs_p_0 _00000000 pm_dll_wrdqs_0 _00000000 pm_dll_wrdata_0 _00000000 pm_dll_gate_0
 MC0_DDR3_RDIMM_CTRL_0x040: .dword 0x0201000201000000
 //0000_0000 pm_dq_oe_end_1 0000_0000 pm_dq_oe_begin_1 000000_00 pm_dq_stop_edge_1 000000_00 pm_dq_start_edge_1 0000000_0 pm_rddata_delay_1 0000000_0 pm_rddqs_lt_half_1 0000000_0 pm_wrdqs_lt_half_1 0000000_0 pm_wrdq_lt_half_1
-MC0_DDR3_RDIMM_CTRL_0x048: .dword 0x0303000002010100
+MC0_DDR3_RDIMM_CTRL_0x048: .dword 0x0303020202010100
 //0000_0000 pm_rd_oe_end_1 0000_0000 pm_rd_oe_begin_1 000000_00 pm_rd_stop_edge_1 000000_00 pm_rd_start_edge_1 0000_0000 pm_dqs_oe_end_1 0000_0000 pm_dqs_oe_begin_1 000000_00 pm_dqs_stop_edge_1 000000_00 pm_dqs_start_edge_1
 MC0_DDR3_RDIMM_CTRL_0x050: .dword 0x0000000003020202
 //hXXXXXX (RD) 0000000_0 pm_wrdq_clkdelay_1 0000_0000 pm_odt_oe_end_1 0000_0000 pm_odt_oe_begin_1 000000_00 pm_odt_stop_edge_1 000000_00 pm_odt_start_edge_1
@@ -275,7 +275,7 @@ MC0_DDR3_RDIMM_CTRL_0x058: .dword 0x0000002020056500
 //hXXXXXX (RD) _00000000 pm_dll_rddqs_n_1 _00000000 pm_dll_rddqs_p_1 _00000000 pm_dll_wrdqs_1 _00000000 pm_dll_wrdata_1 _00000000 pm_dll_gate_1
 MC0_DDR3_RDIMM_CTRL_0x060: .dword 0x0201000201000000
 //0000_0000 pm_dq_oe_end_2 0000_0000 pm_dq_oe_begin_2 000000_00 pm_dq_stop_edge_2 000000_00 pm_dq_start_edge_2 0000000_0 pm_rddata_delay_2 0000000_0 pm_rddqs_lt_half_2 0000000_0 pm_wrdqs_lt_half_2 0000000_0 pm_wrdq_lt_half_2
-MC0_DDR3_RDIMM_CTRL_0x068: .dword 0x0303000002010100
+MC0_DDR3_RDIMM_CTRL_0x068: .dword 0x0303020202010100
 //0000_0000 pm_rd_oe_end_2 0000_0000 pm_rd_oe_begin_2 000000_00 pm_rd_stop_edge_2 000000_00 pm_rd_start_edge_2 0000_0000 pm_dqs_oe_end_2 0000_0000 pm_dqs_oe_begin_2 000000_00 pm_dqs_stop_edge_2 000000_00 pm_dqs_start_edge_2
 MC0_DDR3_RDIMM_CTRL_0x070: .dword 0x0000000003020202
 //hXXXXXX (RD) 0000000_0 pm_wrdq_clkdelay_2 0000_0000 pm_odt_oe_end_2 0000_0000 pm_odt_oe_begin_2 000000_00 pm_odt_stop_edge_2 000000_00 pm_odt_start_edge_2
@@ -283,7 +283,7 @@ MC0_DDR3_RDIMM_CTRL_0x078: .dword 0x0000002020056500
 //hXXXXXX (RD) _00000000 pm_dll_rddqs_n_2 _00000000 pm_dll_rddqs_p_2 _00000000 pm_dll_wrdqs_2 _00000000 pm_dll_wrdata_2 _00000000 pm_dll_gate_2
 MC0_DDR3_RDIMM_CTRL_0x080: .dword 0x0201000201000000
 //0000_0000 pm_dq_oe_end_3 0000_0000 pm_dq_oe_begin_3 000000_00 pm_dq_stop_edge_3 000000_00 pm_dq_start_edge_3 0000000_0 pm_rddata_delay_3 0000000_0 pm_rddqs_lt_half_3 0000000_0 pm_wrdqs_lt_half_3 0000000_0 pm_wrdq_lt_half_3
-MC0_DDR3_RDIMM_CTRL_0x088: .dword 0x0303000002010100
+MC0_DDR3_RDIMM_CTRL_0x088: .dword 0x0303020202010100
 //0000_0000 pm_rd_oe_end_3 0000_0000 pm_rd_oe_begin_3 000000_00 pm_rd_stop_edge_3 000000_00 pm_rd_start_edge_3 0000_0000 pm_dqs_oe_end_3 0000_0000 pm_dqs_oe_begin_3 000000_00 pm_dqs_stop_edge_3 000000_00 pm_dqs_start_edge_3
 MC0_DDR3_RDIMM_CTRL_0x090: .dword 0x0000000003020202
 //hXXXXXX (RD) 0000000_0 pm_wrdq_clkdelay_3 0000_0000 pm_odt_oe_end_3 0000_0000 pm_odt_oe_begin_3 000000_00 pm_odt_stop_edge_3 000000_00 pm_odt_start_edge_3
@@ -291,7 +291,7 @@ MC0_DDR3_RDIMM_CTRL_0x098: .dword 0x0000002020056500
 //hXXXXXX (RD) _00000000 pm_dll_rddqs_n_3 _00000000 pm_dll_rddqs_p_3 _00000000 pm_dll_wrdqs_3 _00000000 pm_dll_wrdata_3 _00000000 pm_dll_gate_3
 MC0_DDR3_RDIMM_CTRL_0x0a0: .dword 0x0201000201000000
 //0000_0000 pm_dq_oe_end_4 0000_0000 pm_dq_oe_begin_4 000000_00 pm_dq_stop_edge_4 000000_00 pm_dq_start_edge_4 0000000_0 pm_rddata_delay_4 0000000_0 pm_rddqs_lt_half_4 0000000_0 pm_wrdqs_lt_half_4 0000000_0 pm_wrdq_lt_half_4
-MC0_DDR3_RDIMM_CTRL_0x0a8: .dword 0x0303000002010100
+MC0_DDR3_RDIMM_CTRL_0x0a8: .dword 0x0303020202010100
 //0000_0000 pm_rd_oe_end_4 0000_0000 pm_rd_oe_begin_4 000000_00 pm_rd_stop_edge_4 000000_00 pm_rd_start_edge_4 0000_0000 pm_dqs_oe_end_4 0000_0000 pm_dqs_oe_begin_4 000000_00 pm_dqs_stop_edge_4 000000_00 pm_dqs_start_edge_4
 MC0_DDR3_RDIMM_CTRL_0x0b0: .dword 0x0000000003020202
 //hXXXXXX (RD) 0000000_0 pm_wrdq_clkdelay_4 0000_0000 pm_odt_oe_end_4 0000_0000 pm_odt_oe_begin_4 000000_00 pm_odt_stop_edge_4 000000_00 pm_odt_start_edge_4
@@ -299,7 +299,7 @@ MC0_DDR3_RDIMM_CTRL_0x0b8: .dword 0x0000002020056500
 //hXXXXXX (RD) _00000000 pm_dll_rddqs_n_4 _00000000 pm_dll_rddqs_p_4 _00000000 pm_dll_wrdqs_4 _00000000 pm_dll_wrdata_4 _00000000 pm_dll_gate_4
 MC0_DDR3_RDIMM_CTRL_0x0c0: .dword 0x0201000201000000
 //0000_0000 pm_dq_oe_end_5 0000_0000 pm_dq_oe_begin_5 000000_00 pm_dq_stop_edge_5 000000_00 pm_dq_start_edge_5 0000000_0 pm_rddata_delay_5 0000000_0 pm_rddqs_lt_half_5 0000000_0 pm_wrdqs_lt_half_5 0000000_0 pm_wrdq_lt_half_5
-MC0_DDR3_RDIMM_CTRL_0x0c8: .dword 0x0303000002010100
+MC0_DDR3_RDIMM_CTRL_0x0c8: .dword 0x0303020202010100
 //0000_0000 pm_rd_oe_end_5 0000_0000 pm_rd_oe_begin_5 000000_00 pm_rd_stop_edge_5 000000_00 pm_rd_start_edge_5 0000_0000 pm_dqs_oe_end_5 0000_0000 pm_dqs_oe_begin_5 000000_00 pm_dqs_stop_edge_5 000000_00 pm_dqs_start_edge_5
 MC0_DDR3_RDIMM_CTRL_0x0d0: .dword 0x0000000003020202
 //hXXXXXX (RD) 0000000_0 pm_wrdq_clkdelay_5 0000_0000 pm_odt_oe_end_5 0000_0000 pm_odt_oe_begin_5 000000_00 pm_odt_stop_edge_5 000000_00 pm_odt_start_edge_5
@@ -307,7 +307,7 @@ MC0_DDR3_RDIMM_CTRL_0x0d8: .dword 0x0000002020056500
 //hXXXXXX (RD) _00000000 pm_dll_rddqs_n_5 _00000000 pm_dll_rddqs_p_5 _00000000 pm_dll_wrdqs_5 _00000000 pm_dll_wrdata_5 _00000000 pm_dll_gate_5
 MC0_DDR3_RDIMM_CTRL_0x0e0: .dword 0x0201000201000000
 //0000_0000 pm_dq_oe_end_6 0000_0000 pm_dq_oe_begin_6 000000_00 pm_dq_stop_edge_6 000000_00 pm_dq_start_edge_6 0000000_0 pm_rddata_delay_6 0000000_0 pm_rddqs_lt_half_6 0000000_0 pm_wrdqs_lt_half_6 0000000_0 pm_wrdq_lt_half_6
-MC0_DDR3_RDIMM_CTRL_0x0e8: .dword 0x0303000002010100
+MC0_DDR3_RDIMM_CTRL_0x0e8: .dword 0x0303020202010100
 //0000_0000 pm_rd_oe_end_6 0000_0000 pm_rd_oe_begin_6 000000_00 pm_rd_stop_edge_6 000000_00 pm_rd_start_edge_6 0000_0000 pm_dqs_oe_end_6 0000_0000 pm_dqs_oe_begin_6 000000_00 pm_dqs_stop_edge_6 000000_00 pm_dqs_start_edge_6
 MC0_DDR3_RDIMM_CTRL_0x0f0: .dword 0x0000000003020202
 //hXXXXXX (RD) 0000000_0 pm_wrdq_clkdelay_6 0000_0000 pm_odt_oe_end_6 0000_0000 pm_odt_oe_begin_6 000000_00 pm_odt_stop_edge_6 000000_00 pm_odt_start_edge_6
@@ -315,7 +315,7 @@ MC0_DDR3_RDIMM_CTRL_0x0f8: .dword 0x0000002020056500
 //hXXXXXX (RD) _00000000 pm_dll_rddqs_n_6 _00000000 pm_dll_rddqs_p_6 _00000000 pm_dll_wrdqs_6 _00000000 pm_dll_wrdata_6 _00000000 pm_dll_gate_6
 MC0_DDR3_RDIMM_CTRL_0x100: .dword 0x0201000201000000
 //0000_0000 pm_dq_oe_end_7 0000_0000 pm_dq_oe_begin_7 000000_00 pm_dq_stop_edge_7 000000_00 pm_dq_start_edge_7 0000000_0 pm_rddata_delay_7 0000000_0 pm_rddqs_lt_half_7 0000000_0 pm_wrdqs_lt_half_7 0000000_0 pm_wrdq_lt_half_7
-MC0_DDR3_RDIMM_CTRL_0x108: .dword 0x0303000002010100
+MC0_DDR3_RDIMM_CTRL_0x108: .dword 0x0303020202010100
 //0000_0000 pm_rd_oe_end_7 0000_0000 pm_rd_oe_begin_7 000000_00 pm_rd_stop_edge_7 000000_00 pm_rd_start_edge_7 0000_0000 pm_dqs_oe_end_7 0000_0000 pm_dqs_oe_begin_7 000000_00 pm_dqs_stop_edge_7 000000_00 pm_dqs_start_edge_7
 MC0_DDR3_RDIMM_CTRL_0x110: .dword 0x0000000003020202
 //hXXXXXX (RD) 0000000_0 pm_wrdq_clkdelay_7 0000_0000 pm_odt_oe_end_7 0000_0000 pm_odt_oe_begin_7 000000_00 pm_odt_stop_edge_7 000000_00 pm_odt_start_edge_7
@@ -323,7 +323,7 @@ MC0_DDR3_RDIMM_CTRL_0x118: .dword 0x0000002020056500
 //hXXXXXX (RD) _00000000 pm_dll_rddqs_n_7 _00000000 pm_dll_rddqs_p_7 _00000000 pm_dll_wrdqs_7 _00000000 pm_dll_wrdata_7 _00000000 pm_dll_gate_7
 MC0_DDR3_RDIMM_CTRL_0x120: .dword 0x0201000201000000
 //0000_0000 pm_dq_oe_end_8 0000_0000 pm_dq_oe_begin_8 000000_00 pm_dq_stop_edge_8 000000_00 pm_dq_start_edge_8 0000000_0 pm_rddata_delay_8 0000000_0 pm_rddqs_lt_half_8 0000000_0 pm_wrdqs_lt_half_8 0000000_0 pm_wrdq_lt_half_8
-MC0_DDR3_RDIMM_CTRL_0x128: .dword 0x0303000002010100
+MC0_DDR3_RDIMM_CTRL_0x128: .dword 0x0303020202010100
 //0000_0000 pm_rd_oe_end_8 0000_0000 pm_rd_oe_begin_8 000000_00 pm_rd_stop_edge_8 000000_00 pm_rd_start_edge_8 0000_0000 pm_dqs_oe_end_8 0000_0000 pm_dqs_oe_begin_8 000000_00 pm_dqs_stop_edge_8 000000_00 pm_dqs_start_edge_8
 MC0_DDR3_RDIMM_CTRL_0x130: .dword 0x0000000003020202
 //hXXXXXX (RD) 0000000_0 pm_wrdq_clkdelay_8 0000_0000 pm_odt_oe_end_8 0000_0000 pm_odt_oe_begin_8 000000_00 pm_odt_stop_edge_8 000000_00 pm_odt_start_edge_8
@@ -337,7 +337,7 @@ MC0_DDR3_RDIMM_CTRL_0x150: .dword 0x00000000f0020000
 //hXXXX _0000 pm_pad_adj_ncode_clk _0000 pm_pad_adj_pcode_clk 00000 _0 pm_pad_outodt_clk _0 pm_pad_slewrate_clk _0 pm_pad_code_clk _0000 pm_pad_adj_ncode_cmd _0000 pm_pad_adj_pcode_cmd 00000 _0 pm_pad_outodt_cmd _0 pm_pad_slewrate_cmd _0 pm_pad_code_cmd _0000 pm_pad_adj_ncode_addr _0000 pm_pad_adj_pcode_addr 00000 _0 pm_pad_outodt_addr _0 pm_pad_slewrate_addr _0 pm_pad_code_addr
 MC0_DDR3_RDIMM_CTRL_0x158: .dword 0x00000000f0000000
 //hXXXXXXXX (RD) _0000 pm_pad_comp_ncode_i _0000 pm_pad_comp_pcode_i 0000000_0 pm_pad_comp_mode 0000000_0 pm_pad_comp_tm 0000000_0 pm_pad_comp_pd
-MC0_DDR3_RDIMM_CTRL_0x160: .dword 0x0000000000010001
+MC0_DDR3_RDIMM_CTRL_0x160: .dword 0x0000000000010101
 //MC0_DDR3_RDIMM_CTRL_0x160: .dword 0x0000000000000001
 //0000000_0_00000000 pm_rdfifo_empty(RD) 0000000_0_00000000 pm_overflow(RD) 0000_0000 pm_dram_init(RD) 0000000_0 pm_rdfifo_valid 000000_00 pm_cmd_timing 0000000_0 pm_ddr3_mode
 MC0_DDR3_RDIMM_CTRL_0x168: .dword 0x140a000707030101
@@ -365,15 +365,16 @@ MC0_DDR3_RDIMM_CTRL_0x1b0: .dword 0x0000001000060d40
 //_00000000_00000000 pm_mr_3_cs_2 _00000000_00000000 pm_mr_2_cs_2 _00000000_00000000 pm_mr_1_cs_2 _00000000_00000000 pm_mr_0_cs_2
 MC0_DDR3_RDIMM_CTRL_0x1b8: .dword 0x0000001000060d40
 //_00000000_00000000 pm_mr_3_cs_3 _00000000_00000000 pm_mr_2_cs_3 _00000000_00000000 pm_mr_1_cs_3 _00000000_00000000 pm_mr_0_cs_3
-MC0_DDR3_RDIMM_CTRL_0x1c0: .dword 0x3030c80c03042005
+MC0_DDR3_RDIMM_CTRL_0x1c0: .dword 0x3030c80c03042006
 //_00000000 pm_tRESET _00000000 pm_tCKE _00000000 pm_tXPR _00000000 pm_tMOD _00000000 pm_tZQCL _00000000 pm_tZQ_CMD _00000000 pm_tWLDQSEN 000_00000 pm_tRDDATA
-MC0_DDR3_RDIMM_CTRL_0x1c8: .dword 0x1107070715854080
+//MC0_DDR3_RDIMM_CTRL_0x1c8: .dword 0x11040b0b15904080
+MC0_DDR3_RDIMM_CTRL_0x1c8: .dword 0x11040b0b22c34080
 //00_000000 pm_tFAW 0000_0000 pm_tRRD 0000_0000 pm_tRCD _00000000 pm_tRP _00000000 pm_tREF _00000000 pm_tRFC _00000000 pm_tZQCS _00000000 pm_tZQperiod
-MC0_DDR3_RDIMM_CTRL_0x1d0: .dword 0x0a020d0302000019
+MC0_DDR3_RDIMM_CTRL_0x1d0: .dword 0x0a020d0502000018
 //0000_0000 pm_tODTL _00000000 pm_tXSRD 0000_0000 pm_tPHY_RDLAT 000_00000 pm_tPHY_WRLAT 000000_00_00000000_00000000 pm_tRAS_max 00_000000 pm_tRAS_min
-MC0_DDR3_RDIMM_CTRL_0x1d8: .dword 0x14050c0608070406
+MC0_DDR3_RDIMM_CTRL_0x1d8: .dword 0x14050c0408070405
 //_00000000 pm_tXPDLL _00000000 pm_tXP 000_00000 pm_tWR 0000_0000 pm_tRTP 0000_0000 pm_tRL 0000_0000 pm_tWL 0000_0000 pm_tCCD 0000_0000 pm_tWTR
-MC0_DDR3_RDIMM_CTRL_0x1e0: .dword 0x0503000000010000
+MC0_DDR3_RDIMM_CTRL_0x1e0: .dword 0x0503000000000000
 //00_000000 pm_tW2R_diffcs_dly 00_000000 pm_tW2W_diffcs_adj_dly 00_000000 pm_tR2P_sameba_adj_dly 00_000000 pm_tW2P_sameba_adj_dly 00_000000 pm_tR2R_sameba_adj_dly 00_000000 pm_tR2W_sameba_adj_dly 00_000000 pm_tW2R_sameba_adj_dly 00_000000 pm_tW2W_sameba_adj_dly
 MC0_DDR3_RDIMM_CTRL_0x1e8: .dword 0x030a000000010000
 //00_000000 pm_tR2R_diffcs_adj_dly 00_000000 pm_tR2W_diffcs_dly 00_000000 pm_tR2P_samecs_dly 00_000000 pm_tW2P_samecs_dly 00_000000 pm_tR2R_samecs_adj_dly 00_000000 pm_tR2W_samecs_adj_dly 00_000000 pm_tW2R_samecs_adj_dly 00_000000 pm_tW2W_samecs_adj_dly
@@ -455,7 +456,7 @@ MC0_DDR3_RDIMM_CTRL_0x310: .dword 0x0000000000000000
 //_XXXXXXXXXXXXXXXX pm_cmd_fbck3[ 63: 0](RD)
 MC0_DDR3_RDIMM_CTRL_0x318: .dword 0x0000000000000000
 //_XXXXXXXXXXXXXXXX pm_cmd_fbck3[127:64](RD)
-MC0_DDR3_RDIMM_CTRL_0x320: .dword 0x0808301000016000
+MC0_DDR3_RDIMM_CTRL_0x320: .dword 0x080830100001600a
 //_XXXXXXXXXXXXXXXX 0000_0000 pm_REF_low
 MC0_DDR3_RDIMM_CTRL_0x328: .dword 0x0000000000000000
 //_XXXXXXXXXXXXXXXX (RD)
@@ -463,6 +464,7 @@ MC0_DDR3_RDIMM_CTRL_0x330: .dword 0x0000001000010400
 //0000000_0 pm_stat_en 0_0000000 pm_rdbuffer_max(RD) 0000000_0 pm_retry 00_000000 pm_wr_pkg_num 0000000_0 pm_rwq_rb 0000000_0 pm_stb_en 000_00000 pm_addr_new 0000_0000 pm_tRDQidle
 MC0_DDR3_RDIMM_CTRL_0x338: .dword 0x0000000000000000
 //_XXXXXXXXXXXXXXXX 0000_0000 pm_fifo_depth 00000000_00000000_00000000_00000000 pm_retry_cnt(RD)
+//MC0_DDR3_RDIMM_CTRL_0x340: .dword 0x02dc6c00000f0f01
 MC0_DDR3_RDIMM_CTRL_0x340: .dword 0x0030d40000070f01
 //00000000_00000000_00000000_00000000 pm_tREFretention 0000_0000 pm_ref_num 00000000 pm_tREF_IDLE 0000000_0 pm_ref_sch_en
 MC0_DDR3_RDIMM_CTRL_0x348: .dword 0x0000000000000000
