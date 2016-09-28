@@ -74,7 +74,7 @@ nop;
 
 /* WatchDog Close for chip MAX6369*/
 #define WatchDog_Close \
-GPIO_CLEAR_OUTPUT(0x6040); \
+GPIO_CLEAR_OUTPUT(0x4040); \
 GPIO_SET_OUTPUT(0x4030); 
 
 /* WatchDog Enable for chip MAX6369*/
