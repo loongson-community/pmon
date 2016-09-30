@@ -179,6 +179,9 @@ extern char	*optarg;
 #ifdef LOONGSON_3A2H
 	gmac_stop();
 #endif
+#ifdef LOONGSON_3A84W
+	bnx_stop_controller();
+#endif
 #if NMOD_DEBUGGER > 0
 	if (setjmp (go_return_jump) == 0) {	
 		goclient ();
