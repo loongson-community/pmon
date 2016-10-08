@@ -5406,6 +5406,26 @@ bnx_ioctl(struct ifnet *ifp, u_long command, caddr_t data)
 	return (error);
 }
 
+void bnx_stop_controller(void)
+{
+	register struct ifnet *ifp0,*ifp1;
+	struct bnx_softc	*sc0,*sc1; ;
+
+	ifp0 = ifunit("bnx0");
+	ifp1 = ifunit("bnx1");
+
+	if(ifp0 != 0){
+	sc0 = ifp0->if_softc;
+	bnx_stop(sc0);
+	}
+
+	if(ifp1 != 0){  
+	sc1 = ifp1->if_softc;
+	bnx_stop(sc1);
+	}
+
+
+}
 //wxy
 #if 0
 /****************************************************************************/
