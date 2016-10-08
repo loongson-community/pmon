@@ -112,7 +112,7 @@
 #endif
 
 
-#if 1
+#ifdef LS_DDR_HALF
 #ifndef LSMCD3_2
 //hot fix for lack of address pin A15 when use LSMC. For example RS780E R1.03
     //check MC1 first
