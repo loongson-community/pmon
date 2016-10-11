@@ -103,14 +103,8 @@ stack = start - 0x4000		/* Place PMON stack below PMON start in RAM */
 
 
 	/*WatchDog_Close*/
-	li  t0, 0xbfe0011c
-	li  t2, ~(1 << 11)
-	lw  t1, 0x4(t0)
-	and t1, t2
-	sw  t1, 0x4(t0)
-	lw  t1, 0x0(t0)
-	and t1, t2
-	sw  t1, 0x0(t0)
+	bal wdt_close
+	nop
 
 	/*enable rs780e vGA*/
 	li  t2, ~(1 << 14)
@@ -401,7 +395,13 @@ gs_2f_v3_ddr2_cfg:
 
 ##########################################
 
+bal wdt_open
+nop
+
 #include "loongson3_fixup.S"
+
+bal wdt_close
+nop
 
 //#define SHUT_SLAVES
 #ifdef SHUT_SLAVES
@@ -1556,6 +1556,45 @@ LEAF(tgt_putchar1)
 	nop
 END(tgt_putchar1)
 
+LEAF(wdt_open)
+	/*WatchDog_Close*/
+	li  t0, 0xbfe0011c
+	li  t2, ~(0x81c)
+	lw  t1, 0x4(t0)
+	and t1, t2
+	sw  t1, 0x4(t0)
+	li  t2, ~(1 << 11)
+	lw  t1, 0x0(t0)
+	and t1, t2
+	sw  t1, 0x0(t0)
+	li  t2, 0x814
+	lw  t1, 0x4(t0)
+	or  t1, t2
+	sw  t1, 0x4(t0)
+	li  t2, (1 << 11)
+	lw  t1, 0x0(t0)
+	or  t1, t2
+	sw  t1, 0x0(t0)
+	nop
+	jr	ra
+	nop
+END(wdt_open)
+
+LEAF(wdt_close)
+	/*WatchDog_Close*/
+	li  t0, 0xbfe0011c
+	li  t2, ~(1 << 11)
+	lw  t1, 0x4(t0)
+	and t1, t2
+	sw  t1, 0x4(t0)
+	lw  t1, 0x0(t0)
+	and t1, t2
+	sw  t1, 0x0(t0)
+	nop
+	jr	ra
+	nop
+END(wdt_close)
+
 LEAF(beep_on)
 	nop
 	dli	t1,0x90000cfdfe00a080
@@ -2071,6 +2110,7 @@ LEAF(lock_scache)
 	nop
 #endif
 END(lock_scache)
+
 
 	.ent    slave_main
 slave_main:
