@@ -16,6 +16,9 @@ ATTENTION: NO 16BIT mode when using HT1
 //#define HT0_200M
 
 #define ENABLE_X
+#define ENABLE_X_on_03
+//#define DISABLE_X_3to0
+#define DISABLE_X_0to3
 //#define INTERCONNECTION_X_HT1_1_0 //USE HT1.0 on X
 #define HT1_X_1600M
 #define HT1_X_800M //Only in HT1.0 mode
@@ -161,11 +164,13 @@ ATTENTION: NO 16BIT mode when using HT1
 	TTYDBG("Begin to enable X routing\r\n")
 
 //setup ICCC_EN in HT1_HI
+#ifdef ENABLE_X_on_03
 	dli	t2, 0x90000ffdfb000000
 	lw	t1, 0x50(t2)
 	li	t0, 0x00400000
 	or	t1, t1, t0
 	sw	t1, 0x50(t2)
+#endif
 	dli	t2, 0x90001ffdfb000000
 	lw	t1, 0x50(t2)
 	li	t0, 0x00400000
@@ -176,11 +181,13 @@ ATTENTION: NO 16BIT mode when using HT1
 	li	t0, 0x00400000
 	or	t1, t1, t0
 	sw	t1, 0x50(t2)
+#ifdef ENABLE_X_on_03
 	dli	t2, 0x90003ffdfb000000
 	lw	t1, 0x50(t2)
 	li	t0, 0x00400000
 	or	t1, t1, t0
 	sw	t1, 0x50(t2)
+#endif
 
 /* SET HT connection interleave between two LS3A chipses */ 
 	dli 	t0, 0x90000ffdfb000108;
@@ -572,6 +579,7 @@ no_softconfig_x_ht:
 #endif
 
 //reset links
+#ifdef ENABLE_X_on_03
 	TTYDBG("Start reset X link 0-3 \r\n")
 	dli	t2, 0x90000ffdfb000000
 	lw	t1, 0x3c(t2)
@@ -606,6 +614,7 @@ no_softconfig_x_ht:
 	li	t0, 0xffbfffff
 	and	t1, t1, t0
 	sw	t1, 0x3c(t2)
+#endif
 
 	TTYDBG("Start reset X link 1-2 \r\n")
 	dli	t2, 0x90001ffdfb000000
@@ -781,11 +790,16 @@ no_softconfig_x_ht:
 //Enable X
 	TTYDBG("Enable X routing\r\n")
 
+#ifdef ENABLE_X_on_03
+#ifdef DISABLE_X_0to3
+#else
 	dli	t2, 0x900000003ff00400
 	lw	t1, 0x0(t2)
 	li	t0, 0x00000100
 	or	t1, t1, t0
 	sw	t1, 0x0(t2)
+#endif
+#endif
 	dli	t2, 0x900010003ff00400
 	lw	t1, 0x0(t2)
 	li	t0, 0x00000100
@@ -796,11 +810,16 @@ no_softconfig_x_ht:
 	li	t0, 0x00000100
 	or	t1, t1, t0
 	sw	t1, 0x0(t2)
+#ifdef ENABLE_X_on_03
+#ifdef DISABLE_X_3to0
+#else
 	dli	t2, 0x900030003ff00400
 	lw	t1, 0x0(t2)
 	li	t0, 0x00000100
 	or	t1, t1, t0
 	sw	t1, 0x0(t2)
+#endif
+#endif
 
 	TTYDBG("X routing enabled\r\n")
 #endif
