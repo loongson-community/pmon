@@ -126,7 +126,7 @@ _pci_hwinit(initialise, iot, memt)
 		pd->pa.pa_memt = pmalloc(sizeof(bus_space_tag_t));
 		pd->pa.pa_memt->bus_reverse = 1;
 		//pd->pa.pa_memt->bus_base = PCI_LOCAL_MEM_PCI_BASE;
-		pd->pa.pa_memt->bus_base = 0xc0000000;
+		pd->pa.pa_memt->bus_base = 0xb0000000;
 		pd->pa.pa_dmat = &bus_dmamap_tag;
 		pd->bridge.secbus = pb;
 

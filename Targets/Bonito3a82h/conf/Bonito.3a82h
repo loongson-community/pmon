@@ -47,7 +47,7 @@ option 		LOONGSON_3A2H
 option 		LOONGSON_3A8
 option		BOOT_PARAM
 
-#option 		PCIE_GRAPHIC_CARD
+option 		PCIE_GRAPHIC_CARD
 
 #
 # Uart serial baud rate selection
