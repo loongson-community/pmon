@@ -329,6 +329,47 @@ int vga_bios_init(void)
 #endif
 	}
 #endif
+#ifdef LOONGSON_3A92W
+#ifdef USE_BMC
+	{
+		pcitag_t vga_bridge;
+		unsigned int val;
+		int bmc_vga_busnum;
+		{
+			pcitag_t tag;
+			unsigned int id_reg;
+			unsigned short deviceid, vendorid;
+			unsigned int bmc_vga_find;
+			int i;
+			for (i = 0; i < 10; i++) {
+				tag = _pci_make_tag(i, 0, 0);
+				id_reg = _pci_conf_read(tag, 0x00);
+				vendorid = (id_reg) & 0xffff;
+				deviceid = (id_reg >> 16) & 0xffff;
+				if (vendorid == 0x1a03 && deviceid == 0x2000) {
+					bmc_vga_find = 1;
+					break;
+				}
+			}
+			if (bmc_vga_find != 1)
+				printf("cannot find a AST2400 VGA device\n");
+			else
+				bmc_vga_busnum = i;
+		}
+
+		vga_bridge = _pci_make_tag(0, 10, 0); //pcie dev slot
+		/* enable VGA legacy space decode */
+		val = _pci_conf_read(vga_bridge, 0x3c);
+		val |= 1 << 19;
+		_pci_conf_write(vga_bridge, 0x3c, val);
+		vga_bridge = _pci_make_tag(5, 0, 0);
+		/* enable VGA legacy space decode */
+		val = _pci_conf_read(vga_bridge, 0x3c);
+		val |= 1 << 19;
+		_pci_conf_write(vga_bridge, 0x3c, val);
+	}
+#endif
+#endif
 
 	/*
 	 * we need to map video RAM MMIO as some chipsets map mmio
@@ -396,7 +437,13 @@ int vga_bios_init(void)
 			unsigned char *tmp;
 			romaddress = (unsigned long)vgarom;
 			tmp = (unsigned char *)vgarom;
-
+#ifdef LOONGSON_3A92W
+#ifdef USE_BMC
+			extern unsigned char vgarom_bmc[];
+			romaddress = (unsigned long)vgarom_bmc;
+			tmp = (unsigned char *)vgarom_bmc;
+#endif
+#endif
 #if defined(BONITOEL) && !( defined(RADEON7000) || defined(VESAFB) || defined(RS690) || defined(RS780E))
 		romaddress |= 0x10000000;
 #endif

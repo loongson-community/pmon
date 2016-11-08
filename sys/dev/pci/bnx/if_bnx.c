@@ -59,7 +59,7 @@ __FBSDID("$FreeBSD: src/sys/dev/bce/if_bce.c,v 1.3 2006/04/13 14:12:26 ru Exp $"
 #include <machine/bus.h>
 #include "bnxfw.h"
 
-#ifdef LOONGSON_3A84W
+#if defined(LOONGSON_3A84W) || defined(LOONGSON_3A92W)
 #include  "bnx_data.h"
 #define BNX_NVRAM_WRITE_SUPPORT
 #undef	BNX_FLASH_DEBUG
@@ -891,6 +891,9 @@ bnx_attach(struct device *parent, struct device *self, void *aux)
 		goto bnx_attach_fail;
 	}
 
+	val = REG_RD(sc, BNX_MISC_CFG);
+	REG_WR(sc, BNX_MISC_CFG, val | 0xb);
+
 	//mountroothook_establish(bnx_attachhook, sc);
 	bnx_attachhook(sc);
 	return;
@@ -931,7 +934,7 @@ bnx_attachhook(void *xsc)
 		return;
 	}
 
-#ifdef LOONGSON_3A84W
+#if defined(LOONGSON_3A84W) || defined(LOONGSON_3A92W)
 	unsigned char  m_buf[12];
 	int i;
 #ifdef BNX_FLASH_DEBUG
@@ -5278,7 +5281,7 @@ bnx_start(struct ifnet *ifp)
 bnx_start_exit:
 	return;
 }
-#ifdef LOONGSON_3A84W
+#if defined(LOONGSON_3A84W) || defined(LOONGSON_3A92W)
 static int bnx_set_mac(struct bnx_softc *sc, int ac, char *av[])
 {
 	int i;
@@ -5338,7 +5341,7 @@ bnx_ioctl(struct ifnet *ifp, u_long command, caddr_t data)
 	case SIOCSIFADDR://wan: implemented when "ifaddr bnx [IP]"
 		ifp->if_flags |= IFF_UP;
 
-#ifdef LOONGSON_3A84W
+#if defined(LOONGSON_3A84W) || defined(LOONGSON_3A92W)
 		//Set the MAC address,otherwise the MAC will similar with others.
 		unsigned char m_buf[6];
 		char i;
@@ -5363,7 +5366,7 @@ bnx_ioctl(struct ifnet *ifp, u_long command, caddr_t data)
 			arp_ifinit(&sc->arpcom, ifa);
 #endif /* INET */
 		break;
-#ifdef LOONGSON_3A84W
+#if defined(LOONGSON_3A84W) || defined(LOONGSON_3A92W)
 	case SIOCETHTOOL:
 		/* set mac */
 		{
