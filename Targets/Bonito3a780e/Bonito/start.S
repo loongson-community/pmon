@@ -1212,26 +1212,33 @@ LEAF(tgt_putchar)
 	nop	
 END(tgt_putchar)
 #else
-
 LEAF(tgt_putchar)
-	la	v0,GS3_UART_BASE 
-1:
-	lbu	v1, NSREG(NS16550_LSR)(v0)
-	and	v1, LSR_TXRDY
-#	li	v1, 1
-	beqz	v1, 1b
-	nop
+    .set noat
+    move AT,ra
+    la  v0, GS3_UART_BASE
+    bal 1f
+    nop
+    la  v0, GS3_UART1_BASE
+    bal 1f
+    nop
+    jr AT
+    nop
+   
+ 1:
+     lbu v1, NSREG(NS16550_LSR)(v0)
+     and v1, LSR_TXRDY
+     beqz    v1, 1b
+     nop
+                                                  
+     sb  a0, NSREG(NS16550_DATA)(v0)
 
-	sb	a0, NSREG(NS16550_DATA)(v0)
-	move	v1, v0
-	la	v0, GS3_UART_BASE
-	bne	v0, v1, 1b
-	nop
-
-	j	ra
-	nop	
+        j   ra
+    nop
+	.set at
 END(tgt_putchar)
 #endif
+
+
 
 LEAF(beep_on)
 	nop

@@ -202,7 +202,7 @@ ConfigEntry	ConfigTable[] =
 	{ (char *)COM3_BASE_ADDR, 0, ns16550, 256, CONS_BAUD, NS16550HZ },
 #else
 	{ (char *)GS3_UART_BASE, 0, ns16550, 256, CONS_BAUD, NS16550HZ },
-	{ (char *)GS3_UART1_BASE, 0, ns16550, 256, CONS_BAUD, NS16550HZ },
+//	{ (char *)GS3_UART1_BASE, 0, ns16550, 256, CONS_BAUD, NS16550HZ },
 #endif
 #endif
 #if NMOD_VGACON >0
