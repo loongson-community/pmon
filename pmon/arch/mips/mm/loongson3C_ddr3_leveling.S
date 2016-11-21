@@ -6,10 +6,11 @@
    2012.9.25 add ECC slice
 */
 #include "ddr_leveling_define.h"
-//#define	PREMBLE_CHECK_DEBUG
+#define	PREMBLE_CHECK_DEBUG
 //#define	PRINT_PREMBLE_CHECK
-#define PRINT_DDR_LEVELING
-//#define	FILTER_CHECK
+//#define PRINT_DDR_LEVELING
+#define	FILTER_CHECK
+//#define	FIND_PREMBLE_LENGTH
 //#define LVL_DEBUG
 /* in PRINTSTR: a0, a1, a2, v0, v1 will be changed */
         .global ddr3_leveling
@@ -3348,7 +3349,14 @@ premble_check_init:
 /* check the premble exist */
 	PRINTSTR("\r\nPREMBLE CHECK!!\r\n")
 // set the gate signal 0.75 period before
-	dli 	s6,	0x5a //s6 represents 0.75 period to be checked	
+	dli 	s6,	0x60 //s6 represents 0.75 period to be checked	
+	dli		t4, 0x0
+	or		t4, t4, t8
+	lb		a0, 0x0(t4)
+	beq		a0, 0x2, 1f
+	nop
+	dli		s6, 0x5a
+1:
 	lb		a0, 0x10(t1)
 	dsubu	a0, a0, s6
 	dli		t4, 0x7f
@@ -3505,6 +3513,11 @@ glvl_redo_req_set_0:
 
 	beq		t3, 0x2, glvl_check_premble
 	nop
+
+#ifdef	FIND_PREMBLE_LENGTH
+	beq		t3, 0x3, premble_check_length
+	nop
+#endif
 
 	dli		t3, 0x1
     lb      a0, 0x7(t2)
@@ -3781,6 +3794,76 @@ glvl_last_check_end:
 	bnez	s7, premble_check_init
 	nop
 111:
+#ifdef FIND_PREMBLE_LENGTH
+	dli		t3, 0x3
+	dli		t4, 0x38
+	or		t4, t4, t8
+	lb		a0, 0x0(t4)
+	dsubu	a0, a0, 0x5
+	dli		t4, 0x7f
+	and		a0, a0, t4
+	dli		t4, 0x38
+	or		t4, t4, t8
+	sb		a0, 0x0(t4)
+	blt		a0,	0x7b, 1f
+	nop
+	dli		t4, 0x28
+	or		t4, t4,t8
+	lb		a0, 0x7(t4)
+	dsubu	a0, a0, 0x1
+	sb		a0, 0x7(t4)
+	lb		a0, 0x6(t4)
+	dsubu	a0, a0, 0x1
+	sb		a0, 0x6(t4)
+	RDOE_ADD_TRDDATA_SUB
+	dli		s6, 0x0
+	PRINTSTR("111111")
+1:
+	b		glvl_redo_req_set_0
+	nop
+premble_check_length:
+    dli		t4, 0x180
+	or		t4, t4, t8
+	lb      a0, 0x7(t4)
+    dli     t4, 0x3
+    and     a0, a0, t4
+    beq     a0, 0x1, 2f
+    nop
+	
+	PRINTSTR("22222")
+
+	daddu	s6, s6, 0x1
+	bge		s6, 0xff, 2f
+	dli		t4, 0x38
+	or		t4, t4, t8
+	lb		a0, 0x0(t4)
+	dsubu	a0, a0, 0x1
+	dli		t4, 0x7f
+	and		a0, a0, t4
+	dli		t4, 0x38
+	or		t4, t4, t8
+	sb		a0, 0x0(t4)
+	blt		a0,	0x7f, 1f
+	nop
+	dli		t4, 0x28
+	or		t4, t4,t8
+	lb		a0, 0x7(t4)
+	dsubu	a0, a0, 0x1
+	sb		a0, 0x7(t4)
+	lb		a0, 0x6(t4)
+	dsubu	a0, a0, 0x1
+	sb		a0, 0x6(t4)
+	RDOE_ADD_TRDDATA_SUB
+1:
+	b		glvl_redo_req_set_0
+	nop
+2:
+	PRINTSTR("\r\n the premle length is")
+	move	a0, s6
+	bal		hexserial
+	nop
+
+#endif
 	b		gate_leveling_exit
 	nop
 
@@ -5340,29 +5423,29 @@ wait_init_done3:
 
 
 100:
-#if 0
+#if 1
 test_memory:
-    dli     t0, 0x9000000001000000
-    GET_NODE_ID_a0
+	dli     t0, 0x9000000000000000
+	GET_NODE_ID_a0
 	or      t0, t0, a0
-        dli     a0, 0x5555555555555555
-        sd      a0, 0x0(t0)
-        dli     a0, 0xaaaaaaaaaaaaaaaa
-        sd      a0, 0x8(t0)
-        dli     a0, 0x3333333333333333
-        sd      a0, 0x10(t0)
-        dli     a0, 0xcccccccccccccccc
-        sd      a0, 0x18(t0)
-        dli     a0, 0x7777777777777777
-        sd      a0, 0x20(t0)
-        dli     a0, 0x8888888888888888
-        sd      a0, 0x28(t0)
-        dli     a0, 0x1111111111111111
-        sd      a0, 0x30(t0)
-        dli     a0, 0xeeeeeeeeeeeeeeee
-        sd      a0, 0x38(t0)
+   	dli     a0, 0x5555555555555555
+    sd      a0, 0x0(t0)
+    dli     a0, 0xaaaaaaaaaaaaaaaa
+    sd      a0, 0x8(t0)
+	dli     a0, 0x3333333333333333
+	sd      a0, 0x10(t0)
+	dli     a0, 0xcccccccccccccccc
+	sd      a0, 0x18(t0)
+	dli     a0, 0x7777777777777777
+	sd      a0, 0x20(t0)
+	dli     a0, 0x8888888888888888
+	sd      a0, 0x28(t0)
+	dli     a0, 0x1111111111111111
+	sd      a0, 0x30(t0)
+	dli     a0, 0xeeeeeeeeeeeeeeee
+	sd      a0, 0x38(t0)
 
-	dli     t5, 0x9000000001000000
+	dli     t5, 0x9000000000000000
     GET_NODE_ID_a0
 	or      t5, t5, a0
 	ld      t6, 0x30(t5)

@@ -673,7 +673,7 @@ soft_out:
 	bgt     v0, a1, 2f
 	nop
 
-	dli     s1, 0x0010000100000000
+	dli     s1, 0x0010000080000000
 	PRINTSTR("\r\ndefault s1 = 0x");
 	dsrl    a0, s1, 32
 	bal     hexserial
