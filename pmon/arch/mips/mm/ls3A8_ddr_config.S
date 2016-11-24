@@ -24,16 +24,16 @@ mc_init:
 
     GET_NODE_ID_a0;
     XBAR_CONFIG_NODE_a0(0x10, \
-                    0x000000000ff00000, \
-                    0xfffffffffff00000, \
-                    0x000000000ff000f0)
+                    0x0000000000000000, \
+                    0xfffffffff0000000, \
+                    0x00000000000000f0)
     beqz    t3, 1f
     nop
     GET_NODE_ID_a0;
     XBAR_CONFIG_NODE_a0(0x10, \
-                    0x000000000ff00000, \
-                    0xfffffffffff00000, \
-                    0x000000000ff000f1)
+                    0x0000000000000000, \
+                    0xfffffffff0000000, \
+                    0x00000000000000f1)
 1:
 
     sync
