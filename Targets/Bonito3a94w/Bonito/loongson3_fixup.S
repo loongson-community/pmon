@@ -1,0 +1,2666 @@
+/*whd : loongson3_fixup.S
+	used to fix up the potential addressing miss
+	caused by speculated execution
+
+ATTENTION: NO 16BIT mode when using HT1
+
+*/
+#define HT0_RECONNECT
+#define INTERCONNECTION_HT0_1_0 //USE HT1.0 on Ring
+//#define HT0_3200M
+//#define HT0_2800M
+#define HT0_2400M
+//#define HT0_1800M
+//#define HT0_1600M
+//#define HT0_1200M
+//#define HT0_1000M
+//#define HT0_800M
+//#define HT0_400M
+//#define HT0_200M
+
+#define ENABLE_X
+#define ENABLE_X_on_03
+//#define DISABLE_X_3to0
+#define DISABLE_X_0to3
+//#define INTERCONNECTION_X_HT1_1_0 //USE HT1.0 on X
+#define HT1_X_1600M
+//#define HT1_X_800M //Only in HT1.0 mode
+//#define HT1_X_200M //Only in HT1.0 mode
+
+//#define HT0_16BIT //NO 16Bit mode in 4 chip interconnection
+#define HT_RESET_ALL_IN_ONE
+#define USE_HT_RESET
+#define RESET_AGAIN_WHEN_FAIL
+#define ENABLE_RDinterleave
+
+#define RREQUEST_RANDOM_SC
+#define RREQUEST_RANDOM_HT
+
+#ifdef HT0_3200M
+#define HT0_PHY_LO_DIV 2
+#define HT0_PHY_HI_DIV 2
+#define HT0_DIV_REFC   1
+#define HT0_DIV_LOOPC  64
+#define HT0_CORE_DIV   8
+#else
+#ifdef HT0_2800M
+#define HT0_PHY_LO_DIV 2
+#define HT0_PHY_HI_DIV 2
+#define HT0_DIV_REFC   1
+#define HT0_DIV_LOOPC  56
+#define HT0_CORE_DIV   7
+#else
+#ifdef HT0_2400M
+#define HT0_PHY_LO_DIV 2
+#define HT0_PHY_HI_DIV 2
+#define HT0_DIV_REFC   1
+#define HT0_DIV_LOOPC  48
+#define HT0_CORE_DIV   6
+#else
+#ifdef HT0_1800M
+#define HT0_PHY_LO_DIV 2
+#define HT0_PHY_HI_DIV 2
+#define HT0_DIV_REFC   1
+#define HT0_DIV_LOOPC  36
+#define HT0_CORE_DIV   8
+#else
+#ifdef HT0_1600M
+#define HT0_PHY_LO_DIV 4
+#define HT0_PHY_HI_DIV 4
+#define HT0_DIV_REFC   1
+#define HT0_DIV_LOOPC  64
+#define HT0_CORE_DIV   8
+#else
+#ifdef HT0_1200M
+#define HT0_PHY_LO_DIV 4
+#define HT0_PHY_HI_DIV 4
+#define HT0_DIV_REFC   1
+#define HT0_DIV_LOOPC  48
+#define HT0_CORE_DIV   12
+#else
+#ifdef HT0_1000M
+#define HT0_PHY_LO_DIV 4
+#define HT0_PHY_HI_DIV 4
+#define HT0_DIV_REFC   1
+#define HT0_DIV_LOOPC  40
+#define HT0_CORE_DIV   10
+#else
+#ifdef HT0_800M
+  #ifdef INTERCONNECTION_HT0_1_0
+    #define HT0_PHY_LO_DIV 2
+    #define HT0_PHY_HI_DIV 2
+    #define HT0_DIV_REFC   1
+    #define HT0_DIV_LOOPC  32
+    #define HT0_CORE_DIV   8
+  #else
+    #define HT0_PHY_LO_DIV 4
+    #define HT0_PHY_HI_DIV 4
+    #define HT0_DIV_REFC   1
+    #define HT0_DIV_LOOPC  32
+    #define HT0_CORE_DIV   8
+  #endif
+#else
+#ifdef HT0_400M
+  #ifdef INTERCONNECTION_HT0_1_0
+    #define HT0_PHY_LO_DIV 4
+    #define HT0_PHY_HI_DIV 4
+    #define HT0_DIV_REFC   1
+    #define HT0_DIV_LOOPC  32
+    #define HT0_CORE_DIV   8
+  #else
+    #define HT0_PHY_LO_DIV 8
+    #define HT0_PHY_HI_DIV 8
+    #define HT0_DIV_REFC   1
+    #define HT0_DIV_LOOPC  32
+    #define HT0_CORE_DIV   8
+  #endif
+#else
+#define HT0_PHY_LO_DIV 8
+#define HT0_PHY_HI_DIV 8
+#define HT0_DIV_REFC   1
+#define HT0_DIV_LOOPC  32
+#define HT0_CORE_DIV   8
+#endif
+#endif
+#endif
+#endif
+#endif
+#endif
+#endif
+#endif
+#endif
+
+
+
+#ifdef HT1_X_1800M
+#define HT1_X_PHY_LO_DIV 2
+#define HT1_X_PHY_HI_DIV 2
+#define HT1_X_DIV_REFC   1
+#define HT1_X_DIV_LOOPC  36
+#define HT1_X_CORE_DIV   8
+#else
+#ifdef HT1_X_1600M
+#define HT1_X_PHY_LO_DIV 4
+#define HT1_X_PHY_HI_DIV 4
+#define HT1_X_DIV_REFC   1
+#define HT1_X_DIV_LOOPC  64
+#define HT1_X_CORE_DIV   8
+#else
+#ifdef HT1_X_1200M
+#define HT1_X_PHY_LO_DIV 4
+#define HT1_X_PHY_HI_DIV 4
+#define HT1_X_DIV_REFC   1
+#define HT1_X_DIV_LOOPC  48
+#define HT1_X_CORE_DIV   12
+#else
+#ifdef HT1_X_1000M
+#define HT1_X_PHY_LO_DIV 4
+#define HT1_X_PHY_HI_DIV 4
+#define HT1_X_DIV_REFC   1
+#define HT1_X_DIV_LOOPC  40
+#define HT1_X_CORE_DIV   10
+#else
+#ifdef HT1_X_800M
+#define HT1_X_PHY_LO_DIV 4
+#define HT1_X_PHY_HI_DIV 4
+#define HT1_X_DIV_REFC   1
+#define HT1_X_DIV_LOOPC  64
+#define HT1_X_CORE_DIV   8
+#else
+#define HT1_X_PHY_LO_DIV 8
+#define HT1_X_PHY_HI_DIV 8
+#define HT1_X_DIV_REFC   1
+#define HT1_X_DIV_LOOPC  32
+#define HT1_X_CORE_DIV   8
+#endif
+#endif
+#endif
+#endif
+#endif
+
+
+
+#if 1 //Fix L2XBAR
+	TTYDBG("Fix L2xbar in NODE 1\r\n")
+	dli	t2, 0x900010003ff00000
+//keep consistent to NODE 0.
+//windows 1 used to route 0x10000000~ access
+	dli 	t0, 0x0000100010000000
+	sd  	t0, 0x08(t2)
+	dli 	t0, 0xfffffffff0000000
+	sd  	t0, 0x48(t2)
+	dli 	t0, 0x0000000010000082
+	sd  	t0, 0x88(t2)
+//disable window 0
+	sd  	$0, 0x80(t2)
+	sd  	$0, 0x90(t2)
+
+	TTYDBG("Fix L2xbar in NODE 2\r\n")
+	dli	t2, 0x900020003ff00000
+//keep consistent to NODE 0.
+//windows 1 used to route 0x10000000~ access
+	dli 	t0, 0x0000200010000000
+	sd  	t0, 0x08(t2)
+	dli 	t0, 0xfffffffff0000000
+	sd  	t0, 0x48(t2)
+	dli 	t0, 0x0000000010000082
+	sd  	t0, 0x88(t2)
+//disable window 0
+	sd  	$0, 0x80(t2)
+	sd  	$0, 0x90(t2)
+
+	TTYDBG("Fix L2xbar in NODE 3\r\n")
+	dli	t2, 0x900030003ff00000
+//keep consistent to NODE 0.
+//windows 1 used to route 0x10000000~ access
+	dli 	t0, 0x0000300010000000
+	sd  	t0, 0x08(t2)
+	dli 	t0, 0xfffffffff0000000
+	sd  	t0, 0x48(t2)
+	dli 	t0, 0x0000000010000082
+	sd  	t0, 0x88(t2)
+//disable window 0
+	sd  	$0, 0x80(t2)
+	sd  	$0, 0x90(t2)
+
+#endif
+
+#ifdef RREQUEST_RANDOM_SC //Fix the Scache LL/SC random latency
+	TTYDBG("Fix the Scache LL/SC random latency\r\n")
+	li	t0, 0x42110001
+	dli	t2, 0x900000003ff00000
+	sw	t0, 0x410(t2)
+	dli	t2, 0x900010003ff00000
+	//li	t0, 0x42110001
+	sw	t0, 0x410(t2)
+	dli	t2, 0x900020003ff00000
+	//li	t0, 0x42110001
+	sw	t0, 0x410(t2)
+	dli	t2, 0x900030003ff00000
+	//li	t0, 0x42110001
+	sw	t0, 0x410(t2)
+#endif
+
+#if 1 //Check if HT1 is OK
+	TTYDBG("Check if HT1 is OK\r\n")
+	dli	t2, 0x90000ffdfe000000
+	lw	a0, 0x50(t2)
+	bal	hexserial
+	nop
+	dli	t2, 0x90001ffdfe000000
+	lw	a0, 0x50(t2)
+	bal	hexserial
+	nop
+	dli	t2, 0x90003ffdfe000000
+	lw	a0, 0x50(t2)
+	bal	hexserial
+	nop
+	dli	t2, 0x90002ffdfe000000
+	lw	a0, 0x50(t2)
+	bal	hexserial
+	nop
+#endif
+
+#if 1
+	TTYDBG("Shut down CPU1\r\n")
+	dli	a0, 0x900010001fe001d0
+	li	a1, 0x0
+	sw	a1, 0x0(a0)
+
+	TTYDBG("Shut down CPU2\r\n")
+	dli	a0, 0x900020001fe001d0
+	li	a1, 0x0
+	sw	a1, 0x0(a0)
+
+	TTYDBG("Shut down CPU3\r\n")
+	dli	a0, 0x900030001fe001d0
+	li	a1, 0x0
+	sw	a1, 0x0(a0)
+#endif
+
+#ifdef RREQUEST_RANDOM_HT //Fix HT LL/SC random latency
+	TTYDBG("Fix HT LL/SC random latency\r\n")
+	li	a0, 0x00060000
+
+	dli	t2, 0x90000cfdfb000000
+	sw	a0, 0x11c(t2)
+	dli	t2, 0x90000dfdfb000000
+	sw	a0, 0x11c(t2)
+	dli	t2, 0x90001cfdfb000000
+	sw	a0, 0x11c(t2)
+	dli	t2, 0x90001dfdfb000000
+	sw	a0, 0x11c(t2)
+	dli	t2, 0x90002cfdfb000000
+	sw	a0, 0x11c(t2)
+	dli	t2, 0x90002dfdfb000000
+	sw	a0, 0x11c(t2)
+	dli	t2, 0x90003cfdfb000000
+	sw	a0, 0x11c(t2)
+	dli	t2, 0x90003dfdfb000000
+	sw	a0, 0x11c(t2)
+
+	dli	t2, 0x90000ffdfb000000
+	sw	a0, 0x11c(t2)
+	dli	t2, 0x90001ffdfb000000
+	sw	a0, 0x11c(t2)
+	dli	t2, 0x90002ffdfb000000
+	sw	a0, 0x11c(t2)
+	dli	t2, 0x90003ffdfb000000
+	sw	a0, 0x11c(t2)
+#endif
+
+#ifdef ENABLE_X
+	TTYDBG("Begin to enable X routing\r\n")
+
+//setup ICCC_EN in HT1_HI
+#ifdef ENABLE_X_on_03
+	dli	t2, 0x90000ffdfb000000
+	lw	t1, 0x50(t2)
+	li	t0, 0x00400000
+	or	t1, t1, t0
+	sw	t1, 0x50(t2)
+#endif
+	dli	t2, 0x90001ffdfb000000
+	lw	t1, 0x50(t2)
+	li	t0, 0x00400000
+	or	t1, t1, t0
+	sw	t1, 0x50(t2)
+	dli	t2, 0x90002ffdfb000000
+	lw	t1, 0x50(t2)
+	li	t0, 0x00400000
+	or	t1, t1, t0
+	sw	t1, 0x50(t2)
+#ifdef ENABLE_X_on_03
+	dli	t2, 0x90003ffdfb000000
+	lw	t1, 0x50(t2)
+	li	t0, 0x00400000
+	or	t1, t1, t0
+	sw	t1, 0x50(t2)
+#endif
+
+/* SET HT connection interleave between two LS3A chipses */ 
+	dli 	t0, 0x90000ffdfb000108;
+	lw  	a0, 0x00(t0);
+	li  	a1, 0xc0000000; 
+	or  	a0, a1;
+	sw  	a0, 0x00(t0);
+
+	dli 	t0, 0x90001ffdfb000108;
+	lw  	a0, 0x00(t0);
+	li  	a1, 0xc0000000; 
+	or  	a0, a1;
+	sw  	a0, 0x00(t0);
+
+	dli 	t0, 0x90002ffdfb000108;
+	lw  	a0, 0x00(t0);
+	li  	a1, 0xc0000000; 
+	or  	a0, a1;
+	sw  	a0, 0x00(t0);
+
+	dli 	t0, 0x90003ffdfb000108;
+	lw  	a0, 0x00(t0);
+	li  	a1, 0xc0000000; 
+	or  	a0, a1;
+	sw  	a0, 0x00(t0);
+
+#########TEST CLKSEL[15]
+	li	t2, 0xbfe00194
+	lw	t1, 0x0(t2)
+	andi	t1, 0x8000
+	bnez	t1, no_softconfig_x_ht1
+	nop
+
+//the config of CPU0 is include in HT IO link
+	TTYDBG("Setting CPU1/2/3 HyperTransport Controller to be soft config\r\n")
+	li	t0, (HT1_X_PHY_LO_DIV << 22) | (HT1_X_PHY_HI_DIV << 18) | (HT1_X_DIV_REFC << 16) | \
+                    (HT1_X_DIV_LOOPC  <<  9) | (HT1_X_CORE_DIV   <<  5) | 0x3
+
+	dli	t2, 0x90001efdfb000000
+	sw	t0, 0x178(t2)
+	lw      a0, 0x178(t2)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+
+	dli	t2, 0x90002efdfb000000
+	sw	t0, 0x178(t2)
+	lw      a0, 0x178(t2)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+
+	dli	t2, 0x90003efdfb000000
+	sw	t0, 0x178(t2)
+	lw      a0, 0x178(t2)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+
+no_softconfig_x_ht1:
+#ifdef INTERCONNECTION_X_HT1_1_0
+
+//This part may not affect even the SOFT PLL config is used
+###################### HT_HI@CPU1
+	dli	a0, 0x90001ffdfb000000
+#ifdef HT1_X_800M
+	//set 800 Mhz HT HOST
+	lw  	a1, 0x48(a0)
+	li  	a2, 0x500 ##800Mhz
+	or  	a1, a1, a2  
+	sw  	a1, 0x48(a0)
+#endif
+
+	//set 8 bit HT HOST
+	lw  	a1, 0x44(a0)
+	li  	a2, 0x88ffffff        ##8bit mode
+	and 	a1, a1, a2            ##set to 8 bit mode
+	sw  	a1, 0x44(a0)
+
+###################### HT_HI@CPU0
+	dli	a0, 0x90000ffdfb000000
+#ifdef HT1_X_800M
+	//set 800 Mhz HT HOST
+	lw  	a1, 0x48(a0)
+	li  	a2, 0x500 ##800Mhz
+	or  	a1, a1, a2  
+	sw  	a1, 0x48(a0)
+#endif
+
+	//set 8 bit HT HOST
+	lw  	a1, 0x44(a0)
+	li  	a2, 0x88ffffff        ##8bit mode
+	and 	a1, a1, a2            ##set to 8 bit mode
+	sw  	a1, 0x44(a0)
+
+###################### HT_HI@CPU3
+	dli	a0, 0x90003ffdfb000000
+#ifdef HT1_X_800M
+	//set 800 Mhz HT HOST
+	lw  	a1, 0x48(a0)
+	li  	a2, 0x500 ##800Mhz
+	or  	a1, a1, a2  
+	sw  	a1, 0x48(a0)
+#endif
+
+	//set 8 bit HT HOST
+	lw  	a1, 0x44(a0)
+	li  	a2, 0x88ffffff        ##8bit mode
+	and 	a1, a1, a2            ##set to 8 bit mode
+	sw  	a1, 0x44(a0)
+
+###################### HT_HI@CPU2
+	dli	a0, 0x90002ffdfb000000
+#ifdef HT1_X_800M
+	//set 800 Mhz HT HOST
+	lw  	a1, 0x48(a0)
+	li  	a2, 0x500 ##800Mhz
+	or  	a1, a1, a2  
+	sw  	a1, 0x48(a0)
+#endif
+
+	//set 8 bit HT HOST
+	lw  	a1, 0x44(a0)
+	li  	a2, 0x88ffffff        ##8bit mode
+	and 	a1, a1, a2            ##set to 8 bit mode
+	sw  	a1, 0x44(a0)
+
+	TTYDBG("HT1.0 used on x\r\n")
+#else
+	TTYDBG("HT3.0 used on X \r\n")
+
+#####HT3.0 reconnection
+
+/*
+###################### HT_HI@CPU0
+	dli 	a0, 0x90000ffdfb000000
+	//set 8 bit HT HOST
+	lw  	a1, 0x44(a0)
+	li  	a2, 0x88ffffff        ##8bit mode
+	and 	a1, a1, a2            ##set to 8 bit mode
+	sw  	a1, 0x44(a0)
+
+###################### HT_HI@CPU1
+	dli 	a0, 0x90001ffdfb000000
+	//set 8 bit HT HOST
+	lw  	a1, 0x44(a0)
+	li  	a2, 0x88ffffff        ##8bit mode
+	and 	a1, a1, a2            ##set to 8 bit mode
+	sw  	a1, 0x44(a0)
+
+###################### HT_HI@CPU2
+	dli 	a0, 0x90002ffdfb000000
+	//set 8 bit HT HOST
+	lw  	a1, 0x44(a0)
+	li  	a2, 0x88ffffff        ##8bit mode
+	and 	a1, a1, a2            ##set to 8 bit mode
+	sw  	a1, 0x44(a0)
+
+###################### HT_HI@CPU3
+	dli 	a0, 0x90003ffdfb000000
+	//set 8 bit HT HOST
+	lw  	a1, 0x44(a0)
+	li  	a2, 0x88ffffff        ##8bit mode
+	and 	a1, a1, a2            ##set to 8 bit mode
+	sw  	a1, 0x44(a0)
+*/
+
+
+#ifdef HT1_X_3200M
+	TTYDBG("Setting CPU0/1 HyperTransport Controller to be 3200Mhz\r\n")
+	li	t0, 0xf //Frequency: 2400 Mhz
+#else
+#ifdef HT1_X_2400M
+	TTYDBG("Setting CPU0/1 HyperTransport Controller to be 2400Mhz\r\n")
+	li	t0, 0xd //Frequency: 2400 Mhz
+#else
+#ifdef HT1_X_2200M
+	TTYDBG("Setting CPU0/1 HyperTransport Controller to be 2200Mhz\r\n")
+	li	t0, 0xc //Frequency: 2200 Mhz
+#else
+#ifdef HT1_X_2000M
+	TTYDBG("Setting CPU0/1 HyperTransport Controller to be 2000Mhz\r\n")
+	li	t0, 0xb //Frequency: 2000 Mhz
+#else
+#ifdef HT1_X_1800M
+	TTYDBG("Setting CPU0/1 HyperTransport Controller to be 1800Mhz\r\n")
+	li	t0, 0xa //Frequency: 1800 Mhz
+#else
+#ifdef HT1_X_1600M
+	TTYDBG("Setting CPU0/1 HyperTransport Controller to be 1600Mhz\r\n")
+	li	t0, 0x9 //Frequency: 1600 Mhz
+#else
+#ifdef HT1_X_1200M
+	TTYDBG("Setting CPU0/1 HyperTransport Controller to be 1200Mhz\r\n")
+	li	t0, 0x7 //Frequency: 1200 Mhz
+#else
+#ifdef HT1_X_200M
+	TTYDBG("Setting CPU0/1 HyperTransport Controller to be 200Mhz\r\n")
+	#li	t0, 0x2 //Frequency: 400 Mhz
+	#li	t0, 0x0 //Frequency: 1200 Mhz
+	li	t0, 0x1 //Frequency: 200 Mhz
+#endif
+#endif
+#endif
+#endif
+#endif
+#endif
+#endif
+#endif
+
+	dli	t2, 0x90000ffdfb000000
+	sb 	t0, 0x49(t2)
+	dli	t2, 0x90001ffdfb000000
+	sb 	t0, 0x49(t2)
+	dli	t2, 0x90002ffdfb000000
+	sb 	t0, 0x49(t2)
+	dli	t2, 0x90003ffdfb000000
+	sb 	t0, 0x49(t2)
+
+	TTYDBG("Setting CPU0 HT1 HI HyperTransport Controller to be GEN3 mode\r\n")
+	dli	t2, 0x90000ffdfb000000
+	li 	t0, 0x88600000
+	sw 	t0, 0x110(t2)
+	lw      a0, 0x110(t2)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+
+	TTYDBG("Setting CPU0 HT1 HI HyperTransport Controller to be retry mode\r\n")
+	dli	t2, 0x90000ffdfb000000
+	li 	t0, 0x81
+	sb 	t0, 0x118(t2)
+	lw      a0, 0x118(t2)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+
+	TTYDBG("Enable CPU0 HT1 HI HyperTransport Controller scrambling\r\n")
+	dli	t2, 0x90000ffdfb000000
+	li 	t0, 0x78
+	sb 	t0, 0x130(t2)
+	lw      a0, 0x130(t2)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+
+	TTYDBG("Setting CPU1 HT1 HI HyperTransport Controller to be GEN3 mode\r\n")
+	dli	t2, 0x90001ffdfb000000
+	li 	t0, 0x88600000
+	sw 	t0, 0x110(t2)
+	lw      a0, 0x110(t2)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+
+	TTYDBG("Setting CPU1 HT1 HI HyperTransport Controller to be retry mode\r\n")
+	dli	t2, 0x90001ffdfb000000
+	li 	t0, 0x81
+	sb 	t0, 0x118(t2)
+	lw      a0, 0x118(t2)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+
+	TTYDBG("Enable CPU1 HT1 HI HyperTransport Controller scrambling\r\n")
+	dli	t2, 0x90001ffdfb000000
+	li 	t0, 0x78
+	sb 	t0, 0x130(t2)
+	lw      a0, 0x130(t2)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+
+	TTYDBG("Setting CPU2 HT1 HI HyperTransport Controller to be GEN3 mode\r\n")
+	dli	t2, 0x90002ffdfb000000
+	li 	t0, 0x88600000
+	sw 	t0, 0x110(t2)
+	lw      a0, 0x110(t2)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+
+	TTYDBG("Setting CPU2 HT1 HI HyperTransport Controller to be retry mode\r\n")
+	dli	t2, 0x90002ffdfb000000
+	li 	t0, 0x81
+	sb 	t0, 0x118(t2)
+	lw      a0, 0x118(t2)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+
+	TTYDBG("Enable CPU2 HT1 HI HyperTransport Controller scrambling\r\n")
+	dli	t2, 0x90002ffdfb000000
+	li 	t0, 0x78
+	sb 	t0, 0x130(t2)
+	lw      a0, 0x130(t2)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+
+	TTYDBG("Setting CPU3 HT1 HI HyperTransport Controller to be GEN3 mode\r\n")
+	dli	t2, 0x90003ffdfb000000
+	li 	t0, 0x88600000
+	sw 	t0, 0x110(t2)
+	lw      a0, 0x110(t2)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+
+	TTYDBG("Setting CPU3 HT1 HI HyperTransport Controller to be retry mode\r\n")
+	dli	t2, 0x90003ffdfb000000
+	li 	t0, 0x81
+	sb 	t0, 0x118(t2)
+	lw      a0, 0x118(t2)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+
+	TTYDBG("Enable CPU3 HT1 HI HyperTransport Controller scrambling\r\n")
+	dli	t2, 0x90003ffdfb000000
+	li 	t0, 0x78
+	sb 	t0, 0x130(t2)
+	lw      a0, 0x130(t2)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+
+#endif
+
+//reset links
+#ifdef ENABLE_X_on_03
+	TTYDBG("Start reset X link 0-3 \r\n")
+	dli	t2, 0x90000ffdfb000000
+	lw	t1, 0x3c(t2)
+	li	t0, 0x00400000
+	or	t1, t1, t0
+	sw	t1, 0x3c(t2)
+1:
+	lw	t0, 0x3c(t2)
+	bne	t1, t0, 1b
+	nop
+
+//MAKE the PLL change on CPU3, while CPU0 is changed along with HT1 IO link
+	dli	t2, 0x90003efdfb000000
+	lw	t1, 0x3c(t2)
+	li	t0, 0x00400000
+	or	t1, t1, t0
+	sw	t1, 0x3c(t2)
+1:
+	lw	t0, 0x3c(t2)
+	bne	t1, t0, 1b
+	nop
+
+	dli	t2, 0x90000ffdfb000000
+//check if link down
+1:
+	lw      a0, 0x44(t2)
+	li	a1, 0x20
+	and	a0, a0, a1
+
+	bnez	a0, 1b
+	nop
+
+	dli	t2, 0x90003ffdfb000000
+1:
+	lw      a0, 0x44(t2)
+	li	a1, 0x20
+	and	a0, a0, a1
+
+	bnez	a0, 1b
+	nop
+
+#endif
+
+	TTYDBG("Start reset X link 1-2 \r\n")
+	dli	t2, 0x90001ffdfb000000
+	lw	t1, 0x3c(t2)
+	li	t0, 0x00400000
+	or	t1, t1, t0
+	sw	t1, 0x3c(t2)
+1:
+	lw	t0, 0x3c(t2)
+	bne	t1, t0, 1b
+	nop
+
+//MAKE the PLL change on CPU1/CPU2
+	dli	t2, 0x90001efdfb000000
+	lw	t1, 0x3c(t2)
+	li	t0, 0x00400000
+	or	t1, t1, t0
+	sw	t1, 0x3c(t2)
+1:
+	lw	t0, 0x3c(t2)
+	bne	t1, t0, 1b
+	nop
+
+	dli	t2, 0x90002efdfb000000
+	lw	t1, 0x3c(t2)
+	li	t0, 0x00400000
+	or	t1, t1, t0
+	sw	t1, 0x3c(t2)
+1:
+	lw	t0, 0x3c(t2)
+	bne	t1, t0, 1b
+	nop
+
+//check if link down
+1:
+	lw      a0, 0x44(t2)
+	li	a1, 0x20
+	and	a0, a0, a1
+
+	bnez	a0, 1b
+	nop
+
+	dli	t2, 0x90002ffdfb000000
+1:
+	lw      a0, 0x44(t2)
+	li	a1, 0x20
+	and	a0, a0, a1
+
+	bnez	a0, 1b
+	nop
+
+
+//put the HT init here for the PLL config of HT1 on CPU0
+
+#include "loongson3_HT_init.S"
+
+
+	dli	t2, 0x90001efdfb000000
+	lw	t1, 0x3c(t2)
+	li	t0, 0xffbfffff
+	and	t1, t1, t0
+	sw	t1, 0x3c(t2)
+
+	dli	t2, 0x90002efdfb000000
+	lw	t1, 0x3c(t2)
+	li	t0, 0xffbfffff
+	and	t1, t1, t0
+	sw	t1, 0x3c(t2)
+
+	dli	t2, 0x90003efdfb000000
+	lw	t1, 0x3c(t2)
+	li	t0, 0xffbfffff
+	and	t1, t1, t0
+	sw	t1, 0x3c(t2)
+
+//release the reset of HT1 HI
+	dli	t2, 0x90000ffdfb000000
+	lw	t1, 0x3c(t2)
+	li	t0, 0xffbfffff
+	and	t1, t1, t0
+	sw	t1, 0x3c(t2)
+
+	dli	t2, 0x90001ffdfb000000
+	lw	t1, 0x3c(t2)
+	li	t0, 0xffbfffff
+	and	t1, t1, t0
+	sw	t1, 0x3c(t2)
+
+#if 1//wait until HT link up
+    	TTYDBG("Waiting HyperTransport bus on CPU0 HT1 HI to be up.")
+    	dli     t0, 0x90000ffdfb000000
+	li	t1, 0x1f
+1:
+    	lw      a0, 0x44(t0)
+	#bal	hexserial
+    	nop
+	beqz	t1,2f
+    	nop
+	TTYDBG(">")
+	addi	t1, t1, -1
+	b	3f
+    	nop
+2:
+	TTYDBG("\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b=")
+	li	t1, 0x1f
+
+3:
+    	lw      a0, 0x44(t0)
+	li	a1, 0x20
+	and	a0, a0, a1
+
+    	beqz	a0, 1b
+	nop
+
+	TTYDBG("\r\n")
+    	lw      a0, 0x44(t0)
+	bal	hexserial
+    	nop
+	TTYDBG("\r\n")
+#endif
+
+#if 1//wait until HT link up
+    	TTYDBG("Waiting HyperTransport bus on CPU3 HT1 HI to be up.")
+    	dli     t0, 0x90003ffdfb000000
+	li	t1, 0x1f
+1:
+    	lw      a0, 0x44(t0)
+	#bal	hexserial
+    	nop
+	beqz	t1,2f
+    	nop
+	TTYDBG(">")
+	addi	t1, t1, -1
+	b	3f
+    	nop
+2:
+	TTYDBG("\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b=")
+	li	t1, 0x1f
+
+3:
+    	lw      a0, 0x44(t0)
+	li	a1, 0x20
+	and	a0, a0, a1
+
+    	beqz	a0, 1b
+	nop
+
+	TTYDBG("\r\n")
+    	lw      a0, 0x44(t0)
+	bal	hexserial
+    	nop
+	TTYDBG("\r\n")
+#endif
+
+
+
+#if 1//wait until HT link up
+	TTYDBG("Waiting HyperTransport bus on CPU1 HT1 HI to be up.")
+	dli     t0, 0x90001ffdfb000000
+	li	t1, 0x1f
+1:
+	lw      a0, 0x44(t0)
+	#bal	hexserial
+	nop
+	beqz	t1,2f
+	nop
+	TTYDBG(">")
+	addi	t1, t1, -1
+	b	3f
+	nop
+2:
+	TTYDBG("\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b=")
+	li	t1, 0x1f
+
+3:
+	lw      a0, 0x44(t0)
+	li	a1, 0x20
+	and	a0, a0, a1
+
+	beqz	a0, 1b
+	nop
+
+	TTYDBG("\r\n")
+	lw      a0, 0x44(t0)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+#endif
+
+#if 1//wait until HT link up
+	TTYDBG("Waiting HyperTransport bus on CPU2 HT1 HI to be up.")
+	dli     t0, 0x90002ffdfb000000
+	li	t1, 0x1f
+1:
+	lw      a0, 0x44(t0)
+	#bal	hexserial
+	nop
+	beqz	t1,2f
+	nop
+	TTYDBG(">")
+	addi	t1, t1, -1
+	b	3f
+	nop
+2:
+	TTYDBG("\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b=")
+	li	t1, 0x1f
+
+3:
+	lw      a0, 0x44(t0)
+	li	a1, 0x20
+	and	a0, a0, a1
+
+	beqz	a0, 1b
+	nop
+
+	TTYDBG("\r\n")
+	lw      a0, 0x44(t0)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+#endif
+
+
+
+//Enable X
+	TTYDBG("Enable X routing\r\n")
+
+#ifdef ENABLE_X_on_03
+#ifdef DISABLE_X_0to3
+#else
+	dli	t2, 0x900000003ff00400
+	lw	t1, 0x0(t2)
+	li	t0, 0x00000100
+	or	t1, t1, t0
+	sw	t1, 0x0(t2)
+#endif
+#endif
+	dli	t2, 0x900010003ff00400
+	lw	t1, 0x0(t2)
+	li	t0, 0x00000100
+	or	t1, t1, t0
+	sw	t1, 0x0(t2)
+	dli	t2, 0x900020003ff00400
+	lw	t1, 0x0(t2)
+	li	t0, 0x00000100
+	or	t1, t1, t0
+	sw	t1, 0x0(t2)
+#ifdef ENABLE_X_on_03
+#ifdef DISABLE_X_3to0
+#else
+	dli	t2, 0x900030003ff00400
+	lw	t1, 0x0(t2)
+	li	t0, 0x00000100
+	or	t1, t1, t0
+	sw	t1, 0x0(t2)
+#endif
+#endif
+
+	TTYDBG("X routing enabled\r\n")
+#endif
+
+#if 1
+/* SET HT connection interleave between two LS3A chipses */ 
+	dli 	t0, 0x90000cfdfb000108;
+	lw  	a0, 0x00(t0);
+	li  	a1, 0xc0000000; 
+	or  	a0, a1;
+	sw  	a0, 0x00(t0);
+
+	dli 	t0, 0x90001dfdfb000108;
+	lw  	a0, 0x00(t0);
+	li  	a1, 0xc0000000; 
+	or  	a0, a1;
+	sw  	a0, 0x00(t0);
+
+	dli 	t0, 0x90000dfdfb000108;
+	lw  	a0, 0x00(t0);
+	li  	a1, 0xc0000000; 
+	or  	a0, a1;
+	sw  	a0, 0x00(t0);
+
+	dli 	t0, 0x90002cfdfb000108;
+	lw  	a0, 0x00(t0);
+	li  	a1, 0xc0000000; 
+	or  	a0, a1;
+	sw  	a0, 0x00(t0);
+
+	dli 	t0, 0x90001cfdfb000108;
+	lw  	a0, 0x00(t0);
+	li  	a1, 0xc0000000; 
+	or  	a0, a1;
+	sw  	a0, 0x00(t0);
+
+	dli 	t0, 0x90003dfdfb000108;
+	lw  	a0, 0x00(t0);
+	li  	a1, 0xc0000000; 
+	or  	a0, a1;
+	sw  	a0, 0x00(t0);
+
+	dli 	t0, 0x90002dfdfb000108;
+	lw  	a0, 0x00(t0);
+	li  	a1, 0xc0000000; 
+	or  	a0, a1;
+	sw  	a0, 0x00(t0);
+
+	dli 	t0, 0x90003cfdfb000108;
+	lw  	a0, 0x00(t0);
+	li  	a1, 0xc0000000; 
+	or  	a0, a1;
+	sw  	a0, 0x00(t0);
+
+#ifdef HT0_RECONNECT
+	TTYDBG("HT0 frequency reconfig \r\n")
+
+#########TEST CLKSEL[15]
+	li	t2,0xbfe00194
+	lw	t1, 0x0(t2)
+	andi	t1, 0x8000
+	bnez	t1, no_softconfig_ht
+	nop
+
+
+#ifdef HT0_3200M
+	TTYDBG("Setting CPU0/1/2/3 HyperTransport Controller to be soft config 3200\r\n")
+#else
+#ifdef HT0_2800M
+	TTYDBG("Setting CPU0/1/2/3 HyperTransport Controller to be soft config 2800\r\n")
+#else
+#ifdef HT0_2400M
+	TTYDBG("Setting CPU0/1/2/3 HyperTransport Controller to be soft config 2400\r\n")
+#else
+#ifdef HT0_2200M
+	TTYDBG("Setting CPU0/1/2/3 HyperTransport Controller to be soft config 2200\r\n")
+#else
+#ifdef HT0_2000M
+	TTYDBG("Setting CPU0/1/2/3 HyperTransport Controller to be soft config 2000\r\n")
+#else
+#ifdef HT0_1800M
+	TTYDBG("Setting CPU0/1/2/3 HyperTransport Controller to be soft config 1800\r\n")
+#else
+#ifdef HT0_1600M
+	TTYDBG("Setting CPU0/1/2/3 HyperTransport Controller to be soft config 1600\r\n")
+#else
+#ifdef HT0_1200M
+	TTYDBG("Setting CPU0/1/2/3 HyperTransport Controller to be soft config 1200\r\n")
+#else
+#ifdef HT0_800M
+	TTYDBG("Setting CPU0/1/2/3 HyperTransport Controller to be soft config 800\r\n")
+#else
+#ifdef HT0_400M
+	TTYDBG("Setting CPU0/1/2/3 HyperTransport Controller to be soft config 400\r\n")
+#else
+	TTYDBG("Setting CPU0/1/2/3 HyperTransport Controller to be soft config 200\r\n")
+#endif
+#endif
+#endif
+#endif
+#endif
+#endif
+#endif
+#endif
+#endif
+#endif
+	li	t0, (HT0_PHY_LO_DIV << 22) | (HT0_PHY_HI_DIV << 18) | (HT0_DIV_REFC << 16) | (HT0_DIV_LOOPC << 9) | (HT0_CORE_DIV << 5) | 0x3
+
+	dli	t2, 0x90000cfdfb000000
+	sw 	t0, 0x178(t2)
+	//dli	t2, 0x90001dfdfb000000
+	//sw 	t0, 0x178(t2)
+	dli	t2, 0x90002cfdfb000000
+	sw 	t0, 0x178(t2)
+	//dli	t2, 0x90000dfdfb000000
+	//sw 	t0, 0x178(t2)
+	dli	t2, 0x90001cfdfb000000
+	sw 	t0, 0x178(t2)
+	//dli	t2, 0x90003dfdfb000000
+	//sw 	t0, 0x178(t2)
+	dli	t2, 0x90003cfdfb000000
+	sw 	t0, 0x178(t2)
+	//dli	t2, 0x90002dfdfb000000
+	//sw 	t0, 0x178(t2)
+
+	dli	t2, 0x90000cfdfb000000
+	lw 	a0, 0x178(t2)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+
+	//dli	t2, 0x90001dfdfb000000
+	//lw 	a0, 0x178(t2)
+	//bal	hexserial
+	//nop
+	//TTYDBG("\r\n")
+
+	dli	t2, 0x90002cfdfb000000
+	lw 	a0, 0x178(t2)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+
+	//dli	t2, 0x90000dfdfb000000
+	//lw 	a0, 0x178(t2)
+	//bal	hexserial
+	//nop
+	//TTYDBG("\r\n")
+
+	dli	t2, 0x90001cfdfb000000
+	lw 	a0, 0x178(t2)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+
+	//dli	t2, 0x90003dfdfb000000
+	//lw 	a0, 0x178(t2)
+	//bal	hexserial
+	//nop
+	//TTYDBG("\r\n")
+
+	dli	t2, 0x90003cfdfb000000
+	lw 	a0, 0x178(t2)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+
+	//dli	t2, 0x90002dfdfb000000
+	//lw 	a0, 0x178(t2)
+	//bal	hexserial
+	//nop
+	//TTYDBG("\r\n")
+
+no_softconfig_ht:
+#ifdef INTERCONNECTION_HT0_1_0
+	TTYDBG("HT1.0 used \r\n")
+
+###################### HT_HI@CPU1
+	dli	a0, 0x90001dfdfb000000
+	//set 800 Mhz HT HOST
+	lw  	a1, 0x48(a0)
+	li  	a2, 0x500 ##800Mhz
+	or  	a1, a1, a2  
+	sw  	a1, 0x48(a0)
+
+	//set 8 bit HT HOST
+	lw  	a1, 0x44(a0)
+	li  	a2, 0x88ffffff        ##8bit mode
+	and 	a1, a1, a2            ##set to 8 bit mode
+	sw  	a1, 0x44(a0)
+
+###################### HT_LO@CPU0
+	dli 	a0, 0x90000cfdfb000000
+	//set 800 Mhz HT HOST
+	lw  	a1, 0x48(a0)
+	li  	a2, 0x500 ##800Mhz
+	or  	a1, a1, a2 ##
+	sw  	a1, 0x48(a0)
+
+	//set 8 bit HT HOST
+	lw  	a1, 0x44(a0)
+	li  	a2, 0x88ffffff        ##8bit mode
+	and 	a1, a1, a2            ##set to 8 bit mode
+	sw  	a1, 0x44(a0)
+
+###################### HT_HI@CPU0
+	dli	a0, 0x90000dfdfb000000
+	//set 800 Mhz HT HOST
+	lw  	a1, 0x48(a0)
+	li  	a2, 0x500 ##800Mhz
+	or  	a1, a1, a2  
+	sw  	a1, 0x48(a0)
+
+	//set 8 bit HT HOST
+	lw  	a1, 0x44(a0)
+	li  	a2, 0x88ffffff        ##8bit mode
+	and 	a1, a1, a2            ##set to 8 bit mode
+	sw  	a1, 0x44(a0)
+
+###################### HT_LO@CPU2
+	dli 	a0, 0x90002cfdfb000000
+	//set 800 Mhz HT HOST
+	lw  	a1, 0x48(a0)
+	li  	a2, 0x500 ##800Mhz
+	or  	a1, a1, a2 ##
+	sw  	a1, 0x48(a0)
+
+	//set 8 bit HT HOST
+	lw  	a1, 0x44(a0)
+	li  	a2, 0x88ffffff        ##8bit mode
+	and 	a1, a1, a2            ##set to 8 bit mode
+	sw  	a1, 0x44(a0)
+
+###################### HT_HI@CPU3
+	dli	a0, 0x90003dfdfb000000
+	//set 800 Mhz HT HOST
+	lw  	a1, 0x48(a0)
+	li  	a2, 0x500 ##800Mhz
+	or  	a1, a1, a2  
+	sw  	a1, 0x48(a0)
+
+	//set 8 bit HT HOST
+	lw  	a1, 0x44(a0)
+	li  	a2, 0x88ffffff        ##8bit mode
+	and 	a1, a1, a2            ##set to 8 bit mode
+	sw  	a1, 0x44(a0)
+
+###################### HT_LO@CPU1
+	dli 	a0, 0x90001cfdfb000000
+	//set 800 Mhz HT HOST
+	lw  	a1, 0x48(a0)
+	li  	a2, 0x500 ##800Mhz
+	or  	a1, a1, a2 ##
+	sw  	a1, 0x48(a0)
+
+	//set 8 bit HT HOST
+	lw  	a1, 0x44(a0)
+	li  	a2, 0x88ffffff        ##8bit mode
+	and 	a1, a1, a2            ##set to 8 bit mode
+	sw  	a1, 0x44(a0)
+
+###################### HT_HI@CPU2
+	dli	a0, 0x90002dfdfb000000
+	//set 800 Mhz HT HOST
+	lw  	a1, 0x48(a0)
+	li  	a2, 0x500 ##800Mhz
+	or  	a1, a1, a2  
+	sw  	a1, 0x48(a0)
+
+	//set 8 bit HT HOST
+	lw  	a1, 0x44(a0)
+	li  	a2, 0x88ffffff        ##8bit mode
+	and 	a1, a1, a2            ##set to 8 bit mode
+	sw  	a1, 0x44(a0)
+
+###################### HT_LO@CPU3
+	dli 	a0, 0x90003cfdfb000000
+	//set 800 Mhz HT HOST
+	lw  	a1, 0x48(a0)
+	li  	a2, 0x500 ##800Mhz
+	or  	a1, a1, a2 ##
+	sw  	a1, 0x48(a0)
+
+	//set 8 bit HT HOST
+	lw  	a1, 0x44(a0)
+	li  	a2, 0x88ffffff        ##8bit mode
+	and 	a1, a1, a2            ##set to 8 bit mode
+	sw  	a1, 0x44(a0)
+
+#else
+
+	TTYDBG("HT3.0 used \r\n")
+#####HT3.0 reconnection
+
+###################### HT_HI@CPU1
+	dli 	a0, 0x90001dfdfb000000
+	//set 8 bit HT HOST
+	lw  	a1, 0x44(a0)
+	li  	a2, 0x88ffffff        ##8bit mode
+	and 	a1, a1, a2            ##set to 8 bit mode
+	li  	a2, 0x11000000        ##16bit
+	sw  	a1, 0x44(a0)
+
+###################### HT_LO@CPU0
+	dli 	a0, 0x90000cfdfb000000
+	//set 8 bit HT HOST
+	lw  	a1, 0x44(a0)
+	li  	a2, 0x88ffffff        ##8bit mode
+	and 	a1, a1, a2            ##set to 8 bit mode
+	li  	a2, 0x11000000        ##16bit
+	sw  	a1, 0x44(a0)
+
+###################### HT_HI@CPU0
+	dli 	a0, 0x90000dfdfb000000
+	//set 8 bit HT HOST
+	lw  	a1, 0x44(a0)
+	li  	a2, 0x88ffffff        ##8bit mode
+	and 	a1, a1, a2            ##set to 8 bit mode
+	li  	a2, 0x11000000        ##16bit
+	sw  	a1, 0x44(a0)
+
+###################### HT_LO@CPU2
+	dli 	a0, 0x90002cfdfb000000
+	//set 8 bit HT HOST
+	lw  	a1, 0x44(a0)
+	li  	a2, 0x88ffffff        ##8bit mode
+	and 	a1, a1, a2            ##set to 8 bit mode
+	li  	a2, 0x11000000        ##16bit
+	sw  	a1, 0x44(a0)
+
+###################### HT_HI@CPU3
+	dli 	a0, 0x90003dfdfb000000
+	//set 8 bit HT HOST
+	lw  	a1, 0x44(a0)
+	li  	a2, 0x88ffffff        ##8bit mode
+	and 	a1, a1, a2            ##set to 8 bit mode
+	li  	a2, 0x11000000        ##16bit
+	sw  	a1, 0x44(a0)
+
+###################### HT_LO@CPU1
+	dli 	a0, 0x90001cfdfb000000
+	//set 8 bit HT HOST
+	lw  	a1, 0x44(a0)
+	li  	a2, 0x88ffffff        ##8bit mode
+	and 	a1, a1, a2            ##set to 8 bit mode
+	li  	a2, 0x11000000        ##16bit
+	sw  	a1, 0x44(a0)
+
+###################### HT_HI@CPU2
+	dli 	a0, 0x90002dfdfb000000
+	//set 8 bit HT HOST
+	lw  	a1, 0x44(a0)
+	li  	a2, 0x88ffffff        ##8bit mode
+	and 	a1, a1, a2            ##set to 8 bit mode
+	li  	a2, 0x11000000        ##16bit
+	sw  	a1, 0x44(a0)
+
+###################### HT_LO@CPU3
+	dli 	a0, 0x90003cfdfb000000
+	//set 8 bit HT HOST
+	lw  	a1, 0x44(a0)
+	li  	a2, 0x88ffffff        ##8bit mode
+	and 	a1, a1, a2            ##set to 8 bit mode
+	li  	a2, 0x11000000        ##16bit
+	sw  	a1, 0x44(a0)
+
+
+#ifdef HT0_3200M
+	TTYDBG("Setting CPU0/1 HyperTransport Controller to be 3200Mhz\r\n")
+	li	t0, 0xf //Frequency: 2400 Mhz
+#else
+#ifdef HT0_2400M
+	TTYDBG("Setting CPU0/1 HyperTransport Controller to be 2400Mhz\r\n")
+	li	t0, 0xd //Frequency: 2400 Mhz
+#else
+#ifdef HT0_2200M
+	TTYDBG("Setting CPU0/1 HyperTransport Controller to be 2200Mhz\r\n")
+	li	t0, 0xc //Frequency: 2200 Mhz
+#else
+#ifdef HT0_2000M
+	TTYDBG("Setting CPU0/1 HyperTransport Controller to be 2000Mhz\r\n")
+	li	t0, 0xb //Frequency: 2000 Mhz
+#else
+#ifdef HT0_1800M
+	TTYDBG("Setting CPU0/1 HyperTransport Controller to be 1800Mhz\r\n")
+	li	t0, 0xa //Frequency: 1800 Mhz
+#else
+#ifdef HT0_1600M
+	TTYDBG("Setting CPU0/1 HyperTransport Controller to be 1600Mhz\r\n")
+	li	t0, 0x9 //Frequency: 1600 Mhz
+#else
+#ifdef HT0_1200M
+	TTYDBG("Setting CPU0/1 HyperTransport Controller to be 1200Mhz\r\n")
+	li	t0, 0x7 //Frequency: 1200 Mhz
+#ifdef HT0_800M
+	TTYDBG("Setting CPU0/1 HyperTransport Controller to be 800Mhz\r\n")
+	li	t0, 0x5 //Frequency: 800 Mhz
+#else
+#ifdef HT0_400M
+	TTYDBG("Setting CPU0/1 HyperTransport Controller to be 400Mhz\r\n")
+	li	t0, 0x5 //Frequency: 800 Mhz
+#else
+	TTYDBG("Setting CPU0/1 HyperTransport Controller to be 200Mhz\r\n")
+	#li	t0, 0x2 //Frequency: 400 Mhz
+	#li	t0, 0x0 //Frequency: 1200 Mhz
+	li	t0, 0x1 //Frequency: 200 Mhz
+#endif
+#endif
+#endif
+#endif
+#endif
+#endif
+#endif
+#endif
+#endif
+
+	dli	t2, 0x90000cfdfb000000
+	sb 	t0, 0x49(t2)
+	dli	t2, 0x90001dfdfb000000
+	sb 	t0, 0x49(t2)
+	dli	t2, 0x90002cfdfb000000
+	sb 	t0, 0x49(t2)
+	dli	t2, 0x90000dfdfb000000
+	sb 	t0, 0x49(t2)
+	dli	t2, 0x90001cfdfb000000
+	sb 	t0, 0x49(t2)
+	dli	t2, 0x90003dfdfb000000
+	sb 	t0, 0x49(t2)
+	dli	t2, 0x90003cfdfb000000
+	sb 	t0, 0x49(t2)
+	dli	t2, 0x90002dfdfb000000
+	sb 	t0, 0x49(t2)
+
+	dli	t2, 0x90000cfdfb000000
+	lw 	a0, 0x48(t2)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+	dli	t2, 0x90001dfdfb000000
+	lw 	a0, 0x48(t2)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+	dli	t2, 0x90002cfdfb000000
+	lw 	a0, 0x48(t2)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+	dli	t2, 0x90000dfdfb000000
+	lw 	a0, 0x48(t2)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+	dli	t2, 0x90001cfdfb000000
+	lw 	a0, 0x48(t2)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+	dli	t2, 0x90003dfdfb000000
+	lw 	a0, 0x48(t2)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+	dli	t2, 0x90003cfdfb000000
+	lw 	a0, 0x48(t2)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+	dli	t2, 0x90002dfdfb000000
+	lw 	a0, 0x48(t2)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+
+
+config_others:
+
+/*
+	dli	    t2, 0x90000cfdfb000000
+	li          t1, 0x30
+	lb          a0, 0x17f(t2)
+	or          a0, a0, t1
+	sb	    t0, 0x17f(t2)
+	lw          a0, 0x17c(t2)
+	bal	    hexserial
+	nop
+	TTYDBG("\r\n")
+	dli	    t2, 0x90001cfdfb000000
+	li          t1, 0x30
+	lb          a0, 0x17f(t2)
+	or          a0, a0, t1
+	sb	    t0, 0x17f(t2)
+	lw          a0, 0x17c(t2)
+	bal	    hexserial
+	nop
+	TTYDBG("\r\n")
+
+
+	dli	    t2, 0x90000cfdfb000000
+	li	    t0, 0x8fffffff
+	sw	    t0, 0x134(t2)
+	lw          a0, 0x134(t2)
+	bal	    hexserial
+	nop
+	TTYDBG("\r\n")
+	dli	    t2, 0x90000cfdfb000000
+	li	    t0, 0xffffffff
+	sw	    t0, 0x138(t2)
+	lw          a0, 0x138(t2)
+	bal	    hexserial
+	nop
+	TTYDBG("\r\n")
+	dli	    t2, 0x90000cfdfb000000
+	li	    t0, 0xffffffff
+	sw	    t0, 0x13c(t2)
+	lw          a0, 0x13c(t2)
+	bal	    hexserial
+	nop
+	TTYDBG("\r\n")
+	dli	    t2, 0x90000cfdfb000000
+	li	    t0, 0xffffffff
+	sw	    t0, 0x140(t2)
+	lw          a0, 0x140(t2)
+	bal	    hexserial
+	nop
+	TTYDBG("\r\n")
+	dli	    t2, 0x90000cfdfb000000
+	li	    t0, 0xffffffff
+	sw	    t0, 0x144(t2)
+	lw          a0, 0x144(t2)
+	bal	    hexserial
+	nop
+	TTYDBG("\r\n")
+
+	dli	    t2, 0x90001cfdfb000000
+	li	    t0, 0x8fffffff
+	sw	    t0, 0x134(t2)
+	lw      a0, 0x134(t2)
+	bal	    hexserial
+	nop
+	TTYDBG("\r\n")
+	dli	    t2, 0x90001cfdfb000000
+	li	    t0, 0xffffffff
+	sw	    t0, 0x138(t2)
+	lw      a0, 0x138(t2)
+	bal	    hexserial
+	nop
+	TTYDBG("\r\n")
+	dli	    t2, 0x90001cfdfb000000
+	li	    t0, 0xffffffff
+	sw	    t0, 0x13c(t2)
+	lw          a0, 0x13c(t2)
+	bal	    hexserial
+	nop
+	TTYDBG("\r\n")
+	dli	    t2, 0x90001cfdfb000000
+	li	    t0, 0xffffffff
+	sw	    t0, 0x140(t2)
+	lw          a0, 0x140(t2)
+	bal	    hexserial
+	nop
+	TTYDBG("\r\n")
+	dli	    t2, 0x90001cfdfb000000
+	li	    t0, 0xffffffff
+	sw	    t0, 0x144(t2)
+	lw          a0, 0x144(t2)
+	bal	    hexserial
+	nop
+	TTYDBG("\r\n")
+*/
+
+
+/*
+	TTYDBG("Setting CPU0 HyperTransport Controller to skip cdr lock\r\n")
+	dli	    t2, 0x90000cfdfb000000
+	li	    t0, 0xff
+	sw	    t0, 0x180(t2)
+	lw      a0, 0x180(t2)
+	bal	    hexserial
+	nop
+	TTYDBG("\r\n")
+
+	TTYDBG("Setting CPU1 HyperTransport Controller to skip cdr lock\r\n")
+	dli	    t2, 0x90001cfdfb000000
+	li	    t0, 0xff
+	sw	    t0, 0x180(t2)
+	lw      a0, 0x180(t2)
+	bal	    hexserial
+	nop
+	TTYDBG("\r\n")
+*/
+
+
+	TTYDBG("Setting CPU0 LO HyperTransport Controller to be GEN3 mode\r\n")
+	dli	t2, 0x90000cfdfb000000
+	li 	t0, 0x88600000
+	sw 	t0, 0x110(t2)
+	lw      a0, 0x110(t2)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+
+	TTYDBG("Setting CPU0 LO HyperTransport Controller to be retry mode\r\n")
+	dli	t2, 0x90000cfdfb000000
+	li 	t0, 0x81
+	sb 	t0, 0x118(t2)
+	lw      a0, 0x118(t2)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+
+	TTYDBG("Enable CPU0 LO HyperTransport Controller scrambling\r\n")
+	dli	t2, 0x90000cfdfb000000
+	li 	t0, 0x78
+	sb 	t0, 0x130(t2)
+	lw      a0, 0x130(t2)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+
+	TTYDBG("Setting CPU1 HI HyperTransport Controller to be GEN3 mode\r\n")
+	dli	t2, 0x90001dfdfb000000
+	li 	t0, 0x88600000
+	sw 	t0, 0x110(t2)
+	lw      a0, 0x110(t2)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+
+	TTYDBG("Setting CPU1 HI HyperTransport Controller to be retry mode\r\n")
+	dli	t2, 0x90001dfdfb000000
+	li 	t0, 0x81
+	sb 	t0, 0x118(t2)
+	lw      a0, 0x118(t2)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+
+	TTYDBG("Enable CPU1 HI HyperTransport Controller scrambling\r\n")
+	dli	t2, 0x90001dfdfb000000
+	li 	t0, 0x78
+	sb 	t0, 0x130(t2)
+	lw      a0, 0x130(t2)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+
+	TTYDBG("Setting CPU2 LO HyperTransport Controller to be GEN3 mode\r\n")
+	dli	t2, 0x90002cfdfb000000
+	li 	t0, 0x88600000
+	sw 	t0, 0x110(t2)
+	lw      a0, 0x110(t2)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+
+	TTYDBG("Setting CPU2 LO HyperTransport Controller to be retry mode\r\n")
+	dli	t2, 0x90002cfdfb000000
+	li 	t0, 0x81
+	sb 	t0, 0x118(t2)
+	lw      a0, 0x118(t2)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+
+	TTYDBG("Enable CPU2 LO HyperTransport Controller scrambling\r\n")
+	dli	t2, 0x90002cfdfb000000
+	li 	t0, 0x78
+	sb 	t0, 0x130(t2)
+	lw      a0, 0x130(t2)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+
+	TTYDBG("Setting CPU0 HI HyperTransport Controller to be GEN3 mode\r\n")
+	dli	t2, 0x90000dfdfb000000
+	li 	t0, 0x88600000
+	sw 	t0, 0x110(t2)
+	lw      a0, 0x110(t2)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+
+	TTYDBG("Setting CPU0 HI HyperTransport Controller to be retry mode\r\n")
+	dli	t2, 0x90000dfdfb000000
+	li 	t0, 0x81
+	sb 	t0, 0x118(t2)
+	lw      a0, 0x118(t2)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+
+	TTYDBG("Enable CPU0 HI HyperTransport Controller scrambling\r\n")
+	dli	t2, 0x90000dfdfb000000
+	li 	t0, 0x78
+	sb 	t0, 0x130(t2)
+	lw      a0, 0x130(t2)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+
+	TTYDBG("Setting CPU1 LO HyperTransport Controller to be GEN3 mode\r\n")
+	dli	t2, 0x90001cfdfb000000
+	li 	t0, 0x88600000
+	sw 	t0, 0x110(t2)
+	lw      a0, 0x110(t2)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+
+	TTYDBG("Setting CPU1 LO HyperTransport Controller to be retry mode\r\n")
+	dli	t2, 0x90001cfdfb000000
+	li 	t0, 0x81
+	sb 	t0, 0x118(t2)
+	lw      a0, 0x118(t2)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+
+	TTYDBG("Enable CPU1 LO HyperTransport Controller scrambling\r\n")
+	dli	t2, 0x90001cfdfb000000
+	li 	t0, 0x78
+	sb 	t0, 0x130(t2)
+	lw      a0, 0x130(t2)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+
+	TTYDBG("Setting CPU3 HI HyperTransport Controller to be GEN3 mode\r\n")
+	dli	t2, 0x90003dfdfb000000
+	li 	t0, 0x88600000
+	sw 	t0, 0x110(t2)
+	lw      a0, 0x110(t2)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+
+	TTYDBG("Setting CPU3 HI HyperTransport Controller to be retry mode\r\n")
+	dli	t2, 0x90003dfdfb000000
+	li 	t0, 0x81
+	sb 	t0, 0x118(t2)
+	lw      a0, 0x118(t2)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+
+	TTYDBG("Enable CPU3 HI HyperTransport Controller scrambling\r\n")
+	dli	t2, 0x90003dfdfb000000
+	li 	t0, 0x78
+	sb 	t0, 0x130(t2)
+	lw      a0, 0x130(t2)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+
+	TTYDBG("Setting CPU3 LO HyperTransport Controller to be GEN3 mode\r\n")
+	dli	t2, 0x90003cfdfb000000
+	li 	t0, 0x88600000
+	sw 	t0, 0x110(t2)
+	lw      a0, 0x110(t2)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+
+	TTYDBG("Setting CPU3 LO HyperTransport Controller to be retry mode\r\n")
+	dli	t2, 0x90003cfdfb000000
+	li 	t0, 0x81
+	sb 	t0, 0x118(t2)
+	lw      a0, 0x118(t2)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+
+	TTYDBG("Enable CPU3 LO HyperTransport Controller scrambling\r\n")
+	dli	t2, 0x90003cfdfb000000
+	li 	t0, 0x78
+	sb 	t0, 0x130(t2)
+	lw      a0, 0x130(t2)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+
+	TTYDBG("Setting CPU2 HI HyperTransport Controller to be GEN3 mode\r\n")
+	dli	t2, 0x90002dfdfb000000
+	li 	t0, 0x88600000
+	sw 	t0, 0x110(t2)
+	lw      a0, 0x110(t2)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+
+	TTYDBG("Setting CPU2 HI HyperTransport Controller to be retry mode\r\n")
+	dli	t2, 0x90002dfdfb000000
+	li 	t0, 0x81
+	sb 	t0, 0x118(t2)
+	lw      a0, 0x118(t2)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+
+	TTYDBG("Enable CPU2 HI HyperTransport Controller scrambling\r\n")
+	dli	t2, 0x90002dfdfb000000
+	li 	t0, 0x78
+	sb 	t0, 0x130(t2)
+	lw      a0, 0x130(t2)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+#endif
+
+#ifndef USE_HT_RESET
+###################### Disconnect
+	dli 	a0, 0x90000cfdfb000000
+	//Disconnect HT BUS 
+	lw  	a1, 0x50(a0)
+	li  	a2, 0x40000000
+	or  	a1, a1, a2
+	sw  	a1, 0x50(a0)
+
+	dli 	a0, 0x90001cfdfb000000
+	//Disconnect HT BUS 
+	lw  	a1, 0x50(a0)
+	li  	a2, 0x40000000
+	or  	a1, a1, a2
+	sw  	a1, 0x50(a0)
+
+	dli 	a0, 0x90002cfdfb000000
+	//Disconnect HT BUS 
+	lw  	a1, 0x50(a0)
+	li  	a2, 0x40000000
+	or  	a1, a1, a2
+	sw  	a1, 0x50(a0)
+
+	dli 	a0, 0x90003cfdfb000000
+	//Disconnect HT BUS 
+	lw  	a1, 0x50(a0)
+	li  	a2, 0x40000000
+	or  	a1, a1, a2
+	sw  	a1, 0x50(a0)
+
+#else
+#if 1//reset 0-1 HT
+reset_ht0:
+	TTYDBG("Reset CPU0 LO HyperTransport bus\r\n")
+	dli	t0, 0x90000cfdfb000000
+	lb      a0, 0x3e(t0)
+	li      a1, 0x40
+	or      a0, a0, a1
+	sb      a0, 0x3e(t0)
+	lw      a0, 0x3c(t0)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+#endif
+
+
+#if 1//wait until CPU0 HT link down
+	TTYDBG("Waiting CPU0 HyperTransport bus HT0 LO to be down.")
+	dli     t0, 0x90000cfdfb000000
+	li	t1, 0x1f
+1:
+	lw      a0, 0x44(t0)
+	#bal	hexserial
+	nop
+	beqz	t1,2f
+	nop
+	TTYDBG(">")
+	addi	t1, t1, -1
+	b	3f
+	nop
+2:
+	TTYDBG("\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b=")
+	li	    t1, 0x1f
+
+3:
+	lw      a0, 0x44(t0)
+	li	a1, 0x20
+	and	a0, a0, a1
+
+	bnez	a0, 1b
+	nop
+
+	TTYDBG("\r\n")
+	lw      a0, 0x44(t0)
+	bal	    hexserial
+	nop
+	TTYDBG("\r\n")
+#endif
+
+#ifdef HT_RESET_ALL_IN_ONE
+#if 1//wait until CPU0 HT link down
+	TTYDBG("Waiting CPU0 HyperTransport bus HT0 HI to be down.")
+	dli     t0, 0x90000dfdfb000000
+	li	t1, 0x1f
+1:
+	lw      a0, 0x44(t0)
+	#bal	hexserial
+	nop
+	beqz	t1,2f
+	nop
+	TTYDBG(">")
+	addi	t1, t1, -1
+	b	3f
+	nop
+2:
+	TTYDBG("\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b=")
+	li	t1, 0x1f
+
+3:
+	lw      a0, 0x44(t0)
+	li	a1, 0x20
+	and	a0, a0, a1
+
+	bnez	a0, 1b
+	nop
+
+	TTYDBG("\r\n")
+	lw      a0, 0x44(t0)
+	bal	    hexserial
+	nop
+	TTYDBG("\r\n")
+#endif
+#endif
+
+#if 1//release cpu0 HT
+	TTYDBG("Release HyperTransport bus\r\n")
+	dli	t0, 0x90000cfdfb000000
+	lb      a0, 0x3e(t0)
+	li      a1, 0xbf
+	and     a0, a0, a1
+	sb      a0, 0x3e(t0)
+	lw      a0, 0x3c(t0)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+#endif
+
+#if 1//wait until CPU0 HT link up
+	TTYDBG("Waiting CPU0 HyperTransport bus to be up.")
+	dli     t0, 0x90000cfdfb000000
+#ifdef RESET_AGAIN_WHEN_FAIL
+	li	t2, 0x3f
+#endif
+	li	t1, 0x1f
+1:
+#ifdef RESET_AGAIN_WHEN_FAIL
+	beqz	t2, reset_ht0
+	nop
+#endif
+	lw      a0, 0x11c(t0)
+	#bal	hexserial
+	nop
+	beqz	t1,2f
+	nop
+	TTYDBG(">")
+	addi	t1, t1, -1
+	b	3f
+	nop
+2:
+	TTYDBG("\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b=")
+	li	t1, 0x1f
+#ifdef RESET_AGAIN_WHEN_FAIL
+	addi	t2, t2, -1
+#endif
+
+3:
+	lw      a0, 0x44(t0)
+	li	a1, 0x20
+	and	a0, a0, a1
+
+	beqz	a0, 1b
+	nop
+
+	TTYDBG("\r\n")
+	lw      a0, 0x44(t0)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+#endif
+
+#if 1//wait until CPU1 HT link up
+	TTYDBG("Waiting CPU1 HI HyperTransport bus to be up.")
+	dli     t0, 0x90001dfdfb000000
+	li	t1, 0x1f
+1:
+	lw      a0, 0x44(t0)
+	#bal	hexserial
+	nop
+	beqz	t1,2f
+	TTYDBG(">")
+	addi	t1, t1, -1
+	b	3f
+	nop
+2:
+	TTYDBG("\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b=")
+	li	    t1, 0x1f
+
+3:
+	lw      a0, 0x44(t0)
+	li	a1, 0x20
+	and	a0, a0, a1
+
+	beqz	a0, 1b
+	nop
+
+	TTYDBG("\r\n")
+	lw      a0, 0x44(t0)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+#endif
+
+#ifdef HT_RESET_ALL_IN_ONE
+#else
+#if 1//reset 0-2 HT
+reset_ht1:
+	TTYDBG("Reset CPU0 HI HyperTransport bus\r\n")
+	dli	t0, 0x90000dfdfb000000
+	lb      a0, 0x3e(t0)
+	li      a1, 0x40
+	or      a0, a0, a1
+	sb      a0, 0x3e(t0)
+	lw      a0, 0x3c(t0)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+#endif
+
+
+#if 1//wait until CPU0 HT link down
+	TTYDBG("Waiting CPU0 HyperTransport bus to be down.")
+	dli     t0, 0x90000dfdfb000000
+	li	t1, 0x1f
+1:
+	lw      a0, 0x44(t0)
+	#bal	hexserial
+	nop
+	beqz	t1,2f
+	TTYDBG(">")
+	addi	t1, t1, -1
+	b	3f
+	nop
+2:
+	TTYDBG("\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b=")
+	li	t1, 0x1f
+
+3:
+	lw      a0, 0x44(t0)
+	li	a1, 0x20
+	and	a0, a0, a1
+
+	bnez	a0, 1b
+	nop
+
+	TTYDBG("\r\n")
+	lw      a0, 0x44(t0)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+#endif
+
+#if 1//release cpu0 HT
+	TTYDBG("Release HyperTransport bus\r\n")
+	dli	t0, 0x90000dfdfb000000
+	lb      a0, 0x3e(t0)
+	li      a1, 0xbf
+	and     a0, a0, a1
+	sb      a0, 0x3e(t0)
+	lw      a0, 0x3c(t0)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+#endif
+#endif
+
+#if 1//wait until CPU0 HT link up
+	TTYDBG("Waiting CPU0 HI HyperTransport bus to be up.")
+	dli     t0, 0x90000dfdfb000000
+#ifdef RESET_AGAIN_WHEN_FAIL
+	li	t2, 0x3f
+#endif
+	li	t1, 0x1f
+1:
+#ifdef RESET_AGAIN_WHEN_FAIL
+#ifdef HT_RESET_ALL_IN_ONE
+	beqz	t2, reset_ht0
+#else
+	beqz	t2, reset_ht1
+#endif
+	nop
+#endif
+	lw      a0, 0x11c(t0)
+	#bal	hexserial
+	nop
+	beqz	t1,2f
+	nop
+	TTYDBG(">")
+	addi	t1, t1, -1
+	b	3f
+	nop
+2:
+	TTYDBG("\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b=")
+	li	t1, 0x1f
+#ifdef RESET_AGAIN_WHEN_FAIL
+	addi	t2, t2, -1
+#endif
+
+3:
+	lw      a0, 0x44(t0)
+	li	a1, 0x20
+	and	a0, a0, a1
+
+	beqz	a0, 1b
+	nop
+
+	TTYDBG("\r\n")
+	lw      a0, 0x44(t0)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+#endif
+
+#if 1//wait until CPU1 HT link up
+	TTYDBG("Waiting CPU2 LO HyperTransport bus to be up.")
+	dli     t0, 0x90002cfdfb000000
+	li	t1, 0x1f
+1:
+	lw      a0, 0x44(t0)
+	#bal	hexserial
+	nop
+	beqz	t1,2f
+	TTYDBG(">")
+	addi	t1, t1, -1
+	b	3f
+	nop
+2:
+	TTYDBG("\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b=")
+	li	t1, 0x1f
+
+3:
+	lw      a0, 0x44(t0)
+	li	a1, 0x20
+	and	a0, a0, a1
+
+	beqz	a0, 1b
+	nop
+
+	TTYDBG("\r\n")
+	lw      a0, 0x44(t0)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+#endif
+
+#ifdef HT_RESET_ALL_IN_ONE
+#else
+#if 1//reset 1-3 HT
+reset_ht2:
+	TTYDBG("Reset CPU1 LO HyperTransport bus\r\n")
+	dli	t0, 0x90001cfdfb000000
+	lb      a0, 0x3e(t0)
+	li      a1, 0x40
+	or      a0, a0, a1
+	sb      a0, 0x3e(t0)
+	lw      a0, 0x3c(t0)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+#endif
+
+
+#if 1//wait until CPU0 HT link down
+	TTYDBG("Waiting CPU0 HyperTransport bus to be down.")
+	dli     t0, 0x90001cfdfb000000
+	li	t1, 0x1f
+1:
+	lw      a0, 0x44(t0)
+	#bal	hexserial
+	nop
+	beqz	t1,2f
+	TTYDBG(">")
+	addi	t1, t1, -1
+	b	3f
+	nop
+2:
+	TTYDBG("\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b=")
+	li	t1, 0x1f
+
+3:
+	lw      a0, 0x44(t0)
+	li	a1, 0x20
+	and	a0, a0, a1
+
+	bnez	a0, 1b
+	nop
+
+	TTYDBG("\r\n")
+	lw      a0, 0x44(t0)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+#endif
+
+#if 1//release cpu0 HT
+	TTYDBG("Release HyperTransport bus\r\n")
+	dli	t0, 0x90001cfdfb000000
+	lb      a0, 0x3e(t0)
+	li      a1, 0xbf
+	and     a0, a0, a1
+	sb      a0, 0x3e(t0)
+	lw      a0, 0x3c(t0)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+#endif
+#endif
+
+#if 1//wait until CPU0 HT link up
+	TTYDBG("Waiting CPU1 LO HyperTransport bus to be up.")
+	dli     t0, 0x90001cfdfb000000
+#ifdef RESET_AGAIN_WHEN_FAIL
+	li	t2, 0x3f
+#endif
+	li	t1, 0x1f
+1:
+#ifdef RESET_AGAIN_WHEN_FAIL
+#ifdef HT_RESET_ALL_IN_ONE
+	beqz	t2, reset_ht0
+#else
+	beqz	t2, reset_ht2
+#endif
+	nop
+#endif
+	lw      a0, 0x11c(t0)
+	#bal	hexserial
+	nop
+	beqz	t1,2f
+	nop
+	TTYDBG(">")
+	addi	t1, t1, -1
+	b	3f
+	nop
+2:
+	TTYDBG("\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b=")
+	li	t1, 0x1f
+#ifdef RESET_AGAIN_WHEN_FAIL
+	addi	t2, t2, -1
+#endif
+
+3:
+	lw      a0, 0x44(t0)
+	li	a1, 0x20
+	and	a0, a0, a1
+
+	beqz	a0, 1b
+	nop
+
+	TTYDBG("\r\n")
+	lw      a0, 0x44(t0)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+#endif
+
+#if 1//wait until CPU1 HT link up
+	TTYDBG("Waiting CPU3 HI HyperTransport bus to be up.")
+	dli     t0, 0x90003dfdfb000000
+	li	t1, 0x1f
+1:
+	lw      a0, 0x44(t0)
+	#bal	hexserial
+	nop
+	beqz	t1,2f
+	TTYDBG(">")
+	addi	t1, t1, -1
+	b	3f
+	nop
+2:
+	TTYDBG("\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b=")
+	li	t1, 0x1f
+
+3:
+	lw      a0, 0x44(t0)
+	li	a1, 0x20
+	and	a0, a0, a1
+
+	beqz	a0, 1b
+	nop
+
+	TTYDBG("\r\n")
+	lw      a0, 0x44(t0)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+#endif
+
+#ifdef HT_RESET_ALL_IN_ONE
+#else
+#if 1//reset 2-3 HT
+reset_ht3:
+	TTYDBG("Reset CPU2 HI HyperTransport bus\r\n")
+	dli	t0, 0x90002dfdfb000000
+	lb      a0, 0x3e(t0)
+	li      a1, 0x40
+	or      a0, a0, a1
+	sb      a0, 0x3e(t0)
+	lw      a0, 0x3c(t0)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+#endif
+
+
+#if 1//wait until CPU0 HT link down
+	TTYDBG("Waiting CPU2 HyperTransport bus to be down.")
+	dli     t0, 0x90002dfdfb000000
+	li	t1, 0x1f
+1:
+	lw      a0, 0x44(t0)
+	#bal	hexserial
+	nop
+	beqz	t1,2f
+	TTYDBG(">")
+	addi	t1, t1, -1
+	b	3f
+	nop
+2:
+	TTYDBG("\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b=")
+	li	t1, 0x1f
+
+3:
+	lw      a0, 0x44(t0)
+	li	a1, 0x20
+	and	a0, a0, a1
+
+	bnez	a0, 1b
+	nop
+
+	TTYDBG("\r\n")
+	lw      a0, 0x44(t0)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+#endif
+
+#if 1//release cpu0 HT
+	TTYDBG("Release HyperTransport bus\r\n")
+	dli	t0, 0x90002dfdfb000000
+	lb      a0, 0x3e(t0)
+	li      a1, 0xbf
+	and     a0, a0, a1
+	sb      a0, 0x3e(t0)
+	lw      a0, 0x3c(t0)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+#endif
+#endif
+
+#if 1//wait until CPU0 HT link up
+	TTYDBG("Waiting CPU2 HI HyperTransport bus to be up.")
+	dli     t0, 0x90002dfdfb000000
+#ifdef RESET_AGAIN_WHEN_FAIL
+	li	t2, 0x3f
+#endif
+	li	t1, 0x1f
+1:
+#ifdef RESET_AGAIN_WHEN_FAIL
+#ifdef HT_RESET_ALL_IN_ONE
+	beqz	t2, reset_ht0
+#else
+	beqz	t2, reset_ht3
+#endif
+	nop
+#endif
+	lw      a0, 0x11c(t0)
+	#bal	hexserial
+	nop
+	beqz	t1,2f
+	nop
+	TTYDBG(">")
+	addi	t1, t1, -1
+	b	3f
+	nop
+2:
+	TTYDBG("\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b=")
+	li	t1, 0x1f
+#ifdef RESET_AGAIN_WHEN_FAIL
+	addi	t2, t2, -1
+#endif
+
+3:
+	lw      a0, 0x44(t0)
+	li	a1, 0x20
+	and	a0, a0, a1
+
+	beqz	a0, 1b
+	nop
+
+	TTYDBG("\r\n")
+	lw      a0, 0x44(t0)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+#endif
+
+#if 1//wait until CPU1 HT link up
+	TTYDBG("Waiting CPU3 LO HyperTransport bus to be up.")
+	dli     t0, 0x90003cfdfb000000
+	li	t1, 0x1f
+1:
+	lw      a0, 0x44(t0)
+	#bal	hexserial
+	nop
+	beqz	t1,2f
+	TTYDBG(">")
+	addi	t1, t1, -1
+	b	3f
+	nop
+2:
+	TTYDBG("\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b=")
+	li	t1, 0x1f
+
+3:
+	lw      a0, 0x44(t0)
+	li	a1, 0x20
+	and	a0, a0, a1
+
+	beqz	a0, 1b
+	nop
+
+	TTYDBG("\r\n")
+	lw      a0, 0x44(t0)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+#endif
+
+#if 0
+//////Enable others
+	TTYDBG("Enable CPU1\r\n")
+	dli	a0, 0x900010001fe001d0
+	li	a1, 0xffffffff
+	sw	a1, 0x0(a0)
+	TTYDBG("Enable CPU2\r\n")
+	dli	a0, 0x900020001fe001d0
+	li	a1, 0xffffffff
+	sw	a1, 0x0(a0)
+	TTYDBG("Enable CPU3\r\n")
+	dli	a0, 0x900030001fe001d0
+	li	a1, 0xffffffff
+	sw	a1, 0x0(a0)
+#endif
+#endif
+
+
+##################################################
+#endif
+#endif
+	dli 	t2, 0x900000003ff02000
+	dli 	t1, 0x900000003ff02800
+	TTYDBG("Fix L1xbar illegal access at NODE 0\r\n")
+1:
+
+#if 0
+####### Unused HT0 port #########################
+	dli	t0, 0x00000c0000000000
+	sd	t0, 0x28(t2)
+	dli	t0, 0x00000c0000000000
+	sd	t0, 0x68(t2)
+	dli	t0, 0x00000c00000000f7
+	sd	t0, 0xa8(t2)
+
+	dli	t0, 0x00000d0000000000
+	sd	t0, 0x30(t2)
+	dli	t0, 0x00000d0000000000
+	sd	t0, 0x70(t2)
+	dli	t0, 0x00000c00000000f7
+	sd	t0, 0xb0(t2)
+#else
+	dli	t0, 0x000000fdf8000000
+	sd	t0, 0x28(t2)
+	dli	t0, 0x000000ffff000000
+	sd	t0, 0x68(t2)
+	dli	t0, 0x000000fdf80000f0
+	sd	t0, 0xa8(t2)
+
+	dli	t0, 0x00000c0000000000
+	sd	t0, 0x30(t2)
+	dli	t0, 0x0000fd0000000000
+	sd	t0, 0x70(t2)
+	dli	t0, 0x00000c00000000f7
+	sd	t0, 0xb0(t2)
+
+	dli	t0, 0x0000000000000000
+	sd	t0, 0x38(t2)
+	dli	t0, 0x0000300000000000
+	sd	t0, 0x78(t2)
+	dli	t0, 0x00000000000000f0
+	sd	t0, 0xb8(t2)
+#endif
+
+	daddiu  t2, t2, 0x100
+	bne     t2, t1, 1b
+	nop
+
+
+	dli 	t2, 0x900010003ff02000
+	dli 	t1, 0x900010003ff02800
+	TTYDBG("Fix L1xbar illegal access at NODE 1\r\n")
+1:
+
+#if 0
+####### Unused HT0 port #########################
+	dli	t0, 0x00001c0000000000
+	sd	t0, 0x28(t2)
+	dli	t0, 0x00001c0000000000
+	sd	t0, 0x68(t2)
+	dli	t0, 0x00001c00000000f7
+	sd	t0, 0xa8(t2)
+
+	dli	t0, 0x00001d0000000000
+	sd	t0, 0x30(t2)
+	dli	t0, 0x00001d0000000000
+	sd	t0, 0x70(t2)
+	dli	t0, 0x00001c00000000f7
+	sd	t0, 0xb0(t2)
+#else
+	dli	t0, 0x000000fdf8000000
+	sd	t0, 0x28(t2)
+	dli	t0, 0x000000ffff000000
+	sd	t0, 0x68(t2)
+	dli	t0, 0x000000fdf80000f0
+	sd	t0, 0xa8(t2)
+
+
+	dli	t0, 0x0000100000000000
+	sd	t0, 0x38(t2)
+	dli	t0, 0x0000300000000000
+	sd	t0, 0x78(t2)
+	dli	t0, 0x00001000000000f0
+	sd	t0, 0xb8(t2)
+#endif
+
+	daddiu  t2, t2, 0x100
+	bne     t2, t1, 1b
+	nop
+
+
+	dli 	t2, 0x900020003ff02000
+	dli 	t1, 0x900020003ff02800
+	TTYDBG("Fix L1xbar illegal access at NODE 2\r\n")
+1:
+
+#if 0
+####### Unused HT0 port #########################
+	dli	t0, 0x00002c0000000000
+	sd	t0, 0x28(t2)
+	dli	t0, 0x00002c0000000000
+	sd	t0, 0x68(t2)
+	dli	t0, 0x00002c00000000f7
+	sd	t0, 0xa8(t2)
+
+	dli	t0, 0x00002d0000000000
+	sd	t0, 0x30(t2)
+	dli	t0, 0x00002d0000000000
+	sd	t0, 0x70(t2)
+	dli	t0, 0x00002c00000000f7
+	sd	t0, 0xb0(t2)
+#else
+	dli	t0, 0x000000fdf8000000
+	sd	t0, 0x28(t2)
+	dli	t0, 0x000000ffff000000
+	sd	t0, 0x68(t2)
+	dli	t0, 0x000000fdf80000f0
+	sd	t0, 0xa8(t2)
+
+	dli	t0, 0x0000200000000000
+	sd	t0, 0x38(t2)
+	dli	t0, 0x0000300000000000
+	sd	t0, 0x78(t2)
+	dli	t0, 0x00002000000000f0
+	sd	t0, 0xb8(t2)
+#endif
+
+	daddiu  t2, t2, 0x100
+	bne     t2, t1, 1b
+	nop
+
+
+	dli 	t2, 0x900030003ff02000
+	dli 	t1, 0x900030003ff02800
+	TTYDBG("Fix L1xbar illegal access at NODE 3\r\n")
+1:
+
+#if 0
+####### Unused HT0 port #########################
+	dli	t0, 0x00003c0000000000
+	sd	t0, 0x28(t2)
+	dli	t0, 0x00003c0000000000
+	sd	t0, 0x68(t2)
+	dli	t0, 0x00003c00000000f7
+	sd	t0, 0xa8(t2)
+
+	dli	t0, 0x00003c0000000000
+	sd	t0, 0x30(t2)
+	dli	t0, 0x00003d0000000000
+	sd	t0, 0x70(t2)
+	dli	t0, 0x00003c00000000f7
+	sd	t0, 0xb0(t2)
+#else
+	dli	t0, 0x000000fdf8000000
+	sd	t0, 0x28(t2)
+	dli	t0, 0x000000ffff000000
+	sd	t0, 0x68(t2)
+	dli	t0, 0x000000fdf80000f0
+	sd	t0, 0xa8(t2)
+
+	dli	t0, 0x0000300000000000
+	sd	t0, 0x38(t2)
+	dli	t0, 0x0000300000000000
+	sd	t0, 0x78(t2)
+	dli	t0, 0x00003000000000f0
+	sd	t0, 0xb8(t2)
+#endif
+
+	daddiu  t2, t2, 0x100
+	bne     t2, t1, 1b
+	nop
+
+
+
+############
+	TTYDBG("Fix L2xbar in NODE 0\r\n")
+//order cann't be changed.
+	dli	t2, 0x900000003ff00000
+
+	dli	t0, 0xfffffffffff00000
+	sd	t0, 0x40(t2)
+
+	dli	t0, 0x000000001fc000f2
+	sd	t0, 0x80(t2)
+
+	dli	t0, 0x000000001fc00000
+	sd	t0, 0x0(t2)
+
+############ 0x10000000 Set to not allow Cache access #######
+	dli 	t0, 0x0000000010000000
+	sd  	t0, 0x08(t2)
+	dli 	t0, 0xfffffffff0000000
+	sd  	t0, 0x48(t2)
+	dli	t0, 0x0000000010000082
+	sd	t0, 0x88(t2)
+
+	sd  	$0, 0x90(t2)
+
+#if 1
+//////Enable others
+	TTYDBG("Enable CPU1\r\n")
+	dli	a0, 0x900010001fe001d0
+	li	a1, 0xffffffff
+	sw	a1, 0x0(a0)
+	TTYDBG("Enable CPU2\r\n")
+	dli	a0, 0x900020001fe001d0
+	li	a1, 0xffffffff
+	sw	a1, 0x0(a0)
+	TTYDBG("Enable CPU3\r\n")
+	dli	a0, 0x900030001fe001d0
+	li	a1, 0xffffffff
+	sw	a1, 0x0(a0)
+#endif
+
+
+#ifdef ENABLE_RDinterleave
+	TTYDBG("Enable MC read interleave\r\n")
+
+	dli	t2, 0x900000003ff00400
+	lw	t1, 0x0(t2)
+	li	t0, 0x00000010
+	or	t1, t1, t0
+	sw	t1, 0x0(t2)
+	dli	t2, 0x900010003ff00400
+	lw	t1, 0x0(t2)
+	li	t0, 0x00000010
+	or	t1, t1, t0
+	sw	t1, 0x0(t2)
+	dli	t2, 0x900020003ff00400
+	lw	t1, 0x0(t2)
+	li	t0, 0x00000010
+	or	t1, t1, t0
+	sw	t1, 0x0(t2)
+	dli	t2, 0x900030003ff00400
+	lw	t1, 0x0(t2)
+	li	t0, 0x00000010
+	or	t1, t1, t0
+	sw	t1, 0x0(t2)
+#endif
