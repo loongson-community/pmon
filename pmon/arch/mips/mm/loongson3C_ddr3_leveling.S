@@ -8,7 +8,7 @@
 #include "ddr_leveling_define.h"
 #define	PREMBLE_CHECK_DEBUG
 //#define	PRINT_PREMBLE_CHECK
-#define PRINT_DDR_LEVELING
+//#define PRINT_DDR_LEVELING
 #define	FILTER_CHECK
 //#define	FIND_PREMBLE_LENGTH
 //#define LVL_DEBUG
@@ -4778,7 +4778,7 @@ glvl_check_premble_end:
 1:
 
 //set rddqs_lt_half
-	lb		a0, 0x0(t1)
+	lb		a0, 0x10(t1)
 	dli		t4, 0x7f
 	and		a0, a0, t4
 #ifdef DDR_DLL_BYPASS
@@ -4787,14 +4787,20 @@ glvl_check_premble_end:
     daddu   t5, t5, 0x2
     divu    a0, a0, t5 //get dll_gate, no bypass mode
 #endif
- 	lb		a1, 0x1(t1)
+ 	lb		a1, 0x11(t1)
 	daddu	a0, a0, a1
 	and		a0, a0, t4
-	bgeu	a0, 0x40, rddqs_lthalf_set0
+#if 0
+	move	a1, a0
+	bal		hexserial
 	nop
-	bltu	a0,	0x0, rddqs_lthalf_set0
+	move	a0, a1
+#endif
+	bgeu	a0, 0x3a, rddqs_lthalf_set1
 	nop
-	b		rddqs_lthalf_set1
+	bltu	a0,	0x1a, rddqs_lthalf_set1
+	nop
+	b		rddqs_lthalf_set0
 	nop
 rddqs_lthalf_set0:
 	dsubu	t4, t1, 0x8
@@ -4991,8 +4997,8 @@ premble_check_length:
 	nop
 
 #endif
-	b		gate_leveling_exit
-	nop
+	b		gate_leveling_exit               //-------------------------the after code is not effect-until gate leveling exit-------------------------------------------
+	nop										//--------------------------------------!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!-------------------------------------------------------
 
 #endif
 
@@ -5130,8 +5136,8 @@ wait_init_done0:
     nop
     daddu   t0, t0, 0x1
 1:
-    dli     a2, 0x00
-    dli     a3, 0x40
+    dli     a2, 0x1a
+    dli     a3, 0x3a
     dli     t1, 0x018
     or      t1, t1, t8
 rddqs_lt_half:
@@ -5155,11 +5161,17 @@ rddqs_lt_half:
     dsrl    a1, a1, 8  //get dll_wrdata
     daddu   a0, a0, a1
     and     a0, a0, t6
-    bgeu    a0, a3, rddqs_lt_half_set0//because the rd gate edge is 0x2
+#if 0
+	move	a1, a0
+	bal		hexserial
+	nop
+	move	a0, a1
+#endif
+    bgeu    a0, a3, rddqs_lt_half_set1//because the rd gate edge is 0x2
     nop
-    bltu    a0, a2, rddqs_lt_half_set0
+    bltu    a0, a2, rddqs_lt_half_set1
     nop
-    b       rddqs_lt_half_set1
+    b       rddqs_lt_half_set0
     nop
 rddqs_lt_half_set0:
     dsubu   t2, t1, 0x18
