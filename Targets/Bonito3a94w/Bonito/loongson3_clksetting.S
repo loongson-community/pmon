@@ -216,7 +216,7 @@ ATTENTION:
 	TTYDBG ("\r\nBBGEN start  :")
 	dli     t0, 0x900000001fe001b0
 	or	t0, t0, s1
-	li	t1, (0x3f << 26) | (VBBn_VAL << 12) | (VBBp_VAL << 8) | (FEEDBACK << 4) | (0x3 << 2) | (0x1 << 1) | 0x1
+	li	t1, (0x3f << 26) | (VBBn_VAL << 12) | (VBBp_VAL << 8) | (FEEDBACK << 4) | (0x3 << 2) | (0x0 << 1) | 0x1
 	sw      t1, 0xc(t0)
 
 	TTYDBG ("\r\nBBGEN config value  :")

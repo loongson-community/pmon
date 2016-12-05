@@ -328,7 +328,7 @@ ht_next_id :
 	TTYDBG("Set HT Memory space all post\r\n")
 	li	t0, 0x80000000
 	sw	t0, 0xd0(t2)
-	li	t0, 0x0000ff00
+	li	t0, 0x0040fff8
 	sw	t0, 0xd4(t2)
 
 1:

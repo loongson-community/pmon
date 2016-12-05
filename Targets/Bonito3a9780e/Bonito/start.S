@@ -594,7 +594,7 @@ soft_out:
 #ifdef BBGEN
 	TTYDBG ("\r\nBBGEN start  :")
 	li      t0, 0xbfe001b0
-	li	t1, (0x3f << 26) | (VBBn_VAL << 12) | (VBBp_VAL << 8) | (FEEDBACK << 4) | (0x3 << 2) | (0x1 << 1) | 0x1
+	li	t1, (0x3f << 26) | (VBBn_VAL << 12) | (VBBp_VAL << 8) | (FEEDBACK << 4) | (0x3 << 2) | (0x0 << 1) | 0x1
 	sw      t1, 0xc(t0)
 
 	TTYDBG ("\r\nBBGEN config value  :")
