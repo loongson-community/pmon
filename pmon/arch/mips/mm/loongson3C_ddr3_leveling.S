@@ -8,8 +8,9 @@
 #include "ddr_leveling_define.h"
 #define	PREMBLE_CHECK_DEBUG
 //#define	PRINT_PREMBLE_CHECK
-//#define PRINT_DDR_LEVELING
+#define PRINT_DDR_LEVELING
 #define	FILTER_CHECK
+//#define SIGNAL_DEPICT_DEBUG
 //#define	FIND_PREMBLE_LENGTH
 //#define LVL_DEBUG
 /* in PRINTSTR: a0, a1, a2, v0, v1 will be changed */
@@ -1391,7 +1392,7 @@ wrdqs_adjust_loop40:
     dsrl    a0, a0, 16
     bgtu    a0, a2, wrdqs_adjust_loop40
     nop
-    bltu    a0, 0x40, wrdqs_adjust_loop40
+    bltu    a0, a3, wrdqs_adjust_loop40
     nop
     dli     t4, 0x40
     bltu    a0, t4, wrdqs_set_3a
@@ -1513,7 +1514,7 @@ wrdqs_adjust_loop60:
     dsrl    a0, a0, 16
     bgtu    a0, a2, wrdqs_adjust_loop60
     nop
-    bltu    a0, 0x40, wrdqs_adjust_loop60
+    bltu    a0, a3, wrdqs_adjust_loop60
     nop
     dli     t4, 0x60
     bltu    a0, t4, wrdqs_set_5a
@@ -3173,6 +3174,206 @@ glvl_ready_sampling:
     bne     a0, a1, glvl_ready_sampling
     nop
 
+#ifdef SIGNAL_DEPICT_DEBUG
+	PRINTSTR("\r\nthe signal depict begin:\r\n")
+	dli		t1, 0x28     // save the init para before signal depict
+	or 		t1, t1, t8
+	lb		a0, 0x7(t1)
+	dli		t1, 0x350
+	or		t1, t1, t8
+	sb		a0, 0x7(t1)
+	dli		t1, 0x1c0
+	or		t1, t1, t8
+	lb		a0, 0x0(t1)
+	dli		t1, 0x350
+	or		t1, t1, t8
+	sb		a0, 0x6(t1)
+	
+	dli		t1, 0x28
+	or		t1, t1, t8
+	dli		t5, 0x180
+	or		t5, t5, t8
+	dli		t0, 0x8
+	dli		t2, 0x0
+	dli		s6, 0x0
+	dli		s7, 0x0
+t_glvl_req_set:
+	bne		s6, 0x15, 1f
+	nop
+	dli		s6, 0x0			//reset trddata
+	lb		a0, 0x356(t8)
+	sb		a0, 0x1c0(t8)
+	dsubu	t0, t0, 0x1
+	beqz	t0, signal_depict_end
+	nop
+	daddu	t1, t1, 0x20
+	daddu	t5, t5, 0x1
+	PRINTSTR("\r\nthe above is slice ")
+	dli		t4, 0x8
+	dsubu 	a0, t4, t0
+	bal		hexserial
+	nop
+	PRINTSTR("\r\n")
+1:
+    dli     t4, 0x180
+    or      t4, t4, t8
+    dli     a0, 0x1
+    sb      a0, 0x1(t4)
+    dli		a0, 0x0
+    sb      a0, 0x1(t4)
+	
+1:						//glvl_done_sampling
+    dli     t4, 0x180
+    or      t4, t4, t8
+    lb      a0, 0x6(t4)
+    bne     a0, 0x1, 1b
+    nop
+	
+	lb		a0, 0x7(t5)
+	dli		t4, 0x1
+	and		a0, a0, t4
+	move	a1, a0
+#if 1
+    dli     t4, 0x180
+    or      t4, t4, t8
+    dli     a0, 0x1
+    sb      a0, 0x1(t4)
+    dli		a0, 0x0
+    sb      a0, 0x1(t4)
+	
+1:						//glvl_done_sampling
+    dli     t4, 0x180
+    or      t4, t4, t8
+    lb      a0, 0x6(t4)
+    bne     a0, 0x1, 1b
+    nop
+	
+	lb		a0, 0x7(t5)
+	dli		t4, 0x1
+	and		a0, a0, t4
+	or		a0, a0, a1
+	move	a1, a0
+#endif
+#if 1
+    dli     t4, 0x180
+    or      t4, t4, t8
+    dli     a0, 0x1
+    sb      a0, 0x1(t4)
+    dli		a0, 0x0
+    sb      a0, 0x1(t4)
+	
+1:						//glvl_done_sampling
+    dli     t4, 0x180
+    or      t4, t4, t8
+    lb      a0, 0x6(t4)
+    bne     a0, 0x1, 1b
+    nop
+	
+	lb		a0, 0x7(t5)
+	dli		t4, 0x1
+	and		a0, a0, t4
+	or		a0, a0, a1
+#endif
+
+	sll		a0, a0, s7
+	or		t2, t2, a0
+	daddu	s7, s7, 0x1
+	blt		s7, 0x20, 1f // every 0x20 print the status
+	nop
+	move 	a0, t2
+	bal		hexserial
+	nop
+	PRINTSTR(" ")
+	dli		t2, 0x0
+	dli		s7, 0x0
+	daddu	s6, s6, 0x1
+1:
+
+#if 1
+	lb		a0, 0x10(t1)
+	daddu	a0, a0, 0x1
+	dli		t4, 0x7f
+	and		a0, a0, t4
+	sb		a0, 0x10(t1)
+	bnez	a0, 1f
+	nop
+	lb		a0, 0x1c0(t8)
+	daddu	a0, a0, 0x1
+	sb		a0, 0x1c0(t8)
+1:
+#else
+	lb		a0, 0x10(t1)
+	dsubu	a0, a0, 0x1
+	dli		t4, 0x7f
+	and		a0, a0, t4
+	sb		a0, 0x10(t1)
+	bne		a0, 0x7f,1f
+	nop
+	lb		a0, 0x1c0(t8)
+	dsubu	a0, a0, 0x1
+	sb		a0, 0x1c0(t8)
+1:
+#endif
+	b		t_glvl_req_set
+	nop
+
+signal_depict_end:
+//identify wheather there is ecc slice
+	li      t0, 0x8
+	dli     t1, 0x250
+	or      t1, t1, t8
+	lb      a0, 0x2(t1)
+	dli     t1, 0x1
+	and     a0, a0, t1
+	bne     a0, t1, 1f //when rd_after_write enabled, the 9th device may don't need leveling
+	nop
+	daddu   t0, t0, 0x1
+1:
+	dli		t1, 0x28
+	or		t1, t1, t8
+reset_rd_oe:
+	dli		t4, 0x350
+	or		t4, t4, t8
+	lb		a0, 0x7(t4)
+	sb		a0, 0x7(t1)
+	sb		a0, 0x6(t1)
+	daddu	t1, t1, 0x20
+	dsubu	t0, t0, 0x1
+	bnez	t0, reset_rd_oe
+	nop
+
+	dli		t1, 0x350 // reset trddata
+	or		t1, t1, t8
+	lb		a0, 0x6(t1)
+	dli		t1, 0x1c0
+	or		t1, t1, t8
+	sb		a0, 0x0(t1)
+	
+//identify wheather there is ecc slice
+/*	li      t0, 0x8
+	dli     t1, 0x250
+	or      t1, t1, t8
+	lb      a0, 0x2(t1)
+	dli     t1, 0x1
+	and     a0, a0, t1
+	bne     a0, t1, 1f //when rd_after_write enabled, the 9th device may don't need leveling
+	nop
+	daddu   t0, t0, 0x1
+1:
+	dli		t1, 0x30
+	or		t1, t1, t8
+reset_odt_oe:
+	dli		a0, 0x2
+	sb		a0, 0x2(t1)
+	sb		a0, 0x3(t1)
+	daddu	t1, t1, 0x20
+	dsubu	t0, t0, 0x1
+	bnez	t0, reset_odt_oe
+	nop*/
+
+	PRINTSTR("\r\n")
+#endif
+
     dli     t3, 0x0
 	dli		t0, 0x0
 	dli		s6, 0x0 //
@@ -4484,6 +4685,20 @@ premble_check_init:
 	nop
 	dli		s6, 0x5a
 1:
+
+	lb		a0, 0x7(t1)
+	blt		a0, 0x4, 1f
+	nop
+	dli		a0, 0x3
+	sb		a0, 0x7(t1)
+1:
+	lb		a0, 0x6(t1)
+	blt		a0, 0x4, 1f
+	nop
+	dli		a0, 0x3
+	sb		a0, 0x6(t1)
+1:
+
 	lb		a0, 0x10(t1)
 	dsubu	a0, a0, s6
 	dli		t4, 0x7f

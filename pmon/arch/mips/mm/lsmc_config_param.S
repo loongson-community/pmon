@@ -30,6 +30,298 @@ ddr2_config:
     bnez    t1, 1b
     nop
 
+#if 0 
+//autoset param registers
+set_tMOD:		
+	dli		t1, FREQ
+	dli		t3, 15
+	dmulou	t3, t3, t1
+	divu	t3, t3, 2000
+	daddu	t3, t3, 1
+	bge		t3, 12, 1f
+	nop
+	li		t3, 0xc
+1:
+	dli		t1,	0x1c0
+	or 		t1, t1, t8
+	sb		t3, 0x4(t1)
+
+set_tFAW:
+	dli		t1, FREQ
+	dli		t3, 0x1e
+	dmulou	t3, t3, t1
+	divu	t3, t3, 2000
+	daddu	t3, t3, 1
+
+	dli		t1, 0x1c8
+	or		t1, t1, t8
+	sb		t3, 0x7(t1)
+
+set_tRRD:	
+	dli		t1, FREQ
+	dli		t3, 0x6
+	dmulou	t3, t3, t1
+	divu	t3, t3, 2000
+	daddu	t3, t3, 1
+	bge		t3, 4, 1f
+	nop
+	li		t3, 0x4
+1:
+	dli		t1, 0x1c8
+	or		t1, t1, t8
+	sb		t3, 0x6(t1)
+
+/*set_tRCD:	
+	dli		t1, FREQ
+	dli		t3, 0xb
+	dmulou	t3, t3, t1
+	divu	t3, t3, 1600
+	daddu	t3, t3, 1
+
+	dli		t1, 0x1c8
+	or		t1, t1, t8
+	sb		t3, 0x5(t1)
+	nop
+
+set_tRP:	
+	dli		t1, FREQ
+	dli		t3, 0xb
+	dmulou	t3, t3, t1
+	divu	t3, t3, 1600
+	daddu	t3, t3, 1
+
+	dli		t1, 0x1c8
+	or		t1, t1, t8
+	sb		t3, 0x4(t1)
+	nop
+*/
+set_tREFI:
+	dli		t1, FREQ
+	divu	t1, t1, 10
+	dli		t3, 78
+	dmulou	t3, t3, t1
+	dsrl	t3, t3, 9
+	daddu	t3, t3, 1
+
+	dli		t1, 0x1c8
+	or		t1, t1, t8
+	sb		t3, 0x3(t1)
+
+set_tRFC:
+    GET_MC0_MEMSIZE
+    move	t1, a1
+//	move	a0, a1
+//	bal		hexserial
+	nop
+	GET_MC_CS_MAP
+//	move	a0, a1
+//	bal		hexserial
+	nop
+	dli 	t5, 0x4
+	dli		t3, 0x0
+cal_memsize:
+	dsubu	t5, t5, 1
+	beqz	t5, 1f
+	nop
+	and		t4, a1, 0x1
+	dsrl	a1, a1, 0x1	
+	beqz	t4, cal_memsize
+	nop
+	daddu	t3, t3, 1
+	b		cal_memsize
+	nop
+
+1:
+	divu	a2, t1, t3
+
+	dli		t1, 0x1
+	blt		a2, t1, 21f
+	dli		t3, 0x9
+
+	dli		t1, 0x2
+	blt		a2, t1, 21f
+	dli		t3, 0xb
+
+	dli		t1, 0x4
+	blt		a2, t1, 21f
+	dli		t3, 0x10
+
+	dli		t1, 0x8
+	blt		a2, t1, 21f
+	dli		t3, 0x1a
+
+	dli		t1, 0x10
+	blt		a2, t1, 21f
+	dli		t3, 0x22
+
+	PRINTSTR("\r\n memsize wrong \r\n")
+	b 		2f
+	nop
+
+21:
+
+	dli		t1, FREQ
+	dmulou	t3, t3, t1
+	divu	t3, t3, 200
+	
+	dli		t1, 0x1c8
+	or		t1, t1, t8
+	sb		t3, 0x2(t1)
+2:
+	
+set_ZQCS:	
+	dli		t1, FREQ
+	dli		t3, 0x50
+	dmulou	t3, t3, t1
+	divu	t3, t3, 2000
+	daddu	t3, t3, 1
+	bge		t3, 64, 1f
+	nop
+	dli		t3, 64
+1:
+	dli		t1, 0x1c8
+	or		t1, t1, t8
+
+	/*lb		t4, 0x3(t1)
+	divu	t3, t3, t4
+	daddu	t3, t3, 1*/
+
+	sb		t3, 0x1(t1)
+
+set_tXPDLL:	
+	dli		t1, FREQ
+	dli		t3, 0x18
+	dmulou	t3, t3, t1
+	divu	t3, t3, 2000
+	daddu	t3, t3, 1
+	bge		t3, 10, 1f
+	nop
+	dli		t3, 10
+1:
+	dli		t1, 0x1d8
+	or		t1, t1, t8
+	sb		t3, 0x7(t1)
+
+set_tXP:
+	dli		t1, FREQ
+	dli		t3, 0x6
+	dmulou	t3, t3, t1
+	divu	t3, t3, 2000
+	daddu	t3, t3, 1
+	bge		t3, 3, 1f
+	nop
+	dli		t3, 3
+1:
+	dli		t1, 0x1d8
+	or		t1, t1, t8
+	sb		t3, 0x6(t1)
+
+set_tWR:	
+	dli		t1, FREQ
+	dli		t3, 0x15
+	dmulou	t3, t3, t1
+	divu	t3, t3, 2000
+	daddu	t3, t3, 1
+1:
+	dli		t1, 0x1d8
+	or		t1, t1, t8
+	sb		t3, 0x5(t1)
+
+
+set_tRTP:
+	dli		t1, FREQ
+	dli		t3, 0x8
+	dmulou	t3, t3, t1
+	divu	t3, t3, 2000
+	daddu	t3, t3, 1
+	bge		t3, 4, 1f
+	nop
+	dli		t3, 4
+1:
+	dli		t1, 0x1d8
+	or		t1, t1, t8
+	sb		t3, 0x4(t1)
+
+
+/*set_tRL:
+	dli		t1, FREQ
+	dli		t3, 0xb
+	dmulou	t3, t3, t1
+	divu	t3, t3, 1600
+	daddu	t3, t3, 1
+
+	dli		t1, 0x1d8
+	or		t1, t1, t8
+	sb		t3, 0x3(t1)
+	
+	dsubu	t3, t3, 2
+	dli		t1, 0x1c0
+	or 		t1, t1, t8
+	sb		t3, 0x0(t1)
+
+	dli		t1, 0x1a0
+	or 		t1, t1, t8
+	lb		t4, 0x0(t1)
+	li		t5, 0x8b//10001011
+	and		t4, t4, t5
+	dsubu	t3, t3, 2
+	li		t5, 0x7
+	and		t3, t3, t5
+	dsll	t3, t3, 4
+	or		t4, t4, t3
+	
+	dli		t1, FREQ
+	dli		t3, 0xb
+	dmulou	t3, t3, t1
+	divu	t3, t3, 1600
+	daddu	t3, t3, 1
+	dsubu	t3, t3, 4
+	dli		t5, 0x8
+	and		t3, t3, t5
+	dsrl	t3, t3, 1
+	or		t4, t4, t3
+	
+	dli		t1, 0x1a0
+	or		t1, t1, t8
+	sb		t4, 0x0(t1)	
+	sb		t4, 0x8(t1)
+	sb		t4, 0x10(t1)
+	sb		t4, 0x18(t1)
+*/
+#endif
+
+    //for UDIMM 4cs,open 2T mode
+    GET_DIMM_TYPE
+    bnez    a1, 1f
+    nop
+    //UDIMM
+    GET_MC_CS_MAP
+    dli     a2, 0xf
+    bne     a1, a2, 1f
+    nop
+    //add cmd_timing ,trddata and tphy_wrlat by one
+    ld      a2, CMD_TIMING(t8)
+    dli     a1, 0x1
+    dsll    a1, a1, CMD_TIMING_OFFSET
+    daddu   a2, a2, a1
+    sd      a2, CMD_TIMING(t8)
+
+    ld      a2, TRDDATA(t8)
+    dli     a1, 0x1
+    dsll    a1, a1, TRDDATA_OFFSET
+    daddu   a2, a2, a1
+    sd      a2, TRDDATA(t8)
+
+    ld      a2, TPHY_WRLAT(t8)
+    dli     a1, 0x1
+    dsll    a1, a1, TPHY_WRLAT_OFFSET
+    daddu   a2, a2, a1
+    sd      a2, TPHY_WRLAT(t8)
+
+1:
+    //rewrite eight_bank_mode
+    //rewrite pm_bank_diff_0 and pm_bank
+
     //for UDIMM 4cs,open 2T mode
     GET_DIMM_TYPE
     bnez    a1, 1f

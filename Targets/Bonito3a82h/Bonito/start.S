@@ -377,7 +377,7 @@ gs_2f_v3_ddr2_cfg:
 #define L1_LOOPC    64//800
 //#define L1_LOOPC    48//600
 #define L1_DIV      2
-
+#define FREQ 	800
 
 #define PLL_CHANG_COMMIT 0x1
 
@@ -1292,7 +1292,7 @@ watchdog_enable:
 #######################################
 #include "ddr_dir/ls3A8_ddr_config.S"
 #ifdef DDR3_DIMM
-#include "loongson3C_ddr3_leveling.S"
+#include "ddr_dir/loongson3C_ddr3_leveling.S"
 #endif
 #ifdef ARB_LEVEL
 #include "ddr_dir/ARB_level_new.S"

@@ -396,7 +396,7 @@ gs_2f_v3_ddr2_cfg:
 
 //#define DDR_LOOPC  24 //600MHz
 #define DDR_LOOPC  30 //500MHz
-#define DDR_REFC    2
+#define DDR_REFC    4
 //#define DDR_DIV     8
 #define DDR_DIV     6
 
@@ -441,19 +441,20 @@ gs_2f_v3_ddr2_cfg:
 //#define L1_LOOPC   128//1600
 //#define L1_LOOPC   124//1550
 //#define L1_LOOPC   122//1525
-#define L1_LOOPC   120//1500
+//#define L1_LOOPC   120//1500
 //#define L1_LOOPC   116//1450
 //#define L1_LOOPC   112//1400
 //#define L1_LOOPC   108//1350
 //#define L1_LOOPC   104//1300
 //#define L1_LOOPC   100//1250
-//#define L1_LOOPC   192//1200
+#define L1_LOOPC   192//1200
 //#define L1_LOOPC   184//1150
 //#define L1_LOOPC   160//1000
-#define L1_DIV      2
+#define L1_DIV      4
 //#define L1_DIV      2
 #define L1_REFC   1
 #endif
+#define 	FREQ 1200
 
 #define BYPASS_CORE 0x0
 #define BYPASS_NODE 0x0
@@ -1734,7 +1735,7 @@ idle1000:
 #######################################
 #include "ddr_dir/ls3A8_ddr_config.S"
 #ifdef DDR3_DIMM
-#include "loongson3C_ddr3_leveling.S"
+#include "ddr_dir/loongson3C_ddr3_leveling.S"
 #endif
 #ifdef ARB_LEVEL
 #include "ddr_dir/ARB_level_new.S"
