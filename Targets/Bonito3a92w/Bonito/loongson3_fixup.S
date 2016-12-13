@@ -689,11 +689,11 @@ reset_ht0:
 	dli	t0, 0x00002000000000f7
 	sd	t0, 0xb0(t2)
 
-	dli	t0, 0x00000fdf80000000
+	dli	t0, 0x000000fdf8000000
 	sd	t0, 0x38(t2)
-	dli	t0, 0x00000ffff0000000
+	dli	t0, 0x000000ffff000000
 	sd	t0, 0x78(t2)
-	dli	t0, 0x00000fdf800000f0
+	dli	t0, 0x000000fdf80000f0
 	sd	t0, 0xb8(t2)
 
 
@@ -740,11 +740,11 @@ reset_ht0:
 	dli	t0, 0x00002000000000f7
 	sd	t0, 0xb0(t2)
 
-	dli	t0, 0x00000fdf80000000
+	dli	t0, 0x000000fdf8000000
 	sd	t0, 0x38(t2)
-	dli	t0, 0x00000ffff0000000
+	dli	t0, 0x000000ffff000000
 	sd	t0, 0x78(t2)
-	dli	t0, 0x00000fdf800000f0
+	dli	t0, 0x000000fdf80000f0
 	sd	t0, 0xb8(t2)
 
 
