@@ -501,7 +501,7 @@ soft_out:
 after_ht:
 	bal	beep_on
 	nop
-	li	a0, 0x800
+	li	a0, 0x4000000
 1:
 	addiu	a0, a0, -1
 	nop
@@ -541,7 +541,7 @@ after_ht:
 ####################################
 #include "ddr_dir/lsmc_ddr_param_define.h"
 #include "ddr_dir/ddr_config_define.h"
-//#define DDR_DLL_BYPASS
+#define DDR_DLL_BYPASS
 #define DISABLE_DIMM_ECC
 #define PRINT_MSG
 #ifndef ARB_LEVEL
@@ -573,7 +573,8 @@ after_ht:
 #else
 	dli     s1, 0xc2e30400c2e30400
 #endif
-#include "ddr_dir/loongson3a2h_ddr_config.S"
+#include "ddr_dir/loongson3_ddr2_config.S"
+//#include "ddr_dir/loongson3a2h_ddr_config.S"
 
 	TTYDBG("Init Memory done.\r\n")
 
@@ -1292,7 +1293,7 @@ watchdog_enable:
 #######################################
 #include "ddr_dir/ls3A8_ddr_config.S"
 #ifdef DDR3_DIMM
-#include "ddr_dir/loongson3C_ddr3_leveling.S"
+#include "loongson3C_ddr3_leveling.S"
 #endif
 #ifdef ARB_LEVEL
 #include "ddr_dir/ARB_level_new.S"

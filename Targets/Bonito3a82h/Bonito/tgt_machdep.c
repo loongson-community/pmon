@@ -1595,13 +1595,16 @@ struct efi_memory_map_loongson * init_memory_map()
 			(SMBIOS_SIZE_LIMIT | 0x80000000));
 
 #ifndef UMA_VIDEO_RAM
-	EMAP_ENTRY(i, 0, SYSTEM_RAM_HIGH, 0x110000000, size >> 20);
+	EMAP_ENTRY(i, 0, SYSTEM_RAM_HIGH, 0x90000000, size >> 20);
 #else
 	/*add UMA_VIDEO_RAM area to reserved 0x100 MB memory for GPU vram*/
-	EMAP_ENTRY(i, 0, UMA_VIDEO_RAM, 0x110000000, 0x100);
-	EMAP_ENTRY(i, 0, SYSTEM_RAM_HIGH, 0x120000000, (size >> 20) - 0x100);
-#endif
 
+	EMAP_ENTRY(i, 0, UMA_VIDEO_RAM, 0x90000000, 0x100);
+	EMAP_ENTRY(i, 0, SYSTEM_RAM_HIGH, 0xa0000000, (size >> 20) - 0x100);
+//	EMAP_ENTRY(i, 0, UMA_VIDEO_RAM, 0x110000000, 0x100);
+//	EMAP_ENTRY(i, 0, SYSTEM_RAM_HIGH, 0x120000000, (size >> 20) - 0x100);
+
+#endif
 	emap->vers = 1;
 	emap->nr_map = i;
 
