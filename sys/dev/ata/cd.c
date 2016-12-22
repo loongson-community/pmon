@@ -165,9 +165,12 @@ int ide_cdmatch(struct device *parent,	void *match_, void *aux)
  * The routine called by the low level scsi routine when it discovers
  * A device suitable for this driver
  */
-#ifdef DEBUG_CD
-struct ide_cd_softc *mycd;
-#endif
+//#ifdef DEBUG_CD
+#define MAX_IDE_CDS 4
+int ide_cd_index = 0;
+struct ide_cd_softc *mycd[MAX_IDE_CDS];
+//#endif
+
 void ide_cdattach(struct device *parent, struct device *self,	void *aux)
 {
 	
@@ -177,6 +180,7 @@ void ide_cdattach(struct device *parent, struct device *self,	void *aux)
 	
 	printf("cd attach drive=%d\n", drvp->drive);
 
+	mycd[ide_cd_index++] = cd;
 	cd->openings = aa_link->aa_openings;
 	cd->drvp = aa_link->aa_drv_data; //set by wdcattach and wdcprobe
 
@@ -766,9 +770,6 @@ int     ide_cdwrite_intr(struct ide_cd_softc *cd, struct packet_cmd *pc)
 
 	return -1;    
 }
-#define MAX_IDE_CDS 4
-int ide_cd_index = 0;
-struct ide_cd_softc *mycd[MAX_IDE_CDS];
 
 int is_ide_cd_ready(int ide_cd_index)
 {
