@@ -4253,13 +4253,29 @@ rewrite:
 
 	return 0;
 }
-
+#if     defined (LOONGSON_3ASINGLE)
+#include "generate_mac_val.c"
+#endif
 static int cmd_setmac(int ac, char *av[])
 {
 	int i, n;
 	unsigned short val = 0;
 	int32_t v;
 	char	net_type[5];
+
+#if     defined (LOONGSON_3ASINGLE)
+        unsigned short data = 0;
+        unsigned short data1 = 0;
+        unsigned short data2 = 0;
+
+        unsigned short data_tmp = 0;
+
+        int count, j, vd;
+
+        unsigned char buf[32];
+        char * addr;
+#endif
+
 #if     defined (LOONGSON_3ASINGLE) || defined (LOONGSON_3BSINGLE)
         strcpy(net_type,av[1]);
         if(strstr(net_type,"eth0")!=NULL)
@@ -4288,6 +4304,64 @@ static int cmd_setmac(int ac, char *av[])
 		return 0;
 	}
 
+#if     defined (LOONGSON_3ASINGLE)
+	if((ac == 1) || (ac ==2)){
+		addr = generate_mac_val(buf);
+                               
+		data = buf[1];
+                data = buf[0] | (data << 8);
+
+                data1 = buf[3];
+                data1 = buf[2] | (data1 << 8);
+
+                data2 = buf[5];
+                data2 = buf[4] | (data2 << 8);
+                                
+		count = rtl8168_write_eeprom(myRTL[n]->ioaddr, 0x7, data);
+                if(count != 0)
+                	printf("eeprom write data error\n");
+
+                count = rtl8168_write_eeprom(myRTL[n]->ioaddr, 0x8, data1);
+                if(count != 0)
+                	printf("eeprom write data1 error\n");
+
+                count = rtl8168_write_eeprom(myRTL[n]->ioaddr, 0x9, data2);
+                if(count != 0)
+                	printf("eeprom write data2 error\n");
+
+		if(count == 0){
+                	printf("set eth0  Mac address: ");
+                        for (vd = 0;vd < 6;vd++)
+                        	printf("%2x%s",*(addr + vd) & 0xff,(5-vd)?":":" ");
+                        printf("\n");
+                        printf("The machine should be restarted to make the mac change to take effect!!\n");
+                } else
+                	printf("eeprom write error!\n");
+                printf("you can set it by youself\n");
+        }else{
+                for (i = 0; i < 3; i++) {
+                        val = 0;
+                        gethex(&v, av[2], 2);
+                        val = v ;
+                        av[2]+=3;
+
+                        printf("eth0 Mac address bit [%d]: %x, val = %x\n",2*i, v, val);
+
+                        gethex(&v, av[2], 2);
+                        val = val | (v << 8);
+                        av[2] += 3;
+
+                        printf("eth0 Mac address bit [%d]: %x, val = %x\n",2*i+1, v, val);
+
+                        count = rtl8168_write_eeprom(myRTL[n]->ioaddr, 0x7 + i, val);
+                        if(count == 0)
+                                printf("eeprom write done!\n");
+                }
+
+        printf("The machine should be restarted to make the mac change to take effect!!(./dev/pci/rtl8168.c:)\n");
+        }
+        return 0;
+#else
 	if(ac != 3){
 		printf("MAC ADDRESS ");
 		for(i=0; i<6; i++){
@@ -4318,6 +4392,7 @@ static int cmd_setmac(int ac, char *av[])
 	printf("The machine should be restarted to make the mac change to take effect!!\n");
 
 	return 0;
+#endif
 }
 
 int cmd_msqt_lan(int ac, char *av[])
