@@ -8,6 +8,7 @@
 #define HT_32bit_TRANS
 #define WITH_HT
 #define HT_800M
+//#define HT_1600M
 //#define HT_16bit
 #define HT_RECONNECT
 //#define HT_REG_TRANS
@@ -371,6 +372,57 @@ ht_next_id :
 	bal	    hexserial
     nop
 	TTYDBG("\r\n")
+#endif
+
+#ifdef HT_1600M//Set HT bridge to be 1600Mhz
+	TTYDBG("Setting CPU HyperTransport Controller to be soft config 1600\r\n")
+	dli	    t2, 0x90000efdfb000000
+	li	    t0, 0x00464083
+	dli	    t2, 0x90000efdfb000000
+	sw	    t0, 0x178(t2)
+	lw          a0, 0x178(t2)
+	bal	    hexserial
+	nop
+	TTYDBG("\r\n")
+
+
+	TTYDBG("Setting HyperTransport Controller to be 1600Mhz\r\n")
+	dli	    t2, 0x90000efdfb000000
+	#li	    t0, 0x2 //Frequency: 400 Mhz
+	li	    t0, 0x9 //Frequency: 1600 Mhz
+	sb	    t0, 0x49(t2)
+    lw      a0, 0x48(t2)
+	bal	    hexserial
+    nop
+	TTYDBG("\r\n")
+
+	TTYDBG("Setting HyperTransport Controller to be GEN3 mode\r\n")
+	dli	    t2, 0x90000efdfb000000
+	li	    t0, 0x88600000
+	sw	    t0, 0x110(t2)
+    lw      a0, 0x110(t2)
+	bal	    hexserial
+    nop
+	TTYDBG("\r\n")
+
+	TTYDBG("Setting HyperTransport Controller to be retry mode\r\n")
+	dli	    t2, 0x90000efdfb000000
+	li	    t0, 0x81
+	sb	    t0, 0x118(t2)
+    lw      a0, 0x118(t2)
+	bal	    hexserial
+    nop
+	TTYDBG("\r\n")
+
+	TTYDBG("Enable HyperTransport Controller scrambling\r\n")
+	dli	    t2, 0x90000efdfb000000
+	li	    t0, 0x78
+	sb	    t0, 0x130(t2)
+    lw      a0, 0x130(t2)
+	bal	    hexserial
+    nop
+	TTYDBG("\r\n")
+
 #endif
 
 #endif
