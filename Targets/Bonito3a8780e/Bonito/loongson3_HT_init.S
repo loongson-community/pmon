@@ -7,15 +7,20 @@
 ######################################################
 #define HT_32bit_TRANS
 #define WITH_HT
-#define HT_800M
+//#define HT3_0
+//#define HT_1800M
 //#define HT_1600M
+//#define HT_1200M
+//#define HT_1000M
+#define HT_800M
 //#define HT_16bit
 #define HT_RECONNECT
 //#define HT_REG_TRANS
 #define HTMEM_ACC
+#define HT_SOFT_PLL
 ######################################################
 
-#ifdef HT_32bit_TRANS //PCI CFG : TYPE 0: 
+#ifdef HT_32bit_TRANS //PCI CFG : TYPE 0:
 	TTYDBG("32 bit PCI space translate to 64 bit HT space\r\n")
 
     dli t0, 0x900000003ff02000
@@ -125,6 +130,30 @@
     nop
 #endif
 
+#if 0//Print pciconfig
+	TTYDBG("Print all PCI config\r\n")
+	dli	    t2, 0x900000001fe00100
+1:
+    lw      a0, 0x00(t2)
+	bal	    hexserial
+    nop
+	TTYDBG("\r\n")
+
+#endif
+
+#if 0//Print all HT registers
+	TTYDBG("Print all HT registers\r\n")
+	dli	    t2, 0x90000efdfb000120
+1:
+    lw      a0, 0x00(t2)
+	bal	    hexserial
+    nop
+	TTYDBG("\r\n")
+
+    b       1b
+    nop
+#endif
+
 
 #ifdef WITH_HT
 #if 1//wait until HT link up
@@ -133,7 +162,7 @@
 	li	    t1, 0x1f
 1:
     lw      a0, 0x44(t0)
-	bal	hexserial
+//	bal	hexserial
     nop
 	beqz	t1,2f
     nop
@@ -213,7 +242,7 @@ ht_next_id :
 	addi	t3, t3, -1
 	bnez	t3, 1b
 	nop
-	
+
 	TTYDBG("END HT bus 0 scan\r\n")
         nop
 #endif
@@ -222,7 +251,7 @@ ht_next_id :
 #if 0//Print all HT registers
 	TTYDBG("Print all HT registers\r\n")
 	dli	    t2, 0x90000efdfb000000
-    dli     t3, 0x90000efdfb000100
+    dli     t3, 0x90000efdfb000180
 1:
     lw      a0, 0x00(t2)
 	bal	    hexserial
@@ -311,7 +340,7 @@ ht_next_id :
 	TTYDBG("Set HT Memory space all post\r\n")
 	li	    t0, 0x80000000
 	sw	    t0, 0xd0(t2)
-	li	    t0, 0x0040fff8
+	li	    t0, 0x0000ff00
 	sw	    t0, 0xd4(t2)
 
 1:
@@ -362,6 +391,110 @@ ht_next_id :
 	TTYDBG("\r\n")
 #endif
 
+#ifdef HT_SOFT_PLL
+
+#ifdef HT_1800M
+#define PHY_LO_DIV 2
+#define PHY_HI_DIV 2
+#define DIV_REFC   1
+#define DIV_LOOPC  36
+#define CORE_DIV   8
+#else
+#ifdef HT_1600M
+#define PHY_LO_DIV 2
+#define PHY_HI_DIV 2
+#define DIV_REFC   1
+#define DIV_LOOPC  32
+#define CORE_DIV   8
+#else
+#ifdef HT_1200M
+#define PHY_LO_DIV 2
+#define PHY_HI_DIV 2
+#define DIV_REFC   1
+#define DIV_LOOPC  24
+#define CORE_DIV   6
+#else
+#ifdef HT_1000M
+#define PHY_LO_DIV 4
+#define PHY_HI_DIV 4
+#define DIV_REFC   1
+#define DIV_LOOPC  40
+#define CORE_DIV   10
+#else
+#ifdef HT_800M
+#define PHY_LO_DIV 2
+#define PHY_HI_DIV 2
+#define DIV_REFC   1
+#define DIV_LOOPC  32
+#define CORE_DIV   8
+#else
+#define PHY_LO_DIV 8
+#define PHY_HI_DIV 8
+#define DIV_REFC   1
+#define DIV_LOOPC  32
+#define CORE_DIV   8
+#endif
+#endif
+#endif
+#endif
+#endif
+
+        TTYDBG("Setting CPU0 HyperTransport Controller to be soft config\r\n")
+        dli         t2, 0x90000efdfb000000
+        //li          t0, 0x00464083
+        li          t0, (PHY_LO_DIV << 22) | (PHY_HI_DIV << 18) | (DIV_REFC << 16) | (DIV_LOOPC << 9) | (CORE_DIV << 5) | 0x3
+        sw          t0, 0x178(t2)
+        lw          a0, 0x178(t2)
+        bal         hexserial
+        nop
+        TTYDBG("\r\n")
+#endif
+
+
+#ifdef HT_1800M
+	TTYDBG("Setting HyperTransport Controller to be 1800Mhz\r\n")
+	dli	t2, 0x90000efdfb000000
+	#li	t0, 0x2 //Frequency: 400 Mhz
+	li	t0, 0xa //Frequency: 1600 Mhz
+	sb	t0, 0x49(t2)
+	lw      a0, 0x48(t2)
+	bal	    hexserial
+	nop
+	TTYDBG("\r\n")
+#else
+#ifdef HT_1600M//Set HT bridge to be 1600Mhz
+	TTYDBG("Setting HyperTransport Controller to be 1600Mhz\r\n")
+	dli	t2, 0x90000efdfb000000
+	#li	t0, 0x2 //Frequency: 400 Mhz
+	li	t0, 0x9 //Frequency: 1600 Mhz
+	sb	t0, 0x49(t2)
+	lw      a0, 0x48(t2)
+	bal	    hexserial
+	nop
+	TTYDBG("\r\n")
+#else
+#ifdef HT_1200M
+	TTYDBG("Setting HyperTransport Controller to be 1200Mhz\r\n")
+	dli	t2, 0x90000efdfb000000
+	#li	t0, 0x2 //Frequency: 400 Mhz
+	li	t0, 0x7 //Frequency: 800 Mhz
+	sb	t0, 0x49(t2)
+	lw      a0, 0x48(t2)
+	bal	    hexserial
+	nop
+	TTYDBG("\r\n")
+#else
+#ifdef HT_1000M
+	TTYDBG("Setting HyperTransport Controller to be 1000Mhz\r\n")
+	dli	t2, 0x90000efdfb000000
+	#li	t0, 0x2 //Frequency: 400 Mhz
+	li	t0, 0x6 //Frequency: 800 Mhz
+	sb	t0, 0x49(t2)
+	lw      a0, 0x48(t2)
+	bal	    hexserial
+	nop
+	TTYDBG("\r\n")
+#else
 #ifdef HT_800M//Set HT bridge to be 800Mhz
 	TTYDBG("Setting HyperTransport Controller to be 800Mhz\r\n")
 	dli	    t2, 0x90000efdfb000000
@@ -373,56 +506,38 @@ ht_next_id :
     nop
 	TTYDBG("\r\n")
 #endif
+#endif
+#endif
+#endif
+#endif
 
-#ifdef HT_1600M//Set HT bridge to be 1600Mhz
-	TTYDBG("Setting CPU HyperTransport Controller to be soft config 1600\r\n")
-	dli	    t2, 0x90000efdfb000000
-	li	    t0, 0x00464083
-	dli	    t2, 0x90000efdfb000000
-	sw	    t0, 0x178(t2)
-	lw          a0, 0x178(t2)
+#ifdef HT3_0
+	TTYDBG("Setting HyperTransport Controller to be GEN3 mode\r\n")
+	dli	t2, 0x90000efdfb000000
+	li	t0, 0x88600000
+	sw	t0, 0x110(t2)
+	lw      a0, 0x110(t2)
 	bal	    hexserial
 	nop
 	TTYDBG("\r\n")
 
-
-	TTYDBG("Setting HyperTransport Controller to be 1600Mhz\r\n")
-	dli	    t2, 0x90000efdfb000000
-	#li	    t0, 0x2 //Frequency: 400 Mhz
-	li	    t0, 0x9 //Frequency: 1600 Mhz
-	sb	    t0, 0x49(t2)
-    lw      a0, 0x48(t2)
-	bal	    hexserial
-    nop
-	TTYDBG("\r\n")
-
-	TTYDBG("Setting HyperTransport Controller to be GEN3 mode\r\n")
-	dli	    t2, 0x90000efdfb000000
-	li	    t0, 0x88600000
-	sw	    t0, 0x110(t2)
-    lw      a0, 0x110(t2)
-	bal	    hexserial
-    nop
-	TTYDBG("\r\n")
-
 	TTYDBG("Setting HyperTransport Controller to be retry mode\r\n")
-	dli	    t2, 0x90000efdfb000000
-	li	    t0, 0x81
-	sb	    t0, 0x118(t2)
-    lw      a0, 0x118(t2)
-	bal	    hexserial
-    nop
+	dli	t2, 0x90000efdfb000000
+	li	t0, 0x81
+	sb	t0, 0x118(t2)
+	lw      a0, 0x118(t2)
+	bal	hexserial
+	nop
 	TTYDBG("\r\n")
 
 	TTYDBG("Enable HyperTransport Controller scrambling\r\n")
-	dli	    t2, 0x90000efdfb000000
-	li	    t0, 0x78
-	sb	    t0, 0x130(t2)
-    lw      a0, 0x130(t2)
-	bal	    hexserial
-    nop
+	dli	t2, 0x90000efdfb000000
+	li	t0, 0x78
+	sb	t0, 0x130(t2)
+	lw      a0, 0x130(t2)
+	bal	hexserial
+	nop
 	TTYDBG("\r\n")
-
 #endif
 
 #endif
@@ -487,7 +602,7 @@ ht_next_id :
 
 	bnez	t1, 1b
 	sub	    t1, t1, 1
-       
+
 	TTYDBG("END HT bus scan\r\n")
     nop
 #endif
@@ -500,7 +615,7 @@ ht_next_id :
     dli	    t0, 0x90000efdfe000000
 
 	lb	    t1, 0x34(t0)
-	
+
 1:
 
 	TTYDBG("Address of Capability : ")
@@ -529,7 +644,7 @@ ht_next_id :
 	lb	    t1, 0x1(t1)
 	andi	t1, t1, 0xff
 
-	bnez	t1, 1b	
+	bnez	t1, 1b
     nop
 
 /*
@@ -556,7 +671,7 @@ ht_next_id :
 	TTYDBG("\r\n")
 
 	lb	    t1, 0x1(t1)
-	bnez	t1, 1b	
+	bnez	t1, 1b
     nop
 
 	TTYDBG("function 2\r\n")
@@ -565,7 +680,7 @@ ht_next_id :
     dli	    t0, 0x90000efdfe000a00
 
 	lb	    t1, 0x34(t0)
-	
+
 1:
 
 	TTYDBG("Address of Capability : ")
@@ -584,7 +699,7 @@ ht_next_id :
 	TTYDBG("\r\n")
 
 	lb	    t1, 0x1(t1)
-	bnez	t1, 1b	
+	bnez	t1, 1b
     nop
 
 	TTYDBG("function 3\r\n")
@@ -593,7 +708,7 @@ ht_next_id :
     dli	    t0, 0x90000efdfe000b00
 
 	lb	    t1, 0x34(t0)
-	
+
 1:
 
 	TTYDBG("Address of Capability : ")
@@ -613,15 +728,14 @@ ht_next_id :
 
 	lb	    t1, 0x1(t1)
 
-	bnez	t1, 1b	
+	bnez	t1, 1b
     nop
 */
 
 
 
 	TTYDBG("End of Capability\r\n")
-	
-	
+
     li	    t1, 6
 	TTYDBG("start Capability of HT scan\r\n")
 
@@ -644,7 +758,7 @@ ht_next_id :
 
 	bnez	t1, 1b
 	sub	    t1, t1, 1
-       
+
 	TTYDBG("END HT bus scan\r\n")
     nop
 #endif
@@ -688,6 +802,54 @@ ht_next_id :
 
 #endif
 
+#ifdef HT_1800M
+	TTYDBG("Setting HyperTransport Southbridge to be 1800M\r\n")
+	dli	t0, 0x90000efdfe000000
+	li	t1, 0xa
+	sync
+	sb	t1, 0xd1(t0)
+	sync
+	lw      a0, 0xd0(t0)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+#else
+#ifdef HT_1600M
+	TTYDBG("Setting HyperTransport Southbridge to be 1600M\r\n")
+	dli	t0, 0x90000efdfe000000
+	li	t1, 0x9
+	sync
+	sb	t1, 0xd1(t0)
+	sync
+	lw      a0, 0xd0(t0)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+#else
+#ifdef HT_1200M
+	TTYDBG("Setting HyperTransport Southbridge to be 1200M\r\n")
+	dli	t0, 0x90000efdfe000000
+	li	t1, 0x7
+	sync
+	sb	t1, 0xd1(t0)
+	sync
+	lw      a0, 0xd0(t0)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+#else
+#ifdef HT_1000M
+	TTYDBG("Setting HyperTransport Southbridge to be 1000M\r\n")
+	dli	t0, 0x90000efdfe000000
+	li	t1, 0x6
+	sync
+	sb	t1, 0xd1(t0)
+	sync
+	lw      a0, 0xd0(t0)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+#else
 #ifdef HT_800M //Write Southbridge to 800Mhz
 	TTYDBG("Setting HyperTransport Southbridge to be 800M\r\n")
 	//li	t0, 0xba000000
@@ -699,6 +861,64 @@ ht_next_id :
     sync
     lw      a0, 0xd0(t0)
     sync
+#endif
+#endif
+#endif
+#endif
+#endif
+
+
+#ifdef HT3_0
+	TTYDBG("Setting HyperTransport Southbridge to be Gen3 mode\r\n")
+	dli	t0, 0x90000efdfe000000
+	li	t1, 0x00
+	sync
+	sb	t1, 0x9e(t0)
+	sync
+	lw      a0, 0x9c(t0)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+
+	dli	t0, 0x90000efdfe000000
+	li	t1, 0x4c
+	sync
+	sb	t1, 0xd8(t0)
+	sync
+	lw      a0, 0xd8(t0)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+
+	TTYDBG("Setting HyperTransport Southbridge Gen3 function\r\n")
+	dli	t0, 0x90000efdfe000000
+	li	t1, 0x1
+	sync
+	sb	t1, 0x44(t0)
+	sync
+	lw      a0, 0x44(t0)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+	dli	t0, 0x90000efdfe000000
+	li	t1, 0x8
+	sync
+	sb	t1, 0xac(t0)
+	sync
+	lw      a0, 0xac(t0)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+	dli	t0, 0x90000efdfe000000
+	li	t1, 0x22
+	sync
+	sb	t1, 0xa0(t0)
+	sync
+	lw      a0, 0xa0(t0)
+	bal	hexserial
+	nop
+	TTYDBG("\r\n")
+
 #endif
 
 #if 1 //Watch dog Trying
@@ -751,7 +971,7 @@ ht_next_id :
 #ifdef WD_DEBUG
 	lb	    a0, 1(t0)
 	bal	    hexserial
-	nop	
+	nop
 	TTYDBG("\r\n")
 
 	TTYDBG("Watch dog base value\r\n")
@@ -759,31 +979,31 @@ ht_next_id :
 	sb	    a0, 0(t0)
     lb      a0, 1(t0)
 	bal	    hexserial
-	nop	
+	nop
 	TTYDBG("\r\n")
 	li	    a0, 0x0000006c
 	sb	    a0, 0(t0)
     lb      a0, 1(t0)
 	bal	    hexserial
-	nop	
+	nop
 	TTYDBG("\r\n")
 	li	    a0, 0x0000006d
 	sb	    a0, 0(t0)
     lb      a0, 1(t0)
 	bal	    hexserial
-	nop	
+	nop
 	TTYDBG("\r\n")
 	li	    a0, 0x0000006e
 	sb	    a0, 0(t0)
     lb      a0, 1(t0)
 	bal	    hexserial
-	nop	
+	nop
 	TTYDBG("\r\n")
 	li	    a0, 0x0000006f
 	sb	    a0, 0(t0)
     lb      a0, 1(t0)
 	bal	    hexserial
-	nop	
+	nop
 	TTYDBG("\r\n")
 #endif
 	TTYDBG("Watch dog decode enable\r\n")
@@ -792,7 +1012,7 @@ ht_next_id :
     sb      a0, 0(t0)
     lb      a0, 0(t0)
 	bal	    hexserial
-	nop	
+	nop
 	TTYDBG("\r\n")
 
 	TTYDBG("Watch dog control value\r\n")
@@ -800,29 +1020,29 @@ ht_next_id :
     sync
 	lw	    a0, 0(t0)
 	bal	    hexserial
-	nop	
+	nop
 	TTYDBG("\r\n")
     sync
 	lw	    a0, 4(t0)
 	bal	    hexserial
-	nop	
+	nop
 	TTYDBG("\r\n")
 	TTYDBG("Set Watch dog control value\r\n")
     li      a0, 0x15
 	sw	    a0, 4(t0)
-	nop	
+	nop
     li      a0, 0x01
 	sw	    a0, 0(t0)
-	nop	
+	nop
     li      a0, 0x81
 	sw	    a0, 0(t0)
-	nop	
+	nop
 
 #if 0
 1:
     lw      a0, 4(t0)
 	bal	    hexserial
-	nop	
+	nop
 	TTYDBG("\r\n")
     lb      a0, 4(t0)
 	bne	    a0, t1, 1b
@@ -830,7 +1050,7 @@ ht_next_id :
 #endif
 
 #endif
-	
+
 #if 1//wait until HT link down
     TTYDBG("Waiting HyperTransport bus to be down.")
     dli     t0, 0x90000efdfb000000
@@ -935,7 +1155,7 @@ crc_checking:
 	bal	    hexserial
 	nop
 	TTYDBG("\r\nReset the Controller errror CRC bit\r\n")
- 	nop
+	nop
 
     lw      a0, 0x44(t0)
 	li	    a1, 0xfffffcff
@@ -954,20 +1174,20 @@ crc_checking:
 	//li	t0, 0xba000000
     dli	    t0, 0x90000efdfe000000
 2:
-    lw      a0, 0x48(t0)
+    lw      a0, 0xc8(t0)
 	li	    a1, 0x300
 	and	    a0, a0, a1
 
     beqz	a0,	1f
 	nop
 
-    lw      a0, 0x48(t0)
+    lw      a0, 0xc8(t0)
 	bal	    hexserial
 	nop
 	TTYDBG("\r\nReset the Bridge errror CRC bit\r\n")
- 	nop
+	nop
 
-    lw      a0, 0x48(t0)
+    lw      a0, 0xc8(t0)
 	li	    a1, 0xfffffcff
 	and	    a0, a0, a1
 
@@ -1019,7 +1239,7 @@ crc_checking:
 
 	bnez	t1, 1b
 	sub	    t1, t1, 1
-       
+
 	TTYDBG("END HT-LPC header scan\r\n")
     nop
 
@@ -1036,7 +1256,7 @@ crc_checking:
 
 	bnez	t1, 1b
 	sub	    t1, t1, 1
-       
+
 
     li	    t1, 16
 	TTYDBG("start HT-LPC header scan\r\n")
@@ -1059,7 +1279,7 @@ crc_checking:
 
 	bnez	t1, 1b
 	sub	    t1, t1, 1
-       
+
 	TTYDBG("END HT-LPC header scan\r\n")
     nop
 
@@ -1165,7 +1385,7 @@ crc_checking:
 
 //set Southbridge Super IO to be 24Mhz input
 	TTYDBG("Setting Southbridge Super IO to be 24Mhz input\r\n")
-	
+
 	li	    a0, 0xffff0000
 	sw	    a0, 0xb4(t0)
 	nop
@@ -1184,7 +1404,7 @@ crc_checking:
 	li	    a0, 0x24
 	sb	    a0, 0x2e(t0)
 	nop
-	
+
 	lb	    a0, 0x2f(t0)
 	bal	    hexserial
     nop
@@ -1253,37 +1473,37 @@ crc_checking:
 	lw	    a0, 0xe4(t0)
 	bal	    hexserial
 	nop
-	
+
 	TTYDBG("\r\n")
     nop
-	
+
 	li	    t1, 0x7f7
 	or	    a0, a0, t1
 	sw	    a0, 0xe4(t0)
-	
+
 	lw	    a0, 0xe4(t0)
 	bal	    hexserial
 	nop
-	
+
 	TTYDBG("\r\n")
     nop
-	
+
 	lw	    a0, 0xe8(t0)
 	bal	    hexserial
 	nop
-	
+
 	TTYDBG("\r\n")
     nop
-	
+
 	//li	t1, 0x53fd27
 	li	    t1, 0x537d23//DMA,P2P enable
 	or	    a0, a0, t1
 	sw	    a0, 0xe8(t0)
-	
+
 	lw	    a0, 0xe8(t0)
 	bal	    hexserial
 	nop
-	
+
 	TTYDBG("\r\n")
     nop
 
@@ -1292,21 +1512,21 @@ crc_checking:
 	lw	    a0, 0xa4(t0)
 	bal	    hexserial
 	nop
-	
+
 	TTYDBG("\r\n")
     nop
 
 	li	    t1, 0x10000
 	or	    a0, a0, t1
 	sw	    a0, 0xa4(t0)
-	
+
 	lw	    a0, 0xa4(t0)
 	bal	    hexserial
 	nop
-	
+
 	TTYDBG("\r\nD1,F0, 0x88\r\n")
     nop
-	
+
 	//li	t0, 0xba000800
     dli	    t0, 0x90000efdfe000800
 	lw	    a0, 0x88(t0)
@@ -1318,7 +1538,7 @@ crc_checking:
 	lw	    a0, 0x78(t0)
 	bal	    hexserial
 	nop
-	
+
 	TTYDBG("\r\nD1,F1, 0x60\r\n")
 
 	//li	t0, 0xba000900
@@ -1358,9 +1578,29 @@ crc_checking:
 
 	bnez	t1, 1b
 	sub	t1, t1, 1
-       
+
 	TTYDBG("END HT-PCI header scan\r\n")
     nop
 #endif
 
 #endif
+
+#if 0//Print all HT registers
+	TTYDBG("Print all HT registers\r\n")
+	dli	    t2, 0x90000efdfb000000
+    dli     t3, 0x90000efdfb000180
+1:
+    lw      a0, 0x00(t2)
+	bal	    hexserial
+    nop
+	TTYDBG("\r\n")
+
+    daddi   t2, t2, 0x4
+    bne     t2, t3, 1b
+    nop
+
+1:
+    b       1b
+    nop
+#endif
+
