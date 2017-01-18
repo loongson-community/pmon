@@ -30,6 +30,17 @@ ddr2_config:
     bnez    t1, 1b
     nop
 
+#ifdef FIX_3A82H_DDR
+	li	t4, 0xf00
+	and	t4, t4, s1
+	bne	t4, 0x4, 1f
+	nop
+	dli	t4, 0x18
+	or	t4, t4, t8
+	dli	a0, 0x3030303016100000
+	sd	a0, 0x0(t4)
+1:
+#endif
 #if 0 
 //autoset param registers
 set_tMOD:		

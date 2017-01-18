@@ -26,6 +26,7 @@ option      DDR3_DIMM
 #option      ARB_LEVEL
 option      AUTO_DDR_CONFIG
 option      USE_LS2H_I2C
+option	    FIX_3A82H_DDR
 
 option		BONITOEL
 option      DEVBD2F
