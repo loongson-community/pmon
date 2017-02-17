@@ -412,7 +412,7 @@ struct irq_source_routing_table *init_irq_source()
 #if defined(LOONGSON_2F1A)
 	irq_info->pci_mem_start_addr = 0x44000000ul;
 #else
-	irq_info->pci_mem_start_addr = 0x50000000ul;
+	irq_info->pci_mem_start_addr = 0x40000000ul;
 #endif
 	irq_info->pci_mem_end_addr = 0x7ffffffful;
 #if (defined RS780E || defined LS7A)
