@@ -210,7 +210,7 @@
 
 	TTYDBG("Setting HyperTransport Southbridge back to be 8-bit width and 200Mhz for next RESET\r\n")
 	dli	t2, 0x90000efdfb000000
-	li	t0, 0x0 //Frequency: 200 Mhz
+	li	t0, 0x5 //Frequency: 200 Mhz
 	sb	t0, 0x49(t2)
 	lw      a0, 0x48(t2)
 	bal	hexserial
