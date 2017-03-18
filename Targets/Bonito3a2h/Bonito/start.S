@@ -1276,6 +1276,29 @@ after_ht:
 //		nop
 #endif
 
+//configure DDR freq by software
+#if 1
+    li      t5, 0x17
+#if 0
+    PRINTSTR("Please input DDR frequency SELLECT[4:0](default: 0x1e;0x1f: skip software setting):\r\n");
+    dli     t6, 0x00
+    bal     inputaddress #input value stored in v0
+    nop
+    dli     t6, 0x1f
+    and     v0, v0, t6
+    beq     v0, t6, 88f
+    nop
+    move    t5, v0
+#endif
+
+    TTYDBG  ("\r\nSet DDR frequency by software\r\n")
+    move    a2, $0
+    bal     config_mc_frequency
+    nop
+
+88:
+#endif
+
 
 
 		bal CPU_TLBClear
@@ -1382,6 +1405,7 @@ after_ht:
         dli     s1, 0xc1e30400c1e30404  //set use MC1 or MC0 or MC1/0 and give All DIMM infor // shuagnmian
         dli     s1, 0xc1ec0400c1ec0404  //set use MC1 or MC0 or MC1/0 and give All DIMM infor // shuagnmian
         dli     s1, 0xc0a10408c0a10408  //dian mian 2GB
+        dli     s1, 0xc0a18404 
 #endif
 #include "ddr_dir/loongson3_ddr2_config.S"
 
