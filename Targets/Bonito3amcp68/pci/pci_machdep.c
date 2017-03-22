@@ -160,7 +160,7 @@ _pci_hwinit(initialise, iot, memt)
 	_pci_bus[_max_pci_bus++] = pd;
 
 	
-	bus_dmamap_tag._dmamap_offs = 0;
+	bus_dmamap_tag._dmamap_offs = 0x80000000;
 
 /*set pci base0 address and window size*/
 	pci_local_mem_pci_base = 0x80000000;
