@@ -4274,6 +4274,7 @@ static int cmd_setmac(int ac, char *av[])
 
         unsigned char buf[32];
         char * addr;
+	unsigned char tmp[6];
 #endif
 
 #if     defined (LOONGSON_3ASINGLE) || defined (LOONGSON_3BSINGLE)
@@ -4306,8 +4307,31 @@ static int cmd_setmac(int ac, char *av[])
 
 #if     defined (LOONGSON_3ASINGLE)
 	if((ac == 1) || (ac ==2)){
+	{
+              for (i=0 ; i < 6; i++) {
+                  buf[i] = myRTL[n]->dev_addr[i];
+	          tmp[i] = buf[i];
+              }
+          }
+#if 0//debug
+	{
+                printf(" eth0  Mac address buf: ");
+                   for (vd = 0;vd < 6;vd++)
+                        	printf("%2x%s",buf[vd],(5-vd)?":":" ");
+                        printf("\n");
+      }
+#endif
 		addr = generate_mac_val(buf);
-                               
+#if 0//debug
+	{
+                printf(" eth0  Mac address addr= %x: ",&addr);
+                   for (vd = 0;vd < 6;vd++)
+                        	printf("%2x%s",*(addr + vd) & 0xff,(5-vd)?":":" ");
+                        printf("\n");
+      }
+		printf("buf[0]= %x ,addr = %x\n",buf[0],*addr & 0xff);
+#endif
+	if((*addr & 0xff)!=tmp[0]){    //addr and buf are different
 		data = buf[1];
                 data = buf[0] | (data << 8);
 
@@ -4332,13 +4356,22 @@ static int cmd_setmac(int ac, char *av[])
 		if(count == 0){
                 	printf("set eth0  Mac address: ");
                         for (vd = 0;vd < 6;vd++)
-                        	printf("%2x%s",*(addr + vd) & 0xff,(5-vd)?":":" ");
+                        	printf("%02x%s",*(addr + vd) & 0xff,(5-vd)?":":" ");
                         printf("\n");
                         printf("The machine should be restarted to make the mac change to take effect!!\n");
                 } else
                 	printf("eeprom write error!\n");
                 printf("you can set it by youself\n");
-        }else{
+       	  }	
+	  else{
+                printf(" eth0  Mac address addr: ");
+                   for (vd = 0;vd < 6;vd++)
+                        	printf("%02x%s",*(addr + vd) & 0xff,(5-vd)?":":" ");
+                        printf("\n");
+ 
+		}
+		 
+	}else{
                 for (i = 0; i < 3; i++) {
                         val = 0;
                         gethex(&v, av[2], 2);
