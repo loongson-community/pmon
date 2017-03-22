@@ -969,7 +969,7 @@ soft_out:
 ##########################################
 
 bootnow:
-//	bal	spd_info_store
+	bal	spd_info_store
 	nop
 	TTYDBG("Copy PMON to execute location...\r\n")
 #ifdef DEBUG_LOCORE

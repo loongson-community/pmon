@@ -2309,7 +2309,7 @@ struct board_devices *board_devices_info()
 
 	struct board_devices *bd = &g_board;
 
-	strcpy(bd->name,"Loongson-3A2000-780E-1w-V1.10-demo");
+	strcpy(bd->name,"Loongson-3A3000-780E-1w-V1.10-demo");
 	bd->num_resources = 10;
 
 	return bd;
