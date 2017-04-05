@@ -6,7 +6,7 @@ ATTENTION: NO 16BIT mode when using HT1
 
 */
 #define HT0_RECONNECT
-#define INTERCONNECTION_HT0_1_0 //USE HT1.0 on Ring
+//#define INTERCONNECTION_HT0_1_0 //USE HT1.0 on Ring
 //#define HT0_3200M
 //#define HT0_2800M
 #define HT0_2400M
