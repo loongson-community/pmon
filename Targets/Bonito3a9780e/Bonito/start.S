@@ -396,7 +396,7 @@ gs_2f_v3_ddr2_cfg:
 
 //#define DDR_LOOPC  24 //600MHz
 #define DDR_LOOPC  30 //500MHz
-#define DDR_REFC    4
+#define DDR_REFC    2
 //#define DDR_DIV     8
 #define DDR_DIV     6
 
