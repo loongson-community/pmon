@@ -927,7 +927,7 @@ static u32 ahci_sata_rw_cmd(int port_no, u32 start, u32 blkcnt, u8 * buffer,
 	struct ahci_ioports *pp = &(probe_ent->port[port_no]);
 	struct sata_fis_h2d h2d;
 	struct cfis *cfis;
-	u8 *pc;
+	u8 *pc = NULL;
 	u32 block;
 
 	block = start;
