@@ -277,7 +277,7 @@ stack = start - 0x4000		/* Place PMON stack below PMON start in RAM */
 //GPIOLED_SET(2)
 	
 	/* WatchDog chip MAX6369 disable work */
-	WatchDog_Close
+//	WatchDog_Close
 
 	bal	locate			/* Get current execute address */
 	nop
@@ -1291,6 +1291,10 @@ after_ht:
 		nop
 #if 1 /* TLB init */
 	    TTYDBG("Init htpcitlb...\r\n")
+	
+	/* WatchDog chip MAX6369 disable work */
+	WatchDog_Close
+
 #include "pcitlb.S"
 #endif
 		//TTYDBG("Init caches...\r\n")

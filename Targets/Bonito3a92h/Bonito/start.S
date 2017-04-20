@@ -102,7 +102,7 @@ stack = start - 0x4000		/* Place PMON stack below PMON start in RAM */
 	la	gp, _gp
 
 	/* WatchDog chip MAX6369 disable work */
-	WatchDog_Close
+//	WatchDog_Close
 
 	/* spi speedup */
 	li  t0, 0xbfe00220
@@ -638,6 +638,10 @@ soft_out:
 	nop
 
 	TTYDBG("Init htpcitlb...\r\n")
+
+	/* WatchDog chip MAX6369 disable work */
+	WatchDog_Close
+
 #include "pcitlb.S" /* map 0x1000000-0x1700000 to 0x4000000 */
 
 
