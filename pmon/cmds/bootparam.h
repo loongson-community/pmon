@@ -49,7 +49,22 @@ struct efi_systab {
 
 enum loongson_cpu_type
 {
-	Loongson_2F,Loongson_2E, Loongson_3A, Loongson_3B,Loongson_1A,Loongson_1B,Loongson_2G,
+	Legacy_2E = 0x0,
+	Legacy_2F = 0x1, 
+	Legacy_3A = 0x2, 
+	Legacy_3B = 0x3,
+	Legacy_1A = 0x4,
+	Legacy_1B = 0x5,
+	Legacy_2G = 0x6,
+	Legacy_2H = 0x7,
+	Loongson_1A = 0x100,
+	Loongson_1B = 0x101,
+	Loongson_2E = 0x200,
+	Loongson_2F = 0x201,
+	Loongson_2G = 0x202,
+	Loongson_2H = 0x203,
+	Loongson_3A = 0x300,
+	Loongson_3B = 0x301,	 
 };
 
 struct efi_cpuinfo_loongson {
@@ -65,6 +80,7 @@ struct efi_cpuinfo_loongson {
 	unsigned short reserved_cores_mask; /* Core id: */
 	unsigned int  cpu_clock_freq; //cpu_clock
 	unsigned int nr_cpus;
+	unsigned char cpuname[64]; /*cpu name*/
 }__attribute__((packed));
 
 
@@ -90,7 +106,8 @@ struct irq_source_routing_table {
 	unsigned long long  pci_io_start_addr;
 	unsigned long long  pci_io_end_addr;
 	unsigned long long  pci_config_addr;
-	unsigned int dma_mask_bits;
+	unsigned short dma_mask_bits;
+	unsigned short dma_noncoherent;/* 0:cache DMA ; 1:uncache DMA */
 
 }__attribute__((packed));
 
@@ -150,9 +167,10 @@ struct efi_reset_system_t
         unsigned long long  ResetWarm;
         unsigned long long  ResetType;
         unsigned long long  Shutdown;
+	unsigned long long  DoSuspend;
 };
 
-struct efi {
+struct efi_loongson {
 	//efi_system_table_t systab;       /* EFI system table */
 	unsigned long long  mps;              /* MPS table */
 	unsigned long long  acpi;              /* ACPI table  (IA64 ext 0.71) */
@@ -177,7 +195,7 @@ struct efi {
 struct boot_params{
 	//struct screen_info *screen_info;
 	//struct sys_desc_table *sys_desc_table;
-	struct efi efi;
+	struct efi_loongson efi;
         struct efi_reset_system_t  reset_system;
 };
 
