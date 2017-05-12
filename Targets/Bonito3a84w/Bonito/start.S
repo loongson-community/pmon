@@ -2195,7 +2195,7 @@ idle1000:
 #######################################
 #include "ddr_dir/ls3A8_ddr_config.S"
 #ifdef DDR3_DIMM
-#include "ddr_dir/loongson3C_ddr3_leveling.S"
+#include "loongson3C_ddr3_leveling.S"
 #endif
 #ifdef ARB_LEVEL
 #include "ddr_dir/ARB_level_new.S"

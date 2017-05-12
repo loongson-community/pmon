@@ -295,7 +295,7 @@ initmips(unsigned long long raw_memsz)
 	/*
 	 *  Probe clock frequencys so delays will work properly.
 	 */
-	for (i = 0;i < 6;i++)
+	for (i = 0;i < 10;i++)
 	{
 		tgt_printf(" . ");
 		delay(0x200000);

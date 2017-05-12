@@ -2429,7 +2429,7 @@ idle1000:
 
 #######################################
 #include "ddr_dir/ls3B5_ddr_config.S"
-#include "ddr_dir/loongson3C_ddr3_leveling.S"
+#include "loongson3C_ddr3_leveling.S"
 #ifdef  DEBUG_DDR
 #include "ddr_dir/Test_Mem.S"
 #endif

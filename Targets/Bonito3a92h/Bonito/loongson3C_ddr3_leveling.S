@@ -5,8 +5,49 @@
    ECC slice in not included yet
    2012.9.25 add ECC slice
 */
+/* t1(0x20,0x40,...), t2(0x180,0x181,...), is used for loop, t0 is the loop count */
+/* a0, a1 is used for load and store */
+/* a2, a3 is used for set some parameters/judge some edges */
+/* t4 is the tmp varible always used */
 
 /* in PRINTSTR: a0, a1, a2, v0, v1 will be changed */
+/* in GET_NUMBER_OF_SLICES: t0, t1 will be changed and t0 is the output*/
+/* in RDOE_SUB_TRDDATA_ADD: a0, a1, t4 will be changed*/
+/* in hexserial: ra, a0, a1, a2, a3 will be changed*/
+
+#include "ddr_leveling_define.h"
+#define	PREAMBLE_CHECK_DEBUG
+//#define	PRINT_PREAMBLE_CHECK
+#define PRINT_DDR_LEVELING
+//#define SIGNAL_DEPICT_DEBUG
+//#define LVL_DEBUG
+#define CHANGE_DQ_WITH_DQS
+
+#define ORDER_OF_UDIMM		0x876543210
+#define ORDER_OF_RDIMM		0x765401238
+//#define ORDER_OF_UDIMM		0x847652013 //for SODIMM(2 cs and 8 chips per cs)
+#define WRDQS_LTHF_STD 		0x40
+#define WRDQ_LTHF_STD 		0x40 //less then STD will be set1
+#define	RDDQS_LTHF_STD1		0x80 //greater then STD1 and less then STD2 will be set1
+#define	RDDQS_LTHF_STD2		0x38
+#define DLL_WRDQ_SUB		0x20
+#define DLL_GATE_SUB		0x20
+#define	WR_FILTER_LENGTH 	0x6
+#define GATE_FILTER_LENGTH	0x6
+#define PREAMBLE_LENGTH_3A9 0x60
+#define PREAMBLE_LENGTH_3A8 0x60
+
+#define	OFFSET_DLL_WRDQ 	0x19  // from 0x20/40/....
+#define OFFSET_DLL_WRDQS 	0x1a
+#define OFFSET_DLL_GATE 	0x18
+#define OFFSET_WRDQ_LTHF 	0x0
+#define	OFFSET_WRDQS_LTHF 	0x1
+#define OFFSET_RDDQS_LTHF 	0x2
+#define OFFSET_RDOE_BEGIN	0xe
+#define OFFSET_RDOE_END		0xf
+#define OFFSET_ODTOE_BEGIN 	0x14
+#define OFFSET_ODTOE_END	0x15
+
         .global ddr3_leveling
         .ent    ddr3_leveling
 ddr3_leveling:
@@ -144,30 +185,17 @@ wait_dram_init_done:
     beqz    a0, wait_dram_init_done
     nop
 
-#if 1 //3a3000
 write_leveling:
     PRINTSTR("\r\nwrite leveling begin\r\n")
 
 /* 2. set all dll to be 0 */
-/* identify wheather there is ecc slice */
-    li      t0, 0x8
-    dli     t1, 0x250
-    or      t1, t1, t8
-    lb      a0, 0x2(t1)
-    dli     t1, 0x1
-    and     a0, a0, t1
-    bne     a0, t1, 1f //when rd_after_write enabled, the 9th device may don't need leveling
-    nop
-    daddu   t0, t0, 0x1
-1:
-    dli     t1, 0x018
+	GET_NUMBER_OF_SLICES
+    dli     t1, 0x0
     or      t1, t1, t8
 dll_wrdqs_set0:
     daddu   t1, t1, 0x20
-    ld      a0, 0x0(t1)
-    dli     t4, 0xffffffffff00ffff
-    and     a0, a0, t4
-    sd      a0, 0x0(t1)
+	li		a0, 0x0
+    sb      a0, OFFSET_DLL_WRDQS(t1)
     subu    t0, t0, 0x1 
     bnez    t0, dll_wrdqs_set0 
     nop
@@ -176,23 +204,14 @@ dll_wrdqs_set0:
 
 /* 3. set leveling mode to be WRITE LEVELING */
 lvl_mode_set01:
-    dli     t1, 0x180
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t4, 0xffffffffffffff00
-    and     a0, a0, t4
-    ori     a0, a0, 0x1
-    sd      a0, 0x0(t1)
+	dli		a0, 0x1
+	sb		a0, 0x180(t8)
 
     PRINTSTR("\r\nset leveling mode to be WRITE LEVELING\r\n")
 
 /* 4. check whether to start leveling */
 lvl_ready_sampling:
-    dli     t1, 0x180
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t4, 0x0000ff0000000000
-    and     a0, a0, t4
+    lb      a0, 0x185(t8)
     beqz    a0, lvl_ready_sampling
     nop
 
@@ -200,398 +219,227 @@ lvl_ready_sampling:
 
 /* 5. Set leveling req */
 
-/* t3 is used to indicate whether all slice got 0 */
-    dli     t3, 0x0
-    dli     a1, 0x0
-    dli     s6, 0x0
-lvl_req_set:
-    dli     t1, 0x180
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t4, 0xffffffffffff00ff
-    and     a0, a0, t4
-    ori     a0, a0, 0x100
-    sd      a0, 0x0(t1)
-    and     a0, a0, t4
-    sd      a0, 0x0(t1)
+	GET_NUMBER_OF_SLICES
+	dli		t1, 0x20
+	or		t1, t1, t8
+	dli		t2, 0x180
+	or		t2, t2, t8
+lvl_req_set0:
+	dli		a0, 0x1
+	sb		a0, 0x181(t8)
+	dli		a0, 0x0
+	sb		a0, 0x181(t8)
 
 #ifdef LVL_DEBUG
-    PRINTSTR("\r\nwrite leveling req\r\n")
+    PRINTSTR("\r\nwrite leveling req set0\r\n")
 #endif
 
 /* 6. check whether this leveling request done */
-lvl_done_sampling:
-    dli     t1, 0x180
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t4, 0x00ff000000000000
-    and     a0, a0, t4
-    dsrl    a0, a0, 48
-    beqz    a0, lvl_done_sampling
-    nop
+lvl_done_sampling0:
+    lb		a0, 0x186(t8)
+	beqz	a0, lvl_done_sampling0
+	nop
 
 #ifdef LVL_DEBUG
     PRINTSTR("\r\nwrite leveling done\r\n")
 #endif
 
-    bnez    t3, lvl_resp_set
-    nop 
+lvl_resp_set0:
+	lb		a0, 0x7(t2)
+	dli		t4, 0xff
+	and 	a0, a0, t4
+	beqz	a0, resp_set0_done
+	nop
 
-/* 7. check each slice response to adjust the dll */
+dll_wrdqs_add0:
+#ifdef LVL_DEBUG
+	PRINTSTR("\r\nslice ")
+	dli		a0, 0x8
+	dsubu	a0, a0, t0
+	bal		hexserial4
+	nop
+	PRINTSTR(" add to get 0\r\n")
+#endif
+	lb		a0, OFFSET_DLL_WRDQS(t1)
+	daddu	a0, a0, 0x1
+	dli		t4, 0x7f
+	and		a0, a0, t4
+	sb		a0, OFFSET_DLL_WRDQS(t1)
 
-/* 7.1 ensure all slice got a 0 first */
-/* a2 is used to indicate whether any slice got an 1 */
-//    dli     s6, 0x1
-lvl_resp_0_set0:
-    dli     s7, 0x0
-    dli     t1, 0x180
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t4, 0x0100000000000000
-    and     a0, a0, t4
-    //dsrl    a0, a0, 56
-    //beq     a0, a1, dll_wrdqs_0_add1
-    bnez    a0, dll_wrdqs_0_add1
-    nop
-lvl_resp_1_set0:
-    dli     t1, 0x188
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t4, 0x0000000000000001
-    and     a0, a0, t4
-    //beq     a0, a1, dll_wrdqs_1_add1
-    bnez    a0, dll_wrdqs_1_add1
-    nop
-lvl_resp_2_set0:
-    dli     t1, 0x188
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t4, 0x0000000000000100
-    and     a0, a0, t4
-    //dsrl    a0, a0, 8
-    //beq     a0, a1, dll_wrdqs_2_add1
-    bnez    a0, dll_wrdqs_2_add1
-    nop
-lvl_resp_3_set0:
-    dli     t1, 0x188
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t4, 0x0000000000010000
-    and     a0, a0, t4
-    //dsrl    a0, a0, 16
-    //beq     a0, a1, dll_wrdqs_3_add1
-    bnez    a0, dll_wrdqs_3_add1
-    nop
-lvl_resp_4_set0:
-    dli     t1, 0x188
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t4, 0x0000000001000000
-    and     a0, a0, t4
-    //dsrl    a0, a0, 24
-    //beq     a0, a1, dll_wrdqs_4_add1
-    bnez    a0, dll_wrdqs_4_add1
-    nop
-lvl_resp_5_set0:
-    dli     t1, 0x188
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t4, 0x0000000100000000
-    and     a0, a0, t4
-    //dsrl    a0, a0, 32
-    //beq     a0, a1, dll_wrdqs_5_add1
-    bnez    a0, dll_wrdqs_5_add1
-    nop
-lvl_resp_6_set0:
-    dli     t1, 0x188
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t4, 0x0000010000000000
-    and     a0, a0, t4
-    //dsrl    a0, a0, 40
-    //beq     a0, a1, dll_wrdqs_6_add1
-    bnez    a0, dll_wrdqs_6_add1
-    nop
-lvl_resp_7_set0:
-    dli     t1, 0x188
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t4, 0x0001000000000000
-    and     a0, a0, t4
-    //dsrl    a0, a0, 48
-    //beq     a0, a1, dll_wrdqs_7_add1
-    bnez    a0, dll_wrdqs_7_add1
-    nop
-
-lvl_resp_8_set0:
-/* identify wheather there is ecc slice */
-    dli     t1, 0x250
-    or      t1, t1, t8
-    lb      a0, 0x2(t1)
-    dli     t1, 0x1
-    and     a0, a0, t1
-    bne     a0, t1, 1f //when rd_after_write enabled, the 9th device may don't need leveling
-    nop
-
-    dli     t1, 0x188
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t4, 0x0100000000000000
-    and     a0, a0, t4
-    //dsrl    a0, a0, 56
-    //beq     a0, a1, dll_wrdqs_8_add1
-    bnez    a0, dll_wrdqs_8_add1
-    nop
-
+#ifdef CHANGE_DQ_WITH_DQS
+	lb		a0, OFFSET_DLL_WRDQS(t1) // get dll_wrdqs
+	blt		a0, WRDQS_LTHF_STD, 1f
+	nop
+	li		t4, 0x0
+	sb		t4, OFFSET_WRDQS_LTHF(t1) //set wrdqs_lt_half
+	b		2f
+	nop
 1:
-    bnez    s7, lvl_req_set
-    nop
+	li		t4, 0x1
+	sb		t4, OFFSET_WRDQS_LTHF(t1) //set wrdqs_lt_half
+2:
+	dsubu	a0, a0, 0x20
+	dli		t4, 0x7f
+	and		a0, a0, t4
+	sb		a0, OFFSET_DLL_WRDQ(t1) // set dll_wrdata
 
-#if 1
-/* filter the 0 to 1 glitch, which will cause the reboot error*/
-additional_lvl_req:
-    blt     s6, 5, dll_wrdqs0_add
-    nop
-    blt     s6, 10, dll_wrdqs1_add
-    nop
-    blt     s6, 15, dll_wrdqs2_add
-    nop
-    blt     s6, 20, dll_wrdqs3_add
-    nop
-    blt     s6, 25, dll_wrdqs4_add
-    nop
-    blt     s6, 30, dll_wrdqs5_add
-    nop
-    blt     s6, 35, dll_wrdqs6_add
-    nop
-    blt     s6, 40, dll_wrdqs7_add
-    nop
-    //ECC
-    dli     t1, 0x250
-    or      t1, t1, t8
-    lb      a0, 0x2(t1)
-    dli     t1, 0x1
-    and     a0, a0, t1
-    bne     a0, t1, 11f
-    nop
-    blt     s6, 45, dll_wrdqs8_add
-    nop
-11:
-    b       1f
-    nop
-
-dll_wrdqs0_add:
-    daddu   s6, s6, 0x1
-    ld      a0, 0x38(t8)
-    dli     t4, 0x010000
-    daddu   a0, a0, t4
-    dli     t4, 0xffffffffff7fffff
-    and     a0, a0, t4
-    sd      a0, 0x38(t8)
-    b       lvl_req_set //make additional 5 times lvl_req
-    nop
-
-dll_wrdqs1_add:
-    daddu   s6, s6, 0x1
-    ld      a0, 0x58(t8)
-    dli     t4, 0x010000
-    daddu   a0, a0, t4
-    dli     t4, 0xffffffffff7fffff
-    and     a0, a0, t4
-    sd      a0, 0x58(t8)
-    b       lvl_req_set //make additional 5 times lvl_req
-    nop
-
-dll_wrdqs2_add:
-    daddu   s6, s6, 0x1
-    ld      a0, 0x78(t8)
-    dli     t4, 0x010000
-    daddu   a0, a0, t4
-    dli     t4, 0xffffffffff7fffff
-    and     a0, a0, t4
-    sd      a0, 0x78(t8)
-    b       lvl_req_set //make additional 5 times lvl_req
-    nop
-
-dll_wrdqs3_add:
-    daddu   s6, s6, 0x1
-    ld      a0, 0x98(t8)
-    dli     t4, 0x010000
-    daddu   a0, a0, t4
-    dli     t4, 0xffffffffff7fffff
-    and     a0, a0, t4
-    sd      a0, 0x98(t8)
-    b       lvl_req_set //make additional 5 times lvl_req
-    nop
-
-dll_wrdqs4_add:
-    daddu   s6, s6, 0x1
-    ld      a0, 0xb8(t8)
-    dli     t4, 0x010000
-    daddu   a0, a0, t4
-    dli     t4, 0xffffffffff7fffff
-    and     a0, a0, t4
-    sd      a0, 0xb8(t8)
-    b       lvl_req_set //make additional 5 times lvl_req
-    nop
-
-dll_wrdqs5_add:
-    daddu   s6, s6, 0x1
-    ld      a0, 0xd8(t8)
-    dli     t4, 0x010000
-    daddu   a0, a0, t4
-    dli     t4, 0xffffffffff7fffff
-    and     a0, a0, t4
-    sd      a0, 0xd8(t8)
-    b       lvl_req_set //make additional 5 times lvl_req
-    nop
-
-dll_wrdqs6_add:
-    daddu   s6, s6, 0x1
-    ld      a0, 0xf8(t8)
-    dli     t4, 0x010000
-    daddu   a0, a0, t4
-    dli     t4, 0xffffffffff7fffff
-    and     a0, a0, t4
-    sd      a0, 0xf8(t8)
-    b       lvl_req_set //make additional 5 times lvl_req
-    nop
-
-dll_wrdqs7_add:
-    daddu   s6, s6, 0x1
-    ld      a0, 0x118(t8)
-    dli     t4, 0x010000
-    daddu   a0, a0, t4
-    dli     t4, 0xffffffffff7fffff
-    and     a0, a0, t4
-    sd      a0, 0x118(t8)
-    b       lvl_req_set //make additional 5 times lvl_req
-    nop
-
-dll_wrdqs8_add:
-    daddu   s6, s6, 0x1
-    ld      a0, 0x138(t8)
-    dli     t4, 0x010000
-    daddu   a0, a0, t4
-    dli     t4, 0xffffffffff7fffff
-    and     a0, a0, t4
-    sd      a0, 0x138(t8)
-    b       lvl_req_set //make additional 5 times lvl_req
-    nop
-
+	blt		a0, WRDQ_LTHF_STD, 1f
+	nop
+	li		t4, 0x0
+	sb		t4, OFFSET_WRDQ_LTHF(t1) //set wrdq_lt_half
+	b		2f
+	nop
 1:
+	li		t4, 0x1
+	sb		t4, OFFSET_WRDQ_LTHF(t1) //set wrdq_lt_half
+2:
+#endif
+	b 		lvl_req_set0
+	nop
+
+resp_set0_done:
+#ifdef	LVL_DEBUG
+	PRINTSTR("\r\n 0 is found\r\n")
+#endif
+	dsubu	t0, t0, 0x1
+	daddu	t1, t1, 0x20
+	daddu	t2, t2, 0x1
+	bnez	t0, lvl_req_set0
+	nop
+
+/* 0 to 1 */
+	GET_NUMBER_OF_SLICES
+	dli		t1, 0x20
+	or		t1, t1, t8
+	dli		t2, 0x180
+	or		t2, t2, t8
+	dli		s7, WR_FILTER_LENGTH
+lvl_req_set1:
+	dli		a0, 0x1
+	sb		a0, 0x181(t8)
+	dli		a0, 0x0
+	sb		a0, 0x181(t8)
+
+#ifdef LVL_DEBUG
+    PRINTSTR("\r\nwrite leveling req set1\r\n")
 #endif
 
-    dli     t3, 0x1
-    b       lvl_req_set
-    nop
+lvl_done_sampling1:
+    lb		a0, 0x186(t8)
+	beqz	a0, lvl_done_sampling1
+	nop
 
-/* 7.2 start from all slice got 0, until all 1 found */
+#ifdef LVL_DEBUG
+    PRINTSTR("\r\nwrite leveling done\r\n")
+#endif
 
-/* a2 is used to indicate whether adjust happened */
-lvl_resp_set:
+lvl_resp_set1:
+	lb		a0, 0x7(t2)
+	dli		t4, 0xff
+	and 	a0, a0, t4
+	bnez	a0, resp_set1_done
+	nop
 
-    //jr      ra
-    //nop
+	dli		s7, WR_FILTER_LENGTH
+dll_wrdqs_add1:
+	lb		a0, OFFSET_DLL_WRDQS(t1)
+	daddu	a0, a0, 0x1
+	dli		t4, 0x7f
+	and		a0, a0, t4
+	sb		a0, OFFSET_DLL_WRDQS(t1)
 
-    dli     s6, 0x1
-lvl_resp_0_set1:
-    dli     s7, 0x0
-    dli     t1, 0x180
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t4, 0x0100000000000000
-    and     a0, a0, t4
-    dsrl    a0, a0, 56
-    beq     a0, $0, dll_wrdqs_0_add2
-    nop
-lvl_resp_1_set1:
-    dli     t1, 0x188
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t4, 0x0000000000000001
-    and     a0, a0, t4
-    beq     a0, $0, dll_wrdqs_1_add2
-    nop
-lvl_resp_2_set1:
-    dli     t1, 0x188
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t4, 0x0000000000000100
-    and     a0, a0, t4
-    dsrl    a0, a0, 8
-    beq     a0, $0, dll_wrdqs_2_add2
-    nop
-lvl_resp_3_set1:
-    dli     t1, 0x188
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t4, 0x0000000000010000
-    and     a0, a0, t4
-    dsrl    a0, a0, 16
-    beq     a0, $0, dll_wrdqs_3_add2
-    nop
-lvl_resp_4_set1:
-    dli     t1, 0x188
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t4, 0x0000000001000000
-    and     a0, a0, t4
-    dsrl    a0, a0, 24
-    beq     a0, $0, dll_wrdqs_4_add2
-    nop
-lvl_resp_5_set1:
-    dli     t1, 0x188
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t4, 0x0000000100000000
-    and     a0, a0, t4
-    dsrl    a0, a0, 32
-    beq     a0, $0, dll_wrdqs_5_add2
-    nop
-lvl_resp_6_set1:
-    dli     t1, 0x188
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t4, 0x0000010000000000
-    and     a0, a0, t4
-    dsrl    a0, a0, 40
-    beq     a0, $0, dll_wrdqs_6_add2
-    nop
-lvl_resp_7_set1:
-    dli     t1, 0x188
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t4, 0x0001000000000000
-    and     a0, a0, t4
-    dsrl    a0, a0, 48
-    beq     a0, $0, dll_wrdqs_7_add2
-    nop
-lvl_resp_8_set1:
-/* identify wheather there is ecc slice */
-    dli     t1, 0x250
-    or      t1, t1, t8
-    lb      a0, 0x2(t1)
-    dli     t1, 0x1
-    and     a0, a0, t1
-    bne     a0, t1, 1f //when rd_after_write enabled, the 9th device may don't need leveling
-    nop
-    dli     t1, 0x188
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t4, 0x0100000000000000
-    and     a0, a0, t4
-    dsrl    a0, a0, 56
-    beq     a0, $0, dll_wrdqs_8_add2
-    nop
+#ifdef CHANGE_DQ_WITH_DQS
+	lb		a0, OFFSET_DLL_WRDQS(t1) // get dll_wrdqs
+	blt		a0, WRDQS_LTHF_STD, 1f
+	nop
+	li		t4, 0x0
+	sb		t4, OFFSET_WRDQS_LTHF(t1) //set wrdqs_lt_half
+	b		2f
+	nop
 1:
+	li		t4, 0x1
+	sb		t4, OFFSET_WRDQS_LTHF(t1) //set wrdqs_lt_half
+2:
+	dsubu	a0, a0, 0x20
+	dli		t4, 0x7f
+	and		a0, a0, t4
+	sb		a0, OFFSET_DLL_WRDQ(t1) // set dll_wrdata
 
-    beq     s7, s6, lvl_req_set
-    nop
+	blt		a0, WRDQ_LTHF_STD, 1f
+	nop
+	li		t4, 0x0
+	sb		t4, OFFSET_WRDQ_LTHF(t1) //set wrdq_lt_half
+	b		2f
+	nop
+1:
+	li		t4, 0x1
+	sb		t4, OFFSET_WRDQ_LTHF(t1) //set wrdq_lt_half
+2:
+#endif
+	b 		lvl_req_set1
+	nop
 
-    //jr      ra
-    //nop
+resp_set1_done:
+#ifdef LVL_DEBUG 
+	PRINTSTR("\r\n 1 is found @ slice")
+	dli		a0, 0x8
+	dsubu	a0, a0, t0
+	bal 	hexserial
+	nop
+#endif
+	dsubu	s7, s7, 0x1
+	bnez	s7, dll_wrdqs_add1
+	nop
+	dli		s7, WR_FILTER_LENGTH
 
+//  return the more add
+	lb		a0, OFFSET_DLL_WRDQS(t1)
+	dsubu	a0, a0, WR_FILTER_LENGTH
+	daddu	a0, a0, 0x1
+	dli		t4, 0x7f
+	and		a0, a0, t4
+	sb		a0, OFFSET_DLL_WRDQS(t1)
+
+#ifdef CHANGE_DQ_WITH_DQS
+	lb		a0, OFFSET_DLL_WRDQS(t1) // get dll_wrdqs
+	blt		a0, WRDQS_LTHF_STD, 1f
+	nop
+	li		t4, 0x0
+	sb		t4, OFFSET_WRDQS_LTHF(t1) //set wrdqs_lt_half
+	b		2f
+	nop
+1:
+	li		t4, 0x1
+	sb		t4, OFFSET_WRDQS_LTHF(t1) //set wrdqs_lt_half
+2:
+	dsubu	a0, a0, 0x20
+	dli		t4, 0x7f
+	and		a0, a0, t4
+	sb		a0, OFFSET_DLL_WRDQ(t1) // set dll_wrdata
+
+	blt		a0, WRDQ_LTHF_STD, 1f
+	nop
+	li		t4, 0x0
+	sb		t4, OFFSET_WRDQ_LTHF(t1) //set wrdq_lt_half
+	b		2f
+	nop
+1:
+	li		t4, 0x1
+	sb		t4, OFFSET_WRDQ_LTHF(t1) //set wrdq_lt_half
+2:
+#endif
+	dsubu	t0, t0, 0x1
+	daddu	t1, t1, 0x20
+	daddu	t2, t2, 0x1
+	bnez	t0, lvl_req_set1
+	nop
+	
+write_leveling_done:
+#ifdef PRINT_DDR_LEVELING
+	PRINTSTR("\r\n The MC param after write leveling 0 to 1 is:\r\n")
+	PRINT_THE_MC_PARAM
+#endif
+	
 /* 8. All 1 found, set params according to wrdqs */
 
 //    GET_DIMM_TYPE
@@ -601,466 +449,100 @@ lvl_resp_8_set1:
 /* adjust wrdqs carefully */
 #if 0   //def  DEBUG_DDR_PARAM   //print registers
     PRINTSTR("\r\nThe MC param before carefully adjust is:\r\n")
-    dli     t1, DDR_PARAM_NUM
-    GET_NODE_ID_a0
-    dli     t5, 0x900000000ff00000
-    or      t5, t5, a0
-1:
-    ld      t6, 0x0(t5)
-    move    a0, t5
-    and     a0, a0, 0xfff
-    bal     hexserial
-    nop
-    PRINTSTR(":  ")
-    dsrl    a0, t6, 32
-    bal     hexserial
-    nop
-    //PRINTSTR("  ")
-    move    a0, t6
-    bal     hexserial
-    nop
-    PRINTSTR("\r\n")
-
-    daddiu  t1, t1, -1
-    daddiu  t5, t5, 8
-    bnez    t1, 1b
-    nop
+	PRINT_THE_MC_PARAM
 #endif
 wrdqs_adjust:
 #if 1
 #ifdef LVL_DEBUG
     PRINTSTR("\r\nwrdqs around 0x00 carefully adjust begin\r\n")
 #endif
-/* identify wheather there is ecc slice */
-    li      t0, 0x9
-    dli     t1, 0x250
-    or      t1, t1, t8
-    lb      a0, 0x2(t1)
-    dli     t1, 0x1
-    and     a0, a0, t1
-    bne     a0, t1, 1f //when rd_after_write enabled, the 9th device may don't need leveling
-    nop
-    daddu   t0, t0, 0x1
-1:
+	GET_NUMBER_OF_SLICES
+	daddu	t0, t0, 0x1
     dli     a2, 0x08
     dli     a3, 0x78
-//    dli     t0, 0x8
-    dli     t1, 0x018
+	dli     t1, 0x00
     or      t1, t1, t8
-wrdqs_adjust_loop00:
-    subu    t0, t0, 0x1
-    beq     t0, $0, 1f
-    nop
-    daddu   t1, t1, 0x20
-    ld      a0, 0x0(t1)
-    dli     t4, 0x0000000000ff0000
-    and     a0, a0, t4
-    dsrl    a0, a0, 16
-    bgtu    a0, a2, wrdqs_adjust_loop00
-    nop
-    bltu    a0, a3, wrdqs_adjust_loop00
-    nop
-    dli     t4, 0x70
-    and     t4, t4, a0
-    beqz    t4, wrdqs_set_08
-    nop
-    ld      a0, 0x0(t1)
-    dli     t4, 0xffffffffff00ffff
-    and     a0, a0, t4
-    dli     t4, 0x780000
-    or      a0, a0, t4
-    sd      a0, 0x0(t1)
-    b       wrdqs_adjust_loop00
-    nop
+	WRDQS_ADJUST_LOOP
 
-wrdqs_set_08:
-    ld      a0, 0x0(t1)
-    dli     t4, 0xffffffffff00ffff
-    and     a0, a0, t4
-    dli     t4, 0x080000
-    or      a0, a0, t4
-    sd      a0, 0x0(t1)
-    b       wrdqs_adjust_loop00
-    nop
+	GET_NUMBER_OF_SLICES
+	daddu	t0, t0, 0x1
+    dli     a2, 0x28
+    dli     a3, 0x18
+	dli     t1, 0x00
+    or      t1, t1, t8
+	WRDQS_ADJUST_LOOP
+
+	GET_NUMBER_OF_SLICES
+	daddu	t0, t0, 0x1
+    dli     a2, 0x48
+    dli     a3, 0x38
+	dli     t1, 0x00
+    or      t1, t1, t8
+	WRDQS_ADJUST_LOOP
+
+	GET_NUMBER_OF_SLICES
+	daddu	t0, t0, 0x1
+    dli     a2, 0x68
+    dli     a3, 0x58
+	dli     t1, 0x00
+    or      t1, t1, t8
+	WRDQS_ADJUST_LOOP
+
 
 #ifdef LVL_DEBUG
     PRINTSTR("\r\nwrdqs around 0x00 carefully adjust end\r\n")
 #endif
-1:
-#endif
-#if 1
-#ifdef LVL_DEBUG
-    PRINTSTR("\r\nwrdqs around 0x20 carefully adjust begin\r\n")
-#endif
-/* identify wheather there is ecc slice */
-    li      t0, 0x9
-    dli     t1, 0x250
-    or      t1, t1, t8
-    lb      a0, 0x2(t1)
-    dli     t1, 0x1
-    and     a0, a0, t1
-    bne     a0, t1, 1f //when rd_after_write enabled, the 9th device may don't need leveling
-    nop
-    daddu   t0, t0, 0x1
-1:
-    dli     a2, 0x28
-    dli     a3, 0x18
-//    dli     t0, 0x8
-    dli     t1, 0x018
-    or      t1, t1, t8
-wrdqs_adjust_loop20:
-    subu    t0, t0, 0x1
-    beq     t0, $0, 1f
-    nop
-    daddu   t1, t1, 0x20
-    ld      a0, 0x0(t1)
-    dli     t4, 0x0000000000ff0000
-    and     a0, a0, t4
-    dsrl    a0, a0, 16
-    bgtu    a0, a2, wrdqs_adjust_loop20
-    nop
-    bltu    a0, a3, wrdqs_adjust_loop20
-    nop
-    dli     t4, 0x20
-    bltu    a0, t4, wrdqs_set_18
-    nop
-    ld      a0, 0x0(t1)
-    dli     t4, 0xffffffffff00ffff
-    and     a0, a0, t4
-    dli     t4, 0x280000
-    or      a0, a0, t4
-    sd      a0, 0x0(t1)
-    b       wrdqs_adjust_loop20
-    nop
-
-wrdqs_set_18:
-    ld      a0, 0x0(t1)
-    dli     t4, 0xffffffffff00ffff
-    and     a0, a0, t4
-    dli     t4, 0x180000
-    or      a0, a0, t4
-    sd      a0, 0x0(t1)
-    b       wrdqs_adjust_loop20
-    nop
-
-1:
-#ifdef LVL_DEBUG
-    PRINTSTR("\r\nwrdqs around 0x40 carefully adjust end\r\n")
-#endif
-#endif
-#if 1
-#ifdef LVL_DEBUG
-    PRINTSTR("\r\nwrdqs around 0x40 carefully adjust begin\r\n")
-#endif
-/* identify wheather there is ecc slice */
-    li      t0, 0x9
-    dli     t1, 0x250
-    or      t1, t1, t8
-    lb      a0, 0x2(t1)
-    dli     t1, 0x1
-    and     a0, a0, t1
-    bne     a0, t1, 1f //when rd_after_write enabled, the 9th device may don't need leveling
-    nop
-    daddu   t0, t0, 0x1
-1:
-    dli     a2, 0x48
-    dli     a3, 0x38
-//    dli     t0, 0x8
-    dli     t1, 0x018
-    or      t1, t1, t8
-wrdqs_adjust_loop40:
-    subu    t0, t0, 0x1
-    beq     t0, $0, 1f
-    nop
-    daddu   t1, t1, 0x20
-    ld      a0, 0x0(t1)
-    dli     t4, 0x0000000000ff0000
-    and     a0, a0, t4
-    dsrl    a0, a0, 16
-    bgtu    a0, a2, wrdqs_adjust_loop40
-    nop
-    bltu    a0, a3, wrdqs_adjust_loop40
-    nop
-    dli     t4, 0x40
-    bltu    a0, t4, wrdqs_set_3a
-    nop
-    ld      a0, 0x0(t1)
-    dli     t4, 0xffffffffff00ffff
-    and     a0, a0, t4
-    dli     t4, 0x480000
-    or      a0, a0, t4
-    sd      a0, 0x0(t1)
-    b       wrdqs_adjust_loop40
-    nop
-
-wrdqs_set_3a:
-    ld      a0, 0x0(t1)
-    dli     t4, 0xffffffffff00ffff
-    and     a0, a0, t4
-    dli     t4, 0x380000
-    or      a0, a0, t4
-    sd      a0, 0x0(t1)
-    b       wrdqs_adjust_loop40
-    nop
-
-1:
-#ifdef LVL_DEBUG
-    PRINTSTR("\r\nwrdqs around 0x40 carefully adjust end\r\n")
-#endif
-#endif
-#if 1
-#ifdef LVL_DEBUG
-    PRINTSTR("\r\nwrdqs around 0x60 carefully adjust begin\r\n")
-#endif
-/* identify wheather there is ecc slice */
-    li      t0, 0x9
-    dli     t1, 0x250
-    or      t1, t1, t8
-    lb      a0, 0x2(t1)
-    dli     t1, 0x1
-    and     a0, a0, t1
-    bne     a0, t1, 1f //when rd_after_write enabled, the 9th device may don't need leveling
-    nop
-    daddu   t0, t0, 0x1
-1:
-    dli     a2, 0x68
-    dli     a3, 0x58
-//    dli     t0, 0x8
-    dli     t1, 0x018
-    or      t1, t1, t8
-wrdqs_adjust_loop60:
-    subu    t0, t0, 0x1
-    beq     t0, $0, 1f
-    nop
-    daddu   t1, t1, 0x20
-    ld      a0, 0x0(t1)
-    dli     t4, 0x0000000000ff0000
-    and     a0, a0, t4
-    dsrl    a0, a0, 16
-    bgtu    a0, a2, wrdqs_adjust_loop60
-    nop
-    bltu    a0, a3, wrdqs_adjust_loop60
-    nop
-    dli     t4, 0x60
-    bltu    a0, t4, wrdqs_set_5a
-    nop
-    ld      a0, 0x0(t1)
-    dli     t4, 0xffffffffff00ffff
-    and     a0, a0, t4
-    dli     t4, 0x680000
-    or      a0, a0, t4
-    sd      a0, 0x0(t1)
-    b       wrdqs_adjust_loop60
-    nop
-
-wrdqs_set_5a:
-    ld      a0, 0x0(t1)
-    dli     t4, 0xffffffffff00ffff
-    and     a0, a0, t4
-    dli     t4, 0x580000
-    or      a0, a0, t4
-    sd      a0, 0x0(t1)
-    b       wrdqs_adjust_loop60
-    nop
-
-#ifdef LVL_DEBUG
-    PRINTSTR("\r\nwrdqs around 0x60 carefully adjust end\r\n")
-#endif
-1:
 #endif
 
 #if 0   //def  DEBUG_DDR_PARAM   //print registers
     PRINTSTR("\r\nThe MC param after carefully adjust is:\r\n")
-    dli     t1, DDR_PARAM_NUM
-    GET_NODE_ID_a0
-    dli     t5, 0x900000000ff00000
-    or      t5, t5, a0
-1:
-    ld      t6, 0x0(t5)
-    move    a0, t5
-    and     a0, a0, 0xfff
-    bal     hexserial
-    nop
-    PRINTSTR(":  ")
-    dsrl    a0, t6, 32
-    bal     hexserial
-    nop
-    //PRINTSTR("  ")
-    move    a0, t6
-    bal     hexserial
-    nop
-    PRINTSTR("\r\n")
-
-    daddiu  t1, t1, -1
-    daddiu  t5, t5, 8
-    bnez    t1, 1b
-    nop
+	PRINT_THE_MC_PARAM
 #endif
 81:
 
+#if 1
 /* 8.1 adjust wrdata */
 
 /* t0 is used to indicate 8 slices */
-/* identify wheather there is ecc slice */
-    li      t0, 0x8
-    dli     t1, 0x250
-    or      t1, t1, t8
-    lb      a0, 0x2(t1)
-    dli     t1, 0x1
-    and     a0, a0, t1
-    bne     a0, t1, 1f //when rd_after_write enabled, the 9th device may don't need leveling
-    nop
-    daddu   t0, t0, 0x1
-1:
-    dli     a2, 0x20
-    dli     t1, 0x018
+	GET_NUMBER_OF_SLICES
+    dli     t1, 0x20
     or      t1, t1, t8
 dll_wrdata_set:
-    daddu   t1, t1, 0x20
-    ld      a0, 0x0(t1)
-    move    a1, a0
-    dli     t4, 0x0000000000ff0000
-    and     a1, a1, t4
-    dsrl    a1, a1, 16
-    bltu    a1, a2, dll_wrdata_add60
-    nop
-    b       dll_wrdata_sub20
-    nop
-
-/* add 0x60 when wrdqs is smaller than 0x20 */
-dll_wrdata_add60:
-    daddu   a1, a1, 0x60
-    dsll    a1, a1, 8
-    dli     t4, 0xffffffffffff00ff
-    and     a0, a0, t4
-    daddu   a0, a0, a1
-    sd      a0, 0x0(t1)
-    subu    t0, t0, 0x1
-    beq     t0, $0, wrdqs_lt_half_set
-    nop
-    b       dll_wrdata_set
-    nop
-
-/* sub 0x20 when wrdqs is bigger than 0x20 */
-dll_wrdata_sub20:
-    dsubu    a1, a1, 0x20
-    dsll    a1, a1, 8
-    dli     t4, 0xffffffffffff00ff
-    and     a0, a0, t4
-    daddu    a0, a0, a1
-    sd      a0, 0x0(t1)
-    subu    t0, t0, 0x1
-    beq     t0, $0, wrdqs_lt_half_set
-    nop
-    b       dll_wrdata_set
-    nop
-
-/* 8.2 adjust wrdqs_lt_half */
-wrdqs_lt_half_set:
-/* identify wheather there is ecc slice */
-    li      t0, 0x8
-    dli     t1, 0x250
-    or      t1, t1, t8
-    lb      a0, 0x2(t1)
-    dli     t1, 0x1
-    and     a0, a0, t1
-    bne     a0, t1, 1f //when rd_after_write enabled, the 9th device may don't need leveling
-    nop
-    daddu   t0, t0, 0x1
+	lb		a0, OFFSET_DLL_WRDQS(t1) // get dll_wrdqs
+	blt		a0, WRDQS_LTHF_STD, 1f
+	nop
+	li		t4, 0x0
+	sb		t4, OFFSET_WRDQS_LTHF(t1) //set wrdqs_lt_half
+	b		2f
+	nop
 1:
-    dli     a2, 0x40
-//    dli     t0, 0x8
-    dli     t1, 0x018
-    or      t1, t1, t8
-wrdqs_lt_half_loop:
-    beq     t0, $0, wrdq_lt_half_set
-    nop
-    daddu    t1, t1, 0x20
-    ld      a0, 0x0(t1)
-    dli     t4, 0x0000000000ff0000
-    and     a0, a0, t4
-    dsrl    a0, a0, 16
-    bltu    a0, a2, wrdqs_lt_half_set1
-    subu    t0, t0, 0x1
-    b       wrdqs_lt_half_set0
-    nop
-wrdqs_lt_half_set0:
-    dsubu    t2, t1, 0x18
-    ld      a0, 0x0(t2)
-    dli     t4, 0xffffffffffff00ff
-    and     a0, a0, t4
-    sd      a0, 0x0(t2)
-    b       wrdqs_lt_half_loop
-    nop
+	li		t4, 0x1
+	sb		t4, OFFSET_WRDQS_LTHF(t1) //set wrdqs_lt_half
+2:
+	dsubu	a0, a0, DLL_WRDQ_SUB
+	dli		t4, 0x7f
+	and		a0, a0, t4
+	sb		a0, OFFSET_DLL_WRDQ(t1) // set dll_wrdata
 
-wrdqs_lt_half_set1:
-    dsubu   t2, t1, 0x18
-    ld      a0, 0x0(t2)
-    dli     t4, 0xffffffffffff00ff
-    and     a0, a0, t4
-    ori     a0, a0, 0x100
-    sd      a0, 0x0(t2)
-    b       wrdqs_lt_half_loop
-    nop
-
-/* 8.3 adjust wrdq_lt_half */
-wrdq_lt_half_set:
-/* identify wheather there is ecc slice */
-    li      t0, 0x8
-    dli     t1, 0x250
-    or      t1, t1, t8
-    lb      a0, 0x2(t1)
-    dli     t1, 0x1
-    and     a0, a0, t1
-    bne     a0, t1, 1f //when rd_after_write enabled, the 9th device may don't need leveling
-    nop
-    daddu   t0, t0, 0x1
+	blt		a0, WRDQ_LTHF_STD, 1f
+	nop
+	li		t4, 0x0
+	sb		t4, OFFSET_WRDQ_LTHF(t1) //set wrdq_lt_half
+	b		2f
+	nop
 1:
-    dli     a2, 0x40
-    dli     t5, 0x0101000000000000
-    dli     t6, 0x0000000001010000
-//    li     t0, 0x8
-    dli     t1, 0x018
-    or      t1, t1, t8
-wrdq_lt_half_loop:
-    beq     t0, $0, wrdq_lt_half_test
-    nop
-    daddu    t1, t1, 0x20
-    ld      a0, 0x0(t1)
-    dli     t4, 0x000000000000ff00
-    and     a0, a0, t4
-    dsrl    a0, a0, 8
-    bltu    a0, a2, wrdq_lt_half_set1
-    subu    t0, t0, 0x1
-    b       wrdq_lt_half_set0
-    nop
-wrdq_lt_half_set0:
-    dsubu   t2, t1, 0x18
-    ld      a0, 0x0(t2)
-    dli     t4, 0xffffffffffffff00
-    and     a0, a0, t4
-    sd      a0, 0x0(t2)
+	li		t4, 0x1
+	sb		t4, OFFSET_WRDQ_LTHF(t1) //set wrdq_lt_half
+2:
+	daddu	t1, t1, 0x20
+	dsubu	t0, t0, 0x1
+	bnez	t0, dll_wrdata_set
+	nop
+#endif
 
-/*    daddu   t2, t2, 0x10
-    ld      a0, 0x0(t2)
-    dli     t4, 0x0000000100000000
-    or      a0, a0, t4
-    sd      a0, 0x0(t2)*/
-
-    b       wrdq_lt_half_loop
-    nop
-wrdq_lt_half_set1:
-    dsubu   t2, t1, 0x18
-    ld      a0, 0x0(t2)
-    dli     t4, 0xffffffffffffff00
-    and     a0, a0, t4
-    ori     a0, a0, 0x1
-    sd      a0, 0x0(t2)
-
-    b       wrdq_lt_half_loop
-    nop
-
+	
 wrdq_lt_half_test:
+	dli	s7, 0x0 // s7 represent whether find 1 to 0 or not
     GET_DIMM_TYPE
     bnez    a1, rdimm_wrdq_lt_half_test
     nop
@@ -1074,40 +556,77 @@ wrdq_lt_half_test:
     nop
     daddu   t0, t0, 0x1
 1:
-    dli     t1, 0x20
     dli     t2, 0x0
-    or      t1, t1, t8
-
 wrdq_lt_half_test_loop:
+	dli		a0, ORDER_OF_UDIMM
+	dli	t4, 0x4
+	mulou	a1,	t2, t4
+	dsrl	a0, a0, a1
+	and		a0, a0, 0xf
+	daddu	a0, a0, 0x1
+	dli	t4, 0x20
+	mulou	t1, a0, t4
+	or		t1, t1, t8
+#if 1
+	bal		hexserial
+	nop
+#endif
+
     daddu   t2, t2, 0x1
     bgt     t2, t0, record_slice_num
     nop
     lb      a0, 0x0(t1)
-    daddu   t1, t1, 0x20
-    lb      a1, 0x0(t1)
-    beqz     a0, wrdq_lt_half_test_loop
+    beqz    a0, wrdq_lt_half_test_loop
     nop
-    beqz     a1, record_slice_num
+	
+	dli		a0, ORDER_OF_UDIMM
+	dli	t4, 0x4
+	mulou	a1,	t2, t4
+	dsrl	a0, a0, a1
+	and		a0, a0, 0xf
+	daddu	a0, a0, 0x1
+	dli	t4, 0x20
+	mulou	t1, a0, t4
+	or		t1, t1, t8
+#if 1
+	bal		hexserial
+	nop
+#endif
+
+	lb		a0, 0x0(t1)
+    beqz    a0, record_slice_num
     nop
     b       wrdq_lt_half_test_loop
     nop
 
 record_slice_num:
     move    t3, t2 //the slice number save in t3
+    move    a0, t3
+	bal	hexserial
+	nop
     beq     t3, 0x8, first_slice_wrdq_lt_half_test
     nop
 
 wrdq_clkdelay_set:
 //    li      t0, 0x7 //only loop 7 times
-    dli     t1, 0x30
     dli     t2, 0x0
-    or      t1, t1, t8
 wrdq_clkdelay_set_loop:
     daddu   t2, t2, 0x1
     bgt     t2, t0, first_slice_wrdq_lt_half_test
     nop
-    daddu   t1, t1, 0x20
-    ld      a0, 0x0(t1)
+
+	dli		a0, ORDER_OF_UDIMM
+	dli	t4, 0x4
+	mulou	a1,	t2, t4
+	dsrl	a0, a0, a1
+	and		a0, a0, 0xf
+	daddu	a0, a0, 0x1
+	dli	t4, 0x20
+	mulou	t1, a0, t4
+	or		t1, t1, t8
+   	daddu	t1, t1, 0x10 
+    
+	ld      a0, 0x0(t1)
     blt     t2, t3, wrdq_clkdelay_set0
     nop
     b       wrdq_clkdelay_set1
@@ -1121,6 +640,7 @@ wrdq_clkdelay_set0:
     nop
     
 wrdq_clkdelay_set1:
+	dli 	s7, 0x1
     dli     t4, 0xffffff00ffffffff
     and     a0, a0, t4
     dli     t4, 0x0000000100000000
@@ -1130,8 +650,15 @@ wrdq_clkdelay_set1:
     nop
 
 first_slice_wrdq_lt_half_test:
-    dli     t1, 0x20
-    or      t1, t1, t8
+	beq	s7, 0x1, trddata_tphywrdata_sub
+	nop
+	dli		a0, ORDER_OF_UDIMM
+	and		a0, a0, 0xf
+	daddu	a0, a0, 0x1
+	dli	t4, 0x20
+	mulou	t1, a0, t4
+	or		t1, t1, t8
+    
     ld      a0, 0x0(t1)
     dli     t4, 0x00000000000000ff
     and     a0, a0, t4
@@ -1171,36 +698,80 @@ rdimm_wrdq_lt_half_test:
 rdimm_wrdq_lt_half_test_83:
     li      t0, 0x4
     dli     t2, 0x0
-    dli     t1, 0x120
-    or      t1, t1, t8
+	dli		a0, ORDER_OF_RDIMM
+	dli	t4, 0x4
+	mulou	a1,	t2, t4
+	dsrl	a0, a0, a1
+	and		a0, a0, 0xf
+	daddu	a0, a0, 0x1
+	dli	t4, 0x20
+	mulou	t1, a0, t4
+	or		t1, t1, t8
     lb      a0, 0x0(t1)
-    dsubu   t1, t1, 0xa0
-    lb      a1, 0x0(t1)
     daddu   t2, t2, 0x1
     beqz    a0, rdimm_wrdq_lt_half_test_loop_3210
     nop
-    beqz    a1, rdimm_record_slice_num_83210
+	dli		a0, ORDER_OF_RDIMM
+	dli	t4, 0x4
+	mulou	a1,	t2, t4
+	dsrl	a0, a0, a1
+	and		a0, a0, 0xf
+	daddu	a0, a0, 0x1
+	dli	t4, 0x20
+	mulou	t1, a0, t4
+	or		t1, t1, t8
+    lb      a0, 0x0(t1)
+    beqz    a0, rdimm_record_slice_num_83210
     nop
     b       rdimm_wrdq_lt_half_test_loop_3210
     nop
 
 
 rdimm_wrdq_lt_half_test_3210:
-    li      t0, 0x3
-    dli     t1, 0x80
-    dli     t2, 0x0
-    or      t1, t1, t8
+    li      t0, 0x4
+    dli     t2, 0x1
+	dli		a0, ORDER_OF_RDIMM
+	dli	t4, 0x4
+	mulou	a1,	t2, t4
+	dsrl	a0, a0, a1
+	and		a0, a0, 0xf
+	daddu	a0, a0, 0x1
+	dli	t4, 0x20
+	mulou	t1, a0, t4
+	or		t1, t1, t8
     
 rdimm_wrdq_lt_half_test_loop_3210:
+	dli		a0, ORDER_OF_RDIMM
+	dli	t4, 0x4
+	mulou	a1,	t2, t4
+	dsrl	a0, a0, a1
+	and		a0, a0, 0xf
+	daddu	a0, a0, 0x1
+	dli	t4, 0x20
+	mulou	t1, a0, t4
+	or		t1, t1, t8
     daddu   t2, t2, 0x1
     bgt     t2, t0, rdimm_wrdq_lt_half_test_4567
     nop
+#ifdef LVL_DEBUG
+	move	a0, t1
+	bal	hexserial
+	nop
+#endif
     lb      a0, 0x0(t1)
-    dsubu   t1, t1, 0x20
-    lb      a1, 0x0(t1)
     beqz    a0, rdimm_wrdq_lt_half_test_loop_3210
     nop
-    beqz    a1, rdimm_record_slice_num_3210
+	dli		a0, ORDER_OF_RDIMM
+	dli	t4, 0x4
+	mulou	a1,	t2, t4
+	dsrl	a0, a0, a1
+	and		a0, a0, 0xf
+	daddu	a0, a0, 0x1
+	dli	t4, 0x20
+	mulou	t1, a0, t4
+	or		t1, t1, t8
+    lb      a0, 0x0(t1)
+    beqz    a0, rdimm_record_slice_num_3210
     nop
     b       rdimm_wrdq_lt_half_test_loop_3210
     nop
@@ -1208,6 +779,12 @@ rdimm_wrdq_lt_half_test_loop_3210:
 rdimm_record_slice_num_3210:
 rdimm_record_slice_num_83210:
     move    t3, t2 
+#ifdef LVL_DEBUG
+	PRINTSTR("\r\nt3=")
+	move 	a0, t3
+	bal	hexserial
+	nop
+#endif
 
 /* identify wheather there is ecc slice */
     dli     t1, 0x250
@@ -1219,9 +796,17 @@ rdimm_record_slice_num_83210:
     nop
 rdimm_wrdq_clkdelay_set_8:
     li      t0, 0x4
-    dli     t1, 0x130
-    or      t1, t1, t8
     dli     t2, 0x0
+	dli		a0, ORDER_OF_RDIMM
+	dli	t4, 0x4
+	mulou	a1,	t2, t4
+	dsrl	a0, a0, a1
+	and		a0, a0, 0xf
+	daddu	a0, a0, 0x1
+	dli	t4, 0x20
+	mulou	t1, a0, t4
+	daddu	t1, t1, 0x10
+	or		t1, t1, t8
 //    daddu   t2, t2, 0x1
     ld      a0, 0x0(t1)
     blt     t2, t3, rdimm_wrdq_clkdelay_set0_8
@@ -1239,6 +824,7 @@ rdimm_wrdq_clkdelay_set0_8:
     nop
     
 rdimm_wrdq_clkdelay_set1_8:
+	dli 	s7, 0x1
     dli     t4, 0xffffff00ffffffff
     and     a0, a0, t4
     dli     t4, 0x0000000100000000
@@ -1250,16 +836,23 @@ rdimm_wrdq_clkdelay_set1_8:
     nop
 
 rdimm_wrdq_clkdelay_set_3210:
-    li      t0, 0x3 
-    dli     t1, 0x90
-    dli     t2, 0x0
-    or      t1, t1, t8
+    li      t0, 0x4 
+    dli     t2, 0x1
 rdimm_wrdq_clkdelay_set_loop_3210:
 1:
     daddu   t2, t2, 0x1
     bgt     t2, t0, rdimm_wrdq_lt_half_test_4567
     nop
-    dsubu   t1, t1, 0x20
+	dli		a0, ORDER_OF_RDIMM
+	dli	t4, 0x4
+	mulou	a1,	t2, t4
+	dsrl	a0, a0, a1
+	and		a0, a0, 0xf
+	daddu	a0, a0, 0x1
+	dli	t4, 0x20
+	mulou	t1, a0, t4
+	daddu	t1, t1, 0x10
+	or		t1, t1, t8
     ld      a0, 0x0(t1)
     blt     t2, t3, rdimm_wrdq_clkdelay_set0_3210
     nop
@@ -1274,6 +867,7 @@ rdimm_wrdq_clkdelay_set0_3210:
     nop
     
 rdimm_wrdq_clkdelay_set1_3210:
+	dli 	s7, 0x1
     dli     t4, 0xffffff00ffffffff
     and     a0, a0, t4
     dli     t4, 0x0000000100000000
@@ -1284,21 +878,36 @@ rdimm_wrdq_clkdelay_set1_3210:
 
 
 rdimm_wrdq_lt_half_test_4567:
-    li      t0, 0x3 
-    dli     t1, 0xa0
-    dli     t2, 0x0
-    or      t1, t1, t8
+    li      t0, 0x8 
+    dli     t2, 0x5
 
 rdimm_wrdq_lt_half_test_loop_4567:
+	dli		a0, ORDER_OF_RDIMM
+	dli	t4, 0x4
+	mulou	a1,	t2, t4
+	dsrl	a0, a0, a1
+	and		a0, a0, 0xf
+	daddu	a0, a0, 0x1
+	dli	t4, 0x20
+	mulou	t1, a0, t4
+	or		t1, t1, t8
     daddu   t2, t2, 0x1
     bgt     t2, t0, slice_8_wrdq_lt_half_test
     nop
     lb      a0, 0x0(t1)
-    daddu   t1, t1, 0x20
-    lb      a1, 0x0(t1)
     beqz    a0, rdimm_wrdq_lt_half_test_loop_4567
     nop
-    beqz    a1, rdimm_record_slice_num_4567
+	dli		a0, ORDER_OF_RDIMM
+	dli	t4, 0x4
+	mulou	a1,	t2, t4
+	dsrl	a0, a0, a1
+	and		a0, a0, 0xf
+	daddu	a0, a0, 0x1
+	dli	t4, 0x20
+	mulou	t1, a0, t4
+	or		t1, t1, t8
+    	lb      a0, 0x0(t1)
+    beqz    a0, rdimm_record_slice_num_4567
     nop
     b       rdimm_wrdq_lt_half_test_loop_4567
     nop
@@ -1307,15 +916,22 @@ rdimm_record_slice_num_4567:
     move    t3, t2 //the slice number save in t3
 
 rdimm_wrdq_clkdelay_set_4567:
-    li      t0, 0x3 //only loop 7 times
-    dli     t1, 0xb0
-    dli     t2, 0x0
-    or      t1, t1, t8
+    li      t0, 0x8 //only loop 7 times
+    dli     t2, 0x5
 rdimm_wrdq_clkdelay_set_loop_4567:
     daddu   t2, t2, 0x1
     bgt     t2, t0, slice_8_wrdq_lt_half_test
     nop
-    daddu   t1, t1, 0x20
+	dli		a0, ORDER_OF_RDIMM
+	dli	t4, 0x4
+	mulou	a1,	t2, t4
+	dsrl	a0, a0, a1
+	and		a0, a0, 0xf
+	daddu	a0, a0, 0x1
+	dli	t4, 0x20
+	mulou	t1, a0, t4
+	daddu	t1, t1, 0x10
+	or		t1, t1, t8
     ld      a0, 0x0(t1)
     blt     t2, t3, rdimm_wrdq_clkdelay_set0_4567
     nop
@@ -1330,6 +946,7 @@ rdimm_wrdq_clkdelay_set0_4567:
     nop
     
 rdimm_wrdq_clkdelay_set1_4567:
+	dli 	s7, 0x1
     dli     t4, 0xffffff00ffffffff
     and     a0, a0, t4
     dli     t4, 0x0000000100000000
@@ -1339,6 +956,8 @@ rdimm_wrdq_clkdelay_set1_4567:
     nop
 
 slice_8_wrdq_lt_half_test:
+	beq	s7, 0x1, rdimm_trddata_tphywrdata_sub
+	nop
     dli     t1, 0x250
     or      t1, t1, t8
     lb      a0, 0x2(t1)
@@ -1346,8 +965,16 @@ slice_8_wrdq_lt_half_test:
     and     a0, a0, t1
     bne     a0, t1, slice_3_wrdq_lt_half_test
     nop
-    dli     t1, 0x120
-    or      t1, t1, t8
+	dli		a0, ORDER_OF_RDIMM
+	dli	t2, 0x0
+	dli	t4, 0x4
+	mulou	a1,	t2, t4
+	dsrl	a0, a0, a1
+	and		a0, a0, 0xf
+	daddu	a0, a0, 0x1
+	dli	t4, 0x20
+	mulou	t1, a0, t4
+	or		t1, t1, t8
     ld      a0, 0x0(t1)
     dli     t4, 0x00000000000000ff
     and     a0, a0, t4
@@ -1357,8 +984,18 @@ slice_8_wrdq_lt_half_test:
     nop
 
 slice_3_wrdq_lt_half_test:
-    dli     t1, 0x80
-    or      t1, t1, t8
+	beq	s7, 0x1, rdimm_trddata_tphywrdata_sub
+	nop
+	dli		a0, ORDER_OF_RDIMM
+	dli	t2, 0x1
+	dli	t4, 0x4
+	mulou	a1,	t2, t4
+	dsrl	a0, a0, a1
+	and		a0, a0, 0xf
+	daddu	a0, a0, 0x1
+	dli	t4, 0x20
+	mulou	t1, a0, t4
+	or		t1, t1, t8
     ld      a0, 0x0(t1)
     dli     t4, 0x00000000000000ff
     and     a0, a0, t4
@@ -1366,8 +1003,18 @@ slice_3_wrdq_lt_half_test:
     nop
     
 slice_4_wrdq_lt_half_test:
-    dli     t1, 0xa0
-    or      t1, t1, t8
+	beq	s7, 0x1, rdimm_trddata_tphywrdata_sub
+	nop
+	dli		a0, ORDER_OF_RDIMM
+	dli	t2, 0x5
+	dli	t4, 0x4
+	mulou	a1,	t2, t4
+	dsrl	a0, a0, a1
+	and		a0, a0, 0xf
+	daddu	a0, a0, 0x1
+	dli	t4, 0x20
+	mulou	t1, a0, t4
+	or		t1, t1, t8
     ld      a0, 0x0(t1)
     dli     t4, 0x00000000000000ff
     and     a0, a0, t4
@@ -1402,243 +1049,6 @@ write_leveling_exit:
 //    b       100f
     nop
 
-
-dll_wrdqs_0_add1:
-#ifdef LVL_DEBUG
-    PRINTSTR("\r\nfor all write resp got a 0, slice 0 add\r\n")
-#endif
-    dli     t1, 0x038
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    daddu   a0, a0, 0x10000
-    dli     t4, 0xffffffffff7fffff
-    and     a0, a0, t4
-    sd      a0, 0x0(t1)
-    b       lvl_resp_1_set0
-    dli     s7, 0x1 
-dll_wrdqs_1_add1:
-#ifdef LVL_DEBUG
-    PRINTSTR("\r\nfor all write resp got a 0, slice 1 add\r\n")
-#endif
-    dli     t1, 0x058
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    daddu    a0, a0, 0x10000
-    dli     t4, 0xffffffffff7fffff
-    and     a0, a0, t4
-    sd      a0, 0x0(t1)
-    b       lvl_resp_2_set0
-    dli     s7, 0x1
-dll_wrdqs_2_add1:
-#ifdef LVL_DEBUG
-    PRINTSTR("\r\nfor all write resp got a 0, slice 2 add\r\n")
-#endif
-    dli     t1, 0x078
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    daddu    a0, a0, 0x10000
-    dli     t4, 0xffffffffff7fffff
-    and     a0, a0, t4
-    sd      a0, 0x0(t1)
-    b       lvl_resp_3_set0
-    dli     s7, 0x1
-dll_wrdqs_3_add1:
-#ifdef LVL_DEBUG
-    PRINTSTR("\r\nfor all write resp got a 0, slice 3 add\r\n")
-#endif
-    dli     t1, 0x098
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    daddu    a0, a0, 0x10000
-    dli     t4, 0xffffffffff7fffff
-    and     a0, a0, t4
-    sd      a0, 0x0(t1)
-    b       lvl_resp_4_set0
-    dli     s7, 0x1
-dll_wrdqs_4_add1:
-#ifdef LVL_DEBUG
-    PRINTSTR("\r\nfor all write resp got a 0, slice 4 add\r\n")
-#endif
-    dli     t1, 0x0b8
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    daddu    a0, a0, 0x10000
-    dli     t4, 0xffffffffff7fffff
-    and     a0, a0, t4
-    sd      a0, 0x0(t1)
-    b       lvl_resp_5_set0
-    dli     s7, 0x1
-dll_wrdqs_5_add1:
-#ifdef LVL_DEBUG
-    PRINTSTR("\r\nfor all write resp got a 0, slice 5 add\r\n")
-#endif
-    dli     t1, 0x0d8
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    daddu    a0, a0, 0x10000
-    dli     t4, 0xffffffffff7fffff
-    and     a0, a0, t4
-    sd      a0, 0x0(t1)
-    b       lvl_resp_6_set0
-    dli     s7, 0x1
-dll_wrdqs_6_add1:
-#ifdef LVL_DEBUG
-    PRINTSTR("\r\nfor all write resp got a 0, slice 6 add\r\n")
-#endif
-    dli     t1, 0x0f8
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    daddu    a0, a0, 0x10000
-    dli     t4, 0xffffffffff7fffff
-    and     a0, a0, t4
-    sd      a0, 0x0(t1)
-    b       lvl_resp_7_set0
-    dli     s7, 0x1
-dll_wrdqs_7_add1:
-#ifdef LVL_DEBUG
-    PRINTSTR("\r\nfor all write resp got a 0, slice 7 add\r\n")
-#endif
-    dli     t1, 0x118
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    daddu    a0, a0, 0x10000
-    dli     t4, 0xffffffffff7fffff
-    and     a0, a0, t4
-    sd      a0, 0x0(t1)
-    b       lvl_resp_8_set0
-    dli     s7, 0x1
-dll_wrdqs_8_add1:
-#ifdef LVL_DEBUG
-    PRINTSTR("\r\nfor all write resp got a 0, slice 8 add\r\n")
-#endif
-    dli     t1, 0x138
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    daddu    a0, a0, 0x10000
-    dli     t4, 0xffffffffff7fffff
-    and     a0, a0, t4
-    sd      a0, 0x0(t1)
-    b       lvl_req_set
-    dli     s7, 0x1
-
-dll_wrdqs_0_add2:
-#ifdef LVL_DEBUG
-    PRINTSTR("\r\nfor all write resp got a 1, slice 0 add\r\n")
-#endif
-    dli     t1, 0x038
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    daddu    a0, a0, 0x10000
-    dli     t4, 0xffffffffff7fffff
-    and     a0, a0, t4
-    sd      a0, 0x0(t1)
-    b       lvl_resp_1_set1
-    dli     s7, 0x1 
-dll_wrdqs_1_add2:
-#ifdef LVL_DEBUG
-    PRINTSTR("\r\nfor all write resp got a 1, slice 1 add\r\n")
-#endif
-    dli     t1, 0x058
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    daddu    a0, a0, 0x10000
-    dli     t4, 0xffffffffff7fffff
-    and     a0, a0, t4
-    sd      a0, 0x0(t1)
-    b       lvl_resp_2_set1
-    dli     s7, 0x1
-dll_wrdqs_2_add2:
-#ifdef LVL_DEBUG
-    PRINTSTR("\r\nfor all write resp got a 1, slice 2 add\r\n")
-#endif
-    dli     t1, 0x078
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    daddu    a0, a0, 0x10000
-    dli     t4, 0xffffffffff7fffff
-    and     a0, a0, t4
-    sd      a0, 0x0(t1)
-    b       lvl_resp_3_set1
-    dli     s7, 0x1
-dll_wrdqs_3_add2:
-#ifdef LVL_DEBUG
-    PRINTSTR("\r\nfor all write resp got a 1, slice 3 add\r\n")
-#endif
-    dli     t1, 0x098
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    daddu    a0, a0, 0x10000
-    dli     t4, 0xffffffffff7fffff
-    and     a0, a0, t4
-    sd      a0, 0x0(t1)
-    b       lvl_resp_4_set1
-    dli     s7, 0x1
-dll_wrdqs_4_add2:
-#ifdef LVL_DEBUG
-    PRINTSTR("\r\nfor all write resp got a 1, slice 4 add\r\n")
-#endif
-    dli     t1, 0x0b8
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    daddu    a0, a0, 0x10000
-    dli     t4, 0xffffffffff7fffff
-    and     a0, a0, t4
-    sd      a0, 0x0(t1)
-    b       lvl_resp_5_set1
-    dli     s7, 0x1
-dll_wrdqs_5_add2:
-#ifdef LVL_DEBUG
-    PRINTSTR("\r\nfor all write resp got a 1, slice 5 add\r\n")
-#endif
-    dli     t1, 0x0d8
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    daddu    a0, a0, 0x10000
-    dli     t4, 0xffffffffff7fffff
-    and     a0, a0, t4
-    sd      a0, 0x0(t1)
-    b       lvl_resp_6_set1
-    dli     s7, 0x1
-dll_wrdqs_6_add2:
-#ifdef LVL_DEBUG
-    PRINTSTR("\r\nfor all write resp got a 1, slice 6 add\r\n")
-#endif
-    dli     t1, 0x0f8
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    daddu    a0, a0, 0x10000
-    dli     t4, 0xffffffffff7fffff
-    and     a0, a0, t4
-    sd      a0, 0x0(t1)
-    b       lvl_resp_7_set1
-    dli     s7, 0x1
-dll_wrdqs_7_add2:
-#ifdef LVL_DEBUG
-    PRINTSTR("\r\nfor all write resp got a 1, slice 7 add\r\n")
-#endif
-    dli     t1, 0x118
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    daddu    a0, a0, 0x10000
-    dli     t4, 0xffffffffff7fffff
-    and     a0, a0, t4
-    sd      a0, 0x0(t1)
-    b       lvl_resp_8_set1
-    dli     s7, 0x1
-dll_wrdqs_8_add2:
-#ifdef LVL_DEBUG
-    PRINTSTR("\r\nfor all write resp got a 1, slice 8 add\r\n")
-#endif
-    dli     t1, 0x138
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    daddu    a0, a0, 0x10000
-    dli     t4, 0xffffffffff7fffff
-    and     a0, a0, t4
-    sd      a0, 0x0(t1)
-    b       lvl_req_set
-    dli     s7, 0x1
-
 gate_leveling:
 #if 1 //3a3000 new
 //    PRINTSTR("\r\nset cs_zq to be same with cs_enable\r\n")
@@ -1648,1034 +1058,496 @@ gate_leveling:
 reset_init_start_new:
     dli     t1, 0x18
     or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t4, 0xffffffffffffff00
-    and     a0, a0, t4
-    sd      a0, 0x0(t1)
+	dli		a0, 0x0
+    sb      a0, 0x0(t1)
 
-    dli     t1, 0x18
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t4, 0xffffffffffffff00
-    and     a0, a0, t4
-    ori     a0, a0, 0x1
-    sd      a0, 0x0(t1)
+    dli     a0, 0x1
+    sb      a0, 0x0(t1)
 
 wait_init_done_new:
     dli     t1, 0x160
     or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t4, 0x00000000ff000000
-    and     a0, a0, t4
+    lb      a0, 0x3(t1)
     beqz    a0, wait_init_done_new
     nop
 
 reset_init_start_new2:
     dli     t1, 0x18
     or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t4, 0xffffffffffffff00
-    and     a0, a0, t4
-    sd      a0, 0x0(t1)
+	dli		a0, 0x0
+    sb      a0, 0x0(t1)
 
-    dli     t1, 0x18
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t4, 0xffffffffffffff00
-    and     a0, a0, t4
-    ori     a0, a0, 0x1
-    sd      a0, 0x0(t1)
+    dli     a0, 0x1
+    sb      a0, 0x0(t1)
 
 wait_init_done_new2:
     dli     t1, 0x160
     or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t4, 0x00000000ff000000
-    and     a0, a0, t4
+    lb      a0, 0x3(t1)
     beqz    a0, wait_init_done_new2
     nop
-
 #endif
+
     PRINTSTR("\r\nwrite leveling finish and gate leveling begin\r\n")
 #ifdef  PRINT_DDR_LEVELING   //print registers
     PRINTSTR("\r\nThe MC param after write leveling is:\r\n")
-    dli     t1, DDR_PARAM_NUM
-    GET_NODE_ID_a0
-    dli     t5, 0x900000000ff00000
-    or      t5, t5, a0
-1:
-    ld      t6, 0x0(t5)
-    move    a0, t5
-    and     a0, a0, 0xfff
-    bal     hexserial
-    nop
-    PRINTSTR(":  ")
-    dsrl    a0, t6, 32
-    bal     hexserial
-    nop
-    //PRINTSTR("  ")
-    move    a0, t6
-    bal     hexserial
-    nop
-    PRINTSTR("\r\n")
-
-    daddiu  t1, t1, -1
-    daddiu  t5, t5, 8
-    bnez    t1, 1b
-    nop
+	PRINT_THE_MC_PARAM
 #endif
 
 /* identify wheather there is ecc slice */
-    li      t0, 0x8
-    dli     t1, 0x250
-    or      t1, t1, t8
-    lb      a0, 0x2(t1)
-    dli     t1, 0x1
-    and     a0, a0, t1
-    bne     a0, t1, 1f //when rd_after_write enabled, the 9th device may don't need leveling
-    nop
-    daddu   t0, t0, 0x1
-1:
-    dli     t1, 0x018
+	GET_NUMBER_OF_SLICES
+    dli     t1, 0x20
     or      t1, t1, t8
 dll_gate_set0:
-    daddu    t1, t1, 0x20
-    ld      a0, 0x0(t1)
-    dli     t4, 0xffffffffffffff00
-    and     a0, a0, t4
+	dli		a0, 0x0
 #ifdef DDR_DLL_BYPASS
-    dli     t4, 0x0000000000000080
-    or      a0, a0, t4
+	dli		a0, 0x80
 #endif
-    sd      a0, 0x0(t1)
-    subu    t0, t0, 0x1 
+    sb      a0, OFFSET_DLL_GATE(t1)
+    subu    t0, t0, 0x1
+	daddu	t1, t1, 0x20
     bnez    t0, dll_gate_set0 
     nop
  
 glvl_mode_set10:
     dli     t1, 0x180
     or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t4, 0xffffffffffffff00
-    and     a0, a0, t4
-    ori     a0, a0, 0x2
-    sd      a0, 0x0(t1)
+	dli		a0, 0x2
+    sb      a0, 0x0(t1)
 
     dli     a1, 0x1
 glvl_ready_sampling:
     dli     t1, 0x180
     or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t4, 0x0000ff0000000000
-    and     a0, a0, t4
-    dsrl    a0, a0, 40
+    lb      a0, 0x5(t1)
     bne     a0, a1, glvl_ready_sampling
     nop
 
-    dli     t3, 0x0
-glvl_req_set:
-//	PRINTSTR("\r\n req")
-    dli     t1, 0x180
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t4, 0xffffffffffff00ff
-    and     a0, a0, t4
-    ori     a0, a0, 0x100
-    sd      a0, 0x0(t1)
-    and     a0, a0, t4
-    sd      a0, 0x0(t1)
-
-    dli     a1, 0x1
-
-glvl_done_sampling:
-    dli     t1, 0x180
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t4, 0x00ff000000000000
-    and     a0, a0, t4
-    dsrl    a0, a0, 48
-    bne     a0, a1, glvl_done_sampling
+#ifdef SIGNAL_DEPICT_DEBUG
+	PRINTSTR("\r\nthe signal depict begin:\r\n")
+	dli		t1, 0x28     // save the init para before signal depict
+	or 		t1, t1, t8
+	lb		a0, 0x7(t1)
+	dli		t1, 0x350
+	or		t1, t1, t8
+	sb		a0, 0x7(t1)
+	dli		t1, 0x1c0
+	or		t1, t1, t8
+	lb		a0, 0x0(t1)
+	dli		t1, 0x350
+	or		t1, t1, t8
+	sb		a0, 0x6(t1)
+	
+	dli		t1, 0x28
+	or		t1, t1, t8
+	dli		t5, 0x180
+	or		t5, t5, t8
+	dli		t0, 0x8
+	dli		t2, 0x0
+	dli		s6, 0x0
+	dli		s7, 0x0
+t_glvl_req_set:
+	bne		s6, 0x15, 1f
+	nop
+	dli		s6, 0x0			//reset trddata
+	lb		a0, 0x356(t8)
+	sb		a0, 0x1c0(t8)
+	dsubu	t0, t0, 0x1
+	beqz	t0, signal_depict_end
+	nop
+	daddu	t1, t1, 0x20
+	daddu	t5, t5, 0x1
+	PRINTSTR("\r\nthe above is slice ")
+	dli		t4, 0x8
+	dsubu 	a0, t4, t0
+	bal		hexserial
+	nop
+	PRINTSTR("\r\n")
+1:
+    dli     t4, 0x180
+    or      t4, t4, t8
+    dli     a0, 0x1
+    sb      a0, 0x1(t4)
+    dli		a0, 0x0
+    sb      a0, 0x1(t4)
+	
+1:						//glvl_done_sampling
+    dli     t4, 0x180
+    or      t4, t4, t8
+    lb      a0, 0x6(t4)
+    bne     a0, 0x1, 1b
     nop
+	
+	lb		a0, 0x7(t5)
+	dli		t4, 0x1
+	and		a0, a0, t4
+	move	a1, a0
+#if 1
+    dli     t4, 0x180
+    or      t4, t4, t8
+    dli     a0, 0x1
+    sb      a0, 0x1(t4)
+    dli		a0, 0x0
+    sb      a0, 0x1(t4)
+	
+1:						//glvl_done_sampling
+    dli     t4, 0x180
+    or      t4, t4, t8
+    lb      a0, 0x6(t4)
+    bne     a0, 0x1, 1b
+    nop
+	
+	lb		a0, 0x7(t5)
+	dli		t4, 0x1
+	and		a0, a0, t4
+	or		a0, a0, a1
+	move	a1, a0
+#endif
+#if 1
+    dli     t4, 0x180
+    or      t4, t4, t8
+    dli     a0, 0x1
+    sb      a0, 0x1(t4)
+    dli		a0, 0x0
+    sb      a0, 0x1(t4)
+	
+1:						//glvl_done_sampling
+    dli     t4, 0x180
+    or      t4, t4, t8
+    lb      a0, 0x6(t4)
+    bne     a0, 0x1, 1b
+    nop
+	
+	lb		a0, 0x7(t5)
+	dli		t4, 0x1
+	and		a0, a0, t4
+	or		a0, a0, a1
+#endif
 
-    beq     t3, a1, glvl_resp_set
-    nop 
+	sll		a0, a0, 0x1f
+	srl		a0, a0, s7
+	or		t2, t2, a0
+	daddu	s7, s7, 0x1
+	blt		s7, 0x20, 1f // every 0x20 print the status
+	nop
+	move 	a0, t2
+	bal		hexserial
+	nop
+	PRINTSTR(" ")
+	dli		t2, 0x0
+	dli		s7, 0x0
+	daddu	s6, s6, 0x1
+1:
 
 #if 1
-    dli     s6, 0x1
-glvl_resp_0_set0:
-    dli     s7, 0x0
-    dli     t1, 0x180
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t4, 0x0300000000000000
-    and     a0, a0, t4
-    dsrl    a0, a0, 56
-    bne     a0, $0, dll_gate_0_add0
-    nop
-glvl_resp_1_set0:
-    dli     t1, 0x188
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t4, 0x0000000000000003
-    and     a0, a0, t4
-    bne     a0, $0, dll_gate_1_add0
-    nop
-glvl_resp_2_set0:
-    dli     t1, 0x188
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t4, 0x0000000000000300
-    and     a0, a0, t4
-    dsrl    a0, a0, 8
-    bne     a0, $0, dll_gate_2_add0
-    nop
-glvl_resp_3_set0:
-    dli     t1, 0x188
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t4, 0x0000000000030000
-    and     a0, a0, t4
-    dsrl    a0, a0, 16
-    bne     a0, $0, dll_gate_3_add0
-    nop
-glvl_resp_4_set0:
-    dli     t1, 0x188
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t4, 0x0000000003000000
-    and     a0, a0, t4
-    dsrl    a0, a0, 24
-    bne     a0, $0, dll_gate_4_add0
-    nop
-glvl_resp_5_set0:
-    dli     t1, 0x188
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t4, 0x0000000300000000
-    and     a0, a0, t4
-    dsrl    a0, a0, 32
-    bne     a0, $0, dll_gate_5_add0
-    nop
-glvl_resp_6_set0:
-    dli     t1, 0x188
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t4, 0x0000030000000000
-    and     a0, a0, t4
-    dsrl    a0, a0, 40
-    bne     a0, $0, dll_gate_6_add0
-    nop
-glvl_resp_7_set0:
-    dli     t1, 0x188
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t4, 0x0003000000000000
-    and     a0, a0, t4
-    dsrl    a0, a0, 48
-    bne     a0, $0, dll_gate_7_add0
-    nop
-glvl_resp_8_set0:
-/* identify wheather there is ecc slice */
-    dli     t1, 0x250
-    or      t1, t1, t8
-    lb      a0, 0x2(t1)
-    dli     t1, 0x1
-    and     a0, a0, t1
-    bne     a0, t1, 1f //when rd_after_write enabled, the 9th device may don't need leveling
-    nop
-    dli     t1, 0x188
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t4, 0x0300000000000000
-    and     a0, a0, t4
-    dsrl    a0, a0, 56
-    bne     a0, $0, dll_gate_8_add0
-    nop
-
+	lb		a0, 0x10(t1)
+	daddu	a0, a0, 0x1
+	dli		t4, 0x7f
+	and		a0, a0, t4
+	sb		a0, 0x10(t1)
+	bnez	a0, 1f
+	nop
+	lb		a0, 0x1c0(t8)
+	daddu	a0, a0, 0x1
+	sb		a0, 0x1c0(t8)
 1:
-    beq     s7, s6, glvl_req_set
-    nop
+#else
+	lb		a0, 0x10(t1)
+	dsubu	a0, a0, 0x1
+	dli		t4, 0x7f
+	and		a0, a0, t4
+	sb		a0, 0x10(t1)
+	bne		a0, 0x7f,1f
+	nop
+	lb		a0, 0x1c0(t8)
+	dsubu	a0, a0, 0x1
+	sb		a0, 0x1c0(t8)
+1:
 #endif
+	b		t_glvl_req_set
+	nop
+
+signal_depict_end:
+//identify wheather there is ecc slice
+	GET_NUMBER_OF_SLICES
+	dli		t1, 0x28
+	or		t1, t1, t8
+reset_rd_oe:
+	dli		t4, 0x350
+	or		t4, t4, t8
+	lb		a0, 0x7(t4)
+	sb		a0, 0x7(t1)
+	sb		a0, 0x6(t1)
+	daddu	t1, t1, 0x20
+	dsubu	t0, t0, 0x1
+	bnez	t0, reset_rd_oe
+	nop
+
+	dli		t1, 0x350 // reset trddata
+	or		t1, t1, t8
+	lb		a0, 0x6(t1)
+	dli		t1, 0x1c0
+	or		t1, t1, t8
+	sb		a0, 0x0(t1)
+	
+	GET_NUMBER_OF_SLICES
+    dli     t1, 0x20
+    or      t1, t1, t8
+11:
+	dli		a0, 0x0
+#ifdef DDR_DLL_BYPASS
+	dli		a0, 0x80
+#endif
+    sb      a0, OFFSET_DLL_GATE(t1)
+    subu    t0, t0, 0x1
+	daddu	t1, t1, 0x20
+    bnez    t0, 11b 
+    nop
+	PRINTSTR("\r\n")
+#endif
+
+/* gate leveling set 1 to 0 */
+    GET_NUMBER_OF_SLICES
+	dli		t1, 0x20
+	or		t1, t1, t8
+	dli		t2, 0x180
+	or		t2, t2, t8
+glvl_req_set0:
+	dli		a0, 0x1
+	sb		a0, 0x181(t8)
+	dli		a0, 0x0
+	sb		a0, 0x181(t8)
+
+glvl_done_sampling0:
+    lb		a0, 0x186(t8)
+	beqz	a0, glvl_done_sampling0
+	nop
+
+glvl_resp_set0:
+	lb		a0, 0x7(t2)
+	dli		t4, 0x3
+	and		a0, a0, t4
+	beqz	a0, glvl_resp_set0_done
+	nop
+
+dll_gate_add0:
+	lb		a0, OFFSET_DLL_GATE(t1)
+	daddu	a0, a0, 0x1
+	dli		t4, 0x7f
+	and		a0, a0, t4
+#ifdef DDR_DLL_BYPASS
+	lb		t4, 0x4(t8)
+	daddu	t4, t4, 0x2
+1:
+	blt		a0, t4, 2f
+	nop
+	dsubu	a0, a0, t4
+	b		1b
+	nop
+2:
+	ori		a0, 0x80
+#endif
+	sb		a0, OFFSET_DLL_GATE(t1)
+	dli		t4, 0x7f
+	and		a0, a0, t4
+	bnez	a0, 1f
+	nop
+
+	lb		a0, OFFSET_RDOE_BEGIN(t1)
+	daddu	a0, a0, 0x1
+	sb		a0, OFFSET_RDOE_BEGIN(t1)
+	lb		a0, OFFSET_RDOE_END(t1)
+	daddu	a0, a0, 0x1
+	sb		a0, OFFSET_RDOE_END(t1)
+	RDOE_SUB_TRDDATA_ADD
+/*
+	lb		a0, OFFSET_ODTOE_BEGIN(t1)
+	daddu	a0, a0, 0x1
+	sb		a0, OFFSET_ODTOE_BEGIN(t1)
+	lb		a0, OFFSET_ODTOE_END(t1)
+	daddu	a0, a0, 0x1
+	sb		a0, OFFSET_ODTOE_END(t1)
+*/
+1:
+	b 		glvl_req_set0
+	nop
+
+glvl_resp_set0_done:
+#ifdef LVL_DEBUG
+	PRINTSTR("\r\n gate leveling 0 is found\r\n")
+#endif
+	dsubu	t0, t0, 0x1
+	daddu	t1, t1, 0x20
+	daddu	t2, t2, 0x1
+	bnez	t0, glvl_req_set0
+	nop
+
 #ifdef  PRINT_DDR_LEVELING   //print registers
     PRINTSTR("\r\nThe MC param after gate leveling 1 to 0 is:\r\n")
-    dli     t1, DDR_PARAM_NUM
-    GET_NODE_ID_a0
-    dli     t5, 0x900000000ff00000
-    or      t5, t5, a0
-1:
-    ld      t6, 0x0(t5)
-    move    a0, t5
-    and     a0, a0, 0xfff
-    bal     hexserial
-    nop
-    PRINTSTR(":  ")
-    dsrl    a0, t6, 32
-    bal     hexserial
-    nop
-    //PRINTSTR("  ")
-    move    a0, t6
-    bal     hexserial
-    nop
-    PRINTSTR("\r\n")
-
-    daddiu  t1, t1, -1
-    daddiu  t5, t5, 8
-    bnez    t1, 1b
-    nop
+	PRINT_THE_MC_PARAM
 #endif
 
 /* unknown reason to reset init_start */
 reset_init_start:
     dli     t1, 0x18
     or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t4, 0xffffffffffffff00
-    and     a0, a0, t4
-    sd      a0, 0x0(t1)
+	dli		a0, 0x0
+    sb      a0, 0x0(t1)
 
-    dli     t1, 0x18
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t4, 0xffffffffffffff00
-    and     a0, a0, t4
-    ori     a0, a0, 0x1
-    sd      a0, 0x0(t1)
+    dli     a0, 0x1
+    sb      a0, 0x0(t1)
 
 wait_init_done:
     dli     t1, 0x160
     or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t4, 0x00000000ff000000
-    and     a0, a0, t4
+    lb      a0, 0x3(t1)
     beqz    a0, wait_init_done
     nop
 
-    dli     t3, 0x1
-    b       glvl_req_set
-    nop
-
-#if 1
-dll_gate_0_add0:
+/* 0 to 1 */
+    GET_NUMBER_OF_SLICES
+	dli		t1, 0x20
+	or		t1, t1, t8
+	dli		t2, 0x180
+	or		t2, t2, t8
+	dli		s7, GATE_FILTER_LENGTH
+glvl_req_set1:
 #ifdef LVL_DEBUG
-    PRINTSTR("\r\nfor all gate resp got a 0, slice 0 add\r\n")
+	PRINTSTR("\r\ngate leveling req\r\n")
 #endif
-    dli     t1, 0x038
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    daddu   a0, a0, 0x1
+	dli		a0, 0x1
+	sb		a0, 0x181(t8)
+	dli		a0, 0x0
+	sb		a0, 0x181(t8)
+
+glvl_done_sampling1:
+    lb		a0, 0x186(t8)
+	beqz	a0, glvl_done_sampling1
+	nop
+
+glvl_resp_set1:
+	lb		a0, 0x7(t2)
+	dli		t4, 0x3
+	and		a0, a0, t4
+	bnez	a0, glvl_resp_set1_done
+	nop
+	dli		s7, GATE_FILTER_LENGTH
+
+dll_gate_add1:
+	lb		a0, OFFSET_DLL_GATE(t1)
+	daddu	a0, a0, 0x1
+	dli		t4, 0x7f
+	and		a0, a0, t4
 #ifdef DDR_DLL_BYPASS
-    lw      t2, 0x4(t8) //get dll_value
-    daddu   t2, t2, 0x2
-    dli     t4, 0x7f
-    and     a0, a0, t4
-    blt     a0, t2, 2f //use blt because the dll_value may change
-    nop
-    dli     a0, 0x80
-    sb      a0, 0x0(t1)
-    b       3f
-    nop
-
-2:  
-    ori     a0, 0x80
-    sb      a0, 0x0(t1)
-    b       1f
-    nop
-    
-#else
-    dli     t2, 0xffffffffffffff7f
-    and     a0, a0, t2
-    sd      a0, 0x0(t1)
-    dli     t4, 0x7f
-    and     a0, a0, t4
-    bnez    a0, 1f
-    nop
-//    //set dll_gate to 0
-//    ld      a0, 0x0(t1)
-//    dli     t2, 0xffffffffffffff00
-//    and     a0, a0, t2
-//    sd      a0, 0x0(t1)
-#endif
-    
-3:
-    /* rd_oe_begin and rd_oe_end add 1 */
-    dli     t1, 0x028
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t2, 0x0101000000000000
-    daddu   a0, a0, t2
-    sd      a0, 0x0(t1)
-    /* odt_oe_begin and odt_oe_end add 1 */
-    dli     t1, 0x030
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t2, 0x0000000001010000
-    daddu   a0, a0, t2
-    sd      a0, 0x0(t1)
-#ifdef LVL_DEBUG
-    PRINTSTR("\r\nfor all gate resp got a 0, slice 0 oe and odt add\r\n")
-#endif
+	lb		t4, 0x4(t8)
+	daddu	t4, t4, 0x2
 1:
-    b       glvl_resp_1_set0
-    dli     s7, 0x1 
-dll_gate_1_add0:
-#ifdef LVL_DEBUG
-    PRINTSTR("\r\nfor all gate resp got a 0, slice 1 add\r\n")
+	blt		a0, t4, 2f
+	nop
+	dsubu	a0, a0, t4
+	b		1b
+	nop
+2:
+	ori		a0, 0x80
 #endif
-    dli     t1, 0x058
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    daddu    a0, a0, 0x1
+	sb		a0, OFFSET_DLL_GATE(t1)
+	dli		t3, 0x7f
+	and		a0, a0, t3
+	bnez	a0, 1f
+	nop
+
+	lb		a0, OFFSET_RDOE_BEGIN(t1)
+	daddu	a0, a0, 0x1
+	sb		a0, OFFSET_RDOE_BEGIN(t1)
+	lb		a0, OFFSET_RDOE_END(t1)
+	daddu	a0, a0, 0x1
+	sb		a0, OFFSET_RDOE_END(t1)
+	RDOE_SUB_TRDDATA_ADD
+/*
+	lb		a0, OFFSET_ODTOE_BEGIN(t1)
+	daddu	a0, a0, 0x1
+	sb		a0, OFFSET_ODTOE_BEGIN(t1)
+	lb		a0, OFFSET_ODTOE_END(t1)
+	daddu	a0, a0, 0x1
+	sb		a0, OFFSET_ODTOE_END(t1)
+*/
+1:
+	b 		glvl_req_set1
+	nop
+
+glvl_resp_set1_done:
+#ifdef LVL_DEBUG
+	PRINTSTR("\r\n gate leveling 1 is found @ slice")
+	dli		a0, 0x8
+	dsubu	a0, a0, t0
+	bal 	hexserial
+	nop
+#endif
+	dsubu	s7, s7, 0x1
+	bnez	s7, dll_gate_add1
+	nop
+	dli		s7, GATE_FILTER_LENGTH
+
+//return the more add
+	lb		a0, OFFSET_DLL_GATE(t1)
+	and		a0, a0, 0x7f
+	dli		t4, GATE_FILTER_LENGTH
+	dsubu	t4, t4, 0x1
+	blt		a0, t4, 1f	// if a0 less then t4, sub t4
+	nop
+	dsubu	a0, a0, t4
 #ifdef DDR_DLL_BYPASS
-    lw      t2, 0x4(t8) //get dll_value
-    daddu   t2, t2, 0x2
-    dli     t4, 0x7f
-    and     a0, a0, t4
-    blt     a0, t2, 2f //use blt because the dll_value may change
-    nop
-    dli     a0, 0x80
-    sb      a0, 0x0(t1)
-    b       3f
-    nop
-
-2:  
-    ori     a0, 0x80
-    sb      a0, 0x0(t1)
-    b       1f
-    nop
-    
-#else
-    dli     t2, 0xffffffffffffff7f
-    and     a0, a0, t2
-    sd      a0, 0x0(t1)
-    dli     t4, 0x7f
-    and     a0, a0, t4
-    bnez    a0, 1f
-    nop
-//    //set dll_gate to 0
-//    ld      a0, 0x0(t1)
-//    dli     t2, 0xffffffffffffff00
-//    and     a0, a0, t2
-//    sd      a0, 0x0(t1)
+	ori		a0, a0, 0x80
 #endif
-    
-3:
-    /* rd_oe_begin and rd_oe_end add 1 */
-    dli     t1, 0x048
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t2, 0x0101000000000000
-    daddu   a0, a0, t2
-    sd      a0, 0x0(t1)
-    /* odt_oe_begin and odt_oe_end add 1 */
-    dli     t1, 0x050
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t2, 0x0000000001010000
-    daddu   a0, a0, t2
-    sd      a0, 0x0(t1)
-#ifdef LVL_DEBUG
-    PRINTSTR("\r\nfor all gate resp got a 0, slice 1 oe and odt add\r\n")
-#endif
+	sb		a0, OFFSET_DLL_GATE(t1)
+	b		2f
+	nop
 1:
-    b       glvl_resp_2_set0
-    dli     s7, 0x1
-dll_gate_2_add0:
-#ifdef LVL_DEBUG
-    PRINTSTR("\r\nfor all gate resp got a 0, slice 2 add\r\n")
-#endif
-    dli     t1, 0x078
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    daddu    a0, a0, 0x1
+	dli		a1, 0x80
 #ifdef DDR_DLL_BYPASS
-    lw      t2, 0x4(t8) //get dll_value
-    daddu   t2, t2, 0x2
-    dli     t4, 0x7f
-    and     a0, a0, t4
-    blt     a0, t2, 2f //use blt because the dll_value may change
-    nop
-    dli     a0, 0x80
-    sb      a0, 0x0(t1)
-    b       3f
-    nop
+	lb		a1, 0x4(t8)
+	daddu	a1, a1, 0x2
+#endif
+	lb		a0, OFFSET_DLL_GATE(t1)
+	dli		t4, GATE_FILTER_LENGTH
+	dsubu	t4, t4, 0x1
+	daddu	a0, a0, a1
+	dsubu	a0, a0 ,t4
+	sb		a0, OFFSET_DLL_GATE(t1)
 
-2:  
-    ori     a0, 0x80
-    sb      a0, 0x0(t1)
-    b       1f
-    nop
-    
-#else
-    dli     t2, 0xffffffffffffff7f
-    and     a0, a0, t2
-    sd      a0, 0x0(t1)
-    dli     t4, 0x7f
-    and     a0, a0, t4
-    bnez    a0, 1f
-    nop
-//    //set dll_gate to 0
-//    ld      a0, 0x0(t1)
-//    dli     t2, 0xffffffffffffff00
-//    and     a0, a0, t2
-//    sd      a0, 0x0(t1)
-#endif
-    
-3:
-    
-    /* rd_oe_begin and rd_oe_end add 1 */
-    dli     t1, 0x068
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t2, 0x0101000000000000
-    daddu   a0, a0, t2
-    sd      a0, 0x0(t1)
-    /* odt_oe_begin and odt_oe_end add 1 */
-    dli     t1, 0x070
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t2, 0x0000000001010000
-    daddu   a0, a0, t2
-    sd      a0, 0x0(t1)
-#ifdef LVL_DEBUG
-    PRINTSTR("\r\nfor all gate resp got a 0, slice 2 oe and odt add\r\n")
-#endif
-1:
-    b       glvl_resp_3_set0
-    dli     s7, 0x1
-dll_gate_3_add0:
-#ifdef LVL_DEBUG
-    PRINTSTR("\r\nfor all gate resp got a 0, slice 3 add\r\n")
-#endif
-    dli     t1, 0x098
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    daddu    a0, a0, 0x1
-#ifdef DDR_DLL_BYPASS
-    lw      t2, 0x4(t8) //get dll_value
-    daddu   t2, t2, 0x2
-    dli     t4, 0x7f
-    and     a0, a0, t4
-    blt     a0, t2, 2f //use blt because the dll_value may change
-    nop
-    dli     a0, 0x80
-    sb      a0, 0x0(t1)
-    b       3f
-    nop
+	lb		a0, OFFSET_RDOE_BEGIN(t1)
+	dsubu	a0, a0, 0x1
+	sb		a0, OFFSET_RDOE_BEGIN(t1)
+	lb		a0, OFFSET_RDOE_END(t1)
+	dsubu	a0, a0, 0x1
+	sb		a0, OFFSET_RDOE_END(t1)
+	RDOE_ADD_TRDDATA_SUB
+/*
+	lb		a0, OFFSET_ODTOE_BEGIN(t1)
+	dsubu	a0, a0, 0x1
+	sb		a0, OFFSET_ODTOE_BEGIN(t1)
+	lb		a0, OFFSET_ODTOE_END(t1)
+	dsubu	a0, a0, 0x1
+	sb		a0, OFFSET_ODTOE_END(t1)
+*/
+2:
 
-2:  
-    ori     a0, 0x80
-    sb      a0, 0x0(t1)
-    b       1f
-    nop
-    
-#else
-    dli     t2, 0xffffffffffffff7f
-    and     a0, a0, t2
-    sd      a0, 0x0(t1)
-    dli     t4, 0x7f
-    and     a0, a0, t4
-    bnez    a0, 1f
-    nop
-//    //set dll_gate to 0
-//    ld      a0, 0x0(t1)
-//    dli     t2, 0xffffffffffffff00
-//    and     a0, a0, t2
-//    sd      a0, 0x0(t1)
-#endif
-    
-3:
-    
-    /* rd_oe_begin and rd_oe_end add 1 */
-    dli     t1, 0x088
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t2, 0x0101000000000000
-    daddu   a0, a0, t2
-    sd      a0, 0x0(t1)
-    /* odt_oe_begin and odt_oe_end add 1 */
-    dli     t1, 0x090
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t2, 0x0000000001010000
-    daddu   a0, a0, t2
-    sd      a0, 0x0(t1)
-#ifdef LVL_DEBUG
-    PRINTSTR("\r\nfor all gate resp got a 0, slice 3 oe and odt add\r\n")
-#endif
-1:
-    b       glvl_resp_4_set0
-    dli     s7, 0x1
-dll_gate_4_add0:
-#ifdef LVL_DEBUG
-    PRINTSTR("\r\nfor all gate resp got a 0, slice 4 add\r\n")
-#endif
-    dli     t1, 0x0b8
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    daddu    a0, a0, 0x1
-#ifdef DDR_DLL_BYPASS
-    lw      t2, 0x4(t8) //get dll_value
-    daddu   t2, t2, 0x2
-    dli     t4, 0x7f
-    and     a0, a0, t4
-    blt     a0, t2, 2f //use blt because the dll_value may change
-    nop
-    dli     a0, 0x80
-    sb      a0, 0x0(t1)
-    b       3f
-    nop
+	dsubu	t0, t0, 0x1
+	daddu	t1, t1, 0x20
+	daddu	t2, t2, 0x1
+	bnez	t0, glvl_req_set1
+	nop
 
-2:  
-    ori     a0, 0x80
-    sb      a0, 0x0(t1)
-    b       1f
-    nop
-    
-#else
-    dli     t2, 0xffffffffffffff7f
-    and     a0, a0, t2
-    sd      a0, 0x0(t1)
-    dli     t4, 0x7f
-    and     a0, a0, t4
-    bnez    a0, 1f
-    nop
-//    //set dll_gate to 0
-//    ld      a0, 0x0(t1)
-//    dli     t2, 0xffffffffffffff00
-//    and     a0, a0, t2
-//    sd      a0, 0x0(t1)
-#endif
-    
-3:
-    
-    /* rd_oe_begin and rd_oe_end add 1 */
-    dli     t1, 0x0a8
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t2, 0x0101000000000000
-    daddu   a0, a0, t2
-    sd      a0, 0x0(t1)
-    /* odt_oe_begin and odt_oe_end add 1 */
-    dli     t1, 0x0b0
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t2, 0x0000000001010000
-    daddu   a0, a0, t2
-    sd      a0, 0x0(t1)
-#ifdef LVL_DEBUG
-    PRINTSTR("\r\nfor all gate resp got a 0, slice 4 oe and odt add\r\n")
-#endif
-1:
-    b       glvl_resp_5_set0
-    dli     s7, 0x1
-dll_gate_5_add0:
-#ifdef LVL_DEBUG
-    PRINTSTR("\r\nfor all gate resp got a 0, slice 5 add\r\n")
-#endif
-    dli     t1, 0x0d8
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    daddu    a0, a0, 0x1
-#ifdef DDR_DLL_BYPASS
-    lw      t2, 0x4(t8) //get dll_value
-    daddu   t2, t2, 0x2
-    dli     t4, 0x7f
-    and     a0, a0, t4
-    blt     a0, t2, 2f //use blt because the dll_value may change
-    nop
-    dli     a0, 0x80
-    sb      a0, 0x0(t1)
-    b       3f
-    nop
 
-2:  
-    ori     a0, 0x80
-    sb      a0, 0x0(t1)
-    b       1f
-    nop
-    
-#else
-    dli     t2, 0xffffffffffffff7f
-    and     a0, a0, t2
-    sd      a0, 0x0(t1)
-    dli     t4, 0x7f
-    and     a0, a0, t4
-    bnez    a0, 1f
-    nop
-//    //set dll_gate to 0
-//    ld      a0, 0x0(t1)
-//    dli     t2, 0xffffffffffffff00
-//    and     a0, a0, t2
-//    sd      a0, 0x0(t1)
-#endif
-    
-3:
-    
-    /* rd_oe_begin and rd_oe_end add 1 */
-    dli     t1, 0x0c8
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t2, 0x0101000000000000
-    daddu   a0, a0, t2
-    sd      a0, 0x0(t1)
-    /* odt_oe_begin and odt_oe_end add 1 */
-    dli     t1, 0x0d0
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t2, 0x0000000001010000
-    daddu   a0, a0, t2
-    sd      a0, 0x0(t1)
-#ifdef LVL_DEBUG
-    PRINTSTR("\r\nfor all gate resp got a 0, slice 5 oe and odt add\r\n")
-#endif
-1:
-    b       glvl_resp_6_set0
-    dli     s7, 0x1
-dll_gate_6_add0:
-#ifdef LVL_DEBUG
-    PRINTSTR("\r\nfor all gate resp got a 0, slice 6 add\r\n")
-#endif
-    dli     t1, 0x0f8
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    daddu    a0, a0, 0x1
-#ifdef DDR_DLL_BYPASS
-    lw      t2, 0x4(t8) //get dll_value
-    daddu   t2, t2, 0x2
-    dli     t4, 0x7f
-    and     a0, a0, t4
-    blt     a0, t2, 2f //use blt because the dll_value may change
-    nop
-    dli     a0, 0x80
-    sb      a0, 0x0(t1)
-    b       3f
-    nop
 
-2:  
-    ori     a0, 0x80
-    sb      a0, 0x0(t1)
-    b       1f
-    nop
-    
-#else
-    dli     t2, 0xffffffffffffff7f
-    and     a0, a0, t2
-    sd      a0, 0x0(t1)
-    dli     t4, 0x7f
-    and     a0, a0, t4
-    bnez    a0, 1f
-    nop
-//    //set dll_gate to 0
-//    ld      a0, 0x0(t1)
-//    dli     t2, 0xffffffffffffff00
-//    and     a0, a0, t2
-//    sd      a0, 0x0(t1)
-#endif
-    
-3:
-    
-    /* rd_oe_begin and rd_oe_end add 1 */
-    dli     t1, 0x0e8
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t2, 0x0101000000000000
-    daddu   a0, a0, t2
-    sd      a0, 0x0(t1)
-    /* odt_oe_begin and odt_oe_end add 1 */
-    dli     t1, 0x0f0
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t2, 0x0000000001010000
-    daddu   a0, a0, t2
-    sd      a0, 0x0(t1)
-#ifdef LVL_DEBUG
-    PRINTSTR("\r\nfor all gate resp got a 0, slice 6 oe and odt add\r\n")
-#endif
-1:
-    b       glvl_resp_7_set0
-    dli     s7, 0x1
-dll_gate_7_add0:
-#ifdef LVL_DEBUG
-    PRINTSTR("\r\nfor all gate resp got a 0, slice 7 add\r\n")
-#endif
-    dli     t1, 0x118
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    daddu    a0, a0, 0x1
-#ifdef DDR_DLL_BYPASS
-    lw      t2, 0x4(t8) //get dll_value
-    daddu   t2, t2, 0x2
-    dli     t4, 0x7f
-    and     a0, a0, t4
-    blt     a0, t2, 2f //use blt because the dll_value may change
-    nop
-    dli     a0, 0x80
-    sb      a0, 0x0(t1)
-    b       3f
-    nop
-
-2:  
-    ori     a0, 0x80
-    sb      a0, 0x0(t1)
-    b       1f
-    nop
-    
-#else
-    dli     t2, 0xffffffffffffff7f
-    and     a0, a0, t2
-    sd      a0, 0x0(t1)
-    dli     t4, 0x7f
-    and     a0, a0, t4
-    bnez    a0, 1f
-    nop
-//    //set dll_gate to 0
-//    ld      a0, 0x0(t1)
-//    dli     t2, 0xffffffffffffff00
-//    and     a0, a0, t2
-//    sd      a0, 0x0(t1)
-#endif
-    
-3:
-    
-    /* rd_oe_begin and rd_oe_end add 1 */
-    dli     t1, 0x108
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t2, 0x0101000000000000
-    daddu   a0, a0, t2
-    sd      a0, 0x0(t1)
-    /* odt_oe_begin and odt_oe_end add 1 */
-    dli     t1, 0x110
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t2, 0x0000000001010000
-    daddu   a0, a0, t2
-    sd      a0, 0x0(t1)
-#ifdef LVL_DEBUG
-    PRINTSTR("\r\nfor all gate resp got a 0, slice 7 oe and odt add\r\n")
-#endif
-1:
-    b       glvl_resp_8_set0
-    dli     s7, 0x1
-dll_gate_8_add0:
-#ifdef LVL_DEBUG
-    PRINTSTR("\r\nfor all gate resp got a 0, slice 8 add\r\n")
-#endif
-    dli     t1, 0x138
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    daddu    a0, a0, 0x1
-#ifdef DDR_DLL_BYPASS
-    lw      t2, 0x4(t8) //get dll_value
-    daddu   t2, t2, 0x2
-    dli     t4, 0x7f
-    and     a0, a0, t4
-    blt     a0, t2, 2f //use blt because the dll_value may change
-    nop
-    dli     a0, 0x80
-    sb      a0, 0x0(t1)
-    b       3f
-    nop
-
-2:  
-    ori     a0, 0x80
-    sb      a0, 0x0(t1)
-    b       1f
-    nop
-    
-#else
-    dli     t2, 0xffffffffffffff7f
-    and     a0, a0, t2
-    sd      a0, 0x0(t1)
-    dli     t4, 0x7f
-    and     a0, a0, t4
-    bnez    a0, 1f
-    nop
-//    //set dll_gate to 0
-//    ld      a0, 0x0(t1)
-//    dli     t2, 0xffffffffffffff00
-//    and     a0, a0, t2
-//    sd      a0, 0x0(t1)
-#endif
-    
-3:
-    
-    /* rd_oe_begin and rd_oe_end add 1 */
-    dli     t1, 0x128
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t2, 0x0101000000000000
-    daddu   a0, a0, t2
-    sd      a0, 0x0(t1)
-    /* odt_oe_begin and odt_oe_end add 1 */
-    dli     t1, 0x130
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t2, 0x0000000001010000
-    daddu   a0, a0, t2
-    sd      a0, 0x0(t1)
-#ifdef LVL_DEBUG
-    PRINTSTR("\r\nfor all gate resp got a 0, slice 8 oe and odt add\r\n")
-#endif
-1:
-    b       glvl_req_set
-    dli     s7, 0x1
-#endif
-
-glvl_resp_set:
-//	PRINTSTR("\r\n All set to 0")
-    dli     s6, 0x1
-glvl_resp_0_set1:
-    dli     s7, 0x0
-    dli     t1, 0x180
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t4, 0x0300000000000000
-    and     a0, a0, t4
-    dsrl    a0, a0, 56
-    beq     a0, $0, dll_gate_0_add
-    nop
-glvl_resp_1_set1:
-    dli     t1, 0x188
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t4, 0x0000000000000003
-    and     a0, a0, t4
-    beq     a0, $0, dll_gate_1_add
-    nop
-glvl_resp_2_set1:
-    dli     t1, 0x188
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t4, 0x0000000000000300
-    and     a0, a0, t4
-    dsrl    a0, a0, 8
-    beq     a0, $0, dll_gate_2_add
-    nop
-glvl_resp_3_set1:
-    dli     t1, 0x188
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t4, 0x0000000000030000
-    and     a0, a0, t4
-    dsrl    a0, a0, 16
-    beq     a0, $0, dll_gate_3_add
-    nop
-glvl_resp_4_set1:
-    dli     t1, 0x188
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t4, 0x0000000003000000
-    and     a0, a0, t4
-    dsrl    a0, a0, 24
-    beq     a0, $0, dll_gate_4_add
-    nop
-glvl_resp_5_set1:
-    dli     t1, 0x188
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t4, 0x0000000300000000
-    and     a0, a0, t4
-    dsrl    a0, a0, 32
-    beq     a0, $0, dll_gate_5_add
-    nop
-glvl_resp_6_set1:
-    dli     t1, 0x188
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t4, 0x0000030000000000
-    and     a0, a0, t4
-    dsrl    a0, a0, 40
-    beq     a0, $0, dll_gate_6_add
-    nop
-glvl_resp_7_set1:
-    dli     t1, 0x188
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t4, 0x0003000000000000
-    and     a0, a0, t4
-    dsrl    a0, a0, 48
-    beq     a0, $0, dll_gate_7_add
-    nop
-glvl_resp_8_set1:
-/* identify wheather there is ecc slice */
-    dli     t1, 0x250
-    or      t1, t1, t8
-    lb      a0, 0x2(t1)
-    dli     t1, 0x1
-    and     a0, a0, t1
-    bne     a0, t1, 1f //when rd_after_write enabled, the 9th device may don't need leveling
-    nop
-    dli     t1, 0x188
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t4, 0x0300000000000000
-    and     a0, a0, t4
-    dsrl    a0, a0, 56
-    beq     a0, $0, dll_gate_8_add
-    nop
-
-1:
-    beq     s7, s6, glvl_req_set
-    nop
 #ifdef  PRINT_DDR_LEVELING   //print registers
     PRINTSTR("\r\nThe MC param after gate leveling 0 to 1 is:\r\n")
-    dli     t1, DDR_PARAM_NUM
-    GET_NODE_ID_a0
-    dli     t5, 0x900000000ff00000
-    or      t5, t5, a0
-1:
-    ld      t6, 0x0(t5)
-    move    a0, t5
-    and     a0, a0, 0xfff
-    bal     hexserial
-    nop
-    PRINTSTR(":  ")
-    dsrl    a0, t6, 32
-    bal     hexserial
-    nop
-    //PRINTSTR("  ")
-    move    a0, t6
-    bal     hexserial
-    nop
-    PRINTSTR("\r\n")
-
-    daddiu  t1, t1, -1
-    daddiu  t5, t5, 8
-    bnez    t1, 1b
-    nop
+	PRINT_THE_MC_PARAM
 #endif
 
-#if 1
-/* unknown reason to reset init_start */
-reset_init_start0:
-    dli     t1, 0x18
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t4, 0xffffffffffffff00
-    and     a0, a0, t4
-    sd      a0, 0x0(t1)
+#ifdef	PREAMBLE_CHECK_DEBUG
 
-    dli     t1, 0x18
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t4, 0xffffffffffffff00
-    and     a0, a0, t4
-    ori     a0, a0, 0x1
-    sd      a0, 0x0(t1)
-
-wait_init_done0:
-    dli     t1, 0x160
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t4, 0x00000000ff000000
-    and     a0, a0, t4
-    beqz    a0, wait_init_done0
-    nop
-#endif
-
-/* identify wheather there is ecc slice */
-    li      t0, 0x8
+	dli		s7, 0x8
     dli     t1, 0x250
     or      t1, t1, t8
     lb      a0, 0x2(t1)
@@ -2683,165 +1555,670 @@ wait_init_done0:
     and     a0, a0, t1
     bne     a0, t1, 1f //when rd_after_write enabled, the 9th device may don't need leveling
     nop
-    daddu   t0, t0, 0x1
+	daddu	s7, s7, 0x1
 1:
-    dli     a2, 0x00
-    dli     a3, 0x40
-    dli     t1, 0x018
-    or      t1, t1, t8
-rddqs_lt_half:
-    beq     t0, $0, dll_gate_set
+//	dli	s7, 0x5
+	dli		t1, 0x28
+	or 		t1, t1, t8
+	dli		t2, 0x180
+	or		t2, t2, t8
+preamble_check_init:
+/* check the preamble exist */
+	PRINTSTR("\r\nPREAMBLE CHECK!!\r\n")
+// set the gate signal 0.75 period before
+	dli 	s6,	PREAMBLE_LENGTH_3A9 //s6 represents 0.75 period to be checked	
+	dli		a3, 0x80
+	dli		t4, 0x0
+	or		t4, t4, t8
+	lb		a0, 0x0(t4)
+	beq		a0, 0x2, 1f
+	nop
+	dli		s6, PREAMBLE_LENGTH_3A8
+1:
+#ifdef DDR_DLL_BYPASS
+	lb		a2, 0x4(t8)
+	and		a2, a2, 0x7f
+	daddu	a2, a2, 0x2
+	move	a3, a2
+	dsrl	a2, a2, 0x2
+	dsubu	a2, a3, a2
+	dli		t4, 0x7f
+	and		a2, a2, t4
+	move 	s6, a2
+#endif
+
+	lb		a0, 0x7(t1)	// if the rd_oe > 4 the set the rd_oe = 3
+	blt		a0, 0x4, 1f
+	nop
+	dli		a0, 0x3
+	sb		a0, 0x7(t1)
+1:
+	lb		a0, 0x6(t1)
+	blt		a0, 0x4, 1f
+	nop
+	dli		a0, 0x3
+	sb		a0, 0x6(t1)
+1:
+
+	lb		a0, 0x10(t1)
+	and		a0, a0, 0x7f
+	bgeu	a0, s6, 1f
+	nop
+	daddu	a0, a0, a3
+	dsubu	a0, a0, s6
+#if 0
+	move	t4, a0
+	bal	hexserial
+	nop
+2:
+	bal	hexserial
+	nop
+	lb	a0, 0x10(t1)
+	daddu	a0, a0, 0x1
+	sb	a0, 0x10(t1)
+	bne	a0, t4, 2b
+	nop
+#endif
+#if 1	
+#ifdef DDR_DLL_BYPASS
+	ori		a0, a0, 0x80
+#endif
+	sb		a0, 0x10(t1)
+#endif
+	lb		a0, 0x7(t1)
+	dsubu	a0, a0, 0x1
+	sb		a0, 0x7(t1)
+	lb		a0, 0x6(t1)
+	dsubu	a0, a0, 0x1
+	sb		a0, 0x6(t1)
+	RDOE_ADD_TRDDATA_SUB
+	b	3f
+	nop
+1:
+	dsubu	a0, a0, s6
+#ifdef DDR_DLL_BYPASS
+	ori		a0, a0, 0x80
+#endif
+	sb		a0, 0x10(t1)
+3:
+/*	dli	a0, 0xa1
+	sb	a0, 0x10(t1)*/
+    dli     t4, 0x180
+    or      t4, t4, t8
+    li		a0, 0x1
+	sb      a0, 0x1(t4)
+    li		a0, 0x0
+	sb		a0, 0x1(t4)
+    li		a0, 0x1
+	sb      a0, 0x1(t4)
+    li		a0, 0x0
+	sb		a0, 0x1(t4)
+	
+	dli 	t3, 0x2
+	dli		t6, 0x5
+	and		s6, s6, 0x7f
+	dsubu	s6, s6, 0x6
+	b 		glvl_redo_req_set_0
+	nop
+glvl_check_preamble:
+
+
+	dsubu	s6, s6, 0x1
+	bnez	s6, 1f
+	nop
+	daddu	s6, s6, 0x1
+1:
+
+    lb      a0, 0x7(t2)
+    dli     t4, 0x3
+    and     a0, a0, t4
+	
+	bnez	a0, test_continuous5_0
+	nop
+#ifdef LVL_DEBUG
+	PRINTSTR("The 1 is not found\r\n")
+#endif
+	lb		a0, 0x10(t1)
+	daddu	a0, a0, 0x1
+	dli		t4, 0x7f
+	and 	a0, a0, t4
+#ifdef DDR_DLL_BYPASS
+	lb		t4, 0x4(t8)
+	daddu	t4, t4, 0x2
+1:
+	blt		a0, t4, 2f
+	nop
+	dsubu	a0, a0, t4
+	b		1b
+	nop
+2:
+	ori		a0, 0x80
+#endif
+	sb		a0, 0x10(t1)
+	dli		t4, 0x7f
+	and		a0, a0, t4
+	bnez	a0,	1f
+	nop
+	
+	lb		a0, 0x6(t1)
+	daddu	a0, a0, 0x1
+	sb		a0, 0x6(t1)
+	lb		a0, 0x7(t1)
+	daddu	a0, a0, 0x1
+	sb		a0, 0x7(t1)
+	lb		a0, 0x7(t1)
+	RDOE_SUB_TRDDATA_ADD
+1:
+	dli		t6, 0x5
+	b 		glvl_redo_req_set_0
+	nop
+
+test_continuous5_0:
+	dsubu	t6, t6, 0x1
+	bnez	t6, 1f
+	nop
+	beq		s6, 0x1, glvl_check_preamble_end
+	nop
+	b		glvl_check_preamble_fail
+	nop
+1:
+#ifdef PRINT_PREAMBLE_CHECK 
+	PRINTSTR("The 1 found in preamble test@")
+	move	a0, s6
+	bal 	hexserial
+	nop
+	move	a0, t6
+	bal 	hexserial
+	nop
+	PRINTSTR("\r\n")
+#endif
+
+	lb		a0, 0x10(t1)
+	daddu	a0, a0, 0x1
+	dli		t4, 0x7f
+	and 	a0, a0, t4
+#ifdef DDR_DLL_BYPASS
+	lb		t4, 0x4(t8)
+	daddu	t4, t4, 0x2
+1:
+	blt		a0, t4, 2f
+	nop
+	dsubu	a0, a0, t4
+	b		1b
+	nop
+2:
+	ori		a0, 0x80
+#endif
+	sb		a0, 0x10(t1)
+	dli		t4, 0x7f
+	and		a0, a0, t4
+	bnez	a0,	1f
+	nop
+	
+	lb		a0, 0x6(t1)
+	daddu	a0, a0, 0x1
+	sb		a0, 0x6(t1)
+	lb		a0, 0x7(t1)
+	daddu	a0, a0, 0x1
+	sb		a0, 0x7(t1)
+	lb		a0, 0x7(t1)
+	RDOE_SUB_TRDDATA_ADD	
+1:
+	b		glvl_redo_req_set_0
+	nop
+
+glvl_check_preamble_fail:
+	PRINTSTR("\r\nThe preamble check failed @")
+	move	a0, s6
+	bal 	hexserial
+	nop
+	PRINTSTR("\r\n")
+
+	dli		s6, 0x0
+	lb		a0, 0x6(t1)
+	dsubu	a0, a0, 0x1
+	sb		a0, 0x6(t1)
+	lb		a0, 0x7(t1)
+	dsubu	a0, a0, 0x1
+	sb		a0, 0x7(t1)
+	bnez	a0, 1f
+	nop
+	PRINTSTR("\r\nThe rd_oe become 0 in the preamble check!\r\n")
+	RDOE_ADD_TRDDATA_SUB
+1:
+
+	
+	dli		t3, 0x0
+glvl_redo_req_set_0:
+    dli     t4, 0x180
+    or      t4, t4, t8
+    dli     a0, 0x1
+    sb      a0, 0x1(t4)
+    dli		a0, 0x0
+    sb      a0, 0x1(t4)
+	
+1:						//glvl_done_sampling
+    dli     t4, 0x180
+    or      t4, t4, t8
+    lb      a0, 0x6(t4)
+    bne     a0, 0x1, 1b
     nop
-    subu    t0, t0, 0x1
-    daddu   t1, t1, 0x20
+
+#ifdef LVL_DEBUG
+	PRINTSTR("\r\npreamble req\r\nrd_oe is")
+	ld	a0, 0x0(t1)
+	dsrl	a0, a0, 48
+	and	a0, a0, 0xffff
+	bal	hexserial
+	nop	
+	lb	a0, 0x1c0(t8)
+	bal	hexserial
+	nop
+	PRINTSTR("\r\n t1 & t2 is")
+	move	a0, t1
+	bal	hexserial
+	nop
+	move	a0, t2
+	bal	hexserial
+	nop
+	PRINTSTR("\r\n 0x118")
+	lb	a0, 0x118(t8)
+	bal	hexserial
+	nop
+#endif
+
+	beq		t3, 0x1, glvl_redo_resp_set1_0	
+	nop
+
+	beq		t3, 0x2, glvl_check_preamble
+	nop
+
+
+	dli		t3, 0x1
+#ifdef LVL_DEBUG
+	ld	a0, 0x188(t8)
+	dsrl	a0, a0, 32
+	bal	hexserial
+	nop
+#endif
+    lb      a0, 0x7(t2)
+    dli     t4, 0x3
+    and     a0, a0, t4
+    beq     a0, 0x0, glvl_redo_set0_end
+    nop
+#ifdef LVL_DEBUG
+	PRINTSTR("\r\nglvl redo set 0 add\r\n")
+#endif	
+	lb		a0, 0x10(t1)
+	daddu	a0, a0, 0x1
+	dli		t4, 0x7f
+	and 	a0, a0, t4
+#ifdef DDR_DLL_BYPASS
+	lb		t4, 0x4(t8)
+	daddu	t4, t4, 0x2
+1:
+	blt		a0, t4, 2f
+	nop
+	dsubu	a0, a0, t4
+	b		1b
+	nop
+2:
+	ori		a0, 0x80
+#endif
+	sb		a0, 0x10(t1)
+#ifdef LVL_DEBUG
+	bal	hexserial
+	nop
+	lb		a0, 0x10(t1)
+#endif
+	dli		t4, 0x7f
+	and		a0, a0, t4
+	dli		t3, 0x0
+	bnez	a0,	glvl_redo_set0_end
+	nop
+
+#ifdef LVL_DEBUG
+	PRINTSTR("\r\nrd_oe add 1\r\n")
+#endif
+    /* rd_oe_begin and rd_oe_end add 1 */
     ld      a0, 0x0(t1)
-    move    a1, a0
-    dli     t4, 0x000000000000007f
-    dli     t6, 0x7f //dll value limit
-    and     a0, a0, t4 //get dll_gate, store at a0, remove high bit 1
+    dli     t4, 0x0101000000000000
+    daddu   a0, a0, t4
+    sd      a0, 0x0(t1)
+	lb		a0, 0x7(t1)
+	RDOE_SUB_TRDDATA_ADD
+    /* odt_oe_begin and odt_oe_end add 1 */
+    ld      a0, 0x8(t1)
+    dli     t4, 0x0000000001010000
+    daddu   a0, a0, t4
+    sd      a0, 0x8(t1)
+
+glvl_redo_set0_end:
+	b		glvl_redo_req_set_0
+	nop
+
+glvl_redo_resp_set1_0:
+#ifdef LVL_DEBUG
+	PRINTSTR("\r\nglvl redo resp set 1\r\n")
+#endif	
+    lb      a0, 0x7(t2)
+    dli     t4, 0x3
+    and     a0, a0, t4
+    bnez    a0, preamble_check_init
+    nop
+
+	lb		a0, 0x10(t1)
+	daddu	a0, a0, 0x1
+	dli		t4, 0x7f
+	and 	a0, a0, t4
+#ifdef DDR_DLL_BYPASS
+	lb		t4, 0x4(t8)
+	daddu	t4, t4, 0x2
+1:
+	blt		a0, t4, 2f
+	nop
+	dsubu	a0, a0, t4
+	b		1b
+	nop
+2:
+	ori		a0, 0x80
+#endif
+	sb		a0, 0x10(t1)
+#ifdef LVL_DEBUG
+	bal	hexserial
+	nop
+	lb		a0, 0x10(t1)
+#endif
+	dli		t4, 0x7f
+	and		a0, a0, t4
+	bnez	a0,	1f
+	nop
+
+#ifdef LVL_DEBUG
+	PRINTSTR("\r\nrd oe add 1 @ glvl redo add\r\n")
+#endif
+    /* rd_oe_begin and rd_oe_end add 1 */
+    ld      a0, 0x0(t1)
+    dli     t4, 0x0101000000000000
+    daddu   a0, a0, t4
+    sd      a0, 0x0(t1)
+	lb		a0, 0x7(t1)
+	RDOE_SUB_TRDDATA_ADD
+    /* odt_oe_begin and odt_oe_end add 1 */
+    ld      a0, 0x8(t1)
+    dli     t4, 0x0000000001010000
+    daddu   a0, a0, t4
+    sd      a0, 0x8(t1)
+
+1:
+	
+	b		glvl_redo_req_set_0
+	nop
+
+
+glvl_check_preamble_end:
+#ifdef  PRINT_PREAMBLE_CHECK   //print registers
+    PRINTSTR("\r\nThe MC param after preamble check is:\r\n")
+	PRINT_THE_MC_PARAM
+#endif
+	dli		s6, 0x0
+	PRINTSTR("\r\nThe preamble check success\r\n")
+	
+	lb		a0, 0x7(t1)
+	blt		a0, 0x4, 1f
+	nop
+	dsubu	a0, a0, 0x4
+	sb		a0, 0x7(t1)
+	sb		a0, 0x6(t1)
+	RDOE_ADD_TRDDATA_SUB
+1:
+	dli		a3, 0x80
+#ifdef DDR_DLL_BYPASS
+	lb		a3, 0x4(t8)
+	daddu	a3, a3, 0x2
+	and		a3, a3, 0x7f
+#endif
+	lb		a0, 0x10(t1)
+	and		a0, a0, 0x7f
+	bgeu	a0, 0x4, 1f
+	nop
+	daddu	a0, a0, a3
+	dsubu	a0, a0, 0x4
+#ifdef DDR_DLL_BYPASS
+	ori		a0, a0, 0x80
+#endif
+	sb		a0, 0x10(t1)
+
+	lb		a0, 0x7(t1)
+	dsubu	a0, a0, 0x1
+	sb		a0, 0x7(t1)
+	lb		a0, 0x6(t1)
+	dsubu	a0, a0, 0x1
+	sb		a0, 0x6(t1)
+	RDOE_ADD_TRDDATA_SUB
+1:
+	dsubu	a0, a0, 0x4
+#ifdef DDR_DLL_BYPASS
+	ori		a0, a0, 0x80
+#endif
+	sb		a0, 0x10(t1)
+	
+#if 1
+/* unknown reason to reset init_start */
+    dli     t4, 0x18
+    or      t4, t4, t8
+    dli     a0, 0x0
+    sb      a0, 0x0(t4)
+
+    dli     t4, 0x18
+    or      t4, t4, t8
+    dli     a0, 0x1
+    sb      a0, 0x0(t4)
+1:
+    dli     t4, 0x160
+    or      t4, t4, t8
+    lb      a0, 0x3(t4)
+    beqz    a0, 1b
+    nop
+#endif
+
+#if 0
+get_burst_length: //save in t9
+	dli		t4, 0x168
+	or		t4, t4, t8
+	lb		t9, 0x4(t4)
+	daddu	t9, t9, 0x1
+	dsrl	t9, t9, 0x1
+
+	dli		t4, 0x180//send glvl request
+	or		t4, t4, t8
+	dli		a0, 0x1
+	sb		a0, 0x1(t4)
+1:
+	lb		a0, 0x6(t4) //glvl done
+	bne		a0, 0x1, 1b
+	nop
+	lb		s3, 0x7(t2)
+	
+	dli		t4, 0x180
+	or		t4, t4, t8
+	dli		a0, 0x1
+	sb		a0, 0x1(t4)
+1:
+	lb		a0, 0x6(t4)
+	bne		a0, 0x1, 1b
+	nop
+	lb		t6, 0x7(t2)
+
+//glvl response check
+	dli		t4, 0x1c
+	and		s3, s3, t4
+	and		t6, t6, t4
+	dsrl	s3, s3, 0x2
+	dsrl	t6, t6, 0x2
+	blt		s3, 0x4, 1f
+	nop
+	or		t6, t6, 0x8
+1:
+	dsubu	t6, t6, s3
+	beq		t6, t9, glvl_last_check_end
+	nop
+	
+	lb		a0, 0x7(t1)
+	dsubu	a0, a0, 0x1
+	sb		a0, 0x7(t1)
+	lb		a0,	0x6(t1)
+	dsubu	a0, a0, 0x1
+	sb		a0, 0x6(t1)
+	RDOE_ADD_TRDDATA_SUB
+	PRINTSTR("\r\nThe edges number is incorrect!\r\n")
+	b		preamble_check_init
+	nop
+#endif
+glvl_last_check_end:
+	daddu	t1, t1, 0x20
+	daddu	t2, t2, 0x1
+	dsubu	s7, s7, 0x1
+	bnez	s7, preamble_check_init
+	nop
+#endif
+
+/* set rddqs_lt_half */
+	GET_NUMBER_OF_SLICES
+	dli		t1, 0x20
+	or		t1, t1, t8
+rddqs_lt_half_set:
+#ifdef LVL_DEBUG
+	PRINTSTR("\r\nsetting rddqs lt_half\r\n")
+#endif
+	lb		a0, OFFSET_DLL_GATE(t1)
+	dli		t4, 0x7f
+	and		a0, a0, t4
 #ifdef DDR_DLL_BYPASS
     dsll    a0, a0, 0x7 // x 128
     lw      t5, 0x4(t8) //get dll_ck value, store at t5
     daddu   t5, t5, 0x2
     divu    a0, a0, t5 //get dll_gate, no bypass mode
 #endif
-    dli     t5, 0x000000000000ff00
-    and     a1, a1, t5
-    dsrl    a1, a1, 8  //get dll_wrdata
-    daddu   a0, a0, a1
-    and     a0, a0, t6
-    bgeu    a0, a3, rddqs_lt_half_set0//because the rd gate edge is 0x2
-    nop
-    bltu    a0, a2, rddqs_lt_half_set0
-    nop
-    b       rddqs_lt_half_set1
-    nop
-rddqs_lt_half_set0:
-    dsubu   t2, t1, 0x18
-    ld      a0, 0x0(t2)
-    dli     t4, 0xffffffffff00ffff
-    and     a0, a0, t4
-    sd      a0, 0x0(t2)
-    b       rddqs_lt_half
-    nop
-rddqs_lt_half_set1:
-    dsubu   t2, t1, 0x18
-    ld      a0, 0x0(t2)
-    dli     t4, 0xffffffffff00ffff
-    and     a0, a0, t4
-    dli     t4, 0x10000
-    or      a0, a0, t4
-    sd      a0, 0x0(t2)
-    b       rddqs_lt_half 
-    nop
-
+ 	lb		a1, OFFSET_DLL_WRDQ(t1)
+	daddu	a0, a0, a1
+	and		a0, a0, t4
+#if 0
+	move	a1, a0
+	bal		hexserial
+	nop
+	move	a0, a1
+#endif
+	bgeu	a0, RDDQS_LTHF_STD1, rddqs_lthalf_set1
+	nop
+	bltu	a0,	RDDQS_LTHF_STD2, rddqs_lthalf_set1
+	nop
+	b		rddqs_lthalf_set0
+	nop
+rddqs_lthalf_set0:
+	dli		a0, 0x0
+	sb		a0, OFFSET_RDDQS_LTHF(t1)
+	b		1f
+	nop
+rddqs_lthalf_set1:
+	dli		a0, 0x1
+	sb		a0, OFFSET_RDDQS_LTHF(t1)
+1:
+	daddu	t1, t1, 0x20
+	dsubu	t0, t0, 0x1
+	bnez	t0, rddqs_lt_half_set
+	nop
+	
 #if 1
 /* unknown reason to reset init_start */
-reset_init_start1:
-    dli     t1, 0x18
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t4, 0xffffffffffffff00
-    and     a0, a0, t4
-    sd      a0, 0x0(t1)
+    dli     t4, 0x18
+    or      t4, t4, t8
+    dli     a0, 0x0
+    sb      a0, 0x0(t4)
 
-    dli     t1, 0x18
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t4, 0xffffffffffffff00
-    and     a0, a0, t4
-    ori     a0, a0, 0x1
-    sd      a0, 0x0(t1)
-
-wait_init_done1:
-    dli     t1, 0x160
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t4, 0x00000000ff000000
-    and     a0, a0, t4
-    beqz    a0, wait_init_done1
+    dli     t4, 0x18
+    or      t4, t4, t8
+    dli     a0, 0x1
+    sb      a0, 0x0(t4)
+1:
+    dli     t4, 0x160
+    or      t4, t4, t8
+    lb      a0, 0x3(t4)
+    beqz    a0, 1b
     nop
 #endif
 
-dll_gate_set:
-/* identify wheather there is ecc slice */
-    li      t0, 0x8
-    dli     t1, 0x250
-    or      t1, t1, t8
-    lb      a0, 0x2(t1)
-    dli     t1, 0x1
-    and     a0, a0, t1
-    bne     a0, t1, 1f //when rd_after_write enabled, the 9th device may don't need leveling
+#if 1
+	GET_NUMBER_OF_SLICES
+	dli		t1, 0x20
+	or		t1, t1, t8
+dll_gate_set_loop:
+    beqz     t0, gate_sub_end
     nop
-    daddu   t0, t0, 0x1
-1:
+#ifdef LVL_DEBUG
+	PRINTSTR("\r\n setting dll_gate_sub \r\n")
+#endif
 #ifdef DDR_DLL_BYPASS
-    lw      a2, 0x4(t8) //dll_value_ck
+    lb      a2, 0x4(t8) //dll_value_ck
     daddu   a2, a2, 0x2
+	move	a3, a2
     dsrl    a2, a2, 0x2
-    ori     a2, a2, 0x80 //set high bit
-    dli     t4, 0x00000000000000ff
+    dli     t4, 0xff 
     and     a2, a2, t4
 #else
-    dli     a2, 0x20
+	dli		a3, 0x80
+    dli     a2, DLL_GATE_SUB
 #endif
-    dli     t1, 0x018
-    or      t1, t1, t8
-dll_gate_set_loop:
-    beq     t0, $0, rd_oe_sub
-    //beq     t0, $0, gate_leveling_exit
+    lb      a0, OFFSET_DLL_GATE(t1)
+    and		a0, a0, 0x7f
+	bgeu    a0, a2, dll_gate_sub20
     nop
-    subu    t0, t0, 0x1
-    daddu    t1, t1, 0x20
-    ld      a0, 0x0(t1)
-    move    a1, a0
-    dli     t4, 0x00000000000000ff
-    and     a1, a1, t4
-    bgtu    a1, a2, dll_gate_sub20
-    nop
-    dli     t4, 0xffffffffffffff00
-    and     a0, a0, t4
 #ifdef DDR_DLL_BYPASS
     ori     a0, a0, 0x80
+	dsubu	a0, a0, a2
+	daddu	a0, a0, a3
+#else
+	daddu	a0, a0, a3
+	dsubu	a0, a0, a2
 #endif
-//    daddu   a0, a0, 0x60
-    sd      a0, 0x0(t1)
+    sb      a0, OFFSET_DLL_GATE(t1)
 
-///* sub rd_oe_begin-end */
-//    dli     t4, 0x10
-//    dsubu   t1, t1, t4
-//    ld      a0, 0x0(t1)
-//    dli     t4, 0x0101000000000000
-//    dsubu   a0, a0, t4
-//    sd      a0, 0x0(t1)
-//    daddu   t1, t1, 0x10
-//
-///* sub odt_oe_begin-end */
-//    dli     t4, 0x8
-//    dsubu   t1, t1, t4
-//    ld      a0, 0x0(t1)
-//    dli     t4, 0x0000000001010000
-//    dsubu   a0, a0, t4
-////    sd      a0, 0x0(t1)
-//    daddu   t1, t1, 0x8
-
+	lb		a0, OFFSET_RDOE_BEGIN(t1)
+	dsubu	a0, a0, 0x1
+	sb		a0, OFFSET_RDOE_BEGIN(t1)
+	lb		a0, OFFSET_RDOE_END(t1)
+	dsubu	a0, a0, 0x1
+	sb		a0, OFFSET_RDOE_END(t1)
+	RDOE_ADD_TRDDATA_SUB
+/*
+	lb		a0, OFFSET_ODTOE_BEGIN(t1)
+	dsubu	a0, a0, 0x1
+	sb		a0, OFFSET_ODTOE_BEGIN(t1)
+	lb		a0, OFFSET_ODTOE_END(t1)
+	dsubu	a0, a0, 0x1
+	sb		a0, OFFSET_ODTOE_END(t1)
+*/
+	daddu	t1, t1, 0x20
+	dsubu	t0, t0, 0x1
     b       dll_gate_set_loop
     nop
 dll_gate_sub20:
-    dsubu    a1, a1, a2
+    dsubu    a0, a0, a2
 #ifdef DDR_DLL_BYPASS
-    ori     a1, a1, 0x80
+    ori     a0, a0, 0x80
 #endif
-    dli     t4, 0xffffffffffffff00
-    and     a0, a0, t4
-    daddu    a0, a0, a1
-    sd      a0, 0x0(t1)
+    sb      a0, OFFSET_DLL_GATE(t1)
+	daddu	t1, t1, 0x20
+	dsubu	t0, t0, 0x1
     b       dll_gate_set_loop
     nop
+gate_sub_end:
+#endif
 
+#ifdef NO_EDGE_CHECK	
+#else
 #if 1
 /* unknown reason to reset init_start */
-reset_init_start2:
     dli     t1, 0x18
     or      t1, t1, t8
     ld      a0, 0x0(t1)
@@ -2857,583 +2234,15 @@ reset_init_start2:
     ori     a0, a0, 0x1
     sd      a0, 0x0(t1)
 
-wait_init_done2:
+1:
     dli     t1, 0x160
     or      t1, t1, t8
     ld      a0, 0x0(t1)
     dli     t4, 0x00000000ff000000
     and     a0, a0, t4
-    beqz    a0, wait_init_done2
+    beqz    a0, 1b
     nop
 #endif
-
-dll_gate_0_add:
-#ifdef LVL_DEBUG
-    PRINTSTR("\r\nfor all gate resp got a 1, slice 0 add\r\n")
-#endif
-    dli     t1, 0x038
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    daddu    a0, a0, 0x1
-#ifdef DDR_DLL_BYPASS
-    lw      t2, 0x4(t8) //get dll_value
-    daddu   t2, t2, 0x2
-    dli     t4, 0x7f
-    and     a0, a0, t4
-    blt     a0, t2, 2f //use blt because the dll_value may change
-    nop
-    dli     a0, 0x80
-    sb      a0, 0x0(t1)
-    b       3f
-    nop
-
-2:  
-    ori     a0, 0x80
-    sb      a0, 0x0(t1)
-    b       1f
-    nop
-    
-#else
-    dli     t2, 0xffffffffffffff7f
-    and     a0, a0, t2
-    sd      a0, 0x0(t1)
-    dli     t4, 0x7f
-    and     a0, a0, t4
-    bnez    a0, 1f
-    nop
-//    //set dll_gate to 0
-//    ld      a0, 0x0(t1)
-//    dli     t2, 0xffffffffffffff00
-//    and     a0, a0, t2
-//    sd      a0, 0x0(t1)
-#endif
-    
-3:
-    
-    /* rd_oe_begin and rd_oe_end add 1 */
-    dli     t1, 0x028
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t2, 0x0101000000000000
-    daddu   a0, a0, t2
-    sd      a0, 0x0(t1)
-    /* odt_oe_begin and odt_oe_end add 1 */
-    dli     t1, 0x030
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t2, 0x0000000001010000
-    daddu   a0, a0, t2
-    sd      a0, 0x0(t1)
-#ifdef LVL_DEBUG
-    PRINTSTR("\r\nfor all gate resp got a 1, slice 0 oe and odt add\r\n")
-#endif
-1:
-    b       glvl_resp_1_set1
-    dli     s7, 0x1 
-dll_gate_1_add:
-#ifdef LVL_DEBUG
-    PRINTSTR("\r\nfor all gate resp got a 1, slice 1 add\r\n")
-#endif
-    dli     t1, 0x058
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    daddu    a0, a0, 0x1
-#ifdef DDR_DLL_BYPASS
-    lw      t2, 0x4(t8) //get dll_value
-    daddu   t2, t2, 0x2
-    dli     t4, 0x7f
-    and     a0, a0, t4
-    blt     a0, t2, 2f //use blt because the dll_value may change
-    nop
-    dli     a0, 0x80
-    sb      a0, 0x0(t1)
-    b       3f
-    nop
-
-2:  
-    ori     a0, 0x80
-    sb      a0, 0x0(t1)
-    b       1f
-    nop
-    
-#else
-    dli     t2, 0xffffffffffffff7f
-    and     a0, a0, t2
-    sd      a0, 0x0(t1)
-    dli     t4, 0x7f
-    and     a0, a0, t4
-    bnez    a0, 1f
-    nop
-//    //set dll_gate to 0
-//    ld      a0, 0x0(t1)
-//    dli     t2, 0xffffffffffffff00
-//    and     a0, a0, t2
-//    sd      a0, 0x0(t1)
-#endif
-    
-3:
-    
-    /* rd_oe_begin and rd_oe_end add 1 */
-    dli     t1, 0x048
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t2, 0x0101000000000000
-    daddu   a0, a0, t2
-    sd      a0, 0x0(t1)
-    /* odt_oe_begin and odt_oe_end add 1 */
-    dli     t1, 0x050
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t2, 0x0000000001010000
-    daddu   a0, a0, t2
-    sd      a0, 0x0(t1)
-#ifdef LVL_DEBUG
-    PRINTSTR("\r\nfor all gate resp got a 1, slice 1 oe and odt add\r\n")
-#endif
-1:
-    b       glvl_resp_2_set1
-    dli     s7, 0x1
-dll_gate_2_add:
-#ifdef LVL_DEBUG
-    PRINTSTR("\r\nfor all gate resp got a 1, slice 2 add\r\n")
-#endif
-    dli     t1, 0x078
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    daddu    a0, a0, 0x1
-#ifdef DDR_DLL_BYPASS
-    lw      t2, 0x4(t8) //get dll_value
-    daddu   t2, t2, 0x2
-    dli     t4, 0x7f
-    and     a0, a0, t4
-    blt     a0, t2, 2f //use blt because the dll_value may change
-    nop
-    dli     a0, 0x80
-    sb      a0, 0x0(t1)
-    b       3f
-   nop
-
-2:  
-    ori     a0, 0x80
-    sb      a0, 0x0(t1)
-    b       1f
-    nop
-    
-#else
-    dli     t2, 0xffffffffffffff7f
-    and     a0, a0, t2
-    sd      a0, 0x0(t1)
-    dli     t4, 0x7f
-    and     a0, a0, t4
-    bnez    a0, 1f
-    nop
-//    //set dll_gate to 0
-//    ld      a0, 0x0(t1)
-//    dli     t2, 0xffffffffffffff00
-//    and     a0, a0, t2
-//    sd      a0, 0x0(t1)
-#endif
-    
-3:
-    
-    /* rd_oe_begin and rd_oe_end add 1 */
-    dli     t1, 0x068
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t2, 0x0101000000000000
-    daddu   a0, a0, t2
-    sd      a0, 0x0(t1)
-    /* odt_oe_begin and odt_oe_end add 1 */
-    dli     t1, 0x070
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t2, 0x0000000001010000
-    daddu   a0, a0, t2
-    sd      a0, 0x0(t1)
-#ifdef LVL_DEBUG
-    PRINTSTR("\r\nfor all gate resp got a 1, slice 2 oe and odt add\r\n")
-#endif
-1:
-    b       glvl_resp_3_set1
-    dli     s7, 0x1
-dll_gate_3_add:
-#ifdef LVL_DEBUG
-    PRINTSTR("\r\nfor all gate resp got a 1, slice 3 add\r\n")
-#endif
-    dli     t1, 0x098
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    daddu    a0, a0, 0x1
-#ifdef DDR_DLL_BYPASS
-    lw      t2, 0x4(t8) //get dll_value
-    daddu   t2, t2, 0x2
-    dli     t4, 0x7f
-    and     a0, a0, t4
-    blt     a0, t2, 2f //use blt because the dll_value may change
-    nop
-    dli     a0, 0x80
-    sb      a0, 0x0(t1)
-    b       3f
-    nop
-
-2:  
-    ori     a0, 0x80
-    sb      a0, 0x0(t1)
-    b       1f
-    nop
-    
-#else
-    dli     t2, 0xffffffffffffff7f
-    and     a0, a0, t2
-    sd      a0, 0x0(t1)
-    dli     t4, 0x7f
-    and     a0, a0, t4
-    bnez    a0, 1f
-    nop
-//    //set dll_gate to 0
-//    ld      a0, 0x0(t1)
-//    dli     t2, 0xffffffffffffff00
-//    and     a0, a0, t2
-//    sd      a0, 0x0(t1)
-#endif
-    
-3:
-    
-    /* rd_oe_begin and rd_oe_end add 1 */
-    dli     t1, 0x088
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t2, 0x0101000000000000
-    daddu   a0, a0, t2
-    sd      a0, 0x0(t1)
-    /* odt_oe_begin and odt_oe_end add 1 */
-    dli     t1, 0x090
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t2, 0x0000000001010000
-    daddu   a0, a0, t2
-    sd      a0, 0x0(t1)
-#ifdef LVL_DEBUG
-    PRINTSTR("\r\nfor all gate resp got a 1, slice 3 oe and odt add\r\n")
-#endif
-1:
-    b       glvl_resp_4_set1
-    dli     s7, 0x1
-dll_gate_4_add:
-#ifdef LVL_DEBUG
-    PRINTSTR("\r\nfor all gate resp got a 1, slice 4 add\r\n")
-#endif
-    dli     t1, 0x0b8
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    daddu    a0, a0, 0x1
-#ifdef DDR_DLL_BYPASS
-    lw      t2, 0x4(t8) //get dll_value
-    daddu   t2, t2, 0x2
-    dli     t4, 0x7f
-    and     a0, a0, t4
-    blt     a0, t2, 2f //use blt because the dll_value may change
-    nop
-    dli     a0, 0x80
-    sb      a0, 0x0(t1)
-    b       3f
-    nop
-
-2:  
-    ori     a0, 0x80
-    sb      a0, 0x0(t1)
-    b       1f
-    nop
-    
-#else
-    dli     t2, 0xffffffffffffff7f
-    and     a0, a0, t2
-    sd      a0, 0x0(t1)
-    dli     t4, 0x7f
-    and     a0, a0, t4
-    bnez    a0, 1f
-    nop
-//    //set dll_gate to 0
-//    ld      a0, 0x0(t1)
-//    dli     t2, 0xffffffffffffff00
-//    and     a0, a0, t2
-//    sd      a0, 0x0(t1)
-#endif
-    
-3:
-    
-    /* rd_oe_begin and rd_oe_end add 1 */
-    dli     t1, 0x0a8
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t2, 0x0101000000000000
-    daddu   a0, a0, t2
-    sd      a0, 0x0(t1)
-    /* odt_oe_begin and odt_oe_end add 1 */
-    dli     t1, 0x0b0
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t2, 0x0000000001010000
-    daddu   a0, a0, t2
-    sd      a0, 0x0(t1)
-#ifdef LVL_DEBUG
-    PRINTSTR("\r\nfor all gate resp got a 1, slice 4 oe and odt add\r\n")
-#endif
-1:
-    b       glvl_resp_5_set1
-    dli     s7, 0x1
-dll_gate_5_add:
-#ifdef LVL_DEBUG
-    PRINTSTR("\r\nfor all gate resp got a 1, slice 5 add\r\n")
-#endif
-    dli     t1, 0x0d8
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    daddu    a0, a0, 0x1
-#ifdef DDR_DLL_BYPASS
-    lw      t2, 0x4(t8) //get dll_value
-    daddu   t2, t2, 0x2
-    dli     t4, 0x7f
-    and     a0, a0, t4
-    blt     a0, t2, 2f //use blt because the dll_value may change
-    nop
-    dli     a0, 0x80
-    sb      a0, 0x0(t1)
-    b       3f
-    nop
-
-2:  
-    ori     a0, 0x80
-    sb      a0, 0x0(t1)
-    b       1f
-    nop
-    
-#else
-    dli     t2, 0xffffffffffffff7f
-    and     a0, a0, t2
-    sd      a0, 0x0(t1)
-    dli     t4, 0x7f
-    and     a0, a0, t4
-    bnez    a0, 1f
-    nop
-//    //set dll_gate to 0
-//    ld      a0, 0x0(t1)
-//    dli     t2, 0xffffffffffffff00
-//    and     a0, a0, t2
-//    sd      a0, 0x0(t1)
-#endif
-    
-3:
-    
-    /* rd_oe_begin and rd_oe_end add 1 */
-    dli     t1, 0x0c8
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t2, 0x0101000000000000
-    daddu   a0, a0, t2
-    sd      a0, 0x0(t1)
-    /* odt_oe_begin and odt_oe_end add 1 */
-    dli     t1, 0x0d0
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t2, 0x0000000001010000
-    daddu   a0, a0, t2
-    sd      a0, 0x0(t1)
-#ifdef LVL_DEBUG
-    PRINTSTR("\r\nfor all gate resp got a 1, slice 5 oe and odt add\r\n")
-#endif
-1:
-    b       glvl_resp_6_set1
-    dli     s7, 0x1
-dll_gate_6_add:
-#ifdef LVL_DEBUG
-    PRINTSTR("\r\nfor all gate resp got a 1, slice 6 add\r\n")
-#endif
-    dli     t1, 0x0f8
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    daddu    a0, a0, 0x1
-#ifdef DDR_DLL_BYPASS
-    lw      t2, 0x4(t8) //get dll_value
-    daddu   t2, t2, 0x2
-    dli     t4, 0x7f
-    and     a0, a0, t4
-    blt     a0, t2, 2f //use blt because the dll_value may change
-    nop
-    dli     a0, 0x80
-    sb      a0, 0x0(t1)
-    b       3f
-    nop
-
-2:  
-    ori     a0, 0x80
-    sb      a0, 0x0(t1)
-    b       1f
-    nop
-    
-#else
-    dli     t2, 0xffffffffffffff7f
-    and     a0, a0, t2
-    sd      a0, 0x0(t1)
-    dli     t4, 0x7f
-    and     a0, a0, t4
-    bnez    a0, 1f
-    nop
-//    //set dll_gate to 0
-//    ld      a0, 0x0(t1)
-//    dli     t2, 0xffffffffffffff00
-//    and     a0, a0, t2
-//    sd      a0, 0x0(t1)
-#endif
-    
-3:
-    
-    /* rd_oe_begin and rd_oe_end add 1 */
-    dli     t1, 0x0e8
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t2, 0x0101000000000000
-    daddu   a0, a0, t2
-    sd      a0, 0x0(t1)
-    /* odt_oe_begin and odt_oe_end add 1 */
-    dli     t1, 0x0f0
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t2, 0x0000000001010000
-    daddu   a0, a0, t2
-    sd      a0, 0x0(t1)
-#ifdef LVL_DEBUG
-    PRINTSTR("\r\nfor all gate resp got a 1, slice 6 oe and odt add\r\n")
-#endif
-1:
-    b       glvl_resp_7_set1
-    dli     s7, 0x1
-dll_gate_7_add:
-#ifdef LVL_DEBUG
-    PRINTSTR("\r\nfor all gate resp got a 1, slice 7 add\r\n")
-#endif
-    dli     t1, 0x118
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    daddu    a0, a0, 0x1
-#ifdef DDR_DLL_BYPASS
-    lw      t2, 0x4(t8) //get dll_value
-    daddu   t2, t2, 0x2
-    dli     t4, 0x7f
-    and     a0, a0, t4
-    blt     a0, t2, 2f //use blt because the dll_value may change
-    nop
-    dli     a0, 0x80
-    sb      a0, 0x0(t1)
-    b       3f
-    nop
-
-2:  
-    ori     a0, 0x80
-    sb      a0, 0x0(t1)
-    b       1f
-    nop
-    
-#else
-    dli     t2, 0xffffffffffffff7f
-    and     a0, a0, t2
-    sd      a0, 0x0(t1)
-    dli     t4, 0x7f
-    and     a0, a0, t4
-    bnez    a0, 1f
-    nop
-//    //set dll_gate to 0
-//    ld      a0, 0x0(t1)
-//    dli     t2, 0xffffffffffffff00
-//    and     a0, a0, t2
-//    sd      a0, 0x0(t1)
-#endif
-    
-3:
-    
-    /* rd_oe_begin and rd_oe_end add 1 */
-    dli     t1, 0x108
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t2, 0x0101000000000000
-    daddu   a0, a0, t2
-    sd      a0, 0x0(t1)
-    /* odt_oe_begin and odt_oe_end add 1 */
-    dli     t1, 0x110
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t2, 0x0000000001010000
-    daddu   a0, a0, t2
-    sd      a0, 0x0(t1)
-#ifdef LVL_DEBUG
-    PRINTSTR("\r\nfor all gate resp got a 1, slice 7 oe and odt add\r\n")
-#endif
-1:
-    b       glvl_resp_8_set1
-    dli     s7, 0x1
-dll_gate_8_add:
-#ifdef LVL_DEBUG
-    PRINTSTR("\r\nfor all gate resp got a 1, slice 8 add\r\n")
-#endif
-    dli     t1, 0x138
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    daddu    a0, a0, 0x1
-#ifdef DDR_DLL_BYPASS
-    lw      t2, 0x4(t8) //get dll_value
-    daddu   t2, t2, 0x2
-    dli     t4, 0x7f
-    and     a0, a0, t4
-    blt     a0, t2, 2f //use blt because the dll_value may change
-    nop
-    dli     a0, 0x80
-    sb      a0, 0x0(t1)
-    b       3f
-    nop
-
-2:  
-    ori     a0, 0x80
-    sb      a0, 0x0(t1)
-    b       1f
-    nop
-    
-#else
-    dli     t2, 0xffffffffffffff7f
-    and     a0, a0, t2
-    sd      a0, 0x0(t1)
-    dli     t4, 0x7f
-    and     a0, a0, t4
-    bnez    a0, 1f
-    nop
-//    //set dll_gate to 0
-//    ld      a0, 0x0(t1)
-//    dli     t2, 0xffffffffffffff00
-//    and     a0, a0, t2
-//    sd      a0, 0x0(t1)
-#endif
-    
-3:
-    
-    /* rd_oe_begin and rd_oe_end add 1 */
-    dli     t1, 0x128
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t2, 0x0101000000000000
-    daddu   a0, a0, t2
-    sd      a0, 0x0(t1)
-    /* odt_oe_begin and odt_oe_end add 1 */
-    dli     t1, 0x130
-    or      t1, t1, t8
-    ld      a0, 0x0(t1)
-    dli     t2, 0x0000000001010000
-    daddu   a0, a0, t2
-    sd      a0, 0x0(t1)
-#ifdef LVL_DEBUG
-    PRINTSTR("\r\nfor all gate resp got a 1, slice 8 oe and odt add\r\n")
-#endif
-1:
-    b       glvl_req_set
-    dli     s7, 0x1
 
 rd_oe_sub:
 
@@ -3580,6 +2389,7 @@ glvl_resp_last_1:
     ld      t2, 0x0(t1) //lvl_resp 0
     ld      t6, 0x8(t1) //lvl_resp 1-8
 
+#if 1 //debug
 glvl_resp_check_0:
     dli     t4, 0x1c00000000000000
     and     t3, t2, t4 //second sample
@@ -3635,7 +2445,6 @@ glvl_resp_check_2:
     nop
 
 glvl_resp_check_3:
-/*
     dli     t4, 0x00000000001c0000
     and     t3, t6, t4 //second sample
     and     t5, s4, t4 //first sample
@@ -3652,7 +2461,7 @@ glvl_resp_check_3:
     dsubu   t3, t3, t5
     bne     t3, t9, rd_oe_3_sub
     nop
-*/
+
 
 glvl_resp_check_4:
     dli     t4, 0x000000001c000000
@@ -3940,6 +2749,9 @@ rd_oe_8_sub:
     b       rd_oe_sub
     dli     s7, 0x1 
 
+#endif //debug
+#endif
+
 gate_leveling_exit:
     dli     t1, 0x180
     or      t1, t1, t8
@@ -3948,6 +2760,9 @@ gate_leveling_exit:
     and     a0, a0, t4
     sd      a0, 0x0(t1)
 
+
+//   dli      t1, 0x0000002020187803
+//   sd       t1, 0xb8(t8)
 /* unknown reason to reset init_start */
 reset_init_start3:
     dli     t1, 0x18
@@ -3973,7 +2788,6 @@ wait_init_done3:
     and     a0, a0, t4
     beqz    a0, wait_init_done3
     nop
-#endif
 
 #ifdef DDR_DLL_BYPASS //bypass dll_wrdqs, dll_wrdata and  dll_rddqs_p/n
     dli     t1, 0x0
@@ -4073,13 +2887,68 @@ wait_init_done3:
     nop
 
 3:
-    
-   
-    
+        
 #endif
 
-100:
 
+
+
+100:
+#if 0
+test_memory:
+	dli     t0, 0x9000000000000000
+	GET_NODE_ID_a0
+	or      t0, t0, a0
+   	dli     a0, 0x5555555555555555
+    sd      a0, 0x0(t0)
+    dli     a0, 0xaaaaaaaaaaaaaaaa
+    sd      a0, 0x8(t0)
+	dli     a0, 0x3333333333333333
+	sd      a0, 0x10(t0)
+	dli     a0, 0xcccccccccccccccc
+	sd      a0, 0x18(t0)
+	dli     a0, 0x7777777777777777
+	sd      a0, 0x20(t0)
+	dli     a0, 0x8888888888888888
+	sd      a0, 0x28(t0)
+	dli     a0, 0x1111111111111111
+	sd      a0, 0x30(t0)
+	dli     a0, 0xeeeeeeeeeeeeeeee
+	sd      a0, 0x38(t0)
+
+	dli     t5, 0x9000000000000000
+    GET_NODE_ID_a0
+	or      t5, t5, a0
+	ld      t6, 0x30(t5)
+    dli     t2, 0x5555555555555555
+	beq		t6, t2, 2f
+	nop
+	ld		t6, 0x20(t5)
+	beq		t6, t2, 2f
+	nop
+	ld		t6, 0x10(t5)
+	beq		t6, t2, 2f
+	nop
+	ld		t6, 0x00(t5)
+	beq		t6, t2, 3f
+	nop
+	PRINTSTR("\r\nthe memory test failed!\r\n")
+	b		4f
+	nop
+
+2:
+	dli		t1, 0x1d0
+	or		t1, t1, t8
+	lb		a0, 0x4(t1)
+	dsubu	a0,	a0, 0x1
+	sb		a0, 0x4(t1)
+	b		test_memory
+	nop
+3:
+	PRINTSTR("the memory test sucess!\r\n")
+	nop
+4:
+#endif
 //set pm_dll_bypass
     dli     t1, 0x1
     sb      t1, 0x19(t8)
@@ -4093,3 +2962,24 @@ wait_init_done3:
     nop
     .end    ddr3_leveling
  
+LEAF(hexserial4)
+	move	a2, ra
+	move	a1, a0
+	li	a3, 0
+1:
+	rol	a0, a1, 4
+	move	a1, a0
+	and	a0, 0xf
+	la	v0, hexchar
+	addu	v0, s0
+	addu	v0, a0
+	bal	tgt_putchar
+	lbu	a0, 0(v0)
+
+	bnez	a3, 1b
+	addu	a3, -1
+
+	move	ra, a2
+	j	ra
+	nop
+END(hexserial4)

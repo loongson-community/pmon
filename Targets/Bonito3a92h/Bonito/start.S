@@ -628,7 +628,7 @@ soft_out:
 #include "loongson3_HT_init_2h.S" 
 	bal	beep_on
 	nop
-	li	a0, 0x800
+	li	a0, 0x800000
 1:
 	addiu	a0, a0, -1
 	nop
@@ -1531,7 +1531,7 @@ watchdog_enable:
 #######################################
 #include "ddr_dir/ls3A8_ddr_config.S"
 #ifdef DDR3_DIMM
-#include "ddr_dir/loongson3C_ddr3_leveling.S"
+#include "loongson3C_ddr3_leveling.S"
 #endif
 #ifdef ARB_LEVEL
 #include "ddr_dir/ARB_level_new.S"
