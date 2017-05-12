@@ -31,7 +31,7 @@ struct efi_cpuinfo_loongson *init_cpu_info();
 struct efi_memory_map_loongson * init_memory_map();
 void init_loongson_params(struct loongson_params *lp);
 void init_smbios(struct smbios_tables *smbios);
-void init_efi(struct efi_loongson *efi);
+void init_efi(struct efi *efi);
 struct loongson_special_attribute *init_special_info();
 void init_reset_system(struct efi_reset_system_t *reset);
 
@@ -45,7 +45,7 @@ int init_boot_param(struct boot_params *bp)
   return bp;
 }
 
-void init_efi(struct efi_loongson *efi)
+void init_efi(struct efi *efi)
 {
     init_smbios(&(efi->smbios));
 }
@@ -86,8 +86,6 @@ void init_loongson_params(struct loongson_params *lp)
   lp->interface_offset = (unsigned long long)init_interface_info() - (unsigned long long)lp;
   lp->boarddev_table_offset = (unsigned long long)board_devices_info() - (unsigned long long)lp;
   lp->special_offset = (unsigned long long)init_special_info() - (unsigned long long)lp; 
-
-  printf("memory_offset = 0x%x;cpu_offset = 0x%x; system_offset = 0x%x; irq_offset = 0x%x; interface_offset = 0x%x;\n",lp->memory_offset,lp->cpu_offset,lp->system_offset,lp->irq_offset, lp->interface_offset);
 }
 
 
