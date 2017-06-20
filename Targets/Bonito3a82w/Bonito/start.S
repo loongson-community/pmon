@@ -699,6 +699,7 @@ no_reboot:
 #endif
 //#define DEBUG_AUTO_ARB_LEVEL
 #endif
+//#define DISABLE_DDR_A15
 //#define DEBUG_DDR
 //#define DEBUG_DDR_PARAM
 

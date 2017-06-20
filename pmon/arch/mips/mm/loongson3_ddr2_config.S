@@ -181,7 +181,7 @@
 #endif
 
 #ifndef LSMCD3_2
-#ifdef  DDR_ADDR_PIN_15
+#ifdef  DISABLE_DDR_A15
 //hot fix for lack of address pin A15 when use LSMC. For example RS780E R1.03
     //check MC1 first
     move    t1, s1  //store s1
