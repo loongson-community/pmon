@@ -345,11 +345,13 @@ ht_next_id :
 
 1:
 #endif
+#ifdef CONFIG_HT_DMA_RX_ONE_CHANNEL_FOR_MSI
     /*fix ht1, 1 rx only*/
     dli	    t2, 0x90000efdfb000000
     li      t1, 0x7718884
     //li      t1, 0x7778888
     sw      t1, 0x5c(t2)
+#endif
 
 //lycheng
 #if 0
