@@ -158,6 +158,19 @@ ext_map_and_reboot:
 
 	/* General exception */
 	.align	7			/* bfc00380 */
+#ifdef CLKIRQ_ENABLE 
+	mfc0 k1,COP_0_CAUSE_REG
+	andi k1,0x807f
+	xori k1,0x8000
+	bnez k1,1f
+	nop
+	mfc0 k1,$11
+	lui k0,0x1000
+	addu k1,k0
+	mtc0 k1,$11
+	eret
+1:	  
+#endif
 	la	a0, v380_msg
 	bal	stringserial
 	nop
@@ -309,6 +322,16 @@ wait_to_be_killed:
 	dli     a0, BOOTCORE_ID
 	bne     t0, a0, slave_main
 	nop
+
+#ifdef CLKIRQ_ENABLE 
+	li	t0, SR_BOOT_EXC_VEC|0x8001	/* Exception to Boostrap Location */
+	mtc0	t0, COP_0_STATUS_REG
+	
+	li v0,0x10000000
+	mtc0 zero,$9
+	mtc0 v0,$11
+	mtc0	zero, COP_0_CAUSE_REG
+#endif
 
         bal     initserial
         nop
