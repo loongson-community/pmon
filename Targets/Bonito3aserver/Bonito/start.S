@@ -121,6 +121,19 @@ stack = start - 0x4000		/* Place PMON stack below PMON start in RAM */
 
 	/* General exception */
 	.align	7			/* bfc00380 */
+#ifdef CLKIRQ_ENABLE 
+	mfc0 k1,COP_0_CAUSE_REG
+	andi k1,0x807f
+	xori k1,0x8000
+	bnez k1,1f
+	nop
+	mfc0 k1,$11
+	lui k0,0x1000
+	addu k1,k0
+	mtc0 k1,$11
+	eret
+1:	  
+#endif
         li v0, 0xbfe0011c
         li v1, 0x38
         sw v1, (v0)
@@ -277,6 +290,17 @@ locate:
 #endif
 
 	WatchDog_Close
+
+#ifdef CLKIRQ_ENABLE 
+	li	t0, SR_BOOT_EXC_VEC|0x8001	/* Exception to Boostrap Location */
+	mtc0	t0, COP_0_STATUS_REG
+	
+	li v0,0x10000000
+	mtc0 zero,$9
+	mtc0 v0,$11
+	mtc0	zero, COP_0_CAUSE_REG
+#endif
+
 
 	bal	initserial
 	nop
