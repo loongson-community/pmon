@@ -159,6 +159,7 @@ int vga_available=0;
 #elif defined(VGAROM_IN_BIOS) && defined(USE_BMC)
 #include "vgarom_bmc.c"
 #endif
+#include "timer_irq.h"
 
 int tgt_i2cread(int type,unsigned char *addr,int addrlen,unsigned char reg,unsigned char* buf ,int count);
 int tgt_i2cwrite(int type,unsigned char *addr,int addrlen,unsigned char reg,unsigned char* buf ,int count);
@@ -439,6 +440,18 @@ initmips(unsigned int raw_memsz)
 	int i;
     int* io_addr;
     tgt_fpuenable();
+    SBD_DISPLAY("BEV1",0);
+    bcopy(MipsException, (char *)TLB_MISS_EXC_VEC, MipsExceptionEnd - MipsException);
+    bcopy(MipsException, (char *)GEN_EXC_VEC, MipsExceptionEnd - MipsException);
+
+    CPU_FlushCache();
+
+#ifndef ROM_EXCEPTION
+    CPU_SetSR(0, SR_BOOT_EXC_VEC);
+#endif
+#if NTIMER_IRQ
+    init_IRQ();
+#endif
 #ifdef DEVBD2F_SM502
     {
 		/*set lio bus to 16 bit*/
@@ -516,15 +529,6 @@ initmips(unsigned int raw_memsz)
     /*
      *  Set up exception vectors.
      */
-    SBD_DISPLAY("BEV1",0);
-    bcopy(MipsException, (char *)TLB_MISS_EXC_VEC, MipsExceptionEnd - MipsException);
-    bcopy(MipsException, (char *)GEN_EXC_VEC, MipsExceptionEnd - MipsException);
-
-    CPU_FlushCache();
-
-#ifndef ROM_EXCEPTION
-    CPU_SetSR(0, SR_BOOT_EXC_VEC);
-#endif
     SBD_DISPLAY("BEV0",0);
 
     printf("BEV in SR set to zero.\n");
@@ -612,6 +616,9 @@ initmips(unsigned int raw_memsz)
 #endif
 #if defined(FASTECC) || defined(FASTECC1) || defined(FASTECC2)
     init_ecc_end();
+#endif
+#if NTIMER_IRQ
+    uninit_IRQ();
 #endif
     main();
 }
@@ -729,7 +736,7 @@ void tgt_devconfig()
 #ifdef CONFIG_GFXUMA
 		fbaddress = 0x50000000; // virtual address mapped to the second 256M memory
 #else
-		fbaddress = uma_memory_base | BONITO_PCILO_BASE_VA;
+		fbaddress |= uma_memory_base | BONITO_PCILO_BASE_VA;
 #endif
 #elif defined(USE_BMC)
 		fbaddress |= BONITO_PCILO_BASE_VA;
@@ -2502,6 +2509,7 @@ IRQ0, 2, 8, 13 are reserved
 
 #define SMBUS_IO_BASE	  0x0000  //ynn
 #define PCI_BRADGE_TOTAL  0x0001  //ynn
+
 
 #define DEBUG_FIXINTERRUPT
 #ifdef DEBUG_FIXINTERRUPT
