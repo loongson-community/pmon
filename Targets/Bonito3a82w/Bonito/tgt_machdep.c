@@ -158,6 +158,7 @@ int vga_available=0;
 #elif defined(VGAROM_IN_BIOS) && defined(USE_BMC)
 #include "vgarom_bmc.c"
 #endif
+#include "timer_irq.h"
 
 int tgt_i2cread(int type,unsigned char *addr,int addrlen,unsigned char reg,unsigned char* buf ,int count);
 int tgt_i2cwrite(int type,unsigned char *addr,int addrlen,unsigned char reg,unsigned char* buf ,int count);
@@ -435,6 +436,18 @@ initmips(unsigned int raw_memsz)
 	int i;
     int* io_addr;
     tgt_fpuenable();
+    SBD_DISPLAY("BEV1",0);
+    bcopy(MipsException, (char *)TLB_MISS_EXC_VEC, MipsExceptionEnd - MipsException);
+    bcopy(MipsException, (char *)GEN_EXC_VEC, MipsExceptionEnd - MipsException);
+
+    CPU_FlushCache();
+
+#ifndef ROM_EXCEPTION
+    CPU_SetSR(0, SR_BOOT_EXC_VEC);
+#endif
+#if NTIMER_IRQ
+    init_IRQ();
+#endif
 #ifdef DEVBD2F_SM502
     {
 		/*set lio bus to 16 bit*/
@@ -508,15 +521,6 @@ initmips(unsigned int raw_memsz)
     /*
      *  Set up exception vectors.
      */
-    SBD_DISPLAY("BEV1",0);
-    bcopy(MipsException, (char *)TLB_MISS_EXC_VEC, MipsExceptionEnd - MipsException);
-    bcopy(MipsException, (char *)GEN_EXC_VEC, MipsExceptionEnd - MipsException);
-
-    CPU_FlushCache();
-
-#ifndef ROM_EXCEPTION
-    CPU_SetSR(0, SR_BOOT_EXC_VEC);
-#endif
     SBD_DISPLAY("BEV0",0);
 
     printf("BEV in SR set to zero.\n");
@@ -599,6 +603,9 @@ initmips(unsigned int raw_memsz)
      * Launch!
      */
     _pci_conf_write(_pci_make_tag(0,0,0),0x90,0xff800000); 
+#if NTIMER_IRQ
+    uninit_IRQ();
+#endif
     main();
 }
 
