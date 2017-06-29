@@ -14,7 +14,7 @@ static int wdt_enable()
 int d = *(volatile int *)0xbfe0011c;
 int oe= *(volatile int *)0xbfe00120;
 d=(d&~0x2000)|0x38;
-oe=oe&~0x2038;
+oe=oe&~0x6038;
 *(volatile int *)0xbfe0011c = d;
 *(volatile int *)0xbfe00120 = oe;
 return 0;
@@ -25,7 +25,7 @@ static int wdt_disable()
 int d = *(volatile int *)0xbfe0011c;
 int oe= *(volatile int *)0xbfe00120;
 d=(d|0x2008)&~0x30;
-oe=oe&~0x2038;
+oe=oe&~0x6038;
 
 *(volatile int *)0xbfe0011c = d;
 *(volatile int *)0xbfe00120 = oe;
@@ -37,7 +37,7 @@ static int wdt_feed()
 int d = *(volatile int *)0xbfe0011c;
 int oe= *(volatile int *)0xbfe00120;
 int d0, d1;
-oe=oe&~0x2038;
+oe=oe&~0x6038;
 d0=d&~(1<<14);
 d1=d|(1<<14);
 *(volatile int *)0xbfe0011c = d0;
@@ -55,10 +55,12 @@ void plat_irq_dispatch(struct trapframe *frame)
         if(pending & CAUSEF_IP7)
         {
 		static int cnt=0;
-		//tgt_printf("cnt %d\n",cnt++);
+		tgt_printf("cnt %d\n",cnt++);
 		write_c0_compare(read_c0_count()+400000000/IRQ_HZ);
-		if(cnt<60*IRQ_HZ)
+		if(cnt<300*IRQ_HZ)
+		{
 			wdt_feed();
+		}
         }
         else
         {
