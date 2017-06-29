@@ -1,6 +1,7 @@
 #include <pmon.h>
 #include <errno.h>
 #include <asm/mipsregs.h>
+#include "include/bonito.h"
 #define ST0_IM  0x0000ff00
 #define CAUSEF_IP7      ( 1 << 15)
 #define CAUSEF_IP6      ( 1 << 14)
@@ -14,7 +15,7 @@ static int wdt_enable()
 int d = *(volatile int *)0xbfe0011c;
 int oe= *(volatile int *)0xbfe00120;
 d=(d&~0x2000)|0x38;
-oe=oe&~0x2038;
+oe=oe&~0x6038;
 *(volatile int *)0xbfe0011c = d;
 *(volatile int *)0xbfe00120 = oe;
 return 0;
@@ -25,7 +26,7 @@ static int wdt_disable()
 int d = *(volatile int *)0xbfe0011c;
 int oe= *(volatile int *)0xbfe00120;
 d=(d|0x2008)&~0x30;
-oe=oe&~0x2038;
+oe=oe&~0x6038;
 
 *(volatile int *)0xbfe0011c = d;
 *(volatile int *)0xbfe00120 = oe;
@@ -37,7 +38,7 @@ static int wdt_feed()
 int d = *(volatile int *)0xbfe0011c;
 int oe= *(volatile int *)0xbfe00120;
 int d0, d1;
-oe=oe&~0x2038;
+oe=oe&~0x6038;
 d0=d&~(1<<14);
 d1=d|(1<<14);
 *(volatile int *)0xbfe0011c = d0;
@@ -46,6 +47,7 @@ d1=d|(1<<14);
 }
 
 #define IRQ_HZ 4
+static int wdt_timeout;
 
 void plat_irq_dispatch(struct trapframe *frame)
 {
@@ -57,7 +59,7 @@ void plat_irq_dispatch(struct trapframe *frame)
 		static int cnt=0;
 		//tgt_printf("cnt %d\n",cnt++);
 		write_c0_compare(read_c0_count()+400000000/IRQ_HZ);
-		if(cnt<60*IRQ_HZ)
+		if(cnt<wdt_timeout*IRQ_HZ)
 			wdt_feed();
         }
         else
@@ -70,9 +72,13 @@ void plat_irq_dispatch(struct trapframe *frame)
 
 void init_IRQ()
 {
+	int wdt;
 	write_c0_compare(400000000/4);
 	write_c0_count(0);
 	set_c0_status(0x8001);
+	wdt = *(unsigned short *)(0xbfc00000+NVRAM_OFFS+WDT_OFFS);
+	if(wdt==0xffff||wdt==0) wdt_timeout=300;
+	else wdt_timeout=wdt;
 	wdt_enable();
 }
 

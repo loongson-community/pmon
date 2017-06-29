@@ -61,12 +61,14 @@ extern char           *heaptop;
 #	define	NVRAM_OFFS		0x000fd800
 #	define ETHER_OFFS		494 	/* Ethernet address base */
 #	define NOMSG_OFFS		ETHER_OFFS+6 	/* Ethernet address base */
+#	define  WDT_OFFS		NOMSG_OFFS+2
 #else	/* Use clock ram, 256 bytes only */
 #	define NVRAM_SIZE		108
 #	define NVRAM_SECSIZE		128	/* Helper */
 #	define NVRAM_OFFS		0
 #	define ETHER_OFFS		NVRAM_SIZE 	/* Ethernet address base */
 #	define NOMSG_OFFS		ETHER_OFFS+6 	/* Ethernet address base */
+#	define  WDT_OFFS		NOMSG_OFFS+2
 #endif
 
 
