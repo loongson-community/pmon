@@ -227,12 +227,21 @@ static void switching_gpp_configurations(device_t nb_dev, device_t sb_dev)
 *****************************************************************/
 void enable_pcie_bar3(device_t nb_dev)
 {
+/*
+43291_rs780_rpr_nda_1.05.pdf
+5.9.8
+Program PCIE Memory Mapped Configuration Space
+43734_rs780_bdg_nda_1.06.pdf
+2.3
+HTIU Indirect Register Space (HTIUIND)
+*/
 	set_nbcfg_enable_bits(nb_dev, 0x7C, 1 << 30, 1 << 30);	/* Enables writes to the BAR3 register. */
 	set_nbcfg_enable_bits(nb_dev, 0x84, 7 << 16, 0 << 16);
 
 	pci_write_config32(nb_dev, 0x1C, EXT_CONF_BASE_ADDRESS);	/* PCIEMiscInit */
 	pci_write_config32(nb_dev, 0x20, 0x00000000);
-	set_htiu_enable_bits(nb_dev, 0x32, 1 << 28, 1 << 28);	/* PCIEMiscInit */
+	//set_htiu_enable_bits(nb_dev, 0x32, 1 << 28, 1 << 28);	/* PCIEMiscInit */
+	htiu_write_indexN(nb_dev, 0x32, htiu_read_indexN(nb_dev, 0x32) | (1<<28));
 }
 
 /*****************************************************************
@@ -245,6 +254,8 @@ void disable_pcie_bar3(device_t nb_dev)
 	pci_write_config32(nb_dev, 0x1C, 0);	/* clear BAR3 address */
 	printk_info("Disable writes to the BAR3\n");
 	set_nbcfg_enable_bits(nb_dev, 0x7C, 1 << 30, 0 << 30);	/* Disable writes to the BAR3. */
+	//set_htiu_enable_bits(nb_dev, 0x32, 1 << 28, 0 << 28);	/* PCIEMiscInit */
+	htiu_write_indexN(nb_dev, 0x32, htiu_read_indexN(nb_dev, 0x32) & ~(1<<28));
 }
 
 /*****************************************
