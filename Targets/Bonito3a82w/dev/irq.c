@@ -1,6 +1,7 @@
 #include <pmon.h>
 #include <errno.h>
 #include <asm/mipsregs.h>
+#include "include/bonito.h"
 #define ST0_IM  0x0000ff00
 #define CAUSEF_IP7      ( 1 << 15)
 #define CAUSEF_IP6      ( 1 << 14)
@@ -46,6 +47,7 @@ d1=d|(1<<14);
 }
 
 #define IRQ_HZ 4
+static int wdt_timeout;
 
 void plat_irq_dispatch(struct trapframe *frame)
 {
@@ -57,7 +59,7 @@ void plat_irq_dispatch(struct trapframe *frame)
 		static int cnt=0;
 		tgt_printf("cnt %d\n",cnt++);
 		write_c0_compare(read_c0_count()+400000000/IRQ_HZ);
-		if(cnt<300*IRQ_HZ)
+		if(cnt<wdt_timeout*IRQ_HZ)
 		{
 			wdt_feed();
 		}
@@ -72,9 +74,13 @@ void plat_irq_dispatch(struct trapframe *frame)
 
 void init_IRQ()
 {
+	int wdt;
 	write_c0_compare(400000000/4);
 	write_c0_count(0);
 	set_c0_status(0x8001);
+	wdt = *(unsigned short *)(0xbfc00000+NVRAM_OFFS+WDT_OFFS);
+	if(wdt==0xffff||wdt==0) wdt_timeout=300;
+	else wdt_timeout=wdt;
 	wdt_enable();
 }
 

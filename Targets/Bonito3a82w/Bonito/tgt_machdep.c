@@ -420,6 +420,7 @@ extern unsigned long long  memorysize_high_n3;
 extern char MipsException[], MipsExceptionEnd[];
 
 unsigned char hwethadr[6];
+unsigned short wdt;
 
 void initmips(unsigned int raw_memsz);
 
@@ -440,6 +441,7 @@ initmips(unsigned int raw_memsz)
     bcopy(MipsException, (char *)TLB_MISS_EXC_VEC, MipsExceptionEnd - MipsException);
     bcopy(MipsException, (char *)GEN_EXC_VEC, MipsExceptionEnd - MipsException);
 
+    CPU_ConfigCache();
     CPU_FlushCache();
 
 #ifndef ROM_EXCEPTION
@@ -1189,7 +1191,7 @@ tgt_devinit()
 	}
 
 #if 1
-	CPU_ConfigCache();
+	//CPU_ConfigCache();
 #else
 	{       
 #define CTYPE_HAS_L2  0x100	
@@ -1297,6 +1299,9 @@ void tgt_poweroff()
 void tgt_reboot(void)
 {
 	watchdog_enable();
+	*(volatile char *)0xb8000cd6=0x85;
+         *(volatile char *)0xb8000cd7=0xe;
+         while(1);
 }
 
 
@@ -1954,6 +1959,10 @@ tgt_mapenv(int (*func) __P((char *, char *)))
 				hwethadr[2], hwethadr[3], hwethadr[4], hwethadr[5]);
 		(*func)("ethaddr", env);
 
+		bcopy(&nvram[WDT_OFFS], &wdt, 2);
+		sprintf(env, "%d", (wdt==0||wdt==0xffff)?300:wdt);
+		(*func)("wdt", env);
+
 #ifndef NVRAM_IN_FLASH
 		free(nvram);
 #endif
@@ -2171,6 +2180,8 @@ tgt_mapenv(int (*func) __P((char *, char *)))
 					hwethadr[i] = v;
 					s += 3;         /* Don't get to fancy here :-) */
 				} 
+			} else if (strcmp("wdt", name) == 0) {
+				wdt = strtoul(value,0,0);
 			} else {
 				ep = nvrambuf+2;
 				if(*ep != '\0') {
@@ -2222,6 +2233,7 @@ tgt_mapenv(int (*func) __P((char *, char *)))
 			cksum(nvrambuf, NVRAM_SIZE, 1);
 
 			bcopy(hwethadr, &nvramsecbuf[ETHER_OFFS], 6);
+			bcopy(&wdt, &nvramsecbuf[WDT_OFFS], 2);
 #ifdef NVRAM_IN_FLASH
 			if(fl_erase_device(nvram, NVRAM_SECSIZE, FALSE)) {
 				printf("Error! Nvram erase failed!\n");
