@@ -58,7 +58,7 @@ extern void *pmalloc __P((size_t ));
 extern int _pciverbose;
 
 extern char hwethadr[6];
-struct pci_device *_pci_bus[16];
+struct pci_device *_pci_bus[256];
 int _max_pci_bus = 0;
 
 
