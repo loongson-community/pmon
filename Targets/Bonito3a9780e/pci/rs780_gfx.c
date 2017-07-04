@@ -29,6 +29,12 @@
  */
 #include "rs780.h"
 
+#define VRAM_266M      266
+#define VRAM_333M      333
+#define VRAM_400M      400
+#define VRAM_533M      533
+#define VRAM_FREQ      VRAM_266M
+
 /* Trust the original resource allocation. Don't do it again. */
 #undef DONT_TRUST_RESOURCE_ALLOCATION
 //#define DONT_TRUST_RESOURCE_ALLOCATION
@@ -457,6 +463,20 @@ static void rs780_internal_gfx_enable(device_t nb , device_t dev)
 	set_nbmc_enable_bits(nb_dev, 0x08, 1<<10, 0);
 	/* The last item in AsynchMclkTaskFileIndex. Why? */
 
+    switch(VRAM_FREQ) {
+    case VRAM_533M:
+       nbmc_write_index(nb_dev, 0x07, 0x40110478);
+       nbmc_write_index(nb_dev, 0x0b, 0x00000478);
+       set_nbmc_enable_bits(nb_dev, 0x09, 3 << 12 | 15 << 16 | 15 << 8,
+                        1 << 8 | 1 << 12 | 4 << 16);
+       break;
+    case VRAM_400M:
+       nbmc_write_index(nb_dev, 0x07, 0x60004478);
+       nbmc_write_index(nb_dev, 0x0b, 0x00000018);
+       set_nbmc_enable_bits(nb_dev, 0x09, 3 << 12 | 15 << 16 | 15 << 8,
+                                                        6 << 16);
+       break;
+   case VRAM_333M:
 	/* Change the freq. to 333 MHz. by wanghonghu */
 	/* MC_MPLL_CONTROL2. */
 	nbmc_write_index(nb_dev, 0x07, 0x40004498);
@@ -464,6 +484,14 @@ static void rs780_internal_gfx_enable(device_t nb , device_t dev)
 	nbmc_write_index(nb_dev, 0x0b, 0x00004498);
 	/* MC_MPLL_FREQ_CONTROL. */
 	set_nbmc_enable_bits(nb_dev, 0x09, 3<<12|15<<16|15<<8, 2<<12|4<<16|2<<8);
+	break;
+    case VRAM_266M:
+    default:
+       nbmc_write_index(nb_dev, 0x07, 0x40114478);
+       nbmc_write_index(nb_dev, 0x0b, 0x00004478);
+       set_nbmc_enable_bits(nb_dev, 0x09, 3 << 12 | 15 << 16 | 15 << 8,
+                        1 << 8 | 1 << 12 | 4 << 16);
+    }
 
 	/* MC_MPLL_CONTROL3. For PM. */
 	set_nbmc_enable_bits(nb_dev, 0x08, 0xff<<13, 1<<13|1<<18);
@@ -526,15 +554,40 @@ static void rs780_internal_gfx_enable(device_t nb , device_t dev)
 	set_nbmc_enable_bits(nb_dev, 0xb1, 0x77770000, 0x77770000);
 #endif
 
-	/* OEM Init MC. 266MHz. */
-	nbmc_write_index(nb_dev, 0xa8, 0x34244456);
-	nbmc_write_index(nb_dev, 0xa9, 0x2022100c);
-	nbmc_write_index(nb_dev, 0xaa, 0x23400220);
-	nbmc_write_index(nb_dev, 0xab, 0x2000e088);
-	nbmc_write_index(nb_dev, 0xa0, 0x20f0066b);
-	set_nbmc_enable_bits(nb_dev, 0xa2, ~(0xffffffc7), 0x10);
-	nbmc_write_index(nb_dev, 0xb2, 0x0);
-	set_nbmc_enable_bits(nb_dev, 0xb1, ~(0xffffff70), 0x43);
+    /* OEM Init MC. 266MHz. */
+    switch(VRAM_FREQ) {
+    case VRAM_533M:
+        nbmc_write_index(nb_dev, 0xa8, 0x68488868);
+        nbmc_write_index(nb_dev, 0xa9, 0x413b1c14);
+        nbmc_write_index(nb_dev, 0xaa, 0x43400420);
+        nbmc_write_index(nb_dev, 0xab, 0x441430dd);
+        nbmc_write_index(nb_dev, 0xa0, 0x20f00848);
+        set_nbmc_enable_bits(nb_dev, 0xa2, ~(0xffffffc7), 0x8);
+        nbmc_write_index(nb_dev, 0xb2, 0x202);
+        set_nbmc_enable_bits(nb_dev, 0xb1, ~(0xffffff70), 0x44);
+       break;
+    case VRAM_400M:
+        nbmc_write_index(nb_dev, 0xa8, 0x46466658);
+        nbmc_write_index(nb_dev, 0xa9, 0x302c150f);
+        nbmc_write_index(nb_dev, 0xaa, 0x33400420);
+        nbmc_write_index(nb_dev, 0xab, 0x441440aa);
+        nbmc_write_index(nb_dev, 0xa0, 0x20f00448);
+        set_nbmc_enable_bits(nb_dev, 0xa2, ~(0xffffffc7), 0x0);
+        nbmc_write_index(nb_dev, 0xb2, 0x101);
+        set_nbmc_enable_bits(nb_dev, 0xb1, ~(0xffffff70), 0x44);
+       break;
+    case VRAM_266M:
+    default:
+        nbmc_write_index(nb_dev, 0xa8, 0x34244456);
+        nbmc_write_index(nb_dev, 0xa9, 0x2022100c);
+        nbmc_write_index(nb_dev, 0xaa, 0x23400220);
+        nbmc_write_index(nb_dev, 0xab, 0x2000e088);
+        nbmc_write_index(nb_dev, 0xa0, 0x20f0066b);
+        set_nbmc_enable_bits(nb_dev, 0xa2, ~(0xffffffc7), 0x10);
+        nbmc_write_index(nb_dev, 0xb2, 0x0);
+        set_nbmc_enable_bits(nb_dev, 0xb1, ~(0xffffff70), 0x43);
+        break;
+    }
 	/* Do it later. */
 	/* set_nbmc_enable_bits(nb_dev, 0xac, ~(0xfffffff0), 0x0b); */
 
