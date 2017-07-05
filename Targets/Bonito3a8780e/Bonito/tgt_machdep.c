@@ -369,7 +369,7 @@ void tgt_devconfig(void)
 #ifdef CONFIG_GFXUMA
 		fbaddress = 0x50000000; // virtual address mapped to the second 256M memory
 #else
-		fbaddress = uma_memory_base | BONITO_PCILO_BASE_VA;
+		fbaddress |= /*uma_memory_base |*/ BONITO_PCILO_BASE_VA;
 #endif
 		printf("fbaddress = %08x\n", fbaddress);
 
@@ -505,6 +505,7 @@ run:
 	printf("devconfig done.\n");
 
 	sb700_interrupt_fixup();
+	sb700_interrupt_fixup1();
 }
 #define tgt_putchar_uc(x) (*(void (*)(char)) (((long)tgt_putchar)|0x20000000)) (x)
 
@@ -1676,6 +1677,131 @@ IRQ0, 2, 8, 13 are reserved
 #define fixup_interrupt_printf(format, args...)
 #endif
 
+static char irqbus0[] = 
+{	
+  [1] = 2,
+  [2] = 2,
+  [3] = 3,
+  [4] = 0,
+  [5] = 1,
+  [6] = 2,
+  [7] = 3,
+  [9] = 1,
+  [10] = 2,
+  [20] = 9, //inte
+}; 
+
+/*pci int route on develop board:
+adxx: devno = xx - 16
+ad19: inte
+ad20: intf
+*/
+static int bus0dev20[16] = {
+[0] = 10,
+[1] = 11,
+[2] = 12,
+[3] = 9,
+[4] = 10,
+[5] = 11,
+[6] = 12,
+[7] = 9,
+[8] = 10,
+[9] = 11,
+[10] = 12,
+[11] = 9,
+[12] = 10,
+[13] = 11,
+[14] = 12,
+[15] = 9,
+};
+
+char irqroute[16];
+
+char val4d0;
+char val4d1;
+
+static void pci_fix_device_interrpt(struct pci_device *pd, int bus0tag)
+{
+	pcitag_t tag;
+	int irq;
+	volatile unsigned char * pic_index = 0xb8000c00 + SMBUS_IO_BASE; 
+	volatile unsigned char * pic_data =  0xb8000c01 + SMBUS_IO_BASE;
+	tag = pd->pa.pa_tag;
+
+	if(pd->bridge.child)
+	{
+		for(pd = pd->bridge.child; pd; pd = pd->next) {
+			pci_fix_device_interrpt(pd, bus0tag);
+		}
+	}
+
+	{
+		int bus, dev , func, icr, pin;
+		_pci_break_tag(tag, &bus, &dev, &func);
+		icr = _pci_conf_read(tag, 0x3c);
+
+		if((pin=((icr>>8)&0xff)))
+		{
+			int bus0, bus0dev, bus0func;
+			_pci_break_tag(bus0tag, &bus0, &bus0dev, &bus0func);
+                        if(bus0dev == 20)
+                           irq = (bus0dev20[dev]+pin-1);
+			else
+                           irq = (irqbus0[bus0dev]+pin-1);
+			if(!irqroute[irq])
+			{
+			  printf("nomap for busdev %d pin %d irqpin %d\n", bus0dev ,pin ,irq);
+				irqroute[irq] = 3;
+				*pic_index =  irq;
+				*pic_data = irqroute[irq];
+			}
+
+			printf("fixup bus %d dev %d func %d pin %d irq %d new irq %d bus0dev %d\n", bus, dev, func, pin, icr&0xff, irqroute[irq], bus0dev);
+
+			if(irqroute[irq]>=8)
+			 val4d1 |= (1<<(irqroute[irq]-8));
+			else val4d0 |= (1<<irqroute[irq]);
+
+			_pci_conf_write(tag, 0x3c, (icr&~0xff)|irqroute[irq]);
+		}
+
+	}
+}
+
+
+void sb700_interrupt_fixup1(void)
+{
+	int i;
+	struct pci_device *pd;
+	int bus, dev , func;
+	pcitag_t tag;
+	extern struct pci_device *_pci_head;
+	volatile unsigned char * pic_index = 0xb8000c00 + SMBUS_IO_BASE; 
+	volatile unsigned char * pic_data =  0xb8000c01 + SMBUS_IO_BASE;
+	//c00,c01
+	char tmpirq = 8;
+
+	for(i=0;i<16;i++)
+	{
+		* pic_index = i;
+		irqroute[i] = * pic_data;
+		printf("irqroute[%d]= %d\n", i, irqroute[i]);
+	}
+
+
+	printf("_pci_head=%p,child=%p,next=%p\n",_pci_head,_pci_head->bridge.child, _pci_head->next);
+	for(i = 0, pd = _pci_head->bridge.child; pd; i++, pd = pd->next) {
+		tag = pd->pa.pa_tag;
+		if(pd->bridge.child)
+		{
+			pci_fix_device_interrpt(pd,tag);			
+		}
+	}
+
+	
+	*(volatile char *)(0xb80004d0) |= val4d0;
+	*(volatile char *)(0xb80004d1) |= val4d1;
+}
 #define MULTY_FUNCTION (0x1 << 7)
 
 void sb700_interrupt_fixup(void)
