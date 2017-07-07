@@ -1709,7 +1709,7 @@ static char irqbus0[] =
 {	
   [1] = 2,
   [2] = 2,
-  [3] = 3,
+  [3] = 1,
   [4] = 0,
   [5] = 1,
   [6] = 2,
@@ -1775,7 +1775,7 @@ static void pci_fix_device_interrpt(struct pci_device *pd, int bus0tag)
                         if(bus0dev == 20)
                            irq = (bus0dev20[dev]+pin-1);
 			else
-                           irq = (irqbus0[bus0dev]+pin-1);
+                           irq = irqbus0[bus0dev];
 			if(!irqroute[irq])
 			{
 			  printf("nomap for busdev %d pin %d irqpin %d\n", bus0dev ,pin ,irq);
