@@ -140,27 +140,40 @@ ATTENTION:
 	nop
 
 20: //soft_mem:
-/*
+#if DDR_SEL_ST
+	dli     t0, 0x900000001fe001c0
+	or	    t0, t0, s1
+    dli     a0, (DDR_DIV << 24) | (DDR_LOOPC << 14) | (DDR_REFC << 8) | (DDR_SEL_ST << 30) | (0x3 << 4) | (0x1 << 3) | PLL_MEM_ENA | 0x1
+    sw      a0, 0x0(t0)
+
+#else
+
+	dli     t0, 0x900000001fe001c0
+	or	    t0, t0, s1
+	li	    t1, (0x1 << 7) 	//power down all pll first
+	sw	    t1, 0x0(t0)
+
+
 	dli     t0, 0x900000001fe00194
-	or	t0, t0, s1
+	or	    t0, t0, s1
 	lw      a0, 0x0(t0)
 	li      a1, MEM_CLKSEL
 	and     a0, a0, a1
-	li	a1, MEM_HSEL
-	bne	a0, a1, 30f //soft_ht
+	li	    a1, MEM_HSEL
+	bne	    a0, a1, 30f
 	nop
 
 	TTYDBG ("\r\nMEM        :")
 
 	dli     t0, 0x900000001fe001c0
-	or	t0, t0, s1
-	dli     a0, (DDR_DIV << 24) | (DDR_LOOPC << 14) | (0x3 << 4) | (0x1 << 3) | PLL_MEM_ENA
-	sw	a0, 0x0(t0)
-21: //wait_locked_ddr:
+	or	    t0, t0, s1
+	dli     a0, (DDR_DIV << 24) | (DDR_LOOPC << 14) | (DDR_REFC << 8) | (0x3 << 4) | (0x1 << 3) | PLL_MEM_ENA
+	sw	    a0, 0x0(t0)
+21:
 	lw      a0, 0x0(t0)
 	li      a1, 0x00000040
 	and     a0, a0, a1
-	beqz    a0, 21b //wait_locked_ddr
+	beqz    a0, 21b
 	nop
 
 	lw      a0, 0x0(t0)
@@ -170,11 +183,26 @@ ATTENTION:
 	bal     hexserial
 	nop
 
-*/
-        dli     t0, 0x900000001fe001c0
-	or	t0, t0, s1
-        dli     a0, (DDR_DIV << 24) | (DDR_LOOPC << 14) | (DDR_REFC << 8) | (DDR_SEL_ST << 30) | (0x3 << 4) | (0x1 << 3) | PLL_MEM_ENA | 0x1
-        sw      a0, 0x0(t0)
+soft_fdcoefficient:
+	TTYDBG ("\r\nfdcoefficient  :")
+	dli     t0, 0x900000001fe001c0
+	or	    t0, t0, s1
+	ld      t1,0x0(t0)
+	dsrl    a0,t1,8
+	and     a0,a0,63
+
+	dsrl    a1,t1,14
+	and     a1,a1,1023
+
+	dmul    a0,a0,a1
+	dsrl    a1,t1,24
+	and     a1,a1,63
+
+	ddiv    a0,a0,a1
+	bal     hexserial
+	nop
+
+#endif
 
 
 30: //soft_ht:

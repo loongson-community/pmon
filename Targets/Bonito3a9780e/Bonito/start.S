@@ -515,7 +515,18 @@ wait_locked_sys:
 	nop
 
 soft_mem:
-/*
+#if DDR_SEL_ST
+        li      t0, 0xbfe001c0
+        dli     a0, (DDR_DIV << 24) | (DDR_LOOPC << 14) | (DDR_REFC << 8) | (DDR_SEL_ST << 30) | (0x3 << 4) | (0x1 << 3) | PLL_MEM_ENA | 0x1
+        sw      a0, 0x0(t0)
+
+#else
+
+	li      t0, 0xbfe001c0
+	li	t1, (0x1 << 7) 	//power down all pll first
+	sw	t1, 0x0(t0)
+
+
 	li      t0, 0xbfe00194
 	lw      a0, 0x0(t0)
 	li      a1, MEM_CLKSEL
@@ -560,11 +571,8 @@ soft_fdcoefficient:
 	ddiv    a0,a0,a1
 	bal     hexserial
 	nop
-*/
 
-        li      t0, 0xbfe001c0
-        dli     a0, (DDR_DIV << 24) | (DDR_LOOPC << 14) | (DDR_REFC << 8) | (DDR_SEL_ST << 30) | (0x3 << 4) | (0x1 << 3) | PLL_MEM_ENA | 0x1
-        sw      a0, 0x0(t0)
+#endif
 
 soft_ht:
 	TTYDBG ("\r\nHT         :")
