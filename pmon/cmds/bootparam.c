@@ -57,6 +57,9 @@ void init_reset_system(struct efi_reset_system_t *reset)
 #ifdef LS3A2H_STR
   reset->ResetCold = LS3A2H_STR_FUNC_ADDR;
 #endif
+#ifdef LOONGSON_3ASINGLE  
+  reset->DoSuspend = 0xffffffffbfc00500;
+#endif
 }
 
 void init_smbios(struct smbios_tables *smbios)
@@ -218,31 +221,31 @@ void init_loongson_params(struct loongson_params *lp)
 #else
   #define PRID_IMP_LOONGSON    0x6306
 #endif
- enum loongson_cpu_type cputype = Loongson_3B;
+ enum loongson_cpu_type cputype = Legacy_3B;
 #endif
 #ifdef LOONGSON_3BSERVER
   #define PRID_IMP_LOONGSON    0x6306
-  enum loongson_cpu_type cputype = Loongson_3B;
+  enum loongson_cpu_type cputype = Legacy_3B;
 #endif
 #if  defined ( LOONGSON_3ASINGLE) || defined ( LOONGSON_3A2H)
   #define PRID_IMP_LOONGSON    0x6305
-  enum loongson_cpu_type cputype = Loongson_3A;
+  enum loongson_cpu_type cputype = Legacy_3A;
 #endif
 #ifdef LOONGSON_3ASERVER
   #define PRID_IMP_LOONGSON    0x6305
-  enum loongson_cpu_type cputype = Loongson_3A;
+  enum loongson_cpu_type cputype = Legacy_3A;
 #endif
 #ifdef LOONGSON_3A84W
   #define PRID_IMP_LOONGSON    0x146308
-  enum loongson_cpu_type cputype = Loongson_3A;
+  enum loongson_cpu_type cputype = Legacy_3A;
 #endif
 #if defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A)
   #define PRID_IMP_LOONGSON    0x6305
-  enum loongson_cpu_type cputype = Loongson_2G;
+  enum loongson_cpu_type cputype = Legacy_2G;
 #endif
 #ifdef LOONGSON_2F1A
   #define PRID_IMP_LOONGSON    0x6303
-  enum loongson_cpu_type cputype = Loongson_2F;
+  enum loongson_cpu_type cputype = Legacy_2F;
 #endif
 
 struct efi_cpuinfo_loongson *init_cpu_info()
@@ -404,7 +407,7 @@ struct interface_info *init_interface_info()
 
   tgt_flashinfo((void *)0xbfc00000, &flashsize);
 
-  inter->vers = 0x0001;
+  inter->vers = SPEC_VERS;
   inter->size = flashsize/0x400;
   inter->flag = 1;
 
