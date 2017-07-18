@@ -40,6 +40,9 @@
 #include "target/ls1a.h"
 #endif
 
+#if defined(LOONGSON_2K)
+#include "target/ls2k.h"
+#endif
 
 //sw:	ioctl in linux 		to be fixed
 #define SIOCDEVPRIVATE	0x89f0
@@ -522,6 +525,8 @@ s32 synopGMAC_setup_tx_desc_queue(synopGMACdevice * gmacdev,u32 no_of_desc, u32 
 	/* first_desc is cached addr */
 	first_desc = (DmaDesc *)plat_alloc_memory(sizeof(DmaDesc) * no_of_desc+15);
 #endif
+	//first_desc is cache addr, dma_addr is uncache_to_phy addr   mtf add
+	printf("===Tx first_desc:0x%x, dma_addr:0x%x\n", first_desc, dma_addr);
 	if(first_desc == NULL){
 		TR("Error in Tx Descriptors memory allocation\n");
 		return -ESYNOPGMACNOMEM;
@@ -1975,7 +1980,7 @@ void set_phy_manu(synopGMACdevice * gmacdev)
 }
 #endif
 
-#if defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A) || (defined(LOONGSON_3A2H) && defined(LOONGSON_3A8))
+#if defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A) || (defined(LOONGSON_3A2H) && defined(LOONGSON_3A8)) || defined(LOONGSON_2K)
 static int rtl88e1111_config_init(synopGMACdevice *gmacdev)
 {
 	int retval, err;
@@ -1994,7 +1999,7 @@ static int rtl88e1111_config_init(synopGMACdevice *gmacdev)
 }
 #endif
 
-#if defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A) || (defined(LOONGSON_3A2H) && defined(LOONGSON_3A8))
+#if defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A) || (defined(LOONGSON_3A2H) && defined(LOONGSON_3A8)) || defined(LOONGSON_2K)
 int init_phy(synopGMACdevice *gmacdev)
 #else
 int init_phy(struct synopGMACdevice *gmacdev)
@@ -2013,9 +2018,17 @@ int init_phy(struct synopGMACdevice *gmacdev)
 		retval = rtl8211_config_init(gmacdev);
 		return retval;
 	}
-#elif (defined(LOONGSON_3A2H) && defined(LOONGSON_3A8))
+#elif (defined(LOONGSON_3A2H) && defined(LOONGSON_3A8)) || defined(LOONGSON_2K)
+#if defined(LOONGSON_2K)
+	u16 data;
+	synopGMAC_read_phy_reg(gmacdev->MacBase,gmacdev->PhyBase,2,&data);
+	/*set 88e1111 clock phase delay*/
+	if(data == 0x141)
+#endif
+{
 	rtl88e1111_config_init(gmacdev);
 	return 0;
+}
 #else
 	retval = rtl8211_config_init(gmacdev);
 	return retval;
@@ -2667,6 +2680,27 @@ s32  synopGMAC_init_network_interface(char* xname,u64 synopGMACMappedAddr)
 	else
 		parseenv(1, mac_addr0);
 #endif
+#elif defined(LOONGSON_2K)
+extern unsigned char smbios_uuid_gmac[6];
+s32  synopGMAC_init_network_interface(char* xname, u64 synopGMACMappedAddr)
+{
+	struct ifnet* ifp;
+	static u8 mac_addr0[6];
+	int i, v;
+	u16 data;
+	u64 gmac0, gmac1;
+	struct synopGMACNetworkAdapter * synopGMACadapter;
+	unsigned int eeprom_addr;
+	i = strtoul(xname + 3, NULL, 0);
+	eeprom_addr = i * 6;
+
+	gmac0 = synopGMACMappedAddr;
+//	gmac1 = 0xffffffff00000000ULL | LS2H_GMAC1_REG_BASE;
+//	synopGMACMappedAddr = sc->dv_unit?gmac1:gmac0;
+	synopGMACMappedAddr = gmac0;//mtf
+//	i2c_init();//the i2s had init by file i2c.S
+	mac_read(eeprom_addr, mac_addr0, 6);
+	memcpy(smbios_uuid_gmac, mac_addr0, 6);
 #else
 s32  synopGMAC_init_network_interface(char* xname, struct device *sc )
 {
@@ -2731,7 +2765,7 @@ s32  synopGMAC_init_network_interface(char* xname, struct device *sc )
 	
 	ifp = &(synopGMACadapter->PInetdev->arpcom.ac_if);
 	ifp->if_softc = synopGMACadapter;
-#if	(!defined(LOONGSON_2G5536))&&(!defined(LOONGSON_2G1A)) && (!defined(LOONGSON_2F1A))
+#if	(!defined(LOONGSON_2G5536))&&(!defined(LOONGSON_2G1A)) && (!defined(LOONGSON_2F1A)) && (!defined(LOONGSON_2K))
 	memcpy(&synopGMACadapter->PInetdev->sc_dev, sc, sizeof(struct device));
 #endif	
 	memcpy(synopGMACadapter->PInetdev->dev_addr, mac_addr0,6);

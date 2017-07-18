@@ -93,7 +93,6 @@ void init_loongson_params(struct loongson_params *lp)
   printf("memory_offset = 0x%x;cpu_offset = 0x%x; system_offset = 0x%x; irq_offset = 0x%x; interface_offset = 0x%x;\n",lp->memory_offset,lp->cpu_offset,lp->system_offset,lp->irq_offset, lp->interface_offset);
 }
 
-
 /*struct efi_memory_map_loongson * init_memory_map()*/
 /*{*/
   /*struct efi_memory_map_loongson *emap = &g_map;*/
@@ -227,7 +226,7 @@ void init_loongson_params(struct loongson_params *lp)
   #define PRID_IMP_LOONGSON    0x6306
   enum loongson_cpu_type cputype = Legacy_3B;
 #endif
-#if  defined ( LOONGSON_3ASINGLE) || defined ( LOONGSON_3A2H)
+#if  defined ( LOONGSON_3ASINGLE) || defined ( LOONGSON_3A2H) || defined(LOONGSON_2K)
   #define PRID_IMP_LOONGSON    0x6305
   enum loongson_cpu_type cputype = Legacy_3A;
 #endif
@@ -280,6 +279,11 @@ struct efi_cpuinfo_loongson *init_cpu_info()
 #ifdef LOONGSON_3A2H
   c->total_node = 1;
   c->nr_cpus = 4;
+#endif
+
+#ifdef LOONGSON_2K
+  c->total_node = 1;
+  c->nr_cpus = 2;
 #endif
 
 #ifdef LOONGSON_3ASINGLE
@@ -427,6 +431,9 @@ struct board_devices * __attribute__((weak)) board_devices_info()
 
 #ifdef LOONGSON_3ASINGLE
   strcpy(bd->name,"Loongson-3A-780E-1w-V1.10-demo");
+#endif
+#ifdef LOONGSON_2K
+  strcpy(bd->name, LS2K_BOARD_NAME);
 #endif
 #ifdef LOONGSON_3A2H
   strcpy(bd->name,"Loongson-3A-2H-1w-V0.7-demo");

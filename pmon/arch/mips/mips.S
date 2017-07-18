@@ -48,6 +48,7 @@
 #define	FSTORE	swc1	/* 32 bit mode float register store */
 #define	FLOAD	lwc1	/* 32 bit mode float register load */
 #define RSIZE   4       /* 32 bit mode register size */
+#define RLOGSIZE 2
 #define MTC0	mtc0
 #define MFC0	mfc0
 #else
@@ -56,6 +57,7 @@
 #define	FSTORE	sdc1	/* 32 bit mode float register store */
 #define	FLOAD	ldc1	/* 32 bit mode float register load */
 #define RSIZE   8       /* 64 bit mode register size */
+#define RLOGSIZE 3
 #define MTC0	dmtc0
 #define MFC0	dmfc0
 
@@ -136,7 +138,7 @@ LEAF(_go)
 	mtlo	v1
 
 	.set	noat
-
+exp_out:
 	LOAD	AT, AST * RSIZE(k0)
 	LOAD	v0, V0 * RSIZE(k0)
 	LOAD	v1, V1 * RSIZE(k0)
@@ -227,6 +229,33 @@ LEAF(exception_handler)
 	STORE	s8, S8 * RSIZE(k0)
 	STORE	ra, RA * RSIZE(k0)
 
+#if defined(LOONGSON_2K)
+	mfc0	t0, COP_0_CAUSE_REG
+	andi 	t0, 0xff
+	li	k1, 0x1c
+	bne	t0, k1, 2f
+	nop
+	mfc0	t0, COP_0_EXC_PC
+	lw	k1, (t0)
+	srl k1, 26
+	li t1, 0x23 //lw
+	bne k1, t1, 1f
+	nop
+	lw	k1, (t0)
+	srl k1, (16-RLOGSIZE)
+	andi k1,0x1f<<RLOGSIZE
+	addu k1, k0
+	li t1,-1
+	sw t1, (k1)
+	
+1:
+	addiu	t0, 4
+	mtc0    t0, COP_0_EXC_PC
+	mtc0 zero, COP_0_CAUSE_REG
+	b exp_out
+	nop
+2:
+#endif
 	.set	at
 
 	mfhi	v0

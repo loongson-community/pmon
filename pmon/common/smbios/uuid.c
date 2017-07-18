@@ -32,6 +32,9 @@
 unsigned char smbios_uuid_rtl8168_mac[6];
 unsigned char smbios_uuid_e1000e_mac[6];
 unsigned char smbios_uuid_mac[6];
+#if defined(LOONGSON_2K)
+unsigned char smbios_uuid_gmac[6];
+#endif
 
 static void read_node(uint8_t *node)
 {
@@ -56,6 +59,9 @@ static void read_node(uint8_t *node)
 #ifdef LOONGSON_2G5536
 		node[i + 10] = smbios_uuid_mac[i];
 #endif
+#if defined(LOONGSON_2K)
+ 		node[i + 10] = smbios_uuid_gmac[i];
+ #endif
 	}
 	node[0] |= 0x01;
 }

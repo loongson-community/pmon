@@ -208,6 +208,9 @@ struct ahci_probe_ent {
 #define PCI_VENDOR_SATA		0x8086
 #define PCI_PRODUCT_SATA	0x2652
 
+#define PCI_VENDOR_2KSATA		0x14
+#define PCI_PRODUCT_2KSATA	0x7a08
+
 #define udelay		delay
 #define msleep(a)	udelay((a) * 1000)
 #define ssleep(a)	msleep((a) * 1000)

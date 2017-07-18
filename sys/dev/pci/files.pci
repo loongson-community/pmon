@@ -46,7 +46,18 @@ file   sys/dev/pci/e1000e/if_em.c          em
 
 device igb: ether, ifnet, ifmedia, mii
 attach igb at pci
-file   sys/dev/pci/igb/if_igb.c          igb
+file   sys/dev/pci/igb/if_igb.c          igb & !igb1
+
+
+file sys/dev/pci/igb1/e1000_i210.c	igb1
+file sys/dev/pci/igb1/e1000_82575.c	igb1
+file sys/dev/pci/igb1/e1000_mac.c	igb1
+file sys/dev/pci/igb1/e1000_phy.c	igb1
+file sys/dev/pci/igb1/e1000_manage.c	igb1
+file sys/dev/pci/igb1/e1000_api.c	igb1
+file sys/dev/pci/igb1/e1000_mbx.c	igb1
+file sys/dev/pci/igb1/e1000_nvm.c	igb1
+file sys/dev/pci/igb1/igb_main.c	igb1
 
 # Ethernet driver for wx-based boards
 device	wx: ether, ifnet, ifmedia, mii, mii_phy

@@ -499,7 +499,7 @@ static int usb_kbd_probe(struct usb_device *dev, unsigned int ifnum)
 	kbd_dev[kbd_index] = dev;
 	memset(_new[kbd_index], 0, sizeof(_new[kbd_index]));
 	//pci_sync_cache(0, (vm_offset_t)_new[kbd_index], sizeof(_new[kbd_index]), SYNC_W);
-#if defined(LS3_HT) || defined(LS2G_HT)
+#if defined(LS3_HT) || defined(LS2G_HT) || defined (LOONGSON_2K)
 	new[kbd_index] = (volatile unsigned char *)(&_new[kbd_index]);
 #else
 	new[kbd_index] = (volatile unsigned char *)CACHED_TO_UNCACHED(&_new[kbd_index]);

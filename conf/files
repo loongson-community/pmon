@@ -393,6 +393,7 @@ file sys/dev/nand/nand_ids.c      nand
 file sys/dev/nand/nand_bbt.c      nand
 file sys/dev/nand/fcr-nand.c      nand
 file pmon/fs/mtd.c		  nand
+file  sys/dev/nand/cmdlinepart.c  nand needs-flag
 
 #file sys/dev/nand/yaf-nand/nand_util.c      nand      #lxy
 

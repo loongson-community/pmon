@@ -302,6 +302,7 @@ const struct pciide_product_desc pciide_amd_products[] =  {
 	},
 };
 
+#ifndef LOONGSON_2K
 const struct pciide_product_desc pciide_cmd_products[] =  {
 	{ PCI_PRODUCT_CMDTECH_640,	/* CMD Technology PCI0640 */
 	  0,
@@ -320,6 +321,7 @@ const struct pciide_product_desc pciide_cmd_products[] =  {
 	  cmd0643_6_chip_map
 	}
 };
+#endif
 
 #ifndef PMON
 const struct pciide_product_desc pciide_via_products[] =  {
@@ -397,8 +399,10 @@ const struct pciide_vendor_desc pciide_vendors[] = {
 	  sizeof(pciide_intel_products)/sizeof(pciide_intel_products[0]) },
 	{ PCI_VENDOR_AMD, pciide_amd_products,
 	  sizeof(pciide_amd_products)/sizeof(pciide_amd_products[0]) },
+#ifndef LOONGSON_2K
 	{ PCI_VENDOR_CMDTECH, pciide_cmd_products,
 	  sizeof(pciide_cmd_products)/sizeof(pciide_cmd_products[0]) },
+#endif
 #ifndef PMON
 	{ PCI_VENDOR_VIATECH, pciide_via_products,
 	  sizeof(pciide_via_products)/sizeof(pciide_via_products[0]) },

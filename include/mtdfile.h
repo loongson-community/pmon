@@ -1,6 +1,15 @@
 #include <linux/mtd/mtd.h>
 #include <sys/queue.h>
 
+
+#if defined(LOONGSON_2K)
+#define MTD_FLAGS_CHAR      0x1 /*main+oob,all data */
+#define MTD_FLAGS_BLOCK     0x2 /*main;but no OOB */
+#define MTD_FLAGS_RAW       0x4 /*raw mtd,no check bad part*/
+#define MTD_FLAGS_CHAR_MARK 0x8 /*main+oob,but bad_mark auto*/
+#define MTD_FLAGS_GOOD      0x10 /*use good part info*/
+#endif
+
 typedef struct mtdfile {
 	struct mtd_info *mtd;
 	int refs;
@@ -19,5 +28,8 @@ typedef struct mtdpriv {
 struct mtdfile *file;
 	unsigned int open_offset;
 	unsigned int open_size;
+#if defined(LOONGSON_2K)
+        int flags;
+#endif
 } mtdpriv;
 

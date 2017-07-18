@@ -224,6 +224,10 @@ LEAF(CPU_ConfigCache)
 	beq	t4, t1, ConfLoongson1 
 	nop
 
+	li	t1, (Loongson_GS264 << 8)		# N way L1 caches only.
+	beq	t4, t1, ConfGodson2k
+	nop
+
 	li	t1, (MIPS_LOONGSON2<<8)		# LOONGSON2 4 way,REV_GODSON2F,REV_GODSON3A
 	li	t2, CTYPE_4WAY
 	beq	t4, t1, ConfLoongson2 
@@ -479,6 +483,36 @@ ConfGodson3A:
 
 	nop
 
+ConfGodson2k:
+
+	.set mips64
+	mfc0	v0, COP_0_CONFIG		# Get configuration register
+
+	srl	t1, v0, 9			# Get I cache size.
+	and	t1, 7
+	li	t2, 4096
+	sll	t4, t2, t1			# t4 = Initial I set size.
+
+	and	t2, v0, 0x20
+	srl	t2, t2, 1			# Get I cache line size.
+	addu	t2, t2, 16
+	sw	t2, CpuPrimaryInstCacheLSize	
+
+	srl	t1, v0, 6			# Get D cache size.
+	and	t1, 7
+	li	t2, 4096			# Fixed page size.
+	sll	t5, t2, t1
+
+	and	t2, v0, 0x10
+	addu	t2, t2, 16			# Get D cache line size.
+
+	sw	t2, CpuPrimaryDataCacheLSize
+	li	t2, CTYPE_4WAY			# Assume 4 way cache
+	li	t6, 0x100000			# Secondary size 1M.
+	li	t7, 0				# Tertiary size 0.
+
+	b	ConfResult
+	nop
 #---- R5K ------------------------------
 Conf5K:					# R5000 type, check for L2 cache
 	and	t1, v0, CF_5_SC

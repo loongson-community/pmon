@@ -110,9 +110,13 @@ static int ahci_match(struct device *parent, void *match, void *aux)
 {
 	struct pci_attach_args *pa = aux;
 
+#if defined(LOONGSON_2K)
+	if((PCI_VENDOR(pa->pa_id) == PCI_VENDOR_SATA && PCI_PRODUCT(pa->pa_id) == PCI_PRODUCT_SATA) || (PCI_VENDOR(pa->pa_id) == PCI_VENDOR_2KSATA && PCI_PRODUCT(pa->pa_id) == PCI_PRODUCT_2KSATA))
+#else
 	printf("%s:%d \n", __FUNCTION__, __LINE__);
 	if (PCI_VENDOR(pa->pa_id) == PCI_VENDOR_SATA &&
 	    PCI_PRODUCT(pa->pa_id) == PCI_PRODUCT_SATA)
+#endif
 		return 1;
 	return 0;
 }
@@ -128,14 +132,37 @@ static void ahci_attach(struct device *parent, struct device *self, void *aux)
 	u32 linkmap;
 	ahci_sata_info_t info;
 
+#if defined(LOONGSON_2K)
+	if((PCI_VENDOR(pa->pa_id) == PCI_VENDOR_2KSATA && PCI_PRODUCT(pa->pa_id) == PCI_PRODUCT_2KSATA))
+	{
+	 if (pci_mem_find(NULL, pa->pa_tag, 0x10, &membasep, &memsizep, NULL)) {
+		printf(" Can't find mem space\n");
+		return;
+	}
+	}
+	else if (pci_mem_find(NULL, pa->pa_tag, 0x24, &membasep, &memsizep, NULL)) {
+		printf(" Can't find mem space\n");
+		return;
+	}
+#else
 	printf("\n~~~~~~~~~~~~~~~~~ahcisata_attach~~~~~~~~~~~~~~~~~~\n");
 	if (pci_mem_find(NULL, pa->pa_tag, 0x24, &membasep, &memsizep, NULL)) {
 		printf(" Can't find mem space\n");
 		return;
 	}
+#endif
 	printf("Found memory space: memt->bus_base=0x%x, baseaddr=0x%x"
 	       "size=0x%x\n", memt->bus_base, (u32) (membasep),
 	       (u32) (memsizep));
+
+#if 0 /* set 1.0 mode */
+	temp = *(int *)((membasep + 0x12c) | 0xa0000000);
+	printf("0x12C =%x\n", temp);
+	*(int *)((membasep + 0x12c) | 0xa0000000) = temp & 0xffffff00 | 0x11;
+
+	temp = *(int *)((membasep + 0x12c) | 0xa0000000);
+	printf("0x12C =%x\n", temp);
+#endif
 
 	if (ahci_init_one((u32) (memt->bus_base + (u32) (membasep)))) {
 		printf("ahci_init_one failed.\n");
@@ -147,9 +174,6 @@ static void ahci_attach(struct device *parent, struct device *self, void *aux)
 		if (((linkmap >> i) & 0x01)) {
 			info.sata_reg_base =
 			    memt->bus_base + (u32) (membasep) + 100 + i * 0x80;
-			printf("%s: %s:%d info.sata_reg_base =  %08x\n",
-			       __FILE__, __FUNCTION__, __LINE__,
-			       info.sata_reg_base);
 			info.flags = i;
 			info.aa_link.aa_type = 0xff;	/* just for not match ide */
 			config_found(self, (void *)&info, NULL);
@@ -262,10 +286,6 @@ static int ahci_host_init(struct ahci_probe_ent *probe_ent)
 	probe_ent->cap = readl(mmio + HOST_CAP);
 	probe_ent->port_map = readl(mmio + HOST_PORTS_IMPL);
 	probe_ent->n_ports = (probe_ent->cap & 0x1f) + 1;
-
-	printf("%s<%d>:cap 0x%x  port_map 0x%x  n_ports %d\n",
-	       __func__, __LINE__, probe_ent->cap, probe_ent->port_map,
-	       probe_ent->n_ports);
 
 	for (i = 0; i < probe_ent->n_ports; i++) {
 		probe_ent->port[i].port_mmio = ahci_port_base((u32) mmio, i);

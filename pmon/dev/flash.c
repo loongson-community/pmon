@@ -258,7 +258,7 @@ fl_find_map(void *base)
  *  Try to figure out what kind of flash there is on given address.
  */
 struct fl_device *
-fl_devident(void *base, struct fl_map **m)
+  __attribute__((weak))fl_devident(void *base, struct fl_map **m)
 {
 #if defined(LOONGSON_3A84W) || defined(LOONGSON_3A2H) || defined(LOONGSON_3A92W)
 	if (selected_lpc_spi()) {
@@ -346,7 +346,7 @@ fl_devident(void *base, struct fl_map **m)
  *  Erase the flash device(s) addressed.
  */
 int
-fl_erase_device(void *base, int size, int verbose)
+  __attribute__((weak))fl_erase_device(void *base, int size, int verbose)
 {
 #if defined(LOONGSON_3A84W) || defined(LOONGSON_3A2H) || defined(LOONGSON_3A92W)
 	if (selected_lpc_spi()) {
@@ -557,7 +557,7 @@ int fl_program(void *fl_base, void *data_base, int data_size, int verbose)
  *  Program a flash device. Assumed that the area is erased already.
  */
 int
-fl_program_device(void *fl_base, void *data_base, int data_size, int verbose)
+  __attribute__((weak))fl_program_device(void *fl_base, void *data_base, int data_size, int verbose)
 {
 #if defined(LOONGSON_3A84W) || defined(LOONGSON_3A2H) || defined(LOONGSON_3A92W)
 	if (selected_lpc_spi()) {

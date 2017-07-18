@@ -81,8 +81,12 @@ ppbmatch(parent, match, aux)
 	 * If it is, we assume that we can deal with it; it _should_
 	 * work in a standardized way...
 	 */
+#if defined(LOONGSON_2K)
+	if (PCI_ISCLASS(pa->pa_class, PCI_CLASS_BRIDGE, PCI_SUBCLASS_BRIDGE_PCI) || PCI_ISCLASS(pa->pa_class, PCI_CLASS_PROCESSOR, 0x30))
+#else
 	if (PCI_CLASS(pa->pa_class) == PCI_CLASS_BRIDGE &&
 	    PCI_SUBCLASS(pa->pa_class) == PCI_SUBCLASS_BRIDGE_PCI)
+#endif
 		return (1);
 
 	return (0);

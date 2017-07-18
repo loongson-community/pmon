@@ -45,6 +45,10 @@
 #include <errno.h>
 #include "logfile.h"
 #include <pmon.h>
+#if defined(LOONGSON_2K)
+#include <linux/mtd/partitions.h>
+#include <linux/mtd/nand.h>
+#endif
 
 LIST_HEAD(mtdfiles, mtdfile) mtdfiles = LIST_HEAD_INITIALIZER(mtdfiles);
 static int mtdidx=0;
@@ -323,3 +327,129 @@ static void
 
 }
 
+#if defined(LOONGSON_2K)
+static int cmd_flash_erase(int argc,char **argv)
+{
+    char *path=0;
+    int fp=-1,start=0,end=0;
+    mtdfile *p;
+    mtdpriv *priv;
+    struct mtd_info *mtd;
+    struct erase_info erase;
+    if(argc!=2){
+        printf("args error...\n");
+        printf("uargs:mtd_erase /dev/mtdx\n");
+        printf("example:mtd_erase /dev/mtd0\n\n");
+        return -1;
+    }
+    path = argv[1];
+    if(!path)return -1;
+    fp = open(path,O_RDWR|O_CREAT|O_TRUNC);
+    if(!fp){printf("open file error!\n");return -1;}
+    if(strncmp(_file[fp].fs->devname,"mtd",3)){
+        printf("the DEV(\"%s\") isn't flash-dev\n",path);
+        close(fp);
+        return -1;
+    }
+    priv = (mtdpriv*)_file[fp].data;
+    p = priv->file;
+    mtd = p->mtd;
+    start = (p->part_offset)&~(mtd->erasesize-1);
+    end = ((p->part_offset + p->part_size)&~(mtd->erasesize-1)) - mtd->erasesize;
+    erase.mtd = mtd;
+    erase.callback=0;
+    erase.priv = 0;
+    if(priv->flags & MTD_FLAGS_RAW)
+        printf("\nERASE the device:\"%s\",DON'T skip bad-blocks\n\n",path);
+    else 
+        printf("\nERASE the device:\"%s\",SKIP bad-blocks\n\n",path);
+//    printf("end==0x%08x,start=0x%08x\n",end,start);
+    printf("mtd_erase working: \n%08x  ",start);
+    if(priv->flags & MTD_FLAGS_RAW){
+        struct nand_chip *chip=mtd->priv;
+         while(start<end){
+            chip->erase_cmd(mtd,start >> chip->page_shift);
+            printf("\b\b\b\b\b\b\b\b\b\b%08x  ",start);
+            start += mtd->erasesize;
+        }
+    }else{
+        while(start<end){
+            erase.addr = start;
+            erase.len = mtd->erasesize;
+            mtd->erase(mtd,&erase);
+            printf("\b\b\b\b\b\b\b\b\b\b%08x  ",start);
+            start += mtd->erasesize;
+        }
+    }
+    close(fp);    
+    printf("\nmtd_erase work done!\n");
+    return 0;
+}
+
+static struct mtd_partition *partitions;
+static int num_partitions;
+static struct mtd_info *nand_flash_mtd_info;
+
+int nand_flash_add_parts(struct mtd_info *mtd_soc,char *cmdline)
+{
+
+    int i;
+    if(!nand_flash_mtd_info) 
+        nand_flash_mtd_info = mtd_soc;
+    num_partitions = parse_cmdline_partitions(mtd_soc,&partitions,0,cmdline);
+    if(num_partitions > 0){ 
+        for(i=0;i < num_partitions;i++){ 
+            add_mtd_device(mtd_soc,partitions[i].offset,partitions[i].size,partitions[i].name);
+        }
+    }
+    return num_partitions;
+}
+
+void first_del_all_parts(struct mtd_info *soc_mtd)
+{
+    int i=0;
+    for(;i<num_partitions;i++){
+        del_mtd_device(soc_mtd);
+    }
+}
+
+int mtd_rescan(char *name,char*value)
+{
+    if(value && nand_flash_mtd_info){
+        first_del_all_parts(nand_flash_mtd_info); 
+        nand_flash_add_parts(nand_flash_mtd_info,value);
+    }
+    return 1;
+}
+
+int my_mtdparts(int argc,char**argv)
+{
+    struct mtd_partition *parts=partitions;
+    int num=num_partitions,i;
+    printf("device <%s>,#parts = %d\n\n",nand_flash_mtd_info->name,num);     
+    printf(" #: name\tsize\t\toffset\t\tmask_flags\n");
+    for(i=0;i<num;i++){
+        printf(" %d: %s\t0x%08x(%dm)\t0x%08x(%dm)\t%x\n",i,parts[i].name,parts[i].size,parts[i].size>>20, parts[i].offset,parts[i].offset>>20,parts[i].mask_flags);
+    }
+    printf("\nmtdparts INFO:\n");
+    printf("  now-active: \tmtdparts=%s\n",getenv("mtdparts"));
+    printf("  <NOTE>:you can use command(CMD:  unset mtdparts ) to become the default !!! \n\n");
+    return 0;
+}
+
+
+
+static const Cmd Cmds[] =
+{
+	{"MyCmds"},
+	{"mtdparts","0",0,"NANDFlash OPS:mtdparts ",my_mtdparts,0,99,CMD_REPEAT},
+	{"mtd_erase","nand-flash-device",0,"NANDFlash OPS:mtd_erase /dev/mtdx",cmd_flash_erase,0,99,CMD_REPEAT},
+	{0, 0}
+};
+
+static void init_cmd __P((void)) __attribute__ ((constructor));
+static void init_cmd()
+{
+	cmdlist_expand(Cmds, 1);
+}
+#endif
