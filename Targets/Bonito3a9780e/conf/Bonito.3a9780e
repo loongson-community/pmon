@@ -192,6 +192,7 @@ inphy*      at mii? phy ?                   # Intel 82555 PHYs
 rte*		at pci? dev ? function ?
 #rtk*		at pci? dev ? function ?
 #em*         at pci? dev ? function ?
+igb*         at pci? dev ? function ?
 
 #### USB
 uhci*		 at pci? dev ? function ?
@@ -253,3 +254,6 @@ select tftpd
 
 # SCSI RAID disk drive support
 select scsi_sd
+option PCIVERBOSE=5
+#option X800x600
+option NO_INTERLEAVE
