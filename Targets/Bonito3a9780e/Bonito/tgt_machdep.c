@@ -282,6 +282,13 @@ initmips(unsigned long long raw_memsz)
 	 * Launch!
 	 */
 	_pci_conf_write(_pci_make_tag(0,0,0),0x90,0xff800000); 
+	
+#ifdef BOARD_LM_AIGO
+	/*turn off watchdog*/
+	*(volatile int *)0xbfe0011c = (*(volatile int *)0xbfe0011c & ~2)|0x18;
+	*(volatile int *)0xbfe00120 &= ~0x1a;
+#endif
+
 	main();
 }
 
