@@ -525,8 +525,6 @@ s32 synopGMAC_setup_tx_desc_queue(synopGMACdevice * gmacdev,u32 no_of_desc, u32 
 	/* first_desc is cached addr */
 	first_desc = (DmaDesc *)plat_alloc_memory(sizeof(DmaDesc) * no_of_desc+15);
 #endif
-	//first_desc is cache addr, dma_addr is uncache_to_phy addr   mtf add
-	printf("===Tx first_desc:0x%x, dma_addr:0x%x\n", first_desc, dma_addr);
 	if(first_desc == NULL){
 		TR("Error in Tx Descriptors memory allocation\n");
 		return -ESYNOPGMACNOMEM;
