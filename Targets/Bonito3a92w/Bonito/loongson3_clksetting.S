@@ -183,7 +183,6 @@ ATTENTION:
 	bal     hexserial
 	nop
 
-soft_fdcoefficient:
 	TTYDBG ("\r\nfdcoefficient  :")
 	dli     t0, 0x900000001fe001c0
 	or	    t0, t0, s1
