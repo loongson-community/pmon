@@ -6,7 +6,7 @@
 #define DDR_MC_CONFIG_BASE      0x900000000ff00000
 #define MC_CONFIG_REG_BASE_ADDR 0x900000000ff00000
 #ifdef  LSMC_2
-#define DDR_PARAM_NUM   110
+#define DDR_PARAM_NUM   116
 #else
 #define DDR_PARAM_NUM   100
 #endif
