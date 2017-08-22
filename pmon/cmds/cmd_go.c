@@ -166,6 +166,12 @@ extern char	*optarg;
 		strcat(clientcmd, getenv("kargs"));
 	}
 
+	if(getenv("ethaddr"))
+	{
+		strcat(clientcmd, " ethaddr=");
+		strcat(clientcmd, getenv("ethaddr"));
+	}
+
 	if (!sflag) {
 		md_adjstack(NULL, tgt_clienttos ());
 	}
