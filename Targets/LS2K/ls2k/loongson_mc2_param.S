@@ -19,8 +19,11 @@ MC0_DDR3_CTRL_0x010: .dword 0x0000000000000000
 //XXXX pm_dll_value_8(RD) XXXX pm_dll_value_7 (RD) XXXX pm_dll_value_6(RD) XXXX pm_dll_value_5(RD)
 //MC0_DDR3_CTRL_0x018: .dword 0x5252525216100000
 //MC0_DDR3_CTRL_0x018: .dword 0x4040404016100000
+#ifdef DDR_PARAM_018
+MC0_DDR3_CTRL_0x018: .dword DDR_PARAM_018
+#else
 MC0_DDR3_CTRL_0x018: .dword 0x4545454516100000
-//MC0_DDR3_CTRL_0x018: .dword 0x3030303016100000
+#endif
 //MC0_DDR3_CTRL_0x018: .dword 0x2525252516100000
 //_00000000 pm_dll_ck_3 _00000000 pm_dll_ck_2 _00000000 pm_dll_ck_1 _00000000 pm_dll_ck_0 _00000000 pm_dll_increment _00000000 pm_dll_start_point _0000000_0 pm_dll_bypass _0000000_0 pm_init_start
 MC0_DDR3_CTRL_0x020: .dword 0x0201000201000000
