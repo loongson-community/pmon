@@ -57,7 +57,7 @@
 #include "common.h"
 #include "sem.h"
 
-#define	FORMAT(n) ((n) > -10 && (n) < 10 ? "%d" : "0x%x")
+#define	FORMAT(n) ((n) > -10 && (n) < 10 ? "%lld" : "0x%llx")
 
 #define	stop(s)	error(s), exit(1)
 
@@ -97,7 +97,7 @@ static	void	setmachine(const char *, const char *, const char *);
 	struct	deva *deva;
 	struct	nvlist *list;
 	const char *str;
-	int	val;
+	long long val;
 }
 
 %token	AND AT ATTACH BUILD COMPILE_WITH CONFIG DEFINE DEFOPT DEVICE DISABLE
