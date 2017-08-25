@@ -275,6 +275,8 @@ initmips(unsigned long long raw_memsz)
 
 	printf("BEV in SR set to zero.\n");
 
+	/*set sysfan speed slowly*/
+	set_fan_pwm_duty_cycle(100);
 
 	/*
 	 * Launch!
@@ -510,7 +512,7 @@ run:
 
 
 #if PCI_IDSEL_SB700 != 0
-static int w83627_read(int dev,int addr)
+static int w83527_read(int dev,int addr)
 {
 	int data;
 	/*enter*/
@@ -528,7 +530,7 @@ static int w83627_read(int dev,int addr)
 	return data;
 }
 
-static void w83627_write(int dev,int addr,int data)
+static void w83527_write(int dev,int addr,int data)
 {
 	/*enter*/
 	outb(BONITO_PCIIO_BASE_VA + 0x002e,0x87);
@@ -543,17 +545,43 @@ static void w83627_write(int dev,int addr,int data)
 	outb(BONITO_PCIIO_BASE_VA + 0x002e,0xaa);
 	outb(BONITO_PCIIO_BASE_VA + 0x002e,0xaa);
 }
+#define HM_OFF		0x180
+#define INDEX_OFF	0X5
+#define DATA_OFF	0X6
 static void superio_reinit()
 {
-	w83627_write(0,0x24,0xc1);
-	w83627_write(5,0x30,1);
-	w83627_write(5,0x60,0);
-	w83627_write(5,0x61,0x60);
-	w83627_write(5,0x62,0);
-	w83627_write(5,0x63,0x64);
-	w83627_write(5,0x70,1);
-	w83627_write(5,0x72,0xc);
-	w83627_write(5,0xf0,0x80);
+	w83527_write(0,0x24,0xc1);
+	w83527_write(5,0x30,1);
+	w83527_write(5,0x60,0);
+	w83527_write(5,0x61,0x60);
+	w83527_write(5,0x62,0);
+	w83527_write(5,0x63,0x64);
+	w83527_write(5,0x70,1);
+	w83527_write(5,0x72,0xc);
+	w83527_write(5,0xf0,0x80);
+
+	/* enable HM  */
+	w83527_write(0xb,0x30,0x1);
+	/* add support for fan speed controler */
+	w83527_write(0xb,0x60,HM_OFF >> 0x8); // set HM base address @0xb8000180,0x290 with some error
+	w83527_write(0xb,0x61,HM_OFF & 0xff);
+}
+
+/*this faunction used for set the sysfan speed*/
+void set_fan_pwm_duty_cycle(int duty)
+{
+        int data;
+
+	//set SYSFANOUT PWM  mode
+	outb(BONITO_PCIIO_BASE_VA + HM_OFF + INDEX_OFF, 0x04);
+	data = inb(BONITO_PCIIO_BASE_VA + HM_OFF + DATA_OFF);
+	data &= 0xfe;
+	outb(BONITO_PCIIO_BASE_VA + HM_OFF + DATA_OFF, data);
+	data = inb(BONITO_PCIIO_BASE_VA + HM_OFF + DATA_OFF);
+	// set SYSFANOUT counter
+	outb(BONITO_PCIIO_BASE_VA + HM_OFF + INDEX_OFF, 0x01);
+	outb(BONITO_PCIIO_BASE_VA + HM_OFF + DATA_OFF, duty);
+	inb(BONITO_PCIIO_BASE_VA + HM_OFF + DATA_OFF);
 }
 #endif
 
