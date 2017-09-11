@@ -1904,33 +1904,40 @@ LEAF(tgt_getchar)
 	.set at
 END(tgt_getchar)
 
+#ifndef BEEP_GPIO
+#define BEEP_GPIO 35
+#endif
+
 LEAF(beep_on)
 	/* enable gpio35 output */
-	li	t1, 0xbfe10504
+	li	t1, 0xbfe10500 + BEEP_GPIO*4/32
+	li	v1, (1<<(BEEP_GPIO&31))
 	lw	t0, 0(t1)
-	and	t0, 0xfffffff7
+	or	t0, v1
+	xor	t0, v1
 	sw	t0, 0(t1)
 	/* set gpio35 high */
-	li	t1, 0xbfe10514
-	lw	t0, 0(t1)
-	or	t0, 0x0008
-	sw	t0, 0(t1)
+	lw	t0, 0x10(t1)
+	or	t0, v1
+	sw	t0, 0x10(t1)
 	
 	jr	ra
 	nop
 END(beep_on)
 	
 LEAF(beep_off)
-	/* enable gpio0 output */
-	li	t1, 0xbfe10504
+	/* enable gpio35 output */
+	li	t1, 0xbfe10500 + BEEP_GPIO*4/32
+	li	v1, (1<<(BEEP_GPIO&31))
 	lw	t0, 0(t1)
-	or	t0, 0xffffffff
+	or	t0, v1
+	xor	t0, v1
 	sw	t0, 0(t1)
-	/* set gpio0 low */
-	li	t1, 0xbfe10514
-	lw	t0, 0(t1)
-	and	t0, 0xfff7
-	sw	t0, 0(t1)
+	/* set gpio35 high */
+	lw	t0, 0x10(t1)
+	or	t0, v1
+	xor	t0, v1
+	sw	t0, 0x10(t1)
 
 	jr	ra
 	nop
