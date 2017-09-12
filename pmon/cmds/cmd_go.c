@@ -159,6 +159,13 @@ extern char	*optarg;
 		strcat(clientcmd, buf);
 	}
 
+
+	if(getenv("kargs"))
+	{
+		strcat(clientcmd, " ");
+		strcat(clientcmd, getenv("kargs"));
+	}
+
 	if (!sflag) {
 		md_adjstack(NULL, tgt_clienttos ());
 	}
