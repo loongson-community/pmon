@@ -22,10 +22,11 @@
 //#define SIGNAL_DEPICT_DEBUG
 //#define LVL_DEBUG
 #define CHANGE_DQ_WITH_DQS
+#define NO_EDGE_CHECK
 
 #define ORDER_OF_UDIMM		0x876543210
 #define ORDER_OF_RDIMM		0x765401238
-//#define ORDER_OF_UDIMM		0x847652013 //for SODIMM(2 cs and 8 chips per cs)
+//#define	ORDER_OF_UDIMM		0x847652013 //for SODIMM (2 cs and 8 chips per cs)
 #define WRDQS_LTHF_STD 		0x40
 #define WRDQ_LTHF_STD 		0x40 //less then STD will be set1
 #define	RDDQS_LTHF_STD1		0x80 //greater then STD1 and less then STD2 will be set1
@@ -92,17 +93,7 @@ ddr3_leveling:
 
 
 /* identify wheather there is ecc slice */
-    li      t0, 0x8
-    dli     t1, 0x250
-    or      t1, t1, t8
-    lb      a0, 0x2(t1)
-    dli     t1, 0x1
-    and     a0, a0, t1
-    bne     a0, t1, 1f //when rd_after_write enabled, the 9th device may don't need leveling
-    nop
-    daddu   t0, t0, 0x1
-
-1:
+	GET_NUMBER_OF_SLICES	
 
     dli     t1, 0x28
     or      t1, t1, t8
@@ -246,7 +237,7 @@ lvl_done_sampling0:
 
 lvl_resp_set0:
 	lb		a0, 0x7(t2)
-	dli		t4, 0xff
+	dli		t4, 0x01
 	and 	a0, a0, t4
 	beqz	a0, resp_set0_done
 	nop
@@ -335,7 +326,7 @@ lvl_done_sampling1:
 
 lvl_resp_set1:
 	lb		a0, 0x7(t2)
-	dli		t4, 0xff
+	dli		t4, 0x01
 	and 	a0, a0, t4
 	bnez	a0, resp_set1_done
 	nop
@@ -546,16 +537,9 @@ wrdq_lt_half_test:
     GET_DIMM_TYPE
     bnez    a1, rdimm_wrdq_lt_half_test
     nop
-    li      t0, 0x7 //only loop 7 times
-    dli     t1, 0x250
-    or      t1, t1, t8
-    lb      a0, 0x2(t1)
-    dli     t1, 0x1
-    and     a0, a0, t1
-    bne     a0, t1, 1f //when rd_after_write enabled, the 9th device may don't need leveling
-    nop
-    daddu   t0, t0, 0x1
-1:
+	GET_NUMBER_OF_SLICES
+	dsubu	t0, t0, 0x1 // onlt loop 7 times
+
     dli     t2, 0x0
 wrdq_lt_half_test_loop:
 	dli		a0, ORDER_OF_UDIMM
@@ -1125,6 +1109,7 @@ glvl_ready_sampling:
 
 #ifdef SIGNAL_DEPICT_DEBUG
 	PRINTSTR("\r\nthe signal depict begin:\r\n")
+	GET_NUMBER_OF_SLICES
 	dli		t1, 0x28     // save the init para before signal depict
 	or 		t1, t1, t8
 	lb		a0, 0x7(t1)
@@ -1142,7 +1127,6 @@ glvl_ready_sampling:
 	or		t1, t1, t8
 	dli		t5, 0x180
 	or		t5, t5, t8
-	dli		t0, 0x8
 	dli		t2, 0x0
 	dli		s6, 0x0
 	dli		s7, 0x0
@@ -1547,16 +1531,8 @@ glvl_resp_set1_done:
 
 #ifdef	PREAMBLE_CHECK_DEBUG
 
-	dli		s7, 0x8
-    dli     t1, 0x250
-    or      t1, t1, t8
-    lb      a0, 0x2(t1)
-    dli     t1, 0x1
-    and     a0, a0, t1
-    bne     a0, t1, 1f //when rd_after_write enabled, the 9th device may don't need leveling
-    nop
-	daddu	s7, s7, 0x1
-1:
+    GET_NUMBER_OF_SLICES
+    move    s7, t0 
 //	dli	s7, 0x5
 	dli		t1, 0x28
 	or 		t1, t1, t8
@@ -1723,10 +1699,11 @@ test_continuous5_0:
 	nop
 1:
 #ifdef PRINT_PREAMBLE_CHECK 
-	PRINTSTR("The 1 found in preamble test@")
+	PRINTSTR("The 1 found in preamble test at position")
 	move	a0, s6
 	bal 	hexserial
 	nop
+	PRINTSTR("\r\ncontinued 1 is found")
 	move	a0, t6
 	bal 	hexserial
 	nop
@@ -1768,11 +1745,11 @@ test_continuous5_0:
 	nop
 
 glvl_check_preamble_fail:
-	PRINTSTR("\r\nThe preamble check failed @")
+	PRINTSTR("\r\nThe preamble check not found @")
 	move	a0, s6
 	bal 	hexserial
 	nop
-	PRINTSTR("\r\n")
+	PRINTSTR("training again ... \r\n")
 
 	dli		s6, 0x0
 	lb		a0, 0x6(t1)
@@ -1957,7 +1934,7 @@ glvl_redo_resp_set1_0:
 
 
 glvl_check_preamble_end:
-#ifdef  PRINT_PREAMBLE_CHECK   //print registers
+#if 0  //PRINT_PREAMBLE_CHECK   //print registers
     PRINTSTR("\r\nThe MC param after preamble check is:\r\n")
 	PRINT_THE_MC_PARAM
 #endif
@@ -2217,6 +2194,7 @@ gate_sub_end:
 
 #ifdef NO_EDGE_CHECK	
 #else
+
 #if 1
 /* unknown reason to reset init_start */
     dli     t1, 0x18
@@ -2461,7 +2439,6 @@ glvl_resp_check_3:
     dsubu   t3, t3, t5
     bne     t3, t9, rd_oe_3_sub
     nop
-
 
 glvl_resp_check_4:
     dli     t4, 0x000000001c000000
@@ -2753,6 +2730,75 @@ rd_oe_8_sub:
 #endif
 
 gate_leveling_exit:
+
+#if 1 //set odt
+	GET_NUMBER_OF_SLICES
+	dli		t1, 0x0
+	or		t1, t1, t8
+odt_start_set:
+	daddu	t1, t1, 0x20
+	lb		a0, 0xe(t1)
+	bnez	a0, 1f
+	nop
+	li		a0, 0x0
+	sb		a0, 0x12(t1)
+	sb		a0, 0x10(t1)
+	b		odt_end_set
+	nop
+1:
+	lb		a0, 0xc(t1)
+	bgeu	a0, 0x2, 2f
+	nop
+	daddu	a0, a0, 0x2
+	sb		a0, 0x10(t1)
+	lb		a0, 0xe(t1)
+	dsubu	a0, a0, 0x1
+	sb		a0, 0x12(t1)
+	b		odt_end_set
+	nop
+2:
+	lb		a0, 0xc(t1)
+	dsubu	a0, a0, 0x2
+	sb		a0, 0x10(t1)
+	lb		a0, 0xe(t1)
+	sb		a0, 0x12(t1)
+	b		odt_end_set
+	nop
+
+odt_end_set:
+	lb		a0, 0xf(t1)
+	bne		a0, 0x3, 1f
+	nop
+	li		a0, 0x3
+	sb		a0, 0x13(t1)
+	sb		a0, 0x11(t1)
+	b		odt_set_loop
+	nop
+1:
+	lb		a0, 0xd(t1)
+	bgeu	a0, 0x2, 2f
+	nop
+	daddu	a0, a0, 0x2
+	sb		a0, 0x11(t1)
+	lb		a0, 0xf(t1)
+	sb		a0, 0x13(t1)
+	b		odt_set_loop
+	nop
+2:
+	lb		a0, 0xd(t1)
+	dsubu	a0, a0, 0x2
+	sb		a0, 0x11(t1)
+	lb		a0, 0xf(t1)
+	daddu	a0, a0, 0x1
+	sb		a0, 0x13(t1)
+	b		odt_set_loop
+	nop
+
+odt_set_loop:
+	dsubu	t0, t0, 0x1
+	bnez	t0, odt_start_set
+	nop
+#endif	
     dli     t1, 0x180
     or      t1, t1, t8
     ld      a0, 0x0(t1)
@@ -2862,16 +2908,7 @@ wait_init_done3:
     nop
 
 /* identify wheather there is ecc slice */
-    li      t0, 0x8
-    dli     t1, 0x250
-    or      t1, t1, t8
-    lb      a0, 0x2(t1)
-    dli     t1, 0x1
-    and     a0, a0, t1
-    bne     a0, t1, 1f //when rd_after_write enabled, the 9th device may don't need leveling
-    nop
-    daddu   t0, t0, 0x1
-
+	GET_NUMBER_OF_SLICES
 1:
 
     dli     t1, 0x20

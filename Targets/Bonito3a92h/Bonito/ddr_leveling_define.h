@@ -1,5 +1,21 @@
 #define GET_NUMBER_OF_SLICES	\
     li      t0, 0x8;\
+	lb		a0, 0x1f2(t8);\
+	beq		a0, 0x3, 934f;\
+	nop;\
+	beq		a0, 0x7, 935f;\
+	nop;\
+	b		936f;\
+	nop;\
+934:;\
+    li      t0, 0x2;\
+	b		936f;\
+	nop;\
+935:;\
+    li      t0, 0x4;\
+	b		936f;\
+	nop;\
+936:;\
     dli     t1, 0x250;\
     or      t1, t1, t8;\
     lb      a0, 0x2(t1);\
@@ -10,11 +26,15 @@
     daddu   t0, t0, 0x1;\
 933:;
 	
+//    GET_NODE_ID_a0;\
+//    dli     t5, 0x90000e0040000000;\
+//    or      t5, t5, a0;\
+//
+//    dli     t5, LS7A_GMEM_TEMP_ADDR; \
+//
 #define PRINT_THE_MC_PARAM \
     dli     t4, DDR_PARAM_NUM;\
-    GET_NODE_ID_a0;\
-    dli     t5, 0x900000000ff00000;\
-    or      t5, t5, a0;\
+    move    t5, t8; \
 1:;\
     ld      t6, 0x0(t5);\
     move    a0, t5;\
