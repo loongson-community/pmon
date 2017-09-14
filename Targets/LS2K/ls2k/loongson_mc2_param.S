@@ -107,7 +107,7 @@ MC0_DDR3_CTRL_0x150: .dword 0x00020000f0020000
 //hXXXX _0000 pm_pad_adj_ncode_clk _0000 pm_pad_adj_pcode_clk 00000 _0 pm_pad_outodt_clk _0 pm_pad_slewrate_clk _0 pm_pad_code_clk _0000 pm_pad_adj_ncode_cmd _0000 pm_pad_adj_pcode_cmd 00000 _0 pm_pad_outodt_cmd _0 pm_pad_slewrate_cmd _0 pm_pad_code_cmd _0000 pm_pad_adj_ncode_addr _0000 pm_pad_adj_pcode_addr 00000 _0 pm_pad_outodt_addr _0 pm_pad_slewrate_addr _0 pm_pad_code_addr
 MC0_DDR3_CTRL_0x158: .dword 0x00000000f0000000
 //hXXXXXXXX (RD) _0000 pm_pad_comp_ncode_i _0000 pm_pad_comp_pcode_i 0000000_0 pm_pad_comp_mode 0000000_0 pm_pad_comp_tm 0000000_0 pm_pad_comp_pd
-MC0_DDR3_CTRL_0x160: .dword 0x0000000000010101
+MC0_DDR3_CTRL_0x160: .dword 0x0000000000000101
 //MC0_DDR3_CTRL_0x160: .dword 0x0000000000000001
 //0000000_0_00000000 pm_rdfifo_empty(RD) 0000000_0_00000000 pm_overflow(RD) 0000_0000 pm_dram_init(RD) 0000000_0 pm_rdfifo_valid 000000_00 pm_cmd_timing 0000000_0 pm_ddr3_mode
 MC0_DDR3_CTRL_0x168: .dword 0x140a000707030101
@@ -140,7 +140,7 @@ MC0_DDR3_CTRL_0x1c0: .dword 0x3030c80c03042005
 MC0_DDR3_CTRL_0x1c8: .dword 0x11070707154a4080
 //MC0_DDR3_CTRL_0x1c8: .dword 0x130a090910504080
 //00_000000 pm_tFAW 0000_0000 pm_tRRD 0000_0000 pm_tRCD _00000000 pm_tRP _00000000 pm_tREF _00000000 pm_tRFC _00000000 pm_tZQCS _00000000 pm_tZQperiod
-MC0_DDR3_CTRL_0x1d0: .dword 0x0a02090402000019
+MC0_DDR3_CTRL_0x1d0: .dword 0x0a020e0402000019
 //0000_0000 pm_tODTL _00000000 pm_tXSRD 0000_0000 pm_tPHY_RDLAT 000_00000 pm_tPHY_WRLAT 000000_00_00000000_00000000 pm_tRAS_max 00_000000 pm_tRAS_min
 MC0_DDR3_CTRL_0x1d8: .dword 0x14050c0607070406
 //_00000000 pm_tXPDLL _00000000 pm_tXP 000_00000 pm_tWR 0000_0000 pm_tRTP 0000_0000 pm_tRL 0000_0000 pm_tWL 0000_0000 pm_tCCD 0000_0000 pm_tWTR
