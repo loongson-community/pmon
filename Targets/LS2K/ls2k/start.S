@@ -2053,7 +2053,11 @@ nvram_offs:
     .global ddr3_reg_data
 
     .align  5
+#ifdef CONFIG_DDR_32BIT
+#include "loongson_mc2_param-ddr32bit.S"
+#else
 #include "loongson_mc2_param.S"
+#endif
 
 
 #ifdef  ARB_LEVEL
