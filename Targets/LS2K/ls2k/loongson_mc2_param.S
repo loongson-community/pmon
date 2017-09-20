@@ -99,7 +99,11 @@ MC0_DDR3_CTRL_0x140: .dword 0x0003000001ff01ff
 //00000_000 pm_pad_ocd_clk 00000_000 pm_pad_ocd_ctl 0000000_0 pm_pad_ocd_dqs 0000000_0 pm_pad_ocd_dq 0000000_0_00000000 pm_pad_enzi 0000000_0 pm_pad_en_ctl _00000000 pm_pad_en_clk
 MC0_DDR3_CTRL_0x148: .dword 0x0000000000010100
 //_0000 pm_pad_adj_ncode_dq _0000 pm_pad_adj_pcode_dq 00000 _0 pm_pad_outodt_dq _0 pm_pad_slewrate_dq _0 pm_pad_code_dq _0000 pm_pad_adj_ncode_dq _0000 pm_pad_adj_pcode_dq 00000 _0 pm_pad_outodt_dq _0 pm_pad_slewrate_dq _0 00000000 0000000_0 pm_pad_vref_internal 0000000_0 pm_pad_odt_se 0000000_0 pm_pad_modezi1v8
+#ifdef DDR_RESET_REVERT
+MC0_DDR3_CTRL_0x150: .dword 0x00000000f0020000   //reset pad
+#else
 MC0_DDR3_CTRL_0x150: .dword 0x00020000f0020000
+#endif
 //hXXXX _0000 pm_pad_adj_ncode_clk _0000 pm_pad_adj_pcode_clk 00000 _0 pm_pad_outodt_clk _0 pm_pad_slewrate_clk _0 pm_pad_code_clk _0000 pm_pad_adj_ncode_cmd _0000 pm_pad_adj_pcode_cmd 00000 _0 pm_pad_outodt_cmd _0 pm_pad_slewrate_cmd _0 pm_pad_code_cmd _0000 pm_pad_adj_ncode_addr _0000 pm_pad_adj_pcode_addr 00000 _0 pm_pad_outodt_addr _0 pm_pad_slewrate_addr _0 pm_pad_code_addr
 MC0_DDR3_CTRL_0x158: .dword 0x00000000f0000000
 //hXXXXXXXX (RD) _0000 pm_pad_comp_ncode_i _0000 pm_pad_comp_pcode_i 0000000_0 pm_pad_comp_mode 0000000_0 pm_pad_comp_tm 0000000_0 pm_pad_comp_pd
