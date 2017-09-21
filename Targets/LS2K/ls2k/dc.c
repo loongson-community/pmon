@@ -73,6 +73,80 @@ enum {
 	OF_DBLBUF = 0x340,
 };
 
+struct pix_pll {
+	unsigned int l2_div;
+	unsigned int l1_loopc;
+	unsigned int l1_frefc;
+};
+
+static struct pix_pll pll_cfg;
+
+#define ls2k_writeq(v, a) *(volatile long long *)(a) = (v)
+#define ls2k_readq(a) (*(volatile long long *)(a))
+#define LO_OFF	0
+#define HI_OFF	8
+
+#define LS2K_PIX0_PLL 0xbfe104b0
+#define LS2K_PIX1_PLL 0xbfe104c0
+
+static void config_pll(unsigned long pll_base, struct pix_pll *pll_cfg)
+{
+	unsigned long long out;
+
+	out = (1 << 7) | (1LL << 42) | (3 << 10) | 
+		((unsigned long long)(pll_cfg->l1_loopc) << 32) | 
+		((unsigned long long)(pll_cfg->l1_frefc) << 26); 
+
+	ls2k_writeq(0, pll_base + LO_OFF);
+	ls2k_writeq(1 << 19, pll_base + LO_OFF);
+	ls2k_writeq(out, pll_base + LO_OFF);
+	ls2k_writeq(pll_cfg->l2_div, pll_base + HI_OFF);
+	out = (out | (1 << 2));
+	ls2k_writeq(out, pll_base + LO_OFF);
+
+	while (!(ls2k_readq(pll_base + LO_OFF) & 0x10000)) ;
+
+	ls2k_writeq((out | 1), pll_base + LO_OFF);
+}
+
+static unsigned int cal_freq(unsigned int pixclock_khz, struct pix_pll * pll_config)
+{
+	unsigned int pstdiv, loopc, frefc;
+	unsigned long a, b, c;
+	unsigned long min = 1000;
+
+	for (pstdiv = 1; pstdiv < 64; pstdiv++) {
+		a = (unsigned long)pixclock_khz * pstdiv;
+		for (frefc = 3; frefc < 6; frefc++) {
+			for (loopc = 24; loopc < 161; loopc++) {
+
+				if ((loopc < 12 * frefc) || 
+						(loopc > 32 * frefc))
+					continue;
+
+				b = 100000L * loopc / frefc;
+				c = (a > b) ? (a - b) : (b - a);
+				if (c < min) {
+
+					pll_config->l2_div = pstdiv;
+					pll_config->l1_loopc = loopc;
+					pll_config->l1_frefc = frefc;
+					/*printk("found = %d, pix = %d khz; min = %ld; pstdiv = %x;"*/
+							/*"loopc = %x; frefc = %x\n", found, pixclock_khz, */
+							/*min, pll_config->l2_div, pll_config->l1_loopc, */
+							/*pll_config->l1_frefc);*/
+
+
+					return 1;
+				}
+			}	
+
+		}
+	}
+
+	return 0;
+}
+
 int caclulatefreq(float PCLK)
 {
 	int pstdiv, ODF, LDF, idf, inta, intb;
@@ -121,25 +195,11 @@ int config_cursor(unsigned long base)
 	outl(base + LS2H_FB_CUR_FORE_REG, 0x00aaaaaa);
 }
 
-int config_fb(unsigned long base)
+int config_fb(unsigned long base, int mode)
 {
-	int i, mode = -1;
 	int j;
 	unsigned int chip_reg;
 
-	for (i = 0; i < sizeof(vgamode) / sizeof(struct vga_struc); i++) {
-		int out;
-		if (vgamode[i].hr == FB_XSIZE && vgamode[i].vr == FB_YSIZE) {
-			mode = i;
-			out = caclulatefreq(vgamode[i].pclk);
-			printf("out=%x\n", out);
-		}//if
-	}
-
-	if (mode < 0) {
-		printf("\n\n\nunsupported framebuffer resolution\n\n\n");
-		return;
-	}
 
 	/* Disable the panel 0 */
 	outl((base + OF_BUF_CONFIG), 0x00000000);
@@ -199,6 +259,7 @@ int dc_init()
 	int print_addr;
 	int print_data;
 	unsigned int val;
+	int mode = -1;
 	printf("enter dc_init...\n");
 
 #if defined(CONFIG_VIDEO_32BPP)
@@ -233,13 +294,31 @@ int dc_init()
 //mtf	outb(LS2H_QOS_CFG6_REG + 6, 0x36);
 	/* Make DVO from panel1, it's the same with VGA*/
 
+	for (i = 0; i < sizeof(vgamode) / sizeof(struct vga_struc); i++) {
+		int out;
+		if (vgamode[i].hr == FB_XSIZE && vgamode[i].vr == FB_YSIZE) {
+			mode = i;
+			//out = caclulatefreq(vgamode[i].pclk);
+			//printf("out=%x\n", out);
+			cal_freq(vgamode[i].pclk*1000, &pll_cfg);
+		}//if
+	}
+
+	if (mode < 0) {
+		printf("\n\n\nunsupported framebuffer resolution\n\n\n");
+		return MEM_ptr;
+	}
+
 	val = pci_read_type0_config32(6, 0, 16);
 
 	val &= 0xffff0000;
 	val |= _pci_bus[0]->pa.pa_memt->bus_base;
 	printf("val %x\n", val);
-	config_fb(val + DC0_BASE_ADDR_OFF);	//for dvo_0 1240
-	config_fb(val + DC1_BASE_ADDR_OFF);	//for dvo_1 1250
+
+	config_pll(LS2K_PIX0_PLL, &pll_cfg);
+	config_pll(LS2K_PIX1_PLL, &pll_cfg);
+	config_fb(val + DC0_BASE_ADDR_OFF, mode);	//for dvo_0 1240
+	config_fb(val + DC1_BASE_ADDR_OFF, mode);	//for dvo_1 1250
 	config_cursor(val);
 
 	printf("display controller reg config complete!\n");
