@@ -17,9 +17,13 @@
 /* in hexserial: ra, a0, a1, a2, a3 will be changed*/
 
 #include "ddr_leveling_define.h"
-//#define	PREAMBLE_CHECK_DEBUG
 //#define	PRINT_PREAMBLE_CHECK
-//#define PRINT_DDR_LEVELING
+#ifdef CONFIG_DDR_32BIT
+#define NO_EDGE_CHECK
+#else
+#define	PREAMBLE_CHECK_DEBUG
+#define PRINT_DDR_LEVELING
+#endif
 //#define SIGNAL_DEPICT_DEBUG
 //#define LVL_DEBUG
 #define CHANGE_DQ_WITH_DQS
@@ -2337,7 +2341,6 @@ dll_gate_sub20:
 gate_sub_end:
 #endif
 
-#define NO_EDGE_CHECK
 #ifdef NO_EDGE_CHECK	
 #else
 #if 1
