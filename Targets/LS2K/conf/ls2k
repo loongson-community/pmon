@@ -168,8 +168,8 @@ ahci*		at pci? dev ? function ?
 ahci_sd*  	at ahci?
 ahci_cdrom*  	at ahci?
 
-lohci*   	at pci? dev ? function ?	# OHCI
-usb*      	at lohci?
+ohci*   	at pci? dev ? function ?	# OHCI
+usb*      	at ohci?
 #lehci*   	at pci? dev ? function ?	# EHCI
 #usb*      	at lehci?
 

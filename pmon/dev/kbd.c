@@ -2,9 +2,6 @@
 #include<linux/types.h>
 #include<linux/io.h>
 #include"kbd.h"
-#if defined(LOONGSON_2K)
-#include "mod_usb_ohci.h"
-#endif
 
 /*
  * Translation of escaped scancodes to keycodes.
@@ -171,15 +168,8 @@ static void kbd_wait(void)
 		if (!(status & KBD_STAT_IBF))
 			return;
 		delay(1000);     //  don not exceed 100ms,or usb keyboard may suspend when you  press
-#if defined(LOONGSON_2K)
-#if NMOD_USB_OHCI
 		if(ohci_index)   //   deal with usb kbd
 			dl_ohci_kbd();
-#endif
-#else
-		if(ohci_index)   //   deal with usb kbd
-			dl_ohci_kbd();
-#endif
 		timeout--;
 	} while (timeout);
 }
@@ -241,15 +231,8 @@ static int kbd_wait_for_input(void)
 		if (retval >= 0)
 			return retval;
 		delay(1000);    //don not exceed 100ms, or usb kbd may suspend
-#if defined(LOONGSON_2K)
-#if NMOD_USB_OHCI
 		if(ohci_index)  // deal with usb kbd
                        dl_ohci_kbd();
-#endif
-#else
-		if(ohci_index)  // deal with usb kbd
-                       dl_ohci_kbd();
-#endif
 	} while (--timeout);
 	return -1;
 }

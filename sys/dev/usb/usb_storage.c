@@ -1226,7 +1226,6 @@ int usb_stor_get_info(struct usb_device *dev,struct us_data *ss,block_dev_desc_t
 		USB_STOR_PRINTF("usb_stor_get_info: skipping RESET..\n");
 	else
 		ss->transport_reset(ss);
-#if defined(LOONGSON_2K)
 	{
 #define  US_BULK_GET_MAX_LUN 0xfe
 		char maxlun;
@@ -1238,7 +1237,6 @@ int usb_stor_get_info(struct usb_device *dev,struct us_data *ss,block_dev_desc_t
 				0, 0, &maxlun, 1, USB_CNTL_TIMEOUT);
 		printf("maxlun=%d\n", maxlun);
 	}
-#endif
 
 	pccb->pdata = usb_stor_buf;
 

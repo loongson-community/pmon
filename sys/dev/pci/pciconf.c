@@ -85,13 +85,8 @@ static int _pci_setupIntRouting(struct pci_device *);
 static void _pci_scan_dev(struct pci_device *dev, int bus, int device, int initialise);
 static void _insertsort_window(struct pci_win **, struct pci_win *);
 static void _pci_device_insert(struct pci_device *parent, struct pci_device *device);
-#if defined(LOONGSON_2K)
 pcireg_t _pci_allocate_mem __P((struct pci_device *, vm_size_t, unsigned int));
 pcireg_t _pci_allocate_io __P((struct pci_device *, vm_size_t, unsigned int));
-#else
-pcireg_t _pci_allocate_mem __P((struct pci_device *, vm_size_t));
-pcireg_t _pci_allocate_io __P((struct pci_device *, vm_size_t));
-#endif
 static void _setup_pcibuses(int );
 static void _pci_bus_insert(struct pci_bus *);
 
@@ -111,11 +106,7 @@ bool is_pcie_vga_card();
 #define VPRINTF vprintf
 
 #ifndef PCIVERBOSE
-#if defined(LOONGSON_2K)
-#define _PCIVERBOSE 5
-#else
 #define _PCIVERBOSE 0
-#endif
 #else
 #define _PCIVERBOSE PCIVERBOSE
 #endif
@@ -417,41 +408,28 @@ if(pm_io == NULL) {
 
 
 		/* Sum up I/O Space needed */
-#if defined(LOONGSON_2K)
                 int max=0;
-#endif
 		for(pm = pd->bridge.iospace; pm != NULL; pm = pm->next) {
-#if defined(LOONGSON_2K)
                         if(max < pm->align)
                             max = pm->align;
-#endif
 			pm_io->size += pm->size;
 		}
-#if defined(LOONGSON_2K)
                 pm_io->size = (pm_io->size + max -1) & ~(max-1);
                 if(max < 0x1000) max = 0x1000;
                 pd->bridge.io_mask = ~(max-1);
                 pm_io->align = max;
-#endif
 
 		/* Sum up Memory Space needed */
-#if defined(LOONGSON_2K)
                 max=0;
-#endif
 		for(pm = pd->bridge.memspace; pm != NULL; pm = pm->next) {
-#if defined(LOONGSON_2K)
                         if(max < pm->align)
                             max = pm->align;
-#endif
 			pm_mem->size += pm->size;
 		}
-
-#if defined(LOONGSON_2K)
                 pm_mem->size = (pm_mem->size + max -1) & ~(max-1);
                 if(max<0x100000) max = 0x100000;
                 pd->bridge.mem_mask = ~(max-1);
                 pm_mem->align = max;
-#endif
 		/* Round to minimum granularity requierd for a bridge */
 		pm_io->size = _pci_roundup(pm_io->size, 0x1000);
 		pm_mem->size = _pci_roundup(pm_mem->size, 0x100000);
@@ -518,9 +496,7 @@ if(pm_io == NULL) {
 				pm->reg = reg;
 				pm->flags = PCI_MAPREG_TYPE_IO;
 				pm->size = -(PCI_MAPREG_IO_ADDR(mask));
-#if defined(LOONGSON_2K)
 				pm->align = pm->size;
-#endif
 				_insertsort_window(&pd->parent->bridge.iospace, pm);
 			}
 			else {
@@ -560,9 +536,7 @@ if(pm_io == NULL) {
                       		}
 			}
 #endif
-#if defined(LOONGSON_2K)
-				pm->align = pm->size;
-#endif
+			pm->align = pm->size;
 			_insertsort_window(&pd->parent->bridge.memspace, pm);
 			}
 		}
@@ -589,9 +563,7 @@ if(pm_io == NULL) {
 			pm->device = pd;
 			pm->reg = reg;
 			pm->size = -(PCI_MAPREG_ROM_ADDR(mask));
-#if defined(LOONGSON_2K)
 				pm->align = pm->size;
-#endif
 			_insertsort_window(&pd->parent->bridge.memspace, pm);
 		}
 	}
@@ -710,22 +682,15 @@ _pci_query_dev (struct pci_device *dev, int bus, int device, int initialise)
 
 
 pcireg_t
-#if defined(LOONGSON_2K)
-_pci_allocate_mem(struct pci_device *dev, vm_size_t size, unsigned int align)
-#else
-_pci_allocate_mem(dev, size)
+_pci_allocate_mem(dev, size, align)
 	struct pci_device *dev;
 	vm_size_t size;
-#endif
+        unsigned int align;
 {
 	pcireg_t address,address1;
 #ifdef PCI_ALLOC_MEM_DOWNWARDS
 	/* allocate downwards, then round to size boundary */
-#if defined(LOONGSON_2K)
 	address = (dev->bridge.secbus->nextpcimemaddr - size) & ~(align - 1);
-#else
-	address = (dev->bridge.secbus->nextpcimemaddr - size) & ~(size - 1);
-#endif
 	if (address > dev->bridge.secbus->nextpcimemaddr ||
 	    address < dev->bridge.secbus->minpcimemaddr) {
 		return(-1);
@@ -733,11 +698,7 @@ _pci_allocate_mem(dev, size)
 	dev->bridge.secbus->nextpcimemaddr = address;
 #else
 	/* allocate upwards, then round to size boundary */
-#if defined(LOONGSON_2K)
-	address = (dev->bridge.secbus->minpcimemaddr + size-1) & ~(size - 1);
-#else
-	address = (dev->bridge.secbus->minpcimemaddr + size-1) & ~(size - 1);
-#endif
+	address = (dev->bridge.secbus->minpcimemaddr + align-1) & ~(align - 1);
 	address1 = address + size;
 	if (address1 > dev->bridge.secbus->nextpcimemaddr ||
 	    address1 < dev->bridge.secbus->minpcimemaddr) {
@@ -751,22 +712,12 @@ _pci_allocate_mem(dev, size)
 
 
 pcireg_t
-#if defined(LOONGSON_2K)
 _pci_allocate_io(struct pci_device *dev, vm_size_t size, unsigned int align)
-#else
-_pci_allocate_io(dev, size)
-    struct pci_device *dev;
-    vm_size_t size;
-#endif
 {
 	pcireg_t address,address1;
 #ifdef PCI_ALLOC_IO_DOWNWARDS
 	/* allocate downwards, then round to size boundary */
-#if defined(LOONGSON_2K)
 	address = (dev->bridge.secbus->nextpciioaddr - align) & ~(align - 1);
-#else
-	address = (dev->bridge.secbus->nextpciioaddr - size) & ~(size - 1);
-#endif
 	if (address > dev->bridge.secbus->nextpciioaddr ||
             address < dev->bridge.secbus->minpciioaddr) {
 		return -1;
@@ -774,11 +725,7 @@ _pci_allocate_io(dev, size)
 	dev->bridge.secbus->nextpciioaddr = address;
 #else
 	/* allocate upwards, then round to size boundary */
-#if defined(LOONGSON_2K)
-	address = (dev->bridge.secbus->nextpciioaddr - align) & ~(align - 1);
-#else
-	address=(dev->bridge.secbus->minpciioaddr+size-1)& ~(size - 1);
-#endif
+	address=(dev->bridge.secbus->minpciioaddr+align-1)& ~(align - 1);
 	address1 = address+size;
 	if (address1 > dev->bridge.secbus->nextpciioaddr ||
             address1 < dev->bridge.secbus->minpciioaddr) {
@@ -798,11 +745,7 @@ _insertsort_window(pm_list, pm)
 
 	pm1 = (struct pci_win *)pm_list;
 	while((pm2 = pm1->next)) {
-#if defined(LOONGSON_2K)
 		if(pm->align >= pm2->align) {
-#else
-		if(pm->size >= pm2->size) {
-#endif
 			break;
 		}
 		pm1 = pm2;
@@ -816,31 +759,23 @@ _insertsort_window(pm_list, pm)
 #define PCI_BIGMEM_ADDRESS 0x40000000
 #endif
 static pci_bigmem_address=PCI_BIGMEM_ADDRESS;
-#if defined(LOONGSON_2K)
 static pci_bigio_address=0x10000;
-#endif
 static void
 _pci_setup_windows (struct pci_device *dev)
 {
     struct pci_win *pm;
     struct pci_win *next;
     struct pci_device *pd;
-#if defined(LOONGSON_2K)
     unsigned int align;
-#endif
 
     for(pm = dev->bridge.memspace; pm != NULL; pm = next) {
 
         pd = pm->device;
         next = pm->next;
-#if defined(LOONGSON_2K)
         if(pd->bridge.child) align = ~pd->bridge.mem_mask+1;
         else align = 1<<(fls(pm->size)-1);
 
         pm->address = _pci_allocate_mem (dev, pm->size, align);
-#else
-        pm->address = _pci_allocate_mem (dev, pm->size);
-#endif
         if (pm->address == -1) {
 	pci_bigmem_address = (pci_bigmem_address + pm->size-1) & ~(pm->size - 1);
 		    pm->address = pci_bigmem_address;
@@ -854,11 +789,7 @@ _pci_setup_windows (struct pci_device *dev)
             //continue;
         }
         if (_pciverbose >= 2)
-#if defined(LOONGSON_2K)
             _pci_tagprintf (pd->pa.pa_tag, "mem @%p, reg 0x%x %d bytes\n", pm->address, pm->reg, pm->size);
-#else
-            _pci_tagprintf (pd->pa.pa_tag, "mem @%p, %d bytes\n", pm->address, pm->size);
-#endif
 
 #if defined(LOONGSON_2K)
 	if ((PCI_ISCLASS(pd->pa.pa_class, PCI_CLASS_BRIDGE, PCI_SUBCLASS_BRIDGE_PCI) || PCI_ISCLASS(pd->pa.pa_class, PCI_CLASS_PROCESSOR, 0x30)) &&
@@ -963,25 +894,16 @@ _pci_setup_windows (struct pci_device *dev)
 
         pd = pm->device;
         next = pm->next;
-#if defined(LOONGSON_2K)
         if(pd->bridge.child) align = ~pd->bridge.io_mask+1;
         else align = 1<<(fls(pm->size)-1);
 
         pm->address = _pci_allocate_io (dev, pm->size, align);
-#else
-        pm->address = _pci_allocate_io (dev, pm->size);
-#endif
         if (pm->address == -1) {
             _pci_tagprintf (pd->pa.pa_tag, 
                             "not enough PCI io space (%d requested)\n",
                             pm->size);
-#if defined(LOONGSON_2K)
 	    pm->address = pci_bigio_address;
 	    pci_bigio_address += pm->size;
-#else
-            pfree(pm);
-            continue;
-#endif
         }
         if (_pciverbose >= 2)
 #if defined(LOONGSON_2K)

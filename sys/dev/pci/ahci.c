@@ -110,14 +110,10 @@ static int ahci_match(struct device *parent, void *match, void *aux)
 {
 	struct pci_attach_args *pa = aux;
 
-#if defined(LOONGSON_2K)
-	if((PCI_VENDOR(pa->pa_id) == PCI_VENDOR_SATA && PCI_PRODUCT(pa->pa_id) == PCI_PRODUCT_SATA) || (PCI_VENDOR(pa->pa_id) == PCI_VENDOR_2KSATA && PCI_PRODUCT(pa->pa_id) == PCI_PRODUCT_2KSATA))
-#else
-	printf("%s:%d \n", __FUNCTION__, __LINE__);
-	if (PCI_VENDOR(pa->pa_id) == PCI_VENDOR_SATA &&
-	    PCI_PRODUCT(pa->pa_id) == PCI_PRODUCT_SATA)
-#endif
+	if((PCI_VENDOR(pa->pa_id) == PCI_VENDOR_SATA && PCI_PRODUCT(pa->pa_id) == PCI_PRODUCT_SATA) ||
+		(PCI_VENDOR(pa->pa_id) == PCI_VENDOR_2KSATA && PCI_PRODUCT(pa->pa_id) == PCI_PRODUCT_2KSATA))
 		return 1;
+
 	return 0;
 }
 
@@ -132,25 +128,16 @@ static void ahci_attach(struct device *parent, struct device *self, void *aux)
 	u32 linkmap;
 	ahci_sata_info_t info;
 
-#if defined(LOONGSON_2K)
 	if((PCI_VENDOR(pa->pa_id) == PCI_VENDOR_2KSATA && PCI_PRODUCT(pa->pa_id) == PCI_PRODUCT_2KSATA))
 	{
-	 if (pci_mem_find(NULL, pa->pa_tag, 0x10, &membasep, &memsizep, NULL)) {
+		if (pci_mem_find(NULL, pa->pa_tag, 0x10, &membasep, &memsizep, NULL)) {
+			printf(" Can't find mem space\n");
+		return;
+		}
+	} else if (pci_mem_find(NULL, pa->pa_tag, 0x24, &membasep, &memsizep, NULL)) {
 		printf(" Can't find mem space\n");
 		return;
 	}
-	}
-	else if (pci_mem_find(NULL, pa->pa_tag, 0x24, &membasep, &memsizep, NULL)) {
-		printf(" Can't find mem space\n");
-		return;
-	}
-#else
-	printf("\n~~~~~~~~~~~~~~~~~ahcisata_attach~~~~~~~~~~~~~~~~~~\n");
-	if (pci_mem_find(NULL, pa->pa_tag, 0x24, &membasep, &memsizep, NULL)) {
-		printf(" Can't find mem space\n");
-		return;
-	}
-#endif
 	printf("Found memory space: memt->bus_base=0x%x, baseaddr=0x%x"
 	       "size=0x%x\n", memt->bus_base, (u32) (membasep),
 	       (u32) (memsizep));

@@ -227,9 +227,7 @@ struct pci_win {
 	int		flags;
 	vm_size_t	size;
 	pcireg_t	address;
-#if defined(LOONGSON_2K)
         unsigned int	align;
-#endif
 	struct pci_device *device;
 };
 
@@ -244,10 +242,8 @@ struct pci_bridge {
 	struct pci_device	*child;
 	struct pci_win		*memspace;
 	struct pci_win		*iospace;
-#if defined(LOONGSON_2K)
         u_int32_t               mem_mask;//yang23 2013-11-26 
         u_int32_t               io_mask;//yang23 2013-11-26 
-#endif
 };
 
 /*

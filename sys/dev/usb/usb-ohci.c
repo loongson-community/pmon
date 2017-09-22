@@ -469,6 +469,9 @@ static int ohci_match(struct device *parent, void *match, void *aux)
 			return 1;
 		}
 	}
+	//for match loongson usb controler
+	if(PCI_VENDOR(pa->pa_id) == 0x14 && PCI_PRODUCT(pa->pa_id) == 0x7a24)
+			return 1;
 #ifdef CONFIG_SM502_USB_HCD
 	if ((no502 = getenv("no502")) && strtoul(no502, NULL, 0))
 		return 0;
@@ -482,60 +485,28 @@ static int ohci_match(struct device *parent, void *match, void *aux)
 extern struct hostcontroller host_controller;
 extern struct usb_device *usb_alloc_new_device(void *hc_private);
 #if (defined LOONGSON_3A2H) || (defined LOONGSON_3C2H) \
-		|| (defined LOONGSON_2G1A) || (defined LOONGSON_2F1A) || (LOONGSON_2K)
+		|| (defined LOONGSON_2G1A) || (defined LOONGSON_2F1A)
 static int lohci_match(struct device *parent, void *match, void *aux)
 {
-#if defined(LOONGSON_2K)
-	struct pci_attach_args *pa = aux;
-
-	if(PCI_VENDOR(pa->pa_id) == 0x14 && PCI_PRODUCT(pa->pa_id) == 0x7a24)
-	        return 1;
-	return 0;
-#else
 	return 1;
-#endif
 }
 
 static void lohci_attach(struct device *parent, struct device *self, void *aux)
 {
 	struct ohci *ohci = (struct ohci *)self;
+	struct confargs *cf = (struct confargs *)aux;
 	static int ohci_dev_index = 0;
 	int val;
-#if defined(LOONGSON_2K)
-	struct pci_attach_args *pa = (struct pci_attach_args *)aux;
-#define  OHCI_PCI_MMBA 0x10
-	pci_chipset_tag_t pc = pa->pa_pc;
-	bus_space_tag_t memt = pa->pa_memt;
-	bus_addr_t membase;
-	bus_addr_t memsize;
-	int cachable;
-#else
-	struct confargs *cf = (struct confargs *)aux;
-#endif
+
 	/* Or we just return false in the match function */
 	if (ohci_dev_index >= MAX_OHCI_C) {
 		printf("Exceed max controller limits\n");
 		return;
 	}
 
-#if defined(LOONGSON_2K)
-	ohci->pa = *pa;
-#endif
 	usb_ohci_dev[ohci_dev_index++] = ohci;
-#if defined(LOONGSON_2K)
-	if (pci_mem_find
-	    (pc, pa->pa_tag, OHCI_PCI_MMBA, &membase, &memsize, &cachable)) {
-		printf("Can not find mem space for ohci\n");
-		return;
-	}
-	if (bus_space_map(memt, membase, memsize, 0, &ohci->sc_sh)) {
-		printf("Cant map mem space\n");
-		return;
-	}
-#else
 	ohci_index++;
 	ohci->sc_sh = cf->ca_baseaddr;
-#endif
 
 #if defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A)
 	/*set usb_rstn bit in LPC register0 before access usb regs */
@@ -558,11 +529,6 @@ static void lohci_attach(struct device *parent, struct device *self, void *aux)
 #endif
 	ohci->rdev = usb_alloc_new_device(ohci);
 
-#if defined(LOONGSON_2K)
-/*init sequence of EHCI*/
-	ohci->rdev = usb_alloc_new_device(ohci);
-
-#endif
 	/*do the enumeration of  the USB devices attached to the USB HUB(here root hub)
 	   ports. */
 	usb_new_device(ohci->rdev);

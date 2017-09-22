@@ -40,10 +40,6 @@
 #include "target/ls1a.h"
 #endif
 
-#if defined(LOONGSON_2K)
-#include "target/ls2k.h"
-#endif
-
 //sw:	ioctl in linux 		to be fixed
 #define SIOCDEVPRIVATE	0x89f0
 #define IOCTL_READ_REGISTER  SIOCDEVPRIVATE+1

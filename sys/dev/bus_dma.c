@@ -453,9 +453,7 @@ _dmamem_free(t, segs, nsegs)
 	int curseg;
 
 	for (curseg = 0; curseg < nsegs; curseg++) {
-#if defined(LOONGSON_2K)
 		addr = segs[curseg].ds_addr;
-#endif
 		free((void *)addr, M_DMAMAP);
 	}
 }
