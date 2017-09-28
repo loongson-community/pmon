@@ -228,6 +228,7 @@ static inline void writel(const unsigned int val, volatile void *regs)
 #define writel_with_flush(a,b)	do { writel(a,b); readl(b); } while (0)
 
 extern struct ahci_probe_ent *probe_ent;
+extern unsigned int probe_ent_array[4];
 
 #define GPCMD_READ_10			0x28
 #define GPCMD_WRITE_10			0x2a

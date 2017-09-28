@@ -58,7 +58,7 @@
 #include "pcivar.h"
 #include "pcireg.h"
 
-#if defined(LOONGSON_2K)
+#if defined(LOONGSON_2K) || defined(LS7A)
 #define PCIVERBOSE 5
 #else
 #define PCIVERBOSE 0
@@ -326,6 +326,8 @@ _pci_query_dev_func (struct pci_device *dev, pcitag_t tag, int initialise)
 #if defined(LOONGSON_2K)
 	if (PCI_ISCLASS(class, PCI_CLASS_BRIDGE, PCI_SUBCLASS_BRIDGE_PCI) || PCI_ISCLASS(class, PCI_CLASS_PROCESSOR, 0x30)) {
 		isbridge = 1;
+#elif defined(LS7A)
+	if (PCI_ISCLASS(class, PCI_CLASS_BRIDGE, PCI_SUBCLASS_BRIDGE_HOST)) {
 #else
 	if (PCI_ISCLASS(class, PCI_CLASS_BRIDGE, PCI_SUBCLASS_BRIDGE_PCI)) {
 #endif
@@ -799,6 +801,11 @@ _pci_setup_windows (struct pci_device *dev)
             
             pm->address = (pm->address + (~pd->bridge.mem_mask))& pd->bridge.mem_mask; //yang23 2013-11-26
             dev->bridge.secbus->minpcimemaddr = pm->address + pm->size; //yang23 2013-11-26
+#elif defined(LS7A)
+	if (PCI_ISCLASS(pd->pa.pa_class,
+		PCI_CLASS_BRIDGE, PCI_SUBCLASS_BRIDGE_HOST) &&
+			(pm->reg == PCI_MEMBASE_1)) {
+		pcireg_t memory;
 #else
 	if (PCI_ISCLASS(pd->pa.pa_class,
 	    PCI_CLASS_BRIDGE, PCI_SUBCLASS_BRIDGE_PCI) &&
@@ -911,6 +918,11 @@ _pci_setup_windows (struct pci_device *dev)
  
 	if ((PCI_ISCLASS(pd->pa.pa_class, PCI_CLASS_BRIDGE, PCI_SUBCLASS_BRIDGE_PCI) || PCI_ISCLASS(pd->pa.pa_class, PCI_CLASS_PROCESSOR, 0x30)) &&
            (pm->reg == PCI_IOBASEL_1)) {
+#elif defined(LS7A)
+		_pci_tagprintf (pd->pa.pa_tag, "i/o @%p, %d bytes\n", pm->address, pm->size);
+	if (PCI_ISCLASS(pd->pa.pa_class,
+		PCI_CLASS_BRIDGE, PCI_SUBCLASS_BRIDGE_HOST) &&
+			(pm->reg == PCI_IOBASEL_1)) {
 #else
 		    _pci_tagprintf (pd->pa.pa_tag, "i/o @%p, %d bytes\n", pm->address, pm->size);
 
@@ -970,6 +982,9 @@ _pci_setup_windows (struct pci_device *dev)
     for(pd = dev->bridge.child; pd != NULL; pd = pd->next) {
 #if defined(LOONGSON_2K)
 	if (PCI_ISCLASS(pd->pa.pa_class, PCI_CLASS_BRIDGE, PCI_SUBCLASS_BRIDGE_PCI) || PCI_ISCLASS(pd->pa.pa_class, PCI_CLASS_PROCESSOR, 0x30)) {
+#elif defined(LS7A)
+	if (PCI_ISCLASS(pd->pa.pa_class,
+		PCI_CLASS_BRIDGE, PCI_SUBCLASS_BRIDGE_HOST)) {
 #else
 	if (PCI_ISCLASS(pd->pa.pa_class,
 	    PCI_CLASS_BRIDGE, PCI_SUBCLASS_BRIDGE_PCI)) {

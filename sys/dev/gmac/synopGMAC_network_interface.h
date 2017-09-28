@@ -17,7 +17,7 @@
 #define NET_IF_TIMEOUT (10*HZ)
 #define CHECK_TIME (HZ)
 
-#if	defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A) || defined(LOONGSON_2K)
+#if	defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A) || defined(LOONGSON_2K) || defined(LS7A)
 s32  synopGMAC_init_network_interface(char* xname,u64 synopGMACMappedAddr);
 #else
 s32  synopGMAC_init_network_interface(char* xname, struct device *sc);

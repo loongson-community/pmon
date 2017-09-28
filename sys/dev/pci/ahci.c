@@ -77,6 +77,7 @@
 #include "include/ls1a.h"
 #endif
 struct ahci_probe_ent *probe_ent = NULL;
+unsigned int probe_ent_array[4];
 
 static int ahci_host_init(struct ahci_probe_ent *probe_ent);
 static int ahci_init_one(u32 regbase);
@@ -142,25 +143,26 @@ static void ahci_attach(struct device *parent, struct device *self, void *aux)
 	       "size=0x%x\n", memt->bus_base, (u32) (membasep),
 	       (u32) (memsizep));
 
-#if 0 /* set 1.0 mode */
-	temp = *(int *)((membasep + 0x12c) | 0xa0000000);
+#if 1 /* set 1.0 mode */
+	int temp = *(int *)((membasep + 0x12c) | memt->bus_base);
 	printf("0x12C =%x\n", temp);
-	*(int *)((membasep + 0x12c) | 0xa0000000) = temp & 0xffffff00 | 0x11;
+	*(int *)((membasep + 0x12c) | memt->bus_base) = temp & 0xffffff00 | 0x11;
 
-	temp = *(int *)((membasep + 0x12c) | 0xa0000000);
+	temp = *(int *)((membasep + 0x12c) | memt->bus_base);
 	printf("0x12C =%x\n", temp);
 #endif
 
-	if (ahci_init_one((u32) (memt->bus_base + (u32) (membasep)))) {
+	if (ahci_init_one((u32) (memt->bus_base | (u32) (membasep)))) {
 		printf("ahci_init_one failed.\n");
 	}
+	probe_ent_array[atoi(&self->dv_xname[4])] = probe_ent;
 
 	linkmap = probe_ent->link_port_map;
 	printf("ahci: linkmap=%x\n", linkmap);
 	for (i = 0; i < 1; i++) {
 		if (((linkmap >> i) & 0x01)) {
 			info.sata_reg_base =
-			    memt->bus_base + (u32) (membasep) + 100 + i * 0x80;
+			    memt->bus_base | (u32) (membasep) + 100 + i * 0x80;
 			info.flags = i;
 			info.aa_link.aa_type = 0xff;	/* just for not match ide */
 			config_found(self, (void *)&info, NULL);

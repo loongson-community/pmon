@@ -1,12 +1,8 @@
 # $Id: Bonito,v 1.1.1.1 2006/09/14 01:59:09 root Exp $ # #	GENERIC configuration for Galileo EV64240 # #  This file is supposed to be included by target file after #  endian has been defined.
 #
-machine         LS2K        mips    # CPU Architecture, Platform
+machine         Bonito3a3000_7a        mips    # CPU Architecture, Platform
 config          pmon 
 option          VGAROM_IN_BIOS
-
-option		LOONGSON_2K
-option         	BOOT_PARAM
-option      	VRAM_SIZE=16
 #
 #  Define target endian
 #
@@ -18,32 +14,78 @@ makeoptions	ENDIAN=EL		# Little endian version.
 #
 # System Name and Target Name
 #
-option		SYSTYPE="\"FCR\""
-option		TARGETNAME="\"FCR\""
+option		SYSTYPE="\"Bonito\""
+option		TARGETNAME="\"Bonito\""
 
 #
 # Platform options
 #
-option		BONITOEL	
-option		DEVBD2E
-option		MIPS
-option		INET
+option		loongson3A3
+option		LSMC_2
+#option		ARB_LEVEL       #use software MC leveling
+option		DDR3_DIMM       #board use DDR3 memory, use: USE_SB_I2C, else use USE_GPIO_I2C and MULTI_I2C_BUS
 
-option      loongson3A3
-option      LSMC_2
-#option      ARB_LEVEL
-option      DDR3_DIMM
-
-
-#<<<<<<<<<<<<<<
-###these options can NOT defined at the same time
-#option		DDR3_SODIMM #1Rx8 2GB
-#option		DDR3_SMT    #for SMT x16 SDRAM 4 chip 2GB
-#>>>>>>>>>>>>>>
-
-option		AUTO_DDR_CONFIG		# for DIMM recognize
+option		AUTO_DDR_CONFIG #use DIMM SPD auto detect DIMM
+option      USE_LS2H_I2C
 option      LOONGSON_GMAC
 
+option		BONITOEL	
+option		DEVBD2F
+option		LS3_SERVER
+option		MIPS
+option		INET
+option		LS3_HT              # Enable the IO cache coherent of HT
+#option		MCP68_IDE           # Enable the MCP68 IDE 0 channel
+#option		USE_LPC_UART
+#option		USE_SB700_LPC_UART
+#option		MULTI_CHIP
+option		BOOTCORE_ID=0
+#option		RESERVED_COREMASK=0xff00 #for 3a3000_2w_7a
+option		RESERVED_COREMASK=0xfff0 #for 3a3000_7a
+option		SHUTDOWN_MASK=0x0000
+
+option  LOONGSON_3ASINGLE
+#option 		LOONGSON_3A92W
+option		BONITO_33M
+option		BOOT_PARAM
+#option		LOONGSON_3ASERVER
+#option		LOONGSON_3A7A_2WAY
+option		LS7A			#for 7A
+#select     	amd_780e
+
+#option		ENABLE_SATA         #Enable SATA  ,when enable IDE can also use, when commended only IDE can use
+option		X800x600
+#option		FB_XSIZE=640
+#option		FB_YSIZE=480
+option		CONFIG_VIDEO_16BPP
+
+## VGA option ##
+option		SERVER_3A
+#option		RS780E
+#option		USE_780E_VGA
+#option		USE_BMC
+option		VGA_NO_ROM
+option		VGA_BASE=0xbe000000
+#option		VGA_BASE=0xc0000000
+option		VRAM_SIZE=128
+#option		DEBUG_EMU_VGA
+option		AUTOLOAD
+
+#
+# GPU driver selection. Selects for video
+# Disable all options below to disable gpu driver 
+# Enable all options below to enble gpu driver 
+#
+#select		mod_x86emu_int10
+select		mod_framebuffer
+#select		mod_vesa
+select		mod_vgacon
+#option		VESAFB
+option		INTERFACE_3A780E
+
+#
+# flash type selection. Selects flash support
+#
 select		mod_flash_amd		# AMD flash device programming
 select		mod_flash_intel		# intel flash device programming
 select		mod_flash_sst		# intel flash device programming
@@ -52,20 +94,20 @@ select		mod_symbols		# Symbol table handling
 select		mod_s3load		# Srecord loading
 #select		mod_fastload		# LSI Fastload
 select		mod_elfload		# ELF loading
-select		mod_txt
 
 #
 # Command selection. Selects pmon commands
 #
+select          cmd_test_spi
 select		cmd_newmt
 select		cmd_setup
+select		mod_display
 select		cmd_about		# Display info about PMON
 select		cmd_boot		# Boot wrapper
-select		cmd_mycmd
-#select		cmd_mycmd_debug
+select		cmd_mycmd		
 select		cmd_newmt
 select		cmd_cache		# Cache enabling
-select		cmd_call		# Call a function command
+#select		cmd_call		# Call a function command
 select		cmd_date		# Time of day command
 select		cmd_env			# Full blown environment command set
 select		cmd_flash		# Flash programming cmds
@@ -81,41 +123,28 @@ select		cmd_tr			# Host port-through command
 select		cmd_devls		# Device list
 select		cmd_set			# As cmd_env but not req. cmd_hist
 select		cmd_testdisk
-select		cmd_test
-select		cmd_main
-option INTERFACE_3A780E
 #
+
+select          cmd_test                # test commands,test hardisk
 select		cmd_shell		# Shell commands, vers, help, eval
+
+
 #
 #
 # Platform options
 #
 select		mod_uart_ns16550	# Standard UART driver
-select		mod_display
+#option		CONS_BAUD=B9600
 option		CONS_BAUD=B115200
 select		ext2
 select		fatfs
 select		ramfiles
 #select		mod_x86emu		# X86 emulation for VGA
 option		MY40IO
-select		mod_x86emu_int10
-option		MY61IO
-option          VGA_BASE=0xb0000000
-select		mod_vgacon
-#select		sis315e
-#option		SIS315E
-option		VGA_NO_ROM       # display card has no rom
-#select		mod_sisfb
 option		NOPCINAMES		# Save some space for x86emu
 #option		FASTBOOT
 #select		vt82c686        #via686a/b code
-
-select		mod_framebuffer
-select		mod_vesa
-option		FB_XSIZE=1280
-option		FB_YSIZE=1024
-option 		CONFIG_VIDEO_16BPP
-#option 	CONFIG_VIDEO_8BPP_INDEX
+#option		VGA_BASE=0xb0000000
 
 #
 # Functional options.
@@ -126,34 +155,28 @@ option		NOSNOOP			# Caches are no-snooping
 # HAVE options. What tgt level provide
 #
 option		HAVE_TOD		# Time-Of-Day clock
-option		INTERNAL_RTC		# chip internal RTC
-#option		EXTERNAL_RTC		# external RTC
 option		HAVE_NVENV		#  Platform has non-volatile env mem
 option		HAVE_LOGO		# Output splash logo
 option		USE_SUPERIO_UART
-#option      	VESAFB
 #option		USE_LEGACY_RTC
 #option		GODSONEV2A
 #option		LINUX_PC
 #option		LONGMENG
 #option		RADEON7000
 #option 	DEBUG_EMU_VGA
-option		AUTOLOAD
+#option		AUTOLOAD
 #option		CONFIG_PCI0_LARGE_MEM	
 #option		CONFIG_PCI0_HUGE_MEM	
 #option		CONFIG_PCI0_GAINT_MEM	
 option		CONFIG_CACHE_64K_4WAY
 option		NVRAM_IN_FLASH	
 
-#option		ACPI_S3_MODE	#mtf
-option      	SET_DDR_FREQ
-#option      	BOOT_FROM_NAND
-#option      	NAND_ECC_MODE
 #
 #  Now the Machine specification
 #
 mainbus0        at root
 localbus0	at mainbus0
+#loopdev0	at mainbus0
 #fd0		at mainbus0
 pcibr0		at mainbus0
 #pcibr1		at mainbus0
@@ -168,91 +191,92 @@ pci*		at ppb? bus ?
 ahci*		at pci? dev ? function ?
 ahci_sd*  	at ahci?
 ahci_cdrom*  	at ahci?
-
+#### USB
+#uhci*		at pci? dev ? function ?
 ohci*   	at pci? dev ? function ?	# OHCI
 usb*      	at ohci?
-#lehci*   	at pci? dev ? function ?	# EHCI
-#usb*      	at lehci?
-
-#lohci0    	at localbus0 base 0xbfe38000	# OHCI
-#usb*      	at lohci0
-##### USB
-#uhci*		at pci? dev ? function ?
-#### Networking Devices
-igb*		at pci? dev ? function ?	# Intel 82576
-#select igb1
 
 #### SCSI support
 #siop*		at pci? dev ? function ?	# Symbios/NCR 53c...
 #scsibus*	at siop?
 #sd*		at scsibus? target ? lun ? 
 #cd*		at scsibus? target ? lun ? 
+#option		CONFIG_LSI_9260		# for LSI_9260-8i(2108) RAID card support
 
 #### Networking Devices
 #gt0		at localbus? base 4
 #gt1		at localbus? base 5
 #gt2		at localbus? base 6
-
 # fxp normally only used for debugging (enable/disable both)
-#fxp*		at pci? dev ? function ?        # Intel 82559 Device
-#inphy*		at mii? phy ?                   # Intel 82555 PHYs
+#fxp0            at pci? dev ? function ?        # Intel 82559 Device
+#inphy*          at mii? phy ?                   # Intel 82555 PHYs
+#brgphy*		at mii? phy ?                   # Broadcom PHYs
 #rtl*		at pci? dev ? function ?
 #rtk*		at pci? dev ? function ?
-em*		at pci? dev ? function ?
-#uhci*		at pci? dev ? function ?
-#ohci*		at pci? dev ? function ?
-#usb*		at usbbus ? 
-#ohci1		at pci? dev ? function ?
+em*        	at pci? dev ? function ?
+igb*       	at pci? dev ? function ?             #Intel 82576
+#added by wxy
+#bnx*            at pci? dev ? function ?                       # BCM5709S
+
+pcisyn0		at pci? dev ? function ?
+pcisyn1		at pci? dev ? function ?
+select		gmac
 
 select		mod_usb
 select  	mod_usb_storage
 #select		mod_usb_uhci
 select 	 	mod_usb_ohci
-#select 	 	mod_usb_ehci
 select		mod_usb_kbd
 
 
 #### IDE controllers
-option 		IDE_DMA
+option          IDE_DMA
 pciide* 	at pci ? dev ? function ? flags 0x0000
 
 #### IDE hard drives
 wd*		at pciide? channel ? drive ? flags 0x0000
+#wd0             at pciide? channel ? drive ? flags 0x0000
+#cmdide*         at pci ? dev ? function ? flags 0x0000
+#wd*             at cmdide? channel ? drive ? flags 0x0000
+
+### wan+
+### LSI MegaRAID SAS RAID controllers
+mfi*		at pci?
+scsibus*	at mfi?
+sd*		at scsibus? target ? lun ? 
 
 #### Pseudo devices
 pseudo-device	loop	1	# network loopback
 
-#syn0		at localbus0 at 0xbfe20000
-#syn1		at localbus0
-pcisyn0		at pci? dev ? function ?
-pcisyn1		at pci? dev ? function ?
-select		gmac
-
 ide_cd* 	at pciide? channel ? drive ? flags 0x0001
 select 		iso9660
-option		IDECD 
-select		cmd_testfire
-#option		HAVE_NB_SERIAL
-#option		USE_ENVMAC
-#option		LOOKLIKE_PC
-#select		cmd_lwdhcp
-#select		cmd_bootp
-option		FOR_GXEMUL
-select		fatfs
-option		FLOATINGPT
-option		COM3_BASE_ADDR=0xbfe001e0
-#option		WDC_NORESET
-select		gzip
-option		INPUT_FROM_BOTH
-option		OUTPUT_TO_BOTH
-option		KBD_CHECK_FAST
-option		TEST_USB_HOST
-option		CONFIG_SLOW_PCI_FOR_BROKENDEV
-option 		CONFIG_VIDEO_SW_CURSOR
-#option		CONFIG_USB_HOTPLUG
-
-select		http
-select		tcp
-select		inet
-select		nand
-select cmd_xyzmodem
+select		ramfiles
+select 		cmd_xyzmodem
+option IDECD 
+option HAVE_NB_SERIAL
+#option USE_ENVMAC
+#option LOOKLIKE_PC
+#select cmd_lwdhcp
+#select cmd_bootp
+option FOR_GXEMUL
+select fatfs
+#option FLOATINGPT
+#option PCI_IDSEL_VIA686B=17
+#option PCI_IDSEL_SB700=14
+option WDC_NORESET
+select gzip
+option INPUT_FROM_BOTH
+option OUTPUT_TO_BOTH
+#option VIA686B_POWERFIXUP
+option DEVBD2F_VIA
+#option USE_GPIO_SERIAL
+option CONFIG_VIDEO_SW_CURSOR
+select http
+#select nfs
+select tcp
+select inet
+select tftpd
+#select e100
+# SCSI RAID disk drive support
+select scsi_sd
+select raw_ether

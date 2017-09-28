@@ -1055,6 +1055,7 @@ void ahci_sata_strategy(struct buf *bp, struct ahci_sata_softc *priv)
 
 	blkno = bp->b_blkno;
 
+	probe_ent = probe_ent_array[atoi(&priv->sc_dev.dv_parent->dv_xname[4])];
 	blkno = blkno / (priv->bs / DEV_BSIZE);
 	blkcnt = howmany(bp->b_bcount, priv->bs);
 

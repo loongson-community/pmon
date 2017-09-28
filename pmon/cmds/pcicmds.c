@@ -311,10 +311,23 @@ pci_query_bar(tag, index)
 		printf("0x%08x:0x%08x i/o @0x%08x, %d bytes\n",
 				old_bar, bar, old_bar & 0xfffffffc,
 						(((bar & 0xfffffffc)^((bar & 0xfffffffc) - 1)) + 1) >> 1);
-#ifndef LOONGSON_3A2H
+#if (!defined(LOONGSON_3A2H))
 	}else if(old_bar & 0x4){
-		printf("64-bit mem\n");
+		printf("64-bit mem,low address\n");
 		skipnext = 1;
+#if 0   //pmon do not used 64 bit address
+		pcireg_t hi_old_bar, hi_bar;
+		hi_old_bar = _pci_conf_read(tag, index + 4);
+		_pci_conf_write(tag, index + 4, 0xffffffff);
+		hi_bar = _pci_conf_read(tag, index + 4);
+		printf("0x%08x%x:0x%08x%x mem @0x%08x%x, %d bytes\n",
+				hi_old_bar,old_bar, hi_bar,bar, hi_old_bar,old_bar & 0xfffffff0,
+						(((bar & 0xfffffff0)^((bar & 0xfffffff0) - 1)) + 1) >> 1);
+		_pci_conf_write(tag, index + 4, hi_old_bar);
+#endif
+		printf("0x%08x:0x%08x mem @0x%08x, %d bytes\n",
+				old_bar, bar, old_bar & 0xfffffff0,
+						(((bar & 0xfffffff0)^((bar & 0xfffffff0) - 1)) + 1) >> 1);
 #endif
 	}else {
 		printf("0x%08x:0x%08x mem @0x%08x, %d bytes\n",
@@ -352,6 +365,8 @@ pci_query_dev(tag)
 	
 	for(i = 0x10; i <= 0x24; i +=4) {
 		if(pci_query_bar(tag, i)) i += 4;
+ 		if(PCI_CLASS(class) == PCI_CLASS_BRIDGE)
+ 		    break;
 	}
 
         return(0);

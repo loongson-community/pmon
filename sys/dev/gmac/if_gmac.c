@@ -65,7 +65,7 @@ struct cfdriver syn_cd = {
 };
 
 
-#if defined(LOONGSON_2K)
+#if defined(LOONGSON_2K) || defined (LS7A)
 #define PCI_VENDOR_2KGMAC 0x0014
 #define PCI_PRODUCT_2KGMAC 0x7a03
 
@@ -108,8 +108,11 @@ pcisyn_attach(parent, self, aux)
 
 	printf("membasep=0x%x\n",(int)membasep);
 
-
+#ifdef LS7A
+	synopGMAC_init_network_interface(sc->dv_xname, (int)(membasep|0x80000000));
+#else
 	synopGMAC_init_network_interface(sc->dv_xname, (int)PHYS_TO_UNCACHED(membasep));
+#endif
 }
 
 

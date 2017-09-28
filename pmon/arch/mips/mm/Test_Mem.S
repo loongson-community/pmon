@@ -88,6 +88,7 @@ v0: output result
    bit[ 4]: 0: macro tune; 1: micro tune;
    bit[11: 8]: byte to be leveled
    bit[12]: 1: don't print; 0: print message;
+   bit[16]: 0: cache; 1: uncache
  * output:  v0
     0: no error
     1: error
@@ -134,8 +135,6 @@ TM_start:
     sd      a3, 0x40(a2)
     dli     a3, 0x8000000000000000
     or      a3, a3, a1
-    GET_TM_START_ADDR
-    daddu   a3, a3, a1
     sd      a3, 0x0(a2)
 #if 0
     move    a0, a2
@@ -147,8 +146,6 @@ TM_start:
     dli     a2, MT_STACK_BASE
     GET_TM_NODE_ID_a1
     dsll    a1, a1, 44
-    daddu   a2, a2, a1
-    GET_TM_START_ADDR
     daddu   a2, a2, a1
     sd      s0, 0x0(a2)
     sd      s1, 0x8(a2)
@@ -191,6 +188,9 @@ TM_start:
 	TM_PRINTSTR("\r\nAddress Stuck Testing all space...\r\n")
     //set t1 to Test Base
     dli     t1, MEM_TEST_BASE
+    and     a1, s4, 0x10000
+    dsll    a1, a1, (59 - 16)
+    xor     t1, t1, a1
     GET_TM_NODE_ID_a1
     dsll    a1, a1, 44
     daddu   t1, t1, a1
@@ -241,6 +241,9 @@ TM_start:
 	TM_PRINTSTR("write done...\r\n")
 //read memory and compare
     dli     t1, MEM_TEST_BASE
+    and     a1, s4, 0x10000
+    dsll    a1, a1, (59 - 16)
+    xor     t1, t1, a1
     GET_TM_NODE_ID_a1
     dsll    a1, a1, 44
     daddu   t1, t1, a1
@@ -265,59 +268,6 @@ TM_start:
 	TM_PRINTSTR("Stuck Testing done!\r\n")
 3:
 #endif
-#if 0
-	TM_PRINTSTR("Uncached Address Stuck Testing...\r\n")
-//debug fatal errors
-//write memory
-    //set t1 to Test Base
-    //use uncached address space here
-	dli 	t1, UNCACHED_MEM_TEST_BASE
-    GET_TM_NODE_ID_a1
-    dsll    a1, a1, 44
-    daddu   t1, t1, a1
-    GET_TM_START_ADDR
-    daddu   t1, t1, a1
-#ifdef   PRINT_LESS_ERROR
-    dli     t8, TM_MAX_RPT_ERRORS
-#endif
-    dli     t3, 128  //loop counter
-1:	
-    sd      t1, 0x0(t1)
-    nop
-    daddiu  t1, t1, 0x8
-    daddiu  t3, t3, -1
-    bnez 	t3, 1b
-	nop
-    sync
-	TM_PRINTSTR("write done...\r\n")
-//read memory and compare
-	dli 	t1, UNCACHED_MEM_TEST_BASE
-    GET_TM_NODE_ID_a1
-    dsll    a1, a1, 44
-    daddu   t1, t1, a1
-    GET_TM_START_ADDR
-    daddu   t1, t1, a1
-    dli     t3, 128  //loop counter
-1:
-    ld	    t4, 0x0(t1)
-    move    t0, t1
-    beq     t4, t0, 2f
-    nop
-    //error detected!!! print address, expected data and read data
-    bal     hexserial64_1
-    nop
-#ifdef   PRINT_LESS_ERROR
-    bltz    t8, 20f  //detect enough errors, go to next test
-    nop
-#endif
-2:
-    daddiu  t1, t1, 0x8
-    daddiu  t3, t3, -1
-    bnez 	t3, 1b
-	nop
-	TM_PRINTSTR("Stuck Testing done!\r\n")
-20:
-#endif
 //-------------------
 //pattern Diff Burst Test
 #if 0
@@ -327,8 +277,6 @@ TM_start:
     dli     t6, MT_PATTERN_BASE
     GET_TM_NODE_ID_a1
     dsll    a1, a1, 44
-    daddu   t6, t6, a1
-    GET_TM_START_ADDR
     daddu   t6, t6, a1
 /*****************
 * loop control
@@ -352,6 +300,9 @@ TM_start:
     dli     t2, 0x100
     //set Test Base t1 and Test Limit t3
     dli     t1, MEM_TEST_BASE
+    and     a1, s4, 0x10000
+    dsll    a1, a1, (59 - 16)
+    xor     t1, t1, a1
     GET_TM_NODE_ID_a1
     dsll    a1, a1, 44
     daddu   t1, t1, a1
@@ -382,6 +333,9 @@ TM_start:
     dli     t2, 0x20
     //set Test Base t1 and Test Limit t3
     dli     t1, MEM_TEST_BASE
+    and     a1, s4, 0x10000
+    dsll    a1, a1, (59 - 16)
+    xor     t1, t1, a1
     GET_TM_NODE_ID_a1
     dsll    a1, a1, 44
     daddu   t1, t1, a1
@@ -411,6 +365,9 @@ TM_start:
     dli     t2, 0x20
     //set Test Base t1 and Test Limit t3
     dli     t1, MEM_TEST_BASE
+    and     a1, s4, 0x10000
+    dsll    a1, a1, (59 - 16)
+    xor     t1, t1, a1
     GET_TM_NODE_ID_a1
     dsll    a1, a1, 44
     daddu   t1, t1, a1
@@ -440,6 +397,9 @@ TM_start:
     dli     t2, 0x20
     //set Test Base t1 and Test Limit t3
     dli     t1, MEM_TEST_BASE
+    and     a1, s4, 0x10000
+    dsll    a1, a1, (59 - 16)
+    xor     t1, t1, a1
     GET_TM_NODE_ID_a1
     dsll    a1, a1, 44
     daddu   t1, t1, a1
@@ -701,6 +661,9 @@ TM_start:
 //read memory and compare
     //set Test Base t1
     dli     t1, MEM_TEST_BASE
+    and     a1, s4, 0x10000
+    dsll    a1, a1, (59 - 16)
+    xor     t1, t1, a1
     GET_TM_NODE_ID_a1
     dsll    a1, a1, 44
     daddu   t1, t1, a1
@@ -770,8 +733,6 @@ TM_start:
     GET_TM_NODE_ID_a1
     dsll    a1, a1, 44
     daddu   t6, t6, a1
-    GET_TM_START_ADDR
-    daddu   t6, t6, a1
 /*****************
 * loop control
 * t9:
@@ -787,6 +748,9 @@ TM_start:
     dli     t2, 0x40
     //set Test Base t1 and Test Limit t3
     dli     t1, MEM_TEST_BASE
+    and     a1, s4, 0x10000
+    dsll    a1, a1, (59 - 16)
+    xor     t1, t1, a1
     GET_TM_NODE_ID_a1
     dsll    a1, a1, 44
     daddu   t1, t1, a1
@@ -830,6 +794,9 @@ TM_start:
     dli     t2, 0x40
     //set Test Base t1 and Test Limit t3
     dli     t1, MEM_TEST_BASE
+    and     a1, s4, 0x10000
+    dsll    a1, a1, (59 - 16)
+    xor     t1, t1, a1
     GET_TM_NODE_ID_a1
     dsll    a1, a1, 44
     daddu   t1, t1, a1
@@ -873,6 +840,9 @@ TM_start:
     dli     t2, 0x40
     //set Test Base t1 and Test Limit t3
     dli     t1, MEM_TEST_BASE
+    and     a1, s4, 0x10000
+    dsll    a1, a1, (59 - 16)
+    xor     t1, t1, a1
     GET_TM_NODE_ID_a1
     dsll    a1, a1, 44
     daddu   t1, t1, a1
@@ -916,6 +886,9 @@ TM_start:
     dli     t2, 0x40
     //set Test Base t1 and Test Limit t3
     dli     t1, MEM_TEST_BASE
+    and     a1, s4, 0x10000
+    dsll    a1, a1, (59 - 16)
+    xor     t1, t1, a1
     GET_TM_NODE_ID_a1
     dsll    a1, a1, 44
     daddu   t1, t1, a1
@@ -1008,6 +981,9 @@ TM_start:
 //read memory and compare
     //set Test Base t1
     dli     t1, MEM_TEST_BASE
+    and     a1, s4, 0x10000
+    dsll    a1, a1, (59 - 16)
+    xor     t1, t1, a1
     GET_TM_NODE_ID_a1
     dsll    a1, a1, 44
     daddu   t1, t1, a1
@@ -1125,6 +1101,9 @@ TM_start:
     dli     t2, 0x10
     //set Test Base t1 and Test Limit t3
     dli     t1, MEM_TEST_BASE
+    and     a1, s4, 0x10000
+    dsll    a1, a1, (59 - 16)
+    xor     t1, t1, a1
     GET_TM_NODE_ID_a1
     dsll    a1, a1, 44
     daddu   t1, t1, a1
@@ -1223,6 +1202,9 @@ TM_start:
     dli     t8, TM_MAX_RPT_ERRORS
     //set Test Base t1
     dli     t1, MEM_TEST_BASE
+    and     a1, s4, 0x10000
+    dsll    a1, a1, (59 - 16)
+    xor     t1, t1, a1
     GET_TM_NODE_ID_a1
     dsll    a1, a1, 44
     daddu   t1, t1, a1
@@ -1265,6 +1247,9 @@ TM_start:
 //read memory and compare
     //set Test Base t1
     dli     t1, MEM_TEST_BASE
+    and     a1, s4, 0x10000
+    dsll    a1, a1, (59 - 16)
+    xor     t1, t1, a1
     GET_TM_NODE_ID_a1
     dsll    a1, a1, 44
     daddu   t1, t1, a1
@@ -1324,8 +1309,6 @@ TM_end:
     GET_TM_NODE_ID_a1
     dsll    a1, a1, 44
     daddu   a2, a2, a1
-    GET_TM_START_ADDR
-    daddu   a2, a2, a1
     ld      s0, 0x0(a2)
     ld      s1, 0x8(a2)
     ld      s2, 0x10(a2)
@@ -1373,8 +1356,6 @@ TM_end:
     GET_TM_NODE_ID_a1
     dsll    a1, a1, 44
     or      a0, a0, a1
-    GET_TM_START_ADDR
-    daddu   a0, a0, a1
     dli     a1, 0x1000
     daddu   a2, a0, a1
 1:
@@ -1586,6 +1567,9 @@ test_mem_1:
 //read memory and compare
     //set Test Base t1
     dli     t1, MEM_TEST_BASE
+    and     a1, s4, 0x10000
+    dsll    a1, a1, (59 - 16)
+    xor     t1, t1, a1
     GET_TM_NODE_ID_a1
     dsll    a1, a1, 44
     daddu   t1, t1, a1
@@ -1750,6 +1734,9 @@ test_mem_1_silence:
 //read memory and compare
     //set Test Base t1
     dli     t1, MEM_TEST_BASE
+    and     a1, s4, 0x10000
+    dsll    a1, a1, (59 - 16)
+    xor     t1, t1, a1
     GET_TM_NODE_ID_a1
     dsll    a1, a1, 44
     daddu   t1, t1, a1

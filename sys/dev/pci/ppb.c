@@ -83,6 +83,8 @@ ppbmatch(parent, match, aux)
 	 */
 #if defined(LOONGSON_2K)
 	if (PCI_ISCLASS(pa->pa_class, PCI_CLASS_BRIDGE, PCI_SUBCLASS_BRIDGE_PCI) || PCI_ISCLASS(pa->pa_class, PCI_CLASS_PROCESSOR, 0x30))
+#elif defined (LS7A)
+	if (PCI_CLASS(pa->pa_class) == PCI_CLASS_BRIDGE && pa->pa_id == 0x7a290014)
 #else
 	if (PCI_CLASS(pa->pa_class) == PCI_CLASS_BRIDGE &&
 	    PCI_SUBCLASS(pa->pa_class) == PCI_SUBCLASS_BRIDGE_PCI)

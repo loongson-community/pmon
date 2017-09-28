@@ -42,7 +42,7 @@
 #include <flash.h>
 #include <dev/pflash_tgt.h>
 
-#if defined(LOONGSON_3A84W) || defined(LOONGSON_3A2H) || defined(LOONGSON_3A92W)
+#if defined(LOONGSON_3A84W) || defined(LOONGSON_3A2H) || defined(LOONGSON_3A92W) || defined(LS7A)
 #include <Targets/Bonito3a84w/dev/spi_w.c>
 #endif
 
@@ -260,7 +260,7 @@ fl_find_map(void *base)
 struct fl_device *
   __attribute__((weak))fl_devident(void *base, struct fl_map **m)
 {
-#if defined(LOONGSON_3A84W) || defined(LOONGSON_3A2H) || defined(LOONGSON_3A92W)
+#if defined(LOONGSON_3A84W) || defined(LOONGSON_3A2H) || defined(LOONGSON_3A92W) || defined(LS7A)
 	if (selected_lpc_spi()) {
 		return spi_fl_devident(base,m);
 	} else {
@@ -335,7 +335,7 @@ struct fl_device *
 	outb((map->fl_map_base), 0x00);
 
 	return((struct fl_device *)NULL);
-#if defined(LOONGSON_3A84W) || defined(LOONGSON_3A2H) || defined(LOONGSON_3A92W)
+#if defined(LOONGSON_3A84W) || defined(LOONGSON_3A2H) || defined(LOONGSON_3A92W) || defined(LS7A)
 	}
 #endif
 }
@@ -348,7 +348,7 @@ struct fl_device *
 int
   __attribute__((weak))fl_erase_device(void *base, int size, int verbose)
 {
-#if defined(LOONGSON_3A84W) || defined(LOONGSON_3A2H) || defined(LOONGSON_3A92W)
+#if defined(LOONGSON_3A84W) || defined(LOONGSON_3A2H) || defined(LOONGSON_3A92W) || defined(LS7A)
 	if (selected_lpc_spi()) {
 		return  spi_fl_erase_device(base, size, verbose);
 	} else {
@@ -485,7 +485,7 @@ int
 	tgt_flashwrite_disable();
     fl_write_protect_lock(map, dev, 0);/* Enable write protection of SST49LF040B/SST49LF008A */
 	return(ok);
-#if defined(LOONGSON_3A84W) || defined(LOONGSON_3A2H) || defined(LOONGSON_3A92W)
+#if defined(LOONGSON_3A84W) || defined(LOONGSON_3A2H) || defined(LOONGSON_3A92W) || defined(LS7A)
 	}
 #endif
 }
@@ -559,7 +559,7 @@ int fl_program(void *fl_base, void *data_base, int data_size, int verbose)
 int
   __attribute__((weak))fl_program_device(void *fl_base, void *data_base, int data_size, int verbose)
 {
-#if defined(LOONGSON_3A84W) || defined(LOONGSON_3A2H) || defined(LOONGSON_3A92W)
+#if defined(LOONGSON_3A84W) || defined(LOONGSON_3A2H) || defined(LOONGSON_3A92W) || defined(LS7A)
 	if (selected_lpc_spi()) {
 		return spi_fl_program_device(fl_base, data_base, data_size, verbose);
 	} else {
@@ -634,7 +634,7 @@ int
 	tgt_flashwrite_disable();
     fl_write_protect_lock(map, dev, 0);/* Enable write protection of SST49LF040B/SST49LF008A */
 	return(ok);
-#if defined(LOONGSON_3A84W) || defined(LOONGSON_3A2H) || defined(LOONGSON_3A92W)
+#if defined(LOONGSON_3A84W) || defined(LOONGSON_3A2H) || defined(LOONGSON_3A92W) || defined(LS7A)
 	}
 #endif
 }

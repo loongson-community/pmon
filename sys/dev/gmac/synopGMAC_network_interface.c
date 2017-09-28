@@ -49,6 +49,7 @@
 #define IOCTL_READ_TXDESC    SIOCDEVPRIVATE+5
 #define IOCTL_POWER_DOWN     SIOCDEVPRIVATE+6
 
+s32 synopGMAC_read_phy_reg(u64 RegBase,u32 PhyBase, u32 RegOffset, unsigned short * data );
 extern void ls2h_flush_cache2();
 
 //static struct timer_list synopGMAC_cable_unplug_timer;
@@ -363,6 +364,24 @@ static int rtl8211_config_init(synopGMACdevice *gmacdev)
           return 0;
   }
 #endif
+  static int alaska88e151x_config_init(synopGMACdevice *gmacdev)
+  {
+          int err;
+          u16 data;
+
+  // reset phy
+          err = synopGMAC_read_phy_reg((u64 *)gmacdev->MacBase,gmacdev->PhyBase,0x0, &data);
+          data = data | 0x8000;
+          err = synopGMAC_write_phy_reg((u64 *)gmacdev->MacBase,gmacdev->PhyBase,0x0,data);
+
+  #if SYNOP_PHY_LOOPBACK
+          data = 0x5140;
+          err = synopGMAC_write_phy_reg((u64 *)gmacdev->MacBase,gmacdev->PhyBase,0x00,data );
+  #endif
+          if (err < 0)
+                  return err;
+          return 0;
+  }
 #if UNUSED
 static int bcm54xx_ack_interrupt(synopGMACdevice *gmacdev)
 {
@@ -1785,7 +1804,7 @@ s32 synopGMAC_linux_xmit_frames(struct ifnet* ifp)
 			for(i = 0;i < len;i++)
 			{
 				ptr = (u32)bf1;
-				printf(" %02x",*(ptr+i));
+				printf(" %02x",*(unsigned char *)(ptr+i));
 			}
 			printf("\n");
 #endif
@@ -1974,7 +1993,7 @@ void set_phy_manu(synopGMACdevice * gmacdev)
 }
 #endif
 
-#if defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A) || (defined(LOONGSON_3A2H) && defined(LOONGSON_3A8)) || defined(LOONGSON_2K)
+#if defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A) || (defined(LOONGSON_3A2H) && defined(LOONGSON_3A8)) || defined(LOONGSON_2K) || defined(LS7A)
 static int rtl88e1111_config_init(synopGMACdevice *gmacdev)
 {
 	int retval, err;
@@ -1993,7 +2012,8 @@ static int rtl88e1111_config_init(synopGMACdevice *gmacdev)
 }
 #endif
 
-#if defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A) || (defined(LOONGSON_3A2H) && defined(LOONGSON_3A8)) || defined(LOONGSON_2K)
+s32 synopGMAC_read_phy_reg(u64 RegBase,u32 PhyBase, u32 RegOffset, u16 * data );
+#if defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A) || (defined(LOONGSON_3A2H) && defined(LOONGSON_3A8)) || defined(LOONGSON_2K) || defined(LS7A)
 int init_phy(synopGMACdevice *gmacdev)
 #else
 int init_phy(struct synopGMACdevice *gmacdev)
@@ -2012,17 +2032,28 @@ int init_phy(struct synopGMACdevice *gmacdev)
 		retval = rtl8211_config_init(gmacdev);
 		return retval;
 	}
-#elif (defined(LOONGSON_3A2H) && defined(LOONGSON_3A8)) || defined(LOONGSON_2K)
-#if defined(LOONGSON_2K)
-	u16 data;
-	synopGMAC_read_phy_reg(gmacdev->MacBase,gmacdev->PhyBase,2,&data);
-	/*set 88e1111 clock phase delay*/
-	if(data == 0x141)
-#endif
-{
-	rtl88e1111_config_init(gmacdev);
+#elif (defined(LOONGSON_3A2H) && defined(LOONGSON_3A8)) || defined(LOONGSON_2K) || defined(LS7A)
+	u16 data2;
+	u16 data3;
+	synopGMAC_read_phy_reg(gmacdev->MacBase,gmacdev->PhyBase,2,&data2);
+	synopGMAC_read_phy_reg(gmacdev->MacBase,gmacdev->PhyBase,3,&data3);
+    //printf("============== phy device ID is: %x\n", data2);
+    //printf("============== phy vendor ID is: %x\n", data3);
+	if(data2 == 0x141 && ((data3 >> 10) == 0x3)){ //marvel ethernet phy
+        if(((data3 >> 4) & 0x3f) == 0x0C){  //88E11
+	        /*set 88e1111 clock phase delay*/
+	        rtl88e1111_config_init(gmacdev);
+        }else if(((data3 >> 4) & 0x3f) == 0x1D) { //88E15
+            //printf("==== Warning: gmac phy 88E151X not initialized!\n");
+            //printf("==== Warning: reset gmac phy 88E151X!\n");
+	        alaska88e151x_config_init(gmacdev);
+        } else{
+            printf("==== Warning: unrecoganized marvel gmac phy!\n");
+        }
+    } else{
+        printf("==== Warning: unrecoganized gmac phy!\n");
+    };
 	return 0;
-}
 #else
 	retval = rtl8211_config_init(gmacdev);
 	return retval;
@@ -2674,34 +2705,33 @@ s32  synopGMAC_init_network_interface(char* xname,u64 synopGMACMappedAddr)
 	else
 		parseenv(1, mac_addr0);
 #endif
-#elif defined(LOONGSON_2K)
-extern unsigned char smbios_uuid_gmac[6];
+#elif defined(LOONGSON_2K) || defined(LS7A)
 s32  synopGMAC_init_network_interface(char* xname, u64 synopGMACMappedAddr)
 {
 	struct ifnet* ifp;
-	static u8 mac_addr0[6];
+	static u8 mac_addr0[6] = DEFAULT_MAC_ADDRESS;
 	int i, v;
 	u16 data;
 	u64 gmac0, gmac1;
 	struct synopGMACNetworkAdapter * synopGMACadapter;
 	unsigned int eeprom_addr;
-	i = strtoul(xname + 3, NULL, 0);
+	extern unsigned char smbios_uuid_mac[6];
+
+    i = strtoul(xname + 3, NULL, 0);
 	eeprom_addr = i * 6;
 
 	gmac0 = synopGMACMappedAddr;
-//	gmac1 = 0xffffffff00000000ULL | LS2H_GMAC1_REG_BASE;
-//	synopGMACMappedAddr = sc->dv_unit?gmac1:gmac0;
-	synopGMACMappedAddr = gmac0;//mtf
-//	i2c_init();//the i2s had init by file i2c.S
+	synopGMACMappedAddr = gmac0;
+	i2c_init();//configure the i2c freq
 	mac_read(eeprom_addr, mac_addr0, 6);
-	memcpy(smbios_uuid_gmac, mac_addr0, 6);
+	memcpy(smbios_uuid_mac, mac_addr0, 6);
 #else
 s32  synopGMAC_init_network_interface(char* xname, struct device *sc )
 {
 	struct ifnet* ifp;
 	extern unsigned char smbios_uuid_mac[6];
 
-	u8 mac_addr0[6];
+	static u8 mac_addr0[6] = DEFAULT_MAC_ADDRESS;
 	int i,v;
 	u16 data;
 	u64 synopGMACMappedAddr = sc->dv_unit?0xffffffffbbe18000LL:0xffffffffbbe10000LL;
@@ -2747,7 +2777,7 @@ s32  synopGMAC_init_network_interface(char* xname, struct device *sc )
 
 	init_phy(synopGMACadapter->synopGMACdev);
 	synopGMAC_reset(synopGMACadapter->synopGMACdev);
-#if	(!defined(LOONGSON_2G5536))&&(!defined(LOONGSON_2G1A)) && (!defined(LOONGSON_2F1A))
+#if    (!defined(LOONGSON_2G5536))&&(!defined(LOONGSON_2G1A)) && (!defined(LOONGSON_2F1A)) && !defined(LS7A)
 	synopGMAC_attach(synopGMACadapter->synopGMACdev,
 			(u64) synopGMACMappedAddr + MACBASE,
 			(u64) synopGMACMappedAddr + DMABASE,
@@ -2759,7 +2789,7 @@ s32  synopGMAC_init_network_interface(char* xname, struct device *sc )
 	
 	ifp = &(synopGMACadapter->PInetdev->arpcom.ac_if);
 	ifp->if_softc = synopGMACadapter;
-#if	(!defined(LOONGSON_2G5536))&&(!defined(LOONGSON_2G1A)) && (!defined(LOONGSON_2F1A)) && (!defined(LOONGSON_2K))
+#if	(!defined(LOONGSON_2G5536))&&(!defined(LOONGSON_2G1A)) && (!defined(LOONGSON_2F1A)) && !defined(LOONGSON_2K) && !defined(LS7A)
 	memcpy(&synopGMACadapter->PInetdev->sc_dev, sc, sizeof(struct device));
 #endif	
 	memcpy(synopGMACadapter->PInetdev->dev_addr, mac_addr0,6);
@@ -2799,7 +2829,7 @@ s32  synopGMAC_init_network_interface(char* xname, struct device *sc )
 	dumpmacregg(synopGMACadapter->synopGMACdev);
 	dumpdmaregg(synopGMACadapter->synopGMACdev);
 #endif
-#if	defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A)
+#if	defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A) || defined(LS7A)
 	mac_addr0[5]++;
 #endif
 	return 0;
@@ -2825,9 +2855,9 @@ void __exit synopGMAC_exit_network_interface(void)
 module_init(synopGMAC_init_network_interface);
 module_exit(synopGMAC_exit_network_interface);
 
-MODULE_AUTHOR("Synopsys India");
-MODULE_LICENSE("GPL/BSD");
-MODULE_DESCRIPTION("SYNOPSYS GMAC DRIVER Network INTERFACE");
+ODULE_AUTHOR("Synopsys India");
+ODULE_LICENSE("GPL/BSD");
+ODULE_DESCRIPTION("SYNOPSYS GMAC DRIVER Network INTERFACE");
 
 EXPORT_SYMBOL(synopGMAC_init_pci_bus_interface);
 */

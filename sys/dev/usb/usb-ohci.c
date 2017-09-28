@@ -83,7 +83,7 @@
 #include "target/ls1a.h"
 #endif
 
-#if defined(LOONGSON_2K)
+#if defined(LOONGSON_2K) || defined(LS7A)
 #define	CACHED_TO_PHYS(x)	((x) & 0x1fffffff)
 #define	PHYS_TO_UNCACHED(x) 	((x) | CACHED_MEMORY_ADDR)
 #define	CACHED_TO_UNCACHED(x) (PHYS_TO_CACHED(CACHED_TO_PHYS((long)x)))
@@ -461,7 +461,6 @@ static int ohci_match(struct device *parent, void *match, void *aux)
 #ifdef CONFIG_SM502_USB_HCD
 	char *no502;
 #endif
-
 	if (PCI_CLASS(pa->pa_class) == PCI_CLASS_SERIALBUS &&
 	    PCI_SUBCLASS(pa->pa_class) == PCI_SUBCLASS_SERIALBUS_USB) {
 		if (((pa->pa_class >> 8) & 0xff) == 0x10) {
@@ -3072,7 +3071,7 @@ static int hc_start(ohci_t * ohci)
 		while (val & OHCI_INTR_SF) {
 			//              udelay(10);
 			delay_usb_ohci(10);
-			readl(&ohci->regs->intrstatus);
+			val = readl(&ohci->regs->intrstatus);
 		}
 	}
 	/* disable all interrupts */
