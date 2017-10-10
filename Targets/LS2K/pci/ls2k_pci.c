@@ -52,6 +52,10 @@ u32 _pci_conf_readn(device_t tag, int reg, int width)
 
 	_pci_break_tag (tag, &bus, &device, &function); 
 	if(bus == 0 && device == 2) return -1;
+    //workaround pcie header
+    if(bus == 0 && (device >=9 && device <= 14) && reg == 0x8){
+        return 0x06040001;
+    }
 
 	if (bus == 0) {
 		/* Type 0 configuration on onboard PCI bus */

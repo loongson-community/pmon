@@ -376,8 +376,9 @@ typedef u_int8_t pci_revision_t;
  */
 #define	PCI_MAPREG_START		0x10
 #define	PCI_MAPREG_END			0x28
-#define	PCI_MAPREG_ROM			0x30
 #define	PCI_MAPREG_PPB_END		0x18
+#define	PCI_MAPREG_ROM			0x30
+#define	PCI_MAPREG_PPB_ROM	    0x38
 #define	PCI_MAPREG_PCB_END		0x14
 
 #define	PCI_MAPREG_TYPE(mr)						\

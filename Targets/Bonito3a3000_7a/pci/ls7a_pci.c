@@ -64,10 +64,11 @@ u32 _pci_conf_readn(device_t tag, int reg, int width)
 	}
 
 	_pci_break_tag (tag, &bus, &device, &function); 
-	//skip scan of some devices
-	//if(bus == 0 && device <= 2) return -1;
-	//if(bus == 0 && device == 31) return -1;
 	if(bus != 0 && device != 0) return -1;
+    //workaround pcie header
+    if(bus == 0 && (device >=9 && device <= 20) && reg == 0x8){
+        return 0x06040001;
+    }
 
 	if (bus == 0) {
 		/* Type 0 configuration on onboard PCI bus */
@@ -76,7 +77,6 @@ u32 _pci_conf_readn(device_t tag, int reg, int width)
 			printf("_pci_conf_readn: bad device 0x%x, function 0x%x\n", device, function);
 			return ~0;		/* device out of range */
 		}
-		//if(bus == 0 && device == 6 && reg == 0x20) return 0;
 		return pci_read_type0_config32(device, function, reg);
 	} else {
 		/* Type 1 configuration on offboard PCI bus */

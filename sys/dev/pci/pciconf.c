@@ -73,9 +73,6 @@
 extern char *getenv __P((const char *));
 extern long atol __P((const char *));
 
-
-
-
 extern void *pmalloc __P((size_t ));
 extern void pfree __P((void * ));
 
@@ -205,370 +202,353 @@ static inline int fls(int x)
  * requirements.
  */
 
+static void
 _pci_query_dev_func (struct pci_device *dev, pcitag_t tag, int initialise)
 {
-	pcireg_t id, class;
-	pcireg_t old, mask;
-	pcireg_t stat;
-	pcireg_t bparam;
-	int reg;
-	struct pci_bus *pb;
-	struct pci_device *pd;
-	unsigned int x;
-	int bus, device, function;
-#if defined(LOONGSON_2K)
-	int isbridge = 0;
-#endif
+    pcireg_t id, class;
+    pcireg_t old, mask;
+    pcireg_t stat;
+    pcireg_t bparam;
+    int reg;
+    struct pci_bus *pb;
+    struct pci_device *pd;
+    unsigned int x;
+    int bus, device, function;
+    int isbridge = 0;
+    
+    class = _pci_conf_read(tag, PCI_CLASS_REG);
+    id = _pci_conf_read(tag, PCI_ID_REG);
 
-	class = _pci_conf_read(tag, PCI_CLASS_REG);
-	id = _pci_conf_read(tag, PCI_ID_REG);
+    if (_pciverbose) {
+        int supported;
+        char devinfo[256];
+        _pci_devinfo(id, class, &supported, devinfo);
+        _pci_tagprintf (tag, "%s\n", devinfo);
+    }
 
-	if (_pciverbose) {
-		int supported;
-		char devinfo[256];
-		_pci_devinfo(id, class, &supported, devinfo);
-		_pci_tagprintf (tag, "%s\n", devinfo);
-	}
+    pd = pmalloc(sizeof(struct pci_device));
+    if(pd == NULL) {
+        PRINTF ("pci: can't alloc memory for device\n");
+        return;
+    }
 
-	pd = pmalloc(sizeof(struct pci_device));
-	if(pd == NULL) {
-		PRINTF ("pci: can't alloc memory for device\n");
-		return;
-	}
+    _pci_break_tag (tag, &bus, &device, &function);
 
-	_pci_break_tag (tag, &bus, &device, &function);
+    pd->pa.pa_bus = bus;
+    pd->pa.pa_device = device;
+    pd->pa.pa_function = function;
+    pd->pa.pa_tag = tag;
+    pd->pa.pa_id = id;
+    pd->pa.pa_class = class;
+    pd->pa.pa_flags = PCI_FLAGS_IO_ENABLED | PCI_FLAGS_MEM_ENABLED;
+    pd->pa.pa_iot = dev->pa.pa_iot;
+    pd->pa.pa_memt = dev->pa.pa_memt;
+    pd->pa.pa_dmat = dev->pa.pa_dmat;
+    pd->parent = dev;
+    pd->pcibus = dev->bridge.secbus;
+    pb = pd->pcibus;
+    _pci_device_insert(dev, pd);
 
-	pd->pa.pa_bus = bus;
-	pd->pa.pa_device = device;
-	pd->pa.pa_function = function;
-	pd->pa.pa_tag = tag;
-	pd->pa.pa_id = id;
-	pd->pa.pa_class = class;
-	pd->pa.pa_flags = PCI_FLAGS_IO_ENABLED | PCI_FLAGS_MEM_ENABLED;
-	pd->pa.pa_iot = dev->pa.pa_iot;
-	pd->pa.pa_memt = dev->pa.pa_memt;
-	pd->pa.pa_dmat = dev->pa.pa_dmat;
-	pd->parent = dev;
-	pd->pcibus = dev->bridge.secbus;
-	pb = pd->pcibus;
-	_pci_device_insert(dev, pd);
+    /*
+     * Calculated Interrupt routing
+     */
+    _pci_setupIntRouting(pd);
 
-	/*
-	 * Calculated Interrupt routing
-	 */
-	_pci_setupIntRouting(pd);
-
-	/*
-	 *  Shut off device if we initialize from non reset.
-	 */
-	stat = _pci_conf_read(tag, PCI_COMMAND_STATUS_REG);
-	stat &= ~(PCI_COMMAND_MASTER_ENABLE |
-		  PCI_COMMAND_IO_ENABLE |
-		  PCI_COMMAND_MEM_ENABLE);
+    /*
+     *  Shut off device if we initialize from non reset.
+     */
+    stat = _pci_conf_read(tag, PCI_COMMAND_STATUS_REG);
+    stat &= ~(PCI_COMMAND_MASTER_ENABLE |
+          PCI_COMMAND_IO_ENABLE |
+          PCI_COMMAND_MEM_ENABLE);
 #ifdef USE_SM502_UART0
-	if(device!=14)
-	{
+    if(device!=14)
+    {
 #endif
-		_pci_conf_write(tag, PCI_COMMAND_STATUS_REG, stat);
+        _pci_conf_write(tag, PCI_COMMAND_STATUS_REG, stat);
 #ifdef USE_SM502_UART0
-	}
+    }
 #endif
-	pd->stat = stat;
+    pd->stat = stat;
 
-	/* do all devices support fast back-to-back */
-	if ((stat & PCI_STATUS_BACKTOBACK_SUPPORT) == 0) {
-		pb->fast_b2b = 0;		/* no, sorry */
-	}
+    /* do all devices support fast back-to-back */
+    if ((stat & PCI_STATUS_BACKTOBACK_SUPPORT) == 0) {
+        pb->fast_b2b = 0;  /* no, sorry */
+    }
 
-	/* do all devices run at 66 MHz */
-	if ((stat & PCI_STATUS_66MHZ_SUPPORT) == 0) {
-		pb->freq66 = 0; 		/* no, sorry */
-	}
+    /* do all devices run at 66 MHz */
+    if ((stat & PCI_STATUS_66MHZ_SUPPORT) == 0) {
+        pb->freq66 = 0;   /* no, sorry */
+    }
 
-	/* find slowest devsel */
-	x = stat & PCI_STATUS_DEVSEL_MASK;
-	if (x > pb->devsel) {
-		pb->devsel = x;
-	}
+    /* find slowest devsel */
+    x = stat & PCI_STATUS_DEVSEL_MASK;
+    if (x > pb->devsel) {
+        pb->devsel = x;
+    }
 
-	/* Funny looking code which deals with any 32bit read only cfg... */
-	bparam = _pci_conf_read(tag, (PCI_MINGNT & ~0x3));
-	pd->min_gnt = 0xff & (bparam >> ((PCI_MINGNT & 3) * 8));
-	bparam = _pci_conf_read(tag, (PCI_MAXLAT & ~0x3));
-	pd->max_lat = 0xff & (bparam >> ((PCI_MAXLAT & 3) * 8));
+    /* Funny looking code which deals with any 32bit read only cfg... */
+    bparam = _pci_conf_read(tag, (PCI_MINGNT & ~0x3));
+    pd->min_gnt = 0xff & (bparam >> ((PCI_MINGNT & 3) * 8));
+    bparam = _pci_conf_read(tag, (PCI_MAXLAT & ~0x3));
+    pd->max_lat = 0xff & (bparam >> ((PCI_MAXLAT & 3) * 8));
 
-	if (pd->min_gnt != 0 || pd->max_lat != 0) {
-		/* find largest minimum grant time of all devices */
-		if (pd->min_gnt != 0 && pd->min_gnt > pb->min_gnt) {
-			pb->min_gnt = pd->min_gnt;
-		}
-	
-		/* find smallest maximum latency time of all devices */
-		if (pd->max_lat != 0 && pd->max_lat < pb->max_lat) {
-			    pb->max_lat = pd->max_lat;
-		}
-	
-		/* subtract our min on-bus time per second from bus bandwidth */
-		if (initialise) {
-			pb->bandwidth -= pd->min_gnt * 4000000 / (pd->min_gnt + pd->max_lat);
-		}
-	}
+    if (pd->min_gnt != 0 || pd->max_lat != 0) {
+        /* find largest minimum grant time of all devices */
+        if (pd->min_gnt != 0 && pd->min_gnt > pb->min_gnt) {
+            pb->min_gnt = pd->min_gnt;
+        }
+    
+        /* find smallest maximum latency time of all devices */
+        if (pd->max_lat != 0 && pd->max_lat < pb->max_lat) {
+                pb->max_lat = pd->max_lat;
+        }
+    
+        /* subtract our min on-bus time per second from bus bandwidth */
+        if (initialise) {
+            pb->bandwidth -= pd->min_gnt * 4000000 / (pd->min_gnt + pd->max_lat);
+        }
+    }
 
-	/* Map interrupt to interrupt line (software function only) */
-	bparam = _pci_conf_read(tag, PCI_INTERRUPT_REG);
-	bparam &= ~(PCI_INTERRUPT_LINE_MASK << PCI_INTERRUPT_LINE_SHIFT);
-	bparam |= ((_pci_getIntRouting(pd) & 0xff) << PCI_INTERRUPT_LINE_SHIFT);
-	_pci_conf_write(tag, PCI_INTERRUPT_REG, bparam);
+    /* Map interrupt to interrupt line (software function only) */
+    bparam = _pci_conf_read(tag, PCI_INTERRUPT_REG);
+    bparam &= ~(PCI_INTERRUPT_LINE_MASK << PCI_INTERRUPT_LINE_SHIFT);
+    bparam |= ((_pci_getIntRouting(pd) & 0xff) << PCI_INTERRUPT_LINE_SHIFT);
+    _pci_conf_write(tag, PCI_INTERRUPT_REG, bparam);
 
-	/*
-	 * Check to see if device is a PCI Bridge
-	 */
-#if defined(LOONGSON_2K)
-	if (PCI_ISCLASS(class, PCI_CLASS_BRIDGE, PCI_SUBCLASS_BRIDGE_PCI) || PCI_ISCLASS(class, PCI_CLASS_PROCESSOR, 0x30)) {
-		isbridge = 1;
-#elif defined(LS7A)
-	if (PCI_ISCLASS(class, PCI_CLASS_BRIDGE, PCI_SUBCLASS_BRIDGE_HOST)) {
-#else
-	if (PCI_ISCLASS(class, PCI_CLASS_BRIDGE, PCI_SUBCLASS_BRIDGE_PCI)) {
-#endif
-		struct pci_device *pcidev;
-		struct pci_win *pm_mem = NULL;
-		struct pci_win *pm_io = NULL;
-		struct pci_win *pm;
-		pcireg_t tmp;
+    /*
+     * Check to see if device is a PCI Bridge
+     */
+    if (PCI_ISCLASS(class, PCI_CLASS_BRIDGE, PCI_SUBCLASS_BRIDGE_PCI)) {
+        struct pci_device *pcidev;
+        struct pci_win *pm_mem = NULL;
+        struct pci_win *pm_io = NULL;
+        struct pci_win *pm;
+        pcireg_t tmp;
+        isbridge = 1;
 
-		pd->bridge.pribus_num = bus;
-		pd->bridge.secbus_num =  ++_pci_nbus;
-		/* Set it temperary to same as secondary bus number */
-		pd->bridge.subbus_num =  pd->bridge.secbus_num;
+        pd->bridge.pribus_num = bus;
+        pd->bridge.secbus_num =  ++_pci_nbus;
+        /* Set it temperary to same as secondary bus number */
+        pd->bridge.subbus_num =  pd->bridge.secbus_num;
 
-		tmp = _pci_conf_read(tag, PCI_PRIBUS_1);
-		tmp &= 0xff000000;
-		tmp |= pd->bridge.pribus_num;
-		tmp |= pd->bridge.secbus_num << 8;
-		tmp |= pd->bridge.subbus_num << 16;
-		_pci_conf_write(tag, PCI_PRIBUS_1, tmp);
+        tmp = _pci_conf_read(tag, PCI_PRIBUS_1);
+        tmp &= 0xff000000;
+        tmp |= pd->bridge.pribus_num;
+        tmp |= pd->bridge.secbus_num << 8;
+        tmp |= pd->bridge.subbus_num << 16;
+        _pci_conf_write(tag, PCI_PRIBUS_1, tmp);
 
-		/* Update sub bus number */
-		for(pcidev = dev; pcidev != NULL; pcidev = pcidev->parent) {
-			pcidev->bridge.subbus_num = pd->bridge.secbus_num;
-			tmp = _pci_conf_read(pcidev->pa.pa_tag, PCI_PRIBUS_1);
-			tmp &= 0xff00ffff;
-			tmp |= pd->bridge.secbus_num << 16;
-			_pci_conf_write(pcidev->pa.pa_tag, PCI_PRIBUS_1, tmp);
-		}
+        /* Update sub bus number */
+        for(pcidev = dev; pcidev != NULL; pcidev = pcidev->parent) {
+            //printf("pcidev = 0x%x\n", pcidev);
+            pcidev->bridge.subbus_num = pd->bridge.secbus_num;
+            tmp = _pci_conf_read(pcidev->pa.pa_tag, PCI_PRIBUS_1);
+            tmp &= 0xff00ffff;
+            tmp |= pd->bridge.secbus_num << 16;
+            _pci_conf_write(pcidev->pa.pa_tag, PCI_PRIBUS_1, tmp);
+        }
 
-		pd->bridge.secbus = pmalloc(sizeof(struct pci_bus));
-		if(pd->bridge.secbus == NULL) {
-			PRINTF ("pci: can't alloc memory for new pci bus\n");
-			return;
-		}
+        pd->bridge.secbus = pmalloc(sizeof(struct pci_bus));
+        if(pd->bridge.secbus == NULL) {
+            PRINTF ("pci: can't alloc memory for new pci bus\n");
+            return;
+        }
 
-		pd->bridge.secbus->max_lat = 255;
-		pd->bridge.secbus->fast_b2b = 1;
-		pd->bridge.secbus->prefetch = 1;
-		pd->bridge.secbus->freq66 = 1;
-		pd->bridge.secbus->bandwidth = 4000000;
-		pd->bridge.secbus->ndev = 1;
-		pd->bridge.secbus->bus = pd->bridge.secbus_num;
+        pd->bridge.secbus->max_lat = 255;
+        pd->bridge.secbus->fast_b2b = 1;
+        pd->bridge.secbus->prefetch = 1;
+        pd->bridge.secbus->freq66 = 1;
+        pd->bridge.secbus->bandwidth = 4000000;
+        pd->bridge.secbus->ndev = 1;
+        pd->bridge.secbus->bus = pd->bridge.secbus_num;
 
-		_pci_bus_insert(pd->bridge.secbus);
-		{
-		extern  struct pci_device *_pci_bus[];
-		extern int _max_pci_bus;
-		_pci_bus[_max_pci_bus++] = pd;
-		}
+        _pci_bus_insert(pd->bridge.secbus);
+        {
+            extern  struct pci_device *_pci_bus[];
+            extern int _max_pci_bus;
+            _pci_bus[_max_pci_bus++] = pd;
+        }
 
-		/* Scan secondary bus of the bridge */
-		_pci_scan_dev(pd, pd->bridge.secbus_num, 0, initialise);
+        /* Scan secondary bus of the bridge */
+        _pci_scan_dev(pd, pd->bridge.secbus_num, 0, initialise);
 
-		/*
-		 * Sum up the address space needed by secondary side of bridge
-		 */
-if(pm_io == NULL) {
-                pm_io = pmalloc(sizeof(struct pci_win));
-                if(pm_io == NULL) {
-                    PRINTF ("pci: can't alloc memory for pci memory window\n");
-                    return;
-                }
-                pm_io->device = pd;
-                pm_io->reg = PCI_IOBASEL_1;
-                pm_io->flags = PCI_MAPREG_TYPE_IO;
-            }
-
-            if(pm_mem == NULL) {
-                pm_mem = pmalloc(sizeof(struct pci_win));
-                if(pm_mem == NULL) {
-                    PRINTF ("pci: can't alloc memory for pci memory window\n");
-                    return;
-                }
-
-                pm_mem->device = pd;
-                pm_mem->reg = PCI_MEMBASE_1;
-                pm_mem->flags = PCI_MAPREG_MEM_TYPE_32BIT;
-            }
-
-
-		/* Sum up I/O Space needed */
-                int max=0;
-		for(pm = pd->bridge.iospace; pm != NULL; pm = pm->next) {
-                        if(max < pm->align)
-                            max = pm->align;
-			pm_io->size += pm->size;
-		}
-                pm_io->size = (pm_io->size + max -1) & ~(max-1);
-                if(max < 0x1000) max = 0x1000;
-                pd->bridge.io_mask = ~(max-1);
-                pm_io->align = max;
-
-		/* Sum up Memory Space needed */
-                max=0;
-		for(pm = pd->bridge.memspace; pm != NULL; pm = pm->next) {
-                        if(max < pm->align)
-                            max = pm->align;
-			pm_mem->size += pm->size;
-		}
-                pm_mem->size = (pm_mem->size + max -1) & ~(max-1);
-                if(max<0x100000) max = 0x100000;
-                pd->bridge.mem_mask = ~(max-1);
-                pm_mem->align = max;
-		/* Round to minimum granularity requierd for a bridge */
-		pm_io->size = _pci_roundup(pm_io->size, 0x1000);
-		pm_mem->size = _pci_roundup(pm_mem->size, 0x100000);
-
-		if(pm_io) {
-			_insertsort_window(&pd->parent->bridge.iospace, pm_io);
-		}
-		if(pm_mem) {
-			_insertsort_window(&pd->parent->bridge.memspace,pm_mem);
-		}
-	}
-	else if (PCI_ISCLASS(class, PCI_CLASS_MASS_STORAGE,
-		    PCI_SUBCLASS_MASS_STORAGE_IDE) &&
-		dev->bridge.secbus->minpciioaddr == 0) {
         /*
-	 * There is no need to setup memory regions for IDE storage devices
-	 * but only if PCI/ISA I/O space is accessables
-	 */
-		return;
+         * Sum up the address space needed by secondary side of bridge
+         */
+        if(pm_io == NULL) {
+            pm_io = pmalloc(sizeof(struct pci_win));
+            if(pm_io == NULL) {
+                PRINTF ("pci: can't alloc memory for pci memory window\n");
+                return;
+            }
+            pm_io->device = pd;
+            pm_io->reg = PCI_IOBASEL_1;
+            pm_io->flags = PCI_MAPREG_TYPE_IO;
+        }
 
-#if defined(LOONGSON_2K)
-	}
-	{
-#else
-	} else {
-#endif
-		int skipnext = 0;
+        if(pm_mem == NULL) {
+            pm_mem = pmalloc(sizeof(struct pci_win));
+            if(pm_mem == NULL) {
+                PRINTF ("pci: can't alloc memory for pci memory window\n");
+                return;
+            }
 
-#if defined(LOONGSON_2K)
-		for (reg = PCI_MAPREG_START; reg < (isbridge?PCI_MAPREG_PPB_END:PCI_MAPREG_END); reg += 4) {
-#else
-		for (reg = PCI_MAPREG_START; reg < PCI_MAPREG_END; reg += 4) {
-#endif
-			struct pci_win *pm;
+            pm_mem->device = pd;
+            pm_mem->reg = PCI_MEMBASE_1;
+            pm_mem->flags = PCI_MAPREG_MEM_TYPE_32BIT;
+        }
 
-			if (skipnext) {
-				skipnext = 0;
-				continue;
-			}
+        /* Sum up I/O Space needed */
+        {
+            int max=0;
+            for(pm = pd->bridge.iospace; pm != NULL; pm = pm->next) {
+                if(max < pm->align)
+                    max = pm->align;
+                pm_io->size += pm->size;
+            }
+            pm_io->size = (pm_io->size + max -1) & ~(max-1);
+            if(max < 0x1000) max = 0x1000;
+            pd->bridge.io_mask = ~(max-1);
+            pm_io->align = max;
 
-			old = _pci_conf_read(tag, reg);
-			_pci_conf_write(tag, reg, 0xfffffffe);
-			mask = _pci_conf_read(tag, reg);
-			_pci_conf_write(tag, reg, old);
+        }
+        /* Sum up Memory Space needed */
+        {
+            int max = 0;
+            for(pm = pd->bridge.memspace; pm != NULL; pm = pm->next) {
+                    if(max < pm->align)
+                        max = pm->align;
+                pm_mem->size += pm->size;
+            }
+            pm_mem->size = (pm_mem->size + max -1) & ~(max-1);
+            if(max<0x100000) max = 0x100000;
+            pd->bridge.mem_mask = ~(max-1);
+            pm_mem->align = max;
+        }
 
-			if (mask == 0 || mask == 0xffffffff) {
-				continue;
-			}
+        if(pm_io) {
+            /* Round to minimum granularity requierd for a bridge */
+            pm_io->size = _pci_roundup(pm_io->size, 0x1000);
+            _insertsort_window(&pd->parent->bridge.iospace, pm_io);
+        }
+        if(pm_mem) {
+            /* Round to minimum granularity requierd for a bridge */
+            pm_mem->size = _pci_roundup(pm_mem->size, 0x100000);
+            _insertsort_window(&pd->parent->bridge.memspace,pm_mem);
+        }
+    }
+    else if (PCI_ISCLASS(class, PCI_CLASS_MASS_STORAGE, PCI_SUBCLASS_MASS_STORAGE_IDE) &&
+        dev->bridge.secbus->minpciioaddr == 0) {
+        /*
+         * There is no need to setup memory regions for IDE storage devices
+         * but only if PCI/ISA I/O space is accessables
+         */
+        return;
 
-			if (_pciverbose >= 3) {
-				_pci_tagprintf (tag, "reg 0x%x = 0x%x\n",
-							reg, mask);
-			}
+    } 
+    //set BAR for this dev
+    {
+        int skipnext = 0;
 
-			if (PCI_MAPREG_TYPE(mask) == PCI_MAPREG_TYPE_IO) {
-				mask |= 0xffff0000; /* must be ones */
-				pm = pmalloc(sizeof(struct pci_win));
-				if(pm == NULL) {
-					PRINTF ("pci: can't alloc memory for pci memory window\n");
-					return;
-				}
+        for (reg = PCI_MAPREG_START; reg < (isbridge ? PCI_MAPREG_PPB_END : PCI_MAPREG_END); reg += 4) {
+            struct pci_win *pm;
 
-				pm->device = pd;
-				pm->reg = reg;
-				pm->flags = PCI_MAPREG_TYPE_IO;
-				pm->size = -(PCI_MAPREG_IO_ADDR(mask));
-				pm->align = pm->size;
-				_insertsort_window(&pd->parent->bridge.iospace, pm);
-			}
-			else {
-				switch (PCI_MAPREG_MEM_TYPE(mask)) {
-				case PCI_MAPREG_MEM_TYPE_32BIT:
-				case PCI_MAPREG_MEM_TYPE_32BIT_1M:
-					break;
-				case PCI_MAPREG_MEM_TYPE_64BIT:
-					_pci_conf_write(tag, reg + 4, 0x0);
-					skipnext = 1;
-					break;
-				default:
-					_pci_tagprintf (tag, "reserved mapping type 0x%x\n",
-					      PCI_MAPREG_MEM_TYPE(mask));
-					continue;
-				}
+            if (skipnext) {
+                skipnext = 0;
+                continue;
+            }
 
-				if  (!PCI_MAPREG_MEM_PREFETCHABLE(mask)) {
-					pb->prefetch = 0;
-				}
+            old = _pci_conf_read(tag, reg);
+            _pci_conf_write(tag, reg, 0xfffffffe);
+            mask = _pci_conf_read(tag, reg);
+            _pci_conf_write(tag, reg, old);
 
-				pm = pmalloc(sizeof(struct pci_win));
-				if(pm == NULL) {
-					PRINTF ("pci: can't alloc memory for pci memory window\n");
-					return;
-				}
+            if (mask == 0 || mask == 0xffffffff) {
+                continue;
+            }
 
-				pm->device = pd;
-				pm->reg = reg;
-				pm->flags = PCI_MAPREG_MEM_TYPE_32BIT;
-				pm->size = -(PCI_MAPREG_MEM_ADDR(mask));
-#ifdef USE_BMC || defined(CONFIG_GFXUMA)
-			if(PCI_ISCLASS(((pd->pa.pa_class)&0xff00ffff), PCI_CLASS_DISPLAY, PCI_SUBCLASS_DISPLAY_VGA)){
-				if(reg==0x10){
-					pm->size = VRAM_SIZE<<20;
-					printf("pm->size = %08x\n", pm->size);
-                      		}
-			}
-#endif
-			pm->align = pm->size;
-			_insertsort_window(&pd->parent->bridge.memspace, pm);
-			}
-		}
+            if (_pciverbose >= 3) {
+                _pci_tagprintf (tag, "reg 0x%x = 0x%x\n", reg, mask);
+            }
 
-		/* Finally check for Expansion ROM */
-		reg = PCI_MAPREG_ROM;
-		old = _pci_conf_read(tag, reg);
-		_pci_conf_write(tag, reg, 0xfffffffe);
-		mask = _pci_conf_read(tag, reg);
-		_pci_conf_write(tag, reg, old);
+            if (PCI_MAPREG_TYPE(mask) == PCI_MAPREG_TYPE_IO) {
+                mask |= 0xffff0000; /* must be ones */
+                pm = pmalloc(sizeof(struct pci_win));
+                if(pm == NULL) {
+                    PRINTF ("pci: can't alloc memory for pci memory window\n");
+                    return;
+                }
 
-		if (mask != 0 && mask != 0xffffffff) {
-			struct pci_win *pm;
+                pm->device = pd;
+                pm->reg = reg;
+                pm->flags = PCI_MAPREG_TYPE_IO;
+                pm->size = -(PCI_MAPREG_IO_ADDR(mask));
+                pm->align = pm->size;
+                _insertsort_window(&pd->parent->bridge.iospace, pm);
+            }
+            else {
+                switch (PCI_MAPREG_MEM_TYPE(mask)) {
+                case PCI_MAPREG_MEM_TYPE_32BIT:
+                case PCI_MAPREG_MEM_TYPE_32BIT_1M:
+                    break;
+                case PCI_MAPREG_MEM_TYPE_64BIT:
+                    _pci_conf_write(tag, reg + 4, 0x0);
+                    skipnext = 1;
+                    break;
+                default:
+                    _pci_tagprintf (tag, "reserved mapping type 0x%x\n",
+                          PCI_MAPREG_MEM_TYPE(mask));
+                    continue;
+                }
 
-			if (_pciverbose >= 3) {
-				_pci_tagprintf (tag, "reg 0x%x = 0x%x\n", reg, mask);
-			}
+                if  (!PCI_MAPREG_MEM_PREFETCHABLE(mask)) {
+                    pb->prefetch = 0;
+                }
 
-			pm = pmalloc(sizeof(struct pci_win));
-			if(pm == NULL) {
-				PRINTF ("pci: can't alloc memory for pci memory window\n");
-				return;
-			}
-			pm->device = pd;
-			pm->reg = reg;
-			pm->size = -(PCI_MAPREG_ROM_ADDR(mask));
-				pm->align = pm->size;
-			_insertsort_window(&pd->parent->bridge.memspace, pm);
-		}
-	}
+                pm = pmalloc(sizeof(struct pci_win));
+                if(pm == NULL) {
+                    PRINTF ("pci: can't alloc memory for pci memory window\n");
+                    return;
+                }
+
+                pm->device = pd;
+                pm->reg = reg;
+                pm->flags = PCI_MAPREG_MEM_TYPE_32BIT;
+                pm->size = -(PCI_MAPREG_MEM_ADDR(mask));
+                pm->align = pm->size;
+                _insertsort_window(&pd->parent->bridge.memspace, pm);
+            }
+        }
+
+        {
+            /* Finally check for Expansion ROM */
+            reg = isbridge ? PCI_MAPREG_PPB_ROM : PCI_MAPREG_ROM;
+            old = _pci_conf_read(tag, reg);
+            _pci_conf_write(tag, reg, 0xfffffffe);
+            mask = _pci_conf_read(tag, reg);
+            _pci_conf_write(tag, reg, old);
+
+            if (mask != 0 && mask != 0xffffffff) {
+                struct pci_win *pm;
+
+                if (_pciverbose >= 3) {
+                    _pci_tagprintf (tag, "reg 0x%x = 0x%x\n", reg, mask);
+                }
+
+                pm = pmalloc(sizeof(struct pci_win));
+                if(pm == NULL) {
+                    PRINTF ("pci: can't alloc memory for pci memory window\n");
+                    return;
+                }
+                pm->device = pd;
+                pm->reg = reg;
+                pm->size = -(PCI_MAPREG_ROM_ADDR(mask));
+                            pm->align = pm->size;
+                _insertsort_window(&pd->parent->bridge.memspace, pm);
+            }
+        }
+    }
 }
 
 static int
@@ -618,7 +598,7 @@ static void
 _pci_query_dev (struct pci_device *dev, int bus, int device, int initialise)
 {
 	pcitag_t tag;
-	pcireg_t id, typ;
+	pcireg_t id;
 	pcireg_t misc;
 
 	tag = _pci_make_tag(bus, device, 0);
@@ -641,7 +621,6 @@ _pci_query_dev (struct pci_device *dev, int bus, int device, int initialise)
 #endif
 	delay(1000);  //fix that the correct id sometimes can not read;
 	id = _pci_conf_read(tag, PCI_ID_REG);
-	typ = _pci_conf_read(tag, PCI_CLASS_REG);
 
 	if (_pciverbose >= 2) {
 		PRINTF ("completed\n");
@@ -681,7 +660,6 @@ _pci_query_dev (struct pci_device *dev, int bus, int device, int initialise)
 		_pci_query_dev_func (dev, tag, initialise);
 	}
 }
-
 
 pcireg_t
 _pci_allocate_mem(dev, size, align)
@@ -774,14 +752,15 @@ _pci_setup_windows (struct pci_device *dev)
 
         pd = pm->device;
         next = pm->next;
+
         if(pd->bridge.child) align = ~pd->bridge.mem_mask+1;
         else align = 1<<(fls(pm->size)-1);
 
         pm->address = _pci_allocate_mem (dev, pm->size, align);
         if (pm->address == -1) {
-	pci_bigmem_address = (pci_bigmem_address + pm->size-1) & ~(pm->size - 1);
+	        pci_bigmem_address = (pci_bigmem_address + pm->size-1) & ~(pm->size - 1);
 		    pm->address = pci_bigmem_address;
-	pci_bigmem_address += pm->size;
+	        pci_bigmem_address += pm->size;
 
 #if 1
             _pci_tagprintf (pd->pa.pa_tag, 
@@ -793,26 +772,12 @@ _pci_setup_windows (struct pci_device *dev)
         if (_pciverbose >= 2)
             _pci_tagprintf (pd->pa.pa_tag, "mem @%p, reg 0x%x %d bytes\n", pm->address, pm->reg, pm->size);
 
-#if defined(LOONGSON_2K)
-	if ((PCI_ISCLASS(pd->pa.pa_class, PCI_CLASS_BRIDGE, PCI_SUBCLASS_BRIDGE_PCI) || PCI_ISCLASS(pd->pa.pa_class, PCI_CLASS_PROCESSOR, 0x30)) &&
-           (pm->reg == PCI_MEMBASE_1)) {
+    	if (PCI_ISCLASS(pd->pa.pa_class, PCI_CLASS_BRIDGE, PCI_SUBCLASS_BRIDGE_PCI) && (pm->reg == PCI_MEMBASE_1)) {
 
             pcireg_t memory;
             
             pm->address = (pm->address + (~pd->bridge.mem_mask))& pd->bridge.mem_mask; //yang23 2013-11-26
             dev->bridge.secbus->minpcimemaddr = pm->address + pm->size; //yang23 2013-11-26
-#elif defined(LS7A)
-	if (PCI_ISCLASS(pd->pa.pa_class,
-		PCI_CLASS_BRIDGE, PCI_SUBCLASS_BRIDGE_HOST) &&
-			(pm->reg == PCI_MEMBASE_1)) {
-		pcireg_t memory;
-#else
-	if (PCI_ISCLASS(pd->pa.pa_class,
-	    PCI_CLASS_BRIDGE, PCI_SUBCLASS_BRIDGE_PCI) &&
-           (pm->reg == PCI_MEMBASE_1)) {
-
-            pcireg_t memory;
-#endif
 
             pd->bridge.secbus->minpcimemaddr = pm->address;
             pd->bridge.secbus->nextpcimemaddr = pm->address + pm->size;
@@ -884,13 +849,14 @@ _pci_setup_windows (struct pci_device *dev)
 		pm->address = 0x000c0000;	/* XXX PCI MEM @ 0x000!!! */
 	}
 #endif
-	if (pm->reg == PCI_MAPREG_ROM) {
+    	if ((PCI_ISCLASS(pd->pa.pa_class, PCI_CLASS_BRIDGE, PCI_SUBCLASS_BRIDGE_PCI) && (pm->reg == PCI_MAPREG_PPB_ROM)) || (pm->reg == PCI_MAPREG_ROM)) {
 	    /* expansion rom */
-		if (_pciverbose >= 2)
-		    _pci_tagprintf (pd->pa.pa_tag, "exp @%p, %d bytes\n",
-			pm->address, pm->size);
-	    _pci_conf_write(pd->pa.pa_tag, pm->reg, pm->address | PCI_MAPREG_TYPE_ROM);
+		    if (_pciverbose >= 2){
+		        _pci_tagprintf (pd->pa.pa_tag, "exp @%p, %d bytes\n", pm->address, pm->size);
+            }
+	        _pci_conf_write(pd->pa.pa_tag, pm->reg, pm->address | PCI_MAPREG_TYPE_ROM);
         }
+
         next = pm->next;
         dev->bridge.memspace = next;
         pfree(pm);
@@ -901,74 +867,37 @@ _pci_setup_windows (struct pci_device *dev)
 
         pd = pm->device;
         next = pm->next;
+
         if(pd->bridge.child) align = ~pd->bridge.io_mask+1;
         else align = 1<<(fls(pm->size)-1);
 
         pm->address = _pci_allocate_io (dev, pm->size, align);
         if (pm->address == -1) {
             _pci_tagprintf (pd->pa.pa_tag, 
-                            "not enough PCI io space (%d requested)\n",
+                            "not enough PCI io space (%d requested)\n", 
                             pm->size);
-	    pm->address = pci_bigio_address;
-	    pci_bigio_address += pm->size;
+	        pm->address = pci_bigio_address;
+	        pci_bigio_address += pm->size;
         }
         if (_pciverbose >= 2)
-#if defined(LOONGSON_2K)
 		    _pci_tagprintf (pd->pa.pa_tag, "i/o @%p, reg 0x%x %d bytes\n", pm->address, pm->reg, pm->size);
- 
-	if ((PCI_ISCLASS(pd->pa.pa_class, PCI_CLASS_BRIDGE, PCI_SUBCLASS_BRIDGE_PCI) || PCI_ISCLASS(pd->pa.pa_class, PCI_CLASS_PROCESSOR, 0x30)) &&
-           (pm->reg == PCI_IOBASEL_1)) {
-#elif defined(LS7A)
-		_pci_tagprintf (pd->pa.pa_tag, "i/o @%p, %d bytes\n", pm->address, pm->size);
-	if (PCI_ISCLASS(pd->pa.pa_class,
-		PCI_CLASS_BRIDGE, PCI_SUBCLASS_BRIDGE_HOST) &&
-			(pm->reg == PCI_IOBASEL_1)) {
-#else
-		    _pci_tagprintf (pd->pa.pa_tag, "i/o @%p, %d bytes\n", pm->address, pm->size);
 
-	if (PCI_ISCLASS(pd->pa.pa_class,
-	    PCI_CLASS_BRIDGE, PCI_SUBCLASS_BRIDGE_PCI) &&
+	    if (PCI_ISCLASS(pd->pa.pa_class, PCI_CLASS_BRIDGE, PCI_SUBCLASS_BRIDGE_PCI) &&
            (pm->reg == PCI_IOBASEL_1)) {
-#endif
-	    pcireg_t tmp;
+	        pcireg_t tmp;
 
             pd->bridge.secbus->minpciioaddr = pm->address;
             pd->bridge.secbus->nextpciioaddr = pm->address + pm->size;
 
-	    tmp = _pci_conf_read(pd->pa.pa_tag,PCI_IOBASEL_1);
-	    tmp &= 0xffff0000;
-	    tmp |= (pm->address >> 8) & 0xf0;
-	    tmp |= ((pm->address + pm->size-1) & 0xf000);
-	    _pci_conf_write(pd->pa.pa_tag,PCI_IOBASEL_1, tmp);
+	        tmp = _pci_conf_read(pd->pa.pa_tag,PCI_IOBASEL_1);
+	        tmp &= 0xffff0000;
+	        tmp |= (pm->address >> 8) & 0xf0;
+	        tmp |= ((pm->address + pm->size-1) & 0xf000);
+	        _pci_conf_write(pd->pa.pa_tag,PCI_IOBASEL_1, tmp);
 
-	    tmp = (pm->address >> 16) & 0xffff;
-	    tmp |= ((pm->address + pm->size-1) & 0xffff0000);
-	    _pci_conf_write(pd->pa.pa_tag,PCI_IOBASEH_1, tmp);
-        /*
-	    //first to identify whether 32-bit IO space is supported
-	    //added by whd
-	    if(tmp & 0x1){
-	      tmp &= 0xffff0000;
-	      tmp |= (pm->address >> 8) & 0xf0;
-	      tmp |= ((pm->address + pm->size) & 0xf000);
-	      //printf("whd:IO space of bridge : pd->pa.pa_tag = %X,PCI_IOBASEL_1 = %X, tmp= %X, pm->address + pm->size = %X\n",pd->pa.pa_tag,PCI_IOBASEL_1, tmp,pm->address + pm->size);
-	      _pci_conf_write(pd->pa.pa_tag,PCI_IOBASEL_1, tmp);
-
-	      tmp = (pm->address >> 16) & 0xffff;
-	      tmp |= ((pm->address + pm->size) & 0xffff0000);
-	      //printf("whd:IO space of bridge : pd->pa.pa_tag = %X,PCI_IOBASEH_1 = %X, tmp= %X\n",pd->pa.pa_tag,PCI_IOBASEH_1, tmp);
-	      _pci_conf_write(pd->pa.pa_tag,PCI_IOBASEH_1, tmp);
-	    } else {//do NOT support
-	      tmp &= 0xffff0000;
-	      tmp |= (pm->address >> 8) & 0xf0;
-		    if((pm->address + pm->size) > 0xffff)
-			tmp |= 0xf000;
-		    else
-	                tmp |= ((pm->address + pm->size) & 0xf000);
-	      //printf("whd:IO space of bridge : pd->pa.pa_tag = %X,PCI_IOBASEL_1 = %X, tmp= %X, pm->address + pm->size = %X\n",pd->pa.pa_tag,PCI_IOBASEL_1, tmp,pm->address + pm->size);
-	      _pci_conf_write(pd->pa.pa_tag,PCI_IOBASEL_1, tmp);
-	     }
-        */
+	        tmp = (pm->address >> 16) & 0xffff;
+	        tmp |= ((pm->address + pm->size-1) & 0xffff0000);
+	        _pci_conf_write(pd->pa.pa_tag,PCI_IOBASEH_1, tmp);
 
         }
         else {
@@ -980,15 +909,7 @@ _pci_setup_windows (struct pci_device *dev)
 
     /* Recursive allocate memory for secondary buses */
     for(pd = dev->bridge.child; pd != NULL; pd = pd->next) {
-#if defined(LOONGSON_2K)
-	if (PCI_ISCLASS(pd->pa.pa_class, PCI_CLASS_BRIDGE, PCI_SUBCLASS_BRIDGE_PCI) || PCI_ISCLASS(pd->pa.pa_class, PCI_CLASS_PROCESSOR, 0x30)) {
-#elif defined(LS7A)
-	if (PCI_ISCLASS(pd->pa.pa_class,
-		PCI_CLASS_BRIDGE, PCI_SUBCLASS_BRIDGE_HOST)) {
-#else
-	if (PCI_ISCLASS(pd->pa.pa_class,
-	    PCI_CLASS_BRIDGE, PCI_SUBCLASS_BRIDGE_PCI)) {
-#endif
+	    if (PCI_ISCLASS(pd->pa.pa_class, PCI_CLASS_BRIDGE, PCI_SUBCLASS_BRIDGE_PCI)) {
             _pci_setup_windows(pd);
         }
     }
@@ -1124,13 +1045,7 @@ _pci_setup_devices (struct pci_device *parent, int initialise)
 		   | ((PCI_CACHE_LINE_SIZE & 0xff) << PCI_CACHELINE_SHIFT);
 	    _pci_conf_write (tag, PCI_BHLC_REG, misc);
 	    
-#if defined(LOONGSON_2K)
-	    if(PCI_CLASS(class) == PCI_CLASS_BRIDGE || PCI_CLASS(class) == PCI_CLASS_PROCESSOR  ||
-	       PCI_SUBCLASS(class) == PCI_SUBCLASS_BRIDGE_PCI || pd->bridge.child != NULL) {
-#else
-	    if(PCI_CLASS(class) == PCI_CLASS_BRIDGE ||
-	       PCI_SUBCLASS(class) == PCI_SUBCLASS_BRIDGE_PCI || pd->bridge.child != NULL) {
-#endif
+	    if((PCI_CLASS(class) == PCI_CLASS_BRIDGE && PCI_SUBCLASS(class) == PCI_SUBCLASS_BRIDGE_PCI) || pd->bridge.child != NULL) {
 		    _pci_setup_devices (pd, initialise); 
 	    }
         }
@@ -1144,11 +1059,11 @@ _pci_businit (int init)
 
 	tgt_putchar('P');
 	v = getenv("pciverbose");
-       tgt_putchar('1');
+    tgt_putchar('1');
 	if (v) {
 	    _pciverbose = atol(v);
 	}
-tgt_putchar('2');
+    tgt_putchar('2');
 
 	/* intialise the PCI bridge */
 	if (/*init*/ 1) {
