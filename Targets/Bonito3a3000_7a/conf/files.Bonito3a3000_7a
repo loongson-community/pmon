@@ -18,6 +18,7 @@ file	Targets/Bonito3a3000_7a/dev/dc.c
 #gpio i2c config ch7034 for 3a3000_7a board
 file	Targets/Bonito3a3000_7a/dev/i2c-gpio.c
 file	Targets/Bonito3a3000_7a/dev/ltc.c
+file	Targets/Bonito3a3000_7a/dev/usb_spi.c
 
 #Gmac
 file	sys/dev/gmac/synopGMAC_Dev.c
