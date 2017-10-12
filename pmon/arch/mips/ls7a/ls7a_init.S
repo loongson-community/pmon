@@ -26,7 +26,7 @@
 #endif
     TTYDBG("config 7A dma route done.\r\n")
 
-#if 0   //ndef LS7A_2WAY_CONNECT
+#ifndef LS7A_2WAY_CONNECT
     //shut down LS7A HT Hi
     lw      t1, CONF_HT_CLKEN_OFFSET(t0)
     li      t2, (0x1 << 1)
@@ -266,9 +266,9 @@
     sw      t1, CONF_NB_OFFSET(t0)
 
     //delay a while
-    li      t1, 0x1000
+    dli     t1, 0x4000000
 1:
-    subu    t1, t1, 1
+    dsubu   t1, t1, 1
     bnez    t1, 1b
     nop
 
@@ -309,6 +309,13 @@
     not     t2, t2
     and     t1, t1, t2
     sw      t1, CONF_NB_OFFSET(t0)
+
+    //delay a while
+    dli     t1, 0x4000000
+1:
+    dsubu   t1, t1, 1
+    bnez    t1, 1b
+    nop
 #endif
 
     //enable access
@@ -319,315 +326,380 @@
     TTYDBG("PCIE enabled\r\n")
 
 #if (!(LS7A_PCIE_F0_P0_DISABLE && LS7A_PCIE_F0_P1_DISABLE && LS7A_PCIE_F0_P2_DISABLE && LS7A_PCIE_F0_P3_DISABLE))
-    dli     t1, 0x1403f1002
-    sd      t1, 0x590(t0)
-    dli     t1, 0x1403f1102
-    sd      t1, 0x590(t0)
-    dli     t1, 0x1403f1202
-    sd      t1, 0x590(t0)
-    dli     t1, 0x1403f1302
-    sd      t1, 0x590(t0)
+//DO not destroy a0, a1, for example, do not add print between these code
+    daddu   a0, t0, 0x590
+    li      a1, 0x403f1002
+    bal     ls7a_phy_cfg_write
+    nop
+    addu    a1, a1, 0x100
+    bal     ls7a_phy_cfg_write
+    nop
+    addu    a1, a1, 0x100
+    bal     ls7a_phy_cfg_write
+    nop
+    addu    a1, a1, 0x100
+    bal     ls7a_phy_cfg_write
+    nop
 #endif
 
 #if (!(LS7A_PCIE_F1_P0_DISABLE && LS7A_PCIE_F1_P1_DISABLE))
-    dli     t1, 0x1403f1002
-    sd      t1, 0x5b0(t0)
-    dli     t1, 0x1403f1102
-    sd      t1, 0x5b0(t0)
-    dli     t1, 0x1403f1202
-    sd      t1, 0x5b0(t0)
-    dli     t1, 0x1403f1302
-    sd      t1, 0x5b0(t0)
+    daddu   a0, t0, 0x5b0
+    li      a1, 0x403f1002
+    bal     ls7a_phy_cfg_write
+    nop
+    addu    a1, a1, 0x100
+    bal     ls7a_phy_cfg_write
+    nop
+    addu    a1, a1, 0x100
+    bal     ls7a_phy_cfg_write
+    nop
+    addu    a1, a1, 0x100
+    bal     ls7a_phy_cfg_write
+    nop
 #endif
 
 #if (!(LS7A_PCIE_G0_P0_DISABLE && LS7A_PCIE_G0_P1_DISABLE))
-    dli     t1, 0x1403f1002
-    sd      t1, 0x5d0(t0)
-    dli     t1, 0x1403f1102
-    sd      t1, 0x5d0(t0)
-    dli     t1, 0x1403f1202
-    sd      t1, 0x5d0(t0)
-    dli     t1, 0x1403f1302
-    sd      t1, 0x5d0(t0)
+    daddu   a0, t0, 0x5d0
+    li      a1, 0x403f1002
+    bal     ls7a_phy_cfg_write
+    nop
+    addu    a1, a1, 0x100
+    bal     ls7a_phy_cfg_write
+    nop
+    addu    a1, a1, 0x100
+    bal     ls7a_phy_cfg_write
+    nop
+    addu    a1, a1, 0x100
+    bal     ls7a_phy_cfg_write
+    nop
 
-    dli     t1, 0x1403f1002
-    sd      t1, 0x5d8(t0)
-    dli     t1, 0x1403f1102
-    sd      t1, 0x5d8(t0)
-    dli     t1, 0x1403f1202
-    sd      t1, 0x5d8(t0)
-    dli     t1, 0x1403f1302
-    sd      t1, 0x5d8(t0)
+    daddu   a0, t0, 0x5d8
+    li      a1, 0x403f1002
+    bal     ls7a_phy_cfg_write
+    nop
+    addu    a1, a1, 0x100
+    bal     ls7a_phy_cfg_write
+    nop
+    addu    a1, a1, 0x100
+    bal     ls7a_phy_cfg_write
+    nop
+    addu    a1, a1, 0x100
+    bal     ls7a_phy_cfg_write
+    nop
 #endif
 
 #if (!(LS7A_PCIE_G1_P0_DISABLE && LS7A_PCIE_G1_P1_DISABLE))
-    dli     t1, 0x1403f1002
-    sd      t1, 0x5f0(t0)
-    dli     t1, 0x1403f1102
-    sd      t1, 0x5f0(t0)
-    dli     t1, 0x1403f1202
-    sd      t1, 0x5f0(t0)
-    dli     t1, 0x1403f1302
-    sd      t1, 0x5f0(t0)
+    daddu   a0, t0, 0x5f0
+    li      a1, 0x403f1002
+    bal     ls7a_phy_cfg_write
+    nop
+    addu    a1, a1, 0x100
+    bal     ls7a_phy_cfg_write
+    nop
+    addu    a1, a1, 0x100
+    bal     ls7a_phy_cfg_write
+    nop
+    addu    a1, a1, 0x100
+    bal     ls7a_phy_cfg_write
+    nop
 
-    dli     t1, 0x1403f1002
-    sd      t1, 0x5f8(t0)
-    dli     t1, 0x1403f1102
-    sd      t1, 0x5f8(t0)
-    dli     t1, 0x1403f1202
-    sd      t1, 0x5f8(t0)
-    dli     t1, 0x1403f1302
-    sd      t1, 0x5f8(t0)
+    daddu   a0, t0, 0x5f8
+    li      a1, 0x403f1002
+    bal     ls7a_phy_cfg_write
+    nop
+    addu    a1, a1, 0x100
+    bal     ls7a_phy_cfg_write
+    nop
+    addu    a1, a1, 0x100
+    bal     ls7a_phy_cfg_write
+    nop
+    addu    a1, a1, 0x100
+    bal     ls7a_phy_cfg_write
+    nop
 #endif
 
 #if (!(LS7A_PCIE_H_P0_DISABLE && LS7A_PCIE_H_P1_DISABLE))
-    dli     t1, 0x1403f1002
-    sd      t1, 0x610(t0)
-    dli     t1, 0x1403f1102
-    sd      t1, 0x610(t0)
-    dli     t1, 0x1403f1202
-    sd      t1, 0x610(t0)
-    dli     t1, 0x1403f1302
-    sd      t1, 0x610(t0)
+    daddu   a0, t0, 0x610
+    li      a1, 0x403f1002
+    bal     ls7a_phy_cfg_write
+    nop
+    addu    a1, a1, 0x100
+    bal     ls7a_phy_cfg_write
+    nop
+    addu    a1, a1, 0x100
+    bal     ls7a_phy_cfg_write
+    nop
+    addu    a1, a1, 0x100
+    bal     ls7a_phy_cfg_write
+    nop
 
-    dli     t1, 0x1403f1002
-    sd      t1, 0x618(t0)
-    dli     t1, 0x1403f1102
-    sd      t1, 0x618(t0)
-    dli     t1, 0x1403f1202
-    sd      t1, 0x618(t0)
-    dli     t1, 0x1403f1302
-    sd      t1, 0x618(t0)
+    daddu   a0, t0, 0x618
+    li      a1, 0x403f1002
+    bal     ls7a_phy_cfg_write
+    nop
+    addu    a1, a1, 0x100
+    bal     ls7a_phy_cfg_write
+    nop
+    addu    a1, a1, 0x100
+    bal     ls7a_phy_cfg_write
+    nop
+    addu    a1, a1, 0x100
+    bal     ls7a_phy_cfg_write
+    nop
 #endif
 
 #define PCIE_GEN_CFG 0x1
 
 #if (!LS7A_PCIE_F0_P0_DISABLE)
     dli     t0, 0x90000efe08004800
-    li      t1, 0xfff9ffff
+    li      a0, 0xfff9ffff
     lw      t2, 0xc(t0)
-    and     t1, t1, t2
-    or      t1, (PCIE_GEN_CFG << 17)
-    sw      t1, 0xc(t0)
+    and     a0, a0, t2
+    or      a0, (PCIE_GEN_CFG << 17)
+    sw      a0, 0xc(t0)
 
     dli     t0, 0x90000efe00004800
-    li      t1, 0x60000000
-    sw      t1, 0x10(t0)
+    li      a0, 0x60000000
+    sw      a0, 0x10(t0)
 
-    dli     t0, 0x90000e0000000000
-    li      t1, 0x60000000
-    or      t0, t0, t1
-    dli     t1, 0xff204c
-    sw      t1, 0x0(t0)
+    dli     t1, 0x90000e0000000000
+    li      a0, 0x60000000
+    or      t1, t1, a0
+    li      a0, 0xff204c
+    sw      a0, 0x0(t1)
+
+    sw      $0, 0x10(t0)
 #endif
 
 #if (!LS7A_PCIE_F0_P1_DISABLE)
     dli     t0, 0x90000efe08005000
-    li      t1, 0xfff9ffff
+    li      a0, 0xfff9ffff
     lw      t2, 0xc(t0)
-    and     t1, t1, t2
-    or      t1, (PCIE_GEN_CFG << 17)
-    sw      t1, 0xc(t0)
+    and     a0, a0, t2
+    or      a0, (PCIE_GEN_CFG << 17)
+    sw      a0, 0xc(t0)
 
     dli     t0, 0x90000efe00005000
-    li      t1, 0x60100000
-    sw      t1, 0x10(t0)
+    li      a0, 0x60100000
+    sw      a0, 0x10(t0)
 
-    dli     t0, 0x90000e0000000000
-    li      t1, 0x60100000
-    or      t0, t0, t1
-    dli     t1, 0xff204c
-    sw      t1, 0x0(t0)
+    dli     t1, 0x90000e0000000000
+    li      a0, 0x60100000
+    or      t1, t1, a0
+    li      a0, 0xff204c
+    sw      a0, 0x0(t1)
+
+    sw      $0, 0x10(t0)
 #endif
 
 #if (!LS7A_PCIE_F0_P2_DISABLE)
     dli     t0, 0x90000efe08005800
-    li      t1, 0xfff9ffff
+    li      a0, 0xfff9ffff
     lw      t2, 0xc(t0)
-    and     t1, t1, t2
-    or      t1, (PCIE_GEN_CFG << 17)
-    sw      t1, 0xc(t0)
+    and     a0, a0, t2
+    or      a0, (PCIE_GEN_CFG << 17)
+    sw      a0, 0xc(t0)
 
     dli     t0, 0x90000efe00005800
-    li      t1, 0x60200000
-    sw      t1, 0x10(t0)
+    li      a0, 0x60200000
+    sw      a0, 0x10(t0)
 
-    dli     t0, 0x90000e0000000000
-    li      t1, 0x60200000
-    or      t0, t0, t1
-    dli     t1, 0xff204c
-    sw      t1, 0x0(t0)
+    dli     t1, 0x90000e0000000000
+    li      a0, 0x60200000
+    or      t1, t1, a0
+    li      a0, 0xff204c
+    sw      a0, 0x0(t1)
+
+    sw      $0, 0x10(t0)
 #endif
 
 #if (!LS7A_PCIE_F0_P3_DISABLE)
     dli     t0, 0x90000efe08006000
-    li      t1, 0xfff9ffff
+    li      a0, 0xfff9ffff
     lw      t2, 0xc(t0)
-    and     t1, t1, t2
-    or      t1, (PCIE_GEN_CFG << 17)
-    sw      t1, 0xc(t0)
+    and     a0, a0, t2
+    or      a0, (PCIE_GEN_CFG << 17)
+    sw      a0, 0xc(t0)
 
     dli     t0, 0x90000efe00006000
-    li      t1, 0x60300000
-    sw      t1, 0x10(t0)
+    li      a0, 0x60300000
+    sw      a0, 0x10(t0)
 
-    dli     t0, 0x90000e0000000000
-    li      t1, 0x60300000
-    or      t0, t0, t1
-    dli     t1, 0xff204c
-    sw      t1, 0x0(t0)
+    dli     t1, 0x90000e0000000000
+    li      a0, 0x60300000
+    or      t1, t1, a0
+    li      a0, 0xff204c
+    sw      a0, 0x0(t1)
+
+    sw      $0, 0x10(t0)
 #endif
 
 #if (!LS7A_PCIE_F1_P0_DISABLE)
     dli     t0, 0x90000efe08006800
-    li      t1, 0xfff9ffff
+    li      a0, 0xfff9ffff
     lw      t2, 0xc(t0)
-    and     t1, t1, t2
-    or      t1, (PCIE_GEN_CFG << 17)
-    sw      t1, 0xc(t0)
+    and     a0, a0, t2
+    or      a0, (PCIE_GEN_CFG << 17)
+    sw      a0, 0xc(t0)
 
     dli     t0, 0x90000efe00006800
-    li      t1, 0x61000000
-    sw      t1, 0x10(t0)
+    li      a0, 0x61000000
+    sw      a0, 0x10(t0)
 
-    dli     t0, 0x90000e0000000000
-    li      t1, 0x61000000
-    or      t0, t0, t1
-    dli     t1, 0xff204c
-    sw      t1, 0x0(t0)
+    dli     t1, 0x90000e0000000000
+    li      a0, 0x61000000
+    or      t1, t1, a0
+    li      a0, 0xff204c
+    sw      a0, 0x0(t1)
+
+    sw      $0, 0x10(t0)
 #endif
 
 #if (!LS7A_PCIE_F1_P1_DISABLE)
     dli     t0, 0x90000efe08007000
-    li      t1, 0xfff9ffff
+    li      a0, 0xfff9ffff
     lw      t2, 0xc(t0)
-    and     t1, t1, t2
-    or      t1, (PCIE_GEN_CFG << 17)
-    sw      t1, 0xc(t0)
+    and     a0, a0, t2
+    or      a0, (PCIE_GEN_CFG << 17)
+    sw      a0, 0xc(t0)
 
     dli     t0, 0x90000efe00007000
-    li      t1, 0x61100000
-    sw      t1, 0x10(t0)
+    li      a0, 0x61100000
+    sw      a0, 0x10(t0)
 
-    dli     t0, 0x90000e0000000000
-    li      t1, 0x61100000
-    or      t0, t0, t1
-    dli     t1, 0xff204c
-    sw      t1, 0x0(t0)
+    dli     t1, 0x90000e0000000000
+    li      a0, 0x61100000
+    or      t1, t1, a0
+    li      a0, 0xff204c
+    sw      a0, 0x0(t1)
+
+    sw      $0, 0x10(t0)
 #endif
 
 #if (!LS7A_PCIE_G0_P0_DISABLE)
     dli     t0, 0x90000efe08007800
-    li      t1, 0xfff9ffff
+    li      a0, 0xfff9ffff
     lw      t2, 0xc(t0)
-    and     t1, t1, t2
-    or      t1, (PCIE_GEN_CFG << 17)
-    sw      t1, 0xc(t0)
+    and     a0, a0, t2
+    or      a0, (PCIE_GEN_CFG << 17)
+    sw      a0, 0xc(t0)
 
     dli     t0, 0x90000efe00007800
-    li      t1, 0x62000000
-    sw      t1, 0x10(t0)
+    li      a0, 0x62000000
+    sw      a0, 0x10(t0)
 
-    dli     t0, 0x90000e0000000000
-    li      t1, 0x62000000
-    or      t0, t0, t1
-    dli     t1, 0xff204c
-    sw      t1, 0x0(t0)
+    dli     t1, 0x90000e0000000000
+    li      a0, 0x62000000
+    or      t1, t1, a0
+    li      a0, 0xff204c
+    sw      a0, 0x0(t1)
+
+    sw      $0, 0x10(t0)
 #endif
 
 #if (!LS7A_PCIE_G0_P1_DISABLE)
     dli     t0, 0x90000efe08008000
-    li      t1, 0xfff9ffff
+    li      a0, 0xfff9ffff
     lw      t2, 0xc(t0)
-    and     t1, t1, t2
-    or      t1, (PCIE_GEN_CFG << 17)
-    sw      t1, 0xc(t0)
+    and     a0, a0, t2
+    or      a0, (PCIE_GEN_CFG << 17)
+    sw      a0, 0xc(t0)
 
     dli     t0, 0x90000efe00008000
-    li      t1, 0x62100000
-    sw      t1, 0x10(t0)
+    li      a0, 0x62100000
+    sw      a0, 0x10(t0)
 
-    dli     t0, 0x90000e0000000000
-    li      t1, 0x62100000
-    or      t0, t0, t1
-    dli     t1, 0xff204c
-    sw      t1, 0x0(t0)
+    dli     t1, 0x90000e0000000000
+    li      a0, 0x62100000
+    or      t1, t1, a0
+    li      a0, 0xff204c
+    sw      a0, 0x0(t1)
+
+    sw      $0, 0x10(t0)
 #endif
 
 #if (!LS7A_PCIE_G1_P0_DISABLE)
     dli     t0, 0x90000efe08008800
-    li      t1, 0xfff9ffff
+    li      a0, 0xfff9ffff
     lw      t2, 0xc(t0)
-    and     t1, t1, t2
-    or      t1, (PCIE_GEN_CFG << 17)
-    sw      t1, 0xc(t0)
+    and     a0, a0, t2
+    or      a0, (PCIE_GEN_CFG << 17)
+    sw      a0, 0xc(t0)
 
     dli     t0, 0x90000efe00008800
-    li      t1, 0x63000000
-    sw      t1, 0x10(t0)
+    li      a0, 0x63000000
+    sw      a0, 0x10(t0)
 
-    dli     t0, 0x90000e0000000000
-    li      t1, 0x63000000
-    or      t0, t0, t1
-    dli     t1, 0xff204c
-    sw      t1, 0x0(t0)
+    dli     t1, 0x90000e0000000000
+    li      a0, 0x63000000
+    or      t1, t1, a0
+    li      a0, 0xff204c
+    sw      a0, 0x0(t1)
+
+    sw      $0, 0x10(t0)
 #endif
 
 #if (!LS7A_PCIE_G1_P1_DISABLE)
     dli     t0, 0x90000efe08009000
-    li      t1, 0xfff9ffff
+    li      a0, 0xfff9ffff
     lw      t2, 0xc(t0)
-    and     t1, t1, t2
-    or      t1, (PCIE_GEN_CFG << 17)
-    sw      t1, 0xc(t0)
+    and     a0, a0, t2
+    or      a0, (PCIE_GEN_CFG << 17)
+    sw      a0, 0xc(t0)
 
     dli     t0, 0x90000efe00009000
-    li      t1, 0x63100000
-    sw      t1, 0x10(t0)
+    li      a0, 0x63100000
+    sw      a0, 0x10(t0)
 
-    dli     t0, 0x90000e0000000000
-    li      t1, 0x63100000
-    or      t0, t0, t1
-    dli     t1, 0xff204c
-    sw      t1, 0x0(t0)
+    dli     t1, 0x90000e0000000000
+    li      a0, 0x63100000
+    or      t1, t1, a0
+    li      a0, 0xff204c
+    sw      a0, 0x0(t1)
+
+    sw      $0, 0x10(t0)
 #endif
 
 #if (!LS7A_PCIE_H_P0_DISABLE)
     dli     t0, 0x90000efe08009800
-    li      t1, 0xfff9ffff
+    li      a0, 0xfff9ffff
     lw      t2, 0xc(t0)
-    and     t1, t1, t2
-    or      t1, (PCIE_GEN_CFG << 17)
-    sw      t1, 0xc(t0)
+    and     a0, a0, t2
+    or      a0, (PCIE_GEN_CFG << 17)
+    sw      a0, 0xc(t0)
 
     dli     t0, 0x90000efe00009800
-    li      t1, 0x64000000
-    sw      t1, 0x10(t0)
+    li      a0, 0x64000000
+    sw      a0, 0x10(t0)
 
-    dli     t0, 0x90000e0000000000
-    li      t1, 0x64000000
-    or      t0, t0, t1
-    dli     t1, 0xff204c
-    sw      t1, 0x0(t0)
+    dli     t1, 0x90000e0000000000
+    li      a0, 0x64000000
+    or      t1, t1, a0
+    li      a0, 0xff204c
+    sw      a0, 0x0(t1)
+
+    sw      $0, 0x10(t0)
 #endif
 
 #if (!LS7A_PCIE_H_P1_DISABLE)
     dli     t0, 0x90000efe0800a000
-    li      t1, 0xfff9ffff
+    li      a0, 0xfff9ffff
     lw      t2, 0xc(t0)
-    and     t1, t1, t2
-    or      t1, (PCIE_GEN_CFG << 17)
-    sw      t1, 0xc(t0)
+    and     a0, a0, t2
+    or      a0, (PCIE_GEN_CFG << 17)
+    sw      a0, 0xc(t0)
 
     dli     t0, 0x90000efe0000a000
-    li      t1, 0x64100000
-    sw      t1, 0x10(t0)
+    li      a0, 0x64100000
+    sw      a0, 0x10(t0)
 
-    dli     t0, 0x90000e0000000000
-    li      t1, 0x64100000
-    or      t0, t0, t1
-    dli     t1, 0xff204c
-    sw      t1, 0x0(t0)
+    dli     t1, 0x90000e0000000000
+    li      a0, 0x64100000
+    or      t1, t1, a0
+    li      a0, 0xff204c
+    sw      a0, 0x0(t1)
+
+    sw      $0, 0x10(t0)
 #endif
 
     //disable clock of unused PCIE ports
@@ -697,8 +769,10 @@
     sw      t1, (CONF_SB_OFFSET+4)(t0)
 
     //configure phy
-    dli     t1, 0x1403f1002
-    sd      t1, 0x748(t0)
+    daddu   a0, t0, 0x748
+    li      a1, 0x403f1002
+    bal     ls7a_phy_cfg_write
+    nop
     TTYDBG("SATA0 enabled\r\n")
 #else
     //disable clock
@@ -766,8 +840,10 @@
     sw      t1, (CONF_SB_OFFSET+4)(t0)
 
     //configure phy
-    dli     t1, 0x1403f1002
-    sd      t1, 0x758(t0)
+    daddu   a0, t0, 0x758
+    li      a1, 0x403f1002
+    bal     ls7a_phy_cfg_write
+    nop
     TTYDBG("SATA1 enabled\r\n")
 #else
     //disable clock
@@ -835,8 +911,10 @@
     sw      t1, (CONF_SB_OFFSET+4)(t0)
 
     //configure phy
-    dli     t1, 0x1403f1002
-    sd      t1, 0x768(t0)
+    daddu   a0, t0, 0x768
+    li      a1, 0x403f1002
+    bal     ls7a_phy_cfg_write
+    nop
     TTYDBG("SATA2 enabled\r\n")
 #else
     //disable clock

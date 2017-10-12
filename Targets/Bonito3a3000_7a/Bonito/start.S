@@ -1497,7 +1497,7 @@ idle1000:
 #######################################
 #include "ls3a7a_setup_ht_link.S"
 #include "ls3a7a_ht_init.S"
-#include "../../../pmon/arch/mips/ls7a/ls7a_config_one_pll.S"
+#include "../../../pmon/arch/mips/ls7a/ls7a_config.S"
 #include "ddr_dir/ls3A8_ddr_config.S"
 #ifdef  LS7A_GMEM_CFG
 #include "ddr_dir/ls7A_gmem_config.S"

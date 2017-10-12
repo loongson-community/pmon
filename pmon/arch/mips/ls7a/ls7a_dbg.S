@@ -14,10 +14,10 @@
     PRINTSTR("local cache compare fail!\r\n")
     daddu   t4, t4, 1
 1:
-    PRINTSTR("Read node0 7A times: 0x100000 ..\r\n")
+    PRINTSTR("Read node0 7A times: 0x10000 ..\r\n")
 
     dli     t1, 0x90000e000f000000
-    dli     t7, 0x100000
+    dli     t7, 0x10000
 2:
     ld      a1, 0x0(t1)
     beq     t6, a1, 1f
