@@ -754,6 +754,13 @@
     not     t2, t2
     and     t1, t1, t2
     sw      t1, 0x740(t0)
+
+    //delay a while
+    li      t1, 0x1000000
+1:
+    subu    t1, t1, 1
+    bnez    t1, 1b
+    nop
 #endif
     //deassert cntl reset
     lw      t1, (CONF_SB_OFFSET+4)(t0)
@@ -825,6 +832,13 @@
     not     t2, t2
     and     t1, t1, t2
     sw      t1, 0x750(t0)
+
+    //delay a while
+    li      t1, 0x1000000
+1:
+    subu    t1, t1, 1
+    bnez    t1, 1b
+    nop
 #endif
     //deassert cntl reset
     lw      t1, (CONF_SB_OFFSET+4)(t0)
@@ -896,6 +910,13 @@
     not     t2, t2
     and     t1, t1, t2
     sw      t1, 0x760(t0)
+
+    //delay a while
+    li      t1, 0x1000000
+1:
+    subu    t1, t1, 1
+    bnez    t1, 1b
+    nop
 #endif
     //deassert cntl reset
     lw      t1, (CONF_SB_OFFSET+4)(t0)
@@ -949,6 +970,13 @@
     and     t1, t1, t2
     sw      t1, (CONF_SB_OFFSET+0)(t0)
 
+    //delay a while
+    li      t1, 0x1000000
+1:
+    subu    t1, t1, 1
+    bnez    t1, 1b
+    nop
+
     //deassert cntl reset
     lw      t1, (CONF_SB_OFFSET+0)(t0)
     li      t2, (1 << 8)
@@ -978,6 +1006,13 @@
     not     t2, t2
     and     t1, t1, t2
     sw      t1, (CONF_SB_OFFSET+0)(t0)
+
+    //delay a while
+    li      t1, 0x1000000
+1:
+    subu    t1, t1, 1
+    bnez    t1, 1b
+    nop
 
     //deassert cntl reset
     lw      t1, (CONF_SB_OFFSET+0)(t0)
