@@ -847,7 +847,7 @@ mfi_intr(void *arg)
 	struct mfi_softc	*sc = arg;
 	struct mfi_prod_cons	*pcq;
 	struct mfi_ccb		*ccb;
-	uint32_t		producer, consumer, ctx;
+	uint32_t		producer, consumer, ctx, consumer0;
 	int			claimed = 0;
 
 	if (!mfi_my_intr(sc))
@@ -859,6 +859,7 @@ mfi_intr(void *arg)
 
 	DNPRINTF(MFI_D_INTR, "%s: mfi_intr %#x %#x\n", DEVNAME(sc), sc, pcq);
 
+	consumer0 = consumer;
 	while (consumer != producer) {
 		DNPRINTF(MFI_D_INTR, "%s: mfi_intr pi %#x ci %#x\n",
 		    DEVNAME(sc), producer, consumer);
@@ -880,6 +881,7 @@ mfi_intr(void *arg)
 		consumer++;
 		if (consumer == (sc->sc_max_cmds + 1))
 			consumer = 0;
+		if(consumer == consumer0) break;
 	}
 
 	pcq->mpc_consumer = consumer;
