@@ -44,12 +44,18 @@
 #include "target/bonito.h"
 
 #include "loongson3_def.h"
+#include "ls7a_config.h"
+
 #define LS7A_GMEM_CFG
 #ifdef  LS7A_GMEM_CFG
 //#define DEBUG_GMEM_PARAM
 //#define DEBUG_GMEM
 #endif
 //#define DEBUG_HT1
+#ifdef  DEBUG_HT1
+//#define PRINT_HT1_REG
+#endif
+#define CHECK_HT_PLL_MODE
 
 #include "../../../pmon/arch/mips/ls7a/ls7a_define.h"
 
@@ -454,50 +460,119 @@ bsp_start:
     bal  beep_off
     nop
 
-#if 0
-    //work around ACPI RTC reset problem--temp code
-    dli     t0, (LS7A_MISC_BASE_ADDR | ACPI_BASE_ADDR_OFFSET)
-    li      a0, 0x3
-    sw      a0, 0x8(t0)
+//setup 3A and 7A HT link here
+    //check 3A clksel setting
+    li      t0, 0xbfe00190
+    lw      t2, 0x4(t0)
+    srl     t2, t2, 15
+    beqz    t2, 3f
+    nop
+#ifdef  CHECK_HT_PLL_MODE
+    TTYDBG("Warning: 3A HT in hard freq mode, please modify clksel[7].\r\n")
+    dli     a0, 0x40000000
+1:
+    dsub    a0, a0, 1
+    bnez    a0, 1b
+    nop
+#endif
+    b       2f
+    nop
+3:
+    TTYDBG("3A HT in soft freq cfg mode...ok\r\n")
+2:
 
-    TTYDBG("LS7A ACPI PMCON_RTC: 0x")
-    lw      a0, 0x8(t0)
+    //check 7A clksel setting
+    dli     t0, (LS7A_MISC_BASE_ADDR + 0x60000)
+    lb      t2, (0xa00+53)(t0)
+    beqz    t2, 3f
+    nop
+#ifdef  CHECK_HT_PLL_MODE
+    TTYDBG("Warning: 7A HT in hard freq mode, please modify clksel[7].\r\n")
+    dli     a0, 0x40000000
+1:
+    dsub    a0, a0, 1
+    bnez    a0, 1b
+    nop
+#endif
+    b       2f
+    nop
+3:
+    TTYDBG("7A HT in soft freq cfg mode...ok\r\n")
+2:
+
+    li      t2, ((HT1_GEN_CFG << 12) | (HT1_HARD_FREQ_CFG << 8) | (HT1_WIDTH_CFG << 4) | (HT1_RECONNECT << 0))
+
+    li      t8, LS7A_HT1_SOFT_FREQ_CFG
+    dsll    t3, t8, 32
+    li      t8, LS3A_HT1_SOFT_FREQ_CFG
+    or      t3, t3, t8
+
+#ifdef  DEBUG_HT1
+    PRINTSTR("HT1 default setting: \r\na1: 0x")
+    move    a0, t2
     bal     hexserial
     nop
-    TTYDBG("\r\n")
-#endif
-
-//setup 3A and 7A HT link here
-#define HT1_RECONNECT   1
-#define HT1_GEN_CFG     1
-#define HT1_FREQ_CFG    HT_FREQ_CTRL_800M
-#ifdef  LS7A_2WAY_CONNECT
-#define HT1_WIDTH_CFG   HT_WIDTH_CTRL_8BIT  //only support 8 bit
-#else
-#define HT1_WIDTH_CFG   HT_WIDTH_CTRL_8BIT
-#endif
-
-    li      a1, ((HT1_GEN_CFG << 12) | (HT1_FREQ_CFG << 8) | (HT1_WIDTH_CFG << 4) | (HT1_RECONNECT << 0))
-#ifdef  DEBUG_HT1
-    PRINTSTR("\r\nInput HT1 controll value([16]: reset ht when wait linkup timeout; [15:12]: GENx-1/3; [11:8]: freq-0/2/5/9; [7:4]: width-0/1; [3:0]: reconnect-0/1): ")
+    PRINTSTR("\r\na2: 0x")
+    dsrl    a0, t3, 32
+    bal     hexserial
+    nop
+    move    a0, t3
+    bal     hexserial
+    nop
+    PRINTSTR("\r\nInput parameter a1: ([15:12]: GENx-1/3; [11:8]: freq-0/2/5/9; [7:4]: width-0/1; [3:0]: reconnect-0/1): ")
     bal     inputaddress
     nop
-    and     t7, v0, 0xfffff
+    beqz    v0, 1f
+    nop
+    move    t2, v0
+1:
+    PRINTSTR("\r\nInput parameter s2: ([63:32]: LS7A ht pll soft cfg; [31: 0]: LS3A ht pll soft cfg): ")
+    bal     inputaddress
+    nop
+    beqz    v0, 1f
+    nop
+    move    t3, v0
+1:
     PRINTSTR("\r\n")
-    move    a1, t7
 #endif
     dli     a0, 0x90000e0000000000
+    move    a1, t2
+    move    a2, t3
     bal     setup_ht_link
     nop
-    TTYDBG("========Node 0 LS3A-7A linkup.\r\n")
+    beqz    v0, 8f
+    nop
+    move    t8, v0
+    TTYDBG("!!!!!Node 0 LS3A-7A link fail. fail status: ")
+    move    a0, t8
+    bal     hexserial
+    nop
+    TTYDBG("\r\nfrequency @ ")
+    dsrl    a0, t3, 32
+    bal     hexserial
+    nop
+    move    a0, t3
+    bal     hexserial
+    nop
+1:
+    b       1b
+    nop
+8:
+    TTYDBG("========Node 0 LS3A-7A linkup @")
+    dsrl    a0, t3, 32
+    bal     hexserial
+    nop
+    move    a0, t3
+    bal     hexserial
+    nop
 
 #ifdef  LS7A_2WAY_CONNECT
-    li      a1, ((HT1_GEN_CFG << 12) | (HT1_FREQ_CFG << 8) | (HT1_WIDTH_CFG << 4) | (HT1_RECONNECT << 0))
+    li      a1, ((HT1_GEN_CFG << 12) | (HT1_HARD_FREQ_CFG << 8) | (HT1_WIDTH_CFG << 4) | (HT1_RECONNECT << 0))
 #ifdef  DEBUG_HT1
-    PRINTSTR("\r\nInput HT1 controll value([16]: reset ht when wait linkup timeout; [15:12]: GENx-1/3; [11:8]: freq-0/2/5/9; [7:4]: width-0/1; [3:0]: reconnect-0/1): ")
+    PRINTSTR("\r\nInput HT1 controll value([63:32]: ht pll soft cfg; [15:12]: GENx-1/3; [11:8]: freq-0/2/5/9; [7:4]: width-0/1; [3:0]: reconnect-0/1): ")
     bal     inputaddress
     nop
-    and     t7, v0, 0xfffff
+    move    t7, v0
     PRINTSTR("\r\n")
     move    a1, t7
 #endif
@@ -823,7 +898,6 @@ no_reboot:
 #endif
 #include "../../../pmon/arch/mips/ls7a/ls7a_init.S"
     TTYDBG("\r\nLS7A init done.\r\n")
-
 ##########################################
 #if 0
 	PRINTSTR("\r\n======X1 core0 map windows:\r\n")

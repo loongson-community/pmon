@@ -103,7 +103,7 @@
     //gpu, gmem, dc
     daddu   a0, t0, CONF_PLL1_OFFSET
     li      a2, 0x4
-    li      a1, LS7A_PLL_VALUE(100, 6, 4, 12)
+    li      a1, LS7A_PLL_VALUE(100, 5, 4, 10)
     bal     ls7a_config_one_pll
     nop
     TTYDBG("LS7A PLL1 soft configure done.\r\n")

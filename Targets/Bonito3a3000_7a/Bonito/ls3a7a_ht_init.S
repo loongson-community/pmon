@@ -124,14 +124,6 @@ ls3a7a_ht_init:
 #endif
 #endif
 
-#if 1   //configure 3A post write--dc accelerator, speed up
-    TTYDBG("Enable 3A HT TX Post space.\r\n")
-    li      a0, 0x0040fff0
-    sw      a0, (LS3A_HT_TX_POST_WIN0_OFFSET+4)(t0)
-    li      a0, 0x80000040
-    sw      a0, (LS3A_HT_TX_POST_WIN0_OFFSET+0)(t0)
-#endif
-
 //2. 7A side HT configure begin
 //!!!note: use t1 store 7A side HT controller address as global variable
     //open RX space
@@ -169,7 +161,7 @@ ls3a7a_ht_init:
     li      a0, 0xc000fe00
     sw      a0, 0x168(t1)
 
-#ifdef  DEBUG_HT1
+#if 0   //def  DEBUG_HT1
     PRINTSTR("\r\nChange some registers of 7A HT:");
 1:
     PRINTSTR("\r\ninput the HT register offset you want to change!!!(0xfff:jump out.): ");

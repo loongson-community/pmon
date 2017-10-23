@@ -30,16 +30,6 @@
     dli t1, 0x00000e00400000f7
     sd  t1, 0x90(t0)
 
-#if 0   //HT_REG_TRANS
- //map 0x90000efd_fb000000 --> 0x1e000000
-    dli t1, 0x000000001e000000
-    sd  t1, 0x18(t0)
-    dli t1, 0xffffffffff000000
-    sd  t1, 0x58(t0)
-    dli t1, 0x00000efdfb0000f7
-    sd  t1, 0x98(t0)
-#endif
-
     daddiu  t0, t0, 0x100
     bne     t0, t2, 1b
     nop

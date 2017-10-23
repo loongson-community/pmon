@@ -1,11 +1,18 @@
 // setup_ht_link
 // set up the link between CPU and Bridge.
 // for LS3A3000 + LS7A1000
+// reset when linkup fail seems useless.
 
 ######################################################
 #define HT_WIDTH_CTRL_8     (0x00)
 #define HT_WIDTH_CTRL_16    (0x11)
 
+#define HT1_LINKUP_FAIL_OFFSET      0
+#define HT1_LINKDOWN_FAIL_OFFSET    1
+#define HT1_CPU_CRC_FAIL_OFFSET     4
+#define HT1_CPU_CRC_ERR_OFFSET      5
+#define HT1_SB_CRC_FAIL_OFFSET      6
+#define HT1_SB_CRC_ERR_OFFSET       7
 ######################################################
     .global setup_ht_link
     .ent    setup_ht_link
@@ -13,19 +20,27 @@
     .set    mips3
 //input:
 //a0: HT address base(full address base, like: 0x90001e0000000000)
-//a1: HT bus related setting:
-//[16]: reset ht when wait linkup timeout;
+//a1: HT bus and hard freq mode related setting:
 //[15:12]: GENx-1/3;
 //[11: 8]: freq-0: 200M; 2: 400M; 5: 800M; 9: 1600M;
 //[ 7: 4]: width-0: 8bit; 1: 16bits;
 //[    0]: reconnect, 0: not reconnect; 1: reconnect
-//reset when linkup fail seems useless.
+//a2: HT soft configure pll setting:
+//[63:32]: 7A side ht_pllcfg[31:0]
+//[31: 0]: 3A side ht_pllcfg[31:0]
+
+//output:
+//v0: setup_link status:
+//0: success
+//!0: fail
 
 //register usage:
 //t0: 3A HT cntl register base address
 //t1: 7A HT cntl register base address
 //t5, t6: tmp variable
-//t7: store a1
+//t2: store a1
+//t3: store a2
+//t8: store return value
 //s1: store ra
 
 setup_ht_link:
@@ -36,9 +51,10 @@ setup_ht_link:
     dli     t1, 0xfdfe000000
     daddu   t0, t0, a0
     daddu   t1, t1, a0
-    move    t7, a1
+    move    t2, a1
+    move    t8, $0
 
-#ifdef  DEBUG_HT1   //Print all HT registers
+#ifdef  PRINT_HT1_REG   //Print all HT registers
     TTYDBG("LS3A HT registers are:\r\n")
     move    t5, t0
     daddu   t6, t5, 0x188
@@ -97,7 +113,7 @@ setup_ht_link:
 #endif
 
     //wait until HT link up
-    TTYDBG("Wait HT bus up.")
+    TTYDBG("\r\nWait HT bus up.")
     li      t5, 0x1f
 1:
     lw      a0, 0x44(t0)
@@ -123,7 +139,7 @@ setup_ht_link:
     TTYDBG("\r\n")
 
 #if 1   //HT1_RECONNECT
-    and     a0, t7, 0x1
+    and     a0, t2, 0x1
     beqz    a0, 8f
     nop
     //set 7A side HT
@@ -147,7 +163,7 @@ setup_ht_link:
     not     a1, a1
     and     a0, a0, a1
     li      a1, HT_WIDTH_CTRL_8
-    srl     t5, t7, 4
+    srl     t5, t2, 4
     and     t5, t5, 0xf
     beqz    t5, 1f
     nop
@@ -167,7 +183,7 @@ setup_ht_link:
     li      a1, (0xf<<8)  
     not     a1, a1
     and     a0, a0, a1
-    srl     a1, t7, 8
+    srl     a1, t2, 8
     and     a1, a1, 0xf
     sll     a1, a1, 8
     or      a0, a0, a1
@@ -178,16 +194,15 @@ setup_ht_link:
     nop
     TTYDBG("\r\n")
 
-    //TODO check these setting
-    //TTYDBG("Set HT to soft config 1600\r\n")
-    //li      a1, 0x00464083
-    //sw      a1, 0x1F4(t1)
-    //lw      a0, 0x1F4(t1)
-    //bal     hexserial
-    //nop
-    //TTYDBG("\r\n")
+    TTYDBG("Set soft config\r\n")
+    dsrl    a1, t3, 32
+    sw      a1, 0x1F4(t1)
+    lw      a0, 0x1F4(t1)
+    bal     hexserial
+    nop
+    TTYDBG("\r\n")
 
-    srl     a1, t7, 12
+    srl     a1, t2, 12
     and     a1, a1, 0xf
     li      a0, 3
     bne     a0, a1, 4f
@@ -239,7 +254,7 @@ setup_ht_link:
     //HT bus width
     TTYDBG("Set CPU HT width\r\n")
     li      a1, HT_WIDTH_CTRL_8
-    srl     t5, t7, 4
+    srl     t5, t2, 4
     and     t5, t5, 0xf
     beqz    t5, 1f
     nop
@@ -253,7 +268,7 @@ setup_ht_link:
 
     //Set HT bus frequency
     TTYDBG("Set CPU HT Freq\r\n")
-    srl     a1, t7, 8
+    srl     a1, t2, 8
     and     a1, a1, 0xf
     sb      a1, 0x49(t0)
     lw      a0, 0x48(t0)
@@ -261,15 +276,15 @@ setup_ht_link:
     nop
     TTYDBG("\r\n")
 
-    //TTYDBG("Set HT to soft config 1600\r\n")
-    //li      a1, 0x00464083
-    //sw      a1, 0x178(t0)
-    //lw      a0, 0x178(t0)
-    //bal     hexserial
-    //nop
-    //TTYDBG("\r\n")
+    TTYDBG("Set soft config\r\n")
+    move    a1, t3
+    sw      a1, 0x178(t0)
+    lw      a0, 0x178(t0)
+    bal     hexserial
+    nop
+    TTYDBG("\r\n")
 
-    srl     a1, t7, 12
+    srl     a1, t2, 12
     and     a1, a1, 0xf
     li      a0, 3
     bne     a0, a1, 4f
@@ -299,7 +314,6 @@ setup_ht_link:
     TTYDBG("\r\n")
 4:
 
-reset_ht1:
     TTYDBG("Reset HT bus\r\n")
     lb      a0, 0x3e(t0)
     li      a1, 0x40
@@ -319,7 +333,11 @@ reset_ht1:
     bnez    t5, 2f
     nop
     TTYDBG("\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b=")
-    li      t5, 0x1f
+    TTYDBG("Wait HT bus down fail!\r\n")
+    //failed more than given time, set fail mark and break
+    or      t8, t8, (0x1 << HT1_LINKDOWN_FAIL_OFFSET)
+    b       88f
+    nop
 2:
     lw      a0, 0x44(t0)
     li      a1, 0x20
@@ -348,28 +366,15 @@ reset_ht1:
     TTYDBG("Wait HT bus up.")
     li      t5, 0x1f
 1:
-    lw      a0, 0x54(t0)
-    bal     hexserial
-    nop
     TTYDBG(">")
-    lw      a0, 0x44(t0)
-    bal     hexserial
-    nop
-    TTYDBG("%")
-    lw      a0, 0x120(t0)
-    bal     hexserial
-    nop
-    TTYDBG("#")
     addi    t5, t5, -1
     bnez    t5, 2f
     nop
     TTYDBG("\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b=")
-    srl     a1, t7, 16
-    and     a1, a1, 0x1
-    bnez    a1, reset_ht1
+    TTYDBG("Wait HT bus up fail!\r\n")
+    or      t8, t8, (0x1 << HT1_LINKUP_FAIL_OFFSET)
+    b       88f
     nop
-
-    li      t5, 0x1f
 2:
     lw      a0, 0x44(t0)
     li      a1, 0x20
@@ -385,7 +390,7 @@ reset_ht1:
 8:
 #endif
 
-#ifdef  DEBUG_HT1   //Print all HT registers
+#ifdef  PRINT_HT1_REG   //Print all HT registers
     TTYDBG("LS3A HT registers are:\r\n")
     move    t5, t0
     daddu   t6, t5, 0x188
@@ -403,6 +408,7 @@ reset_ht1:
     bne     t5, t6, 1b
     nop
 
+#if 0
     TTYDBG("LS7A HT registers are:\r\n")
     move    t5, t1
     daddu   t6, t5, 0x268
@@ -420,18 +426,27 @@ reset_ht1:
     bne     t5, t6, 1b
     nop
 #endif
+#endif
 
 #if 1//Check if CRC error bit set and reset it
-crc_checking:
     TTYDBG("Checking CPU HT CRC error.\r\n")
-
+    li      t5, 0x1f
+1:
+    TTYDBG(">")
+    addi    t5, t5, -1
+    bnez    t5, 2f
+    nop
+    TTYDBG("\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b=")
+    or      t8, t8, (0x1 << HT1_CPU_CRC_FAIL_OFFSET)
+    b       88f
+    nop
 2:
     lw      a0, 0x44(t0)
     li      a1, 0x300
     and     a0, a0, a1
-    beqz    a0, 1f
+    beqz    a0, 3f
     nop
-
+    or      t8, t8, (0x1 << HT1_CPU_CRC_ERR_OFFSET)
     TTYDBG("\r\nCRC error found\r\n")
     lw      a0, 0x44(t0)
     bal     hexserial
@@ -441,19 +456,27 @@ crc_checking:
     li      a1, 0xfffffcff
     and     a0, a0, a1
     sw      a0, 0x44(t0)
-
-    b       2b
+    b       1b
     nop
-
-1:
+3:
     TTYDBG("Checking Bridge HT CRC error bit.\r\n")
+    li      t5, 0x1f
+1:
+    TTYDBG(">")
+    addi    t5, t5, -1
+    bnez    t5, 2f
+    nop
+    TTYDBG("\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b=")
+    or      t8, t8, (0x1 << HT1_SB_CRC_FAIL_OFFSET)
+    b       88f
+    nop
 2:
     lw      a0, 0x44(t1)
     li      a1, 0x300
     and     a0, a0, a1
-    beqz    a0, 1f
+    beqz    a0, 3f
     nop
-
+    or      t8, t8, (0x1 << HT1_SB_CRC_ERR_OFFSET)
     TTYDBG("\r\nCRC error found\r\n")
     lw      a0, 0x44(t1)
     bal     hexserial
@@ -463,35 +486,45 @@ crc_checking:
     li      a1, 0xfffffcff
     and     a0, a0, a1
     sw      a0, 0x44(t1)
-
-    b       2b
+    b       1b
     nop
-
-1:
-    TTYDBG("Done\r\n")
+3:
 #endif
 
-    lw      a0, 0x54(t0)
-    bal     hexserial
-    nop
-    TTYDBG(">")
+88:
+#ifdef  DEBUG_HT1
+    TTYDBG("\r\nCPU HT reg: 0x44: ")
     lw      a0, 0x44(t0)
     bal     hexserial
     nop
-    TTYDBG("%")
+    TTYDBG("\r\nCPU HT reg: 0x54: ")
+    lw      a0, 0x54(t0)
+    bal     hexserial
+    nop
+    TTYDBG("\r\nCPU HT reg: 0x120: ")
     lw      a0, 0x120(t0)
     bal     hexserial
     nop
-    TTYDBG("#")
-
-#if 0//Read HT channel priority
-    TTYDBG("Read HT Channel priority\r\n")
-    lw      a0, 0x50(t0)
+    TTYDBG("\r\nCPU HT reg: 0x128: ")
+    lw      a0, 0x128(t0)
+    bal     hexserial
+    nop
+    TTYDBG("\r\nCPU HT reg: 0x188: ")
+    lw      a0, 0x188(t0)
+    bal     hexserial
+    nop
+    TTYDBG("\r\nCPU HT reg: 0x18c: ")
+    lw      a0, 0x18c(t0)
+    bal     hexserial
+    nop
+    TTYDBG("\r\nCPU HT reg: 0x190: ")
+    lw      a0, 0x190(t0)
     bal     hexserial
     nop
     TTYDBG("\r\n")
 #endif
 
+    move    v0, t8
     move    ra, s1
     jr      ra
     nop
