@@ -20,6 +20,8 @@ const char *yaffs_mtdif2_c_version =
 #include "yaffs_mtdif2.h"
 #include "yaffs_packedtags2.h"
 
+extern int yaffs_readonly;
+
 int nandmtd2_WriteChunkWithTagsToNAND(yaffs_Device * dev, int chunkInNAND,
 				      const __u8 * data,
 				      const yaffs_ExtendedTags * tags)
@@ -31,6 +33,8 @@ int nandmtd2_WriteChunkWithTagsToNAND(yaffs_Device * dev, int chunkInNAND,
 	size_t dummy;
 #endif
 	int retval = 0;
+	if(yaffs_readonly)
+		return YAFFS_FAIL;
 
 	loff_t addr = ((loff_t) chunkInNAND) * dev->nDataBytesPerChunk;
 
@@ -167,6 +171,9 @@ int nandmtd2_MarkNANDBlockBad(struct yaffs_DeviceStruct *dev, int blockNo)
 	int retval;
 	T(YAFFS_TRACE_MTD,
 	  (TSTR("nandmtd2_MarkNANDBlockBad %d" TENDSTR), blockNo));
+
+	if(yaffs_readonly)
+		return YAFFS_FAIL;
 
 	retval =
 	    mtd->block_markbad(mtd,

@@ -18,6 +18,7 @@ const char *yaffs_mtdif_c_version =
 
 
 #include "yaffs_mtdif.h"
+extern int yaffs_readonly;
 
 
 #if 1 //(LINUX_VERSION_CODE < KERNEL_VERSION(2,6,18))
@@ -76,6 +77,9 @@ int nandmtd_WriteChunkToNAND(yaffs_Device * dev, int chunkInNAND,
 #endif
 	size_t dummy;
 	int retval = 0;
+
+	if(yaffs_readonly)
+		return YAFFS_FAIL;
 
 	loff_t addr = ((loff_t) chunkInNAND) * dev->nDataBytesPerChunk;
 #if 1 // (LINUX_VERSION_CODE > KERNEL_VERSION(2,6,17))
@@ -209,6 +213,9 @@ int nandmtd_EraseBlockInNAND(yaffs_Device * dev, int blockNumber)
 		* dev->nChunksPerBlock;
 	struct erase_info ei;
 	int retval = 0;
+
+	if(yaffs_readonly)
+		return YAFFS_FAIL;
 
 	ei.mtd = mtd;
 	ei.addr = addr;

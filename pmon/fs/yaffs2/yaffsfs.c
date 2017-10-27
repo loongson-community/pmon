@@ -43,6 +43,7 @@
 #define YAFFSFS_RW_SHIFT (13)
 #define YAFFSFS_RW_SIZE  (1<<YAFFSFS_RW_SHIFT)
 
+int yaffs_readonly = 1;
 const char *yaffsfs_c_version="$Id: yaffsfs.c,v 1.18 2007/07/18 19:40:38 charles Exp $";
 
 // configurationList is the list of devices that are supported
