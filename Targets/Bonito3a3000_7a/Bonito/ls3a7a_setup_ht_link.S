@@ -21,9 +21,10 @@
 //input:
 //a0: HT address base(full address base, like: 0x90001e0000000000)
 //a1: HT bus and hard freq mode related setting:
-//[15:12]: GENx-1/3;
-//[11: 8]: freq-0: 200M; 2: 400M; 5: 800M; 9: 1600M;
-//[ 7: 4]: width-0: 8bit; 1: 16bits;
+//[15:12]: 7A freq-0: 200M; 2: 400M; 5: 800M; 9: 1600M;
+//[11: 8]: 3A freq-0: 200M; 2: 400M; 5: 800M; 9: 1600M;
+//[ 7: 4]: GENx-1/3;
+//[    1]: width-0: 8bit; 1: 16bits;
 //[    0]: reconnect, 0: not reconnect; 1: reconnect
 //a2: HT soft configure pll setting:
 //[63:32]: 7A side ht_pllcfg[31:0]
@@ -52,6 +53,7 @@ setup_ht_link:
     daddu   t0, t0, a0
     daddu   t1, t1, a0
     move    t2, a1
+    move    t3, a2
     move    t8, $0
 
 #ifdef  PRINT_HT1_REG   //Print all HT registers
@@ -163,8 +165,8 @@ setup_ht_link:
     not     a1, a1
     and     a0, a0, a1
     li      a1, HT_WIDTH_CTRL_8
-    srl     t5, t2, 4
-    and     t5, t5, 0xf
+    srl     t5, t2, 1
+    and     t5, t5, 0x1
     beqz    t5, 1f
     nop
     li      a1, HT_WIDTH_CTRL_16
@@ -183,7 +185,7 @@ setup_ht_link:
     li      a1, (0xf<<8)  
     not     a1, a1
     and     a0, a0, a1
-    srl     a1, t2, 8
+    srl     a1, t2, 12
     and     a1, a1, 0xf
     sll     a1, a1, 8
     or      a0, a0, a1
@@ -202,7 +204,7 @@ setup_ht_link:
     nop
     TTYDBG("\r\n")
 
-    srl     a1, t2, 12
+    srl     a1, t2, 4
     and     a1, a1, 0xf
     li      a0, 3
     bne     a0, a1, 4f
@@ -254,8 +256,8 @@ setup_ht_link:
     //HT bus width
     TTYDBG("Set CPU HT width\r\n")
     li      a1, HT_WIDTH_CTRL_8
-    srl     t5, t2, 4
-    and     t5, t5, 0xf
+    srl     t5, t2, 1
+    and     t5, t5, 0x1
     beqz    t5, 1f
     nop
     li      a1, HT_WIDTH_CTRL_16
@@ -284,7 +286,7 @@ setup_ht_link:
     nop
     TTYDBG("\r\n")
 
-    srl     a1, t2, 12
+    srl     a1, t2, 4
     and     a1, a1, 0xf
     li      a0, 3
     bne     a0, a1, 4f

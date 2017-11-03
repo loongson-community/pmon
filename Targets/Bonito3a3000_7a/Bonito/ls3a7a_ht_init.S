@@ -37,7 +37,7 @@ ls3a7a_ht_init:
 
 //1. 3A side HT init
 //!!!note: use t0 store HT controller address as global variable
-#ifdef  DEBUG_HT1
+#ifdef  PRINT_HT1_REG
     TTYDBG("LS3A HT registers\r\n")
     move    t5, t0
     daddu   t6, t5, 0x180
@@ -201,7 +201,7 @@ ls3a7a_ht_init:
 4:
 #endif
 
-#ifdef  DEBUG_HT1
+#ifdef  PRINT_HT1_REG
     TTYDBG("LS3A HT registers\r\n")
     move    t5, t0
     daddu   t6, t5, 0x180

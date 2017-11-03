@@ -92,7 +92,7 @@
 #if 1
 //configure 7A pll
 //LS7A_PLL_VALUE: (LOOPC, DIV2, DIV1, DIV0)
-    //gmac, sata/usb
+    //pcie, gmac, sata/usb
     daddu   a0, t0, CONF_PLL0_OFFSET
     li      a2, 0x4
     li      a1, LS7A_PLL_VALUE(80, 8, 16, 16)

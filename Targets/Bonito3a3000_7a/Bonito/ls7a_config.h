@@ -8,7 +8,11 @@
 #define HT1_WIDTH_CFG   HT_WIDTH_CTRL_8BIT
 #endif
 //HT1 freq cfg
-#define HT1_HARD_FREQ_CFG   HT_FREQ_CTRL_800M
+#if (HT1_GEN_CFG == 3) 
+#define HT1_HARD_FREQ_CFG   HT_GEN3_FREQ_CTRL_800M
+#else
+#define HT1_HARD_FREQ_CFG   HT_GEN1_FREQ_CTRL_800M
+#endif
 #define LS7A_HT1_SOFT_FREQ_CFG   (LS7A_HT_PLL_800M | (0x1 << 1))
 #define LS3A_HT1_SOFT_FREQ_CFG   (LS3A_HT_PLL_800M | (0x1 << 1))
 

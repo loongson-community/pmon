@@ -463,9 +463,9 @@ bsp_start:
 //setup 3A and 7A HT link here
     //check 3A clksel setting
     li      t0, 0xbfe00190
-    lw      t2, 0x4(t0)
-    srl     t2, t2, 15
-    beqz    t2, 3f
+    lw      a0, 0x4(t0)
+    srl     a0, a0, 15
+    beqz    a0, 3f
     nop
 #ifdef  CHECK_HT_PLL_MODE
     TTYDBG("Warning: 3A HT in hard freq mode, please modify clksel[7].\r\n")
@@ -483,8 +483,8 @@ bsp_start:
 
     //check 7A clksel setting
     dli     t0, (LS7A_MISC_BASE_ADDR + 0x60000)
-    lb      t2, (0xa00+53)(t0)
-    beqz    t2, 3f
+    lb      a0, (0xa00+53)(t0)
+    beqz    a0, 3f
     nop
 #ifdef  CHECK_HT_PLL_MODE
     TTYDBG("Warning: 7A HT in hard freq mode, please modify clksel[7].\r\n")
@@ -500,7 +500,7 @@ bsp_start:
     TTYDBG("7A HT in soft freq cfg mode...ok\r\n")
 2:
 
-    li      t2, ((HT1_GEN_CFG << 12) | (HT1_HARD_FREQ_CFG << 8) | (HT1_WIDTH_CFG << 4) | (HT1_RECONNECT << 0))
+    li      t2, ((HT1_HARD_FREQ_CFG << 12) | (HT1_HARD_FREQ_CFG << 8) | (HT1_GEN_CFG << 4) | (HT1_WIDTH_CFG << 1) | (HT1_RECONNECT << 0))
 
     li      t8, LS7A_HT1_SOFT_FREQ_CFG
     dsll    t3, t8, 32
@@ -519,21 +519,64 @@ bsp_start:
     move    a0, t3
     bal     hexserial
     nop
-    PRINTSTR("\r\nInput parameter a1: ([15:12]: GENx-1/3; [11:8]: freq-0/2/5/9; [7:4]: width-0/1; [3:0]: reconnect-0/1): ")
+    PRINTSTR("\r\nInput parameter a1: ([15:12]: 7A freq-0/2/5/9; [11:8]: 3A freq-0/2/5/9; [7:4]: GENx-1/3; [1]: width-0/1; [0]: reconnect-0/1): ")
     bal     inputaddress
     nop
     beqz    v0, 1f
     nop
     move    t2, v0
 1:
-    PRINTSTR("\r\nInput parameter s2: ([63:32]: LS7A ht pll soft cfg; [31: 0]: LS3A ht pll soft cfg): ")
+    PRINTSTR("\r\nInput parameter a2: ([3:0]: ht pll soft cfg sel. 0: 200M; 5: 800M; 6: 1000M; 7: 1200M; 9: 1600M; b: 2000M; c: 2200M; d: 2400M; e: 2600M; f: 3200M;): ")
     bal     inputaddress
     nop
-    beqz    v0, 1f
-    nop
-    move    t3, v0
-1:
+    and     t1, v0, 0xf
     PRINTSTR("\r\n")
+
+    move    a0, $0
+    dli     t3, ((LS7A_HT_PLL_200M | 0x2) << 32) | (LS3A_HT_PLL_200M | 0x2)    //0
+    beq     t1, a0, 8f
+    nop
+    daddu   a0, a0, 5
+    dli     t3, ((LS7A_HT_PLL_800M | 0x2) << 32) | (LS3A_HT_PLL_800M | 0x2)    //5
+    beq     t1, a0, 8f
+    nop
+    daddu   a0, a0, 1
+    dli     t3, ((LS7A_HT_PLL_1000M | 0x2) << 32) | (LS3A_HT_PLL_1000M | 0x2)   //6
+    beq     t1, a0, 8f
+    nop
+    daddu   a0, a0, 1
+    dli     t3, ((LS7A_HT_PLL_1200M | 0x2) << 32) | (LS3A_HT_PLL_1200M | 0x2)   //7
+    beq     t1, a0, 8f
+    nop
+    daddu   a0, a0, 2
+    dli     t3, ((LS7A_HT_PLL_1600M | 0x2) << 32) | (LS3A_HT_PLL_1600M | 0x2)   //9
+    beq     t1, a0, 8f
+    nop
+    daddu   a0, a0, 2
+    dli     t3, ((LS7A_HT_PLL_2000M | 0x2) << 32) | (LS3A_HT_PLL_2000M | 0x2)   //b
+    beq     t1, a0, 8f
+    nop
+    daddu   a0, a0, 1
+    dli     t3, ((LS7A_HT_PLL_2200M | 0x2) << 32) | (LS3A_HT_PLL_2200M | 0x2)   //c
+    beq     t1, a0, 8f
+    nop
+    daddu   a0, a0, 1
+    dli     t3, ((LS7A_HT_PLL_2400M | 0x2) << 32) | (LS3A_HT_PLL_2400M | 0x2)   //d
+    beq     t1, a0, 8f
+    nop
+    daddu   a0, a0, 1
+    dli     t3, ((LS7A_HT_PLL_2600M | 0x2) << 32) | (LS3A_HT_PLL_2600M | 0x2)   //e
+    beq     t1, a0, 8f
+    nop
+    daddu   a0, a0, 1
+    dli     t3, ((LS7A_HT_PLL_3200M | 0x2) << 32) | (LS3A_HT_PLL_3200M | 0x2)   //f
+    beq     t1, a0, 8f
+    nop
+
+    PRINTSTR("Error: freq select illegle, use default 800M.")
+    dli     t3, ((LS7A_HT_PLL_800M | 0x2) << 32) | (LS3A_HT_PLL_800M | 0x2)    //5
+8:
+
 #endif
     dli     a0, 0x90000e0000000000
     move    a1, t2
@@ -567,18 +610,22 @@ bsp_start:
     nop
 
 #ifdef  LS7A_2WAY_CONNECT
-    li      a1, ((HT1_GEN_CFG << 12) | (HT1_HARD_FREQ_CFG << 8) | (HT1_WIDTH_CFG << 4) | (HT1_RECONNECT << 0))
-#ifdef  DEBUG_HT1
-    PRINTSTR("\r\nInput HT1 controll value([63:32]: ht pll soft cfg; [15:12]: GENx-1/3; [11:8]: freq-0/2/5/9; [7:4]: width-0/1; [3:0]: reconnect-0/1): ")
-    bal     inputaddress
-    nop
-    move    t7, v0
-    PRINTSTR("\r\n")
-    move    a1, t7
-#endif
     dli     a0, 0x90001e0000000000
+    move    a1, t2
+    move    a2, t3
     bal     setup_ht_link
     nop
+    beqz    v0, 8f
+    nop
+    move    t8, v0
+    TTYDBG("!!!!!Node 1 LS3A-7A link fail. fail status: ")
+    move    a0, t8
+    bal     hexserial
+    nop
+1:
+    b       1b
+    nop
+8:
     TTYDBG("========Node 1 LS3A-7A linkup.\r\n")
 #endif
 
@@ -898,6 +945,7 @@ no_reboot:
 #endif
 #include "../../../pmon/arch/mips/ls7a/ls7a_init.S"
     TTYDBG("\r\nLS7A init done.\r\n")
+
 ##########################################
 #if 0
 	PRINTSTR("\r\n======X1 core0 map windows:\r\n")
