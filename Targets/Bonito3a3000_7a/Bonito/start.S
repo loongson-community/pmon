@@ -58,6 +58,7 @@
 #define CHECK_HT_PLL_MODE
 
 #include "../../../pmon/arch/mips/ls7a/ls7a_define.h"
+#include "../../../pmon/arch/mips/ls7a/ht.h"
 
 #ifdef  MULTI_CHIP
 #define LS7A_2WAY_CONNECT
@@ -678,7 +679,7 @@ no_reboot:
     TTYDBG("NODE 0 MEMORY CONFIG BEGIN\r\n")
 
 #ifdef  AUTO_DDR_CONFIG
-    dli     s1, 0x31200000  //set use MC1 or MC0 or MC1/0 and give All device id
+    dli     s1, 0xf1f00000  //set use MC1 or MC0 or MC1/0 and give All device id
 #else
     	dli     s1, 0xf0a31000f0a31004  // use both, 8G SCS RDIMM
 #endif
@@ -755,7 +756,7 @@ no_reboot:
     TTYDBG("NODE 1 MEMORY CONFIG BEGIN\r\n")
 
 #ifdef  AUTO_DDR_CONFIG
-    dli     s1, 0x75640001  //set use MC1 or MC0 or MC1/0 and give All device id
+    dli     s1, 0xf3f20001  //set use MC1 or MC0 or MC1/0 and give All device id
 #else
 //	dli     s1, 0xc2e30400c2e30405
    	dli     s1, 0xf0a31000f0a31001  // use both, 8G SCS RDIMM
@@ -1617,8 +1618,8 @@ idle1000:
 
 
 #######################################
-#include "ls3a7a_setup_ht_link.S"
-#include "ls3a7a_ht_init.S"
+#include "../../../pmon/arch/mips/ls7a/ls3a7a_setup_ht_link.S"
+#include "../../../pmon/arch/mips/ls7a/ls3a7a_ht_init.S"
 #include "../../../pmon/arch/mips/ls7a/ls7a_config.S"
 #include "ddr_dir/ls3A8_ddr_config.S"
 #ifdef  LS7A_GMEM_CFG

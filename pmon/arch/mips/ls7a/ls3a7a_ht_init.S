@@ -1,18 +1,17 @@
-
+//************************************
 // HT initialization
-// include 3A and 7A HT window configure and others
 // author: chenxk
 // date: 2017.8.15
 // rewrite by chenxk, 2017.09.03
 
-#define LS3A_HT_RX_CACHE_WIN0_OFFSET    0x60
-#define LS3A_HT_RX_CACHE_WIN1_OFFSET    0x68
-#define LS3A_HT_RX_CACHE_WIN2_OFFSET    0x70
-#define LS3A_HT_TX_POST_WIN0_OFFSET     0xD0
-#define LS3A_HT_TX_POST_WIN1_OFFSET     0xD8
-#define LS3A_HT_RX_UNCACHE_WIN0_OFFSET  0xF0
-#define LS3A_HT_RX_UNCACHE_WIN1_OFFSET  0xF8
-#define LS3A_HT_RX_UNCACHE_WIN2_OFFSET  0x168
+// include both CPU and PCH side HT window configure and others
+// for CPU: LS3A2000/LS3A3000
+// for PCH: LS7A1000
+// for board: 1way/2way
+//************************************
+#include "ht.h"
+
+######################################################
 
     .global ls3a7a_ht_init
     .ent    ls3a7a_ht_init
@@ -40,7 +39,7 @@ ls3a7a_ht_init:
 #ifdef  PRINT_HT1_REG
     TTYDBG("LS3A HT registers\r\n")
     move    t5, t0
-    daddu   t6, t5, 0x180
+    daddu   t6, t5, (LS3A_HT_REG_NUM * 4)
 1:
     and     a0, t5, 0x1ff
     bal     hexserial
@@ -57,7 +56,7 @@ ls3a7a_ht_init:
 
     TTYDBG("LS7A HT registers\r\n")
     move    t5, t1
-    daddu   t6, t5, 0x268
+    daddu   t6, t5, (LS7A_HT_REG_NUM * 4)
 1:
     and     a0, t5, 0x3ff
     bal     hexserial
@@ -170,7 +169,7 @@ ls3a7a_ht_init:
     nop
     move    t5, v0
 
-    li      a1, 0x268
+    li      a1, (LS7A_HT_REG_NUM * 4)
     bge     t5, a1, 4f    #if input address offset exceed range,jump out
     nop
 
@@ -204,7 +203,7 @@ ls3a7a_ht_init:
 #ifdef  PRINT_HT1_REG
     TTYDBG("LS3A HT registers\r\n")
     move    t5, t0
-    daddu   t6, t5, 0x180
+    daddu   t6, t5, (LS7A_HT_REG_NUM * 4)
 1:
     and     a0, t5, 0x1ff
     bal     hexserial
@@ -221,7 +220,7 @@ ls3a7a_ht_init:
 
     TTYDBG("LS7A HT registers\r\n")
     move    t5, t1
-    daddu   t6, t5, 0x268
+    daddu   t6, t5, (LS7A_HT_REG_NUM * 4)
 1:
     and     a0, t5, 0x3ff
     bal     hexserial

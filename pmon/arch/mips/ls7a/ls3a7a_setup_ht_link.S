@@ -1,11 +1,14 @@
+//************************************
 // setup_ht_link
-// set up the link between CPU and Bridge.
-// for LS3A3000 + LS7A1000
-// reset when linkup fail seems useless.
+// author: chenxk
+// date: 2017.11.05
 
-######################################################
-#define HT_WIDTH_CTRL_8     (0x00)
-#define HT_WIDTH_CTRL_16    (0x11)
+// set up the link between CPU and PCH.
+// for CPU: LS3A2000/LS3A3000
+// for PCH: LS7A1000
+// reset when linkup fail seems useless.
+//************************************
+#include "ht.h"
 
 #define HT1_LINKUP_FAIL_OFFSET      0
 #define HT1_LINKDOWN_FAIL_OFFSET    1
@@ -59,7 +62,7 @@ setup_ht_link:
 #ifdef  PRINT_HT1_REG   //Print all HT registers
     TTYDBG("LS3A HT registers are:\r\n")
     move    t5, t0
-    daddu   t6, t5, 0x188
+    daddu   t6, t5, (LS3A_HT_REG_NUM * 4)
 1:
     and     a0, t5, 0x1ff
     bal     hexserial
@@ -74,31 +77,9 @@ setup_ht_link:
     bne     t5, t6, 1b
     nop
 
-#if 0
-    li      a1, 0x1
-    sw      a1, 0x54(t0)
-
-    TTYDBG("after debug enable, LS3A HT registers\r\n")
-    move    t5, t0
-    daddu   t6, t5, 0x180
-1:
-    and     a0, t5, 0x1ff
-    bal     hexserial
-    nop
-    TTYDBG(": ")
-    lw      a0, 0x0(t5)
-    bal     hexserial
-    nop
-    TTYDBG("\r\n")
-
-    daddi   t5, t5, 0x4
-    bne     t5, t6, 1b
-    nop
-#endif
-
     TTYDBG("LS7A HT registers are:\r\n")
     move    t5, t1
-    daddu   t6, t5, 0x268
+    daddu   t6, t5, (LS7A_HT_REG_NUM * 4)
 1:
     and     a0, t5, 0x3ff
     bal     hexserial
@@ -395,7 +376,7 @@ setup_ht_link:
 #ifdef  PRINT_HT1_REG   //Print all HT registers
     TTYDBG("LS3A HT registers are:\r\n")
     move    t5, t0
-    daddu   t6, t5, 0x188
+    daddu   t6, t5, (LS3A_HT_REG_NUM * 4)
 1:
     and     a0, t5, 0x1ff
     bal     hexserial
@@ -413,7 +394,7 @@ setup_ht_link:
 #if 0
     TTYDBG("LS7A HT registers are:\r\n")
     move    t5, t1
-    daddu   t6, t5, 0x268
+    daddu   t6, t5, (LS7A_HT_REG_NUM * 4)
 1:
     and     a0, t5, 0x3ff
     bal     hexserial
