@@ -25,7 +25,7 @@
 #define HT_MAP_TYPE0_CONF_ADDR  BONITO_PCICFG0_BASE_VA
 
 
-typedef unsigned long long u64;
+//typedef unsigned long long u64;
 u32 pci_read_type0_config32(u32 dev, u32 func, u32 reg){
     //u64 addr = 0x90000efdfe000000;
     u32 addr = HT_MAP_TYPE0_CONF_ADDR;
@@ -531,7 +531,7 @@ u8 PcieTrainPort(device_t nb_dev, device_t dev, u32 port)
 
 	while (count--) {
 		/* 5.7.5.21 step 2, delay 200us */
-		udelay(300);
+		delay(100000);
 		lc_state = nbpcie_p_read_index(dev, 0xa5);	/* lc_state */
 		printk_debug("PcieLinkTraining port=%x:lc current state=%x\n",
 			     port, lc_state);
@@ -562,7 +562,7 @@ u8 PcieTrainPort(device_t nb_dev, device_t dev, u32 port)
 			printk_debug("link_width=%x, lane_mask=%x",
 				     current_link_width, lane_mask);
 			set_pcie_reset();
-			delay(1);
+			delay(1000);
 			set_pcie_dereset();
 			break;
 		case 0x07:	/* device is in compliance state (training sequence is doen). Move to train the next device */
@@ -598,6 +598,9 @@ u8 PcieTrainPort(device_t nb_dev, device_t dev, u32 port)
 				reg += tmp;	/* merge */
 				reg |= 1 << 8;
 				count++;	/* CIM said "keep in loop"?  */
+				set_pcie_reset();
+				delay(1000);
+				set_pcie_dereset();
 			} else {
 				res = 1;
 				count = 0;
