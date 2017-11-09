@@ -14,16 +14,10 @@
 #if NGZIP > 0
 #include <gzipfs.h>
 #endif /* NGZIP */
-struct loopdev_softc {
-    /* General disk infos */
-    struct device sc_dev;
-    char dev[64];
-    int fd,bs,seek,count,access;
-#if NGZIP > 0
-    int unzip;
-#endif
-};
-#define loopdevlookup(dev) (struct loopdev_softc *)device_lookup(&loopdev_cd, minor(dev))
+#include <pmon/dev/loopdev.h>
+
+static struct device *get_device(dev_t dev);
+
 int loopdevmatch( struct device *parent, void *match, void *aux);
 void loopdevattach(struct device *parent, struct device *self, void *aux);
 
@@ -41,7 +35,7 @@ void loopdevstrategy(struct buf *bp)
 	unsigned int blkno, blkcnt;
 	int ret ;
 			
-	priv=loopdevlookup(bp->b_dev);
+	priv=get_device(bp->b_dev);
 
 	blkno = bp->b_blkno;
 
@@ -80,6 +74,11 @@ void loopdevstrategy(struct buf *bp)
 	}
 	else
 	{
+	lseek(priv->fd,blkno*priv->bs,SEEK_SET);
+	ret = write(priv->fd,(unsigned long *)bp->b_data,bp->b_bcount);
+	if(ret != bp->b_bcount)
+		bp->b_flags |= B_ERROR;	
+	dotik(30000, 0);
 	}
 done:
 	biodone(bp);
@@ -89,14 +88,17 @@ bad:
 	biodone(bp);
 }
 
+
+
+
 static int losetup(int argc,char **argv)
 {
 int i;
 struct loopdev_softc *priv;
 int dev;
 if(argc<3)return -1;
-dev=argv[1][7]-'0';
-priv=loopdevlookup(dev);
+dev=find_device(&argv[1]);
+priv=get_device(dev);
 if(!priv)return -1;
 strncpy(priv->dev,argv[2],63);
 priv->bs=DEV_BSIZE;
@@ -128,14 +130,15 @@ loopdevopen(
 {
 char loopdevcmd[0x200];
 char *loopdevenv;
-struct loopdev_softc *priv=loopdevlookup(dev);
+struct loopdev_softc *priv=get_device(dev);
 if(!priv)return -1;
 
-if((loopdevenv=getenv("loopdev")))
+if((loopdevenv=getenv(priv->sc_dev.dv_xname)))
 {
-sprintf(loopdevcmd,"losetup loopdev%d %s",minor(dev),loopdevenv);
+sprintf(loopdevcmd,"losetup %s %s",priv->sc_dev.dv_xname,loopdevenv);
 do_cmd(loopdevcmd);
 }
+
 priv->fd=open(priv->dev,priv->access);
 if(priv->fd==-1)return -1;
 #if NGZIP > 0
@@ -152,9 +155,7 @@ loopdevread(
     struct uio *uio,
     int flags)
 {
-int ret;
-    ret=physio(loopdevstrategy, NULL, dev, B_READ, minphys, uio);
-return ret;
+	return physio(loopdevstrategy, NULL, dev, B_READ, minphys, uio);
 }
 
 int
@@ -172,7 +173,7 @@ loopdevclose( dev_t dev,
 	int flag, int fmt,
 	struct proc *p)
 {
-struct loopdev_softc *priv=loopdevlookup(dev);
+struct loopdev_softc *priv=get_device(dev);
 #if NGZIP > 0
 	if(priv->unzip)gz_close(priv->fd);
 #endif
@@ -208,6 +209,7 @@ priv->access=O_RDWR;
 priv->unzip=0;
 #endif
 }
+
 
 static const Cmd Cmds[] =
 {
