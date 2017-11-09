@@ -44,6 +44,11 @@ device  gt: ether, ifnet, ifmedia
 attach  gt at localbus
 file    sys/dev/ic/if_gt.c			gt
 
+device	sdcard
+attach	sdcard at localbus
+
+file 	Targets/LS2K/dev/sdio.c	 sdcard needs-flag
+
 # AHCI
 device	lahci {[channel = -1]} :ahcibus
 attach	lahci at localbus

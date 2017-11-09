@@ -53,6 +53,9 @@
 #include "mod_usb_storage.h"
 #include "loopdev.h"
 #include "atp.h"
+#ifdef LOONGSON_2K
+#include "sdcard.h"
+#endif
 #include <ahci_sd.h>
 #include <ahci_cdrom.h>
 
@@ -167,6 +170,9 @@ struct devsw devswitch[] = {
 #endif
 #if NATP > 0
         { "sata", atp_open, atp_read, atp_write, atp_close},
+#endif
+#if NSDCARD > 0
+	{ "sdcard", loopdevopen, loopdevread, loopdevwrite, loopdevclose},
 #endif
 	/* Add any target specific devices. See "pmon_target.h" */
 #if defined(TGT_DEV_SWITCH)

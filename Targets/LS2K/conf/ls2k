@@ -220,6 +220,10 @@ pciide* 	at pci ? dev ? function ? flags 0x0000
 #### IDE hard drives
 wd*		at pciide? channel ? drive ? flags 0x0000
 
+#sdcard0		at localbus0 flags 0
+
+select	sdio
+
 #### Pseudo devices
 pseudo-device	loop	1	# network loopback
 
