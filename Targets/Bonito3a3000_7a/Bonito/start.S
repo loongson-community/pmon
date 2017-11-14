@@ -461,7 +461,7 @@ bsp_start:
     bal  beep_off
     nop
 
-//setup 3A and 7A HT link here
+//setup LS3A - 7A HT link start...
     //check 3A clksel setting
     li      t0, 0xbfe00190
     lw      a0, 0x4(t0)
@@ -470,7 +470,7 @@ bsp_start:
     nop
 #ifdef  CHECK_HT_PLL_MODE
     TTYDBG("Warning: 3A HT in hard freq mode, please modify clksel[7].\r\n")
-    dli     a0, 0x40000000
+    dli     a0, 0x4000000
 1:
     dsub    a0, a0, 1
     bnez    a0, 1b
@@ -489,7 +489,7 @@ bsp_start:
     nop
 #ifdef  CHECK_HT_PLL_MODE
     TTYDBG("Warning: 7A HT in hard freq mode, please modify clksel[7].\r\n")
-    dli     a0, 0x40000000
+    dli     a0, 0x4000000
 1:
     dsub    a0, a0, 1
     bnez    a0, 1b
@@ -582,44 +582,22 @@ bsp_start:
     dli     a0, 0x90000e0000000000
     move    a1, t2
     move    a2, t3
-    bal     setup_ht_link
+    bal     config_ht_link
     nop
-    beqz    v0, 8f
-    nop
-    move    t8, v0
-    TTYDBG("!!!!!Node 0 LS3A-7A link fail. fail status: ")
-    move    a0, t8
-    bal     hexserial
-    nop
-    TTYDBG("\r\nfrequency @ ")
-    dsrl    a0, t3, 32
-    bal     hexserial
-    nop
-    move    a0, t3
-    bal     hexserial
-    nop
-1:
-    b       1b
-    nop
-8:
-    TTYDBG("========Node 0 LS3A-7A linkup @")
-    dsrl    a0, t3, 32
-    bal     hexserial
-    nop
-    move    a0, t3
-    bal     hexserial
-    nop
-
 #ifdef  LS7A_2WAY_CONNECT
     dli     a0, 0x90001e0000000000
     move    a1, t2
     move    a2, t3
-    bal     setup_ht_link
+    bal     config_ht_link
+    nop
+#endif
+
+    bal     reset_ht_link
     nop
     beqz    v0, 8f
     nop
     move    t8, v0
-    TTYDBG("!!!!!Node 1 LS3A-7A link fail. fail status: ")
+    TTYDBG("!!!LS3A-7A link fail. fail status: ")
     move    a0, t8
     bal     hexserial
     nop
@@ -627,8 +605,8 @@ bsp_start:
     b       1b
     nop
 8:
-    TTYDBG("========Node 1 LS3A-7A linkup.\r\n")
-#endif
+    TTYDBG("LS3A-7A linkup.")
+//setup LS3A - 7A HT link done.
 
 //#define TEST_REBOOT
 #ifdef TEST_REBOOT

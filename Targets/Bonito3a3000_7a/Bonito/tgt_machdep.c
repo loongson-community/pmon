@@ -261,12 +261,12 @@ void tgt_devconfig()
 
 		fb_init(fbaddress, ioaddress);
 		printf("fb_init done\n");
+#ifndef MULTI_CHIP
 		/* For dvo1 */
 		gpioi2c_config_ch7034();
-
 		/* For dvo0 */
 		gpioi2c_config_sii9022a();
-
+#endif
 	} else {
 		printf("vga bios init failed, rc=%d\n",rc);
 	}
@@ -1374,7 +1374,11 @@ struct board_devices *board_devices_info()
 
 	struct board_devices *bd = &g_board;
 
-	strcpy(bd->name,"Loongson-3A3000-7A");
+#ifdef  MULTI_CHIP
+	strcpy(bd->name,"Loongson-3A3000-7A-Dev-2way");
+#else
+	strcpy(bd->name,"Loongson-3A3000-7A-Dev-1way");
+#endif
 	bd->num_resources = 10;
 
 	return bd;

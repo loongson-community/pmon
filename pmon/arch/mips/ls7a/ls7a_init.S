@@ -92,13 +92,20 @@
 #if 1
 //configure 7A pll
 //LS7A_PLL_VALUE: (LOOPC, DIV2, DIV1, DIV0)
+
     //pcie, gmac, sata/usb
     daddu   a0, t0, CONF_PLL0_OFFSET
     li      a2, 0x4
     li      a1, LS7A_PLL_VALUE(80, 8, 16, 16)
     bal     ls7a_config_one_pll
     nop
-    TTYDBG("LS7A PLL0 soft configure done.\r\n")
+    beqz    v0, 1f
+    nop
+    TTYDBG("!!!LS7A PLL0 soft configure fail.\r\n")
+2:
+    b       2b
+    nop
+1:
 
     //gpu, gmem, dc
     daddu   a0, t0, CONF_PLL1_OFFSET
@@ -106,7 +113,13 @@
     li      a1, LS7A_PLL_VALUE(100, 5, 4, 10)
     bal     ls7a_config_one_pll
     nop
-    TTYDBG("LS7A PLL1 soft configure done.\r\n")
+    beqz    v0, 1f
+    nop
+    TTYDBG("!!!LS7A PLL1 soft configure fail.\r\n")
+2:
+    b       2b
+    nop
+1:
 
     //flex, node, hda bitclk
     daddu   a0, t0, CONF_PLL2_OFFSET
@@ -114,21 +127,39 @@
     li      a1, LS7A_PLL_VALUE(96, 72, 6, 100)
     bal     ls7a_config_one_pll
     nop
-    TTYDBG("LS7A PLL2 soft configure done.\r\n")
+    beqz    v0, 1f
+    nop
+    TTYDBG("!!!LS7A PLL2 soft configure fail.\r\n")
+2:
+    b       2b
+    nop
+1:
 
     daddu   a0, t0, CONF_PLL3_OFFSET
     li      a2, 0x5
     li      a1, LS7A_PLL_VALUE(57, 30, 30, 30)
     bal     ls7a_config_one_pll
     nop
-    TTYDBG("LS7A PLL3 soft configure done.\r\n")
+    beqz    v0, 1f
+    nop
+    TTYDBG("!!!LS7A PLL3 soft configure fail.\r\n")
+2:
+    b       2b
+    nop
+1:
 
     daddu   a0, t0, CONF_PLL4_OFFSET
     li      a2, 0x5
     li      a1, LS7A_PLL_VALUE(57, 30, 30, 30)
     bal     ls7a_config_one_pll
     nop
-    TTYDBG("LS7A PLL4 soft configure done.\r\n")
+    beqz    v0, 1f
+    nop
+    TTYDBG("!!!LS7A PLL4 soft configure fail.\r\n")
+2:
+    b       2b
+    nop
+1:
 
     TTYDBG("LS7A pll configure done.\r\n")
 #endif
@@ -146,8 +177,7 @@
 #endif
 
     //init 7a hardware
-#if 1
-    //configure to obey strict HT order
+#if 1   //configure to obey strict HT order
     lw      t1, 0x414(t0)
     li      t2, (0x7ffff << 0)
     or      t1, t1, t2

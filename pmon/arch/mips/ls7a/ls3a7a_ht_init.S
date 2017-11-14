@@ -88,7 +88,7 @@ ls3a7a_ht_init:
     sw      a0, (LS3A_HT_RX_CACHE_WIN0_OFFSET+0)(t0)
 
     //open RX window: 0x0 ~ 0x7f_ffff_ffff
-    li      a0, 0x00008000
+    li      a0, 0x0000e000
     sw      a0, (LS3A_HT_RX_CACHE_WIN1_OFFSET+4)(t0)
     li      a0, 0x80000000
     sw      a0, (LS3A_HT_RX_CACHE_WIN1_OFFSET+0)(t0)

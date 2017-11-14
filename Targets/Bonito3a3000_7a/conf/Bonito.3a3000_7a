@@ -38,18 +38,17 @@ option		LS3_HT              # Enable the IO cache coherent of HT
 #option		MCP68_IDE           # Enable the MCP68 IDE 0 channel
 #option		USE_LPC_UART
 #option		USE_SB700_LPC_UART
-#option		MULTI_CHIP
+option		MULTI_CHIP
 option		BOOTCORE_ID=0
-#option		RESERVED_COREMASK=0xff00 #for 3a3000_2w_7a
-option		RESERVED_COREMASK=0xfff0 #for 3a3000_7a
+option		RESERVED_COREMASK=0xff00 #for 3a3000_2w_7a
+#option		RESERVED_COREMASK=0xfff0 #for 3a3000_7a
 option		SHUTDOWN_MASK=0x0000
 
-option  LOONGSON_3ASINGLE
+#option  LOONGSON_3ASINGLE
+option		LOONGSON_3ASERVER
 #option 		LOONGSON_3A92W
 option		BONITO_33M
 option		BOOT_PARAM
-#option		LOONGSON_3ASERVER
-#option		LOONGSON_3A7A_2WAY
 option		LS7A			#for 7A
 #select     	amd_780e
 

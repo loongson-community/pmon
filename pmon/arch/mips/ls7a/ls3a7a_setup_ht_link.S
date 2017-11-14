@@ -1,24 +1,18 @@
 //************************************
 // setup_ht_link
 // author: chenxk
-// date: 2017.11.05
-
-// set up the link between CPU and PCH.
+// date: 2017.11.14
+// set up the link between CPU and PCH include two steps:
+// 1. config_ht_link(set link parameters)
+// 2. reset_ht_link(reset to make new configure effect)
+//
 // for CPU: LS3A2000/LS3A3000
 // for PCH: LS7A1000
-// reset when linkup fail seems useless.
 //************************************
 #include "ht.h"
 
-#define HT1_LINKUP_FAIL_OFFSET      0
-#define HT1_LINKDOWN_FAIL_OFFSET    1
-#define HT1_CPU_CRC_FAIL_OFFSET     4
-#define HT1_CPU_CRC_ERR_OFFSET      5
-#define HT1_SB_CRC_FAIL_OFFSET      6
-#define HT1_SB_CRC_ERR_OFFSET       7
-######################################################
-    .global setup_ht_link
-    .ent    setup_ht_link
+    .global config_ht_link
+    .ent    config_ht_link
     .set    noreorder
     .set    mips3
 //input:
@@ -33,21 +27,15 @@
 //[63:32]: 7A side ht_pllcfg[31:0]
 //[31: 0]: 3A side ht_pllcfg[31:0]
 
-//output:
-//v0: setup_link status:
-//0: success
-//!0: fail
-
 //register usage:
 //t0: 3A HT cntl register base address
 //t1: 7A HT cntl register base address
 //t5, t6: tmp variable
 //t2: store a1
 //t3: store a2
-//t8: store return value
 //s1: store ra
 
-setup_ht_link:
+config_ht_link:
 
     move    s1, ra
 
@@ -57,7 +45,6 @@ setup_ht_link:
     daddu   t1, t1, a0
     move    t2, a1
     move    t3, a2
-    move    t8, $0
 
 #ifdef  PRINT_HT1_REG   //Print all HT registers
     TTYDBG("LS3A HT registers are:\r\n")
@@ -125,20 +112,6 @@ setup_ht_link:
     and     a0, t2, 0x1
     beqz    a0, 8f
     nop
-    //set 7A side HT
-    //TTYDBG("Set HT to 1.0 mode\r\n")
-    //lw      a0, 0x4c(t1)
-    //li      a1, (0xff<<0)
-    //not     a1, a1
-    //and     a0, a0, a1
-    //li      a1, (0x20<<0)
-    //or      a0, a0, a1
-    //sw      a0, 0x4c(t1)
-
-    //lw      a0, 0x4c(t1)
-    //bal     hexserial
-    //nop
-    //TTYDBG("\r\n")
 
     TTYDBG("Set 7A HT width\r\n")
     lw      a0, 0x44(t1)
@@ -296,8 +269,101 @@ setup_ht_link:
     nop
     TTYDBG("\r\n")
 4:
+8:
+#endif
 
-    TTYDBG("Reset HT bus\r\n")
+    move    ra, s1
+    jr      ra
+    nop
+    .end    config_ht_link
+
+######################################################
+
+#define HT1_LINKUP_FAIL_OFFSET      0
+#define HT1_LINKDOWN_FAIL_OFFSET    1
+#define HT1_CPU_CRC_FAIL_OFFSET     4
+#define HT1_CPU_CRC_ERR_OFFSET      5
+#define HT1_SB_CRC_FAIL_OFFSET      6
+#define HT1_SB_CRC_ERR_OFFSET       7
+
+#define N1_OFFSET   8
+
+    .global reset_ht_link
+    .ent    reset_ht_link
+    .set    noreorder
+    .set    mips3
+
+// support 1 way and 2 way connection.
+// Because of the stupid bug, we have to keep all HT1 link reset together.
+// 
+// reset multi-times seems useless when linkup fail.
+
+//output:
+//v0: setup_link status:
+//0: success
+//!0: fail
+
+//register usage:
+//t0: Node 0 LS3A HT1 cntl register base address
+//t1: Node 0 LS7A HT1 cntl register base address
+//t2: Node 1 LS3A HT1 cntl register base address
+//t3: Node 1 LS7A HT1 cntl register base address
+//t5, t6: tmp variable
+//t8: store return value
+//s1: store ra
+
+reset_ht_link:
+
+    move    s1, ra
+
+    dli     t0, 0x90000efdfb000000
+    dli     t1, 0x90000efdfe000000
+
+    dli     t2, 0x90001efdfb000000
+    dli     t3, 0x90001efdfe000000
+
+    move    t8, $0
+
+#ifdef  LS7A_2WAY_CONNECT
+    TTYDBG("Reset Node 1 HT1 bus\r\n")
+    lb      a0, 0x3e(t2)
+    li      a1, 0x40
+    or      a0, a0, a1
+    sb      a0, 0x3e(t2)
+    lw      a0, 0x3c(t2)
+    bal     hexserial
+    nop
+    TTYDBG("\r\n")
+
+    //wait until HT link down
+    TTYDBG("Wait HT bus down.")
+    li      t5, 0x1f
+1:
+    TTYDBG(">")
+    addi    t5, t5, -1
+    bnez    t5, 2f
+    nop
+    TTYDBG("\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b=")
+    TTYDBG("Wait HT bus down fail!\r\n")
+    //failed more than given time, set fail mark and break
+    or      t8, t8, (0x1 << HT1_LINKDOWN_FAIL_OFFSET + N1_OFFSET)
+    b       88f
+    nop
+2:
+    lw      a0, 0x44(t2)
+    li      a1, 0x20
+    and     a0, a0, a1
+    bnez    a0, 1b
+    nop
+
+    TTYDBG("\r\n")
+    lw      a0, 0x44(t2)
+    bal     hexserial
+    nop
+    TTYDBG("\r\n")
+#endif
+
+    TTYDBG("Reset Node 0 HT1 bus\r\n")
     lb      a0, 0x3e(t0)
     li      a1, 0x40
     or      a0, a0, a1
@@ -334,7 +400,7 @@ setup_ht_link:
     nop
     TTYDBG("\r\n")
 
-    TTYDBG("Dereset HT bus\r\n")
+    TTYDBG("Dereset Node 0 HT1 bus\r\n")
     lb      a0, 0x3e(t0)
     li      a1, 0x40
     not     a1, a1
@@ -370,11 +436,48 @@ setup_ht_link:
     bal     hexserial
     nop
     TTYDBG("\r\n")
-8:
+
+#ifdef  LS7A_2WAY_CONNECT
+    TTYDBG("Dereset Node 1 HT1 bus\r\n")
+    lb      a0, 0x3e(t2)
+    li      a1, 0x40
+    not     a1, a1
+    and     a0, a0, a1
+    sb      a0, 0x3e(t2)
+    lw      a0, 0x3c(t2)
+    bal     hexserial
+    nop
+    TTYDBG("\r\n")
+
+    //wait until HT link up
+    TTYDBG("Wait HT bus up.")
+    li      t5, 0x1f
+1:
+    TTYDBG(">")
+    addi    t5, t5, -1
+    bnez    t5, 2f
+    nop
+    TTYDBG("\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b=")
+    TTYDBG("Wait HT bus up fail!\r\n")
+    or      t8, t8, (0x1 << HT1_LINKUP_FAIL_OFFSET + N1_OFFSET)
+    b       88f
+    nop
+2:
+    lw      a0, 0x44(t2)
+    li      a1, 0x20
+    and     a0, a0, a1
+    beqz    a0, 1b
+    nop
+
+    TTYDBG("\r\n")
+    lw      a0, 0x44(t2)
+    bal     hexserial
+    nop
+    TTYDBG("\r\n")
 #endif
 
 #ifdef  PRINT_HT1_REG   //Print all HT registers
-    TTYDBG("LS3A HT registers are:\r\n")
+    TTYDBG("LS3A Node 0 HT1 registers are:\r\n")
     move    t5, t0
     daddu   t6, t5, (LS3A_HT_REG_NUM * 4)
 1:
@@ -412,7 +515,7 @@ setup_ht_link:
 #endif
 
 #if 1//Check if CRC error bit set and reset it
-    TTYDBG("Checking CPU HT CRC error.\r\n")
+    TTYDBG("Checking Node 0 HT1 CRC error.\r\n")
     li      t5, 0x1f
 1:
     TTYDBG(">")
@@ -472,35 +575,98 @@ setup_ht_link:
     b       1b
     nop
 3:
+
+#ifdef  LS7A_2WAY_CONNECT
+    TTYDBG("Checking Node 1 HT1 CRC error.\r\n")
+    li      t5, 0x1f
+1:
+    TTYDBG(">")
+    addi    t5, t5, -1
+    bnez    t5, 2f
+    nop
+    TTYDBG("\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b=")
+    or      t8, t8, (0x1 << HT1_CPU_CRC_FAIL_OFFSET + N1_OFFSET)
+    b       88f
+    nop
+2:
+    lw      a0, 0x44(t2)
+    li      a1, 0x300
+    and     a0, a0, a1
+    beqz    a0, 3f
+    nop
+    or      t8, t8, (0x1 << HT1_CPU_CRC_ERR_OFFSET + N1_OFFSET)
+    TTYDBG("\r\nCRC error found\r\n")
+    lw      a0, 0x44(t2)
+    bal     hexserial
+    nop
+
+    lw      a0, 0x44(t2)
+    li      a1, 0xfffffcff
+    and     a0, a0, a1
+    sw      a0, 0x44(t2)
+    b       1b
+    nop
+3:
+    TTYDBG("Checking Bridge HT CRC error bit.\r\n")
+    li      t5, 0x1f
+1:
+    TTYDBG(">")
+    addi    t5, t5, -1
+    bnez    t5, 2f
+    nop
+    TTYDBG("\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b=")
+    or      t8, t8, (0x1 << HT1_SB_CRC_FAIL_OFFSET + N1_OFFSET)
+    b       88f
+    nop
+2:
+    lw      a0, 0x44(t3)
+    li      a1, 0x300
+    and     a0, a0, a1
+    beqz    a0, 3f
+    nop
+    or      t8, t8, (0x1 << HT1_SB_CRC_ERR_OFFSET + N1_OFFSET)
+    TTYDBG("\r\nCRC error found\r\n")
+    lw      a0, 0x44(t3)
+    bal     hexserial
+    nop
+
+    lw      a0, 0x44(t3)
+    li      a1, 0xfffffcff
+    and     a0, a0, a1
+    sw      a0, 0x44(t3)
+    b       1b
+    nop
+3:
+#endif
 #endif
 
 88:
 #ifdef  DEBUG_HT1
-    TTYDBG("\r\nCPU HT reg: 0x44: ")
+    TTYDBG("\r\nNode 0 HT1 reg: 0x44: ")
     lw      a0, 0x44(t0)
     bal     hexserial
     nop
-    TTYDBG("\r\nCPU HT reg: 0x54: ")
+    TTYDBG("\r\nNode 0 HT1 reg: 0x54: ")
     lw      a0, 0x54(t0)
     bal     hexserial
     nop
-    TTYDBG("\r\nCPU HT reg: 0x120: ")
+    TTYDBG("\r\nNode 0 HT1 reg: 0x120: ")
     lw      a0, 0x120(t0)
     bal     hexserial
     nop
-    TTYDBG("\r\nCPU HT reg: 0x128: ")
+    TTYDBG("\r\nNode 0 HT1 reg: 0x128: ")
     lw      a0, 0x128(t0)
     bal     hexserial
     nop
-    TTYDBG("\r\nCPU HT reg: 0x188: ")
+    TTYDBG("\r\nNode 0 HT1 reg: 0x188: ")
     lw      a0, 0x188(t0)
     bal     hexserial
     nop
-    TTYDBG("\r\nCPU HT reg: 0x18c: ")
+    TTYDBG("\r\nNode 0 HT1 reg: 0x18c: ")
     lw      a0, 0x18c(t0)
     bal     hexserial
     nop
-    TTYDBG("\r\nCPU HT reg: 0x190: ")
+    TTYDBG("\r\nNode 0 HT1 reg: 0x190: ")
     lw      a0, 0x190(t0)
     bal     hexserial
     nop
@@ -511,4 +677,4 @@ setup_ht_link:
     move    ra, s1
     jr      ra
     nop
-    .end    setup_ht_link
+    .end    reset_ht_link

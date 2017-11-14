@@ -8,9 +8,13 @@
     .set    noreorder
     .set    mips3
 ls7a_config_one_pll:
+//input parameters:
 //a0: pll address
 //a1: pll value
 //a2: div_refc
+//output value:
+//v0: 0: success; 1: fail.
+
 
     move    t7, ra
 
@@ -65,10 +69,15 @@ ls7a_config_one_pll:
     sw      t1, 0x4(a0)
 
     //poll lock signal
+    li      v1, 0x1000
+    move    v0, $0
     li      t2, (0x1 << LS7A_PLL_LOCK_OFFSET)
 1:
     lw      t1, 0x4(a0)
     and     t1, t1, t2
+    subu    v1, v1, 1
+    beqz    v1, 1f
+    nop
     beqz    t1, 1b
     nop
 
@@ -77,7 +86,12 @@ ls7a_config_one_pll:
     li      t2, (0x7 << LS7A_PLL_SEL0_OFFSET)
     or      t1, t1, t2
     sw      t1, 0x4(a0)
+    b       2f
+    nop
+1:  //PLL lock fail
+    ori     v0, v0, 1 
 
+2:
     move    ra, t7
     jr      ra
     nop
