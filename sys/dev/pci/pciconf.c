@@ -823,6 +823,7 @@ _pci_setup_windows (struct pci_device *dev)
             pd->disable=0;
         }else{
 		if (PCI_VENDOR(pd->pa.pa_id) == 0x1a03);
+		else if (PCI_VENDOR(pd->pa.pa_id) == 0x0014);//ls7a vga
 		else {
 			printf("pcie_dev :%x vga_dev ==:%x\n",pcie_dev,vga_dev);
 	        	pcie_dev = pd;

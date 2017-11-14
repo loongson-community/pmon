@@ -23,12 +23,13 @@ typedef unsigned long dma_addr_t;
 
 #define write_reg(addr,val) writel(val,addr)
 
+#define FB_XSIZE 800
+#define FB_YSIZE 600
 #define DIS_WIDTH  FB_XSIZE
 #define DIS_HEIGHT FB_YSIZE
 #define EXTRA_PIXEL  0
 #define LO_OFF	0
 #define HI_OFF	8
-
 static struct pix_pll {
 	unsigned int l2_div;
 	unsigned int l1_loopc;
@@ -95,7 +96,7 @@ static int caclulatefreq(unsigned int pixclock_khz)
 {
 	unsigned int pstdiv, loopc, frefc;
 	unsigned long a, b, c;
-	unsigned long min = 1000;
+	unsigned long min = 100;
 
 	for (pstdiv = 1; pstdiv < 64; pstdiv++) {
 		a = (unsigned long)pixclock_khz * pstdiv;

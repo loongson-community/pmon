@@ -292,6 +292,15 @@ int vga_bios_init(void)
 	memset(pInt->private, 0, sizeof(genericInt10Priv));
 	pInt->scrnIndex = 0;	/* screen */
 	base = INTPriv(pInt)->base = malloc(0x100000);
+#ifdef LS7A
+	if(pcie_dev != NULL) {
+		unsigned int vga_tmp = _pci_make_tag(pcie_dev->parent->pa.pa_bus, pcie_dev->parent->pa.pa_device, pcie_dev->parent->pa.pa_function);//get the brige data
+		_pci_conf_write(vga_tmp, 0x1c, 0x0);//set io limit and io base to zero.
+
+		vga_tmp = _pci_make_tag(pcie_dev->pa.pa_bus, pcie_dev->pa.pa_device, pcie_dev->pa.pa_function);//get the device data
+		_pci_conf_write(vga_tmp, 0x20, 0x800);
+	}
+#endif
 #ifdef PCIE_GRAPHIC_CARD
 	INTPriv(pInt)->base = base;
 #endif
@@ -381,7 +390,7 @@ int vga_bios_init(void)
 		setup_system_bios(sysMem);
 	}
 	INTPriv(pInt)->sysMem = sysMem;
-	printf("memorysize=%x,base=%lx,sysMem=%lx,vram=%lx\n", memorysize,
+	printf("memorysize=%llx,base=%x,sysMem=%x,vram=%x\n", memorysize,
 	       INTPriv(pInt)->base, sysMem, INTPriv(pInt)->vRam);
 	setup_int_vect(pInt);
 	set_return_trap(pInt);

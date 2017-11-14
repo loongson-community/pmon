@@ -53,7 +53,7 @@ option		LS7A			#for 7A
 #select     	amd_780e
 
 #option		ENABLE_SATA         #Enable SATA  ,when enable IDE can also use, when commended only IDE can use
-option		X800x600
+#option		X800x600
 #option		FB_XSIZE=640
 #option		FB_YSIZE=480
 option		CONFIG_VIDEO_16BPP
@@ -75,9 +75,9 @@ option		AUTOLOAD
 # Disable all options below to disable gpu driver 
 # Enable all options below to enble gpu driver 
 #
-#select		mod_x86emu_int10
+select		mod_x86emu_int10
 select		mod_framebuffer
-#select		mod_vesa
+select		mod_vesa
 select		mod_vgacon
 #option		VESAFB
 option		INTERFACE_3A780E

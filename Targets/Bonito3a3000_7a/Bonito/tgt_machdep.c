@@ -41,6 +41,7 @@
 #include <string.h>
 #include <time.h>
 #include <stdlib.h>
+#include <dev/pci/pcivar.h>
 
 #include <autoconf.h>
 #include <pmon.h>
@@ -238,6 +239,10 @@ extern int dc_init(void);
 extern unsigned long long uma_memory_base;
 extern unsigned long long uma_memory_size;
 
+extern unsigned short ScreenLineLength;
+extern unsigned short ScreenDepth;
+extern unsigned short ScreenHeight;
+
 void tgt_devconfig()
 {
 	int ic, len;
@@ -248,18 +253,40 @@ void tgt_devconfig()
     int rc=1;
 #if NMOD_FRAMEBUFFER > 0 
     unsigned long fbaddress,ioaddress;
+    extern struct pci_device *pcie_dev;
 #endif
 #endif
 	_pci_devinit(1);	/* PCI device initialization */
+#if (NMOD_X86EMU_INT10 > 0)||(NMOD_X86EMU >0)
+	if(pcie_dev != NULL){
+		SBD_DISPLAY("VGAI", 0);
+		rc = vga_bios_init();
+		printf("rc=%d\n", rc);
+	}
+#endif
+#if defined(VESAFB)
+	SBD_DISPLAY("VESA", 0);
+	if(rc > 0)
+		vesafb_init();
+#endif
 #if NMOD_FRAMEBUFFER > 0
 	vga_available = 0;
 	if (rc > 0) {
-		printf("begin dc_init\n");
-		fbaddress = dc_init();
-#endif
+		if(pcie_dev == NULL){
+			printf("begin dc_init\n");
+			fbaddress = dc_init();
+			//this parameters for 800*600 VGA
+			ScreenLineLength = 1600;
+			ScreenDepth = 16;
+			ScreenHeight = 600;
+		} else {
+			fbaddress  = _pci_conf_read(pcie_dev->pa.pa_tag,0x10);
+			fbaddress = fbaddress &0xffffff00; //laster 8 bit
+			fbaddress |= 0x80000000;
+		}
 		printf("fbaddress = %08x\n", fbaddress);
 
-		fb_init(fbaddress, ioaddress);
+		fb_init(fbaddress, ioaddress);//ioaddress is unuseful
 		printf("fb_init done\n");
 #ifndef MULTI_CHIP
 		/* For dvo1 */
@@ -270,6 +297,7 @@ void tgt_devconfig()
 	} else {
 		printf("vga bios init failed, rc=%d\n",rc);
 	}
+#endif
 
 #if (NMOD_FRAMEBUFFER > 0) || (NMOD_VGACON > 0 )
 	if (rc > 0)
@@ -292,7 +320,7 @@ void tgt_devconfig()
 
 	video_set_color(0xf);
 
-	//init_win_device();
+	init_win_device();
 
 	vga_available = 0;          //lwg close printf output
 

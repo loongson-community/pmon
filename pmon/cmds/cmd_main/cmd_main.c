@@ -998,9 +998,11 @@ int paint_childwindow(char **hint,char *diskdev_name[],char *netdev_name[],int e
 
 #if LOONGSON_3ASINGLE /* below code only used for ls3a/3b/3c 780e board with rte0, other card not support
 			/* Display MAC address */
+#ifndef LS7A
 			sprintf(line, "MACAddr0: %02x:%02x:%02x:%02x:%02x:%02x", 
 					MACAddr0[0],MACAddr0[1], MACAddr0[2],MACAddr0[3],MACAddr0[4],MACAddr0[5]);
 			w_bigtext(3,12,40,2,line);
+#endif
 #endif
 			break;
 
