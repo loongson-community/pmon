@@ -117,8 +117,9 @@ int vga_available=0;
 
 extern struct trapframe DBGREG;
 extern void *memset(void *, int, size_t);
+#ifdef MULTI_CHIP
 extern int usb_spi_init(void);
-
+#endif
 int kbd_available;
 int bios_available;
 int usb_kbd_available;;
@@ -217,8 +218,9 @@ void initmips(unsigned int raw_memsz)
     CPU_SetSR(0, SR_BOOT_EXC_VEC);
 #endif
     SBD_DISPLAY("BEV0",0);
-
+#ifndef MULTI_CHIP
     usb_spi_init();
+#endif
     printf("BEV in SR set to zero.\n");
 
     main();
