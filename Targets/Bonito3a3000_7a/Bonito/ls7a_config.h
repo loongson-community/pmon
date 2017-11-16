@@ -1,11 +1,11 @@
 #define HT1_RECONNECT   1
 //HT GEN1.0/3.0 cfg
-#define HT1_GEN_CFG     1
+#define HT1_GEN_CFG     3
 //HT1 width cfg
 #ifdef  LS7A_2WAY_CONNECT
 #define HT1_WIDTH_CFG   HT_WIDTH_CTRL_8BIT  //only support 8 bit
 #else
-#define HT1_WIDTH_CFG   HT_WIDTH_CTRL_8BIT
+#define HT1_WIDTH_CFG   HT_WIDTH_CTRL_16BIT
 #endif
 //HT1 freq cfg
 #if (HT1_GEN_CFG == 3) 
@@ -14,8 +14,9 @@
 #define LS3A_HT1_SOFT_FREQ_CFG  (LS3A_HT_PLL_1600M | (0x1 << 1))
 #else
 #define HT1_HARD_FREQ_CFG       HT_GEN1_FREQ_CTRL_800M
-#define LS7A_HT1_SOFT_FREQ_CFG  (LS7A_HT_PLL_800M | (0x1 << 1))
-#define LS3A_HT1_SOFT_FREQ_CFG  (LS3A_HT_PLL_800M | (0x1 << 1))
+//in HT GEN1 mode, define PLL freq to request freq x 2, for example, if you want to use HT1 800M, define HT_PLL_1600M
+#define LS7A_HT1_SOFT_FREQ_CFG  (LS7A_HT_PLL_1600M | (0x1 << 1))
+#define LS3A_HT1_SOFT_FREQ_CFG  (LS3A_HT_PLL_1600M | (0x1 << 1))
 #endif
 
 #define LS7A_PCIE_F0_P0_DISABLE 0
