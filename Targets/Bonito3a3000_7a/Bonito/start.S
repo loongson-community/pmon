@@ -46,23 +46,8 @@
 #include "loongson3_def.h"
 #include "ls7a_config.h"
 
-#define LS7A_GMEM_CFG
-#ifdef  LS7A_GMEM_CFG
-//#define DEBUG_GMEM_PARAM
-//#define DEBUG_GMEM
-#endif
-//#define DEBUG_HT1
-#ifdef  DEBUG_HT1
-//#define PRINT_HT1_REG
-#endif
-#define CHECK_HT_PLL_MODE
-
 #include "../../../pmon/arch/mips/ls7a/ls7a_define.h"
 #include "../../../pmon/arch/mips/ls7a/ht.h"
-
-#ifdef  MULTI_CHIP
-#define LS7A_2WAY_CONNECT
-#endif
 
 /*
  *   Register usage:
