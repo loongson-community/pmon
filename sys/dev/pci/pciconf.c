@@ -865,13 +865,22 @@ _pci_query_dev (struct pci_device *dev, int bus, int device, int initialise)
 		PRINTF ("completed\n");
 	}
 #else
+	
+	id = _pci_conf_read(tag, PCI_ID_REG);
+
 #ifdef CONFIG_LSI_9260
 	if ((bus == 2 && device == 0) ||(bus == 3 && device == 0) ||
 			(bus == 4 && device == 0))
-			delay(2000000);
+	{
+	int retry =0;
+	while ((id == 0 || id == 0xffffffff) && retry<100)
+	{
+		delay(1000);
+		id = _pci_conf_read(tag, PCI_ID_REG);
+		retry++;
+	}
+	}
 #endif
-	delay(1000);  //fix that the correct id sometimes can not read;
-	id = _pci_conf_read(tag, PCI_ID_REG);
 
 	if (_pciverbose >= 2) {
 		PRINTF ("completed\n");
