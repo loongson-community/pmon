@@ -545,6 +545,33 @@ locate:
 	mtc0	t0, CP0_STATUS
 	mtc0	zero, COP_0_CAUSE_REG
 
+#ifdef  RESERVED_COREMASK
+        .set    mips64
+        mfc0    t0, $15, 1      #EBASE
+	.set	mips0
+        andi    t0, t0, 0x3ff
+
+	li	t1, 0x1
+	sllv	t1, t1, t0
+	and	t3, t1, RESERVED_COREMASK
+	bnez	t3, wait_to_be_killed
+	nop
+
+	li	v0, 0xbfe104d4
+	lw	t2, 0x0(v0)
+	or	t2, 3
+	xori	t2, RESERVED_COREMASK
+	sw	t2, 0x0(v0)
+	
+	b	cp0_main
+	nop
+
+wait_to_be_killed:
+
+	b	wait_to_be_killed
+	nop
+#endif
+
 cp0_main:
         .set    mips32
         mfc0    t0, $15, 1      #EBASE
