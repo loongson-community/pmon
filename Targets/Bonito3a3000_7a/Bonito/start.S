@@ -577,6 +577,7 @@ bsp_start:
     nop
 #endif
 
+    move    a1, t2
     bal     reset_ht_link
     nop
     beqz    v0, 8f

@@ -1,3 +1,18 @@
+#define LS7A_GMEM_CFG
+#ifdef  LS7A_GMEM_CFG
+//#define DEBUG_GMEM_PARAM
+//#define DEBUG_GMEM
+#endif
+//#define DEBUG_HT1
+#ifdef  DEBUG_HT1
+//#define PRINT_HT1_REG
+#endif
+#define CHECK_HT_PLL_MODE
+
+#ifdef  MULTI_CHIP
+#define LS7A_2WAY_CONNECT
+#endif
+
 #define HT1_RECONNECT   1
 //HT GEN1.0/3.0 cfg
 #define HT1_GEN_CFG     3
@@ -42,19 +57,3 @@
 //#define USE_PCIE_PAD_REFCLK
 //#define USE_SATA_PAD_REFCLK
 #define USE_USB_SYS_REFCLK
-
-#define LS7A_GMEM_CFG
-#ifdef  LS7A_GMEM_CFG
-//#define DEBUG_GMEM_PARAM
-//#define DEBUG_GMEM
-#endif
-//#define DEBUG_HT1
-#ifdef  DEBUG_HT1
-//#define PRINT_HT1_REG
-#endif
-#define CHECK_HT_PLL_MODE
-
-#ifdef  MULTI_CHIP
-#define LS7A_2WAY_CONNECT
-#endif
-

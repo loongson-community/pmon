@@ -113,7 +113,8 @@ config_ht_link:
     beqz    a0, 8f
     nop
 
-    TTYDBG("Set 7A HT width\r\n")
+    TTYDBG("Set 7A side HT:\r\n")
+    TTYDBG("Set width\r\n")
     lw      a0, 0x44(t1)
     li      a1, (0xff<<24)  
     not     a1, a1
@@ -134,7 +135,7 @@ config_ht_link:
     nop
     TTYDBG("\r\n")
 
-    TTYDBG("Set 7A HT Freq\r\n")
+    TTYDBG("Set Freq\r\n")
     lw      a0, 0x4c(t1)
     li      a1, (0xf<<8)  
     not     a1, a1
@@ -163,7 +164,7 @@ config_ht_link:
     li      a0, 3
     bne     a0, a1, 4f
     nop
-    TTYDBG("Set HT to Gen3 mode\r\n")
+    TTYDBG("Set Gen3 mode\r\n")
     lw      a0, 0x6c(t1)
     li      a1, (0xff<<16)  
     not     a1, a1
@@ -177,7 +178,7 @@ config_ht_link:
     nop
     TTYDBG("\r\n")
 
-    TTYDBG("Set HT to retry mode\r\n")
+    TTYDBG("Set retry mode\r\n")
     lw      a0, 0x64(t1)
     li      a1, (0xc1<<0)  
     not     a1, a1
@@ -191,7 +192,7 @@ config_ht_link:
     nop
     TTYDBG("\r\n")
 
-    TTYDBG("Enable HT scrambling\r\n")
+    TTYDBG("Enable scrambling\r\n")
     lw      a0, 0xd0(t1)
     li      a1, (0x78<<0)  
     not     a1, a1
@@ -205,10 +206,49 @@ config_ht_link:
     nop
     TTYDBG("\r\n")
 4:
+#ifdef  DEBUG_HT1
+    PRINTSTR("\r\nChange some parameters of HT:");
+1:
+    PRINTSTR("\r\nPlease input the register address you want to change!!!(0xfff:jump out.): ");
+    dli     t6, 0x00
+    bal     inputaddress
+    nop
+    move    t5, v0
+
+    dli     a1, (LS7A_HT_REG_NUM * 4)
+    bge     t5, a1, 2f    #if input address offset exceed range,jump out
+    nop
+    and     t5, t5, 0xffc
+    daddu   t5, t5, t1
+
+    PRINTSTR("\r\nPlease input the data-hex: ");
+    dli     t6, 0x00
+    bal     inputaddress
+    nop
+    sw      v0, 0x0(t5)    #v0 is the input value
+
+    //print the new register value
+    move    t6, t5
+    PRINTSTR("\r\nRegister 0x")
+    dsubu   t5, t5, t1
+    move    a0, t5
+    bal     hexserial
+    nop
+    PRINTSTR(": ")
+    lw      t6, 0x0(t6)
+    move    a0, t6
+    bal     hexserial
+    nop
+
+    b       1b
+    nop
+2:
+#endif
 
     //Set CPU side HT
+    TTYDBG("Set CPU side HT:\r\n")
     //HT bus width
-    TTYDBG("Set CPU HT width\r\n")
+    TTYDBG("Set width\r\n")
     li      a1, HT_WIDTH_CTRL_8
     srl     t5, t2, 1
     and     t5, t5, 0x1
@@ -223,7 +263,7 @@ config_ht_link:
     TTYDBG("\r\n")
 
     //Set HT bus frequency
-    TTYDBG("Set CPU HT Freq\r\n")
+    TTYDBG("Set Freq\r\n")
     srl     a1, t2, 8
     and     a1, a1, 0xf
     sb      a1, 0x49(t0)
@@ -245,7 +285,7 @@ config_ht_link:
     li      a0, 3
     bne     a0, a1, 4f
     nop
-    TTYDBG("Set HT to GEN3 mode\r\n")
+    TTYDBG("Set GEN3 mode\r\n")
     li      a1, 0x88600000
     sw      a1, 0x110(t0)
     lw      a0, 0x110(t0)
@@ -253,7 +293,7 @@ config_ht_link:
     nop
     TTYDBG("\r\n")
 
-    TTYDBG("Set HT to retry mode\r\n")
+    TTYDBG("Set retry mode\r\n")
     li      a1, 0x81
     sb      a1, 0x118(t0)
     lw      a0, 0x118(t0)
@@ -261,7 +301,7 @@ config_ht_link:
     nop
     TTYDBG("\r\n")
 
-    TTYDBG("Enable HT scrambling\r\n")
+    TTYDBG("Enable scrambling\r\n")
     li      a1, 0x78
     sb      a1, 0x130(t0)
     lw      a0, 0x130(t0)
@@ -269,6 +309,45 @@ config_ht_link:
     nop
     TTYDBG("\r\n")
 4:
+#ifdef  DEBUG_HT1
+    PRINTSTR("\r\nChange some parameters of HT:");
+1:
+    PRINTSTR("\r\nPlease input the register address you want to change!!!(0xfff:jump out.): ");
+    dli     t6, 0x00
+    bal     inputaddress
+    nop
+    move    t5, v0
+
+    dli     a1, (LS3A_HT_REG_NUM * 4)
+    bge     t5, a1, 2f    #if input address offset exceed range,jump out
+    nop
+    and     t5, t5, 0xffc
+    daddu   t5, t5, t0
+
+    PRINTSTR("\r\nPlease input the data-hex: ");
+    dli     t6, 0x00
+    bal     inputaddress
+    nop
+    sw      v0, 0x0(t5)    #v0 is the input value
+
+    //print the new register value
+    move    t6, t5
+    PRINTSTR("\r\nRegister 0x")
+    dsubu   t5, t5, t0
+    move    a0, t5
+    bal     hexserial
+    nop
+    PRINTSTR(": ")
+    lw      t6, 0x0(t6)
+    move    a0, t6
+    bal     hexserial
+    nop
+
+    b       1b
+    nop
+2:
+#endif
+
 8:
 #endif
 
@@ -298,6 +377,10 @@ config_ht_link:
 // 
 // reset multi-times seems useless when linkup fail.
 
+//input:
+//a1: HT bus and hard freq mode related setting
+//[    0]: reconnect, 0: not reconnect; 1: reconnect
+
 //output:
 //v0: setup_link status:
 //0: success
@@ -323,6 +406,10 @@ reset_ht_link:
     dli     t3, 0x90001efdfe000000
 
     move    t8, $0
+
+    and     a0, a1, 0x1
+    beqz    a0, 88f
+    nop
 
 #ifdef  LS7A_2WAY_CONNECT
     TTYDBG("Reset Node 1 HT1 bus\r\n")
