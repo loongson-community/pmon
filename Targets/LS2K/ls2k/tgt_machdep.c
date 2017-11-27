@@ -204,7 +204,7 @@ void initmips(unsigned long long  raw_memsz)
 
 	/*enable float */
 	tgt_fpuenable();
-	CPU_TLBClear();
+//	CPU_TLBClear();
 
 	/*
 	 *  Probe clock frequencys so delays will work properly.
@@ -255,6 +255,11 @@ extern int video_hw_init(void);
 
 extern int fb_init(unsigned long, unsigned long);
 extern int dc_init();
+
+extern unsigned short ScreenLineLength;
+extern unsigned short ScreenDepth;
+extern unsigned short ScreenHeight;
+
 void tgt_devconfig()
 {
 	unsigned int val;
@@ -262,32 +267,40 @@ void tgt_devconfig()
 	int rc = 1;
 #if NMOD_FRAMEBUFFER > 0
 	unsigned long fbaddress, ioaddress;
-	extern struct pci_device *vga_dev;
+	extern struct pci_device *pcie_dev;
 #endif
 #endif 
-//mtf	*(unsigned int *)0xbfe10430 = 0x2;//mtf, enable fpga pix clk
 	val = *(unsigned int *)0xbfe10420;
 	*(unsigned int *)0xbfe10420 = (val | 0xc000);//mtf, enable I2C1
 	
-//	outl(LS2H_USB_PHY1_CFG_REG,inl(LS2H_USB_PHY1_CFG_REG)|0x2);//mtf
-//	outl(LS2H_GPIO_CFG_REG, 0xf << 24);
-//	board_ver_num = (inl(LS2H_GPIO_IN_REG) >> 8) & 0xf;
 	_pci_devinit(1);	/* PCI device initialization */
 #if (NMOD_X86EMU_INT10 > 0)||(NMOD_X86EMU >0)
-	SBD_DISPLAY("VGAI", 0);
-	rc = vga_bios_init();
+	if(pcie_dev != NULL){
+		SBD_DISPLAY("VGAI", 0);
+		rc = vga_bios_init();
+	}
 #endif
 #if NMOD_FRAMEBUFFER > 0
-	printf("begin fb_init\n");
-	fbaddress = dc_init();
-	printf("dc_init done\n");
-	fbaddress |= 0xa0000000;
-#ifdef GC300
-	GPU_fbaddr = fbaddress;
-#endif
-	fb_init(fbaddress, 0);
-	printf("after fb_init\n");
-	rc = 1;
+	if (rc > 0) {
+		if(pcie_dev == NULL){
+			printf("begin fb_init\n");
+			fbaddress = dc_init();
+			printf("dc_init done\n");
+			//this parameters for 1280*1024 VGA
+			ScreenLineLength = 2560;
+			ScreenDepth = 15;
+			ScreenHeight = 1024;
+		} else {
+			fbaddress  = _pci_conf_read(pcie_dev->pa.pa_tag,0x10);
+			fbaddress = fbaddress &0xffffff00; //laster 8 bit
+			fbaddress |= 0x80000000;
+		}
+		printf("fbaddress = %08x\n", fbaddress);
+		fb_init(fbaddress, 0);
+		printf("fb_init done\n");
+	} else {
+		printf("vga bios init failed, rc=%d\n",rc);
+	}
 #endif
 
 #if (NMOD_FRAMEBUFFER > 0)

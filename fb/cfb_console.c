@@ -1646,13 +1646,8 @@ int fb_init (unsigned long fbbase,unsigned long iobase)
 #if !defined(FB_YSIZE)
 #define FB_YSIZE 600 
 #endif
-#if defined(LOONGSON_2K)
-        pGD->winSizeX  = FB_XSIZE;
-        pGD->winSizeY  = FB_YSIZE;
-#else
         pGD->winSizeX  = ScreenLineLength/((ScreenDepth+1)/8);
         pGD->winSizeY  = ScreenHeight;
-#endif
 #endif
 
 #if   defined(CONFIG_VIDEO_1BPP)

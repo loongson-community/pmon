@@ -292,12 +292,16 @@ int vga_bios_init(void)
 	memset(pInt->private, 0, sizeof(genericInt10Priv));
 	pInt->scrnIndex = 0;	/* screen */
 	base = INTPriv(pInt)->base = malloc(0x100000);
-#ifdef LS7A
+#if defined(LS7A) || defined(LOONGSON_2K)
+	unsigned int b_val,d_val;
+
 	if(pcie_dev != NULL) {
 		unsigned int vga_tmp = _pci_make_tag(pcie_dev->parent->pa.pa_bus, pcie_dev->parent->pa.pa_device, pcie_dev->parent->pa.pa_function);//get the brige data
+		b_val = _pci_conf_read(vga_tmp, 0x1c);//read io limit and io base.
 		_pci_conf_write(vga_tmp, 0x1c, 0x0);//set io limit and io base to zero.
 
 		vga_tmp = _pci_make_tag(pcie_dev->pa.pa_bus, pcie_dev->pa.pa_device, pcie_dev->pa.pa_function);//get the device data
+		d_val = _pci_conf_read(vga_tmp, 0x20);//read io limit and io base.
 		_pci_conf_write(vga_tmp, 0x20, 0x800);
 	}
 #endif
@@ -699,6 +703,16 @@ int vga_bios_init(void)
 	free(pInt);
 	free(sysMem);
 	free(base);
+
+#if defined(LS7A) || defined(LOONGSON_2K)
+	if(pcie_dev != NULL) {
+		unsigned int vga_tmp = _pci_make_tag(pcie_dev->parent->pa.pa_bus, pcie_dev->parent->pa.pa_device, pcie_dev->parent->pa.pa_function);//get the brige data
+		_pci_conf_write(vga_tmp, 0x1c, b_val);
+
+		vga_tmp = _pci_make_tag(pcie_dev->pa.pa_bus, pcie_dev->pa.pa_device, pcie_dev->pa.pa_function);//get the device data
+		_pci_conf_write(vga_tmp, 0x20, d_val);
+	}
+#endif
 	return 1;
       error0:
 	free(pInt);

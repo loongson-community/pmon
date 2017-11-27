@@ -810,7 +810,7 @@ static void *pci_alloc_consistent(void *hwdev, size_t size,
 void *buf;
     buf = kmalloc(size,GFP_KERNEL);
 //    pci_sync_cache(hwdev, buf,size, SYNC_W);
-#if defined(LS3_HT) || defined(LOONGSON_2K)
+#if defined(LS3_HT)
 #else
     buf = (unsigned char *)CACHED_TO_UNCACHED(buf);
 #endif
@@ -833,7 +833,7 @@ extern vm_offset_t _pci_dmamap(vm_offset_t pcia,unsigned int len);
 static inline void pci_unmap_single(struct pci_dev *hwdev, dma_addr_t dma_addr,
                     size_t size, int direction)
 {
-#if defined(LS3_HT) || defined(LOONGSON_2K)
+#if defined(LS3_HT)
 #else
 pci_sync_cache(hwdev, _pci_cpumap(dma_addr,size), size, SYNC_R);
 #endif
@@ -851,7 +851,7 @@ static inline dma_addr_t pci_map_single(struct pci_dev *hwdev, void *ptr,
 {
 	    unsigned long addr = (unsigned long) ptr;
 
-#if defined(LS3_HT) || defined(LOONGSON_2K)
+#if defined(LS3_HT)
 #else
 
 		printf("pci_map_single1\n");
@@ -893,7 +893,7 @@ static inline void skb_reserve(struct sk_buff *skb, unsigned int len)
 static inline void pci_unmap_page(struct pci_dev *hwdev, dma_addr_t dma_address,
                   size_t size, int direction)
 {
-#if defined(LS3_HT) || defined(LOONGSON_2K)
+#if defined(LS3_HT)
 #else
 	pci_sync_cache(hwdev, _pci_cpumap(dma_address,size), size, SYNC_R);
 #endif

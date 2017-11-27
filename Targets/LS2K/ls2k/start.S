@@ -697,6 +697,7 @@ start_now:
         mtc0   a0, COP_0_CONFIG
 
 
+#include "pcitlb.S" /* map 0x4000000-0x7fffffff to 0xc0000000 */
 
 /* jmp to 0x9fc... */
         lui     t0, 0xdfff ####################### go to 9fc

@@ -28,6 +28,7 @@ option		BONITOEL
 option		DEVBD2E
 option		MIPS
 option		INET
+option		LS3_HT              # Enable the IO cache coherent for ls2k
 
 option      loongson3A3
 option      LSMC_2
@@ -112,8 +113,6 @@ option		NOPCINAMES		# Save some space for x86emu
 
 select		mod_framebuffer
 select		mod_vesa
-option		FB_XSIZE=1280
-option		FB_YSIZE=1024
 option 		CONFIG_VIDEO_16BPP
 #option 	CONFIG_VIDEO_8BPP_INDEX
 
@@ -126,8 +125,8 @@ option		NOSNOOP			# Caches are no-snooping
 # HAVE options. What tgt level provide
 #
 option		HAVE_TOD		# Time-Of-Day clock
-option		INTERNAL_RTC		# chip internal RTC
-#option		EXTERNAL_RTC		# external RTC
+#option		INTERNAL_RTC		# chip internal RTC
+option		EXTERNAL_RTC		# external RTC
 option		HAVE_NVENV		#  Platform has non-volatile env mem
 option		HAVE_LOGO		# Output splash logo
 option		USE_SUPERIO_UART

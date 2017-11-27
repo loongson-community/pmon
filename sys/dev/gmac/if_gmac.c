@@ -108,7 +108,7 @@ pcisyn_attach(parent, self, aux)
 
 	printf("membasep=0x%x\n",(int)membasep);
 
-#ifdef LS7A
+#if defined(LS7A) || defined(LOONGSON_2K)
 	synopGMAC_init_network_interface(sc->dv_xname, (int)(membasep|0x80000000));
 #else
 	synopGMAC_init_network_interface(sc->dv_xname, (int)PHYS_TO_UNCACHED(membasep));

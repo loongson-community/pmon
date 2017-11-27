@@ -7,6 +7,9 @@
 
 #define DC_FB0 1	//mtf modify
 
+#define FB_XSIZE 1280
+#define FB_YSIZE 1024
+
 #define DIS_WIDTH  FB_XSIZE
 #define DIS_HEIGHT FB_YSIZE
 #define EXTRA_PIXEL  0
@@ -228,7 +231,7 @@ int dc_init()
 	val = pci_read_type0_config32(6, 0, 16);
 
 	val &= 0xffff0000;
-	val |= 0xa0000000;
+	val |= 0x80000000;
 	printf("val %x\n", val);
 	config_fb(val + DC0_BASE_ADDR_OFF);	//for dvo_0 1240
 	config_fb(val + DC1_BASE_ADDR_OFF);	//for dvo_1 1250

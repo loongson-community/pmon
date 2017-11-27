@@ -362,7 +362,7 @@ static void *dma_alloc_coherent(void *hwdev, size_t size,
 {
     void *buf;
     buf = malloc(size, M_DEVBUF, M_DONTWAIT);
-#if defined(LS3_HT)||defined(LOONGSON_2K)
+#if defined(LS3_HT)
 #else
     CPU_IOFlushDCache(buf, size, SYNC_R);
 
@@ -478,7 +478,7 @@ static inline dma_addr_t dma_map_single(struct pci_dev *hwdev, void *ptr,
     unsigned long addr = (unsigned long) ptr;
 
 
-#if defined(LS3_HT)||defined(LOONGSON_2K)
+#if defined(LS3_HT)
 #else
 
     printf("pci_map_single1\n");
@@ -494,7 +494,7 @@ static inline dma_addr_t dma_map_single(struct pci_dev *hwdev, void *ptr,
 static inline void dma_unmap_single(struct pci_dev *hwdev, dma_addr_t dma_addr,
                                     size_t size, int direction)
 {
-#if defined(LS3_HT) || defined(LOONGSON_2K)
+#if defined(LS3_HT)
 #else
     pci_sync_cache(hwdev, _pci_cpumap(dma_addr, size), size, SYNC_R);
 #endif

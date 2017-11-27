@@ -111,19 +111,27 @@ _pci_hwinit(initialise, iot, memt)
 	pd->pa.pa_iot->bus_base = BONITO_PCIIO_BASE_VA;
 	pd->pa.pa_memt = pmalloc(sizeof(bus_space_tag_t));
 	pd->pa.pa_memt->bus_reverse = 1;
-	pd->pa.pa_memt->bus_base = 0xa0000000;
+	pd->pa.pa_memt->bus_base = 0xc0000000;
 	pd->pa.pa_dmat = &bus_dmamap_tag;
 	pd->bridge.secbus = pb;
 	_pci_head = pd;
 	SBD_DISPLAY ("HW-3", 0);
 
+	pb->minpcimemaddr  = BONITO_PCILO0_BASE; // 0x4000_0000
+	pb->nextpcimemaddr = BONITO_PCILO0_BASE+BONITO_PCILO_SIZE; // 0x4000_0000 + 0x4000_0000
+	pb->minpciioaddr   = PCI_IO_SPACE_BASE+0x0004000;
+	pb->nextpciioaddr  = PCI_IO_SPACE_BASE+ BONITO_PCIIO_SIZE; // 0 + 0x0200_0000
+	pb->pci_mem_base   = BONITO_PCILO_BASE_VA;
+	pb->pci_io_base    = BONITO_PCIIO_BASE_VA;
+#if 0 //low pci mem base
+	pd->pa.pa_memt->bus_base = 0xa0000000;
 	pb->minpcimemaddr  = 0x10000000;
 	pb->nextpcimemaddr = 0x17ffffff;
 	pb->minpciioaddr   = 0x18000000;
 	pb->nextpciioaddr  = 0x1800ffff;
 	pb->pci_mem_base   = 0x10000000;
 	pb->pci_io_base    = 0x18100000;
-
+#endif
 	pb->max_lat = 255;
 	pb->fast_b2b = 1;
 	pb->prefetch = 1;
