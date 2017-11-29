@@ -143,7 +143,7 @@ static void ahci_attach(struct device *parent, struct device *self, void *aux)
 	       "size=0x%x\n", memt->bus_base, (u32) (membasep),
 	       (u32) (memsizep));
 
-#if 1 /* set 1.0 mode */
+#if 0 /* set 1.0 mode */
 	int temp = *(int *)((membasep + 0x12c) | memt->bus_base);
 	printf("0x12C =%x\n", temp);
 	*(int *)((membasep + 0x12c) | memt->bus_base) = temp & 0xffffff00 | 0x11;
@@ -191,6 +191,8 @@ static void lahci_attach(struct device *parent, struct device *self, void *aux)
 	if (ahci_init_one(regbase)) {
 		printf("ahci_init_one failed.\n");
 	}
+	probe_ent_array[atoi(&self->dv_xname[4])] = probe_ent;
+
 
 	linkmap = probe_ent->link_port_map;
 	printf("lahci: linkmap=%x\n", linkmap);
