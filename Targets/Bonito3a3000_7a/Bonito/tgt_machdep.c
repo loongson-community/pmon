@@ -196,7 +196,7 @@ void initmips(unsigned int raw_memsz)
     /*
      *  Probe clock frequencys so delays will work properly.
      */
-    ls7a_pwm(0,100);
+    ls7a_pwm(5000, 10000);
     tgt_cpufreq();
     SBD_DISPLAY("DONE",0);
     /*
@@ -487,18 +487,23 @@ void tgt_logo()
 
 static void ls7a_pwm(int x,int y)
 {
+    readl(LS7A_PWM0_CTRL) &= ~1;
     outl(LS7A_PWM0_LOW,x);
     outl(LS7A_PWM0_FULL,y);
     readl(LS7A_PWM0_CTRL) |= 1;
 
+    readl(LS7A_PWM1_CTRL) &= ~1;
     outl(LS7A_PWM1_LOW,x);
     outl(LS7A_PWM1_FULL,y);
     readl(LS7A_PWM1_CTRL) |= 1;
 
-    outl(LS7A_PWM2_LOW,x);
-    outl(LS7A_PWM2_FULL,y);
-    readl(LS7A_PWM2_CTRL) |= 1;
+    //as now, the 7A Fan control circuit(PWM2) has problem, keep it constant to avoid wearing fan.
+    //readl(LS7A_PWM2_CTRL) &= ~1;
+    //outl(LS7A_PWM2_LOW,x);
+    //outl(LS7A_PWM2_FULL,y);
+    //readl(LS7A_PWM2_CTRL) |= 1;
 
+    readl(LS7A_PWM3_CTRL) &= ~1;
     outl(LS7A_PWM3_LOW,x);
     outl(LS7A_PWM3_FULL,y);
     readl(LS7A_PWM3_CTRL) |= 1;

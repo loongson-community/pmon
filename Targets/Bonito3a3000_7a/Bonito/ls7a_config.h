@@ -6,6 +6,7 @@
 //#define DEBUG_HT1
 #ifdef  DEBUG_HT1
 //#define PRINT_HT1_REG
+//#define DEBUG_HT1_PARAM
 #endif
 #define CHECK_HT_PLL_MODE
 

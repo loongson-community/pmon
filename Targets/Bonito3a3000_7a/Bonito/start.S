@@ -440,8 +440,24 @@ bsp_start:
     dli     t0, CONFBUS_HEADER_ADDR
     li      t1, CONFBUS_BASE_ADDR
     sw      t1, 0x10(t0)
-
     TTYDBG("set LS7A MISC and confbus base address done.\r\n")
+
+    //set PWM output 1
+    dli     t0, (LS7A_MISC_BASE_ADDR | PWM_BASE_ADDR_OFFSET)
+    li      a0, 0x100
+    li      a1, (1<<0)
+    sw      $0, 0x4(t0)
+    sw      a0, 0x8(t0)
+    sw      a1, 0xc(t0)
+    sw      $0, 0x104(t0)
+    sw      a0, 0x108(t0)
+    sw      a1, 0x10c(t0)
+    sw      $0, 0x204(t0)
+    sw      a0, 0x208(t0)
+    sw      a1, 0x20c(t0)
+    sw      $0, 0x304(t0)
+    sw      a0, 0x308(t0)
+    sw      a1, 0x30c(t0)
 
     bal  beep_off
     nop

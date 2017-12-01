@@ -206,7 +206,7 @@ config_ht_link:
     nop
     TTYDBG("\r\n")
 4:
-#ifdef  DEBUG_HT1
+#ifdef  DEBUG_HT1_PARAM
     PRINTSTR("\r\nChange some parameters of HT:");
 1:
     PRINTSTR("\r\nPlease input the register address you want to change!!!(0xfff:jump out.): ");
@@ -309,7 +309,7 @@ config_ht_link:
     nop
     TTYDBG("\r\n")
 4:
-#ifdef  DEBUG_HT1
+#ifdef  DEBUG_HT1_PARAM
     PRINTSTR("\r\nChange some parameters of HT:");
 1:
     PRINTSTR("\r\nPlease input the register address you want to change!!!(0xfff:jump out.): ");
