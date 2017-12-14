@@ -30,6 +30,7 @@
  * SUCH DAMAGE.
  *
  */
+#include <sys/linux/types.h>
 #include <include/stdarg.h>
 unsigned int mem_size = 0;
 
@@ -1646,102 +1647,162 @@ int get_update(char *p)
 
      return 0;
  }
+#define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 
+struct pci_config_data {
+		int bus;
+		int dev;
+		int func;
+		int interrupt;
+		int primary;
+		int secondary;
+		int subordinate;
+		unsigned int start;
+		unsigned int end;
+#define PCI_DEV		0x1
+#define PCI_BRIDGE	0x2
+		int type;
+}__attribute__((aligned(4)));
 
-void ls_pcie_interrupt_fixup(void)
+struct pci_config_data pci_config_array[] = {
+			/*		GMAC0	*/
+[0] = {
+.bus = 0, .dev = 0x3, .func = 0, .interrupt = 20, .primary = 0, .secondary = 0,
+.subordinate = 0, .start = 0x40000000, .end = 0x4000ffff, .type = PCI_DEV,
+},
+			/*		GMAC1	*/
+[1] = {
+.bus = 0, .dev = 0x3, .func = 1, .interrupt = 22, .primary = 0, .secondary = 0,
+.subordinate = 0, .start = 0x40010000, .end = 0x4001ffff, .type = PCI_DEV,
+},
+			/*		OTG		*/
+[2] = {
+.bus = 0, .dev = 0x4, .func = 0, .interrupt = 57, .primary = 0, .secondary = 0,
+.subordinate = 0, .start = 0x40020000, .end = 0x4002ffff, .type = PCI_DEV,
+},
+			/*		EHCI	*/
+[3] = {
+.bus = 0, .dev = 0x4, .func = 1, .interrupt = 58, .primary = 0, .secondary = 0,
+.subordinate = 0, .start = 0x40030000, .end = 0x4003ffff, .type = PCI_DEV,
+},
+			/*		OHCI	*/
+[4] = {
+.bus = 0, .dev = 0x4, .func = 2, .interrupt = 59, .primary = 0, .secondary = 0,
+.subordinate = 0, .start = 0x40040000, .end = 0x4004ffff, .type = PCI_DEV,
+},
+			/*		GPU		*/
+[5] = {
+.bus = 0, .dev = 0x5, .func = 0, .interrupt = 37, .primary = 0, .secondary = 0,
+.subordinate = 0, .start = 0x40050000, .end = 0x4008ffff, .type = PCI_DEV,
+},
+			/*		DC		*/
+[6] = {
+.bus = 0, .dev = 0x6, .func = 0, .interrupt = 36, .primary = 0, .secondary = 0,
+.subordinate = 0, .start = 0x40090000, .end = 0x4009ffff, .type = PCI_DEV,
+},
+			/*		HDA		*/
+[7] = {
+.bus = 0, .dev = 0x7, .func = 0, .interrupt = 12, .primary = 0, .secondary = 0,
+.subordinate = 0, .start = 0x400a0000, .end = 0x400affff, .type = PCI_DEV,
+},
+			/*		SATA	*/
+[8] = {
+.bus = 0, .dev = 0x8, .func = 0, .interrupt = 27, .primary = 0, .secondary = 0,
+.subordinate = 0, .start = 0x400b0000, .end = 0x400bffff, .type = PCI_DEV,
+},
+			/*	PCIE0-PORT0	*/
+[9] = {
+.bus = 0, .dev = 0x9, .func = 0, .interrupt = 40, .primary = 0, .secondary = 1,
+.subordinate = 1, .start = 0x40100000, .end = 0x4fffffff, .type = PCI_BRIDGE,
+},
+			/*	PCIE0-PORT1	*/
+[10] = {
+.bus = 0, .dev = 0xa, .func = 0, .interrupt = 41, .primary = 0, .secondary = 4,
+.subordinate = 4, .start = 0x50000000, .end = 0x5fffffff, .type = PCI_BRIDGE,
+},
+			/*	PCIE0-PORT2	*/
+[11] = {
+.bus = 0, .dev = 0xb, .func = 0, .interrupt = 42, .primary = 0, .secondary = 8,
+.subordinate = 8, .start = 0x60000000, .end = 0x67ffffff, .type = PCI_BRIDGE,
+},
+			/*	PCIE0-PORT3	*/
+[12] = {
+.bus = 0, .dev = 0xc, .func = 0, .interrupt = 43, .primary = 0, .secondary = 0xc,
+.subordinate = 0xc, .start = 0x68000000, .end = 0x6fffffff, .type = PCI_BRIDGE,
+},
+			/*	PCIE1-PORT0	*/
+[13] = {
+.bus = 0, .dev = 0xd, .func = 0, .interrupt = 44, .primary = 0, .secondary = 0x10,
+.subordinate = 0x10, .start = 0x70000000, .end = 0x77ffffff, .type = PCI_BRIDGE,
+},
+			/*	PCIE1-PORT1	*/
+[14] = {
+.bus = 0, .dev = 0xe, .func = 0, .interrupt = 45, .primary = 0, .secondary = 0x14,
+.subordinate = 0x14, .start = 0x78000000, .end = 0x7fffffff, .type = PCI_BRIDGE,
+},
+{},
+};
+
+void ls_pcie_config_set(void)
 {
+	int i;
 
+	for(i = 0;i < ARRAY_SIZE(pci_config_array);i++){
+			ls_pcie_mem_fixup(pci_config_array + i);
+			ls_pcie_interrupt_fixup(pci_config_array + i);
+			ls_pcie_busnr_fixup(pci_config_array + i);
+	}
+}
+
+
+void ls_pcie_mem_fixup(struct pci_config_data *pdata)
+{
 	unsigned int dev;
 	unsigned int val;
 
-	/*GMAC0*/
-	dev = _pci_make_tag(0, 3, 0);
+	dev = _pci_make_tag(pdata->bus, pdata->dev, pdata->func);
 	val = _pci_conf_read32(dev, 0x00);
-	if ( val != 0xffffffff) // device on the slot
-		_pci_conf_write8(dev, 0x3c, 76);
+	/*	device on the slot	*/
+	if ( val != 0xffffffff){
+			if(pdata->type == PCI_DEV){
+					/*write bar*/
+					_pci_conf_write32(dev, 0x10, pdata->start);
+			}else{
+					/*write memory base and memory limit*/
+					val = ((pdata->start >> 16)&0xfff0)|(pdata->end&0xfff00000);
+					_pci_conf_write32(dev, 0x20, val);
+					_pci_conf_write32(dev, 0x24, val);
+			}
+	}
+}
 
-	/*GMAC1*/
-	dev = _pci_make_tag(0, 3, 1);
+void ls_pcie_busnr_fixup(struct pci_config_data *pdata)
+{
+	unsigned int dev;
+	unsigned int val;
+
+	dev = _pci_make_tag(pdata->bus, pdata->dev, pdata->func);
 	val = _pci_conf_read32(dev, 0x00);
+	/*	device on the slot	*/
+	if ( val != 0xffffffff){
+			if(pdata->type == PCI_BRIDGE){
+					/*write primary ,secondary and subordinate*/
+					val = pdata->primary |(pdata->secondary << 8)|(pdata->subordinate << 16);
+					_pci_conf_write32(dev, 0x18, val);
+			}
+	}
+}
+
+void ls_pcie_interrupt_fixup(struct pci_config_data *pdata)
+{
+	unsigned int dev;
+	unsigned int val;
+
+	dev = _pci_make_tag(pdata->bus, pdata->dev, pdata->func);
+	val = _pci_conf_read32(dev, 0x00);
+	/*	device on the slot	*/
 	if ( val != 0xffffffff)
-		_pci_conf_write8(dev, 0x3c, 78);
-	/*OTG*/
-	dev = _pci_make_tag(0, 4, 0);
-	val = _pci_conf_read32(dev, 0x00);
-	if ( val != 0xffffffff) // device on the slot
-		_pci_conf_write8(dev, 0x3c, 113);
-
-	/*EHCI*/
-	dev = _pci_make_tag(0, 4, 1);
-	val = _pci_conf_read32(dev, 0x00);
-	if ( val != 0xffffffff) // device on the slot
-		_pci_conf_write8(dev, 0x3c, 114);
-
-	/*OHCI*/
-	dev = _pci_make_tag(0, 4, 2);
-	val = _pci_conf_read32(dev, 0x00);
-	if ( val != 0xffffffff) // device on the slot
-		_pci_conf_write8(dev, 0x3c, 115);
-	/*GPU*/
-	dev = _pci_make_tag(0, 5, 0);
-	val = _pci_conf_read32(dev, 0x00);
-	if ( val != 0xffffffff) // device on the slot
-		_pci_conf_write8(dev, 0x3c, 93);
-
-	/*DC*/
-	dev = _pci_make_tag(0, 6, 0);
-	val = _pci_conf_read32(dev, 0x00);
-	if ( val != 0xffffffff) // device on the slot
-		_pci_conf_write8(dev, 0x3c, 92);
-
-	/*HDA*/
-	dev = _pci_make_tag(0, 7, 0);
-	val = _pci_conf_read32(dev, 0x00);
-	if ( val != 0xffffffff) // device on the slot
-		_pci_conf_write8(dev, 0x3c, 68);
-
-	/*SATA*/
-	dev = _pci_make_tag(0, 8, 0);
-	val = _pci_conf_read32(dev, 0x00);
-	if ( val != 0xffffffff) // device on the slot
-		_pci_conf_write8(dev, 0x3c, 83);
-
-	/*DMA*/
-	dev = _pci_make_tag(0, 0xf, 0);
-	val = _pci_conf_read32(dev, 0x00);
-	if ( val != 0xffffffff) // device on the slot
-		_pci_conf_write8(dev, 0x3c, 64);
-
-	/*PCIE PORT 0*/
-	dev = _pci_make_tag(1, 0, 0);
-	val = _pci_conf_read32(dev, 0x00);
-	if ( val != 0xffffffff) // device on the slot
-		_pci_conf_write8(dev, 0x3c, 96);
-	/*PCIE PORT 1*/
-	dev = _pci_make_tag(2, 0, 0);
-	val = _pci_conf_read32(dev, 0x00);
-	if ( val != 0xffffffff) // device on the slot
-		_pci_conf_write8(dev, 0x3c, 97);
-	/*PCIE PORT 2*/
-	dev = _pci_make_tag(3, 0, 0);
-	val = _pci_conf_read32(dev, 0x00);
-	if ( val != 0xffffffff) // device on the slot
-		_pci_conf_write8(dev, 0x3c, 98);
-	/*PCIE PORT 3*/
-	dev = _pci_make_tag(4, 0, 0);
-	val = _pci_conf_read32(dev, 0x00);
-	if ( val != 0xffffffff) // device on the slot
-		_pci_conf_write8(dev, 0x3c, 99);
-	/*PCIE1 PORT 0*/
-	dev = _pci_make_tag(5, 0, 0);
-	val = _pci_conf_read32(dev, 0x00);
-	if ( val != 0xffffffff) // device on the slot
-		_pci_conf_write8(dev, 0x3c, 100);
-	/*PCIE1 PORT 1*/
-	dev = _pci_make_tag(6, 0, 0);
-	val = _pci_conf_read32(dev, 0x00);
-	if ( val != 0xffffffff) // device on the slot
-		_pci_conf_write8(dev, 0x3c, 101);
+			_pci_conf_write16(dev, 0x3c, pdata->interrupt|0x100);
 
 	//mask the unused device
 #if 0

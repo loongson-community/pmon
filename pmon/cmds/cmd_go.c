@@ -81,6 +81,10 @@ const Optdesc         cmd_g_opts[] = {
 	{0}
 };
 
+#if defined(LOONGSON_2K)
+extern void ls_pcie_config_set(void);
+#endif
+
 #if NMOD_USB_UHCI != 0
 extern void usb_uhci_stop(void);
 #endif
@@ -164,7 +168,7 @@ extern char	*optarg;
 	closelst(2);		/* Init client terminal state */
 	md_setsr(NULL, initial_sr);
 	tgt_enable (tgt_getmachtype ()); /* set up i/u hardware */
-
+	
 #ifdef VMWORKS
 	if(getenv("vxWorks")) {
 		strcpy ((void *)0x4200, getenv ("vxWorks"));
@@ -184,6 +188,9 @@ extern char	*optarg;
 #endif
 #ifdef LS7A
    dc_close();
+#endif
+#if defined(LOONGSON_2K)
+	 ls_pcie_config_set();
 #endif
 #if NMOD_DEBUGGER > 0
 	if (setjmp (go_return_jump) == 0) {	
