@@ -205,6 +205,10 @@
     sb      a2, 0x330e(t0)
     sb      a2, 0x334e(t0)
 
+    //fix LPC class code
+    li      a2, 0x06010000
+    sw      a2, 0x3448(t0)
+
     //disable pci scan of MISC and confbus
     lw      a0, 0x3800(t0)
     or      a0, a0, 0xf
@@ -242,7 +246,7 @@
     sw      a0, 0x3844(t0)
     //special take care of LPC
     lw      a2, 0x388c(t0)
-    or      a2, a2, 0xff
+    or      a2, a2, 0x0f
     sw      a2, 0x388c(t0)
     //disable write to part of header ---- end
 
@@ -355,6 +359,7 @@
     sw      t1, CONF_NB_OFFSET(t0)
     TTYDBG("PCIE enabled\r\n")
 
+    //re-configure used PHYs, else powerdown it
 #if (!(LS7A_PCIE_F0_P0_DISABLE && LS7A_PCIE_F0_P1_DISABLE && LS7A_PCIE_F0_P2_DISABLE && LS7A_PCIE_F0_P3_DISABLE))
 //DO not destroy a0, a1, for example, do not add print between these code
     daddu   a0, t0, 0x590
@@ -370,6 +375,11 @@
     addu    a1, a1, 0x100
     bal     ls7a_phy_cfg_write
     nop
+#else
+    lw      t1, 0x588(t0)
+    li      t2, (1 << 24)
+    or      t1, t1, t2
+    sw      t1, 0x588(t0)
 #endif
 
 #if (!(LS7A_PCIE_F1_P0_DISABLE && LS7A_PCIE_F1_P1_DISABLE))
@@ -386,6 +396,11 @@
     addu    a1, a1, 0x100
     bal     ls7a_phy_cfg_write
     nop
+#else
+    lw      t1, 0x5a8(t0)
+    li      t2, (1 << 24)
+    or      t1, t1, t2
+    sw      t1, 0x5a8(t0)
 #endif
 
 #if (!(LS7A_PCIE_G0_P0_DISABLE && LS7A_PCIE_G0_P1_DISABLE))
@@ -416,6 +431,11 @@
     addu    a1, a1, 0x100
     bal     ls7a_phy_cfg_write
     nop
+#else
+    lw      t1, 0x5e8(t0)
+    li      t2, (1 << 24)
+    or      t1, t1, t2
+    sw      t1, 0x5e8(t0)
 #endif
 
 #if (!(LS7A_PCIE_G1_P0_DISABLE && LS7A_PCIE_G1_P1_DISABLE))
@@ -446,6 +466,11 @@
     addu    a1, a1, 0x100
     bal     ls7a_phy_cfg_write
     nop
+#else
+    lw      t1, 0x608(t0)
+    li      t2, (1 << 24)
+    or      t1, t1, t2
+    sw      t1, 0x608(t0)
 #endif
 
 #if (!(LS7A_PCIE_H_P0_DISABLE && LS7A_PCIE_H_P1_DISABLE))
@@ -476,6 +501,11 @@
     addu    a1, a1, 0x100
     bal     ls7a_phy_cfg_write
     nop
+#else
+    lw      t1, 0x5c8(t0)
+    li      t2, (1 << 24)
+    or      t1, t1, t2
+    sw      t1, 0x5c8(t0)
 #endif
 
 #define PCIE_GEN_CFG 0x1
@@ -812,6 +842,12 @@
     nop
     TTYDBG("SATA0 enabled\r\n")
 #else
+    //powerdown phy
+    lw      t1, 0x744(t0)
+    li      t2, (1 << 31)
+    or      t1, t1, t2
+    sw      t1, 0x744(t0)
+
     //disable clock
     lw      t1, (CONF_SB_OFFSET+4)(t0)
     li      t2, (1 << 11)
@@ -890,6 +926,12 @@
     nop
     TTYDBG("SATA1 enabled\r\n")
 #else
+    //powerdown phy
+    lw      t1, 0x754(t0)
+    li      t2, (1 << 31)
+    or      t1, t1, t2
+    sw      t1, 0x754(t0)
+
     //disable clock
     lw      t1, (CONF_SB_OFFSET+4)(t0)
     li      t2, (1 << 15)
@@ -968,6 +1010,12 @@
     nop
     TTYDBG("SATA2 enabled\r\n")
 #else
+    //powerdown phy
+    lw      t1, 0x764(t0)
+    li      t2, (1 << 31)
+    or      t1, t1, t2
+    sw      t1, 0x764(t0)
+
     //disable clock
     lw      t1, (CONF_SB_OFFSET+4)(t0)
     li      t2, (1 << 19)
@@ -1072,6 +1120,15 @@
     or      t1, t1, t2
     sw      t1, (CONF_SB_OFFSET+4)(t0)
     TTYDBG("LPC enabled\r\n")
+#endif
+
+#if LS7A_GRAPHICS_DISABLE
+    lw      t1, 0x420(t0)
+    li      t2, (0x1 << 5)  //TODO, can not disable DC because the PMON assume there it is and as the GPU BAR will affect DC BAR's found, so GPU cannot be disabled also
+    not     t2, t2
+    and     t1, t1, t2
+    sw      t1, 0x420(t0)
+    TTYDBG("Graphics disabled.\r\n")
 #endif
 
 // GMEM configure -- put to Device initial code ?

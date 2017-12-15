@@ -1,8 +1,3 @@
-#define LS7A_GMEM_CFG
-#ifdef  LS7A_GMEM_CFG
-//#define DEBUG_GMEM_PARAM
-//#define DEBUG_GMEM
-#endif
 //#define DEBUG_HT1
 #ifdef  DEBUG_HT1
 //#define PRINT_HT1_REG
@@ -35,6 +30,8 @@
 #define LS3A_HT1_SOFT_FREQ_CFG  (LS3A_HT_PLL_1600M | (0x1 << 1))
 #endif
 
+#define LS7A_GRAPHICS_DISABLE 0
+
 #define LS7A_PCIE_F0_P0_DISABLE 0
 #define LS7A_PCIE_F0_P1_DISABLE 0
 #define LS7A_PCIE_F0_P2_DISABLE 0
@@ -53,8 +50,16 @@
 #define LS7A_SATA2_DISABLE  0
 #define LS7A_USB0_DISABLE   0
 #define LS7A_USB1_DISABLE   0
-#define LS7A_LPC_DISABLE    1
+#define LS7A_LPC_DISABLE    0
 
 //#define USE_PCIE_PAD_REFCLK
 //#define USE_SATA_PAD_REFCLK
 #define USE_USB_SYS_REFCLK
+
+#if (!LS7A_GRAPHICS_DISABLE)
+#define LS7A_GMEM_CFG
+#endif
+#ifdef  LS7A_GMEM_CFG
+//#define DEBUG_GMEM_PARAM
+//#define DEBUG_GMEM
+#endif
