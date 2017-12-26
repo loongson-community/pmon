@@ -1751,6 +1751,7 @@ void ls_pcie_config_set(void)
 			ls_pcie_mem_fixup(pci_config_array + i);
 			ls_pcie_interrupt_fixup(pci_config_array + i);
 			ls_pcie_busnr_fixup(pci_config_array + i);
+			ls_pcie_payload_fixup(pci_config_array + i);
 	}
 }
 
@@ -1822,6 +1823,29 @@ void ls_pcie_interrupt_fixup(struct pci_config_data *pdata)
 	_pci_conf_write32(dev, 0, 0xffffffff);
 	inl(PCICFG31_RECFG) &= 0xfffffff0;
 #endif
+}
+#define  PCI_EXP_DEVCTL_READRQ  0x7000	/* Max_Read_Request_Size */
+#define  PCI_EXP_DEVCTL_PAYLOAD 0x00e0  /* Max_Payload_Size */
+
+void ls_pcie_payload_fixup(struct pci_config_data *pdata)
+{
+	unsigned int dev;
+	unsigned int val;
+	u16 max_payload_spt, control;
+
+	dev = _pci_make_tag(pdata->bus, pdata->dev, pdata->func);
+	val = _pci_conf_read32(dev, 0x00);
+	/*	device on the slot	*/
+	if ( val != 0xffffffff){
+			if(pdata->type == PCI_BRIDGE){
+					/*set Max_Payload_Size & Max_Read_Request_Size*/
+					max_payload_spt = 1;
+					control = _pci_conf_read16(dev, 0x78);
+					control &= (~PCI_EXP_DEVCTL_PAYLOAD & ~PCI_EXP_DEVCTL_READRQ);
+					control |= ((max_payload_spt << 5) | (max_payload_spt << 12));
+					_pci_conf_write16(dev, 0x78, control);
+			}
+	}
 }
 
 extern struct efi_memory_map_loongson g_map;
