@@ -1678,37 +1678,37 @@ struct pci_config_data pci_config_array[] = {
 			/*		OTG		*/
 [2] = {
 .bus = 0, .dev = 0x4, .func = 0, .interrupt = 57, .primary = 0, .secondary = 0,
-.subordinate = 0, .start = 0x40020000, .end = 0x4002ffff, .type = PCI_DEV,
+.subordinate = 0, .start = 0x40020000, .end = 0x4005ffff, .type = PCI_DEV,
 },
 			/*		EHCI	*/
 [3] = {
 .bus = 0, .dev = 0x4, .func = 1, .interrupt = 58, .primary = 0, .secondary = 0,
-.subordinate = 0, .start = 0x40030000, .end = 0x4003ffff, .type = PCI_DEV,
+.subordinate = 0, .start = 0x40060000, .end = 0x4006ffff, .type = PCI_DEV,
 },
 			/*		OHCI	*/
 [4] = {
 .bus = 0, .dev = 0x4, .func = 2, .interrupt = 59, .primary = 0, .secondary = 0,
-.subordinate = 0, .start = 0x40040000, .end = 0x4004ffff, .type = PCI_DEV,
+.subordinate = 0, .start = 0x40070000, .end = 0x4007ffff, .type = PCI_DEV,
 },
 			/*		GPU		*/
 [5] = {
 .bus = 0, .dev = 0x5, .func = 0, .interrupt = 37, .primary = 0, .secondary = 0,
-.subordinate = 0, .start = 0x40050000, .end = 0x4008ffff, .type = PCI_DEV,
+.subordinate = 0, .start = 0x40080000, .end = 0x400bffff, .type = PCI_DEV,
 },
 			/*		DC		*/
 [6] = {
 .bus = 0, .dev = 0x6, .func = 0, .interrupt = 36, .primary = 0, .secondary = 0,
-.subordinate = 0, .start = 0x40090000, .end = 0x4009ffff, .type = PCI_DEV,
+.subordinate = 0, .start = 0x400c0000, .end = 0x400cffff, .type = PCI_DEV,
 },
 			/*		HDA		*/
 [7] = {
 .bus = 0, .dev = 0x7, .func = 0, .interrupt = 12, .primary = 0, .secondary = 0,
-.subordinate = 0, .start = 0x400a0000, .end = 0x400affff, .type = PCI_DEV,
+.subordinate = 0, .start = 0x400d0000, .end = 0x400dffff, .type = PCI_DEV,
 },
 			/*		SATA	*/
 [8] = {
 .bus = 0, .dev = 0x8, .func = 0, .interrupt = 27, .primary = 0, .secondary = 0,
-.subordinate = 0, .start = 0x400b0000, .end = 0x400bffff, .type = PCI_DEV,
+.subordinate = 0, .start = 0x400e0000, .end = 0x400effff, .type = PCI_DEV,
 },
 			/*	PCIE0-PORT0	*/
 [9] = {
