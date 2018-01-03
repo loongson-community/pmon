@@ -239,8 +239,12 @@ LEAF(exception_handler)
 	lw	k1, (t0)
 	srl k1, 26
 	li t1, 0x23 //lw
+    beq k1, t1, 3f
+    nop
+    li  t1, 0x27 //lwu
 	bne k1, t1, 1f
 	nop
+3:
 	lw	k1, (t0)
 	srl k1, (16-RLOGSIZE)
 	andi k1,0x1f<<RLOGSIZE
