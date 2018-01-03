@@ -293,15 +293,22 @@ int vga_bios_init(void)
 	pInt->scrnIndex = 0;	/* screen */
 	base = INTPriv(pInt)->base = malloc(0x100000);
 #if defined(LS7A) || defined(LOONGSON_2K)
-	unsigned int b_val,d_val;
+	unsigned int b_io_lo_val, b_io_hi_val, d_val;
 
 	if(pcie_dev != NULL) {
 		unsigned int vga_tmp = _pci_make_tag(pcie_dev->parent->pa.pa_bus, pcie_dev->parent->pa.pa_device, pcie_dev->parent->pa.pa_function);//get the brige data
-		b_val = _pci_conf_read(vga_tmp, 0x1c);//read io limit and io base.
-		_pci_conf_write(vga_tmp, 0x1c, 0x0);//set io limit and io base to zero.
+		//printf("bridge tag: 0x%x\n", vga_tmp);
+		//set io limit and io base to zero.
+		//store old value first
+		b_io_lo_val = _pci_conf_read(vga_tmp, 0x1c);
+		b_io_hi_val = _pci_conf_read(vga_tmp, 0x30);
+		//write zero to io limit and io base
+		_pci_conf_write(vga_tmp, 0x1c, 0x0);
+		_pci_conf_write(vga_tmp, 0x30, 0x0);
 
 		vga_tmp = _pci_make_tag(pcie_dev->pa.pa_bus, pcie_dev->pa.pa_device, pcie_dev->pa.pa_function);//get the device data
-		d_val = _pci_conf_read(vga_tmp, 0x20);//read io limit and io base.
+		//printf("device tag: 0x%x\n", vga_tmp);
+		d_val = _pci_conf_read(vga_tmp, 0x20);
 		_pci_conf_write(vga_tmp, 0x20, 0x800);
 	}
 #endif
@@ -598,13 +605,13 @@ int vga_bios_init(void)
 #else
 	pInt->BIOSseg = V_BIOS >> 4;
 	pInt->num = 0xe6;
-	printf("lock vga\n");
+	//printf("lock vga\n");
 	//LockLegacyVGA(screen, &vga);
 	printf("starting bios emu...\n");
-	M.x86.debug |= /*DEBUG_STEP_F | DEBUG_DECODE_F | DEBUG_TRACE_F | DEBUG_MEM_TRACE_F */ DEBUG_IO_TRACE_F | DEBUG_DECODE_F;
+	M.x86.debug |= DEBUG_STEP_F | DEBUG_DECODE_F | DEBUG_TRACE_F | DEBUG_MEM_TRACE_F | DEBUG_IO_TRACE_F | DEBUG_DECODE_F;
 	//X86EMU_trace_on();
 	//printf("end of trace ......................................\n");
-	printf("ax=%lx,bx=%lx,cx=%lx,dx=%lx\n", pInt->ax, pInt->bx, pInt->cx, pInt->dx);
+	//printf("ax=%lx,bx=%lx,cx=%lx,dx=%lx\n", pInt->ax, pInt->bx, pInt->cx, pInt->dx);
 	xf86ExecX86int10(pInt);
 	printf("just before emu done ax(0x%x)\n", pInt->ax);
 	printf("bios emu done\n");
@@ -707,7 +714,8 @@ int vga_bios_init(void)
 #if defined(LS7A) || defined(LOONGSON_2K)
 	if(pcie_dev != NULL) {
 		unsigned int vga_tmp = _pci_make_tag(pcie_dev->parent->pa.pa_bus, pcie_dev->parent->pa.pa_device, pcie_dev->parent->pa.pa_function);//get the brige data
-		_pci_conf_write(vga_tmp, 0x1c, b_val);
+		_pci_conf_write(vga_tmp, 0x1c, b_io_lo_val);
+		_pci_conf_write(vga_tmp, 0x30, b_io_hi_val);
 
 		vga_tmp = _pci_make_tag(pcie_dev->pa.pa_bus, pcie_dev->pa.pa_device, pcie_dev->pa.pa_function);//get the device data
 		_pci_conf_write(vga_tmp, 0x20, d_val);
