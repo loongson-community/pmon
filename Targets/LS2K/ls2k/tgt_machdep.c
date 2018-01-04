@@ -1665,6 +1665,11 @@ struct pci_config_data {
 }__attribute__((aligned(4)));
 
 struct pci_config_data pci_config_array[] = {
+			/*		APB		*/
+[0] = {
+.bus = 0, .dev = 0x2, .func = 0, .interrupt = 0, .primary = 0, .secondary = 0,
+.subordinate = 0, .start = 0x1fe00000, .end = 0x1fe0ffff, .type = PCI_DEV,
+},
 			/*		GMAC0	*/
 [0] = {
 .bus = 0, .dev = 0x3, .func = 0, .interrupt = 20, .primary = 0, .secondary = 0,
