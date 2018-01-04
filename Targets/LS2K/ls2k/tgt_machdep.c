@@ -1718,27 +1718,32 @@ struct pci_config_data pci_config_array[] = {
 			/*	PCIE0-PORT1	*/
 [10] = {
 .bus = 0, .dev = 0xa, .func = 0, .interrupt = 41, .primary = 0, .secondary = 4,
-.subordinate = 4, .start = 0x50000000, .end = 0x5fffffff, .type = PCI_BRIDGE,
+.subordinate = 4, .start = 0x50000000, .end = 0x53ffffff, .type = PCI_BRIDGE,
 },
 			/*	PCIE0-PORT2	*/
 [11] = {
 .bus = 0, .dev = 0xb, .func = 0, .interrupt = 42, .primary = 0, .secondary = 8,
-.subordinate = 8, .start = 0x60000000, .end = 0x67ffffff, .type = PCI_BRIDGE,
+.subordinate = 8, .start = 0x54000000, .end = 0x57ffffff, .type = PCI_BRIDGE,
 },
 			/*	PCIE0-PORT3	*/
 [12] = {
 .bus = 0, .dev = 0xc, .func = 0, .interrupt = 43, .primary = 0, .secondary = 0xc,
-.subordinate = 0xc, .start = 0x68000000, .end = 0x6fffffff, .type = PCI_BRIDGE,
+.subordinate = 0xc, .start = 0x58000000, .end = 0x5fffffff, .type = PCI_BRIDGE,
 },
 			/*	PCIE1-PORT0	*/
 [13] = {
 .bus = 0, .dev = 0xd, .func = 0, .interrupt = 44, .primary = 0, .secondary = 0x10,
-.subordinate = 0x10, .start = 0x70000000, .end = 0x77ffffff, .type = PCI_BRIDGE,
+.subordinate = 0x10, .start = 0x60000000, .end = 0x77ffffff, .type = PCI_BRIDGE,
 },
 			/*	PCIE1-PORT1	*/
 [14] = {
 .bus = 0, .dev = 0xe, .func = 0, .interrupt = 45, .primary = 0, .secondary = 0x14,
 .subordinate = 0x14, .start = 0x78000000, .end = 0x7fffffff, .type = PCI_BRIDGE,
+},
+
+[15] = {
+.bus = 0, .dev = 0xe, .func = 0, .interrupt = 0, .primary = 0, .secondary = 0,
+.subordinate = 0, .start = 0x00000000, .end = 0x00000000, .type = PCI_DEV,
 },
 {},
 };
@@ -1769,6 +1774,7 @@ void ls_pcie_mem_fixup(struct pci_config_data *pdata)
 					/*write bar*/
 					_pci_conf_write32(dev, 0x10, pdata->start);
 			}else{
+					_pci_conf_write32(dev, 0x10, 0x0);
 					/*write memory base and memory limit*/
 					val = ((pdata->start >> 16)&0xfff0)|(pdata->end&0xfff00000);
 					_pci_conf_write32(dev, 0x20, val);
