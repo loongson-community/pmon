@@ -282,3 +282,10 @@ select tftpd
 # SCSI RAID disk drive support
 select scsi_sd
 select raw_ether
+#bellow for zxd
+#rmoption AUTO_DDR_CONFIG
+#option DDR_S1="0xc1a10400c1a10400"
+#option REF_33M
+#option DDR_RESET_REVERT=1
+#option DDRFREQ=300000000
+#option CPUFREQ=1000000000
