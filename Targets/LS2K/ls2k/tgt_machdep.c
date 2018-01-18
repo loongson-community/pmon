@@ -1763,8 +1763,16 @@ void ls_pcie_config_set(void)
 			ls_pcie_busnr_fixup(pci_config_array + i);
 			ls_pcie_payload_fixup(pci_config_array + i);
 	}
+	ls_pci_msi_window_config();
 }
 
+void ls_pci_msi_window_config(void)
+{
+	/*config msi window*/
+	__raw__writeq(0x900000001fe12500 , 0x000000001fe10000ULL);
+	__raw__writeq(0x900000001fe12540 , 0xffffffffffff0000ULL);
+	__raw__writeq(0x900000001fe12580 , 0x000000001fe10081ULL);
+}
 
 void ls_pcie_mem_fixup(struct pci_config_data *pdata)
 {
