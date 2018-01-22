@@ -57,6 +57,7 @@ void pci_write_type1_config32(u32 bus, u32 dev, u32 func, u32 reg, u32 val){
 u32 _pci_conf_readn(device_t tag, int reg, int width)
 {
 	int bus, device, function;
+    u32 val_raw;
 
 	if ((width != 4) || (reg & 3) || reg < 0 || reg >= 0x100) {
 		printf("_pci_conf_readn: bad reg 0x%x, tag 0x%x, width 0x%x\n", reg, tag, width);
@@ -69,6 +70,19 @@ u32 _pci_conf_readn(device_t tag, int reg, int width)
     if(bus == 0 && (device >=9 && device <= 20) && reg == 0x8){
         return 0x06040001;
     }
+    //workaround LPC BAR5
+    if(bus == 0 && device == 23 && function == 0 && reg == 0x24){
+        return 0;
+    }
+    //workaround LPC BAR4
+    if(bus == 0 && device == 23 && function == 0 && reg == 0x20){
+		val_raw = pci_read_type0_config32(device, function, reg);
+        if(val_raw == 0xfffe0001)
+            return val_raw;
+        else
+            return val_raw & ~0xfc000000;
+    }
+
 
 	if (bus == 0) {
 		/* Type 0 configuration on onboard PCI bus */
@@ -159,6 +173,11 @@ void _pci_conf_writen(device_t tag, int reg, u32 data,int width)
 
 	data = data << ((reg & 3) * 8);
 	data = (ori & mask) | data;
+
+    //workaround LPC BAR4
+    if(bus == 0 && device == 23 && function == 0 && (reg & 0xfc) == 0x20){
+        data |= 0xfc000000;
+    }
 
 
 	if (bus == 0) {

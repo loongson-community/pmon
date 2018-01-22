@@ -208,6 +208,8 @@
     //fix LPC class code
     li      a2, 0x06010000
     sw      a2, 0x3448(t0)
+    li      a2, 0xfd
+    sw      a2, 0x3464(t0)
 
     //disable pci scan of MISC and confbus
     lw      a0, 0x3800(t0)
