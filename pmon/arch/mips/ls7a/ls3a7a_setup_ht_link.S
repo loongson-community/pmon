@@ -357,6 +357,7 @@ config_ht_link:
     .end    config_ht_link
 
 ######################################################
+#define MAX_HT_CRC_ERR_COUNT    256
 
 #define HT1_LINKUP_FAIL_OFFSET      0
 #define HT1_LINKDOWN_FAIL_OFFSET    1
@@ -498,32 +499,6 @@ reset_ht_link:
     nop
     TTYDBG("\r\n")
 
-    //wait until HT link up
-    TTYDBG("Wait HT bus up.")
-    li      t5, 0x1f
-1:
-    TTYDBG(">")
-    addi    t5, t5, -1
-    bnez    t5, 2f
-    nop
-    TTYDBG("\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b=")
-    TTYDBG("Wait HT bus up fail!\r\n")
-    or      t8, t8, (0x1 << HT1_LINKUP_FAIL_OFFSET)
-    b       88f
-    nop
-2:
-    lw      a0, 0x44(t0)
-    li      a1, 0x20
-    and     a0, a0, a1
-    beqz    a0, 1b
-    nop
-
-    TTYDBG("\r\n")
-    lw      a0, 0x44(t0)
-    bal     hexserial
-    nop
-    TTYDBG("\r\n")
-
 #ifdef  LS7A_2WAY_CONNECT
     TTYDBG("Dereset Node 1 HT1 bus\r\n")
     lb      a0, 0x3e(t2)
@@ -562,6 +537,32 @@ reset_ht_link:
     nop
     TTYDBG("\r\n")
 #endif
+
+    //wait until HT link up
+    TTYDBG("Wait HT bus up.")
+    li      t5, 0x1f
+1:
+    TTYDBG(">")
+    addi    t5, t5, -1
+    bnez    t5, 2f
+    nop
+    TTYDBG("\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b=")
+    TTYDBG("Wait HT bus up fail!\r\n")
+    or      t8, t8, (0x1 << HT1_LINKUP_FAIL_OFFSET)
+    b       88f
+    nop
+2:
+    lw      a0, 0x44(t0)
+    li      a1, 0x20
+    and     a0, a0, a1
+    beqz    a0, 1b
+    nop
+
+    TTYDBG("\r\n")
+    lw      a0, 0x44(t0)
+    bal     hexserial
+    nop
+    TTYDBG("\r\n")
 
 #ifdef  PRINT_HT1_REG   //Print all HT registers
     TTYDBG("LS3A Node 0 HT1 registers are:\r\n")
@@ -602,14 +603,13 @@ reset_ht_link:
 #endif
 
 #if 1//Check if CRC error bit set and reset it
-    TTYDBG("Checking Node 0 HT1 CRC error.\r\n")
-    li      t5, 0x1f
+    TTYDBG("Checking Node 0 HT1 CRC error.")
+    li      t5, MAX_HT_CRC_ERR_COUNT
 1:
     TTYDBG(">")
     addi    t5, t5, -1
     bnez    t5, 2f
     nop
-    TTYDBG("\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b=")
     or      t8, t8, (0x1 << HT1_CPU_CRC_FAIL_OFFSET)
     b       88f
     nop
@@ -632,14 +632,13 @@ reset_ht_link:
     b       1b
     nop
 3:
-    TTYDBG("Checking Bridge HT CRC error bit.\r\n")
-    li      t5, 0x1f
+    TTYDBG("\r\nChecking Bridge HT CRC error bit.")
+    li      t5, MAX_HT_CRC_ERR_COUNT
 1:
     TTYDBG(">")
     addi    t5, t5, -1
     bnez    t5, 2f
     nop
-    TTYDBG("\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b=")
     or      t8, t8, (0x1 << HT1_SB_CRC_FAIL_OFFSET)
     b       88f
     nop
@@ -662,16 +661,16 @@ reset_ht_link:
     b       1b
     nop
 3:
+    TTYDBG("\r\n")
 
 #ifdef  LS7A_2WAY_CONNECT
-    TTYDBG("Checking Node 1 HT1 CRC error.\r\n")
-    li      t5, 0x1f
+    TTYDBG("Checking Node 1 HT1 CRC error.")
+    li      t5, MAX_HT_CRC_ERR_COUNT
 1:
     TTYDBG(">")
     addi    t5, t5, -1
     bnez    t5, 2f
     nop
-    TTYDBG("\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b=")
     or      t8, t8, (0x1 << HT1_CPU_CRC_FAIL_OFFSET + N1_OFFSET)
     b       88f
     nop
@@ -694,14 +693,13 @@ reset_ht_link:
     b       1b
     nop
 3:
-    TTYDBG("Checking Bridge HT CRC error bit.\r\n")
-    li      t5, 0x1f
+    TTYDBG("\r\nChecking Bridge HT CRC error bit.")
+    li      t5, MAX_HT_CRC_ERR_COUNT
 1:
     TTYDBG(">")
     addi    t5, t5, -1
     bnez    t5, 2f
     nop
-    TTYDBG("\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b=")
     or      t8, t8, (0x1 << HT1_SB_CRC_FAIL_OFFSET + N1_OFFSET)
     b       88f
     nop
@@ -724,11 +722,20 @@ reset_ht_link:
     b       1b
     nop
 3:
+    TTYDBG("\r\n")
 #endif
 #endif
 
 88:
 #ifdef  DEBUG_HT1
+    TTYDBG("\r\nNode 0 HT1 reg: 0x178: ")
+    lw      a0, 0x178(t0)
+    bal     hexserial
+    nop
+    TTYDBG("\r\nNode 0 LS7A HT1 reg: 0x1F4: ")
+    lw      a0, 0x1F4(t1)
+    bal     hexserial
+    nop
     TTYDBG("\r\nNode 0 HT1 reg: 0x44: ")
     lw      a0, 0x44(t0)
     bal     hexserial

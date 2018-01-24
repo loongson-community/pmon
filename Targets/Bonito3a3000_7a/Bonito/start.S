@@ -379,7 +379,7 @@ bsp_start:
 	bal hexserial
 	nop
 	TTYDBG ("\r\nHT CLK SEL : ")
-	dsrl t0, t1, 5
+	dsrl t0, t1, 10
 	andi a0, t0, 0x3f
 	bal hexserial
 	nop
@@ -531,7 +531,7 @@ bsp_start:
     PRINTSTR("\r\nInput parameter a2: ([3:0]: ht pll soft cfg sel. 0: 200M; 5: 800M; 6: 1000M; 7: 1200M; 9: 1600M; b: 2000M; c: 2200M; d: 2400M; e: 2600M; f: 3200M;): ")
     bal     inputaddress
     nop
-    and     t1, v0, 0xf
+    move    t1, v0
     PRINTSTR("\r\n")
 
     move    a0, $0
@@ -574,11 +574,16 @@ bsp_start:
     dli     t3, ((LS7A_HT_PLL_3200M | 0x2) << 32) | (LS3A_HT_PLL_3200M | 0x2)   //f
     beq     t1, a0, 8f
     nop
+    bgt     t1, a0, 2f
+    nop
 
     PRINTSTR("Error: freq select illegle, use default 800M.")
     dli     t3, ((LS7A_HT_PLL_800M | 0x2) << 32) | (LS3A_HT_PLL_800M | 0x2)    //5
+    b       8f
+    nop
+2:
+    move    t3, t1
 8:
-
 #endif
     dli     a0, 0x90000e0000000000
     move    a1, t2
@@ -596,7 +601,9 @@ bsp_start:
     move    a1, t2
     bal     reset_ht_link
     nop
-    beqz    v0, 8f
+    li      a0, 0x5353
+    and     a0, a0, v0
+    beqz    a0, 8f
     nop
     move    t8, v0
     TTYDBG("!!!LS3A-7A link fail. fail status: ")
@@ -899,7 +906,9 @@ no_reboot:
     dli     t0, LS7A_CONFBUS_BASE_ADDR
     lw      a0, 0x3ff8(t0)
     li      a1, 0x7A000000
-    beq     a0, a1, 2f
+    xor     a0, a0, a1
+    srl     a0, a0, 24  //check 7A only
+    beqz    a0, 2f
     nop
     bal     hexserial
     nop
@@ -929,122 +938,15 @@ no_reboot:
 
 ##########################################
 #if 0
-	PRINTSTR("\r\n======X1 core0 map windows:\r\n")
-	li      t1, 23
-	dli     t2, 0x900000003ff02000
-	1:
-	move	a0, t2
-	bal	hexserial64
-	nop
-	PRINTSTR(": ")
+    dli     s1, 0x0000000000000000
+#include "loongson3_debug_window.S"
 
-	ld      a0, 0x0(t2)
-	bal	hexserial64
-	nop
-	PRINTSTR("\r\n")
-
-	daddiu  t2, t2, 8
-	bnez    t1, 1b
-	addiu   t1, t1, -1
-
-	PRINTSTR("\r\n======X1 ht map windows:\r\n")
-	li      t1, 23
-	dli     t2, 0x900000003ff02700
-	1:
-	move	a0, t2
-	bal	hexserial64
-	nop
-	PRINTSTR(": ")
-
-	ld      a0, 0x0(t2)
-	bal	hexserial64
-	nop
-	PRINTSTR("\r\n")
-
-	daddiu  t2, t2, 8
-	bnez    t1, 1b
-	addiu   t1, t1, -1
-
-	PRINTSTR("\r\n======X2 cpu map windows:\r\n")
-	li      t1, 23
-	dli     t2, 0x900000003ff00000
-	1:
-	move	a0, t2
-	bal	hexserial64
-	nop
-	PRINTSTR(": ")
-
-	ld      a0, 0x0(t2)
-	bal	hexserial64
-	nop
-	PRINTSTR("\r\n")
-
-	daddiu  t2, t2, 8
-	bnez    t1, 1b
-	addiu   t1, t1, -1
-
-	PRINTSTR("\r\n======X2 pci map windows:\r\n")
-	li      t1, 23
-	dli     t2, 0x900000003ff00100
-	1:
-	move	a0, t2
-	bal	hexserial64
-	nop
-	PRINTSTR(": ")
-
-	ld      a0, 0x0(t2)
-	bal	hexserial64
-	nop
-	PRINTSTR("\r\n")
-
-	daddiu  t2, t2, 8
-	bnez    t1, 1b
-	addiu   t1, t1, -1
-
-	PRINTSTR("\r\n======read HT config reg:\r\n")
-	dli     t2, 0x90000efdfb000000
-
-	move	a0, t2
-	bal	hexserial64
-	nop
-	PRINTSTR(": ")
-
-	ld      a0, 0x0(t2)
-	bal	hexserial64
-	nop
-	PRINTSTR("\r\n")
-
-	daddiu	a0, t2, 0x60
-	bal	hexserial64
-	nop
-	PRINTSTR(": ")
-
-	ld      a0, 0x60(t2)
-	bal	hexserial64
-	nop
-	PRINTSTR("\r\n")
-
-	daddiu	a0, t2, 0x68
-	bal	hexserial64
-	nop
-	PRINTSTR(": ")
-
-	ld      a0, 0x68(t2)
-	bal	hexserial64
-	nop
-	PRINTSTR("\r\n")
-
-	daddiu	a0, t2, 0x70
-	bal	hexserial64
-	nop
-	PRINTSTR(": ")
-
-	ld      a0, 0x70(t2)
-	bal	hexserial64
-	nop
-	PRINTSTR("\r\n")
+#ifdef MULTI_CHIP
+    dli     s1, 0x0000100000000000
+#include "loongson3_debug_window.S"
 #endif
-##########################################
+#endif
+###########################################
 
 #include "machine/newtest/newdebug.S"
 
