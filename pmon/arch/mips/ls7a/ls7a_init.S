@@ -208,8 +208,6 @@
     //fix LPC class code
     li      a2, 0x06010000
     sw      a2, 0x3448(t0)
-    li      a2, 0xfd
-    sw      a2, 0x3464(t0)
 
     //disable pci scan of MISC and confbus
     lw      a0, 0x3800(t0)
@@ -248,7 +246,7 @@
     sw      a0, 0x3844(t0)
     //special take care of LPC
     lw      a2, 0x388c(t0)
-    or      a2, a2, 0x0f
+    or      a2, a2, 0xff
     sw      a2, 0x388c(t0)
     //disable write to part of header ---- end
 

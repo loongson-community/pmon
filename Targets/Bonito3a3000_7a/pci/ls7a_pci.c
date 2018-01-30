@@ -70,19 +70,11 @@ u32 _pci_conf_readn(device_t tag, int reg, int width)
     if(bus == 0 && (device >=9 && device <= 20) && reg == 0x8){
         return 0x06040001;
     }
-    //workaround LPC BAR5
-    if(bus == 0 && device == 23 && function == 0 && reg == 0x24){
-        return 0;
-    }
     //workaround LPC BAR4
     if(bus == 0 && device == 23 && function == 0 && reg == 0x20){
-		val_raw = pci_read_type0_config32(device, function, reg);
-        if(val_raw == 0xfffe0001)
-            return val_raw;
-        else
-            return val_raw & ~0xfc000000;
+        val_raw = pci_read_type0_config32(device, function, reg);
+        return val_raw & ~0xf | 0x4;
     }
-
 
 	if (bus == 0) {
 		/* Type 0 configuration on onboard PCI bus */
@@ -173,12 +165,6 @@ void _pci_conf_writen(device_t tag, int reg, u32 data,int width)
 
 	data = data << ((reg & 3) * 8);
 	data = (ori & mask) | data;
-
-    //workaround LPC BAR4
-    if(bus == 0 && device == 23 && function == 0 && (reg & 0xfc) == 0x20){
-        data |= 0xfc000000;
-    }
-
 
 	if (bus == 0) {
 		return pci_write_type0_config32(device, function, reg & 0xfc, data);
