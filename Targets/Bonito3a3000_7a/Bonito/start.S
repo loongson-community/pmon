@@ -601,7 +601,7 @@ bsp_start:
     move    a1, t2
     bal     reset_ht_link
     nop
-    li      a0, 0x5353
+    li      a0, 0x0303
     and     a0, a0, v0
     beqz    a0, 8f
     nop

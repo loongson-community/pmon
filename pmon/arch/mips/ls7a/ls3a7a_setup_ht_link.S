@@ -611,8 +611,9 @@ reset_ht_link:
     bnez    t5, 2f
     nop
     or      t8, t8, (0x1 << HT1_CPU_CRC_FAIL_OFFSET)
-    b       88f
-    nop
+    li      t5, MAX_HT_CRC_ERR_COUNT
+    //b       88f
+    //nop
 2:
     lw      a0, 0x44(t0)
     li      a1, 0x300
@@ -640,8 +641,9 @@ reset_ht_link:
     bnez    t5, 2f
     nop
     or      t8, t8, (0x1 << HT1_SB_CRC_FAIL_OFFSET)
-    b       88f
-    nop
+    li      t5, MAX_HT_CRC_ERR_COUNT
+    //b       88f
+    //nop
 2:
     lw      a0, 0x44(t1)
     li      a1, 0x300
@@ -672,8 +674,9 @@ reset_ht_link:
     bnez    t5, 2f
     nop
     or      t8, t8, (0x1 << HT1_CPU_CRC_FAIL_OFFSET + N1_OFFSET)
-    b       88f
-    nop
+    li      t5, MAX_HT_CRC_ERR_COUNT
+    //b       88f
+    //nop
 2:
     lw      a0, 0x44(t2)
     li      a1, 0x300
@@ -701,8 +704,9 @@ reset_ht_link:
     bnez    t5, 2f
     nop
     or      t8, t8, (0x1 << HT1_SB_CRC_FAIL_OFFSET + N1_OFFSET)
-    b       88f
-    nop
+    li      t5, MAX_HT_CRC_ERR_COUNT
+    //b       88f
+    //nop
 2:
     lw      a0, 0x44(t3)
     li      a1, 0x300

@@ -13,7 +13,7 @@
 //HT GEN1.0/3.0 cfg
 #define HT1_GEN_CFG     3
 //HT1 width cfg
-#ifdef  LS7A_2WAY_CONNECT
+#if defined(LS7A_2WAY_CONNECT) || (HT1_GEN_CFG == 1)
 #define HT1_WIDTH_CFG   HT_WIDTH_CTRL_8BIT  //only support 8 bit
 #else
 #define HT1_WIDTH_CFG   HT_WIDTH_CTRL_16BIT
