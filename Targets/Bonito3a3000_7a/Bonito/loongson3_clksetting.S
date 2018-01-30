@@ -6,84 +6,49 @@ ATTENTION:
          Using S1 for passing the NODE ID
 */
 #define SOFT_CLKSEL
-
 #define BBGEN
-#define VBBn_VAL 0xa
-#define VBBp_VAL 0x6
-#define FEEDBACK 0x3
 
+#ifdef  BBGEN
+#define VBBn_VAL 0x8
+#define VBBp_VAL 0x4
+#define FEEDBACK 0x3
+#endif
 
 #ifdef SOFT_CLKSEL
 
-//#define DDR_LOOPC  24 //600MHz
-#define DDR_LOOPC  30 //500MHz
-#define DDR_REFC    2
-//#define DDR_DIV     8
-#define DDR_DIV     6
+#define USE_LS_PLL 1
+#define DDR_SEL_ST 0
 
-// L1_* define both CPU and Node freq simutanleously
-//#define USE_LS_PLL 1
-#define USE_LS_PLL 0
+#ifdef  MULTI_CHIP
+#define CORE_FREQ   1200
+#define DDR_FREQ    660
+#else
+#define CORE_FREQ   1400
+#define DDR_FREQ    600
+#endif
+
+#define DDR_REFC    1   //do not modify
+#if (DDR_FREQ < 400)
+#define DDR_DIV     8
+#else
+#define DDR_DIV     4
+#endif
+#define DDR_LOOPC  (DDR_FREQ*DDR_DIV/33)   //72 //600MHz
+
+// L1_* define core frequency
 #define LS_PLL  USE_LS_PLL
 #define ST_PLL  (1 - USE_LS_PLL)
-#define SYS_PD	(((1 - ST_PLL) << 1) | (1 - LS_PLL))
-#define PLL_L1_LOCKED ((ST_PLL << 17) | (LS_PLL << 16))
 
-#define DDR_SEL_ST 1
-//#define REF_33M
-//#define REF_100M
-#ifdef REF_100M
-
-//#define L1_LOOPC    80//1000
-//#define L1_LOOPC    72//900
-//#define L1_LOOPC   256//800
-//#define L1_LOOPC   32//400
-//#define L1_LOOPC    48//600
-#define L1_LOOPC    48//600
-//#define L1_LOOPC    40//500
+#define L1_REFC     1   //do not modify
 #define L1_DIV      2
-//#define L1_DIV      2
-#define L1_REFC   1
-
-#else
-#ifdef REF_33M
-
-//#define L1_LOOPC    80//1000
-//#define L1_LOOPC    72//900
-//#define L1_LOOPC   256//800
-//#define L1_LOOPC   32//400
-#define L1_LOOPC   144//600
-//#define L1_LOOPC    40//500
-#define L1_DIV      8
-//#define L1_DIV      2
-#define L1_REFC   1
-
-#else //REF_25M
-
-//#define L1_LOOPC   128//1600
-//#define L1_LOOPC   124//1550
-//#define L1_LOOPC   122//1525
-//#define L1_LOOPC   120//1500
-//#define L1_LOOPC   116//1450
-#define L1_LOOPC   112//1400
-//#define L1_LOOPC   108//1350
-//#define L1_LOOPC   104//1300
-//#define L1_LOOPC   100//1250
-//#define L1_LOOPC   192//1200
-//#define L1_LOOPC   184//1150
-//#define L1_LOOPC   160//1000
-//#define L1_LOOPC   128//800
-//#define L1_LOOPC   192//600
-//#define L1_DIV      4
-#define L1_DIV      2
-#define L1_REFC   1
-#endif
-#endif
+#define L1_LOOPC    (CORE_FREQ*L1_DIV/25)
 
 #define BYPASS_CORE 0x0
 #define BYPASS_NODE 0x0
 #define BYPASS_L1   0x0
 
+#define SYS_PD	(((1 - ST_PLL) << 1) | (1 - LS_PLL))
+#define PLL_L1_LOCKED ((ST_PLL << 17) | (LS_PLL << 16))
 #define PLL_CHANG_COMMIT 0x1
 
 #define BYPASS_REFIN 		(0x1 << 0)
@@ -183,7 +148,6 @@ ATTENTION:
 	bal     hexserial
 	nop
 
-soft_fdcoefficient:
 	TTYDBG ("\r\nfdcoefficient  :")
 	dli     t0, 0x900000001fe001c0
 	or	    t0, t0, s1
@@ -249,6 +213,4 @@ soft_fdcoefficient:
 	bal     hexserial
 	nop
 	TTYDBG ("\r\n")
-
-
 #endif
