@@ -130,6 +130,202 @@ struct pci_bus *_pci_bushead3;
 struct pci_intline_routing *_pci_inthead;
 struct pci_device *vga_dev = NULL,*pcie_dev = NULL;
 
+static inline int ffs(int x)
+{
+	int r = 1;
+
+	if (!x)
+		return 0;
+	if (!(x & 0xffff)) {
+		x >>= 16;
+		r += 16;
+	}
+	if (!(x & 0xff)) {
+		x >>= 8;
+		r += 8;
+	}
+	if (!(x & 0xf)) {
+		x >>= 4;
+		r += 4;
+	}
+	if (!(x & 3)) {
+		x >>= 2;
+		r += 2;
+	}
+	if (!(x & 1)) {
+		x >>= 1;
+		r += 1;
+	}
+	return r;
+}
+
+bool is_power_of_2(unsigned long n)
+{
+	return (n != 0 && ((n & (n - 1)) == 0));
+}
+
+/* read max payload size support */
+static int pcie_get_mpss(struct pci_device *dev)
+{
+	pcitag_t tag;
+	int offset;
+	pcireg_t value;
+
+	tag = _pci_make_tag(dev->pa.pa_bus, dev->pa.pa_device, dev->pa.pa_function);
+	if (pci_get_capability(0, tag, PCI_CAP_ID_EXP, &offset, &value)) {
+		value = _pci_conf_read(tag, offset + PCI_EXP_DEVCAP);
+		return 128 << (value & PCI_EXP_DEVCAP_PAYLOAD);
+	}
+
+	return 128;
+}
+
+/* read max payload size */
+static int pcie_get_mps(struct pci_device *dev)
+{
+	pcitag_t tag;
+	int offset;
+	pcireg_t value;
+
+	tag = _pci_make_tag(dev->pa.pa_bus, dev->pa.pa_device, dev->pa.pa_function);
+	if (pci_get_capability(0, tag, PCI_CAP_ID_EXP, &offset, &value)) {
+		value = _pci_conf_read(tag, offset + PCI_EXP_DEVCTL);
+		return 128 << ((value & PCI_EXP_DEVCTL_PAYLOAD) >> 5);
+	}
+
+	return 128;
+}
+
+static int pcie_set_mps(struct pci_device *dev, int mps)
+{
+	unsigned int v;
+	pcitag_t tag;
+	int offset;
+	pcireg_t value;
+	pcireg_t devctl;
+
+	if (mps < 128 || mps > 4096 || !is_power_of_2(mps))
+		return -EINVAL;
+
+	tag = _pci_make_tag(dev->pa.pa_bus, dev->pa.pa_device, dev->pa.pa_function);
+	if (pci_get_capability(0, tag, PCI_CAP_ID_EXP, &offset, &value)) {
+		v = ffs(mps) - 8;
+		v <<= 5;
+
+		devctl = _pci_conf_read(tag, offset + PCI_EXP_DEVCTL);
+		devctl &= ~PCI_EXP_DEVCTL_PAYLOAD;
+		devctl |= v;
+		_pci_conf_write(dev->pa.pa_tag, offset + PCI_EXP_DEVCTL, devctl);
+	}
+
+	return 0;
+}
+
+/* read max read request size */
+static int pcie_get_readrq(struct pci_device *dev)
+{
+	pcitag_t tag;
+	int offset;
+	pcireg_t value;
+
+	tag = _pci_make_tag(dev->pa.pa_bus, dev->pa.pa_device, dev->pa.pa_function);
+	if (pci_get_capability(0, tag, PCI_CAP_ID_EXP, &offset, &value)) {
+		value = _pci_conf_read(tag, offset + PCI_EXP_DEVCTL);
+		return 128 << ((value & PCI_EXP_DEVCTL_READRQ) >> 12);
+	}
+
+	return 128;
+}
+
+static int pcie_set_readrq(struct pci_device *dev, int rq)
+{
+	unsigned int v;
+	int mps;
+	pcitag_t tag;
+	int offset;
+	pcireg_t value;
+	pcireg_t devctl;
+
+	if (rq < 128 || rq > 4096 || !is_power_of_2(rq))
+		return -EINVAL;
+
+	tag = _pci_make_tag(dev->pa.pa_bus, dev->pa.pa_device, dev->pa.pa_function);
+	/*
+	 * If using the "performance" PCIe config, we clamp the
+	 * read rq size to the max packet size to prevent the
+	 * host bridge generating requests larger than we can
+	 * cope with
+	 */
+	mps = pcie_get_mps(dev);
+
+	if (mps < rq)
+		rq = mps;
+
+	if (pci_get_capability(0, tag, PCI_CAP_ID_EXP, &offset, &value)) {
+		v = (ffs(rq) - 8) << 12;
+		devctl = _pci_conf_read(tag, offset + PCI_EXP_DEVCTL);
+		devctl &= ~PCI_EXP_DEVCTL_READRQ;
+		devctl |= v;
+		_pci_conf_write(tag, offset + PCI_EXP_DEVCTL, devctl);
+	}
+
+	return 0;
+}
+
+/* modify max payload size as minimal value of bridge and this device */
+static void pcie_write_mps(struct pci_device *dev)
+{
+	int rc;
+	struct pci_device *pcidev;
+	int value;
+	int mps;
+
+	mps = 4096;
+
+	/* invalid device */
+	if (PCI_VENDOR(_pci_conf_read(dev->pa.pa_tag, PCI_ID_REG)) == 0xffff)
+		return;
+
+	/* find the minimal max payload size */
+	for (pcidev = dev; pcidev != NULL; pcidev = pcidev->parent) {
+		/* 2k1000 skip bus 0, device 0, function 0 */
+		if (pcidev->pa.pa_tag == 0)
+			continue;
+
+		value = pcie_get_mpss(pcidev);
+
+		if (mps > value)
+			mps = value;
+	}
+
+	rc = pcie_set_mps(dev, mps);
+	if (rc)
+		printf("Failed attempting to set the MPS\n");
+}
+
+/* modify max request read size */
+static void pcie_write_mrrs(struct pci_device *dev)
+{
+	int rc, mrrs;
+
+	/* For Max performance, the MRRS must be set to the largest supported
+	 * value.  However, it cannot be configured larger than the MPS the
+	 * device or the bus can support.  This should already be properly
+	 * configured by a prior call to pcie_write_mps.
+	 */
+	mrrs = pcie_get_mps(dev);
+
+	/* MRRS is a R/W register.  Invalid values can be written, but a
+	 * subsequent read will verify if the value is acceptable or not.
+	 * If the MRRS value provided is not acceptable (e.g., too large),
+	 * shrink the value until it is acceptable to the HW.
+	 */
+	while (mrrs != pcie_get_readrq(dev) && mrrs >= 128) {
+		mrrs /= 2;
+	}
+
+	pcie_set_readrq(dev, mrrs);
+}
 
 static void
 print_bdf (int bus, int device, int function)
@@ -450,6 +646,14 @@ _pci_query_dev_func (struct pci_device *dev, pcitag_t tag, int initialise)
     //set BAR for this dev
     {
         int skipnext = 0;
+
+#if defined(LOONGSON_2K) || defined(LS7A)
+	/* skip bus 0, device 0, function 0 */
+	if (pd->pa.pa_tag != 0) {
+		pcie_write_mps(pd);
+		pcie_write_mrrs(pd);
+	}
+#endif
 
         for (reg = PCI_MAPREG_START; reg < (isbridge ? PCI_MAPREG_PPB_END : PCI_MAPREG_END); reg += 4) {
             struct pci_win *pm;
