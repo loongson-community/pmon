@@ -1742,7 +1742,7 @@ s32 synopGMAC_linux_xmit_frames(struct ifnet* ifp)
 #if SYNOP_TX_DEBUG
 	printf("xmit: TxBusy = %d\tTxNext = %d\n",gmacdev->TxBusy,gmacdev->TxNext);
 #endif
-#if	defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A)
+	//we use the function getmbuf() alloc mem, free it by m_freem()
 	if(((gmacdev->LinkState) & Mii_phy_status_link_up) != Mii_phy_status_link_up){
 		while(ifp->if_snd.ifq_head != NULL){
 			IF_DEQUEUE(&ifp->if_snd, skb);
@@ -1750,7 +1750,6 @@ s32 synopGMAC_linux_xmit_frames(struct ifnet* ifp)
 		}
 		return;
 	}
-#endif
 
 	while(ifp->if_snd.ifq_head != NULL){
 		if(!synopGMAC_is_desc_owned_by_dma(gmacdev->TxNextDesc))
@@ -1809,12 +1808,7 @@ s32 synopGMAC_linux_xmit_frames(struct ifnet* ifp)
 			printf("\n");
 #endif
 
-
-#if	defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A)
 			m_freem(skb);
-#else
-			plat_free_memory(skb);
-#endif
 
 #if defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A)
 			if ((gmacdev->MacBase != LS1A_GMAC0_REG_BASE + MACBASE)
