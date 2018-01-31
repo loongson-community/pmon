@@ -298,15 +298,23 @@ static void pcie_write_mps(struct pci_device *dev)
 			mps = value;
 	}
 
-	rc = pcie_set_mps(dev, mps);
-	if (rc)
-		printf("Failed attempting to set the MPS\n");
+	for (pcidev = dev; pcidev != NULL; pcidev = pcidev->parent) {
+
+		/* 2k1000 skip bus 0, device 0, function 0 */
+		if (pcidev->pa.pa_tag == 0)
+			continue;
+
+		rc = pcie_set_mps(pcidev, mps);
+		if (rc)
+			printf("Failed attempting to set the MPS\n");
+	}
 }
 
 /* modify max request read size */
 static void pcie_write_mrrs(struct pci_device *dev)
 {
 	int rc, mrrs;
+	struct pci_device *pcidev;
 
 	/* For Max performance, the MRRS must be set to the largest supported
 	 * value.  However, it cannot be configured larger than the MPS the
@@ -320,11 +328,16 @@ static void pcie_write_mrrs(struct pci_device *dev)
 	 * If the MRRS value provided is not acceptable (e.g., too large),
 	 * shrink the value until it is acceptable to the HW.
 	 */
-	while (mrrs != pcie_get_readrq(dev) && mrrs >= 128) {
-		mrrs /= 2;
-	}
+	for (pcidev = dev; pcidev != NULL; pcidev = pcidev->parent) {
 
-	pcie_set_readrq(dev, mrrs);
+		/* 2k1000 skip bus 0, device 0, function 0 */
+		if (pcidev->pa.pa_tag == 0)
+			continue;
+
+		rc = pcie_set_readrq(pcidev, mrrs);
+		if (rc)
+			printf("Failed attempting to set the MPS\n");
+	}
 }
 
 static void
@@ -649,7 +662,7 @@ _pci_query_dev_func (struct pci_device *dev, pcitag_t tag, int initialise)
 
 #if defined(LOONGSON_2K) || defined(LS7A)
 	/* skip bus 0, device 0, function 0 */
-	if (pd->pa.pa_tag != 0) {
+	if (pd->pa.pa_tag != 0 && !PCI_ISCLASS(class, PCI_CLASS_BRIDGE, PCI_SUBCLASS_BRIDGE_PCI)) {
 		pcie_write_mps(pd);
 		pcie_write_mrrs(pd);
 	}
