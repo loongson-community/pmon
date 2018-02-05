@@ -37,6 +37,7 @@ file	sys/dev/nand/spinand_mt29f.c spinand_mt29f & nand needs-flag
 file	sys/dev/nand/spinand_lld.c spinand_lld & nand needs-flag
 file	sys/dev/nand/m25p80.c m25p80 & nand needs-flag
 file	Targets/LS2K/dev/i2c.c i2c
+file	Targets/LS2K/dev/9022a.c sii9022a needs-flag
 
 
 device	syn: ether, ifnet
