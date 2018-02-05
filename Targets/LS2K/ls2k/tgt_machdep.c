@@ -94,6 +94,7 @@ int tgt_printf(const char *fmt, ...)
 #include "mod_smi712.h"
 #include "mod_smi502.h"
 #include "mod_sisfb.h"
+#include "sii9022a.h"
 #if (NMOD_X86EMU_INT10 > 0)||(NMOD_X86EMU >0)
 extern int vga_bios_init(void);
 #endif
@@ -340,6 +341,9 @@ static void init_pcidev(void)
 	} else {
 		printf("vga bios init failed, rc=%d\n",rc);
 	}
+#if NSII9022A
+	config_sii9022a();
+#endif
 #endif
 
 #if (NMOD_FRAMEBUFFER > 0)
