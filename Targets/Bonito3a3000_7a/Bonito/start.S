@@ -601,18 +601,18 @@ bsp_start:
     move    a1, t2
     bal     reset_ht_link
     nop
-    li      a0, 0x0303
+    li      a0, 0xf3f3
     and     a0, a0, v0
     beqz    a0, 8f
     nop
     move    t8, v0
-    TTYDBG("!!!LS3A-7A link fail. fail status: ")
+    TTYDBG("!!!LS3A-7A link error occur. Error status: ")
     move    a0, t8
     bal     hexserial
     nop
-1:
-    b       1b
-    nop
+//1:
+//    b       1b
+//    nop
 8:
     TTYDBG("LS3A-7A linkup.")
 //setup LS3A - 7A HT link done.

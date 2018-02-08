@@ -404,41 +404,6 @@
 #endif
 
 #if (!(LS7A_PCIE_G0_P0_DISABLE && LS7A_PCIE_G0_P1_DISABLE))
-    daddu   a0, t0, 0x5d0
-    li      a1, 0x403f1002
-    bal     ls7a_phy_cfg_write
-    nop
-    addu    a1, a1, 0x100
-    bal     ls7a_phy_cfg_write
-    nop
-    addu    a1, a1, 0x100
-    bal     ls7a_phy_cfg_write
-    nop
-    addu    a1, a1, 0x100
-    bal     ls7a_phy_cfg_write
-    nop
-
-    daddu   a0, t0, 0x5d8
-    li      a1, 0x403f1002
-    bal     ls7a_phy_cfg_write
-    nop
-    addu    a1, a1, 0x100
-    bal     ls7a_phy_cfg_write
-    nop
-    addu    a1, a1, 0x100
-    bal     ls7a_phy_cfg_write
-    nop
-    addu    a1, a1, 0x100
-    bal     ls7a_phy_cfg_write
-    nop
-#else
-    lw      t1, 0x5e8(t0)
-    li      t2, (1 << 24)
-    or      t1, t1, t2
-    sw      t1, 0x5e8(t0)
-#endif
-
-#if (!(LS7A_PCIE_G1_P0_DISABLE && LS7A_PCIE_G1_P1_DISABLE))
     daddu   a0, t0, 0x5f0
     li      a1, 0x403f1002
     bal     ls7a_phy_cfg_write
@@ -467,13 +432,13 @@
     bal     ls7a_phy_cfg_write
     nop
 #else
-    lw      t1, 0x608(t0)
+    lw      t1, 0x5e8(t0)
     li      t2, (1 << 24)
     or      t1, t1, t2
-    sw      t1, 0x608(t0)
+    sw      t1, 0x5e8(t0)
 #endif
 
-#if (!(LS7A_PCIE_H_P0_DISABLE && LS7A_PCIE_H_P1_DISABLE))
+#if (!(LS7A_PCIE_G1_P0_DISABLE && LS7A_PCIE_G1_P1_DISABLE))
     daddu   a0, t0, 0x610
     li      a1, 0x403f1002
     bal     ls7a_phy_cfg_write
@@ -489,6 +454,41 @@
     nop
 
     daddu   a0, t0, 0x618
+    li      a1, 0x403f1002
+    bal     ls7a_phy_cfg_write
+    nop
+    addu    a1, a1, 0x100
+    bal     ls7a_phy_cfg_write
+    nop
+    addu    a1, a1, 0x100
+    bal     ls7a_phy_cfg_write
+    nop
+    addu    a1, a1, 0x100
+    bal     ls7a_phy_cfg_write
+    nop
+#else
+    lw      t1, 0x608(t0)
+    li      t2, (1 << 24)
+    or      t1, t1, t2
+    sw      t1, 0x608(t0)
+#endif
+
+#if (!(LS7A_PCIE_H_P0_DISABLE && LS7A_PCIE_H_P1_DISABLE))
+    daddu   a0, t0, 0x5d0
+    li      a1, 0x403f1002
+    bal     ls7a_phy_cfg_write
+    nop
+    addu    a1, a1, 0x100
+    bal     ls7a_phy_cfg_write
+    nop
+    addu    a1, a1, 0x100
+    bal     ls7a_phy_cfg_write
+    nop
+    addu    a1, a1, 0x100
+    bal     ls7a_phy_cfg_write
+    nop
+
+    daddu   a0, t0, 0x5d8
     li      a1, 0x403f1002
     bal     ls7a_phy_cfg_write
     nop

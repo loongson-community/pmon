@@ -432,11 +432,9 @@ reset_ht_link:
     bnez    t5, 2f
     nop
     TTYDBG("\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b=")
-    TTYDBG("Wait HT bus down fail!\r\n")
-    //failed more than given time, set fail mark and break
+    li      t5, 0x1f
+    //failed more than given time, set fail mark
     or      t8, t8, (0x1 << HT1_LINKDOWN_FAIL_OFFSET + N1_OFFSET)
-    b       88f
-    nop
 2:
     lw      a0, 0x44(t2)
     li      a1, 0x20
@@ -470,11 +468,9 @@ reset_ht_link:
     bnez    t5, 2f
     nop
     TTYDBG("\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b=")
-    TTYDBG("Wait HT bus down fail!\r\n")
-    //failed more than given time, set fail mark and break
+    li      t5, 0x1f
+    //failed more than given time, set fail mark
     or      t8, t8, (0x1 << HT1_LINKDOWN_FAIL_OFFSET)
-    b       88f
-    nop
 2:
     lw      a0, 0x44(t0)
     li      a1, 0x20
@@ -520,10 +516,8 @@ reset_ht_link:
     bnez    t5, 2f
     nop
     TTYDBG("\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b=")
-    TTYDBG("Wait HT bus up fail!\r\n")
+    li      t5, 0x1f
     or      t8, t8, (0x1 << HT1_LINKUP_FAIL_OFFSET + N1_OFFSET)
-    b       88f
-    nop
 2:
     lw      a0, 0x44(t2)
     li      a1, 0x20
@@ -547,10 +541,8 @@ reset_ht_link:
     bnez    t5, 2f
     nop
     TTYDBG("\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b=")
-    TTYDBG("Wait HT bus up fail!\r\n")
+    li      t5, 0x1f
     or      t8, t8, (0x1 << HT1_LINKUP_FAIL_OFFSET)
-    b       88f
-    nop
 2:
     lw      a0, 0x44(t0)
     li      a1, 0x20
@@ -612,8 +604,6 @@ reset_ht_link:
     nop
     or      t8, t8, (0x1 << HT1_CPU_CRC_FAIL_OFFSET)
     li      t5, MAX_HT_CRC_ERR_COUNT
-    //b       88f
-    //nop
 2:
     lw      a0, 0x44(t0)
     li      a1, 0x300
@@ -642,8 +632,6 @@ reset_ht_link:
     nop
     or      t8, t8, (0x1 << HT1_SB_CRC_FAIL_OFFSET)
     li      t5, MAX_HT_CRC_ERR_COUNT
-    //b       88f
-    //nop
 2:
     lw      a0, 0x44(t1)
     li      a1, 0x300
@@ -675,8 +663,6 @@ reset_ht_link:
     nop
     or      t8, t8, (0x1 << HT1_CPU_CRC_FAIL_OFFSET + N1_OFFSET)
     li      t5, MAX_HT_CRC_ERR_COUNT
-    //b       88f
-    //nop
 2:
     lw      a0, 0x44(t2)
     li      a1, 0x300
@@ -705,8 +691,6 @@ reset_ht_link:
     nop
     or      t8, t8, (0x1 << HT1_SB_CRC_FAIL_OFFSET + N1_OFFSET)
     li      t5, MAX_HT_CRC_ERR_COUNT
-    //b       88f
-    //nop
 2:
     lw      a0, 0x44(t3)
     li      a1, 0x300
