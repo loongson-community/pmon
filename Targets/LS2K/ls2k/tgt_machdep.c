@@ -1764,6 +1764,45 @@ void ls_pcie_config_set(void)
 			ls_pcie_payload_fixup(pci_config_array + i);
 	}
 	ls_pci_msi_window_config();
+	ls_set_io_noncoherent();
+}
+
+typedef unsigned long long u64;
+void ls_set_io_noncoherent(void)
+{
+		u64 val;
+
+		val = __raw__readq(0x900000001fe10420);
+		val &= 0xffffff8fffffffe; //pcie, usb, hda, gmac
+		__raw__writeq(0x900000001fe10420 , val);
+
+		val = __raw__readq(0x900000001fe10430);
+		val &= 0xffffffffffffff3; //dc, gpu
+		__raw__writeq(0x900000001fe10430 , val);
+
+		val = __raw__readq(0x900000001fe10450);
+		val &= 0xffffffffffffbff; //sata
+		__raw__writeq(0x900000001fe10450 , val);
+
+		val = __raw__readq(0x900000001fe10c00);
+		val |= 0x2; //apbdma0
+		__raw__writeq(0x900000001fe10c00 , val);
+
+		val = __raw__readq(0x900000001fe10c10);
+		val |= 0x2; //apbdma1
+		__raw__writeq(0x900000001fe10c10 , val);
+
+		val = __raw__readq(0x900000001fe10c20);
+		val |= 0x2; //apbdma2
+		__raw__writeq(0x900000001fe10c20 , val);
+
+		val = __raw__readq(0x900000001fe10c30);
+		val |= 0x2; //apbdma3
+		__raw__writeq(0x900000001fe10c30 , val);
+
+		val = __raw__readq(0x900000001fe10c40);
+		val |= 0x2; //apbdma4
+		__raw__writeq(0x900000001fe10c40 , val);
 }
 
 void ls_pci_msi_window_config(void)
