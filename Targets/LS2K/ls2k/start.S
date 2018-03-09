@@ -2055,6 +2055,8 @@ nvram_offs:
     .align  5
 #ifdef CONFIG_DDR_32BIT
 #include "loongson_mc2_param-ddr32bit.S"
+#elif defined(CONFIG_DDR_16BIT)
+#include "loongson_mc2_param-ddr16bit.S"
 #else
 #include "loongson_mc2_param.S"
 #endif

@@ -780,7 +780,7 @@ x8:
 1:
 #endif
 #endif
-#ifndef CONFIG_DDR_32BIT
+#if !defined(CONFIG_DDR_32BIT) &&  !defined(CONFIG_DDR_16BIT) 
     //set data bus width
     ld      a2, DATA_WIDTH_32_ADDR(t8)
     dli     a1, 0x1

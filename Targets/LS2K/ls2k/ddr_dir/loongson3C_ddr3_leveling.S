@@ -18,7 +18,7 @@
 
 #include "ddr_leveling_define.h"
 //#define	PRINT_PREAMBLE_CHECK
-#ifdef CONFIG_DDR_32BIT
+#if defined(CONFIG_DDR_32BIT) || defined(CONFIG_DDR_16BIT)
 #define NO_EDGE_CHECK
 #else
 #define	PREAMBLE_CHECK_DEBUG
