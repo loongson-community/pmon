@@ -102,7 +102,11 @@ MC0_DDR3_CTRL_0x140: .dword 0x0403000001ff01ff
 //00000_000 pm_pad_ocd_clk 00000_000 pm_pad_ocd_ctl 0000000_0 pm_pad_ocd_dqs 0000000_0 pm_pad_ocd_dq 0000000_0_00000000 pm_pad_enzi 0000000_0 pm_pad_en_ctl _00000000 pm_pad_en_clk
 MC0_DDR3_CTRL_0x148: .dword 0x0000000000010100
 //_0000 pm_pad_adj_ncode_dq _0000 pm_pad_adj_pcode_dq 00000 _0 pm_pad_outodt_dq _0 pm_pad_slewrate_dq _0 pm_pad_code_dq _0000 pm_pad_adj_ncode_dq _0000 pm_pad_adj_pcode_dq 00000 _0 pm_pad_outodt_dq _0 pm_pad_slewrate_dq _0 00000000 0000000_0 pm_pad_vref_internal 0000000_0 pm_pad_odt_se 0000000_0 pm_pad_modezi1v8
+#ifdef DDR_RESET_REVERT
+MC0_DDR3_CTRL_0x150: .dword 0x00000000f0020000   //reset pad
+#else
 MC0_DDR3_CTRL_0x150: .dword 0x00020000f0020000
+#endif
 //hXXXX _0000 pm_pad_adj_ncode_clk _0000 pm_pad_adj_pcode_clk 00000 _0 pm_pad_outodt_clk _0 pm_pad_slewrate_clk _0 pm_pad_code_clk _0000 pm_pad_adj_ncode_cmd _0000 pm_pad_adj_pcode_cmd 00000 _0 pm_pad_outodt_cmd _0 pm_pad_slewrate_cmd _0 pm_pad_code_cmd _0000 pm_pad_adj_ncode_addr _0000 pm_pad_adj_pcode_addr 00000 _0 pm_pad_outodt_addr _0 pm_pad_slewrate_addr _0 pm_pad_code_addr
 MC0_DDR3_CTRL_0x158: .dword 0x00000000f0000000
 //hXXXXXXXX (RD) _0000 pm_pad_comp_ncode_i _0000 pm_pad_comp_pcode_i 0000000_0 pm_pad_comp_mode 0000000_0 pm_pad_comp_tm 0000000_0 pm_pad_comp_pd
@@ -256,7 +260,11 @@ MC0_DDR3_RDIMM_CTRL_0x010: .dword 0x0000000000000000
 //XXXX pm_dll_value_8(RD) XXXX pm_dll_value_7 (RD) XXXX pm_dll_value_6(RD) XXXX pm_dll_value_5(RD)
 //MC0_DDR3_RDIMM_CTRL_0x018: .dword 0x5252525216100000
 //MC0_DDR3_RDIMM_CTRL_0x018: .dword 0x4040404016100000
+#ifdef DDR_PARAM_018
+MC0_DDR3_RDIMM_CTRL_0x018: .dword DDR_PARAM_018
+#else
 MC0_DDR3_RDIMM_CTRL_0x018: .dword 0x3030303016100000
+#endif
 //MC0_DDR3_RDIMM_CTRL_0x018: .dword 0x2525252516100000
 //_00000000 pm_dll_ck_3 _00000000 pm_dll_ck_2 _00000000 pm_dll_ck_1 _00000000 pm_dll_ck_0 _00000000 pm_dll_increment _00000000 pm_dll_start_point _0000000_0 pm_dll_bypass _0000000_0 pm_init_start
 MC0_DDR3_RDIMM_CTRL_0x020: .dword 0x0201000201000000
@@ -377,7 +385,11 @@ MC0_DDR3_RDIMM_CTRL_0x1d8: .dword 0x14050c0608070406
 //_00000000 pm_tXPDLL _00000000 pm_tXP 000_00000 pm_tWR 0000_0000 pm_tRTP 0000_0000 pm_tRL 0000_0000 pm_tWL 0000_0000 pm_tCCD 0000_0000 pm_tWTR
 MC0_DDR3_RDIMM_CTRL_0x1e0: .dword 0x0503000000000000
 //00_000000 pm_tW2R_diffcs_dly 00_000000 pm_tW2W_diffcs_adj_dly 00_000000 pm_tR2P_sameba_adj_dly 00_000000 pm_tW2P_sameba_adj_dly 00_000000 pm_tR2R_sameba_adj_dly 00_000000 pm_tR2W_sameba_adj_dly 00_000000 pm_tW2R_sameba_adj_dly 00_000000 pm_tW2W_sameba_adj_dly
+#ifdef DDR_PARAM_1e8
+MC0_DDR3_RDIMM_CTRL_0x1e8: .dword DDR_PARAM_1e8
+#else
 MC0_DDR3_RDIMM_CTRL_0x1e8: .dword 0x0309000000000000
+#endif
 //00_000000 pm_tR2R_diffcs_adj_dly 00_000000 pm_tR2W_diffcs_dly 00_000000 pm_tR2P_samecs_dly 00_000000 pm_tW2P_samecs_dly 00_000000 pm_tR2R_samecs_adj_dly 00_000000 pm_tR2W_samecs_adj_dly 00_000000 pm_tW2R_samecs_adj_dly 00_000000 pm_tW2W_samecs_adj_dly
 MC0_DDR3_RDIMM_CTRL_0x1f0: .dword 0x000801e4ff000101
 //0000_0000 pm_power_up _00000000 pm_age_step _00000000 pm_tCPDED _00000000 pm_cs_map _00000000 pm_bs_config 00000_000 pm_channel_32 pm_channel_16 pm_nc 0000_0000 pm_pr_r2w 0000000_0 pm_placement_en
