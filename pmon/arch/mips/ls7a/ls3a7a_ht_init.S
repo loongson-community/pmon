@@ -122,6 +122,12 @@ ls3a7a_ht_init:
     sw      a0, (LS3A_HT_RX_UNCACHE_WIN2_OFFSET+0)(t0)
 #endif
 #endif
+    //set csr_dw_write to 1'b0 to transfer write mask infomation when write data less than 32Byte
+    TTYDBG("Disable 3A HT dw_write.\r\n")
+    lw      a0, 0x50(t0)
+    li      a1, 0xff7fffff
+    and     a0, a0,a1
+    sw      a0, 0x50(t0)
 
 //2. 7A side HT configure begin
 //!!!note: use t1 store 7A side HT controller address as global variable
@@ -149,7 +155,7 @@ ls3a7a_ht_init:
 #endif
     
     //set csr_dw_write to 1'b0 to transfer write mask infomation when write data less than 32Byte
-    TTYDBG("Enable 7A HT dw_write.\r\n")
+    TTYDBG("Disable 7A HT dw_write.\r\n")
     lw      a0, 0x1c0(t1)
     li      a1, 0xfbffffff
     and     a0, a0,a1

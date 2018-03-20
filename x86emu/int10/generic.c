@@ -294,10 +294,17 @@ int vga_bios_init(void)
 	base = INTPriv(pInt)->base = malloc(0x100000);
 #if defined(LS7A) || defined(LOONGSON_2K)
 	unsigned int b_io_lo_val, b_io_hi_val, d_val;
+	unsigned int lpc_old_cmd;
 
 	if(pcie_dev != NULL) {
 		unsigned int vga_tmp = _pci_make_tag(pcie_dev->parent->pa.pa_bus, pcie_dev->parent->pa.pa_device, pcie_dev->parent->pa.pa_function);//get the brige data
 		//printf("bridge tag: 0x%x\n", vga_tmp);
+#if defined(LS7A)
+        //disable LPC IO space
+		unsigned int lpc_tag = _pci_make_tag(0, 23, 0);//get the brige data
+        lpc_old_cmd = _pci_conf_read(lpc_tag, 0x4);
+		_pci_conf_write(lpc_tag, 0x4, lpc_old_cmd & ~0x1);
+#endif
 		//set io limit and io base to zero.
 		//store old value first
 		b_io_lo_val = _pci_conf_read(vga_tmp, 0x1c);
@@ -713,6 +720,10 @@ int vga_bios_init(void)
 
 #if defined(LS7A) || defined(LOONGSON_2K)
 	if(pcie_dev != NULL) {
+#if defined(LS7A)
+		unsigned int lpc_tag = _pci_make_tag(0, 23, 0);//get the brige data
+		_pci_conf_write(lpc_tag, 0x4, lpc_old_cmd);
+#endif
 		unsigned int vga_tmp = _pci_make_tag(pcie_dev->parent->pa.pa_bus, pcie_dev->parent->pa.pa_device, pcie_dev->parent->pa.pa_function);//get the brige data
 		_pci_conf_write(vga_tmp, 0x1c, b_io_lo_val);
 		_pci_conf_write(vga_tmp, 0x30, b_io_hi_val);

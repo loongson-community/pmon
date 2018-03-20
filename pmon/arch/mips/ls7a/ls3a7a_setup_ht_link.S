@@ -81,6 +81,31 @@ config_ht_link:
     bne     t5, t6, 1b
     nop
 #endif
+#ifdef  CHECK_HT_PLL_LOCK
+    //check HT PLL lock
+    move    t5, $0
+    lw      a0, 0x178(t0)
+    srl     a0, a0, 3
+    and     a0, a0, 0x1
+    bnez    a0, 2f
+    nop
+    PRINTSTR("\r\nError: After reconfigure, 3A HT PLL not locked!!!")
+    add     t5, t5, 1
+2:
+#ifdef  CHECK_7A_HT_PLL_LOCK
+    lw      a0, 0x1F4(t1)
+    srl     a0, a0, 3
+    and     a0, a0, 0x1
+    bnez    a0, 2f
+    nop
+    PRINTSTR("\r\nError: After reconfigure, 7A HT PLL not locked!!!")
+    add     t5, t5, 1
+2:
+#endif
+    bnez    t5, 2b
+    nop
+    TTYDBG("\r\nPLL check success.")
+#endif
 
     //wait until HT link up
     TTYDBG("\r\nWait HT bus up.")
@@ -108,7 +133,7 @@ config_ht_link:
     nop
     TTYDBG("\r\n")
 
-#if 1   //HT1_RECONNECT
+#if HT1_RECONNECT
     and     a0, t2, 0x1
     beqz    a0, 8f
     nop
@@ -347,7 +372,6 @@ config_ht_link:
     nop
 2:
 #endif
-
 8:
 #endif
 
@@ -592,6 +616,31 @@ reset_ht_link:
     bne     t5, t6, 1b
     nop
 #endif
+#endif
+#ifdef  CHECK_HT_PLL_LOCK
+    //check HT PLL lock
+    move    t5, $0
+    lw      a0, 0x178(t0)
+    srl     a0, a0, 3
+    and     a0, a0, 0x1
+    bnez    a0, 2f
+    nop
+    PRINTSTR("\r\nError: After reconfigure, 3A HT PLL not locked!!!")
+    add     t5, t5, 1
+2:
+#ifdef  CHECK_7A_HT_PLL_LOCK
+    lw      a0, 0x1F4(t1)
+    srl     a0, a0, 3
+    and     a0, a0, 0x1
+    bnez    a0, 2f
+    nop
+    PRINTSTR("\r\nError: After reconfigure, 7A HT PLL not locked!!!")
+    add     t5, t5, 1
+2:
+#endif
+    bnez    t5, 2b
+    nop
+    TTYDBG("\r\nAfter reconnect, PLL check success.")
 #endif
 
 #if 1//Check if CRC error bit set and reset it

@@ -440,6 +440,9 @@ bsp_start:
     dli     t0, CONFBUS_HEADER_ADDR
     li      t1, CONFBUS_BASE_ADDR
     sw      t1, 0x10(t0)
+    lw      t2, 0x4(t0)
+    ori     t2, t2, 0x2
+    sw      t2, 0x4(t0)
     TTYDBG("set LS7A MISC and confbus base address done.\r\n")
 
     //set PWM output 1
@@ -458,9 +461,6 @@ bsp_start:
     sw      $0, 0x304(t0)
     sw      a0, 0x308(t0)
     sw      a1, 0x30c(t0)
-
-    bal  beep_off
-    nop
 
 //setup LS3A - 7A HT link start...
     //check 3A clksel setting
@@ -598,6 +598,8 @@ bsp_start:
     nop
 #endif
 
+	//WatchDog_Enable
+
     move    a1, t2
     bal     reset_ht_link
     nop
@@ -617,12 +619,18 @@ bsp_start:
     TTYDBG("LS3A-7A linkup.")
 //setup LS3A - 7A HT link done.
 
+    bal  beep_off
+    nop
+
+	//WatchDog_Close
+
 //#define TEST_REBOOT
 #ifdef TEST_REBOOT
 	bal	tgt_testchar
 	nop
 	bnez	v0, no_reboot
 	nop
+    TTYDBG("\r\nenable watchdog.")
 
 	WatchDog_Enable
 

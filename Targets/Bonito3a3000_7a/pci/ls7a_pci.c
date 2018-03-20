@@ -70,10 +70,9 @@ u32 _pci_conf_readn(device_t tag, int reg, int width)
     if(bus == 0 && (device >=9 && device <= 20) && reg == 0x8){
         return 0x06040001;
     }
-    //workaround LPC BAR4
-    if(bus == 0 && device == 23 && function == 0 && reg == 0x20){
-        val_raw = pci_read_type0_config32(device, function, reg);
-        return val_raw & ~0xf | 0x4;
+    //workaround LPC BAR4/5
+    if(bus == 0 && device == 23 && function == 0 && (reg >= 0x10 && reg <= 0x24)){
+        return 0;
     }
 
 	if (bus == 0) {

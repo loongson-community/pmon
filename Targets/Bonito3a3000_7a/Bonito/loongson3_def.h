@@ -80,7 +80,19 @@ GPIO_CLEAR_OUTPUT(0x1<<13); \
 
 /* WatchDog Enable for chip MAX6369*/
 #define WatchDog_Enable \
-GPIO_CLEAR_OUTPUT(0x2038);
+GPIO_CLEAR_OUTPUT(0x1<<13); \
+GPIO_SET_OUTPUT(0x1<<14); \
+GPIO_SET_OUTPUT(0x1<<5); \
+GPIO_CLEAR_OUTPUT(0x1<<4); \
+GPIO_SET_OUTPUT(0x1<<3); \
+GPIO_CLEAR_OUTPUT(0x1<<14); \
+li v1,0x100;\
+78:; \
+subu v1,1; \
+bnez v1,78b; \
+nop; \
+GPIO_SET_OUTPUT(0x1<<13);
+
 
 #define w83627write(x,y,z) \
 li		v0,		0xb800002e; \

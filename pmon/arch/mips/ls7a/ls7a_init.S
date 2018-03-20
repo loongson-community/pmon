@@ -135,9 +135,10 @@
     nop
 1:
 
+    //PIX0, default 38.2MHz for x800x600
     daddu   a0, t0, CONF_PLL3_OFFSET
-    li      a2, 0x5
-    li      a1, LS7A_PLL_VALUE(57, 30, 30, 30)
+    li      a2, 0x4
+    li      a1, LS7A_PLL_VALUE(104, 68, 68, 68)
     bal     ls7a_config_one_pll
     nop
     beqz    v0, 1f
@@ -148,9 +149,10 @@
     nop
 1:
 
+    //PIX1, default 64.1MHz for x1024x768
     daddu   a0, t0, CONF_PLL4_OFFSET
-    li      a2, 0x5
-    li      a1, LS7A_PLL_VALUE(57, 30, 30, 30)
+    li      a2, 0x4
+    li      a1, LS7A_PLL_VALUE(100, 39, 39, 39)
     bal     ls7a_config_one_pll
     nop
     beqz    v0, 1f
@@ -204,10 +206,27 @@
     sb      a2, 0x32ce(t0)
     sb      a2, 0x330e(t0)
     sb      a2, 0x334e(t0)
+    //fix GPU/DC header
+    li      a2, 0x04000000
+    sw      a2, 0x31c8(t0)
+    li      a2, 0x03800000
+    sw      a2, 0x3208(t0)
 
-    //fix LPC class code
+    //fix LPC header
     li      a2, 0x06010000
     sw      a2, 0x3448(t0)
+    li      a2, 0xfc000000
+    sw      a2, 0x3460(t0)
+    li      a2, 0xfd
+    sw      a2, 0x3464(t0)
+    li      a2, LPC_CNTL_BASE_ADDR
+    sw      a2, 0x3450(t0)
+    li      a2, LPC_MEM_BASE_ADDR
+    sw      a2, 0x3458(t0)
+
+    lw      a2, 0x3444(t0)
+    or      a2, a2, 0x3
+    sw      a2, 0x3444(t0)
 
     //disable pci scan of MISC and confbus
     lw      a0, 0x3800(t0)
@@ -242,12 +261,11 @@
     sw      $0, 0x383c(t0)
     //special take care of GPU-BAR3(64)
     lw      a0, 0x3844(t0)
-    or      a0, 0xff
+    or      a0, 0xfc
     sw      a0, 0x3844(t0)
     //special take care of LPC
-    lw      a2, 0x388c(t0)
-    or      a2, a2, 0xff
-    sw      a2, 0x388c(t0)
+    li      a0, 0x0
+    sw      a0, 0x3888(t0)
     //disable write to part of header ---- end
 
     //change INT and HPET fix address
@@ -773,6 +791,16 @@
 
     //use t0 as global variable
     dli     t0, LS7A_CONFBUS_BASE_ADDR
+    //configure sata phy parameter
+    li      t1, 0x30c31cf9
+    sw      t1, 0x744(t0)
+    sw      t1, 0x754(t0)
+    sw      t1, 0x764(t0)
+    li      t1, 0xf3000403
+    sw      t1, 0x740(t0)
+    sw      t1, 0x750(t0)
+    sw      t1, 0x760(t0)
+
 #if (!LS7A_SATA0_DISABLE)
 #ifndef USE_SATA_PAD_REFCLK
     //power down phy
@@ -835,11 +863,13 @@
     or      t1, t1, t2
     sw      t1, (CONF_SB_OFFSET+4)(t0)
 
+#ifdef  OVRD_SATA_PHY
     //configure phy
     daddu   a0, t0, 0x748
     li      a1, 0x403f1002
     bal     ls7a_phy_cfg_write
     nop
+#endif
     TTYDBG("SATA0 enabled\r\n")
 #else
     //powerdown phy
@@ -919,11 +949,13 @@
     or      t1, t1, t2
     sw      t1, (CONF_SB_OFFSET+4)(t0)
 
+#ifdef  OVRD_SATA_PHY
     //configure phy
     daddu   a0, t0, 0x758
     li      a1, 0x403f1002
     bal     ls7a_phy_cfg_write
     nop
+#endif
     TTYDBG("SATA1 enabled\r\n")
 #else
     //powerdown phy
@@ -1003,11 +1035,13 @@
     or      t1, t1, t2
     sw      t1, (CONF_SB_OFFSET+4)(t0)
 
+#ifdef  OVRD_SATA_PHY
     //configure phy
     daddu   a0, t0, 0x768
     li      a1, 0x403f1002
     bal     ls7a_phy_cfg_write
     nop
+#endif
     TTYDBG("SATA2 enabled\r\n")
 #else
     //powerdown phy
