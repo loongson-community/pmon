@@ -121,6 +121,8 @@ ifndef gencode
 gencode=./genram
 endif
 
+dtb:
+	./dtc -I dts -O dtb -o ${TARGETEL}.dtb ../Targets/${TARGET}/conf/${TARGETEL}.dts
 cleanall: clean
 	make -C ../Targets/${TARGET}/compile/${TARGETEL}/ clean
 clean:

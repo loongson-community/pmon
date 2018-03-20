@@ -238,6 +238,9 @@ void initmips(unsigned long long  raw_memsz)
 	SBD_DISPLAY("BEV0", 0);
 	printf("BEV in SR set to zero.\n");
 	ls2h_nand_init();
+#ifdef DTB
+	verify_dtb();
+#endif
 
 	/*
 	 * Launch!

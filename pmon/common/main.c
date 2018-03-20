@@ -1112,6 +1112,11 @@ initstack (ac, av, addenv)
 	else {
 		*vsp++ = (char *)0;
 	}
+
+#ifdef DTB
+#include "target/load_dtb.h"
+	setup_dtb(ssp);
+#endif
 	/*
 	 * Finally set the link register to catch returning programs.
 	 */

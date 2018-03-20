@@ -84,6 +84,8 @@ select		cmd_set			# As cmd_env but not req. cmd_hist
 select		cmd_testdisk
 select		cmd_test
 select		cmd_main
+select		cmd_dtb
+option		DTB
 option INTERFACE_3A780E
 #
 select		cmd_shell		# Shell commands, vers, help, eval

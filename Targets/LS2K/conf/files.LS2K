@@ -19,6 +19,7 @@ file	Targets/LS2K/dev/set_cpu_ddr_freq.c
 file	Targets/LS2K/dev/set_vol.c
 file	Targets/LS2K/dev/rtc.c
 file	Targets/LS2K/dev/eeprom.c
+file	Targets/LS2K/dev/load_dtb.c		cmd_dtb
 
 # OHCI
 #device	lohci {[channel = -1]} :usbbus
