@@ -48,9 +48,10 @@ int setup_dtb(void *ssp)
 	dtbram += DTB_OFFS;
 	if(dtb_cksum(dtbram, DTB_SIZE - 4, 0)) {
 		printf("dtb chsum err!!!\n");
+		memset(dtbram, 0, DTB_SIZE);
 		return (-1);
 	}
-	memcpy((char *)ssp, (char *)(dtbram + 4), DTB_SIZE);
+	memcpy((char *)ssp, (char *)(dtbram + 4), DTB_SIZE - 4);
 	return 0;
 }
 
