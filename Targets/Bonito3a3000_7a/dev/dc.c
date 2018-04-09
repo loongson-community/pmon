@@ -192,9 +192,9 @@ int config_fb(unsigned long base)
 	for (i = 0; i < sizeof(vgamode) / sizeof(struct vga_struc); i++) {
 		if (vgamode[i].hr == FB_XSIZE && vgamode[i].vr == FB_YSIZE) {
 			mode = i;
-			caclulatefreq((unsigned int)(vgamode[i].pclk * 1000));
-			config_pll(confbus + 0x04b0, pll_cfg);
-			config_pll(confbus + 0x04c0, pll_cfg);
+			//caclulatefreq((unsigned int)(vgamode[i].pclk * 1000));
+			//config_pll(confbus + 0x04b0, pll_cfg);
+			//config_pll(confbus + 0x04c0, pll_cfg);
 			break;
 		}
 	}

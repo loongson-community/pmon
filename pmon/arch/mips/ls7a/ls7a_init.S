@@ -149,10 +149,10 @@
     nop
 1:
 
-    //PIX1, default 64.1MHz for x1024x768
+    //PIX1, default 38.2MHz for x800x600
     daddu   a0, t0, CONF_PLL4_OFFSET
     li      a2, 0x4
-    li      a1, LS7A_PLL_VALUE(100, 39, 39, 39)
+    li      a1, LS7A_PLL_VALUE(104, 68, 68, 68)
     bal     ls7a_config_one_pll
     nop
     beqz    v0, 1f
