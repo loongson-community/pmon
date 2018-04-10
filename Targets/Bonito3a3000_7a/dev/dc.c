@@ -33,7 +33,7 @@ typedef unsigned long dma_addr_t;
 static struct pix_pll {
 	unsigned int l2_div;
 	unsigned int l1_loopc;
-	unsigned int l1_frefc;
+	unsigned int l1_refc;
 }pll_cfg;
 
 #undef USE_GMEM
@@ -92,40 +92,66 @@ enum {
 	OF_DBLBUF = 0x340,
 };
 
-static int caclulatefreq(unsigned int pixclock_khz)
+#define PLL_REF_CLK_MHZ    100
+#define PCLK_PRECISION_INDICATOR 10000
+
+//for PLL using configuration: (refc, loopc, div). Like LS7A1000 PLL
+//for C env without decimal fraction support.
+static int calc_pll(unsigned int pixclock_khz)
 {
-	unsigned int pstdiv, loopc, frefc;
-	unsigned long a, b, c;
-	unsigned long min = 100;
+    unsigned int refc_set[] = {4, 5, 3};
+    unsigned int prec_set[] = {1, 5, 10, 50, 100};   //in 1/PCLK_PRECISION_INDICATOR
+    unsigned int pstdiv, loopc, refc;
+    int i, j;
+    unsigned int precision_req, precision;
+    unsigned int loopc_min, loopc_max, loopc_mid;
+    unsigned long long real_dvo, req_dvo;
+    int loopc_offset;
 
-	for (pstdiv = 1; pstdiv < 64; pstdiv++) {
-		a = (unsigned long)pixclock_khz * pstdiv;
-		for (frefc = 3; frefc < 6; frefc++) {
-			for (loopc = 24; loopc < 161; loopc++) {
+    //try precsion from high to low
+    for (j = 0; j < sizeof(prec_set)/sizeof(int); j++){
+        precision_req = prec_set[j];
+        //try each refc
+        for (i = 0; i < sizeof(refc_set)/sizeof(int); i++) {
+            refc = refc_set[i];
+            loopc_min = (1200 / PLL_REF_CLK_MHZ) * refc;  //1200 / (PLL_REF_CLK_MHZ / refc)
+            loopc_max = (3200 / PLL_REF_CLK_MHZ) * refc;  //3200 / (PLL_REF_CLK_MHZ / refc)
+            loopc_mid = (2200 / PLL_REF_CLK_MHZ) * refc;  //(loopc_min + loopc_max) / 2;
 
-				if ((loopc < 12 * frefc) || 
-						(loopc > 32 * frefc))
-					continue;
+            loopc_offset = -1;
+            //try each loopc
+            for (loopc = loopc_mid; (loopc <= loopc_max) && (loopc >= loopc_min); loopc += loopc_offset) {
+                if(loopc_offset < 0){
+                    loopc_offset = -loopc_offset;
+                }else{
+                    loopc_offset = -(loopc_offset+1);
+                }
 
-				b = 100000L * loopc / frefc;
-				c = (a > b) ? (a - b) : (b - a);
-				if (c < min) {
+                pstdiv = loopc * PLL_REF_CLK_MHZ * 1000 / refc / pixclock_khz;
+                if((pstdiv > 127) || (pstdiv < 1)) continue;
+                //real_freq / req_freq = (real_freq * pstdiv) / (req_freq * pstdiv) = (loopc * PLL_REF_CLK_MHZ * 1000 / refc) / (req_freq * pstdiv).
+                //real_freq is float type which is not available, but read_freq * pstdiv is available.
+                real_dvo = (loopc * PLL_REF_CLK_MHZ * 1000 / refc);
+                req_dvo  = (pixclock_khz * pstdiv);
+                precision = abs(real_dvo * PCLK_PRECISION_INDICATOR / req_dvo - PCLK_PRECISION_INDICATOR);
 
-					pll_cfg.l2_div = pstdiv;
-					pll_cfg.l1_loopc = loopc;
-					pll_cfg.l1_frefc = frefc;
-					printf("pix = %d khz; min = %ld; pstdiv = %x;"
-							"loopc = %x; frefc = %x\n", pixclock_khz, 
-							min, pstdiv, loopc, frefc);
+                if(precision < precision_req){
+                    pll_cfg.l2_div = pstdiv;
+                    pll_cfg.l1_loopc = loopc;
+                    pll_cfg.l1_refc = refc;
+                    printf("for pixclock = %d khz, found: pstdiv = %d, "
+                            "loopc = %d, refc = %d, precision = %d / %d.\n", pixclock_khz, 
+                            pll_cfg.l2_div, pll_cfg.l1_loopc, pll_cfg.l1_refc, precision+1, PCLK_PRECISION_INDICATOR);
+                    if(j > 1){
+                        printf("Warning: PIX clock precision degraded to %d / %d\n", precision_req, PCLK_PRECISION_INDICATOR);
+                    }
 
-
-					return 1;
-				}
-			}	
-
-		}
-	}
-	return 0;
+                    return 1;
+                }
+            }
+        }
+    }
+    return 0;
 }
 
 int config_cursor(unsigned long base)
@@ -137,46 +163,55 @@ int config_cursor(unsigned long base)
 	write_reg(base + 0x1560, 0x00aaaaaa);
 }
 
-static void config_pll(unsigned long pll_base, struct pix_pll pll_cfg)
+//For LS7A1000, configure PLL
+static void config_pll(unsigned int pll_base, struct pix_pll pll_cfg)
 {
-	unsigned long long val;
+	unsigned int val;
+
+	//printf("div = %d, loopc = %d, refc = %d.\n", 
+	//		pll_cfg.l2_div, pll_cfg.l1_loopc, pll_cfg.l1_refc);
 
 	/* set sel_pll_out0 0 */
-	val = readl(pll_base + LO_OFF);
-	val &= ~(1ULL << 40);
-	writel(val, pll_base + LO_OFF);
+	val = readl(pll_base + 0x4);
+	val &= ~(1UL << 8);
+	writel(val, pll_base + 0x4);
 	/* pll_pd 1 */
-	val = readl(pll_base + LO_OFF);
-	val |= (1ULL << 45);
-	writel(val, pll_base + LO_OFF);
+	val = readl(pll_base + 0x4);
+	val |= (1UL << 13);
+	writel(val, pll_base + 0x4);
 	/* set_pll_param 0 */
-	val = readl(pll_base + LO_OFF);
-	val &= ~(1ULL << 43);
-	writel(val, pll_base + LO_OFF);
-	/* div ref, loopc, div out */
-	val = readl(pll_base + LO_OFF);
+	val = readl(pll_base + 0x4);
+	val &= ~(1UL << 11);
+	writel(val, pll_base + 0x4);
 
-	/* clear old value */
-	val &= ~(0x7fULL << 32);
-	val &= ~(0x1ffULL << 21);
-	val &= ~(0x7fULL);
+	/* set new div ref, loopc, div out */
+	/* clear old value first*/
+	val = readl(pll_base + 0x4);
+	val &= ~(0x7fUL << 0);
+	val |= (pll_cfg.l1_refc << 0);
+	writel(val, pll_base + 0x4);
 
-	/* config new value */
-	val |= ((unsigned long long)(pll_cfg.l1_frefc) << 32) | ((unsigned long long)(pll_cfg.l1_loopc) << 21) |
-		((unsigned long long)(pll_cfg.l2_div) << 0);
-	writel(val, pll_base + LO_OFF);
+	val = readl(pll_base + 0x0);
+	val &= ~(0x7fUL << 0);
+	val |= (pll_cfg.l2_div << 0);
+	val &= ~(0x1ffUL << 21);
+	val |= (pll_cfg.l1_loopc << 21);
+	writel(val, pll_base + 0x0);
+
 	/* set_pll_param 1 */
-	val = readl(pll_base + LO_OFF);
-	val |= (1ULL << 43);
-	writel(val, pll_base + LO_OFF);
+	val = readl(pll_base + 0x4);
+	val |= (1UL << 11);
+	writel(val, pll_base + 0x4);
 	/* pll_pd 0 */
-	val = readl(pll_base + LO_OFF);
-	val &= ~(1ULL << 45);
-	writel(val, pll_base + LO_OFF);
+	val = readl(pll_base + 0x4);
+	val &= ~(1UL << 13);
+	writel(val, pll_base + 0x4);
+    /* wait pll lock */
+    while(!(readl(pll_base + 0x4) & 0x80));
 	/* set sel_pll_out0 1 */
-	val = readl(pll_base + LO_OFF);
-	val |= (1ULL << 40);
-	writel(val, pll_base + LO_OFF);
+	val = readl(pll_base + 0x4);
+	val |= (1UL << 8);
+	writel(val, pll_base + 0x4);
 }
 
 int config_fb(unsigned long base)
@@ -187,17 +222,21 @@ int config_fb(unsigned long base)
 
 	confbus = *(volatile unsigned int *)0xba00a810;
 	confbus &= 0xfffffff0;
-	confbus |= 0x80000000;
+	confbus |= 0xa0000000;
 
-	for (i = 0; i < sizeof(vgamode) / sizeof(struct vga_struc); i++) {
-		if (vgamode[i].hr == FB_XSIZE && vgamode[i].vr == FB_YSIZE) {
-			mode = i;
-			//caclulatefreq((unsigned int)(vgamode[i].pclk * 1000));
-			//config_pll(confbus + 0x04b0, pll_cfg);
-			//config_pll(confbus + 0x04c0, pll_cfg);
-			break;
-		}
-	}
+    //printf("confbus = %x\n", confbus);
+    for (i = 0; i < sizeof(vgamode) / sizeof(struct vga_struc); i++) {
+        if (vgamode[i].hr == FB_XSIZE && vgamode[i].vr == FB_YSIZE) {
+            mode = i;
+            if(calc_pll((unsigned int)(vgamode[i].pclk * 1000))){
+                config_pll(confbus + 0x4b0, pll_cfg);
+                config_pll(confbus + 0x4c0, pll_cfg);
+            }else{
+                printf("\n\nError: Fail to find a proper PLL configuration.\n\n");
+            }
+            break;
+        }
+    }
 
 	if (mode < 0) {
 		printf("\n\n\nunsupported framebuffer resolution\n\n\n");
