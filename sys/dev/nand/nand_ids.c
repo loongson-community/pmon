@@ -25,7 +25,7 @@
 */
 struct nand_flash_dev nand_flash_ids[] = {
 	{"NAND 1MiB 5V 8-bit",		0x6e, 256, 1, 0x1000, 0},
-	{"NAND 2MiB 5V 8-bit",		0x64, 256, 2, 0x1000, 0},
+	//{"NAND 2MiB 5V 8-bit",	0x64, 256, 2, 0x1000, 0},
 	{"NAND 4MiB 5V 8-bit",		0x6b, 512, 4, 0x2000, 0},
 	{"NAND 1MiB 3,3V 8-bit",	0xe8, 256, 1, 0x1000, 0},
 	{"NAND 1MiB 3,3V 8-bit",	0xec, 256, 1, 0x1000, 0},
@@ -95,6 +95,9 @@ struct nand_flash_dev nand_flash_ids[] = {
 	{"NAND 512MiB 3,3V 8-bit",	0xDC, 0, 512, 0, LP_OPTIONS},
 	{"NAND 512MiB 1,8V 16-bit",	0xBC, 0, 512, 0, LP_OPTIONS16},
 	{"NAND 512MiB 3,3V 16-bit",	0xCC, 0, 512, 0, LP_OPTIONS16},
+	{"NAND 512MiB 3,3V 8-bit",	0xB4, 4096, 512, 0x40000, LP_OPTIONS}, // mt29f
+	{"NAND 512MiB 3,3V 8-bit",	0xA4, 4096, 512, 0x40000, LP_OPTIONS}, //
+	{"NAND 16GiB 1,8V 8-bit",	0x64, 8192, 8*1024, 2048*1024, LP_OPTIONS},
 
 	/* 8 Gigabit */
 	{"NAND 1GiB 1,8V 8-bit",	0xA3, 0, 1024, 0, LP_OPTIONS},
@@ -108,6 +111,7 @@ struct nand_flash_dev nand_flash_ids[] = {
 	{"NAND 2GiB 1,8V 16-bit",	0xB5, 0, 2048, 0, LP_OPTIONS16},
 	{"NAND 2GiB 3,3V 16-bit",	0xC5, 0, 2048, 0, LP_OPTIONS16},
 
+	{"NAND 2GiB 3,3V 16-bit",	0x48, 4096, 2048, 128*4096, LP_OPTIONS},
 	/*
 	 * Renesas AND 1 Gigabit. Those chips do not support extended id and
 	 * have a strange page/block layout !  The chosen minimum erasesize is
@@ -137,6 +141,7 @@ struct nand_manufacturers nand_manuf_ids[] = {
 	{NAND_MFR_RENESAS, "Renesas"},
 	{NAND_MFR_STMICRO, "ST Micro"},
 	{NAND_MFR_HYNIX, "Hynix"},
+	{NAND_MFR_MICRON, "Micron"},
 	{0x0, "Unknown"}
 };
 

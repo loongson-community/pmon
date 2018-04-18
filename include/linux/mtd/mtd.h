@@ -13,13 +13,14 @@
 #include <sys/param.h>
 #include <sys/syslog.h>
 #include <machine/endian.h>
-#include <sys/device.h>
+//#include <sys/device.h>
 #include <machine/cpu.h>
 #include <machine/pio.h>
 #include <machine/intr.h>
 #include <dev/pci/pcivar.h>
 #endif
 #include <sys/types.h>
+#include <linux/list.h>
 typedef int spinlock_t;
 typedef void* wait_queue_head_t;
 typedef off_t loff_t;
@@ -125,6 +126,7 @@ struct mtd_oob_buf {
 #define MTD_OOB			64	// Out-of-band data (NAND flash)
 #define MTD_ECC			128	// Device capable of automatic ECC
 
+#define MTD_NO_ERASE		0x1000	/* No erase necessary */
 // Some common devices / combinations of capabilities
 #define MTD_CAP_ROM		0
 #define MTD_CAP_RAM		(MTD_CLEAR_BITS|MTD_SET_BITS|MTD_WRITEB_WRITEABLE)
@@ -143,6 +145,7 @@ struct mtd_info_user {
 	u_int32_t flags;
 	u_int32_t size;	 // Total size of the MTD
 	u_int32_t erasesize;
+	u_int32_t writesieze; //added by zw
 	u_int32_t oobblock;  // Size of OOB blocks (e.g. 512)
 	u_int32_t oobsize;   // Amount of OOB data per block (e.g. 16)
 	u_int32_t ecctype;
@@ -193,6 +196,7 @@ struct mtd_erase_region_info {
 	u_int32_t offset;			/* At which this region starts, from the beginning of the MTD */
 	u_int32_t erasesize;		/* For this region */
 	u_int32_t numblocks;		/* Number of blocks of erasesize in this region */
+	unsigned long *lockmap;//added by zw
 };
 
 
@@ -219,7 +223,7 @@ struct nand_oobinfo {
 	uint32_t useecc;
 	uint32_t eccbytes;
 	uint32_t oobfree[8][2];
-	uint32_t eccpos[32];
+	uint32_t eccpos[32];//changed by zw
 };
 
 struct nand_oobfree {
@@ -269,17 +273,18 @@ struct mtd_oob_ops {
 	uint32_t	ooboffs;
 	uint8_t		*datbuf;
 	uint8_t		*oobbuf;
+	size_t 		oobretlen;
 };
 
 
-#define MTD_MAX_OOBFREE_ENTRIES	8
+#define MTD_MAX_OOBFREE_ENTRIES	32
 /*
  * ECC layout control structure. Exported to userspace for
  * diagnosis and to allow creation of raw images
  */
 struct nand_ecclayout {
 	uint32_t eccbytes;
-	uint32_t eccpos[64];
+	uint32_t eccpos[640];
 	uint32_t oobavail;
 	struct nand_oobfree oobfree[MTD_MAX_OOBFREE_ENTRIES];
 };
@@ -288,14 +293,14 @@ struct nand_ecclayout {
 struct mtd_info {
 	u_char type;
 	u_int32_t flags;
-	u_int32_t size;	 // Total size of the MTD
+	u_int64_t size;	 // Total size of the MTD
 
 	/* "Major" erase size for the device. Naïve users may take this
 	 * to be the only erase size available, or may use the more detailed
 	 * information below if they desire
 	 */
 	u_int32_t erasesize;
-
+	u_int32_t oobavail; //added by zw
 	u_int32_t oobblock;  // Size of OOB blocks (e.g. 512)
 	u_int32_t oobsize;   // Amount of OOB data per block (e.g. 16)
 	u_int32_t ecctype;
@@ -336,11 +341,23 @@ struct mtd_info {
 
 //	int (*read_oob) (struct mtd_info *mtd, loff_t from, size_t len, size_t *retlen, u_char *buf);
 //	int (*write_oob) (struct mtd_info *mtd, loff_t to, size_t len, size_t *retlen, const u_char *buf);
+	int (*panic_write) (struct mtd_info *mtd, loff_t to, size_t len, size_t *retlen, const u_char *buf);//added by zw
 
 	int (*read_oob) (struct mtd_info *mtd, loff_t from,
 			 struct mtd_oob_ops *ops);
 	int (*write_oob) (struct mtd_info *mtd, loff_t to,
 			 struct mtd_oob_ops *ops);
+	 /*
+         * added by zw;Methods to access the protection register area, present in some
+         * flash devices. The user data is one time programmable but the
+         * factory data is read only.
+         */
+        int (*get_fact_prot_info) (struct mtd_info *mtd, struct otp_info *buf, size_t len);
+        int (*read_fact_prot_reg) (struct mtd_info *mtd, loff_t from, size_t len, size_t *retlen, u_char *buf);
+        int (*get_user_prot_info) (struct mtd_info *mtd, struct otp_info *buf, size_t len);
+        int (*read_user_prot_reg) (struct mtd_info *mtd, loff_t from, size_t len, size_t *retlen, u_char *buf);
+        int (*write_user_prot_reg) (struct mtd_info *mtd, loff_t from, size_t len, size_t *retlen, u_char *buf);
+        int (*lock_user_prot_reg) (struct mtd_info *mtd, loff_t from, size_t len);
 
 	/* iovec-based read/write methods. We need these especially for NAND flash,
 	   with its limited number of write cycles per erase.
@@ -368,10 +385,23 @@ struct mtd_info {
 
 	/* ECC status information */
 	struct mtd_ecc_stats ecc_stats;
+	int subpage_sft;
 	u_int32_t writesize;
+	struct module *owner;
+	int usecount;
 
 
 	void *priv;
+/*add by niu to support ubifs*/
+        void *part;
+	struct list_head siblings;
+	/*added by zw; If the driver is something smart, like UBI, it may need to maintain
+         * its own reference counting. The below functions are only for driver.
+         * The driver may register its callbacks. These callbacks are not
+         * supposed to be called by MTD users */
+        int (*get_device) (struct mtd_info *mtd);
+        void (*put_device) (struct mtd_info *mtd);
+
 };
 
 static inline int call_new_read_oob (struct mtd_info *mtd, loff_t from, size_t len, size_t *retlen, u_char *buf)
@@ -432,12 +462,12 @@ static inline int call_old_write_oob(struct mtd_info *mtd, loff_t from, struct m
 
 	/* Kernel-side ioctl definitions */
 
-extern int add_mtd_device(struct mtd_info *mtd,int offset,int size,char *name);
+extern int add_mtd_device(struct mtd_info *mtd,unsigned long long offset,unsigned long long size,char *name);
 extern int del_mtd_device (struct mtd_info *mtd);
 
 extern struct mtd_info *__get_mtd_device(struct mtd_info *mtd, int num);
 
-static inline struct mtd_info *get_mtd_device(struct mtd_info *mtd, int num)
+/*static inline struct mtd_info *get_mtd_device(struct mtd_info *mtd, int num)
 {
 	struct mtd_info *ret;
 	
@@ -452,7 +482,7 @@ static inline struct mtd_info *get_mtd_device(struct mtd_info *mtd, int num)
 static inline void put_mtd_device(struct mtd_info *mtd)
 {
 }
-
+*/
 
 struct mtd_notifier {
 	void (*add)(struct mtd_info *mtd);

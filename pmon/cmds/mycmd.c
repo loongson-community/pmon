@@ -7,6 +7,8 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <fcntl.h>
+#include <file.h>
+#include <mtdfile.h>
 #ifdef _KERNEL
 #undef _KERNEL
 #include <sys/ioctl.h>
@@ -227,11 +229,26 @@ case 8:fwrite(&mydata->data8,8,1,fp);break;
 return 0;
 }
 
+static int test_mtd_or_mtdc(int fp)
+{
+	mtdpriv *priv;
+	struct mtd_info *mtd;
+	if(!strncmp(_file[fp].fs->devname,"mtd",3)){
+		priv = (mtdpriv *)_file[fp].data;
+		mtd = priv->file->mtd;
+		if(priv->flags & MTD_FLAGS_CHAR ||priv->flags & MTD_FLAGS_CHAR_MARK ||priv->flags & MTD_FLAGS_RAW  )
+			return mtd->writesize+mtd->oobsize;
+		else
+			return mtd->writesize;
+	}
+	return 0;
+}
+
 static int devcp(int argc,char **argv)
 {
 char *buf;
 int fp0,fp1;
-int n,i;
+int n,i,mtdbs;
 int bs=0x20000;
 int seek=0,skip=0;
 char *fsrc=0,*fdst=0;
@@ -261,58 +278,62 @@ if(argc<3)return -1;
 	unzip=1;
 #endif
 	}
-	if(!fsrc||!fdst)return -1;
-	fp0=open(fsrc,O_RDONLY);
-	fp1=open(fdst,O_RDWR|O_CREAT|O_TRUNC);
+        if(!fsrc||!fdst)return -1;
+        fp0=open(fsrc,O_RDONLY);
+        fp1=open(fdst,O_WRONLY|O_CREAT|O_TRUNC);
 
-	buf=malloc(bs);
-	if(!buf){printf("malloc failed!,please set heaptop bigger\n");return -1;}
 
-	if(!fp0||!fp1){printf("open file error!\n");free(buf);return -1;}
-	lseek(fp0,skip*bs,SEEK_SET);
-	lseek(fp1,seek*bs,SEEK_SET);
+        if(!fp0||!fp1){printf("open file error!\n");free(buf);return -1;}
+        if((mtdbs=(test_mtd_or_mtdc(fp0))))
+	  bs = mtdbs;
+	else if((mtdbs=(test_mtd_or_mtdc(fp1))))
+	  bs = mtdbs;
+        lseek(fp0,skip*bs,SEEK_SET);
+        lseek(fp1,seek*bs,SEEK_SET);
+        buf=malloc(bs);
+        if(!buf){printf("malloc failed!,please set heaptop bigger\n");return -1;}
 #if NGZIP > 0
-	if(unzip)if(gz_open(fp0)==-1)unzip=0;
+        if(unzip)if(gz_open(fp0)==-1)unzip=0;
 #endif
-	while(count--)
-	{
-	int rcount=0;
-	char *pnow=buf;
+        while(count--)
+        {
+            int rcount=0;
+            char *pnow=buf;
 #if NGZIP > 0
-	if(unzip) 
-		while(rcount<bs)
-		{
-		n=gz_read(fp0,pnow,bs);
-		if(n<=0)break; 
-		rcount+=n;
-		pnow+=n;
-		}
-	else
+            if(unzip) 
+                while(rcount<bs)
+                {
+                    n=gz_read(fp0,pnow,bs-rcount);
+                    if(n<=0)break; 
+                    rcount+=n;
+                    pnow+=n;
+                }
+            else
 #endif
-		while(rcount<bs)
-		{
-		n=read(fp0,pnow,bs-rcount);
-		if(n<=0)break; 
-		rcount+=n;
-		pnow+=n;
-		}
-	nowcount+=rcount;
-	if(!(strstr(argv[1],"/dev/tty")||strstr(argv[2],"/dev/tty")||quiet))
-	{
-	int i;
-	for(i=0;i<strlen(pstr);i++)printf("\b \b");
-	sprintf(pstr,"%d",nowcount);
-	printf("%s",pstr);
-	}
-	if(write(fp1,buf,rcount)<rcount||rcount<bs)break;
-	}
-	free(buf);
+                while(rcount<bs)
+                {
+                    n=read(fp0,pnow,bs-rcount);
+                    if(n<=0)break; 
+                    rcount+=n;
+                    pnow+=n;
+                }
+            nowcount+=rcount;
+            if(!(strstr(argv[1],"/dev/tty")||strstr(argv[2],"/dev/tty")||quiet))
+            {
+                int i;
+                for(i=0;i<strlen(pstr);i++)printf("\b \b");
+                sprintf(pstr,"%d",nowcount);
+                printf("%s",pstr);
+            }
+            if(write(fp1,buf,rcount)<rcount||rcount<bs)break;
+        }
+        free(buf);
 #if NGZIP > 0
-	if(unzip)gz_close(fp0);
+        if(unzip)gz_close(fp0);
 #endif
-	close(fp0);
-	close(fp1);
-return 0;
+        close(fp0);
+        close(fp1);
+        return 0;
 }
 
 #ifndef NOPCI

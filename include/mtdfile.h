@@ -14,19 +14,21 @@ typedef struct mtdfile {
 	int fd;
 	int flags;
 	int index;
-	unsigned int part_size;
-	unsigned int part_offset;
+	unsigned long long part_size;
+	unsigned long long part_offset;
 #define MTDFILE_STATIC  0x0000
 #define MTDFILE_DYNAMIC 0x0001
 	LIST_ENTRY(mtdfile)	i_next;
         void *trans_table;
+        unsigned long long part_size_real;
 	char name[1];
 } mtdfile;
 
 typedef struct mtdpriv {
 struct mtdfile *file;
-	unsigned int open_offset;
-	unsigned int open_size;
+	unsigned long long open_offset;
+	unsigned long long open_size;
+	unsigned long long open_size_real;
         int flags;
 } mtdpriv;
 

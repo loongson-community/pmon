@@ -46,13 +46,13 @@
 #define SIZE_REMAINING UINT_MAX
 #define OFFSET_CONTINUOUS UINT_MAX
 
+#if 0
 struct cmdline_mtd_partition {
 	struct cmdline_mtd_partition *next;
 	char *mtd_id;
 	int num_parts;
 	struct mtd_partition *parts;
 };
-#if 0
 struct mtd_partition {
 	char *name;			/* identifier string */
 	u_int32_t size;			/* partition size */
@@ -334,7 +334,7 @@ int parse_cmdline_partitions(struct mtd_info *master,
                              struct mtd_partition **pparts,
                              unsigned long origin,char *value)
 {
-	unsigned long offset;
+	unsigned long long offset;
 	int i;
 	struct cmdline_mtd_partition *part;
 	char *mtd_id = master->name;

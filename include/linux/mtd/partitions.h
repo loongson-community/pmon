@@ -35,6 +35,12 @@
  * Note: writeable partitions require their size and offset be 
  * erasesize aligned.
  */ 
+struct cmdline_mtd_partition {
+	struct cmdline_mtd_partition *next;
+	char *mtd_id;
+	int num_parts;
+	struct mtd_partition *parts;
+};
 
 struct mtd_partition {
 	char *name;		/* identifier string */
