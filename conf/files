@@ -250,12 +250,11 @@ file pmon/fs/fatfs.c			fatfs
 file pmon/fs/ext2fs.c			ext2
 file pmon/fs/dev_part.c
 #file pmon/fs/yaffsfs.c			yaffsfs
-
-file pmon/fs/yaffs2/yaffsfs.c           yaffsfs
-file pmon/fs/yaffs2/yaffscfg.c          yaffsfs
-file pmon/fs/yaffs2/yaffs_mtdif2.c      yaffsfs
-file pmon/fs/yaffs2/yaffs_mtdif.c       yaffsfs
-file pmon/fs/yaffs2/yaffs_nand.c        yaffsfs
+file pmon/fs/yaffs2/yaffsfs.c		    yaffsfs
+file pmon/fs/yaffs2/yaffscfg.c		    yaffsfs
+file pmon/fs/yaffs2/yaffs_mtdif2.c	    yaffsfs
+file pmon/fs/yaffs2/yaffs_mtdif.c	    yaffsfs
+file pmon/fs/yaffs2/yaffs_nand.c	    yaffsfs
 file pmon/fs/yaffs2/yaffs_checkptrw.c       yaffsfs
 file pmon/fs/yaffs2/yaffs_ecc.c             yaffsfs
 file pmon/fs/yaffs2/yaffs_guts.c            yaffsfs
@@ -263,7 +262,6 @@ file pmon/fs/yaffs2/yaffs_packedtags2.c     yaffsfs
 file pmon/fs/yaffs2/yaffs_qsort.c           yaffsfs
 file pmon/fs/yaffs2/yaffs_tagscompat.c      yaffsfs
 file pmon/fs/yaffs2/yaffs_tagsvalidity.c    yaffsfs
-file pmon/fs/yaffsfs.c			yaffsfs
 
 file pmon/fs/ubi/mtdcore.c                ubi
 file pmon/fs/ubi/build.c                ubi

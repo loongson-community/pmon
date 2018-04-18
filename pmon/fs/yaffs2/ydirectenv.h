@@ -139,17 +139,20 @@
 
 #define prefetch(x) 1
 
-struct list_head {
-	struct list_head *next, *prev;
-};
 
 #ifdef LIST_HEAD
 #undef  LIST_HEAD
 #endif
-#define LIST_HEAD_INIT(name) { &(name), &(name) }
 
 #define LIST_HEAD(name) \
 	struct list_head name = LIST_HEAD_INIT(name)
+
+#if 0
+struct list_head {
+	struct list_head *next, *prev;
+};
+#define LIST_HEAD_INIT(name) { &(name), &(name) }
+
 
 #define INIT_LIST_HEAD(ptr) do { \
 	(ptr)->next = (ptr); (ptr)->prev = (ptr); \
@@ -288,6 +291,7 @@ static __inline__ void list_splice(struct list_head *list,
 	for (pos = (head)->next, n = pos->next; pos != (head); \
 		pos = n, n = pos->next)
 
+#endif
 /*
  * File types
  */

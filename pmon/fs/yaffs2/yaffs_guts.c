@@ -123,6 +123,7 @@ static yaffs_Tnode *yaffs_FindLevel0Tnode(yaffs_Device * dev,
 					  __u32 chunkId);
 
 
+#if 0
 /* Function to calculate chunk and offset */
 int memcmp(const void *s1,const void *s2,size_t n)
 {
@@ -134,7 +135,7 @@ int memcmp(const void *s1,const void *s2,size_t n)
     }
     return 0;
 }
-
+#endif
 
 
 static void yaffs_AddrToChunk(yaffs_Device *dev, loff_t addr, __u32 *chunk, __u32 *offset)

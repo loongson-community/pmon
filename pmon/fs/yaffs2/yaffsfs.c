@@ -32,7 +32,7 @@
 #include "yaffs_mtdif.h"
 #include "yaffs_mtdif2.h"
 
-#include <machine/div64.h>
+#include <div64.h>
 
 #define YAFFSFS_MAX_SYMLINK_DEREFERENCES 5
 
@@ -409,7 +409,7 @@ static void yaffs_dev_init(yaffs_Device *dev,mtdpriv *priv)
         dev->nChunksPerBlock = mtd->erasesize / mtd->oobblock;
 #endif
         //printf("part_size=0x%08x,open_size=0x%08x,part_offset=0x%08x,open_offset=0x%08x",info->part_size,priv->open_size,info->part_offset,priv->open_offset);
-        nBlocks = priv->open_size  / mtd->erasesize;
+        nBlocks = priv->open_size_real  / mtd->erasesize;
         dev->nCheckpointReservedBlocks = 0;
         dev->startBlock = (info->part_offset + priv->open_offset) / mtd->erasesize ;
         dev->endBlock = nBlocks + dev->startBlock - 1;
