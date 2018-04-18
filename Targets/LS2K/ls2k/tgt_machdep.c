@@ -1891,6 +1891,7 @@ u64 __raw__writeq(u64 addr, u64 val);
 void ls_pcie_config_set(void)
 {
 	int i;
+	if(getenv("oldpmon")) return;
 
 	for(i = 0;i < ARRAY_SIZE(pci_config_array);i++){
 			//ls_pcie_mem_fixup(pci_config_array + i);
