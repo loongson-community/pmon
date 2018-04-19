@@ -282,10 +282,16 @@ select tftpd
 # SCSI RAID disk drive support
 select scsi_sd
 select raw_ether
+option USE_USB_SPI
+option USE_SII9022a
+option USE_CH7034
 #bellow for zxd
-#rmoption AUTO_DDR_CONFIG
 #option DDR_S1="0xc1a10400c1a10400"
 #option REF_33M
 #option DDR_RESET_REVERT=1
-#option DDRFREQ=300000000
-#option CPUFREQ=1000000000
+#option DDR_FREQ=500
+#option CORE_FREQ=1200
+#rmoption AUTO_DDR_CONFIG
+#rmoption USE_USB_SPI
+#rmoption USE_SII9022a
+#rmoption USE_CH7034
