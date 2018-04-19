@@ -19,12 +19,14 @@ ATTENTION:
 #define USE_LS_PLL 1
 #define DDR_SEL_ST 0
 
+#ifndef CORE_FREQ
 #ifdef  MULTI_CHIP
 #define CORE_FREQ   1400
 #define DDR_FREQ    660
 #else
 #define CORE_FREQ   1400
 #define DDR_FREQ    600
+#endif
 #endif
 
 #define DDR_REFC    1   //do not modify
@@ -33,9 +35,9 @@ ATTENTION:
 #else
 #define DDR_DIV     4
 #endif
-#define DDR_LOOPC  (DDR_FREQ*DDR_DIV/33)   //72 //600MHz
-//#define DDRPLL_IN 33 
-//#define DDR_LOOPC  DDR_FREQ*DDR_DIV*DDR_REFC/DDRPLL_IN
+//#define DDR_LOOPC  (DDR_FREQ*DDR_DIV/33)   //72 //600MHz
+#define DDRPLL_IN 33 
+#define DDR_LOOPC  DDR_FREQ*DDR_DIV*DDR_REFC/DDRPLL_IN
 
 // L1_* define core frequency
 #define LS_PLL  USE_LS_PLL
@@ -43,7 +45,7 @@ ATTENTION:
 
 #define L1_REFC     1   //do not modify
 #define L1_DIV      2
-#define L1_LOOPC    (CORE_FREQ*L1_DIV/25)
+//#define L1_LOOPC    (CORE_FREQ*L1_DIV/25)
 
 #ifdef REF_33M
 #define CPUPLL_IN 33
@@ -51,9 +53,11 @@ ATTENTION:
 #define CPUPLL_IN 100
 #elif defined(REF_25M)
 #define CPUPLL_IN 25
+#else
+#define CPUPLL_IN 25
 #endif
 
-//#define L1_LOOPC CORE_FREQ*L1_DIV*L1_REFC/CPUPLL_IN
+#define L1_LOOPC CORE_FREQ*L1_DIV*L1_REFC/CPUPLL_IN
 
 #define BYPASS_CORE 0x0
 #define BYPASS_NODE 0x0
