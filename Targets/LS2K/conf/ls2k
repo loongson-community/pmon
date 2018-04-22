@@ -127,8 +127,8 @@ option		NOSNOOP			# Caches are no-snooping
 # HAVE options. What tgt level provide
 #
 option		HAVE_TOD		# Time-Of-Day clock
-#option		INTERNAL_RTC		# chip internal RTC
-option		EXTERNAL_RTC		# external RTC
+option		INTERNAL_RTC		# chip internal RTC
+#option		EXTERNAL_RTC		# external RTC
 option		HAVE_NVENV		#  Platform has non-volatile env mem
 option		HAVE_LOGO		# Output splash logo
 option		USE_SUPERIO_UART

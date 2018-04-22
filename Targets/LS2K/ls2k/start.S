@@ -164,6 +164,11 @@ stack = start - 0x4000		/* Place PMON stack below PMON start in RAM */
 
 #if 1 //fix the hardware poweroff error.
 
+	bal	ls2k_version
+	nop
+	bnez	v0,2f
+	nop
+
 	.set    mips32
 	mfc0    t0, $15, 1      #EBASE
 	.set    mips3
@@ -192,23 +197,8 @@ stack = start - 0x4000		/* Place PMON stack below PMON start in RAM */
 	sw t2,0x0(t0)
 2:
 #endif
-
-	//disable watch DOG.
-	/*gpio 3 output zero*/
-	li t1,0xbfe10500
-
-	li t2,(1 << 3)
-	not t2,t2
-	lw t3,0x0(t1)
-	and t2,t3
-	sw t2,0x0(t1)
-
-	li t2,(1 << 3)
-	lw t3,0x10(t1)
-	not t2,t2
-	and t2,t3 
-	sw t2,0x10(t1)
-
+	bal watchdog_close
+	nop
 
 	/* init processor state at first*/
 /* NOTE!! Not more that 16 instructions here!!! Right now it's FULL! */
@@ -439,7 +429,7 @@ cp0_main:
 	bal	beep_on
 	nop
 
-	li	a0, 0x800
+	li	a0, 0x8000
 1:
 	addiu	a0, -1
 	nop
@@ -497,7 +487,7 @@ cp0_main:
 	li      t1, 0x10000000
 	or	t0, t0, t1
 
-	dli	t1, 0xff204f
+	dli	t1, 0xff204c
         sw      t1, 0x0(t0)
   
 //pcie1 port1
@@ -516,7 +506,7 @@ cp0_main:
 	li      t1, 0x10100000
 	or	t0, t0, t1
 
-	dli	t1, 0xff204f
+	dli	t1, 0xff204c
         sw      t1, 0x0(t0)
   
 //pcie0 port0
@@ -601,6 +591,10 @@ cp0_main:
 	PRINTSTR("\r\ninitserial good ^_^...\r\n")
 	nop
 
+	bal	ls2k_version
+	nop
+	bnez	v0,2f
+	nop
 	//gmac1 phy reset
 	li t1,0xbfe10500
 	li t2,(1 << 2) //34 - 2
@@ -614,18 +608,24 @@ cp0_main:
 	not t2,t2
 	and t2,t3 
 	sw t2,0x14(t1)
+2:
 
 #include "loongson3_clksetting.S"
 
 	bal 	initserial_later
 	nop
 
+	bal	ls2k_version
+	nop
+	bnez	v0,2f
+	nop
 	//gmac1 phy reset
 	li t1,0xbfe10500
 	li t2,(1 << 2) //34 - 2
 	lw t3,0x14(t1)
 	or t2,t3 
 	sw t2,0x14(t1)
+2:
 
 #if 1 /* Config SATA : use internel clock */
 	PRINTSTR("\r\nUSE internel SATA ref clock\r\n")
@@ -989,28 +989,33 @@ bootnow:
 #define MTC0 mtc0
 #endif
 
+.global wait_for_smp;
+.global wait_for_smp_call;
 wait_for_smp:
 	mfc0	t1, CP0_CONFIG
-	bal	1f
 	ori	t1, t1, 0x3
-1:
 	mtc0	t1, CP0_CONFIG
-
-	addiu	t2, ra, 28
-	lui	t3, 0x9fff
-	ori	t3, 0xffff
-	and	t2, t2, t3
-
-	jalr	t2
+	la	t1, 1f
+	addu	t1, s0
+	li	v0, 0x9fffffff
+	and	t1, v0
+	jr	t1
+	nop
+1:
 	li	t0, 0xbfe11120
 	sd	zero, 0(t0)
+	sd	t1, 8(t0)
+
+wait_for_smp_call:
 1:
 	ld	t1, 0(t0)
-
 	beqz	t1, 1b
-	ld	gp, 16(t0)
-	jr	t1
 	ld	sp, 8(t0)
+	sd	zero,0(t0)
+	ld	gp, 16(t0)
+
+	jr	t1
+	nop
 
 
 LEAF(CPU_TLBClear)
@@ -1137,6 +1142,19 @@ LEAF(hexserial)
 END(hexserial)
 
 
+LEAF(ls2k_version)
+	.set    mips32
+	mfc0    a0, COP_0_PRID
+	.set    mips3
+	andi    a0, a0, 0xf
+	li	a1, 0x3
+	bne     a0, a1, 2f
+	li	v0, 0
+	li	v0, 0x1
+2:
+	j	ra
+	nop
+END(outstring)
 __main:
 	j	ra
 	nop
@@ -1597,7 +1615,7 @@ LEAF(beep_off)
 	nop
 END(beep_off)
 
-#if 1 //do not used i2c read ddr
+#if 1 //used i2c read ddr
 #include "i2c.S"
 #endif
 
@@ -1683,16 +1701,27 @@ END(spd_info_store)
 #include "ddr_dir/Test_Mem.S"
 #endif
 
-	.global watchdog_enable
-	.ent    watchdog_enable
-	.set    noreorder
-	.set    mips3
-watchdog_enable:
+LEAF(watchdog_close)
+	//disable watch DOG.
+	/*gpio 3 output zero*/
+	li t1,0xbfe10500
+
+	li t2,(1 << 3)
+	not t2,t2
+	lw t3,0x0(t1)
+	and t2,t3
+	sw t2,0x0(t1)
+
+	li t2,(1 << 3)
+	lw t3,0x10(t1)
+	not t2,t2
+	and t2,t3
+	sw t2,0x10(t1)
 	nop
-//	WatchDog_Enable
+
 	jr		ra
 	nop
-	.end watchdog_enable
+END(watchdog_close)
 
 	.text
 	.global  nvram_offs

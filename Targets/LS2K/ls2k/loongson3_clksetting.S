@@ -21,7 +21,8 @@ ATTENTION:
 #define DDR_REFC   4
 #define DDR_DIV    1
 #define DDR_DIV_L2    4
-#define GPU_DIV_L2    5
+#define GPU_DIV_L2    7
+#define HDA_DIV_L2    100
 #endif
 #if 0
 /* MEM @ 400Mhz */
@@ -111,9 +112,9 @@ ATTENTION:
 	li	t1, (0x1 << 19) 	//power down pll  first
 	sd	t1, 0x0(t0)
 	dli     t1, (DDR_DIV << 42) | (DDR_REFC << 26) | (DDR_LOOPC << 32) | (0x3 << 10) | (0x1 << 7)
-	dli	t2, (GPU_DIV_L2 << 22) | (DDR_DIV_L2)
-	sw	t1, 0x0(t0)
-	sw	t2, 0x8(t0)
+	dli	t2, (GPU_DIV_L2 << 22) | (DDR_DIV_L2) | (HDA_DIV_L2 << 44)
+	sd	t1, 0x0(t0)
+	sd	t2, 0x8(t0)
 	ori	t1, PLL_L1_ENA
 	sd      t1, 0x0(t0)
 
@@ -138,8 +139,8 @@ ATTENTION:
 	sd	t1, 0x0(t0)
 	dli     t1, (DC_DIV << 42) | (DC_REFC << 26) | (DC_LOOPC << 32) | (0x3 << 10) | (0x1 << 7)
 	dli	t2, (GMAC_DIV << 22) | (DC_DIV_L2)
-	sw	t1, 0x0(t0)
-	sw	t2, 0x8(t0)
+	sd	t1, 0x0(t0)
+	sd	t2, 0x8(t0)
 	ori	t1, PLL_L1_ENA
 	sd      t1, 0x0(t0)
 
@@ -164,8 +165,8 @@ ATTENTION:
 	sd	t1, 0x0(t0)
 	dli     t1, (PIX0_DIV << 42) | (PIX0_REFC << 26) | (PIX0_LOOPC << 32) | (0x3 << 10) | (0x1 << 7)
 	dli	t2, PIX0_DIV_L2
-	sw	t1, 0x0(t0)
-	sw	t2, 0x8(t0)
+	sd	t1, 0x0(t0)
+	sd	t2, 0x8(t0)
 	ori	t1, PLL_L1_ENA
 	sd      t1, 0x0(t0)
 
@@ -190,8 +191,8 @@ ATTENTION:
 	sd	t1, 0x0(t0)
 	dli     t1, (PIX1_DIV << 42) | (PIX1_REFC << 26) | (PIX1_LOOPC << 32) | (0x3 << 10) | (0x1 << 7)
 	dli	t2, PIX1_DIV_L2
-	sw	t1, 0x0(t0)
-	sw	t2, 0x8(t0)
+	sd	t1, 0x0(t0)
+	sd	t2, 0x8(t0)
 	ori	t1, PLL_L1_ENA
 	sd      t1, 0x0(t0)
 

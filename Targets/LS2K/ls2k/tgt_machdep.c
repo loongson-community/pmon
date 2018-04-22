@@ -194,13 +194,16 @@ void movinv1(int iter, ulong p1, ulong p2);
 
 pcireg_t _pci_allocate_io(struct pci_device *dev, vm_size_t size);
 static void superio_reinit();
+extern char wait_for_smp_call[];
+extern char ls2k_version();
 
 void initmips(unsigned long long  raw_memsz)
 {
 	unsigned int hi;
 	unsigned long long memsz;
 	unsigned short i;
-
+	//core1 run wait_for_smp_call function in ram
+	asm volatile(".set mips64;sd %1,(%0);.set mips0;"::"r"(0xbfe11120),"r"(&wait_for_smp_call));
 	tgt_fpuenable();
 
 	get_memorysize(raw_memsz);
@@ -239,7 +242,7 @@ void initmips(unsigned long long  raw_memsz)
 	 */
 	SBD_DISPLAY("BEV0", 0);
 	printf("BEV in SR set to zero.\n");
-	ls2h_nand_init();
+	ls2k_nand_init();
 #ifdef DTB
 	verify_dtb();
 #endif
@@ -1769,7 +1772,9 @@ void ls_pcie_config_set(void)
 			ls_pcie_payload_fixup(pci_config_array + i);
 	}
 	ls_pci_msi_window_config();
-	ls_set_io_noncoherent();
+
+	if(!ls2k_version())
+		ls_set_io_noncoherent();
 }
 
 typedef unsigned long long u64;

@@ -9,8 +9,8 @@
 
 //------------------------------------------
 #define CKSEG1ADDR(a) ((a)|0xa0000000)
-#define ls2h_readl(addr)				(*(volatile unsigned int *)CKSEG1ADDR(addr))
-#define ls2h_writel(val, addr)		*(volatile unsigned int *)CKSEG1ADDR(addr) = (val)
+#define ls2k_readl(addr)				(*(volatile unsigned int *)CKSEG1ADDR(addr))
+#define ls2k_writel(val, addr)		*(volatile unsigned int *)CKSEG1ADDR(addr) = (val)
 #define LS2H_CHIP_CFG_REG_BASE				0x1fe10c00
 #define LS2H_INT_CLR0_REG				(LS2H_CHIP_CFG_REG_BASE + 0x004c)
 #define LS2H_DMA_ORDER_REG				0x1fe10c00 //(LS2H_CHIP_CFG_REG_BASE + 0x0100)
@@ -121,7 +121,7 @@ enum {
 
 #define LS2H_VER2 2
 #define LS2H_VER3 3
-#define DRIVER_NAME	"ls2h-nand"
+#define DRIVER_NAME	"ls2k-nand"
 #define ALIGN_DMA(x) 	((x + 3)/4)
 #define REG(reg)	(info->mmio_base + reg)
 #define NAND_DEBUG
@@ -182,7 +182,7 @@ enum {
 #define NAND_USE_CS	2
 
 /* DMA Descripter */
-struct ls2h_nand_dma_desc {
+struct ls2k_nand_dma_desc {
 	uint32_t orderad;
 	uint32_t saddr;
 	uint32_t daddr;
@@ -192,7 +192,7 @@ struct ls2h_nand_dma_desc {
 	uint32_t cmd;
 };
 
-struct ls2h_nand_info {
+struct ls2k_nand_info {
 	struct nand_chip	nand_chip;
 	struct platform_device	*pdev;
 	spinlock_t		nand_lock;
@@ -221,7 +221,6 @@ struct ls2h_nand_info {
 	size_t			data_size;	/* data size in FIFO */
 	unsigned int		seqin_column;
 	unsigned int		seqin_page_addr;
-	u32			chip_version;
 };
 
 static void *_dma_alloc_coherent(size_t size,
@@ -230,14 +229,12 @@ static void *_dma_alloc_coherent(size_t size,
 void *buf;
     buf = malloc(size,M_DEVBUF, M_DONTWAIT );
     CPU_IOFlushDCache(buf,size, SYNC_R);
-
-//    buf = (unsigned char *)CACHED_TO_UNCACHED(buf);
     *dma_handle =VA_TO_PA(buf);
 
 	return (void *)buf;
 }
 
-static int ls2h_nand_init_buff(struct ls2h_nand_info *info)
+static int ls2k_nand_init_buff(struct ls2k_nand_info *info)
 {
 	struct platform_device *pdev = info->pdev;
 	info->data_buff = dma_alloc_coherent(&pdev->dev, MAX_BUFF_SIZE,
@@ -250,13 +247,13 @@ static int ls2h_nand_init_buff(struct ls2h_nand_info *info)
 	return 0;
 }
 
-static int ls2h_nand_ecc_calculate(struct mtd_info *mtd,
+static int ls2k_nand_ecc_calculate(struct mtd_info *mtd,
 				   const uint8_t * dat, uint8_t * ecc_code)
 {
 	return 0;
 }
 
-static int ls2h_nand_ecc_correct(struct mtd_info *mtd,
+static int ls2k_nand_ecc_correct(struct mtd_info *mtd,
 				 uint8_t * dat, uint8_t * read_ecc,
 				 uint8_t * calc_ecc)
 {
@@ -269,32 +266,31 @@ static int ls2h_nand_ecc_correct(struct mtd_info *mtd,
 	return 0;
 }
 
-static void ls2h_nand_ecc_hwctl(struct mtd_info *mtd, int mode)
+static void ls2k_nand_ecc_hwctl(struct mtd_info *mtd, int mode)
 {
 	return;
 }
 
-static int ls2h_nand_waitfunc(struct mtd_info *mtd, struct nand_chip *this)
+static int ls2k_nand_waitfunc(struct mtd_info *mtd, struct nand_chip *this)
 {
 	udelay(50);
 	return 0;
 }
 
-static void ls2h_nand_select_chip(struct mtd_info *mtd, int chip)
+static void ls2k_nand_select_chip(struct mtd_info *mtd, int chip)
 {
 	return;
 }
 
-static int ls2h_nand_dev_ready(struct mtd_info *mtd)
+static int ls2k_nand_dev_ready(struct mtd_info *mtd)
 {
 	return 1;
 }
 
-static void nand_setup(struct ls2h_nand_info *info,
+static void nand_setup(struct ls2k_nand_info *info,
 		int cmd, int addr_c, int addr_r, int param, int op_num)
 {
-	if (info->chip_version == LS2H_VER3)
-		writel(param, REG(NAND_PARAM_REG));
+	writel(param, REG(NAND_PARAM_REG));
 	writel(op_num, REG(NAND_OP_NUM_REG));
 	writel(addr_c, REG(NAND_ADDRC_REG));
 	writel(addr_r|(0x10000*NAND_USE_CS), REG(NAND_ADDRR_REG));
@@ -303,7 +299,7 @@ static void nand_setup(struct ls2h_nand_info *info,
 	writel(cmd, REG(NAND_CMD_REG));
 }
 
-static void wait_nand_done(struct ls2h_nand_info *info, int timeout)
+static void wait_nand_done(struct ls2k_nand_info *info, int timeout)
 {
 	int t, status_times = timeout;
 
@@ -322,10 +318,10 @@ static void wait_nand_done(struct ls2h_nand_info *info, int timeout)
 	writel(0x0, REG(NAND_CMD_REG));
 }
 
-void dma_desc_init(struct ls2h_nand_info *info)
+void dma_desc_init(struct ls2k_nand_info *info)
 {
-	volatile struct ls2h_nand_dma_desc *dma_base =
-		(volatile struct ls2h_nand_dma_desc *)(info->desc_addr);
+	volatile struct ls2k_nand_dma_desc *dma_base =
+		(volatile struct ls2k_nand_dma_desc *)(info->desc_addr);
 
 	dma_base->orderad = 0;
 	dma_base->saddr = info->data_buff_phys;
@@ -336,11 +332,10 @@ void dma_desc_init(struct ls2h_nand_info *info)
 	dma_base->cmd = 0;
 }
 
-static void dma_setup(struct ls2h_nand_info *info, int dma_cmd, int dma_cnt)
+static void dma_setup(struct ls2k_nand_info *info, int dma_cmd, int dma_cnt)
 {
-#if 1
-	volatile struct ls2h_nand_dma_desc *dma_base =
-		(volatile struct ls2h_nand_dma_desc *)(info->desc_addr);
+	volatile struct ls2k_nand_dma_desc *dma_base =
+		(volatile struct ls2k_nand_dma_desc *)(info->desc_addr);
 	unsigned int t;
 
 	dma_base->orderad = 0;
@@ -353,9 +348,9 @@ static void dma_setup(struct ls2h_nand_info *info, int dma_cmd, int dma_cnt)
 	dma_base->cmd = dma_cmd;
 
 	t = ((unsigned int)info->desc_addr_phys) | (1 << 3);
-	ls2h_writel(t, info->dma_order_reg);
+	ls2k_writel(t, info->dma_order_reg);
 	t = STATUS_TIME_LOOP_R;
-	while ((ls2h_readl(info->dma_order_reg) & 0x8) && t) {
+	while ((ls2k_readl(info->dma_order_reg) & 0x8) && t) {
 		t--;
 		udelay(50);
 	};
@@ -363,7 +358,6 @@ static void dma_setup(struct ls2h_nand_info *info, int dma_cmd, int dma_cnt)
 	if (t == 0) {
 		printf("nand dma timeout!\n");
 	}
-#endif
 
 	wait_nand_done(info, STATUS_TIME_LOOP_R);
 }
@@ -404,33 +398,7 @@ static int get_chip_capa_num(uint64_t  chipsize, int pagesize)
 	}
 }
 
-static void ls2h2_read_id(struct ls2h_nand_info *info)
-{
-	unsigned int id_l = 0 , id_h = 0;
-	unsigned int timing = 0;
-	unsigned char *data = (unsigned char *)(info->data_buff);
-
-	timing = readl(REG(NAND_TIM_REG));
-	writel(0x30f0, REG(NAND_TIM_REG));
-	writel((CMD_RD_ID | CMD_VALID), REG(NAND_CMD_REG));
-	wait_nand_done(info, 100);
-	while (((id_l |= readl(REG(NAND_IDL_REG))) & 0xff) == 0) {
-		id_h = readl(REG(NAND_IDH_REG));
-	}
-
-	while (((id_h = readl(REG(NAND_IDH_REG))) & 0xff) == 0);
-
-#ifdef NAND_DEBUG
-	printf("timing:%x, id_l: %08x, id_h:%08x\n", timing, id_l, id_h);
-#endif
-	writel(timing, REG(NAND_TIM_REG));
-	data[0] = (id_h & 0xff);
-	data[1] = (id_l >> 24) & 0xff;
-	data[2] = (id_l >> 16) & 0xff;
-	data[3] = (id_l >> 8) & 0xff;
-}
-
-static void __attribute__((noinline)) ls2h3_read_id(struct ls2h_nand_info *info)
+static void __attribute__((noinline)) ls2k_read_id(struct ls2k_nand_info *info)
 {
 	unsigned int id_l, id_h;
 	unsigned char *data = (unsigned char *)(info->data_buff);
@@ -450,10 +418,10 @@ static void __attribute__((noinline)) ls2h3_read_id(struct ls2h_nand_info *info)
 	data[3] = (id_l >> 8) & 0xff;
 }
 
-static void ls2h_nand_cmdfunc(struct mtd_info *mtd, unsigned command,
+static void ls2k_nand_cmdfunc(struct mtd_info *mtd, unsigned command,
 			      int column, int page_addr)
 {
-	struct ls2h_nand_info *info = mtd->priv;
+	struct ls2k_nand_info *info = mtd->priv;
 	int chip_cap, oobsize, pagesize;
 	int cmd, addrc, addrr, op_num, param;
 	int dma_cmd, dma_cnt;
@@ -526,7 +494,8 @@ static void ls2h_nand_cmdfunc(struct mtd_info *mtd, unsigned command,
 		addrc = 0;
 		addrr = page_addr;
 		op_num = 0;
-		param = 0;
+		param = ((pagesize | oobsize) << OP_SCOPE_SHIFT)
+			| (chip_cap << CHIP_CAP_SHIFT);
 		cmd = CMD_ER_OP | CMD_VALID;
 		nand_setup(info, cmd, addrc, addrr, param, op_num);
 		wait_nand_done(info, STATUS_TIME_LOOP_E);
@@ -540,10 +509,7 @@ static void ls2h_nand_cmdfunc(struct mtd_info *mtd, unsigned command,
 	case NAND_CMD_READID:
 		info->buf_count = 0x4;
 		info->buf_start = 0;
-		//if (info->chip_version == LS2H_VER3)
-			ls2h3_read_id(info);
-		//else
-		//	ls2h2_read_id(info);
+			ls2k_read_id(info);
 		break;
 	case NAND_CMD_ERASE2:
 	case NAND_CMD_READ1:
@@ -556,9 +522,9 @@ static void ls2h_nand_cmdfunc(struct mtd_info *mtd, unsigned command,
 	spin_unlock_irqrestore(&info->nand_lock, flags);
 }
 
-static u16 ls2h_nand_read_word(struct mtd_info *mtd)
+static u16 ls2k_nand_read_word(struct mtd_info *mtd)
 {
-	struct ls2h_nand_info *info = mtd->priv;
+	struct ls2k_nand_info *info = mtd->priv;
 	unsigned long flags;
 	u16 retval = 0xFFFF;
 
@@ -574,9 +540,9 @@ static u16 ls2h_nand_read_word(struct mtd_info *mtd)
 	return retval;
 }
 
-static uint8_t ls2h_nand_read_byte(struct mtd_info *mtd)
+static uint8_t ls2k_nand_read_byte(struct mtd_info *mtd)
 {
-	struct ls2h_nand_info *info = mtd->priv;
+	struct ls2k_nand_info *info = mtd->priv;
 	unsigned long flags;
 	char retval = 0xFF;
 
@@ -589,9 +555,9 @@ static uint8_t ls2h_nand_read_byte(struct mtd_info *mtd)
 	return retval;
 }
 
-static void ls2h_nand_read_buf(struct mtd_info *mtd, uint8_t * buf, int len)
+static void ls2k_nand_read_buf(struct mtd_info *mtd, uint8_t * buf, int len)
 {
-	struct ls2h_nand_info *info = mtd->priv;
+	struct ls2k_nand_info *info = mtd->priv;
 	int real_len = min_t(size_t, len, info->buf_count - info->buf_start);
 	unsigned long flags;
 
@@ -603,10 +569,10 @@ static void ls2h_nand_read_buf(struct mtd_info *mtd, uint8_t * buf, int len)
 	spin_unlock_irqrestore(&info->nand_lock, flags);
 }
 
-static void ls2h_nand_write_buf(struct mtd_info *mtd, const uint8_t * buf,
+static void ls2k_nand_write_buf(struct mtd_info *mtd, const uint8_t * buf,
 				int len)
 {
-	struct ls2h_nand_info *info = mtd->priv;
+	struct ls2k_nand_info *info = mtd->priv;
 	int real_len = min_t(size_t, len, info->buf_count - info->buf_start);
 	unsigned long flags;
 
@@ -618,44 +584,44 @@ static void ls2h_nand_write_buf(struct mtd_info *mtd, const uint8_t * buf,
 	spin_unlock_irqrestore(&info->nand_lock, flags);
 }
 
-static int ls2h_nand_verify_buf(struct mtd_info *mtd, const uint8_t * buf,
+static int ls2k_nand_verify_buf(struct mtd_info *mtd, const uint8_t * buf,
 				int len)
 {
 	int i = 0;
 	while (len--) {
-		if (buf[i++] != ls2h_nand_read_byte(mtd)) {
+		if (buf[i++] != ls2k_nand_read_byte(mtd)) {
 			return -1;
 		}
 	}
 	return 0;
 }
 
-static void ls2h_nand_init_mtd(struct mtd_info *mtd,
-			       struct ls2h_nand_info *info)
+static void ls2k_nand_init_mtd(struct mtd_info *mtd,
+			       struct ls2k_nand_info *info)
 {
 	struct nand_chip *this = &info->nand_chip;
 
 	this->options		= 8;
-	this->waitfunc		= ls2h_nand_waitfunc;
-	this->select_chip	= ls2h_nand_select_chip;
-	this->dev_ready		= ls2h_nand_dev_ready;
-	this->cmdfunc		= ls2h_nand_cmdfunc;
-	this->read_word		= ls2h_nand_read_word;
-	this->read_byte		= ls2h_nand_read_byte;
-	this->read_buf		= ls2h_nand_read_buf;
-	this->write_buf		= ls2h_nand_write_buf;
-	this->verify_buf	= ls2h_nand_verify_buf;
+	this->waitfunc		= ls2k_nand_waitfunc;
+	this->select_chip	= ls2k_nand_select_chip;
+	this->dev_ready		= ls2k_nand_dev_ready;
+	this->cmdfunc		= ls2k_nand_cmdfunc;
+	this->read_word		= ls2k_nand_read_word;
+	this->read_byte		= ls2k_nand_read_byte;
+	this->read_buf		= ls2k_nand_read_buf;
+	this->write_buf		= ls2k_nand_write_buf;
+	this->verify_buf	= ls2k_nand_verify_buf;
 
 	this->ecc.mode		= NAND_ECC_NONE;
-	this->ecc.hwctl		= ls2h_nand_ecc_hwctl;
-	this->ecc.calculate	= ls2h_nand_ecc_calculate;
-	this->ecc.correct	= ls2h_nand_ecc_correct;
+	this->ecc.hwctl		= ls2k_nand_ecc_hwctl;
+	this->ecc.calculate	= ls2k_nand_ecc_calculate;
+	this->ecc.correct	= ls2k_nand_ecc_correct;
 	this->ecc.size		= 2048;
 	this->ecc.bytes		= 24;
 }
 
 
-static void ls2h_nand_init_info(struct ls2h_nand_info *info)
+static void ls2k_nand_init_info(struct ls2k_nand_info *info)
 {
 	info->buf_start = 0;
 	info->buf_count = 0;
@@ -667,34 +633,28 @@ static void ls2h_nand_init_info(struct ls2h_nand_info *info)
 
 }
 
-static int ls2h_nand_detect(struct mtd_info *mtd)
+static int ls2k_nand_detect(struct mtd_info *mtd)
 {
 	return (mtd->erasesize != 1 << 17 || mtd->writesize != 1 << 11
 		|| mtd->oobsize != 1 << 6);
 }
 
-int ls2h_nand_init()
+int ls2k_nand_init()
 {
-	struct ls2h_nand_info *info;
+	struct ls2k_nand_info *info;
 	struct nand_chip *this;
 	struct mtd_info *mtd;
 	int ret = 0, irq;
 
 
-	mtd = malloc(sizeof(struct mtd_info) + sizeof(struct ls2h_nand_info),M_DEVBUF,M_WAITOK);
+	mtd = malloc(sizeof(struct mtd_info) + sizeof(struct ls2k_nand_info),M_DEVBUF,M_WAITOK);
 	if (!mtd) {
 		printf("failed to allocate memory\n");
 		return -ENOMEM;
 	}
-	memset(mtd, 0, sizeof(struct mtd_info) + sizeof(struct ls2h_nand_info));
+	memset(mtd, 0, sizeof(struct mtd_info) + sizeof(struct ls2k_nand_info));
 
-	info = (struct ls2h_nand_info *)(&mtd[1]);
-
-	//if(ls2h_readl(LS2H_CHIP_SAMP3_REG))
-	//info->chip_version = LS2H_VER2;//pdata->chip_ver;
-	//else
-	info->chip_version = LS2H_VER3;//pdata->chip_ver;
-	printf("chip_version = %d\n", info->chip_version);
+	info = (struct ls2k_nand_info *)(&mtd[1]);
 
 	this = &info->nand_chip;
 	mtd->priv = info;
@@ -716,14 +676,14 @@ int ls2h_nand_init()
 	info->dma_order_reg = ORDER_REG_ADDR;
 	info->apb_data_addr = DMA_ACCESS_ADDR;
 
-	ret = ls2h_nand_init_buff(info);
+	ret = ls2k_nand_init_buff(info);
 	if (ret)
 		goto fail_free_io;
 
 	info->irq = 0;
 
-	ls2h_nand_init_mtd(mtd, info);
-	ls2h_nand_init_info(info);
+	ls2k_nand_init_mtd(mtd, info);
+	ls2k_nand_init_info(info);
 	dma_desc_init(info);
 
 	if (nand_scan(mtd, 1)) {
@@ -732,7 +692,7 @@ int ls2h_nand_init()
 		goto fail_free_io;
 	}
 
-	if (ls2h_nand_detect(mtd)) {
+	if (ls2k_nand_detect(mtd)) {
 		printf("driver don't support the Flash!\n");
 		ret = -ENXIO;
 		goto fail_free_io;
