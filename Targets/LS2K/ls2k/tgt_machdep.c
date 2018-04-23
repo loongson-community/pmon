@@ -36,6 +36,8 @@ unsigned int mem_size = 0;
 
 #include "../../../pmon/common/smbios/smbios.h"
 
+u64  __raw__readq(u64 addr);
+u64 __raw__writeq(u64 addr, u64 val);
 void tgt_putchar(int);
 int tgt_printf(const char *fmt, ...)
 {
@@ -1776,15 +1778,15 @@ void ls_set_io_noncoherent(void)
 		u64 val;
 
 		val = __raw__readq(0x900000001fe10420);
-		val &= 0xffffff8fffffffe; //pcie, usb, hda, gmac
+		val &= 0xffffff8fffffffeULL; //pcie, usb, hda, gmac
 		__raw__writeq(0x900000001fe10420 , val);
 
 		val = __raw__readq(0x900000001fe10430);
-		val &= 0xffffffffffffff3; //dc, gpu
+		val &= 0xffffffffffffff3ULL; //dc, gpu
 		__raw__writeq(0x900000001fe10430 , val);
 
 		val = __raw__readq(0x900000001fe10450);
-		val &= 0xffffffffffffbff; //sata
+		val &= 0xffffffffffffbffULL; //sata
 		__raw__writeq(0x900000001fe10450 , val);
 
 		val = __raw__readq(0x900000001fe10c00);
