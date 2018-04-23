@@ -36,8 +36,6 @@ unsigned int mem_size = 0;
 
 #include "../../../pmon/common/smbios/smbios.h"
 
-u64  __raw__readq(u64 addr);
-u64 __raw__writeq(u64 addr, u64 val);
 void tgt_putchar(int);
 int tgt_printf(const char *fmt, ...)
 {
@@ -1761,6 +1759,9 @@ struct pci_config_data pci_config_array[] = {
 {},
 };
 
+typedef unsigned long long u64;
+u64  __raw__readq(u64 addr);
+u64 __raw__writeq(u64 addr, u64 val);
 void ls_pcie_config_set(void)
 {
 	int i;
@@ -1777,7 +1778,6 @@ void ls_pcie_config_set(void)
 		ls_set_io_noncoherent();
 }
 
-typedef unsigned long long u64;
 void ls_set_io_noncoherent(void)
 {
 		u64 val;
