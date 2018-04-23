@@ -1113,14 +1113,15 @@ initstack (ac, av, addenv)
 		*vsp++ = (char *)0;
 	}
 
-#ifdef DTB
-#include "target/load_dtb.h"
-	setup_dtb(ssp);
-#endif
 	/*
 	 * Finally set the link register to catch returning programs.
 	 */
+#ifdef DTB
+#include "target/load_dtb.h"
+	md_setlr(setup_dtb(ac, av, ssp), (register_t)_exit);
+#else
 	md_setlr(NULL, (register_t)_exit);
+#endif
 }
 
 void get_memorysize(unsigned long long raw_memsz) {

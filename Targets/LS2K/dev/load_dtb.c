@@ -1,4 +1,8 @@
 #include "target/load_dtb.h"
+#include <machine/frame.h>
+
+extern char *heaptop;
+extern char ls2k_version();
 extern int is_valid_ether_addr_linux(const u8 *addr);
 
 int dtb_cksum(void *p, size_t s, int set)
@@ -41,28 +45,17 @@ void verify_dtb(void)
 	printf("dtb verify ok!!!\n");
 }
 
-int setup_dtb(void *ssp)
-{
-	char *dtbram;
-	dtbram = (char *)(tgt_flashmap())->fl_map_base;
-	dtbram += DTB_OFFS;
-	if(dtb_cksum(dtbram, DTB_SIZE - 4, 0)) {
-		printf("dtb chsum err!!!\n");
-		memset(dtbram, 0, DTB_SIZE);
-		return (-1);
-	}
-	memcpy((char *)ssp, (char *)(dtbram + 4), DTB_SIZE - 4);
-	return 0;
-}
-
 static char * str_in_ram(const char *p, const char *q, int size_p, int num)
 {
 	const char *s, *t;
+	const char *p_t, *q_t;
 	int cnt;
-	for (; size_p > 0; p++, size_p--) {
-		if (*p == *q) {
-			t = p;
-			s = q;
+	p_t = p;
+	q_t = q;
+	for (; size_p > 0; p_t++, size_p--) {
+		if (*p_t == *q_t) {
+			t = p_t;
+			s = q_t;
 			cnt = size_p;
 			for (; cnt > 0, *s; s++, t++, cnt--) {
 				if (*t != *s)
@@ -70,16 +63,86 @@ static char * str_in_ram(const char *p, const char *q, int size_p, int num)
 			}
 			if (!*s) {
 				if(!num)
-					return ((char *)p);
+					return ((char *)p_t);
 				else {
 					num--;
-					p += strlen(q);
+					p_t += strlen(q_t);
 					continue;
 				}
 			}
 		}
 	}
 	return (0);
+}
+
+static int update_dma_flag(void * ssp)
+{
+	char *set_p;
+	if(!(set_p = str_in_ram((char *)ssp, "coherent", DTB_SIZE - 8, 0))) {
+		printf("can not find \"dma-coherent\" or \"not-coherent\" in dtb file\n");
+		return -1;
+	}
+	if(ls2k_version())
+		memcpy((char *)set_p - 4, "dma-", 4);
+	else
+		memcpy((char *)set_p - 4, "not-", 4);
+	return 0;
+}
+
+static int update_bootarg(int ac, char ** av, void * ssp)
+{
+	int i, len, len_new;
+	char new_arg[200];
+	char *set_p, *p;
+	struct trapframe *tf = cpuinfotab[whatcpu];
+
+	if(!(set_p = str_in_ram((char *)ssp, "console", DTB_SIZE - 8, 0))) {
+		printf("can not find \"console\" in dtb file\n");
+		return -1;
+	}
+	len = strlen(set_p);
+	p = new_arg;
+	for (i = 1; i < ac; i++) {
+		strcpy(p, av[i]);
+		p += strlen(av[i]);
+		*p = ' ';
+		p++;
+	}
+	p--;
+	*p = '\0';
+	len_new = p - new_arg;
+
+	if(len < len_new) {
+		printf("len=0x%x; len_new=0x%x\n", len, len_new);
+		printf("error: boot arg is too long! use the default boot arg!\nyou can change dts file and make a new dtb file.\n\n");
+	}else {
+		memset((char *)set_p, 0, len);
+		memcpy((char *)set_p, (char *)new_arg, len_new);
+	}
+	return 0;
+}
+
+struct trapframe * setup_dtb(int ac, char ** av, void * ssp)
+{
+	char *dtbram;
+	struct trapframe *tf = cpuinfotab[whatcpu];
+	ssp = heaptop;
+	tf->a2 = heaptop;
+
+	dtbram = (char *)(tgt_flashmap())->fl_map_base;
+	dtbram += DTB_OFFS;
+	if(*(unsigned int *)(dtbram + 4) != 0xedfe0dd0 || dtb_cksum(dtbram, DTB_SIZE - 4, 0)) {
+		printf("dtb chsum err!!!\n");
+		tf->a2 = NULL;
+		return tf;
+	}
+	memcpy((char *)ssp, (char *)(dtbram + 4), DTB_SIZE - 8);
+
+	update_dma_flag(ssp);
+	if (ac > 1)
+		update_bootarg(ac, av, ssp);
+
+	return tf;
 }
 
 static int check_mac_addr(char * base)
@@ -98,7 +161,7 @@ static int check_mac_addr(char * base)
 	return 0;
 }
 
-int set_dtb(int argc,char **argv)
+static int set_dtb(int argc,char **argv)
 {
         char *dtbram, *set_p;
         char cmdbuf[100];
@@ -173,23 +236,34 @@ int load_dtb(int argc,char **argv)
 {
 	char *dtbram;
 	char cmdbuf[100];
-	u8 buff[DTB_SIZE] = {0};
 
 	if(argc==2){
-		sprintf(cmdbuf,"load -o %p -r %s", buff + 4, argv[1]);
-		printf("load -o %p -r %s\n",buff + 4,argv[1]);
+		sprintf(cmdbuf,"load -o %p -r %s", heaptop + 4, argv[1]);
+		printf("load -o %p -r %s\n",heaptop + 4,argv[1]);
 		do_cmd(cmdbuf);
 	}else {
 		printf("argc error\n");
 		return -1;
 	}
-	dtb_cksum(buff, DTB_SIZE - 4, 1);
+	dtb_cksum(heaptop, DTB_SIZE - 4, 1);
 
 	dtbram = (char *)(tgt_flashmap())->fl_map_base;
 	dtbram += DTB_OFFS;
 
-	tgt_flashprogram(dtbram, DTB_SIZE, buff, 0);
+	tgt_flashprogram(dtbram, DTB_SIZE, heaptop, 0);
 	return 0;
+}
+
+void erase_dtb(void)
+{
+	char *dtbram;
+
+	dtbram = (char *)(tgt_flashmap())->fl_map_base;
+	dtbram += DTB_OFFS;
+
+	if (fl_erase_device(dtbram, DTB_SIZE, TRUE)) {
+		printf("Erase failed!\n");
+	}
 }
 
 static const Cmd Cmds[] =
@@ -197,6 +271,7 @@ static const Cmd Cmds[] =
 	{"Misc"},
 	{"load_dtb","file",0,"load_dtb file(max size 16K)", load_dtb,0,99,CMD_REPEAT},
 	{"set_dtb","file",0,"set mac addr in dtb", set_dtb,0,99,CMD_REPEAT},
+	{"erase_dtb","file",0,"erase dtb file in flash", erase_dtb,0,99,CMD_REPEAT},
 	{0, 0}
 };
 static void init_cmd __P((void)) __attribute__ ((constructor));

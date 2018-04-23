@@ -27,5 +27,6 @@ normal:	|-----bfc00000---|	dtb:	|-----bfc00000---|
 
 int dtb_cksum(void *p, size_t s, int set);
 void verify_dtb(void);
-int setup_dtb(void * ssp);
+struct trapframe * setup_dtb(int ac, char ** av, void *ssp);
 int load_dtb(int argc,char **argv);
+void erase_dtb(void);

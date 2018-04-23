@@ -13,7 +13,7 @@
 	memory {
 		name = "memory";
 		device_type = "memory";
-		reg =  <0 0x00200000 0 0x0d800000	// 216MiB at 2MiB
+		reg =  <0 0x00200000 0 0x09800000	// 216MiB at 2MiB
 			1 0x10000000 1 0xd0000000>;	// 7424MiB at 4352MiB
 	};
 
@@ -24,8 +24,10 @@
 		#address-cells = <1>;
 		#size-cells = <1>;
 		ranges = <0x10000000 0 0x10000000 0x10000000
-			  0x40000000 0 0x40000000 0x40000000>;
-		/*dma-coherent;*/
+			  0x40000000 0 0x40000000 0x40000000
+			  0x0a000000 0 0x0a000000 0x05000000>;
+ 		/*dma-coherent;*/
+		not-coherent;
 		nr_cpus_loongson = <2>;
 		cores_per_package = <2>;
 
@@ -44,12 +46,32 @@
 			reg = <0x1fe114a0 0x60>;
 		};
 
+		/* HDA controller nodes:
+		 * If you want to use the "hda" function,enable the "hda"
+		 * controller by configure general configuration register 0.
+		 */
+		/*hda@0x400d0000 {
+			compatible = "loongson,ls-audio";
+			reg = <0x400d0000 0xffff>;
+			interrupt-parent = <&icu>;
+			interrupts = <12>;
+		};*/
+
 		dc@0x400c0000 {
 			compatible = "loongson,ls-fb";
 			reg = <0x400c0000 0xffff>;
 			interrupt-parent = <&icu>;
 			interrupts = <36>;
 		};
+
+		gpu@0x40080000 {
+			compatible = "loongson,galcore";
+			reg = <0x40080000 0x3ffff
+				0x0a000000 0x5000000>;
+			interrupt-parent = <&icu>;
+			interrupts = <37>;
+		};
+
 
 		ohci@0x40070000 {
 			compatible = "loongson,ls2k-ohci", "usb-ohci";
@@ -89,10 +111,10 @@
 			interrupt-parent = <&icu>;
 			interrupts = <20 21>;
 			interrupt-names = "macirq", "eth_wake_irq";
-			mac-address = [ 64 48 48 48 48 60 ];/* [>mac 64:48:48:48:48:60 <]*/
+			/*mac-address = [ 64 48 48 48 48 60 ]; [>mac 64:48:48:48:48:60 <]*/
 			phy-mode = "rgmii";
 			bus_id = <0x0>;
-			phy_addr = <0x0>;
+			phy_addr = <0xffffffff>;
 			dma-mask = <0xffffffff 0xffffffff>;
 		};
 
@@ -102,10 +124,10 @@
 			interrupt-parent = <&icu>;
 			interrupts = <22 23>;
 			interrupt-names = "macirq", "eth_wake_irq";
-			mac-address = [ 64 48 48 48 48 61 ];/* [>mac 64:48:48:48:48:61 <]*/
+			/*mac-address = [ 64 48 48 48 48 61 ]; [>mac 64:48:48:48:48:61 <]*/
 			phy-mode = "rgmii";
 			bus_id = <0x1>;
-			phy_addr = <0x10>;
+			phy_addr = <0xffffffff>;
 			dma-mask = <0xffffffff 0xffffffff>;
 		};
 
@@ -248,6 +270,10 @@
 			/*i2c-gpio,sda-open-drain;*/
 			/*i2c-gpio,scl-open-drain;*/
 			i2c-gpio,delay-us = <5>;	/* ~100 kHz */
+			eeprom@50{
+				compatible = "eeprom-edid";
+				reg = <0x50>;
+			};
 		};
 
 		spi0: spi@1fff0220{
@@ -439,6 +465,7 @@
 	};
 
 	chosen {
-		bootargs = "console=ttyS0,115200 root=/dev/sda1";
+		/* the redundant spaces are used for save new boot args */
+		bootargs = "console=ttyS0,115200 root=/dev/sda1                                                                                                                                                                                      ";
 	};
 };
