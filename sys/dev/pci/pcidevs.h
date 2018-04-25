@@ -1296,6 +1296,7 @@
 #define PCI_PRODUCT_SYMBIOS_SAS2008     0x0072      /* SAS2008 */
 #define PCI_PRODUCT_SYMBIOS_SAS2108_1   0x0078      /* MegaRAID SAS2108 CRYPTO GEN2 wan+*/
 #define PCI_PRODUCT_SYMBIOS_SAS2108_2   0x0079      /* MegaRAID SAS2108 GEN2 wan+*/
+#define PCI_PRODUCT_SYMBIOS_TBOLT   	0x005F     /* MegaRAID SAS2108 GEN2 wan+*/
 //wan+ end
 
 /* Packet Engines products */

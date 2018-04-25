@@ -36,9 +36,11 @@
 
 #include <dev/ic/mfireg.h>
 #include <dev/ic/mfivar.h>
+#include <dev/ic/mfivar_fury.h>
 
 #define	MFI_BAR		0x10
 #define	MFI_BAR_GEN2	0x14
+#define	MFI_BAR_TBOLT	0x10
 #define	MFI_PCI_MEMSIZE	0x2000 /* 8k */
 
 int	mfi_pci_match(struct device *, void *, void *);
@@ -85,6 +87,13 @@ static const struct mfi_pci_subtype mfi_gen2_subtypes[] = {
 	{ 0x92611000,	"SAS 9260-8i"},
 	{ 0x0,		"" }
 };
+static const struct mfi_pci_subtype mfi_tbolt_subtypes[] = {
+
+
+	{ 0x92611000,	"FURY"},
+	{ 0x0,		"" }
+
+};
 
 static const
 struct	mfi_pci_device {
@@ -107,6 +116,8 @@ struct	mfi_pci_device {
 	  MFI_IOP_GEN2,		mfi_gen2_subtypes },
 	{ PCI_VENDOR_SYMBIOS,	PCI_PRODUCT_SYMBIOS_SAS2108_2,
 	  MFI_IOP_GEN2,		mfi_gen2_subtypes },
+	{ PCI_VENDOR_SYMBIOS,	PCI_PRODUCT_SYMBIOS_TBOLT,
+	  MFI_IOP_TBOLT,		mfi_gen2_subtypes },
 };
 
 const struct mfi_pci_device *mfi_pci_find_device(struct pci_attach_args *);
@@ -157,6 +168,11 @@ mfi_pci_attach(struct device *parent, struct device *self, void *aux)
 
 	if (mpd->mpd_iop == MFI_IOP_GEN2)
 		regbar = MFI_BAR_GEN2;
+	else if (mpd->mpd_iop == MFI_IOP_TBOLT){
+		regbar = MFI_BAR_TBOLT;
+		sc->mfi_flags = MFI_FLAGS_SKINNY| MFI_FLAGS_TBOLT| MFI_FLAGS_MRSAS| MFI_FLAGS_FURY;
+	}
+
 	else
 		regbar = MFI_BAR;
 
@@ -176,6 +192,10 @@ mfi_pci_attach(struct device *parent, struct device *self, void *aux)
 		return;
 	}
 	intrstr = pci_intr_string(pa->pa_pc, ih);//wan: "generic poll"
+	if(sc->mfi_flags && MFI_FLAGS_SKINNY)
+	sc->sc_ih = pci_intr_establish(pa->pa_pc, ih, IPL_BIO, mfi_intr_tbolt, sc,
+	    sc->sc_dev.dv_xname);
+		else
 	sc->sc_ih = pci_intr_establish(pa->pa_pc, ih, IPL_BIO, mfi_intr, sc,
 	    sc->sc_dev.dv_xname);
 	if (!sc->sc_ih) {
@@ -205,12 +225,22 @@ mfi_pci_attach(struct device *parent, struct device *self, void *aux)
 	}
 
 	printf(": %s, %s\n", intrstr, subtype);
-
+if(sc->mfi_flags && MFI_FLAGS_SKINNY)
+	{
+	    if(mfi_attach_fury(sc, mpd->mpd_iop)){
+		printf("%s: can't attach\n", DEVNAME(sc));
+//		pci_intr_disestablish(pa->pa_pc, sc->sc_ih);//wan-
+		sc->sc_ih = NULL;
+		bus_space_unmap(sc->sc_iot, sc->sc_ioh, size);
+		}
+	}else
+	{
 	if (mfi_attach(sc, mpd->mpd_iop)) {
 		printf("%s: can't attach\n", DEVNAME(sc));
 //		pci_intr_disestablish(pa->pa_pc, sc->sc_ih);//wan-
 		sc->sc_ih = NULL;
 		bus_space_unmap(sc->sc_iot, sc->sc_ioh, size);
+	}
 	}
 	printf("RAID controller initialized ok\n");
 }

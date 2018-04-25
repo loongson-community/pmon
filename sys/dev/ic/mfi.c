@@ -495,10 +495,12 @@ mfi_get_info(struct mfi_softc *sc)
 	DNPRINTF(MFI_D_MISC, "%s: mfi_get_info\n", DEVNAME(sc));
 
 	if (mfi_mgmt(sc, MR_DCMD_CTRL_GET_INFO, MFI_DATA_IN,
-	    sizeof(sc->sc_info), &sc->sc_info, NULL))
+	    sizeof(struct mfi_ctrl_info), sc->sc_info, NULL))
+//	    sizeof(sc->sc_info), &sc->sc_info, NULL))
 		return (1);
 
-#ifdef MFI_DEBUG
+//#ifdef MFI_DEBUG
+#if 0
 	for (i = 0; i < sc->sc_info.mci_image_component_count; i++) {
 		printf("%s: active FW %s Version %s date %s time %s\n",
 		    DEVNAME(sc),
@@ -733,11 +735,17 @@ mfi_attach(struct mfi_softc *sc, enum mfi_iop iop)
 		printf("%s: could not init ccb list\n", DEVNAME(sc));
 		goto noinit;
 	}
+	 sc->sc_info = malloc(sizeof(struct mfi_ctrl_info), M_DEVBUF, M_NOWAIT|M_ZERO);
+	if(sc->sc_info == NULL){
+			printf("the sc_info malloc faile\n");
+			return 0;
+		}
 
 #ifdef CONFIG_LSI_9260
 	/* try send get info cmd before init FW */
 	mfi_mgmt(sc, MR_DCMD_CTRL_GET_INFO, MFI_DATA_IN,
-		sizeof(sc->sc_info), &sc->sc_info, NULL);
+		sizeof(struct mfi_ctrl_info), sc->sc_info, NULL);
+//		sizeof(sc->sc_info), &sc->sc_info, NULL);
 #endif
 	/* kickstart firmware with all addresses and pointers */
 	if (mfi_initialize_firmware(sc)) {
@@ -750,7 +758,7 @@ mfi_attach(struct mfi_softc *sc, enum mfi_iop iop)
 		    DEVNAME(sc));
 		goto noinit;
 	}
-
+#if 0
 	printf("%s: logical drives %d, version %s, %dMB RAM\n",
 	    DEVNAME(sc),
 	    sc->sc_info.mci_lds_present,
@@ -758,6 +766,15 @@ mfi_attach(struct mfi_softc *sc, enum mfi_iop iop)
 	    sc->sc_info.mci_memory_size);
 
 	sc->sc_ld_cnt = sc->sc_info.mci_lds_present;
+#endif
+	printf("%s: logical drives %d, version %s, %dMB RAM\n",
+	    DEVNAME(sc),
+	    sc->sc_info->mci_lds_present,
+	    sc->sc_info->mci_package_version,
+	    sc->sc_info->mci_memory_size);
+
+	sc->sc_ld_cnt = sc->sc_info->mci_lds_present;
+
 	sc->sc_max_ld = sc->sc_ld_cnt;
 	for (i = 0; i < sc->sc_ld_cnt; i++)
 		sc->sc_ld[i].ld_present = 1;
