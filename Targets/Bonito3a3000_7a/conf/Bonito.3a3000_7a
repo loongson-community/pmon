@@ -287,6 +287,7 @@ option USE_SII9022a
 option USE_CH7034
 #bellow for zxd
 #option DDR_S1="0xc1a10400c1a10400"
+##option DDR_S1="0xc0e18800c0e18800"
 #option REF_33M
 #option DDR_RESET_REVERT=1
 #option DDR_FREQ=500
