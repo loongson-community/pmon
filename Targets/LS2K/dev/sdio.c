@@ -661,8 +661,7 @@ int sdio_init()
   int sdiintmsk = 0;
   int clk_sel;
   static int inited = 0;
-  if(inited) return;
-  inited = 1;
+  if(inited) return 0;
 	/*sdio use dma1*/
 #define LS2K_APBDMA_CONFIG_REG *(volatile int *)0xbfe10438
    LS2K_APBDMA_CONFIG_REG = (LS2K_APBDMA_CONFIG_REG&~(7<<15))|(1<<15);
@@ -702,9 +701,7 @@ int sdio_init()
   check_crc = 1;
   cmd_arg   = 0x1aa;
   send_cmd(cmd_index,wait_rsp,longrsp,check_crc,cmd_arg);  // send cmd8 to get sd memory card support voltage 
-  sdiintmsk = cmd_check(cmd_index);
-  if(sdiintmsk & 0x180)
-   return -1;
+  cmd_check(cmd_index);
 
   resp = 0;
   delay_100();
@@ -718,7 +715,9 @@ while((resp & 0x80000000) == 0)
   check_crc = 1;
   cmd_arg   = 0;
   send_cmd(cmd_index,wait_rsp,longrsp,check_crc,cmd_arg);  // send cmd55 to send acmd 
-  cmd_check(cmd_index);
+  sdiintmsk = cmd_check(cmd_index);
+  if(sdiintmsk & 0x180)
+   return -1;
 
   cmd_index = 41;
   wait_rsp  = 1;
@@ -731,6 +730,7 @@ while((resp & 0x80000000) == 0)
   resp  = *(volatile unsigned int *)(SDIO_BASE + SDIRSP0);    // read response
 }
  sdcard_ocr = resp;
+ inited = 1;
 
   resp = 0;
   cmd_index = 2;
@@ -1166,7 +1166,7 @@ void init_cmd()
 }
 
 #define CACHEDSECTORS 16
-unsigned char cachedbuffer[512*CACHEDSECTORS];
+unsigned char cachedbuffer[512*CACHEDSECTORS] __attribute__((aligned(32)));
 unsigned int cachedaddr[CACHEDSECTORS];
 static int
    sdcard_open (fd, fname, mode, perms)
