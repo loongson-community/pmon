@@ -969,8 +969,10 @@ soft_out:
 ##########################################
 
 bootnow:
+#ifdef AUTO_DDR_CONFIG
 	bal	spd_info_store
 	nop
+#endif
 	TTYDBG("Copy PMON to execute location...\r\n")
 #ifdef DEBUG_LOCORE
 	TTYDBG("  start = 0x")
