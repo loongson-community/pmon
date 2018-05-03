@@ -156,7 +156,7 @@ pcibrattach(parent, self, aux)
 	pba.pba_memt = &sc->sc_membus_space;
 	pba.pba_dmat = &sc->sc_dmatag;
 	pba.pba_pc = NULL;
-	pba.pba_bus = sc->sc_dev.dv_unit;
+	pba.pba_bus = _pci_bus[sc->sc_dev.dv_unit]->bridge.pribus_num;// sc->sc_dev.dv_unit;
 	config_found(self, &pba, pcibrprint);
 }
 
