@@ -3069,8 +3069,8 @@ static int hc_start(ohci_t * ohci)
 		int val;
 		val = readl(&ohci->regs->intrstatus);
 		while (val & OHCI_INTR_SF) {
-			//              udelay(10);
-			delay_usb_ohci(10);
+			udelay(10);
+			//delay_usb_ohci(10);
 			val = readl(&ohci->regs->intrstatus);
 		}
 	}
@@ -3089,7 +3089,7 @@ static int hc_start(ohci_t * ohci)
 	writel(mask, &ohci->regs->intrenable);
 
 //      udelay(1000);
-	delay_usb_ohci(1000);
+//	delay_usb_ohci(1000);
 #if	0
 #ifdef	OHCI_USE_NPS
 	/* required for AMD-756 and some Mac platforms */
@@ -3099,12 +3099,12 @@ static int hc_start(ohci_t * ohci)
 #endif /* OHCI_USE_NPS */
 #endif
 
-//#define mdelay(n) do {unsigned long msec=(n); while (msec--) udelay(1000);} while(0)
-#define mdelay(n) do {unsigned long msec=(n); while (msec--) delay_usb_ohci(1000);} while(0)
+#define mdelay(n) do {unsigned long msec=(n); while (msec--) udelay(1000);} while(0)
+//#define mdelay(n) do {unsigned long msec=(n); while (msec--) delay_usb_ohci(1000);} while(0)
 	/* POTPGT delay is bits 24-31, in 2 ms units. */
 	mdelay((roothub_a(ohci) >> 23) & 0x1fe);
 
-	mdelay(1000);
+	mdelay(1);
 
 	/* connect the virtual root hub */
 	ohci->rh.devnum = 0;
