@@ -181,10 +181,9 @@ localbus0	at mainbus0
 loopdev0	at mainbus0
 #fd0         at mainbus0
 pcibr0		at mainbus0
-#pcibr1		at mainbus0
-pcibr2		at mainbus0 #For the port1 device register
-pcibr4		at mainbus0 #For the port2 device register
-#pcibr6		at mainbus0 #For the port3 device register
+pcibr1		at mainbus0
+pcibr2		at mainbus0
+pcibr3		at mainbus0
 pci*		at pcibr?
 ppb*		at pci? dev ? function ?	# PCI-PCI bridges
 pci*		at ppb? bus ?
