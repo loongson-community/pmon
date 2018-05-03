@@ -58,11 +58,14 @@
 #include "pcivar.h"
 #include "pcireg.h"
 
+#ifndef PCIVERBOSE
 #if defined(LOONGSON_2K) || defined(LS7A)
 #define PCIVERBOSE 5
 #else
 #define PCIVERBOSE 0
 #endif
+#endif
+
 #ifdef PCIVERBOSE
 #include "pcidevs.h"
 #endif
@@ -1300,12 +1303,9 @@ _pci_businit (int init)
                 if (_pciverbose) {
 			printf("setting up %d bus\n", init);
 		}
-#ifdef LOONGSON_3A2H
-		for(i = 0, pb = _pci_head; i < pci_roots; i+=2, pb = pb->next) {
-#else
 		for(i = 0, pb = _pci_head; i < pci_roots; i++, pb = pb->next) {
-#endif
-			_pci_scan_dev(pb, i, 0, init);
+			pb->bridge.pribus_num = i?++_pci_nbus:_pci_nbus;
+			_pci_scan_dev(pb, pb->bridge.pribus_num, 0, init);
 		}
         	_setup_pcibuses(init);
 	}
@@ -1422,11 +1422,7 @@ _setup_pcibuses(int initialise)
 
 	/* setup the individual device windows */
 	SBD_DISPLAY ("PCIW", CHKPNT_PCIW);
-#ifdef LOONGSON_3A2H
-	for(i = 0, pd = _pci_head; i < pci_roots; i+=2, pd = pd->next) {
-#else
 	for(i = 0, pd = _pci_head; i < pci_roots; i++, pd = pd->next) {
-#endif
 		_pci_setup_windows (pd);
 	}
 
@@ -1444,11 +1440,7 @@ _pci_devinit (int initialise)
 		int i;
 		struct pci_device *pd;
 
-#ifdef LOONGSON_3A2H
-		for(i = 0, pd = _pci_head; i < pci_roots; i+=2, pd = pd->next) {
-#else
 		for(i = 0, pd = _pci_head; i < pci_roots; i++, pd = pd->next) {
-#endif
 			_pci_setup_devices (pd, initialise);
 		}
 	}
