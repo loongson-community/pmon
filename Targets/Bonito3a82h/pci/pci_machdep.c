@@ -31,6 +31,8 @@
  *
  */
 
+#include <linux/types.h>
+#include <types.h>
 #include <sys/param.h>
 #include <sys/device.h>
 #include <sys/systm.h>
@@ -246,7 +248,7 @@ _pci_hwinit(initialise, iot, memt)
 #endif
 		return(1);
 	else
-		return(7);
+		return 4;
 }
 
 /*

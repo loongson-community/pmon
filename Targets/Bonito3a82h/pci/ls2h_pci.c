@@ -1,10 +1,30 @@
 #include <linux/types.h>
 #include <types.h>
+#include <sys/param.h>
+#include <sys/device.h>
+#include <sys/systm.h>
+
+#include <sys/malloc.h>
 #include <stdbool.h>
+
+#include <dev/pci/pcivar.h>
+#include <dev/pci/pcireg.h>
+#include <dev/pci/nppbreg.h>
+
+#include <machine/bus.h>
+
+#include "include/bonito.h"
+
+#include <pmon.h>
+
+
+
 #include "Targets/Bonito3a82h/include/bonito.h"
 #include "ls2h.h"
 #include "ls2h_int.h"
-#include "sys/dev/pci/pcireg.h"
+#include <dev/pci/pcivar.h>
+#include <dev/pci/pcireg.h>
+#include <dev/pci/nppbreg.h>
 //#include "sys/dev/pci/pcivar.h"
 
 #define PCI_ACCESS_READ  0
@@ -40,152 +60,102 @@
 #define cpu_to_le32(x) (x)
 #define cpu_to_le64(x) (x)
 
+static inline void msleep(int microseconds){
+ int i;
+ for(i=0;i<microseconds;i++)delay(1000);
+}
 
 #define CKSEG1ADDR(x) (x|0xa0000000)
 
 #ifdef PCIE_GRAPHIC_CARD
 extern bool is_pcie_vga_card();
 #endif
-typedef u_int32_t pcireg_t;		/* configuration space register XXX */
 typedef unsigned long device_t;
 
+extern struct pci_device *_pci_bus[16];
 u32 _pci_conf_readn(device_t tag, int reg, int width)
 {
-	tgt_printf("[%s]--ERROR!!\n",__func__);
-	return 0;
-}
 
-void _pci_conf_writen(device_t tag, int reg, u32 data,int width)
-{
-	tgt_printf("[%s]-ERROR!!\n",__func__);
-	return ;
+	u32 val;
+
+	int busnum;
+	int device;
+	int function;
+	int port_num;
+	int i;
+
+	_pci_break_tag (tag, &busnum, &device, &function);
+	for(i=0;i<3;i++)
+	{
+		if(!_pci_bus[i]||!_pci_bus[i+1]||(busnum >=_pci_bus[i]->bridge.pribus_num && (busnum<_pci_bus[i+1]->bridge.pribus_num || !_pci_bus[i+1]->bridge.pribus_num)))
+			break;
+	}
+	port_num = i;
+	ls2h_pcibios_read_port(tag, reg, width, &val, port_num, _pci_bus[i]?_pci_bus[i]->bridge.pribus_num:0);
+
+	return  val;
 }
 
 u32 _pci_conf_read(device_t tag, int reg)
 {
-
-	u32 val;
-
-	int busnum;
-	int device;
-	int function;
-	int port_num;
-
-	_pci_break_tag (tag, &busnum, &device, &function);
-	port_num = busnum / 2;
-	ls2h_pcibios_read_port(tag, reg, 4, &val, port_num);
-
-	return  val;
+	return _pci_conf_readn(tag, reg, 4);
 }
 
 u32 _pci_conf_read32(device_t tag,int reg)
 {
-
-	u32 val;
-	int busnum;
-	int device;
-	int function;
-	int port_num;
-	
-	_pci_break_tag (tag, &busnum, &device, &function);
-	port_num = busnum / 2;
-
-	ls2h_pcibios_read_port(tag, reg, 4, &val,port_num);
-
-	return  val;
+	return _pci_conf_readn(tag, reg, 4);
 }
 
 u32 _pci_conf_read8(device_t tag,int reg)
 {
-
-	u32 val;
-	int busnum;
-	int device;
-	int function;
-	int port_num;
-
-	_pci_break_tag (tag, &busnum, &device, &function);
-	port_num = busnum / 2;
-
-	ls2h_pcibios_read_port(tag, reg, 1, &val,port_num);
-
-	return  (u8)val;
+	return _pci_conf_readn(tag, reg, 1);
 }
 
 u32 _pci_conf_read16(device_t tag,int reg)
 {
 
-	u32 val;
+	return _pci_conf_readn(tag, reg, 2);
+}
+
+void _pci_conf_writen(device_t tag, int reg, u32 data,int width)
+{
 	int busnum;
 	int device;
 	int function;
 	int port_num;
+	int i;
 
 	_pci_break_tag (tag, &busnum, &device, &function);
-	port_num = busnum / 2;
+	for(i=0;i<3;i++)
+	{
+		if(!_pci_bus[i]||!_pci_bus[i+1] || (busnum >=_pci_bus[i]->bridge.pribus_num && (busnum<_pci_bus[i+1]->bridge.pribus_num || !_pci_bus[i+1]->bridge.pribus_num)))
+			break;
+	}
+	port_num = i;
 
-	ls2h_pcibios_read_port(tag, reg, 2, &val,port_num);
+	ls2h_pcibios_write_port(tag, reg, width, data,port_num,_pci_bus[i]?_pci_bus[i]->bridge.pribus_num:0);
 
-	return  (u16)val;
+	return ;
 }
 
 void _pci_conf_write(device_t tag, int reg, u32 data)
 {
-	int busnum;
-	int device;
-	int function;
-	int port_num;
-
-	_pci_break_tag (tag, &busnum, &device, &function);
-	port_num = busnum / 2;
-
-	ls2h_pcibios_write_port(tag, reg, 4, data,port_num);
-
-	return ;
+	_pci_conf_writen(tag, reg, data, 4);
 }
 
 void _pci_conf_write32(device_t tag, int reg, u32 data)
 {
-	int busnum;
-	int device;
-	int function;
-	int port_num;
-
-	_pci_break_tag (tag, &busnum, &device, &function);
-	port_num = busnum / 2;
-	ls2h_pcibios_write_port(tag, reg, 4, data,port_num);
-
-	return ;
+	_pci_conf_writen(tag, reg, data, 4);
 }
 
 void _pci_conf_write8(device_t tag, int reg, u8 data)
 {
-	int busnum;
-	int device;
-	int function;
-	int port_num;
-
-	_pci_break_tag (tag, &busnum, &device, &function);
-	port_num = busnum / 2;
-
-	u32 val = data;
-	ls2h_pcibios_write_port(tag, reg, 1, val,port_num);
-
-	return;
+	_pci_conf_writen(tag, reg, data, 1);
 }
 
 void _pci_conf_write16(device_t tag, int reg, u16 data)
 {
-	int busnum;
-	int device;
-	int function;
-	int port_num;
-
-	_pci_break_tag (tag, &busnum, &device, &function);
-	port_num = busnum / 2;
-	u16 val = data;
-	ls2h_pcibios_write_port(tag, reg, 2, val,port_num);
-	return ;
+	_pci_conf_writen(tag, reg, data, 2);
 }
 
 u32 ls2h_pcie_bar_translate(unsigned char access_type, u32 bar_in, unsigned char portnum)
@@ -259,7 +229,7 @@ void cfg_device_write(
 }
 
 int ls2h_pci_config_access(unsigned char access_type,
-   device_t tag, int where, u32 * data, unsigned char  portnum)
+   device_t tag, int where, u32 * data, unsigned char  portnum, int pribus)
 {
 
 	int busnum ;
@@ -279,7 +249,7 @@ int ls2h_pci_config_access(unsigned char access_type,
 		return PCIBIOS_DEVICE_NOT_FOUND;
 
 	// if (!bus->parent) {
-	if(!(busnum % 2)){
+	if(busnum == pribus){
 		/* in-chip virtual-bus has no parent,
 		    so access is routed to PORT_HEAD */
 		if (device > 0 || function > 0) {
@@ -303,14 +273,13 @@ int ls2h_pci_config_access(unsigned char access_type,
 		addrp = (void *)CKSEG1ADDR(addr_i);
 
 		reg_data = le32_to_cpu(*(volatile unsigned int *)addrp);
-		if (busnum > 255 || device > 31 || function > 1
+		if (busnum > 255 || device > 31 || function > 7
 			    || !(reg_data & LS2H_PCIE_REG_STAT1_BIT_LINKUP)) {
 		    *data = -1;	/* link is not up at all  */
 		    return PCIBIOS_DEVICE_NOT_FOUND;
 		}
 
-		//if (!bus->parent->parent) {
-		if(1){
+		if(busnum == pribus + 1){
 			/* the bus is child of virtual-bus(pcie slot),
 			so use Type 0 access for device on it */
 			if (device > 0) {
@@ -356,12 +325,12 @@ int ls2h_pci_config_access(unsigned char access_type,
 
 	return PCIBIOS_SUCCESSFUL;
 }
-int ls2h_pcibios_read_port(device_t tag, int where, int size, u32 * val,int port_num)
+int ls2h_pcibios_read_port(device_t tag, int where, int size, u32 * val,int port_num, int pribus)
 {
 	u32 data = 0;
 	*val = -1;
 
-	if (ls2h_pci_config_access(PCI_ACCESS_READ, tag, where, &data, port_num))
+	if (ls2h_pci_config_access(PCI_ACCESS_READ, tag, where, &data, port_num, pribus))
 		return PCIBIOS_DEVICE_NOT_FOUND;
 
 	if (size == 1)
@@ -375,14 +344,14 @@ int ls2h_pcibios_read_port(device_t tag, int where, int size, u32 * val,int port
 }
 
 
-int ls2h_pcibios_write_port(device_t tag, int where, int size, u32 val,int port_num)
+int ls2h_pcibios_write_port(device_t tag, int where, int size, u32 val,int port_num, int pribus)
 {
 	u32 data = 0;
 
 	if (size == 4)
 		data = val;
 	else {
-		if (ls2h_pci_config_access(PCI_ACCESS_READ, tag, where, &data, port_num))
+		if (ls2h_pci_config_access(PCI_ACCESS_READ, tag, where, &data, port_num, pribus))
 			return PCIBIOS_DEVICE_NOT_FOUND;
 
 		if (size == 1)
@@ -393,7 +362,7 @@ int ls2h_pcibios_write_port(device_t tag, int where, int size, u32 val,int port_
 					(val << ((where & 3) << 3));
 	}
 
-	if (ls2h_pci_config_access(PCI_ACCESS_WRITE, tag,  where, &data, port_num))
+	if (ls2h_pci_config_access(PCI_ACCESS_WRITE, tag,  where, &data, port_num, pribus))
 		return PCIBIOS_DEVICE_NOT_FOUND;
 
 	return PCIBIOS_SUCCESSFUL;
@@ -471,11 +440,21 @@ void ls2h_pcie_port_init(int port)
 
 int ls2h_pcibios_init(void)
 {
+	u32 data;
 	tgt_printf("arch_initcall:pcibios_init\n");
 	en_ref_clock();
 	ls2h_pcie_reset();
 	if (!is_rc_mode())
 		return 0;
+#if 0	//3A04
+	(*(volatile unsigned int*)(0xffffffffbbd000c0)) &= ~(1<<3);
+        (*(volatile unsigned int*)(0xffffffffbbd000c4)) &= ~(1<<3);
+        (*(volatile unsigned int *)(0xffffffffbbd000cc)) &= ~(1<<3);
+	(*(volatile unsigned int *) 0xffffffffbbd000cc);
+        msleep(100);
+        (*(volatile unsigned int *) 0xffffffffbbd000cc) |= (1<<3);
+	(*(volatile unsigned int *) 0xffffffffbbd000cc) ;
+#endif
 
 	ls2h_pcie_port_init(0);
 #ifdef PCIE_GRAPHIC_CARD

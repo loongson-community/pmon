@@ -245,7 +245,7 @@ _pci_hwinit(initialise, iot, memt)
 #endif
 		return(1);
 	else
-		return(7);
+		return 4;
 }
 
 /*
