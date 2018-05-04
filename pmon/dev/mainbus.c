@@ -68,7 +68,7 @@ mainbus_match(parent, match, aux)
 	return (1);
 }
 
-extern int _max_pci_bus;
+extern int pci_roots;
 static void
 mainbus_attach(parent, self, aux)
 	struct device *parent, *self;
@@ -100,7 +100,7 @@ mainbus_attach(parent, self, aux)
         nca.ca_bus = &sc->sc_bus;
         config_found(self, &nca, mbprint);
 
-	for(i=0;i<_max_pci_bus;i++)
+	for(i=0;i<pci_roots;i++)
 	{
         nca.ca_node = NULL;
         nca.ca_name = "pcibr";
