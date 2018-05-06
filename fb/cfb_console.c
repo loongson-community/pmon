@@ -106,6 +106,7 @@ CONFIG_VIDEO_HW_CURSOR:	     - Uses the hardware cursor capability of the
 //#include <target/types.h>
 #include "mod_sisfb.h"
 #include <dev/pci/pcivar.h>
+#include "mod_x86emu_int10.h"
 
 #ifdef RADEON7000
 //#define VIDEO_FB_LITTLE_ENDIAN
@@ -1637,8 +1638,8 @@ int fb_init (unsigned long fbbase,unsigned long iobase)
 #elif defined(X320x240)
         pGD->winSizeX  = 320;
         pGD->winSizeY  = 240;
-#else
-#if !defined(FB_XSIZE)
+#elif NMOD_X86EMU_INT10 && (!defined(FB_XSIZE) || !defined(FB_YSIZE))
+#if !defined(FB_XSIZE) 
 #define FB_XSIZE 800
 #endif
 #if !defined(FB_YSIZE)
@@ -1646,6 +1647,9 @@ int fb_init (unsigned long fbbase,unsigned long iobase)
 #endif
         pGD->winSizeX  = ScreenLineLength/((ScreenDepth+1)/8);
         pGD->winSizeY  = ScreenHeight;
+#else
+        pGD->winSizeX  = FB_XSIZE;
+        pGD->winSizeY  = FB_YSIZE;
 #endif
 
 #if   defined(CONFIG_VIDEO_1BPP)
