@@ -294,9 +294,6 @@ extern int video_hw_init(void);
 extern int fb_init(unsigned long, unsigned long);
 extern int dc_init();
 
-extern unsigned short ScreenLineLength;
-extern unsigned short ScreenDepth;
-extern unsigned short ScreenHeight;
 
 
 static void init_pcidev(void)
@@ -327,9 +324,6 @@ static void init_pcidev(void)
 			fbaddress = dc_init();
 			printf("dc_init done\n");
 			//this parameters for 1280*1024 VGA
-			ScreenLineLength = 2560;
-			ScreenDepth = 15;
-			ScreenHeight = 1024;
 		} else {
 			fbaddress  = _pci_conf_read(pcie_dev->pa.pa_tag,0x10);
 			fbaddress = fbaddress &0xffffff00; //laster 8 bit
