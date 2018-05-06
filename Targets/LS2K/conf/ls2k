@@ -106,9 +106,9 @@ select		fatfs
 select		ramfiles
 #select		mod_x86emu		# X86 emulation for VGA
 option		MY40IO
-select		mod_x86emu_int10
+#select		mod_x86emu_int10
 option		MY61IO
-option          VGA_BASE=0xb0000000
+#option          VGA_BASE=0xb0000000
 select		mod_vgacon
 #select		sis315e
 #option		SIS315E
@@ -121,7 +121,7 @@ option		NOPCINAMES		# Save some space for x86emu
 select		mod_framebuffer
 option		FB_XSIZE=1024
 option		FB_YSIZE=768
-select		mod_vesa
+#select		mod_vesa
 option 		CONFIG_VIDEO_16BPP
 #option 	CONFIG_VIDEO_8BPP_INDEX
 
