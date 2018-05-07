@@ -22,10 +22,14 @@ SECTIONS
   _etext = .;
   PROVIDE (etext = .);
   .fini      : { *(.fini)    } =0
+#ifdef _ROM1
+    . = ALIGN(0x4000);
+#endif
   .data    :
   {
     _fdata = . ;
     *(.data)
+#ifndef _ROM1
    . = ALIGN(32);
    *(.data.align32)
    . = ALIGN(64);
@@ -34,6 +38,7 @@ SECTIONS
    *(.data.align128)
    . = ALIGN(4096);
    *(.data.align4096)
+#endif
     CONSTRUCTORS
   }
   .data1   : { *(.data1) }
@@ -73,6 +78,7 @@ SECTIONS
   {
    *(.dynbss)
    *(.bss)
+#ifndef _ROM1
    . = ALIGN(32);
    *(.bss.align32)
    . = ALIGN(64);
@@ -81,6 +87,7 @@ SECTIONS
    *(.bss.align128)
    . = ALIGN(4096);
    *(.bss.align4096)
+#endif
    *(COMMON)
   }
   _end = . ;

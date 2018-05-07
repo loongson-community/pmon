@@ -132,8 +132,9 @@ cvs->printf("%%c",c);
 }
 int tgt_puts(char *str)
 {
-	while(*str)
-		tgt_putchar(*str++);
+#ifndef NOMSG
+cvs->printf("%%s",str);
+#endif
 }
 END
 );
