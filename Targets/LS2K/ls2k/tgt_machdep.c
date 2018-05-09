@@ -1663,8 +1663,10 @@ struct pci_config_data {
 		int primary;
 		int secondary;
 		int subordinate;
-		unsigned int start;
-		unsigned int end;
+		unsigned int mem_start;
+		unsigned int mem_end;
+		unsigned int io_start;
+		unsigned int io_end;
 #define PCI_DEV		0x1
 #define PCI_BRIDGE	0x2
 		int type;
@@ -1674,87 +1676,93 @@ struct pci_config_data pci_config_array[] = {
 			/*		APB		*/
 [0] = {
 .bus = 0, .dev = 0x2, .func = 0, .interrupt = 0, .primary = 0, .secondary = 0,
-.subordinate = 0, .start = 0x1fe00000, .end = 0x1fe0ffff, .type = PCI_DEV,
+.subordinate = 0, .mem_start = 0x1fe00000, .mem_end = 0x1fe0ffff, .type = PCI_DEV,
 },
 			/*		GMAC0	*/
 [0] = {
 .bus = 0, .dev = 0x3, .func = 0, .interrupt = 20, .primary = 0, .secondary = 0,
-.subordinate = 0, .start = 0x40000000, .end = 0x4000ffff, .type = PCI_DEV,
+.subordinate = 0, .mem_start = 0x40000000, .mem_end = 0x4000ffff, .type = PCI_DEV,
 },
 			/*		GMAC1	*/
 [1] = {
 .bus = 0, .dev = 0x3, .func = 1, .interrupt = 22, .primary = 0, .secondary = 0,
-.subordinate = 0, .start = 0x40010000, .end = 0x4001ffff, .type = PCI_DEV,
+.subordinate = 0, .mem_start = 0x40010000, .mem_end = 0x4001ffff, .type = PCI_DEV,
 },
 			/*		OTG		*/
 [2] = {
 .bus = 0, .dev = 0x4, .func = 0, .interrupt = 57, .primary = 0, .secondary = 0,
-.subordinate = 0, .start = 0x40020000, .end = 0x4005ffff, .type = PCI_DEV,
+.subordinate = 0, .mem_start = 0x40020000, .mem_end = 0x4005ffff, .type = PCI_DEV,
 },
 			/*		EHCI	*/
 [3] = {
 .bus = 0, .dev = 0x4, .func = 1, .interrupt = 58, .primary = 0, .secondary = 0,
-.subordinate = 0, .start = 0x40060000, .end = 0x4006ffff, .type = PCI_DEV,
+.subordinate = 0, .mem_start = 0x40060000, .mem_end = 0x4006ffff, .type = PCI_DEV,
 },
 			/*		OHCI	*/
 [4] = {
 .bus = 0, .dev = 0x4, .func = 2, .interrupt = 59, .primary = 0, .secondary = 0,
-.subordinate = 0, .start = 0x40070000, .end = 0x4007ffff, .type = PCI_DEV,
+.subordinate = 0, .mem_start = 0x40070000, .mem_end = 0x4007ffff, .type = PCI_DEV,
 },
 			/*		GPU		*/
 [5] = {
 .bus = 0, .dev = 0x5, .func = 0, .interrupt = 37, .primary = 0, .secondary = 0,
-.subordinate = 0, .start = 0x40080000, .end = 0x400bffff, .type = PCI_DEV,
+.subordinate = 0, .mem_start = 0x40080000, .mem_end = 0x400bffff, .type = PCI_DEV,
 },
 			/*		DC		*/
 [6] = {
 .bus = 0, .dev = 0x6, .func = 0, .interrupt = 36, .primary = 0, .secondary = 0,
-.subordinate = 0, .start = 0x400c0000, .end = 0x400cffff, .type = PCI_DEV,
+.subordinate = 0, .mem_start = 0x400c0000, .mem_end = 0x400cffff, .type = PCI_DEV,
 },
 			/*		HDA		*/
 [7] = {
 .bus = 0, .dev = 0x7, .func = 0, .interrupt = 12, .primary = 0, .secondary = 0,
-.subordinate = 0, .start = 0x400d0000, .end = 0x400dffff, .type = PCI_DEV,
+.subordinate = 0, .mem_start = 0x400d0000, .mem_end = 0x400dffff, .type = PCI_DEV,
 },
 			/*		SATA	*/
 [8] = {
 .bus = 0, .dev = 0x8, .func = 0, .interrupt = 27, .primary = 0, .secondary = 0,
-.subordinate = 0, .start = 0x400e0000, .end = 0x400effff, .type = PCI_DEV,
+.subordinate = 0, .mem_start = 0x400e0000, .mem_end = 0x400effff, .type = PCI_DEV,
 },
 			/*	PCIE0-PORT0	*/
 [9] = {
 .bus = 0, .dev = 0x9, .func = 0, .interrupt = 40, .primary = 0, .secondary = 1,
-.subordinate = 1, .start = 0x40100000, .end = 0x4fffffff, .type = PCI_BRIDGE,
+.subordinate = 1, .mem_start = 0x40100000, .mem_end = 0x4fffffff, .type = PCI_BRIDGE,
+.io_start = 0x18000000, .io_end = 0x180fffff,
 },
 			/*	PCIE0-PORT1	*/
 [10] = {
 .bus = 0, .dev = 0xa, .func = 0, .interrupt = 41, .primary = 0, .secondary = 4,
-.subordinate = 4, .start = 0x50000000, .end = 0x53ffffff, .type = PCI_BRIDGE,
+.subordinate = 4, .mem_start = 0x50000000, .mem_end = 0x53ffffff, .type = PCI_BRIDGE,
+.io_start = 0x18100000, .io_end = 0x181fffff,
 },
 			/*	PCIE0-PORT2	*/
 [11] = {
 .bus = 0, .dev = 0xb, .func = 0, .interrupt = 42, .primary = 0, .secondary = 8,
-.subordinate = 8, .start = 0x54000000, .end = 0x57ffffff, .type = PCI_BRIDGE,
+.subordinate = 8, .mem_start = 0x54000000, .mem_end = 0x57ffffff, .type = PCI_BRIDGE,
+.io_start = 0x18200000, .io_end = 0x182fffff,
 },
 			/*	PCIE0-PORT3	*/
 [12] = {
 .bus = 0, .dev = 0xc, .func = 0, .interrupt = 43, .primary = 0, .secondary = 0xc,
-.subordinate = 0xc, .start = 0x58000000, .end = 0x5fffffff, .type = PCI_BRIDGE,
+.subordinate = 0xc, .mem_start = 0x58000000, .mem_end = 0x5fffffff, .type = PCI_BRIDGE,
+.io_start = 0x18300000, .io_end = 0x183fffff,
 },
 			/*	PCIE1-PORT0	*/
 [13] = {
 .bus = 0, .dev = 0xd, .func = 0, .interrupt = 44, .primary = 0, .secondary = 0x10,
-.subordinate = 0x10, .start = 0x60000000, .end = 0x77ffffff, .type = PCI_BRIDGE,
+.subordinate = 0x10, .mem_start = 0x60000000, .mem_end = 0x77ffffff, .type = PCI_BRIDGE,
+.io_start = 0x18040000, .io_end = 0x184fffff,
 },
 			/*	PCIE1-PORT1	*/
 [14] = {
 .bus = 0, .dev = 0xe, .func = 0, .interrupt = 45, .primary = 0, .secondary = 0x14,
-.subordinate = 0x14, .start = 0x78000000, .end = 0x7fffffff, .type = PCI_BRIDGE,
+.subordinate = 0x14, .mem_start = 0x78000000, .mem_end = 0x7fffffff, .type = PCI_BRIDGE,
+.io_start = 0x18500000, .io_end = 0x185fffff,
 },
 
 [15] = {
 .bus = 0, .dev = 0xe, .func = 0, .interrupt = 0, .primary = 0, .secondary = 0,
-.subordinate = 0, .start = 0x00000000, .end = 0x00000000, .type = PCI_DEV,
+.subordinate = 0, .mem_start = 0x00000000, .mem_end = 0x00000000, .type = PCI_DEV,
 },
 {},
 };
@@ -1834,13 +1842,21 @@ void ls_pcie_mem_fixup(struct pci_config_data *pdata)
 	if ( val != 0xffffffff){
 			if(pdata->type == PCI_DEV){
 					/*write bar*/
-					_pci_conf_write32(dev, 0x10, pdata->start);
+					_pci_conf_write32(dev, 0x10, pdata->mem_start);
 			}else{
 					_pci_conf_write32(dev, 0x10, 0x0);
 					/*write memory base and memory limit*/
-					val = ((pdata->start >> 16)&0xfff0)|(pdata->end&0xfff00000);
+					val = ((pdata->mem_start >> 16)&0xfff0)|(pdata->mem_end&0xfff00000);
 					_pci_conf_write32(dev, 0x20, val);
 					_pci_conf_write32(dev, 0x24, val);
+
+					/*write io upper 16bit base and io upper 16bit limit*/
+					val = ((pdata->io_start >> 16)&0xffff)|(pdata->io_end&0xffff0000);
+					_pci_conf_write32(dev, 0x30, val);
+					/*write io base and io limit*/
+					val = ((pdata->io_start >> 8)&0xf0)|(pdata->io_end & 0xf0);
+					val|= 0x1 | (0x1 << 8);
+					_pci_conf_write16(dev, 0x1c, val);
 			}
 	}
 }
