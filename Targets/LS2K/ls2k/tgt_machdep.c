@@ -241,6 +241,8 @@ void initmips(unsigned long long  raw_memsz)
 			MipsExceptionEnd - MipsException);
 	SBD_DISPLAY("BEV0", 0);
 	printf("BEV in SR set to zero.\n");
+	/*disable spi instruct fetch before enter spi io mode*/
+	*(volatile int *)0xbfe10080 = 0x1fc00082;
 	ls2k_nand_init();
 #ifdef DTB
 	verify_dtb();
