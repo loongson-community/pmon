@@ -116,6 +116,9 @@ int vga_available = 0;
 #include "vgarom.c"
 #endif
 #include "nand.h"
+#include "spinand_mt29f.h"
+#include "spinand_lld.h"
+#include "m25p80.h"
 
 int tgt_i2cread(int type, unsigned char *addr, int addrlen, unsigned char reg,
 		unsigned char *buf, int count);
@@ -243,7 +246,21 @@ void initmips(unsigned long long  raw_memsz)
 	printf("BEV in SR set to zero.\n");
 	/*disable spi instruct fetch before enter spi io mode*/
 	*(volatile int *)0xbfe10080 = 0x1fc00082;
+#if NNAND
+#ifdef CONFIG_LS2K_NAND
+	*(volatile int *)0xbfe10420 |= (1<<9) ;
 	ls2k_nand_init();
+#else
+	/*nand pin as gpio*/
+	*(volatile int *)0xbfe10420 &= ~(1<<9) ;
+#endif
+#if NSPINAND_MT29F || NSPINAND_LLD
+	ls2h_spi_nand_probe();
+#endif
+#if NM25P80
+	ls2h_m25p_probe();
+#endif
+#endif
 #ifdef DTB
 	verify_dtb();
 #endif

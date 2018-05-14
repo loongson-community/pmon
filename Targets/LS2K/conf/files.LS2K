@@ -33,6 +33,9 @@ file	sys/dev/gmac/synopGMAC_network_interface.c
 file	sys/dev/gmac/synopGMAC_pci_bus_interface.c
 file	sys/dev/gmac/synopGMAC_plat.c
 file	sys/dev/nand/ls2k-nand.c nand
+file	sys/dev/nand/spinand_mt29f.c spinand_mt29f & nand needs-flag
+file	sys/dev/nand/spinand_lld.c spinand_lld & nand needs-flag
+file	sys/dev/nand/m25p80.c m25p80 & nand needs-flag
 file	Targets/LS2K/dev/i2c.c i2c
 
 
