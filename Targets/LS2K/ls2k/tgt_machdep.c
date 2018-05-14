@@ -208,6 +208,10 @@ void initmips(unsigned long long  raw_memsz)
 	unsigned short i;
 	//core1 run wait_for_smp_call function in ram
 	asm volatile(".set mips64;sd %1,(%0);.set mips0;"::"r"(0xbfe11120),"r"(&wait_for_smp_call));
+#ifdef CONFIG_UART0_SPLIT
+	*(volatile int *)0xbfe10428 |= 0xe;
+#endif
+
 	tgt_fpuenable();
 
 	get_memorysize(raw_memsz);
