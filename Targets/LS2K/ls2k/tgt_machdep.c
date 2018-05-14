@@ -1851,7 +1851,7 @@ void ls_pcie_mem_fixup(struct pci_config_data *pdata)
 					_pci_conf_write32(dev, 0x24, val);
 
 					/*write io upper 16bit base and io upper 16bit limit*/
-					val = ((pdata->io_start >> 16)&0xffff)|(pdata->io_end&0xffff0000);
+					val = ((pdata->io_start >> 16)&0xff)|(pdata->io_end&0xff0000);
 					_pci_conf_write32(dev, 0x30, val);
 					/*write io base and io limit*/
 					val = ((pdata->io_start >> 8)&0xf0)|(pdata->io_end & 0xf0);
