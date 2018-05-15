@@ -298,6 +298,58 @@ resp_set0_done:
 	bnez	t0, lvl_req_set0
 	nop
 
+#if 1
+//filter 0to1 giltch
+	GET_NUMBER_OF_SLICES
+	dli		t1, 0x20
+	or		t1, t1, t8
+	dli		t2, 0x180
+	or		t2, t2, t8
+
+dll_wrdqs_add:
+	lb		a0, OFFSET_DLL_WRDQS(t1)
+	daddu	a0, a0, 0x10
+	dli		t4, 0x7f
+	and		a0, a0, t4
+	sb		a0, OFFSET_DLL_WRDQS(t1)
+
+#ifdef CHANGE_DQ_WITH_DQS
+	lb		a0, OFFSET_DLL_WRDQS(t1) // get dll_wrdqs
+	blt		a0, WRDQS_LTHF_STD, 1f
+	nop
+	li		t4, 0x0
+	sb		t4, OFFSET_WRDQS_LTHF(t1) //set wrdqs_lt_half
+	b		2f
+	nop
+1:
+	li		t4, 0x1
+	sb		t4, OFFSET_WRDQS_LTHF(t1) //set wrdqs_lt_half
+2:
+	dsubu	a0, a0, 0x20
+	dli		t4, 0x7f
+	and		a0, a0, t4
+	sb		a0, OFFSET_DLL_WRDQ(t1) // set dll_wrdata
+
+	blt		a0, WRDQ_LTHF_STD, 1f
+	nop
+	li		t4, 0x0
+	sb		t4, OFFSET_WRDQ_LTHF(t1) //set wrdq_lt_half
+	b		2f
+	nop
+1:
+	li		t4, 0x1
+	sb		t4, OFFSET_WRDQ_LTHF(t1) //set wrdq_lt_half
+2:
+
+#endif
+
+    daddu   t1, t1, 0x20
+    dsubu   t0, t0, 0x1
+    bnez    t0, dll_wrdqs_add
+    nop
+#endif
+
+
 /* 0 to 1 */
 	GET_NUMBER_OF_SLICES
 	dli		t1, 0x20
