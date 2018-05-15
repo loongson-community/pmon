@@ -2,7 +2,7 @@
 #define LS7A_CONFIG_
 
 #define LS7A_UC_ACC
-#define OVRD_SATA_PHY
+//#define OVRD_SATA_PHY
 
 #define LS7A_PLL_DIV_REFC_OFFSET 0
 #define LS7A_PLL_LOCK_OFFSET    7

@@ -614,6 +614,7 @@ static int ahci_port_start(u8 port)
 	struct ahci_ioports *pp = &(probe_ent->port[port]);
 	volatile u8 *port_mmio = (volatile u8 *)pp->port_mmio;
 	u32 port_status;
+	u32 port_cmd;
 	u32 mem;
 
 	port_status = readl(port_mmio + PORT_SCR_STAT);
@@ -660,11 +661,25 @@ static int ahci_port_start(u8 port)
 	writel_with_flush(PHYSADDR((u32) pp->cmd_slot),
 			  port_mmio + PORT_LST_ADDR);
 
+	if((readl(port_mmio + PORT_CMD) & (PORT_CMD_FIS_ON | PORT_CMD_FIS_RX)) != 0){
+        printf("AHCI SATA error: FIS address is set when FR and FRE is not zero!\n");
+    };
 	writel_with_flush(PHYSADDR(pp->rx_fis), port_mmio + PORT_FIS_ADDR);
 
-	writel_with_flush(PORT_CMD_ICC_ACTIVE | PORT_CMD_FIS_RX |
-			  PORT_CMD_POWER_ON | PORT_CMD_SPIN_UP |
-			  PORT_CMD_START, port_mmio + PORT_CMD);
+    //check precondition
+	if((readl(port_mmio + PORT_CMD) & PORT_CMD_LIST_ON) != 0){
+        printf("AHCI SATA error: START is set when CR is not zero!\n");
+    };
+
+	printf("cxk debug\n");
+	writel_with_flush(PORT_CMD_ICC_ACTIVE | PORT_CMD_POWER_ON |
+            PORT_CMD_SPIN_UP, port_mmio + PORT_CMD);
+    port_cmd = readl(port_mmio + PORT_CMD);
+	writel_with_flush(port_cmd | PORT_CMD_FIS_RX, port_mmio + PORT_CMD);
+
+    //start port
+    port_cmd = readl(port_mmio + PORT_CMD);
+	writel_with_flush(port_cmd | PORT_CMD_START, port_mmio + PORT_CMD);
 
 	printf("Exit start port %d\n", port);
 
@@ -722,11 +737,24 @@ static int get_ahci_device_data(u8 port, u8 * fis, int fis_len, u8 * buf,
 	 * been built in system memory for a command slot and may be sent
 	 * to the device.
 	 */
+    //check precondition
+	if((readl(port_mmio + PORT_CMD) & PORT_CMD_START) == 0){
+        printf("AHCI SATA error: CI is set when START is zero!\n");
+    };
 	writel_with_flush(1, port_mmio + PORT_CMD_ISSUE);
 	if (waiting_for_cmd_completed(port_mmio + PORT_CMD_ISSUE, 2000, 0x1)) {
-		printf("%s <line%d>: timeout exit! %d bytes transferred."
-		       " tfd: 0x%08x\n", __func__, __LINE__,
-		       pp->cmd_slot->status, readl(port_mmio + PORT_TFDATA));
+		printf("%s <line%d>: timeout exit! %d bytes transferred.\n", __func__, __LINE__,
+		       pp->cmd_slot->status);
+
+        printf("PxIS: 0x%08x, PxSERR: 0x%08x\n", readl(port_mmio + PORT_IRQ_STAT), readl(port_mmio + PORT_SCR_ERR));
+        printf("PxTFD: 0x%08x, PxSSTS: 0x%08x\n", readl(port_mmio + PORT_TFDATA), readl(port_mmio + PORT_SCR_STAT));
+
+	    if (waiting_for_cmd_completed(port_mmio + PORT_CMD_ISSUE, 2000, 0x1)) {
+            printf("Waiting another 2s is useless.\n");
+        }else{
+            printf("Waiting another 2s is usefull.\n");
+        }
+
 		return -1;
 	}
 
