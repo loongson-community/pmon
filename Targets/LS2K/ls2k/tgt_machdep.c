@@ -1784,29 +1784,6 @@ void ls_pcie_config_set(void)
 
 	if(!ls2k_version())
 		ls_set_io_noncoherent();
-	else
-		map_gpu_addr();
-}
-
-extern unsigned long long memorysize_total;
-void map_gpu_addr(void)
-{
-
-	if (memorysize_total == 0x800) {
-		__raw__writeq(0x900000001fe10030 , 0x20000000);
-		__raw__writeq(0x900000001fe10070 , 0xffffffffd0000000);
-		__raw__writeq(0x900000001fe100b0 , 0x00000001600000f0);
-	} else if (memorysize_total == 0x1000) {
-		__raw__writeq(0x900000001fe10030 , 0x20000000);
-		__raw__writeq(0x900000001fe10070 , 0xffffffffd0000000);
-		__raw__writeq(0x900000001fe100b0 , 0x00000001d00000f0);
-	} else if (memorysize_total == 0x2000) {
-		__raw__writeq(0x900000001fe10030 , 0x20000000);
-		__raw__writeq(0x900000001fe10070 , 0xffffffffd0000000);
-		__raw__writeq(0x900000001fe100b0 , 0x00000002d00000f0);
-	} else {
-		printf ("Now this Memory size %lld MB is not support mapping GPU address.\n", memorysize_total);
-	}
 }
 
 void ls_set_io_noncoherent(void)
