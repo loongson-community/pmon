@@ -1252,6 +1252,8 @@ void __attribute__((weak)) print_mem_freq(void)
 	}
         else
 		printf("/ Bus @ %d MHz\n", MEM_BASE_CLK_2G);
+#elif defined(LOONGSON_2K)
+		printf("/ Bus @ %d MHz\n", read_ddrfreq());
 	
 #else  /* for 3a ddr controller */
         if(clk != 0x1f)

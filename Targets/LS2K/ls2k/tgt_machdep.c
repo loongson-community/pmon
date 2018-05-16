@@ -758,50 +758,20 @@ int tgt_cpufreq()
 unsigned int
 read_ddrfreq()
 {
-#define CTRL0_LDF_MASK 0xff 
-#define CTRL0_ODF_MASK 0x3 
-#define CTRL0_IDF_MASK 0x7
-#define CTRL0_LDF_SHIFT 24
-#define CTRL0_ODF_SHIFT 22
-#define CTRL0_IDF_SHIFT 19
-#define SAMP_SHIFT 16
-#define BOOTCFG_NAND3_4_SHIFT 7
+	unsigned int d490, d494, d498;
+	unsigned int ddr_div, ddr_refc, ddr_div_l2, ddr_loopc;
+	unsigned int pllin = 100, clk;
+	d490 = inl(0xbfe10490);
+	d494 = inl(0xbfe10494);
+	d498 = inl(0xbfe10498);
+	ddr_div =(d494>>10)&0x3f;
+	ddr_refc = (d490>>26)&0x3f;
+	ddr_div_l2 = d498&0x3f;
+	ddr_loopc = d494&0x3ff;
 
-        unsigned int ldf, odf, idf, fin, val_clock_ctrl, fref, fvco;
-        unsigned int val_chip_samp, bootcfg, hw_freq, nand_d3_d4;
-        val_chip_samp = inl(LS2H_CHIP_SAMP0_REG);
-        bootcfg = val_chip_samp >> SAMP_SHIFT;
-        if (bootcfg & 0x0200)
-        {
-                nand_d3_d4 = (bootcfg & 0x180) >> BOOTCFG_NAND3_4_SHIFT;
-                if(nand_d3_d4 & 0x2)
-                {
-                        if(nand_d3_d4 & 0x1)
-                                hw_freq = 100;
-                        else
-                                hw_freq = 100*10/3;
-                }
-                else
-                {
-                        if(nand_d3_d4 & 0x1)
-                                hw_freq = 100*8/3;
-                        else
-                                hw_freq = 100*5/3;
-                }
-        }
-        else
-        {
-                val_clock_ctrl = inl(LS2H_CLOCK_CTRL0_REG);
-                ldf = ((val_clock_ctrl >> CTRL0_LDF_SHIFT) & CTRL0_LDF_MASK);
-                odf = ((val_clock_ctrl >> CTRL0_ODF_SHIFT) & CTRL0_ODF_MASK);
-                idf = ((val_clock_ctrl >> CTRL0_IDF_SHIFT) & CTRL0_IDF_MASK);
+	clk = ddr_loopc*ddr_div*pllin/ddr_refc/ddr_div_l2;
 
-                fin = 100;
-                fref = (fin/idf);
-                fvco = (fref*2*ldf);
-                hw_freq = (fvco/(1 << odf));
-        }
-        return (hw_freq);
+	return clk;
 }
 
 time_t tgt_gettime()
