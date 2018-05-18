@@ -33,7 +33,7 @@
 #define VRAM_333M      333
 #define VRAM_400M      400
 #define VRAM_533M      533
-#define VRAM_FREQ      VRAM_400M
+#define VRAM_FREQ      VRAM_333M
 
 /* Trust the original resource allocation. Don't do it again. */
 #undef DONT_TRUST_RESOURCE_ALLOCATION
