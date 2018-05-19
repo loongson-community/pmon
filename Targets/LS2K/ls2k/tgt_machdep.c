@@ -225,6 +225,8 @@ void initmips(unsigned long long  raw_memsz)
 	 *  Probe clock frequencys so delays will work properly.
 	 */
 
+	ls2k_i2c_init(0, 0xbfe01000+0*0x800);
+	ls2k_i2c_init(0, 0xbfe01000+1*0x800);
 	tgt_cpufreq();
 	SBD_DISPLAY("DONE", 0);
 
