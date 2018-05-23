@@ -126,6 +126,9 @@ extern int kbd_initialize(void);
 extern int write_at_cursor(char val);
 extern const char *kbd_error_msgs[];
 #include "flash.h"
+#ifdef LVDS
+#include "Targets/Bonito3a780e/Bonito/lvds_reg.h"
+#endif
 #if (NMOD_FLASH_AMD + NMOD_FLASH_INTEL + NMOD_FLASH_SST) == 0
 #ifdef HAVE_FLASH
 #undef HAVE_FLASH
@@ -137,7 +140,11 @@ extern const char *kbd_error_msgs[];
 #if (NMOD_X86EMU_INT10 == 0)&&(NMOD_X86EMU == 0)
 int vga_available=0;
 #elif defined(VGAROM_IN_BIOS)
+#ifdef LVDS
+#include "Targets/Bonito3a780e/Bonito/vgarom-lvds.c"
+#else
 #include "vgarom.c"
+#endif
 #endif
 
 int tgt_i2cread(int type,unsigned char *addr,int addrlen,unsigned char reg,unsigned char* buf ,int count);
@@ -179,6 +186,7 @@ static inline unsigned char CMOS_READ(unsigned char addr);
 static inline void CMOS_WRITE(unsigned char val, unsigned char addr);
 static void init_legacy_rtc(void);
 
+//#include "Targets/Bonito3a8780e/Bonito/dual_dvi.c"
 #ifdef INTERFACE_3A780E
 #define REV_ROW_LINE 560
 #define INF_ROW_LINE 576
@@ -211,6 +219,22 @@ ConfigEntry	ConfigTable[] =
 	{ (char *)1, 0, vgaterm, 256, CONS_BAUD, NS16550HZ },
 #endif
 #endif
+#ifdef USE_SUPERIO_UART
+	 { (char *)-1, 0, ns16550, 256, CONS_BAUD, NS16550HZ/2 ,0}, 
+	 { (char *)-1, 0, ns16550, 256, CONS_BAUD, NS16550HZ/2 ,0}, 
+#ifdef SUPERIO_UART3_IRQPORT
+	 { (char *)-1, 0, ns16550, 256, CONS_BAUD, NS16550HZ/2 ,0}, 
+#endif
+#ifdef SUPERIO_UART4_IRQPORT
+	 { (char *)-1, 0, ns16550, 256, CONS_BAUD, NS16550HZ/2 ,0}, 
+#endif
+#ifdef SUPERIO_UART5_IRQPORT
+	 { (char *)-1, 0, ns16550, 256, CONS_BAUD, NS16550HZ/2 ,0}, 
+#endif
+#ifdef SUPERIO_UART6_IRQPORT
+	 { (char *)-1, 0, ns16550, 256, CONS_BAUD, NS16550HZ/2 ,0}, 
+#endif
+#endif
 	{ 0 }
 };
 
@@ -239,6 +263,31 @@ void movinv1(int iter, ulong p1, ulong p2);
 pcireg_t _pci_allocate_io(struct pci_device *dev, vm_size_t size);
 static void superio_reinit();
 
+#ifdef LVDS
+void lvds_reg_init()
+{
+    int i = 0; 
+    unsigned long ioaddress;
+    extern struct pci_device *vga_dev,*pcie_dev;
+
+    ioaddress = _pci_conf_read(vga_dev->pa.pa_tag, 0x18);
+    ioaddress = ioaddress & 0xfffffff0; //laster 4 bit
+    ioaddress |= ioaddress | 0xc0000000;
+    printf("ioaddress:%x for LVDS patch\n ", ioaddress);
+//printf("----------------------------in-------------%s-------------------\n",__func__);
+
+
+    while (lvds_reg[i].reg) {
+        *(volatile unsigned int *) (ioaddress +
+                        lvds_reg[i].reg * 4) = 
+            lvds_reg[i].val;
+        delay(1000);
+	printf("address:0x%x,val:0x%x\n",ioaddress +lvds_reg[i].reg * 4,lvds_reg[i].val);
+        i++; 
+    }    
+//printf("-------------------------------------------out---------%s---------------------\n",__func__);
+}
+#endif
 void
 initmips(unsigned long long raw_memsz)
 {
@@ -354,6 +403,9 @@ void tgt_devconfig(void)
 	if(rc > 0)
 		vesafb_init();
 #endif
+#ifdef LVDS
+    lvds_reg_init(); 
+#endif
 #if (NMOD_X86EMU_INT10 == 0 && defined(RADEON7000))
 	SBD_DISPLAY("VGAI", 0);
 	rc = radeon_init();
@@ -403,7 +455,9 @@ void tgt_devconfig(void)
 	if(getenv("nokbd"))
 		rc=1;
 	else {
+#ifdef USE_SUPERIO_UART
 		superio_reinit();
+#endif
 		rc=kbd_initialize();
 	}
 	printf("%s\n",kbd_error_msgs[rc]);
@@ -520,7 +574,7 @@ run:
 
 
 #if PCI_IDSEL_SB700 != 0
-static int w83527_read(int dev,int addr)
+static int w83627_read(int dev,int addr)
 {
 	int data;
 	/*enter*/
@@ -538,7 +592,7 @@ static int w83527_read(int dev,int addr)
 	return data;
 }
 
-static void w83527_write(int dev,int addr,int data)
+static void w83627_write(int dev,int addr,int data)
 {
 	/*enter*/
 	outb(BONITO_PCIIO_BASE_VA + 0x002e,0x87);
@@ -556,23 +610,60 @@ static void w83527_write(int dev,int addr,int data)
 #define HM_OFF		0x180
 #define INDEX_OFF	0X5
 #define DATA_OFF	0X6
+
+#ifdef USE_SUPERIO_UART
+#ifndef SUPERIO_UART1_IRQPORT
+#define SUPERIO_UART1_IRQPORT 0x0703f8
+#endif
+
+#ifndef SUPERIO_UART2_IRQPORT
+#define SUPERIO_UART2_IRQPORT 0x0702f8
+#endif
+
 static void superio_reinit()
 {
-	w83527_write(0,0x24,0xc1);
-	w83527_write(5,0x30,1);
-	w83527_write(5,0x60,0);
-	w83527_write(5,0x61,0x60);
-	w83527_write(5,0x62,0);
-	w83527_write(5,0x63,0x64);
-	w83527_write(5,0x70,1);
-	w83527_write(5,0x72,0xc);
-	w83527_write(5,0xf0,0x80);
+/*set global  multifuntion pin reg 0x2c low 2bit to 3 for 83627dhg to enable uart2*/
+w83627_write(0,0x2c,0xe3);
+#ifdef SUPERIO_CLOCK_24M
+//bit6=0 , clk=24M //dbg-yg 
+w83627_write(0,0x24,0x81);
+#else
+w83627_write(0,0x24,0xc1);
+#endif
+w83627_write(5,0x30,1);
+w83627_write(5,0x60,0);
+w83627_write(5,0x61,0x60);
+w83627_write(5,0x62,0);
+w83627_write(5,0x63,0x64);
+w83627_write(5,0x70,1);
+w83627_write(5,0x72,0xc);
+w83627_write(5,0xf0,0x80);
+//w83627_UART1
+w83627_write(2,0x30,0x01);
+w83627_write(2,0x60,(SUPERIO_UART1_IRQPORT>>8)&0xff);
+w83627_write(2,0x61,SUPERIO_UART1_IRQPORT&0xff);
+w83627_write(2,0x70,(SUPERIO_UART1_IRQPORT>>16)&0xff);
+w83627_write(2,0xf0,0x00);
+
+//w83627_UART2
+w83627_write(3,0x30,0x01);
+w83627_write(3,0x60,(SUPERIO_UART2_IRQPORT>>8)&0xff);
+w83627_write(3,0x61,SUPERIO_UART2_IRQPORT&0xff);
+w83627_write(3,0x70,(SUPERIO_UART2_IRQPORT>>16)&0xff);
+w83627_write(3,0xf0,0x00);
+////w83627_PALLPort
+w83627_write(1,0x30,0x01);
+w83627_write(1,0x60,0x03);
+w83627_write(1,0x61,0x78);
+w83627_write(1,0x70,0x01);
+w83627_write(1,0x74,0x04);
+w83627_write(1,0xf0,0xF0); 
 
 	/* enable HM  */
-	w83527_write(0xb,0x30,0x1);
+	w83627_write(0xb,0x30,0x1);
 	/* add support for fan speed controler */
-	w83527_write(0xb,0x60,HM_OFF >> 0x8); // set HM base address @0xb8000180,0x290 with some error
-	w83527_write(0xb,0x61,HM_OFF & 0xff);
+	w83627_write(0xb,0x60,HM_OFF >> 0x8); // set HM base address @0xb8000180,0x290 with some error
+	w83627_write(0xb,0x61,HM_OFF & 0xff);
 }
 
 /*this faunction used for set the sysfan speed*/
@@ -591,6 +682,7 @@ void set_fan_pwm_duty_cycle(int duty)
 	outb(BONITO_PCIIO_BASE_VA + HM_OFF + DATA_OFF, duty);
 	inb(BONITO_PCIIO_BASE_VA + HM_OFF + DATA_OFF);
 }
+#endif
 #endif
 
 
@@ -647,6 +739,36 @@ tgt_devinit()
 	value = _pci_conf_read32(_pci_make_tag(0, 0x14, 0), 0xac);
 	value &= ~(1 << 8);
 	_pci_conf_write32(_pci_make_tag(0, 0x14, 0), 0xac, value);
+#endif
+
+#ifdef USE_SUPERIO_UART
+	superio_reinit();
+	{int i;
+		int j;
+		int uart[] = {0xb8000000 + (SUPERIO_UART1_IRQPORT&0xffff), 0xb8000000 + (SUPERIO_UART2_IRQPORT&0xffff) 
+#ifdef SUPERIO_UART3_IRQPORT
+			, 0xb8000000 + (SUPERIO_UART3_IRQPORT&0xffff)
+#endif
+#ifdef SUPERIO_UART4_IRQPORT
+			, 0xb8000000 + (SUPERIO_UART4_IRQPORT&0xffff)
+#endif
+#ifdef SUPERIO_UART5_IRQPORT
+			, 0xb8000000 + (SUPERIO_UART5_IRQPORT&0xffff)
+#endif
+#ifdef SUPERIO_UART6_IRQPORT
+			, 0xb8000000 + (SUPERIO_UART6_IRQPORT&0xffff)
+#endif
+		};
+
+		for(i=0,j=0;ConfigTable[i].devinfo && j<sizeof(uart)/sizeof(uart[0]);i++)
+		{
+			if(ConfigTable[i].devinfo==-1)
+			{
+				DevTable[i].sio=uart[j++];
+				ns16550(OP_BAUD, &DevTable[i], NULL, CONS_BAUD);
+			}
+		}
+	}
 #endif
 
 
