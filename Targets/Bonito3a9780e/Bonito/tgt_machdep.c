@@ -141,7 +141,13 @@ extern const char *kbd_error_msgs[];
 int vga_available=0;
 #elif defined(VGAROM_IN_BIOS)
 #ifdef LVDS
+#if LVDS===18
+#include "Targets/Bonito3a780e/Bonito/vgarom-780e-lvds-sl-18bit.h"
+#elif LVDS===24
+#include "Targets/Bonito3a780e/Bonito/vgarom-780-lvds-dl-24bit.h"
+#else
 #include "Targets/Bonito3a780e/Bonito/vgarom-lvds.c"
+#endif
 #else
 #include "vgarom.c"
 #endif
