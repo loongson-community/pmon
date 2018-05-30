@@ -13,10 +13,7 @@ v2.4    Modify code for better user interface and flexible use.
 /***************
 use register: s1, s4, t8, a0~a3, v0~v1
 note: don't change s0, s1, s2(msize)
- s1:
-    [63:62]: NODE_ID
-    [61:60]: CORE_ID
-    [47: 0]: START_ADDR(offset on 0x9800000000000000)
+s1:
 t0: test pattern content
 t1: current address
 t2: address interval
@@ -26,9 +23,8 @@ t6: test pattern base
 t7: by subroutine--hexserial64_1
 t8: error counter---used to control the max detected error number
 t9: loop control
+s1: input param--s1
 s4: input param--t1
-    bit[ 0]: 1: read level; 0: write level;
-    bit[ 8]: 0: macro tune; 1: micro tune;
 s5: store level byte mask
 s6: error bits record
 s7: RD error bits record
@@ -85,10 +81,12 @@ v0: output result
     [43: 0]: START_ADDR(offset on 0x9800000000000000)
  t1:
    bit[ 0]: 1: read level; 0: write level;
-   bit[ 4]: 0: macro tune; 1: micro tune;
+   bit[ 4]: 0: macro tune; 1: micro tune;   --obsolete
    bit[11: 8]: byte to be leveled
    bit[12]: 1: don't print; 0: print message;
-   bit[16]: 0: cache; 1: uncache
+   bit[16]: 1: uncache
+   bit[18]: 1: uncache ACC
+   [18:16]: must be one-hot or zero.
  * output:  v0
     0: no error
     1: error
@@ -183,24 +181,11 @@ TM_start:
 
 	TM_PRINTSTR("\r\nStart Testing Memory...\r\n")
 
-#if 0
+#if 1
     //Test whether the addr_pins,column_size,bank,rank param right.
 	TM_PRINTSTR("\r\nAddress Stuck Testing all space...\r\n")
-    //set t1 to Test Base
-    dli     t1, MEM_TEST_BASE
-    and     a1, s4, 0x10000
-    dsll    a1, a1, (59 - 16)
-    xor     t1, t1, a1
-    GET_TM_NODE_ID_a1
-    dsll    a1, a1, 44
-    daddu   t1, t1, a1
-    GET_TM_START_ADDR
-    daddu   t1, t1, a1
-    //set test limit t3
-    GET_TM_MSIZE
-    daddu   t3, t1, a1
-    dli     a1, 0x100000    //t3-=1M  because Test Base start from Base Window + 1M
-    dsubu   t3, t3, a1
+    SET_TM_BASE_t1
+    SET_TM_LIMIT_t3
 #ifdef   PRINT_LESS_ERROR
     dli     t8, TM_MAX_RPT_ERRORS
 #endif
@@ -240,15 +225,7 @@ TM_start:
     sync
 	TM_PRINTSTR("write done...\r\n")
 //read memory and compare
-    dli     t1, MEM_TEST_BASE
-    and     a1, s4, 0x10000
-    dsll    a1, a1, (59 - 16)
-    xor     t1, t1, a1
-    GET_TM_NODE_ID_a1
-    dsll    a1, a1, 44
-    daddu   t1, t1, a1
-    GET_TM_START_ADDR
-    daddu   t1, t1, a1
+    SET_TM_BASE_t1
 1:
     ld	    t4, 0x0(t1)
     move    t0, t1
@@ -270,6 +247,13 @@ TM_start:
 #endif
 //-------------------
 //pattern Diff Burst Test
+/*****************
+* loop control
+* t9:
+* 1~16: Just0,Just1 set
+* 17~32%16  Justb5, Just4a
+* 33~48%32  JustA, Just5
+*******************/
 #if 0
     //initialization
     dli     t9, 0
@@ -278,15 +262,10 @@ TM_start:
     GET_TM_NODE_ID_a1
     dsll    a1, a1, 44
     daddu   t6, t6, a1
-/*****************
-* loop control
-* t9:
-* 1~16: Just0,Just1 set
-* 17~32%16  Justb5, Just4a
-* 33~48%32  JustA, Just5
-*******************/
 10:
     daddiu  t9, t9, 0x1
+    SET_TM_BASE_t1
+    SET_TM_LIMIT_t3
 1:
     dli     t4, 16
 #ifndef REDUCED_MEM_TEST
@@ -298,27 +277,7 @@ TM_start:
     TM_PRINTSTR("\r\nPattern DB_0 Test-----\r\n")
     //address interval
     dli     t2, 0x100
-    //set Test Base t1 and Test Limit t3
-    dli     t1, MEM_TEST_BASE
-    and     a1, s4, 0x10000
-    dsll    a1, a1, (59 - 16)
-    xor     t1, t1, a1
-    GET_TM_NODE_ID_a1
-    dsll    a1, a1, 44
-    daddu   t1, t1, a1
-    GET_TM_START_ADDR
-    daddu   t1, t1, a1
-    GET_TM_MSIZE
-    //reduce TM size for this test
-    dsrl    a1, a1, 2
-    GET_MICRO_TUNE
-    bnez    a2, 21f
-    nop
-    dsrl    a1, a1, MACRO_SCALE
-21:
-    daddu   t3, t1, a1
-    dli     a1, 0x100000    //t3-=1M  because Test Base start from Base Window + 1M
-    dsubu   t3, t3, a1
+
     dli     t4, 0
     dli     t0, PATTERN_DB_0_0
     not     t5, t0
@@ -331,26 +290,7 @@ TM_start:
     TM_PRINTSTR("\r\nPattern DB_1 Test-----\r\n")
     //address interval
     dli     t2, 0x20
-    //set Test Base t1 and Test Limit t3
-    dli     t1, MEM_TEST_BASE
-    and     a1, s4, 0x10000
-    dsll    a1, a1, (59 - 16)
-    xor     t1, t1, a1
-    GET_TM_NODE_ID_a1
-    dsll    a1, a1, 44
-    daddu   t1, t1, a1
-    GET_TM_START_ADDR
-    daddu   t1, t1, a1
-    GET_TM_MSIZE
-    dsrl    a1, a1, 3
-    GET_MICRO_TUNE
-    bnez    a2, 21f
-    nop
-    dsrl    a1, a1, MACRO_SCALE
-21:
-    daddu   t3, t1, a1  //t3 = t1 + fullmsize/8
-    dli     a1, 0x100000    //t3-=1M  because Test Base start from Base Window + 1M
-    dsubu   t3, t3, a1
+
     dli     t4, 16
     dli     t0, PATTERN_DB_1_0
     not     t5, t0
@@ -363,26 +303,7 @@ TM_start:
     TM_PRINTSTR("\r\nPattern DB_2 Test-----\r\n")
     //address interval
     dli     t2, 0x20
-    //set Test Base t1 and Test Limit t3
-    dli     t1, MEM_TEST_BASE
-    and     a1, s4, 0x10000
-    dsll    a1, a1, (59 - 16)
-    xor     t1, t1, a1
-    GET_TM_NODE_ID_a1
-    dsll    a1, a1, 44
-    daddu   t1, t1, a1
-    GET_TM_START_ADDR
-    daddu   t1, t1, a1
-    GET_TM_MSIZE
-    dsrl    a1, a1, 3
-    GET_MICRO_TUNE
-    bnez    a2, 21f
-    nop
-    dsrl    a1, a1, MACRO_SCALE
-21:
-    daddu   t3, t1, a1  //t3 = t1 + fullmsize/8
-    dli     a1, 0x100000    //t3-=1M  because Test Base start from Base Window + 1M
-    dsubu   t3, t3, a1
+
     dli     t4, 32
     dli     t0, PATTERN_DB_2_0
     not     t5, t0
@@ -395,26 +316,7 @@ TM_start:
     TM_PRINTSTR("\r\nPattern DB_3 Test-----\r\n")
     //address interval
     dli     t2, 0x20
-    //set Test Base t1 and Test Limit t3
-    dli     t1, MEM_TEST_BASE
-    and     a1, s4, 0x10000
-    dsll    a1, a1, (59 - 16)
-    xor     t1, t1, a1
-    GET_TM_NODE_ID_a1
-    dsll    a1, a1, 44
-    daddu   t1, t1, a1
-    GET_TM_START_ADDR
-    daddu   t1, t1, a1
-    GET_TM_MSIZE
-    dsrl    a1, a1, 3
-    GET_MICRO_TUNE
-    bnez    a2, 21f
-    nop
-    dsrl    a1, a1, MACRO_SCALE
-21:
-    daddu   t3, t1, a1  //t3 = t1 + fullmsize/8
-    dli     a1, 0x100000    //t3-=1M  because Test Base start from Base Window + 1M
-    dsubu   t3, t3, a1
+
     dli     t4, 48
     dli     t0, PATTERN_DB_3_0
     not     t5, t0
@@ -659,16 +561,7 @@ TM_start:
     sync
 	TM_PRINTSTR("write done. begin to read and compare...\r\n")
 //read memory and compare
-    //set Test Base t1
-    dli     t1, MEM_TEST_BASE
-    and     a1, s4, 0x10000
-    dsll    a1, a1, (59 - 16)
-    xor     t1, t1, a1
-    GET_TM_NODE_ID_a1
-    dsll    a1, a1, 44
-    daddu   t1, t1, a1
-    GET_TM_START_ADDR
-    daddu   t1, t1, a1
+    SET_TM_BASE_t1
 1:
     ld      t0, 0x0(t6)
     ld      t4, 0x0(t1)
@@ -726,6 +619,10 @@ TM_start:
 3:
 #endif
 #if 1
+/*****************
+* loop control
+* t9:
+*******************/
     //initialization
     dli     t9, 0
     //set Test Pattern Base t6
@@ -733,12 +630,10 @@ TM_start:
     GET_TM_NODE_ID_a1
     dsll    a1, a1, 44
     daddu   t6, t6, a1
-/*****************
-* loop control
-* t9:
-*******************/
 10:
     daddiu  t9, t9, 0x1
+    SET_TM_BASE_t1
+    SET_TM_LIMIT_t3
 1:
     dli     t4, 1
     bgtu    t9, t4, 1f  //normal code
@@ -746,26 +641,6 @@ TM_start:
     TM_PRINTSTR("\r\nPattern WalkOnes Test...\r\n")
     //address interval
     dli     t2, 0x40
-    //set Test Base t1 and Test Limit t3
-    dli     t1, MEM_TEST_BASE
-    and     a1, s4, 0x10000
-    dsll    a1, a1, (59 - 16)
-    xor     t1, t1, a1
-    GET_TM_NODE_ID_a1
-    dsll    a1, a1, 44
-    daddu   t1, t1, a1
-    GET_TM_START_ADDR
-    daddu   t1, t1, a1
-    GET_TM_MSIZE
-    dsrl    a1, a1, 0
-    GET_MICRO_TUNE
-    bnez    a2, 21f
-    nop
-    dsrl    a1, a1, MACRO_SCALE
-21:
-    daddu   t3, t1, a1
-    dli     a1, 0x100000    //t3-=1M  because Test Base start from Base Window + 1M
-    dsubu   t3, t3, a1
 
     dli     t4, PATTERN_D8_0_0
     sd      t4, 0x0(t6)
@@ -792,26 +667,6 @@ TM_start:
     TM_PRINTSTR("\r\nPattern WalkInvOnes Test...\r\n")
     //address interval
     dli     t2, 0x40
-    //set Test Base t1 and Test Limit t3
-    dli     t1, MEM_TEST_BASE
-    and     a1, s4, 0x10000
-    dsll    a1, a1, (59 - 16)
-    xor     t1, t1, a1
-    GET_TM_NODE_ID_a1
-    dsll    a1, a1, 44
-    daddu   t1, t1, a1
-    GET_TM_START_ADDR
-    daddu   t1, t1, a1
-    GET_TM_MSIZE
-    dsrl    a1, a1, 0
-    GET_MICRO_TUNE
-    bnez    a2, 21f
-    nop
-    dsrl    a1, a1, MACRO_SCALE
-21:
-    daddu   t3, t1, a1
-    dli     a1, 0x100000    //t3-=1M  because Test Base start from Base Window + 1M
-    dsubu   t3, t3, a1
 
     dli     t4, PATTERN_D8_1_0
     sd      t4, 0x0(t6)
@@ -838,26 +693,6 @@ TM_start:
     TM_PRINTSTR("\r\nPattern WalkZeros Test...\r\n")
     //address interval
     dli     t2, 0x40
-    //set Test Base t1 and Test Limit t3
-    dli     t1, MEM_TEST_BASE
-    and     a1, s4, 0x10000
-    dsll    a1, a1, (59 - 16)
-    xor     t1, t1, a1
-    GET_TM_NODE_ID_a1
-    dsll    a1, a1, 44
-    daddu   t1, t1, a1
-    GET_TM_START_ADDR
-    daddu   t1, t1, a1
-    GET_TM_MSIZE
-    dsrl    a1, a1, 0
-    GET_MICRO_TUNE
-    bnez    a2, 21f
-    nop
-    dsrl    a1, a1, MACRO_SCALE
-21:
-    daddu   t3, t1, a1
-    dli     a1, 0x100000    //t3-=1M  because Test Base start from Base Window + 1M
-    dsubu   t3, t3, a1
     
     dli     t4, PATTERN_D8_2_0
     sd      t4, 0x0(t6)
@@ -884,26 +719,6 @@ TM_start:
     TM_PRINTSTR("\r\nPattern WalkSingleOnes Test...\r\n")
     //address interval
     dli     t2, 0x40
-    //set Test Base t1 and Test Limit t3
-    dli     t1, MEM_TEST_BASE
-    and     a1, s4, 0x10000
-    dsll    a1, a1, (59 - 16)
-    xor     t1, t1, a1
-    GET_TM_NODE_ID_a1
-    dsll    a1, a1, 44
-    daddu   t1, t1, a1
-    GET_TM_START_ADDR
-    daddu   t1, t1, a1
-    GET_TM_MSIZE
-    dsrl    a1, a1, 0
-    GET_MICRO_TUNE
-    bnez    a2, 21f
-    nop
-    dsrl    a1, a1, MACRO_SCALE
-21:
-    daddu   t3, t1, a1
-    dli     a1, 0x100000    //t3-=1M  because Test Base start from Base Window + 1M
-    dsubu   t3, t3, a1
     
     dli     t4, PATTERN_D8_3_0
     sd      t4, 0x0(t6)
@@ -928,6 +743,7 @@ TM_start:
     b       3f  //go to the end of diff burst test
     nop
 2:
+
     dli     t8, TM_MAX_RPT_ERRORS
 #ifdef  TM_DBG
     GET_DISPRINT_BIT
@@ -979,16 +795,7 @@ TM_start:
     sync
 	TM_PRINTSTR("write done. begin to read and compare...\r\n")
 //read memory and compare
-    //set Test Base t1
-    dli     t1, MEM_TEST_BASE
-    and     a1, s4, 0x10000
-    dsll    a1, a1, (59 - 16)
-    xor     t1, t1, a1
-    GET_TM_NODE_ID_a1
-    dsll    a1, a1, 44
-    daddu   t1, t1, a1
-    GET_TM_START_ADDR
-    daddu   t1, t1, a1
+    SET_TM_BASE_t1
 1:
     ld      t0, 0x0(t6)
     ld      t4, 0x0(t1)
@@ -1099,29 +906,11 @@ TM_start:
     dli     t9, 0
     //address interval
     dli     t2, 0x10
-    //set Test Base t1 and Test Limit t3
-    dli     t1, MEM_TEST_BASE
-    and     a1, s4, 0x10000
-    dsll    a1, a1, (59 - 16)
-    xor     t1, t1, a1
-    GET_TM_NODE_ID_a1
-    dsll    a1, a1, 44
-    daddu   t1, t1, a1
-    GET_TM_START_ADDR
-    daddu   t1, t1, a1
-    GET_TM_MSIZE
-    dsrl    a1, a1, 2
-    GET_MICRO_TUNE
-    bnez    a2, 21f
-    nop
-    dsrl    a1, a1, MACRO_SCALE
-21:
-    daddu   t3, t1, a1
-    dli     a1, 0x100000    //t3-=1M  because Test Base start from Base Window + 1M
-    dsubu   t3, t3, a1
 10:
     //loop control
     daddiu  t9, t9, 0x1
+    SET_TM_BASE_t1
+    SET_TM_LIMIT_t3
 1:
     dli     t4, 1
     bgtu    t9, t4, 1f
@@ -1200,16 +989,6 @@ TM_start:
     nop
 2:
     dli     t8, TM_MAX_RPT_ERRORS
-    //set Test Base t1
-    dli     t1, MEM_TEST_BASE
-    and     a1, s4, 0x10000
-    dsll    a1, a1, (59 - 16)
-    xor     t1, t1, a1
-    GET_TM_NODE_ID_a1
-    dsll    a1, a1, 44
-    daddu   t1, t1, a1
-    GET_TM_START_ADDR
-    daddu   t1, t1, a1
 #ifdef  TM_DBG
     GET_DISPRINT_BIT
     bnez    a1, 88f
@@ -1245,16 +1024,7 @@ TM_start:
     sync
 	TM_PRINTSTR("write done. begin to read and compare...\r\n")
 //read memory and compare
-    //set Test Base t1
-    dli     t1, MEM_TEST_BASE
-    and     a1, s4, 0x10000
-    dsll    a1, a1, (59 - 16)
-    xor     t1, t1, a1
-    GET_TM_NODE_ID_a1
-    dsll    a1, a1, 44
-    daddu   t1, t1, a1
-    GET_TM_START_ADDR
-    daddu   t1, t1, a1
+    SET_TM_BASE_t1
 1:
     ld      t4, 0x0(t1)
     beq     t4, t0, 2f
@@ -1485,171 +1255,6 @@ simple_test_mem:
     nop
 //===================================
 //================================
-test_mem_1:
-    move    t9, ra
-    move    s4, t1
-
-    dli     s6, 0x0
-    dli     s7, 0x0
-
-	TM_PRINTSTR("\r\nStart Testing Memory...\r\n")
-
-    TM_PRINTSTR("\r\nPattern DB_0 Test-----\r\n")
-    //address interval
-    dli     t2, 0x200
-    //set Test Base t1 and Test Limit t3
-    dli     t1, SIMPLE_TM_BASE
-    GET_TM_NODE_ID_a1
-    dsll    a1, a1, 44
-    daddu   t1, t1, a1
-    GET_TM_START_ADDR
-    daddu   t1, t1, a1
-    GET_TM_MSIZE
-    daddu   t3, t1, a1
-
-#ifdef  TM_DBG
-    GET_DISPRINT_BIT
-    bnez    a1, 88f
-    nop
-    TM_PRINTSTR("Test address range: 0x")
-    dsrl    a0, t1, 32
-    bal     hexserial
-    nop
-    move    a0, t1
-    bal     hexserial
-    nop
-    TM_PRINTSTR("~0x")
-    dsrl    a0, t3, 32
-    bal     hexserial
-    nop
-    move    a0, t3
-    bal     hexserial
-    nop
-    TM_PRINTSTR("  @@  address interval: 0x")
-    move    a0, t2
-    bal     hexserial
-    nop
-    TM_PRINTSTR("\r\n")
-88:
-#endif
-    TM_PRINTSTR("Pattern 0110 ....\r\n")
-    dli     t6, 0x4000000
-
-10:
-    daddu   t6, t6, -0x1
-    //set Test Base t1 and Test Limit t3
-    dli     t1, SIMPLE_TM_BASE
-    GET_TM_NODE_ID_a1
-    dsll    a1, a1, 44
-    daddu   t1, t1, a1
-    GET_TM_START_ADDR
-    daddu   t1, t1, a1
-    GET_TM_MSIZE
-    daddu   t3, t1, a1
-
-    dli     t8, TM_MAX_RPT_ERRORS
-    dli     t0, PATTERN_DB_0_0
-//write memory
-    move    a0, t0
-    not     a1, t0
-    not     a2, t0
-    move    a3, t0
-1:
-    sd      a0, 0x0(t1)
-    sd      a1, 0x8(t1)
-    sd      a2, 0x10(t1)
-    sd      a3, 0x18(t1)
-    daddu   t1, t1, t2
-    bltu    t1, t3, 1b
-    nop
-    sync
-	TM_PRINTSTR("write done. begin to read and compare...\r\n")
-//read memory and compare
-    //set Test Base t1
-    dli     t1, MEM_TEST_BASE
-    and     a1, s4, 0x10000
-    dsll    a1, a1, (59 - 16)
-    xor     t1, t1, a1
-    GET_TM_NODE_ID_a1
-    dsll    a1, a1, 44
-    daddu   t1, t1, a1
-    GET_TM_START_ADDR
-    daddu   t1, t1, a1
-1:
-    ld      t4, 0x0(t1)
-    beq     t4, t0, 2f
-    nop
-    //error detected!!! print address,expected data,read data and reread data
-    bal     hexserial64_1
-    nop
-    bltz    t8, 10b  //detect enough errors, go to next test
-    nop
-2:
-    not     t0, t0
-    ld      t4, 0x8(t1)
-    beq     t4, t0, 2f
-    nop
-    //error detected!!! print address,expected data,read data and reread data
-    daddiu  t1, t1, 0x8 //the hexserial64_1 will use t1 directly
-    bal     hexserial64_1
-    nop
-    daddiu  t1, t1, -0x8
-    bltz    t8, 10b  //detect enough errors, go to next test
-    nop
-2:
-    ld      t4, 0x10(t1)
-    beq     t4, t0, 2f
-    nop
-    //error detected!!! print address,expected data,read data and reread data
-    daddiu  t1, t1, 0x10 //the hexserial64_1 will use t1 directly
-    bal     hexserial64_1
-    nop
-    daddiu  t1, t1, -0x10
-    bltz    t8, 10b  //detect enough errors, go to next test
-    nop
-2:
-    not     t0, t0
-    ld      t4, 0x18(t1)
-    beq     t4, t0, 2f
-    nop
-    //error detected!!! print address,expected data,read data and reread data
-    daddiu  t1, t1, 0x18 //the hexserial64_1 will use t1 directly
-    bal     hexserial64_1
-    nop
-    daddiu  t1, t1, -0x18
-    bltz    t8, 10b  //detect enough errors, go to next test
-    nop
-2:
-    daddu   t1, t1, t2
-    //check address range
-    bltu    t1, t3, 1b
-    nop
-
-    bnez    t6, 10b
-    nop
-    TM_PRINTSTR("Pattern Testing done.\r\n")
-
-#ifdef  LEVEL_SPECIFIED_BYTE_LANES
-    and     s6, s6, s5
-    and     s7, s7, s5
-#endif
-#if 0
-//old code
-    dli     v0, 0x0
-    beqz    s6, 1f
-    nop
-    //s6 != 0, set error mark
-    dli     v0, 0x1
-1:
-#else
-    move    v0, s6
-    move    v1, s7
-#endif
-
-    jr      t9
-    nop
-//===================================
-//================================
 test_mem_1_silence:
     move    t9, ra
     move    s4, t1
@@ -1659,46 +1264,11 @@ test_mem_1_silence:
 
 	//TM_PRINTSTR("\r\nStart Testing Memory...\r\n")
 
-//pattern Diff Burst Test
 #if 1
     //TM_PRINTSTR("\r\nPattern DB_0 Test-----\r\n")
     //address interval
     dli     t2, 0x40
-    //set Test Base t1 and Test Limit t3
-    dli     t1, SIMPLE_TM_BASE
-    GET_TM_NODE_ID_a1
-    dsll    a1, a1, 44
-    daddu   t1, t1, a1
-    GET_TM_START_ADDR
-    daddu   t1, t1, a1
-    GET_TM_MSIZE
-    daddu   t3, t1, a1
 
-#if 0
-    GET_DISPRINT_BIT
-    bnez    a1, 88f
-    nop
-    TM_PRINTSTR("Test address range: 0x")
-    dsrl    a0, t1, 32
-    bal     hexserial
-    nop
-    move    a0, t1
-    bal     hexserial
-    nop
-    TM_PRINTSTR("~0x")
-    dsrl    a0, t3, 32
-    bal     hexserial
-    nop
-    move    a0, t3
-    bal     hexserial
-    nop
-    TM_PRINTSTR("  @@  address interval: 0x")
-    move    a0, t2
-    bal     hexserial
-    nop
-    TM_PRINTSTR("\r\n")
-88:
-#endif
     //TM_PRINTSTR("Pattern 0110 ....\r\n")
     dli     t6, 0x40000000
 
@@ -1714,6 +1284,31 @@ test_mem_1_silence:
     GET_TM_MSIZE
     daddu   t3, t1, a1
 
+#if 0
+    GET_DISPRINT_BIT
+    bnez    a1, 88f
+    nop
+    TM_PRINTSTR("Test address range: 0x")
+    dsrl    a0, t1, 32
+    bal     hexserial
+    nop
+    move    a0, t1
+    bal     hexserial
+    nop
+    TM_PRINTSTR("~0x")
+    dsrl    a0, t3, 32
+    bal     hexserial
+    nop
+    move    a0, t3
+    bal     hexserial
+    nop
+    TM_PRINTSTR("  @@  address interval: 0x")
+    move    a0, t2
+    bal     hexserial
+    nop
+    TM_PRINTSTR("\r\n")
+88:
+#endif
     dli     t8, TM_MAX_RPT_ERRORS
     dli     t0, PATTERN_DB_0_0
 //write memory
@@ -1733,10 +1328,7 @@ test_mem_1_silence:
 	//TM_PRINTSTR("write done. begin to read and compare...\r\n")
 //read memory and compare
     //set Test Base t1
-    dli     t1, MEM_TEST_BASE
-    and     a1, s4, 0x10000
-    dsll    a1, a1, (59 - 16)
-    xor     t1, t1, a1
+    dli     t1, SIMPLE_TM_BASE
     GET_TM_NODE_ID_a1
     dsll    a1, a1, 44
     daddu   t1, t1, a1

@@ -60,8 +60,8 @@ Function: Macro defination for Test_Mem.S
 #define PATTERN_Zero2fd 0x00020002fffdfffd
 #endif
 
-#define MEM_TEST_BASE   0x9800000000100000
-#define UNCACHED_MEM_TEST_BASE   0x9000000000100000
+#define MEM_TEST_OFFSET 0x100000
+#define MEM_TEST_BASE   0x9800000000000000
 #define MT_PATTERN_BASE 0x9800000000000000  //(0 ~ 400 -- 0 ~ 1K)
 #define MT_STACK_BASE   0x9800000000000400  //(400 ~ 600 -- 512Byte max, 64 registers)
 #define MT_CODE_BASE    0x9800000000000600  //(600 ~ 4000 -- 1.5K ~ 16K, 14.5K max)
@@ -97,3 +97,25 @@ Function: Macro defination for Test_Mem.S
 #define SIMPLE_TM_BASE   0x9800000000000000
 #define UNCACHED_SIMPLE_TM_BASE   0x9000000000000000
 //===========================
+#define SET_TM_BASE_t1 \
+    dli     t1, MEM_TEST_BASE; \
+    and     a1, s4, 0x10000; \
+    dsll    a1, a1, (59 - 16); \
+    xor     t1, t1, a1; \
+    and     a1, s4, 0x40000; \
+    dsll    a1, a1, (61 - 18); \
+    xor     t1, t1, a1; \
+    GET_TM_NODE_ID_a1; \
+    dsll    a1, a1, 44; \
+    daddu   t1, t1, a1; \
+    GET_TM_START_ADDR; \
+    daddu   t1, t1, a1; \
+    dli     a1, MEM_TEST_OFFSET; \
+    daddu   t1, t1, a1
+
+#define SET_TM_LIMIT_t3 \
+    GET_TM_MSIZE; \
+    daddu   t3, t1, a1; \
+    dli     a1, MEM_TEST_OFFSET; \
+    dsubu   t3, t3, a1;
+
