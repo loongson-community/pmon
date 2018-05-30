@@ -14,10 +14,10 @@
     dli t1, 0x00000efdfc0000f7
     sd  t1, 0x80(t0)
 
- //map HT: PCI MEM : 0x90000e00_10000000 <-- 0x10000000 ~ 0x10ffffff
+ //map HT: PCI MEM : 0x90000e00_10000000 <-- 0x10000000 ~ 0x17ffffff
     dli t1, 0x0000000010000000
     sd  t1, 0x8(t0)
-    dli t1, 0xffffffffff000000
+    dli t1, 0xfffffffff8000000
     sd  t1, 0x48(t0)
     dli t1, 0x00000e00100000f7
     sd  t1, 0x88(t0)
@@ -50,10 +50,10 @@
     dli t1, 0x00001efdfc0000f7
     sd  t1, 0x80(t0)
 
- //map HT: PCI MEM : 0x90000e00_10000000 <-- 0x10000000 ~ 0x10ffffff
+ //map HT: PCI MEM : 0x90000e00_10000000 <-- 0x10000000 ~ 0x17ffffff
     dli t1, 0x0000000010000000
     sd  t1, 0x8(t0)
-    dli t1, 0xffffffffff000000
+    dli t1, 0xfffffffff8000000
     sd  t1, 0x48(t0)
     dli t1, 0x00001e00100000f7
     sd  t1, 0x88(t0)
