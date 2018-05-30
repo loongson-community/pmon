@@ -2,6 +2,7 @@
 // author: chenxk
 // 2017.8.15
 // !notice: t0: used as global variable partial
+// DO NOT touch this file!
 
     dli     t0, LS7A_CONFBUS_BASE_ADDR
 
@@ -276,9 +277,35 @@
 
     TTYDBG("LS7A hardware init done.\r\n")
 //3. device configure 
-    //enable access to device(PCIE/SATA/USB/LPC)
+    //init PCIE
     dli     t0, LS7A_CONFBUS_BASE_ADDR
-#ifndef USE_PCIE_PAD_REFCLK
+
+    lw      t1, 0x588(t0)
+    li      t2, (1 << 27)
+    or      t1, t1, t2
+    sw      t1, 0x588(t0)
+
+    lw      t1, 0x5a8(t0)
+    li      t2, (1 << 27)
+    or      t1, t1, t2
+    sw      t1, 0x5a8(t0)
+
+    lw      t1, 0x5c8(t0)
+    li      t2, (3 << 26)
+    or      t1, t1, t2
+    sw      t1, 0x5c8(t0)
+
+    lw      t1, 0x5e8(t0)
+    li      t2, (3 << 26)
+    or      t1, t1, t2
+    sw      t1, 0x5e8(t0)
+
+    lw      t1, 0x608(t0)
+    li      t2, (3 << 26)
+    or      t1, t1, t2
+    sw      t1, 0x608(t0)
+
+    //reset PCIE begin
     //power down phy
     lw      t1, 0x588(t0)
     li      t2, (1 << 24)
@@ -311,11 +338,13 @@
     or      t1, t1, t2
     sw      t1, CONF_NB_OFFSET(t0)
 
+#ifndef USE_PCIE_PAD_REFCLK
     //switch clk
     lw      t1, CONF_NB_OFFSET(t0)
     li      t2, (1 << 2)
     or      t1, t1, t2
     sw      t1, CONF_NB_OFFSET(t0)
+#endif
 
     //delay a while
     dli     t1, 0x4000000
@@ -368,7 +397,37 @@
     dsubu   t1, t1, 1
     bnez    t1, 1b
     nop
-#endif
+    //reset PCIE end
+
+    lw      t1, 0x588(t0)
+    li      t2, (1 << 27)
+    not     t2, t2
+    and     t1, t1, t2
+    sw      t1, 0x588(t0)
+
+    lw      t1, 0x5a8(t0)
+    li      t2, (1 << 27)
+    not     t2, t2
+    and     t1, t1, t2
+    sw      t1, 0x5a8(t0)
+
+    lw      t1, 0x5c8(t0)
+    li      t2, (1 << 27)
+    not     t2, t2
+    and     t1, t1, t2
+    sw      t1, 0x5c8(t0)
+
+    lw      t1, 0x5e8(t0)
+    li      t2, (1 << 27)
+    not     t2, t2
+    and     t1, t1, t2
+    sw      t1, 0x5e8(t0)
+
+    lw      t1, 0x608(t0)
+    li      t2, (1 << 27)
+    not     t2, t2
+    and     t1, t1, t2
+    sw      t1, 0x608(t0)
 
     //enable access
     lw      t1, CONF_NB_OFFSET(t0)
@@ -377,9 +436,26 @@
     sw      t1, CONF_NB_OFFSET(t0)
     TTYDBG("PCIE enabled\r\n")
 
-    //re-configure used PHYs, else powerdown it
-#if (!(LS7A_PCIE_F0_P0_DISABLE && LS7A_PCIE_F0_P1_DISABLE && LS7A_PCIE_F0_P2_DISABLE && LS7A_PCIE_F0_P3_DISABLE))
-//DO not destroy a0, a1, for example, do not add print between these code
+#define PCIE_GEN_CFG 0x1
+
+    //PCIE F0
+    dli     t3, 0x90000efe00004800
+    li      a0, 0x60000000
+    sw      a0, 0x10(t3)
+    dli     t1, 0x90000e0060000000
+    lw      t4, 0x0(t1)
+    sw      $0, 0x10(t3)
+    srl     t4, t4, 28
+    and     t4, t4, 0xf //bit3~0: Port3~0; 0: has device; 1: no device
+#ifdef  FORCE_ENABLE_PCIE_F0_P0
+    and     t4, t4, 0xe
+#endif
+
+    li      a0, 0xf
+    beq     t4, a0, 7f
+    nop
+    //some port is used
+    //re-configure PHYs
     daddu   a0, t0, 0x590
     li      a1, 0x403f1002
     bal     ls7a_phy_cfg_write
@@ -393,14 +469,142 @@
     addu    a1, a1, 0x100
     bal     ls7a_phy_cfg_write
     nop
-#else
+    //Port 0
+    li      t3, 0x1
+    and     a0, t4, t3
+    bnez    a0, 4f
+    nop
+
+    dli     t3, 0x90000efe08004800
+    li      a0, 0xfff9ffff
+    lw      a1, 0xc(t3)
+    and     a0, a0, a1
+    or      a0, (PCIE_GEN_CFG << 17)
+    sw      a0, 0xc(t3)
+
+    dli     t3, 0x90000efe00004800
+    li      a0, 0x60000000
+    sw      a0, 0x10(t3)
+
+    dli     t1, 0x90000e0060000000
+    li      a0, 0xff204c
+    sw      a0, 0x0(t1)
+
+    sw      $0, 0x10(t3)
+4:
+
+    //Port 1
+    li      t3, 0x2
+    and     a0, t4, t3
+    bnez    a0, 4f
+    nop
+
+    dli     t3, 0x90000efe08005000
+    li      a0, 0xfff9ffff
+    lw      a2, 0xc(t3)
+    and     a0, a0, a2
+    or      a0, (PCIE_GEN_CFG << 17)
+    sw      a0, 0xc(t3)
+
+    dli     t3, 0x90000efe00005000
+    li      a0, 0x60100000
+    sw      a0, 0x10(t3)
+
+    dli     t1, 0x90000e0060100000
+    li      a0, 0xff204c
+    sw      a0, 0x0(t1)
+
+    sw      $0, 0x10(t3)
+4:
+
+    //Port 2
+    li      t3, 0x4
+    and     a0, t4, t3
+    bnez    a0, 4f
+    nop
+
+    dli     t3, 0x90000efe08005800
+    li      a0, 0xfff9ffff
+    lw      a2, 0xc(t3)
+    and     a0, a0, a2
+    or      a0, (PCIE_GEN_CFG << 17)
+    sw      a0, 0xc(t3)
+
+    dli     t3, 0x90000efe00005800
+    li      a0, 0x60200000
+    sw      a0, 0x10(t3)
+
+    dli     t1, 0x90000e0602000000
+    li      a0, 0xff204c
+    sw      a0, 0x0(t1)
+
+    sw      $0, 0x10(t3)
+4:
+
+    //Port 3
+    li      t3, 0x8
+    and     a0, t4, t3
+    bnez    a0, 4f
+    nop
+    dli     t3, 0x90000efe08006000
+    li      a0, 0xfff9ffff
+    lw      a2, 0xc(t3)
+    and     a0, a0, a2
+    or      a0, (PCIE_GEN_CFG << 17)
+    sw      a0, 0xc(t3)
+
+    dli     t3, 0x90000efe00006000
+    li      a0, 0x60300000
+    sw      a0, 0x10(t3)
+
+    dli     t1, 0x90000e0060300000
+    li      a0, 0xff204c
+    sw      a0, 0x0(t1)
+
+    sw      $0, 0x10(t3)
+4:
+    b       8f
+    nop
+7:
+    //powerdown phy
     lw      t1, 0x588(t0)
     li      t2, (1 << 24)
     or      t1, t1, t2
     sw      t1, 0x588(t0)
+
+    lw      t1, CONF_NB_OFFSET(t0)
+    li      t2, (1 << 9)
+    not     t2, t2
+    and     t1, t1, t2
+    sw      t1, CONF_NB_OFFSET(t0)
+    TTYDBG("Powerdown PCIE F0 PHY.\r\n")
+8:
+    //disable clock of unused PCIE ports
+    lw      t1, CONF_NB_OFFSET(t0)
+    sll     t4, t4, 10
+    not     t4, t4
+    and     t1, t1, t4
+    sw      t1, CONF_NB_OFFSET(t0)
+    TTYDBG("unused PCIE F0 ports closed\r\n")
+
+    //PCIE F1
+    dli     t3, 0x90000efe00006800
+    li      a0, 0x60000000
+    sw      a0, 0x10(t3)
+    dli     t1, 0x90000e0060000000
+    lw      t4, 0x0(t1)
+    sw      $0, 0x10(t3)
+    srl     t4, t4, 28
+    and     t4, t4, 0x3 //bit1~0: Port1~0; 0: has device; 1: no device
+#ifdef  FORCE_ENABLE_PCIE_F1_P0
+    and     t4, t4, 0x2
 #endif
 
-#if (!(LS7A_PCIE_F1_P0_DISABLE && LS7A_PCIE_F1_P1_DISABLE))
+    li      a0, 0x3
+    beq     t4, a0, 7f
+    nop
+    //some port is used
+    //re-configure PHYs
     daddu   a0, t0, 0x5b0
     li      a1, 0x403f1002
     bal     ls7a_phy_cfg_write
@@ -414,14 +618,95 @@
     addu    a1, a1, 0x100
     bal     ls7a_phy_cfg_write
     nop
-#else
+    //Port 0
+    li      t3, 0x1
+    and     a0, t4, t3
+    bnez    a0, 4f
+    nop
+
+    dli     t3, 0x90000efe08006800
+    li      a0, 0xfff9ffff
+    lw      a1, 0xc(t3)
+    and     a0, a0, a1
+    or      a0, (PCIE_GEN_CFG << 17)
+    sw      a0, 0xc(t3)
+
+    dli     t3, 0x90000efe00006800
+    li      a0, 0x60000000
+    sw      a0, 0x10(t3)
+
+    dli     t1, 0x90000e0060000000
+    li      a0, 0xff204c
+    sw      a0, 0x0(t1)
+
+    sw      $0, 0x10(t3)
+4:
+
+    //Port 1
+    li      t3, 0x2
+    and     a0, t4, t3
+    bnez    a0, 4f
+    nop
+
+    dli     t3, 0x90000efe08007000
+    li      a0, 0xfff9ffff
+    lw      a2, 0xc(t3)
+    and     a0, a0, a2
+    or      a0, (PCIE_GEN_CFG << 17)
+    sw      a0, 0xc(t3)
+
+    dli     t3, 0x90000efe00007000
+    li      a0, 0x60100000
+    sw      a0, 0x10(t3)
+
+    dli     t1, 0x90000e0060100000
+    li      a0, 0xff204c
+    sw      a0, 0x0(t1)
+
+    sw      $0, 0x10(t3)
+4:
+    b       8f
+    nop
+7:
+    //powerdown phy
     lw      t1, 0x5a8(t0)
     li      t2, (1 << 24)
     or      t1, t1, t2
     sw      t1, 0x5a8(t0)
+
+    lw      t1, CONF_NB_OFFSET(t0)
+    li      t2, (1 << 17)
+    not     t2, t2
+    and     t1, t1, t2
+    sw      t1, CONF_NB_OFFSET(t0)
+    TTYDBG("Powerdown PCIE F1 PHY.\r\n")
+8:
+    //disable clock of unused PCIE ports
+    lw      t1, CONF_NB_OFFSET(t0)
+    sll     t4, t4, 18
+    not     t4, t4
+    and     t1, t1, t4
+    sw      t1, CONF_NB_OFFSET(t0)
+    TTYDBG("unused PCIE F1 ports closed\r\n")
+
+    //PCIE G0
+    dli     t3, 0x90000efe00007800
+    li      a0, 0x60000000
+    sw      a0, 0x10(t3)
+    dli     t1, 0x90000e0060000000
+    lw      t4, 0x0(t1)
+    sw      $0, 0x10(t3)
+    srl     t4, t4, 28
+    and     t4, t4, 0x3 //bit1~0: Port1~0; 0: has device; 1: no device
+#ifdef  FORCE_ENABLE_PCIE_G0_P0
+    and     t4, t4, 0x2
 #endif
 
-#if (!(LS7A_PCIE_G0_P0_DISABLE && LS7A_PCIE_G0_P1_DISABLE))
+    li      a0, 0x3
+    beq     t4, a0, 7f
+    nop
+    //some port is used
+    //re-configure PHYs
     daddu   a0, t0, 0x5f0
     li      a1, 0x403f1002
     bal     ls7a_phy_cfg_write
@@ -449,14 +734,95 @@
     addu    a1, a1, 0x100
     bal     ls7a_phy_cfg_write
     nop
-#else
+    //Port 0
+    li      t3, 0x1
+    and     a0, t4, t3
+    bnez    a0, 4f
+    nop
+
+    dli     t3, 0x90000efe08007800
+    li      a0, 0xfff9ffff
+    lw      a1, 0xc(t3)
+    and     a0, a0, a1
+    or      a0, (PCIE_GEN_CFG << 17)
+    sw      a0, 0xc(t3)
+
+    dli     t3, 0x90000efe00007800
+    li      a0, 0x60000000
+    sw      a0, 0x10(t3)
+
+    dli     t1, 0x90000e0060000000
+    li      a0, 0xff204c
+    sw      a0, 0x0(t1)
+
+    sw      $0, 0x10(t3)
+4:
+
+    //Port 1
+    li      t3, 0x2
+    and     a0, t4, t3
+    bnez    a0, 4f
+    nop
+
+    dli     t3, 0x90000efe08008000
+    li      a0, 0xfff9ffff
+    lw      a2, 0xc(t3)
+    and     a0, a0, a2
+    or      a0, (PCIE_GEN_CFG << 17)
+    sw      a0, 0xc(t3)
+
+    dli     t3, 0x90000efe00008000
+    li      a0, 0x60100000
+    sw      a0, 0x10(t3)
+
+    dli     t1, 0x90000e0060100000
+    li      a0, 0xff204c
+    sw      a0, 0x0(t1)
+
+    sw      $0, 0x10(t3)
+4:
+    b       8f
+    nop
+7:
+    //powerdown phy
     lw      t1, 0x5e8(t0)
     li      t2, (1 << 24)
     or      t1, t1, t2
     sw      t1, 0x5e8(t0)
+
+    lw      t1, CONF_NB_OFFSET(t0)
+    li      t2, (1 << 25)
+    not     t2, t2
+    and     t1, t1, t2
+    sw      t1, CONF_NB_OFFSET(t0)
+    TTYDBG("Powerdown PCIE G0 PHY.\r\n")
+8:
+    //disable clock of unused PCIE ports
+    lw      t1, CONF_NB_OFFSET(t0)
+    sll     t4, t4, 26
+    not     t4, t4
+    and     t1, t1, t4
+    sw      t1, CONF_NB_OFFSET(t0)
+    TTYDBG("unused PCIE G0 ports closed\r\n")
+
+    //PCIE G1
+    dli     t3, 0x90000efe00008800
+    li      a0, 0x60000000
+    sw      a0, 0x10(t3)
+    dli     t1, 0x90000e0060000000
+    lw      t4, 0x0(t1)
+    sw      $0, 0x10(t3)
+    srl     t4, t4, 28
+    and     t4, t4, 0x3 //bit1~0: Port1~0; 0: has device; 1: no device
+#ifdef  FORCE_ENABLE_PCIE_G1_P0
+    and     t4, t4, 0x2
 #endif
 
-#if (!(LS7A_PCIE_G1_P0_DISABLE && LS7A_PCIE_G1_P1_DISABLE))
+    li      a0, 0x3
+    beq     t4, a0, 7f
+    nop
+    //some port is used
+    //re-configure PHYs
     daddu   a0, t0, 0x610
     li      a1, 0x403f1002
     bal     ls7a_phy_cfg_write
@@ -484,14 +850,95 @@
     addu    a1, a1, 0x100
     bal     ls7a_phy_cfg_write
     nop
-#else
+    //Port 0
+    li      t3, 0x1
+    and     a0, t4, t3
+    bnez    a0, 4f
+    nop
+
+    dli     t3, 0x90000efe08008800
+    li      a0, 0xfff9ffff
+    lw      a1, 0xc(t3)
+    and     a0, a0, a1
+    or      a0, (PCIE_GEN_CFG << 17)
+    sw      a0, 0xc(t3)
+
+    dli     t3, 0x90000efe00008800
+    li      a0, 0x60000000
+    sw      a0, 0x10(t3)
+
+    dli     t1, 0x90000e0060000000
+    li      a0, 0xff204c
+    sw      a0, 0x0(t1)
+
+    sw      $0, 0x10(t3)
+4:
+
+    //Port 1
+    li      t3, 0x2
+    and     a0, t4, t3
+    bnez    a0, 4f
+    nop
+
+    dli     t3, 0x90000efe08009000
+    li      a0, 0xfff9ffff
+    lw      a2, 0xc(t3)
+    and     a0, a0, a2
+    or      a0, (PCIE_GEN_CFG << 17)
+    sw      a0, 0xc(t3)
+
+    dli     t3, 0x90000efe00009000
+    li      a0, 0x60100000
+    sw      a0, 0x10(t3)
+
+    dli     t1, 0x90000e0060100000
+    li      a0, 0xff204c
+    sw      a0, 0x0(t1)
+
+    sw      $0, 0x10(t3)
+4:
+    b       8f
+    nop
+7:
+    //powerdown phy
     lw      t1, 0x608(t0)
     li      t2, (1 << 24)
     or      t1, t1, t2
     sw      t1, 0x608(t0)
+
+    lw      t1, CONF_NB_OFFSET(t0)
+    li      t2, (1 << 29)
+    not     t2, t2
+    and     t1, t1, t2
+    sw      t1, CONF_NB_OFFSET(t0)
+    TTYDBG("Powerdown PCIE G1 PHY.\r\n")
+8:
+    //disable clock of unused PCIE ports
+    lw      t1, CONF_NB_OFFSET(t0)
+    sll     t4, t4, 30
+    not     t4, t4
+    and     t1, t1, t4
+    sw      t1, CONF_NB_OFFSET(t0)
+    TTYDBG("unused PCIE G1 ports closed\r\n")
+
+    //PCIE H
+    dli     t3, 0x90000efe00009800
+    li      a0, 0x60000000
+    sw      a0, 0x10(t3)
+    dli     t1, 0x90000e0060000000
+    lw      t4, 0x0(t1)
+    sw      $0, 0x10(t3)
+    srl     t4, t4, 28
+    and     t4, t4, 0x3 //bit1~0: Port1~0; 0: has device; 1: no device
+#ifdef  FORCE_ENABLE_PCIE_H_P0
+    and     t4, t4, 0x2
 #endif
 
-#if (!(LS7A_PCIE_H_P0_DISABLE && LS7A_PCIE_H_P1_DISABLE))
+    li      a0, 0x3
+    beq     t4, a0, 7f
+    nop
+    //some port is used
+    //re-configure PHYs
     daddu   a0, t0, 0x5d0
     li      a1, 0x403f1002
     bal     ls7a_phy_cfg_write
@@ -519,276 +966,78 @@
     addu    a1, a1, 0x100
     bal     ls7a_phy_cfg_write
     nop
-#else
+    //Port 0
+    li      t3, 0x1
+    and     a0, t4, t3
+    bnez    a0, 4f
+    nop
+
+    dli     t3, 0x90000efe08009800
+    li      a0, 0xfff9ffff
+    lw      a1, 0xc(t3)
+    and     a0, a0, a1
+    or      a0, (PCIE_GEN_CFG << 17)
+    sw      a0, 0xc(t3)
+
+    dli     t3, 0x90000efe00009800
+    li      a0, 0x60000000
+    sw      a0, 0x10(t3)
+
+    dli     t1, 0x90000e0060000000
+    li      a0, 0xff204c
+    sw      a0, 0x0(t1)
+
+    sw      $0, 0x10(t3)
+4:
+
+    //Port 1
+    li      t3, 0x2
+    and     a0, t4, t3
+    bnez    a0, 4f
+    nop
+
+    dli     t3, 0x90000efe0800a000
+    li      a0, 0xfff9ffff
+    lw      a2, 0xc(t3)
+    and     a0, a0, a2
+    or      a0, (PCIE_GEN_CFG << 17)
+    sw      a0, 0xc(t3)
+
+    dli     t3, 0x90000efe0000a000
+    li      a0, 0x60100000
+    sw      a0, 0x10(t3)
+
+    dli     t1, 0x90000e0060100000
+    li      a0, 0xff204c
+    sw      a0, 0x0(t1)
+
+    sw      $0, 0x10(t3)
+4:
+    b       8f
+    nop
+7:
+    //powerdown phy
     lw      t1, 0x5c8(t0)
     li      t2, (1 << 24)
     or      t1, t1, t2
     sw      t1, 0x5c8(t0)
-#endif
 
-#define PCIE_GEN_CFG 0x1
-
-#if (!LS7A_PCIE_F0_P0_DISABLE)
-    dli     t0, 0x90000efe08004800
-    li      a0, 0xfff9ffff
-    lw      t2, 0xc(t0)
-    and     a0, a0, t2
-    or      a0, (PCIE_GEN_CFG << 17)
-    sw      a0, 0xc(t0)
-
-    dli     t0, 0x90000efe00004800
-    li      a0, 0x60000000
-    sw      a0, 0x10(t0)
-
-    dli     t1, 0x90000e0000000000
-    li      a0, 0x60000000
-    or      t1, t1, a0
-    li      a0, 0xff204c
-    sw      a0, 0x0(t1)
-
-    sw      $0, 0x10(t0)
-#endif
-
-#if (!LS7A_PCIE_F0_P1_DISABLE)
-    dli     t0, 0x90000efe08005000
-    li      a0, 0xfff9ffff
-    lw      t2, 0xc(t0)
-    and     a0, a0, t2
-    or      a0, (PCIE_GEN_CFG << 17)
-    sw      a0, 0xc(t0)
-
-    dli     t0, 0x90000efe00005000
-    li      a0, 0x60100000
-    sw      a0, 0x10(t0)
-
-    dli     t1, 0x90000e0000000000
-    li      a0, 0x60100000
-    or      t1, t1, a0
-    li      a0, 0xff204c
-    sw      a0, 0x0(t1)
-
-    sw      $0, 0x10(t0)
-#endif
-
-#if (!LS7A_PCIE_F0_P2_DISABLE)
-    dli     t0, 0x90000efe08005800
-    li      a0, 0xfff9ffff
-    lw      t2, 0xc(t0)
-    and     a0, a0, t2
-    or      a0, (PCIE_GEN_CFG << 17)
-    sw      a0, 0xc(t0)
-
-    dli     t0, 0x90000efe00005800
-    li      a0, 0x60200000
-    sw      a0, 0x10(t0)
-
-    dli     t1, 0x90000e0000000000
-    li      a0, 0x60200000
-    or      t1, t1, a0
-    li      a0, 0xff204c
-    sw      a0, 0x0(t1)
-
-    sw      $0, 0x10(t0)
-#endif
-
-#if (!LS7A_PCIE_F0_P3_DISABLE)
-    dli     t0, 0x90000efe08006000
-    li      a0, 0xfff9ffff
-    lw      t2, 0xc(t0)
-    and     a0, a0, t2
-    or      a0, (PCIE_GEN_CFG << 17)
-    sw      a0, 0xc(t0)
-
-    dli     t0, 0x90000efe00006000
-    li      a0, 0x60300000
-    sw      a0, 0x10(t0)
-
-    dli     t1, 0x90000e0000000000
-    li      a0, 0x60300000
-    or      t1, t1, a0
-    li      a0, 0xff204c
-    sw      a0, 0x0(t1)
-
-    sw      $0, 0x10(t0)
-#endif
-
-#if (!LS7A_PCIE_F1_P0_DISABLE)
-    dli     t0, 0x90000efe08006800
-    li      a0, 0xfff9ffff
-    lw      t2, 0xc(t0)
-    and     a0, a0, t2
-    or      a0, (PCIE_GEN_CFG << 17)
-    sw      a0, 0xc(t0)
-
-    dli     t0, 0x90000efe00006800
-    li      a0, 0x61000000
-    sw      a0, 0x10(t0)
-
-    dli     t1, 0x90000e0000000000
-    li      a0, 0x61000000
-    or      t1, t1, a0
-    li      a0, 0xff204c
-    sw      a0, 0x0(t1)
-
-    sw      $0, 0x10(t0)
-#endif
-
-#if (!LS7A_PCIE_F1_P1_DISABLE)
-    dli     t0, 0x90000efe08007000
-    li      a0, 0xfff9ffff
-    lw      t2, 0xc(t0)
-    and     a0, a0, t2
-    or      a0, (PCIE_GEN_CFG << 17)
-    sw      a0, 0xc(t0)
-
-    dli     t0, 0x90000efe00007000
-    li      a0, 0x61100000
-    sw      a0, 0x10(t0)
-
-    dli     t1, 0x90000e0000000000
-    li      a0, 0x61100000
-    or      t1, t1, a0
-    li      a0, 0xff204c
-    sw      a0, 0x0(t1)
-
-    sw      $0, 0x10(t0)
-#endif
-
-#if (!LS7A_PCIE_G0_P0_DISABLE)
-    dli     t0, 0x90000efe08007800
-    li      a0, 0xfff9ffff
-    lw      t2, 0xc(t0)
-    and     a0, a0, t2
-    or      a0, (PCIE_GEN_CFG << 17)
-    sw      a0, 0xc(t0)
-
-    dli     t0, 0x90000efe00007800
-    li      a0, 0x62000000
-    sw      a0, 0x10(t0)
-
-    dli     t1, 0x90000e0000000000
-    li      a0, 0x62000000
-    or      t1, t1, a0
-    li      a0, 0xff204c
-    sw      a0, 0x0(t1)
-
-    sw      $0, 0x10(t0)
-#endif
-
-#if (!LS7A_PCIE_G0_P1_DISABLE)
-    dli     t0, 0x90000efe08008000
-    li      a0, 0xfff9ffff
-    lw      t2, 0xc(t0)
-    and     a0, a0, t2
-    or      a0, (PCIE_GEN_CFG << 17)
-    sw      a0, 0xc(t0)
-
-    dli     t0, 0x90000efe00008000
-    li      a0, 0x62100000
-    sw      a0, 0x10(t0)
-
-    dli     t1, 0x90000e0000000000
-    li      a0, 0x62100000
-    or      t1, t1, a0
-    li      a0, 0xff204c
-    sw      a0, 0x0(t1)
-
-    sw      $0, 0x10(t0)
-#endif
-
-#if (!LS7A_PCIE_G1_P0_DISABLE)
-    dli     t0, 0x90000efe08008800
-    li      a0, 0xfff9ffff
-    lw      t2, 0xc(t0)
-    and     a0, a0, t2
-    or      a0, (PCIE_GEN_CFG << 17)
-    sw      a0, 0xc(t0)
-
-    dli     t0, 0x90000efe00008800
-    li      a0, 0x63000000
-    sw      a0, 0x10(t0)
-
-    dli     t1, 0x90000e0000000000
-    li      a0, 0x63000000
-    or      t1, t1, a0
-    li      a0, 0xff204c
-    sw      a0, 0x0(t1)
-
-    sw      $0, 0x10(t0)
-#endif
-
-#if (!LS7A_PCIE_G1_P1_DISABLE)
-    dli     t0, 0x90000efe08009000
-    li      a0, 0xfff9ffff
-    lw      t2, 0xc(t0)
-    and     a0, a0, t2
-    or      a0, (PCIE_GEN_CFG << 17)
-    sw      a0, 0xc(t0)
-
-    dli     t0, 0x90000efe00009000
-    li      a0, 0x63100000
-    sw      a0, 0x10(t0)
-
-    dli     t1, 0x90000e0000000000
-    li      a0, 0x63100000
-    or      t1, t1, a0
-    li      a0, 0xff204c
-    sw      a0, 0x0(t1)
-
-    sw      $0, 0x10(t0)
-#endif
-
-#if (!LS7A_PCIE_H_P0_DISABLE)
-    dli     t0, 0x90000efe08009800
-    li      a0, 0xfff9ffff
-    lw      t2, 0xc(t0)
-    and     a0, a0, t2
-    or      a0, (PCIE_GEN_CFG << 17)
-    sw      a0, 0xc(t0)
-
-    dli     t0, 0x90000efe00009800
-    li      a0, 0x64000000
-    sw      a0, 0x10(t0)
-
-    dli     t1, 0x90000e0000000000
-    li      a0, 0x64000000
-    or      t1, t1, a0
-    li      a0, 0xff204c
-    sw      a0, 0x0(t1)
-
-    sw      $0, 0x10(t0)
-#endif
-
-#if (!LS7A_PCIE_H_P1_DISABLE)
-    dli     t0, 0x90000efe0800a000
-    li      a0, 0xfff9ffff
-    lw      t2, 0xc(t0)
-    and     a0, a0, t2
-    or      a0, (PCIE_GEN_CFG << 17)
-    sw      a0, 0xc(t0)
-
-    dli     t0, 0x90000efe0000a000
-    li      a0, 0x64100000
-    sw      a0, 0x10(t0)
-
-    dli     t1, 0x90000e0000000000
-    li      a0, 0x64100000
-    or      t1, t1, a0
-    li      a0, 0xff204c
-    sw      a0, 0x0(t1)
-
-    sw      $0, 0x10(t0)
-#endif
-
-    //disable clock of unused PCIE ports
-    dli     t0, LS7A_CONFBUS_BASE_ADDR
     lw      t1, CONF_NB_OFFSET(t0)
-    li      t2, ((LS7A_PCIE_G1_P0_DISABLE << 30) | (LS7A_PCIE_G1_P1_DISABLE << 31) | (LS7A_PCIE_G0_P0_DISABLE << 26) | (LS7A_PCIE_G0_P1_DISABLE << 27) | (LS7A_PCIE_H_P0_DISABLE << 22) | (LS7A_PCIE_H_P1_DISABLE << 23) | (LS7A_PCIE_F1_P0_DISABLE << 18) | (LS7A_PCIE_F1_P1_DISABLE << 19) | (LS7A_PCIE_F0_P0_DISABLE << 10) | (LS7A_PCIE_F0_P1_DISABLE << 11) | (LS7A_PCIE_F0_P2_DISABLE << 12) | (LS7A_PCIE_F0_P3_DISABLE << 13))
+    li      t2, (1 << 21)
     not     t2, t2
     and     t1, t1, t2
     sw      t1, CONF_NB_OFFSET(t0)
-    TTYDBG("unused PCIE ports closed\r\n")
+    TTYDBG("Powerdown PCIE H PHY.\r\n")
+8:
+    //disable clock of unused PCIE ports
+    lw      t1, CONF_NB_OFFSET(t0)
+    sll     t4, t4, 22
+    not     t4, t4
+    and     t1, t1, t4
+    sw      t1, CONF_NB_OFFSET(t0)
+    TTYDBG("unused PCIE H ports closed\r\n")
 
+    //init SATA
     //use t0 as global variable
     dli     t0, LS7A_CONFBUS_BASE_ADDR
     //configure sata phy parameter
@@ -1059,6 +1308,7 @@
     TTYDBG("SATA2 closed\r\n")
 #endif
 
+    //init USB
 #ifdef  USE_USB_SYS_REFCLK
     //switch refclk
     lw      t1, (CONF_SB_OFFSET+0)(t0)
