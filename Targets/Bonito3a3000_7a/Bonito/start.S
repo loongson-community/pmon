@@ -388,6 +388,7 @@ bsp_start:
 //USING S1 FOR PASSING THE NODE ID
 	dli	s1, 0X0000000000000000
 #include "loongson3_clksetting.S"
+//#include "loongson3a8_clk.S"
 
 ##########################################
 
@@ -462,6 +463,9 @@ bsp_start:
     sw      a0, 0x308(t0)
     sw      a1, 0x30c(t0)
 
+    bal  beep_off
+    nop
+
 //setup LS3A - 7A HT link start...
     //check 3A clksel setting
     li      t0, 0xbfe00190
@@ -528,7 +532,7 @@ bsp_start:
     nop
     move    t2, v0
 1:
-    PRINTSTR("\r\nInput parameter a2: ([3:0]: ht pll soft cfg sel. 0: 200M; 5: 800M; 6: 1000M; 7: 1200M; 9: 1600M; b: 2000M; c: 2200M; d: 2400M; e: 2600M; f: 3200M;): ")
+    PRINTSTR("\r\nInput parameter a2: ([3:0]: ht pll soft cfg sel. 0: 200M; 2: 400M; 5: 800M; 6: 1000M; 7: 1200M; 9: 1600M; b: 2000M; c: 2200M; d: 2400M; e: 2600M; f: 3200M;): ")
     bal     inputaddress
     nop
     move    t1, v0
@@ -538,7 +542,11 @@ bsp_start:
     dli     t3, ((LS7A_HT_PLL_200M | 0x2) << 32) | (LS3A_HT_PLL_200M | 0x2)    //0
     beq     t1, a0, 8f
     nop
-    daddu   a0, a0, 5
+    daddu   a0, a0, 2
+    dli     t3, ((LS7A_HT_PLL_400M | 0x2) << 32) | (LS3A_HT_PLL_400M | 0x2)    //2
+    beq     t1, a0, 8f
+    nop
+    daddu   a0, a0, 3
     dli     t3, ((LS7A_HT_PLL_800M | 0x2) << 32) | (LS3A_HT_PLL_800M | 0x2)    //5
     beq     t1, a0, 8f
     nop
@@ -842,6 +850,30 @@ no_reboot:
 
     TTYDBG("Init Memory done.\r\n")
 
+#if 1   //test memory
+    dli     s1, 0x0001000080000000
+    dli     t1, 0x0010
+    bal     test_mem
+    nop
+    move    t1, v0
+    PRINTSTR("\r\n")
+    dsrl    a0, t1, 32
+    bal     hexserial
+    nop
+    move    a0, t1
+    bal     hexserial
+    nop
+    beqz    t1, 2f
+    nop
+    PRINTSTR("  Error found!!\r\n")
+
+    bal  beep_on
+    nop
+1:
+    b       1b
+    nop
+2:
+#endif
 ##########################################
 #ifdef  DEBUG_DDR
 #if 1
@@ -854,7 +886,7 @@ no_reboot:
     nop
 #endif
 
-    dli     s1, 0x0010000100000000
+    dli     s1, 0x0010000080000000
 #if 1
     PRINTSTR("\r\ndefault s1 = 0x");
     dsrl    a0, s1, 32
@@ -910,8 +942,19 @@ no_reboot:
 
 //Initialize LS7A here, cxk
 #if 1
-    //check chip ID
+    TTYDBG("\r\nbridge CHIP ID: 0x")
     dli     t0, LS7A_CONFBUS_BASE_ADDR
+    lw      a0, 0x3ff8(t0)
+    bal     hexserial
+    nop
+    TTYDBG("revision: 0x")
+    lw      a0, 0x3ffc(t0)
+    srl     a0, a0, 24
+    bal     hexserial
+    nop
+    TTYDBG("\r\n")
+
+    //check chip ID
     lw      a0, 0x3ff8(t0)
     li      a1, 0x7A000000
     xor     a0, a0, a1
@@ -1295,7 +1338,6 @@ END(beep_off)
 #define B57600  57600
 #define B115200 115200
 
-
 LEAF(initserial)
 //call this function must give the register addr to a0
  	li	t1,128
@@ -1521,7 +1563,7 @@ idle1000:
 #ifdef ARB_LEVEL
 #include "ddr_dir/ARB_level_new.S"
 #endif
-#if  (defined(DEBUG_DDR) || defined(DEBUG_GMEM))
+#if 1   // (defined(DEBUG_DDR) || defined(DEBUG_GMEM))
 #include "ddr_dir/Test_Mem.S"
 #endif
 

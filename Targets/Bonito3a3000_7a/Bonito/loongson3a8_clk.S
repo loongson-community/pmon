@@ -17,8 +17,8 @@
 #define DDR_DIV    4
 
 // L1_* define both CPU and Node freq simutanleously
-#define L1_LOOPC    80//1000@25MHz
-//#define L1_LOOPC    64//800@25MHz
+//#define L1_LOOPC    80//1000@25MHz
+#define L1_LOOPC    64//800@25MHz
 //#define L1_LOOPC    49//808@33MHz
 //#define L1_LOOPC    48//600
 #define L1_DIV      2
@@ -44,9 +44,9 @@
 
 
 
-	TTYDBG ("NODE1 Soft CLK SEL adjust begin\r\n")
+	TTYDBG ("Soft CLK SEL adjust begin\r\n")
 
-	dli      t0, 0x900000001fe00194
+	dli     t0, 0x900000001fe00194
 	or	t0, t0, s1
 	lw      a0, 0x0(t0)
 	li      a1, CORE_CLKSEL
@@ -58,7 +58,7 @@
 n1_soft_sys:
 	TTYDBG ("CORE & NODE:")
 
-	dli      t0, 0x900000001fe001b0
+	dli     t0, 0x900000001fe001b0
 	or	t0, t0, s1
 	li	t1, (0x1 << 19) 	//power down pll L1 first
 	sd	t1, 0x0(t0)
@@ -82,13 +82,13 @@ n1_wait_locked_sys:
 	nop
 
 n1_soft_mem:
-	dli      t0, 0x900000001fe00194
-	or	t0, t0, s1
+	dli     t0, 0x900000001fe00194
+	or	    t0, t0, s1
 	lw      a0, 0x0(t0)
 	li      a1, MEM_CLKSEL
 	and     a0, a0, a1
-	li	a1, MEM_HSEL
-	bne	a0, a1, n1_soft_ht
+	li	    a1, MEM_HSEL
+	bne	    a0, a1, n1_soft_ht
 	nop
 
 	TTYDBG ("\r\nMEM        :")
@@ -114,7 +114,7 @@ n1_wait_locked_ddr:
 n1_soft_ht:
 	TTYDBG ("\r\nHT         :")
 
-	dli      t0, 0x900000001fe001b0
+	dli     t0, 0x900000001fe001b0
 	or	t0, t0, s1
 	lw      a0, 0x14(t0)
 	bal     hexserial

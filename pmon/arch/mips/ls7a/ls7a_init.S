@@ -1165,6 +1165,48 @@
     TTYDBG("Graphics disabled.\r\n")
 #endif
 
+#if 0 //debug, read confbus
+    TTYDBG("\r\nconfbus content:\r\n")
+    dli     t0, LS7A_CONFBUS_BASE_ADDR
+    daddu   t2, t0, 0x3000
+    daddu   t3, t2, 0x8a0
+1:
+    and     a0, t2, 0xffff
+    bal     hexserial
+    nop
+    TTYDBG(": ")
+    lw      a0, 0x0(t2)
+    bal     hexserial
+    nop
+    TTYDBG("\r\n")
+
+    daddi   t2, t2, 0x4
+    bne     t2, t3, 1b
+    nop
+
+#if 0
+    TTYDBG("\r\nnode1 7A confbus content:\r\n")
+    dli     a0, (1<<44)
+    daddu   t1, t0, a0
+
+    daddu   t2, t1, 0x400
+    daddu   t3, t2, 0x370
+1:
+    and     a0, t2, 0xffff
+    bal     hexserial
+    nop
+    TTYDBG(": ")
+    lw      a0, 0x0(t2)
+    bal     hexserial
+    nop
+    TTYDBG("\r\n")
+
+    daddi   t2, t2, 0x4
+    bne     t2, t3, 1b
+    nop
+#endif
+#endif
+
 // GMEM configure -- put to Device initial code ?
 #ifdef LS7A_GMEM_CFG
 #ifdef  DEBUG_GMEM
@@ -1243,8 +1285,8 @@
     bnez    t1, 1b
     nop
 
+#if 0
 #ifdef  DEBUG_GMEM
-#if 1
     PRINTSTR("\r\nTest GMEM?(0xf: skip): ")
     bal     inputaddress
     nop
@@ -1261,7 +1303,7 @@
     or      s1, s1, a1
     dli     a1, TEMP_GMEM_ADDR
     or      s1, s1, a1
-#if 1
+#ifdef  DEBUG_GMEM
     PRINTSTR("\r\ndefault s1 = 0x");
     dsrl    a0, s1, 32
     bal     hexserial
@@ -1279,7 +1321,7 @@
 1:
 #endif
 1:
-    dli     t1, 0x10010
+    dli     t1, 0x40010
     bal     test_mem
     nop
     move    t1, v0
@@ -1293,11 +1335,14 @@
     beqz    t1, 2f
     nop
     PRINTSTR("  Error found!!\r\n")
-2:
-#if 0
+#if 1
+    bal     beep_on
+    nop
+1:
     b       1b
     nop
 #endif
+2:
 
 3:
 #endif
@@ -1309,47 +1354,5 @@
     sw      $0, 0x18(t0)
     sw      $0, 0x1c(t0)
 8:
-#endif
-
-#if 0 //debug, read confbus
-    TTYDBG("\r\nconfbus content:\r\n")
-    dli     t0, LS7A_CONFBUS_BASE_ADDR
-    daddu   t2, t0, 0x3000
-    daddu   t3, t2, 0x8a0
-1:
-    and     a0, t2, 0xffff
-    bal     hexserial
-    nop
-    TTYDBG(": ")
-    lw      a0, 0x0(t2)
-    bal     hexserial
-    nop
-    TTYDBG("\r\n")
-
-    daddi   t2, t2, 0x4
-    bne     t2, t3, 1b
-    nop
-
-#if 0
-    TTYDBG("\r\nnode1 7A confbus content:\r\n")
-    dli     a0, (1<<44)
-    daddu   t1, t0, a0
-
-    daddu   t2, t1, 0x400
-    daddu   t3, t2, 0x370
-1:
-    and     a0, t2, 0xffff
-    bal     hexserial
-    nop
-    TTYDBG(": ")
-    lw      a0, 0x0(t2)
-    bal     hexserial
-    nop
-    TTYDBG("\r\n")
-
-    daddi   t2, t2, 0x4
-    bne     t2, t3, 1b
-    nop
-#endif
 #endif
 

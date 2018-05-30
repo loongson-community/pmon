@@ -81,6 +81,85 @@ config_ht_link:
     bne     t5, t6, 1b
     nop
 #endif
+#ifdef  DEBUG_HT1_PARAM
+    PRINTSTR("\r\nChange some registers of 3A HT:");
+1:
+    PRINTSTR("\r\ninput the HT register offset you want to change!!!(0xfff:jump out.): ");
+    dli     t6, 0x00
+    bal     inputaddress
+    nop
+    move    t5, v0
+
+    li      a1, (LS7A_HT_REG_NUM * 4)
+    bge     t5, a1, 4f    #if input address offset exceed range,jump out
+    nop
+
+    and     t5, t5, 0x3fc
+    daddu   t5, t5, t0
+
+    PRINTSTR("\r\nPlease input the data-hex(32bit): ");
+    dli     t6, 0x00
+    bal     inputaddress
+    nop
+    sw      v0, 0x0(t5)    #v0 is the input value
+
+    //print the new register value
+    move    t6, t5
+    PRINTSTR("\r\nRegister 0x")
+    dsubu   t5, t5, t0
+    move    a0, t5
+    bal     hexserial
+    nop
+    PRINTSTR(": ")
+    lw      t6, 0x0(t6)
+    move    a0, t6
+    bal     hexserial
+    nop
+
+    b       1b
+    nop
+4:
+#endif
+
+#ifdef  DEBUG_HT1_PARAM
+    PRINTSTR("\r\nChange some registers of 7A HT:");
+1:
+    PRINTSTR("\r\ninput the HT register offset you want to change!!!(0xfff:jump out.): ");
+    dli     t6, 0x00
+    bal     inputaddress
+    nop
+    move    t5, v0
+
+    li      a1, (LS7A_HT_REG_NUM * 4)
+    bge     t5, a1, 4f    #if input address offset exceed range,jump out
+    nop
+
+    and     t5, t5, 0x3fc
+    daddu   t5, t5, t1
+
+    PRINTSTR("\r\nPlease input the data-hex(32bit): ");
+    dli     t6, 0x00
+    bal     inputaddress
+    nop
+    sw      v0, 0x0(t5)    #v0 is the input value
+
+    //print the new register value
+    move    t6, t5
+    PRINTSTR("\r\nRegister 0x")
+    dsubu   t5, t5, t1
+    move    a0, t5
+    bal     hexserial
+    nop
+    PRINTSTR(": ")
+    lw      t6, 0x0(t6)
+    move    a0, t6
+    bal     hexserial
+    nop
+
+    b       1b
+    nop
+4:
+#endif
 #ifdef  CHECK_HT_PLL_LOCK
     //check HT PLL lock
     move    t5, $0
@@ -598,7 +677,7 @@ reset_ht_link:
     bne     t5, t6, 1b
     nop
 
-#if 0
+#if 1
     TTYDBG("LS7A HT registers are:\r\n")
     move    t5, t1
     daddu   t6, t5, (LS7A_HT_REG_NUM * 4)
@@ -625,7 +704,7 @@ reset_ht_link:
     and     a0, a0, 0x1
     bnez    a0, 2f
     nop
-    PRINTSTR("\r\nError: After reconfigure, 3A HT PLL not locked!!!")
+    PRINTSTR("\r\nError: After reconfigure, 3A HT PLL not locked!!!\r\n")
     add     t5, t5, 1
 2:
 #ifdef  CHECK_7A_HT_PLL_LOCK
@@ -634,13 +713,13 @@ reset_ht_link:
     and     a0, a0, 0x1
     bnez    a0, 2f
     nop
-    PRINTSTR("\r\nError: After reconfigure, 7A HT PLL not locked!!!")
+    PRINTSTR("\r\nError: After reconfigure, 7A HT PLL not locked!!!\r\n")
     add     t5, t5, 1
 2:
 #endif
     bnez    t5, 2b
     nop
-    TTYDBG("\r\nAfter reconnect, PLL check success.")
+    TTYDBG("\r\nAfter reconnect, PLL check success.\r\n")
 #endif
 
 #if 1//Check if CRC error bit set and reset it
