@@ -218,9 +218,7 @@ void initmips(unsigned int raw_memsz)
     CPU_SetSR(0, SR_BOOT_EXC_VEC);
 #endif
     SBD_DISPLAY("BEV0",0);
-#ifndef MULTI_CHIP
-    usb_spi_init();
-#endif
+
     printf("BEV in SR set to zero.\n");
 
     main();
@@ -259,6 +257,11 @@ void tgt_devconfig()
 #endif
 #endif
 	_pci_devinit(1);	/* PCI device initialization */
+
+#ifndef MULTI_CHIP
+    usb_spi_init();
+#endif
+
 #if (NMOD_X86EMU_INT10 > 0)||(NMOD_X86EMU >0)
 	if(pcie_dev != NULL){
 		SBD_DISPLAY("VGAI", 0);
