@@ -1290,11 +1290,26 @@ void ls_pcie_interrupt_fixup(void)
 	}
 
 	/*PCIE*/
-	for(i = 0;i < 12;i++) {
+    /*PCIE F0/F1*/
+	for(i = 0;i < 6;i++) {
 		dev = _pci_make_tag(0, 9 + i, 0);
 		val = _pci_conf_read(dev, 0x00);
 		if ( val != 0xffffffff) // device on the slot
 			_pci_conf_write8(dev, 0x3c, base + 32 + i);
+	}
+    /*PCIE G0/G1*/
+	for(i = 0;i < 4;i++) {
+		dev = _pci_make_tag(0, 15 + i, 0);
+		val = _pci_conf_read(dev, 0x00);
+		if ( val != 0xffffffff) // device on the slot
+			_pci_conf_write8(dev, 0x3c, base + 40 + i);
+	}
+    /*PCIE H*/
+	for(i = 0;i < 2;i++) {
+		dev = _pci_make_tag(0, 19 + i, 0);
+		val = _pci_conf_read(dev, 0x00);
+		if ( val != 0xffffffff) // device on the slot
+			_pci_conf_write8(dev, 0x3c, base + 38 + i);
 	}
 }
 
