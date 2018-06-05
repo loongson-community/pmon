@@ -277,7 +277,7 @@
 
     TTYDBG("LS7A hardware init done.\r\n")
 //3. device configure 
-    //init PCIE
+    //init PCIE -- v0.3
     dli     t0, LS7A_CONFBUS_BASE_ADDR
 
     lw      t1, 0x588(t0)
@@ -399,35 +399,45 @@
     nop
     //reset PCIE end
 
+#ifndef FORCE_ENABLE_PCIE_F0_P123
     lw      t1, 0x588(t0)
     li      t2, (1 << 27)
     not     t2, t2
     and     t1, t1, t2
     sw      t1, 0x588(t0)
+#endif
 
+#ifndef FORCE_ENABLE_PCIE_F1_P1
     lw      t1, 0x5a8(t0)
     li      t2, (1 << 27)
     not     t2, t2
     and     t1, t1, t2
     sw      t1, 0x5a8(t0)
+#endif
 
+#ifndef FORCE_ENABLE_PCIE_G0_P1
     lw      t1, 0x5c8(t0)
     li      t2, (1 << 27)
     not     t2, t2
     and     t1, t1, t2
     sw      t1, 0x5c8(t0)
+#endif
 
+#ifndef FORCE_ENABLE_PCIE_G1_P1
     lw      t1, 0x5e8(t0)
     li      t2, (1 << 27)
     not     t2, t2
     and     t1, t1, t2
     sw      t1, 0x5e8(t0)
+#endif
 
+#ifndef FORCE_ENABLE_PCIE_H_P1
     lw      t1, 0x608(t0)
     li      t2, (1 << 27)
     not     t2, t2
     and     t1, t1, t2
     sw      t1, 0x608(t0)
+#endif
 
     //enable access
     lw      t1, CONF_NB_OFFSET(t0)
@@ -437,25 +447,11 @@
     TTYDBG("PCIE enabled\r\n")
 
 #define PCIE_GEN_CFG 0x1
+#define PCIE_STAT_CHECK_TIMES 100
 
     //PCIE F0
-    dli     t3, 0x90000efe00004800
-    li      a0, 0x60000000
-    sw      a0, 0x10(t3)
-    dli     t1, 0x90000e0060000000
-    lw      t4, 0x0(t1)
-    sw      $0, 0x10(t3)
-    srl     t4, t4, 28
-    and     t4, t4, 0xf //bit3~0: Port3~0; 0: has device; 1: no device
-#ifdef  FORCE_ENABLE_PCIE_F0_P0
-    and     t4, t4, 0xe
-#endif
-
-    li      a0, 0xf
-    beq     t4, a0, 7f
-    nop
-    //some port is used
-    //re-configure PHYs
+    //re-configure PCIE PHYs
+    //DO not destroy a0, a1, for example, do not add print between these code
     daddu   a0, t0, 0x590
     li      a1, 0x403f1002
     bal     ls7a_phy_cfg_write
@@ -469,12 +465,9 @@
     addu    a1, a1, 0x100
     bal     ls7a_phy_cfg_write
     nop
-    //Port 0
-    li      t3, 0x1
-    and     a0, t4, t3
-    bnez    a0, 4f
-    nop
 
+    move    t4, $0
+    //Port 0
     dli     t3, 0x90000efe08004800
     li      a0, 0xfff9ffff
     lw      a1, 0xc(t3)
@@ -490,15 +483,34 @@
     li      a0, 0xff204c
     sw      a0, 0x0(t1)
 
-    sw      $0, 0x10(t3)
-4:
-
-    //Port 1
-    li      t3, 0x2
-    and     a0, t4, t3
-    bnez    a0, 4f
+    //read link state
+    sync
+    li      a1, PCIE_STAT_CHECK_TIMES
+1:
+    lw      a0, 0xc(t1)
+    and     a0, a0, 0x3f
+    bnez    a0, 2f
     nop
+    subu    a1, a1, 1
+    bnez    a1, 1b
+    nop
+    or      t4, t4, 0x1
+2:
+    //read x4_mode to decide whether P1~P3 is valid
+    lw      a0, 0x28(t1)
+    srl     a0, a0, 26
+    and     a0, a0, 1
+    beqz    a0, 1f
+    nop
+    //x4 mode
+    or      t4, t4, 0xe
+1:
+    sw      $0, 0x10(t3)
 
+    li      a0, 0x1
+    bgt     t4, a0, 7f
+    nop
+    //Port 1
     dli     t3, 0x90000efe08005000
     li      a0, 0xfff9ffff
     lw      a2, 0xc(t3)
@@ -514,15 +526,22 @@
     li      a0, 0xff204c
     sw      a0, 0x0(t1)
 
+    //read link state
+    sync
+    li      a1, PCIE_STAT_CHECK_TIMES
+1:
+    lw      a0, 0xc(t1)
+    and     a0, a0, 0x3f
+    bnez    a0, 2f
+    nop
+    subu    a1, a1, 1
+    bnez    a1, 1b
+    nop
+    or      t4, t4, 0x2
+2:
     sw      $0, 0x10(t3)
-4:
 
     //Port 2
-    li      t3, 0x4
-    and     a0, t4, t3
-    bnez    a0, 4f
-    nop
-
     dli     t3, 0x90000efe08005800
     li      a0, 0xfff9ffff
     lw      a2, 0xc(t3)
@@ -538,14 +557,22 @@
     li      a0, 0xff204c
     sw      a0, 0x0(t1)
 
+    //read link state
+    sync
+    li      a1, PCIE_STAT_CHECK_TIMES
+1:
+    lw      a0, 0xc(t1)
+    and     a0, a0, 0x3f
+    bnez    a0, 2f
+    nop
+    subu    a1, a1, 1
+    bnez    a1, 1b
+    nop
+    or      t4, t4, 0x4
+2:
     sw      $0, 0x10(t3)
-4:
 
     //Port 3
-    li      t3, 0x8
-    and     a0, t4, t3
-    bnez    a0, 4f
-    nop
     dli     t3, 0x90000efe08006000
     li      a0, 0xfff9ffff
     lw      a2, 0xc(t3)
@@ -561,11 +588,24 @@
     li      a0, 0xff204c
     sw      a0, 0x0(t1)
 
-    sw      $0, 0x10(t3)
-4:
-    b       8f
+    //read link state
+    sync
+    li      a1, PCIE_STAT_CHECK_TIMES
+1:
+    lw      a0, 0xc(t1)
+    and     a0, a0, 0x3f
+    bnez    a0, 2f
     nop
+    subu    a1, a1, 1
+    bnez    a1, 1b
+    nop
+    or      t4, t4, 0x8
+2:
+    sw      $0, 0x10(t3)
 7:
+    li      a0, 0xf
+    bne     t4, a0, 8f
+    nop
     //powerdown phy
     lw      t1, 0x588(t0)
     li      t2, (1 << 24)
@@ -577,7 +617,7 @@
     not     t2, t2
     and     t1, t1, t2
     sw      t1, CONF_NB_OFFSET(t0)
-    TTYDBG("Powerdown PCIE F0 PHY.\r\n")
+    TTYDBG("Powerdown PCIE F0 PHY and disable all Ports.\r\n")
 8:
     //disable clock of unused PCIE ports
     lw      t1, CONF_NB_OFFSET(t0)
@@ -585,25 +625,9 @@
     not     t4, t4
     and     t1, t1, t4
     sw      t1, CONF_NB_OFFSET(t0)
-    TTYDBG("unused PCIE F0 ports closed\r\n")
+    TTYDBG("unused PCIE F0 ports clock disabled.\r\n")
 
     //PCIE F1
-    dli     t3, 0x90000efe00006800
-    li      a0, 0x60000000
-    sw      a0, 0x10(t3)
-    dli     t1, 0x90000e0060000000
-    lw      t4, 0x0(t1)
-    sw      $0, 0x10(t3)
-    srl     t4, t4, 28
-    and     t4, t4, 0x3 //bit1~0: Port1~0; 0: has device; 1: no device
-#ifdef  FORCE_ENABLE_PCIE_F1_P0
-    and     t4, t4, 0x2
-#endif
-
-    li      a0, 0x3
-    beq     t4, a0, 7f
-    nop
-    //some port is used
     //re-configure PHYs
     daddu   a0, t0, 0x5b0
     li      a1, 0x403f1002
@@ -618,12 +642,9 @@
     addu    a1, a1, 0x100
     bal     ls7a_phy_cfg_write
     nop
-    //Port 0
-    li      t3, 0x1
-    and     a0, t4, t3
-    bnez    a0, 4f
-    nop
 
+    move    t4, $0
+    //Port 0
     dli     t3, 0x90000efe08006800
     li      a0, 0xfff9ffff
     lw      a1, 0xc(t3)
@@ -639,15 +660,34 @@
     li      a0, 0xff204c
     sw      a0, 0x0(t1)
 
-    sw      $0, 0x10(t3)
-4:
-
-    //Port 1
-    li      t3, 0x2
-    and     a0, t4, t3
-    bnez    a0, 4f
+    //read link state
+    sync
+    li      a1, PCIE_STAT_CHECK_TIMES
+1:
+    lw      a0, 0xc(t1)
+    and     a0, a0, 0x3f
+    bnez    a0, 2f
     nop
+    subu    a1, a1, 1
+    bnez    a1, 1b
+    nop
+    or      t4, t4, 0x1
+2:
+    //read x4_mode to decide whether P1 is valid
+    lw      a0, 0x28(t1)
+    srl     a0, a0, 26
+    and     a0, a0, 1
+    beqz    a0, 1f
+    nop
+    //x4 mode
+    or      t4, t4, 0x2
+1:
+    sw      $0, 0x10(t3)
 
+    li      a0, 0x1
+    bgt     t4, a0, 7f
+    nop
+    //Port 1
     dli     t3, 0x90000efe08007000
     li      a0, 0xfff9ffff
     lw      a2, 0xc(t3)
@@ -663,11 +703,24 @@
     li      a0, 0xff204c
     sw      a0, 0x0(t1)
 
-    sw      $0, 0x10(t3)
-4:
-    b       8f
+    //read link state
+    sync
+    li      a1, PCIE_STAT_CHECK_TIMES
+1:
+    lw      a0, 0xc(t1)
+    and     a0, a0, 0x3f
+    bnez    a0, 2f
     nop
+    subu    a1, a1, 1
+    bnez    a1, 1b
+    nop
+    or      t4, t4, 0x2
+2:
+    sw      $0, 0x10(t3)
 7:
+    li      a0, 0x3
+    bne     t4, a0, 8f
+    nop
     //powerdown phy
     lw      t1, 0x5a8(t0)
     li      t2, (1 << 24)
@@ -679,7 +732,7 @@
     not     t2, t2
     and     t1, t1, t2
     sw      t1, CONF_NB_OFFSET(t0)
-    TTYDBG("Powerdown PCIE F1 PHY.\r\n")
+    TTYDBG("Powerdown PCIE F1 PHY and disable all Ports.\r\n")
 8:
     //disable clock of unused PCIE ports
     lw      t1, CONF_NB_OFFSET(t0)
@@ -687,25 +740,9 @@
     not     t4, t4
     and     t1, t1, t4
     sw      t1, CONF_NB_OFFSET(t0)
-    TTYDBG("unused PCIE F1 ports closed\r\n")
+    TTYDBG("unused PCIE F1 ports clock disabled.\r\n")
 
     //PCIE G0
-    dli     t3, 0x90000efe00007800
-    li      a0, 0x60000000
-    sw      a0, 0x10(t3)
-    dli     t1, 0x90000e0060000000
-    lw      t4, 0x0(t1)
-    sw      $0, 0x10(t3)
-    srl     t4, t4, 28
-    and     t4, t4, 0x3 //bit1~0: Port1~0; 0: has device; 1: no device
-#ifdef  FORCE_ENABLE_PCIE_G0_P0
-    and     t4, t4, 0x2
-#endif
-
-    li      a0, 0x3
-    beq     t4, a0, 7f
-    nop
-    //some port is used
     //re-configure PHYs
     daddu   a0, t0, 0x5f0
     li      a1, 0x403f1002
@@ -734,12 +771,9 @@
     addu    a1, a1, 0x100
     bal     ls7a_phy_cfg_write
     nop
-    //Port 0
-    li      t3, 0x1
-    and     a0, t4, t3
-    bnez    a0, 4f
-    nop
 
+    move    t4, $0
+    //Port 0
     dli     t3, 0x90000efe08007800
     li      a0, 0xfff9ffff
     lw      a1, 0xc(t3)
@@ -755,15 +789,34 @@
     li      a0, 0xff204c
     sw      a0, 0x0(t1)
 
-    sw      $0, 0x10(t3)
-4:
-
-    //Port 1
-    li      t3, 0x2
-    and     a0, t4, t3
-    bnez    a0, 4f
+    //read link state
+    sync
+    li      a1, PCIE_STAT_CHECK_TIMES
+1:
+    lw      a0, 0xc(t1)
+    and     a0, a0, 0x3f
+    bnez    a0, 2f
     nop
+    subu    a1, a1, 1
+    bnez    a1, 1b
+    nop
+    or      t4, t4, 0x1
+2:
+    //read x4_mode to decide whether P1 is valid
+    lw      a0, 0x28(t1)
+    srl     a0, a0, 26
+    and     a0, a0, 1
+    bnez    a0, 1f
+    nop
+    //x8 mode
+    or      t4, t4, 0x2
+1:
+    sw      $0, 0x10(t3)
 
+    li      a0, 0x1
+    bgt     t4, a0, 7f
+    nop
+    //Port 1
     dli     t3, 0x90000efe08008000
     li      a0, 0xfff9ffff
     lw      a2, 0xc(t3)
@@ -779,11 +832,24 @@
     li      a0, 0xff204c
     sw      a0, 0x0(t1)
 
-    sw      $0, 0x10(t3)
-4:
-    b       8f
+    //read link state
+    sync
+    li      a1, PCIE_STAT_CHECK_TIMES
+1:
+    lw      a0, 0xc(t1)
+    and     a0, a0, 0x3f
+    bnez    a0, 2f
     nop
+    subu    a1, a1, 1
+    bnez    a1, 1b
+    nop
+    or      t4, t4, 0x2
+2:
+    sw      $0, 0x10(t3)
 7:
+    li      a0, 0x3
+    bne     t4, a0, 8f
+    nop
     //powerdown phy
     lw      t1, 0x5e8(t0)
     li      t2, (1 << 24)
@@ -795,7 +861,7 @@
     not     t2, t2
     and     t1, t1, t2
     sw      t1, CONF_NB_OFFSET(t0)
-    TTYDBG("Powerdown PCIE G0 PHY.\r\n")
+    TTYDBG("Powerdown PCIE G0 PHY and disable all Ports.\r\n")
 8:
     //disable clock of unused PCIE ports
     lw      t1, CONF_NB_OFFSET(t0)
@@ -803,25 +869,9 @@
     not     t4, t4
     and     t1, t1, t4
     sw      t1, CONF_NB_OFFSET(t0)
-    TTYDBG("unused PCIE G0 ports closed\r\n")
+    TTYDBG("unused PCIE G0 ports clock disabled.\r\n")
 
     //PCIE G1
-    dli     t3, 0x90000efe00008800
-    li      a0, 0x60000000
-    sw      a0, 0x10(t3)
-    dli     t1, 0x90000e0060000000
-    lw      t4, 0x0(t1)
-    sw      $0, 0x10(t3)
-    srl     t4, t4, 28
-    and     t4, t4, 0x3 //bit1~0: Port1~0; 0: has device; 1: no device
-#ifdef  FORCE_ENABLE_PCIE_G1_P0
-    and     t4, t4, 0x2
-#endif
-
-    li      a0, 0x3
-    beq     t4, a0, 7f
-    nop
-    //some port is used
     //re-configure PHYs
     daddu   a0, t0, 0x610
     li      a1, 0x403f1002
@@ -850,12 +900,9 @@
     addu    a1, a1, 0x100
     bal     ls7a_phy_cfg_write
     nop
-    //Port 0
-    li      t3, 0x1
-    and     a0, t4, t3
-    bnez    a0, 4f
-    nop
 
+    move    t4, $0
+    //Port 0
     dli     t3, 0x90000efe08008800
     li      a0, 0xfff9ffff
     lw      a1, 0xc(t3)
@@ -871,15 +918,34 @@
     li      a0, 0xff204c
     sw      a0, 0x0(t1)
 
-    sw      $0, 0x10(t3)
-4:
-
-    //Port 1
-    li      t3, 0x2
-    and     a0, t4, t3
-    bnez    a0, 4f
+    //read link state
+    sync
+    li      a1, PCIE_STAT_CHECK_TIMES
+1:
+    lw      a0, 0xc(t1)
+    and     a0, a0, 0x3f
+    bnez    a0, 2f
     nop
+    subu    a1, a1, 1
+    bnez    a1, 1b
+    nop
+    or      t4, t4, 0x1
+2:
+    //read x4_mode to decide whether P1 is valid
+    lw      a0, 0x28(t1)
+    srl     a0, a0, 26
+    and     a0, a0, 1
+    bnez    a0, 1f
+    nop
+    //x8 mode
+    or      t4, t4, 0x2
+1:
+    sw      $0, 0x10(t3)
 
+    li      a0, 0x1
+    bgt     t4, a0, 7f
+    nop
+    //Port 1
     dli     t3, 0x90000efe08009000
     li      a0, 0xfff9ffff
     lw      a2, 0xc(t3)
@@ -895,11 +961,24 @@
     li      a0, 0xff204c
     sw      a0, 0x0(t1)
 
-    sw      $0, 0x10(t3)
-4:
-    b       8f
+    //read link state
+    sync
+    li      a1, PCIE_STAT_CHECK_TIMES
+1:
+    lw      a0, 0xc(t1)
+    and     a0, a0, 0x3f
+    bnez    a0, 2f
     nop
+    subu    a1, a1, 1
+    bnez    a1, 1b
+    nop
+    or      t4, t4, 0x2
+2:
+    sw      $0, 0x10(t3)
 7:
+    li      a0, 0x3
+    bne     t4, a0, 8f
+    nop
     //powerdown phy
     lw      t1, 0x608(t0)
     li      t2, (1 << 24)
@@ -911,7 +990,7 @@
     not     t2, t2
     and     t1, t1, t2
     sw      t1, CONF_NB_OFFSET(t0)
-    TTYDBG("Powerdown PCIE G1 PHY.\r\n")
+    TTYDBG("Powerdown PCIE G1 PHY and disable all Ports.\r\n")
 8:
     //disable clock of unused PCIE ports
     lw      t1, CONF_NB_OFFSET(t0)
@@ -919,25 +998,9 @@
     not     t4, t4
     and     t1, t1, t4
     sw      t1, CONF_NB_OFFSET(t0)
-    TTYDBG("unused PCIE G1 ports closed\r\n")
+    TTYDBG("unused PCIE G1 ports clock disabled.\r\n")
 
     //PCIE H
-    dli     t3, 0x90000efe00009800
-    li      a0, 0x60000000
-    sw      a0, 0x10(t3)
-    dli     t1, 0x90000e0060000000
-    lw      t4, 0x0(t1)
-    sw      $0, 0x10(t3)
-    srl     t4, t4, 28
-    and     t4, t4, 0x3 //bit1~0: Port1~0; 0: has device; 1: no device
-#ifdef  FORCE_ENABLE_PCIE_H_P0
-    and     t4, t4, 0x2
-#endif
-
-    li      a0, 0x3
-    beq     t4, a0, 7f
-    nop
-    //some port is used
     //re-configure PHYs
     daddu   a0, t0, 0x5d0
     li      a1, 0x403f1002
@@ -966,12 +1029,9 @@
     addu    a1, a1, 0x100
     bal     ls7a_phy_cfg_write
     nop
-    //Port 0
-    li      t3, 0x1
-    and     a0, t4, t3
-    bnez    a0, 4f
-    nop
 
+    move    t4, $0
+    //Port 0
     dli     t3, 0x90000efe08009800
     li      a0, 0xfff9ffff
     lw      a1, 0xc(t3)
@@ -987,15 +1047,34 @@
     li      a0, 0xff204c
     sw      a0, 0x0(t1)
 
-    sw      $0, 0x10(t3)
-4:
-
-    //Port 1
-    li      t3, 0x2
-    and     a0, t4, t3
-    bnez    a0, 4f
+    //read link state
+    sync
+    li      a1, PCIE_STAT_CHECK_TIMES
+1:
+    lw      a0, 0xc(t1)
+    and     a0, a0, 0x3f
+    bnez    a0, 2f
     nop
+    subu    a1, a1, 1
+    bnez    a1, 1b
+    nop
+    or      t4, t4, 0x1
+2:
+    //read x4_mode to decide whether P1 is valid
+    lw      a0, 0x28(t1)
+    srl     a0, a0, 26
+    and     a0, a0, 1
+    bnez    a0, 1f
+    nop
+    //x8 mode
+    or      t4, t4, 0x2
+1:
+    sw      $0, 0x10(t3)
 
+    li      a0, 0x1
+    bgt     t4, a0, 7f
+    nop
+    //Port 1
     dli     t3, 0x90000efe0800a000
     li      a0, 0xfff9ffff
     lw      a2, 0xc(t3)
@@ -1011,11 +1090,24 @@
     li      a0, 0xff204c
     sw      a0, 0x0(t1)
 
-    sw      $0, 0x10(t3)
-4:
-    b       8f
+    //read link state
+    sync
+    li      a1, PCIE_STAT_CHECK_TIMES
+1:
+    lw      a0, 0xc(t1)
+    and     a0, a0, 0x3f
+    bnez    a0, 2f
     nop
+    subu    a1, a1, 1
+    bnez    a1, 1b
+    nop
+    or      t4, t4, 0x2
+2:
+    sw      $0, 0x10(t3)
 7:
+    li      a0, 0x3
+    bne     t4, a0, 8f
+    nop
     //powerdown phy
     lw      t1, 0x5c8(t0)
     li      t2, (1 << 24)
@@ -1027,7 +1119,7 @@
     not     t2, t2
     and     t1, t1, t2
     sw      t1, CONF_NB_OFFSET(t0)
-    TTYDBG("Powerdown PCIE H PHY.\r\n")
+    TTYDBG("Powerdown PCIE H PHY and disable all Ports.\r\n")
 8:
     //disable clock of unused PCIE ports
     lw      t1, CONF_NB_OFFSET(t0)
@@ -1035,7 +1127,7 @@
     not     t4, t4
     and     t1, t1, t4
     sw      t1, CONF_NB_OFFSET(t0)
-    TTYDBG("unused PCIE H ports closed\r\n")
+    TTYDBG("unused PCIE H ports clock disabled.\r\n")
 
     //init SATA
     //use t0 as global variable
@@ -1133,7 +1225,7 @@
     not     t2, t2
     and     t1, t1, t2
     sw      t1, (CONF_SB_OFFSET+4)(t0)
-    TTYDBG("SATA0 closed\r\n")
+    TTYDBG("SATA0 clock disabled.\r\n")
 #endif
 
 #if (!LS7A_SATA1_DISABLE)
@@ -1219,7 +1311,7 @@
     not     t2, t2
     and     t1, t1, t2
     sw      t1, (CONF_SB_OFFSET+4)(t0)
-    TTYDBG("SATA1 closed\r\n")
+    TTYDBG("SATA1 clock disabled.\r\n")
 #endif
 
 #if (!LS7A_SATA2_DISABLE)
@@ -1305,7 +1397,7 @@
     not     t2, t2
     and     t1, t1, t2
     sw      t1, (CONF_SB_OFFSET+4)(t0)
-    TTYDBG("SATA2 closed\r\n")
+    TTYDBG("SATA2 clock disabled.\r\n")
 #endif
 
     //init USB
@@ -1358,7 +1450,7 @@
     not     t2, t2
     and     t1, t1, t2
     sw      t1, (CONF_SB_OFFSET+0)(t0)
-    TTYDBG("USB0 closed\r\n")
+    TTYDBG("USB0 clock disabled.\r\n")
 #endif
 
 #if (!LS7A_USB1_DISABLE)
@@ -1395,7 +1487,7 @@
     not     t2, t2
     and     t1, t1, t2
     sw      t1, (CONF_SB_OFFSET+0)(t0)
-    TTYDBG("USB1 closed\r\n")
+    TTYDBG("USB1 clock disabled.\r\n")
 #endif
 
 #if (!LS7A_LPC_DISABLE)

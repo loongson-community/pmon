@@ -34,12 +34,14 @@
 
 #define LS7A_GRAPHICS_DISABLE 0
 
-//if board use PCIE Port0 but PRSNTn0 is not correctly connected, you need force enable it
-//#define FORCE_ENABLE_PCIE_F0_P0
-//#define FORCE_ENABLE_PCIE_F1_P0
-//#define FORCE_ENABLE_PCIE_G0_P0
-//#define FORCE_ENABLE_PCIE_G0_P0
-//#define FORCE_ENABLE_PCIE_H_P0
+//if board use PCIE PortN but PRSNTnN is not correctly pull down or is connected to socket which will use a wider card than the socket,
+//you need force enable PortN by define the macro bellow.
+//N is 1 for PCIE F1/G0/G1/H and 1/2/3 for PCIE F0
+//#define FORCE_ENABLE_PCIE_F0_P123
+//#define FORCE_ENABLE_PCIE_F1_P1
+//#define FORCE_ENABLE_PCIE_G0_P1
+//#define FORCE_ENABLE_PCIE_G1_P1
+//#define FORCE_ENABLE_PCIE_H_P1
 
 #define LS7A_SATA0_DISABLE  0
 #define LS7A_SATA1_DISABLE  0
