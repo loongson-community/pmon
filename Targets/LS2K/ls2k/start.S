@@ -754,6 +754,7 @@ start_now:
 //#define DEBUG_DDR
 //#define DEBUG_DDR_PARAM
 //#define PRINT_DDR_LEVELING
+//#define DLL_DELAY_LOOP
 
     TTYDBG("\r\nStart Init Memory, wait a while......\r\n")
 ####################################
