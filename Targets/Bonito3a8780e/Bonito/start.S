@@ -572,6 +572,8 @@ soft_out:
 #define  DISABLE_DDR_A15
 //#define DEBUG_DDR
 //#define DEBUG_DDR_PARAM
+//#define DLL_DELAY_LOOP
+//#define PRINT_DDR_LEVELING
 
     TTYDBG("\r\nStart Init Memory, wait a while......\r\n")
 ####################################
