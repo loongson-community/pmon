@@ -1334,18 +1334,18 @@ struct efi_memory_map_loongson * init_memory_map()
 	(entry)++
 
 #if 1
-	/*add UMA_VIDEO_RAM area to reserved 0x60 MB memory for GPU */
-	EMAP_ENTRY(i, 0, SYSTEM_RAM_LOW, 0x00200000, 0x0ee - 0x60);
-	EMAP_ENTRY(i, 0, UMA_VIDEO_RAM, (0xee - 0x60 + 2) << 20, 0x60);
-
+	EMAP_ENTRY(i, 0, SYSTEM_RAM_LOW, 0x00200000, 0x0ee);
 	/* for entry with mem_size < 1M, we set bit31 to 1 to indicate
 	 * that the unit in mem_size is Byte not MBype */
 	EMAP_ENTRY(i, 0, SMBIOS_TABLE, (SMBIOS_PHYSICAL_ADDRESS & 0x0fffffff),
 			(SMBIOS_SIZE_LIMIT | 0x80000000));
+	/* 0x20000000 size 512M */
+	EMAP_ENTRY(i, 0, VUMA_VIDEO_RAM, 0x20000000, 0x200);
+	/* SYSTEM_RAM_HIGH high 512M  */
+	EMAP_ENTRY(i, 0, UMA_VIDEO_RAM, 0x90000000ULL + ((unsigned long long)(size - 0x20000000)), 0x200);
 
-	EMAP_ENTRY(i, 0, SYSTEM_RAM_HIGH, 0x90000000, size >> 20);
+	EMAP_ENTRY(i, 0, SYSTEM_RAM_HIGH, 0x90000000, (size - 0x20000000) >> 20);
 #endif
-
 
 #ifdef MULTI_CHIP
 	if(memorysize_high_n1) {

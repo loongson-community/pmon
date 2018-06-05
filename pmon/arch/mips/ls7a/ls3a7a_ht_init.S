@@ -87,19 +87,32 @@ ls3a7a_ht_init:
     li      a0, 0xc0000000
     sw      a0, (LS3A_HT_RX_CACHE_WIN0_OFFSET+0)(t0)
 
+    move    a1, msize
+    li      a0, 0xff
+    and     a1, a0
+    sll     a1, 5
+
+    //translate 0x20000000 ~ 0x40000000 to (high mem - 512M)
+    //mem start address is 0x80000000
+    li      a0, 0x0020ffe0
+    sw      a0, (LS3A_HT_RX_CACHE_WIN1_OFFSET+4)(t0)
+    li      a0, 0xc0000060 //0x80000000 - 0x20000000
+    addu    a0, a1
+    sw      a0, (LS3A_HT_RX_CACHE_WIN1_OFFSET+0)(t0)
+
     //open RX window: 0x0 ~ 0x7f_ffff_ffff
     li      a0, 0x0000e000
-    sw      a0, (LS3A_HT_RX_CACHE_WIN1_OFFSET+4)(t0)
+    sw      a0, (LS3A_HT_RX_CACHE_WIN2_OFFSET+4)(t0)
     li      a0, 0x80000000
-    sw      a0, (LS3A_HT_RX_CACHE_WIN1_OFFSET+0)(t0)
+    sw      a0, (LS3A_HT_RX_CACHE_WIN2_OFFSET+0)(t0)
 
 #ifdef MULTI_CHIP
     //related to system chip number, not the 3A - 7A connection
     //recover node 1 access address (bit 37: node id)
     li      a0, 0x2000e000
-    sw      a0, (LS3A_HT_RX_CACHE_WIN2_OFFSET+4)(t0)
+    sw      a0, (LS3A_HT_RX_CACHE_WIN3_OFFSET+4)(t0)
     li      a0, 0xc0100000
-    sw      a0, (LS3A_HT_RX_CACHE_WIN2_OFFSET+0)(t0)
+    sw      a0, (LS3A_HT_RX_CACHE_WIN3_OFFSET+0)(t0)
 #endif
 
 #if 0   //uncache DMA   currently, configured by kernel

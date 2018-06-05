@@ -16,7 +16,8 @@
 #define ACPI_TABLE		9
 #define SMBIOS_TABLE		10
 #define UMA_VIDEO_RAM		11
-#define MAX_MEMORY_TYPE		12
+#define VUMA_VIDEO_RAM          12
+#define MAX_MEMORY_TYPE         13
 
 #define VRAM_TYPE_SP	0
 #define VRAM_TYPE_UMA	1
