@@ -142,7 +142,7 @@
 #define writel(val, addr) *(volatile u32*)((((u32)(addr))>= 0x40000000) ? ((u32)(addr)) | 0x80000000:((u32)(addr)) | 0xa0000000) = (val)
 #endif
 
-#define MAX_OHCI_C 4		/*In most case it is enough */
+#define MAX_OHCI_C 32		/*In most case it is enough */
 //#define MAX_OHCI_C 8		/* Changed for RS690 */
 ohci_t *usb_ohci_dev[MAX_OHCI_C];
 /* RHSC flag */
@@ -2828,12 +2828,15 @@ int submit_common_msg(struct usb_device *dev, unsigned long pipe, void *buffer,
 	lurb_priv = &ohci_urb[dev_num][ed_num];
 
 	if (usb_pipetype(pipe) != PIPE_INTERRUPT) {	/*FIXME, might not done bulk */
-		dev->status = stat;
+		//dev->status = stat;
+		if(!dev->status && timeout)
 		dev->act_len = transfer_len;
 		/* free TDs in urb_priv */
 		urb_free_priv(lurb_priv);
 		memset(lurb_priv, 0, sizeof(*lurb_priv));
 	}
+
+	if(dev->status || timeout==0) return -1;
 
 	return 0;
 }
@@ -2903,7 +2906,7 @@ static int ohci_submit_control_msg(struct usb_device *dev, unsigned long pipe,
 	if (ohci_debug)
 		printf("submit_control_msg(%d) %x/%d\n", (pipe >> 8) & 0x7f,
 		       buffer, transfer_len);
-#if 1
+#if 0
 	wait_ms(1);
 #endif
 	if (!maxsize) {
@@ -3220,6 +3223,7 @@ static int hc_interrupt(void *hc_data)
 	if (ints & OHCI_INTR_WDH) {
 
 		writel(OHCI_INTR_WDH, &regs->intrdisable);
+		while(!ohci->hcca->done_head) delay(1);
 
 #ifndef  LOONGSON_3A2H
 		if (td == NULL) {

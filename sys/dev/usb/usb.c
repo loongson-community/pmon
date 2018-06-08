@@ -80,6 +80,7 @@
 #include <linux/types.h>
 #include <stdio.h>
 #include <machine/cpu.h>
+#include <sys/malloc.h>
 
 #include "usb.h"
 
@@ -1589,7 +1590,7 @@ static void usb_hub_power_on(struct usb_hub_device *hub)
 	for (i = 0; i < dev->maxchild; i++) {
 		usb_set_port_feature(dev, i + 1, USB_PORT_FEAT_POWER);
 		USB_HUB_PRINTF("port %d returns %lX\n",i+1,dev->status);
-		wait_ms(hub->desc.bPwrOn2PwrGood * 2);
+		wait_ms(max(hub->desc.bPwrOn2PwrGood * 2,100));
 	}
 }
 
@@ -1698,6 +1699,26 @@ static int hub_port_reset(struct usb_device *dev, int port,
 
 }
 
+extern struct devicelist alldevs;
+
+void usb_disconnect(struct usb_device *usbdev)
+{
+	if (usbdev->match != NULL)
+	{
+		struct device *dev, *next_dev;
+		struct device *localdev = usbdev->match;
+		for (dev  = TAILQ_FIRST(&alldevs); dev != NULL; dev = next_dev)
+		{
+			next_dev = TAILQ_NEXT(dev, dv_list);
+			if (strcmp(dev->dv_xname, localdev->dv_xname) == 0)
+			{
+				TAILQ_REMOVE(&alldevs, dev, dv_list);
+				free(dev, M_DEVBUF);
+			}
+		}
+	}
+	dev_index--;
+}
 /*===========================================================================
 *
 *FUNTION: usb_hub_port_connect_change
@@ -1764,6 +1785,8 @@ void usb_hub_port_connect_change(struct usb_device *dev, int port)
 		/* Woops, disable the port */
 		USB_HUB_PRINTF("hub: disabling port %d\n", port + 1);
 		usb_clear_port_feature(dev, port + 1, USB_PORT_FEAT_ENABLE);
+		usb_disconnect(dev->children[port]);
+		dev->children[port] = NULL;
 	}
 }
 

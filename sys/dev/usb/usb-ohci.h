@@ -19,7 +19,7 @@ static int cc_to_error[16] = {
 	/* Bit Stuff  */               USB_ST_BIT_ERR,
 	/* Data Togg  */               USB_ST_CRC_ERR,
 	/* Stall      */               USB_ST_STALLED,
-	/* DevNotResp */               -1,
+	/* DevNotResp */               USB_ST_NOT_RESPONSE,
 	/* PIDCheck   */               USB_ST_BIT_ERR,
 	/* UnExpPID   */               USB_ST_BIT_ERR,
 	/* DataOver   */               USB_ST_BUF_ERR,
