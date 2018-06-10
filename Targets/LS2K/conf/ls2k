@@ -2,7 +2,7 @@
 #
 machine         LS2K        mips    # CPU Architecture, Platform
 config          pmon 
-option          VGAROM_IN_BIOS
+#option          VGAROM_IN_BIOS
 
 option		LOONGSON_2K
 option         	BOOT_PARAM
@@ -106,9 +106,9 @@ select		fatfs
 select		ramfiles
 #select		mod_x86emu		# X86 emulation for VGA
 option		MY40IO
-#select		mod_x86emu_int10
+select		mod_x86emu_int10
 option		MY61IO
-#option          VGA_BASE=0xb0000000
+option          VGA_BASE=0xb0000000
 select		mod_vgacon
 #select		sis315e
 #option		SIS315E
@@ -121,7 +121,7 @@ option		NOPCINAMES		# Save some space for x86emu
 select		mod_framebuffer
 option		FB_XSIZE=1024
 option		FB_YSIZE=768
-#select		mod_vesa
+select		mod_vesa
 option 		CONFIG_VIDEO_16BPP
 #option 	CONFIG_VIDEO_8BPP_INDEX
 
@@ -278,7 +278,10 @@ select yaffsfs
 ##ifzxd
 select		spinand_lld
 option DDR_PARAM_018="0x3030303016100000"
+#option DDR_PARAM_1e8="0x0f0f0f0f0f0f0f0f"
+#option DDR_PARAM_1e0="0x0f0f0f0f0f0f0f0f"
 option DDR_S1=0xc1a10404
+#option DDR_S1=0xc0e18804
 option CONFIG_UART0_SPLIT
 #elif zongzingzilian
 #option DDR_PARAM_018="0x2020202016100000"
@@ -302,7 +305,7 @@ option CONFIG_FB_NONCOHERENT
 #option USE_LS2H_I2C
 #option DDR_PARAM_018="0x4545454516100000"
 ##plyh
-#option DDR_PARAM_018="0x3030303016100000"
+#option DDR_PARAM_018="0x4545454516100000"
 #option CONFIG_LS2K_NAND
 #option DDR_S1=0xc1a10404
 #rmoption AUTO_DDR_CONFIG
@@ -319,7 +322,7 @@ option CONFIG_FB_NONCOHERENT
 #rmoption ARB_LEVEL
 #rmoption CONFIG_FB_NONCOHERENT
 #unselect		spinand_lld
-#select i2c
+select i2c
 #select sii9022a
 #datang
 #option CONFIG_DDR_16BIT
