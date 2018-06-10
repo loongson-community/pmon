@@ -1474,19 +1474,21 @@ int highmemcpy(long long dst,long long src,long long count)
 #if __mips >= 3
 asm(
 ".set noreorder\n"
+"ld $3,%0\n"
+"ld $4,%1\n"
 "1:\n"
 "beqz %2,2f\n"
 "nop\n"
-"lb $2,(%0)\n"
-"sb $2,(%1)\n"
-"daddiu %0,1\n"
-"daddiu %1,1\n"
+"lb $2,($3)\n"
+"sb $2,($4)\n"
+"daddiu $3,1\n"
+"daddiu $4,1\n"
 "b 1b\n"
 "daddiu %2,-1\n"
 "2:\n"
 ".set reorder\n"
-::"r"(src),"r"(dst),"r"(count)
-:"$2"
+::"m"(src),"m"(dst),"r"(count)
+:"$2","$3","$4"
 );
 #else
  memcpy(dst,src,count);
