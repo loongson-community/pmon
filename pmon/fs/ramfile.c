@@ -56,6 +56,7 @@ static off_t ramfile_lseek (int, off_t, int);
 
 int highmemcpy(long long dst,long long src,long long count);
 void mycacheflush(long long addrin,unsigned int size,unsigned int rw);
+unsigned long long strtoull(const char *nptr,char **endptr,int base);
 
 /*
  * Supported paths:
@@ -80,7 +81,7 @@ static int
 		dname += 8;
 
 	if (dname[0] == '@') {
-		u_int32_t address;
+		u_int64_t address;
 		int size;
 		int nseperator = 0;
 		int i;
@@ -112,9 +113,13 @@ static int
 			}
 		}
 		
+#if 0
 		if (!get_rsa ((u_int32_t *)&address, straddr)) {
 			return (-1);
 		}
+#else
+		address = strtoull(straddr, 0, 0);
+#endif
 		
 		if (strsize != NULL) {
 #if 0
@@ -255,7 +260,7 @@ ramfile_lseek (fd, offset, whence)
 	return (_file[fd].posn);
 }
 
-struct Ramfile *addRamFile(char *filename, unsigned long base, unsigned long size, int flags)
+struct Ramfile *addRamFile(char *filename, unsigned long long base, unsigned long size, int flags)
 {
 	struct Ramfile *rmp;
 

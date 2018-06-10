@@ -41,7 +41,7 @@ typedef struct Ramfile {
 	char name[26];
 	int refs;
 	int fd;
-	unsigned long base;
+	unsigned long long base;
 	unsigned long size;
 #define RAMFILE_STATIC  0x0000
 #define RAMFILE_DYNAMIC 0x0001
@@ -51,7 +51,7 @@ typedef struct Ramfile {
 	LIST_ENTRY(Ramfile)	i_next;
 } Ramfile;
 
-struct Ramfile *addRamFile(char *filename, unsigned long base, unsigned long size, int flags);
+struct Ramfile *addRamFile(char *filename, unsigned long long base, unsigned long size, int flags);
 int deleteRamFile(char *filename);
 
 #endif /* __RAMFILE_H__ */
