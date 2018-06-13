@@ -862,7 +862,7 @@ void sisfb_copyarea(int sx,int sy,int dx,int dy,int width,int height);
 #else
 
 #if defined(MEM_PRINTTO_VIDEO)
-	if (CONSOLE_ROWS != 0)
+	if (CONSOLE_ROWS > 1)
 		video_drawsline(memfb, CONSOLE_ROWS, CONSOLE_COLS);
 #else
 
