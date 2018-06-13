@@ -276,9 +276,15 @@ static int ahci_host_init(struct ahci_probe_ent *probe_ent)
 
 	probe_ent->cap = readl(mmio + HOST_CAP);
 	probe_ent->port_map = readl(mmio + HOST_PORTS_IMPL);
+#ifndef AHCI_PORT
 	probe_ent->n_ports = (probe_ent->cap & 0x1f) + 1;
+	i = 0;
+#else
+	i= AHCI_PORT;
+	probe_ent->n_ports = AHCI_PORT + 1;
+#endif
 
-	for (i = 0; i < probe_ent->n_ports; i++) {
+	for ( ; i < probe_ent->n_ports; i++) {
 		probe_ent->port[i].port_mmio = ahci_port_base((u32) mmio, i);
 		port_mmio = (u8 *) probe_ent->port[i].port_mmio;
 		ahci_setup_port(&probe_ent->port[i], (unsigned long)mmio, i);
