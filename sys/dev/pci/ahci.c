@@ -263,9 +263,15 @@ static int ahci_host_init(struct ahci_probe_ent *probe_ent)
 	/* reset must complete within 1 second, or
 	 * the hardware should be considered fried.
 	 */
-	ssleep(1);
+	for(i=0;i<1000;i+=10)
+	{
+		msleep(10);
+		tmp = readl(mmio + HOST_CTL);
+		if ((tmp & HOST_RESET) == 0) {
+			break;
+		}
+	}
 
-	tmp = readl(mmio + HOST_CTL);
 	if (tmp & HOST_RESET) {
 		printf("controller reset failed (0x%x)\n", tmp);
 		return -1;
