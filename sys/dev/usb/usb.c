@@ -1705,7 +1705,7 @@ static int hub_port_reset(struct usb_device *dev, int port,
 	}
 
 	usb_clear_port_feature(dev, port + 1, USB_PORT_FEAT_C_RESET);
-	wait_ms(500);
+	//wait_ms(500);
 	*portstat = portstatus;
 	return 0;
 
@@ -1781,7 +1781,7 @@ void usb_hub_port_connect_change(struct usb_device *dev, int port)
 	}
 
 	//wait_ms(200);
-	wait_ms(400);
+	//wait_ms(400);
 	/* Allocate a new device struct for it */
 	assert(dev->hc_private!=NULL);
 	usb=usb_alloc_new_device(dev->hc_private);
