@@ -939,7 +939,9 @@ int paint_childwindow(char **hint,char *diskdev_name[],char *netdev_name[],int e
 	int selcont = 0;
 
 	t = tgt_gettime();
+#ifdef HAVE_TOD
 	tm = *localtime(&t);
+#endif
 	strcpy(tinput,"");
 	strcpy(w1[0],"vmlinux");
 	strcpy(w1[1],"/dev/hda1");
@@ -1583,7 +1585,9 @@ char *av[];
 	int to_command_tag = 0;
 	time_t t;
 	t = tgt_gettime();
+#ifdef HAVE_TOD
 	tm = *localtime(&t);
+#endif
 
 	init_sysconfig(diskdev_name);
 
