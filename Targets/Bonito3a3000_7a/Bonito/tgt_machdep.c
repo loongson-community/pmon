@@ -392,9 +392,13 @@ void tgt_devconfig()
 		printf("fb_init done\n");
 #ifndef MULTI_CHIP
 		/* For dvo1 */
+#ifdef USE_CH7034
 		gpioi2c_config_ch7034();
+#endif
 		/* For dvo0 */
+#ifdef USE_SII9022a
 		gpioi2c_config_sii9022a();
+#endif
 #endif
 	} else {
 		printf("vga bios init failed, rc=%d\n",rc);
