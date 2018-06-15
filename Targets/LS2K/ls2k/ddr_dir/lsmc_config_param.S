@@ -780,42 +780,42 @@ x8:
 1:
 #endif
 #endif
-    //set data bus width
-    ld      a2, DATA_WIDTH_32_ADDR(t8)
-    dli     a1, 0x1
-    dsll    a1, a1, DATA_WIDTH_32_OFFSET
-    not     a1, a1
-    and     a2, a2, a1
-    GET_DIMM_WIDTH
-    dsll    a1, a1, DATA_WIDTH_32_OFFSET
-    or      a2, a2, a1
-    sd      a2, DATA_WIDTH_32_ADDR(t8)
-#ifndef MC_MULTI_CHANNEL
-    //rewrite multi_channel mode
-    ld      a2, MC_MULTI_CHANNEL_ADDR(t8)
-    dli     a1, 0x1
-    dsll    a1, a1, MC_MULTI_CHANNEL_OFFSET
-    not     a1, a1
-    and     a2, a2, a1
-    GET_DIMM_WIDTH
-    dsll    a1, a1, MC_MULTI_CHANNEL_OFFSET
-    or      a2, a2, a1
-    sd      a2, MC_MULTI_CHANNEL_ADDR(t8)
-#endif
-#ifndef MC_MULTI_CHANNEL
-    //rewrite pm_addr_win(data width)
-    ld      a2, ADDR_WIN_DATA_WIDTH_ADDR(t8)
-    dli     a1, 0x3
-    dsll    a1, a1, ADDR_WIN_DATA_WIDTH_OFFSET
-    not     a1, a1
-    and     a2, a2, a1
-    dli     v0, 0x3
-    GET_DIMM_WIDTH
-    xor     a1, v0, a1
-    dsll    a1, a1, ADDR_WIN_DATA_WIDTH_OFFSET
-    or      a2, a2, a1
-    sd      a2, ADDR_WIN_DATA_WIDTH_ADDR(t8)
-#endif
+//    //set data bus width
+//    ld      a2, DATA_WIDTH_32_ADDR(t8)
+//    dli     a1, 0x1
+//    dsll    a1, a1, DATA_WIDTH_32_OFFSET
+//    not     a1, a1
+//    and     a2, a2, a1
+//    GET_DIMM_WIDTH
+//    dsll    a1, a1, DATA_WIDTH_32_OFFSET
+//    or      a2, a2, a1
+//    sd      a2, DATA_WIDTH_32_ADDR(t8)
+//#ifndef MC_MULTI_CHANNEL
+//    //rewrite multi_channel mode
+//    ld      a2, MC_MULTI_CHANNEL_ADDR(t8)
+//    dli     a1, 0x1
+//    dsll    a1, a1, MC_MULTI_CHANNEL_OFFSET
+//    not     a1, a1
+//    and     a2, a2, a1
+//    GET_DIMM_WIDTH
+//    dsll    a1, a1, MC_MULTI_CHANNEL_OFFSET
+//    or      a2, a2, a1
+//    sd      a2, MC_MULTI_CHANNEL_ADDR(t8)
+//#endif
+//#ifndef MC_MULTI_CHANNEL
+//    //rewrite pm_addr_win(data width)
+//    ld      a2, ADDR_WIN_DATA_WIDTH_ADDR(t8)
+//    dli     a1, 0x3
+//    dsll    a1, a1, ADDR_WIN_DATA_WIDTH_OFFSET
+//    not     a1, a1
+//    and     a2, a2, a1
+//    dli     v0, 0x3
+//    GET_DIMM_WIDTH
+//    xor     a1, v0, a1
+//    dsll    a1, a1, ADDR_WIN_DATA_WIDTH_OFFSET
+//    or      a2, a2, a1
+//    sd      a2, ADDR_WIN_DATA_WIDTH_ADDR(t8)
+//#endif
     //disable ECC module here for leveling, ECC will be enabled later
     ld      a2, ECC_ENABLE_ADDR(t8)
     dli     a1, 0x7

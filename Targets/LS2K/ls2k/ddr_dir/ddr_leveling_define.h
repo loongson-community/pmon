@@ -1,5 +1,18 @@
 #define GET_NUMBER_OF_SLICES	\
     li      t0, 0x8;\
+    lb	    a0, 0x1f2(t8);\
+    bne	    a0, 0x3, 1f;\
+    nop;\
+    li      t0, 0x2;\
+    b       933f;\
+    nop;\
+1:;\
+    bne     a0, 0x5, 934f;\
+    nop;\
+    li      t0, 0x4;\
+    b       933f;\
+    nop;\
+934:;\
     dli     t1, 0x250;\
     or      t1, t1, t8;\
     lb      a0, 0x2(t1);\
