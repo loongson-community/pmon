@@ -93,7 +93,9 @@ void enable_ddrconfig(u64 node_id_shift44)
 {
     unsigned long long val;
 
-#ifdef loongson3A3
+#ifdef LOONGSON_2K
+	*(volatile int *)0xbfe10424 &= ~0x100;
+#elif defined(loongson3A3)
     val = __raw__readq(CPU_CONFIG_ADDR | node_id_shift44);
 #ifdef LSMC_2
     val &=0xfffffffffffffdefull;
@@ -133,7 +135,9 @@ void disable_ddrconfig(u64 node_id_shift44)
     unsigned long long val;
 
     /* Disable DDR access configure register */
-#ifdef loongson3A3
+#ifdef LOONGSON_2K
+	*(volatile int *)0xbfe10424 |= 0x100;
+#elif defined(loongson3A3)
     val = __raw__readq(CPU_CONFIG_ADDR | node_id_shift44);
 #ifdef LSMC_2
     val |= 0x210;
@@ -221,7 +225,7 @@ int read_ddr_param(u64 node_id_shift44, int mc_selector,  unsigned long long * b
     unsigned long long * val = base;
     unsigned long long buf[3];
 
-#ifdef loongson3A3
+#if defined(loongson3A3) && !defined(LOONGSON_2K)
     // step 1. Change The Primest window for MC0 or MC1 register space
     enable_ddrcfgwindow(node_id_shift44, mc_selector, buf);
 #endif
@@ -253,7 +257,7 @@ int read_ddr_param(u64 node_id_shift44, int mc_selector,  unsigned long long * b
     // step 4. Disabel access to MC0 or MC1 register space
     disable_ddrconfig(node_id_shift44);
 
-#ifdef loongson3A3
+#if defined(loongson3A3) && !defined(LOONGSON_2K)
     // step 5. Restore The Primest window for accessing system memory
     disable_ddrcfgwidow(node_id_shift44, mc_selector, buf);
 #endif

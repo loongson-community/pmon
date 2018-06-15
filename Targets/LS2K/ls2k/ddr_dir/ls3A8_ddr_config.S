@@ -14,7 +14,12 @@
 	.set    noreorder
 	.set    mips3
 mc_init:
-	move    t7, ra
+#ifdef ARB_LEVEL
+    sd	    ra, (sp)
+    sd	    s3, 8(sp)
+#else
+    move    t7, ra
+#endif
 
 
 	TTYDBG("\r\nEnable register space of MEMORY\r\n")
@@ -177,75 +182,21 @@ mc_init:
 	nop
 	TTYDBG("\r\nDisable register space of MEMORY done.\r\n")
 
-#ifdef  ARB_LEVEL   //Can not enable. because the ra destroy t7 and code is not port ok.
-#ifdef  DEBUG_DDR_PARAM
-	PRINTSTR("\r\nSkip Memory training?(0: use mark to decide;1: skip ARB_level;)\r\n");
-	dli     t6, 0x00
-	bal     inputaddress    #input value stored in v0
-	nop
-	bnez    v0, 8f
-	nop
-#endif
-	//read ARB_level
-	beqz    t7, 8f
-	nop
-
-	//route 0x1000000000 ~ 0x1FFFFFFFFF(64G) to MC for ARB_level
-	sync
-	nop
-	nop
-	nop
-	nop
-	GET_NODE_ID_a0;
-	XBAR_CONFIG_NODE_a0(ARB_TEMP_L2WINDOW_OFFSET, \
-				0x0000001000000000, \
-				0xFFFFFFF000000000, \
-				0x00000000000000F0)
-	beqz    t3, 2f
-	nop
-	GET_NODE_ID_a0;
-	XBAR_CONFIG_NODE_a0(ARB_TEMP_L2WINDOW_OFFSET, \
-				0x0000001000000000, \
-				0xFFFFFFF000000000, \
-				0x00000000000000F1)
-2:
-	sync
-	nop
-	nop
-	nop
-	nop
-
-	bal     ARB_level
-	nop
-
-	sync
-	nop
-	nop
-	nop
-	nop
-
-	L2XBAR_CLEAR_WINDOW(ARB_TEMP_L2WINDOW_OFFSET)
-
-	sync
-	nop
-	nop
-	nop
-	nop
-
-8:
-#else
 #ifndef DISABLE_HARD_LEVELING
-	dli     a2, 0x3
-	GET_SDRAM_TYPE
-	bne     a1, a2, 88f
-	nop
-	//DDR3 SDRAM, do hard leveling
-	PRINTSTR("Start Hard Leveling...\r\n")
-	TTYDBG("\r\nEnable register space of MEMORY\r\n")
-	bal     enable_mc_conf_space
-	nop
+    //read ARB_level
+    beqz    t7, 88f
+    nop
+    dli     a2, 0x3
+    GET_SDRAM_TYPE
+    bne     a1, a2, 88f
+    nop
+    //DDR3 SDRAM, do hard leveling
+    PRINTSTR("Start Hard Leveling...\r\n")
+    TTYDBG("\r\nEnable register space of MEMORY\r\n")
+    bal     enable_mc_conf_space
+    nop
 
-	move    k0, t3  //store t3, because ddr3_leveling will demage t3
+    move    k0, t3  //store t3, because ddr3_leveling will demage t3
 #ifdef DLL_DELAY_LOOP
 	move    k1, s2
 	dli     s2, 0x0
@@ -322,11 +273,11 @@ wait_dram_init_done1:
 	nop
 #endif
 
-	GET_NODE_ID_a0
-	dli     t8, DDR_MC_CONFIG_BASE
-	or      t8, t8, a0
-	bal     ddr3_leveling
-	nop
+    GET_NODE_ID_a0
+    dli     t8, DDR_MC_CONFIG_BASE
+    or      t8, t8, a0
+    bal     ddr3_leveling
+    nop
 
 #ifdef  PRINT_DDR_LEVELING   //print registers
 	PRINTSTR("The MC param after leveling is:\r\n")
@@ -946,7 +897,6 @@ wait_dram_init_done2:
 	nop
 88:
 #endif
-#endif
 
 #ifndef  DISABLE_DIMM_ECC
 	//Init ECC according to DIMM ECC info
@@ -1084,11 +1034,153 @@ wait_dram_init_done2:
 4:
 #endif
 
-	move    ra, t7
-	jr      ra
-	nop
-	.end    mc_init
+#ifdef ARB_LEVEL
+    ld	    s3, 8(sp)
+    ld	    ra, (sp)
+#else
+    move    ra, t7
+#endif
+    jr      ra
+    nop
+    .end    mc_init
 
+#ifdef  AUTO_ARB_LEVEL
+LEAF(SET_AUTO_ARB_LEVEL_MARK)
+    move    t6, ra
+
+//set t7 to mc level info address
+//if define CHECK_ARB_LEVEL_DIMM, set t1 at the same time for CHECK_DIMM_CHANGE
+    dla     t7, c0_mc0_level_info
+#ifdef  CHECK_ARB_LEVEL_DIMM
+    move    t1, s3
+#endif
+    beqz    t3, 1f
+    nop
+    dla     t7, c0_mc1_level_info
+#ifdef  CHECK_ARB_LEVEL_DIMM
+    dsrl    t1, s3, 8
+#endif
+1:
+#ifdef  MULTI_CHIP
+    GET_NODE_ID_a1
+    beqz    a1, 4f
+    nop
+    dla     t7, c1_mc0_level_info
+#ifdef  CHECK_ARB_LEVEL_DIMM
+    dsrl    t1, s3, 16
+#endif
+    beqz    t3, 4f
+    nop
+    dla     t7, c1_mc1_level_info
+#ifdef  CHECK_ARB_LEVEL_DIMM
+    dsrl    t1, s3, 24
+#endif
+4:
+#endif
+    daddu   t7, t7, s0
+#ifdef  DEBUG_AUTO_ARB_LEVEL
+    PRINTSTR("\r\nstored level info addr is 0x")
+    dsrl    a0, t7, 32
+    bal     hexserial
+    nop
+    move    a0, t7
+    bal     hexserial
+    nop
+    PRINTSTR("\r\nsaved dimm infor is 0x")
+    ld      t8, 0x0(t7)
+    dsrl    a0, t8, 32
+    bal     hexserial
+    nop
+    move    a0, t8
+    bal     hexserial
+    nop
+    PRINTSTR("\r\n")
+    ld      t8, 0x8(t7)
+    dsrl    a0, t8, 32
+    bal     hexserial
+    nop
+    move    a0, t8
+    bal     hexserial
+    nop
+    PRINTSTR("\r\n")
+    ld      t8, 0x10(t7)
+    dsrl    a0, t8, 32
+    bal     hexserial
+    nop
+    move    a0, t8
+    bal     hexserial
+    nop
+    PRINTSTR("\r\n")
+    ld      t8, 0x18(t7)
+    dsrl    a0, t8, 32
+    bal     hexserial
+    nop
+    move    a0, t8
+    bal     hexserial
+    nop
+    PRINTSTR("\r\n")
+    ld      t8, 0x20(t7)
+    dsrl    a0, t8, 32
+    bal     hexserial
+    nop
+    move    a0, t8
+    bal     hexserial
+    nop
+    PRINTSTR("\r\n")
+#endif
+    //check level mark(first boot or first populate DIMM)
+    ld      v0, 0x0(t7)
+    and     v0, v0, 0x1
+    beqz    v0, 1f 
+    nop
+    PRINTSTR("\r\nThis MC has been leveled.");
+
+#ifdef  CHECK_ARB_LEVEL_FREQ
+    bal     CHECK_DDR_FREQ_CHANGE
+    nop
+    bnez    v0, 1f
+    nop
+    PRINTSTR("\r\nThis MC frequency has not been changed.");
+#endif
+
+#ifdef  CHECK_ARB_LEVEL_DIMM
+    bal     CHECK_DIMM_CHANGE
+    nop
+    bnez    v0, 1f
+    nop
+    PRINTSTR("\r\nThis MC DIMMs have not been changed.");
+#endif
+    //set no arb level mark
+    move    t7, $0
+    b       2f
+    nop
+1:
+    //set do arb level mark
+    or      t7, $0, 0x1
+    or      v0, $0, 0x1
+    dsll    a2, v0, 32
+    GET_NODE_ID_a1
+    dsll    a1, a1, 1
+    dsll    a2, a2, a1
+    dsll    a2, a2, t3
+    or      s3, s3, a2
+2:
+#ifdef  DEBUG_AUTO_ARB_LEVEL
+    PRINTSTR("\r\ns3 = 0x");
+    dsrl    a0, s3, 32
+    bal     hexserial
+    nop
+    PRINTSTR("__")
+    move    a0, s3
+    bal     hexserial
+    nop
+    PRINTSTR("\r\n")
+#endif
+    move    ra, t6
+    jr      ra
+    nop
+END(SET_AUTO_ARB_LEVEL_MARK)
+#endif
 //for 3A8
 LEAF(enable_mc_conf_space)
 /*********************
