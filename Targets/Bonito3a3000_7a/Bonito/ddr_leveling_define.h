@@ -1,3 +1,28 @@
+//PCB DQ swap info, default no swap
+#define WLVL_RESP_MAP 0x000000000
+//(1+8)slice:ECC_B7_B6_B5_B4_B3_B2_B1_B0, each byte takes 4 bits(1 hex number)
+//value = MC DQ offset that connected to DRAM DQ0 of each Byte
+//for example, if PCB connect DRAM side DQ0 to CPU side DQ3, DRAM side DQ16 to CPU side DQ17,
+//and others keep one to one, than you need modify this macro to 0x0_0000_0103
+
+#define GET_LVL_BYTE_t2 \
+    dsubu   a1, t2, t8; \
+    dsubu   a1, a1, 0x180;
+
+#define GET_WLVL_RESP_a0 \
+    dsll    a1, a1, 2; \
+    dli     a2, WLVL_RESP_MAP; \
+    dsrl    a2, a2, a1; \
+    and     a2, a2, 0x7; \
+    dsrl    a0, a0, a2; \
+	and 	a0, a0, 0x1;
+
+#define GET_GLVL_RESP_a0 \
+    and     a0, a0, 0x1;
+
+#define GET_GLVL_RESP_2BIT_a0 \
+    and     a0, a0, 0x3;
+
 #define GET_NUMBER_OF_SLICES	\
     li      t0, 0x8;\
 	lb		a0, 0x1f2(t8);\

@@ -237,8 +237,8 @@ lvl_done_sampling0:
 
 lvl_resp_set0:
 	lb		a0, 0x7(t2)
-	dli		t4, 0x01
-	and 	a0, a0, t4
+    GET_LVL_BYTE_t2
+    GET_WLVL_RESP_a0
 	beqz	a0, resp_set0_done
 	nop
 
@@ -378,8 +378,8 @@ lvl_done_sampling1:
 
 lvl_resp_set1:
 	lb		a0, 0x7(t2)
-	dli		t4, 0x01
-	and 	a0, a0, t4
+    GET_LVL_BYTE_t2
+    GET_WLVL_RESP_a0
 	bnez	a0, resp_set1_done
 	nop
 
@@ -1215,8 +1215,7 @@ t_glvl_req_set:
     nop
 	
 	lb		a0, 0x7(t5)
-	dli		t4, 0x1
-	and		a0, a0, t4
+    GET_GLVL_RESP_a0
 	move	a1, a0
 #if 1
     dli     t4, 0x180
@@ -1234,8 +1233,7 @@ t_glvl_req_set:
     nop
 	
 	lb		a0, 0x7(t5)
-	dli		t4, 0x1
-	and		a0, a0, t4
+    GET_GLVL_RESP_a0
 	or		a0, a0, a1
 	move	a1, a0
 #endif
@@ -1255,8 +1253,7 @@ t_glvl_req_set:
     nop
 	
 	lb		a0, 0x7(t5)
-	dli		t4, 0x1
-	and		a0, a0, t4
+    GET_GLVL_RESP_a0
 	or		a0, a0, a1
 #endif
 
@@ -1361,8 +1358,7 @@ glvl_done_sampling0:
 
 glvl_resp_set0:
 	lb		a0, 0x7(t2)
-	dli		t4, 0x3
-	and		a0, a0, t4
+    GET_GLVL_RESP_2BIT_a0
 	beqz	a0, glvl_resp_set0_done
 	nop
 
@@ -1463,8 +1459,7 @@ glvl_done_sampling1:
 
 glvl_resp_set1:
 	lb		a0, 0x7(t2)
-	dli		t4, 0x3
-	and		a0, a0, t4
+    GET_GLVL_RESP_2BIT_a0
 	bnez	a0, glvl_resp_set1_done
 	nop
 	dli		s7, GATE_FILTER_LENGTH
@@ -1698,9 +1693,7 @@ glvl_check_preamble:
 1:
 
     lb      a0, 0x7(t2)
-    dli     t4, 0x3
-    and     a0, a0, t4
-	
+    GET_GLVL_RESP_2BIT_a0
 	bnez	a0, test_continuous5_0
 	nop
 #ifdef LVL_DEBUG
@@ -1871,8 +1864,7 @@ glvl_redo_req_set_0:
 	nop
 #endif
     lb      a0, 0x7(t2)
-    dli     t4, 0x3
-    and     a0, a0, t4
+    GET_GLVL_RESP_2BIT_a0
     beq     a0, 0x0, glvl_redo_set0_end
     nop
 #ifdef LVL_DEBUG
@@ -1931,8 +1923,7 @@ glvl_redo_resp_set1_0:
 	PRINTSTR("\r\nglvl redo resp set 1\r\n")
 #endif	
     lb      a0, 0x7(t2)
-    dli     t4, 0x3
-    and     a0, a0, t4
+    GET_GLVL_RESP_2BIT_a0
     bnez    a0, preamble_check_init
     nop
 
