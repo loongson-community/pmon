@@ -65,31 +65,35 @@ u32 _pci_conf_readn(device_t tag, int reg, int width)
 	}
 
 	_pci_break_tag (tag, &bus, &device, &function); 
-	if(bus != 0 && device != 0) return -1;
-    //workaround pcie header
-    if(bus == 0 && (device >=9 && device <= 20) && reg == 0x8){
-        return 0x06040001;
-    }
-    //workaround LPC BAR4/5
-    if(bus == 0 && device == 23 && function == 0 && (reg >= 0x10 && reg <= 0x24)){
-        return 0;
-    }
+
+	if (bus > 255 || device > 31 || function > 7)
+	{
+		printf("_pci_conf_readn: bad bus 0x%x, device 0x%x, function 0x%x\n", bus, device, function);
+		return ~0;		/* device out of range */
+	}
+	//workaround PCIE duplicate device bug
+	//here we assume no PCIE bridge(switch) will put same device(not NULL) at dev0/15/31,
+	//we use this condition to identify the queried bus is directly attached behind our PCIE port
+	//notice the cmp val_raw != -1 is necessary.
+	if(bus != 0 && device != 0) {
+		val_raw = pci_read_type1_config32(bus, 0, function, 0x0);
+		if(val_raw != -1 && pci_read_type1_config32(bus, 15, function, 0x0) == val_raw && pci_read_type1_config32(bus, 31, function, 0x0) == val_raw)
+			return -1;
+	}
+	//workaround pcie header
+	if(bus == 0 && (device >=9 && device <= 20) && reg == 0x8) {
+		return 0x06040001;
+	}
+	//workaround LPC BAR4/5
+	if(bus == 0 && device == 23 && function == 0 && (reg >= 0x10 && reg <= 0x24)){
+		return 0;
+	}
 
 	if (bus == 0) {
 		/* Type 0 configuration on onboard PCI bus */
-		if (device > 31 || function > 7)
-		{
-			printf("_pci_conf_readn: bad device 0x%x, function 0x%x\n", device, function);
-			return ~0;		/* device out of range */
-		}
 		return pci_read_type0_config32(device, function, reg);
 	} else {
 		/* Type 1 configuration on offboard PCI bus */
-		if (bus > 255 || device > 31 || function > 7)
-		{	
-			printf("_pci_conf_readn: bad bus 0x%x, device 0x%x, function 0x%x\n", bus, device, function);
-			return ~0;		/* device out of range */
-		}
 		return pci_read_type1_config32(bus, device, function, reg);
 	}
 
