@@ -46,6 +46,10 @@ gencode=./genrom
 ROMSTARTADDR=0xffffffffff200200
 endif
 
+ifeq ("${tgt}","rom1")
+gencode=./genrom
+endif
+
 
 ifdef obj
 export CC += -g3
@@ -82,12 +86,29 @@ ${START}:
 	cp ../Targets/${TARGET}/compile/${TARGETEL}/${START} .
 
 startram.o:
-	gcc  -DSTARTADDR=${RAMSTARTADDR} -DOUT_FORMAT=\"${OUT_FORMAT}\" -DOUT_ARCH=mips -Umips -E -P ld.script.S  > ld.script
+	gcc  -DSTARTADDR=${RAMSTARTADDR} -DOUT_FORMAT=\"${OUT_FORMAT}\" -DOUT_ARCH=mips -Umips -E -P ld.script.S  > ../Targets/${TARGET}/conf/ld.script
 	make -C ../Targets/${TARGET}/compile/${TARGETEL}/ DEBUG='-g -DMYDBG="printf(\"debug:%s,%d\\n\",__FILE__,__LINE__);"'
 	$(CC) -D_LOCORE -G 0  -nostdinc   -DMIPS  -DCONS_BAUD="B115200"  -DCONFIG_CACHE_64K_4WAY  -D_KERNEL -D__OpenBSD__ -DPMON -D__PMON__ -mno-abicalls -c startram.S ${ZLOADER_OPTIONS} -D MEMSIZE=${MEMSIZE}
 # $(CC) -D_LOCORE -G 0  -nostdinc   -DMIPS  -DCONS_BAUD="B115200"  -DCONFIG_CACHE_64K_4WAY  -D_KERNEL -D__OpenBSD__ -DPMON -D__PMON__ -EL -mno-abicalls -mcpu=r4000 -c startram.S -D MEMSIZE=${MEMSIZE}
 zloader.o: zloader.c inflate.c  malloc.c  memop.c  pmon.bin.c initmips.c
 	$(CC) -c zloader.c ${ZLOADER_OPTIONS} -DMEMSIZE=${MEMSIZE}
+
+rom1: clean ${START} zloader1.o 
+	gcc  -DSTARTADDR=0xffffffff9fc00000 -D_ROM1 -DOUT_FORMAT=\"${OUT_FORMAT}\" -DOUT_ARCH=mips -Umips -E -P ld.script.S  > ld.script
+	${LD} -T ld.script -e start -o gzrom ${START} zloader.o 
+	${CROSS_COMPILE}objcopy -O binary gzrom gzrom.bin
+
+zloader1.o: zloader.c inflate.c  malloc.c  memop.c  pmon.bin.c initmips.c program.o xmodem.o
+	sed -i 's/initmips/initmips1/' initmips.c
+	sed -i 's/flush_cache2();//;s/flush_cache();//' initmips.c
+	$(CC) -g -c -o zloader.tmp.o zloader.c ${ZLOADER_OPTIONS} -DMEMSIZE=${MEMSIZE}
+	${LD}  -r -o zloader.o zloader.tmp.o program.o xmodem.o
+
+program.o: program.S
+	make -C  ../Targets/${TARGET}/compile/${TARGETEL}/ `pwd`/$@
+
+xmodem.o: xmodem.c
+	make -C  ../Targets/${TARGET}/compile/${TARGETEL}/ `pwd`/$@
 
 zlib_loader.o: zlib_loader.c  ./zlib_gzip zlib_pmon.bin.c initmips.c
 	cd zlib_inflate;$(CC) -I ../../include -c *.c
@@ -123,6 +144,7 @@ endif
 
 dtb:
 	./dtc -I dts -O dtb -o ${TARGETEL}.dtb ../Targets/${TARGET}/conf/${TARGETEL}.dts
+	[ -f gzrom.bin ] && cp gzrom.bin gzrom-dtb.bin && python ../tools/pmonenv.py -f gzrom-dtb.bin -d ls2k.dtb -w  al=\(usb0,0\)/boot/vmlinuz al1=\(wd0,0\)/boot/vmlinuz append="'console=ttyS0,115200 console=tty initcall_debug=1 loglevel=20'" FR=1
 cleanall: clean
 	make -C ../Targets/${TARGET}/compile/${TARGETEL}/ clean
 clean:
