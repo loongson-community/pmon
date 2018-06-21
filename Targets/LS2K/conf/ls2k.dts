@@ -28,8 +28,7 @@
 			  0x20000000 0 0x20000000 0x20000000
               0x0d000000 0 0x0d000000 0x02000000>;
 
-		/*dma-coherent;*/
-		not-coherent;
+		dma-coherent;
 		nr_cpus_loongson = <2>;
 		cores_per_package = <2>;
 
@@ -114,7 +113,7 @@
 			interrupt-parent = <&icu>;
 			interrupts = <20 21>;
 			interrupt-names = "macirq", "eth_wake_irq";
-			/*mac-address = [ 64 48 48 48 48 60 ]; [>mac 64:48:48:48:48:60 <]*/
+			mac-address = [ 64 48 48 48 48 60 ];/* [>mac 64:48:48:48:48:60 <]*/
 			phy-mode = "rgmii";
 			bus_id = <0x0>;
 			phy_addr = <0xffffffff>;
@@ -127,7 +126,7 @@
 			interrupt-parent = <&icu>;
 			interrupts = <22 23>;
 			interrupt-names = "macirq", "eth_wake_irq";
-			/*mac-address = [ 64 48 48 48 48 61 ]; [>mac 64:48:48:48:48:61 <]*/
+			mac-address = [ 64 48 48 48 48 61 ];/* [>mac 64:48:48:48:48:61 <]*/
 			phy-mode = "rgmii";
 			bus_id = <0x1>;
 			phy_addr = <0xffffffff>;

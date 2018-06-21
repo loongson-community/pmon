@@ -1118,10 +1118,9 @@ initstack (ac, av, addenv)
 	 */
 #ifdef DTB
 #include "target/load_dtb.h"
-	md_setlr(setup_dtb(ac, av, ssp), (register_t)_exit);
-#else
-	md_setlr(NULL, (register_t)_exit);
+	setup_dtb(ac, av);
 #endif
+	md_setlr(NULL, (register_t)_exit);
 }
 
 void get_memorysize(unsigned long long raw_memsz) {
