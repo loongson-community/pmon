@@ -487,7 +487,7 @@ cp0_main:
 	li      t1, 0x10000000
 	or	t0, t0, t1
 
-	dli	t1, 0xff204c
+	dli	t1, 0xff204f
         sw      t1, 0x0(t0)
   
 //pcie1 port1
