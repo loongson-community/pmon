@@ -552,7 +552,7 @@ after_ht:
 ####################################
 #include "ddr_dir/lsmc_ddr_param_define.h"
 #include "ddr_dir/ddr_config_define.h"
-#define DDR_DLL_BYPASS
+//#define DDR_DLL_BYPASS
 #define DISABLE_DIMM_ECC
 #define PRINT_MSG
 #ifndef ARB_LEVEL
@@ -569,7 +569,7 @@ after_ht:
 //#define DEBUG_AUTO_ARB_LEVEL
 #endif
 //#define DISABLE_DDR_A15
-//#define DEBUG_DDR
+#define DEBUG_DDR
 //#define DEBUG_DDR_PARAM
 
 	TTYDBG("\r\nStart Init Memory, wait a while......\r\n")
@@ -594,6 +594,7 @@ after_ht:
 	dli	s1, 0xc0a18800c0a18800
 #endif
 #include "loongson3_ddr2_config.S"
+//#include "ddr_dir/loongson3_ddr2_config.S"
 //#include "ddr_dir/loongson3a2h_ddr_config.S"
 
 	TTYDBG("Init Memory done.\r\n")
@@ -671,7 +672,7 @@ after_ht:
 
 ##########################################
 #ifdef  DEBUG_DDR
-#if 1
+#if 0
 	PRINTSTR("\r\nDo test?(0xf: skip): ")
 	bal     inputaddress
 	nop
@@ -682,7 +683,7 @@ after_ht:
 #endif
 
 	dli     s1, 0x0010000100000000
-#if 1
+#if 0
 	PRINTSTR("\r\ndefault s1 = 0x");
 	dsrl    a0, s1, 32
 	bal     hexserial
@@ -1376,7 +1377,7 @@ watchdog_enable:
     nop
     .end watchdog_enable
 #######################################
-#include "ddr_dir/ls3A8_ddr_config.S"
+#include "ls3A8_ddr_config.S"
 #ifdef DDR3_DIMM
 #include "loongson3C_ddr3_leveling.S"
 #endif
