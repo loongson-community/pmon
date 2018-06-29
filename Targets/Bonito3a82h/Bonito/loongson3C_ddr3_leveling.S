@@ -5,7 +5,14 @@
    ECC slice in not included yet
    2012.9.25 add ECC slice
 */
-
+#include "ddr_dir/ddr_leveling_define.h"
+#define	PREMBLE_CHECK_DEBUG
+//#define	PRINT_PREMBLE_CHECK
+#define PRINT_DDR_LEVELING
+//#define	FILTER_CHECK
+//#define SIGNAL_DEPICT_DEBUG
+//#define	FIND_PREMBLE_LENGTH
+//#define LVL_DEBUG
 /* in PRINTSTR: a0, a1, a2, v0, v1 will be changed */
         .global ddr3_leveling
         .ent    ddr3_leveling
@@ -13,7 +20,7 @@ ddr3_leveling:
  
 	  move s5,ra
 
-#define PM_DPD_FRE// change parameters depend on frequency
+//#define PM_DPD_FRE// change parameters depend on frequency
 #ifdef PM_DPD_FRE
 
 #for 3a8, different frequency will use different rd_oe_start/stop
@@ -34,16 +41,21 @@ ddr3_leveling:
 1:
     dsrl    t1, t1, 2 
 
-    dli     t4, 16
+    dli     t4, 15
     bgt     t1, t4, 3f
     nop
-
 
     //<= 500M, for udimm, add rd_oe_start/stop by 0x2 and sub tPHY_RDDATA by 0x1
     //         for rdimm, only sub tPHY_RDDATA by 0x1
     GET_DIMM_TYPE
     bnez    a1, 4f //RDIMM
     nop
+
+    //temp code for Kinston 2G UDIMM, at 400MHz, only sub tPHY_RDDATA by 0x1
+    dli     t4, 12
+    beq     t1, t4, 4f
+    nop
+
 
 /* identify wheather there is ecc slice */
     li      t0, 0x8
@@ -63,7 +75,8 @@ ddr3_leveling:
 
 2:
     ld      a0, 0x0(t1)
-    dli     t4, 0x020200000000
+    dli     t4, 0x000000000000
+//    dli     t4, 0x020200000000
     daddu   a0, a0, t4
     sd      a0, 0x0(t1)
     daddu   t1, t1, 0x20
@@ -90,7 +103,7 @@ ddr3_leveling:
     dli     t4, 0x0000ffff00000000
     and     a1, a1, t4 
     dsrl    a1, a1, 32 // dll_value store in a1
-    daddu   a1, a1, 2
+//    daddu   a1, a1, 2
 
     //set dll_ck0
     dli     t1, 0x18
@@ -139,6 +152,7 @@ wait_dram_init_done:
     beqz    a0, wait_dram_init_done
     nop
 
+#if 1 //3a3000
 write_leveling:
     PRINTSTR("\r\nwrite leveling begin\r\n")
 
@@ -195,9 +209,11 @@ lvl_ready_sampling:
 /* 5. Set leveling req */
 
 /* t3 is used to indicate whether all slice got 0 */
+	dli		t0, 0x0 //t0 is used to indicate the number of slice being filtering check
     dli     t3, 0x0
     dli     a1, 0x0
     dli     s6, 0x0
+	dli		a3, 0x40
 lvl_req_set:
     dli     t1, 0x180
     or      t1, t1, t8
@@ -241,7 +257,7 @@ lvl_resp_0_set0:
     dli     t1, 0x180
     or      t1, t1, t8
     ld      a0, 0x0(t1)
-    dli     t4, 0xff00000000000000
+    dli     t4, 0x0100000000000000
     and     a0, a0, t4
     //dsrl    a0, a0, 56
     //beq     a0, a1, dll_wrdqs_0_add1
@@ -251,7 +267,7 @@ lvl_resp_1_set0:
     dli     t1, 0x188
     or      t1, t1, t8
     ld      a0, 0x0(t1)
-    dli     t4, 0x00000000000000ff
+    dli     t4, 0x0000000000000001
     and     a0, a0, t4
     //beq     a0, a1, dll_wrdqs_1_add1
     bnez    a0, dll_wrdqs_1_add1
@@ -260,7 +276,7 @@ lvl_resp_2_set0:
     dli     t1, 0x188
     or      t1, t1, t8
     ld      a0, 0x0(t1)
-    dli     t4, 0x000000000000ff00
+    dli     t4, 0x0000000000000100
     and     a0, a0, t4
     //dsrl    a0, a0, 8
     //beq     a0, a1, dll_wrdqs_2_add1
@@ -270,7 +286,7 @@ lvl_resp_3_set0:
     dli     t1, 0x188
     or      t1, t1, t8
     ld      a0, 0x0(t1)
-    dli     t4, 0x0000000000ff0000
+    dli     t4, 0x0000000000010000
     and     a0, a0, t4
     //dsrl    a0, a0, 16
     //beq     a0, a1, dll_wrdqs_3_add1
@@ -280,7 +296,7 @@ lvl_resp_4_set0:
     dli     t1, 0x188
     or      t1, t1, t8
     ld      a0, 0x0(t1)
-    dli     t4, 0x00000000ff000000
+    dli     t4, 0x0000000001000000
     and     a0, a0, t4
     //dsrl    a0, a0, 24
     //beq     a0, a1, dll_wrdqs_4_add1
@@ -290,7 +306,7 @@ lvl_resp_5_set0:
     dli     t1, 0x188
     or      t1, t1, t8
     ld      a0, 0x0(t1)
-    dli     t4, 0x000000ff00000000
+    dli     t4, 0x0000000100000000
     and     a0, a0, t4
     //dsrl    a0, a0, 32
     //beq     a0, a1, dll_wrdqs_5_add1
@@ -300,7 +316,7 @@ lvl_resp_6_set0:
     dli     t1, 0x188
     or      t1, t1, t8
     ld      a0, 0x0(t1)
-    dli     t4, 0x0000ff0000000000
+    dli     t4, 0x0000010000000000
     and     a0, a0, t4
     //dsrl    a0, a0, 40
     //beq     a0, a1, dll_wrdqs_6_add1
@@ -310,7 +326,7 @@ lvl_resp_7_set0:
     dli     t1, 0x188
     or      t1, t1, t8
     ld      a0, 0x0(t1)
-    dli     t4, 0x00ff000000000000
+    dli     t4, 0x0001000000000000
     and     a0, a0, t4
     //dsrl    a0, a0, 48
     //beq     a0, a1, dll_wrdqs_7_add1
@@ -330,7 +346,7 @@ lvl_resp_8_set0:
     dli     t1, 0x188
     or      t1, t1, t8
     ld      a0, 0x0(t1)
-    dli     t4, 0xff00000000000000
+    dli     t4, 0x0100000000000000
     and     a0, a0, t4
     //dsrl    a0, a0, 56
     //beq     a0, a1, dll_wrdqs_8_add1
@@ -371,7 +387,7 @@ additional_lvl_req:
     blt     s6, 45, dll_wrdqs8_add
     nop
 11:
-    b       1f
+    b       2221f
     nop
 
 dll_wrdqs0_add:
@@ -382,6 +398,31 @@ dll_wrdqs0_add:
     dli     t4, 0xffffffffff7fffff
     and     a0, a0, t4
     sd      a0, 0x38(t8)
+
+#if 1
+	lb		a0, 0x3a(t8) // set dll_wrdata
+	dsubu	a0, a0, 0x20
+	dli		t4, 0x7f
+	or		a0, a0, t4
+	sb		a0, 0x39(t8)
+	li		a0, 0x1		// set wrdqs_lt_half
+	sb		a0, 0x21(t8)
+	lb		a0, 0x3a(t8)   
+	blt		a0, 0x40, 1f   //if dll_dqs less then a3 then set 1 else set 0
+	nop
+	li		a0, 0x0	
+	sb		a0, 0x21(t8)
+1:
+
+	li		a0, 0x1		// set  wrdq_lt_half
+	sb		a0, 0x20(t8)
+	lb		a0, 0x39(t8)
+	blt		a0, 0x40, 1f   //if dll_dq less then a3 then set 1 else set 0
+	nop
+	li		a0, 0x0
+	sb		a0, 0x20(t8)
+1:
+#endif	
     b       lvl_req_set //make additional 5 times lvl_req
     nop
 
@@ -393,7 +434,31 @@ dll_wrdqs1_add:
     dli     t4, 0xffffffffff7fffff
     and     a0, a0, t4
     sd      a0, 0x58(t8)
-    b       lvl_req_set //make additional 5 times lvl_req
+	
+	lb		a0, 0x5a(t8) // set dll_wrdata
+	dsubu	a0, a0, 0x20
+	dli		t4, 0x7f
+	or		a0, a0, t4
+	sb		a0, 0x59(t8)
+	li		a0, 0x1		// set wrdqs_lt_half
+	sb		a0, 0x41(t8)
+	lb		a0, 0x5a(t8)   
+	blt		a0, 0x40, 1f   //if dll_dqs less then a3 then set 1 else set 0
+	nop
+	li		a0, 0x0	
+	sb		a0, 0x41(t8)
+1:
+
+	li		a0, 0x1		// set  wrdq_lt_half
+	sb		a0, 0x40(t8)
+	lb		a0, 0x59(t8)
+	blt		a0, 0x40, 1f   //if dll_dq less then a3 then set 1 else set 0
+	nop
+	li		a0, 0x0
+	sb		a0, 0x40(t8)
+1:
+    
+	b       lvl_req_set //make additional 5 times lvl_req
     nop
 
 dll_wrdqs2_add:
@@ -404,6 +469,30 @@ dll_wrdqs2_add:
     dli     t4, 0xffffffffff7fffff
     and     a0, a0, t4
     sd      a0, 0x78(t8)
+	
+	lb		a0, 0x7a(t8) // set dll_wrdata
+	dsubu	a0, a0, 0x20
+	dli		t4, 0x7f
+	or		a0, a0, t4
+	sb		a0, 0x79(t8)
+	li		a0, 0x1		// set wrdqs_lt_half
+	sb		a0, 0x61(t8)
+	lb		a0, 0x7a(t8)   
+	blt		a0, 0x40, 1f   //if dll_dqs less then a3 then set 1 else set 0
+	nop
+	li		a0, 0x0	
+	sb		a0, 0x61(t8)
+1:
+
+	li		a0, 0x1		// set  wrdq_lt_half
+	sb		a0, 0x60(t8)
+	lb		a0, 0x79(t8)
+	blt		a0, 0x40, 1f   //if dll_dq less then a3 then set 1 else set 0
+	nop
+	li		a0, 0x0
+	sb		a0, 0x60(t8)
+1:
+    
     b       lvl_req_set //make additional 5 times lvl_req
     nop
 
@@ -415,6 +504,30 @@ dll_wrdqs3_add:
     dli     t4, 0xffffffffff7fffff
     and     a0, a0, t4
     sd      a0, 0x98(t8)
+	
+	lb		a0, 0x9a(t8) // set dll_wrdata
+	dsubu	a0, a0, 0x20
+	dli		t4, 0x7f
+	or		a0, a0, t4
+	sb		a0, 0x99(t8)
+	li		a0, 0x1		// set wrdqs_lt_half
+	sb		a0, 0x81(t8)
+	lb		a0, 0x9a(t8)   
+	blt		a0, 0x40, 1f   //if dll_dqs less then a3 then set 1 else set 0
+	nop
+	li		a0, 0x0	
+	sb		a0, 0x81(t8)
+1:
+
+	li		a0, 0x1		// set  wrdq_lt_half
+	sb		a0, 0x80(t8)
+	lb		a0, 0x99(t8)
+	blt		a0, 0x40, 1f   //if dll_dq less then a3 then set 1 else set 0
+	nop
+	li		a0, 0x0
+	sb		a0, 0x80(t8)
+1:
+    
     b       lvl_req_set //make additional 5 times lvl_req
     nop
 
@@ -426,6 +539,30 @@ dll_wrdqs4_add:
     dli     t4, 0xffffffffff7fffff
     and     a0, a0, t4
     sd      a0, 0xb8(t8)
+	
+	lb		a0, 0xba(t8) // set dll_wrdata
+	dsubu	a0, a0, 0x20
+	dli		t4, 0x7f
+	or		a0, a0, t4
+	sb		a0, 0xb9(t8)
+	li		a0, 0x1		// set wrdqs_lt_half
+	sb		a0, 0xa1(t8)
+	lb		a0, 0xba(t8)   
+	blt		a0, 0x40, 1f   //if dll_dqs less then a3 then set 1 else set 0
+	nop
+	li		a0, 0x0	
+	sb		a0, 0xa1(t8)
+1:
+
+	li		a0, 0x1		// set  wrdq_lt_half
+	sb		a0, 0xa0(t8)
+	lb		a0, 0xb9(t8)
+	blt		a0, 0x40, 1f   //if dll_dq less then a3 then set 1 else set 0
+	nop
+	li		a0, 0x0
+	sb		a0, 0xa0(t8)
+1:
+    
     b       lvl_req_set //make additional 5 times lvl_req
     nop
 
@@ -437,6 +574,30 @@ dll_wrdqs5_add:
     dli     t4, 0xffffffffff7fffff
     and     a0, a0, t4
     sd      a0, 0xd8(t8)
+	
+	lb		a0, 0xda(t8) // set dll_wrdata
+	dsubu	a0, a0, 0x20
+	dli		t4, 0x7f
+	or		a0, a0, t4
+	sb		a0, 0xd9(t8)
+	li		a0, 0x1		// set wrdqs_lt_half
+	sb		a0, 0xc1(t8)
+	lb		a0, 0xda(t8)   
+	blt		a0, 0x40, 1f   //if dll_dqs less then a3 then set 1 else set 0
+	nop
+	li		a0, 0x0	
+	sb		a0, 0xc1(t8)
+1:
+
+	li		a0, 0x1		// set  wrdq_lt_half
+	sb		a0, 0xc0(t8)
+	lb		a0, 0xd9(t8)
+	blt		a0, 0x40, 1f   //if dll_dq less then a3 then set 1 else set 0
+	nop
+	li		a0, 0x0
+	sb		a0, 0xc0(t8)
+1:
+    
     b       lvl_req_set //make additional 5 times lvl_req
     nop
 
@@ -448,6 +609,30 @@ dll_wrdqs6_add:
     dli     t4, 0xffffffffff7fffff
     and     a0, a0, t4
     sd      a0, 0xf8(t8)
+	
+	lb		a0, 0xfa(t8) // set dll_wrdata
+	dsubu	a0, a0, 0x20
+	dli		t4, 0x7f
+	or		a0, a0, t4
+	sb		a0, 0xf9(t8)
+	li		a0, 0x1		// set wrdqs_lt_half
+	sb		a0, 0xe1(t8)
+	lb		a0, 0xfa(t8)   
+	blt		a0, 0x40, 1f   //if dll_dqs less then a3 then set 1 else set 0
+	nop
+	li		a0, 0x0	
+	sb		a0, 0xe1(t8)
+1:
+
+	li		a0, 0x1		// set  wrdq_lt_half
+	sb		a0, 0xe0(t8)
+	lb		a0, 0xf9(t8)
+	blt		a0, 0x40, 1f   //if dll_dq less then a3 then set 1 else set 0
+	nop
+	li		a0, 0x0
+	sb		a0, 0xe0(t8)
+1:
+    
     b       lvl_req_set //make additional 5 times lvl_req
     nop
 
@@ -459,6 +644,30 @@ dll_wrdqs7_add:
     dli     t4, 0xffffffffff7fffff
     and     a0, a0, t4
     sd      a0, 0x118(t8)
+	
+	lb		a0, 0x11a(t8) // set dll_wrdata
+	dsubu	a0, a0, 0x20
+	dli		t4, 0x7f
+	or		a0, a0, t4
+	sb		a0, 0x119(t8)
+	li		a0, 0x1		// set wrdqs_lt_half
+	sb		a0, 0x101(t8)
+	lb		a0, 0x11a(t8)   
+	blt		a0, 0x40, 1f   //if dll_dqs less then a3 then set 1 else set 0
+	nop
+	li		a0, 0x0	
+	sb		a0, 0x101(t8)
+1:
+
+	li		a0, 0x1		// set  wrdq_lt_half
+	sb		a0, 0x100(t8)
+	lb		a0, 0x119(t8)
+	blt		a0, 0x40, 1f   //if dll_dq less then a3 then set 1 else set 0
+	nop
+	li		a0, 0x0
+	sb		a0, 0x100(t8)
+1:
+    
     b       lvl_req_set //make additional 5 times lvl_req
     nop
 
@@ -470,13 +679,38 @@ dll_wrdqs8_add:
     dli     t4, 0xffffffffff7fffff
     and     a0, a0, t4
     sd      a0, 0x138(t8)
+	
+	lb		a0, 0x13a(t8) // set dll_wrdata
+	dsubu	a0, a0, 0x20
+	dli		t4, 0x7f
+	or		a0, a0, t4
+	sb		a0, 0x139(t8)
+	li		a0, 0x1		// set wrdqs_lt_half
+	sb		a0, 0x121(t8)
+	lb		a0, 0x13a(t8)   
+	blt		a0, 0x40, 1f   //if dll_dqs less then a3 then set 1 else set 0
+	nop
+	li		a0, 0x0	
+	sb		a0, 0x121(t8)
+1:
+
+	li		a0, 0x1		// set  wrdq_lt_half
+	sb		a0, 0x120(t8)
+	lb		a0, 0x139(t8)
+	blt		a0, 0x40, 1f   //if dll_dq less then a3 then set 1 else set 0
+	nop
+	li		a0, 0x0
+	sb		a0, 0x120(t8)
+1:
+    
     b       lvl_req_set //make additional 5 times lvl_req
     nop
 
-1:
+2221:
 #endif
 
     dli     t3, 0x1
+	dli		s6, 0x3
     b       lvl_req_set
     nop
 
@@ -488,13 +722,13 @@ lvl_resp_set:
     //jr      ra
     //nop
 
-    dli     s6, 0x1
+    //dli     s6, 0x1
 lvl_resp_0_set1:
     dli     s7, 0x0
     dli     t1, 0x180
     or      t1, t1, t8
     ld      a0, 0x0(t1)
-    dli     t4, 0xff00000000000000
+    dli     t4, 0x0100000000000000
     and     a0, a0, t4
     dsrl    a0, a0, 56
     beq     a0, $0, dll_wrdqs_0_add2
@@ -503,7 +737,7 @@ lvl_resp_1_set1:
     dli     t1, 0x188
     or      t1, t1, t8
     ld      a0, 0x0(t1)
-    dli     t4, 0x00000000000000ff
+    dli     t4, 0x0000000000000001
     and     a0, a0, t4
     beq     a0, $0, dll_wrdqs_1_add2
     nop
@@ -511,7 +745,7 @@ lvl_resp_2_set1:
     dli     t1, 0x188
     or      t1, t1, t8
     ld      a0, 0x0(t1)
-    dli     t4, 0x000000000000ff00
+    dli     t4, 0x0000000000000100
     and     a0, a0, t4
     dsrl    a0, a0, 8
     beq     a0, $0, dll_wrdqs_2_add2
@@ -520,7 +754,7 @@ lvl_resp_3_set1:
     dli     t1, 0x188
     or      t1, t1, t8
     ld      a0, 0x0(t1)
-    dli     t4, 0x0000000000ff0000
+    dli     t4, 0x0000000000010000
     and     a0, a0, t4
     dsrl    a0, a0, 16
     beq     a0, $0, dll_wrdqs_3_add2
@@ -529,7 +763,7 @@ lvl_resp_4_set1:
     dli     t1, 0x188
     or      t1, t1, t8
     ld      a0, 0x0(t1)
-    dli     t4, 0x00000000ff000000
+    dli     t4, 0x0000000001000000
     and     a0, a0, t4
     dsrl    a0, a0, 24
     beq     a0, $0, dll_wrdqs_4_add2
@@ -538,7 +772,7 @@ lvl_resp_5_set1:
     dli     t1, 0x188
     or      t1, t1, t8
     ld      a0, 0x0(t1)
-    dli     t4, 0x000000ff00000000
+    dli     t4, 0x0000000100000000
     and     a0, a0, t4
     dsrl    a0, a0, 32
     beq     a0, $0, dll_wrdqs_5_add2
@@ -547,7 +781,7 @@ lvl_resp_6_set1:
     dli     t1, 0x188
     or      t1, t1, t8
     ld      a0, 0x0(t1)
-    dli     t4, 0x0000ff0000000000
+    dli     t4, 0x0000010000000000
     and     a0, a0, t4
     dsrl    a0, a0, 40
     beq     a0, $0, dll_wrdqs_6_add2
@@ -556,7 +790,7 @@ lvl_resp_7_set1:
     dli     t1, 0x188
     or      t1, t1, t8
     ld      a0, 0x0(t1)
-    dli     t4, 0x00ff000000000000
+    dli     t4, 0x0001000000000000
     and     a0, a0, t4
     dsrl    a0, a0, 48
     beq     a0, $0, dll_wrdqs_7_add2
@@ -573,24 +807,285 @@ lvl_resp_8_set1:
     dli     t1, 0x188
     or      t1, t1, t8
     ld      a0, 0x0(t1)
-    dli     t4, 0xff00000000000000
+    dli     t4, 0x0100000000000000
     and     a0, a0, t4
     dsrl    a0, a0, 56
     beq     a0, $0, dll_wrdqs_8_add2
     nop
 1:
 
-    beq     s7, s6, lvl_req_set
+    beqz	s7, 1f
     nop
-
+	dli 	s6, 0x6
+	b		lvl_req_set
+	nop
+1:
     //jr      ra
     //nop
 
+#ifdef FILTER_CHECK
+check_5_slice0:
+	bnez	t0, check_5_slice1
+	nop
+//	PRINTSTR("\r\ncheck slice 0\r\n")
+//	move	a0, s6
+//	bal		hexserial
+//	nop
+	subu	s6, s6, 0x1
+	beqz	s6, 1f
+	nop
+	
+    dli     t1, 0x38
+    or      t1, t1, t8
+    lb      a0, 0x2(t1)
+    daddu   a0, a0, 0x1
+    dli     t4, 0x7f
+    and     a0, a0, t4
+    sb      a0, 0x2(t1)
+	b		lvl_req_set
+	nop
+1:
+    dli     t1, 0x38
+    or      t1, t1, t8
+    lb      a0, 0x2(t1)
+    dsubu   a0, a0, 0x5
+    dli     t4, 0x7f
+    and     a0, a0, t4
+    sb      a0, 0x2(t1)
+	dli		s6, 0x6
+	daddu	t0, t0, 0x1
+check_5_slice1:
+	bne		t0, 1, check_5_slice2
+	nop
+	subu	s6, s6, 0x1
+	beqz	s6, 1f
+	nop
+	
+    dli     t1, 0x58
+    or      t1, t1, t8
+    lb      a0, 0x2(t1)
+    daddu   a0, a0, 0x1
+    dli     t4, 0x7f
+    and     a0, a0, t4
+    sb      a0, 0x2(t1)
+	b		lvl_req_set
+	nop
+1:
+    dli     t1, 0x58
+    or      t1, t1, t8
+    lb      a0, 0x2(t1)
+    dsubu   a0, a0, 0x5
+    dli     t4, 0x7f
+    and     a0, a0, t4
+    sb      a0, 0x2(t1)
+	dli		s6, 0x6
+	daddu	t0, t0, 0x1
+check_5_slice2:
+	bne		t0, 2, check_5_slice3
+	nop
+	subu	s6, s6, 0x1
+	beqz	s6, 1f
+	nop
+	
+    dli     t1, 0x78
+    or      t1, t1, t8
+    lb      a0, 0x2(t1)
+    daddu   a0, a0, 0x1
+    dli     t4, 0x7f
+    and     a0, a0, t4
+    sb      a0, 0x2(t1)
+	b		lvl_req_set
+	nop
+1:
+    dli     t1, 0x78
+    or      t1, t1, t8
+    lb      a0, 0x2(t1)
+    dsubu   a0, a0, 0x5
+    dli     t4, 0x7f
+    and     a0, a0, t4
+    sb      a0, 0x2(t1)
+	dli		s6, 0x6
+	daddu	t0, t0, 0x1
+check_5_slice3:
+	bne		t0, 3, check_5_slice4
+	nop
+	subu	s6, s6, 0x1
+	beqz	s6, 1f
+	nop
+	
+    dli     t1, 0x98
+    or      t1, t1, t8
+    lb      a0, 0x2(t1)
+    daddu   a0, a0, 0x1
+    dli     t4, 0x7f
+    and     a0, a0, t4
+    sb      a0, 0x2(t1)
+	b		lvl_req_set
+	nop
+1:
+    dli     t1, 0x98
+    or      t1, t1, t8
+    lb      a0, 0x2(t1)
+    dsubu   a0, a0, 0x5
+    dli     t4, 0x7f
+    and     a0, a0, t4
+    sb      a0, 0x2(t1)
+	dli		s6, 0x6
+	daddu	t0, t0, 0x1
+check_5_slice4:
+	bne		t0, 4, check_5_slice5
+	nop
+	subu	s6, s6, 0x1
+	beqz	s6, 1f
+	nop
+	
+    dli     t1, 0xb8
+    or      t1, t1, t8
+    lb      a0, 0x2(t1)
+    daddu   a0, a0, 0x1
+    dli     t4, 0x7f
+    and     a0, a0, t4
+    sb      a0, 0x2(t1)
+	b		lvl_req_set
+	nop
+1:
+    dli     t1, 0xb8
+    or      t1, t1, t8
+    lb      a0, 0x2(t1)
+    dsubu   a0, a0, 0x5
+    dli     t4, 0x7f
+    and     a0, a0, t4
+    sb      a0, 0x2(t1)
+	dli		s6, 0x6
+	daddu	t0, t0, 0x1
+check_5_slice5:
+	bne		t0, 5, check_5_slice6
+	nop
+	subu	s6, s6, 0x1
+	beqz	s6, 1f
+	nop
+	
+    dli     t1, 0xd8
+    or      t1, t1, t8
+    lb      a0, 0x2(t1)
+    daddu   a0, a0, 0x1
+    dli     t4, 0x7f
+    and     a0, a0, t4
+    sb      a0, 0x2(t1)
+	b		lvl_req_set
+	nop
+1:
+    dli     t1, 0xd8
+    or      t1, t1, t8
+    lb      a0, 0x2(t1)
+    dsubu   a0, a0, 0x5
+    dli     t4, 0x7f
+    and     a0, a0, t4
+    sb      a0, 0x2(t1)
+	dli		s6, 0x6
+	daddu	t0, t0, 0x1
+check_5_slice6:
+	bne		t0, 6, check_5_slice7
+	nop
+//	PRINTSTR("\r\ncheck slice 6\r\n")
+//	move	a0, s6
+//	bal		hexserial
+//	nop
+	subu	s6, s6, 0x1
+	beqz	s6, 1f
+	nop
+	
+    dli     t1, 0xf8
+    or      t1, t1, t8
+    lb      a0, 0x2(t1)
+    daddu   a0, a0, 0x1
+    dli     t4, 0x7f
+    and     a0, a0, t4
+    sb      a0, 0x2(t1)
+	b		lvl_req_set
+	nop
+1:
+    dli     t1, 0xf8
+    or      t1, t1, t8
+    lb      a0, 0x2(t1)
+    dsubu   a0, a0, 0x5
+    dli     t4, 0x7f
+    and     a0, a0, t4
+    sb      a0, 0x2(t1)
+	dli		s6, 0x6
+	daddu	t0, t0, 0x1
+check_5_slice7:
+	bne		t0, 7, check_5_slice8
+	nop
+//	PRINTSTR("\r\ncheck slice 7\r\n")
+//	move	a0, s6
+//	bal		hexserial
+//	nop
+	subu	s6, s6, 0x1
+	beqz	s6, 1f
+	nop
+	
+    dli     t1, 0x118
+    or      t1, t1, t8
+    lb      a0, 0x2(t1)
+    daddu   a0, a0, 0x1
+    dli     t4, 0x7f
+    and     a0, a0, t4
+    sb      a0, 0x2(t1)
+	b		lvl_req_set
+	nop
+1:
+    dli     t1, 0x118
+    or      t1, t1, t8
+    lb      a0, 0x2(t1)
+    dsubu   a0, a0, 0x5
+    dli     t4, 0x7f
+    and     a0, a0, t4
+    sb      a0, 0x2(t1)
+	dli		s6, 0x6
+	daddu	t0, t0, 0x1
+check_5_slice8:
+/* identify wheather there is ecc slice */
+    dli     t1, 0x250
+    or      t1, t1, t8
+    lb      a0, 0x2(t1)
+    dli     t1, 0x1
+    and     a0, a0, t1
+    bne     a0, t1, check_5_end //when rd_after_write enabled, the 9th device may don't need leveling
+    nop
+1:
+	subu	s6, s6, 0x1
+	beqz	s6, 1f
+	nop
+	
+    dli     t1, 0x138
+    or      t1, t1, t8
+    lb      a0, 0x2(t1)
+    daddu   a0, a0, 0x1
+    dli     t4, 0x7f
+    and     a0, a0, t4
+    sb      a0, 0x2(t1)
+	b		lvl_req_set
+	nop
+1:
+    dli     t1, 0x138
+    or      t1, t1, t8
+    lb      a0, 0x2(t1)
+    dsubu   a0, a0, 0x5
+    dli     t4, 0x7f
+    and     a0, a0, t4
+    sb      a0, 0x2(t1)
+	dli		s6, 0x0
+	daddu	t0, t0, 0x1
+check_5_end:
+PRINTSTR("\r\nfiltering check success\r\n")
+#endif
+
 /* 8. All 1 found, set params according to wrdqs */
 
-    GET_DIMM_TYPE
-    beqz    a1, 81f
-    nop
+//    GET_DIMM_TYPE
+//    beqz    a1, 81f
+//    nop
 
 /* adjust wrdqs carefully */
 #if 0   //def  DEBUG_DDR_PARAM   //print registers
@@ -621,6 +1116,253 @@ lvl_resp_8_set1:
     nop
 #endif
 wrdqs_adjust:
+#if 1
+#ifdef LVL_DEBUG
+    PRINTSTR("\r\nwrdqs around 0x00 carefully adjust begin\r\n")
+#endif
+/* identify wheather there is ecc slice */
+    li      t0, 0x9
+    dli     t1, 0x250
+    or      t1, t1, t8
+    lb      a0, 0x2(t1)
+    dli     t1, 0x1
+    and     a0, a0, t1
+    bne     a0, t1, 1f //when rd_after_write enabled, the 9th device may don't need leveling
+    nop
+    daddu   t0, t0, 0x1
+1:
+    dli     a2, 0x08
+    dli     a3, 0x78
+//    dli     t0, 0x8
+    dli     t1, 0x018
+    or      t1, t1, t8
+wrdqs_adjust_loop00:
+    subu    t0, t0, 0x1
+    beq     t0, $0, 1f
+    nop
+    daddu   t1, t1, 0x20
+    ld      a0, 0x0(t1)
+    dli     t4, 0x0000000000ff0000
+    and     a0, a0, t4
+    dsrl    a0, a0, 16
+    bgtu    a0, a2, wrdqs_adjust_loop00
+    nop
+    bltu    a0, a3, wrdqs_adjust_loop00
+    nop
+    dli     t4, 0x70
+    and     t4, t4, a0
+    beqz    t4, wrdqs_set_08
+    nop
+    ld      a0, 0x0(t1)
+    dli     t4, 0xffffffffff00ffff
+    and     a0, a0, t4
+    dli     t4, 0x780000
+    or      a0, a0, t4
+    sd      a0, 0x0(t1)
+	
+	lb		a0, 0x2(t1) // set dll_wrdata
+	dsubu	a0, a0, 0x20
+	dli		t4, 0x7f
+	and		a0, a0, t4
+	sb		a0, 0x1(t1)
+	dsubu	t1, t1, 0x18
+	li		a0, 0x1		// set wrdqs_lt_half
+	sb		a0, 0x1(t1)
+	daddu	t1, t1, 0x18
+	lb		a0, 0x2(t1)   
+	blt		a0, 0x40, 22f   //if dll_dqs less then a3 then set 1 else set 0
+	nop
+	dsubu	t1, t1, 0x18
+	li		a0, 0x0	
+	sb		a0, 0x1(t1)
+	daddu	t1, t1, 0x18
+22:
+
+	dsubu	t1, t1, 0x18
+	li		a0, 0x1		// set  wrdq_lt_half
+	sb		a0, 0x0(t1)
+	daddu	t1, t1, 0x18
+	lb		a0, 0x1(t1)
+	blt		a0, 0x40, 22f   //if dll_dq less then a3 then set 1 else set 0
+	nop
+	dsubu	t1, t1, 0x18
+	li		a0, 0x0
+	sb		a0, 0x0(t1)
+	daddu	t1, t1, 0x18
+22:
+
+    b       wrdqs_adjust_loop00
+    nop
+
+wrdqs_set_08:
+    ld      a0, 0x0(t1)
+    dli     t4, 0xffffffffff00ffff
+    and     a0, a0, t4
+    dli     t4, 0x080000
+    or      a0, a0, t4
+    sd      a0, 0x0(t1)
+	
+	lb		a0, 0x2(t1) // set dll_wrdata
+	dsubu	a0, a0, 0x20
+	dli		t4, 0x7f
+	and		a0, a0, t4
+	sb		a0, 0x1(t1)
+	dsubu	t1, t1, 0x18
+	li		a0, 0x1		// set wrdqs_lt_half
+	sb		a0, 0x1(t1)
+	daddu	t1, t1, 0x18
+	lb		a0, 0x2(t1)   
+	blt		a0, 0x40, 22f   //if dll_dqs less then a3 then set 1 else set 0
+	nop
+	dsubu	t1, t1, 0x18
+	li		a0, 0x0	
+	sb		a0, 0x1(t1)
+	daddu	t1, t1, 0x18
+22:
+
+	dsubu	t1, t1, 0x18
+	li		a0, 0x1		// set  wrdq_lt_half
+	sb		a0, 0x0(t1)
+	daddu	t1, t1, 0x18
+	lb		a0, 0x1(t1)
+	blt		a0, 0x40, 22f   //if dll_dq less then a3 then set 1 else set 0
+	nop
+	dsubu	t1, t1, 0x18
+	li		a0, 0x0
+	sb		a0, 0x0(t1)
+	daddu	t1, t1, 0x18
+22:
+    b       wrdqs_adjust_loop00
+    nop
+
+#ifdef LVL_DEBUG
+    PRINTSTR("\r\nwrdqs around 0x00 carefully adjust end\r\n")
+#endif
+1:
+#endif
+#if 1
+#ifdef LVL_DEBUG
+    PRINTSTR("\r\nwrdqs around 0x20 carefully adjust begin\r\n")
+#endif
+/* identify wheather there is ecc slice */
+    li      t0, 0x9
+    dli     t1, 0x250
+    or      t1, t1, t8
+    lb      a0, 0x2(t1)
+    dli     t1, 0x1
+    and     a0, a0, t1
+    bne     a0, t1, 1f //when rd_after_write enabled, the 9th device may don't need leveling
+    nop
+    daddu   t0, t0, 0x1
+1:
+    dli     a2, 0x28
+    dli     a3, 0x18
+//    dli     t0, 0x8
+    dli     t1, 0x018
+    or      t1, t1, t8
+wrdqs_adjust_loop20:
+    subu    t0, t0, 0x1
+    beq     t0, $0, 1f
+    nop
+    daddu   t1, t1, 0x20
+    ld      a0, 0x0(t1)
+    dli     t4, 0x0000000000ff0000
+    and     a0, a0, t4
+    dsrl    a0, a0, 16
+    bgtu    a0, a2, wrdqs_adjust_loop20
+    nop
+    bltu    a0, a3, wrdqs_adjust_loop20
+    nop
+    dli     t4, 0x20
+    bltu    a0, t4, wrdqs_set_18
+    nop
+    ld      a0, 0x0(t1)
+    dli     t4, 0xffffffffff00ffff
+    and     a0, a0, t4
+    dli     t4, 0x280000
+    or      a0, a0, t4
+    sd      a0, 0x0(t1)
+	
+	lb		a0, 0x2(t1) // set dll_wrdata
+	dsubu	a0, a0, 0x20
+	dli		t4, 0x7f
+	and		a0, a0, t4
+	sb		a0, 0x1(t1)
+	dsubu	t1, t1, 0x18
+	li		a0, 0x1		// set wrdqs_lt_half
+	sb		a0, 0x1(t1)
+	daddu	t1, t1, 0x18
+	lb		a0, 0x2(t1)   
+	blt		a0, 0x40, 22f   //if dll_dqs less then a3 then set 1 else set 0
+	nop
+	dsubu	t1, t1, 0x18
+	li		a0, 0x0	
+	sb		a0, 0x1(t1)
+	daddu	t1, t1, 0x18
+22:
+
+	dsubu	t1, t1, 0x18
+	li		a0, 0x1		// set  wrdq_lt_half
+	sb		a0, 0x0(t1)
+	daddu	t1, t1, 0x18
+	lb		a0, 0x1(t1)
+	blt		a0, 0x40, 22f   //if dll_dq less then a3 then set 1 else set 0
+	nop
+	dsubu	t1, t1, 0x18
+	li		a0, 0x0
+	sb		a0, 0x0(t1)
+	daddu	t1, t1, 0x18
+22:
+    b       wrdqs_adjust_loop20
+    nop
+
+wrdqs_set_18:
+    ld      a0, 0x0(t1)
+    dli     t4, 0xffffffffff00ffff
+    and     a0, a0, t4
+    dli     t4, 0x180000
+    or      a0, a0, t4
+    sd      a0, 0x0(t1)
+	
+	lb		a0, 0x2(t1) // set dll_wrdata
+	dsubu	a0, a0, 0x20
+	dli		t4, 0x7f
+	and		a0, a0, t4
+	sb		a0, 0x1(t1)
+	dsubu	t1, t1, 0x18
+	li		a0, 0x1		// set wrdqs_lt_half
+	sb		a0, 0x1(t1)
+	daddu	t1, t1, 0x18
+	lb		a0, 0x2(t1)   
+	blt		a0, 0x40, 22f   //if dll_dqs less then a3 then set 1 else set 0
+	nop
+	dsubu	t1, t1, 0x18
+	li		a0, 0x0	
+	sb		a0, 0x1(t1)
+	daddu	t1, t1, 0x18
+22:
+
+	dsubu	t1, t1, 0x18
+	li		a0, 0x1		// set  wrdq_lt_half
+	sb		a0, 0x0(t1)
+	daddu	t1, t1, 0x18
+	lb		a0, 0x1(t1)
+	blt		a0, 0x40, 22f   //if dll_dq less then a3 then set 1 else set 0
+	nop
+	dsubu	t1, t1, 0x18
+	li		a0, 0x0
+	sb		a0, 0x0(t1)
+	daddu	t1, t1, 0x18
+22:
+    b       wrdqs_adjust_loop20
+    nop
+
+1:
+#ifdef LVL_DEBUG
+    PRINTSTR("\r\nwrdqs around 0x40 carefully adjust end\r\n")
+#endif
+#endif
+#if 1
 #ifdef LVL_DEBUG
     PRINTSTR("\r\nwrdqs around 0x40 carefully adjust begin\r\n")
 #endif
@@ -635,8 +1377,8 @@ wrdqs_adjust:
     nop
     daddu   t0, t0, 0x1
 1:
-    dli     a2, 0x45
-    dli     a3, 0x3a
+    dli     a2, 0x48
+    dli     a3, 0x38
 //    dli     t0, 0x8
     dli     t1, 0x018
     or      t1, t1, t8
@@ -659,9 +1401,40 @@ wrdqs_adjust_loop40:
     ld      a0, 0x0(t1)
     dli     t4, 0xffffffffff00ffff
     and     a0, a0, t4
-    dli     t4, 0x450000
+    dli     t4, 0x480000
     or      a0, a0, t4
     sd      a0, 0x0(t1)
+	
+	lb		a0, 0x2(t1) // set dll_wrdata
+	dsubu	a0, a0, 0x20
+	dli		t4, 0x7f
+	and		a0, a0, t4
+	sb		a0, 0x1(t1)
+	dsubu	t1, t1, 0x18
+	li		a0, 0x1		// set wrdqs_lt_half
+	sb		a0, 0x1(t1)
+	daddu	t1, t1, 0x18
+	lb		a0, 0x2(t1)   
+	blt		a0, 0x40, 22f   //if dll_dqs less then a3 then set 1 else set 0
+	nop
+	dsubu	t1, t1, 0x18
+	li		a0, 0x0	
+	sb		a0, 0x1(t1)
+	daddu	t1, t1, 0x18
+22:
+
+	dsubu	t1, t1, 0x18
+	li		a0, 0x1		// set  wrdq_lt_half
+	sb		a0, 0x0(t1)
+	daddu	t1, t1, 0x18
+	lb		a0, 0x1(t1)
+	blt		a0, 0x40, 22f   //if dll_dq less then a3 then set 1 else set 0
+	nop
+	dsubu	t1, t1, 0x18
+	li		a0, 0x0
+	sb		a0, 0x0(t1)
+	daddu	t1, t1, 0x18
+22:
     b       wrdqs_adjust_loop40
     nop
 
@@ -669,15 +1442,47 @@ wrdqs_set_3a:
     ld      a0, 0x0(t1)
     dli     t4, 0xffffffffff00ffff
     and     a0, a0, t4
-    dli     t4, 0x3a0000
+    dli     t4, 0x380000
     or      a0, a0, t4
     sd      a0, 0x0(t1)
+	
+	lb		a0, 0x2(t1) // set dll_wrdata
+	dsubu	a0, a0, 0x20
+	dli		t4, 0x7f
+	and		a0, a0, t4
+	sb		a0, 0x1(t1)
+	dsubu	t1, t1, 0x18
+	li		a0, 0x1		// set wrdqs_lt_half
+	sb		a0, 0x1(t1)
+	daddu	t1, t1, 0x18
+	lb		a0, 0x2(t1)   
+	blt		a0, 0x40, 22f   //if dll_dqs less then a3 then set 1 else set 0
+	nop
+	dsubu	t1, t1, 0x18
+	li		a0, 0x0	
+	sb		a0, 0x1(t1)
+	daddu	t1, t1, 0x18
+22:
+
+	dsubu	t1, t1, 0x18
+	li		a0, 0x1		// set  wrdq_lt_half
+	sb		a0, 0x0(t1)
+	daddu	t1, t1, 0x18
+	lb		a0, 0x1(t1)
+	blt		a0, 0x40, 22f   //if dll_dq less then a3 then set 1 else set 0
+	nop
+	dsubu	t1, t1, 0x18
+	li		a0, 0x0
+	sb		a0, 0x0(t1)
+	daddu	t1, t1, 0x18
+22:
     b       wrdqs_adjust_loop40
     nop
 
 1:
 #ifdef LVL_DEBUG
     PRINTSTR("\r\nwrdqs around 0x40 carefully adjust end\r\n")
+#endif
 #endif
 #if 1
 #ifdef LVL_DEBUG
@@ -694,8 +1499,8 @@ wrdqs_set_3a:
     nop
     daddu   t0, t0, 0x1
 1:
-    dli     a2, 0x65
-    dli     a3, 0x5a
+    dli     a2, 0x68
+    dli     a3, 0x58
 //    dli     t0, 0x8
     dli     t1, 0x018
     or      t1, t1, t8
@@ -718,9 +1523,40 @@ wrdqs_adjust_loop60:
     ld      a0, 0x0(t1)
     dli     t4, 0xffffffffff00ffff
     and     a0, a0, t4
-    dli     t4, 0x650000
+    dli     t4, 0x680000
     or      a0, a0, t4
     sd      a0, 0x0(t1)
+	
+	lb		a0, 0x2(t1) // set dll_wrdata
+	dsubu	a0, a0, 0x20
+	dli		t4, 0x7f
+	and		a0, a0, t4
+	sb		a0, 0x1(t1)
+	dsubu	t1, t1, 0x18
+	li		a0, 0x1		// set wrdqs_lt_half
+	sb		a0, 0x1(t1)
+	daddu	t1, t1, 0x18
+	lb		a0, 0x2(t1)   
+	blt		a0, 0x40, 22f   //if dll_dqs less then a3 then set 1 else set 0
+	nop
+	dsubu	t1, t1, 0x18
+	li		a0, 0x0	
+	sb		a0, 0x1(t1)
+	daddu	t1, t1, 0x18
+22:
+
+	dsubu	t1, t1, 0x18
+	li		a0, 0x1		// set  wrdq_lt_half
+	sb		a0, 0x0(t1)
+	daddu	t1, t1, 0x18
+	lb		a0, 0x1(t1)
+	blt		a0, 0x40, 22f   //if dll_dq less then a3 then set 1 else set 0
+	nop
+	dsubu	t1, t1, 0x18
+	li		a0, 0x0
+	sb		a0, 0x0(t1)
+	daddu	t1, t1, 0x18
+22:
     b       wrdqs_adjust_loop60
     nop
 
@@ -728,9 +1564,40 @@ wrdqs_set_5a:
     ld      a0, 0x0(t1)
     dli     t4, 0xffffffffff00ffff
     and     a0, a0, t4
-    dli     t4, 0x5a0000
+    dli     t4, 0x580000
     or      a0, a0, t4
     sd      a0, 0x0(t1)
+	
+	lb		a0, 0x2(t1) // set dll_wrdata
+	dsubu	a0, a0, 0x20
+	dli		t4, 0x7f
+	and		a0, a0, t4
+	sb		a0, 0x1(t1)
+	dsubu	t1, t1, 0x18
+	li		a0, 0x1		// set wrdqs_lt_half
+	sb		a0, 0x1(t1)
+	daddu	t1, t1, 0x18
+	lb		a0, 0x2(t1)   
+	blt		a0, 0x40, 22f   //if dll_dqs less then a3 then set 1 else set 0
+	nop
+	dsubu	t1, t1, 0x18
+	li		a0, 0x0	
+	sb		a0, 0x1(t1)
+	daddu	t1, t1, 0x18
+22:
+
+	dsubu	t1, t1, 0x18
+	li		a0, 0x1		// set  wrdq_lt_half
+	sb		a0, 0x0(t1)
+	daddu	t1, t1, 0x18
+	lb		a0, 0x1(t1)
+	blt		a0, 0x40, 22f   //if dll_dq less then a3 then set 1 else set 0
+	nop
+	dsubu	t1, t1, 0x18
+	li		a0, 0x0
+	sb		a0, 0x0(t1)
+	daddu	t1, t1, 0x18
+22:
     b       wrdqs_adjust_loop60
     nop
 
@@ -769,6 +1636,7 @@ wrdqs_set_5a:
 #endif
 81:
 
+#if 1
 /* 8.1 adjust wrdata */
 
 /* t0 is used to indicate 8 slices */
@@ -888,8 +1756,8 @@ wrdq_lt_half_set:
     daddu   t0, t0, 0x1
 1:
     dli     a2, 0x40
-    dli     t5, 0x0101000000000000
-    dli     t6, 0x0000000001010000
+    dli     t5, 0x0101000000000000 // meiyong keshan?
+    dli     t6, 0x0000000001010000 // tongshang
 //    li     t0, 0x8
     dli     t1, 0x018
     or      t1, t1, t8
@@ -930,6 +1798,7 @@ wrdq_lt_half_set1:
 
     b       wrdq_lt_half_loop
     nop
+#endif
 
 wrdq_lt_half_test:
     GET_DIMM_TYPE
@@ -1273,7 +2142,330 @@ write_leveling_exit:
 //    b       100f
     nop
 
+dll_wrdqs_0_add1:
+    ld      a0, 0x38(t8)
+    dli     t4, 0x010000
+    daddu   a0, a0, t4
+    dli     t4, 0xffffffffff7fffff
+    and     a0, a0, t4
+    sd      a0, 0x38(t8)
 
+#if 1
+	lb		a0, 0x3a(t8) // set dll_wrdata
+	dsubu	a0, a0, 0x20
+	dli		t4, 0x7f
+	and		a0, a0, t4
+	sb		a0, 0x39(t8)
+	li		a0, 0x1		// set wrdqs_lt_half
+	sb		a0, 0x21(t8)
+	lb		a0, 0x3a(t8)   
+	blt		a0, 0x40, 1f   //if dll_dqs less then a3 then set 1 else set 0
+	nop
+	li		a0, 0x0	
+	sb		a0, 0x21(t8)
+1:
+
+	li		a0, 0x1		// set  wrdq_lt_half
+	sb		a0, 0x20(t8)
+	lb		a0, 0x39(t8)
+	blt		a0, 0x40, 1f   //if dll_dq less then a3 then set 1 else set 0
+	nop
+	li		a0, 0x0
+	sb		a0, 0x20(t8)
+1:
+#endif	
+    dli     s7, 0x1
+    b       lvl_resp_1_set0 // 
+    nop
+
+dll_wrdqs_1_add1:
+    daddu   s6, s6, 0x1
+    ld      a0, 0x58(t8)
+    dli     t4, 0x010000
+    daddu   a0, a0, t4
+    dli     t4, 0xffffffffff7fffff
+    and     a0, a0, t4
+    sd      a0, 0x58(t8)
+	
+	lb		a0, 0x5a(t8) // set dll_wrdata
+	dsubu	a0, a0, 0x20
+	dli		t4, 0x7f
+	and		a0, a0, t4
+	sb		a0, 0x59(t8)
+	li		a0, 0x1		// set wrdqs_lt_half
+	sb		a0, 0x41(t8)
+	lb		a0, 0x5a(t8)   
+	blt		a0, 0x40, 1f   //if dll_dqs less then a3 then set 1 else set 0
+	nop
+	li		a0, 0x0	
+	sb		a0, 0x41(t8)
+1:
+
+	li		a0, 0x1		// set  wrdq_lt_half
+	sb		a0, 0x40(t8)
+	lb		a0, 0x59(t8)
+	blt		a0, a3, 1f   //if dll_dq less then a3 then set 1 else set 0
+	nop
+	li		a0, 0x0
+	sb		a0, 0x40(t8)
+1:
+    
+    dli     s7, 0x1
+	b       lvl_resp_2_set0 // 
+    nop
+
+dll_wrdqs_2_add1:
+    daddu   s6, s6, 0x1
+    ld      a0, 0x78(t8)
+    dli     t4, 0x010000
+    daddu   a0, a0, t4
+    dli     t4, 0xffffffffff7fffff
+    and     a0, a0, t4
+    sd      a0, 0x78(t8)
+	
+	lb		a0, 0x7a(t8) // set dll_wrdata
+	dsubu	a0, a0, 0x20
+	dli		t4, 0x7f
+	and		a0, a0, t4
+	sb		a0, 0x79(t8)
+	li		a0, 0x1		// set wrdqs_lt_half
+	sb		a0, 0x61(t8)
+	lb		a0, 0x7a(t8)   
+	blt		a0, 0x40, 1f   //if dll_dqs less then a3 then set 1 else set 0
+	nop
+	li		a0, 0x0	
+	sb		a0, 0x61(t8)
+1:
+
+	li		a0, 0x1		// set  wrdq_lt_half
+	sb		a0, 0x60(t8)
+	lb		a0, 0x79(t8)
+	blt		a0, 0x40, 1f   //if dll_dq less then a3 then set 1 else set 0
+	nop
+	li		a0, 0x0
+	sb		a0, 0x60(t8)
+1:
+    
+    dli     s7, 0x1
+    b       lvl_resp_3_set0 // 
+    nop
+
+dll_wrdqs_3_add1:
+    daddu   s6, s6, 0x1
+    ld      a0, 0x98(t8)
+    dli     t4, 0x010000
+    daddu   a0, a0, t4
+    dli     t4, 0xffffffffff7fffff
+    and     a0, a0, t4
+    sd      a0, 0x98(t8)
+	
+	lb		a0, 0x9a(t8) // set dll_wrdata
+	dsubu	a0, a0, 0x20
+	dli		t4, 0x7f
+	and		a0, a0, t4
+	sb		a0, 0x99(t8)
+	li		a0, 0x1		// set wrdqs_lt_half
+	sb		a0, 0x81(t8)
+	lb		a0, 0x9a(t8)   
+	blt		a0, 0x40, 1f   //if dll_dqs less then a3 then set 1 else set 0
+	nop
+	li		a0, 0x0	
+	sb		a0, 0x81(t8)
+1:
+
+	li		a0, 0x1		// set  wrdq_lt_half
+	sb		a0, 0x80(t8)
+	lb		a0, 0x99(t8)
+	blt		a0, 0x40, 1f   //if dll_dq less then a3 then set 1 else set 0
+	nop
+	li		a0, 0x0
+	sb		a0, 0x80(t8)
+1:
+    
+    dli     s7, 0x1
+    b       lvl_resp_4_set0 // 
+    nop
+
+dll_wrdqs_4_add1:
+    daddu   s6, s6, 0x1
+    ld      a0, 0xb8(t8)
+    dli     t4, 0x010000
+    daddu   a0, a0, t4
+    dli     t4, 0xffffffffff7fffff
+    and     a0, a0, t4
+    sd      a0, 0xb8(t8)
+	
+	lb		a0, 0xba(t8) // set dll_wrdata
+	dsubu	a0, a0, 0x20
+	dli		t4, 0x7f
+	and		a0, a0, t4
+	sb		a0, 0xb9(t8)
+	li		a0, 0x1		// set wrdqs_lt_half
+	sb		a0, 0xa1(t8)
+	lb		a0, 0xba(t8)   
+	blt		a0, 0x40, 1f   //if dll_dqs less then a3 then set 1 else set 0
+	nop
+	li		a0, 0x0	
+	sb		a0, 0xa1(t8)
+1:
+
+	li		a0, 0x1		// set  wrdq_lt_half
+	sb		a0, 0xa0(t8)
+	lb		a0, 0xb9(t8)
+	blt		a0, 0x40, 1f   //if dll_dq less then a3 then set 1 else set 0
+	nop
+	li		a0, 0x0
+	sb		a0, 0xa0(t8)
+1:
+    
+    dli     s7, 0x1
+    b       lvl_resp_5_set0 // 
+    nop
+
+dll_wrdqs_5_add1:
+    daddu   s6, s6, 0x1
+    ld      a0, 0xd8(t8)
+    dli     t4, 0x010000
+    daddu   a0, a0, t4
+    dli     t4, 0xffffffffff7fffff
+    and     a0, a0, t4
+    sd      a0, 0xd8(t8)
+	
+	lb		a0, 0xda(t8) // set dll_wrdata
+	dsubu	a0, a0, 0x20
+	dli		t4, 0x7f
+	and		a0, a0, t4
+	sb		a0, 0xd9(t8)
+	li		a0, 0x1		// set wrdqs_lt_half
+	sb		a0, 0xc1(t8)
+	lb		a0, 0xda(t8)   
+	blt		a0, 0x40, 1f   //if dll_dqs less then a3 then set 1 else set 0
+	nop
+	li		a0, 0x0	
+	sb		a0, 0xc1(t8)
+1:
+
+	li		a0, 0x1		// set  wrdq_lt_half
+	sb		a0, 0xc0(t8)
+	lb		a0, 0xd9(t8)
+	blt		a0, 0x40, 1f   //if dll_dq less then a3 then set 1 else set 0
+	nop
+	li		a0, 0x0
+	sb		a0, 0xc0(t8)
+1:
+    
+    dli     s7, 0x1
+    b       lvl_resp_6_set0 // 
+    nop
+
+dll_wrdqs_6_add1:
+    daddu   s6, s6, 0x1
+    ld      a0, 0xf8(t8)
+    dli     t4, 0x010000
+    daddu   a0, a0, t4
+    dli     t4, 0xffffffffff7fffff
+    and     a0, a0, t4
+    sd      a0, 0xf8(t8)
+	
+	lb		a0, 0xfa(t8) // set dll_wrdata
+	dsubu	a0, a0, 0x20
+	dli		t4, 0x7f
+	and		a0, a0, t4
+	sb		a0, 0xf9(t8)
+	li		a0, 0x1		// set wrdqs_lt_half
+	sb		a0, 0xe1(t8)
+	lb		a0, 0xfa(t8)   
+	blt		a0, 0x40, 1f   //if dll_dqs less then a3 then set 1 else set 0
+	nop
+	li		a0, 0x0	
+	sb		a0, 0xe1(t8)
+1:
+
+	li		a0, 0x1		// set  wrdq_lt_half
+	sb		a0, 0xe0(t8)
+	lb		a0, 0xf9(t8)
+	blt		a0, 0x40, 1f   //if dll_dq less then a3 then set 1 else set 0
+	nop
+	li		a0, 0x0
+	sb		a0, 0xe0(t8)
+1:
+    
+    dli     s7, 0x1
+    b       lvl_resp_7_set0 // 
+    nop
+
+dll_wrdqs_7_add1:
+    daddu   s6, s6, 0x1
+    ld      a0, 0x118(t8)
+    dli     t4, 0x010000
+    daddu   a0, a0, t4
+    dli     t4, 0xffffffffff7fffff
+    and     a0, a0, t4
+    sd      a0, 0x118(t8)
+	
+	lb		a0, 0x11a(t8) // set dll_wrdata
+	dsubu	a0, a0, 0x20
+	dli		t4, 0x7f
+	and		a0, a0, t4
+	sb		a0, 0x119(t8)
+	li		a0, 0x1		// set wrdqs_lt_half
+	sb		a0, 0x101(t8)
+	lb		a0, 0x11a(t8)   
+	blt		a0, 0x40, 1f   //if dll_dqs less then a3 then set 1 else set 0
+	nop
+	li		a0, 0x0	
+	sb		a0, 0x101(t8)
+1:
+
+	li		a0, 0x1		// set  wrdq_lt_half
+	sb		a0, 0x100(t8)
+	lb		a0, 0x119(t8)
+	blt		a0, 0x40, 1f   //if dll_dq less then a3 then set 1 else set 0
+	nop
+	li		a0, 0x0
+	sb		a0, 0x100(t8)
+1:
+    
+    dli     s7, 0x1
+    b       lvl_resp_8_set0 // 
+    nop
+
+dll_wrdqs_8_add1:
+    daddu   s6, s6, 0x1
+    ld      a0, 0x138(t8)
+    dli     t4, 0x010000
+    daddu   a0, a0, t4
+    dli     t4, 0xffffffffff7fffff
+    and     a0, a0, t4
+    sd      a0, 0x138(t8)
+	
+	lb		a0, 0x13a(t8) // set dll_wrdata
+	dsubu	a0, a0, 0x20
+	dli		t4, 0x7f
+	and		a0, a0, t4
+	sb		a0, 0x139(t8)
+	li		a0, 0x1		// set wrdqs_lt_half
+	sb		a0, 0x121(t8)
+	lb		a0, 0x13a(t8)   
+	blt		a0, 0x40, 1f   //if dll_dqs less then a3 then set 1 else set 0
+	nop
+	li		a0, 0x0	
+	sb		a0, 0x121(t8)
+1:
+
+	li		a0, 0x1		// set  wrdq_lt_half
+	sb		a0, 0x120(t8)
+	lb		a0, 0x139(t8)
+	blt		a0, 0x40, 1f   //if dll_dq less then a3 then set 1 else set 0
+	nop
+	li		a0, 0x0
+	sb		a0, 0x120(t8)
+1: 
+    dli     s7, 0x1
+    b       lvl_req_set // 
+    nop
+
+#if 0
 dll_wrdqs_0_add1:
 #ifdef LVL_DEBUG
     PRINTSTR("\r\nfor all write resp got a 0, slice 0 add\r\n")
@@ -1391,7 +2583,332 @@ dll_wrdqs_8_add1:
     sd      a0, 0x0(t1)
     b       lvl_req_set
     dli     s7, 0x1
+#endif
 
+dll_wrdqs_0_add2:
+    ld      a0, 0x38(t8)
+    dli     t4, 0x010000
+    daddu   a0, a0, t4
+    dli     t4, 0xffffffffff7fffff
+    and     a0, a0, t4
+    sd      a0, 0x38(t8)
+
+#if 1
+	lb		a0, 0x3a(t8) // set dll_wrdata
+	dsubu	a0, a0, 0x20
+	dli		t4, 0x7f
+	and		a0, a0, t4
+	sb		a0, 0x39(t8)
+	li		a0, 0x1		// set wrdqs_lt_half
+	sb		a0, 0x21(t8)
+	lb		a0, 0x3a(t8)   
+	blt		a0, 0x40, 1f   //if dll_dqs less then a3 then set 1 else set 0
+	nop
+	li		a0, 0x0	
+	sb		a0, 0x21(t8)
+1:
+
+	li		a0, 0x1		// set  wrdq_lt_half
+	sb		a0, 0x20(t8)
+	lb		a0, 0x39(t8)
+	blt		a0, 0x40, 1f   //if dll_dq less then a3 then set 1 else set 0
+	nop
+	li		a0, 0x0
+	sb		a0, 0x20(t8)
+1:
+#endif	
+    dli     s7, 0x1
+    b       lvl_resp_1_set1 // 
+    nop
+
+dll_wrdqs_1_add2:
+    daddu   s6, s6, 0x1
+    ld      a0, 0x58(t8)
+    dli     t4, 0x010000
+    daddu   a0, a0, t4
+    dli     t4, 0xffffffffff7fffff
+    and     a0, a0, t4
+    sd      a0, 0x58(t8)
+	
+	lb		a0, 0x5a(t8) // set dll_wrdata
+	dsubu	a0, a0, 0x20
+	dli		t4, 0x7f
+	and		a0, a0, t4
+	sb		a0, 0x59(t8)
+	li		a0, 0x1		// set wrdqs_lt_half
+	sb		a0, 0x41(t8)
+	lb		a0, 0x5a(t8)   
+	blt		a0, 0x40, 1f   //if dll_dqs less then a3 then set 1 else set 0
+	nop
+	li		a0, 0x0	
+	sb		a0, 0x41(t8)
+1:
+
+	li		a0, 0x1		// set  wrdq_lt_half
+	sb		a0, 0x40(t8)
+	lb		a0, 0x59(t8)
+	blt		a0, 0x40, 1f   //if dll_dq less then a3 then set 1 else set 0
+	nop
+	li		a0, 0x0
+	sb		a0, 0x40(t8)
+1:
+    
+    dli     s7, 0x1
+	b       lvl_resp_2_set1 // 
+    nop
+
+dll_wrdqs_2_add2:
+    daddu   s6, s6, 0x1
+    ld      a0, 0x78(t8)
+    dli     t4, 0x010000
+    daddu   a0, a0, t4
+    dli     t4, 0xffffffffff7fffff
+    and     a0, a0, t4
+    sd      a0, 0x78(t8)
+	
+	lb		a0, 0x7a(t8) // set dll_wrdata
+	dsubu	a0, a0, 0x20
+	dli		t4, 0x7f
+	and		a0, a0, t4
+	sb		a0, 0x79(t8)
+	li		a0, 0x1		// set wrdqs_lt_half
+	sb		a0, 0x61(t8)
+	lb		a0, 0x7a(t8)   
+	blt		a0, 0x40, 1f   //if dll_dqs less then a3 then set 1 else set 0
+	nop
+	li		a0, 0x0	
+	sb		a0, 0x61(t8)
+1:
+
+	li		a0, 0x1		// set  wrdq_lt_half
+	sb		a0, 0x60(t8)
+	lb		a0, 0x79(t8)
+	blt		a0, 0x40, 1f   //if dll_dq less then a3 then set 1 else set 0
+	nop
+	li		a0, 0x0
+	sb		a0, 0x60(t8)
+1:
+    
+    dli     s7, 0x1
+    b       lvl_resp_3_set1 // 
+    nop
+
+dll_wrdqs_3_add2:
+    daddu   s6, s6, 0x1
+    ld      a0, 0x98(t8)
+    dli     t4, 0x010000
+    daddu   a0, a0, t4
+    dli     t4, 0xffffffffff7fffff
+    and     a0, a0, t4
+    sd      a0, 0x98(t8)
+	
+	lb		a0, 0x9a(t8) // set dll_wrdata
+	dsubu	a0, a0, 0x20
+	dli		t4, 0x7f
+	and		a0, a0, t4
+	sb		a0, 0x99(t8)
+	li		a0, 0x1		// set wrdqs_lt_half
+	sb		a0, 0x81(t8)
+	lb		a0, 0x9a(t8)   
+	blt		a0, 0x40, 1f   //if dll_dqs less then a3 then set 1 else set 0
+	nop
+	li		a0, 0x0	
+	sb		a0, 0x81(t8)
+1:
+
+	li		a0, 0x1		// set  wrdq_lt_half
+	sb		a0, 0x80(t8)
+	lb		a0, 0x99(t8)
+	blt		a0, 0x40, 1f   //if dll_dq less then a3 then set 1 else set 0
+	nop
+	li		a0, 0x0
+	sb		a0, 0x80(t8)
+1:
+    
+    dli     s7, 0x1
+    b       lvl_resp_4_set1 // 
+    nop
+
+dll_wrdqs_4_add2:
+    daddu   s6, s6, 0x1
+    ld      a0, 0xb8(t8)
+    dli     t4, 0x010000
+    daddu   a0, a0, t4
+    dli     t4, 0xffffffffff7fffff
+    and     a0, a0, t4
+    sd      a0, 0xb8(t8)
+	
+	lb		a0, 0xba(t8) // set dll_wrdata
+	dsubu	a0, a0, 0x20
+	dli		t4, 0x7f
+	and		a0, a0, t4
+	sb		a0, 0xb9(t8)
+	li		a0, 0x1		// set wrdqs_lt_half
+	sb		a0, 0xa1(t8)
+	lb		a0, 0xba(t8)   
+	blt		a0, 0x40, 1f   //if dll_dqs less then a3 then set 1 else set 0
+	nop
+	li		a0, 0x0	
+	sb		a0, 0xa1(t8)
+1:
+
+	li		a0, 0x1		// set  wrdq_lt_half
+	sb		a0, 0xa0(t8)
+	lb		a0, 0xb9(t8)
+	blt		a0, 0x40, 1f   //if dll_dq less then a3 then set 1 else set 0
+	nop
+	li		a0, 0x0
+	sb		a0, 0xa0(t8)
+1:
+    
+    dli     s7, 0x1
+    b       lvl_resp_5_set1 // 
+    nop
+
+dll_wrdqs_5_add2:
+    daddu   s6, s6, 0x1
+    ld      a0, 0xd8(t8)
+    dli     t4, 0x010000
+    daddu   a0, a0, t4
+    dli     t4, 0xffffffffff7fffff
+    and     a0, a0, t4
+    sd      a0, 0xd8(t8)
+	
+	lb		a0, 0xda(t8) // set dll_wrdata
+	dsubu	a0, a0, 0x20
+	dli		t4, 0x7f
+	and		a0, a0, t4
+	sb		a0, 0xd9(t8)
+	li		a0, 0x1		// set wrdqs_lt_half
+	sb		a0, 0xc1(t8)
+	lb		a0, 0xda(t8)   
+	blt		a0, 0x40, 1f   //if dll_dqs less then a3 then set 1 else set 0
+	nop
+	li		a0, 0x0	
+	sb		a0, 0xc1(t8)
+1:
+
+	li		a0, 0x1		// set  wrdq_lt_half
+	sb		a0, 0xc0(t8)
+	lb		a0, 0xd9(t8)
+	blt		a0, 0x40, 1f   //if dll_dq less then a3 then set 1 else set 0
+	nop
+	li		a0, 0x0
+	sb		a0, 0xc0(t8)
+1:
+    
+    dli     s7, 0x1
+    b       lvl_resp_6_set1 // 
+    nop
+
+dll_wrdqs_6_add2:
+    daddu   s6, s6, 0x1
+    ld      a0, 0xf8(t8)
+    dli     t4, 0x010000
+    daddu   a0, a0, t4
+    dli     t4, 0xffffffffff7fffff
+    and     a0, a0, t4
+    sd      a0, 0xf8(t8)
+	
+	lb		a0, 0xfa(t8) // set dll_wrdata
+	dsubu	a0, a0, 0x20
+	dli		t4, 0x7f
+	and		a0, a0, t4
+	sb		a0, 0xf9(t8)
+	li		a0, 0x1		// set wrdqs_lt_half
+	sb		a0, 0xe1(t8)
+	lb		a0, 0xfa(t8)   
+	blt		a0, 0x40, 1f   //if dll_dqs less then a3 then set 1 else set 0
+	nop
+	li		a0, 0x0	
+	sb		a0, 0xe1(t8)
+1:
+
+	li		a0, 0x1		// set  wrdq_lt_half
+	sb		a0, 0xe0(t8)
+	lb		a0, 0xf9(t8)
+	blt		a0, 0x40, 1f   //if dll_dq less then a3 then set 1 else set 0
+	nop
+	li		a0, 0x0
+	sb		a0, 0xe0(t8)
+1:
+    
+    dli     s7, 0x1
+    b       lvl_resp_7_set1 // 
+    nop
+
+dll_wrdqs_7_add2:
+    daddu   s6, s6, 0x1
+    ld      a0, 0x118(t8)
+    dli     t4, 0x010000
+    daddu   a0, a0, t4
+    dli     t4, 0xffffffffff7fffff
+    and     a0, a0, t4
+    sd      a0, 0x118(t8)
+	
+	lb		a0, 0x11a(t8) // set dll_wrdata
+	dsubu	a0, a0, 0x20
+	dli		t4, 0x7f
+	and		a0, a0, t4
+	sb		a0, 0x119(t8)
+	li		a0, 0x1		// set wrdqs_lt_half
+	sb		a0, 0x101(t8)
+	lb		a0, 0x11a(t8)   
+	blt		a0, 0x40, 1f   //if dll_dqs less then a3 then set 1 else set 0
+	nop
+	li		a0, 0x0	
+	sb		a0, 0x101(t8)
+1:
+
+	li		a0, 0x1		// set  wrdq_lt_half
+	sb		a0, 0x100(t8)
+	lb		a0, 0x119(t8)
+	blt		a0, 0x40, 1f   //if dll_dq less then a3 then set 1 else set 0
+	nop
+	li		a0, 0x0
+	sb		a0, 0x100(t8)
+1:
+    
+    dli     s7, 0x1
+    b       lvl_resp_8_set1 // 
+    nop
+
+dll_wrdqs_8_add2:
+    daddu   s6, s6, 0x1
+    ld      a0, 0x138(t8)
+    dli     t4, 0x010000
+    daddu   a0, a0, t4
+    dli     t4, 0xffffffffff7fffff
+    and     a0, a0, t4
+    sd      a0, 0x138(t8)
+	
+	lb		a0, 0x13a(t8) // set dll_wrdata
+	dsubu	a0, a0, 0x20
+	dli		t4, 0x7f
+	and		a0, a0, t4
+	sb		a0, 0x139(t8)
+	li		a0, 0x1		// set wrdqs_lt_half
+	sb		a0, 0x121(t8)
+	lb		a0, 0x13a(t8)   
+	blt		a0, 0x40, 1f   //if dll_dqs less then a3 then set 1 else set 0
+	nop
+	li		a0, 0x0	
+	sb		a0, 0x121(t8)
+1:
+
+	li		a0, 0x1		// set  wrdq_lt_half
+	sb		a0, 0x120(t8)
+	lb		a0, 0x139(t8)
+	blt		a0, 0x40, 1f   //if dll_dq less then a3 then set 1 else set 0
+	nop
+	li		a0, 0x0
+	sb		a0, 0x120(t8)
+1: 
+    dli     s7, 0x1
+    b       lvl_req_set // 
+    nop
+
+#if 0
 dll_wrdqs_0_add2:
 #ifdef LVL_DEBUG
     PRINTSTR("\r\nfor all write resp got a 1, slice 0 add\r\n")
@@ -1509,10 +3026,81 @@ dll_wrdqs_8_add2:
     sd      a0, 0x0(t1)
     b       lvl_req_set
     dli     s7, 0x1
+#endif
 
 gate_leveling:
+#ifdef	EDGES_CHECK_DEBUG //save the init para of rd_oe and trddata
+	dli		t1, 0x28
+	or 		t1, t1, t8
+	lb		a0, 0x7(t1)
+	dli		t1, 0x350
+	or		t1, t1, t8
+	sb		a0, 0x7(t1)
+	dli		t1, 0x1c0
+	or		t1, t1, t8
+	lb		a0, 0x0(t1)
+	dli		t1, 0x350
+	or		t1, t1, t8
+	sb		a0, 0x6(t1)
+#endif
+#if 1 //3a3000 new
+//    PRINTSTR("\r\nset cs_zq to be same with cs_enable\r\n")
+    lb      a0, 0x169(t8)
+    sb      a0, 0x16a(t8)
+
+reset_init_start_new:
+    dli     t1, 0x18
+    or      t1, t1, t8
+    ld      a0, 0x0(t1)
+    dli     t4, 0xffffffffffffff00
+    and     a0, a0, t4
+    sd      a0, 0x0(t1)
+
+    dli     t1, 0x18
+    or      t1, t1, t8
+    ld      a0, 0x0(t1)
+    dli     t4, 0xffffffffffffff00
+    and     a0, a0, t4
+    ori     a0, a0, 0x1
+    sd      a0, 0x0(t1)
+
+wait_init_done_new:
+    dli     t1, 0x160
+    or      t1, t1, t8
+    ld      a0, 0x0(t1)
+    dli     t4, 0x00000000ff000000
+    and     a0, a0, t4
+    beqz    a0, wait_init_done_new
+    nop
+
+reset_init_start_new2:
+    dli     t1, 0x18
+    or      t1, t1, t8
+    ld      a0, 0x0(t1)
+    dli     t4, 0xffffffffffffff00
+    and     a0, a0, t4
+    sd      a0, 0x0(t1)
+
+    dli     t1, 0x18
+    or      t1, t1, t8
+    ld      a0, 0x0(t1)
+    dli     t4, 0xffffffffffffff00
+    and     a0, a0, t4
+    ori     a0, a0, 0x1
+    sd      a0, 0x0(t1)
+
+wait_init_done_new2:
+    dli     t1, 0x160
+    or      t1, t1, t8
+    ld      a0, 0x0(t1)
+    dli     t4, 0x00000000ff000000
+    and     a0, a0, t4
+    beqz    a0, wait_init_done_new2
+    nop
+
+#endif
     PRINTSTR("\r\nwrite leveling finish and gate leveling begin\r\n")
-#if 1   //def  DEBUG_DDR_PARAM   //print registers
+#ifdef  PRINT_DDR_LEVELING   //print registers
     PRINTSTR("\r\nThe MC param after write leveling is:\r\n")
     dli     t1, DDR_PARAM_NUM
     GET_NODE_ID_a0
@@ -1587,7 +3175,264 @@ glvl_ready_sampling:
     bne     a0, a1, glvl_ready_sampling
     nop
 
+#ifdef SIGNAL_DEPICT_DEBUG
+	PRINTSTR("\r\nthe signal depict begin:\r\n")
+	dli		t1, 0x28     // save the init para before signal depict
+	or 		t1, t1, t8
+	lb		a0, 0x7(t1)
+	dli		t1, 0x350
+	or		t1, t1, t8
+	sb		a0, 0x7(t1)
+	dli		t1, 0x1c0
+	or		t1, t1, t8
+	lb		a0, 0x0(t1)
+	dli		t1, 0x350
+	or		t1, t1, t8
+	sb		a0, 0x6(t1)
+	
+	dli		t1, 0x28
+	or		t1, t1, t8
+	dli		t5, 0x180
+	or		t5, t5, t8
+	dli		t0, 0x8
+	dli		t2, 0x0
+	dli		s6, 0x0
+	dli		s7, 0x0
+t_glvl_req_set:
+	bne		s6, 0x15, 1f
+	nop
+	dli		s6, 0x0			//reset trddata
+	lb		a0, 0x356(t8)
+	sb		a0, 0x1c0(t8)
+	dsubu	t0, t0, 0x1
+	beqz	t0, signal_depict_end
+	nop
+	daddu	t1, t1, 0x20
+	daddu	t5, t5, 0x1
+	PRINTSTR("\r\nthe above is slice ")
+	dli		t4, 0x8
+	dsubu 	a0, t4, t0
+	bal		hexserial
+	nop
+	PRINTSTR("\r\n")
+1:
+    dli     t4, 0x180
+    or      t4, t4, t8
+    dli     a0, 0x1
+    sb      a0, 0x1(t4)
+    dli		a0, 0x0
+    sb      a0, 0x1(t4)
+	
+1:						//glvl_done_sampling
+    dli     t4, 0x180
+    or      t4, t4, t8
+    lb      a0, 0x6(t4)
+    bne     a0, 0x1, 1b
+    nop
+	
+	lb		a0, 0x7(t5)
+	dli		t4, 0x1
+	and		a0, a0, t4
+	move	a1, a0
+#if 1
+    dli     t4, 0x180
+    or      t4, t4, t8
+    dli     a0, 0x1
+    sb      a0, 0x1(t4)
+    dli		a0, 0x0
+    sb      a0, 0x1(t4)
+	
+1:						//glvl_done_sampling
+    dli     t4, 0x180
+    or      t4, t4, t8
+    lb      a0, 0x6(t4)
+    bne     a0, 0x1, 1b
+    nop
+	
+	lb		a0, 0x7(t5)
+	dli		t4, 0x1
+	and		a0, a0, t4
+	or		a0, a0, a1
+	move	a1, a0
+#endif
+#if 1
+    dli     t4, 0x180
+    or      t4, t4, t8
+    dli     a0, 0x1
+    sb      a0, 0x1(t4)
+    dli		a0, 0x0
+    sb      a0, 0x1(t4)
+    dli     a0, 0x1
+    sb      a0, 0x1(t4)
+    dli		a0, 0x0
+    sb      a0, 0x1(t4)
+    dli     a0, 0x1
+    sb      a0, 0x1(t4)
+    dli		a0, 0x0
+    sb      a0, 0x1(t4)
+    dli     a0, 0x1
+    sb      a0, 0x1(t4)
+    dli		a0, 0x0
+    sb      a0, 0x1(t4)
+	
+1:						//glvl_done_sampling
+    dli     t4, 0x180
+    or      t4, t4, t8
+    lb      a0, 0x6(t4)
+    bne     a0, 0x1, 1b
+    nop
+	
+	lb		a0, 0x7(t5)
+	dli		t4, 0x1
+	and		a0, a0, t4
+	or		a0, a0, a1
+#endif
+
+	sll		a0, a0, 0x1f
+	srl		a0, a0, s7
+	or		t2, t2, a0
+	daddu	s7, s7, 0x1
+	blt		s7, 0x20, 1f // every 0x20 print the status
+	nop
+	move 	a0, t2
+	bal		hexserial
+	nop
+	PRINTSTR(" ")
+	dli		t2, 0x0
+	dli		s7, 0x0
+	daddu	s6, s6, 0x1
+1:
+
+#if 1
+	lb		a0, 0x10(t1)
+	daddu	a0, a0, 0x1
+	dli		t4, 0x7f
+	and		a0, a0, t4
+	sb		a0, 0x10(t1)
+#ifdef DDR_DLL_BYPASS
+	lw		t4, 0x4(t8)
+	daddu	t4, t4, 0x2
+	blt		a0, t4, 1f
+	nop
+	dli		a0, 0x80
+	sb		a0, 0x10(t1)
+	dli		a0, 0x0
+	b		2f
+	nop
+1:
+	ori		a0, 0x80
+	sb		a0, 0x10(t1)
+2:
+#endif
+	bnez	a0, 1f
+	nop
+	lb		a0, 0x1c0(t8)
+	daddu	a0, a0, 0x1
+	sb		a0, 0x1c0(t8)
+1:
+#endif
+#if 0
+	lb		a0, 0x10(t1)
+	dsubu	a0, a0, 0x1
+	dli		t4, 0x7f
+	and		a0, a0, t4
+	sb		a0, 0x10(t1)
+	bne		a0, 0x7f,1f
+	nop
+	lb		a0, 0x1c0(t8)
+	dsubu	a0, a0, 0x1
+	sb		a0, 0x1c0(t8)
+1:
+#endif
+#if 0
+	lb		a0, 0x11(t1)
+	daddu	a0, a0, 0x1
+	dli		t4, 0x7f
+	and		a0, a0, t4
+	sb		a0, 0x11(t1)
+	bne		a0, 0x0,1f
+	nop
+	lb		a0, 0x1c0(t8)
+	daddu	a0, a0, 0x1
+	sb		a0, 0x1c0(t8)
+1:
+#endif
+#if 0
+	lb		a0, 0x12(t1)
+	daddu	a0, a0, 0x1
+	dli		t4, 0x7f
+	and		a0, a0, t4
+	sb		a0, 0x12(t1)
+	bne		a0, 0x0,1f
+	nop
+	lb		a0, 0x1c0(t8)
+	daddu	a0, a0, 0x1
+	sb		a0, 0x1c0(t8)
+1:
+#endif
+	b		t_glvl_req_set
+	nop
+
+signal_depict_end:
+//identify wheather there is ecc slice
+	li      t0, 0x8
+	dli     t1, 0x250
+	or      t1, t1, t8
+	lb      a0, 0x2(t1)
+	dli     t1, 0x1
+	and     a0, a0, t1
+	bne     a0, t1, 1f //when rd_after_write enabled, the 9th device may don't need leveling
+	nop
+	daddu   t0, t0, 0x1
+1:
+	dli		t1, 0x28
+	or		t1, t1, t8
+reset_rd_oe:
+	dli		t4, 0x350
+	or		t4, t4, t8
+	lb		a0, 0x7(t4)
+	sb		a0, 0x7(t1)
+	sb		a0, 0x6(t1)
+	daddu	t1, t1, 0x20
+	dsubu	t0, t0, 0x1
+	bnez	t0, reset_rd_oe
+	nop
+
+	dli		t1, 0x350 // reset trddata
+	or		t1, t1, t8
+	lb		a0, 0x6(t1)
+	dli		t1, 0x1c0
+	or		t1, t1, t8
+	sb		a0, 0x0(t1)
+	
+//identify wheather there is ecc slice
+/*	li      t0, 0x8
+	dli     t1, 0x250
+	or      t1, t1, t8
+	lb      a0, 0x2(t1)
+	dli     t1, 0x1
+	and     a0, a0, t1
+	bne     a0, t1, 1f //when rd_after_write enabled, the 9th device may don't need leveling
+	nop
+	daddu   t0, t0, 0x1
+1:
+	dli		t1, 0x30
+	or		t1, t1, t8
+reset_odt_oe:
+	dli		a0, 0x2
+	sb		a0, 0x2(t1)
+	sb		a0, 0x3(t1)
+	daddu	t1, t1, 0x20
+	dsubu	t0, t0, 0x1
+	bnez	t0, reset_odt_oe
+	nop*/
+
+	PRINTSTR("\r\n")
+#endif
+
     dli     t3, 0x0
+	dli		t0, 0x0
+	dli		s6, 0x0 //
 glvl_req_set:
 //	PRINTSTR("\r\n req")
     dli     t1, 0x180
@@ -1612,11 +3457,11 @@ glvl_done_sampling:
     bne     a0, a1, glvl_done_sampling
     nop
 
-    beq     t3, a1, glvl_resp_set
+    beq     t3, 0x1, glvl_resp_set
     nop 
 
 #if 1
-    dli     s6, 0x1
+//  dli     s6, 0x1
 glvl_resp_0_set0:
     dli     s7, 0x0
     dli     t1, 0x180
@@ -1708,10 +3553,10 @@ glvl_resp_8_set0:
     nop
 
 1:
-    beq     s7, s6, glvl_req_set
+    beq     s7, 0x1, glvl_req_set
     nop
 #endif
-#if 0   //def  DEBUG_DDR_PARAM   //print registers
+#ifdef  PRINT_DDR_LEVELING   //print registers
     PRINTSTR("\r\nThe MC param after gate leveling 1 to 0 is:\r\n")
     dli     t1, DDR_PARAM_NUM
     GET_NODE_ID_a0
@@ -1733,10 +3578,18 @@ glvl_resp_8_set0:
     nop
     PRINTSTR("\r\n")
 
-    daddiu  t1, t1, -1
+    
+	daddiu  t1, t1, -1
     daddiu  t5, t5, 8
     bnez    t1, 1b
     nop
+#ifdef EDGES_CHECK_DEBUG	
+	PRINTSTR("\r\nThe above is NO.")
+	move	a0, s6
+	bal		hexserial
+	nop
+	PRINTSTR(" edge \r\n")
+#endif
 #endif
 
 /* unknown reason to reset init_start */
@@ -1819,6 +3672,8 @@ dll_gate_0_add0:
     dli     t2, 0x0101000000000000
     daddu   a0, a0, t2
     sd      a0, 0x0(t1)
+	lb		a0, 0x7(t1)
+	RDOE_SUB_TRDDATA_ADD
     /* odt_oe_begin and odt_oe_end add 1 */
     dli     t1, 0x030
     or      t1, t1, t8
@@ -1881,6 +3736,8 @@ dll_gate_1_add0:
     dli     t2, 0x0101000000000000
     daddu   a0, a0, t2
     sd      a0, 0x0(t1)
+	lb		a0, 0x7(t1)
+	RDOE_SUB_TRDDATA_ADD
     /* odt_oe_begin and odt_oe_end add 1 */
     dli     t1, 0x050
     or      t1, t1, t8
@@ -1944,6 +3801,8 @@ dll_gate_2_add0:
     dli     t2, 0x0101000000000000
     daddu   a0, a0, t2
     sd      a0, 0x0(t1)
+	lb		a0, 0x7(t1)
+	RDOE_SUB_TRDDATA_ADD
     /* odt_oe_begin and odt_oe_end add 1 */
     dli     t1, 0x070
     or      t1, t1, t8
@@ -2007,6 +3866,8 @@ dll_gate_3_add0:
     dli     t2, 0x0101000000000000
     daddu   a0, a0, t2
     sd      a0, 0x0(t1)
+	lb		a0, 0x7(t1)
+	RDOE_SUB_TRDDATA_ADD
     /* odt_oe_begin and odt_oe_end add 1 */
     dli     t1, 0x090
     or      t1, t1, t8
@@ -2054,7 +3915,7 @@ dll_gate_4_add0:
     and     a0, a0, t4
     bnez    a0, 1f
     nop
-//    //set dll_gate to 0
+//	  //set dll_gate to 0
 //    ld      a0, 0x0(t1)
 //    dli     t2, 0xffffffffffffff00
 //    and     a0, a0, t2
@@ -2070,6 +3931,8 @@ dll_gate_4_add0:
     dli     t2, 0x0101000000000000
     daddu   a0, a0, t2
     sd      a0, 0x0(t1)
+	lb		a0, 0x7(t1)
+	RDOE_SUB_TRDDATA_ADD
     /* odt_oe_begin and odt_oe_end add 1 */
     dli     t1, 0x0b0
     or      t1, t1, t8
@@ -2133,6 +3996,8 @@ dll_gate_5_add0:
     dli     t2, 0x0101000000000000
     daddu   a0, a0, t2
     sd      a0, 0x0(t1)
+	lb		a0, 0x7(t1)
+	RDOE_SUB_TRDDATA_ADD
     /* odt_oe_begin and odt_oe_end add 1 */
     dli     t1, 0x0d0
     or      t1, t1, t8
@@ -2196,6 +4061,8 @@ dll_gate_6_add0:
     dli     t2, 0x0101000000000000
     daddu   a0, a0, t2
     sd      a0, 0x0(t1)
+	lb		a0, 0x7(t1)
+	RDOE_SUB_TRDDATA_ADD
     /* odt_oe_begin and odt_oe_end add 1 */
     dli     t1, 0x0f0
     or      t1, t1, t8
@@ -2259,6 +4126,8 @@ dll_gate_7_add0:
     dli     t2, 0x0101000000000000
     daddu   a0, a0, t2
     sd      a0, 0x0(t1)
+	lb		a0, 0x7(t1)
+	RDOE_SUB_TRDDATA_ADD
     /* odt_oe_begin and odt_oe_end add 1 */
     dli     t1, 0x110
     or      t1, t1, t8
@@ -2322,6 +4191,8 @@ dll_gate_8_add0:
     dli     t2, 0x0101000000000000
     daddu   a0, a0, t2
     sd      a0, 0x0(t1)
+	lb		a0, 0x7(t1)
+	RDOE_SUB_TRDDATA_ADD
     /* odt_oe_begin and odt_oe_end add 1 */
     dli     t1, 0x130
     or      t1, t1, t8
@@ -2339,7 +4210,7 @@ dll_gate_8_add0:
 
 glvl_resp_set:
 //	PRINTSTR("\r\n All set to 0")
-    dli     s6, 0x1
+//  dli     s6, 0x1
 glvl_resp_0_set1:
     dli     s7, 0x0
     dli     t1, 0x180
@@ -2431,9 +4302,377 @@ glvl_resp_8_set1:
     nop
 
 1:
-    beq     s7, s6, glvl_req_set
+    beqz    s7, 1f 
     nop
-#if 1   //def  DEBUG_DDR_PARAM   //print registers
+	dli		s6, 0x6
+	b		glvl_req_set
+	nop
+1:
+#ifdef FILTER_CHECK
+glvl_check_5_slice0:
+	bnez	t0, glvl_check_5_slice1
+	nop
+//	PRINTSTR("\r\nglvl_check slice 0\r\n")
+//	move	a0, t0
+//	bal		hexserial
+//	nop
+	subu	s6, s6, 0x1
+	beqz	s6, 1f
+	nop
+	
+    dli     t1, 0x38
+    or      t1, t1, t8
+    lb      a0, 0x0(t1)
+    daddu   a0, a0, 0x1
+    dli     t4, 0x7f
+    and     a0, a0, t4
+    sb      a0, 0x0(t1)
+	b		glvl_req_set
+	nop
+1:
+	PRINTSTR("\r\nt0 add 1\r\n")
+    dli     t1, 0x38
+    or      t1, t1, t8
+    lb      a0, 0x0(t1)
+    dsubu   a0, a0, 0x5
+    dli     t4, 0x7f
+    and     a0, a0, t4
+    sb      a0, 0x0(t1)
+	blt		a0, 0x7b, 1f
+	nop
+	dsubu	t1, t1, 0x10
+	lb		a0, 0x7(t1)
+	dsubu	a0, a0, 0x1
+	sb		a0, 0x7(t1)
+	lb		a0, 0x6(t1)
+	dsubu	a0, a0, 0x1
+	sb		a0, 0x6(t1)
+	RDOE_ADD_TRDDATA_SUB
+	daddu	t1, t1, 0x10
+1:
+	dli		s6, 0x6
+	daddu	t0, t0, 0x1
+glvl_check_5_slice1:
+	bne		t0, 1, glvl_check_5_slice2
+	nop
+	subu	s6, s6, 0x1
+	beqz	s6, 1f
+	nop
+	
+    dli     t1, 0x58
+    or      t1, t1, t8
+    lb      a0, 0x0(t1)
+    daddu   a0, a0, 0x1
+    dli     t4, 0x7f
+    and     a0, a0, t4
+    sb      a0, 0x0(t1)
+	b		glvl_req_set
+	nop
+1:
+    dli     t1, 0x58
+    or      t1, t1, t8
+    lb      a0, 0x0(t1)
+    dsubu   a0, a0, 0x5
+    dli     t4, 0x7f
+    and     a0, a0, t4
+    sb      a0, 0x0(t1)
+	blt		a0, 0x7b, 1f
+	nop
+	dsubu	t1, t1, 0x10
+	lb		a0, 0x7(t1)
+	dsubu	a0, a0, 0x1
+	sb		a0, 0x7(t1)
+	lb		a0, 0x6(t1)
+	dsubu	a0, a0, 0x1
+	sb		a0, 0x6(t1)
+	RDOE_ADD_TRDDATA_SUB
+	daddu	t1, t1, 0x10
+1:
+	dli		s6, 0x6
+	daddu	t0, t0, 0x1
+glvl_check_5_slice2:
+	bne		t0, 2, glvl_check_5_slice3
+	nop
+	subu	s6, s6, 0x1
+	beqz	s6, 1f
+	nop
+	
+    dli     t1, 0x78
+    or      t1, t1, t8
+    lb      a0, 0x0(t1)
+    daddu   a0, a0, 0x1
+    dli     t4, 0x7f
+    and     a0, a0, t4
+    sb      a0, 0x0(t1)
+	b		glvl_req_set
+	nop
+1:
+    dli     t1, 0x78
+    or      t1, t1, t8
+    lb      a0, 0x0(t1)
+    dsubu   a0, a0, 0x5
+    dli     t4, 0x7f
+    and     a0, a0, t4
+    sb      a0, 0x0(t1)
+	blt		a0, 0x7b, 1f
+	nop
+	dsubu	t1, t1, 0x10
+	lb		a0, 0x7(t1)
+	dsubu	a0, a0, 0x1
+	sb		a0, 0x7(t1)
+	lb		a0, 0x6(t1)
+	dsubu	a0, a0, 0x1
+	sb		a0, 0x6(t1)
+	RDOE_ADD_TRDDATA_SUB
+	daddu	t1, t1, 0x10
+1:
+	dli		s6, 0x6
+	daddu	t0, t0, 0x1
+glvl_check_5_slice3:
+	bne		t0, 3, glvl_check_5_slice4
+	nop
+	subu	s6, s6, 0x1
+	beqz	s6, 1f
+	nop
+	
+    dli     t1, 0x98
+    or      t1, t1, t8
+    lb      a0, 0x0(t1)
+    daddu   a0, a0, 0x1
+    dli     t4, 0x7f
+    and     a0, a0, t4
+    sb      a0, 0x0(t1)
+	b		glvl_req_set
+	nop
+1:
+    dli     t1, 0x98
+    or      t1, t1, t8
+    lb      a0, 0x0(t1)
+    dsubu   a0, a0, 0x5
+    dli     t4, 0x7f
+    and     a0, a0, t4
+    sb      a0, 0x0(t1)
+	blt		a0, 0x7b, 1f
+	nop
+	dsubu	t1, t1, 0x10
+	lb		a0, 0x7(t1)
+	dsubu	a0, a0, 0x1
+	sb		a0, 0x7(t1)
+	lb		a0, 0x6(t1)
+	dsubu	a0, a0, 0x1
+	sb		a0, 0x6(t1)
+	RDOE_ADD_TRDDATA_SUB
+	daddu	t1, t1, 0x10
+1:
+	dli		s6, 0x6
+	daddu	t0, t0, 0x1
+glvl_check_5_slice4:
+	bne		t0, 4, glvl_check_5_slice5
+	nop
+	subu	s6, s6, 0x1
+	beqz	s6, 1f
+	nop
+	
+    dli     t1, 0xb8
+    or      t1, t1, t8
+    lb      a0, 0x0(t1)
+    daddu   a0, a0, 0x1
+    dli     t4, 0x7f
+    and     a0, a0, t4
+    sb      a0, 0x0(t1)
+	b		glvl_req_set
+	nop
+1:
+    dli     t1, 0xb8
+    or      t1, t1, t8
+    lb      a0, 0x0(t1)
+    dsubu   a0, a0, 0x5
+    dli     t4, 0x7f
+    and     a0, a0, t4
+    sb      a0, 0x0(t1)
+	blt		a0, 0x7b, 1f
+	nop
+	dsubu	t1, t1, 0x10
+	lb		a0, 0x7(t1)
+	dsubu	a0, a0, 0x1
+	sb		a0, 0x7(t1)
+	lb		a0, 0x6(t1)
+	dsubu	a0, a0, 0x1
+	sb		a0, 0x6(t1)
+	RDOE_ADD_TRDDATA_SUB
+	daddu	t1, t1, 0x10
+1:
+	dli		s6, 0x6
+	daddu	t0, t0, 0x1
+glvl_check_5_slice5:
+	bne		t0, 5, glvl_check_5_slice6
+	nop
+	subu	s6, s6, 0x1
+	beqz	s6, 1f
+	nop
+	
+    dli     t1, 0xd8
+    or      t1, t1, t8
+    lb      a0, 0x0(t1)
+    daddu   a0, a0, 0x1
+    dli     t4, 0x7f
+    and     a0, a0, t4
+    sb      a0, 0x0(t1)
+	b		glvl_req_set
+	nop
+1:
+    dli     t1, 0xd8
+    or      t1, t1, t8
+    lb      a0, 0x0(t1)
+    dsubu   a0, a0, 0x5
+    dli     t4, 0x7f
+    and     a0, a0, t4
+    sb      a0, 0x0(t1)
+	blt		a0, 0x7b, 1f
+	nop
+	dsubu	t1, t1, 0x10
+	lb		a0, 0x7(t1)
+	dsubu	a0, a0, 0x1
+	sb		a0, 0x7(t1)
+	lb		a0, 0x6(t1)
+	dsubu	a0, a0, 0x1
+	sb		a0, 0x6(t1)
+	RDOE_ADD_TRDDATA_SUB
+	daddu	t1, t1, 0x10
+1:
+	dli		s6, 0x6
+	daddu	t0, t0, 0x1
+glvl_check_5_slice6:
+	bne		t0, 6, glvl_check_5_slice7
+	nop
+	subu	s6, s6, 0x1
+	beqz	s6, 1f
+	nop
+	
+    dli     t1, 0xf8
+    or      t1, t1, t8
+    lb      a0, 0x0(t1)
+    daddu   a0, a0, 0x1
+    dli     t4, 0x7f
+    and     a0, a0, t4
+    sb      a0, 0x0(t1)
+	b		glvl_req_set
+	nop
+1:
+    dli     t1, 0xf8
+    or      t1, t1, t8
+    lb      a0, 0x0(t1)
+    dsubu   a0, a0, 0x5
+    dli     t4, 0x7f
+    and     a0, a0, t4
+    sb      a0, 0x0(t1)
+	blt		a0, 0x7b, 1f
+	nop
+	dsubu	t1, t1, 0x10
+	lb		a0, 0x7(t1)
+	dsubu	a0, a0, 0x1
+	sb		a0, 0x7(t1)
+	lb		a0, 0x6(t1)
+	dsubu	a0, a0, 0x1
+	sb		a0, 0x6(t1)
+	RDOE_ADD_TRDDATA_SUB
+	daddu	t1, t1, 0x10
+1:
+	dli		s6, 0x6
+	daddu	t0, t0, 0x1
+glvl_check_5_slice7:
+	bne		t0, 7, glvl_check_5_slice8
+	nop
+//	PRINTSTR("\r\nglvl_check slice 7\r\n")
+//	move	a0, t0
+//	bal		hexserial
+//	nop
+	subu	s6, s6, 0x1
+	beqz	s6, 1f
+	nop
+	
+    dli     t1, 0x118
+    or      t1, t1, t8
+    lb      a0, 0x0(t1)
+    daddu   a0, a0, 0x1
+    dli     t4, 0x7f
+    and     a0, a0, t4
+    sb      a0, 0x0(t1)
+	b		glvl_req_set
+	nop
+1:
+    dli     t1, 0x118
+    or      t1, t1, t8
+    lb      a0, 0x0(t1)
+    dsubu   a0, a0, 0x5
+    dli     t4, 0x7f
+    and     a0, a0, t4
+    sb      a0, 0x0(t1)
+	blt		a0, 0x7b, 1f
+	nop
+	dsubu	t1, t1, 0x10
+	lb		a0, 0x7(t1)
+	dsubu	a0, a0, 0x1
+	sb		a0, 0x7(t1)
+	lb		a0, 0x6(t1)
+	dsubu	a0, a0, 0x1
+	sb		a0, 0x6(t1)
+	RDOE_ADD_TRDDATA_SUB
+	daddu	t1, t1, 0x10
+1:
+	dli		s6, 0x6
+	daddu	t0, t0, 0x1
+glvl_check_5_slice8:
+/* identify wheather there is ecc slice */
+    dli     t1, 0x250
+    or      t1, t1, t8
+    lb      a0, 0x0(t1)
+    dli     t1, 0x1
+    and     a0, a0, t1
+    bne     a0, t1, glvl_check_5_end //when rd_after_write enabled, the 9th device may don't need leveling
+    nop
+1:
+	subu	s6, s6, 0x1
+	beqz	s6, 1f
+	nop
+	
+    dli     t1, 0x138
+    or      t1, t1, t8
+    lb      a0, 0x0(t1)
+    daddu   a0, a0, 0x1
+    dli     t4, 0x7f
+    and     a0, a0, t4
+    sb      a0, 0x0(t1)
+	b		glvl_req_set
+	nop
+1:
+    dli     t1, 0x138
+    or      t1, t1, t8
+    lb      a0, 0x0(t1)
+    dsubu   a0, a0, 0x5
+    dli     t4, 0x7f
+    and     a0, a0, t4
+    sb      a0, 0x0(t1)
+	blt		a0, 0x7b, 1f
+	nop
+	dsubu	t1, t1, 0x10
+	lb		a0, 0x7(t1)
+	dsubu	a0, a0, 0x1
+	sb		a0, 0x7(t1)
+	lb		a0, 0x6(t1)
+	dsubu	a0, a0, 0x1
+	sb		a0, 0x6(t1)
+	RDOE_ADD_TRDDATA_SUB
+	daddu	t1, t1, 0x10
+1:
+	dli		s6, 0x0
+	daddu	t0, t0, 0x1
+glvl_check_5_end:
+PRINTSTR("\r\nfiltering glvl_check success\r\n")
+#endif
+
+
+#ifdef  PRINT_DDR_LEVELING   //print registers
     PRINTSTR("\r\nThe MC param after gate leveling 0 to 1 is:\r\n")
     dli     t1, DDR_PARAM_NUM
     GET_NODE_ID_a0
@@ -2454,13 +4693,818 @@ glvl_resp_8_set1:
     bal     hexserial
     nop
     PRINTSTR("\r\n")
-
+	
     daddiu  t1, t1, -1
     daddiu  t5, t5, 8
     bnez    t1, 1b
+	nop
+
+#ifdef EDGES_CHECK_DEBUG	
+	PRINTSTR("\r\nThe above is NO.")
+	move	a0, s6
+	bal		hexserial
+	nop
+	PRINTSTR(" edge \r\n")
+#endif
+
+#endif
+
+#ifdef	PREMBLE_CHECK_DEBUG
+#ifdef	EDGES_CHECK_DEBUG	
+	bnez	s6, 111f
+	nop
+#endif
+
+	dli		s7, 0x8
+    dli     t1, 0x250
+    or      t1, t1, t8
+    lb      a0, 0x2(t1)
+    dli     t1, 0x1
+    and     a0, a0, t1
+    bne     a0, t1, 1f //when rd_after_write enabled, the 9th device may don't need leveling
+    nop
+	daddu	s7, s7, 0x1
+1:
+	dli		t1, 0x28
+	or 		t1, t1, t8
+	dli		t2, 0x180
+	or		t2, t2, t8
+premble_check_init:
+/* check the premble exist */
+	PRINTSTR("\r\nPREMBLE CHECK!!\r\n")
+// set the gate signal 0.75 period before
+	dli 	s6,	0x60 //s6 represents 0.75 period to be checked	
+	dli		t4, 0x0
+	or		t4, t4, t8
+	lb		a0, 0x0(t4)
+	beq		a0, 0x2, 1f
+	nop
+	dli		s6, 0x5a
+1:
+#ifdef DDR_DLL_BYPASS
+	lbu		t4, 0x4(t8)
+	daddu	t4, t4, 0x2
+	move	a0, t4
+	dsrl	t4, t4, 0x2
+	dsubu	a0, a0, t4
+	move	s6, a0
+#endif
+
+
+	lb		a0, 0x7(t1)
+	blt		a0, 0x4, 1f
+	nop
+	dli		a0, 0x3
+	sb		a0, 0x7(t1)
+1:
+	lb		a0, 0x6(t1)
+	blt		a0, 0x4, 1f
+	nop
+	dli		a0, 0x3
+	sb		a0, 0x6(t1)
+1:
+
+	lb		a0, 0x10(t1)
+	dsubu	a0, a0, s6
+	dli		t4, 0x7f
+	and		a0, a0, t4
+#ifdef DDR_DLL_BYPASS
+	dli		t4, 0x80
+	dsubu	t4, t4, s6
+	blt		a0, t4, 11f
+	nop
+
+	lbu		t4, 0x4(t8)
+	daddu	t4, t4, 0x2
+	daddu	a0, a0, t4
+	sb		a0, 0x10(t1)
+
+	lb		a0, 0x7(t1)
+	dsubu	a0, a0, 1
+	sb		a0, 0x7(t1)
+	lb		a0, 0x6(t1)
+	dsubu	a0, a0, 1
+	sb 		a0, 0x6(t1)
+	lb		a0, 0x7(t1)
+	RDOE_ADD_TRDDATA_SUB
+	b		22f
+	nop
+11:
+	ori		a0, 0x80
+	sb		a0, 0x10(t1)
+22:
+#else
+	sb		a0, 0x10(t1)
+	dli		t4, 0x80
+	dsubu	t4, t4, s6
+	blt		a0, t4, 1f
+	nop
+	lb		a0, 0x7(t1)
+	dsubu	a0, a0, 1 //dq_oe_end=0?
+	sb		a0, 0x7(t1)
+	lb		a0, 0x6(t1)
+	dsubu	a0, a0, 1
+	sb 		a0, 0x6(t1)
+	lb		a0, 0x7(t1)
+	RDOE_ADD_TRDDATA_SUB
+#endif
+
+1:
+    dli     t4, 0x180
+    or      t4, t4, t8
+    li		a0, 0x1
+	sb      a0, 0x1(t4)
+    li		a0, 0x0
+	sb		a0, 0x1(t4)
+    li		a0, 0x1
+	sb      a0, 0x1(t4)
+    li		a0, 0x0
+	sb		a0, 0x1(t4)
+	
+	dli 	t3, 0x2
+	dli		t6, 0x5
+	dsubu	s6, s6, 0x6
+	b 		glvl_redo_req_set_0
+	nop
+glvl_check_premble:
+
+
+	dsubu	s6, s6, 0x1
+	bnez	s6, 1f
+	nop
+	daddu	s6, s6, 0x1
+1:
+
+    lb      a0, 0x7(t2)
+    dli     t4, 0x3
+    and     a0, a0, t4
+	
+	bnez	a0, test_continuous5_0
+	nop
+
+	//PRINTSTR("The 1 is not found\r\n")
+
+	lb		a0, 0x10(t1)
+	daddu	a0, a0, 0x1
+	dli		t4, 0x7f
+	and 	a0, a0, t4
+	sb		a0, 0x10(t1)
+#ifdef DDR_DLL_BYPASS
+	lbu		t4, 0x4(t8)
+	daddu	t4, t4, 0x2
+#if 0
+	move	a1, a0
+	bal		hexserial
+	nop
+	move	a0,	a1
+#endif
+	bltu	a0, t4, 11f
+	nop
+	dli		a0, 0x80
+	sb		a0, 0x10(t1)
+	dli		a0, 0x0
+	b		22f
+	nop
+11:
+	ori		a0, 0x80
+	sb		a0, 0x10(t1)
+22:
+#endif
+
+	bnez	a0,	1f
+	nop
+	
+	lb		a0, 0x6(t1)
+	daddu	a0, a0, 0x1
+	sb		a0, 0x6(t1)
+	lb		a0, 0x7(t1)
+	daddu	a0, a0, 0x1
+	sb		a0, 0x7(t1)
+	lb		a0, 0x7(t1)
+	RDOE_SUB_TRDDATA_ADD
+1:
+	dli		t6, 0x5
+	b 		glvl_redo_req_set_0
+	nop
+
+test_continuous5_0:
+	dsubu	t6, t6, 0x1
+#ifdef DDR_DLL_BYPASS
+	dli		t6, 0x0
+#endif
+	bnez	t6, 1f
+	nop
+	beq		s6, 0x1, glvl_check_premble_end
+	nop
+	b		glvl_check_premble_fail
+	nop
+1:
+#ifdef PRINT_PREMBLE_CHECK 
+	PRINTSTR("The 1 found in premble test@")
+	move	a0, s6
+	bal 	hexserial
+	nop
+	move	a0, t6
+	bal 	hexserial
+	nop
+	PRINTSTR("\r\n")
+#endif
+
+	lb		a0, 0x10(t1)
+	daddu	a0, a0, 0x1
+	dli		t4, 0x7f
+	and		a0, a0, t4
+	sb		a0, 0x10(t1)
+#ifdef DDR_DLL_BYPASS
+	lbu		t4, 0x4(t8)
+	daddu	t4, t4, 0x2
+	blt		a0, t4, 11f
+	nop
+	dli		a0, 0x80
+	sb		a0, 0x10(t1)
+	dli		a0, 0x0
+	b		22f
+	nop
+11:
+	ori		a0, 0x80
+	sb		a0, 0x10(t1)
+22:
+#endif
+	bnez	a0,	1f
+	nop
+	
+	lb		a0, 0x6(t1)
+	daddu	a0, a0, 0x1
+	sb		a0, 0x6(t1)
+	lb		a0, 0x7(t1)
+	daddu	a0, a0, 0x1
+	sb		a0, 0x7(t1)
+	lb		a0, 0x7(t1)
+	RDOE_SUB_TRDDATA_ADD	
+1:
+	b		glvl_redo_req_set_0
+	nop
+
+glvl_check_premble_fail:
+	PRINTSTR("\r\nThe premble check failed @")
+	move	a0, s6
+	bal 	hexserial
+	nop
+	PRINTSTR("\r\n")
+
+	dli		s6, 0x0
+	lb		a0, 0x6(t1)
+	dsubu	a0, a0, 0x1
+	sb		a0, 0x6(t1)
+	lb		a0, 0x7(t1)
+	dsubu	a0, a0, 0x1
+	sb		a0, 0x7(t1)
+	bnez	a0, 1f
+	nop
+	PRINTSTR("\r\nThe rd_oe become 0 in the premble check!\r\n")
+	RDOE_ADD_TRDDATA_SUB
+1:
+
+	
+	dli		t3, 0x0
+glvl_redo_req_set_0:
+    dli     t4, 0x180
+    or      t4, t4, t8
+    dli     a0, 0x1
+    sb      a0, 0x1(t4)
+    dli		a0, 0x0
+    sb      a0, 0x1(t4)
+	
+1:						//glvl_done_sampling
+    dli     t4, 0x180
+    or      t4, t4, t8
+    lb      a0, 0x6(t4)
+    bne     a0, 0x1, 1b
+    nop
+
+	beq		t3, 0x1, glvl_redo_resp_set1_0	
+	nop
+
+	beq		t3, 0x2, glvl_check_premble
+	nop
+
+#ifdef	FIND_PREMBLE_LENGTH
+	beq		t3, 0x3, premble_check_length
+	nop
+#endif
+
+	dli		t3, 0x1
+    lb      a0, 0x7(t2)
+    dli     t4, 0x3
+    and     a0, a0, t4
+    beq     a0, 0x0, 1f
+    nop
+	
+	lb		a0, 0x10(t1)
+	daddu	a0, a0, 0x1
+	dli		t4, 0x7f
+	and		a0, a0, t4
+	sb		a0, 0x10(t1)
+#ifdef DDR_DLL_BYPASS
+	lbu		t4, 0x4(t8)
+	daddu	t4, t4, 0x2
+	blt		a0, t4, 11f
+	nop
+	dli		a0, 0x80
+	sb		a0, 0x10(t1)
+	dli		a0, 0x0
+	b		22f
+	nop
+11:
+	ori		a0, 0x80
+	sb		a0, 0x10(t1)
+22:
+#endif
+	dli		t3, 0x0
+	bnez	a0, 1f
+	nop
+
+    /* rd_oe_begin and rd_oe_end add 1 */
+    ld      a0, 0x0(t1)
+    dli     t4, 0x0101000000000000
+    daddu   a0, a0, t4
+    sd      a0, 0x0(t1)
+	lb		a0, 0x7(t1)
+	RDOE_SUB_TRDDATA_ADD
+    /* odt_oe_begin and odt_oe_end add 1 */
+    ld      a0, 0x8(t1)
+    dli     t4, 0x0000000001010000
+    daddu   a0, a0, t4
+    sd      a0, 0x8(t1)
+
+1:
+	b		glvl_redo_req_set_0
+	nop
+
+glvl_redo_resp_set1_0:
+	
+    lb      a0, 0x7(t2)
+    dli     t4, 0x3
+    and     a0, a0, t4
+    bnez    a0, premble_check_init
+    nop
+
+	lb		a0, 0x10(t1)
+	daddu	a0, a0, 0x1
+	dli		t4, 0x7f
+	and		a0, a0, t4
+	sb		a0, 0x10(t1)
+#ifdef DDR_DLL_BYPASS
+	lbu		t4, 0x4(t8)
+	daddu	t4, t4, 0x2
+	blt		a0, t4, 11f
+	nop
+	dli		a0, 0x80
+	sb		a0, 0x10(t1)
+	dli		a0, 0x0
+	b		22f
+	nop
+11:
+	ori		a0, 0x80
+	sb		a0, 0x10(t1)
+22:
+#endif
+
+	bnez	a0, 1f
+	nop
+
+    /* rd_oe_begin and rd_oe_end add 1 */
+    ld      a0, 0x0(t1)
+    dli     t4, 0x0101000000000000
+    daddu   a0, a0, t4
+    sd      a0, 0x0(t1)
+	lb		a0, 0x7(t1)
+	RDOE_SUB_TRDDATA_ADD
+    /* odt_oe_begin and odt_oe_end add 1 */
+    ld      a0, 0x8(t1)
+    dli     t4, 0x0000000001010000
+    daddu   a0, a0, t4
+    sd      a0, 0x8(t1)
+
+1:
+	
+	b		glvl_redo_req_set_0
+	nop
+
+
+glvl_check_premble_end:
+#ifdef  PRINT_PREMBLE_CHECK   //print registers
+    PRINTSTR("\r\nThe MC param after premble check is:\r\n")
+    dli     t4, DDR_PARAM_NUM
+    GET_NODE_ID_a0
+    dli     t5, 0x900000000ff00000
+    or      t5, t5, a0
+1:
+    ld      t6, 0x0(t5)
+    move    a0, t5
+    and     a0, a0, 0xfff
+    bal     hexserial
+    nop
+    PRINTSTR(":  ")
+    dsrl    a0, t6, 32
+    bal     hexserial
+    nop
+    //PRINTSTR("  ")
+    move    a0, t6
+    bal     hexserial
+    nop
+    PRINTSTR("\r\n")
+	
+    daddiu  t4, t4, -1
+    daddiu  t5, t5, 8
+    bnez    t4, 1b
+	nop
+
+#ifdef EDGES_CHECK_DEBUG	
+	PRINTSTR("\r\nThe above is NO.")
+	move	a0, s6
+	bal		hexserial
+	nop
+	PRINTSTR(" edge \r\n")
+#endif
+#endif
+	dli		s6, 0x0
+	PRINTSTR("\r\nThe premble check success\r\n")
+	
+	lb		a0, 0x7(t1)
+	blt		a0, 0x4, 1f
+	nop
+	dsubu	a0, a0, 0x4
+	sb		a0, 0x7(t1)
+	sb		a0, 0x6(t1)
+	RDOE_ADD_TRDDATA_SUB
+1:
+#ifdef DDR_DLL_BYPASS
+#else
+	lb		a0, 0x10(t1)
+	dsubu	a0, a0, 0x4
+	dli		t4, 0x7f
+	and		a0, a0, t4
+	sb		a0, 0x10(t1)
+	ble		a0, 0x7b, 1f
+	nop
+	lb		a0, 0x7(t1)
+	dsubu	a0, a0, 0x1
+	sb		a0, 0x7(t1)
+	lb		a0, 0x6(t1)
+	dsubu	a0, a0, 0x1
+	sb		a0, 0x6(t1)
+	RDOE_ADD_TRDDATA_SUB
+1:
+#endif
+//set rddqs_lt_half
+	lb		a0, 0x10(t1)
+	dli		t4, 0x7f
+	and		a0, a0, t4
+#ifdef DDR_DLL_BYPASS
+    dsll    a0, a0, 0x7 // x 128
+    lw 	    t5, 0x4(t8) //get dll_ck value, store at t5
+    daddu   t5, t5, 0x2
+    divu    a0, a0, t5 //get dll_gate, no bypass mode
+#endif
+ 	lb		a1, 0x11(t1)
+	daddu	a0, a0, a1
+	and		a0, a0, t4
+#if 1
+	move	a1, a0
+	bal		hexserial
+	nop
+	move	a0, a1
+#endif
+	bgeu	a0, 0x40, rddqs_lthalf_set0
+	nop
+	bltu	a0,	0x0, rddqs_lthalf_set0
+	nop
+	b		rddqs_lthalf_set1
+	nop
+rddqs_lthalf_set0:
+	dsubu	t4, t1, 0x8
+	dli		a0, 0x0
+	sb		a0, 0x2(t4)
+	b		1f
+	nop
+rddqs_lthalf_set1:
+	dsubu	t4, t1, 0x8
+	dli		a0, 0x1
+	sb		a0, 0x2(t4)
+1:
+#if 1
+/* unknown reason to reset init_start */
+    dli     t4, 0x18
+    or      t4, t4, t8
+    dli     a0, 0x0
+    sb      a0, 0x0(t4)
+
+    dli     t4, 0x18
+    or      t4, t4, t8
+    dli     a0, 0x1
+    sb      a0, 0x0(t4)
+1:
+    dli     t4, 0x160
+    or      t4, t4, t8
+    lb      a0, 0x3(t4)
+    beqz    a0, 1b
     nop
 #endif
 
+dll_gate_sub_20:
+#ifdef DDR_DLL_BYPASS
+	lb		a0, 0x10(t1)
+	bal		hexserial
+	nop
+	lbu		t4, 0x4(t8)
+	daddu	t4, t4, 0x2
+	dsrl	t4, t4, 0x2
+	move	a1, t4
+	lbu		a0, 0x10(t1)
+	dli		t4, 0x7f
+	and		a0, a0, t4
+	blt		a0, a1, 11f
+	nop
+	dsubu	a0, a0, a1
+	ori		a0, 0x80
+	sb		a0, 0x10(t1)
+	b		22f
+	nop
+11:
+	dli		a0, 0x80
+	sb		a0, 0x10(t1)
+22:
+#else
+	lb		a0, 0x10(t1)
+	dsubu	a0, a0, 0x20
+	dli		t4, 0x7f
+	and		a0, a0, t4
+	sb		a0, 0x10(t1)
+	blt		a0, 0x60, 1f
+	nop
+
+	lb		a0, 0x7(t1)
+	dsubu	a0, a0, 0x1
+	sb		a0, 0x7(t1)
+	lb		a0, 0x6(t1)
+	dsubu	a0, a0, 0x1
+	sb		a0, 0x6(t1)
+	RDOE_ADD_TRDDATA_SUB
+1:
+#endif
+
+#if 1
+/* unknown reason to reset init_start */
+    dli     t4, 0x18
+    or      t4, t4, t8
+    dli     a0, 0x0
+    sb      a0, 0x0(t4)
+
+    dli     t4, 0x18
+    or      t4, t4, t8
+    dli     a0, 0x1
+    sb      a0, 0x0(t4)
+1:
+    dli     t4, 0x160
+    or      t4, t4, t8
+    lb      a0, 0x3(t4)
+    beqz    a0, 1b
+    nop
+#endif
+
+get_burst_length: //save in t9
+#ifdef DDR_DLL_BYPASS
+#else
+	dli		t4, 0x168
+	or		t4, t4, t8
+	lb		t9, 0x4(t4)
+	daddu	t9, t9, 0x1
+	dsrl	t9, t9, 0x1
+
+	dli		t4, 0x180//send glvl request
+	or		t4, t4, t8
+	dli		a0, 0x1
+	sb		a0, 0x1(t4)
+1:
+	lb		a0, 0x6(t4) //glvl done
+	bne		a0, 0x1, 1b
+	nop
+	lb		s3, 0x7(t2)
+	
+	dli		t4, 0x180
+	or		t4, t4, t8
+	dli		a0, 0x1
+	sb		a0, 0x1(t4)
+1:
+	lb		a0, 0x6(t4)
+	bne		a0, 0x1, 1b
+	nop
+	lb		t6, 0x7(t2)
+
+//glvl response check
+	dli		t4, 0x1c
+	and		s3, s3, t4
+	and		t6, t6, t4
+	dsrl	s3, s3, 0x2
+	dsrl	t6, t6, 0x2
+	blt		s3, 0x4, 1f
+	nop
+	or		t6, t6, 0x8
+1:
+	dsubu	t6, t6, s3
+	beq		t6, t9, glvl_last_check_end
+	nop
+	
+	lb		a0, 0x7(t1)
+	dsubu	a0, a0, 0x1
+	sb		a0, 0x7(t1)
+	lb		a0,	0x6(t1)
+	dsubu	a0, a0, 0x1
+	sb		a0, 0x6(t1)
+	RDOE_ADD_TRDDATA_SUB
+	PRINTSTR("\r\nThe edges number is incorrect!\r\n")
+	b		premble_check_init
+	nop
+#endif
+glvl_last_check_end:
+	PRINTSTR("\r\nThe edges number is correct!\r\n")
+	daddu	t1, t1, 0x20
+	daddu	t2, t2, 0x1
+	dsubu	s7, s7, 0x1
+	bnez	s7, premble_check_init
+	nop
+111:
+#ifdef FIND_PREMBLE_LENGTH
+	dli		t3, 0x3
+	dli		t4, 0x38
+	or		t4, t4, t8
+	lb		a0, 0x0(t4)
+	dsubu	a0, a0, 0x5
+	dli		t4, 0x7f
+	and		a0, a0, t4
+	dli		t4, 0x38
+	or		t4, t4, t8
+	sb		a0, 0x0(t4)
+	blt		a0,	0x7b, 1f
+	nop
+	dli		t4, 0x28
+	or		t4, t4,t8
+	lb		a0, 0x7(t4)
+	dsubu	a0, a0, 0x1
+	sb		a0, 0x7(t4)
+	lb		a0, 0x6(t4)
+	dsubu	a0, a0, 0x1
+	sb		a0, 0x6(t4)
+	RDOE_ADD_TRDDATA_SUB
+	dli		s6, 0x0
+	PRINTSTR("111111")
+1:
+	b		glvl_redo_req_set_0
+	nop
+premble_check_length:
+    dli		t4, 0x180
+	or		t4, t4, t8
+	lb      a0, 0x7(t4)
+    dli     t4, 0x3
+    and     a0, a0, t4
+    beq     a0, 0x1, 2f
+    nop
+	
+	PRINTSTR("22222")
+
+	daddu	s6, s6, 0x1
+	bge		s6, 0xff, 2f
+	dli		t4, 0x38
+	or		t4, t4, t8
+	lb		a0, 0x0(t4)
+	dsubu	a0, a0, 0x1
+	dli		t4, 0x7f
+	and		a0, a0, t4
+	dli		t4, 0x38
+	or		t4, t4, t8
+	sb		a0, 0x0(t4)
+	blt		a0,	0x7f, 1f
+	nop
+	dli		t4, 0x28
+	or		t4, t4,t8
+	lb		a0, 0x7(t4)
+	dsubu	a0, a0, 0x1
+	sb		a0, 0x7(t4)
+	lb		a0, 0x6(t4)
+	dsubu	a0, a0, 0x1
+	sb		a0, 0x6(t4)
+	RDOE_ADD_TRDDATA_SUB
+1:
+	b		glvl_redo_req_set_0
+	nop
+2:
+	PRINTSTR("\r\n the premle length is")
+	move	a0, s6
+	bal		hexserial
+	nop
+
+#endif
+	b		gate_leveling_exit               //-------------------------the after code is not effect-until gate leveling exit-------------------------------------------
+	nop										//--------------------------------------!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!-------------------------------------------------------
+
+#endif
+
+#ifdef EDGES_CHECK_DEBUG
+	beq		s6, 0x5, posedges_check_end
+	nop
+/* check 4 posedges exist */
+	daddu 	s6, s6, 0x1
+	dli		t3, 0x0
+	bne		s6, 0x5, glvl_req_set
+	nop
+
+//identify wheather there is ecc slice
+	li      t0, 0x8
+	dli     t1, 0x250
+	or      t1, t1, t8
+	lb      a0, 0x2(t1)
+	dli     t1, 0x1
+	and     a0, a0, t1
+	bne     a0, t1, 1f //when rd_after_write enabled, the 9th device may don't need leveling
+	nop
+	daddu   t0, t0, 0x1
+1:
+	dli		t1, 0x28
+	or		t1, t1, t8
+reset_rd_oe:
+	dli		t4, 0x350
+	or		t4, t4, t8
+	lb		a0, 0x7(t4)
+	sb		a0, 0x7(t1)
+	sb		a0, 0x6(t1)
+	daddu	t1, t1, 0x20
+	dsubu	t0, t0, 0x1
+	bnez	t0, reset_rd_oe
+	nop
+
+	dli		t1, 0x350 // reset trddata
+	or		t1, t1, t8
+	lb		a0, 0x6(t1)
+	dli		t1, 0x1c0
+	or		t1, t1, t8
+	sb		a0, 0x0(t1)
+	
+//identify wheather there is ecc slice
+	li      t0, 0x8
+	dli     t1, 0x250
+	or      t1, t1, t8
+	lb      a0, 0x2(t1)
+	dli     t1, 0x1
+	and     a0, a0, t1
+	bne     a0, t1, 1f //when rd_after_write enabled, the 9th device may don't need leveling
+	nop
+	daddu   t0, t0, 0x1
+1:
+	dli		t1, 0x30
+	or		t1, t1, t8
+reset_odt_oe:
+	dli		a0, 0x2
+	sb		a0, 0x2(t1)
+	sb		a0, 0x3(t1)
+	daddu	t1, t1, 0x20
+	dsubu	t0, t0, 0x1
+	bnez	t0, reset_odt_oe
+	nop
+
+//identify wheather there is ecc slice
+	li      t0, 0x8
+	dli     t1, 0x250
+	or      t1, t1, t8
+	lb      a0, 0x2(t1)
+	dli     t1, 0x1
+	and     a0, a0, t1
+	bne     a0, t1, 1f //when rd_after_write enabled, the 9th device may don't need leveling
+	nop
+	daddu   t0, t0, 0x1
+1:
+    dli     t1, 0x018
+    or      t1, t1, t8
+dll_gate_set0_2:
+    daddu    t1, t1, 0x20
+    ld      a0, 0x0(t1)
+    dli     t4, 0xffffffffffffff00
+    and     a0, a0, t4
+#ifdef DDR_DLL_BYPASS
+    dli     t4, 0x0000000000000080
+    or      a0, a0, t4
+#endif
+    sd      a0, 0x0(t1)
+    subu    t0, t0, 0x1 
+    bnez    t0, dll_gate_set0_2 
+    nop
+
+	b		glvl_req_set
+	nop 
+posedges_check_end:
+#endif
+
+#if 1
 #if 1
 /* unknown reason to reset init_start */
 reset_init_start0:
@@ -2500,8 +5544,8 @@ wait_init_done0:
     nop
     daddu   t0, t0, 0x1
 1:
-    dli     a2, 0x00
-    dli     a3, 0x40
+    dli     a2, 0x1a
+    dli     a3, 0x3a
     dli     t1, 0x018
     or      t1, t1, t8
 rddqs_lt_half:
@@ -2514,14 +5558,23 @@ rddqs_lt_half:
     dli     t4, 0x000000000000007f
     dli     t6, 0x7f //dll value limit
     and     a0, a0, t4 //get dll_gate, store at a0, remove high bit 1
+#ifdef DDR_DLL_BYPASS
     dsll    a0, a0, 0x7 // x 128
     lw      t5, 0x4(t8) //get dll_ck value, store at t5
+    daddu   t5, t5, 0x2
     divu    a0, a0, t5 //get dll_gate, no bypass mode
+#endif
     dli     t5, 0x000000000000ff00
     and     a1, a1, t5
     dsrl    a1, a1, 8  //get dll_wrdata
     daddu   a0, a0, a1
     and     a0, a0, t6
+#if 0
+	move	a1, a0
+	bal		hexserial
+	nop
+	move	a0, a1
+#endif
     bgeu    a0, a3, rddqs_lt_half_set1//because the rd gate edge is 0x2
     nop
     bltu    a0, a2, rddqs_lt_half_set1
@@ -2595,7 +5648,7 @@ dll_gate_set:
     dli     t4, 0x00000000000000ff
     and     a2, a2, t4
 #else
-    dli     a2, 0x20
+    dli     a2, 0x0a
 #endif
     dli     t1, 0x018
     or      t1, t1, t8
@@ -2678,6 +5731,7 @@ wait_init_done2:
     beqz    a0, wait_init_done2
     nop
 #endif
+#endif
 
 dll_gate_0_add:
 #ifdef LVL_DEBUG
@@ -2729,6 +5783,8 @@ dll_gate_0_add:
     dli     t2, 0x0101000000000000
     daddu   a0, a0, t2
     sd      a0, 0x0(t1)
+	lb		a0, 0x7(t1)
+	RDOE_SUB_TRDDATA_ADD
     /* odt_oe_begin and odt_oe_end add 1 */
     dli     t1, 0x030
     or      t1, t1, t8
@@ -2792,6 +5848,8 @@ dll_gate_1_add:
     dli     t2, 0x0101000000000000
     daddu   a0, a0, t2
     sd      a0, 0x0(t1)
+	lb		a0, 0x7(t1)
+	RDOE_SUB_TRDDATA_ADD
     /* odt_oe_begin and odt_oe_end add 1 */
     dli     t1, 0x050
     or      t1, t1, t8
@@ -2855,6 +5913,8 @@ dll_gate_2_add:
     dli     t2, 0x0101000000000000
     daddu   a0, a0, t2
     sd      a0, 0x0(t1)
+	lb		a0, 0x7(t1)
+	RDOE_SUB_TRDDATA_ADD
     /* odt_oe_begin and odt_oe_end add 1 */
     dli     t1, 0x070
     or      t1, t1, t8
@@ -2918,6 +5978,8 @@ dll_gate_3_add:
     dli     t2, 0x0101000000000000
     daddu   a0, a0, t2
     sd      a0, 0x0(t1)
+	lb		a0, 0x7(t1)
+	RDOE_SUB_TRDDATA_ADD
     /* odt_oe_begin and odt_oe_end add 1 */
     dli     t1, 0x090
     or      t1, t1, t8
@@ -2981,6 +6043,8 @@ dll_gate_4_add:
     dli     t2, 0x0101000000000000
     daddu   a0, a0, t2
     sd      a0, 0x0(t1)
+	lb		a0, 0x7(t1)
+	RDOE_SUB_TRDDATA_ADD
     /* odt_oe_begin and odt_oe_end add 1 */
     dli     t1, 0x0b0
     or      t1, t1, t8
@@ -3044,6 +6108,8 @@ dll_gate_5_add:
     dli     t2, 0x0101000000000000
     daddu   a0, a0, t2
     sd      a0, 0x0(t1)
+	lb		a0, 0x7(t1)
+	RDOE_SUB_TRDDATA_ADD
     /* odt_oe_begin and odt_oe_end add 1 */
     dli     t1, 0x0d0
     or      t1, t1, t8
@@ -3107,6 +6173,8 @@ dll_gate_6_add:
     dli     t2, 0x0101000000000000
     daddu   a0, a0, t2
     sd      a0, 0x0(t1)
+	lb		a0, 0x7(t1)
+	RDOE_SUB_TRDDATA_ADD
     /* odt_oe_begin and odt_oe_end add 1 */
     dli     t1, 0x0f0
     or      t1, t1, t8
@@ -3170,6 +6238,8 @@ dll_gate_7_add:
     dli     t2, 0x0101000000000000
     daddu   a0, a0, t2
     sd      a0, 0x0(t1)
+	lb		a0, 0x7(t1)
+	RDOE_SUB_TRDDATA_ADD
     /* odt_oe_begin and odt_oe_end add 1 */
     dli     t1, 0x110
     or      t1, t1, t8
@@ -3233,6 +6303,8 @@ dll_gate_8_add:
     dli     t2, 0x0101000000000000
     daddu   a0, a0, t2
     sd      a0, 0x0(t1)
+	lb		a0, 0x7(t1)
+	RDOE_SUB_TRDDATA_ADD
     /* odt_oe_begin and odt_oe_end add 1 */
     dli     t1, 0x130
     or      t1, t1, t8
@@ -3392,6 +6464,7 @@ glvl_resp_last_1:
     ld      t2, 0x0(t1) //lvl_resp 0
     ld      t6, 0x8(t1) //lvl_resp 1-8
 
+#if 1 //debug
 glvl_resp_check_0:
     dli     t4, 0x1c00000000000000
     and     t3, t2, t4 //second sample
@@ -3701,14 +6774,14 @@ rd_oe_6_sub:
     ld      a0, 0x0(t1)
     dli     t2, 0x0101000000000000
     dsubu   a0, a0, t2
-    sd      a0, 0x0(t1)
+   //sd      a0, 0x0(t1)
 
     dli     t1, 0x0f0
     or      t1, t1, t8
     ld      a0, 0x0(t1)
     dli     t2, 0x0000000001010000
     dsubu   a0, a0, t2
-    sd      a0, 0x0(t1)
+   //sd      a0, 0x0(t1)
     b       glvl_resp_check_7
     dli     s7, 0x1 
 
@@ -3752,6 +6825,8 @@ rd_oe_8_sub:
     b       rd_oe_sub
     dli     s7, 0x1 
 
+#endif //debug
+
 gate_leveling_exit:
     dli     t1, 0x180
     or      t1, t1, t8
@@ -3760,6 +6835,9 @@ gate_leveling_exit:
     and     a0, a0, t4
     sd      a0, 0x0(t1)
 
+
+//   dli      t1, 0x0000002020187803
+//   sd       t1, 0xb8(t8)
 /* unknown reason to reset init_start */
 reset_init_start3:
     dli     t1, 0x18
@@ -3785,6 +6863,7 @@ wait_init_done3:
     and     a0, a0, t4
     beqz    a0, wait_init_done3
     nop
+#endif
 
 #ifdef DDR_DLL_BYPASS //bypass dll_wrdqs, dll_wrdata and  dll_rddqs_p/n
     dli     t1, 0x0
@@ -3793,7 +6872,7 @@ wait_init_done3:
     dli     t4, 0x0000ffff00000000
     and     a1, a1, t4 
     dsrl    a1, a1, 32 // dll_value store in a1
-    daddu   a1, a1, 0x2
+//    daddu   a1, a1, 0x2
     
 /* identify wheather there is ecc slice */
     dli     t1, 0x250
@@ -3884,12 +6963,75 @@ wait_init_done3:
     nop
 
 3:
-    
-   
-    
+        
 #endif
 
+
+
+
 100:
+#if 0
+test_memory:
+	dli     t0, 0x9000000000000000
+	GET_NODE_ID_a0
+	or      t0, t0, a0
+   	dli     a0, 0x5555555555555555
+    sd      a0, 0x0(t0)
+    dli     a0, 0xaaaaaaaaaaaaaaaa
+    sd      a0, 0x8(t0)
+	dli     a0, 0x3333333333333333
+	sd      a0, 0x10(t0)
+	dli     a0, 0xcccccccccccccccc
+	sd      a0, 0x18(t0)
+	dli     a0, 0x7777777777777777
+	sd      a0, 0x20(t0)
+	dli     a0, 0x8888888888888888
+	sd      a0, 0x28(t0)
+	dli     a0, 0x1111111111111111
+	sd      a0, 0x30(t0)
+	dli     a0, 0xeeeeeeeeeeeeeeee
+	sd      a0, 0x38(t0)
+
+	dli     t5, 0x9000000000000000
+    GET_NODE_ID_a0
+	or      t5, t5, a0
+	ld      t6, 0x30(t5)
+    dli     t2, 0x5555555555555555
+	beq		t6, t2, 2f
+	nop
+	ld		t6, 0x20(t5)
+	beq		t6, t2, 2f
+	nop
+	ld		t6, 0x10(t5)
+	beq		t6, t2, 2f
+	nop
+	ld		t6, 0x00(t5)
+	beq		t6, t2, 3f
+	nop
+	PRINTSTR("\r\nthe memory test failed!\r\n")
+	b		4f
+	nop
+
+2:
+	dli		t1, 0x1d0
+	or		t1, t1, t8
+	lb		a0, 0x4(t1)
+	dsubu	a0,	a0, 0x1
+	sb		a0, 0x4(t1)
+	b		test_memory
+	nop
+3:
+	PRINTSTR("the memory test sucess!\r\n")
+	nop
+4:
+#endif
+//set pm_dll_bypass
+    dli     t1, 0x1
+    sb      t1, 0x19(t8)
+//remove dll_close_disable and dll_reync_disable
+    dli     t1, 0x0
+    sb      t1, 0x7(t8)
+
 
     move    ra, s5
     jr      ra
