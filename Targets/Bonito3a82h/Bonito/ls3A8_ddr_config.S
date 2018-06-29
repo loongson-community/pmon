@@ -1970,7 +1970,12 @@ ddr2_config_end:
         .set    noreorder
         .set    mips3
 mc_init:
+#ifdef ARB_LEVEL
+    sd	    ra, (sp)
+    sd	    s3, 8(sp)
+#else
     move    t7, ra
+#endif
 
     sync
     nop
@@ -2040,170 +2045,9 @@ mc_init:
     nop
 
 #ifdef  ARB_LEVEL   //Can not enable. because the ra destroy t7
-#ifdef  DEBUG_DDR_PARAM
-    PRINTSTR("\r\nSkip Memory training?(0: use mark to decide;1: skip ARB_level;)\r\n");
-    dli     t6, 0x00
-    bal     inputaddress    #input value stored in v0
-    nop
-    bnez    v0, 1f
-    nop
-#endif
     //read ARB_level
     beqz    t7, 8f
     nop
-
-    //route 0x1000000000 ~ 0x1FFFFFFFFF(64G) to MC for ARB_level
-    sync
-    nop
-    nop
-    nop
-    nop
-    GET_NODE_ID_a0;
-    XBAR_CONFIG_NODE_a0(ARB_TEMP_L2WINDOW_OFFSET, \
-                    0x0000001000000000, \
-                    0xFFFFFFF000000000, \
-                    0x00000000000000F0)
-    beqz    t3, 2f
-    nop
-    GET_NODE_ID_a0;
-    XBAR_CONFIG_NODE_a0(ARB_TEMP_L2WINDOW_OFFSET, \
-                    0x0000001000000000, \
-                    0xFFFFFFF000000000, \
-                    0x00000000000000F1)
-2:
-    sync
-    nop
-    nop
-    nop
-    nop
-
-    bal     ARB_level
-    nop
-    b       ddr_level_done
-    nop
-
-ddr3_hard_leveling:
-    PRINTSTR("Start Hard Leveling...\r\n")
-    TTYDBG("\r\nEnable register space of MEMORY\r\n")
-    bal     enable_mc_conf_space
-    nop
-
-    GET_NODE_ID_a0
-    dli     t8, DDR_MC_CONFIG_BASE
-    or      t8, t8, a0
-    bal     ddr3_leveling
-    nop
-
-    //Re-set t0&t2 because mc_init(ddr3_leveling) will change t0~t9
-    GET_NODE_ID_a0
-    dli     t2, 0x900000001fe00180
-    dli     t0, 0x900000003ff00000
-    or      t2, t2, a0
-    or      t0, t0, a0
-#ifdef  LS_3B
-    //add 3B register location offset
-    dsrl    a0, a0, 44
-    dsll    a0, a0, 14
-    or      t0, t0, a0
-    //clear odd NODE_ID to even for chip config
-    dli     a1, 0x1
-    dsll    a1, a1, 44
-    not     a1, a1
-    and     t2, t2, a1
-#endif
-
-    TTYDBG("\r\nDisable register space of MEMORY\r\n")
-    bal     disable_mc_conf_space
-    nop
-
-ddr_level_done:
-    TTYDBG("\r\nEnable register space of MEMORY\r\n")
-    bal     enable_mc_conf_space
-    nop
-
-#if 1   //def  DEBUG_DDR_PARAM   //print registers
-    PRINTSTR("The MC param after leveling is:\r\n")
-    dli     t1, DDR_PARAM_NUM
-    GET_NODE_ID_a0
-    dli     t5, DDR_MC_CONFIG_BASE
-    or      t5, t5, a0
-1:
-    ld      t6, 0x0(t5)
-    move    a0, t5
-    and     a0, a0, 0xfff
-    bal     hexserial
-    nop
-    PRINTSTR(":  ")
-    dsrl    a0, t6, 32
-    bal     hexserial
-    nop
-    //PRINTSTR("  ")
-    move    a0, t6
-    bal     hexserial
-    nop
-    PRINTSTR("\r\n")
-
-    daddiu  t1, t1, -1
-    daddiu  t5, t5, 8
-    bnez    t1, 1b
-    nop
-#endif
-#if 0   //def  DEBUG_DDR_PARAM   //Change parameters of MC
-
-    GET_NODE_ID_a0;
-    dli     a1, DDR_MC_CONFIG_BASE
-    or      t8, a0, a1
-
-    /* store the ra */
-    move    t1, ra
-
-    PRINTSTR("\r\nChange some parameters of MC:");
-1:
-    PRINTSTR("\r\nPlease input the register number you want to change!!!(0xfff:jump out.): ");
-    dli     t6, 0x00
-    bal     inputaddress
-    nop
-    move    t5, v0
-    
-    dli     a1, 0x320
-    bge     t5, a1, 2f    #if input address offset exceed range,jump out
-    nop
-    and     t5, t5, 0xff8
-    daddu   t5, t5, t8
-
-    PRINTSTR("\r\nPlease input the data-hex: ");
-    dli     t6, 0x00
-    bal     inputaddress
-    nop
-    sd      v0, 0x0(t5)    #v0 is the input value
-
-    //print the new register value
-    move    t6, t5
-    PRINTSTR("\r\nRegister 0x")
-    dsubu   t5, t5, t8
-    move    a0, t5
-    bal     hexserial
-    nop
-    PRINTSTR(": ")
-    ld      t6, 0x0(t6)
-    dsrl    a0, t6, 32
-    bal     hexserial
-    nop
-    move    a0, t6
-    bal     hexserial
-    nop
-
-    b        1b
-    nop
-2:    
-    /* recover the ra */
-    move    ra, t1
-#endif
-
-    //TTYDBG("Disable register space of MEMORY\r\n")
-    bal     disable_mc_conf_space
-    nop
-
 #endif
 #ifdef	DDR3_DIMM
     PRINTSTR("Start Hard Leveling...\r\n")
@@ -2363,6 +2207,9 @@ ddr_level_done:
     //TTYDBG("Disable register space of MEMORY\r\n")
     bal     disable_mc_conf_space
     nop
+#endif
+#ifdef  ARB_LEVEL   //Can not enable. because the ra destroy t7
+8:
 #endif
 
 #ifndef  DISABLE_DIMM_ECC
@@ -2538,7 +2385,12 @@ ddr_level_done:
     nop
 
 #endif
+#ifdef ARB_LEVEL
+    ld	    s3, 8(sp)
+    ld	    ra, (sp)
+#else
     move    ra, t7
+#endif
     jr      ra
     nop
     .end    mc_init
