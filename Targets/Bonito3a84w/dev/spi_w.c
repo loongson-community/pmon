@@ -482,6 +482,8 @@ int spi_write_area(int flashaddr,char *buffer,int size)
         }
 
 	SET_SPI(SOFTCS,0x11);
+	while(read_sr() & 1);
+	SET_SPI(SOFTCS,0x11);
 	delay(10);
 	return 0;
 }
