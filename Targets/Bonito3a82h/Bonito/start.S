@@ -682,7 +682,7 @@ after_ht:
 	nop
 #endif
 
-	dli     s1, 0x0010000100000000
+	dli     s1, 0x0010000080000000
 #if 0
 	PRINTSTR("\r\ndefault s1 = 0x");
 	dsrl    a0, s1, 32
