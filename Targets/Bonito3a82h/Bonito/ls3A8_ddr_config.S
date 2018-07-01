@@ -2624,3 +2624,14 @@ LEAF(get_mem_clk)
     jr ra
     nop
 END(get_mem_clk)
+LEAF(disable_mc_read_buffer)
+
+    jr      ra
+    nop
+END(disable_mc_read_buffer)
+
+LEAF(disable_cpu_buffer_read)
+
+    jr      ra
+    nop
+END(disable_cpu_buffer_read)
