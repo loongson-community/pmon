@@ -591,7 +591,7 @@ after_ht:
 	//dli     s1, 0x00000000c1a18204 
 	//dli	s1, 0xc1a18404c1a18404
 	//dli	s1, 0xc0a18404
-	dli	s1, 0xc0a18800c0a18800
+	dli	s1, 0xc0a18400c0a18400
 #endif
 #include "loongson3_ddr2_config.S"
 //#include "ddr_dir/loongson3_ddr2_config.S"
