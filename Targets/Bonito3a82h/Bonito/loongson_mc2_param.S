@@ -108,7 +108,7 @@ MC0_DDR3_CTRL_0x150: .dword 0x00000000f0020000
 //hXXXX _0000 pm_pad_adj_ncode_clk _0000 pm_pad_adj_pcode_clk 00000 _0 pm_pad_outodt_clk _0 pm_pad_slewrate_clk _0 pm_pad_code_clk _0000 pm_pad_adj_ncode_cmd _0000 pm_pad_adj_pcode_cmd 00000 _0 pm_pad_outodt_cmd _0 pm_pad_slewrate_cmd _0 pm_pad_code_cmd _0000 pm_pad_adj_ncode_addr _0000 pm_pad_adj_pcode_addr 00000 _0 pm_pad_outodt_addr _0 pm_pad_slewrate_addr _0 pm_pad_code_addr
 MC0_DDR3_CTRL_0x158: .dword 0x00000000f0000000
 //hXXXXXXXX (RD) _0000 pm_pad_comp_ncode_i _0000 pm_pad_comp_pcode_i 0000000_0 pm_pad_comp_mode 0000000_0 pm_pad_comp_tm 0000000_0 pm_pad_comp_pd
-MC0_DDR3_CTRL_0x160: .dword 0x0000000000010101
+MC0_DDR3_CTRL_0x160: .dword 0x0000000000000101
 //MC0_DDR3_CTRL_0x160: .dword 0x0000000000000001
 //0000000_0_00000000 pm_rdfifo_empty(RD) 0000000_0_00000000 pm_overflow(RD) 0000_0000 pm_dram_init(RD) 0000000_0 pm_rdfifo_valid 000000_00 pm_cmd_timing 0000000_0 pm_ddr3_mode
 MC0_DDR3_CTRL_0x168: .dword 0x140a000707030101
@@ -348,7 +348,7 @@ MC0_DDR3_RDIMM_CTRL_0x150: .dword 0x00000000f0020000
 //hXXXX _0000 pm_pad_adj_ncode_clk _0000 pm_pad_adj_pcode_clk 00000 _0 pm_pad_outodt_clk _0 pm_pad_slewrate_clk _0 pm_pad_code_clk _0000 pm_pad_adj_ncode_cmd _0000 pm_pad_adj_pcode_cmd 00000 _0 pm_pad_outodt_cmd _0 pm_pad_slewrate_cmd _0 pm_pad_code_cmd _0000 pm_pad_adj_ncode_addr _0000 pm_pad_adj_pcode_addr 00000 _0 pm_pad_outodt_addr _0 pm_pad_slewrate_addr _0 pm_pad_code_addr
 MC0_DDR3_RDIMM_CTRL_0x158: .dword 0x00000000f0000000
 //hXXXXXXXX (RD) _0000 pm_pad_comp_ncode_i _0000 pm_pad_comp_pcode_i 0000000_0 pm_pad_comp_mode 0000000_0 pm_pad_comp_tm 0000000_0 pm_pad_comp_pd
-MC0_DDR3_RDIMM_CTRL_0x160: .dword 0x0000000000010001
+MC0_DDR3_RDIMM_CTRL_0x160: .dword 0x0000000000000001
 //MC0_DDR3_RDIMM_CTRL_0x160: .dword 0x0000000000000001
 //0000000_0_00000000 pm_rdfifo_empty(RD) 0000000_0_00000000 pm_overflow(RD) 0000_0000 pm_dram_init(RD) 0000000_0 pm_rdfifo_valid 000000_00 pm_cmd_timing 0000000_0 pm_ddr3_mode
 MC0_DDR3_RDIMM_CTRL_0x168: .dword 0x140a000707030101
