@@ -14,6 +14,9 @@ struct irq_source_routing_table g_irq_source = { 0 };
 struct interface_info g_interface = { 0 };
 struct interface_info g_board = { 0 };
 struct loongson_special_attribute g_special = { 0 };
+#ifdef LS7A
+unsigned char readspi_result[128 * 1024] = {0};
+#endif
 
 extern void poweroff_kernel(void);
 extern void reboot_kernel(void);
@@ -62,15 +65,26 @@ void init_reset_system(struct efi_reset_system_t *reset)
 #endif
 }
 
+extern struct pci_device * pcie_dev ;
 void init_smbios(struct smbios_tables *smbios)
 {
-  
   smbios->vers = 0;
 #ifdef RS780E
   if(vga_dev != NULL){
   smbios->vga_bios = vgarom;
  }else
   smbios->vga_bios = 0;
+#elif defined LS7A
+  if(!pcie_dev){
+	  extern unsigned char * ls7a_spi_read_vgabios();
+	  ls7a_spi_read_vgabios(readspi_result);
+	  if(!ls7a_vgabios_crc_check(readspi_result))
+		  smbios->vga_bios = readspi_result;
+	  else
+	      smbios->vga_bios = 0;
+  }
+  else
+	      smbios->vga_bios = 0;
 #else
   smbios->vga_bios = 0;
 #endif
@@ -90,7 +104,7 @@ void init_loongson_params(struct loongson_params *lp)
   lp->boarddev_table_offset = (unsigned long long)board_devices_info() - (unsigned long long)lp;
   lp->special_offset = (unsigned long long)init_special_info() - (unsigned long long)lp; 
 
-  printf("memory_offset = 0x%x;cpu_offset = 0x%x; system_offset = 0x%x; irq_offset = 0x%x; interface_offset = 0x%x;\n",lp->memory_offset,lp->cpu_offset,lp->system_offset,lp->irq_offset, lp->interface_offset);
+  printf("memory_offset = 0x%llx;cpu_offset = 0x%llx; system_offset = 0x%llx; irq_offset = 0x%llx; interface_offset = 0x%llx;\n",lp->memory_offset,lp->cpu_offset,lp->system_offset,lp->irq_offset, lp->interface_offset);
 }
 
 /*struct efi_memory_map_loongson * init_memory_map()*/

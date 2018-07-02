@@ -12,7 +12,7 @@ device  localbus
 attach  localbus at mainbus
 file    Targets/Bonito3a3000_7a/dev/localbus.c		localbus
 file    Targets/Bonito3a3000_7a/dev/eeprom.c
-
+file	Targets/Bonito3a3000_7a/dev/spi_w.c
 #dc
 file	Targets/Bonito3a3000_7a/dev/dc.c
 #gpio i2c config ch7034 for 3a3000_7a board
