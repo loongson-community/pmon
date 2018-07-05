@@ -584,6 +584,9 @@ cp0_main:
         bnez    t0, wait_for_smp
         nop
 
+	bal 	tlb_init
+	nop
+
 	bal	beep_on
 	nop
 	li	a0, 0x8000
@@ -1097,7 +1100,7 @@ start_now:
                 | MC_SDRAM_ROW_16       /* sdram row address number: 15~11 */ \
                 | MC_SDRAM_COL_10       /* sdram column address number: 12~9 */ \
                 | MC_SDRAM_BANK_8       /* sdram bank number: 8/4 */ \
-                | MC_ADDR_MIRROR_YES    /* for standard DDR3 UDIMM, use YES, else use NO */ \
+                | MC_ADDR_MIRROR_NO    /* for standard DDR3 UDIMM, use YES, else use NO */ \
                 | MC_SDRAM_WIDTH_X16     /* SDRAM device data width: 8/16 */ \
                 | MC_USE_CS_0         /* the CS pins the sdram connected on(split by '_', from small to big) */ \
                 | MC_MEMSIZE_(8)        /* MC memory size, unit: 512MB */ \
@@ -1327,6 +1330,8 @@ bootnow:
 .global wait_for_smp;
 .global wait_for_smp_call;
 wait_for_smp:
+	bal 	tlb_init
+	nop
 	mfc0	t1, CP0_CONFIG
 	ori	t1, t1, 0x3
 	mtc0	t1, CP0_CONFIG
@@ -1677,6 +1682,8 @@ tlb_flush_all:
 1:
         ###tlb_init finish####
         tlbp
+	jr ra
+	nop
 END(tlb_init)
 ###############################
 LEAF(hexserial64)
