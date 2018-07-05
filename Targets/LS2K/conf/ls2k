@@ -280,8 +280,8 @@ select		spinand_lld
 option DDR_PARAM_018="0x3030303016100000"
 #option DDR_PARAM_1e8="0x0f0f0f0f0f0f0f0f"
 #option DDR_PARAM_1e0="0x0f0f0f0f0f0f0f0f"
-option DDR_S1=0xc1a10404
-#option DDR_S1=0xc0e18804
+option DDR_S1=0xc1a18404
+#option DDR_S1=0xc0a18804
 option CONFIG_UART0_SPLIT
 #elif zongzingzilian
 #option DDR_PARAM_018="0x2020202016100000"
@@ -329,3 +329,5 @@ select i2c
 #option DDR_S1=0xc1e10104
 #option DDR_RESET_REVERT
 
+#option CONFIG_VIDEO_LOGO
+#option CONFIG_VIDEO_BMP_LOGO
