@@ -20,6 +20,7 @@ device  localbus
 attach  localbus at mainbus
 file    Targets/Bonito2fdev/dev/localbus.c		localbus
 
+file	pmon/arch/mips/ls3a/dma_coherent.c
 
 # Ethernet driver for Discovery ethernet
 device  gt: ether, ifnet, ifmedia

@@ -16,6 +16,7 @@ file    Targets/Bonito3a8780e/pci/sb700_sata.c  amd_780e
 file    Targets/Bonito3a8780e/pci/sb700_usb.c  amd_780e
 
 file	pmon/cmds/msqt.c		cmd_test_sata
+file	pmon/arch/mips/ls3a/dma_coherent.c
 
 define  localbus { [base = -1 ] }
 device  localbus

@@ -84,6 +84,9 @@ const Optdesc         cmd_g_opts[] = {
 #if defined(LOONGSON_2K)
 extern void ls_pcie_config_set(void);
 #endif
+void  __attribute__((weak))cfg_coherent(int ac, char* av[])
+{
+}
 
 #if NMOD_USB_UHCI != 0
 extern void usb_uhci_stop(void);
@@ -194,11 +197,13 @@ extern char	*optarg;
 #endif
 #if NMOD_DEBUGGER > 0
 	if (setjmp (go_return_jump) == 0) {	
+		cfg_coherent(clientac, clientav);
 		goclient ();
 	}
 #else
 	if (setjmp (go_return_jump) == 0) {
 		console_state(2);
+		cfg_coherent(clientac, clientav);
 		_go();
 	}
 #endif

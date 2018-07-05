@@ -44,6 +44,7 @@ file	sys/dev/gmac/synopGMAC_network_interface.c
 file	sys/dev/gmac/synopGMAC_pci_bus_interface.c
 file	sys/dev/gmac/synopGMAC_plat.c
 
+file	pmon/arch/mips/ls3a/dma_coherent.c
 
 device	syn: ether, ifnet
 attach	syn at localbus
