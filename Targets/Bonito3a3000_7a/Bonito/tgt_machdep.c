@@ -120,6 +120,7 @@ extern void *memset(void *, int, size_t);
 #ifdef MULTI_CHIP
 extern int usb_spi_init(void);
 #endif
+extern void gmac_mac_init();
 int kbd_available;
 int bios_available;
 int usb_kbd_available;;
@@ -314,6 +315,7 @@ void tgt_devconfig()
 #endif
 	config_init();
 	configure();
+	gmac_mac_init();
 
 #ifdef INTERFACE_3A780E 
 

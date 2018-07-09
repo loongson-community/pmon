@@ -2710,14 +2710,26 @@ s32  synopGMAC_init_network_interface(char* xname, u64 synopGMACMappedAddr)
 	struct synopGMACNetworkAdapter * synopGMACadapter;
 	unsigned int eeprom_addr;
 	extern unsigned char smbios_uuid_mac[6];
-
+	extern unsigned char mac_read_spi_buf[22];
+	extern void ls7a_spi_read_mac(unsigned char * Inbuf,int num);
+	int gmac_num = 0;
     i = strtoul(xname + 3, NULL, 0);
 	eeprom_addr = i * 6;
+	gmac_num = i;
 
 	gmac0 = synopGMACMappedAddr;
 	synopGMACMappedAddr = gmac0;
+#if defined(LS7A)
+	ls7a_spi_read_mac(mac_read_spi_buf,gmac_num);
+	if(gmac_num == 0)
+		memcpy(mac_addr0,mac_read_spi_buf,6);
+	else if(gmac_num == 1)
+		memcpy(mac_addr0,mac_read_spi_buf + 16,6);
+#else
 	i2c_init();//configure the i2c freq
 	mac_read(eeprom_addr, mac_addr0, 6);
+#endif
+
 	memcpy(smbios_uuid_mac, mac_addr0, 6);
 #else
 s32  synopGMAC_init_network_interface(char* xname, struct device *sc )

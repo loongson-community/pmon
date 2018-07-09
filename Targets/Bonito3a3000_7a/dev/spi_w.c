@@ -32,7 +32,7 @@ unsigned int POLYNOMIAL = 0xEDB88320 ;
 int have_table = 0 ;
 unsigned int table[256] ;
 
-
+unsigned char mac_read_spi_buf[22] = {0};
 
 int ls7a_spi_write_sr(char val);
 void ls7a_spi_initw()
@@ -519,6 +519,7 @@ void ls7a_spi_read_vgabios(unsigned char * buf)
 		}
 		buf[base++] = GET_SPI(RXFIFO);
 	}
+	SET_SPI(SOFTCS,0x11);
 
 }
 
@@ -590,6 +591,7 @@ int ls7a_spi_read(int argc,char **argv)
 		base++;
 	}
 	printf("\n");
+	SET_SPI(SOFTCS,0x11);
 	return 1;
 
 }
@@ -649,6 +651,79 @@ int ls7a_spi_read_area(int flashaddr,char *buffer,int size)
 	return 0;
 }
 
+void ls7a_spi_read_mac(unsigned char * Inbuf,int num){
+
+	unsigned char * buf;
+	int i,v,j;
+	if(num == 0){
+		ls7a_spi_initw();
+		ls7a_spi_read_area(0x0,Inbuf,22);
+	}
+	if(num == 0){
+		buf = Inbuf;
+	}else if(num == 1){
+		buf = Inbuf + 16;
+	}
+	if (!is_valid_ether_addr_linux(buf)){
+		printf("syn%d Mac is invalid, now get a new mac\n",num);
+		generate_mac_val(buf);
+		printf("set syn%d  Mac address: ",num);
+		for (v = 0;v < 6;v++)
+			printf("%2x%s",*(buf + v) & 0xff,(5-v)?":":" ");
+		printf("\n");
+		printf("syn%d Mac is invalid, please use set_mac to update spi mac address\n",num);
+	} else {
+		printf("syn%d Mac address: ",num);
+		for (j = 0; j < 6; j++)
+			printf("%02x%s", buf[j], (5-j)?":":" ");
+		printf("\n");
+	}
+
+}
+int cmd_set_mac(int ac, unsigned char *av[])
+{
+	int i, j, v, count, num, param = 0;
+	unsigned char *s = NULL;
+	unsigned int data_addr;
+	unsigned char  buf[32] = {0};
+
+	if (av[2]) s = av[2];
+	else goto warning;
+
+	count = strlen(s) / 3 + 1;
+	if (count - 6) goto warning;
+
+	for (i = 0; i < count; i++) {
+		gethex(&v, s, 2);
+		buf[i] = v;
+		s += 3;
+	}
+
+	ls7a_spi_initw();
+	ls7a_spi_read_area(0x0,mac_read_spi_buf,22);
+
+	data_addr = strtoul(av[1] + 3, NULL, 0);
+
+	if(data_addr == 0)
+		memcpy(mac_read_spi_buf,buf, 6);
+	else if(data_addr == 1)
+		memcpy((mac_read_spi_buf + 16),buf, 6);
+
+	ls7a_spi_erase_area(0x0,0x1000,0x1000);
+	ls7a_spi_write_area(0x0,mac_read_spi_buf,22);
+	printf("set syn%d  Mac address: %s\n",data_addr / 6, av[2]);
+	printf("The machine should be restarted to make the mac change to take effect!!\n");
+	return 0;
+
+
+warning:
+	printf("Please accord to correct format.\nFor example:\n");
+	printf("\tsetmac syn1 \"00:11:22:33:44:55\"\n");
+	printf("\tThis means set syn1's Mac address 00:11:22:33:44:55\n");
+	return 0;
+}
+
+
 static const Cmd Cmds[] =
 {
 	{"MyCmds"},
@@ -658,6 +733,7 @@ static const Cmd Cmds[] =
 	{"ls7a_spi_erase_all","",0,"ls7a_spi_erase_all()",ls7a_spi_erase_all,0,99,CMD_REPEAT},
 	{"ls7a_spi_write_byte","",0,"ls7a_spi_write_byte()",ls7a_spi_write_byte,0,99,CMD_REPEAT},
 	{"read_flash_id","",0,"read_flash_id()",ls7a_spi_read_id,0,99,CMD_REPEAT},
+	{"set_mac", "", NULL, "set the Mac address of LS7A syn0 and syn1", cmd_set_mac, 1, 5, 0},
 	{0,0}
 };
 
