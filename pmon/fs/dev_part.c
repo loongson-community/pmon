@@ -782,7 +782,7 @@ static int _DevPartOpen(DeviceDisk* dev, const char* dev_name)
         //dev->part = NULL;
         char *p_name = dev_name+2;
         int ide_cd_index = *p_name - '0';
-#if defined(LOONGSON_3A2H)
+#if defined(LOONGSON_3A2H) || defined(LS7A) || defined(LS2K)
         if(1){
 #else
         if(is_ide_cd_ready(ide_cd_index)){
