@@ -210,9 +210,9 @@ unsigned int synop_GMAC_set_mac_addr(unsigned long long mac_base, unsigned int M
 	unsigned int data;
 
 	data = (MacAddr[5] << 8) | MacAddr[4];
-	gmac_phy_write(mac_base,16,MacHigh,data);
+	Readl(mac_base + MacHigh) = data;
 	data = (MacAddr[3] << 24) | (MacAddr[2] << 16) | (MacAddr[1] << 8) | MacAddr[0] ;
-	gmac_phy_write(mac_base,16,MacLow,data);
+	Readl(mac_base + MacLow) = data;
 
 	return 0;
 }
