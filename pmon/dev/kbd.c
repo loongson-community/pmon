@@ -338,7 +338,7 @@ int kbd_initialize(void)
 	 */
 	kbd_write_command_w(KBD_CCMD_SELF_TEST);
 	if (kbd_wait_for_input() != 0x55) {
-		printf("Self test cmd failed,ignored!\n");
+//		printf("Self test cmd failed,ignored!\n");
 		//return 1;
 	}
 
@@ -349,7 +349,7 @@ int kbd_initialize(void)
 	 */
 	kbd_write_command_w(KBD_CCMD_KBD_TEST);
 	if (kbd_wait_for_input() != 0x00) {
-		printf("KBD_TEST cmd failed,ignored!\n");
+//		printf("KBD_TEST cmd failed,ignored!\n");
 		//return 1;
 	}
 

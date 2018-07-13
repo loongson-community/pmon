@@ -253,3 +253,5 @@ select tftpd
 # SCSI RAID disk drive support
 select scsi_sd
 option FASTECC2
+#option DEBUG_IDE
+select timer_irq

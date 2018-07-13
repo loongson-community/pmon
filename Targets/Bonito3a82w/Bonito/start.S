@@ -707,7 +707,7 @@ no_reboot:
 #include "ddr_dir/lsmc_ddr_param_define.h"
 #include "ddr_dir/ddr_config_define.h"
 //#define DDR_DLL_BYPASS
-#define DISABLE_DIMM_ECC
+//#define DISABLE_DIMM_ECC
 #define PRINT_MSG
 #ifndef ARB_LEVEL
 //#define FIX_DDR_PARAM
@@ -725,6 +725,7 @@ no_reboot:
 //#define DISABLE_DDR_A15
 //#define DEBUG_DDR
 //#define DEBUG_DDR_PARAM
+#define PRINT_DDR_LEVELING   
 
     TTYDBG("\r\nStart Init Memory, wait a while......\r\n")
 ####################################

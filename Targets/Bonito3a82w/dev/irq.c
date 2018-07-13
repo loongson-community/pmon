@@ -57,7 +57,7 @@ void plat_irq_dispatch(struct trapframe *frame)
         if(pending & CAUSEF_IP7)
         {
 		static int cnt=0;
-		tgt_printf("cnt %d\n",cnt++);
+		//tgt_printf("cnt %d\n",cnt++);
 		write_c0_compare(read_c0_count()+400000000/IRQ_HZ);
 		if(cnt<wdt_timeout*IRQ_HZ)
 		{

@@ -15,8 +15,8 @@ ATTENTION: NO 16BIT mode when using HT1
 //#define HT0_2200M
 //#define HT0_2000M
 //#define HT0_1800M
-#define HT0_1600M
-//#define HT0_200M
+//#define HT0_1600M
+#define HT0_200M
 
 #ifdef MULTI_CHIP
 	TTYDBG("Fix L2xbar in NODE 1\r\n")
@@ -242,8 +242,8 @@ no_softconfig_ht:
 #ifdef HT0_200M
 	TTYDBG("Setting CPU0/1 HyperTransport Controller to be 200Mhz\r\n")
 	dli	    t2, 0x90000cfdfb000000
-	#li	    t0, 0x2 //Frequency: 400 Mhz
-	li	    t0, 0x0 //Frequency: 1200 Mhz
+	li	    t0, 0x2 //Frequency: 400 Mhz
+//	li	    t0, 0x0 //Frequency: 1200 Mhz
 #endif
 #endif
 #endif

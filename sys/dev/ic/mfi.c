@@ -186,6 +186,11 @@ mfi_get_ccb(void *cookie)
 	return (ccb);
 }
 
+static void
+ __attribute__((noinline)) mfi_dummy_done(struct mfi_ccb *ccb)
+{
+}
+
 void
 mfi_put_ccb(void *cookie, void *io)
 {
@@ -200,7 +205,7 @@ mfi_put_ccb(void *cookie, void *io)
 	ccb->ccb_state = MFI_CCB_FREE;
 	ccb->ccb_cookie = NULL;
 	ccb->ccb_flags = 0;
-	ccb->ccb_done = NULL;
+	ccb->ccb_done = mfi_dummy_done;
 	ccb->ccb_direction = 0;
 	ccb->ccb_frame_size = 0;
 	ccb->ccb_extra_frames = 0;
