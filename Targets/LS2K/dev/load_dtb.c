@@ -566,17 +566,19 @@ abort:
 	return 1;
 }
 
+#define COMMAND_LINE_SIZE 512
+
 static int update_bootarg(int ac, char ** av, void * ssp)
 {
-	int i, len = 0, err;
-	char new_arg[200];
-	char *p;
+	int i, len, err;
+	char new_arg[COMMAND_LINE_SIZE + 2];
+	char *set_p, *p;
 	int nodeoffset;
 
 	p = new_arg;
-	for (i = 1; i < ac; i++) {
-		strcpy(p, av[i]);
-		p += strlen(av[i]);
+	for (i = 1; i < ac && new_arg - p < COMMAND_LINE_SIZE; i++) {
+		strncpy(p, av[i], new_arg + COMMAND_LINE_SIZE - p);
+		p += min(strlen(av[i]), new_arg + COMMAND_LINE_SIZE - p);
 		*p = ' ';
 		p++;
 	}
