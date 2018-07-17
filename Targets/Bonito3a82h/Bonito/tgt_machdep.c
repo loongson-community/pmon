@@ -138,6 +138,8 @@ extern const char *kbd_error_msgs[];
 #endif
 
 
+extern u64 __raw__readq(u64 q);
+extern u64 __raw__writeq(u64 addr, u64 val);
 int tgt_i2cread(int type,unsigned char *addr,int addrlen,unsigned char reg,unsigned char* buf ,int count);
 int tgt_i2cwrite(int type,unsigned char *addr,int addrlen,unsigned char reg,unsigned char* buf ,int count);
 extern struct trapframe DBGREG;
@@ -300,6 +302,9 @@ initmips(unsigned long long raw_memsz)
 	".set pop;\n"
          ::"r"(&waitforinit):"$2","$3");
 
+	//disable 3a spi instruction fetch
+	__raw__writeq(0x900000003ff00080ULL, 0x1fc00082ULL);
+
 	tgt_fpuenable();
 	/*enable float*/
 	tgt_fpuenable();
@@ -372,9 +377,6 @@ extern int dc_init();
 
 #define LS2H
 
-#define u64 unsigned long long
-extern u64 __raw__readq(u64 q);
-extern u64 __raw__writeq(u64 addr, u64 val);
 u64 ver_val;
 #ifdef PCIE_GRAPHIC_CARD
 extern bool is_pcie_vga_card();
@@ -681,6 +683,7 @@ tgt_reboot(void)
 {
 	unsigned int GPIO_DATA_REG = 0xbfe0011c;
 	unsigned int GPIO_EN_REG = 0xbfe00120;
+	__raw__writeq(0x900000003ff00080ULL, 0x1fc000f2ULL);
 
 #define ls_readl(x) (* (volatile unsigned int*)(x))	
 	ls_readl(GPIO_DATA_REG) &= (~0x38);
