@@ -276,12 +276,29 @@ void movinv1(int iter, ulong p1, ulong p2);
 pcireg_t _pci_allocate_io(struct pci_device *dev, vm_size_t size);
 static void superio_reinit();
 
+extern char waitforinit[];
 void
 initmips(unsigned long long raw_memsz)
 {
 	int i;
 	int* io_addr;
 	unsigned long long memsz;
+	//core1-3 run waitdorinit function in ram
+	asm volatile(
+	".set push;\n"
+	".set noreorder\n"
+        ".set mips64;\n"
+	"dli $2,0x900000003ff01100;\n"
+	"dli $3, 3;\n"
+        "1:sd %0,0x20($2);"
+	"daddiu $2,0x100;\n"
+	"addiu $3,-1;\n"
+	"bnez $3, 1b;\n"
+	"nop;\n"
+	".set reorder;\n"
+        ".set mips0;\n"
+	".set pop;\n"
+         ::"r"(&waitforinit):"$2","$3");
 
 	tgt_fpuenable();
 	/*enable float*/

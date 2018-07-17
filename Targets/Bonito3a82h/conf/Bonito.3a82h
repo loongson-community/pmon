@@ -23,10 +23,10 @@ option		TARGETNAME="\"Bonito\""
 option      loongson3A3
 option	    LSMC_2
 option      DDR3_DIMM
-#option      ARB_LEVEL
-option      AUTO_DDR_CONFIG
+option      ARB_LEVEL
+#option      AUTO_DDR_CONFIG
 option      USE_LS2H_I2C
-option	    FIX_3A82H_DDR
+#option	    FIX_3A82H_DDR
 
 option		BONITOEL
 option      DEVBD2F
@@ -203,6 +203,7 @@ pci*		at ppb? bus ?
 #fxp0        at pci? dev ? function ?        # Intel 82559 Device
 #inphy*      at mii? phy ?                   # Intel 82555 PHYs
 igb*		at pci? dev ? function ?	# Intel 82576
+select igb1
 # rtl*        at pci? dev ? function ?
 #rte*		at pci? dev ? function ?
 #rtk*		at pci? dev ? function ?
@@ -274,3 +275,5 @@ select tcp
 select inet
 select tftpd
 #select e100
+option PCIVERBOSE=5
+#option DISABLE_HARD_LEVELING

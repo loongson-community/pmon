@@ -590,8 +590,8 @@ after_ht:
 	//dli     s1, 0x00000000c1a18400 
 	//dli     s1, 0x00000000c1a18204 
 	//dli	s1, 0xc1a18404c1a18404
-	//dli	s1, 0xc0a18404
-	dli	s1, 0xc0a18400c0a18400
+	dli	s1, 0xc0a18404
+	//dli	s1, 0xc0a18400c0a18400
 #endif
 #include "ddr_dir/loongson3_ddr2_config.S"
 //#include "ddr_dir/loongson3_ddr2_config.S"
@@ -1339,6 +1339,7 @@ wait_scache_allover:
 
 	bal	clear_mailbox
 	nop
+.global waitforinit;
 waitforinit:
 
 	li      a0, 0x1000
@@ -1350,6 +1351,7 @@ idle1000:
 	lw      t2, FN_OFF(t1)
 	beqz    t2, waitforinit
 	nop
+	sw      zero, FN_OFF(t1)
 
 	dli     t3, 0xffffffff00000000 
 	or      t2, t3

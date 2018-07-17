@@ -422,11 +422,13 @@ void ls2h_pcie_port_init(int port)
 {
 	unsigned reg, data;
 
+#if 0
 	reg = LS2H_PCIE_PORT_HEAD_BASE_PORT(port) | 0x7c;
 	data = ls2h_readl(reg);
 	data &= ~0xf;
 	data |=1;
 	ls2h_writel(data, reg);
+#endif
 
 	reg = LS2H_PCIE_REG_BASE_PORT(port) | LS2H_PCIE_PORT_REG_CTR0;
 	ls2h_writel(0xff204c, reg);
