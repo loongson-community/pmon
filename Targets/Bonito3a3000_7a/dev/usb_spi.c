@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <machine/pio.h>
 
+#include "sys/dev/pci/pcireg.h"
+#include "sys/dev/pci/pcivar.h"
 #include "usb_spi.h"
 
 #define EXRIR 0xec
@@ -11,11 +13,12 @@
 #define EXRACS  0xf6
 #define DATA0 0xf8
 #define DATA1 0xfc
-#define BASE 0xbb020000 //bus 2 ,dev 0,func 0
 
 //#define USBSPI_DEBUG
 
-#define readl(a) *(volatile unsigned int*)(a + BASE)
+unsigned int Base = 0xbb020000;//bus 2 ,dev 0,func 0
+
+#define readl(a) *(volatile unsigned int*)(a + Base)
 
 int usb_spi_erase(void)
 {
@@ -172,10 +175,55 @@ int usb_spi_read(int size,unsigned int *ret_buf)
 	return size;
 }
 
+int _find_xhci_pci_base(struct pci_device *parent)
+{
+	struct pci_device *pd;
+
+	for (pd = parent->bridge.child; pd ; pd = pd->next) {
+		pcitag_t tag = pd->pa.pa_tag;
+		pcireg_t id,class;
+		class = _pci_conf_read(tag, PCI_CLASS_REG);
+		id = _pci_conf_read(tag, PCI_ID_REG);
+
+		if(id == 0x00141912){
+			Base = (0xbb000000 | tag );
+//			printf("xhci base %x\n",Base);
+			return 1;
+		}
+		if((PCI_CLASS(class) == PCI_CLASS_BRIDGE && PCI_SUBCLASS(class) == PCI_SUBCLASS_BRIDGE_PCI) || pd->bridge.child != NULL) {
+			if(_find_xhci_pci_base(pd))
+				return 1;
+		}
+	}
+
+	return 0;
+
+}
+int find_xhci_pci_base()
+{
+	int i;
+	struct pci_device *pd;
+
+	extern struct pci_device *_pci_head;
+	extern int pci_roots;
+
+	for(i = 0, pd = _pci_head; i < pci_roots; i++, pd = pd->next) {
+		if(_find_xhci_pci_base (pd))
+			return 1;
+	}
+	return 0;
+}
+
 int usb_spi_init(void)
 {
 	unsigned int ret_buf[20];
 	int  i, size = 20;
+
+	if(!find_xhci_pci_base()){
+		printf("can't find xhci\n");
+		return 0;
+	}
+
 	i = usb_spi_read(size,ret_buf);
 	if (i != -1) {
 		printf("usb spi read error i = %d.\n",i);
