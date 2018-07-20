@@ -693,7 +693,9 @@ _pci_query_dev_func (struct pci_device *dev, pcitag_t tag, int initialise)
             }
 
             if (PCI_MAPREG_TYPE(mask) == PCI_MAPREG_TYPE_IO) {
-                //mask |= 0xffff0000; /* must be ones */
+                //for IO bar, device is free to hardwire high 16 bits to zero, here we mask high 16 bits to all 1
+                //for convenience of size calculation
+                mask |= 0xffff0000;
                 pm = pmalloc(sizeof(struct pci_win));
                 if(pm == NULL) {
                     PRINTF ("pci: can't alloc memory for pci memory window\n");
