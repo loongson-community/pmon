@@ -404,7 +404,7 @@ void tgt_devconfig()
 			if(strcmp(cfdata[i].cf_driver->cd_name,"syn") == 0 && cfdata[i].cf_unit == 1)
 			{
 
-				*(volatile int *)0xbfe10420 |= 0x108;
+				*(volatile int *)0xbfe10420 |= 0x8;
 				break;
 			}
 
