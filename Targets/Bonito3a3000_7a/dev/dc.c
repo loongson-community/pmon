@@ -38,7 +38,8 @@ static struct pix_pll {
 	unsigned int l1_refc;
 }pll_cfg;
 
-#undef USE_GMEM
+//#undef USE_GMEM
+#define USE_GMEM
 #ifdef USE_GMEM
 static char *ADDR_CURSOR = 0xc6000000;
 static char *MEM_ptr = 0xc2000000;
