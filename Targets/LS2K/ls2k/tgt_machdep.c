@@ -187,6 +187,7 @@ extern unsigned long long memorysize_high;
 extern char MipsException[], MipsExceptionEnd[];
 
 unsigned char hwethadr[6];
+unsigned char ls2kver;
 
 void initmips(unsigned long long  raw_memsz);
 
@@ -1157,6 +1158,11 @@ void tgt_mapenv(int (*func) __P((char *, char *)))
 	sprintf(env, "%02x:%02x:%02x:%02x:%02x:%02x", hwethadr[0], hwethadr[1],
 		hwethadr[2], hwethadr[3], hwethadr[4], hwethadr[5]);
 	(*func) ("ethaddr", env);
+	ls2kver = nvram[VER_OFFS];
+	if(ls2kver>1)
+	   ls2kver = ls2k_version();
+	sprintf(env, "%d", ls2kver);
+	(*func) ("ls2kver", env);
 
 #ifndef NVRAM_IN_FLASH
 	free(nvram);
@@ -1525,6 +1531,11 @@ int tgt_setenv(char *name, char *value)
 		printf("set em_enable to com %d\n", em_enable);
 	} else
 #endif
+	if(strcmp("ls2kver", name) == 0)
+	{
+	  ls2kver = strtoul(value, 0, 0);
+	}
+	else
 	if (strcmp("ethaddr", name) == 0) {
 		char *s = value;
 		int i;
@@ -1585,6 +1596,7 @@ int tgt_setenv(char *name, char *value)
 	bcopy(&em_enable, &nvrambuf[MASTER_BRIDGE_OFFS], 1);
 #endif
 	bcopy(hwethadr, &nvramsecbuf[ETHER_OFFS], 6);
+	nvramsecbuf[VER_OFFS] = ls2kver;
 #ifdef NVRAM_IN_FLASH
 
 #ifdef BOOT_FROM_NAND

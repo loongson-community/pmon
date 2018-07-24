@@ -1488,6 +1488,16 @@ END(hexserial)
 
 LEAF(ls2k_version)
 	.set    mips32
+	li a0,0xbfc00000+ NVRAM_OFFS + VER_OFFS
+	lbu v0, (a0)
+	li a0, 2
+	sltu a0, v0, a0
+	beqz a0, 1f
+	nop
+	jr ra
+	nop
+1:
+	
 	mfc0    a0, COP_0_PRID
 	.set    mips3
 	andi    a0, a0, 0xf
