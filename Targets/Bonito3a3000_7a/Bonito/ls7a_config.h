@@ -32,8 +32,6 @@
 #define LS3A_HT1_SOFT_FREQ_CFG  (LS3A_HT_PLL_1600M | (0x1 << 1))
 #endif
 
-#define LS7A_GRAPHICS_DISABLE 0
-
 //if board use PCIE PortN but PRSNTnN is not correctly pull down or is connected to socket which will use a wider card than the socket,
 //you need force enable PortN by define the macro bellow.
 //N is 1 for PCIE F1/G0/G1/H and 1/2/3 for PCIE F0
@@ -43,11 +41,22 @@
 //#define FORCE_ENABLE_PCIE_G1_P1
 //#define FORCE_ENABLE_PCIE_H_P1
 
+#define LS7A_GRAPHICS_DISABLE   0
+
+//staticly disable some PCIE Ports, no matter whether there is device
+#define LS7A_PCIE_F0_DISABLE    0
+#define LS7A_PCIE_F1_DISABLE    0
+#define LS7A_PCIE_H_DISABLE     0
+#define LS7A_PCIE_G0_DISABLE    0
+#define LS7A_PCIE_G1_DISABLE    0
+
 #define LS7A_SATA0_DISABLE  0
-#define LS7A_SATA1_DISABLE  0
-#define LS7A_SATA2_DISABLE  0
+#define LS7A_SATA1_DISABLE  (LS7A_SATA0_DISABLE | 0)
+#define LS7A_SATA2_DISABLE  (LS7A_SATA1_DISABLE | 0)
 #define LS7A_USB0_DISABLE   0
 #define LS7A_USB1_DISABLE   0
+#define LS7A_GMAC0_DISABLE  0
+#define LS7A_GMAC1_DISABLE  (LS7A_GMAC0_DISABLE | 0)
 #define LS7A_LPC_DISABLE    1
 
 //#define USE_PCIE_PAD_REFCLK

@@ -37,59 +37,6 @@
     TTYDBG("7A HT Hi clock disabled.\r\n")
 #endif
 
-#if 0
-    dli     t0, CONFBUS_HEADER_ADDR
-    TTYDBG("\r\nLS7A confbus header 0-8:\r\n")
-    lw      a0, 0x4(t0)
-    bal     hexserial
-    nop
-    lw      a0, 0x0(t0)
-    bal     hexserial
-    nop
-    TTYDBG("\r\n10-18:")
-    lw      a0, 0x14(t0)
-    bal     hexserial
-    nop
-    lw      a0, 0x10(t0)
-    bal     hexserial
-    nop
-
-    //read confbus
-    dli     t0, LS7A_CONFBUS_BASE_ADDR
-
-    TTYDBG("\r\nconfbus 0x420:")
-    lw      a0, 0x420(t0)
-    bal     hexserial
-    nop
-    TTYDBG("\r\nconfbus 0x424:")
-    lw      a0, 0x424(t0)
-    bal     hexserial
-    nop
-
-    TTYDBG("\r\nconfbus 0x430:")
-    lw      a0, 0x430(t0)
-    bal     hexserial
-    nop
-    TTYDBG("\r\nconfbus 0x434:")
-    lw      a0, 0x434(t0)
-    bal     hexserial
-    nop
-#endif
-
-    dli     t0, LS7A_CONFBUS_BASE_ADDR
-#ifdef  LS7A_UC_ACC
-    lw      t1, (CONF_NB_OFFSET+4)(t0)
-    li      t2, (0x3f << 0)
-    or      t1, t1, t2
-    sw      t1, (CONF_NB_OFFSET+4)(t0)
-
-    lw      t1, (CONF_SB_OFFSET+0)(t0)
-    li      t2, (0xff << 24)
-    or      t1, t1, t2
-    sw      t1, (CONF_SB_OFFSET+0)(t0)
-    TTYDBG("LS7A uncache accellerator enabled\r\n")
-#endif
-
 #if 1
 //configure 7A pll
 //LS7A_PLL_VALUE: (LOOPC, DIV2, DIV1, DIV0)
@@ -165,18 +112,6 @@
 1:
 
     TTYDBG("LS7A pll configure done.\r\n")
-#endif
-
-#if 0   //set to use default routing(debug only)
-    lw      t1, CONF_SB_OFFSET(t0)
-    dli     t2, (0x1 << CONF_DEFAULT_ROUTE_SB_OFFSET)
-    or      t1, t1, t2
-    sw      t1, CONF_SB_OFFSET(t0)
-
-    lw      t1, CONF_NB_OFFSET(t0)
-    dli     t2, (0x1 << CONF_DEFAULT_ROUTE_NB_OFFSET)
-    or      t1, t1, t2
-    sw      t1, CONF_NB_OFFSET(t0)
 #endif
 
     //init 7a hardware
@@ -275,11 +210,23 @@
     li      a1, (HPET_BASE_ADDR | 0x4)
     sw      a1, 0x464(t0)
 
-    TTYDBG("LS7A hardware init done.\r\n")
+    TTYDBG("LS7A chip init done.\r\n")
 //3. device configure 
+
+#define  INIT_ALL_PCIE_PORTS
+
     //init PCIE -- v0.3
     dli     t0, LS7A_CONFBUS_BASE_ADDR
 
+    //reset PCIE begin
+    //assert reset
+    lw      t1, CONF_NB_OFFSET(t0)
+    li      t2, ((1 << 28) | (1 << 24) | (1 << 20) | (1 << 16) | (1 << 8))
+    or      t1, t1, t2
+    sw      t1, CONF_NB_OFFSET(t0)
+
+#ifdef  INIT_ALL_PCIE_PORTS
+    //enable all ports
     lw      t1, 0x588(t0)
     li      t2, (1 << 27)
     or      t1, t1, t2
@@ -304,8 +251,8 @@
     li      t2, (3 << 26)
     or      t1, t1, t2
     sw      t1, 0x608(t0)
+#endif
 
-    //reset PCIE begin
     //power down phy
     lw      t1, 0x588(t0)
     li      t2, (1 << 24)
@@ -332,12 +279,6 @@
     or      t1, t1, t2
     sw      t1, 0x608(t0)
 
-    //assert reset
-    lw      t1, CONF_NB_OFFSET(t0)
-    li      t2, ((1 << 28) | (1 << 24) | (1 << 20) | (1 << 16) | (1 << 8))
-    or      t1, t1, t2
-    sw      t1, CONF_NB_OFFSET(t0)
-
 #ifndef USE_PCIE_PAD_REFCLK
     //switch clk
     lw      t1, CONF_NB_OFFSET(t0)
@@ -346,8 +287,8 @@
     sw      t1, CONF_NB_OFFSET(t0)
 #endif
 
-    //delay a while
-    dli     t1, 0x4000000
+    //delay 10ms
+    dli     t1, 0x1000000
 1:
     dsubu   t1, t1, 1
     bnez    t1, 1b
@@ -391,13 +332,27 @@
     and     t1, t1, t2
     sw      t1, CONF_NB_OFFSET(t0)
 
-    //delay a while
-    dli     t1, 0x4000000
+#ifdef  INIT_ALL_PCIE_PORTS
+    //TTYDBG("PCIE clock status: \r\n")
+    //lw      a0, 0x424(t0)
+    //bal     hexserial
+    //nop
+
+    //make sure all ports clock are ready
+1:
+    lw      a0, 0x424(t0)
+    srl     a0, a0, 8
+    li      a1, 0xfff
+    and     a0, a0, a1
+    bne     a0, a1, 1b
+    nop
+
+    //delay at least 100us
+    dli     t1, 0x100000
 1:
     dsubu   t1, t1, 1
     bnez    t1, 1b
     nop
-    //reset PCIE end
 
 #ifndef FORCE_ENABLE_PCIE_F0_P123
     lw      t1, 0x588(t0)
@@ -439,6 +394,26 @@
     sw      t1, 0x608(t0)
 #endif
 
+    //assert reset
+    lw      t1, CONF_NB_OFFSET(t0)
+    li      t2, ((1 << 28) | (1 << 24) | (1 << 20) | (1 << 16) | (1 << 8))
+    or      t1, t1, t2
+    sw      t1, CONF_NB_OFFSET(t0)
+
+    //delay at least 1ms
+    dli     t1, 0x400000
+1:
+    dsubu   t1, t1, 1
+    bnez    t1, 1b
+    nop
+
+    //deassert reset
+    lw      t1, CONF_NB_OFFSET(t0)
+    li      t2, ((1 << 28) | (1 << 24) | (1 << 20) | (1 << 16) | (1 << 8))
+    not     t2, t2
+    and     t1, t1, t2
+    sw      t1, CONF_NB_OFFSET(t0)
+#endif
     //enable access
     lw      t1, CONF_NB_OFFSET(t0)
     li      t2, ((1 << 29) | (1 << 25) | (1 << 21) | (1 << 17) | (1 << 9))
@@ -446,9 +421,416 @@
     sw      t1, CONF_NB_OFFSET(t0)
     TTYDBG("PCIE enabled\r\n")
 
-#define PCIE_GEN_CFG 0x1
-#define PCIE_STAT_CHECK_TIMES 100
+    //init SATA
+    //use t0 as global variable
+    dli     t0, LS7A_CONFBUS_BASE_ADDR
+    //configure sata phy parameter
+    li      t1, 0x30c31cf9
+    sw      t1, 0x744(t0)
+    sw      t1, 0x754(t0)
+    sw      t1, 0x764(t0)
+    li      t1, 0xf3000403
+    sw      t1, 0x740(t0)
+    sw      t1, 0x750(t0)
+    sw      t1, 0x760(t0)
 
+#if (!LS7A_SATA0_DISABLE)
+#ifndef USE_SATA_PAD_REFCLK
+    //power down phy
+    lw      t1, 0x744(t0)
+    li      t2, (1 << 31)
+    or      t1, t1, t2
+    sw      t1, 0x744(t0)
+
+    //assert phy reset
+    lw      t1, 0x740(t0)
+    li      t2, (1 << 2)
+    or      t1, t1, t2
+    sw      t1, 0x740(t0)
+
+    //switch refclk
+    lw      t1, 0x740(t0)
+    li      t2, (1 << 1)
+    not     t2, t2
+    and     t1, t1, t2
+    sw      t1, 0x740(t0)
+
+    //delay a while
+    li      t1, 0x1000
+1:
+    subu    t1, t1, 1
+    bnez    t1, 1b
+    nop
+
+    //power up phy
+    lw      t1, 0x744(t0)
+    li      t2, (1 << 31)
+    not     t2, t2
+    and     t1, t1, t2
+    sw      t1, 0x744(t0)
+
+    //deassert phy reset
+    lw      t1, 0x740(t0)
+    li      t2, (1 << 2)
+    not     t2, t2
+    and     t1, t1, t2
+    sw      t1, 0x740(t0)
+
+    //delay a while
+    li      t1, 0x1000000
+1:
+    subu    t1, t1, 1
+    bnez    t1, 1b
+    nop
+#endif
+    //deassert cntl reset
+    lw      t1, (CONF_SB_OFFSET+4)(t0)
+    li      t2, (1 << 8)
+    not     t2, t2
+    and     t1, t1, t2
+    sw      t1, (CONF_SB_OFFSET+4)(t0)
+
+    //sata en
+    lw      t1, (CONF_SB_OFFSET+4)(t0)
+    li      t2, (1 << 10)
+    or      t1, t1, t2
+    sw      t1, (CONF_SB_OFFSET+4)(t0)
+
+#ifdef  OVRD_SATA_PHY
+    //configure phy
+    daddu   a0, t0, 0x748
+    li      a1, 0x403f1002
+    bal     ls7a_phy_cfg_write
+    nop
+#endif
+    TTYDBG("SATA0 enabled\r\n")
+#else
+    //powerdown phy
+    lw      t1, 0x744(t0)
+    li      t2, (1 << 31)
+    or      t1, t1, t2
+    sw      t1, 0x744(t0)
+
+    //disable clock
+    lw      t1, (CONF_SB_OFFSET+4)(t0)
+    li      t2, (1 << 11)
+    not     t2, t2
+    and     t1, t1, t2
+    sw      t1, (CONF_SB_OFFSET+4)(t0)
+    TTYDBG("SATA0 disabled.\r\n")
+#endif
+
+#if (!LS7A_SATA1_DISABLE)
+#ifndef USE_SATA_PAD_REFCLK
+    //power down phy
+    lw      t1, 0x754(t0)
+    li      t2, (1 << 31)
+    or      t1, t1, t2
+    sw      t1, 0x754(t0)
+
+    //assert phy reset
+    lw      t1, 0x750(t0)
+    li      t2, (1 << 2)
+    or      t1, t1, t2
+    sw      t1, 0x750(t0)
+
+    //switch refclk
+    lw      t1, 0x750(t0)
+    li      t2, (1 << 1)
+    not     t2, t2
+    and     t1, t1, t2
+    sw      t1, 0x750(t0)
+
+    //delay a while
+    li      t1, 0x1000
+1:
+    subu    t1, t1, 1
+    bnez    t1, 1b
+    nop
+
+    //power up phy
+    lw      t1, 0x754(t0)
+    li      t2, (1 << 31)
+    not     t2, t2
+    and     t1, t1, t2
+    sw      t1, 0x754(t0)
+
+    //deassert phy reset
+    lw      t1, 0x750(t0)
+    li      t2, (1 << 2)
+    not     t2, t2
+    and     t1, t1, t2
+    sw      t1, 0x750(t0)
+
+    //delay a while
+    li      t1, 0x1000000
+1:
+    subu    t1, t1, 1
+    bnez    t1, 1b
+    nop
+#endif
+    //deassert cntl reset
+    lw      t1, (CONF_SB_OFFSET+4)(t0)
+    li      t2, (1 << 12)
+    not     t2, t2
+    and     t1, t1, t2
+    sw      t1, (CONF_SB_OFFSET+4)(t0)
+
+    //sata en
+    lw      t1, (CONF_SB_OFFSET+4)(t0)
+    li      t2, (1 << 14)
+    or      t1, t1, t2
+    sw      t1, (CONF_SB_OFFSET+4)(t0)
+
+#ifdef  OVRD_SATA_PHY
+    //configure phy
+    daddu   a0, t0, 0x758
+    li      a1, 0x403f1002
+    bal     ls7a_phy_cfg_write
+    nop
+#endif
+    TTYDBG("SATA1 enabled\r\n")
+#else
+    //powerdown phy
+    lw      t1, 0x754(t0)
+    li      t2, (1 << 31)
+    or      t1, t1, t2
+    sw      t1, 0x754(t0)
+
+    //disable clock
+    lw      t1, (CONF_SB_OFFSET+4)(t0)
+    li      t2, (1 << 15)
+    not     t2, t2
+    and     t1, t1, t2
+    sw      t1, (CONF_SB_OFFSET+4)(t0)
+    TTYDBG("SATA1 disabled.\r\n")
+#endif
+
+#if (!LS7A_SATA2_DISABLE)
+#ifndef USE_SATA_PAD_REFCLK
+    //power down phy
+    lw      t1, 0x764(t0)
+    li      t2, (1 << 31)
+    or      t1, t1, t2
+    sw      t1, 0x764(t0)
+
+    //assert phy reset
+    lw      t1, 0x760(t0)
+    li      t2, (1 << 2)
+    or      t1, t1, t2
+    sw      t1, 0x760(t0)
+
+    //switch refclk
+    lw      t1, 0x760(t0)
+    li      t2, (1 << 1)
+    not     t2, t2
+    and     t1, t1, t2
+    sw      t1, 0x760(t0)
+
+    //delay a while
+    li      t1, 0x1000
+1:
+    subu    t1, t1, 1
+    bnez    t1, 1b
+    nop
+
+    //power up phy
+    lw      t1, 0x764(t0)
+    li      t2, (1 << 31)
+    not     t2, t2
+    and     t1, t1, t2
+    sw      t1, 0x764(t0)
+
+    //deassert phy reset
+    lw      t1, 0x760(t0)
+    li      t2, (1 << 2)
+    not     t2, t2
+    and     t1, t1, t2
+    sw      t1, 0x760(t0)
+
+    //delay a while
+    li      t1, 0x1000000
+1:
+    subu    t1, t1, 1
+    bnez    t1, 1b
+    nop
+#endif
+    //deassert cntl reset
+    lw      t1, (CONF_SB_OFFSET+4)(t0)
+    li      t2, (1 << 16)
+    not     t2, t2
+    and     t1, t1, t2
+    sw      t1, (CONF_SB_OFFSET+4)(t0)
+
+    //sata en
+    lw      t1, (CONF_SB_OFFSET+4)(t0)
+    li      t2, (1 << 18)
+    or      t1, t1, t2
+    sw      t1, (CONF_SB_OFFSET+4)(t0)
+
+#ifdef  OVRD_SATA_PHY
+    //configure phy
+    daddu   a0, t0, 0x768
+    li      a1, 0x403f1002
+    bal     ls7a_phy_cfg_write
+    nop
+#endif
+    TTYDBG("SATA2 enabled\r\n")
+#else
+    //powerdown phy
+    lw      t1, 0x764(t0)
+    li      t2, (1 << 31)
+    or      t1, t1, t2
+    sw      t1, 0x764(t0)
+
+    //disable clock
+    lw      t1, (CONF_SB_OFFSET+4)(t0)
+    li      t2, (1 << 19)
+    not     t2, t2
+    and     t1, t1, t2
+    sw      t1, (CONF_SB_OFFSET+4)(t0)
+    TTYDBG("SATA2 disabled.\r\n")
+#endif
+
+    //init USB
+#ifdef  USE_USB_SYS_REFCLK
+    //switch refclk
+    lw      t1, (CONF_SB_OFFSET+0)(t0)
+    li      t2, (0x2 << 2)
+    or      t1, t1, t2
+    sw      t1, (CONF_SB_OFFSET+0)(t0)
+
+    //delay a while
+    li      t1, 0x1000
+1:
+    subu    t1, t1, 1
+    bnez    t1, 1b
+    nop
+#endif
+
+#if (!LS7A_USB0_DISABLE)
+    //deassert phy reset
+    lw      t1, (CONF_SB_OFFSET+0)(t0)
+    li      t2, (1 << 9)
+    not     t2, t2
+    and     t1, t1, t2
+    sw      t1, (CONF_SB_OFFSET+0)(t0)
+
+    //delay at least 1ms
+    li      t1, 0x1000000
+1:
+    subu    t1, t1, 1
+    bnez    t1, 1b
+    nop
+
+    //deassert cntl reset
+    lw      t1, (CONF_SB_OFFSET+0)(t0)
+    li      t2, (1 << 8)
+    not     t2, t2
+    and     t1, t1, t2
+    sw      t1, (CONF_SB_OFFSET+0)(t0)
+
+    lw      t1, (CONF_SB_OFFSET+0)(t0)
+    li      t2, (1 << 10)
+    or      t1, t1, t2
+    sw      t1, (CONF_SB_OFFSET+0)(t0)
+    TTYDBG("USB0 enabled\r\n")
+#else
+    //disable clock
+    lw      t1, (CONF_SB_OFFSET+0)(t0)
+    li      t2, (1 << 11)
+    not     t2, t2
+    and     t1, t1, t2
+    sw      t1, (CONF_SB_OFFSET+0)(t0)
+    TTYDBG("USB0 disabled.\r\n")
+#endif
+
+#if (!LS7A_USB1_DISABLE)
+    //deassert phy reset
+    lw      t1, (CONF_SB_OFFSET+0)(t0)
+    li      t2, (1 << 13)
+    not     t2, t2
+    and     t1, t1, t2
+    sw      t1, (CONF_SB_OFFSET+0)(t0)
+
+    //delay at least 1ms
+    li      t1, 0x1000000
+1:
+    subu    t1, t1, 1
+    bnez    t1, 1b
+    nop
+
+    //deassert cntl reset
+    lw      t1, (CONF_SB_OFFSET+0)(t0)
+    li      t2, (1 << 12)
+    not     t2, t2
+    and     t1, t1, t2
+    sw      t1, (CONF_SB_OFFSET+0)(t0)
+
+    lw      t1, (CONF_SB_OFFSET+0)(t0)
+    li      t2, (1 << 14)
+    or      t1, t1, t2
+    sw      t1, (CONF_SB_OFFSET+0)(t0)
+    TTYDBG("USB1 enabled\r\n")
+#else
+    //disable clock
+    lw      t1, (CONF_SB_OFFSET+0)(t0)
+    li      t2, (1 << 15)
+    not     t2, t2
+    and     t1, t1, t2
+    sw      t1, (CONF_SB_OFFSET+0)(t0)
+    TTYDBG("USB1 disabled.\r\n")
+#endif
+
+#if (LS7A_GMAC0_DISABLE)
+    lw      t1, (CONF_SB_OFFSET+0)(t0)
+    li      t2, (1 << 5)
+    not     t2, t2
+    and     t1, t1, t2
+    sw      t1, (CONF_SB_OFFSET+0)(t0)
+    TTYDBG("GMAC0 disabled.\r\n")
+#endif
+
+#if (LS7A_GMAC1_DISABLE)
+    lw      t1, (CONF_SB_OFFSET+0)(t0)
+    li      t2, (1 << 7)
+    not     t2, t2
+    and     t1, t1, t2
+    sw      t1, (CONF_SB_OFFSET+0)(t0)
+    TTYDBG("GMAC1 disabled.\r\n")
+#endif
+
+#if (!LS7A_LPC_DISABLE)
+    lw      t1, (CONF_SB_OFFSET+4)(t0)
+    li      t2, (1 << 0)
+    or      t1, t1, t2
+    sw      t1, (CONF_SB_OFFSET+4)(t0)
+    TTYDBG("LPC enabled\r\n")
+#endif
+
+#if LS7A_GRAPHICS_DISABLE
+    lw      t1, 0x420(t0)
+    li      t2, (0x1 << 5)  //TODO, can not disable DC because the PMON assume there it is and as the GPU BAR will affect DC BAR's found, so GPU cannot be disabled also
+    not     t2, t2
+    and     t1, t1, t2
+    sw      t1, 0x420(t0)
+    TTYDBG("Graphics disabled.\r\n")
+#endif
+
+#define PCIE_GEN_CFG 0x1
+#define PCIE_STAT_CHECK_TIMES 100   //if some device link fail, maybe you can increase this value for try
+
+    //put PCIE device detect later, else you need to add more delay
+    //delay at least 200ms
+#if 1
+    //delay at least 100ms
+    dli     t1, 0x10000000
+1:
+    dsubu   t1, t1, 1
+    bnez    t1, 1b
+    nop
+#endif
+#if (!LS7A_PCIE_F0_DISABLE)
     //PCIE F0
     //re-configure PCIE PHYs
     //DO not destroy a0, a1, for example, do not add print between these code
@@ -626,7 +1008,9 @@
     and     t1, t1, t4
     sw      t1, CONF_NB_OFFSET(t0)
     TTYDBG("unused PCIE F0 ports clock disabled.\r\n")
+#endif
 
+#if (!LS7A_PCIE_F1_DISABLE)
     //PCIE F1
     //re-configure PHYs
     daddu   a0, t0, 0x5b0
@@ -741,7 +1125,9 @@
     and     t1, t1, t4
     sw      t1, CONF_NB_OFFSET(t0)
     TTYDBG("unused PCIE F1 ports clock disabled.\r\n")
+#endif
 
+#if (!LS7A_PCIE_H_DISABLE)
     //PCIE H
     //re-configure PHYs
     daddu   a0, t0, 0x5d0
@@ -870,7 +1256,9 @@
     and     t1, t1, t4
     sw      t1, CONF_NB_OFFSET(t0)
     TTYDBG("unused PCIE H ports clock disabled.\r\n")
+#endif
 
+#if (!LS7A_PCIE_G0_DISABLE)
     //PCIE G0
     //re-configure PHYs
     daddu   a0, t0, 0x5f0
@@ -999,7 +1387,9 @@
     and     t1, t1, t4
     sw      t1, CONF_NB_OFFSET(t0)
     TTYDBG("unused PCIE G0 ports clock disabled.\r\n")
+#endif
 
+#if (!LS7A_PCIE_G1_DISABLE)
     //PCIE G1
     //re-configure PHYs
     daddu   a0, t0, 0x610
@@ -1128,425 +1518,6 @@
     and     t1, t1, t4
     sw      t1, CONF_NB_OFFSET(t0)
     TTYDBG("unused PCIE G1 ports clock disabled.\r\n")
-
-    //init SATA
-    //use t0 as global variable
-    dli     t0, LS7A_CONFBUS_BASE_ADDR
-    //configure sata phy parameter
-    li      t1, 0x30c31cf9
-    sw      t1, 0x744(t0)
-    sw      t1, 0x754(t0)
-    sw      t1, 0x764(t0)
-    li      t1, 0xf3000403
-    sw      t1, 0x740(t0)
-    sw      t1, 0x750(t0)
-    sw      t1, 0x760(t0)
-
-#if (!LS7A_SATA0_DISABLE)
-#ifndef USE_SATA_PAD_REFCLK
-    //power down phy
-    lw      t1, 0x744(t0)
-    li      t2, (1 << 31)
-    or      t1, t1, t2
-    sw      t1, 0x744(t0)
-
-    //assert phy reset
-    lw      t1, 0x740(t0)
-    li      t2, (1 << 2)
-    or      t1, t1, t2
-    sw      t1, 0x740(t0)
-
-    //switch refclk
-    lw      t1, 0x740(t0)
-    li      t2, (1 << 1)
-    not     t2, t2
-    and     t1, t1, t2
-    sw      t1, 0x740(t0)
-
-    //delay a while
-    li      t1, 0x1000
-1:
-    subu    t1, t1, 1
-    bnez    t1, 1b
-    nop
-
-    //power up phy
-    lw      t1, 0x744(t0)
-    li      t2, (1 << 31)
-    not     t2, t2
-    and     t1, t1, t2
-    sw      t1, 0x744(t0)
-
-    //deassert phy reset
-    lw      t1, 0x740(t0)
-    li      t2, (1 << 2)
-    not     t2, t2
-    and     t1, t1, t2
-    sw      t1, 0x740(t0)
-
-    //delay a while
-    li      t1, 0x1000000
-1:
-    subu    t1, t1, 1
-    bnez    t1, 1b
-    nop
-#endif
-    //deassert cntl reset
-    lw      t1, (CONF_SB_OFFSET+4)(t0)
-    li      t2, (1 << 8)
-    not     t2, t2
-    and     t1, t1, t2
-    sw      t1, (CONF_SB_OFFSET+4)(t0)
-
-    //sata en
-    lw      t1, (CONF_SB_OFFSET+4)(t0)
-    li      t2, (1 << 10)
-    or      t1, t1, t2
-    sw      t1, (CONF_SB_OFFSET+4)(t0)
-
-#ifdef  OVRD_SATA_PHY
-    //configure phy
-    daddu   a0, t0, 0x748
-    li      a1, 0x403f1002
-    bal     ls7a_phy_cfg_write
-    nop
-#endif
-    TTYDBG("SATA0 enabled\r\n")
-#else
-    //powerdown phy
-    lw      t1, 0x744(t0)
-    li      t2, (1 << 31)
-    or      t1, t1, t2
-    sw      t1, 0x744(t0)
-
-    //disable clock
-    lw      t1, (CONF_SB_OFFSET+4)(t0)
-    li      t2, (1 << 11)
-    not     t2, t2
-    and     t1, t1, t2
-    sw      t1, (CONF_SB_OFFSET+4)(t0)
-    TTYDBG("SATA0 clock disabled.\r\n")
-#endif
-
-#if (!LS7A_SATA1_DISABLE)
-#ifndef USE_SATA_PAD_REFCLK
-    //power down phy
-    lw      t1, 0x754(t0)
-    li      t2, (1 << 31)
-    or      t1, t1, t2
-    sw      t1, 0x754(t0)
-
-    //assert phy reset
-    lw      t1, 0x750(t0)
-    li      t2, (1 << 2)
-    or      t1, t1, t2
-    sw      t1, 0x750(t0)
-
-    //switch refclk
-    lw      t1, 0x750(t0)
-    li      t2, (1 << 1)
-    not     t2, t2
-    and     t1, t1, t2
-    sw      t1, 0x750(t0)
-
-    //delay a while
-    li      t1, 0x1000
-1:
-    subu    t1, t1, 1
-    bnez    t1, 1b
-    nop
-
-    //power up phy
-    lw      t1, 0x754(t0)
-    li      t2, (1 << 31)
-    not     t2, t2
-    and     t1, t1, t2
-    sw      t1, 0x754(t0)
-
-    //deassert phy reset
-    lw      t1, 0x750(t0)
-    li      t2, (1 << 2)
-    not     t2, t2
-    and     t1, t1, t2
-    sw      t1, 0x750(t0)
-
-    //delay a while
-    li      t1, 0x1000000
-1:
-    subu    t1, t1, 1
-    bnez    t1, 1b
-    nop
-#endif
-    //deassert cntl reset
-    lw      t1, (CONF_SB_OFFSET+4)(t0)
-    li      t2, (1 << 12)
-    not     t2, t2
-    and     t1, t1, t2
-    sw      t1, (CONF_SB_OFFSET+4)(t0)
-
-    //sata en
-    lw      t1, (CONF_SB_OFFSET+4)(t0)
-    li      t2, (1 << 14)
-    or      t1, t1, t2
-    sw      t1, (CONF_SB_OFFSET+4)(t0)
-
-#ifdef  OVRD_SATA_PHY
-    //configure phy
-    daddu   a0, t0, 0x758
-    li      a1, 0x403f1002
-    bal     ls7a_phy_cfg_write
-    nop
-#endif
-    TTYDBG("SATA1 enabled\r\n")
-#else
-    //powerdown phy
-    lw      t1, 0x754(t0)
-    li      t2, (1 << 31)
-    or      t1, t1, t2
-    sw      t1, 0x754(t0)
-
-    //disable clock
-    lw      t1, (CONF_SB_OFFSET+4)(t0)
-    li      t2, (1 << 15)
-    not     t2, t2
-    and     t1, t1, t2
-    sw      t1, (CONF_SB_OFFSET+4)(t0)
-    TTYDBG("SATA1 clock disabled.\r\n")
-#endif
-
-#if (!LS7A_SATA2_DISABLE)
-#ifndef USE_SATA_PAD_REFCLK
-    //power down phy
-    lw      t1, 0x764(t0)
-    li      t2, (1 << 31)
-    or      t1, t1, t2
-    sw      t1, 0x764(t0)
-
-    //assert phy reset
-    lw      t1, 0x760(t0)
-    li      t2, (1 << 2)
-    or      t1, t1, t2
-    sw      t1, 0x760(t0)
-
-    //switch refclk
-    lw      t1, 0x760(t0)
-    li      t2, (1 << 1)
-    not     t2, t2
-    and     t1, t1, t2
-    sw      t1, 0x760(t0)
-
-    //delay a while
-    li      t1, 0x1000
-1:
-    subu    t1, t1, 1
-    bnez    t1, 1b
-    nop
-
-    //power up phy
-    lw      t1, 0x764(t0)
-    li      t2, (1 << 31)
-    not     t2, t2
-    and     t1, t1, t2
-    sw      t1, 0x764(t0)
-
-    //deassert phy reset
-    lw      t1, 0x760(t0)
-    li      t2, (1 << 2)
-    not     t2, t2
-    and     t1, t1, t2
-    sw      t1, 0x760(t0)
-
-    //delay a while
-    li      t1, 0x1000000
-1:
-    subu    t1, t1, 1
-    bnez    t1, 1b
-    nop
-#endif
-    //deassert cntl reset
-    lw      t1, (CONF_SB_OFFSET+4)(t0)
-    li      t2, (1 << 16)
-    not     t2, t2
-    and     t1, t1, t2
-    sw      t1, (CONF_SB_OFFSET+4)(t0)
-
-    //sata en
-    lw      t1, (CONF_SB_OFFSET+4)(t0)
-    li      t2, (1 << 18)
-    or      t1, t1, t2
-    sw      t1, (CONF_SB_OFFSET+4)(t0)
-
-#ifdef  OVRD_SATA_PHY
-    //configure phy
-    daddu   a0, t0, 0x768
-    li      a1, 0x403f1002
-    bal     ls7a_phy_cfg_write
-    nop
-#endif
-    TTYDBG("SATA2 enabled\r\n")
-#else
-    //powerdown phy
-    lw      t1, 0x764(t0)
-    li      t2, (1 << 31)
-    or      t1, t1, t2
-    sw      t1, 0x764(t0)
-
-    //disable clock
-    lw      t1, (CONF_SB_OFFSET+4)(t0)
-    li      t2, (1 << 19)
-    not     t2, t2
-    and     t1, t1, t2
-    sw      t1, (CONF_SB_OFFSET+4)(t0)
-    TTYDBG("SATA2 clock disabled.\r\n")
-#endif
-
-    //init USB
-#ifdef  USE_USB_SYS_REFCLK
-    //switch refclk
-    lw      t1, (CONF_SB_OFFSET+0)(t0)
-    li      t2, (0x2 << 2)
-    or      t1, t1, t2
-    sw      t1, (CONF_SB_OFFSET+0)(t0)
-
-    //delay a while
-    li      t1, 0x1000
-1:
-    subu    t1, t1, 1
-    bnez    t1, 1b
-    nop
-#endif
-
-#if (!LS7A_USB0_DISABLE)
-    //deassert phy reset
-    lw      t1, (CONF_SB_OFFSET+0)(t0)
-    li      t2, (1 << 9)
-    not     t2, t2
-    and     t1, t1, t2
-    sw      t1, (CONF_SB_OFFSET+0)(t0)
-
-    //delay a while
-    li      t1, 0x1000000
-1:
-    subu    t1, t1, 1
-    bnez    t1, 1b
-    nop
-
-    //deassert cntl reset
-    lw      t1, (CONF_SB_OFFSET+0)(t0)
-    li      t2, (1 << 8)
-    not     t2, t2
-    and     t1, t1, t2
-    sw      t1, (CONF_SB_OFFSET+0)(t0)
-
-    lw      t1, (CONF_SB_OFFSET+0)(t0)
-    li      t2, (1 << 10)
-    or      t1, t1, t2
-    sw      t1, (CONF_SB_OFFSET+0)(t0)
-    TTYDBG("USB0 enabled\r\n")
-#else
-    //disable clock
-    lw      t1, (CONF_SB_OFFSET+0)(t0)
-    li      t2, (1 << 11)
-    not     t2, t2
-    and     t1, t1, t2
-    sw      t1, (CONF_SB_OFFSET+0)(t0)
-    TTYDBG("USB0 clock disabled.\r\n")
-#endif
-
-#if (!LS7A_USB1_DISABLE)
-    //deassert phy reset
-    lw      t1, (CONF_SB_OFFSET+0)(t0)
-    li      t2, (1 << 13)
-    not     t2, t2
-    and     t1, t1, t2
-    sw      t1, (CONF_SB_OFFSET+0)(t0)
-
-    //delay a while
-    li      t1, 0x1000000
-1:
-    subu    t1, t1, 1
-    bnez    t1, 1b
-    nop
-
-    //deassert cntl reset
-    lw      t1, (CONF_SB_OFFSET+0)(t0)
-    li      t2, (1 << 12)
-    not     t2, t2
-    and     t1, t1, t2
-    sw      t1, (CONF_SB_OFFSET+0)(t0)
-
-    lw      t1, (CONF_SB_OFFSET+0)(t0)
-    li      t2, (1 << 14)
-    or      t1, t1, t2
-    sw      t1, (CONF_SB_OFFSET+0)(t0)
-    TTYDBG("USB1 enabled\r\n")
-#else
-    //disable clock
-    lw      t1, (CONF_SB_OFFSET+0)(t0)
-    li      t2, (1 << 15)
-    not     t2, t2
-    and     t1, t1, t2
-    sw      t1, (CONF_SB_OFFSET+0)(t0)
-    TTYDBG("USB1 clock disabled.\r\n")
-#endif
-
-#if (!LS7A_LPC_DISABLE)
-    lw      t1, (CONF_SB_OFFSET+4)(t0)
-    li      t2, (1 << 0)
-    or      t1, t1, t2
-    sw      t1, (CONF_SB_OFFSET+4)(t0)
-    TTYDBG("LPC enabled\r\n")
-#endif
-
-#if LS7A_GRAPHICS_DISABLE
-    lw      t1, 0x420(t0)
-    li      t2, (0x1 << 5)  //TODO, can not disable DC because the PMON assume there it is and as the GPU BAR will affect DC BAR's found, so GPU cannot be disabled also
-    not     t2, t2
-    and     t1, t1, t2
-    sw      t1, 0x420(t0)
-    TTYDBG("Graphics disabled.\r\n")
-#endif
-
-#if 0 //debug, read confbus
-    TTYDBG("\r\nconfbus content:\r\n")
-    dli     t0, LS7A_CONFBUS_BASE_ADDR
-    daddu   t2, t0, 0x3000
-    daddu   t3, t2, 0x8a0
-1:
-    and     a0, t2, 0xffff
-    bal     hexserial
-    nop
-    TTYDBG(": ")
-    lw      a0, 0x0(t2)
-    bal     hexserial
-    nop
-    TTYDBG("\r\n")
-
-    daddi   t2, t2, 0x4
-    bne     t2, t3, 1b
-    nop
-
-#if 0
-    TTYDBG("\r\nnode1 7A confbus content:\r\n")
-    dli     a0, (1<<44)
-    daddu   t1, t0, a0
-
-    daddu   t2, t1, 0x400
-    daddu   t3, t2, 0x370
-1:
-    and     a0, t2, 0xffff
-    bal     hexserial
-    nop
-    TTYDBG(": ")
-    lw      a0, 0x0(t2)
-    bal     hexserial
-    nop
-    TTYDBG("\r\n")
-
-    daddi   t2, t2, 0x4
-    bne     t2, t3, 1b
-    nop
-#endif
 #endif
 
 // GMEM configure -- put to Device initial code ?
@@ -1696,5 +1667,19 @@
     sw      $0, 0x18(t0)
     sw      $0, 0x1c(t0)
 8:
+#endif
+
+    dli     t0, LS7A_CONFBUS_BASE_ADDR
+#ifdef  LS7A_UC_ACC
+    lw      t1, (CONF_NB_OFFSET+4)(t0)
+    li      t2, (0x3f << 0)
+    or      t1, t1, t2
+    sw      t1, (CONF_NB_OFFSET+4)(t0)
+
+    lw      t1, (CONF_SB_OFFSET+0)(t0)
+    li      t2, (0xff << 24)
+    or      t1, t1, t2
+    sw      t1, (CONF_SB_OFFSET+0)(t0)
+    TTYDBG("LS7A uncache accellerator enabled\r\n")
 #endif
 
