@@ -1936,7 +1936,11 @@ void ls_pcie_config_set(void)
 	if(!ls2k_version())
 		ls_set_io_noncoherent();
 	else
+	{
+		/*set dc coherent*/
+		*(volatile int *)0xbfe10430 |= 8; 
 		map_gpu_addr();
+	}
 }
 
 extern unsigned long long memorysize_total;
