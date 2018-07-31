@@ -378,6 +378,11 @@ static int rtl8211_config_init(synopGMACdevice *gmacdev)
           data = 0x5140;
           err = synopGMAC_write_phy_reg((u64 *)gmacdev->MacBase,gmacdev->PhyBase,0x00,data );
   #endif
+	  /*set led link stat*/
+          synopGMAC_write_phy_reg((u64 *)gmacdev->MacBase,gmacdev->PhyBase, 22, 3);
+          synopGMAC_write_phy_reg((u64 *)gmacdev->MacBase,gmacdev->PhyBase, 16, 0x1038);
+          synopGMAC_write_phy_reg((u64 *)gmacdev->MacBase,gmacdev->PhyBase, 22, 0);
+
           if (err < 0)
                   return err;
           return 0;
