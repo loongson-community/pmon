@@ -51,7 +51,7 @@ int usb_spi_prepare(void)
 	}
 	readl(DATA0) = 0x53524f4d;
 	readl(FWDCS) |= (1 << 16);
-	if (readl(FWDCS) & (7 << 20) & (2 << 20)) {
+	if ((readl(FWDCS) & (0x7<<20)) != 0x0) {
 		printf("result code error %x\n",readl(FWDCS));
 		return 1;
 	}
@@ -109,7 +109,7 @@ int usb_spi_write(int size,unsigned int *spi_buf)
 
 	readl(FWDCS) &= ~(1 << 16);
 	times = 100000;
-	while (!(readl(FWDCS) & (1 << 20)) && times--);
+	while (((readl(FWDCS) & (0x7<<20)) != (0x1<<20)) && times--);
 	if (!times) {
 		printf("write result code is %x\n",readl(FWDCS));
 		return 1;
@@ -178,6 +178,7 @@ int usb_spi_read(int size,unsigned int *ret_buf)
 int _find_xhci_pci_base(struct pci_device *parent)
 {
 	struct pci_device *pd;
+	int cnt = 0;
 
 	for (pd = parent->bridge.child; pd ; pd = pd->next) {
 		pcitag_t tag = pd->pa.pa_tag;
@@ -188,42 +189,23 @@ int _find_xhci_pci_base(struct pci_device *parent)
 		if(id == 0x00141912){
 			Base = (0xbb000000 | tag );
 //			printf("xhci base %x\n",Base);
-			return 1;
+			 _usb_spi_init();
+			cnt++;
 		}
+
 		if((PCI_CLASS(class) == PCI_CLASS_BRIDGE && PCI_SUBCLASS(class) == PCI_SUBCLASS_BRIDGE_PCI) || pd->bridge.child != NULL) {
-			if(_find_xhci_pci_base(pd))
-				return 1;
+			cnt +=_find_xhci_pci_base(pd);
 		}
 	}
 
-	return 0;
+	return cnt;
 
 }
-int find_xhci_pci_base()
-{
-	int i;
-	struct pci_device *pd;
 
-	extern struct pci_device *_pci_head;
-	extern int pci_roots;
-
-	for(i = 0, pd = _pci_head; i < pci_roots; i++, pd = pd->next) {
-		if(_find_xhci_pci_base (pd))
-			return 1;
-	}
-	return 0;
-}
-
-int usb_spi_init(void)
+int _usb_spi_init()
 {
 	unsigned int ret_buf[20];
 	int  i, size = 20;
-
-	if(!find_xhci_pci_base()){
-		printf("can't find xhci\n");
-		return 0;
-	}
-
 	i = usb_spi_read(size,ret_buf);
 	if (i != -1) {
 		printf("usb spi read error i = %d.\n",i);
@@ -246,6 +228,32 @@ int usb_spi_init(void)
     else {
 		printf("usb firmware no error\n");
     }
+}
+
+int find_xhci_pci_base()
+{
+	int i;
+	struct pci_device *pd;
+
+	extern struct pci_device *_pci_head;
+	extern int pci_roots;
+	int cnt = 0;
+
+	for(i = 0, pd = _pci_head; i < pci_roots; i++, pd = pd->next) {
+		cnt += _find_xhci_pci_base (pd);
+	}
+	return cnt;
+}
+
+
+int usb_spi_init(void)
+{
+
+	if(!find_xhci_pci_base()){
+		printf("can't find xhci\n");
+		return 0;
+	}
+
 	return 0;
 }
 
@@ -256,6 +264,11 @@ int cmd_usb_spi_read(ac, av)
 {
 	unsigned int ret_buf[3260];
 	int  i, size = 50;
+	if(ac>2)
+	{
+	   int tag = strtoul(av[2], 0, 0);
+		Base = (0xbb000000 | tag );
+	}
 	size = (int) strtoul(av[1],0,0);
 	printf("size= %x \n",size);
 	if (size > 3260){
@@ -278,11 +291,34 @@ int cmd_usb_spi_read(ac, av)
 	}
 }
 
+
+int cmd_usb_spi_write(int ac, char **av)
+{
+	if(ac>1)
+	{
+	   int tag = strtoul(av[1], 0, 0);
+		Base = (0xbb000000 | tag );
+	}
+		usb_spi_write(3260,usb_spi_buf);
+ return 0;
+}
+
+int cmd_usb_spi_erase(int ac, char **av)
+{
+	if(ac>1)
+	{
+	   int tag = strtoul(av[1], 0, 0);
+		Base = (0xbb000000 | tag );
+	}
+	usb_spi_erase();
+	return 0;
+}
+
 static const Cmd Cmds[] = {
 	{"Misc"},
 	{"usb_spi_read", "", NULL, "read the usb spi data", cmd_usb_spi_read, 1, 5, 0},
-	{"usb_spi_write", "", NULL, "read the usb spi data", usb_spi_write, 1, 5, 0},
-	{"usb_spi_erase", "", NULL, "read the usb spi data", usb_spi_erase, 1, 5, 0},
+	{"usb_spi_write", "", NULL, "read the usb spi data", cmd_usb_spi_write, 1, 5, 0},
+	{"usb_spi_erase", "", NULL, "read the usb spi data", cmd_usb_spi_erase, 1, 5, 0},
 	{"usb_spi_init", "", NULL, "read the usb spi data", usb_spi_init, 1, 5, 0},
 	{0, 0}
 };
