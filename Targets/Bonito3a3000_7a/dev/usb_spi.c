@@ -126,6 +126,62 @@ int usb_spi_write(int size,unsigned int *spi_buf)
 	return size;
 }
 
+int usb_spi_download(int size,unsigned int *spi_buf)
+{
+	unsigned int *buf = spi_buf;
+	unsigned int tmp, times = 100000000;
+	readl(FWDCS) |= 1;
+	size /= 2;
+	if (readl(FWDCS) & (1 << 8)) {
+		printf("set data0 status error.\n");
+		return 1;
+	}
+	readl(DATA0) = *buf++;
+	if (readl(FWDCS) & (2 << 8)) {
+		printf("set data1 status error.\n");
+		return 1;
+	}
+	readl(DATA1) = *buf++;
+	readl(FWDCS) |= (3 << 8);
+	size -= 1;
+	while(size--) {
+		times = 100000000;
+		while ((readl(FWDCS) & (1 << 8)) && times--);
+		if (!times) {
+			printf(">> set data0 status error. \n");
+			return 1;
+		}
+		readl(DATA0) = *buf++;
+		readl(FWDCS) |= (1 << 8);
+
+		times = 100000000;
+		while ((readl(FWDCS) & (2 << 8)) && times--);
+		if (!times) {
+			printf(">> set data0 status error. \n");
+			return 1;
+		}
+		readl(DATA1) = *buf++;
+		readl(FWDCS) |= (2 << 8);
+	}
+	times = 100000000;
+	while ((readl(FWDCS) & (3 << 8)) && times--);
+	if (!times) {
+		printf("error\n");
+		return 1;
+	}
+
+	readl(FWDCS) &= ~1;
+	times = 100000;
+	while (((readl(FWDCS) & (0x7<<4)) != (0x1<<4)) && times--);
+	if (!times) {
+		printf("write result code is %x\n",readl(FWDCS));
+		return 1;
+	}
+	printf("Fw download done.\n");
+
+	return size;
+}
+
 int usb_spi_read(int size,unsigned int *ret_buf)
 {
 	unsigned int tmp, times = 100000000;
@@ -209,7 +265,7 @@ int _usb_spi_init()
 	i = usb_spi_read(size,ret_buf);
 	if (i != -1) {
 		printf("usb spi read error i = %d.\n",i);
-		return -1;
+		goto out;
 	}
 
 	for (i = 0;i < size;i++) {
@@ -228,6 +284,10 @@ int _usb_spi_init()
     else {
 		printf("usb firmware no error\n");
     }
+
+out:
+		size = 3260;//FW size
+		usb_spi_download(size,usb_spi_buf);
 }
 
 int find_xhci_pci_base()
