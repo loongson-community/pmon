@@ -1806,7 +1806,7 @@ void map_gpu_addr(void)
 		__raw__writeq(0x900000001fe10078 , 0xffffffffe0000000);
 		__raw__writeq(0x900000001fe100b8 , 0x00000001e00000f0);
 	} else {
-		printf ("Now this Memory size %lld MB is not support mapping GPU address.\n", memorysize_total);
+		tgt_printf ("Now this Memory size %lld MB is not support mapping GPU address.\n", memorysize_total);
 	}
 }
 
