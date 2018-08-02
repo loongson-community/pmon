@@ -1209,7 +1209,7 @@ start_now:
 	bgt     v0, a1, 2f
 	nop
 #endif
-	dli     s1, 0x0010000080000000
+	dli     s1, 0x0006000110000000
 #ifdef DEBUG_DDR_PARAM
 	PRINTSTR("\r\ndefault s1 = 0x");
 	dsrl    a0, s1, 32
