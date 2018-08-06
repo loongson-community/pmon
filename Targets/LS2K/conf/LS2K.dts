@@ -389,6 +389,10 @@
 				compatible = "eeprom-edid";
 				reg = <0x50>;
 			};
+			codec@1a{
+				compatible = "realtek,rt5651";
+				reg = <0x1a>;
+			};
 		};
 
 		spi0: spi@1fff0220{
@@ -572,6 +576,7 @@
 			compatible = "loongson,ls-sound";
 			loongson,i2s-controller = <&i2s>;
 			loongson,audio-codec = <&audio>;
+			codec-names = "rt5651","rt5651 Duplex", "rt5651-aif1", "rt5651.3-001a";
 		};
 		nand@0x1fe06040{
 			#address-cells = <1>;
