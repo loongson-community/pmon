@@ -77,7 +77,7 @@ u32 _pci_conf_readn(device_t tag, int reg, int width)
 	//notice the cmp val_raw != -1 is necessary.
 	if(bus != 0 && device != 0) {
 		val_raw = pci_read_type1_config32(bus, 0, function, 0x0);
-		if(val_raw != -1 && pci_read_type1_config32(bus, 15, function, 0x0) == val_raw && pci_read_type1_config32(bus, 31, function, 0x0) == val_raw)
+		if(val_raw != 0 && val_raw != -1 && pci_read_type1_config32(bus, 15, function, 0x0) == val_raw && pci_read_type1_config32(bus, 31, function, 0x0) == val_raw)
 			return -1;
 	}
 	//workaround pcie header
@@ -94,9 +94,13 @@ u32 _pci_conf_readn(device_t tag, int reg, int width)
 		return pci_read_type0_config32(device, function, reg);
 	} else {
 		/* Type 1 configuration on offboard PCI bus */
-		return pci_read_type1_config32(bus, device, function, reg);
+		val_raw = pci_read_type1_config32(bus, device, function, reg);
+		if(reg == 0 && val_raw == 0)
+		    return -1;
+		else
+		    return val_raw;
 	}
-
+        
 	return 0;
 }
 
