@@ -202,7 +202,7 @@ extern char	*optarg;
 #if NMOD_USB_OHCI !=0
 	usb_ohci_stop();
 #endif
-#if defined (LOONGSON_3A2H) || defined (LS7A)
+#if defined (LOONGSON_3A2H) || defined (LS7A) || defined(LOONGSON_2K)
 	gmac_stop();
 #endif
 #ifdef LOONGSON_3A84W
