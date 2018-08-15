@@ -43,6 +43,7 @@
 
 #define LS7A_GRAPHICS_DISABLE   0
 
+//#define LS7A_PCIE_NO_POWERDOWN
 //staticly disable some PCIE Ports, no matter whether there is device
 #define LS7A_PCIE_F0_DISABLE    0
 #define LS7A_PCIE_F1_DISABLE    0

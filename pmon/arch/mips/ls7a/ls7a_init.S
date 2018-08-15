@@ -218,6 +218,14 @@
     //init PCIE -- v0.3
     dli     t0, LS7A_CONFBUS_BASE_ADDR
 
+    //configure phy parameter
+    li      t1, 0x20000
+    sw      t1, 0x588(t0)
+    sw      t1, 0x5a8(t0)
+    sw      t1, 0x5c8(t0)
+    sw      t1, 0x5e8(t0)
+    sw      t1, 0x608(t0)
+
     //reset PCIE begin
     //assert reset
     lw      t1, CONF_NB_OFFSET(t0)
@@ -985,6 +993,9 @@
 2:
     sw      $0, 0x10(t3)
 7:
+#ifdef  LS7A_PCIE_NO_POWERDOWN
+    move    t4, $0
+#endif
     li      a0, 0xf
     bne     t4, a0, 8f
     nop
@@ -1102,6 +1113,9 @@
 2:
     sw      $0, 0x10(t3)
 7:
+#ifdef  LS7A_PCIE_NO_POWERDOWN
+    move    t4, $0
+#endif
     li      a0, 0x3
     bne     t4, a0, 8f
     nop
@@ -1233,12 +1247,15 @@
 2:
     sw      $0, 0x10(t3)
 7:
+#ifdef  LS7A_PCIE_NO_POWERDOWN
+    move    t4, $0
+#endif
     li      a0, 0x3
     bne     t4, a0, 8f
     nop
     //powerdown phy
     lw      t1, 0x5c8(t0)
-    li      t2, (1 << 24)
+    li      t2, (3 << 24)
     or      t1, t1, t2
     sw      t1, 0x5c8(t0)
 
@@ -1364,12 +1381,15 @@
 2:
     sw      $0, 0x10(t3)
 7:
+#ifdef  LS7A_PCIE_NO_POWERDOWN
+    move    t4, $0
+#endif
     li      a0, 0x3
     bne     t4, a0, 8f
     nop
     //powerdown phy
     lw      t1, 0x5e8(t0)
-    li      t2, (1 << 24)
+    li      t2, (3 << 24)
     or      t1, t1, t2
     sw      t1, 0x5e8(t0)
 
@@ -1495,12 +1515,15 @@
 2:
     sw      $0, 0x10(t3)
 7:
+#ifdef  LS7A_PCIE_NO_POWERDOWN
+    move    t4, $0
+#endif
     li      a0, 0x3
     bne     t4, a0, 8f
     nop
     //powerdown phy
     lw      t1, 0x608(t0)
-    li      t2, (1 << 24)
+    li      t2, (3 << 24)
     or      t1, t1, t2
     sw      t1, 0x608(t0)
 
