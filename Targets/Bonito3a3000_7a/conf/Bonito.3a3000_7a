@@ -126,6 +126,8 @@ select		cmd_testdisk
 
 select          cmd_test                # test commands,test hardisk
 select		cmd_shell		# Shell commands, vers, help, eval
+select		cmd_dtb
+option		DTB
 
 
 #

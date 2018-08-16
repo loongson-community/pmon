@@ -20,6 +20,7 @@ file	Targets/Bonito3a3000_7a/dev/i2c-gpio.c
 file	Targets/Bonito3a3000_7a/dev/ltc.c
 file	Targets/Bonito3a3000_7a/dev/usb_spi.c
 file	Targets/Bonito3a3000_7a/dev/ls7a_gmac_mac_init.c
+file	Targets/Bonito3a3000_7a/dev/load_dtb.c		cmd_dtb
 
 #Gmac
 file	sys/dev/gmac/synopGMAC_Dev.c

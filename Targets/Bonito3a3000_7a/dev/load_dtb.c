@@ -56,29 +56,6 @@ static int check_mac_ok(void)
 	return 1;
 }
 
-static int check_dma_ok(void)
-{
-	int nodeoffset, len;
-	const void *nodep;	/* property node pointer */
-
-	nodeoffset = fdt_path_offset (working_fdt, "/soc");
-	if (nodeoffset < 0) {
-		/*
-		 * Not found or something else bad happened.
-		 */
-		return 1;		//do nothing
-	}
-	nodep = fdt_getprop (working_fdt, nodeoffset, "dma-coherent", &len);
-
-	if(ls2k_version()) {
-		if(!nodep)
-			return 0;	//should be reset
-	} else
-		if(nodep)
-			return 0;	//should be reset
-	return 1;
-}
-
 static int update_mac(void * ssp, int id)
 {
 	int nodeoffset, len;
@@ -107,45 +84,13 @@ static int update_mac(void * ssp, int id)
 	return 0;
 }
 
-static int update_dma_flag(void * ssp)
-{
-	int nodeoffset, len;
-	const void *nodep;	/* property node pointer */
-
-	nodeoffset = fdt_path_offset (ssp, "/soc");
-	if (nodeoffset < 0) {
-		/*
-		 * Not found or something else bad happened.
-		 */
-		printf ("libfdt fdt_path_offset() returned %s\n", fdt_strerror(nodeoffset));
-		return 1;
-	}
-	nodep = fdt_getprop (ssp, nodeoffset, "dma-coherent", &len);
-
-	if(ls2k_version()) {
-		if(!nodep) {
-			if(fdt_setprop(ssp, nodeoffset, "dma-coherent", NULL, 0))
-				printf("Add property \"dma-coherent\" error\n");
-			else
-				printf("Add property \"dma-coherent\"\n");
-		}
-	} else {
-		if(nodep) {
-			if(fdt_delprop(ssp, nodeoffset, "dma-coherent"))
-				printf("Delete property \"dma-coherent\" error\n");
-			else
-				printf("Delete property \"dma-coherent\"\n");
-		}
-	}
-	return 0;
-}
-
 void verify_dtb(void)
 {
 	char *dtbram;
 	dtbram = (char *)(tgt_flashmap()->fl_map_base);
 	dtbram += DTB_OFFS;
 	working_fdt = (struct fdt_header *)(dtbram + 4);
+printf("working_fdt=%p\n", working_fdt);
 	if(dtb_cksum(dtbram, DTB_SIZE - 4, 0)) {
 		printf("dtb chsum err! you should load_dtb before boot kernel!!!\n");
 		return;
@@ -155,10 +100,9 @@ void verify_dtb(void)
 		return;
 	}
 	printf("dtb verify ok!!!\n");
-	if(!check_mac_ok() || !check_dma_ok()) {
+	if(!check_mac_ok()) {
 		u8 buff[DTB_SIZE] = {0};
 		fdt_open_into(working_fdt, buff + 4, DTB_SIZE - 8);
-		update_dma_flag(buff + 4);
 		update_mac(buff + 4, 0);
 		update_mac(buff + 4, 1);
 		dtb_cksum(buff, DTB_SIZE - 4, 1);
@@ -263,62 +207,9 @@ static int fdt_parse_prop(char * const *newval, int count, char *data, int *len)
 	return 0;
 }
 
-extern struct pci_device *pcie_dev;
-static int check_mem_args(const void * ssp)
-{
-	int nodeoffset, len, j;
-	unsigned long long arg_mem, arg_mem_sz = 0, max_mem;
-	void *nodep;	/* property node pointer */
-	u32 *p;
-
-	max_mem = memorysize_total << 20;
-	if(!pcie_dev){
-		max_mem -= 0x20000000ULL;	//512M for internal Graphics card
-	}
-	nodeoffset = fdt_path_offset (ssp, "/memory");
-	if (nodeoffset < 0) {
-		/*
-		 * Not found or something else bad happened.
-		 */
-		printf ("libfdt fdt_path_offset() returned %s\n", fdt_strerror(nodeoffset));
-		printf("can not find memory in dtb, abort!!!\n");
-		goto abort;
-	}
-	nodep = fdt_getprop (ssp, nodeoffset, (const char* )"reg", &len);
-	if(len <= 0) {
-		printf("can not find property: /memory reg, abort!!!\n");
-		goto abort;
-	}
-
-	for (j = 0, p = nodep; j < len/4; j+=4) {
-		/* 
-		 * High memory maybe is mapped from address that higher than 0x80000000.
-		 */
-		if(fdt32_to_cpu(p[j]) || fdt32_to_cpu(p[j + 1]) > 0x7fffffffULL) {
-			arg_mem = fdt32_to_cpu(p[j + 2]);
-			arg_mem = arg_mem << 32 | fdt32_to_cpu(p[j + 3]);
-			arg_mem_sz += arg_mem;
-		}
-	}
-	/*
-	 * Add the low 256M.
-	 */ 
-	arg_mem_sz += 0x10000000ULL;
-	if(arg_mem_sz > max_mem) {
-		printf("Error: Memory size in dtb(0x%llx) is larger than total memorysize(0x%llx), abort!!!\n", arg_mem_sz, max_mem);
-		goto abort;
-	}
-	return 0;
-abort:
-	printf("Press any key to reboot.\n");
-	getchar();
-	do_cmd("reboot");
-	return -1;
-}
-
 static int update_bootarg(int ac, char ** av, void * ssp)
 {
-	int i, len = 0, err;
+	int i, len = 0, ret;
 	char new_arg[200];
 	char *p;
 	int nodeoffset;
@@ -335,11 +226,11 @@ static int update_bootarg(int ac, char ** av, void * ssp)
 	len = strlen(new_arg) + 1;
 retry:
 	nodeoffset = fdt_path_offset (ssp, "/chosen");
-	err = fdt_setprop(ssp, nodeoffset, "bootargs", new_arg, len);
-	if(err == -FDT_ERR_NOSPACE && fdt_totalsize(working_fdt) < DTB_SIZE - 8) {
+	ret = fdt_setprop(ssp, nodeoffset, "bootargs", new_arg, len);
+	if(ret == -FDT_ERR_NOSPACE && fdt_totalsize(working_fdt) < DTB_SIZE - 8) {
 		fdt_open_into(working_fdt, ssp, DTB_SIZE - 8);
 		goto retry;
-	}else if (err < 0)
+	}else
 		printf("Update bootarg error\n");
 	return 0;
 }
@@ -465,20 +356,16 @@ static int fdt_print_ram(char * head, const char *pathp, char *prop, int depth)
 #endif
 unsigned long long setup_dtb(int ac, char ** av)
 {
-	struct trapframe *tf = cpuinfotab[whatcpu];
 	char * ssp = heaptop;
-	tf->a2 = heaptop;
 
 	if(*(unsigned int *)(working_fdt) != 0xedfe0dd0 || dtb_cksum((char *)working_fdt - 4, DTB_SIZE - 4, 0)) {
 		printf("dtb chsum err!!!\n");
-		tf->a2 = NULL;
-		return 0;
+		return 0ULL;
 	}
 	memcpy(ssp, (char *)working_fdt, DTB_SIZE - 8);
 	if (ac > 1)
 		update_bootarg(ac, av, ssp);	//note: maybe reload from working_fdt, so do this first
 
-	check_mem_args(ssp);
 #if DEBUG_DTB
 	fdt_print_ram(ssp, "/", NULL, MAX_LEVEL);
 #endif
@@ -495,7 +382,7 @@ int load_dtb(int argc,char **argv)
 		printf("load -o %p -r %s\n",heaptop + 4,argv[1]);
 		if(do_cmd(cmdbuf)) {
 			printf("load dtb error\n");
-			return 0;
+			return -1;
 		}
 	}else {
 		printf("argc error\n");
@@ -505,9 +392,9 @@ int load_dtb(int argc,char **argv)
 	}
 	if(*(unsigned int *)(heaptop + 4) != 0xedfe0dd0) {
 		printf("dtb has a bad bad magic, please reload dtb file!!!\n");
-		return 0;
+		return -1;
 	}
-	update_dma_flag(heaptop + 4);
+//	update_dma_flag(heaptop + 4);
 	update_mac(heaptop + 4, 0);
 	update_mac(heaptop + 4, 1);
 	dtb_cksum(heaptop, DTB_SIZE - 4, 1);
@@ -750,6 +637,7 @@ int print_dtb(int argc,char **argv)
 	int depth = MAX_LEVEL;	/* how deep to print */
 	char *pathp;		/* path */
 	char *prop = NULL;		/* property */
+	int  ret;		/* return value */
 
 	/*
 	 * Get the starting path.  The root node is an oddball,
@@ -782,8 +670,8 @@ int print_dtb(int argc,char **argv)
 		return 0;
 	}
 
-	if(!fdt_print(pathp, prop, depth))
-		return 0;
+	ret = fdt_print(pathp, prop, depth);
+	return ret;
 warning:
 	printf("print_dtb <path> [prop] \n");
 	printf("eg: print_dtb head			- print dtb header\n");
@@ -803,9 +691,10 @@ static int set_dtb(int argc,char **argv)
 
 	if(dtb_cksum((char *)working_fdt - 4, DTB_SIZE - 4, 0)) {
 		printf("dtb chsum err! you should reload dtb file!!!\n");
-		return 0;
+		return -1;
 	}
 	memcpy(buff + 4, working_fdt, DTB_SIZE - 8);
+retry:
 
 	/*
 	 * Parameters: Node path, property, optional value.
@@ -818,10 +707,9 @@ static int set_dtb(int argc,char **argv)
 	} else {
 		ret = fdt_parse_prop(&argv[3], argc - 3, data, &len);
 		if (ret != 0)
-			goto warning;
+			return ret;
 	}
 
-retry:
 	nodeoffset = fdt_path_offset (buff + 4, argv[1]);
 	if (nodeoffset < 0) {
 		/*
@@ -829,7 +717,7 @@ retry:
 		 */
 		printf ("libfdt fdt_path_offset() returned %s\n",
 			fdt_strerror(nodeoffset));
-		return 0;
+		return 1;
 	}
 
 	ret = fdt_setprop(buff + 4, nodeoffset, argv[2], data, len);
@@ -838,7 +726,7 @@ retry:
 		goto retry;
 	}else if (ret < 0) {
 		printf ("libfdt fdt_setprop(): %s\n", fdt_strerror(ret));
-		return 0;
+		return 1;
 	}
 
 	dtb_cksum(buff, DTB_SIZE - 4, 1);
@@ -860,9 +748,10 @@ static int mk_dtb_node(int argc,char **argv)
 
 	if(dtb_cksum((char *)working_fdt - 4, DTB_SIZE - 4, 0)) {
 		printf("dtb chsum err! you should reload dtb file!!!\n");
-		return 0;
+		return -1;
 	}
 	memcpy(buff + 4, working_fdt, DTB_SIZE - 8);
+retry:
 
 	/*
 	 * Parameters: Node path, new node to be appended to the path.
@@ -870,7 +759,6 @@ static int mk_dtb_node(int argc,char **argv)
 	if (argc < 3)
 		goto warning;
 
-retry:
 	nodeoffset = fdt_path_offset (buff + 4, argv[1]);
 	if (nodeoffset < 0) {
 		/*
@@ -878,7 +766,7 @@ retry:
 		 */
 		printf ("libfdt fdt_path_offset() returned %s\n",
 			fdt_strerror(nodeoffset));
-		return 0;
+		return 1;
 	}
 	err = fdt_add_subnode(buff + 4, nodeoffset, argv[2]);
 	if(err == -FDT_ERR_NOSPACE && fdt_totalsize(working_fdt) < DTB_SIZE - 8) {
@@ -887,7 +775,7 @@ retry:
 	}else if (err < 0) {
 		printf ("libfdt fdt_add_subnode(): %s\n",
 			fdt_strerror(err));
-		return 0;
+		return 1;
 	}
 
 	dtb_cksum(buff, DTB_SIZE - 4, 1);
@@ -910,7 +798,7 @@ static int rm_dtb_node(int argc,char **argv)
 
 	if(dtb_cksum((char *)working_fdt - 4, DTB_SIZE - 4, 0)) {
 		printf("dtb chsum err! you should reload dtb file!!!\n");
-		return 0;
+		return -1;
 	}
 	memcpy(buff + 4, working_fdt, DTB_SIZE - 8);
 
@@ -924,7 +812,7 @@ static int rm_dtb_node(int argc,char **argv)
 		 * Not found or something else bad happened.
 		 */
 		printf ("libfdt fdt_path_offset() returned %s\n", fdt_strerror(nodeoffset));
-		return 0;
+		return 1;
 	}
 	/*
 	 * Do the delete.  A fourth parameter means delete a property,

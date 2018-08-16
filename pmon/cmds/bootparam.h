@@ -110,6 +110,7 @@ struct system_loongson{
 	char tcm_name[32];
 	u64 tcm_base_addr;
 	u64 workarounds; /* see workarounds.h */
+	u64 of_dtb_addr
 }__attribute__((packed));
 
 struct irq_source_routing_table {

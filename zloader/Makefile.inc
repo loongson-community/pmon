@@ -143,8 +143,8 @@ gencode=./genram
 endif
 
 dtb:
-	./dtc -I dts -O dtb -o ${TARGETEL}.dtb ../Targets/${TARGET}/conf/${TARGETEL}.dts
-	[ -f gzrom.bin ] && cp gzrom.bin gzrom-dtb.bin && python ../tools/pmonenv.py -f gzrom-dtb.bin -d ls2k.dtb -w  al=\(usb0,0\)/boot/vmlinuz al1=\(wd0,0\)/boot/vmlinuz append="'console=ttyS0,115200 console=tty initcall_debug=1 loglevel=20'" FR=1
+	./dtc -I dts -O dtb -o ${TARGET}.dtb ../Targets/${TARGET}/conf/${TARGET}.dts
+	[ -f gzrom.bin ] && cp gzrom.bin gzrom-dtb.bin && python ../tools/pmonenv.py -f gzrom-dtb.bin -d ${TARGET}.dtb -w  al=\(usb0,0\)/boot/vmlinuz al1=\(wd0,0\)/boot/vmlinuz append="'console=ttyS0,115200 console=tty initcall_debug=1 loglevel=20'" FR=1
 cleanall: clean
 	make -C ../Targets/${TARGET}/compile/${TARGETEL}/ clean
 clean:

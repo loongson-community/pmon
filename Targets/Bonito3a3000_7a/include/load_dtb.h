@@ -16,7 +16,7 @@ normal:	|-----bfc00000---|	dtb:	|-----bfc00000---|
 #include <pmon.h>
 #include <stdio.h>
 #include <string.h>
-#include "target/ls2k.h"
+#include "target/ls7a.h"
 #include "pflash.h"
 #include "target/bonito.h"
 #include <machine/frame.h>
@@ -33,7 +33,6 @@ normal:	|-----bfc00000---|	dtb:	|-----bfc00000---|
 
 extern unsigned long long memorysize_total;
 extern char *heaptop;
-extern char ls2k_version(void);
 struct fdt_header *working_fdt;
 
 extern void *memcpy(void *s1, const void *s2, size_t n);

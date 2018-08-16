@@ -333,6 +333,7 @@ struct system_loongson *init_system_loongson()
 {
  struct system_loongson *s = &g_sysitem;
   s->ccnuma_smp = 1;
+  s->vers = 2;
 #ifdef LOONGSON_3ASERVER
   s->ccnuma_smp = 1;
   s->sing_double_channel = 2;
