@@ -696,7 +696,7 @@ extern int rtc_get_sec(void);
 static void _probe_frequencies()
 {
 #ifdef HAVE_TOD
-	int i, timeout, cur, sec, cnt;
+	int i, timeout, cur, sec, cnt, sec1;
 #endif
 
 	SBD_DISPLAY("FREQ", CHKPNT_FREQ);
@@ -710,16 +710,18 @@ static void _probe_frequencies()
 	for (i = 2; i != 0; i--) {
 		timeout = 10000000;
 		sec = rtc_get_sec();
+		sec1 = (sec + 1)%60;
 		do {
 			//wait 1 min.
 			cur = rtc_get_sec();
-		} while (cur == sec);
+		} while (cur != sec1);
 
+		sec1 = (cur + 1)%60;
 		cnt = CPU_GetCOUNT();
 		do {
 			timeout--;
 			sec = rtc_get_sec();
-		} while (timeout != 0 && (cur == sec));
+		} while (timeout != 0 && (sec1 != sec));
 		cnt = CPU_GetCOUNT() - cnt;
 		if (timeout == 0) {
 			tgt_printf("time out!\n");
@@ -738,15 +740,17 @@ static void _probe_frequencies()
 	for (i = 2; i != 0; i--) {
 		timeout = 10000000;
 		sec = (inl(LS2H_TOY_READ0_REG) >> 4) & 0x3f;
+		sec1 = (sec + 1)%60;
 		do {
 			cur = ((inl(LS2H_TOY_READ0_REG) >> 4) & 0x3f);
-		} while (cur == sec);
+		} while (cur != sec1);
 
+		sec1 = (cur+1)%60;
 		cnt = CPU_GetCOUNT();
 		do {
 			timeout--;
 			sec = (inl(LS2H_TOY_READ0_REG) >> 4) & 0x3f;
-		} while (timeout != 0 && (cur == sec));
+		} while (timeout != 0 && (sec1 != sec));
 		cnt = CPU_GetCOUNT() - cnt;
 		if (timeout == 0) {
 			tgt_printf("time out!\n");
