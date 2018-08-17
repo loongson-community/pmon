@@ -355,8 +355,8 @@
     bne     a0, a1, 1b
     nop
 
-    //delay at least 100us
-    dli     t1, 0x100000
+    //delay at least 100ms
+    dli     t1, 0x10000000
 1:
     dsubu   t1, t1, 1
     bnez    t1, 1b
@@ -422,6 +422,7 @@
     and     t1, t1, t2
     sw      t1, CONF_NB_OFFSET(t0)
 #endif
+
     //enable access
     lw      t1, CONF_NB_OFFSET(t0)
     li      t2, ((1 << 29) | (1 << 25) | (1 << 21) | (1 << 17) | (1 << 9))
