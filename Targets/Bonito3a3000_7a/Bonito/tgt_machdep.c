@@ -175,6 +175,10 @@ ConfigEntry	ConfigTable[] =
     { (char *)1, 0, vgaterm, 256, CONS_BAUD, NS16550HZ },
 #endif
 #endif
+#if defined(LS7A_LPC_DISABLE) && !LS7A_LPC_DISABLE && defined(USE_SUPERIO_UART)
+    { (char *)-1, 0, ns16550, 256, CONS_BAUD, NS16550HZ/2 ,0}, 
+    { (char *)-1, 0, ns16550, 256, CONS_BAUD, NS16550HZ/2 ,0}, 
+#endif
     { 0 }
 };
 
@@ -187,6 +191,7 @@ extern unsigned long long  memorysize_high_n1;
 extern unsigned long long  memorysize_high_n2;
 extern unsigned long long  memorysize_high_n3;
 #endif
+unsigned int superio_base;
 
 extern char MipsException[], MipsExceptionEnd[];
 
@@ -334,6 +339,99 @@ extern unsigned short ScreenLineLength;
 extern unsigned short ScreenDepth;
 extern unsigned short ScreenHeight;
 
+#if defined(LS7A_LPC_DISABLE) && !LS7A_LPC_DISABLE
+static int w83627_read(int dev,int addr)
+{
+	int data;
+	/*enter*/
+	outb(superio_base + 0x002e,0x87);
+	outb(superio_base + 0x002e,0x87);
+	/*select logic dev reg */
+	outb(superio_base + 0x002e,0x7);
+	outb(superio_base + 0x002f,dev);
+	/*access reg */
+	outb(superio_base + 0x002e,addr);
+	data=inb(superio_base + 0x002f);
+	/*exit*/
+	outb(superio_base + 0x002e,0xaa);
+	outb(superio_base + 0x002e,0xaa);
+	return data;
+}
+
+static void w83627_write(int dev,int addr,int data)
+{
+	/*enter*/
+	outb(superio_base + 0x002e,0x87);
+	outb(superio_base + 0x002e,0x87);
+	/*select logic dev reg */
+	outb(superio_base + 0x002e,0x7);
+	outb(superio_base + 0x002f,dev);
+	/*access reg */
+	outb(superio_base + 0x002e,addr);
+	outb(superio_base + 0x002f,data);
+	/*exit*/
+	outb(superio_base + 0x002e,0xaa);
+	outb(superio_base + 0x002e,0xaa);
+}
+#define HM_OFF		0x180
+#define INDEX_OFF	0X5
+#define DATA_OFF	0X6
+
+#ifndef SUPERIO_UART1_IRQPORT
+#define SUPERIO_UART1_IRQPORT 0x0703f8
+#endif
+
+#ifndef SUPERIO_UART2_IRQPORT
+#define SUPERIO_UART2_IRQPORT 0x0702f8
+#endif
+
+static void superio_reinit()
+{
+	/*set global  multifuntion pin reg 0x2c low 2bit to 3 for 83627dhg to enable uart2*/
+	w83627_write(0,0x2c,0xe3);
+#ifdef SUPERIO_CLOCK_24M
+	//bit6=0 , clk=24M //dbg-yg 
+	w83627_write(0,0x24,0x81);
+#else
+	w83627_write(0,0x24,0xc1);
+#endif
+	w83627_write(5,0x30,1);
+	w83627_write(5,0x60,0);
+	w83627_write(5,0x61,0x60);
+	w83627_write(5,0x62,0);
+	w83627_write(5,0x63,0x64);
+	w83627_write(5,0x70,1);
+	w83627_write(5,0x72,0xc);
+	w83627_write(5,0xf0,0x80);
+	//w83627_UART1
+	w83627_write(2,0x30,0x01);
+	w83627_write(2,0x60,(SUPERIO_UART1_IRQPORT>>8)&0xff);
+	w83627_write(2,0x61,SUPERIO_UART1_IRQPORT&0xff);
+	w83627_write(2,0x70,(SUPERIO_UART1_IRQPORT>>16)&0xff);
+	w83627_write(2,0xf0,0x00);
+
+	//w83627_UART2
+	w83627_write(3,0x30,0x01);
+	w83627_write(3,0x60,(SUPERIO_UART2_IRQPORT>>8)&0xff);
+	w83627_write(3,0x61,SUPERIO_UART2_IRQPORT&0xff);
+	w83627_write(3,0x70,(SUPERIO_UART2_IRQPORT>>16)&0xff);
+	w83627_write(3,0xf0,0x00);
+	////w83627_PALLPort
+	w83627_write(1,0x30,0x01);
+	w83627_write(1,0x60,0x03);
+	w83627_write(1,0x61,0x78);
+	w83627_write(1,0x70,0x01);
+	w83627_write(1,0x74,0x04);
+	w83627_write(1,0xf0,0xF0); 
+
+	/* enable HM  */
+	w83627_write(0xb,0x30,0x1);
+	/* add support for fan speed controler */
+	w83627_write(0xb,0x60,HM_OFF >> 0x8); // set HM base address @0xb8000180,0x290 with some error
+	w83627_write(0xb,0x61,HM_OFF & 0xff);
+}
+#endif
+
 void tgt_devconfig()
 {
 	int ic, len;
@@ -359,6 +457,27 @@ void tgt_devconfig()
 		rc = vga_bios_init();
 		printf("rc=%d\n", rc);
 	}
+#endif
+
+#if defined(LS7A_LPC_DISABLE) && !LS7A_LPC_DISABLE
+    /* get dc base addr from pci config space */
+	superio_base = 0xb8000000;
+	superio_reinit();
+#ifdef USE_SUPERIO_UART
+	{int i;
+	 int j;
+	 int uart[] = { 0xb80003f8, 0xb80002f8 };
+
+		for(i=0,j=0;ConfigTable[i].devinfo;i++)
+		{
+			if(ConfigTable[i].devinfo==-1)
+			{
+				DevTable[i].sio=uart[j++];
+				ns16550(OP_BAUD, &DevTable[i], NULL, CONS_BAUD);
+			}
+		}
+	}
+#endif
 #endif
 #if defined(VESAFB)
 	SBD_DISPLAY("VESA", 0);
@@ -417,20 +536,20 @@ void tgt_devconfig()
 	configure();
 	gmac_mac_init();
 
+#if defined(LS7A_LPC_DISABLE) && !LS7A_LPC_DISABLE
 	if(getenv("nokbd"))
 		rc=1;
 	else {
-		superio_reinit();
 		rc=kbd_initialize();
 	}
 	printf("%s\n",kbd_error_msgs[rc]);
 	if(!rc){
 		kbd_available=1;
 	}
+#endif
 #ifdef INTERFACE_3A780E 
 
 	vga_available = 1;
-    kbd_available = 1;
     bios_available = 1; //support usb_kbd in bios
 	// Ask user whether to set bios menu
     printf("Press <Del> to set BIOS,waiting for 3 seconds here..... \n");
@@ -513,7 +632,6 @@ bios:
 run:
 		vga_available = 1;
 		bios_available = 0;//support usb_kbd in bios
-		kbd_available = 1;
 
 		len = strlen(bootup);
 		for (ic = 0; ic < len; ic++)
@@ -1781,3 +1899,69 @@ void  print_cpu_info()
 
 	printf("BogoMIPS: %d\n", bogo);
 }
+
+#if defined(LS7A_LPC_DISABLE) && !LS7A_LPC_DISABLE
+union commondata{
+		unsigned char data1;
+		unsigned short data2;
+		unsigned int data4;
+		unsigned int data8[2];
+		unsigned char c[8];
+};
+extern unsigned int syscall_addrtype;
+extern int (*syscall1)(int type,long long addr,union commondata *mydata);
+extern int (*syscall2)(int type,long long addr,union commondata *mydata);
+
+
+static int logicdev=0;
+static int PnpRead_w83627(int type,long long addr,union commondata *mydata)
+{
+switch(type)
+{
+case 1:
+mydata->data1=w83627_read(logicdev,addr);
+break;
+default: return -1;break;
+}
+return 0;
+}
+
+static int PnpWrite_w83627(int type,long long addr,union commondata *mydata)
+{
+switch(type)
+{
+case 1:
+w83627_write(logicdev,addr,mydata->data1);
+break;
+default: return -1;break;
+}
+return 0;
+}
+
+
+
+static int pnps(int argc,char **argv)
+{
+logicdev=strtoul(argv[1],0,0);
+syscall1=(void*)PnpRead_w83627;
+syscall2=(void*)PnpWrite_w83627;
+syscall_addrtype=0;
+return 0;
+}
+
+static const Cmd Cmds[] =
+{
+	{"MyCmds"},
+	{"pnps",	"", 0, "select pnp ops for d1,m1 ", pnps, 0, 99, CMD_REPEAT},
+	{0, 0}
+};
+
+static void init_cmd __P((void)) __attribute__ ((constructor));
+
+static void
+init_cmd()
+{
+	cmdlist_expand(Cmds, 1);
+}
+#endif
+

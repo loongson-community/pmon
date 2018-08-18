@@ -38,7 +38,7 @@ extern unsigned int superio_base;
 #define KBD_DATA_REG		0x60	/* Keyboard data register (R/W) */
 #endif
 
-#ifdef LOONGSON_3A2H	//in 3A2H, superio mount 3A or 2H depend on the board version
+#if defined(LOONGSON_3A2H) || defined (LS7A)	//in 3A2H, superio mount 3A or 2H depend on the board version
 #define kbd_read_input()	inb(superio_base + KBD_DATA_REG)
 #define kbd_read_status()	inb(superio_base + KBD_STATUS_REG)
 #define kbd_write_output(val)	outb(superio_base + KBD_DATA_REG,val)
