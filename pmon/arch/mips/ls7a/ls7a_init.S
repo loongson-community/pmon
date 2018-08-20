@@ -423,6 +423,111 @@
     sw      t1, CONF_NB_OFFSET(t0)
 #endif
 
+#if 1
+#define PCIE_PD_LOOP    20
+    //for PCIE_H/G0/G1
+
+    //t7: adjust dir(dll delay offset, 0: add delay at dll 0; 8: add deley at dll 1)
+    //t8: old score
+    dli     a0, 0x5cc
+    daddu   t4, t0, a0
+
+cal_one_pcie_x8:
+    bal     ls7a_get_pcie_dll_score
+    nop
+#if 0
+    TTYDBG("\r\ninitial config is: 0x")
+    lw      a0, 0x0(t4)
+    bal     hexserial
+    nop
+    TTYDBG("\r\ninitial score is: 0x")
+    move    a0, t3
+    bal     hexserial
+    nop
+    TTYDBG("\r\ninitial count of 3 is: 0x")
+    move    a0, t1
+    bal     hexserial
+    nop
+    TTYDBG("\r\ninitial count of c is: 0x")
+    move    a0, t2
+    bal     hexserial
+    nop
+#endif
+    //find max of value 3 and c and determine the calibration direction
+    bgt     t1, t2, 1f
+    nop
+    //t2 > t1
+    dsubu   a0, t2, t1
+    b       2f
+    nop
+1:
+    //t1 > t2
+    dsubu   a0, t1, t2
+2:
+    //when the two number has remarkable difference, start dll calibration
+    dli     a1, (PCIE_PD_LOOP / 2)
+    blt     a0, a1, 8f
+    nop
+    move    t7, $0
+    ble     t1, t2, 1f
+    nop
+    daddu   t7, $0, 8
+1:
+    //calibration begin
+    //store old score
+    move    t8, t3
+
+    li      a1, 0xff
+    lw      a0, 0x0(t4)
+    srl     a0, a0, t7
+    and     a0, a0, a1
+    beq     a0, a1, 8f  //reach max adjust value
+    nop
+    sll     a0, a0, 1
+    or      a0, a0, 1
+    and     a0, a0, a1
+    sll     a0, a0, t7
+    sw      a0, 0x0(t4)
+    bal     ls7a_get_pcie_dll_score
+    nop
+    dsub    a0, t3, t8
+    dli     a1, -2   //if this calibration has not make it remarkable worse, continue
+    bgt     a0, a1, 1b
+    nop
+    //make it worse a lot, scroll back
+    lw      a0, 0x0(t4)
+    srl     a0, a0, t7
+    and     a0, a0, 0xff
+    srl     a0, a0, 1
+    sll     a0, a0, t7
+    sw      a0, 0x0(t4)
+8:  //end of calibration
+#if 0
+    TTYDBG("\r\nfinal config is: 0x")
+    lw      a0, 0x0(t4)
+    bal     hexserial
+    nop
+    TTYDBG("\r\nfinal score is: 0x")
+    move    a0, t3
+    bal     hexserial
+    nop
+    TTYDBG("\r\nfinal count of 3 is: 0x")
+    move    a0, t1
+    bal     hexserial
+    nop
+    TTYDBG("\r\nfinal count of c is: 0x")
+    move    a0, t2
+    bal     hexserial
+    nop
+#endif
+    daddu   t4, t4, 0x20
+    dsubu   a0, t4, t0
+    li      a1, 0x60c
+    dsubu   a0, a0, a1
+    blez    a0, cal_one_pcie_x8
+    nop
+#endif
+    
     //enable access
     lw      t1, CONF_NB_OFFSET(t0)
     li      t2, ((1 << 29) | (1 << 25) | (1 << 21) | (1 << 17) | (1 << 9))
