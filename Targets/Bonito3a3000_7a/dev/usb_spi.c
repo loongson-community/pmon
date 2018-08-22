@@ -261,7 +261,10 @@ int _find_xhci_pci_base(struct pci_device *parent)
 int _usb_spi_init()
 {
 	unsigned int ret_buf[20];
-	int  i, size = 20;
+	int  i, size;
+	int programed = 0;
+retry:
+	size = 20;
 	i = usb_spi_read(size,ret_buf);
 	if (i != -1) {
 		printf("usb spi read error i = %d.\n",i);
@@ -276,18 +279,24 @@ int _usb_spi_init()
 			break;
 		}
 	}
+
 	if (i != size) {
+		if(programed) goto out;
+		programed = 1;
 		usb_spi_erase();
 		size = 3260;//FW size
 		usb_spi_write(size,usb_spi_buf);
+		goto retry;
 	}
     else {
 		printf("usb firmware no error\n");
     }
+	return 0;
 
 out:
 		size = 3260;//FW size
 		usb_spi_download(size,usb_spi_buf);
+	return 0;
 }
 
 int find_xhci_pci_base()
