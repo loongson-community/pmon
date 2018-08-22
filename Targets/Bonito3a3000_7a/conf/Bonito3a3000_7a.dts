@@ -44,6 +44,9 @@
 		ranges = <0x000 0x00000000 0x000 0x00000000 0x20000000
 			  0x000 0x40000000 0x000 0x40000000 0x40000000
 			  0xe00 0x00000000 0xe00 0x00000000 0x80000000>;
+		/*
+		lpc;
+		*/
 
 		uart0: serial@0x10080000 {
 			device_type = "serial";
@@ -84,6 +87,29 @@
 			interrupt-parent = <&platic>;
 			no-loopback-test;
 		};
+
+		/*
+
+		uart4: serial@0x180003f8 {
+			device_type = "serial";
+			compatible = "ns16550a";
+			reg = <0 0x180003f8 0x8>;
+			clock-frequency = <1843200>;
+			interrupts = <132>;
+			interrupt-parent = <&platic>;
+			no-loopback-test;
+		};
+
+		uart5: serial@0x180002f8 {
+			device_type = "serial";
+			compatible = "ns16550a";
+			reg = <0 0x180002f8 0x8>;
+			clock-frequency = <1843200>;
+			interrupts = <131>;
+			interrupt-parent = <&platic>;
+			no-loopback-test;
+		};
+		*/
 
 		gpio: gpio@100e0000 {
 			compatible = "loongson,ls7a-gpio";
