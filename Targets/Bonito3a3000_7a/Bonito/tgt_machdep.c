@@ -378,11 +378,11 @@ static void w83627_write(int dev,int addr,int data)
 #define DATA_OFF	0X6
 
 #ifndef SUPERIO_UART1_IRQPORT
-#define SUPERIO_UART1_IRQPORT 0x0703f8
+#define SUPERIO_UART1_IRQPORT 0x0403f8
 #endif
 
 #ifndef SUPERIO_UART2_IRQPORT
-#define SUPERIO_UART2_IRQPORT 0x0702f8
+#define SUPERIO_UART2_IRQPORT 0x0302f8
 #endif
 
 static void superio_reinit()
