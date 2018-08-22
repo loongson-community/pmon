@@ -107,7 +107,7 @@ select		cmd_boot		# Boot wrapper
 select		cmd_mycmd		
 select		cmd_newmt
 select		cmd_cache		# Cache enabling
-#select		cmd_call		# Call a function command
+select		cmd_call		# Call a function command
 select		cmd_date		# Time of day command
 select		cmd_env			# Full blown environment command set
 select		cmd_flash		# Flash programming cmds
@@ -296,3 +296,18 @@ option USE_CH7034
 #rmoption USE_USB_SPI
 #rmoption USE_SII9022a
 #rmoption USE_CH7034
+#option VBIOS_IN_ROM
+#option LS3A7A_WDT_GPIO13E_GPIO14F
+
+#bellow for hengwei
+#option REF_33M
+#option DDR_FREQ=300
+#option CORE_FREQ=1000
+#rmoption USE_SII9022a
+#rmoption USE_CH7034
+#option VBIOS_IN_ROM
+#option LEVELING_CHECK_ALL_BITS
+#option DDR_S1="0xc1e38800c1e38800"
+#rmoption AUTO_DDR_CONFIG
+#option DDR_PARAM_018="0x6262626216100000"
+#option LS7A_LPC_DISABLE=0
