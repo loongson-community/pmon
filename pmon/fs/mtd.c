@@ -205,7 +205,6 @@ foundit:
             *psize++=0;
             if(flags & MTD_FLAGS_RAW || flags & MTD_FLAGS_CHAR ||flags & MTD_FLAGS_CHAR_MARK){
                 open_size=strtoull(psize,0,0);
-                open_size -= ((open_size / 0x840)*0x40);
             }else
             open_size=strtoull(psize,0,0);
         }
