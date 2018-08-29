@@ -213,9 +213,7 @@
     TTYDBG("LS7A chip init done.\r\n")
 //3. device configure 
 
-#define  INIT_ALL_PCIE_PORTS
-
-    //init PCIE -- v0.3
+    //init PCIE -- v0.4
     dli     t0, LS7A_CONFBUS_BASE_ADDR
 
     //configure phy parameter
@@ -233,7 +231,6 @@
     or      t1, t1, t2
     sw      t1, CONF_NB_OFFSET(t0)
 
-#ifdef  INIT_ALL_PCIE_PORTS
     //enable all ports
     lw      t1, 0x588(t0)
     li      t2, (1 << 27)
@@ -259,7 +256,6 @@
     li      t2, (3 << 26)
     or      t1, t1, t2
     sw      t1, 0x608(t0)
-#endif
 
     //power down phy
     lw      t1, 0x588(t0)
@@ -287,13 +283,11 @@
     or      t1, t1, t2
     sw      t1, 0x608(t0)
 
-#ifndef USE_PCIE_PAD_REFCLK
-    //switch clk
+    //switch to inside ref clk
     lw      t1, CONF_NB_OFFSET(t0)
     li      t2, (1 << 2)
     or      t1, t1, t2
     sw      t1, CONF_NB_OFFSET(t0)
-#endif
 
     //delay 10ms
     dli     t1, 0x1000000
@@ -340,7 +334,6 @@
     and     t1, t1, t2
     sw      t1, CONF_NB_OFFSET(t0)
 
-#ifdef  INIT_ALL_PCIE_PORTS
     //TTYDBG("PCIE clock status: \r\n")
     //lw      a0, 0x424(t0)
     //bal     hexserial
@@ -362,6 +355,7 @@
     bnez    t1, 1b
     nop
 
+    //unless specified, recover to use prsnt pin to decide device existence.
 #ifndef FORCE_ENABLE_PCIE_F0_P123
     lw      t1, 0x588(t0)
     li      t2, (1 << 27)
@@ -408,12 +402,85 @@
     or      t1, t1, t2
     sw      t1, CONF_NB_OFFSET(t0)
 
-    //delay at least 1ms
-    dli     t1, 0x400000
+#ifdef USE_PCIE_PAD_REFCLK
+    //power down phy
+    lw      t1, 0x588(t0)
+    li      t2, (1 << 24)
+    or      t1, t1, t2
+    sw      t1, 0x588(t0)
+
+    lw      t1, 0x5a8(t0)
+    li      t2, (1 << 24)
+    or      t1, t1, t2
+    sw      t1, 0x5a8(t0)
+
+    lw      t1, 0x5c8(t0)
+    li      t2, (1 << 24)
+    or      t1, t1, t2
+    sw      t1, 0x5c8(t0)
+
+    lw      t1, 0x5e8(t0)
+    li      t2, (1 << 24)
+    or      t1, t1, t2
+    sw      t1, 0x5e8(t0)
+
+    lw      t1, 0x608(t0)
+    li      t2, (1 << 24)
+    or      t1, t1, t2
+    sw      t1, 0x608(t0)
+
+    //switch to use outside ref clk
+    lw      t1, CONF_NB_OFFSET(t0)
+    li      t2, (1 << 2)
+    not     t2, t2
+    and     t1, t1, t2
+    sw      t1, CONF_NB_OFFSET(t0)
+
+    //delay 10ms
+    dli     t1, 0x1000000
 1:
     dsubu   t1, t1, 1
     bnez    t1, 1b
     nop
+
+    //power up phy
+    lw      t1, 0x588(t0)
+    li      t2, (1 << 24)
+    not     t2, t2
+    and     t1, t1, t2
+    sw      t1, 0x588(t0)
+
+    lw      t1, 0x5a8(t0)
+    li      t2, (1 << 24)
+    not     t2, t2
+    and     t1, t1, t2
+    sw      t1, 0x5a8(t0)
+
+    lw      t1, 0x5c8(t0)
+    li      t2, (1 << 24)
+    not     t2, t2
+    and     t1, t1, t2
+    sw      t1, 0x5c8(t0)
+
+    lw      t1, 0x5e8(t0)
+    li      t2, (1 << 24)
+    not     t2, t2
+    and     t1, t1, t2
+    sw      t1, 0x5e8(t0)
+
+    lw      t1, 0x608(t0)
+    li      t2, (1 << 24)
+    not     t2, t2
+    and     t1, t1, t2
+    sw      t1, 0x608(t0)
+#else
+    //delay 10ms
+    dli     t1, 0x1000000
+1:
+    dsubu   t1, t1, 1
+    bnez    t1, 1b
+    nop
+#endif
 
     //deassert reset
     lw      t1, CONF_NB_OFFSET(t0)
@@ -421,9 +488,8 @@
     not     t2, t2
     and     t1, t1, t2
     sw      t1, CONF_NB_OFFSET(t0)
-#endif
 
-#if 1
+#ifndef DISABLE_PCIEX8_CAL
 #define PCIE_PD_LOOP    20
     //for PCIE_H/G0/G1
 
@@ -435,8 +501,8 @@
 cal_one_pcie_x8:
     bal     ls7a_get_pcie_dll_score
     nop
-#if 0
-    TTYDBG("\r\ninitial config is: 0x")
+#ifdef  DEBUG_PCIEX8_CAL
+    TTYDBG("\r\n\r\ninitial config is: 0x")
     lw      a0, 0x0(t4)
     bal     hexserial
     nop
@@ -490,6 +556,24 @@ cal_one_pcie_x8:
     sw      a0, 0x0(t4)
     bal     ls7a_get_pcie_dll_score
     nop
+#ifdef  DEBUG_PCIEX8_CAL
+    TTYDBG("\r\ncurrent config is: 0x")
+    lw      a0, 0x0(t4)
+    bal     hexserial
+    nop
+    TTYDBG("\r\ncurrent score is: 0x")
+    move    a0, t3
+    bal     hexserial
+    nop
+    TTYDBG("\r\ncurrent count of 3 is: 0x")
+    move    a0, t1
+    bal     hexserial
+    nop
+    TTYDBG("\r\ncurrent count of c is: 0x")
+    move    a0, t2
+    bal     hexserial
+    nop
+#endif
     dsub    a0, t3, t8
     dli     a1, -2   //if this calibration has not make it remarkable worse, continue
     bgt     a0, a1, 1b
@@ -502,7 +586,9 @@ cal_one_pcie_x8:
     sll     a0, a0, t7
     sw      a0, 0x0(t4)
 8:  //end of calibration
-#if 0
+#ifdef  DEBUG_PCIEX8_CAL
+    bal     ls7a_get_pcie_dll_score
+    nop
     TTYDBG("\r\nfinal config is: 0x")
     lw      a0, 0x0(t4)
     bal     hexserial
@@ -528,13 +614,6 @@ cal_one_pcie_x8:
     nop
 #endif
     
-    //enable access
-    lw      t1, CONF_NB_OFFSET(t0)
-    li      t2, ((1 << 29) | (1 << 25) | (1 << 21) | (1 << 17) | (1 << 9))
-    or      t1, t1, t2
-    sw      t1, CONF_NB_OFFSET(t0)
-    TTYDBG("PCIE enabled\r\n")
-
     //init SATA
     //use t0 as global variable
     dli     t0, LS7A_CONFBUS_BASE_ADDR
@@ -945,6 +1024,13 @@ cal_one_pcie_x8:
     nop
 #endif
 #if (!LS7A_PCIE_F0_DISABLE)
+    //enable access
+    lw      t1, CONF_NB_OFFSET(t0)
+    li      t2, (1 << 9)
+    or      t1, t1, t2
+    sw      t1, CONF_NB_OFFSET(t0)
+    TTYDBG("PCIE F0 enabled\r\n")
+
     //PCIE F0
     //re-configure PCIE PHYs
     //DO not destroy a0, a1, for example, do not add print between these code
@@ -1102,6 +1188,9 @@ cal_one_pcie_x8:
 #ifdef  LS7A_PCIE_NO_POWERDOWN
     move    t4, $0
 #endif
+#else   //disable this PCIE
+    li      t4, 0xf
+#endif
     li      a0, 0xf
     bne     t4, a0, 8f
     nop
@@ -1125,10 +1214,15 @@ cal_one_pcie_x8:
     and     t1, t1, t4
     sw      t1, CONF_NB_OFFSET(t0)
     TTYDBG("unused PCIE F0 ports clock disabled.\r\n")
-#endif
 
 #if (!LS7A_PCIE_F1_DISABLE)
-    //PCIE F1
+    //enable access
+    lw      t1, CONF_NB_OFFSET(t0)
+    li      t2, (1 << 17)
+    or      t1, t1, t2
+    sw      t1, CONF_NB_OFFSET(t0)
+    TTYDBG("PCIE F1 enabled\r\n")
+
     //re-configure PHYs
     daddu   a0, t0, 0x5b0
     li      a1, 0x403f1002
@@ -1222,6 +1316,9 @@ cal_one_pcie_x8:
 #ifdef  LS7A_PCIE_NO_POWERDOWN
     move    t4, $0
 #endif
+#else   //disable this PCIE
+    li      t4, 0x3
+#endif
     li      a0, 0x3
     bne     t4, a0, 8f
     nop
@@ -1245,10 +1342,15 @@ cal_one_pcie_x8:
     and     t1, t1, t4
     sw      t1, CONF_NB_OFFSET(t0)
     TTYDBG("unused PCIE F1 ports clock disabled.\r\n")
-#endif
 
 #if (!LS7A_PCIE_H_DISABLE)
-    //PCIE H
+    //enable access
+    lw      t1, CONF_NB_OFFSET(t0)
+    li      t2, (1 << 21)
+    or      t1, t1, t2
+    sw      t1, CONF_NB_OFFSET(t0)
+    TTYDBG("PCIE H enabled\r\n")
+
     //re-configure PHYs
     daddu   a0, t0, 0x5d0
     li      a1, 0x403f1002
@@ -1356,6 +1458,9 @@ cal_one_pcie_x8:
 #ifdef  LS7A_PCIE_NO_POWERDOWN
     move    t4, $0
 #endif
+#else   //disable this PCIE
+    li      t4, 0x3
+#endif
     li      a0, 0x3
     bne     t4, a0, 8f
     nop
@@ -1379,10 +1484,15 @@ cal_one_pcie_x8:
     and     t1, t1, t4
     sw      t1, CONF_NB_OFFSET(t0)
     TTYDBG("unused PCIE H ports clock disabled.\r\n")
-#endif
 
 #if (!LS7A_PCIE_G0_DISABLE)
-    //PCIE G0
+    //enable access
+    lw      t1, CONF_NB_OFFSET(t0)
+    li      t2, (1 << 25)
+    or      t1, t1, t2
+    sw      t1, CONF_NB_OFFSET(t0)
+    TTYDBG("PCIE G0 enabled\r\n")
+
     //re-configure PHYs
     daddu   a0, t0, 0x5f0
     li      a1, 0x403f1002
@@ -1490,6 +1600,9 @@ cal_one_pcie_x8:
 #ifdef  LS7A_PCIE_NO_POWERDOWN
     move    t4, $0
 #endif
+#else   //disable this PCIE
+    li      t4, 0x3
+#endif
     li      a0, 0x3
     bne     t4, a0, 8f
     nop
@@ -1513,10 +1626,15 @@ cal_one_pcie_x8:
     and     t1, t1, t4
     sw      t1, CONF_NB_OFFSET(t0)
     TTYDBG("unused PCIE G0 ports clock disabled.\r\n")
-#endif
 
 #if (!LS7A_PCIE_G1_DISABLE)
-    //PCIE G1
+    //enable access
+    lw      t1, CONF_NB_OFFSET(t0)
+    li      t2, (1 << 29)
+    or      t1, t1, t2
+    sw      t1, CONF_NB_OFFSET(t0)
+    TTYDBG("PCIE G1 enabled\r\n")
+
     //re-configure PHYs
     daddu   a0, t0, 0x610
     li      a1, 0x403f1002
@@ -1624,6 +1742,9 @@ cal_one_pcie_x8:
 #ifdef  LS7A_PCIE_NO_POWERDOWN
     move    t4, $0
 #endif
+#else   //disable this PCIE
+    li      t4, 0x3
+#endif
     li      a0, 0x3
     bne     t4, a0, 8f
     nop
@@ -1647,7 +1768,6 @@ cal_one_pcie_x8:
     and     t1, t1, t4
     sw      t1, CONF_NB_OFFSET(t0)
     TTYDBG("unused PCIE G1 ports clock disabled.\r\n")
-#endif
 
 // GMEM configure -- put to Device initial code ?
 #ifdef LS7A_GMEM_CFG
