@@ -20,7 +20,7 @@ ATTENTION:
 #define DDR_SEL_ST 0
 
 #ifdef  MULTI_CHIP
-#define CORE_FREQ   1200
+#define CORE_FREQ   1400
 #define DDR_FREQ    660
 #else
 #define CORE_FREQ   1400

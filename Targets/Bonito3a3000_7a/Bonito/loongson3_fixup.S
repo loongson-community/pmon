@@ -84,9 +84,9 @@
 //#define RESET_AGAIN_WHEN_FAIL
 //#define HT0_16BIT //NO 16Bit mode when HT1.0 //hardware has some error need fixup.
 //#define HT0_3200M
-#define HT0_2400M
+//#define HT0_2400M
 //#define HT0_2200M
-//#define HT0_2000M
+#define HT0_2000M
 //#define HT0_1800M
 //#define HT0_1600M
 //#define HT0_200M
