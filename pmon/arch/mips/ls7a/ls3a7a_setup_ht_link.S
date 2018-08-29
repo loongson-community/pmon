@@ -310,6 +310,17 @@ config_ht_link:
     nop
     TTYDBG("\r\n")
 4:
+    TTYDBG("set buffer num\r\n")
+    lw      a0, 0x1dc(t1)
+    li      a1, 0xfffffff 
+    or      a0, a0, a1
+    sw      a0, 0x1dc(t1)
+
+    lw      a0, 0x1dc(t1)
+    bal     hexserial
+    nop
+    TTYDBG("\r\n")
+
 #ifdef  DEBUG_HT1_PARAM
     PRINTSTR("\r\nChange some parameters of HT:");
 1:
@@ -413,6 +424,17 @@ config_ht_link:
     nop
     TTYDBG("\r\n")
 4:
+    TTYDBG("set buffer num\r\n")
+    lw      a0, 0x5c(t0)
+    li      a1, 0xfffffff 
+    or      a0, a0, a1
+    sw      a0, 0x5c(t0)
+
+    lw      a0, 0x5c(t0)
+    bal     hexserial
+    nop
+    TTYDBG("\r\n")
+
 #ifdef  DEBUG_HT1_PARAM
     PRINTSTR("\r\nChange some parameters of HT:");
 1:
