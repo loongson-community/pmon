@@ -76,6 +76,10 @@ stack = start - 0x4000		/* Place PMON stack below PMON start in RAM */
 /* NOTE!! Not more that 16 instructions here!!! Right now it's FULL! */
 	.set	push
 	.set	mips64
+#ifdef LS3A_BEEP_GPIO
+    bal  beep_on
+    nop
+#endif
 	mfc0	t0, $16, 6
 	or	t0, 0x100 
 	xori	t0, 0x100
@@ -1519,20 +1523,43 @@ LEAF(tgt_putchar1)
 END(tgt_putchar1)
 
 LEAF(beep_on)
+#ifdef LS3A_BEEP_GPIO
+	li v0, 0xbfe0011c
+	lw v1, 4(v0)
+	or v1,(1<<LS3A_BEEP_GPIO)
+	xor v1,(1<<LS3A_BEEP_GPIO)
+	sw v1, 4(v0)
+	lw v1, 0(v0)
+	or v1,(1<<LS3A_BEEP_GPIO)
+	sw v1, 0(v0)
+#else
 	nop
     //set GPIO0 output 1 to open beep
     dli t0, (LS7A_MISC_BASE_ADDR | GPIO_BASE_ADDR_OFFSET)
     li  t1,1
     sb  t1, 0x900(t0)
+#endif
 	jr	ra
 	nop
 END(beep_on)
 
 LEAF(beep_off)
+#ifdef LS3A_BEEP_GPIO
+	li v0, 0xbfe0011c
+	lw v1, 4(v0)
+	or v1,(1<<LS3A_BEEP_GPIO)
+	xor v1,(1<<LS3A_BEEP_GPIO)
+	sw v1, 4(v0)
+	lw v1, 0(v0)
+	or v1,(1<<LS3A_BEEP_GPIO)
+	xor v1,(1<<LS3A_BEEP_GPIO)
+	sw v1, 0(v0)
+#else
 	nop
     //set GPIO0 output 0 to close beep
     dli t0, (LS7A_MISC_BASE_ADDR | GPIO_BASE_ADDR_OFFSET)
     sb  $0, 0x900(t0)
+#endif
 	jr	ra
 	nop
 END(beep_off)
