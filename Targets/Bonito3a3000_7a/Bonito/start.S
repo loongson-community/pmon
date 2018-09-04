@@ -771,6 +771,7 @@ bsp_start:
     move    t3, t1
 8:
 #endif
+	WatchDog_Enable
     dli     a0, 0x90000e0000000000
     move    a1, t2
     move    a2, t3
@@ -808,7 +809,7 @@ bsp_start:
     bal  beep_off
     nop
 
-	//WatchDog_Close
+	WatchDog_Close
 
 //#define TEST_REBOOT
 #ifdef TEST_REBOOT
