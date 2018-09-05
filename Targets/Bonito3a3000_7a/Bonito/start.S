@@ -671,7 +671,9 @@ no_reboot:
 //#define DISABLE_DDR_A15
 //#define DEBUG_DDR
 //#define DEBUG_DDR_PARAM
-
+//#define DLL_DELAY_LOOP
+//#define PRINT_DDR_LEVELING
+//#define DLL_CK_DELAY_DEBUG
 
     TTYDBG("\r\nStart Init Memory, wait a while......\r\n")
 ####################################
@@ -1558,7 +1560,7 @@ idle1000:
 #include "ddr_dir/ls7A_gmem_config.S"
 #endif
 #ifdef DDR3_DIMM
-#include "loongson3C_ddr3_leveling.S"
+#include "../../../pmon/arch/mips/mm/loongson3C_ddr3_leveling.S"
 #endif
 #ifdef ARB_LEVEL
 #include "ddr_dir/ARB_level_new.S"
