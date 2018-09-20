@@ -40,7 +40,17 @@
 
 
 #define pt32(x) (*(volatile unsigned int *)(x))
+#define pt64(x) (*(volatile unsigned long long *)(x))
 #define pt8(x) (*(volatile unsigned char *)(x))
+
+#define u64 unsigned long long
+#define u32 unsigned int
+extern u64 __raw__writeq(u64 addr, u64 val);
+extern u64 __raw__readq(u64 q);
+
+extern u32 __raw__writew(u64 addr, u32 val);
+extern u32 __raw__readw(u64 q);
+
 
 unsigned char
 cmd_usbtest(ac, av)
@@ -87,16 +97,33 @@ cmd_usbtest(ac, av)
 	base += 0x10; //HC operational register base
 	printf("[debug]: USB operational register base is: 0x%x\n", base);
 
-	//reset USB to stop last test
-	pt32(base) = 0x2;
+    //reset USB to stop last test
+    while((pt32(base + 4) & 0x1000) != 0x1000);
+    tmp = pt32(base);
+    pt32(base) = tmp | 0x2;
 
-	//set test mode
-	pt32(base + 0x44 + port * 4) = ((test_mode << 16) | 0x3084);
+    //make CF from 0 to 1
+    pt32(base + 0x40) = 0;
+    pt32(base + 0x40) = 1;
+    //disable ASE and PSE
+    tmp = pt32(base);
+    pt32(base) = tmp & ~0x30;
+    //suspend port
+    tmp = pt32(base + 0x44 + port * 4);
+    pt32(base + 0x44 + port * 4) = tmp | 0x84;
+    //stop USB and wait HCHalted
+    tmp = pt32(base);
+    pt32(base) = tmp & ~0x1;
+    while((pt32(base + 4) & 0x1000) != 0x1000);
+    //set test mode
+    tmp = pt32(base + 0x44 + port * 4);
+    pt32(base + 0x44 + port * 4) = (tmp & (~(0xf << 16))) | (test_mode << 16);
 
 	if (test_mode == 5){
-		pt32(base) = 0x1;
-	}
-	printf("USB test ready and start...\n");
+        tmp = pt32(base);
+        pt32(base) = tmp | 0x1;
+    }
+    printf("USB test ready and start...\n");
 
 	return 1;
 }
@@ -167,39 +194,71 @@ cmd_satatest(ac, av)
 	return(1);
 }
 
-//TODO
 unsigned char
 cmd_pcietest(ac, av)
 	int ac;
 	char *av[];
 {
-	unsigned int header, cntl, port, gen;
+	unsigned int port, gen;
 	unsigned int base,test_mode;
 	unsigned int pcie_clock_source;
+	unsigned int port_num;
+	unsigned int dev_num;
+    unsigned long long header;
+    unsigned long long bar0;
+	unsigned int bar0_low;
+	unsigned int bar0_high;
 
-	if (ac < 2){
-		printf("usage: pcietest <port name> <gen> [test mode for gen2]\n");
-		printf("port name: F0_P0 \n");
-		printf("gen2_test_mode: 1 ->0xf052, -3.5db De-emphasis                                      \n");
-		printf("gen2_test_mode: 2 ->0xf012, -6db De-emphasis                                        \n");
-		printf("gen2_test_mode: 3 ->0xf452, -3.5db De-emphasis, modified compliance                 \n");
-		printf("gen2_test_mode: 4 ->0xf412, -6db De-emphasis, modified compliance                   \n");
-		printf("gen2_test_mode: 5 ->0xfc52, -3.5db De-emphasis, modified compliance, compliance SOS \n");
-		printf("gen2_test_mode: 6 ->0xfc12, -6db De-emphasis, modified compliance, compliance       \n");
-		printf("For example:pcietest 2 1 \n");
-		return 0;
+	if ((ac != 3) && (ac != 4)){
+	  printf("usage: pcietest <port num> <gen> [test mode for gen2]\n");
+	  printf("port num: 0 -> f0 x4\n");
+	  printf("port num: 1 -> f1 x4\n");
+	  printf("port num: 2 -> g0 x8\n");
+	  printf("port num: 3 -> g1 x8\n");
+	  printf("port num: 4 -> h  x8\n");
+	  printf("gen2_test_mode: 1 ->0xf052, -3.5db De-emphasis                                      \n");
+	  printf("gen2_test_mode: 2 ->0xf012, -6db De-emphasis                                        \n");
+	  printf("gen2_test_mode: 3 ->0xf452, -3.5db De-emphasis, modified compliance                 \n");
+	  printf("gen2_test_mode: 4 ->0xf412, -6db De-emphasis, modified compliance                   \n");
+	  printf("gen2_test_mode: 5 ->0xfc52, -3.5db De-emphasis, modified compliance, compliance SOS \n");
+	  printf("gen2_test_mode: 6 ->0xfc12, -6db De-emphasis, modified compliance, compliance       \n");
+	  printf("For example0:pcietest 0 1 \n");
+	  printf("For example1:pcietest 0 2 1\n");
+	  return 0;
 	}
 
+	port_num = (unsigned int)atoi(av[1]);
+    printf("pcie port = 0x%x\n",port_num);
+
+    dev_num = port_num  == 0 ? 9  :
+              port_num  == 1 ? 13 :
+              port_num  == 2 ? 15 :
+              port_num  == 3 ? 17 :
+              port_num  == 4 ? 19 :
+                               9;
+
+    header = 0x90000efe00000000ULL | (dev_num << 11);
+
 	gen = (unsigned int)atoi(av[2]);
+
 	if (gen == 2) {
 		test_mode = (unsigned int)atoi(av[3]);
 
-		pt32(header + 0x7c) = 0x533c42;// the low 4 bit must be 2.
+//		pt32(header + 0x7c) = 0x533c42;// the low 4 bit must be 2.
+        __raw__writew(header + 0x7c, 0x533c42);
+
 	}
 
-	pt32(header + 0x80c) = 0x2040f;
+//	pt64(header + (0x8 << 24) + 0x0c) = 0x2040f;
+    __raw__writew(header + (0x8<<24) + 0x0c, 0x2040f);
 
-	//TODO PHY cfg, override GEN mode
+//    unsigned int conf_base = 0xb0010000;
+//    unsigned int f0_base = conf_base + 0x588;
+//    //set to x1 mode
+//    pt32(f0_base) &= 0x4000000;
+//    pt32(f0_base) |= 0x8000000;
+
+    //TODO PHY cfg, override GEN mode
 	//for (port = 0;port < 4;port++) {
 	//	pt8(base | (port * 0x100) | 0x11) = 0x21;
 	//	pt8(base | (port * 0x100) | 0x10) = 0xb;
@@ -211,35 +270,45 @@ cmd_pcietest(ac, av)
 	//}
 
 
-	pt32(cntl) = 0xff204c;
+    bar0_low  = (__raw__readw(header + 0x10) & 0xffffffff0);
+    bar0_high = (__raw__readw(header + 0x14));
+    bar0 = (bar0_high << 32 | bar0_low) + 0x90000e0000000000ULL;
+//    printf("pcie header = 0x%llx\n",header);
+//    printf("pcie bar0_low = 0x%x\n",bar0_low);
+//    printf("pcie bar0_high = 0x%x\n",bar0_high);
+//    printf("pcie bar0 = 0x%llx\n",bar0);
+//	pt64(bar0) = 0xff204c;
+    __raw__writew(bar0, 0xff204c);
+
 
 	if (gen == 0x1) {
-		pt32(header + 0xa0) = 0xfc51;
+        __raw__writew(header + 0xa0, 0xfc51);
 	} else if (gen == 0x2){
 		switch (test_mode) {
 			case 1:
-				pt32(header + 0xa0) = 0xf052;
+                __raw__writew(header + 0xa0, 0xf052);
 				break;
 			case 2:
-				pt32(header + 0xa0) = 0xf012;
+                __raw__writew(header + 0xa0, 0xf012);
 				break;
 			case 3:
-				pt32(header + 0xa0) = 0xf452;
+                __raw__writew(header + 0xa0, 0xf452);
 				break;
 			case 4:
-				pt32(header + 0xa0) = 0xf412;
+                __raw__writew(header + 0xa0, 0xf412);
 				break;
 			case 5:
-				pt32(header + 0xa0) = 0xfc52;
+                __raw__writew(header + 0xa0, 0xfc52);
 				break;
 			case 6:
-				pt32(header + 0xa0) = 0xfc12;
+                __raw__writew(header + 0xa0, 0xfc12);
 				break;
 			default:
 				break;
 		}
 	}
-	pt32(header + 0x708) = 0x7028004;
+
+	__raw__writew(header + (0x7 << 24) + 0x08, 0x7028004);
 
 	return(1);
 }
@@ -254,7 +323,7 @@ static const Cmd Cmds[] =
 {
 	{"Misc"},
 	{"usbtest",	 "", 0, "7A usbtest : usbtest  ", cmd_usbtest, 1, 99, 0},
-	//{"pcietest", "", 0, "7A pcietest: pcietest ", cmd_pcietest, 1, 99, 0},
+	{"pcietest", "", 0, "7A pcietest: pcietest ", cmd_pcietest, 1, 99, 0},
 	{"satatest", "", 0, "7A satatest: satatest ", cmd_satatest, 1, 99, 0},
 	{0, 0}
 };

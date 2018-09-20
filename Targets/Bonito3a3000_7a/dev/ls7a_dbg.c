@@ -73,10 +73,10 @@ nphy_cfg (argc, argv)
     unsigned int data=0;
 
     if(argc < 3){
-        printf("Error: please specify cfg reg address(offset) and phy cfg address!\n");
+        printf("Error: please specify cfg reg address(offset) and phy cfg address(remember hex prefix 0x)!\n");
         return EXIT_FAILURE;
     }else{
-        reg_addr = strtoull(argv[1], 0, 0) & 0xffff;
+        reg_addr = strtoull(argv[1], 0, 0) & 0xfff8;
         cfg_addr = strtoull(argv[2], 0, 0) & 0xffff;
     }
     if(argc > 3){
@@ -85,7 +85,7 @@ nphy_cfg (argc, argv)
     }
     reg_addr |= 0xb0010000;
 
-    printf("debug: get parameter:reg_addr=0x%x, cfg_addr=0x%x, data=0x%x\n",reg_addr, cfg_addr, data);
+    //printf("debug: get parameter:reg_addr=0x%x, cfg_addr=0x%x, data=0x%x\n",reg_addr, cfg_addr, data);
 
     if(flag_wr){
         //cfg write
@@ -93,7 +93,8 @@ nphy_cfg (argc, argv)
         while(!(read_reg(reg_addr+4) & 0x4)) ;
         write_reg(reg_addr, (data << 16) | cfg_addr);
         write_reg(reg_addr+4, 1);
-    }else{
+    }
+    {
         //cfg read
         //printf("cfg rd.\n");
         while(!(read_reg(reg_addr+4) & 0x4)) ;
@@ -102,7 +103,7 @@ nphy_cfg (argc, argv)
 
         while(!(read_reg(reg_addr+4) & 0x4)) ;
         tmp = read_reg(reg_addr);
-        printf("cfg data is: 0x%x\n", tmp);
+        printf("now cfg data is: 0x%x\n", tmp >> 16);
     }
 
 	return EXIT_SUCCESS;

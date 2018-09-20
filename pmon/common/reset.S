@@ -95,3 +95,61 @@ __raw__writeq:
 	sll	v0, v0, 0
 	.set	mips0
 	.end	__raw__writeq
+
+	/* u64  __raw__readw(u64 addr)
+	 * a0, a1 hold low 32 and high 32
+	 * v0     hold     32 of ret
+	 */
+	.text
+	.global __raw__readw
+	.ent	__raw__readw
+	.set	mips3
+__raw__readw:
+
+	dsll32	a1, a1, 0
+	dsll32	a0, a0, 0
+	dsrl32	a0, a0, 0
+	or	a0, a1, a0
+
+	lw	v0, 0(a0)
+//	dsra32  v1, v0, 0
+	jr	ra
+	sll	v0, v0, 0
+	.set	mips0
+	.end	__raw__readw
+
+	/* u64 __raw__writeq(u64 addr, u64 val)
+	 * a0, a1 hold low 32 and high 32 of addr,
+	 * a2, a2 hold low 32 and high 32 of val,
+	 * v0, v1 hold low 32 and high 32 of ret
+	 */
+
+
+	/* u64 __raw__writew(u64 addr, u32 val)
+	 * a0, a1 hold low 32 and high 32 of addr,
+	 * a2     hold 32 of val,
+	 * v0     hold 32 of ret
+	 */
+
+	.global __raw__writew
+	.set	mips3
+	.ent	__raw__writew
+__raw__writew:
+
+	dsll32	a1, a1, 0
+	dsll32	a0, a0, 0
+	dsrl32	a0, a0, 0
+	or	a0, a1, a0
+
+//	dsll32	a3, a3, 0
+	dsll32	a2, a2, 0
+	dsrl32	a2, a2, 0
+//	or	a2, a2, a3
+
+	sw	a2, 0(a0)
+	lw	v0, 0(a0)
+//	dsra32  v1, v0, 0
+	jr	ra
+	sll	v0, v0, 0
+	.set	mips0
+	.end	__raw__writew
