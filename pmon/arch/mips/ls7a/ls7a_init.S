@@ -44,7 +44,7 @@
     //pcie, gmac, sata/usb
     daddu   a0, t0, CONF_PLL0_OFFSET
     li      a2, 0x4
-    li      a1, LS7A_PLL_VALUE(80, 8, 16, 16)
+    li      a1, LS7A_PLL_VALUE(80, 8, 16, 12)
     bal     ls7a_config_one_pll
     nop
     beqz    v0, 1f
@@ -58,7 +58,7 @@
     //gpu, gmem, dc
     daddu   a0, t0, CONF_PLL1_OFFSET
     li      a2, 0x4
-    li      a1, LS7A_PLL_VALUE(100, 5, 4, 10)
+    li      a1, LS7A_PLL_VALUE(127, 8, 6, 12)
     bal     ls7a_config_one_pll
     nop
     beqz    v0, 1f
@@ -217,6 +217,20 @@
     dli     t0, LS7A_CONFBUS_BASE_ADDR
 
     //configure phy parameter
+    li      t1, 0xc2492331
+    sw      t1, 0x580(t0)
+    sw      t1, 0x5a0(t0)
+    sw      t1, 0x5c0(t0)
+    sw      t1, 0x5e0(t0)
+    sw      t1, 0x600(t0)
+
+    li      t1, 0x73e70b0
+    sw      t1, 0x584(t0)
+    sw      t1, 0x5a4(t0)
+    sw      t1, 0x5c4(t0)
+    sw      t1, 0x5e4(t0)
+    sw      t1, 0x604(t0)
+
     li      t1, 0x20000
     sw      t1, 0x588(t0)
     sw      t1, 0x5a8(t0)
@@ -1010,7 +1024,8 @@ cal_one_pcie_x8:
     TTYDBG("Graphics disabled.\r\n")
 #endif
 
-#define PCIE_GEN_CFG 0x1
+#define PCIE_TRY_GEN2 1
+#define PCIE_TX_FULL_SWING 0
 #define PCIE_STAT_CHECK_TIMES 100   //if some device link fail, maybe you can increase this value for try
 
     //put PCIE device detect later, else you need to add more delay
@@ -1035,7 +1050,8 @@ cal_one_pcie_x8:
     //re-configure PCIE PHYs
     //DO not destroy a0, a1, for example, do not add print between these code
     daddu   a0, t0, 0x590
-    li      a1, 0x403f1002
+    lui     a1, 0x4fff
+    add     a1, a1, 0x1002
     bal     ls7a_phy_cfg_write
     nop
     addu    a1, a1, 0x100
@@ -1054,7 +1070,7 @@ cal_one_pcie_x8:
     li      a0, 0xfff9ffff
     lw      a1, 0xc(t3)
     and     a0, a0, a1
-    or      a0, (PCIE_GEN_CFG << 17)
+    or      a0, ((PCIE_TRY_GEN2 << 17) | (PCIE_TX_FULL_SWING << 18))
     sw      a0, 0xc(t3)
 
     dli     t3, 0x90000efe00004800
@@ -1097,7 +1113,7 @@ cal_one_pcie_x8:
     li      a0, 0xfff9ffff
     lw      a2, 0xc(t3)
     and     a0, a0, a2
-    or      a0, (PCIE_GEN_CFG << 17)
+    or      a0, ((PCIE_TRY_GEN2 << 17) | (PCIE_TX_FULL_SWING << 18))
     sw      a0, 0xc(t3)
 
     dli     t3, 0x90000efe00005000
@@ -1128,7 +1144,7 @@ cal_one_pcie_x8:
     li      a0, 0xfff9ffff
     lw      a2, 0xc(t3)
     and     a0, a0, a2
-    or      a0, (PCIE_GEN_CFG << 17)
+    or      a0, ((PCIE_TRY_GEN2 << 17) | (PCIE_TX_FULL_SWING << 18))
     sw      a0, 0xc(t3)
 
     dli     t3, 0x90000efe00005800
@@ -1159,7 +1175,7 @@ cal_one_pcie_x8:
     li      a0, 0xfff9ffff
     lw      a2, 0xc(t3)
     and     a0, a0, a2
-    or      a0, (PCIE_GEN_CFG << 17)
+    or      a0, ((PCIE_TRY_GEN2 << 17) | (PCIE_TX_FULL_SWING << 18))
     sw      a0, 0xc(t3)
 
     dli     t3, 0x90000efe00006000
@@ -1225,7 +1241,8 @@ cal_one_pcie_x8:
 
     //re-configure PHYs
     daddu   a0, t0, 0x5b0
-    li      a1, 0x403f1002
+    lui     a1, 0x4fff
+    add     a1, a1, 0x1002
     bal     ls7a_phy_cfg_write
     nop
     addu    a1, a1, 0x100
@@ -1244,7 +1261,7 @@ cal_one_pcie_x8:
     li      a0, 0xfff9ffff
     lw      a1, 0xc(t3)
     and     a0, a0, a1
-    or      a0, (PCIE_GEN_CFG << 17)
+    or      a0, ((PCIE_TRY_GEN2 << 17) | (PCIE_TX_FULL_SWING << 18))
     sw      a0, 0xc(t3)
 
     dli     t3, 0x90000efe00006800
@@ -1287,7 +1304,7 @@ cal_one_pcie_x8:
     li      a0, 0xfff9ffff
     lw      a2, 0xc(t3)
     and     a0, a0, a2
-    or      a0, (PCIE_GEN_CFG << 17)
+    or      a0, ((PCIE_TRY_GEN2 << 17) | (PCIE_TX_FULL_SWING << 18))
     sw      a0, 0xc(t3)
 
     dli     t3, 0x90000efe00007000
@@ -1353,7 +1370,8 @@ cal_one_pcie_x8:
 
     //re-configure PHYs
     daddu   a0, t0, 0x5d0
-    li      a1, 0x403f1002
+    lui     a1, 0x4fff
+    add     a1, a1, 0x1002
     bal     ls7a_phy_cfg_write
     nop
     addu    a1, a1, 0x100
@@ -1367,7 +1385,8 @@ cal_one_pcie_x8:
     nop
 
     daddu   a0, t0, 0x5d8
-    li      a1, 0x403f1002
+    lui     a1, 0x4fff
+    add     a1, a1, 0x1002
     bal     ls7a_phy_cfg_write
     nop
     addu    a1, a1, 0x100
@@ -1386,7 +1405,7 @@ cal_one_pcie_x8:
     li      a0, 0xfff9ffff
     lw      a1, 0xc(t3)
     and     a0, a0, a1
-    or      a0, (PCIE_GEN_CFG << 17)
+    or      a0, ((PCIE_TRY_GEN2 << 17) | (PCIE_TX_FULL_SWING << 18))
     sw      a0, 0xc(t3)
 
     dli     t3, 0x90000efe00009800
@@ -1429,7 +1448,7 @@ cal_one_pcie_x8:
     li      a0, 0xfff9ffff
     lw      a2, 0xc(t3)
     and     a0, a0, a2
-    or      a0, (PCIE_GEN_CFG << 17)
+    or      a0, ((PCIE_TRY_GEN2 << 17) | (PCIE_TX_FULL_SWING << 18))
     sw      a0, 0xc(t3)
 
     dli     t3, 0x90000efe0000a000
@@ -1495,7 +1514,8 @@ cal_one_pcie_x8:
 
     //re-configure PHYs
     daddu   a0, t0, 0x5f0
-    li      a1, 0x403f1002
+    lui     a1, 0x4fff
+    add     a1, a1, 0x1002
     bal     ls7a_phy_cfg_write
     nop
     addu    a1, a1, 0x100
@@ -1509,7 +1529,8 @@ cal_one_pcie_x8:
     nop
 
     daddu   a0, t0, 0x5f8
-    li      a1, 0x403f1002
+    lui     a1, 0x4fff
+    add     a1, a1, 0x1002
     bal     ls7a_phy_cfg_write
     nop
     addu    a1, a1, 0x100
@@ -1528,7 +1549,7 @@ cal_one_pcie_x8:
     li      a0, 0xfff9ffff
     lw      a1, 0xc(t3)
     and     a0, a0, a1
-    or      a0, (PCIE_GEN_CFG << 17)
+    or      a0, ((PCIE_TRY_GEN2 << 17) | (PCIE_TX_FULL_SWING << 18))
     sw      a0, 0xc(t3)
 
     dli     t3, 0x90000efe00007800
@@ -1571,7 +1592,7 @@ cal_one_pcie_x8:
     li      a0, 0xfff9ffff
     lw      a2, 0xc(t3)
     and     a0, a0, a2
-    or      a0, (PCIE_GEN_CFG << 17)
+    or      a0, ((PCIE_TRY_GEN2 << 17) | (PCIE_TX_FULL_SWING << 18))
     sw      a0, 0xc(t3)
 
     dli     t3, 0x90000efe00008000
@@ -1637,7 +1658,8 @@ cal_one_pcie_x8:
 
     //re-configure PHYs
     daddu   a0, t0, 0x610
-    li      a1, 0x403f1002
+    lui     a1, 0x4fff
+    add     a1, a1, 0x1002
     bal     ls7a_phy_cfg_write
     nop
     addu    a1, a1, 0x100
@@ -1651,7 +1673,8 @@ cal_one_pcie_x8:
     nop
 
     daddu   a0, t0, 0x618
-    li      a1, 0x403f1002
+    lui     a1, 0x4fff
+    add     a1, a1, 0x1002
     bal     ls7a_phy_cfg_write
     nop
     addu    a1, a1, 0x100
@@ -1670,7 +1693,7 @@ cal_one_pcie_x8:
     li      a0, 0xfff9ffff
     lw      a1, 0xc(t3)
     and     a0, a0, a1
-    or      a0, (PCIE_GEN_CFG << 17)
+    or      a0, ((PCIE_TRY_GEN2 << 17) | (PCIE_TX_FULL_SWING << 18))
     sw      a0, 0xc(t3)
 
     dli     t3, 0x90000efe00008800
@@ -1713,7 +1736,7 @@ cal_one_pcie_x8:
     li      a0, 0xfff9ffff
     lw      a2, 0xc(t3)
     and     a0, a0, a2
-    or      a0, (PCIE_GEN_CFG << 17)
+    or      a0, ((PCIE_TRY_GEN2 << 17) | (PCIE_TX_FULL_SWING << 18))
     sw      a0, 0xc(t3)
 
     dli     t3, 0x90000efe00009000
