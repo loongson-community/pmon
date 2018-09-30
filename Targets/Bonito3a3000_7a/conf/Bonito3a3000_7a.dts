@@ -111,6 +111,16 @@
 		};
 		*/
 
+		uart6: serial@0x1fe001e8 {
+			device_type = "serial";
+			compatible = "ns16550a";
+			reg = <0 0x1fe01e8 0x8>;
+			clock-frequency = <33000000>;
+			interrupts = <58>;
+			interrupt-parent = <&platic>;
+			no-loopback-test;
+		};
+
 		gpio: gpio@100e0000 {
 			compatible = "loongson,ls7a-gpio";
 			reg = <0 0x100e0000 0xc00>;
@@ -214,5 +224,29 @@
 			interrupt-parent = <&platic>;
 		};
 
+		pwm0: pwm@0x100a0000{
+			compatible = "loongson,ls7a-pwm";
+			reg = <0x100a0000 0xf>;
+			interrupt-parent = <&platic>;
+			interrupts = <88>;
+		};
+		pwm1: pwm@100a0100{
+			compatible = "loongson,ls7a-pwm";
+			reg = <0x100a0100 0xf>;
+			interrupt-parent = <&platic>;
+			interrupts = <89>;
+		};
+		pwm2: pwm@100a0200{
+			compatible = "loongson,ls7a-pwm";
+			reg = <0x100a0200 0xf>;
+			interrupt-parent = <&platic>;
+			interrupts = <90>;
+		};
+		pwm3: pwm@100a0300{
+			compatible = "loongson,ls7a-pwm";
+			reg = <0x100a0300 0xf>;
+			interrupt-parent = <&platic>;
+			interrupts = <91>;
+		};
 	};
 };
