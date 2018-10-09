@@ -743,16 +743,16 @@ static int get_ahci_device_data(u8 port, u8 * fis, int fis_len, u8 * buf,
     };
 	writel_with_flush(1, port_mmio + PORT_CMD_ISSUE);
 	if (waiting_for_cmd_completed(port_mmio + PORT_CMD_ISSUE, 2000000, 0x1)) {
-		printf("%s <line%d>: timeout exit! %d bytes transferred.\n", __func__, __LINE__,
-		       pp->cmd_slot->status);
+//		printf("%s <line%d>: timeout exit! %d bytes transferred.\n", __func__, __LINE__,
+//		       pp->cmd_slot->status);
 
-        printf("PxIS: 0x%08x, PxSERR: 0x%08x\n", readl(port_mmio + PORT_IRQ_STAT), readl(port_mmio + PORT_SCR_ERR));
-        printf("PxTFD: 0x%08x, PxSSTS: 0x%08x\n", readl(port_mmio + PORT_TFDATA), readl(port_mmio + PORT_SCR_STAT));
+//        printf("PxIS: 0x%08x, PxSERR: 0x%08x\n", readl(port_mmio + PORT_IRQ_STAT), readl(port_mmio + PORT_SCR_ERR));
+//        printf("PxTFD: 0x%08x, PxSSTS: 0x%08x\n", readl(port_mmio + PORT_TFDATA), readl(port_mmio + PORT_SCR_STAT));
 
 	    if (waiting_for_cmd_completed(port_mmio + PORT_CMD_ISSUE, 2000000, 0x1)) {
-            printf("Waiting another 2s is useless.\n");
+//            printf("Waiting another 2s is useless.\n");
         }else{
-            printf("Waiting another 2s is usefull.\n");
+//            printf("Waiting another 2s is usefull.\n");
         }
 
 		return -1;

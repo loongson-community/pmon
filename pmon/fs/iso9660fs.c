@@ -169,6 +169,7 @@ iso9660_open(int fd, const char *path, int flags, int mode)
 	struct iso_directory_record *dp;
 	int rc;
 	int showdir,lookupdir;
+	char retry_times = 0;
 	showdir=0;
 	if(path[strlen(path)-1]=='/')lookupdir=1;
 	/*  Try to get to the physical device */
@@ -194,6 +195,7 @@ iso9660_open(int fd, const char *path, int flags, int mode)
 	opath = strchr(opath, '/') + 1;
 
 	if(opath[0]==0){opath="/";}
+again:
 	/* Try to open the physical device */
 	rc = devio_open(fd, dpath, flags, mode);
 	if (rc < 0)
@@ -212,7 +214,15 @@ iso9660_open(int fd, const char *path, int flags, int mode)
 		}
 		errno = ENOENT;		/* In case of error */
 		if (bcmp(vd->id, ISO_STANDARD_ID, sizeof vd->id) != 0)
-			goto out;
+			if (retry_times < 50) {
+				retry_times++;
+				//printf("retry_times %d.\n",retry_times);
+				free(buf);
+				(void)devio_close(fd);
+				delay(10000);
+				goto again;
+			} else
+				goto out;
 		if (isonum_711(vd->type) == ISO_VD_END)
 			goto out;
 		if (isonum_711(vd->type) == ISO_VD_PRIMARY)
