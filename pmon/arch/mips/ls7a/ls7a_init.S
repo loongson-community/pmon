@@ -1949,7 +1949,7 @@ cal_one_pcie_x8:
     sw      t1, (CONF_NB_OFFSET+4)(t0)
 
     lw      t1, (CONF_SB_OFFSET+0)(t0)
-    li      t2, (0xff << 24)
+    li      t2, (0xef << 24)
     or      t1, t1, t2
     sw      t1, (CONF_SB_OFFSET+0)(t0)
     TTYDBG("LS7A uncache accellerator enabled\r\n")
