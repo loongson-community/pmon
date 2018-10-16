@@ -142,7 +142,7 @@ _go1:
 	LOAD	v0, PC * RSIZE(k0)
 	MTC0	v0, COP_0_EXC_PC
 	LOAD	v0, SR * RSIZE(k0)
-	or	v0, SR_EXL		/* Keep Exeption level status */
+	or	v0, SR_EXL|SR_KX|SR_SX|SR_UX		/* Keep Exeption level status */
 	mtc0	v0, COP_0_STATUS_REG
 
 	LOAD	v0, MULHI * RSIZE(k0)
