@@ -518,6 +518,10 @@ void tgt_devconfig()
 #ifdef USE_SII9022a
 		gpioi2c_config_sii9022a();
 #endif
+
+#ifdef USE_ADV7511
+		dvo_hdmi_init();
+#endif
 #endif
 	} else {
 		printf("vga bios init failed, rc=%d\n",rc);

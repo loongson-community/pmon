@@ -20,6 +20,8 @@
 
 #define CHIP_7034_ADDR	0xea
 #define CHIP_9022_ADDR	0x72
+#define	ADV7513_ADDR	0x7a
+#define	ADV7511_ADDR	0x72
 
 static unsigned int dc_base = 0;
 static unsigned int gpio_val_base = 0;
@@ -170,7 +172,7 @@ unsigned char CH7034_VGA_REG_TABLE2[][131][2] = {
 
 #define CH7034_REGMAP_LENGTH_VGA (sizeof(CH7034_VGA_REG_TABLE2[0]) / (2*sizeof(unsigned char)))
 
-static void gpioi2c_init()
+void gpioi2c_init()
 {
 	dc_base = *(volatile unsigned int *)0xba003110;
 	dc_base &= 0xfffffff0;
@@ -508,6 +510,32 @@ void gpioi2c_config_sii9022a(void)
 	gpioi2c_write(dev_addr, 0x1a, data);
 	gpioi2c_write(dev_addr, 0x26, 0x40);
 }
+
+#ifdef USE_ADV7511
+void dvo_hdmi_init()
+{
+	unsigned char dev_addr = CHIP_9022_ADDR;
+	unsigned char d;
+
+	gpioi2c_init();
+
+	gpioi2c_write(dev_addr, 0x41, 0x10);
+	gpioi2c_read(dev_addr, 0x41, &d); printf("0x41:0x%x\n",d);
+	gpioi2c_write(dev_addr, 0x98, 0x3);
+	gpioi2c_read(dev_addr, 0x98, &d); printf("0x98:0x%x\n",d);
+	gpioi2c_write(dev_addr, 0x9a, 0xe0);
+	gpioi2c_write(dev_addr, 0x9c, 0x30);
+	gpioi2c_write(dev_addr, 0x9d, 0x61);
+	gpioi2c_write(dev_addr, 0xa2, 0xa4);
+	gpioi2c_write(dev_addr, 0xa3, 0xa4);
+	gpioi2c_write(dev_addr, 0xe0, 0xd0);
+	gpioi2c_write(dev_addr, 0xf9, 0x0);
+	gpioi2c_write(dev_addr, 0x41, 0x10);
+
+}
+#endif
+
+
 
 static const Cmd Cmds[] = {
 	{"Misc"},
