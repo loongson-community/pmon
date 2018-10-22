@@ -380,7 +380,11 @@ static int rtl8211_config_init(synopGMACdevice *gmacdev)
   #endif
 	  /*set led link stat*/
           synopGMAC_write_phy_reg((u64 *)gmacdev->MacBase,gmacdev->PhyBase, 22, 3);
+#ifdef LED_88E151X
+          synopGMAC_write_phy_reg((u64 *)gmacdev->MacBase,gmacdev->PhyBase, 16, LED_88E151X);
+#else
           synopGMAC_write_phy_reg((u64 *)gmacdev->MacBase,gmacdev->PhyBase, 16, 0x1038);
+#endif
           synopGMAC_write_phy_reg((u64 *)gmacdev->MacBase,gmacdev->PhyBase, 22, 0);
 
           if (err < 0)
