@@ -685,6 +685,8 @@ tgt_reboot(void)
 	unsigned int GPIO_EN_REG = 0xbfe00120;
 	__raw__writeq(0x900000003ff00080ULL, 0x1fc000f2ULL);
 
+	outl(LS2H_RST_CNT_REG, 1);
+
 #define ls_readl(x) (* (volatile unsigned int*)(x))	
 	ls_readl(GPIO_DATA_REG) &= (~0x38);
 	ls_readl(GPIO_EN_REG) &= (~(1 << 13));
