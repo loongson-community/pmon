@@ -114,7 +114,7 @@
 		uart6: serial@0x1fe001e8 {
 			device_type = "serial";
 			compatible = "ns16550a";
-			reg = <0 0x1fe01e8 0x8>;
+			reg = <0 0x1fe001e8 0x8>;
 			clock-frequency = <33000000>;
 			interrupts = <58>;
 			interrupt-parent = <&platic>;
@@ -163,6 +163,22 @@
 			interrupt-parent = <&platic>;
 			#address-cells = <1>;
 			#size-cells = <0>;
+/*
+			gpiopca0@20{
+				compatible = "nxp,pca9554";
+				reg = <0x20>;
+			};
+
+			gpiopca1@21{
+				compatible = "nxp,pca9554";
+				reg = <0x21>;
+			};
+
+			w83975adg@2f{
+				compatible = "w83795adg";
+				reg = <0x2f>;
+			};
+*/
 		};
 
 		i2c2: i2c@10090200 {
