@@ -536,6 +536,11 @@ void tgt_devconfig()
 			vga_available = 0;
 	printf("vga available : %d\n", vga_available);
 #endif
+
+#ifdef CPU_GPIO_SET
+	*(volatile int *)0xbfe00120 &= ~CPU_GPIO_SET;
+	*(volatile int *)0xbfe0011c |= CPU_GPIO_SET;
+#endif
 	config_init();
 	configure();
 	gmac_mac_init();
