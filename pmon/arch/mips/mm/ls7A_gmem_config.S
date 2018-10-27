@@ -47,9 +47,11 @@ ls7a_gmem_init:
     bal     ls7a_ddr2_config
     nop
 
+#ifndef DISABLE_HARD_LEVELING
     dli     t8, LS7A_GMEM_TEMP_ADDR
     bal     ddr3_leveling
     nop
+#endif
 
 #ifdef  DEBUG_GMEM_PARAM
     TTYDBG("Gmem parameter after config is:\r\n")
