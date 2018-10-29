@@ -229,7 +229,7 @@ int config_fb(unsigned long base)
 
 	confbus = *(volatile unsigned int *)0xba00a810;
 	confbus &= 0xfffffff0;
-	confbus |= 0xa0000000;
+	confbus |= 0x80000000;
 
     //printf("confbus = %x\n", confbus);
     for (i = 0; i < sizeof(vgamode) / sizeof(struct vga_struc); i++) {
