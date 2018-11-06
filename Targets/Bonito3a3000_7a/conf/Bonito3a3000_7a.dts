@@ -42,6 +42,7 @@
 		#size-cells = <1>;
 		enable-lpc-irq;
 		ranges = <0x000 0x00000000 0x000 0x00000000 0x20000000
+			  0x000 0x20000000 0x000 0x20000000 0x10000000
 			  0x000 0x40000000 0x000 0x40000000 0x40000000
 			  0xe00 0x00000000 0xe00 0x00000000 0x80000000>;
 		/*
@@ -119,6 +120,12 @@
 			interrupts = <58>;
 			interrupt-parent = <&platic>;
 			no-loopback-test;
+		};
+
+		pci: ls3a-pci@20000000 {
+			compatible = "loongson,ls3a-pci";
+			reg-names = "3";
+			reg = <0 0x20000000 0x10000000>;
 		};
 
 		gpio: gpio@100e0000 {
