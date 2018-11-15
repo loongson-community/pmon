@@ -11,7 +11,12 @@ ATTENTION:
 	node_clock=refclk/L1_div_ref*L1_loopc/L1_divout/L2_divout
 */
 #define SOFT_CLKSEL
+//#undef SOFT_CLKSEL
 
+#ifndef CORE_FREQ
+#define CORE_FREQ   1000
+#define DDR_FREQ    350
+#endif
 
 #ifndef DDR_FREQ
 /* MEM @ 500Mhz */
@@ -46,6 +51,7 @@ ATTENTION:
 /* GPU @ 400Mhz */
 #define GPU_DIV_L2    5
 #endif
+#define PLL_IN 100
 #if 0
 /* CPU @ 1000Mhz */
 #define L1_LOOPC    80
@@ -91,7 +97,31 @@ ATTENTION:
 	li     	t0, 0xbfe10480
 	li	t1, (0x1 << 19) 	//power down pll L1 first
 	sd	t1, 0x0(t0)
-	dli	t1, (L1_LOOPC << 32) | (L1_DIV << 42) | (L1_REFC << 26) | (0x3 << 10) | (0x1 << 7)
+	dli	t1, /*(L1_LOOPC << 32) |*/ (L1_DIV << 42) | (L1_REFC << 26) | (0x3 << 10) | (0x1 << 7)
+
+	li v0, 0xbfc00000+NVRAM_OFFS+CPUFREQ_OFFS
+	lhu v0, (v0)
+	
+	sltiu v1, v0, 60
+	bnez v1, 1f
+	nop
+	sltiu v1, v0,1001
+	bnez v1, 2f
+	nop
+1:
+	li v0, CORE_FREQ
+2:
+
+	li v1, L1_DIV*L1_REFC*L2_DIV
+	multu v0,v1
+	mflo v0
+	li v1,PLL_IN
+	divu v0,v1
+	mflo v0
+	dsll32 v0,0
+
+	or	t1, v0
+
 	dli	t2, L2_DIV
 	sd	t1, 0(t0)
 	sd	t2, 8(t0)
@@ -114,10 +144,36 @@ ATTENTION:
 
 	TTYDBG ("\r\nMEM        :")
 
+
 	li      t0, 0xbfe10490
 	li	t1, (0x1 << 19) 	//power down pll  first
 	sd	t1, 0x0(t0)
-	dli     t1, (DDR_DIV << 42) | (DDR_REFC << 26) | (DDR_LOOPC << 32) | (0x3 << 10) | (0x1 << 7)
+	dli     t1, (DDR_DIV << 42) | (DDR_REFC << 26) /*| (DDR_LOOPC << 32)*/ | (0x3 << 10) | (0x1 << 7)
+
+	li v0, 0xbfc00000+NVRAM_OFFS+DDRFREQ_OFFS
+	lhu v0, (v0)
+
+	sltiu v1, v0, 60
+	bnez v1, 1f
+	nop
+	sltiu v1, v0,601
+	bnez v1, 2f
+	nop
+1:
+	li v0, DDR_FREQ
+2:
+
+	li v1,DDR_DIV*DDR_REFC*DDR_DIV_L2
+	multu v0,v1
+	mflo v0
+	li v1,PLL_IN
+	divu v0,v1
+	mflo v0
+	dsll32 v0,0
+
+	or	t1, v0
+
+
 	dli	t2, (GPU_DIV_L2 << 22) | (DDR_DIV_L2) | (HDA_DIV_L2 << 44)
 	sd	t1, 0x0(t0)
 	sd	t2, 0x8(t0)

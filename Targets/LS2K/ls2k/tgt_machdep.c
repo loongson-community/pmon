@@ -1450,6 +1450,7 @@ int tgt_setenv(char *name, char *value)
 #ifdef NVRAM_IN_FLASH
 	char *nvram;
 #endif
+	unsigned short cpufreq, ddrfreq;
 
 	/* Non permanent vars. */
 	if (strcmp(EXPERT, name) == 0) {
@@ -1547,7 +1548,21 @@ int tgt_setenv(char *name, char *value)
 		printf("set em_enable to com %d\n", em_enable);
 	} else
 #endif
-	if(strcmp("ls2kver", name) == 0)
+	if(strcmp("cpufreq", name) == 0)
+	{
+	  cpufreq = strtoul(value, 0, 0);
+	  if(cpufreq > 1000 || cpufreq == 0)
+		cpufreq = 1000;
+	  bcopy(&cpufreq, &nvramsecbuf[CPUFREQ_OFFS], 2);
+	}
+	else if(strcmp("ddrfreq", name) == 0)
+	{
+	  ddrfreq = strtoul(value, 0, 0);
+	  if(ddrfreq > 600 || ddrfreq == 0)
+		ddrfreq = 1024;
+	  bcopy(&ddrfreq, &nvramsecbuf[DDRFREQ_OFFS], 2);
+	}
+	else if(strcmp("ls2kver", name) == 0)
 	{
 	  ls2kver = strtoul(value, 0, 0);
 	}
