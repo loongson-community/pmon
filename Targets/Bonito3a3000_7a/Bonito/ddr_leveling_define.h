@@ -9,13 +9,19 @@
     dsubu   a1, t2, t8; \
     dsubu   a1, a1, 0x180;
 
+#ifndef LEVELING_CHECK_ALL_BITS
+#define WLVL_CHECK_MASK 1
+#else
+#define WLVL_CHECK_MASK 0xff
+#endif
+
 #define GET_WLVL_RESP_a0 \
     dsll    a1, a1, 2; \
     dli     a2, WLVL_RESP_MAP; \
     dsrl    a2, a2, a1; \
     and     a2, a2, 0x7; \
     dsrl    a0, a0, a2; \
-	and 	a0, a0, 0x1;
+	and 	a0, a0, WLVL_CHECK_MASK;
 
 #define GET_GLVL_RESP_a0 \
     and     a0, a0, 0x1;
