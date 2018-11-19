@@ -1452,12 +1452,53 @@ scsi_xs_sync(struct scsi_xfer *xs)
 	if (ISSET(xs->flags, SCSI_NOSLEEP))
 		SET(xs->flags, SCSI_POLL);
 
+	xs->sc_done =0;
 	xs->done = scsi_xs_sync_done;
 
 	do {
 //		xs->cookie = &cookie;//wan-
 		/* do command */
 		scsi_xs_exec(xs);
+//niupj
+#if 1
+{
+
+	int s;
+	int tm = 60 * 1000;
+	 tm = 6;
+//idle();
+//		s=splbio();
+#if 1
+while (tm) {
+		DELAY(1000);
+		tm -= 1;
+//niupj
+	while (xs->sc_done ==0) {
+		DELAY(1000);
+//		tsleep(hdr, PRIBIO + 1, "biowait", 0);
+		s=splbio();
+//		mfi_tbolt_complete_cmd(sc);
+idle();
+		splx(s);
+		if (tm <= 0)
+{
+	printf("it is time out \n");
+//	printf("xs->resid is %x\n,",xs->resid);
+//	printf("xs->error is %x\n,",xs->error);
+	//xs->error =5;
+	xs->error =XS_BUSY;
+		break;
+}
+		tm -= 1;
+	}
+
+
+	   }
+#endif
+
+}
+#endif
+
 
 //		mtx_enter(&cookie);//wan-
 #if 0 //wan-
@@ -1475,6 +1516,7 @@ scsi_xs_sync(struct scsi_xfer *xs)
 void
 scsi_xs_sync_done(struct scsi_xfer *xs)
 {
+	xs->sc_done =1;
 #if 0 //wan-
 	struct mutex *cookie = xs->cookie;
 

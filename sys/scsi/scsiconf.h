@@ -455,6 +455,8 @@ struct scsi_xfer {
 	int	flags;
 	struct	scsi_link *sc_link;	/* all about our device and adapter */
 	int	retries;		/* the number of times to retry */
+//niupj
+	int     sc_done;
 	int	timeout;		/* in milliseconds */
 	struct	scsi_generic *cmd;	/* The scsi command to execute */
 	int	cmdlen;			/* how long it is */

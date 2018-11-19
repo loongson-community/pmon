@@ -757,6 +757,7 @@ mfi_tbolt_complete_cmd(struct mfi_softc *sc)
 //				mfi_remove_busy(cmd_mfi);
 
 			/* complete the command */
+			mfi_tbolt_return_cmd(sc,cmd_tbolt,cmd_mfi);
 			mfi_complete(sc, cmd_mfi);
 //			mfi_tbolt_return_cmd(sc, cmd_mfi,cmd_tbolt);
 		}
@@ -1280,16 +1281,9 @@ printf("hdr->cmd_status is %x\n",hdr->cmd_status);
 	if ((cm->cm_flags & MFI_CMD_POLLED) == 0)
 {
 
-	 tm = 1;
-while (tm) {
-		DELAY(1000);
-		tm -= 1;
-s=splbio();
-splx(s);
-}
+	return 0;
 
 
-		return 0;
 }
 #endif
 
@@ -1310,14 +1304,16 @@ splx(s);
 			 * Force check reply queue.
 			 * This ensures that dump works correctly
 			 */
-			mfi_tbolt_complete_cmd(sc);
+//			mfi_tbolt_complete_cmd(sc);
+			idle();
 		}
 	}
 
 //printf("hdr->cmd_status is %x\n",hdr->cmd_status);
 s=splbio();
 	/* ensure the command cleanup has been processed before returning */
-	mfi_tbolt_complete_cmd(sc);
+//	mfi_tbolt_complete_cmd(sc);
+idle();
 splx(s);
 
 	if (hdr->mfh_cmd_status == MFI_STAT_INVALID_STATUS) {

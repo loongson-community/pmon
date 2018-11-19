@@ -306,10 +306,13 @@ mfi_transition_firmware_fury(struct mfi_softc *sc)
 		if (fw_state == cur_state) {
 			device_printf(sc->mfi_dev, "Firmware stuck in state "
 			    "%#x\n", fw_state);
+			printf("Firmware stuck in state "
+			    "%#x\n", fw_state);
 			return (ENXIO);
 		}
 	}
 	DNPRINTF("cur_abs_reg_val is %x\n",cur_abs_reg_val);
+	printf("cur_abs_reg_val is %x\n",cur_abs_reg_val);
 	return (0);
 
 }
@@ -972,7 +975,11 @@ mfi_attach_fury(struct mfi_softc *sc, enum mfi_iop iop)
 
 	/* get some dev status */
 	if (mfi_transition_firmware_fury(sc))
+	{
+		printf("the statue of mfi is error\n");	
+		tgt_reboot();
 		return (1);
+	}
 	scsi_iopool_init(&sc->sc_iopool, sc, mfi_dequeue_free, mfi_put_cmd);
 
 	status = mfi_fw_state(sc);
@@ -1381,7 +1388,8 @@ mfi_scsi_xs_done_cm(struct mfi_command *cm)
 		break;
 
 	default:
-		xs->error = XS_DRIVER_STUFFUP;
+		//xs->error = XS_DRIVER_STUFFUP;
+		xs->error = XS_BUSY;
 		printf("%s: mfi_scsi_xs_done stuffup %#x\n",
 		    DEVNAME(sc), hdr->mfh_cmd_status);
 
