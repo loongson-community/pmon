@@ -5,6 +5,12 @@
 //for example, if PCB connect DRAM side DQ0 to CPU side DQ3, DRAM side DQ16 to CPU side DQ17,
 //and others keep one to one, than you need modify this macro to 0x0_0000_0103
 
+#ifdef LEVELING_CHECK_ALL_BITS
+#define LEVELING_CHECK_BITS 0xff
+#else
+#define LEVELING_CHECK_BITS 0x1
+#endif
+
 #define GET_LVL_BYTE_t2 \
     dsubu   a1, t2, t8; \
     dsubu   a1, a1, 0x180;
@@ -15,7 +21,7 @@
     dsrl    a2, a2, a1; \
     and     a2, a2, 0x7; \
     dsrl    a0, a0, a2; \
-	and 	a0, a0, 0x1;
+	and 	a0, a0, LEVELING_CHECK_BITS;
 
 #define GET_GLVL_RESP_a0 \
     and     a0, a0, 0x1;
