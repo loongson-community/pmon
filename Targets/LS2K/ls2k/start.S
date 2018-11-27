@@ -450,19 +450,19 @@ cp0_main:
 /* mtf add for cfg pcie */
 	
         li      t0, 0xbfe10590
-        dli     t1, 0x1403f1002
+        dli     t1, 0x14fff1002
         sd      t1, 0x0(t0)
         sd      t1, 0x20(t0)
 
-        dli     t1, 0x1403f1102
+        dli     t1, 0x14fff1102
         sd      t1, 0x0(t0)
         sd      t1, 0x20(t0)
 	
-        dli     t1, 0x1403f1202
+        dli     t1, 0x14fff1202
         sd      t1, 0x0(t0)
         sd      t1, 0x20(t0)
 	
-        dli     t1, 0x1403f1302
+        dli     t1, 0x14fff1302
         sd      t1, 0x0(t0)
         sd      t1, 0x20(t0)
 	
