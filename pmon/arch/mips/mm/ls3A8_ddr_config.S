@@ -153,7 +153,7 @@ mc_init:
     nop
     dla     a2, ddr3_RDIMM_reg_data_mc1
 21:
-#if 1//def  MULTI_NODE_DDR_PARAM
+#ifdef  MULTI_NODE_DDR_PARAM
     GET_NODE_ID_a1
     beqz    a1, 4f
     nop
