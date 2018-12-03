@@ -62,7 +62,8 @@
     //gpu, gmem, dc
     daddu   a0, t0, CONF_PLL1_OFFSET
     li      a2, 0x4
-    li      a1, LS7A_PLL_VALUE(127, 8, 6, 12)
+    //li      a1, LS7A_PLL_VALUE(127, 8, 6, 12)
+    li      a1, LS7A_PLL_VALUE(127, 8, 8, 12)
     bal     ls7a_config_one_pll
     nop
     beqz    v0, 1f
