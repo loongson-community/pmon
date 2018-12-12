@@ -640,6 +640,13 @@ int boot_load_from_menu(Menu_Item* pItem)
 {
 	int ret;
 
+	char buf[LINESZ];
+	if(getenv("autocmd"))
+	{
+		strcpy(buf,getenv("autocmd"));
+		do_cmd(buf);
+	}
+
 	ret = load_kernel_from_menu(pItem);
 	if (ret != 0)
 	{
