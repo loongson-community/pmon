@@ -46,7 +46,7 @@
 			  0x000 0x40000000 0x000 0x40000000 0x40000000
 			  0xe00 0x00000000 0xe00 0x00000000 0x80000000>;
 		/*
-		lpc;
+		enable-lpc-irq;
 		*/
 
 		uart0: serial@0x10080000 {
@@ -96,7 +96,7 @@
 			compatible = "ns16550a";
 			reg = <0 0x180003f8 0x8>;
 			clock-frequency = <1843200>;
-			interrupts = <132>;
+			interrupts = <4>;
 			interrupt-parent = <&platic>;
 			no-loopback-test;
 		};
@@ -106,7 +106,7 @@
 			compatible = "ns16550a";
 			reg = <0 0x180002f8 0x8>;
 			clock-frequency = <1843200>;
-			interrupts = <131>;
+			interrupts = <3>;
 			interrupt-parent = <&platic>;
 			no-loopback-test;
 		};
