@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include "bootparam.h"
 #include "../common/smbios/smbios.h"
+
 #ifdef LS3A2H_STR
 #define LS3A2H_STR_FUNC_ADDR 0xffffffffbfc00500
 #endif
@@ -16,11 +17,11 @@ struct interface_info g_board = { 0 };
 struct loongson_special_attribute g_special = { 0 };
 #ifdef LS7A
 unsigned char readspi_result[128 * 1024] = {0};
+#include "../../Targets/Bonito3a3000_7a/dev/7aVbios.h"
 #endif
 
 extern void poweroff_kernel(void);
 extern void reboot_kernel(void);
-
 #ifdef RS780E
 extern unsigned char vgarom[];
 extern struct pci_device *vga_dev;
@@ -81,7 +82,7 @@ void init_smbios(struct smbios_tables *smbios)
 	  if(!ls7a_vgabios_crc_check(readspi_result))
 		  smbios->vga_bios = readspi_result;
 	  else
-	      smbios->vga_bios = 0;
+	      smbios->vga_bios = Vbios;
   }
   else
 	      smbios->vga_bios = 0;

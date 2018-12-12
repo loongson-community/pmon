@@ -1433,9 +1433,9 @@ struct board_devices *board_devices_info()
 	struct board_devices *bd = &g_board;
 
 #ifdef  MULTI_CHIP
-	strcpy(bd->name,"Loongson-3A3000-7A-Dev-2way");
+	strcpy(bd->name,"Loongson-3A3000-7A-Dev-2way-ATX_EVB");
 #else
-	strcpy(bd->name,"Loongson-3A3000-7A-Dev-1way");
+	strcpy(bd->name,"Loongson-3A3000-7A-Dev-1way-ATX_EVB");
 #endif
 	bd->num_resources = 10;
 
