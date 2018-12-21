@@ -224,7 +224,7 @@ void initmips(unsigned long long  raw_memsz)
 	cpuinfotab[0] = &DBGREG;
 
 	SBD_DISPLAY("BEV1", 0);
-	bcopy(MipsException, (char *)TLB_MISS_EXC_VEC,
+	bcopy(MipsException, (char *)XTLB_MISS_EXC_VEC,
 	      MipsExceptionEnd - MipsException);
 	bcopy(MipsException, (char *)GEN_EXC_VEC,
 	      MipsExceptionEnd - MipsException);
