@@ -60,7 +60,7 @@
 	nop
 	tlbwi                             # random++
 
-	bgez	t0, 1b
+	bnez	t0, 1b
 	addiu	t0, t0, -1
 
 
