@@ -277,6 +277,7 @@ void tgt_devconfig()
 	extern struct pci_device *pcie_dev;
 #endif
 #endif 
+	*(volatile unsigned int *)0xbfe10428 &= ~(1<<19); /*disable usb prefetch*/
 	val = *(unsigned int *)0xbfe10420;
 	*(unsigned int *)0xbfe10420 = (val | 0xc000);//mtf, enable I2C1
 	
