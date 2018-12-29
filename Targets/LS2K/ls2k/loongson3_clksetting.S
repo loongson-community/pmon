@@ -13,6 +13,7 @@ ATTENTION:
 #define SOFT_CLKSEL
 
 
+#define DDR_FREQ   500   //this param must change with DDR freq together,ether soft or hard freq modified!!!
 #ifdef SOFT_CLKSEL
 #if 1
 /* MEM @ 500Mhz */

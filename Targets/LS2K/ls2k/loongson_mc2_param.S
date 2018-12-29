@@ -95,7 +95,7 @@ MC0_DDR3_CTRL_0x130: .dword 0x0000000003020202
 //hXXXXXX (RD) 0000000_0 pm_wrdq_clkdelay_8 0000_0000 pm_odt_oe_end_8 0000_0000 pm_odt_oe_begin_8 000000_00 pm_odt_stop_edge_8 000000_00 pm_odt_start_edge_8
 MC0_DDR3_CTRL_0x138: .dword 0x00000020207f6000
 //hXXXXXX (RD) _00000000 pm_dll_rddqs_n_8 _00000000 pm_dll_rddqs_p_8 _00000000 pm_dll_wrdqs_8 _00000000 pm_dll_wrdata_8 _00000000 pm_dll_gate_8
-MC0_DDR3_CTRL_0x140: .dword 0x0403000001ff01ff
+MC0_DDR3_CTRL_0x140: .dword 0x0003000001ff01ff
 //00000_000 pm_pad_ocd_clk 00000_000 pm_pad_ocd_ctl 0000000_0 pm_pad_ocd_dqs 0000000_0 pm_pad_ocd_dq 0000000_0_00000000 pm_pad_enzi 0000000_0 pm_pad_en_ctl _00000000 pm_pad_en_clk
 MC0_DDR3_CTRL_0x148: .dword 0x0000000000010100
 //_0000 pm_pad_adj_ncode_dq _0000 pm_pad_adj_pcode_dq 00000 _0 pm_pad_outodt_dq _0 pm_pad_slewrate_dq _0 pm_pad_code_dq _0000 pm_pad_adj_ncode_dq _0000 pm_pad_adj_pcode_dq 00000 _0 pm_pad_outodt_dq _0 pm_pad_slewrate_dq _0 00000000 0000000_0 pm_pad_vref_internal 0000000_0 pm_pad_odt_se 0000000_0 pm_pad_modezi1v8
@@ -328,7 +328,7 @@ MC0_DDR3_RDIMM_CTRL_0x130: .dword 0x0000000003020202
 //hXXXXXX (RD) 0000000_0 pm_wrdq_clkdelay_8 0000_0000 pm_odt_oe_end_8 0000_0000 pm_odt_oe_begin_8 000000_00 pm_odt_stop_edge_8 000000_00 pm_odt_start_edge_8
 MC0_DDR3_RDIMM_CTRL_0x138: .dword 0x00000020207f6000
 //hXXXXXX (RD) _00000000 pm_dll_rddqs_n_8 _00000000 pm_dll_rddqs_p_8 _00000000 pm_dll_wrdqs_8 _00000000 pm_dll_wrdata_8 _00000000 pm_dll_gate_8
-MC0_DDR3_RDIMM_CTRL_0x140: .dword 0x0403000001ff01ff
+MC0_DDR3_RDIMM_CTRL_0x140: .dword 0x0003000001ff01ff
 //00000_000 pm_pad_ocd_clk 00000_000 pm_pad_ocd_ctl 0000000_0 pm_pad_ocd_dqs 0000000_0 pm_pad_ocd_dq 0000000_0_00000000 pm_pad_enzi 0000000_0 pm_pad_en_ctl _00000000 pm_pad_en_clk
 MC0_DDR3_RDIMM_CTRL_0x148: .dword 0x0000000000010100
 //_0000 pm_pad_adj_ncode_dq _0000 pm_pad_adj_pcode_dq 00000 _0 pm_pad_outodt_dq _0 pm_pad_slewrate_dq _0 pm_pad_code_dq _0000 pm_pad_adj_ncode_dq _0000 pm_pad_adj_pcode_dq 00000 _0 pm_pad_outodt_dq _0 pm_pad_slewrate_dq _0 00000000 0000000_0 pm_pad_vref_internal 0000000_0 pm_pad_odt_se 0000000_0 pm_pad_modezi1v8
