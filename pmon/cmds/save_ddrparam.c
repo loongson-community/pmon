@@ -95,7 +95,11 @@ void enable_ddrconfig(u64 node_id_shift44)
 
 #ifdef loongson3A3
     val = __raw__readq(CPU_CONFIG_ADDR | node_id_shift44);
+#ifdef LSMC_2
+    val &=0xfffffffffffffdefull;
+#else
     val &=0xfffffffffffffeffull;
+#endif
     __raw__writeq(CPU_CONFIG_ADDR | node_id_shift44, val);
 #ifdef DEBUG
     printf("Enable sys config reg = %016llx", __raw__readq(CPU_CONFIG_ADDR | node_id_shift44));
@@ -131,7 +135,11 @@ void disable_ddrconfig(u64 node_id_shift44)
     /* Disable DDR access configure register */
 #ifdef loongson3A3
     val = __raw__readq(CPU_CONFIG_ADDR | node_id_shift44);
+#ifdef LSMC_2
+    val |= 0x210;
+#else
     val |= 0x100;
+#endif
     __raw__writeq(CPU_CONFIG_ADDR | node_id_shift44, val);
 #ifdef DEBUG
     printf("Disable sys config reg = %016llx\n", __raw__readq(CPU_CONFIG_ADDR | node_id_shift44));
@@ -225,14 +233,22 @@ int read_ddr_param(u64 node_id_shift44, int mc_selector,  unsigned long long * b
     printf("Now Read out DDR parameter from DDR MC%d controler after DDR training\n", mc_selector);
     for ( i = DDR_PARAM_NUM - 1; i >= 0; i--) // NOTICE HERE: it means system has DDR_PARAM_NUM double words
     {
+#ifdef LSMC_2
+        val[i] =  __raw__readq((MC_CONFIG_ADDR | node_id_shift44) + (0x8 * i));
+#else
         val[i] =  __raw__readq((MC_CONFIG_ADDR | node_id_shift44) + (0x10 * i));
+#endif
 
 #ifdef DEBUG
         printf("< CFGREG >:val[%03d]  = %016llx \n", i, val[i]);
 #endif
     }
     //clear param_start
+#ifdef LSMC_2
+    val[3]  &=  0xfffffffffffffffeull;
+#else
     val[3]  &=  0xfffffeffffffffffull;
+#endif
 
     // step 4. Disabel access to MC0 or MC1 register space
     disable_ddrconfig(node_id_shift44);
@@ -246,7 +262,7 @@ int read_ddr_param(u64 node_id_shift44, int mc_selector,  unsigned long long * b
     return 0;
 }
 
-void save_ddrparam(u64 node_id_shift44, u64 *ddr_param_buf, int param_store_addr, int mc_selector)
+void __attribute__((noinline)) save_ddrparam(u64 node_id_shift44, u64 *ddr_param_buf, int param_store_addr, int mc_selector)
 {
 #ifdef DEBUG
     int i;
@@ -279,7 +295,7 @@ void save_ddrparam(u64 node_id_shift44, u64 *ddr_param_buf, int param_store_addr
 #define DIMM_INFO_ADDR  0x980000000fff0000ull
 
 #ifdef loongson3A3
-int save_board_ddrparam(int mandatory)
+int __attribute__((noinline)) save_board_ddrparam(int mandatory)
 {
     unsigned long long flag;
     unsigned long long node_id;

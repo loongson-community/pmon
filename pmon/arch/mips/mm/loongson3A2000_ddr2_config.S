@@ -23,7 +23,16 @@
     v2.1    support for interleave using the X2 interleave function for 3A2000
 ************************************/
 
+#define CACHELOCK_STACKADDR 0x9fcfff00
 #######################################################
+/*cache lock*/
+    dli     v0, LOCK_SCACHE_CONFIG_BASE_ADDR
+    dli	    v1, 0xfffffffffff00000
+    sd	    v1, 0x40(v0)
+    dli	    v1, 0x800000001fc00000
+    sd	    v1, 0x0(v0)
+    li	sp, CACHELOCK_STACKADDR
+
 /**************************
 0. s1 reset code
 **************************/
@@ -1297,6 +1306,9 @@ t0,t2 shouldn't be changed to the end of this file.
     PRINTSTR("!!!!!!!!!!MC space is disabled\r\n")
 #endif
 88:
+    dli     v0, LOCK_SCACHE_CONFIG_BASE_ADDR
+    sd	    zero, 0x0(v0)
+    la	sp, stack
     sync
     nop
     nop
