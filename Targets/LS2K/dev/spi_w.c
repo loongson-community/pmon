@@ -792,7 +792,7 @@ int spi_sync(struct spi_device *spi, struct spi_message *m)
 	param = ls1x_spi_read_reg(ls1x_spi, PARAM);
 	ls1x_spi_write_reg(ls1x_spi, PARAM, param&~1);
 
-	cs = ls1x_spi_read_reg(ls1x_spi, SOFTCS) & ~(0x11<<spi->chip_select);
+	cs = 0xff & ~(0x11<<spi->chip_select);
 	ls1x_spi_write_reg(ls1x_spi, SOFTCS, (0x1 << spi->chip_select)|cs);
 
 	list_for_each_entry(t, &m->transfers, transfer_list) {
