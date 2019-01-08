@@ -365,6 +365,21 @@ struct system_loongson *init_system_loongson()
   s->sing_double_channel = 1;
 #endif
 
+#ifdef loongson3A3
+{
+#ifdef	BONITO_33M
+ int clk = 33333333;
+#elif  defined(BONITO_25M)
+ int clk = 25000000;
+#else
+ int clk = 50000000;
+#endif
+ struct uart_device uart0 = { 2, clk, 2, (int)0xbfe001e0 };
+ s->nr_uarts = 1;
+ s->uarts[0] = uart0;
+}
+#endif
+
   return s;
 }
 
