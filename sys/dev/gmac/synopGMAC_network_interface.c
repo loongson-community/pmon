@@ -1150,7 +1150,7 @@ int synopGMAC_intr_handler(struct synopGMACNetworkAdapter * tp)
 
 	ifp = &(adapter->PInetdev->arpcom.ac_if);
 
-	if(gmacdev->LinkState == LINKUP)
+	if(gmacdev->LinkState)
 	ifp->if_flags = ifp->if_flags | IFF_RUNNING;
 
 
@@ -1189,6 +1189,7 @@ int synopGMAC_intr_handler(struct synopGMACNetworkAdapter * tp)
 
 	if(dma_status_reg & GmacLineIntfIntr){
 		u16 data;
+#if 0
 		status = synopGMAC_read_phy_reg(gmacdev->MacBase,gmacdev->PhyBase,PHY_SPECIFIC_STATUS_REG, &data);
 		//status = synopGMAC_read_phy_reg(gmacdev->MacBase,1,PHY_SPECIFIC_STATUS_REG, &data);
 
@@ -1210,6 +1211,11 @@ int synopGMAC_intr_handler(struct synopGMACNetworkAdapter * tp)
 
 			}
 		}
+#else
+		synopGMAC_check_phy_init(gmacdev);
+		if(gmacdev->LinkState != gmacdev->LinkState0)
+			synopGMAC_mac_init(gmacdev);
+#endif
 	}
 	/*Now lets handle the DMA interrupts*/
         interrupt = synopGMAC_get_interrupt_type(gmacdev);
@@ -1743,7 +1749,7 @@ s32 synopGMAC_linux_xmit_frames(struct ifnet* ifp)
 	printf("xmit: TxBusy = %d\tTxNext = %d\n",gmacdev->TxBusy,gmacdev->TxNext);
 #endif
 	//we use the function getmbuf() alloc mem, free it by m_freem()
-	if(((gmacdev->LinkState) & Mii_phy_status_link_up) != Mii_phy_status_link_up){
+	if(!gmacdev->LinkState){
 		while(ifp->if_snd.ifq_head != NULL){
 			IF_DEQUEUE(&ifp->if_snd, skb);
 			m_freem(skb);

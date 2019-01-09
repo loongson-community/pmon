@@ -1145,6 +1145,7 @@ s32 synopGMAC_check_phy_init (synopGMACdevice * gmacdev)
 {	
 	//u32 addr;
 	u16 data;
+#if 0
 	s32 status = -ESYNOPGMACNOERR;		
 	s32 loop_count;
 	
@@ -1226,6 +1227,45 @@ s32 synopGMAC_check_phy_init (synopGMACdevice * gmacdev)
 		TR("Link is with 10M Speed \n");
 
 	printf("leave check phy init !!!!!!\n");
+#else
+	data = synopGMACReadReg(gmacdev->MacBase,0xd8);
+	gmacdev->LinkState0 = data;
+	if((data & 8) == 0){
+		if(gmacdev->LinkState)
+			TR("No Link: %08x\n",data);
+		gmacdev->LinkState = 0;
+		gmacdev->DuplexMode = 0;
+		gmacdev->Speed = 0;
+		gmacdev->LoopBackMode = 0; 
+				
+	}
+	else{
+		//TR("Link UP: %08x\n",data);
+		if(gmacdev->LinkState!=data)
+		{
+			gmacdev->DuplexMode = (data & 1)  ? FULLDUPLEX: HALFDUPLEX ;
+			TR("Link is up in %s mode\n",(gmacdev->DuplexMode == FULLDUPLEX) ? "FULL DUPLEX": "HALF DUPLEX");
+
+			/*if not set to Master configuration in case of Half duplex mode set it manually as Master*/
+
+			switch((data>>1)&3)
+			{
+				case 2:
+					gmacdev->Speed      =   SPEED1000;
+					TR("Link is with 1000M Speed \n");
+					break;
+				case 1:
+					gmacdev->Speed      =   SPEED100;
+					TR("Link is with 100M Speed \n");
+					break;
+				default:
+					gmacdev->Speed      =   SPEED10;
+					TR("Link is with 10M Speed \n");
+					break;
+			}
+		}
+	}
+#endif
 
 	return -ESYNOPGMACNOERR;
 }
