@@ -272,7 +272,7 @@ static int check_mem_args(const void * ssp)
 	u32 *p;
 
 	max_mem = memorysize_total << 20;
-	if(!pcie_dev){
+	if(!pcie_dev && fdt_path_offset (ssp, "/soc/gpu@0x40080000") >= 0){
 		max_mem -= 0x20000000ULL;	//512M for internal Graphics card
 	}
 	nodeoffset = fdt_path_offset (ssp, "/memory");
