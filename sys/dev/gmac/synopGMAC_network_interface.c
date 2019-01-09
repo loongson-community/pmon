@@ -1435,11 +1435,7 @@ unsigned long synopGMAC_linux_open(struct synopGMACNetworkAdapter *tp)
 #if	defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A)
 	synopGMAC_reset(gmacdev);
 #else
-	TR("0xbfe10040:%x\n",synopGMACReadReg(0xffffffffbfe10040,0));
-	TR("0xbfe18040:%x\n",synopGMACReadReg(0xffffffffbfe18040,0));
 //	synopGMAC_reset(gmacdev);
-	TR("0xbfe10040:%x\n",synopGMACReadReg(0xffffffffbfe10040,0));
-	TR("0xbfe18040:%x\n",synopGMACReadReg(0xffffffffbfe18040,0));
 #endif	
 	/*Attach the device to MAC struct This will configure all the required base addresses
 	  such as Mac base, configuration base, phy base address(out of 32 possible phys )*/

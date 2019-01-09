@@ -1403,7 +1403,6 @@ s32 synopGMAC_get_mac_addr(synopGMACdevice *gmacdev, u32 MacHigh, u32 MacLow, u8
 	u32 data;
 	
 	TR("read MAC: MacBase is:%x, MacHigh is:%x\n", gmacdev->MacBase, MacHigh);
-	TR("0xbfe10040:%x\n", synopGMACReadReg(0xffffffffbfe10040,0));	
 	data = synopGMACReadReg(gmacdev->MacBase,MacHigh);
 	MacAddr[5] = (data >> 8) & 0xff;
 	MacAddr[4] = (data)        & 0xff;
