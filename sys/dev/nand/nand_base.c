@@ -2371,31 +2371,21 @@ static struct nand_flash_dev *nand_get_flash_type(struct mtd_info *mtd,
 #endif
 
 /**
- * nand_scan - [NAND Interface] Scan for the NAND device
- * @mtd:	MTD device structure
- * @maxchips:	Number of chips to scan for
+ * nand_scan_ident - [NAND Interface] Scan for the NAND device
+ * @mtd:	     MTD device structure
+ * @maxchips:	     Number of chips to scan for
  *
- * This fills out all the uninitialized function pointers
- * with the defaults.
- * The flash ID is read and the mtd/chip structures are
- * filled with the appropriate values.
- * The mtd->owner field must be set to the module of the caller
+ * This is the first phase of the normal nand_scan() function. It
+ * reads the flash ID and sets up MTD fields accordingly.
  *
+ * The mtd->owner field must be set to the module of the caller.
  */
-int nand_scan(struct mtd_info *mtd, int maxchips)
+int nand_scan_ident(struct mtd_info *mtd, int maxchips)
 {
 	int i, busw, nand_maf_id;
 	struct nand_chip *chip = mtd->priv;
 	struct nand_flash_dev *type;
 	struct nand_ecc_ctrl *ecc = &chip->ecc;
-
-	/* Many callers got this wrong, so check for it for a while... */
-#if 0
-	if (!mtd->owner && caller_is_module()) {
-		printk(KERN_CRIT "nand_scan() called with NULL mtd->owner!\n");
-		BUG();
-	}
-#endif
 
 	/* Get buswidth to select the correct functions */
 	busw = chip->options & NAND_BUSWIDTH_16;
@@ -2427,6 +2417,24 @@ int nand_scan(struct mtd_info *mtd, int maxchips)
 	/* Store the number of chips and calc total size for mtd */
 	chip->numchips = i;
 	mtd->size = i * chip->chipsize;
+
+	return 0;
+}
+
+/**
+ * nand_scan_tail - [NAND Interface] Scan for the NAND device
+ * @mtd:	    MTD device structure
+ * @maxchips:	    Number of chips to scan for
+ *
+ * This is the second phase of the normal nand_scan() function. It
+ * fills out all the uninitialized function pointers with the defaults
+ * and scans for a bad block table if appropriate.
+ */
+int nand_scan_tail(struct mtd_info *mtd)
+{
+	int i;
+	struct nand_chip *chip = mtd->priv;
+	struct nand_ecc_ctrl *ecc = &chip->ecc;
 
 	/* Preset the internal oob write buffer */
 	memset(chip->buffers.oobwbuf, 0xff, mtd->oobsize);
@@ -2619,6 +2627,35 @@ int nand_scan(struct mtd_info *mtd, int maxchips)
 	/* Build bad block table */
 	return chip->scan_bbt(mtd);
 }
+
+/**
+ * nand_scan - [NAND Interface] Scan for the NAND device
+ * @mtd:	MTD device structure
+ * @maxchips:	Number of chips to scan for
+ *
+ * This fills out all the uninitialized function pointers
+ * with the defaults.
+ * The flash ID is read and the mtd/chip structures are
+ * filled with the appropriate values.
+ * The mtd->owner field must be set to the module of the caller
+ *
+ */
+int nand_scan(struct mtd_info *mtd, int maxchips)
+{
+	int ret;
+
+	/* Many callers got this wrong, so check for it for a while... */
+/*	if (!mtd->owner && caller_is_module()) {
+		printk(KERN_CRIT "nand_scan() called with NULL mtd->owner!\n");
+		BUG();
+	}*/
+
+	ret = nand_scan_ident(mtd, maxchips);
+	if (!ret)
+		ret = nand_scan_tail(mtd);
+	return ret;
+}
+
 
 /**
  * nand_release - [NAND Interface] Free resources held by the NAND device

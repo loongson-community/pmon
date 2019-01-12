@@ -935,9 +935,6 @@ int spinand_probe(struct spi_device *spi_nand)
 
 	if(info->gd_ctype == 1) {
 		spinand_driver_strength(info->spi);
-		mtd->oobsize = 128;
-	} else {
-		mtd->oobsize = 64;
 	}
 
 #ifdef NOUSED_MTD_SPINAND_ONDIEECC
