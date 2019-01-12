@@ -44,27 +44,19 @@
 /*
  * OOB area specification layout:  Total 32 available free bytes.
  */
-#ifdef CONFIG_MTD_SPINAND_ONDIEECC
+#ifdef NOUSED_MTD_SPINAND_ONDIEECC
 static int enable_hw_ecc;
 static int enable_read_hw_ecc;
 #endif
 static struct nand_ecclayout spinand_oob_64 = {
 	.eccbytes = 24,
 	.eccpos = {
-		 3, 4, 5, 6,7,
-		17, 18, 19, 20, 21, 22,23,
-		33, 34, 35, 36, 37, 38,
-		49, 50, 51, 52, 53, 54, },
-	.oobavail = 32,
+		   40, 41, 42, 43, 44, 45, 46, 47,
+		   48, 49, 50, 51, 52, 53, 54, 55,
+		   56, 57, 58, 59, 60, 61, 62, 63},
 	.oobfree = {
-		{.offset = 8,
-		.length = 8},
-		{.offset = 24,
-		.length = 8},
-		{.offset = 40,
-		.length = 8},
-		{.offset = 56,
-		.length = 8}, }
+		{.offset = 2,
+		 .length = 38}}
 };
 
 static struct nand_ecclayout spinand_oob_128 = {
@@ -420,7 +412,7 @@ static int spinand_read_page(struct spinand_info *info, int page_id,
 	int ret;
 	u8 status = 0;
 
-#ifdef CONFIG_MTD_SPINAND_ONDIEECC
+#ifdef NOUSED_MTD_SPINAND_ONDIEECC
 	if (enable_read_hw_ecc) {
 		if (spinand_enable_ecc(info->spi))
 			dev_err(&info->spi->dev, "enable HW ECC failed!");
@@ -452,7 +444,7 @@ static int spinand_read_page(struct spinand_info *info, int page_id,
 	if (ret != 0)
 		dev_err(&info->spi->dev, "read from cache failed!!\n");
 
-#ifdef CONFIG_MTD_SPINAND_ONDIEECC
+#ifdef NOUSED_MTD_SPINAND_ONDIEECC
 	if (enable_read_hw_ecc) {
 		ret = spinand_disable_ecc(info->spi);
 		enable_read_hw_ecc = 0;
@@ -532,7 +524,7 @@ static int spinand_program_page(struct spinand_info *info,
 	int retval;
 	u8 status = 0;
 	uint8_t *wbuf;
-#ifdef CONFIG_MTD_SPINAND_ONDIEECC
+#ifdef NOUSED_MTD_SPINAND_ONDIEECC
 	unsigned int i, j;
 
 	enable_read_hw_ecc = 0;
@@ -571,7 +563,7 @@ static int spinand_program_page(struct spinand_info *info,
 				break;
 		}
 	}
-#ifdef CONFIG_MTD_SPINAND_ONDIEECC
+#ifdef NOUSED_MTD_SPINAND_ONDIEECC
 	if (enable_hw_ecc) {
 		retval = spinand_disable_ecc(info->spi);
 		enable_hw_ecc = 0;
@@ -647,7 +639,7 @@ static int spinand_erase_block(struct spi_device *spi_nand, int block_id)
 	return 0;
 }
 
-#ifdef CONFIG_MTD_SPINAND_ONDIEECC
+#ifdef NOUSED_MTD_SPINAND_ONDIEECC
 static int spinand_write_page_hwecc(struct mtd_info *mtd,
 		struct nand_chip *chip, const uint8_t *buf, int oob_required)
 {
@@ -911,41 +903,7 @@ int spinand_probe(struct spi_device *spi_nand)
 			GFP_KERNEL);
 	if (!chip)
 		return -ENOMEM;
-
-#ifdef CONFIG_MTD_SPINAND_ONDIEECC
-	chip->ecc.mode	= NAND_ECC_HW;
-	chip->ecc.size	= 0x200;
-	chip->ecc.bytes	= 0x6;
-	chip->ecc.steps	= 0x4;
-
-#if 0
-	chip->ecc.strength = 1;
-#endif
-	chip->ecc.total	= chip->ecc.steps * chip->ecc.bytes;
-	chip->ecc.layout = &spinand_oob_64;
-	chip->ecc.read_page = spinand_read_page_hwecc;
-	chip->ecc.write_page = spinand_write_page_hwecc;
-#else
-#if 0
-	chip->ecc.mode	= NAND_ECC_SOFT;
-	ret = spinand_disable_ecc(spi_nand);
-#else
-	chip->ecc.mode	= NAND_ECC_NONE;
-	ret = spinand_enable_ecc(spi_nand);
-#endif
-#endif
-
-	spinand_read_id(info, spi_flash_id);
-	if(info->gd_ctype == 1) {
-		spinand_driver_strength(info->spi);
-//		chip->ecc.layout = &spinand_oob_128;
-		chip->ecc.size = 256;
-		chip->ecc.bytes = 3;
-	} else {
-		chip->ecc.layout = &spinand_oob_64;
-		chip->ecc.size = 256;
-		chip->ecc.bytes = 3;
-	}
+	memset(chip, 0, sizeof(struct nand_chip));
 
 	chip->priv	= info;
 	chip->read_buf	= spinand_read_buf;
@@ -968,13 +926,83 @@ int spinand_probe(struct spi_device *spi_nand)
 
 	mtd->priv = chip;
 	mtd->name = "spinand_flash";
-	if(info->gd_ctype == 1)
-		mtd->oobsize = 128;
-	else
-		mtd->oobsize = 64;
 
-	if (nand_scan(mtd, 1))
+	spinand_read_id(info, spi_flash_id);
+
+	ret = nand_scan_ident(mtd, 1);
+	if (ret)
+		return -ENOMEM;
+
+	if(info->gd_ctype == 1) {
+		spinand_driver_strength(info->spi);
+		mtd->oobsize = 128;
+	} else {
+		mtd->oobsize = 64;
+	}
+
+#ifdef NOUSED_MTD_SPINAND_ONDIEECC
+	chip->ecc.mode	= NAND_ECC_HW;
+	chip->ecc.size	= 0x200;
+	chip->ecc.bytes	= 0x6;
+	chip->ecc.steps	= 0x4;
+
+#if 0
+	chip->ecc.strength = 1;
+#endif
+	chip->ecc.total	= chip->ecc.steps * chip->ecc.bytes;
+	chip->ecc.layout = &spinand_oob_64;
+	chip->ecc.read_page = spinand_read_page_hwecc;
+	chip->ecc.write_page = spinand_write_page_hwecc;
+#elif defined(CONFIG_SPINAND_SOFTBCH)
+#if !NNAND_BCH
+    #error("need select nand_bch");
+#endif
+#define BCH_BUG(a...) printf(a);while(1);
+	{
+		int bch = 4;
+		if (!mtd_nand_has_bch()) {
+			BCH_BUG("BCH ECC support is disabled\n");
+		}
+		/* use 512-byte ecc blocks */
+		//eccsteps = writesize/512;
+		//eccbytes = (bch*13+7)/8;
+		chip->ecc.size = 512;
+		chip->ecc.strength = bch;
+		chip->ecc.bytes = DIV_ROUND_UP(
+				chip->ecc.strength * fls(8 * chip->ecc.size), 8);
+		/* do not bother supporting small page devices */
+		if (mtd->oobsize < 64) {
+			BCH_BUG("bch not available on small page devices\n");
+			return -EINVAL;
+		}
+		chip->ecc.mode = NAND_ECC_SOFT_BCH;
+		printf("using %u-bit/%u bytes BCH ECC\n", bch, chip->ecc.size);
+	}
+#elif defined(CONFIG_SPINAND_SOFTECC)
+	chip->ecc.mode		= NAND_ECC_SOFT;
+	chip->ecc.size		= 256;
+	chip->ecc.bytes		= 3;
+#else
+	chip->ecc.mode	= NAND_ECC_NONE;
+#endif
+
+#ifdef CONFIG_MTD_SPINAND_NO_HWECC
+	spinand_write_enable(info->spi);
+	ret = spinand_disable_ecc(info->spi);
+#else
+	spinand_write_enable(info->spi);
+	ret = spinand_enable_ecc(info->spi);
+#endif
+
+	if (nand_scan_tail(mtd))
 		return -1;
+
+	if ((chip->ecc.bytes*mtd->writesize/chip->ecc.size) > chip->ecc.layout->eccbytes) {
+		printf("invalid ecc or bch value \n");
+		return -EINVAL;
+	}
+
+
 
 
         if(!nand_flash_add_parts(mtd,0)){
