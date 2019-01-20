@@ -479,6 +479,13 @@ cp0_main:
 	or	t1, 0x20000
 	sw	t1, 0x0(t0)
 
+	dli	t0, 0x900000fe0700681c
+    lw  t2, 0x0(t0)
+    li  t1, (0x1 << 26)
+    or  t2, t1
+    sw  t2, 0x0(t0)
+
+
 	dli	t0, 0x900000fe00006800
 	li	t1, 0x10000000
 	sw	t1, 0x10(t0)
@@ -486,6 +493,16 @@ cp0_main:
 	dli	t0, 0x9000000000000000
 	li      t1, 0x10000000
 	or	t0, t0, t1
+
+    li  t1, (0x7<<18)|(0x7<<2)
+    not t1, t1
+    lw  t2, 0x54(t0)
+    and t2, t2, t1
+    sw  t2, 0x54(t0)
+
+    lw  t2, 0x58(t0)
+    and t2, t2, t1
+    sw  t2, 0x58(t0)
 
 	dli	t1, 0xff204f
         sw      t1, 0x0(t0)
@@ -498,6 +515,12 @@ cp0_main:
 	or	t1, 0x20000
 	sw	t1, 0x0(t0)
 
+	dli	t0, 0x900000fe0700701c
+    lw  t2, 0x0(t0)
+    li  t1, (0x1 << 26)
+    or  t2, t1
+    sw  t2, 0x0(t0)
+
 	dli	t0, 0x900000fe00007000
 	li	t1, 0x10100000
 	sw	t1, 0x10(t0)
@@ -505,6 +528,16 @@ cp0_main:
 	dli	t0, 0x9000000000000000
 	li      t1, 0x10100000
 	or	t0, t0, t1
+
+    li  t1, (0x7<<18)|(0x7<<2)
+    not t1, t1
+    lw  t2, 0x54(t0)
+    and t2, t2, t1
+    sw  t2, 0x54(t0)
+
+    lw  t2, 0x58(t0)
+    and t2, t2, t1
+    sw  t2, 0x58(t0)
 
 	dli	t1, 0xff204c
         sw      t1, 0x0(t0)
@@ -517,6 +550,12 @@ cp0_main:
 	or	t1, 0x20000
 	sw	t1, 0x0(t0)
 
+	dli	t0, 0x900000fe0700481c
+    lw  t2, 0x0(t0)
+    li  t1, (0x1 << 26)
+    or  t2, t1
+    sw  t2, 0x0(t0)
+
 	dli	t0, 0x900000fe00004800
 	li	t1, 0x11000000
 	sw	t1, 0x10(t0)
@@ -524,6 +563,16 @@ cp0_main:
 	dli	t0, 0x9000000000000000
 	li      t1, 0x11000000
 	or	t0, t0, t1
+
+    li  t1, (0x7<<18)|(0x7<<2)
+    not t1, t1
+    lw  t2, 0x54(t0)
+    and t2, t2, t1
+    sw  t2, 0x54(t0)
+
+    lw  t2, 0x58(t0)
+    and t2, t2, t1
+    sw  t2, 0x58(t0)
 
 	dli	t1, 0xff204c
         sw      t1, 0x0(t0)
@@ -536,6 +585,12 @@ cp0_main:
 	or	t1, 0x20000
 	sw	t1, 0x0(t0)
 
+	dli	t0, 0x900000fe0700501c
+    lw  t2, 0x0(t0)
+    li  t1, (0x1 << 26)
+    or  t2, t1
+    sw  t2, 0x0(t0)
+
 	dli	t0, 0x900000fe00005000
 	li	t1, 0x11100000
 	sw	t1, 0x10(t0)
@@ -543,6 +598,16 @@ cp0_main:
 	dli	t0, 0x9000000000000000
 	li      t1, 0x11100000
 	or	t0, t0, t1
+
+    li  t1, (0x7<<18)|(0x7<<2)
+    not t1, t1
+    lw  t2, 0x54(t0)
+    and t2, t2, t1
+    sw  t2, 0x54(t0)
+
+    lw  t2, 0x58(t0)
+    and t2, t2, t1
+    sw  t2, 0x58(t0)
 
 	dli	t1, 0xff204c
         sw      t1, 0x0(t0)
