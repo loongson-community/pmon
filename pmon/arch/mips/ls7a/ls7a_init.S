@@ -1076,8 +1076,7 @@ cal_one_pcie_x8:
     dli     t3, 0x90000efe0700481c
     lw      a1, 0x0(t3)
     li      a0, (0x1 << 26)
-    not     a0, a0
-    and     a1, a1, a0
+    or      a1, a0
     sw      a1, 0x0(t3)
 
     dli     t3, 0x90000efe00004800
@@ -1085,7 +1084,7 @@ cal_one_pcie_x8:
     sw      a0, 0x10(t3)
 
     dli     t1, 0x90000e0060000000
-    li      a1, (0x1<<18)
+    li      a1, (0x7<<18)|(0x7<<2)
     not     a1, a1
     lw      a0, 0x54(t1)
     and     a0, a0, a1
@@ -1138,8 +1137,7 @@ cal_one_pcie_x8:
     dli     t3, 0x90000efe0700501c
     lw      a1, 0x0(t3)
     li      a0, (0x1 << 26)
-    not     a0, a0
-    and     a1, a1, a0
+    or      a1, a0
     sw      a1, 0x0(t3)
 
     dli     t3, 0x90000efe00005000
@@ -1147,7 +1145,7 @@ cal_one_pcie_x8:
     sw      a0, 0x10(t3)
 
     dli     t1, 0x90000e0060100000
-    li      a1, (0x1<<18)
+    li      a1, (0x7<<18)|(0x7<<2)
     not     a1, a1
     lw      a0, 0x54(t1)
     and     a0, a0, a1
@@ -1187,8 +1185,7 @@ cal_one_pcie_x8:
     dli     t3, 0x90000efe0700581c
     lw      a1, 0x0(t3)
     li      a0, (0x1 << 26)
-    not     a0, a0
-    and     a1, a1, a0
+    or      a1, a0
     sw      a1, 0x0(t3)
 
     dli     t3, 0x90000efe00005800
@@ -1196,7 +1193,7 @@ cal_one_pcie_x8:
     sw      a0, 0x10(t3)
 
     dli     t1, 0x90000e0060200000
-    li      a1, (0x1<<18)
+    li      a1, (0x7<<18)|(0x7<<2)
     not     a1, a1
     lw      a0, 0x54(t1)
     and     a0, a0, a1
@@ -1236,8 +1233,7 @@ cal_one_pcie_x8:
     dli     t3, 0x90000efe0700601c
     lw      a1, 0x0(t3)
     li      a0, (0x1 << 26)
-    not     a0, a0
-    and     a1, a1, a0
+    or      a1, a0
     sw      a1, 0x0(t3)
 
     dli     t3, 0x90000efe00006000
@@ -1245,7 +1241,7 @@ cal_one_pcie_x8:
     sw      a0, 0x10(t3)
 
     dli     t1, 0x90000e0060300000
-    li      a1, (0x1<<18)
+    li      a1, (0x7<<18)|(0x7<<2)
     not     a1, a1
     lw      a0, 0x54(t1)
     and     a0, a0, a1
@@ -1340,8 +1336,7 @@ cal_one_pcie_x8:
     dli     t3, 0x90000efe0700681c
     lw      a1, 0x0(t3)
     li      a0, (0x1 << 26)
-    not     a0, a0
-    and     a1, a1, a0
+    or      a1, a0
     sw      a1, 0x0(t3)
 
     dli     t3, 0x90000efe00006800
@@ -1349,7 +1344,7 @@ cal_one_pcie_x8:
     sw      a0, 0x10(t3)
 
     dli     t1, 0x90000e0060000000
-    li      a1, (0x1<<18)
+    li      a1, (0x7<<18)|(0x7<<2)
     not     a1, a1
     lw      a0, 0x54(t1)
     and     a0, a0, a1
@@ -1401,8 +1396,7 @@ cal_one_pcie_x8:
     dli     t3, 0x90000efe0700701c
     lw      a1, 0x0(t3)
     li      a0, (0x1 << 26)
-    not     a0, a0
-    and     a1, a1, a0
+    or      a1, a0
     sw      a1, 0x0(t3)
 
     dli     t3, 0x90000efe00007000
@@ -1410,7 +1404,7 @@ cal_one_pcie_x8:
     sw      a0, 0x10(t3)
 
     dli     t1, 0x90000e0060100000
-    li      a1, (0x1<<18)
+    li      a1, (0x7<<18)|(0x7<<2)
     not     a1, a1
     lw      a0, 0x54(t1)
     and     a0, a0, a1
@@ -1520,8 +1514,7 @@ cal_one_pcie_x8:
     dli     t3, 0x90000efe0700981c
     lw      a1, 0x0(t3)
     li      a0, (0x1 << 26)
-    not     a0, a0
-    and     a1, a1, a0
+    or      a1, a0
     sw      a1, 0x0(t3)
 
     dli     t3, 0x90000efe00009800
@@ -1529,7 +1522,7 @@ cal_one_pcie_x8:
     sw      a0, 0x10(t3)
 
     dli     t1, 0x90000e0060000000
-    li      a1, (0x1<<18)
+    li      a1, (0x7<<18)|(0x7<<2)
     not     a1, a1
     lw      a0, 0x54(t1)
     and     a0, a0, a1
@@ -1581,8 +1574,7 @@ cal_one_pcie_x8:
     dli     t3, 0x90000efe0700a01c
     lw      a1, 0x0(t3)
     li      a0, (0x1 << 26)
-    not     a0, a0
-    and     a1, a1, a0
+    or      a1, a0
     sw      a1, 0x0(t3)
 
     dli     t3, 0x90000efe0000a000
@@ -1590,7 +1582,7 @@ cal_one_pcie_x8:
     sw      a0, 0x10(t3)
 
     dli     t1, 0x90000e0060100000
-    li      a1, (0x1<<18)
+    li      a1, (0x7<<18)|(0x7<<2)
     not     a1, a1
     lw      a0, 0x54(t1)
     and     a0, a0, a1
@@ -1700,8 +1692,7 @@ cal_one_pcie_x8:
     dli     t3, 0x90000efe0700781c
     lw      a1, 0x0(t3)
     li      a0, (0x1 << 26)
-    not     a0, a0
-    and     a1, a1, a0
+    or      a1, a0
     sw      a1, 0x0(t3)
 
     dli     t3, 0x90000efe00007800
@@ -1709,7 +1700,7 @@ cal_one_pcie_x8:
     sw      a0, 0x10(t3)
 
     dli     t1, 0x90000e0060000000
-    li      a1, (0x1<<18)
+    li      a1, (0x7<<18)|(0x7<<2)
     not     a1, a1
     lw      a0, 0x54(t1)
     and     a0, a0, a1
@@ -1762,8 +1753,7 @@ cal_one_pcie_x8:
     dli     t3, 0x90000efe0700801c
     lw      a1, 0x0(t3)
     li      a0, (0x1 << 26)
-    not     a0, a0
-    and     a1, a1, a0
+    or      a1, a0
     sw      a1, 0x0(t3)
 
     dli     t3, 0x90000efe00008000
@@ -1771,7 +1761,7 @@ cal_one_pcie_x8:
     sw      a0, 0x10(t3)
 
     dli     t1, 0x90000e0060100000
-    li      a1, (0x1<<18)
+    li      a1, (0x7<<18)|(0x7<<2)
     not     a1, a1
     lw      a0, 0x54(t1)
     and     a0, a0, a1
@@ -1881,8 +1871,7 @@ cal_one_pcie_x8:
     dli     t3, 0x90000efe0700881c
     lw      a1, 0x0(t3)
     li      a0, (0x1 << 26)
-    not     a0, a0
-    and     a1, a1, a0
+    or      a1, a0
     sw      a1, 0x0(t3)
 
     dli     t3, 0x90000efe00008800
@@ -1890,7 +1879,7 @@ cal_one_pcie_x8:
     sw      a0, 0x10(t3)
 
     dli     t1, 0x90000e0060000000
-    li      a1, (0x1<<18)
+    li      a1, (0x7<<18)|(0x7<<2)
     not     a1, a1
     lw      a0, 0x54(t1)
     and     a0, a0, a1
@@ -1942,8 +1931,7 @@ cal_one_pcie_x8:
     dli     t3, 0x90000efe0700901c
     lw      a1, 0x0(t3)
     li      a0, (0x1 << 26)
-    not     a0, a0
-    and     a1, a1, a0
+    or      a1, a0
     sw      a1, 0x0(t3)
 
     dli     t3, 0x90000efe00009000
@@ -1951,7 +1939,7 @@ cal_one_pcie_x8:
     sw      a0, 0x10(t3)
 
     dli     t1, 0x90000e0060100000
-    li      a1, (0x1<<18)
+    li      a1, (0x7<<18)|(0x7<<2)
     not     a1, a1
     lw      a0, 0x54(t1)
     and     a0, a0, a1
