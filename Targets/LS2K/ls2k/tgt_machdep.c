@@ -335,7 +335,6 @@ void tgt_devconfig()
 #endif
 	printf("devconfig done.\n");
 
-	ls_pcie_interrupt_fixup();
 }
 
 extern int test_icache_1(short *addr);

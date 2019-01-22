@@ -19,8 +19,8 @@
 
 #define RANDOM_HEIGHT_Z 37
 
-static char *ADDR_CURSOR = 0xaeff0000;
-static char *MEM_ptr = 0xae800000;	/* frame buffer address register on ls2h mem */
+static char *ADDR_CURSOR = 0x8eff0000;
+static char *MEM_ptr = 0x8e800000;	/* frame buffer address register on ls2h mem */
 
 static int MEM_ADDR = 0;
 
