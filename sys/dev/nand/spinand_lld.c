@@ -24,6 +24,9 @@
 #include <linux/mtd/spinand.h>
 #include <linux/spi.h>
 #include <sys/time.h>
+#include <linux/mtd/nand_bch.h>
+#include <nand_bch.h>
+#include <linux/bitops.h>
 
 #define REG_STRENGTH		0xd0
 #define dev_err(dev,msg...) printf(msg)
@@ -384,6 +387,11 @@ static int spinand_read_from_cache(struct spinand_info *info, u16 byte_id,
 		cmd.addr[1] = (u8)((column & 0xff00) >> 8);
 		cmd.addr[2] = (u8)(column & 0x00fe);
 	} else {
+		if(byte_id > 0)
+		{
+			column |= 0x8000;
+		}
+
 		cmd.addr[0] = (u8)((column & 0xff00) >> 8);
 		cmd.addr[1] = (u8)(column & 0x00ff);
 		cmd.addr[2] = (u8)(0xff);
@@ -427,6 +435,7 @@ static int spinand_read_page(struct spinand_info *info, int page_id,
 		if (ret < 0) {
 			dev_err(&info->spi->dev,
 					"err %d read status register\n", ret);
+			memset(rbuf,0,len);
 			return ret;
 		}
 
@@ -434,6 +443,8 @@ static int spinand_read_page(struct spinand_info *info, int page_id,
 			if ((status & STATUS_ECC_MASK) == STATUS_ECC_ERROR) {
 				dev_err(&info->spi->dev, "ecc error, page=%d\n",
 						page_id);
+				ret = spinand_disable_ecc(info->spi);
+				memset(rbuf,0,len);
 				return 0;
 			}
 			break;
@@ -608,7 +619,7 @@ static int spinand_erase_block_erase(struct spi_device *spi_nand, int block_id)
  *   and then send the 0xd8 erase command
  *   Poll to wait for the tERS time to complete the tranaction.
  */
-static int spinand_erase_block(struct spi_device *spi_nand, int block_id)
+static int spinand_erase_block(struct spi_device *spi_nand, int block_id, struct mtd_info *mtd)
 {
 	int retval;
 	u8 status = 0;
@@ -631,6 +642,7 @@ static int spinand_erase_block(struct spi_device *spi_nand, int block_id)
 			if ((status & STATUS_E_FAIL_MASK) == STATUS_E_FAIL) {
 				dev_err(&spi_nand->dev,
 					"erase error, block %d\n", block_id);
+				mtd->block_markbad(mtd, block_id*mtd->writesize);
 				return -1;
 			} else
 				break;
@@ -763,7 +775,14 @@ static void spinand_cmdfunc(struct mtd_info *mtd, unsigned int command,
 	/* READOOB reads only the OOB because no ECC is performed. */
 	case NAND_CMD_READOOB:
 		state->buf_ptr = 0;
-//		spinand_read_page(info, page, 0x800, 0x40, state->buf);
+		if(info->gd_ctype == 0)
+		{
+			if(page == 0xffc0 || page == 0x6440)
+			{
+				memset(state->buf,0,mtd->oobsize);
+				break;
+			}
+		}
 		spinand_read_page(info, page, mtd->writesize, mtd->oobsize, state->buf);
 		break;
 	case NAND_CMD_RNDOUT:
@@ -778,7 +797,7 @@ static void spinand_cmdfunc(struct mtd_info *mtd, unsigned int command,
 		break;
 	/* ERASE1 stores the block and page address */
 	case NAND_CMD_ERASE1:
-		spinand_erase_block(info->spi, page);
+		spinand_erase_block(info->spi, page, mtd);
 		break;
 	/* ERASE2 uses the block and page address from ERASE1 */
 	case NAND_CMD_ERASE2:
@@ -837,29 +856,6 @@ static int spinand_lock_block(struct spi_device *spi_nand, u8 lock)
 	return 0;
 }
 
-static int ls2h_nand_ecc_calculate(struct mtd_info *mtd,
-				   const uint8_t * dat, uint8_t * ecc_code)
-{
-	return 0;
-}
-
-static int ls2h_nand_ecc_correct(struct mtd_info *mtd,
-				 uint8_t * dat, uint8_t * read_ecc,
-				 uint8_t * calc_ecc)
-{
-	/*
-	 * Any error include ERR_SEND_CMD, ERR_DBERR, ERR_BUSERR, we
-	 * consider it as a ecc error which will tell the caller the
-	 * read fail We have distinguish all the errors, but the
-	 * nand_read_ecc only check this function return value
-	 */
-	return 0;
-}
-
-static void ls2h_nand_ecc_hwctl(struct mtd_info *mtd, int mode)
-{
-	return;
-}
 
 /*
  * spinand_probe - [spinand Interface]
@@ -913,10 +909,6 @@ int spinand_probe(struct spi_device *spi_nand)
 	chip->waitfunc	= spinand_wait;
 	chip->options	|= NAND_CACHEPRG;
 	chip->select_chip = spinand_select_chip;
-
-	chip->ecc.hwctl = ls2h_nand_ecc_hwctl;
-	chip->ecc.calculate = ls2h_nand_ecc_calculate;
-	chip->ecc.correct = ls2h_nand_ecc_correct;
 
 	mtd = devm_kzalloc(&spi_nand->dev, sizeof(struct mtd_info), GFP_KERNEL);
 	if (!mtd)
