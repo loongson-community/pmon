@@ -97,7 +97,7 @@ struct nand_flash_dev nand_flash_ids[] = {
 	{"NAND 512MiB 3,3V 16-bit",	0xCC, 0, 512, 0, LP_OPTIONS16},
 	{"NAND 512MiB 3,3V 8-bit",	0xB4, 4096, 512, 0x40000, LP_OPTIONS}, // mt29f
 	{"NAND 512MiB 3,3V 8-bit",	0xA4, 4096, 512, 0x40000, LP_OPTIONS}, //
-	{"NAND 512MiB 3,3V 8-bit",	0xD4, 4096, 1024, 4096*64, LP_OPTIONS}, //
+	{"NAND 512MiB 3,3V 8-bit",	0xD4, 4096, 512, 4096*64, LP_OPTIONS}, //
 	{"NAND 16GiB 1,8V 8-bit",	0x64, 8192, 8*1024, 2048*1024, LP_OPTIONS},
 
 	/* 8 Gigabit */
