@@ -8,6 +8,7 @@
 //#include <include/types.h>
 #include <pflash.h>
 #include <linux/spi.h>
+#include <linux/bitops.h>
 #include "spinand_mt29f.h"
 #include "spinand_lld.h"
 #include "m25p80.h"
@@ -37,16 +38,17 @@
 int write_sr(char val);
 void spi_initw()
 { 
+	int d;
   	SET_SPI(SPSR, 0xc0); 
   	SET_SPI(PARAM, 0x40);             //espr:0100
   	SET_SPI(PARAM2,0x01); 
 #ifdef LS2H_SPI_HIGHSPEED
- 	SET_SPI(SPER, 0x04); //spre:01 
-  	SET_SPI(SPCR, 0x51);
+	d=1;
 #else
- 	SET_SPI(SPER, 0x05); //spre:01 
-  	SET_SPI(SPCR, 0x50);
+	d=4;
 #endif
+ 	SET_SPI(SPER, 0x04|((d>>2)&3)); //spre:01 
+  	SET_SPI(SPCR, 0x50|(d&3));
 	SET_SPI(SOFTCS,0xff);
 }
 
@@ -682,18 +684,21 @@ return 0;
 
 static struct ls1x_spi {
 	void	*base;
+	int hz;
 }  ls1x_spi0 = { 0xbfff0220} ;
 
 struct spi_device spi_nand = 
 {
 .dev = &ls1x_spi0,
 .chip_select = 1,
+.max_speed_hz = 20000000,
 }; 
 
 struct spi_device spi_nand1 = 
 {
 .dev = &ls1x_spi0,
 .chip_select = 0,
+.max_speed_hz = 40000000,
 }; 
 
 
@@ -761,6 +766,46 @@ out:
 }
 
 
+#define DIV_ROUND_UP(n,d)       (((n) + (d) - 1) / (d))
+static int ls_spi_setup(struct ls1x_spi *ls1x_spi,  struct spi_device *spi)
+{
+	unsigned int hz;
+	unsigned int div, div_tmp;
+	unsigned int bit;
+	unsigned long clk;
+	unsigned char val, spcr, sper;
+	const char rdiv[12]= {0,1,4,2,3,5,6,7,8,9,10,11}; 
+
+	hz  = spi->max_speed_hz;
+
+	if ( hz && ls1x_spi->hz != hz) {
+		clk = 100000000;
+		div = DIV_ROUND_UP(clk, hz);
+
+		if (div < 2)
+			div = 2;
+
+		if (div > 4096)
+			div = 4096;
+
+		bit = fls(div) - 1;
+		if((1<<bit) == div) bit--;
+		div_tmp = rdiv[bit];
+		ls1x_spi->hz = hz;
+		spcr = div_tmp & 3;
+		sper = (div_tmp >> 2) & 3;
+
+		val = ls1x_spi_read_reg(ls1x_spi, SPCR);
+		ls1x_spi_write_reg(ls1x_spi, SPCR, (val & ~3) | spcr);
+		val = ls1x_spi_read_reg(ls1x_spi, SPER);
+		ls1x_spi_write_reg(ls1x_spi, SPER, (val & ~3) | sper);
+
+	}
+	return 0;
+}
+
+
+
 int spi_sync(struct spi_device *spi, struct spi_message *m)
 {
 
@@ -769,6 +814,8 @@ int spi_sync(struct spi_device *spi, struct spi_message *m)
 	unsigned long flags;
 	int cs;
 	int param;
+
+	ls_spi_setup(ls1x_spi, spi);
 	
 	m->actual_length = 0;
 	m->status		 = 0;
