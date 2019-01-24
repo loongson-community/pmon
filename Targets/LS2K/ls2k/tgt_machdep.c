@@ -1751,7 +1751,7 @@ struct pci_config_data pci_config_array[] = {
 [13] = {
 .bus = 0, .dev = 0xd, .func = 0, .interrupt = 44, .primary = 0, .secondary = 0x10,
 .subordinate = 0x10, .mem_start = 0x60000000, .mem_end = 0x77ffffff, .type = PCI_BRIDGE,
-.io_start = 0x18040000, .io_end = 0x184fffff,
+.io_start = 0x18400000, .io_end = 0x184fffff,
 },
 			/*	PCIE1-PORT1	*/
 [14] = {
@@ -1760,10 +1760,6 @@ struct pci_config_data pci_config_array[] = {
 .io_start = 0x18500000, .io_end = 0x185fffff,
 },
 
-[15] = {
-.bus = 0, .dev = 0xe, .func = 0, .interrupt = 0, .primary = 0, .secondary = 0,
-.subordinate = 0, .mem_start = 0x00000000, .mem_end = 0x00000000, .type = PCI_DEV,
-},
 {},
 };
 
