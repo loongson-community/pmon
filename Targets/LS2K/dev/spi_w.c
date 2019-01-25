@@ -47,7 +47,7 @@ void spi_initw()
 #else
 	d=4;
 #endif
- 	SET_SPI(SPER, 0x04|((d>>2)&3)); //spre:01 
+ 	SET_SPI(SPER, 0x00|((d>>2)&3)); //spre:01 
   	SET_SPI(SPCR, 0x50|(d&3));
 	SET_SPI(SOFTCS,0xff);
 }
@@ -691,7 +691,7 @@ struct spi_device spi_nand =
 {
 .dev = &ls1x_spi0,
 .chip_select = 1,
-.max_speed_hz = 20000000,
+.max_speed_hz = 100000000,
 }; 
 
 struct spi_device spi_nand1 = 
