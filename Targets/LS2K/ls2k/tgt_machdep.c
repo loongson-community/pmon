@@ -1679,82 +1679,82 @@ struct pci_config_data pci_config_array[] = {
 .subordinate = 0, .mem_start = 0x1fe00000, .mem_end = 0x1fe0ffff, .type = PCI_DEV,
 },
 			/*		GMAC0	*/
-[0] = {
+[1] = {
 .bus = 0, .dev = 0x3, .func = 0, .interrupt = 20, .primary = 0, .secondary = 0,
 .subordinate = 0, .mem_start = 0x40000000, .mem_end = 0x4000ffff, .type = PCI_DEV,
 },
 			/*		GMAC1	*/
-[1] = {
+[2] = {
 .bus = 0, .dev = 0x3, .func = 1, .interrupt = 22, .primary = 0, .secondary = 0,
 .subordinate = 0, .mem_start = 0x40010000, .mem_end = 0x4001ffff, .type = PCI_DEV,
 },
 			/*		OTG		*/
-[2] = {
+[3] = {
 .bus = 0, .dev = 0x4, .func = 0, .interrupt = 57, .primary = 0, .secondary = 0,
 .subordinate = 0, .mem_start = 0x40020000, .mem_end = 0x4005ffff, .type = PCI_DEV,
 },
 			/*		EHCI	*/
-[3] = {
+[4] = {
 .bus = 0, .dev = 0x4, .func = 1, .interrupt = 58, .primary = 0, .secondary = 0,
 .subordinate = 0, .mem_start = 0x40060000, .mem_end = 0x4006ffff, .type = PCI_DEV,
 },
 			/*		OHCI	*/
-[4] = {
+[5] = {
 .bus = 0, .dev = 0x4, .func = 2, .interrupt = 59, .primary = 0, .secondary = 0,
 .subordinate = 0, .mem_start = 0x40070000, .mem_end = 0x4007ffff, .type = PCI_DEV,
 },
 			/*		GPU		*/
-[5] = {
+[6] = {
 .bus = 0, .dev = 0x5, .func = 0, .interrupt = 37, .primary = 0, .secondary = 0,
 .subordinate = 0, .mem_start = 0x40080000, .mem_end = 0x400bffff, .type = PCI_DEV,
 },
 			/*		DC		*/
-[6] = {
+[7] = {
 .bus = 0, .dev = 0x6, .func = 0, .interrupt = 36, .primary = 0, .secondary = 0,
 .subordinate = 0, .mem_start = 0x400c0000, .mem_end = 0x400cffff, .type = PCI_DEV,
 },
 			/*		HDA		*/
-[7] = {
+[8] = {
 .bus = 0, .dev = 0x7, .func = 0, .interrupt = 12, .primary = 0, .secondary = 0,
 .subordinate = 0, .mem_start = 0x400d0000, .mem_end = 0x400dffff, .type = PCI_DEV,
 },
 			/*		SATA	*/
-[8] = {
+[9] = {
 .bus = 0, .dev = 0x8, .func = 0, .interrupt = 27, .primary = 0, .secondary = 0,
 .subordinate = 0, .mem_start = 0x400e0000, .mem_end = 0x400effff, .type = PCI_DEV,
 },
 			/*	PCIE0-PORT0	*/
-[9] = {
+[10] = {
 .bus = 0, .dev = 0x9, .func = 0, .interrupt = 40, .primary = 0, .secondary = 1,
 .subordinate = 1, .mem_start = 0x40100000, .mem_end = 0x4fffffff, .type = PCI_BRIDGE,
 .io_start = 0x18000000, .io_end = 0x180fffff,
 },
 			/*	PCIE0-PORT1	*/
-[10] = {
+[11] = {
 .bus = 0, .dev = 0xa, .func = 0, .interrupt = 41, .primary = 0, .secondary = 4,
 .subordinate = 4, .mem_start = 0x50000000, .mem_end = 0x53ffffff, .type = PCI_BRIDGE,
 .io_start = 0x18100000, .io_end = 0x181fffff,
 },
 			/*	PCIE0-PORT2	*/
-[11] = {
+[12] = {
 .bus = 0, .dev = 0xb, .func = 0, .interrupt = 42, .primary = 0, .secondary = 8,
 .subordinate = 8, .mem_start = 0x54000000, .mem_end = 0x57ffffff, .type = PCI_BRIDGE,
 .io_start = 0x18200000, .io_end = 0x182fffff,
 },
 			/*	PCIE0-PORT3	*/
-[12] = {
+[13] = {
 .bus = 0, .dev = 0xc, .func = 0, .interrupt = 43, .primary = 0, .secondary = 0xc,
 .subordinate = 0xc, .mem_start = 0x58000000, .mem_end = 0x5fffffff, .type = PCI_BRIDGE,
 .io_start = 0x18300000, .io_end = 0x183fffff,
 },
 			/*	PCIE1-PORT0	*/
-[13] = {
+[14] = {
 .bus = 0, .dev = 0xd, .func = 0, .interrupt = 44, .primary = 0, .secondary = 0x10,
 .subordinate = 0x10, .mem_start = 0x60000000, .mem_end = 0x77ffffff, .type = PCI_BRIDGE,
 .io_start = 0x18400000, .io_end = 0x184fffff,
 },
 			/*	PCIE1-PORT1	*/
-[14] = {
+[15] = {
 .bus = 0, .dev = 0xe, .func = 0, .interrupt = 45, .primary = 0, .secondary = 0x14,
 .subordinate = 0x14, .mem_start = 0x78000000, .mem_end = 0x7fffffff, .type = PCI_BRIDGE,
 .io_start = 0x18500000, .io_end = 0x185fffff,
