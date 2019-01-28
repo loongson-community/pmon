@@ -285,9 +285,9 @@ if(argc<3)return -1;
 
         if(!fp0||!fp1){printf("open file error!\n");free(buf);return -1;}
         if((mtdbs=(test_mtd_or_mtdc(fp0))))
-	  bs = mtdbs;
+	  bs = (bs+mtdbs-1)/mtdbs*mtdbs;
 	else if((mtdbs=(test_mtd_or_mtdc(fp1))))
-	  bs = mtdbs;
+	  bs = (bs+mtdbs-1)/mtdbs*mtdbs;
         lseek(fp0,skip*bs,SEEK_SET);
         lseek(fp1,seek*bs,SEEK_SET);
         buf=malloc(bs);
