@@ -329,10 +329,19 @@ cal_memsize:
 	daddu	a2, a2, 1
 	b		cal_memsize
 	nop
-
 1:
 	divu	a2, t1, a2
+
+    GET_SDRAM_WIDTH
+    beqz    t3, 1f
+    nop
+    GET_MC1_SDRAM_WIDTH
+1:
 	dli     t5, 0x2
+    beqz    a1, x8
+    nop
+	dli     t5, 0x1
+x8:
 	divu	a2, a2, t5
 
 	dli		t1, 0x1

@@ -294,6 +294,7 @@ temparary used in PROBE_DIMM
 #define MC_CS_MAP_OFFSET    16
 #define MC1_CS_MAP_OFFSET   48
 #define SDRAM_WIDTH_OFFSET  15
+#define MC1_SDRAM_WIDTH_OFFSET 47
 #define MC_CS_MAP_MASK      (0xf)
 #define MC1_MEMSIZE_OFFSET  40
 #define MC0_MEMSIZE_OFFSET  8
@@ -311,6 +312,11 @@ dli     a1, 0x1;\
 dsll    a1, a1, SDRAM_WIDTH_OFFSET;\
 and     a1, s1, a1;\
 dsrl    a1, a1, SDRAM_WIDTH_OFFSET;
+#define GET_MC1_SDRAM_WIDTH      \
+dli     a1, 0x1;\
+dsll    a1, a1, MC1_SDRAM_WIDTH_OFFSET;\
+and     a1, s1, a1;\
+dsrl    a1, a1, MC1_SDRAM_WIDTH_OFFSET;
 #define GET_DIMM_ECC       \
 dli     a1, 0x1;\
 dsll    a1, a1, DIMM_ECC_OFFSET;\
