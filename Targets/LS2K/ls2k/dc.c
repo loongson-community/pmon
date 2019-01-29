@@ -24,8 +24,13 @@
 
 #define RANDOM_HEIGHT_Z 37
 
+#ifdef CONFIG_FB_NONCOHERENT
+static char *ADDR_CURSOR = 0xaeff0000;
+static char *MEM_ptr = 0xae800000;	/* frame buffer address register on ls2h mem */
+#else
 static char *ADDR_CURSOR = 0x8eff0000;
 static char *MEM_ptr = 0x8e800000;	/* frame buffer address register on ls2h mem */
+#endif
 
 static int MEM_ADDR = 0;
 
@@ -322,6 +327,12 @@ int dc_init()
 	config_cursor(val);
 
 	printf("display controller reg config complete!\n");
+#ifdef CONFIG_FB_NONCOHERENT
+	/*dc nocoherent*/
+	*(volatile int *)0xbfe10430 &= ~8; 
+#else
+	*(volatile int *)0xbfe10430 |= 8; 
+#endif
 
 	return MEM_ptr;
 }
