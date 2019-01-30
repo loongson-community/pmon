@@ -1851,10 +1851,15 @@ void ls_pci_msi_window_config(void)
 	__raw__writeq(0x900000001fe12580 , 0x000000001fe10081ULL);
 }
 
+
+#define LS2K_PCI_IO_MASK 0x1ffffff
+
 void ls_pcie_mem_fixup(struct pci_config_data *pdata)
 {
 	unsigned int dev;
 	unsigned int val;
+	unsigned int io_start;
+	unsigned int io_end;
 
 	dev = _pci_make_tag(pdata->bus, pdata->dev, pdata->func);
 	val = _pci_conf_read32(dev, 0x00);
@@ -1870,11 +1875,13 @@ void ls_pcie_mem_fixup(struct pci_config_data *pdata)
 					_pci_conf_write32(dev, 0x20, val);
 					_pci_conf_write32(dev, 0x24, val);
 
+					io_start = pdata->io_start & LS2K_PCI_IO_MASK;
+					io_end = pdata->io_end & LS2K_PCI_IO_MASK;
 					/*write io upper 16bit base and io upper 16bit limit*/
-					val = ((pdata->io_start >> 16)&0xff)|(pdata->io_end&0xff0000);
+					val = ((io_start >> 16)&0xffff)|(io_end&0xffff0000);
 					_pci_conf_write32(dev, 0x30, val);
 					/*write io base and io limit*/
-					val = ((pdata->io_start >> 8)&0xf0)|(pdata->io_end & 0xf0);
+					val = ((io_start >> 8)&0xf0)|(io_end & 0xf000);
 					val|= 0x1 | (0x1 << 8);
 					_pci_conf_write16(dev, 0x1c, val);
 			}
