@@ -416,7 +416,7 @@ run:
 	}
 #endif
 	printf("devconfig done.\n");
-
+	clear_pcie_inter_irq();
 	ls_pcie_interrupt_fixup();
 }
 
@@ -1226,6 +1226,25 @@ int get_update(char *p)
     p[10] = '\0';
 
     return 0;
+}
+
+void clear_pcie_inter_irq(void)
+{
+        unsigned int dev;
+        unsigned int val;
+        unsigned int addr;
+        int i;
+        for(i = 9;i < 21;i++) {
+                dev = _pci_make_tag(0, i, 0);
+                val = _pci_conf_read(dev, 0x00);
+                if( val != 0xffffffff){
+                        addr = ((_pci_conf_read(dev, 0x10) & (~0xf)) | 0x80000000);
+                       	val = inl(addr + 0x18);
+                        if(val){
+                                outl(addr + 0x1c, val);
+                        }
+                }
+        }
 }
 
 void ls_pcie_interrupt_fixup(void)
