@@ -421,6 +421,7 @@ extern char MipsException[], MipsExceptionEnd[];
 
 unsigned char hwethadr[6];
 unsigned short wdt;
+unsigned long memsz;
 
 void initmips(unsigned int raw_memsz);
 
@@ -436,6 +437,11 @@ initmips(unsigned int raw_memsz)
 {
 	int i;
     int* io_addr;
+    memsz = *(unsigned short *)(((char *)(tgt_flashmap())->fl_map_base)+NVRAM_OFFS+MEMSZ_OFFS);
+    if(!memsz || memsz == 0xffff)
+	memsz = raw_memsz;
+    else
+	raw_memsz = memsz;
     tgt_fpuenable();
     SBD_DISPLAY("BEV1",0);
     bcopy(MipsException, (char *)TLB_MISS_EXC_VEC, MipsExceptionEnd - MipsException);
@@ -1963,6 +1969,10 @@ tgt_mapenv(int (*func) __P((char *, char *)))
 		sprintf(env, "%d", (wdt==0||wdt==0xffff)?300:wdt);
 		(*func)("wdt", env);
 
+		sprintf(env, "%d", memsz);
+		(*func)("memsz", env);
+
+
 #ifndef NVRAM_IN_FLASH
 		free(nvram);
 #endif
@@ -2182,6 +2192,8 @@ tgt_mapenv(int (*func) __P((char *, char *)))
 				} 
 			} else if (strcmp("wdt", name) == 0) {
 				wdt = strtoul(value,0,0);
+			} else if (strcmp("memsz", name) == 0) {
+				memsz = strtoul(value,0,0);
 			} else {
 				ep = nvrambuf+2;
 				if(*ep != '\0') {
@@ -2234,6 +2246,7 @@ tgt_mapenv(int (*func) __P((char *, char *)))
 
 			bcopy(hwethadr, &nvramsecbuf[ETHER_OFFS], 6);
 			bcopy(&wdt, &nvramsecbuf[WDT_OFFS], 2);
+			bcopy(&memsz, &nvramsecbuf[MEMSZ_OFFS], 2);
 #ifdef NVRAM_IN_FLASH
 			if(fl_erase_device(nvram, NVRAM_SECSIZE, FALSE)) {
 				printf("Error! Nvram erase failed!\n");
