@@ -408,6 +408,11 @@ static inline int fls(int x)
 	}
 	return r;
 }
+
+__attribute__((weak)) int pci_get_busno(struct pci_device *pd, int bus)
+{
+	return bus + 1;
+}
 
 /*
  * Scan each PCI device on the system and record its configuration
@@ -540,7 +545,12 @@ _pci_query_dev_func (struct pci_device *dev, pcitag_t tag, int initialise)
         isbridge = 1;
 
         pd->bridge.pribus_num = bus;
+#if 1
+	_pci_nbus = pci_get_busno(pd, _pci_nbus);
+	pd->bridge.secbus_num  = _pci_nbus;
+#else
         pd->bridge.secbus_num =  ++_pci_nbus;
+#endif
         /* Set it temperary to same as secondary bus number */
         pd->bridge.subbus_num =  pd->bridge.secbus_num;
 
