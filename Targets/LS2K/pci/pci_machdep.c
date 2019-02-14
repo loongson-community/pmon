@@ -249,3 +249,33 @@ pci_sync_cache(p, adr, size, rw)
 //	CPU_IOFlushDCache(adr, size, rw);
 }
 
+int pci_get_busno(struct pci_device *pd, int bus)
+{
+	int ret = bus + 1;
+	if(!pd->pa.pa_bus)
+	{
+		switch(pd->pa.pa_device)
+		{
+			case 9:
+				ret = 1;
+				break;
+			case 0xa:
+				ret = 4;
+				break;
+			case 0xb:
+				ret = 8;
+				break;
+			case 0xc:
+				ret = 0xc;
+				break;
+			case 0xd:
+				ret = 0x10;
+				break;
+			case 0xe:
+				ret = 0x14;
+				break;
+		}
+	}
+	
+	return ret;
+}
