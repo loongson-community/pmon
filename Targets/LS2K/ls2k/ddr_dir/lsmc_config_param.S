@@ -304,6 +304,7 @@ set_tREFI:
 	or		t1, t1, t8
 	sb		a2, 0x3(t1)
 
+#ifndef NO_AUTO_TRFC
 set_tRFC:
     GET_MC0_MEMSIZE
     beqz    t3, 1f
@@ -378,6 +379,7 @@ x8:
 	sb		t5, 0x2(t1)
  
 2:
+#endif
 
     //for UDIMM 4cs,open 2T mode
     GET_DIMM_TYPE
