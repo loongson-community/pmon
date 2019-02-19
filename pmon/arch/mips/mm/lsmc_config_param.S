@@ -300,6 +300,97 @@ set_tRTP:
 	sb		t4, 0x18(t1)
 */
 #endif
+set_tREFI:
+	dli		t1, DDR_FREQ
+	divu	t1, t1, 10
+	dli		a2, 78
+	dmulou	a2, a2, t1
+#ifndef TEMP_EXTREME
+	dsrl	a2, a2, 8
+#else
+	dsrl	a2, a2, 9
+#endif
+//	daddu	a2, a2, 1
+	dli		t1, 0x1c8
+	or		t1, t1, t8
+	sb		a2, 0x3(t1)
+
+#ifndef  NO_AUTO_TRFC 
+set_tRFC:
+    GET_MC0_MEMSIZE
+    beqz    t3, 1f
+    nop
+    GET_MC1_MEMSIZE
+1:
+    move	t1, a1
+	GET_MC_CS_MAP
+    beqz    t3, 1f
+    nop
+	GET_MC1_CS_MAP
+1:
+	dli 	t5, 0x4
+	dli		a2, 0x0
+cal_memsize:
+	dsubu	t5, t5, 1
+	beqz	t5, 1f
+	nop
+	and		t4, a1, 0x1
+	dsrl	a1, a1, 0x1	
+	beqz	t4, cal_memsize
+	nop
+	daddu	a2, a2, 1
+	b		cal_memsize
+	nop
+1:
+	divu	a2, t1, a2
+
+    GET_SDRAM_WIDTH
+    beqz    t3, 1f
+    nop
+    GET_MC1_SDRAM_WIDTH
+1:
+	dli     t5, 0x2
+    beqz    a1, x8
+    nop
+	dli     t5, 0x1
+x8:
+	divu	a2, a2, t5
+
+	dli		t1, 0x1
+	blt		a2, t1, 21f
+	dli		t5, 0x9
+
+	dli		t1, 0x2
+	blt		a2, t1, 21f
+	dli		t5, 0xb
+
+	dli		t1, 0x4
+	blt		a2, t1, 21f
+	dli		t5, 0x10
+
+	dli		t1, 0x8
+	blt		a2, t1, 21f
+	dli		t5, 0x1a
+
+	dli		t1, 0x10
+	blt		a2, t1, 21f
+	dli		t5, 0x23
+
+	PRINTSTR("\r\n memsize wrong \r\n")
+	b 		2f
+	nop
+21:
+
+	dli		t1, DDR_FREQ
+	dmulou	t5, t5, t1
+	divu	t5, t5, 100
+	
+	dli		t1, 0x1c8
+	or		t1, t1, t8
+	sb		t5, 0x2(t1)
+ 
+2:
+#endif
 
     //for UDIMM 4cs,open 2T mode
     GET_DIMM_TYPE
