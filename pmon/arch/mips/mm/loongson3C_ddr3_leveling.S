@@ -291,10 +291,21 @@ dll_wrdqs_add0:
 	sb		t4, OFFSET_WRDQ_LTHF(t1) //set wrdq_lt_half
 2:
 #endif
-        bgt             t6, MDL_CNT,  leveling_failed
+        blt             t6, MDL_CNT,  1f
         nop
-        daddu           t6, t6, 0x1
-	b 		lvl_req_set0
+#ifdef	DLL_DELAY_LOOP
+	PRINTSTR("\r\n sample 0 is time out \r\n")    
+    b   leveling_failed    
+    nop
+#else
+2:    
+	PRINTSTR("\r\n sample 0 is time out \r\n")    
+    b   2b
+    nop
+#endif
+1:    
+    daddu   t6, t6, 0x1
+	b 	lvl_req_set0
 	nop
 
 resp_set0_done:
@@ -429,10 +440,21 @@ dll_wrdqs_add1:
 	sb		t4, OFFSET_WRDQ_LTHF(t1) //set wrdq_lt_half
 2:
 #endif
-        bgt             t6, MDL_CNT,  leveling_failed
+        blt             t6, MDL_CNT,  1f
         nop
-        daddu           t6, t6, 0x1
-	b 		lvl_req_set1
+#ifdef	DLL_DELAY_LOOP
+	PRINTSTR("\r\n sample 1 is time out \r\n")    
+    b   leveling_failed    
+    nop
+#else
+2:    
+	PRINTSTR("\r\n sample 1 is time out \r\n")    
+    b   2b
+    nop
+#endif
+1:
+    daddu   t6, t6, 0x1
+	b   lvl_req_set1
 	nop
 
 resp_set1_done:
@@ -617,7 +639,7 @@ wrdq_lt_half_test_loop:
 	dli	t4, 0x20
 	mulou	t1, a0, t4
 	or		t1, t1, t8
-#if 1
+#if 0
 	bal		hexserial
 	nop
 #endif
@@ -638,7 +660,7 @@ wrdq_lt_half_test_loop:
 	dli	t4, 0x20
 	mulou	t1, a0, t4
 	or		t1, t1, t8
-#if 1
+#if 0
 	bal		hexserial
 	nop
 #endif
@@ -651,9 +673,6 @@ wrdq_lt_half_test_loop:
 
 record_slice_num:
     move    t3, t2 //the slice number save in t3
-    move    a0, t3
-	bal	hexserial
-	nop
     beq     t3, 0x8, first_slice_wrdq_lt_half_test
     nop
 

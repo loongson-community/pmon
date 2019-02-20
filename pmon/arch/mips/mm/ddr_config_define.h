@@ -1,7 +1,7 @@
 /***********************************************************
  * Author: Chen Xinke
 ***********************************************************/
-/***********************************************************
+/*********************************************************** 
  msize map
 [ 7: 0]: Node 0 memorysize
 [15: 8]: Node 1 memorysize
@@ -67,7 +67,7 @@ DIMM infor:
 |[15:15]| SDRAM_WIDTH        | 1'b1    | x16               |
 |       |                    | 1'b0    | x8                |
 ------------------------------------------------------------
-|[63:47]| MC1--like s1[31:16] for MC0
+|[63:48]| MC1--like s1[31:16] for MC0
 temparary used in PROBE_DIMM
 |[38:32]| DIMM_MEMSIZE       | 7'b0000 | 0M                |
 |       |                    | 7'b0001 | 512M              |
@@ -292,7 +292,9 @@ temparary used in PROBE_DIMM
 #define ADDR_MIRROR_OFFSET  22
 #define COL_SIZE_OFFSET     20
 #define MC_CS_MAP_OFFSET    16
+#define MC1_CS_MAP_OFFSET   48
 #define SDRAM_WIDTH_OFFSET  15
+#define MC1_SDRAM_WIDTH_OFFSET 47
 #define MC_CS_MAP_MASK      (0xf)
 #define MC1_MEMSIZE_OFFSET  40
 #define MC0_MEMSIZE_OFFSET  8
@@ -310,6 +312,11 @@ dli     a1, 0x1;\
 dsll    a1, a1, SDRAM_WIDTH_OFFSET;\
 and     a1, s1, a1;\
 dsrl    a1, a1, SDRAM_WIDTH_OFFSET;
+#define GET_MC1_SDRAM_WIDTH      \
+dli     a1, 0x1;\
+dsll    a1, a1, MC1_SDRAM_WIDTH_OFFSET;\
+and     a1, s1, a1;\
+dsrl    a1, a1, MC1_SDRAM_WIDTH_OFFSET;
 #define GET_DIMM_ECC       \
 dli     a1, 0x1;\
 dsll    a1, a1, DIMM_ECC_OFFSET;\
@@ -350,6 +357,11 @@ dli     a1, MC_CS_MAP_MASK;\
 dsll    a1, a1, MC_CS_MAP_OFFSET;\
 and     a1, s1, a1;\
 dsrl    a1, a1, MC_CS_MAP_OFFSET;
+#define GET_MC1_CS_MAP      \
+dli     a1, MC_CS_MAP_MASK;\
+dsll    a1, a1, MC1_CS_MAP_OFFSET;\
+and     a1, s1, a1;\
+dsrl    a1, a1, MC1_CS_MAP_OFFSET;
 #define GET_DIMM_MEMSIZE      \
 dli     a1, DIMM_MEMSIZE_MASK;\
 dsll    a1, a1, DIMM_MEMSIZE_OFFSET;\
@@ -366,4 +378,3 @@ dsll    a1, a1, MC0_MEMSIZE_OFFSET;\
 and     a1, s1, a1;\
 dsrl    a1, a1, MC0_MEMSIZE_OFFSET;
 #endif
-

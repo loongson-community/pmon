@@ -153,7 +153,7 @@ mc_init:
     nop
     dla     a2, ddr3_RDIMM_reg_data_mc1
 21:
-#ifdef  MULTI_NODE_DDR_PARAM
+#if 1//def  MULTI_NODE_DDR_PARAM
     GET_NODE_ID_a1
     beqz    a1, 4f
     nop
@@ -295,6 +295,16 @@ mc_init:
 #endif
 
 loop_test_leveling:
+    GET_DIMM_TYPE
+    bnez    a1, 21f
+    nop
+    dla     a2, ddr3_reg_data
+    beqz    k0, mc0
+    nop
+    dla     a2, ddr3_reg_data_mc1
+    b       mc0
+    nop
+21:
     dla     a2, ddr3_RDIMM_reg_data
     beqz    k0, mc0
     nop
@@ -387,6 +397,7 @@ wait_dram_init_done1:
 #endif
 
 #ifdef DLL_DELAY_LOOP
+    move    t3, k0 
 /* test memory */
 //    li      t0, 0xbfe10424
 //    lb      a0, 0x1(t0)
@@ -602,6 +613,16 @@ testok:
     nop
     PRINTSTR("\r\n")
 
+    GET_DIMM_TYPE
+    bnez    a1, 21f
+    nop
+    dla     a2, ddr3_reg_data
+    beqz    k0, mc0_1
+    nop
+    dla     a2, ddr3_reg_data_mc1
+    b       mc0_1
+    nop
+21:
     dla     a2, ddr3_RDIMM_reg_data
     beqz    k0, mc0_1
     nop
@@ -856,7 +877,10 @@ finish:
     bal     hexserial
     nop
 
-    PRINTSTR("\r\nPlease write the dll_clk param to corresponding place in loongson_mc2_param.S ,off set is 0x018!!!\r\n")
+    PRINTSTR("\r\nPlease write the dll_clk param to corresponding place in loongson_mc2_param.S ,the offset is 0x018!!!\r\n")
+    PRINTSTR("\r\nPress enter to continue: ");
+    bal     inputaddress
+    nop
 /*init start*/
     dli     t6, 0x1
     ld      t1, START_ADDR(t8)
@@ -881,14 +905,6 @@ wait_dram_init_done2:
     nop
 
     move    s2, k1
-
-#if 1
-ddlp:
-    dli     a0, 0x0
-    b       ddlp
-    nop
-#endif
-
 #endif
 
     move    t3, k0
@@ -900,8 +916,7 @@ ddlp:
     or      t2, t2, a0
     or      t0, t0, a0
 
-//#ifdef  PRINT_DDR_LEVELING   //print registers
-#if 1
+#if 1 //def  PRINT_DDR_LEVELING   //print registers
     PRINTSTR("The MC param after leveling is:\r\n")
     dli     t1, DDR_PARAM_NUM
     GET_NODE_ID_a0
