@@ -3008,18 +3008,40 @@ extern unsigned long long memorysize_high;
 extern unsigned long long memorysize_high_n1;
 
 #include "../../../pmon/cmds/bootparam.h"
+#include "sd.h"
 struct efi_memory_map_loongson * init_memory_map()
 {
 	struct efi_memory_map_loongson *emap = &g_map;
 	int i = 0;
 	unsigned long long size = memorysize_high;
 
-#define EMAP_ENTRY(entry, node, type, start, size) \
+#define EMAP_ENTRY0(entry, node, type, start, size) \
 	emap->map[(entry)].node_id = (node), \
 	emap->map[(entry)].mem_type = (type), \
 	emap->map[(entry)].mem_start = (start), \
 	emap->map[(entry)].mem_size = (size), \
 	(entry)++
+
+#if NSD
+/*
+raid card 0x1000:005f has bug, raid5 write sd will borken memory 0xb33c6000-0xbadc6000.
+so reserve memory.
+*/
+#define EMAP_ENTRY(entry, node, type, start, size) \
+	do{\
+		if((start) + ((size)<<20) > 0xb3000000 && (start) <0xbb000000) \
+		{ \
+			if((start) < 0xb3000000) \
+			EMAP_ENTRY0(entry, node, type, start, (0xb3000000-(start))>>20); \
+			if((start)+((size)<<20)>0xbb000000)\
+			EMAP_ENTRY0(entry, node, type, 0xbb000000, ((start)+((size)<<20)-0xbb000000)>>20); \
+		}\
+		else \
+		EMAP_ENTRY0(entry, node, type, start, size); \
+	}while(0)
+#else
+#define EMAP_ENTRY EMAP_ENTRY0
+#endif
 
  	EMAP_ENTRY(i, 0, SYSTEM_RAM_LOW, 0x00200000, 0x0ee);
  	 /* for entry with mem_size < 1M, we set bit31 to 1 to indicate
@@ -3036,8 +3058,8 @@ struct efi_memory_map_loongson * init_memory_map()
  		EMAP_ENTRY(i, 0, SYSTEM_RAM_HIGH, 0x90000000, 0x6d0);
 
 	if(memorysize_high_n1) {
- 		EMAP_ENTRY(i, 1, SYSTEM_RAM_LOW, 0x00000000000L, 0x100);
- 		EMAP_ENTRY(i, 1, SYSTEM_RAM_HIGH, 0x00000000000L + 0x90000000, memorysize_high_n1 >> 20);
+ 		EMAP_ENTRY0(i, 1, SYSTEM_RAM_LOW, 0x00000000000L, 0x100);
+ 		EMAP_ENTRY0(i, 1, SYSTEM_RAM_HIGH, 0x00000000000L + 0x90000000, memorysize_high_n1 >> 20);
 	}
 
 
