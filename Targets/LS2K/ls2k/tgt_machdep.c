@@ -1754,9 +1754,9 @@ void ls_pcie_config_set(void)
 	int i;
 
 	for(i = 0;i < ARRAY_SIZE(pci_config_array);i++){
-			ls_pcie_mem_fixup(pci_config_array + i);
+			//ls_pcie_mem_fixup(pci_config_array + i);
 			ls_pcie_interrupt_fixup(pci_config_array + i);
-			ls_pcie_busnr_fixup(pci_config_array + i);
+			//ls_pcie_busnr_fixup(pci_config_array + i);
 			ls_pcie_payload_fixup(pci_config_array + i);
 	}
 	ls_pci_msi_window_config();
