@@ -1010,7 +1010,6 @@ _pci_setup_windows (struct pci_device *dev)
             pcireg_t memory;
             
             pm->address = (pm->address + (~pd->bridge.mem_mask))& pd->bridge.mem_mask; //yang23 2013-11-26
-            dev->bridge.secbus->minpcimemaddr = pm->address + pm->size; //yang23 2013-11-26
 
             pd->bridge.secbus->minpcimemaddr = pm->address;
             pd->bridge.secbus->nextpcimemaddr = pm->address + pm->size;
