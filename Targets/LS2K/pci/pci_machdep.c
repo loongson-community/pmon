@@ -117,6 +117,11 @@ _pci_hwinit(initialise, iot, memt)
 	_pci_head = pd;
 	SBD_DISPLAY ("HW-3", 0);
 
+#undef BONITO_PCILO0_BASE
+#undef BONITO_PCILO_SIZE;
+#define BONITO_PCILO0_BASE 0x10000000
+#define BONITO_PCILO_SIZE  0x08000000
+
 	pb->minpcimemaddr  = BONITO_PCILO0_BASE; // 0x4000_0000
 	pb->nextpcimemaddr = BONITO_PCILO0_BASE+BONITO_PCILO_SIZE; // 0x4000_0000 + 0x4000_0000
 	pb->minpciioaddr   = PCI_IO_SPACE_BASE+0x0004000;
@@ -278,4 +283,50 @@ int pci_get_busno(struct pci_device *pd, int bus)
 	}
 	
 	return ret;
+}
+
+extern struct pci_config_data pci_config_array[];
+extern int pci_config_array_size;
+static char pci_dev_index[0x12*4];
+
+int __attribute__ ((constructor)) build_pci() {
+	int i;
+	for(i = 0;i < pci_config_array_size ;i++){
+		pci_dev_index [((pci_config_array[i].dev<<2) |pci_config_array[i].func) ] = i;
+	}
+	return 0;
+}
+
+pcireg_t pci_alloc_fixmemio(struct pci_win *pm)
+{
+	int idx;
+	struct pci_device *pd = pm->device;
+	int reg = pm->reg;
+
+	if(!pd->pa.pa_bus)
+	{
+		idx = pci_dev_index [((pd->pa.pa_device<<2) |pd->pa.pa_function)];
+		if(idx)
+		{
+			if(pci_config_array[idx].type == PCI_DEV)
+			{
+				if(reg == 0x10) return pci_config_array[idx].mem_start;
+			}
+			else
+			{
+				if(reg == PCI_MEMBASE_1) 
+				{
+					pm->size = pci_config_array[idx].mem_end - pci_config_array[idx].mem_start;
+					return pci_config_array[idx].mem_start;
+				}
+
+				if(reg == PCI_IOBASEL_1)
+				{
+					pm->size = pci_config_array[idx].io_end - pci_config_array[idx].io_start;
+					return  pci_config_array[idx].io_start & LS2K_PCI_IO_MASK ;
+				}
+			}
+		}
+	}
+	return -1;
 }

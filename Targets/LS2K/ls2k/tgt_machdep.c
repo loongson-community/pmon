@@ -1655,23 +1655,6 @@ int get_update(char *p)
  }
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 
-struct pci_config_data {
-		int bus;
-		int dev;
-		int func;
-		int interrupt;
-		int primary;
-		int secondary;
-		int subordinate;
-		unsigned int mem_start;
-		unsigned int mem_end;
-		unsigned int io_start;
-		unsigned int io_end;
-#define PCI_DEV		0x1
-#define PCI_BRIDGE	0x2
-		int type;
-}__attribute__((aligned(4)));
-
 struct pci_config_data pci_config_array[] = {
 			/*		APB		*/
 [0] = {
@@ -1760,9 +1743,9 @@ struct pci_config_data pci_config_array[] = {
 .io_start = 0x18500000, .io_end = 0x185fffff,
 },
 
-{},
 };
 
+int pci_config_array_size = ARRAY_SIZE(pci_config_array);
 typedef unsigned long long u64;
 u64  __raw__readq(u64 addr);
 u64 __raw__writeq(u64 addr, u64 val);
