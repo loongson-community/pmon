@@ -87,6 +87,7 @@ static void _insertsort_window(struct pci_win **, struct pci_win *);
 static void _pci_device_insert(struct pci_device *parent, struct pci_device *device);
 pcireg_t _pci_allocate_mem __P((struct pci_device *, vm_size_t, unsigned int));
 pcireg_t _pci_allocate_io __P((struct pci_device *, vm_size_t, unsigned int));
+pcireg_t __attribute__((weak)) pci_alloc_fixmemio(struct pci_win *pm);
 static void _setup_pcibuses(int );
 static void _pci_bus_insert(struct pci_bus *);
 
@@ -894,6 +895,11 @@ _pci_query_dev (struct pci_device *dev, int bus, int device, int initialise)
 	}
 }
 
+pcireg_t __attribute__((weak)) pci_alloc_fixmemio(struct pci_win *pm)
+{
+	return -1;
+}
+
 pcireg_t
 _pci_allocate_mem(dev, size, align)
 	struct pci_device *dev;
@@ -989,7 +995,9 @@ _pci_setup_windows (struct pci_device *dev)
         if(pd->bridge.child) align = ~pd->bridge.mem_mask+1;
         else align = 1<<(fls(pm->size)-1);
 
-        pm->address = _pci_allocate_mem (dev, pm->size, align);
+	pm->address = pci_alloc_fixmemio(pm);
+	if(pm->address == -1)
+		pm->address = _pci_allocate_mem (dev, pm->size, align);
         if (pm->address == -1) {
 	        pci_bigmem_address = (pci_bigmem_address + pm->size-1) & ~(pm->size - 1);
 		    pm->address = pci_bigmem_address;
@@ -1016,8 +1024,12 @@ _pci_setup_windows (struct pci_device *dev)
 
             memory = (((pm->address+pm->size-1) >> 16) << 16) | (pm->address >> 16);
             _pci_conf_write(pd->pa.pa_tag, pm->reg, memory);
+#ifdef LOONGSON_2K
+	    _pci_conf_write(pd->pa.pa_tag,PCI_PMBASEL_1, memory);
+#else
 			/*set end memory bellow start memory to disable prefectable memory*/
             _pci_conf_write(pd->pa.pa_tag,PCI_PMBASEL_1,0x00000010);
+#endif
 
         } else if (pm->reg != PCI_MAPREG_ROM) {
             /* normal memory - expansion rom done below */
@@ -1104,7 +1116,9 @@ _pci_setup_windows (struct pci_device *dev)
         if(pd->bridge.child) align = ~pd->bridge.io_mask+1;
         else align = 1<<(fls(pm->size)-1);
 
-        pm->address = _pci_allocate_io (dev, pm->size, align);
+	pm->address = pci_alloc_fixmemio(pm);
+	if(pm->address == -1)
+		pm->address = _pci_allocate_io (dev, pm->size, align);
         if (pm->address == -1) {
             _pci_tagprintf (pd->pa.pa_tag, 
                             "not enough PCI io space (%d requested)\n", 
