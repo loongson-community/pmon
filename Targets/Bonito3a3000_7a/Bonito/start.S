@@ -849,6 +849,8 @@ no_reboot:
 //#define PRINT_DDR_LEVELING
 //#define DLL_CK_DELAY_DEBUG
 //#define NO_AUTO_TRFC  //adjust TRFC param manually if defined
+//#define PRINT_MSG
+//#define PRINT_DDR_LEVELING
 //#define DEBUG_GMEM
 //#define DEBUG_GMEM_PARAM
 
@@ -867,6 +869,39 @@ no_reboot:
 #ifndef DDR_S1
     	dli     s1, 0xf0a31000f0a31004  // use both, 8G SCS RDIMM
 #else
+#if 0
+    dli     a0, ( MC_SDRAM_TYPE_DDR3    /* sdram type: DDR3/DDR2 */ \
+                | MC_DIMM_ECC_NO        /* dimm ECC: YES/NO */ \
+                | MC_DIMM_BUF_REG_NO    /* dimm buffer register: YES/NO, for RDIMM use YES, all else use NO*/ \
+                | MC_DIMM_WIDTH_64      /* memory data width: 64/32 */ \
+                | MC_SDRAM_ROW_15       /* sdram row address number: 15~11 */ \
+                | MC_SDRAM_COL_10       /* sdram column address number: 12~9 */ \
+                | MC_SDRAM_BANK_8       /* sdram bank number: 8/4 */ \
+                | MC_ADDR_MIRROR_YES    /* for standard DDR3 UDIMM, use YES else use NO */ \
+                | MC_SDRAM_WIDTH_X8     /* SDRAM device data width: 8/16 */ \
+                | MC_USE_CS_0_1         /* the CS pins the sdram connected on(split by '_', from small to big) */ \
+                | MC_MEMSIZE_(8)        /* MC memory size, unit: 512MB */ \
+		|USE_MC_0_1 \
+                )
+    dsll    s1, a0, 32
+    //set MC0 dimm infor
+    dli     a0, ( MC_SDRAM_TYPE_DDR3    /* sdram type: DDR3/DDR2 */ \
+                | MC_DIMM_ECC_NO        /* dimm ECC: YES/NO */ \
+                | MC_DIMM_BUF_REG_NO    /* dimm buffer register: YES/NO, for RDIMM use YES, all else use NO*/ \
+                | MC_DIMM_WIDTH_64      /* memory data width: 64/32 */ \
+                | MC_SDRAM_ROW_15       /* sdram row address number: 15~11 */ \
+                | MC_SDRAM_COL_10       /* sdram column address number: 12~9 */ \
+                | MC_SDRAM_BANK_8       /* sdram bank number: 8/4 */ \
+                | MC_ADDR_MIRROR_YES    /* for standard DDR3 UDIMM, use YES, else use NO */ \
+                | MC_SDRAM_WIDTH_X8     /* SDRAM device data width: 8/16 */ \
+                | MC_USE_CS_0_1         /* the CS pins the sdram connected on(split by '_', from small to big) */ \
+                | MC_MEMSIZE_(8)        /* MC memory size, unit: 512MB */ \
+		| USE_MC_0_1 \
+                )
+    or      s1, s1, a0
+    //set used MC and NODE ID
+    or      s1, s1, MC_NODE_ID_0        /* node ID: 0/1/2/3 */
+#endif
 	dli 	s1, DDR_S1
 #endif
 #endif
@@ -1060,7 +1095,7 @@ no_reboot:
 #endif
 ##########################################
 #ifdef  DEBUG_DDR
-#if 1
+#ifdef DEBUG_DDR_PARAM
     PRINTSTR("\r\nDo test?(0xf: skip): ")
     bal     inputaddress
     nop
@@ -1071,7 +1106,7 @@ no_reboot:
 #endif
 
     dli     s1, 0x0010000080000000
-#if 1
+#ifdef DEBUG_DDR_PARAM
     PRINTSTR("\r\ndefault s1 = 0x");
     dsrl    a0, s1, 32
     bal     hexserial
