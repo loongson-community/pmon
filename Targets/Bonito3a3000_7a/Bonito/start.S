@@ -849,6 +849,9 @@ no_reboot:
 //#define PRINT_DDR_LEVELING
 //#define DLL_CK_DELAY_DEBUG
 //#define NO_AUTO_TRFC  //adjust TRFC param manually if defined
+//#define DEBUG_GMEM
+//#define DEBUG_GMEM_PARAM
+
 
     TTYDBG("\r\nStart Init Memory, wait a while......\r\n")
 ####################################
@@ -861,7 +864,11 @@ no_reboot:
 #ifdef  AUTO_DDR_CONFIG
     dli     s1, 0xf1f00000  //set use MC1 or MC0 or MC1/0 and give All device id
 #else
+#ifndef DDR_S1
     	dli     s1, 0xf0a31000f0a31004  // use both, 8G SCS RDIMM
+#else
+	dli 	s1, DDR_S1
+#endif
 #endif
 //#include "ddr_dir/loongson3_ddr2_config.S"
 #include "ddr_dir/loongson3A2000_ddr2_config.S"
