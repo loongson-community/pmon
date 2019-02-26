@@ -409,6 +409,7 @@ gs_2f_v3_ddr2_cfg:
 #define PLL_L1_LOCKED ((ST_PLL << 17) | (LS_PLL << 16))
 
 #define DDR_SEL_ST 1
+
 //#define REF_33M
 //#define REF_100M
 #ifdef REF_100M
@@ -455,6 +456,12 @@ gs_2f_v3_ddr2_cfg:
 #define L1_REFC   1
 #endif
 #define 	FREQ 1200
+
+#ifdef DDR_SEL_ST 
+#define DDR_FREQ (L1_LOOPC/DDR_REFC)
+#else
+#define DDR_FREQ  (DDR_LOOPC*33/DDR_DIV/DDR_REFC)  
+#endif
 
 #define BYPASS_CORE 0x0
 #define BYPASS_NODE 0x0

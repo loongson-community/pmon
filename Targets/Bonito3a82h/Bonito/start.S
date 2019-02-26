@@ -359,19 +359,14 @@ gs_2f_v3_ddr2_cfg:
 #define SOFT_CLKSEL
 #ifdef SOFT_CLKSEL
 
-//#define DDR_LOOPC    64 //264MHz
-//#define DDR_LOOPC    72 //300MHz
-//#define DDR_LOOPC    80 //330MHz
-//#define DDR_LOOPC  48 //400MHz
-//#define DDR_LOOPC  28 //466MHz
-//#define DDR_LOOPC  60 //500MHz
-#define DDR_LOOPC  64 //533MHz
-//#define DDR_LOOPC  34 //566MHz
-//#define DDR_LOOPC  72 //600MHz
-//#define DDR_LOOPC  38 //633MHz
-#define DDR_REFC   1
-//#define DDR_DIV    8
-#define DDR_DIV    4
+#define DDR_FREQ    528
+#define DDR_REFC    1   //do not modify
+#if (DDR_FREQ < 400)
+#define DDR_DIV     8
+#else
+#define DDR_DIV     4
+#endif
+#define DDR_LOOPC  (DDR_FREQ*DDR_DIV/33)   //48 //396MHz
 
 //#define L1_LOOPC    68//850
 #define L1_LOOPC    64//800
