@@ -302,6 +302,7 @@ pcireg_t pci_alloc_fixmemio(struct pci_win *pm)
 	int idx;
 	struct pci_device *pd = pm->device;
 	int reg = pm->reg;
+	size_t size;
 
 	if(!pd->pa.pa_bus)
 	{
@@ -310,19 +311,31 @@ pcireg_t pci_alloc_fixmemio(struct pci_win *pm)
 		{
 			if(pci_config_array[idx].type == PCI_DEV)
 			{
-				if(reg == 0x10) return pci_config_array[idx].mem_start;
+				if(reg == 0x10) 
+				{
+					size = pci_config_array[idx].mem_end - pci_config_array[idx].mem_start + 1;
+					if(size < pm->size || pci_config_array[idx].mem_start & (pm->size - 1)) 
+						_pci_tagprintf (pd->pa.pa_tag, "alloced resource size or alignment failed,want 0x%x/0x%x, got 0x%x/0x%x\n", pci_config_array[idx].mem_start, size, pci_config_array[idx].mem_start & ~(pm->size -1), pm->size);
+					return pci_config_array[idx].mem_start;
+				}
 			}
 			else
 			{
 				if(reg == PCI_MEMBASE_1) 
 				{
-					pm->size = pci_config_array[idx].mem_end - pci_config_array[idx].mem_start;
+					size = pci_config_array[idx].mem_end - pci_config_array[idx].mem_start + 1;
+					if(size < pm->size || pci_config_array[idx].mem_start & (pm->size - 1)) 
+						_pci_tagprintf (pd->pa.pa_tag, "alloced resource size or alignment failed,want 0x%x/0x%x, got 0x%x/0x%x\n", pci_config_array[idx].mem_start, size, pci_config_array[idx].mem_start & ~(pm->size -1), pm->size);
+					pm->size = size;
 					return pci_config_array[idx].mem_start;
 				}
 
 				if(reg == PCI_IOBASEL_1)
 				{
-					pm->size = pci_config_array[idx].io_end - pci_config_array[idx].io_start;
+					size = pci_config_array[idx].io_end - pci_config_array[idx].io_start + 1;
+					if(size < pm->size || pci_config_array[idx].mem_start & (pm->size - 1)) 
+						_pci_tagprintf (pd->pa.pa_tag, "alloced resource size or alignment failed,want 0x%x/0x%x, got 0x%x/0x%x\n", pci_config_array[idx].io_start & LS2K_PCI_IO_MASK, size, pci_config_array[idx].io_start & ~(pm->size -1) & LS2K_PCI_IO_MASK, pm->size);
+					pm->size = size;
 					return  pci_config_array[idx].io_start & LS2K_PCI_IO_MASK ;
 				}
 			}
