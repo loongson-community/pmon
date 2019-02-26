@@ -14,26 +14,25 @@ ATTENTION:
 
 
 #ifndef DDR_FREQ
+/* MEM @ 500Mhz */
 #define DDR_FREQ   500   //this param must change with DDR freq together,ether soft or hard freq modified!!!
+/* MEM @ 400Mhz */
+#define DDR_FREQ   400
 #endif
 #ifdef SOFT_CLKSEL
-#if 1
-/* MEM @ 500Mhz */
-/* GPU @ 400Mhz */
-#define DDR_LOOPC  80
+
 #define DDR_REFC   4
 #define DDR_DIV    1
+#define DDR_LOOPC  (DDR_FREQ*DDR_DIV*DDR_REFC/25)
 #define DDR_DIV_L2    4
+
+#if 1
+/* GPU @ 400Mhz */
 #define GPU_DIV_L2    7
 #define HDA_DIV_L2    100
 #endif
 #if 0
-/* MEM @ 400Mhz */
 /* GPU @ 400Mhz */
-#define DDR_LOOPC  64
-#define DDR_REFC   4
-#define DDR_DIV    1
-#define DDR_DIV_L2    4
 #define GPU_DIV_L2    5
 #endif
 #if 0

@@ -79,10 +79,10 @@ ATTENTION:
 #endif
 #endif
 
-#ifdef DDR_SEL_ST 
-#define DDR_FREQ (L1_LOOPC/DDR_REFC)
+#ifdef DDR_SEL_ST
+#define DDR_FREQ (L1_LOOPC*25/L1_DIV/L1_REFC/DDR_REFC)
 #else
-#define DDR_FREQ  (DDR_LOOPC*33/DDR_DIV/DDR_REFC)  
+#define DDR_FREQ  (DDR_LOOPC*33/DDR_DIV/DDR_REFC)
 #endif
 
 #define BYPASS_CORE 0x0

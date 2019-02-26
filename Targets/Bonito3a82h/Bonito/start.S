@@ -366,7 +366,7 @@ gs_2f_v3_ddr2_cfg:
 #else
 #define DDR_DIV     4
 #endif
-#define DDR_LOOPC  (DDR_FREQ*DDR_DIV/33)   //48 //396MHz
+#define DDR_LOOPC  (DDR_FREQ*DDR_DIV/33)
 
 //#define L1_LOOPC    68//850
 #define L1_LOOPC    64//800
