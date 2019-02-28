@@ -30,60 +30,45 @@ ATTENTION:
 #define PLL_L1_LOCKED ((ST_PLL << 17) | (LS_PLL << 16))
 
 #define DDR_SEL_ST 1
+
+#ifndef CORE_FREQ
+#define CORE_FREQ 1000
+#endif
+
 //#define REF_33M
 //#define REF_100M
 #ifdef REF_100M
 
-//#define L1_LOOPC    80//1000
-//#define L1_LOOPC    72//900
-//#define L1_LOOPC   256//800
-//#define L1_LOOPC   32//400
-//#define L1_LOOPC    48//600
-#define L1_LOOPC    48//600
-//#define L1_LOOPC    40//500
 #define L1_DIV      2
 //#define L1_DIV      2
 #define L1_REFC   1
+#define CPU_PLLIN 100
 
-#else
-#ifdef REF_33M
+#elsif REF_33M
 
-//#define L1_LOOPC    80//1000
-//#define L1_LOOPC    72//900
-//#define L1_LOOPC   256//800
-//#define L1_LOOPC   32//400
-#define L1_LOOPC   144//600
-//#define L1_LOOPC    40//500
 #define L1_DIV      8
 //#define L1_DIV      2
 #define L1_REFC   1
+#define CPU_PLLIN 33
 
 #else //REF_25M
 
-//#define L1_LOOPC   128//1600
-//#define L1_LOOPC   124//1550
-//#define L1_LOOPC   122//1525
-//#define L1_LOOPC   120//1500
-//#define L1_LOOPC   116//1450
-//#define L1_LOOPC   112//1400
-//#define L1_LOOPC   108//1350
-//#define L1_LOOPC   104//1300
-//#define L1_LOOPC   100//1250
-//#define L1_LOOPC   192//1200
-//#define L1_LOOPC   184//1150
-#define L1_LOOPC   160//1000
-//#define L1_LOOPC   128//800
 #define L1_DIV      4
 //#define L1_DIV      2
 #define L1_REFC   1
+#define CPU_PLLIN 25
+#endif
+
+#define L1_LOOPC    (CORE_FREQ*L1_REFC*L1_DIV/CPU_PLLIN)
+
+#ifdef DDR_SEL_ST
+#define DDR_FREQ (L1_LOOPC*CPU_PLLIN/L1_DIV/L1_REFC/DDR_REFC)
+#else
+#ifndef DDR_FREQ
+#define DDR_FREQ  (DDR_LOOPC*33/DDR_DIV/DDR_REFC)
 #endif
 #endif
 
-#ifdef DDR_SEL_ST
-#define DDR_FREQ (L1_LOOPC*25/L1_DIV/L1_REFC/DDR_REFC)
-#else
-#define DDR_FREQ  (DDR_LOOPC*33/DDR_DIV/DDR_REFC)
-#endif
 
 #define BYPASS_CORE 0x0
 #define BYPASS_NODE 0x0

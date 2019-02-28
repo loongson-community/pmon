@@ -388,7 +388,10 @@ gs_2f_v3_ddr2_cfg:
 #define SOFT_CLKSEL
 #ifdef SOFT_CLKSEL
 
+#ifndef DDR_FREQ
 #define DDR_FREQ    528
+#endif
+
 #define DDR_REFC    1   //do not modify
 #if (DDR_FREQ < 400)
 #define DDR_DIV     8
@@ -398,11 +401,12 @@ gs_2f_v3_ddr2_cfg:
 #define DDR_LOOPC  (DDR_FREQ*DDR_DIV/33)
 
 // L1_* define both CPU and Node freq simutanleously
-#define L1_LOOPC    80//1000@25MHz
-//#define L1_LOOPC    64//800@25MHz
-//#define L1_LOOPC    49//808@33MHz
-//#define L1_LOOPC    48//600
+#ifndef CORE_FREQ
+#define CORE_FREQ    1000
+#endif
+
 #define L1_DIV      2
+#define L1_LOOPC    (CORE_FREQ*L1_DIV/25)
 
 #define BYPASS_CORE 0x0
 #define BYPASS_NODE 0x0

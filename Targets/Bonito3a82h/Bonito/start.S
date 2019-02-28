@@ -354,24 +354,29 @@ gs_2f_v3_ddr2_cfg:
 	nop
 3:
 	TTYDBG (" 3\r\n")
-2:      
+2:
 
 #define SOFT_CLKSEL
 #ifdef SOFT_CLKSEL
 
+#ifndef DDR_FREQ
 #define DDR_FREQ    528
+#endif
+
 #define DDR_REFC    1   //do not modify
 #if (DDR_FREQ < 400)
 #define DDR_DIV     8
 #else
 #define DDR_DIV     4
 #endif
-#define DDR_LOOPC  (DDR_FREQ*DDR_DIV/33)
+#define DDR_LOOPC  (DDR_FREQ*DDR_DIV*DDR_REFC/33)
 
-//#define L1_LOOPC    68//850
-#define L1_LOOPC    64//800
-//#define L1_LOOPC    48//600
+#ifndef CORE_FREQ    
+#define CORE_FREQ    800
+#endif
+
 #define L1_DIV      2
+#define L1_LOOPC    (CORE_FREQ*L1_DIV/25)
 #define FREQ 	800
 
 #define PLL_CHANG_COMMIT 0x1
