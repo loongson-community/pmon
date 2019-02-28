@@ -562,7 +562,7 @@ after_ht:
 #define AUTO_ARB_LEVEL
 #endif
 #ifdef  AUTO_ARB_LEVEL
-#define CHECK_ARB_LEVEL_FREQ
+//#define CHECK_ARB_LEVEL_FREQ
 #ifdef  AUTO_DDR_CONFIG
 #define CHECK_ARB_LEVEL_DIMM
 #endif
@@ -589,7 +589,9 @@ after_ht:
 	//dli     s1, 0xc1a18400c1a18400 
 	//dli     s1, 0x00000000c1a18400 
 	//dli     s1, 0x00000000c1a18204 
-	dli	s1, 0xc1a18404c1a18404
+	//dli	s1, 0xc1a18404c1a18404
+	//dli	s1, 0xc0a18404
+	dli	s1, 0xc0a18800c0a18800
 #endif
 #include "ddr_dir/loongson3_ddr2_config.S"
 //#include "ddr_dir/loongson3a2h_ddr_config.S"
@@ -1379,7 +1381,7 @@ watchdog_enable:
 #include "loongson3C_ddr3_leveling.S"
 #endif
 #ifdef ARB_LEVEL
-#include "ddr_dir/ARB_level_new.S"
+//#include "ddr_dir/ARB_level_new.S"
 #endif
 #ifdef  DEBUG_DDR
 #include "ddr_dir/Test_Mem.S"
@@ -1391,6 +1393,22 @@ watchdog_enable:
 
 	.align  5
 #include "loongson_mc2_param.S"
+
+#ifdef  ARB_LEVEL
+	.text
+	.global c0_mc0_level_info 
+	.global c0_mc1_level_info 
+#ifdef  MULTI_CHIP
+	.global c1_mc0_level_info 
+	.global c1_mc1_level_info 
+#endif
+
+#include "ddr_dir/loongson3A3_ddr_param.lvled.S"
+#ifdef  MULTI_CHIP
+#include "ddr_dir/loongson3A3_ddr_param_c1.lvled.S"
+#endif
+
+#endif
 	.text
 	.global  nvram_offs
 	.align 12
