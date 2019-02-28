@@ -49,7 +49,7 @@
 #include "target/isapnpreg.h"
 #include "target/ls2h.h"
 
-#include "loongson3firewall_def.h"
+#include "loongson3_def.h"
 /*
  *   Register usage:
  *
@@ -593,7 +593,7 @@ after_ht:
 	//dli	s1, 0xc0a18404
 	dli	s1, 0xc0a18800c0a18800
 #endif
-#include "ddr_dir/loongson3_ddr2_config.S"
+#include "loongson3_ddr2_config.S"
 //#include "ddr_dir/loongson3a2h_ddr_config.S"
 
 	TTYDBG("Init Memory done.\r\n")
