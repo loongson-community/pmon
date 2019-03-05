@@ -1,5 +1,13 @@
 #include "target/load_dtb.h"
 #include <libfdt.h>
+#include <dev/pci/pcivar.h>
+#include <dev/pci/pcireg.h>
+#include <dev/pci/nppbreg.h>
+#ifdef PCI_PROBE_ONLY
+int pci_probe_only = 2; /*0:nothing, 1:dtb pci use pmon allcated, kernel pci probe only, 2: dtb pci use pmon allocated,kernel pci reassigned.*/
+#else
+int pci_probe_only = 0;
+#endif
 
 int dtb_cksum(void *p, size_t s, int set)
 {
@@ -56,7 +64,130 @@ static int check_mac_ok(void)
 	return 1;
 }
 
-static int check_dma_ok(void)
+
+static int check_pci_bridge_ok(void)
+{
+	const void *nodep;	/* property node pointer */
+	int  nodeoffset;	/* node offset from libfdt */
+	int  len, id, i;		/* length of the property */
+	char *ethernet_name[]={"/soc/pcie0_port0@40100000", "/soc/pcie0_port1@50000000", "/soc/pcie0_port2@54000000", "/soc/pcie0_port3@58000000", "/soc/pcie1_port0@60000000", "/soc/pcie1_port1@78000000"};
+	pcitag_t tag;
+	unsigned int val, val1, d, start, end;
+	int dev;
+	unsigned int data[12];
+
+	if (!pci_probe_only) return 1;
+
+	for(id = 0, dev=9;id < sizeof(ethernet_name)/sizeof(ethernet_name[0]);id++,dev++) {
+		nodeoffset = fdt_path_offset (working_fdt, ethernet_name[id]);
+		if (nodeoffset < 0) {
+			return 1;	//no ethernet device, do nothing
+		}
+		nodep = fdt_getprop (working_fdt, nodeoffset, (const char* )"ranges", &len);
+		if(len <= 0) {
+			return 1;	//no mac prop in ethernet, do nothing
+		}
+
+		memcpy(data, nodep, 12*4);
+	
+		/*pci foarmat(name/len) is flag/1 pciaddr/2 cpuaddr/1 len/2*/
+		tag = _pci_make_tag(0, dev, 0);
+	        val = _pci_conf_read32(dev, 0x00);
+		if ( val != 0xffffffff){
+		val =_pci_conf_read32(tag, 0x20);
+		start = (val & 0xfff0) << 16;
+		end = val & 0xfff00000;
+		d = cpu_to_be32(start);
+		if(data[2] != data[3] || data[2] != d)
+			return 0;
+		d = cpu_to_be32(end - start + 0x100000);
+		if(data[5] != d)
+			return 0;
+		val =_pci_conf_read32(tag, 0x30);
+		val1 =_pci_conf_read32(tag, 0x1c);
+		start = ((val&0xffff)<<16)+((val1&0xf0)<<8) + 0x18000000;
+		end = (val&0xffff0000)+(val1&0xf000) + 0x18000000;
+		d = cpu_to_be32(start);
+		if(data[6+3] != data[6+2] || data[6+2] != d)
+			return 0;
+		d = cpu_to_be32(end - start + 0x1000);
+		if(data[6+5] != d)
+			return 0;
+		}
+		else
+		{
+		 if(data[5] != 0 || data[6+5] != 0)
+			return 0;
+		}
+	}
+	return 1;
+}
+
+static int update_pci_bridge(void * ssp)
+{
+	const void *nodep;	/* property node pointer */
+	int  nodeoffset;	/* node offset from libfdt */
+	int  len, id, i;		/* length of the property */
+	u8 mac_addr[6] = {0x00, 0x55, 0x7B, 0xB5, 0x7D, 0xF7};	//default mac address
+	char *ethernet_name[]={"/soc/pcie0_port0@40100000", "/soc/pcie0_port1@50000000", "/soc/pcie0_port2@54000000", "/soc/pcie0_port3@58000000", "/soc/pcie1_port0@60000000", "/soc/pcie1_port1@78000000"};
+	pcitag_t tag;
+	unsigned int val, val1, start, end;
+	int dev;
+	unsigned int data[12];
+	unsigned nmem=0x18000000, nio=0x1a000000;
+
+	if (!pci_probe_only) return 0;
+
+	for (id = 0, dev=9;id < sizeof(ethernet_name)/sizeof(ethernet_name[0]);id++,dev++) {
+		nodeoffset = fdt_path_offset (ssp, ethernet_name[id]);
+		if (nodeoffset < 0) {
+			return 1;	//no ethernet device, do nothing
+		}
+		nodep = fdt_getprop (ssp, nodeoffset, (const char* )"ranges", &len);
+		if(len <= 0) {
+			return 1;	//no mac prop in ethernet, do nothing
+		}
+
+		memcpy(data, nodep, 12*4);
+	
+		/*pci foarmat(name/len) is flag/1 pciaddr/2 cpuaddr/1 len/2*/
+		tag = _pci_make_tag(0, dev, 0);
+
+	        val = _pci_conf_read32(tag, 0x00);
+		if ( val != 0xffffffff){
+			val =_pci_conf_read32(tag, 0x20);
+			start = (val & 0xfff0) << 16;
+			end = val & 0xfff00000;
+			data[3] = data[2] = cpu_to_be32(start);
+			data[5] = cpu_to_be32(end - start + 0x100000);
+			val =_pci_conf_read32(tag, 0x30);
+			val1 =_pci_conf_read32(tag, 0x1c);
+			start = ((val&0xffff)<<16)+((val1&0xf0)<<8) + 0x18000000;
+			end = (val&0xffff0000)+(val1&0xf000) + 0x18000000;
+			data[6+3] = data[6+2] = cpu_to_be32(start);
+			data[6+5] = cpu_to_be32(end - start + 0x1000);
+		}
+		else
+		{
+			nmem -= 0x100000;
+			nio -= 0x1000;
+			data[3] = data[2] = cpu_to_be32(nmem);
+			data[5] = cpu_to_be32(0x100000);
+			data[6+3] = data[6+2] = cpu_to_be32(nio);
+			data[6+5] = cpu_to_be32(0x1000);
+		}
+
+		if (fdt_setprop(ssp, nodeoffset, "ranges", data, 12*4))
+		{
+ 			printf("set ranges error\n");
+		}
+	
+	}
+	return 0;
+}
+
+
+static int check_prop_ok(char *propname, int wanted)
 {
 	int nodeoffset, len;
 	const void *nodep;	/* property node pointer */
@@ -68,9 +199,9 @@ static int check_dma_ok(void)
 		 */
 		return 1;		//do nothing
 	}
-	nodep = fdt_getprop (working_fdt, nodeoffset, "dma-coherent", &len);
+	nodep = fdt_getprop (working_fdt, nodeoffset, propname, &len);
 
-	if(ls2k_version()) {
+	if(wanted) {
 		if(!nodep)
 			return 0;	//should be reset
 	} else
@@ -107,7 +238,7 @@ static int update_mac(void * ssp, int id)
 	return 0;
 }
 
-static int update_dma_flag(void * ssp)
+static int update_prop_flag(void * ssp, char *propname, int wanted)
 {
 	int nodeoffset, len;
 	const void *nodep;	/* property node pointer */
@@ -120,21 +251,21 @@ static int update_dma_flag(void * ssp)
 		printf ("libfdt fdt_path_offset() returned %s\n", fdt_strerror(nodeoffset));
 		return 1;
 	}
-	nodep = fdt_getprop (ssp, nodeoffset, "dma-coherent", &len);
+	nodep = fdt_getprop (ssp, nodeoffset, propname, &len);
 
-	if(ls2k_version()) {
+	if(wanted) {
 		if(!nodep) {
-			if(fdt_setprop(ssp, nodeoffset, "dma-coherent", NULL, 0))
-				printf("Add property \"dma-coherent\" error\n");
+			if(fdt_setprop(ssp, nodeoffset, propname, NULL, 0))
+				printf("Add property \"%s\" error\n", propname);
 			else
-				printf("Add property \"dma-coherent\"\n");
+				printf("Add property \"%s\"\n", propname);
 		}
 	} else {
 		if(nodep) {
-			if(fdt_delprop(ssp, nodeoffset, "dma-coherent"))
-				printf("Delete property \"dma-coherent\" error\n");
+			if(fdt_delprop(ssp, nodeoffset, propname))
+				printf("Delete property \"%s\" error\n", propname);
 			else
-				printf("Delete property \"dma-coherent\"\n");
+				printf("Delete property \"%s\"\n", propname);
 		}
 	}
 	return 0;
@@ -155,12 +286,14 @@ void verify_dtb(void)
 		return;
 	}
 	printf("dtb verify ok!!!\n");
-	if(!check_mac_ok() || !check_dma_ok()) {
+	if(!check_mac_ok() || !check_prop_ok("dma-coherent", ls2k_version()) || !check_prop_ok("pci-probe-only", pci_probe_only == 1) || !check_pci_bridge_ok()) {
 		u8 buff[DTB_SIZE] = {0};
 		fdt_open_into(working_fdt, buff + 4, DTB_SIZE - 8);
-		update_dma_flag(buff + 4);
+		update_prop_flag(buff + 4, "dma-coherent", ls2k_version());
+		update_prop_flag(buff + 4, "pci-probe-only", pci_probe_only == 1);
 		update_mac(buff + 4, 0);
 		update_mac(buff + 4, 1);
+		update_pci_bridge(buff + 4);
 		dtb_cksum(buff, DTB_SIZE - 4, 1);
 		tgt_flashprogram((char *)working_fdt - 4, DTB_SIZE, buff, 0);
 	}
@@ -507,7 +640,8 @@ int load_dtb(int argc,char **argv)
 		printf("dtb has a bad bad magic, please reload dtb file!!!\n");
 		return 0;
 	}
-	update_dma_flag(heaptop + 4);
+	update_prop_flag(heaptop + 4, "dma-coherent", ls2k_version());
+	update_prop_flag(heaptop + 4, "pci-probe-only", pci_probe_only);
 	update_mac(heaptop + 4, 0);
 	update_mac(heaptop + 4, 1);
 	dtb_cksum(heaptop, DTB_SIZE - 4, 1);
