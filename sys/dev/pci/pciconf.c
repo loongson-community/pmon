@@ -992,7 +992,8 @@ _pci_setup_windows (struct pci_device *dev)
         pd = pm->device;
         next = pm->next;
 
-        if(pd->bridge.child) align = ~pd->bridge.mem_mask+1;
+        if (pd->bridge.child && pm->reg == PCI_MEMBASE_1) align = ~pd->bridge.mem_mask + 1;
+        else if (pd->bridge.child &&  pm->reg == PCI_IOBASEL_1) align = ~pd->bridge.io_mask + 1;
         else align = 1<<(fls(pm->size)-1);
 
 	pm->address = pci_alloc_fixmemio(pm);
