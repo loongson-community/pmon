@@ -73,6 +73,7 @@ static pcireg_t pci_local_mem_pci_base;
 /*initial PCI               */
 /****************************/
 
+#define PCI0_CONFIG(dev,reg) *(volatile int *)(0xba000000+(dev<<11)+reg) 
 int
 _pci_hwinit(initialise, iot, memt)
 	int initialise;
@@ -85,10 +86,48 @@ _pci_hwinit(initialise, iot, memt)
 	int newcfg=0;
 	char *env;
 	SBD_DISPLAY ("HW-0", 0);
+	int waitdev = 0, timeout;
 	if(getenv("newcfg"))newcfg=1;
 
 	if ((env = getenv("pci_probe_only")))
 	  pci_probe_only = strtoul(env, 0, 0);
+
+	if((env = getenv("pcidelay")))
+	{
+		char *endp;
+		int dev;
+		int count0;
+		unsigned int pcidelay;
+
+		pcidelay= strtoul(env, &endp, 0);
+		if(endp && endp[0] && endp[1])
+		{
+			endp++;
+			count0 = read_c0_count();
+
+			for(timeout = 0; timeout < pcidelay;)
+			{
+				dev = strtoul(endp, &endp, 0);
+				PCI0_CONFIG(dev, 0x10) = 0x10000000;
+				while(!(*(volatile int *)0xb000000c & 0x40) && timeout < pcidelay)
+				{
+					if(read_c0_count() - count0 > 400000000)
+					{
+						timeout++;
+						count0 = read_c0_count();
+					}
+				}
+				printf("dev %d link 0x%x\n", dev, *(volatile int *)0xb000000c);
+				PCI0_CONFIG(dev, 0x10) = 0x00000000;
+				if(endp && endp[0] && endp[1])
+					endp++;
+				else
+					break;
+			}
+		}
+		else
+			delay(pcidelay);
+	}
 
 	if (!initialise) {
 		return(0);
