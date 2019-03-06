@@ -31,6 +31,7 @@ ATTENTION:
 #define CORE_FREQ   800
 #endif
 
+#define L1_LOOPC    64
 #define L1_REFC     4
 #define L1_DIV      1
 #define L2_DIV      2
