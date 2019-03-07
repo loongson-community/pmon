@@ -60,6 +60,7 @@ extern int _pciverbose;
 extern char hwethadr[6];
 struct pci_device *_pci_bus[16];
 int _max_pci_bus = 0;
+extern int pci_probe_only;
 
 
 /* PCI mem regions in PCI space */
@@ -82,8 +83,12 @@ _pci_hwinit(initialise, iot, memt)
 	struct pci_device *pd;
 	struct pci_bus *pb;
 	int newcfg=0;
+	char *env;
 	SBD_DISPLAY ("HW-0", 0);
 	if(getenv("newcfg"))newcfg=1;
+
+	if ((env = getenv("pci_probe_only")))
+	  pci_probe_only = strtoul(env, 0, 0);
 
 	if (!initialise) {
 		return(0);
@@ -117,13 +122,17 @@ _pci_hwinit(initialise, iot, memt)
 	_pci_head = pd;
 	SBD_DISPLAY ("HW-3", 0);
 
-#undef BONITO_PCILO0_BASE
-#undef BONITO_PCILO_SIZE;
-#define BONITO_PCILO0_BASE 0x10000000
-#define BONITO_PCILO_SIZE  0x08000000
+	if(pci_probe_only)
+	{
+		pb->minpcimemaddr  = 0x40100000;
+		pb->nextpcimemaddr = 0x80000000;
+	}
+	else
+	{
+		pb->minpcimemaddr  = 0x10000000;
+		pb->nextpcimemaddr = 0x18000000;
+	}
 
-	pb->minpcimemaddr  = BONITO_PCILO0_BASE; // 0x4000_0000
-	pb->nextpcimemaddr = BONITO_PCILO0_BASE+BONITO_PCILO_SIZE; // 0x4000_0000 + 0x4000_0000
 	pb->minpciioaddr   = PCI_IO_SPACE_BASE+0x0004000;
 	pb->nextpciioaddr  = PCI_IO_SPACE_BASE+ BONITO_PCIIO_SIZE; // 0 + 0x0200_0000
 	pb->pci_mem_base   = BONITO_PCILO_BASE_VA;
@@ -321,6 +330,9 @@ pcireg_t pci_alloc_fixmemio(struct pci_win *pm)
 			}
 			else
 			{
+				if(pci_probe_only)
+					return -1;
+
 				if(reg == PCI_MEMBASE_1) 
 				{
 					size = pci_config_array[idx].mem_end - pci_config_array[idx].mem_start + 1;
