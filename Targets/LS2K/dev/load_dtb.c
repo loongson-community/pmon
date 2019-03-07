@@ -9,6 +9,8 @@ int pci_probe_only = 2; /*0:nothing, 1:dtb pci use pmon allcated, kernel pci pro
 int pci_probe_only = 0;
 #endif
 
+static int check_mem_args(const void * ssp);
+static int update_mem_args(const void * ssp);
 int dtb_cksum(void *p, size_t s, int set)
 {
 	unsigned int sum = 0;
@@ -286,7 +288,8 @@ void verify_dtb(void)
 		return;
 	}
 	printf("dtb verify ok!!!\n");
-	if(!check_mac_ok() || !check_prop_ok("dma-coherent", ls2k_version()) || !check_prop_ok("pci-probe-only", pci_probe_only == 1) || !check_pci_bridge_ok()) {
+	if(!check_mac_ok() || !check_prop_ok("dma-coherent", ls2k_version()) || !check_prop_ok("pci-probe-only", pci_probe_only == 1) || !check_pci_bridge_ok() \
+	|| !check_mem_args(working_fdt)) {
 		u8 buff[DTB_SIZE] = {0};
 		fdt_open_into(working_fdt, buff + 4, DTB_SIZE - 8);
 		update_prop_flag(buff + 4, "dma-coherent", ls2k_version());
@@ -294,6 +297,7 @@ void verify_dtb(void)
 		update_mac(buff + 4, 0);
 		update_mac(buff + 4, 1);
 		update_pci_bridge(buff + 4);
+		update_mem_args(buff + 4);
 		dtb_cksum(buff, DTB_SIZE - 4, 1);
 		tgt_flashprogram((char *)working_fdt - 4, DTB_SIZE, buff, 0);
 	}
@@ -403,6 +407,52 @@ static int check_mem_args(const void * ssp)
 	unsigned long long arg_mem, arg_mem_sz = 0, max_mem;
 	void *nodep;	/* property node pointer */
 	u32 *p;
+	u32 v, v1;
+
+	max_mem = memorysize_total << 20;
+	if(!pcie_dev && fdt_path_offset (ssp, "/soc/gpu@0x40080000") >= 0){
+		max_mem -= 0x20000000ULL;	//512M for internal Graphics card
+	}
+	nodeoffset = fdt_path_offset (ssp, "/memory");
+	if (nodeoffset < 0) {
+		/*
+		 * Not found or something else bad happened.
+		 */
+		printf ("libfdt fdt_path_offset() returned %s\n", fdt_strerror(nodeoffset));
+		printf("can not find memory in dtb, abort!!!\n");
+		goto abort;
+	}
+	p = nodep = fdt_getprop (ssp, nodeoffset, (const char* )"reg", &len);
+	if(len <= 0) {
+		printf("can not find property: /memory reg, abort!!!\n");
+		return 1;
+	}
+
+	if (len != 8*4) {
+		goto abort;
+	}
+
+	v = fdt32_to_cpu(p[4]);
+	v1 = fdt32_to_cpu(p[5]);
+	if((v != 1 && v1 != 0x10000000) && (v != 0 && v1 != 0x90000000))
+	goto abort;
+	max_mem -= 0x10000000;
+	v= cpu_to_fdt32((u32)max_mem);
+	v1 =cpu_to_fdt32 ((u32)(max_mem >> 32));
+	if(p[6] != v1 && p[7] != v)
+	  return 0;
+abort:
+	return 1;
+}
+
+static int update_mem_args(const void * ssp)
+{
+	int nodeoffset, len, j;
+	unsigned long long arg_mem, arg_mem_sz = 0, max_mem;
+	void *nodep;	/* property node pointer */
+	u32 *p;
+	u32 data[8];
+	u32 v, v1;
 
 	max_mem = memorysize_total << 20;
 	if(!pcie_dev && fdt_path_offset (ssp, "/soc/gpu@0x40080000") >= 0){
@@ -422,31 +472,28 @@ static int check_mem_args(const void * ssp)
 		printf("can not find property: /memory reg, abort!!!\n");
 		goto abort;
 	}
+	if (len != 8*4)
+		goto abort;
 
-	for (j = 0, p = nodep; j < len/4; j+=4) {
-		/* 
-		 * High memory maybe is mapped from address that higher than 0x80000000.
-		 */
-		if(fdt32_to_cpu(p[j]) || fdt32_to_cpu(p[j + 1]) > 0x7fffffffULL) {
-			arg_mem = fdt32_to_cpu(p[j + 2]);
-			arg_mem = arg_mem << 32 | fdt32_to_cpu(p[j + 3]);
-			arg_mem_sz += arg_mem;
-		}
-	}
-	/*
-	 * Add the low 256M.
-	 */ 
-	arg_mem_sz += 0x10000000ULL;
-	if(arg_mem_sz > max_mem) {
-		printf("Error: Memory size in dtb(0x%llx) is larger than total memorysize(0x%llx), abort!!!\n", arg_mem_sz, max_mem);
+	memcpy(data, nodep, 8*4);
+	v = fdt32_to_cpu(data[4]);
+	v1 = fdt32_to_cpu(data[5]);
+	if((v != 1 && v1 != 0x10000000) && (v != 0 && v1 != 0x90000000))
+	goto abort;
+	max_mem -= 0x10000000;
+	v= max_mem;
+	v1 = max_mem >> 32;
+	data[6] = cpu_to_fdt32(v1);
+	data[7] = cpu_to_fdt32(v);
+	
+	if (fdt_setprop(ssp, nodeoffset, "reg", data, 8*4))
+	{
+		printf("set reg error\n");
 		goto abort;
 	}
 	return 0;
 abort:
-	printf("Press any key to reboot.\n");
-	getchar();
-	do_cmd("reboot");
-	return -1;
+	return 1;
 }
 
 static int update_bootarg(int ac, char ** av, void * ssp)
@@ -611,7 +658,6 @@ unsigned long long setup_dtb(int ac, char ** av)
 	if (ac > 1)
 		update_bootarg(ac, av, ssp);	//note: maybe reload from working_fdt, so do this first
 
-	check_mem_args(ssp);
 #if DEBUG_DTB
 	fdt_print_ram(ssp, "/", NULL, MAX_LEVEL);
 #endif
