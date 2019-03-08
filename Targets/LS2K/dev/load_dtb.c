@@ -72,7 +72,7 @@ static int check_pci_bridge_ok(void)
 	const void *nodep;	/* property node pointer */
 	int  nodeoffset;	/* node offset from libfdt */
 	int  len, id, i;		/* length of the property */
-	char *ethernet_name[]={"/soc/pcie0_port0@40100000", "/soc/pcie0_port1@50000000", "/soc/pcie0_port2@54000000", "/soc/pcie0_port3@58000000", "/soc/pcie1_port0@60000000", "/soc/pcie1_port1@78000000"};
+	char *pcie_name[]={"/soc/pcie0_port0@40100000", "/soc/pcie0_port1@50000000", "/soc/pcie0_port2@54000000", "/soc/pcie0_port3@58000000", "/soc/pcie1_port0@60000000", "/soc/pcie1_port1@78000000"};
 	pcitag_t tag;
 	unsigned int val, val1, d, start, end;
 	int dev;
@@ -80,14 +80,14 @@ static int check_pci_bridge_ok(void)
 
 	if (!pci_probe_only) return 1;
 
-	for(id = 0, dev=9;id < sizeof(ethernet_name)/sizeof(ethernet_name[0]);id++,dev++) {
-		nodeoffset = fdt_path_offset (working_fdt, ethernet_name[id]);
+	for(id = 0, dev=9;id < sizeof(pcie_name)/sizeof(pcie_name[0]);id++,dev++) {
+		nodeoffset = fdt_path_offset (working_fdt, pcie_name[id]);
 		if (nodeoffset < 0) {
-			return 1;	//no ethernet device, do nothing
+			continue;	//dtb deleted this pcie port
 		}
 		nodep = fdt_getprop (working_fdt, nodeoffset, (const char* )"ranges", &len);
 		if(len <= 0) {
-			return 1;	//no mac prop in ethernet, do nothing
+			continue;	//dtb not set ranges
 		}
 
 		memcpy(data, nodep, 12*4);
@@ -130,8 +130,7 @@ static int update_pci_bridge(void * ssp)
 	const void *nodep;	/* property node pointer */
 	int  nodeoffset;	/* node offset from libfdt */
 	int  len, id, i;		/* length of the property */
-	u8 mac_addr[6] = {0x00, 0x55, 0x7B, 0xB5, 0x7D, 0xF7};	//default mac address
-	char *ethernet_name[]={"/soc/pcie0_port0@40100000", "/soc/pcie0_port1@50000000", "/soc/pcie0_port2@54000000", "/soc/pcie0_port3@58000000", "/soc/pcie1_port0@60000000", "/soc/pcie1_port1@78000000"};
+	char *pcie_name[]={"/soc/pcie0_port0@40100000", "/soc/pcie0_port1@50000000", "/soc/pcie0_port2@54000000", "/soc/pcie0_port3@58000000", "/soc/pcie1_port0@60000000", "/soc/pcie1_port1@78000000"};
 	pcitag_t tag;
 	unsigned int val, val1, start, end;
 	int dev;
@@ -140,14 +139,14 @@ static int update_pci_bridge(void * ssp)
 
 	if (!pci_probe_only) return 0;
 
-	for (id = 0, dev=9;id < sizeof(ethernet_name)/sizeof(ethernet_name[0]);id++,dev++) {
-		nodeoffset = fdt_path_offset (ssp, ethernet_name[id]);
+	for (id = 0, dev=9;id < sizeof(pcie_name)/sizeof(pcie_name[0]);id++,dev++) {
+		nodeoffset = fdt_path_offset (ssp, pcie_name[id]);
 		if (nodeoffset < 0) {
-			return 1;	//no ethernet device, do nothing
+			continue;	//dtb deleted this pcie port
 		}
 		nodep = fdt_getprop (ssp, nodeoffset, (const char* )"ranges", &len);
 		if(len <= 0) {
-			return 1;	//no mac prop in ethernet, do nothing
+			continue;	//dtb not set ranges
 		}
 
 		memcpy(data, nodep, 12*4);
