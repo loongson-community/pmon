@@ -13,7 +13,11 @@
 	memory {
 		name = "memory";
 		device_type = "memory";
-		reg =  <0 0x00200000 0 0x0c800000	// 200MiB at 2MiB
+#ifdef NOGPU
+		reg =  <0 0x00200000 0 0x0ce00000	// 200MiB at 2MiB
+#else
+		reg =  <0 0x00200000 0 0x0ee00000	// 200MiB at 2MiB
+#endif
 			1 0x10000000 1 0xb0000000>;	// 7424 - 512 MiB at 4352MiB
 	};
 
@@ -61,11 +65,16 @@
 		dc@0x400c0000 {
 			compatible = "loongson,ls-fb";
 			reg = <0x400c0000 0xffff
+#ifdef NOGPU
+				   0x0d000000 0x2000000>;
+#else
 				   0x20000000 0x8000000>;
+#endif
 			interrupt-parent = <&icu>;
 			interrupts = <36>;
 		};
 
+#ifndef NOGPU
 		gpu@0x40080000 {
 			compatible = "loongson,galcore";
 			reg = <0x40080000 0x3ffff
@@ -73,6 +82,7 @@
 			interrupt-parent = <&icu>;
 			interrupts = <37>;
 		};
+#endif
 
 		ohci@0x40070000 {
 			compatible = "loongson,ls2k-ohci", "usb-ohci";
