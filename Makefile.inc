@@ -218,6 +218,9 @@ uipc_proto.o vfs_conf.o: Makefile
 ${START}: ${TARGET}/${SUBTARGET}/${START:.o=.S} Makefile
 	${NORMAL_S}
 
+dtb:
+	${CC} ${AFLAGS} ${CPPFLAGS}  -E  -D__ASSEMBLY__ -D__DTS__ -x assembler-with-cpp -o $(DTB_O) $(DTB_I)
+
 zpmon: startz.o
 	rm start.o && cp -f startz.o start.o
 	make pmon

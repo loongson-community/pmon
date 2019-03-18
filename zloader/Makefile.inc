@@ -1,5 +1,5 @@
 ifndef PMONCC
-CC=$(CROSS_COMPILE)gcc 
+CC=$(CROSS_COMPILE)gcc -mabi=32
 CROSS_COMPILE ?= mipsel-linux-
 else
 CC=${PMONCC}
@@ -143,7 +143,7 @@ gencode=./genram
 endif
 
 dtb:
-	gcc    -E  -nostdinc  -D__ASSEMBLY__ -undef -D__DTS__ -x assembler-with-cpp  -o ${TARGET}.dtb.i ../Targets/${TARGET}/conf/${TARGET}.dts
+	make -C ../Targets/${TARGET}/compile/${TARGETEL}/ DTB_O=`pwd`/${TARGET}.dtb.i DTB_I=`pwd`/../Targets/${TARGET}/conf/${TARGET}.dts dtb
 	./dtc -I dts -O dtb -o ${TARGET}.dtb  ${TARGET}.dtb.i
 	[ -f gzrom.bin ] && cp gzrom.bin gzrom-dtb.bin && python ../tools/pmonenv.py -f gzrom-dtb.bin -d ${TARGET}.dtb -w  al=\(usb0,0\)/boot/vmlinuz al1=\(wd0,0\)/boot/vmlinuz append="'console=ttyS0,115200 console=tty initcall_debug=1 loglevel=20'" FR=1
 cleanall: clean
