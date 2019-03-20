@@ -233,9 +233,9 @@ stack = start - 0x4000		/* Place PMON stack below PMON start in RAM */
 /* NOTE!! Not more that 16 instructions here!!! Right now it's FULL! */
 	.set	push
 	.set	mips64
-	/* shut down store fill buffer */
+	/* shut down store fill buffer and vcache*/
 	mfc0	t0, $16, 6
-	or	t0, 0x100 
+	or	t0, 0x8100
 	xori	t0, 0x100
 	mtc0	t0, $16, 6
 

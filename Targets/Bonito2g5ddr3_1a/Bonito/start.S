@@ -234,7 +234,7 @@ stack = start - 0x4000		/* Place PMON stack below PMON start in RAM */
 	.set	push
 	.set	mips64
 	mfc0	t0, $16, 6
-	or	t0, 0x100 
+	or	t0, 0x8100 //close stfill vcache
 	xori	t0, 0x100
 	mtc0	t0, $16, 6
 
