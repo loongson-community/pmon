@@ -64,7 +64,7 @@
 
 		dc@0x400c0000 {
 			compatible = "loongson,ls-fb";
-			reg = <0x400c0000 0xffff
+			reg = <0x400c0000 0x10000
 #ifdef NOGPU
 				   0x0d000000 0x2000000>;
 #else
@@ -77,7 +77,7 @@
 #ifndef NOGPU
 		gpu@0x40080000 {
 			compatible = "loongson,galcore";
-			reg = <0x40080000 0x3ffff
+			reg = <0x40080000 0x40000
 				0x2a000000 0x15000000>;
 			interrupt-parent = <&icu>;
 			interrupts = <37>;
@@ -86,7 +86,7 @@
 
 		ohci@0x40070000 {
 			compatible = "loongson,ls2k-ohci", "usb-ohci";
-			reg = <0x40070000 0xffff>;
+			reg = <0x40070000 0x10000>;
 			interrupt-parent = <&icu>;
 			interrupts = <59>;
 			dma-mask = <0x0 0xffffffff>;
@@ -94,15 +94,15 @@
 
 		ehci@0x40060000 {
 			compatible = "loongson,ls2k-ehci", "usb-ehci";
-			reg = <0x40060000 0xffff>;
+			reg = <0x40060000 0x10000>;
 			interrupt-parent = <&icu>;
 			interrupts = <58>;
 			dma-mask = <0xffffffff 0xffffffff>;
 		};
 
-		otg@0x40020000 {
+		otg@0x40000000 {
 			compatible = "loongson,dwc-otg", "dwc-otg";
-			reg = <0x40020000 0x3ffff>;
+			reg = <0x40000000 0x40000>;
 			interrupt-parent = <&icu>;
 			interrupts = <57>;
 			dma-mask = <0x0 0xffffffff>;
@@ -110,15 +110,15 @@
 
 		ahci@0x400e0000{
 			compatible = "snps,spear-ahci";
-			reg = <0x400e0000 0xffff>;
+			reg = <0x400e0000 0x10000>;
 			interrupt-parent = <&icu>;
 			interrupts = <27>;
 			dma-mask = <0x0 0xffffffff>;
 		};
 
-		ethernet@0x40000000 {
+		ethernet@0x40040000 {
 			compatible = "snps,dwmac-3.70a", "ls,ls-gmac";
-			reg = <0x40000000 0xffff>;
+			reg = <0x40040000 0x10000>;
 			interrupt-parent = <&icu>;
 			interrupts = <20 21>;
 			interrupt-names = "macirq", "eth_wake_irq";
@@ -129,9 +129,9 @@
 			dma-mask = <0xffffffff 0xffffffff>;
 		};
 
-		ethernet@0x40010000 {
+		ethernet@0x40050000 {
 			compatible = "snps,dwmac-3.70a", "ls,ls-gmac";
-			reg = <0x40010000 0xffff>;
+			reg = <0x40050000 0x10000>;
 			interrupt-parent = <&icu>;
 			interrupts = <22 23>;
 			interrupt-names = "macirq", "eth_wake_irq";
@@ -160,7 +160,7 @@
 			#address-cells = <3>;
 			#size-cells = <2>;
 			bus-range = <0x4 0x6>;
-			  ranges = <0x02000000 0x0 0x50000000 0x50000000 0x0 0x3ffffff  //mem
+			  ranges = <0x02000000 0x0 0x50000000 0x50000000 0x0 0x4000000  //mem
 						0x01000000 0x0 0x18100000 0x18100000 0x0 0x100000>;  //io
 		};
 
@@ -171,7 +171,7 @@
 			#address-cells = <3>;
 			#size-cells = <2>;
 			bus-range = <0x8 0xa>;
-			  ranges = <0x02000000 0x0 0x54000000 0x54000000 0x0 0x3ffffff  //mem
+			  ranges = <0x02000000 0x0 0x54000000 0x54000000 0x0 0x4000000  //mem
 						0x01000000 0x0 0x18200000 0x18200000 0x0 0x100000>;  //io
 		};
 
@@ -182,7 +182,7 @@
 			#address-cells = <3>;
 			#size-cells = <2>;
 			bus-range = <0xc 0xe>;
-			  ranges = <0x02000000 0x0 0x58000000 0x58000000 0x0 0x7ffffff  //mem
+			  ranges = <0x02000000 0x0 0x58000000 0x58000000 0x0 0x8000000  //mem
 						0x01000000 0x0 0x18300000 0x18300000 0x0 0x100000>;  //io
 		};
 
@@ -193,7 +193,7 @@
 			#address-cells = <3>;
 			#size-cells = <2>;
 			bus-range = <0x10 0x12>;
-			  ranges = <0x02000000 0x0 0x60000000 0x60000000 0x0 0x17ffffff  //mem
+			  ranges = <0x02000000 0x0 0x60000000 0x60000000 0x0 0x18000000  //mem
 						0x01000000 0x0 0x18400000 0x18400000 0x0 0x100000>;  //io
 		};
 
@@ -204,7 +204,7 @@
 			#address-cells = <3>;
 			#size-cells = <2>;
 			bus-range = <0x14 0x16>;
-			  ranges = <0x02000000 0x0 0x78000000 0x78000000 0x0 0x7ffffff  //mem
+			  ranges = <0x02000000 0x0 0x78000000 0x78000000 0x0 0x8000000  //mem
 						0x01000000 0x0 0x18500000 0x18500000 0x0 0x100000>;  //io
 		};
 
@@ -291,7 +291,7 @@
 			compatible = "loongson,ls2k-spi";
 			#address-cells = <1>;
 			#size-cells = <0>;
-			reg = <0x1fff0220 0x6>;
+			reg = <0x1fff0220 0x10>;
 			spidev@0{
 				compatible = "rohm,dh2228fv";
 				spi-max-frequency = <100000000>;
@@ -300,7 +300,7 @@
 		};
 		rtc0: rtc@1fe07800{
 			compatible = "loongson,ls-rtc";
-			reg = <0x1fe07800 0xff>;
+			reg = <0x1fe07800 0x100>;
 			interrupt-parent = <&icu>;
 			interrupts = <60>;
 		};
@@ -324,25 +324,25 @@
 
 		pwm0: pwm@1fe02000{
 			compatible = "loongson,ls2k-pwm";
-			reg = <0x1fe02000 0xf>;
+			reg = <0x1fe02000 0x10>;
 			interrupt-parent = <&icu>;
 			interrupts = <32>;
 		};
 		pwm1: pwm@1fe02010{
 			compatible = "loongson,ls2k-pwm";
-			reg = <0x1fe02010 0xf>;
+			reg = <0x1fe02010 0x10>;
 			interrupt-parent = <&icu>;
 			interrupts = <33>;
 		};
 		pwm2: pwm@1fe02020{
 			compatible = "loongson,ls2k-pwm";
-			reg = <0x1fe02020 0xf>;
+			reg = <0x1fe02020 0x10>;
 			interrupt-parent = <&icu>;
 			interrupts = <34>;
 		};
 		pwm3: pwm@1fe02030{
 			compatible = "loongson,ls2k-pwm";
-			reg = <0x1fe02030 0xf>;
+			reg = <0x1fe02030 0x10>;
 			interrupt-parent = <&icu>;
 			interrupts = <35>;
 		};
@@ -408,7 +408,7 @@
 			#size-cells = <1>;
 
 			compatible = "loongson,ls2k_sdio";
-			reg = <0x1fe0c000 0xfff>;
+			reg = <0x1fe0c000 0x1000>;
 			interrupt-parent = <&icu>;
 			interrupts = <39>;
 			interrupt-names = "ls2k_mci_irq";

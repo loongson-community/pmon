@@ -1664,17 +1664,17 @@ struct pci_config_data pci_config_array[] = {
 			/*		GMAC0	*/
 [1] = {
 .bus = 0, .dev = 0x3, .func = 0, .interrupt = 20, .primary = 0, .secondary = 0,
-.subordinate = 0, .mem_start = 0x40000000, .mem_end = 0x4000ffff, .type = PCI_DEV,
+.subordinate = 0, .mem_start = 0x40040000, .mem_end = 0x4004ffff, .type = PCI_DEV,
 },
 			/*		GMAC1	*/
 [2] = {
 .bus = 0, .dev = 0x3, .func = 1, .interrupt = 22, .primary = 0, .secondary = 0,
-.subordinate = 0, .mem_start = 0x40010000, .mem_end = 0x4001ffff, .type = PCI_DEV,
+.subordinate = 0, .mem_start = 0x40050000, .mem_end = 0x4005ffff, .type = PCI_DEV,
 },
 			/*		OTG		*/
 [3] = {
 .bus = 0, .dev = 0x4, .func = 0, .interrupt = 57, .primary = 0, .secondary = 0,
-.subordinate = 0, .mem_start = 0x40020000, .mem_end = 0x4005ffff, .type = PCI_DEV,
+.subordinate = 0, .mem_start = 0x40000000, .mem_end = 0x4003ffff, .type = PCI_DEV,
 },
 			/*		EHCI	*/
 [4] = {
