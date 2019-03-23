@@ -21,6 +21,11 @@
 			1 0x10000000 1 0xb0000000>;	// 7424 - 512 MiB at 4352MiB
 	};
 
+	aliases {
+		ethernet0 = &gmac0;
+		ethernet1 = &gmac1;
+	};
+
 	// all soc device use 32bit address
 
 	soc {
@@ -116,7 +121,7 @@
 			dma-mask = <0x0 0xffffffff>;
 		};
 
-		ethernet@0x40040000 {
+		gmac0: ethernet@0x40040000 {
 			compatible = "snps,dwmac-3.70a", "ls,ls-gmac";
 			reg = <0x40040000 0x10000>;
 			interrupt-parent = <&icu>;
@@ -129,7 +134,7 @@
 			dma-mask = <0xffffffff 0xffffffff>;
 		};
 
-		ethernet@0x40050000 {
+		gmac1: ethernet@0x40050000 {
 			compatible = "snps,dwmac-3.70a", "ls,ls-gmac";
 			reg = <0x40050000 0x10000>;
 			interrupt-parent = <&icu>;
