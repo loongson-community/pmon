@@ -16,6 +16,7 @@ file    Targets/Bonito3a82h/pci/ls2h_pci.c  loongson2h
 #file    Targets/Bonito3a2h/pci/sb700_usb.c  amd_2h
 
 #file	pmon/cmds/msqt.c		cmd_test_sata
+file	Targets/Bonito3a82h/dev/irq.c	timer_irq needs-flag
 
 define  localbus { [base = -1 ] }
 device  localbus

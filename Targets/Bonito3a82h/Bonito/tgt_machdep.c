@@ -268,6 +268,7 @@ extern unsigned long long  memorysize_high;
 extern char MipsException[], MipsExceptionEnd[];
 
 unsigned char hwethadr[6];
+unsigned short wdt;
 
 void initmips(unsigned long long  raw_memsz);
 
@@ -313,6 +314,23 @@ initmips(unsigned long long raw_memsz)
 
 	get_memorysize(raw_memsz);
 
+	/*
+	 *  Set up exception vectors.
+	 */
+	SBD_DISPLAY("BEV1",0);
+	bcopy(MipsException, (char *)TLB_MISS_EXC_VEC, MipsExceptionEnd - MipsException);
+	bcopy(MipsException, (char *)XTLB_MISS_EXC_VEC, MipsExceptionEnd - MipsException);
+	bcopy(MipsException, (char *)GEN_EXC_VEC, MipsExceptionEnd - MipsException);
+
+	CPU_FlushCache();
+
+#ifndef ROM_EXCEPTION
+	CPU_SetSR(0, SR_BOOT_EXC_VEC);
+#endif
+
+#if NTIMER_IRQ
+    init_IRQ();
+#endif
 
 	/*
 	 *  Probe clock frequencys so delays will work properly.
@@ -332,19 +350,6 @@ initmips(unsigned long long raw_memsz)
 	cpuinfotab[0] = &DBGREG;
 	dbginit(NULL);
 
-	/*
-	 *  Set up exception vectors.
-	 */
-	SBD_DISPLAY("BEV1",0);
-	bcopy(MipsException, (char *)TLB_MISS_EXC_VEC, MipsExceptionEnd - MipsException);
-	bcopy(MipsException, (char *)XTLB_MISS_EXC_VEC, MipsExceptionEnd - MipsException);
-	bcopy(MipsException, (char *)GEN_EXC_VEC, MipsExceptionEnd - MipsException);
-
-	CPU_FlushCache();
-
-#ifndef ROM_EXCEPTION
-	CPU_SetSR(0, SR_BOOT_EXC_VEC);
-#endif
 	SBD_DISPLAY("BEV0",0);
 
 	printf("BEV in SR set to zero.\n");
@@ -1113,6 +1118,9 @@ tgt_mapenv(int (*func) __P((char *, char *)))
 				hwethadr[2], hwethadr[3], hwethadr[4], hwethadr[5]);
 		(*func)("ethaddr", env);
 
+		bcopy(&nvram[WDT_OFFS], &wdt, 2);
+		sprintf(env, "%d", (wdt==0||wdt==0xffff)?300:wdt);
+		(*func)("wdt", env);
 #ifndef NVRAM_IN_FLASH
 		free(nvram);
 #endif
@@ -1317,6 +1325,8 @@ tgt_setenv(char *name, char *value)
 			hwethadr[i] = v;
 			s += 3;         /* Don't get to fancy here :-) */
 		} 
+	} else if (strcmp("wdt", name) == 0) {
+		wdt = strtoul(value,0,0);
 	} else {
 		ep = nvrambuf+2;
 		if(*ep != '\0') {
@@ -1368,6 +1378,7 @@ tgt_setenv(char *name, char *value)
         cksum(nvrambuf, NVRAM_SIZE, 1);
 
 	bcopy(hwethadr, &nvramsecbuf[ETHER_OFFS], 6);
+	bcopy(&wdt, &nvramsecbuf[WDT_OFFS], 2);
 #ifdef NVRAM_IN_FLASH
         if(fl_erase_device(nvram, NVRAM_SECSIZE, FALSE)) {
 		printf("Error! Nvram erase failed!\n");

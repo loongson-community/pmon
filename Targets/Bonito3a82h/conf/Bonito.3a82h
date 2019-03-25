@@ -277,3 +277,4 @@ select tftpd
 #select e100
 option PCIVERBOSE=5
 #option DISABLE_HARD_LEVELING
+select timer_irq
