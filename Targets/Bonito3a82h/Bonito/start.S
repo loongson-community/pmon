@@ -49,7 +49,7 @@
 #include "target/isapnpreg.h"
 #include "target/ls2h.h"
 
-#include "loongson3_def.h"
+#include "loongson3firewall_def.h"
 /*
  *   Register usage:
  *
@@ -580,7 +580,9 @@ after_ht:
 //	dli     s1, 0xc0a18400c0a18400 
 	//dli     s1, 0xc1a18400c1a18400 
 	//dli     s1, 0xc1a18400c1a18400 
-	dli     s1, 0x00000000c1a18400 
+	//dli     s1, 0x00000000c1a18400 
+	//dli     s1, 0x00000000c1a18204 
+	dli	s1, 0xc1a18404c1a18404
 #endif
 #include "ddr_dir/loongson3_ddr2_config.S"
 //#include "ddr_dir/loongson3a2h_ddr_config.S"
@@ -827,8 +829,10 @@ after_ht:
 ##########################################
 
 bootnow:
+#ifdef AUTO_DDR_CONFIG
 	bal	spd_info_store
 	nop
+#endif
 		
 	TTYDBG("Copy PMON to execute location...\r\n")
 	la	a0, start
