@@ -45,8 +45,8 @@ option		SHUTDOWN_MASK=0x0000
 #
 # Uart serial baud rate selection
 #
-option      BONITO_33M
-#option      BONITO_25M
+#option      BONITO_33M
+option      BONITO_25M
 #option      BONITO_50M
 
 option  LOONGSON_3ASINGLE
@@ -192,6 +192,8 @@ inphy*      at mii? phy ?                   # Intel 82555 PHYs
 rte*		at pci? dev ? function ?
 #rtk*		at pci? dev ? function ?
 #em*         at pci? dev ? function ?
+igb*         at pci? dev ? function ?
+select igb1
 
 #### USB
 uhci*		 at pci? dev ? function ?
