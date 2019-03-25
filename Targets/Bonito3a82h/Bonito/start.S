@@ -576,7 +576,11 @@ after_ht:
 #ifdef  AUTO_DDR_CONFIG
         dli     s1, 0x36170000  //set use MC1 or MC0 or MC1/0 and give All device id
 #else
-	dli     s1, 0xc2e30400c2e30400
+//	dli     s1, 0xc3e30200c3e30204
+//	dli     s1, 0xc0a18400c0a18400 
+	//dli     s1, 0xc1a18400c1a18400 
+	//dli     s1, 0xc1a18400c1a18400 
+	dli     s1, 0x00000000c1a18400 
 #endif
 #include "ddr_dir/loongson3_ddr2_config.S"
 //#include "ddr_dir/loongson3a2h_ddr_config.S"
