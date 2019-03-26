@@ -222,6 +222,105 @@
 			interrupts = <8>;
 		};
 
+		serial1x@0x1fe00100{
+			device_type = "serial";
+			compatible = "ns16550";
+			reg = <0x1fe00100 0x100>;
+			clock-frequency = <125000000>;
+			interrupt-parent = <&icu>;
+			interrupts = <8>;
+		};
+
+		serial2x@0x1fe00200{
+			device_type = "serial";
+			compatible = "ns16550";
+			reg = <0x1fe00200 0x100>;
+			clock-frequency = <125000000>;
+			interrupt-parent = <&icu>;
+			interrupts = <8>;
+		};
+
+		serial3x@0x1fe00300{
+			device_type = "serial";
+			compatible = "ns16550";
+			reg = <0x1fe00300 0x100>;
+			clock-frequency = <125000000>;
+			interrupt-parent = <&icu>;
+			interrupts = <8>;
+		};
+
+		serial4x@0x1fe00400{
+			device_type = "serial";
+			compatible = "ns16550";
+			reg = <0x1fe00400 0x100>;
+			clock-frequency = <125000000>;
+			interrupt-parent = <&icu>;
+			interrupts = <9>;
+		};
+
+		serial5x@0x1fe00500{
+			device_type = "serial";
+			compatible = "ns16550";
+			reg = <0x1fe00500 0x100>;
+			clock-frequency = <125000000>;
+			interrupt-parent = <&icu>;
+			interrupts = <9>;
+		};
+
+		serial6x@0x1fe00600{
+			device_type = "serial";
+			compatible = "ns16550";
+			reg = <0x1fe00600 0x100>;
+			clock-frequency = <125000000>;
+			interrupt-parent = <&icu>;
+			interrupts = <9>;
+		};
+
+		serial7x@0x1fe00700{
+			device_type = "serial";
+			compatible = "ns16550";
+			reg = <0x1fe00700 0x100>;
+			clock-frequency = <125000000>;
+			interrupt-parent = <&icu>;
+			interrupts = <9>;
+		};
+
+		serial8x@0x1fe00800{
+			device_type = "serial";
+			compatible = "ns16550";
+			reg = <0x1fe00800 0x100>;
+			clock-frequency = <125000000>;
+			interrupt-parent = <&icu>;
+			interrupts = <10>;
+		};
+
+		serial9x@0x1fe00900{
+			device_type = "serial";
+			compatible = "ns16550";
+			reg = <0x1fe00900 0x100>;
+			clock-frequency = <125000000>;
+			interrupt-parent = <&icu>;
+			interrupts = <10>;
+		};
+
+		serialax@0x1fe00a00{
+			device_type = "serial";
+			compatible = "ns16550";
+			reg = <0x1fe00a00 0x100>;
+			clock-frequency = <125000000>;
+			interrupt-parent = <&icu>;
+			interrupts = <10>;
+		};
+
+		serialbx@0x1fe00b00{
+			device_type = "serial";
+			compatible = "ns16550";
+			reg = <0x1fe00b00 0x100>;
+			clock-frequency = <125000000>;
+			interrupt-parent = <&icu>;
+			interrupts = <10>;
+		};
+
 		pioA:gpio@0x1fe10500{
 			compatible = "ls,ls2k-gpio", "ls,ls-gpio";
 			reg = <0x1fe10500 0x38>;
@@ -237,10 +336,6 @@
 			interrupts = <30>;
 			#address-cells = <1>;
 			#size-cells = <0>;
-			rtc@68{
-				compatible = "dallas,ds1338";
-				reg = <0x68>;
-			};
 			eeprom@57{
 				compatible = "atmel,24c16";
 				reg = <0x57>;
@@ -255,6 +350,10 @@
 			reg = <0x1fe01800 0x8>;
 			interrupt-parent = <&icu>;
 			interrupts = <31>;
+			rtc@68{
+				compatible = "dallas,ds1338";
+				reg = <0x68>;
+			};
 			codec@1a{
 				compatible = "codec_uda1342";
 				reg = <0x1a>;
@@ -337,12 +436,15 @@
 		 * If you want to use the "can" function,enable the "can"
 		 * controller by configure general configuration register 0.
 		 */
-		/*can0: can@1fe00c00{
+		can0: can@1fe00c00{
 			compatible = "nxp,sja1000";
 			reg = <0x1fe00c00 0xff>;
 			nxp,external-clock-frequency = <125000000>;
 			interrupt-parent = <&icu>;
 			interrupts = <24>;
+			nxp,tx-output-mode = <0>;
+			nxp,tx-output-config = <0x16>;
+			nxp,clock-out-frequency = <100000>;
 		};
 		can1: can@1fe00d00{
 			compatible = "nxp,sja1000";
@@ -350,7 +452,10 @@
 			nxp,external-clock-frequency = <125000000>;
 			interrupt-parent = <&icu>;
 			interrupts = <25>;
-		};*/
+			nxp,tx-output-mode = <0>;
+			nxp,tx-output-config = <0x16>;
+			nxp,clock-out-frequency = <100000>;
+		};
 
 		pwm0: pwm@1fe02000{
 			compatible = "loongson,ls2k-pwm";
@@ -511,6 +616,6 @@
 
 	chosen {
 		/* the redundant spaces are used for save new boot args */
-		bootargs = "console=ttyS0,115200 root=/dev/sda1                                                                                                                                                                                      ";
+		bootargs = "console=ttyS0,115200 root=/dev/sda1                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      ";
 	};
 };
