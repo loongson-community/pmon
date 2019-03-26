@@ -63,6 +63,13 @@
 #define LS7A_I2C1_CR_REG     				(LS7A_I2C1_REG_BASE + 0x4)
 #define LS7A_I2C1_SR_REG     				(LS7A_I2C1_REG_BASE + 0x4)
 
+/* HPET */
+#define LS7A_HPET_BASE 		0xB0001000
+#define LS7A_HPET_PERIOD	LS7A_HPET_BASE + 0x4
+#define LS7A_HPET_CONF		LS7A_HPET_BASE + 0x10 
+#define LS7A_HPET_MAIN		LS7A_HPET_BASE + 0xF0 
+
+
 #define CR_START					0x80
 #define CR_STOP						0x40
 #define CR_READ						0x20

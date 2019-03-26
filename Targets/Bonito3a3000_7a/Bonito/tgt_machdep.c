@@ -564,6 +564,7 @@ static void _probe_frequencies()
 
 	SBD_DISPLAY ("FREI", CHKPNT_FREQ);
 
+#ifdef USE_RTC_COUNTER
 	/*
 	 * Do the next twice for two reasons. First make sure we run from
 	 * cache. Second make sure synched on second update. (Pun intended!)
@@ -599,6 +600,101 @@ static void _probe_frequencies()
 		md_cpufreq = 66000000;
 	}
 	tgt_printf("cpu freq %u\n", md_pipefreq);
+
+#else
+/*
+ //whd: use to check the read delay
+		cnt = CPU_GetCOUNT();
+	for(i = 0; i != 100; i++) {
+		inl(LS7A_TOY_READ0_REG);
+	}
+		cnt = CPU_GetCOUNT() - cnt;
+
+	tgt_printf("100 read RTC delay %u\n", cnt);
+
+		cnt = CPU_GetCOUNT();
+	for(i = 0; i != 100; i++) {
+		inl(0xBA000000);
+	}
+		cnt = CPU_GetCOUNT() - cnt;
+
+	tgt_printf("100 read HT header delay %u\n", cnt);
+
+		cnt = CPU_GetCOUNT();
+	for(i = 0; i != 100; i++) {
+		inl(0xBA001000);
+	}
+		cnt = CPU_GetCOUNT() - cnt;
+
+	tgt_printf("100 read RTC header delay %u\n", cnt);
+
+		cnt = CPU_GetCOUNT();
+	for(i = 0; i != 100; i++) {
+		inl(0xB00A0004);
+	}
+		cnt = CPU_GetCOUNT() - cnt;
+
+	tgt_printf("100 read PWM header delay %u\n", cnt);
+
+		cnt = CPU_GetCOUNT();
+	for(i = 0; i != 100; i++) {
+		inl(0xB00010f0);
+	}
+		cnt = CPU_GetCOUNT() - cnt;
+
+	tgt_printf("100 read HPET header delay %u\n", cnt);
+*/
+
+/* whd : USE HPET to calculate the frequency, 
+ *       reduce the booting delay and improve the frequency accuracy. 
+ *       when use the RTC counter of 7A, it cost 160us+ for one read, 
+ *       but if we use the HPET counter, it only cost ~300ns for one read,
+ *       so the HPET has good accuracy even use less time */
+
+	outl(LS7A_HPET_CONF, 0x1);//Enable main clock
+
+	/*
+	 * Do the next twice to make sure we run from cache
+	 */
+	for (i = 2; i != 0; i--) {
+		timeout = 10000000;
+
+		sec = inl(LS7A_HPET_MAIN);//get time now
+		cnt = CPU_GetCOUNT();
+		cur = (inl(LS7A_HPET_PERIOD) / 1000000);
+		sec = sec + (100000000 / cur);//go 100 ms
+		do {
+			timeout--;
+			cur = (inl(LS7A_HPET_MAIN));
+		} while (timeout != 0 && (cur < sec));
+
+		cnt = CPU_GetCOUNT() - cnt;
+		if (timeout == 0) {
+			tgt_printf("time out!\n");
+			break;	/* Get out if clock is not running */
+		}
+	}
+
+	/*
+	 *  Calculate the external bus clock frequency.
+	 */
+	if (timeout != 0) {
+		clk_invalid = 0;
+		md_pipefreq = cnt / 1000;
+
+		if((cnt % 1000) >= 500)//to make rounding
+			md_pipefreq = md_pipefreq + 1;
+
+		md_pipefreq *= 20000;
+		/* we have no simple way to read multiplier value
+		 */
+		md_cpufreq = 66000000;
+	}
+		cur = (inl(LS7A_HPET_PERIOD) / 1000000);
+	tgt_printf("cpu freq %u, cnt %u\n", md_pipefreq, cnt);
+
+	outl(LS7A_HPET_CONF, 0x0);//Disable main clock
+#endif
 #endif /* HAVE_TOD */
 }
 /*
