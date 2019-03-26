@@ -358,6 +358,13 @@ gs_2f_v3_ddr2_cfg:
 
 #define SOFT_CLKSEL
 #ifdef SOFT_CLKSEL
+#ifdef BONITO_25M
+#define DDRPLL_IN 25
+#else
+#define DDRPLL_IN 33
+#endif
+
+#define CPUPLL_IN 25000000
 
 #ifndef DDR_FREQ
 #define DDR_FREQ    528
@@ -369,7 +376,7 @@ gs_2f_v3_ddr2_cfg:
 #else
 #define DDR_DIV     4
 #endif
-#define DDR_LOOPC  (DDR_FREQ*DDR_DIV*DDR_REFC/33)
+#define DDR_LOOPC  (DDR_FREQ*DDR_DIV*DDR_REFC/DDRPLL_IN)
 
 #ifndef CORE_FREQ    
 #define CORE_FREQ    800
