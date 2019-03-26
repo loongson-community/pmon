@@ -693,11 +693,11 @@ no_reboot:
 #define AUTO_ARB_LEVEL
 #endif
 #ifdef  AUTO_ARB_LEVEL
-#define CHECK_ARB_LEVEL_FREQ
+//#define CHECK_ARB_LEVEL_FREQ
 #ifdef  AUTO_DDR_CONFIG
 #define CHECK_ARB_LEVEL_DIMM
 #endif
-//#define DEBUG_AUTO_ARB_LEVEL
+#define DEBUG_AUTO_ARB_LEVEL
 #endif
 //#define DISABLE_DDR_A15
 //#define DEBUG_DDR
@@ -2059,7 +2059,7 @@ idle1000:
 #include "ddr_dir/loongson3C_ddr3_leveling.S"
 #endif
 #ifdef ARB_LEVEL
-#include "ddr_dir/ARB_level_new.S"
+//#include "ddr_dir/ARB_level_new.S"
 #endif
 #ifdef  DEBUG_DDR
 #include "ddr_dir/Test_Mem.S"
@@ -2091,3 +2091,18 @@ nvram_offs:
     .align  5
 #include "loongson_mc2_param.S"
 
+#ifdef  ARB_LEVEL
+	.text
+	.global c0_mc0_level_info 
+	.global c0_mc1_level_info 
+#ifdef  MULTI_CHIP
+	.global c1_mc0_level_info 
+	.global c1_mc1_level_info 
+#endif
+
+#include "ddr_dir/loongson3A3_ddr_param.lvled.S"
+#ifdef  MULTI_CHIP
+#include "ddr_dir/loongson3A3_ddr_param_c1.lvled.S"
+#endif
+
+#endif

@@ -22,7 +22,7 @@ option		TARGETNAME="\"Bonito\""
 #
 option      loongson3A3
 option      LSMC_2
-#option      ARB_LEVEL       #use software MC leveling
+option      ARB_LEVEL       #use software MC leveling
 option      DDR3_DIMM       #board use DDR3 memory, use: USE_SB_I2C, else use USE_GPIO_I2C and MULTI_I2C_BUS
 
 option      AUTO_DDR_CONFIG #use DIMM SPD auto detect DIMM
@@ -199,9 +199,8 @@ igb*       at pci? dev ? function ?             #Intel 82576
 bnx*            at pci? dev ? function ?                       # BCM5709S
 
 #uhci*		 at pci? dev ? function ?
-ohci0		 at pci? dev ? function ?
+ohci*		 at pci? dev ? function ?
 usb*		 at usbbus ?
-ohci1		 at pci? dev ? function ?
 
 select      mod_usb
 select  	mod_usb_storage
