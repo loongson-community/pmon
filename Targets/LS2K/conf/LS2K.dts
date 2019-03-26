@@ -300,9 +300,32 @@
 			spidev@0{
 				compatible = "rohm,dh2228fv";
 				spi-max-frequency = <100000000>;
+				reg = <3>;
+			};
+			spidev@0{
+				compatible = "m25p80";
+				spi-max-frequency = <40000000>;
 				reg = <0>;
 			};
+			spidev@1{
+				compatible = "mt29f";
+				spi-max-frequency = <20000000>;
+				reg = <1>;
+
+			number-of-parts = <0x2>;
+
+			partition@0 {
+				label = "kernel_partition";
+				reg = <0x0000000 0x01e00000>;
+			};
+
+			partition@0x01400000 {
+				label = "os_partition";
+				reg = <0x01e00000 0x0>;
+			};
+			};
 		};
+
 		rtc0: rtc@1fe07800{
 			compatible = "loongson,ls-rtc";
 			reg = <0x1fe07800 0x100>;
@@ -463,12 +486,12 @@
 
 			partition@0 {
 				label = "kernel_partition";
-				reg = <0x0000000 0x01400000>;
+				reg = <0x0000000 0x01e00000>;
 			};
 
 			partition@0x01400000 {
 				label = "os_partition";
-				reg = <0x01400000 0x0>;
+				reg = <0x01e00000 0x0>;
 			};
 		};
 		hwmon@0x1fe07000{
