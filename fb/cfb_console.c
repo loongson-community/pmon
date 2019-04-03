@@ -1477,6 +1477,8 @@ char console_buffer[2][65][161]={32};//128*48->1024x768
 char console_buffer[2][49][172]={32};//128*48->1024x768
 #elif defined(X320x240)
 char console_buffer[2][16][41]={32};//40*15->320x240
+#elif defined(FB_XSIZE) && defined(FB_YSIZE)
+char console_buffer[2][FB_YSIZE/8+1][FB_XSIZE/16+1]={32};
 #else
 char console_buffer[2][31][81]={32};//80*30->640x480
 #endif
