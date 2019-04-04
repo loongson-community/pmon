@@ -183,6 +183,7 @@ cmd_satatest(ac, av)
 	//else if (gen == 2)
 	//	pt8(base + 0x8012) = 0x9;
 	//pt8(base + 0x8010) = 0x1;
+    //
 
 	//set port to 0
 	pt32(base + 0xf4) = 0x0;
@@ -204,18 +205,23 @@ cmd_pcietest(ac, av)
 	unsigned int pcie_clock_source;
 	unsigned int port_num;
 	unsigned int dev_num;
+	unsigned int margin;
     unsigned long long header;
+    unsigned long long confbus_addr;
     unsigned long long bar0;
 	unsigned int bar0_low;
 	unsigned int bar0_high;
+	unsigned int rdata;
+	unsigned int rst_bit;
+	unsigned int clkok_bit;
 
 	if ((ac != 3) && (ac != 4)){
 	  printf("usage: pcietest <port num> <gen> [test mode for gen2]\n");
 	  printf("port num: 0 -> f0 x4\n");
 	  printf("port num: 1 -> f1 x4\n");
-	  printf("port num: 2 -> g0 x8\n");
-	  printf("port num: 3 -> g1 x8\n");
-	  printf("port num: 4 -> h  x8\n");
+	  printf("port num: 2 -> h  x8\n");
+	  printf("port num: 3 -> g0 x8\n");
+	  printf("port num: 4 -> g1 x8\n");
 	  printf("gen2_test_mode: 1 ->0xf052, -3.5db De-emphasis                                      \n");
 	  printf("gen2_test_mode: 2 ->0xf012, -6db De-emphasis                                        \n");
 	  printf("gen2_test_mode: 3 ->0xf452, -3.5db De-emphasis, modified compliance                 \n");
@@ -228,16 +234,55 @@ cmd_pcietest(ac, av)
 	}
 
 	port_num = (unsigned int)atoi(av[1]);
+	margin = 0x0;
     printf("pcie port = 0x%x\n",port_num);
+
 
     dev_num = port_num  == 0 ? 9  :
               port_num  == 1 ? 13 :
-              port_num  == 2 ? 15 :
-              port_num  == 3 ? 17 :
-              port_num  == 4 ? 19 :
+              port_num  == 2 ? 19 :
+              port_num  == 3 ? 15 :
+              port_num  == 4 ? 17 :
                                9;
 
+    rst_bit = port_num  == 0 ? 8  :
+              port_num  == 1 ? 16 :
+              port_num  == 2 ? 20 :
+              port_num  == 3 ? 24 :
+              port_num  == 4 ? 28 :
+                               8;
+
+    clkok_bit   = port_num  == 0 ? 8 :
+                  port_num  == 1 ? 12 :
+                  port_num  == 2 ? 14 :
+                  port_num  == 3 ? 16 :
+                  port_num  == 4 ? 18 :
+                                   8;
+
+    confbus_addr = 0x90000e0010010000ULL;
+    //set pcie_reset
+    rdata = __raw__readw(confbus_addr+0x420);
+    rdata |= ( (1<<rst_bit));
+    __raw__writew(confbus_addr+0x420, rdata);
+
+    //delay
+    int i;
+    for(i=0;i<0x1000000;i++);
+
+    //release pcie_reset
+    rdata = __raw__readw(confbus_addr+0x420);
+    rdata &= (~(1<<rst_bit));
+    __raw__writew(confbus_addr+0x420, rdata);
+
+    //wait clkok
+    while(!(__raw__readw(confbus_addr+0x424) & (0x1<<clkok_bit)));
+
+
     header = 0x90000efe00000000ULL | (dev_num << 11);
+
+    //set bar0
+    __raw__writew(header + 0x10, 0x22000000|(port_num<<16));
+    __raw__writew(header + 0x14, 0x0);
 
 	gen = (unsigned int)atoi(av[2]);
 
@@ -245,7 +290,7 @@ cmd_pcietest(ac, av)
 		test_mode = (unsigned int)atoi(av[3]);
 
 //		pt32(header + 0x7c) = 0x533c42;// the low 4 bit must be 2.
-        __raw__writew(header + 0x7c, 0x533c42);
+//        __raw__writew(header + 0x7c, 0x533c42);
 
 	}
 
@@ -278,30 +323,30 @@ cmd_pcietest(ac, av)
 //    printf("pcie bar0_high = 0x%x\n",bar0_high);
 //    printf("pcie bar0 = 0x%llx\n",bar0);
 //	pt64(bar0) = 0xff204c;
-    __raw__writew(bar0, 0xff204c);
+    __raw__writew(bar0, 0xff204c);//can't be delete, otherwise no signal
 
 
 	if (gen == 0x1) {
-        __raw__writew(header + 0xa0, 0xfc51);
+        __raw__writew(header + 0xa0, (0xfc51|((margin&0x7)<<7)));
 	} else if (gen == 0x2){
 		switch (test_mode) {
 			case 1:
-                __raw__writew(header + 0xa0, 0xf052);
+                __raw__writew(header + 0xa0, (0xf052|((margin&0x7)<<7)));
 				break;
 			case 2:
-                __raw__writew(header + 0xa0, 0xf012);
+                __raw__writew(header + 0xa0, (0xf012|((margin&0x7)<<7)));
 				break;
 			case 3:
-                __raw__writew(header + 0xa0, 0xf452);
+                __raw__writew(header + 0xa0, (0xf452|((margin&0x7)<<7)));
 				break;
 			case 4:
-                __raw__writew(header + 0xa0, 0xf412);
+                __raw__writew(header + 0xa0, (0xf412|((margin&0x7)<<7)));
 				break;
 			case 5:
-                __raw__writew(header + 0xa0, 0xfc52);
+                __raw__writew(header + 0xa0, (0xfc52|((margin&0x7)<<7)));
 				break;
 			case 6:
-                __raw__writew(header + 0xa0, 0xfc12);
+                __raw__writew(header + 0xa0, (0xfc12|((margin&0x7)<<7)));
 				break;
 			default:
 				break;

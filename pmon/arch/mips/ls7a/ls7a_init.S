@@ -4,6 +4,7 @@
 // !notice: t0: used as global variable partial
 // DO NOT touch this file!
 
+//#define LS7A_PCIE_NO_POWERDOWN
     dli     t0, LS7A_CONFBUS_BASE_ADDR
 
 #ifdef  LS7A_2WAY_CONNECT
@@ -224,14 +225,14 @@
     sw      t1, 0x5e0(t0)
     sw      t1, 0x600(t0)
 
-    li      t1, 0x73e70b0
+    li      t1, 0xff3ff0a8
     sw      t1, 0x584(t0)
     sw      t1, 0x5a4(t0)
     sw      t1, 0x5c4(t0)
     sw      t1, 0x5e4(t0)
     sw      t1, 0x604(t0)
 
-    li      t1, 0x20000
+    li      t1, 0x27fff
     sw      t1, 0x588(t0)
     sw      t1, 0x5a8(t0)
     sw      t1, 0x5c8(t0)
