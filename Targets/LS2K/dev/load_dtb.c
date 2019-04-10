@@ -41,7 +41,7 @@ static int check_mac_ok(void)
 	int  nodeoffset;	/* node offset from libfdt */
 	int  len, id, i;		/* length of the property */
 	u8 mac_addr[6] = {0x00, 0x55, 0x7B, 0xB5, 0x7D, 0xF7};	//default mac address
-	char ethernet_name[2][25]={"/soc/ethernet@0x40000000", "/soc/ethernet@0x40010000"};
+	char ethernet_name[2][25]={"/soc/ethernet@0x40040000", "/soc/ethernet@0x40050000"};
 
 	for(id = 0;id < 2;id++) {
 		nodeoffset = fdt_path_offset (working_fdt, ethernet_name[id]);
@@ -216,7 +216,7 @@ static int update_mac(void * ssp, int id)
 	int nodeoffset, len;
 	void *nodep;	/* property node pointer */
 	u8 mac_addr[6] = {0x00, 0x55, 0x7B, 0xB5, 0x7D, 0xF7};	//default mac address
-	char ethernet_name[2][25]={"/soc/ethernet@0x40000000", "/soc/ethernet@0x40010000"};
+	char ethernet_name[2][25]={"/soc/ethernet@0x40040000", "/soc/ethernet@0x40050000"};
 
 	nodeoffset = fdt_path_offset (ssp, ethernet_name[id]);
 	if (nodeoffset < 0) {
@@ -1027,7 +1027,7 @@ warning:
 	printf("set_dtb <path> <prop> [value]\n");
 	printf("eg: set_dtb /chosen bootargs \"console=ttyS0,115200 root=/dev/sda1\"\n");
 	printf("eg: set_dtb /memory reg <0 0x00200000 0 0x09e00000 1 0x10000000 1 0xd0000000>\n");
-	printf("eg: set_dtb /soc/ethernet@0x40000000 mac-address [80 c1 80 c1 80 c1]\n");
+	printf("eg: set_dtb /soc/ethernet@0x40040000 mac-address [80 c1 80 c1 80 c1]\n");
 	return 0;
 }
 
@@ -1143,7 +1143,7 @@ int show_fdt_cmds(int argc,char **argv)
 	printf("\tset_dtb <path> <prop> [value]\n");
 	printf("\teg: set_dtb /chosen bootargs \"console=ttyS0,115200 root=/dev/sda1\"\n");
 	printf("\teg: set_dtb /memory reg <0 0x00200000 0 0x09e00000 1 0x10000000 1 0xd0000000>\n");
-	printf("\teg: set_dtb /soc/ethernet@0x40000000 mac-address [80 c1 80 c1 80 c1]\n\n");
+	printf("\teg: set_dtb /soc/ethernet@0x40040000 mac-address [80 c1 80 c1 80 c1]\n\n");
 
 	printf("print_dtb		- Print dtb\n");
 	printf("\tprint_dtb <path> [prop]\n");
