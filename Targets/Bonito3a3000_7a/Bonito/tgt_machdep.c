@@ -187,6 +187,7 @@ extern unsigned long long  memorysize_high_n3;
 extern char MipsException[], MipsExceptionEnd[];
 
 unsigned char hwethadr[6];
+static void superio_reinit();
 
 void initmips(unsigned int raw_memsz)
 {
@@ -320,10 +321,20 @@ void tgt_devconfig()
 	configure();
 	gmac_mac_init();
 
+	if(getenv("nokbd"))
+		rc=1;
+	else {
+		superio_reinit();
+		rc=kbd_initialize();
+	}
+	printf("%s\n",kbd_error_msgs[rc]);
+	if(!rc){
+		kbd_available=1;
+	}
 #ifdef INTERFACE_3A780E 
 
 	vga_available = 1;
-    kbd_available = 0;
+    kbd_available = 1;
     bios_available = 1; //support usb_kbd in bios
 	// Ask user whether to set bios menu
     printf("Press <Del> to set BIOS,waiting for 3 seconds here..... \n");
@@ -406,7 +417,7 @@ bios:
 run:
 		vga_available = 1;
 		bios_available = 0;//support usb_kbd in bios
-		//kbd_available = 1;
+		kbd_available = 1;
 
 		len = strlen(bootup);
 		for (ic = 0; ic < len; ic++)
@@ -418,6 +429,51 @@ run:
 	printf("devconfig done.\n");
 	clear_pcie_inter_irq();
 	ls_pcie_interrupt_fixup();
+}
+static int w83627_read(int dev,int addr)
+{
+	int data;
+	/*enter*/
+	outb(BONITO_PCIIO_BASE_VA + 0x002e,0x87);
+	outb(BONITO_PCIIO_BASE_VA + 0x002e,0x87);
+	/*select logic dev reg */
+	outb(BONITO_PCIIO_BASE_VA + 0x002e,0x7);
+	outb(BONITO_PCIIO_BASE_VA + 0x002f,dev);
+	/*access reg */
+	outb(BONITO_PCIIO_BASE_VA + 0x002e,addr);
+	data=inb(BONITO_PCIIO_BASE_VA + 0x002f);
+	/*exit*/
+	outb(BONITO_PCIIO_BASE_VA + 0x002e,0xaa);
+	outb(BONITO_PCIIO_BASE_VA + 0x002e,0xaa);
+	return data;
+}
+
+static void w83627_write(int dev,int addr,int data)
+{
+	/*enter*/
+	outb(BONITO_PCIIO_BASE_VA + 0x002e,0x87);
+	outb(BONITO_PCIIO_BASE_VA + 0x002e,0x87);
+	/*select logic dev reg */
+	outb(BONITO_PCIIO_BASE_VA + 0x002e,0x7);
+	outb(BONITO_PCIIO_BASE_VA + 0x002f,dev);
+	/*access reg */
+	outb(BONITO_PCIIO_BASE_VA + 0x002e,addr);
+	outb(BONITO_PCIIO_BASE_VA + 0x002f,data);
+	/*exit*/
+	outb(BONITO_PCIIO_BASE_VA + 0x002e,0xaa);
+	outb(BONITO_PCIIO_BASE_VA + 0x002e,0xaa);
+}
+static void superio_reinit()
+{
+	w83627_write(0,0x24,0xc1);
+	w83627_write(5,0x30,1);
+	w83627_write(5,0x60,0);
+	w83627_write(5,0x61,0x60);
+	w83627_write(5,0x62,0);
+	w83627_write(5,0x63,0x64);
+	w83627_write(5,0x70,1);
+	w83627_write(5,0x72,0xc);
+	w83627_write(5,0xf0,0x80);
 }
 
 void tgt_devinit()
