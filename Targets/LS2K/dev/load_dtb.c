@@ -3,11 +3,7 @@
 #include <dev/pci/pcivar.h>
 #include <dev/pci/pcireg.h>
 #include <dev/pci/nppbreg.h>
-#ifdef PCI_PROBE_ONLY
 int pci_probe_only = 2; /*0:nothing, 1:dtb pci use pmon allcated, kernel pci probe only, 2: dtb pci use pmon allocated,kernel pci reassigned.*/
-#else
-int pci_probe_only = 0;
-#endif
 
 static int check_mem_args(const void * ssp);
 static int update_mem_args(const void * ssp);
