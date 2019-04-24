@@ -661,6 +661,13 @@ cp0_main:
 
 
 	dli	t0, 0x900000fe00006800
+#if defined(FORCE_PCIE_GEN1) && FORCE_PCIE_GEN1 & 0x10
+//pcie capability link control 2, target link speed(bit 3:0)
+    lw 	    t1, 0xa0(t0)
+    or	    t1, 3
+    xor     t1, 2
+    sw      t1, 0xa0(t0)
+#endif
 	li	t1, 0x10000000
 	sw	t1, 0x10(t0)
 
@@ -696,6 +703,13 @@ cp0_main:
     sw  t2, 0x0(t0)
 
 	dli	t0, 0x900000fe00007000
+#if defined(FORCE_PCIE_GEN1) && FORCE_PCIE_GEN1 & 0x20
+//pcie capability link control 2, target link speed(bit 3:0)
+    lw 	    t1, 0xa0(t0)
+    or	    t1, 3
+    xor     t1, 2
+    sw      t1, 0xa0(t0)
+#endif
 	li	t1, 0x10100000
 	sw	t1, 0x10(t0)
 
@@ -731,6 +745,13 @@ cp0_main:
     sw  t2, 0x0(t0)
 
 	dli	t0, 0x900000fe00004800
+#if defined(FORCE_PCIE_GEN1) && FORCE_PCIE_GEN1 & 1
+//pcie capability link control 2, target link speed(bit 3:0)
+    lw 	    t1, 0xa0(t0)
+    or	    t1, 3
+    xor     t1, 2
+    sw      t1, 0xa0(t0)
+#endif
 	li	t1, 0x11000000
 	sw	t1, 0x10(t0)
 
@@ -766,6 +787,13 @@ cp0_main:
     sw  t2, 0x0(t0)
 
 	dli	t0, 0x900000fe00005000
+#if defined(FORCE_PCIE_GEN1) && FORCE_PCIE_GEN1 & 2
+//pcie capability link control 2, target link speed(bit 3:0)
+    lw 	    t1, 0xa0(t0)
+    or	    t1, 3
+    xor     t1, 2
+    sw      t1, 0xa0(t0)
+#endif
 	li	t1, 0x11100000
 	sw	t1, 0x10(t0)
 
@@ -795,6 +823,13 @@ cp0_main:
 	sw	t1, 0x0(t0)
 
 	dli	t0, 0x900000fe00005800
+#if defined(FORCE_PCIE_GEN1) && FORCE_PCIE_GEN1 & 4
+//pcie capability link control 2, target link speed(bit 3:0)
+    lw 	    t1, 0xa0(t0)
+    or	    t1, 3
+    xor     t1, 2
+    sw      t1, 0xa0(t0)
+#endif
 	li	t1, 0x11200000
 	sw	t1, 0x10(t0)
 
@@ -814,6 +849,13 @@ cp0_main:
 	sw	t1, 0x0(t0)
 
 	dli	t0, 0x900000fe00006000
+#if defined(FORCE_PCIE_GEN1) && FORCE_PCIE_GEN1 & 8
+//pcie capability link control 2, target link speed(bit 3:0)
+    lw 	    t1, 0xa0(t0)
+    or	    t1, 3
+    xor     t1, 2
+    sw      t1, 0xa0(t0)
+#endif
 	li	t1, 0x11300000
 	sw	t1, 0x10(t0)
 
