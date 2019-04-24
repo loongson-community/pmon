@@ -559,7 +559,7 @@ int ext2_read(int fd, void *read_start,size_t size)
  * extent_hdr: the root node of the extent tree of the file
  * file_block: the file block number of the file
  */
-static struct ext4_extent_hdr * get_extent_node(int fd, __u8 buff,
+static struct ext4_extent_hdr * get_extent_node(int fd, __u8 *buff,
 		struct ext4_extent_hdr *extent_hdr, __u32 file_block)
 {
 	struct ext4_extent_idx *idx;
@@ -589,7 +589,7 @@ static struct ext4_extent_hdr * get_extent_node(int fd, __u8 buff,
 					idx[i].ei_leaf_lo);
 #endif
 
-		} while(file_block > le32_to_cpu(idx[i].ei_block));
+		} while(file_block >= le32_to_cpu(idx[i].ei_block));
 
 		if(--i < 0)
 			return 0;
@@ -614,19 +614,14 @@ static struct ext4_extent_hdr * get_extent_node(int fd, __u8 buff,
  * idx: the root extent header for the filesystem
  * file_block: the logical file logical number
  */
-static long long read_extent_block(int fd, struct ext4_extent_hdr *idx,
-		__u32 file_block)
+static long long read_extent_block(int fd, struct ext4_extent_hdr *idx, __u8  *ext_buff,
+		__u32 file_block, int *leftblks)
 {
 	unsigned long long blk;
 	struct ext4_extent_hdr *leaf_node;
 	struct ext4_extent *extent;
-	__u8  *ext_buff = (unsigned char *)malloc(sb_block_size);
 	int i = -1;
 
-	if(!ext_buff) {
-		printf("no mem!\n");
-		return -1;
-	}
 
 	leaf_node = get_extent_node(fd, ext_buff, idx, file_block);
 	if(!leaf_node) {
@@ -660,23 +655,24 @@ static long long read_extent_block(int fd, struct ext4_extent_hdr *idx,
 				file_block, extent[i].ee_block, extent[i].ee_len,
 				extent[i].ee_start_lo);
 #endif
-		if(file_block >= le16_to_cpu(extent[i].ee_len)) {
-			free(ext_buff);
-			return 0;
-		}
 
 		blk = le16_to_cpu(extent[i].ee_start_hi);
 		blk = blk << 32 |
 			le32_to_cpu(extent[i].ee_start_lo);
-		free(ext_buff);
 #ifdef DEBUG_IDE
 		printf("blk:%ld, ret %ld\n", blk, file_block + blk);
 #endif
+		if(file_block >= le16_to_cpu(extent[i].ee_len)) {
+		/* find a hole */
+			*leftblks = extent[i+1].ee_block - file_block -  extent[i].ee_block;
+			return -2;
+		}
+		else
+		*leftblks = le16_to_cpu(extent[i].ee_len) - file_block;
 		return file_block + blk;
 	}
 
 	printf("extent error \n");
-	free(ext_buff);
 	return -1;
 }
 
@@ -693,26 +689,39 @@ static int ext2_read_file1(int fd, void *read_start,
 	long long blk;
 	size_t off;
 	int i;
+	int leftblks;
 	__u32 blk_start = pos / sb_block_size;
 	__u32 blk_end = (pos + size + sb_block_size - 1) / sb_block_size;
+	 __u8  *ext_buff;
 	off = 0;
 #ifdef DEBUG_IDE
 	printf("size:%d, pos:%d flags:0x%x\n", size, pos, inode->i_flags);
 #endif
 
 	extent_hdr = (struct ext4_extent_hdr *)(inode->i_block);
+	ext_buff = (unsigned char *)malloc(sb_block_size);
+	if (!ext_buff) {
+		printf("no mem!\n");
+		return -1;
+	}
 
-	for(i = blk_start; i < blk_end; i++) {
+	for(i = blk_start, leftblks = 0; i < blk_end; i++) {
 		int skip;
 		int len;
 		int ret;
 
-		blk = read_extent_block(fd, extent_hdr, i);
+		if (!leftblks)
+			blk = read_extent_block(fd, extent_hdr, ext_buff, i, &leftblks);
+		else if (blk >= 0)
+		   blk++;
+		leftblks--;
 #ifdef DEBUG_IDE
-		printf("blk:%d, file_block:%d\n", blk, i);
+		printf("blk:%lld, file_block:%d\n", blk, i);
 #endif
-		if(blk < 0)
-			return -1;
+		if(blk == -1)
+		{
+			goto out;
+		}
 
 		if(i == pos / sb_block_size) {
 			skip = pos % sb_block_size;
@@ -728,30 +737,33 @@ static int ext2_read_file1(int fd, void *read_start,
 		if(!len)
 			break;
 
-		if(size / sb_block_size)
-			len = sb_block_size - skip;
-		else
-			len = size % sb_block_size;
-		if(!len)
-			len = sb_block_size;
 
-		/*blk = blk * sb_block_size + START_PARTION + skip * sb_block_size;*/
-		blk = blk * sb_block_size + START_PARTION + skip;
-		devio_lseek(fd, blk, 0);
+		if(blk>=0)
+		{
+			devio_lseek(fd, blk * sb_block_size + START_PARTION + skip, 0);
 		ret = devio_read(fd, read_start + off, len);
+ 		}
+		else memset(read_start + off, 0, len);
 #ifdef DEBUG_IDE
 		printf("ret:%d, size:%d, off:%d, skip:%d, len:%d \n",
 				ret, size, off, skip, len);
 #endif
 		if(ret < 0)
-			return -1;
+		{
+			goto out;
+		}
 		if(ret != len)
-			return ret + off;
+		{
+			off = ret + off;
+			goto out;
+		}
 
 		size -= len;
 		off += len;
 	}
+out:
 
+	free(ext_buff);
 #ifdef DEBUG_IDE
 	printf("size:%d, off:%d\n", size, off);
 #endif
