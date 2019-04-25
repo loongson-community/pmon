@@ -711,7 +711,7 @@ cp0_main:
 
     li      t1, 0x30c31cf9
     sw      t1, 0x454(t0)
-    li      t1, 0xf3000403
+    li      t1, 0xf300040f
     sw      t1, 0x450(t0)
 
 #if 1
