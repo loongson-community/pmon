@@ -266,7 +266,7 @@ static int ext2_load_linux(int fd,int index, const unsigned char *path)
 	struct ext2_inode *ext2_raw_inode;
 	ext2_dirent *de;
 	unsigned char *bh;
-	int i;
+	int i, bh_size;
 	unsigned int inode;
 	int find = 1;
 	unsigned char s[EXT2_NAME_LEN];
@@ -277,6 +277,7 @@ static int ext2_load_linux(int fd,int index, const unsigned char *path)
 	showdir = 0;
 	lookupdir = 0;
 	bh = 0;
+	bh_size = 0;
 
 	if(read_super_block(fd,index))
 		return -1;
@@ -300,8 +301,12 @@ static int ext2_load_linux(int fd,int index, const unsigned char *path)
 			printf("load EXT2_ROOT_INO error");
 			return -1;
 		}
-		if(!bh)
+		if (!bh || bh_size < sb_block_size + ext2_raw_inode->i_size)
+		{
+			if(bh) free(bh);
 			bh = (unsigned char *)malloc(sb_block_size + ext2_raw_inode->i_size);
+			bh_size = sb_block_size + ext2_raw_inode->i_size;
+		}
 
 		if(!bh) {
 			printf("Error in allocting memory for file content!\n");
