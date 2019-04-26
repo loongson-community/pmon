@@ -626,6 +626,7 @@ static long long read_extent_block(int fd, struct ext4_extent_hdr *idx, __u8  *e
 	struct ext4_extent_hdr *leaf_node;
 	struct ext4_extent *extent;
 	int i = -1;
+	__u32 next_block = file_block + 1;
 
 
 	leaf_node = get_extent_node(fd, ext_buff, idx, file_block);
@@ -650,7 +651,8 @@ static long long read_extent_block(int fd, struct ext4_extent_hdr *idx, __u8  *e
 				i, extent[i].ee_block, extent[i].ee_len,
 				extent[i].ee_start_lo);
 #endif
-	} while(file_block >= le16_to_cpu(extent[i].ee_block));
+		next_block = le32_to_cpu(extent[i].ee_block);
+	} while(file_block >= next_block);
 
 
 	if(--i >= 0) {
@@ -669,7 +671,7 @@ static long long read_extent_block(int fd, struct ext4_extent_hdr *idx, __u8  *e
 #endif
 		if(file_block >= le16_to_cpu(extent[i].ee_len)) {
 		/* find a hole */
-			*leftblks = extent[i+1].ee_block - file_block -  extent[i].ee_block;
+			*leftblks = next_block - file_block -  extent[i].ee_block;
 			return -2;
 		}
 		else
@@ -677,8 +679,8 @@ static long long read_extent_block(int fd, struct ext4_extent_hdr *idx, __u8  *e
 		return file_block + blk;
 	}
 
-	printf("extent error \n");
-	return -1;
+	*leftblks = next_block - file_block;
+	return -2;
 }
 
 
@@ -748,7 +750,11 @@ static int ext2_read_file1(int fd, void *read_start,
 			devio_lseek(fd, blk * sb_block_size + START_PARTION + skip, 0);
 		ret = devio_read(fd, read_start + off, len);
  		}
-		else memset(read_start + off, 0, len);
+		else
+		{
+			 memset(read_start + off, 0, len);
+			 ret = len;
+		}
 #ifdef DEBUG_IDE
 		printf("ret:%d, size:%d, off:%d, skip:%d, len:%d \n",
 				ret, size, off, skip, len);
