@@ -1,6 +1,9 @@
 #ifndef _LINUX_BYTEORDER_SWAB_H
 #define _LINUX_BYTEORDER_SWAB_H
+#include <linux/kernel.h>
 #include<ubifs_pmon.h>
+#define __BYTEORDER_HAS_U64__
+#define __SWAB_64_THRU_32__
 /*
  * linux/byteorder/swab.h
  * Byte-swapping, independently from CPU endianness
