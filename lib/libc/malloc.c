@@ -112,6 +112,7 @@ void
 free(void *ap)
 {
 	HEADER *p, *q;
+	if (!ap) return;
 
 	p = (HEADER *) ap - 1;
 	if (p->s.ptr != p)
