@@ -2103,7 +2103,7 @@ int ubifs_removexattr(struct dentry *dentry, const char *name);
 /* super.c */
 struct inode *ubifs_iget(struct super_block *sb, unsigned long inum);
 int ubifs_iput(struct inode *inode);
- int mount_ubifs(struct ubifs_info *c);
+static int mount_ubifs(struct ubifs_info *c);
 
 /* recovery.c */
 int ubifs_recover_master_node(struct ubifs_info *c);
