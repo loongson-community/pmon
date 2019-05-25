@@ -80,6 +80,7 @@ malloc(size_t nbytes)
 				p->s.size = nunits;
 			}
 			allocp = q;
+			p->s.ptr = p;
 			return ((char *)(p + 1));
 		}
 		if (p == allocp)
@@ -101,6 +102,7 @@ morecore(u_int32_t nu)
 		return (NULL);
 	up = (HEADER *) cp;
 	up->s.size = rnu;
+        up->s.ptr = up;
 	free ((char *)(up + 1));
 	return (allocp);
 }
@@ -112,6 +114,11 @@ free(void *ap)
 	HEADER *p, *q;
 
 	p = (HEADER *) ap - 1;
+	if (p->s.ptr != p)
+	{
+	  printf("BUG:free error p=0x%x != ps->s.ptr=0x%x, p->s.size=0x%x\n", p, p->s.ptr, p->s.size);
+	  while(1);
+	}
 	for (q = allocp; !(p > q && p < q->s.ptr); q = q->s.ptr)
 		if (q >= q->s.ptr && (p > q || p < q->s.ptr))
 			break;
