@@ -715,6 +715,11 @@ extern int rtc_set_time(unsigned char *);
 extern int rtc_get_sec(void);
 #endif
 
+#define LS2K_HPET_BASE 		0xbfe04000
+#define LS2K_HPET_PERIOD	LS2K_HPET_BASE + 0x4
+#define LS2K_HPET_CONF		LS2K_HPET_BASE + 0x10 
+#define LS2K_HPET_MAIN		LS2K_HPET_BASE + 0xF0 
+
 static void _probe_frequencies()
 {
 #ifdef HAVE_TOD
@@ -728,6 +733,57 @@ static void _probe_frequencies()
 
 	clk_invalid = 1;
 #ifdef HAVE_TOD
+#ifdef HPET_RTC
+/* whd : USE HPET to calculate the frequency, 
+ *       reduce the booting delay and improve the frequency accuracy. 
+ *       when use the RTC counter of 7A, it cost 160us+ for one read, 
+ *       but if we use the HPET counter, it only cost ~300ns for one read,
+ *       so the HPET has good accuracy even use less time */
+
+	outl(LS2K_HPET_CONF, 0x1);//Enable main clock
+
+	/*
+	 * Do the next twice to make sure we run from cache
+	 */
+	for (i = 2; i != 0; i--) {
+		timeout = 10000000;
+
+		sec = inl(LS2K_HPET_MAIN);//get time now
+		cnt = CPU_GetCOUNT();
+		cur = (inl(LS2K_HPET_PERIOD) / 1000000);
+		sec = sec + (100000000 / cur);//go 100 ms
+		do {
+			timeout--;
+			cur = (inl(LS2K_HPET_MAIN));
+		} while (timeout != 0 && (cur < sec));
+
+		cnt = CPU_GetCOUNT() - cnt;
+		if (timeout == 0) {
+			tgt_printf("time out!\n");
+			break;	/* Get out if clock is not running */
+		}
+	}
+
+	/*
+	 *  Calculate the external bus clock frequency.
+	 */
+	if (timeout != 0) {
+		clk_invalid = 0;
+		md_pipefreq = cnt / 1000;
+
+		if((cnt % 1000) >= 500)//to make rounding
+			md_pipefreq = md_pipefreq + 1;
+
+		md_pipefreq *= 20000;
+		/* we have no simple way to read multiplier value
+		 */
+		md_cpufreq = 66000000;
+	}
+		cur = (inl(LS2K_HPET_PERIOD) / 1000000);
+	tgt_printf("cpu freq %u, cnt %u\n", md_pipefreq, cnt);
+
+	outl(LS2K_HPET_CONF, 0x0);//Disable main clock
+#else
 #ifdef EXTERNAL_RTC
 	for (i = 2; i != 0; i--) {
 		timeout = 10000000;
@@ -793,6 +849,7 @@ static void _probe_frequencies()
 		md_cpufreq = 66000000;
 	}
 	tgt_printf("cpu freq %u\n", md_pipefreq);
+#endif
 #else
 	md_pipefreq = read_cpufreq()*1000000;
 #endif /* HAVE_TOD */
