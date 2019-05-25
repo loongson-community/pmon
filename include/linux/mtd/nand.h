@@ -160,6 +160,9 @@ typedef enum {
  * autoincrement.*/
 #define NAND_NO_READRDY		0x00000100
 
+/* Chip does not allow subpage writes */
+#define NAND_NO_SUBPAGE_WRITE	0x00000200
+
 /* Options valid for Samsung large page devices */
 #define NAND_SAMSUNG_LP_OPTIONS \
 	(NAND_NO_PADDING | NAND_CACHEPRG | NAND_COPYBACK)
