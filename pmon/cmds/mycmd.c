@@ -134,7 +134,7 @@ static union commondata{
 		unsigned int data4;
 		unsigned int data8[2];
 		unsigned char c[8];
-}mydata,*pmydata;
+}mydata __attribute__((aligned(8))),*pmydata;
 
 unsigned int syscall_addrtype=0;
 #define syscall_addrwidth ((syscall_addrtype>256?0:(syscall_addrtype>>4))+1)
@@ -349,8 +349,10 @@ return -1;
 #define MYASM(...)
 #define MYC(x) x
 #endif
-static int __syscall1(int type,long long addr,union commondata *mydata)
+static int __syscall1(int type,long long a,union commondata *mydata)
 {
+static long long addr;
+addr = a;
 /*
  * use lw to load l[2],will make high bit extension.
  */
@@ -392,8 +394,10 @@ case 8:
 return 0;
 }
 
-static int __syscall2(int type,long long addr,union commondata *mydata)
+static int __syscall2(int type,long long a,union commondata *mydata)
 {
+static long long addr;
+addr = a;
 switch(type)
 {
 case 1:
