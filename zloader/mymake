@@ -1,15 +1,17 @@
 #!/usr/bin/perl -w
-my $obj=$ARGV[0];
-$obj=~s/\.[c|S]$/.o/;
+($obj=$ARGV[0])=~s/\.[c|S]$/.o/;
+($file=$obj)=~s/\.o$//;
 system(qq(rm -f $obj));
 open F,qq(make $ARGV[0] |);
 my $cmd;
 while(<F>){$cmd=$_;last if/gcc/;};
 close F;
 shift @ARGV;
-print STDERR "$cmd\n";
-system qq($cmd);
-system qq(cp $obj /tmp/tmp.o;mipsel-linux-objdump -Slz /tmp/tmp.o >/tmp/tmp.S);
-$cmd=~s/\s-c\s/ @ARGV -E -C /;
-print STDERR "$cmd\n";
-system($cmd);
+#system qq($cmd);
+#system qq(cp $obj /tmp/tmp.o;mipsel-linux-objdump -Slz /tmp/tmp.o >/tmp/tmp.S);
+($cmd1=$cmd)=~s/\s-c\s/ -o \/tmp\/$file.i -E -C -g3 /;
+print STDERR "$cmd1\n";
+system($cmd1);
+($cmd1=$cmd)=~s/\s-c\s/ -S -g3 -fverbose-asm -o \/tmp\/$file.s /;
+print STDERR "$cmd1\n";
+system($cmd1);

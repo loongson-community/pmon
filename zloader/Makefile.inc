@@ -55,7 +55,7 @@ ifdef obj
 export CC += -g3
 pwd=$(shell pwd)
 gcc_E:
-	cd ../Targets/${TARGET}/compile/${TARGETEL};${pwd}/mymake  ${obj} > /tmp/tmp.c
+	cd ../Targets/${TARGET}/compile/${TARGETEL};${pwd}/mymake  ${obj}
 endif
 
 ifndef tgt
