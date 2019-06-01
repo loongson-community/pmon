@@ -607,6 +607,8 @@ static int autoload(char *s)
 		printf("Press any other key to abort.\n");
 		ioctl (STDIN, CBREAK, &sav);
 		lastt = 0;
+		if (!dly) ioctl (STDIN, FIONREAD, &cnt);
+		else
 		do {
 	//		delay(1000000);
 			printf ("\b\b%02d", --dly);
