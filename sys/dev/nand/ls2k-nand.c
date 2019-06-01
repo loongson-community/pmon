@@ -30,7 +30,7 @@
 
 #define DMA_ACCESS_ADDR		LS2H_NAND_DMA_ACC_REG
 #define ORDER_REG_ADDR		(CKSEG1ADDR(LS2H_DMA_ORDER_REG))
-#define MAX_BUFF_SIZE		4096
+#define MAX_BUFF_SIZE		0x4000
 #define NAND_PAGE_SHIFT		12
 #define NO_SPARE_ADDRH(x)	((x) >> (32 - (NAND_PAGE_SHIFT - 1 )))
 #define NO_SPARE_ADDRL(x)	((x) << (NAND_PAGE_SHIFT - 1))
@@ -126,7 +126,6 @@ enum {
 #define REG(reg)	(info->mmio_base + reg)
 #define NAND_DEBUG
 
-#define MAX_BUFF_SIZE		4096
 #define STATUS_TIME_LOOP_R	3000
 #define STATUS_TIME_LOOP_WS	100
 #define STATUS_TIME_LOOP_WM	60
