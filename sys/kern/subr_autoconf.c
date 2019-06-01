@@ -60,6 +60,7 @@
 #if defined(__alpha__) || defined(hp300)
 #include <machine/autoconf.h>
 #endif /* __alpha__ || hp300 */
+#include <mod_usb_ohci.h>
 
 /*
  * Autoconfiguration subroutines.
@@ -356,8 +357,10 @@ config_found_sm(parent, aux, print, submatch)
 	if (print)
 		printf(msgs[(*print)(aux, parent->dv_xname)]);
 
+#if NMOD_USB_OHCI
 	if(ohci_index)  
                dl_ohci_kbd();  //deal with usb keyboard
+#endif
 	return (NULL);
 }
 
@@ -469,8 +472,10 @@ if (strstr(dev->dv_xname, "wd") != NULL || strstr(dev->dv_xname, "cd") != NULL |
 		if (print)
 			(void) (*print)(aux, (char *)0);
 
+#if NMOD_USB_OHCI
 		if(ohci_index)
              		  dl_ohci_kbd(); //deal with usb keyboard
+#endif
 	}
 
 	/*

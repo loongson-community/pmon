@@ -53,6 +53,11 @@
 #include "mod_usb_storage.h"
 #include "loopdev.h"
 #include "atp.h"
+#ifdef LOONGSON_2K
+#include "sdcard.h"
+#endif
+#include <ahci_sd.h>
+#include <ahci_cdrom.h>
 
 extern int errno;
 
@@ -140,7 +145,9 @@ struct devsw devswitch[] = {
 #endif
 #if NWD > 0
 #if (defined LOONGSON_3A2H) || (defined LOONGSON_3C2H||defined LOONGSON_2G1A || defined LOONGSON_2F1A) || defined(LOONGSON_2K) || defined(LS7A)
+#if NAHCI_SD
 	{ "wd", ahci_sd_open, ahci_sd_read, ahci_sd_write, ahci_sd_close },
+#endif
 #else
 	{ "wd", wdopen, wdread, wdwrite, wdclose },
 #endif
@@ -149,7 +156,9 @@ struct devsw devswitch[] = {
 	{ "cd", cdopen, cdread, cdwrite, cdclose },
 #endif
 #if (defined LOONGSON_3A2H) || (defined LOONGSON_3C2H||defined LOONGSON_2G1A || defined LOONGSON_2F1A) || defined(LOONGSON_2K) || defined(LS7A)
+#if NAHCI_CDROM
 	{ "cd", ahci_cdrom_open, ahci_cdrom_read, ahci_cdrom_write, ahci_cdrom_close },
+#endif
 #elif NIDE_CD > 0
 	{ "cd", ide_cdopen, ide_cdread, ide_cdwrite, ide_cdclose},
 #endif

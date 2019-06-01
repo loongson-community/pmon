@@ -68,6 +68,7 @@
 #include <pflash.h>
 #include <flash.h>
 #include <dev/pflash_tgt.h>
+#include <mod_usb_ohci.h>
 extern void    *callvec;
 unsigned int show_menu;
 
@@ -948,8 +949,10 @@ static	const char      more_tiks[] = "|/-\\";
 static	const char     *more_tik;
 
 	tik_cnt -= rate;
+#if NMOD_USB_OHCI
 	if(ohci_index)
 		dl_ohci_kbd();
+#endif
 	if (tik_cnt > 0) {
 		return;
 	}

@@ -315,8 +315,7 @@ file x86emu/src/biosemu/freebiosvga.c	mod_x86emu	needs-flag
 file x86emu/int10/vesafb.c		mod_vesa & mod_framebuffer		needs-flag
 
 file fb/cfb_console.c                                       mod_framebuffer         needs-flag
-#file pmon/dev/kbd.c			mod_vgacon	needs-flag
-file pmon/dev/kbd.c
+file pmon/dev/kbd.c			mod_vgacon	needs-flag
 file pmon/dev/vgacon.c			mod_vgacon	needs-flag
 
 file pmon/dev/cpc700_iic.c		cpc700
