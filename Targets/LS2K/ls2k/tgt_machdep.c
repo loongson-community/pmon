@@ -219,6 +219,9 @@ enum freqscale1
 FREQSCALE1_CORE1EN = 2,
 };
 
+#ifdef DEBUG_BY_EJTAG
+#include "ejtag.c"
+#endif
 
 void initmips(unsigned long long  raw_memsz)
 {
@@ -231,6 +234,9 @@ void initmips(unsigned long long  raw_memsz)
 	*(volatile int *)0xbfe10428 |= 0xe;
 #endif
 
+#ifdef DEBUG_BY_EJTAG
+	ejtag_init();
+#endif
 	tgt_fpuenable();
 
 	get_memorysize(raw_memsz);
@@ -295,7 +301,11 @@ DPMCFG |= 0x8;
 	SBD_DISPLAY("BEV0", 0);
 	printf("BEV in SR set to zero.\n");
 	/*disable spi instruct fetch before enter spi io mode*/
+#ifdef DEBUG_BY_EJTAG
+	*(volatile int *)0xbfe10080 = 0x001000f0;
+#else
 	*(volatile int *)0xbfe10080 = 0x1fc00082;
+#endif
 #if NNAND
 #ifdef CONFIG_LS2K_NAND
 	*(volatile int *)0xbfe10420 |= (1<<9) ;

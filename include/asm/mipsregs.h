@@ -1361,4 +1361,45 @@ __BUILD_SET_C0(srsmap)
 
 #endif /* !__ASSEMBLY__ */
 
+/* MIPS pt_regs offsets. */
+#define PT_R0     24
+#define PT_R1     28
+#define PT_R2     32
+#define PT_R3     36
+#define PT_R4     40
+#define PT_R5     44
+#define PT_R6     48
+#define PT_R7     52
+#define PT_R8     56
+#define PT_R9     60
+#define PT_R10    64
+#define PT_R11    68
+#define PT_R12    72
+#define PT_R13    76
+#define PT_R14    80
+#define PT_R15    84
+#define PT_R16    88
+#define PT_R17    92
+#define PT_R18    96
+#define PT_R19    100
+#define PT_R20    104
+#define PT_R21    108
+#define PT_R22    112
+#define PT_R23    116
+#define PT_R24    120
+#define PT_R25    124
+#define PT_R26    128
+#define PT_R27    132
+#define PT_R28    136
+#define PT_R29    140
+#define PT_R30    144
+#define PT_R31    148
+#define PT_LO     152
+#define PT_HI     156
+#define PT_EPC    160
+#define PT_BVADDR 164
+#define PT_STATUS 168
+#define PT_CAUSE  172
+#define PT_SIZE   176
+
 #endif /* _ASM_MIPSREGS_H */
