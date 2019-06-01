@@ -6,6 +6,8 @@
 #include<linux/mtd/partitions.h>
 #include<sys/malloc.h>
 #include <sys/mbuf.h>
+#include <linux/mtd/nand_bch.h>
+#include <nand_bch.h>
 
 //------------------------------------------
 #define CKSEG1ADDR(a) ((a)|0xa0000000)
@@ -178,7 +180,7 @@ enum {
 #define DMA_RD_STU_SHIF		4		/* dma read data status */
 #define DMA_WR_STU_SHIF		8		/* dma write data status */
 
-#define NAND_USE_CS	2
+#define NAND_USE_CS	0
 
 /* DMA Descripter */
 struct ls2k_nand_dma_desc {
@@ -363,38 +365,46 @@ static void dma_setup(struct ls2k_nand_info *info, int dma_cmd, int dma_cnt)
 static int get_chip_capa_num(uint64_t  chipsize, int pagesize)
 {
 	int size_mb = chipsize >> 20;
-
-	switch (size_mb) {
-	case (1 << 7):		/* 1Gb */
-		if (pagesize == 512)
-			return 0xd;
-		else
-			return 0;
-	case (1 << 8):		/* 2Gb */
-		return 1;
-	case (1 << 9):		/* 4Gb */
-		return 2;
-	case (1 << 10):		/* 8Gb */
-		return 3;
-	case (1 << 11):		/* 16Gb */
+	if(pagesize == 4096)
 		return 4;
-	case (1 << 12):		/* 32Gb */
-		return 5;
-	case (1 << 13):		/* 64Gb */
-		return 6;
-	case (1 << 14):		/* 128Gb */
-		return 7;
-	case (1 << 3):		/* 64Mb */
-		return 9;
-	case (1 << 4):		/* 128Mb */
-		return 0xa;
-	case (1 << 5):		/* 256Mb */
-		return 0xb;
-	case (1 << 6):		/* 512Mb */
-		return 0xc;
-	default:		/* 64Mb */
-		return 0;
-	}
+	else if(pagesize == 2048)
+		switch (size_mb) {
+			case (1 << 7):		/* 1Gb */
+				return 0;
+			case (1 << 8):		/* 2Gb */
+				return 1;
+			case (1 << 9):		/* 4Gb */
+				return 2;
+			case (1 << 10):		/* 8Gb */
+			default:
+				return 3;
+		}
+	else if(pagesize == 8192)
+
+		switch (size_mb) {
+			case (1 << 12):		/* 32Gb */
+				return 5;
+			case (1 << 13):		/* 64Gb */
+				return 6;
+			case (1 << 14):		/* 128Gb */
+			default:
+				return 7;
+		}
+	else if(pagesize == 512)
+
+		switch (size_mb) {
+			case (1 << 3):		/* 64Mb */
+				return 9;
+			case (1 << 4):		/* 128Mb */
+				return 0xa;
+			case (1 << 5):		/* 256Mb */
+				return 0xb;
+			case (1 << 6):		/* 512Mb */
+			default:
+				return 0xc;
+		}
+	else
+	      return 0;
 }
 
 static void __attribute__((noinline)) ls2k_read_id(struct ls2k_nand_info *info)
@@ -611,12 +621,40 @@ static void ls2k_nand_init_mtd(struct mtd_info *mtd,
 	this->write_buf		= ls2k_nand_write_buf;
 	this->verify_buf	= ls2k_nand_verify_buf;
 
-	this->ecc.mode		= NAND_ECC_NONE;
+#if NNAND_BCH
+#define BCH_BUG(a...) printf(a);while(1);
+	{
+		int bch = 4;
+		int writesize = 2048;
+		int oobsize = 64;
+		unsigned int eccsteps, eccbytes;
+		if (!mtd_nand_has_bch()) {
+			BCH_BUG("BCH ECC support is disabled\n");
+		}
+		/* use 512-byte ecc blocks */
+		eccsteps = writesize/512;
+		eccbytes = (bch*13+7)/8;
+		/* do not bother supporting small page devices */
+		if ((oobsize < 64) || !eccsteps) {
+			BCH_BUG("bch not available on small page devices\n");
+		}
+		if ((eccbytes*eccsteps+2) > oobsize) {
+			BCH_BUG("invalid bch value \n", bch);
+		}
+		this->ecc.mode = NAND_ECC_SOFT_BCH;
+		this->ecc.size = 512;
+		this->ecc.strength = bch;
+		this->ecc.bytes = eccbytes;
+		printk("using %u-bit/%u bytes BCH ECC\n", bch, this->ecc.size);
+	}
+#else
+	this->ecc.mode		= NAND_ECC_SOFT;
+	this->ecc.size		= 256;
+	this->ecc.bytes		= 3;
 	this->ecc.hwctl		= ls2k_nand_ecc_hwctl;
 	this->ecc.calculate	= ls2k_nand_ecc_calculate;
 	this->ecc.correct	= ls2k_nand_ecc_correct;
-	this->ecc.size		= 2048;
-	this->ecc.bytes		= 24;
+#endif
 }
 
 
@@ -691,11 +729,13 @@ int ls2k_nand_init()
 		goto fail_free_io;
 	}
 
+#if 0
 	if (ls2k_nand_detect(mtd)) {
 		printf("driver don't support the Flash!\n");
 		ret = -ENXIO;
 		goto fail_free_io;
 	}
+#endif
 
         mtd->name="nand-flash";
         if(!nand_flash_add_parts(mtd,0)){
