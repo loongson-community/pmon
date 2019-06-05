@@ -1126,6 +1126,7 @@ ubifs_open(int fd, const char *path, int flags, int mode)
 	if(ubifs_mount(volname))
 	{
                 puts("ubifs mounted failed!!");
+		ubi_detach_mtd_dev(0, 1);
 		return -1;
 	}
         c = ubifs_sb->s_fs_info;

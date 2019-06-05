@@ -1184,7 +1184,10 @@ int ubifs_mount(char *vol_name)
 	 * First unmount if allready mounted
 	 */
 	if (ubifs_sb)
+	{
 		ubifs_umount(ubifs_sb->s_fs_info);
+		ubifs_sb = NULL;
+	}
 
 	INIT_LIST_HEAD(&ubifs_infos);
 	INIT_LIST_HEAD(&ubifs_fs_type.fs_supers);
