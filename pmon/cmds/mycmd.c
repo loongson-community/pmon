@@ -317,6 +317,7 @@ if(argc<3)return -1;
                     rcount+=n;
                     pnow+=n;
                 }
+		if (!rcount) break;
             nowcount+=rcount;
             if(!(strstr(argv[1],"/dev/tty")||strstr(argv[2],"/dev/tty")||quiet))
             {
@@ -325,7 +326,18 @@ if(argc<3)return -1;
                 sprintf(pstr,"%d",nowcount);
                 printf("%s",pstr);
             }
-            if(write(fp1,buf,rcount)<rcount||rcount<bs)break;
+	
+            pnow = buf;
+	    while (rcount) {
+		    n = write(fp1, pnow, rcount);
+		    if (n <= 0)
+			    break;
+		    rcount -= n;
+                    pnow += n;
+	    }
+	    
+	    if (n <= 0)
+		    break;
         }
         free(buf);
 #if NGZIP > 0
