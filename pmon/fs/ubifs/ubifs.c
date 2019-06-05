@@ -1074,7 +1074,9 @@ ubifs_open(int fd, const char *path, int flags, int mode)
 	FD=fd;
 	/*  Try to get to the physical device */
 	opath = path;
-	if (strncmp(opath, "/dev/", 5) == 0)
+	if (strncmp(opath, "/dev/fs/", 8) == 0)
+		opath += 8;
+	else if (strncmp(opath, "/dev/", 5) == 0)
 		opath += 5;
 	else
 		return -1;
@@ -1215,11 +1217,22 @@ static FileSystem ubifs = {
         NULL
 };
 
+static FileSystem ubifs1 = {
+        "fs/ubifs", FS_FILE,
+        ubifs_open,
+        ubifs_read,
+        ubifs_write,
+        ubifs_lseek,
+        ubifs_close,
+        NULL
+};
+
 static void init_fs(void) __attribute__ ((constructor));
 
 static void
 init_fs()
 {
         filefs_init(&ubifs);
+        filefs_init(&ubifs1);
 }
 
