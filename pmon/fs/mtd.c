@@ -252,7 +252,7 @@ static int
     priv = (mtdpriv *)_file[fd].data;
     p = priv->file;
     if(priv->flags & MTD_FLAGS_CHAR || priv->flags & MTD_FLAGS_RAW ||priv->flags & MTD_FLAGS_CHAR_MARK){
-        n -= p->mtd->oobsize;
+        n = p->mtd->writesize;
     }
     left = n;
     if (_file[fd].posn + n > priv->open_size)
@@ -418,7 +418,7 @@ static int
     p = priv->file;
     chip = (struct nand_chip*)(p->mtd->priv);
     if(priv->flags & MTD_FLAGS_CHAR_MARK || priv->flags & MTD_FLAGS_CHAR|| priv->flags & MTD_FLAGS_RAW)
-        n -= p->mtd->oobsize;
+	n = p->mtd->writesize;
     left=n;
     if (_file[fd].posn + n > priv->open_size)
         n = priv->open_size - _file[fd].posn;
