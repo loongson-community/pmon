@@ -1194,7 +1194,10 @@ int ubifs_mount(char *vol_name)
 	 */
 	flags = MS_RDONLY;
 	//flags=0;
-	strcat(name, vol_name);
+	if(vol_name[0] != '@')
+		strcat(name, vol_name);
+	else
+		strcpy(name, vol_name + 1);
 	data = NULL;
 	mnt = NULL;
 	ret = ubifs_get_sb(&ubifs_fs_type, flags, name, data, mnt);
