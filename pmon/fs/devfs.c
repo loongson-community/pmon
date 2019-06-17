@@ -53,9 +53,6 @@
 #include "mod_usb_storage.h"
 #include "loopdev.h"
 #include "atp.h"
-#ifdef LOONGSON_2K
-#include "sdcard.h"
-#endif
 #include <ahci_sd.h>
 #include <ahci_cdrom.h>
 
