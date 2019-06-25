@@ -1399,96 +1399,143 @@ void clear_pcie_inter_irq(void)
         }
 }
 
+int ls7a_get_irq(unsigned char dev, int fn)
+{
+	int irq;
+	switch(dev)
+	{
+		default:
+		case 2:
+		/*APB 2*/
+		irq = 0;
+		break;
+
+		case 3:
+		/*GMAC0 3 0*/
+		/*GMAC1 3 1*/
+		irq = (fn == 0) ? 12 : 14;
+		break;
+
+		case 4:
+		/* ohci:4 0 */
+		/* ehci:4 1 */
+		irq = (fn == 0) ? 49 : 48;
+		break;
+
+		case 5:
+		/* ohci:5 0 */
+		/* ehci:5 1 */
+		irq = (fn == 0) ? 51 : 50;
+		break;
+
+		case 6:
+		/* DC: 6 1 28 */
+		/* GPU:6 0 29 */
+		irq = (fn == 0) ? 29 : 28;
+		break;
+
+		case 7:
+		/*HDA: 7 0 58 */
+		irq = 58;
+		break;
+
+		case 8:
+		/* sata */
+		if (fn == 0)
+			irq = 16;
+		if (fn == 1)
+			irq = 17;
+		if (fn == 2)
+			irq = 18;
+		break;
+
+		case 9:
+		/* pcie_f0 port0 */
+		irq = 32;
+		break;
+
+		case 10:
+		/* pcie_f0 port1 */
+		irq = 33;
+		break;
+
+		case 11:
+		/* pcie_f0 port2 */
+		irq = 34;
+		break;
+
+		case 12:
+		/* pcie_f0 port3 */
+		irq = 35;
+		break;
+
+		case 13:
+		/* pcie_f1 port0 */
+		irq = 36;
+		break;
+
+		case 14:
+		/* pcie_f1 port1 */
+		irq = 37;
+		break;
+
+		case 15:
+		/* pcie_g0 port0 */
+		irq = 40;
+		break;
+
+		case 16:
+		/* pcie_g0 port1 */
+		irq = 41;
+		break;
+
+		case 17:
+		/* pcie_g1 port0 */
+		irq = 42;
+		break;
+
+		case 18:
+		/* pcie_g1 port1 */
+		irq = 43;
+		break;
+
+		case 19:
+		/* pcie_h port0 */
+		irq = 38;
+		break;
+
+		case 20:
+		/* pcie_h port1 */
+		irq = 39;
+		break;
+	}
+	return irq + 64;
+}
+
 void ls_pcie_interrupt_fixup(void)
 {
 
-	unsigned int dev;
-	unsigned int val;
-	unsigned int base = 64;
-    unsigned char i;
-	/*GMAC0*/
-	dev = _pci_make_tag(0, 3, 0);
-	val = _pci_conf_read(dev, 0x00);
-	if ( val != 0xffffffff) // device on the slot
-        _pci_conf_write8(dev, 0x3c, base + 12);
+	extern struct pci_device *_pci_head;
+	extern int pci_roots;
 
-	/*GMAC1*/
-	dev = _pci_make_tag(0, 3, 1);
-	val = _pci_conf_read(dev, 0x00);
-	if ( val != 0xffffffff)
-		_pci_conf_write8(dev, 0x3c, base + 14);
+	unsigned int tag;
+	unsigned char i, irq;
+	struct pci_device *pd,*pdd,*pddd;
 
-	/*EHCI*/
-	dev = _pci_make_tag(0, 4, 1);
-	val = _pci_conf_read(dev, 0x00);
-	if ( val != 0xffffffff) // device on the slot
-		_pci_conf_write8(dev, 0x3c, base + 48);
-
-	/*OHCI*/
-	dev = _pci_make_tag(0, 4, 0);
-	val = _pci_conf_read(dev, 0x00);
-	if ( val != 0xffffffff) // device on the slot
-		_pci_conf_write8(dev, 0x3c, base + 49);
-
-	/*EHCI*/
-	dev = _pci_make_tag(0, 5, 1);
-	val = _pci_conf_read(dev, 0x00);
-	if ( val != 0xffffffff) // device on the slot
-		_pci_conf_write8(dev, 0x3c, base + 50);
-
-	/*OHCI*/
-	dev = _pci_make_tag(0, 5, 0);
-	val = _pci_conf_read(dev, 0x00);
-	if ( val != 0xffffffff) // device on the slot
-		_pci_conf_write8(dev, 0x3c, base + 41);
-
-	/*GPU*/
-	dev = _pci_make_tag(0, 6, 0);
-	val = _pci_conf_read(dev, 0x00);
-	if ( val != 0xffffffff) // device on the slot
-		_pci_conf_write8(dev, 0x3c, base + 29);
-
-	/*DC*/
-	dev = _pci_make_tag(0, 6, 1);
-	val = _pci_conf_read(dev, 0x00);
-	if ( val != 0xffffffff) // device on the slot
-		_pci_conf_write8(dev, 0x3c, base + 28);
-
-	/*HDA*/
-	dev = _pci_make_tag(0, 7, 0);
-	val = _pci_conf_read(dev, 0x00);
-	if ( val != 0xffffffff) // device on the slot
-		_pci_conf_write8(dev, 0x3c, base + 58);
-
-	/*SATA*/
-	for(i = 0;i < 3;i++) {
-		dev = _pci_make_tag(0, 8, i);
-		val = _pci_conf_read(dev, 0x00);
-		if ( val != 0xffffffff) // device on the slot
-			_pci_conf_write8(dev, 0x3c, base + 16 + i);
-	}
-
-	/*PCIE*/
-    /*PCIE F0/F1*/
-	for(i = 0;i < 6;i++) {
-		dev = _pci_make_tag(0, 9 + i, 0);
-		val = _pci_conf_read(dev, 0x00);
-		if ( val != 0xffffffff) // device on the slot
-			_pci_conf_write8(dev, 0x3c, base + 32 + i);
-	}
-    /*PCIE G0/G1*/
-	for(i = 0;i < 4;i++) {
-		dev = _pci_make_tag(0, 15 + i, 0);
-		val = _pci_conf_read(dev, 0x00);
-		if ( val != 0xffffffff) // device on the slot
-			_pci_conf_write8(dev, 0x3c, base + 40 + i);
-	}
-    /*PCIE H*/
-	for(i = 0;i < 2;i++) {
-		dev = _pci_make_tag(0, 19 + i, 0);
-		val = _pci_conf_read(dev, 0x00);
-		if ( val != 0xffffffff) // device on the slot
-			_pci_conf_write8(dev, 0x3c, base + 38 + i);
+	for (i = 0, pd = _pci_head; i < pci_roots; i++, pd = pd->next) {
+		for (pdd = pd->bridge.child; pdd != NULL; pdd = pdd->next) {
+			//printf("- bus %d device %d function %d\n", pdd->pa.pa_bus, pdd->pa.pa_device, pdd->pa.pa_function);
+			tag = _pci_make_tag(pdd->pa.pa_bus, pdd->pa.pa_device, pdd->pa.pa_function);
+			irq = ls7a_get_irq(pdd->pa.pa_device,pdd->pa.pa_function);
+			_pci_conf_write8(tag, 0x3c, irq);
+			//printf("irq -> %d\n", 0xff & _pci_conf_read(tag, 0x3c));
+			for (pddd = pdd->bridge.child; pddd != NULL; pddd = pddd->next) {
+				//printf("- bus %d device %d function %d\n", pddd->pa.pa_bus, pddd->pa.pa_device, pddd->pa.pa_function);
+				tag = _pci_make_tag(pddd->pa.pa_bus, pddd->pa.pa_device, pddd->pa.pa_function);
+				_pci_conf_write8(tag, 0x3c, irq);
+				//printf("irq -> %d\n", 0xff & _pci_conf_read(tag, 0x3c));
+			}
+		}
 	}
 }
 
