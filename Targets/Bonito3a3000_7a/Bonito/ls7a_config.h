@@ -41,7 +41,9 @@
 //#define FORCE_ENABLE_PCIE_G1_P1
 //#define FORCE_ENABLE_PCIE_H_P1
 
+#ifndef LS7A_GRAPHICS_DISABLE
 #define LS7A_GRAPHICS_DISABLE   0
+#endif
 
 //#define LS7A_PCIE_NO_POWERDOWN
 //staticly disable some PCIE Ports, no matter whether there is device
@@ -58,8 +60,9 @@
 #define LS7A_USB1_DISABLE   0
 #define LS7A_GMAC0_DISABLE  0
 #define LS7A_GMAC1_DISABLE  (LS7A_GMAC0_DISABLE | 0)
-#define LS7A_LPC_DISABLE    0
-
+#ifndef LS7A_LPC_DISABLE
+#define LS7A_LPC_DISABLE    1
+#endif
 //#define USE_PCIE_PAD_REFCLK
 //#define USE_SATA_PAD_REFCLK
 #define USE_USB_SYS_REFCLK
