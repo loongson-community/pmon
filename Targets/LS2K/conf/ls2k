@@ -47,7 +47,7 @@ option      DDR3_DIMM
 #option		DDR3_SMT    #for SMT x16 SDRAM 4 chip 2GB
 #>>>>>>>>>>>>>>
 
-option		AUTO_DDR_CONFIG		# for DIMM recognize
+#option		AUTO_DDR_CONFIG		# for DIMM recognize
 option      LOONGSON_GMAC
 
 select		mod_flash_amd		# AMD flash device programming
@@ -86,8 +86,8 @@ select		cmd_misc		# Reboot & Flush etc.
 select		cmd_tr			# Host port-through command
 select		cmd_devls		# Device list
 select		cmd_set			# As cmd_env but not req. cmd_hist
-select		cmd_testdisk
-select		cmd_test
+#select		cmd_testdisk
+#select		cmd_test
 select		cmd_main
 select		cmd_dtb
 option		DTB
@@ -119,6 +119,8 @@ option		NOPCINAMES		# Save some space for x86emu
 #select		vt82c686        #via686a/b code
 
 select		mod_framebuffer
+option		FB_XSIZE=1024
+option		FB_YSIZE=768
 select		mod_vesa
 option 		CONFIG_VIDEO_16BPP
 #option 	CONFIG_VIDEO_8BPP_INDEX
@@ -186,7 +188,7 @@ usb*      	at ohci?
 #uhci*		at pci? dev ? function ?
 #### Networking Devices
 igb*		at pci? dev ? function ?	# Intel 82576
-#select igb1
+select igb1
 
 #### SCSI support
 #siop*		at pci? dev ? function ?	# Symbios/NCR 53c...
@@ -204,7 +206,7 @@ igb*		at pci? dev ? function ?	# Intel 82576
 #inphy*		at mii? phy ?                   # Intel 82555 PHYs
 #rtl*		at pci? dev ? function ?
 #rtk*		at pci? dev ? function ?
-em*		at pci? dev ? function ?
+#em*		at pci? dev ? function ?
 #uhci*		at pci? dev ? function ?
 #ohci*		at pci? dev ? function ?
 #usb*		at usbbus ? 
@@ -225,6 +227,7 @@ pciide* 	at pci ? dev ? function ? flags 0x0000
 #### IDE hard drives
 wd*		at pciide? channel ? drive ? flags 0x0000
 
+#loopdev0	at mainbus0
 #sdcard0		at localbus0 flags 0
 
 select	sdio
@@ -234,8 +237,7 @@ pseudo-device	loop	1	# network loopback
 
 #syn0		at localbus0 at 0xbfe20000
 #syn1		at localbus0
-pcisyn0		at pci? dev ? function ?
-pcisyn1		at pci? dev ? function ?
+pcisyn*		at pci? dev ? function ?
 select		gmac
 
 ide_cd* 	at pciide? channel ? drive ? flags 0x0001
@@ -266,3 +268,56 @@ select		tcp
 select		inet
 select		nand
 select cmd_xyzmodem
+#select		spinand_mt29f
+#select		m25p80
+
+select	can
+select yaffsfs
+#option LS2H_SPI_HIGHSPEED
+#option DISABLE_HARD_LEVELING
+##ifzxd
+select		spinand_lld
+option DDR_PARAM_018="0x3030303016100000"
+option DDR_S1=0xc1a10404
+option CONFIG_UART0_SPLIT
+#elif zongzingzilian
+#option DDR_PARAM_018="0x2020202016100000"
+#option CONFIG_DDR_32BIT
+#option DDR_S1=0xc1e18204
+#option CONFIG_LS2K_NAND
+#option RESERVED_COREMASK=2
+#elif 6s
+#rmoption HAVE_TOD
+#option DDR_RESET_REVERT
+#option DDR_PARAM_018="0x3030303016100000"
+#option DDR_PARAM_1e8="0x030900000f0f0f0f"
+#option DDR_S1=0xc1a10404
+#option CONFIG_LS2K_NAND
+#end
+option BEEP_GPIO=0
+option CONFIG_FB_NONCOHERENT
+#option DISABLE_HARD_LEVELING
+##devbd
+#option AUTO_DDR_CONFIG
+#option USE_LS2H_I2C
+#option DDR_PARAM_018="0x4545454516100000"
+##plyh
+#option DDR_PARAM_018="0x3030303016100000"
+#option CONFIG_LS2K_NAND
+#option DDR_S1=0xc1a10404
+#rmoption AUTO_DDR_CONFIG
+#unselect nand
+#unselect spinand_lld
+###czc
+#option CONFIG_LS2K_NAND
+#select nand_bch
+#rmoption AUTO_DDR_CONFIG
+#rmoption DDR_S1
+#rmoption DDR_PARAM_018
+#option DDR_S1=0xc1e18204
+#option DDR_PARAM_018="0x2020202016100000"
+#rmoption ARB_LEVEL
+#rmoption CONFIG_FB_NONCOHERENT
+#unselect		spinand_lld
+#select i2c
+#select sii9022a
