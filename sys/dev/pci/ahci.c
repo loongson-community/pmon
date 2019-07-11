@@ -76,11 +76,9 @@
 #if defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A)
 #include "include/ls1a.h"
 #endif
-struct ahci_probe_ent *probe_ent = NULL;
-unsigned int probe_ent_array[4];
 
-static int ahci_host_init(struct ahci_probe_ent *probe_ent);
-static int ahci_init_one(u32 regbase);
+int ahci_host_init(struct ahci_probe_ent *probe_ent);
+static void *ahci_init_one(u32 regbase);
 
 static int ahci_match(struct device *, void *, void *);
 static void ahci_attach(struct device *, struct device *, void *);
@@ -112,7 +110,8 @@ static int ahci_match(struct device *parent, void *match, void *aux)
 	struct pci_attach_args *pa = aux;
 
 	if((PCI_VENDOR(pa->pa_id) == PCI_VENDOR_SATA && PCI_PRODUCT(pa->pa_id) == PCI_PRODUCT_SATA) ||
-		(PCI_VENDOR(pa->pa_id) == PCI_VENDOR_2KSATA && PCI_PRODUCT(pa->pa_id) == PCI_PRODUCT_2KSATA))
+		(PCI_VENDOR(pa->pa_id) == PCI_VENDOR_2KSATA && PCI_PRODUCT(pa->pa_id) == PCI_PRODUCT_2KSATA) ||
+		(pa->pa_class >> 8) == 0x010601)
 		return 1;
 
 	return 0;
@@ -128,6 +127,7 @@ static void ahci_attach(struct device *parent, struct device *self, void *aux)
 	int i;
 	u32 linkmap;
 	ahci_sata_info_t info;
+	struct ahci_probe_ent *probe_ent;
 
 	if((PCI_VENDOR(pa->pa_id) == PCI_VENDOR_2KSATA && PCI_PRODUCT(pa->pa_id) == PCI_PRODUCT_2KSATA))
 	{
@@ -152,19 +152,19 @@ static void ahci_attach(struct device *parent, struct device *self, void *aux)
 	printf("0x12C =%x\n", temp);
 #endif
 
-	if (ahci_init_one((u32) (memt->bus_base | (u32) (membasep)))) {
+	if (!(probe_ent = ahci_init_one((u32) (memt->bus_base | (u32) (membasep))))) {
 		printf("ahci_init_one failed.\n");
 	}
-	probe_ent_array[atoi(&self->dv_xname[4])] = probe_ent;
 
 	linkmap = probe_ent->link_port_map;
 	printf("ahci: linkmap=%x\n", linkmap);
-	for (i = 0; i < 1; i++) {
+	for (i = 0; i < probe_ent->n_ports; i++) {
 		if (((linkmap >> i) & 0x01)) {
 			info.sata_reg_base =
-			    memt->bus_base | (u32) (membasep) + 100 + i * 0x80;
+			    memt->bus_base | (u32) (membasep) + 0x100 + i * 0x80;
 			info.flags = i;
 			info.aa_link.aa_type = 0xff;	/* just for not match ide */
+			info.probe_ent = probe_ent;
 			config_found(self, (void *)&info, NULL);
 		}
 	}
@@ -183,15 +183,15 @@ static void lahci_attach(struct device *parent, struct device *self, void *aux)
 	int i;
 	u32 linkmap;
 	ahci_sata_info_t info;
+	struct ahci_probe_ent *probe_ent;
 #if defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A)
 	*(volatile int *)LS1A_SATA_CLK_REG  = 0x38682650; //100MHZ
 #endif
 	regbase = (bus_space_handle_t) cf->ca_baseaddr;;
 	printf("%s:%d: regbase = %08x\n", __FUNCTION__, __LINE__, regbase);
-	if (ahci_init_one(regbase)) {
+	if (!(probe_ent = ahci_init_one(regbase))) {
 		printf("ahci_init_one failed.\n");
 	}
-	probe_ent_array[atoi(&self->dv_xname[4])] = probe_ent;
 
 
 	linkmap = probe_ent->link_port_map;
@@ -237,7 +237,7 @@ static void ahci_enable_ahci(void *mmio)
 	}
 }
 
-static int ahci_host_init(struct ahci_probe_ent *probe_ent)
+int ahci_host_init(struct ahci_probe_ent *probe_ent)
 {
 	volatile u8 *mmio = (volatile u8 *)probe_ent->mmio_base;
 	u32 tmp, cap_save;
@@ -404,9 +404,10 @@ static void ahci_print_info(struct ahci_probe_ent *probe_ent)
 	       cap & (1 << 14) ? "slum " : "", cap & (1 << 13) ? "part " : "");
 }
 
-static int ahci_init_one(u32 regbase)
+static void *ahci_init_one(u32 regbase)
 {
 	int rc;
+	struct ahci_probe_ent *probe_ent;
 
 #if MY_MALLOC
 	probe_ent = malloc(sizeof(struct ahci_probe_ent));
@@ -431,8 +432,9 @@ static int ahci_init_one(u32 regbase)
 
 	ahci_print_info(probe_ent);
 
-	return 0;
+	return probe_ent;
 
 err_out:
-	return rc;
+	free(probe_ent, M_DEVBUF);
+	return NULL;
 }

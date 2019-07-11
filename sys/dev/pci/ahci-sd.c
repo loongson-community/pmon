@@ -47,7 +47,7 @@ static int ahci_sd_match(struct device *parent, void *match, void *aux)
 	int rc;
 
 	info = (ahci_sata_info_t *)aux;
-	pp = &(probe_ent->port[info->flags]);
+	pp = &(info->probe_ent->port[info->flags]);
 	port_mmio = (volatile u8 *)pp->port_mmio;
 
 	rc = readl(port_mmio + PORT_SIG) >> 16;
@@ -69,10 +69,11 @@ static void ahci_sd_attach(struct device *parent,
 	sd_soft->port_no = info->flags;
 	sd_soft->bs = ATA_SECT_SIZE;
 	sd_soft->count = -1;
+	sd_soft->probe_ent = info->probe_ent;
 
 	err = ahci_sata_initialize(info->sata_reg_base, info->flags, sd_soft);
 	if (!err)
-		ahci_do_softreset(info->flags, 0, 0);
+		ahci_do_softreset(sd_soft, 0, 0);
 	
 	sd_debug("%s device: %p, devno:%d, portno:%d, name:%s\n",
 			self->dv_xname, self, self->dv_unit,

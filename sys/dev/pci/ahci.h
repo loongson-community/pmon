@@ -131,6 +131,7 @@
 #define PORT_CMD_ICC_ACTIVE	(0x1 << 28)	/* Put i/f in active state */
 #define PORT_CMD_ICC_PARTIAL	(0x2 << 28)	/* Put i/f in partial state */
 #define PORT_CMD_ICC_SLUMBER	(0x6 << 28)	/* Put i/f in slumber state */
+#define PORT_CMD_ICC_MASK	(0xf << 28)	/* i/f ICC state mask */
 
 #define AHCI_MAX_PORTS		32
 
@@ -227,8 +228,6 @@ static inline void writel(const unsigned int val, volatile void *regs)
 
 #define writel_with_flush(a,b)	do { writel(a,b); readl(b); } while (0)
 
-extern struct ahci_probe_ent *probe_ent;
-extern unsigned int probe_ent_array[4];
 
 #define GPCMD_READ_10			0x28
 #define GPCMD_WRITE_10			0x2a

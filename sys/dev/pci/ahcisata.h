@@ -348,6 +348,7 @@ typedef struct ahci_sata_info {
 	struct ata_atapi_attach aa_link;	//just for not match id
 	u32 sata_reg_base;
 	u32 flags;
+	struct ahci_probe_ent *probe_ent;
 } ahci_sata_info_t;
 
 #define FLAGS_DMA	0x00000000
@@ -389,6 +390,8 @@ struct ahci_sata_softc {
 	u8 name[256];
 	int count;
 	int lba48;
+	struct ahci_probe_ent *probe_ent;
+	struct block_dev_desc *bd;
 };
 
 #define READ_CMD	0
@@ -400,7 +403,7 @@ struct ahci_sata_softc {
 extern struct ahci_sata_softc *ahci_find_byname(struct cfdriver cd, u8 *device_name);
 extern int ahci_sata_initialize(u32 reg, u32 port_no, struct ahci_sata_softc *sf);
 extern void ahci_sata_strategy(struct buf *bp, struct ahci_sata_softc *priv);
-extern int ahci_kick_engine(int port, int force_restart);
-extern int cd_prepare(int port_no, int flag);
-extern int cd_test_unit_ready(int port_no);
+int ahci_kick_engine(struct ahci_sata_softc *sc, int force_restart);
+int cd_prepare(struct ahci_sata_softc *sc, int flag);
+int cd_test_unit_ready(struct ahci_sata_softc *sc);
 #endif /* __8620_H__ */

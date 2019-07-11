@@ -45,8 +45,10 @@ static int ahci_cdrom_match(struct device *parent, void *match, void *aux)
 	struct ahci_ioports *pp;
 	volatile u8 *port_mmio;
 	int rc;
+	struct ahci_probe_ent *probe_ent;
 
 	info = (ahci_sata_info_t *) aux;
+	probe_ent = info->probe_ent;
 	pp = &(probe_ent->port[info->flags]);
 	port_mmio = (volatile u8 *)pp->port_mmio;
 
@@ -69,10 +71,11 @@ static void ahci_cdrom_attach(struct device *parent,
 	cdrom_soft->port_no = info->flags;
 	cdrom_soft->bs = 2048;
 	cdrom_soft->count = -1;
+	cdrom_soft->probe_ent = info->probe_ent;
 
 	err = ahci_sata_initialize(info->sata_reg_base, info->flags, cdrom_soft);
 	if (!err)
-		ahci_do_softreset(info->flags, 0, 0);
+		ahci_do_softreset(cdrom_soft, 0, 0);
 
 	cd_debug("%s device: %p, devno:%d, portno:%d, name:%s\n",
 			self->dv_xname, self, self->dv_unit,
