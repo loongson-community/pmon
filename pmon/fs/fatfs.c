@@ -958,9 +958,9 @@ int fat_getChain(struct fat_sc *fsc, int start, struct fatchain *chain)
 	while(1)
 	{
 		entry = getFatEntry(fsc, flag);
-		chain->entries[i+1] = entry;
 		if(entry >= (CLUST_EOFE & mask))
 			break;
+		chain->entries[i+1] = entry;
 		flag = entry;
 		i++;
 	}
