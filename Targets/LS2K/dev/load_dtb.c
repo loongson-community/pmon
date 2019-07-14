@@ -126,7 +126,7 @@ static int check_pci_bridge_ok(void)
 		}
 		else
 		{
-		 if(data[5] != 0 || data[6+5] != 0)
+		 if(data[5] != cpu_to_be32(0x100000) || data[6+5] != cpu_to_be32(0x1000))
 			return 0;
 		}
 	}
