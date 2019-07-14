@@ -49,8 +49,20 @@ static int check_mac_ok(void)
 			return 1;	//no mac prop in ethernet, do nothing
 		}
 	
+#ifdef USE_ENVMAC
+		if (USE_ENVMAC)
+		{
+			tgt_ethaddr(mac_addr);
+			mac_addr[0] += id;
+		}
+		else
+		{
+			memcpy( mac_addr, nodep, 6);
+		}
+#else
 		i2c_init();//configure the i2c freq
 		mac_read(id * 6, mac_addr, 6);
+#endif
 		for(i = 0;i < 6;i++) {
 			if(mac_addr[i] != (*((char *)nodep + i) & 0xff)) {
 				printf("mac_eeprom[%d]=0x%x; mac_dtb[%d]=0x%x; reset mac addr in dtb\n", \
@@ -225,8 +237,20 @@ static int update_mac(void * ssp, int id)
 		return -1;
 	}
 
+#ifdef USE_ENVMAC
+	if (USE_ENVMAC)
+	{
+		tgt_ethaddr(mac_addr);
+		mac_addr[0] += id;
+	}
+	else
+	{
+		memcpy( mac_addr, nodep, 6);
+	}
+#else
 	i2c_init();//configure the i2c freq
 	mac_read(id * 6, mac_addr, 6);
+#endif
 	len = 6;
 	if(fdt_setprop(ssp, nodeoffset, "mac-address", mac_addr, len)) {
 		printf("Update mac-address%d error\n", id);
