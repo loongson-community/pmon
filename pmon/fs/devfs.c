@@ -637,6 +637,34 @@ find_device(name)
 	return NULL;
 }
 
+struct device *get_device(dev_t dev)
+{
+	extern struct devsw devswitch[];
+	struct cfdata *cf;
+	struct cfdriver *cd;
+	struct device *dv;
+	int i;
+	int major,minor;
+	struct devsw *devsw;
+
+	major = dev>>8;
+	minor =dev & 0xff;
+	devsw = &devswitch[major];
+
+	for(cf = cfdata; (cd = cf->cf_driver); cf++) {
+		if(cd->cd_devs == NULL)
+			continue;
+
+		if(strcmp(devsw->name,cd->cd_name))
+			continue;
+
+		if((dv = cd->cd_devs[minor]) == NULL)
+			continue;
+
+		return dv;
+	}
+	return NULL;
+}
 
 /*
  *  File system registration info.
