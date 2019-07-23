@@ -373,7 +373,7 @@
     //unless specified, recover to use prsnt pin to decide device existence.
 #ifndef FORCE_ENABLE_PCIE_F0_P123
     lw      t1, 0x588(t0)
-    li      t2, (1 << 27)
+    li      t2, ((1 << 27) | (1 << 26))
     not     t2, t2
     and     t1, t1, t2
     sw      t1, 0x588(t0)
@@ -381,7 +381,7 @@
 
 #ifndef FORCE_ENABLE_PCIE_F1_P1
     lw      t1, 0x5a8(t0)
-    li      t2, (1 << 27)
+    li      t2, ((1 << 27) | (1 << 26))
     not     t2, t2
     and     t1, t1, t2
     sw      t1, 0x5a8(t0)
@@ -389,7 +389,7 @@
 
 #ifndef FORCE_ENABLE_PCIE_H_P1
     lw      t1, 0x5c8(t0)
-    li      t2, (1 << 27)
+    li      t2, ((1 << 27) | (1 << 26))
     not     t2, t2
     and     t1, t1, t2
     sw      t1, 0x5c8(t0)
@@ -397,7 +397,7 @@
 
 #ifndef FORCE_ENABLE_PCIE_G0_P1
     lw      t1, 0x5e8(t0)
-    li      t2, (1 << 27)
+    li      t2, ((1 << 27) | (1 << 26))
     not     t2, t2
     and     t1, t1, t2
     sw      t1, 0x5e8(t0)
@@ -405,7 +405,7 @@
 
 #ifndef FORCE_ENABLE_PCIE_G1_P1
     lw      t1, 0x608(t0)
-    li      t2, (1 << 27)
+    li      t2, ((1 << 27) | (1 << 26))
     not     t2, t2
     and     t1, t1, t2
     sw      t1, 0x608(t0)
