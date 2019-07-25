@@ -99,6 +99,7 @@ extern int vga_bios_init(void);
 extern int radeon_init(void);
 extern int kbd_initialize(void);
 extern int write_at_cursor(char val);
+extern void hda_codec_set(void);
 extern const char *kbd_error_msgs[];
 #include "flash.h"
 #if (NMOD_FLASH_AMD + NMOD_FLASH_INTEL + NMOD_FLASH_SST) == 0
@@ -429,6 +430,7 @@ run:
 	printf("devconfig done.\n");
 	clear_pcie_inter_irq();
 	ls_pcie_interrupt_fixup();
+	hda_codec_set();
 }
 static int w83627_read(int dev,int addr)
 {
