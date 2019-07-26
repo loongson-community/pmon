@@ -9,17 +9,17 @@ ATTENTION: NO 16BIT mode when using HT1
 //#define INTERCONNECTION_HT0_1_0 //USE HT1.0 on Ring
 //#define HT0_3200M
 //#define HT0_2800M
-#define HT0_2400M
+//#define HT0_2400M
 //#define HT0_1800M
 //#define HT0_1600M
 //#define HT0_1200M
 //#define HT0_1000M
 //#define HT0_800M
-//#define HT0_400M
+#define HT0_400M
 //#define HT0_200M
 
 #define ENABLE_X
-#define ENABLE_X_on_03
+//#define ENABLE_X_on_03
 //#define DISABLE_X_3to0
 #define DISABLE_X_0to3
 //#define INTERCONNECTION_X_HT1_1_0 //USE HT1.0 on X
@@ -209,6 +209,7 @@ ATTENTION: NO 16BIT mode when using HT1
 	sd  	$0, 0x80(t2)
 	sd  	$0, 0x90(t2)
 
+#ifndef WITHOUT_CPU3
 	TTYDBG("Fix L2xbar in NODE 3\r\n")
 	dli	t2, 0x900030003ff00000
 //keep consistent to NODE 0.
@@ -222,6 +223,7 @@ ATTENTION: NO 16BIT mode when using HT1
 //disable window 0
 	sd  	$0, 0x80(t2)
 	sd  	$0, 0x90(t2)
+#endif
 
 #endif
 
@@ -236,9 +238,11 @@ ATTENTION: NO 16BIT mode when using HT1
 	dli	t2, 0x900020003ff00000
 	//li	t0, 0x42110001
 	sw	t0, 0x410(t2)
+#ifndef WITHOUT_CPU3
 	dli	t2, 0x900030003ff00000
 	//li	t0, 0x42110001
 	sw	t0, 0x410(t2)
+#endif
 #endif
 
 #if 1 //Check if HT1 is OK
@@ -251,10 +255,12 @@ ATTENTION: NO 16BIT mode when using HT1
 	lw	a0, 0x50(t2)
 	bal	hexserial
 	nop
+#ifndef WITHOUT_CPU3
 	dli	t2, 0x90003ffdfe000000
 	lw	a0, 0x50(t2)
 	bal	hexserial
 	nop
+#endif
 	dli	t2, 0x90002ffdfe000000
 	lw	a0, 0x50(t2)
 	bal	hexserial
@@ -272,10 +278,12 @@ ATTENTION: NO 16BIT mode when using HT1
 	li	a1, 0x0
 	sw	a1, 0x0(a0)
 
+#ifndef WITHOUT_CPU3
 	TTYDBG("Shut down CPU3\r\n")
 	dli	a0, 0x900030001fe001d0
 	li	a1, 0x0
 	sw	a1, 0x0(a0)
+#endif
 #endif
 
 #ifdef RREQUEST_RANDOM_HT //Fix HT LL/SC random latency
@@ -294,10 +302,12 @@ ATTENTION: NO 16BIT mode when using HT1
 	sw	a0, 0x11c(t2)
 	dli	t2, 0x90002dfdfb000000
 	sw	a0, 0x11c(t2)
+#ifndef WITHOUT_CPU3
 	dli	t2, 0x90003cfdfb000000
 	sw	a0, 0x11c(t2)
 	dli	t2, 0x90003dfdfb000000
 	sw	a0, 0x11c(t2)
+#endif
 
 	dli	t2, 0x90000ffdfb000000
 	sw	a0, 0x11c(t2)
@@ -305,8 +315,10 @@ ATTENTION: NO 16BIT mode when using HT1
 	sw	a0, 0x11c(t2)
 	dli	t2, 0x90002ffdfb000000
 	sw	a0, 0x11c(t2)
+#ifndef WITHOUT_CPU3
 	dli	t2, 0x90003ffdfb000000
 	sw	a0, 0x11c(t2)
+#endif
 #endif
 
 #ifdef ENABLE_X
@@ -357,11 +369,13 @@ ATTENTION: NO 16BIT mode when using HT1
 	or  	a0, a1;
 	sw  	a0, 0x00(t0);
 
+#ifndef WITHOUT_CPU3
 	dli 	t0, 0x90003ffdfb000108;
 	lw  	a0, 0x00(t0);
 	li  	a1, 0xc0000000; 
 	or  	a0, a1;
 	sw  	a0, 0x00(t0);
+#endif
 
 #########TEST CLKSEL[15]
 	li	t2, 0xbfe00194
@@ -389,12 +403,14 @@ ATTENTION: NO 16BIT mode when using HT1
 	nop
 	TTYDBG("\r\n")
 
+#ifndef WITHOUT_CPU3
 	dli	t2, 0x90003efdfb000000
 	sw	t0, 0x178(t2)
 	lw      a0, 0x178(t2)
 	bal	hexserial
 	nop
 	TTYDBG("\r\n")
+#endif
 
 no_softconfig_x_ht1:
 #ifdef INTERCONNECTION_X_HT1_1_0
@@ -495,6 +511,7 @@ no_softconfig_x_ht1:
 	and 	a1, a1, a2            ##set to 8 bit mode
 	sw  	a1, 0x44(a0)
 
+#ifndef WITHOUT_CPU3
 ###################### HT_HI@CPU3
 	dli 	a0, 0x90003ffdfb000000
 	//set 8 bit HT HOST
@@ -502,6 +519,7 @@ no_softconfig_x_ht1:
 	li  	a2, 0x88ffffff        ##8bit mode
 	and 	a1, a1, a2            ##set to 8 bit mode
 	sw  	a1, 0x44(a0)
+#endif
 */
 
 
@@ -553,8 +571,10 @@ no_softconfig_x_ht1:
 	sb 	t0, 0x49(t2)
 	dli	t2, 0x90002ffdfb000000
 	sb 	t0, 0x49(t2)
+#ifndef WITHOUT_CPU3
 	dli	t2, 0x90003ffdfb000000
 	sb 	t0, 0x49(t2)
+#endif
 
 	TTYDBG("Setting CPU0 HT1 HI HyperTransport Controller to be GEN3 mode\r\n")
 	dli	t2, 0x90000ffdfb000000
@@ -637,6 +657,7 @@ no_softconfig_x_ht1:
 	nop
 	TTYDBG("\r\n")
 
+#ifndef WITHOUT_CPU3
 	TTYDBG("Setting CPU3 HT1 HI HyperTransport Controller to be GEN3 mode\r\n")
 	dli	t2, 0x90003ffdfb000000
 	li 	t0, 0x88600000
@@ -663,6 +684,7 @@ no_softconfig_x_ht1:
 	bal	hexserial
 	nop
 	TTYDBG("\r\n")
+#endif
 
 #endif
 
@@ -779,11 +801,13 @@ no_softconfig_x_ht1:
 	and	t1, t1, t0
 	sw	t1, 0x3c(t2)
 
+#ifndef WITHOUT_CPU3
 	dli	t2, 0x90003efdfb000000
 	lw	t1, 0x3c(t2)
 	li	t0, 0xffbfffff
 	and	t1, t1, t0
 	sw	t1, 0x3c(t2)
+#endif
 
 //release the reset of HT1 HI
 	dli	t2, 0x90000ffdfb000000
@@ -832,6 +856,7 @@ no_softconfig_x_ht1:
 #endif
 
 #if 1//wait until HT link up
+#ifndef WITHOUT_CPU3
     	TTYDBG("Waiting HyperTransport bus on CPU3 HT1 HI to be up.")
     	dli     t0, 0x90003ffdfb000000
 	li	t1, 0x1f
@@ -862,6 +887,7 @@ no_softconfig_x_ht1:
 	bal	hexserial
     	nop
 	TTYDBG("\r\n")
+#endif
 #endif
 
 
@@ -1003,11 +1029,13 @@ no_softconfig_x_ht1:
 	or  	a0, a1;
 	sw  	a0, 0x00(t0);
 
+#ifndef WITHOUT_CPU3
 	dli 	t0, 0x90003dfdfb000108;
 	lw  	a0, 0x00(t0);
 	li  	a1, 0xc0000000; 
 	or  	a0, a1;
 	sw  	a0, 0x00(t0);
+#endif
 
 	dli 	t0, 0x90002dfdfb000108;
 	lw  	a0, 0x00(t0);
@@ -1015,11 +1043,13 @@ no_softconfig_x_ht1:
 	or  	a0, a1;
 	sw  	a0, 0x00(t0);
 
+#ifndef WITHOUT_CPU3
 	dli 	t0, 0x90003cfdfb000108;
 	lw  	a0, 0x00(t0);
 	li  	a1, 0xc0000000; 
 	or  	a0, a1;
 	sw  	a0, 0x00(t0);
+#endif
 
 #ifdef HT0_RECONNECT
 	TTYDBG("HT0 frequency reconfig \r\n")
@@ -1085,10 +1115,12 @@ no_softconfig_x_ht1:
 	//sw 	t0, 0x178(t2)
 	dli	t2, 0x90001cfdfb000000
 	sw 	t0, 0x178(t2)
+#ifndef WITHOUT_CPU3
 	//dli	t2, 0x90003dfdfb000000
 	//sw 	t0, 0x178(t2)
 	dli	t2, 0x90003cfdfb000000
 	sw 	t0, 0x178(t2)
+#endif
 	//dli	t2, 0x90002dfdfb000000
 	//sw 	t0, 0x178(t2)
 
@@ -1122,6 +1154,7 @@ no_softconfig_x_ht1:
 	nop
 	TTYDBG("\r\n")
 
+#ifndef WITHOUT_CPU3
 	//dli	t2, 0x90003dfdfb000000
 	//lw 	a0, 0x178(t2)
 	//bal	hexserial
@@ -1133,6 +1166,7 @@ no_softconfig_x_ht1:
 	bal	hexserial
 	nop
 	TTYDBG("\r\n")
+#endif
 
 	//dli	t2, 0x90002dfdfb000000
 	//lw 	a0, 0x178(t2)
@@ -1201,6 +1235,7 @@ no_softconfig_ht:
 	sw  	a1, 0x44(a0)
 
 ###################### HT_HI@CPU3
+#ifndef WITHOUT_CPU3
 	dli	a0, 0x90003dfdfb000000
 	//set 800 Mhz HT HOST
 	lw  	a1, 0x48(a0)
@@ -1213,6 +1248,7 @@ no_softconfig_ht:
 	li  	a2, 0x88ffffff        ##8bit mode
 	and 	a1, a1, a2            ##set to 8 bit mode
 	sw  	a1, 0x44(a0)
+#endif
 
 ###################### HT_LO@CPU1
 	dli 	a0, 0x90001cfdfb000000
@@ -1243,6 +1279,7 @@ no_softconfig_ht:
 	sw  	a1, 0x44(a0)
 
 ###################### HT_LO@CPU3
+#ifndef WITHOUT_CPU3
 	dli 	a0, 0x90003cfdfb000000
 	//set 800 Mhz HT HOST
 	lw  	a1, 0x48(a0)
@@ -1255,6 +1292,7 @@ no_softconfig_ht:
 	li  	a2, 0x88ffffff        ##8bit mode
 	and 	a1, a1, a2            ##set to 8 bit mode
 	sw  	a1, 0x44(a0)
+#endif
 
 #else
 
@@ -1298,6 +1336,7 @@ no_softconfig_ht:
 	sw  	a1, 0x44(a0)
 
 ###################### HT_HI@CPU3
+#ifndef WITHOUT_CPU3
 	dli 	a0, 0x90003dfdfb000000
 	//set 8 bit HT HOST
 	lw  	a1, 0x44(a0)
@@ -1305,6 +1344,7 @@ no_softconfig_ht:
 	and 	a1, a1, a2            ##set to 8 bit mode
 	li  	a2, 0x11000000        ##16bit
 	sw  	a1, 0x44(a0)
+#endif
 
 ###################### HT_LO@CPU1
 	dli 	a0, 0x90001cfdfb000000
@@ -1325,6 +1365,7 @@ no_softconfig_ht:
 	sw  	a1, 0x44(a0)
 
 ###################### HT_LO@CPU3
+#ifndef WITHOUT_CPU3
 	dli 	a0, 0x90003cfdfb000000
 	//set 8 bit HT HOST
 	lw  	a1, 0x44(a0)
@@ -1332,6 +1373,7 @@ no_softconfig_ht:
 	and 	a1, a1, a2            ##set to 8 bit mode
 	li  	a2, 0x11000000        ##16bit
 	sw  	a1, 0x44(a0)
+#endif
 
 
 #ifdef HT0_3200M
@@ -1393,10 +1435,12 @@ no_softconfig_ht:
 	sb 	t0, 0x49(t2)
 	dli	t2, 0x90001cfdfb000000
 	sb 	t0, 0x49(t2)
+#ifndef WITHOUT_CPU3
 	dli	t2, 0x90003dfdfb000000
 	sb 	t0, 0x49(t2)
 	dli	t2, 0x90003cfdfb000000
 	sb 	t0, 0x49(t2)
+#endif
 	dli	t2, 0x90002dfdfb000000
 	sb 	t0, 0x49(t2)
 
@@ -1425,6 +1469,7 @@ no_softconfig_ht:
 	bal	hexserial
 	nop
 	TTYDBG("\r\n")
+#ifndef WITHOUT_CPU3
 	dli	t2, 0x90003dfdfb000000
 	lw 	a0, 0x48(t2)
 	bal	hexserial
@@ -1435,6 +1480,7 @@ no_softconfig_ht:
 	bal	hexserial
 	nop
 	TTYDBG("\r\n")
+#endif
 	dli	t2, 0x90002dfdfb000000
 	lw 	a0, 0x48(t2)
 	bal	hexserial
@@ -1695,6 +1741,7 @@ config_others:
 	nop
 	TTYDBG("\r\n")
 
+#ifndef WITHOUT_CPU3
 	TTYDBG("Setting CPU3 HI HyperTransport Controller to be GEN3 mode\r\n")
 	dli	t2, 0x90003dfdfb000000
 	li 	t0, 0x88600000
@@ -1748,6 +1795,7 @@ config_others:
 	bal	hexserial
 	nop
 	TTYDBG("\r\n")
+#endif
 
 	TTYDBG("Setting CPU2 HI HyperTransport Controller to be GEN3 mode\r\n")
 	dli	t2, 0x90002dfdfb000000
@@ -1800,12 +1848,14 @@ config_others:
 	or  	a1, a1, a2
 	sw  	a1, 0x50(a0)
 
+#ifndef WITHOUT_CPU3
 	dli 	a0, 0x90003cfdfb000000
 	//Disconnect HT BUS 
 	lw  	a1, 0x50(a0)
 	li  	a2, 0x40000000
 	or  	a1, a1, a2
 	sw  	a1, 0x50(a0)
+#endif
 
 #else
 #if 1//reset 0-1 HT
@@ -2184,6 +2234,7 @@ reset_ht2:
 #endif
 #endif
 
+#ifndef WITHOUT_CPU3
 #if 1//wait until CPU0 HT link up
 	TTYDBG("Waiting CPU1 LO HyperTransport bus to be up.")
 	dli     t0, 0x90001cfdfb000000
@@ -2230,8 +2281,10 @@ reset_ht2:
 	nop
 	TTYDBG("\r\n")
 #endif
+#endif
 
 #if 1//wait until CPU1 HT link up
+#ifndef WITHOUT_CPU3
 	TTYDBG("Waiting CPU3 HI HyperTransport bus to be up.")
 	dli     t0, 0x90003dfdfb000000
 	li	t1, 0x1f
@@ -2261,6 +2314,7 @@ reset_ht2:
 	bal	hexserial
 	nop
 	TTYDBG("\r\n")
+#endif
 #endif
 
 #ifdef HT_RESET_ALL_IN_ONE
@@ -2326,6 +2380,7 @@ reset_ht3:
 #endif
 #endif
 
+#ifndef WITHOUT_CPU3
 #if 1//wait until CPU0 HT link up
 	TTYDBG("Waiting CPU2 HI HyperTransport bus to be up.")
 	dli     t0, 0x90002dfdfb000000
@@ -2372,8 +2427,10 @@ reset_ht3:
 	nop
 	TTYDBG("\r\n")
 #endif
+#endif
 
 #if 1//wait until CPU1 HT link up
+#ifndef WITHOUT_CPU3
 	TTYDBG("Waiting CPU3 LO HyperTransport bus to be up.")
 	dli     t0, 0x90003cfdfb000000
 	li	t1, 0x1f
@@ -2403,6 +2460,7 @@ reset_ht3:
 	bal	hexserial
 	nop
 	TTYDBG("\r\n")
+#endif
 #endif
 
 #if 0
@@ -2557,6 +2615,7 @@ reset_ht3:
 	nop
 
 
+#ifndef WITHOUT_CPU3
 	dli 	t2, 0x900030003ff02000
 	dli 	t1, 0x900030003ff02800
 	TTYDBG("Fix L1xbar illegal access at NODE 3\r\n")
@@ -2596,6 +2655,7 @@ reset_ht3:
 	daddiu  t2, t2, 0x100
 	bne     t2, t1, 1b
 	nop
+#endif
 
 
 
@@ -2633,10 +2693,12 @@ reset_ht3:
 	dli	a0, 0x900020001fe001d0
 	li	a1, 0xffffffff
 	sw	a1, 0x0(a0)
+#ifndef WITHOUT_CPU3
 	TTYDBG("Enable CPU3\r\n")
 	dli	a0, 0x900030001fe001d0
 	li	a1, 0xffffffff
 	sw	a1, 0x0(a0)
+#endif
 #endif
 
 
@@ -2658,9 +2720,11 @@ reset_ht3:
 	li	t0, 0x00000010
 	or	t1, t1, t0
 	sw	t1, 0x0(t2)
+#ifndef WITHOUT_CPU3
 	dli	t2, 0x900030003ff00400
 	lw	t1, 0x0(t2)
 	li	t0, 0x00000010
 	or	t1, t1, t0
 	sw	t1, 0x0(t2)
+#endif
 #endif

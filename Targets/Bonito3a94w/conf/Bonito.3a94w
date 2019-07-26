@@ -26,7 +26,7 @@ option      LSMC_2
 option      DDR3_DIMM       #board use DDR3 memory, use: USE_SB_I2C, else use USE_GPIO_I2C and MULTI_I2C_BUS
 
 #option      MULTI_NODE_INIT_MEM
-option      AUTO_DDR_CONFIG #use DIMM SPD auto detect DIMM
+#option      AUTO_DDR_CONFIG #use DIMM SPD auto detect DIMM
 #option      USE_SB_I2C
 option      USE_GPIO_I2C
 
@@ -52,7 +52,7 @@ select     	amd_780e
 
 ## VGA option ##
 option      SERVER_3A
-option		RS780E
+#option		RS780E
 option      USE_780E_VGA
 #option      USE_BMC
 option      VGA_NO_ROM
@@ -68,12 +68,12 @@ option		AUTOLOAD
 # Disable all options below to disable gpu driver 
 # Enable all options below to enble gpu driver 
 #
-select		mod_x86emu_int10
-select		mod_framebuffer
-select		mod_vesa
-select		mod_vgacon
-option		VESAFB
-option		INTERFACE_3A780E
+#select		mod_x86emu_int10
+#select		mod_framebuffer
+#select		mod_vesa
+#select		mod_vgacon
+#option		VESAFB
+#option		INTERFACE_3A780E
 
 #
 # flash type selection. Selects flash support
@@ -239,7 +239,7 @@ option HAVE_NB_SERIAL
 #select cmd_bootp
 option FOR_GXEMUL
 select fatfs
-option FLOATINGPT
+#option FLOATINGPT
 #option PCI_IDSEL_VIA686B=17
 option PCI_IDSEL_SB700=14
 option WDC_NORESET
@@ -258,3 +258,5 @@ select tftpd
 #select e100
 # SCSI RAID disk drive support
 select scsi_sd
+option WITHOUT_CPU3
+option NOSB

@@ -19,7 +19,7 @@ ATTENTION:
 #define DDR_LOOPC  30 //500MHz
 #define DDR_REFC    2
 //#define DDR_DIV     8
-#define DDR_DIV     6
+#define DDR_DIV     4
 
 // L1_* define both CPU and Node freq simutanleously
 //#define USE_LS_PLL 1
@@ -35,7 +35,7 @@ ATTENTION:
 #define CORE_FREQ 1000
 #endif
 
-//#define REF_33M
+#define REF_33M
 //#define REF_100M
 #ifdef REF_100M
 
@@ -44,9 +44,9 @@ ATTENTION:
 #define L1_REFC   1
 #define CPU_PLLIN 100
 
-#elsif REF_33M
+#elif defined(REF_33M)
 
-#define L1_DIV      8
+#define L1_DIV      4
 //#define L1_DIV      2
 #define L1_REFC   1
 #define CPU_PLLIN 33
@@ -66,6 +66,8 @@ ATTENTION:
 #else
 #ifndef DDR_FREQ
 #define DDR_FREQ  (DDR_LOOPC*33/DDR_DIV/DDR_REFC)
+#else
+#define DDR_LOOPC  DDR_FREQ*DDR_DIV*DDR_REFC/33
 #endif
 #endif
 

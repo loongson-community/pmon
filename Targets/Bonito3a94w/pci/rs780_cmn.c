@@ -25,7 +25,7 @@
 #define HT_MAP_TYPE0_CONF_ADDR  BONITO_PCICFG0_BASE_VA
 
 
-typedef unsigned long long u64;
+//typedef unsigned long long u64;
 u32 pci_read_type0_config32(u32 dev, u32 func, u32 reg){
     //u64 addr = 0x90000efdfe000000;
     u32 addr = HT_MAP_TYPE0_CONF_ADDR;
