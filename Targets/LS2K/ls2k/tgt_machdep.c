@@ -194,7 +194,9 @@ pcireg_t _pci_allocate_io(struct pci_device *dev, vm_size_t size);
 static void superio_reinit();
 extern char wait_for_smp_call[];
 extern char ls2k_version();
-
+#ifdef SLT
+extern void slt_test();
+#endif
 void initmips(unsigned long long  raw_memsz)
 {
 	unsigned int hi;
@@ -332,6 +334,9 @@ void tgt_devconfig()
 		kbd_available = 1;
 	}
 	psaux_init();
+#endif
+#ifdef SLT
+	slt_test();
 #endif
 	printf("devconfig done.\n");
 

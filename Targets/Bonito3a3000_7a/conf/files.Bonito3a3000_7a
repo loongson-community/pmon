@@ -24,6 +24,7 @@ file	Targets/Bonito3a3000_7a/dev/load_dtb.c		cmd_dtb
 file	Targets/Bonito3a3000_7a/dev/ls7a_dbg.c
 file	Targets/Bonito3a3000_7a/dev/signal_test.c
 file	Targets/Bonito3a3000_7a/dev/hda_test.c
+file    Targets/Bonito3a3000_7a/dev/slt.c
 
 #Gmac
 file	sys/dev/gmac/synopGMAC_Dev.c

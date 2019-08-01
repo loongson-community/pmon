@@ -122,6 +122,9 @@ extern void *memset(void *, int, size_t);
 extern int usb_spi_init(void);
 #endif
 extern void gmac_mac_init();
+#ifdef SLT
+extern void slt_test();
+#endif
 int kbd_available;
 int bios_available;
 int usb_kbd_available;;
@@ -431,6 +434,9 @@ run:
 	clear_pcie_inter_irq();
 	ls_pcie_interrupt_fixup();
 	hda_codec_set();
+#ifdef SLT
+	slt_test();
+#endif
 }
 static int w83627_read(int dev,int addr)
 {
