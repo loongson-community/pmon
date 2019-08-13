@@ -497,14 +497,16 @@ void gpioi2c_config_sii9022a(void)
 		printf("id err\n");
 		return;
 	}
-	
+
 	gpioi2c_read(dev_addr, 0x1e, &data);
 	data &= ~(0x3);
 	gpioi2c_write(dev_addr, 0x1e, data);
 
 	gpioi2c_read(dev_addr, 0x1a, &data);
 	data &= ~(1 << 4);
+	data |= (1 << 0);
 	gpioi2c_write(dev_addr, 0x1a, data);
+	gpioi2c_write(dev_addr, 0x26, 0x40);
 }
 
 static const Cmd Cmds[] = {

@@ -293,6 +293,12 @@ void tgt_devconfig()
 			ScreenLineLength = 1600;
 			ScreenDepth = 16;
 			ScreenHeight = 600;
+#if 0
+			//this parameters for 1920*1080 VGA
+			ScreenLineLength = 3840;
+			ScreenDepth = 16;
+			ScreenHeight = 1080;
+#endif
 		} else {
 			fbaddress  = _pci_conf_read(pcie_dev->pa.pa_tag,0x10);
 			fbaddress = fbaddress &0xffffff00; //laster 8 bit
