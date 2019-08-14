@@ -85,7 +85,7 @@
 #include "usb.h"
 
 #undef USB_DEBUG
-//#define USB_DEBUG
+#define USB_DEBUG
 
 #ifdef	USB_DEBUG
 #define	USB_PRINTF(fmt,args...)	printf (fmt ,##args)
@@ -562,7 +562,11 @@ int usb_parse_config(struct usb_device *dev, unsigned char *buffer, int cfgno)
 		switch(head->bDescriptorType) {
 			case USB_DT_INTERFACE:
 				ifno=dev->config.no_of_if;
-				dev->config.no_of_if++; /* found an interface desc, increase numbers */
+				if (ifno && dev->config.if_desc[ifno-1].bInterfaceNumber == ((struct usb_interface_descriptor *)&buffer[index])->bInterfaceNumber) {
+				 ifno--;
+				}
+				else
+				 dev->config.no_of_if++; /* found an interface desc, increase numbers */
 				memcpy(&dev->config.if_desc[ifno],&buffer[index],buffer[index]); /* copy new desc */
 				dev->config.if_desc[ifno].no_of_ep=0;
 
