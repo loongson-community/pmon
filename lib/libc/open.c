@@ -45,7 +45,7 @@ static char *fat_support(int fnamelen, char *dname)
 {
 	char *temp = NULL;
 
-	temp = (char *)malloc((fnamelen - 5) + 2 + 1);
+	temp = (char *)malloc(fnamelen + 2 + 1);
 	if (strncmp (dname, "fs/fat", 6) == 0) {
 		strcpy(temp, dname);
 		temp += 6;
