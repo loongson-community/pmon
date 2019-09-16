@@ -1331,8 +1331,16 @@ int usb_new_device(struct usb_device *dev)
 	dev->descriptor.bcdDevice=swap_16(dev->descriptor.bcdDevice);
 	/* only support for one config for now */
 	memset(tmpbuf, 0, sizeof(tmpbuf));
+       if (dev->descriptor.idVendor == 0x525 && dev->descriptor.idProduct == 0xa4a2) {
+	usb_get_configuration_no(dev,&tmpbuf[0],1);
+	usb_parse_config(dev,&tmpbuf[0],1);
+        } else if (dev->descriptor.idVendor == 0x0fe6 && dev->descriptor.idProduct == 0x9900) {
+	usb_get_configuration_no(dev,&tmpbuf[0],1);
+	usb_parse_config(dev,&tmpbuf[0],1);
+        } else {
 	usb_get_configuration_no(dev,&tmpbuf[0],0);
 	usb_parse_config(dev,&tmpbuf[0],0);
+        }
 #ifdef USB_DEBUG
 	{
 		struct usb_config_descriptor *p =  tmpbuf;
