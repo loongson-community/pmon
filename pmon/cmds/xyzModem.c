@@ -860,7 +860,7 @@ RedBoot_load (ymodem, xyzModem_io, false, false, xyzModem_ymodem);
 
 #if NRAMFILES > 0
 struct Ramfile;
-struct Ramfile *addRamFile(char *filename, unsigned long base, unsigned long size, int flags);
+struct Ramfile *addRamFile(char *filename, unsigned long long base, unsigned long long size, int flags);
 int deleteRamFile(char *filename);
 #endif
 
