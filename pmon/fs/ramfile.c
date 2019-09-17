@@ -136,7 +136,7 @@ static int
 		dname += 1;
 		
 		LIST_FOREACH(p, &Ramfiles, i_next) {
-			if(dname[0]==0)printf("name:%s size:%d @%08x\n",p->name,p->size,p->base);
+			if(dname[0]==0)printf("name:%s size:0x%lx @0x%08llx\n",p->name,p->size,p->base);
 			if(strcmp(p->name, dname) == 0) {
 				found = 1;
 				break;
@@ -171,7 +171,7 @@ static int
 
 	if ((p->refs == 0) && (p->flags & RAMFILE_DYNAMIC)) {
 		char tmpname[20];
-		sprintf(tmpname,"%08x",p->base);
+		sprintf(tmpname,"%08x",(int)p->base);
 		deleteRamFile(tmpname);
 		addRamFile(tmpname, p->base, _file[fd].posn, RAMFILE_STATIC);
 	   LIST_REMOVE(p, i_next);

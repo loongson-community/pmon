@@ -879,7 +879,7 @@ int sohci_submit_job(struct usb_device *dev, unsigned long pipe, void *buffer,
 			break;
 		}
 	}
-	ed_num = usb_pipeendpoint(pipe);
+	ed_num = usb_pipeendpoint(pipe) |(usb_pipecontrol(pipe) ? 0: (usb_pipeout(pipe)<<4));
 	purb_priv = &ohci_urb[dev_num][ed_num];
 
 	purb_priv->pipe = pipe;
@@ -1637,6 +1637,17 @@ static void td_submit_job(struct usb_device *dev, unsigned long pipe, void
 	u32 info = 0;
 	int periodic = 0;
 	unsigned int toggle = 0;
+	u_int32_t dev_num, ed_num;
+	urb_priv_t *lurb_priv = NULL;
+
+	for (dev_num = 0; dev_num < USB_MAX_DEVICE; dev_num++) {
+		if (dev == &usb_dev[dev_num]) {
+			break;
+		}
+	}
+	ed_num = usb_pipeendpoint(pipe) |(usb_pipecontrol(pipe) ? 0: (usb_pipeout(pipe)<<4));
+	lurb_priv = &ohci_urb[dev_num][ed_num];
+	lurb_priv->state = USB_ST_NOT_PROC;
 
 	/* OHCI handles the DATA-toggles itself, we just use the USB-toggle bits for reseting */
 #ifdef CONFIG_SM502_USB_HCD
@@ -1807,7 +1818,7 @@ static void dl_transfer_length(td_t * td)
 			}
 		}
 		p_ed = td->ed;
-		ed_num = (p_ed->hwINFO & 0x780) >> 7;
+		ed_num = (p_ed->hwINFO & 0xf80) >> 7;
 		lurb_priv = &ohci_urb[dev_num][ed_num];
 	}
 
@@ -1976,7 +1987,7 @@ static td_t *dl_reverse_done_list(ohci_t * ohci)
 				}
 			}
 			p_ed = td_list->ed;
-			ed_num = (p_ed->hwINFO & 0x780) >> 7;
+			ed_num = (p_ed->hwINFO & 0xf80) >> 7;
 			lurb_priv = &ohci_urb[dev_num][ed_num];
 
 #if 0
@@ -2064,11 +2075,11 @@ static int dl_done_list(ohci_t * ohci, td_t * td_list)
 			}
 		}
 		p_ed = td_list->ed;
-		ed_num = (p_ed->hwINFO & 0x780) >> 7;
+		ed_num = (p_ed->hwINFO & 0xf80) >> 7;
 		lurb_priv = &ohci_urb[dev_num][ed_num];
 
 		//QYL-2008-03-07
-		if (p_ed->type == PIPE_INTERRUPT) {
+		if (p_ed->type == PIPE_INTERRUPT || (p_ed->usb_dev->irq_handle && usb_pipein(lurb_priv->pipe))) {
 			pInt_ed = p_ed;
 			pInt_urb_priv = lurb_priv;
 			pInt_dev = p_ed->usb_dev;
@@ -2103,27 +2114,35 @@ static int dl_done_list(ohci_t * ohci, td_t * td_list)
 				ep_unlink(ohci, ed);
 			}
 		}
-		dev->status = stat;	// FIXME;
+		lurb_priv->state = stat;
 
 		td_list = td_list_next;
 	}
 
 	if (NULL != pInt_urb_priv) {
+		int ret = 1;
 		if (pInt_dev && pInt_dev->irq_handle) {
 			pInt_dev->irq_status = 0;
 			pInt_dev->irq_act_len = pInt_urb_priv->actual_length;
 			pInt_dev->irq_handle(pInt_dev);
+			if (!pInt_dev->irq_handle)
+                           ret = 0;
 		}
 
 		pInt_urb_priv->actual_length = 0;
 		pInt_dev->irq_act_len = 0;
 		pInt_ed->hwINFO = pInt_ed->oINFO;
-		ep_link(ohci, pInt_ed);
-		td_submit_job(pInt_ed->usb_dev, pInt_urb_priv->pipe,
-			      pInt_urb_priv->trans_buffer,
-			      pInt_urb_priv->trans_length,
-			      pInt_urb_priv->setup_buffer, pInt_urb_priv,
-			      pInt_ed->int_interval);
+		if (ret == 1) {
+			ep_link(ohci, pInt_ed);
+			td_submit_job(pInt_ed->usb_dev, pInt_urb_priv->pipe,
+					pInt_urb_priv->trans_buffer,
+					pInt_urb_priv->trans_length,
+					pInt_urb_priv->setup_buffer, pInt_urb_priv,
+					pInt_ed->int_interval);
+		}
+		else {
+			urb_free_priv(pInt_urb_priv);
+		}
 		pInt_urb_priv = NULL;
 	}
 	return stat;
@@ -2168,11 +2187,11 @@ static int dl_td_done_list(ohci_t * ohci, td_t * td_list)
 			break;
 		}
 		p_ed = td_list->ed;
-		ed_num = (p_ed->hwINFO & 0x780) >> 7;
+		ed_num = (p_ed->hwINFO & 0xf80) >> 7;
 		lurb_priv = &ohci_urb[dev_num][ed_num];
 
 		//QYL-2008-03-07
-		if (p_ed->type == PIPE_INTERRUPT) {
+		if (p_ed->type == PIPE_INTERRUPT || (p_ed->usb_dev->irq_handle && usb_pipein(lurb_priv->pipe))) {
 			pInt_ed = p_ed;
 			pInt_urb_priv = lurb_priv;
 			pInt_dev = p_ed->usb_dev;
@@ -2191,7 +2210,7 @@ static int dl_td_done_list(ohci_t * ohci, td_t * td_list)
 		/* error code of transfer */
 		cc = TD_CC_GET(tdINFO);
 		if (cc != 0) {
-			err("ConditionCode %x/%x", cc, td_list);
+			err("ConditionCode %x/%x pInt_urb_priv:0x%x p_ed->usb_dev->irq_handle:0x%x pipein:0x%x", cc, td_list, pInt_urb_priv, p_ed->usb_dev->irq_handle, usb_pipein(lurb_priv->pipe));
 			stat = cc_to_error[cc];
 		}
 
@@ -2204,7 +2223,8 @@ static int dl_td_done_list(ohci_t * ohci, td_t * td_list)
 				ep_unlink(ohci, ed);
 			}
 		}
-		dev->status = stat;	// FIXME, the transfer complete?
+		//dev->status = stat;	// FIXME, the transfer complete?
+		lurb_priv->state = stat;
 
 		td_list = td_list_next;
 	}
@@ -2700,6 +2720,15 @@ int submit_common_msg(struct usb_device *dev, unsigned long pipe, void *buffer,
 		return -1;
 	}
 
+	for (dev_num = 0; dev_num < USB_MAX_DEVICE; dev_num++) {
+		if (dev == &usb_dev[dev_num]) {
+			break;
+		}
+	}
+	ed_num = usb_pipeendpoint(pipe) |(usb_pipecontrol(pipe) ? 0: (usb_pipeout(pipe)<<4));
+	lurb_priv = &ohci_urb[dev_num][ed_num];
+	lurb_priv->state = USB_ST_NOT_PROC;
+
 	if (pipe != PIPE_INTERRUPT) {
 		gohci->transfer_lock++;
 
@@ -2746,6 +2775,7 @@ int submit_common_msg(struct usb_device *dev, unsigned long pipe, void *buffer,
 #else
 
 	while (--timeout > 0) {
+		dev->status = lurb_priv->state;
 		if (!(dev->status & USB_ST_NOT_PROC)) {
 			break;
 		}
@@ -2764,6 +2794,7 @@ int submit_common_msg(struct usb_device *dev, unsigned long pipe, void *buffer,
 		struct usb_device *pInt_dev = NULL;
 		urb_priv_t *pInt_urb_priv = NULL;
 		ed_t *pInt_ed = NULL;
+		int ret = 1;
 
 		pInt_dev = gohci->g_pInt_dev[i];
 		pInt_urb_priv = gohci->g_pInt_urb_priv[i];
@@ -2777,17 +2808,26 @@ int submit_common_msg(struct usb_device *dev, unsigned long pipe, void *buffer,
 			pInt_dev->irq_status = 0;
 			pInt_dev->irq_act_len = pInt_urb_priv->actual_length;
 			pInt_dev->irq_handle(pInt_dev);
+			if (!pInt_dev->irq_handle)
+                           ret = 0;
 		}
 
 		pInt_urb_priv->actual_length = 0;
 		pInt_dev->irq_act_len = 0;
 		pInt_ed->hwINFO = pInt_ed->oINFO;
+
+		if (ret == 1) {
 		ep_link(gohci, pInt_ed);
 		td_submit_job(pInt_ed->usb_dev, pInt_urb_priv->pipe,
 			      pInt_urb_priv->trans_buffer,
 			      pInt_urb_priv->trans_length,
 			      (struct devrequest *)pInt_urb_priv->setup_buffer,
 			      pInt_urb_priv, pInt_ed->int_interval);
+		}
+		else {
+	
+			urb_free_priv(pInt_urb_priv);
+		}
 
 		gohci->g_pInt_dev[i] = NULL;
 		gohci->g_pInt_urb_priv[i] = NULL;
@@ -2819,15 +2859,8 @@ int submit_common_msg(struct usb_device *dev, unsigned long pipe, void *buffer,
 		}
 	}
 	//QYL-2008-03-07
-	for (dev_num = 0; dev_num < USB_MAX_DEVICE; dev_num++) {
-		if (dev == &usb_dev[dev_num]) {
-			break;
-		}
-	}
-	ed_num = usb_pipeendpoint(pipe);
-	lurb_priv = &ohci_urb[dev_num][ed_num];
 
-	if (usb_pipetype(pipe) != PIPE_INTERRUPT) {	/*FIXME, might not done bulk */
+	if (!(usb_pipetype(pipe) == PIPE_INTERRUPT || (dev->irq_handle && usb_pipein(lurb_priv->pipe)))) {	/*FIXME, might not done bulk */
 		//dev->status = stat;
 		if(!dev->status && timeout)
 		dev->act_len = transfer_len;
@@ -3257,7 +3290,7 @@ static int hc_interrupt(void *hc_data)
 				}
 			}
 			p_ed = td->ed;
-			ed_num = (p_ed->hwINFO & 0x780) >> 7;
+			ed_num = (p_ed->hwINFO & 0xf80) >> 7;
 			lurb_priv = &ohci_urb[dev_num][ed_num];
 
 			if (td->index != lurb_priv->length - 1) {
@@ -3889,7 +3922,7 @@ static int hc_check_ohci_controller(void *hc_data)
 				}
 			}
 			p_ed = td->ed;
-			ed_num = (p_ed->hwINFO & 0x780) >> 7;	//See OHCI1.1 spec Page 17 Endpoint Descriptor Field Definitions
+			ed_num = (p_ed->hwINFO & 0xf80) >> 7;	//See OHCI1.1 spec Page 17 Endpoint Descriptor Field Definitions
 			lurb_priv = &ohci_urb[dev_num][ed_num];
 
 			if (td->index != lurb_priv->length - 1) {

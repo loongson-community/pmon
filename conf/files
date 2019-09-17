@@ -374,6 +374,9 @@ define usbbus {}
 device usb: disk 
 attach usb at usbbus
 
+device	usbnet: ether, ifnet
+attach	usbnet at usbbus
+
 define ahcibus {}
 
 file sys/dev/usb/usb.c			  mod_usb
@@ -393,6 +396,8 @@ file sys/dev/nand/nand_bbt.c      nand
 file sys/dev/nand/fcr-nand.c      nand
 file pmon/fs/mtd.c		  nand
 file  sys/dev/nand/cmdlinepart.c  nand needs-flag
+
+file sys/dev/usb/usbnet.c	 usbnet needs-flag
 
 #file sys/dev/nand/yaf-nand/nand_util.c      nand      #lxy
 
