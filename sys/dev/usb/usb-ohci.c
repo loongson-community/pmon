@@ -3253,10 +3253,9 @@ static int hc_interrupt(void *hc_data)
 		return -1;
 	}
 
-	if (ints & OHCI_INTR_WDH) {
+	if (ints & OHCI_INTR_WDH && ohci->hcca->done_head) {
 
 		writel(OHCI_INTR_WDH, &regs->intrdisable);
-		while(!ohci->hcca->done_head) delay(1);
 
 #ifndef  LOONGSON_3A2H
 		if (td == NULL) {
