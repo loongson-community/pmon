@@ -445,6 +445,8 @@ gs_2f_v3_ddr2_cfg:
 #else
 #ifndef DDR_FREQ
 #define DDR_FREQ  (DDR_LOOPC*33/DDR_DIV/DDR_REFC)
+#else
+#define DDR_LOOPC  (DDR_FREQ*DDR_REFC*DDR_DIV/33)
 #endif
 #endif
 
