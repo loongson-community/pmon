@@ -24,6 +24,9 @@
     li      t2, (0xf | (0xf << 16))
     not     t2, t2
     and     t1, t1, t2
+#ifdef MULTI_CHIP
+    ori     t1, 0x1
+#endif
     sw      t1, CONF_HT_ROUTE_OFFSET(t0)
 #endif
     TTYDBG("config 7A dma route done.\r\n")
