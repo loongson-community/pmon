@@ -1647,7 +1647,6 @@ static void td_submit_job(struct usb_device *dev, unsigned long pipe, void
 	}
 	ed_num = usb_pipeendpoint(pipe) |(usb_pipecontrol(pipe) ? 0: (usb_pipeout(pipe)<<4));
 	lurb_priv = &ohci_urb[dev_num][ed_num];
-	lurb_priv->state = USB_ST_NOT_PROC;
 
 	/* OHCI handles the DATA-toggles itself, we just use the USB-toggle bits for reseting */
 #ifdef CONFIG_SM502_USB_HCD
@@ -2023,6 +2022,56 @@ static td_t *dl_reverse_done_list(ohci_t * ohci)
 	return td_list;
 }
 
+
+int process_interrupt_urb(ohci_t *ohci)
+{
+	int i;
+	for (i = 0; i < MAX_INTS; i++) {
+		struct usb_device *pInt_dev = NULL;
+		urb_priv_t *pInt_urb_priv = NULL;
+		ed_t *pInt_ed = NULL;
+		int ret = 1;
+
+		pInt_dev = ohci->g_pInt_dev[i];
+		pInt_urb_priv = ohci->g_pInt_urb_priv[i];
+		pInt_ed = ohci->g_pInt_ed[i];
+
+		if (pInt_dev == NULL || pInt_urb_priv == NULL
+				|| pInt_ed == NULL)
+			continue;
+
+		if (pInt_dev->irq_handle) {
+			pInt_dev->irq_status = 0;
+			pInt_dev->irq_act_len = pInt_urb_priv->actual_length;
+			pInt_dev->irq_handle(pInt_dev);
+			if (!pInt_dev->irq_handle)
+				ret = 0;
+		}
+
+		pInt_urb_priv->actual_length = 0;
+		pInt_dev->irq_act_len = 0;
+		pInt_ed->hwINFO = pInt_ed->oINFO;
+
+		if (ret == 1) {
+			ep_link(ohci, pInt_ed);
+			td_submit_job(pInt_ed->usb_dev, pInt_urb_priv->pipe,
+					pInt_urb_priv->trans_buffer,
+					pInt_urb_priv->trans_length,
+					(struct devrequest *)pInt_urb_priv->setup_buffer,
+					pInt_urb_priv, pInt_ed->int_interval);
+		}
+		else {
+
+			urb_free_priv(pInt_urb_priv);
+		}
+
+		ohci->g_pInt_dev[i] = NULL;
+		ohci->g_pInt_urb_priv[i] = NULL;
+		ohci->g_pInt_ed[i] = NULL;
+
+	}
+}
+
 /*===========================================================================
 *
 *FUNTION: dl_done_list
@@ -2047,6 +2096,7 @@ static int dl_done_list(ohci_t * ohci, td_t * td_list)
 	ed_t *ed;
 	int cc = 0;
 	int stat = 0;
+	int i;
 	struct usb_device *dev = NULL;
 	/* urb_t *urb; */
 	urb_priv_t *lurb_priv = NULL;
@@ -2117,34 +2167,25 @@ static int dl_done_list(ohci_t * ohci, td_t * td_list)
 		lurb_priv->state = stat;
 
 		td_list = td_list_next;
-	}
-
-	if (NULL != pInt_urb_priv) {
-		int ret = 1;
-		if (pInt_dev && pInt_dev->irq_handle) {
-			pInt_dev->irq_status = 0;
-			pInt_dev->irq_act_len = pInt_urb_priv->actual_length;
-			pInt_dev->irq_handle(pInt_dev);
-			if (!pInt_dev->irq_handle)
-                           ret = 0;
-		}
-
-		pInt_urb_priv->actual_length = 0;
-		pInt_dev->irq_act_len = 0;
-		pInt_ed->hwINFO = pInt_ed->oINFO;
-		if (ret == 1) {
-			ep_link(ohci, pInt_ed);
-			td_submit_job(pInt_ed->usb_dev, pInt_urb_priv->pipe,
-					pInt_urb_priv->trans_buffer,
-					pInt_urb_priv->trans_length,
-					pInt_urb_priv->setup_buffer, pInt_urb_priv,
-					pInt_ed->int_interval);
-		}
-		else {
-			urb_free_priv(pInt_urb_priv);
-		}
+		if (NULL != pInt_urb_priv) {	/* FIXME */
+			int i;
+			for (i = 0; i < MAX_INTS; i++) {
+				if (ohci->g_pInt_urb_priv[i] == pInt_urb_priv)
+					break;
+				if (ohci->g_pInt_dev[i] == NULL) {
+					ohci->g_pInt_dev[i] = pInt_dev;
+					ohci->g_pInt_ed[i] = pInt_ed;
+					ohci->g_pInt_urb_priv[i] = pInt_urb_priv;
+					break;
+				}
+			}
 		pInt_urb_priv = NULL;
+		}
 	}
+
+	if (!ohci->transfer_lock)
+		process_interrupt_urb(ohci);
+
 	return stat;
 }
 
@@ -2707,6 +2748,7 @@ int submit_common_msg(struct usb_device *dev, unsigned long pipe, void *buffer,
 	//QYL-2008-03-07
 	u_int32_t dev_num, ed_num;
 	urb_priv_t *lurb_priv = NULL;
+	int oldspl;
 
 	/* device pulled? Shortcut the action. */
 	if (devgone == dev) {
@@ -2728,10 +2770,10 @@ int submit_common_msg(struct usb_device *dev, unsigned long pipe, void *buffer,
 	ed_num = usb_pipeendpoint(pipe) |(usb_pipecontrol(pipe) ? 0: (usb_pipeout(pipe)<<4));
 	lurb_priv = &ohci_urb[dev_num][ed_num];
 	lurb_priv->state = USB_ST_NOT_PROC;
+	oldspl = splhigh();
 
+	gohci->transfer_lock++;
 	if (pipe != PIPE_INTERRUPT) {
-		gohci->transfer_lock++;
-
 		gohci->hc_control &= ~OHCI_CTRL_PLE;
 		writel(gohci->hc_control, &gohci->regs->control);
 	}
@@ -2739,6 +2781,7 @@ int submit_common_msg(struct usb_device *dev, unsigned long pipe, void *buffer,
 	if (sohci_submit_job(dev, pipe, buffer, transfer_len, setup, interval) <
 	    0) {
 		err("sohci_submit_job failed");
+		splx(oldspl);
 		return -1;
 	}
 
@@ -2780,59 +2823,16 @@ int submit_common_msg(struct usb_device *dev, unsigned long pipe, void *buffer,
 		}
 		//delay(200);
 		delay_usb_ohci(200);
-		hc_check_ohci_controller(gohci);
+		hc_interrupt(gohci);
 	}
 
+	gohci->transfer_lock--;
 	if (pipe != PIPE_INTERRUPT) {
-		gohci->transfer_lock--;
 		gohci->hc_control |= OHCI_CTRL_PLE;
 		writel(gohci->hc_control, &gohci->regs->control);
 	}
 
-	for (i = 0; i < MAX_INTS; i++) {
-		struct usb_device *pInt_dev = NULL;
-		urb_priv_t *pInt_urb_priv = NULL;
-		ed_t *pInt_ed = NULL;
-		int ret = 1;
-
-		pInt_dev = gohci->g_pInt_dev[i];
-		pInt_urb_priv = gohci->g_pInt_urb_priv[i];
-		pInt_ed = gohci->g_pInt_ed[i];
-
-		if (pInt_dev == NULL || pInt_urb_priv == NULL
-		    || pInt_ed == NULL)
-			continue;
-
-		if (pInt_dev->irq_handle) {
-			pInt_dev->irq_status = 0;
-			pInt_dev->irq_act_len = pInt_urb_priv->actual_length;
-			pInt_dev->irq_handle(pInt_dev);
-			if (!pInt_dev->irq_handle)
-                           ret = 0;
-		}
-
-		pInt_urb_priv->actual_length = 0;
-		pInt_dev->irq_act_len = 0;
-		pInt_ed->hwINFO = pInt_ed->oINFO;
-
-		if (ret == 1) {
-		ep_link(gohci, pInt_ed);
-		td_submit_job(pInt_ed->usb_dev, pInt_urb_priv->pipe,
-			      pInt_urb_priv->trans_buffer,
-			      pInt_urb_priv->trans_length,
-			      (struct devrequest *)pInt_urb_priv->setup_buffer,
-			      pInt_urb_priv, pInt_ed->int_interval);
-		}
-		else {
-	
-			urb_free_priv(pInt_urb_priv);
-		}
-
-		gohci->g_pInt_dev[i] = NULL;
-		gohci->g_pInt_urb_priv[i] = NULL;
-		gohci->g_pInt_ed[i] = NULL;
-
-	}
+	process_interrupt_urb(gohci);
 
 	if (timeout)
 		printf("USB timeout dev:0x%x\n", (u_int32_t) dev);
@@ -2867,6 +2867,8 @@ int submit_common_msg(struct usb_device *dev, unsigned long pipe, void *buffer,
 		urb_free_priv(lurb_priv);
 		memset(lurb_priv, 0, sizeof(*lurb_priv));
 	}
+	
+	splx(oldspl);
 
 	if(dev->status || timeout) return -1;
 
@@ -3179,8 +3181,8 @@ static int hc_interrupt(void *hc_data)
 	struct usb_device *p_dev = NULL;
 	ed_t *p_ed = NULL;
 
-	if (ohci->transfer_lock)
-		return stat;
+//	if (ohci->transfer_lock)
+//		return stat;
 
 	if ((ohci->hcca->done_head != 0) &&
 	    !(m32_swap(ohci->hcca->done_head) & 0x01)) {
