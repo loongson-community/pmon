@@ -53,7 +53,7 @@ static int check_mac_ok(void)
 		if (USE_ENVMAC)
 		{
 			tgt_ethaddr(mac_addr);
-			mac_addr[0] += id;
+			mac_addr[5] += id;
 		}
 		else
 		{
@@ -241,7 +241,7 @@ static int update_mac(void * ssp, int id)
 	if (USE_ENVMAC)
 	{
 		tgt_ethaddr(mac_addr);
-		mac_addr[0] += id;
+		mac_addr[5] += id;
 	}
 	else
 	{
