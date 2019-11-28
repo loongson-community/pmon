@@ -2743,14 +2743,11 @@ int submit_common_msg(struct usb_device *dev, unsigned long pipe, void *buffer,
 	}
 
 	/* allow more time for a BULK device to react - some are slow */
-#define BULK_TO	 500		/* timeout in milliseconds */
-//#define BULK_TO        1000   /* timeout in milliseconds */
+#define BULK_TO        5000   /* timeout in milliseconds */
 	if (usb_pipetype(pipe) == PIPE_BULK)
 		timeout = BULK_TO;
 	else
-		timeout = 2000;
-
-	timeout *= 100;
+		timeout = 500;
 
 	/* wait for it to complete */
 #if 0
@@ -2774,9 +2771,11 @@ int submit_common_msg(struct usb_device *dev, unsigned long pipe, void *buffer,
 	}
 #else
 
-	while (--timeout > 0) {
+	int time_base = get_timer(0);
+	while (get_timer(time_base) < timeout) {
 		dev->status = lurb_priv->state;
 		if (!(dev->status & USB_ST_NOT_PROC)) {
+			timeout = 0;
 			break;
 		}
 		//delay(200);
@@ -2835,7 +2834,7 @@ int submit_common_msg(struct usb_device *dev, unsigned long pipe, void *buffer,
 
 	}
 
-	if (timeout == 0)
+	if (timeout)
 		printf("USB timeout dev:0x%x\n", (u_int32_t) dev);
 
 #endif
@@ -2862,14 +2861,14 @@ int submit_common_msg(struct usb_device *dev, unsigned long pipe, void *buffer,
 
 	if (!(usb_pipetype(pipe) == PIPE_INTERRUPT || (dev->irq_handle && usb_pipein(lurb_priv->pipe)))) {	/*FIXME, might not done bulk */
 		//dev->status = stat;
-		if(!dev->status && timeout)
+		if(!dev->status && !timeout)
 		dev->act_len = transfer_len;
 		/* free TDs in urb_priv */
 		urb_free_priv(lurb_priv);
 		memset(lurb_priv, 0, sizeof(*lurb_priv));
 	}
 
-	if(dev->status || timeout==0) return -1;
+	if(dev->status || timeout) return -1;
 
 	return 0;
 }
