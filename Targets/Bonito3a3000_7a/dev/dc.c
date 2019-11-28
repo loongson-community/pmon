@@ -23,10 +23,14 @@ typedef unsigned long dma_addr_t;
 
 #define write_reg(addr,val) writel(val,addr)
 
-#define FB_XSIZE 800
-#define FB_YSIZE 600
 //#define FB_XSIZE 1920
 //#define FB_YSIZE 1080
+#ifndef FB_XSIZE
+#define FB_XSIZE 800
+#endif
+#ifndef FB_YSIZE
+#define FB_YSIZE 600
+#endif
 #define DIS_WIDTH  FB_XSIZE
 #define DIS_HEIGHT FB_YSIZE
 #define EXTRA_PIXEL  0
