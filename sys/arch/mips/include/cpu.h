@@ -460,6 +460,7 @@ void flushicache __P((void *, size_t));
 void flushdcache __P((void *, size_t));
 void syncicache __P((void *, size_t));
 void delay __P((int));
+unsigned int get_timer(unsigned int base);
 
 int	CPU_ConfigCache __P((void));
 void	CPU_SetWIRED __P((int));
