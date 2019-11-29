@@ -2026,6 +2026,7 @@ static td_t *dl_reverse_done_list(ohci_t * ohci)
 int process_interrupt_urb(ohci_t *ohci)
 {
 	int i;
+	int ed_num;
 	for (i = 0; i < MAX_INTS; i++) {
 		struct usb_device *pInt_dev = NULL;
 		urb_priv_t *pInt_urb_priv = NULL;
@@ -2040,9 +2041,14 @@ int process_interrupt_urb(ohci_t *ohci)
 				|| pInt_ed == NULL)
 			continue;
 
-		if (pInt_dev->irq_handle) {
-			pInt_dev->irq_status = 0;
-			pInt_dev->irq_act_len = pInt_urb_priv->actual_length;
+		ed_num = usb_pipeendpoint(pInt_urb_priv->pipe) |(usb_pipecontrol(pInt_urb_priv->pipe) ? 0: (usb_pipeout(pInt_urb_priv->pipe)<<4));
+		pInt_dev->irq_status = 0;
+		pInt_dev->irq_act_len = pInt_urb_priv->actual_length;
+		if (pInt_dev->irq_handle_ep[ed_num]) {
+			pInt_dev->irq_handle_ep[ed_num](pInt_dev);
+			if (!pInt_dev->irq_handle_ep[ed_num])
+				ret = 0;
+		} else if (pInt_dev->irq_handle) {
 			pInt_dev->irq_handle(pInt_dev);
 			if (!pInt_dev->irq_handle)
 				ret = 0;
@@ -2129,7 +2135,7 @@ static int dl_done_list(ohci_t * ohci, td_t * td_list)
 		lurb_priv = &ohci_urb[dev_num][ed_num];
 
 		//QYL-2008-03-07
-		if (p_ed->type == PIPE_INTERRUPT || (p_ed->usb_dev->irq_handle && usb_pipein(lurb_priv->pipe))) {
+		if (p_ed->type == PIPE_INTERRUPT || p_ed->usb_dev->irq_handle_ep[ed_num]) {
 			pInt_ed = p_ed;
 			pInt_urb_priv = lurb_priv;
 			pInt_dev = p_ed->usb_dev;
@@ -2232,7 +2238,7 @@ static int dl_td_done_list(ohci_t * ohci, td_t * td_list)
 		lurb_priv = &ohci_urb[dev_num][ed_num];
 
 		//QYL-2008-03-07
-		if (p_ed->type == PIPE_INTERRUPT || (p_ed->usb_dev->irq_handle && usb_pipein(lurb_priv->pipe))) {
+		if (p_ed->type == PIPE_INTERRUPT || p_ed->usb_dev->irq_handle_ep[ed_num]) {
 			pInt_ed = p_ed;
 			pInt_urb_priv = lurb_priv;
 			pInt_dev = p_ed->usb_dev;
@@ -2859,7 +2865,7 @@ int submit_common_msg(struct usb_device *dev, unsigned long pipe, void *buffer,
 	}
 	//QYL-2008-03-07
 
-	if (!(usb_pipetype(pipe) == PIPE_INTERRUPT || (dev->irq_handle && usb_pipein(lurb_priv->pipe)))) {	/*FIXME, might not done bulk */
+	if (!(usb_pipetype(pipe) == PIPE_INTERRUPT || dev->irq_handle_ep[ed_num])) {	/*FIXME, might not done bulk */
 		//dev->status = stat;
 		if(!dev->status && !timeout)
 		dev->act_len = transfer_len;
