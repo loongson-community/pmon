@@ -304,7 +304,7 @@ static int usb_net_irq(struct usb_device *dev)
 
 	//printf("usb_neet_irq run:%d state 0x%x\n",  !!(ifp->if_flags & IFF_RUNNING), dev->status);
 	if (!(ifp->if_flags & IFF_RUNNING)) {
-	   dev->irq_handle = NULL;
+	   dev->irq_handle_ep[sc->ep_in] = NULL;
 	   ret = 0;
        }
 
@@ -342,9 +342,9 @@ int usb_eth_init(struct ifnet *ifp)
 		return 0;
 	}
 
-	dev->irq_handle= usb_net_irq;
 	pipein = usb_rcvbulkpipe(dev, sc->ep_in);
 	pipeout = usb_sndbulkpipe(dev, sc->ep_out);
+	dev->irq_handle_ep[sc->ep_in]= usb_net_irq;
 
 	u16 cdc_filter = USB_CDC_PACKET_TYPE_DIRECTED
 			| USB_CDC_PACKET_TYPE_BROADCAST;
