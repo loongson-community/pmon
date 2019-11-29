@@ -879,7 +879,7 @@ int sohci_submit_job(struct usb_device *dev, unsigned long pipe, void *buffer,
 			break;
 		}
 	}
-	ed_num = usb_pipeendpoint(pipe) |(usb_pipecontrol(pipe) ? 0: (usb_pipeout(pipe)<<4));
+	ed_num = usb_pipeendpoint(pipe);
 	purb_priv = &ohci_urb[dev_num][ed_num];
 
 	purb_priv->pipe = pipe;
@@ -1645,7 +1645,7 @@ static void td_submit_job(struct usb_device *dev, unsigned long pipe, void
 			break;
 		}
 	}
-	ed_num = usb_pipeendpoint(pipe) |(usb_pipecontrol(pipe) ? 0: (usb_pipeout(pipe)<<4));
+	ed_num = usb_pipeendpoint(pipe);
 	lurb_priv = &ohci_urb[dev_num][ed_num];
 
 	/* OHCI handles the DATA-toggles itself, we just use the USB-toggle bits for reseting */
@@ -1817,7 +1817,7 @@ static void dl_transfer_length(td_t * td)
 			}
 		}
 		p_ed = td->ed;
-		ed_num = (p_ed->hwINFO & 0xf80) >> 7;
+		ed_num = (p_ed->hwINFO & 0x780) >> 7;
 		lurb_priv = &ohci_urb[dev_num][ed_num];
 	}
 
@@ -1986,7 +1986,7 @@ static td_t *dl_reverse_done_list(ohci_t * ohci)
 				}
 			}
 			p_ed = td_list->ed;
-			ed_num = (p_ed->hwINFO & 0xf80) >> 7;
+			ed_num = (p_ed->hwINFO & 0x780) >> 7;
 			lurb_priv = &ohci_urb[dev_num][ed_num];
 
 #if 0
@@ -2026,6 +2026,7 @@ static td_t *dl_reverse_done_list(ohci_t * ohci)
 int process_interrupt_urb(ohci_t *ohci)
 {
 	int i;
+	int ed_num;
 	for (i = 0; i < MAX_INTS; i++) {
 		struct usb_device *pInt_dev = NULL;
 		urb_priv_t *pInt_urb_priv = NULL;
@@ -2040,9 +2041,14 @@ int process_interrupt_urb(ohci_t *ohci)
 				|| pInt_ed == NULL)
 			continue;
 
-		if (pInt_dev->irq_handle) {
-			pInt_dev->irq_status = 0;
-			pInt_dev->irq_act_len = pInt_urb_priv->actual_length;
+		ed_num = usb_pipeendpoint(pInt_urb_priv->pipe);
+		pInt_dev->irq_status = 0;
+		pInt_dev->irq_act_len = pInt_urb_priv->actual_length;
+		if (pInt_dev->irq_handle_ep[ed_num]) {
+			pInt_dev->irq_handle_ep[ed_num](pInt_dev);
+			if (!pInt_dev->irq_handle_ep[ed_num])
+				ret = 0;
+		} else if (pInt_dev->irq_handle) {
 			pInt_dev->irq_handle(pInt_dev);
 			if (!pInt_dev->irq_handle)
 				ret = 0;
@@ -2125,11 +2131,11 @@ static int dl_done_list(ohci_t * ohci, td_t * td_list)
 			}
 		}
 		p_ed = td_list->ed;
-		ed_num = (p_ed->hwINFO & 0xf80) >> 7;
+		ed_num = (p_ed->hwINFO & 0x780) >> 7;
 		lurb_priv = &ohci_urb[dev_num][ed_num];
 
 		//QYL-2008-03-07
-		if (p_ed->type == PIPE_INTERRUPT || (p_ed->usb_dev->irq_handle && usb_pipein(lurb_priv->pipe))) {
+		if (p_ed->type == PIPE_INTERRUPT || p_ed->usb_dev->irq_handle_ep[ed_num]) {
 			pInt_ed = p_ed;
 			pInt_urb_priv = lurb_priv;
 			pInt_dev = p_ed->usb_dev;
@@ -2228,11 +2234,11 @@ static int dl_td_done_list(ohci_t * ohci, td_t * td_list)
 			break;
 		}
 		p_ed = td_list->ed;
-		ed_num = (p_ed->hwINFO & 0xf80) >> 7;
+		ed_num = (p_ed->hwINFO & 0x780) >> 7;
 		lurb_priv = &ohci_urb[dev_num][ed_num];
 
 		//QYL-2008-03-07
-		if (p_ed->type == PIPE_INTERRUPT || (p_ed->usb_dev->irq_handle && usb_pipein(lurb_priv->pipe))) {
+		if (p_ed->type == PIPE_INTERRUPT || p_ed->usb_dev->irq_handle_ep[ed_num]) {
 			pInt_ed = p_ed;
 			pInt_urb_priv = lurb_priv;
 			pInt_dev = p_ed->usb_dev;
@@ -2767,7 +2773,7 @@ int submit_common_msg(struct usb_device *dev, unsigned long pipe, void *buffer,
 			break;
 		}
 	}
-	ed_num = usb_pipeendpoint(pipe) |(usb_pipecontrol(pipe) ? 0: (usb_pipeout(pipe)<<4));
+	ed_num = usb_pipeendpoint(pipe);
 	lurb_priv = &ohci_urb[dev_num][ed_num];
 	lurb_priv->state = USB_ST_NOT_PROC;
 	oldspl = splhigh();
@@ -2859,7 +2865,7 @@ int submit_common_msg(struct usb_device *dev, unsigned long pipe, void *buffer,
 	}
 	//QYL-2008-03-07
 
-	if (!(usb_pipetype(pipe) == PIPE_INTERRUPT || (dev->irq_handle && usb_pipein(lurb_priv->pipe)))) {	/*FIXME, might not done bulk */
+	if (!(usb_pipetype(pipe) == PIPE_INTERRUPT || dev->irq_handle_ep[ed_num])) {	/*FIXME, might not done bulk */
 		//dev->status = stat;
 		if(!dev->status && !timeout)
 		dev->act_len = transfer_len;
@@ -3290,7 +3296,7 @@ static int hc_interrupt(void *hc_data)
 				}
 			}
 			p_ed = td->ed;
-			ed_num = (p_ed->hwINFO & 0xf80) >> 7;
+			ed_num = (p_ed->hwINFO & 0x780) >> 7;
 			lurb_priv = &ohci_urb[dev_num][ed_num];
 
 			if (td->index != lurb_priv->length - 1) {
@@ -3922,7 +3928,7 @@ static int hc_check_ohci_controller(void *hc_data)
 				}
 			}
 			p_ed = td->ed;
-			ed_num = (p_ed->hwINFO & 0xf80) >> 7;	//See OHCI1.1 spec Page 17 Endpoint Descriptor Field Definitions
+			ed_num = (p_ed->hwINFO & 0x780) >> 7;	//See OHCI1.1 spec Page 17 Endpoint Descriptor Field Definitions
 			lurb_priv = &ohci_urb[dev_num][ed_num];
 
 			if (td->index != lurb_priv->length - 1) {
