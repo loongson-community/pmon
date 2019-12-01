@@ -171,6 +171,180 @@ ext_map_and_reboot:
 	b	exc_common
 	nop
 
+
+#ifdef LS3A7A_STR
+/*
+ * 3A7A STR config start
+ */
+       /* str debug */
+    .align  8            /* bfc00500*/
+
+       .set    mips64
+
+       /*************************************************************************
+       /* This Code Must Be Execute Before Memory SelfRefresh Begain,
+       /* Because Once We Enter SelfRefresh Mode,Memory Can't Be Accessed Any More
+       /* We Leave Poweroff Op Later(After Enter SelfRefresh Mode)
+       **************************************************************************/
+       /* store ra and sp to memory */
+
+       dli     t0, 0x900000000faaa040
+       sd      a0, 0x0(t0) //store ra
+
+       dli     t1, 0x900000000faaa048
+       sd      a1, 0x0(t1) //store sp
+
+       dli     t2, 0x900000000faaa050
+       dli     t0, 0x5a5a5a5a5a5a5a5a
+       sd      t0, 0x0(t2) //store str flag
+
+       la      s0, start
+       li      a0, 0xbfc00000
+       subu    s0, a0, s0
+       and     s0, 0xffff0000
+
+       .set mips3
+1:     li v1,0x100
+       subu    v1, v1, 0x1
+       nop
+1:     lui t0, 0xbfe0  /* Enable DDR control register  */
+       lw  t1, 0x0180(t0)
+       nop
+       li  t2, 0xfffffdef
+       and t1, t1, t2
+       li  t3, 0x00002000;
+       or  t1, t1, t3
+       sw  t1, 0x0180(t0)
+       sync
+       .set mips64
+       li  a0,0x0
+       dli t0, 0x900000003ff00000
+
+       STR_XBAR_CONFIG_NODE_a0(0x10, \
+                                       0x0000000000000000, \
+                                       0xfffffffff0000000, \
+                                       0x00000000000000f0)
+       dli a0, 0x900000000ff00000
+       ld  t1, 0x198(a0)
+       dli t3, 0x0000000f00000000
+       or  t1, t1, t3  /* bit32 for self refresh*/
+       sd  t1, 0x198(a0)
+       sync
+
+       li  a0,0x0
+       dli t0, 0x900000003ff00000
+
+       STR_XBAR_CONFIG_NODE_a0(0x10, \
+                                       0x0000000000000000, \
+                                       0xfffffffff0000000, \
+                                       0x00000000000000f1)
+
+       dli a0, 0x900000000ff00000
+       ld  t1, 0x198(a0)
+       dli t3, 0x0000000f00000000
+       or  t1, t1, t3  /* bit32 for self refresh*/
+       sd  t1, 0x198(a0)
+       sync
+
+/* Don't forget to recovery the XbarII config Window */
+       li  a0,0x0
+       dli t0, 0x900000003ff00000
+       STR_XBAR_CONFIG_NODE_a0(0x10, \
+                                       0x0000000000000000, \
+                                       0xfffffffff0000000, \
+                                       0x00000000000000f0)
+               sync
+               sync
+               sync
+               sync
+               sync
+
+       /* info ec */
+#ifdef CETC32S
+       li t0,0x1
+       li t1,0xb80000b0
+       sw t0,0x0(t1)
+#endif
+
+       li a0,'S'
+       bal tgt_putchar
+       nop
+       li a0,'3'
+       bal tgt_putchar
+       nop
+
+       /* delay */
+    li  t0, 0x400000
+1:
+    subu    t0, t0, 0x1
+    bnez    t0, 1b
+    nop
+
+       dli t0, (LS7A_MISC_BASE_ADDR | ACPI_BASE_ADDR_OFFSET)
+
+       /* set key,usb wakeup of reg GPE0_EN */
+       lw      t1, 0x2c(t0)
+       li      t3, (0x1 << 8)|(0x3f<<10)
+       //li      t3, (0x3f<<10)
+       or      t1, t1, t3
+       sw      t1, 0x2c(t0)
+
+       /* clear 0-15 of reg GPE0_STS */
+       lw      t1, 0x28(t0)
+       li      t3, 0x0000ffff
+       sw      t3, 0x28(t0)
+
+       /* clear 0-15 of reg PM1_STS */
+       lw      t1, 0x0c(t0)
+       li      t3, 0x0000ffff
+       sw      t3, 0x0c(t0)
+
+       /* set vsb_gat_delay */
+       lw      t1, 0x4(t0)
+       li      t3, 0x5 << 11
+       or      t1, t1, t3
+       li      t3, 0x1 <<7
+       or      t1, t1, t3
+       andi    t1, t1, 0xefff
+       sw      t1, 0x4(t0)
+
+       /* cmos signed as s3 mode*/
+       li      t3, 0x12345678
+       sw      t3, 0x50(t0)
+
+       /* set reg PM1_CNT to get into S3*/
+       li      t3, 0x00003400
+       sw      t3, 0x14(t0)
+
+       /* delay */
+    li  t0, 0x40000
+1:
+    subu    t0, t0, 0x1
+    bnez    t0, 1b
+    nop
+
+       la  v0,GS3_UART_BASE
+    li  a0,0x38
+    sb  a0, NSREG(NS16550_DATA)(v0)
+        nop
+1:
+    la  v0,GS3_UART_BASE
+       li  a0,0x38
+       sb  a0, NSREG(NS16550_DATA)(v0)
+    nop
+
+       /* delay */
+       li  t0, 0x40000
+2:
+    subu    t0, t0, 0x1
+    bnez    t0, 2b
+    nop
+1:
+       b  1b
+       nop
+#endif
+
+
 	/* Debug exception */
 	.align  7           /* bfc00480 */
 #include "exc_ejtag.S"
@@ -853,7 +1027,7 @@ no_reboot:
 
     TTYDBG("Init Memory done.\r\n")
 
-#if 1   //test memory
+#if 0   //test memory
     dli     s1, 0x0001000080000000
     dli     t1, 0x0010
     bal     test_mem
@@ -1566,7 +1740,7 @@ idle1000:
 #ifdef ARB_LEVEL
 #include "ddr_dir/ARB_level_new.S"
 #endif
-#if 1   // (defined(DEBUG_DDR) || defined(DEBUG_GMEM))
+#if 0   // (defined(DEBUG_DDR) || defined(DEBUG_GMEM))
 #include "ddr_dir/Test_Mem.S"
 #endif
 

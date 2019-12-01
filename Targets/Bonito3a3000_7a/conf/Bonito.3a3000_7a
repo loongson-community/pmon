@@ -28,6 +28,7 @@ option		DDR3_DIMM       #board use DDR3 memory, use: USE_SB_I2C, else use USE_GP
 option		AUTO_DDR_CONFIG #use DIMM SPD auto detect DIMM
 option      USE_LS2H_I2C
 option      LOONGSON_GMAC
+option         	LS3A7A_STR
 
 option		BONITOEL	
 option		DEVBD2F

@@ -148,6 +148,21 @@ mc_init:
     b       4f
     nop
 1:  //RDIMM
+#ifdef LS3A7A_STR
+    /* cmos signed as s3 mode */
+    dli t0, (LS7A_MISC_BASE_ADDR | ACPI_BASE_ADDR_OFFSET)
+    lw      t5, 0x50(t0) //store ra
+
+    and  t5, t5, 0xffffffff
+    li a1, 0x12345678
+    beq     t5, a1, 2f /* is s3 */
+    nop
+    b 112f
+    nop
+2:
+    TTYDBG("\r\n---is--s3\r\n")
+112:
+#endif
     dla     a2, ddr3_RDIMM_reg_data
     beqz    t3, 21f
     nop

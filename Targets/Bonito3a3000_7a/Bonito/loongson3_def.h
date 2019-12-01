@@ -190,3 +190,23 @@ nop
 #define NODE_SCACHE_ENABLED         0x6666
 #define SYSTEM_INIT_OK              0x5a5a
 
+#ifdef LS3A7A_STR
+/* Delay macro */
+#define        DELAY(count)    \
+li v0, count;  \
+99:                    \
+bnez   v0, 99b;\
+addiu  v0, -1
+
+/* str need */
+#define STR_XBAR_CONFIG_NODE_a0(OFFSET, BASE, MASK, MMAP) \
+daddi  v0, t0, OFFSET;         \
+dli            t1, BASE;                       \
+or             t1, t1, a0;                     \
+sd             t1, 0x00(v0);           \
+dli            t1, MASK;                       \
+sd             t1, 0x40(v0);           \
+dli            t1, MMAP;                       \
+sd             t1, 0x80(v0);
+#endif
+

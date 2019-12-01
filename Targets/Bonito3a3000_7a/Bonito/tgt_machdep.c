@@ -193,6 +193,88 @@ extern char MipsException[], MipsExceptionEnd[];
 unsigned char hwethadr[6];
 static void superio_reinit();
 
+unsigned long long str_ra, str_sp;
+#ifdef LS3A7A_STR
+#define STR_STORE_BASE 0xafaaa000
+
+uint64_t mem_read64(unsigned long addr)
+{
+       unsigned char bytes[8];
+       int i;
+
+       for (i = 0; i < 8; i++)
+               bytes[i] = *((unsigned char *)(STR_STORE_BASE + addr + i));
+
+       return *(uint64_t *) bytes;
+}
+
+void mem_write64(uint64_t data, unsigned long addr)
+{
+       int i;
+       unsigned char *bytes = (unsigned char *) &data;
+
+       for (i = 0; i < 8; i++)
+                *((unsigned char *)(STR_STORE_BASE + addr + i)) = bytes[i];
+}
+
+void check_str()
+{
+       uint64_t str_ra,str_flag, str_ra1,str_flag1;
+       long long str_sp ,str_sp1;
+       unsigned int sp_h,sp_l;
+
+       str_ra = mem_read64(0x40);
+       str_sp = mem_read64(0x48);
+       str_flag = mem_read64(0x50);
+       sp_h = str_sp >> 32;
+       sp_l = str_sp;
+       printf("SP=%llx, RA=%llx\n", str_sp, str_ra);
+       printf("str_flag=%llx\n", str_flag);
+       if ((str_sp < 0x9800000000000000) || (str_ra < 0xffffffff80000000)
+                       || (str_flag != 0x5a5a5a5a5a5a5a5a)) {
+               *(uint64_t *)(STR_STORE_BASE + 0x50) = 0x0; //clean str flag
+               printf("not s3 exit %llx\n", str_flag);
+               return;
+       }
+
+       printf("Start status S3....\n");
+       mem_write64(0x0, 0x40);
+       mem_write64(0x0, 0x48);
+       mem_write64(0x0, 0x50);
+
+       /* misc:0x1008,0000 -- 0x100f,ffff */
+       /* acpi offset 0x50000 of misc */
+       /* 0x50 of acpi is cmos reg which storage s3 flag, now clear this flag */
+    *((unsigned int *)(0xb00d0050)) = 0x0;
+
+       ls_pcie_interrupt_fixup();
+
+       printf("CPU TLBClear....\n");
+       CPU_TLBClear();
+       printf("CPU TLBInit....\n");
+       CPU_TLBInit();
+       printf("CPU FlushCache....\n");
+       CPU_FlushCache();
+
+       printf("jump to kernel....\n");
+       __asm__ __volatile__(
+                       ".set   noat                    \n"
+                       ".set   mips64                  \n"
+                       "move   $t0, %0                 \n"
+                       "move   $t1, %1                 \n"
+                       "dli    $t2, 0x00000000ffffffff \n"
+                       "and    $t1,$t2                 \n"
+                       "dsll   $t0,32                  \n"
+                       "or     $sp, $t0,$t1            \n"
+                       "jr     %2                      \n"
+                       "nop                            \n"
+                       ".set   at                      \n"
+                       : /* No outputs */
+                       :"r"(sp_h), "r"(sp_l),"r"(str_ra)
+                       );
+}
+#endif
+
 void initmips(unsigned int raw_memsz)
 {
     tgt_fpuenable();

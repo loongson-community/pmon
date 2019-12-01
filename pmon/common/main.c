@@ -826,7 +826,7 @@ dbginit (char *adr)
 
 	SBD_DISPLAY ("SBDD", CHKPNT_SBDD);
 	tgt_devinit();
-#ifdef LS3A2H_STR
+#if defined(LS3A7A_STR) || defined(LS3A2H_STR)
 	check_str();
 #endif
 #ifdef INET
