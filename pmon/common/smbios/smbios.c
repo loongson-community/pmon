@@ -368,7 +368,37 @@ smbios_type_1_init(void *start)
 	board_info(product_name);
 	prase_name(product_name, loongson_version);
 
-	uuid_generate(p->uuid);
+	if (!(q = getenv("uuid")))
+	{
+		char uuid[64];
+		uuid_generate(p->uuid);
+		sprintf(uuid, "%02X%02X%02X%02X-%02X%02X"
+				"-%02X%02X-%02X%02X-%02X%02X%02X%02X%02X%02X",
+				p->uuid[3], p->uuid[2], p->uuid[1], p->uuid[0],
+				p->uuid[5], p->uuid[4], p->uuid[7], p->uuid[6],
+				p->uuid[8], p->uuid[9], p->uuid[10], p->uuid[11],
+				p->uuid[12], p->uuid[13], p->uuid[14], p->uuid[15]);
+		setenv("uuid", uuid);
+	}
+	else {
+		unsigned long long strtoull(const char *nptr,char **endptr,int base);
+		unsigned long long t;
+		unsigned char *pt = &t;
+		char *s, *s1;
+		int i, j;
+		for(i=0, s=q, s1=NULL; i<16; ) {
+			t = strtoull(s, &s1, 16);
+			for(j=0;j < (s1 - s)/2;j++,i++) {
+				if (i < 8)
+					p->uuid[i] =  pt[j];
+				else
+					p->uuid[i] =  pt[(s1 - s)/2 -1 - j];
+			}
+			s = s1+1;
+			if (s1 && *s1) s = s1+1;
+			else break;
+		}
+	}
 
 	start += sizeof(struct smbios_type_1);
 	strcpy((char *)start, "Loongson");
