@@ -128,6 +128,7 @@ open(filename, mode)
 		j = filename_path_transform(dname,tname);    
 		if (j == 0){ 
 			dname = tname;
+			fnamelen = strlen(dname);
 			if (strncmp (dname, "/dev/", 5) == 0) {
 				dname += 5;
 				//printf("tname:%s   dname:%s\n",tname,dname);
