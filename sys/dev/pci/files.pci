@@ -59,6 +59,10 @@ file sys/dev/pci/igb1/e1000_mbx.c	igb1
 file sys/dev/pci/igb1/e1000_nvm.c	igb1
 file sys/dev/pci/igb1/igb_main.c	igb1
 
+device ngbe: ether, ifnet, ifmedia, mii
+attach ngbe at pci
+file sys/dev/pci/ngbe/ngbe.c	ngbe
+
 # Ethernet driver for wx-based boards
 device	wx: ether, ifnet, ifmedia, mii, mii_phy
 attach	wx at pci
