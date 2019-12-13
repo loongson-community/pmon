@@ -63,7 +63,8 @@ file sys/dev/pci/igb1/igb_main.c	igb1
 
 device ngbe: ether, ifnet, ifmedia, mii
 attach ngbe at pci
-file sys/dev/pci/ngbe/ngbe.c	ngbe
+file sys/dev/pci/ngbe/ngbe.c	ngbe & !ngbe_linux
+file sys/dev/pci/ngbe-linux/ngbe_main.c	ngbe & ngbe_linux
 
 device txgbe: ether, ifnet, ifmedia, mii
 attach txgbe at pci
