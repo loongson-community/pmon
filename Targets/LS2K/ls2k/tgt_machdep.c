@@ -325,6 +325,8 @@ DPMCFG |= 0x8;
  *(volatile int *)0xbfe10420 &= ~(0x6<<12);
  *(volatile int *)0xbfe10500 &= ~(0x3<<21);
  *(volatile int *)0xbfe10510 |= 0x3<<21;
+/*config otg phy increase gate volt check 4.5%*/
+*(volatile int *)0xbfe10440 = 0x1a3a0df9;
 #ifdef DTB
 	verify_dtb();
 #endif
