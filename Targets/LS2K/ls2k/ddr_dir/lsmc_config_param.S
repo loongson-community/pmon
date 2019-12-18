@@ -29,6 +29,20 @@ ddr2_config:
     daddiu  v0, v0, 0x8
     bnez    t1, 1b
     nop
+#ifdef LOWPOWER
+	li v0, 0xbfc00000 + NVRAM_OFFS + SHUTDEV_OFFS
+	lbu t1, 3(v0)
+	xor t1, 0x5a
+	bnez t1, 1f
+	nop
+	lbu t1, 1(v0)
+	ld  v0, 0x140(t8)  
+	or v0, 0xff
+	xor v0, 0xff
+	or v0, t1
+	sd v0, 0x140(t8)	
+1:
+#endif
 
 #if 0 
 //autoset param registers

@@ -83,6 +83,7 @@ struct pci_config_data {
 #	define VER_OFFS		500 	/* Ethernet address base */
 #	define CPUFREQ_OFFS 504
 #	define DDRFREQ_OFFS 506
+#	define SHUTDEV_OFFS 508
 #else	/* Use clock ram, 256 bytes only */
 #	define NVRAM_SIZE		114
 #	define NVRAM_SECSIZE		NVRAM_SIZE	/* Helper */

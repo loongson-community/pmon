@@ -605,6 +605,19 @@ cp0_main:
 	ori	t2, t2, 0x2
 	sw	t2, 0x1004(t0)
 
+#ifdef LOWPOWER
+	li v0, 0xbfc00000 + NVRAM_OFFS + SHUTDEV_OFFS
+	lbu t1, 3(v0)
+	xor t1, 0x5a
+	bnez t1, 1f
+	nop
+	lbu t1, 0(v0)
+	and t1, 0xc
+	xor t1, 0xc
+	beqz t1, pcie_cfg_done
+	nop
+1:
+#endif
 #if 1	//xwr pcie signal test
         li      t0, 0xbfe10000
 
@@ -866,6 +879,7 @@ cp0_main:
 	dli	t1, 0xff204c
         sw      t1, 0x0(t0)
 
+pcie_cfg_done:
 	bal	initserial
 	nop
 

@@ -188,6 +188,9 @@ extern char MipsException[], MipsExceptionEnd[];
 
 unsigned char hwethadr[6];
 unsigned char ls2kver;
+#ifdef LOWPOWER
+unsigned int shutdev;
+#endif
 
 void initmips(unsigned long long  raw_memsz);
 
@@ -205,12 +208,14 @@ extern void slt_test();
 
 #define DPMCFG (*(volatile int *)0xbfe07400)
 #define DPMCTR (*(volatile int *)0xbfe07408)
+#define PCIE0PHY (*(volatile int *)0xbfe10588)
 #define PCIE1PHY (*(volatile int *)0xbfe105a8)
 #define GENCFG (*(volatile int *)0xbfe10430)
 #define FREQSCALE1 (*(volatile int *)0xbfe104d4)
 enum gencfg
 {
 GENCFG_RESEGPU = 1,
+GENCFG_PCI0EN = (1<<16),
 GENCFG_PCI1EN = (1<<17),
 };
 
@@ -246,20 +251,75 @@ void initmips(unsigned long long  raw_memsz)
 //	CPU_TLBClear();
 
 #ifdef LOWPOWER
-//#shut dc
-DPMCTR = (DPMCTR&~3)|1;
-DPMCFG |= 1;
-//#shut gpu
-GENCFG |= GENCFG_RESEGPU;
-DPMCTR = (DPMCTR&~0xc)|4;
-DPMCFG |= 2;
-//#shutdown core1
-//FREQSCALE1 &= ~FREQSCALE1_CORE1EN;
-//#pcie1 low power
-GENCFG &= ~GENCFG_PCI1EN;
-PCIE1PHY |= (1<<24);
-DPMCTR = (DPMCTR&~0xc0)|0x40;
-DPMCFG |= 0x8;
+#define SHUT_DC 1
+#define SHUT_GPU 2
+#define SHUT_PCIE0 4
+#define SHUT_PCIE1 8
+#define SHUT_GMAC0 0x10
+#define SHUT_GMAC1 0x20
+#define SHUT_VPU 0x40
+#define SHUT_CAM 0x80
+#define SHUT_SATA 0x10000
+	memcpy(&shutdev ,(char *)0xbfc00000 + NVRAM_OFFS + SHUTDEV_OFFS, 4);
+	if ((shutdev>>24) !=  0x5a) shutdev = 0;
+	else shutdev &= 0xffffff;
+	if (shutdev) {
+		if (shutdev & SHUT_DC) {
+			//#shutdev dc
+			DPMCTR = (DPMCTR&~3)|1;
+			DPMCFG |= 1;
+		}
+		if (shutdev & SHUT_GPU) {
+			//#shutdev gpu
+			GENCFG |= GENCFG_RESEGPU;
+			DPMCTR = (DPMCTR&~0xc)|4;
+			DPMCFG |= 2;
+		}
+		//#shutdevdown core1
+		//FREQSCALE1 &= ~FREQSCALE1_CORE1EN;
+		if (shutdev & SHUT_PCIE0) {
+			//#pcie0 low power
+			GENCFG &= ~GENCFG_PCI0EN;
+			PCIE0PHY |= (1<<24);
+			PCIE0PHY &= ~(0xf<<20);
+			//#shutdev pcie 0
+			DPMCTR = (DPMCTR&~0x30)|0x10;
+			DPMCFG |= 4;
+		}
+		if (shutdev & SHUT_PCIE1) {
+			//#pcie1 low power
+			GENCFG &= ~GENCFG_PCI1EN;
+			PCIE1PHY |= (1<<24);
+			PCIE1PHY &= ~(0xf<<20);
+			//#shutdev pcie 1
+			DPMCTR = (DPMCTR&~0xc0)|0x40;
+			DPMCFG |= 8;
+		}
+		if (shutdev & SHUT_SATA) {
+			//#pcie1 low power
+			//#shutdev shut
+			DPMCTR = (DPMCTR&~0x300)|0x100;
+			DPMCFG |= 0x10;
+		}
+		if (shutdev & SHUT_GMAC0) {
+			//#shutdev gmac0
+			DPMCTR = (DPMCTR&~0xc00)|0x400;
+			DPMCFG |= 0x20;
+		}
+		if (shutdev & SHUT_GMAC1) {
+			//#shutdev gmac1
+			DPMCTR = (DPMCTR&~0x3000)|0x1000;
+			DPMCFG |= 0x40;
+		}
+		if (shutdev & SHUT_VPU) {
+			//#shutdev vpu
+			*(volatile int *)0xbfe10430 |= 1<<20;
+		}
+		if (shutdev & SHUT_CAM) {
+			//#shutdev cam
+			*(volatile int *)0xbfe10430 |= 1<<19;
+		}
+	}
 #endif
 
 	/*
@@ -327,6 +387,8 @@ DPMCFG |= 0x8;
  *(volatile int *)0xbfe10510 |= 0x3<<21;
 /*config otg phy increase gate volt check 4.5%*/
 *(volatile int *)0xbfe10440 = 0x1a3a0df9;
+/*otg vbus*/
+//*(volatile int *)0xc0000000 |= 6;
 #ifdef DTB
 	verify_dtb();
 #endif
@@ -1258,6 +1320,10 @@ void tgt_mapenv(int (*func) __P((char *, char *)))
 	   ls2kver = ls2k_version();
 	sprintf(env, "%d", ls2kver);
 	(*func) ("ls2kver", env);
+#ifdef LOWPOWER
+	sprintf(env, "0x%x", shutdev);
+	(*func) ("shutdev", env);
+#endif
 
 #ifndef NVRAM_IN_FLASH
 	free(nvram);
@@ -1641,6 +1707,13 @@ int tgt_setenv(char *name, char *value)
 		ddrfreq = 1024;
 	  bcopy(&ddrfreq, &nvramsecbuf[DDRFREQ_OFFS], 2);
 	}
+#ifdef LOWPOWER
+	else if(strcmp("shutdev", name) == 0)
+	{
+	  shutdev = strtoul(value, 0, 0)|0x5a000000;
+	  bcopy(&shutdev, &nvramsecbuf[SHUTDEV_OFFS], 4);
+	}
+#endif
 	else if(strcmp("ls2kver", name) == 0)
 	{
 	  ls2kver = strtoul(value, 0, 0);
