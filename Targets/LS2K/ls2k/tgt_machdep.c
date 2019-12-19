@@ -2124,6 +2124,20 @@ void ls_pcie_config_set(void)
 		*(volatile int *)0xbfe10430 |= 8; 
 		map_gpu_addr();
 	}
+
+	/*
+	map highmem to 2G to support dma32
+	0xbfe10020 is old higmem window.
+	0xbfe10018 is a free window, use it remap highmem window to 2G.
+	*/
+	for(i=0xbfe10018;i!=0xbfe10040;i+=8) {
+		if (*(volatile long long *)(i+0x80) == 0)  {
+			*(volatile long long *)i = 0x80000000ULL;
+			*(volatile long long *)(i+0x40) = *(volatile long long *)0xbfe10060|0xffffffff80000000ULL;
+			*(volatile long long *)(i+0x80) = *(volatile long long *)0xbfe100a0;
+			break;
+		}
+	}
 }
 
 extern unsigned long long memorysize_total;
