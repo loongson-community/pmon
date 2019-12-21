@@ -420,6 +420,30 @@ static int fdt_parse_prop(char * const *newval, int count, char *data, int *len)
 }
 
 extern struct pci_device *pcie_dev;
+static int set_mem_xbar()
+{
+	static int configured;
+	int i;
+	if (configured)
+		return 0;
+
+	/*
+	   map highmem to 2G to support dma32
+	   0xbfe10020 is old higmem window.
+	   0xbfe10018 is a free window, use it remap highmem window to 2G.
+	 */
+	for(i=0xbfe10018;i!=0xbfe10040;i+=8) {
+		if (*(volatile long long *)(i+0x80) == 0)  {
+			*(volatile long long *)i = 0x80000000ULL;
+			*(volatile long long *)(i+0x40) = *(volatile long long *)0xbfe10060|0xffffffff80000000ULL;
+			*(volatile long long *)(i+0x80) = *(volatile long long *)0xbfe100a0;
+			break;
+		}
+	}
+	configured = 1;
+	return 0;
+}
+
 static int check_mem_args(const void * ssp)
 {
 	int nodeoffset, len, j;
@@ -439,7 +463,7 @@ static int check_mem_args(const void * ssp)
 		 */
 		printf ("libfdt fdt_path_offset() returned %s\n", fdt_strerror(nodeoffset));
 		printf("can not find memory in dtb, abort!!!\n");
-		goto abort;
+		return 1;
 	}
 	p = nodep = fdt_getprop (ssp, nodeoffset, (const char* )"reg", &len);
 	if(len <= 0) {
@@ -447,21 +471,34 @@ static int check_mem_args(const void * ssp)
 		return 1;
 	}
 
-	if (len != 8*4) {
-		goto abort;
-	}
-
 	v = fdt32_to_cpu(p[4]);
 	v1 = fdt32_to_cpu(p[5]);
-	if((v != 1 && v1 != 0x10000000) && (v != 0 && v1 != 0x90000000))
-	goto abort;
 	max_mem -= 0x10000000;
-	v= cpu_to_fdt32((u32)max_mem);
-	v1 =cpu_to_fdt32 ((u32)(max_mem >> 32));
-	if(p[6] != v1 && p[7] != v)
-	  return 0;
-abort:
-	return 1;
+	if (v == 0 && v1 == 0x90000000)
+		set_mem_xbar();
+	if (len == 12*4 && v == 0 && v1 == 0x90000000 && max_mem > 0x70000000) {
+		max_mem -= 0x70000000;
+		v= max_mem;
+		v1 = max_mem >> 32;
+		return (p[6] == cpu_to_fdt32(0) && \
+		p[7] == cpu_to_fdt32(0x70000000) && \
+		p[8] == cpu_to_fdt32(1) && \
+		p[9] == cpu_to_fdt32(0x80000000) && \
+		p[10] == cpu_to_fdt32(v1) && \
+		p[11] == cpu_to_fdt32(v));
+	}
+	else if (len == 8*4 && v == 0 && v1 == 0x90000000) {
+		v= cpu_to_fdt32((u32)max_mem);
+		v1 =cpu_to_fdt32 ((u32)(max_mem >> 32));
+		return (p[6] == v1 && p[7] == v);
+	}
+	else if (len == 8*4 && v == 1 && v1 == 0x10000000) {
+		v= cpu_to_fdt32((u32)max_mem);
+		v1 =cpu_to_fdt32 ((u32)(max_mem >> 32));
+		return (p[6] == v1 && p[7] == v);
+	}
+	else
+		return 1;
 }
 
 static int update_mem_args(const void * ssp)
@@ -500,13 +537,27 @@ static int update_mem_args(const void * ssp)
 	if((v != 1 && v1 != 0x10000000) && (v != 0 && v1 != 0x90000000))
 	goto abort;
 	max_mem -= 0x10000000;
-	v= max_mem;
-	v1 = max_mem >> 32;
-	data[6] = cpu_to_fdt32(v1);
-	data[7] = cpu_to_fdt32(v);
-	
-	if (fdt_setprop(ssp, nodeoffset, "reg", data, 8*4))
-	{
+	if (v == 0 && v1 == 0x90000000)
+		set_mem_xbar();
+	if (v == 0 && v1 == 0x90000000 && max_mem > 0x70000000) {
+		max_mem -= 0x70000000;
+		v= max_mem;
+		v1 = max_mem >> 32;
+		data[6] = cpu_to_fdt32(0);
+		data[7] = cpu_to_fdt32(0x70000000);
+		data[8] = cpu_to_fdt32(1);
+		data[9] = cpu_to_fdt32(0x80000000);
+		data[10] = cpu_to_fdt32(v1);
+		data[11] = cpu_to_fdt32(v);
+		len = 12*4;
+	} else {
+		v= max_mem;
+		v1 = max_mem >> 32;
+		data[6] = cpu_to_fdt32(v1);
+		data[7] = cpu_to_fdt32(v);
+		len = 8*4;
+	}
+	if (fdt_setprop(ssp, nodeoffset, "reg", data, len)) {
 		printf("set reg error\n");
 		goto abort;
 	}
