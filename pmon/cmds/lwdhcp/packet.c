@@ -141,6 +141,62 @@ int raw_packet(struct dhcp_packet *payload, uint32_t source_ip, int source_port,
 	close(fd);
 	return result;
 }
+#elif 1
+int raw_packet(struct dhcp_packet *payload, uint32_t source_ip, int source_port,
+           uint32_t dest_ip, int dest_port, uint8_t *dest_arp, int ifindex)
+{
+    int fd;
+    int result;
+    struct sockaddr dest;
+
+    struct raw_dhcp_packet packet;
+
+    if ((fd = socket (AF_UNSPEC, SOCK_RAW, 0)) < 0) {
+        perror("socket call failed");
+        return -1;
+    }
+
+    memset(&dest, 0, sizeof(dest));
+    memset(&packet, 0, sizeof(packet));
+
+    dest.sa_len=sizeof(dest);
+    strcpy(dest.sa_data,client_config.interface);
+
+    if (bind(fd, (struct sockaddr *)&dest, sizeof(dest)) < 0) 
+	{
+		perror("bind call failed");
+		close(fd);
+		return -1;
+	}
+
+	memset(packet.eh.ether_dhost, 0xff, 6);
+	memcpy(packet.eh.ether_shost, client_config.arp, 6);
+	packet.eh.ether_type = htons(ETHERTYPE_IP);
+
+	packet.ip.protocol = IPPROTO_UDP;
+	packet.ip.saddr = source_ip;
+	packet.ip.daddr = dest_ip;
+	packet.udp.source = htons(source_port);
+	packet.udp.dest = htons(dest_port);
+	packet.udp.len = htons(sizeof(packet.udp) + sizeof(struct dhcp_packet)); /* cheat on the psuedo-header */
+	packet.ip.tot_len = packet.udp.len;
+	memcpy(&(packet.data), payload, sizeof(struct dhcp_packet));
+	packet.udp.check = checksum(&packet.ip, sizeof(struct udp_dhcp_packet));
+
+	packet.ip.tot_len = htons(sizeof(struct udp_dhcp_packet));
+	packet.ip.ihl = sizeof(packet.ip) >> 2;
+	packet.ip.version = IPVERSION;
+	packet.ip.ttl = IPDEFTTL;
+	packet.ip.check = checksum(&(packet.ip), sizeof(packet.ip));
+
+	result = sendto(fd, &packet, sizeof(struct raw_dhcp_packet), 0, (struct sockaddr *) &dest, sizeof(dest));
+	if (result <= 0) {
+		perror("write on socket failed");
+	}
+	close(fd);
+	return result;
+}
+
 #else
 int raw_packet(struct dhcp_packet *payload, uint32_t source_ip, int source_port,
            uint32_t dest_ip, int dest_port, uint8_t *dest_arp, int ifindex)

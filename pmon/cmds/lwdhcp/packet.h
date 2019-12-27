@@ -5,10 +5,15 @@
 #include <sys/param.h>
 #include <sys/queue.h>
 #include <sys/time.h>
+#include <sys/socket.h>
+#include <sys/net/if.h>
 #include <netinet/in_systm.h>
 #include <netinet/in.h>
+#include <sys/netinet/in_var.h>
 //#include <netinet/ip.h>
 //#include <netinet/udp.h>
+#include <sys/netinet/if_ether.h>
+#include <sys/netinet/ip.h>
 
 
 /* DHCP protocol -- see RFC 2131 */
@@ -178,6 +183,13 @@ struct udp_dhcp_packet {
 	struct udphdr udp;
 	struct dhcp_packet data;
 };
+
+struct raw_dhcp_packet {
+	struct	ether_header eh;
+	struct iphdr ip;
+	struct udphdr udp;
+	struct dhcp_packet data;
+} __attribute__((packed));
 
 
 /* BOOTP (rfc951) message types */

@@ -10,22 +10,12 @@
 #include <sys/syslog.h>
 #include <sys/endian.h>
 
+#include "packet.h"
 #ifdef		PMON
-	#ifdef		KERNEL
-	#undef		KERNEL
-		#include <sys/socket.h>
-		#include <sys/ioctl.h>
-		#include <netinet/in.h>
-	#else
-		#include <sys/socket.h>
-		#include <sys/ioctl.h>
-		#include <netinet/in.h>
-	#endif
-
+	#include <sys/ioctl.h>
 	#define	 KERNEL
 	#include <pmon/netio/bootp.h>
 	#include <sys/types.h>
-	#include <sys/net/if.h>
 #else
 	#include <linux/if_packet.h>
 	#include <linux/if_ether.h>
@@ -39,13 +29,13 @@
 #include <signal.h>
 
 #include "lwdhcp.h"
-#include "packet.h"
 #include "options.h"
 
 struct client_config_t  client_config;
 int 	dhcp_request;
 int		fd = 0;
 sig_t	pre_handler = 0;
+static struct ifreq ifr;
 
 static jmp_buf  jmpb;
 
@@ -60,11 +50,11 @@ static void terminate()
 	longjmp(jmpb, 1);
 }
 
-static void	init()
+static void	init(char *ethname)
 {
 	memset((void *)&client_config, 0, sizeof(struct client_config_t));
 
-	strcpy(client_config.interface, "rtl0");
+	strcpy(client_config.interface, ethname);
 
 	pre_handler = signal(SIGINT, (sig_t)terminate);
 }
@@ -74,7 +64,6 @@ int		listen_socket()
 	int		sock, n;
 	int		flag;
 	int		dwValue;
-	struct ifreq 	ifr;
 	struct sockaddr_in		clnt;
 
 	sock = socket(AF_INET, SOCK_DGRAM, 0);
@@ -108,7 +97,6 @@ int		listen_socket()
 int read_interface(char *interface, int *ifindex, uint32_t *addr, uint8_t *arp)
 {
 	int fd;
-	struct ifreq ifr;
 	struct sockaddr_in *our_ip;
 
 	memset(&ifr, 0, sizeof(struct ifreq));
@@ -120,6 +108,18 @@ int read_interface(char *interface, int *ifindex, uint32_t *addr, uint8_t *arp)
 
 		if (addr) 
 		{
+			if (ioctl(fd, SIOCGIFADDR, &ifr) != 0) 
+			{
+				struct sockaddr_in *sa =  (void *)&ifr.ifr_addr;
+				(void) ioctl(fd,SIOCGIFFLAGS,&ifr);
+				ifr.ifr_flags |=IFF_UP;
+				(void) ioctl(fd,SIOCSIFFLAGS,&ifr);
+    				bzero (sa, sizeof (*sa));
+				sa->sin_len = sizeof (*sa);
+				sa->sin_family = AF_INET;
+				sa->sin_addr.s_addr = inet_addr("0.0.0.0");
+				(void) ioctl(fd, SIOCSIFADDR, &ifr);
+			}
 			if (ioctl(fd, SIOCGIFADDR, &ifr) == 0) 
 			{
 				our_ip = (struct sockaddr_in *) &ifr.ifr_addr;
@@ -185,7 +185,7 @@ int lwdhcp(int argc, char* argv[])
 	fd_set					fs;
 	int						ret, totimes;
 	char					buf[1500];
-	struct sockaddr_in		from;
+	struct sockaddr_in		from, *sa;
 	int						size = sizeof(from);
 	struct dhcp_packet*		p;
 	uint8_t*				dhcp_message_type;
@@ -198,7 +198,7 @@ int lwdhcp(int argc, char* argv[])
 	}
 
 	DbgPrint("Light weight DHCP client starts...\n");
-	init();
+	init(argc>1?argv[1]:"syn0");
 
 	if(setjmp(jmpb))
 	{
@@ -281,7 +281,9 @@ tryagain:
 	}
 
 	//sending DHCPREQUEST
-	send_request(xid, *((uint32_t*)(&(p->siaddr))), *((uint32_t*)(&p->yiaddr)));
+	DbgPrint("(from ip) = %s\n", inet_ntoa(from.sin_addr));
+	DbgPrint("(yi ip) = %s\n", inet_ntoa(p->yiaddr));
+	send_request(xid, *((uint32_t*)(&from.sin_addr)), *((uint32_t*)(&p->yiaddr)));
 
 	tv.tv_sec = 3;
 	tv.tv_usec = 0;
@@ -324,6 +326,12 @@ tryagain:
 
 		DbgPrint("DHCPACK received...\n");
 		DbgPrint("IP %s obtained from the DHCP server.\n", inet_ntoa(p->yiaddr));
+		sa =  (void *)&ifr.ifr_addr;
+		bzero (sa, sizeof (*sa));
+		sa->sin_len = sizeof (*sa);
+		sa->sin_family = AF_INET;
+		sa->sin_addr = p->yiaddr;
+		(void) ioctl(fd, SIOCSIFADDR, &ifr);
 		break;
 	}
 
