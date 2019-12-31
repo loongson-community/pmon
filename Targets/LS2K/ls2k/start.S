@@ -587,7 +587,11 @@ cp0_main:
 	bal 	tlb_init
 	nop
 
+#ifdef HS0636
+	bal	HS0636_beep_on
+#else
 	bal	beep_on
+#endif
 	nop
 	li	a0, 0x8000
 1:
@@ -1996,8 +2000,56 @@ LEAF(tgt_getchar)
 END(tgt_getchar)
 
 #ifndef BEEP_GPIO
-#define BEEP_GPIO 35
+#define BEEP_GPIO 39
 #endif
+
+LEAF(HS0636_beep_on)
+//enable output
+	li	t1, 0xbfe10500 + BEEP_GPIO*4/32
+
+	li	v1, (1<<(BEEP_GPIO&31))
+	lw	t0, 0(t1)
+	or	t0, v1
+	xor	t0, v1
+	sw	t0, 0(t1)
+
+	li	t1, 0xbfe10510 + BEEP_GPIO*4/32
+	li	a1, 0x80
+222:
+	li	v1, (1<<(BEEP_GPIO&31))
+	lw	t0, 0(t1)
+	or	t0, v1
+	xor	t0, v1
+	sw	t0, 0(t1)
+
+	li	a0, 0xd
+1:
+	addiu	a0, -1
+	nop
+	bnez	a0, 1b
+	nop
+
+	li	v1, (1<<(BEEP_GPIO&31))
+	lw	t0, 0(t1)
+	or	t0, v1
+	sw	t0, 0(t1)
+
+
+	li	a0, 0xd
+1:
+	addiu	a0, -1
+	nop
+	bnez	a0, 1b
+	nop
+
+	addiu	a1, -1
+	nop
+	bnez	a1, 222b
+	nop
+
+	jr	ra
+	nop
+END(HS0636_beep_on)
 
 LEAF(beep_on)
 	/* enable gpio35 output */
