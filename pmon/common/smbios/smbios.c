@@ -341,7 +341,7 @@ static void *
 smbios_type_1_init(void *start)
 {
 	struct smbios_type_1 *p = (struct smbios_type_1 *)start;
-	char product_name[50];
+	char product_name[50] = "Loongson-V1.0-demo";
 #ifdef LOONGSON_2G5536
 	char *board_family = "Loongson2";
 #else
