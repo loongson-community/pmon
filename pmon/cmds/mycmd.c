@@ -283,7 +283,7 @@ if(argc<3)return -1;
         fp1=open(fdst,O_WRONLY|O_CREAT|O_TRUNC);
 
 
-        if(!fp0||!fp1){printf("open file error!\n");free(buf);return -1;}
+        if(fp0 < 0||fp1 < 0){printf("open file error!\n");free(buf);return -1;}
         if((mtdbs=(test_mtd_or_mtdc(fp0))))
 	  bs = (bs+mtdbs-1)/mtdbs*mtdbs;
 	else if((mtdbs=(test_mtd_or_mtdc(fp1))))
