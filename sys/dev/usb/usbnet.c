@@ -206,16 +206,22 @@ int usb_eth_send(struct ifnet *ifp, void *packet, int length)
 static void usbnet_start(struct ifnet *ifp)
 {
 	struct net_device *sc = ifp->if_softc;
+	struct usb_device * dev = sc->dev;
 	struct mbuf *mb_head;		
-	void *packet;
+	char *packet;
+	int pipeout = usb_sndbulkpipe(dev, sc->ep_out);
+	int maxpacket = usb_maxpacket(dev, pipeout);
+	int zero;
 
 	while(ifp->if_snd.ifq_head != NULL ){
 		
 		IF_DEQUEUE(&ifp->if_snd, mb_head);
-		
-		packet = malloc(mb_head->m_pkthdr.len,M_DEVBUF, M_DONTWAIT);
+		zero = (mb_head->m_pkthdr.len % maxpacket == 0);
+		packet = malloc(mb_head->m_pkthdr.len + zero, M_DEVBUF, M_DONTWAIT);
 		m_copydata(mb_head, 0, mb_head->m_pkthdr.len, packet);
-		usb_eth_send(ifp, packet, mb_head->m_pkthdr.len);
+		if (zero)
+			packet[mb_head->m_pkthdr.len] = 0;
+		usb_eth_send(ifp, packet, mb_head->m_pkthdr.len + zero);
 		m_freem(mb_head);
 		free(packet, M_DEVBUF);
 		wbflush();
