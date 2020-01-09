@@ -1767,6 +1767,7 @@ wait_scache_allover:
 
 	bal	clear_mailbox
 	nop
+.global waitforinit;
 waitforinit:
 
 	li      a0, 0x1000
@@ -1778,6 +1779,7 @@ idle1000:
 	lw      t2, FN_OFF(t1)
 	beqz    t2, waitforinit
 	nop
+	sw      zero, FN_OFF(t1)
 
 	dli     t3, 0xffffffff00000000 
 	or      t2, t3

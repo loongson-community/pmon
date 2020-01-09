@@ -280,8 +280,46 @@ void check_str()
 }
 #endif
 
+extern char waitforinit[];
 void initmips(unsigned int raw_memsz)
 {
+	//core1-3 run waitdorinit function in ram
+#ifdef		MULTI_CHIP
+	asm volatile(
+	".set push;\n"
+	".set noreorder\n"
+        ".set mips64;\n"
+	"dli $2,0x900010003ff01000;\n"
+	"dli $3, 4;\n"
+        "1:sd %0,0x20($2);"
+	"daddiu $2,0x100;\n"
+	"addiu $3,-1;\n"
+	"bnez $3, 1b;\n"
+	"nop;\n"
+	".set reorder;\n"
+        ".set mips0;\n"
+	".set pop;\n"
+         ::"r"(&waitforinit):"$2","$3");
+#endif
+	asm volatile(
+	".set push;\n"
+	".set noreorder\n"
+        ".set mips64;\n"
+	"dli $2,0x900000003ff01100;\n"
+	"dli $3, 3;\n"
+        "1:sd %0,0x20($2);"
+	"daddiu $2,0x100;\n"
+	"addiu $3,-1;\n"
+	"bnez $3, 1b;\n"
+	"nop;\n"
+	".set reorder;\n"
+        ".set mips0;\n"
+	".set pop;\n"
+         ::"r"(&waitforinit):"$2","$3");
+
+	//disable 3a spi instruction fetch
+	__raw__writeq(0x900000003ff00080ULL, 0x1fc00082ULL);
+
     tgt_fpuenable();
 
     get_memorysize(raw_memsz);
