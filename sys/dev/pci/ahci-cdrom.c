@@ -111,13 +111,13 @@ int ahci_cdrom_open(dev_t dev, int flag, int fmt, struct proc *p)
 
 	port_no = priv->port_no;
 
-	rc = cd_prepare(port_no, 1);
+	rc = cd_prepare(priv, 1);
 	if (rc < 0)
-		ahci_kick_engine(port_no, 1);
+		ahci_kick_engine(priv, 1);
 
-	rc = cd_test_unit_ready(port_no);
+	rc = cd_test_unit_ready(priv);
 	if (rc < 0)
-		ahci_kick_engine(port_no, 1);
+		ahci_kick_engine(priv, 1);
 
 	return 0;
 }
