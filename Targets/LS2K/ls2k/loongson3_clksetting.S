@@ -40,7 +40,7 @@ ATTENTION:
 #if 1
 /* GPU @ 400Mhz */
 #define GPU_DIV_L2    7
-#define HDA_DIV_L2    100
+#define HDA_DIV_L2    (DDR_FREQ*DDR_DIV_L2/24)
 #endif
 #if 0
 /* GPU @ 400Mhz */
