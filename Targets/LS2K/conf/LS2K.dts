@@ -293,7 +293,7 @@
 		};
 
 		spi0: spi@1fff0220{
-			compatible = "loongson,ls2k-spi";
+			compatible = "loongson,ls-spi";
 			#address-cells = <1>;
 			#size-cells = <0>;
 			reg = <0x1fff0220 0x10>;
