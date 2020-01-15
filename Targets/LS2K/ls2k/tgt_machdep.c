@@ -197,6 +197,7 @@ extern char ls2k_version();
 #ifdef SLT
 extern void slt_test();
 #endif
+
 void initmips(unsigned long long  raw_memsz)
 {
 	unsigned int hi;
@@ -218,28 +219,26 @@ void initmips(unsigned long long  raw_memsz)
 
 	tgt_cpufreq();
 	SBD_DISPLAY("DONE", 0);
+
+	cpuinfotab[0] = &DBGREG;
 	/*
 	 *  Init PMON and debug
 	 */
 	CPU_ConfigCache();
 
-	cpuinfotab[0] = &DBGREG;
-
-	SBD_DISPLAY("BEV1", 0);
-	bcopy(MipsException, (char *)XTLB_MISS_EXC_VEC,
-	      MipsExceptionEnd - MipsException);
-	bcopy(MipsException, (char *)GEN_EXC_VEC,
-	      MipsExceptionEnd - MipsException);
-
+	dbginit(NULL);
 
 #ifndef ROM_EXCEPTION
 	CPU_SetSR(0, SR_BOOT_EXC_VEC);
 #endif
-	dbginit(NULL);
-
 	/*
 	 *  Set up exception vectors.
 	 */
+	SBD_DISPLAY("BEV1", 0);
+	bcopy(MipsException, (char *)XTLB_MISS_EXC_VEC,
+			MipsExceptionEnd - MipsException);
+	bcopy(MipsException, (char *)GEN_EXC_VEC,
+			MipsExceptionEnd - MipsException);
 	SBD_DISPLAY("BEV0", 0);
 	printf("BEV in SR set to zero.\n");
 	ls2k_nand_init();
@@ -253,6 +252,8 @@ void initmips(unsigned long long  raw_memsz)
 	main();
 }
 
+#define STR_STORE_BASE 0xafaaa000
+#define PM_REG_BASE    0xbfe07000
 /*
  *  Put all machine dependent initialization here. This call
  *  is done after console has been initialized so it's safe
@@ -269,7 +270,8 @@ extern unsigned short ScreenLineLength;
 extern unsigned short ScreenDepth;
 extern unsigned short ScreenHeight;
 
-void tgt_devconfig()
+
+static void init_pcidev(void)
 {
 	unsigned int val;
 #if NMOD_VGACON > 0
@@ -278,11 +280,11 @@ void tgt_devconfig()
 	unsigned long fbaddress, ioaddress;
 	extern struct pci_device *pcie_dev;
 #endif
-#endif 
+#endif
 	*(volatile unsigned int *)0xbfe10428 &= ~(1<<19); /*disable usb prefetch*/
 	val = *(unsigned int *)0xbfe10420;
 	*(unsigned int *)0xbfe10420 = (val | 0xc000);//mtf, enable I2C1
-	
+
 	_pci_devinit(1);	/* PCI device initialization */
 #if (NMOD_X86EMU_INT10 > 0)||(NMOD_X86EMU >0)
 	if(pcie_dev != NULL){
@@ -320,6 +322,16 @@ void tgt_devconfig()
 		else
 			vga_available = 0;
 #endif
+
+	return;
+}
+
+void tgt_devconfig()
+{
+
+	/* Enable pci device and init VGA device */
+	init_pcidev();
+
 	config_init();
 	configure();
 
@@ -340,6 +352,78 @@ void tgt_devconfig()
 #endif
 	printf("devconfig done.\n");
 
+}
+
+uint64_t cmos_read64(unsigned long addr)
+{
+	unsigned char bytes[8];
+	int i;
+
+	for (i = 0; i < 8; i++)
+		bytes[i] = *((unsigned char *)(STR_STORE_BASE + addr + i));
+	return *(uint64_t *) bytes;
+}
+
+void cmos_write64(uint64_t data, unsigned long addr)
+{
+	int i;
+	unsigned char *bytes = (unsigned char *) &data;
+
+	for (i = 0; i < 8; i++)
+		*((unsigned char *)(STR_STORE_BASE + addr + i)) = bytes[i];
+}
+
+void check_str()
+{
+	uint64_t s3_ra,s3_flag;
+	long long s3_sp;
+	unsigned int sp_h,sp_l;
+	unsigned int gpe0_stat;
+
+	s3_ra = cmos_read64(0x40);
+	s3_sp = cmos_read64(0x48);
+	s3_flag = cmos_read64(0x50);
+
+	sp_h = s3_sp >> 32;
+	sp_l = s3_sp;
+
+	if ((s3_sp < 0x9800000000000000) || (s3_ra < 0xffffffff80000000)
+			|| (s3_flag != 0x5a5a5a5a5a5a5a5a)) {
+		printf("S3 status no exit %llx\n", s3_flag);
+		return;
+	}
+	/* clean s3 wake flag */
+	cmos_write64(0x0, 0x40);
+	cmos_write64(0x0, 0x48);
+	cmos_write64(0x0, 0x50);
+
+	/*clean s3 wake status*/
+	gpe0_stat = *(volatile unsigned int *)(PM_REG_BASE + 0x28);
+	gpe0_stat |= 0xfff0;
+	*(volatile unsigned int *)(PM_REG_BASE + 0x28) = gpe0_stat;
+
+	/* Enable pci device and init VGA device */
+	init_pcidev();
+
+	/* fixup pcie config */
+	ls_pcie_config_set();
+
+	/* jump to kernel... */
+	__asm__ __volatile__(
+			".set   noat            \n"
+			".set   mips64          \n"
+			"move   $t0, %0         \n"
+			"move   $t1, %1         \n"
+			"dli    $t2, 0x00000000ffffffff \n"
+			"and    $t1,$t2         \n"
+			"dsll   $t0,32          \n"
+			"or $sp, $t0,$t1        \n"
+			"jr %2          \n"
+			"nop                \n"
+			".set   at          \n"
+			: /* No outputs */
+			:"r"(sp_h), "r"(sp_l),"r"(s3_ra)
+			);
 }
 
 extern int test_icache_1(short *addr);

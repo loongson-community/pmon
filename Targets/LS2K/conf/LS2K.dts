@@ -480,6 +480,10 @@
 		};
 	};
 
+	suspend_to_ram {
+		suspend_addr = <0x1fc00500>;
+	};
+
 	chosen {
 		/* the redundant spaces are used for save new boot args */
 		bootargs = "console=ttyS0,115200 root=/dev/sda1                                                                                                                                                                                      ";

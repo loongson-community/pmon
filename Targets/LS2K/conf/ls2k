@@ -22,9 +22,14 @@ option		SYSTYPE="\"FCR\""
 option		TARGETNAME="\"FCR\""
 
 #
+# System str options
+#
+option      LS2K_STR
+
+#
 # Platform options
 #
-option		BONITOEL	
+option		BONITOEL
 option		DEVBD2E
 option		MIPS
 option		INET
