@@ -1,8 +1,11 @@
 #include <linux/types.h>
 #include <types.h>
+#include <sys/param.h>
 #include <stdbool.h>
 #include "target/bonito.h"
 #include "sys/dev/pci/pcireg.h"
+#include <dev/pci/pcivar.h>
+#include <dev/pci/nppbreg.h>
 
 #define CKSEG1ADDR(x) (x|0xa0000000)
 
@@ -12,6 +15,27 @@ typedef unsigned long device_t;
 #define HT_MAP_TYPE0_CONF_ADDR  BONITO_PCICFG0_BASE_VA
 
 typedef unsigned long long u64;
+extern struct pci_device *_pci_bus[16];
+extern int _max_pci_bus;
+
+static int is_pcie_root_port(int bus)
+{
+	int i, exp;
+	struct pci_device *pd;
+
+	if (bus == 0)
+		return 0;
+	for (i = 1; i < _max_pci_bus; i++) {
+		pd = _pci_bus[i];
+		if (!pd)
+			break;
+		if (pd->bridge.pribus_num == 0 && pd->bridge.secbus_num == bus)
+			return 1;
+	}
+	return 0;
+}
+
+//typedef unsigned long long u64;
 u32 pci_read_type0_config32(u32 dev, u32 func, u32 reg){
 	u32 data;
 	//u64 addr = HT_CONF_TYPE0_ADDR;
@@ -65,21 +89,16 @@ u32 _pci_conf_readn(device_t tag, int reg, int width)
 	}
 
 	_pci_break_tag (tag, &bus, &device, &function); 
+	
+	if (is_pcie_root_port(bus) && device > 0)
+		return ~0;		/* device out of range */
 
 	if (bus > 255 || device > 31 || function > 7)
 	{
 		printf("_pci_conf_readn: bad bus 0x%x, device 0x%x, function 0x%x\n", bus, device, function);
 		return ~0;		/* device out of range */
 	}
-	//workaround PCIE duplicate device bug
-	//here we assume no PCIE bridge(switch) will put same device(not NULL) at dev0/15/31,
-	//we use this condition to identify the queried bus is directly attached behind our PCIE port
-	//notice the cmp val_raw != -1 is necessary.
-	if(bus != 0 && device != 0) {
-		val_raw = pci_read_type1_config32(bus, 0, function, 0x0);
-		if(val_raw != 0 && val_raw != -1 && pci_read_type1_config32(bus, 15, function, 0x0) == val_raw && pci_read_type1_config32(bus, 31, function, 0x0) == val_raw)
-			return -1;
-	}
+
 	//workaround pcie header
 	if(bus == 0 && (device >=9 && device <= 20) && reg == 0x8) {
 		return 0x06040001;
@@ -143,6 +162,9 @@ void _pci_conf_writen(device_t tag, int reg, u32 data,int width)
 		}
 	} else {
 	/* Type 1 configuration on offboard PCI bus */
+		if (is_pcie_root_port(bus) && device > 0)
+			return ;		/* device out of range */
+
 		if (bus > 255 || device > 31 || function > 7)
 		{	
 			printf("_pci_conf_writen: bad bus 0x%x, device 0x%x, function 0x%x\n", bus, device, function);
