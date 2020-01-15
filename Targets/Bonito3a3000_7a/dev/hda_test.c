@@ -45,7 +45,8 @@ int snd_hda_pick_pin_fixup(unsigned int codec_id,
 
 void hda_codec_set(void)
 {
-	int *corb_p = (unsigned int*)pmalloc(sizeof(int) * 0x1000);
+	int *corb_p, *corb_p0;
+	corb_p = corb_p0 = (unsigned int*)pmalloc(sizeof(int) * 0x1000);
 	if(corb_p == 0) {
 		printf("HDA: can't alloc memory for corb rirb\n");
 		return;
@@ -151,7 +152,7 @@ void hda_codec_set(void)
 	}
 	printf("HDA codec cofigure done!\n");
 hda_out:
-	free(corb_p);
+	free(corb_p0);
 }
 static const Cmd Cmds[] = {
 	{"ls hda"},
