@@ -317,12 +317,14 @@
 		/*can0: can@1fe00c00{
 			compatible = "nxp,sja1000";
 			reg = <0x1fe00c00 0xff>;
+			nxp,external-clock-frequency = <125000000>;
 			interrupt-parent = <&icu>;
 			interrupts = <24>;
 		};
 		can1: can@1fe00d00{
 			compatible = "nxp,sja1000";
 			reg = <0x1fe00d00 0xff>;
+			nxp,external-clock-frequency = <125000000>;
 			interrupt-parent = <&icu>;
 			interrupts = <25>;
 		};*/
