@@ -284,7 +284,7 @@ ext_map_and_reboot:
 	bal	stringserial
 	nop
 	b	exc_common
-	
+
 	.align	8			/* bfc00400 */
 	move	k0, ra		#save ra
 	la	a0, v400_msg
@@ -294,13 +294,140 @@ ext_map_and_reboot:
 #if 1
 	b	exc_common
 	nop
+#endif
+#ifdef LS2K_STR
+	.align 8           /* bfc00500 */
+	.set mips64
 
+
+	/* store ra and sp to memory */
+	dli t0, 0x900000000faaa040
+	sd  a0, 0x0(t0) //store ra
+
+	dli t1, 0x900000000faaa048
+	sd  a1, 0x0(t1) //store sp
+
+	dli t2, 0x900000000faaa050
+	dli t0, 0x5a5a5a5a5a5a5a5a
+	sd  t0, 0x0(t2) //store str flag
+
+	.set mips3
+	la  s0, start
+	li  a0, 0xbfc00000
+	subu    s0, a0, s0
+	and s0, 0xffff0000
+
+1:  	li v1,0x100
+	subu    v1, v1, 0x1
+	nop
+
+1:  	lui t0, 0xbfe1  /* Enable DDR control register  */
+	ld  t1, 0x0420(t0)
+	nop
+	dli t2, (0x1 << 41)
+	or t1, t1, t2
+	sd  t1, 0x0420(t0)
+
+	dli t2, ~(0x1 << 40)
+	and t1, t1, t2
+	sd  t1, 0x0420(t0)
+	sync
+
+	.set mips64
+	li  a0,0x0
+	dli t0, 0x900000001fe10000
+
+	STR_XBAR_CONFIG_NODE_a0(0x10, \
+			0x0000000000000000, \
+			0xfffffffff0000000, \
+			0x00000000000000f0)
+
+	dli a0, 0x900000000ff00000
+	ld  t1, 0x198(a0)
+	dli t3, 0x0000000f00000000
+	or  t1, t1, t3  /* bit32 for self refresh*/
+	sd  t1, 0x198(a0)
+	sync
+
+	/* Don't forget to recovery the XbarII config Window */
+	li  a0,0x0
+	dli t0, 0x900000001fe10000
+	STR_XBAR_CONFIG_NODE_a0(0x10, \
+			0x0000000000000000, \
+			0xfffffffff0000000, \
+			0x00000000000000f0)
+	sync
+	sync
+	sync
+	sync
+	sync
+
+	/* delay */
+	//li  t0, 0x400000
+	li  t0, 0x40
+	1:
+	subu    t0, t0, 0x1
+	bnez    t0, 1b
+	nop
+
+	li  t0,0xbfe07000
+	/* set key,usb,gmac wakeup of reg GPE0_EN */
+	lw  t1, 0x2c(t0)
+	li  t3, (0x1 << 8)|(0x3f<<10)|(0x1<<6)|(0x1<<5)
+	or  t1, t1, t3
+	sw  t1, 0x2c(t0)
+
+	/* set USB_GMAC_OK of reg PMCON_RESUME */
+	lw  t1, 0x04(t0)
+	li  t3, (0x1<<7)
+	or  t1, t1, t3
+	sw  t1, 0x04(t0)
+
+	/* set WOL_BAT_EN of reg PMCON_RTC */
+	lw  t1, 0x08(t0)
+	li  t3, (0x1<<7)
+	or  t1, t1, t3
+	sw  t1, 0x08(t0)
+
+	/* clear 0-15 of reg GPE0_STS */
+	lw  t1, 0x28(t0)
+	li  t3, 0x0000ffff
+	sw  t3, 0x28(t0)
+
+	/*clean acpi wake status*/
+	lw t1, 0x0c(t0)
+	li t3, 0x8100
+	sw t3, 0x0c(t0)
+
+	/*clean acpi pwrbtn staus*/
+	lw t1, 0x10(t0)
+	li t3, (0x1 << 8)
+	or t1, t1, t3
+	sw t1, 0x10(t0)
+
+	PRINTSTR("\nSystem Enter S3!!!\n")
+
+	/* enable acpi porbtn and set acpi alptype is S3 status*/
+	lw t1, 0x14(t0)
+	li t3, 0x3400
+	sw t3, 0x14(t0)
+	nop
+
+	/* delay */
+	li t0, 0x4000
+	2:
+	subu t0, t0, 0x1
+	bnez t0, 2b
+	nop
+
+	1:
+	b 1b
+	nop
+#endif
 	/* Debug exception */
 	.align  7           /* bfc00480 */
-	#include "exc_ejtag.S"
-#endif
+#include "exc_ejtag.S"
 
-	
 exc_common:
 	PRINTSTR("\r\nCAUSE=")
 	mfc0	a0, COP_0_CAUSE_REG
@@ -428,7 +555,6 @@ cp0_main:
 
 	bal	beep_on
 	nop
-
 	li	a0, 0x8000
 1:
 	addiu	a0, -1

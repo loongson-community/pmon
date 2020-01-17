@@ -260,4 +260,15 @@
 #define LS2H_PCIE_IO_UP_BASE			0x0
 #define LS2H_PCIE_IO_UP_MASK			0xffff0000
 
+/* S3 Need */
+#define STR_XBAR_CONFIG_NODE_a0(OFFSET, BASE, MASK, MMAP) \
+        daddi   v0, t0, OFFSET;     \
+        dli     t1, BASE;           \
+        or      t1, t1, a0;         \
+        sd      t1, 0x00(v0);       \
+        dli     t1, MASK;           \
+        sd      t1, 0x40(v0);       \
+        dli     t1, MMAP;           \
+        sd      t1, 0x80(v0);
+
 #endif /*_LS2H_H*/
