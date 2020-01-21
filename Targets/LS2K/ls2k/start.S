@@ -203,6 +203,40 @@ stack = start - 0x4000		/* Place PMON stack below PMON start in RAM */
 #endif
 	bal watchdog_close
 	nop
+#ifdef GPIO_PINS
+	li	v0, 0xbfe10420
+	ld	v1, (v0)
+	dli	a0, LS2K_SELGPIO
+	or	v1, a0
+	xor	v1, a0
+	sd	v1, (v0)
+#endif
+
+#ifdef GPIO_OUT_PINS
+	li v0, 0xbfe10500
+	ld v1, (v0)
+	dli a0, GPIO_OUT_PINS
+	or v1, a0
+	xor v1, a0
+	sd v1, (v0)
+#endif
+
+#ifdef GPIO_OUT_CLR
+	li v0, 0xbfe10500
+	ld v1, 0x10(v0)
+	dli a0, GPIO_OUT_CLR
+	or v1, a0
+	xor v1, a0
+	sd v1, 0x10(v0)
+#endif
+
+#ifdef GPIO_OUT_SET
+	li v0, 0xbfe10500
+	ld v1, 0x10(v0)
+	dli a0, GPIO_OUT_SET
+	or v1, a0
+	sd v1, 0x10(v0)
+#endif
 
 	/* init processor state at first*/
 /* NOTE!! Not more that 16 instructions here!!! Right now it's FULL! */
@@ -894,6 +928,7 @@ pcie_cfg_done:
 	nop
 	bnez	v0,2f
 	nop
+#if !defined(GPIO_OUT_PINS) || ((GPIO_OUT_PINS &(1<<34)) && (!defined(GPIO_OUT_SET) || (GPIO_OUT_SET & (1<<34))))
 	//gmac1 phy reset
 	li t1,0xbfe10500
 	li t2,(1 << 2) //34 - 2
@@ -907,6 +942,7 @@ pcie_cfg_done:
 	not t2,t2
 	and t2,t3 
 	sw t2,0x14(t1)
+#endif
 2:
 
 #include "loongson3_clksetting.S"
@@ -918,12 +954,14 @@ pcie_cfg_done:
 	nop
 	bnez	v0,2f
 	nop
+#if !defined(GPIO_OUT_PINS) || ((GPIO_OUT_PINS &(1<<34)) && (!defined(GPIO_OUT_SET) || (GPIO_OUT_SET & (1<<34))))
 	//gmac1 phy reset
 	li t1,0xbfe10500
 	li t2,(1 << 2) //34 - 2
 	lw t3,0x14(t1)
 	or t2,t3 
 	sw t2,0x14(t1)
+#endif
 2:
 
 #if 1 /* Config SATA : use internel clock */
@@ -1112,6 +1150,14 @@ start_now:
 	//no hda, no ac97
 	ori	t1, t1, 0x3f48
 	or	t2, t2, t1
+#ifdef GPIO_PINS
+	li	a0, (LS2K_SELGPIO & 0xffffffff)
+	or	t2, a0
+	xor	t2, a0
+#endif
+#ifdef LS2K_SELLIO
+	or t2, 0x80
+#endif
 	sw	t2, 0x0(t0)
 	
 
@@ -1134,7 +1180,7 @@ start_now:
 //#define DEBUG_AUTO_ARB_LEVEL
 #endif
 //#define  DISABLE_DDR_A15
-#define DEBUG_DDR
+//#define DEBUG_DDR
 //#define DEBUG_DDR_PARAM
 //#define PRINT_DDR_LEVELING
 //#define DLL_DELAY_LOOP

@@ -381,11 +381,13 @@ void initmips(unsigned long long  raw_memsz)
 	ls2h_m25p_probe();
 #endif
 #endif
+#ifndef GPIO_PINS
  /*set pwm1,2 to gpio, gpio21, gpio22 to 1*/
  *(volatile int *)0xbfe10420 &= ~(0x6<<12);
  *(volatile int *)0xbfe10500 &= ~(0x3<<21);
  *(volatile int *)0xbfe10510 |= 0x3<<21;
 /*config otg phy increase gate volt check 4.5%*/
+#endif
 *(volatile int *)0xbfe10440 = 0x1a3a0df9;
 /*otg vbus*/
 //*(volatile int *)0xc0000000 |= 6;
