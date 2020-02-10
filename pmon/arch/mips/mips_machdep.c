@@ -60,6 +60,8 @@ static int clkenable;
 static unsigned long clkpertick;
 static unsigned long clkperusec = 500;
 static unsigned long _softcompare;
+static unsigned long old_count;
+static unsigned long delta;
 
 int copytoram __P((void *, void *));
 void clearbss __P((void));
@@ -162,6 +164,7 @@ startrtclock(hz)
 	int hz;
 {
 	unsigned long freq;
+	unsigned long count;
 
 	freq = tgt_pipefreq() / 2;	/* TB ticker frequency */
 
@@ -174,7 +177,10 @@ startrtclock(hz)
 
 	clkpertick = freq / hz;
 	clkperusec = freq / 1000000;
-	_softcompare = CPU_GetCOUNT() + clkpertick;
+	count = CPU_GetCOUNT();
+	old_count = count;
+	_softcompare = count + clkpertick;
+	delta = _softcompare - old_count;
 	clkenable = 0;
 
 	SBD_DISPLAY("RTCL",0);
@@ -202,22 +208,30 @@ tgt_clkpoll ()
 
 	/* poll the free-running clock */
 	count = CPU_GetCOUNT();
-	cycles = count - _softcompare;
+	cycles = count - old_count;
 
-	if (cycles > 0) {
+	if (cycles > delta) {
 
 		/* as we are polling, we could have missed a number of ticks */
-		ticks = (cycles / clkpertick) + 1;
+		ticks = (cycles - delta) / clkpertick + 1;
+		//_softcompare means the number of clk for the next tick
+		//old_count means the number of clk when the tick was updated
+		//delta means the number of clk to the next tick
 		_softcompare += ticks * clkpertick;
-
+		old_count = count;
+		delta = _softcompare - old_count;
         /* There is a race between reading count and setting compare
          * whereby we could set compare to a value "below" the new
          * clock value.  Check again to avoid an 80 sec. wait
          */
-		cycles = CPU_GetCOUNT() - _softcompare;
-		while (cycles > 0) {
+		count = CPU_GetCOUNT();
+		cycles = count - old_count;
+		while (cycles > delta) {
 			_softcompare += clkpertick; ticks++;
-			cycles = CPU_GetCOUNT() - _softcompare;
+			old_count = count;
+			delta = _softcompare - old_count;
+			count = CPU_GetCOUNT();
+			cycles = count - old_count;
 		}
 		while(ticks--) {
 			hardclock(&cframe);
