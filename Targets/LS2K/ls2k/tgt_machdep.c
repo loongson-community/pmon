@@ -354,7 +354,9 @@ static void init_pcidev(void)
 	*(volatile unsigned int *)0xbfe10428 &= ~(1<<19); /*disable usb prefetch*/
 	val = *(unsigned int *)0xbfe10420;
 	*(unsigned int *)0xbfe10420 = (val | 0xc000);//mtf, enable I2C1
-
+#ifdef ENABLE_ALL_SERIAL
+	*(volatile int *)0xbfe10428 |= 0x3fff; 
+#endif
 	_pci_devinit(1);	/* PCI device initialization */
 #if (NMOD_X86EMU_INT10 > 0)||(NMOD_X86EMU >0)
 	if(pcie_dev != NULL){
@@ -420,7 +422,7 @@ void tgt_devconfig()
 		}
 	}
 
-#ifdef PFGA_ON_BUS0_DEV
+#ifdef FPGA_ON_BUS0_DEV
 {
 	unsigned int dev;
 	unsigned int val;
