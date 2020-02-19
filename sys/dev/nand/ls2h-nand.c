@@ -59,7 +59,7 @@
 #define DMA_CMD		0x40
 
 
-typedef unsigned long long u64;
+//typedef unsigned long long u64;
 typedef unsigned long dma_addr_t;
 #define init_completion(...)
 #define dma_alloc_coherent(dev,size,handle,flag) _dma_alloc_coherent(size,handle)

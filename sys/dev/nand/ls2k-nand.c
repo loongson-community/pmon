@@ -95,7 +95,7 @@
 #define show_debug_msk(x,y) do{ if(show_data_debug) \
 	{printk(KERN_ERR "%s:\n",__func__);show_data(x,y);}}while(0)
 
-typedef unsigned long long u64;
+//typedef unsigned long long u64;
 typedef unsigned long dma_addr_t;
 #define init_completion(...)
 #define dma_alloc_coherent(dev,size,handle,flag) _dma_alloc_coherent(size,handle)

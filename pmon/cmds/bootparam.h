@@ -2,7 +2,7 @@
 #define __ASM_MACH_LOONGSON_BOOT_PARAM_H_
 #include<sys/linux/types.h>
 
-#define u64 unsigned long long //the temporary modification,or need to modify 44 branch.This is not the spec.
+//typedef unsigned long long u64;//the temporary modification,or need to modify 44 branch.This is not the spec.
 
 #define SPEC_VERS	0x2
 #define SYSTEM_RAM_LOW		1

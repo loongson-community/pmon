@@ -1,11 +1,12 @@
 #include <stdio.h>
 #include <string.h>
+#include <linux/types.h>
 
 #ifdef LOONGSON_3A2H
 #define ADDR_ORIG 0x9000000004000000
 #define ADDR_TARGET 0x9000000005000000
 
-#define u64 unsigned long long 
+//#define u64 unsigned long long 
 extern u64 __raw__writeq(u64 addr, u64 val);
 extern u64 __raw__readq(u64 q);
 

@@ -244,7 +244,7 @@ enum effuse {
 #define RsvdMask	0x3fffc000
 
 
-typedef unsigned long long u64;
+//typedef unsigned long long u64;
 
 struct TxDesc {
 	u32 opts1;

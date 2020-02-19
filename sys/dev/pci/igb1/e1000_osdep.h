@@ -34,7 +34,7 @@
 #define udelay(us) delay(us)
 typedef unsigned int bool;
 typedef unsigned long long  __u64;
-typedef unsigned long long  u64;
+//typedef unsigned long long  u64;
 typedef unsigned int __u32;
 typedef unsigned short __u16;
 typedef signed int __s32;

@@ -14,7 +14,7 @@ typedef unsigned long device_t;
 #define HT_CONF_TYPE0_ADDR 0x90000efdfe000000
 #define HT_MAP_TYPE0_CONF_ADDR  BONITO_PCICFG0_BASE_VA
 
-typedef unsigned long long u64;
+//typedef unsigned long long u64;
 extern struct pci_device *_pci_bus[16];
 extern int _max_pci_bus;
 

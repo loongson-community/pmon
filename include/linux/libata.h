@@ -31,7 +31,7 @@ typedef unsigned char u8;
 typedef unsigned short u16;
 typedef unsigned int u32;
 #endif
-typedef unsigned long long u64;
+//typedef unsigned long long u64;
 
 enum {
 	/* various global constants */
