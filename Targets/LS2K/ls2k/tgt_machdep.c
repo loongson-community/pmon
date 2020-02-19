@@ -333,6 +333,24 @@ void tgt_devconfig()
 
 	/* Enable pci device and init VGA device */
 	init_pcidev();
+	/*
+	 * if found syn1,then set io multiplexing
+	 * gmac1 use UART0,UART1
+	 */
+	{
+		int i;
+		extern struct cfdata cfdata[];
+		for(i=0;cfdata[i].cf_driver;i++)
+		{
+			if(strcmp(cfdata[i].cf_driver->cd_name,"syn") == 0 && cfdata[i].cf_unit == 1)
+			{
+
+				*(volatile int *)0xbfe10420 |= 0x108;
+				break;
+			}
+
+		}
+	}
 
 	config_init();
 	configure();
