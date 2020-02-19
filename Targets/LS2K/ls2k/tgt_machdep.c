@@ -202,6 +202,23 @@ extern char ls2k_version();
 extern void slt_test();
 #endif
 
+#define DPMCFG (*(volatile int *)0xbfe07400)
+#define DPMCTR (*(volatile int *)0xbfe07408)
+#define PCIE1PHY (*(volatile int *)0xbfe105a8)
+#define GENCFG (*(volatile int *)0xbfe10430)
+#define FREQSCALE1 (*(volatile int *)0xbfe104d4)
+enum gencfg
+{
+GENCFG_RESEGPU = 1,
+GENCFG_PCI1EN = (1<<17),
+};
+
+enum freqscale1
+{
+FREQSCALE1_CORE1EN = 2,
+};
+
+
 void initmips(unsigned long long  raw_memsz)
 {
 	unsigned int hi;
@@ -220,6 +237,23 @@ void initmips(unsigned long long  raw_memsz)
 	/*enable float */
 	tgt_fpuenable();
 //	CPU_TLBClear();
+
+#ifdef LOWPOWER
+//#shut dc
+DPMCTR = (DPMCTR&~3)|1;
+DPMCFG |= 1;
+//#shut gpu
+GENCFG |= GENCFG_RESEGPU;
+DPMCTR = (DPMCTR&~0xc)|4;
+DPMCFG |= 2;
+//#shutdown core1
+//FREQSCALE1 &= ~FREQSCALE1_CORE1EN;
+//#pcie1 low power
+GENCFG &= ~GENCFG_PCI1EN;
+PCIE1PHY |= (1<<24);
+DPMCTR = (DPMCTR&~0xc0)|0x40;
+DPMCFG |= 0x8;
+#endif
 
 	/*
 	 *  Probe clock frequencys so delays will work properly.
@@ -732,6 +766,8 @@ static void _probe_frequencies()
 		md_cpufreq = 66000000;
 	}
 	tgt_printf("cpu freq %u\n", md_pipefreq);
+#else
+	md_pipefreq = read_cpufreq()*1000000;
 #endif /* HAVE_TOD */
 }
 
@@ -771,7 +807,25 @@ read_ddrfreq()
 	ddr_div_l2 = d498&0x3f;
 	ddr_loopc = d494&0x3ff;
 
-	clk = ddr_loopc*ddr_div*pllin/ddr_refc/ddr_div_l2;
+	clk = ddr_loopc*pllin/ddr_div/ddr_refc/ddr_div_l2;
+
+	return clk;
+}
+
+read_cpufreq()
+{
+	unsigned int d490, d494, d498;
+	unsigned int ddr_div, ddr_refc, ddr_div_l2, ddr_loopc;
+	unsigned int pllin = 100, clk;
+	d490 = inl(0xbfe10480);
+	d494 = inl(0xbfe10484);
+	d498 = inl(0xbfe10488);
+	ddr_div =(d494>>10)&0x3f;
+	ddr_refc = (d490>>26)&0x3f;
+	ddr_div_l2 = d498&0x3f;
+	ddr_loopc = d494&0x3ff;
+
+	clk = ddr_loopc*pllin/ddr_div/ddr_refc/ddr_div_l2;
 
 	return clk;
 }
