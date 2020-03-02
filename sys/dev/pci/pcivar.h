@@ -261,6 +261,9 @@ struct pci_device {
 	struct pci_bus		*pcibus;
 	struct pci_device	*next;
 	struct pci_device	*parent;
+	int is_pcie;
+	int pcie_cap;
+	int pcie_type;
 };
 
 extern struct pci_device *_pci_head;

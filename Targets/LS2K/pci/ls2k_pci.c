@@ -1,14 +1,41 @@
 #include <linux/types.h>
 #include <types.h>
+#include <sys/param.h>
 #include "Targets/LS2K/include/bonito.h"
 #include "ls2h.h"
 #include "ls2h_int.h"
 #include "sys/dev/pci/pcireg.h"
+#include <dev/pci/pcivar.h>
+#include <dev/pci/nppbreg.h>
 
 
 
-typedef u_int32_t pcireg_t;		/* configuration space register XXX */
 typedef unsigned long device_t;
+
+extern struct pci_device *_pci_bus[16];
+extern int _max_pci_bus;
+
+static int is_pcie_root_port(int bus)
+{
+	int i, exp;
+	struct pci_device *pd;
+
+	if (bus == 0)
+		return 0;
+	for (i = 1; i < _max_pci_bus; i++) {
+		pd = _pci_bus[i];
+		if (!pd)
+			break;
+		if (pd->bridge.secbus_num == bus) {
+			if (pd->bridge.pribus_num == 0)
+				return 1;
+			if (pd->pcie_type == PCI_EXP_TYPE_ROOT_PORT)
+				return 1;
+			return 0;
+		}
+	}
+	return 0;
+}
 
 #define HT_MAP_TYPE0_CONF_ADDR	0xba000000
 #define HT_MAP_TYPE1_CONF_ADDR	0xbb000000
@@ -67,8 +94,12 @@ u32 _pci_conf_readn(device_t tag, int reg, int width)
 		return pci_read_type0_config32(device, function, reg);
 	}
 	else {
+
+	
+	if (is_pcie_root_port(bus) && device > 0)
+		return ~0;		/* device out of range */
 		/* Type 1 configuration on offboard PCI bus */
-		if (bus > 255 || device > 0 || function > 7)
+		if (bus > 255 || device > 31 || function > 7)
 		{	
     		//	printf("_pci_conf_readn: bad bus 0x%x, device 0x%x, function 0x%x\n", bus, device, function);
 			return ~0;		/* device out of range */
@@ -166,6 +197,9 @@ void _pci_conf_writen(device_t tag, int reg, u32 data,int width)
 	}
 	else {
     	/* Type 1 configuration on offboard PCI bus */
+		if (is_pcie_root_port(bus) && device > 0)
+			return ;		/* device out of range */
+
 		if (bus > 255 || device > 31 || function > 7)
 		{	
 			printf("_pci_conf_writen: bad bus 0x%x, device 0x%x, function 0x%x\n", bus, device, function);

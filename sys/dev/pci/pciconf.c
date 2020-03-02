@@ -414,6 +414,21 @@ __attribute__((weak)) int pci_get_busno(struct pci_device *pd, int bus)
 {
 	return bus + 1;
 }
+
+void set_pcie_port_type(struct pci_device *pdev)
+{
+	pcitag_t tag = pdev->pa.pa_tag;
+	int offset;
+	pcireg_t value;
+	if (!pci_get_capability(0, tag, PCI_CAP_ID_EXP, &offset, &value))
+	  return;
+
+	pdev->is_pcie = 1;
+	pdev->pcie_cap = offset;
+	pdev->pcie_type = ((value>>16) & PCI_EXP_FLAGS_TYPE) >> 4;
+}
+
+
 
 /*
  * Scan each PCI device on the system and record its configuration
@@ -593,6 +608,8 @@ _pci_query_dev_func (struct pci_device *dev, pcitag_t tag, int initialise)
             extern int _max_pci_bus;
             _pci_bus[_max_pci_bus++] = pd;
         }
+
+	set_pcie_port_type(pd);
 
         /* Scan secondary bus of the bridge */
         _pci_scan_dev(pd, pd->bridge.secbus_num, 0, initialise);
