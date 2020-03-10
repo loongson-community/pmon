@@ -165,7 +165,7 @@ static int load_menu_list()
        //try to read boot.cfg from USB disk first
         for (dev  = TAILQ_FIRST(&alldevs); dev != NULL; dev = next_dev) {
                 next_dev = TAILQ_NEXT(dev, dv_list);
-                if(dev->dv_class < DV_DISK) {
+                if(dev->dv_class != DV_DISK) {
                         continue;
                 }
 
@@ -206,7 +206,7 @@ static int load_menu_list()
         //try to read boot.cfg from CD-ROM disk second
         for (dev  = TAILQ_FIRST(&alldevs); dev != NULL; dev = next_dev) {
                 next_dev = TAILQ_NEXT(dev, dv_list);
-                if(dev->dv_class < DV_DISK) {
+                if(dev->dv_class != DV_DISK) {
                         continue;
                 }
 

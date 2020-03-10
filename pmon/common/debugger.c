@@ -258,6 +258,7 @@ pmon_stop (cmdstr)
 		strcpy (cmd, getenv ("brkcmd"));
 	}
 	do_cmd (cmd);
+	md_setsp(NULL, tgt_clienttos ());
 	main ();
 }
 

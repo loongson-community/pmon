@@ -44,6 +44,8 @@ def writeenv(fname,foff,fsz,d):
 
 def writehexenv(fname,hexbin):
     f=open(fname,'rb+')
+    f.seek(foff+fsz, 0)
+    f.write('\xff'*256)
     for b in hexbin.split(','):
       i,v = b.split(':')
       f.seek(foff+int(i,0),0)

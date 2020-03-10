@@ -102,7 +102,7 @@ static int check_pci_bridge_ok(void)
 	
 		/*pci foarmat(name/len) is flag/1 pciaddr/2 cpuaddr/1 len/2*/
 		tag = _pci_make_tag(0, dev, 0);
-	        val = _pci_conf_read32(dev, 0x00);
+	        val = _pci_conf_read32(tag, 0x00);
 		if ( val != 0xffffffff){
 		val =_pci_conf_read32(tag, 0x20);
 		start = (val & 0xfff0) << 16;
