@@ -37,42 +37,74 @@ static int is_pcie_root_port(int bus)
 	return 0;
 }
 
-#define HT_MAP_TYPE0_CONF_ADDR	0xba000000
-#define HT_MAP_TYPE1_CONF_ADDR	0xbb000000
+#define HT_MAP_TYPE0_CONF_ADDR  0x900000fe00000000ULL
+#define HT_MAP_TYPE1_CONF_ADDR  0x900000fe10000000ULL
+
+static inline unsigned int readl_addr64(unsigned long long addr)
+{
+unsigned long long a = addr;
+unsigned int ret;
+asm volatile( ".set mips64;ld $2,%1;lw %0,($2);.set mips0;\n":"=r"(ret):"m"(a):"$2")
+;
+return ret;
+}
+
+
+static inline void writel_addr64(unsigned long long addr, int v)
+{
+unsigned long long a = addr;
+asm volatile( ".set mips64;ld $2,%1;sw %0,($2);.set mips0;\n"::"r"(v),"m"(a):"$2")
+;
+}
 
 u32 pci_read_type0_config32(u32 dev, u32 func, u32 reg)
 {
-	u32 addr = HT_MAP_TYPE0_CONF_ADDR;
-	addr |= (dev << 11 | func << 8 | reg);
-	return *(volatile u32 *)addr;
+	unsigned long long addr = HT_MAP_TYPE0_CONF_ADDR;
+	addr |= (dev << 11) | (func << 8) | (reg&0xff);
+	if(reg > 0xff){
+		addr |= ((reg >> 8)&0xf) << 24;
+	}
+	return readl_addr64(addr) ;
 }
 
 void pci_write_type0_config32(u32 dev, u32 func, u32 reg, u32 val)
 {
-	u32 addr = HT_MAP_TYPE0_CONF_ADDR;
+	unsigned long long addr = HT_MAP_TYPE0_CONF_ADDR;
+	addr |=  (dev << 11) | (func << 8) | (reg&0xff);
+	if(reg > 0xff){
+		addr |= ((reg >> 8)&0xf) << 24;
+	}
 	addr |= (dev << 11 | func << 8 | reg);
-	*(volatile u32 *)addr = val;
+	writel_addr64(addr, val) ;
 }
 
 u32 pci_read_type1_config32(u32 bus, u32 dev, u32 func, u32 reg)
 {
-	u32 addr = HT_MAP_TYPE1_CONF_ADDR;
-	addr |= (bus << 16 | dev << 11 | func << 8 | reg);
-	return *(volatile u32 *)addr;
+	unsigned long long addr = HT_MAP_TYPE1_CONF_ADDR;
+	addr |= (bus << 16) | (dev << 11) | (func << 8) | (reg&0xff);
+	if(reg > 0xff){
+		addr |= ((reg >> 8)&0xf) << 24;
+	}
+	return readl_addr64(addr) ;
 }
 
 void pci_write_type1_config32(u32 bus, u32 dev, u32 func, u32 reg, u32 val)
 {
-	u32 addr = HT_MAP_TYPE1_CONF_ADDR;
+	unsigned long long addr = HT_MAP_TYPE1_CONF_ADDR;
+	addr |= (bus << 16) | (dev << 11) | (func << 8) | (reg&0xff);
+	if(reg > 0xff){
+		addr |= ((reg >> 8)&0xf) << 24;
+	}
 	addr |= (bus << 16 | dev << 11 | func << 8 | reg);
-	*(volatile u32 *)addr = val;
+	writel_addr64(addr, val) ;
 }
 
 u32 _pci_conf_readn(device_t tag, int reg, int width)
 {
 	int bus, device, function;
+	u32 data;
 
-	if ((width != 4) || (reg & 3) || reg < 0 || reg >= 0x100) {
+	if ((reg & (width-1)) || reg < 0 || reg >= 0x1000) {
 		printf("_pci_conf_readn: bad reg 0x%x, tag 0x%x, width 0x%x\n", reg, tag, width);
 		return ~0;
 	}
@@ -91,7 +123,7 @@ u32 _pci_conf_readn(device_t tag, int reg, int width)
 			printf("_pci_conf_readn: bad device 0x%x, function 0x%x\n", device, function);
 			return ~0;		/* device out of range */
 		}
-		return pci_read_type0_config32(device, function, reg);
+		data = pci_read_type0_config32(device, function, reg & ~3);
 	}
 	else {
 
@@ -104,8 +136,18 @@ u32 _pci_conf_readn(device_t tag, int reg, int width)
     		//	printf("_pci_conf_readn: bad bus 0x%x, device 0x%x, function 0x%x\n", bus, device, function);
 			return ~0;		/* device out of range */
 		}
-		return pci_read_type1_config32(bus, device, function, reg);
+		data = pci_read_type1_config32(bus, device, function, reg & ~3);
 	}
+	
+	/* move data to correct position */
+	if (width == 1)
+		data = (data >> ((reg & 3) << 3)) & 0xff;
+	else if (width == 2)
+		data = (data >> ((reg & 3) << 3)) & 0xffff;
+	else
+		data = data;
+
+	return data;
 
 }
 
@@ -174,13 +216,12 @@ _pci_conf_write16(device_t tag, int reg, u16 data)
 	return _pci_conf_writen(tag,reg,data,2);
 }
 
-void _pci_conf_writen(device_t tag, int reg, u32 data,int width)
+void _pci_conf_writen(device_t tag, int reg, u32 val,int width)
 {
 	int bus, device, function;
-	u32 ori;
-	u32 mask = 0x0;
+	u32 data;
 
-	if ((reg & (width -1)) || reg < 0 || reg >= 0x100) {
+	if ((reg & (width -1)) || reg < 0 || reg >= 0x1000) {
 		printf("_pci_conf_writen: bad reg 0x%x, tag 0x%x, width 0x%x\n", reg, tag, width);
 		return;
 	}
@@ -207,35 +248,23 @@ void _pci_conf_writen(device_t tag, int reg, u32 data,int width)
 		}
 	}
 
-	ori = _pci_conf_read(tag, reg & 0xfc);
-	if(width == 2){
-		if(reg & 2){
-			mask = 0xffff;
-		}
-		else{
-			mask = 0xffff0000;
-		}
-	}
-	else if(width == 1){
-		if ((reg & 3) == 1) {
-			mask = 0xffff00ff;
-		}else if ((reg & 3) == 2) {
-			mask = 0xff00ffff;
-		}else if ((reg & 3) == 3) {
-			mask = 0x00ffffff;
-		}else{
-			mask = 0xffffff00;
-		}
-	}
+	if (width == 4)
+		data = val;
+	else {
+		data = _pci_conf_read(tag, reg & ~3);
 
-	data = data << ((reg & 3) * 8);
-	data = (ori & mask) | data;
-
+		if (width == 1)
+			data = (data & ~(0xff << ((reg & 3) << 3))) |
+				(val << ((reg & 3) << 3));
+		else if (width == 2)
+			data = (data & ~(0xffff << ((reg & 3) << 3))) |
+				(val << ((reg & 3) << 3));
+	}
 
 	if (bus == 0) {
-		return pci_write_type0_config32(device, function, reg & 0xfc, data);
+		return pci_write_type0_config32(device, function, reg & ~3, data);
 	}
 	else {
-		return pci_write_type1_config32(bus, device, function, reg & 0xfc, data);
+		return pci_write_type1_config32(bus, device, function, reg & ~3, data);
 	}
 }
