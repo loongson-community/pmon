@@ -265,6 +265,7 @@ extern int video_hw_init(void);
 
 extern int fb_init(unsigned long, unsigned long);
 extern int dc_init();
+extern int dc_freq();
 
 extern unsigned short ScreenLineLength;
 extern unsigned short ScreenDepth;
@@ -285,6 +286,7 @@ static void init_pcidev(void)
 	val = *(unsigned int *)0xbfe10420;
 	*(unsigned int *)0xbfe10420 = (val | 0xc000);//mtf, enable I2C1
 
+	dc_freq();
 	_pci_devinit(1);	/* PCI device initialization */
 #if (NMOD_X86EMU_INT10 > 0)||(NMOD_X86EMU >0)
 	if(pcie_dev != NULL){

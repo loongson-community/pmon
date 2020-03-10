@@ -1465,6 +1465,8 @@ char console_buffer[2][37][101]={32};
 char console_buffer[2][37][101]={32};
 #elif defined(X1024x768)
 char console_buffer[2][49][129]={32};//128*48->1024x768
+#elif defined(X1024x800)
+char console_buffer[2][51][161]={32};//160*50->1280x800
 #elif defined(X1280x1024)
 char console_buffer[2][65][161]={32};//128*48->1024x768
 #elif defined(X1368x768)
@@ -1639,7 +1641,10 @@ int fb_init (unsigned long fbbase,unsigned long iobase)
 #elif defined(X320x240)
         pGD->winSizeX  = 320;
         pGD->winSizeY  = 240;
-#else
+#elif defined(FB_XSIZE) && defined(FB_YSIZE)
+        pGD->winSizeX  = FB_XSIZE;
+        pGD->winSizeY  = FB_YSIZE;
+#else	
 #if !defined(FB_XSIZE)
 #define FB_XSIZE 800
 #endif
