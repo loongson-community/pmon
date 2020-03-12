@@ -891,6 +891,17 @@ cp0_main:
 	li      t1, 0x11200000
 	or	t0, t0, t1
 
+    li  t1, (0x7<<18)|(0x7<<2)
+    not t1, t1
+    lw  t2, 0x54(t0)
+    and t2, t2, t1
+    sw  t2, 0x54(t0)
+
+    lw  t2, 0x58(t0)
+    and t2, t2, t1
+    sw  t2, 0x58(t0)
+
+
 	dli	t1, 0xff204c | ((PCIE_LANE_FLIP>>(2*2)) & 3) 
         sw      t1, 0x0(t0)
   
@@ -916,6 +927,17 @@ cp0_main:
 	dli	t0, 0x9000000000000000
 	li      t1, 0x11300000
 	or	t0, t0, t1
+
+    li  t1, (0x7<<18)|(0x7<<2)
+    not t1, t1
+    lw  t2, 0x54(t0)
+    and t2, t2, t1
+    sw  t2, 0x54(t0)
+
+    lw  t2, 0x58(t0)
+    and t2, t2, t1
+    sw  t2, 0x58(t0)
+
 
 	dli	t1, 0xff204c | ((PCIE_LANE_FLIP>>(2*3)) & 3)
         sw      t1, 0x0(t0)
