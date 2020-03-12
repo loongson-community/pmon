@@ -945,6 +945,22 @@ cal_one_pcie_x8:
     li      t2, (1 << 10)
     or      t1, t1, t2
     sw      t1, (CONF_SB_OFFSET+0)(t0)
+
+	//增加usb 驱动能力
+    lw      t1, (0x700)(t0)
+    li      t2, (0x7 << 4) | 0x9
+    or      t1, t1, t2
+    sw      t1, (0x700)(t0)
+
+    lw      t1, (0x704)(t0)
+    li      t2, (0x7 << 4) | 0x9
+    or      t1, t1, t2
+    sw      t1, (0x704)(t0)
+
+    lw      t1, (0x708)(t0)
+    li      t2, (0x7 << 4) | 0x9
+    or      t1, t1, t2
+    sw      t1, (0x708)(t0)
     TTYDBG("USB0 enabled\r\n")
 #else
     //disable clock
@@ -982,6 +998,22 @@ cal_one_pcie_x8:
     li      t2, (1 << 14)
     or      t1, t1, t2
     sw      t1, (CONF_SB_OFFSET+0)(t0)
+
+	//增加usb 驱动能力
+    lw      t1, (0x710)(t0)
+    li      t2, (0x7 << 4) | 0x9
+    or      t1, t1, t2
+    sw      t1, (0x710)(t0)
+
+    lw      t1, (0x714)(t0)
+    li      t2, (0x7 << 4) | 0x9
+    or      t1, t1, t2
+    sw      t1, (0x714)(t0)
+
+    lw      t1, (0x718)(t0)
+    li      t2, (0x7 << 4) | 0x9
+    or      t1, t1, t2
+    sw      t1, (0x718)(t0)
     TTYDBG("USB1 enabled\r\n")
 #else
     //disable clock
