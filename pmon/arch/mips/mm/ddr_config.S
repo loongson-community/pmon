@@ -352,6 +352,29 @@ mc_init:
     nop
 
 #ifdef FASTECC2
+#if 1
+    .set push
+    .set arch=loongson3a
+    gssq     $0, $0, 0x0(t1)
+    gssq     $0, $0, 0x10(t1)
+    gssq     $0, $0, 0x20(t1)
+    gssq     $0, $0, 0x30(t1)
+    gssq     $0, $0, 0x40(t1)
+    gssq     $0, $0, 0x50(t1)
+    gssq     $0, $0, 0x60(t1)
+    gssq     $0, $0, 0x70(t1)
+    gssq     $0, $0, 0x80(t1)
+    gssq     $0, $0, 0x90(t1)
+    gssq     $0, $0, 0xa0(t1)
+    gssq     $0, $0, 0xb0(t1)
+    gssq     $0, $0, 0xc0(t1)
+    gssq     $0, $0, 0xd0(t1)
+    gssq     $0, $0, 0xe0(t1)
+    gssq     $0, $0, 0xf0(t1)
+    .set pop
+    sync
+    //hit write back invalidate(D-/S-cache) to memory
+#else
     sd      $0, 0x0(t1)
     sd      $0, 0x8(t1)
     sd      $0, 0x10(t1)
@@ -391,6 +414,7 @@ mc_init:
     sd      $0, 0xe8(t1)
     sd      $0, 0xf0(t1)
     sd      $0, 0xf8(t1)
+#endif
 #else
 
     sd      $0, 0x0(t1)
