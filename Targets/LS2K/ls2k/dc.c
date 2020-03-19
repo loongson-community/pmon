@@ -12,6 +12,9 @@
 
 #define DC_FB0 1	//mtf modify
 
+#define FB_XSIZE 1280
+#define FB_YSIZE 1024
+
 #define DIS_WIDTH  FB_XSIZE
 #define DIS_HEIGHT FB_YSIZE
 #define EXTRA_PIXEL  0
@@ -20,12 +23,6 @@
 #define DC1_BASE_ADDR_OFF	0x1250
 
 #define RANDOM_HEIGHT_Z 37
-
-struct pix_pll {
-        unsigned int l2_div;
-        unsigned int l1_loopc;
-        unsigned int l1_frefc;
-};
 
 static char *ADDR_CURSOR = 0x8eff0000;
 static char *MEM_ptr = 0x8e800000;	/* frame buffer address register on ls2h mem */
@@ -123,84 +120,7 @@ int config_cursor(unsigned long base)
 	outl(base + LS2H_FB_CUR_BACK_REG, 0x00eeeeee);
 	outl(base + LS2H_FB_CUR_FORE_REG, 0x00aaaaaa);
 }
-static void config_pll(unsigned long pll_base, unsigned int pstdiv, unsigned int loopc, unsigned int frefc)
-{
-        unsigned long val;
 
-        /* set sel_pll_out0 0 */
-        val = inl(pll_base);
-        val &= ~(1UL << 0);
-        outl(pll_base, val);
-
-        /* pll_pd 1 */
-        val = inl(pll_base);
-        val |= (1UL << 19);
-        outl(pll_base, val);
-
-        /* set_pll_param 0 */
-        val = inl(pll_base);
-        val &= ~(1UL << 2);
-        outl(pll_base, val);
-
-        /* set new div ref, loopc, div out */
-        /* clear old value first*/
-        //val = (1 << 7) | (1L << 42) | (3 << 10) | ((unsigned long)(loopc) << 32) | ((unsigned long)(frefc) << 26);
-        val = (1 << 7) | (3 << 10) | ((unsigned long)(frefc) << 26);
-        outl(pll_base, val);
-        val = (1L << 10) | (unsigned long)(loopc);
-        outl(pll_base + 4, val);
-        outl(pll_base + 8, pstdiv);
-
-        /* set_pll_param 1 */
-        val = inl(pll_base);
-        val |= (1UL << 2);
-        outl(pll_base, val);
-
-        /* pll_pd 0 */
-        val = inl(pll_base);
-        val &= ~(1UL << 19);
-        outl(pll_base, val);
-
-        /* wait pll lock */
-        while(!(inl(pll_base) & 0x10000));
-        /* set sel_pll_out0 1 */
-        val = inl(pll_base);
-        val |= (1UL << 0);
-        outl(pll_base, val);
-}
-
-
-static unsigned int cal_freq(unsigned int pixclock_khz)
-{
-    unsigned int pstdiv, loopc, frefc;
-    unsigned long a, b, c;
-    unsigned long min = 1000;
-    unsigned long pll_base;
-
-    for (pstdiv = 1; pstdiv < 64; pstdiv++) {
-        a = (unsigned long)pixclock_khz * pstdiv;
-        for (frefc = 3; frefc < 6; frefc++) {
-           for (loopc = 24; loopc < 161; loopc++) {
-               if ((loopc < 12 * frefc) || (loopc > 32 * frefc))
-                    continue;
-                b = 100000L * loopc / frefc;
-                c = (a > b) ? (a - b) : (b - a);
-                if (c < min) {
-                    printf("pll_config->l1_loopc=%d\n", loopc);
-                    printf("pll_config->l2_div=%d\n", pstdiv);
-                    printf("pll_config->l1_frefc=%d\n",frefc);
-                    pll_base = 0xbfe104b0;
-                    config_pll(pll_base, pstdiv, loopc, frefc);
-                    pll_base = 0xbfe104c0;
-                    config_pll(pll_base, pstdiv, loopc, frefc);
-                    return 1;
-                }
-            }
-        }
-    }
-    
-    return 0;
-}
 int config_fb(unsigned long base)
 {
 	int i, mode = -1;
@@ -213,13 +133,14 @@ int config_fb(unsigned long base)
 			mode = i;
 			out = caclulatefreq(vgamode[i].pclk);
 			printf("out=%x\n", out);
-		}
+		}//if
 	}
 
 	if (mode < 0) {
 		printf("\n\n\nunsupported framebuffer resolution\n\n\n");
 		return;
 	}
+
 	/* Disable the panel 0 */
 	outl((base + OF_BUF_CONFIG), 0x00000000);
 	/* framebuffer configuration RGB565 */
@@ -325,27 +246,7 @@ int dc_init()
 
 	return MEM_ptr;
 }
-int dc_freq()
-{
-	int i,mode = -1;
-	unsigned int pixclk;
-	for (i = 0; i < sizeof(vgamode) / sizeof(struct vga_struc); i++) {
-		int out;
-		if (vgamode[i].hr == FB_XSIZE && vgamode[i].vr == FB_YSIZE) {
-			mode = i;
-			out = caclulatefreq(vgamode[i].pclk);
-			printf("out=%x\n", out);
-		}//if
-	}
 
-	if (mode < 0) {
-		printf("\n\n\nunsupported framebuffer resolution\n\n\n");
-		return;
-	}
-	pixclk = ((int)(vgamode[mode].pclk * 1000));
-	printf("pixclk = %d\n",pixclk);
-	cal_freq(pixclk);
-}
 static int cmd_dc_freq(int argc, char **argv)
 {
 	int out;
