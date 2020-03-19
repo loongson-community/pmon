@@ -89,6 +89,11 @@
 #define PORT_SCR_ERR		0x30	/* SATA phy register: SError */
 #define PORT_SCR_ACT		0x34	/* SATA phy register: SActive */
 
+/* PORT_SCR_STAT bits */
+#define PORT_SCR_STAT_DET_MASK	0x3
+#define PORT_SCR_STAT_DET_COMINIT 0x1
+#define PORT_SCR_STAT_DET_PHYRDY 0x3
+
 /* PORT_IRQ_{STAT,MASK} bits */
 #define PORT_IRQ_COLD_PRES	(1 << 31)	/* cold presence detect */
 #define PORT_IRQ_TF_ERR		(1 << 30)	/* task file error */
