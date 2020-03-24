@@ -1006,7 +1006,7 @@ time_t tgt_gettime()
 		tm.tm_min = buf[1];
 		tm.tm_hour = buf[2];
 		tm.tm_mday = buf[4];
-		tm.tm_mon = buf[5];
+		tm.tm_mon = buf[5]-1;
 		tm.tm_year = buf[6];
 		if (tm.tm_year < 50)
 			tm.tm_year += 100;
@@ -1053,6 +1053,8 @@ void tgt_settime(time_t t)
 	buf[2] = tm->tm_hour;
 	buf[4] = tm->tm_mday;
 	buf[5] = (tm->tm_mon + 1);
+	 if(tm->tm_year > 100)
+		 tm->tm_year -=100;
 	buf[6] = tm->tm_year;
 
 	rtc_set_time(buf);

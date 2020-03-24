@@ -301,11 +301,20 @@ int rtc_get_time(u8 *buf)
 		tmp += tmp1;
 		buf[2] = tmp;
         
+		tmp = buf[4] & 0xf;
+		tmp1 = (buf[4] >> 4) * 10;
+		tmp += tmp1;
+		buf[4] = tmp;
+
 		tmp = buf[5] & 0xf;
 		tmp1 = (buf[5] >> 4) * 10;
 		tmp += tmp1;
 		buf[5] = tmp;
 
+		tmp = buf[6] & 0xf;
+		tmp1 = (buf[6] >> 4) * 10;
+		tmp += tmp1;
+		buf[6] = tmp;
 		return 1;
 	} else
 		return 0;
@@ -329,10 +338,20 @@ int rtc_set_time(u8 *buf)
 	tmp += tmp1;
 	buf[2] = tmp;
 
+	tmp = buf[4] % 10;
+	tmp1 = ((buf[4] / 10) << 4);
+	tmp += tmp1;
+	buf[4] = tmp;
+
 	tmp = buf[5] % 10;
 	tmp1 = ((buf[5] / 10) << 4);
 	tmp += tmp1;
 	buf[5] = tmp;
+
+	tmp = buf[6] % 10;
+	tmp1 = ((buf[6] / 10) << 4);
+	tmp += tmp1;
+	buf[6] = tmp;
 #if 0 //debug
 	for(tmp = 0;tmp < 7;tmp++)
 		printf(" %02x ",buf[tmp]);	
