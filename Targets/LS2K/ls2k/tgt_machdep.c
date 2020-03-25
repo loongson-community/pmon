@@ -504,7 +504,8 @@ void tgt_devconfig()
 	unsigned int val;
 
 	dev = _pci_make_tag(0, FPGA_ON_BUS0_DEV, 0);
-	val = (_pci_conf_readn(dev, 0x10, 4) & ~0xf)|0xc0000000;
+	val = _pci_conf_readn(dev, 0x10, 4) & ~0xf;
+	val |= (val&0x10000000)?0xa0000000:0xc0000000;
 
 	//PCIE_TD_ATTR default 0x1c, can change to 0x18, 0x4 etc, according fpga packet's td and attr seting.
 	*(volatile int *)(val + 0x58) = (*(volatile int *)(val + 0x58) & ~0x1c)|FPGA_PCIE_TD_ATTR;
