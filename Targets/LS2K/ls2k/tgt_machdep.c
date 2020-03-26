@@ -321,6 +321,11 @@ void initmips(unsigned long long  raw_memsz)
 		}
 	}
 #endif
+#ifdef LS2K_SELLIO
+	*(volatile int *)0xbfe10424 |= (1<<31);
+	*(volatile int *)0xbfe10424 &= ~((1<<29)|(1<<23));
+	*(volatile int *)0xbfe104d0 &= ~(0x700);
+#endif
 
 	/*
 	 *  Probe clock frequencys so delays will work properly.
