@@ -139,10 +139,11 @@ static int isprint (unsigned char ch)
 *===========================================================================*/
 void __inline__ wait_ms(unsigned long ms)
 {
-	while(ms-->0){
+	unsigned int now = get_timer(0);
+	do {
 		udelay(1000);
 		dl_ohci_kbd();
-	}
+	} while( get_timer(now) < ms);
 }
 /***************************************************************************
  * Init USB Device
