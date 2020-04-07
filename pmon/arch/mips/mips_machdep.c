@@ -289,10 +289,7 @@ unsigned int get_timer(unsigned int base)
 	unsigned int now;
 	clkperms = tgt_pipefreq() / 2 /1000;
 	now = CPU_GetCOUNT();
-	if (!base)
-		high = 0;
-	else 
-		high += (now < low);
+	high += (now < low);
 	low = now;
 	return (high*0x100000000ULL+low)/clkperms - base;
 }
