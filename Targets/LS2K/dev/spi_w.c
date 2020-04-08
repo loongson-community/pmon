@@ -782,7 +782,7 @@ static int ls_spi_setup(struct ls1x_spi *ls1x_spi,  struct spi_device *spi)
 
 	hz  = spi->max_speed_hz;
 
-	if ( hz && ls1x_spi->hz != hz) {
+	if (hz) {
 		clk = 100000000;
 		div = DIV_ROUND_UP(clk, hz);
 
