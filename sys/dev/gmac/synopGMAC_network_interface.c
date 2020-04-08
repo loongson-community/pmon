@@ -2800,8 +2800,13 @@ s32  synopGMAC_init_network_interface(char* xname, u64 synopGMACMappedAddr)
 	else if(gmac_num == 1)
 		memcpy(mac_addr0,mac_read_spi_buf + 16,6);
 #else
+#ifdef USE_ENVMAC
+	tgt_ethaddr(mac_addr0);
+	mac_addr[5] += gmac_num;
+#else
 	i2c_init();//configure the i2c freq
 	mac_read(eeprom_addr, mac_addr0, 6);
+#endif
 #endif
 
 	memcpy(smbios_uuid_mac, mac_addr0, 6);
