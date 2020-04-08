@@ -72,7 +72,7 @@ static off_t mtdfile_lseek (int, off_t, int);
 int highmemcpy(long long dst,long long src,long long count);
 void mycacheflush(long long addrin,unsigned int size,unsigned int rw);
 
-#define TO_MIN(x,y,z)   min(min((p->mtd->erasesize - ((z) & (p->mtd->erasesize-1))),(x)),(y))
+#define TO_MIN(x,y,z)  ((p->mtd->type == MTD_NANDFLASH)?min(min((p->mtd->erasesize - ((z) & (p->mtd->erasesize-1))),(x)),(y)):min(x,y))
 static creat_part_trans_table(mtdfile *p)
 {
     struct mtd_info *mtd=p->mtd;
@@ -472,7 +472,8 @@ static int
             maxlen=min(left,maxlen);
             maxlen=(maxlen+p->mtd->writesize-1)&~(p->mtd->writesize-1);
 
-            maxlen=p->mtd->writesize;
+	    if (p->mtd->type == MTD_NANDFLASH)
+		    maxlen = p->mtd->erasesize;
             erase.mtd = p->mtd;
             erase.callback = 0;
             erase.addr = (start_addr+p->mtd->erasesize-1)&~(p->mtd->erasesize-1);
