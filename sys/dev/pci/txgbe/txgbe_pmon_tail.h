@@ -155,6 +155,11 @@ static void txgbe_start(struct ifnet *ifp)
         iob->len = mb_head->m_pkthdr.len;
 	if (sapphire_transmit (sc, iob) < 0)
 	   free_iob(iob);
+	else {
+		struct sapphire_nic *sapphire = sc->priv;
+		int tx_idx = ( (sapphire->tx.prod - 1) % SAPPHIRE_NUM_TX_DESC );
+		sc->iob_tx[tx_idx] = iob;
+	}
 
         m_freem(mb_head);
     }

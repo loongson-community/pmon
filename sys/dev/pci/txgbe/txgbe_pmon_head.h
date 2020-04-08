@@ -200,6 +200,7 @@ struct net_device
     int (*open)(struct net_device *ndev);
     int (*stop)(struct net_device *ndev);
     int (*hard_start_xmit)(struct sk_buff *skb, struct net_device *ndev);
+    struct io_buffer *iob_tx[SAPPHIRE_NUM_TX_DESC];
 };
 
 #define alloc_etherdev(len) container_of(pci, struct net_device, pcidev)
@@ -407,7 +408,9 @@ static void *malloc_dma(size_t size, size_t size1)
     buf = malloc(size, M_DEVBUF, M_DONTWAIT);
     return (void *)buf;
 }
-#define netdev_tx_complete_next(...)
+#define netdev_tx_complete_next(netdev) do { \
+	free_iob(netdev->iob_tx[tx_idx]); \
+} while(0)
 #define cpu_to_le64(x) (x)
 #define cpu_to_le16(x) (x)
 static inline netdev_link_up( struct net_device *netdev)
