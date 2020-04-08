@@ -155,6 +155,11 @@ static void ngbe_start(struct ifnet *ifp)
         iob->len = mb_head->m_pkthdr.len;
 	if (emerald_transmit (sc, iob) < 0)
 	   free_iob(iob);
+	else {
+		struct emerald_nic *emerald = sc->priv;
+		int tx_idx = ( (emerald->tx.prod - 1) % EMERALD_NUM_TX_DESC );
+		sc->iob_tx[tx_idx] = iob;
+	}
 
         m_freem(mb_head);
     }
