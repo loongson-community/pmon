@@ -12,7 +12,7 @@
 
 typedef unsigned long device_t;
 
-extern struct pci_device *_pci_bus[16];
+extern struct pci_device *_pci_bus[];
 extern int _max_pci_bus;
 
 static int is_pcie_root_port(int bus)
