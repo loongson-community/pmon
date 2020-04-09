@@ -33,6 +33,7 @@
 #define dev_name(...) "m25p80"
 #define container_of list_entry
 #define GFP_KERNEL 0
+#define true 1
 
 
 #define kmalloc(size,t) kzalloc(size)
@@ -1004,6 +1005,8 @@ int __devinit m25p_probe(struct spi_device *spi, char *type)
 #ifdef CONFIG_M25PXX_USE_FAST_READ
 	flash->fast_read = true;
 #endif
+	if (info->jedec_id == 0xc84019)
+		flash->fast_read = true;
 
 	if (info->addr_width)
 		flash->addr_width = info->addr_width;
