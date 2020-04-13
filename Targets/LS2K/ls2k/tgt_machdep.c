@@ -1325,7 +1325,7 @@ void tgt_mapenv(int (*func) __P((char *, char *)))
 	sprintf(env, "%02x:%02x:%02x:%02x:%02x:%02x", hwethadr[0], hwethadr[1],
 		hwethadr[2], hwethadr[3], hwethadr[4], hwethadr[5]);
 	(*func) ("ethaddr", env);
-	ls2kver = nvram[VER_OFFS];
+	ls2kver = nvram[VER_OFFS] ^ 0x50;
 	if(ls2kver>1)
 	   ls2kver = ls2k_version();
 	sprintf(env, "%d", ls2kver);
@@ -1789,7 +1789,7 @@ int tgt_setenv(char *name, char *value)
 	bcopy(&em_enable, &nvrambuf[MASTER_BRIDGE_OFFS], 1);
 #endif
 	bcopy(hwethadr, &nvramsecbuf[ETHER_OFFS], 6);
-	nvramsecbuf[VER_OFFS] = ls2kver;
+	nvramsecbuf[VER_OFFS] = ls2kver | 0x50;
 #ifdef NVRAM_IN_FLASH
 
 #ifdef BOOT_FROM_NAND
