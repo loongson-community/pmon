@@ -65,9 +65,18 @@ void hexserial __P((int));
 #define SETCLIENTPC "80100000"
 extern int mtd_rescan(char *,char *);
 #include "nand.h"
+
+#ifdef LS2K_DEFAULT_OLDPMON
+#define PMON_SPEC   {"oldpmon","1",0,0},
+#else
+#define PMON_SPEC
+#endif
+
 #if NNAND
-#define TGT_DEFENV  {"mtdparts","nand-flash:30M@0(kernel),-(rootfs);spinand_flash:30M@0(kernel),-(rootfs)",0,&mtd_rescan},   \
+#define TGT_DEFENV  PMON_SPEC \
+                    {"mtdparts","nand-flash:30M@0(kernel),-(rootfs);spinand_flash:30M@0(kernel),-(rootfs)",0,&mtd_rescan},   \
                     {"bootdelay","3",0,0}
 #else
-#define TGT_DEFENV  {"bootdelay","3",0,0}
+#define TGT_DEFENV  PMON_SPEC \
+                    {"bootdelay","3",0,0}
 #endif

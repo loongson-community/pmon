@@ -372,3 +372,5 @@ option DDR_FREQ=400
 option CORE_FREQ=800
 #option LOWPOWER
 select raw_ether
+
+option LS2K_DEFAULT_OLDPMON
