@@ -132,6 +132,10 @@ write_smbios_tables(void *start)
        dimmnum = 8;
        maximum_capacity = 64 * 1024 * 1024;
 #endif
+#ifdef LOONGSON_2K
+       dimmnum = 0;
+       maximum_capacity = 0;
+#endif
        do_struct(smbios_type_16_init(p, dimmnum, maximum_capacity));
        for(i = 0; i < dimmnum; i++){
                do_struct(smbios_type_17_init(p, i));
@@ -249,6 +253,9 @@ static void board_info(char *board_name)
         	strcpy(board_name, "Loongson-3A-780E-2w-V1.1-demo");
 #endif
 #endif
+#ifdef LOONGSON_2K
+        strcpy(board_name, LS2K_BOARD_NAME);
+#endif
 
 	return ;
 }
@@ -342,8 +349,10 @@ smbios_type_1_init(void *start)
 {
 	struct smbios_type_1 *p = (struct smbios_type_1 *)start;
 	char product_name[50] = "Loongson-V1.0-demo";
-#ifdef LOONGSON_2G5536
+#if defined(LOONGSON_2G5536)
 	char *board_family = "Loongson2";
+#elif defined(LOONGSON_2K)
+	char *board_family = "Loongson2K";
 #else
 	char *board_family = "Loongson3";
 #endif
@@ -515,6 +524,10 @@ smbios_type_4_init(void *start)
 		strcpy(cpu_version, "Loongson ICT Loongson-3B CPU @ 1.5GHz");
 		p->max_speed = 1500;
 	}
+	if(prid == 0x6302){
+		strcpy(cpu_version, "Loongson ICT Loongson-2K CPU @ 1.0GHz");
+		p->max_speed = 1000;
+	}
 
         p->version_str = 2;
         p->voltage  = 0x02;
@@ -549,6 +562,9 @@ smbios_type_4_init(void *start)
 #endif
 #ifdef LOONGSON_2G5536
 	p->core_count = p->core_enable = 1;
+#endif
+#ifdef LOONGSON_2K
+	p->core_count = p->core_enable = 2;
 #endif
         p->thread_count = 0;
         p->processor_characteristics = 0x02;
