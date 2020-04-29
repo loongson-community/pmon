@@ -397,7 +397,8 @@ void initmips(unsigned long long  raw_memsz)
 /*otg vbus*/
 //*(volatile int *)0xc0000000 |= 6;
 #ifdef DTB
-	verify_dtb();
+	if(!getenv("oldpmon"))
+		verify_dtb();
 #endif
 
 	/*
@@ -2116,7 +2117,6 @@ u64 __raw__writeq(u64 addr, u64 val);
 void ls_pcie_config_set(void)
 {
 	int i;
-	if(getenv("oldpmon")) return;
 
 	for(i = 0;i < ARRAY_SIZE(pci_config_array);i++){
 			//ls_pcie_mem_fixup(pci_config_array + i);
@@ -2132,7 +2132,9 @@ void ls_pcie_config_set(void)
 	{
 		/*set dc coherent*/
 		*(volatile int *)0xbfe10430 |= 8; 
-		map_gpu_addr();
+
+		if(!getenv("oldpmon")) //FIXME: OldPMON GPU VUMA Mapping?
+			map_gpu_addr();
 	}
 
 	/*
@@ -2279,8 +2281,10 @@ void ls_pcie_interrupt_fixup(struct pci_config_data *pdata)
 	dev = _pci_make_tag(pdata->bus, pdata->dev, pdata->func);
 	val = _pci_conf_read32(dev, 0x00);
 	/*	device on the slot	*/
-	if ( val != 0xffffffff)
+	if (val != 0xffffffff) {
 			_pci_conf_write16(dev, 0x3c, pdata->interrupt|0x100);
+			_pci_conf_write8(dev, 0x3d, 0x1);
+	}
 
 	//mask the unused device
 #if 0
