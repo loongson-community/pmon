@@ -1,0 +1,315 @@
+# $Id: Bonito,v 1.1.1.1 2006/09/14 01:59:09 root Exp $ # #	GENERIC configuration for Galileo EV64240 # #  This file is supposed to be included by target file after #  endian has been defined.
+#
+machine         LS2K        mips    # CPU Architecture, Platform
+config          pmon 
+#option          VGAROM_IN_BIOS
+
+option      LS2K_BOARD_PI2
+
+option		LOONGSON_2K
+option         	BOOT_PARAM
+option      	VRAM_SIZE=16
+#
+#  Define target endian
+#
+makeoptions	ENDIAN=EL		# Little endian version.
+
+
+#include "conf/GENERIC_ALL"
+
+#
+# System Name and Target Name
+#
+option		SYSTYPE="\"FCR\""
+option		TARGETNAME="\"FCR\""
+
+#
+# System str options
+#
+option      LS2K_STR
+
+#
+# Platform options
+#
+option		BONITOEL
+option		DEVBD2E
+option		MIPS
+option		INET
+option		LS3_HT              # Enable the IO cache coherent for ls2k
+
+option      loongson3A3
+option      LSMC_2
+#option      ARB_LEVEL
+option      DDR3_DIMM
+
+
+#<<<<<<<<<<<<<<
+###these options can NOT defined at the same time
+#option		DDR3_SODIMM #1Rx8 2GB
+#option		DDR3_SMT    #for SMT x16 SDRAM 4 chip 2GB
+#>>>>>>>>>>>>>>
+
+#option		AUTO_DDR_CONFIG		# for DIMM recognize
+option      LOONGSON_GMAC
+
+select		mod_flash_amd		# AMD flash device programming
+select		mod_flash_intel		# intel flash device programming
+select		mod_flash_sst		# intel flash device programming
+select		mod_debugger		# Debugging module
+select		mod_symbols		# Symbol table handling
+select		mod_s3load		# Srecord loading
+#select		mod_fastload		# LSI Fastload
+select		mod_elfload		# ELF loading
+select		mod_txt
+
+#
+# Command selection. Selects pmon commands
+#
+select		cmd_newmt
+select		cmd_setup
+select		cmd_about		# Display info about PMON
+select		cmd_boot		# Boot wrapper
+select		cmd_mycmd
+#select		cmd_mycmd_debug
+select		cmd_newmt
+select		cmd_cache		# Cache enabling
+select		cmd_call		# Call a function command
+select		cmd_date		# Time of day command
+select		cmd_env			# Full blown environment command set
+select		cmd_flash		# Flash programming cmds
+select		cmd_hist		# Command history
+select		cmd_ifaddr		# Interface address command
+select		cmd_l			# Disassemble
+select		cmd_mem			# Memory manipulation commands
+select		cmd_more		# More paginator
+select		cmd_mt			# Simple memory test command
+select		cmd_misc		# Reboot & Flush etc.
+#select		cmd_stty		# TTY setings command
+select		cmd_tr			# Host port-through command
+select		cmd_devls		# Device list
+select		cmd_set			# As cmd_env but not req. cmd_hist
+#select		cmd_testdisk
+#select		cmd_test
+select		cmd_main
+select		cmd_dtb
+option		DTB
+option INTERFACE_3A780E
+#
+select		cmd_shell		# Shell commands, vers, help, eval
+#
+#
+# Platform options
+#
+select		mod_uart_ns16550	# Standard UART driver
+select		mod_display
+option		CONS_BAUD=B115200
+select		ext2
+select		fatfs
+select		ramfiles
+#select		mod_x86emu		# X86 emulation for VGA
+option		MY40IO
+select		mod_x86emu_int10
+option		MY61IO
+option          VGA_BASE=0xb0000000
+select		mod_vgacon
+#select		sis315e
+#option		SIS315E
+option		VGA_NO_ROM       # display card has no rom
+#select		mod_sisfb
+option		NOPCINAMES		# Save some space for x86emu
+#option		FASTBOOT
+#select		vt82c686        #via686a/b code
+
+select		mod_framebuffer
+option		FB_XSIZE=1024
+option		FB_YSIZE=768
+select		mod_vesa
+option 		CONFIG_VIDEO_16BPP
+#option 	CONFIG_VIDEO_8BPP_INDEX
+
+#
+# Functional options.
+#
+option		NOSNOOP			# Caches are no-snooping
+
+#
+# HAVE options. What tgt level provide
+#
+option		HAVE_TOD		# Time-Of-Day clock
+option		INTERNAL_RTC		# chip internal RTC
+#option		EXTERNAL_RTC		# external RTC
+option		HAVE_NVENV		#  Platform has non-volatile env mem
+option		HAVE_LOGO		# Output splash logo
+option		USE_SUPERIO_UART
+#option      	VESAFB
+#option		USE_LEGACY_RTC
+#option		GODSONEV2A
+#option		LINUX_PC
+#option		LONGMENG
+#option		RADEON7000
+#option 	DEBUG_EMU_VGA
+option		AUTOLOAD
+#option		CONFIG_PCI0_LARGE_MEM	
+#option		CONFIG_PCI0_HUGE_MEM	
+#option		CONFIG_PCI0_GAINT_MEM	
+option		CONFIG_CACHE_64K_4WAY
+option		NVRAM_IN_FLASH	
+
+#option		ACPI_S3_MODE	#mtf
+option      	SET_DDR_FREQ
+#option      	BOOT_FROM_NAND
+#option      	NAND_ECC_MODE
+#
+#  Now the Machine specification
+#
+mainbus0        at root
+localbus0	at mainbus0
+#fd0		at mainbus0
+pcibr0		at mainbus0
+#pcibr1		at mainbus0
+pci*		at pcibr?
+ppb*		at pci? dev ? function ?	# PCI-PCI bridges
+pci*		at ppb? bus ?
+
+#lahci0		at localbus0 base 0xbfe60000	# AHCI
+#ahci_sd*  	at lahci0
+#ahci_cdrom*  	at lahci0
+
+ahci*		at pci? dev ? function ?
+ahci_sd*  	at ahci?
+ahci_cdrom*  	at ahci?
+
+ohci*   	at pci? dev ? function ?	# OHCI
+usb*      	at ohci?
+#lehci*   	at pci? dev ? function ?	# EHCI
+#usb*      	at lehci?
+
+#lohci0    	at localbus0 base 0xbfe38000	# OHCI
+#usb*      	at lohci0
+##### USB
+#uhci*		at pci? dev ? function ?
+#### Networking Devices
+#usbnet*      	at ohci?
+#ngbe*		at pci? dev ? function ?	# Intel 82576
+#txgbe*		at pci? dev ? function ?	# Intel 82576
+igb*		at pci? dev ? function ?	# Intel 82576
+select igb1
+
+#### SCSI support
+#siop*		at pci? dev ? function ?	# Symbios/NCR 53c...
+#scsibus*	at siop?
+#sd*		at scsibus? target ? lun ? 
+#cd*		at scsibus? target ? lun ? 
+
+#### Networking Devices
+#gt0		at localbus? base 4
+#gt1		at localbus? base 5
+#gt2		at localbus? base 6
+
+# fxp normally only used for debugging (enable/disable both)
+#fxp*		at pci? dev ? function ?        # Intel 82559 Device
+#inphy*		at mii? phy ?                   # Intel 82555 PHYs
+#rtl*		at pci? dev ? function ?
+#rtk*		at pci? dev ? function ?
+#em*		at pci? dev ? function ?
+#uhci*		at pci? dev ? function ?
+#ohci*		at pci? dev ? function ?
+#usb*		at usbbus ? 
+#ohci1		at pci? dev ? function ?
+
+select		mod_usb
+select  	mod_usb_storage
+#select		mod_usb_uhci
+select 	 	mod_usb_ohci
+#select 	 	mod_usb_ehci
+select		mod_usb_kbd
+
+
+#### IDE controllers
+option 		IDE_DMA
+pciide* 	at pci ? dev ? function ? flags 0x0000
+
+#### IDE hard drives
+wd*		at pciide? channel ? drive ? flags 0x0000
+
+#loopdev0	at mainbus0
+#sdcard0		at localbus0 flags 0
+
+select	sdio
+
+#### Pseudo devices
+pseudo-device	loop	1	# network loopback
+
+#syn0		at localbus0 at 0xbfe20000
+#syn1		at localbus0
+pcisyn*		at pci? dev ? function ?
+select		gmac
+
+ide_cd* 	at pciide? channel ? drive ? flags 0x0001
+select 		iso9660
+option		IDECD 
+select		cmd_testfire
+#option		HAVE_NB_SERIAL
+option		USE_ENVMAC
+#option		LOOKLIKE_PC
+#select		cmd_lwdhcp
+#select		cmd_bootp
+option		FOR_GXEMUL
+select		fatfs
+option		FLOATINGPT
+option		COM3_BASE_ADDR=0xbfe001e0
+#option		WDC_NORESET
+select		gzip
+option		INPUT_FROM_BOTH
+option		OUTPUT_TO_BOTH
+option		KBD_CHECK_FAST
+option		TEST_USB_HOST
+option		CONFIG_SLOW_PCI_FOR_BROKENDEV
+option 		CONFIG_VIDEO_SW_CURSOR
+#option		CONFIG_USB_HOTPLUG
+
+select		http
+select		tcp
+select		inet
+select		nand
+select cmd_xyzmodem
+#select		spinand_mt29f
+select		m25p80
+
+select	can
+select yaffsfs
+#option LS2H_SPI_HIGHSPEED
+#option DISABLE_HARD_LEVELING
+
+## DDR PARAMETER
+option DDR_S1=0xc1a18404
+option DDR_PARAM_018="0x3030303016100000"
+option NO_AUTO_TRFC
+option DDR_RESET_REVERT
+
+option BEEP_GPIO=39
+
+#rmoption ARB_LEVEL
+#rmoption CONFIG_FB_NONCOHERENT
+#unselect		spinand_lld
+select i2c
+select sii9022a
+
+option GPIO_PINS="0xffffffff80f0000f"
+
+option LS2K_RESET_GPIOS_MASK="0x1000000000" # GPIO36
+
+#option GPIO_OUT_PINS="0x01fff00000000000"
+#option  GPIO_OUT_SET="0x0f0b300000000000"
+#option  GPIO_OUT_CLR="0x10f4c00000000000"
+#option	LS2K_SELLIO
+
+## Flip PCIE1 PORT1
+option	PCIE_LANE_FLIP=0xc00
+
+#option CONFIG_VIDEO_LOGO
+#option CONFIG_VIDEO_BMP_LOGO
+option DDR_FREQ=400
+option CORE_FREQ=1000
+#option LOWPOWER
+select raw_ether

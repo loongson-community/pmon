@@ -1,0 +1,7 @@
+TARGET=LS2K
+TARGETEL=ls2k-pi2
+export START=start.o
+MEMSIZE=128
+ZLOADER_OPTIONS=-mips3
+
+include Makefile.inc
