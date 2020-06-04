@@ -949,12 +949,27 @@ pcie_cfg_done:
 	PRINTSTR("\r\ninitserial good ^_^...\r\n")
 	nop
 
+#if defined(LS2K_RESET_GPIOS_MASK)
+	// Set Reset GPIOs to output mode
+	li	t1, 0xbfe10500
+	dli	t2, ~(LS2K_RESET_GPIOS_MASK)
+	ld	t3, 0x0(t1)
+	and	t2, t3
+	sd	t2, 0x0(t1)
+
+	// Set output to low level
+	li  t1, 0xbfe10510
+	dli	t2, ~(LS2K_RESET_GPIOS_MASK)
+	ld	t3, 0x0(t1)
+	and	t2, t3
+	sd	t2, 0x0(t1)
+#elif !defined(GPIO_OUT_PINS) || ((GPIO_OUT_PINS &(1<<34)) && (!defined(GPIO_OUT_SET) || (GPIO_OUT_SET & (1<<34))))
+	// gmac1 phy reset (legacy)
+	// Not required on new 2k
 	bal	ls2k_version
 	nop
 	bnez	v0,2f
 	nop
-#if !defined(GPIO_OUT_PINS) || ((GPIO_OUT_PINS &(1<<34)) && (!defined(GPIO_OUT_SET) || (GPIO_OUT_SET & (1<<34))))
-	//gmac1 phy reset
 	li t1,0xbfe10500
 	li t2,(1 << 2) //34 - 2
 	not t2,t2
@@ -967,27 +982,34 @@ pcie_cfg_done:
 	not t2,t2
 	and t2,t3 
 	sw t2,0x14(t1)
-#endif
 2:
+#endif
 
 #include "loongson3_clksetting.S"
 
 	bal 	initserial_later
 	nop
 
+#if defined(LS2K_RESET_GPIOS_MASK)
+	// Reset GPIOs: set back to high
+	li t1,0xbfe10510
+	dli t2, LS2K_RESET_GPIOS_MASK
+	ld t3, 0x0(t1)
+	or t2, t3
+	sd t2, 0x0(t1)
+#elif !defined(GPIO_OUT_PINS) || ((GPIO_OUT_PINS &(1<<34)) && (!defined(GPIO_OUT_SET) || (GPIO_OUT_SET & (1<<34))))
 	bal	ls2k_version
 	nop
 	bnez	v0,2f
 	nop
-#if !defined(GPIO_OUT_PINS) || ((GPIO_OUT_PINS &(1<<34)) && (!defined(GPIO_OUT_SET) || (GPIO_OUT_SET & (1<<34))))
 	//gmac1 phy reset
 	li t1,0xbfe10500
 	li t2,(1 << 2) //34 - 2
 	lw t3,0x14(t1)
 	or t2,t3 
 	sw t2,0x14(t1)
-#endif
 2:
+#endif
 
 #if 1 /* Config SATA : use internel clock */
 	li	    t0, 0xbfe10000
