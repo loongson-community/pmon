@@ -2301,8 +2301,17 @@ nvram_offs:
     .global ddr3_reg_data
 
     .align  5
+#ifdef SPECIAL_MC_PARAM
+#if defined(CONFIG_DDR_16BIT)
+#include "loongson_mc2_param-ddr16bit.S"
+#elif defined(CONFIG_DDR_32BIT)
+#include "loongson_mc2_param-ddr32bit.S"
+#else
+#error "No special MC param"
+#endif
+#else
 #include "loongson_mc2_param.S"
-
+#endif
 
 #ifdef  ARB_LEVEL
 	.text

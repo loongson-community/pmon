@@ -35,6 +35,8 @@
 
 #if defined(LS2K_BOARD_PI2)
 #define LS2K_BOARD_NAME "Loongson-2K-SOC-1w-V1-PI2"
+#elif defined(LS2K_BOARD_EDU)
+#define LS2K_BOARD_NAME "Loongson-2K-SOC-1w-V1.1-EDU_UDB"
 #elif defined(LOONGSON_2K)
 #define LS2K_BOARD_NAME "Loongson-2K-SOC-1w-V0.6-demo"
 #endif
