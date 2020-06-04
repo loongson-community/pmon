@@ -1,0 +1,82 @@
+# Prerequisites
+*.d
+
+# Object files
+*.o
+*.ko
+*.obj
+*.elf
+
+# Linker output
+*.ilk
+*.map
+*.exp
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Libraries
+*.lib
+*.a
+*.la
+*.lo
+
+# Shared objects (inc. Windows DLLs)
+*.dll
+*.so
+*.so.*
+*.dylib
+
+# Executables
+*.exe
+*.out
+*.app
+*.i*86
+*.x86_64
+*.hex
+
+# Debug files
+*.dSYM/
+*.su
+*.idb
+*.pdb
+
+# Kernel Module Compile Results
+*.mod*
+*.cmd
+.tmp_versions/
+modules.order
+Module.symvers
+Mkfile.old
+dkms.conf
+
+# PMON specified
+Targets/*/compile
+gzrom*
+gzram*
+./tags
+*_ok
+zloader/initmips.c
+zloader/ld.script
+zloader/pmon.bin.c
+zloader/pmon.bin.gz
+zloader/*.dtb
+zloader/*.dtb.i
+Targets/*/conf/ld.script
+lib/libc/Makefile
+lib/libc/Makefile.bak
+lib/libz/Makefile
+lib/libz/Makefile.bak
+lib/libm/Makefile
+lib/libm/Makefile.bak
+zloader/flash.bin
+
+
+# Patch related
+*.patch
+*.orig
+*.rej
+
+# IDE
+.vscode
