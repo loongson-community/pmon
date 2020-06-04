@@ -12,9 +12,6 @@
 
 #define DC_FB0 1	//mtf modify
 
-#define FB_XSIZE 1280
-#define FB_YSIZE 1024
-
 #define DIS_WIDTH  FB_XSIZE
 #define DIS_HEIGHT FB_YSIZE
 #define EXTRA_PIXEL  0
