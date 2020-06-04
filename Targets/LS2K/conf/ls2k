@@ -373,4 +373,6 @@ option CORE_FREQ=800
 #option LOWPOWER
 select raw_ether
 
+#option LS2K_NO_ACPI # ACPI have been disabled by hardware
+
 option LS2K_DEFAULT_OLDPMON

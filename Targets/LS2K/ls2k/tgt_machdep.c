@@ -695,8 +695,13 @@ void tgt_reboot()//mtf
 
 void tgt_poweroff()//mtf
 {
+#ifdef LS2K_NO_ACPI
+	/* Poweroff = reboot on no-ACPI systems */
+	*(volatile unsigned int *)0xbfe07030 = 1;
+#else
 	*(volatile unsigned int *)0xbfe0700c &= 0xffffffff;
 	*(volatile unsigned int *)0xbfe07014 = 0x3c00;
+#endif
 }
 
 /*
