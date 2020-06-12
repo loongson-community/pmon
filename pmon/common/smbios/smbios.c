@@ -192,6 +192,10 @@ smbios_entry_point_init(void *start,
 
 static inline int cpu_probe_release(void)
 {
+
+#ifdef LOONGSON3_VIRT
+        return 0;
+#else
        unsigned long cputype_flag = 0;
         __asm__ volatile (
                 ".set     mips3\r\n"
@@ -203,10 +207,14 @@ static inline int cpu_probe_release(void)
                return 1;
         else
                return 0;
+#endif
 }
 /* board_name information */
 static void board_info(char *board_name)
 {
+#ifdef BOARD_NAME
+        strcpy(board_name, BOARD_NAME);
+#else
 #ifdef LOONGSON_3ASINGLE
 	if(cpu_probe_release())
         	strcpy(board_name, "Loongson-3A5-780E-1w-V1.1-demo");
@@ -256,7 +264,7 @@ static void board_info(char *board_name)
 #ifdef LOONGSON_2K
         strcpy(board_name, LS2K_BOARD_NAME);
 #endif
-
+#endif
 	return ;
 }
 

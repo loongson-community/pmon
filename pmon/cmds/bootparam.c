@@ -424,7 +424,7 @@ struct irq_source_routing_table *init_irq_source()
 	irq_info->pci_io_start_addr = 0xffffffffbfd00000;
 #elif defined(LOONGSON_2F1A)
 	irq_info->pci_io_start_addr = 0xffffffffbfd00000;
-#elif defined(LOONGSON_2K)
+#elif defined(LOONGSON_2K) || defined(LOONGSON3_VIRT)
   irq_info->pci_io_start_addr = 0x18000000; /* PHY ADDR! */
 #else
 	irq_info->pci_io_start_addr = 0x00000efdfc000000;
