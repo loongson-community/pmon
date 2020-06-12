@@ -121,6 +121,8 @@ extern int write_at_cursor(char val);
 extern const char *kbd_error_msgs[];
 #include "flash.h"
 
+#include "qemu_fw_cfg.h"
+
 #if (NMOD_FLASH_AMD + NMOD_FLASH_INTEL + NMOD_FLASH_SST) == 0
 #ifdef HAVE_FLASH
 #undef HAVE_FLASH
@@ -200,34 +202,12 @@ struct FackTermDev
 
 ConfigEntry	ConfigTable[] =
 {
-#ifdef HAVE_NB_SERIAL
-#ifdef USE_LPC_UART
-	{ (char *)COM3_BASE_ADDR, 0, ns16550, 256, CONS_BAUD, NS16550HZ },
-#else
 	{ (char *)GS3_UART_BASE, 0, ns16550, 256, CONS_BAUD, NS16550HZ },
-#endif
-#endif
 #if NMOD_VGACON >0
 #if NMOD_FRAMEBUFFER >0
 	{ (char *)1, 0, fbterm, 256, CONS_BAUD, NS16550HZ },
 #else
 	{ (char *)1, 0, vgaterm, 256, CONS_BAUD, NS16550HZ },
-#endif
-#endif
-#ifdef USE_SUPERIO_UART
-	 { (char *)-1, 0, ns16550, 256, CONS_BAUD, NS16550HZ/2 ,0}, 
-	 { (char *)-1, 0, ns16550, 256, CONS_BAUD, NS16550HZ/2 ,0}, 
-#ifdef SUPERIO_UART3_IRQPORT
-	 { (char *)-1, 0, ns16550, 256, CONS_BAUD, NS16550HZ/2 ,0}, 
-#endif
-#ifdef SUPERIO_UART4_IRQPORT
-	 { (char *)-1, 0, ns16550, 256, CONS_BAUD, NS16550HZ/2 ,0}, 
-#endif
-#ifdef SUPERIO_UART5_IRQPORT
-	 { (char *)-1, 0, ns16550, 256, CONS_BAUD, NS16550HZ/2 ,0}, 
-#endif
-#ifdef SUPERIO_UART6_IRQPORT
-	 { (char *)-1, 0, ns16550, 256, CONS_BAUD, NS16550HZ/2 ,0}, 
 #endif
 #endif
 	{ 0 }
@@ -264,11 +244,11 @@ void initmips(void)
 
 	tgt_fpuenable();
 
-	memorysize = 0x10000000;
-	memorysize_high = 0x10000000;
-	memorysize_total = 1024;
+	raw_memsz = fw_cfg_ram_size();
 
-//	get_memorysize(raw_memsz);
+	memorysize = 0x10000000;
+	memorysize_high = raw_memsz - 0x10000000;
+	memorysize_total = raw_memsz >> 20;
 
 	/*
 	 *  Probe clock frequencys so delays will work properly.
@@ -602,55 +582,13 @@ static inline void CMOS_WRITE(unsigned char val, unsigned char addr)
 static void
 _probe_frequencies()
 {
-#ifdef HAVE_TOD
-        int i, timeout, cur, sec, cnt;
-#endif
-                                                                    
+                                                            
         SBD_DISPLAY ("FREQ", CHKPNT_FREQ);
 
-        md_pipefreq = 660000000;        /* NB FPGA*/
-        md_cpufreq  =  60000000;
+        md_pipefreq = fw_cfg_cpu_freq();
+        md_cpufreq = 66000000;;
 
-        clk_invalid = 1;
-#ifdef HAVE_TOD
-        init_legacy_rtc();
-
-        SBD_DISPLAY ("FREI", CHKPNT_FREQ);
-
-        /*
-         * Do the next twice for two reasons. First make sure we run from
-         * cache. Second make sure synched on second update. (Pun intended!)
-         */
-aa:
-        for(i = 2;  i != 0; i--) {
-                cnt = CPU_GetCOUNT();
-                timeout = 10000000;
-                while(CMOS_READ(DS_REG_CTLA) & DS_CTLA_UIP);
-                sec = CMOS_READ(DS_REG_SEC);
-                do {
-                        timeout--;
-                        while(CMOS_READ(DS_REG_CTLA) & DS_CTLA_UIP);
-                        cur = CMOS_READ(DS_REG_SEC);
-                } while(timeout != 0 && (cur == sec));
-                cnt = CPU_GetCOUNT() - cnt;
-                if(timeout == 0) {
-			tgt_printf("time out!\n");
-                        break;          /* Get out if clock is not running */
-                }
-        }
-	/*
-	 *  Calculate the external bus clock frequency.
-	 */
-	if (timeout != 0) {
-		clk_invalid = 0;
-		md_pipefreq = cnt / 10000;
-		md_pipefreq *= 20000;
-		/* we have no simple way to read multiplier value
-		 */
-		md_cpufreq = 66000000;
-	}
-         tgt_printf("cpu fre %u\n",md_pipefreq);
-#endif /* HAVE_TOD */
+        clk_invalid = 0;
 }
 
 /*
@@ -1565,4 +1503,20 @@ void  print_cpu_info()
 	bogo = freq * loops / (cycles2 - cycles1);
 
 	printf("BogoMIPS: %d\n", bogo);
+}
+
+void board_info_fixup(struct efi_cpuinfo_loongson * c)
+{
+	int nr_cpus, i;
+
+	nr_cpus = fw_cfg_nb_cpus();
+
+	c->cpu_startup_core_id = 0;
+	c->total_node = (nr_cpus + 3) / 4;
+
+	c->reserved_cores_mask = 0xff;
+
+	for (i = 0; i < nr_cpus; i++) {
+		c->reserved_cores_mask &= ~(1 << i);
+	}
 }
