@@ -16,7 +16,7 @@
 #include "mod_framebuffer.h"
 #include "vesa.h"
 
-#define vgaram_base (VGA_BASE + 0xa0000)
+#define UMA_VRAM_BASE (VGA_BASE + 0xa0000)
 
 #define ALLOC_ENTRIES(x) ((V_RAM / x) - 1)
 
@@ -274,6 +274,36 @@ void *vbiosMem = 0;
 
 int cacluate_vesamode();
 
+static void *find_vram(pcitag_t tag)
+{
+	int bar;
+	unsigned long int reg;
+	void *first_membar = 0;
+
+	printf("Looking VRAM BAR in GFX device BARs\n");
+
+	for (bar = 0; bar < 6; bar++) {
+		reg = _pci_conf_read(tag, 0x10 + 4 * bar);
+
+		if (PCI_MAPREG_TYPE(reg) == PCI_MAPREG_TYPE_IO)
+			continue; /* Ignore IO BAR */
+
+		if (!first_membar)
+			first_membar = 0x80000000 | PCI_MAPREG_MEM_ADDR(reg);
+
+		if (PCI_MAPREG_MEM_PREFETCHABLE(reg)) {
+			printf("Found prefetcable mem bar %d , 0x%x\n", bar, reg);
+			return 0x80000000 | PCI_MAPREG_MEM_ADDR(reg);
+		}
+
+		if (PCI_MAPREG_MEM_TYPE(reg) == PCI_MAPREG_MEM_TYPE_64BIT)
+			bar++; /* Skip high 32 of 64bit BAR */
+	}
+
+	printf("Fallback to first membar: 0x%x\n", first_membar);
+	return first_membar;
+}
+
 int vga_bios_init(void)
 {
 	xf86Int10InfoPtr pInt;
@@ -400,18 +430,13 @@ int vga_bios_init(void)
 #endif
 #endif
 
-	/*
-	 * we need to map video RAM MMIO as some chipsets map mmio
-	 * registers into this range.
-	 */
-	INTPriv(pInt)->vRam = (void *)vgaram_base;
 	if (!sysMem) {
 		sysMem = malloc(BIOS_SIZE);
 		setup_system_bios(sysMem);
 	}
 	INTPriv(pInt)->sysMem = sysMem;
-	printf("memorysize=%llx,base=%x,sysMem=%x,vram=%x\n", memorysize,
-	       INTPriv(pInt)->base, sysMem, INTPriv(pInt)->vRam);
+	printf("memorysize=%llx,base=%x,sysMem=%x\n", memorysize,
+	       INTPriv(pInt)->base, sysMem);
 	setup_int_vect(pInt);
 	set_return_trap(pInt);
 
@@ -432,13 +457,25 @@ int vga_bios_init(void)
 			    ("Found discrete graphics device: vendor=0x%04x, device=0x%04x\n",
 			     PCI_VENDOR(pdev->pa.pa_id),
 			     PCI_PRODUCT(pdev->pa.pa_id));
+
+		   /*
+			* we need to map video RAM MMIO as some chipsets map mmio
+			* registers into this range.
+			*/
+			INTPriv(pInt)->vRam = find_vram(pdev->pa.pa_tag);
+			if (!INTPriv(pInt)->vRam)
+				INTPriv(pInt)->vRam = (void *)UMA_VRAM_BASE;
+
 		}else if(vga_dev != NULL){
 			pdev = vga_dev;
 			printk("USE inter-graphic device: vendor:%04x, device=0x:%04x\n",
 			     PCI_VENDOR(pdev->pa.pa_id),
 			     PCI_PRODUCT(pdev->pa.pa_id));
+			INTPriv(pInt)->vRam = (void *)UMA_VRAM_BASE;
 		} else
 			return -1;
+
+		printf("VRAM (Shadowed to 0xa0000) = 0x%x\n", INTPriv(pInt)->vRam);
 
 		if (PCI_VENDOR(pdev->pa.pa_id) == 0x102b) {
 			printk("skipping matrox cards\n");
@@ -617,7 +654,9 @@ int vga_bios_init(void)
 	//printf("lock vga\n");
 	//LockLegacyVGA(screen, &vga);
 	printf("starting bios emu...\n");
-	M.x86.debug |= DEBUG_STEP_F | DEBUG_DECODE_F | DEBUG_TRACE_F | DEBUG_MEM_TRACE_F | DEBUG_IO_TRACE_F | DEBUG_DECODE_F;
+#ifdef DEBUG_EMU_VGA
+	M.x86.debug |= DEBUG_DECODE_F | DEBUG_MEM_TRACE_F | DEBUG_IO_TRACE_F;
+#endif
 	//X86EMU_trace_on();
 	//printf("end of trace ......................................\n");
 	//printf("ax=%lx,bx=%lx,cx=%lx,dx=%lx\n", pInt->ax, pInt->bx, pInt->cx, pInt->dx);
