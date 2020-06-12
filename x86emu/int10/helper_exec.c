@@ -287,6 +287,8 @@ CARD8 x_inb(CARD16 port)
 		stack_trace(Int10Current);
 #endif				/* __NOT_YET__ */
 	} else {
+	if (pciCfg1in(port, &val, PCI_BYTE))
+		return val;
 #ifdef PCIE_GRAPHIC_CARD
 		val = pci_linux_inb(port);
 #else
@@ -299,8 +301,7 @@ CARD8 x_inb(CARD16 port)
 			sw = !sw;
 		}
 #ifdef PRINT_PORT
-		if(port!=0x3da&& port!=0x3ba&&port!=0x61) printf(" inb(%#x) = %2.2x\n", port, val);
-//		printf(" inb(%#x) = %2.2x\n", port, val);
+        printf(" inb(%#x) = %2.2x\n", port, val);
 #endif
 	}
 	return val;
@@ -317,23 +318,40 @@ CARD16 x_inw(CARD16 port)
 		 *      TODO: need complete!
 		 */
 	} else {
+#if !defined(_PC) && !defined(_PC_PCI)
+	if (pciCfg1in(port, &val, PCI_WORD))
+		return val;
+#endif
 #ifdef PCIE_GRAPHIC_CARD
 		val = pci_linux_inw(port);
 #else
-		val = linux_inw(port);
+		/*
+		 * Special workaround for QEMU STDVGA (Bochs VBE), unaligned
+		 * VBE DATA PORT can only accept 16bit write, so they
+		 * shadowed it to port + 1 for arch other than i386.  
+		 */
+		if (port == 0x1CF)
+			port++;
+
+		if (port % 2) {
+			val = linux_inb(port) & 0xff;
+			val |= (linux_inb(port + 1) & 0xff) << 8;
+		} else {
+			val = linux_inw(port);
+		}
 #endif
 	}
 #ifdef PRINT_PORT
 	  printf(" inw(%#x) = %4.4x\n", port, val);
 #endif
-	/*if(port==0x100a&&val==0x18f){
-	   M.x86.debug=3;
-	   } */
 	return val;
 }
 
 void x_outb(CARD16 port, CARD8 val)
 {
+	if (pciCfg1out(port, &val, PCI_WORD))
+		return;
+
 	if ((port == 0x43) && (val == 0)) {
 		/*
 		 * Emulate a PC's timer 0.  Such timers typically have a resolution of
@@ -361,6 +379,10 @@ void x_outb(CARD16 port, CARD8 val)
 
 void x_outw(CARD16 port, CARD16 val)
 {
+#if !defined(_PC) && !defined(_PC_PCI)
+	if (pciCfg1out(port, &val, PCI_WORD))
+		return;
+#endif
 #ifdef PRINT_PORT
 	if ((port == 0x3c4 && ((val & 0xff) == 0x13 || (val & 0xff) == 0x14)) || (port != 0x3c4))
 		printf("outw (%#x, %4.4x)\n", port, val);
@@ -369,7 +391,21 @@ void x_outw(CARD16 port, CARD16 val)
 #ifdef PCIE_GRAPHIC_CARD
 	pci_linux_outw(val, port);
 #else
-	linux_outw(val, port);
+	/*
+	 * Special workaround for QEMU STDVGA (Bochs VBE), unaligned
+	 * VBE DATA PORT can only accept 16bit write, so they
+	 * shadowed it to port + 1 for arch other than i386.  
+	 */
+	if (port == 0x1CF)
+		port++;
+
+	if (port % 2) {
+		// Port may unaligned
+		linux_outb(val & 0xff, port);
+		linux_outb((val >> 8) & 0xff, port + 1);
+	} else {
+		linux_outw(val, port);
+	}
 #endif
 #else
 	if (port == 0xd9c7) {
@@ -388,12 +424,20 @@ CARD32 x_inl(CARD16 port)
 	CARD32 val;
 
 #if !defined(_PC) && !defined(_PC_PCI)
-	if (!pciCfg1in(port, &val, PCI_DWORD))
+	if (pciCfg1in(port, &val, PCI_DWORD))
+		return val;
 #endif
 #ifdef PCIE_GRAPHIC_CARD
 		val = pci_linux_inl(port);
 #else
-		val = linux_inl(port);
+		if (port % 4) {
+			val = linux_inb(port) & 0xff;
+			val |= (linux_inb(port + 1) & 0xff) << 8;
+			val |= (linux_inb(port + 2) & 0xff) << 16;
+			val |= (linux_inb(port + 3) & 0xff) << 24;
+		} else {
+			val = linux_inl(port);
+		}
 #endif
 
 #ifdef PRINT_PORT
@@ -411,12 +455,21 @@ void x_outl(CARD16 port, CARD32 val)
 #endif
 
 #if !defined(_PC) && !defined(_PC_PCI)
-	if (!pciCfg1out(port, val, PCI_DWORD))
+	if (pciCfg1out(port, val, PCI_DWORD))
+		return;
 #endif
 #ifdef PCIE_GRAPHIC_CARD
 		pci_linux_outl(val, port);
 #else
+	if (port % 4) {
+		// Port may unaligned
+		linux_outb(val & 0xff, port);
+		linux_outb((val >> 8) & 0xff, port + 1);
+		linux_outb((val >> 16) & 0xff, port + 2);
+		linux_outb((val >> 24) & 0xff, port + 3);
+	} else {
 		linux_outl(val, port);
+	}
 #endif
 }
 
@@ -463,7 +516,8 @@ static int pciCfg1in(CARD16 addr, CARD32 * val, int type)
 		*(u32 *) val = PciCfg1Addr;
 		return 1;
 	}
-	if (addr == 0xCFC) {
+	if (0xcfc <= addr && addr <= 0xcff) {
+		unsigned int off = addr - 0xcfc;
 		if (type == 0) {
 
 			*val =
@@ -471,11 +525,11 @@ static int pciCfg1in(CARD16 addr, CARD32 * val, int type)
 					    (BUS(PciCfg1Addr),
 					     ((DEVFN(PciCfg1Addr) >> 3) & 0x1f),
 					     (DEVFN(PciCfg1Addr) & 0x7)),
-					    OFFSET(PciCfg1Addr), 1);
+					    OFFSET(PciCfg1Addr) + off, 1);
 #ifdef DEBUG_EMU_VGA
 			printk
 			    (" byte read configuration space,addr=%x,val=%x\n",
-			     PciCfg1Addr, *(u8 *) val);
+			     PciCfg1Addr + off, *(u8 *) val);
 #endif
 		} else if (type == 1) {
 			*val =
@@ -483,10 +537,10 @@ static int pciCfg1in(CARD16 addr, CARD32 * val, int type)
 					    (BUS(PciCfg1Addr),
 					     ((DEVFN(PciCfg1Addr) >> 3) & 0x1f),
 					     (DEVFN(PciCfg1Addr) & 0x7)),
-					    OFFSET(PciCfg1Addr), 2);
+					    OFFSET(PciCfg1Addr) + off, 2);
 #ifdef DEBUG_EMU_VGA
 			printk("word read configuration space,addr=%x,val=%x\n",
-			       PciCfg1Addr, *(u16 *) val);
+			       PciCfg1Addr + off, *(u16 *) val);
 #endif
 		} else if (type == 2) {
 			*val =
@@ -494,9 +548,9 @@ static int pciCfg1in(CARD16 addr, CARD32 * val, int type)
 					   (BUS(PciCfg1Addr),
 					    ((DEVFN(PciCfg1Addr) >> 3) & 0x1f),
 					    (DEVFN(PciCfg1Addr) & 0x7)),
-					   OFFSET(PciCfg1Addr));
+					   OFFSET(PciCfg1Addr) + off);
 #ifdef DEBUG_EMU_VGA
-//          printk(" dword read configuration space,addr=%x,val=%x\n",PciCfg1Addr,*(u32*)val);
+           printk(" dword read configuration space,addr=%x,val=%x\n",PciCfg1Addr + off,*(u32*)val);
 #endif
 		} else {
 			printk("wrong type for pci config op\n");
@@ -512,29 +566,30 @@ static int pciCfg1out(CARD16 addr, CARD32 val, int type)
 		PciCfg1Addr = val;
 		return 1;
 	}
-	if (addr == 0xCFC) {
+	if (0xcfc <= addr && addr <= 0xcff) {
+		unsigned int off = addr - 0xcfc;
 #ifdef DEBUG_EMU_VGA
 		printk("write configuration space,addr=%x,val=%x,type=%d\n",
-		       PciCfg1Addr, val, type);
+		       PciCfg1Addr + off, val, type);
 #endif
 		if (type == 0) {
 			_pci_conf_writen(_pci_make_tag
 					 (BUS(PciCfg1Addr),
 					  ((DEVFN(PciCfg1Addr) >> 3) & 0x1f),
 					  (DEVFN(PciCfg1Addr) & 0x7)),
-					 OFFSET(PciCfg1Addr), (u8) val, 1);
+					 OFFSET(PciCfg1Addr) + off, (u8) val, 1);
 		} else if (type == 1) {
 			_pci_conf_writen(_pci_make_tag
 					 (BUS(PciCfg1Addr),
 					  ((DEVFN(PciCfg1Addr) >> 3) & 0x1f),
 					  (DEVFN(PciCfg1Addr) & 0x7)),
-					 OFFSET(PciCfg1Addr), (u8) val, 2);
+					 OFFSET(PciCfg1Addr) + off, (u8) val, 2);
 		} else if (type == 2) {
 			_pci_conf_write(_pci_make_tag
 					(BUS(PciCfg1Addr),
 					 ((DEVFN(PciCfg1Addr) >> 3) & 0x1f),
 					 (DEVFN(PciCfg1Addr) & 0x7)),
-					OFFSET(PciCfg1Addr), (u8) val);
+					OFFSET(PciCfg1Addr) + off, (u8) val);
 		} else {
 			printk("wrong type for pci config op\n");
 		}
