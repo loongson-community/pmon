@@ -229,6 +229,22 @@ struct i386_segment_regs {
 #define F_ALL_CALC      0xff0000        /* All have been calced   */
 
 /*
+ * Control Registers.
+ */
+#define CR0_PE      0x00000001
+#define CR0_MP      0x00000002
+#define CR0_EM      0x00000004
+#define CR0_TS      0x00000008
+#define CR0_ET      0x00000010
+#define CR0_WP      0x00010000
+#define CR0_AM      0x00040000
+#define CR0_NW      0x20000000
+#define CR0_CD      0x40000000
+#define CR0_PG      0x80000000
+
+#define CR0_DEFAULT (CR0_EM)
+
+/*
  * Emulator machine state.
  * Segment usage control.
  */

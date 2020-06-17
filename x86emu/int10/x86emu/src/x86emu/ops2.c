@@ -71,6 +71,136 @@ x86emuOp2_illegal_op(u8 op2)
 
 /****************************************************************************
 REMARKS:
+Handles opcode 0x0f,0x01
+****************************************************************************/
+static void
+x86emuOp2_lsmsw(u8 X86EMU_UNUSED(op2))
+{
+    int mod, rl, rh;
+    uint destoffset, srcoffset;
+    u16 *destreg, *srcreg, val;
+    u32 *destreg32;
+
+    START_OF_INSTR();
+    FETCH_DECODE_MODRM(mod, rh, rl);
+
+    switch (rh) {
+    case 4: /* SMSW */
+        DECODE_PRINTF("SMSW");
+        switch (mod) {
+        case 0:
+            destoffset = decode_rm00_address(rl);
+            TRACE_AND_STEP();
+            store_data_word(destoffset, CR0_DEFAULT);
+            break;
+        case 1:
+            destoffset = decode_rm01_address(rl);
+            TRACE_AND_STEP();
+            store_data_word(destoffset, CR0_DEFAULT);
+            break;
+        case 2:
+            destoffset = decode_rm10_address(rl);
+            TRACE_AND_STEP();
+            store_data_word(destoffset, CR0_DEFAULT);
+            break;
+        case 3:                    /* register to register */
+            if (M.x86.mode & SYSMODE_PREFIX_DATA) {
+                destreg32 = DECODE_RM_LONG_REGISTER(rl);
+                TRACE_AND_STEP();
+                *destreg32 = CR0_DEFAULT & 0xffff;
+            } else {
+                destreg = DECODE_RM_WORD_REGISTER(rl);
+                TRACE_AND_STEP();
+                *destreg = CR0_DEFAULT;
+            }
+            break;
+        }
+        break;
+    case 6: /* LMSW */
+        DECODE_PRINTF("LMSW");
+        switch (mod) {
+        case 0:
+            srcoffset = decode_rm00_address(rl);
+            TRACE_AND_STEP();
+            val = fetch_data_word(srcoffset);
+            break;
+        case 1:
+            srcoffset = decode_rm01_address(rl);
+            TRACE_AND_STEP();
+            val = fetch_data_word(srcoffset);
+            break;
+        case 2:
+            srcoffset = decode_rm10_address(rl);
+            TRACE_AND_STEP();
+            val = fetch_data_word(srcoffset);
+            break;
+        case 3:                    /* register to register */
+            srcreg = DECODE_RM_WORD_REGISTER(rl);
+            TRACE_AND_STEP();
+            val = *srcreg;
+            break;
+        }
+
+        if (val != CR0_DEFAULT) {
+            /* Do we need to raise a exception here? */
+            DECODE_PRINTF("Trying to modify CR0\n");
+        }
+        break;
+    default:
+        printk("ILLEGAL 0x0f, 0x01 X86 OPCODE\n");
+        TRACE_REGS();
+        HALT_SYS();
+        break;
+    }
+
+    DECODE_CLEAR_SEGOVR();
+    END_OF_INSTR();
+}
+
+/****************************************************************************
+REMARKS:
+Handles opcode 0x0f,0x20/0x22
+****************************************************************************/
+static void
+x86emuOp2_movcr(u8 op2)
+{
+    int mod, rl, rh;
+    u32 *destreg, *srcreg;
+
+    START_OF_INSTR();
+    DECODE_PRINTF("MOV CR\n");
+    FETCH_DECODE_MODRM(mod, rh, rl);
+
+    if (rh != 0) {
+        printk("UNEMULATED x86 CR%d\n", rh);
+        TRACE_REGS();
+        HALT_SYS();
+    }
+
+    switch (op2) {
+    case 0x20:
+        DECODE_PRINTF2("FROM REG %d\n", rl);
+        srcreg = DECODE_RM_WORD_REGISTER(rl);
+        TRACE_AND_STEP();
+        if (*srcreg != CR0_DEFAULT) {
+            /* Do we need to raise a exception here? */
+            DECODE_PRINTF("Trying to modify CR0\n");
+        }
+        break;
+    case 0x22:
+        DECODE_PRINTF2("TO REG %d\n", rl);
+        destreg = DECODE_RM_WORD_REGISTER(rl);
+        TRACE_AND_STEP();
+        *destreg = CR0_DEFAULT;
+        break;
+    }
+
+    DECODE_CLEAR_SEGOVR();
+    END_OF_INSTR();
+}
+
+/****************************************************************************
+REMARKS:
 Handles opcode 0x0f,0x31
 ****************************************************************************/
 static void
@@ -2732,8 +2862,7 @@ x86emuOp2_bswap(u8 X86EMU_UNUSED(op2))
 void (*x86emu_optab2[256]) (u8) = {
                                         /*  0x00 */ x86emuOp2_illegal_op,
                                         /* Group F (ring 0 PM)      */
-                                                /*  0x01 */ x86emuOp2_illegal_op,
-                                                /* Group G (ring 0 PM)      */
+/*  0x01 */ x86emuOp2_lsmsw,
                                                 /*  0x02 */ x86emuOp2_illegal_op,
                                                 /* lar (ring 0 PM)          */
                                                 /*  0x03 */ x86emuOp2_illegal_op,
@@ -2771,12 +2900,10 @@ void (*x86emu_optab2[256]) (u8) = {
 /*  0x1d */ x86emuOp2_illegal_op,
 /*  0x1e */ x86emuOp2_illegal_op,
 /*  0x1f */ x86emuOp2_illegal_op,
-                                                /*  0x20 */ x86emuOp2_illegal_op,
-                                                /* mov reg32,creg (ring 0 PM) */
+/*  0x20 */ x86emuOp2_movcr,
                                                 /*  0x21 */ x86emuOp2_illegal_op,
                                                 /* mov reg32,dreg (ring 0 PM) */
-                                                /*  0x22 */ x86emuOp2_illegal_op,
-                                                /* mov creg,reg32 (ring 0 PM) */
+/*  0x22 */ x86emuOp2_movcr,
                                                 /*  0x23 */ x86emuOp2_illegal_op,
                                                 /* mov dreg,reg32 (ring 0 PM) */
                                                 /*  0x24 */ x86emuOp2_illegal_op,
