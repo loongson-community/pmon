@@ -337,6 +337,7 @@ int vga_bios_init(void)
         lpc_old_cmd = _pci_conf_read(lpc_tag, 0x4);
 		_pci_conf_write(lpc_tag, 0x4, lpc_old_cmd & ~0x1);
 #endif
+
 		//set io limit and io base to zero.
 		//store old value first
 		b_io_lo_val = _pci_conf_read(vga_tmp, 0x1c);
@@ -344,6 +345,11 @@ int vga_bios_init(void)
 		//write zero to io limit and io base
 		_pci_conf_write(vga_tmp, 0x1c, 0x0);
 		_pci_conf_write(vga_tmp, 0x30, 0x0);
+
+		/* enable bridge VGA legacy space decode */
+		val = _pci_conf_read(vga_tmp, 0x3c);
+		val |= 1 << 19;
+		_pci_conf_write(vga_tmp, 0x3c, val);
 
 		vga_tmp = _pci_make_tag(pcie_dev->pa.pa_bus, pcie_dev->pa.pa_device, pcie_dev->pa.pa_function);//get the device data
 		//printf("device tag: 0x%x\n", vga_tmp);
