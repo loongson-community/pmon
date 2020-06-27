@@ -269,16 +269,18 @@ extern struct vesamode *vesa_mode_head;
 
 extern unsigned long long uma_memory_size;
 unsigned long long  vbios_addr;
+unsigned long long  shadowed_vram_addr;
+unsigned long long  lfb_addr;
 //static unsigned long long * vfb_top;
 void *vbiosMem = 0;
 
 int cacluate_vesamode();
 
-static void *find_vram(pcitag_t tag)
+static unsigned long long *find_vram(pcitag_t tag)
 {
 	int bar;
 	unsigned long int reg;
-	void *first_membar = 0;
+	unsigned long long first_membar = 0;
 
 	printf("Looking VRAM BAR in GFX device BARs\n");
 
@@ -308,6 +310,7 @@ int vga_bios_init(void)
 {
 	xf86Int10InfoPtr pInt;
 	int screen;
+	int rc = 1;
 	void *base = 0;
 	legacyVGARec vga;
 	pcitag_t vga_bridge;
@@ -468,20 +471,20 @@ int vga_bios_init(void)
 			* we need to map video RAM MMIO as some chipsets map mmio
 			* registers into this range.
 			*/
-			INTPriv(pInt)->vRam = find_vram(pdev->pa.pa_tag);
-			if (!INTPriv(pInt)->vRam)
-				INTPriv(pInt)->vRam = (void *)UMA_VRAM_BASE;
-
-		}else if(vga_dev != NULL){
+			shadowed_vram_addr = find_vram(pdev->pa.pa_tag);
+			if (!shadowed_vram_addr)
+				 return -1;
+		} else if (vga_dev != NULL) {
 			pdev = vga_dev;
 			printk("USE inter-graphic device: vendor:%04x, device=0x:%04x\n",
 			     PCI_VENDOR(pdev->pa.pa_id),
 			     PCI_PRODUCT(pdev->pa.pa_id));
-			INTPriv(pInt)->vRam = (void *)UMA_VRAM_BASE;
+			shadowed_vram_addr = UMA_VRAM_BASE;
 		} else
 			return -1;
-
-		printf("VRAM (Shadowed to 0xa0000) = 0x%x\n", INTPriv(pInt)->vRam);
+		
+		INTPriv(pInt)->vRam = (void *)shadowed_vram_addr;
+		printf("VRAM (Shadowed to 0xa0000) = 0x%llx\n", shadowed_vram_addr);
 
 		if (PCI_VENDOR(pdev->pa.pa_id) == 0x102b) {
 			printk("skipping matrox cards\n");
@@ -701,38 +704,37 @@ int vga_bios_init(void)
 			vesa_mode = cacluate_vesamode(0);
 		}
 	}
-
-	for(; vesa_mode>=0 ; vesa_mode = cacluate_vesamode(vesa_mode)){
-		printk("\n\nvesa_mode : 0x%x\n", vesa_mode);
-		pInt->ax = 0x4f02;
-	//	pInt->bx = 0x4114;
-		pInt->bx = (USE_LINEAR_FRAMEBUFFER | vesa_mode_head[vesa_mode].mode);
-		printk("ax %x bx %x\n", pInt->ax, pInt->bx);
+	printk("\n\nvesa_mode : 0x%x\n", vesa_mode);
+	pInt->ax = 0x4f02;
+//	pInt->bx = 0x4114;
+	pInt->bx = (USE_LINEAR_FRAMEBUFFER | vesa_mode_head[vesa_mode].mode);
+	printk("ax %x bx %x\n", pInt->ax, pInt->bx);
+	xf86ExecX86int10(pInt);
+	if (pInt->ax != 0x004f) {
+		printk("set vesa mode failed,ax=%x mode(0x%x)\n", pInt->ax, pInt->bx);
+		rc = -1;
+	} else {
+		pInt->ax = 0x4f01;	/* get mode information */
+		pInt->cx = (USE_LINEAR_FRAMEBUFFER | vesa_mode_head[vesa_mode].mode);
+		pInt->di = 0;
+		pInt->es = 0;
 		xf86ExecX86int10(pInt);
-		if (pInt->ax != 0x004f){
-			printk("set vesa mode failed,ax=%x mode(0x%x)\n", pInt->ax, pInt->bx);
-		}else{
-			pInt->ax = 0x4f01;	/* get mode information */
-			pInt->cx = (USE_LINEAR_FRAMEBUFFER | vesa_mode_head[vesa_mode].mode);
-			pInt->di = 0;
-			pInt->es = 0;
-			xf86ExecX86int10(pInt);
-			if (pInt->ax != 0x004f)
-				printk("get vesa mode info failed,ax=%x\n", pInt->ax);
-				
-			ScreenLineLength = MEM_RW(pInt, pInt->di + 16);
-			printk("linelength=%d\n", ScreenLineLength);
-			ScreenWidth = MEM_RW(pInt, pInt->di + 18);
-			printk("width=%d\n", ScreenWidth);
-			ScreenHeight = MEM_RW(pInt, pInt->di + 20);
-			printk("height=%d\n", ScreenHeight);
-			ScreenDepth = MEM_RB(pInt, pInt->di + 25);
-			printk("depth=%d\n", ScreenDepth);
-			printk("pages=0x%x\n", MEM_RB(pInt, pInt->di + 29));
-			printk("base=0x%x\n", MEM_RL(pInt, pInt->di + 40));
-
-			break;
+		if (pInt->ax != 0x004f) {
+			printk("get vesa mode info failed,ax=%x\n", pInt->ax);
+			rc = -1;
 		}
+
+		ScreenLineLength = MEM_RW(pInt, pInt->di + 16);
+		printk("linelength=%d\n", ScreenLineLength);
+		ScreenWidth = MEM_RW(pInt, pInt->di + 18);
+		printk("width=%d\n", ScreenWidth);
+		ScreenHeight = MEM_RW(pInt, pInt->di + 20);
+		printk("height=%d\n", ScreenHeight);
+		ScreenDepth = MEM_RB(pInt, pInt->di + 25);
+		printk("depth=%d\n", ScreenDepth);
+		printk("pages=0x%x\n", MEM_RB(pInt, pInt->di + 29));
+		lfb_addr = 0x80000000 | MEM_RL(pInt, pInt->di + 40);
+		printk("base(virt)=0x%llx\n", lfb_addr);
 	}
 
 #ifdef DEBUG
@@ -781,8 +783,9 @@ int vga_bios_init(void)
 		_pci_conf_write(vga_tmp, 0x20, d_val);
 	}
 #endif
-	return 1;
-      error0:
+	return rc;
+
+error0:
 	free(pInt);
 
 	return -1;
