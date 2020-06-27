@@ -2193,6 +2193,16 @@ void ls_pcie_config_set(void)
 			break;
 		}
 	}
+
+	/* The same applied to uncached */
+	for(i=0xbfe10118;i!=0xbfe10140;i+=8) {
+		if (*(volatile long long *)(i+0x80) == 0)  {
+			*(volatile long long *)i = 0x80000000ULL;
+			*(volatile long long *)(i+0x40) = *(volatile long long *)0xbfe10060|0xffffffff80000000ULL;
+			*(volatile long long *)(i+0x80) = *(volatile long long *)0xbfe100a0;
+			break;
+		}
+	}
 }
 
 extern unsigned long long memorysize_total;
@@ -2379,12 +2389,11 @@ extern unsigned long long memorysize_high;
 #include "../../../pmon/cmds/bootparam.h"
 struct efi_memory_map_loongson * init_memory_map()
 {
-#if 0
-	struct efi_memory_map_loongson *emap = &g_map;
-	int i = 0;
-	unsigned long long size = memorysize_high;
 
-	emap->nr_map = 7;
+	struct efi_memory_map_loongson *emap = &g_map;
+	unsigned long long high_size = atoi(getenv("highmemsize")); // MB!
+	int i = 0;
+
 	emap->mem_freq = 266000000; //266Mhz
 #define EMAP_ENTRY(entry, node, type, start, size) \
 	emap->map[(entry)].node_id = (node), \
@@ -2393,45 +2402,24 @@ struct efi_memory_map_loongson * init_memory_map()
 	emap->map[(entry)].mem_size = (size), \
 	(entry)++
 
- 	EMAP_ENTRY(i, 0, SYSTEM_RAM_LOW, 0x00200000, 0x98);
+	// Note: we're only preserving PMON param mem here, that may not work with fixed FB kernel
+ 	EMAP_ENTRY(i, 0, SYSTEM_RAM_LOW, 0x00200000, (0x10000000 - 0x00200000 - 0x00200000) >> 20);
  	 /* for entry with mem_size < 1M, we set bit31 to 1 to indicate
  	  * that the unit in mem_size is Byte not MBype*/
- 	EMAP_ENTRY(i, 0, SYSTEM_RAM_HIGH, 0x110000000, atoi(getenv("ihighmemsize")) - VRAM_SIZE);
+	if (high_size <= (0x60000000 >> 20)) {
+		// Low shadow only
+		EMAP_ENTRY(i, 0, SYSTEM_RAM_HIGH, 0x90000000, high_size);
+	} else {
+		// Low shadow + rest high
+		EMAP_ENTRY(i, 0, SYSTEM_RAM_HIGH, 0x90000000, 0x60000000 >> 20);
+ 		EMAP_ENTRY(i, 0, SYSTEM_RAM_HIGH, 0x110000000 + 0x60000000, high_size - (0x60000000 >> 20));
+	}
  	EMAP_ENTRY(i, 0, SMBIOS_TABLE, (SMBIOS_PHYSICAL_ADDRESS & 0x0fffffff),
  			(SMBIOS_SIZE_LIMIT >> 20));
- 	EMAP_ENTRY(i, 0, UMA_VIDEO_RAM, 0x110000000, VRAM_SIZE);
 
-	emap->vers = 1;
-#else
-	struct efi_memory_map_loongson *emap = &g_map;
-	
-	emap->nr_map = 7;
-	emap->mem_freq = 266000000; //266Mhz
-	
-	//SYSTEM_RAM_LOW
-	emap->map[0].node_id = 0;
-	emap->map[0].mem_type = 1;
-	emap->map[0].mem_start = 0x00200000;
-	//gpu and frame buffer address 0x0a00_0000~0x0f00_0000
-	emap->map[0].mem_size = 0x98;
-	
-	//SYSTEM_RAM_HIGH
-	emap->map[1].node_id = 0;
-	emap->map[1].mem_type = 2;
-	emap->map[1].mem_start = 0x110000000 + (VRAM_SIZE << 20);
-	emap->map[1].mem_size = atoi(getenv("highmemsize")) - VRAM_SIZE;
-	
-	//SMBIOS_TABLE
-	emap->map[2].node_id = 0;
-	emap->map[2].mem_type = 10;
-	emap->map[2].mem_start = SMBIOS_PHYSICAL_ADDRESS & 0x0fffffff;
-	emap->map[2].mem_size = SMBIOS_SIZE_LIMIT >> 20;
-	
-	//UMA_VIDEO_RAM
-	emap->map[6].node_id = 0;
-	emap->map[6].mem_type = 11;
-	emap->map[6].mem_start = 0x110000000;
-	emap->map[6].mem_size = VRAM_SIZE;
-#endif
+	emap->vers = 0;
+	emap->nr_map = i;
+
 	return emap;
+#undef	EMAP_ENTRY
 }

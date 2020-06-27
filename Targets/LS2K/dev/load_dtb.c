@@ -433,6 +433,24 @@ static int set_mem_xbar()
 	   0xbfe10018 is a free window, use it remap highmem window to 2G.
 	 */
 	for(i=0xbfe10018;i!=0xbfe10040;i+=8) {
+		/* Already configured */
+		if (*(volatile long long *)i == 0x80000000ULL)
+			break;
+
+		if (*(volatile long long *)(i+0x80) == 0)  {
+			*(volatile long long *)i = 0x80000000ULL;
+			*(volatile long long *)(i+0x40) = *(volatile long long *)0xbfe10060|0xffffffff80000000ULL;
+			*(volatile long long *)(i+0x80) = *(volatile long long *)0xbfe100a0;
+			break;
+		}
+	}
+
+	/* The same applied to uncached */
+	for(i=0xbfe10118;i!=0xbfe10140;i+=8) {
+		/* Already configured */
+		if (*(volatile long long *)i == 0x80000000ULL)
+			break;
+
 		if (*(volatile long long *)(i+0x80) == 0)  {
 			*(volatile long long *)i = 0x80000000ULL;
 			*(volatile long long *)(i+0x40) = *(volatile long long *)0xbfe10060|0xffffffff80000000ULL;
