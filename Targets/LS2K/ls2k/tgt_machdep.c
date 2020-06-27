@@ -422,6 +422,40 @@ extern int fb_init(unsigned long, unsigned long);
 extern int dc_init();
 
 
+#define PCICFG5_RECFG	0xbfe13830 /*GPU*/
+#define PCICFG6_RECFG	0xbfe13838 /*DC*/
+
+static void disable_igpu(void)
+{
+	unsigned int dev;
+
+	// GPU Tag
+	dev = _pci_make_tag(0, 5, 0);
+	// Disable decoding
+	_pci_conf_write32(dev, 0x4, 0x0);
+	// Mask Device (VID DID 0xffff)
+	inl(PCICFG5_RECFG) |= 0xf;
+	_pci_conf_write32(dev, 0, 0xffffffff);
+	inl(PCICFG5_RECFG) &= 0xfffffff0;
+
+	// DC Tag
+	dev = _pci_make_tag(0, 6, 0);
+	// Disable decoding
+	_pci_conf_write32(dev, 0x4, 0x0);
+	// Mask Device (VID DID 0xffff)
+	inl(PCICFG6_RECFG) |= 0xf;
+	_pci_conf_write32(dev, 0, 0xffffffff);
+	inl(PCICFG6_RECFG) &= 0xfffffff0;
+
+	// Power down DC
+	DPMCTR = (DPMCTR&~3)|1;
+	DPMCFG |= 1;
+
+	// Power down GPU
+	GENCFG |= GENCFG_RESEGPU;
+	DPMCTR = (DPMCTR&~0xc)|4;
+	DPMCFG |= 2;
+}
 
 static void init_pcidev(void)
 {
@@ -454,6 +488,10 @@ static void init_pcidev(void)
 			printf("dc_init done\n");
 			//this parameters for 1280*1024 VGA
 		} else {
+			// Optimus allows multiple VGA in system
+			if(!getenv("optimus"))
+				disable_igpu();
+
 			fbaddress  = _pci_conf_read(pcie_dev->pa.pa_tag,0x10);
 			fbaddress = fbaddress &0xffffff00; //laster 8 bit
 			fbaddress |= 0x80000000;
