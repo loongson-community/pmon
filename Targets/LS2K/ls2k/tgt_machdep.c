@@ -460,13 +460,13 @@ static void disable_igpu(void)
 static void init_pcidev(void)
 {
 	unsigned int val;
-#if NMOD_VGACON > 0
-	int rc = 1;
 #if NMOD_FRAMEBUFFER > 0
 	unsigned long fbaddress, ioaddress;
 	extern struct pci_device *pcie_dev;
+	extern unsigned long long  lfb_addr;
+	int rc = 0;
 #endif
-#endif
+
 	*(volatile unsigned int *)0xbfe10428 &= ~(1<<19); /*disable usb prefetch*/
 	val = *(unsigned int *)0xbfe10420;
 	*(unsigned int *)0xbfe10420 = (val | 0xc000);//mtf, enable I2C1
@@ -482,29 +482,29 @@ static void init_pcidev(void)
 #endif
 #if NMOD_FRAMEBUFFER > 0
 	if (rc > 0) {
-		if(pcie_dev == NULL){
-			printf("begin fb_init\n");
-			fbaddress = dc_init();
-			printf("dc_init done\n");
-			//this parameters for 1280*1024 VGA
-		} else {
-			// Optimus allows multiple VGA in system
-			if(!getenv("optimus"))
-				disable_igpu();
-
-			fbaddress  = _pci_conf_read(pcie_dev->pa.pa_tag,0x10);
-			fbaddress = fbaddress &0xffffff00; //laster 8 bit
-			fbaddress |= 0x80000000;
+		// Optimus allows multiple VGA in system
+		if (!getenv("optimus")) {
+			printf("dGPU init success, disabling iGPU for non-optimus\n");
+			disable_igpu();
 		}
+
+		fbaddress = lfb_addr;
+	} else {
+		printf("dGPU VGA BIOS init failed, rc=%d\n",rc);
+		printf("Switch to iGPU\n");
+		printf("begin fb_init\n");
+		fbaddress = dc_init();
+		printf("dc_init done\n");
+#if NSII9022A
+		config_sii9022a();
+#endif
+	}
+
+	if (fbaddress) {
 		printf("fbaddress = %08x\n", fbaddress);
 		fb_init(fbaddress, 0);
 		printf("fb_init done\n");
-	} else {
-		printf("vga bios init failed, rc=%d\n",rc);
 	}
-#if NSII9022A
-	config_sii9022a();
-#endif
 #endif
 
 #if (NMOD_FRAMEBUFFER > 0)
