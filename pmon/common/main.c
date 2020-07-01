@@ -175,8 +175,8 @@ static int load_menu_list()
 			}
 		}
 
-		if (sd) rootdev = "/dev/fs/ext2@sd0";
-		else rootdev = "/dev/fs/ext2@wd0";
+		if (sd) rootdev = "(sd0,0)";
+		else rootdev = "(wd0,0)";
 	}
 
        //try to read boot.cfg from USB disk first
