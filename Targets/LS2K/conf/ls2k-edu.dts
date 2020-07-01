@@ -23,7 +23,6 @@
 
 	aliases {
 		ethernet0 = &gmac0;
-		ethernet1 = &gmac1;
 	};
 
 	// all soc device use 32bit address
