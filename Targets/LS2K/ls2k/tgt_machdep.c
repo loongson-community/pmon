@@ -473,6 +473,11 @@ static void init_pcidev(void)
 #ifdef ENABLE_ALL_SERIAL
 	*(volatile int *)0xbfe10428 |= 0x3fff; 
 #endif
+
+#if NSII9022A
+	config_sii9022a();
+#endif
+
 	_pci_devinit(1);	/* PCI device initialization */
 #if (NMOD_X86EMU_INT10 > 0)||(NMOD_X86EMU >0)
 	if(pcie_dev != NULL){
@@ -493,11 +498,12 @@ static void init_pcidev(void)
 		printf("dGPU VGA BIOS init failed, rc=%d\n",rc);
 		printf("Switch to iGPU\n");
 		printf("begin fb_init\n");
+		/*
+		 * Note: For encoder chip (e.g. sii9022), we should initilize them earlier
+		 * as they need time to establish link with monitor.
+		 */
 		fbaddress = dc_init();
 		printf("dc_init done\n");
-#if NSII9022A
-		config_sii9022a();
-#endif
 	}
 
 	if (fbaddress) {
