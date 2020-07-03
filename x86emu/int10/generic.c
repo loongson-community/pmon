@@ -506,6 +506,7 @@ int vga_bios_init(void)
 #endif
 		}
 		if(vga_dev != NULL)
+#ifdef VGAROM_IN_BIOS
 #if defined(RADEON7000) || defined(RS690) || defined(VESAFB) || defined(RS780E)
 		{
 			extern unsigned char vgarom[];
@@ -524,6 +525,7 @@ int vga_bios_init(void)
 #endif
 			printk("vgarom romaddress:0x%x\n",romaddress);
 		}
+#endif
 #endif
 
 		if (romaddress == 0) {

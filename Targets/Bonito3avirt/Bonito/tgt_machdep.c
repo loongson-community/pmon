@@ -361,23 +361,9 @@ void tgt_devconfig(void)
 #endif
 	config_init();
 	configure();
-	//key_board init
-#if NMOD_VGACON >0
-	if(getenv("nokbd"))
-		rc=1;
-	else {
-		rc=kbd_initialize();
-	}
-	printf("%s\n",kbd_error_msgs[rc]);
-	if(!rc){ 
-		kbd_available=1;
-	}
-#endif
 
 #ifdef INTERFACE_3A780E 
-
 	vga_available = 1;
-	kbd_available=1;
 	bios_available = 1; //support usb_kbd in bios
 	// Ask user whether to set bios menu
 	printf("Press <Del> to set BIOS,waiting for 3 seconds here..... \n");
@@ -463,7 +449,6 @@ bios:
 run:
 	vga_available = 1;
 	bios_available = 0;//support usb_kbd in bios
-	kbd_available = 1;
 
 	len = strlen(bootup);
 	for (ic = 0; ic < len; ic++)
@@ -537,48 +522,6 @@ tgt_logo()
                                                                                                             
 }                                                                                                           
 
-static void init_legacy_rtc(void)
-{
-	int year, month, date, hour, min, sec;
-	CMOS_WRITE(DS_CTLA_DV1, DS_REG_CTLA);
-	CMOS_WRITE(DS_CTLB_24 | DS_CTLB_DM | DS_CTLB_SET, DS_REG_CTLB);
-	CMOS_WRITE(0, DS_REG_CTLC);
-	CMOS_WRITE(0, DS_REG_CTLD);
-	year = CMOS_READ(DS_REG_YEAR);
-	month = CMOS_READ(DS_REG_MONTH);
-	date = CMOS_READ(DS_REG_DATE);
-	hour = CMOS_READ(DS_REG_HOUR);
-	min = CMOS_READ(DS_REG_MIN);
-	sec = CMOS_READ(DS_REG_SEC);
-	year = year%16 + year/16*10;
-	month = month%16 + month/16*10;
-	date = date%16 + date/16*10;
-	hour = hour%16 + hour/16*10;
-	min = min%16 + min/16*10;
-	sec = sec%16 + sec/16*10;
-	CMOS_WRITE(DS_CTLB_24 | DS_CTLB_DM, DS_REG_CTLB);
-	tgt_printf("RTC: %02d-%02d-%02d %02d:%02d:%02d\n", year, month, date, hour, min, sec);
-
-}
-
-int word_addr;
-
-static inline unsigned char CMOS_READ(unsigned char addr)
-{
-        unsigned char val;
-	
-	linux_outb_p(addr, 0x70);
-        val = linux_inb_p(0x71);
-	
-        return val;
-}
-                                                                               
-static inline void CMOS_WRITE(unsigned char val, unsigned char addr)
-{
-	linux_outb_p(addr, 0x70);
-        linux_outb_p(val, 0x71);
-}
-
 static void
 _probe_frequencies()
 {
@@ -618,62 +561,6 @@ int get_mem_clk()
 	return 400 * 1000 * 1000;
 }
 
-time_t tgt_gettime()
-{
-	struct tm tm;
-	int ctrlbsave;
-	time_t t;
-
-	int year, month, date, hour, min, sec, wday;
-	/*gx 2005-01-17 */
-	//return 0;
-
-#ifdef HAVE_TOD
-	if(!clk_invalid) {
-		ctrlbsave = CMOS_READ(DS_REG_CTLB);
-		CMOS_WRITE(ctrlbsave | DS_CTLB_SET, DS_REG_CTLB);
-
-		year = CMOS_READ(DS_REG_YEAR);
-		month = CMOS_READ(DS_REG_MONTH);
-		month = CMOS_READ(DS_REG_MONTH);
-		date = CMOS_READ(DS_REG_DATE);
-		wday = CMOS_READ(DS_REG_WDAY);
-		hour = CMOS_READ(DS_REG_HOUR);
-		min = CMOS_READ(DS_REG_MIN);
-		sec = CMOS_READ(DS_REG_SEC);
-
-		year = year%16 + year/16*10;
-		if(year < 50) year += 100;
-		month = (month%16 + month/16*10) - 1;
-		wday = wday%16 + wday/16*10;
-		date = date%16 + date/16*10;
-		hour = hour%16 + hour/16*10;
-		min = min%16 + min/16*10;
-		sec = sec%16 + sec/16*10;
-		tm.tm_sec = sec;
-		tm.tm_min = min;
-		tm.tm_hour = hour;
-		tm.tm_wday = wday;
-		tm.tm_mday = date;
-		tm.tm_mon = month;
-		tm.tm_year = year;
-
-		CMOS_WRITE(ctrlbsave & ~DS_CTLB_SET, DS_REG_CTLB);
-
-		tm.tm_isdst = tm.tm_gmtoff = 0;
-		t = gmmktime(&tm);
-	}
-	else
-#endif
-	{
-		t = 957960000;  /* Wed May 10 14:00:00 2000 :-) */
-	}
-	return(t);
-
-}
-
-char gpio_i2c_settime(struct tm *tm);
-
 void cfg_coherent(int ac, char *av[])
 {
 }
@@ -681,28 +568,20 @@ void cfg_coherent(int ac, char *av[])
 /*
  *  Set the current time if a TOD clock is present
  */
-void
-tgt_settime(time_t t)
+
+#define GOLDFISH_RTC_BASE 0xb0081000
+#define RTC_TIME_LOW (*(volatile u32 *)(GOLDFISH_RTC_BASE))
+#define RTC_TIME_HIGH (*(volatile u32 *)(GOLDFISH_RTC_BASE + 0x4))
+
+time_t tgt_gettime()
 {
-	struct tm *tm;
-	int ctrlbsave;
-#ifdef HAVE_TOD
-	if(!clk_invalid) {
-		tm = gmtime(&t);
-		ctrlbsave = CMOS_READ(DS_REG_CTLB);
-		CMOS_WRITE(ctrlbsave | DS_CTLB_SET, DS_REG_CTLB);
+	return RTC_TIME_LOW | RTC_TIME_HIGH << 32;
+}
 
-		CMOS_WRITE((((tm->tm_year) % 100)/10*16 + ((tm->tm_year) % 100)%10), DS_REG_YEAR);
-		CMOS_WRITE((((tm->tm_mon) + 1)/10*16 + ((tm->tm_mon) + 1)%10), DS_REG_MONTH);
-		CMOS_WRITE(tm->tm_mday/10*16 + tm->tm_mday%10, DS_REG_DATE);
-		CMOS_WRITE(tm->tm_wday/10*16 + tm->tm_wday%10, DS_REG_WDAY);
-		CMOS_WRITE(tm->tm_hour/10*16 + tm->tm_hour%10, DS_REG_HOUR);
-		CMOS_WRITE(tm->tm_min/10*16 + tm->tm_min%10, DS_REG_MIN);
-		CMOS_WRITE(tm->tm_sec/10*16 + tm->tm_sec%10, DS_REG_SEC);
-
-		CMOS_WRITE(ctrlbsave & ~DS_CTLB_SET, DS_REG_CTLB);
-	}
-#endif
+void tgt_settime(time_t t)
+{
+	RTC_TIME_HIGH = t >> 32;
+	RTC_TIME_LOW = t & 0xffffffff;
 }
 
 
@@ -1174,6 +1053,8 @@ cksum(void *p, size_t s, int set)
 
 #ifndef NVRAM_IN_FLASH
 
+char nvram_tmp[128];
+
 /*
  *  Read and write data into non volatile memory in clock chip.
  */
@@ -1183,8 +1064,8 @@ nvram_get(char *buffer)
 	int i;
 //	printf("nvram_get:\n");
 	for(i = 0; i < 114; i++) {
-		linux_outb(i + RTC_NVRAM_BASE, RTC_INDEX_REG);	/* Address */
-		buffer[i] = linux_inb(RTC_DATA_REG);
+//		linux_outb(i + RTC_NVRAM_BASE, RTC_INDEX_REG);	/* Address */
+		buffer[i] = nvram_tmp[i];
 	}
 /*	for(i = 0; i < 114; i++) {
 		printf("%x ", buffer[i]);
@@ -1198,8 +1079,9 @@ nvram_put(char *buffer)
 	int i;
 //	printf("nvram_put:\n");
 	for(i = 0; i < 114; i++) {
-		linux_outb(i+RTC_NVRAM_BASE, RTC_INDEX_REG);	/* Address */
-		linux_outb(buffer[i],RTC_DATA_REG);
+//		linux_outb(i+RTC_NVRAM_BASE, RTC_INDEX_REG);	/* Address */
+//		linux_outb(buffer[i],RTC_DATA_REG);
+ 		nvram_tmp[i] = buffer[i];
 	}
 /*	for(i = 0; i < 114; i++) {
 		printf("%x ", buffer[i]);
