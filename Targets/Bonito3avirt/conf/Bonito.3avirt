@@ -20,8 +20,9 @@ option		TARGETNAME="\"Bonito\""
 option      BOARD_NAME="\"Loongson-3A-VIRT-1w-V1.00-demo\""
 
 option      LOONGSON3_VIRT
-option      CONFIG_VIDEO_LOGO
-option      CONFIG_VIDEO_BMP_LOGO
+#option      CONFIG_VIDEO_LOGO
+option      CONFIG_VIDEO_SPLASH
+
 #
 # Platform options
 #

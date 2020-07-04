@@ -107,6 +107,15 @@ CONFIG_VIDEO_HW_CURSOR:	     - Uses the hardware cursor capability of the
 #include "mod_sisfb.h"
 #include <dev/pci/pcivar.h>
 #include "mod_x86emu_int10.h"
+#include <sys/linux/io.h>
+#include "byteorder.h"
+
+#if defined(CONFIG_VIDEO_LOGO) || defined(CONFIG_VIDEO_SPLASH)
+// Put images here
+#include "splash/lemote_logo4.h"
+#endif
+
+#define CONFIG_BMP_DISPLAY
 
 #ifdef RADEON7000
 //#define VIDEO_FB_LITTLE_ENDIAN
@@ -163,13 +172,12 @@ CONFIG_VIDEO_HW_CURSOR:	     - Uses the hardware cursor capability of the
 #include "video_font.h"
 #ifdef CFG_CMD_DATE
 #include <rtc.h>
-
 #endif
 
-#if (CONFIG_COMMANDS & CFG_CMD_BMP) || defined(CONFIG_SPLASH_SCREEN)
-#include <watchdog.h>
-#include <bmp_layout.h>
-#endif /* (CONFIG_COMMANDS & CFG_CMD_BMP) || CONFIG_SPLASH_SCREEN */
+#if defined(CONFIG_BMP_DISPLAY)
+#include "bmp_layout.h"
+#define WATCHDOG_RESET(x)
+#endif /* defined(CONFIG_BMP_DISPLAY) */
 
 /*****************************************************************************/
 /* Cursor definition:							     */
@@ -234,28 +242,9 @@ void	console_cursor (int state);
 #endif	/* CONFIG_VIDEO_HW_CURSOR */
 
 #ifdef	CONFIG_VIDEO_LOGO
-#ifdef	CONFIG_VIDEO_BMP_LOGO
-#include "bmp_logo.h"
 #define VIDEO_LOGO_WIDTH	BMP_LOGO_WIDTH
 #define VIDEO_LOGO_HEIGHT	BMP_LOGO_HEIGHT
-#define VIDEO_LOGO_LUT_OFFSET	BMP_LOGO_OFFSET
-#define VIDEO_LOGO_COLORS	BMP_LOGO_COLORS
-
-#else	/* CONFIG_VIDEO_BMP_LOGO */
-#define LINUX_LOGO_WIDTH	80
-#define LINUX_LOGO_HEIGHT	80
-#define LINUX_LOGO_COLORS	214
-#define LINUX_LOGO_LUT_OFFSET	0x20
-#define __initdata
-#include "linux_logo.h"
-#define VIDEO_LOGO_WIDTH	LINUX_LOGO_WIDTH
-#define VIDEO_LOGO_HEIGHT	LINUX_LOGO_HEIGHT
-#define VIDEO_LOGO_LUT_OFFSET	LINUX_LOGO_LUT_OFFSET
-#define VIDEO_LOGO_COLORS	LINUX_LOGO_COLORS
-#endif	/* CONFIG_VIDEO_BMP_LOGO */
-#define VIDEO_INFO_X		(VIDEO_LOGO_WIDTH)
-#define VIDEO_INFO_Y		(VIDEO_FONT_HEIGHT/2)
-#else	/* CONFIG_VIDEO_LOGO */
+#else
 #define VIDEO_LOGO_WIDTH	0
 #define VIDEO_LOGO_HEIGHT	0
 #endif	/* CONFIG_VIDEO_LOGO */
@@ -439,8 +428,6 @@ void video_drawchars_xor (int xx, int yy, unsigned char *s, int count)
 	int rows, offset, c;
 	int i;
 	
-	if(disableoutput)return;
-	
 	offset = yy * VIDEO_LINE_LEN + xx * VIDEO_PIXEL_SIZE;
 	dest0 = video_fb_address + offset;
 
@@ -510,7 +497,7 @@ void video_drawchars_xor (int xx, int yy, unsigned char *s, int count)
 				((unsigned int *) dest)[2] ^= SHORTSWAP32 ((video_font_draw_table16 [bits >> 2 & 3] & eorx) ^ bgx);
 				((unsigned int *) dest)[3] ^= SHORTSWAP32 ((video_font_draw_table16 [bits & 3] & eorx) ^ bgx);
 			}
-			dest0 += VIDEO_FONT_WIDTH * VIDEO_PIXEL_SIZE;
+			dest0 += VIDEO_FONT_WIDTH;
 			s++;
 		}
 		break;
@@ -567,7 +554,6 @@ void video_drawchars (int xx, int yy, unsigned char *s, int count)
 	int rows, offset, c;
 	int i;
 
-	if(disableoutput)return;
 	
 	offset = yy * VIDEO_LINE_LEN + xx * VIDEO_PIXEL_SIZE;
 	dest0 = video_fb_address + offset;
@@ -758,6 +744,8 @@ void video_drawsline(char *str, int rows, int cols)
 
 void video_putchar (int xx, int yy, unsigned char c)
 {
+	if(disableoutput)
+		return;
 #ifndef VIDEO_NO_CONSOLE
 	video_drawchars (xx, yy + VIDEO_LOGO_HEIGHT, &c, 1);
 #endif
@@ -765,11 +753,15 @@ void video_putchar (int xx, int yy, unsigned char c)
 #ifdef INTERFACE_3A780E
 void video_putchar1(int xx, int yy, unsigned char c)
 {
+	if(disableoutput)
+		return;
     video_drawchars (xx, yy, &c, 1);
 }
 #endif
 void video_putchar_xor (int xx, int yy, unsigned char c)
 {
+	if(disableoutput)
+		return;
 #ifndef VIDEO_NO_CONSOLE
 	video_drawchars_xor (xx, yy + VIDEO_LOGO_HEIGHT, &c, 1);
 #endif
@@ -999,7 +991,7 @@ void video_puts (const char *s)
 
 /*****************************************************************************/
 
-#if (CONFIG_COMMANDS & CFG_CMD_BMP) || defined(CONFIG_SPLASH_SCREEN)
+#if defined(CONFIG_BMP_DISPLAY)
 
 #define FILL_8BIT_332RGB(r,g,b)	{			\
 	*fb = ((r>>5)<<5) | ((g>>5)<<2) | (b>>6);	\
@@ -1042,6 +1034,9 @@ void video_puts (const char *s)
  * Display the BMP file located at address bmp_image.
  * Only uncompressed
  */
+
+#define CENTER_MAGIC 4096
+
 int video_display_bitmap (ulong bmp_image, int x, int y)
 {
 	ushort xcount, ycount;
@@ -1053,13 +1048,13 @@ int video_display_bitmap (ulong bmp_image, int x, int y)
 	unsigned colors;
 	unsigned long compression;
 	bmp_color_table_entry_t cte;
+	int ret = 0;
 #ifdef CONFIG_VIDEO_BMP_GZIP
 	unsigned char *dst = NULL;
 	ulong len;
 #endif
 
-	WATCHDOG_RESET ();
-
+	
 	if (!((bmp->header.signature[0] == 'B') &&
 	      (bmp->header.signature[1] == 'M'))) {
 
@@ -1104,13 +1099,24 @@ int video_display_bitmap (ulong bmp_image, int x, int y)
 	colors = le32_to_cpu (bmp->header.colors_used);
 	compression = le32_to_cpu (bmp->header.compression);
 
-	debug ("Display-bmp: %d x %d  with %d colors\n",
+	printf ("Display-bmp: %d x %d  with %d colors\n",
 	       width, height, colors);
 
 	if (compression != BMP_BI_RGB) {
 		printf ("Error: compression type %ld not supported\n",
 			compression);
 		return 1;
+	}
+
+	if (x == CENTER_MAGIC && y == CENTER_MAGIC) {
+		x = (VIDEO_VISIBLE_COLS - width) / 2;
+		y = (VIDEO_VISIBLE_ROWS - height) / 2;
+
+		if (x < 0 || y < 0) {
+			printf("Oversize to center the bitmap\n");
+			ret = -1;
+			goto out;
+		}
 	}
 
 	padded_line = (((width * bpp + 7) / 8) + 3) & ~0x3;
@@ -1142,7 +1148,6 @@ int video_display_bitmap (ulong bmp_image, int x, int y)
 		switch (VIDEO_DATA_FORMAT) {
 		case GDF__8BIT_INDEX:
 			while (ycount--) {
-				WATCHDOG_RESET ();
 				xcount = width;
 				while (xcount--) {
 					*fb++ = *bmap++;
@@ -1153,7 +1158,6 @@ int video_display_bitmap (ulong bmp_image, int x, int y)
 			break;
 		case GDF__8BIT_332RGB:
 			while (ycount--) {
-				WATCHDOG_RESET ();
 				xcount = width;
 				while (xcount--) {
 					cte = bmp->color_table[*bmap++];
@@ -1165,7 +1169,7 @@ int video_display_bitmap (ulong bmp_image, int x, int y)
 			break;
 		case GDF_15BIT_555RGB:
 			while (ycount--) {
-				WATCHDOG_RESET ();
+				
 				xcount = width;
 				while (xcount--) {
 					cte = bmp->color_table[*bmap++];
@@ -1177,7 +1181,7 @@ int video_display_bitmap (ulong bmp_image, int x, int y)
 			break;
 		case GDF_16BIT_565RGB:
 			while (ycount--) {
-				WATCHDOG_RESET ();
+				
 				xcount = width;
 				while (xcount--) {
 					cte = bmp->color_table[*bmap++];
@@ -1189,7 +1193,6 @@ int video_display_bitmap (ulong bmp_image, int x, int y)
 			break;
 		case GDF_32BIT_X888RGB:
 			while (ycount--) {
-				WATCHDOG_RESET ();
 				xcount = width;
 				while (xcount--) {
 					cte = bmp->color_table[*bmap++];
@@ -1201,7 +1204,6 @@ int video_display_bitmap (ulong bmp_image, int x, int y)
 			break;
 		case GDF_24BIT_888RGB:
 			while (ycount--) {
-				WATCHDOG_RESET ();
 				xcount = width;
 				while (xcount--) {
 					cte = bmp->color_table[*bmap++];
@@ -1219,7 +1221,6 @@ int video_display_bitmap (ulong bmp_image, int x, int y)
 		switch (VIDEO_DATA_FORMAT) {
 		case GDF__8BIT_332RGB:
 			while (ycount--) {
-				WATCHDOG_RESET ();
 				xcount = width;
 				while (xcount--) {
 					FILL_8BIT_332RGB (bmap[2], bmap[1], bmap[0]);
@@ -1231,7 +1232,6 @@ int video_display_bitmap (ulong bmp_image, int x, int y)
 			break;
 		case GDF_15BIT_555RGB:
 			while (ycount--) {
-				WATCHDOG_RESET ();
 				xcount = width;
 				while (xcount--) {
 					FILL_15BIT_555RGB (bmap[2], bmap[1], bmap[0]);
@@ -1243,7 +1243,6 @@ int video_display_bitmap (ulong bmp_image, int x, int y)
 			break;
 		case GDF_16BIT_565RGB:
 			while (ycount--) {
-				WATCHDOG_RESET ();
 				xcount = width;
 				while (xcount--) {
 					FILL_16BIT_565RGB (bmap[2], bmap[1], bmap[0]);
@@ -1255,7 +1254,6 @@ int video_display_bitmap (ulong bmp_image, int x, int y)
 			break;
 		case GDF_32BIT_X888RGB:
 			while (ycount--) {
-				WATCHDOG_RESET ();
 				xcount = width;
 				while (xcount--) {
 					FILL_32BIT_X888RGB (bmap[2], bmap[1], bmap[0]);
@@ -1267,7 +1265,6 @@ int video_display_bitmap (ulong bmp_image, int x, int y)
 			break;
 		case GDF_24BIT_888RGB:
 			while (ycount--) {
-				WATCHDOG_RESET ();
 				xcount = width;
 				while (xcount--) {
 					FILL_24BIT_888RGB (bmap[2], bmap[1], bmap[0]);
@@ -1288,154 +1285,74 @@ int video_display_bitmap (ulong bmp_image, int x, int y)
 		break;
 	}
 
+out:
 #ifdef CONFIG_VIDEO_BMP_GZIP
 	if (dst) {
 		free(dst);
 	}
 #endif
 
-	return (0);
+	return ret;
 }
-#endif /* (CONFIG_COMMANDS & CFG_CMD_BMP) || CONFIG_SPLASH_SCREEN */
+#endif /* defined(CONFIG_BMP_DISPLAY) */
 
 /*****************************************************************************/
 
 #ifdef CONFIG_VIDEO_LOGO
-void logo_plot (void *screen, int width, int x, int y)
-{
-
-	int xcount, i;
-	int skip   = (width - VIDEO_LOGO_WIDTH) * VIDEO_PIXEL_SIZE;
-	int ycount = VIDEO_LOGO_HEIGHT;
-	unsigned char r, g, b, *logo_red, *logo_blue, *logo_green;
-	unsigned char *source;
-	unsigned char *dest = (unsigned char *)screen + ((y * width * VIDEO_PIXEL_SIZE) + x);
-
-#ifdef CONFIG_VIDEO_BMP_LOGO
-	source = bmp_logo_bitmap;
-
-	/* Allocate temporary space for computing colormap			 */
-	logo_red = malloc (BMP_LOGO_COLORS);
-	logo_green = malloc (BMP_LOGO_COLORS);
-	logo_blue = malloc (BMP_LOGO_COLORS);
-	/* Compute color map							 */
-	for (i = 0; i < VIDEO_LOGO_COLORS; i++) {
-		logo_red[i] = (bmp_logo_palette[i] & 0x0f00) >> 4;
-		logo_green[i] = (bmp_logo_palette[i] & 0x00f0);
-		logo_blue[i] = (bmp_logo_palette[i] & 0x000f) << 4;
-	}
-#else
-	source = linux_logo;
-	logo_red = linux_logo_red;
-	logo_green = linux_logo_green;
-	logo_blue = linux_logo_blue;
-#endif
-
-	if (VIDEO_DATA_FORMAT == GDF__8BIT_INDEX) {
-#if 0
-		for (i = 0; i < VIDEO_LOGO_COLORS; i++) {
-			video_set_lut (i + VIDEO_LOGO_LUT_OFFSET,
-				       logo_red[i], logo_green[i], logo_blue[i]);
-		}
-#endif
-	}
-
-	while (ycount--) {
-		xcount = VIDEO_LOGO_WIDTH;
-		while (xcount--) {
-			r = logo_red[*source - VIDEO_LOGO_LUT_OFFSET];
-			g = logo_green[*source - VIDEO_LOGO_LUT_OFFSET];
-			b = logo_blue[*source - VIDEO_LOGO_LUT_OFFSET];
-
-			switch (VIDEO_DATA_FORMAT) {
-			case GDF__8BIT_INDEX:
-				*dest = *source;
-				break;
-			case GDF__8BIT_332RGB:
-				*dest = ((r >> 5) << 5) | ((g >> 5) << 2) | (b >> 6);
-				break;
-			case GDF_15BIT_555RGB:
-				*(unsigned short *) dest =
-					SWAP16 ((unsigned short) (((r >> 3) << 10) | ((g >> 3) << 5) | (b >> 3)));
-				break;
-			case GDF_16BIT_565RGB:
-				*(unsigned short *) dest =
-					SWAP16 ((unsigned short) (((r >> 3) << 11) | ((g >> 2) << 5) | (b >> 3)));
-				break;
-			case GDF_32BIT_X888RGB:
-				*(unsigned long *) dest =
-					SWAP32 ((unsigned long) ((r << 16) | (g << 8) | b));
-				break;
-			case GDF_24BIT_888RGB:
-#ifdef VIDEO_FB_LITTLE_ENDIAN
-				dest[0] = b;
-				dest[1] = g;
-				dest[2] = r;
-#else
-				dest[0] = r;
-				dest[1] = g;
-				dest[2] = b;
-#endif
-				break;
-			}
-			source++;
-			dest += VIDEO_PIXEL_SIZE;
-		}
-		dest += skip;
-	}
-#ifdef CONFIG_VIDEO_BMP_LOGO
-	free (logo_red);
-	free (logo_green);
-	free (logo_blue);
-#endif
-}
-
-/*****************************************************************************/
-
 static void *video_logo (void)
 {
-	char info[128] = " PMON on Loongson-ICT2E,build r31,2007.8.24.";
-
-#ifdef CONFIG_SPLASH_SCREEN
 	char *s;
-	ulong addr;
 
-	if ((s = getenv ("splashimage")) != NULL) {
-		addr = simple_strtoul (s, NULL, 16);
+	ulong addr = &splash_bmp;
 
-		if (video_display_bitmap (addr, 0, 0) == 0) {
-			return ((void *) (video_fb_address));
-		}
+	if (!disableoutput) {
+		if (video_display_bitmap(addr, 0, 0))
+			printf("Failed to draw logo\n");
 	}
-#endif /* CONFIG_SPLASH_SCREEN */
-
-	logo_plot (video_fb_address, VIDEO_COLS, (VIDEO_COLS - VIDEO_LOGO_WIDTH)* VIDEO_PIXEL_SIZE, 0);
-
-	//video_drawstring (VIDEO_INFO_X, VIDEO_INFO_Y, (unsigned char *)info);
-
-#ifdef CONFIG_CONSOLE_EXTRA_INFO
-	{
-		int i, n = ((VIDEO_LOGO_HEIGHT - VIDEO_FONT_HEIGHT) / VIDEO_FONT_HEIGHT);
-
-		for (i = 1; i < n; i++) {
-			video_get_info_str (i, info);
-			if (*info)
-				video_drawstring (VIDEO_INFO_X,
-						  VIDEO_INFO_Y + i * VIDEO_FONT_HEIGHT,
-						  (unsigned char *)info);
-		}
-	}
-#endif
 
 	return (video_fb_address + VIDEO_LOGO_HEIGHT * VIDEO_LINE_LEN);
 }
 #endif
 
+#ifdef CONFIG_VIDEO_SPLASH
+static void draw_splash(void)
+{
+	char *s;
+	char info[] = "Press [Del] to enter PMON setup";
+#ifdef BOARD_NAME
+	char board_name[] = BOARD_NAME;
+#endif
+
+	ulong addr = &splash_bmp;
+	/* Clear the sreen */
+	memsetl (video_fb_address, VIDEO_COLS * VIDEO_ROWS * VIDEO_PIXEL_SIZE / 4, CONSOLE_BG_COL);
+
+	if ((s = getenv ("splashimage")) != NULL) {
+		addr = simple_strtoul (s, NULL, 16);
+	}
+
+	if (video_display_bitmap(addr, CENTER_MAGIC, CENTER_MAGIC))
+		printf("Failed to draw splash\n");
+
+#ifdef BOARD_NAME
+	video_drawstring (10 * VIDEO_FONT_WIDTH,
+					  5 * VIDEO_FONT_HEIGHT, (unsigned char *)board_name);
+#endif
+
+	video_drawstring (10 * VIDEO_FONT_WIDTH,
+					VIDEO_VISIBLE_ROWS - 5 * VIDEO_FONT_HEIGHT, (unsigned char *)info);
+}
+#endif
+
 void video_cls(void)
 {
-	memsetl (video_fb_address + VIDEO_LOGO_HEIGHT * VIDEO_LINE_LEN, 
-		CONSOLE_SIZE>>2, 
-		CONSOLE_BG_COL);
+	/* Clear the whole screen */
+	memsetl(video_fb_address, VIDEO_COLS * VIDEO_ROWS * VIDEO_PIXEL_SIZE / 4, CONSOLE_BG_COL);
+#ifdef CONFIG_VIDEO_LOGO
+	/* Redraw video logo if needed */
+	video_logo();
+#endif
+
 #ifdef MEM_PRINTTO_VIDEO
 	if (CONSOLE_ROWS != 0)
 		memsetl (memfb, CONSOLE_ROWS * CONSOLE_COLS >> 2, CONSOLE_BG_COL);
@@ -1770,10 +1687,13 @@ int fb_init (unsigned long fbbase,unsigned long iobase)
 	eorx = fgx ^ bgx;
 
 	memsetl (video_fb_address, VIDEO_COLS * VIDEO_ROWS * VIDEO_PIXEL_SIZE / 4, CONSOLE_BG_COL);
+#ifdef CONFIG_VIDEO_SPLASH
+	draw_splash();
+#endif
 #ifdef CONFIG_VIDEO_LOGO
 	/* Plot the logo and get start point of console */
 	printf("Video: Drawing the logo ...\n");
-	video_console_address = video_logo ();
+	video_console_address = video_logo();
 #else
 	video_console_address = video_fb_address;
 #endif

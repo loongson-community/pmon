@@ -561,6 +561,9 @@ main()
 		}
 	}
 
+#ifdef CONFIG_VIDEO_SPLASH
+	video_enableoutput();
+#endif
 //#endif	
 	while(1) {
 #if 0
@@ -832,6 +835,10 @@ dbginit (char *adr)
 	memsize = memorysize;
 
 	__init();	/* Do all constructor initialisation */
+
+#ifdef CONFIG_VIDEO_SPLASH
+	video_disableoutput();
+#endif
 
 	SBD_DISPLAY ("ENVI", CHKPNT_ENVI);
 	envinit ();
