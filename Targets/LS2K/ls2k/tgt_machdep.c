@@ -510,15 +510,11 @@ static void init_pcidev(void)
 		printf("fbaddress = %08x\n", fbaddress);
 		fb_init(fbaddress, 0);
 		printf("fb_init done\n");
-	}
-#endif
-
-#if (NMOD_FRAMEBUFFER > 0)
-	if (rc > 0)
 		if (!getenv("novga"))
 			vga_available = 1;
 		else
 			vga_available = 0;
+	}
 #endif
 
 	return;
