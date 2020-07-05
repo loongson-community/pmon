@@ -8,6 +8,7 @@ option      LS2K_BOARD_EDU
 option      BOARD_NAME="\"Loongson-2K-SOC-1w-V1.1-EDU_UDB\""
 
 option      CONFIG_VIDEO_SPLASH
+option      CONFIG_VIDEO_LOGO_CUISI
 
 option		LOONGSON_2K
 option         	BOOT_PARAM
@@ -309,8 +310,6 @@ option LS2K_RESET_GPIOS_MASK="0x1000000000" # GPIO36
 
 option	PCIE_LANE_FLIP=0
 
-option CONFIG_VIDEO_LOGO
-option CONFIG_VIDEO_BMP_LOGO
 option DDR_FREQ=400
 option CORE_FREQ=1000
 #option LOWPOWER

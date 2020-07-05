@@ -112,7 +112,11 @@ CONFIG_VIDEO_HW_CURSOR:	     - Uses the hardware cursor capability of the
 
 #if defined(CONFIG_VIDEO_LOGO) || defined(CONFIG_VIDEO_SPLASH)
 // Put images here
+#ifdef CONFIG_VIDEO_LOGO_CUISI
+#include "splash/cuisi_logo1.h"
+#else
 #include "splash/lemote_logo4.h"
+#endif
 #endif
 
 #define CONFIG_BMP_DISPLAY
