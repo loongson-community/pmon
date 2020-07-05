@@ -2018,6 +2018,36 @@ static int rtl88e1111_config_init(synopGMACdevice *gmacdev)
 #endif
 
 s32 synopGMAC_read_phy_reg(u64 RegBase,u32 PhyBase, u32 RegOffset, u16 * data );
+
+static int generic_phy_reset(synopGMACdevice * gmacdev)
+{
+	u16 data;
+	int status;
+	int delay;
+
+	data = (1 << 15) | (1 << 12);	/* Autneg + Reset */
+	status = synopGMAC_write_phy_reg(gmacdev->MacBase,1,0,data);
+	if (status != 0) {
+		printf("PHY write failure\n ");
+		return -1;
+	}
+
+	delay = 2000;
+	while(delay > 0) {
+		delay--;
+		status = synopGMAC_read_phy_reg(gmacdev->MacBase,1,0,&data);
+
+		if (status == 0 && !(data & (1 << 15))) {
+			printf("PHY Reset success, reg0: %x\n", data);
+			return 0;
+		}
+	}
+	
+	printf("PHY Reset Faild, reg0: %x\n", data);
+	
+	return -1;
+}
+
 #if defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A) || (defined(LOONGSON_3A2H) && defined(LOONGSON_3A8)) || defined(LOONGSON_2K) || defined(LS7A)
 int init_phy(synopGMACdevice *gmacdev)
 #else
@@ -2042,23 +2072,26 @@ int init_phy(struct synopGMACdevice *gmacdev)
 	u16 data3;
 	synopGMAC_read_phy_reg(gmacdev->MacBase,gmacdev->PhyBase,2,&data2);
 	synopGMAC_read_phy_reg(gmacdev->MacBase,gmacdev->PhyBase,3,&data3);
-    //printf("============== phy device ID is: %x\n", data2);
-    //printf("============== phy vendor ID is: %x\n", data3);
-	if(data2 == 0x141 && ((data3 >> 10) == 0x3)){ //marvel ethernet phy
-        if(((data3 >> 4) & 0x3f) == 0x0C){  //88E11
-	        /*set 88e1111 clock phase delay*/
-	        rtl88e1111_config_init(gmacdev);
-        }else if(((data3 >> 4) & 0x3f) == 0x1D) { //88E15
-            //printf("==== Warning: gmac phy 88E151X not initialized!\n");
-            //printf("==== Warning: reset gmac phy 88E151X!\n");
-	        alaska88e151x_config_init(gmacdev);
-        } else{
-            printf("==== Warning: unrecoganized marvel gmac phy!\n");
-        }
-    } else{
-        printf("==== Warning: unrecoganized gmac phy!\n");
-    };
-	return 0;
+
+	switch (data2) {
+	case 0x141: // Marvel
+		if (((data3 >> 4) & 0x3f) == 0x0C){  //88E11
+			rtl88e1111_config_init(gmacdev);
+		} else if (((data3 >> 4) & 0x3f) == 0x1D) { //88E15
+			alaska88e151x_config_init(gmacdev);
+		} else{
+			printf("Warning: unrecoganized marvel gmac phy %x\n", data3);
+		}
+		break;
+	case 0x732: // RealTek
+		printf("RealTek PHY 0x%x, generic reset\n", data3);
+		generic_phy_reset(gmacdev);
+		break;
+	default:
+		printf("Unknown PHY 0x%x 0x%x, generic reset\n", data2, data3);
+		generic_phy_reset(gmacdev);
+		break;
+	}
 #else
 	retval = rtl8211_config_init(gmacdev);
 	return retval;
