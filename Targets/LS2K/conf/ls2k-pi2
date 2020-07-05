@@ -5,6 +5,9 @@ config          pmon
 #option          VGAROM_IN_BIOS
 
 option      LS2K_BOARD_PI2
+option      BOARD_NAME="\"Loongson-2K-SOC-1w-V1-PI2\""
+
+option      CONFIG_VIDEO_SPLASH
 
 option		LOONGSON_2K
 option         	BOOT_PARAM
