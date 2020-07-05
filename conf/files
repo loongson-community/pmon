@@ -448,6 +448,7 @@ file pmon/cmds/menulist2f.c     mod_display
 file pmon/cmds/boot_cfg.c
 file pmon/common/bootkernel.c
 file pmon/cmds/libmenu.c     mod_display
+file pmon/cmds/bootdev_sel.c     mod_display
 
 #FDT
 file lib/libfdt/fdt.c			cmd_dtb

@@ -135,143 +135,6 @@ get_line(char *line, int how)
 }
 #endif
 
-static int load_menu_list()
-{
-        char* rootdev = NULL;
-        char* path = NULL;
-	int retid;
-        struct device *dev, *next_dev;
-        char load[256];
-        memset(load, 0, 256);
-
-	show_menu=1;
-
-        if (path == NULL)
-        {
-        	path = malloc(512);
-                if (path == NULL)
-                {
-                	return 0;
-                }
-       	}
-        memset(path, 0, 512);
-
-       	rootdev = getenv("bootdev");
-        if (rootdev == NULL)
-	{
-		int wd,sd;
-		wd = sd = 0;
-		for (dev  = TAILQ_FIRST(&alldevs); dev != NULL; dev = next_dev) {
-			next_dev = TAILQ_NEXT(dev, dv_list);
-			if(dev->dv_class < DV_DISK) {
-				continue;
-			}
-
-			if (strncmp(dev->dv_xname, "wd", 2) == 0) {
-				wd = 1;
-			}
-			else if (strncmp(dev->dv_xname, "sd", 2) == 0) {
-				sd = 1;
-			}
-		}
-
-		if (sd) rootdev = "(sd0,0)";
-		else rootdev = "(wd0,0)";
-	}
-
-       //try to read boot.cfg from USB disk first
-        for (dev  = TAILQ_FIRST(&alldevs); dev != NULL; dev = next_dev) {
-                next_dev = TAILQ_NEXT(dev, dv_list);
-                if(dev->dv_class != DV_DISK) {
-                        continue;
-                }
-
-                if (strncmp(dev->dv_xname, "usb", 3) == 0) {
-                        sprintf(load, "bl -d ide /dev/fs/ext2@%s/boot/boot.cfg", dev->dv_xname);
-                        retid = do_cmd(load);
-                        if (retid == 0) {
-                                return 1;
-                        }
-                        sprintf(load, "bl -d ide /dev/fs/ext2@%s/boot.cfg", dev->dv_xname);
-                        retid = do_cmd(load);
-                        if (retid == 0) {
-                                return 1;
-                        }
-                        sprintf(load, "bl -d ide /dev/fs/fat@%s/boot/boot.cfg", dev->dv_xname);
-                        retid = do_cmd(load);
-                        if (retid == 0) {
-                                return 1;
-                        }
-                        sprintf(load, "bl -d ide /dev/fs/fat@%s/boot.cfg", dev->dv_xname);
-                        retid = do_cmd(load);
-                        if (retid == 0) {
-                                return 1;
-                        }
-                        sprintf(load, "bl -d ide /dev/fs/iso9660@%s/boot/boot.cfg", dev->dv_xname);
-                        retid = do_cmd(load);
-                        if (retid == 0) {
-                                return 1;
-                        }
-                        sprintf(load, "bl -d ide /dev/fs/iso9660@%s/boot.cfg", dev->dv_xname);
-                        retid = do_cmd(load);
-                        if (retid == 0) {
-                                return 1;
-                        }
-                }
-        }
-
-        //try to read boot.cfg from CD-ROM disk second
-        for (dev  = TAILQ_FIRST(&alldevs); dev != NULL; dev = next_dev) {
-                next_dev = TAILQ_NEXT(dev, dv_list);
-                if(dev->dv_class != DV_DISK) {
-                        continue;
-                }
-
-                if (strncmp(dev->dv_xname, "cd", 2) == 0) {
-                        sprintf(load, "bl -d ide /dev/fs/iso9660@%s/boot/boot.cfg", dev->dv_xname);
-                        retid = do_cmd(load);
-                        if (retid == 0) {
-                                return 1;
-                        }
-                        sprintf(load, "bl -d ide /dev/fs/iso9660@%s/boot.cfg", dev->dv_xname);
-                        retid = do_cmd(load);
-                        if (retid == 0) {
-                                return 1;
-                        }
-                }
-        }
-
-        //try to read boot.cfg from sata disk third
-	sprintf(path, "%s/boot/boot.cfg", rootdev);
-	if (check_config(path) == 1)
-	{
-		sprintf(path, "bl -d ide %s/boot/boot.cfg", rootdev);
-		if (do_cmd(path) == 0)
-		{
-			show_menu = 0;
-			free(path);
-			path = NULL;
-			return 1;
-		}
-		
-	}else{
-
-			sprintf(path, "%s/boot.cfg", rootdev);
-			if (check_config(path) == 1)
-			{
-				sprintf(path, "bl -d ide %s/boot.cfg", rootdev);
-				if (do_cmd(path) == 0)
-				{
-					show_menu = 0;
-					free(path);
-					path = NULL;
-					return 1;
-				}
-			}
-	}
-        
-}
-
 int check_user_password()
 {
 	char buf[50];
@@ -470,6 +333,9 @@ main()
 #ifdef ARB_LEVEL
 	save_board_ddrparam(0);
 #endif
+#ifdef CONFIG_VIDEO_SPLASH
+	video_enableoutput();
+#endif
 	if(cmd_main_mutex == 2)
 		;
 	else {
@@ -478,7 +344,8 @@ main()
 			;
 		else {
 			bios_available = 1;//support usb_kbd in bios
-			load_menu_list();
+			tty_flush();
+			do_cmd("bootdev_sel");
 			bios_available = 0;
 		}
 	}
@@ -561,9 +428,6 @@ main()
 		}
 	}
 
-#ifdef CONFIG_VIDEO_SPLASH
-	video_enableoutput();
-#endif
 //#endif	
 	while(1) {
 #if 0
