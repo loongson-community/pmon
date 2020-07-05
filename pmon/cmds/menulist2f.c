@@ -84,7 +84,7 @@ extern int load_list_menu(const char* path);
 extern int do_cmd_boot_load(int boot_id, int device_flag);
 
 
-#if 0
+#if 1
 static char* asc_pic[] =
 {" .--,       .--, ",
  "( (  \\.---./  ) ) ",
