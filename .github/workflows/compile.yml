@@ -1,0 +1,51 @@
+name: PMON Compile CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: install deps
+      run: sudo apt-get install -y flex bison xutils-dev
+    - name: Download toolchain
+      run: wget -O /tmp/gcc-4.4.0-pmon.tgz http://ftp.loongnix.org/toolchain/gcc/release/CROSS_COMPILE/gcc-4.4.0-pmon.tgz
+    - name: Install toolchain
+      run: sudo tar -zxvf /tmp/gcc-4.4.0-pmon.tgz -C /opt/
+
+    - name: Compile and install pmoncfg
+      run: cd tools/pmoncfg && make && sudo cp pmoncfg /opt/gcc-4.4.0-pmon/bin/
+
+    - name: Setup env
+      run: echo "::add-path::/opt/gcc-4.4.0-pmon/bin" && echo "::set-env name=LD_LIBRARY_PATH::/opt/gcc-4.4.0-pmon/lib:"
+
+    - name: Compile ls2k-pi2
+      run: cd zloader.ls2k-pi2 && make cfg && make tgt=rom && make dtb && cd ..
+    - name: Upload ls2k-pi2
+      uses: actions/upload-artifact@v2
+      with:
+        name: pmon-bin-ls2k-pi2
+        path: zloader/gzrom-dtb.bin
+
+    - name: Compile ls2k-edu
+      run: cd zloader.ls2k-edu && make cfg && make tgt=rom && make dtb && cd ..
+    - name: Upload ls2k-edu
+      uses: actions/upload-artifact@v2
+      with:
+        name: pmon-bin-ls2k-edu
+        path: zloader/gzrom-dtb.bin
+
+    - name: Compile 3avirt
+      run: cd zloader.3avirt && make cfg && make tgt=rom && cd ..
+    - name: Upload 3avirt
+      uses: actions/upload-artifact@v2
+      with:
+        name: pmon-bin-3avirt
+        path: zloader/gzrom.bin
