@@ -39,7 +39,7 @@
     PRINTSTR("node1 > LS7A > node0 compare fail!\r\n")
     daddu   t4, t4, 1
 1:
-#if 1
+#if 0
     dli     t0, LS7A_CONFBUS_BASE_ADDR
     //store default setting
     lw      t5, CONF_HT_ROUTE_OFFSET(t0)
