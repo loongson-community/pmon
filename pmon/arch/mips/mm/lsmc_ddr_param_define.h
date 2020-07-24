@@ -383,10 +383,19 @@
 #define MC_MULTI_CHANNEL_OFFSET  16
 #define DATA_WIDTH_32_ADDR       (0x1f0)
 #define DATA_WIDTH_32_OFFSET     18
+#ifdef LOONGSON3A4000
+#define ECC_ENABLE_ADDR          (0x1280)
+#define ECC_ENABLE_OFFSET        32
+#define ECC_INT_ENABLE_ADDR      (0x1280)
+#define ECC_INT_ENABLE_OFFSET    0
+#define ECC_DISABLE_W_UC_ERR_ADDR   (0x1280)
+#define ECC_DISABLE_W_UC_ERR_OFFSET 18
+#else
 #define ECC_ENABLE_ADDR          (0x250)
 #define ECC_ENABLE_OFFSET        16 
 #define ECC_INT_ENABLE_ADDR      (0x250)
 #define ECC_INT_ENABLE_OFFSET    0
 #define ECC_DISABLE_W_UC_ERR_ADDR   (0x250)
 #define ECC_DISABLE_W_UC_ERR_OFFSET 18
+#endif
 //------------------------

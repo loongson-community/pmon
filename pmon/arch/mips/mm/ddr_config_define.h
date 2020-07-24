@@ -377,4 +377,138 @@ dli     a1, MC_MEMSIZE_MASK;\
 dsll    a1, a1, MC0_MEMSIZE_OFFSET;\
 and     a1, s1, a1;\
 dsrl    a1, a1, MC0_MEMSIZE_OFFSET;
+
+#ifdef LOONGSON3A4000
+
+#define CHIP_CONFSIGAL_ADDR        0x900000001fe00400
+
+#define MC_INTERLEAVE_BIT_EN   (0x1<<39)
+#define MC_INTERLEAVE_BIT_MASK (0x3f)
+#define MC_INTERLEAVE_BIT_OFFSET 32
+
+#define MC_EN_MASK  (3<<30)
+#define MC0_ONLY_EN (1<<30)
+#define MC1_ONLY_EN (1<<31)
+#define MC_BOTH_EN  (MC0_ONLY_EN | MC1_ONLY_EN)
+#define MC_NONE_EN (0)
+
+#define MC_ENABLE(CMD)          \
+dli     t5, CHIP_CONFSIGAL_ADDR; \
+GET_NODE_ID_a0;                 \
+or      t5, t5, a0;             \
+ld      t7, 0x0(t5);            \
+dli     t6, MC_EN_MASK;         \
+not     t6, t6;                 \
+and     t6, t6, t7;             \
+dli     t7, CMD;                \
+or      t6, t6, t7;             \
+sd      t6, 0x0(t5);
+
+#define MC_INTERLEAVE_ENBALE(bit)  \
+dli     t5, CHIP_CONFSIGAL_ADDR;\
+GET_NODE_ID_a0;                 \
+or      t5, t5, a0;             \
+ld      t7, 0x0(t5);            \
+dli     t6, MC_INTERLEAVE_BIT_MASK;         \
+dsll    t6, t6, MC_INTERLEAVE_BIT_OFFSET;   \
+not     t6, t6;                 \
+and     t6, t6, t7;             \
+dli     t7, (bit & MC_INTERLEAVE_BIT_MASK)<<MC_INTERLEAVE_BIT_OFFSET | MC_INTERLEAVE_BIT_EN;\
+or      t6, t6, t7;             \
+sd      t6, 0x0(t5);
+
+#define MC_INTERLEAVE_DISBALE   \
+dli     t5, CHIP_CONFSIGAL_ADDR;\
+GET_NODE_ID_a0;                 \
+or      t5, t5, a0;             \
+ld      t7, 0x0(t5);            \
+dli     t6, ~MC_INTERLEAVE_BIT_EN; \
+and     t6, t6, t7;             \
+sd      t6, 0x0(t5);
+
+#define MC_WIN_CONFIG_NODE(OFFSET, BASE, MASK, MMAP)   \
+                        GET_NODE_ID_a0;                \
+                        dli     v0, DDR_MC_CONFIG_BASE;\
+								dsll    v1, OFFSET, 3;         \
+                        daddu   v0, v0, v1;            \
+                        or      v0, v0, a0;            \
+                        sd      BASE, 0x1500(v0);      \
+                        sd      MASK, 0x1580(v0);      \
+                        sd      MMAP, 0x1600(v0);
+
+#define L2X_CONFIG_WINDOW(OFFSET, BASE, MASK, MMAP) \
+                        GET_NODE_ID_a0;               \
+                        daddiu  v0, t0, OFFSET;       \
+                        dli     v1, BASE;             \
+                        or      v1, v1, a0;           \
+                        sd      v1, 0x400(v0);        \
+                        sd      v1, 0x500(v0);        \
+                        sd      v1, 0x600(v0);        \
+                        sd      v1, 0x700(v0);        \
+                        sd      v1, 0x900(v0);        \
+                        dli     v1, MASK;             \
+                        sd      v1, 0x440(v0);        \
+                        sd      v1, 0x540(v0);        \
+                        sd      v1, 0x640(v0);        \
+                        sd      v1, 0x740(v0);        \
+                        sd      v1, 0x940(v0);        \
+                        dli     v1, MMAP;             \
+                        sd      v1, 0x480(v0);        \
+                        sd      v1, 0x580(v0);        \
+                        sd      v1, 0x680(v0);        \
+                        sd      v1, 0x780(v0);        \
+                        sd      v1, 0x980(v0);
+
+#define L2X_CLEAR_WINDOW(OFFSET) \
+                        GET_NODE_ID_a0;               \
+                        daddiu  v0, t0, OFFSET;       \
+                        or      v0, v0, a0;           \
+                        sd      $0, 0x480(v0);        \
+                        sd      $0, 0x580(v0);        \
+                        sd      $0, 0x680(v0);        \
+                        sd      $0, 0x780(v0);        \
+                        sd      $0, 0x980(v0);        \
+                        sd      $0, 0x400(v0);        \
+                        sd      $0, 0x500(v0);        \
+                        sd      $0, 0x600(v0);        \
+                        sd      $0, 0x700(v0);        \
+                        sd      $0, 0x900(v0);        \
+                        sd      $0, 0x440(v0);        \
+                        sd      $0, 0x540(v0);        \
+                        sd      $0, 0x640(v0);        \
+                        sd      $0, 0x740(v0);        \
+                        sd      $0, 0x940(v0);
+
+//special used, not general, you must guarantee the original MMAP is 0xxxx4/5.
+#define L2X_RECONFIG_TO_MC0(OFFSET) \
+                        GET_NODE_ID_a0                \
+                        daddiu  v0, t0, OFFSET;       \
+                        or      v0, v0, a0;           \
+                        ld      v1, 0x980(v0);        \
+								dli     t5, 0xf;              \
+								not     t5, t5;               \
+								and     v1, v1, t5;           \
+                        ori     v1, v1, 0x4;          \
+                        sd      v1, 0x480(v0);        \
+                        sd      v1, 0x580(v0);        \
+                        sd      v1, 0x680(v0);        \
+                        sd      v1, 0x780(v0);        \
+                        sd      v1, 0x980(v0);
+
+#define L2X_RECONFIG_TO_MC1(OFFSET) \
+                        GET_NODE_ID_a0;               \
+                        daddiu  v0, t0, OFFSET;       \
+                        or      v0, v0, a0;           \
+                        ld      v1, 0x980(v0);        \
+								dli     t5, 0xf;              \
+								not     t5, t5;               \
+								and     v1, v1, t5;           \
+                        ori     v1, v1, 0x5;          \
+                        sd      v1, 0x480(v0);        \
+                        sd      v1, 0x580(v0);        \
+                        sd      v1, 0x680(v0);        \
+                        sd      v1, 0x780(v0);        \
+                        sd      v1, 0x980(v0);
+#endif //3A4000
+
 #endif
