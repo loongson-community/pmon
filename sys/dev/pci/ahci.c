@@ -118,6 +118,7 @@ static int ahci_match(struct device *parent, void *match, void *aux)
 
 	if((PCI_VENDOR(pa->pa_id) == PCI_VENDOR_SATA && PCI_PRODUCT(pa->pa_id) == PCI_PRODUCT_SATA) ||
 		(PCI_VENDOR(pa->pa_id) == PCI_VENDOR_2KSATA && PCI_PRODUCT(pa->pa_id) == PCI_PRODUCT_2KSATA) ||
+		(PCI_VENDOR(pa->pa_id) == 0x1B4B && PCI_PRODUCT(pa->pa_id) == 0x9215) ||
 		(pa->pa_class >> 8) == 0x010601)
 		return 1;
 
