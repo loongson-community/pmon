@@ -51,7 +51,7 @@ config_ht_link:
     move    t5, t0
     daddu   t6, t5, (LS3A_HT_REG_NUM * 4)
 1:
-    and     a0, t5, 0x1ff
+    and     a0, t5, 0x3ff
     bal     hexserial
     nop
     TTYDBG(": ")
@@ -163,7 +163,7 @@ config_ht_link:
 #ifdef  CHECK_HT_PLL_LOCK
     //check HT PLL lock
     move    t5, $0
-    lw      a0, 0x178(t0)
+    lw      a0, LS3A_HT_PLL_CONF(t0)
     srl     a0, a0, 3
     and     a0, a0, 0x1
     bnez    a0, 2f
@@ -381,16 +381,17 @@ config_ht_link:
     TTYDBG("Set Freq\r\n")
     srl     a1, t2, 8
     and     a1, a1, 0xf
-    sb      a1, 0x49(t0)
-    lw      a0, 0x48(t0)
+    sb      a1, (LS3A_HT_FREQ+1)(t0)
+    lw      a0,  LS3A_HT_FREQ   (t0)
+
     bal     hexserial
     nop
     TTYDBG("\r\n")
 
     TTYDBG("Set soft config\r\n")
     move    a1, t3
-    sw      a1, 0x178(t0)
-    lw      a0, 0x178(t0)
+    sw      a1, LS3A_HT_PLL_CONF(t0)
+    lw      a0, LS3A_HT_PLL_CONF(t0)
     bal     hexserial
     nop
     TTYDBG("\r\n")
@@ -402,38 +403,40 @@ config_ht_link:
     nop
     TTYDBG("Set GEN3 mode\r\n")
     li      a1, 0x88600000
-    sw      a1, 0x110(t0)
-    lw      a0, 0x110(t0)
+    sw      a1, LS3A_HT_REVISION(t0)
+    lw      a0, LS3A_HT_REVISION(t0)
     bal     hexserial
     nop
     TTYDBG("\r\n")
 
     TTYDBG("Set retry mode\r\n")
     li      a1, 0x81
-    sb      a1, 0x118(t0)
-    lw      a0, 0x118(t0)
+    sb      a1, LS3A_HT_RETRY_CONTROL(t0)
+    lw      a0, LS3A_HT_RETRY_CONTROL(t0)
     bal     hexserial
     nop
     TTYDBG("\r\n")
 
     TTYDBG("Enable scrambling\r\n")
     li      a1, 0x78
-    sb      a1, 0x130(t0)
-    lw      a0, 0x130(t0)
+    sb      a1, LS3A_HT_LINK_TRAIN(t0)
+    lw      a0, LS3A_HT_LINK_TRAIN(t0)
     bal     hexserial
     nop
     TTYDBG("\r\n")
 4:
+#ifndef LOONGSON3A4000
     TTYDBG("set buffer num\r\n")
-    lw      a0, 0x5c(t0)
+    lw      a0, LS3A_HT_RX_BUFFER_DEFAULT(t0)
     li      a1, 0xfffffff 
     or      a0, a0, a1
-    sw      a0, 0x5c(t0)
+    sw      a0, LS3A_HT_RX_BUFFER_DEFAULT(t0)
 
-    lw      a0, 0x5c(t0)
+    lw      a0, LS3A_HT_RX_BUFFER_DEFAULT(t0)
     bal     hexserial
     nop
     TTYDBG("\r\n")
+#endif
 
 #ifdef  DEBUG_HT1_PARAM
     PRINTSTR("\r\nChange some parameters of HT:");
@@ -525,6 +528,7 @@ reset_ht_link:
 
     move    s1, ra
 
+reset_start:
     dli     t0, 0x90000efdfb000000
     dli     t1, 0x90000efdfe000000
 
@@ -538,7 +542,7 @@ reset_ht_link:
     nop
 
 #ifdef  LS7A_2WAY_CONNECT
-    TTYDBG("Reset Node 1 HT1 bus\r\n")
+    TTYDBG("Reset Node 1 HT1-lo bus\r\n")
     lb      a0, 0x3e(t2)
     li      a1, 0x40
     or      a0, a0, a1
@@ -574,7 +578,7 @@ reset_ht_link:
     TTYDBG("\r\n")
 #endif
 
-    TTYDBG("Reset Node 0 HT1 bus\r\n")
+    TTYDBG("Reset Node 0 HT1-lo bus\r\n")
     lb      a0, 0x3e(t0)
     li      a1, 0x40
     or      a0, a0, a1
@@ -609,7 +613,253 @@ reset_ht_link:
     nop
     TTYDBG("\r\n")
 
-    TTYDBG("Dereset Node 0 HT1 bus\r\n")
+#if defined( CHIP_4) && !defined(DISABLE_X_LINK)
+
+#if 1 //HT1 hi is reset in loongson3_fixup, and release here to make HT link stable
+    TTYDBG("\r\nDereset Node 0 HT1-hi bus\r\n")
+    dli     t5, 0x90000ffdfb000000
+    lb      a0, 0x3e(t5)
+    li      a1, 0x40
+    not     a1, a1
+    and     a0, a0, a1
+    sb      a0, 0x3e(t5)
+    lw      a0, 0x3c(t5)
+    bal     hexserial
+    nop
+    TTYDBG("\r\n")
+    TTYDBG("Dereset Node 1 HT1-hi bus\r\n")
+    dli     t5, 0x90001ffdfb000000
+    lb      a0, 0x3e(t5)
+    li      a1, 0x40
+    not     a1, a1
+    and     a0, a0, a1
+    sb      a0, 0x3e(t5)
+    lw      a0, 0x3c(t5)
+    bal     hexserial
+    nop
+    TTYDBG("\r\n")
+#endif
+
+
+#if 1//whd: Check if CRC error bit set and reset it
+check_NODE0_HI:
+    TTYDBG("Checking Node 0 HT1 hi CRC error.\r\n")
+    dli     t5, 0x90000ffdfb000000
+
+    //wait until HT link up
+    TTYDBG("Wait HT bus up.")
+    li      a2, 0x1f
+1:
+    TTYDBG(">")
+    addi    a2, a2, -1
+    bnez    a2, 2f
+    nop
+    TTYDBG("\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b=")
+    li      a2, 0x1f
+2:
+    lw      a0, 0x44(t5)
+    li      a1, 0x20
+    and     a0, a0, a1
+    beqz    a0, 1b
+    nop
+
+    lw      a0, 0x44(t5)
+    li      a1, 0xfffffcff
+    and     a0, a0, a1
+    sw      a0, 0x44(t5)
+    sync
+
+//check for 200 times
+    li	    a2, 0x200
+2:
+    addiu   a2, -1
+    beqz    a2, 3f
+    nop
+
+    lw      a0, 0x44(t5)
+    li      a1, 0x300
+    and     a0, a0, a1
+    beqz    a0, 2b
+    nop
+    TTYDBG("\r\nCRC error found\r\n")
+    lw      a0, 0x44(t5)
+    bal     hexserial
+    nop
+
+//reset bus
+    sb      zero, 0x3e(t5)
+    sync
+    li      a1, 0x40
+    sb      a1, 0x3e(t5)
+    sync
+    sb      zero, 0x3e(t5)
+    sync
+
+    b       check_NODE0_HI
+    nop
+3:
+
+    TTYDBG("\r\nChecking Node 3 HT1 hi CRC error.\r\n")
+
+    dli     t5, 0x90003ffdfb000000
+
+    TTYDBG("Wait HT bus up.")
+    lw      a0, 0x44(t5)
+    li      a1, 0x20
+    and     a0, a0, a1
+    beqz    a0, 444f
+    nop
+
+    lw      a0, 0x44(t5)
+    li      a1, 0xfffffcff
+    and     a0, a0, a1
+    sw      a0, 0x44(t5)
+    sync
+
+//check for 200 times
+    li	    a2, 0x200
+2:
+    addiu   a2, -1
+    beqz    a2, 3f
+    nop
+
+    lw      a0, 0x44(t5)
+    li      a1, 0x300
+    and     a0, a0, a1
+    beqz    a0, 2b
+    nop
+    TTYDBG("\r\nCRC error found\r\n")
+    lw      a0, 0x44(t5)
+    bal     hexserial
+    nop
+444:
+    dli     t5, 0x90000ffdfb000000
+//reset bus
+    sb      zero, 0x3e(t5)
+    sync
+    li      a1, 0x40
+    sb      a1, 0x3e(t5)
+    sync
+    sb      zero, 0x3e(t5)
+    sync
+
+    b       check_NODE0_HI
+    nop
+3:
+
+check_NODE1_HI:
+    TTYDBG("\r\nChecking Node 1 HT1 hi CRC error.\r\n")
+    dli     t5, 0x90001ffdfb000000
+
+    //wait until HT link up
+    TTYDBG("Wait HT bus up.")
+    li      a2, 0x1f
+1:
+    TTYDBG(">")
+    addi    a2, a2, -1
+    bnez    a2, 2f
+    nop
+    TTYDBG("\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b=")
+    li      a2, 0x1f
+2:
+    lw      a0, 0x44(t5)
+    li      a1, 0x20
+    and     a0, a0, a1
+    beqz    a0, 1b
+    nop
+
+    lw      a0, 0x44(t5)
+    li      a1, 0xfffffcff
+    and     a0, a0, a1
+    sw      a0, 0x44(t5)
+    sync
+
+//check for 200 times
+    li	    a2, 0x200
+2:
+    addiu   a2, -1
+    beqz    a2, 3f
+    nop
+
+    lw      a0, 0x44(t5)
+    li      a1, 0x300
+    and     a0, a0, a1
+    beqz    a0, 2b
+    nop
+    TTYDBG("\r\nCRC error found\r\n")
+    lw      a0, 0x44(t5)
+    bal     hexserial
+    nop
+
+//reset bus
+    sb      zero, 0x3e(t5)
+    sync
+    li      a1, 0x40
+    sb      a1, 0x3e(t5)
+    sync
+    sb      zero, 0x3e(t5)
+    sync
+
+
+    b       check_NODE1_HI
+    nop
+3:
+
+    TTYDBG("\r\nChecking Node 2 HT1 hi CRC error.\r\n")
+
+    dli     t5, 0x90002ffdfb000000
+
+    TTYDBG("Wait HT bus up.")
+    lw      a0, 0x44(t5)
+    li      a1, 0x20
+    and     a0, a0, a1
+    beqz    a0, 444f
+    nop
+
+    lw      a0, 0x44(t5)
+    li      a1, 0xfffffcff
+    and     a0, a0, a1
+    sw      a0, 0x44(t5)
+    sync
+
+//check for 200 times
+    li	    a2, 0x200
+2:
+    addiu   a2, -1
+    beqz    a2, 3f
+    nop
+
+    lw      a0, 0x44(t5)
+    li      a1, 0x300
+    and     a0, a0, a1
+    beqz    a0, 2b
+    nop
+    TTYDBG("\r\nCRC error found\r\n")
+    lw      a0, 0x44(t5)
+    bal     hexserial
+    nop
+
+444:
+    dli     t5, 0x90001ffdfb000000
+//reset bus
+    sb      zero, 0x3e(t5)
+    sync
+    li      a1, 0x40
+    sb      a1, 0x3e(t5)
+    sync
+    sb      zero, 0x3e(t5)
+    sync
+
+    b       check_NODE1_HI
+    nop
+3:
+
+#endif
+
+
+#endif
+
+    TTYDBG("\r\nDereset Node 0 HT1 bus\r\n")
     lb      a0, 0x3e(t0)
     li      a1, 0x40
     not     a1, a1
@@ -632,14 +882,20 @@ reset_ht_link:
     nop
     TTYDBG("\r\n")
 
+n1_wait_ht3_link_up:
     //wait until HT link up
     TTYDBG("Wait HT bus up.")
-    li      t5, 0x1f
+    li      t5, 0xff
 1:
     TTYDBG(">")
     addi    t5, t5, -1
     bnez    t5, 2f
     nop
+
+    li      a1, 0x1
+    b	    reset_start
+    nop
+
     TTYDBG("\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b=")
     li      t5, 0x1f
     or      t8, t8, (0x1 << HT1_LINKUP_FAIL_OFFSET + N1_OFFSET)
@@ -650,21 +906,51 @@ reset_ht_link:
     beqz    a0, 1b
     nop
 
+
     TTYDBG("\r\n")
     lw      a0, 0x44(t2)
     bal     hexserial
     nop
     TTYDBG("\r\n")
+
+    lw      a0, 0x68(t2)
+    li      t5, 0x1000;
+4:    
+    addi    t5, t5, -1;
+    bnez    t5, 4b;
+    nop
+    lw	    a1, 0x68(t2);
+    beq     a0, a1, 3f;
+    nop
+//reset bus
+    dli     t5, 0x90001ffdfb000000
+    sb      zero, 0x3e(t5)
+    sync
+    li      a1, 0x40
+    sb      a1, 0x3e(t5)
+    sync
+    sb      zero, 0x3e(t5)
+    sync
+
+    b      n1_wait_ht3_link_up
+    nop
+3:
 #endif
 
+wait_ht3_link_up:
     //wait until HT link up
     TTYDBG("Wait HT bus up.")
-    li      t5, 0x1f
+    li      t5, 0xff
 1:
     TTYDBG(">")
     addi    t5, t5, -1
     bnez    t5, 2f
     nop
+
+    li      a1, 0x1
+    b	    reset_start
+    nop
+
     TTYDBG("\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b=")
     li      t5, 0x1f
     or      t8, t8, (0x1 << HT1_LINKUP_FAIL_OFFSET)
@@ -680,13 +966,35 @@ reset_ht_link:
     bal     hexserial
     nop
     TTYDBG("\r\n")
+    lw      a0, 0x68(t2)
+    li      t5, 0x1000;
+4:    
+    addi    t5, t5, -1;
+    bnez    t5, 4b;
+    nop
+    lw	    a1, 0x68(t2);
+    beq     a0, a1, 3f;
+    nop
+//reset bus
+    dli     t5, 0x90000ffdfb000000
+    sb      zero, 0x3e(t5)
+    sync
+    li      a1, 0x40
+    sb      a1, 0x3e(t5)
+    sync
+    sb      zero, 0x3e(t5)
+    sync
+
+    b      wait_ht3_link_up
+    nop
+3:
 
 #ifdef  PRINT_HT1_REG   //Print all HT registers
     TTYDBG("LS3A Node 0 HT1 registers are:\r\n")
     move    t5, t0
     daddu   t6, t5, (LS3A_HT_REG_NUM * 4)
 1:
-    and     a0, t5, 0x1ff
+    and     a0, t5, 0x3ff
     bal     hexserial
     nop
     TTYDBG(": ")
@@ -721,7 +1029,7 @@ reset_ht_link:
 #ifdef  CHECK_HT_PLL_LOCK
     //check HT PLL lock
     move    t5, $0
-    lw      a0, 0x178(t0)
+    lw      a0, LS3A_HT_PLL_CONF(t0)
     srl     a0, a0, 3
     and     a0, a0, 0x1
     bnez    a0, 2f
@@ -752,6 +1060,11 @@ reset_ht_link:
     addi    t5, t5, -1
     bnez    t5, 2f
     nop
+
+    li      a1, 0x1
+    b	    reset_start
+    nop
+
     or      t8, t8, (0x1 << HT1_CPU_CRC_FAIL_OFFSET)
     li      t5, MAX_HT_CRC_ERR_COUNT
 2:
@@ -780,6 +1093,11 @@ reset_ht_link:
     addi    t5, t5, -1
     bnez    t5, 2f
     nop
+
+    li      a1, 0x1
+    b	    reset_start
+    nop
+
     or      t8, t8, (0x1 << HT1_SB_CRC_FAIL_OFFSET)
     li      t5, MAX_HT_CRC_ERR_COUNT
 2:
@@ -811,6 +1129,11 @@ reset_ht_link:
     addi    t5, t5, -1
     bnez    t5, 2f
     nop
+
+    li      a1, 0x1
+    b	    reset_start
+    nop
+
     or      t8, t8, (0x1 << HT1_CPU_CRC_FAIL_OFFSET + N1_OFFSET)
     li      t5, MAX_HT_CRC_ERR_COUNT
 2:
@@ -839,6 +1162,11 @@ reset_ht_link:
     addi    t5, t5, -1
     bnez    t5, 2f
     nop
+
+    li      a1, 0x1
+    b	    reset_start
+    nop
+
     or      t8, t8, (0x1 << HT1_SB_CRC_FAIL_OFFSET + N1_OFFSET)
     li      t5, MAX_HT_CRC_ERR_COUNT
 2:
@@ -866,8 +1194,8 @@ reset_ht_link:
 
 88:
 #ifdef  DEBUG_HT1
-    TTYDBG("\r\nNode 0 HT1 reg: 0x178: ")
-    lw      a0, 0x178(t0)
+    TTYDBG("\r\nNode 0 HT1 reg: PLL CONFIG: ")
+    lw      a0, LS3A_HT_PLL_CONF(t0)
     bal     hexserial
     nop
     TTYDBG("\r\nNode 0 LS7A HT1 reg: 0x1F4: ")
@@ -878,8 +1206,8 @@ reset_ht_link:
     lw      a0, 0x44(t0)
     bal     hexserial
     nop
-    TTYDBG("\r\nNode 0 HT1 reg: 0x54: ")
-    lw      a0, 0x54(t0)
+    TTYDBG("\r\nNode 0 HT1 reg: RX BUS VALUE: ")
+    lw      a0, LS3A_HT_RX_BUS(t0)
     bal     hexserial
     nop
     TTYDBG("\r\nNode 0 HT1 reg: 0x120: ")
