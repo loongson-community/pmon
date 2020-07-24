@@ -53,7 +53,7 @@ option		BOOTCORE_ID=0
 option		RESERVED_COREMASK=0xfff0 #for 3a3000_7a
 option		SHUTDOWN_MASK=0x0000
 #option		LS7A_PHYS48_TO_HT40 #support 40 bit DMA device,3a4000-1w do not use it.If change bit offset should change dma rx window otherwise cause error.
-option		LS132_CORE
+#option		LS132_CORE
 option		LOONGSON3A4000
 option  	LOONGSON_3ASINGLE #for 3a3000_7a
 #option		LOONGSON_3ASERVER #for 3a3000_2w_7a or 3a4000_4w_7a
@@ -61,6 +61,8 @@ option		BONITO_100M
 #option		BONITO_25M
 option		BOOT_PARAM
 option		LS7A			#for 7A
+option      PV3205_V
+
 
 #option		ENABLE_SATA         #Enable SATA  ,when enable IDE can also use, when commended only IDE can use
 #option		X800x600

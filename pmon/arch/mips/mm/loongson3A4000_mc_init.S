@@ -2621,6 +2621,8 @@ LEAF(get_mem_clk)
     jr ra
     nop
 END(get_mem_clk)
+
+#ifdef VDDP_CTR
 LEAF(v_p_ctrl_in_mc)
 /*
  * v0 give the voltage level
@@ -2638,7 +2640,7 @@ LEAF(v_p_ctrl_in_mc)
 	.set    mips3
 	move t3, ra
 
-#ifndef MPS_V
+#ifdef PV3205_V
 	dli a3, LS7A_I2C1_REG_BASE
 	bal ls_v_i2cinit
 	nop
@@ -2660,7 +2662,7 @@ LEAF(v_p_ctrl_in_mc)
 	andi	v1, v1, SR_BUSY
 	bnez	v1, 1b
 	nop
-#else
+#elif defined(MPS_V)
 	dli a3, LS3A4000_I2C0_REG_BASE
 	bal ls_v_i2cinit_in_mc
 	nop
@@ -2698,6 +2700,8 @@ LEAF(v_p_ctrl_in_mc)
 	bal ls_v_i2cwrite_in_mc
 	nop
 	/*mps chip control one byte do not check return value*/
+#else
+#error "ls_v_i2cinit_in_mc: PMIC not supported"
 #endif
 
 	TTYDBG("\r\nio ctrl end")
@@ -2879,6 +2883,7 @@ LEAF(ls_v_i2cwrite_in_mc)
 	nop
 	.set pop
 END(ls_v_i2cwrite_in_mc)
+#endif
 
 LEAF(get_mrs7_cs)
 /***********

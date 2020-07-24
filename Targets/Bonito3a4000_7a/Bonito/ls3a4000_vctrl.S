@@ -389,18 +389,20 @@ LEAF(v_n_ctrl)
 #endif
 #ifdef INPUT_PARAM  //this code used for debug
 	WatchDog_Close
-#ifndef MPS_V
+#ifdef PV3205_V
 	PRINTSTR("\r\nInput parameter 0.9v:0x1200, 0.95v:0x1300, 1.0v:0x1400, 1.05v:0x1500, 1.1v:0x1600, 1.15v:0x1700, 1.20v:0x1800")
 	PRINTSTR("\r\nInput parameter 1.25v:0x1900, 1.3v:0x1a00")
-#else
+#elif defined(MPS_V)
 	PRINTSTR("\r\nInput parameter 0.9v:0x29, 0.95v:0x2e, 1.0v:0x33, 1.05v:0x38, 1.1v:0x3d, 1.15v:0x42, 1.20v:0x47")
 	PRINTSTR("\r\nInput parameter 1.25v:0x4c, 1.3v:0x51")
+#else
+#error "PMIC not supported"
 #endif
 	bal	inputaddress
 	nop
 	move	a2, v0
 #else
-#ifndef MPS_V
+#ifdef PV3205_V
 	//li	a2, 0x1200 //0.9v
 	//li	a2, 0x1300 //0.95v
 	//li	a2, 0x1400 //1.0v
@@ -410,7 +412,7 @@ LEAF(v_n_ctrl)
 	//li	a2, 0x1800 //1.2v
 	li	a2, 0x1900 //1.25v
 	//li	a2, 0x1a00 //1.3v
-#else
+#elif defined(MPS_V)
 	//li	a2, 41 //0.9v
 	//li	a2, 46 //0.95v
 	//li	a2, 51 //1.0v
@@ -420,12 +422,16 @@ LEAF(v_n_ctrl)
 //	li	a2, 71 //1.2v
 	li	a2, 76 //1.25v
 	//li	a2, 81 //1.3v
-#endif
-#endif
-#ifndef MPS_V
-	li	a0, PV3205_ADDR0
 #else
+#error "PMIC not supported"
+#endif
+#endif
+#ifdef PV3205_V
+	li	a0, PV3205_ADDR0
+#elif defined(MPS_V)
 	li	a0, MPS_ADDR
+#else
+#error "PMIC not supported"
 #endif
 	li	a1, 0x21 //VOUT_COMMAND
 	dli	a3, LS3A4000_I2C0_REG_BASE
@@ -435,7 +441,7 @@ LEAF(v_n_ctrl)
 	beqz	v0, 2f
 	nop
 
-#ifndef MPS_V
+#ifdef PV3205_V
 	li	a0, PV3205_ADDR1
 	bal	ls_v_i2cwrite
 	nop
@@ -484,10 +490,12 @@ LEAF(v_n_ctrl_read)
 	dli	a3, LS3A4000_I2C0_REG_BASE
 	bal	ls_v_i2cinit
 	nop
-#ifndef MPS_V
+#ifdef PV3205_V
 	li	a0, PV3205_ADDR0
-#else
+#elif defined(MPS_V)
 	li	a0, MPS_ADDR
+#else
+#error "PMIC not supported"
 #endif
 	li	a1, 0x8b //READ_VOUT
 	bal	ls_v_i2cread
@@ -496,7 +504,7 @@ LEAF(v_n_ctrl_read)
 	bal	hexserial
 	nop
 	TTYDBG("\r\n")
-#ifndef MPS_V
+#ifdef PV3205_V
 	dli	a3, LS3A4000_I2C0_REG_BASE
 	li	a0, PV3205_ADDR1
 	li	a1, 0x8b //READ_VOUT
@@ -514,7 +522,7 @@ LEAF(v_n_ctrl_read)
 	.set pop
 END(v_n_ctrl_read)
 
-#ifndef MPS_V
+#ifdef PV3205_V
 LEAF(v_vo_ctrl)
 /*
  * v0 give the voltage level
@@ -647,7 +655,7 @@ LEAF(v_p_ctrl)
 	.set    mips3
 	move	k0, ra
 
-#ifndef MPS_V
+#ifdef PV3205_V
 	dli	a3, LS7A_I2C1_REG_BASE
 	bal	ls_v_i2cinit
 	nop
@@ -672,7 +680,7 @@ LEAF(v_p_ctrl)
 	andi	v1, v1, SR_BUSY
 	bnez	v1, 1b
 	nop
-#else
+#elif defined(MPS_V)
 	dli	a3, LS3A4000_I2C0_REG_BASE
 	bal	ls_v_i2cinit
 	nop
@@ -709,6 +717,8 @@ LEAF(v_p_ctrl)
 	bal	ls_v_i2cwrite
 	nop
 	/*mps chip control one byte do not check return value*/
+#else
+#error "PMIC not supported"
 #endif
 
 	TTYDBG("p ctrl end\r\n")

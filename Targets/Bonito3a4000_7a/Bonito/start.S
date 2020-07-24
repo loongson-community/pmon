@@ -622,7 +622,7 @@ bsp_start:
 	TTYDBG("\r\nnode 0 N Voltage  write :\r\n")
 	bal	v_n_ctrl
 	nop
-#ifndef MPS_V
+#ifdef PV3205_V
 	bal	v_io_ctrl
 	nop
 #endif
@@ -641,7 +641,7 @@ bsp_start:
 	TTYDBG("\r\nnode 1 N Voltage write :\r\n")
 	bal	v_n_ctrl
 	nop
-#ifndef MPS_V
+#ifdef PV3205_V
 	bal	v_io_ctrl
 	nop
 #endif
@@ -658,7 +658,7 @@ bsp_start:
 	TTYDBG("\r\nnode 2 N Voltage write :\r\n")
 	bal	v_n_ctrl
 	nop
-#ifndef MPS_V
+#ifdef PV3205_V
 	bal	v_io_ctrl
 	nop
 #endif
@@ -674,7 +674,7 @@ bsp_start:
 	TTYDBG("\r\nnode 3 N Voltage write :\r\n")
 	bal	v_n_ctrl
 	nop
-#ifndef MPS_V
+#ifdef PV3205_V
 	bal	v_io_ctrl
 	nop
 #endif
