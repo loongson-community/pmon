@@ -6,6 +6,9 @@
 #ifdef LS3A2H_STR
 #define LS3A2H_STR_FUNC_ADDR 0xffffffffbfc00500
 #endif
+#ifdef LS3A7A_STR
+#define LS3A7A_STR_FUNC_ADDR 0xffffffffbfc00500
+#endif
 
 struct loongson_params  g_lp = { 0 };
 struct efi_memory_map_loongson g_map = { 0 };
@@ -17,7 +20,7 @@ struct interface_info g_board = { 0 };
 struct loongson_special_attribute g_special = { 0 };
 #ifdef LS7A
 unsigned char readspi_result[128 * 1024] = {0};
-#include "../../Targets/Bonito3a3000_7a/dev/7aVbios.h"
+extern	char  Vbios[];
 #endif
 
 extern void poweroff_kernel(void);
@@ -60,6 +63,9 @@ void init_reset_system(struct efi_reset_system_t *reset)
   reset->ResetWarm = &reboot_kernel;
 #ifdef LS3A2H_STR
   reset->ResetCold = LS3A2H_STR_FUNC_ADDR;
+#endif
+#ifdef LS3A7A_STR
+  reset->ResetCold = LS3A7A_STR_FUNC_ADDR;
 #endif
 #ifdef LOONGSON_3ASINGLE  
   reset->DoSuspend = 0xffffffffbfc00500;
@@ -272,6 +278,10 @@ struct efi_cpuinfo_loongson *init_cpu_info()
   unsigned int available_core_mask = 0;
   unsigned int available = 0;
 
+#ifdef LOONGSON3A4000
+  c->vers = 2;
+  strcpy(c->cpuname,"Loongson-3A R4 (Loongson-3A4000)"); /*cpu name*/
+#endif
   c->processor_id = PRID_IMP_LOONGSON;
   c->cputype  = cputype;
 
@@ -282,8 +292,13 @@ struct efi_cpuinfo_loongson *init_cpu_info()
   c->nr_cpus = 16;
 #endif
 #ifdef LOONGSON_3ASERVER
+#ifdef CHIP_4
   c->total_node = 4;
+  c->nr_cpus = 16;
+#else
+  c->total_node = 2;
   c->nr_cpus = 8;
+#endif
 #endif
 #ifdef LOONGSON_3BSINGLE
   c->total_node = 4;
@@ -382,6 +397,18 @@ struct system_loongson *init_system_loongson()
  s->nr_uarts = 1;
  s->uarts[0] = uart0;
 }
+#endif
+
+#ifdef LOONGSON3A4000
+  s->nr_uarts = 1;
+  s->uarts[0].iotype = 2; //UPIO_MEM
+#ifdef BONITO_100M
+  s->uarts[0].uartclk = 100000000; //100M clk
+#else 
+  s->uarts[0].uartclk = 25000000; //25M clk
+#endif
+  s->uarts[0].int_offset = 2; //56 + 2
+  s->uarts[0].uart_base = 0x1fe001e0; //uart 0
 #endif
 
   return s;
