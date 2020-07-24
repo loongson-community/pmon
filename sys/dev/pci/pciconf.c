@@ -254,16 +254,6 @@ static int pcie_set_readrq(struct pci_device *dev, int rq)
 		return -EINVAL;
 
 	tag = _pci_make_tag(dev->pa.pa_bus, dev->pa.pa_device, dev->pa.pa_function);
-	/*
-	 * If using the "performance" PCIe config, we clamp the
-	 * read rq size to the max packet size to prevent the
-	 * host bridge generating requests larger than we can
-	 * cope with
-	 */
-	mps = pcie_get_mps(dev);
-
-	if (mps < rq)
-		rq = mps;
 
 	if (pci_get_capability(0, tag, PCI_CAP_ID_EXP, &offset, &value)) {
 		v = (ffs(rq) - 8) << 12;
@@ -276,11 +266,81 @@ static int pcie_set_readrq(struct pci_device *dev, int rq)
 	return 0;
 }
 
-/* modify max payload size as minimal value of bridge and this device */
-static void pcie_write_mps(struct pci_device *dev)
+static int pcie_get_branch_min_mps(struct pci_device *dev)
+{
+	struct pci_device *pcidev;
+	unsigned int mps = 4096;
+	unsigned int value;
+	for (pcidev = dev; pcidev != NULL; pcidev = pcidev->parent) {
+
+		/* 2k1000/ls7a skip bus 0, device 0, function 0 */
+		if (pcidev->pa.pa_tag == 0)
+			continue;
+
+		value = pcie_get_mpss(pcidev);
+		if (mps > value)
+			mps = value;
+	}
+	return mps;
+}
+
+static void pcie_set_branch_min_mps(struct pci_device *dev, int mps)
 {
 	int rc;
 	struct pci_device *pcidev;
+	for (pcidev = dev; pcidev != NULL; pcidev = pcidev->parent) {
+
+		/* 2k1000/ls7a skip bus 0, device 0, function 0 */
+		if (pcidev->pa.pa_tag == 0)
+			continue;
+
+		rc = pcie_set_mps(pcidev, mps);
+		if (rc)
+			printf("Failed attempting to set the MPS\n");
+	}
+}
+static int pcie_get_tree_min_mps(struct pci_device *dev)
+{
+	struct pci_device *pd;
+	int ret;
+	int value = 0;
+
+	for (pd = dev->bridge.child; pd != NULL; pd = pd->next) {
+		//printf("line %d  bus %d dev %d\n",__LINE__, pd->pa.pa_bus, pd->pa.pa_device);
+		if (PCI_ISCLASS(pd->pa.pa_class, PCI_CLASS_BRIDGE, PCI_SUBCLASS_BRIDGE_PCI)) {
+			ret = pcie_get_tree_min_mps(pd);
+			//printf("line %d  bus %d dev %d ret %d value %d\n",__LINE__, pd->pa.pa_bus, pd->pa.pa_device,ret, value);
+			if (ret && ((ret < value) || (value == 0)))
+				value = ret;
+		} else {
+			value = pcie_get_branch_min_mps(pd);
+			//printf("line %d  bus %d dev %d value %d\n",__LINE__,pd->pa.pa_bus , pd->pa.pa_device, value);
+		}
+	}
+	return value;
+}
+
+static int pcie_set_tree_min_mps(struct pci_device *dev, int mps)
+{
+	struct pci_device *pd;
+	int ret;
+
+	for (pd = dev->bridge.child; pd != NULL; pd = pd->next) {
+		//printf("line %d  bus %d dev %d\n",__LINE__, pd->pa.pa_bus, pd->pa.pa_device);
+		if (PCI_ISCLASS(pd->pa.pa_class, PCI_CLASS_BRIDGE, PCI_SUBCLASS_BRIDGE_PCI)) {
+			pcie_set_tree_min_mps(pd, mps);
+		} else {
+			pcie_set_branch_min_mps(pd, mps);
+			//printf("line %d  bus %d dev %d mps %d\n",__LINE__,pd->pa.pa_bus , pd->pa.pa_device, mps);
+		}
+	}
+}
+/* modify max payload size as minimal value of bridge and this device */
+static void pcie_write_mps(struct pci_device *dev)
+{
+	struct pci_device *pcidev;
+	struct pci_device *pd;
+	struct pci_device *pdd;
 	int value;
 	int mps;
 
@@ -290,27 +350,17 @@ static void pcie_write_mps(struct pci_device *dev)
 	if (PCI_VENDOR(_pci_conf_read(dev->pa.pa_tag, PCI_ID_REG)) == 0xffff)
 		return;
 
-	/* find the minimal max payload size */
-	for (pcidev = dev; pcidev != NULL; pcidev = pcidev->parent) {
-		/* 2k1000 skip bus 0, device 0, function 0 */
-		if (pcidev->pa.pa_tag == 0)
-			continue;
-
-		value = pcie_get_mpss(pcidev);
-
-		if (mps > value)
-			mps = value;
+	for (pcidev = dev; pcidev->pa.pa_bus > 0; pcidev = pcidev->parent) {
+		//printf("--> bus %d dev %d\n",pcidev->pa.pa_bus, pcidev->pa.pa_device);
 	}
-
-	for (pcidev = dev; pcidev != NULL; pcidev = pcidev->parent) {
-
-		/* 2k1000 skip bus 0, device 0, function 0 */
-		if (pcidev->pa.pa_tag == 0)
-			continue;
-
-		rc = pcie_set_mps(pcidev, mps);
-		if (rc)
-			printf("Failed attempting to set the MPS\n");
+	/* pcidev is the last level device */
+	/* find the minimal max payload size */
+	if (pcidev->pa.pa_tag == dev->pa.pa_tag) {
+		mps = pcie_get_branch_min_mps(pcidev);
+		pcie_set_branch_min_mps(pcidev, mps);
+	} else {
+		mps = pcie_get_tree_min_mps(pcidev);
+		pcie_set_tree_min_mps(pcidev, mps);
 	}
 }
 
@@ -320,24 +370,20 @@ static void pcie_write_mrrs(struct pci_device *dev)
 	int rc, mrrs;
 	struct pci_device *pcidev;
 
-	/* For Max performance, the MRRS must be set to the largest supported
-	 * value.  However, it cannot be configured larger than the MPS the
-	 * device or the bus can support.  This should already be properly
-	 * configured by a prior call to pcie_write_mps.
-	 */
-	mrrs = pcie_get_mps(dev);
+	/* set device mmrs to pcie slot max mrrs support capability */
+	for (pcidev = dev; pcidev->pa.pa_bus > 0; pcidev = pcidev->parent) {
+		//printf("--> bus %d dev %d\n",pcidev->pa.pa_bus, pcidev->pa.pa_device);
+	}
+	mrrs = pcie_get_readrq(pcidev);
+	rc = pcie_set_readrq(dev, mrrs);
+	if (rc)
+		printf("Failed attempting to set the MPS\n");
 
-	/* MRRS is a R/W register.  Invalid values can be written, but a
-	 * subsequent read will verify if the value is acceptable or not.
-	 * If the MRRS value provided is not acceptable (e.g., too large),
-	 * shrink the value until it is acceptable to the HW.
-	 */
-	for (pcidev = dev; pcidev != NULL; pcidev = pcidev->parent) {
-
+	mrrs = 128;
+	for (pcidev = dev->parent; pcidev != NULL; pcidev = pcidev->parent) {
 		/* 2k1000 skip bus 0, device 0, function 0 */
 		if (pcidev->pa.pa_tag == 0)
 			continue;
-
 		rc = pcie_set_readrq(pcidev, mrrs);
 		if (rc)
 			printf("Failed attempting to set the MPS\n");
