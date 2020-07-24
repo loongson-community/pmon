@@ -590,6 +590,34 @@ int cmd_clear_level_mark(ac, av)
 };
 #endif
 
+#ifdef LOONGSON3A4000
+#define readl(x)	(*(volatile unsigned int *)(x))
+#define readq(x)	(*(volatile unsigned long long *)(x))
+#include "target/bonito.h"
+int save_board_ddrparam(int mandatory)
+{
+	int i, need_update = 0;
+#ifdef CHIP_4
+	int node_num = 4;
+#elif (defined MULTI_CHIP)
+	int node_num = 2;
+#else
+	int node_num = 1;
+#endif
+	for(i = 0; i < node_num * 2; i++) {
+        if (readl(DIMM_INFO_IN_SDRAM_OFFS + i * MC_INFO_SIZE + DIMM_OFFS_SLOT0_SPD) || readl(DIMM_INFO_IN_SDRAM_OFFS + i * MC_INFO_SIZE + DIMM_OFFS_SLOT1_SPD)) {
+			need_update = 1;
+		} else{
+			memcpy(DIMM_INFO_IN_SDRAM_OFFS + i * MC_INFO_SIZE, DIMM_INFO_IN_FLASH_OFFS \
+					 + i * MC_INFO_SIZE, MC_INFO_SIZE);
+		}
+	}
+	if(need_update)
+		tgt_flashprogram((int *)DIMM_INFO_IN_FLASH_OFFS, node_num * DIMM_INFO_SIZE, DIMM_INFO_IN_SDRAM_OFFS, TRUE);
+	return need_update;
+}
+#endif
+
 static const Cmd Cmd_clear_level_mark[] =
 {
     {"Misc"},

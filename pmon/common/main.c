@@ -330,7 +330,7 @@ main()
 {
 	char prompt[32];
 	int i;
-#ifdef ARB_LEVEL
+#if defined(ARB_LEVEL) || defined(VREF_STORE)
 	save_board_ddrparam(0);
 #endif
 #ifdef CONFIG_VIDEO_SPLASH
@@ -1024,9 +1024,14 @@ initstack (ac, av, addenv)
 
 void get_memorysize(unsigned long long raw_memsz) {
 	unsigned long long memsz,mem_size;
-//	tgt_printf("raw_memsz: 0x%llx\n", raw_memsz);
+	//tgt_printf("raw_memsz: 0x%llx\n", raw_memsz);
+//3A4000 use 1GB unit to transfer memsize
 	memsz = raw_memsz & 0xff;
+#ifdef LOONGSON3A4000 
+	memsz = memsz << 30;
+#else
 	memsz = memsz << 29;
+#endif
 	memsz = memsz - 0x1000000;
 	memsz = memsz >> 20;
 	/*
@@ -1039,18 +1044,30 @@ void get_memorysize(unsigned long long raw_memsz) {
 
 #ifdef MULTI_CHIP
 	memsz = raw_memsz & 0xff00;
-    memsz = memsz >> 8;
-    memsz = memsz << 29;
+	memsz = memsz >> 8;
+#ifdef LOONGSON3A4000 
+	memsz = memsz << 30;
+#else
+	memsz = memsz << 29;
+#endif
     memorysize_high_n1 = (memsz == 0) ? 0 : (memsz - (256 << 20));
 
     memsz = raw_memsz & 0xff0000;
     memsz = memsz >> 16;
-    memsz = memsz << 29;
+#ifdef LOONGSON3A4000 
+	memsz = memsz << 30;
+#else
+	memsz = memsz << 29;
+#endif
     memorysize_high_n2 = (memsz == 0) ? 0 : (memsz - (256 << 20));
 
 	memsz = raw_memsz & 0xff000000;
-    memsz = memsz >> 24;
-    memsz = memsz << 29;
+	memsz = memsz >> 24;
+#ifdef LOONGSON3A4000 
+	memsz = memsz << 30;
+#else
+	memsz = memsz << 29;
+#endif
     memorysize_high_n3 = (memsz == 0) ? 0 : (memsz - (256 << 20));
 #endif
 	memorysize_total =  ((memorysize  +  memorysize_high)  >> 20) + 16;
