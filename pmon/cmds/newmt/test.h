@@ -186,7 +186,7 @@ struct pair {
 
 static inline void cache_off(void)
 {
-		cacheflush();
+		CPU_FlushCache();
 		__asm__ volatile(
 		 ".set mips2;\r\n"
 		 "mfc0   $4,$16;\r\n"
@@ -200,7 +200,7 @@ static inline void cache_off(void)
 }
 static inline void cache_on(void)
 {
-		 cacheflush();
+		CPU_FlushCache();
 	    __asm__ volatile(
 		".set mips2;\r\n"
         "mfc0   $4,$16;\r\n"

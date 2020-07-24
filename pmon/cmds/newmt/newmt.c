@@ -36,7 +36,9 @@ extern unsigned long long memorysize;
 /*#define LOW_TEST_ADR    ((unsigned int)heaptop)      [> Final adrs for test code <]*/
 /*#define HIGH_TEST_ADR   (0x80000000+memorysize)      [> Relocation base address <]*/
 #define LOW_TEST_ADR	(0x80000000)
-#define	HIGH_TEST_ADR	(0x80000000 + memorysize)
+//#define	HIGH_TEST_ADR	(0x80000000 + memorysize)
+//0x86000000/0x87000000 is used by the DC controller of 7A
+#define	HIGH_TEST_ADR	(0x86000000)
 #include "test.h"
 #define DEFTESTS 9
 jmp_buf         jmpb_mt;	
