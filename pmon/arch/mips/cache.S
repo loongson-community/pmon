@@ -206,6 +206,7 @@ LEAF(CPU_ConfigCache)
 	mfc0	v1, COP_0_PRID			# read processor ID register
 	sw	v1, CpuProcessorId		# save PRID register
 
+	and	t3, v1, 0x00ff0000		# t4: PRI num, 0x140000
 	and	t4, v1, 0x0000ff00		# t4: PRI num, 0x6300
 	and	t5, v1, 0x000000ff		# t5: REV num, 0x03 or 0x05
 
@@ -231,6 +232,11 @@ LEAF(CPU_ConfigCache)
 	li	t1, (MIPS_LOONGSON2<<8)		# LOONGSON2 4 way,REV_GODSON2F,REV_GODSON3A
 	li	t2, CTYPE_4WAY
 	beq	t4, t1, ConfLoongson2 
+	nop
+
+	li	t1, (0x14<<16)		#LOONGSON cpu
+	li	t2, CTYPE_4WAY
+	beq	t3, t1, ConfLoongson2
 	nop
 
 	li	t1, (MIPS_R5000 << 8)
@@ -273,7 +279,6 @@ ConfLoongson2:
 	beq	t5, t1, ConfGodson3A
 	nop
 
-	#b out					# added for test ConfGodson3A
 	b	ConfGodson3A
 	nop
 
@@ -425,14 +430,30 @@ ConfGodson3A:
 	#divu	t5, t5, t0
 	sw	t5, CpuPrimaryDataSetSize	
 
+	#whd: Get Scache config from Config 2, but PMON don't save the Set number
+	.set mips64
+	mfc0	v0, COP_0_CONFIG,2		# Get configuration register for Scache
+	.set mips3
+	and	t0, v0, 0xf			# Get Set number
+	add	t0, t0, 1			# + 1 to be the real number
+	and	t1, v0, 0xf0			# Get Cache line size
+	srl	t1, t1, 0x4
+	add	t1, t1, 1			# + 1 to be the real number
+	and	t2, v0, 0xf00			# Get Cache line number of each set
+	srl	t2, t2, 0x8
+	add	t2, t2, 6			# + 6 to be the real number
+	sll	t6, t0, t1
+	sll	t6, t6, t2
+
+#if	defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A)
+	//li	t6, 0x100000			# SCache has only 1 bank, nothing to do.
+#else
+	sll	t6, 2				# SCache has 4 interleave banks, which is not write in config
+#endif
 
 	li	t2, CTYPE_4WAY			# Assume four way cache
-#if	defined(LOONGSON_2G5536)||defined(LOONGSON_2G1A)
-        or      t2, CTYPE_HAS_L2		# L2 is on chip
-	li	t6, 0x100000			# Secondary size 1M.
-#else
-	li	t6, 0x400000			# Secondary size 4M.
-#endif
+	or      t2, CTYPE_HAS_L2		# L2 is on chip
+
 	li	t7, 0				# Tertiary size 0.
 
 	mfc0    v0, COP_0_CONFIG
@@ -457,30 +478,9 @@ ConfGodson3A:
 	and	t1, ~(4096 - 1)			# i and d cache sizes...
 	sw	t1, CpuCacheAliasMask
 
-#if 0
-	mfc0    v0, COP_0_CONFIG
-	and     v0, 0xfff8
-	or      v0, 0x2
-	mtc0    v0, COP_0_CONFIG
-
-/* Flush on chip L2 */
-	li      a0, 0x80000000
-	li      a1, 0x80400000			# size = 4M
-10:
-	cache   IndexWBInvalidate_S, 0(a0)
-	cache   IndexWBInvalidate_S, 1(a0)
-	cache   IndexWBInvalidate_S, 2(a0)
-	cache   IndexWBInvalidate_S, 3(a0)
-	addu    a0, 32
-	bne     a0, a1, 10b
-	nop
-
-#endif
 	#b	ConfResult
 
-	j 	ra
 	b	out
-
 	nop
 
 ConfGodson2k:
@@ -685,9 +685,84 @@ LEAF(CPU_FlushCache)
 	nop
 
 	li	t0, 0x6302				#godson2e prid
-	bne	t0, t1, not_godson2e
+	//bne	t0, t1, not_godson2e
+	beq	t0, t1, for_godson2f
 	nop
 
+//whd: for LS3A2000/LS3A3000/LS3A4000 and all new type CPU
+newtype:
+//3a1000 can use the same flush
+for_godson3a:
+//2g can use the same flush
+for_godson2g:
+    	.set mips64
+    	mfc0	v0, COP_0_CONFIG,1		# Get configuration register
+    	.set mips3
+
+	and     v0, 0x80000000
+	beqz	v0, noscache
+	nop
+
+    	.set mips64
+    	mfc0	v0, COP_0_CONFIG,2		# Get configuration register
+    	.set mips3
+
+	and     t0, v0, 0xf
+	addi	t0, t0, 1
+	nop
+
+	li	t1, 16				# 16-way
+	li	t2, 4
+	beq	t0, t1, 19f
+	nop
+	li	t1, 8				# 8-way
+	li	t2, 3
+	beq	t0, t1, 19f
+	nop
+	li	t1, 4				# 4-way
+	li	t2, 2
+	beq	t0, t1, 19f
+	nop
+19:
+	dli	t3, 0xffffffff80000000
+	lw	t4, CpuSecondaryCacheSize
+	srl	t4, t4, t2			# Get Set size
+	lw	t1, CpuPrimaryDataCacheLSize	# Get Cache Line size
+10:
+	cache	IndexWBInvalidate_S,  0(t3)
+	cache	IndexWBInvalidate_S,  1(t3)
+	cache	IndexWBInvalidate_S,  2(t3)
+	cache	IndexWBInvalidate_S,  3(t3)
+
+	li	t0, 2
+	beq	t2, t0, 29f
+	nop
+
+	cache	IndexWBInvalidate_S,  4(t3)
+	cache	IndexWBInvalidate_S,  5(t3)
+	cache	IndexWBInvalidate_S,  6(t3)
+	cache	IndexWBInvalidate_S,  7(t3)
+
+	li	t0, 3
+	beq	t2, t0, 29f
+	nop
+
+	cache	IndexWBInvalidate_S,  8(t3)
+	cache	IndexWBInvalidate_S,  9(t3)
+	cache	IndexWBInvalidate_S, 10(t3)
+	cache	IndexWBInvalidate_S, 11(t3)
+	cache	IndexWBInvalidate_S, 12(t3)
+	cache	IndexWBInvalidate_S, 13(t3)
+	cache	IndexWBInvalidate_S, 14(t3)
+	cache	IndexWBInvalidate_S, 15(t3)
+29:
+	subu	t4, t4, t1
+	bgtz	t4, 10b
+	addu	t3, t3, t1
+	b	99f
+	nop
+
+/*
 for_godson3a:
     .set mips64
     mfc0	v0, COP_0_CONFIG,1		# Get configuration register
@@ -710,6 +785,7 @@ for_godson3a:
 	addu	t3, 32
 	b		99f
 	nop
+*/
 	
 # godson2e
 for_godson2f:
@@ -726,6 +802,7 @@ for_godson2f:
 	b	99f
 	nop
 
+/*
 for_godson2g:
 	.word   0x40028001 #mfc0    v0,c0_config1
 	and     v0, 0xf
@@ -746,6 +823,7 @@ for_godson2g:
 	addu	t3, 32
 	b		99f
 	nop
+*/
 	
 noscache:
 not_godson2e:

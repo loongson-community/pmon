@@ -382,6 +382,8 @@ union cpuprid {
 #endif /* !_LOCORE */
 #endif /* _KERNEL */
 
+//Company
+#define Loongson_CPU	0x0014	/* Loongson Technology*/
 /*
  * MIPS CPU types (cp_imp).
  */
@@ -405,10 +407,10 @@ union cpuprid {
 #define	MIPS_RM52X0	0x28	/* QED RM52X0 CPU		ISA IV  */
 #define MIPS_E9000	0x34	/* PMC-Sierra E9000 core (RM9k) ISA IV  */
 #define	MIPS_VR5400	0x54	/* NEC Vr5400 CPU		ISA IV+ */
-#define MIPS_GODSON3	0x63	/* Godson 2 CPU change_by_sizhiying*/
-#define MIPS_GODSON2    0x63    /* Godson 2 CPU */
-#define Loongson_GS264	0x61    /* Godson Core GS264 */
-#define MIPS_GODSON1	0x42    /* Godson 1 CPU */
+#define MIPS_GODSON3	0x63	/* Godson 3 CPU, including 3A1000/3B1500/3A2000/3A3000 */
+#define MIPS_GODSON2    0x63    /* Godson 2 CPU                         */
+#define Loongson_GS264	0x61    /* Godson Core GS264                    */
+#define MIPS_GODSON1	0x42    /* Godson 1 CPU                         */
 /*
  * MIPS FPU types
  */
