@@ -713,7 +713,8 @@ static int igb_get_eeprom_len(struct net_device *netdev)
 }
 
 #endif
-static int igb_get_eeprom(struct net_device *netdev,
+//static int igb_get_eeprom(struct net_device *netdev,
+int igb_get_eeprom(struct net_device *netdev,
 			  struct ethtool_eeprom *eeprom, u8 *bytes)
 {
 	struct igb_adapter *adapter = netdev_priv(netdev);

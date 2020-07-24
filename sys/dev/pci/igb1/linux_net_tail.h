@@ -354,6 +354,12 @@ caddr_t data;
 	    eeprom.magic = sc->pcidev.vendor | (sc->pcidev.device << 16);
 	    eeprom.offset = 0;
 	    eeprom.len = 6;
+	    if (sc->pcidev.vendor == 0x8086 && sc->pcidev.device == 0x1521) {
+		    unsigned char dev_id = strtoul(&(sc->sc_dev.dv_xname[3]), NULL, 0);
+		    //if have other intel net card this code maybe error.
+		    unsigned int offset = dev_id == 0 ? 0 : 0x80 * (1 + dev_id);
+		    eeprom.offset = offset;
+	    }
 	    igb_set_eeprom(sc,&eeprom, bytes);
 	}
     }

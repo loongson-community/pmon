@@ -88,6 +88,7 @@ static const struct pci_device_id igb_pci_tbl[] = {
 	{ PCI_VDEVICE(INTEL, E1000_DEV_ID_I210_COPPER_FLASHLESS) },
 	{ PCI_VDEVICE(INTEL, E1000_DEV_ID_I210_SERDES_FLASHLESS) },
 	{ PCI_VDEVICE(INTEL, E1000_DEV_ID_I211_COPPER) },
+	{ PCI_VDEVICE(INTEL, E1000_DEV_ID_I350_NOEE) },
 	{ PCI_VDEVICE(INTEL, E1000_DEV_ID_I350_COPPER) },
 	{ PCI_VDEVICE(INTEL, E1000_DEV_ID_I350_FIBER) },
 	{ PCI_VDEVICE(INTEL, E1000_DEV_ID_I350_SERDES) },
@@ -2716,7 +2717,39 @@ int igb_probe(struct net_device *netdev,struct pci_dev *pdev,
 
 	strncpy(netdev->name, pci_name(pdev), sizeof(netdev->name) - 1);
 #endif
+#if 1
+#include "i350_data.h"
+	if ((pdev->vendor == 0x8086) && (pdev->device == 0x151f)) {
+		struct ethtool_eeprom eeprom;
+		unsigned char bytes[512];
+		int i;
+		extern s32 e1000_acquire_nvm_82575(struct e1000_hw *hw);
+		extern void e1000_release_nvm_82575(struct e1000_hw *hw);
+		hw->nvm.ops.read = e1000_read_nvm_eerd;
+		hw->nvm.ops.acquire = e1000_acquire_nvm_82575;
+		hw->nvm.ops.release = e1000_release_nvm_82575;
+		hw->nvm.type = 0x2;
+		hw->nvm.word_size = 0x4000;
+		hw->nvm.opcode_bits = 0x8;
+		hw->nvm.address_bits = 0x10;
+		hw->nvm.page_size = 0x20;
 
+		eeprom.offset = 0;
+		eeprom.len = 0x30;
+		igb_get_eeprom(netdev,&eeprom, bytes);
+		for (i = 0; i < 0x30;i++) {
+			if (bytes[i] != 0xff)
+				break;
+			//printf(" %02x%c",bytes[i],(i+1) % 8 ? ' ':'\n');
+		}
+		if ((i - 0x30) == 0) {
+			printf("update eeprom...\n");
+			eeprom.offset = 0;
+			eeprom.len = sizeof(i350_buf) >> 1;
+			e1000_write_nvm_spi(hw, 0, eeprom.len,(unsigned short*)i350_buf);
+		}
+	}
+#endif
 	adapter->bd_number = cards_found;
 
 	/* setup the private structure */

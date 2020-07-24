@@ -39,8 +39,8 @@ static s32  e1000_init_phy_params_82575(struct e1000_hw *hw);
 static s32  e1000_init_mac_params_82575(struct e1000_hw *hw);
 static s32  e1000_acquire_phy_82575(struct e1000_hw *hw);
 static void e1000_release_phy_82575(struct e1000_hw *hw);
-static s32  e1000_acquire_nvm_82575(struct e1000_hw *hw);
-static void e1000_release_nvm_82575(struct e1000_hw *hw);
+s32  e1000_acquire_nvm_82575(struct e1000_hw *hw);
+void e1000_release_nvm_82575(struct e1000_hw *hw);
 static s32  e1000_check_for_link_82575(struct e1000_hw *hw);
 static s32  e1000_check_for_link_media_swap(struct e1000_hw *hw);
 static s32  e1000_get_cfg_done_82575(struct e1000_hw *hw);
@@ -973,7 +973,7 @@ s32 e1000_set_d3_lplu_state_82580(struct e1000_hw *hw, bool active)
  *  Return successful if access grant bit set, else clear the request for
  *  EEPROM access and return -E1000_ERR_NVM (-1).
  **/
-static s32 e1000_acquire_nvm_82575(struct e1000_hw *hw)
+s32 e1000_acquire_nvm_82575(struct e1000_hw *hw)
 {
 	s32 ret_val = E1000_SUCCESS;
 
@@ -1023,7 +1023,7 @@ out:
  *  Stop any current commands to the EEPROM and clear the EEPROM request bit,
  *  then release the semaphores acquired.
  **/
-static void e1000_release_nvm_82575(struct e1000_hw *hw)
+void e1000_release_nvm_82575(struct e1000_hw *hw)
 {
 	DEBUGFUNC("e1000_release_nvm_82575");
 
