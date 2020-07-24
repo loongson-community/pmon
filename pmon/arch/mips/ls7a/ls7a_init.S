@@ -4,31 +4,37 @@
 // !notice: t0: used as global variable partial
 // DO NOT touch this file!
 
-//#define LS7A_PCIE_NO_POWERDOWN
     dli     t0, LS7A_CONFBUS_BASE_ADDR
 
+    lw      t1, CONF_HT_ROUTE_OFFSET(t0)
+    li      t2, (0xf | (0xf << 16))
+    not     t2, t2
+    and     t1, t1, t2
+
+#ifdef MULTI_CHIP
+    move    t3, zero
 #ifdef  LS7A_2WAY_CONNECT
     // support 2 nodes
     // route node0 dma to 7A HT Lo
     // route node1 dma to 7A HT Hi
-    lw      t1, CONF_HT_ROUTE_OFFSET(t0)
-    li      t2, (0xf | (0xf << 16))
-    not     t2, t2
-    and     t1, t1, t2
-    li      t2, (0x1 | (0xa << 16))
+    /*dma_dest_ht set to support 2 node*/
+    li      t3, (0xa << 16)
+#endif
+    ori     t2, t3, 0x1
+#ifdef CHIP_4
+    ori     t2, t3, 0x3
+#endif
     or      t1, t1, t2
-    sw      t1, CONF_HT_ROUTE_OFFSET(t0)
-#else
-    // support 1 node
-    lw      t1, CONF_HT_ROUTE_OFFSET(t0)
-    li      t2, (0xf | (0xf << 16))
-    not     t2, t2
-    and     t1, t1, t2
-#ifdef MULTI_CHIP
-    ori     t1, 0x1
 #endif
-    sw      t1, CONF_HT_ROUTE_OFFSET(t0)
+
+#ifdef LS7A_PHYS48_TO_HT40
+    /*support 40 bit DMA device otherwise it lost node id*/
+    and     t1, ~(0xff << 8)
+    or      t1, (0x2 << 8) | (0x6 << 13)
 #endif
+
+    //default support 1 node
+    sw      t1, CONF_HT_ROUTE_OFFSET(t0)
     TTYDBG("config 7A dma route done.\r\n")
 
 #ifndef LS7A_2WAY_CONNECT
@@ -62,8 +68,13 @@
     //gpu, gmem, dc
     daddu   a0, t0, CONF_PLL1_OFFSET
     li      a2, 0x4
-    //li      a1, LS7A_PLL_VALUE(127, 8, 6, 12)
-    li      a1, LS7A_PLL_VALUE(127, 8, 8, 12)
+    li      a1, LS7A_PLL_VALUE(127, 8, 6, 12)
+    bal     ls7a_version
+    nop
+    beqz    v0, 1f
+    nop
+    li      a1, LS7A_PLL_VALUE(120, 5, 5, 12)
+1:
     bal     ls7a_config_one_pll
     nop
     beqz    v0, 1f
@@ -78,6 +89,12 @@
     daddu   a0, t0, CONF_PLL2_OFFSET
     li      a2, 0x4
     li      a1, LS7A_PLL_VALUE(96, 72, 6, 100)
+    bal     ls7a_version
+    nop
+    beqz    v0, 1f
+    nop
+    li      a1, LS7A_PLL_VALUE(96, 72, 4, 100)
+1:
     bal     ls7a_config_one_pll
     nop
     beqz    v0, 1f
@@ -141,21 +158,21 @@
 
     //rewrite HEADER TYPE to Multi-function
     or      a2, $0, 0x80
-    sb      a2, 0x304e(t0)
-    sb      a2, 0x308e(t0)
+    sb      a2, 0x304e(t0) //gmac0
+    sb      a2, 0x308e(t0) //gmac1
 
-    sb      a2, 0x32ce(t0)
-    sb      a2, 0x330e(t0)
-    sb      a2, 0x334e(t0)
+    sb      a2, 0x32ce(t0) //sata0
+    sb      a2, 0x330e(t0) //sata1
+    sb      a2, 0x334e(t0) //sata2
     //fix GPU/DC header
-    li      a2, 0x04000000
-    sw      a2, 0x31c8(t0)
-    li      a2, 0x03800000
-    sw      a2, 0x3208(t0)
+    li      a2, 0x0400
+    sh      a2, 0x31ca(t0)
+    li      a2, 0x0380
+    sh      a2, 0x320a(t0)
 
     //fix LPC header
-    li      a2, 0x06010000
-    sw      a2, 0x3448(t0)
+    li      a2, 0x0601
+    sh      a2, 0x344a(t0)
     li      a2, 0xfc000000
     sw      a2, 0x3460(t0)
     li      a2, 0xfd
@@ -229,14 +246,14 @@
     sw      t1, 0x5e0(t0)
     sw      t1, 0x600(t0)
 
-    li      t1, 0xff3ff0a8
+    li      t1, 0x73e70b0
     sw      t1, 0x584(t0)
     sw      t1, 0x5a4(t0)
     sw      t1, 0x5c4(t0)
     sw      t1, 0x5e4(t0)
     sw      t1, 0x604(t0)
 
-    li      t1, 0x27fff
+    li      t1, 0x20000
     sw      t1, 0x588(t0)
     sw      t1, 0x5a8(t0)
     sw      t1, 0x5c8(t0)
@@ -377,7 +394,7 @@
     //unless specified, recover to use prsnt pin to decide device existence.
 #ifndef FORCE_ENABLE_PCIE_F0_P123
     lw      t1, 0x588(t0)
-    li      t2, ((1 << 27) | (1 << 26))
+    li      t2, (1 << 27)
     not     t2, t2
     and     t1, t1, t2
     sw      t1, 0x588(t0)
@@ -385,7 +402,7 @@
 
 #ifndef FORCE_ENABLE_PCIE_F1_P1
     lw      t1, 0x5a8(t0)
-    li      t2, ((1 << 27) | (1 << 26))
+    li      t2, (1 << 27)
     not     t2, t2
     and     t1, t1, t2
     sw      t1, 0x5a8(t0)
@@ -393,7 +410,7 @@
 
 #ifndef FORCE_ENABLE_PCIE_H_P1
     lw      t1, 0x5c8(t0)
-    li      t2, ((1 << 27) | (1 << 26))
+    li      t2, (1 << 27)
     not     t2, t2
     and     t1, t1, t2
     sw      t1, 0x5c8(t0)
@@ -401,7 +418,7 @@
 
 #ifndef FORCE_ENABLE_PCIE_G0_P1
     lw      t1, 0x5e8(t0)
-    li      t2, ((1 << 27) | (1 << 26))
+    li      t2, (1 << 27)
     not     t2, t2
     and     t1, t1, t2
     sw      t1, 0x5e8(t0)
@@ -409,7 +426,7 @@
 
 #ifndef FORCE_ENABLE_PCIE_G1_P1
     lw      t1, 0x608(t0)
-    li      t2, ((1 << 27) | (1 << 26))
+    li      t2, (1 << 27)
     not     t2, t2
     and     t1, t1, t2
     sw      t1, 0x608(t0)

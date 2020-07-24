@@ -231,3 +231,14 @@ pd_145:
     jr      ra
     nop
     .end    ls7a_get_pcie_dll_score
+
+    .global ls7a_version
+    .ent    ls7a_version
+    .set    noreorder
+    .set    mips3
+ls7a_version:
+    dli     v1, 0x90000efdfe000100
+    lb      v0, 0x8(v1)
+    jr      ra
+    nop
+    .end    ls7a_version
