@@ -44,6 +44,8 @@
 #define PV3205_VDDP  (33 << 1)
 #endif
 
+#define	UPI9212S_ADDR0	        0x4a    //3A I2C0
+
 /*
  * use register:
  *	v0, v1, s1
@@ -387,6 +389,37 @@ LEAF(v_n_ctrl)
 	bnez	v1, 1b
 	nop
 #endif
+#ifdef UPI9212S_V
+	li  a0, UPI9212S_ADDR0
+	li  a1, 0x39 | (1 << 16)   // unlock smbus, byte write
+	li  a2, 0x94
+	dli a3, LS3A4000_I2C0_REG_BASE
+	bal ls_v_i2cwrite
+	nop
+	/* Wait until bus is not busy */
+	li	v1, CR_STOP
+	sb	v1, CR_REG(a3)
+1:
+	lbu	v1, SR_REG(a3)
+	andi	v1, v1, SR_BUSY
+	bnez	v1, 1b
+	nop
+
+	li  a0, UPI9212S_ADDR0
+	li  a1, 0x3c | (1 << 16)  // enable latch VID, byte write
+	li  a2, 0x1f
+	dli a3, LS3A4000_I2C0_REG_BASE
+	bal ls_v_i2cwrite
+	nop
+	/* Wait until bus is not busy */
+	li	v1, CR_STOP
+	sb	v1, CR_REG(a3)
+1:
+	lbu	v1, SR_REG(a3)
+	andi	v1, v1, SR_BUSY
+	bnez	v1, 1b
+	nop
+#endif
 #ifdef INPUT_PARAM  //this code used for debug
 	WatchDog_Close
 #ifdef PV3205_V
@@ -395,6 +428,9 @@ LEAF(v_n_ctrl)
 #elif defined(MPS_V)
 	PRINTSTR("\r\nInput parameter 0.9v:0x29, 0.95v:0x2e, 1.0v:0x33, 1.05v:0x38, 1.1v:0x3d, 1.15v:0x42, 1.20v:0x47")
 	PRINTSTR("\r\nInput parameter 1.25v:0x4c, 1.3v:0x51")
+#elif defined(UPI9212S_V)
+	PRINTSTR("\r\nInput parameter 0.9v:0x69, 0.95v:0x70, 1.0v:0x78, 1.05v:0x7f, 1.1v:0x87, 1.15v:0x8f, 1.20v:0x96")
+	PRINTSTR("\r\nInput parameter 1.25v:0x9e, 1.3v:0xa5")
 #else
 #error "PMIC not supported"
 #endif
@@ -422,18 +458,33 @@ LEAF(v_n_ctrl)
 //	li	a2, 71 //1.2v
 	li	a2, 76 //1.25v
 	//li	a2, 81 //1.3v
+#elif defined(UPI9212S_V)
+	//li  a2, 0x69 //0.902v
+	//li  a2, 0x70 //0.948v
+	//li  a2, 0x78 //1.001v
+	//li  a2, 0x7f //1.047v
+	//li  a2, 0x87 //1.100v
+	//li  a2, 0x8D //1.139v
+	//li  a2, 0x8f //1.152v
+	//li  a2, 0x96 //1.199v
+	li  a2, 0x9e //1.251v
+	//li  a2, 0xa5 //1.297v
 #else
 #error "PMIC not supported"
 #endif
 #endif
 #ifdef PV3205_V
 	li	a0, PV3205_ADDR0
+	li	a1, 0x21 //VOUT_COMMAND
 #elif defined(MPS_V)
 	li	a0, MPS_ADDR
+	li	a1, 0x21 //VOUT_COMMAND
+#elif defined(UPI9212S_V)
+	li	a0, UPI9212S_ADDR0
+	li	a1, 0x30 | (1 << 16) //VOUT_COMMAND, byte write
 #else
 #error "PMIC not supported"
 #endif
-	li	a1, 0x21 //VOUT_COMMAND
 	dli	a3, LS3A4000_I2C0_REG_BASE
 
 	bal	ls_v_i2cwrite
@@ -494,9 +545,12 @@ LEAF(v_n_ctrl_read)
 	li	a0, PV3205_ADDR0
 #elif defined(MPS_V)
 	li	a0, MPS_ADDR
+#elif defined(UPI9212S_V)
+	li	a0, UPI9212S_ADDR0
 #else
 #error "PMIC not supported"
 #endif
+#if defined(PV3205_V) || defined(MPS_V)
 	li	a1, 0x8b //READ_VOUT
 	bal	ls_v_i2cread
 	nop
@@ -504,16 +558,18 @@ LEAF(v_n_ctrl_read)
 	bal	hexserial
 	nop
 	TTYDBG("\r\n")
-#ifdef PV3205_V
-	dli	a3, LS3A4000_I2C0_REG_BASE
-	li	a0, PV3205_ADDR1
-	li	a1, 0x8b //READ_VOUT
+#elif defined(UPI9212S_V)
+	li  a1, 0x30 //READ_VOUT
 	bal	ls_v_i2cread
 	nop
+	mulou v0, 6587   // uv
+	add   v0, 210000 // Vout = 0.006587 * (x) + 0.21
 	move	a0, v0
 	bal	hexserial
 	nop
-	TTYDBG("\r\n")
+	TTYDBG("uV \r\n")
+#else
+#error "PMIC not supported"
 #endif
 
 	move	ra, k0
@@ -655,6 +711,7 @@ LEAF(v_p_ctrl)
 	.set    mips3
 	move	k0, ra
 
+#if defined(PV3205_V) || defined(MPS_V) // Other PMIC have only one VOUT ctrl
 #ifdef PV3205_V
 	dli	a3, LS7A_I2C1_REG_BASE
 	bal	ls_v_i2cinit
@@ -727,6 +784,7 @@ LEAF(v_p_ctrl)
 	nop
 2:
 	TTYDBG("p ctrl err\r\n")
+#endif
 	move	ra,k0
 	jr	ra
 	nop

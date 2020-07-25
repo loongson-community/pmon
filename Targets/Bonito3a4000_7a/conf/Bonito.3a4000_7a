@@ -61,8 +61,9 @@ option		BONITO_100M
 #option		BONITO_25M
 option		BOOT_PARAM
 option		LS7A			#for 7A
-option      PV3205_V
-
+#option      PV3205_V
+option      MPS_V
+#option       UPI9212S_V
 
 #option		ENABLE_SATA         #Enable SATA  ,when enable IDE can also use, when commended only IDE can use
 #option		X800x600

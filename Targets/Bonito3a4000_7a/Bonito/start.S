@@ -615,7 +615,6 @@ bsp_start:
 //#define INPUT_PARAM
 #define VOLTIGE_CTRL
 #define LOONGSON_BOARD
-#define MPS_V
 #ifdef VOLTIGE_CTRL
 	//node 0
 	move	s1, zero
