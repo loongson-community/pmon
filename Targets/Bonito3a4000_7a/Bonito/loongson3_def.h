@@ -161,7 +161,22 @@ sw              v1,             0x4(v0); \
 nop; \
 nop;
 
-#ifndef MULTI_CHIP
+#ifdef LEMOTE_WATCHDOG
+#define WatchDog_Close \
+GPIO_CLEAR_OUTPUT(0x1<<8); 
+
+#define WatchDog_Enable \
+GPIO_SET_OUTPUT(0x1<<14); \
+GPIO_SET_OUTPUT(0x1<<8); \
+GPIO_CLEAR_OUTPUT(0x1<<14); \
+li v1,0x100;\
+78:; \
+subu v1,1; \
+bnez v1,78b; \
+nop; \
+GPIO_SET_OUTPUT(0x1<<13);
+
+#elif !defined(MULTI_CHIP)
 /* WatchDog Close for chip MAX6369*/
 #define WatchDog_Close \
 GPIO_CLEAR_OUTPUT(0x1<<5); \
