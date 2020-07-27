@@ -2,6 +2,12 @@
 #define _LS7A_H
 
 #define LS7A_MISC_BASE					                0xb0080000
+
+#define LS7A_GPIO_REG_BASE                              (LS7A_MISC_BASE + 0x60000)
+#define LS7A_GPIO_OEN_REG                               LS7A_GPIO_REG_BASE
+#define LS7A_GPIO_O_REG                                 (LS7A_GPIO_REG_BASE + 0x10)
+#define LS7A_GPIO_I_REG                                 (LS7A_GPIO_REG_BASE + 0x20)
+
 /* RTC regs */
 #define LS7A_RTC_REG_BASE                               (LS7A_MISC_BASE + 0x50100)
 #define LS7A_TOY_TRIM_REG                               (LS7A_RTC_REG_BASE + 0x0020)

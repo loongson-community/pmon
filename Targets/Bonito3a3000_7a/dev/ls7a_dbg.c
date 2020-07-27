@@ -44,6 +44,7 @@
 #include <sys/endian.h>
 
 #include <pmon.h>
+#include "target/ls7a.h"
 
 #ifdef __mips__
 #include <machine/cpu.h>
@@ -51,6 +52,10 @@
 
 #define u64 unsigned long long
 #define u32 unsigned int
+extern u64 __raw__readq(u64 q);
+extern u64 __raw__writeq(u64 addr, u64 val);
+
+#define LS7A_GPIO_NR    57
 
 int cmd_nphy_cfg __P((int, char *[]));
 static int nphy_cfg __P((int, char **));
@@ -59,6 +64,99 @@ unsigned long long strtoull(const char *nptr,char **endptr,int base);
 
 #define write_reg(addr, val) (*(volatile u32*)(addr) = (val))
 #define read_reg(addr)       (*(volatile u32*)(addr))
+
+static int cmd_ls7a_gpio_mode(int argc, char **argv)
+{
+    u64 reg_ptr = (u64)(((u64)0xffffffff << 32) | LS7A_GPIO_OEN_REG);
+    u64 reg;
+    int gpio;
+
+    if (argc == 2) {
+        gpio = strtoull(argv[1], 0, 0);
+        if (gpio < 0 && gpio >= LS7A_GPIO_NR) {
+            printf("Error: Invalid GPIO NR!\n");
+        }
+        reg = __raw__readq(reg_ptr);
+        if (reg & (1 << gpio))
+            printf("LS7A GPIO %d, input mode\n", gpio);
+        else
+            printf("LS7A GPIO %d, output mode\n", gpio);
+        
+    } else if (argc == 3) {
+        int mode = strtoull(argv[2], 0, 0);
+
+        gpio = strtoull(argv[1], 0, 0);
+        if (gpio < 0 && gpio >= LS7A_GPIO_NR)
+            printf("Error: Invalid GPIO NR!\n");
+
+        if (mode == 0) {
+            printf("LS7A GPIO %d, set to output mode\n", gpio);
+            reg = __raw__readq(reg_ptr);
+            reg &= (u64)~(1 << gpio);
+            __raw__writeq(reg, reg_ptr);
+        } else if (mode == 1) {
+            printf("LS7A GPIO %d, set to input mode\n", gpio);
+            reg = __raw__readq(reg_ptr);
+            reg |= (u64)(1 << gpio);
+            __raw__writeq(reg, reg_ptr);
+        } else {
+            printf("Error: Invalid mode\n");
+        }
+    } else {
+        printf("Error: Usage: ls7a_gpio_mode <gpio id> [mode]\n");
+        return EXIT_FAILURE;
+    }
+
+	return EXIT_SUCCESS;
+}
+
+static int cmd_ls7a_gpio_level(int argc, char **argv)
+{
+    u64 reg_ptr;
+    u64 reg;
+    int gpio;
+
+    if (argc == 2) {
+        reg_ptr = (u64)(((u64)0xffffffff << 32) | LS7A_GPIO_I_REG);
+        gpio = strtoull(argv[1], 0, 0);
+        if (gpio < 0 && gpio >= LS7A_GPIO_NR) {
+            printf("Error: Invalid GPIO NR!\n");
+        }
+        reg = __raw__readq(reg_ptr);
+        if (reg & (1 << gpio))
+            printf("LS7A GPIO %d, input high\n", gpio);
+        else
+            printf("LS7A GPIO %d, input low\n", gpio);
+        
+    } else if (argc == 3) {
+        int level = strtoull(argv[2], 0, 0);
+
+        reg_ptr = (u64)(((u64)0xffffffff << 32) | LS7A_GPIO_O_REG);
+        gpio = strtoull(argv[1], 0, 0);
+        if (gpio < 0 && gpio >= LS7A_GPIO_NR) {
+            printf("Error: Invalid GPIO NR!\n");
+        }
+        if (level == 0) {
+            printf("LS7A GPIO %d, output low\n", gpio);
+            reg = __raw__readq(reg_ptr);
+            reg &= ~(1 << gpio);
+            __raw__writeq(reg, reg_ptr);
+        } else if (level == 1) {
+            printf("LS7A GPIO %d, output high\n", gpio);
+            reg = __raw__readq(reg_ptr);
+            reg |= (u64)(1 << gpio);
+            __raw__writeq(reg, reg_ptr);
+        } else {
+            printf("Error: Invalid level\n");
+        }
+    } else {
+        printf("Error: Useage: ls7a_gpio_mode <gpio id> [mode]\n");
+        return EXIT_FAILURE;
+    }
+
+	return EXIT_SUCCESS;
+}
+
 
 static int
 nphy_cfg (argc, argv)
@@ -125,9 +223,9 @@ cmd_nphy_cfg (argc, argv)
 static const Cmd Cmds[] =
 {
    {"Misc"},
-   {"phy_cfg",	"", 0,
-   "ls7a pcie/sata phy_cfg",
-   cmd_nphy_cfg, 1, 4, 0},
+   {"phy_cfg",	"", 0, "ls7a pcie/sata phy_cfg", cmd_nphy_cfg, 1, 4, 0},
+   {"ls7a_gpio_mode",	"", 0, "ls7a GPIO mode", cmd_ls7a_gpio_mode, 1, 4, 0},
+   {"ls7a_gpio_level",	"", 0, "ls7a GPIO level", cmd_ls7a_gpio_level, 1, 4, 0},
    {0, 0}
 };
 
