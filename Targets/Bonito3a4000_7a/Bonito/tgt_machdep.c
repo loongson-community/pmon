@@ -412,7 +412,10 @@ void tgt_devconfig()
 #endif
 	config_init();
 	configure();
+
+#ifdef LOONGSON_GMAC
 	gmac_mac_init();
+#endif
 
 	if(getenv("nokbd"))
 		rc=1;

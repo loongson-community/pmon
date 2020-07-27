@@ -8,6 +8,7 @@ file	Targets/Bonito3a4000_7a/Bonito/tgt_machdep.c
 #ls7a used same file with 3A3000_7A branch
 file	Targets/Bonito3a3000_7a/pci/pci_machdep.c
 file	Targets/Bonito3a3000_7a/pci/ls7a_pci.c
+file	Targets/Bonito3a3000_7a/dev/ls7a_dbg.c
 
 define  localbus { [base = -1 ] }
 device  localbus
@@ -18,16 +19,16 @@ file    Targets/Bonito3a4000_7a/dev/i2c-ls.c
 file	Targets/Bonito3a4000_7a/dev/w83795.c
 #dc
 file	Targets/Bonito3a4000_7a/dev/dc.c
-file	Targets/Bonito3a4000_7a/dev/ls7a_gmac_mac_init.c
+file	Targets/Bonito3a4000_7a/dev/ls7a_gmac_mac_init.c        gmac
 file	Targets/Bonito3a4000_7a/dev/spi_w.c
 file	Targets/Bonito3a4000_7a/dev/load_dtb.c		cmd_dtb
 file	Targets/Bonito3a4000_7a/dev/signal_test.c
 
 #Gmac
-file	sys/dev/gmac/synopGMAC_Dev.c
-file	sys/dev/gmac/synopGMAC_network_interface.c
-file	sys/dev/gmac/synopGMAC_pci_bus_interface.c
-file	sys/dev/gmac/synopGMAC_plat.c
+file	sys/dev/gmac/synopGMAC_Dev.c        gmac
+file	sys/dev/gmac/synopGMAC_network_interface.c      gmac
+file	sys/dev/gmac/synopGMAC_pci_bus_interface.c      gmac
+file	sys/dev/gmac/synopGMAC_plat.c       gmac
 
 file	pmon/arch/mips/ls3a/dma_coherent.c
 
@@ -52,6 +53,7 @@ include "sys/dev/pci/files.pci"
 #For 7A pci gmac
 device  pcisyn:ether, ifnet
 attach  pcisyn at pci
+
 
 #
 # Machine-independent ATAPI drivers
