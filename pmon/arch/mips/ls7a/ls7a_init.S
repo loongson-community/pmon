@@ -1071,11 +1071,16 @@ cal_one_pcie_x8:
 
 #if LS7A_GRAPHICS_DISABLE
     lw      t1, 0x420(t0)
-    li      t2, (0x1 << 5)  //TODO, can not disable DC because the PMON assume there it is and as the GPU BAR will affect DC BAR's found, so GPU cannot be disabled also
+    li      t2, (0x1 << 5)  //TODO, can not disable DC because the PMON assume there it is and as the GPU BAR will affect DC BARs found, so GPU cannot be disabled also
     not     t2, t2
     and     t1, t1, t2
     sw      t1, 0x420(t0)
     TTYDBG("Graphics disabled.\r\n")
+#endif
+
+#ifdef LEMOTE_PCIE_PERSTN
+    GPIO_SET_OUTPUT(1 << 4)
+    TTYDBG("Lemote PCIE PERST_N deasserted.\r\n")
 #endif
 
 #define PCIE_TRY_GEN2 1
