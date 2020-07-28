@@ -71,9 +71,7 @@ typedef struct DiskFile {
 
 int diskfs_init(DiskFileSystem *fs);
 
-typedef struct DiskPartitionTable { 
-	struct DiskPartitionTable* Next;
-	struct DiskPartitionTable* logical;
+typedef struct DiskPartitionTable {
 	unsigned char bootflag;
 	unsigned char tag;
 	unsigned char id;
@@ -90,7 +88,6 @@ typedef struct DeviceDisk {
 	struct DeviceDisk* Next;
 	char device_name[20];
 	unsigned int dev_fstype;
-//	DiskPartitionTable* part;
 	DiskPartitionTable* part[MAX_PARTS];
 }DeviceDisk;
 typedef struct DiskFile {

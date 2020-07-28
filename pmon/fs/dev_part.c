@@ -46,11 +46,9 @@
 #include <sys/device.h>
 #include <sys/queue.h>
 
-#ifndef DEBUG
 #include <pmon.h>
 #include <file.h>
 #include <diskfs.h>
-#endif
 
 #include "mod_usb_storage.h"
 
@@ -66,40 +64,22 @@ typedef __signed__ int __s32;
 typedef unsigned int __u32;
 typedef unsigned long long __u64;
 
-
 #ifdef DEBUG
-typedef struct DiskPartitionTable {
-	struct DiskPartitionTable* Next;
-	struct DiskPartitionTable* logical;
-	__u8 id;
-	__u8 bootflag;
-	__u8 tag;
-	__u32 sec_begin;
-	__u32 size;
-	__u32 sec_end;
-#ifdef DEBUG
-	void* fs;
+#define D(x) x
 #else
-	DiskFileSystem* fs;
-#endif
-}DiskPartitionTable;
+#define D(x)
 #endif
 
 extern int errno;
 static DeviceDisk* gDevice = NULL;
-
 
 void DevicesInit(void );
 void DeviceRelease(void);
 
 
 DeviceDisk* FindDevice(const char* device_name);
-#ifndef DEBUG
 extern SLIST_HEAD(DiskFileSystems,DiskFileSystem) DiskFileSystems;
-#endif
 												  
-												  
-#define IS_EXTENDED(tag) ((tag) == 0x05 || (tag) == 0x0F || (tag) == 0x85)
 												  
 inline static __u32 get_part_size(__u8* rb_entry)
 {
@@ -120,45 +100,6 @@ inline static __u32 get_logical_part_offset(__u8 * rb_entry)
 	return offset;
 }
 
-static void part_node_insert(DiskPartitionTable** head, DiskPartitionTable* node)
-{
-	DiskPartitionTable* p;
-	p = *head;
-
-	if (p == NULL)
-	{
-		*head = node;
-		return ;
-	}
-
-	if (node->sec_begin < p->sec_begin)
-	{
-		node->Next = p;
-		*head = node;
-		return;
-	}
-
-	while (p->Next != NULL)
-	{
-		if (p->Next->sec_begin > node->sec_begin)
-		{
-			break;
-		}
-		p = p->Next;
-	}
-
-	if (p->Next != NULL)
-	{
-		node->Next = p->Next;
-		p->Next = node;
-	}
-	else
-	{
-		p->Next = node;
-	}
-}
-
-#ifndef DEBUG
 static void get_filesystem(int fd, DiskPartitionTable* part)
 {
 
@@ -176,7 +117,6 @@ static void get_filesystem(int fd, DiskPartitionTable* part)
                     name = "fat";
 		            break;
 	            case FS_TYPE_NTFS:
-
 		            name = "ntfs";
 		            break;
 	            case FS_TYPE_BSD:
@@ -186,14 +126,15 @@ static void get_filesystem(int fd, DiskPartitionTable* part)
 		            name = "unknown";
 		            break;
 	        } 
-		SLIST_FOREACH(p, &DiskFileSystems, i_next) {
+
+			SLIST_FOREACH(p, &DiskFileSystems, i_next) {
+
 			if (strcmp (name, p->fsname) == 0) {
 				part->fs = p;
 				return;
 			}
 		}
 }
-#endif
 
 static int read_primary_part_table(int fd, __u32 mbr_sec_off, DiskPartitionTable **table)
 {
@@ -208,53 +149,33 @@ static int read_primary_part_table(int fd, __u32 mbr_sec_off, DiskPartitionTable
 	__u32 sec_off;
     int part_index = 0;
 
-
-
 	if (table == NULL)
 	{
 		return 0;
 	}
 	if ((leadbuf = (__u8 *) malloc(SECTOR_SIZE)) == NULL)
 	{
-#ifndef DEBUG
 		printf("Can't alloc memory for the super block!\n");
-#endif
-		return 0;
+		return -1;
 	}
 	if ((partbuf = (__u8 *) malloc(SECTOR_SIZE)) == NULL)
 	{
-#ifndef DEBUG
 		printf("Can't alloc memory for the partition block!\n");
-#endif
-		return 0;
+		return -1;
 	}
 
 	lseek(fd, (off_t)mbr_sec_off * SECTOR_SIZE, 0);
 	if ((read(fd, leadbuf, SECTOR_SIZE)) != SECTOR_SIZE)
 	{
 		free(leadbuf);
-#ifndef DEBUG
 		printf("Can't read the leading block from disk!\n");
-#endif
-		return 0;
+		return -1;
 	}
 	if (leadbuf[510] != 0x55 || leadbuf[511] != 0xaa)
-    {   
-        return 0; /*check mbr magic failed */
+    {
+		D(printf("Not a MBR paetation table\n"));
+        return -1; /*check mbr magic failed */
     }
-#ifdef DEBUG                                           
-	{
-		int j;
-		for (i = 446; i < 510; i += 0x10)
-		{
-			for (j = 0; j < 0x10; j++)
-			{
-				printf("%02x ", leadbuf[i + j]);
-			}
-			printf("\n");
-		}
-	}
-#endif
 
 	//search the partion table to find the partition with id=0x83 and 0x05
 	for (cnt = 0, i = 446; i < 510; i += 0x10)
@@ -281,8 +202,6 @@ static int read_primary_part_table(int fd, __u32 mbr_sec_off, DiskPartitionTable
 		part->sec_begin = sec_off;
 		part->size = size;
 		part->sec_end = part->size + part->sec_begin;
-		part->Next = NULL;
-		part->logical = NULL;
 		part->fs = NULL;
         //do the fix ,because Partition table do not tell
         //the file system type of partition so correctly.
@@ -290,9 +209,7 @@ static int read_primary_part_table(int fd, __u32 mbr_sec_off, DiskPartitionTable
 	    if ((read(fd, partbuf, SECTOR_SIZE)) != SECTOR_SIZE)
 	    {
 		    free(partbuf);
-            #ifndef DEBUG
 		    printf("Can't read the leading block from disk!\n");
-            #endif
 		    return 0;
 	    }
         if ((0xEB==partbuf[0]&&0x90==partbuf[2])||(0xE9==partbuf[0])){
@@ -302,9 +219,7 @@ static int read_primary_part_table(int fd, __u32 mbr_sec_off, DiskPartitionTable
 	        if ((read(fd, partbuf, SECTOR_SIZE)) != SECTOR_SIZE)
 	        {
 		        free(partbuf);
-                #ifndef DEBUG
 		        printf("Can't read the leading block from disk!\n");
-                #endif
 		        return 0;
 	        }
             if((0x53==partbuf[0x38])&&(0xEF==partbuf[0x39])){
@@ -357,29 +272,27 @@ static int read_primary_part_table(int fd, __u32 mbr_sec_off, DiskPartitionTable
 	    }   
 		
 		/* file system */
-#ifndef DEBUG
 		get_filesystem(fd, part);
-#endif
-		//part_node_insert(table, part);
 		table[part_index] = part;
         part_index++;
 		cnt++;
 		id++;
+
+		if (part_index >= MAX_PARTS)
+			break;
 	}
-    //Second chance
-    if(table[0] == NULL){
+
+    // Second chance flygoat: Why???
+    if (table[0] == NULL){
         if ((leadbuf[0]==0xEB)&&  (leadbuf[2]==0x90))
         {
 		    part = (DiskPartitionTable *)malloc(sizeof(DiskPartitionTable));
 		    memset(part, 0, sizeof(DiskPartitionTable));
             part->tag = 0xB;//FAT32
             part->part_fstype = FS_TYPE_FAT;
-		    part->Next = NULL;
-		    part->logical = NULL;
 		    part->fs = NULL;
 		    part->bootflag = 0;
 		    part->sec_begin = 0;
-		    //part_node_insert(table, part);
             part->id = 1;;
 		    cnt++;
             table[0] = part;
@@ -389,174 +302,6 @@ static int read_primary_part_table(int fd, __u32 mbr_sec_off, DiskPartitionTable
 	free(leadbuf);
     free(partbuf);
 	return cnt;
-}
-
-static int read_logical_part_table(int fd, int id, __u32 mbr_sec_off, DiskPartitionTable **table)
-{
-	__u8 *leadbuf;
-	int i;
-	__u8 tag;
-	DiskPartitionTable* part;
-	int cnt = 0;
-	__u32 size;
-	__u32 sec_off;
-	
-	if (table == NULL)
-	{
-		return 0;
-	}
-	
-	if ((leadbuf = (__u8 *) malloc(SECTOR_SIZE)) == NULL)
-	{
-#ifdef DEBUG
-		printf("Can't alloc memory for the super block!\n");
-#endif
-		return 0;
-	}
-	lseek(fd, (off_t)mbr_sec_off * SECTOR_SIZE, 0);
-	if ((read(fd, leadbuf, SECTOR_SIZE)) != SECTOR_SIZE)
-	{
-		free(leadbuf);
-#ifdef DEBUG
-		printf("Can't read the leading block from disk!\n");
-#endif
-		return 0;
-	}
-
-#ifdef DEBUG
-	{
-		int j;
-		for (i = 446; i < 510; i += 0x10)
-		{
-			for (j = 0; j < 0x10; j++)
-			{
-				printf("%02x ", leadbuf[i + j]);
-			}
-			printf("\n");
-		}
-	}
-#endif
-	
-	//search the partion table to find the partition with id=0x83 and 0x05
-	for (cnt = 0, i = 446; i < 510; i += 0x10)
-	{
-		tag = leadbuf[i + 4];
-		size = get_part_size(leadbuf + i);
-		sec_off = get_logical_part_offset(leadbuf + i);
-		if (tag == 0 && size == 0 && sec_off == 0)
-		{
-			continue;
-		}
-		
-		part = (DiskPartitionTable *)malloc(sizeof(DiskPartitionTable));
-		if (part == NULL)
-		{
-			continue;
-		}
-		memset(part, 0, sizeof(DiskPartitionTable));
-		part->tag = tag;
-		if (IS_EXTENDED(tag))
-		{
-			part->sec_begin = sec_off;
-		}
-		else
-		{
-			part->id = id;
-			part->sec_begin = sec_off + mbr_sec_off;
-		}
-
-		part->size = size;
-		part->sec_end = part->size + part->sec_begin;
-
-		part_node_insert(table, part);
-		cnt++;
-	}
-	free(leadbuf);
-
-	return cnt;
-}
-
-static DiskPartitionTable* get_externed_part(DiskPartitionTable* table)
-{
-	DiskPartitionTable* p;
-
-	for (p = table; p != NULL; p = p->Next)
-	{
-		if (IS_EXTENDED(p->tag))
-		{
-			return p;
-		}
-	}
-
-	return NULL;
-}
-
-static DiskPartitionTable* remove_extended_part(DiskPartitionTable** table)
-{
-	DiskPartitionTable* p;
-	DiskPartitionTable* p1;
-	
-	p = *table;
-	if (IS_EXTENDED(p->tag))
-	{
-		*table = p->Next;
-		return p;
-	}
-
-	while (p->Next != NULL && !(IS_EXTENDED(p->Next->tag)))
-	{
-		p = p->Next;
-	}
-
-	if (p->Next != NULL)
-	{
-		p1 = p->Next;
-		p->Next = p1->Next;
-		p = p1;
-
-		return p;
-	}
-
-	return NULL;
-}
-
-static int dev_logical_read(int fd, DiskPartitionTable* extended)
-{
-	DiskPartitionTable* table = NULL;
-	DiskPartitionTable* p1;
-	__u32 base = 0;
-	int cnt;
-	int id = 5;
-	
-	base = extended->sec_begin;
-	p1 = extended;
-	while (1)
-	{
-		table = NULL;
-		cnt = read_logical_part_table(fd, id, base, &table);
-		if (cnt <= 0)
-		{
-			return 0;
-		}
-		
-		/* delete extended part */
-		p1 = remove_extended_part(&table);
-
-#ifndef DEBUG
-		get_filesystem(fd, table);
-#endif
-		part_node_insert(&extended->logical, table);
-		
-		if (p1 == NULL)
-		{
-			break;
-		}
-
-		base = extended->sec_begin + p1->sec_begin;
-		free(p1);
-		id++;
-	}
-	return id - 5 + 1;
 }
 
 static int dev_part_read(int fd, DiskPartitionTable** ppTable)
@@ -578,15 +323,8 @@ static int dev_part_read(int fd, DiskPartitionTable** ppTable)
 static const char* get_part_type_name(int tag)
 {
 	const static char* name;
-
-	if (IS_EXTENDED(tag))
-	{
-		name = "extended";
-		return name;
-	}
 	
-	switch (tag)
-	{
+	switch (tag) {
 	case 0x83:
 		name = "linux";
 		break;
@@ -643,7 +381,6 @@ static void zhuan(__u32 block, char* str, int danwei)
 	}
 }
 
-#ifndef DEBUG
 static void fs_type_string(DiskPartitionTable* part, char* fs_name)
 {
 	if (part == NULL)
@@ -652,83 +389,51 @@ static void fs_type_string(DiskPartitionTable* part, char* fs_name)
 	}
 	else
 	{
-		if (IS_EXTENDED(part->tag))
-		{
-			strcpy(fs_name, "extended");
-		}
-		else if (part->tag == 0x82)
-		{
-			strcpy(fs_name, "swap");
-		}
+		if (part->fs == NULL)
+			strcpy(fs_name, "unknown");
 		else
-		{
-			if (part->fs == NULL)
-			{
-				strcpy(fs_name, "unknown");
-			}
-			else
-			{
-				strcpy(fs_name, part->fs->fsname);
-			}
-		}
+			strcpy(fs_name, part->fs->fsname);
 	}
 }
-#endif
 
 /* danwei 0-512B, 1-1K, 2-1M, 3-1G */
 void PrintPartitionTable(DeviceDisk* dev, int danwei)
 {
-	DiskPartitionTable *p, *p1;
+	DiskPartitionTable *p;
 	char system[20];
 	char sec_begin[20];
 	char size[20];
 	char fssystem[25];
 	char sec_end[20];
 	char label[20];
+	int i;
 	
 	const char* fmt = "%-12s%-12s%-12s%-12s%-12s%-12s\n";
 
 	printf("block size: %s\n", danwei == 0 ? "512B" : danwei == 1 ? "1K" : danwei == 2 ? "1M" : "1G");
 	printf(fmt, "Name", "Start", "Size", "End", "File Sytem", "System");
 	printf("------------------------------------------------------------------------\n");
-	for (p = dev->part; p != NULL; p = p->Next)
+	for (i = 0; i < MAX_PARTS; i++)
 	{
+		p = dev->part[i];
+		if (!p)
+			break;
+
 		sprintf(label, "(%s,%d)", dev->device_name, p->id - 1);
 		sprintf(system, "%s", get_part_type_name(p->tag));
 		zhuan(p->sec_begin, sec_begin, danwei);
 		zhuan(p->size, size, danwei);
 		zhuan(p->sec_end, sec_end, danwei);
 
-		#ifndef DEBUG
 		fs_type_string(p, fssystem);
-		#endif
 
-		printf(fmt, label, sec_begin, size, sec_end, fssystem, system);		
-		if (IS_EXTENDED(p->tag))
-		{
-			for (p1 = p->logical; p1 != NULL; p1 = p1->Next)
-			{
-				sprintf(label, " (%s,%d)", dev->device_name, p1->id - 1);
-				sprintf(system, "%s", get_part_type_name(p1->tag));
-				zhuan(p1->sec_begin, sec_begin, danwei);
-				zhuan(p1->size, size, danwei);
-				zhuan(p1->sec_end, sec_end, danwei);
-
-				#ifndef DEBUG
-				fs_type_string(p1, fssystem);
-				#endif
-				printf(fmt, label, sec_begin, size, sec_end, fssystem, system);
-			}
-		}
+		printf(fmt, label, sec_begin, size, sec_end, fssystem, system);
 	}
 }
 
 int dev_part_detect(DeviceDisk* dev, const char* dev_name,int fd, int usb_cd_index)
 {
  	__u8 *leadbuf;
-
-//    if(!is_usb_cd_ready(usb_cd_index))
-  //      return -1;
 
 	if ((leadbuf = (__u8 *) malloc(SECTOR_SIZE*4)) == NULL)
 	{
@@ -796,6 +501,7 @@ static int _DevPartOpen(DeviceDisk* dev, const char* dev_name)
     if (strncmp(dev_name,"usb",3) == 0){
         char *p_name = dev_name+3;
         int usb_cd_index = *p_name - '0';
+
         ret = dev_part_detect(dev, dev_name, fd,usb_cd_index);
         switch(ret){
             case -1:
@@ -805,38 +511,39 @@ static int _DevPartOpen(DeviceDisk* dev, const char* dev_name)
             default:
                 break;
         }
+
 	    cnt = dev_part_read(fd, dev->part);
 	    if (cnt <= 0){
 		    printf("no partitions\n");
 	        dev->dev_fstype = FS_TYPE_UNKNOWN;
-	    }
-        else {
-            if(dev->part[0]){
+	    } else {
+            if(dev->part[0]) {
                 dev->dev_fstype = dev->part[0]->part_fstype;
             }
-            if (dev->part[1]){
-                dev->dev_fstype = FS_TYPE_COMPOUND;
+            if (dev->part[1]) {
+                dev->dev_fstype = FS_TYPE_COMPOUND; /* flygoat: Why??? */
             }
         }
-	close(fd);
+		close(fd);
+		PrintPartitionTable(dev, 2);
         return cnt;
     }       
     #endif
 
     cnt = dev_part_read(fd, dev->part);
-    if (cnt <= 0){
+    if (cnt <= 0) {
         printf("no partitions\n");
 	    dev->dev_fstype = FS_TYPE_UNKNOWN;
-    }
-    else {
-        if(dev->part[0]){
+    } else {
+        if(dev->part[0])
             dev->dev_fstype = dev->part[0]->part_fstype;
-        }
-        if (dev->part[1]){
-            dev->dev_fstype = FS_TYPE_COMPOUND;
-        }
+
+        if (dev->part[1])
+            dev->dev_fstype = FS_TYPE_COMPOUND; /* flygoat: Why?? */
     }
     close(fd);
+	PrintPartitionTable(dev, 2);
+
     return cnt;
 }
 
@@ -890,38 +597,19 @@ void DevicesInit(void)
 	}
 }
 
-
-static int _DevPartClose(DiskPartitionTable** table)
+static int _DevPartClose(DiskPartitionTable* table[])
 {
-	DiskPartitionTable *p, *p1, *p2;
-	
-	if (table == NULL)
-	{
-		return 0;
-	}
+	DiskPartitionTable *p;
+	int i;
 
-	p = *table;
-	while (p != NULL)
-	{
-		if (p->logical != NULL)
-		{
-			p1 = p->logical;
-			while (p1 != NULL)
-			{
-				p2 = p1->Next;
-				free(p1);
-				p1 = p2;
-			}
-			p->logical = NULL;
-		}
+	for (i = 0; i < MAX_PARTS; i++) {
+		p = table[i];
+		if (!p)
+			break;
 
-		p1 = p->Next;
 		free(p);
-		p = p1;
 	}
 
-	*table = NULL;
-	return 0;
 }
 
 void DeviceRelease()
@@ -965,27 +653,9 @@ DeviceDisk* FindDevice(const char* device_name)
 DiskPartitionTable* FindPartitionFromID(DiskPartitionTable* table, int index)
 {
 	DiskPartitionTable *p, *p1;
+	int i;
 
-	if (table == NULL || index < 0)
-	{
-		return NULL;
-	}
-
-	for (p = table; p != NULL; p = p->Next)
-	{
-		if (p->id == index)
-		{
-			return p;
-		}
-
-		for (p1 = p->logical; p1 != NULL; p1 = p1->Next)
-		{
-			if (p1->id == index)
-			{
-				return p1;
-			}
-		}
-	}
+	/* W.I.P. */
 
 	return NULL;
 }
@@ -993,26 +663,10 @@ DiskPartitionTable* FindPartitionFromID(DiskPartitionTable* table, int index)
 /* notes: device is wd0a wd0b ... */
 DiskPartitionTable* FindPartitionFromDev(DiskPartitionTable* table, const char* device)
 {
-	char c;
 
-	c = device[strlen(device) - 1];
-	if (c < 'a' || c > 'z')
-	{
-		c = 0;
-	}
-	else
-	{
-		c -= 'a';
-	}
-	c += 1;
+	/* W.I.P. */
 
-	if (table == NULL)
-	{
-		printf("table == NULL\n");
-		return NULL;
-	}
-
-	return FindPartitionFromID(table, c);
+	return FindPartitionFromID(table, 0);
 }
 
 int is_usb_cd_iso9660_fs(const char* device_name)
