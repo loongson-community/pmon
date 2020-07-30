@@ -316,3 +316,17 @@ nop
 #define NODE_SCACHE_ENABLED         0x6666
 #define SYSTEM_INIT_OK              0x5a5a
 
+#define MIKU_CFG_TAB_ADDR   0xbd600800 // KSEG1
+#define MIKU_CFG_OFF_CCFREQ 0xc
+#define MIKU_CFG_OFF_CFDM   0x10
+#define MIKU_CFG_OFF_PLL	0x14
+#define MIKU_CFG_PLL_DIV_B	0
+#define MIKU_CFG_PLL_DIV_F		(0xff << MIKU_CFG_PLL_DIV_B)
+#define MIKU_CFG_PLL_LOOPC_B	8
+#define MIKU_CFG_PLL_LOOPC_F	(0xffff << MIKU_CFG_PLL_LOOPC_B)
+#define MIKU_CFG_PLL_REFC_B	24
+#define MIKU_CFG_PLL_REFC_F		(0xff << MIKU_CFG_PLL_REFC_B)
+
+#ifndef MIKU_MODEL_MAGIC
+#error  "MIKU_MODEL_MAGIC not defined"
+#endif

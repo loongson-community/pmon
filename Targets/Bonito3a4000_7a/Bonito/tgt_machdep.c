@@ -63,6 +63,8 @@
 #include "mod_smi502.h"
 #include "mod_sisfb.h"
 
+#include "loongson3_def.h"
+
 /* Generic file-descriptor ioctl's. */
 #define	FIOCLEX		 _IO('f', 1)		/* set close on exec on fd */
 #define	FIONCLEX	 _IO('f', 2)		/* remove close on exec */
@@ -345,12 +347,21 @@ void conf_adjust_f_v(void)
 	readl(0xbfe00008) |= (1 << 6); //LOONGSON_CPU_FREQ_SCALE
 #ifdef LS132_CORE
 	readl(0xbfe00008) |= (1 << 7); //LOONGSON_CPU_DVFS_V1
-#endif
-#if defined(LS132_CORE) || defined(MIKU_SMC)
 	//run ls132 core
 	printf("LOONGSON 132 CORE\n");
 	readl(0xbfe00420) |= 0x100;
 #endif
+
+#ifdef MIKU_SMC
+	printf("Miku MAGIC : %x\n", readl(MIKU_CFG_TAB_ADDR));
+	if (readl(MIKU_CFG_TAB_ADDR) == MIKU_MODEL_MAGIC) {
+		printf("Miku SMC UP!\n");
+		readl(0xbfe00420) |= 0x100;
+	} else {
+		printf("Miku Magic Mismatch, Miku down\n");
+	}
+#endif
+
 #endif
 }
 void tgt_devconfig()

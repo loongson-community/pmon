@@ -211,6 +211,7 @@ NOTE:
 //soft_sys:
 	TTYDBG ("CORE & NODE:")
 
+	move	t6, zero // t3 = 0, no software modification
 #ifdef INPUT_PARAM  //this code used for debug
 	PRINTSTR("\r\nBase freq 800M + (25M * input value) = target freq")
 	bal	inputaddress
@@ -233,6 +234,41 @@ L1_DIV_2:
 	li	t3, L1_REFC
 	mulou	t4, t3, t4
 	divu	t4, t4, SYS_CLOCK
+
+	// Put L1_REFC in t3
+	li	t3, L1_REFC
+
+	// soft modification
+	li	t6, 0x1
+#endif
+
+#ifdef MIKU_SMC
+	/* Only use values in Miku Config table if model magic matches */
+	li	t2, MIKU_CFG_TAB_ADDR
+	lw	t0, 0x0(t2)
+	li	t3, MIKU_MODEL_MAGIC
+	beq	t0, t3, pll_sel_from_table
+	nop
+	PRINTSTR("\r\nMiku MAGIC Mismtach\r\n")
+	b  pll_mismatch_cont
+	nop
+	/* Actual values in config table */
+pll_sel_from_table:
+	PRINTSTR("\r\nMiku freq sel\r\n")
+	lw	t2, MIKU_CFG_OFF_PLL(t2)
+
+	and		t3, t2, MIKU_CFG_PLL_REFC_F
+	dsrl	t3, t3, MIKU_CFG_PLL_REFC_B
+
+	and		t4, t2, MIKU_CFG_PLL_LOOPC_F
+	dsrl	t4, t4, MIKU_CFG_PLL_LOOPC_B
+
+	and		t5, t2, MIKU_CFG_PLL_DIV_F
+	dsrl	t5, t5, MIKU_CFG_PLL_DIV_B
+	// soft modification
+	li	t6, 0x1
+
+pll_mismatch_cont:
 #endif
 
 	dli	t0, 0x900000001fe001b0
@@ -244,13 +280,18 @@ L1_DIV_2:
 	dli	t1, (L1_LOOPC << 54) | (L1_REFC  << 48) | \
 			  (L1_DIV   << 42) | (L1_LOOPC << 32) | (L1_REFC << 26) | \
 			  (SYS_PD   << 19) | (ST_PLL   << 22) | (0x3 << 10) | (0x1 << 7)
-#ifdef INPUT_PARAM
-	and	t1, ~((0x1ff << 32) | (0x3f << 42))
+
+	beqz	t6, pll_no_soft_mod
+	nop
+	and		t1, ~((0x1ff << 32) | (0x3f << 42) | (0xf << 26))
 	dsll	t5, t5, 42
 	dsll	t4, t4, 32
+	dsll	t3, t3, 26
 	or	t4, t4, t5
+	or	t4, t3, t4
 	or	t1, t4, t1
-#endif
+pll_no_soft_mod:
+
 	sd	t1, 0(t0)
 	ori	t1, PLL_L1_ENA
 	sd	t1, 0x0(t0)

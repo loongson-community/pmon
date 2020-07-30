@@ -9,7 +9,7 @@ option          VGAROM_IN_BIOS
 makeoptions	ENDIAN=EL		# Little endian version.
 
 option BOARD_NAME="\"Lemote-3A4000-7A-1w-V1.00-A1901\""
-
+option MIKU_MODEL_MAGIC=0xbcda1901
 
 #include "conf/GENERIC_ALL"
 

@@ -430,14 +430,35 @@ locate:
 	.word (0x32<<26 | 0x18 | 0x4<<6 | 0x1<<16 | T0<<21 | T1<<11)
 	/*end*/
 #endif
-	/*set stable counter clk (CCFreq * CFM / CFD) = clk*/
+
+#if 1
+	/* set stable counter clk (CCFreq * CFM / CFD) = clk */
+#ifdef MIKU_SMC
+	/* Only use values in Miku Config table if model magic matches */
+	li	t2, MIKU_CFG_TAB_ADDR
+	lw	t0, 0x0(t2)
+	li	t3, MIKU_MODEL_MAGIC
+	beq	t0, t3, sel_from_table
+	nop
+#endif
+	li	t4, 25000000 // 25MHz
+	li	t5, (CORE_FREQ / 25) | (1 << 16)
+#ifdef MIKU_SMC
+	b	write_cc_mcsr
+	nop
+sel_from_table:
+	lw	t4, MIKU_CFG_OFF_CCFREQ(t2)
+	lw	t5, MIKU_CFG_OFF_CFDM(t2)
+write_cc_mcsr:
+#endif
+	/*cfg mcsr addr = (((register num & 0x3fff) << 2)+ 0xfffe0000)*/
 	li	t0, 0xfffe0010
-	li	t1, 100000000 //100M Hz
+	move	t1, t4
 	.word (0x32<<26 | 0x18 | 0x4<<6 | 0x1<<16 | T0<<21 | T1<<11)
 	li	t0, 0xfffe0014
-	li	t1, (CORE_FREQ / 100) | (1 << 16) /* [31:16]->CDF | [15:0]->CFM */
+	move	t1, t5
 	.word (0x32<<26 | 0x18 | 0x4<<6 | 0x1<<16 | T0<<21 | T1<<11)
-	/*end*/
+#endif
 
 	/*UCAWINP / UCAWINP | GCCAEQRP*/
 	mfc0	t0, $15, 0
