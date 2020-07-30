@@ -345,6 +345,8 @@ void conf_adjust_f_v(void)
 	readl(0xbfe00008) |= (1 << 6); //LOONGSON_CPU_FREQ_SCALE
 #ifdef LS132_CORE
 	readl(0xbfe00008) |= (1 << 7); //LOONGSON_CPU_DVFS_V1
+#endif
+#if defined(LS132_CORE) || defined(MIKU_SMC)
 	//run ls132 core
 	printf("LOONGSON 132 CORE\n");
 	readl(0xbfe00420) |= 0x100;

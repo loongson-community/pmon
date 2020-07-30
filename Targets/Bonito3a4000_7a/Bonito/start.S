@@ -76,7 +76,7 @@ start:
 stack = start - 0x4000		/* Place PMON stack below PMON start in RAM */
 
 /* NOTE!! Not more that 16 instructions here!!! Right now it's FULL! */
-#ifdef	LS132_CORE
+#if defined(LS132_CORE) || defined(MIKU_SMC)
 #define	LS132_CORE_ID 0x8000
 	.set	push
 	.set	mips32
@@ -156,7 +156,7 @@ ext_map_and_reboot:
 
 	/* General exception */
 	.align	7			/* bfc00380 */
-#ifdef	LS132_CORE
+#if defined(LS132_CORE) || defined(MIKU_SMC)
 	.set	push
 	.set	noreorder
 	.set	mips32
@@ -166,7 +166,11 @@ ext_map_and_reboot:
 	li	t2, LS132_CORE_ID
 	bne	t0, t2, 1f
 	nop
+#ifdef LS132_CORE
 	bal	timer_handler
+#else
+	bal ls132_core_main
+#endif
 	nop
 	.set pop
 1:
@@ -2396,6 +2400,8 @@ END(LS3A4000_HitInvalidateSCache)
 #ifdef	LS132_CORE
 #include "ls132_core.S"
 #include "ls132_i2c.S"
+#elif defined(MIKU_SMC)
+#include "miku_boot.S"
 #endif
 #include "ls3a4000_vctrl.S"
 	.ent slave_main
