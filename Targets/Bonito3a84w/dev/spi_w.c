@@ -445,7 +445,7 @@ int spi_read_area(int addr,char *buffer,int size)
 
 struct fl_device myflash = {
 	.fl_name="spiflash",
-	.fl_size=0x100000,
+	.fl_size=0x1000000,
 	.fl_secsize=0x10000,
 };
 
