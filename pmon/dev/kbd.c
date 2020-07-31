@@ -307,6 +307,9 @@ int kbd_initialize(void)
 {
 	int status;
 	int count;
+#ifdef NO_SUPERIO
+	return 0;
+#endif
 
 #ifdef LOONGSON2F_7INCH
 	status = kb3310_test();

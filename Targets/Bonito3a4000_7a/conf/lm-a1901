@@ -69,6 +69,7 @@ option		LS7A			#for 7A
 option      UPI9212S_V
 option      LEMOTE_WATCHDOG
 option      LEMOTE_PCIE_PERSTN
+option      NO_SUPERIO
 
 option      MIKU_SMC
 
