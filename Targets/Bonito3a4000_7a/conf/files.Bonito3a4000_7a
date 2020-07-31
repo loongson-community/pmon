@@ -24,6 +24,9 @@ file	Targets/Bonito3a4000_7a/dev/spi_w.c
 file	Targets/Bonito3a4000_7a/dev/load_dtb.c		cmd_dtb
 file	Targets/Bonito3a4000_7a/dev/signal_test.c
 
+#miku smc
+file	Targets/Bonito3a4000_7a/dev/miku_dbg.c
+
 #Gmac
 file	sys/dev/gmac/synopGMAC_Dev.c        gmac
 file	sys/dev/gmac/synopGMAC_network_interface.c      gmac
