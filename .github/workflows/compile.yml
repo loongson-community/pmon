@@ -31,7 +31,7 @@ jobs:
     - name: Upload ls2k-pi2
       uses: actions/upload-artifact@v2
       with:
-        name: pmon-bin-ls2k-pi2
+        name: pmon-ls2k-pi2.bin
         path: zloader/gzrom-dtb.bin
 
     - name: Compile ls2k-edu
@@ -39,7 +39,7 @@ jobs:
     - name: Upload ls2k-edu
       uses: actions/upload-artifact@v2
       with:
-        name: pmon-bin-ls2k-edu
+        name: pmon-ls2k-edu.bin
         path: zloader/gzrom-dtb.bin
 
     - name: Compile 3avirt
@@ -47,5 +47,13 @@ jobs:
     - name: Upload 3avirt
       uses: actions/upload-artifact@v2
       with:
-        name: pmon-bin-3avirt
+        name: pmon-3avirt.bin
+        path: zloader/gzrom.bin
+
+    - name: Compile lm-a1901
+      run: cd zloader.lm-a1901 && make cfg && make tgt=rom && cd ..
+    - name: Upload lm-a1901
+      uses: actions/upload-artifact@v2
+      with:
+        name: pmon-lm-a1901.bin
         path: zloader/gzrom.bin
