@@ -171,3 +171,11 @@ file    sys/dev/pci/ahci-sd.c         ahci_sd needs-flag
 device  ahci_cdrom
 attach  ahci_cdrom at ahcibus
 file    sys/dev/pci/ahci-cdrom.c         ahci_cdrom needs-flag
+
+define nvmebus {}
+device pcinvme {[channel = -1]} : nvmebus
+attach pcinvme at pci
+
+device  nvme
+attach  nvme at nvmebus
+file    sys/dev/pci/nvme/nvme.c         pcinvme | nvme needs-flag
