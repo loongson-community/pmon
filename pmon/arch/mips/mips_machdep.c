@@ -282,16 +282,29 @@ void delay1(int microseconds)
 	};
 }
 
-unsigned int get_timer(unsigned int base)
+unsigned long long timer_get()
 {
 	unsigned int clkperms;
 	static unsigned int high, low;
 	unsigned int now;
-	clkperms = tgt_pipefreq() / 2 /1000;
 	now = CPU_GetCOUNT();
 	high += (now < low);
 	low = now;
-	return (high*0x100000000ULL+low)/clkperms - base;
+	return ((unsigned long long)high<<32) | low;
+}
+
+unsigned int get_timer(unsigned int base)
+{
+	unsigned int clkperms;
+	clkperms = tgt_pipefreq() / 2 /1000;
+	return timer_get()/clkperms - base;
+}
+
+unsigned long timer_get_us()
+{
+	unsigned int clkperus;
+	clkperus = tgt_pipefreq() / 2 /1000000;
+	return timer_get()/clkperus;
 }
 
 
