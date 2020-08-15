@@ -204,7 +204,6 @@ struct cfdriver ohci_cd = {
 static int hc_interrupt(void *);
 
 //QYL-2008-03-07
-static int hc_check_ohci_controller(void *);
 void arouse_usb_int_pipe(ohci_t *);
 u_int32_t check_device_sequence(ohci_t * pohci);
 
@@ -2479,7 +2478,7 @@ static int ohci_submit_rh_msg(struct usb_device *dev, unsigned long pipe,
 
 	wait_ms(1);
 
-	if ((pipe & PIPE_INTERRUPT) == PIPE_INTERRUPT) {
+	if (usb_pipeint(pipe)) {
 		info("Root-Hub submit IRQ: NOT implemented");
 		return 0;
 	}
@@ -3808,173 +3807,6 @@ static void init_cmd()
 }
 #endif
 
-//QYL-2008-03-07
-/*===========================================================================
-*
-*FUNTION: hc_check_ohci_controller
-*
-*DESCRIPTION: This function is used to check whether OHCI controller has finished
-*             transfering the TDs except PIPE_INTERRUPT TDs.
-*PARAMETERS:
-*          [IN] hc_data: an all-purpose pointer to be cast to struct ohci*,
-*                        points to the buffer which stores information of ohci.
-*
-*RETURN VALUE: 0 :   indicates that no TDs has been transfered.
-*              stat: indicates that PIPE_INTERRUPT TDs has been transfered and be
-*                    dealed with.
-*
-*===========================================================================*/
-static int hc_check_ohci_controller(void *hc_data)
-{
-	ohci_t *ohci = hc_data;
-	struct ohci_regs *regs = ohci->regs;
-	urb_priv_t *lurb_priv = NULL;
-	td_t *td = NULL;
-	int ints;
-	int stat = NOTUSBIRQ;
-
-	u_int32_t dev_num, ed_num;
-	struct usb_device *p_dev = NULL;
-	ed_t *p_ed = NULL;
-
-	if ((ohci->hcca->done_head != 0) &&
-	    !(m32_swap(ohci->hcca->done_head) & 0x01)) {
-		ints = OHCI_INTR_WDH;
-#ifdef CONFIG_SM502_USB_HCD
-		if (ohci->flags & 0x80) {
-			td = (td_t *) sm502_phystov(ohci,
-						    ohci->hcca->done_head);
-		} else
-#endif
-		{
-#if (defined(LS3_HT) || defined(LS2G_HT))
-			td = (td_t *) PHYS_TO_CACHED(ohci->hcca->done_head);
-#else
-			td = (td_t *) CACHED_TO_UNCACHED(ohci->hcca->done_head);
-#endif
-		}
-	} else {
-		ints = readl(&regs->intrstatus);
-		if (ints == ~0ul)
-			return 0;
-		if (ints == 0)
-			return 0;
-	}
-
-	if (ints & OHCI_INTR_RHSC) {
-		writel(OHCI_INTR_RD | OHCI_INTR_RHSC, &regs->intrstatus);
-		got_rhsc = 1;
-	}
-
-	if (got_rhsc) {
-		int timeout;
-#if 0
-		ohci_dump_roothub(gohci, 1);
-#endif
-		got_rhsc = 0;
-		/* abuse timeout */
-		//delay(250);
-		delay_usb_ohci(250);
-		timeout = rh_check_port_status(ohci);
-		if (timeout >= 0) {
-			/*
-			 * XXX
-			 * This is potentially dangerous because it assumes
-			 * that only one device is ever plugged in!
-			 */
-			printf
-			    ("**hc_check_ohci_controller** device disconnected\n");
-		}
-	}
-
-	if (ints & OHCI_INTR_UE) {
-		ohci->disabled++;
-		printf
-		    ("**hc_check_ohci_controller** Unrecoverable Error, controller usb-%s disabled\n",
-		     ohci->slot_name);
-		/* e.g. due to PCI Master/Target Abort */
-#ifdef	DEBUG
-		//ohci_dump (ohci, 1);
-#endif
-		/* FIXME: be optimistic, hope that bug won't repeat often. */
-		/* Make some non-interrupt context restart the controller. */
-		/* Count and limit the retries though; either hardware or */
-		/* software errors can go forever... */
-		hc_reset(ohci);
-		ohci->disabled--;
-		return -1;
-	}
-
-	if (ints & OHCI_INTR_WDH) {
-/*
-		if (td == NULL) {
-#ifdef CONFIG_SM502_USB_HCD
-			if (ohci->flags & 0x80) {
-				td = (td_t *) sm502_phystov(ohci,
-							    ohci->
-							    hcca->done_head &
-							    ~0x1f);
-			} else
-#endif
-			{
-#if (defined(LS3_HT) || defined(LS2G_HT))
-				td = (td_t *) PHYS_TO_CACHED(ohci->hcca->done_head & ~0x1f);
-#else
-				td = (td_t *) CACHED_TO_UNCACHED(ohci->
-								 hcca->done_head
-								 & ~0x1f);
-#endif
-			}
-		}
-*/
-		if ((td != NULL) && (td->ed != NULL)) {	//&&(td->ed->type != PIPE_INTERRUPT)))
-			writel(OHCI_INTR_WDH, &regs->intrdisable);
-			p_dev = td->usb_dev;
-
-			for (dev_num = 0; dev_num < USB_MAX_DEVICE; dev_num++) {
-				if (p_dev == &usb_dev[dev_num]) {
-					break;
-				}
-			}
-			p_ed = td->ed;
-			ed_num = (p_ed->hwINFO & 0xf80) >> 7;	//See OHCI1.1 spec Page 17 Endpoint Descriptor Field Definitions
-			lurb_priv = &ohci_urb[dev_num][ed_num];
-
-			if (td->index != lurb_priv->length - 1) {
-				stat =
-				    dl_td_done_list(ohci,
-						    dl_reverse_done_list(ohci));
-				printf
-				    ("**hc_check** td index=%x/%x, p_dev %x\n",
-				     td->index, lurb_priv->length, p_dev);
-			} else {
-				stat =
-				    dl_td_done_list(ohci,
-						    dl_reverse_done_list(ohci));
-			}
-			writel(OHCI_INTR_WDH, &regs->intrenable);
-		}
-	}
-
-	if (ints & OHCI_INTR_SO) {
-		printf("USB Schedule overrun\n");
-		writel(OHCI_INTR_SO, &regs->intrenable);
-		stat = -1;
-	}
-
-	/* FIXME:  this assumes SOF (1/ms) interrupts don't get lost... */
-	if (ints & OHCI_INTR_SF) {
-		unsigned int frame = m16_swap(ohci->hcca->frame_no) & 1;
-		writel(OHCI_INTR_SF, &regs->intrdisable);
-		if (ohci->ed_rm_list[frame] != NULL)
-			writel(OHCI_INTR_SF, &regs->intrenable);
-		stat = 0xff;
-	}
-	writel(ints, &regs->intrstatus);
-	(void)readl(&regs->control);
-
-	return stat;
-}
 
 static void ohci_device_notify(struct usb_device *dev, int port)
 {
