@@ -1112,7 +1112,7 @@ pcie_cfg_done:
 #endif
 #endif
 
-#if 0 /* Config SATA TX signal*/
+#ifdef LS2K_SATA_TX_CFG /* Config SATA TX signal (Undocumented register) */
         li      t0, 0xbfe10458
         dli     t1, 0x1403f1002
         sd      t1, 0x0(t0)
