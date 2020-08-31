@@ -21,11 +21,13 @@
 poweroff_kernel:
 	.set	noreorder
 	mfc0	t0, CP0_STATUS
-	li	t1, 0xfffffffe
-	and	t0, t1, t0
+	li		t1, 0xfffffffe
+	and		t0, t1, t0
 	mtc0	t0, CP0_STATUS
-	jal	tgt_poweroff
-	lui	sp, 0x8ffc
+	li		sp, 0x8f400000 /* PMON temp stack */
+	la		t9, tgt_poweroff
+	jalr	t9
+	nop
 1:	b	1b
 	nop
 	.end	poweroff_kernel
@@ -34,11 +36,13 @@ poweroff_kernel:
 	.ent	reboot_kernel
 reboot_kernel:
 	mfc0	t0, CP0_STATUS
-	li	t1, 0xfffffffe
-	and	t0, t1, t0
+	li		t1, 0xfffffffe
+	and		t0, t1, t0
 	mtc0	t0, CP0_STATUS
-	jal	tgt_reboot
-	lui	sp, 0x8ffc
+	li		sp, 0x8f400000 /* PMON temp stack */
+	la		t9, tgt_reboot
+	jalr	t9
+	nop
 1:	b	1b
 	nop
 	.end	reboot_kernel
