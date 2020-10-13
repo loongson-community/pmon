@@ -186,7 +186,7 @@ extern unsigned long long memorysize_high;
 
 extern char MipsException[], MipsExceptionEnd[];
 
-unsigned char hwethadr[6];
+unsigned char hwethadr[12];
 unsigned char ls2kver;
 #ifdef LOWPOWER
 unsigned int shutdev;
@@ -1367,10 +1367,13 @@ void tgt_mapenv(int (*func) __P((char *, char *)))
 	 *  six bytes of nvram storage. Set environment to it.
 	 */
 
-	bcopy(&nvram[ETHER_OFFS], hwethadr, 6);
+	bcopy(&nvram[ETHER_OFFS], hwethadr, 12);
 	sprintf(env, "%02x:%02x:%02x:%02x:%02x:%02x", hwethadr[0], hwethadr[1],
 		hwethadr[2], hwethadr[3], hwethadr[4], hwethadr[5]);
 	(*func) ("ethaddr", env);
+	sprintf(env, "%02x:%02x:%02x:%02x:%02x:%02x", hwethadr[6], hwethadr[7],
+		hwethadr[8], hwethadr[9], hwethadr[10], hwethadr[11]);
+	(*func) ("ethaddr1", env);
 	ls2kver = nvram[VER_OFFS] ^ 0x50;
 	if(ls2kver>1)
 	   ls2kver = ls2k_version();
@@ -1774,12 +1777,21 @@ int tgt_setenv(char *name, char *value)
 	{
 	  ls2kver = strtoul(value, 0, 0);
 	}
-	else
-	if (strcmp("ethaddr", name) == 0) {
+	else if (strcmp("ethaddr", name) == 0) {
 		char *s = value;
 		int i;
 		int32_t v;
 		for (i = 0; i < 6; i++) {
+			gethex(&v, s, 2);
+			hwethadr[i] = v;
+			s += 3;	/* Don't get to fancy here :-) */
+		}
+	}
+	else if (strcmp("ethaddr1", name) == 0) {
+		char *s = value;
+		int i;
+		int32_t v;
+		for (i = 6; i < 12; i++) {
 			gethex(&v, s, 2);
 			hwethadr[i] = v;
 			s += 3;	/* Don't get to fancy here :-) */
@@ -1834,7 +1846,7 @@ int tgt_setenv(char *name, char *value)
 	bcopy(&activecom, &nvrambuf[ACTIVECOM_OFFS], 1);
 	bcopy(&em_enable, &nvrambuf[MASTER_BRIDGE_OFFS], 1);
 #endif
-	bcopy(hwethadr, &nvramsecbuf[ETHER_OFFS], 6);
+	bcopy(hwethadr, &nvramsecbuf[ETHER_OFFS], 12);
 	nvramsecbuf[VER_OFFS] = ls2kver | 0x50;
 #ifdef NVRAM_IN_FLASH
 
