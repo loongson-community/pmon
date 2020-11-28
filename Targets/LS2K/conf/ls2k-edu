@@ -299,7 +299,7 @@ option BEEP_GPIO=39
 select i2c
 select sii9022a
 
-option GPIO_PINS="0xffffffff80f0000f"
+option GPIO_PINS="0xfffffff000003fff"
 
 option LS2K_RESET_GPIOS_MASK="0x1000000000" # GPIO36
 
