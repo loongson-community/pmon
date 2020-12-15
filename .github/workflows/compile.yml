@@ -24,7 +24,7 @@ jobs:
       run: cd tools/pmoncfg && make && sudo cp pmoncfg /opt/gcc-4.4.0-pmon/bin/
 
     - name: Setup env
-      run: echo "::add-path::/opt/gcc-4.4.0-pmon/bin" && echo "::set-env name=LD_LIBRARY_PATH::/opt/gcc-4.4.0-pmon/lib:"
+      run: echo "/opt/gcc-4.4.0-pmon/bin" >> $GITHUB_PATH && echo "LD_LIBRARY_PATH=/opt/gcc-4.4.0-pmon/lib" >> $GITHUB_ENV
 
     - name: Compile ls2k-pi2
       run: cd zloader.ls2k-pi2 && make cfg && make tgt=rom && make dtb && cd ..
