@@ -93,12 +93,6 @@ static int int15_handler(xf86Int10InfoPtr pInt)
 	switch (M.x86.R_AX) {
 	case 0x4e08:
 		M.x86.R_AX = 0x4e00;
-
-#if		1	
-		printf("system info : 0x%x\n", &ati_int_info);
-		printf("----M.x86.R.Ax:%x---------int15(0x%x) called witch CX(0x%x).\n", M.x86.R_AX,M.x86.R_BL, M.x86.R_CX);
-#endif
-
 #if    defined(RS690) || defined(RS780E) || defined(PCIE_GRAPHIC_CARD)
 		{
 			switch(M.x86.R_BL) {
@@ -186,46 +180,40 @@ static int int15_handler(xf86Int10InfoPtr pInt)
 		}
 #endif
 		break;
+	case 0x7f03:
+		M.x86.R_BX=0x0;
+		break;
+	case 0x7f06:
+		M.x86.R_AX=0x7f;
+		M.x86.R_BL=0x1;
+		break;
+	case 0x7f07:
+		M.x86.R_AX=0x007f;
+		M.x86.R_BX=0x0720;
+		M.x86.R_CX=0x126f;
+		break;
+	case 0x7f08:
+		M.x86.R_AX=0x007f;
+		M.x86.R_BL=0x3;
+		break;
+	case 0x7f09:
+		M.x86.R_AX=0x007f;
+		M.x86.R_BL=0x0;
+		break;
+	case 0x7f0a:
+		break;
+	case 0x7f11:
+		M.x86.R_AX=0x007f;
+		M.x86.R_BL=0x3;
+		break;
+	case 0x7f0f:
+		break;
 	default:
-		M.x86.R_AL = 0x86;
+		printf("Unhandled INT15 M.x86.R.Ax:%x-int15(0x%x) called witch CX(0x%x).\n",
+				M.x86.R_AX, M.x86.R_BL ,M.x86.R_CX);
 		break;
 	}
 
-/*
-        switch(M.x86.R_AX){
-                case 0x7f03:
-                        M.x86.R_BX=0x0;
-                        break;
-                case 0x7f06:
-                        M.x86.R_AX=0x7f;
-                        M.x86.R_BL=0x1;
-                        break;
-                case 0x7f07:
-                        M.x86.R_AX=0x007f;
-                        M.x86.R_BX=0x0720;
-                        M.x86.R_CX=0x126f;
-                        break;
-                case 0x7f08:
-                        M.x86.R_AX=0x007f;
-                        M.x86.R_BL=0x3;
-                        break;
-                case 0x7f09:
-                        M.x86.R_AX=0x007f;
-                        M.x86.R_BL=0x0;
-                        break;
-                case 0x7f0a:
-                        break;
-                case 0x7f11:
-                        M.x86.R_AX=0x007f;
-                        M.x86.R_BL=0x3;
-                        break;
-                case 0x7f0f:
-                        break;
-                default:
-                        printk("biosEmu/bios.int15: unknown function AH=%#02x, AL=%#02x, BL=%#02x\n",M.x86.R_AH, M.x86.R_AL, M.x86.R_BL);
-        }
-	return 1;*/
-	printf("int15 called is exiting...\n");
 	return 1;
 }
 
