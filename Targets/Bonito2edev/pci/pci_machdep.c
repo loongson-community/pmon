@@ -75,7 +75,7 @@ _pci_hwinit(initialise, iot, memt)
 	/*pcireg_t stat;*/
 	struct pci_device *pd;
 	struct pci_bus *pb;
-	int newcfg=0;
+	int newcfg=1;
 	if(getenv("newcfg"))newcfg=1;
 
 	if (!initialise) {
@@ -109,7 +109,7 @@ _pci_hwinit(initialise, iot, memt)
 
 	if(newcfg)
 	{
-	pb->minpcimemaddr  = 0x14000000;//ºÜÆæ¹Ö,²»ÄÜºÍlinux·ÖÅäÆğÊ¼µØÖ·Ò»ÖÂ,·ñÔòxwindowÖĞÏÔÊ¾³öÎÊÌâ
+	pb->minpcimemaddr  = 0x14000000;//å¾ˆå¥‡æ€ª,ä¸èƒ½å’Œlinuxåˆ†é…èµ·å§‹åœ°å€ä¸€è‡´,å¦åˆ™xwindowä¸­æ˜¾ç¤ºå‡ºé—®é¢˜
 	pb->nextpcimemaddr = 0x1c000000; 
 	pd->pa.pa_memt->bus_base = 0xa0000000;
 	BONITO_PCIMAP =
@@ -120,7 +120,7 @@ _pci_hwinit(initialise, iot, memt)
 	}
 	else
 	{
-	/*pciµØÖ·ºÍcpuµØÖ·²»µÈ,·ÃÎÊpci memÊ±Òªioreamap×ª»»,Ö±½Óor 0xb0000000*/
+	/*pciåœ°å€å’Œcpuåœ°å€ä¸ç­‰,è®¿é—®pci memæ—¶è¦ioreamapè½¬æ¢,ç›´æ¥or 0xb0000000*/
 	pb->minpcimemaddr  = 0x04000000;
 	pb->nextpcimemaddr = 0x0c000000; 
 	pd->pa.pa_memt->bus_base = 0xb0000000;
