@@ -66,6 +66,8 @@
 
 #endif /* __NetBSD__ || __OpenBSD__ */
 
+#include <sys/atapi.h>
+
 #if NGZIP > 0
 #include <gzipfs.h>
 #endif /* NGZIP */
@@ -1192,7 +1194,6 @@ static void sata_attach(struct device * parent,struct device * self,void *aux)
 }
 
 
-int curr_device = -1;
 block_dev_desc_t sata_dev_desc[CFG_SATA_MAX_DEVICE];
 
  void init_part (block_dev_desc_t* dev_desc)
