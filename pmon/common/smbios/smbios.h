@@ -43,5 +43,10 @@
 #define LS2K_BOARD_NAME "Loongson-2K-SOC-1w-V0.6-demo"
 #endif
 
+#ifdef BOOT_PARAM
 extern void loongson_smbios_init(void);
+#else
+static inline void loongson_smbios_init(void) { }
+#endif
+
 #endif /* SMBIOS_H */

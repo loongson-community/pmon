@@ -22,6 +22,8 @@
  * (C) Copyright 2012 <meiwenbin@loongson.cn> and <fandongdong@loongson.cn>
  */
 
+#ifdef BOOT_PARAM
+
 #include <stdlib.h>
 #include <stdio.h>
 #include "smbios.h"
@@ -940,3 +942,5 @@ smbios_type_127_init(void *start)
 	*((uint8_t *)(start + 1)) =0;
 	return start + 2;
 }
+
+#endif /* BOOT_PARAM */

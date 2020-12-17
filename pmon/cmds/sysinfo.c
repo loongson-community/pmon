@@ -46,8 +46,8 @@ static int lpause()
 
 
 extern void (*__msgbox)(int yy,int xx,int height,int width,char *msg);
-static int cpuinfo(){
-
+static int cpuinfo() {
+#if defined(BOOT_PARAM)
 #if defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A)
 #define MEM_BASE_CLK_2G 25
 	int clk567, clk89;
@@ -140,8 +140,8 @@ static int cpuinfo(){
 			}else
 				printf("/ Bus @ 33 MHz\n");
 #endif
-
-		}
+#endif
+}
 
 
 static int meminfo(){
