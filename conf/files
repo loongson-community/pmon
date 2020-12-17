@@ -219,8 +219,8 @@ file pmon/cmds/shellcmds.c		(cmd_shell | cmd_vers | cmd_help | cmd_eval) needs-f
 file pmon/cmds/cmd_rz.c			pmon_zmodem_rz
 file pmon/cmds/cmd_log.c		(logfile & ramfiles)	needs-flag
 file pmon/cmds/sz_cmd.c			pmon_zmodem_sz
-file pmon/cmds/cmd_main/cmd_main.c	(mod_x86emu_int10 | cmd_main)
-file pmon/cmds/cmd_main/window.c	(mod_x86emu_int10 | cmd_main)
+file pmon/cmds/cmd_main/cmd_main.c	(mod_x86emu_int10 & cmd_main)
+file pmon/cmds/cmd_main/window.c	(mod_x86emu_int10 & cmd_main)
 file pmon/cmds/bootparam.c
 
 file pmon/common/about.c		cmd_about
