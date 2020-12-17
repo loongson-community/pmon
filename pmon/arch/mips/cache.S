@@ -190,6 +190,7 @@ END(wbflush)
 
 #define MIPS_LOONGSON1 0X43
 #define MIPS_LOONGSON2 0X63
+#define REV_GODSON2E   0X02
 #define REV_GODSON2F   0X03
 #define REV_GODSON3A   0X05
 
@@ -270,6 +271,10 @@ ConfLoongson1:
 
 #----Loongson2 ------------------------------
 ConfLoongson2:
+
+	li	t1, REV_GODSON2E		# REV_GODSON2E REV num: 2 
+	beq	t5, t1, out             # 2E init at start.S, no need to do again
+	nop 
 
 	li	t1, REV_GODSON2F		# REV_GODSON2F REV num: 3 
 	beq	t5, t1, ConfGodson2F 
