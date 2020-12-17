@@ -577,19 +577,19 @@ static int pciCfg1out(CARD16 addr, CARD32 val, int type)
 					 (BUS(PciCfg1Addr),
 					  ((DEVFN(PciCfg1Addr) >> 3) & 0x1f),
 					  (DEVFN(PciCfg1Addr) & 0x7)),
-					 OFFSET(PciCfg1Addr) + off, (u8) val, 1);
+					 OFFSET(PciCfg1Addr) + off, val, 1);
 		} else if (type == 1) {
 			_pci_conf_writen(_pci_make_tag
 					 (BUS(PciCfg1Addr),
 					  ((DEVFN(PciCfg1Addr) >> 3) & 0x1f),
 					  (DEVFN(PciCfg1Addr) & 0x7)),
-					 OFFSET(PciCfg1Addr) + off, (u8) val, 2);
+					 OFFSET(PciCfg1Addr) + off, val, 2);
 		} else if (type == 2) {
 			_pci_conf_write(_pci_make_tag
 					(BUS(PciCfg1Addr),
 					 ((DEVFN(PciCfg1Addr) >> 3) & 0x1f),
 					 (DEVFN(PciCfg1Addr) & 0x7)),
-					OFFSET(PciCfg1Addr) + off, (u8) val);
+					OFFSET(PciCfg1Addr) + off, val);
 		} else {
 			printk("wrong type for pci config op\n");
 		}
