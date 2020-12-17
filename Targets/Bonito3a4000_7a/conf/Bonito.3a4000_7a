@@ -94,6 +94,7 @@ select		mod_vesa
 select		mod_vgacon
 #option		VESAFB
 option		INTERFACE_3A780E
+select      cmd_main
 
 #
 # flash type selection. Selects flash support
