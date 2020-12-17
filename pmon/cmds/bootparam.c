@@ -1,3 +1,5 @@
+#ifdef BOOT_PARAM
+
 #include <stdlib.h>
 #include <stdio.h>
 #include "bootparam.h"
@@ -593,3 +595,5 @@ void __attribute__((weak)) board_info_fixup(struct efi_cpuinfo_loongson *c)
 {
 
 }
+
+#endif /* BOOT_PARAM */

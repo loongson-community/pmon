@@ -75,6 +75,7 @@ unsigned int show_menu;
 #include "cmd_hist.h"		/* Test if command history selected */
 #include "cmd_more.h"		/* Test if more command is selected */
 
+#include "smbios/smbios.h"
 #include "../cmds/bootparam.h"
 
 void print_mem_freq(void);
@@ -1090,7 +1091,7 @@ void get_memorysize(unsigned long long raw_memsz) {
 /* default mem freq print, overrided by board print_mem_freq() */
 void __attribute__((weak)) print_mem_freq(void)
 {
-
+#if defined(BOOT_PARAM)
 #if defined(LOONGSON_2G1A) || defined(LOONGSON_2F1A)
 #define MEM_BASE_CLK_2G	25
 	int clk567, clk89;
@@ -1175,6 +1176,7 @@ void __attribute__((weak)) print_mem_freq(void)
 	}
         else
 		printf("/ Bus @ 33 MHz\n");
+#endif
 #endif
 }
 
