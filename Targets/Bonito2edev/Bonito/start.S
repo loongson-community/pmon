@@ -748,7 +748,7 @@ skipdimm:
 	li	t1,0		# accumulate pcimembasecfg settings
 		
 	/* set bar0 mask and translation to point to SDRAM */
-	sub	t0,msize,1
+	addiu	t0,msize,-1
 	not	t0
 	srl	t0,BONITO_PCIMEMBASECFG_ASHIFT-BONITO_PCIMEMBASECFG_MEMBASE0_MASK_SHIFT
 	and	t0,BONITO_PCIMEMBASECFG_MEMBASE0_MASK
