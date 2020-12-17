@@ -24,6 +24,14 @@ jobs:
     - name: Setup env
       run: echo "/opt/gcc-4.4.0-pmon/bin" >> $GITHUB_PATH && echo "LD_LIBRARY_PATH=/opt/gcc-4.4.0-pmon/lib" >> $GITHUB_ENV
 
+    - name: Compile 2edev
+      run: cd zloader.2edev && make cfg && make tgt=rom && cd ..
+    - name: Upload 2edev
+      uses: actions/upload-artifact@v2
+      with:
+        name: pmon-2edev.bin
+        path: zloader/gzrom.bin
+
     - name: Compile ls2k-pi2
       run: cd zloader.ls2k-pi2 && make cfg && make tgt=rom && make dtb && cd ..
     - name: Upload ls2k-pi2
