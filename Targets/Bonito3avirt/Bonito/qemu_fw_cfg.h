@@ -6,9 +6,9 @@
 #include <linux/types.h>
 #include <byteorder.h>
 
-#define FW_CFG_REG_CTL (*(volatile u16 *)(0xb0080100 + 0x8))
-#define FW_CFG_REG_DATA_16 (*(volatile u16 *)(0xb0080100))
-#define FW_CFG_REG_DATA_32 (*(volatile u32 *)(0xb0080100))
+#define FW_CFG_REG_CTL (*(volatile u16 *)(0xb0080100))
+#define FW_CFG_REG_DATA_16 (*(volatile u16 *)(0xb0080100 + 8))
+#define FW_CFG_REG_DATA_32 (*(volatile u32 *)(0xb0080100 + 8))
 
 #define FW_CFG_RAM_SIZE        0x03
 #define FW_CFG_NB_CPUS         0x05
