@@ -51,19 +51,19 @@
 
 
 /***(qiaochong) memeory initialization use macro,not smbbus ***/
-					  		 /*bit 31: DDR≈‰÷√Ω· ¯±Í÷æ£¨1±Ì æΩ· ¯£¨÷ª∂¡*/
-#define DDR_DQS_SELECT	(0<<30) 		 /*bit 30 —°‘Ò ˝æ›¿¥‘¥£¨0: À´—ÿ≤…—˘£ª1£∫DQS≤…—˘*/
-#define DDR_DIMM_DIC (1<<29)           /*bit 29 ±Í ∂DIMM_slot0 «∑Ò≤Â”–ƒ⁄¥ÊÃı°£
-                                0£∫Œﬁ£ª1£∫”–£ª*/
-#define DDR_DIMM_MODULE_NUM (3<<27)    /*bit 28:27 DIMM0/DIMM1…œMOUDLEµƒ ˝ƒø£∫
-								2°Øb00£∫DIMM1: 1; DIMM0: 1
-								2°Øb01£∫DIMM1: 1; DIMM0: 2
-								2°Øb10£∫DIMM1: 2; DIMM0: 1
-								2°Øb11£∫DIMM1: 2; DIMM0: 2
+					  		 /*bit 31: DDRÈÖçÁΩÆÁªìÊùüÊ†áÂøóÔºå1Ë°®Á§∫ÁªìÊùüÔºåÂè™ËØª*/
+#define DDR_DQS_SELECT	(0<<30) 		 /*bit 30 ÈÄâÊã©Êï∞ÊçÆÊù•Ê∫êÔºå0: ÂèåÊ≤øÈááÊ†∑Ôºõ1ÔºöDQSÈááÊ†∑*/
+#define DDR_DIMM_DIC (1<<29)           /*bit 29 Ê†áËØÜDIMM_slot0ÊòØÂê¶ÊèíÊúâÂÜÖÂ≠òÊù°„ÄÇ
+                                0ÔºöÊó†Ôºõ1ÔºöÊúâÔºõ*/
+#define DDR_DIMM_MODULE_NUM (3<<27)    /*bit 28:27 DIMM0/DIMM1‰∏äMOUDLEÁöÑÊï∞ÁõÆÔºö
+								2‚Äôb00ÔºöDIMM1: 1; DIMM0: 1
+								2‚Äôb01ÔºöDIMM1: 1; DIMM0: 2
+								2‚Äôb10ÔºöDIMM1: 2; DIMM0: 1
+								2‚Äôb11ÔºöDIMM1: 2; DIMM0: 2
 								*/
-#define DDR_IS_SEQ  (1<<26)            /*bit 26 “ÂÕª∑¢ Ω∂¡–¥ ±µƒøÈƒ⁄À≥–Ú£¨
-								1°Øb0£∫À≥–Ú£ª1°Øb1£∫ΩªÃÊ£¨œ÷‘⁄÷ª÷ß≥÷ΩªÃÊ∑Ω Ω*/
-#define DDR_TYPE (5<<22) /*bit 25:22 ±Ì2£∫DDR øÿ÷∆∆˜À˘÷ß≥÷µƒDDR SDRAM º∆–æ∆¨¿‡–Õ
+#define DDR_IS_SEQ  (1<<26)            /*bit 26 ‰πâÁ™ÅÂèëÂºèËØªÂÜôÊó∂ÁöÑÂùóÂÜÖÈ°∫Â∫èÔºå
+								1‚Äôb0ÔºöÈ°∫Â∫èÔºõ1‚Äôb1Ôºö‰∫§ÊõøÔºåÁé∞Âú®Âè™ÊîØÊåÅ‰∫§ÊõøÊñπÂºè*/
+#define DDR_TYPE (5<<22) /*bit 25:22 Ë°®2ÔºöDDR ÊéßÂà∂Âô®ÊâÄÊîØÊåÅÁöÑDDR SDRAM ËÆ°ËäØÁâáÁ±ªÂûã
 								BITS Density Org.  Row Addr.  Col Addr.
 								0000 64Mb 16Mb X 4 DA[11:0] DA[9:0]
 									128Mb 16Mb X 8
@@ -81,49 +81,49 @@
 								1001 1Gb 128Mb X 8 DA[13:0] DA[11],DA[9:0]
 								1010 1Gb 64Mb X 16 DA[13:0] DA[9:0]
 								*/
-#define DDR_tREF  (100<<10) /*bit 21:10 SDRAMÀ¢–¬≤Ÿ◊˜÷Æº‰º∆ ˝£®÷˜∆µ100MHz£©£∫
+#define DDR_tREF  (100<<10) /*bit 21:10 SDRAMÂà∑Êñ∞Êìç‰Ωú‰πãÈó¥ËÆ°Êï∞Ôºà‰∏ªÈ¢ë100MHzÔºâÔºö
 								780      7.8us
 								1560     15.6us
-								SDRAMÀ¢–¬≤Ÿ◊˜÷Æº‰º∆ ˝£®÷˜∆µ133MHz£©£∫
+								SDRAMÂà∑Êñ∞Êìç‰Ωú‰πãÈó¥ËÆ°Êï∞Ôºà‰∏ªÈ¢ë133MHzÔºâÔºö
 								1040      7.8us
 								2080      15.6us
-								SDRAMÀ¢–¬≤Ÿ◊˜÷Æº‰º∆ ˝£®÷˜∆µ166MHz£©£∫
+								SDRAMÂà∑Êñ∞Êìç‰Ωú‰πãÈó¥ËÆ°Êï∞Ôºà‰∏ªÈ¢ë166MHzÔºâÔºö
 								1300      7.8us
 								2600      15.6us
 								*/
-#define DDR_TRCD (1<<9) /*bit 9 ––µÿ÷∑”––ßµΩ¡–µÿ÷∑”––ß÷Æº‰–Ëæ≠π˝µƒº∆ ˝
-								1°Øb0   2 cycles£®DDR100£©
-								1°Øb1   3 cycles£®DDR266°¢DDR333£©*/
-#define DDR_TRPC (1<<7) /*bit 8:7 AUTO_REFRESHµΩACTIVE÷Æº‰–Ëæ≠π˝µƒº∆ ˝
-								2°Øb00  Null 
-								2°Øb01  8 cylces £®DDR100£©
-								2°Øb10  10 cycles£®DDR266£©
-								2°Øb11  12 cycles£®DDR333£©
+#define DDR_TRCD (1<<9) /*bit 9 Ë°åÂú∞ÂùÄÊúâÊïàÂà∞ÂàóÂú∞ÂùÄÊúâÊïà‰πãÈó¥ÈúÄÁªèËøáÁöÑËÆ°Êï∞
+								1‚Äôb0   2 cyclesÔºàDDR100Ôºâ
+								1‚Äôb1   3 cyclesÔºàDDR266„ÄÅDDR333Ôºâ*/
+#define DDR_TRPC (1<<7) /*bit 8:7 AUTO_REFRESHÂà∞ACTIVE‰πãÈó¥ÈúÄÁªèËøáÁöÑËÆ°Êï∞
+								2‚Äôb00  Null 
+								2‚Äôb01  8 cylces ÔºàDDR100Ôºâ
+								2‚Äôb10  10 cyclesÔºàDDR266Ôºâ
+								2‚Äôb11  12 cyclesÔºàDDR333Ôºâ
 								*/
-#define DDR_TRAS (0<<6) /*bit 6 ACTIVEµΩPRECHARGE÷Æº‰–Ëæ≠π˝µƒº∆ ˝
-								1°Øb0   5 cycles£®DDR100£©
-								1°Øb1   7 cycles£®DDR266°¢DDR333£©  
+#define DDR_TRAS (0<<6) /*bit 6 ACTIVEÂà∞PRECHARGE‰πãÈó¥ÈúÄÁªèËøáÁöÑËÆ°Êï∞
+								1‚Äôb0   5 cyclesÔºàDDR100Ôºâ
+								1‚Äôb1   7 cyclesÔºàDDR266„ÄÅDDR333Ôºâ  
 								*/
-#define DDR_TCAS (3<<4) /*bit 5:4 ¥”∂¡√¸¡ÓµΩµ⁄“ª∏ˆ ˝æ›µΩ¿¥–Ëæ≠π˝µƒº∆ ˝
-								2°Øb00  1.5 cycles
-								2°Øb01  2 cycles
-								2°Øb10  2.5 cycles
-								2°Øb11  3 cycles
+#define DDR_TCAS (3<<4) /*bit 5:4 ‰ªéËØªÂëΩ‰ª§Âà∞Á¨¨‰∏Ä‰∏™Êï∞ÊçÆÂà∞Êù•ÈúÄÁªèËøáÁöÑËÆ°Êï∞
+								2‚Äôb00  1.5 cycles
+								2‚Äôb01  2 cycles
+								2‚Äôb10  2.5 cycles
+								2‚Äôb11  3 cycles
 								*/
-#define DDR_TWR (0<<3) /*bit 3 –¥≤Ÿ◊˜◊Ó∫Û“ª∏ˆ ˝æ›µΩPRECHARGE÷Æº‰–Ëæ≠π˝µƒº∆ ˝
-								1°Øb0   2 cycles£®DDR100£©
-								1°Øb1   3 cycles£®DDR266°¢DDR333£©
+#define DDR_TWR (0<<3) /*bit 3 ÂÜôÊìç‰ΩúÊúÄÂêé‰∏Ä‰∏™Êï∞ÊçÆÂà∞PRECHARGE‰πãÈó¥ÈúÄÁªèËøáÁöÑËÆ°Êï∞
+								1‚Äôb0   2 cyclesÔºàDDR100Ôºâ
+								1‚Äôb1   3 cyclesÔºàDDR266„ÄÅDDR333Ôºâ
 								*/
-#define DDR_TRP (1<<2) /*bit 2 PRECHARGE√¸¡Ó÷¥–– ±º‰º∆ ˝
-								1°Øb0   2 cycles£®DDR100£©
-								1°Øb1   3 cycles£®DDR266°¢DDR333£©
+#define DDR_TRP (1<<2) /*bit 2 PRECHARGEÂëΩ‰ª§ÊâßË°åÊó∂Èó¥ËÆ°Êï∞
+								1‚Äôb0   2 cyclesÔºàDDR100Ôºâ
+								1‚Äôb1   3 cyclesÔºàDDR266„ÄÅDDR333Ôºâ
 								*/
-#define DDR_TRC (1<<0) /*bit 1:0 ACTIVE”ÎACTIVE/AUTO_REFRESH√¸¡Ó÷Æº‰º∆ ˝
-								2°Øb00  Null
-								2°Øb01  7 cycles£®DDR100£©
-								2°Øb10  9 cycles£®DDR266£©
-								2°Øb11  10cycles£®DDR333£©
-								◊¢£®”…”⁄precharge∫Õras casµƒ—” ±º”∆¿¥’˝∫√¬˙◊„’‚∏ˆ—” ±£¨À˘“‘‘⁄DDRøÿ÷∆∆˜¿Ô√ª”–æﬂÃÂøº¬«’‚∏ˆ≤Œ ˝£©
+#define DDR_TRC (1<<0) /*bit 1:0 ACTIVE‰∏éACTIVE/AUTO_REFRESHÂëΩ‰ª§‰πãÈó¥ËÆ°Êï∞
+								2‚Äôb00  Null
+								2‚Äôb01  7 cyclesÔºàDDR100Ôºâ
+								2‚Äôb10  9 cyclesÔºàDDR266Ôºâ
+								2‚Äôb11  10cyclesÔºàDDR333Ôºâ
+								Ê≥®ÔºàÁî±‰∫éprechargeÂíåras casÁöÑÂª∂Êó∂Âä†Ëµ∑Êù•Ê≠£Â•ΩÊª°Ë∂≥Ëøô‰∏™Âª∂Êó∂ÔºåÊâÄ‰ª•Âú®DDRÊéßÂà∂Âô®ÈáåÊ≤°ÊúâÂÖ∑‰ΩìËÄÉËôëËøô‰∏™ÂèÇÊï∞Ôºâ
 								*/
 #define sdcfg_DATA DDR_DQS_SELECT|DDR_DIMM_DIC|DDR_DIMM_MODULE_NUM|DDR_IS_SEQ|DDR_TYPE|DDR_tREF|DDR_TRCD|DDR_TRPC|DDR_TRAS|DDR_TCAS|DDR_TWR|DDR_TRP|DDR_TRC
 
@@ -434,7 +434,7 @@ locate:
 	
 	BONITO_BIS(BONITO_PCICMD, PCI_COMMAND_IO_ENABLE|PCI_COMMAND_MEM_ENABLE|PCI_COMMAND_MASTER_ENABLE)
 	
-    BONITO_BIC(BONITO_BONGENCFG, 0x80)  #¬Ω√ª?¬πiobc
+    BONITO_BIC(BONITO_BONGENCFG, 0x80)  #ÈôÜÊ≤°?Èπøiobc
 
 	#BONITO_BIS(BONITO_BONGENCFG, BONITO_BONGENCFG_BUSERREN)
 
