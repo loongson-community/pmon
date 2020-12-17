@@ -56,6 +56,7 @@
 #include "pflash.h"
 #include "dev/pflash_tgt.h"
 
+#include <include/stdarg.h>
 #include "include/bonito.h"
 #include <pmon/dev/gt64240reg.h>
 #include <pmon/dev/ns16550.h>
@@ -97,6 +98,8 @@ extern void *memset(void *, int, size_t);
 int kbd_available;
 int usb_kbd_available;;
 int vga_available;
+int bios_available;
+int cmd_main_mutex = 0;
 
 static int md_pipefreq = 0;
 static int md_cpufreq = 0;
@@ -144,9 +147,8 @@ ConfigEntry	ConfigTable[] =
 
 unsigned long _filebase;
 
-extern int memorysize;
-extern int memorysize_high;
-
+extern unsigned long long  memorysize;
+extern unsigned long long  memorysize_high;
 extern char MipsException[], MipsExceptionEnd[];
 
 unsigned char hwethadr[6];
@@ -156,6 +158,24 @@ void initmips(unsigned int memsz);
 void addr_tst1(void);
 void addr_tst2(void);
 void movinv1(int iter, ulong p1, ulong p2);
+
+int tgt_printf(const char *fmt, ...)
+{
+    int  n;
+    char buf[1024];
+	char *p=buf;
+	char c;
+	va_list     ap;
+	va_start(ap, fmt);
+    n = vsprintf (buf, fmt, ap);
+    va_end(ap);
+	while((c=*p++))
+	{ 
+	 if(c=='\n')tgt_putchar('\r');
+	 tgt_putchar(c);
+	}
+    return (n);
+}
 
 #define PCI_ALLOC_UPWARDS
 static pcireg_t
@@ -297,14 +317,15 @@ int psaux_init(void);
 extern int video_hw_init (void);
 
 extern int fb_init(unsigned long,unsigned long);
-void
-tgt_devconfig()
+extern unsigned long long  lfb_addr;
+
+void tgt_devconfig()
 {
 #if NMOD_VGACON > 0
 	int rc=1;
 #if NMOD_FRAMEBUFFER > 0 
-	unsigned long fbaddress,ioaddress;
-	extern struct pci_device *vga_dev;
+	unsigned long fbaddress, ioaddress = 0;
+	extern struct pci_device *vga_dev, *pcie_dev;
 #endif
 #endif
 	_pci_devinit(1);	/* PCI device initialization */
@@ -317,11 +338,12 @@ tgt_devconfig()
 	rc = radeon_init();
 #endif
 #if NMOD_FRAMEBUFFER > 0
-	if(!vga_dev) {
+	if(!vga_dev && !pcie_dev) {
 		printf("ERROR !!! VGA device is not found\n"); 
 		rc = -1;
 	}
-	if (rc > 0) {
+
+	if (rc > 0 && vga_dev) {
 		fbaddress  =_pci_conf_read(vga_dev->pa.pa_tag,0x10);
 		ioaddress  =_pci_conf_read(vga_dev->pa.pa_tag,0x18);
 
@@ -343,10 +365,16 @@ tgt_devconfig()
                 fbaddress |= 0xb0000000;
                 ioaddress |= 0xb0000000;
 #endif
+	}
+
+	if (rc > 0 && pcie_dev) {
+		fbaddress = lfb_addr;
+	}
+
+	if (rc > 0) {
 		printf("begin fb_init\n");
 		fb_init(fbaddress, ioaddress);
 		printf("after fb_init\n");
-
 	} else {
 		printf("vga bios init failed, rc=%d\n",rc);
 	}
