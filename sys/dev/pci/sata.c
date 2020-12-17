@@ -135,15 +135,7 @@ static inline void sync(void)
 {
 }
 
-#if 1
-u32 strnlen(const char* s, u32 count)
-{
-        const char *sc;
-        for(sc = s;count -- && *sc != '\0';++sc)
-        {
-        }
-        return (sc -s);
-}
+
 u64 ata_id_n_sectors(u16 *id)
 {
         if (ata_id_has_lba(id)) {
@@ -276,8 +268,6 @@ void ata_swap_buf_le16(u16 *buf, unsigned int buf_words)
         for (i = 0; i < buf_words; i++)
                 buf[i] = (u16)buf[i];
 }
-
-#endif
 
 static int ata_wait_register(volatile unsigned *addr, u32 mask,
 			 u32 val, u32 timeout_msec)

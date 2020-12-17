@@ -499,6 +499,7 @@ int vga_bios_init(void)
 		_pci_conf_write(pdev->pa.pa_tag, 0x30, romaddress | 1);
 
 		if(pcie_dev != NULL){
+			/* FIXME: Correct uncached mapping..... it assemued PCI TLB... */
 #ifdef PCIE_GRAPHIC_CARD
 			romaddress = (romaddress | 0xc0000000) & 0xfffffff0;
 #else
@@ -723,7 +724,9 @@ int vga_bios_init(void)
 		xf86ExecX86int10(pInt);
 		if (pInt->ax != 0x004f) {
 			printk("get vesa mode info failed,ax=%x\n", pInt->ax);
-			rc = -1;
+			printk("==== WARNING: Graphics may not work! ====");
+			lfb_addr = shadowed_vram_addr;
+			goto skip_parse;
 		}
 
 		ScreenLineLength = MEM_RW(pInt, pInt->di + 16);
@@ -738,33 +741,10 @@ int vga_bios_init(void)
 		lfb_addr = 0x80000000 | MEM_RL(pInt, pInt->di + 40);
 		printk("base(virt)=0x%llx\n", lfb_addr);
 	}
-
-#ifdef DEBUG
-	pInt->ax = 0x4f01;	/* get mode information */
-	pInt->cx = 0x4114;
-	pInt->di = 0;
-	pInt->es = 0;
-	xf86ExecX86int10(pInt);
-	if (pInt->ax != 0x004f)
-		printk("get vesa mode info failed,ax=%x\n", pInt->ax);
-
-	printk("linelength=%x\n", MEM_RW(pInt, pInt->di + 16));
-	printk("width=%x\n", MEM_RW(pInt, pInt->di + 18));
-	printk("height=%x\n", MEM_RW(pInt, pInt->di + 20));
-	printk("depth=%x\n", MEM_RB(pInt, pInt->di + 25));
-	printk("pages=%x\n", MEM_RB(pInt, pInt->di + 29));
-	printk("base=%x\n", MEM_RL(pInt, pInt->di + 40));
+skip_parse:
 #endif
 #endif
 
-#endif
-
-#if 0
-	radeon_init_regbase();
-	radeon_init_mode();
-	radeon_engine_init();
-	//radeon_dump_regs();
-#endif
 
 	free(pInt->private);
 	free(pInt);
