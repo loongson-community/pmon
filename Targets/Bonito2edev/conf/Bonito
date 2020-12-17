@@ -76,10 +76,19 @@ select		mod_uart_ns16550	# Standard UART driver
 option		CONS_BAUD=B115200
 select		ext2
 select		fatfs
-select		mod_x86emu		# X86 emulation for VGA
+#select		mod_x86emu		# X86 emulation for VGA
 option 	MY40IO
-#select		mod_x86emu_int10
+select		mod_x86emu_int10
+option      VGA_BASE=0xb0000000
 select		mod_vgacon
+select		mod_vesa
+select		mod_framebuffer
+option		VESAFB
+option		FB_XSIZE=640
+option		FB_YSIZE=480
+select		mod_vesa
+option 		CONFIG_VIDEO_16BPP
+option		PCIVERBOSE=3		# PCI Scanning logging
 option		NOPCINAMES		# Save some space for x86emu
 #option		FASTBOOT
 select	    vt82c686        #via686a/b code
