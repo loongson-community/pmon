@@ -22,44 +22,35 @@ jobs:
       run: cd tools/pmoncfg && make && sudo cp pmoncfg /opt/gcc-4.4.0-pmon/bin/
 
     - name: Setup env
-      run: echo "/opt/gcc-4.4.0-pmon/bin" >> $GITHUB_PATH && echo "LD_LIBRARY_PATH=/opt/gcc-4.4.0-pmon/lib" >> $GITHUB_ENV
+      run: echo "/opt/gcc-4.4.0-pmon/bin" >> $GITHUB_PATH && echo "LD_LIBRARY_PATH=/opt/gcc-4.4.0-pmon/lib" >> $GITHUB_ENV && mkdir output
 
     - name: Compile 2edev
       run: cd zloader.2edev && make cfg && make tgt=rom && cd ..
-    - name: Upload 2edev
-      uses: actions/upload-artifact@v2
-      with:
-        name: pmon-2edev.bin
-        path: zloader/gzrom.bin
+    - name: Collect 2edev
+      run: cp zloader/gzrom.bin output/pmon-2edev.bin && md5sum output/pmon-2edev.bin > output/pmon-2edev.bin.md5
 
     - name: Compile ls2k-pi2
       run: cd zloader.ls2k-pi2 && make cfg && make tgt=rom && make dtb && cd ..
-    - name: Upload ls2k-pi2
-      uses: actions/upload-artifact@v2
-      with:
-        name: pmon-ls2k-pi2.bin
-        path: zloader/gzrom-dtb.bin
+    - name: Collect ls2k-pi2
+      run: cp zloader/gzrom-dtb.bin output/pmon-ls2k-pi2.bin && md5sum output/pmon-ls2k-pi2.bin > output/pmon-ls2k-pi2.bin.md5
 
     - name: Compile ls2k-edu
       run: cd zloader.ls2k-edu && make cfg && make tgt=rom && make dtb && cd ..
-    - name: Upload ls2k-edu
-      uses: actions/upload-artifact@v2
-      with:
-        name: pmon-ls2k-edu.bin
-        path: zloader/gzrom-dtb.bin
+    - name: Collect ls2k-edu
+      run: cp zloader/gzrom-dtb.bin output/pmon-ls2k-edu.bin && md5sum output/pmon-ls2k-edu.bin > output/pmon-ls2k-edu.bin.md5
 
     - name: Compile 3avirt
       run: cd zloader.3avirt && make cfg && make tgt=rom && cd ..
-    - name: Upload 3avirt
-      uses: actions/upload-artifact@v2
-      with:
-        name: pmon-3avirt.bin
-        path: zloader/gzrom.bin
+    - name: Collect 3avirt
+      run: cp zloader/gzrom.bin output/pmon-3avirt.bin && md5sum output/pmon-3avirt.bin > output/pmon-3avirt.bin.md5
 
     - name: Compile lm-a1901
       run: cd zloader.lm-a1901 && make cfg && make tgt=rom && cd ..
-    - name: Upload lm-a1901
+    - name: Collect lm-a1901
+      run: cp zloader/gzrom.bin output/pmon-lm-a1901.bin && md5sum output/pmon-lm-a1901.bin > output/pmon-lm-a1901.bin.md5
+
+    - name: Upload outputs
       uses: actions/upload-artifact@v2
       with:
-        name: pmon-lm-a1901.bin
-        path: zloader/gzrom.bin
+        name: output
+        path: output/
