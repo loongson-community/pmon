@@ -131,20 +131,23 @@ ext_map_and_reboot:
 	 *  Exception vectors here for rom, before we are up and running. Catch
 	 *  whatever comes up before we have a fully fledged exception handler.
 	 */
-	.align	9			/* bfc00200 */
+	.org	0x200			/* bfc00200 */
+	move	s0, zero
 	la	a0, v200_msg
 	bal	stringserial
 	nop
 	b	exc_common
 
-	.align	7			/* bfc00280 */
+	.org	0x280			/* bfc00280 */
+	move	s0, zero
 	la	a0, v280_msg
 	bal	stringserial
 	nop
 	b	exc_common
 
 	/* Cache error */
-	.align	8			/* bfc00300 */
+	.org	0x300			/* bfc00300 */
+	move	s0, zero
 	PRINTSTR("\r\nPANIC! Unexpected Cache Error exception! ")
 	mfc0	a0, COP_0_CACHE_ERR
 	bal	hexserial
@@ -152,13 +155,15 @@ ext_map_and_reboot:
 	b	exc_common
 
 	/* General exception */
-	.align	7			/* bfc00380 */
+	.org	0x380			/* bfc00380 */
+	move	s0, zero
 	la	a0, v380_msg
 	bal	stringserial
 	nop
 	b	exc_common
 
-	.align	8			/* bfc00400 */
+	.org	0x400			/* bfc00400 */
+	move	s0, zero
 	la	a0, v400_msg
 	bal	stringserial
 	nop
@@ -167,7 +172,7 @@ ext_map_and_reboot:
 	nop
 
 	/* Debug exception */
-	.align  7           /* bfc00480 */
+	.org  0x480           /* bfc00480 */
 #include "exc_ejtag.S"
 
 exc_common:
