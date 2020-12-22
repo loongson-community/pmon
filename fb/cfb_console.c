@@ -417,13 +417,19 @@ static void memcpyl (int *d, int *s, int c);
 
 extern int vga_available;
 
-static int disableoutput=0;
+static int disableoutput=1;
 void video_disableoutput(void)
 {
 	disableoutput=1;
 }
 void video_enableoutput(void)
 {
+	if (!vga_available)
+		return;
+
+	if (!video_fb_address)
+		return;
+
 	disableoutput=0;
 }
 void video_drawchars_xor (int xx, int yy, unsigned char *s, int count)
@@ -942,6 +948,9 @@ static void console_newline (void)
 
 void video_putc (const char c)
 {
+	if(disableoutput)
+		return;
+
 	switch (c) {
 	case 13:		/* ignore */
 		CURSOR_OFF
@@ -1715,6 +1724,8 @@ int fb_init (unsigned long fbbase,unsigned long iobase)
 		memset (memfb, 0, CONSOLE_ROWS * CONSOLE_COLS);
 	}
 #endif
+	video_enableoutput();
+
 	return 0;
 }
 
