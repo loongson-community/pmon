@@ -893,8 +893,256 @@ int ls2h_m25p_probe()
 
 //----------------------------------------
 
+int qt_read_pmon(int addr, int size)
+{
+	unsigned char addr2,addr1,addr0;
+	static unsigned char data;
+	int val,base=0;
+    int i = size;
 
+    spi_initw();
+	val = read_sr();
+	while(val&0x01 == 1){
+		val = read_sr();
+	}
 
+	SET_SPI(0x5,0x01);
+// read flash command
+	SET_SPI(TXFIFO,0x03);
+	while((GET_SPI(SPSR))&RFEMPTY == RFEMPTY){
+
+	}
+	GET_SPI(RXFIFO);
+
+// addr
+	SET_SPI(TXFIFO,((addr >> 16)&0xff));
+	while((GET_SPI(SPSR))&RFEMPTY == RFEMPTY){
+
+	}
+    GET_SPI(RXFIFO);
+
+	SET_SPI(TXFIFO,((addr >> 8)&0xff));
+	while((GET_SPI(SPSR))&RFEMPTY == RFEMPTY){
+
+	}
+	GET_SPI(RXFIFO);
+
+	SET_SPI(TXFIFO,(addr & 0xff));
+	while((GET_SPI(SPSR))&RFEMPTY == RFEMPTY){
+
+	}
+	GET_SPI(RXFIFO);
+// addr end
+
+    //    printf("\n");
+    while(i--){
+		SET_SPI(TXFIFO,0x00);
+		while((GET_SPI(SPSR))&RFEMPTY == RFEMPTY){
+
+		}
+	    data = GET_SPI(RXFIFO);
+        if(base % 16 == 0 ){
+        //        printf("0x%08x    ",base);
+        }
+        //    printf("%02x ",data);
+        if(base % 16 == 7)
+        //         printf("  ");
+        if(base % 16 == 15)
+        //       printf("\n");
+		base++;
+	}
+//    printf("\n");
+	return data;
+
+}
+
+void get_qt_result()
+{
+    unsigned char buf, buf1, buf2, buf3;
+    int i, j;
+
+    printf("*****************************************************************************************\n");
+    /*start time*/
+    buf = qt_read_pmon(0xff300, 1);
+    buf1 = qt_read_pmon(0xff301, 1);
+    buf2 = qt_read_pmon(0xff302, 1);
+    buf3 = qt_read_pmon(0xff303, 1);
+
+    printf("start test time: %c%c%c%c-", buf, buf1, buf2, buf3);
+
+    buf = qt_read_pmon(0xff304, 1);
+    buf1 = qt_read_pmon(0xff305, 1);
+    buf2 = qt_read_pmon(0xff308, 1);
+    buf3 = qt_read_pmon(0xff309, 1);
+    printf("%c%c-%c%c", buf, buf1, buf2, buf3);
+
+    buf = qt_read_pmon(0xff30c, 1);
+    buf1 = qt_read_pmon(0xff30d, 1);
+    buf2 = qt_read_pmon(0xff310, 1);
+    buf3 = qt_read_pmon(0xff311, 1);
+    printf(" %c%c-%c%c", buf, buf1, buf2, buf3);
+
+    buf = qt_read_pmon(0xff314, 1);
+    buf1 = qt_read_pmon(0xff315, 1);
+    printf("-%c%c\n", buf, buf1);
+
+    /*end time*/
+    buf = qt_read_pmon(0xff320, 1);
+    buf1 = qt_read_pmon(0xff321, 1);
+    buf2 = qt_read_pmon(0xff322, 1);
+    buf3 = qt_read_pmon(0xff323, 1);
+
+    printf("end test time: %c%c%c%c-", buf, buf1, buf2, buf3);
+
+    buf = qt_read_pmon(0xff324, 1);
+    buf1 = qt_read_pmon(0xff325, 1);
+    buf2 = qt_read_pmon(0xff328, 1);
+    buf3 = qt_read_pmon(0xff329, 1);
+    printf("%c%c-%c%c", buf, buf1, buf2, buf3);
+
+    buf = qt_read_pmon(0xff32c, 1);
+    buf1 = qt_read_pmon(0xff32d, 1);
+    buf2 = qt_read_pmon(0xff330, 1);
+    buf3 = qt_read_pmon(0xff331, 1);
+    printf(" %c%c-%c%c", buf, buf1, buf2, buf3);
+
+    buf = qt_read_pmon(0xff334, 1);
+    buf1 = qt_read_pmon(0xff335, 1);
+    printf("-%c%c\n", buf, buf1);
+
+    /*test numbers*/
+    buf = qt_read_pmon(0xff340, 1);
+    buf1 = qt_read_pmon(0xff341, 1);
+    if(buf1 == 0xf)
+        printf("test numbers:%c\n", buf);
+    else
+        printf("test numbers:%c%c\n", buf1, buf);
+
+    /*usb*/
+    for(i = 0; i < 12; i++)
+    {
+        buf = qt_read_pmon(0xff350 + 4 * i + 2, 1);
+        if(buf == 0x31)
+        {
+            printf("USB%d:^ ^ test successful! ^ ^\n", i);
+
+        }else if(buf == 0x30){
+            printf("USB%d:test failed!\n", i);
+        }else
+            printf("USB%d:not find!\n", i);
+    }
+
+    /*sata*/
+    for(i = 0; i < 8; i++)
+    {
+        buf = qt_read_pmon(0xff380 + 4 * i + 2, 1);
+        if(buf == 0x31)
+        {
+            printf("SATA%d:^ ^ test successful! ^ ^\n", i);
+
+        }else if(buf == 0x30){
+            printf("SATA%d:test failed!\n", i);
+        }else
+            printf("SATA%d:not detect!\n", i);
+    }
+
+    /*net*/
+    for(i = 0; i < 12; i++)
+    {
+        buf = qt_read_pmon(0xff3a0 + 4 * i + 2, 1);
+        if(buf == 0x31)
+        {
+            printf("eth%d:^ ^ test successful! ^ ^\n", i);
+
+        }else if(buf == 0x30){
+            printf("eth%d:test failed!\n", i);
+        }else
+            printf("eth%d:not find!\n", i);
+    }
+
+    /*gpio*/
+    for(i = 0, j = 0; j < 32; i++, j++)
+    {
+        buf = qt_read_pmon(0xff3d0 + 4 * j + 2, 1);
+        if(buf == 0x31)
+        {
+            printf("GPIO%d:^ ^ test successful! ^ ^\n", i);
+        }else if(buf == 0x30){
+            printf("GPIO%d:test failed!\n", i);
+        }else
+            printf("GPIO%d:no test\n", i);
+
+        i = i + 1;
+
+        buf = qt_read_pmon(0xff3d0 + 4 * j + 3, 1);
+        if(buf == 0x31)
+        {
+            printf("GPIO%d:^ ^ test successful! ^ ^", i);
+        }else if(buf == 0x30){
+            printf("GPIO%d:test failed!\n", i);
+        }else{
+            printf("GPIO%d:no test\n", i);
+        }
+    }
+
+    /*uart*/
+    for(i = 0; i < 12; i++)
+    {
+        buf = qt_read_pmon(0xff4b0 + 4 * i + 2, 1);
+        if(buf == 0x31)
+        {
+            printf("UART%d:^ ^ test successful! ^ ^\n", i);
+
+        }else if(buf == 0x30){
+            printf("UART%d:test failed!\n", i);
+        }else
+            printf("UART%d:not find!\n", i);
+    }
+
+    /*i2c*/
+    for(i = 0; i < 8; i++)
+    {
+        buf = qt_read_pmon(0xff500 + 4 * i + 2, 1);
+        if(buf == 0x31)
+        {
+            printf("I2C%d:^ ^ test successful! ^ ^\n", i);
+
+        }else if(buf == 0x30){
+            printf("I2C%d:test failed!\n", i);
+        }else
+            printf("I2C%d:not find!\n", i);
+    }
+
+    /*can*/
+    for(i = 0; i < 2; i++)
+    {
+        buf = qt_read_pmon(0xff520 + 4 * i + 2, 1);
+        if(buf == 0x31)
+        {
+            printf("CAN%d:^ ^ test successful! ^ ^\n", i);
+
+        }else if(buf == 0x30){
+            printf("CAN%d:test failed!\n", i);
+        }else
+            printf("CAN%d:not find!\n", i);
+    }
+
+    /*rtc*/
+    for(i = 0; i < 2; i++)
+    {
+        buf = qt_read_pmon(0xff540 + 4 * i + 2, 1);
+        if(buf == 0x31)
+        {
+            printf("RTC%d:^ ^ test successful! ^ ^\n", i);
+
+        }else if(buf == 0x30){
+            printf("RTC%d:test failed!\n", i);
+        }else
+            printf("RTC%d:not find!\n", i);
+    }
+
+    printf("*****************************************************************************************\n");
+}
 
 static const Cmd Cmds[] =
 {
@@ -905,6 +1153,7 @@ static const Cmd Cmds[] =
 	{"erase_all","",0,"erase_all(sst25vf080b)",erase_all,0,99,CMD_REPEAT},
 	{"write_pmon_byte","",0,"write_pmon_byte(sst25vf080b)",write_pmon_byte,0,99,CMD_REPEAT},
 	{"read_flash_id","",0,"read_flash_id(sst25vf080b)",spi_read_id,0,99,CMD_REPEAT},
+    {"read_test_result", "", 0, "read qt test result", get_qt_result, 0, 99, CMD_REPEAT},
 	{0,0}
 };
 
