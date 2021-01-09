@@ -313,7 +313,7 @@ option CONFIG_UART0_SPLIT
 option	PCIE_LANE_FLIP=0
 option  LS2K_SATA_TX_CFG
 
-option DDR_FREQ=400
+option DDR_FREQ=384
 option CORE_FREQ=1000
 #option LOWPOWER
 select raw_ether
