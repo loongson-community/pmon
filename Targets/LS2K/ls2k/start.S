@@ -215,6 +215,14 @@ stack = start - 0x4000		/* Place PMON stack below PMON start in RAM */
 	sd	v1, (v0)
 #endif
 
+#ifdef LS2K_ENABLE_HDA
+	li	v0, 0xbfe10420
+	ld	v1, (v0)
+	ori	v1, 0x50
+	xori	v1, 0x40
+	sd	v1, (v0)
+#endif
+
 #ifdef GPIO_OUT_PINS
 	li v0, 0xbfe10500
 	ld v1, (v0)
