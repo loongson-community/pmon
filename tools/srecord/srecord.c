@@ -38,9 +38,17 @@ char	*name;
 	sscanf(argv[2], "%x", &base);
 	name = argv[3];
 
-	if (size==2) printf("S0%02X%04X", 2 + strlen(name) + 1, 0);
-	if (size==3) printf("S0%02X%06X", 3 + strlen(name) + 1, 0);
-	if (size==4) printf("S0%02X%08X", 4 + strlen(name) + 1, 0);
+	switch(size) {
+		case 2:
+			printf("S0%02zX%04X", 2 + strlen(name) + 1, 0);
+			break;
+		case 3:
+			printf("S0%02zX%06X", 3 + strlen(name) + 1, 0);
+			break;
+		case 4:
+			printf("S0%02zX%08X", 4 + strlen(name) + 1, 0);
+			break;
+	}
 	sput(name);
 	printf("%02X\n", checksum(0, name, strlen(name),size));
 
@@ -95,9 +103,17 @@ int	size,mask;
 char	*cp = buf;
 int	i;
 
-	if (size ==2) printf("S1%02X%04X", 2 + len + 1, addr & mask);
-	if (size ==3) printf("S2%02X%06X", 3 + len + 1, addr & mask);
-	if (size ==4) printf("S3%02X%08X", 4 + len + 1, addr & mask);
+	switch(size) {
+		case 2:
+			printf("S0%02X%04X", 2 + len + 1, addr & mask);
+			break;
+		case 3:
+			printf("S0%02X%06X", 3 + len + 1, addr & mask);
+			break;
+		case 4:
+			printf("S0%02X%08X", 4 + len + 1, addr & mask);
+			break;
+	}
 	for( i = 0; i < len ; ++i )
 		put(*cp++);
 	printf("%02X\n", checksum(addr, buf, len,size));
