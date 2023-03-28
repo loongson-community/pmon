@@ -327,6 +327,6 @@ nop
 #define MIKU_CFG_PLL_REFC_B	24
 #define MIKU_CFG_PLL_REFC_F		(0xff << MIKU_CFG_PLL_REFC_B)
 
-#ifndef MIKU_MODEL_MAGIC
+#if defined MIKU_SMC && !defined MIKU_MODEL_MAGIC
 #error  "MIKU_MODEL_MAGIC not defined"
 #endif
