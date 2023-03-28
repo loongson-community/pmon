@@ -3,6 +3,8 @@
  * convert binary file to Srecord format
  */
 
+#include <string.h>
+#include <stdlib.h>
 #include <stdio.h>
 #include <ctype.h>
 
@@ -14,6 +16,7 @@ static int checksum();
 int    mask;
 int    size;
 
+int
 main(argc, argv)
 int	argc;
 char	*argv[];

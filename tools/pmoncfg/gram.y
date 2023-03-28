@@ -61,6 +61,9 @@
 
 #define	stop(s)	error(s), exit(1)
 
+void	addselect(const char *);
+void	removeselect(const char *);
+
 int	include(const char *, int);
 void	yyerror(const char *);
 int	yylex(void);
