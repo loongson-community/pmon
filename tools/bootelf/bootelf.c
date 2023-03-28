@@ -76,36 +76,36 @@ char	*av[];
 		exit(1);
 	}
 	fprintf(stderr, "char elf magic number ");
-	fprintf(stderr, "%02X %02X %02X %02X\n",
+	fprintf(stderr, "%02hhX %02hhX %02hhX %02hhX\n",
       			 exec.elf_magic[0],exec.elf_magic[1],exec.elf_magic[2],exec.elf_magic[3]);
 	fprintf(stderr, "unsigned long magic number ");
-	fprintf(stderr, "%08X  \n", SWAP32(exec.magic[0]));
+	fprintf(stderr, "%08X\n", (unsigned int)SWAP32(exec.magic[0]));
 	fprintf(stderr, "unsigned short object file type");
-	fprintf(stderr, " %d \n", SWAP16(exec.type));
+	fprintf(stderr, " %hu\n", SWAP16(exec.type));
 	fprintf(stderr, "unsigned short machine id");
-	fprintf(stderr, " %d\n", SWAP16(exec.machine));
+	fprintf(stderr, " %hu\n", SWAP16(exec.machine));
 	fprintf(stderr, "unsigned long version file format");
-	fprintf(stderr, " %ld\n", SWAP32(exec.version));
+	fprintf(stderr, " %u\n", (unsigned int)SWAP32(exec.version));
 	fprintf(stderr, "unsigned long entry point");
-	fprintf(stderr, " H(%08X) D(%ld)\n", SWAP32(exec.entry) , SWAP32(exec.entry));
+	fprintf(stderr, " H(%08X) D(%u)\n", (unsigned int)SWAP32(exec.entry), (unsigned int)SWAP32(exec.entry));
 	fprintf(stderr, "unsigned long phoff program header table offset ");
-	fprintf(stderr, " H(%08X) D(%ld)\n", SWAP32(exec.phoff), SWAP32(exec.phoff));
+	fprintf(stderr, " H(%08X) D(%u)\n", (unsigned int)SWAP32(exec.phoff), (unsigned int)SWAP32(exec.phoff));
 	fprintf(stderr, "unsigned long shoff section header table offset ");
-	fprintf(stderr, " H(%08X) D(%ld)\n", SWAP32(exec.shoff), SWAP32(exec.shoff));
+	fprintf(stderr, " H(%08X) D(%u)\n", (unsigned int)SWAP32(exec.shoff), (unsigned int)SWAP32(exec.shoff));
 	fprintf(stderr, "unsigned long flags processor specific flags");
-	fprintf(stderr, " %08X\n", SWAP32(exec.flags));
+	fprintf(stderr, " %08X\n", (unsigned int)SWAP32(exec.flags));
 	fprintf(stderr, "unsigned short ehsize elf header size in bytes ");
-	fprintf(stderr, " H(%02X) D(%d)\n", SWAP16(exec.ehsize), SWAP16(exec.ehsize));
+	fprintf(stderr, " H(%02hX) D(%hd)\n", SWAP16(exec.ehsize), SWAP16(exec.ehsize));
 	fprintf(stderr, "unsigned short phsize program header size ");
-	fprintf(stderr, " H(%02X) D(%d)\n", SWAP16(exec.phsize), SWAP16(exec.phsize));
+	fprintf(stderr, " H(%02hX) D(%hd)\n", SWAP16(exec.phsize), SWAP16(exec.phsize));
 	fprintf(stderr, "unsigned short phcount program header count ");
-	fprintf(stderr, " %d\n", SWAP16(exec.phcount));
+	fprintf(stderr, " %hd\n", SWAP16(exec.phcount));
 	fprintf(stderr, "unsigned short shsize section header size ");
-	fprintf(stderr, " H(%02X) D(%d)\n", SWAP16(exec.shsize), SWAP16(exec.shsize));
+	fprintf(stderr, " H(%02hX) D(%hd)\n", SWAP16(exec.shsize), SWAP16(exec.shsize));
 	fprintf(stderr, "unsigned short shcount section header count ");
-	fprintf(stderr, " %d\n", SWAP16(exec.shcount));
+	fprintf(stderr, " %hd\n", SWAP16(exec.shcount));
 	fprintf(stderr, "unsigned short shstrndx section header string table index  ");
-	fprintf(stderr, " %d\n\n\n", SWAP16(exec.shstrndx));
+	fprintf(stderr, " %hd\n\n\n", SWAP16(exec.shstrndx));
 
 	/*---------------------------------------------------------------------------
 	 * For the BOOTROM, the code is compiled to 0xbfc00000 while the data is usually
@@ -123,21 +123,21 @@ char	*av[];
 		}
 		fprintf(stderr, "PROGRAM HEADER NUMBER %d\n", i);
 		fprintf(stderr, "unsigned long type Segment type ");
-		fprintf(stderr, " H(%08X) D(%ld)\n", SWAP32(prgm.type), SWAP32(prgm.type));
+		fprintf(stderr, " H(%08X) D(%u)\n", (unsigned int)SWAP32(prgm.type), (unsigned int)SWAP32(prgm.type));
 		fprintf(stderr, "unsigned long offset file offset ");
-		fprintf(stderr, " H(%08X) D(%ld)\n", SWAP32(prgm.offset), SWAP32(prgm.offset));
+		fprintf(stderr, " H(%08X) D(%u)\n", (unsigned int)SWAP32(prgm.offset), (unsigned int)SWAP32(prgm.offset));
 		fprintf(stderr, "unsigned long vaddr virtual address ");
-		fprintf(stderr, " H(%08X) D(%ld)\n", SWAP32(prgm.vaddr), SWAP32(prgm.vaddr));
+		fprintf(stderr, " H(%08X) D(%u)\n", (unsigned int)SWAP32(prgm.vaddr), (unsigned int)SWAP32(prgm.vaddr));
 		fprintf(stderr, "unsigned long paddr physical address ");
-		fprintf(stderr, " H(%08X) D(%ld)\n", SWAP32(prgm.paddr), SWAP32(prgm.paddr));
+		fprintf(stderr, " H(%08X) D(%u)\n", (unsigned int)SWAP32(prgm.paddr), (unsigned int)SWAP32(prgm.paddr));
 		fprintf(stderr, "unsigned long filesz size of segment in file ");
-		fprintf(stderr, " H(%08X) D(%ld)\n", SWAP32(prgm.filesz), SWAP32(prgm.filesz));
+		fprintf(stderr, " H(%08X) D(%u)\n", (unsigned int)SWAP32(prgm.filesz), (unsigned int)SWAP32(prgm.filesz));
 		fprintf(stderr, "unsigned long memsz size of segment in memory ");
-		fprintf(stderr, " H(%08X) D(%ld)\n", SWAP32(prgm.memsz), SWAP32(prgm.memsz));
+		fprintf(stderr, " H(%08X) D(%u)\n", (unsigned int)SWAP32(prgm.memsz), (unsigned int)SWAP32(prgm.memsz));
 		fprintf(stderr, "unsigned long flags Segment flags ");
-		fprintf(stderr, " H(%08X) D(%ld)\n", SWAP32(prgm.flags), SWAP32(prgm.flags));
+		fprintf(stderr, " H(%08X) D(%u)\n", (unsigned int)SWAP32(prgm.flags), (unsigned int)SWAP32(prgm.flags));
 		fprintf(stderr, "unsigned long align alignment file and memory");
-		fprintf(stderr, " %ld\n", SWAP32(prgm.align));
+		fprintf(stderr, " %u\n", (unsigned int)SWAP32(prgm.align));
 	
 		len = SWAP32(prgm.filesz);
 		if (i == 1) {
@@ -169,7 +169,7 @@ char	*av[];
 			    break;
 		} while( --len > 0 );
 		if( len > 0 )
-			fprintf(stderr, "unexpected EOF on input, %d left\n", len);
+			fprintf(stderr, "unexpected EOF on input, %ld left\n", len);
 		if((len = SWAP32(prgm.filesz) & 15) != 0) {
 			while(len++ < 16) /* Align to 16 */
 				putc( 0, out);
