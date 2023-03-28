@@ -36,60 +36,62 @@
 #ifndef __MACHINE_ELF_H__
 #define __MACHINE_ELF_H__
 
+#include <stdint.h>
+
 /* ELF executable header... */
 struct ehdr {
   char elf_magic [4];		/* Elf magic number... */
-  unsigned long magic [3];	/* Magic number... */
-  unsigned short type;		/* Object file type... */
-  unsigned short machine;	/* Machine ID... */
-  unsigned long version;	/* File format version... */
-  unsigned long entry;		/* Entry point... */
-  unsigned long phoff;		/* Program header table offset... */
-  unsigned long shoff;		/* Section header table offset... */
-  unsigned long flags;		/* Processor-specific flags... */
-  unsigned short ehsize;	/* Elf header size in bytes... */
-  unsigned short phsize;	/* Program header size... */
-  unsigned short phcount;	/* Program header count... */
-  unsigned short shsize;	/* Section header size... */
-  unsigned short shcount;	/* Section header count... */
-  unsigned short shstrndx;	/* Section header string table index... */
+  uint32_t magic [3];		/* Magic number... */
+  uint16_t type;		/* Object file type... */
+  uint16_t machine;		/* Machine ID... */
+  uint32_t version;		/* File format version... */
+  uint32_t entry;		/* Entry point... */
+  uint32_t phoff;		/* Program header table offset... */
+  uint32_t shoff;		/* Section header table offset... */
+  uint32_t flags;		/* Processor-specific flags... */
+  uint16_t ehsize;		/* Elf header size in bytes... */
+  uint16_t phsize;		/* Program header size... */
+  uint16_t phcount;		/* Program header count... */
+  uint16_t shsize;		/* Section header size... */
+  uint16_t shcount;		/* Section header count... */
+  uint16_t shstrndx;		/* Section header string table index... */
 };
 
 /* Program header... */
 struct phdr {
-  unsigned long type;		/* Segment type... */
-  unsigned long offset;		/* File offset... */
-  unsigned long vaddr;		/* Virtual address... */
-  unsigned long paddr;		/* Physical address... */
-  unsigned long filesz;		/* Size of segment in file... */
-  unsigned long memsz;		/* Size of segment in memory... */
-  unsigned long flags;		/* Segment flags... */
-  unsigned long align;		/* Alighment, file and memory... */
+  uint32_t type;		/* Segment type... */
+  uint32_t offset;		/* File offset... */
+  uint32_t vaddr;		/* Virtual address... */
+  uint32_t paddr;		/* Physical address... */
+  uint32_t filesz;		/* Size of segment in file... */
+  uint32_t memsz;		/* Size of segment in memory... */
+  uint32_t flags;		/* Segment flags... */
+  uint32_t align;		/* Alighment, file and memory... */
 };
 
 /* Section header... */
 struct shdr {
-  unsigned long name;		/* Offset into string table of section name */
-  unsigned long type;		/* Type of section... */
-  unsigned long flags;		/* Section flags... */
-  unsigned long addr;		/* Section virtual address at execution... */
-  unsigned long offset;		/* Section file offset... */
-  unsigned long size;		/* Section size... */
-  unsigned long link;		/* Link to another section... */
-  unsigned long info;		/* Additional section info... */
-  unsigned long align;		/* Section alignment... */
-  unsigned long esize;		/* Entry size if section holds table... */
+  uint32_t name;		/* Offset into string table of section name */
+  uint32_t type;		/* Type of section... */
+  uint32_t flags;		/* Section flags... */
+  uint32_t addr;		/* Section virtual address at execution... */
+  uint32_t offset;		/* Section file offset... */
+  uint32_t size;		/* Section size... */
+  uint32_t link;		/* Link to another section... */
+  uint32_t info;		/* Additional section info... */
+  uint32_t align;		/* Section alignment... */
+  uint32_t esize;		/* Entry size if section holds table... */
 };
 
 /* Symbol table entry... */
 struct sym {
-  unsigned long name;		/* Index into strtab of symbol name. */
-  unsigned long value;		/* Section offset, virt addr or common align. */
-  unsigned long size;		/* Size of object referenced. */
+  uint32_t name;		/* Index into strtab of symbol name. */
+  uint32_t value;		/* Section offset, virt addr or common align. */
+  uint32_t size;		/* Size of object referenced. */
   unsigned type    : 4;		/* Symbol type (e.g., function, data)... */
   unsigned binding : 4;		/* Symbol binding (e.g., global, local)... */
   unsigned char other;		/* Unused. */
-  unsigned short shndx;		/* Section containing symbol. */
+  uint16_t shndx;		/* Section containing symbol. */
 };
 
 /* Values for program header type field */
