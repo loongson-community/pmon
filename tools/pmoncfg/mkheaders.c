@@ -178,8 +178,8 @@ writeit:
 	}
 	if (fprintf(fp, "%s", new_contents) < 0)
 		return (err("writ", fname, fp));
-	if (fclose(fp))
-		return (err("writ", fname, fp));
+	if (fclose(fp) == EOF)
+		return (err("writ", fname, NULL));
 	return (0);
 }
 
