@@ -1120,6 +1120,11 @@ bsp_start:
 #endif
 #endif
 
+#ifdef LEMOTE_PCIE_PERSTN
+    GPIO_CLEAR_OUTPUT(1 << 4)
+    TTYDBG("Lemote PCIE PERST_N asserted.\r\n")
+#endif
+
 ##########################################
 	PRINTSTR("NO TLB cache init ...\r\n")
 
