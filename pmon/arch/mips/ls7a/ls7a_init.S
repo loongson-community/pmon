@@ -370,6 +370,12 @@
     and     t1, t1, t2
     sw      t1, CONF_NB_OFFSET(t0)
 
+
+#ifdef LEMOTE_PCIE_PERSTN
+    GPIO_SET_OUTPUT(1 << 4)
+    TTYDBG("Lemote PCIE PERST_N deasserted.\r\n")
+#endif
+
     //TTYDBG("PCIE clock status: \r\n")
     //lw      a0, 0x424(t0)
     //bal     hexserial
@@ -1076,11 +1082,6 @@ cal_one_pcie_x8:
     and     t1, t1, t2
     sw      t1, 0x420(t0)
     TTYDBG("Graphics disabled.\r\n")
-#endif
-
-#ifdef LEMOTE_PCIE_PERSTN
-    GPIO_SET_OUTPUT(1 << 4)
-    TTYDBG("Lemote PCIE PERST_N deasserted.\r\n")
 #endif
 
 #define PCIE_TRY_GEN2 1
