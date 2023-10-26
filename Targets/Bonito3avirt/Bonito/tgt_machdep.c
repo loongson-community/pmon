@@ -575,13 +575,15 @@ void cfg_coherent(int ac, char *av[])
 
 time_t tgt_gettime()
 {
-	return RTC_TIME_LOW | RTC_TIME_HIGH << 32;
+	u64 rtc_ns = RTC_TIME_LOW | RTC_TIME_HIGH << 32;
+	return rtc_ns / 1000000000;
 }
 
 void tgt_settime(time_t t)
 {
-	RTC_TIME_HIGH = t >> 32;
-	RTC_TIME_LOW = t & 0xffffffff;
+	u64 rtc_ns = t * 1000000000;
+	RTC_TIME_HIGH = rtc_ns >> 32;
+	RTC_TIME_LOW = rtc_ns & 0xffffffff;
 }
 
 
