@@ -3,7 +3,7 @@ S:=$(shell cd ../../../..; pwd)
 endif
 TARGET= ${S}/Targets/LS2K
 SUBTARGET?=ls2k
-CPPFLAGS=-mips3
+CPPFLAGS=-mips3 -mfp32
 
 %OBJS
 
