@@ -137,7 +137,7 @@ static int isprint (unsigned char ch)
 *RETURN VALUE: none.
 *
 *===========================================================================*/
-void __inline__ wait_ms(unsigned long ms)
+void wait_ms(unsigned long ms)
 {
 	unsigned int now = get_timer(0);
 	do {

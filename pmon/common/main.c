@@ -1197,7 +1197,7 @@ void __attribute__((weak)) print_cpu_info(void)
 	printf (" %s MHz", fs);
 }
 
-inline uint32_t read_c0_count()
+uint32_t read_c0_count()
 {
 	uint32_t ret;
 	__asm__ __volatile__(
@@ -1210,7 +1210,7 @@ inline uint32_t read_c0_count()
 }
 
 
-inline void __loop_delay(unsigned int loops)
+void __loop_delay(unsigned int loops)
 {
 	__asm__ __volatile__(
 	"		.set noreorder			\n"
