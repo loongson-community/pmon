@@ -44,6 +44,8 @@ option      USE_SB_I2C
 option      BONITO_33M
 #option      BONITO_25M
 #option      BONITO_50M
+option       DDR_FREQ=667
+
 
 #option  LOONGSON_3BSINGLE
 option  LOONGSON_3B1500

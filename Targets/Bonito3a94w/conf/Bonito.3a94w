@@ -46,6 +46,7 @@ option		RESERVED_COREMASK=0x0000
 option		SHUTDOWN_MASK=0x0000
 
 option      BONITO_33M
+option      DDR_FREQ=600
 option		BOOT_PARAM
 option	    LOONGSON_3A84W
 select     	amd_780e
