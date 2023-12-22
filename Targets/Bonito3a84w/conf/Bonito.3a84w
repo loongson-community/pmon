@@ -91,13 +91,13 @@ select		mod_elfload		# ELF loading
 # Command selection. Selects pmon commands
 #
 select          cmd_test_spi
-select		cmd_newmt
 select		cmd_setup
 select		mod_display
 select		cmd_about		# Display info about PMON
 select		cmd_boot		# Boot wrapper
 select		cmd_mycmd		
 select		cmd_newmt
+select		cmd_main		#windows for pmon enable, depend on 3A_INTERFACE
 select		cmd_cache		# Cache enabling
 #select		cmd_call		# Call a function command
 select		cmd_date		# Time of day command
