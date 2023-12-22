@@ -145,7 +145,7 @@ void realinitmips(unsigned long long msize)
 "			  1: b 1b;nop;" \\
           :
           : "r" (msize)
-          : "\$29", "\$2","\$4");
+          : "\$2","\$4");
 
 }
 int tgt_puts(char *str)
