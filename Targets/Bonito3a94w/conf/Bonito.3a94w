@@ -71,7 +71,7 @@ option		AUTOLOAD
 #select		mod_x86emu_int10
 #select		mod_framebuffer
 #select		mod_vesa
-#select		mod_vgacon
+select		mod_vgacon
 #option		VESAFB
 #option		INTERFACE_3A780E
 
