@@ -1,4 +1,4 @@
-#if defined(LS3_HT) || defined(LS2G_HT)
+#if defined(LS3_HT) || defined(LS2G_HT) || defined(LOONGSON2F_7INCH)
 #include <target/bonito.h>
 #endif
 
