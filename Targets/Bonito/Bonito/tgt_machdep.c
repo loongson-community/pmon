@@ -85,6 +85,8 @@ extern void *memset(void *, int, size_t);
 
 int kbd_available;
 int usb_kbd_available;
+int bios_available;
+int cmd_main_mutex = 0;
 #if NMOD_X86EMU_INT10 == 0
 int vga_available=0;
 #else

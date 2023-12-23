@@ -145,8 +145,10 @@ extern struct trapframe DBGREG;
 extern void *memset(void *, int, size_t);
 
 int kbd_available = 0;
+int bios_available;
 int usb_kbd_available;
 int vga_available = 0;
+int cmd_main_mutex = 0;
 static int  vga_ok = 0;
 
 static int md_pipefreq = 0;

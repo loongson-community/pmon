@@ -124,6 +124,8 @@ extern void *memset(void *, int, size_t);
 
 int kbd_available;
 int usb_kbd_available;;
+int bios_available;
+int cmd_main_mutex = 0;
 int vga_available;
 int vga_ok = 0;
 
