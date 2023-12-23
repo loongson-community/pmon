@@ -487,13 +487,7 @@ static int _DevPartOpen(DeviceDisk* dev, const char* dev_name)
         //dev->part = NULL;
         char *p_name = dev_name+2;
         int ide_cd_index = *p_name - '0';
-#if defined(LOONGSON_3A2H) || defined(LS7A) || defined(LOONGSON_2K)
-        if(1){
-#else
-        if(is_ide_cd_ready(ide_cd_index)){
-#endif
-            dev->dev_fstype = FS_TYPE_ISO9660;
-        }
+        dev->dev_fstype = FS_TYPE_ISO9660;
         close(fd);
         return -2;
     }
