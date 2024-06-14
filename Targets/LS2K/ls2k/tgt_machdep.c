@@ -2417,7 +2417,7 @@ struct efi_memory_map_loongson * init_memory_map()
 	(entry)++
 
 	/* PMON reserved low 0x0000_0000 ~ 0x0020_0000, 0x1f00_0000 ~ 0x2000_0000  */
-	EMAP_ENTRY(i, 0, SYSTEM_RAM_LOW, 0x00200000, (0x10000000 - 0x00200000 - 0x01000000) >> 20);
+	EMAP_ENTRY(i, 0, SYSTEM_RAM_LOW, 0x00200000, 0x0ee);
  	 /* for entry with mem_size < 1M, we set bit31 to 1 to indicate
  	  * that the unit in mem_size is Byte not MBype*/
 	if (high_size <= (0x60000000 >> 20)) {
