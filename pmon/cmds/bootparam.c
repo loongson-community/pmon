@@ -69,7 +69,7 @@ void init_reset_system(struct efi_reset_system_t *reset)
 #ifdef LS3A7A_STR
   reset->ResetCold = LS3A7A_STR_FUNC_ADDR;
 #endif
-#ifdef LOONGSON_3ASINGLE  
+#if defined(LOONGSON_3ASINGLE) || defined(LS2K_STR)  
   reset->DoSuspend = 0xffffffffbfc00500;
 #endif
 }
